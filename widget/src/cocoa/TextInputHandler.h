@@ -218,38 +218,55 @@ protected:
 class TextInputHandlerBase
 {
 public:
-  
+  nsrefcnt AddRef()
+  {
+    NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "mRefCnt is negative");
+    ++mRefCnt;
+    NS_LOG_ADDREF(this, mRefCnt, "TextInputHandlerBase", sizeof(*this));
+    return mRefCnt;
+  }
+  nsrefcnt Release()
+  {
+    NS_PRECONDITION(mRefCnt != 0, "mRefCnt is alrady zero");
+    --mRefCnt;
+    NS_LOG_RELEASE(this, mRefCnt, "TextInputHandlerBase");
+    if (mRefCnt == 0) {
+        mRefCnt = 1; 
+        delete this;
+        return 0;
+    }
+    return mRefCnt;
+  }
+
+protected:
+  nsAutoRefCnt mRefCnt;
+
+public:
+   
 
 
 
 
 
-  virtual void Init(nsChildView* aOwner);
-
-  
 
 
 
 
-
-
-
-
-
-
-  virtual PRBool OnDestroyView(NSView<mozView> *aDestroyingView);
+  virtual PRBool OnDestroyWidget(nsChildView* aDestroyingWidget);
 
 protected:
   
   
-  nsChildView* mOwnerWidget;
+  nsChildView* mWidget; 
 
   
   
-  NSView<mozView>* mView;
+  NSView<mozView>* mView; 
 
-  TextInputHandlerBase();
+  TextInputHandlerBase(nsChildView* aWidget, NSView<mozView> *aNativeView);
   virtual ~TextInputHandlerBase();
+
+  PRBool Destroyed() { return !mWidget; }
 };
 
 
@@ -259,7 +276,7 @@ protected:
 class PluginTextInputHandler : public TextInputHandlerBase
 {
 protected:
-  PluginTextInputHandler();
+  PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   ~PluginTextInputHandler();
 };
 
@@ -279,7 +296,7 @@ protected:
 class IMEInputHandler : public PluginTextInputHandler
 {
 public:
-  virtual PRBool OnDestroyView(NSView<mozView> *aDestroyingView);
+  virtual PRBool OnDestroyWidget(nsChildView* aDestroyingWidget);
 
   virtual void OnFocusChangeInGecko(PRBool aFocus);
 
@@ -436,7 +453,7 @@ protected:
   };
   PRUint32 mPendingMethods;
 
-  IMEInputHandler();
+  IMEInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   virtual ~IMEInputHandler();
 
   PRBool IsFocused();
@@ -560,7 +577,7 @@ public:
   static CFArrayRef CreateAllKeyboardLayoutList();
   static void DebugPrintAllKeyboardLayouts(PRLogModuleInfo* aLogModuleInfo);
 
-  TextInputHandler();
+  TextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   virtual ~TextInputHandler();
 };
 

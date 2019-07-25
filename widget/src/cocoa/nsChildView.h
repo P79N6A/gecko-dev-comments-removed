@@ -133,6 +133,15 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   
   nsChildView* mGeckoChild;
 
+  
+  
+  
+  
+  
+  
+  
+  mozilla::widget::TextInputHandler* mTextInputHandler;  
+
   BOOL mIsPluginView;
   NPEventModel mPluginEventModel;
   NPDrawingModel mPluginDrawingModel;
@@ -418,11 +427,6 @@ public:
   static PRUint32 GetCurrentInputEventCount();
   static void UpdateCurrentInputEventCount();
 
-  mozilla::widget::TextInputHandler* TextInputHandler()
-  {
-    return &mTextInputHandler;
-  }
-
   NSView<mozView>* GetEditorView();
 
   PRBool IsPluginView() { return (mWindowType == eWindowType_plugin); }
@@ -454,7 +458,7 @@ protected:
 protected:
 
   NSView<mozView>*      mView;      
-  mozilla::widget::TextInputHandler mTextInputHandler;
+  nsRefPtr<mozilla::widget::TextInputHandler> mTextInputHandler;
   IMEContext            mIMEContext;
 
   NSView<mozView>*      mParentView;

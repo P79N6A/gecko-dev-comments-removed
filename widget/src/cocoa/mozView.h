@@ -42,11 +42,23 @@
 #import <Cocoa/Cocoa.h>
 class nsIWidget;
 
+namespace mozilla {
+namespace widget{
+class TextInputHandler;
+} 
+} 
+
 
 
 
 
 @protocol mozView
+
+  
+  
+  
+- (void)installTextInputHandler:(mozilla::widget::TextInputHandler*)aHandler;
+- (void)uninstallTextInputHandler;
 
   
 - (nsIWidget*)widget;
