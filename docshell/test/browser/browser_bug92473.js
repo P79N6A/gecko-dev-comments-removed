@@ -41,11 +41,13 @@ function afterChangeCharset() {
 function test() {
   waitForExplicitFinish();
 
+  
+  
+  
   var jar = getJar(getRootDirectory(gTestPath));
   var dir = jar ?
               extractJarToTmp(jar) :
               getChromeDir(getResolvedURI(gTestPath));
-
   var rootDir = Services.io.newFileURI(dir).spec;
 
   gBrowser.selectedTab = gBrowser.addTab(rootDir + "test-form_sjis.html");
