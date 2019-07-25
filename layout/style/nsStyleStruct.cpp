@@ -1127,6 +1127,7 @@ nsStylePosition::nsStylePosition(void)
   mBoxSizing = NS_STYLE_BOX_SIZING_CONTENT;
 #ifdef MOZ_FLEXBOX
   mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_START;
+  mOrder = NS_STYLE_ORDER_INITIAL;
 #endif 
   mZIndex.SetAutoValue();
 }
@@ -1153,6 +1154,14 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   }
 
 #ifdef MOZ_FLEXBOX
+  
+  
+  
+  
+  if (mOrder != aOther.mOrder) {
+    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
+  }
+
   
   
   

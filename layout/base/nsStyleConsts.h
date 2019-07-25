@@ -399,6 +399,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 #ifdef MOZ_FLEXBOX
 
+
+
+#define NS_STYLE_ORDER_INITIAL                  0
+
+
 #define NS_STYLE_JUSTIFY_CONTENT_FLEX_START     0
 #define NS_STYLE_JUSTIFY_CONTENT_FLEX_END       1
 #define NS_STYLE_JUSTIFY_CONTENT_CENTER         2
