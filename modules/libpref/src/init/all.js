@@ -205,8 +205,12 @@ pref("gfx.downloadable_fonts.sanitize", true);
 
 pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
+#ifdef ANDROID
+pref("gfx.font_rendering.harfbuzz.scripts", 71);
+#else
 
 pref("gfx.font_rendering.harfbuzz.scripts", 3);
+#endif
 #endif
 
 #ifdef XP_WIN
