@@ -86,10 +86,9 @@ using namespace std;
 
 
 #define DEFINE_bool(flag_name, default_value, description) \
-  bool FLAGS_ ## flag_name = default_value;
+  bool FLAGS_ ## flag_name = default_value
 #define DECLARE_bool(flag_name) \
-  extern bool FLAGS_ ## flag_name;
-#define REGISTER_MODULE_INITIALIZER(name, code)
+  extern bool FLAGS_ ## flag_name
 
 namespace snappy {
 

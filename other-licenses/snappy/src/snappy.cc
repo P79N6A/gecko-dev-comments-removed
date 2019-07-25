@@ -194,13 +194,13 @@ static inline char* EmitLiteral(char* op,
   return op + len;
 }
 
-static inline char* EmitCopyLessThan64(char* op, int offset, int len) {
+static inline char* EmitCopyLessThan64(char* op, size_t offset, int len) {
   DCHECK_LE(len, 64);
   DCHECK_GE(len, 4);
   DCHECK_LT(offset, 65536);
 
   if ((len < 12) && (offset < 2048)) {
-    int len_minus_4 = len - 4;
+    size_t len_minus_4 = len - 4;
     assert(len_minus_4 < 8);            
     *op++ = COPY_1_BYTE_OFFSET | ((len_minus_4) << 2) | ((offset >> 8) << 5);
     *op++ = offset & 0xff;
@@ -212,7 +212,7 @@ static inline char* EmitCopyLessThan64(char* op, int offset, int len) {
   return op;
 }
 
-static inline char* EmitCopy(char* op, int offset, int len) {
+static inline char* EmitCopy(char* op, size_t offset, int len) {
   
   while (len >= 68) {
     op = EmitCopyLessThan64(op, offset, 64);
@@ -249,7 +249,7 @@ uint16* WorkingMemory::GetHashTable(size_t input_size, int* table_size) {
   
   
   assert(kMaxHashTableSize >= 256);
-  int htsize = 256;
+  size_t htsize = 256;
   while (htsize < kMaxHashTableSize && htsize < input_size) {
     htsize <<= 1;
   }
@@ -304,14 +304,14 @@ char* CompressFragment(const char* input,
   CHECK_LE(input_size, kBlockSize);
   CHECK_EQ(table_size & (table_size - 1), 0) << ": table must be power of two";
   const int shift = 32 - Bits::Log2Floor(table_size);
-  DCHECK_EQ(kuint32max >> shift, table_size - 1);
+  DCHECK_EQ(static_cast<int>(kuint32max >> shift), table_size - 1);
   const char* ip_end = input + input_size;
   const char* base_ip = ip;
   
   
   const char* next_emit = ip;
 
-  const int kInputMarginBytes = 15;
+  const size_t kInputMarginBytes = 15;
   if (PREDICT_TRUE(input_size >= kInputMarginBytes)) {
     const char* ip_limit = input + input_size - kInputMarginBytes;
 
@@ -387,7 +387,7 @@ char* CompressFragment(const char* input,
         const char* base = ip;
         int matched = 4 + FindMatchLength(candidate + 4, ip + 4, ip_end);
         ip += matched;
-        int offset = base - candidate;
+        size_t offset = base - candidate;
         DCHECK_EQ(0, memcmp(base, candidate, matched));
         op = EmitCopy(op, offset, matched);
         
@@ -420,6 +420,20 @@ char* CompressFragment(const char* input,
   return op;
 }
 }  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -587,7 +601,6 @@ static void ComputeTable() {
     CHECK_EQ(dst[i], char_table[i]);
   }
 }
-REGISTER_MODULE_INITIALIZER(snappy, ComputeTable());
 #endif 
 
 
@@ -655,29 +668,41 @@ class SnappyDecompressor {
   template <class Writer>
   void DecompressAllTags(Writer* writer) {
     const char* ip = ip_;
-    for ( ;; ) {
-      if (ip_limit_ - ip < 5) {
-        ip_ = ip;
-        if (!RefillTag()) return;
-        ip = ip_;
-      }
 
+    
+    
+    
+    
+    #define MAYBE_REFILL() \
+        if (ip_limit_ - ip < 5) { \
+          ip_ = ip; \
+          if (!RefillTag()) return; \
+          ip = ip_; \
+        }
+
+    MAYBE_REFILL();
+    for ( ;; ) {
       const unsigned char c = *(reinterpret_cast<const unsigned char*>(ip++));
 
       if ((c & 0x3) == LITERAL) {
-        uint32 literal_length = c >> 2;
-        if (PREDICT_FALSE(literal_length >= 60)) {
+        size_t literal_length = (c >> 2) + 1u;
+        if (writer->TryFastAppend(ip, ip_limit_ - ip, literal_length)) {
+          DCHECK_LT(literal_length, 61);
+          ip += literal_length;
+          MAYBE_REFILL();
+          continue;
+        }
+        if (PREDICT_FALSE(literal_length >= 61)) {
           
-          const uint32 literal_length_length = literal_length - 59;
+          const size_t literal_length_length = literal_length - 60;
           literal_length =
-              LittleEndian::Load32(ip) & wordmask[literal_length_length];
+              (LittleEndian::Load32(ip) & wordmask[literal_length_length]) + 1;
           ip += literal_length_length;
         }
-        ++literal_length;
 
-        uint32 avail = ip_limit_ - ip;
+        size_t avail = ip_limit_ - ip;
         while (avail < literal_length) {
-          if (!writer->Append(ip, avail, false)) return;
+          if (!writer->Append(ip, avail)) return;
           literal_length -= avail;
           reader_->Skip(peeked_);
           size_t n;
@@ -687,11 +712,11 @@ class SnappyDecompressor {
           if (avail == 0) return;  
           ip_limit_ = ip + avail;
         }
-        bool allow_fast_path = (avail >= 16);
-        if (!writer->Append(ip, literal_length, allow_fast_path)) {
+        if (!writer->Append(ip, literal_length)) {
           return;
         }
         ip += literal_length;
+        MAYBE_REFILL();
       } else {
         const uint32 entry = char_table[c];
         const uint32 trailer = LittleEndian::Load32(ip) & wordmask[entry >> 11];
@@ -705,8 +730,11 @@ class SnappyDecompressor {
         if (!writer->AppendFromSelf(copy_offset + trailer, length)) {
           return;
         }
+        MAYBE_REFILL();
       }
     }
+
+#undef MAYBE_REFILL
   }
 };
 
@@ -796,7 +824,7 @@ bool GetUncompressedLength(Source* source, uint32* result) {
 
 size_t Compress(Source* reader, Sink* writer) {
   size_t written = 0;
-  int N = reader->Available();
+  size_t N = reader->Available();
   char ulength[Varint::kMax32];
   char* p = Varint::Encode32(ulength, N);
   writer->Append(ulength, p-ulength);
@@ -811,10 +839,10 @@ size_t Compress(Source* reader, Sink* writer) {
     size_t fragment_size;
     const char* fragment = reader->Peek(&fragment_size);
     DCHECK_NE(fragment_size, 0) << ": premature end of input";
-    const int num_to_read = min(N, kBlockSize);
+    const size_t num_to_read = min(N, kBlockSize);
     size_t bytes_read = fragment_size;
 
-    int pending_advance = 0;
+    size_t pending_advance = 0;
     if (bytes_read >= num_to_read) {
       
       pending_advance = num_to_read;
@@ -902,26 +930,34 @@ class SnappyArrayWriter {
     return op_ == op_limit_;
   }
 
-  inline bool Append(const char* ip, uint32 len, bool allow_fast_path) {
+  inline bool Append(const char* ip, size_t len) {
     char* op = op_;
-    const int space_left = op_limit_ - op;
-    if (allow_fast_path && len <= 16 && space_left >= 16) {
-      
-      UNALIGNED_STORE64(op, UNALIGNED_LOAD64(ip));
-      UNALIGNED_STORE64(op + 8, UNALIGNED_LOAD64(ip + 8));
-    } else {
-      if (space_left < len) {
-        return false;
-      }
-      memcpy(op, ip, len);
+    const size_t space_left = op_limit_ - op;
+    if (space_left < len) {
+      return false;
     }
+    memcpy(op, ip, len);
     op_ = op + len;
     return true;
   }
 
-  inline bool AppendFromSelf(uint32 offset, uint32 len) {
+  inline bool TryFastAppend(const char* ip, size_t available, size_t len) {
     char* op = op_;
-    const int space_left = op_limit_ - op;
+    const size_t space_left = op_limit_ - op;
+    if (len <= 16 && available >= 16 && space_left >= 16) {
+      
+      UNALIGNED_STORE64(op, UNALIGNED_LOAD64(ip));
+      UNALIGNED_STORE64(op + 8, UNALIGNED_LOAD64(ip + 8));
+      op_ = op + len;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  inline bool AppendFromSelf(size_t offset, size_t len) {
+    char* op = op_;
+    const size_t space_left = op_limit_ - op;
 
     if (op - base_ <= offset - 1u) {  
       return false;
@@ -985,11 +1021,14 @@ class SnappyDecompressionValidator {
   inline bool CheckLength() const {
     return expected_ == produced_;
   }
-  inline bool Append(const char* ip, uint32 len, bool allow_fast_path) {
+  inline bool Append(const char* ip, size_t len) {
     produced_ += len;
     return produced_ <= expected_;
   }
-  inline bool AppendFromSelf(uint32 offset, uint32 len) {
+  inline bool TryFastAppend(const char* ip, size_t available, size_t length) {
+    return false;
+  }
+  inline bool AppendFromSelf(size_t offset, size_t len) {
     if (produced_ <= offset - 1u) return false;  
     produced_ += len;
     return produced_ <= expected_;

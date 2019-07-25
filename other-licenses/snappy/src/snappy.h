@@ -144,10 +144,10 @@ namespace snappy {
   
   
   static const int kBlockLog = 15;
-  static const int kBlockSize = 1 << kBlockLog;
+  static const size_t kBlockSize = 1 << kBlockLog;
 
   static const int kMaxHashTableBits = 14;
-  static const int kMaxHashTableSize = 1 << kMaxHashTableBits;
+  static const size_t kMaxHashTableSize = 1 << kMaxHashTableBits;
 
 }  
 
