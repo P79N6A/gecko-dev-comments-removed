@@ -5146,14 +5146,21 @@ nsTypedSelection::Extend(nsINode* aParentNode, PRInt32 aOffset)
 
   if (NS_FAILED(res))
     return res;
+  
+  
+  
+  PRBool disconnected = PR_FALSE;
   PRInt32 result1 = nsContentUtils::ComparePoints(anchorNode, anchorOffset,
-                                                  focusNode, focusOffset);
+                                                  focusNode, focusOffset,
+                                                  &disconnected);
   
   PRInt32 result2 = nsContentUtils::ComparePoints(focusNode, focusOffset,
-                                                  aParentNode, aOffset);
+                                                  aParentNode, aOffset,
+                                                  &disconnected);
   
   PRInt32 result3 = nsContentUtils::ComparePoints(anchorNode, anchorOffset,
-                                                  aParentNode, aOffset);
+                                                  aParentNode, aOffset,
+                                                  &disconnected);
 
   if (result2 == 0) 
     return NS_OK;
