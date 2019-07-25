@@ -93,6 +93,12 @@ pref("offline-apps.quota.max",        204800);
 pref("offline-apps.quota.warn",        51200);
 
 
+
+
+
+pref("browser.cache.compression_level", 5);
+
+
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
