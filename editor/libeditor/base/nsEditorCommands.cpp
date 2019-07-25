@@ -656,16 +656,18 @@ nsSelectAllCommand::IsCommandEnabled(const char * aCommandName,
   NS_ENSURE_ARG_POINTER(outCmdEnabled);
 
   nsresult rv = NS_OK;
-  *outCmdEnabled = false;
+  
+  
+  *outCmdEnabled = true;
   bool docIsEmpty;
- 
+
   
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(aCommandRefCon);
   if (editor) {
     rv = editor->GetDocumentIsEmpty(&docIsEmpty);
     NS_ENSURE_SUCCESS(rv, rv);
     *outCmdEnabled = !docIsEmpty;
-  } 
+  }
 
   return rv;
 }

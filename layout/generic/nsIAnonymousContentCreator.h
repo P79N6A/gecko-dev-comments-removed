@@ -84,6 +84,10 @@ public:
 
 
 
+
+
+
+
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements)=0;
 
   

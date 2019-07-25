@@ -417,6 +417,12 @@ nsHTMLEditor::FindSelectionRoot(nsINode *aNode)
   }
 
   if (!content->HasFlag(NODE_IS_EDITABLE)) {
+    
+    
+    if (content->IsElement() &&
+        content->AsElement()->State().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
+      return content.forget();
+    }
     return nsnull;
   }
 
@@ -5699,6 +5705,20 @@ nsHTMLEditor::GetInputEventTargetContent()
 {
   nsCOMPtr<nsIContent> target = GetActiveEditingHost();
   return target.forget();
+}
+
+bool
+nsHTMLEditor::IsEditable(nsIContent* aNode) {
+  if (!nsPlaintextEditor::IsEditable(aNode)) {
+    return false;
+  }
+  if (aNode->IsElement()) {
+    
+    return aNode->IsEditable();
+  }
+  
+  
+  return true;
 }
 
 

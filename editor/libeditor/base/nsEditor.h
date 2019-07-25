@@ -581,7 +581,7 @@ public:
 
   
   bool IsEditable(nsIDOMNode *aNode);
-  bool IsEditable(nsIContent *aNode);
+  virtual bool IsEditable(nsIContent *aNode);
 
   
 

@@ -145,6 +145,20 @@ nsITextControlElement::GetWrapPropertyEnum(nsIContent* aContent,
   return false;
 }
 
+
+already_AddRefed<nsITextControlElement>
+nsITextControlElement::GetTextControlElementFromEditingHost(nsIContent* aHost)
+{
+  if (!aHost) {
+    return nsnull;
+  }
+
+  nsCOMPtr<nsITextControlElement> parent =
+    do_QueryInterface(aHost->GetParent());
+
+  return parent.forget();
+}
+
 static bool
 SuppressEventHandlers(nsPresContext* aPresContext)
 {
@@ -1566,6 +1580,9 @@ nsTextEditorState::CreateRootNode()
 nsresult
 nsTextEditorState::InitializeRootNode()
 {
+  
+  mRootNode->SetFlags(NODE_IS_EDITABLE);
+
   
   
   
