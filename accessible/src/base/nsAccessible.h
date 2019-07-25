@@ -518,7 +518,7 @@ protected:
 
 
   inline bool IsChildrenFlag(ChildrenFlags aFlag) const
-    { return (mFlags & kChildrenFlagsMask) == aFlag; }
+    { return static_cast<ChildrenFlags> (mFlags & kChildrenFlagsMask) == aFlag; }
 
   
 
