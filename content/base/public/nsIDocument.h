@@ -119,8 +119,8 @@ class Element;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0x0218352e, 0x9ddf, 0x43b0, \
-  { 0xb6, 0x1d, 0xd3, 0x1a, 0x47, 0x7a, 0xfd, 0x89 } }
+{ 0xbd862a79, 0xc31b, 0x419b, \
+  { 0x92, 0x90, 0xa0, 0x77, 0x08, 0x62, 0xd4, 0xc4 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1295,6 +1295,20 @@ public:
 
 
 
+  PRBool AllowXULXBL() {
+    return mAllowXULXBL == eTriTrue ? PR_TRUE :
+           mAllowXULXBL == eTriFalse ? PR_FALSE :
+           InternalAllowXULXBL();
+  }
+
+  void ForceEnableXULXBL() {
+    mAllowXULXBL = eTriTrue;
+  }
+
+  
+
+
+
   PRBool IsStaticDocument() { return mIsStaticDocument; }
 
   
@@ -1471,6 +1485,9 @@ protected:
   virtual nsIScriptGlobalObject* GetScriptHandlingObjectInternal() const = 0;
 
   
+  virtual PRBool InternalAllowXULXBL() = 0;
+
+  
 
 
 
@@ -1552,6 +1569,12 @@ protected:
 
   PRPackedBool mIsRegularHTML;
   PRPackedBool mIsXUL;
+
+  enum {
+    eTriUnset = 0,
+    eTriFalse,
+    eTriTrue
+  } mAllowXULXBL;
 
   
   
