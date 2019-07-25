@@ -38,6 +38,7 @@
 
 
 #include "mozilla/dom/AudioParent.h"
+#include "mozilla/unused.h"
 #include "nsThreadUtils.h"
 
 
@@ -222,7 +223,7 @@ bool
 AudioParent::RecvShutdown()
 {
   Shutdown();
-  PAudioParent::Send__delete__(this);
+  unused << PAudioParent::Send__delete__(this);
   return true;
 }
 
