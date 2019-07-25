@@ -114,6 +114,7 @@ class THEBES_API ImageContainer {
   THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 
 public:
+  ImageContainer() {}
   virtual ~ImageContainer() {}
 
   
@@ -178,6 +179,13 @@ public:
 
 
   virtual PRBool SetLayerManager(LayerManager *aManager) = 0;
+
+  
+
+
+
+
+  virtual void SetScaleHint(const gfxIntSize& ) { }
 
 protected:
   LayerManager* mManager;
