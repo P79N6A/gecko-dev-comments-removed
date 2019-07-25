@@ -43,6 +43,11 @@ public:
 
   bool CombineWithPrincipal(nsIPrincipal* aPrincipal);
 
+  
+
+
+  static already_AddRefed<nsDOMMediaStream> CreateInputStream();
+
 protected:
   
   

@@ -111,6 +111,7 @@ public:
 };
 
 class MediaStreamGraphImpl;
+class SourceMediaStream;
 
 
 
@@ -215,6 +216,8 @@ public:
   bool IsFinished() { return mMainThreadFinished; }
 
   friend class MediaStreamGraphImpl;
+
+  virtual SourceMediaStream* AsSourceStream() { return nsnull; }
 
   
   void Init();
@@ -346,11 +349,129 @@ protected:
 
 
 
+
+
+class SourceMediaStream : public MediaStream {
+public:
+  SourceMediaStream(nsDOMMediaStream* aWrapper) :
+    MediaStream(aWrapper), mMutex("mozilla::media::SourceMediaStream"),
+    mUpdateKnownTracksTime(0), mUpdateFinished(false)
+  {}
+
+  virtual SourceMediaStream* AsSourceStream() { return this; }
+
+  
+  
+
+
+
+
+
+  void AddTrack(TrackID aID, TrackRate aRate, TrackTicks aStart,
+                MediaSegment* aSegment);
+  
+
+
+
+  void AppendToTrack(TrackID aID, MediaSegment* aSegment);
+  
+
+
+  bool HaveEnoughBuffered(TrackID aID);
+  
+
+
+
+
+  void DispatchWhenNotEnoughBuffered(TrackID aID,
+      nsIThread* aSignalThread, nsIRunnable* aSignalRunnable);
+  
+
+
+
+  void EndTrack(TrackID aID);
+  
+
+
+
+  void AdvanceKnownTracksTime(StreamTime aKnownTime);
+  
+
+
+
+
+
+  void Finish();
+
+  
+
+  friend class MediaStreamGraph;
+  friend class MediaStreamGraphImpl;
+
+  struct ThreadAndRunnable {
+    void Init(nsIThread* aThread, nsIRunnable* aRunnable)
+    {
+      mThread = aThread;
+      mRunnable = aRunnable;
+    }
+
+    nsCOMPtr<nsIThread> mThread;
+    nsCOMPtr<nsIRunnable> mRunnable;
+  };
+  enum TrackCommands {
+    TRACK_CREATE = 0x01,
+    TRACK_END = 0x02
+  };
+  
+
+
+  struct TrackData {
+    TrackID mID;
+    TrackRate mRate;
+    TrackTicks mStart;
+    
+    
+    PRUint32 mCommands;
+    
+    
+    nsAutoPtr<MediaSegment> mData;
+    nsTArray<ThreadAndRunnable> mDispatchWhenNotEnough;
+    bool mHaveEnough;
+  };
+
+protected:
+  TrackData* FindDataForTrack(TrackID aID)
+  {
+    for (PRUint32 i = 0; i < mUpdateTracks.Length(); ++i) {
+      if (mUpdateTracks[i].mID == aID) {
+        return &mUpdateTracks[i];
+      }
+    }
+    NS_ERROR("Bad track ID!");
+    return nsnull;
+  }
+
+  Mutex mMutex;
+  
+  StreamTime mUpdateKnownTracksTime;
+  nsTArray<TrackData> mUpdateTracks;
+  bool mUpdateFinished;
+};
+
+
+
+
+
 class MediaStreamGraph {
 public:
   
   static MediaStreamGraph* GetInstance();
   
+  
+
+
+
+  SourceMediaStream* CreateInputStream(nsDOMMediaStream* aWrapper);
   
 
 
