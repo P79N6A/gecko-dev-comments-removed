@@ -673,7 +673,7 @@ nsEditor::DoTransaction(nsITransaction *aTxn)
     selPrivate->EndBatchChanges(); 
   }
  
-  NS_POSTCONDITION((NS_SUCCEEDED(result)), "transaction did not execute properly");
+  NS_ENSURE_SUCCESS(result, result);
 
   return result;
 }
