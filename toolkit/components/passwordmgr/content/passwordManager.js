@@ -44,6 +44,7 @@
 
 
 var kSignonBundle;
+var showingPasswords = false;
 
 function SignonsStartup() {
   kSignonBundle = document.getElementById("signonBundle");
@@ -171,7 +172,7 @@ function DeleteAllSignons() {
 }
 
 function TogglePasswordVisible() {
-  if (showingPasswords || ConfirmShowPasswords()) {
+  if (showingPasswords || masterPasswordLogin(AskUserShowPasswords)) {
     showingPasswords = !showingPasswords;
     document.getElementById("togglePasswords").label = kSignonBundle.getString(showingPasswords ? "hidePasswords" : "showPasswords");
     document.getElementById("togglePasswords").accessKey = kSignonBundle.getString(showingPasswords ? "hidePasswordsAccessKey" : "showPasswordsAccessKey");
@@ -195,29 +196,6 @@ function AskUserShowPasswords() {
           null,
           kSignonBundle.getString("noMasterPasswordPrompt"), prompter.STD_YES_NO_BUTTONS,
           null, null, null, null, dummy) == 0;    
-}
-
-function ConfirmShowPasswords() {
-  
-  var tokendb = Components.classes["@mozilla.org/security/pk11tokendb;1"]
-                    .createInstance(Components.interfaces.nsIPK11TokenDB);
-  var token = tokendb.getInternalKeyToken();
-
-  
-  if (token.checkPassword(""))
-    return AskUserShowPasswords();
-
-  
-  try {
-    
-    token.login(true);  
-                        
-  } catch (e) {
-    
-    
-  }
-
-  return token.isLoggedIn();
 }
 
 function FinalizeSignonDeletions(syncNeeded) {
@@ -373,6 +351,10 @@ function _filterPasswords()
 
 function CopyPassword() {
   
+  
+  if (!showingPasswords && !masterPasswordLogin())
+    return;
+  
   var clipboard = Components.classes["@mozilla.org/widget/clipboardhelper;1"].
                   getService(Components.interfaces.nsIClipboardHelper);
   var row = document.getElementById("signonsTree").currentIndex;
@@ -387,4 +369,27 @@ function UpdateCopyPassword() {
     menuitem.removeAttribute("disabled");
   else
     menuitem.setAttribute("disabled", "true");
+}
+
+function masterPasswordLogin(noPasswordCallback) {
+  
+  var tokendb = Components.classes["@mozilla.org/security/pk11tokendb;1"]
+                    .createInstance(Components.interfaces.nsIPK11TokenDB);
+  var token = tokendb.getInternalKeyToken();
+
+  
+  if (token.checkPassword(""))
+    return noPasswordCallback ? noPasswordCallback() : true;
+
+  
+  try {
+    
+    token.login(true);  
+                        
+  } catch (e) {
+    
+    
+  }
+
+  return token.isLoggedIn();
 }
