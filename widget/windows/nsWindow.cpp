@@ -5056,12 +5056,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     }
     break;
 
-    case WM_HSCROLL:
-    case WM_VSCROLL:
-      *aRetValue = 0;
-      result = OnScroll(msg, wParam, lParam);
-      break;
-
     
     
     
@@ -5205,14 +5199,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       }
     }
     break;
-
-  case WM_MOUSEWHEEL:
-  case WM_MOUSEHWHEEL:
-    OnMouseWheel(msg, wParam, lParam, aRetValue);
-    
-    
-    
-    return true;
 
   case WM_DWMCOMPOSITIONCHANGED:
     
@@ -7027,158 +7013,6 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
 
 bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)
 {
-  return true;
-}
-
-
-
-
-
-
-
-void
-nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
-                       LRESULT *aRetValue)
-{
-  *aRetValue = (aMsg != WM_MOUSEHWHEEL) ? TRUE : FALSE;
-
-  MouseScrollHandler* handler = MouseScrollHandler::GetInstance();
-  POINT point = handler->ComputeMessagePos(aMsg, aWParam, aLParam);
-  HWND underCursorWnd = ::WindowFromPoint(point);
-  if (!underCursorWnd) {
-    return;
-  }
-
-  if (MouseScrollHandler::Device::Elantech::IsPinchHackNeeded() &&
-      MouseScrollHandler::Device::Elantech::IsHelperWindow(underCursorWnd)) {
-    
-    
-    
-    
-    underCursorWnd = WinUtils::FindOurWindowAtPoint(point);
-    if (!underCursorWnd) {
-      return;
-    }
-  }
-
-  
-  
-  
-  if (WinUtils::IsOurProcessWindow(underCursorWnd)) {
-    nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd);
-    if (!destWindow) {
-      NS_WARNING("We're not sure what cause this is.");
-      HWND wnd = ::GetParent(underCursorWnd);
-      for (; wnd; wnd = ::GetParent(wnd)) {
-        destWindow = WinUtils::GetNSWindowPtr(wnd);
-        if (destWindow) {
-          break;
-        }
-      }
-      if (!wnd) {
-        return;
-      }
-    }
-
-    NS_ASSERTION(destWindow, "destWindow must not be NULL");
-    
-    
-    
-    
-    
-    if (destWindow->mWindowType == eWindowType_plugin) {
-      destWindow = destWindow->GetParentWindow(false);
-      NS_ENSURE_TRUE(destWindow, );
-    }
-    UINT internalMessage = WinUtils::GetInternalMessage(aMsg);
-    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
-    return;
-  }
-
-  
-  
-  
-  HWND pluginWnd = WinUtils::FindOurProcessWindow(underCursorWnd);
-  if (!pluginWnd) {
-    
-    
-    
-    return;
-  }
-
-  
-  
-  
-  
-  
-  if (mWindowType == eWindowType_plugin && pluginWnd == mWnd) {
-    nsWindow* destWindow = GetParentWindow(false);
-    NS_ENSURE_TRUE(destWindow, );
-    UINT internalMessage = WinUtils::GetInternalMessage(aMsg);
-    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
-    return;
-  }
-
-  
-  ::PostMessage(underCursorWnd, aMsg, aWParam, aLParam);
-}
-
-
-
-
-
-bool
-nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
-{
-  if (aLParam ||
-      MouseScrollHandler::GetInstance()->
-        GetUserPrefs().IsScrollMessageHandledAsWheelMessage()) {
-    
-    
-    LRESULT retVal;
-    OnMouseWheel(aMsg, aWParam, aLParam, &retVal);
-    
-    
-    return true;
-  }
-
-  
-  nsContentCommandEvent command(true, NS_CONTENT_COMMAND_SCROLL, this);
-
-  command.mScroll.mIsHorizontal = (aMsg == WM_HSCROLL);
-
-  switch (LOWORD(aWParam))
-  {
-    case SB_LINEUP:   
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
-      command.mScroll.mAmount = -1;
-      break;
-    case SB_LINEDOWN: 
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
-      command.mScroll.mAmount = 1;
-      break;
-    case SB_PAGEUP:   
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
-      command.mScroll.mAmount = -1;
-      break;
-    case SB_PAGEDOWN: 
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
-      command.mScroll.mAmount = 1;
-      break;
-    case SB_TOP:      
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
-      command.mScroll.mAmount = -1;
-      break;
-    case SB_BOTTOM:   
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
-      command.mScroll.mAmount = 1;
-      break;
-    default:
-      return false;
-  }
-  
-  
-  DispatchWindowEvent(&command);
   return true;
 }
 

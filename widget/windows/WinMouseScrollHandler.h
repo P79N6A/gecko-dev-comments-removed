@@ -35,21 +35,6 @@ public:
                              LRESULT *aRetValue,
                              bool &aEatMessage);
 
-  
-
-
-
-
-
-
-
-
-
-
-  POINT ComputeMessagePos(UINT aMessage,
-                          WPARAM aWParam,
-                          LPARAM aLParam);
-
 private:
   MouseScrollHandler();
   ~MouseScrollHandler();
@@ -82,6 +67,42 @@ private:
 
 
 
+
+
+
+
+  void ProcessNativeMouseWheelMessage(nsWindow* aWindow,
+                                      UINT aMessage,
+                                      WPARAM aWParam,
+                                      LPARAM aLParam);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  bool ProcessNativeScrollMessage(nsWindow* aWindow,
+                                  UINT aMessage,
+                                  WPARAM aWParam,
+                                  LPARAM aLParam);
+
+  
+
+
+
+
+
+
+
+
+
   void HandleMouseWheelMessage(nsWindow* aWindow,
                                UINT aMessage,
                                WPARAM aWParam,
@@ -102,6 +123,21 @@ private:
                                               UINT aMessage,
                                               WPARAM aWParam,
                                               LPARAM aLParam);
+
+  
+
+
+
+
+
+
+
+
+
+
+  POINT ComputeMessagePos(UINT aMessage,
+                          WPARAM aWParam,
+                          LPARAM aLParam);
 
   class EventInfo;
   
@@ -279,7 +315,6 @@ private:
 
   SystemSettings mSystemSettings;
 
-public:
   class UserPrefs {
   public:
     UserPrefs();
@@ -313,12 +348,6 @@ public:
     bool mScrollMessageHandledAsWheelMessage;
   };
 
-  UserPrefs& GetUserPrefs()
-  {
-    return mUserPrefs;
-  }
-
-private:
   UserPrefs mUserPrefs;
 
 public:
