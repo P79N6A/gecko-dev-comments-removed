@@ -435,6 +435,16 @@ var BrowserApp = {
           name: prefName
         };
 
+        
+        
+        if (prefName == "plugin.enable") {
+          
+          pref.type = "string";
+          pref.value = PluginHelper.getPluginPreference();
+          prefs.push(pref);
+          continue;
+        }
+
         try {
           switch (Services.prefs.getPrefType(prefName)) {
             case Ci.nsIPrefBranch.PREF_BOOL:
@@ -489,6 +499,13 @@ var BrowserApp = {
 
   setPreferences: function setPreferences(aPref) {
     let json = JSON.parse(aPref);
+
+    
+    
+    if (json.name == "plugin.enable") {
+      PluginHelper.setPluginPreference(json.value);
+      return;
+    }
 
     
     
@@ -2923,6 +2940,32 @@ var PluginHelper = {
     for (let i = 0; i < plugins.length; i++) {
       let objLoadingContent = plugins[i].QueryInterface(Ci.nsIObjectLoadingContent);
       objLoadingContent.playPlugin();
+    }
+  },
+
+  getPluginPreference: function getPluginPreference() {
+    let pluginDisable = Services.prefs.getBoolPref("plugin.disable");
+    if (pluginDisable)
+      return "0";
+
+    let clickToPlay = Services.prefs.getBoolPref("plugins.click_to_play");
+    return clickToPlay ? "2" : "1";
+  },
+
+  setPluginPreference: function setPluginPreference(aValue) {
+    switch (aValue) {
+      case "0": 
+        Services.prefs.setBoolPref("plugin.disable", true);
+        Services.prefs.clearUserPref("plugins.click_to_play");
+        break;
+      case "1": 
+        Services.prefs.clearUserPref("plugin.disable");
+        Services.prefs.setBoolPref("plugins.click_to_play", false);
+        break;
+      case "2": 
+        Services.prefs.clearUserPref("plugin.disable");
+        Services.prefs.clearUserPref("plugins.click_to_play");
+        break;
     }
   },
 
