@@ -169,4 +169,4 @@ private:
   nsAutoArrayPtr<nsFramesetSpec>  mColSpecs; 
 };
 
-#endif nsHTMLFrameSetElement_h
+#endif 
