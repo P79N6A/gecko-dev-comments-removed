@@ -75,7 +75,6 @@ protected:
   void GetFileName(nsAString& aResult);
 
   nsresult LinkStylesheet(const nsAString& aStylesheet);
-  void InsertMediaFragmentScript();
 
   
   
