@@ -103,7 +103,7 @@ nsCOMPtr<nsIDOMNode> nsEventShell::sEventTargetNode;
 
 
 nsAccEventQueue::nsAccEventQueue(nsDocAccessible *aDocument):
-  mProcessingStarted(PR_FALSE), mDocument(aDocument)
+  mProcessingStarted(PR_FALSE), mDocument(aDocument), mFlushingEventsCount(0)
 {
 }
 
@@ -197,10 +197,11 @@ nsAccEventQueue::Flush()
 
   
   
-  PRUint32 length = mEvents.Length();
-  NS_ASSERTION(length, "How did we get here without events to fire?");
+  mFlushingEventsCount = mEvents.Length();
+  NS_ASSERTION(mFlushingEventsCount,
+               "How did we get here without events to fire?");
 
-  for (PRUint32 index = 0; index < length; index ++) {
+  for (PRUint32 index = 0; index < mFlushingEventsCount; index ++) {
 
     
     
@@ -220,7 +221,8 @@ nsAccEventQueue::Flush()
   
   
   if (mDocument && mDocument->HasWeakShell()) {
-    mEvents.RemoveElementsAt(0, length);
+    mEvents.RemoveElementsAt(0, mFlushingEventsCount);
+    mFlushingEventsCount = 0;
     PrepareFlush();
   }
 }
@@ -230,29 +232,94 @@ nsAccEventQueue::CoalesceEvents()
 {
   PRUint32 numQueuedEvents = mEvents.Length();
   PRInt32 tail = numQueuedEvents - 1;
-
   nsAccEvent* tailEvent = mEvents[tail];
+
+  
+  
+  if (!tailEvent->mNode)
+    return;
+
   switch(tailEvent->mEventRule) {
     case nsAccEvent::eCoalesceFromSameSubtree:
     {
-      for (PRInt32 index = 0; index < tail; index ++) {
+      for (PRInt32 index = tail - 1; index >= mFlushingEventsCount; index--) {
         nsAccEvent* thisEvent = mEvents[index];
+
         if (thisEvent->mEventType != tailEvent->mEventType)
           continue; 
 
-        if (thisEvent->mEventRule == nsAccEvent::eAllowDupes ||
-            thisEvent->mEventRule == nsAccEvent::eDoNotEmit)
-          continue; 
+        
+        
+        
+        if (!thisEvent->mNode || !thisEvent->mNode->IsInDoc() ||
+            thisEvent->mNode->GetOwnerDoc() != tailEvent->mNode->GetOwnerDoc())
+          continue;
 
-        if (thisEvent->mNode == tailEvent->mNode) {
-          if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
-            CoalesceReorderEventsFromSameSource(thisEvent, tailEvent);
-            continue;
+        
+        
+        
+        if (thisEvent->mNode->GetNodeParent() ==
+            tailEvent->mNode->GetNodeParent()) {
+          tailEvent->mEventRule = thisEvent->mEventRule;
+          return;
+        }
+
+        
+        PRBool thisCanBeDescendantOfTail = PR_FALSE;
+
+        
+        if (thisEvent->mEventRule == nsAccEvent::eDoNotEmit) {
+          
+          
+          
+          
+
+          
+          
+          
+
+          if (thisEvent->mNode == tailEvent->mNode) {
+            thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
+            return;
+          }
+
+        } else {
+          
+          
+          
+          
+
+          
+          
+          
+          if (thisEvent->mNode == tailEvent->mNode) {
+            
+            
+            if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+              CoalesceReorderEventsFromSameSource(thisEvent, tailEvent);
+              if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit)
+                continue;
+            }
+            else {
+              tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
+            }
+
+            return;
           }
 
           
-          thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
-          continue;
+          
+
+          
+          
+          
+          
+          
+          
+          
+          thisCanBeDescendantOfTail =
+            tailEvent->mEventType != nsIAccessibleEvent::EVENT_SHOW ||
+            tailEvent->mIsAsync;
         }
 
         
@@ -261,23 +328,45 @@ nsAccEventQueue::CoalesceEvents()
         
         
         
-        PRBool thisCanBeDescendantOfTail =
-          tailEvent->mEventType != nsIAccessibleEvent::EVENT_SHOW ||
-          tailEvent->mIsAsync;
+        if (tailEvent->mEventType != nsIAccessibleEvent::EVENT_HIDE &&
+            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
 
+          if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
+            CoalesceReorderEventsFromSameTree(thisEvent, tailEvent);
+            if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit)
+              continue;
+
+            return;
+          }
+
+          tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
+          return;
+        }
+
+#ifdef DEBUG
+        if (tailEvent->mEventType == nsIAccessibleEvent::EVENT_HIDE &&
+            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
+          NS_NOTREACHED("More older hide event target is an ancestor of recent hide event target!");
+        }
+#endif
+
+        
+        
         if (thisCanBeDescendantOfTail &&
             nsCoreUtils::IsAncestorOf(tailEvent->mNode, thisEvent->mNode)) {
-          
 
           if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
             CoalesceReorderEventsFromSameTree(tailEvent, thisEvent);
-            continue;
+            if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit)
+              continue;
+
+            return;
           }
 
           
           
           thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
-          ApplyToSiblings(0, index, thisEvent->mEventType,
+          ApplyToSiblings(mFlushingEventsCount, index, thisEvent->mEventType,
                           thisEvent->mNode, nsAccEvent::eDoNotEmit);
           continue;
         }
@@ -289,55 +378,22 @@ nsAccEventQueue::CoalesceEvents()
         }
 #endif
 
-        
-        
-        if (tailEvent->mEventType != nsIAccessibleEvent::EVENT_HIDE &&
-            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
-          
-
-          if (thisEvent->mEventType == nsIAccessibleEvent::EVENT_REORDER) {
-            CoalesceReorderEventsFromSameTree(thisEvent, tailEvent);
-            continue;
-          }
-
-          
-          
-          tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
-          ApplyToSiblings(0, tail, tailEvent->mEventType,
-                          tailEvent->mNode, nsAccEvent::eDoNotEmit);
-          break;
-        }
-
-#ifdef DEBUG
-        if (tailEvent->mEventType == nsIAccessibleEvent::EVENT_HIDE &&
-            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
-          NS_NOTREACHED("More older hide event target is an ancestor of recent hide event target!");
-        }
-#endif
-
       } 
 
-      if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit) {
-        
-        
-        
-
-        
-        
-        
-        ApplyToSiblings(0, tail, tailEvent->mEventType,
-                        tailEvent->mNode, nsAccEvent::eAllowDupes);
-      }
     } break; 
 
     case nsAccEvent::eCoalesceFromSameDocument:
     {
-      for (PRInt32 index = 0; index < tail; index ++) {
+      
+      
+      
+      for (PRInt32 index = tail - 1; index >= mFlushingEventsCount; index--) {
         nsAccEvent* thisEvent = mEvents[index];
         if (thisEvent->mEventType == tailEvent->mEventType &&
             thisEvent->mEventRule == tailEvent->mEventRule &&
             thisEvent->GetDocAccessible() == tailEvent->GetDocAccessible()) {
           thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
+          return;
         }
       }
     } break; 
@@ -345,12 +401,14 @@ nsAccEventQueue::CoalesceEvents()
     case nsAccEvent::eRemoveDupes:
     {
       
-      for (PRInt32 index = 0; index < tail; index ++) {
+      
+      for (PRInt32 index = tail - 1; index >= mFlushingEventsCount; index--) {
         nsAccEvent* accEvent = mEvents[index];
         if (accEvent->mEventType == tailEvent->mEventType &&
             accEvent->mEventRule == tailEvent->mEventRule &&
             accEvent->mNode == tailEvent->mNode) {
-          accEvent->mEventRule = nsAccEvent::eDoNotEmit;
+          tailEvent->mEventRule = nsAccEvent::eDoNotEmit;
+          return;
         }
       }
     } break; 
@@ -369,7 +427,7 @@ nsAccEventQueue::ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
     nsAccEvent* accEvent = mEvents[index];
     if (accEvent->mEventType == aEventType &&
         accEvent->mEventRule != nsAccEvent::eDoNotEmit &&
-        nsCoreUtils::AreSiblings(accEvent->mNode, aNode)) {
+        accEvent->mNode->GetNodeParent() == aNode->GetNodeParent()) {
       accEvent->mEventRule = aEventRule;
     }
   }
@@ -406,15 +464,6 @@ nsAccEventQueue::CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
 {
   
   nsCOMPtr<nsAccReorderEvent> reorderEvent = do_QueryInterface(aAccEvent);
-  if (reorderEvent->IsUnconditionalEvent()) {
+  if (reorderEvent->IsUnconditionalEvent())
     aDescendantAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
-    return;
-  }
-
-  
-  
-  if (reorderEvent->HasAccessibleInReasonSubtree())
-    aDescendantAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
-  else
-    aAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
 }

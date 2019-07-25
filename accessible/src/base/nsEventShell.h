@@ -156,8 +156,25 @@ private:
   void CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
                                          nsAccEvent *aDescendantAccEvent);
 
+  
+
+
   PRBool mProcessingStarted;
+
+  
+
+
   nsRefPtr<nsDocAccessible> mDocument;
+
+  
+
+
+
+  PRInt32 mFlushingEventsCount;
+
+  
+
+
   nsTArray<nsRefPtr<nsAccEvent> > mEvents;
 };
 

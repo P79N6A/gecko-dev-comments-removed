@@ -161,13 +161,6 @@ public:
 
 
 
-   static PRBool AreSiblings(nsINode *aNode1, nsINode *aNode2);
-
-  
-
-
-
-
 
 
 
