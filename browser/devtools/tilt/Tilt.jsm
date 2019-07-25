@@ -286,16 +286,18 @@ Tilt.prototype = {
 
     
     let onOpened = function() {
-      if (this.currentInstance) {
-        this.chromeWindow.InspectorUI.stopInspecting();
-        this.inspectButton.disabled = true;
-        this.highlighterContainer.style.display = "none";
+      if (this.inspector && this.highlighter && this.currentInstance) {
+        this.inspector.stopInspecting();
+        this.inspector.inspectToolbutton.disabled = true;
+        this.highlighter.hide();
       }
     }.bind(this);
 
     let onClosed = function() {
-      this.inspectButton.disabled = false;
-      this.highlighterContainer.style.display = "";
+      if (this.inspector && this.highlighter) {
+        this.inspector.inspectToolbutton.disabled = false;
+        this.highlighter.show();
+      }
     }.bind(this);
 
     Services.obs.addObserver(onOpened,
@@ -340,29 +342,25 @@ Tilt.prototype = {
   
 
 
+  get inspector()
+  {
+    return this.chromeWindow.InspectorUI;
+  },
+
+  
+
+
+  get highlighter()
+  {
+    return this.inspector.highlighter;
+  },
+
+  
+
+
   get tiltButton()
   {
     return this.chromeWindow.document.getElementById(
       "inspector-3D-button");
-  },
-
-  
-
-
-
-  get inspectButton()
-  {
-    return this.chromeWindow.document.getElementById(
-      "inspector-inspect-toolbutton");
-  },
-
-  
-
-
-
-  get highlighterContainer()
-  {
-    return this.chromeWindow.document.getElementById(
-      "highlighter-container");
   }
 };
