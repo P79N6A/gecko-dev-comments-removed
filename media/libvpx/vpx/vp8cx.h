@@ -22,7 +22,8 @@
 
 #ifndef VP8CX_H
 #define VP8CX_H
-#include "vpx/vpx_codec_impl_top.h"
+#include "vpx_codec_impl_top.h"
+
 
 
 
@@ -31,6 +32,7 @@
 
 extern vpx_codec_iface_t  vpx_codec_vp8_cx_algo;
 extern vpx_codec_iface_t* vpx_codec_vp8_cx(void);
+
 
 
 
@@ -116,6 +118,9 @@ extern vpx_codec_iface_t* vpx_codec_vp8_cx(void);
 
 
 
+
+
+
 enum vp8e_enc_control_id
 {
     VP8E_UPD_ENTROPY           = 5,  
@@ -124,7 +129,18 @@ enum vp8e_enc_control_id
     VP8E_SET_ROI_MAP,                
     VP8E_SET_ACTIVEMAP,              
     VP8E_SET_SCALEMODE         = 11, 
-    VP8E_SET_CPUUSED           = 13, 
+    
+
+
+
+
+
+
+
+
+
+
+    VP8E_SET_CPUUSED           = 13,
     VP8E_SET_ENABLEAUTOALTREF,       
     VP8E_SET_NOISE_SENSITIVITY,      
     VP8E_SET_SHARPNESS,              
@@ -140,7 +156,29 @@ enum vp8e_enc_control_id
     VP8E_SET_ARNR_MAXFRAMES,         
     VP8E_SET_ARNR_STRENGTH ,         
     VP8E_SET_ARNR_TYPE     ,         
-} ;
+    VP8E_SET_TUNING,                 
+    
+
+
+
+
+
+    VP8E_SET_CQ_LEVEL,
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    VP8E_SET_MAX_INTRA_BITRATE_PCT,
+};
 
 
 
@@ -229,6 +267,18 @@ typedef enum
 
 
 
+typedef enum
+{
+    VP8_TUNE_PSNR,
+    VP8_TUNE_SSIM
+} vp8e_tuning;
+
+
+
+
+
+
+
 
 
 
@@ -253,11 +303,15 @@ VPX_CTRL_USE_TYPE(VP8E_SET_TOKEN_PARTITIONS,   vp8e_token_partitions)
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_MAXFRAMES,     unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_STRENGTH ,     unsigned int)
 VPX_CTRL_USE_TYPE(VP8E_SET_ARNR_TYPE     ,     unsigned int)
-
+VPX_CTRL_USE_TYPE(VP8E_SET_TUNING,             vp8e_tuning)
+VPX_CTRL_USE_TYPE(VP8E_SET_CQ_LEVEL     ,      unsigned int)
 
 VPX_CTRL_USE_TYPE(VP8E_GET_LAST_QUANTIZER,     int *)
 VPX_CTRL_USE_TYPE(VP8E_GET_LAST_QUANTIZER_64,  int *)
 
+VPX_CTRL_USE_TYPE(VP8E_SET_MAX_INTRA_BITRATE_PCT, unsigned int)
 
-#include "vpx/vpx_codec_impl_bottom.h"
+
+
+#include "vpx_codec_impl_bottom.h"
 #endif

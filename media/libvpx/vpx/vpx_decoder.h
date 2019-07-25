@@ -53,6 +53,10 @@ extern "C" {
 #define VPX_CODEC_CAP_PUT_SLICE  0x10000 /**< Will issue put_slice callbacks */
 #define VPX_CODEC_CAP_PUT_FRAME  0x20000 /**< Will issue put_frame callbacks */
 #define VPX_CODEC_CAP_POSTPROC   0x40000 /**< Can postprocess decoded frame */
+#define VPX_CODEC_CAP_ERROR_CONCEALMENT   0x80000 /**< Can conceal errors due to
+                                                       packet loss */
+#define VPX_CODEC_CAP_INPUT_PARTITION   0x100000 /**< Can receive encoded frames
+                                                    one partition at a time */
 
     
 
@@ -62,6 +66,11 @@ extern "C" {
 
 
 #define VPX_CODEC_USE_POSTPROC   0x10000 /**< Postprocess decoded frame */
+#define VPX_CODEC_USE_ERROR_CONCEALMENT 0x20000 /**< Conceal errors in decoded
+                                                     frames */
+#define VPX_CODEC_USE_INPUT_PARTITION   0x40000 /**< The input frame should be
+                                                    passed to the decoder one
+                                                    partition at a time */
 
     
 
@@ -174,6 +183,11 @@ extern "C" {
 
 
     
+
+
+
+
+
 
 
 

@@ -55,6 +55,13 @@ extern "C" {
 
 #define VPX_CODEC_CAP_PSNR  0x10000 /**< Can issue PSNR packets */
 
+    
+
+
+
+
+#define VPX_CODEC_CAP_OUTPUT_PARTITION  0x20000
+
 
     
 
@@ -64,6 +71,8 @@ extern "C" {
 
 
 #define VPX_CODEC_USE_PSNR  0x10000 /**< Calculate PSNR on each frame */
+#define VPX_CODEC_USE_OUTPUT_PARTITION  0x20000 /**< Make the encoder output one
+                                                     partition at a time. */
 
 
     
@@ -99,7 +108,26 @@ extern "C" {
                 this one) */
 #define VPX_FRAME_IS_INVISIBLE 0x4 /**< frame should be decoded but will not
     be shown */
+#define VPX_FRAME_IS_FRAGMENT  0x8 /**< this is a fragment of the encoded
+    frame */
 
+    
+
+
+
+
+
+    typedef uint32_t vpx_codec_er_flags_t;
+#define VPX_ERROR_RESILIENT_DEFAULT     0x1 /**< Improve resiliency against
+                                                 losses of whole frames */
+#define VPX_ERROR_RESILIENT_PARTITIONS  0x2 /**< The frame partitions are
+                                                 independently decodable by the
+                                                 bool decoder, meaning that
+                                                 partitions can be decoded even
+                                                 though earlier partitions have
+                                                 been lost. Note that intra
+                                                 predicition is still done over
+                                                 the partition boundary. */
 
     
 
@@ -135,6 +163,13 @@ extern "C" {
                 unsigned long            duration; 
 
                 vpx_codec_frame_flags_t  flags;    
+                int                      partition_id; 
+
+
+
+
+
+
             } frame;  
             struct vpx_fixed_buf twopass_stats;  
             struct vpx_psnr_pkt
@@ -179,7 +214,8 @@ extern "C" {
     enum vpx_rc_mode
     {
         VPX_VBR, 
-        VPX_CBR  
+        VPX_CBR,  
+        VPX_CQ   
     };
 
 
@@ -294,7 +330,7 @@ extern "C" {
 
 
 
-        unsigned int           g_error_resilient;
+        vpx_codec_er_flags_t   g_error_resilient;
 
 
         
@@ -435,10 +471,18 @@ extern "C" {
 
 
 
+
+
+
+
         unsigned int           rc_undershoot_pct;
 
 
         
+
+
+
+
 
 
 

@@ -94,7 +94,7 @@ extern "C" {
     typedef int vpx_dec_caps_t;
 #define VPX_DEC_CAP_PUT_SLICE  0x0001 /**< Will issue put_slice callbacks */
 #define VPX_DEC_CAP_PUT_FRAME  0x0002 /**< Will issue put_frame callbacks */
-#define VPX_DEC_CAP_XMA        0x0004 /**< Supports e_xternal Memory Allocation */
+#define VPX_DEC_CAP_XMA        0x0004 /**< Supports eXternal Memory Allocation */
 
     
 

@@ -12,7 +12,7 @@
 #ifndef tree_reader_h
 #define tree_reader_h 1
 
-#include "treecoder.h"
+#include "vp8/common/treecoder.h"
 
 #include "dboolhuff.h"
 
@@ -38,27 +38,4 @@ static int vp8_treed_read(
     return -i;
 }
 
-
-
-
-
-
-static int vp8_treed_read_num(
-    vp8_reader *const r,        
-    vp8_tree t,
-    const vp8_prob *const p
-)
-{
-    vp8_tree_index i = 0;
-    int v = 0, b;
-
-    do
-    {
-        b = vp8_read(r, p[i>>1]);
-        v = (v << 1) + b;
-    }
-    while ((i = t[i+b]) > 0);
-
-    return v;
-}
 #endif 

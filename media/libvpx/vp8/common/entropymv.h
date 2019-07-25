@@ -18,6 +18,8 @@ enum
 {
     mv_max  = 1023,              
     MVvals = (2 * mv_max) + 1,   
+    mvfp_max  = 255,              
+    MVfpvals = (2 * mvfp_max) +1, 
 
     mvlong_width = 10,       
     mvnum_short = 8,         
