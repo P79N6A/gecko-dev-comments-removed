@@ -24,15 +24,28 @@ namespace mozilla {
 #define BFH_INTERNAL_LENGTH 18
 
 #define OS2_INTERNAL_BIH_LENGTH 8
-#define WIN_INTERNAL_BIH_LENGTH 36
+#define WIN_V3_INTERNAL_BIH_LENGTH 36
+#define WIN_V5_INTERNAL_BIH_LENGTH 120
 
 #define OS2_BIH_LENGTH 12 // This is the real BIH size (as contained in the bihsize field of BMPFILEHEADER)
-#define WIN_BIH_LENGTH 40 // This is the real BIH size (as contained in the bihsize field of BMPFILEHEADER)
+#define WIN_V3_BIH_LENGTH 40 // This is the real BIH size (as contained in the bihsize field of BMPFILEHEADER)
+#define WIN_V5_BIH_LENGTH 124 // This is the real BIH size (as contained in the bihsize field of BMPFILEHEADER)
 
 #define OS2_HEADER_LENGTH (BFH_INTERNAL_LENGTH + OS2_INTERNAL_BIH_LENGTH)
-#define WIN_HEADER_LENGTH (BFH_INTERNAL_LENGTH + WIN_INTERNAL_BIH_LENGTH)
+#define WIN_V3_HEADER_LENGTH (BFH_INTERNAL_LENGTH + WIN_V3_INTERNAL_BIH_LENGTH)
+#define WIN_V5_HEADER_LENGTH (BFH_INTERNAL_LENGTH + WIN_V5_INTERNAL_BIH_LENGTH)
 
-    struct BMPINFOHEADER {
+#define LCS_sRGB 0x73524742
+    
+    struct xyz {
+      PRInt32 x, y, z;
+    };
+
+    struct xyzTriple {
+      xyz r, g, b;
+    };
+
+    struct BITMAPV5HEADER {
       PRInt32 width; 
       PRInt32 height; 
       PRUint16 planes; 
@@ -44,6 +57,21 @@ namespace mozilla {
       PRUint32 yppm; 
       PRUint32 colors; 
       PRUint32 important_colors; 
+      PRUint32 red_mask;   
+      PRUint32 green_mask; 
+      PRUint32 blue_mask;  
+      PRUint32 alpha_mask; 
+      PRUint32 color_space; 
+      
+      xyzTriple white_point; 
+      PRUint32 gamma_red;   
+      PRUint32 gamma_green; 
+      PRUint32 gamma_blue;  
+      PRUint32 intent; 
+      
+      PRUint32 profile_offset; 
+      PRUint32 profile_size; 
+      PRUint32 reserved; 
     };
 
     struct colorTable {
