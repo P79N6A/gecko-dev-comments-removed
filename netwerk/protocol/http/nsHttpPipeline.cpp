@@ -701,8 +701,7 @@ nsHttpPipeline::WriteSegments(nsAHttpSegmentWriter *writer,
         
         nsITransport *transport = Transport();
         if (transport)
-            OnTransportStatus(transport,
-                              nsISocketTransport::STATUS_RECEIVING_FROM,
+            OnTransportStatus(transport, NS_NET_STATUS_RECEIVING_FROM,
                               mReceivingFromProgress);
 
         

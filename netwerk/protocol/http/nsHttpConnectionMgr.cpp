@@ -2694,7 +2694,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
     
     
 
-    if (status == nsISocketTransport::STATUS_CONNECTED_TO &&
+    if (status == NS_NET_STATUS_CONNECTED_TO &&
         gHttpHandler->IsSpdyEnabled() &&
         gHttpHandler->CoalesceSpdy() &&
         mEnt && mEnt->mConnInfo && mEnt->mConnInfo->UsingSSL() &&
@@ -2725,7 +2725,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
     }
 
     switch (status) {
-    case nsISocketTransport::STATUS_CONNECTING_TO:
+    case NS_NET_STATUS_CONNECTING_TO:
         
         
         
@@ -2738,7 +2738,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
             SetupBackupTimer();
         break;
 
-    case nsISocketTransport::STATUS_CONNECTED_TO:
+    case NS_NET_STATUS_CONNECTED_TO:
         
         
         CancelBackupTimer();
