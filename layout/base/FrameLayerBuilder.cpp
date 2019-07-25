@@ -657,7 +657,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 
 
 
-static PRUint32
+static PRInt32
 AppUnitsPerDevPixel(nsDisplayItem* aItem)
 {
   
@@ -1425,7 +1425,7 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   nsIntPoint offset(PRInt32(transform.x0), PRInt32(transform.y0));
 
   nsPresContext* presContext = containerLayerFrame->PresContext();
-  nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+  PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   nsRect r = (aRegionToInvalidate.GetBounds() + offset).
     ToAppUnits(appUnitsPerDevPixel);
   containerLayerFrame->InvalidateWithFlags(r,
