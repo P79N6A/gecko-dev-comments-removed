@@ -16,6 +16,14 @@
 
 
 
+
+
+
+
+
+
+
+
 function getElement(id) {
   return ((typeof(id) == "string") ?
     document.getElementById(id) : id); 
@@ -540,11 +548,6 @@ function _getDOMWindowUtils(aWindow)
   return aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
                  getInterface(Components.interfaces.nsIDOMWindowUtils);
 }
-
-
-
-
-
 
 
 
