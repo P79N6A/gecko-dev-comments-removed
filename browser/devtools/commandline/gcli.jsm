@@ -808,35 +808,6 @@ Conversion.prototype.getPredictions = function() {
 
 
 
-
-
-
-
-Conversion.prototype.getPredictionAt = function(index) {
-  if (index == null) {
-    return undefined;
-  }
-
-  var predictions = this.getPredictions();
-  if (predictions.length === 0) {
-    return undefined;
-  }
-
-  index = index % predictions.length;
-  if (index < 0) {
-    index = predictions.length + index;
-  }
-  return predictions[index];
-};
-
-
-
-
-
-
-
-
-
 Conversion.prototype.constrainPredictionIndex = function(index) {
   if (index == null) {
     return undefined;
@@ -1127,7 +1098,6 @@ exports.getType = function(typeSpec) {
 
 
 define('gcli/argument', ['require', 'exports', 'module' ], function(require, exports, module) {
-var argument = exports;
 
 
 
@@ -1185,20 +1155,48 @@ Argument.prototype.merge = function(following) {
 
 
 
-Argument.prototype.beget = function(replText, options) {
+
+
+
+
+
+
+
+
+Argument.prototype.beget = function(options) {
+  var text = this.text;
   var prefix = this.prefix;
   var suffix = this.suffix;
 
-  
-  var quote = (replText.indexOf(' ') >= 0 || replText.length == 0) ?
-      '\'' : '';
+  if (options.text != null) {
+    text = options.text;
 
-  if (options) {
-    prefix = (options.prefixSpace ? ' ' : '') + quote;
-    suffix = quote;
+    
+    var needsQuote = text.indexOf(' ') >= 0 || text.length == 0;
+    if (needsQuote && /['"]/.test(prefix)) {
+      prefix = prefix + '\'';
+      suffix = '\'' + suffix;
+    }
   }
 
-  return new Argument(replText, prefix, suffix);
+  if (options.prefixSpace && prefix.charAt(0) !== ' ') {
+    prefix = ' ' + prefix;
+  }
+
+  if (options.prefixPostSpace && prefix.charAt(prefix.length - 1) !== ' ') {
+    prefix = prefix + ' ';
+  }
+
+  if (options.suffixSpace && suffix.charAt(suffix.length - 1) !== ' ') {
+    suffix = suffix + ' ';
+  }
+
+  if (text === this.text && suffix === this.suffix && prefix === this.prefix) {
+    return this;
+  }
+
+  var type = options.type || Argument;
+  return new type(text, prefix, suffix);
 };
 
 
@@ -1282,7 +1280,7 @@ Object.defineProperty(Argument.prototype, '_summaryJson', {
   enumerable: true
 });
 
-argument.Argument = Argument;
+exports.Argument = Argument;
 
 
 
@@ -1299,7 +1297,7 @@ BlankArgument.prototype = Object.create(Argument.prototype);
 
 BlankArgument.prototype.type = 'BlankArgument';
 
-argument.BlankArgument = BlankArgument;
+exports.BlankArgument = BlankArgument;
 
 
 
@@ -1314,15 +1312,7 @@ function ScriptArgument(text, prefix, suffix) {
   this.prefix = prefix !== undefined ? prefix : '';
   this.suffix = suffix !== undefined ? suffix : '';
 
-  while (this.text.charAt(0) === ' ') {
-    this.prefix = this.prefix + ' ';
-    this.text = this.text.substring(1);
-  }
-
-  while (this.text.charAt(this.text.length - 1) === ' ') {
-    this.suffix = ' ' + this.suffix;
-    this.text = this.text.slice(0, -1);
-  }
+  ScriptArgument._moveSpaces(this);
 }
 
 ScriptArgument.prototype = Object.create(Argument.prototype);
@@ -1334,19 +1324,31 @@ ScriptArgument.prototype.type = 'ScriptArgument';
 
 
 
-ScriptArgument.prototype.beget = function(replText, options) {
-  var prefix = this.prefix;
-  var suffix = this.suffix;
 
-  if (options && options.normalize) {
-    prefix = '{ ';
-    suffix = ' }';
+
+ScriptArgument._moveSpaces = function(arg) {
+  while (arg.text.charAt(0) === ' ') {
+    arg.prefix = arg.prefix + ' ';
+    arg.text = arg.text.substring(1);
   }
 
-  return new ScriptArgument(replText, prefix, suffix);
+  while (arg.text.charAt(arg.text.length - 1) === ' ') {
+    arg.suffix = ' ' + arg.suffix;
+    arg.text = arg.text.slice(0, -1);
+  }
 };
 
-argument.ScriptArgument = ScriptArgument;
+
+
+
+ScriptArgument.prototype.beget = function(options) {
+  options.type = ScriptArgument;
+  var begotten = Argument.prototype.beget.call(this, options);
+  ScriptArgument._moveSpaces(begotten);
+  return begotten;
+};
+
+exports.ScriptArgument = ScriptArgument;
 
 
 
@@ -1406,18 +1408,18 @@ MergedArgument.prototype.equals = function(that) {
        this.prefix === that.prefix && this.suffix === that.suffix;
 };
 
-argument.MergedArgument = MergedArgument;
+exports.MergedArgument = MergedArgument;
 
 
 
 
 
 
-function TrueNamedArgument(name, arg) {
+function TrueNamedArgument(arg) {
   this.arg = arg;
-  this.text = arg ? arg.text : '--' + name;
-  this.prefix = arg ? arg.prefix : ' ';
-  this.suffix = arg ? arg.suffix : '';
+  this.text = arg.text;
+  this.prefix = arg.prefix;
+  this.suffix = arg.suffix;
 }
 
 TrueNamedArgument.prototype = Object.create(Argument.prototype);
@@ -1432,12 +1434,7 @@ TrueNamedArgument.prototype.assign = function(assignment) {
 };
 
 TrueNamedArgument.prototype.getArgs = function() {
-  
-  
-  
-  
-  
-  return this.arg ? [ this, this.arg ] : [ this ];
+  return [ this.arg ];
 };
 
 TrueNamedArgument.prototype.equals = function(that) {
@@ -1452,7 +1449,21 @@ TrueNamedArgument.prototype.equals = function(that) {
        this.prefix === that.prefix && this.suffix === that.suffix;
 };
 
-argument.TrueNamedArgument = TrueNamedArgument;
+
+
+
+TrueNamedArgument.prototype.beget = function(options) {
+  if (options.text) {
+    console.error('Can\'t change text of a TrueNamedArgument', this, options);
+  }
+
+  options.type = TrueNamedArgument;
+  var begotten = Argument.prototype.beget.call(this, options);
+  begotten.arg = new Argument(begotten.text, begotten.prefix, begotten.suffix);
+  return begotten;
+};
+
+exports.TrueNamedArgument = TrueNamedArgument;
 
 
 
@@ -1485,7 +1496,7 @@ FalseNamedArgument.prototype.equals = function(that) {
        this.prefix === that.prefix && this.suffix === that.suffix;
 };
 
-argument.FalseNamedArgument = FalseNamedArgument;
+exports.FalseNamedArgument = FalseNamedArgument;
 
 
 
@@ -1497,19 +1508,34 @@ argument.FalseNamedArgument = FalseNamedArgument;
 
 
 
-function NamedArgument(nameArg, valueArg) {
-  this.nameArg = nameArg;
-  this.valueArg = valueArg;
 
-  if (valueArg == null) {
+
+
+
+
+
+
+function NamedArgument() {
+  if (typeof arguments[0] === 'string') {
+    this.nameArg = null;
+    this.valueArg = null;
+    this.text = arguments[0];
+    this.prefix = arguments[1];
+    this.suffix = arguments[2];
+  }
+  else if (arguments[1] == null) {
+    this.nameArg = arguments[0];
+    this.valueArg = null;
     this.text = '';
-    this.prefix = nameArg.toString();
+    this.prefix = this.nameArg.toString();
     this.suffix = '';
   }
   else {
-    this.text = valueArg.text;
-    this.prefix = nameArg.toString() + valueArg.prefix;
-    this.suffix = valueArg.suffix;
+    this.nameArg = arguments[0];
+    this.valueArg = arguments[1];
+    this.text = this.valueArg.text;
+    this.prefix = this.nameArg.toString() + this.valueArg.prefix;
+    this.suffix = this.valueArg.suffix;
   }
 }
 
@@ -1526,7 +1552,7 @@ NamedArgument.prototype.assign = function(assignment) {
 };
 
 NamedArgument.prototype.getArgs = function() {
-  return [ this.nameArg, this.valueArg ];
+  return this.valueArg ? [ this.nameArg, this.valueArg ] : [ this.nameArg ];
 };
 
 NamedArgument.prototype.equals = function(that) {
@@ -1547,7 +1573,30 @@ NamedArgument.prototype.equals = function(that) {
        this.prefix === that.prefix && this.suffix === that.suffix;
 };
 
-argument.NamedArgument = NamedArgument;
+
+
+
+NamedArgument.prototype.beget = function(options) {
+  options.type = NamedArgument;
+  var begotten = Argument.prototype.beget.call(this, options);
+
+  
+  
+  var matches = /^([\s]*)([^\s]*)([\s]*)$/.exec(begotten.prefix);
+
+  if (this.valueArg == null && begotten.text === '') {
+    begotten.nameArg = new Argument(matches[2], matches[1], matches[3]);
+    begotten.valueArg = null;
+  }
+  else {
+    begotten.nameArg = new Argument(matches[2], matches[1], '');
+    begotten.valueArg = new Argument(begotten.text, matches[3], begotten.suffix);
+  }
+
+  return begotten;
+};
+
+exports.NamedArgument = NamedArgument;
 
 
 
@@ -1620,7 +1669,7 @@ ArrayArgument.prototype.toString = function() {
   }, this).join(',') + '}';
 };
 
-argument.ArrayArgument = ArrayArgument;
+exports.ArrayArgument = ArrayArgument;
 
 
 });
@@ -2368,8 +2417,8 @@ function Command(commandSpec) {
   paramSpecs.forEach(function(spec) {
     if (!spec.group) {
       if (usingGroups) {
-        console.error('Parameters can\'t come after param groups.' +
-            ' Ignoring ' + this.name + '/' + spec.name);
+        throw new Error('Parameters can\'t come after param groups.' +
+                        ' Ignoring ' + this.name + '/' + spec.name);
       }
       else {
         var param = new Parameter(spec, this, null);
@@ -2412,7 +2461,7 @@ function Parameter(paramSpec, command, groupName) {
 
   if (!this.name) {
     throw new Error('In ' + this.command.name +
-      ': all params must have a name');
+                    ': all params must have a name');
   }
 
   var typeSpec = this.type;
@@ -2420,16 +2469,16 @@ function Parameter(paramSpec, command, groupName) {
   if (this.type == null) {
     console.error('Known types: ' + types.getTypeNames().join(', '));
     throw new Error('In ' + this.command.name + '/' + this.name +
-      ': can\'t find type for: ' + JSON.stringify(typeSpec));
+                    ': can\'t find type for: ' + JSON.stringify(typeSpec));
   }
 
   
   
   if (this.type instanceof BooleanType) {
     if (this.defaultValue !== undefined) {
-      console.error('In ' + this.command.name + '/' + this.name +
-          ': boolean parameters can not have a defaultValue.' +
-          ' Ignoring');
+      throw new Error('In ' + this.command.name + '/' + this.name +
+                      ': boolean parameters can not have a defaultValue.' +
+                      ' Ignoring');
     }
     this.defaultValue = false;
   }
@@ -2443,14 +2492,14 @@ function Parameter(paramSpec, command, groupName) {
       var defaultText = this.type.stringify(this.defaultValue);
       var defaultConversion = this.type.parseString(defaultText);
       if (defaultConversion.getStatus() !== Status.VALID) {
-        console.error('In ' + this.command.name + '/' + this.name +
-            ': Error round tripping defaultValue. status = ' +
-            defaultConversion.getStatus());
+        throw new Error('In ' + this.command.name + '/' + this.name +
+                        ': Error round tripping defaultValue. status = ' +
+                        defaultConversion.getStatus());
       }
     }
     catch (ex) {
-      console.error('In ' + this.command.name + '/' + this.name +
-        ': ' + ex);
+      throw new Error('In ' + this.command.name + '/' + this.name +
+                      ': ' + ex);
     }
   }
 
@@ -2463,8 +2512,8 @@ function Parameter(paramSpec, command, groupName) {
   
   
   if (!this.isPositionalAllowed && this.defaultValue === undefined) {
-    console.error('In ' + this.command.name + '/' + this.name +
-            ': Missing defaultValue for optional parameter.');
+    throw new Error('In ' + this.command.name + '/' + this.name +
+                    ': Missing defaultValue for optional parameter.');
   }
 }
 
@@ -5111,6 +5160,47 @@ Assignment.prototype.getPredictions = function() {
 
 
 
+Assignment.prototype.getPredictionAt = function(index) {
+  if (index == null) {
+    index = 0;
+  }
+
+  if (this.isInName()) {
+    return undefined;
+  }
+
+  var predictions = this.getPredictions();
+  if (predictions.length === 0) {
+    return undefined;
+  }
+
+  index = index % predictions.length;
+  if (index < 0) {
+    index = predictions.length + index;
+  }
+  return predictions[index];
+};
+
+
+
+
+
+
+
+
+Assignment.prototype.isInName = function() {
+  return this.conversion.arg.type === 'NamedArgument' &&
+         this.conversion.arg.prefix.slice(-1) !== ' ';
+};
+
+
+
+
+
+
+
+
+
 
 Assignment.prototype.setConversion = function(conversion) {
   var oldConversion = this.conversion;
@@ -5150,7 +5240,8 @@ Assignment.prototype.ensureVisibleArgument = function() {
     return false;
   }
 
-  var arg = this.conversion.arg.beget('', {
+  var arg = this.conversion.arg.beget({
+    text: '',
     prefixSpace: this.param instanceof CommandAssignment
   });
   this.conversion = this.param.type.parse(arg);
@@ -5179,32 +5270,6 @@ Assignment.prototype.getStatus = function(arg) {
   }
 
   return this.conversion.getStatus(arg);
-};
-
-
-
-
-Assignment.prototype.decrement = function() {
-  var replacement = this.param.type.decrement(this.conversion.value);
-  if (replacement != null) {
-    var str = this.param.type.stringify(replacement);
-    var arg = this.conversion.arg.beget(str);
-    var conversion = new Conversion(replacement, arg);
-    this.setConversion(conversion);
-  }
-};
-
-
-
-
-Assignment.prototype.increment = function() {
-  var replacement = this.param.type.increment(this.conversion.value);
-  if (replacement != null) {
-    var str = this.param.type.stringify(replacement);
-    var arg = this.conversion.arg.beget(str);
-    var conversion = new Conversion(replacement, arg);
-    this.setConversion(conversion);
-  }
 };
 
 
@@ -5427,12 +5492,6 @@ function Requisition(environment, doc) {
 
 
 
-
-var MORE_THAN_THE_MOST_ARGS_POSSIBLE = 1000000;
-
-
-
-
 Requisition.prototype.destroy = function() {
   this.commandAssignment.onAssignmentChange.remove(this._commandAssignmentChanged, this);
   this.commandAssignment.onAssignmentChange.remove(this._assignmentChanged, this);
@@ -5463,47 +5522,6 @@ Requisition.prototype._assignmentChanged = function(ev) {
   if (ev.conversion.argEquals(ev.oldConversion)) {
     return;
   }
-
-  this._structuralChangeInProgress = true;
-
-  
-  
-  
-  var i;
-  if (ev.assignment.param.isPositionalAllowed) {
-    for (i = 0; i < ev.assignment.paramIndex; i++) {
-      var assignment = this.getAssignment(i);
-      if (assignment.param.isPositionalAllowed) {
-        if (assignment.ensureVisibleArgument()) {
-          this._args.push(assignment.arg);
-        }
-      }
-    }
-  }
-
-  
-  var index = MORE_THAN_THE_MOST_ARGS_POSSIBLE;
-  for (i = 0; i < this._args.length; i++) {
-    if (this._args[i].assignment === ev.assignment) {
-      if (i < index) {
-        index = i;
-      }
-      this._args.splice(i, 1);
-      i--;
-    }
-  }
-
-  if (index === MORE_THAN_THE_MOST_ARGS_POSSIBLE) {
-    this._args.push(ev.assignment.arg);
-  }
-  else {
-    
-    var newArgs = ev.conversion.arg.getArgs();
-    for (i = 0; i < newArgs.length; i++) {
-      this._args.splice(index + i, 0, newArgs[i]);
-    }
-  }
-  this._structuralChangeInProgress = false;
 
   this.onTextChange();
 };
@@ -5543,6 +5561,28 @@ Requisition.prototype.getAssignment = function(nameOrNumber) {
     nameOrNumber :
     Object.keys(this._assignments)[nameOrNumber];
   return this._assignments[name] || undefined;
+};
+
+
+
+
+
+
+
+
+
+Requisition.prototype._getFirstBlankPositionalAssignment = function() {
+  var reply = null;
+  Object.keys(this._assignments).some(function(name) {
+    var assignment = this.getAssignment(name);
+    if (assignment.arg.type === 'BlankArgument' &&
+            assignment.param.isPositionalAllowed) {
+      reply = assignment;
+      return true; 
+    }
+    return false;
+  }, this);
+  return reply;
 };
 
 
@@ -5631,19 +5671,34 @@ Requisition.prototype.getAssignments = function(includeCommand) {
 
 
 Requisition.prototype.setAssignment = function(assignment, arg) {
-  var originalArg = assignment.arg;
+  var originalArgs = assignment.arg.getArgs();
   var conversion = assignment.param.type.parse(arg);
   assignment.setConversion(conversion);
 
-  
-  
-  
-  if (originalArg.type === 'BlankArgument') {
-    this._args.push(arg);
-  }
-  else {
-    var index = this._args.indexOf(originalArg);
-    this._args[index] = conversion.arg;
+  var replacementArgs = arg.getArgs();
+  var maxLen = Math.max(originalArgs.length, replacementArgs.length);
+  for (var i = 0; i < maxLen; i++) {
+    
+    
+    if (i >= originalArgs.length || originalArgs[i].type === 'BlankArgument') {
+      this._args.push(replacementArgs[i]);
+      continue;
+    }
+
+    var index = this._args.indexOf(originalArgs[i]);
+    if (index === -1) {
+      console.error('Couldn\'t find ', originalArgs[i], ' in ', this._args);
+      throw new Error('Couldn\'t find ' + originalArgs[i]);
+    }
+
+    
+    
+    if (i >= replacementArgs.length) {
+      this._args.splice(index, 1);
+    }
+    else {
+      this._args[index] = replacementArgs[i];
+    }
   }
 };
 
@@ -5672,64 +5727,114 @@ Requisition.prototype.setBlankArguments = function() {
 Requisition.prototype.complete = function(cursor, predictionChoice) {
   var assignment = this.getAssignmentAt(cursor.start);
 
-  var predictions = assignment.conversion.getPredictions();
-  if (predictions.length > 0) {
-    this.onTextChange.holdFire();
+  this.onTextChange.holdFire();
 
-    var prediction = assignment.conversion.getPredictionAt(predictionChoice);
+  var prediction = assignment.getPredictionAt(predictionChoice);
+  if (prediction == null) {
+    
+    
+    
+    
+    
+    
+    if (assignment.arg.suffix.slice(-1) !== ' ' &&
+            assignment.getStatus() === Status.VALID) {
+      this._addSpace(assignment);
+    }
 
     
-    var arg = assignment.arg.beget(prediction.name);
+    
+    
+    if (assignment.isInName()) {
+      var newArg = assignment.conversion.arg.beget({ prefixPostSpace: true });
+      this.setAssignment(assignment, newArg);
+    }
+  }
+  else {
+    
+    var arg = assignment.arg.beget({ text: prediction.name });
     this.setAssignment(assignment, arg);
 
-    if (prediction.incomplete) {
+    if (!prediction.incomplete) {
       
-      
-      return;
-    }
+      this._addSpace(assignment);
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    var nextIndex = assignment.paramIndex + 1;
-    var nextAssignment = this.getAssignment(nextIndex);
-    if (nextAssignment) {
       
-      var nextArg = nextAssignment.conversion.arg;
-      if (nextArg.prefix.charAt(0) !== ' ') {
-        nextArg = new Argument(nextArg.text, ' ' + nextArg.prefix, nextArg.suffix);
-        this.setAssignment(nextAssignment, nextArg);
+      if (assignment instanceof UnassignedAssignment) {
+        this.update(this.toString());
       }
     }
-    else {
+  }
+
+  this.onTextChange();
+  this.onTextChange.resumeFire();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Requisition.prototype._addSpace = function(assignment) {
+  var nextAssignment = this._getFirstBlankPositionalAssignment();
+  if (nextAssignment) {
+    
+    var nextArg = nextAssignment.conversion.arg;
+    if (nextArg.prefix.charAt(0) !== ' ') {
+      nextArg = new Argument(nextArg.text, ' ' + nextArg.prefix, nextArg.suffix);
+      this.setAssignment(nextAssignment, nextArg);
+    }
+  }
+  else {
+    
+    
+    var newArg = assignment.conversion.arg.beget({ suffixSpace: true });
+    if (newArg !== assignment.conversion.arg) {
       
       
-      arg = assignment.conversion.arg;
-      if (arg.suffix.charAt(arg.suffix.length - 1) !== ' ') {
-        
-        
-        
-        
-        
-        
-        arg = new Argument(arg.text, arg.prefix, arg.suffix + ' ');
-        this.setAssignment(assignment, arg);
-      }
+      
+      
+      
+      
+      this.setAssignment(assignment, newArg);
     }
+  }
+};
 
-    if (assignment instanceof UnassignedAssignment) {
-      this.update(this.toString());
-    }
 
-    this.onTextChange();
-    this.onTextChange.resumeFire();
+
+
+Requisition.prototype.decrement = function(assignment) {
+  var replacement = assignment.param.type.decrement(assignment.conversion.value);
+  if (replacement != null) {
+    var str = assignment.param.type.stringify(replacement);
+    var arg = assignment.conversion.arg.beget({ text: str });
+    this.setAssignment(assignment, arg);
+  }
+};
+
+
+
+
+Requisition.prototype.increment = function(assignment) {
+  var replacement = assignment.param.type.increment(assignment.conversion.value);
+  if (replacement != null) {
+    var str = assignment.param.type.stringify(replacement);
+    var arg = assignment.conversion.arg.beget({ text: str });
+    this.setAssignment(assignment, arg);
   }
 };
 
@@ -5949,9 +6054,12 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
       
       assignment = this._args[i + 1].assignment;
     }
-    else if (assignment && assignment.paramIndex + 1 < this.assignmentCount) {
+    else {
       
-      assignment = this.getAssignment(assignment.paramIndex + 1);
+      var nextAssignment = this._getFirstBlankPositionalAssignment();
+      if (nextAssignment != null) {
+        assignment = nextAssignment;
+      }
     }
 
     for (j = 0; j < arg.suffix.length; j++) {
@@ -6462,7 +6570,7 @@ Requisition.prototype._assign = function(args) {
 
         
         if (assignment.param.type instanceof BooleanType) {
-          arg = new TrueNamedArgument(null, arg);
+          arg = new TrueNamedArgument(arg);
         }
         else {
           var valueArg = null;
@@ -7227,7 +7335,7 @@ StringField.prototype.setConversion = function(conversion) {
 
 StringField.prototype.getConversion = function() {
   
-  this.arg = this.arg.beget(this.element.value, { prefixSpace: true });
+  this.arg = this.arg.beget({ text: this.element.value, prefixSpace: true });
   return this.type.parse(this.arg);
 };
 
@@ -7282,7 +7390,7 @@ NumberField.prototype.setConversion = function(conversion) {
 };
 
 NumberField.prototype.getConversion = function() {
-  this.arg = this.arg.beget(this.element.value, { prefixSpace: true });
+  this.arg = this.arg.beget({ text: this.element.value, prefixSpace: true });
   return this.type.parse(this.arg);
 };
 
@@ -7329,7 +7437,7 @@ BooleanField.prototype.getConversion = function() {
   var arg;
   if (this.named) {
     arg = this.element.checked ?
-            new TrueNamedArgument(this.name) :
+            new TrueNamedArgument(new Argument(' --' + this.name)) :
             new FalseNamedArgument();
   }
   else {
@@ -7781,7 +7889,7 @@ define('gcli/ui/fields/javascript', ['require', 'exports', 'module' , 'gcli/util
 
 var util = require('gcli/util');
 
-var Argument = require('gcli/argument').Argument;
+var ScriptArgument = require('gcli/argument').ScriptArgument;
 var JavascriptType = require('gcli/types/javascript').JavascriptType;
 
 var Menu = require('gcli/ui/fields/menu').Menu;
@@ -7808,7 +7916,7 @@ function JavascriptField(type, options) {
   Field.call(this, type, options);
 
   this.onInputChange = this.onInputChange.bind(this);
-  this.arg = new Argument('', '{ ', ' }');
+  this.arg = new ScriptArgument('', '{ ', ' }');
 
   this.element = util.createElement(this.document, 'div');
 
@@ -7826,7 +7934,7 @@ function JavascriptField(type, options) {
   });
   this.element.appendChild(this.menu.element);
 
-  this.setConversion(this.type.parse(new Argument('')));
+  this.setConversion(this.type.parse(new ScriptArgument('')));
 
   this.onFieldChange = util.createEvent('JavascriptField.onFieldChange');
 
@@ -7896,7 +8004,7 @@ JavascriptField.prototype.onInputChange = function(ev) {
 
 JavascriptField.prototype.getConversion = function() {
   
-  this.arg = this.arg.beget(this.input.value, { normalize: true });
+  this.arg = new ScriptArgument(this.input.value, '{ ', ' }');
   return this.type.parse(this.arg);
 };
 
@@ -8324,7 +8432,7 @@ SelectionTooltipField.prototype.onInputChange = function(ev) {
 
 SelectionTooltipField.prototype.getConversion = function() {
   
-  this.arg = this.arg.beget('typed', { normalize: true });
+  this.arg = this.arg.beget({ text: this.input.value });
   return this.type.parse(this.arg);
 };
 
@@ -9421,7 +9529,7 @@ Inputter.prototype.onKeyUp = function(ev) {
       
       
       if (this.assignment.getStatus() === Status.VALID) {
-        this.assignment.increment();
+        this.requisition.increment(assignment);
         
         if (this.focusManager) {
           this.focusManager.onInputChange(ev);
@@ -9445,7 +9553,7 @@ Inputter.prototype.onKeyUp = function(ev) {
     else {
       
       if (this.assignment.getStatus() === Status.VALID) {
-        this.assignment.decrement();
+        this.requisition.decrement(assignment);
         
         if (this.focusManager) {
           this.focusManager.onInputChange(ev);
@@ -9782,12 +9890,25 @@ Completer.prototype._getCompleterTemplateData = function() {
   var directTabText = '';
   var arrowTabText = '';
   var current = this.requisition.getAssignmentAt(input.cursor.start);
+  var emptyParameters = [];
 
   if (input.typed.trim().length !== 0) {
-    var prediction = current.conversion.getPredictionAt(this.choice);
+    var cArg = current.arg;
+    var prediction = current.getPredictionAt(this.choice);
+
     if (prediction) {
       var tabText = prediction.name;
-      var existing = current.arg.text;
+      var existing = cArg.text;
+
+      
+      
+      
+      
+      
+      
+      if (current.isInName()) {
+        tabText = ' ' + tabText;
+      }
 
       if (existing !== tabText) {
         
@@ -9804,10 +9925,27 @@ Completer.prototype._getCompleterTemplateData = function() {
         else {
           
           
-          arrowTabText = ' \u00a0\u21E5 ' + tabText;
+          arrowTabText = '\u21E5 ' + tabText;
         }
       }
     }
+    else {
+      
+      
+      
+      if (cArg.type === 'NamedArgument' && cArg.text === '') {
+        emptyParameters.push('<' + current.param.type.name + '>\u00a0');
+      }
+    }
+  }
+
+  
+  
+  if (directTabText !== '') {
+    directTabText += '\u00a0';
+  }
+  else if (!this.requisition.typedEndsWithSeparator()) {
+    emptyParameters.unshift('\u00a0');
   }
 
   
@@ -9820,10 +9958,6 @@ Completer.prototype._getCompleterTemplateData = function() {
   }, this);
 
   
-  var trailingSeparator = this.requisition.typedEndsWithSeparator();
-  
-  
-  
   
   
   
@@ -9832,58 +9966,45 @@ Completer.prototype._getCompleterTemplateData = function() {
   var command = this.requisition.commandAssignment.value;
   var jsCommand = command && command.name === '{';
 
-  var firstBlankParam = true;
-  var emptyParameters = [];
   this.requisition.getAssignments().forEach(function(assignment) {
+    
     if (!assignment.param.isPositionalAllowed) {
       return;
     }
-    if (current.arg.type === 'NamedArgument') {
-      return;
-    }
 
+    
     if (assignment.arg.toString().trim() !== '') {
-      if (directTabText !== '') {
-        firstBlankParam = false;
-      }
       return;
     }
 
-    if (directTabText !== '' && firstBlankParam) {
-      firstBlankParam = false;
+    if (directTabText !== '' && current === assignment) {
       return;
     }
 
     var text = (assignment.param.isDataRequired) ?
-        '<' + assignment.param.name + '>' :
-        '[' + assignment.param.name + ']';
+        '<' + assignment.param.name + '>\u00a0' :
+        '[' + assignment.param.name + ']\u00a0';
 
-    
-    
-    if (!trailingSeparator || !firstBlankParam) {
-      text = '\u00a0' + text; 
-    }
-
-    firstBlankParam = false;
     emptyParameters.push(text);
   }.bind(this));
 
-  var optionsRemaining = false;
+  var addOptionsMarker = false;
+  
+  
   if (command && command.hasNamedParameters) {
     command.params.forEach(function(param) {
       var arg = this.requisition.getAssignment(param.name).arg;
       if (!param.isPositionalAllowed && !param.hidden
               && arg.type === "BlankArgument") {
-        optionsRemaining = true;
+        addOptionsMarker = true;
       }
     }, this);
   }
 
-  if (optionsRemaining) {
+  if (addOptionsMarker) {
     
     
-    var prefix = (!trailingSeparator || !firstBlankParam) ?  '\u00a0' : '';
-    emptyParameters.push(prefix + '[options]');
+    emptyParameters.push('[options]\u00a0');
   }
 
   

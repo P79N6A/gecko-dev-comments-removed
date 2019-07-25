@@ -9,7 +9,7 @@ let gChromeWindow;
 
 
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
-Services.scriptloader.loadSubScript(testDir + "/helper.js", this);
+Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);
 
 function cleanup()
 {
