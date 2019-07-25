@@ -108,21 +108,6 @@ listheader[sortable="true"]:hover:active {
 
 
 
-.listheader-sortdirection {
-  -moz-appearance: treeheadersortarrow;
-  list-style-image: none;
-}
-
-.listheader-sortdirection[sortDirection="ascending"] {
-  list-style-image: url("chrome://global/skin/tree/sort-asc.gif");
-}
-
-.listheader-sortdirection[sortDirection="descending"] {
-  list-style-image: url("chrome://global/skin/tree/sort-dsc.gif");
-}
-
-
-
 .listcell-label {
   margin: 0px !important;
   padding-bottom: 1px;
