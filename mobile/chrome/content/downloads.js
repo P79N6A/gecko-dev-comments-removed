@@ -309,6 +309,8 @@ var DownloadsView = {
     
     let end = new Date(parseInt(aItem.getAttribute("endTime")));
 
+    let strings = document.getElementById("bundle_browser");
+
     
     let dateTime;
     if (end >= today) {
@@ -317,7 +319,7 @@ var DownloadsView = {
     }
     else if (today - end < (24 * 60 * 60 * 1000)) {
       
-      dateTime = "Yesterday";
+      dateTime = strings.getString("donwloadsYesterday");
     }
     else if (today - end < (6 * 24 * 60 * 60 * 1000)) {
       
@@ -328,8 +330,7 @@ var DownloadsView = {
       let month = end.toLocaleFormat("%B");
       
       let date = Number(end.toLocaleFormat("%d"));
-      
-      dateTime = this._replaceInsert("#1 #2", 1, month);
+      dateTime = this._replaceInsert(strings.getString("downloadsMonthDate"), 1, month);
       dateTime = this._replaceInsert(dateTime, 2, date);
     }
 
