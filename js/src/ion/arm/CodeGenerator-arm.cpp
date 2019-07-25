@@ -899,49 +899,11 @@ CodeGeneratorARM::emitRoundDouble(const FloatRegister &src, const Register &dest
     masm.ma_b(fail, Assembler::Equal);
 }
 
-
-
-
-
-
-
-
-void
-CodeGeneratorARM::emitTruncateDouble(const FloatRegister &src, const Register &dest, Label *fail)
+bool
+CodeGeneratorARM::visitTruncateDToInt32(LTruncateDToInt32 *ins)
 {
-    masm.ma_vcvt_F64_I32(src, ScratchFloatReg);
-    masm.ma_vxfer(ScratchFloatReg, dest);
-    masm.ma_cmp(dest, Imm32(0x7fffffff));
-    masm.ma_cmp(dest, Imm32(0x80000000), Assembler::NotEqual);
-    Label join;
-    masm.ma_b(&join, Assembler::NotEqual);
-
-    
-    masm.ma_b(fail, Assembler::NotEqual);
-    if (dest != r0)
-        masm.Push(r0);
-    if (dest != r1)
-        masm.Push(r1);
-    if (dest != r2)
-        masm.Push(r2);
-    if (dest != r3)
-        masm.Push(r3);
-    masm.setupAlignedABICall(1);
-    masm.passABIArg(src);
-    masm.callWithABI((void*)js_DoubleToECMAInt32);
-
-    masm.ma_mov(r0, dest);
-    if (dest != r3)
-        masm.Pop(r3);
-    if (dest != r2)
-        masm.Pop(r2);
-    if (dest != r1)
-        masm.Pop(r1);
-    if (dest != r0)
-        masm.Pop(r0);
-    masm.bind(&join);
+    return emitTruncateDouble(ToFloatRegister(ins->input()), ToRegister(ins->output()));
 }
-
 
 
 

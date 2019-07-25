@@ -66,6 +66,23 @@ MacroAssemblerARM::convertInt32ToDouble(const Register &src, const FloatRegister
     as_vcvt(dest, dest.sintOverlay());
 }
 
+
+
+
+
+
+
+
+void
+MacroAssemblerARM::branchTruncateDouble(const FloatRegister &src, const Register &dest, Label *fail)
+{
+    ma_vcvt_F64_I32(src, ScratchFloatReg);
+    ma_vxfer(ScratchFloatReg, dest);
+    ma_cmp(dest, Imm32(0x7fffffff));
+    ma_cmp(dest, Imm32(0x80000000), Assembler::NotEqual);
+    ma_b(fail, Assembler::Equal);
+}
+
 bool
 MacroAssemblerARM::alu_dbl(Register src1, Imm32 imm, Register dest, ALUOp op,
                            SetCond_ sc, Condition c)

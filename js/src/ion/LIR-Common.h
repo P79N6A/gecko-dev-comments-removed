@@ -1117,17 +1117,21 @@ class LDoubleToInt32 : public LInstructionHelper<1, 1, 0>
 
 
 
-class LTruncateDToInt32 : public LInstructionHelper<1, 1, 0>
+class LTruncateDToInt32 : public LInstructionHelper<1, 1, 1>
 {
   public:
     LIR_HEADER(TruncateDToInt32);
 
-    LTruncateDToInt32(const LAllocation &in) {
+    LTruncateDToInt32(const LAllocation &in, const LDefinition &temp) {
         setOperand(0, in);
+        setTemp(0, temp);
     }
 
     const LAllocation *input() {
         return getOperand(0);
+    }
+    const LDefinition *tempFloat() {
+        return getTemp(0);
     }
     const LDefinition *output() {
         return getDef(0);

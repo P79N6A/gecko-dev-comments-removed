@@ -62,6 +62,7 @@ class MacroAssembler;
 
 template <class ArgSeq, class StoreOutputTo>
 class OutOfLineCallVM;
+class OutOfLineTruncateSlow;
 
 class CodeGeneratorShared : public LInstructionVisitor
 {
@@ -197,6 +198,8 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     bool markOsiPoint(LOsiPoint *ins, uint32 *returnPointOffset);
 
+    bool emitTruncateDouble(const FloatRegister &src, const Register &dest);
+
     void emitPreBarrier(Register base, const LAllocation *index, MIRType type);
 
     inline bool isNextBlock(LBlock *block) {
@@ -204,6 +207,18 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
   public:
+    void saveVolatile(Register output) {
+        RegisterSet regs = RegisterSet::Volatile();
+        regs.maybeTake(output);
+        masm.PushRegsInMask(regs);
+    }
+
+    void restoreVolatile(Register output) {
+        RegisterSet regs = RegisterSet::Volatile();
+        regs.maybeTake(output);
+        masm.PopRegsInMask(regs);
+    }
+
     
     
     
@@ -250,6 +265,8 @@ class CodeGeneratorShared : public LInstructionVisitor
   public:
     template <class ArgSeq, class StoreOutputTo>
     bool visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo> *ool);
+
+    bool visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool);
 };
 
 

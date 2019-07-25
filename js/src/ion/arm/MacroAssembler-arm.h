@@ -60,6 +60,8 @@ class MacroAssemblerARM : public Assembler
   public:
     void convertInt32ToDouble(const Register &src, const FloatRegister &dest);
 
+    void branchTruncateDouble(const FloatRegister &src, const Register &dest, Label *fail);
+
     
     
     
