@@ -573,14 +573,16 @@ IsUTF8( const nsACString& aString )
             --state;
 
             
-            if ( nonchar &&  ( !state &&  c < 0xBE ||
-                  state == 1 && c != 0xBF  ||
-                  state == 2 && 0x0F != (0x0F & c) ))
-                nonchar = PR_FALSE;
+            if ( nonchar &&  
+                 ( ( !state && c < 0xBE ) ||
+                   ( state == 1 && c != 0xBF )  ||
+                   ( state == 2 && 0x0F != (0x0F & c) )))
+              nonchar = PR_FALSE;
 
-            if ( !UTF8traits::isInSeq(c) || overlong && c <= olupper || 
-                  surrogate && slower <= c || nonchar && !state )
+            if ( !UTF8traits::isInSeq(c) || ( overlong && c <= olupper ) || 
+                 ( surrogate && slower <= c ) || ( nonchar && !state ))
               return PR_FALSE; 
+
             overlong = surrogate = PR_FALSE;
           }
         }
