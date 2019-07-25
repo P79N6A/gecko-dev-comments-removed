@@ -1561,14 +1561,10 @@ nsGfxScrollFrameInner::ScrollTo(nsPoint aScrollPosition,
     }
   } else {
     mAsyncScroll = new AsyncScroll;
-    if (mAsyncScroll) {
-      mAsyncScroll->mScrollTimer = do_CreateInstance("@mozilla.org/timer;1");
-      if (!mAsyncScroll->mScrollTimer) {
-        delete mAsyncScroll;
-        mAsyncScroll = nsnull;
-      }
-    }
-    if (!mAsyncScroll) {
+    mAsyncScroll->mScrollTimer = do_CreateInstance("@mozilla.org/timer;1");
+    if (!mAsyncScroll->mScrollTimer) {
+      delete mAsyncScroll;
+      mAsyncScroll = nsnull;
       
       ScrollToImpl(mDestination);
       return;
@@ -3619,10 +3615,7 @@ nsGfxScrollFrameInner::SaveState(nsIStatefulFrame::SpecialStateID aStateID)
   }
 
   nsPresState* state = new nsPresState();
-  if (!state) {
-    return nsnull;
-  }
- 
+
   state->SetScrollState(scrollPos);
 
   return state;
