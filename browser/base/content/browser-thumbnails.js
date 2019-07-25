@@ -8,7 +8,7 @@
 
 
 let gBrowserThumbnails = {
-  _captureDelayMS: 2000,
+  _captureDelayMS: 1000,
 
   
 
@@ -98,6 +98,11 @@ let gBrowserThumbnails = {
   },
 
   _shouldCapture: function Thumbnails_shouldCapture(aBrowser) {
+    
+    if (aBrowser != gBrowser.selectedBrowser)
+      return false;
+
+    
     if (gPrivateBrowsingUI.privateBrowsingEnabled)
       return false;
 
