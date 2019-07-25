@@ -165,6 +165,7 @@ public:
     void EndIdleMonitoring();
 
     bool UsingSpdy() { return mUsingSpdy; }
+    bool EverUsedSpdy() { return mEverUsedSpdy; }
 
     
     
