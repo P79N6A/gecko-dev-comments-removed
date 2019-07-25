@@ -27,8 +27,8 @@
 
 
 
-#ifndef CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H__
-#define CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H__
+#ifndef CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_
+#define CLIENT_WINDOWS_CRASH_GENERATION_CRASH_GENERATION_CLIENT_H_
 
 #include <windows.h>
 #include <dbghelp.h>
@@ -72,6 +72,9 @@ class CrashGenerationClient {
   
   
   bool Register();
+
+  bool RequestDump(EXCEPTION_POINTERS* ex_info,
+                   MDRawAssertionInfo* assert_info);
 
   
   

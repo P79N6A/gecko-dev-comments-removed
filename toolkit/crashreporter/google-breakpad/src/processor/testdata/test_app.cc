@@ -32,7 +32,7 @@
 
 
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "client/windows/handler/exception_handler.h"
 

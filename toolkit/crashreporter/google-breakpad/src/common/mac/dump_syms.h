@@ -31,49 +31,131 @@
 
 
 
-#import <Foundation/Foundation.h>
+
+
+
+
+#include <Foundation/Foundation.h>
 #include <mach-o/loader.h>
-#include "common/dwarf/dwarf2reader.h"
+#include <stdio.h>
+#include <stdlib.h>
 
+#include <string>
+#include <vector>
 
+#include "common/byte_cursor.h"
+#include "common/mac/macho_reader.h"
+#include "common/module.h"
 
-typedef map<string, dwarf2reader::SectionMap *> ArchSectionMap;
+namespace google_breakpad {
 
-@interface DumpSymbols : NSObject {
- @protected
-  NSString *sourcePath_;              
-  NSString *architecture_;            
-  NSMutableDictionary *addresses_;    
-  NSMutableSet *functionAddresses_;   
-  NSMutableDictionary *sources_;      
-  NSMutableDictionary *headers_;      
-  NSMutableDictionary *sectionData_; 
-  uint32_t   lastStartAddress_;
-  ArchSectionMap *sectionsForArch_;
-}
+class DumpSymbols {
+ public:
+  DumpSymbols() 
+      : input_pathname_(),
+        object_filename_(), 
+        contents_(),
+        selected_object_file_(),
+        selected_object_name_() { }
+  ~DumpSymbols() {
+    [input_pathname_ release];
+    [object_filename_ release];
+    [contents_ release];
+  }
 
-- (id)initWithContentsOfFile:(NSString *)machoFile;
+  
+  
+  
+  
+  
+  
+  
+  
+  bool Read(NSString *filename);
 
-- (NSArray *)availableArchitectures;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool SetArchitecture(cpu_type_t cpu_type, cpu_subtype_t cpu_subtype);
 
+  
+  
+  
+  
+  
+  
+  
+  const struct fat_arch *AvailableArchitectures(size_t *count) {
+    *count = object_files_.size();
+    if (object_files_.size() > 0)
+      return &object_files_[0];
+    return NULL;
+  }
 
+  
+  
+  
+  bool WriteSymbolFile(FILE *stream);
 
+ private:
+  
+  class DumperLineToModule;
+  class LoadCommandDumper;
 
-- (BOOL)setArchitecture:(NSString *)architecture;
-- (NSString *)architecture;
+  
+  std::string Identifier();
 
+  
+  
+  
+  bool ReadDwarf(google_breakpad::Module *module,
+                 const mach_o::Reader &macho_reader,
+                 const mach_o::SectionMap &dwarf_sections) const;
 
-- (BOOL)writeSymbolFile:(NSString *)symbolFilePath;
+  
+  
+  
+  
+  
+  bool ReadCFI(google_breakpad::Module *module,
+               const mach_o::Reader &macho_reader,
+               const mach_o::Section &section,
+               bool eh_frame) const;
 
-@end
+  
+  
+  NSString *input_pathname_;
 
-@interface MachSection : NSObject {
- @protected
-  struct section *sect_;
-  uint32_t sectionNumber_;
-}
-- (id)initWithMachSection:(struct section *)sect andNumber:(uint32_t)sectionNumber;
-- (struct section*)sectionPointer;
-- (uint32_t)sectionNumber;
+  
+  
+  
+  
+  NSString *object_filename_;
 
-@end
+  
+  NSData *contents_;
+
+  
+  
+  
+  
+  vector<struct fat_arch> object_files_;
+
+  
+  
+  const struct fat_arch *selected_object_file_;
+
+  
+  
+  
+  
+  string selected_object_name_;
+};
+
+}  

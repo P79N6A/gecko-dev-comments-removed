@@ -1,48 +1,49 @@
+// Copyright (c) 2006, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// symupload.cc: Upload a symbol file to a HTTP server.  The upload is sent as
+// a multipart/form-data POST request with the following parameters:
+//  code_file: the basename of the module, e.g. "app"
+//  debug_file: the basename of the debugging file, e.g. "app"
+//  debug_identifier: the debug file's identifier, usually consisting of
+//                    the guid and age embedded in the pdb, e.g.
+//                    "11111111BBBB3333DDDD555555555555F"
+//  version: the file version of the module, e.g. "1.2.3.4"
+//  os: the operating system that the module was built for
+//  cpu: the CPU that the module was built for
+//  symbol_file: the contents of the breakpad-format symbol file
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
-#include <cstdio>
-#include <cassert>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -74,9 +75,9 @@ static void TokenizeByChar(const std::string &source_string,
     results->push_back(source_string.substr(cur_pos));
 }
 
-
-
-
+//=============================================================================
+// Parse out the module line which have 5 parts.
+// MODULE <os> <cpu> <uuid> <module-name>
 static bool ModuleDataForSymbolFile(const std::string &file,
                                     std::vector<std::string> *module_parts) {
   assert(module_parts);
@@ -104,7 +105,7 @@ static bool ModuleDataForSymbolFile(const std::string &file,
   return module_parts->size() == kModulePartNumber;
 }
 
-
+//=============================================================================
 static std::string CompactIdentifier(const std::string &uuid) {
   std::vector<std::string> components;
   TokenizeByChar(uuid, '-', &components);
@@ -114,7 +115,7 @@ static std::string CompactIdentifier(const std::string &uuid) {
   return result;
 }
 
-
+//=============================================================================
 static void Start(Options *options) {
   std::map<std::string, std::string> parameters;
   options->success = false;
@@ -126,12 +127,12 @@ static void Start(Options *options) {
 
   std::string compacted_id = CompactIdentifier(module_parts[3]);
 
-  
+  // Add parameters
   if (!options->version.empty())
     parameters["version"] = options->version;
 
-  
-  
+  // MODULE <os> <cpu> <uuid> <module-name>
+  // 0      1    2     3      4
   parameters["os"] = module_parts[1];
   parameters["cpu"] = module_parts[2];
   parameters["debug_file"] = module_parts[4];
@@ -157,7 +158,7 @@ static void Start(Options *options) {
   options->success = success;
 }
 
-
+//=============================================================================
 static void
 Usage(int argc, const char *argv[]) {
   fprintf(stderr, "Submit symbol information.\n");
@@ -172,7 +173,7 @@ Usage(int argc, const char *argv[]) {
   fprintf(stderr, "-?:\t Usage\n");
 }
 
-
+//=============================================================================
 static void
 SetupOptions(int argc, const char *argv[], Options *options) {
   extern int optind;
@@ -207,7 +208,7 @@ SetupOptions(int argc, const char *argv[], Options *options) {
   options->uploadURLStr = argv[optind + 1];
 }
 
-
+//=============================================================================
 int main (int argc, const char * argv[]) {
   Options options;
   SetupOptions(argc, argv, &options);

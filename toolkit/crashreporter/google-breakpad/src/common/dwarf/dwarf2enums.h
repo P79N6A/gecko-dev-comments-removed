@@ -529,7 +529,7 @@ enum DwarfInline {
   DW_INL_not_inlined                 =0x0,
   DW_INL_inlined                     =0x1,
   DW_INL_declared_not_inlined        =0x2,
-  DW_INL_declared_inlined            =0x3
+  DW_INL_declared_inlined            =0x3,
 };
 
 
@@ -574,6 +574,37 @@ enum DwarfCFI
     DW_CFA_GNU_args_size = 0x2e,
     DW_CFA_GNU_negative_offset_extended = 0x2f
   };
+
+
+enum DwarfZAugmentationCodes {
+  
+  
+  
+  DW_Z_augmentation_start = 'z',
+
+  
+  
+  
+  
+  DW_Z_has_LSDA = 'L',
+
+  
+  
+  
+  DW_Z_has_personality_routine = 'P',
+
+  
+  
+  
+  
+  DW_Z_has_FDE_address_encoding = 'R',
+
+  
+  
+  
+  
+  DW_Z_is_signal_trampoline = 'S'
+};
 
 
 

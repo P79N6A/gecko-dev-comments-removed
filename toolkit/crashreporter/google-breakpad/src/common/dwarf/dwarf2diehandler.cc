@@ -31,9 +31,9 @@
 
 
 
-#include <cassert>
-
 #include "common/dwarf/dwarf2diehandler.h"
+
+#include <assert.h>
 
 namespace dwarf2reader {
 

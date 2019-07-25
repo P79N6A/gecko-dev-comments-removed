@@ -32,7 +32,7 @@
 
 
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "google_breakpad/processor/minidump.h"
 #include "processor/logging.h"

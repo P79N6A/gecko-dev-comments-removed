@@ -27,13 +27,13 @@
 
 
 
-#include <cassert>
+#include "common/linux/http_upload.h"
+
+#include <assert.h>
 #include <dlfcn.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/types.h>
-
-#include "common/linux/http_upload.h"
 
 namespace {
 

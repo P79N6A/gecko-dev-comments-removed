@@ -111,13 +111,13 @@ TEST(LinuxDumperTest, VerifyStackReadWithMultipleThreads) {
     
     
 #if defined(__ARM_EABI__)
-    void* process_tid_location = (void *)(one_thread.regs.uregs[11] - 8);
+    pid_t *process_tid_location = (pid_t *)(one_thread.regs.uregs[3]);
 #elif defined(__i386)
-    void* process_tid_location = (void *)(one_thread.regs.ebp - 4);
+    pid_t *process_tid_location = (pid_t *)(one_thread.regs.ecx);
 #elif defined(__x86_64)
-    void* process_tid_location = (void *)(one_thread.regs.rbp - 4);
+    pid_t *process_tid_location = (pid_t *)(one_thread.regs.rcx);
 #else
-#error Platform not supported!
+#error This test has not been ported to this platform.
 #endif
     pid_t one_thread_id;
     dumper.CopyFromProcess(&one_thread_id,

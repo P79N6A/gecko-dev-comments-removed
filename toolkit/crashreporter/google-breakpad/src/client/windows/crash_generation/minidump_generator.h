@@ -27,8 +27,8 @@
 
 
 
-#ifndef CLIENT_WINDOWS_CRASH_GENERATION_MINIDUMP_GENERATION_H__
-#define CLIENT_WINDOWS_CRASH_GENERATION_MINIDUMP_GENERATION_H__
+#ifndef CLIENT_WINDOWS_CRASH_GENERATION_MINIDUMP_GENERATOR_H_
+#define CLIENT_WINDOWS_CRASH_GENERATION_MINIDUMP_GENERATOR_H_
 
 #include <windows.h>
 #include <dbghelp.h>
@@ -60,6 +60,20 @@ class MinidumpGenerator {
                      MINIDUMP_TYPE dump_type,
                      bool is_client_pointers,
                      std::wstring* dump_path);
+
+  
+  
+  
+  bool WriteMinidump(HANDLE process_handle,
+                     DWORD process_id,
+                     DWORD thread_id,
+                     DWORD requesting_thread_id,
+                     EXCEPTION_POINTERS* exception_pointers,
+                     MDRawAssertionInfo* assert_info,
+                     MINIDUMP_TYPE dump_type,
+                     bool is_client_pointers,
+                     std::wstring* dump_path,
+                     std::wstring* full_dump_path);
 
  private:
   

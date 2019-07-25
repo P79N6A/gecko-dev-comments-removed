@@ -100,6 +100,10 @@ class CFIFrameInfo {
                       const MemoryRegion &memory,
                       RegisterValueMap<ValueType> *caller_registers) const;
 
+  
+  
+  string Serialize() const;
+
  private:
 
   

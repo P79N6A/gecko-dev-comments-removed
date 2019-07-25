@@ -31,16 +31,18 @@
 
 
 
-#include <cassert>
-#include <cstdio>
-#include <cstring>
+#include "common/dwarf/dwarf2reader.h"
+
+#include <assert.h>
+#include <stdio.h>
+#include <string.h>
+
 #include <map>
 #include <memory>
 #include <stack>
 #include <utility>
 
 #include "common/dwarf/bytereader-inl.h"
-#include "common/dwarf/dwarf2reader.h"
 #include "common/dwarf/bytereader.h"
 #include "common/dwarf/line_state_machine.h"
 
@@ -920,6 +922,7 @@ class CallFrameInfo::UndefinedRule: public CallFrameInfo::Rule {
   }
   bool operator==(const Rule &rhs) const {
     
+    
     const UndefinedRule *our_rhs = dynamic_cast<const UndefinedRule *>(&rhs);
     return (our_rhs != NULL);
   }
@@ -935,6 +938,7 @@ class CallFrameInfo::SameValueRule: public CallFrameInfo::Rule {
     return handler->SameValueRule(address, reg);
   }
   bool operator==(const Rule &rhs) const {
+    
     
     const SameValueRule *our_rhs = dynamic_cast<const SameValueRule *>(&rhs);
     return (our_rhs != NULL);
@@ -954,6 +958,7 @@ class CallFrameInfo::OffsetRule: public CallFrameInfo::Rule {
   }
   bool operator==(const Rule &rhs) const {
     
+    
     const OffsetRule *our_rhs = dynamic_cast<const OffsetRule *>(&rhs);
     return (our_rhs &&
             base_register_ == our_rhs->base_register_ &&
@@ -966,7 +971,7 @@ class CallFrameInfo::OffsetRule: public CallFrameInfo::Rule {
   
  private:
   int base_register_;
-  int offset_;
+  long offset_;
 };
 
 
@@ -982,6 +987,7 @@ class CallFrameInfo::ValOffsetRule: public CallFrameInfo::Rule {
   }
   bool operator==(const Rule &rhs) const {
     
+    
     const ValOffsetRule *our_rhs = dynamic_cast<const ValOffsetRule *>(&rhs);
     return (our_rhs &&
             base_register_ == our_rhs->base_register_ &&
@@ -992,7 +998,7 @@ class CallFrameInfo::ValOffsetRule: public CallFrameInfo::Rule {
   void SetOffset(long long offset) { offset_ = offset; }
  private:
   int base_register_;
-  int offset_;
+  long offset_;
 };
 
 
@@ -1005,6 +1011,7 @@ class CallFrameInfo::RegisterRule: public CallFrameInfo::Rule {
     return handler->RegisterRule(address, reg, register_number_);
   }
   bool operator==(const Rule &rhs) const {
+    
     
     const RegisterRule *our_rhs = dynamic_cast<const RegisterRule *>(&rhs);
     return (our_rhs && register_number_ == our_rhs->register_number_);
@@ -1025,6 +1032,7 @@ class CallFrameInfo::ExpressionRule: public CallFrameInfo::Rule {
   }
   bool operator==(const Rule &rhs) const {
     
+    
     const ExpressionRule *our_rhs = dynamic_cast<const ExpressionRule *>(&rhs);
     return (our_rhs && expression_ == our_rhs->expression_);
   }
@@ -1043,6 +1051,7 @@ class CallFrameInfo::ValExpressionRule: public CallFrameInfo::Rule {
     return handler->ValExpressionRule(address, reg, expression_);
   }
   bool operator==(const Rule &rhs) const {
+    
     
     const ValExpressionRule *our_rhs =
         dynamic_cast<const ValExpressionRule *>(&rhs);
@@ -1878,7 +1887,7 @@ bool CallFrameInfo::ReadCIEFields(CIE *cie) {
       return false;
     }
   } else {
-    if (cie->version < 1 || 3 < cie->version) {
+    if (cie->version < 1 || cie->version > 3) {
       reporter_->UnrecognizedVersion(cie->offset, cie->version);
       return false;
     }
@@ -1894,17 +1903,17 @@ bool CallFrameInfo::ReadCIEFields(CIE *cie) {
   cursor++;
 
   
-  if (cie->augmentation.empty()) {
-    ; 
-  } else if (cie->augmentation[0] == 'z') {
+  if (!cie->augmentation.empty()) {
     
-    cie->has_z_augmentation = true;
-  } else {
-    
-    
-    
-    reporter_->UnrecognizedAugmentation(cie->offset, cie->augmentation);
-    return false;
+    if (cie->augmentation[0] == DW_Z_augmentation_start) {
+      
+      cie->has_z_augmentation = true;
+    } else {
+      
+      
+      reporter_->UnrecognizedAugmentation(cie->offset, cie->augmentation);
+      return false;
+    }
   }
 
   
@@ -1947,7 +1956,7 @@ bool CallFrameInfo::ReadCIEFields(CIE *cie) {
     
     for (size_t i = 1; i < cie->augmentation.size(); i++) {
       switch (cie->augmentation[i]) {
-        case 'L':
+        case DW_Z_has_LSDA:
           
           
           
@@ -1965,7 +1974,7 @@ bool CallFrameInfo::ReadCIEFields(CIE *cie) {
           
           break;
 
-        case 'P':
+        case DW_Z_has_personality_routine:
           
           
           cie->has_z_personality = true;
@@ -1992,7 +2001,7 @@ bool CallFrameInfo::ReadCIEFields(CIE *cie) {
           data += len;
           break;
 
-        case 'R':
+        case DW_Z_has_FDE_address_encoding:
           
           
           if (data >= data_end) return ReportIncomplete(cie);
@@ -2009,7 +2018,7 @@ bool CallFrameInfo::ReadCIEFields(CIE *cie) {
           }
           break;
 
-        case 'S':
+        case DW_Z_is_signal_trampoline:
           
           cie->has_z_signal_frame = true;
           break;
@@ -2295,7 +2304,8 @@ void CallFrameInfo::Reporter::UnusablePointerEncoding(uint64 offset,
                                                       uint8 encoding) {
   fprintf(stderr,
           "%s: CFI common information entry at offset 0x%llx in '%s':"
-          " 'z' augmentation specifies a pointer encoding for which we have no base address: 0x%02x\n",
+          " 'z' augmentation specifies a pointer encoding for which"
+          " we have no base address: 0x%02x\n",
           filename_.c_str(), offset, section_.c_str(), encoding);
 }
 

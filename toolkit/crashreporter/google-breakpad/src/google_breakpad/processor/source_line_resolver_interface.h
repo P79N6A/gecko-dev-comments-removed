@@ -36,6 +36,7 @@
 
 #include <string>
 #include "google_breakpad/common/breakpad_types.h"
+#include "google_breakpad/processor/code_module.h"
 
 namespace google_breakpad {
 
@@ -57,33 +58,36 @@ class SourceLineResolverInterface {
   
   
   
-  virtual bool LoadModule(const string &module_name,
+  virtual bool LoadModule(const CodeModule *module,
                           const string &map_file) = 0;
   
-  virtual bool LoadModuleUsingMapBuffer(const string &module_name,
+  virtual bool LoadModuleUsingMapBuffer(const CodeModule *module,
                                         const string &map_buffer) = 0;
 
   
-  virtual bool HasModule(const string &module_name) const = 0;
+  
+  virtual void UnloadModule(const CodeModule *module) = 0;
+
+  
+  virtual bool HasModule(const CodeModule *module) = 0;
 
   
   
   
-  virtual void FillSourceLineInfo(StackFrame *frame) const = 0;
+  virtual void FillSourceLineInfo(StackFrame *frame) = 0;
 
   
   
   
   
   
-  virtual WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) 
-    const = 0; 
+  virtual WindowsFrameInfo *FindWindowsFrameInfo(const StackFrame *frame) = 0; 
 
   
   
   
   
-  virtual CFIFrameInfo *FindCFIFrameInfo(const StackFrame *frame) const = 0;
+  virtual CFIFrameInfo *FindCFIFrameInfo(const StackFrame *frame) = 0;
 
  protected:
   
