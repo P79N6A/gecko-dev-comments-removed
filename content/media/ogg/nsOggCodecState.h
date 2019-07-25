@@ -15,6 +15,9 @@
 #endif
 #ifdef MOZ_OPUS
 #include <opus/opus.h>
+
+#include "nsBuiltinDecoderStateMachine.h"
+#include "nsBuiltinDecoderReader.h"
 #endif
 #include <nsAutoRef.h>
 #include <nsDeque.h>
@@ -316,7 +319,11 @@ public:
   PRUint32 mNominalRate; 
   int mChannels;    
   PRUint16 mPreSkip; 
+#ifdef MOZ_SAMPLE_TYPE_FLOAT32
   float mGain;      
+#else
+  PRInt32 mGain_Q16; 
+#endif
   int mChannelMapping; 
   int mStreams;     
 
