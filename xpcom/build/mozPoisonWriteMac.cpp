@@ -10,8 +10,15 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Scoped.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/Telemetry.h"
 #include "nsStackWalk.h"
+#include "nsPrintfCString.h"
 #include "mach_override.h"
+#include "prio.h"
+#include "plstr.h"
+#include "nsCOMPtr.h"
+#include "nsAppDirectoryServiceDefs.h"
+#include "nsDirectoryServiceUtils.h"
 #include <sys/stat.h>
 #include <vector>
 #include <algorithm>
@@ -32,11 +39,199 @@ struct FuncData {
 };
 
 
+
+
+class ProcessedStack
+{
+public:
+    ProcessedStack() : mProcessed(false)
+    {
+    }
+    void Reserve(unsigned int n)
+    {
+        mStack.reserve(n);
+    }
+    size_t GetStackSize()
+    {
+        return mStack.size();
+    }
+    struct ProcessedStackFrame
+    {
+        uintptr_t mOffset;
+        uint16_t mModIndex;
+    };
+    ProcessedStackFrame GetFrame(unsigned aIndex)
+    {
+        const StackFrame &Frame = mStack[aIndex];
+        ProcessedStackFrame Ret = { Frame.mPC, Frame.mModIndex };
+        return Ret;
+    }
+    size_t GetNumModules()
+    {
+        MOZ_ASSERT(mProcessed);
+        return mModules.GetSize();
+    }
+    const char *GetModuleName(unsigned aIndex)
+    {
+        MOZ_ASSERT(mProcessed);
+        return mModules.GetEntry(aIndex).GetName();
+    }
+    void AddStackFrame(uintptr_t aPC)
+    {
+        MOZ_ASSERT(!mProcessed);
+        StackFrame Frame = {aPC, static_cast<uint16_t>(mStack.size()),
+                            std::numeric_limits<uint16_t>::max()};
+        mStack.push_back(Frame);
+    }
+    void Process()
+    {
+        mProcessed = true;
+        mModules = SharedLibraryInfo::GetInfoForSelf();
+        mModules.SortByAddress();
+
+        
+        std::sort(mStack.begin(), mStack.end(), CompareByPC);
+
+        size_t moduleIndex = 0;
+        size_t stackIndex = 0;
+        size_t stackSize = mStack.size();
+
+        while (moduleIndex < mModules.GetSize()) {
+            SharedLibrary& module = mModules.GetEntry(moduleIndex);
+            uintptr_t moduleStart = module.GetStart();
+            uintptr_t moduleEnd = module.GetEnd() - 1;
+            
+
+            bool moduleReferenced = false;
+            for (;stackIndex < stackSize; ++stackIndex) {
+                uintptr_t pc = mStack[stackIndex].mPC;
+                if (pc >= moduleEnd)
+                    break;
+
+                if (pc >= moduleStart) {
+                    
+                    
+                    moduleReferenced = true;
+                    mStack[stackIndex].mPC -= moduleStart;
+                    mStack[stackIndex].mModIndex = moduleIndex;
+                } else {
+                    
+                    
+                    
+                    mStack[stackIndex].mPC =
+                        std::numeric_limits<uintptr_t>::max();
+                }
+            }
+
+            if (moduleReferenced) {
+                ++moduleIndex;
+            } else {
+                
+                mModules.RemoveEntries(moduleIndex, moduleIndex + 1);
+            }
+        }
+
+        for (;stackIndex < stackSize; ++stackIndex) {
+            
+            mStack[stackIndex].mPC = std::numeric_limits<uintptr_t>::max();
+        }
+
+        std::sort(mStack.begin(), mStack.end(), CompareByIndex);
+    }
+
+private:
+  struct StackFrame
+  {
+      uintptr_t mPC;      
+      uint16_t mIndex;    
+      uint16_t mModIndex; 
+  };
+  static bool CompareByPC(const StackFrame &a, const StackFrame &b)
+  {
+      return a.mPC < b.mPC;
+  }
+  static bool CompareByIndex(const StackFrame &a, const StackFrame &b)
+  {
+    return a.mIndex < b.mIndex;
+  }
+  SharedLibraryInfo mModules;
+  std::vector<StackFrame> mStack;
+  bool mProcessed;
+};
+
+void RecordStackWalker(void *aPC, void *aSP, void *aClosure)
+{
+    ProcessedStack *stack = static_cast<ProcessedStack*>(aClosure);
+    stack->AddStackFrame(reinterpret_cast<uintptr_t>(aPC));
+}
+
+char *sProfileDirectory = NULL;
+
+bool ValidWriteAssert(bool ok)
+{
+    
+    MOZ_ASSERT(ok);
+
+    if (ok || !sProfileDirectory || !Telemetry::CanRecord())
+        return ok;
+
+    
+    
+    ProcessedStack stack;
+    NS_StackWalk(RecordStackWalker, 0, reinterpret_cast<void*>(&stack), 0);
+    stack.Process();
+
+    nsPrintfCString nameAux("%s%s", sProfileDirectory,
+                            "/Telemetry.LateWriteTmpXXXXXX");
+    char *name;
+    nameAux.GetMutableData(&name);
+    int fd = mkstemp(name);
+    MozillaRegisterDebugFD(fd);
+    FILE *f = fdopen(fd, "w");
+
+    size_t numModules = stack.GetNumModules();
+    fprintf(f, "%zu\n", numModules);
+    for (int i = 0; i < numModules; ++i) {
+        const char *name = stack.GetModuleName(i);
+        fprintf(f, "%s\n", name ? name : "");
+    }
+
+    size_t numFrames = stack.GetStackSize();
+    fprintf(f, "%zu\n", numFrames);
+    for (size_t i = 0; i < numFrames; ++i) {
+        const ProcessedStack::ProcessedStackFrame &frame = stack.GetFrame(i);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        fprintf(f, "%d %jx\n", frame.mModIndex, frame.mOffset);
+    }
+
+    fflush(f);
+    MozillaUnRegisterDebugFD(fd);
+    fclose(f);
+
+    
+    
+    
+    nsPrintfCString finalName("%s%s", sProfileDirectory,
+                              "/Telemetry.LateWriteFinal-last");
+    PR_Delete(finalName.get());
+    PR_Rename(name, finalName.get());
+    return false;
+}
+
+
 typedef ssize_t (*aio_write_t)(struct aiocb *aiocbp);
 ssize_t wrap_aio_write(struct aiocb *aiocbp);
 FuncData aio_write_data = { 0, (void*) wrap_aio_write, (void*) aio_write };
 ssize_t wrap_aio_write(struct aiocb *aiocbp) {
-    MOZ_ASSERT(0);
+    ValidWriteAssert(0);
     aio_write_t old_write = (aio_write_t) aio_write_data.Buffer;
     return old_write(aiocbp);
 }
@@ -46,7 +241,7 @@ ssize_t wrap_aio_write(struct aiocb *aiocbp) {
 typedef ssize_t (*pwrite_t)(int fd, const void *buf, size_t nbyte, off_t offset);
 template<FuncData &foo>
 ssize_t wrap_pwrite_temp(int fd, const void *buf, size_t nbyte, off_t offset) {
-    MOZ_ASSERT(0);
+    ValidWriteAssert(0);
     pwrite_t old_write = (pwrite_t) foo.Buffer;
     return old_write(fd, buf, nbyte, offset);
 }
@@ -184,38 +379,46 @@ void AbortOnBadWrite(int fd, const void *wbuf, size_t count) {
 
     struct stat buf;
     int rv = fstat(fd, &buf);
-    MOZ_ASSERT(rv == 0);
+    if (!ValidWriteAssert(rv == 0))
+        return;
 
     
     if ((buf.st_mode & S_IFMT) == S_IFIFO)
         return;
 
-    MyAutoLock lockedScope;
+    {
+        MyAutoLock lockedScope;
+
+        
+        std::vector<int> &Vec = getDebugFDs();
+        if (std::find(Vec.begin(), Vec.end(), fd) != Vec.end())
+            return;
+    }
 
     
-    std::vector<int> &Vec = getDebugFDs();
-    if (std::find(Vec.begin(), Vec.end(), fd) != Vec.end())
+    
+    if (!ValidWriteAssert(wbuf))
         return;
 
     
     
-    MOZ_ASSERT(wbuf);
-
     
     
-    
-    
-    void *wbuf2 = malloc(count);
-    MOZ_ASSERT(wbuf2);
+    ScopedFreePtr<void> wbuf2(malloc(count));
+    if (!ValidWriteAssert(wbuf2))
+        return;
     off_t pos = lseek(fd, 0, SEEK_CUR);
-    MOZ_ASSERT(pos != -1);
+    if (!ValidWriteAssert(pos != -1))
+        return;
     ssize_t r = read(fd, wbuf2, count);
-    MOZ_ASSERT(r == count);
+    if (!ValidWriteAssert(r == count))
+        return;
     int cmp = memcmp(wbuf, wbuf2, count);
-    MOZ_ASSERT(cmp == 0);
-    free(wbuf2);
+    if (!ValidWriteAssert(cmp == 0))
+        return;
     off_t pos2 = lseek(fd, pos, SEEK_SET);
-    MOZ_ASSERT(pos2 == pos);
+    if (!ValidWriteAssert(pos2 == pos))
+        return;
 }
 
 
@@ -226,6 +429,9 @@ extern "C" void (*__cleanup)();
 void FinalCleanup() {
     if (OldCleanup)
         OldCleanup();
+    if (sProfileDirectory)
+        PL_strfree(sProfileDirectory);
+    sProfileDirectory = nullptr;
     delete &getDebugFDs();
     PR_DestroyLock(MyAutoLock::getDebugFDsLock());
 }
@@ -250,12 +456,18 @@ extern "C" {
 
 namespace mozilla {
 void PoisonWrite() {
-    
-#ifndef DEBUG
-    return;
-#endif
-
     PoisoningDisabled = false;
+
+    nsCOMPtr<nsIFile> mozFile;
+    NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(mozFile));
+    if (mozFile) {
+        nsCAutoString nativePath;
+        nsresult rv = mozFile->GetNativePath(nativePath);
+        if (NS_SUCCEEDED(rv)) {
+            sProfileDirectory = PL_strdup(nativePath.get());
+        }
+    }
+
     OldCleanup = __cleanup;
     __cleanup = FinalCleanup;
 
