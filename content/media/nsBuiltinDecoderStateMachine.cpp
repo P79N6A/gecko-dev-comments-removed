@@ -251,7 +251,9 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
     
     
     
-    if (videoPump && videoQueue.GetSize() >= videoPumpThreshold) {
+    if (videoPump &&
+        static_cast<PRUint32>(videoQueue.GetSize()) >= videoPumpThreshold)
+    {
       videoPump = PR_FALSE;
     }
 
@@ -272,14 +274,18 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
         videoPlaying &&
         !IsDecodeCloseToDownload() &&
         ((!audioPump && audioPlaying && GetDecodedAudioDuration() < lowAudioThreshold) ||
-         (!videoPump && videoPlaying && videoQueue.GetSize() < LOW_VIDEO_FRAMES)))
+         (!videoPump &&
+           videoPlaying &&
+           static_cast<PRUint32>(videoQueue.GetSize()) < LOW_VIDEO_FRAMES)))
     {
       skipToNextKeyframe = PR_TRUE;
       LOG(PR_LOG_DEBUG, ("Skipping video decode to the next keyframe"));
     }
 
     
-    if (videoPlaying && videoQueue.GetSize() < AMPLE_VIDEO_FRAMES) {
+    if (videoPlaying &&
+        static_cast<PRUint32>(videoQueue.GetSize()) < AMPLE_VIDEO_FRAMES)
+    {
       
       
       
@@ -329,7 +335,8 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
         (!audioPlaying || (GetDecodedAudioDuration() >= ampleAudioThreshold &&
                            audioQueue.GetSize() > 0))
         &&
-        (!videoPlaying || videoQueue.GetSize() >= AMPLE_VIDEO_FRAMES))
+        (!videoPlaying ||
+          static_cast<PRUint32>(videoQueue.GetSize()) >= AMPLE_VIDEO_FRAMES))
     {
       
       
