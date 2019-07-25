@@ -43,22 +43,10 @@
 
 
 
-const kSwipeLength = 160;
-
-
 const kDoubleClickInterval = 400;
 
 
 const kTapRadius = 25;
-
-
-const kKineticUpdateInterval = 25;
-
-
-const kDecelerationRate = .09;
-
-
-const kSpeedSensitivity = 1.1;
 
 
 const kStateActive = 0x00000001;
@@ -997,36 +985,32 @@ DragData.prototype = {
 
 
 
+
+
+
+
 function KineticController(aPanBy, aEndCallback) {
   this._panBy = aPanBy;
   this._timer = null;
   this._beforeEnd = aEndCallback;
 
-  try {
-    this._updateInterval = gPrefService.getIntPref("browser.ui.kinetic.updateInterval");
-  } catch(e) {
-    this._updateInterval = kKineticUpdateInterval;
-  }
+  
+  
+  this._position = new Point(0, 0);
+  this._velocity = new Point(0, 0);
+  this._acceleration = new Point(0, 0);
+  this._time = 0;
+  this._timeStart = 0;
 
-  try {
-    
-    this._decelerationRate = gPrefService.getIntPref("browser.ui.kinetic.decelerationRate") / 100;
-  } catch (e) {
-    this._decelerationRate = kDecelerationRate;
-  };
-
-  try {
-    
-    this._speedSensitivity = gPrefService.getIntPref("browser.ui.kinetic.speedsensitivity") / 100;
-  } catch(e) {
-    this._speedSensitivity = kSpeedSensitivity;
-  }
-
-  try {
-    this._swipeLength = gPrefService.getIntPref("browser.ui.kinetic.swipelength");
-  } catch(e) {
-    this._swipeLength = kSwipeLength;
-  }
+  
+  
+  this._updateInterval = gPrefService.getIntPref("browser.ui.kinetic.updateInterval");
+  
+  this._decelerationRate = gPrefService.getIntPref("browser.ui.kinetic.decelerationRate") / 10000;
+  
+  this._speedSensitivity = gPrefService.getIntPref("browser.ui.kinetic.speedSensitivity") / 100;
+  
+  this._swipeLength = gPrefService.getIntPref("browser.ui.kinetic.swipeLength");
 
   this._reset();
 }
@@ -1039,8 +1023,7 @@ KineticController.prototype = {
     }
 
     this.momentumBuffer = [];
-    this._speedX = 0;
-    this._speedY = 0;
+    this._velocity.set(0, 0);
   },
 
   isActive: function isActive() {
@@ -1048,6 +1031,35 @@ KineticController.prototype = {
   },
 
   _startTimer: function _startTimer() {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let lastx = this._position;  
+    let v0 = this._velocity;  
+    let a = this._acceleration;  
+
+    
+    let aBin = new Point(0, 0);
+    let v0Bin = new Point(0, 0);
+
     let callback = {
       _self: this,
       notify: function kineticTimerCallback(timer) {
@@ -1057,33 +1069,39 @@ KineticController.prototype = {
           return;
 
         
+        
+        
+        let realt = Date.now() - self._initialTime;
+        self._time += self._updateInterval;
+        let t = (self._time + realt) / 2;
 
-        if (self._speedX == 0 && self._speedY == 0) {
-          self.end();
-          return;
+        
+        let x = v0Bin.set(v0).scale(t).add(aBin.set(a).scale(0.5 * t * t));
+        let dx = x.x - lastx.x;
+        let dy = x.y - lastx.y;
+        lastx.set(x);
+
+        
+        
+        if (t >= -v0.x / a.x) {
+          
+          dx = -v0.x * v0.x / 2 / a.x - lastx.x;
+          
+          lastx.x = 0;
+          v0.x = 0;
+          a.x = 0;
         }
-        let dx = Math.round(self._speedX * self._updateInterval);
-        let dy = Math.round(self._speedY * self._updateInterval);
+        
+        if (t >= -v0.y / a.y) {
+          dy = -v0.y * v0.y / 2 / a.y - lastx.y;
+          lastx.y = 0;
+          v0.y = 0;
+          a.y = 0;
+        }
 
         let panned = false;
-        try { panned = self._panBy(-dx, -dy); } catch (e) {}
-        if (!panned) {
-          self.end();
-          return;
-        }
-
-        if (self._speedX < 0) {
-          self._speedX = Math.min(self._speedX + self._decelerationRate, 0);
-        } else if (self._speedX > 0) {
-          self._speedX = Math.max(self._speedX - self._decelerationRate, 0);
-        }
-        if (self._speedY < 0) {
-          self._speedY = Math.min(self._speedY + self._decelerationRate, 0);
-        } else if (self._speedY > 0) {
-          self._speedY = Math.max(self._speedY - self._decelerationRate, 0);
-        }
-
-        if (self._speedX == 0 && self._speedY == 0)
+        try { panned = self._panBy(Math.round(-dx), Math.round(-dy)); } catch (e) {}
+        if (!panned)
           self.end();
       }
     };
@@ -1096,6 +1114,10 @@ KineticController.prototype = {
   },
 
   start: function start() {
+    function sign(x) {
+      return x ? ((x > 0) ? 1 : -1) : 0;
+    }
+
     let mb = this.momentumBuffer;
     let mblen = this.momentumBuffer.length;
 
@@ -1115,12 +1137,19 @@ KineticController.prototype = {
     }
 
     
-    this._speedX = (distanceX < 0 ? Math.min : Math.max)((distanceX / swipeLength) * this._speedSensitivity, this._speedX);
-    this._speedY = (distanceY < 0 ? Math.min : Math.max)((distanceY / swipeLength) * this._speedSensitivity, this._speedY);
+    this._velocity.x = (distanceX < 0 ? Math.min : Math.max)((distanceX / swipeLength) * this._speedSensitivity, this._velocity.x);
+    this._velocity.y = (distanceY < 0 ? Math.min : Math.max)((distanceY / swipeLength) * this._speedSensitivity, this._velocity.y);
+
+    
+    this._acceleration.set(this._velocity.clone().map(sign).scale(-this._decelerationRate));
+
+    this._position.set(0, 0);
+    this._initialTime = Date.now();
+    this._time = 0;
     this.momentumBuffer = [];
-    if (!this.isActive()) {
+
+    if (!this.isActive())
       this._startTimer();
-    }
 
     return true;
   },
@@ -1137,10 +1166,8 @@ KineticController.prototype = {
 
     if (this.isActive()) {
       
-      if (dx * this._speedX < 0)
-        this._speedX = 0;
-      if (dy * this._speedY < 0)
-        this._speedY = 0;
+      if (dx * this._velocity.x < 0 || dy * this._velocity.y < 0)
+        this.end();
     }
  
     this.momentumBuffer.push({'t': now, 'dx' : dx, 'dy' : dy});
