@@ -124,6 +124,8 @@ public class PanZoomController
     private final Axis mX;
     private final Axis mY;
 
+    private Thread mMainThread;
+
     
     private Timer mAnimationTimer;
     
@@ -141,10 +143,21 @@ public class PanZoomController
         mX = new AxisX(mSubscroller);
         mY = new AxisY(mSubscroller);
 
+        mMainThread = GeckoApp.mAppContext.getMainLooper().getThread();
+        checkMainThread();
+
         mState = PanZoomState.NOTHING;
 
         GeckoAppShell.registerGeckoEventListener(MESSAGE_ZOOM_RECT, this);
         GeckoAppShell.registerGeckoEventListener(MESSAGE_ZOOM_PAGE, this);
+    }
+
+    
+    private void checkMainThread() {
+        if (mMainThread != Thread.currentThread()) {
+            
+            Log.e(LOGTAG, "Uh-oh, we're running on the wrong thread!", new Exception());
+        }
     }
 
     public void handleMessage(String event, JSONObject message) {
@@ -198,6 +211,7 @@ public class PanZoomController
     
     @SuppressWarnings("fallthrough")
     public void abortAnimation() {
+        checkMainThread();
         
         
         
@@ -631,6 +645,8 @@ public class PanZoomController
     }
 
     private void finishAnimation() {
+        checkMainThread();
+
         Log.d(LOGTAG, "Finishing animation at " + mController.getViewportMetrics());
         stopAnimationTimer();
 
