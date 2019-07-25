@@ -629,8 +629,6 @@ static PRBool HasPotentialResource(nsIContent *aElement)
 
 void nsHTMLMediaElement::SelectResource()
 {
-  NS_ASSERTION(!mDelayingLoadEvent,
-    "Load event should not be delayed at start of resource selection.");
   if (!HasPotentialResource(this)) {
     
     
