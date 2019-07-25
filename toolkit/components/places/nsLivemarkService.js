@@ -663,7 +663,7 @@ function Livemark(aLivemarkInfo)
   this._status = Ci.mozILivemark.STATUS_READY;
 
   
-  this._resultObservers = new WeakMap();
+  this._resultObservers = new Map();
   
   
   this._resultObserversList = [];
@@ -674,7 +674,7 @@ function Livemark(aLivemarkInfo)
 
   
   
-  this._nodes = new WeakMap();
+  this._nodes = new Map();
 
   this._guid = "";
   this._lastModified = 0;

@@ -153,12 +153,21 @@ PlacesTreeView.prototype = {
   _getRowForNode:
   function PTV__getRowForNode(aNode, aForceBuild, aParentRow, aNodeIndex) {
     if (aNode == this._rootNode)
-      throw "The root node is never visible";
+      throw new Error("The root node is never visible");
 
-    let ancestors = PlacesUtils.nodeAncestors(aNode);
-    for (let ancestor in ancestors) {
+    
+    
+    
+    let ancestors = [x for each (x in PlacesUtils.nodeAncestors(aNode))];
+    if (ancestors.length == 0 ||
+        ancestors[ancestors.length - 1] != this._rootNode) {
+      throw new Error("Removed node passed to _getRowForNode");
+    }
+
+    
+    for (let ancestor of ancestors) {
       if (!ancestor.containerOpen)
-        throw "Invisible node passed to _getRowForNode";
+        throw new Error("Invisible node passed to _getRowForNode");
     }
 
     
@@ -1097,7 +1106,7 @@ PlacesTreeView.prototype = {
     if (val) {
       this._result = val;
       this._rootNode = this._result.root;
-      this._cellProperties = new WeakMap();
+      this._cellProperties = new Map();
       this._cuttingNodes = new Set();
     }
     else if (this._result) {
