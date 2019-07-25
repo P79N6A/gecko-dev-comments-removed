@@ -145,11 +145,14 @@ public:
 
 
 
+
   
 
 
   void CreatedThebesBuffer(ShadowableLayer* aThebes,
-                           nsIntRect aBufferRect,
+                           const nsIntRegion& aFrontValidRegion,
+                           float aXResolution, float aYResolution,
+                           const nsIntRect& aBufferRect,
                            const SurfaceDescriptor& aInitialFrontBuffer);
   
 
@@ -393,6 +396,16 @@ public:
     NS_ABORT_IF_FALSE(!mAllocator, "Stomping parent?");
     mAllocator = aParent;
   }
+
+  
+
+
+
+
+
+  virtual void SetFrontBuffer(const ThebesBuffer& aNewFront,
+                              const nsIntRegion& aValidRegion,
+                              float aXResolution, float aYResolution) = 0;
 
   virtual void InvalidateRegion(const nsIntRegion& aRegion)
   {

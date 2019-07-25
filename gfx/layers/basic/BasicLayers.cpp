@@ -1432,6 +1432,10 @@ private:
   
   
   SurfaceDescriptor mBackBuffer;
+  
+  
+  
+  SurfaceDescriptor mNewFrontBuffer;
   nsIntSize mBufferSize;
 };
  
@@ -1449,8 +1453,39 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
     NS_ABORT_IF_FALSE(IsSurfaceDescriptorValid(mBackBuffer),
                       "should have a back buffer by now");
 
+    nsIntRegion updatedRegion = aRegionToDraw;
+    if (IsSurfaceDescriptorValid(mNewFrontBuffer)) {
+      
+      
+      
+      
+      
+      
+      nsRefPtr<gfxASurface> frontBuffer =
+        BasicManager()->OpenDescriptor(mNewFrontBuffer);
+      nsRefPtr<gfxASurface> backBuffer =
+        BasicManager()->OpenDescriptor(mBackBuffer);
+
+      nsRefPtr<gfxContext> ctx = new gfxContext(frontBuffer);
+      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
+      ctx->DrawSurface(backBuffer, backBuffer->GetSize());
+
+      BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
+                                          mValidRegion,
+                                          mXResolution,
+                                          mYResolution,
+                                          mBuffer.BufferRect(),
+                                          mNewFrontBuffer);
+
+      
+      mNewFrontBuffer = SurfaceDescriptor();
+      
+      
+      updatedRegion.SetEmpty();
+    }
+
     BasicManager()->PaintedThebesBuffer(BasicManager()->Hold(this),
-                                        aRegionToDraw,
+                                        updatedRegion,
                                         mBuffer.BufferRect(),
                                         mBuffer.BufferRotation(),
                                         mBackBuffer);
@@ -1471,19 +1506,15 @@ BasicShadowableThebesLayer::CreateBuffer(Buffer::ContentType aType,
     mBackBuffer = SurfaceDescriptor();
   }
 
-  SurfaceDescriptor tmpFront;
   
+  NS_ABORT_IF_FALSE(!IsSurfaceDescriptorValid(mNewFrontBuffer),
+                    "Bad!  Did we create a buffer twice without painting?");
   if (!BasicManager()->AllocDoubleBuffer(gfxIntSize(aSize.width, aSize.height),
                                          aType,
-                                         &tmpFront,
+                                         &mNewFrontBuffer,
                                          &mBackBuffer))
     NS_RUNTIMEABORT("creating ThebesLayer 'back buffer' failed!");
   mBufferSize = aSize;
-
-  nsIntRect bufRect = mVisibleRegion.GetBounds();
-  BasicManager()->CreatedThebesBuffer(BasicManager()->Hold(this),
-                                      bufRect,
-                                      tmpFront);
   return BasicManager()->OpenDescriptor(mBackBuffer);
 }
 
@@ -1769,6 +1800,10 @@ public:
     MOZ_COUNT_DTOR(BasicShadowThebesLayer);
   }
 
+  virtual void SetFrontBuffer(const ThebesBuffer& aNewFront,
+                              const nsIntRegion& aValidRegion,
+                              float aXResolution, float aYResolution);
+
   virtual void SetValidRegion(const nsIntRegion& aRegion)
   {
     mOldValidRegion = mValidRegion;
@@ -1828,6 +1863,25 @@ private:
   float mOldXResolution;
   float mOldYResolution;
 };
+
+void
+BasicShadowThebesLayer::SetFrontBuffer(const ThebesBuffer& aNewFront,
+                                       const nsIntRegion& aValidRegion,
+                                       float aXResolution, float aYResolution)
+{
+  mValidRegion = mOldValidRegion = aValidRegion;
+  mXResolution = mOldXResolution = aXResolution;
+  mYResolution = mOldYResolution = aYResolution;
+  nsRefPtr<gfxASurface> newFrontBuffer =
+    BasicManager()->OpenDescriptor(aNewFront.buffer());
+
+  nsRefPtr<gfxASurface> unused;
+  nsIntRect unusedRect;
+  nsIntPoint unusedRotation;
+  mFrontBuffer.Swap(newFrontBuffer, aNewFront.rect(), aNewFront.rotation(),
+                    getter_AddRefs(unused), &unusedRect, &unusedRotation);
+  mFrontBufferDescriptor = aNewFront.buffer();
+}
 
 void
 BasicShadowThebesLayer::Swap(const ThebesBuffer& aNewFront,
