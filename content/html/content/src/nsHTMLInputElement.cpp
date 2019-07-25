@@ -1404,7 +1404,9 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
     
     
     nsAutoString value(aValue);
-    SanitizeValue(value);
+    if (!GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
+      SanitizeValue(value);
+    }
 
     if (aSetValueChanged) {
       SetValueChanged(PR_TRUE);
@@ -2546,7 +2548,10 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
 {
   ValueModeType aOldValueMode = GetValueMode();
   nsAutoString aOldValue;
-  GetValue(aOldValue);
+
+  if (aOldValueMode == VALUE_MODE_VALUE && !GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
+    GetValue(aOldValue);
+  }
 
   
   PRBool isNewTypeSingleLine =
@@ -2563,40 +2568,42 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
 
   mType = aNewType;
 
-  
+  if (!GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
+    
 
 
 
-  switch (GetValueMode()) {
-    case VALUE_MODE_DEFAULT:
-    case VALUE_MODE_DEFAULT_ON:
-      
-      
-      
-      if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
-        SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, PR_TRUE);
-      }
-      break;
-    case VALUE_MODE_VALUE:
-      
-      
-      
-      {
-        nsAutoString value;
-        if (aOldValueMode != VALUE_MODE_VALUE) {
-          GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
-        } else {
-          
-          GetValue(value);
+    switch (GetValueMode()) {
+      case VALUE_MODE_DEFAULT:
+      case VALUE_MODE_DEFAULT_ON:
+        
+        
+        
+        if (aOldValueMode == VALUE_MODE_VALUE && !aOldValue.IsEmpty()) {
+          SetAttr(kNameSpaceID_None, nsGkAtoms::value, aOldValue, PR_TRUE);
         }
-        SetValueInternal(value, PR_FALSE, PR_FALSE);
-      }
-      break;
-    case VALUE_MODE_FILENAME:
-    default:
-      
-      
-      break;
+        break;
+      case VALUE_MODE_VALUE:
+        
+        
+        
+        {
+          nsAutoString value;
+          if (aOldValueMode != VALUE_MODE_VALUE) {
+            GetAttr(kNameSpaceID_None, nsGkAtoms::value, value);
+          } else {
+            
+            GetValue(value);
+          }
+          SetValueInternal(value, PR_FALSE, PR_FALSE);
+        }
+        break;
+      case VALUE_MODE_FILENAME:
+      default:
+        
+        
+        break;
+    }
   }
 
   
@@ -2606,6 +2613,9 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
 void
 nsHTMLInputElement::SanitizeValue(nsAString& aValue)
 {
+  NS_ASSERTION(!GET_BOOLBIT(mBitField, BF_PARSER_CREATING),
+               "The element parsing should be finished!");
+
   switch (mType) {
     case NS_FORM_INPUT_TEXT:
     case NS_FORM_INPUT_SEARCH:
@@ -3226,6 +3236,13 @@ nsHTMLInputElement::DoneCreatingElement()
     GetDefaultChecked(&resetVal);
     DoSetChecked(resetVal, PR_FALSE, PR_TRUE);
     DoSetCheckedChanged(PR_FALSE, PR_FALSE);
+  }
+
+  
+  if (GetValueMode() == VALUE_MODE_VALUE) {
+    nsAutoString aValue;
+    GetValue(aValue);
+    SetValueInternal(aValue, PR_FALSE, PR_FALSE);
   }
 
   SET_BOOLBIT(mBitField, BF_SHOULD_INIT_CHECKED, PR_FALSE);
@@ -4320,7 +4337,9 @@ nsHTMLInputElement::GetDefaultValueFromContent(nsAString& aValue)
     GetDefaultValue(aValue);
     
     
-    SanitizeValue(aValue);
+    if (!GET_BOOLBIT(mBitField, BF_PARSER_CREATING)) {
+      SanitizeValue(aValue);
+    }
   }
 }
 
