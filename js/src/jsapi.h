@@ -1584,6 +1584,16 @@ typedef JSBool
 
 
 
+typedef JSBool
+(* JSPushContextPrincipalOp)(JSContext *cx, JSPrincipals *principals);
+
+typedef JSBool
+(* JSPopContextPrincipalOp)(JSContext *cx);
+
+
+
+
+
 
 typedef JSObject *
 (* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
@@ -2723,6 +2733,10 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
+namespace js {
+struct AutoCompartment;
+}
+
 class JS_PUBLIC_API(JSAutoEnterCompartment)
 {
     
@@ -2734,6 +2748,12 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
 
     void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 13];
+
+  protected:
+    js::AutoCompartment *getAutoCompartment() {
+        JS_ASSERT(state == STATE_OTHER_COMPARTMENT);
+        return reinterpret_cast<js::AutoCompartment*>(bytes);
+    }
 
     
 
@@ -4234,6 +4254,8 @@ struct JSSecurityCallbacks {
     JSSubsumePrincipalsOp      subsumePrincipals;
     JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
+    JSPushContextPrincipalOp   pushContextPrincipal;
+    JSPopContextPrincipalOp    popContextPrincipal;
 };
 
 extern JS_PUBLIC_API(void)

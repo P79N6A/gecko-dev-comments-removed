@@ -510,6 +510,34 @@ JSStructuredCloneWriter::startObject(JSObject *obj)
     return out.writePair(obj->isArray() ? SCTAG_ARRAY_OBJECT : SCTAG_OBJECT_OBJECT, 0);
 }
 
+class AutoEnterCompartmentAndPushPrincipal : public JSAutoEnterCompartment
+{
+  public:
+    bool enter(JSContext *cx, JSObject *target) {
+        
+        if (!JSAutoEnterCompartment::enter(cx, target))
+            return false;
+
+        
+        if (state != STATE_OTHER_COMPARTMENT)
+            return true;
+
+        
+        const JSSecurityCallbacks *cb = cx->runtime->securityCallbacks;
+        return cb->pushContextPrincipal(cx, target->principals(cx));
+    };
+
+    ~AutoEnterCompartmentAndPushPrincipal() {
+        
+        if (state == STATE_OTHER_COMPARTMENT) {
+            AutoCompartment *ac = getAutoCompartment();
+            const JSSecurityCallbacks *cb = ac->context->runtime->securityCallbacks;
+            cb->popContextPrincipal(ac->context);
+        }
+    };
+};
+
+
 bool
 JSStructuredCloneWriter::startWrite(const js::Value &v)
 {
@@ -536,7 +564,7 @@ JSStructuredCloneWriter::startWrite(const js::Value &v)
 
         
         
-        JSAutoEnterCompartment ac;
+        AutoEnterCompartmentAndPushPrincipal ac;
         if (!ac.enter(context(), obj))
             return false;
 
@@ -581,7 +609,7 @@ JSStructuredCloneWriter::write(const Value &v)
         JSObject *obj = &objs.back().toObject();
 
         
-        JSAutoEnterCompartment ac;
+        AutoEnterCompartmentAndPushPrincipal ac;
         if (!ac.enter(context(), obj))
             return false;
 
