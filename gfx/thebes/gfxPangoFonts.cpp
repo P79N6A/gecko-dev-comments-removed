@@ -960,7 +960,7 @@ public:
 
     
     
-    PangoFont *GetPangoFontAt(PRUint32 i)
+    gfxFcFont *GetFontAt(PRUint32 i)
     {
         if (i >= mFonts.Length() || !mFonts[i].mFont) { 
             
@@ -968,10 +968,27 @@ public:
             if (!fontPattern)
                 return NULL;
 
-            mFonts[i].mFont =
-                gfxPangoFcFont::NewFont(mSortPattern, fontPattern);
+            nsAutoRef<FcPattern> renderPattern
+                (FcFontRenderPrepare(NULL, mSortPattern, fontPattern));
+            mFonts[i].mFont = gfxFcFont::GetOrMakeFont(renderPattern);
         }
         return mFonts[i].mFont;
+    }
+
+    
+    
+    PangoFont *GetPangoFontAt(PRUint32 i)
+    {
+        if (i >= mFonts.Length() || !mFonts[i].mPangoFont) { 
+            
+            FcPattern *fontPattern = GetFontPatternAt(i);
+            if (!fontPattern)
+                return NULL;
+
+            mFonts[i].mPangoFont =
+                gfxPangoFcFont::NewFont(mSortPattern, fontPattern);
+        }
+        return mFonts[i].mPangoFont;
     }
 
     FcPattern *GetFontPatternAt(PRUint32 i);
@@ -983,7 +1000,8 @@ private:
     struct FontEntry {
         explicit FontEntry(FcPattern *aPattern) : mPattern(aPattern) {}
         nsCountedRef<FcPattern> mPattern;
-        nsCountedRef<PangoFont> mFont;
+        nsRefPtr<gfxFcFont> mFont;
+        nsCountedRef<PangoFont> mPangoFont;
     };
 
     struct LangSupportEntry {
@@ -2318,8 +2336,7 @@ gfxPangoFontGroup::GetBaseFontSet()
 
     double size = GetPixelSize(pattern);
     if (size != 0.0 && mStyle.sizeAdjust != 0.0) {
-        gfxFcFont *font = gfxPangoFcFont::
-            GfxFont(GFX_PANGO_FC_FONT(fontSet->GetPangoFontAt(0)));
+        gfxFcFont *font = fontSet->GetFontAt(0);
         if (font) {
             const gfxFont::Metrics& metrics = font->GetMetrics();
 
