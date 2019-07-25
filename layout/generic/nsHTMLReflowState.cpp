@@ -2487,8 +2487,13 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
   
   
   
+  
+  
+  
+  
   const nsStyleCoord &minHeight = mStylePosition->mMinHeight;
-  if ((NS_AUTOHEIGHT == aContainingBlockHeight &&
+  if (eStyleUnit_Auto == minHeight.GetUnit() ||
+      (NS_AUTOHEIGHT == aContainingBlockHeight &&
        minHeight.HasPercent()) ||
       (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
        minHeight.IsCalcUnit())) {

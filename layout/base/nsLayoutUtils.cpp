@@ -2389,7 +2389,8 @@ GetPercentHeight(const nsStyleCoord& aStyle,
     if (minh > h)
       h = minh;
   } else {
-    NS_ASSERTION(pos->mMinHeight.HasPercent(),
+    NS_ASSERTION(pos->mMinHeight.HasPercent() ||
+                 pos->mMinHeight.GetUnit() == eStyleUnit_Auto,
                  "unknown min-height unit");
   }
 
@@ -2540,12 +2541,18 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext *aRenderingContext,
 
     
     
+    
+    
+    
+    
     const nsStyleCoord &styleHeight = stylePos->mHeight;
     const nsStyleCoord &styleMinHeight = stylePos->mMinHeight;
     const nsStyleCoord &styleMaxHeight = stylePos->mMaxHeight;
+
     if (styleHeight.GetUnit() != eStyleUnit_Auto ||
-        !(styleMinHeight.GetUnit() == eStyleUnit_Coord &&
-          styleMinHeight.GetCoordValue() == 0) ||
+        !(styleMinHeight.GetUnit() == eStyleUnit_Auto || 
+          (styleMinHeight.GetUnit() == eStyleUnit_Coord &&
+           styleMinHeight.GetCoordValue() == 0)) ||
         styleMaxHeight.GetUnit() != eStyleUnit_None) {
 
       nsSize ratio = aFrame->GetIntrinsicRatio();
