@@ -9,5 +9,5 @@ input[required]:required {
 
 
 :invalid {
-  -moz-box-shadow: none;
+  box-shadow: none;
 }

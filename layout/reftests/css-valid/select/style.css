@@ -1,6 +1,6 @@
 
 select:invalid {
-  -moz-box-shadow: none;
+  box-shadow: none;
 }
 
 select.notvalid {
