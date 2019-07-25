@@ -9289,8 +9289,14 @@ nsCSSFrameConstructor::CreateNeededTablePseudos(nsFrameConstructorState& aState,
           bool trailingSpaces = spaceEndIter.SkipWhitespace(aState);
 
           
-          if (trailingSpaces ||
-              spaceEndIter.item().DesiredParentType() != eTypeBlock) {
+          
+          
+          
+          
+          
+          if ((trailingSpaces && ourParentType != eTypeBlock) ||
+              (!trailingSpaces && spaceEndIter.item().DesiredParentType() != 
+               eTypeBlock)) {
             bool updateStart = (iter == endIter);
             endIter.DeleteItemsTo(spaceEndIter);
             NS_ASSERTION(trailingSpaces == endIter.IsDone(), "These should match");
