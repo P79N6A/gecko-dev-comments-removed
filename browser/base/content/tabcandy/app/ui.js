@@ -244,7 +244,7 @@ window.Page = {
     
     
     
-    setTimeout(function() {
+    iQ.timeout(function() { 
       var tabContainer = Utils.getCurrentWindow().gBrowser.tabContainer;
       if (tabContainer.mCloseButtons == 1 &&
           tabContainer.getAttribute("overflow") != "true") {
@@ -320,10 +320,6 @@ window.Page = {
   
   init: function() {
     var self = this;
-
-
-
-
         
     
     
@@ -336,6 +332,8 @@ window.Page = {
         
     Tabs.onClose(function(){
       iQ.timeout(function() { 
+        Page.setCloseButtonOnTabs();        
+          
         
         
         var group = Groups.getActiveGroup();
@@ -609,6 +607,7 @@ UIClass.prototype = {
       Tabs.onOpen(function(a, b) {
         iQ.timeout(function() { 
           self.navBar.show();
+          Page.setCloseButtonOnTabs();
         }, 1);
       });
     
