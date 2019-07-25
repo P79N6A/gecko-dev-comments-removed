@@ -792,6 +792,12 @@ NS_IMETHODIMP nsPermissionManager::Observe(nsISupports *aSubject, const char *aT
     } else {
       RemoveAllFromMemory();
     }
+    if (mDBConn) {
+      
+      mStmtInsert = nsnull;
+      mStmtDelete = nsnull;
+      mStmtUpdate = nsnull;
+    }
   }
   else if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     
