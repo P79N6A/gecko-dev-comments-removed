@@ -362,7 +362,7 @@ nsBaseAppShell::RunSyncSections()
   
   
   
-  for (PRUint32 i=0; i<mSyncSections.Count(); i++) {
+  for (PRInt32 i = 0; i < mSyncSections.Count(); i++) {
     mSyncSections[i]->Run();
   }
   mSyncSections.Clear();
