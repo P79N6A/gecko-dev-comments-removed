@@ -501,6 +501,22 @@ js_InternalThrow(VMFrame &f)
     JSContext *cx = f.cx;
 
     
+    
+    
+    
+    
+    
+    
+    
+    if (f.fp()->finishedInInterpreter()) {
+        
+        if (f.fp() == f.entryfp)
+            return NULL;
+
+        InlineReturn(f);
+    }
+
+    
     JS_ASSERT(cx->regs == &f.regs);
 
     
@@ -538,16 +554,15 @@ js_InternalThrow(VMFrame &f)
         
         
         
-        bool lastFrame = (f.entryfp == f.fp());
+        
+        JS_ASSERT(!f.fp()->finishedInInterpreter());
         js_UnwindScope(cx, 0, cx->isExceptionPending());
-
-        
-        
-        
-        
         ScriptEpilogue(f.cx, f.fp(), false);
 
-        if (lastFrame)
+        
+        
+        
+        if (f.entryfp == f.fp())
             break;
 
         JS_ASSERT(f.regs.sp == cx->regs->sp);
@@ -647,8 +662,19 @@ HandleErrorInExcessFrame(VMFrame &f, JSStackFrame *stopFp, bool searchedTopmostF
 
     JSStackFrame *fp = cx->fp();
     if (searchedTopmostFrame) {
+        
+
+
+
+
+
+
         if (fp == stopFp)
             return false;
+
+        
+
+
 
         InlineReturn(f);
     }
