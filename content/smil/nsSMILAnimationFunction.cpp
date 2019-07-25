@@ -187,7 +187,9 @@ nsSMILAnimationFunction::SampleAt(nsSMILTime aSampleTime,
     !IsValueFixedForSimpleDuration();
 
   
-  mHasChanged |= (mRepeatIteration != aRepeatIteration) && GetAccumulate();
+  if (!mErrorFlags) { 
+    mHasChanged |= (mRepeatIteration != aRepeatIteration) && GetAccumulate();
+  }
 
   mSampleTime       = aSampleTime;
   mSimpleDuration   = aSimpleDuration;
