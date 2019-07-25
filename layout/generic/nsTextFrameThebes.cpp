@@ -4156,20 +4156,31 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
   
   
   
-  if (eCompatibility_NavQuirks != aPresContext->CompatibilityMode())
+  
+  
+  
+  const nsCompatibility compatMode = aPresContext->CompatibilityMode();
+  if (compatMode != eCompatibility_NavQuirks)
     return decorations;
 
   PRBool useOverride = PR_FALSE;
   nscolor overrideColor;
 
   
+  
+  
   PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_UNDERLINE | 
                       NS_STYLE_TEXT_DECORATION_OVERLINE |
                       NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
 
-  for (nsStyleContext* context = GetStyleContext();
-       decorMask && context && context->HasTextDecorations();
-       context = context->GetParent()) {
+  PRBool isChild; 
+  for (nsIFrame* f = this; decorMask && f;
+       NS_SUCCEEDED(f->GetParentStyleContextFrame(aPresContext, &f, &isChild))
+         || (f = nsnull)) {
+    nsStyleContext* context = f->GetStyleContext();
+    if (!context->HasTextDecorations()) {
+      break;
+    }
     const nsStyleTextReset* styleText = context->GetStyleTextReset();
     if (!useOverride && 
         (NS_STYLE_TEXT_DECORATION_OVERRIDE_ALL & styleText->mTextDecoration)) {
@@ -4179,10 +4190,20 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
       overrideColor = context->GetVisitedDependentColor(eCSSProperty_color);
     }
 
+    
     PRUint8 useDecorations = decorMask & styleText->mTextDecoration;
     if (useDecorations) {
       nscolor color = context->GetVisitedDependentColor(eCSSProperty_color);
 
+      
+      
+      
+      
+      
+      
+      
+      
+      
       if (NS_STYLE_TEXT_DECORATION_UNDERLINE & useDecorations) {
         decorations.mUnderColor = useOverride ? overrideColor : color;
         decorMask &= ~NS_STYLE_TEXT_DECORATION_UNDERLINE;
@@ -4197,6 +4218,27 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
         decorations.mStrikeColor = useOverride ? overrideColor : color;
         decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
         decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
+      }
+    }
+
+    
+    
+    const nsStyleDisplay *disp = context->GetStyleDisplay();
+    if (disp->mDisplay != NS_STYLE_DISPLAY_INLINE &&
+        disp->IsInlineOutside()) {
+      break;
+    }
+
+    if (compatMode == eCompatibility_NavQuirks) {
+      
+      if (f->GetContent()->IsHTML(nsGkAtoms::table)) {
+        break;
+      }
+    } else {
+      
+      
+      if (disp->IsFloating() || disp->IsAbsolutelyPositioned()) {
+        break;
       }
     }
   }
