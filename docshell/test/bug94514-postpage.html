@@ -18,7 +18,7 @@
 netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
 if (!window.location.href.match("posted=1")) {
   // Here we just submit the form
-  var form = $("testForm");
+  var form = document.getElementById("testForm");
   form.action = window.location.href + "?posted=1";
   form.submit();
 } else {
