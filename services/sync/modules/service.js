@@ -336,7 +336,7 @@ WeaveSvc.prototype = {
     if (Svc.Prefs.get("autoconnect") && this.username) {
       try {
         if (this.login())
-          yield this.sync(self.cb, true);
+          this.sync(true);
       } catch (e) {}
     }
     self.done();
@@ -803,7 +803,7 @@ WeaveSvc.prototype = {
           if (this.locked)
             this._log.debug("Skipping scheduled sync: already locked for sync");
           else
-            this.sync(null, false);
+            this.sync(false);
         }));
       this._syncTimer.initWithCallback(listener, SCHEDULED_SYNC_INTERVAL,
                                        Ci.nsITimer.TYPE_REPEATING_SLACK);
@@ -819,9 +819,9 @@ WeaveSvc.prototype = {
 
 
 
-
-  _sync: function WeaveSvc__sync(fullSync) {
-    let self = yield;
+  sync: function WeaveSvc_sync(fullSync)
+    this._catch(this._lock(this._notify("sync", "", function() {
+    fullSync = true; 
 
     
     let useThresh = !fullSync;
@@ -919,21 +919,7 @@ WeaveSvc.prototype = {
       this.cancelRequested = false;
       this._syncError = false;
     }
-  },
-
-  
-
-
-
-
-
-
-
-  sync: function WeaveSvc_sync(onComplete, fullSync) {
-    fullSync = true; 
-    this._catchAll(this._notifyAsync("sync", "", this._localLock(this._sync))).
-      async(this, onComplete, fullSync);
-  },
+  })))(),
 
   
   
