@@ -737,7 +737,7 @@ nsPIDOMWindow::nsPIDOMWindow(nsPIDOMWindow *aOuterWindow)
   mMayHaveAudioAvailableEventListener(PR_FALSE), mIsModalContentWindow(PR_FALSE),
   mIsActive(PR_FALSE), mInnerWindow(nsnull), mOuterWindow(aOuterWindow),
   
-  mWindowID(++gNextWindowID)
+  mWindowID(++gNextWindowID), mHasNotifiedGlobalCreated(PR_FALSE)
  {}
 
 nsPIDOMWindow::~nsPIDOMWindow() {}
@@ -2205,9 +2205,23 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   mContext->GC();
   mContext->DidInitializeContext();
 
-  if (!aState && !reUseInnerWindow) {
-    nsContentUtils::AddScriptRunner(
-      NS_NewRunnableMethod(this, &nsGlobalWindow::DispatchDOMWindowCreated));
+  if (newInnerWindow && !newInnerWindow->mHasNotifiedGlobalCreated && mDoc) {
+    
+    
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(mDocShell));
+    PRInt32 itemType = nsIDocShellTreeItem::typeContent;
+    if (treeItem) {
+      treeItem->GetItemType(&itemType);
+    }
+
+    if (itemType != nsIDocShellTreeItem::typeChrome ||
+        nsContentUtils::IsSystemPrincipal(mDoc->NodePrincipal())) {
+      newInnerWindow->mHasNotifiedGlobalCreated = PR_TRUE;
+      nsContentUtils::AddScriptRunner(
+        NS_NewRunnableMethod(this, &nsGlobalWindow::DispatchDOMWindowCreated));
+    }
   }
 
   return NS_OK;

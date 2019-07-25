@@ -316,7 +316,7 @@ public:
 
   nsPIDOMWindow *GetOuterWindow()
   {
-    return mIsInnerWindow ? mOuterWindow : this;
+    return mIsInnerWindow ? mOuterWindow.get() : this;
   }
 
   nsPIDOMWindow *GetCurrentInnerWindow() const
@@ -611,7 +611,7 @@ protected:
 
   
   nsPIDOMWindow         *mInnerWindow;
-  nsPIDOMWindow         *mOuterWindow;
+  nsCOMPtr<nsPIDOMWindow> mOuterWindow;
 
   
   
@@ -620,6 +620,10 @@ protected:
   
   
   PRUint64 mWindowID;
+
+  
+  
+  PRPackedBool mHasNotifiedGlobalCreated;
 };
 
 
