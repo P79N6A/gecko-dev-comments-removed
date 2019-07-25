@@ -335,7 +335,24 @@ BookmarksSyncCore.prototype = {
     return this._bms.getItemIdForGUID(GUID) >= 0;
   },
 
-  _commandLike: function BSC_commandLike(a, b) {
+  _getEdits: function BSC__getEdits(a, b) {
+    
+    
+    let ret = SyncCore.prototype._getEdits.call(this, a, b);
+    ret.props.type = a.type;
+    return ret;
+  },
+
+  
+  
+  
+  
+  _comp: function BSC__comp(a, b, prop) {
+    return (!a.data[prop] && !b.data[prop]) ||
+      (a.data[prop] && b.data[prop] && (a.data[prop] == b.data[prop]));
+  },
+
+  _commandLike: function BSC__commandLike(a, b) {
     
     
     
@@ -357,33 +374,33 @@ BookmarksSyncCore.prototype = {
     
     switch (a.data.type) {
     case "bookmark":
-      if (a.data.URI == b.data.URI &&
-          a.data.title == b.data.title)
+      if (this._comp(a.data, b.data, 'URI') &&
+          this._comp(a.data, b.data, 'title'))
         return true;
       return false;
     case "query":
-      if (a.data.URI == b.data.URI &&
-          a.data.title == b.data.title)
+      if (this._comp(a.data, b.data, 'URI') &&
+          this._comp(a.data, b.data, 'title'))
         return true;
       return false;
     case "microsummary":
-      if (a.data.URI == b.data.URI &&
-          a.data.generatorURI == b.data.generatorURI)
+      if (this._comp(a.data, b.data, 'URI') &&
+          this._comp(a.data, b.data, 'generatorURI'))
         return true;
       return false;
     case "folder":
-      if (a.index == b.index &&
-          a.data.title == b.data.title)
+      if (this._comp(a, b, 'index') &&
+          this._comp(a.data, b.data, 'title'))
         return true;
       return false;
     case "livemark":
-      if (a.data.title == b.data.title &&
-          a.data.siteURI == b.data.siteURI &&
-          a.data.feedURI == b.data.feedURI)
+      if (this._comp(a.data, b.data, 'title') &&
+          this._comp(a.data, b.data, 'siteURI') &&
+          this._comp(a.data, b.data, 'feedURI'))
         return true;
       return false;
     case "separator":
-      if (a.index == b.index)
+      if (this._comp(a, b, 'index'))
         return true;
       return false;
     default:
