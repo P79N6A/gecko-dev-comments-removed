@@ -1055,10 +1055,23 @@ TokenStream::getTokenInternal()
                                                 JSMSG_RESERVED_ID, kw->chars)) {
                     goto error;
                 }
-            } else if (kw->version <= VersionNumber(version)) {
-                tt = kw->tokentype;
-                tp->t_op = (JSOp) kw->op;
-                goto out;
+            } else {
+                if (kw->version <= VersionNumber(version)) {
+                    tt = kw->tokentype;
+                    tp->t_op = (JSOp) kw->op;
+                    goto out;
+                }
+
+                
+
+
+
+
+                if ((kw->tokentype == TOK_LET || kw->tokentype == TOK_YIELD) &&
+                    !ReportStrictModeError(cx, this, NULL, NULL, JSMSG_RESERVED_ID, kw->chars))
+                {
+                    goto error;
+                }
             }
         }
 

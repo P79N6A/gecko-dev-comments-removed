@@ -14,25 +14,27 @@ print(BUGNUMBER + ": " + summary);
 
 
 var futureReservedWords =
-  ["class",
+  [
+   "class",
    
    "enum",
    "export",
    "extends",
    "import",
-   "super"];
+   "super",
+  ];
 
 var strictFutureReservedWords =
   [
    "implements",
    "interface",
-   
+   "let", 
    "package",
    "private",
    "protected",
    "public",
    "static",
-   
+   "yield", 
   ];
 
 function testWord(word, expectNormal, expectStrict)
