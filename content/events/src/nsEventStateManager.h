@@ -317,6 +317,66 @@ protected:
   bool IsShellVisible(nsIDocShell* aShell);
 
   
+
+  class WheelPrefs
+  {
+  public:
+    static WheelPrefs* GetInstance();
+    static void Shutdown();
+
+    
+
+
+
+    void ApplyUserPrefsToDelta(nsMouseScrollEvent* aEvent);
+
+  private:
+    WheelPrefs();
+    ~WheelPrefs();
+
+    static int OnPrefChanged(const char* aPrefName, void* aClosure);
+
+    enum Index
+    {
+      INDEX_DEFAULT = 0,
+      INDEX_ALT,
+      INDEX_CONTROL,
+      INDEX_META,
+      INDEX_SHIFT,
+      INDEX_OS,
+      COUNT_OF_MULTIPLIERS
+    };
+
+    
+
+
+
+
+
+
+
+    Index GetIndexFor(nsMouseEvent_base* aEvent);
+
+    
+
+
+
+
+
+
+    void GetBasePrefName(Index aIndex, nsACString& aBasePrefName);
+
+    void Init(Index aIndex);
+
+    void Reset();
+
+    bool mInit[COUNT_OF_MULTIPLIERS];
+    double mMultiplierX[COUNT_OF_MULTIPLIERS];
+    double mMultiplierY[COUNT_OF_MULTIPLIERS];
+
+    static WheelPrefs* sInstance;
+  };
+
   void SendLineScrollEvent(nsIFrame* aTargetFrame,
                            nsMouseScrollEvent* aEvent,
                            nsPresContext* aPresContext,
@@ -386,34 +446,14 @@ protected:
 
 
 
-  PRInt32 ComputeWheelDeltaFor(nsMouseScrollEvent* aMouseEvent);
-  
 
-
-
-
-
-
-
-  PRInt32 ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent,
-                                bool aUseSystemSettings);
+  PRInt32 ComputeWheelActionFor(nsMouseScrollEvent* aMouseEvent);
   
 
 
 
 
   PRInt32 GetWheelActionFor(nsMouseScrollEvent* aMouseEvent);
-  
-
-
-
-
-  PRInt32 GetScrollLinesFor(nsMouseScrollEvent* aMouseEvent);
-  
-
-
-
-  bool UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent);
   
 
   

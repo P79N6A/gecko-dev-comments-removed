@@ -516,28 +516,14 @@ pref("browser.gesture.tap", "cmd_fullZoomReset");
 
 
 pref("mousewheel.withshiftkey.action",0);
-pref("mousewheel.withshiftkey.sysnumlines",true);
-pref("mousewheel.withshiftkey.numlines",1);
 pref("mousewheel.withaltkey.action",2);
-pref("mousewheel.withaltkey.sysnumlines",false);
-pref("mousewheel.withaltkey.numlines",1);
 pref("mousewheel.withmetakey.action",0);
-pref("mousewheel.withmetakey.sysnumlines",false);
-pref("mousewheel.withmetakey.numlines",1);
 #else
 pref("mousewheel.withshiftkey.action",2);
-pref("mousewheel.withshiftkey.sysnumlines",false);
-pref("mousewheel.withshiftkey.numlines",1);
 pref("mousewheel.withaltkey.action",0);
-pref("mousewheel.withaltkey.sysnumlines",false);
-pref("mousewheel.withaltkey.numlines",1);
 pref("mousewheel.withmetakey.action",0);
-pref("mousewheel.withmetakey.sysnumlines",true);
-pref("mousewheel.withmetakey.numlines",1);
 #endif
 pref("mousewheel.withcontrolkey.action",3);
-pref("mousewheel.withcontrolkey.sysnumlines",false);
-pref("mousewheel.withcontrolkey.numlines",1);
 
 
 pref("alerts.slideIncrement", 1);

@@ -1382,38 +1382,35 @@ pref("mousewheel.system_scroll_override_on_root_content.horizontal.factor", 200)
 
 
 pref("mousewheel.withnokey.action",0);
-pref("mousewheel.withnokey.numlines",6);
-pref("mousewheel.withnokey.sysnumlines",true);
 pref("mousewheel.withcontrolkey.action",0);
-pref("mousewheel.withcontrolkey.numlines",1);
-pref("mousewheel.withcontrolkey.sysnumlines",true);
 
 pref("mousewheel.withshiftkey.action",0);
-pref("mousewheel.withshiftkey.numlines",1);
-pref("mousewheel.withshiftkey.sysnumlines",true);
 pref("mousewheel.withaltkey.action",2);
-pref("mousewheel.withaltkey.numlines",1);
-pref("mousewheel.withaltkey.sysnumlines",false);
 pref("mousewheel.withmetakey.action",0);
-pref("mousewheel.withmetakey.numlines",1);
-pref("mousewheel.withmetakey.sysnumlines",true);
 
 
 pref("mousewheel.horizscroll.withnokey.action",0);
-pref("mousewheel.horizscroll.withnokey.numlines",1);
-pref("mousewheel.horizscroll.withnokey.sysnumlines",true);
 pref("mousewheel.horizscroll.withcontrolkey.action",0);
-pref("mousewheel.horizscroll.withcontrolkey.numlines",1);
-pref("mousewheel.horizscroll.withcontrolkey.sysnumlines",true);
 pref("mousewheel.horizscroll.withshiftkey.action",0);
-pref("mousewheel.horizscroll.withshiftkey.numlines",1);
-pref("mousewheel.horizscroll.withshiftkey.sysnumlines",true);
 pref("mousewheel.horizscroll.withaltkey.action",2);
-pref("mousewheel.horizscroll.withaltkey.numlines",-1);
-pref("mousewheel.horizscroll.withaltkey.sysnumlines",false);
 pref("mousewheel.horizscroll.withmetakey.action",0);
-pref("mousewheel.horizscroll.withmetakey.numlines",1);
-pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
+
+
+
+
+
+pref("mousewheel.withnokey.delta_multiplier_x", 100);
+pref("mousewheel.withnokey.delta_multiplier_y", 100);
+pref("mousewheel.withaltkey.delta_multiplier_x", 100);
+pref("mousewheel.withaltkey.delta_multiplier_y", 100);
+pref("mousewheel.withcontrolkey.delta_multiplier_x", 100);
+pref("mousewheel.withcontrolkey.delta_multiplier_y", 100);
+pref("mousewheel.withmetakey.delta_multiplier_x", 100);  
+pref("mousewheel.withmetakey.delta_multiplier_y", 100);  
+pref("mousewheel.withshiftkey.delta_multiplier_x", 100);
+pref("mousewheel.withshiftkey.delta_multiplier_y", 100);
+pref("mousewheel.withwinkey.delta_multiplier_x", 100);
+pref("mousewheel.withwinkey.delta_multiplier_y", 100);
 
 
 
