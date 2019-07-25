@@ -56,6 +56,7 @@
 #include "nsIDOMGlobalPropertyInitializer.h"
 
 using namespace mozilla::dom::power;
+using namespace mozilla::dom::sms;
 
 
 DOMCI_DATA(Navigator, mozilla::dom::Navigator)
@@ -1065,61 +1066,6 @@ Navigator::RequestWakeLock(const nsAString &aTopic, nsIDOMMozWakeLock **aWakeLoc
 
 
 bool
-Navigator::IsSmsAllowed() const
-{
-  static const bool defaultSmsPermission = false;
-
-  
-  if (!Preferences::GetBool("dom.sms.enabled", defaultSmsPermission)) {
-    return false;
-  }
-
-  
-  
-  
-  
-  
-  
-  nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mWindow));
-
-  if (!win || !win->GetDocShell()) {
-    return defaultSmsPermission;
-  }
-
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(win->GetExtantDocument());
-  if (!doc) {
-    return defaultSmsPermission;
-  }
-
-  nsCOMPtr<nsIURI> uri;
-  doc->NodePrincipal()->GetURI(getter_AddRefs(uri));
-
-  if (!uri) {
-    return defaultSmsPermission;
-  }
-
-  nsCAutoString uriPrePath;
-  uri->GetPrePath(uriPrePath);
-
-  const nsAdoptingString& whitelist =
-    Preferences::GetString("dom.sms.whitelist");
-
-  nsCharSeparatedTokenizer tokenizer(whitelist, ',',
-                                     nsCharSeparatedTokenizerTemplate<>::SEPARATOR_OPTIONAL);
-
-  while (tokenizer.hasMoreTokens()) {
-    const nsSubstring& whitelistItem = tokenizer.nextToken();
-
-    if (NS_ConvertUTF16toUTF8(whitelistItem).Equals(uriPrePath)) {
-      return true;
-    }
-  }
-
-  
-  return false;
-}
-
-bool
 Navigator::IsSmsSupported() const
 {
 #ifdef MOZ_WEBSMS_BACKEND
@@ -1141,15 +1087,15 @@ Navigator::GetMozSms(nsIDOMMozSmsManager** aSmsManager)
   *aSmsManager = nullptr;
 
   if (!mSmsManager) {
-    if (!IsSmsSupported() || !IsSmsAllowed()) {
+    if (!IsSmsSupported()) {
       return NS_OK;
     }
 
     nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
     NS_ENSURE_TRUE(window && window->GetDocShell(), NS_OK);
 
-    mSmsManager = new sms::SmsManager();
-    mSmsManager->Init(window);
+    mSmsManager = SmsManager::CheckPermissionAndCreateInstance(window);
+    NS_ENSURE_TRUE(mSmsManager, NS_OK);
   }
 
   NS_ADDREF(*aSmsManager = mSmsManager);

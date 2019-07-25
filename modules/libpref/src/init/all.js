@@ -3635,7 +3635,6 @@ pref("dom.battery.enabled", true);
 
 
 pref("dom.sms.enabled", false);
-pref("dom.sms.whitelist", "");
 
 
 pref("dom.mozContacts.enabled", false);
