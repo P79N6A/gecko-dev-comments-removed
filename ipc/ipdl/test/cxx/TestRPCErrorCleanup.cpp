@@ -1,14 +1,7 @@
 #include "TestRPCErrorCleanup.h"
 
-#include "mozilla/CondVar.h"
-#include "mozilla/Mutex.h"
-
 #include "IPDLUnitTests.h"      
 #include "IPDLUnitTestSubprocess.h"
-
-using mozilla::CondVar;
-using mozilla::Mutex;
-using mozilla::MutexAutoLock;
 
 namespace mozilla {
 namespace _ipdltest {
@@ -16,38 +9,15 @@ namespace _ipdltest {
 
 
 
-namespace {
 
 
-
-
-void DeleteSubprocess(Mutex* mutex, CondVar* cvar)
-{
-    MutexAutoLock lock(*mutex);
-
-    delete gSubprocess;
-    gSubprocess = NULL;
-
-    cvar->Notify();
-}
 
 void DeleteTheWorld()
 {
     delete static_cast<TestRPCErrorCleanupParent*>(gParentActor);
     gParentActor = NULL;
-
-    
-    
-    Mutex mutex("TestRPCErrorCleanup.DeleteTheWorld.mutex");
-    CondVar cvar(mutex, "TestRPCErrorCleanup.DeleteTheWorld.cvar");
-
-    MutexAutoLock lock(mutex);
-
-    XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
-      NewRunnableFunction(DeleteSubprocess, &mutex, &cvar));
-
-    cvar.Wait();
+    delete gSubprocess;
+    gSubprocess = NULL;
 }
 
 void Done()
@@ -58,8 +28,6 @@ void Done()
 
   passed(__FILE__);
 }
-
-} 
 
 TestRPCErrorCleanupParent::TestRPCErrorCleanupParent()
 {
