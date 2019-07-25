@@ -33,6 +33,25 @@ class NameResolver
     }
 
     
+
+
+
+
+
+
+
+
+
+    bool appendPropertyReference(JSAtom *name) {
+        if (IsIdentifier(name))
+            return buf->append(".") && buf->append(name);
+
+        
+        JSString *source = js_QuoteString(cx, name, '"');
+        return source && buf->append("[") && buf->append(source) && buf->append("]");
+    }
+
+    
     bool appendNumber(double n) {
         char number[30];
         int digits = JS_snprintf(number, sizeof(number), "%g", n);
@@ -51,9 +70,7 @@ class NameResolver
     bool nameExpression(ParseNode *n) {
         switch (n->getKind()) {
             case PNK_DOT:
-                return (nameExpression(n->expr()) &&
-                        buf->append(".") &&
-                        buf->append(n->pn_atom));
+                return nameExpression(n->expr()) && appendPropertyReference(n->pn_atom);
 
             case PNK_NAME:
                 return buf->append(n->pn_atom);
@@ -204,8 +221,7 @@ class NameResolver
             if (node->isKind(PNK_COLON)) {
                 ParseNode *left = node->pn_left;
                 if (left->isKind(PNK_NAME) || left->isKind(PNK_STRING)) {
-                    
-                    if (!buf.append(".") || !buf.append(left->pn_atom))
+                    if (!appendPropertyReference(left->pn_atom))
                         return NULL;
                 } else if (left->isKind(PNK_NUMBER)) {
                     if (!appendNumericPropertyReference(left->pn_dval))
