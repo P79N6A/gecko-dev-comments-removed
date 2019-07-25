@@ -38,9 +38,10 @@
 
 
 
+#include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsgc.h"
-#include "jscntxt.h"
+#include "jsiter.h"
 #include "jsproxy.h"
 #include "jsscope.h"
 #include "methodjit/PolyIC.h"
@@ -142,6 +143,10 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         
         if (obj->compartment() == this)
             return true;
+
+        
+        if (obj->getClass() == &js_StopIterationClass)
+            return js_FindClassObject(cx, NULL, JSProto_StopIteration, vp);
 
         
         if (!obj->getClass()->ext.innerObject) {
