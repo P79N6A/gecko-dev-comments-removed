@@ -71,6 +71,7 @@ struct EnumerateData {
 
 struct PrefCallbackData {
   nsPrefBranch     *pBranch;
+  nsISupports      *pCanonical;
   nsIObserver      *pObserver;
   nsIWeakReference *pWeakRef;
   char pDomain[1];
@@ -741,6 +742,18 @@ NS_IMETHODIMP nsPrefBranch::AddObserver(const char *aDomain, nsIObserver *aObser
     NS_ADDREF(pCallback->pObserver);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  CallQueryInterface(aObserver, &pCallback->pCanonical);
+  pCallback->pCanonical->Release();
+
   strcpy(pCallback->pDomain, aDomain);
   mObservers->AppendElement(pCallback);
 
@@ -784,10 +797,24 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
   if (count == 0)
     return NS_OK;
 
+  nsCOMPtr<nsISupports> canonical(do_QueryInterface(aObserver));
+#ifdef DEBUG
+  PRBool alreadyRemoved = PR_FALSE;
+#endif
+
   for (i = 0; i < count; i++) {
     pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
+
+#ifdef DEBUG
+    if (!pCallback) {
+      
+      
+      alreadyRemoved = PR_TRUE;
+    }
+#endif
+
     if (pCallback &&
-        pCallback->pObserver == aObserver &&
+        pCallback->pCanonical == canonical &&
         !strcmp(pCallback->pDomain, aDomain)) {
       
       pref = getPrefName(aDomain); 
@@ -807,6 +834,8 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
     }
   }
 
+  NS_WARN_IF_FALSE(alreadyRemoved,
+                   "Failed attempt to remove a pref observer, probably leaking");
   return NS_OK;
 }
 
@@ -864,30 +893,27 @@ void nsPrefBranch::freeObserverList(void)
 
   if (mObservers) {
     
-    PRInt32 count;
 
-    count = mObservers->Count();
-    if (count > 0) {
-      PRInt32 i;
-      nsCAutoString domain;
-      for (i = 0; i < count; ++i) {
-        pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
-        if (pCallback) {
-          
-          pref = getPrefName(pCallback->pDomain);
-          
-          
-          mObservers->ReplaceElementAt(nsnull, i);
-          PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
-          if (pCallback->pWeakRef) {
-            NS_RELEASE(pCallback->pWeakRef);
-          } else {
-            NS_RELEASE(pCallback->pObserver);
-          }
-          nsMemory::Free(pCallback);
+    PRInt32 i;
+    nsCAutoString domain;
+    for (i = 0; i < mObservers->Count(); ++i) {
+      pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
+      if (pCallback) {
+        
+        pref = getPrefName(pCallback->pDomain);
+        
+        
+        mObservers->ReplaceElementAt(nsnull, i);
+        PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
+        if (pCallback->pWeakRef) {
+          NS_RELEASE(pCallback->pWeakRef);
+        } else {
+          NS_RELEASE(pCallback->pObserver);
         }
+        nsMemory::Free(pCallback);
       }
     }
+
     delete mObservers;
     mObservers = 0;
   }
