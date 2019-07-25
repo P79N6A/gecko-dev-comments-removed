@@ -132,9 +132,6 @@ function test_overQuota() {
 }
 
 function run_test() {
-  if (DISABLE_TESTS_BUG_604565)
-    return;
-
   test_backoff500();
   test_backoff503();
   test_overQuota();
