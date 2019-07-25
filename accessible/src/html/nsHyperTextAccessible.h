@@ -40,10 +40,12 @@
 #ifndef _nsHyperTextAccessible_H_
 #define _nsHyperTextAccessible_H_
 
-#include "nsAccessibleWrap.h"
 #include "nsIAccessibleText.h"
 #include "nsIAccessibleHyperText.h"
 #include "nsIAccessibleEditableText.h"
+
+#include "AccCollector.h"
+#include "nsAccessibleWrap.h"
 #include "nsTextAttrs.h"
 
 #include "nsFrameSelection.h"
@@ -87,6 +89,10 @@ public:
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
+  virtual void InvalidateChildren();
+
+  
+
   
   static nsresult ContentToRenderedOffset(nsIFrame *aFrame, PRInt32 aContentOffset,
                                           PRUint32 *aRenderedOffset);
@@ -94,6 +100,33 @@ public:
   
   static nsresult RenderedToContentOffset(nsIFrame *aFrame, PRUint32 aRenderedOffset,
                                           PRInt32 *aContentOffset);
+
+  
+
+
+  inline PRUint32 GetLinkCount()
+  {
+    AccCollector* links = GetLinkCollector();
+    return links ? links->Count() : 0;
+  }
+
+  
+
+
+  inline nsAccessible* GetLinkAt(PRUint32 aIndex)
+  {
+    AccCollector* links = GetLinkCollector();
+    return links ? links->GetAccessibleAt(aIndex) : nsnull;
+  }
+
+  
+
+
+  inline PRInt32 GetLinkIndex(nsAccessible* aLink)
+  {
+    AccCollector* links = GetLinkCollector();
+    return links ? links->GetIndexAt(aLink) : -1;
+  }
 
   
 
@@ -154,8 +187,12 @@ public:
                                       PRInt32 *aEndOffset);
 
 protected:
+  
 
   
+
+
+  AccCollector* GetLinkCollector();
 
   
 
@@ -305,6 +342,9 @@ protected:
                                  PRInt32 *aStartOffset,
                                  PRInt32 *aEndOffset,
                                  nsIPersistentProperties *aAttributes);
+
+private:
+  nsAutoPtr<AccCollector> mLinks;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,

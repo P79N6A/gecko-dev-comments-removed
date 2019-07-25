@@ -1322,26 +1322,24 @@ nsHyperTextAccessible::GetOffsetAtPoint(PRInt32 aX, PRInt32 aY,
 }
 
 
+
+
+
 NS_IMETHODIMP
 nsHyperTextAccessible::GetLinkCount(PRInt32 *aLinkCount)
 {
   NS_ENSURE_ARG_POINTER(aLinkCount);
   *aLinkCount = 0;
+
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  PRInt32 childCount = GetChildCount();
-  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
-    nsAccessible *childAcc = mChildren[childIdx];
-    if (nsAccUtils::IsEmbeddedObject(childAcc))
-      ++*aLinkCount;
-  }
+  *aLinkCount = GetLinkCount();
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
-nsHyperTextAccessible::GetLink(PRInt32 aLinkIndex, nsIAccessibleHyperLink **aLink)
+nsHyperTextAccessible::GetLinkAt(PRInt32 aIndex, nsIAccessibleHyperLink** aLink)
 {
   NS_ENSURE_ARG_POINTER(aLink);
   *aLink = nsnull;
@@ -1349,20 +1347,30 @@ nsHyperTextAccessible::GetLink(PRInt32 aLinkIndex, nsIAccessibleHyperLink **aLin
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  PRInt32 linkIndex = aLinkIndex;
+  nsAccessible* link = GetLinkAt(aIndex);
+  if (link)
+    CallQueryInterface(link, aLink);
 
-  PRInt32 childCount = GetChildCount();
-  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
-    nsAccessible *childAcc = mChildren[childIdx];
-    if (nsAccUtils::IsEmbeddedObject(childAcc) && linkIndex-- == 0)
-      return CallQueryInterface(childAcc, aLink);
-  }
-
-  return NS_ERROR_INVALID_ARG;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHyperTextAccessible::GetLinkIndex(PRInt32 aCharIndex, PRInt32 *aLinkIndex)
+nsHyperTextAccessible::GetLinkIndex(nsIAccessibleHyperLink* aLink,
+                                    PRInt32* aIndex)
+{
+  NS_ENSURE_ARG_POINTER(aLink);
+
+  if (IsDefunct())
+    return NS_ERROR_FAILURE;
+
+  nsRefPtr<nsAccessible> link(do_QueryObject(aLink));
+  *aIndex = GetLinkIndex(link);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHyperTextAccessible::GetLinkIndexAtOffset(PRInt32 aCharIndex,
+                                            PRInt32* aLinkIndex)
 {
   NS_ENSURE_ARG_POINTER(aLinkIndex);
   *aLinkIndex = -1; 
@@ -2029,6 +2037,19 @@ nsHyperTextAccessible::ScrollSubstringToPoint(PRInt32 aStartIndex,
   return NS_OK;
 }
 
+
+
+
+void
+nsHyperTextAccessible::InvalidateChildren()
+{
+  mLinks = nsnull;
+  nsAccessibleWrap::InvalidateChildren();
+}
+
+
+
+
 nsresult nsHyperTextAccessible::ContentToRenderedOffset(nsIFrame *aFrame, PRInt32 aContentOffset,
                                                         PRUint32 *aRenderedOffset)
 {
@@ -2085,6 +2106,17 @@ nsresult nsHyperTextAccessible::RenderedToContentOffset(nsIFrame *aFrame, PRUint
 
 
 
+
+AccCollector*
+nsHyperTextAccessible::GetLinkCollector()
+{
+  if (IsDefunct())
+    return nsnull;
+
+  if (!mLinks)
+    mLinks = new AccCollector(this, filters::GetEmbeddedObject);
+  return mLinks;
+}
 
 nsAccessible *
 nsHyperTextAccessible::GetAccessibleAtOffset(PRInt32 aOffset, PRInt32 *aAccIdx,
