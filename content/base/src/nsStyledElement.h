@@ -68,7 +68,7 @@ protected:
   virtual bool ParseAttribute(PRInt32 aNamespaceID, nsIAtom* aAttribute,
                                 const nsAString& aValue, nsAttrValue& aResult);
 
-  friend class nsGenericElement;
+  friend class mozilla::dom::FragmentOrElement;
 
   
 

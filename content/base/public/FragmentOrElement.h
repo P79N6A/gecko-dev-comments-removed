@@ -9,12 +9,11 @@
 
 
 
-#ifndef nsGenericElement_h___
-#define nsGenericElement_h___
+#ifndef FragmentOrElement_h___
+#define FragmentOrElement_h___
 
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocumentFragment.h"
@@ -58,7 +57,6 @@ struct nsRect;
 
 typedef PRUptrdiff PtrBits;
 
-#if 0
 
 
 
@@ -203,21 +201,22 @@ private:
 
 class nsTouchEventReceiverTearoff;
 class nsInlineEventHandlersTearoff;
-#endif
 
 
 
 
 
-class nsGenericElement : public mozilla::dom::FragmentOrElement
+namespace mozilla {
+namespace dom {
+
+class FragmentOrElement : public mozilla::dom::Element
 {
 public:
-  nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-#if 0
-  virtual ~nsGenericElement();
+  FragmentOrElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  virtual ~FragmentOrElement();
 
-  friend class nsTouchEventReceiverTearoff;
-  friend class nsInlineEventHandlersTearoff;
+  friend class ::nsTouchEventReceiverTearoff;
+  friend class ::nsInlineEventHandlersTearoff;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
@@ -369,18 +368,14 @@ public:
   {
     return FindAttributeDependence(aAttribute, aMaps, N);
   }
-#endif
 
 private:
-#if 0
   static bool
   FindAttributeDependence(const nsIAtom* aAttribute,
                           const MappedAttributeEntry* const aMaps[],
                           PRUint32 aMapCount);
-#endif
 
 public:
-#if 0
   
   NS_IMETHOD GetNodeName(nsAString& aNodeName);
   NS_IMETHOD GetLocalName(nsAString& aLocalName);
@@ -590,7 +585,7 @@ public:
 
   virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
-  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsGenericElement)
+  NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(FragmentOrElement)
 
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
   {
@@ -649,10 +644,8 @@ public:
 
 
   static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
-#endif
 
 protected:
-#if 0
   
 
 
@@ -784,7 +777,7 @@ protected:
 
 
 
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(FragmentOrElement* aDest);
 
   
 
@@ -817,10 +810,8 @@ protected:
   nsresult GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
                                       const nsAString& aLocalName,
                                       nsIDOMAttr** aReturn);
-#endif
 
 public:
-#if 0
   
   
   
@@ -893,10 +884,8 @@ public:
 
     nsRefPtr<nsDOMTokenList> mClassList;
   };
-#endif
 
 protected:
-#if 0
   
   virtual nsINode::nsSlots* CreateSlots();
 
@@ -980,15 +969,13 @@ protected:
 
   virtual void GetLinkTarget(nsAString& aTarget);
 
-  friend class ContentUnbinder;
+  friend class ::ContentUnbinder;
   
 
 
   nsAttrAndChildArray mAttrsAndChildren;
-#endif
 
 private:
-#if 0
   
 
 
@@ -998,10 +985,11 @@ private:
   nsIScrollableFrame* GetScrollFrame(nsIFrame **aStyledFrame = nullptr);
 
   nsContentList* GetChildrenList();
-#endif
 };
 
-#if 0
+} 
+} 
+
 
 
 
@@ -1090,12 +1078,12 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsTouchEventReceiverTearoff)
 
-  nsTouchEventReceiverTearoff(nsGenericElement *aElement) : mElement(aElement)
+  nsTouchEventReceiverTearoff(mozilla::dom::FragmentOrElement *aElement) : mElement(aElement)
   {
   }
 
 private:
-  nsRefPtr<nsGenericElement> mElement;
+  nsRefPtr<mozilla::dom::FragmentOrElement> mElement;
 };
 
 
@@ -1110,16 +1098,16 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS(nsInlineEventHandlersTearoff)
 
-  nsInlineEventHandlersTearoff(nsGenericElement *aElement) : mElement(aElement)
+  nsInlineEventHandlersTearoff(mozilla::dom::FragmentOrElement *aElement) : mElement(aElement)
   {
   }
 
 private:
-  nsRefPtr<nsGenericElement> mElement;
+  nsRefPtr<mozilla::dom::FragmentOrElement> mElement;
 };
 
 #define NS_ELEMENT_INTERFACE_TABLE_TO_MAP_SEGUE                               \
-    rv = nsGenericElement::QueryInterface(aIID, aInstancePtr);                \
+    rv = FragmentOrElement::QueryInterface(aIID, aInstancePtr);                \
     if (NS_SUCCEEDED(rv))                                                     \
       return rv;                                                              \
                                                                               \
@@ -1136,6 +1124,5 @@ private:
                                                                               \
     return NS_OK;                                                             \
   }
-#endif
 
 #endif 
