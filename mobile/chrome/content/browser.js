@@ -360,6 +360,7 @@ var Browser = {
 
     try {
       messageManager.loadFrameScript("chrome://browser/content/Util.js", true);
+      messageManager.loadFrameScript("chrome://browser/content/forms.js", true);
       messageManager.loadFrameScript("chrome://browser/content/content.js", true);
     } catch (e) {
       
@@ -1125,6 +1126,15 @@ var Browser = {
 
     let vis = bv.getVisibleRect();
     return bv.clampZoomLevel(bv.getZoomLevel() * vis.width / (elRect.width + margin * 2));
+  },
+
+  
+  _getZoomLevelForRect: function _getZoomLevelForRect(rect) {
+    const margin = 15;
+    
+    let bv = this._browserView;
+    let vis = bv.getVisibleRect();
+    return bv.clampZoomLevel(bv.getZoomLevel() * vis.width / (rect.width + margin * 2));
   },
 
   

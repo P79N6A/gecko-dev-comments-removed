@@ -15,13 +15,6 @@ let XULDocument = Ci.nsIDOMXULDocument;
 let HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
 let HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
 let HTMLFrameElement = Ci.nsIDOMHTMLFrameElement;
-let HTMLTextAreaElement = Ci.nsIDOMHTMLTextAreaElement;
-let HTMLInputElement = Ci.nsIDOMHTMLInputElement;
-let HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
-let HTMLLabelElement = Ci.nsIDOMHTMLLabelElement;
-let HTMLButtonElement = Ci.nsIDOMHTMLButtonElement;
-let HTMLOptGroupElement = Ci.nsIDOMHTMLOptGroupElement;
-let HTMLOptionElement = Ci.nsIDOMHTMLOptionElement;
 
 
 function sendMessage(name) {
@@ -423,278 +416,6 @@ ProgressController.prototype = {
 
 
 
-
-
-
-function ContentFormManager() {
-  this._navigator = null;
-
-  addMessageListener("FennecClosedFormAssist", this);
-  addMessageListener("FennecFormPrevious", this);
-  addMessageListener("FennecFormNext", this);
-  addMessageListener("FennecFormChoiceSelect", this);
-  addMessageListener("FennecFormChoiceChange", this);
-}
-
-ContentFormManager.prototype = {
-  formAssist: function(element) {
-    if (!element)
-      return false;
-
-    let wrapper = new BasicWrapper(element);
-    if (!wrapper.canAssist())
-      return false;
-
-    let navigationEnabled = gPrefService.getBoolPref("formhelper.enabled");
-    if (!navigationEnabled && !wrapper.hasChoices())
-      return false;
-
-    let navigator = new FormNavigator(this, element, navigationEnabled);
-    if (!navigator.getCurrent())
-      return false;
-
-    sendMessage("FennecFormAssist", navigator.getJSON());
-
-    if (!this._navigator)
-      addEventListener("keyup", this, false);
-    this._navigator = navigator;
-
-    return true;
-  },
-
-  closeFormAssistant: function() {
-    if (this._navigator) {
-      sendMessage("FennecCloseFormAssist");
-      this.closedFormAssistant();
-    }
-  },
-
-  closedFormAssistant: function() {
-    if (this._navigator) {
-      removeEventListener("keyup", this, false);
-      this._navigator = null;
-    }
-  },
-
-  receiveFennecClosedFormAssist: function() {
-    this.closedFormAssistant();
-  },
-
-  receiveFennecFormPrevious: function() {
-    if (this._navigator) {
-      this._navigator.goToPrevious();
-      sendMessage("FennecFormAssist", this._navigator.getJSON());
-    }
-  },
-
-  receiveFennecFormNext: function() {
-    if (this._navigator) {
-      this._navigator.goToNext();
-      sendMessage("FennecFormAssist", this._navigator.getJSON());
-    }
-  },
-
-  receiveFennecFormChoiceSelect: function(message, index, selected, clearAll) {
-    if (this._navigator) {
-      let current = this._navigator.getCurrent();
-      if (current)
-        current.choiceSelect(index, selected, clearAll);
-    }
-  },
-
-  receiveFennecFormChoiceChange: function() {
-    if (this._navigator) {
-      let current = this._navigator.getCurrent();
-      if (current)
-        current.choiceChange();
-    }
-  },
-
-  handleEvent: function formHelperHandleEvent(aEvent) {
-    let currentWrapper = this._navigator.getCurrent();
-    let currentElement = currentWrapper.element;
-
-    switch (aEvent.keyCode) {
-      case aEvent.DOM_VK_DOWN:
-        if (currentElement instanceof HTMLTextAreaElement) {
-          let existSelection = currentElement.selectionEnd - currentElement.selectionStart;
-          let isEnd = (currentElement.textLength == currentElement.selectionEnd);
-          if (!isEnd || existSelection)
-            return;
-        }
-
-        this._navigator.goToNext();
-        break;
-
-      case aEvent.DOM_VK_UP:
-        if (currentElement instanceof HTMLTextAreaElement) {
-          let existSelection = currentElement.selectionEnd - currentElement.selectionStart;
-          let isStart = (currentElement.selectionEnd == 0);
-          if (!isStart || existSelection)
-            return;
-        }
-
-        this._navigator.goToPrevious();
-        break;
-
-      case aEvent.DOM_VK_RETURN:
-        break;
-
-      default:
-        let target = aEvent.target;
-        if (currentWrapper.canAutocomplete())
-          sendMessage("FennecFormAutocomplete", currentWrapper.getAutocompleteSuggestions());
-        break;
-    }
-
-    let caretRect = currentWrapper.getCaretRect();
-    if (!caretRect.isEmpty()) {
-      sendMessage("FennecCaretRect", caretRect);
-    }
-  },
-
-  _getRectForCaret: function _getRectForCaret() {
-    let currentElement = this.getCurrent();
-    let rect = currentElement.getCaretRect();
-    return null;
-  }
-};
-
-
-
-
-
-
-
-function FormNavigator(manager, element, showNavigation) {
-  this._manager = manager;
-  this._showNavigation = showNavigation;
-  
-  if (showNavigation) {
-    this._wrappers = [];
-    this._currentIndex = -1;
-    this._getAllWrappers(element);
-  } else {
-    this._wrappers = [element];
-    this._currentIndex = 0;
-  }
-}
-
-FormNavigator.prototype = {
-  endNavigation: function() {
-    this._manager.closedFormAssistant();
-  },
-
-  getCurrent: function() {
-    return this._wrappers[this._currentIndex];
-  },
-
-  getJSON: function() {
-    return {
-      hasNext: !!this.getNext(),
-      hasPrevious: !!this.getPrevious(),
-      current: this.getCurrent().getJSON(),
-      showNavigation: this._showNavigation
-    };
-  },
-
-  getPrevious: function() {
-    return this._wrappers[this._currentIndex - 1];
-  },
-
-  getNext: function() {
-    return this._wrappers[this._currentIndex + 1];
-  },
-
-  goToPrevious: function() {
-    return this._setIndex(this._currentIndex - 1);
-  },
-
-  goToNext: function() {
-    return this._setIndex(this._currentIndex + 1);
-  },
-
-  _getAllWrappers: function(element) {
-    
-    
-
-    let document = element.ownerDocument;
-    if (!document)
-      return;
-
-    let elements = this._wrappers;
-
-    
-    let documents = [document];
-    let iframes = document.querySelectorAll("iframe, frame");
-    for (let i = 0; i < iframes.length; i++)
-      documents.push(iframes[i].contentDocument);
-
-    for (let i = 0; i < documents.length; i++) {
-      let nodes = documents[i].querySelectorAll("input, button, select, textarea, [role=button]");
-      nodes = this._filterRadioButtons(nodes);
-
-      for (let j = 0; j < nodes.length; j++) {
-        let node = nodes[j];
-        let wrapper = new BasicWrapper(node);
-        if (wrapper.canNavigateTo() && wrapper.isVisible()) {
-          elements.push(wrapper);
-          if (node == element)
-            this._setIndex(elements.length - 1);
-        }
-      }
-    }
-
-    function orderByTabIndex(a, b) {
-      
-      
-      
-      if (a.tabIndex == 0 || b.tabIndex == 0)
-        return b.tabIndex;
-
-      return a.tabIndex > b.tabIndex;
-    }
-    elements = elements.sort(orderByTabIndex);
-  },
-
-  
-
-
-
-  _filterRadioButtons: function(nodes) {
-    
-    let chosenRadios = {};
-    for (let i=0; i < nodes.length; i++) {
-      let node = nodes[i];
-      if (node.type == "radio" && (!chosenRadios.hasOwnProperty(node.name) || node.checked))
-        chosenRadios[node.name] = node;
-    }
-
-    
-    let result = [];
-    for (let i=0; i < nodes.length; i++) {
-      let node = nodes[i];
-      if (node.type == "radio" && chosenRadios[node.name] != node)
-        continue;
-      result.push(node);
-    }
-    return result;
-  },
-
-  _setIndex: function(i) {
-    let element = this._wrappers[i];
-    if (element) {
-      gFocusManager.setFocus(element.element, Ci.nsIFocusManager.FLAG_NOSCROLL);
-      this._currentIndex = i;
-      return true;
-    } else {
-      return false;
-    }
-  }
-};
-
-
-
 function Content() {
   addMessageListener("Browser:Blur", this);
   addMessageListener("Browser:Focus", this);
@@ -712,7 +433,7 @@ function Content() {
   this._progressController = new ProgressController(this);
   this._progressController.start();
 
-  this._contentFormManager = new ContentFormManager();
+  this._formAssistant = new FormAssistant();
 }
 
 Content.prototype = {
@@ -759,11 +480,10 @@ Content.prototype = {
           y = point.y;
         }
 
-        
-        
+        if (!this._formAssistant.open(element)) {
           this._sendMouseEvent("mousedown", element, x, y);
           this._sendMouseEvent("mouseup", element, x, y);
-        
+        }
 
       case "Browser:MouseCancel":
         if (this._overlayTimeout) {
