@@ -367,22 +367,6 @@ RPCChannel::OnMaybeDequeueOne()
     AssertWorkerThread();
     mMutex.AssertNotCurrentThreadOwns();
 
-    if (IsOnCxxStack())
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        return;
-
     Message recvd;
     {
         MutexAutoLock lock(mMutex);
@@ -402,7 +386,13 @@ RPCChannel::OnMaybeDequeueOne()
         mPending.pop();
     }
 
-    RPC_ASSERT(!IsOnCxxStack(), "RPCChannel code not on C++ stack");
+    if (IsOnCxxStack() && recvd.is_rpc() && recvd.is_reply()) {
+        
+        
+        mOutOfTurnReplies[recvd.seqno()] = recvd;
+        return;
+    }
+
     CxxStackFrame f(*this, IN_MESSAGE, &recvd);
 
     if (recvd.is_rpc())
