@@ -451,6 +451,7 @@ var BrowserUI = {
   uninit: function() {
     ExtensionsView.uninit();
     ConsoleView.uninit();
+    FormHelperUI.uninit();
   },
 
   update: function(aState) {
@@ -1590,6 +1591,10 @@ var FormHelperUI = {
     close: "cmd_formClose"
   },
 
+  
+  _currentCaretRect: null,
+  _currentElementRect: null,
+
   init: function formHelperInit() {
     this._container = document.getElementById("content-navigator");
     this._autofillContainer = document.getElementById("form-helper-autofill");
@@ -1600,6 +1605,7 @@ var FormHelperUI = {
     messageManager.addMessageListener("FormAssist:Show", this);
     messageManager.addMessageListener("FormAssist:Hide", this);
     messageManager.addMessageListener("FormAssist:Update", this);
+    messageManager.addMessageListener("FormAssist:Resize", this);
     messageManager.addMessageListener("FormAssist:AutoComplete", this);
 
     
@@ -1609,6 +1615,12 @@ var FormHelperUI = {
     
     messageManager.addMessageListener("DOMWillOpenModalDialog", this);
     messageManager.addMessageListener("DOMModalDialogClosed", this);
+
+    Services.obs.addObserver(this, "softkb-change", false);
+  },
+
+  uninit: function formHelperUninit() {
+    Services.obs.removeObserver(this, "softkb-change");
   },
 
   show: function formHelperShow(aElement, aHasPrevious, aHasNext) {
@@ -1630,12 +1642,21 @@ var FormHelperUI = {
     }
     this._updateContainer(lastElement, this._currentElement);
 
-    this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
+    
+    Browser.hideSidebars();
+
+    
+    this._currentElementRect = Rect.fromRect(aElement.rect);
+    this._zoom(this._currentElementRect, Rect.fromRect(aElement.caretRect));
   },
 
   hide: function formHelperHide() {
     if (!this._open)
       return;
+
+    
+    this._currentElementRect = null;
+    this._currentCaretRect = null;
 
     this._updateContainerForSelect(this._currentElement, null);
     this._open = false;
@@ -1667,8 +1688,19 @@ var FormHelperUI = {
         this._container.contentHasChanged();
         break;
 
-      case "FormAssist:Update":
-        this._zoom(null, Rect.fromRect(json.caretRect));
+      case "FormAssist:Resize":
+        
+        Browser.hideSidebars();
+        this._zoom(this._currentElementRect, this._currentCaretRect);
+        this._container.contentHasChanged();
+        break;
+
+       case "FormAssist:Update":
+        
+        
+        
+        
+        this._zoom(this._currentElementRect, Rect.fromRect(json.caretRect));
         break;
 
       case "DOMWillOpenModalDialog":
@@ -1685,6 +1717,16 @@ var FormHelperUI = {
         }
         break;
     }
+  },
+  
+  observe: function formHelperObserve(aSubject, aTopic, aData) {
+    let rect = Rect.fromRect(JSON.parse(aData));
+    rect.height = rect.bottom - rect.top;
+    rect.width  = rect.right - rect.left;
+
+    Browser._browserView._visibleScreenArea = rect;
+    BrowserUI.sizeControls(rect.width, rect.height);
+    this._zoom(this._currentElementRect, this._currentCaretRect);
   },
 
   goToPrevious: function formHelperGoToPrevious() {
@@ -1712,6 +1754,7 @@ var FormHelperUI = {
     let bv = Browser._browserView;
     bv.ignorePageScroll(aVal);
     this._container.hidden = !aVal;
+    this._container.contentHasChanged();
 
     if (aVal) {
       this._zoomStart();
@@ -1796,31 +1839,106 @@ var FormHelperUI = {
   
   _zoom: function _formHelperZoom(aElementRect, aCaretRect) {
     let bv = Browser._browserView;
-    let zoomRect = bv.getVisibleRect();
 
-    
-    if (aElementRect && bv.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom")) {
+    if (aElementRect && aCaretRect && this._open) {
+      this._currentCaretRect = aCaretRect;
+
       
-      let zoomLevel = Browser._getZoomLevelForRect(aElementRect);
-      zoomLevel = Math.min(Math.max(kBrowserFormZoomLevelMin, zoomLevel), kBrowserFormZoomLevelMax);
+      let visibleScreenArea = !bv._visibleScreenArea.isEmpty() ? bv._visibleScreenArea : new Rect(0, 0, window.innerWidth, window.innerHeight);
 
-      zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
-      Browser.animatedZoomTo(zoomRect);
-    }
+      
+      let viewAreaHeight = visibleScreenArea.height - this._container.getBoundingClientRect().height;
+      let viewAreaWidth = visibleScreenArea.width;
+      let caretLines = Services.prefs.getIntPref("formhelper.caretLines.portrait");
+      let harmonizeValue = Services.prefs.getIntPref("formhelper.harmonizeValue");
 
-    
-    if (aCaretRect) {
-      let caretRect = bv.browserToViewportRect(aCaretRect);
-      if (zoomRect.contains(caretRect))
-        return;
+      if (!Util.isPortrait())
+        caretLines = Services.prefs.getIntPref("formhelper.caretLines.landscape");
 
-      let [deltaX, deltaY] = this._getOffsetForCaret(caretRect, zoomRect);
-      if (deltaX != 0 || deltaY != 0) {
-        Browser.contentScrollboxScroller.scrollBy(deltaX, deltaY);
-        bv.onAfterVisibleMove();
+      
+      
+      
+      let toolbar = document.getElementById("toolbar-main");
+      if (viewAreaHeight - toolbar.boxObject.height <= toolbar.boxObject.height * 2)
+        Browser.hideTitlebar();
+      else
+        viewAreaHeight -= toolbar.boxObject.height;
+
+      
+      
+      let [leftvis, rightvis, leftW, rightW] = Browser.computeSidebarVisibility(0, 0);
+      let marginLeft = leftvis ? leftW : 0;
+      let marginRight = rightvis ? rightW : 0;
+
+      
+      
+      let harmonizedCaretHeight = 0;
+      let harmonizedCaretY = 0;
+
+      
+      
+
+      
+      
+      if (!aCaretRect.isEmpty()) {
+        
+        
+        harmonizedCaretHeight = aCaretRect.height - aCaretRect.height % harmonizeValue;
+        harmonizedCaretY = aCaretRect.y - aCaretRect.y % harmonizeValue;
+      } else {
+        harmonizedCaretHeight = 30; 
+
+        
+        harmonizedCaretY = aElementRect.y;
+        aCaretRect.x = aElementRect.x;
       }
 
-      Browser.animatedZoomTo(zoomRect);
+      let zoomLevel = bv.getZoomLevel();
+      let enableZoom = bv.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom");
+      if (enableZoom) {
+        zoomLevel = (viewAreaHeight / caretLines) / harmonizedCaretHeight;
+        zoomLevel = Math.min(Math.max(kBrowserFormZoomLevelMin, zoomLevel), kBrowserFormZoomLevelMax);
+      }
+      viewAreaWidth /= zoomLevel;
+
+      const margin = Services.prefs.getIntPref("formhelper.margin");
+
+      
+      
+      
+      let x = (marginLeft + marginRight + margin + aCaretRect.x - aElementRect.x) < viewAreaWidth
+               ? aElementRect.x - margin - marginLeft
+               : aCaretRect.x - viewAreaWidth + margin + marginRight;
+      
+      let y = harmonizedCaretY - margin;
+
+      
+      
+      if (enableZoom && bv.getZoomLevel() != zoomLevel) {
+        let vis = bv.getVisibleRect();
+        x = bv.browserToViewport(x);
+        y = bv.browserToViewport(y);
+
+        
+        let zoomRatio = zoomLevel / bv.getZoomLevel();
+        let newVisW = vis.width / zoomRatio, newVisH = vis.height / zoomRatio;
+        let zoomRect = new Rect(x, y, newVisW, newVisH);
+
+        Browser.animatedZoomTo(zoomRect);
+      }
+      else { 
+        let vis = bv.getVisibleRect();
+        
+        x = bv.browserToViewport(x);
+        y = bv.browserToViewport(y);
+
+        Browser.contentScrollboxScroller.scrollBy(x-vis.x, y-vis.y);
+
+        
+        bv.invalidateEntireView();
+
+        bv.onAfterVisibleMove();
+      }
     }
   },
 
