@@ -934,11 +934,40 @@ public:
 
 
 
+
+
   static PRBool ComputeBorderRadii(const nsStyleCorners& aBorderRadius,
                                    const nsSize& aFrameSize,
                                    const nsSize& aBorderArea,
                                    PRIntn aSkipSides,
                                    nscoord aRadii[8]);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static void InsetBorderRadii(nscoord aRadii[8], const nsMargin &aOffsets);
+  static void OutsetBorderRadii(nscoord aRadii[8], const nsMargin &aOffsets);
+
+  
+
+
+
+
+
+  virtual PRBool GetBorderRadii(nscoord aRadii[8]) const;
+
+  PRBool GetPaddingBoxBorderRadii(nscoord aRadii[8]) const;
+  PRBool GetContentBoxBorderRadii(nscoord aRadii[8]) const;
 
   
 
