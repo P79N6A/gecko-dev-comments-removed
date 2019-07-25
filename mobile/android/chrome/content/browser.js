@@ -3104,6 +3104,7 @@ var FormAssistant = {
 
     
     BrowserApp.deck.addEventListener("focus", this, true);
+    BrowserApp.deck.addEventListener("click", this, true);
     BrowserApp.deck.addEventListener("input", this, false);
     BrowserApp.deck.addEventListener("pageshow", this, false);
   },
@@ -3114,6 +3115,7 @@ var FormAssistant = {
     Services.obs.removeObserver(this, "invalidformsubmit");
 
     BrowserApp.deck.removeEventListener("focus", this);
+    BrowserApp.deck.removeEventListener("click", this);
     BrowserApp.deck.removeEventListener("input", this);
     BrowserApp.deck.removeEventListener("pageshow", this);
   },
@@ -3160,11 +3162,18 @@ var FormAssistant = {
         let currentElement = aEvent.target;
 
         
+        this._showValidationMessage(currentElement);
+        break;
+
+      case "click":
+        currentElement = aEvent.target;
+
+        
         
         
         if (this._showValidationMessage(currentElement))
           break;
-        this._showAutoCompleteSuggestions(currentElement)
+        this._showAutoCompleteSuggestions(currentElement);
         break;
 
       case "input":
