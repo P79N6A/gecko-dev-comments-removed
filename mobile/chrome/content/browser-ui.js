@@ -1140,9 +1140,10 @@ var PageActions = {
     picker.defaultExtension = "pdf";
 
     let browser = Browser.selectedBrowser;
-    let fileName = getDefaultFileName(null, browser.documentURI, browser.contentDocument, null);
+    let fileName = getDefaultFileName(browser.contentTitle, browser.documentURI, null, null);
+    fileName = fileName.replace(/^\s+|\s+$/g, "");  
 #ifdef MOZ_PLATFORM_MAEMO
-    fileName = fileName.replace(/[\*\:\?]+/g, " ");
+    fileName = fileName.replace(/[\*\:\?]+/g, " "); 
 #endif
     picker.defaultString = fileName + ".pdf";
 
