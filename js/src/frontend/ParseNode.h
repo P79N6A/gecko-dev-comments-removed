@@ -300,6 +300,9 @@ namespace js {
 
 
 
+
+
+
 enum ParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -594,7 +597,9 @@ struct ParseNode {
     bool isLiteral() const {
         return isKind(TOK_NUMBER) ||
                isKind(TOK_STRING) ||
-               (isKind(TOK_PRIMARY) && !isOp(JSOP_THIS));
+               isKind(TOK_TRUE) ||
+               isKind(TOK_FALSE) ||
+               isKind(TOK_NULL);
     }
 
     
