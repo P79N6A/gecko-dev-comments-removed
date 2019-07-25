@@ -125,9 +125,17 @@ typedef enum JSAccessMode {
 
 
 typedef enum JSIterateOp {
-    JSENUMERATE_INIT,       
-    JSENUMERATE_NEXT,       
-    JSENUMERATE_DESTROY     
+    
+    JSENUMERATE_INIT,
+
+    
+    JSENUMERATE_INIT_ALL,
+
+    
+    JSENUMERATE_NEXT,
+
+    
+    JSENUMERATE_DESTROY
 } JSIterateOp;
 
 
@@ -172,6 +180,11 @@ typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
 
 typedef JSBool
 (* JSPropertyOp)(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+
+
+
+
+
 
 
 

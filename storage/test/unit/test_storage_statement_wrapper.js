@@ -115,6 +115,19 @@ function ensureNumRows(aNumRows)
 
 
 
+function checkEnumerableConsistency(aObj)
+{
+  for (var p in aObj)
+    do_check_true(Object.prototype.propertyIsEnumerable.call(aObj, p));
+}
+
+
+
+
+
+
+
+
 
 function insertAndCheckSingleParam(aVal)
 {
@@ -122,6 +135,7 @@ function insertAndCheckSingleParam(aVal)
 
   var stmt = createStatement("INSERT INTO test (val) VALUES (:val)");
   stmt.params.val = aVal;
+  checkEnumerableConsistency(stmt.params);
   stmt.execute();
   stmt.statement.finalize();
 
@@ -150,6 +164,7 @@ function insertAndCheckMultipleParams(aVal)
   var stmt = createStatement("INSERT INTO test (val, alt_val) " +
                              "VALUES (:val, :val)");
   stmt.params.val = aVal;
+  checkEnumerableConsistency(stmt.params);
   stmt.execute();
   stmt.statement.finalize();
 
