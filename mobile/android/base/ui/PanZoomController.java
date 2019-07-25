@@ -232,8 +232,10 @@ public class PanZoomController
         case NOTHING:
             
             
-            mController.setViewportMetrics(getValidViewportMetrics());
-            mController.notifyLayerClientOfGeometryChange();
+            synchronized (mController) {
+                mController.setViewportMetrics(getValidViewportMetrics());
+                mController.notifyLayerClientOfGeometryChange();
+            }
             break;
         }
     }
@@ -241,12 +243,14 @@ public class PanZoomController
     
     public void pageSizeUpdated() {
         if (mState == PanZoomState.NOTHING) {
-            ViewportMetrics validated = getValidViewportMetrics();
-            if (! (new ViewportMetrics(mController.getViewportMetrics())).fuzzyEquals(validated)) {
-                
-                
-                mController.setViewportMetrics(validated);
-                mController.notifyLayerClientOfGeometryChange();
+            synchronized (mController) {
+                ViewportMetrics validated = getValidViewportMetrics();
+                if (! (new ViewportMetrics(mController.getViewportMetrics())).fuzzyEquals(validated)) {
+                    
+                    
+                    mController.setViewportMetrics(validated);
+                    mController.notifyLayerClientOfGeometryChange();
+                }
             }
         }
     }
