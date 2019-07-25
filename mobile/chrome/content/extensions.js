@@ -927,7 +927,9 @@ AddonInstallListener.prototype = {
     
     if (needsRestart)
       ExtensionsView.showRestart(mode);
-    this._showInstallCompleteAlert(true, needsRestart);
+
+    if (aAddon.type != "locale")
+      this._showInstallCompleteAlert(true, needsRestart);
 
     
     if (!ExtensionsView._list)
