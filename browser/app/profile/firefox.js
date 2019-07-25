@@ -55,8 +55,7 @@ pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindow.xul
 pref("extensions.logging.enabled", false);
 
 
-
-pref("extensions.strictCompatibility", true);
+pref("extensions.strictCompatibility", false);
 
 
 
