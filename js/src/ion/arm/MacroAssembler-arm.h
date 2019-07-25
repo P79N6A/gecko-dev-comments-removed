@@ -43,7 +43,9 @@
 #define jsion_macro_assembler_arm_h__
 
 #include "ion/arm/Assembler-arm.h"
+#include "ion/MoveResolver.h"
 #include "jsopcode.h"
+
 namespace js {
 namespace ion {
 
@@ -52,7 +54,23 @@ static Register CallReg = ip;
 
 class MacroAssemblerARM : public Assembler
 {
-protected:
+    
+    
+    uint32 stackAdjust_;
+    bool dynamicAlignment_;
+    bool inCall_;
+    bool enoughMemory_;
+
+    
+    
+    
+    
+    
+    uint32 setupABICall(uint32 arg);
+
+  protected:
+    MoveResolver moveResolver_;
+
     
     
     
@@ -60,21 +78,27 @@ protected:
     
     uint32 framePushed_;
 
-public:
+  public:
+    typedef MoveResolver::MoveOperand MoveOperand;
+    typedef MoveResolver::Move Move;
+
     MacroAssemblerARM()
-      : framePushed_(0)
+      : stackAdjust_(0),
+        inCall_(false),
+        enoughMemory_(true),
+        framePushed_(0)
     { }
 
+    bool oom() const {
+        return Assembler::oom() || !enoughMemory_;
+    }
 
     void convertInt32ToDouble(const Register &src, const FloatRegister &dest);
-
 
     uint32 framePushed() const {
         return framePushed_;
     }
 
-    
-    static const uint32 StackAlignment = 8;
     
     
     
@@ -305,13 +329,6 @@ public:
 
     void ma_vstr(FloatRegister src, VFPAddr addr);
 
-  protected:
-    uint32 alignStackForCall(uint32 stackForArgs);
-
-    uint32 dynamicallyAlignStackForCall(uint32 stackForArgs, const Register &scratch);
-
-    void restoreStackFromDynamicAlignment();
-
   public:
     void reserveStack(uint32 amount);
     void freeStack(uint32 amount);
@@ -320,9 +337,6 @@ public:
     void movePtr(ImmGCPtr imm, Register dest);
     void loadPtr(const Address &address, Register dest);
     void setStackArg(const Register &reg, uint32 arg);
-#ifdef DEBUG
-    void checkCallAlignment();
-#endif
 
     
     void ma_callIon(const Register reg);
@@ -332,6 +346,31 @@ public:
     void ma_callIonHalfPush(const Register reg);
     void breakpoint();
     Condition compareDoubles(JSOp compare, FloatRegister lhs, FloatRegister rhs);
+
+    
+    
+    
+    
+    
+    
+    
+    void setupAlignedABICall(uint32 args);
+
+    
+    
+    void setupUnalignedABICall(uint32 args, const Register &scratch);
+
+    
+    
+    
+    
+    
+    
+    void setABIArg(uint32 arg, const MoveOperand &from);
+    void setABIArg(uint32 arg, const Register &reg);
+
+    
+    void callWithABI(void *fun);
 };
 
 class MacroAssemblerARMCompat : public MacroAssemblerARM
@@ -500,7 +539,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void branchPtr(Condition cond, Register lhs, ImmGCPtr ptr, Label *label) {
         JS_NOT_REACHED("NYI");
     }
-
 };
 
 typedef MacroAssemblerARMCompat MacroAssemblerSpecific;

@@ -389,7 +389,6 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
 
     
     void callWithABI(void *fun);
-
 };
 
 typedef MacroAssemblerX86 MacroAssemblerSpecific;
