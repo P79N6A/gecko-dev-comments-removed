@@ -29,5 +29,5 @@ function test() {
   }, "cookie-rejected", false);
 
   
-  PageProxySetIcon("http://example.org/tests/extensions/cookie/test/image1.png");
+  PageProxySetIcon("http://example.org/tests/extensions/cookie/test/damonbowling.jpg");
 }
