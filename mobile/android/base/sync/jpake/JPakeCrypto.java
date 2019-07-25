@@ -133,14 +133,15 @@ public class JPakeCrypto {
 
 
 
-
   public static void round2(String secret, JPakeParty jp,
-      JPakeNumGenerator gen) throws Gx4IsOneException, IncorrectZkpException {
+      JPakeNumGenerator gen) throws IncorrectZkpException, Gx3OrGx4IsZeroOrOneException {
 
     Log.d(LOG_TAG, "round2 started.");
 
-    if (BigInteger.ONE.compareTo(jp.gx4) == 0) {
-      throw new Gx4IsOneException();
+    
+    if (BigInteger.ZERO.compareTo(jp.gx3) == 0 || BigInteger.ONE.compareTo(jp.gx3) == 0 ||
+        BigInteger.ZERO.compareTo(jp.gx4) == 0 || BigInteger.ONE.compareTo(jp.gx4) == 0) {
+      throw new Gx3OrGx4IsZeroOrOneException();
     }
 
     
@@ -243,7 +244,7 @@ public class JPakeCrypto {
 
     
     
-    if (gx.compareTo(BigInteger.ZERO) < 1) {
+    if (gx.compareTo(BigInteger.ONE) < 1) { 
       Log.e(LOG_TAG, "g^x > 1 fails.");
       throw new IncorrectZkpException();
     }
