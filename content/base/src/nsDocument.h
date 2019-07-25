@@ -168,14 +168,10 @@ public:
   PRBool IsInvalidName();
   void AddNameElement(Element* aElement);
   void RemoveNameElement(Element* aElement);
-  PRBool HasNameContentList() {
-    return mNameContentList != nsnull;
-  }
   PRBool IsEmpty();
   nsBaseContentList* GetNameContentList() {
     return mNameContentList;
   }
-  nsresult CreateNameContentList();
 
   
 
@@ -258,9 +254,7 @@ private:
   
   
   nsSmallVoidArray mIdContentList;
-  
-  
-  nsBaseContentList *mNameContentList;
+  nsRefPtr<nsBaseContentList> mNameContentList;
   nsRefPtr<nsContentList> mDocAllList;
   nsAutoPtr<nsTHashtable<ChangeCallbackEntry> > mChangeCallbacks;
   nsRefPtr<Element> mImageElement;
