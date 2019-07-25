@@ -257,6 +257,9 @@ private:
     nsresult Finish();
     nsresult FinishNoNotify();
 
+    
+    nsresult EvictOneNonPinned();
+
     enum {
         STATE_UNINITIALIZED,
         STATE_INITIALIZED,
@@ -300,7 +303,13 @@ private:
 
     PRUint32 mRescheduleCount;
 
+    
+
+    PRUint32 mPinnedEntryRetriesCount;
+
     nsRefPtr<nsOfflineCacheUpdate> mImplicitUpdate;
+
+    bool                           mPinned;
 };
 
 class nsOfflineCacheUpdateService : public nsIOfflineCacheUpdateService
@@ -339,6 +348,10 @@ public:
 
     
     static nsOfflineCacheUpdateService *GetInstance();
+
+    static nsresult OfflineAppPinnedForURI(nsIURI *aDocumentURI,
+                                           nsIPrefBranch *aPrefBranch,
+                                           bool *aPinned);
 
 private:
     nsresult ProcessNextUpdate();
