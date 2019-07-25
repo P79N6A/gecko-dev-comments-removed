@@ -54,41 +54,6 @@
 #include "frontend/ParseMaps.h"
 #include "frontend/ParseNode.h"
 
-namespace js {
-
-struct GlobalScope {
-    GlobalScope(JSContext *cx, JSObject *globalObj, BytecodeEmitter *bce)
-      : globalObj(globalObj), bce(bce), defs(cx), names(cx)
-    { }
-
-    struct GlobalDef {
-        JSAtom        *atom;        
-        FunctionBox   *funbox;      
-                                    
-        uint32        knownSlot;    
-
-        GlobalDef() { }
-        GlobalDef(uint32 knownSlot) : atom(NULL), knownSlot(knownSlot) { }
-        GlobalDef(JSAtom *atom, FunctionBox *box) : atom(atom), funbox(box) { }
-    };
-
-    JSObject        *globalObj;
-    BytecodeEmitter *bce;
-
-    
-
-
-
-
-
-
-
-    Vector<GlobalDef, 16> defs;
-    AtomIndexMap      names;
-};
-
-} 
-
 #define NUM_TEMP_FREELISTS      6U      /* 32 to 2048 byte size classes (32 bit) */
 
 typedef struct BindData BindData;
@@ -122,7 +87,6 @@ struct Parser : private AutoGCRooter
 
     friend void AutoGCRooter::trace(JSTracer *trc);
     friend struct TreeContext;
-    friend struct BytecodeCompiler;
 
     
 
@@ -195,6 +159,11 @@ struct Parser : private AutoGCRooter
     
     JS_DECLARE_NEW_METHODS(allocParseNode, inline)
 
+    
+    ParseNode *statement();
+    bool recognizeDirectivePrologue(ParseNode *pn, bool *isDirectivePrologueMember);
+    ParseNode *functionBody();
+
   private:
     
 
@@ -215,7 +184,7 @@ struct Parser : private AutoGCRooter
     ParseNode *functionStmt();
     ParseNode *functionExpr();
     ParseNode *statements();
-    ParseNode *statement();
+
     ParseNode *switchStatement();
     ParseNode *forStatement();
     ParseNode *tryStatement();
@@ -255,11 +224,9 @@ struct Parser : private AutoGCRooter
     
 
 
-    bool recognizeDirectivePrologue(ParseNode *pn, bool *isDirectivePrologueMember);
-
     enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **list);
-    ParseNode *functionBody();
+
     ParseNode *functionDef(PropertyName *name, FunctionType type, FunctionSyntaxKind kind);
 
     ParseNode *condition();

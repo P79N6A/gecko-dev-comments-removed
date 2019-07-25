@@ -51,20 +51,115 @@
 using namespace js;
 using namespace js::frontend;
 
+bool
+DefineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
+{
+    JSObject *globalObj = globalScope.globalObj;
+
+    
+    for (size_t i = 0; i < globalScope.defs.length(); i++) {
+        GlobalScope::GlobalDef &def = globalScope.defs[i];
+
+        
+        if (!def.atom)
+            continue;
+
+        jsid id = ATOM_TO_JSID(def.atom);
+        Value rval;
+
+        if (def.funbox) {
+            JSFunction *fun = def.funbox->function();
+
+            
 
 
 
-BytecodeCompiler::BytecodeCompiler(JSContext *cx, JSPrincipals *prin, StackFrame *cfp)
-  : parser(cx, prin, cfp)
-{}
+            rval.setObject(*fun);
+            types::AddTypePropertyId(cx, globalObj, id, rval);
+        } else {
+            rval.setUndefined();
+        }
+
+        
+
+
+
+
+
+
+        const Shape *shape =
+            DefineNativeProperty(cx, globalObj, id, rval, JS_PropertyStub, JS_StrictPropertyStub,
+                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0, DNP_SKIP_TYPE);
+        if (!shape)
+            return false;
+        def.knownSlot = shape->slot;
+    }
+
+    Vector<JSScript *, 16> worklist(cx);
+    if (!worklist.append(script))
+        return false;
+
+    
+
+
+
+
+
+    while (worklist.length()) {
+        JSScript *outer = worklist.back();
+        worklist.popBack();
+
+        if (JSScript::isValidOffset(outer->objectsOffset)) {
+            JSObjectArray *arr = outer->objects();
+
+            
+
+
+
+            size_t start = outer->savedCallerFun ? 1 : 0;
+
+            for (size_t i = start; i < arr->length; i++) {
+                JSObject *obj = arr->vector[i];
+                if (!obj->isFunction())
+                    continue;
+                JSFunction *fun = obj->getFunctionPrivate();
+                JS_ASSERT(fun->isInterpreted());
+                JSScript *inner = fun->script();
+                if (outer->isHeavyweightFunction) {
+                    outer->isOuterFunction = true;
+                    inner->isInnerFunction = true;
+                }
+                if (!JSScript::isValidOffset(inner->globalsOffset) &&
+                    !JSScript::isValidOffset(inner->objectsOffset)) {
+                    continue;
+                }
+                if (!worklist.append(inner))
+                    return false;
+            }
+        }
+
+        if (!JSScript::isValidOffset(outer->globalsOffset))
+            continue;
+
+        GlobalSlotArray *globalUses = outer->globals();
+        uint32 nGlobalUses = globalUses->length;
+        for (uint32 i = 0; i < nGlobalUses; i++) {
+            uint32 index = globalUses->vector[i].slot;
+            JS_ASSERT(index < globalScope.defs.length());
+            globalUses->vector[i].slot = globalScope.defs[index].knownSlot;
+        }
+    }
+
+    return true;
+}
 
 JSScript *
-BytecodeCompiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
-                                JSPrincipals *principals, uint32 tcflags,
-                                const jschar *chars, size_t length,
-                                const char *filename, uintN lineno, JSVersion version,
-                                JSString *source ,
-                                uintN staticLevel )
+frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+                        JSPrincipals *principals, uint32 tcflags,
+                        const jschar *chars, size_t length,
+                        const char *filename, uintN lineno, JSVersion version,
+                        JSString *source ,
+                        uintN staticLevel )
 {
     TokenKind tt;
     ParseNode *pn;
@@ -81,11 +176,10 @@ BytecodeCompiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame 
     JS_ASSERT_IF(callerFrame, tcflags & TCF_COMPILE_N_GO);
     JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
-    BytecodeCompiler compiler(cx, principals, callerFrame);
-    if (!compiler.init(chars, length, filename, lineno, version))
+    Parser parser(cx, principals, callerFrame);
+    if (!parser.init(chars, length, filename, lineno, version))
         return NULL;
 
-    Parser &parser = compiler.parser;
     TokenStream &tokenStream = parser.tokenStream;
 
     BytecodeEmitter bce(&parser, tokenStream.getLineno());
@@ -93,7 +187,6 @@ BytecodeCompiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame 
         return NULL;
 
     Probes::compileScriptBegin(cx, filename, lineno);
-
     MUST_FLOW_THROUGH("out");
 
     
@@ -269,7 +362,7 @@ BytecodeCompiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame 
 
     JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
-    if (!defineGlobals(cx, globalScope, script))
+    if (!DefineGlobals(cx, globalScope, script))
         script = NULL;
 
   out:
@@ -282,123 +375,19 @@ BytecodeCompiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame 
     goto out;
 }
 
-bool
-BytecodeCompiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
-{
-    JSObject *globalObj = globalScope.globalObj;
-
-    
-    for (size_t i = 0; i < globalScope.defs.length(); i++) {
-        GlobalScope::GlobalDef &def = globalScope.defs[i];
-
-        
-        if (!def.atom)
-            continue;
-
-        jsid id = ATOM_TO_JSID(def.atom);
-        Value rval;
-
-        if (def.funbox) {
-            JSFunction *fun = def.funbox->function();
-
-            
-
-
-
-            rval.setObject(*fun);
-            types::AddTypePropertyId(cx, globalObj, id, rval);
-        } else {
-            rval.setUndefined();
-        }
-
-        
-
-
-
-
-
-
-        const Shape *shape =
-            DefineNativeProperty(cx, globalObj, id, rval, JS_PropertyStub, JS_StrictPropertyStub,
-                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0, DNP_SKIP_TYPE);
-        if (!shape)
-            return false;
-        def.knownSlot = shape->slot;
-    }
-
-    Vector<JSScript *, 16> worklist(cx);
-    if (!worklist.append(script))
-        return false;
-
-    
-
-
-
-
-
-    while (worklist.length()) {
-        JSScript *outer = worklist.back();
-        worklist.popBack();
-
-        if (JSScript::isValidOffset(outer->objectsOffset)) {
-            JSObjectArray *arr = outer->objects();
-
-            
-
-
-
-            size_t start = outer->savedCallerFun ? 1 : 0;
-
-            for (size_t i = start; i < arr->length; i++) {
-                JSObject *obj = arr->vector[i];
-                if (!obj->isFunction())
-                    continue;
-                JSFunction *fun = obj->getFunctionPrivate();
-                JS_ASSERT(fun->isInterpreted());
-                JSScript *inner = fun->script();
-                if (outer->isHeavyweightFunction) {
-                    outer->isOuterFunction = true;
-                    inner->isInnerFunction = true;
-                }
-                if (!JSScript::isValidOffset(inner->globalsOffset) &&
-                    !JSScript::isValidOffset(inner->objectsOffset)) {
-                    continue;
-                }
-                if (!worklist.append(inner))
-                    return false;
-            }
-        }
-
-        if (!JSScript::isValidOffset(outer->globalsOffset))
-            continue;
-
-        GlobalSlotArray *globalUses = outer->globals();
-        uint32 nGlobalUses = globalUses->length;
-        for (uint32 i = 0; i < nGlobalUses; i++) {
-            uint32 index = globalUses->vector[i].slot;
-            JS_ASSERT(index < globalScope.defs.length());
-            globalUses->vector[i].slot = globalScope.defs[index].knownSlot;
-        }
-    }
-
-    return true;
-}
-
 
 
 
 
 bool
-BytecodeCompiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
-                                      Bindings *bindings, const jschar *chars, size_t length,
-                                      const char *filename, uintN lineno, JSVersion version)
+frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
+                              Bindings *bindings, const jschar *chars, size_t length,
+                              const char *filename, uintN lineno, JSVersion version)
 {
-    BytecodeCompiler compiler(cx, principals);
-
-    if (!compiler.init(chars, length, filename, lineno, version))
+    Parser parser(cx, principals);
+    if (!parser.init(chars, length, filename, lineno, version))
         return false;
 
-    Parser &parser = compiler.parser;
     TokenStream &tokenStream = parser.tokenStream;
 
     BytecodeEmitter funbce(&parser, tokenStream.getLineno());

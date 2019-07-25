@@ -607,6 +607,37 @@ class GCConstList {
     void finish(JSConstArray *array);
 };
 
+struct GlobalScope {
+    GlobalScope(JSContext *cx, JSObject *globalObj, BytecodeEmitter *bce)
+      : globalObj(globalObj), bce(bce), defs(cx), names(cx)
+    { }
+
+    struct GlobalDef {
+        JSAtom        *atom;        
+        FunctionBox   *funbox;      
+                                    
+        uint32        knownSlot;    
+
+        GlobalDef() { }
+        GlobalDef(uint32 knownSlot) : atom(NULL), knownSlot(knownSlot) { }
+        GlobalDef(JSAtom *atom, FunctionBox *box) : atom(atom), funbox(box) { }
+    };
+
+    JSObject        *globalObj;
+    BytecodeEmitter *bce;
+
+    
+
+
+
+
+
+
+
+    Vector<GlobalDef, 16> defs;
+    AtomIndexMap      names;
+};
+
 struct BytecodeEmitter : public TreeContext
 {
     struct {
