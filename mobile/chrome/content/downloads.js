@@ -416,15 +416,6 @@ var DownloadsView = {
     
   },
 
-  showDownload: function dv_showDownload(aItem) {
-    let f = this._getLocalFile(aItem.getAttribute("file"));
-    try {
-      f.reveal();
-    } catch (ex) { }
-
-    
-  },
-
   removeDownload: function dv_removeDownload(aItem) {
     this._dlmgr.removeDownload(aItem.getAttribute("downloadID"));
   },
