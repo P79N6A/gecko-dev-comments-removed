@@ -43,6 +43,7 @@ const Cc = Components.classes;
 const Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 const PERMS_FILE      = 0644;
 const PERMS_DIRECTORY = 0755;
@@ -75,6 +76,19 @@ const SEARCH_ENGINE_ADDED        = "engine-added";
 const SEARCH_ENGINE_CHANGED      = "engine-changed";
 const SEARCH_ENGINE_LOADED       = "engine-loaded";
 const SEARCH_ENGINE_CURRENT      = "engine-current";
+
+
+
+
+
+
+
+const SEARCH_SERVICE_TOPIC       = "browser-search-service";
+
+
+
+
+const SEARCH_SERVICE_METADATA_WRITTEN  = "write-metadata-to-disk-complete";
 
 const SEARCH_TYPE_MOZSEARCH      = Ci.nsISearchEngine.TYPE_MOZSEARCH;
 const SEARCH_TYPE_OPENSEARCH     = Ci.nsISearchEngine.TYPE_OPENSEARCH;
@@ -218,6 +232,12 @@ __defineGetter__("gPrefSvc", function() {
                          getService(Ci.nsIPrefBranch);
 });
 
+__defineGetter__("FileUtils", function() {
+  delete this.FileUtils;
+  Components.utils.import("resource://gre/modules/FileUtils.jsm");
+  return FileUtils;
+});
+
 __defineGetter__("NetUtil", function() {
   delete this.NetUtil;
   Components.utils.import("resource://gre/modules/NetUtil.jsm");
@@ -308,6 +328,64 @@ function ENSURE_WARN(assertion, message, resultCode) {
   if (!assertion)
     throw Components.Exception(message, resultCode);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Lazy(code, delay) {
+  LOG("Lazy: Creating a Lazy");
+  this._callback =
+    (function(){
+       code();
+       this._timer = null;
+     }).bind(this);
+  this._delay = delay || LAZY_SERIALIZE_DELAY;
+  this._timer = null;
+}
+Lazy.prototype = {
+  
+
+
+  go: function Lazy_go() {
+    LOG("Lazy_go: starting");
+    if (this._timer) {
+      LOG("Lazy_go: reusing active timer");
+      this._timer.delay = this._delay;
+    } else {
+      LOG("Lazy_go: creating timer");
+      this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this._timer.
+        initWithCallback(this._callback,
+                         this._delay,
+                         Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+  },
+  
+
+
+  flush: function Lazy_flush() {
+    LOG("Lazy_flush: starting");
+    if (!this._timer) {
+      return;
+    }
+    this._timer.cancel();
+    this._timer = null;
+    this._callback();
+  }
+};
+
 
 function loadListener(aChannel, aEngine, aCallback) {
   this._channel = aChannel;
@@ -716,6 +794,12 @@ function notifyAction(aEngine, aVerb) {
     LOG("NOTIFY: Engine: \"" + aEngine.name + "\"; Verb: \"" + aVerb + "\"");
     gObsSvc.notifyObservers(aEngine, SEARCH_ENGINE_TOPIC, aVerb);
   }
+}
+
+function  parseJsonFromStream(aInputStream) {
+  const json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
+  const data = json.decodeFromStream(aInputStream, aInputStream.available());
+  return data;
 }
 
 
@@ -2576,6 +2660,7 @@ SearchService.prototype = {
   },
 
   _loadEngines: function SRCH_SVC__loadEngines() {
+    LOG("_loadEngines: start");
     
     let cache = {};
     let cacheEnabled = getBoolPref(BROWSER_SEARCH_PREF + "cache.enabled", true);
@@ -2633,8 +2718,11 @@ SearchService.prototype = {
       return;
     }
 
+    LOG("_loadEngines: loading from cache directories");
     for each (let dir in cache.directories)
       this._loadEnginesFromCache(dir);
+
+    LOG("_loadEngines: done");
   },
 
   _readCacheFile: function SRCH_SVC__readCacheFile(aFile) {
@@ -2810,7 +2898,7 @@ SearchService.prototype = {
           try {
             this._convertSherlockFile(addedEngine, fileURL.fileBaseName);
           } catch (ex) {
-            LOG("_loadEnginesFromDir: Failed to convert: " + fileURL.path + "\n" + ex);
+            LOG("_loadEnginesFromDir: Failed to convert: " + fileURL.path + "\n" + ex + "\n" + ex.stack);
             
             addedEngine._readOnly = true;
           }
@@ -2907,23 +2995,29 @@ SearchService.prototype = {
 
   _saveSortedEngineList: function SRCH_SVC_saveSortedEngineList() {
     
+    LOG("SRCH_SVC_saveSortedEngineList: starting");
     if (!this._needToSetOrderPrefs)
       return;
+
+    LOG("SRCH_SVC_saveSortedEngineList: something to do");
 
     
     
     gPrefSvc.setBoolPref(BROWSER_SEARCH_PREF + "useDBForOrder", true);
 
     var engines = this._getSortedEngines(true);
-    var values = [];
-    var names = [];
 
+    let instructions = [];
     for (var i = 0; i < engines.length; ++i) {
-      names[i] = "order";
-      values[i] = i + 1;
+      instructions.push(
+        {key: "order",
+         value: i+1,
+         engine: engines[i]
+        });
     }
 
-    engineMetadataService.setAttrs(engines, names, values);
+    engineMetadataService.setAttrs(instructions);
+    LOG("SRCH_SVC_saveSortedEngineList: done");
   },
 
   _buildSortedEngineList: function SRCH_SVC_buildSortedEngineList() {
@@ -2936,6 +3030,7 @@ SearchService.prototype = {
     
     
     if (getBoolPref(BROWSER_SEARCH_PREF + "useDBForOrder", false)) {
+      LOG("_buildSortedEngineList: using db for order");
       for each (engine in this._engines) {
         var orderNumber = engineMetadataService.getAttr(engine, "order");
 
@@ -3434,7 +3529,7 @@ SearchService.prototype = {
           this._batchTimer.cancel();
           this._buildCache();
         }
-        engineMetadataService.closeDB();
+        engineMetadataService.flush();
         break;
     }
   },
@@ -3499,135 +3594,215 @@ SearchService.prototype = {
 };
 
 var engineMetadataService = {
-  get mDB() {
-    var engineDataTable = "id INTEGER PRIMARY KEY, engineid STRING, name STRING, value STRING";
-    var file = getDir(NS_APP_USER_PROFILE_50_DIR);
-    file.append("search.sqlite");
-    var dbService = Cc["@mozilla.org/storage/service;1"].
-                    getService(Ci.mozIStorageService);
-    var db;
-    try {
-      db = dbService.openDatabase(file);
-    } catch (ex) {
-      if (ex.result == 0x8052000b) { 
-        
-        file.remove(false);
-        db = dbService.openDatabase(file);
-      } else {
-        throw ex;
-      }
-    }
+  
 
-    try {
-      db.createTable("engine_data", engineDataTable);
-    } catch (ex) {
+
+  get _jsonFile() {
+    delete this._jsonFile;
+    return this._jsonFile = FileUtils.getFile(NS_APP_USER_PROFILE_50_DIR,
+                                              ["search-metadata.json"]);
+  },
+
+  
+
+
+  get _store() {
+    delete this._store;
+    return this._store = this._loadStore();
+  },
+
+  
+  _loadStore: function() {
+    let jsonFile = this._jsonFile;
+    if (!jsonFile.exists()) {
+      LOG("loadStore: search-metadata.json does not exist");
+
       
+      let store = this._migrateOldDB();
+      if (store) {
+        
+        LOG("Committing the migrated store to disk");
+        this._commit(store);
+        return store;
+      }
+
+       
+      return {};
     }
 
-    delete this.mDB;
-    return this.mDB = db;
-  },
-
-  get mGetData() {
-    delete this.mGetData;
-    return this.mGetData = this.mDB.createStatement(
-      "SELECT value FROM engine_data WHERE engineid = :engineid AND name = :name");
-  },
-  get mDeleteData() {
-    delete this.mDeleteData;
-    return this.mDeleteData = this.mDB.createStatement(
-      "DELETE FROM engine_data WHERE engineid = :engineid AND name = :name");
-  },
-  get mInsertData() {
-    delete this.mInsertData;
-    return this.mInsertData = this.mDB.createStatement(
-      "INSERT INTO engine_data (engineid, name, value) " +
-      "VALUES (:engineid, :name, :value)");
+    LOG("loadStore: attempting to load store from JSON file");
+    try {
+      return parseJsonFromStream(NetUtil.newChannel(jsonFile).open());
+    } catch (x) {
+      LOG("loadStore failed to load file: "+x);
+      return {};
+    }
   },
 
   getAttr: function epsGetAttr(engine, name) {
-    
-    name = name.toLowerCase();
-
-    var stmt = this.mGetData;
-    stmt.reset();
-    var pp = stmt.params;
-    pp.engineid = engine._id;
-    pp.name = name;
-
-    var value = null;
-    if (stmt.executeStep())
-      value = stmt.row.value;
-    stmt.reset();
-    return value;
-  },
-
-  setAttr: function epsSetAttr(engine, name, value) {
-    
-    name = name.toLowerCase();
-
-    this.mDB.beginTransaction();
-
-    var pp = this.mDeleteData.params;
-    pp.engineid = engine._id;
-    pp.name = name;
-    this.mDeleteData.executeStep();
-    this.mDeleteData.reset();
-
-    pp = this.mInsertData.params;
-    pp.engineid = engine._id;
-    pp.name = name;
-    pp.value = value;
-    this.mInsertData.executeStep();
-    this.mInsertData.reset();
-
-    this.mDB.commitTransaction();
-  },
-
-  setAttrs: function epsSetAttrs(engines, names, values) {
-    this.mDB.beginTransaction();
-
-    for (var i = 0; i < engines.length; i++) {
-      
-      var name = names[i].toLowerCase();
-
-      var pp = this.mDeleteData.params;
-      pp.engineid = engines[i]._id;
-      pp.name = names[i];
-      this.mDeleteData.executeStep();
-      this.mDeleteData.reset();
-
-      pp = this.mInsertData.params;
-      pp.engineid = engines[i]._id;
-      pp.name = names[i];
-      pp.value = values[i];
-      this.mInsertData.executeStep();
-      this.mInsertData.reset();
+    let record = this._store[engine._id];
+    if (!record) {
+      return null;
     }
 
-    this.mDB.commitTransaction();
+    
+    return record[name.toLowerCase()];
   },
 
-  deleteEngineData: function epsDelData(engine, name) {
+  _setAttr: function epsSetAttr(engine, name, value) {
     
     name = name.toLowerCase();
-
-    var pp = this.mDeleteData.params;
-    pp.engineid = engine._id;
-    pp.name = name;
-    this.mDeleteData.executeStep();
-    this.mDeleteData.reset();
+    let db = this._store;
+    let record = db[engine._id];
+    if (!record) {
+      record = db[engine._id] = {};
+    }
+    if (record[name] != value) {
+      record[name] = value;
+      return true;
+    }
+    return false;
   },
 
-  closeDB: function epsCloseDB() {
-    ["mInsertData", "mDeleteData", "mGetData"].forEach(function(aStmt) {
-      if (Object.getOwnPropertyDescriptor(this, aStmt).value !== undefined)
-        this[aStmt].finalize();
-    }, this);
-    if (Object.getOwnPropertyDescriptor(this, "mDB").value !== undefined)
-      this.mDB.close();
-  }
-}
+  
+
+
+
+
+
+
+
+
+
+
+
+  setAttr: function epsSetAttr(engine, key, value) {
+    if (this._setAttr(engine, key, value)) {
+      this._commit();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  setAttrs: function epsSetAttrs(changes) {
+    let self = this;
+    let changed = false;
+    changes.forEach(function(change) {
+      changed |= self._setAttr(change.engine, change.key, change.value);
+    });
+    if (changed) {
+      this._commit();
+    }
+  },
+
+  
+
+
+  flush: function epsFlush() {
+    if (this._lazyWriter) {
+      this._lazyWriter.flush();
+    }
+  },
+
+  
+
+
+
+
+
+
+  _migrateOldDB: function SRCH_SVC_EMS_migrate() {
+    LOG("SRCH_SVC_EMS_migrate start");
+    let sqliteFile = FileUtils.getFile(NS_APP_USER_PROFILE_50_DIR,
+                                       ["search.sqlite"]);
+    if (!sqliteFile.exists()) {
+      LOG("SRCH_SVC_EMS_migrate search.sqlite does not exist");
+      return null;
+    }
+    let store = {};
+    try {
+      LOG("SRCH_SVC_EMS_migrate Migrating data from SQL");
+      const sqliteDb = Services.storage.openDatabase(sqliteFile);
+      const statement = sqliteDb.createStatement("SELECT * from engine_data");
+      while (statement.executeStep()) {
+        let row = statement.row;
+        let engine = row.engineid;
+        let name   = row.name;
+        let value  = row.value;
+        if (!store[engine]) {
+          store[engine] = {};
+        }
+        store[engine][name] = value;
+      }
+      statement.finalize();
+    } catch (ex) {
+      LOG("SRCH_SVC_EMS_migrate failed: " + ex);
+      return null;
+    }
+    return store;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _commit: function epsCommit(aStore) {
+    LOG("epsCommit: start");
+
+    let store = aStore || this._store;
+    if (!store) {
+      LOG("epsCommit: nothing to do");
+      return;
+    }
+
+    if (!this._lazyWriter) {
+      LOG("epsCommit: initializing lazy writer");
+      let jsonFile = this._jsonFile;
+      function writeCommit() {
+        LOG("epsWriteCommit: start");
+        let ostream = FileUtils.
+          openSafeFileOutputStream(jsonFile,
+                                   MODE_WRONLY | MODE_CREATE | MODE_TRUNCATE);
+
+        
+        let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+          createInstance(Ci.nsIScriptableUnicodeConverter);
+        converter.charset = "UTF-8";
+
+        let callback = function(result) {
+          if (Components.isSuccessCode(result)) {
+            gObsSvc.notifyObservers(null,
+                                    SEARCH_SERVICE_TOPIC,
+                                    SEARCH_SERVICE_METADATA_WRITTEN);
+          }
+          LOG("epsWriteCommit: done " + result);
+        };
+        
+        let istream = converter.convertToInputStream(JSON.stringify(store));
+        NetUtil.asyncCopy(istream, ostream, callback);
+      }
+      this._lazyWriter = new Lazy(writeCommit);
+    }
+    LOG("epsCommit: (re)setting timer");
+    this._lazyWriter.go();
+  },
+  _lazyWriter: null,
+};
 
 const SEARCH_UPDATE_LOG_PREFIX = "*** Search update: ";
 
