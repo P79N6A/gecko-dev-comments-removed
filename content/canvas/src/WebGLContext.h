@@ -641,39 +641,27 @@ public:
         return mMinCapability;
     }
 
-    
-    bool ShouldEnableRobustnessTimer() {
-        return mHasRobustness ||
-               IsExtensionEnabled(WebGL_MOZ_WEBGL_lose_context) ||
-               (gl != nsnull && gl->GetContextType() == gl::GLContext::ContextTypeEGL);
-    }
-
-    
-    
-    void SetupRobustnessTimer() {
-        if (!ShouldEnableRobustnessTimer())
-            return;
-
+    void SetupContextLossTimer() {
         
         
         
         
-        if (mRobustnessTimerRunning) {
-            mDrawSinceRobustnessTimerSet = true;
+        if (mContextLossTimerRunning) {
+            mDrawSinceContextLossTimerSet = true;
             return;
         }
         
         mContextRestorer->InitWithCallback(static_cast<nsITimerCallback*>(this),
                                            PR_MillisecondsToInterval(1000),
                                            nsITimer::TYPE_ONE_SHOT);
-        mRobustnessTimerRunning = true;
-        mDrawSinceRobustnessTimerSet = false;
+        mContextLossTimerRunning = true;
+        mDrawSinceContextLossTimerSet = false;
     }
 
-    void TerminateRobustnessTimer() {
-        if (mRobustnessTimerRunning) {
+    void TerminateContextLossTimer() {
+        if (mContextLossTimerRunning) {
             mContextRestorer->Cancel();
-            mRobustnessTimerRunning = false;
+            mContextLossTimerRunning = false;
         }
     }
 
@@ -957,8 +945,8 @@ protected:
 
     nsCOMPtr<nsITimer> mContextRestorer;
     bool mAllowRestore;
-    bool mRobustnessTimerRunning;
-    bool mDrawSinceRobustnessTimerSet;
+    bool mContextLossTimerRunning;
+    bool mDrawSinceContextLossTimerSet;
     ContextStatus mContextStatus;
     bool mContextLostErrorSet;
 
