@@ -1351,8 +1351,8 @@ var SelectionHandler = {
         this.selectedText = "";
 
         
-        let x = json.x;
-        let y = json.y;
+        let x = json.x - scrollOffset.x;
+        let y = json.y - scrollOffset.y;
         let offset = scrollOffset;
         let elem = utils.elementFromPoint(x, y, true, false);
         while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
@@ -1379,8 +1379,8 @@ var SelectionHandler = {
         selection.removeAllRanges();
 
         
-        utils.sendMouseEventToWindow("mousedown", x - scrollOffset.x, y - scrollOffset.y, 0, 1, 0, true);
-        utils.sendMouseEventToWindow("mouseup", x - scrollOffset.x, y - scrollOffset.y, 0, 1, 0, true);
+        utils.sendMouseEventToWindow("mousedown", x, y, 0, 1, 0, true);
+        utils.sendMouseEventToWindow("mouseup", x, y, 0, 1, 0, true);
 
         
         try {
@@ -1423,7 +1423,7 @@ var SelectionHandler = {
         try {
           
           if (this.contentWindow)
-            this.contentWindow.getSelection().collapseToStart();
+            this.contentWindow.getSelection().removeAllRanges();
           this.contentWindow = null;
         } catch(e) {}
 
@@ -1450,19 +1450,24 @@ var SelectionHandler = {
         if (elemUnder && elemUnder.ownerDocument.defaultView != this.contentWindow)
           return;
 
+        
         if (json.type == "end") {
-          this.cache.end.x = json.x - scrollOffset.x;
-          this.cache.end.y = json.y - scrollOffset.y;
-          utils.sendMouseEventToWindow("mousedown", this.cache.end.x, this.cache.end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-          utils.sendMouseEventToWindow("mouseup", this.cache.end.x, this.cache.end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          
+          this.cache.end = { x: json.x, y: json.y };
+          let end = { x: this.cache.end.x - scrollOffset.x, y: this.cache.end.y - scrollOffset.y };
+          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
         } else {
-          this.cache.start.x = json.x - scrollOffset.x;
-          this.cache.start.y = json.y - scrollOffset.y;
-          utils.sendMouseEventToWindow("mousedown", this.cache.start.x, this.cache.start.y, 0, 1, 0, true);
           
-          
-          utils.sendMouseEventToWindow("mousedown", this.cache.end.x, this.cache.end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-          utils.sendMouseEventToWindow("mouseup", this.cache.end.x, this.cache.end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          this.cache.start = { x: json.x, y: json.y };
+          let start = { x: this.cache.start.x - scrollOffset.x, y: this.cache.start.y - scrollOffset.y };
+          let end = { x: this.cache.end.x - scrollOffset.x, y: this.cache.end.y - scrollOffset.y };
+
+          utils.sendMouseEventToWindow("mousedown", start.x, start.y, 0, 0, 0, true);
+          utils.sendMouseEventToWindow("mouseup", start.x, start.y, 0, 0, 0, true);
+
+          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
         }
 
         
@@ -1487,6 +1492,12 @@ var SelectionHandler = {
       cache.end.x = rects[i].right + aOffset.x;
       cache.end.y = rects[i].bottom + aOffset.y;
     }
+
+    
+    const HANDLE_VERTICAL_MARGIN = 4;
+    cache.start.y -= HANDLE_VERTICAL_MARGIN;
+    cache.end.y -= HANDLE_VERTICAL_MARGIN;
+
     cache.rect = aRange.getBoundingClientRect();
     cache.rect.left += aOffset.x;
     cache.rect.top += aOffset.y;
