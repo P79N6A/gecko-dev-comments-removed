@@ -538,7 +538,7 @@ void MouseTrailer::TimerProc(nsITimer* aTimer, void* aClosure)
     if (mtrailer->mMouseTrailerWindow != mouseWnd) {
 #ifndef WINCE
       
-      PostMessage(mtrailer->mMouseTrailerWindow, WM_MOUSELEAVE, NULL, NULL);
+      PostMessage(mtrailer->mMouseTrailerWindow, WM_MOUSELEAVE, 0, 0);
 #endif
 
       

@@ -190,14 +190,6 @@ nsNativeThemeWin::~nsNativeThemeWin() {
   nsUXThemeData::Invalidate();
 }
 
-static void GetNativeRect(const nsIntRect& aSrc, RECT& aDst)
-{
-  aDst.top = aSrc.y;
-  aDst.bottom = aSrc.y + aSrc.height;
-  aDst.left = aSrc.x;
-  aDst.right = aSrc.x + aSrc.width;
-}
-
 static PRBool IsTopLevelMenu(nsIFrame *aFrame)
 {
   PRBool isTopLevel(PR_FALSE);
@@ -1332,8 +1324,8 @@ RENDER_AGAIN:
 
   
   
-  if ((aWidgetType == NS_THEME_CHECKBOX || aWidgetType == NS_THEME_RADIO) &&
-      aFrame->GetContent()->IsHTML() ||
+  if (((aWidgetType == NS_THEME_CHECKBOX || aWidgetType == NS_THEME_RADIO) &&
+        aFrame->GetContent()->IsHTML()) ||
       aWidgetType == NS_THEME_SCALE_HORIZONTAL ||
       aWidgetType == NS_THEME_SCALE_VERTICAL) {
       PRInt32 contentState;
@@ -3210,7 +3202,7 @@ RENDER_AGAIN:
       
       
       BOOL bFlag = TRUE;
-      SystemParametersInfo(SPI_GETGRADIENTCAPTIONS, 0, &bFlag, NULL);
+      SystemParametersInfo(SPI_GETGRADIENTCAPTIONS, 0, &bFlag, 0);
       if (!bFlag) {
         if (state == mozilla::widget::themeconst::FS_ACTIVE)
           FillRect(hdc, &rect, (HBRUSH)(COLOR_ACTIVECAPTION+1));
