@@ -54,9 +54,6 @@ menuitem,
   font: menu;
   list-style-image: none;
   -moz-image-region: auto;
-  
-
-  padding: 0px 3px;
 }
 
 menuitem[default="true"] {

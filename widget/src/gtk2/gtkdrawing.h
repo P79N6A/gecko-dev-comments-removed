@@ -335,6 +335,17 @@ moz_gtk_widget_get_focus(GtkWidget* widget, gboolean* interior_focus,
 
 
 
+gint
+moz_gtk_menuitem_get_horizontal_padding(gint* horizontal_padding);
+
+gint
+moz_gtk_checkmenuitem_get_horizontal_padding(gint* horizontal_padding);
+
+
+
+
+
+
 
 
 
