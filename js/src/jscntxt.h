@@ -1418,6 +1418,14 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         bool charArgs, va_list ap);
 #endif
 
+namespace js {
+
+
+extern void
+ReportUsageError(JSContext *cx, JSObject *callee, const char *msg);
+
+} 
+
 extern void
 js_ReportOutOfMemory(JSContext *cx);
 
