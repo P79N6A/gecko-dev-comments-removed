@@ -203,6 +203,8 @@ static void   key_event_to_context_menu_event(nsMouseEvent &aEvent,
 static int    is_parent_ungrab_enter(GdkEventCrossing *aEvent);
 static int    is_parent_grab_leave(GdkEventCrossing *aEvent);
 
+static void GetBrandName(nsXPIDLString& brandName);
+
 
 #if defined(MOZ_WIDGET_GTK2)
 static gboolean expose_event_cb           (GtkWidget *widget,
@@ -1846,38 +1848,62 @@ nsWindow::SetIcon(const nsAString& aIconSpec)
     if (!mShell)
         return NS_OK;
 
+    nsCAutoString iconName;
+    
+    if (aIconSpec.EqualsLiteral("default")) {
+        nsXPIDLString brandName;
+        GetBrandName(brandName);
+        AppendUTF16toUTF8(brandName, iconName);
+        ToLowerCase(iconName);
+    } else {
+        AppendUTF16toUTF8(aIconSpec, iconName);
+    }
+    
     nsCOMPtr<nsILocalFile> iconFile;
     nsCAutoString path;
-    nsTArray<nsCString> iconList;
 
-    
-    
-    
+    bool foundIcon = gtk_icon_theme_has_icon(gtk_icon_theme_get_default(),
+                                             iconName.get());
 
-    const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
+    if (!foundIcon) {
+        
+        
+        
+
+        const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
                                     ".xpm", "16.xpm" };
 
-    for (PRUint32 i = 0; i < ArrayLength(extensions); i++) {
-        
-        if (i == ArrayLength(extensions) - 2 && iconList.Length())
-            break;
+        for (PRUint32 i = 0; i < ArrayLength(extensions); i++) {
+            
+            if (i == ArrayLength(extensions) - 2 && foundIcon)
+                break;
 
-        nsAutoString extension;
-        extension.AppendASCII(extensions[i]);
+            nsAutoString extension;
+            extension.AppendASCII(extensions[i]);
 
-        ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
-        if (iconFile) {
-            iconFile->GetNativePath(path);
-            iconList.AppendElement(path);
+            ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
+            if (iconFile) {
+                iconFile->GetNativePath(path);
+                GdkPixbuf *icon = gdk_pixbuf_new_from_file(path.get(), NULL);
+                if (icon){
+                    gtk_icon_theme_add_builtin_icon(iconName.get(),
+                                                    gdk_pixbuf_get_height(icon),
+                                                    icon);
+                    g_object_unref(icon);
+                    foundIcon = true;
+                }
+            }
         }
     }
 
     
-    if (iconList.Length() == 0)
-        return NS_OK;
+    if (foundIcon) {
+        gtk_window_set_icon_name(GTK_WINDOW(mShell), iconName.get());
+    }
 
-    return SetWindowIconList(iconList);
+    return NS_OK;
 }
+
 
 nsIntPoint
 nsWindow::WidgetToScreenOffset()
@@ -5143,33 +5169,6 @@ nsWindow::SetupPluginPort(void)
 #endif 
     
     return (void *)window;
-}
-
-nsresult
-nsWindow::SetWindowIconList(const nsTArray<nsCString> &aIconList)
-{
-    GList *list = NULL;
-
-    for (PRUint32 i = 0; i < aIconList.Length(); ++i) {
-        const char *path = aIconList[i].get();
-        LOG(("window [%p] Loading icon from %s\n", (void *)this, path));
-
-        GdkPixbuf *icon = gdk_pixbuf_new_from_file(path, NULL);
-        if (!icon)
-            continue;
-
-        list = g_list_append(list, icon);
-    }
-
-    if (!list)
-        return NS_ERROR_FAILURE;
-
-    gtk_window_set_icon_list(GTK_WINDOW(mShell), list);
-
-    g_list_foreach(list, (GFunc) g_object_unref, NULL);
-    g_list_free(list);
-
-    return NS_OK;
 }
 
 void
