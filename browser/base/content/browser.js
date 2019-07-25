@@ -3994,14 +3994,16 @@ var XULBrowserWindow = {
     this.defaultStatus = status;
   },
 
-  setOverLink: function (link) {
-    
-    
-    link = link.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
+  setOverLink: function (url, anchorElt) {
+    if (gURLBar) {
+      
+      
+      url = url.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
                         encodeURIComponent);
-    gURLBar.setOverLink(link);
+      gURLBar.setOverLink(url);
+    }
   },
-  
+
   
   onBeforeLinkTraversal: function(originalTarget, linkURI, linkNode, isAppTab) {
     
@@ -4198,7 +4200,9 @@ var XULBrowserWindow = {
     else
       this.isImage.setAttribute('disabled', 'true');
 
+    this.hideOverLinkImmediately = true;
     this.setOverLink("", null);
+    this.hideOverLinkImmediately = false;
 
     
     
