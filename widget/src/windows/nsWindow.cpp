@@ -4654,6 +4654,24 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mAssumeWheelIsZoomUntil) {
+    DWORD msgTime = ::GetMessageTime();
+    if (mAssumeWheelIsZoomUntil >= 0x80000000 && msgTime < 0x8000000 ||
+        mAssumeWheelIsZoomUntil < msgTime) {
+      mAssumeWheelIsZoomUntil = 0;
+    }
+  }
+
+  
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return PR_TRUE;
 
@@ -5027,6 +5045,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_KEYUP:
     {
       MSG nativeMsg = InitMSG(msg, wParam, lParam);
+      nativeMsg.time = ::GetMessageTime();
       result = ProcessKeyUpMessage(nativeMsg, nsnull);
       DispatchPendingEvents();
     }
@@ -6706,8 +6725,18 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
   ::ReplyMessage(isVertical ? 0 : TRUE);
 #endif
 
+  
+  
+  
+  PRBool isControl;
+  if (mAssumeWheelIsZoomUntil && ::GetMessageTime() < mAssumeWheelIsZoomUntil) {
+    isControl = PR_TRUE;
+  } else {
+    isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  }
+
   scrollEvent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollEvent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  scrollEvent.isControl = isControl;
   scrollEvent.isMeta    = PR_FALSE;
   scrollEvent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
   InitEvent(scrollEvent);
@@ -7162,6 +7191,25 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
 
   if (sUseElantechGestureHacks) {
     PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (virtualKeyCode == VK_CONTROL && aMsg.time == 10) {
+      mAssumeWheelIsZoomUntil = ::GetTickCount();
+    }
   }
 
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
