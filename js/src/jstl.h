@@ -271,6 +271,21 @@ struct AlignedStorage
     void *addr() { return u.bytes; }
 };
 
+template <class T>
+struct AlignedStorage2
+{
+    union U {
+        char bytes[sizeof(T)];
+        uint64 _;
+    } u;
+
+    const T *addr() const { return (const T *)u.bytes; }
+    T *addr() { return (T *)u.bytes; }
+};
+
+
+
+
 
 
 
@@ -282,10 +297,10 @@ struct AlignedStorage
 template <class T>
 class LazilyConstructed
 {
-    AlignedStorage<sizeof(T)> storage;
+    AlignedStorage2<T> storage;
     bool constructed;
 
-    T &asT() { return *reinterpret_cast<T *>(storage.addr()); }
+    T &asT() { return *storage.addr(); }
 
   public:
     LazilyConstructed() { constructed = false; }
@@ -330,6 +345,10 @@ class LazilyConstructed
         return asT();
     }
 };
+
+
+
+
 
 
 template <class T>
