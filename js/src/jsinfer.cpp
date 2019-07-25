@@ -254,8 +254,7 @@ TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &value)
 
 
 
-    if (cx->typeInferenceEnabled() && !obj->unknownProperties && !value.isUndefined() &&
-        !JSID_IS_DEFAULT_XML_NAMESPACE(id)) {
+    if (cx->typeInferenceEnabled() && !obj->unknownProperties && !value.isUndefined()) {
         id = MakeTypeId(cx, id);
 
         
