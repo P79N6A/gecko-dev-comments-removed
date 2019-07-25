@@ -841,7 +841,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
     JSFrameRegs regs;
-    ExecuteFrameGuard frame;
+    FrameGuard frame;
     if (!cx->stack().getExecuteFrame(cx, down, 0, script->nslots, frame))
         return false;
     JSStackFrame *fp = frame.getFrame();

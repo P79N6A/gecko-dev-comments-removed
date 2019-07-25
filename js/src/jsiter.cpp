@@ -1275,7 +1275,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
 
 
 
-        ExecuteFrameGuard frame;
+        FrameGuard frame;
         if (!cx->stack().getExecuteFrame(cx, cx->maybefp(), vplen, nfixed, frame)) {
             gen->state = JSGEN_CLOSED;
             return JS_FALSE;

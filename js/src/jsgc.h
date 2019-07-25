@@ -56,17 +56,7 @@
 #include "jsversion.h"
 #include "jsobj.h"
 #include "jsfun.h"
-
-#if !defined JS_DUMP_CONSERVATIVE_GC_ROOTS && defined DEBUG
-# define JS_DUMP_CONSERVATIVE_GC_ROOTS 1
-#endif
-
-#if defined JS_GCMETER
-const bool JS_WANT_GC_METER_PRINT = true;
-#elif defined DEBUG
-# define JS_GCMETER 1
-const bool JS_WANT_GC_METER_PRINT = false;
-#endif
+#include "jsgcstats.h"
 
 #define JSTRACE_XML         2
 
@@ -86,6 +76,9 @@ js_GetExternalStringGCType(JSString *str);
 
 extern JS_FRIEND_API(uint32)
 js_GetGCThingTraceKind(void *thing);
+
+extern size_t
+ThingsPerArena(size_t thingSize);
 
 
 
@@ -440,33 +433,6 @@ struct ConservativeGCThreadData {
     bool isEnabled() const { return enableCount > 0; }
 };
 
-
-
-
-
-enum ConservativeGCTest {
-    CGCT_VALID,
-    CGCT_LOWBITSET, 
-    CGCT_NOTARENA,  
-    CGCT_NOTCHUNK,  
-    CGCT_FREEARENA, 
-    CGCT_WRONGTAG,  
-    CGCT_NOTLIVE,   
-    CGCT_END
-};
-
-struct ConservativeGCStats {
-    uint32  counter[CGCT_END];  
-
-
-    void add(const ConservativeGCStats &another) {
-        for (size_t i = 0; i != JS_ARRAY_LENGTH(counter); ++i)
-            counter[i] += another.counter[i];
-    }
-
-    void dump(FILE *fp);
-};
-
 struct GCMarker : public JSTracer {
   private:
     
@@ -521,50 +487,6 @@ struct GCMarker : public JSTracer {
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
-
-#ifdef JS_GCMETER
-
-struct JSGCArenaStats {
-    uint32  alloc;          
-    uint32  localalloc;     
-    uint32  retry;          
-    uint32  fail;           
-    uint32  nthings;        
-    uint32  maxthings;      
-    double  totalthings;    
-    uint32  narenas;        
-    uint32  newarenas;      
-    uint32  livearenas;     
-    uint32  maxarenas;      
-    uint32  totalarenas;    
-
-};
-
-struct JSGCStats {
-    uint32  lock;       
-    uint32  unlock;     
-    uint32  unmarked;   
-
-#ifdef DEBUG
-    uint32  maxunmarked;
-
-#endif
-    uint32  poke;           
-    uint32  afree;          
-    uint32  nallarenas;     
-    uint32  maxnallarenas;  
-    uint32  nchunks;        
-    uint32  maxnchunks;     
-
-    JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
-
-    js::ConservativeGCStats conservative;
-};
-
-extern JS_FRIEND_API(void)
-js_DumpGCStats(JSRuntime *rt, FILE *fp);
-
-#endif 
 
 
 
