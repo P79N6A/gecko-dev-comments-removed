@@ -92,7 +92,7 @@ MessagePump::Run(MessagePump::Delegate* aDelegate)
     
     
     
-    AndroidBridge::Bridge()->PumpMessageLoop();
+    did_work |= AndroidBridge::Bridge()->PumpMessageLoop();
 #endif
 
     did_work |= aDelegate->DoDelayedWork(&delayed_work_time_);
