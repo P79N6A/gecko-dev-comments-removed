@@ -565,7 +565,7 @@ js_InternalThrow(VMFrame &f)
         
         JS_ASSERT(!f.fp()->finishedInInterpreter());
         UnwindScope(cx, 0);
-        f.regs.sp = f.fp()->base();
+        f.regs.setToEndOfScript();
 
         if (cx->compartment->debugMode()) {
             
