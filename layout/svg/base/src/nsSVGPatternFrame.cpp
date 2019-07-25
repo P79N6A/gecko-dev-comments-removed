@@ -251,19 +251,23 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   gfxRect bbox = GetPatternRect(callerBBox, callerCTM, aSource);
 
   
-  
-  *patternMatrix = GetPatternMatrix(bbox, callerBBox, callerCTM);
+  gfxMatrix patternTransform = GetPatternTransform();
 
   
   
-  float patternWidth = bbox.Width();
-  float patternHeight = bbox.Height();
+  *patternMatrix = GetPatternMatrix(patternTransform,
+                                    bbox, callerBBox, callerCTM);
+
+  
+  
+  gfxFloat patternWidth = bbox.Width();
+  gfxFloat patternHeight = bbox.Height();
 
   bool resultOverflows;
   gfxIntSize surfaceSize =
     nsSVGUtils::ConvertToSurfaceSize(
-      gfxSize(patternWidth * fabs(patternMatrix->xx),
-              patternHeight * fabs(patternMatrix->yy)),
+      gfxSize(patternWidth * fabs(patternTransform.xx),
+              patternHeight * fabs(patternTransform.yy)),
       &resultOverflows);
 
   
@@ -607,17 +611,17 @@ nsSVGPatternFrame::ConstructCTM(const gfxRect &callerBBox,
   return tm * tCTM;
 }
 
+
+
 gfxMatrix
-nsSVGPatternFrame::GetPatternMatrix(const gfxRect &bbox,
+nsSVGPatternFrame::GetPatternMatrix(const gfxMatrix &patternTransform,
+                                    const gfxRect &bbox,
                                     const gfxRect &callerBBox,
                                     const gfxMatrix &callerCTM)
 {
   
-  gfxMatrix patternTransform = GetPatternTransform();
-
-  
-  float minx = bbox.X();
-  float miny = bbox.Y();
+  gfxFloat minx = bbox.X();
+  gfxFloat miny = bbox.Y();
 
   PRUint16 type = GetEnumValue(nsSVGPatternElement::PATTERNCONTENTUNITS);
   if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
@@ -626,10 +630,11 @@ nsSVGPatternFrame::GetPatternMatrix(const gfxRect &bbox,
   }
 
   float scale = 1.0f / nsSVGUtils::MaxExpansion(callerCTM);
-  patternTransform.Scale(scale, scale);
-  patternTransform.Translate(gfxPoint(minx, miny));
+  gfxMatrix patternMatrix = patternTransform;
+  patternMatrix.Scale(scale, scale);
+  patternMatrix.Translate(gfxPoint(minx, miny));
 
-  return patternTransform;
+  return patternMatrix;
 }
 
 nsresult
