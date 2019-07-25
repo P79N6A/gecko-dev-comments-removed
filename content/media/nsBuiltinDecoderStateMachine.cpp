@@ -987,14 +987,11 @@ nsresult nsBuiltinDecoderStateMachine::Run()
           MonitorAutoExit exitMon(mDecoder->GetMonitor());
           RenderVideoFrame(videoData);
         }
-        if (mDecoder->GetPreloadAction() == nsHTMLMediaElement::PRELOAD_ENOUGH ||
-            mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING)
-        {
-          
-          
-          if (NS_FAILED(StartDecodeThreads())) {
-            continue;
-          }
+
+        
+        
+        if (NS_FAILED(StartDecodeThreads())) {
+          continue;
         }
 
         NS_ASSERTION(mStartTime != -1, "Must have start time");
@@ -1026,41 +1023,12 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         if (mState == DECODER_STATE_DECODING_METADATA) {
           LOG(PR_LOG_DEBUG, ("%p Changed state from DECODING_METADATA to DECODING", mDecoder));
           mState = DECODER_STATE_DECODING;
+        }
 
-          
-          if (mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING) {
-            if (!IsPlaying()) {
-              StartPlayback();
-            }
-          } else if (mDecoder->GetPreloadAction() != nsHTMLMediaElement::PRELOAD_ENOUGH) {
-            if (mReader) {
-              
-              
-              MonitorAutoExit exitMon(mDecoder->GetMonitor());
-              mReader->ResetDecode();
-
-              nsMediaStream* stream = mDecoder->GetCurrentStream();
-              PRInt64 offset = mReader->GetInfo().mDataOffset;
-              if (NS_FAILED(stream->Seek(nsISeekableStream::NS_SEEK_SET, offset)))
-              {
-                mState = DECODER_STATE_SHUTDOWN;
-              }
-            }
-            
-            
-            if (mState != DECODER_STATE_DECODING ||
-                mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING)
-            {
-              continue;
-            }
-
-            
-            
-            nsCOMPtr<nsIRunnable> event = new ShutdownThreadEvent(mDecoder->mStateMachineThread);
-            NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
-            mDecoder->mStateMachineThread = nsnull;
-
-            return NS_OK;
+        
+        if (mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING) {
+          if (!IsPlaying()) {
+            StartPlayback();
           }
         }
       }

@@ -328,19 +328,6 @@ public:
 
   PRBool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
-  
-
-
-
-  enum PreloadAction {
-    PRELOAD_UNDEFINED = 0, 
-    PRELOAD_NONE = 1,      
-    PRELOAD_METADATA = 2,  
-    PRELOAD_ENOUGH = 3     
-                           
-  };
-  PreloadAction GetPreloadAction() const { return mPreloadAction; }
-
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
   
@@ -489,6 +476,18 @@ protected:
     PRELOAD_ATTR_NONE,     
     PRELOAD_ATTR_METADATA, 
     PRELOAD_ATTR_AUTO      
+  };
+
+  
+
+
+
+  enum PreloadAction {
+    PRELOAD_UNDEFINED = 0, 
+    PRELOAD_NONE = 1,      
+    PRELOAD_METADATA = 2,  
+    PRELOAD_ENOUGH = 3     
+                           
   };
 
   
