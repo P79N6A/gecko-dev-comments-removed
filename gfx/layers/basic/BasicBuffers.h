@@ -58,6 +58,27 @@ public:
     gfxASurface* aSource, const nsIntRect& aRect, const nsIntPoint& aRotation,
     const nsIntRegion& aUpdateRegion);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  void MapBuffer(gfxASurface* aBuffer)
+  {
+    SetBuffer(aBuffer);
+  }
+  void UnmapBuffer()
+  {
+    SetBuffer(nsnull);
+  }
+
 private:
   BasicThebesLayerBuffer(gfxASurface* aBuffer,
                          const nsIntRect& aRect, const nsIntPoint& aRotation)
@@ -87,18 +108,25 @@ public:
     MOZ_COUNT_DTOR(ShadowThebesLayerBuffer);
   }
 
-  void Swap(gfxASurface* aNewBuffer,
-            const nsIntRect& aNewRect, const nsIntPoint& aNewRotation,
-            gfxASurface** aOldBuffer,
+  
+
+
+
+
+
+
+
+
+
+  void Swap(const nsIntRect& aNewRect, const nsIntPoint& aNewRotation,
             nsIntRect* aOldRect, nsIntPoint* aOldRotation)
   {
     *aOldRect = BufferRect();
     *aOldRotation = BufferRotation();
 
     nsRefPtr<gfxASurface> oldBuffer;
-    oldBuffer = SetBuffer(aNewBuffer,
-                          aNewRect, aNewRotation);
-    oldBuffer.forget(aOldBuffer);
+    oldBuffer = SetBuffer(nsnull, aNewRect, aNewRotation);
+    MOZ_ASSERT(!oldBuffer);
   }
 
 protected:

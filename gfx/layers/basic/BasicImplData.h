@@ -105,7 +105,10 @@ public:
 
 
 
-  virtual already_AddRefed<gfxASurface> GetAsSurface() { return nsnull; }
+
+  virtual bool GetAsSurface(gfxASurface** aSurface,
+                            SurfaceDescriptor* aDescriptor)
+  { return false; }
 
   bool GetClipToVisibleRegion() { return mClipToVisibleRegion; }
   void SetClipToVisibleRegion(bool aClip) { mClipToVisibleRegion = aClip; }

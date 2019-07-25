@@ -103,14 +103,19 @@ protected:
   Buffer mBuffer;
 };
 
+struct AutoBufferTracker;
+
 class BasicShadowableThebesLayer : public BasicThebesLayer,
                                    public BasicShadowableLayer
 {
+  friend struct AutoBufferTracker;
+
   typedef BasicThebesLayer Base;
 
 public:
   BasicShadowableThebesLayer(BasicShadowLayerManager* aManager)
     : BasicThebesLayer(aManager)
+    , mBufferTracker(nsnull)
     , mIsNewBuffer(false)
     , mFrontAndBackBufferDiffer(false)
   {
@@ -163,6 +168,10 @@ private:
               LayerManager::DrawThebesLayerCallback aCallback,
               void* aCallbackData) MOZ_OVERRIDE;
 
+  
+  void
+  AllocBackBuffer(Buffer::ContentType aType, const nsIntSize& aSize);
+
   virtual already_AddRefed<gfxASurface>
   CreateBuffer(Buffer::ContentType aType, const nsIntSize& aSize) MOZ_OVERRIDE;
 
@@ -179,6 +188,12 @@ private:
   SurfaceDescriptor mBackBuffer;
   nsIntRect mBackBufferRect;
   nsIntPoint mBackBufferRectRotation;
+
+  
+  
+  
+  
+  AutoBufferTracker* mBufferTracker;
 
   bool mIsNewBuffer;
   OptionalThebesBuffer mROFrontBuffer;
