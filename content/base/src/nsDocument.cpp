@@ -3074,6 +3074,11 @@ nsDocument::doCreateShell(nsPresContext* aContext,
 
   mExternalResourceMap.ShowViewers();
 
+  if (mHavePendingPaint) {
+    mPresShell->GetPresContext()->RefreshDriver()->
+      ScheduleBeforePaintEvent(this);
+  }
+
   shell.swap(*aInstancePtrResult);
 
   return NS_OK;
@@ -3083,6 +3088,9 @@ void
 nsDocument::DeleteShell()
 {
   mExternalResourceMap.HideViewers();
+  if (mHavePendingPaint) {
+    mPresShell->GetPresContext()->RefreshDriver()->RevokeBeforePaintEvent(this);
+  }
   mPresShell = nsnull;
 }
 
@@ -7856,4 +7864,18 @@ nsIDocument::CreateStaticClone(nsISupports* aCloneContainer)
   }
   mCreatingStaticClone = PR_FALSE;
   return clonedDoc.forget();
+}
+
+void
+nsIDocument::ScheduleBeforePaintEvent()
+{
+  if (!mHavePendingPaint) {
+    
+    
+    
+    mHavePendingPaint =
+      !mPresShell ||
+      mPresShell->GetPresContext()->RefreshDriver()->
+        ScheduleBeforePaintEvent(this);
+  }
 }
