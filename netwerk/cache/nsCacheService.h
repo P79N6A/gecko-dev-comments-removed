@@ -166,7 +166,6 @@ public:
 private:
     friend class nsCacheServiceAutoLock;
     friend class nsOfflineCacheDevice;
-    friend class nsProcessRequestEvent;
 
     
 
@@ -245,8 +244,6 @@ private:
 #if defined(DEBUG)
     PRThread *                      mLockedThread;  
 #endif
-
-    nsCOMPtr<nsIThread>             mCacheIOThread;
 
     nsTArray<nsISupports*>          mDoomedObjects;
     
