@@ -105,13 +105,6 @@ using namespace js;
 #define JS_ADDRESSOF_VA_LIST(ap) (&(ap))
 #endif
 
-#if defined(JS_THREADSAFE)
-#define CHECK_REQUEST(cx)                                                   \
-    JS_ASSERT((cx)->requestDepth || (cx)->thread == (cx)->runtime->gcThread)
-#else
-#define CHECK_REQUEST(cx)       ((void)0)
-#endif
-
 
 JS_STATIC_ASSERT(JSVAL_OBJECT == 0);
 
