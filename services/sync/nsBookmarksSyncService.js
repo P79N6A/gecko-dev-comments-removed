@@ -726,6 +726,7 @@ BookmarksSyncService.prototype = {
     } finally {
       
       
+      this._os.notifyObservers(null, "bookmarks-sync:end", "");
     }
   },
 
