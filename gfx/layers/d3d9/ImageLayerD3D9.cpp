@@ -138,6 +138,12 @@ already_AddRefed<Image>
 ImageContainerD3D9::CreateImage(const Image::Format *aFormats,
                                PRUint32 aNumFormats)
 {
+  if (mManager->GetBackendType() != GetBackendType()) {
+    
+    
+    return nsnull;
+  }
+
   if (!aNumFormats) {
     return nsnull;
   }
