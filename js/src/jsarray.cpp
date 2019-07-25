@@ -1400,7 +1400,16 @@ JSObject::makeDenseArraySlow(JSContext *cx)
         if (slots[i].isMagic(JS_ARRAY_HOLE))
             continue;
 
-        setSlot(next, slots[i]);
+        
+
+
+
+
+
+
+
+
+        initSlotUnchecked(next, slots[i]);
 
         if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
