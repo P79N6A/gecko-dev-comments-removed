@@ -333,10 +333,18 @@ public:
         return true;
     }
 
-    bool MakeCurrentImpl()
+    bool MakeCurrentImpl(bool aForce = false)
     {
-        bool succeeded = sWGLLibrary.fMakeCurrent(mDC, mContext);
-        NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        BOOL succeeded = true;
+
+        
+        
+        
+        
+        if (aForce || sWGLLibrary.fGetCurrentContext() != mContext) {
+            succeeded = sWGLLibrary.fMakeCurrent(mDC, mContext);
+            NS_ASSERTION(succeeded, "Failed to make GL context current!");
+        }
 
         return succeeded;
     }

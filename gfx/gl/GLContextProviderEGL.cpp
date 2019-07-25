@@ -420,7 +420,7 @@ public:
         return true;
     }
 
-    bool MakeCurrentImpl() {
+    bool MakeCurrentImpl(bool aForce = false) {
         bool succeeded = true;
 
         
@@ -442,24 +442,25 @@ public:
             return succeeded;
         }
 #endif
-
+        if (aForce || sEGLLibrary.fGetCurrentContext() != mContext) {
 #ifdef MOZ_WIDGET_QT
-        
-        if (mSharedContext) {
-            QGLContext* qglCtx = static_cast<QGLContext*>(static_cast<GLContextEGL*>(mSharedContext.get())->mPlatformContext);
-            if (qglCtx) {
-                qglCtx->doneCurrent();
+            
+            if (mSharedContext) {
+                QGLContext* qglCtx = static_cast<QGLContext*>(static_cast<GLContextEGL*>(mSharedContext.get())->mPlatformContext);
+                if (qglCtx) {
+                    qglCtx->doneCurrent();
+                }
             }
-        }
 #endif
-        succeeded = sEGLLibrary.fMakeCurrent(EGL_DISPLAY(),
-                                                mSurface, mSurface,
-                                                mContext);
-        if (!succeeded && sEGLLibrary.fGetError() == LOCAL_EGL_CONTEXT_LOST) {
-            mContextLost = true;
-            NS_WARNING("EGL context has been lost.");
+            succeeded = sEGLLibrary.fMakeCurrent(EGL_DISPLAY(),
+                                                 mSurface, mSurface,
+                                                 mContext);
+            if (!succeeded && sEGLLibrary.fGetError() == LOCAL_EGL_CONTEXT_LOST) {
+                mContextLost = true;
+                NS_WARNING("EGL context has been lost.");
+            }
+            NS_ASSERTION(succeeded, "Failed to make GL context current!");
         }
-        NS_ASSERTION(succeeded, "Failed to make GL context current!");
 
         return succeeded;
     }
