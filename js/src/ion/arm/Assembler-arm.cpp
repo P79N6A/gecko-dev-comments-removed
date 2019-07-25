@@ -419,13 +419,13 @@ Assembler::resetCounter()
 }
 
 ptrdiff_t
-Assembler::actualOffset(uint8 *off_)
+Assembler::actualOffset(uint8 *off_) const
 {
     return (ptrdiff_t)off_ + m_buffer.poolSizeBefore((ptrdiff_t)off_);
 }
 
 BufferOffset
-Assembler::actualOffset(BufferOffset off_)
+Assembler::actualOffset(BufferOffset off_) const
 {
     return BufferOffset(off_.getOffset() + m_buffer.poolSizeBefore(off_.getOffset()));
 }

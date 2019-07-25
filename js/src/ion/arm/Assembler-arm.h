@@ -1118,8 +1118,8 @@ class Assembler
     }
   public:
     void resetCounter();
-    ptrdiff_t actualOffset(uint8*);
-    BufferOffset actualOffset(BufferOffset);
+    ptrdiff_t actualOffset(uint8*) const;
+    BufferOffset actualOffset(BufferOffset) const;
   protected:
 
     
