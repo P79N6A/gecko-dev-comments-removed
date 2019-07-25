@@ -1102,8 +1102,11 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
 
 
+
+
+
   function appendTreeElements2(aP, aUnsafePrePath, aT, aIndentGuide,
-                               aParentStringLength)
+                               aBaseIndentText, aParentStringLength)
   {
     function repeatStr(aC, aN)
     {
@@ -1117,26 +1120,16 @@ function appendTreeElements(aPOuter, aT, aProcess)
     var unsafePath = aUnsafePrePath + aT._unsafeName;
 
     
-    var indent = "";
-    if (aIndentGuide.length > 0) {
-      for (var i = 0; i < aIndentGuide.length - 1; i++) {
-        indent += aIndentGuide[i]._isLastKid ? " " : kVertical;
-        indent += repeatStr(" ", aIndentGuide[i]._depth - 1);
-      }
-      indent += aIndentGuide[i]._isLastKid ? kUpAndRight : kVerticalAndRight;
-      indent += repeatStr(kHorizontal, aIndentGuide[i]._depth - 1);
-    }
-    
     
     var tString = aT.toString();
+    var extraIndentText = "";
     var extraIndentLength = Math.max(aParentStringLength - tString.length, 0);
     if (extraIndentLength > 0) {
-      for (var i = 0; i < extraIndentLength; i++) {
-        indent += kHorizontal;
-      }
+      extraIndentText = repeatStr(kHorizontal, extraIndentLength);
       aIndentGuide[aIndentGuide.length - 1]._depth += extraIndentLength;
     }
-    appendElementWithText(aP, "span", "treeLine", indent);
+    appendElementWithText(aP, "span", "treeLine",
+                          aBaseIndentText + extraIndentText);
 
     
     
@@ -1197,23 +1190,34 @@ function appendTreeElements(aPOuter, aT, aProcess)
     if (hasKids) {
       
       d = appendElement(aP, "span", showSubtrees ? "kids" : "kids hidden");
-    } else {
-      d = aP;
-    }
 
-    for (var i = 0; i < aT._kids.length; i++) {
-      
-      aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-      appendTreeElements2(d, unsafePath + "/", aT._kids[i], aIndentGuide,
-                          tString.length);
-      aIndentGuide.pop();
+      for (var i = 0; i < aT._kids.length; i++) {
+        
+        aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
+
+        
+        var baseIndentText = "";
+        if (aIndentGuide.length > 0) {
+          for (var j = 0; j < aIndentGuide.length - 1; j++) {
+            baseIndentText += aIndentGuide[j]._isLastKid ? " " : kVertical;
+            baseIndentText += repeatStr(" ", aIndentGuide[j]._depth - 1);
+          }
+          baseIndentText += aIndentGuide[j]._isLastKid ?
+                            kUpAndRight : kVerticalAndRight;
+          baseIndentText += repeatStr(kHorizontal, aIndentGuide[j]._depth - 1);
+        }
+
+        appendTreeElements2(d, unsafePath + "/", aT._kids[i], aIndentGuide,
+                            baseIndentText, tString.length);
+        aIndentGuide.pop();
+      }
     }
   }
 
   appendSectionHeader(aPOuter, kTreeNames[aT._unsafeName]);
  
   var pre = appendElement(aPOuter, "pre", "tree");
-  appendTreeElements2(pre, "", aT, [], rootStringLength);
+  appendTreeElements2(pre, "", aT, [], "", rootStringLength);
   appendTextNode(aPOuter, "\n");  
 }
 
