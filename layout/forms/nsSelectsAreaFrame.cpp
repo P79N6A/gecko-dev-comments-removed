@@ -149,7 +149,8 @@ public:
   }
 #endif
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder) {
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
+    *aSnap = false;
     
     
     nsListControlFrame* listFrame = GetEnclosingListFrame(GetUnderlyingFrame());

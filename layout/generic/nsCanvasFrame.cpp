@@ -253,8 +253,9 @@ public:
     MOZ_COUNT_DTOR(nsDisplayCanvasFocus);
   }
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder)
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
   {
+    *aSnap = false;
     
     nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
     return frame->CanvasArea() + ToReferenceFrame();

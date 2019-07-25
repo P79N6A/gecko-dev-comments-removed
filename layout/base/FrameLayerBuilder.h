@@ -163,6 +163,17 @@ public:
     bool mInTransformedSubtree;
     bool mInActiveTransformedSubtree;
     bool mDisableSubpixelAntialiasingInDescendants;
+    
+
+
+
+    bool AllowResidualTranslation()
+    {
+      
+      
+      
+      return mInTransformedSubtree && !mInActiveTransformedSubtree;
+    }
   };
   
 
