@@ -3601,6 +3601,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
     if (stmt && stmt->type == STMT_WITH) {
         data->fresh = false;
+        pn->pn_dflags |= PND_DEOPTIMIZED;
         return true;
     }
 
@@ -8503,52 +8504,52 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 #endif
                    ) && !(tc->flags & TCF_DECL_DESTRUCTURING)) {
             JSStmtInfo *stmt = js_LexicalLookup(tc, pn->pn_atom, NULL);
-            if (!stmt || stmt->type != STMT_WITH) {
-                JSDefinition *dn;
 
-                JSAtomListElement *ale = tc->decls.lookup(pn->pn_atom);
+            JSDefinition *dn;
+
+            JSAtomListElement *ale = tc->decls.lookup(pn->pn_atom);
+            if (ale) {
+                dn = ALE_DEFN(ale);
+#if JS_HAS_BLOCK_SCOPE
+                
+
+
+
+
+
+                while (dn->isLet() && !BlockIdInScope(dn->pn_blockid, tc)) {
+                    do {
+                        ale = ALE_NEXT(ale);
+                    } while (ale && ALE_ATOM(ale) != pn->pn_atom);
+                    if (!ale)
+                        break;
+                    dn = ALE_DEFN(ale);
+                }
+#endif
+            }
+
+            if (ale) {
+                dn = ALE_DEFN(ale);
+            } else {
+                ale = tc->lexdeps.lookup(pn->pn_atom);
                 if (ale) {
                     dn = ALE_DEFN(ale);
-#if JS_HAS_BLOCK_SCOPE
+                } else {
                     
 
 
 
 
 
-                    while (dn->isLet() && !BlockIdInScope(dn->pn_blockid, tc)) {
-                        do {
-                            ale = ALE_NEXT(ale);
-                        } while (ale && ALE_ATOM(ale) != pn->pn_atom);
-                        if (!ale)
-                            break;
-                        dn = ALE_DEFN(ale);
-                    }
-#endif
-                }
 
-                if (ale) {
+
+
+                    ale = MakePlaceholder(pn, tc);
+                    if (!ale)
+                        return NULL;
                     dn = ALE_DEFN(ale);
-                } else {
-                    ale = tc->lexdeps.lookup(pn->pn_atom);
-                    if (ale) {
-                        dn = ALE_DEFN(ale);
-                    } else {
-                        
 
-
-
-
-
-
-
-
-                        ale = MakePlaceholder(pn, tc);
-                        if (!ale)
-                            return NULL;
-                        dn = ALE_DEFN(ale);
-
-                        
+                    
 
 
 
@@ -8559,22 +8560,23 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-                        JS_ASSERT(PN_TYPE(dn) == TOK_NAME);
-                        JS_ASSERT(dn->pn_op == JSOP_NOP);
-                        if (tokenStream.peekToken() != TOK_LP)
-                            dn->pn_dflags |= PND_FUNARG;
-                    }
+                    JS_ASSERT(PN_TYPE(dn) == TOK_NAME);
+                    JS_ASSERT(dn->pn_op == JSOP_NOP);
+                    if (tokenStream.peekToken() != TOK_LP)
+                        dn->pn_dflags |= PND_FUNARG;
                 }
-
-                JS_ASSERT(dn->pn_defn);
-                LinkUseToDef(pn, dn, tc);
-
-                
-                if (tokenStream.peekToken() != TOK_LP)
-                    dn->pn_dflags |= PND_FUNARG;
-
-                pn->pn_dflags |= (dn->pn_dflags & PND_FUNARG);
             }
+
+            JS_ASSERT(dn->pn_defn);
+            LinkUseToDef(pn, dn, tc);
+
+            
+            if (tokenStream.peekToken() != TOK_LP)
+                dn->pn_dflags |= PND_FUNARG;
+
+            pn->pn_dflags |= (dn->pn_dflags & PND_FUNARG);
+            if (stmt && stmt->type == STMT_WITH)
+                pn->pn_dflags |= PND_DEOPTIMIZED;
         }
 
 #if JS_HAS_XML_SUPPORT
