@@ -136,6 +136,20 @@ let TabView = {
     else 
       this.show();
   },
+  
+  getActiveGroupName: function Tabview_getActiveGroupName() {
+    
+    
+    
+    
+    let activeTab = window.gBrowser.selectedTab;
+    if (activeTab.tabItem && activeTab.tabItem.parent){
+      let groupName = activeTab.tabItem.parent.getTitle();
+      if (groupName)
+        return groupName;
+    }
+    return null;
+  },  
 
   
   updateContextMenu: function(tab, popup) {
