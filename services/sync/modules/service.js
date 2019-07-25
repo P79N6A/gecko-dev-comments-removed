@@ -593,20 +593,13 @@ WeaveSvc.prototype = {
                         " does not exceed threshold " +
                         this._syncThresholds[engine.name] + "; not syncing");
 
-        if (this._syncThresholds[engine.name] == 1) {
-          
-          
-          this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
-        }
-        else {
-          
-          
-          
-          
-          this._syncThresholds[engine.name] -= THRESHOLD_DECREMENT_STEP;
-          if (this._syncThresholds[engine.name] <= 0)
-            this._syncThresholds[engine.name] = 1;
-        }
+        
+        
+        
+        
+        this._syncThresholds[engine.name] -= THRESHOLD_DECREMENT_STEP;
+        if (this._syncThresholds[engine.name] <= 0)
+          this._syncThresholds[engine.name] = 1;
       }
     }
   },
