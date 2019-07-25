@@ -687,6 +687,8 @@ TypeConstraintElem::newType(JSContext *cx, TypeSet *source, jstype type)
 {
     switch (type) {
       case TYPE_UNDEFINED:
+      case TYPE_BOOLEAN:
+      case TYPE_NULL:
       case TYPE_INT32:
       case TYPE_DOUBLE:
         
