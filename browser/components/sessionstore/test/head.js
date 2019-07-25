@@ -38,6 +38,14 @@
 let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
 
 
+
+
+Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+registerCleanupFunction(function () {
+  Services.prefs.clearUserPref("browser.sessionstore.restore_on_demand");
+});
+
+
 function waitForBrowserState(aState, aSetStateCallback) {
   let windows = [window];
   let tabsRestored = 0;

@@ -90,6 +90,8 @@ function runNextTest() {
 
 
 function test_cascade() {
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -220,6 +222,8 @@ function test_select() {
 
 
 function test_multiWindowState() {
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -297,6 +301,8 @@ function test_multiWindowState() {
 
 
 function test_setWindowStateNoOverwrite() {
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -366,6 +372,8 @@ function test_setWindowStateNoOverwrite() {
 
 
 function test_setWindowStateOverwrite() {
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -435,6 +443,8 @@ function test_setWindowStateOverwrite() {
 
 
 function test_setBrowserStateInterrupted() {
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -627,6 +637,8 @@ function test_reload() {
 
 
 function test_reloadCascadeSetup() {
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", false);
+
   
   let progressListener = {
     onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
