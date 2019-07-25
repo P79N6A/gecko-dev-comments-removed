@@ -803,7 +803,7 @@ LinearScanAllocator::resolveControlFlow()
                     return false;
             }
 
-            if (vregs[phi].mustSpillAtDefinition() && !to->isSpilled()) {
+            if (vregs[phi].mustSpillAtDefinition() && !to->isSpill()) {
                 
                 LMoveGroup *moves = successor->getEntryMoveGroup();
                 if (!moves->add(to->getAllocation(), to->reg()->canonicalSpill()))
@@ -899,11 +899,181 @@ LinearScanAllocator::reifyAllocations()
             
             if (!moveBefore(interval->start(), reg->getInterval(interval->index() - 1), interval))
                 return false;
+
+            
+            if (reg->canonicalSpill() == interval->getAllocation() &&
+                !reg->mustSpillAtDefinition())
+            {
+                reg->setSpillPosition(interval->start());
+            }
+        }
+
+        
+        LAllocation *a = interval->getAllocation();
+        if (a->isRegister()) {
+            for (size_t i = 0; i < graph.numNonCallSafepoints(); i++) {
+                LInstruction *ins = graph.getNonCallSafepoint(i);
+                CodePosition pos = inputOf(ins);
+
+                
+                
+                if (interval->end() < pos)
+                    break;
+
+                if (!interval->covers(pos)) {
+                    if (pos < interval->start())
+                        break;
+                    continue;
+                }
+
+                LSafepoint *safepoint = ins->safepoint();
+                safepoint->addLiveRegister(a->toRegister());
+            }
         }
     }
 
     
     graph.setLocalSlotCount(stackSlotAllocator.stackHeight());
+
+    return true;
+}
+
+static inline bool
+IsNunbox(VirtualRegister *vreg)
+{
+#ifdef JS_NUNBOX32
+    return (vreg->type() == LDefinition::TYPE ||
+            vreg->type() == LDefinition::PAYLOAD);
+#else
+    return false;
+#endif
+}
+
+static inline bool
+IsTraceable(VirtualRegister *reg)
+{
+    if (reg->type() == LDefinition::OBJECT)
+        return true;
+#ifdef JS_PUNBOX64
+    if (reg->type() == LDefinition::BOX)
+        return true;
+#endif
+    return false;
+}
+
+
+size_t
+LinearScanAllocator::findFirstSafepoint(LiveInterval *interval, size_t startFrom)
+{
+    size_t i = startFrom;
+    for (; i < graph.numSafepoints(); i++) {
+        LInstruction *ins = graph.getSafepoint(i);
+        if (interval->start() <= inputOf(ins))
+            break;
+    }
+    return i;
+}
+
+static inline bool
+IsSpilledAt(VirtualRegister *reg, CodePosition pos)
+{
+    if (!reg->canonicalSpill() || !reg->canonicalSpill()->isStackSlot())
+        return false;
+
+    return reg->spillPosition() <= pos;
+}
+
+bool
+LinearScanAllocator::populateSafepoints()
+{
+    size_t firstSafepoint = 0;
+
+    for (uint32 i = 0; i < vregs.numVirtualRegisters(); i++) {
+        VirtualRegister *reg = &vregs[i];
+
+        if (!reg->def() || (!IsTraceable(reg) && !IsNunbox(reg)))
+            continue;
+
+        firstSafepoint = findFirstSafepoint(reg->getInterval(0), firstSafepoint);
+        if (firstSafepoint >= graph.numSafepoints())
+            break;
+
+        
+        size_t lastInterval = reg->numIntervals() - 1;
+        CodePosition end = reg->getInterval(lastInterval)->end();
+
+        for (size_t j = firstSafepoint; j < graph.numSafepoints(); j++) {
+            LInstruction *ins = graph.getSafepoint(j);
+
+            
+            
+            if (end < inputOf(ins))
+                break;
+
+            LSafepoint *safepoint = ins->safepoint();
+
+            if (!IsNunbox(reg)) {
+                JS_ASSERT(IsTraceable(reg));
+
+                LiveInterval *interval = reg->intervalFor(inputOf(ins));
+                if (!interval)
+                    continue;
+
+                LAllocation *a = interval->getAllocation();
+                if (a->isGeneralReg() && !ins->isCall())
+                    safepoint->addGcRegister(a->toGeneralReg()->reg());
+
+                if (IsSpilledAt(reg, inputOf(ins))) {
+                    if (!safepoint->addGcSlot(reg->canonicalSpillSlot()))
+                        return false;
+                }
+#ifdef JS_NUNBOX32
+            } else {
+                VirtualRegister *other = otherHalfOfNunbox(reg);
+                VirtualRegister *type = (reg->type() == LDefinition::TYPE) ? reg : other;
+                VirtualRegister *payload = (reg->type() == LDefinition::PAYLOAD) ? reg : other;
+                LiveInterval *typeInterval = type->intervalFor(inputOf(ins));
+                LiveInterval *payloadInterval = payload->intervalFor(inputOf(ins));
+
+                if (!typeInterval && !payloadInterval)
+                    continue;
+                JS_ASSERT(typeInterval && payloadInterval);
+
+                if (IsSpilledAt(type, inputOf(ins)) && IsSpilledAt(payload, inputOf(ins))) {
+                    
+                    
+                    uint32 payloadSlot = payload->canonicalSpillSlot();
+                    uint32 slot = BaseOfNunboxSlot(LDefinition::PAYLOAD, payloadSlot);
+                    if (!safepoint->addValueSlot(slot))
+                        return false;
+                }
+
+                LAllocation *typeAlloc = typeInterval->getAllocation();
+                LAllocation *payloadAlloc = payloadInterval->getAllocation();
+
+                if (!ins->isCall() &&
+                    (!IsSpilledAt(type, inputOf(ins)) || payloadAlloc->isGeneralReg()))
+                {
+                    
+                    
+                    
+                    
+                    if (!safepoint->addNunboxParts(*typeAlloc, *payloadAlloc))
+                        return false;
+                }
+#endif
+            }
+        }
+
+#ifdef JS_NUNBOX32
+        if (IsNunbox(reg)) {
+            
+            
+            JS_ASSERT(&vregs[reg->def()->virtualRegister() + 1] == otherHalfOfNunbox(reg));
+            i++;
+        }
+#endif
+    }
 
     return true;
 }
@@ -1020,7 +1190,7 @@ LinearScanAllocator::assign(LAllocation allocation)
 
             
             
-            reg->setSpillAtDefinition();
+            reg->setSpillAtDefinition(outputOf(reg->ins()));
         } else {
             reg->setCanonicalSpill(current->getAllocation());
 
@@ -1030,24 +1200,13 @@ LinearScanAllocator::assign(LAllocation allocation)
             uint32 loopDepthAtDef = reg->block()->mir()->loopDepth();
             uint32 loopDepthAtSpill = other->block()->mir()->loopDepth();
             if (loopDepthAtSpill > loopDepthAtDef)
-                reg->setSpillAtDefinition();
+                reg->setSpillAtDefinition(outputOf(reg->ins()));
         }
     }
 
     active.pushBack(current);
 
     return true;
-}
-
-static inline bool
-IsNunbox(VirtualRegister *vreg)
-{
-#ifdef JS_NUNBOX32
-    return (vreg->type() == LDefinition::TYPE ||
-            vreg->type() == LDefinition::PAYLOAD);
-#else
-    return false;
-#endif
 }
 
 #ifdef JS_NUNBOX32
@@ -1493,6 +1652,11 @@ LinearScanAllocator::go()
     if (!reifyAllocations())
         return false;
     IonSpew(IonSpew_RegAlloc, "Register allocation reification complete");
+
+    IonSpew(IonSpew_RegAlloc, "Beginning safepoint population.");
+    if (!populateSafepoints())
+        return false;
+    IonSpew(IonSpew_RegAlloc, "Safepoint population complete.");
 
     IonSpew(IonSpew_RegAlloc, "Register allocation complete");
 
