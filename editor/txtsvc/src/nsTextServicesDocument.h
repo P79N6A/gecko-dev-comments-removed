@@ -52,7 +52,6 @@
 #include "nsWeakReference.h"
 #include "nsCycleCollectionParticipant.h"
 
-class nsIRangeUtils;
 class OffsetEntry;
 
 
@@ -114,8 +113,6 @@ private:
 
   nsCOMPtr<nsITextServicesFilter> mTxtSvcFilter;
 
-  static nsIRangeUtils* sRangeHelper;
-
 public:
 
   
@@ -129,10 +126,6 @@ public:
   
 
   static void RegisterAtoms();
-
-  
-
-  static void Shutdown();
 
   
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -192,7 +185,6 @@ public:
   NS_IMETHOD DidDeleteSelection(nsISelection *aSelection);
 
   
-  static nsresult ComparePoints(nsIDOMNode *aParent1, PRInt32 aOffset1, nsIDOMNode *aParent2, PRInt32 aOffset2, PRInt32 *aResult);
   static nsresult GetRangeEndPoints(nsIDOMRange *aRange, nsIDOMNode **aParent1, PRInt32 *aOffset1, nsIDOMNode **aParent2, PRInt32 *aOffset2);
   static nsresult CreateRange(nsIDOMNode *aStartParent, PRInt32 aStartOffset, nsIDOMNode *aEndParent, PRInt32 aEndOffset, nsIDOMRange **aRange);
 
