@@ -36,6 +36,8 @@
 
 
 
+Components.utils.import("resource://gre/modules/ctypes.jsm")
+
 
 
 const URL_PREFIX = URL_HOST + URL_PATH + "/";
@@ -228,11 +230,131 @@ function run_test_pt9() {
   gUpdateChecker.checkForUpdates(updateCheckListener, true);
 }
 
+function getServicePack() {
+  
+  
+  
+  
+  const BYTE = ctypes.uint8_t;
+  const WORD = ctypes.uint16_t;
+  const DWORD = ctypes.uint32_t;
+  const WCHAR = ctypes.jschar;
+  const BOOL = ctypes.int;
+
+  
+  
+  const SZCSDVERSIONLENGTH = 128;
+  const OSVERSIONINFOEXW = new ctypes.StructType('OSVERSIONINFOEXW',
+      [
+      {dwOSVersionInfoSize: DWORD},
+      {dwMajorVersion: DWORD},
+      {dwMinorVersion: DWORD},
+      {dwBuildNumber: DWORD},
+      {dwPlatformId: DWORD},
+      {szCSDVersion: ctypes.ArrayType(WCHAR, SZCSDVERSIONLENGTH)},
+      {wServicePackMajor: WORD},
+      {wServicePackMinor: WORD},
+      {wSuiteMask: WORD},
+      {wProductType: BYTE},
+      {wReserved: BYTE}
+      ]);
+
+  let kernel32 = ctypes.open("kernel32");
+  try {
+    let GetVersionEx = kernel32.declare("GetVersionExW",
+                                        ctypes.default_abi,
+                                        BOOL,
+                                        OSVERSIONINFOEXW.ptr);
+    let winVer = OSVERSIONINFOEXW();
+    winVer.dwOSVersionInfoSize = OSVERSIONINFOEXW.size;
+
+    if(0 === GetVersionEx(winVer.address())) {
+      
+      throw("Failure in GetVersionEx (returned 0)");
+    }
+
+    return winVer.wServicePackMajor + "." + winVer.wServicePackMinor;
+  } finally {
+    kernel32.close();
+  }
+}
+
+function getProcArchitecture() {
+  
+  
+  
+  
+  const WORD = ctypes.uint16_t;
+  const DWORD = ctypes.uint32_t;
+
+  
+  
+  const SYSTEM_INFO = new ctypes.StructType('SYSTEM_INFO',
+      [
+      {wProcessorArchitecture: WORD},
+      {wReserved: WORD},
+      {dwPageSize: DWORD},
+      {lpMinimumApplicationAddress: ctypes.voidptr_t},
+      {lpMaximumApplicationAddress: ctypes.voidptr_t},
+      {dwActiveProcessorMask: DWORD.ptr},
+      {dwNumberOfProcessors: DWORD},
+      {dwProcessorType: DWORD},
+      {dwAllocationGranularity: DWORD},
+      {wProcessorLevel: WORD},
+      {wProcessorRevision: WORD}
+      ]);
+
+  let kernel32 = ctypes.open("kernel32");
+  try {
+    let GetNativeSystemInfo = kernel32.declare("GetNativeSystemInfo",
+                                               ctypes.default_abi,
+                                               ctypes.void_t,
+                                               SYSTEM_INFO.ptr);
+    let sysInfo = SYSTEM_INFO();
+    
+    sysInfo.wProcessorArchitecture = 0xffff;
+
+    GetNativeSystemInfo(sysInfo.address());
+    switch(sysInfo.wProcessorArchitecture) {
+      case 9:
+        return "x64";
+      case 6:
+        return "IA64";
+      case 0:
+        return "x86";
+      default:
+        
+        throw("Unknown architecture returned from GetNativeSystemInfo: " + sysInfo.wProcessorArchitecture);
+    }
+  } finally {
+    kernel32.close();
+  }
+}
+
 function check_test_pt9() {
   var osVersion;
   var sysInfo = AUS_Cc["@mozilla.org/system-info;1"].
                 getService(AUS_Ci.nsIPropertyBag2);
   osVersion = sysInfo.getProperty("name") + " " + sysInfo.getProperty("version");
+
+  if(IS_WIN) {
+    try {
+      let servicePack = getServicePack();
+      osVersion += "." + servicePack;
+    } catch (e) {
+      do_throw("Failure obtaining service pack: " + e);
+    }
+
+    if("5.0" === sysInfo.getProperty("version")) { 
+      osVersion += " (unknown)";
+    } else {
+      try {
+        osVersion += " (" + getProcArchitecture() + ")";
+      } catch (e) {
+        do_throw("Failed to obtain processor architecture: " + e);
+      }
+    }
+  }
 
   if (osVersion) {
     try {
