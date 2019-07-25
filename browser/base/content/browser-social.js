@@ -378,6 +378,10 @@ var SocialToolbar = {
 var SocialSidebar = {
   
   init: function SocialSidebar_init() {
+    let sbrowser = document.getElementById("social-sidebar-browser");
+    
+    sbrowser.docShell.isAppTab = true;
+  
     this.updateSidebar();
   },
 
