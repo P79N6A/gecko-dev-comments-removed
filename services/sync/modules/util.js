@@ -224,42 +224,19 @@ let Utils = {
     dest.__defineGetter__(prop, getter);
   },
 
-  deepEquals: function Weave_deepEquals(a, b) {
-    if (!a && !b)
+  deepEquals: function eq(a, b) {
+    
+    if (a === b)
       return true;
-    if (!a || !b)
+
+    
+    let [A, B] = [[i for (i in a)], [i for (i in b)]];
+    
+    if (typeof a != "object" || typeof b != "object" || A.length != B.length)
       return false;
 
     
-    if (typeof(a) != "object" && typeof(b) != "object")
-      return a == b;
-
-    
-    if (typeof(a) != "object" || typeof(b) != "object")
-      return false;
-
-    let isArray = [Utils.isArray(a), Utils.isArray(b)];
-    if (isArray[0] && isArray[1]) {
-      if (a.length != b.length)
-        return false;
-
-      for (let i = 0; i < a.length; i++) {
-        if (!Utils.deepEquals(a[i], b[i]))
-          return false;
-      }
-
-    } else {
-      
-      if (isArray[0] || isArray[1])
-        return false;
-
-      for (let key in a) {
-        if (!Utils.deepEquals(a[key], b[key]))
-          return false;
-      }
-    }
-
-    return true;
+    return A.every(function(A) B.some(function(B) A == B && eq(a[A], b[B])));
   },
 
   deepCopy: function Weave_deepCopy(thing, noSort) {
