@@ -88,9 +88,6 @@ const kElementsReceivingInput = {
     video: true
 };
 
-
-const kUsingGLLayers = true;
-
 const kDefaultCSSViewportWidth = 980;
 const kDefaultCSSViewportHeight = 480;
 
@@ -1462,13 +1459,8 @@ Tab.prototype = {
     this.browser.stop();
 
     let frameLoader = this.browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-    if (kUsingGLLayers) {
-        frameLoader.renderMode = Ci.nsIFrameLoader.RENDER_MODE_ASYNC_SCROLL;
-        frameLoader.clampScrollPosition = false;
-    } else {
-        
-        frameLoader.clipSubdocument = false;
-    }
+    frameLoader.renderMode = Ci.nsIFrameLoader.RENDER_MODE_ASYNC_SCROLL;
+    frameLoader.clampScrollPosition = false;
 
     
     let uri = null;
@@ -1702,6 +1694,7 @@ Tab.prototype = {
         if (target.defaultView != this.browser.contentWindow)
           return;
 
+        
         
         
         var backgroundColor = null;

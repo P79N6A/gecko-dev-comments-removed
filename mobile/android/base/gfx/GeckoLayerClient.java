@@ -68,7 +68,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     private IntSize mScreenSize;
     private IntSize mWindowSize;
-    private IntSize mBufferSize;
     private RectF mDisplayPort;
 
     private VirtualLayer mRootLayer;
@@ -88,48 +87,36 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         mScreenSize = new IntSize(0, 0);
-        mBufferSize = new IntSize(0, 0);
+        mWindowSize = new IntSize(0, 0);
         mDisplayPort = new RectF();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
     }
 
     
     void setLayerController(LayerController layerController) {
+        LayerView view = layerController.getView();
+
         mLayerController = layerController;
 
-        layerController.setRoot(mRootLayer);
-        if (mGeckoViewport != null) {
-            layerController.setViewportMetrics(mGeckoViewport);
-        }
+        mRootLayer = new VirtualLayer(new IntSize(view.getWidth(), view.getHeight()));
+        mLayerRenderer = new LayerRenderer(view);
 
         GeckoAppShell.registerGeckoEventListener("Viewport:Update", this);
 
-        sendResizeEventIfNecessary(false);
-
-        LayerView view = layerController.getView();
         view.setListener(this);
+        layerController.setRoot(mRootLayer);
 
-        mLayerRenderer = new LayerRenderer(view);
+        sendResizeEventIfNecessary(true);
     }
 
     
     public boolean beginDrawing(int width, int height, String metadata) {
-        
-        if (initializeVirtualLayer()) {
-            Log.e(LOGTAG, "### Cancelling draw due to virtual layer initialization");
-            return false;
-        }
-
         try {
             JSONObject viewportObject = new JSONObject(metadata);
             mGeckoViewport = new ViewportMetrics(viewportObject);
         } catch (JSONException e) {
             Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
             return false;
-        }
-
-        if (mBufferSize.width != width || mBufferSize.height != height) {
-            mBufferSize = new IntSize(width, height);
         }
 
         return true;
@@ -157,12 +144,13 @@ public class GeckoLayerClient implements GeckoEventResponder,
     private void sendResizeEventIfNecessary(boolean force) {
         DisplayMetrics metrics = new DisplayMetrics();
         GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        View view = mLayerController.getView();
 
         IntSize newScreenSize = new IntSize(metrics.widthPixels, metrics.heightPixels);
-        IntSize newWindowSize = getBufferSize();
+        IntSize newWindowSize = new IntSize(view.getWidth(), view.getHeight());
 
-        boolean screenSizeChanged = mScreenSize == null || !mScreenSize.equals(newScreenSize);
-        boolean windowSizeChanged = mWindowSize == null || !mWindowSize.equals(newWindowSize);
+        boolean screenSizeChanged = !mScreenSize.equals(newScreenSize);
+        boolean windowSizeChanged = !mWindowSize.equals(newWindowSize);
 
         if (!force && !screenSizeChanged && !windowSizeChanged) {
             return;
@@ -172,35 +160,16 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mWindowSize = newWindowSize;
 
         if (screenSizeChanged) {
-            Log.i(LOGTAG, "### Screen-size changed to " + mScreenSize);
+            Log.d(LOGTAG, "Screen-size changed to " + mScreenSize);
         }
 
         if (windowSizeChanged) {
-            Log.i(LOGTAG, "### Window-size changed to " + mWindowSize);
+            Log.d(LOGTAG, "Window-size changed to " + mWindowSize);
         }
 
-        GeckoEvent event = GeckoEvent.createSizeChangedEvent(mWindowSize.width, mWindowSize.height,  
-                                                             mScreenSize.width, mScreenSize.height); 
+        GeckoEvent event = GeckoEvent.createSizeChangedEvent(mWindowSize.width, mWindowSize.height,
+                                                             mScreenSize.width, mScreenSize.height);
         GeckoAppShell.sendEventToGecko(event);
-    }
-
-    private boolean initializeVirtualLayer() {
-        if (mRootLayer != null) {
-            return false;
-        }
-
-        VirtualLayer virtualLayer = new VirtualLayer(getBufferSize());
-        mLayerController.setRoot(virtualLayer);
-        mRootLayer = virtualLayer;
-
-        sendResizeEventIfNecessary(true);
-        return true;
-    }
-
-    private IntSize getBufferSize() {
-        View view = mLayerController.getView();
-        IntSize size = new IntSize(view.getWidth(), view.getHeight());
-        return size;
     }
 
     public Bitmap getBitmap() {
@@ -327,14 +296,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
             adjustViewport();
     }
 
-    public int getWidth() {
-        return mBufferSize.width;
-    }
-
-    public int getHeight() {
-        return mBufferSize.height;
-    }
-
     public ViewportMetrics getGeckoViewportMetrics() {
         
         if (mGeckoViewport != null)
@@ -343,6 +304,12 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     
+
+
+
+
+
+
     public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight) {
         synchronized (mLayerController) {
             ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
@@ -362,6 +329,11 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     
+
+
+
+
+
     public void setPageSize(float zoom, float pageWidth, float pageHeight) {
         synchronized (mLayerController) {
             
@@ -379,7 +351,9 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     
-    
+
+
+
 
 
 

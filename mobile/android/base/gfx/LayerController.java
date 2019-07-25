@@ -108,7 +108,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
     
     private int mCheckerboardColor;
-    private boolean mCheckerboardShouldShowChecks = true;
+    private boolean mCheckerboardShouldShowChecks;
 
     private boolean mForceRedraw;
 
@@ -140,6 +140,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         mViewportMetrics = new ImmutableViewportMetrics(new ViewportMetrics());
         mPanZoomController = new PanZoomController(this);
         mView = new LayerView(context, this);
+        mCheckerboardShouldShowChecks = true;
 
         Tabs.getInstance().registerOnTabsChangedListener(this);
 
@@ -364,18 +365,21 @@ public class LayerController implements Tabs.OnTabsChangedListener {
             return null;
 
         ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
-        
         PointF origin = viewportMetrics.getOrigin();
-        PointF newPoint = new PointF(origin.x, origin.y);
         float zoom = viewportMetrics.zoomFactor;
-        viewPoint.x /= zoom;
-        viewPoint.y /= zoom;
-        newPoint.offset(viewPoint.x, viewPoint.y);
-
         Rect rootPosition = mRootLayer.getPosition();
-        newPoint.offset(-rootPosition.left, -rootPosition.top);
+        float rootScale = mRootLayer.getResolution();
 
-        return newPoint;
+        
+        
+        
+        
+        
+        PointF layerPoint = new PointF(
+                ((viewPoint.x + origin.x) / zoom) - (rootPosition.left / rootScale),
+                ((viewPoint.y + origin.y) / zoom) - (rootPosition.top / rootScale));
+
+        return layerPoint;
     }
 
     

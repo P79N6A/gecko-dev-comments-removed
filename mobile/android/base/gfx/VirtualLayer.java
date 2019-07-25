@@ -65,6 +65,9 @@ public class VirtualLayer extends Layer {
         
         
         
+        
+        
+        
         mPosition = newPosition;
         mResolution = newResolution;
     }

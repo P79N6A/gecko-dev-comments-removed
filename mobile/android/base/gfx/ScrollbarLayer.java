@@ -267,7 +267,6 @@ public class ScrollbarLayer extends TileLayer {
             return;
 
         
-        
         if (mProgram == 0) {
             createProgram();
         }

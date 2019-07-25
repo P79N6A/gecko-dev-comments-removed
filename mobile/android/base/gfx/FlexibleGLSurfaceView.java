@@ -46,6 +46,18 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+
+
+
+
+
+
+
+
+
+
+
+
 public class FlexibleGLSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
     private static final String LOGTAG = "GeckoFlexibleGLSurfaceView";
 
@@ -146,6 +158,7 @@ public class FlexibleGLSurfaceView extends SurfaceView implements SurfaceHolder.
         return mController;
     }
 
+    
     public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width,
                                             int height) {
         mController.sizeChanged(width, height);
@@ -158,6 +171,7 @@ public class FlexibleGLSurfaceView extends SurfaceView implements SurfaceHolder.
         }
     }
 
+    
     public synchronized void surfaceCreated(SurfaceHolder holder) {
         mController.surfaceCreated();
         if (mGLThread != null) {
@@ -165,6 +179,7 @@ public class FlexibleGLSurfaceView extends SurfaceView implements SurfaceHolder.
         }
     }
 
+    
     public synchronized void surfaceDestroyed(SurfaceHolder holder) {
         mController.surfaceDestroyed();
         if (mGLThread != null) {
