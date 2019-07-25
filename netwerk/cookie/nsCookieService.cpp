@@ -1257,7 +1257,9 @@ nsCookieService::HandleCorruptDB(DBState* aDBState)
   case DBState::REBUILDING: {
     
     
-    mDefaultDBState->dbConn->AsyncClose(mDefaultDBState->closeListener);
+    if (mDefaultDBState->dbConn) {
+      mDefaultDBState->dbConn->AsyncClose(mDefaultDBState->closeListener);
+    }
     CloseDefaultDBConnection();
     break;
   }
