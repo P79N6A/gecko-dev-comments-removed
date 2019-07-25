@@ -156,6 +156,9 @@ public:
   void SetDecodeFlags(PRUint32 aFlags) { mDecodeFlags = aFlags; }
   PRUint32 GetDecodeFlags() { return mDecodeFlags; }
 
+  
+  virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
+
 protected:
 
   
