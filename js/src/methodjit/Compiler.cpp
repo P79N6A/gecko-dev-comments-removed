@@ -2067,6 +2067,28 @@ mjit::Compiler::generateMethod()
         frame.assertValidRegisterState();
         a->jumpMap[uint32_t(PC - script->code)] = masm.label();
 
+        if (cx->typeInferenceEnabled() && opinfo->safePoint) {
+            
+
+
+
+
+
+            const SlotValue *newv = analysis->newValues(PC);
+            if (newv) {
+                while (newv->slot) {
+                    if (newv->value.kind() == SSAValue::PHI &&
+                        newv->value.phiOffset() == uint32_t(PC - script->code) &&
+                        analysis->trackSlot(newv->slot) &&
+                        a->varTypes[newv->slot].getTypeTag(cx) == JSVAL_TYPE_DOUBLE) {
+                        FrameEntry *fe = frame.getSlotEntry(newv->slot);
+                        masm.ensureInMemoryDouble(frame.addressOf(fe));
+                    }
+                    newv++;
+                }
+            }
+        }
+
         
         
         
