@@ -51,8 +51,6 @@
 using namespace js;
 using namespace js::frontend;
 
-namespace js {
-
 
 
 
@@ -476,5 +474,3 @@ BytecodeCompiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipa
 
     return pn != NULL;
 }
-
-} 
