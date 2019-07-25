@@ -248,6 +248,28 @@ NS_IMETHODIMP TimerThread::Run()
 {
   nsAutoLock lock(mLock);
 
+  
+  
+  
+  PRInt32 low = 0, high = 1;
+  while (PR_MicrosecondsToInterval(high) == 0)
+    high <<= 1;
+  
+  
+  
+  
+  while (high-low > 1) {
+    PRInt32 mid = (high+low) >> 1;
+    if (PR_MicrosecondsToInterval(mid) == 0)
+      low = mid;
+    else
+      high = mid;
+  }
+
+  
+  
+  PRInt32 halfMicrosecondsIntervalResolution = high >> 1;
+
   while (!mShutdown) {
     
     PRIntervalTime waitFor;
@@ -324,9 +346,17 @@ NS_IMETHODIMP TimerThread::Run()
 
         
         
-        if (now >= timeout)
-          goto next;
-        waitFor = PR_MillisecondsToInterval((timeout - now).ToMilliseconds());
+        
+        
+        
+        
+        
+        double microseconds = (timeout - now).ToMilliseconds()*1000;
+        if (microseconds < halfMicrosecondsIntervalResolution)
+          goto next; 
+        waitFor = PR_MicrosecondsToInterval(microseconds);
+        if (waitFor == 0)
+          waitFor = 1; 
       }
 
 #ifdef DEBUG_TIMERS
