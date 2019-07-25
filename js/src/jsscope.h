@@ -249,6 +249,19 @@ struct PropertyTable {
     uint32 capacity() const { return JS_BIT(JS_DHASH_BITS - hashShift); }
 
     
+    bool needsToGrow() const {
+        uint32 size = capacity();
+        return entryCount + removedCount >= size - (size >> 2);
+    }
+
+    
+
+
+
+
+    bool grow(JSContext *cx);
+
+    
 
 
 

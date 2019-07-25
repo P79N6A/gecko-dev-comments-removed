@@ -441,6 +441,25 @@ PropertyTable::change(int log2Delta, JSContext *cx)
     return true;
 }
 
+bool
+PropertyTable::grow(JSContext *cx)
+{
+    JS_ASSERT(needsToGrow());
+
+    uint32 size = capacity();
+    int delta = removedCount < size >> 2;
+    if (!delta)
+        METER(compresses);
+    else
+        METER(grows);
+
+    if (!change(delta, cx) && entryCount + removedCount == size - 1) {
+        JS_ReportOutOfMemory(cx);
+        return false;
+    }
+    return true;
+}
+
 Shape *
 Shape::getChild(JSContext *cx, const js::Shape &child, Shape **listp)
 {
@@ -448,8 +467,47 @@ Shape::getChild(JSContext *cx, const js::Shape &child, Shape **listp)
     JS_ASSERT(!child.inDictionary());
 
     if (inDictionary()) {
-        if (newDictionaryShape(cx, child, listp))
-            return *listp;
+        Shape *oldShape = *listp;
+        PropertyTable *table = oldShape ? oldShape->table : NULL;
+
+        
+
+
+
+
+        if (table && table->needsToGrow() && !table->grow(cx))
+            return NULL;
+
+        if (newDictionaryShape(cx, child, listp)) {
+            Shape *newShape = *listp;
+
+            JS_ASSERT(oldShape == newShape->parent);
+            if (table) {
+                
+                METER(searches);
+                Shape **spp = table->search(newShape->id, true);
+
+                
+
+
+
+
+
+
+                if (!SHAPE_FETCH(spp))
+                    ++table->entryCount;
+                SHAPE_STORE_PRESERVING_COLLISION(spp, newShape);
+
+                
+                oldShape->setTable(NULL);
+                newShape->setTable(table);
+            } else {
+                if (!newShape->table)
+                    newShape->maybeHash(cx);
+            }
+            return newShape;
+        }
+
         return NULL;
     }
 
@@ -751,18 +809,10 @@ JSObject::addPropertyInternal(JSContext *cx, jsid id,
             table = lastProp->table;
         }
     } else if ((table = lastProp->table) != NULL) {
-        
-        uint32 size = table->capacity();
-        if (table->entryCount + table->removedCount >= size - (size >> 2)) {
-            int delta = table->removedCount < size >> 2;
-            if (!delta)
-                METER(compresses);
-            else
-                METER(grows);
-            if (!table->change(delta, cx) && table->entryCount + table->removedCount == size - 1) {
-                JS_ReportOutOfMemory(cx);
+        if (table->needsToGrow()) {
+            if (!table->grow(cx))
                 return NULL;
-            }
+
             METER(searches);
             METER(changeSearches);
             spp = table->search(id, true);
