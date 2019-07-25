@@ -136,7 +136,17 @@ public:
 
 
 
-  nsresult OpenArchive(nsIFile *aZipFile);
+  nsresult OpenArchive(nsZipHandle *aZipHandle);
+
+  
+
+
+
+
+
+
+
+  nsresult OpenArchive(nsIFile *aFile);
 
   
 
@@ -196,9 +206,9 @@ public:
 
 
 
-  PRUint8* GetData(nsZipItem* aItem);
+  const PRUint8* GetData(nsZipItem* aItem);
 
-  PRBool CheckCRC(nsZipItem* aItem, PRUint8* aData);
+  PRBool CheckCRC(nsZipItem* aItem, const PRUint8* aData);
 
 private:
   
@@ -224,27 +234,6 @@ private:
   nsresult          BuildFileList();
   nsresult          BuildSynthetics();
 };
-
-class nsZipHandle {
-friend class nsZipArchive;
-public:
-  static nsresult Init(PRFileDesc *fd, nsZipHandle **ret NS_OUTPARAM);
-
-  NS_METHOD_(nsrefcnt) AddRef(void);
-  NS_METHOD_(nsrefcnt) Release(void);
-
-protected:
-  PRUint8 *    mFileData; 
-  PRUint32     mLen;      
-
-private:
-  nsZipHandle();
-  ~nsZipHandle();
-
-  PRFileMap *  mMap;      
-  nsrefcnt     mRefCnt;   
-};
-
 
 
 
@@ -351,6 +340,30 @@ public:
   operator const T*() const {
     return Buffer();
   }
+};
+
+class nsZipHandle {
+friend class nsZipArchive;
+public:
+  static nsresult Init(nsILocalFile *file, nsZipHandle **ret NS_OUTPARAM);
+  static nsresult Init(nsZipArchive *zip, const char *entry,
+                       nsZipHandle **ret NS_OUTPARAM);
+
+  NS_METHOD_(nsrefcnt) AddRef(void);
+  NS_METHOD_(nsrefcnt) Release(void);
+
+protected:
+  const PRUint8 * mFileData; 
+  PRUint32        mLen;      
+  nsCOMPtr<nsILocalFile> mFile; 
+
+private:
+  nsZipHandle();
+  ~nsZipHandle();
+
+  PRFileMap *                       mMap;    
+  nsAutoPtr<nsZipItemPtr<PRUint8> > mBuf;
+  nsrefcnt                          mRefCnt; 
 };
 
 nsresult gZlibInit(z_stream *zs);
