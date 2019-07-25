@@ -31,6 +31,17 @@ pref("services.sync.jpake.firstMsgMaxTries", 300);
 pref("services.sync.jpake.lastMsgMaxTries", 300);  
 pref("services.sync.jpake.maxTries", 10);
 
+
+pref("services.sync.addons.ignoreRepositoryChecking", false);
+
+
+
+
+pref("services.sync.addons.ignoreUserEnabledChanges", false);
+
+
+pref("services.sync.addons.trustedSourceHostnames", "addons.mozilla.org");
+
 pref("services.sync.log.appender.console", "Warn");
 pref("services.sync.log.appender.dump", "Error");
 pref("services.sync.log.appender.file.level", "Trace");
@@ -50,5 +61,6 @@ pref("services.sync.log.logger.engine.history", "Debug");
 pref("services.sync.log.logger.engine.passwords", "Debug");
 pref("services.sync.log.logger.engine.prefs", "Debug");
 pref("services.sync.log.logger.engine.tabs", "Debug");
+pref("services.sync.log.logger.engine.addons", "Debug");
 pref("services.sync.log.logger.engine.apps", "Debug");
 pref("services.sync.log.cryptoDebug", false);
