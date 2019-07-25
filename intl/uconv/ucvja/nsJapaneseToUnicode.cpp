@@ -38,38 +38,27 @@
 
 #include "nsUCSupport.h"
 
-#include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
-
 #include "japanese.map"
 
 #include "nsICharsetConverterManager.h"
 #include "nsIServiceManager.h"
 static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CID);
 
-#define SJIS_INDEX mMapIndex[0]
-#define JIS0208_INDEX mMapIndex[1]
+#ifdef XP_OS2
+  
+  
+  
+  
+  #define SJIS_INDEX gIBM943Index[0]
+  #define JIS0208_INDEX gIBM943Index[1]
+#else
+  
+  #define SJIS_INDEX gCP932Index[0]
+  #define JIS0208_INDEX gCP932Index[1]
+#endif
+
 #define JIS0212_INDEX gJIS0212Index
 #define SJIS_UNMAPPED	0x30fb
-
-void nsJapaneseToUnicode::setMapMode()
-{
-  nsresult res;
-
-  mMapIndex = gIndex;
-
-  nsCOMPtr<nsIPrefBranch> prefBranch = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (!prefBranch) return;
-  nsXPIDLCString prefMap;
-  res = prefBranch->GetCharPref("intl.jis0208.map", getter_Copies(prefMap));
-  if (!NS_SUCCEEDED(res)) return;
-  nsCaseInsensitiveCStringComparator comparator;
-  if ( prefMap.Equals(NS_LITERAL_CSTRING("cp932"), comparator) ) {
-    mMapIndex = gCP932Index;
-  } else if ( prefMap.Equals(NS_LITERAL_CSTRING("ibm943"), comparator) ) {
-    mMapIndex = gIBM943Index;
-  }
-}
 
 NS_IMETHODIMP nsShiftJISToUnicode::Convert(
    const char * aSrc, PRInt32 * aSrcLen,

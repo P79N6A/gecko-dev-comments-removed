@@ -1749,9 +1749,6 @@ pref("network.autodial-helper.enabled", true);
 pref("advanced.system.supportDDEExec", true);
 
 
-pref("intl.jis0208.map", "CP932");
-
-
 pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
@@ -2397,9 +2394,6 @@ pref("applications.telnet.host", "%host%");
 pref("applications.telnet.port", "-p %port%");
 
 pref("mail.compose.max_recycled_windows", 0);
-
-
-pref("intl.jis0208.map", "IBM943");
 
 
 
