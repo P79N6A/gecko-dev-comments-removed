@@ -750,7 +750,7 @@ main(int argc, char **argv)
 
     
     if (symKeyUtil.options[opt_dbPrefix].activated)
-	certPrefix = strdup(symKeyUtil.options[opt_dbPrefix].arg);
+	certPrefix = symKeyUtil.options[opt_dbPrefix].arg;
 
     
     commandsEntered = 0;

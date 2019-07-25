@@ -58,6 +58,9 @@
 
 
 
+
+
+
 const PRUint16 SSL_ImplementedCiphers[] = {
     
 #ifdef NSS_ENABLE_ECC
@@ -95,8 +98,8 @@ const PRUint16 SSL_ImplementedCiphers[] = {
 #endif 
     TLS_RSA_WITH_SEED_CBC_SHA,
     TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,
-    SSL_RSA_WITH_RC4_128_MD5,
     SSL_RSA_WITH_RC4_128_SHA,
+    SSL_RSA_WITH_RC4_128_MD5,
     TLS_RSA_WITH_AES_128_CBC_SHA,
 
     

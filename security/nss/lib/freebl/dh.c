@@ -215,7 +215,7 @@ DH_Derive(SECItem *publicValue,
           SECItem *prime, 
           SECItem *privateValue, 
           SECItem *derivedSecret, 
-          unsigned int maxOutBytes)
+          unsigned int outBytes)
 {
     mp_int p, Xa, Yb, ZZ;
     mp_err err = MP_OKAY;
@@ -254,12 +254,21 @@ DH_Derive(SECItem *publicValue,
     
 
 
-    if (maxOutBytes > 0)
-	nb = PR_MIN(len, maxOutBytes);
+
+
+
+    if (outBytes > 0)
+	nb = outBytes;
     else
 	nb = len;
     SECITEM_AllocItem(NULL, derivedSecret, nb);
-    memcpy(derivedSecret->data, secret, nb);
+    if (len < nb) {
+	unsigned int offset = nb - len;
+	memset(derivedSecret->data, 0, offset);
+	memcpy(derivedSecret->data + offset, secret, len);
+    } else {
+	memcpy(derivedSecret->data, secret + len - nb, nb);
+    }
 cleanup:
     mp_clear(&p);
     mp_clear(&Xa);

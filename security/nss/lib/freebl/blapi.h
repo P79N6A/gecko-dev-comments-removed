@@ -217,11 +217,16 @@ extern SECStatus DH_NewKey(DHParams *           params,
 
 
 
+
+
+
+
+
 extern SECStatus DH_Derive(SECItem *    publicValue, 
 		           SECItem *    prime, 
 			   SECItem *    privateValue, 
 			   SECItem *    derivedSecret,
-			   unsigned int maxOutBytes);
+			   unsigned int outBytes);
 
 
 

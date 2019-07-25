@@ -52,6 +52,8 @@
 #include "secder.h"
 #include "secpkcs5.h"
 
+const int NSS_PBE_DEFAULT_ITERATION_COUNT = 2000; 
+
 static SECStatus
 sec_pkcs7_init_content_info (SEC_PKCS7ContentInfo *cinfo, PRArenaPool *poolp,
 			     SECOidTag kind, PRBool detached)
@@ -1293,7 +1295,9 @@ SEC_PKCS7CreateEncryptedData (SECOidTag algorithm, int keysize,
 
 
 	SECAlgorithmID *pbe_algid;
-	pbe_algid = PK11_CreatePBEAlgorithmID (algorithm, 1, NULL);
+	pbe_algid = PK11_CreatePBEAlgorithmID(algorithm,
+                                              NSS_PBE_DEFAULT_ITERATION_COUNT,
+                                              NULL);
 	if (pbe_algid == NULL) {
 	    rv = SECFailure;
 	} else {

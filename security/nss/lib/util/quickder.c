@@ -815,40 +815,57 @@ static SECStatus DecodeItem(void* dest,
             SECItem newtemp = temp;
             rv = GetItem(&newtemp, &temp, PR_FALSE);
             save = PR_TRUE;
-            if ((SECSuccess == rv) && SEC_ASN1_UNIVERSAL == (kind & SEC_ASN1_CLASS_MASK))
-            switch (kind & SEC_ASN1_TAGNUM_MASK)
+            if ((SECSuccess == rv) &&
+                SEC_ASN1_UNIVERSAL == (kind & SEC_ASN1_CLASS_MASK))
             {
-            
-            case SEC_ASN1_INTEGER:
+                unsigned long tagnum = kind & SEC_ASN1_TAGNUM_MASK;
+                if ( temp.len == 0 && (tagnum == SEC_ASN1_BOOLEAN ||
+                                       tagnum == SEC_ASN1_INTEGER ||
+                                       tagnum == SEC_ASN1_BIT_STRING ||
+                                       tagnum == SEC_ASN1_OBJECT_ID ||
+                                       tagnum == SEC_ASN1_ENUMERATED ||
+                                       tagnum == SEC_ASN1_UTC_TIME ||
+                                       tagnum == SEC_ASN1_GENERALIZED_TIME) )
                 {
                     
-
-                    SECItem* destItem = (SECItem*) ((char*)dest + templateEntry->offset);
-                    if (destItem && (siUnsignedInteger == destItem->type))
+                    PORT_SetError(SEC_ERROR_BAD_DER);
+                    rv = SECFailure;
+                }
+                else
+                switch (tagnum)
+                {
+                
+                case SEC_ASN1_INTEGER:
                     {
-                        while (temp.len > 1 && temp.data[0] == 0)
-                        {              
-                            temp.data++;
-                            temp.len--;
+                        
+
+
+                        SECItem* destItem = (SECItem*) ((char*)dest +
+                                            templateEntry->offset);
+                        if (destItem && (siUnsignedInteger == destItem->type))
+                        {
+                            while (temp.len > 1 && temp.data[0] == 0)
+                            {              
+                                temp.data++;
+                                temp.len--;
+                            }
                         }
+                        break;
                     }
-                    break;
-                }
 
-            case SEC_ASN1_BIT_STRING:
-                {
-                    
-                    if (temp.len && temp.data)
+                case SEC_ASN1_BIT_STRING:
                     {
-                        temp.len = (temp.len-1)*8 - ((*(unsigned char*)temp.data) & 0x7);
-                        temp.data = (unsigned char*)(temp.data+1);
-                    }
-                    break;
-                }
+                        
 
-            default:
-                {
-                    break;
+                        temp.len = (temp.len-1)*8 - (temp.data[0] & 0x7);
+                        temp.data += 1;
+                        break;
+                    }
+
+                default:
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -863,7 +880,7 @@ static SECStatus DecodeItem(void* dest,
 
 
 
-            destItem->data = temp.data;
+            destItem->data = temp.len ? temp.data : NULL;
             destItem->len = temp.len;
         }
         else

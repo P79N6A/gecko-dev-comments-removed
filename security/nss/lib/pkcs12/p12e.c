@@ -50,6 +50,8 @@
 #include "p12local.h"
 #include "prcpucfg.h"
 
+extern const int NSS_PBE_DEFAULT_ITERATION_COUNT; 
+
 
 
 
@@ -1256,8 +1258,9 @@ SEC_PKCS12AddKeyForCert(SEC_PKCS12ExportContext *p12ctxt, SEC_PKCS12SafeInfo *sa
 	}
 
 	epki = PK11_ExportEncryptedPrivateKeyInfo(slot, algorithm, 
-						  &uniPwitem, cert, 1, 
-						  p12ctxt->wincx);
+					    &uniPwitem, cert,
+					    NSS_PBE_DEFAULT_ITERATION_COUNT,
+					    p12ctxt->wincx);
 	PK11_FreeSlot(slot);
 	if(!epki) {
 	    PORT_SetError(SEC_ERROR_PKCS12_UNABLE_TO_EXPORT_KEY);
@@ -1605,6 +1608,11 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 		PORT_SetError(SEC_ERROR_NO_MEMORY);
 		goto loser;
 	    }   
+	    if (!SEC_ASN1EncodeInteger(p12exp->arena, &(p12enc->mac.iter),
+				       NSS_PBE_DEFAULT_ITERATION_COUNT)) {
+		
+		goto loser;
+	    }
 
 	    
 	    if(!sec_pkcs12_convert_item_to_unicode(NULL, &pwd, 
@@ -1618,7 +1626,8 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 
 
 
-	    params = PK11_CreatePBEParams(salt, &pwd, 1);
+	    params = PK11_CreatePBEParams(salt, &pwd,
+                                          NSS_PBE_DEFAULT_ITERATION_COUNT);
 	    SECITEM_ZfreeItem(salt, PR_TRUE);
 	    SECITEM_ZfreeItem(&pwd, PR_FALSE);
 

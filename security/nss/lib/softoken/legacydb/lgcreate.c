@@ -816,9 +816,14 @@ static NSSLOWKEYPrivateKey *lg_mkSecretKeyRep(const CK_ATTRIBUTE *templ,
     privKey->keyType = NSSLOWKEYRSAKey;
 
     
-    crv = lg_Attribute2SecItem(arena, CKA_ID, templ, count, 
-				&privKey->u.rsa.modulus);
-    if (crv != CKR_OK) goto loser;
+    privKey->u.rsa.modulus.data =
+		(unsigned char *) PORT_ArenaAlloc(arena, pubkey->len);
+    if (privKey->u.rsa.modulus.data == NULL) {
+	crv = CKR_HOST_MEMORY;
+	goto loser;
+    }
+    privKey->u.rsa.modulus.len = pubkey->len;
+    PORT_Memcpy(privKey->u.rsa.modulus.data, pubkey->data, pubkey->len);
 
     
     privKey->u.rsa.publicExponent.len = sizeof derZero;
