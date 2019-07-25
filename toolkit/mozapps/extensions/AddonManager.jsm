@@ -198,15 +198,32 @@ AddonAuthor.prototype = {
 
 
 
-function AddonScreenshot(aURL, aThumbnailURL, aCaption) {
+
+
+
+
+
+
+
+
+function AddonScreenshot(aURL, aWidth, aHeight, aThumbnailURL,
+                         aThumbnailWidth, aThumbnailHeight, aCaption) {
   this.url = aURL;
-  this.thumbnailURL = aThumbnailURL;
-  this.caption = aCaption;
+  if (aWidth) this.width = aWidth;
+  if (aHeight) this.height = aHeight;
+  if (aThumbnailURL) this.thumbnailURL = aThumbnailURL;
+  if (aThumbnailWidth) this.thumbnailWidth = aThumbnailWidth;
+  if (aThumbnailHeight) this.thumbnailHeight = aThumbnailHeight;
+  if (aCaption) this.caption = aCaption;
 }
 
 AddonScreenshot.prototype = {
   url: null,
+  width: null,
+  height: null,
   thumbnailURL: null,
+  thumbnailWidth: null,
+  thumbnailHeight: null,
   caption: null,
 
   
