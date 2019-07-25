@@ -307,7 +307,7 @@ NS_IMETHODIMP
 nsCCMemoryPressureObserver::Observe(nsISupports* aSubject, const char* aTopic,
                                     const PRUnichar* aData)
 {
-  nsJSContext::CC();
+  nsJSContext::CC(PR_FALSE);
   return NS_OK;
 }
 
@@ -973,7 +973,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   mem->IsLowMemory(&lowMemory);
   if (lowMemory) {
     
-    nsJSContext::CC();
+    nsJSContext::CC(PR_FALSE);
 
     
     if (!::JS_IsSystemObject(cx, ::JS_GetGlobalObject(cx))) {
@@ -3616,7 +3616,7 @@ nsJSContext::ScriptExecuted()
 
 
 void
-nsJSContext::CC()
+nsJSContext::CC(PRBool aDrawGraph)
 {
   NS_TIME_FUNCTION_MIN(1.0);
 
@@ -3631,7 +3631,7 @@ nsJSContext::CC()
   
   
   nsContentUtils::XPConnect()->GarbageCollect();
-  sCollectedObjectsCounts = nsCycleCollector_collect();
+  sCollectedObjectsCounts = nsCycleCollector_collect(aDrawGraph);
   sCCSuspectedCount = nsCycleCollector_suspectedCount();
   sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
 #ifdef DEBUG_smaug
@@ -3719,7 +3719,7 @@ nsJSContext::IntervalCC()
 {
   if ((PR_Now() - sPreviousCCTime) >=
       PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
-    nsJSContext::CC();
+    nsJSContext::CC(PR_FALSE);
     return PR_TRUE;
   }
 #ifdef DEBUG_smaug
