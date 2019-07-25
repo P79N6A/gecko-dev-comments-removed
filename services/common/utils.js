@@ -90,9 +90,33 @@ let CommonUtils = {
 
 
 
-  namedTimer: function namedTimer(callback, wait, thisObj, name) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+  namedTimer: function namedTimer(callback, wait, thisObj, name, type) {
     if (!thisObj || !name) {
-      throw "You must provide both an object and a property name for the timer!";
+      throw new Error("You must provide both an object and a property name " +
+                      "for the timer!");
+    }
+
+    
+    type = type || Ci.nsITimer.TYPE_ONE_SHOT;
+
+    
+    
+    
+    if (type > Ci.nsITimer.TYPE_REPEATING_PRECISE) {
+      throw new Error("Unknown timer type seen: " + type);
     }
 
     
@@ -102,11 +126,11 @@ let CommonUtils = {
     }
 
     
-    let timer = {};
+    let timer = {_type: type};
     timer.__proto__ = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
     
-    timer.clear = function() {
+    timer.clear = function clear() {
       thisObj[name] = null;
       timer.cancel();
     };
@@ -115,10 +139,12 @@ let CommonUtils = {
     timer.initWithCallback({
       notify: function notify() {
         
-        timer.clear();
+        if (timer._type == Ci.nsITimer.TYPE_ONE_SHOT) {
+          timer.clear();
+        }
         callback.call(thisObj, timer);
       }
-    }, wait, timer.TYPE_ONE_SHOT);
+    }, wait, type);
 
     return thisObj[name] = timer;
   },
