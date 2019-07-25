@@ -750,17 +750,7 @@ public:
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) {
     return PR_FALSE;
   }
-
   
-
-
-
-
-
-  virtual PRBool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) {
-    return PR_FALSE;
-  }
-
   
 
 
@@ -1666,7 +1656,6 @@ public:
                     nsDisplayList* aList);
   nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                     nsDisplayItem* aItem);
-  nsDisplayWrapList(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
   virtual ~nsDisplayWrapList();
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
@@ -1811,15 +1800,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-class nsDisplayScrollLayer : public nsDisplayWrapList
+class nsDisplayScrollLayer : public nsDisplayOwnLayer
 {
 public:
   
@@ -1827,17 +1808,8 @@ public:
 
 
 
-
-
   nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
-                       nsIFrame* aForFrame, nsIFrame* aScrolledFrame,
-                       nsIFrame* aScrollFrame);
-  nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem,
-                       nsIFrame* aForFrame, nsIFrame* aScrolledFrame,
-                       nsIFrame* aScrollFrame);
-  nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
-                       nsIFrame* aForFrame, nsIFrame* aScrolledFrame,
-                       nsIFrame* aScrollFrame);
+                       nsIFrame* aForFrame, nsIFrame* aViewportFrame);
   NS_DISPLAY_DECL_NAME("ScrollLayer", TYPE_SCROLL_LAYER)
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1853,29 +1825,15 @@ public:
                                    PRBool& aContainsRootContentDocBG);
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager);
-
-  virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder,
-                          nsDisplayItem* aItem);
-
-  virtual PRBool ShouldFlattenAway(nsDisplayListBuilder* aBuilder);
-
-  
-  
-  
-  PRWord GetScrollLayerCount();
-  PRWord RemoveScrollLayerCount();
-
+                                   LayerManager* aManager)
+  {
+    
+    
+    return mozilla::LAYER_ACTIVE_FORCE;
+  }
 private:
-  nsIFrame* mScrollFrame;
-  nsIFrame* mScrolledFrame;
+  nsIFrame* mViewportFrame;
 };
-
-
-
-
-
-
 
 
 
@@ -1885,8 +1843,8 @@ private:
 class nsDisplayScrollInfoLayer : public nsDisplayScrollLayer
 {
 public:
-  nsDisplayScrollInfoLayer(nsDisplayListBuilder* aBuilder,
-                           nsIFrame* aScrolledFrame, nsIFrame* aScrollFrame);
+  nsDisplayScrollInfoLayer(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
+                           nsIFrame* aForFrame, nsIFrame* aViewportFrame);
   NS_DISPLAY_DECL_NAME("ScrollInfoLayer", TYPE_SCROLL_INFO_LAYER)
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1894,12 +1852,11 @@ public:
 #endif
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager);
+                                   LayerManager* aManager)
+  {
+    return mozilla::LAYER_ACTIVE_EMPTY;
+  }
 
-  virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder,
-                          nsDisplayItem* aItem);
-
-  virtual PRBool ShouldFlattenAway(nsDisplayListBuilder* aBuilder);
 };
 
 

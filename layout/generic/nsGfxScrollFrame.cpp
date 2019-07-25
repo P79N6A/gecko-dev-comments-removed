@@ -1905,43 +1905,6 @@ nsGfxScrollFrameInner::ShouldBuildLayer() const
   return mShouldBuildLayer;
 }
 
-class ScrollLayerWrapper : public nsDisplayWrapper
-{
-public:
-  ScrollLayerWrapper(nsIFrame* aScrollFrame, nsIFrame* aScrolledFrame)
-    : mCount(0)
-    , mProps(aScrolledFrame->Properties())
-    , mScrollFrame(aScrollFrame)
-    , mScrolledFrame(aScrolledFrame)
-  {
-    SetCount(0);
-  }
-
-  virtual nsDisplayItem* WrapList(nsDisplayListBuilder* aBuilder,
-                                  nsIFrame* aFrame,
-                                  nsDisplayList* aList) {
-    SetCount(++mCount);
-    return new (aBuilder) nsDisplayScrollLayer(aBuilder, aList, nsnull, mScrolledFrame, mScrollFrame);
-  }
-
-  virtual nsDisplayItem* WrapItem(nsDisplayListBuilder* aBuilder,
-                                  nsDisplayItem* aItem) {
-
-    SetCount(++mCount);
-    return new (aBuilder) nsDisplayScrollLayer(aBuilder, aItem, aItem->GetUnderlyingFrame(), mScrolledFrame, mScrollFrame);
-  }
-
-protected:
-  void SetCount(PRWord aCount) {
-    mProps.Set(nsIFrame::ScrollLayerCount(), reinterpret_cast<void*>(aCount));
-  }
-
-  PRWord mCount;
-  FrameProperties mProps;
-  nsIFrame* mScrollFrame;
-  nsIFrame* mScrolledFrame;
-};
-
 nsresult
 nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                         const nsRect&           aDirtyRect,
@@ -2002,9 +1965,14 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &dirtyRect);
 
   nsDisplayListCollection set;
-  rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
-  NS_ENSURE_SUCCESS(rv, rv);
 
+  
+  
+  
+  
+  
+  
+  
   
   
   nsRect scrollRange = GetScrollRange();
@@ -2018,25 +1986,37 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
      (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument()));
 
   if (ShouldBuildLayer()) {
-    
-    
-    ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
-
+    nsDisplayList list;
     if (usingDisplayport) {
       
       
       
-      wrapper.WrapListsInPlace(aBuilder, mOuter, set);
-    }
+      
+      
+      
 
-    
-    
-    
-    nsDisplayScrollInfoLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
-      aBuilder, mScrolledFrame, mOuter);
-    set.Content()->AppendNewToBottom(layerItem);
+      rv = mScrolledFrame->BuildDisplayListForStackingContext(
+        aBuilder, dirtyRect + mOuter->GetOffsetTo(mScrolledFrame), &list);
+
+      nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollLayer(
+        aBuilder, &list, mScrolledFrame, mOuter);
+      set.Content()->AppendNewToTop(layerItem);
+    } else {
+      
+      
+      
+
+      nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
+        aBuilder, &list, mScrolledFrame, mOuter);
+      set.Content()->AppendNewToTop(layerItem);
+
+      rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
+    }
+  } else {
+    rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
   }
 
+  NS_ENSURE_SUCCESS(rv, rv);
   nsRect clip;
   clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
 
