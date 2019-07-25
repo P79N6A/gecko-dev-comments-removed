@@ -44,6 +44,11 @@ import org.mozilla.gecko.Tabs;
 
 
 
+
+
+
+
+
 public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "GeckoTouchEventHandler";
 
@@ -153,6 +158,12 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             if (mHoldInQueue) {
                 
                 
+                
+                if (mEventQueue.isEmpty()) {
+                    mPanZoomController.waitingForTouchListeners(event);
+                }
+                
+                
                 mView.postDelayed(mListenerTimeoutProcessor, EVENT_LISTENER_TIMEOUT);
             } else {
                 
@@ -172,6 +183,8 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             mEventQueue.add(MotionEvent.obtain(event));
         } else if (mDispatchEvents) {
             dispatchEvent(event);
+        } else if (touchFinished(event)) {
+            mPanZoomController.preventedTouchFinished();
         }
 
         
@@ -215,6 +228,11 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         return (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN);
     }
 
+    private boolean touchFinished(MotionEvent event) {
+        int action = (event.getAction() & MotionEvent.ACTION_MASK);
+        return (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL);
+    }
+
     
 
 
@@ -252,6 +270,8 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             
             if (allowDefaultAction) {
                 dispatchEvent(event);
+            } else if (touchFinished(event)) {
+                mPanZoomController.preventedTouchFinished();
             }
             event = mEventQueue.peek();
             if (event == null) {
@@ -267,6 +287,7 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
             if (isDownEvent(event)) {
                 
                 
+                mPanZoomController.waitingForTouchListeners(event);
                 break;
             }
             

@@ -129,7 +129,11 @@ public class PanZoomController
         PANNING_HOLD_LOCKED, 
         PINCHING,       
         ANIMATED_ZOOM,  
-        BOUNCE          
+        BOUNCE,         
+
+        WAITING_LISTENERS, 
+
+
     }
 
     private final LayerController mController;
@@ -299,6 +303,30 @@ public class PanZoomController
     }
 
     
+    public void waitingForTouchListeners(MotionEvent event) {
+        checkMainThread();
+        if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+            
+            mSubscroller.cancel();
+            
+            
+            mState = PanZoomState.WAITING_LISTENERS;
+        }
+    }
+
+    
+    public void preventedTouchFinished() {
+        checkMainThread();
+        if (mState == PanZoomState.WAITING_LISTENERS) {
+            
+            
+            
+            mState = PanZoomState.NOTHING;
+            bounce();
+        }
+    }
+
+    
     public void pageSizeUpdated() {
         if (mState == PanZoomState.NOTHING) {
             synchronized (mController) {
@@ -334,6 +362,7 @@ public class PanZoomController
         case FLING:
         case BOUNCE:
         case NOTHING:
+        case WAITING_LISTENERS:
             startTouch(event.getX(0), event.getY(0), event.getEventTime());
             return false;
         case TOUCHING:
@@ -354,6 +383,7 @@ public class PanZoomController
         switch (mState) {
         case FLING:
         case BOUNCE:
+        case WAITING_LISTENERS:
             
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             
@@ -399,6 +429,7 @@ public class PanZoomController
         switch (mState) {
         case FLING:
         case BOUNCE:
+        case WAITING_LISTENERS:
             
             Log.e(LOGTAG, "Received impossible touch end while in " + mState);
             
@@ -433,8 +464,18 @@ public class PanZoomController
     }
 
     private boolean onTouchCancel(MotionEvent event) {
-        mState = PanZoomState.NOTHING;
+        if (mState == PanZoomState.WAITING_LISTENERS) {
+            
+            
+            
+            
+            
+            
+            return false;
+        }
+
         cancelTouch();
+        mState = PanZoomState.NOTHING;
         
         bounce();
         return false;
