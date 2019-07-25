@@ -225,6 +225,11 @@ public:
   
 
 
+  static nsINode* GetCrossDocParentNode(nsINode* aChild);
+
+  
+
+
 
 
 

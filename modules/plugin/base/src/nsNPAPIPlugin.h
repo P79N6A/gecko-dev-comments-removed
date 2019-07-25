@@ -89,6 +89,10 @@ public:
   static nsresult CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
                                nsIPlugin** aResult);
 
+  PluginLibrary* GetLibrary();
+  
+  NPPluginFuncs* PluginFuncs();
+
 #if defined(XP_MACOSX) && !defined(__LP64__)
   void SetPluginRefNum(short aRefNum);
 #endif

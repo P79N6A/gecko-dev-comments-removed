@@ -3622,6 +3622,7 @@ nsJSContext::CC()
   sCCSuspectChanges = 0;
   
   
+  nsContentUtils::XPConnect()->GarbageCollect();
   sCollectedObjectsCounts = nsCycleCollector_collect();
   sCCSuspectedCount = nsCycleCollector_suspectedCount();
   sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
