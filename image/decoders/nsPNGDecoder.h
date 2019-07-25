@@ -74,18 +74,24 @@ public:
   void EndImageFrame();
 
   
-  bool HasValidInfo() const 
-  {
-    return mInfo && mInfo->valid;
-  }
-
   
-  PRInt32 GetPixelDepth() const
+  bool IsValidICO() const
   {
-    if (!mInfo) {
-      return 0;
+    png_uint_32
+        png_width,  
+        png_height; 
+
+    int png_bit_depth,
+        png_color_type;
+
+    if (png_get_IHDR(mPNG, mInfo, &png_width, &png_height, &png_bit_depth,
+                     &png_color_type, NULL, NULL, NULL)) {
+
+      return (png_color_type == PNG_COLOR_TYPE_RGB_ALPHA &&
+              png_bit_depth == 8);
+    } else {
+      return false;
     }
-    return mInfo->pixel_depth;
   }
 
 public:
