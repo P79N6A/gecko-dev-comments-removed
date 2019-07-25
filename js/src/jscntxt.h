@@ -525,6 +525,14 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
+
+
+    uintptr_t           gcDisableStrictProxyCheckingCount;
+
+    
+
+
+
     js::gc::State       gcIncrementalState;
 
     
