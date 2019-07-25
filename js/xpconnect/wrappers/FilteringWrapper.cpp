@@ -117,7 +117,7 @@ FilteringWrapper<Base, Policy>::iterate(JSContext *cx, JSObject *wrapper, unsign
     
     
     
-    return js::ProxyHandler::iterate(cx, wrapper, flags, vp);
+    return js::BaseProxyHandler::iterate(cx, wrapper, flags, vp);
 }
 
 template <typename Base, typename Policy>

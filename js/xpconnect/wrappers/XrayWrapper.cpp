@@ -1336,7 +1336,7 @@ XrayWrapper<Base, Traits>::get(JSContext *cx, JSObject *wrapper, JSObject *recei
     
     
     
-    return ProxyHandler::get(cx, wrapper, wrapper, id, vp);
+    return BaseProxyHandler::get(cx, wrapper, wrapper, id, vp);
 }
 
 template <typename Base, typename Traits>
@@ -1347,7 +1347,7 @@ XrayWrapper<Base, Traits>::set(JSContext *cx, JSObject *wrapper, JSObject *recei
     
     
     
-    return ProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
+    return BaseProxyHandler::set(cx, wrapper, wrapper, id, strict, vp);
 }
 
 template <typename Base, typename Traits>
@@ -1355,7 +1355,7 @@ bool
 XrayWrapper<Base, Traits>::has(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     
-    return ProxyHandler::has(cx, wrapper, id, bp);
+    return BaseProxyHandler::has(cx, wrapper, id, bp);
 }
 
 template <typename Base, typename Traits>
@@ -1363,7 +1363,7 @@ bool
 XrayWrapper<Base, Traits>::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, bool *bp)
 {
     
-    return ProxyHandler::hasOwn(cx, wrapper, id, bp);
+    return BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
 }
 
 template <typename Base, typename Traits>
@@ -1371,7 +1371,7 @@ bool
 XrayWrapper<Base, Traits>::keys(JSContext *cx, JSObject *wrapper, JS::AutoIdVector &props)
 {
     
-    return ProxyHandler::keys(cx, wrapper, props);
+    return BaseProxyHandler::keys(cx, wrapper, props);
 }
 
 template <typename Base, typename Traits>
@@ -1380,7 +1380,7 @@ XrayWrapper<Base, Traits>::iterate(JSContext *cx, JSObject *wrapper, unsigned fl
                                    js::Value *vp)
 {
     
-    return ProxyHandler::iterate(cx, wrapper, flags, vp);
+    return BaseProxyHandler::iterate(cx, wrapper, flags, vp);
 }
 
 template <typename Base, typename Traits>
