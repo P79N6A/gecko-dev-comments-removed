@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Breakpad integration
- *
- * The Initial Developer of the Original Code is
- * Ted Mielczarek <ted.mielczarek@gmail.com>
- * Portions created by the Initial Developer are Copyright (C) 2006
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *  Josh Aas <josh@mozilla.com>
- *  Justin Dolske <dolske@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsExceptionHandler.h"
 
@@ -80,7 +80,7 @@
 #include <unistd.h>
 #else
 #error "Not yet implemented for this platform"
-#endif // defined(XP_WIN32)
+#endif 
 
 #include <stdlib.h>
 #include <time.h>
@@ -110,7 +110,7 @@ using google_breakpad::ClientInfo;
 
 using mozilla::Mutex;
 using mozilla::MutexAutoLock;
-#endif // MOZ_IPC
+#endif 
 
 namespace CrashReporter {
 
@@ -123,9 +123,9 @@ typedef std::wstring xpstring;
 #define CRASH_REPORTER_FILENAME "crashreporter.exe"
 #define PATH_SEPARATOR "\\"
 #define XP_PATH_SEPARATOR L"\\"
-// sort of arbitrary, but MAX_PATH is kinda small
+
 #define XP_PATH_MAX 4096
-// "<reporter path>" "<minidump path>"
+
 #define CMDLINE_SIZE ((XP_PATH_MAX * 2) + 6)
 #ifdef _USE_32BIT_TIME_T
 #define XP_TTOA(time, buffer, base) ltoa(time, buffer, base)
@@ -143,29 +143,29 @@ typedef std::string xpstring;
 #define XP_PATH_SEPARATOR "/"
 #define XP_PATH_MAX PATH_MAX
 #define XP_TTOA(time, buffer, base) sprintf(buffer, "%ld", time)
-#endif // XP_WIN32
+#endif 
 
 static const XP_CHAR dumpFileExtension[] = {'.', 'd', 'm', 'p',
-                                            '\0'}; // .dmp
+                                            '\0'}; 
 static const XP_CHAR extraFileExtension[] = {'.', 'e', 'x', 't',
-                                             'r', 'a', '\0'}; // .extra
+                                             'r', 'a', '\0'}; 
 
 static google_breakpad::ExceptionHandler* gExceptionHandler = nsnull;
 
 static XP_CHAR* crashReporterPath;
 
-// if this is false, we don't launch the crash reporter
+
 static bool doReport = true;
 
-// if this is true, we pass the exception on to the OS crash reporter
+
 static bool showOSCrashReporter = false;
 
-// The time of the last recorded crash, as a time_t value.
+
 static time_t lastCrashTime = 0;
-// The pathname of a file to store the crash time in
+
 static XP_CHAR lastCrashTimeFilename[XP_PATH_MAX] = {0};
 
-// these are just here for readability
+
 static const char kCrashTimeParameter[] = "CrashTime=";
 static const int kCrashTimeParameterLen = sizeof(kCrashTimeParameter)-1;
 
@@ -173,20 +173,20 @@ static const char kTimeSinceLastCrashParameter[] = "SecondsSinceLastCrash=";
 static const int kTimeSinceLastCrashParameterLen =
                                      sizeof(kTimeSinceLastCrashParameter)-1;
 
-// this holds additional data sent via the API
+
 static AnnotationTable* crashReporterAPIData_Hash;
 static nsCString* crashReporterAPIData = nsnull;
 static nsCString* notesField = nsnull;
 
 #if defined(MOZ_IPC)
 #if !defined(XP_MACOSX)
-// OOP crash reporting
-static CrashGenerationServer* crashServer; // chrome process has this
+
+static CrashGenerationServer* crashServer; 
 #endif
 
 #  if defined(XP_WIN)
-// If crash reporting is disabled, we hand out this "null" pipe to the
-// child process and don't attempt to connect to a parent server.
+
+
 static const char kNullNotifyPipe[] = "-";
 static char* childCrashNotifyPipe;
 
@@ -196,13 +196,13 @@ static int clientSocketFd = -1;
 static const int kMagicChildCrashReportFd = 42;
 #  endif
 
-// |dumpMapLock| must protect all access to |pidToMinidump|.
+
 static Mutex* dumpMapLock;
 typedef nsInterfaceHashtable<nsUint32HashKey, nsILocalFile> ChildMinidumpMap;
 static ChildMinidumpMap* pidToMinidump;
 
-// Crashreporter annotations that we don't send along in subprocess
-// reports
+
+
 static const char* kSubprocessBlacklist[] = {
   "FramePoisonBase",
   "FramePoisonSize",
@@ -211,7 +211,7 @@ static const char* kSubprocessBlacklist[] = {
 };
 
 
-#endif  // MOZ_IPC
+#endif  
 
 #ifdef XP_WIN
 static void
@@ -266,11 +266,11 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   p = Concat(p, minidump_id, &size);
   Concat(p, extraFileExtension, &size);
 
-  // calculate time since last crash (if possible), and store
-  // the time of this crash.
+  
+  
   time_t crashTime = time(NULL);
   time_t timeSinceLastCrash = 0;
-  // stringified versions of the above
+  
   char crashTimeString[32];
   int crashTimeStringLen = 0;
   char timeSinceLastCrashString[32];
@@ -283,7 +283,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
     XP_TTOA(timeSinceLastCrash, timeSinceLastCrashString, 10);
     timeSinceLastCrashStringLen = strlen(timeSinceLastCrashString);
   }
-  // write crash time to file
+  
   if (lastCrashTimeFilename[0] != 0) {
 #if defined(XP_WIN32)
     HANDLE hFile = CreateFile(lastCrashTimeFilename, GENERIC_WRITE, 0,
@@ -316,7 +316,7 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   Concat(p, L"\"", &size);
 
   if (!crashReporterAPIData->IsEmpty()) {
-    // write out API data
+    
     HANDLE hFile = CreateFile(extraDataPath, GENERIC_WRITE, 0,
                               NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
                               NULL);
@@ -357,17 +357,17 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
     CloseHandle( pi.hProcess );
     CloseHandle( pi.hThread );
   }
-  // we're not really in a position to do anything if the CreateProcess fails
+  
   TerminateProcess(GetCurrentProcess(), 1);
 #elif defined(XP_UNIX)
   if (!crashReporterAPIData->IsEmpty()) {
-    // write out API data
+    
     int fd = open(extraDataPath,
                   O_WRONLY | O_CREAT | O_TRUNC,
                   0666);
 
     if (fd != -1) {
-      // not much we can do in case of error
+      
       ssize_t ignored = write(fd, crashReporterAPIData->get(),
                               crashReporterAPIData->Length());
       ignored = write(fd, kCrashTimeParameter, kCrashTimeParameterLen);
@@ -393,8 +393,8 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   if (pid == -1)
     return false;
   else if (pid == 0) {
-    // need to clobber this, as libcurl might load NSS,
-    // and we want it to load the system NSS.
+    
+    
     unsetenv("LD_LIBRARY_PATH");
     (void) execl(crashReporterPath,
                  crashReporterPath, minidumpPath, (char*)0);
@@ -406,10 +406,10 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
 }
 
 #ifdef XP_WIN
-/**
- * Filters out floating point exceptions which are handled by nsSigHandlers.cpp
- * and should not be handled as crashes.
- */
+
+
+
+
 static bool FPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
                       MDRawAssertionInfo* assertion)
 {
@@ -427,22 +427,22 @@ static bool FPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
     case STATUS_FLOAT_UNDERFLOW:
     case STATUS_FLOAT_MULTIPLE_FAULTS:
     case STATUS_FLOAT_MULTIPLE_TRAPS:
-      return false; // Don't write minidump, continue exception search
+      return false; 
   }
   return true;
 }
-#endif // XP_WIN
+#endif 
 
 static bool ShouldReport()
 {
-  // this environment variable prevents us from launching
-  // the crash reporter client
+  
+  
   const char *envvar = PR_GetEnv("MOZ_CRASHREPORTER_NO_REPORT");
   return !(envvar && *envvar);
 }
 
 nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
-                             bool force/*=false*/)
+                             bool force)
 {
   nsresult rv;
 
@@ -453,11 +453,11 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   if (envvar && *envvar && !force)
     return NS_OK;
 
-  // this environment variable prevents us from launching
-  // the crash reporter client
+  
+  
   doReport = ShouldReport();
 
-  // allocate our strings
+  
   crashReporterAPIData = new nsCString();
   NS_ENSURE_TRUE(crashReporterAPIData, NS_ERROR_OUT_OF_MEMORY);
 
@@ -471,7 +471,7 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   notesField = new nsCString();
   NS_ENSURE_TRUE(notesField, NS_ERROR_OUT_OF_MEMORY);
 
-  // locate crashreporter executable
+  
   nsCOMPtr<nsIFile> exePath;
   rv = aXREDirectory->Clone(getter_AddRefs(exePath));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -496,11 +496,11 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   crashReporterPath = ToNewCString(crashReporterPath_temp);
 #endif
 
-  // get temp path to use for minidump path
+  
 #if defined(XP_WIN32)
   nsString tempPath;
 
-  // first figure out buffer size
+  
   int pathLen = GetTempPath(0, NULL);
   if (pathLen == 0)
     return NS_ERROR_FAILURE;
@@ -523,13 +523,23 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   tempPath = path;
 
 #elif defined(XP_UNIX)
-  // we assume it's always /tmp on unix systems
+  
   nsCString tempPath = NS_LITERAL_CSTRING("/tmp/");
 #else
 #error "Implement this for your platform"
 #endif
 
-  // now set the exception handler
+#ifdef XP_UNIX
+  
+  
+  
+  
+  int fd = open("/dev/null", O_RDONLY);
+  close(fd);
+  write(-1, NULL, 0);
+#endif
+
+  
   gExceptionHandler = new google_breakpad::
     ExceptionHandler(tempPath.get(),
 #ifdef XP_WIN
@@ -548,16 +558,16 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   if (!gExceptionHandler)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  // store application start time
+  
   char timeString[32];
   XP_TTOA(time(NULL), timeString, 10);
   AnnotateCrashReport(NS_LITERAL_CSTRING("StartupTime"),
                       nsDependentCString(timeString));
 
 #if defined(XP_MACOSX)
-  // On OS X, many testers like to see the OS crash reporting dialog
-  // since it offers immediate stack traces.  We allow them to set
-  // a default to pass exceptions to the OS handler.
+  
+  
+  
   Boolean keyExistsAndHasValidFormat = false;
   Boolean prefValue = ::CFPreferencesGetAppBooleanValue(CFSTR("OSCrashReporter"),
                                                         kCFPreferencesCurrentApplication,
@@ -637,13 +647,13 @@ GetFileContents(nsIFile* aFile, nsACString& data)
   return rv;
 }
 
-// Function typedef for initializing a piece of data that we
-// don't already have.
+
+
 typedef nsresult (*InitDataFunc)(nsACString&);
 
-// Attempt to read aFile's contents into aContents, if aFile
-// does not exist, create it and initialize its contents
-// by calling aInitFunc for the data.
+
+
+
 static nsresult
 GetOrInit(nsIFile* aDir, const nsACString& filename,
           nsACString& aContents, InitDataFunc aInitFunc)
@@ -662,26 +672,26 @@ GetOrInit(nsIFile* aDir, const nsACString& filename,
 
   if (!exists) {
     if (aInitFunc) {
-      // get the initial value and write it to the file
+      
       rv = aInitFunc(aContents);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = WriteDataToFile(dataFile, aContents);
     }
     else {
-      // didn't pass in an init func
+      
       rv = NS_ERROR_FAILURE;
     }
   }
   else {
-    // just get the file's contents
+    
     rv = GetFileContents(dataFile, aContents);
   }
 
   return rv;
 }
 
-// Init the "install time" data.  We're taking an easy way out here
-// and just setting this to "the time when this version was first run".
+
+
 static nsresult
 InitInstallTime(nsACString& aInstallTime)
 {
@@ -693,11 +703,11 @@ InitInstallTime(nsACString& aInstallTime)
   return NS_OK;
 }
 
-// Annotate the crash report with a Unique User ID and time
-// since install.  Also do some prep work for recording
-// time since last crash, which must be calculated at
-// crash time.
-// If any piece of data doesn't exist, initialize it first.
+
+
+
+
+
 nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
                         const nsACString& aBuildID)
 {
@@ -728,7 +738,7 @@ nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
 
   _wputenv(dataDirEnv.get());
 #else
-  // Save this path in the environment for the crash reporter application.
+  
   nsCAutoString dataDirEnv("MOZ_CRASHREPORTER_DATA_DIRECTORY=");
 
   nsCAutoString dataDirectoryPath;
@@ -749,17 +759,17 @@ nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
                             data, InitInstallTime)))
     AnnotateCrashReport(NS_LITERAL_CSTRING("InstallTime"), data);
 
-  // this is a little different, since we can't init it with anything,
-  // since it's stored at crash time, and we can't annotate the
-  // crash report with the stored value, since we really want
-  // (now - LastCrash), so we just get a value if it exists,
-  // and store it in a time_t value.
+  
+  
+  
+  
+  
   if(NS_SUCCEEDED(GetOrInit(dataDirectory, NS_LITERAL_CSTRING("LastCrash"),
                             data, NULL))) {
     lastCrashTime = (time_t)atol(data.get());
   }
 
-  // not really the best place to init this, but I have the path I need here
+  
   nsCOMPtr<nsIFile> lastCrashFile;
   rv = dataDirectory->Clone(getter_AddRefs(lastCrashFile));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -793,8 +803,8 @@ nsresult UnsetExceptionHandler()
 {
   delete gExceptionHandler;
 
-  // do this here in the unlikely case that we succeeded in allocating
-  // our strings but failed to allocate gExceptionHandler.
+  
+  
   if (crashReporterAPIData_Hash) {
     delete crashReporterAPIData_Hash;
     crashReporterAPIData_Hash = nsnull;
@@ -877,17 +887,17 @@ nsresult AnnotateCrashReport(const nsACString& key, const nsACString& data)
 
   nsCString escapedData(data);
 
-  // escape backslashes
+  
   ReplaceChar(escapedData, NS_LITERAL_CSTRING("\\"),
               NS_LITERAL_CSTRING("\\\\"));
-  // escape newlines
+  
   ReplaceChar(escapedData, NS_LITERAL_CSTRING("\n"),
               NS_LITERAL_CSTRING("\\n"));
 
   nsresult rv = crashReporterAPIData_Hash->Put(key, escapedData);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // now rebuild the file contents
+  
   crashReporterAPIData->Truncate(0);
   crashReporterAPIData_Hash->EnumerateRead(EnumerateEntries,
                                            crashReporterAPIData);
@@ -907,7 +917,7 @@ nsresult AppendAppNotesToCrashReport(const nsACString& data)
   return AnnotateCrashReport(NS_LITERAL_CSTRING("Notes"), *notesField);
 }
 
-// Returns true if found, false if not found.
+
 bool GetAnnotation(const nsACString& key, nsACString& data)
 {
   if (!gExceptionHandler)
@@ -931,8 +941,8 @@ bool GetServerURL(nsACString& aServerURL)
 
 nsresult SetServerURL(const nsACString& aServerURL)
 {
-  // store server URL with the API data
-  // the client knows to handle this specially
+  
+  
   return AnnotateCrashReport(NS_LITERAL_CSTRING("ServerURL"),
                              aServerURL);
 }
@@ -951,9 +961,9 @@ SetRestartArgs(int argc, char** argv)
     envVar.AppendInt(i);
     envVar += "=";
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
-    // we'd like to run the script around the binary
-    // instead of the binary itself, so remove the -bin
-    // if it exists on the first argument
+    
+    
+    
     int arg_len = 0;
     if (i == 0 &&
         (arg_len = strlen(argv[i])) > 4 &&
@@ -965,8 +975,8 @@ SetRestartArgs(int argc, char** argv)
       envVar += argv[i];
     }
 
-    // PR_SetEnv() wants the string to be available for the lifetime
-    // of the app, so dup it here
+    
+    
     env = ToNewCString(envVar);
     if (!env)
       return NS_ERROR_OUT_OF_MEMORY;
@@ -974,20 +984,20 @@ SetRestartArgs(int argc, char** argv)
     PR_SetEnv(env);
   }
 
-  // make sure the arg list is terminated
+  
   envVar = "MOZ_CRASHREPORTER_RESTART_ARG_";
   envVar.AppendInt(i);
   envVar += "=";
 
-  // PR_SetEnv() wants the string to be available for the lifetime
-  // of the app, so dup it here
+  
+  
   env = ToNewCString(envVar);
   if (!env)
     return NS_ERROR_OUT_OF_MEMORY;
 
   PR_SetEnv(env);
 
-  // make sure we save the info in XUL_APP_FILE for the reporter
+  
   const char *appfile = PR_GetEnv("XUL_APP_FILE");
   if (appfile && *appfile) {
     envVar = "MOZ_CRASHREPORTER_RESTART_XUL_APP_FILE=";
@@ -1019,18 +1029,18 @@ nsresult AppendObjCExceptionInfoToAppNotes(void *inException)
 }
 #endif
 
-/*
- * Combined code to get/set the crash reporter submission pref on
- * different platforms.
- */
+
+
+
+
 static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
 {
   nsresult rv;
 #if defined(XP_WIN32)
-  /*
-   * NOTE! This needs to stay in sync with the preference checking code
-   *       in toolkit/crashreporter/client/crashreporter_win.cpp
-   */
+  
+
+
+
   nsCOMPtr<nsIXULAppInfo> appinfo =
     do_GetService("@mozilla.org/xre/app-info;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1055,8 +1065,8 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
   regPath.Append(appName);
   regPath.AppendLiteral("\\Crash Reporter");
 
-  // If we're saving the pref value, just write it to ROOT_KEY_CURRENT_USER
-  // and we're done.
+  
+  
   if (writePref) {
     rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_CURRENT_USER,
                       NS_ConvertUTF8toUTF16(regPath),
@@ -1069,10 +1079,10 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
     return rv;
   }
 
-  // We're reading the pref value, so we need to first look under
-  // ROOT_KEY_LOCAL_MACHINE to see if it's set there, and then fall back to
-  // ROOT_KEY_CURRENT_USER. If it's not set in either place, the pref defaults
-  // to "true".
+  
+  
+  
+  
   PRUint32 value;
   rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
                     NS_ConvertUTF8toUTF16(regPath),
@@ -1095,7 +1105,7 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
   }
   
   rv = regKey->ReadIntValue(NS_LITERAL_STRING("SubmitCrashReport"), &value);
-  // default to true on failure
+  
   if (NS_FAILED(rv)) {
     value = 1;
     rv = NS_OK;
@@ -1125,10 +1135,10 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
   }
   return rv;
 #elif defined(XP_UNIX)
-  /*
-   * NOTE! This needs to stay in sync with the preference checking code
-   *       in toolkit/crashreporter/client/crashreporter_linux.cpp
-   */
+  
+
+
+
   nsCOMPtr<nsIFile> reporterINI;
   rv = NS_GetSpecialDirectory("UAppData", getter_AddRefs(reporterINI));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1140,11 +1150,11 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
   NS_ENSURE_SUCCESS(rv, rv);
   if (!exists) {
     if (!writePref) {
-        // If reading the pref, default to true if .ini doesn't exist.
+        
         *aSubmitReports = PR_TRUE;
         return NS_OK;
     }
-    // Create the file so the INI processor can write to it.
+    
     rv = reporterINI->Create(nsIFile::NORMAL_FILE_TYPE, 0600);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1160,7 +1170,7 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
                                    getter_AddRefs(iniParser));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // If we're writing the pref, just set and we're done.
+  
   if (writePref) {
     nsCOMPtr<nsIINIParserWriter> iniWriter = do_QueryInterface(iniParser);
     NS_ENSURE_TRUE(iniWriter, NS_ERROR_FAILURE);
@@ -1179,7 +1189,7 @@ static nsresult PrefSubmitReports(PRBool* aSubmitReports, bool writePref)
                             NS_LITERAL_CSTRING("SubmitReport"),
                             submitReportValue);
 
-  // Default to "true" if the pref can't be found.
+  
   if (NS_FAILED(rv))
     *aSubmitReports = PR_TRUE;
   else if (submitReportValue.EqualsASCII("0"))
@@ -1203,8 +1213,8 @@ nsresult SetSubmitReports(PRBool aSubmitReports)
     return PrefSubmitReports(&aSubmitReports, true);
 }
 
-// The "pending" dir is Crash Reports/pending, from which minidumps
-// can be submitted
+
+
 static bool
 GetPendingDir(nsILocalFile** dir)
 {
@@ -1224,12 +1234,12 @@ GetPendingDir(nsILocalFile** dir)
   return true;
 }
 
-// The "limbo" dir is where minidumps go to wait for something else to
-// use them.  If we're |ShouldReport()|, then the "something else" is
-// a minidump submitter, and they're coming from the 
-// Crash Reports/pending/ dir.  Otherwise, we don't know what the
-// "somthing else" is, but the minidumps stay in [profile]/minidumps/
-// limbo.
+
+
+
+
+
+
 static bool
 GetMinidumpLimboDir(nsILocalFile** dir)
 {
@@ -1307,9 +1317,9 @@ AppendExtraData(const nsAString& id, const AnnotationTable& data)
   return AppendExtraData(extraFile, data);
 }
 
-//-----------------------------------------------------------------------------
-// Helpers for AppendExtraData()
-//
+
+
+
 struct Blacklist {
   Blacklist() : mItems(NULL), mLen(0) { }
   Blacklist(const char** items, int len) : mItems(items), mLen(len) { }
@@ -1348,7 +1358,7 @@ EnumerateAnnotations(const nsACString& key,
     static_cast<EnumerateAnnotationsContext*>(userData);
   const Blacklist& blacklist = ctx->blacklist;
 
-  // skip entries in the blacklist
+  
   if (blacklist.Contains(key))
       return PL_DHASH_NEXT;
 
@@ -1409,8 +1419,8 @@ WriteExtraForMinidump(nsILocalFile* minidump,
 
   if (!WriteExtraData(extra, *crashReporterAPIData_Hash,
                       blacklist,
-                      true /*write crash time*/,
-                      true /*truncate*/))
+                      true ,
+                      true ))
     return false;
 
   *extraFile = NULL;
@@ -1419,8 +1429,8 @@ WriteExtraForMinidump(nsILocalFile* minidump,
   return true;
 }
 
-// It really only makes sense to call this function when
-// ShouldReport() is true.
+
+
 static bool
 MoveToPending(nsIFile* dumpFile, nsIFile* extraFile)
 {
@@ -1459,7 +1469,7 @@ OnChildProcessDumpRequested(void* aContext,
     pidToMinidump->Put(pid, minidump);
   }
 }
-#endif  // XP_MACOSX
+#endif  
 
 static bool
 OOPInitialized()
@@ -1483,11 +1493,11 @@ OOPInit()
   const std::wstring dumpPath = gExceptionHandler->dump_path();
   crashServer = new CrashGenerationServer(
     NS_ConvertASCIItoUTF16(childCrashNotifyPipe).get(),
-    NULL,                       // default security attributes
-    NULL, NULL,                 // we don't care about process connect here
+    NULL,                       
+    NULL, NULL,                 
     OnChildProcessDumpRequested, NULL,
-    NULL, NULL,                 // we don't care about process exit here
-    true,                       // automatically generate dumps
+    NULL, NULL,                 
+    true,                       
     &dumpPath);
 
 #elif defined(XP_LINUX)
@@ -1499,8 +1509,8 @@ OOPInit()
   crashServer = new CrashGenerationServer(
     serverSocketFd,
     OnChildProcessDumpRequested, NULL,
-    NULL, NULL,                 // we don't care about process exit here
-    true,                       // automatically generate dumps
+    NULL, NULL,                 
+    true,                       
     &dumpPath);
 #endif
 
@@ -1541,7 +1551,7 @@ OOPDeinit()
 }
 
 #if defined(XP_WIN)
-// Parent-side API for children
+
 const char*
 GetChildNotificationPipe()
 {
@@ -1554,11 +1564,11 @@ GetChildNotificationPipe()
   return childCrashNotifyPipe;
 }
 
-// Child-side API
+
 bool
 SetRemoteExceptionHandler(const nsACString& crashPipe)
 {
-  // crash reporting is disabled
+  
   if (crashPipe.Equals(kNullNotifyPipe))
     return true;
 
@@ -1566,22 +1576,22 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
 
   gExceptionHandler = new google_breakpad::
     ExceptionHandler(L"",
-                     NULL,    // no filter callback
-                     NULL,    // no minidump callback
-                     NULL,    // no callback context
+                     NULL,    
+                     NULL,    
+                     NULL,    
                      google_breakpad::ExceptionHandler::HANDLER_ALL,
                      MiniDumpNormal,
                      NS_ConvertASCIItoUTF16(crashPipe).BeginReading(),
                      NULL);
 
-  // we either do remote or nothing, no fallback to regular crash reporting
+  
   return gExceptionHandler->IsOutOfProcess();
 }
 
-//--------------------------------------------------
+
 #elif defined(XP_LINUX)
 
-// Parent-side API for children
+
 bool
 CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd)
 {
@@ -1600,7 +1610,7 @@ CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd)
   return true;
 }
 
-// Child-side API
+
 bool
 SetRemoteExceptionHandler()
 {
@@ -1608,17 +1618,17 @@ SetRemoteExceptionHandler()
 
   gExceptionHandler = new google_breakpad::
     ExceptionHandler("",
-                     NULL,    // no filter callback
-                     NULL,    // no minidump callback
-                     NULL,    // no callback context
-                     true,    // install signal handlers
+                     NULL,    
+                     NULL,    
+                     NULL,    
+                     true,    
                      kMagicChildCrashReportFd);
 
-  // we either do remote or nothing, no fallback to regular crash reporting
+  
   return gExceptionHandler->IsOutOfProcess();
 }
 
-//--------------------------------------------------
+
 #elif defined(XP_MACOSX)
 void
 CreateNotificationPipeForChild()
@@ -1626,7 +1636,7 @@ CreateNotificationPipeForChild()
   if (GetEnabled() && !OOPInitialized())
     OOPInit();
 }
-#endif  // XP_WIN
+#endif  
 
 
 bool
@@ -1648,9 +1658,9 @@ TakeMinidumpForChild(PRUint32 childPid, nsILocalFile** dump)
   return found;
 }
 
-//-----------------------------------------------------------------------------
-// CreatePairedMinidumps() and helpers
-//
+
+
+
 struct PairedDumpContext {
   nsCOMPtr<nsILocalFile>* minidump;
   nsCOMPtr<nsILocalFile>* extra;
@@ -1662,8 +1672,8 @@ PairedDumpCallback(const XP_CHAR* dump_path,
                    const XP_CHAR* minidump_id,
                    void* context,
 #ifdef XP_WIN32
-                   EXCEPTION_POINTERS* /*unused*/,
-                   MDRawAssertionInfo* /*unused*/,
+                   EXCEPTION_POINTERS* ,
+                   MDRawAssertionInfo* ,
 #endif
                    bool succeeded)
 {
@@ -1709,7 +1719,7 @@ CreatePairedMinidumps(ProcessHandle childPid,
   return false;
 #else
 
-  // create the UUID for the hang dump as a pair
+  
   nsresult rv;
   nsCOMPtr<nsIUUIDGenerator> uuidgen =
     do_GetService("@mozilla.org/uuid-generator;1", &rv);
@@ -1723,11 +1733,11 @@ CreatePairedMinidumps(ProcessHandle childPid,
   id.ToProvidedString(chars);
   CopyASCIItoUTF16(chars, *pairGUID);
 
-  // trim off braces
+  
   pairGUID->Cut(0, 1);
   pairGUID->Cut(pairGUID->Length()-1, 1);
 
-  // dump the child
+  
   nsCOMPtr<nsILocalFile> childMinidump;
   nsCOMPtr<nsILocalFile> childExtra;
   Blacklist childBlacklist(kSubprocessBlacklist,
@@ -1742,21 +1752,21 @@ CreatePairedMinidumps(ProcessHandle childPid,
          &childCtx))
     return false;
 
-  // dump the parent
+  
   nsCOMPtr<nsILocalFile> parentMinidump;
   nsCOMPtr<nsILocalFile> parentExtra;
-  // nothing's blacklisted for this process
+  
   Blacklist parentBlacklist;
   PairedDumpContext parentCtx =
     { &parentMinidump, &parentExtra, parentBlacklist };
   if (!google_breakpad::ExceptionHandler::WriteMinidump(
          gExceptionHandler->dump_path(),
-         true,                  // write exception stream
+         true,                  
          PairedDumpCallback,
          &parentCtx))
     return false;
 
-  // success
+  
   if (ShouldReport()) {
     MoveToPending(childMinidump, childExtra);
     MoveToPending(parentMinidump, parentExtra);
@@ -1768,7 +1778,7 @@ CreatePairedMinidumps(ProcessHandle childPid,
   parentMinidump.swap(*parentDump);
 
   return true;
-#endif  // XP_MACOSX
+#endif  
 }
 
 #if !defined(XP_MACOSX)
@@ -1779,8 +1789,8 @@ UnsetRemoteExceptionHandler()
   gExceptionHandler = NULL;
   return true;
 }
-#endif  // XP_MACOSX
+#endif  
 
-#endif  // MOZ_IPC
+#endif  
 
-} // namespace CrashReporter
+} 
