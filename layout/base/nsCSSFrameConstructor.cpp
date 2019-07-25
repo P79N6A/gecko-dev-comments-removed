@@ -7618,8 +7618,10 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
 
           DoApplyRenderingChangeToTree(outOfFlowFrame, aViewManager,
                                        aFrameManager, aChange);
-        }
-        else {  
+        } else if (childList == nsGkAtoms::popupList) {
+          DoApplyRenderingChangeToTree(child, aViewManager,
+                                       aFrameManager, aChange);
+        } else {  
           UpdateViewsForTree(child, aViewManager, aFrameManager, aChange);
         }
       }
