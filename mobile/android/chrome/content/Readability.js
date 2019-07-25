@@ -42,6 +42,7 @@ Readability.prototype = {
   FLAG_STRIP_UNLIKELYS: 0x1,
   FLAG_WEIGHT_CLASSES: 0x2,
   FLAG_CLEAN_CONDITIONALLY: 0x4,
+  FLAG_READABILITY_CHECK: 0x8,
 
   
   
@@ -149,6 +150,9 @@ Readability.prototype = {
 
 
   _prepDocument: function() {
+    if (this._flagIsActive(this.FLAG_READABILITY_CHECK))
+      return;
+
     let doc = this._doc;
 
     
@@ -332,6 +336,7 @@ Readability.prototype = {
   _grabArticle: function(page) {
     let doc = this._doc;
     let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
+    let isChecking = this._flagIsActive(this.FLAG_READABILITY_CHECK);
     let isPaging = (page !== null ? true: false);
 
     page = page ? page : this._doc.body;
@@ -468,6 +473,13 @@ Readability.prototype = {
     
     
     if (topCandidate === null || topCandidate.tagName === "BODY") {
+      
+      
+      if (isChecking) {
+        dump('No top candidate found, failed readability check');
+        return null;
+      }
+
       topCandidate = doc.createElement("DIV");
       topCandidate.innerHTML = page.innerHTML;
 
@@ -475,6 +487,12 @@ Readability.prototype = {
       page.appendChild(topCandidate);
 
       this._initializeNode(topCandidate);
+    } else if (isChecking) {
+      dump('Found a top candidate, passed readability check');
+
+      
+      
+      return {};
     }
 
     
@@ -585,6 +603,9 @@ Readability.prototype = {
 
 
   _removeScripts: function(doc) {
+    if (this._flagIsActive(this.FLAG_READABILITY_CHECK))
+      return;
+
     let scripts = doc.getElementsByTagName('script');
     for (let i = scripts.length - 1; i >= 0; i -= 1) {
       scripts[i].nodeValue="";
@@ -1236,10 +1257,8 @@ Readability.prototype = {
     if ((uri.prePath + "/") === uri.spec)
       return null;
 
-    let doc = this._doc;
-
     
-    this._removeScripts(doc);
+    this._removeScripts(this._doc);
 
     
     
@@ -1253,21 +1272,17 @@ Readability.prototype = {
 
     this._prepDocument();
 
-    
-    let innerDiv = doc.createElement("DIV");
     let articleTitle = this._getArticleTitle();
     let articleContent = this._grabArticle();
 
     if (!articleContent)
       return null;
 
-    innerDiv.appendChild(articleTitle);
-    innerDiv.appendChild(articleContent);
-
     
-    doc.body.innerHTML = "";
-    doc.body.insertBefore(innerDiv, doc.body.firstChild);
-    doc.body.removeAttribute('style');
+    
+    
+    if (this._flagIsActive(this.FLAG_READABILITY_CHECK))
+      return {};
 
     this._postProcessContent(articleContent);
 
@@ -1281,5 +1296,13 @@ Readability.prototype = {
 
     return { title: this._getInnerText(articleTitle),
              content: articleContent.innerHTML };
+  },
+
+  check: function() {
+    
+    this._flags = this.FLAG_READABILITY_CHECK |
+                  this.FLAG_STRIP_UNLIKELYS;
+
+    return (this.parse() != null);
   }
 };

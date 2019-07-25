@@ -2272,6 +2272,20 @@ Tab.prototype = {
 
         
         
+        Reader.checkTabReadability(this.id, function(isReadable) {
+          if (!isReadable)
+            return;
+
+          sendMessageToJava({
+            gecko: {
+              type: "Content:ReaderEnabled",
+              tabID: this.id
+            }
+          });
+        }.bind(this));
+
+        
+        
         
         
         if (/^about:/.test(target.documentURI)) {
@@ -5900,6 +5914,35 @@ let Reader = {
     } catch (e) {
       this.log("Error parsing document from tab: " + e);
       callback(null);
+    }
+  },
+
+  checkTabReadability: function Reader_checkTabReadability(tabId, callback) {
+    try {
+      this.log("checkTabReadability: " + tabId);
+
+      let tab = BrowserApp.getTabForId(tabId);
+      let url = tab.browser.contentWindow.location.href;
+
+      
+      this.getArticleFromCache(url, function(article) {
+        if (article) {
+          this.log("Page found in cache, page is definitely readable");
+          callback(true);
+          return;
+        }
+
+        
+        
+        let doc = tab.browser.contentWindow.document.cloneNode(true);
+        let uri = Services.io.newURI(url, null, null);
+
+        let readability = new Readability(uri, doc);
+        callback(readability.check());
+      }.bind(this));
+    } catch (e) {
+      this.log("Error checking tab readability: " + e);
+      callback(false);
     }
   },
 
