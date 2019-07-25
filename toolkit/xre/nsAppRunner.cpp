@@ -470,6 +470,8 @@ static void RemoveArg(char **argv)
 static ArgResult
 CheckArg(const char* aArg, PRBool aCheckOSInt = PR_FALSE, const char **aParam = nsnull, PRBool aRemArg = PR_TRUE)
 {
+  NS_ABORT_IF_FALSE(gArgv, "gArgv must be initialized before CheckArg()");
+
   char **curarg = gArgv + 1; 
   ArgResult ar = ARG_NONE;
 
@@ -2137,7 +2139,7 @@ SelectProfile(nsIProfileLock* *aResult, nsINativeAppSupport* aNative,
     PRBool exists;
     lf->Exists(&exists);
     if (!exists) {
-        rv = lf->Create(nsIFile::DIRECTORY_TYPE, 0700);
+        rv = lf->Create(nsIFile::DIRECTORY_TYPE, 0644);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -2491,9 +2493,6 @@ static void RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfi
   
   file->SetNativeLeafName(NS_LITERAL_CSTRING("XPC" PLATFORM_FASL_SUFFIX));
   file->Remove(PR_FALSE);
-
-  file->SetNativeLeafName(NS_LITERAL_CSTRING("startupCache"));
-  file->Remove(PR_TRUE);
 }
 
 
@@ -3137,18 +3136,15 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     QScopedPointer<QApplication> app(new QApplication(gArgc, gArgv));
 #endif
 
-#if MOZ_PLATFORM_MAEMO > 5
-    if (XRE_GetProcessType() == GeckoProcessType_Default) {
-      
-      QInputContext* inputContext = app->inputContext();
-      if (inputContext && inputContext->identifierName() != "MInputContext") {
-          QInputContext* context = QInputContextFactory::create("MInputContext",
-                                                                app.data());
-          if (context)
-              app->setInputContext(context);
-      }
+    
+    QInputContext *inputContext = app->inputContext();
+    if (inputContext && inputContext->identifierName() != "MInputContext") {
+        QInputContext* context = QInputContextFactory::create("MInputContext",
+                                                              app.data());
+        if (context)
+            app->setInputContext(context);
     }
-#endif
+
     QStringList nonQtArguments = app->arguments();
     gQtOnlyArgc = 1;
     gQtOnlyArgv = (char**) malloc(sizeof(char*) 
@@ -3272,7 +3268,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       return 1;
     }
 
-#if defined(MOZ_UPDATER) && !defined(ANDROID)
+#if defined(MOZ_UPDATER)
   
   nsCOMPtr<nsIFile> updRoot;
   PRBool persistent;
@@ -3356,7 +3352,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
      }
      flagFile = do_QueryInterface(fFlagFile);
      if (flagFile) {
-       flagFile->AppendNative(FILE_INVALIDATE_CACHES);
+       flagFile->SetNativeLeafName(FILE_INVALIDATE_CACHES);
      }
  #endif
     PRBool cachesOK;
