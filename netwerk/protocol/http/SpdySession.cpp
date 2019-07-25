@@ -851,6 +851,8 @@ SpdySession::HandleSynReply(SpdySession *self)
     return NS_OK;
   }
   
+  self->mFrameDataStream->UpdateTransportReadEvents(self->mFrameDataSize);
+
   if (!self->mFrameDataStream->SetFullyOpen()) {
     
     
@@ -1128,6 +1130,9 @@ SpdySession::HandleHeaders(SpdySession *self)
   
   
 
+  
+  
+
   LOG3(("SpdySession::HandleHeaders %p HEADERS for Stream 0x%X. "
         "They are ignored in the HTTP/SPDY mapping.",
         self, streamID));
@@ -1149,29 +1154,6 @@ SpdySession::HandleWindowUpdate(SpdySession *self)
 }
 
 
-struct transportStatus
-{
-  nsITransport *transport;
-  nsresult status;
-  PRUint64 progress;
-};
-
-static PLDHashOperator
-StreamTransportStatus(nsAHttpTransaction *key,
-                      nsAutoPtr<SpdyStream> &stream,
-                      void *closure)
-{
-  struct transportStatus *status =
-    static_cast<struct transportStatus *>(closure);
-
-  stream->Transaction()->OnTransportStatus(status->transport,
-                                           status->status,
-                                           status->progress);
-  return PL_DHASH_NEXT;
-}
-
-
-
 
 
 
@@ -1183,21 +1165,47 @@ SpdySession::OnTransportStatus(nsITransport* aTransport,
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
-  
-  if (aStatus == nsISocketTransport::STATUS_RECEIVING_FROM)
-    return;
+  switch (aStatus) {
+    
+    
+  case NS_NET_STATUS_RESOLVING_HOST:
+  case NS_NET_STATUS_RESOLVED_HOST:
+  case NS_NET_STATUS_CONNECTING_TO:
+  case NS_NET_STATUS_CONNECTED_TO:
+  {
+    SpdyStream *target = mStreamIDHash.Get(1);
+    if (target)
+      target->Transaction()->OnTransportStatus(aTransport, aStatus, aProgress);
+    break;
+  }
 
-  
-  if (aStatus == nsISocketTransport::STATUS_SENDING_TO)
-    return;
+  default:
+    
+    
+    
+    
 
-  struct transportStatus status;
-  
-  status.transport = aTransport;
-  status.status = aStatus;
-  status.progress = aProgress;
+    
+    
+    
+    
+    
+    
+    
 
-  mStreamTransactionHash.Enumerate(StreamTransportStatus, &status);
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    break;
+  }
 }
 
 
@@ -1675,6 +1683,7 @@ SpdySession::OnWriteSegment(char *buf,
 
     mFrameDataRead += *countWritten;
     
+    mFrameDataStream->UpdateTransportReadEvents(*countWritten);
     if ((mFrameDataRead == mFrameDataSize) && !mFrameDataLast)
       ChangeDownstreamState(BUFFERING_FRAME_HEADER);
 
