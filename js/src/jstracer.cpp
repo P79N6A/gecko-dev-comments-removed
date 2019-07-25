@@ -15427,28 +15427,6 @@ TraceRecorder::record_JSOP_NOP()
     return ARECORD_CONTINUE;
 }
 
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_ARGSUB()
-{
-    StackFrame* const fp = cx->fp();
-
-    
-
-
-
-
-
-    if (!fp->hasArgsObj() && !fp->fun()->isHeavyweight()) {
-        uintN slot = GET_ARGNO(cx->regs().pc);
-        if (slot >= fp->numActualArgs())
-            RETURN_STOP_A("can't trace out-of-range arguments");
-
-        stack(0, get(&cx->fp()->canonicalActualArg(slot)));
-        return ARECORD_CONTINUE;
-    }
-    RETURN_STOP_A("can't trace JSOP_ARGSUB hard case");
-}
-
 JS_REQUIRES_STACK LIns*
 TraceRecorder::guardArgsLengthNotAssigned(LIns* argsobj_ins)
 {
@@ -15458,33 +15436,6 @@ TraceRecorder::guardArgsLengthNotAssigned(LIns* argsobj_ins)
     LIns *ovr_ins = w.andi(len_ins, w.nameImmi(ArgumentsObject::LENGTH_OVERRIDDEN_BIT));
     guard(true, w.eqi0(ovr_ins), MISMATCH_EXIT);
     return len_ins;
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_ARGCNT()
-{
-    StackFrame * const fp = cx->fp();
-
-    if (fp->fun()->flags & JSFUN_HEAVYWEIGHT)
-        RETURN_STOP_A("can't trace heavyweight JSOP_ARGCNT");
-
-    
-    
-    
-    
-    
-    
-    if (fp->hasArgsObj() && fp->argsObj().hasOverriddenLength())
-        RETURN_STOP_A("can't trace JSOP_ARGCNT if arguments.length has been modified");
-    LIns *a_ins = getFrameObjPtr(fp->addressOfArgs());
-    if (callDepth == 0) {
-        if (MaybeBranch mbr = w.jt(w.eqp0(a_ins))) {
-            guardArgsLengthNotAssigned(a_ins);
-            w.label(mbr);
-        }
-    }
-    stack(0, w.immd(fp->numActualArgs()));
-    return ARECORD_CONTINUE;
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
@@ -16107,7 +16058,7 @@ TraceRecorder::record_JSOP_LENGTH()
         
         
         if (obj->asArguments()->hasOverriddenLength())
-            RETURN_STOP_A("can't trace JSOP_ARGCNT if arguments.length has been modified");
+            RETURN_STOP_A("can't trace arguments.length if it has been modified");
         LIns* slot_ins = guardArgsLengthNotAssigned(obj_ins);
 
         

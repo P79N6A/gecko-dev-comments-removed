@@ -536,9 +536,6 @@ SetCallUpvar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp
 extern JSBool
 js_GetArgsValue(JSContext *cx, js::StackFrame *fp, js::Value *vp);
 
-extern JSBool
-js_GetArgsProperty(JSContext *cx, js::StackFrame *fp, jsid id, js::Value *vp);
-
 
 
 
