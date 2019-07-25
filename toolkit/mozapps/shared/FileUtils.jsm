@@ -36,6 +36,7 @@
 
 
 
+
 EXPORTED_SYMBOLS = [ "FileUtils" ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -113,9 +114,29 @@ var FileUtils = {
 
 
 
+  openFileOutputStream: function FileUtils_openFileOutputStream(file, modeFlags) {
+    var fos = Cc["@mozilla.org/network/file-output-stream;1"].
+              createInstance(Ci.nsIFileOutputStream);
+    return this._initFileOutputStream(fos, file, modeFlags);
+  },
+
+  
+
+
+
+
+
+
+
+
+
   openSafeFileOutputStream: function FileUtils_openSafeFileOutputStream(file, modeFlags) {
     var fos = Cc["@mozilla.org/network/safe-file-output-stream;1"].
               createInstance(Ci.nsIFileOutputStream);
+    return this._initFileOutputStream(fos, file, modeFlags);
+  },
+
+ _initFileOutputStream: function FileUtils__initFileOutputStream(fos, file, modeFlags) {
     if (modeFlags === undefined)
       modeFlags = this.MODE_WRONLY | this.MODE_CREATE | this.MODE_TRUNCATE;
     fos.init(file, modeFlags, this.PERMS_FILE, fos.DEFER_OPEN);

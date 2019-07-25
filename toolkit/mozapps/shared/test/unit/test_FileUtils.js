@@ -91,6 +91,44 @@ add_test(function test_getDir_shouldCreate() {
   run_next_test();
 });
 
+add_test(function test_openFileOutputStream_defaultFlags() {
+  let file = FileUtils.getFile("ProfD", ["george"]);
+  let fos = FileUtils.openFileOutputStream(file);
+  do_check_true(fos instanceof Components.interfaces.nsIFileOutputStream);
+
+  
+  
+  do_check_false(file.exists());
+
+  let data = "imagine";
+  fos.write(data, data.length);
+  do_check_true(file.exists());
+
+  
+  
+  if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
+    do_check_eq(file.permissions, 0666);
+  } else {
+    do_check_eq(file.permissions, FileUtils.PERMS_FILE);
+  }
+
+  run_next_test();
+});
+
+
+
+add_test(function test_openFileOutputStream_modeFlags() {
+  let file = FileUtils.getFile("ProfD", ["ringo"]);
+  let fos = FileUtils.openFileOutputStream(file, FileUtils.MODE_WRONLY);
+  let data = "yesterday";
+  do_check_throws(function () {
+    fos.write(data, data.length);
+  }, Components.results.NS_ERROR_FILE_NOT_FOUND);
+  do_check_false(file.exists());
+
+  run_next_test();
+});
+
 add_test(function test_openSafeFileOutputStream_defaultFlags() {
   let file = FileUtils.getFile("ProfD", ["john"]);
   let fos = FileUtils.openSafeFileOutputStream(file);
