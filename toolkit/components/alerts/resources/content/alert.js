@@ -127,14 +127,6 @@ function onAlertLoad()
   var alertBox = document.getElementById("alertBox");
   alertBox.orient = (gOrigin & NS_ALERT_HORIZONTAL) ? "vertical" : "horizontal";
 
-  
-  
-  
-  if (gOrigin & NS_ALERT_HORIZONTAL)
-  {
-    document.getElementById("alertTextBox").align = "center";
-  }
-
   sizeToContent();
 
   
