@@ -914,9 +914,6 @@ stubs::DefFun(VMFrame &f, JSFunction *fun)
 
     JSObject *parent = &fp->varobj(cx);
 
-    uint32 old;
-    bool doSet;
-
     
 
 
@@ -940,7 +937,7 @@ stubs::DefFun(VMFrame &f, JSFunction *fun)
 
 
 
-    doSet = false;
+    bool doSet = false;
     if (prop) {
         JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE | JSPROP_PERMANENT)));
         JS_ASSERT((attrs == JSPROP_ENUMERATE) == fp->isEvalFrame());
