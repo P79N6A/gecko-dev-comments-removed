@@ -195,6 +195,10 @@ public:
 
         if (!MakeCurrent()) return PR_FALSE;
         if (!SetupLookupFunction()) return PR_FALSE;
+
+        
+        sOSMesaLibrary.fPixelStore(OSMESA_Y_UP, 0);
+
         return InitWithPrefix("gl", PR_TRUE);
     }
 
