@@ -71,6 +71,10 @@ namespace nanojit
 
         
 
+        void resetAndAlloc();
+
+        
+
         bool setFrom(BitSet& other);
 
         
