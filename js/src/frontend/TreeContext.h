@@ -61,8 +61,8 @@ struct StmtInfo;
 class ContextFlags {
 
     
-    friend class SharedContext;
-    friend class FunctionBox;
+    friend struct SharedContext;
+    friend struct FunctionBox;
 
     
     
