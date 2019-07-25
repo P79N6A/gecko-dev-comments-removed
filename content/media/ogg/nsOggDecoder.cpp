@@ -4,11 +4,11 @@
 
 
 
-#include "nsOggDecoderStateMachine.h"
+#include "nsBuiltinDecoderStateMachine.h"
 #include "nsOggReader.h"
 #include "nsOggDecoder.h"
 
 nsDecoderStateMachine* nsOggDecoder::CreateStateMachine()
 {
-  return new nsOggDecoderStateMachine(this);
+  return new nsBuiltinDecoderStateMachine(this, new nsOggReader(this));
 }
