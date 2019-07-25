@@ -2014,36 +2014,6 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
         nativeDraw.EndNativeDrawing();
       } while (nativeDraw.ShouldRenderAgain());
       nativeDraw.PaintToContext();
-    } else if (!aBuilder->IsPaintingToWindow()) {
-      
-      
-      typedef BOOL (WINAPI * PrintWindowPtr)
-          (HWND hwnd, HDC hdcBlt, UINT nFlags);
-      PrintWindowPtr printProc = nsnull;
-      HMODULE module = ::GetModuleHandleW(L"user32.dll");
-      if (module) {
-        printProc = reinterpret_cast<PrintWindowPtr>
-          (::GetProcAddress(module, "PrintWindow"));
-      }
-      
-      if (printProc && !mInstanceOwner->MatchPluginName("Java(TM) Platform")) {
-        HWND hwnd = reinterpret_cast<HWND>(window->window);
-        RECT rc;
-        GetWindowRect(hwnd, &rc);
-        nsRefPtr<gfxWindowsSurface> surface =
-          new gfxWindowsSurface(gfxIntSize(rc.right - rc.left, rc.bottom - rc.top));
-
-        if (surface && printProc) {
-          printProc(hwnd, surface->GetDC(), 0);
-        
-          ctx->Translate(frameGfxRect.pos);
-          ctx->SetSource(surface);
-          gfxRect r = frameGfxRect.Intersect(dirtyGfxRect) - frameGfxRect.pos;
-          ctx->NewPath();
-          ctx->Rectangle(r);
-          ctx->Fill();
-        }
-      }
     }
 
     ctx->SetMatrix(currentMatrix);
