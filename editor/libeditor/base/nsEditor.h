@@ -719,6 +719,11 @@ public:
   
   nsresult InitializeSelection(nsIDOMEventTarget* aFocusEventTarget);
 
+  
+  
+  
+  void OnFocus(nsIDOMEventTarget* aFocusEventTarget);
+
 protected:
 
   PRUint32        mModCount;		

@@ -458,9 +458,6 @@ protected:
   
   
   already_AddRefed<nsINode> GetFocusedNode();
-  
-  
-  nsIContent* GetActiveEditingHost();
 
   
   PRBool SetCaretInTableCell(nsIDOMElement* aElement);

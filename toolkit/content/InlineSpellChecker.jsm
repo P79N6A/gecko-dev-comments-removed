@@ -131,8 +131,12 @@ InlineSpellChecker.prototype = {
       return 0; 
 
     var spellchecker = this.mInlineSpellChecker.spellChecker;
-    if (! spellchecker.CheckCurrentWord(this.mMisspelling))
-      return 0;  
+    try {
+      if (! spellchecker.CheckCurrentWord(this.mMisspelling))
+        return 0;  
+    } catch(e) {
+        return 0;
+    }
 
     this.mMenu = menu;
     this.mSpellSuggestions = [];
@@ -192,7 +196,10 @@ InlineSpellChecker.prototype = {
     spellchecker.GetDictionaryList(o1, o2);
     var list = o1.value;
     var listcount = o2.value;
-    var curlang = spellchecker.GetCurrentDictionary();
+    var curlang = "";
+    try {
+        curlang = spellchecker.GetCurrentDictionary();
+    } catch(e) {}
     var isoStrArray;
 
     for (var i = 0; i < list.length; i ++) {

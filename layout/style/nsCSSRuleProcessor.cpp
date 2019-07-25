@@ -1196,29 +1196,6 @@ nsCSSRuleProcessor::GetWindowsThemeIdentifier()
 #endif
 
 
-static void GetLang(nsIContent* aContent, nsString& aLang)
-{
-  for (nsIContent* content = aContent; content;
-       content = content->GetParent()) {
-    if (content->GetAttrCount() > 0) {
-      
-      
-      PRBool hasAttr = content->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang,
-                                        aLang);
-      if (!hasAttr && content->IsHTML()) {
-        hasAttr = content->GetAttr(kNameSpaceID_None, nsGkAtoms::lang,
-                                   aLang);
-      }
-      NS_ASSERTION(hasAttr || aLang.IsEmpty(),
-                   "GetAttr that returns false should not make string non-empty");
-      if (hasAttr) {
-        return;
-      }
-    }
-  }
-}
-
-
 nsEventStates
 nsCSSRuleProcessor::GetContentState(Element* aElement)
 {
@@ -1697,7 +1674,7 @@ static PRBool SelectorMatches(Element* aElement,
           
           
           nsAutoString language;
-          GetLang(aElement, language);
+          aElement->GetLang(language);
           if (!language.IsEmpty()) {
             if (!nsStyleUtil::DashMatchCompare(language,
                                                nsDependentString(pseudoClass->u.mString),

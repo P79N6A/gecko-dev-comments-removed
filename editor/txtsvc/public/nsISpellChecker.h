@@ -144,6 +144,7 @@ public:
 
 
 
+
   NS_IMETHOD SetCurrentDictionary(const nsAString &aDictionary) = 0;
 };
 

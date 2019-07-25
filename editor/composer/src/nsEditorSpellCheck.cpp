@@ -42,11 +42,15 @@
 
 #include "nsEditorSpellCheck.h"
 
+#include "nsStyleUtil.h"
+#include "nsIContent.h"
+#include "nsIDOMElement.h"
 #include "nsITextServicesDocument.h"
 #include "nsISpellChecker.h"
 #include "nsISelection.h"
 #include "nsIDOMRange.h"
 #include "nsIEditor.h"
+#include "nsIHTMLEditor.h"
 
 #include "nsIComponentManager.h"
 #include "nsServiceManagerUtils.h"
@@ -54,6 +58,7 @@
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsITextServicesFilter.h"
+#include "nsUnicharUtils.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 
@@ -184,60 +189,8 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, PRBool aEnableSelection
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-
-  nsAdoptingString dictName =
-    Preferences::GetLocalizedString("spellchecker.dictionary");
-
-  if (dictName.IsEmpty())
-  {
-    
-    
-
-    nsCOMPtr<nsIXULChromeRegistry> packageRegistry =
-      mozilla::services::GetXULChromeRegistryService();
-
-    if (packageRegistry) {
-      nsCAutoString utf8DictName;
-      rv = packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"),
-                                              utf8DictName);
-      AppendUTF8toUTF16(utf8DictName, dictName);
-    }
-  }
-
-  PRBool setDictionary = PR_FALSE;
-  if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
-    rv = SetCurrentDictionary(dictName.get());
-
-    
-    if (NS_FAILED(rv)) {
-      rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US").get());
-    }
-
-    if (NS_SUCCEEDED(rv))
-      setDictionary = PR_TRUE;
-  }
-
   
-  
-  
-  if (! setDictionary) {
-    nsTArray<nsString> dictList;
-    rv = mSpellChecker->GetDictionaryList(&dictList);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (dictList.Length() > 0) {
-      rv = SetCurrentDictionary(dictList[0].get());
-      if (NS_SUCCEEDED(rv))
-        SaveDefaultDictionary();
-    }
-  }
-
-  
-  
-  
-  
-
-  DeleteSuggestedWordList();
-
+  UpdateCurrentDictionary(aEditor);
   return NS_OK;
 }
 
@@ -440,14 +393,6 @@ nsEditorSpellCheck::UninitSpellChecker()
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
   
-  
-#ifdef DEBUG
-  nsresult rv =
-#endif
-  SaveDefaultDictionary();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "failed to set default dictionary");
-
-  
   DeleteSuggestedWordList();
   mDictionaryList.Clear();
   mDictionaryIndex = 0;
@@ -487,5 +432,126 @@ nsEditorSpellCheck::DeleteSuggestedWordList()
 {
   mSuggestedWordList.Clear();
   mSuggestedWordIndex = 0;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditor* aEditor)
+{
+  nsresult rv;
+
+  
+  nsAutoString dictName;
+
+  
+  nsAutoString editorLang;
+
+  nsCOMPtr<nsIContent> rootContent;
+
+  nsCOMPtr<nsIHTMLEditor> htmlEditor = do_QueryInterface(aEditor);
+  if (htmlEditor) {
+    rootContent = htmlEditor->GetActiveEditingHost();
+  } else {
+    nsCOMPtr<nsIDOMElement> rootElement;
+    rv = aEditor->GetRootElement(getter_AddRefs(rootElement));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rootContent = do_QueryInterface(rootElement);
+  }
+  NS_ENSURE_TRUE(rootContent, NS_ERROR_FAILURE);
+
+  rootContent->GetLang(editorLang);
+
+  if (editorLang.IsEmpty()) {
+    nsCOMPtr<nsIDocument> doc = rootContent->GetCurrentDoc();
+    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
+    doc->GetContentLanguage(editorLang);
+  }
+
+  if (!editorLang.IsEmpty()) {
+    dictName.Assign(editorLang);
+  }
+
+  
+  if (dictName.IsEmpty()) {
+    dictName.Assign(Preferences::GetLocalizedString("spellchecker.dictionary"));
+  }
+
+  if (dictName.IsEmpty())
+  {
+    
+    
+
+    nsCOMPtr<nsIXULChromeRegistry> packageRegistry =
+      mozilla::services::GetXULChromeRegistryService();
+
+    if (packageRegistry) {
+      nsCAutoString utf8DictName;
+      rv = packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"),
+                                              utf8DictName);
+      AppendUTF8toUTF16(utf8DictName, dictName);
+    }
+  }
+
+  SetCurrentDictionary(NS_LITERAL_STRING("").get());
+
+  if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
+    rv = SetCurrentDictionary(dictName.get());
+    if (NS_FAILED(rv)) {
+      
+      
+      
+      nsAutoString langCode;
+      PRInt32 dashIdx = dictName.FindChar('-');
+      if (dashIdx != -1) {
+        langCode.Assign(Substring(dictName, 0, dashIdx));
+        
+        rv = SetCurrentDictionary(langCode.get());
+      } else {
+        langCode.Assign(dictName);
+      }
+      if (NS_FAILED(rv)) {
+        
+        
+        nsTArray<nsString> dictList;
+        rv = mSpellChecker->GetDictionaryList(&dictList);
+        NS_ENSURE_SUCCESS(rv, rv);
+        nsDefaultStringComparator comparator;
+        PRInt32 i, count = dictList.Length();
+        for (i = 0; i < count; i++) {
+          nsAutoString dictStr(dictList.ElementAt(i));
+          if (nsStyleUtil::DashMatchCompare(dictStr, langCode, comparator) &&
+              NS_SUCCEEDED(SetCurrentDictionary(dictStr.get()))) {
+              break;
+          }
+        }
+      }
+    }
+  }
+
+  
+  
+  
+  if (editorLang.IsEmpty()) {
+    nsAutoString currentDictonary;
+    rv = mSpellChecker->GetCurrentDictionary(currentDictonary);
+    if (NS_FAILED(rv) || currentDictonary.IsEmpty()) {
+      rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US").get());
+      if (NS_FAILED(rv)) {
+        nsTArray<nsString> dictList;
+        rv = mSpellChecker->GetDictionaryList(&dictList);
+        if (NS_SUCCEEDED(rv) && dictList.Length() > 0) {
+          SetCurrentDictionary(dictList[0].get());
+        }
+      }
+    }
+  }
+
+  
+  
+  
+  
+
+  DeleteSuggestedWordList();
+
   return NS_OK;
 }

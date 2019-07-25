@@ -945,6 +945,31 @@ public:
   nsIContent* GetEditingHost();
 
   
+
+
+
+
+  void GetLang(nsAString& aResult) const {
+    for (const nsIContent* content = this; content; content = content->GetParent()) {
+      if (content->GetAttrCount() > 0) {
+        
+        
+        PRBool hasAttr = content->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang,
+                                          aResult);
+        if (!hasAttr && content->IsHTML()) {
+          hasAttr = content->GetAttr(kNameSpaceID_None, nsGkAtoms::lang,
+                                     aResult);
+        }
+        NS_ASSERTION(hasAttr || aResult.IsEmpty(),
+                     "GetAttr that returns false should not make string non-empty");
+        if (hasAttr) {
+          return;
+        }
+      }
+    }
+  }
+
+  
   virtual already_AddRefed<nsIURI> GetBaseURI() const;
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
