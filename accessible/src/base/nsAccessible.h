@@ -350,7 +350,7 @@ public:
 
 
 
-  void TestChildCache(nsAccessible *aCachedChild);
+  void TestChildCache(nsAccessible* aCachedChild) const;
 
   
   

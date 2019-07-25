@@ -230,7 +230,15 @@ public:
 
 
 
-  nsAccessible* GetCachedAccessible(nsINode* aNode);
+  nsAccessible* GetAccessible(nsINode* aNode) const;
+
+  
+
+
+  inline bool HasAccessible(nsINode* aNode)
+  {
+    return GetAccessible(aNode);
+  }
 
   
 
@@ -239,7 +247,7 @@ public:
 
 
 
-  nsAccessible* GetCachedAccessibleByUniqueID(void* aUniqueID)
+  inline nsAccessible* GetAccessibleByUniqueID(void* aUniqueID)
   {
     return UniqueID() == aUniqueID ?
       this : mAccessibleCache.GetWeak(aUniqueID);
@@ -249,7 +257,7 @@ public:
 
 
 
-  nsAccessible* GetCachedAccessibleByUniqueIDInSubtree(void* aUniqueID);
+  nsAccessible* GetAccessibleByUniqueIDInSubtree(void* aUniqueID);
 
   
 
