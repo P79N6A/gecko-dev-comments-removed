@@ -1668,12 +1668,12 @@ class LCallSetProperty : public LCallInstructionHelper<0, 1 + BOX_PIECES, 0>
 
 
 
-class LCacheSetPropertyV : public LInstructionHelper<0, 1 + BOX_PIECES, 0>
+class LSetPropertyCacheV : public LInstructionHelper<0, 1 + BOX_PIECES, 0>
 {
   public:
-    LIR_HEADER(CacheSetPropertyV);
+    LIR_HEADER(SetPropertyCacheV);
 
-    LCacheSetPropertyV(const LAllocation &object) {
+    LSetPropertyCacheV(const LAllocation &object) {
         setOperand(0, object);
     }
 
@@ -1686,14 +1686,14 @@ class LCacheSetPropertyV : public LInstructionHelper<0, 1 + BOX_PIECES, 0>
 
 
 
-class LCacheSetPropertyT : public LInstructionHelper<0, 2, 0>
+class LSetPropertyCacheT : public LInstructionHelper<0, 2, 0>
 {
     MIRType valueType_;
 
   public:
-    LIR_HEADER(CacheSetPropertyT);
+    LIR_HEADER(SetPropertyCacheT);
 
-    LCacheSetPropertyT(const LAllocation &object, const LAllocation &value, MIRType valueType)
+    LSetPropertyCacheT(const LAllocation &object, const LAllocation &value, MIRType valueType)
         : valueType_(valueType)
     {
         setOperand(0, object);
