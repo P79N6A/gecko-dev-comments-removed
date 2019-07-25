@@ -41,6 +41,14 @@
 #define jsgc_h___
 
 
+#ifdef mozilla_mozalloc_macro_wrappers_h
+#  define JS_GC_UNDEFD_MOZALLOC_WRAPPERS
+
+#  include "mozilla/mozalloc_undef_macro_wrappers.h"
+#endif
+
+
+
 
 #include <setjmp.h>
 
@@ -70,6 +78,9 @@ js_TraceXML(JSTracer *trc, JSXML* thing);
 #endif
 
 namespace js {
+
+struct Shape;
+
 namespace gc {
 
 
@@ -102,9 +113,9 @@ struct ArenaHeader {
     Arena<FreeCell> *next;
     FreeCell        *freeList;
     unsigned        thingKind;
-    bool            isUsed;
-    size_t          thingSize;
 #ifdef DEBUG
+    size_t          thingSize;
+    bool            isUsed;
     bool            hasFreeThings;
 #endif
 };
@@ -201,6 +212,23 @@ struct ArenaBitmap {
         }
         return true;
     }
+
+    JS_ALWAYS_INLINE void unmark(size_t bit, uint32 color) {
+        bit += color;
+        JS_ASSERT(bit < BitCount);
+        uintptr_t *word = &bitmap[bit / JS_BITS_PER_WORD];
+        *word &= ~(uintptr_t(1) << (bit % JS_BITS_PER_WORD));
+    }
+
+#ifdef DEBUG
+    bool noBitsSet() {
+        for (unsigned i = 0; i < BitWords; i++) {
+            if (bitmap[i] != uintptr_t(0))
+                return false;
+        }
+        return true;
+    }
+#endif
 };
 
 
@@ -276,7 +304,9 @@ EmptyArenaLists::getNext(JSCompartment *comp, unsigned thingKind) {
     if (arena) {
         JS_ASSERT(arena->header()->isUsed == false);
         JS_ASSERT(arena->header()->thingSize == sizeof(T));
+#ifdef DEBUG
         arena->header()->isUsed = true;
+#endif
         arena->header()->thingKind = thingKind;
         arena->header()->compartment = comp;
         return arena;
@@ -312,7 +342,6 @@ struct Chunk {
                                         sizeof(MarkingDelay);
 
     static const size_t ArenasPerChunk = (GC_CHUNK_SIZE - sizeof(ChunkInfo)) / BytesPerArena;
-    static const size_t MaxAge = 3;
 
     Arena<FreeCell> arenas[ArenasPerChunk];
     ArenaBitmap     bitmaps[ArenasPerChunk];
@@ -334,7 +363,6 @@ struct Chunk {
     void releaseArena(Arena<T> *a);
 
     JSRuntime *getRuntime();
-    bool expire();
 };
 JS_STATIC_ASSERT(sizeof(Chunk) <= GC_CHUNK_SIZE);
 JS_STATIC_ASSERT(sizeof(Chunk) + Chunk::BytesPerArena > GC_CHUNK_SIZE);
@@ -407,7 +435,7 @@ Arena<T>::getAlignedThing(void *thing)
 {
     jsuword start = reinterpret_cast<jsuword>(&t.things[0]);
     jsuword offset = reinterpret_cast<jsuword>(thing) - start;
-    offset -= offset % aheader.thingSize;
+    offset -= offset % sizeof(T);
     return reinterpret_cast<T *>(start + offset);
 }
 
@@ -438,6 +466,14 @@ Cell::markIfUnmarked(uint32 color = BLACK) const
 {
     AssertValidColor(this, color);
     return bitmap()->markIfUnmarked(cellIndex(), color);
+}
+
+void
+Cell::unmark(uint32 color) const
+{
+    JS_ASSERT(color != BLACK);
+    AssertValidColor(this, color);
+    bitmap()->unmark(cellIndex(), color);
 }
 
 JSCompartment *
@@ -570,6 +606,14 @@ struct ArenaList {
         for (Arena<T> *a = (Arena<T> *) head; a; a = (Arena<T> *) a->header()->next) {
             JS_ASSERT(a->header()->isUsed);
             if (thing >= &a->t.things[0] && thing < &a->t.things[a->ThingsPerArena])
+                return true;
+        }
+        return false;
+    }
+
+    bool markedThingsInArenaList() {
+        for (Arena<FreeCell> *a = (Arena<FreeCell> *) head; a; a = (Arena<FreeCell> *) a->header()->next) {
+            if (!a->bitmap()->noBitsSet())
                 return true;
         }
         return false;
@@ -768,10 +812,10 @@ extern void
 js_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 extern JS_FRIEND_API(bool)
-IsAboutToBeFinalized(void *thing);
+IsAboutToBeFinalized(JSContext *cx, void *thing);
 
 extern JS_FRIEND_API(bool)
-js_GCThingIsMarked(void *thing, uint32 color);
+js_GCThingIsMarked(void *thing, uintN color);
 
 extern void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp);
@@ -791,6 +835,13 @@ MarkContext(JSTracer *trc, JSContext *acx);
 extern void
 TriggerGC(JSRuntime *rt);
 
+
+extern void
+TriggerCompartmentGC(JSCompartment *comp);
+
+extern void
+MaybeGC(JSContext *cx);
+
 } 
 
 
@@ -807,8 +858,9 @@ typedef enum JSGCInvocationKind {
     GC_LAST_CONTEXT     = 1
 } JSGCInvocationKind;
 
+
 extern void
-js_GC(JSContext *cx, JSGCInvocationKind gckind);
+js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind);
 
 #ifdef JS_THREADSAFE
 
@@ -827,7 +879,7 @@ js_WaitForGC(JSRuntime *rt);
 #endif
 
 extern void
-js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
+js_DestroyScriptsToGC(JSContext *cx, JSCompartment *comp);
 
 namespace js {
 
@@ -1056,5 +1108,9 @@ JSObject::getCompartment() const
 {
     return compartment();
 }
+
+#ifdef JS_GC_UNDEFD_MOZALLOC_WRAPPERS
+#  include "mozilla/mozalloc_macro_wrappers.h"
+#endif
 
 #endif 
