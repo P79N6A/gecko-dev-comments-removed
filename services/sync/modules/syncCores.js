@@ -35,7 +35,7 @@
 
 
 const EXPORTED_SYMBOLS = ['SyncCore', 'BookmarksSyncCore', 'HistorySyncCore',
-                          'CookieSyncCore', 'PasswordSyncCore', 'FormSyncCore'];
+                          'PasswordSyncCore', 'FormSyncCore'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -430,76 +430,6 @@ HistorySyncCore.prototype = {
   }
 };
 HistorySyncCore.prototype.__proto__ = new SyncCore();
-
-
-function CookieSyncCore() {
-  this._init();
-}
-CookieSyncCore.prototype = {
-  _logName: "CookieSync",
-
-  __cookieManager: null,
-  get _cookieManager() {
-    if (!this.__cookieManager)
-      this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
-                             getService(Ci.nsICookieManager2);
-    
-
-    return this.__cookieManager;
-  },
-
-
-  _itemExists: function CSC__itemExists(GUID) {
-    
-
-
-
-
-
-    
-
-
-
-    let cookieArray = GUID.split( ":" );
-    let cookieHost = cookieArray[0];
-    let cookiePath = cookieArray[1];
-    let cookieName = cookieArray[2];
-
-    
-
-
-
-    let enumerator = this._cookieManager.enumerator;
-    while (enumerator.hasMoreElements())
-      {
-	let aCookie = enumerator.getNext();
-	if (aCookie.host == cookieHost &&
-	    aCookie.path == cookiePath &&
-	    aCookie.name == cookieName ) {
-	  return true;
-	}
-      }
-    return false;
-    
-
-
-
-
-
-  },
-
-  _commandLike: function CSC_commandLike(a, b) {
-    
-
-
-
-
-
-    return false;
-  }
-};
-CookieSyncCore.prototype.__proto__ = new SyncCore();
-
 
 function PasswordSyncCore() {
   this._init();
