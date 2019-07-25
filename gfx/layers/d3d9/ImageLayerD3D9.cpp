@@ -130,6 +130,13 @@ ImageContainerD3D9::GetCurrentSize()
   return gfxIntSize(0,0);
 }
 
+PRBool
+ImageContainerD3D9::SetLayerManager(LayerManager *aManager)
+{
+  
+  return PR_FALSE;
+}
+
 Layer*
 ImageLayerD3D9::GetLayer()
 {

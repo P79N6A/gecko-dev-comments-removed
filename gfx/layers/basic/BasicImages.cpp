@@ -226,6 +226,7 @@ public:
   virtual already_AddRefed<Image> GetCurrentImage();
   virtual already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSize);
   virtual gfxIntSize GetCurrentSize();
+  virtual PRBool SetLayerManager(LayerManager *aManager);
 
 protected:
   Monitor mMonitor;
@@ -300,6 +301,20 @@ BasicImageContainer::GetCurrentSize()
 {
   MonitorAutoEnter mon(mMonitor);
   return !mImage ? gfxIntSize(0,0) : ToImageData(mImage)->GetSize();
+}
+
+PRBool
+BasicImageContainer::SetLayerManager(LayerManager *aManager)
+{
+  if (aManager &&
+      aManager->GetBackendType() != LayerManager::LAYERS_BASIC)
+  {
+    return PR_FALSE;
+  }
+
+  
+  mManager = aManager;
+  return PR_TRUE;
 }
 
 already_AddRefed<ImageContainer>
