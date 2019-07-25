@@ -502,11 +502,8 @@ float AsyncPanZoomController::PanDistance() {
   return NS_hypot(mX.PanDistance(), mY.PanDistance());
 }
 
-const nsPoint AsyncPanZoomController::GetVelocityVector() {
-  return nsPoint(
-    mX.GetVelocity(),
-    mY.GetVelocity()
-  );
+const gfx::Point AsyncPanZoomController::GetVelocityVector() {
+  return gfx::Point(mX.GetVelocity(), mY.GetVelocity());
 }
 
 void AsyncPanZoomController::StartPanning(const MultiTouchInput& aEvent) {
@@ -660,13 +657,30 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale, const nsIntPoint& aFoc
   mFrameMetrics = metrics;
 }
 
+bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aViewport,
+                                                         float aVelocity,
+                                                         float* aDisplayPortOffset,
+                                                         float* aDisplayPortLength)
+{
+  const float MIN_SKATE_SIZE_MULTIPLIER = 2.0f;
+  const float MAX_SKATE_SIZE_MULTIPLIER = 4.0f;
+
+  if (fabsf(aVelocity) > MIN_SKATE_SPEED) {
+    *aDisplayPortLength = aViewport * clamped(fabsf(aVelocity),
+      MIN_SKATE_SIZE_MULTIPLIER, MAX_SKATE_SIZE_MULTIPLIER);
+    *aDisplayPortOffset = aVelocity > 0 ? 0 : aViewport - *aDisplayPortLength;
+    return true;
+  }
+  return false;
+}
+
 const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   float scale = mFrameMetrics.mResolution.width;
   nsIntRect viewport = mFrameMetrics.mViewport;
   viewport.ScaleRoundIn(1 / scale);
 
   nsIntPoint scrollOffset = mFrameMetrics.mViewportScrollOffset;
-  nsPoint velocity = GetVelocityVector();
+  gfx::Point velocity = GetVelocityVector();
 
   
   
@@ -693,7 +707,6 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   
   
   const float STATIONARY_SIZE_MULTIPLIER = 2.0f;
-  const float SKATE_SIZE_MULTIPLIER = 3.0f;
   gfx::Rect displayPort(0, 0,
                         viewport.width * STATIONARY_SIZE_MULTIPLIER,
                         viewport.height * STATIONARY_SIZE_MULTIPLIER);
@@ -701,20 +714,18 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   
   
   
-  
-  
-  
-  if (fabsf(velocity.x) > MIN_SKATE_SPEED && fabsf(velocity.y) < MIN_SKATE_SPEED) {
-    displayPort.height = viewport.height;
-    displayPort.width = viewport.width * SKATE_SIZE_MULTIPLIER;
-    displayPort.x = velocity.x > 0 ? 0 : viewport.width - displayPort.width;
-  } else if (fabsf(velocity.x) < MIN_SKATE_SPEED && fabsf(velocity.y) > MIN_SKATE_SPEED) {
-    displayPort.width = viewport.width;
-    displayPort.height = viewport.height * SKATE_SIZE_MULTIPLIER;
-    displayPort.y = velocity.y > 0 ? 0 : viewport.height - displayPort.height;
-  } else {
+  bool enlargedX = EnlargeDisplayPortAlongAxis(
+    viewport.width, velocity.x, &displayPort.x, &displayPort.width);
+  bool enlargedY = EnlargeDisplayPortAlongAxis(
+    viewport.height, velocity.y, &displayPort.y, &displayPort.height);
+
+  if (!enlargedX && !enlargedY) {
     displayPort.x = -displayPort.width / 4;
     displayPort.y = -displayPort.height / 4;
+  } else if (!enlargedX) {
+    displayPort.width = viewport.width;
+  } else if (!enlargedY) {
+    displayPort.height = viewport.height;
   }
 
   gfx::Rect shiftedDisplayPort = displayPort;
