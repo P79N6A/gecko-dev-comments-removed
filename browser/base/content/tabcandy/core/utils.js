@@ -577,8 +577,12 @@ var Utils = {
   
   
   copy: function(value) {
-    if(value && typeof(value) == 'object') 
+    if(value && typeof(value) == 'object') {
+      if($.isArray(value))
+        return $.extend([], value);
+        
       return $.extend({}, value);
+    }
       
     return value;
   }
