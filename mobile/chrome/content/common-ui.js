@@ -1022,6 +1022,12 @@ var FormHelperUI = {
     
     
     let topOffset = (BrowserUI.toolbarH - Browser.getScrollboxPosition(Browser.pageScrollboxScroller).y);
+
+    
+    let notification = Browser.getNotificationBox().currentNotification;
+    if (notification)
+      topOffset += notification.getBoundingClientRect().height;
+
     let virtualContentRect = {
       width: rect.width,
       height: rect.height,
