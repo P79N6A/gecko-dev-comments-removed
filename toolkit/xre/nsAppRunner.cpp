@@ -3636,6 +3636,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 #ifdef XP_MACOSX
           
           
+          SetupMacApplicationDelegate();
+
+          
+          
           cmdLine = do_CreateInstance("@mozilla.org/toolkit/command-line;1");
           NS_ENSURE_TRUE(cmdLine, 1);
 
@@ -3644,9 +3648,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           rv = cmdLine->Init(gArgc, gArgv,
                              workingDir, nsICommandLine::STATE_INITIAL_LAUNCH);
           NS_ENSURE_SUCCESS(rv, 1);
-          
-          
-          SetupMacApplicationDelegate();
 #endif
 
           MOZ_SPLASHSCREEN_UPDATE(70);

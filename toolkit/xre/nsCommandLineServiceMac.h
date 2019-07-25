@@ -42,6 +42,11 @@
 
 namespace CommandLineServiceMac {
   void SetupMacCommandLine(int& argc, char**& argv, PRBool forRestart);
+
+  
+  
+  
+  PRBool AddURLToCurrentCommandLine(const char* aURL);
 }
 
 #endif 
