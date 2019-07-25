@@ -62,6 +62,27 @@ struct InvariantCodePatch {
     InvariantCodePatch() : hasPatch(false) {}
 };
 
+struct JSActiveFrame {
+    JSActiveFrame *parent;
+    jsbytecode *parentPC;
+    JSScript *script;
+
+    
+
+
+
+    uint32_t inlineIndex;
+
+    
+    size_t mainCodeStart;
+    size_t stubCodeStart;
+    size_t mainCodeEnd;
+    size_t stubCodeEnd;
+    size_t inlinePCOffset;
+
+    JSActiveFrame();
+};
+
 class Compiler : public BaseCompiler
 {
     friend class StubCompiler;
@@ -355,25 +376,11 @@ class Compiler : public BaseCompiler
 
 
 public:
-    struct ActiveFrame {
-        ActiveFrame *parent;
-        jsbytecode *parentPC;
-        JSScript *script;
+    struct ActiveFrame : public JSActiveFrame {
         Label *jumpMap;
 
         
-
-
-
-        uint32_t inlineIndex;
-
-        
         VarType *varTypes;
-
-        
-        size_t mainCodeStart;
-        size_t stubCodeStart;
-        size_t inlinePCOffset;
 
         
         bool needReturnValue;          
@@ -470,7 +477,7 @@ private:
             return PC;
         ActiveFrame *scan = a;
         while (scan && scan->parent != outer)
-            scan = scan->parent;
+            scan = static_cast<ActiveFrame *>(scan->parent);
         return scan->parentPC;
     }
 
@@ -491,7 +498,7 @@ private:
         while (na->parent) {
             if (na->exitState)
                 return true;
-            na = na->parent;
+            na = static_cast<ActiveFrame *>(na->parent);
         }
         return false;
     }
