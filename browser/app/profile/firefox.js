@@ -86,6 +86,24 @@ pref("app.update.timer", 600000);
 
 
 
+pref("app.update.log", false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("app.update.certs.1.issuerName", "OU=Equifax Secure Certificate Authority,O=Equifax,C=US");
+pref("app.update.certs.1.commonName", "*.mozilla.org");
+
+
 pref("app.update.enabled", true);
 
 
