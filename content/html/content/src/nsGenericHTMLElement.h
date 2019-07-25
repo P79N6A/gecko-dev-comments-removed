@@ -789,6 +789,10 @@ public:
   
   virtual PRBool IsSubmitControl() const;
 
+          PRBool IsTextControl(PRBool aExcludePassword) const;
+
+          PRBool IsSingleLineTextControl(PRBool aExcludePassword) const;
+
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,

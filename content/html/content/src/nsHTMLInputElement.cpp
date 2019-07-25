@@ -163,12 +163,13 @@ static const nsAttrValue::EnumTable kInputTypeTable[] = {
   { "password", NS_FORM_INPUT_PASSWORD },
   { "radio", NS_FORM_INPUT_RADIO },
   { "submit", NS_FORM_INPUT_SUBMIT },
+  { "tel", NS_FORM_INPUT_TEL },
   { "text", NS_FORM_INPUT_TEXT },
   { 0 }
 };
 
 
-static const nsAttrValue::EnumTable* kInputDefaultType = &kInputTypeTable[9];
+static const nsAttrValue::EnumTable* kInputDefaultType = &kInputTypeTable[10];
 
 #define NS_INPUT_ELEMENT_STATE_IID                 \
 { /* dc3b3d14-23e2-4479-b513-7b369343e3a0 */       \
@@ -562,6 +563,7 @@ nsHTMLInputElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   switch (mType) {
     case NS_FORM_INPUT_TEXT:
     case NS_FORM_INPUT_PASSWORD:
+    case NS_FORM_INPUT_TEL:
       if (GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)) {
         
         
@@ -661,6 +663,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         !GET_BOOLBIT(mBitField, BF_VALUE_CHANGED) &&
         (mType == NS_FORM_INPUT_TEXT ||
          mType == NS_FORM_INPUT_PASSWORD ||
+         mType == NS_FORM_INPUT_TEL ||
          mType == NS_FORM_INPUT_FILE)) {
       Reset();
     }
@@ -701,6 +704,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       if (mValue &&
           mType != NS_FORM_INPUT_TEXT &&
           mType != NS_FORM_INPUT_PASSWORD &&
+          mType != NS_FORM_INPUT_TEL &&
           mType != NS_FORM_INPUT_FILE) {
         SetAttr(kNameSpaceID_None, nsGkAtoms::value,
                 NS_ConvertUTF8toUTF16(mValue), PR_FALSE);
@@ -748,7 +752,7 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     
     
     if (aNotify && aName == nsGkAtoms::readonly &&
-        (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD)) {
+        IsSingleLineTextControl(PR_FALSE)) {
       UpdateEditableState();
 
       nsIDocument* document = GetCurrentDoc();
@@ -875,7 +879,7 @@ nsHTMLInputElement::SetSize(PRUint32 aValue)
 NS_IMETHODIMP 
 nsHTMLInputElement::GetValue(nsAString& aValue)
 {
-  if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) {
+  if (IsSingleLineTextControl(PR_FALSE)) {
     
     
     
@@ -1012,6 +1016,14 @@ nsHTMLInputElement::MozSetFileNameArray(const PRUnichar **aFileNames, PRUint32 a
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsHTMLInputElement::MozIsTextField(PRBool aExcludePassword, PRBool* aResult)
+{
+  *aResult = IsSingleLineTextControl(aExcludePassword);
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP 
 nsHTMLInputElement::SetUserInput(const nsAString& aValue)
 {
@@ -1142,8 +1154,7 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
   NS_PRECONDITION(mType != NS_FORM_INPUT_FILE,
                   "Don't call SetValueInternal for file inputs");
 
-  if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) {
-
+  if (IsSingleLineTextControl(PR_FALSE)) {
     nsIFormControlFrame* formControlFrame = aFrame;
     if (!formControlFrame) {
       
@@ -1477,7 +1488,7 @@ nsHTMLInputElement::Focus()
 NS_IMETHODIMP
 nsHTMLInputElement::Select()
 {
-  if (mType != NS_FORM_INPUT_PASSWORD && mType != NS_FORM_INPUT_TEXT) {
+  if (!IsSingleLineTextControl(PR_FALSE)) {
     return NS_OK;
   }
 
@@ -1766,7 +1777,7 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   if (aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH) {
     aVisitor.mItemFlags |= NS_NO_CONTENT_DISPATCH;
   }
-  if ((mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) &&
+  if (IsSingleLineTextControl(PR_FALSE) &&
       aVisitor.mEvent->message == NS_MOUSE_CLICK &&
       aVisitor.mEvent->eventStructType == NS_MOUSE_EVENT &&
       static_cast<nsMouseEvent*>(aVisitor.mEvent)->button ==
@@ -1846,7 +1857,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   
   
   if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
-      mType != NS_FORM_INPUT_TEXT &&
+      !IsSingleLineTextControl(PR_TRUE) &&
       NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent)) {
     nsUIEvent actEvent(NS_IS_TRUSTED_EVENT(aVisitor.mEvent), NS_UI_ACTIVATE, 1);
 
@@ -1937,7 +1948,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           
           nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-          if (fm && (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) &&
+          if (fm && IsSingleLineTextControl(PR_FALSE) &&
               !(static_cast<nsFocusEvent *>(aVisitor.mEvent))->fromRaise &&
               SelectTextFieldOnFocus()) {
             nsIDocument* document = GetCurrentDoc();
@@ -2054,6 +2065,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
                keyEvent->keyCode == NS_VK_ENTER) &&
               (mType == NS_FORM_INPUT_TEXT ||
                mType == NS_FORM_INPUT_PASSWORD ||
+               mType == NS_FORM_INPUT_TEL ||
                mType == NS_FORM_INPUT_FILE)) {
 
             PRBool isButton = PR_FALSE;
@@ -2329,8 +2341,7 @@ nsHTMLInputElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
   } else if (aAttribute == nsGkAtoms::value) {
     NS_UpdateHint(retval, NS_STYLE_HINT_REFLOW);
   } else if (aAttribute == nsGkAtoms::size &&
-             (mType == NS_FORM_INPUT_TEXT ||
-              mType == NS_FORM_INPUT_PASSWORD)) {
+             IsSingleLineTextControl(PR_FALSE)) {
     NS_UpdateHint(retval, NS_STYLE_HINT_REFLOW);
   }
   return retval;
@@ -2370,7 +2381,7 @@ nsHTMLInputElement::GetControllers(nsIControllers** aResult)
   NS_ENSURE_ARG_POINTER(aResult);
 
   
-  if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD)
+  if (IsSingleLineTextControl(PR_FALSE))
   {
     if (!mControllers)
     {
@@ -2565,6 +2576,7 @@ nsHTMLInputElement::Reset()
     }
     case NS_FORM_INPUT_PASSWORD:
     case NS_FORM_INPUT_TEXT:
+    case NS_FORM_INPUT_TEL:
     {
       
       
@@ -2702,7 +2714,7 @@ nsHTMLInputElement::SubmitNamesValues(nsFormSubmission* aFormSubmission,
     rv = aFormSubmission->AddNameValuePair(name,
                                            NS_ConvertASCIItoUTF16(charset));
   }
-  else if (mType == NS_FORM_INPUT_TEXT &&
+  else if (IsSingleLineTextControl(PR_TRUE) &&
            name.EqualsLiteral("isindex") &&
            aFormSubmission->SupportsIsindexSubmission()) {
     rv = aFormSubmission->AddIsindex(value);
@@ -2747,6 +2759,7 @@ nsHTMLInputElement::SaveState()
     case NS_FORM_INPUT_PASSWORD:
       break;
     case NS_FORM_INPUT_TEXT:
+    case NS_FORM_INPUT_TEL:
     case NS_FORM_INPUT_HIDDEN:
       {
         if (GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)) {
@@ -2880,6 +2893,7 @@ nsHTMLInputElement::RestoreState(nsPresState* aState)
         }
 
       case NS_FORM_INPUT_TEXT:
+      case NS_FORM_INPUT_TEL:
       case NS_FORM_INPUT_HIDDEN:
         {
           SetValueInternal(inputState->GetValue(), nsnull, PR_FALSE);
@@ -3031,7 +3045,7 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
     return PR_TRUE;
   }
 
-  if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) {
+  if (IsSingleLineTextControl(PR_FALSE)) {
     *aIsFocusable = PR_TRUE;
     return PR_FALSE;
   }
@@ -3059,7 +3073,7 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
   }
 
   
-  if (mType != NS_FORM_INPUT_TEXT && mType != NS_FORM_INPUT_PASSWORD &&
+  if (!IsSingleLineTextControl(PR_FALSE) &&
       !(sTabFocusModel & eTabFocus_formElementsMask)) {
     *aTabIndex = -1;
   }
