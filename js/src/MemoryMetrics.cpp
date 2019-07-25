@@ -211,10 +211,9 @@ CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats)
                                 &rtStats->runtimeNormal,
                                 &rtStats->runtimeTemporary,
                                 &rtStats->runtimeRegexpCode,
-                                &rtStats->runtimeStackCommitted);
+                                &rtStats->runtimeStackCommitted,
+                                &rtStats->runtimeGCMarker);
 
-        
-        
         rtStats->runtimeAtomsTable =
             rt->atomState.atoms.sizeOfExcludingThis(rtStats->mallocSizeOf);
 
@@ -335,7 +334,8 @@ GetExplicitNonHeapForRuntime(JSRuntime *rt, int64_t *amount,
                                 NULL,
                                 NULL,
                                 &regexpCode,
-                                &stackCommitted);
+                                &stackCommitted,
+                                NULL);
 
         *amount += regexpCode;
         *amount += stackCommitted;
