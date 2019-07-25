@@ -196,8 +196,8 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   *surface = nsnull;
 
   
-  nsIFrame *firstKid;
-  if (NS_FAILED(GetPatternFirstChild(&firstKid)))
+  nsIFrame* firstKid = GetPatternFirstChild();
+  if (!firstKid)
     return NS_ERROR_FAILURE; 
 
   
@@ -351,22 +351,22 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
 
 
 
-NS_IMETHODIMP
-nsSVGPatternFrame::GetPatternFirstChild(nsIFrame **kid)
+nsIFrame*
+nsSVGPatternFrame::GetPatternFirstChild()
 {
   
-  *kid = mFrames.FirstChild();
-  if (*kid)
-    return NS_OK;
+  nsIFrame* kid = mFrames.FirstChild();
+  if (kid)
+    return kid;
 
   
   AutoPatternReferencer patternRef(this);
 
-  nsSVGPatternFrame *next = GetReferencedPatternIfNotInUse();
+  nsSVGPatternFrame* next = GetReferencedPatternIfNotInUse();
   if (!next)
-    return NS_ERROR_FAILURE;
+    return nsnull;
 
-  return next->GetPatternFirstChild(kid);
+  return next->GetPatternFirstChild();
 }
 
 PRUint16
