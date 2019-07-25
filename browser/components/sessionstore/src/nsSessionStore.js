@@ -365,7 +365,10 @@ SessionStoreService.prototype = {
               
               let pageData = {
                 url: "about:sessionrestore",
-                formdata: { "#sessionData": this._initialState }
+                formdata: {
+                  id: { "sessionData": this._initialState },
+                  xpath: {}
+                }
               };
               this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
             }
@@ -2209,7 +2212,10 @@ SessionStoreService.prototype = {
     aBrowser.__SS_formDataSaved = true;
     if (aBrowser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
-        "#textbox": aBrowser.contentDocument.getElementById("textbox").value
+        id: {
+          "textbox": aBrowser.contentDocument.getElementById("textbox").value
+        },
+        xpath: {}
       };
   },
 
@@ -2252,17 +2258,9 @@ SessionStoreService.prototype = {
           formData.id["sessionData"] = JSON.parse(formData.id["sessionData"]);
         }
 
-        
-        
         if (Object.keys(formData.id).length ||
             Object.keys(formData.xpath).length) {
-          
-          
-          aData.formdata = formData.xpath;
-
-          for each (let [k, v] in Iterator(formData.id)) {
-            aData.formdata["#" + k] = v;
-          }
+          aData.formdata = formData;
         } else if (aData.formdata) {
           delete aData.formdata;
         }
@@ -3419,8 +3417,9 @@ SessionStoreService.prototype = {
         let formdata = aData.formdata;
 
         
+        
         if (!("xpath" in formdata || "id" in formdata)) {
-          formdata = {xpath: {}, id: {}};
+          formdata = { xpath: {}, id: {} };
 
           for each (let [key, value] in Iterator(aData.formdata)) {
             if (key.charAt(0) == "#") {
@@ -3435,11 +3434,15 @@ SessionStoreService.prototype = {
         
         
         if (aData.url == "about:sessionrestore" &&
+            "sessionData" in formdata.id &&
             typeof formdata.id["sessionData"] == "object") {
           formdata.id["sessionData"] =
             JSON.stringify(formdata.id["sessionData"]);
         }
 
+        
+        aData.formdata = formdata;
+        
         DocumentUtils.mergeFormData(aContent.document, formdata);
       }
 
