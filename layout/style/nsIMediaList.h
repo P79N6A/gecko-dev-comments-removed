@@ -205,11 +205,7 @@ public:
 
   PRInt32 Count() { return mArray.Length(); }
   nsMediaQuery* MediumAt(PRInt32 aIndex) { return mArray[aIndex]; }
-  void Clear() { mArray.Clear(); mIsEmpty = PR_TRUE; }
-  
-  
-  
-  void SetNonEmpty() { mIsEmpty = PR_FALSE; }
+  void Clear() { mArray.Clear(); }
 
 protected:
   ~nsMediaList();
@@ -218,7 +214,6 @@ protected:
   nsresult Append(const nsAString & aOldMedium);
 
   nsTArray<nsAutoPtr<nsMediaQuery> > mArray;
-  bool mIsEmpty;
   
   
   
