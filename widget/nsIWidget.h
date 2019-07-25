@@ -1096,7 +1096,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion) {};
+    virtual void UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion) {}
 
     
 
