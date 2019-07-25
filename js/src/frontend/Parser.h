@@ -38,8 +38,6 @@ struct Parser : private AutoGCRooter
     StrictModeGetter    strictModeGetter; 
     TokenStream         tokenStream;
     void                *tempPoolMark;  
-    JSPrincipals        *principals;    
-    JSPrincipals        *originPrincipals;   
     StackFrame          *const callerFrame;  
     ParseNodeAllocator  allocator;
     ObjectBox           *traceListHead; 
@@ -69,8 +67,6 @@ struct Parser : private AutoGCRooter
 
 
     bool init();
-
-    void setPrincipals(JSPrincipals *prin, JSPrincipals *originPrin);
 
     const char *getFilename() const { return tokenStream.getFilename(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }

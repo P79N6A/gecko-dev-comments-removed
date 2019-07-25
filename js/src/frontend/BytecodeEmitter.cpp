@@ -4861,8 +4861,10 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             sc.setFunMightAliasLocals();  
         sc.bindings.transfer(cx, &funbox->bindings);
 
+        
         Rooted<JSScript*> script(cx);
-        script = JSScript::Create(cx,  false, bce->script->getVersion());
+        script = JSScript::Create(cx, bce->script->principals, bce->script->originPrincipals,
+                                   false, bce->script->getVersion());
         if (!script)
             return false;
 
