@@ -572,9 +572,11 @@ public:
 
 
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsSVGGeometryFrame* aFrame);
+                                               nsSVGGeometryFrame* aFrame,
+                                               const gfxMatrix& aMatrix);
   static gfxRect PathExtentsToMaxStrokeExtents(const gfxRect& aPathExtents,
-                                               nsSVGPathGeometryFrame* aFrame);
+                                               nsSVGPathGeometryFrame* aFrame,
+                                               const gfxMatrix& aMatrix);
 
   
 
