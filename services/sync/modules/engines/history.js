@@ -516,9 +516,6 @@ HistoryTracker.prototype = {
       this._upScore();
   },
   onPageExpired: function HT_onPageExpired(uri, time, entry) {
-    this._log.trace("onPageExpired: " + uri.spec);
-    if (this.addChangedID(this._store._getGUID(uri))) 
-      this._upScore();
   },
   onDeleteURI: function HT_onDeleteURI(uri) {
   },
