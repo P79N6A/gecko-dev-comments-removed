@@ -507,21 +507,35 @@ gfxWindowsPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
 {
 #ifdef XP_WIN
   if (aTarget->GetType() == BACKEND_DIRECT2D) {
-    RefPtr<ID3D10Texture2D> texture =
-      static_cast<ID3D10Texture2D*>(aTarget->GetNativeSurface(NATIVE_SURFACE_D3D10_TEXTURE));
+    void *surface = aTarget->GetUserData(&ThebesSurfaceKey);
+    if (surface) {
+      nsRefPtr<gfxASurface> surf = static_cast<gfxASurface*>(surface);
+      return surf.forget();
+    } else {
+      RefPtr<ID3D10Texture2D> texture =
+        static_cast<ID3D10Texture2D*>(aTarget->GetNativeSurface(NATIVE_SURFACE_D3D10_TEXTURE));
 
-    if (!texture) {
-      return gfxPlatform::GetThebesSurfaceForDrawTarget(aTarget);
+      if (!texture) {
+        return gfxPlatform::GetThebesSurfaceForDrawTarget(aTarget);
+      }
+
+      aTarget->Flush();
+
+      nsRefPtr<gfxASurface> surf =
+        new gfxD2DSurface(texture, ContentForFormat(aTarget->GetFormat()));
+
+      
+      surf->AddRef();
+      aTarget->AddUserData(&ThebesSurfaceKey, surf.get(), DestroyThebesSurface);
+      
+
+
+
+
+      
+      surf->SetData(&kDrawTarget, aTarget, NULL);
+      return surf.forget();
     }
-
-    aTarget->Flush();
-
-    nsRefPtr<gfxASurface> surf =
-      new gfxD2DSurface(texture, ContentForFormat(aTarget->GetFormat()));
-
-    surf->SetData(&kDrawTarget, aTarget, NULL);
-
-    return surf.forget();
   }
 #endif
 
