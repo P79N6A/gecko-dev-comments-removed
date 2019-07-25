@@ -9,7 +9,8 @@
 
 #include <stdio.h>
 
-#include <deque>
+
+#include <queue>
 #include <stack>
 #include <vector>
 
@@ -337,7 +338,7 @@ private:
     
     
     
-    typedef std::deque<Message> MessageQueue;
+    typedef std::queue<Message> MessageQueue;
     MessageQueue mPending;
 
     
