@@ -4,7 +4,7 @@
 
 "use strict";
 
-let EXPORTED_SYMBOLS = ["PageThumbs", "PageThumbsStorage", "PageThumbsCache"];
+let EXPORTED_SYMBOLS = ["PageThumbs", "PageThumbsStorage"];
 
 const Cu = Components.utils;
 const Cc = Components.classes;
@@ -533,63 +533,3 @@ let PageThumbsHistoryObserver = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsINavHistoryObserver])
 };
-
-
-
-
-let PageThumbsCache = {
-  
-
-
-
-
-  getReadEntry: function Cache_getReadEntry(aKey, aCallback) {
-    
-    this._openCacheEntry(aKey, Ci.nsICache.ACCESS_READ, aCallback);
-  },
-
-  
-
-
-
-
-
-  _openCacheEntry: function Cache_openCacheEntry(aKey, aAccess, aCallback) {
-    function onCacheEntryAvailable(aEntry, aAccessGranted, aStatus) {
-      let validAccess = aAccess == aAccessGranted;
-      let validStatus = Components.isSuccessCode(aStatus);
-
-      
-      
-      if (aEntry && !(validAccess && validStatus)) {
-        aEntry.close();
-        aEntry = null;
-      }
-
-      aCallback(aEntry);
-    }
-
-    let listener = this._createCacheListener(onCacheEntryAvailable);
-    this._cacheSession.asyncOpenCacheEntry(aKey, aAccess, listener);
-  },
-
-  
-
-
-
-
-  _createCacheListener: function Cache_createCacheListener(aCallback) {
-    return {
-      onCacheEntryAvailable: aCallback,
-      QueryInterface: XPCOMUtils.generateQI([Ci.nsICacheListener])
-    };
-  }
-};
-
-
-
-
-XPCOMUtils.defineLazyGetter(PageThumbsCache, "_cacheSession", function () {
-  return Services.cache.createSession(PageThumbs.scheme,
-                                     Ci.nsICache.STORE_ON_DISK, true);
-});
