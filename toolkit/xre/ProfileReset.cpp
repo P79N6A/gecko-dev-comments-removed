@@ -1,0 +1,153 @@
+
+
+
+
+
+#include "nsIAppStartup.h"
+#include "nsIDOMWindow.h"
+#include "nsILocalFile.h"
+#include "nsIStringBundle.h"
+#include "nsIToolkitProfile.h"
+#include "nsIWindowWatcher.h"
+
+#include "ProfileReset.h"
+
+#include "nsDirectoryServiceDefs.h"
+#include "nsDirectoryServiceUtils.h"
+#include "nsPrintfCString.h"
+#include "nsToolkitCompsCID.h"
+#include "nsXPCOMCIDInternal.h"
+#include "nsXREAppData.h"
+
+#include "mozilla/Services.h"
+
+extern const nsXREAppData* gAppData;
+
+static const char kProfileProperties[] =
+  "chrome://mozapps/locale/profile/profileSelection.properties";
+
+
+
+
+nsresult
+CreateResetProfile(nsIToolkitProfileService* aProfileSvc, nsIToolkitProfile* *aNewProfile)
+{
+  NS_ABORT_IF_FALSE(aProfileSvc, "NULL profile service");
+
+  nsCOMPtr<nsIToolkitProfile> newProfile;
+  
+  nsCAutoString newProfileName("default-");
+  newProfileName.Append(nsPrintfCString("%lld", PR_Now() / 1000));
+  nsresult rv = aProfileSvc->CreateProfile(nsnull, 
+                                           nsnull, 
+                                           newProfileName,
+                                           getter_AddRefs(newProfile));
+  if (NS_FAILED(rv)) return rv;
+
+  rv = aProfileSvc->Flush();
+  if (NS_FAILED(rv)) return rv;
+
+  newProfile.swap(*aNewProfile);
+
+  return NS_OK;
+}
+
+
+
+
+nsresult
+ProfileResetCleanup(nsIToolkitProfile* aOldProfile)
+{
+  nsresult rv;
+  nsCOMPtr<nsILocalFile> profileDir;
+  rv = aOldProfile->GetRootDir(getter_AddRefs(profileDir));
+  if (NS_FAILED(rv)) return rv;
+
+  nsCOMPtr<nsILocalFile> profileLocalDir;
+  rv = aOldProfile->GetLocalDir(getter_AddRefs(profileLocalDir));
+  if (NS_FAILED(rv)) return rv;
+
+  
+  nsCOMPtr<nsIStringBundleService> sbs = mozilla::services::GetStringBundleService();
+  if (!sbs) return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIStringBundle> sb;
+  rv = sbs->CreateBundle(kProfileProperties, getter_AddRefs(sb));
+  if (!sb) return NS_ERROR_FAILURE;
+
+  NS_ConvertUTF8toUTF16 appName(gAppData->name);
+  const PRUnichar* params[] = {appName.get(), appName.get()};
+
+  nsXPIDLString resetBackupDirectoryName;
+
+  static const PRUnichar* kResetBackupDirectory = NS_LITERAL_STRING("resetBackupDirectory").get();
+  rv = sb->FormatStringFromName(kResetBackupDirectory, params, 2,
+                                getter_Copies(resetBackupDirectoryName));
+
+  
+  nsCOMPtr<nsIFile> backupDest, uniqueDest;
+  rv = NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR, getter_AddRefs(backupDest));
+  if (NS_FAILED(rv)) {
+    
+    rv = NS_GetSpecialDirectory(NS_OS_HOME_DIR, getter_AddRefs(backupDest));
+    if (NS_FAILED(rv)) return rv;
+  }
+
+  
+  backupDest->Clone(getter_AddRefs(uniqueDest));
+  uniqueDest->Append(resetBackupDirectoryName);
+  rv = uniqueDest->CreateUnique(nsIFile::DIRECTORY_TYPE, 0700);
+  if (NS_FAILED(rv)) return rv;
+
+  nsAutoString leafName;
+  rv = uniqueDest->GetLeafName(leafName);
+  if (NS_FAILED(rv)) return rv;
+  
+  rv = uniqueDest->Remove(false);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  nsCOMPtr<nsIWindowWatcher> windowWatcher(do_GetService(NS_WINDOWWATCHER_CONTRACTID));
+  if (!windowWatcher) return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIAppStartup> appStartup(do_GetService(NS_APPSTARTUP_CONTRACTID));
+  if (!appStartup) return NS_ERROR_FAILURE;
+
+  nsCOMPtr<nsIDOMWindow> progressWindow;
+  rv = windowWatcher->OpenWindow(nsnull,
+                                 kResetProgressURL,
+                                 "_blank",
+                                 "centerscreen,chrome,titlebar",
+                                 NULL,
+                                 getter_AddRefs(progressWindow));
+  if (NS_FAILED(rv)) return rv;
+
+  
+  nsCOMPtr<nsIThreadManager> tm = do_GetService(NS_THREADMANAGER_CONTRACTID);
+  nsCOMPtr<nsIThread> cleanupThread;
+  rv = tm->NewThread(0, 0, getter_AddRefs(cleanupThread));
+  if (NS_SUCCEEDED(rv)) {
+    nsCOMPtr<nsIRunnable> runnable = new ProfileResetCleanupAsyncTask(profileDir, profileLocalDir,
+                                                                      backupDest, leafName);
+    cleanupThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL);
+    
+
+    nsIThread *thread = NS_GetCurrentThread();
+    
+    while(!gProfileResetCleanupCompleted) {
+      NS_ProcessNextEvent(thread);
+    }
+  } else {
+    gProfileResetCleanupCompleted = true;
+    NS_WARNING("Cleanup thread creation failed");
+    return rv;
+  }
+  
+  progressWindow->Close();
+
+  
+  rv = aOldProfile->Remove(false);
+  if (NS_FAILED(rv)) NS_WARNING("Could not remove the profile");
+
+  return rv;
+}
