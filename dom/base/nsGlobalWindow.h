@@ -558,9 +558,22 @@ public:
   void AddEventTargetObject(nsDOMEventTargetHelper* aObject);
   void RemoveEventTargetObject(nsDOMEventTargetHelper* aObject);
 
+  
+
+
+
+
+  bool IsPartOfApp();
+
 protected:
   friend class HashchangeCallback;
   friend class nsBarProp;
+
+  enum TriState {
+    TriState_Unknown = -1,
+    TriState_False,
+    TriState_True
+  };
 
   
   virtual ~nsGlobalWindow();
@@ -811,6 +824,8 @@ protected:
   nsresult CloneStorageEvent(const nsAString& aType,
                              nsCOMPtr<nsIDOMStorageEvent>& aEvent);
 
+  void SetIsApp(bool aValue);
+
   
   
   
@@ -877,6 +892,11 @@ protected:
 
   
   bool                   mNotifiedIDDestroyed : 1;
+
+  
+  
+  
+  TriState               mIsApp : 2;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;

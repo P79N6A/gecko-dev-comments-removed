@@ -41,6 +41,17 @@ BrowserElementChild.prototype = {
                                  Ci.nsIWebProgress.NOTIFY_LOCATION |
                                  Ci.nsIWebProgress.NOTIFY_STATE_WINDOW);
 
+    
+    
+    
+    
+    
+    
+    
+    content.QueryInterface(Ci.nsIInterfaceRequestor)
+           .getInterface(Components.interfaces.nsIDOMWindowUtils)
+           .setIsApp(false);
+
     addEventListener('DOMTitleChanged',
                      this._titleChangedHandler.bind(this),
                       true,

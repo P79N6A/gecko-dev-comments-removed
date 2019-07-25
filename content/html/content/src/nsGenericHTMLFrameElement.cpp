@@ -284,6 +284,7 @@ nsGenericHTMLFrameElement::GetReallyIsBrowser(bool *aOut)
   }
 
   
+  
   nsIPrincipal *principal = NodePrincipal();
   nsCOMPtr<nsIURI> principalURI;
   principal->GetURI(getter_AddRefs(principalURI));
