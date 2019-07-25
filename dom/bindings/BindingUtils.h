@@ -248,6 +248,16 @@ struct ConstantSpec
 bool
 DefineConstants(JSContext* cx, JSObject* obj, ConstantSpec* cs);
 
+template<typename T>
+struct Prefable {
+  
+  bool enabled;
+  
+  
+  
+  T* specs;
+};
+
 
 
 
@@ -289,9 +299,10 @@ JSObject*
 CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
                        JSClass* constructorClass, JSNative constructor,
-                       unsigned ctorNargs, JSFunctionSpec* methods,
-                       JSPropertySpec* properties, ConstantSpec* constants,
-                       JSFunctionSpec* staticMethods, const char* name);
+                       unsigned ctorNargs, Prefable<JSFunctionSpec>* methods,
+                       Prefable<JSPropertySpec>* properties,
+                       Prefable<ConstantSpec>* constants,
+                       Prefable<JSFunctionSpec>* staticMethods, const char* name);
 
 template <class T>
 inline bool
@@ -569,17 +580,28 @@ WrapNativeParent(JSContext* cx, JSObject* scope, const T& p)
 
 template <typename Spec>
 static bool
-InitIds(JSContext* cx, Spec* specs, jsid* ids)
+InitIds(JSContext* cx, Prefable<Spec>* prefableSpecs, jsid* ids)
 {
-  Spec* spec = specs;
+  MOZ_ASSERT(prefableSpecs);
+  MOZ_ASSERT(prefableSpecs->specs);
   do {
-    JSString *str = ::JS_InternString(cx, spec->name);
-    if (!str) {
-      return false;
-    }
+    
+    
+    Spec* spec = prefableSpecs->specs;
+    do {
+      JSString *str = ::JS_InternString(cx, spec->name);
+      if (!str) {
+        return false;
+      }
 
-    *ids = INTERNED_STRING_TO_JSID(cx, str);
-  } while (++ids, (++spec)->name);
+      *ids = INTERNED_STRING_TO_JSID(cx, str);
+    } while (++ids, (++spec)->name);
+
+    
+    
+    *ids = JSID_VOID;
+    ++ids;
+  } while ((++prefableSpecs)->specs);
 
   return true;
 }
