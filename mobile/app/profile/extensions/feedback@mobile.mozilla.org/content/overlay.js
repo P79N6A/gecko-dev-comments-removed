@@ -44,13 +44,10 @@ var Feedback = {
     messageManager.loadFrameScript("data:,addMessageListener('Feedback:InitPage', function(m) { content.document.getElementById('id_url').value = m.json.referrer; });", true);
 
     
-    messageManager.addMessageListener("DOMContentLoaded", function() {
-      
-      messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
-
-      
+    window.addEventListener("UIReadyDelayed", function(aEvent) {
+      window.removeEventListener(aEvent.type, arguments.callee, false);
       document.getElementById("feedback-container").hidden = false;
-    });
+    }, false);
   },
 
   openFeedback: function(aURL) {

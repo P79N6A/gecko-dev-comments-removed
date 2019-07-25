@@ -451,8 +451,16 @@ var BrowserUI = {
       if (getBrowser().currentURI.spec == "about:blank")
         return;
 
-      
       messageManager.removeMessageListener("pageshow", arguments.callee, true);
+
+      let event = document.createEvent("Events");
+      event.initEvent("UIReadyDelayed", true, false);
+      window.dispatchEvent(event);
+    });
+
+    
+    window.addEventListener("UIReadyDelayed", function(aEvent) {
+      window.removeEventListener(aEvent.type, arguments.callee, false);
 
       
       Elements.panelUI.hidden = false;
@@ -473,7 +481,7 @@ var BrowserUI = {
       
       WeaveGlue.init();
 #endif
-    });
+    }, false);
 
     FormHelperUI.init();
     FindHelperUI.init();
