@@ -6496,12 +6496,13 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
         if (pn->isArity(PN_BINARY)) {
             if (!EmitTree(cx, bce, pn->pn_left))
                 return JS_FALSE;
-            top = EmitJump(cx, bce, JSOP_BACKPATCH_POP, 0);
+            top = EmitJump(cx, bce, JSOP_BACKPATCH, 0);
             if (top < 0)
+                return JS_FALSE;
+            if (Emit1(cx, bce, JSOP_POP) < 0)
                 return JS_FALSE;
             if (!EmitTree(cx, bce, pn->pn_right))
                 return JS_FALSE;
@@ -6517,8 +6518,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             pn2 = pn->pn_head;
             if (!EmitTree(cx, bce, pn2))
                 return JS_FALSE;
-            top = EmitJump(cx, bce, JSOP_BACKPATCH_POP, 0);
+            top = EmitJump(cx, bce, JSOP_BACKPATCH, 0);
             if (top < 0)
+                return JS_FALSE;
+            if (Emit1(cx, bce, JSOP_POP) < 0)
                 return JS_FALSE;
 
             
@@ -6526,8 +6529,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             while ((pn2 = pn2->pn_next)->pn_next) {
                 if (!EmitTree(cx, bce, pn2))
                     return JS_FALSE;
-                off = EmitJump(cx, bce, JSOP_BACKPATCH_POP, 0);
+                off = EmitJump(cx, bce, JSOP_BACKPATCH, 0);
                 if (off < 0)
+                    return JS_FALSE;
+                if (Emit1(cx, bce, JSOP_POP) < 0)
                     return JS_FALSE;
                 if (!SetBackPatchDelta(cx, bce, bce->code(jmp), off - jmp))
                     return JS_FALSE;
