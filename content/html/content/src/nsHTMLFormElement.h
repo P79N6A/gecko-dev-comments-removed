@@ -284,6 +284,15 @@ public:
   bool CheckValidFormSubmission();
 
   virtual nsXPCClassInfo* GetClassInfo();
+
+  
+
+
+
+
+
+  nsresult WalkFormElements(nsFormSubmission* aFormSubmission);
+
 protected:
   class RemoveElementRunnable;
   friend class RemoveElementRunnable;
@@ -338,13 +347,6 @@ protected:
 
 
   nsresult SubmitSubmission(nsFormSubmission* aFormSubmission);
-  
-
-
-
-
-
-  nsresult WalkFormElements(nsFormSubmission* aFormSubmission);
 
   
 
