@@ -619,9 +619,9 @@ let RIL = {
     Buf.writeString(address);
     Buf.writeUint32(clirMode || 0);
     Buf.writeUint32(uusInfo || 0);
-	
-	
-	Buf.writeUint32(0);
+    
+    
+    Buf.writeUint32(0);
     Buf.sendParcel();
   },
 
