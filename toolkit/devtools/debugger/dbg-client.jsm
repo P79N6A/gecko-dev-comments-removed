@@ -198,6 +198,16 @@ const ThreadStateTypes = {
 
 
 
+const UnsolicitedNotifications = {
+  "newScript": "newScript",
+  "tabDetached": "tabDetached",
+  "tabNavigated": "tabNavigated"
+};
+
+
+
+
+
 const DebugProtocolTypes = {
   "attach": "attach",
   "clientEvaluate": "clientEvaluate",
@@ -409,12 +419,15 @@ DebuggerClient.prototype = {
 
     try {
       if (!aPacket.from) {
-        dumpn("Server did not specify an actor, dropping packet: " + JSON.stringify(aPacket));
+        Cu.reportError("Server did not specify an actor, dropping packet: " +
+                       JSON.stringify(aPacket));
         return;
       }
 
       let onResponse;
-      if (aPacket.from in this._activeRequests) {
+      
+      if (aPacket.from in this._activeRequests &&
+          !(aPacket.type in UnsolicitedNotifications)) {
         onResponse = this._activeRequests[aPacket.from].onResponse;
         delete this._activeRequests[aPacket.from];
       }
@@ -616,20 +629,45 @@ ThreadClient.prototype = {
 
 
 
-
   setBreakpoint: function TC_setBreakpoint(aLocation, aOnResponse) {
-    this._assertPaused("setBreakpoint");
+    
+    let doSetBreakpoint = function _doSetBreakpoint(aCallback) {
+      let packet = { to: this._actor, type: DebugProtocolTypes.setBreakpoint,
+                     location: aLocation };
+      this._client.request(packet, function (aResponse) {
+          if (aOnResponse) {
+            if (aResponse.error) {
+              if (aCallback) {
+                aCallback(aOnResponse.bind(undefined, aResponse));
+              } else {
+                aOnResponse(aResponse);
+              }
+              return;
+            }
+            let bpClient = new BreakpointClient(this._client, aResponse.actor);
+            if (aCallback) {
+              aCallback(aOnResponse(aResponse, bpClient));
+            } else {
+              aOnResponse(aResponse, bpClient);
+            }
+          }
+        }.bind(this));
+    }.bind(this);
 
-    let self = this;
-    let packet = { to: this._actor, type: DebugProtocolTypes.setBreakpoint,
-                   location: aLocation };
-    this._client.request(packet, function (aResponse) {
-                         if (aOnResponse) {
-                           let bpClient = new BreakpointClient(self._client,
-                                                               aResponse.actor);
-                           aOnResponse(aResponse, bpClient);
-                         }
-                       });
+    
+    if (this.paused) {
+      doSetBreakpoint();
+      return;
+    }
+    
+    this.interrupt(function(aResponse) {
+      if (aResponse.error) {
+        
+        aOnResponse(aResponse);
+        return;
+      }
+      doSetBreakpoint(this.resume.bind(this));
+    }.bind(this));
   },
 
   
