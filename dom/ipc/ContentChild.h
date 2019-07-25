@@ -133,7 +133,7 @@ public:
     
     virtual bool RecvDummy(Shmem& foo) { return true; }
 
-    virtual PBrowserChild* AllocPBrowser();
+    virtual PBrowserChild* AllocPBrowser(const PRUint32& aChromeFlags);
     virtual bool DeallocPBrowser(PBrowserChild*);
 
     virtual PTestShellChild* AllocPTestShell();
