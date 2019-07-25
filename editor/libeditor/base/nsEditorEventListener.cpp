@@ -61,8 +61,6 @@
 
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
-#include "nsIDragService.h"
-#include "nsIDragSession.h"
 #include "nsIContent.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIDOMRange.h"
@@ -700,6 +698,10 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
   }
   else
   {
+    
+    
+    aDragEvent->StopPropagation();
+
     if (mCaret)
     {
       mCaret->EraseCaret();
@@ -771,8 +773,6 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
 
   aMouseEvent->StopPropagation();
   aMouseEvent->PreventDefault();
-  
-  
   return mEditor->InsertFromDrop(aMouseEvent);
 }
 

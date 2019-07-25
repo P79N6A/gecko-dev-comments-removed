@@ -64,6 +64,8 @@
 #include "nsIContent.h"
 #include "nsIContentIterator.h"
 #include "nsIDOMRange.h"
+#include "nsIDOMDOMStringList.h"
+#include "nsIDOMDragEvent.h"
 #include "nsCOMArray.h"
 #include "nsIFile.h"
 #include "nsIURL.h"
@@ -1204,6 +1206,116 @@ nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, PRUnichar **aStuffToPaste, PRUnic
   return NS_OK;
 }
 
+bool nsHTMLEditor::IsSafeToInsertData(nsIDOMDocument* aSourceDoc)
+{
+  
+  bool isSafe = false;
+  nsCOMPtr<nsIDOMDocument> destdomdoc;
+  GetDocument(getter_AddRefs(destdomdoc));
+
+  nsCOMPtr<nsIDocument> destdoc = do_QueryInterface(destdomdoc);
+  NS_ASSERTION(destdoc, "Where is our destination doc?");
+  nsCOMPtr<nsISupports> container = destdoc->GetContainer();
+  nsCOMPtr<nsIDocShellTreeItem> dsti(do_QueryInterface(container));
+  nsCOMPtr<nsIDocShellTreeItem> root;
+  if (dsti)
+    dsti->GetRootTreeItem(getter_AddRefs(root));
+  nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(root));
+  PRUint32 appType;
+  if (docShell && NS_SUCCEEDED(docShell->GetAppType(&appType)))
+    isSafe = appType == nsIDocShell::APP_TYPE_EDITOR;
+  if (!isSafe && aSourceDoc) {
+    nsCOMPtr<nsIDocument> srcdoc = do_QueryInterface(aSourceDoc);
+    NS_ASSERTION(srcdoc, "Where is our source doc?");
+
+    nsIPrincipal* srcPrincipal = srcdoc->NodePrincipal();
+    nsIPrincipal* destPrincipal = destdoc->NodePrincipal();
+    NS_ASSERTION(srcPrincipal && destPrincipal, "How come we don't have a principal?");
+    srcPrincipal->Subsumes(destPrincipal, &isSafe);
+  }
+
+  return isSafe;
+}
+
+nsresult nsHTMLEditor::InsertObject(const char* aType, nsISupports* aObject, bool aIsSafe,
+                                    nsIDOMDocument *aSourceDoc,
+                                    nsIDOMNode *aDestinationNode,
+                                    PRInt32 aDestOffset,
+                                    bool aDoDeleteSelection)
+{
+  nsresult rv;
+
+  const char* type = aType;
+
+  
+  bool insertAsImage = false;
+  nsCOMPtr<nsIURI> fileURI;
+  if (0 == nsCRT::strcmp(type, kFileMime))
+  {
+    nsCOMPtr<nsIFile> fileObj(do_QueryInterface(aObject));
+    if (fileObj)
+    {
+      rv = NS_NewFileURI(getter_AddRefs(fileURI), fileObj);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsIMIMEService> mime = do_GetService("@mozilla.org/mime;1");
+      NS_ENSURE_TRUE(mime, NS_ERROR_FAILURE);
+      nsCAutoString contentType;
+      rv = mime->GetTypeFromFile(fileObj, contentType);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      if (StringBeginsWith(contentType, NS_LITERAL_CSTRING("image/"))) {
+        insertAsImage = true;
+        type = contentType.get();
+      }
+    }
+  }
+
+  if (0 == nsCRT::strcmp(type, kJPEGImageMime) ||
+      0 == nsCRT::strcmp(type, kPNGImageMime) ||
+      0 == nsCRT::strcmp(type, kGIFImageMime) ||
+      insertAsImage)
+  {
+    nsCOMPtr<nsIInputStream> imageStream;
+    if (insertAsImage) {
+      NS_ASSERTION(fileURI, "The file URI should be retrieved earlier");
+      rv = NS_OpenURI(getter_AddRefs(imageStream), fileURI);
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+      imageStream = do_QueryInterface(aObject);
+      NS_ENSURE_TRUE(imageStream, NS_ERROR_FAILURE);
+    }
+
+    nsCString imageData;
+    rv = NS_ConsumeStream(imageStream, PR_UINT32_MAX, imageData);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = imageStream->Close();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    char * base64 = PL_Base64Encode(imageData.get(), imageData.Length(), nsnull);
+    NS_ENSURE_TRUE(base64, NS_ERROR_OUT_OF_MEMORY);
+
+    nsAutoString stuffToPaste;
+    stuffToPaste.AssignLiteral("<IMG src=\"data:");
+    AppendUTF8toUTF16(aType, stuffToPaste);
+    stuffToPaste.AppendLiteral(";base64,");
+    AppendUTF8toUTF16(base64, stuffToPaste);
+    stuffToPaste.AppendLiteral("\" alt=\"\" >");
+    nsAutoEditBatch beginBatching(this);
+    rv = DoInsertHTMLWithContext(stuffToPaste, EmptyString(), EmptyString(), 
+                                 NS_LITERAL_STRING(kFileMime),
+                                 aSourceDoc,
+                                 aDestinationNode, aDestOffset,
+                                 aDoDeleteSelection,
+                                 aIsSafe);
+    PR_Free(base64);
+  }
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable, 
                                                    nsIDOMDocument *aSourceDoc,
                                                    const nsAString & aContextStr,
@@ -1226,59 +1338,16 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
     printf("Got flavor [%s]\n", bestFlavor.get());
 #endif
 
-    
-    bool isSafe = false;
-    nsCOMPtr<nsIDOMDocument> destdomdoc;
-    rv = GetDocument(getter_AddRefs(destdomdoc));
-    NS_ENSURE_SUCCESS(rv, rv);
-    nsCOMPtr<nsIDocument> destdoc = do_QueryInterface(destdomdoc);
-    NS_ASSERTION(destdoc, "Where is our destination doc?");
-    nsCOMPtr<nsISupports> container = destdoc->GetContainer();
-    nsCOMPtr<nsIDocShellTreeItem> dsti(do_QueryInterface(container));
-    nsCOMPtr<nsIDocShellTreeItem> root;
-    if (dsti)
-      dsti->GetRootTreeItem(getter_AddRefs(root));
-    nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(root));
-    PRUint32 appType;
-    if (docShell && NS_SUCCEEDED(docShell->GetAppType(&appType)))
-      isSafe = appType == nsIDocShell::APP_TYPE_EDITOR;
-    if (!isSafe && aSourceDoc) {
-      nsCOMPtr<nsIDocument> srcdoc = do_QueryInterface(aSourceDoc);
-      NS_ASSERTION(srcdoc, "Where is our source doc?");
+    bool isSafe = IsSafeToInsertData(aSourceDoc);
 
-      nsIPrincipal* srcPrincipal = srcdoc->NodePrincipal();
-      nsIPrincipal* destPrincipal = destdoc->NodePrincipal();
-      NS_ASSERTION(srcPrincipal && destPrincipal, "How come we don't have a principal?");
-      rv = srcPrincipal->Subsumes(destPrincipal, &isSafe);
-      NS_ENSURE_SUCCESS(rv, rv);
+  	if (0 == nsCRT::strcmp(bestFlavor, kFileMime) ||
+        0 == nsCRT::strcmp(bestFlavor, kJPEGImageMime) ||
+        0 == nsCRT::strcmp(bestFlavor, kPNGImageMime) ||
+        0 == nsCRT::strcmp(bestFlavor, kGIFImageMime)) {
+      rv = InsertObject(bestFlavor, genericDataObj, isSafe,
+                        aSourceDoc, aDestinationNode, aDestOffset, aDoDeleteSelection);
     }
-
-    
-    bool insertAsImage = false;
-    nsCOMPtr<nsIURI> fileURI;
-    if (0 == nsCRT::strcmp(bestFlavor, kFileMime))
-    {
-      nsCOMPtr<nsIFile> fileObj(do_QueryInterface(genericDataObj));
-      if (fileObj && len > 0)
-      {
-        rv = NS_NewFileURI(getter_AddRefs(fileURI), fileObj);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIMIMEService> mime = do_GetService("@mozilla.org/mime;1");
-        NS_ENSURE_TRUE(mime, NS_ERROR_FAILURE);
-        nsCAutoString contentType;
-        rv = mime->GetTypeFromFile(fileObj, contentType);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        if (StringBeginsWith(contentType, NS_LITERAL_CSTRING("image/"))) {
-          insertAsImage = true;
-          bestFlavor = contentType;
-        }
-      }
-    }
-
-    if (0 == nsCRT::strcmp(bestFlavor, kNativeHTMLMime))
+    else if (0 == nsCRT::strcmp(bestFlavor, kNativeHTMLMime))
     {
       
       nsCOMPtr<nsISupportsCString> textDataObj(do_QueryInterface(genericDataObj));
@@ -1302,8 +1371,9 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
         }
       }
     }
-    else if (0 == nsCRT::strcmp(bestFlavor, kHTMLMime))
-    {
+    else if (0 == nsCRT::strcmp(bestFlavor, kHTMLMime) ||
+             0 == nsCRT::strcmp(bestFlavor, kUnicodeMime) ||
+             0 == nsCRT::strcmp(bestFlavor, kMozTextInternal)) {
       nsCOMPtr<nsISupportsString> textDataObj(do_QueryInterface(genericDataObj));
       if (textDataObj && len > 0)
       {
@@ -1311,74 +1381,22 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
         textDataObj->GetData(text);
         NS_ASSERTION(text.Length() <= (len/2), "Invalid length!");
         stuffToPaste.Assign(text.get(), len / 2);
+
         nsAutoEditBatch beginBatching(this);
-        rv = DoInsertHTMLWithContext(stuffToPaste,
-                                     aContextStr, aInfoStr, flavor,
-                                     aSourceDoc,
-                                     aDestinationNode, aDestOffset,
-                                     aDoDeleteSelection,
-                                     isSafe);
+        if (0 == nsCRT::strcmp(bestFlavor, kHTMLMime)) {
+          rv = DoInsertHTMLWithContext(stuffToPaste,
+                                       aContextStr, aInfoStr, flavor,
+                                       aSourceDoc,
+                                       aDestinationNode, aDestOffset,
+                                       aDoDeleteSelection,
+                                       isSafe);
+        } else {
+          rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
+        }
       }
-    }
-    else if (0 == nsCRT::strcmp(bestFlavor, kUnicodeMime) ||
-             0 == nsCRT::strcmp(bestFlavor, kMozTextInternal))
-    {
-      nsCOMPtr<nsISupportsString> textDataObj(do_QueryInterface(genericDataObj));
-      if (textDataObj && len > 0)
-      {
-        nsAutoString text;
-        textDataObj->GetData(text);
-        NS_ASSERTION(text.Length() <= (len/2), "Invalid length!");
-        stuffToPaste.Assign(text.get(), len / 2);
-        nsAutoEditBatch beginBatching(this);
-        
-        rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
-      }
-    }
-    else if (0 == nsCRT::strcmp(bestFlavor, kJPEGImageMime) ||
-             0 == nsCRT::strcmp(bestFlavor, kPNGImageMime) ||
-             0 == nsCRT::strcmp(bestFlavor, kGIFImageMime) ||
-             insertAsImage)
-    {
-      nsCOMPtr<nsIInputStream> imageStream;
-      if (insertAsImage) {
-        NS_ASSERTION(fileURI, "The file URI should be retrieved earlier");
-        rv = NS_OpenURI(getter_AddRefs(imageStream), fileURI);
-        NS_ENSURE_SUCCESS(rv, rv);
-      } else {
-        imageStream = do_QueryInterface(genericDataObj);
-        NS_ENSURE_TRUE(imageStream, NS_ERROR_FAILURE);
-      }
-
-      nsCString imageData;
-      rv = NS_ConsumeStream(imageStream, PR_UINT32_MAX, imageData);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = imageStream->Close();
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      char * base64 = PL_Base64Encode(imageData.get(), imageData.Length(), nsnull);
-      NS_ENSURE_TRUE(base64, NS_ERROR_OUT_OF_MEMORY);
-
-      stuffToPaste.AssignLiteral("<IMG src=\"data:");
-      AppendUTF8toUTF16(bestFlavor, stuffToPaste);
-      stuffToPaste.AppendLiteral(";base64,");
-      AppendUTF8toUTF16(base64, stuffToPaste);
-      stuffToPaste.AppendLiteral("\" alt=\"\" >");
-      nsAutoEditBatch beginBatching(this);
-      rv = DoInsertHTMLWithContext(stuffToPaste, EmptyString(), EmptyString(), 
-                                   NS_LITERAL_STRING(kFileMime),
-                                   aSourceDoc,
-                                   aDestinationNode, aDestOffset,
-                                   aDoDeleteSelection,
-                                   isSafe);
-      PR_Free(base64);
     }
   }
-      
-  
 
-  
   
   if (NS_SUCCEEDED(rv))
     ScrollSelectionIntoView(false);
@@ -1386,38 +1404,125 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromTransferable(nsITransferable *transferable
   return rv;
 }
 
+static void
+GetStringFromDataTransfer(nsIDOMDataTransfer *aDataTransfer, const nsAString& aType,
+                          PRInt32 aIndex, nsAString& aOutputString)
+{
+  nsCOMPtr<nsIVariant> variant;
+  aDataTransfer->MozGetDataAt(aType, aIndex, getter_AddRefs(variant));
+  if (variant)
+    variant->GetAsAString(aOutputString);
+}
+
+nsresult nsHTMLEditor::InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
+                                              PRInt32 aIndex,
+                                              nsIDOMDocument *aSourceDoc,
+                                              const nsAString & aContextStr,
+                                              const nsAString & aInfoStr,
+                                              nsIDOMNode *aDestinationNode,
+                                              PRInt32 aDestOffset,
+                                              bool aDoDeleteSelection)
+{
+  nsresult rv = NS_OK;
+
+  nsCOMPtr<nsIDOMDOMStringList> types;
+  aDataTransfer->MozTypesAt(aIndex, getter_AddRefs(types));
+
+  bool hasPrivateHTMLFlavor;
+  types->Contains(NS_LITERAL_STRING(kHTMLContext), &hasPrivateHTMLFlavor);
+
+  bool isText = IsPlaintextEditor();
+  bool isSafe = IsSafeToInsertData(aSourceDoc);
+  
+  PRUint32 length;
+  types->GetLength(&length);
+  for (PRUint32 t = 0; t < length; t++) {
+    nsAutoString type;
+    types->Item(t, type);
+
+    if (!isText) {
+      if (type.EqualsLiteral(kFileMime) ||
+          type.EqualsLiteral(kJPEGImageMime) ||
+          type.EqualsLiteral(kPNGImageMime) ||
+          type.EqualsLiteral(kGIFImageMime)) {
+        nsCOMPtr<nsIVariant> variant;
+        aDataTransfer->MozGetDataAt(type, aIndex, getter_AddRefs(variant));
+        if (variant) {
+          nsCOMPtr<nsISupports> object;
+          variant->GetAsISupports(getter_AddRefs(object));
+          rv = InsertObject(NS_ConvertUTF16toUTF8(type).get(), object, isSafe,
+                            aSourceDoc, aDestinationNode, aDestOffset, aDoDeleteSelection);
+          if (NS_SUCCEEDED(rv))
+            return NS_OK;
+        }
+      }
+      else if (!hasPrivateHTMLFlavor && type.EqualsLiteral(kNativeHTMLMime)) {
+        nsAutoString text;
+        GetStringFromDataTransfer(aDataTransfer, NS_LITERAL_STRING(kNativeHTMLMime), aIndex, text);
+        NS_ConvertUTF16toUTF8 cfhtml(text);
+
+        nsXPIDLString cfcontext, cffragment, cfselection; 
+           
+        rv = ParseCFHTML(cfhtml, getter_Copies(cffragment), getter_Copies(cfcontext));
+        if (NS_SUCCEEDED(rv) && !cffragment.IsEmpty())
+        {
+          nsAutoEditBatch beginBatching(this);
+          rv = DoInsertHTMLWithContext(cffragment,
+                                       cfcontext, cfselection, type,
+                                       aSourceDoc,
+                                       aDestinationNode, aDestOffset,
+                                       aDoDeleteSelection,
+                                       isSafe);
+          if (NS_SUCCEEDED(rv))
+            return NS_OK;
+        }
+      }
+      else if (type.EqualsLiteral(kHTMLMime)) {
+        nsAutoString text;
+        GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
+
+        nsAutoEditBatch beginBatching(this);
+        if (type.EqualsLiteral(kHTMLMime)) {
+          rv = DoInsertHTMLWithContext(text,
+                                       aContextStr, aInfoStr, type,
+                                       aSourceDoc,
+                                       aDestinationNode, aDestOffset,
+                                       aDoDeleteSelection,
+                                       isSafe);
+          if (NS_SUCCEEDED(rv))
+            return NS_OK;
+        }
+      }
+    }
+
+    if (type.EqualsLiteral(kTextMime) ||
+        type.EqualsLiteral(kMozTextInternal)) {
+      nsAutoString text;
+      GetStringFromDataTransfer(aDataTransfer, type, aIndex, text);
+
+      nsAutoEditBatch beginBatching(this);
+      rv = InsertTextAt(text, aDestinationNode, aDestOffset, aDoDeleteSelection);
+      if (NS_SUCCEEDED(rv))
+        return NS_OK;
+    }
+  }
+
+  return rv;
+}
+
 NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 {
   ForceCompositionEnd();
-  
-  nsresult rv;
-  nsCOMPtr<nsIDragService> dragService = 
-           do_GetService("@mozilla.org/widget/dragservice;1", &rv);
+
+  nsCOMPtr<nsIDOMDragEvent> dragEvent(do_QueryInterface(aDropEvent));
+  NS_ENSURE_TRUE(dragEvent, NS_OK);
+
+  nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
+  nsresult rv = dragEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIDragSession> dragSession;
-  dragService->GetCurrentSession(getter_AddRefs(dragSession)); 
-  NS_ENSURE_TRUE(dragSession, NS_OK);
-
-  
-  nsCOMPtr<nsIDOMDocument> domdoc;
-  GetDocument(getter_AddRefs(domdoc));
-
-  
-  
-  bool bHavePrivateHTMLFlavor = false;
-  rv = dragSession->IsDataFlavorSupported(kHTMLContext, &bHavePrivateHTMLFlavor);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  nsCOMPtr<nsITransferable> trans;
-  rv = PrepareHTMLTransferable(getter_AddRefs(trans), bHavePrivateHTMLFlavor);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(trans, NS_OK);  
-
-  PRUint32 numItems = 0; 
-  rv = dragSession->GetNumDropItems(&numItems);
-  NS_ENSURE_SUCCESS(rv, rv);
+  PRUint32 numItems = 0;
+  dataTransfer->GetMozItemCount(&numItems);
 
   
   nsAutoEditBatch beginBatching(this);
@@ -1427,80 +1532,25 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
   nsCOMPtr<nsIDOMNode> newSelectionParent;
   PRInt32 newSelectionOffset = 0;
 
-  
+  nsCOMPtr<nsIDOMNode> sourceNode;
+  dataTransfer->GetMozSourceNode(getter_AddRefs(sourceNode));
+
   nsCOMPtr<nsIDOMDocument> srcdomdoc;
-  rv = dragSession->GetSourceDocument(getter_AddRefs(srcdomdoc));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (sourceNode) {
+    sourceNode->GetOwnerDocument(getter_AddRefs(srcdomdoc));
+    NS_ENSURE_TRUE(sourceNode, NS_ERROR_FAILURE);
+  }
 
   PRUint32 i; 
   bool doPlaceCaret = true;
   for (i = 0; i < numItems; ++i)
   {
-    rv = dragSession->GetData(trans, i);
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(trans, NS_OK); 
-
-    
-    nsAutoString contextStr, infoStr;
-    nsCOMPtr<nsISupports> contextDataObj, infoDataObj;
-    PRUint32 contextLen, infoLen;
-    nsCOMPtr<nsISupportsString> textDataObj;
-    
-    nsCOMPtr<nsITransferable> contextTrans =
-                      do_CreateInstance("@mozilla.org/widget/transferable;1");
-    NS_ENSURE_TRUE(contextTrans, NS_ERROR_NULL_POINTER);
-    contextTrans->AddDataFlavor(kHTMLContext);
-    dragSession->GetData(contextTrans, i);
-    contextTrans->GetTransferData(kHTMLContext, getter_AddRefs(contextDataObj), &contextLen);
-
-    nsCOMPtr<nsITransferable> infoTrans =
-                      do_CreateInstance("@mozilla.org/widget/transferable;1");
-    NS_ENSURE_TRUE(infoTrans, NS_ERROR_NULL_POINTER);
-    infoTrans->AddDataFlavor(kHTMLInfo);
-    dragSession->GetData(infoTrans, i);
-    infoTrans->GetTransferData(kHTMLInfo, getter_AddRefs(infoDataObj), &infoLen);
-    
-    if (contextDataObj)
-    {
-      nsAutoString text;
-      textDataObj = do_QueryInterface(contextDataObj);
-      textDataObj->GetData(text);
-      NS_ASSERTION(text.Length() <= (contextLen/2), "Invalid length!");
-      contextStr.Assign(text.get(), contextLen / 2);
-    }
-    
-    if (infoDataObj)
-    {
-      nsAutoString text;
-      textDataObj = do_QueryInterface(infoDataObj);
-      textDataObj->GetData(text);
-      NS_ASSERTION(text.Length() <= (infoLen/2), "Invalid length!");
-      infoStr.Assign(text.get(), infoLen / 2);
-    }
+    nsAutoString contextString, infoString;
+    GetStringFromDataTransfer(dataTransfer, NS_LITERAL_STRING(kHTMLContext), i, contextString);
+    GetStringFromDataTransfer(dataTransfer, NS_LITERAL_STRING(kHTMLInfo), i, infoString);
 
     if (doPlaceCaret)
     {
-      
-      
-      bool userWantsCopy = false;
-
-      nsCOMPtr<nsIDOMUIEvent> uiEvent = do_QueryInterface(aDropEvent);
-      NS_ENSURE_TRUE(uiEvent, NS_ERROR_FAILURE);
-
-      nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aDropEvent);
-      if (mouseEvent) {
-#if defined(XP_MACOSX)
-        mouseEvent->GetAltKey(&userWantsCopy);
-#else
-        mouseEvent->GetCtrlKey(&userWantsCopy);
-#endif
-      }
-
-      
-      nsCOMPtr<nsIDOMDocument> destdomdoc; 
-      rv = GetDocument(getter_AddRefs(destdomdoc)); 
-      NS_ENSURE_SUCCESS(rv, rv);
-
       nsCOMPtr<nsISelection> selection;
       rv = GetSelection(getter_AddRefs(selection));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1509,7 +1559,10 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       bool isCollapsed;
       rv = selection->GetIsCollapsed(&isCollapsed);
       NS_ENSURE_SUCCESS(rv, rv);
-      
+
+      nsCOMPtr<nsIDOMUIEvent> uiEvent = do_QueryInterface(aDropEvent);
+      NS_ENSURE_TRUE(uiEvent, NS_ERROR_FAILURE);
+
       
       rv = uiEvent->GetRangeParent(getter_AddRefs(newSelectionParent));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1565,6 +1618,11 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
           if(cursorIsInSelection)
             break;
         }
+
+        nsCOMPtr<nsIDOMDocument> destdomdoc;
+        GetDocument(getter_AddRefs(destdomdoc));
+        NS_ENSURE_TRUE(destdomdoc, NS_ERROR_FAILURE);
+
         if (cursorIsInSelection)
         {
           
@@ -1583,7 +1641,9 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
           if (srcdomdoc == destdomdoc)
           {
             
-            deleteSelection = !userWantsCopy;
+            PRUint32 dropEffect;
+            dataTransfer->GetDropEffectInt(&dropEffect);
+            deleteSelection = !(dropEffect & nsIDragService::DRAGDROP_ACTION_COPY);
           }
           else
           {
@@ -1597,16 +1657,13 @@ NS_IMETHODIMP nsHTMLEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       doPlaceCaret = false;
     }
     
-    
-    if (!nsEditorHookUtils::DoInsertionHook(domdoc, aDropEvent, trans))
-      return NS_OK;
-
-    
-    
-    rv = InsertFromTransferable(trans, srcdomdoc, contextStr, infoStr,
-                                newSelectionParent,
+    rv = InsertFromDataTransfer(dataTransfer, i, srcdomdoc,
+                                contextString, infoString, newSelectionParent,
                                 newSelectionOffset, deleteSelection);
   }
+
+  if (NS_SUCCEEDED(rv))
+    ScrollSelectionIntoView(false);
 
   return rv;
 }
@@ -1701,8 +1758,6 @@ NS_IMETHODIMP nsHTMLEditor::Paste(PRInt32 aSelectionType)
       if (!nsEditorHookUtils::DoInsertionHook(domdoc, nsnull, trans))
         return NS_OK;
 
-      
-      
       rv = InsertFromTransferable(trans, nsnull, contextStr, infoStr,
                                   nsnull, 0, true);
     }
@@ -1722,8 +1777,6 @@ NS_IMETHODIMP nsHTMLEditor::PasteTransferable(nsITransferable *aTransferable)
   if (!nsEditorHookUtils::DoInsertionHook(domdoc, nsnull, aTransferable))
     return NS_OK;
 
-  
-  
   nsAutoString contextStr, infoStr;
   return InsertFromTransferable(aTransferable, nsnull, contextStr, infoStr,
                                 nsnull, 0, true);
@@ -1751,8 +1804,6 @@ NS_IMETHODIMP nsHTMLEditor::PasteNoFormatting(PRInt32 aSelectionType)
     if (NS_SUCCEEDED(clipboard->GetData(trans, aSelectionType)) && IsModifiable())
     {
       const nsAFlatString& empty = EmptyString();
-      
-      
       rv = InsertFromTransferable(trans, nsnull, empty, empty, nsnull, 0,
                                   true);
     }
