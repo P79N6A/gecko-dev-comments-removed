@@ -73,14 +73,22 @@ public class GeckoThread extends Thread {
 
         
         final String action = mIntent.getAction();
-        String type = GeckoApp.ACTION_WEBAPP.equals(action) ? "-webapp" :
+        String type = action.startsWith(GeckoApp.ACTION_WEBAPP_PREFIX) ? "-webapp" :
                       GeckoApp.ACTION_BOOKMARK.equals(action) ? "-bookmark" :
                       null;
 
+        String args = mIntent.getStringExtra("args");
+
         
-        Log.i(LOGTAG, "RunGecko - URI = " + mUri);
+        if (!(app instanceof BrowserApp)) {
+            String profile = app.getDefaultProfileName();
+            args = (args != null ? args : "") + "-P " + profile;
+        }
+
+        
+        Log.i(LOGTAG, "RunGecko - URI = " + mUri + " args = " + args);
         GeckoAppShell.runGecko(app.getApplication().getPackageResourcePath(),
-                               mIntent.getStringExtra("args"),
+                               args,
                                mUri,
                                type,
                                mRestoreMode);

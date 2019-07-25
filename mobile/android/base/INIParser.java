@@ -160,4 +160,18 @@ public class INIParser extends INISection {
         mSections.remove(name);
     }
 
+    
+    
+    public void renameSection(String oldName, String newName) {
+        
+        getSections();
+
+        mSections.remove(newName);
+        INISection section = mSections.get(oldName);
+        if (section == null)
+            return;
+
+        mSections.remove(oldName);
+        mSections.put(newName, section);
+    }
 }
