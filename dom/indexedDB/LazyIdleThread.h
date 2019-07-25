@@ -84,7 +84,9 @@ public:
 
 
 
-  void SetIdleObserver(nsIObserver* aObserver);
+
+
+  void SetWeakIdleObserver(nsIObserver* aObserver);
 
 private:
   
@@ -156,7 +158,7 @@ private:
 
 
 
-  nsCOMPtr<nsIObserver> mIdleObserver;
+  nsIObserver* mIdleObserver;
 };
 
 END_INDEXEDDB_NAMESPACE
