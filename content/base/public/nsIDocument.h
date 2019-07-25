@@ -1408,12 +1408,6 @@ public:
 
   virtual mozilla::dom::Element* GetElementById(const nsAString& aElementId) = 0;
 
-  void ScheduleBeforePaintEvent();
-  void BeforePaintEventFiring()
-  {
-    mHavePendingPaint = PR_FALSE;
-  }
-
 protected:
   ~nsIDocument()
   {
@@ -1552,9 +1546,6 @@ protected:
 
   
   PRPackedBool mHasHadScriptHandlingObject;
-
-  
-  PRPackedBool mHavePendingPaint;
 
   
   

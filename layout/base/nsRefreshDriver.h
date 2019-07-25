@@ -49,11 +49,9 @@
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
 #include "nsTArray.h"
-#include "nsAutoPtr.h"
 
 class nsPresContext;
 class nsIPresShell;
-class nsIDocument;
 
 
 
@@ -93,10 +91,6 @@ public:
 
 
   mozilla::TimeStamp MostRecentRefresh() const;
-  
-
-
-  PRInt64 MostRecentRefreshEpochTime() const;
 
   
 
@@ -149,16 +143,6 @@ public:
   
 
 
-  PRBool ScheduleBeforePaintEvent(nsIDocument* aDocument);
-
-  
-
-
-  void RevokeBeforePaintEvent(nsIDocument* aDocument);
-
-  
-
-
 
 
   void Disconnect() {
@@ -204,8 +188,6 @@ private:
 
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
-  PRInt64 mMostRecentRefreshEpochTime;   
-                                         
 
   nsPresContext *mPresContext; 
                                
@@ -216,8 +198,6 @@ private:
   ObserverArray mObservers[3];
   nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
-  
-  nsTArray<nsIDocument*> mBeforePaintTargets;
 };
 
 #endif 

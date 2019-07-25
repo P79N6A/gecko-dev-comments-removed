@@ -47,10 +47,6 @@
 #include "prlog.h"
 #include "nsAutoPtr.h"
 #include "nsCSSFrameConstructor.h"
-#include "nsIDocument.h"
-#include "nsGUIEvent.h"
-#include "nsEventDispatcher.h"
-#include "jsapi.h"
 
 
 
@@ -82,14 +78,6 @@ nsRefreshDriver::MostRecentRefresh() const
   const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
 
   return mMostRecentRefresh;
-}
-
-PRInt64
-nsRefreshDriver::MostRecentRefreshEpochTime() const
-{
-  const_cast<nsRefreshDriver*>(this)->EnsureTimerStarted();
-
-  return mMostRecentRefreshEpochTime;
 }
 
 PRBool
@@ -155,15 +143,12 @@ nsRefreshDriver::ObserverCount() const
   }
   sum += mStyleFlushObservers.Length();
   sum += mLayoutFlushObservers.Length();
-  sum += mBeforePaintTargets.Length();
   return sum;
 }
 
 void
 nsRefreshDriver::UpdateMostRecentRefresh()
 {
-  
-  mMostRecentRefreshEpochTime = JS_Now();
   mMostRecentRefresh = TimeStamp::Now();
 }
 
@@ -233,21 +218,6 @@ nsRefreshDriver::Notify(nsITimer * )
     }
     if (i == 0) {
       
-      
-      
-      nsTArray<nsIDocument*> targets;
-      targets.SwapElements(mBeforePaintTargets);
-      PRInt64 eventTime = mMostRecentRefreshEpochTime / PR_USEC_PER_MSEC;
-      for (PRUint32 i = 0; i < targets.Length(); ++i) {
-        targets[i]->BeforePaintEventFiring();
-      }
-      for (PRUint32 i = 0; i < targets.Length(); ++i) {
-        nsEvent ev(PR_TRUE, NS_BEFOREPAINT);
-        ev.time = eventTime;
-        nsEventDispatcher::Dispatch(targets[i], nsnull, &ev);
-      }
-
-      
       while (!mStyleFlushObservers.IsEmpty() &&
              mPresContext && mPresContext->GetPresShell()) {
         PRUint32 idx = mStyleFlushObservers.Length() - 1;
@@ -310,20 +280,3 @@ nsRefreshDriver::IsRefreshObserver(nsARefreshObserver *aObserver,
   return array.Contains(aObserver);
 }
 #endif
-
-PRBool
-nsRefreshDriver::ScheduleBeforePaintEvent(nsIDocument* aDocument)
-{
-  NS_ASSERTION(mBeforePaintTargets.IndexOf(aDocument) ==
-               mBeforePaintTargets.NoIndex,
-               "Shouldn't have a paint event posted for this document");
-  PRBool appended = mBeforePaintTargets.AppendElement(aDocument) != nsnull;
-  EnsureTimerStarted();
-  return appended;
-}
-
-void
-nsRefreshDriver::RevokeBeforePaintEvent(nsIDocument* aDocument)
-{
-  mBeforePaintTargets.RemoveElement(aDocument);
-}
