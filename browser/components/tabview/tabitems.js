@@ -260,8 +260,14 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     function TabItem_loadThumbnail_callback(error, imageData) {
       
-      if (error || !imageData || !self.tab)
+      if (!self.tab)
         return;
+
+      if (error || !imageData) {
+        
+        self.tabCanvas.paint();
+        return;
+      }
 
       self._sendToSubscribers("loadedCachedImageData");
 
