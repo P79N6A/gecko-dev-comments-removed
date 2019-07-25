@@ -84,6 +84,11 @@ var BrowserApp = {
     newTab.active = true;
 
     Downloads.init();
+
+    
+    let event = document.createEvent("Events");
+    event.initEvent("UIReady", true, false);
+    window.dispatchEvent(event);
   },
 
   shutdown: function shutdown() {
