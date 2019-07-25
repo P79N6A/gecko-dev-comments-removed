@@ -271,12 +271,13 @@ function dump_table(aName)
 
 
 
-function page_in_database(aUrl)
+function page_in_database(aURI)
 {
+  let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
   let stmt = DBConn().createStatement(
     "SELECT id FROM moz_places WHERE url = :url"
   );
-  stmt.params.url = aUrl;
+  stmt.params.url = url;
   try {
     if (!stmt.executeStep())
       return 0;
@@ -287,6 +288,30 @@ function page_in_database(aUrl)
   }
 }
 
+
+
+
+
+
+
+function visits_in_database(aURI)
+{
+  let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
+  let stmt = DBConn().createStatement(
+    "SELECT count(*) FROM moz_historyvisits v "
+  + "JOIN moz_places h ON h.id = v.place_id "
+  + "WHERE url = :url"
+  );
+  stmt.params.url = url;
+  try {
+    if (!stmt.executeStep())
+      return 0;
+    return stmt.getInt64(0);
+  }
+  finally {
+    stmt.finalize();
+  }
+}
 
 
 

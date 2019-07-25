@@ -767,7 +767,7 @@ let PlacesDBUtils = {
     }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
 
     
-    expiration.observe(null, "places-debug-start-expiration", -1);
+    expiration.observe(null, "places-debug-start-expiration", 0);
   },
 
   

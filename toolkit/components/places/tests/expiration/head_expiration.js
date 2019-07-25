@@ -73,6 +73,10 @@ function force_expiration_start() {
 
 
 
+
+
+
+
 function force_expiration_step(aLimit) {
   const TOPIC_DEBUG_START_EXPIRATION = "places-debug-start-expiration";
   let expire = Cc["@mozilla.org/places/expiration;1"].getService(Ci.nsIObserver);

@@ -527,8 +527,29 @@ nsPlacesExpiration.prototype = {
       }
     }
     else if (aTopic == TOPIC_DEBUG_START_EXPIRATION) {
-      this._debugLimit = aData || -1; 
-      this._expireWithActionAndLimit(ACTION.DEBUG, LIMIT.DEBUG);
+      
+      
+      let limit = parseInt(aData);
+      if (limit == -1) {
+        
+        
+        
+        this._expireWithActionAndLimit(ACTION.DEBUG, LIMIT.UNLIMITED);
+      }
+      else if (limit > 0) {
+        
+        
+        this._debugLimit = limit;
+        this._expireWithActionAndLimit(ACTION.DEBUG, LIMIT.DEBUG);
+      }
+      else {
+        
+        
+        
+        
+        this._debugLimit = -1;
+        this._expireWithActionAndLimit(ACTION.DEBUG, LIMIT.DEBUG);
+      }
     }
     else if (aTopic == TOPIC_IDLE_BEGIN) {
       
@@ -840,15 +861,20 @@ nsPlacesExpiration.prototype = {
         baseLimit = this._debugLimit;
         break;
     }
-    if (this.status == STATUS.DIRTY && aLimit != LIMIT.DEBUG)
+    if (this.status == STATUS.DIRTY && aAction != ACTION.DEBUG &&
+        baseLimit > 0) {
       baseLimit *= EXPIRE_AGGRESSIVITY_MULTIPLIER;
+    }
 
     
     let params = stmt.params;
     switch (aQueryType) {
       case "QUERY_FIND_VISITS_TO_EXPIRE":
         params.max_uris = this._urisLimit;
-        params.limit_visits = baseLimit;
+        
+        
+        params.limit_visits =
+          aLimit == LIMIT.DEBUG && baseLimit == -1 ? 0 : baseLimit;
         break;
       case "QUERY_FIND_URIS_TO_EXPIRE":
         

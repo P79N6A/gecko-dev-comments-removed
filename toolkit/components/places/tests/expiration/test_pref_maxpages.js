@@ -160,7 +160,7 @@ function run_next_test() {
 
     setMaxPages(gCurrentTest.maxPages);
     
-    force_expiration_step();
+    force_expiration_step(-1);
   }
   else {
     clearMaxPages();

@@ -146,7 +146,7 @@ function run_next_test() {
     os.addObserver(observer, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
 
     
-    force_expiration_step();
+    force_expiration_step(-1);
   }
   else {
     clearMaxPages();
