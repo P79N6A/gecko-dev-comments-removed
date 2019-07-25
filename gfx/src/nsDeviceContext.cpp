@@ -634,10 +634,14 @@ nsDeviceContext::BeginPage(void)
 
     if (NS_FAILED(rv)) return rv;
 
-    
 #ifdef XP_MACOSX
+    
+    
+    
+    
     mDeviceContextSpec->GetSurfaceForPrinter(getter_AddRefs(mPrintingSurface));
 #endif
+
     rv = mPrintingSurface->BeginPage();
 
     return rv;
@@ -647,13 +651,6 @@ nsresult
 nsDeviceContext::EndPage(void)
 {
     nsresult rv = mPrintingSurface->EndPage();
-
-    
-
-
-#ifdef XP_MACOSX
-    mPrintingSurface = nsnull;
-#endif
 
     if (mDeviceContextSpec)
         mDeviceContextSpec->EndPage();
