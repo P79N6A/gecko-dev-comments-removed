@@ -40,7 +40,8 @@
 #ifndef mozilla_net_BaseWebSocketChannel_h
 #define mozilla_net_BaseWebSocketChannel_h
 
-#include "nsIWebSocketProtocol.h"
+#include "nsIWebSocketChannel.h"
+#include "nsIWebSocketListener.h"
 #include "nsIProtocolHandler.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -51,7 +52,7 @@ namespace net {
 const static PRInt32 kDefaultWSPort     = 80;
 const static PRInt32 kDefaultWSSPort    = 443;
 
-class BaseWebSocketChannel : public nsIWebSocketProtocol,
+class BaseWebSocketChannel : public nsIWebSocketChannel,
                              public nsIProtocolHandler
 {
  public:

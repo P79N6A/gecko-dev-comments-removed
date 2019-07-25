@@ -40,7 +40,6 @@
 #ifndef mozilla_net_nsWebSocketHandler_h
 #define mozilla_net_nsWebSocketHandler_h
 
-#include "nsIWebSocketProtocol.h"
 #include "nsIURI.h"
 #include "nsISupports.h"
 #include "nsIInterfaceRequestor.h"
