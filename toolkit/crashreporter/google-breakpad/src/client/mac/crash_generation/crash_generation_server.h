@@ -30,6 +30,8 @@
 #ifndef GOOGLE_BREAKPAD_CLIENT_MAC_CRASH_GENERATION_CRASH_GENERATION_SERVER_H_
 #define GOOGLE_BREAKPAD_CLIENT_MAC_CRASH_GENERATION_CRASH_GENERATION_SERVER_H_
 
+#include <stdint.h>
+
 #include <string>
 
 #include "common/mac/MachIPC.h"
@@ -47,9 +49,9 @@ enum {
 
 
 struct ExceptionInfo {
-  int exception_type;
-  int exception_code;
-  int exception_subcode;
+  int32_t exception_type;
+  int32_t exception_code;
+  int32_t exception_subcode;
 };
 
 class CrashGenerationServer {

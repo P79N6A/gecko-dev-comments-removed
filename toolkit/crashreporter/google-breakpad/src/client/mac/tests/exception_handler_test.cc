@@ -154,7 +154,7 @@ TEST_F(ExceptionHandlerTest, DumpChildProcess) {
   pid_t pid = fork();
   if (pid == 0) {
     
-    close(fds[0]);
+    close(fds[1]);
 
     
     MachSendMessage child_message(0);
@@ -167,12 +167,12 @@ TEST_F(ExceptionHandlerTest, DumpChildProcess) {
 
     
     uint8_t data;
-    read(fds[1], &data, 1);
+    read(fds[0], &data, 1);
     exit(0);
   }
   
   ASSERT_NE(-1, pid);
-  close(fds[1]);
+  close(fds[0]);
 
   
   MachReceiveMessage child_message;
@@ -199,7 +199,7 @@ TEST_F(ExceptionHandlerTest, DumpChildProcess) {
 
   
   uint8_t data = 1;
-  (void)write(fds[0], &data, 1);
+  (void)write(fds[1], &data, 1);
 
   
   int ret;

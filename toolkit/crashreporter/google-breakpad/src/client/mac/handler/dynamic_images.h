@@ -41,32 +41,49 @@
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
 #include <sys/types.h>
+
+#include <string>
 #include <vector>
 
 namespace google_breakpad {
 
+using std::string;
 using std::vector;
 
 
 
 
-typedef struct dyld_image_info {
-  struct mach_header        *load_address_;
-  char                      *file_path_;
-  uintptr_t                 file_mod_date_;
-} dyld_image_info;
+typedef struct dyld_image_info32 {
+  uint32_t                   load_address_;  
+  uint32_t                   file_path_;     
+  uint32_t                   file_mod_date_;
+} dyld_image_info32;
+
+typedef struct dyld_image_info64 {
+  uint64_t                   load_address_;  
+  uint64_t                   file_path_;     
+  uint64_t                   file_mod_date_;
+} dyld_image_info64;
 
 
 
 
 
-typedef struct dyld_all_image_infos {
+typedef struct dyld_all_image_infos32 {
   uint32_t                      version;  
   uint32_t                      infoArrayCount;
-  const struct dyld_image_info  *infoArray;
-  void*                         notification;
+  uint32_t                      infoArray;  
+  uint32_t                      notification;
   bool                          processDetachedFromSharedRegion;
-} dyld_all_image_infos;
+} dyld_all_image_infos32;
+
+typedef struct dyld_all_image_infos64 {
+  uint32_t                      version;  
+  uint32_t                      infoArrayCount;
+  uint64_t                      infoArray;  
+  uint64_t                      notification;
+  bool                          processDetachedFromSharedRegion;
+} dyld_all_image_infos64;
 
 
 #ifdef __LP64__
@@ -78,70 +95,48 @@ typedef segment_command breakpad_mach_segment_command;
 #endif
 
 
+class DynamicImage;
+template<typename MachBits>
+bool FindTextSection(DynamicImage& image);
 
-
-
-class MachHeader {
- public:
-  explicit MachHeader(const breakpad_mach_header &header) : header_(header) {}
-
-  void Print() {
-    printf("magic\t\t: %4x\n", header_.magic);
-    printf("cputype\t\t: %d\n", header_.cputype);
-    printf("cpusubtype\t: %d\n", header_.cpusubtype);
-    printf("filetype\t: %d\n", header_.filetype);
-    printf("ncmds\t\t: %d\n", header_.ncmds);
-    printf("sizeofcmds\t: %d\n", header_.sizeofcmds);
-    printf("flags\t\t: %d\n", header_.flags);
-  }
-
-  breakpad_mach_header   header_;
-};
+template<typename MachBits>
+uint32_t GetFileTypeFromHeader(DynamicImage& image);
 
 
 
 class DynamicImage {
  public:
-  DynamicImage(breakpad_mach_header *header, 
-               size_t header_size,              
-               breakpad_mach_header *load_address,
-               char *inFilePath,
+  DynamicImage(uint8_t *header,     
+               size_t header_size,  
+               uint64_t load_address,
+               string file_path,
                uintptr_t image_mod_date,
-               mach_port_t task)
-    : header_(header),
+               mach_port_t task,
+               cpu_type_t cpu_type)
+    : header_(header, header + header_size),
       header_size_(header_size),
       load_address_(load_address),
       vmaddr_(0),
       vmsize_(0),
       slide_(0),
       version_(0),
-      file_path_(NULL),
+      file_path_(file_path),
       file_mod_date_(image_mod_date),
-      task_(task) {
-    InitializeFilePath(inFilePath);
+      task_(task),
+      cpu_type_(cpu_type) {
     CalculateMemoryAndVersionInfo();
   }
 
-  ~DynamicImage() {
-    if (file_path_) {
-      free(file_path_);
-    }
-    free(header_);
-  }
+  
+  size_t GetHeaderSize() const {return header_.size();}
 
   
-  breakpad_mach_header *GetMachHeader() {return header_;}
+  string GetFilePath() {return file_path_;}
+
+  uint64_t GetModDate() const {return file_mod_date_;}
 
   
-  size_t GetHeaderSize() const {return header_size_;}
-
-  
-  char *GetFilePath() {return file_path_;}
-
-  uintptr_t GetModDate() const {return file_mod_date_;}
-
-  
-  breakpad_mach_header *GetLoadAddress() const {return load_address_;}
+  uint64_t GetLoadAddress() const {return load_address_;}
 
   
   mach_vm_address_t GetVMAddr() const {return vmaddr_;}
@@ -155,6 +150,15 @@ class DynamicImage {
   
   mach_port_t GetTask() {return task_;}
 
+  
+  cpu_type_t GetCPUType() {return cpu_type_;}
+
+  
+  uint32_t GetFileType();
+
+  
+  bool Is64Bit() { return (GetCPUType() & CPU_ARCH_ABI64) == CPU_ARCH_ABI64; }
+
   uint32_t GetVersion() {return version_;}
   
   bool operator<(const DynamicImage &inInfo) {
@@ -162,42 +166,33 @@ class DynamicImage {
   }
 
   
-  void Print();
+  bool IsValid() {return GetVMSize() != 0;}
 
  private:
   DynamicImage(const DynamicImage &);
   DynamicImage &operator=(const DynamicImage &);
 
   friend class DynamicImages;
-
-  
-  bool IsValid() {return GetVMSize() != 0;}
-
-  
-  void InitializeFilePath(char *inFilePath) {
-    if (inFilePath) {
-      size_t path_size = 1 + strlen(inFilePath);
-      file_path_ = reinterpret_cast<char*>(malloc(path_size));
-      strlcpy(file_path_, inFilePath, path_size);
-    } else {
-      file_path_ = NULL;
-    }
-  }
+  template<typename MachBits>
+  friend bool FindTextSection(DynamicImage& image);
+  template<typename MachBits>
+  friend uint32_t GetFileTypeFromHeader(DynamicImage& image);
 
   
   void CalculateMemoryAndVersionInfo();
 
-  breakpad_mach_header    *header_;        
+  const vector<uint8_t>   header_;        
   size_t                  header_size_;    
-  breakpad_mach_header    *load_address_;  
+  uint64_t                load_address_;   
   mach_vm_address_t       vmaddr_;
   mach_vm_size_t          vmsize_;
   ptrdiff_t               slide_;
   uint32_t                version_;        
-  char                    *file_path_;     
+  string                  file_path_;     
   uintptr_t               file_mod_date_;  
 
   mach_port_t             task_;
+  cpu_type_t              cpu_type_;        
 };
 
 
@@ -229,6 +224,11 @@ class DynamicImageRef {
  private:
   DynamicImage  *p;
 };
+
+
+class DynamicImages;
+template<typename MachBits>
+void ReadImageInfo(DynamicImages& images, uint64_t image_list_address);
 
 
 
@@ -263,42 +263,50 @@ class DynamicImages {
   mach_port_t GetTask() const {return task_;}
 
   
-  void Print() {
-    for (int i = 0; i < GetImageCount(); ++i) {
-      image_list_[i]->Print();
-    }
-  }
+  cpu_type_t GetCPUType() {return cpu_type_;}
 
-  void TestPrint() {
-    const breakpad_mach_header *header;
-    for (int i = 0; i < GetImageCount(); ++i) {
-      printf("dyld: %p: name = %s\n", _dyld_get_image_header(i),
-             _dyld_get_image_name(i) );
+  
+  bool Is64Bit() { return (GetCPUType() & CPU_ARCH_ABI64) == CPU_ARCH_ABI64; }
 
-      const void *imageHeader = _dyld_get_image_header(i);
-      header = reinterpret_cast<const breakpad_mach_header*>(imageHeader);
+  
+  static cpu_type_t DetermineTaskCPUType(task_t task);
 
-      MachHeader(*header).Print();
-    }
+  
+  static cpu_type_t GetNativeCPUType() {
+#if defined(__i386__)
+    return CPU_TYPE_I386;
+#elif defined(__x86_64__)
+    return CPU_TYPE_X86_64;
+#elif defined(__ppc__)
+    return CPU_TYPE_POWERPC;
+#elif defined(__ppc64__)
+    return CPU_TYPE_POWERPC64;
+#else
+#error "GetNativeCPUType not implemented for this architecture"
+#endif
   }
 
  private:
+  template<typename MachBits>
+  friend void ReadImageInfo(DynamicImages& images, uint64_t image_list_address);
+
   bool IsOurTask() {return task_ == mach_task_self();}
 
   
   void ReadImageInfoForTask();
-  void* GetDyldAllImageInfosPointer();
+  uint64_t GetDyldAllImageInfosPointer();
 
   mach_port_t              task_;
+  cpu_type_t               cpu_type_;  
   vector<DynamicImageRef>  image_list_;
 };
 
 
 
-void* ReadTaskMemory(task_port_t target_task,
-                     const void* address,
-                     size_t len,
-                     kern_return_t *kr);
+kern_return_t ReadTaskMemory(task_port_t target_task,
+                             const uint64_t address,
+                             size_t length,
+                             vector<uint8_t> &bytes);
 
 }   
 
