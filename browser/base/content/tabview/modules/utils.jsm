@@ -45,6 +45,8 @@
 
 
 
+"use strict";
+
 
 
 
@@ -369,10 +371,11 @@ Range.prototype = {
       
       
       
-      function tanh(x) {
+      let tanh = function tanh(x) {
         var e = Math.exp(x);
         return (e - 1/e) / (e + 1/e);
-      }
+      };
+
       return .5 - .5 * tanh(2 - 4 * proportion);
     }
 

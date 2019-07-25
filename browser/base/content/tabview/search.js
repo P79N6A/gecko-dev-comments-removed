@@ -585,8 +585,7 @@ function ensureSearchShown(activatedByKeypress) {
 
     
     
-
-    function dispatchTabViewSearchEnabledEvent() {
+    let dispatchTabViewSearchEnabledEvent = function dispatchTabViewSearchEnabledEvent() {
       let newEvent = document.createEvent("Events");
       newEvent.initEvent("tabviewsearchenabled", false, false);
       dispatchEvent(newEvent);
@@ -595,7 +594,7 @@ function ensureSearchShown(activatedByKeypress) {
     if (activatedByKeypress) {
       
       $searchbox[0].focus();
-      dispatchTabViewSearchEnabledEvent(); 
+      dispatchTabViewSearchEnabledEvent();
     } else {
       
       

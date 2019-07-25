@@ -55,8 +55,8 @@ function onTabViewWindowLoaded(win, tab) {
     contentWindow.performSearch();
 
     
-    window.addEventListener('focus', function () {
-      window.removeEventListener('focus', arguments.callee, true);
+    window.addEventListener('focus', function onFocus() {
+      window.removeEventListener('focus', onFocus, true);
       assertSearchIsDisabled();
 
       

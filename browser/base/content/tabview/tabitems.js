@@ -482,6 +482,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     if (!groupClose && gBrowser.tabs.length == 1) {
+      let group;
       if (this.tab._tabViewTabItem.parent) {
         group = this.tab._tabViewTabItem.parent;
       } else {

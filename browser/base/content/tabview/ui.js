@@ -861,8 +861,8 @@ let UI = {
         if (this.restoredClosedTab) {
           
           
-          tab.linkedBrowser.addEventListener("load", function (event) {
-            tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+          tab.linkedBrowser.addEventListener("load", function onLoad(event) {
+            tab.linkedBrowser.removeEventListener("load", onLoad, true);
             TabItems._update(tab);
           }, true);
         }
