@@ -399,3 +399,12 @@ pref("dom.sms.enabled", true);
 pref("dom.sms.whitelist", "file://,http://localhost:6666");
 
 pref("b2g.ignoreXFrameOptions", true);
+
+
+
+
+
+
+
+
+pref("layout.frame_rate.precise", true);
