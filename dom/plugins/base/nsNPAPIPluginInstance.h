@@ -49,9 +49,6 @@
 #include "nsIChannel.h"
 #include "nsInterfaceHashtable.h"
 #include "nsHashKeys.h"
-#ifdef MOZ_WIDGET_ANDROID
-#include "nsIRunnable.h"
-#endif
 
 #include "mozilla/TimeStamp.h"
 #include "mozilla/PluginLibrary.h"
@@ -152,8 +149,6 @@ public:
 #ifdef MOZ_WIDGET_ANDROID
   void SetDrawingModel(PRUint32 aModel);
   void* GetJavaSurface();
-  void SetJavaSurface(void* aSurface);
-  void RequestJavaSurface();
 #endif
 
   nsresult NewStreamListener(const char* aURL, void* notifyData,
@@ -230,7 +225,6 @@ protected:
 
 #ifdef MOZ_WIDGET_ANDROID
   PRUint32 mDrawingModel;
-  nsCOMPtr<nsIRunnable> mSurfaceGetter;
 #endif
 
   enum {
