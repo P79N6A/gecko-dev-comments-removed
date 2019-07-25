@@ -1612,7 +1612,14 @@ js_SetNativeAttributes(JSContext *cx, JSObject *obj, js::Shape *shape,
 
 namespace js {
 
-extern JSBool
+
+
+
+
+extern JSObject *
+HasNativeMethod(JSObject *obj, jsid methodid, Native native);
+
+extern bool
 DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
 
 extern JSBool
