@@ -46,6 +46,8 @@
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
+#include "nsString.h"
+#include "nsTArray.h"
 
 class nsHostResolver;
 class nsHostRecord;
@@ -111,7 +113,7 @@ public:
 
 
 
-    Mutex       *addr_info_lock;
+    Mutex        addr_info_lock;
     int          addr_info_gencnt; 
     PRAddrInfo  *addr_info;
     PRNetAddr   *addr;
@@ -124,6 +126,11 @@ public:
 
     PRBool HasResult() const { return addr_info || addr || negative; }
 
+    
+    PRBool Blacklisted(PRNetAddr *query);
+    void   ResetBlacklist();
+    void   ReportUnusable(PRNetAddr *addr);
+
 private:
     friend class nsHostResolver;
 
@@ -135,8 +142,13 @@ private:
     
     PRBool  onQueue;  
     PRBool  usingAnyThread; 
-    
 
+    
+    
+    
+    nsTArray<nsCString> mBlacklistedItems;
+
+    nsHostRecord(const nsHostKey *key);           
    ~nsHostRecord();
 };
 

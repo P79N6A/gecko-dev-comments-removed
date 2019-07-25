@@ -80,6 +80,7 @@ public:
     nsDNSRecord(nsHostRecord *hostRecord)
         : mHostRecord(hostRecord)
         , mIter(nsnull)
+        , mLastIter(nsnull)
         , mIterGenCnt(-1)
         , mDone(PR_FALSE) {}
 
@@ -87,7 +88,9 @@ private:
     virtual ~nsDNSRecord() {}
 
     nsRefPtr<nsHostRecord>  mHostRecord;
-    void                   *mIter;
+    void                   *mIter;       
+    void                   *mLastIter;   
+                                         
     int                     mIterGenCnt; 
                                          
                                          
@@ -107,7 +110,7 @@ nsDNSRecord::GetCanonicalName(nsACString &result)
     
     const char *cname;
     {
-        MutexAutoLock lock(*mHostRecord->addr_info_lock);
+        MutexAutoLock lock(mHostRecord->addr_info_lock);
         if (mHostRecord->addr_info)
             cname = PR_GetCanonNameFromAddrInfo(mHostRecord->addr_info);
         else
@@ -126,7 +129,9 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
     if (mDone)
         return NS_ERROR_NOT_AVAILABLE;
 
-    mHostRecord->addr_info_lock->Lock();
+    mHostRecord->addr_info_lock.Lock();
+    PRBool startedFresh = !mIter;
+
     if (mHostRecord->addr_info) {
         if (!mIter)
             mIterGenCnt = mHostRecord->addr_info_gencnt;
@@ -135,16 +140,34 @@ nsDNSRecord::GetNextAddr(PRUint16 port, PRNetAddr *addr)
             
             mIter = nsnull;
             mIterGenCnt = mHostRecord->addr_info_gencnt;
+            startedFresh = PR_TRUE;
         }
-        mIter = PR_EnumerateAddrInfo(mIter, mHostRecord->addr_info, port, addr);
-        mHostRecord->addr_info_lock->Unlock();
+
+        do {
+            mLastIter = mIter;
+            mIter = PR_EnumerateAddrInfo(mIter, mHostRecord->addr_info,
+                                         port, addr);
+        }
+        while (mIter && mHostRecord->Blacklisted(addr));
+
+        if (startedFresh && !mIter) {
+            
+            
+            
+            mHostRecord->ResetBlacklist();
+            mLastIter = nsnull;
+            mIter = PR_EnumerateAddrInfo(nsnull, mHostRecord->addr_info,
+                                         port, addr);
+        }
+            
+        mHostRecord->addr_info_lock.Unlock();
         if (!mIter) {
             mDone = PR_TRUE;
             return NS_ERROR_NOT_AVAILABLE;
         }
     }
     else {
-        mHostRecord->addr_info_lock->Unlock();
+        mHostRecord->addr_info_lock.Unlock();
         if (!mHostRecord->addr) {
             
             
@@ -189,9 +212,11 @@ nsDNSRecord::HasMore(PRBool *result)
         
         
         void *iterCopy = mIter;
+        void *iterLastCopy = mLastIter;
         PRNetAddr addr;
         *result = NS_SUCCEEDED(GetNextAddr(0, &addr));
         mIter = iterCopy; 
+        mLastIter = iterLastCopy; 
         mDone = PR_FALSE;
     }
     return NS_OK;
@@ -201,8 +226,33 @@ NS_IMETHODIMP
 nsDNSRecord::Rewind()
 {
     mIter = nsnull;
+    mLastIter = nsnull;
     mIterGenCnt = -1;
     mDone = PR_FALSE;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDNSRecord::ReportUnusable(PRUint16 aPort)
+{
+    
+
+    mHostRecord->addr_info_lock.Lock();
+
+    
+    
+    
+
+    if (mHostRecord->addr_info &&
+        mIterGenCnt == mHostRecord->addr_info_gencnt) {
+        PRNetAddr addr;
+        void *id = PR_EnumerateAddrInfo(mLastIter, mHostRecord->addr_info,
+                                        aPort, &addr);
+        if (id)
+            mHostRecord->ReportUnusable(&addr);
+    }
+    
+    mHostRecord->addr_info_lock.Unlock();
     return NS_OK;
 }
 

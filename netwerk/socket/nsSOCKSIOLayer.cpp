@@ -276,7 +276,11 @@ nsSOCKSSocketInfo::ConnectToProxy(PRFileDesc *fd)
         }
     }
 
+    PRInt32 addresses = 0;
     do {
+        if (addresses++)
+            mDnsRec->ReportUnusable(mProxyPort);
+        
         rv = mDnsRec->GetNextAddr(mProxyPort, &mInternalProxyAddr);
         
         if (NS_FAILED(rv)) {
