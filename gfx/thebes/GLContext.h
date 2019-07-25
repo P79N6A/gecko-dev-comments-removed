@@ -633,6 +633,8 @@ public:
         return PR_FALSE;
     }
 
+    virtual PRBool RenewSurface() { return PR_FALSE; }
+
     
 
 
