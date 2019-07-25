@@ -88,11 +88,10 @@ FormAutoComplete.prototype = {
     
     let props = [aName];
     if (aField) {
-      let specialProps = ["className", "id", "rel"];
-      specialProps.forEach(function(attr) {
-        if (attr in aField)
-          props.push(aField[attr]);
-      });
+      let specialProps = [aField["className"], aField["id"], aField["rel"]];
+      props = props.concat(props.filter(function(aValue) {
+        return aValue;
+      }));
     }
 
     
