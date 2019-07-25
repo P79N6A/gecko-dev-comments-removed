@@ -594,7 +594,7 @@ FindInReadable( const nsAString& aPattern,
           {
               
             while ( aSearchStart != aSearchEnd &&
-                    compare(*aPatternStart, *aSearchStart) )
+                    compare(aPatternStart.get(), aSearchStart.get(), 1, 1) )
               ++aSearchStart;
 
               
@@ -631,7 +631,7 @@ FindInReadable( const nsAString& aPattern,
 
                   
                   
-                if ( compare(*testPattern, *testSearch) )
+                if ( compare(testPattern.get(), testSearch.get(), 1, 1) )
                   {
                     ++aSearchStart;
                     break;

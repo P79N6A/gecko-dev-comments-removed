@@ -140,7 +140,7 @@ namespace places {
                            testSourceItr(sourceStart);
 
       
-      while (!caseInsensitiveCompare(*testTokenItr, *testSourceItr)) {
+      while (!caseInsensitiveCompare(testTokenItr, testSourceItr, 1, 1)) {
         
         testTokenItr++;
         testSourceItr++;

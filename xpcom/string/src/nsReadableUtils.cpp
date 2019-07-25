@@ -802,7 +802,7 @@ FindInReadable_Impl( const StringT& aPattern, IteratorT& aSearchStart, IteratorT
           {
               
             while ( aSearchStart != aSearchEnd &&
-                    compare(*aPatternStart, *aSearchStart) )
+                    compare(aPatternStart.get(), aSearchStart.get(), 1, 1) )
               ++aSearchStart;
 
               
@@ -839,7 +839,7 @@ FindInReadable_Impl( const StringT& aPattern, IteratorT& aSearchStart, IteratorT
 
                   
                   
-                if ( compare(*testPattern, *testSearch) )
+                if ( compare(testPattern.get(), testSearch.get(), 1, 1) )
                   {
                     ++aSearchStart;
                     break;
@@ -871,7 +871,7 @@ RFindInReadable_Impl( const StringT& aPattern, IteratorT& aSearchStart, Iterator
         --searchEnd;
     
           
-        if ( compare(*patternEnd, *searchEnd) == 0 )
+        if ( compare(patternEnd.get(), searchEnd.get(), 1, 1) == 0 )
           {  
               
             IteratorT testPattern(patternEnd);
@@ -900,7 +900,7 @@ RFindInReadable_Impl( const StringT& aPattern, IteratorT& aSearchStart, Iterator
                 --testPattern;
                 --testSearch;
               }
-            while ( compare(*testPattern, *testSearch) == 0 );
+            while ( compare(testPattern.get(), testSearch.get(), 1, 1) == 0 );
           }
       }
 

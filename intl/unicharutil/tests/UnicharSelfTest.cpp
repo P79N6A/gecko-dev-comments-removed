@@ -281,6 +281,103 @@ static PRUnichar t4result[T4LEN+2] =  {
   0x0041 ,  
   0x00  
 };
+ 
+static unsigned char t6lhs[] = {
+  0x31 ,       
+  0x19 ,       
+  0x43 ,       
+  0x67 ,       
+  0xC3, 0x88 , 
+  0xC3, 0xA9 , 
+  0xC5, 0x87 , 
+  0xC7, 0x84 , 
+  0xC7, 0x86 , 
+  0xC7, 0x85 , 
+  0xCF, 0x80 ,  
+  0xCE, 0xB2 ,  
+  0xD0, 0xB8 ,  
+  0xD2, 0xA5 ,  
+  0xD7, 0x90 ,  
+  0xE0, 0xA8, 0xA0 ,  
+  0xE3, 0x82, 0xB0 ,  
+  0xE5, 0x86, 0x85 ,  
+  0xEC, 0x80, 0xA1 ,  
+  0xEF, 0xBD, 0x88 ,  
+  0xC7, 0x87 ,  
+  0xC7, 0x88 ,  
+  0xC7, 0x89 ,  
+  0xC7, 0x8A ,  
+  0xC7, 0x8B ,  
+  0xC7, 0x8C ,  
+  0xC7, 0xB1 ,  
+  0xC7, 0xB2 ,  
+  0xC7, 0xB3 ,  
+  0xC9, 0x90 ,  
+  0xC9, 0xB1 ,  
+  0xEA, 0x99, 0x81 ,  
+  0x00  
+};
+
+static unsigned char t6rhs[] =  {
+  0x31 ,  
+  0x19 ,  
+  0x43 ,  
+  0x47 ,  
+  0xC3, 0x88 ,  
+  0xC3, 0x89 ,  
+  0xC5, 0x87 ,  
+  0xC7, 0x84 ,  
+  0xC7, 0x84 ,  
+  0xC7, 0x84 ,  
+  0xCE, 0xA0 ,  
+  0xCE, 0x92 ,  
+  0xD0, 0x98 ,  
+  0xD2, 0xA4 ,  
+  0xD7, 0x90 ,  
+  0xE0, 0xA8, 0xA0 ,  
+  0xE3, 0x82, 0xB0 ,  
+  0xE5, 0x86, 0x85 ,  
+  0xEC, 0x80, 0xA1 ,  
+  0xEF, 0xBC, 0xA8 ,  
+  0xC7, 0x87 ,  
+  0xC7, 0x87 ,  
+  0xC7, 0x87 ,  
+  0xC7, 0x8a ,  
+  0xC7, 0x8a ,  
+  0xC7, 0x8a ,  
+  0xC7, 0xB1 ,  
+  0xC7, 0xB1 ,  
+  0xC7, 0xB1 ,  
+  0xE2, 0xB1, 0xAF ,  
+  0xE2, 0xB1, 0xAE ,  
+  0xEA, 0x99, 0x80 ,  
+  0x00  
+};
+
+static const char *t7lhs = "aBcDeFGHIJKL1!!2!!a!uuuu";
+static const char *t7rhs = "AbCdEFghijkL1!!2!!A!UUuU";
+
+static const char *t8lhs = "aazzz";
+static const char *t8rhs = "aBa";
+
+static const char *t9lhs = "@a";
+static const char *t9rhs = "`a";
+
+bool CharByCharCompareEqual(const char *a, const char *b,
+                            PRUint32 aLen, PRUint32 bLen)
+{
+  
+  
+
+  const char *aEnd = a + aLen;
+  const char *bEnd = b + bLen;
+  while (a < aEnd && b < bEnd) {
+    PRBool err;
+    if (!CaseInsensitiveUTF8CharsEqual(a, b, aEnd, bEnd, &a, &b, &err) || err)
+      return PR_FALSE;
+  }
+  return PR_TRUE;
+}
 
 void TestCaseConversion()
 {
@@ -291,7 +388,7 @@ void TestCaseConversion()
   int i;
   PRUnichar buf[256];
 
-  printf("Test 2 - ToUpper(PRUnichar, PRUnichar*):\n");
+  printf("Test 1 - ToUpper(PRUnichar, PRUnichar*):\n");
   for(i=0;i < T2LEN ; i++)
   {
     PRUnichar ch = ToUpperCase(t2data[i]);
@@ -300,7 +397,7 @@ void TestCaseConversion()
   }
 
 
-  printf("Test 3 - ToLower(PRUnichar, PRUnichar*):\n");
+  printf("Test 2 - ToLower(PRUnichar, PRUnichar*):\n");
   for(i=0;i < T3LEN; i++)
   {
     PRUnichar ch = ToLowerCase(t3data[i]);
@@ -308,7 +405,7 @@ void TestCaseConversion()
       printf("\tFailed!! result unexpected %d\n", i);
   }
 
-  printf("Test 4 - ToTitle(PRUnichar, PRUnichar*):\n");
+  printf("Test 3 - ToTitle(PRUnichar, PRUnichar*):\n");
   for(i=0;i < T4LEN; i++)
   {
     PRUnichar ch = ToTitleCase(t4data[i]);
@@ -316,7 +413,7 @@ void TestCaseConversion()
       printf("\tFailed!! result unexpected %d\n", i);
   }
 
-  printf("Test 5 - ToUpper(PRUnichar*, PRUnichar*, PRUint32):\n");
+  printf("Test 4 - ToUpper(PRUnichar*, PRUnichar*, PRUint32):\n");
   ToUpperCase(t2data, buf, T2LEN);
   for(i = 0; i < T2LEN; i++)
   {
@@ -327,7 +424,7 @@ void TestCaseConversion()
      }
   }
 
-  printf("Test 6 - ToLower(PRUnichar*, PRUnichar*, PRUint32):\n");
+  printf("Test 5 - ToLower(PRUnichar*, PRUnichar*, PRUint32):\n");
   ToLowerCase(t3data, buf, T3LEN);
   for(i = 0; i < T3LEN; i++)
   {
@@ -338,8 +435,82 @@ void TestCaseConversion()
      }
   }
 
+  printf("Test 6 - CaseInsensitiveCompare UTF-8 (1):\n");
+  if (CaseInsensitiveCompare((char*)t6lhs, (char*)t6rhs, sizeof(t6lhs), sizeof(t6rhs)))
+    printf("\tFailed!\n");
+  if (!CharByCharCompareEqual((char*)t6lhs, (char*)t6rhs, sizeof(t6lhs), sizeof(t6rhs)))
+    printf("\tFailed character-by-character comparison!\n");
+
+  printf("Test 7 - CaseInsensitiveCompare UTF-8 (2):\n");
+  if (CaseInsensitiveCompare(t7lhs, t7rhs, strlen(t7lhs), strlen(t7rhs)))
+    printf("\tFailed!\n");
+  if (!CharByCharCompareEqual(t7lhs, t7rhs, sizeof(t7lhs), sizeof(t7rhs)))
+    printf("\tFailed character-by-character comparison!\n");
+
+  printf("Test 8a - CaseInsensitiveCompare UTF-8 (3):\n");
+  if (CaseInsensitiveCompare(t8lhs, t8rhs, strlen(t8lhs), strlen(t8rhs)) != -1)
+    printf("\tFailed!\n");
+  if (CharByCharCompareEqual(t8lhs, t8rhs, strlen(t8lhs), strlen(t8rhs)))
+    printf("\tFailed character-by-character comparison!\n");
+
+  printf("Test 8b - CaseInsensitiveCompare UTF-8 (4):\n");
+  if (CaseInsensitiveCompare(t8rhs, t8lhs, strlen(t8rhs), strlen(t8lhs)) != 1)
+    printf("\tFailed!\n");
+
+  
+  
+  
+  printf("Test 9 - CaseInsensitiveCompare UTF-8 (5):\n");
+  if (CaseInsensitiveCompare(t9rhs, t9lhs, strlen(t9lhs), strlen(t9rhs)) != 1)
+    printf("\tFailed!\n");
+  if (CharByCharCompareEqual(t9lhs, t9rhs, strlen(t9lhs), strlen(t9rhs)))
+    printf("\tFailed character-by-character comparison!\n");
+
   printf("===========================\n");
   printf("Finish case conversion test\n");
+  printf("===========================\n");
+}
+
+static void FuzzOneInvalidCaseConversion()
+{
+  PRUint32 aLen = rand() % 32;
+  PRUint32 bLen = rand() % 32;
+
+  
+  
+  unsigned char *aBuf = (unsigned char*)malloc(aLen * sizeof(unsigned char));
+  unsigned char *bBuf = (unsigned char*)malloc(bLen * sizeof(unsigned char));
+
+  for (PRUint32 i = 0; i < aLen; i++) {
+    aBuf[i] = rand() & 0xff;
+  }
+
+  for (PRUint32 i = 0; i < bLen; i++) {
+    bBuf[i] = rand() & 0xff;
+  }
+
+  CaseInsensitiveCompare((char*)aBuf, (char*)bBuf, aLen, bLen);
+  CharByCharCompareEqual((char*)aBuf, (char*)bBuf, aLen, bLen);
+
+  free(aBuf);
+  free(bBuf);
+}
+
+static void FuzzCaseConversion()
+{
+  printf("==========================\n");
+  printf("Start fuzz case conversion\n");
+  printf("==========================\n");
+
+  srand(0);
+
+  printf("Fuzzing invalid UTF8 data...\n");
+  for (PRUint32 i = 0; i < 100000; i++) {
+    FuzzOneInvalidCaseConversion();
+  }
+
+  printf("===========================\n");
+  printf("Finish fuzz case conversion\n");
   printf("===========================\n");
 }
 
@@ -564,6 +735,10 @@ int main(int argc, char** argv) {
    
 
    TestCaseConversion();
+
+   
+
+   FuzzCaseConversion();
 
    
 

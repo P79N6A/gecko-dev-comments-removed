@@ -78,9 +78,17 @@ class nsCaseInsensitiveStringComparator : public nsStringComparator
 public:
   virtual PRInt32 operator() (const PRUnichar*,
                               const PRUnichar*,
-                              PRUint32 aLength) const;
-  virtual PRInt32 operator() (PRUnichar,
-                              PRUnichar) const;
+                              PRUint32,
+                              PRUint32) const;
+};
+
+class nsCaseInsensitiveUTF8StringComparator : public nsCStringComparator
+{
+public:
+  virtual PRInt32 operator() (const char*,
+                              const char*,
+                              PRUint32,
+                              PRUint32) const;
 };
 
 class nsCaseInsensitiveStringArrayComparator
@@ -97,9 +105,8 @@ class nsASCIICaseInsensitiveStringComparator : public nsStringComparator
 public:
   virtual int operator() (const PRUnichar*,
                           const PRUnichar*,
-                          PRUint32 aLength) const;
-  virtual int operator() (PRUnichar,
-                          PRUnichar) const;
+                          PRUint32,
+                          PRUint32) const;
 };
 
 inline PRBool
@@ -125,5 +132,34 @@ CaseInsensitiveFindInReadable(const nsAString& aPattern,
 
 PRInt32
 CaseInsensitiveCompare(const PRUnichar *a, const PRUnichar *b, PRUint32 len);
+
+PRInt32
+CaseInsensitiveCompare(const char* aLeft, const char* aRight,
+                       PRUint32 aLeftBytes, PRUint32 aRightBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
+                              const char* aLeftEnd, const char* aRightEnd,
+                              const char** aLeftNext, const char** aRightNext,
+                              PRBool* aErr);
 
 #endif  

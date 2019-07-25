@@ -46,6 +46,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsXPCOMStrings.h"
 #include "casetable.h"
+#include "nsUTF8Utils.h"
 
 #include <ctype.h>
 
@@ -62,18 +63,19 @@ enum {
   kDiffIdx
 };
 
-#define IS_ASCII(u)       ( 0x0000 == ((u) & 0xFF80))
-#define IS_ASCII_UPPER(u) ((0x0041 <= (u)) && ( (u) <= 0x005a))
-#define IS_ASCII_LOWER(u) ((0x0061 <= (u)) && ( (u) <= 0x007a))
+#define IS_ASCII(u)       ((u) < 0x80)
+#define IS_ASCII_UPPER(u) (('A' <= (u)) && ( (u) <= 'Z' ))
+#define IS_ASCII_LOWER(u) (('a' <= (u)) && ( (u) <= 'z'))
 #define IS_ASCII_ALPHA(u) (IS_ASCII_UPPER(u) || IS_ASCII_LOWER(u))
-#define IS_ASCII_SPACE(u) ( 0x0020 == (u) )
+#define IS_ASCII_SPACE(u) ( ' ' == (u) )
 
 #define IS_NOCASE_CHAR(u)  (0==(1&(gCaseBlocks[(u)>>13]>>(0x001F&((u)>>8)))))
-  
 
 
-#define CASE_MAP_CACHE_SIZE 0x40
-#define CASE_MAP_CACHE_MASK 0x3F
+
+
+#define CASE_MAP_CACHE_SIZE 0x100
+#define CASE_MAP_CACHE_MASK 0xFF
 
 struct nsCompressedMap {
   const PRUnichar *mTable;
@@ -89,69 +91,88 @@ struct nsCompressedMap {
     
     
 
+    
     PRUint32 cachedData = mCache[aChar & CASE_MAP_CACHE_MASK];
-    if(aChar == ((cachedData >> 16) & 0x0000FFFF))
-      return (cachedData & 0x0000FFFF);
+    if (aChar == ((cachedData >> 16) & 0x0000FFFF))
+      return cachedData & 0x0000FFFF;
 
     
     
-    PRUint32 base = mLastBase; 
+    PRUint32 base = mLastBase;
     PRUnichar res = 0;
+
     
-    if (( aChar <=  ((mTable[base+kSizeEveryIdx] >> 8) + 
-                  mTable[base+kLowIdx])) &&
-        ( mTable[base+kLowIdx]  <= aChar )) 
-    {
-        
-        if(((mTable[base+kSizeEveryIdx] & 0x00FF) > 0) && 
+    if ((aChar <= ((mTable[base+kSizeEveryIdx] >> 8) +
+                   mTable[base+kLowIdx])) &&
+        (mTable[base+kLowIdx] <= aChar)) {
+
+      
+      
+      if (((mTable[base+kSizeEveryIdx] & 0x00FF) > 0) &&
           (0 != ((aChar - mTable[base+kLowIdx]) % 
-                (mTable[base+kSizeEveryIdx] & 0x00FF))))
-        {
-          res = aChar;
-        } else {
-          res = aChar + mTable[base+kDiffIdx];
-        }
+                 (mTable[base+kSizeEveryIdx] & 0x00FF))))
+      {
+        res = aChar;
+      } else {
+        res = aChar + mTable[base+kDiffIdx];
+      }
+
     } else {
-        res = this->Lookup(0, (mSize/2), mSize-1, aChar);
+      
+      res = this->Lookup(0, mSize/2, mSize-1, aChar);
     }
 
+    
     mCache[aChar & CASE_MAP_CACHE_MASK] =
-        (((aChar << 16) & 0xFFFF0000) | (0x0000FFFF & res));
+        ((aChar << 16) & 0xFFFF0000) | (0x0000FFFF & res);
     return res;
   }
 
+  
+  
   PRUnichar Lookup(PRUint32 l,
                    PRUint32 m,
                    PRUint32 r,
                    PRUnichar aChar)
   {
-    PRUint32 base = m*3;
-    if ( aChar >  ((mTable[base+kSizeEveryIdx] >> 8) + 
+    PRUint32 base = m*3; 
+
+    
+    
+    if (aChar > ((mTable[base+kSizeEveryIdx] >> 8) + 
                   mTable[base+kLowIdx])) 
     {
-      if( l > m )
+      if (l > m || l == r)
         return aChar;
-      PRUint32 newm = (m+r+1)/2;
-      if(newm == m)
-        newm++;
-      return this->Lookup(m+1, newm , r, aChar);
       
-    } else if ( mTable[base+kLowIdx]  > aChar ) {
-      if( r < m )
+      PRUint32 newm = (m+r+1)/2;
+      if (newm == m)
+        newm++;
+      return this->Lookup(m+1, newm, r, aChar);
+
+    
+    } else if (mTable[base+kLowIdx] > aChar) {
+      if (r < m || l == r)
         return aChar;
+      
       PRUint32 newm = (l+m-1)/2;
       if(newm == m)
         newm++;
       return this->Lookup(l, newm, m-1, aChar);
 
-    } else  {
-      if(((mTable[base+kSizeEveryIdx] & 0x00FF) > 0) && 
-        (0 != ((aChar - mTable[base+kLowIdx]) % 
-                (mTable[base+kSizeEveryIdx] & 0x00FF))))
+    
+    } else {
+      
+      
+      
+      if (((mTable[base+kSizeEveryIdx] & 0x00FF) > 0) && 
+          (0 != ((aChar - mTable[base+kLowIdx]) % 
+                 (mTable[base+kSizeEveryIdx] & 0x00FF))))
       {
         return aChar;
       }
-      mLastBase = base; 
+      
+      mLastBase = base;
       return aChar + mTable[base+kDiffIdx];
     }
   }
@@ -166,6 +187,29 @@ static nsCompressedMap gLowerMap = {
   reinterpret_cast<const PRUnichar*>(&gToLower[0]),
   gToLowerItems
 };
+
+
+
+
+static NS_ALWAYS_INLINE PRUnichar
+ToLowerCase_inline(PRUnichar aChar)
+{
+  if (IS_ASCII(aChar)) {
+    return gASCIIToLower[aChar];
+  } else if (IS_NOCASE_CHAR(aChar)) {
+     return aChar;
+  }
+
+  return gLowerMap.Map(aChar);
+}
+
+static NS_ALWAYS_INLINE PRUnichar
+ToLowerCaseASCII_inline(const PRUnichar aChar)
+{
+  if (IS_ASCII(aChar))
+    return gASCIIToLower[aChar];
+  return aChar;
+}
 
 void
 ToLowerCase(nsAString& aString)
@@ -189,9 +233,7 @@ ToLowerCase(const nsAString& aSource,
 PRUnichar
 ToLowerCaseASCII(const PRUnichar aChar)
 {
-  if (IS_ASCII_UPPER(aChar))
-    return aChar + 0x0020;
-  return aChar;
+  return ToLowerCaseASCII_inline(aChar);
 }
 
 void
@@ -218,115 +260,58 @@ ToUpperCase(const nsAString& aSource,
 PRInt32
 nsCaseInsensitiveStringComparator::operator()(const PRUnichar* lhs,
                                               const PRUnichar* rhs,
-                                              PRUint32 aLength) const
+                                              PRUint32 lLength,
+                                              PRUint32 rLength) const
 {
-  return CaseInsensitiveCompare(lhs, rhs, aLength);
+  return (lLength == rLength) ? CaseInsensitiveCompare(lhs, rhs, lLength) :
+         (lLength > rLength) ? 1 : -1;
 }
 
 PRInt32
-nsCaseInsensitiveStringComparator::operator()(PRUnichar lhs,
-                                              PRUnichar rhs) const
+nsCaseInsensitiveUTF8StringComparator::operator()(const char* lhs,
+                                                  const char* rhs,
+                                                  PRUint32 lLength,
+                                                  PRUint32 rLength) const
 {
-  
-  if (lhs == rhs)
-    return 0;
-  
-  lhs = ToLowerCase(lhs);
-  rhs = ToLowerCase(rhs);
-  
-  if (lhs == rhs)
-    return 0;
-  else if (lhs < rhs)
-    return -1;
-  else
-    return 1;
+  return CaseInsensitiveCompare(lhs, rhs, lLength, rLength);
 }
 
 PRInt32
 nsASCIICaseInsensitiveStringComparator::operator()(const PRUnichar* lhs,
                                                    const PRUnichar* rhs,
-                                                   PRUint32 aLength) const
+                                                   PRUint32 lLength,
+                                                   PRUint32 rLength) const
 {
-  while (aLength) {
+  if (lLength != rLength) {
+    if (lLength > rLength)
+      return 1;
+    return -1;
+  }
+
+  while (rLength) {
     PRUnichar l = *lhs++;
     PRUnichar r = *rhs++;
     if (l != r) {
-      l = ToLowerCaseASCII(l);
-      r = ToLowerCaseASCII(r);
+      l = ToLowerCaseASCII_inline(l);
+      r = ToLowerCaseASCII_inline(r);
 
       if (l > r)
         return 1;
       else if (r > l)
         return -1;
     }
-    aLength--;
+    rLength--;
   }
 
   return 0;
 }
-
-PRInt32
-nsASCIICaseInsensitiveStringComparator::operator()(PRUnichar lhs,
-                                                   PRUnichar rhs) const
-{
-  
-  if (lhs == rhs)
-    return 0;
-  
-  lhs = ToLowerCaseASCII(lhs);
-  rhs = ToLowerCaseASCII(rhs);
-  
-  if (lhs == rhs)
-    return 0;
-  else if (lhs < rhs)
-    return -1;
-  else
-    return 1;
-}
-
 
 #endif 
-
-PRInt32
-CaseInsensitiveCompare(const PRUnichar *a,
-                       const PRUnichar *b,
-                       PRUint32 len)
-{
-  NS_ASSERTION(a && b, "Do not pass in invalid pointers!");
-  
-  if (len) {
-    do {
-      PRUnichar c1 = *a++;
-      PRUnichar c2 = *b++;
-      
-      if (c1 != c2) {
-        c1 = ToLowerCase(c1);
-        c2 = ToLowerCase(c2);
-        if (c1 != c2) {
-          if (c1 < c2) {
-            return -1;
-          }
-          return 1;
-        }
-      }
-    } while (--len != 0);
-  }
-  return 0;
-}
 
 PRUnichar
 ToLowerCase(PRUnichar aChar)
 {
-  if (IS_ASCII(aChar)) {
-    if (IS_ASCII_UPPER(aChar))
-      return aChar + 0x0020;
-    else
-      return aChar;
-  } else if (IS_NOCASE_CHAR(aChar)) {
-     return aChar;
-  }
-
-  return gLowerMap.Map(aChar);
+  return ToLowerCase_inline(aChar);
 }
 
 void
@@ -342,7 +327,7 @@ ToUpperCase(PRUnichar aChar)
 {
   if (IS_ASCII(aChar)) {
     if (IS_ASCII_LOWER(aChar))
-      return aChar - 0x0020;
+      return aChar - 0x20;
     else
       return aChar;
   } else if (IS_NOCASE_CHAR(aChar)) {
@@ -380,7 +365,7 @@ ToTitleCase(PRUnichar aChar)
   }
 
   PRUnichar upper = gUpperMap.Map(aChar);
-  
+
   if (0x01C0 == ( upper & 0xFFC0)) {
     for (PRUint32 i = 0 ; i < gUpperToTitleItems; i++) {
       if (upper == gUpperToTitle[(i*2)+kUpperIdx]) {
@@ -391,3 +376,167 @@ ToTitleCase(PRUnichar aChar)
 
   return upper;
 }
+
+PRInt32
+CaseInsensitiveCompare(const PRUnichar *a,
+                       const PRUnichar *b,
+                       PRUint32 len)
+{
+  NS_ASSERTION(a && b, "Do not pass in invalid pointers!");
+
+  if (len) {
+    do {
+      PRUnichar c1 = *a++;
+      PRUnichar c2 = *b++;
+
+      if (c1 != c2) {
+        c1 = ToLowerCase_inline(c1);
+        c2 = ToLowerCase_inline(c2);
+        if (c1 != c2) {
+          if (c1 < c2) {
+            return -1;
+          }
+          return 1;
+        }
+      }
+    } while (--len != 0);
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+static NS_ALWAYS_INLINE PRUint32
+GetLowerUTF8Codepoint(const char* aStr, const char* aEnd, const char **aNext)
+{
+  
+  
+  const unsigned char *str = (unsigned char*)aStr;
+
+  if (UTF8traits::isASCII(str[0])) {
+    
+    *aNext = aStr + 1;
+    return gASCIIToLower[*str];
+  }
+  if (UTF8traits::is2byte(str[0]) && NS_LIKELY(aStr + 1 < aEnd)) {
+    
+    
+    
+    
+
+    PRUint16 c;
+    c  = (str[0] & 0x1F) << 6;
+    c += (str[1] & 0x3F);
+
+    if (!IS_NOCASE_CHAR(c))
+      c = gLowerMap.Map(c);
+
+    *aNext = aStr + 2;
+    return c;
+  }
+  if (UTF8traits::is3byte(str[0]) && NS_LIKELY(aStr + 2 < aEnd)) {
+    
+    
+    
+
+    PRUint16 c;
+    c  = (str[0] & 0x0F) << 12;
+    c += (str[1] & 0x3F) << 6;
+    c += (str[2] & 0x3F);
+
+    if (!IS_NOCASE_CHAR(c))
+      c = gLowerMap.Map(c);
+
+    *aNext = aStr + 3;
+    return c;
+  }
+  if (UTF8traits::is4byte(str[0]) && NS_LIKELY(aStr + 3 < aEnd)) {
+    
+    
+    
+    
+
+    PRUint32 c;
+    c  = (str[0] & 0x07) << 18;
+    c += (str[1] & 0x3F) << 12;
+    c += (str[2] & 0x3F) << 6;
+    c += (str[3] & 0x3F);
+
+    *aNext = aStr + 4;
+    return c;
+  }
+
+  
+  return -1;
+}
+
+PRInt32 CaseInsensitiveCompare(const char *aLeft,
+                               const char *aRight,
+                               PRUint32 aLeftBytes,
+                               PRUint32 aRightBytes)
+{
+  const char *leftEnd = aLeft + aLeftBytes;
+  const char *rightEnd = aRight + aRightBytes;
+
+  while (aLeft < leftEnd && aRight < rightEnd) {
+    PRUint32 leftChar = GetLowerUTF8Codepoint(aLeft, leftEnd, &aLeft);
+    if (NS_UNLIKELY(leftChar == PRUint32(-1)))
+      return -1;
+
+    PRUint32 rightChar = GetLowerUTF8Codepoint(aRight, rightEnd, &aRight);
+    if (NS_UNLIKELY(rightChar == PRUint32(-1)))
+      return -1;
+
+    
+    if (leftChar != rightChar) {
+      if (leftChar > rightChar)
+        return 1;
+      return -1;
+    }
+  }
+
+  
+  
+  if (aLeft < leftEnd)
+    return 1;
+  if (aRight < rightEnd)
+    return -1;
+
+  return 0;
+}
+
+PRBool
+CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
+                              const char* aLeftEnd, const char* aRightEnd,
+                              const char** aLeftNext, const char** aRightNext,
+                              PRBool* aErr)
+{
+  NS_ASSERTION(aLeftNext, "Out pointer shouldn't be null.");
+  NS_ASSERTION(aRightNext, "Out pointer shouldn't be null.");
+  NS_ASSERTION(aErr, "Out pointer shouldn't be null.");
+  NS_ASSERTION(aLeft < aLeftEnd, "aLeft must be less than aLeftEnd.");
+  NS_ASSERTION(aRight < aRightEnd, "aRight must be less than aRightEnd.");
+
+  PRUint32 leftChar = GetLowerUTF8Codepoint(aLeft, aLeftEnd, aLeftNext);
+  if (NS_UNLIKELY(leftChar == PRUint32(-1))) {
+    *aErr = PR_TRUE;
+    return PR_FALSE;
+  }
+
+  PRUint32 rightChar = GetLowerUTF8Codepoint(aRight, aRightEnd, aRightNext);
+  if (NS_UNLIKELY(rightChar == PRUint32(-1))) {
+    *aErr = PR_TRUE;
+    return PR_FALSE;
+  }
+
+  
+  *aErr = PR_FALSE;
+
+  return leftChar == rightChar;
+}
+
