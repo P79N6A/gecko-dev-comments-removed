@@ -44,8 +44,11 @@
 #include "gfxPlatformMac.h"
 #include "gfxContext.h"
 #include "gfxUnicodeProperties.h"
+#include "gfxFontUtils.h"
 
 #include "cairo-quartz.h"
+
+using namespace mozilla;
 
 gfxMacFont::gfxMacFont(MacOSFontEntry *aFontEntry, const gfxFontStyle *aFontStyle,
                        PRBool aNeedsBold)
@@ -232,11 +235,28 @@ gfxMacFont::InitMetrics()
     mIsValid = PR_FALSE;
     ::memset(&mMetrics, 0, sizeof(mMetrics));
 
-    PRUint32 upem = ::CGFontGetUnitsPerEm(mCGFont);
-    if (!upem) {
+    PRUint32 upem = 0;
+
+    
+    
+    
+    
+    
+    const PRUint32 kHeadTableTag = TRUETYPE_TAG('h','e','a','d');
+    nsAutoTArray<PRUint8,sizeof(HeadTable)> headData;
+    if (NS_SUCCEEDED(mFontEntry->GetFontTable(kHeadTableTag, headData)) &&
+        headData.Length() >= sizeof(HeadTable)) {
+        HeadTable *head = reinterpret_cast<HeadTable*>(headData.Elements());
+        upem = head->unitsPerEm;
+    } else {
+        upem = ::CGFontGetUnitsPerEm(mCGFont);
+    }
+
+    if (upem < 16 || upem > 16384) {
+        
 #ifdef DEBUG
         char warnBuf[1024];
-        sprintf(warnBuf, "Bad font metrics for: %s (no unitsPerEm value)",
+        sprintf(warnBuf, "Bad font metrics for: %s (invalid unitsPerEm value)",
                 NS_ConvertUTF16toUTF8(mFontEntry->Name()).get());
         NS_WARNING(warnBuf);
 #endif
