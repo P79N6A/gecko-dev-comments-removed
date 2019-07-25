@@ -469,6 +469,7 @@ JSCompartment::sweep(JSContext *cx, bool releaseTypes)
     
 
     sweepBaseShapeTable(cx);
+    sweepInitialShapeTable(cx);
     sweepNewTypeObjectTable(cx, newTypeObjects);
     sweepNewTypeObjectTable(cx, lazyTypeObjects);
 

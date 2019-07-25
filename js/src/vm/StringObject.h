@@ -92,7 +92,7 @@ class StringObject : public ::JSObject
 
 
 
-    const js::Shape *assignInitialShape(JSContext *cx);
+    Shape *assignInitialShape(JSContext *cx);
 
   private:
     StringObject();

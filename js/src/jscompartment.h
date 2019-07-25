@@ -46,6 +46,7 @@
 #include "jsgc.h"
 #include "jsgcstats.h"
 #include "jsobj.h"
+#include "jsscope.h"
 #include "vm/GlobalObject.h"
 
 #ifdef _MSC_VER
@@ -475,53 +476,17 @@ struct JS_FRIEND_API(JSCompartment) {
 #endif
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-    struct BaseShapeEntry {
-        js::UnownedBaseShape *base;
-        js::ShapeKindArray *shapes;
-
-        typedef const js::BaseShape *Lookup;
-
-        static inline js::HashNumber hash(const js::BaseShape *base);
-        static inline bool match(const BaseShapeEntry &key, const js::BaseShape *lookup);
-    };
-
-    typedef js::HashSet<BaseShapeEntry, BaseShapeEntry, js::SystemAllocPolicy> BaseShapeSet;
-
-    BaseShapeSet                 baseShapes;
-
+    js::BaseShapeSet             baseShapes;
     void sweepBaseShapeTable(JSContext *cx);
 
     
+    js::InitialShapeSet          initialShapes;
+    void sweepInitialShapeTable(JSContext *cx);
 
-
-
-
-    struct NewTypeObjectEntry {
-        typedef JSObject *Lookup;
-
-        static inline js::HashNumber hash(JSObject *base);
-        static inline bool match(js::types::TypeObject *key, JSObject *lookup);
-    };
-
-    typedef js::HashSet<js::types::TypeObject *, NewTypeObjectEntry, js::SystemAllocPolicy> NewTypeObjectSet;
-
-    NewTypeObjectSet             newTypeObjects;
-    NewTypeObjectSet             lazyTypeObjects;
-
-    void sweepNewTypeObjectTable(JSContext *cx, NewTypeObjectSet &table);
+    
+    js::types::TypeObjectSet     newTypeObjects;
+    js::types::TypeObjectSet     lazyTypeObjects;
+    void sweepNewTypeObjectTable(JSContext *cx, js::types::TypeObjectSet &table);
 
     js::types::TypeObject        *emptyTypeObject;
 
@@ -530,6 +495,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
     js::types::TypeObject *getLazyType(JSContext *cx, JSObject *proto);
 
+    
     js::NewObjectCache           newObjectCache;
 
   private:

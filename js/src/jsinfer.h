@@ -731,17 +731,7 @@ struct TypeObject : gc::Cell
     bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
 
     
-    js::ShapeKindArray *emptyShapes;
-
-    
     TypeObjectFlags flags;
-
-    
-
-
-
-
-    TypeNewScript *newScript;
 
     
 
@@ -756,6 +746,13 @@ struct TypeObject : gc::Cell
 
     uint32 contribution;
     static const uint32 CONTRIBUTION_LIMIT = 2000;
+
+    
+
+
+
+
+    TypeNewScript *newScript;
 
     
 
@@ -792,6 +789,10 @@ struct TypeObject : gc::Cell
     
     JSFunction *interpretedFunction;
 
+#if JS_BITS_PER_WORD == 32
+    void *padding;
+#endif
+
     inline TypeObject(JSObject *proto, bool isFunction, bool unknown);
 
     bool isFunction() { return !!(flags & OBJECT_FLAG_FUNCTION); }
@@ -810,14 +811,6 @@ struct TypeObject : gc::Cell
                      hasAllFlags(OBJECT_FLAG_DYNAMIC_MASK));
         return !!(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES);
     }
-
-    
-
-
-
-
-
-    inline js::EmptyShape *getEmptyShape(JSContext *cx, gc::AllocKind kind);
 
     
 
@@ -881,6 +874,19 @@ struct TypeObject : gc::Cell
         JS_STATIC_ASSERT(offsetof(TypeObject, proto) == offsetof(js::shadow::TypeObject, proto));
     }
 };
+
+
+
+
+
+struct TypeObjectEntry
+{
+    typedef JSObject *Lookup;
+
+    static inline HashNumber hash(JSObject *base);
+    static inline bool match(TypeObject *key, JSObject *lookup);
+};
+typedef HashSet<TypeObject *, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
 
 
 

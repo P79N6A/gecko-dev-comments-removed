@@ -596,7 +596,7 @@ struct JSObject : js::gc::Cell
   public:
     inline bool nativeEmpty() const;
 
-    const js::Shape *methodShapeChange(JSContext *cx, const js::Shape &shape);
+    js::Shape *methodShapeChange(JSContext *cx, const js::Shape &shape);
     bool protoShapeChange(JSContext *cx);
     bool shadowingShapeChange(JSContext *cx, const js::Shape &shape);
 
@@ -605,7 +605,7 @@ struct JSObject : js::gc::Cell
 
 
 
-    const js::Shape *methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
+    js::Shape *methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
 
     
     inline bool canHaveMethodBarrier() const;
@@ -1212,11 +1212,11 @@ struct JSObject : js::gc::Cell
 
 
 
-    const js::Shape *addPropertyInternal(JSContext *cx, jsid id,
-                                         JSPropertyOp getter, JSStrictPropertyOp setter,
-                                         uint32 slot, uintN attrs,
-                                         uintN flags, intN shortid,
-                                         js::Shape **spp, bool allowDictionary);
+    js::Shape *addPropertyInternal(JSContext *cx, jsid id,
+                                   JSPropertyOp getter, JSStrictPropertyOp setter,
+                                   uint32 slot, uintN attrs,
+                                   uintN flags, intN shortid,
+                                   js::Shape **spp, bool allowDictionary);
 
     bool toDictionaryMode(JSContext *cx);
 
@@ -1229,26 +1229,26 @@ struct JSObject : js::gc::Cell
 
   public:
     
-    const js::Shape *addProperty(JSContext *cx, jsid id,
-                                 JSPropertyOp getter, JSStrictPropertyOp setter,
-                                 uint32 slot, uintN attrs,
-                                 uintN flags, intN shortid, bool allowDictionary = true);
+    js::Shape *addProperty(JSContext *cx, jsid id,
+                           JSPropertyOp getter, JSStrictPropertyOp setter,
+                           uint32 slot, uintN attrs,
+                           uintN flags, intN shortid, bool allowDictionary = true);
 
     
-    const js::Shape *addDataProperty(JSContext *cx, jsid id, uint32 slot, uintN attrs) {
+    js::Shape *addDataProperty(JSContext *cx, jsid id, uint32 slot, uintN attrs) {
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
         return addProperty(cx, id, NULL, NULL, slot, attrs, 0, 0);
     }
 
     
-    const js::Shape *putProperty(JSContext *cx, jsid id,
-                                 JSPropertyOp getter, JSStrictPropertyOp setter,
-                                 uint32 slot, uintN attrs,
-                                 uintN flags, intN shortid);
+    js::Shape *putProperty(JSContext *cx, jsid id,
+                           JSPropertyOp getter, JSStrictPropertyOp setter,
+                           uint32 slot, uintN attrs,
+                           uintN flags, intN shortid);
 
     
-    const js::Shape *changeProperty(JSContext *cx, const js::Shape *shape, uintN attrs, uintN mask,
-                                    JSPropertyOp getter, JSStrictPropertyOp setter);
+    js::Shape *changeProperty(JSContext *cx, js::Shape *shape, uintN attrs, uintN mask,
+                              JSPropertyOp getter, JSStrictPropertyOp setter);
 
     
     bool removeProperty(JSContext *cx, jsid id);
@@ -1691,7 +1691,7 @@ js_CheckForStringIndex(jsid id);
 
 
 
-extern const js::Shape *
+extern js::Shape *
 js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      JSPropertyOp getter, JSStrictPropertyOp setter, uint32 slot,
                      uintN attrs, uintN flags, intN shortid);
@@ -1701,9 +1701,9 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
 
 
 
-extern const js::Shape *
+extern js::Shape *
 js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
-                             const js::Shape *shape, uintN attrs, uintN mask,
+                             js::Shape *shape, uintN attrs, uintN mask,
                              JSPropertyOp getter, JSStrictPropertyOp setter);
 
 extern JSBool

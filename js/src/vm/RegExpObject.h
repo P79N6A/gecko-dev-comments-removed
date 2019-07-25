@@ -187,7 +187,7 @@ class RegExpObject : public ::JSObject
 
 
 
-    const Shape *assignInitialShape(JSContext *cx);
+    Shape *assignInitialShape(JSContext *cx);
 
     RegExpObject();
     RegExpObject &operator=(const RegExpObject &reo);
