@@ -220,6 +220,11 @@ class nsCocoaUtils
                              NSEvent* aNativeEvent);
   static void InitInputEvent(nsInputEvent &aInputEvent,
                              NSUInteger aModifiers);
+
+  
+
+
+  static NSUInteger GetCurrentModifiers();
 };
 
 #endif 
