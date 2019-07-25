@@ -165,6 +165,12 @@ struct DebugOnly
         value = rhs;
         return *this;
     }
+    void operator++(int) {
+        value++;
+    }
+    void operator--(int) {
+        value--;
+    }
 
     operator T&() { return value; }
     operator const T&() const { return value; }
@@ -175,9 +181,11 @@ struct DebugOnly
     DebugOnly() {}
     DebugOnly(const T&) {}
     DebugOnly& operator=(const T&) { return *this; }
+    void operator++(int) {}
+    void operator--(int) {}
 #endif
 
-    
+
 
 
 
