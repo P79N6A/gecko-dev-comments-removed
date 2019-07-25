@@ -204,13 +204,17 @@ class nsIScrollableFrame;
 
 
 
-class NS_FINAL_CLASS nsFrameSelection : public nsISupports {
+class NS_FINAL_CLASS nsFrameSelection {
 public:
   enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
-  
-  
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsFrameSelection)
+
+  nsFrameSelection();
+private:
+  ~nsFrameSelection();
+public:
+
+  NS_INLINE_DECL_REFCOUNTING(nsFrameSelection)
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsFrameSelection)
 
   
 
@@ -585,8 +589,6 @@ public:
 
   nsresult MaintainSelection(nsSelectionAmount aAmount = eSelectNoAmount);
 
-
-  nsFrameSelection();
 
   void StartBatchChanges();
   void EndBatchChanges();
