@@ -586,19 +586,21 @@ window.TabsManager = $.extend(new Subscribable(), {
       };
     }
   
-    var browserWatcher = new BrowserWatcher(
-      {onLoad: function(chromeWindow) {
-         var trackedWindow = trackedWindows.get(chromeWindow);
-         if (!trackedWindow)
-           trackedWindows.set(chromeWindow,
-                              new BrowserWindow(chromeWindow));
-       },
-       onUnload: function(chromeWindow) {
-         var browserWindow = trackedWindows.get(chromeWindow);
-         trackedWindows.remove(chromeWindow);
-         browserWindow.unload();
-       }
-      });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
     this.__defineGetter__("tabs", function() { return tabs; });
   
@@ -606,7 +608,7 @@ window.TabsManager = $.extend(new Subscribable(), {
       this,
       function() {
         tabsMixIns.unload();
-        browserWatcher.unload();
+
       });
       
     window.Tabs = tabs;
