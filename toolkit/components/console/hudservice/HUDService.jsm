@@ -3943,6 +3943,7 @@ JSTerm.prototype = {
     let eventHandlerInput = this.inputEventHandler();
     this.inputNode.addEventListener('input', eventHandlerInput, false);
     this.outputNode = this.mixins.outputNode;
+    this.completeNode = this.mixins.completeNode;
     if (this.mixins.cssClassOverride) {
       this.cssClassOverride = this.mixins.cssClassOverride;
     }
@@ -4283,19 +4284,20 @@ JSTerm.prototype = {
         }
         return;
       }
-      else if (aEvent.shiftKey && aEvent.keyCode == 13) {
+      else if (aEvent.shiftKey &&
+          aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_RETURN) {
         
         
         return;
       }
       else {
         switch(aEvent.keyCode) {
-          case 13:
-            
+          case Ci.nsIDOMKeyEvent.DOM_VK_RETURN:
             self.execute();
             aEvent.preventDefault();
             break;
-          case 38:
+
+          case Ci.nsIDOMKeyEvent.DOM_VK_UP:
             
             if (self.caretAtStartOfInput()) {
               let updated = self.historyPeruse(HISTORY_BACK);
@@ -4305,7 +4307,8 @@ JSTerm.prototype = {
               }
             }
             break;
-          case 40:
+
+          case Ci.nsIDOMKeyEvent.DOM_VK_DOWN:
             
             if (self.caretAtEndOfInput()) {
               let updated = self.historyPeruse(HISTORY_FORWARD);
@@ -4316,8 +4319,13 @@ JSTerm.prototype = {
               }
             }
             break;
-          case 9:
+
+          case Ci.nsIDOMKeyEvent.DOM_VK_RIGHT:
             
+            self.acceptProposedCompletion();
+            break;
+
+          case Ci.nsIDOMKeyEvent.DOM_VK_TAB:
             
             
             
@@ -4330,19 +4338,13 @@ JSTerm.prototype = {
             }
             if (completionResult) {
               if (aEvent.cancelable) {
-              aEvent.preventDefault();
-            }
-            aEvent.target.focus();
+                aEvent.preventDefault();
+              }
+              aEvent.target.focus();
             }
             break;
-          case 8:
-            
-          case 46:
-            
-            
-            break;
+
           default:
-            
             
             
             
@@ -4478,30 +4480,22 @@ JSTerm.prototype = {
     let inputValue = inputNode.value;
     
     if (!inputValue) {
+      this.updateCompleteNode("");
       return false;
     }
-    let selStart = inputNode.selectionStart, selEnd = inputNode.selectionEnd;
 
     
-    if (selStart > selEnd) {
-      let newSelEnd = selStart;
-      selStart = selEnd;
-      selEnd = newSelEnd;
-    }
-
-    
-    if (selEnd != inputValue.length) {
+    if (inputNode.selectionStart == inputNode.selectionEnd &&
+        inputNode.selectionEnd != inputValue.length) {
+      
       this.lastCompletion = null;
+      this.updateCompleteNode("");
       return false;
     }
-
-    
-    inputValue = inputValue.substring(0, selStart);
 
     let matches;
     let matchIndexToUse;
     let matchOffset;
-    let completionStr;
 
     
     
@@ -4520,6 +4514,7 @@ JSTerm.prototype = {
       
       let completion = this.propertyProvider(this.sandbox.window, inputValue);
       if (!completion) {
+        this.updateCompleteNode("");
         return false;
       }
       matches = completion.matches;
@@ -4534,7 +4529,11 @@ JSTerm.prototype = {
       };
     }
 
-    if (matches.length != 0) {
+    if (type != this.COMPLETE_HINT_ONLY && matches.length == 1) {
+      this.acceptProposedCompletion();
+      return true;
+    }
+    else if (matches.length != 0) {
       
       if (matchIndexToUse < 0) {
         matchIndexToUse = matches.length + (matchIndexToUse % matches.length);
@@ -4546,26 +4545,30 @@ JSTerm.prototype = {
         matchIndexToUse = matchIndexToUse % matches.length;
       }
 
-      completionStr = matches[matchIndexToUse].substring(matchOffset);
-      this.setInputValue(inputValue + completionStr);
-
-      selEnd = inputValue.length + completionStr.length;
-
-      
-      
-      
-      if (matches.length > 1 || type === this.COMPLETE_HINT_ONLY) {
-        inputNode.setSelectionRange(selStart, selEnd);
-      }
-      else {
-        inputNode.setSelectionRange(selEnd, selEnd);
-      }
-
+      let completionStr = matches[matchIndexToUse].substring(matchOffset);
+      this.updateCompleteNode(completionStr);
       return completionStr ? true : false;
+    }
+    else {
+      this.updateCompleteNode("");
     }
 
     return false;
-  }
+  },
+
+  acceptProposedCompletion: function JSTF_acceptProposedCompletion()
+  {
+    this.setInputValue(this.inputNode.value + this.completionValue);
+    this.updateCompleteNode("");
+  },
+
+  updateCompleteNode: function JSTF_updateCompleteNode(suffix)
+  {
+    this.completionValue = suffix;
+
+    let prefix = new Array(this.inputNode.value.length + 1).join(" ");
+    this.completeNode.value = prefix + this.completionValue;
+  },
 };
 
 
@@ -4611,38 +4614,38 @@ JSTermFirefoxMixin.prototype = {
 
   generateUI: function JSTF_generateUI()
   {
-    let inputContainer = this.xulElementFactory("hbox");
-    inputContainer.setAttribute("class", "jsterm-input-container");
-    inputContainer.setAttribute("style", "direction: ltr;");
+    this.completeNode = this.xulElementFactory("textbox");
+    this.completeNode.setAttribute("class", "jsterm-complete-node");
+    this.completeNode.setAttribute("multiline", "true");
+    this.completeNode.setAttribute("rows", "1");
 
-    let inputNode = this.xulElementFactory("textbox");
-    inputNode.setAttribute("class", "jsterm-input-node");
-    inputNode.setAttribute("flex", "1");
-    inputNode.setAttribute("multiline", "true");
-    inputNode.setAttribute("rows", "1");
-    inputContainer.appendChild(inputNode);
+    this.inputNode = this.xulElementFactory("textbox");
+    this.inputNode.setAttribute("class", "jsterm-input-node");
+    this.inputNode.setAttribute("multiline", "true");
+    this.inputNode.setAttribute("rows", "1");
+
+    let inputStack = this.xulElementFactory("stack");
+    inputStack.setAttribute("class", "jsterm-stack-node");
+    inputStack.setAttribute("flex", "1");
+    inputStack.appendChild(this.completeNode);
+    inputStack.appendChild(this.inputNode);
 
     if (this.existingConsoleNode == undefined) {
-      
-      let term = this.xulElementFactory("vbox");
-      term.setAttribute("class", "jsterm-wrapper-node");
-      term.setAttribute("flex", "1");
+      this.outputNode = this.xulElementFactory("vbox");
+      this.outputNode.setAttribute("class", "jsterm-output-node");
 
-      let outputNode = this.xulElementFactory("vbox");
-      outputNode.setAttribute("class", "jsterm-output-node");
-
-      
-      term.appendChild(outputNode);
-      term.appendChild(inputNode);
-
-      this.outputNode = outputNode;
-      this.inputNode = inputNode;
-      this.term = term;
+      this.term = this.xulElementFactory("vbox");
+      this.term.setAttribute("class", "jsterm-wrapper-node");
+      this.term.setAttribute("flex", "1");
+      this.term.appendChild(this.outputNode);
     }
     else {
-      this.inputNode = inputNode;
-      this.term = inputContainer;
       this.outputNode = this.existingConsoleNode;
+
+      this.term = this.xulElementFactory("hbox");
+      this.term.setAttribute("class", "jsterm-input-container");
+      this.term.setAttribute("style", "direction: ltr;");
+      this.term.appendChild(inputStack);
     }
   },
 
