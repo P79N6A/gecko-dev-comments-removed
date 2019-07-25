@@ -43,6 +43,8 @@ class B2GRemoteAutomation(Automation):
         self.marionette = marionette
         self.context_chrome = context_chrome
         self._is_emulator = False
+        self.test_script = None
+        self.test_script_args = None
 
         
         self._product = "b2g"
@@ -254,14 +256,14 @@ class B2GRemoteAutomation(Automation):
             
             self.marionette.execute_script("document.getElementById('homescreen').src='%s';" % self.testURL)
         
-        elif hasattr(self, 'testScript'):
-            if os.path.isfile(self.testScript):
-                script = open(self.testScript, 'r')
-                self.marionette.execute_script(script.read())
+        elif self.test_script:
+            if os.path.isfile(self.test_script):
+                script = open(self.test_script, 'r')
+                self.marionette.execute_script(script.read(), script_args=self.test_script_args)
                 script.close()
             else:
                 
-                self.marionette.execute_script(self.testScript)
+                self.marionette.execute_script(self.test_script, script_args=self.test_script_args)
         else:
             
             pass
