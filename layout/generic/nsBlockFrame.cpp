@@ -5740,9 +5740,13 @@ nsBlockFrame::ReflowFloatContinuations(nsBlockReflowState& aState,
                                        nsReflowStatus&     aStatus)
 {
   nsresult rv = NS_OK;
-  for (nsIFrame* f = mFloats.FirstChild();
+  for (nsIFrame* f = mFloats.FirstChild(), *next;
        f && (f->GetStateBits() & NS_FRAME_IS_FLOAT_CONTINUATION);
-       f = f->GetNextSibling()) {
+       f = next) {
+    
+    
+    next = f->GetNextSibling();
+
     if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
       
       nsRect oldRect = f->GetRect();
