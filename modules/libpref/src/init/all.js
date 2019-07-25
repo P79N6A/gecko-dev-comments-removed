@@ -1482,14 +1482,14 @@ pref("hangmonitor.timeout", 0);
 #ifndef DEBUG
 
 
-pref("dom.ipc.plugins.timeoutSecs", 45);
+pref("dom.ipc.plugins.timeoutSecs", 25);
 
 
 
 pref("dom.ipc.plugins.parentTimeoutSecs", 15);
 
 
-pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 25);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
