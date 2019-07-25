@@ -99,7 +99,10 @@ add_test(function test_openSafeFileOutputStream_defaultFlags() {
 
   
   
-  
+  do_check_false(file.exists());
+
+  let data = "imagine";
+  fos.write(data, data.length);
   do_check_true(file.exists());
 
   
@@ -117,8 +120,10 @@ add_test(function test_openSafeFileOutputStream_defaultFlags() {
 
 add_test(function test_openSafeFileOutputStream_modeFlags() {
   let file = FileUtils.getFile("ProfD", ["paul"]);
+  let fos = FileUtils.openSafeFileOutputStream(file, FileUtils.MODE_WRONLY);
+  let data = "yesterday";
   do_check_throws(function () {
-    FileUtils.openSafeFileOutputStream(file, FileUtils.MODE_WRONLY);
+    fos.write(data, data.length);
   }, Components.results.NS_ERROR_FILE_NOT_FOUND);
   do_check_false(file.exists());
 

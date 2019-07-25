@@ -111,12 +111,14 @@ var FileUtils = {
 
 
 
+
+
   openSafeFileOutputStream: function FileUtils_openSafeFileOutputStream(file, modeFlags) {
     var fos = Cc["@mozilla.org/network/safe-file-output-stream;1"].
               createInstance(Ci.nsIFileOutputStream);
     if (modeFlags === undefined)
       modeFlags = this.MODE_WRONLY | this.MODE_CREATE | this.MODE_TRUNCATE;
-    fos.init(file, modeFlags, this.PERMS_FILE, 0);
+    fos.init(file, modeFlags, this.PERMS_FILE, fos.DEFER_OPEN);
     return fos;
   },
 
