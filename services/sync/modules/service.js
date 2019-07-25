@@ -699,7 +699,7 @@ WeaveSvc.prototype = {
     } else if (meta.payload.syncID != Clients.syncID) {
       this._log.warn("Meta.payload.syncID is " + meta.payload.syncID +
                      ", Clients.syncID is " + Clients.syncID);
-      yield this.resetClient(self.cb);
+      this.resetClient();
       this._log.info("Reset client because of syncID mismatch.");
       Clients.syncID = meta.payload.syncID;
       this._log.info("Reset the client after a server/client sync ID mismatch");
@@ -971,7 +971,7 @@ WeaveSvc.prototype = {
 
   _freshStart: function WeaveSvc__freshStart() {
     let self = yield;
-    yield this.resetClient(self.cb);
+    this.resetClient();
     this._log.info("Reset client data from freshStart.");
     this._log.info("Client metadata wiped, deleting server data");
     yield this.wipeServer(self.cb);
@@ -1094,12 +1094,8 @@ WeaveSvc.prototype = {
 
 
 
-
-
-  resetClient: function WeaveSvc_resetClient(onComplete, engines) {
-    let fn = function WeaveSvc__resetClient() {
-      let self = yield;
-
+  resetClient: function WeaveSvc_resetClient(engines)
+    this._catch(this._notify("reset-client", "", function() {
       
       if (!engines) {
         
@@ -1126,9 +1122,7 @@ WeaveSvc.prototype = {
       } catch (e) {
         this._log.debug("Could not remove old snapshots: " + Utils.exceptionStr(e));
       }
-    };
-    this._catchAll(this._notifyAsync("reset-client", "", fn)).async(this, onComplete);
-  },
+    }))(),
 
   
 
@@ -1174,7 +1168,7 @@ WeaveSvc.prototype = {
             engines = null;
             
           case "resetEngine":
-            yield this.resetClient(self.cb, engines);
+            this.resetClient(engines);
             break;
 
           case "wipeAll":
