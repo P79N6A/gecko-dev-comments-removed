@@ -303,33 +303,17 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   
   StartDragSession();
 
+  nsRefPtr<IAsyncOperation> pAsyncOp;
   
-  PRUint64 lShellVersion = GetShellVersion();
-  IAsyncOperation *pAsyncOp = NULL;
-  PRBool isAsyncAvailable = LL_UCMP(lShellVersion, >=, LL_INIT(5, 0));
-  if (isAsyncAvailable)
-  {
-    
-    if (SUCCEEDED(aDataObj->QueryInterface(IID_IAsyncOperation,
-                                          (void**)&pAsyncOp)))
-      pAsyncOp->SetAsyncMode(VARIANT_TRUE);
+  if (SUCCEEDED(aDataObj->QueryInterface(IID_IAsyncOperation,
+                                         getter_AddRefs(pAsyncOp)))) {
+    pAsyncOp->SetAsyncMode(VARIANT_TRUE);
+  } else {
+    NS_NOTREACHED("When did our data object stop being async");
   }
 
   
   HRESULT res = ::DoDragDrop(aDataObj, mNativeDragSrc, effects, &winDropRes);
-
-  if (isAsyncAvailable)
-  {
-    
-    
-    BOOL isAsync = FALSE;
-    if (pAsyncOp)
-    {
-      pAsyncOp->InOperation(&isAsync);
-      if (!isAsync)
-        aDataObj->Release();
-    }
-  }
 
   
   
