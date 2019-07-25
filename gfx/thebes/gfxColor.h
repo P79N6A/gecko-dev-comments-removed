@@ -178,7 +178,6 @@ struct THEBES_API gfxRGBA {
     };
 
     gfxRGBA() { }
-    gfxRGBA(const gfxRGBA& c) : r(c.r), g(c.g), b(c.b), a(c.a) {}
     
 
 
