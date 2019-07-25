@@ -216,43 +216,65 @@ CSPRep.fromString = function(aStr, self) {
         }
       }
     }
-    
+
     
     if (dirname === UD.REPORT_URI) {
       
       var uriStrings = dirvalue.split(/\s+/);
       var okUriStrings = [];
 
-      
-      
       for (let i in uriStrings) {
+        var uri = null;
         try {
-          var uri = gIoService.newURI(uriStrings[i],null,null);
+          
+          
+          
+          uri = gIoService.newURI(uriStrings[i],null,selfUri);
+
+          
+          
+          
+          uri.host;
+
+          
+          
+          
           if (self) {
-            if (gETLDService.getBaseDomain(uri) ===
+            if (gETLDService.getBaseDomain(uri) !==
                 gETLDService.getBaseDomain(selfUri)) {
-              okUriStrings.push(uriStrings[i]);
-            } else {
               CSPWarning("can't use report URI from non-matching eTLD+1: "
                          + gETLDService.getBaseDomain(uri));
+              continue;
+            }
+            if (!uri.schemeIs(selfUri.scheme)) {
+              CSPWarning("can't use report URI with different scheme from "
+                         + "originating document: " + uri.asciiSpec);
+              continue;
+            }
+            if (uri.port && uri.port !== selfUri.port) {
+              CSPWarning("can't use report URI with different port from "
+                         + "originating document: " + uri.asciiSpec);
+              continue;
             }
           }
         } catch(e) {
           switch (e.result) {
             case Components.results.NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS:
             case Components.results.NS_ERROR_HOST_IS_IP_ADDRESS:
-              if (uri.host === selfUri.host) {
-                okUriStrings.push(uriStrings[i]);
-              } else {
-                CSPWarning("page on " + selfUri.host + " cannot send reports to " + uri.host);
+              if (uri.host !== selfUri.host) {
+                CSPWarning("page on " + selfUri.host
+                           + " cannot send reports to " + uri.host);
+                continue;
               }
               break;
 
             default:
               CSPWarning("couldn't parse report URI: " + uriStrings[i]);
-              break;
+              continue;
           }
         }
+        
+        okUriStrings.push(uri.asciiSpec);
       }
       aCSPR._directives[UD.REPORT_URI] = okUriStrings.join(' ');
       continue directive;

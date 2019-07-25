@@ -271,6 +271,9 @@ ContentSecurityPolicy.prototype = {
                + (blockedUri['asciiSpec'] ? " by " + blockedUri.asciiSpec : ""));
 
       
+      
+      
+      
       for (let i in uris) {
         if (uris[i] === "")
           continue;
