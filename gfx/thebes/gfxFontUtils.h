@@ -339,6 +339,17 @@ struct AutoSwap_PRUint32 {
     PRUint32  value;
 };
 
+struct AutoSwap_PRInt32 {
+#ifdef __SUNPRO_CC
+    AutoSwap_PRInt32& operator = (const PRInt32 aValue)
+      { this->value = NS_SWAP32(aValue); return *this; }
+#else
+    AutoSwap_PRInt32(PRInt32 aValue) { value = NS_SWAP32(aValue); }
+#endif
+    operator PRInt32() const { return NS_SWAP32(value); }
+    PRInt32  value;
+};
+
 struct AutoSwap_PRUint64 {
 #ifdef __SUNPRO_CC
     AutoSwap_PRUint64& operator = (const PRUint64 aValue)
@@ -355,6 +366,103 @@ struct AutoSwap_PRUint24 {
 private:
     AutoSwap_PRUint24() { }
     PRUint8  value[3];
+};
+
+struct HeadTable {
+    enum {
+        HEAD_MAGIC_NUMBER = 0x5F0F3CF5,
+        HEAD_CHECKSUM_CALC_CONST = 0xB1B0AFBA
+    };
+
+    AutoSwap_PRUint32    tableVersionNumber;    
+    AutoSwap_PRUint32    fontRevision;          
+    AutoSwap_PRUint32    checkSumAdjustment;    
+    AutoSwap_PRUint32    magicNumber;           
+    AutoSwap_PRUint16    flags;
+    AutoSwap_PRUint16    unitsPerEm;            
+    AutoSwap_PRUint64    created;               
+    AutoSwap_PRUint64    modified;              
+    AutoSwap_PRInt16     xMin;                  
+    AutoSwap_PRInt16     yMin;                  
+    AutoSwap_PRInt16     xMax;                  
+    AutoSwap_PRInt16     yMax;                  
+    AutoSwap_PRUint16    macStyle;              
+    AutoSwap_PRUint16    lowestRecPPEM;         
+    AutoSwap_PRInt16     fontDirectionHint;
+    AutoSwap_PRInt16     indexToLocFormat;
+    AutoSwap_PRInt16     glyphDataFormat;
+};
+
+struct OS2Table {
+    AutoSwap_PRUint16    version;                
+    AutoSwap_PRInt16     xAvgCharWidth;
+    AutoSwap_PRUint16    usWeightClass;
+    AutoSwap_PRUint16    usWidthClass;
+    AutoSwap_PRUint16    fsType;
+    AutoSwap_PRInt16     ySubscriptXSize;
+    AutoSwap_PRInt16     ySubscriptYSize;
+    AutoSwap_PRInt16     ySubscriptXOffset;
+    AutoSwap_PRInt16     ySubscriptYOffset;
+    AutoSwap_PRInt16     ySuperscriptXSize;
+    AutoSwap_PRInt16     ySuperscriptYSize;
+    AutoSwap_PRInt16     ySuperscriptXOffset;
+    AutoSwap_PRInt16     ySuperscriptYOffset;
+    AutoSwap_PRInt16     yStrikeoutSize;
+    AutoSwap_PRInt16     yStrikeoutPosition;
+    AutoSwap_PRInt16     sFamilyClass;
+    PRUint8              panose[10];
+    AutoSwap_PRUint32    unicodeRange1;
+    AutoSwap_PRUint32    unicodeRange2;
+    AutoSwap_PRUint32    unicodeRange3;
+    AutoSwap_PRUint32    unicodeRange4;
+    PRUint8              achVendID[4];
+    AutoSwap_PRUint16    fsSelection;
+    AutoSwap_PRUint16    usFirstCharIndex;
+    AutoSwap_PRUint16    usLastCharIndex;
+    AutoSwap_PRInt16     sTypoAscender;
+    AutoSwap_PRInt16     sTypoDescender;
+    AutoSwap_PRInt16     sTypoLineGap;
+    AutoSwap_PRUint16    usWinAscent;
+    AutoSwap_PRUint16    usWinDescent;
+    AutoSwap_PRUint32    codePageRange1;
+    AutoSwap_PRUint32    codePageRange2;
+    AutoSwap_PRInt16     sxHeight;
+    AutoSwap_PRInt16     sCapHeight;
+    AutoSwap_PRUint16    usDefaultChar;
+    AutoSwap_PRUint16    usBreakChar;
+    AutoSwap_PRUint16    usMaxContext;
+};
+
+struct PostTable {
+    AutoSwap_PRUint32    version;
+    AutoSwap_PRInt32     italicAngle;
+    AutoSwap_PRInt16     underlinePosition;
+    AutoSwap_PRUint16    underlineThickness;
+    AutoSwap_PRUint32    isFixedPitch;
+    AutoSwap_PRUint32    minMemType42;
+    AutoSwap_PRUint32    maxMemType42;
+    AutoSwap_PRUint32    minMemType1;
+    AutoSwap_PRUint32    maxMemType1;
+};
+
+struct HheaTable {
+    AutoSwap_PRUint32    version;
+    AutoSwap_PRInt16     ascender;
+    AutoSwap_PRInt16     descender;
+    AutoSwap_PRInt16     lineGap;
+    AutoSwap_PRUint16    advanceWidthMax;
+    AutoSwap_PRInt16     minLeftSideBearing;
+    AutoSwap_PRInt16     minRightSideBearing;
+    AutoSwap_PRInt16     xMaxExtent;
+    AutoSwap_PRInt16     caretSlopeRise;
+    AutoSwap_PRInt16     caretSlopeRun;
+    AutoSwap_PRInt16     caretOffset;
+    AutoSwap_PRInt16     reserved1;
+    AutoSwap_PRInt16     reserved2;
+    AutoSwap_PRInt16     reserved3;
+    AutoSwap_PRInt16     reserved4;
+    AutoSwap_PRInt16     metricDataFormat;
+    AutoSwap_PRUint16    numOfLongHorMetrics;
 };
 
 #pragma pack()

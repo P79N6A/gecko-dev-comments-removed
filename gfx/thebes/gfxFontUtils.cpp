@@ -927,31 +927,6 @@ struct TableDirEntry {
     AutoSwap_PRUint32    length;                 
 };
 
-struct HeadTable {
-    enum {
-        HEAD_MAGIC_NUMBER = 0x5F0F3CF5,
-        HEAD_CHECKSUM_CALC_CONST = 0xB1B0AFBA
-    };
-
-    AutoSwap_PRUint32    tableVersionNumber;    
-    AutoSwap_PRUint32    fontRevision;          
-    AutoSwap_PRUint32    checkSumAdjustment;    
-    AutoSwap_PRUint32    magicNumber;           
-    AutoSwap_PRUint16    flags;
-    AutoSwap_PRUint16    unitsPerEm;            
-    AutoSwap_PRUint64    created;               
-    AutoSwap_PRUint64    modified;              
-    AutoSwap_PRInt16     xMin;                  
-    AutoSwap_PRInt16     yMin;                  
-    AutoSwap_PRInt16     xMax;                  
-    AutoSwap_PRInt16     yMax;                  
-    AutoSwap_PRUint16    macStyle;              
-    AutoSwap_PRUint16    lowestRecPPEM;         
-    AutoSwap_PRInt16     fontDirectionHint;
-    AutoSwap_PRInt16     indexToLocFormat;
-    AutoSwap_PRInt16     glyphDataFormat;
-};
-
 
 
 
@@ -959,46 +934,6 @@ struct HeadTable {
 struct NameRecordData {
     PRUint32  offset;
     PRUint32  length;
-};
-
-struct OS2Table {
-    AutoSwap_PRUint16    version;                
-    AutoSwap_PRInt16     xAvgCharWidth;
-    AutoSwap_PRUint16    usWeightClass;
-    AutoSwap_PRUint16    usWidthClass;
-    AutoSwap_PRUint16    fsType;
-    AutoSwap_PRInt16     ySubscriptXSize;
-    AutoSwap_PRInt16     ySubscriptYSize;
-    AutoSwap_PRInt16     ySubscriptXOffset;
-    AutoSwap_PRInt16     ySubscriptYOffset;
-    AutoSwap_PRInt16     ySuperscriptXSize;
-    AutoSwap_PRInt16     ySuperscriptYSize;
-    AutoSwap_PRInt16     ySuperscriptXOffset;
-    AutoSwap_PRInt16     ySuperscriptYOffset;
-    AutoSwap_PRInt16     yStrikeoutSize;
-    AutoSwap_PRInt16     yStrikeoutPosition;
-    AutoSwap_PRInt16     sFamilyClass;
-    PRUint8              panose[10];
-    AutoSwap_PRUint32    unicodeRange1;
-    AutoSwap_PRUint32    unicodeRange2;
-    AutoSwap_PRUint32    unicodeRange3;
-    AutoSwap_PRUint32    unicodeRange4;
-    PRUint8              achVendID[4];
-    AutoSwap_PRUint16    fsSelection;
-    AutoSwap_PRUint16    usFirstCharIndex;
-    AutoSwap_PRUint16    usLastCharIndex;
-    AutoSwap_PRInt16     sTypoAscender;
-    AutoSwap_PRInt16     sTypoDescender;
-    AutoSwap_PRInt16     sTypoLineGap;
-    AutoSwap_PRUint16    usWinAscent;
-    AutoSwap_PRUint16    usWinDescent;
-    AutoSwap_PRUint32    codePageRange1;
-    AutoSwap_PRUint32    codePageRange2;
-    AutoSwap_PRInt16     sxHeight;
-    AutoSwap_PRInt16     sCapHeight;
-    AutoSwap_PRUint16    usDefaultChar;
-    AutoSwap_PRUint16    usBreakChar;
-    AutoSwap_PRUint16    usMaxContext;
 };
 
 

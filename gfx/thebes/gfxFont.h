@@ -223,6 +223,10 @@ public:
         return PR_TRUE;
     }
 
+    virtual nsresult GetFontTable(PRUint32 aTableTag, nsTArray<PRUint8>& aBuffer) {
+        return NS_ERROR_FAILURE; 
+    }
+
     void SetFamily(gfxFontFamily* aFamily) {
         mFamily = aFamily;
     }
@@ -283,10 +287,6 @@ protected:
         mUserFontData(nsnull),
         mFamily(nsnull)
     { }
-
-    virtual nsresult GetFontTable(PRUint32 aTableTag, nsTArray<PRUint8>& aBuffer) {
-        return NS_ERROR_FAILURE; 
-    }
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, PRBool aNeedsBold) {
         NS_NOTREACHED("oops, somebody didn't override CreateFontInstance");
@@ -1111,8 +1111,25 @@ protected:
 
     
     
+    
+    
+    
+    
+    
+    
+    PRBool InitMetricsFromSfntTables(Metrics& aMetrics);
+
+    
+    
+    void CalculateDerivedMetrics(Metrics& aMetrics);
+
+    
+    
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont);
 };
+
+
+#define DEFAULT_XHEIGHT_FACTOR 0.56f
 
 class THEBES_API gfxTextRunFactory {
     NS_INLINE_DECL_REFCOUNTING(gfxTextRunFactory)
