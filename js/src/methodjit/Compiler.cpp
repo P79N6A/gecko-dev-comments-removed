@@ -4225,9 +4225,9 @@ mjit::Compiler::iterEnd()
     masm.loadPtr(flagAddr, T2);
 
     
-    Jump notReusable = masm.branchTest32(Assembler::Zero, T2,
-                                         Imm32(JSITER_REUSABLE));
-    stubcc.linkExit(notReusable, Uses(1));
+    Jump notEnumerate = masm.branch32(Assembler::NotEqual, T2,
+                                      Imm32(JSITER_ENUMERATE | JSITER_ACTIVE));
+    stubcc.linkExit(notEnumerate, Uses(1));
 
     
     masm.and32(Imm32(~JSITER_ACTIVE), T2);
