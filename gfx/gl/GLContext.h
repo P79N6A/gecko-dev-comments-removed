@@ -705,12 +705,6 @@ public:
     bool CanUploadSubTextures();
 
     
-    
-    
-    
-    bool PreferPowerOfTwoTextures();
-
-    
 
 
 

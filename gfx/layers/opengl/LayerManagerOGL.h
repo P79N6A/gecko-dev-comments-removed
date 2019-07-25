@@ -397,8 +397,6 @@ public:
   gfxMatrix& GetWorldTransform(void);
   void WorldTransformRect(nsIntRect& aRect);
 
-  LayerForwarderQuirks GetForwarderQuirks();
-
 private:
   
   nsIWidget *mWidget;
