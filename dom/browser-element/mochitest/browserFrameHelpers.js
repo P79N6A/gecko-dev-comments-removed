@@ -121,13 +121,17 @@ browserFrameHelpers.origPageThumbsEnabledPref = browserFrameHelpers.getPageThumb
 browserFrameHelpers.setPageThumbsEnabledPref(false);
 
 
-browserFrameHelpers.setOOPByDefaultPref(true);
-if (navigator.platform.indexOf('Win') != -1) {
-  browserFrameHelpers.setOOPDisabledPref(true);
+var oop;
+if (location.pathname.indexOf("_inproc_") != -1) {
+  oop = false;
 }
 else {
-  browserFrameHelpers.setOOPDisabledPref(false);
+  
+  oop = true;
 }
+
+browserFrameHelpers.setOOPByDefaultPref(oop);
+browserFrameHelpers.setOOPDisabledPref(false);
 
 addEventListener('unload', function() {
   browserFrameHelpers.restoreOriginalPrefs();

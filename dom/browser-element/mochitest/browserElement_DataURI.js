@@ -1,23 +1,6 @@
-<!DOCTYPE HTML>
-<html>
 
 
-
-<head>
-  <title>Test for Bug 720157</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=720157">Mozilla Bug 720157</a>
-
-
-
-
-
-<script type="application/javascript;version=1.7">
-
+"use strict";
 SimpleTest.waitForExplicitFinish();
 
 function runTest() {
@@ -27,13 +10,17 @@ function runTest() {
   var iframe1 = document.createElement('iframe');
   iframe1.mozbrowser = true;
   iframe1.id = 'iframe1';
-  iframe1.addEventListener('mozbrowserloadend', function() {
-    iframe1.removeEventListener('mozbrowserloadend', arguments.callee);
+  iframe1.addEventListener('mozbrowserloadend', function if1_loadend() {
+    iframe1.removeEventListener('mozbrowserloadend', if1_loadend);
     ok(true, 'Got first loadend event.');
     SimpleTest.executeSoon(runTest2);
   });
   iframe1.src = browserFrameHelpers.emptyPage1;
   document.body.appendChild(iframe1);
+
+  var iframe2 = document.createElement('iframe');
+  iframe2.id = 'iframe2';
+  document.body.appendChild(iframe2);
 }
 
 function runTest2() {
@@ -59,7 +46,7 @@ function runTest2() {
 
   function iframe2Load() {
     if (!sawLoadEnd || !sawLocationChange) {
-      // Spin if iframe1 hasn't loaded yet.
+      
       SimpleTest.executeSoon(iframe2Load);
       return;
     }
@@ -71,16 +58,9 @@ function runTest2() {
 
   iframe1.src = 'data:text/html,1';
 
-  // Load something into iframe2 to check that it doesn't trigger a
-  // locationchange for our iframe1 listener.
+  
+  
   iframe2.src = browserFrameHelpers.emptyPage2;
 }
 
 addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
-
-</script>
-
-<iframe id='iframe2'></iframe>
-
-</body>
-</html>

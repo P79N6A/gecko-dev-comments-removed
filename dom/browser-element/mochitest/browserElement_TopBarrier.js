@@ -1,22 +1,4 @@
-<!DOCTYPE HTML>
-<html>
 
-
-
-<head>
-  <title>Test for Bug 725796</title>
-  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="browserFrameHelpers.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
-</head>
-<body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=725796">Mozilla Bug 725796</a>
-
-
-
-
-
-<script type="application/javascript;version=1.7">
 "use strict";
 
 browserFrameHelpers.setEnabledPref(true);
@@ -34,8 +16,8 @@ function runTest() {
   });
   iframe.mozbrowser = true;
   iframe.src = 'data:text/html,Outer iframe <iframe id="inner-iframe"></iframe>';
-  // For kicks, this test uses a display:none iframe.  This shouldn't make a
-  // difference in anything.
+  
+  
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
 
@@ -75,7 +57,7 @@ function outerIframeLoaded() {
   }
   mm.addMessageListener('test:test-fail', onRecvTestFail);
 
-  mm.loadFrameScript(injectedScript, /* allowDelayedLoad = */ false);
+  mm.loadFrameScript(injectedScript,  false);
 
   waitForMessages(6);
 }
@@ -90,7 +72,3 @@ function waitForMessages(num) {
 }
 
 runTest();
-
-</script>
-</body>
-</html>
