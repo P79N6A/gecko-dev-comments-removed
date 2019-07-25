@@ -86,8 +86,7 @@ public:
 
   
   
-  static nsresult CreatePlugin(const char* aFilePath, PRLibrary* aLibrary,
-                               nsIPlugin** aResult);
+  static nsresult CreatePlugin(nsPluginTag *aPluginTag, nsIPlugin** aResult);
 
   PluginLibrary* GetLibrary();
   
@@ -105,7 +104,7 @@ public:
   void PluginCrashed(const nsAString& pluginDumpID,
                      const nsAString& browserDumpID);
   
-  static PRBool RunPluginOOP(const char* aFilePath, const nsPluginTag *aPluginTag);
+  static PRBool RunPluginOOP(const nsPluginTag *aPluginTag);
 #endif
 
 protected:
