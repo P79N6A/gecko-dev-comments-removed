@@ -3388,7 +3388,7 @@ NS_IMETHODIMP nsHttpChannel::OnAuthCancelled(PRBool userCancel)
 {
     LOG(("nsHttpChannel::OnAuthCancelled [this=%p]", this));
 
-    if (userCancel) {
+    if (mTransactionPump) {
         
         
         nsresult rv = CallOnStartRequest();

@@ -958,14 +958,17 @@ nsContextMenu.prototype = {
       }
     }
 
-    
     function callbacks() {}
     callbacks.prototype = {
       getInterface: function sLA_callbacks_getInterface(aIID) {
         if (aIID.equals(Ci.nsIAuthPrompt) || aIID.equals(Ci.nsIAuthPrompt2)) {
-          var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-                   getService(Ci.nsIPromptFactory);
-          return ww.getPrompt(doc.defaultView, aIID);
+          
+          
+          
+          
+          
+          timer.cancel();
+          channel.cancel(NS_ERROR_SAVE_LINK_AS_TIMEOUT);
         }
         throw Cr.NS_ERROR_NO_INTERFACE;
       } 
