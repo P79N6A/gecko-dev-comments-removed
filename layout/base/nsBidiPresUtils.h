@@ -366,13 +366,6 @@ private:
 
 
 
-  void CreateBlockBuffer();
-
-  
-
-
-
-
   void InitLogicalArray(nsIFrame* aCurrentFrame);
 
   
@@ -521,6 +514,7 @@ private:
   PRInt32*        mIndexMap;
   PRUint8*        mLevels;
   nsresult        mSuccess;
+  nsIContent*     mPrevContent;
 
   nsBidi*         mBidiEngine;
 };
