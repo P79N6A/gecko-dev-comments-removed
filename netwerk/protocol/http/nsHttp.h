@@ -140,6 +140,9 @@ typedef PRUint8 nsHttpVersion;
 
 
 
+
+#define NS_HTTP_MAX_PIPELINED_REQUESTS 8 
+
 #define NS_HTTP_DEFAULT_PORT  80
 #define NS_HTTPS_DEFAULT_PORT 443
 
@@ -165,11 +168,6 @@ struct nsHttp
 {
     static nsresult CreateAtomTable();
     static void DestroyAtomTable();
-
-    
-    
-    
-    static mozilla::Mutex *GetLock();
 
     
     static nsHttpAtom ResolveAtom(const char *);

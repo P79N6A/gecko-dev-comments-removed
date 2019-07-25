@@ -187,12 +187,6 @@ nsHttp::DestroyAtomTable()
     }
 }
 
-Mutex *
-nsHttp::GetLock()
-{
-    return sLock;
-}
-
 
 nsHttpAtom
 nsHttp::ResolveAtom(const char *str)

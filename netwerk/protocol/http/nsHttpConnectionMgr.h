@@ -49,13 +49,12 @@
 #include "nsAutoPtr.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsISocketTransportService.h"
-#include "mozilla/TimeStamp.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsIX509Cert3.h"
 
-#include "nsHttpPipeline.h"
+class nsHttpPipeline;
 
 
 
@@ -73,8 +72,7 @@ public:
         MAX_PERSISTENT_CONNECTIONS_PER_HOST,
         MAX_PERSISTENT_CONNECTIONS_PER_PROXY,
         MAX_REQUEST_DELAY,
-        MAX_PIPELINED_REQUESTS,
-        MAX_OPTIMISTIC_PIPELINED_REQUESTS
+        MAX_PIPELINED_REQUESTS
     };
 
     
@@ -89,8 +87,7 @@ public:
                   PRUint16 maxPersistentConnectionsPerHost,
                   PRUint16 maxPersistentConnectionsPerProxy,
                   PRUint16 maxRequestDelay,
-                  PRUint16 maxPipelinedRequests,
-                  PRUint16 maxOptimisticPipelinedRequests);
+                  PRUint16 maxPipelinedRequests);
     nsresult Shutdown();
 
     
@@ -142,79 +139,16 @@ public:
     void RemoveSpdyAlternateProtocol(nsACString &key);
 
     
-
-    const static PRUint32 kPipelineInfoTypeMask = 0xffff0000;
-    const static PRUint32 kPipelineInfoIDMask   = ~kPipelineInfoTypeMask;
-
-    const static PRUint32 kPipelineInfoTypeRed     = 0x00010000;
-    const static PRUint32 kPipelineInfoTypeBad     = 0x00020000;
-    const static PRUint32 kPipelineInfoTypeNeutral = 0x00040000;
-    const static PRUint32 kPipelineInfoTypeGood    = 0x00080000;
-
-    enum PipelineFeedbackInfoType
-    {
-        
-        RedVersionTooLow = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0001,
-
-        
-        
-        RedBannedServer = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0002,
-    
-        
-        
-        
-        RedCorruptedContent = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0004,
-
-        
-        
-        
-        RedCanceledPipeline = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0005,
-
-        
-        
-        BadExplicitClose = kPipelineInfoTypeBad | 0x0003,
-
-        
-        
-        BadSlowReadMinor = kPipelineInfoTypeBad | 0x0006,
-
-        
-        
-        BadSlowReadMajor = kPipelineInfoTypeBad | 0x0007,
-
-        
-        
-        BadInsufficientFraming = kPipelineInfoTypeBad | 0x0008,
-        
-        
-        
-        BadUnexpectedLarge = kPipelineInfoTypeBad | 0x000B,
-
-        
-        
-        NeutralExpectedOK = kPipelineInfoTypeNeutral | 0x0009,
-
-        
-        GoodCompletedOK = kPipelineInfoTypeGood | 0x000A
-    };
     
     
-    
-    void     PipelineFeedbackInfo(nsHttpConnectionInfo *,
-                                  PipelineFeedbackInfoType info,
-                                  nsHttpConnection *,
-                                  PRUint32);
-
-    void ReportFailedToProcess(nsIURI *uri);
 
     
     
-    
+    void AddTransactionToPipeline(nsHttpPipeline *);
 
     
     
     nsresult ProcessPendingQ(nsHttpConnectionInfo *);
-    bool     ProcessPendingQForEntry(nsHttpConnectionInfo *);
 
     
     
@@ -226,41 +160,26 @@ public:
     
     void ReportSpdyConnection(nsHttpConnection *, bool usingSpdy);
 
-    
-    bool     SupportsPipelining(nsHttpConnectionInfo *);
-
 private:
     virtual ~nsHttpConnectionMgr();
-
-    enum PipeliningState {
-        
-        
-        PS_GREEN,
-
-        
-        
-        
-        PS_YELLOW,
-
-        
-        
-        
-        
-        PS_RED
-    };
-    
     class nsHalfOpenSocket;
-
     
     
     
     
     
     
-    class nsConnectionEntry
+    
+    struct nsConnectionEntry
     {
-    public:
-        nsConnectionEntry(nsHttpConnectionInfo *ci);
+        nsConnectionEntry(nsHttpConnectionInfo *ci)
+          : mConnInfo(ci),
+            mUsingSpdy(false),
+            mTestedSpdy(false),
+            mSpdyPreferred(false)
+        {
+            NS_ADDREF(mConnInfo);
+        }
         ~nsConnectionEntry();
 
         nsHttpConnectionInfo        *mConnInfo;
@@ -268,54 +187,6 @@ private:
         nsTArray<nsHttpConnection*>  mActiveConns; 
         nsTArray<nsHttpConnection*>  mIdleConns;   
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;
-
-        
-        const static PRUint32 kPipelineUnlimited  = 1024; 
-        const static PRUint32 kPipelineOpen       = 6;    
-        const static PRUint32 kPipelineRestricted = 2;    
-        
-        nsHttpConnectionMgr::PipeliningState PipelineState();
-        void OnPipelineFeedbackInfo(
-            nsHttpConnectionMgr::PipelineFeedbackInfoType info,
-            nsHttpConnection *, PRUint32);
-        bool SupportsPipelining();
-        PRUint32 MaxPipelineDepth(nsAHttpTransaction::Classifier classification);
-        void CreditPenalty();
-
-        nsHttpConnectionMgr::PipeliningState mPipelineState;
-
-        void SetYellowConnection(nsHttpConnection *);
-        void OnYellowComplete();
-        PRUint32                  mYellowGoodEvents;
-        PRUint32                  mYellowBadEvents;
-        nsHttpConnection         *mYellowConnection;
-
-        
-        
-        
-        PRUint32                  mInitialGreenDepth;
-
-        
-        
-        
-        
-        PRUint32                  mGreenDepth;
-
-        
-        
-        
-        
-        
-        
-        PRInt16                   mPipeliningPenalty;
-
-        
-        
-        
-        PRInt16                   mPipeliningClassPenalty[nsAHttpTransaction::CLASS_MAX];
-
-        
-        mozilla::TimeStamp        mLastCreditTime;
 
         
         
@@ -401,9 +272,6 @@ private:
         nsCOMPtr<nsIAsyncOutputStream> mStreamOut;
         nsCOMPtr<nsIAsyncInputStream>  mStreamIn;
 
-        mozilla::TimeStamp             mPrimarySynStarted;
-        mozilla::TimeStamp             mBackupSynStarted;
-
         
         nsCOMPtr<nsITimer>             mSynTimer;
         nsCOMPtr<nsISocketTransport>   mBackupTransport;
@@ -428,7 +296,7 @@ private:
     PRUint16 mMaxPersistConnsPerProxy;
     PRUint16 mMaxRequestDelay; 
     PRUint16 mMaxPipelinedRequests;
-    PRUint16 mMaxOptimisticPipelinedRequests;
+
     bool mIsShuttingDown;
 
     
@@ -442,18 +310,12 @@ private:
     static PLDHashOperator PurgeExcessIdleConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     static PLDHashOperator ClosePersistentConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     bool     ProcessPendingQForEntry(nsConnectionEntry *);
-    bool     IsUnderPressure(nsConnectionEntry *ent,
-                             nsHttpTransaction::Classifier classification);
     bool     AtActiveConnectionLimit(nsConnectionEntry *, PRUint8 caps);
-    nsresult TryDispatchTransaction(nsConnectionEntry *ent,
-                                    bool onlyReusedConnection,
-                                    nsHttpTransaction *trans);
-    nsresult DispatchTransaction(nsConnectionEntry *,
-                                 nsHttpTransaction *,
-                                 nsHttpConnection *);
-    nsresult BuildPipeline(nsConnectionEntry *,
-                           nsAHttpTransaction *,
-                           nsHttpPipeline **);
+    void     GetConnection(nsConnectionEntry *, nsHttpTransaction *,
+                           bool, nsHttpConnection **);
+    nsresult DispatchTransaction(nsConnectionEntry *, nsHttpTransaction *,
+                                 PRUint8 caps, nsHttpConnection *);
+    bool     BuildPipeline(nsConnectionEntry *, nsAHttpTransaction *, nsHttpPipeline **);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
     nsresult EnsureSocketThreadTargetIfOnline();
     void     ClosePersistentConnections(nsConnectionEntry *ent);
@@ -461,13 +323,6 @@ private:
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     StartedConnect();
     void     RecvdConnect();
-
-    bool     MakeNewConnection(nsConnectionEntry *ent,
-                               nsHttpTransaction *trans);
-    bool     AddToShortestPipeline(nsConnectionEntry *ent,
-                                   nsHttpTransaction *trans,
-                                   nsHttpTransaction::Classifier classification,
-                                   PRUint16 depthLimit);
 
     
     nsConnectionEntry *GetSpdyPreferredEnt(nsConnectionEntry *aOriginalEntry);
@@ -541,7 +396,6 @@ private:
     void OnMsgReclaimConnection    (PRInt32, void *);
     void OnMsgUpdateParam          (PRInt32, void *);
     void OnMsgClosePersistentConnections (PRInt32, void *);
-    void OnMsgProcessFeedback      (PRInt32, void *);
 
     
     

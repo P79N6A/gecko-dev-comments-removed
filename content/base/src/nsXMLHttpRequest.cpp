@@ -2779,10 +2779,6 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     }
   }
 
-  
-  
-  AddLoadFlags(mChannel, nsIRequest::INHIBIT_PIPELINE);
-
   if (!IsSystemXHR()) {
     
     

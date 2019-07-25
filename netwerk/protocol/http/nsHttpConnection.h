@@ -41,14 +41,13 @@
 
 #include "nsHttp.h"
 #include "nsHttpConnectionInfo.h"
+#include "nsAHttpConnection.h"
 #include "nsAHttpTransaction.h"
-#include "nsHttpPipeline.h"
 #include "nsXPIDLString.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "prinrval.h"
 #include "SpdySession.h"
-#include "mozilla/TimeStamp.h"
 
 #include "nsIStreamListener.h"
 #include "nsISocketTransport.h"
@@ -56,9 +55,6 @@
 #include "nsIAsyncOutputStream.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIEventTarget.h"
-
-class nsHttpRequestHead;
-class nsHttpResponseHead;
 
 
 
@@ -94,7 +90,7 @@ public:
     nsresult Init(nsHttpConnectionInfo *info, PRUint16 maxHangTime,
                   nsISocketTransport *, nsIAsyncInputStream *,
                   nsIAsyncOutputStream *, nsIInterfaceRequestor *,
-                  nsIEventTarget *, PRIntervalTime);
+                  nsIEventTarget *);
 
     
     
@@ -107,7 +103,7 @@ public:
     
     
 
-    bool     SupportsPipelining();
+    bool     SupportsPipelining() { return mSupportsPipelining; }
     bool     IsKeepAlive() { return mUsingSpdy ||
                                     (mKeepAliveMask && mKeepAlive); }
     bool     CanReuse();   
@@ -118,11 +114,6 @@ public:
 
     void     DontReuse();
     void     DropTransport() { DontReuse(); mSocketTransport = 0; }
-
-    bool     IsProxyConnectInProgress()
-    {
-        return mProxyConnectInProgress;
-    }
 
     bool     LastTransactionExpectedNoContent()
     {
@@ -169,15 +160,6 @@ public:
 
     
     void  ReadTimeoutTick(PRIntervalTime now);
-
-    nsAHttpTransaction::Classifier Classification() { return mClassification; }
-    void Classify(nsAHttpTransaction::Classifier newclass)
-    {
-        mClassification = newclass;
-    }
-
-    
-    void  ReadTimeoutTick();
 
 private:
     
@@ -228,7 +210,7 @@ private:
 
     nsRefPtr<nsHttpConnectionInfo> mConnInfo;
 
-    PRIntervalTime                  mLastReadTime;
+    PRUint32                        mLastReadTime;
     PRIntervalTime                  mMaxHangTime;    
     PRIntervalTime                  mIdleTimeout;    
     PRIntervalTime                  mConsiderReusedAfterInterval;
@@ -239,8 +221,6 @@ private:
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
-    PRIntervalTime                  mRtt;
-
     bool                            mKeepAlive;
     bool                            mKeepAliveMask;
     bool                            mSupportsPipelining;
@@ -248,18 +228,10 @@ private:
     bool                            mCompletedProxyConnect;
     bool                            mLastTransactionExpectedNoContent;
     bool                            mIdleMonitoring;
-    bool                            mProxyConnectInProgress;
 
     
     
     PRUint32                        mHttp1xTransactionCount;
-
-    
-    
-    
-    PRUint32                        mRemainingConnectionUses;
-
-    nsAHttpTransaction::Classifier  mClassification;
 
     
     bool                            mNPNComplete;

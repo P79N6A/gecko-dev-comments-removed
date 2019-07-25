@@ -48,7 +48,6 @@ class nsIInterfaceRequestor;
 class nsIEventTarget;
 class nsITransport;
 class nsHttpRequestHead;
-class nsHttpPipeline;
 
 
 
@@ -64,8 +63,6 @@ class nsAHttpTransaction : public nsISupports
 public:
     
     virtual void SetConnection(nsAHttpConnection *) = 0;
-
-    
     virtual nsAHttpConnection *Connection() = 0;
 
     
@@ -80,7 +77,6 @@ public:
     
     virtual bool     IsDone() = 0;
     virtual nsresult Status() = 0;
-    virtual PRUint8  Caps() = 0;
 
     
     virtual PRUint32 Available() = 0;
@@ -118,49 +114,6 @@ public:
     
     virtual nsresult TakeSubTransactions(
         nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions) = 0;
-
-    
-    
-    
-    virtual nsresult AddTransaction(nsAHttpTransaction *transaction) = 0;
-    
-    
-    
-    virtual PRUint32 PipelineDepth() = 0;
-
-    
-    
-    
-    virtual nsresult SetPipelinePosition(PRInt32) = 0;
-    virtual PRInt32  PipelinePosition() = 0;
-
-    
-    
-    
-    virtual nsHttpPipeline *QueryPipeline() { return nsnull; }
-    
-    
-    
-    
-    enum Classifier  {
-        
-        CLASS_REVALIDATION,
-
-        
-        CLASS_SCRIPT,
-
-        
-        CLASS_IMAGE,
-
-        
-        CLASS_SOLO,
-
-        
-        
-        CLASS_GENERAL,
-
-        CLASS_MAX
-    };
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -172,7 +125,6 @@ public:
                            nsresult status, PRUint64 progress); \
     bool     IsDone(); \
     nsresult Status(); \
-    PRUint8  Caps();   \
     PRUint32 Available(); \
     nsresult ReadSegments(nsAHttpSegmentReader *, PRUint32, PRUint32 *); \
     nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *); \
@@ -180,11 +132,7 @@ public:
     void     SetSSLConnectFailed();                                     \
     nsHttpRequestHead *RequestHead();                                   \
     PRUint32 Http1xTransactionCount();                                  \
-    nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions); \
-    nsresult AddTransaction(nsAHttpTransaction *);                      \
-    PRUint32 PipelineDepth();                                           \
-    nsresult SetPipelinePosition(PRInt32);                              \
-    PRInt32  PipelinePosition();
+    nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions);
 
 
 
