@@ -24,11 +24,13 @@
 
 #define BLUETOOTH_ADDRESS_LENGTH 17
 
-#define DOM_BLUETOOTH_URL_PREF "dom.mozBluetooth.whitelist"
-
-class nsCString;
-
 BEGIN_BLUETOOTH_NAMESPACE
+
+enum BluetoothSocketType {
+  RFCOMM = 1,
+  SCO = 2,
+  L2CAP = 3
+};
 
 class BluetoothSignal;
 typedef mozilla::Observer<BluetoothSignal> BluetoothSignalObserver;
@@ -44,4 +46,4 @@ enum BluetoothObjectType {
 
 END_BLUETOOTH_NAMESPACE
 
-#endif 
+#endif
