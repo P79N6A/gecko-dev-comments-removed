@@ -925,7 +925,8 @@ WebSocketChannel::WebSocketChannel() :
   mAutoFollowRedirects(0),
   mReleaseOnTransmit(0),
   mTCPClosed(0),
-  mChannelWasOpened(0),
+  mWasOpened(0),
+  mOpenedHttpChannel(0),
   mDataStarted(0),
   mIncrementedSessionCount(0),
   mDecrementedSessionCount(0),
@@ -957,9 +958,12 @@ WebSocketChannel::~WebSocketChannel()
 {
   LOG(("WebSocketChannel::~WebSocketChannel() %p\n", this));
 
-  
-  StopSession(NS_ERROR_UNEXPECTED);
-  NS_ABORT_IF_FALSE(mConnecting == NOT_CONNECTING, "op");
+  if (mWasOpened) {
+    MOZ_ASSERT(mCalledOnStop, "WebSocket was opened but OnStop was not called");
+    MOZ_ASSERT(mStopped, "WebSocket was opened but never stopped");
+  }
+  MOZ_ASSERT(!mDNSRequest, "DNS Request still alive at destruction");
+  MOZ_ASSERT(!mConnecting, "Should not be connecting in destructor");
 
   moz_free(mBuffer);
   moz_free(mDynamicOutput);
@@ -1046,7 +1050,7 @@ WebSocketChannel::BeginOpen()
     AbortSession(NS_ERROR_CONNECTION_REFUSED);
     return;
   }
-  mChannelWasOpened = 1;
+  mOpenedHttpChannel = 1;
 
   mOpenTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   if (NS_FAILED(rv)) {
@@ -1816,7 +1820,7 @@ WebSocketChannel::StopSession(nsresult reason)
 
   mStopped = 1;
 
-  if (!mChannelWasOpened) {
+  if (!mOpenedHttpChannel) {
     
     mChannel = nsnull;
     mHttpChannel = nsnull;
@@ -2342,7 +2346,7 @@ WebSocketChannel::AsyncOnChannelRedirect(
 
   
   mAddress.Truncate();
-  mChannelWasOpened = 0;
+  mOpenedHttpChannel = 0;
   rv = ApplyForAdmission();
   if (NS_FAILED(rv)) {
     LOG(("WebSocketChannel: Redirect failed due to DNS failure\n"));
@@ -2450,7 +2454,7 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (mListener)
+  if (mListener || mWasOpened)
     return NS_ERROR_ALREADY_OPENED;
 
   nsresult rv;
@@ -2544,8 +2548,6 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
 
   mOriginalURI = aURI;
   mURI = mOriginalURI;
-  mListener = aListener;
-  mContext = aContext;
   mOrigin = aOrigin;
 
   nsCOMPtr<nsIURI> localURI;
@@ -2598,6 +2600,10 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
     return rv;
 
   
+  
+  mWasOpened = 1;
+  mListener = aListener;
+  mContext = aContext;
   IncrementSessionCount();
 
   return rv;

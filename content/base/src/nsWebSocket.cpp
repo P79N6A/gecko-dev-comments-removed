@@ -1506,7 +1506,10 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
 
   
   
-  EstablishConnection();
+  
+  if (NS_FAILED(EstablishConnection())) {
+    FailConnection(nsIWebSocketChannel::CLOSE_ABNORMAL);
+  }
 
   return NS_OK;
 }
