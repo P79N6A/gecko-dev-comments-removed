@@ -2780,7 +2780,6 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       }
       
       
-      nsIFrame* kidNextInFlow = kidFrame->GetNextInFlow();
       PRBool reorder = PR_FALSE;
       if (kidFrame->GetNextInFlow())
         reorder = PR_TRUE;
@@ -2853,7 +2852,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 
       
       if (NS_FRAME_IS_NOT_COMPLETE(aStatus)) {
-        kidNextInFlow = kidFrame->GetNextInFlow();
+        nsIFrame* kidNextInFlow = kidFrame->GetNextInFlow();
         if (!kidNextInFlow) {
           
           
