@@ -2416,13 +2416,13 @@ var ContentCrashObserver = {
 
     
     
-    let URLs = []
     Browser.tabs.forEach(function(aTab) {
       if (aTab.browser.getAttribute("remote") == "true")
-        URLs.push(aTab.resurrect().data.entries[0].url);
+        aTab.resurrect();
     });
 
     let dumpID = aSubject.hasKey("dumpID") ? aSubject.getProperty("dumpID") : null;
+    let crashedURL = Browser.selectedTab.browser.__SS_data.entries[0].url;
 
     
     setTimeout(function(self) {
@@ -2474,7 +2474,7 @@ var ContentCrashObserver = {
         try {
           
           foStream.init(extra, 0x02 |  0x10, 0666, 0); 
-          let data = "URL=" + URLs.join(" ") + "\n";
+          let data = "URL=" + crashedURL + "\n";
           foStream.write(data, data.length);
           foStream.close();
         } catch (x) {
@@ -2758,8 +2758,6 @@ Tab.prototype = {
     browser.__SS_data = session.data;
     browser.__SS_extdata = session.extra;
     browser.__SS_restore = true;
-
-    return session;
   },
 
   _createBrowser: function _createBrowser(aURI, aInsertBefore) {
