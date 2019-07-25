@@ -1997,9 +1997,6 @@ typedef JSBool
 typedef void
 (* JSDestroyPrincipalsOp)(JSPrincipals *principals);
 
-typedef JSBool
-(* JSSubsumePrincipalsOp)(JSPrincipals *principals1, JSPrincipals *principals2);
-
 
 
 
@@ -4911,7 +4908,6 @@ JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
 
 struct JSSecurityCallbacks {
     JSCheckAccessOp            checkObjectAccess;
-    JSSubsumePrincipalsOp      subsumePrincipals;
     JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
 };
