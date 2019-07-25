@@ -45,6 +45,8 @@
 #include "jsprvtd.h"
 #include "jstypes.h"
 
+#include "vm/String.h"
+
 namespace js {
 
 
@@ -180,8 +182,9 @@ class PropertyCache
 
     static inline bool matchShape(JSContext *cx, JSObject *obj, uint32_t shape);
 
-    JSAtom *fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp,
-                     JSObject **pobjp, PropertyCacheEntry *entry);
+    PropertyName *
+    fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp,
+             JSObject **pobjp, PropertyCacheEntry *entry);
 
 #ifdef DEBUG
     void assertEmpty();
@@ -192,7 +195,7 @@ class PropertyCache
   public:
     JS_ALWAYS_INLINE void test(JSContext *cx, jsbytecode *pc,
                                JSObject *&obj, JSObject *&pobj,
-                               PropertyCacheEntry *&entry, JSAtom *&atom);
+                               PropertyCacheEntry *&entry, PropertyName *&name);
 
     
 
@@ -203,7 +206,7 @@ class PropertyCache
 
     JS_ALWAYS_INLINE bool testForSet(JSContext *cx, jsbytecode *pc, JSObject *obj,
                                      PropertyCacheEntry **entryp, JSObject **obj2p,
-                                     JSAtom **atomp);
+                                     PropertyName **namep);
 
     
 
