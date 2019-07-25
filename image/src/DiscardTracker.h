@@ -61,6 +61,12 @@ class DiscardTracker
     
 
 
+    static nsresult Initialize();
+
+    
+
+
+
 
     static void Shutdown();
 
@@ -71,6 +77,7 @@ class DiscardTracker
     static void DiscardAll();
 
     
+
 
 
 
@@ -92,7 +99,6 @@ class DiscardTracker
       NS_IMETHOD Run();
     };
 
-    static nsresult Initialize();
     static void ReloadTimeout();
     static nsresult EnableTimer();
     static void DisableTimer();
@@ -104,10 +110,12 @@ class DiscardTracker
     static nsCOMPtr<nsITimer> sTimer;
     static bool sInitialized;
     static bool sTimerOn;
-    static bool sDiscardRunnablePending;
+    static PRInt32 sDiscardRunnablePending;
     static PRInt64 sCurrentDecodedImageBytes;
     static PRUint32 sMinDiscardTimeoutMs;
     static PRUint32 sMaxDecodedImageKB;
+    
+    static PRLock *sAllocationLock;
 };
 
 } 

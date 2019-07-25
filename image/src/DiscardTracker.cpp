@@ -18,10 +18,11 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  nsCOMPtr<nsITimer> DiscardTracker::sTimer;
  bool DiscardTracker::sInitialized = false;
  bool DiscardTracker::sTimerOn = false;
- bool DiscardTracker::sDiscardRunnablePending = false;
+ PRInt32 DiscardTracker::sDiscardRunnablePending = 0;
  PRInt64 DiscardTracker::sCurrentDecodedImageBytes = 0;
  PRUint32 DiscardTracker::sMinDiscardTimeoutMs = 10000;
  PRUint32 DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
+ PRLock * DiscardTracker::sAllocationLock = NULL;
 
 
 
@@ -30,7 +31,8 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
 NS_IMETHODIMP
 DiscardTracker::DiscardRunnable::Run()
 {
-  sDiscardRunnablePending = false;
+  PR_ATOMIC_SET(&sDiscardRunnablePending, 0);
+
   DiscardTracker::DiscardNow();
   return NS_OK;
 }
@@ -48,16 +50,11 @@ DiscardTracker::Reset(Node *node)
   
   
   
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(sInitialized);
   MOZ_ASSERT(node->img);
   MOZ_ASSERT(node->img->CanDiscard());
   MOZ_ASSERT(!node->img->mAnim);
-
-  
-  nsresult rv;
-  if (NS_UNLIKELY(!sInitialized)) {
-    rv = Initialize();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
   
   bool wasInList = node->isInList();
@@ -75,7 +72,7 @@ DiscardTracker::Reset(Node *node)
   }
 
   
-  rv = EnableTimer();
+  nsresult rv = EnableTimer();
   NS_ENSURE_SUCCESS(rv,rv);
 
   return NS_OK;
@@ -84,6 +81,8 @@ DiscardTracker::Reset(Node *node)
 void
 DiscardTracker::Remove(Node *node)
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (node->isInList())
     node->remove();
 
@@ -97,6 +96,8 @@ DiscardTracker::Remove(Node *node)
 void
 DiscardTracker::Shutdown()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (sTimer) {
     sTimer->Cancel();
     sTimer = NULL;
@@ -109,6 +110,8 @@ DiscardTracker::Shutdown()
 void
 DiscardTracker::DiscardAll()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (!sInitialized)
     return;
 
@@ -128,8 +131,12 @@ DiscardTracker::InformAllocation(PRInt64 bytes)
 {
   
 
+  MOZ_ASSERT(sInitialized);
+
+  PR_Lock(sAllocationLock);
   sCurrentDecodedImageBytes += bytes;
   MOZ_ASSERT(sCurrentDecodedImageBytes >= 0);
+  PR_Unlock(sAllocationLock);
 
   
   
@@ -142,6 +149,8 @@ DiscardTracker::InformAllocation(PRInt64 bytes)
 nsresult
 DiscardTracker::Initialize()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   
   Preferences::RegisterCallback(DiscardTimeoutChangedCallback,
                                 sDiscardTimeoutPref);
@@ -152,6 +161,9 @@ DiscardTracker::Initialize()
 
   
   sTimer = do_CreateInstance("@mozilla.org/timer;1");
+
+  
+  sAllocationLock = PR_NewLock();
 
   
   sInitialized = true;
@@ -275,10 +287,12 @@ DiscardTracker::MaybeDiscardSoon()
   
   
   if (sCurrentDecodedImageBytes > sMaxDecodedImageKB * 1024 &&
-      !sDiscardableImages.isEmpty() && !sDiscardRunnablePending) {
-    sDiscardRunnablePending = true;
-    nsRefPtr<DiscardRunnable> runnable = new DiscardRunnable();
-    NS_DispatchToCurrentThread(runnable);
+      !sDiscardableImages.isEmpty()) {
+    
+    if (!PR_ATOMIC_SET(&sDiscardRunnablePending, 1)) {
+      nsRefPtr<DiscardRunnable> runnable = new DiscardRunnable();
+      NS_DispatchToMainThread(runnable);
+    }
   }
 }
 
