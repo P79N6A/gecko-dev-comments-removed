@@ -88,6 +88,8 @@ public:
 
     virtual bool RecvSetOffline(const PRBool& offline);
 
+    virtual bool RecvNotifyVisited(const IPC::URI& aURI);
+
     
 
 
