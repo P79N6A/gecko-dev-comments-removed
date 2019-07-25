@@ -646,8 +646,8 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
         return NS_OK; 
       }
 
-      if (nativeKeyEvent->isControl || nativeKeyEvent->isAlt ||
-          nativeKeyEvent->isMeta) {
+      if (nativeKeyEvent->IsControl() || nativeKeyEvent->IsAlt() ||
+          nativeKeyEvent->IsMeta()) {
         return NS_OK;
       }
 
@@ -674,12 +674,12 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
 
       bool handled = false;
       if (nsHTMLEditUtils::IsTableElement(blockParent)) {
-        rv = TabInTable(nativeKeyEvent->isShift, &handled);
+        rv = TabInTable(nativeKeyEvent->IsShift(), &handled);
         if (handled) {
           ScrollSelectionIntoView(false);
         }
       } else if (nsHTMLEditUtils::IsListItem(blockParent)) {
-        rv = Indent(nativeKeyEvent->isShift ?
+        rv = Indent(nativeKeyEvent->IsShift() ?
                       NS_LITERAL_STRING("outdent") :
                       NS_LITERAL_STRING("indent"));
         handled = true;
@@ -688,7 +688,7 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
       if (handled) {
         return aKeyEvent->PreventDefault(); 
       }
-      if (nativeKeyEvent->isShift) {
+      if (nativeKeyEvent->IsShift()) {
         return NS_OK; 
       }
       aKeyEvent->PreventDefault();
@@ -696,12 +696,12 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
     }
     case nsIDOMKeyEvent::DOM_VK_RETURN:
     case nsIDOMKeyEvent::DOM_VK_ENTER:
-      if (nativeKeyEvent->isControl || nativeKeyEvent->isAlt ||
-          nativeKeyEvent->isMeta) {
+      if (nativeKeyEvent->IsControl() || nativeKeyEvent->IsAlt() ||
+          nativeKeyEvent->IsMeta()) {
         return NS_OK;
       }
       aKeyEvent->PreventDefault(); 
-      if (nativeKeyEvent->isShift && !IsPlaintextEditor()) {
+      if (nativeKeyEvent->IsShift() && !IsPlaintextEditor()) {
         
         return TypedText(EmptyString(), eTypedBR);
       }
@@ -711,8 +711,8 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
 
   
   
-  if (nativeKeyEvent->charCode == 0 || nativeKeyEvent->isControl ||
-      nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+  if (nativeKeyEvent->charCode == 0 || nativeKeyEvent->IsControl() ||
+      nativeKeyEvent->IsAlt() || nativeKeyEvent->IsMeta()) {
     
     return NS_OK;
   }

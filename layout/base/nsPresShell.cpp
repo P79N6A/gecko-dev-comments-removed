@@ -5713,10 +5713,6 @@ EvictTouchPoint(nsCOMPtr<nsIDOMTouch>& aTouch)
     return;
   }
   nsTouchEvent event(true, NS_TOUCH_END, widget);
-  event.isShift = false;
-  event.isControl = false;
-  event.isAlt = false;
-  event.isMeta = false;
   event.widget = widget;
   event.time = PR_IntervalNow();
   event.touches.AppendElement(aTouch);
@@ -6544,7 +6540,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
           !AdjustContextMenuKeyEvent(me)) {
         return NS_OK;
       }
-      if (me->isShift)
+      if (me->IsShift())
         aEvent->flags |= NS_EVENT_FLAG_ONLY_CHROME_DISPATCH |
                          NS_EVENT_RETARGET_TO_NON_NATIVE_ANONYMOUS;
     }

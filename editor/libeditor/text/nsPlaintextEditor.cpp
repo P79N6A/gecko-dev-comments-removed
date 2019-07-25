@@ -390,8 +390,8 @@ nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
         return NS_OK; 
       }
 
-      if (nativeKeyEvent->isShift || nativeKeyEvent->isControl ||
-          nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+      if (nativeKeyEvent->IsShift() || nativeKeyEvent->IsControl() ||
+          nativeKeyEvent->IsAlt() || nativeKeyEvent->IsMeta()) {
         return NS_OK;
       }
 
@@ -401,8 +401,8 @@ nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
     }
     case nsIDOMKeyEvent::DOM_VK_RETURN:
     case nsIDOMKeyEvent::DOM_VK_ENTER:
-      if (IsSingleLineEditor() || nativeKeyEvent->isControl ||
-          nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+      if (IsSingleLineEditor() || nativeKeyEvent->IsControl() ||
+          nativeKeyEvent->IsAlt() || nativeKeyEvent->IsMeta()) {
         return NS_OK;
       }
       aKeyEvent->PreventDefault();
@@ -411,8 +411,8 @@ nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
 
   
   
-  if (nativeKeyEvent->charCode == 0 || nativeKeyEvent->isControl ||
-      nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+  if (nativeKeyEvent->charCode == 0 || nativeKeyEvent->IsControl() ||
+      nativeKeyEvent->IsAlt() || nativeKeyEvent->IsMeta()) {
     
     return NS_OK;
   }

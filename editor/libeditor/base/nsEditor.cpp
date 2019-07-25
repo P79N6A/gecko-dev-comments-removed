@@ -5078,8 +5078,8 @@ nsEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
       aKeyEvent->PreventDefault(); 
       return NS_OK;
     case nsIDOMKeyEvent::DOM_VK_BACK_SPACE:
-      if (nativeKeyEvent->isControl || nativeKeyEvent->isAlt ||
-          nativeKeyEvent->isMeta) {
+      if (nativeKeyEvent->IsControl() || nativeKeyEvent->IsAlt() ||
+          nativeKeyEvent->IsMeta()) {
         return NS_OK;
       }
       DeleteSelection(nsIEditor::ePrevious);
@@ -5089,8 +5089,8 @@ nsEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
       
       
       
-      if (nativeKeyEvent->isShift || nativeKeyEvent->isControl ||
-          nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+      if (nativeKeyEvent->IsShift() || nativeKeyEvent->IsControl() ||
+          nativeKeyEvent->IsAlt() || nativeKeyEvent->IsMeta()) {
         return NS_OK;
       }
       DeleteSelection(nsIEditor::eNext);

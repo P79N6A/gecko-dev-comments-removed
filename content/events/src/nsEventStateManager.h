@@ -506,10 +506,6 @@ private:
   
   nsCOMPtr<nsIContent> mGestureDownFrameOwner;
   
-  bool mGestureDownShift;
-  bool mGestureDownControl;
-  bool mGestureDownAlt;
-  bool mGestureDownMeta;
   mozilla::widget::Modifiers mGestureModifiers;
   PRUint16 mGestureDownButtons;
 
