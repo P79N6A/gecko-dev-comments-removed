@@ -592,7 +592,8 @@ public class GeckoInputConnection
             }
         }
 
-        if (!hasCompositionString()) {
+        boolean needCompositionString = !hasCompositionString();
+        if (needCompositionString) {
             if (DEBUG) Log.d(LOGTAG, ". . . onTextChanged: IME_COMPOSITION_BEGIN");
             GeckoAppShell.sendEventToGecko(
                 GeckoEvent.createIMEEvent(GeckoEvent.IME_COMPOSITION_BEGIN, 0, 0));
@@ -619,7 +620,7 @@ public class GeckoInputConnection
 
         
         
-        if (count == 0)
+        if (count == 0 || needCompositionString)
             endComposition();
 
         
