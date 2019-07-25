@@ -496,11 +496,6 @@ nsFileInputStream::Tell(PRInt64 *aResult)
 NS_IMETHODIMP
 nsFileInputStream::Available(PRUint64 *aResult)
 {
-    
-        
-        
-    
-
     return nsFileStreamBase::Available(aResult);
 }
 
