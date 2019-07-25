@@ -511,22 +511,33 @@ pref("browser.gesture.twist.left", "");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
 
 
-
-
-
 #ifdef XP_MACOSX
 
 
 
-pref("mousewheel.with_alt.action", 2);
-pref("mousewheel.with_shift.action", 1);
+pref("mousewheel.withshiftkey.action",0);
+pref("mousewheel.withshiftkey.sysnumlines",true);
+pref("mousewheel.withshiftkey.numlines",1);
+pref("mousewheel.withaltkey.action",2);
+pref("mousewheel.withaltkey.sysnumlines",false);
+pref("mousewheel.withaltkey.numlines",1);
+pref("mousewheel.withmetakey.action",0);
+pref("mousewheel.withmetakey.sysnumlines",false);
+pref("mousewheel.withmetakey.numlines",1);
 #else
-pref("mousewheel.with_alt.action", 1);
-pref("mousewheel.with_shift.action", 2);
+pref("mousewheel.withshiftkey.action",2);
+pref("mousewheel.withshiftkey.sysnumlines",false);
+pref("mousewheel.withshiftkey.numlines",1);
+pref("mousewheel.withaltkey.action",0);
+pref("mousewheel.withaltkey.sysnumlines",false);
+pref("mousewheel.withaltkey.numlines",1);
+pref("mousewheel.withmetakey.action",0);
+pref("mousewheel.withmetakey.sysnumlines",true);
+pref("mousewheel.withmetakey.numlines",1);
 #endif
-pref("mousewheel.with_control.action",3);
-pref("mousewheel.with_meta.action", 1);  
-pref("mousewheel.with_win.action", 1);
+pref("mousewheel.withcontrolkey.action",3);
+pref("mousewheel.withcontrolkey.sysnumlines",false);
+pref("mousewheel.withcontrolkey.numlines",1);
 
 
 pref("alerts.slideIncrement", 1);
@@ -1125,6 +1136,8 @@ pref("browser.panorama.animate_zoom", true);
 
 
 pref("browser.newtab.url", "about:newtab");
+
+pref("browser.newtab.preload", false);
 
 
 pref("browser.newtabpage.enabled", true);
