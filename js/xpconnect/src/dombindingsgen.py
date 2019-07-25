@@ -696,6 +696,7 @@ def writeStubFile(filename, config, interfaces):
             if clazz.indexGetter:
                 
                 f.write(string.Template(indexGetterTemplate).substitute(clazz))
+                methodsList.append("    { s_iterator_id, JS_ArrayIterator, 0}")
             if clazz.indexSetter:
                 f.write(string.Template(indexSetterTemplate).substitute(clazz))
             if clazz.nameGetter:
