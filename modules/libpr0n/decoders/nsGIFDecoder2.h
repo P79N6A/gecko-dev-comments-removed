@@ -83,9 +83,7 @@ private:
 
   inline int ClearCode() const { return 1 << mGIFStruct.datasize; }
 
-  
-  
-  nsRefPtr<mozilla::imagelib::RasterImage> mImageContainer;
+  nsRefPtr<mozilla::imagelib::RasterImage> mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
   PRUint32 mFlags;
   PRInt32 mCurrentRow;
