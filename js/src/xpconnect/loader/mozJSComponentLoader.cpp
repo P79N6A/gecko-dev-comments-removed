@@ -97,6 +97,7 @@
 static const char kJSRuntimeServiceContractID[] = "@mozilla.org/js/xpc/RuntimeService;1";
 static const char kXPConnectServiceContractID[] = "@mozilla.org/js/xpc/XPConnect;1";
 static const char kObserverServiceContractID[] = "@mozilla.org/observer-service;1";
+static const char kJSCachePrefix[] = "jsloader";
 
 
 #ifndef XP_OS2
@@ -798,130 +799,6 @@ class JSPrincipalsHolder
     JSPrincipals *mPrincipals;
 };
 
-static const char baseName[2][5] = { "gre/", "app/" };
-
-static inline PRBool
-canonicalizeBase(nsCAutoString &spec, nsACString &out, mozilla::Omnijar::Type aType)
-{
-    nsCAutoString base;
-    nsresult rv = mozilla::Omnijar::GetURIString(aType, base);
-
-    if (NS_FAILED(rv) || !base.Length())
-        return PR_FALSE;
-
-    if (base.Compare(spec.get(), PR_FALSE, base.Length()))
-        return PR_FALSE;
-
-    out.Append("/resource/");
-    out.Append(baseName[aType]);
-    out.Append(Substring(spec, base.Length()));
-    return PR_TRUE;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static nsresult
-PathifyURI(nsIURI *in, nsACString &out)
-{ 
-    PRBool equals;
-    nsresult rv;
-    nsCOMPtr<nsIURI> uri = in;
-    nsCAutoString spec;
-
-    out = "jsloader";
-
-    
-    
-    if (NS_SUCCEEDED(in->SchemeIs("resource", &equals)) && equals) {
-        nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIProtocolHandler> ph;
-        rv = ioService->GetProtocolHandler("resource", getter_AddRefs(ph));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIResProtocolHandler> irph(do_QueryInterface(ph, &rv));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = irph->ResolveURI(in, spec);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = ioService->NewURI(spec, nsnull, nsnull, getter_AddRefs(uri));
-        NS_ENSURE_SUCCESS(rv, rv);
-    } else {
-        rv = in->GetSpec(spec);
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    if (!canonicalizeBase(spec, out, mozilla::Omnijar::GRE) &&
-        !canonicalizeBase(spec, out, mozilla::Omnijar::APP)) {
-        if (NS_SUCCEEDED(uri->SchemeIs("file", &equals)) && equals) {
-            nsCOMPtr<nsIFileURL> baseFileURL;
-            baseFileURL = do_QueryInterface(uri, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCAutoString path;
-            rv = baseFileURL->GetPath(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            out.Append(path);
-        } else if (NS_SUCCEEDED(uri->SchemeIs("jar", &equals)) && equals) {
-            nsCOMPtr<nsIJARURI> jarURI = do_QueryInterface(uri, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCOMPtr<nsIURI> jarFileURI;
-            rv = jarURI->GetJARFile(getter_AddRefs(jarFileURI));
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCOMPtr<nsIFileURL> jarFileURL;
-            jarFileURL = do_QueryInterface(jarFileURI, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCAutoString path;
-            rv = jarFileURL->GetPath(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-            out.Append(path);
-
-            rv = jarURI->GetJAREntry(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-            out.Append("/");
-            out.Append(path);
-        } else { 
-            nsCAutoString spec;
-            rv = uri->GetSpec(spec);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            out.Append("/");
-            out.Append(spec);
-        }
-    }
-
-    out.Append(".bin");
-    return NS_OK;
-}
-
 
 nsresult
 mozJSComponentLoader::ReadScript(StartupCache* cache, nsIURI *uri,
@@ -929,8 +806,8 @@ mozJSComponentLoader::ReadScript(StartupCache* cache, nsIURI *uri,
 {
     nsresult rv;
     
-    nsCAutoString spec;
-    rv = PathifyURI(uri, spec);
+    nsCAutoString spec(kJSCachePrefix);
+    rv = NS_PathifyURI(uri, spec);
     NS_ENSURE_SUCCESS(rv, rv);
     
     nsAutoArrayPtr<char> buf;   
@@ -956,8 +833,8 @@ mozJSComponentLoader::WriteScript(StartupCache* cache, JSObject *scriptObj,
 {
     nsresult rv;
 
-    nsCAutoString spec;
-    rv = PathifyURI(uri, spec);
+    nsCAutoString spec(kJSCachePrefix);
+    rv = NS_PathifyURI(uri, spec);
     NS_ENSURE_SUCCESS(rv, rv);
 
     LOG(("Writing %s to startupcache\n", spec.get()));
@@ -1598,76 +1475,6 @@ mozJSComponentLoader::ImportInto(const nsACString & aLocation,
         newEntry.forget();
     }
     
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-mozJSComponentLoader::Unload(const nsACString & aLocation)
-{
-    nsresult rv;
-
-    if (!mInitialized) {
-        return NS_OK;
-    }
-
-    nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCOMPtr<nsIURI> resURI;
-    rv = ioService->NewURI(aLocation, nsnull, nsnull, getter_AddRefs(resURI));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCOMPtr<nsIChannel> scriptChannel;
-    rv = ioService->NewChannelFromURI(resURI, getter_AddRefs(scriptChannel));
-    NS_ENSURE_SUCCESS(rv, NS_ERROR_INVALID_ARG);
-
-    nsCOMPtr<nsIURI> resolvedURI;
-    rv = scriptChannel->GetURI(getter_AddRefs(resolvedURI));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCOMPtr<nsIJARURI> jarURI;
-    jarURI = do_QueryInterface(resolvedURI, &rv);
-    nsCOMPtr<nsIFileURL> baseFileURL;
-    nsCAutoString jarEntry;
-    if (NS_SUCCEEDED(rv)) {
-        nsCOMPtr<nsIURI> baseURI;
-        rv = jarURI->GetJARFile(getter_AddRefs(baseURI));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        baseFileURL = do_QueryInterface(baseURI, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        jarURI->GetJAREntry(jarEntry);
-        NS_ENSURE_SUCCESS(rv, rv);
-    } else {
-        baseFileURL = do_QueryInterface(resolvedURI, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    nsCOMPtr<nsIFile> sourceFile;
-    rv = baseFileURL->GetFile(getter_AddRefs(sourceFile));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsILocalFile> sourceLocalFile;
-    sourceLocalFile = do_QueryInterface(sourceFile, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsAutoString key;
-    if (jarEntry.IsEmpty()) {
-        rv = FileKey(sourceLocalFile, key);
-    } else {
-        rv = JarKey(sourceLocalFile, jarEntry, key);
-    }
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    ModuleEntry* mod;
-    if (mImports.Get(key, &mod)) {
-        mImports.Remove(key);
-    }
-
     return NS_OK;
 }
 
