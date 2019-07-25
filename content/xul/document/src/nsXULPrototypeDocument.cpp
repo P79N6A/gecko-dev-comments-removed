@@ -103,8 +103,8 @@ protected:
 
     nsXULPrototypeDocument* mGlobalObjectOwner; 
 
-    nsCOMPtr<nsIScriptContext> mContext;
-    JSObject* mJSObject;
+    nsCOMPtr<nsIScriptContext>  mScriptContexts[NS_STID_ARRAY_UBOUND];
+    void *                      mScriptGlobals[NS_STID_ARRAY_UBOUND];
 
     nsCOMPtr<nsIPrincipal> mCachedPrincipal;
 
@@ -632,6 +632,7 @@ nsXULPrototypeDocument::GetScriptGlobalObject()
 nsXULPDGlobalObject::nsXULPDGlobalObject(nsXULPrototypeDocument* owner)
     :  mGlobalObjectOwner(owner)
 {
+  memset(mScriptGlobals, 0, sizeof(mScriptGlobals));
 }
 
 
@@ -642,7 +643,12 @@ nsXULPDGlobalObject::~nsXULPDGlobalObject()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULPDGlobalObject)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_0(nsXULPDGlobalObject)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsXULPDGlobalObject)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mContext)
+  {
+    PRUint32 lang_index;
+    NS_STID_FOR_INDEX(lang_index) {
+      cb.NoteXPCOMChild(tmp->mScriptContexts[lang_index]);
+    }
+  }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULPDGlobalObject)
@@ -664,21 +670,29 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsXULPDGlobalObject,
 nsresult
 nsXULPDGlobalObject::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptContext)
 {
-  NS_ABORT_IF_FALSE(lang_id == nsIProgrammingLanguage::JAVASCRIPT,
-                    "We don't support this language ID");
   
-  if (!aScriptContext) {
+  nsresult rv;
+
+  PRBool ok = NS_STID_VALID(lang_id);
+  NS_ASSERTION(ok, "Invalid programming language ID requested");
+  NS_ENSURE_TRUE(ok, NS_ERROR_INVALID_ARG);
+  PRUint32 lang_ndx = NS_STID_INDEX(lang_id);
+
+  if (!aScriptContext)
     NS_WARNING("Possibly early removal of script object, see bug #41608");
-  } else {
+  else {
     
     aScriptContext->WillInitializeContext();
-    nsresult rv = aScriptContext->InitContext();
+    
+    
+    rv = aScriptContext->InitContext();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
+  NS_ASSERTION(!aScriptContext || !mScriptContexts[lang_ndx],
+               "Bad call to SetContext()!");
 
-  void* script_glob = NULL;
+  void *script_glob = nsnull;
 
   if (aScriptContext) {
     aScriptContext->SetGCOnDestruction(PR_FALSE);
@@ -686,111 +700,120 @@ nsXULPDGlobalObject::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScrip
     script_glob = aScriptContext->GetNativeGlobal();
     NS_ASSERTION(script_glob, "GetNativeGlobal returned NULL!");
   }
-  mContext = aScriptContext;
-  mJSObject = static_cast<JSObject*>(script_glob);
+  mScriptContexts[lang_ndx] = aScriptContext;
+  mScriptGlobals[lang_ndx] = script_glob;
   return NS_OK;
 }
 
 nsresult
 nsXULPDGlobalObject::EnsureScriptEnvironment(PRUint32 lang_id)
 {
-  NS_ABORT_IF_FALSE(lang_id == nsIProgrammingLanguage::JAVASCRIPT,
-                    "We don't support this language ID");
-  if (mContext) {
-    return NS_OK;
-  }
-  NS_ASSERTION(!mJSObject, "Have global without context?");
+  PRBool ok = NS_STID_VALID(lang_id);
+  NS_ASSERTION(ok, "Invalid programming language ID requested");
+  NS_ENSURE_TRUE(ok, NS_ERROR_INVALID_ARG);
+  PRUint32 lang_ndx = NS_STID_INDEX(lang_id);
 
-  nsCOMPtr<nsIScriptRuntime> languageRuntime;
-  nsresult rv = NS_GetScriptRuntimeByID(nsIProgrammingLanguage::JAVASCRIPT,
-                                        getter_AddRefs(languageRuntime));
-  NS_ENSURE_SUCCESS(rv, NS_OK);
+  if (mScriptContexts[lang_ndx] == nsnull) {
+    nsresult rv;
+    NS_ASSERTION(mScriptGlobals[lang_ndx] == nsnull, "Have global without context?");
 
-  nsCOMPtr<nsIScriptContext> ctxNew;
-  rv = languageRuntime->CreateContext(getter_AddRefs(ctxNew));
-  
-  
-  
-  {
-    JSContext *cx = (JSContext *)ctxNew->GetNativeContext();
-    JSAutoRequest ar(cx);
+    nsCOMPtr<nsIScriptRuntime> languageRuntime;
+    rv = NS_GetScriptRuntimeByID(lang_id, getter_AddRefs(languageRuntime));
+    NS_ENSURE_SUCCESS(rv, nsnull);
 
-    nsIPrincipal *principal = GetPrincipal();
-    JSObject *newGlob;
-    JSCompartment *compartment;
-
-    rv = xpc_CreateGlobalObject(cx, &gSharedGlobalClass, principal, nsnull,
-                                false, &newGlob, &compartment);
-    NS_ENSURE_SUCCESS(rv, NS_OK);
-
-    ::JS_SetGlobalObject(cx, newGlob);
-
+    nsCOMPtr<nsIScriptContext> ctxNew;
+    rv = languageRuntime->CreateContext(getter_AddRefs(ctxNew));
     
     
-    ::JS_SetPrivate(cx, newGlob, this);
-    NS_ADDREF(this);
-  }
+    
+    if (lang_id == nsIProgrammingLanguage::JAVASCRIPT) {
+      
+      JSContext *cx = (JSContext *)ctxNew->GetNativeContext();
+      JSAutoRequest ar(cx);
 
-  NS_ENSURE_SUCCESS(rv, NS_OK);
-  rv = SetScriptContext(lang_id, ctxNew);
-  NS_ENSURE_SUCCESS(rv, NS_OK);
+      nsIPrincipal *principal = GetPrincipal();
+      JSObject *newGlob;
+      JSCompartment *compartment;
+
+      rv = xpc_CreateGlobalObject(cx, &gSharedGlobalClass, principal, nsnull,
+                                  false, &newGlob, &compartment);
+      NS_ENSURE_SUCCESS(rv, nsnull);
+
+      ::JS_SetGlobalObject(cx, newGlob);
+
+      
+      
+      ::JS_SetPrivate(cx, newGlob, this);
+      NS_ADDREF(this);
+    }
+
+    NS_ENSURE_SUCCESS(rv, nsnull);
+    rv = SetScriptContext(lang_id, ctxNew);
+    NS_ENSURE_SUCCESS(rv, nsnull);
+  }
   return NS_OK;
 }
 
-nsIScriptContext*
+nsIScriptContext *
 nsXULPDGlobalObject::GetScriptContext(PRUint32 lang_id)
 {
-  NS_ABORT_IF_FALSE(lang_id == nsIProgrammingLanguage::JAVASCRIPT,
-                    "We don't support this language ID");
   
-  nsresult rv = EnsureScriptEnvironment(nsIProgrammingLanguage::JAVASCRIPT);
+  nsresult rv = EnsureScriptEnvironment(lang_id);
   if (NS_FAILED(rv)) {
     NS_ERROR("Failed to setup script language");
-    return NULL;
+    return nsnull;
   }
   
-  return mContext;
+  return mScriptContexts[NS_STID_INDEX(lang_id)];
 }
 
-void*
+void *
 nsXULPDGlobalObject::GetScriptGlobal(PRUint32 lang_id)
 {
-  NS_ABORT_IF_FALSE(lang_id == nsIProgrammingLanguage::JAVASCRIPT,
-                    "We don't support this language ID");
-  return mJSObject;
+  PRBool ok = NS_STID_VALID(lang_id);
+  NS_ASSERTION(ok, "Invalid programming language ID requested");
+  NS_ENSURE_TRUE(ok, nsnull);
+  PRUint32 lang_ndx = NS_STID_INDEX(lang_id);
+
+  NS_ASSERTION(mScriptContexts[lang_ndx] != nsnull, "Querying for global before setting up context?");
+  return mScriptGlobals[lang_ndx];
 }
 
 
 void
 nsXULPDGlobalObject::ClearGlobalObjectOwner()
 {
-  NS_ASSERTION(!mCachedPrincipal, "This shouldn't ever be set until now!");
+    NS_ASSERTION(!mCachedPrincipal, "This shouldn't ever be set until now!");
 
-  
-  if (this != nsXULPrototypeDocument::gSystemGlobal)
-    mCachedPrincipal = mGlobalObjectOwner->DocumentPrincipal();
+    
+    if (this != nsXULPrototypeDocument::gSystemGlobal)
+        mCachedPrincipal = mGlobalObjectOwner->DocumentPrincipal();
 
-  if (mContext) {
-    mContext->FinalizeContext();
-    mContext = NULL;
-  }
+    PRUint32 lang_ndx;
+    NS_STID_FOR_INDEX(lang_ndx) {
+        if (mScriptContexts[lang_ndx]) {
+            mScriptContexts[lang_ndx]->FinalizeContext();
+            mScriptContexts[lang_ndx] = nsnull;
+        }
+    }
 
-  mGlobalObjectOwner = NULL;
+    mGlobalObjectOwner = nsnull;
 }
 
 
 void
 nsXULPDGlobalObject::OnFinalize(PRUint32 aLangID, void *aObject)
 {
-  NS_ABORT_IF_FALSE(aLangId == nsIProgrammingLanguage::JAVASCRIPT,
-                    "We don't support this language ID");
-  mJSObject = NULL;
+    NS_ASSERTION(NS_STID_VALID(aLangID), "Invalid language ID");
+    NS_ASSERTION(aObject == mScriptGlobals[NS_STID_INDEX(aLangID)],
+                 "Wrong object finalized!");
+    mScriptGlobals[NS_STID_INDEX(aLangID)] = nsnull;
 }
 
 void
 nsXULPDGlobalObject::SetScriptsEnabled(PRBool aEnabled, PRBool aFireTimeouts)
 {
-  
+    
 }
 
 
