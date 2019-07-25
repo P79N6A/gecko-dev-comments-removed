@@ -124,6 +124,10 @@ public:
 
   IDirect3DDevice9 *device() { return mDevice; }
 
+  bool IsD3D9Ex() { return mDeviceEx; }
+
+  bool HasDynamicTextures() { return mHasDynamicTextures; }
+
   enum ShaderMode {
     RGBLAYER,
     YCBCRLAYER,
@@ -154,7 +158,13 @@ private:
   nsRefPtr<IDirect3DDevice9> mDevice;
 
   
+  nsRefPtr<IDirect3DDevice9Ex> mDeviceEx;
+
+  
   nsRefPtr<IDirect3D9> mD3D9;
+
+  
+  nsRefPtr<IDirect3D9Ex> mD3D9Ex;
 
   
   nsRefPtr<IDirect3DVertexShader9> mLayerVS;
@@ -178,6 +188,9 @@ private:
 
 
   HWND mFocusWnd;
+
+  
+  bool mHasDynamicTextures;
 
   nsAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD

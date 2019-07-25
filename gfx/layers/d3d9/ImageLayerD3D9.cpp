@@ -245,6 +245,7 @@ void
 PlanarYCbCrImageD3D9::SetData(const PlanarYCbCrImage::Data &aData)
 {
   
+  
   int width_shift = 0;
   int height_shift = 0;
   if (aData.mYSize.width == aData.mCbCrSize.width &&
@@ -309,76 +310,116 @@ PlanarYCbCrImageD3D9::AllocateTextures()
 {
 
 
-  D3DLOCKED_RECT lockrect;
+  D3DLOCKED_RECT lockrectY;
+  D3DLOCKED_RECT lockrectCb;
+  D3DLOCKED_RECT lockrectCr;
   PRUint8* src;
   PRUint8* dest;
-  
-  mManager->device()->CreateTexture(mData.mYSize.width, mData.mYSize.height,
-                          1, 0, D3DFMT_L8, D3DPOOL_MANAGED,
-                          getter_AddRefs(mYTexture), NULL);
 
+  nsRefPtr<IDirect3DSurface9> tmpSurfaceY;
+  nsRefPtr<IDirect3DSurface9> tmpSurfaceCb;
+  nsRefPtr<IDirect3DSurface9> tmpSurfaceCr;
 
-  
-  mYTexture->LockRect(0, &lockrect, NULL, 0);
+  if (mManager->deviceManager()->IsD3D9Ex()) {
+    
+    
+    
+    mManager->device()->CreateTexture(mData.mYSize.width, mData.mYSize.height,
+                            1, 0, D3DFMT_L8, D3DPOOL_DEFAULT,
+                            getter_AddRefs(mYTexture), NULL);
+    mManager->device()->CreateTexture(mData.mCbCrSize.width, mData.mCbCrSize.height,
+                            1, 0, D3DFMT_L8, D3DPOOL_DEFAULT,
+                            getter_AddRefs(mCbTexture), NULL);
+    mManager->device()->CreateTexture(mData.mCbCrSize.width, mData.mCbCrSize.height,
+                            1, 0, D3DFMT_L8, D3DPOOL_DEFAULT,
+                            getter_AddRefs(mCrTexture), NULL);
+    mManager->device()->CreateOffscreenPlainSurface(mData.mYSize.width,
+                                                    mData.mYSize.height,
+                                                    D3DFMT_L8,
+                                                    D3DPOOL_SYSTEMMEM,
+                                                    getter_AddRefs(tmpSurfaceY),
+                                                    NULL);
+    mManager->device()->CreateOffscreenPlainSurface(mData.mCbCrSize.width,
+                                                    mData.mCbCrSize.height,
+                                                    D3DFMT_L8,
+                                                    D3DPOOL_SYSTEMMEM,
+                                                    getter_AddRefs(tmpSurfaceCb),
+                                                    NULL);
+    mManager->device()->CreateOffscreenPlainSurface(mData.mCbCrSize.width,
+                                                    mData.mCbCrSize.height,
+                                                    D3DFMT_L8,
+                                                    D3DPOOL_SYSTEMMEM,
+                                                    getter_AddRefs(tmpSurfaceCr),
+                                                    NULL);
+    tmpSurfaceY->LockRect(&lockrectY, NULL, 0);
+    tmpSurfaceCb->LockRect(&lockrectCb, NULL, 0);
+    tmpSurfaceCr->LockRect(&lockrectCr, NULL, 0);
+  } else {
+    mManager->device()->CreateTexture(mData.mYSize.width, mData.mYSize.height,
+                            1, 0, D3DFMT_L8, D3DPOOL_MANAGED,
+                            getter_AddRefs(mYTexture), NULL);
+    mManager->device()->CreateTexture(mData.mCbCrSize.width, mData.mCbCrSize.height,
+                            1, 0, D3DFMT_L8, D3DPOOL_MANAGED,
+                            getter_AddRefs(mCbTexture), NULL);
+    mManager->device()->CreateTexture(mData.mCbCrSize.width, mData.mCbCrSize.height,
+                            1, 0, D3DFMT_L8, D3DPOOL_MANAGED,
+                            getter_AddRefs(mCrTexture), NULL);
+
+    
+    mYTexture->LockRect(0, &lockrectY, NULL, 0);
+    mCbTexture->LockRect(0, &lockrectCb, NULL, 0);
+    mCrTexture->LockRect(0, &lockrectCr, NULL, 0);
+  }
 
   src  = mData.mYChannel;
   
-  dest = (PRUint8*)lockrect.pBits;
+  dest = (PRUint8*)lockrectY.pBits;
 
   
   for (int h=0; h<mData.mYSize.height; h++) {
     memcpy(dest, src, mData.mYSize.width);
-    dest += lockrect.Pitch;
+    dest += lockrectY.Pitch;
     src += mData.mYStride;
   }
 
-  mYTexture->UnlockRect(0);
-
-  
-  mManager->device()->CreateTexture(mData.mCbCrSize.width, mData.mCbCrSize.height,
-                          1, 0, D3DFMT_L8, D3DPOOL_MANAGED,
-                          getter_AddRefs(mCbTexture), NULL);
-
-
-  
-  mCbTexture->LockRect(0, &lockrect, NULL, 0);
-
   src  = mData.mCbChannel;
   
-  dest = (PRUint8*)lockrect.pBits;
+  dest = (PRUint8*)lockrectCb.pBits;
 
   
   for (int h=0; h<mData.mCbCrSize.height; h++) {
     memcpy(dest, src, mData.mCbCrSize.width);
-    dest += lockrect.Pitch;
+    dest += lockrectCb.Pitch;
     src += mData.mCbCrStride;
   }
-
-  mCbTexture->UnlockRect(0);
-
-
-  
-  mManager->device()->CreateTexture(mData.mCbCrSize.width, mData.mCbCrSize.height,
-                          1, 0, D3DFMT_L8, D3DPOOL_MANAGED,
-                          getter_AddRefs(mCrTexture), NULL);
-
-
-  
-  mCrTexture->LockRect(0, &lockrect, NULL, 0);
 
   src  = mData.mCrChannel;
   
-  dest = (PRUint8*)lockrect.pBits;
+  dest = (PRUint8*)lockrectCr.pBits;
 
   
   for (int h=0; h<mData.mCbCrSize.height; h++) {
     memcpy(dest, src, mData.mCbCrSize.width);
-    dest += lockrect.Pitch;
+    dest += lockrectCr.Pitch;
     src += mData.mCbCrStride;
   }
 
-  mCrTexture->UnlockRect(0);
-
+  if (mManager->deviceManager()->IsD3D9Ex()) {
+    tmpSurfaceY->UnlockRect();
+    tmpSurfaceCb->UnlockRect();
+    tmpSurfaceCr->UnlockRect();
+    nsRefPtr<IDirect3DSurface9> dstSurface;
+    mYTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+    mManager->device()->UpdateSurface(tmpSurfaceY, NULL, dstSurface, NULL);
+    mCbTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+    mManager->device()->UpdateSurface(tmpSurfaceCb, NULL, dstSurface, NULL);
+    mCrTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+    mManager->device()->UpdateSurface(tmpSurfaceCr, NULL, dstSurface, NULL);
+  } else {
+    mYTexture->UnlockRect(0);
+    mCbTexture->UnlockRect(0);
+    mCrTexture->UnlockRect(0);
+  }
 }
 
 void
@@ -426,31 +467,49 @@ CairoImageD3D9::SetData(const CairoImage::Data &aData)
   context->SetSource(aData.mSurface);
   context->Paint();
 
-  
-  mManager->device()->CreateTexture(aData.mSize.width, aData.mSize.height,
-                  1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
-                  getter_AddRefs(mTexture), NULL);
+  if (mManager->deviceManager()->IsD3D9Ex()) {
+    
+    
+    
+    mManager->device()->CreateTexture(aData.mSize.width, aData.mSize.height,
+                    1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
+                    getter_AddRefs(mTexture), NULL);
+    nsRefPtr<IDirect3DSurface9> surface;
+    mManager->device()->CreateOffscreenPlainSurface(aData.mSize.width,
+                                                    aData.mSize.height,
+                                                    D3DFMT_A8R8G8B8,
+                                                    D3DPOOL_SYSTEMMEM,
+                                                    getter_AddRefs(surface),
+                                                    NULL);
+    D3DLOCKED_RECT lockedRect;
+    surface->LockRect(&lockedRect, NULL, 0);
+    for (int y = 0; y < aData.mSize.height; y++) {
+      memcpy((char*)lockedRect.pBits + lockedRect.Pitch * y,
+             imageSurface->Data() + imageSurface->Stride() * y,
+             aData.mSize.width * 4);
+    }
+    surface->UnlockRect();
+    nsRefPtr<IDirect3DSurface9> dstSurface;
+    mTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+    mManager->device()->UpdateSurface(surface, NULL, dstSurface, NULL);
+  } else {
+    mManager->device()->CreateTexture(aData.mSize.width, aData.mSize.height,
+                    1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED,
+                    getter_AddRefs(mTexture), NULL);
+    D3DLOCKED_RECT lockrect;
+    
+    mTexture->LockRect(0, &lockrect, NULL, 0);
 
-  D3DLOCKED_RECT lockrect;
-  
-  mTexture->LockRect(0, &lockrect, NULL, 0);
+    
+    
+    for (int y = 0; y < aData.mSize.height; y++) {
+      memcpy((char*)lockrect.pBits + lockrect.Pitch * y,
+             imageSurface->Data() + imageSurface->Stride() * y,
+             aData.mSize.width * 4);
+    }
 
-  PRUint8* src  = imageSurface->Data();
-  
-  PRUint8* dest = (PRUint8*)lockrect.pBits;
-
-  
-  
-  for (int i=0; i<aData.mSize.width*aData.mSize.height; i++) {
-    dest[0] = src[0];
-    dest[1] = src[1];
-    dest[2] = src[2];
-    dest[3] = src[3];
-    dest += 4;
-    src += 4;
+    mTexture->UnlockRect(0);
   }
-
-  mTexture->UnlockRect(0);
 }
 
 already_AddRefed<gfxASurface>
