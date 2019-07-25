@@ -153,7 +153,10 @@ WindowsDllInterceptor sKernel32Intercept;
 WindowsDllInterceptor sGdi32Intercept;
 
 
-bool sHooksInstalled = false;
+bool sInitialized = false;
+
+
+bool sHooksActive = false;
 
 
 
@@ -208,6 +211,10 @@ bool MaybeScheduleMemoryPressureEvent()
 
 void CheckMemAvailable()
 {
+  if (!sHooksActive) {
+    return;
+  }
+
   MEMORYSTATUSEX stat;
   stat.dwLength = sizeof(stat);
   bool success = GlobalMemoryStatusEx(&stat);
@@ -263,7 +270,7 @@ VirtualAllocHook(LPVOID aAddress, SIZE_T aSize,
   
   
   if ((sLowVirtualMemoryThreshold != 0 && aAllocationType & MEM_RESERVE) ||
-      (sLowPhysicalMemoryThreshold != 0 &&  aAllocationType & MEM_COMMIT)) {
+      (sLowPhysicalMemoryThreshold != 0 && aAllocationType & MEM_COMMIT)) {
     LOG3("VirtualAllocHook(size=", aSize, ")");
     CheckMemAvailable();
   }
@@ -300,7 +307,7 @@ CreateDIBSectionHook(HDC aDC,
 
   
   bool doCheck = false;
-  if (!aSection && aBitmapInfo) {
+  if (sHooksActive && !aSection && aBitmapInfo) {
     PRUint16 bitCount = aBitmapInfo->bmiHeader.biBitCount;
     if (bitCount == 0) {
       
@@ -382,12 +389,11 @@ public:
     aDescription.AssignLiteral(
       "Number of low-virtual-memory events fired since startup. ");
 
-    if (sLowVirtualMemoryThreshold == 0 || !sHooksInstalled) {
-      aDescription.Append(nsPrintfCString(1024,
+    if (sLowVirtualMemoryThreshold == 0) {
+      aDescription.AppendLiteral(
         "Tracking low-virtual-memory events is disabled, but you can enable it "
         "by giving the memory.low_virtual_mem_threshold_mb pref a non-zero "
-        "value%s.",
-        sHooksInstalled ? "" : " and restarting"));
+        "value.");
     }
     else {
       aDescription.Append(nsPrintfCString(1024,
@@ -425,12 +431,11 @@ public:
     aDescription.AssignLiteral(
       "Number of low-commit-space events fired since startup. ");
 
-    if (sLowCommitSpaceThreshold == 0 || !sHooksInstalled) {
-      aDescription.Append(nsPrintfCString(1024,
+    if (sLowCommitSpaceThreshold == 0) {
+      aDescription.Append(
         "Tracking low-commit-space events is disabled, but you can enable it "
         "by giving the memory.low_commit_space_threshold_mb pref a non-zero "
-        "value%s.",
-        sHooksInstalled ? "" : " and restarting"));
+        "value.");
     }
     else {
       aDescription.Append(nsPrintfCString(1024,
@@ -468,12 +473,11 @@ public:
     aDescription.AssignLiteral(
       "Number of low-physical-memory events fired since startup. ");
 
-    if (sLowPhysicalMemoryThreshold == 0 || !sHooksInstalled) {
-      aDescription.Append(nsPrintfCString(1024,
+    if (sLowPhysicalMemoryThreshold == 0) {
+      aDescription.Append(
         "Tracking low-physical-memory events is disabled, but you can enable it "
         "by giving the memory.low_physical_memory_threshold_mb pref a non-zero "
-        "value%s.",
-        sHooksInstalled ? "" : " and restarting"));
+        "value.");
     }
     else {
       aDescription.Append(nsPrintfCString(1024,
@@ -495,8 +499,11 @@ NS_IMPL_ISUPPORTS1(NumLowPhysicalMemoryEventsMemoryReporter, nsIMemoryReporter)
 namespace mozilla {
 namespace AvailableMemoryTracker {
 
-void Init()
+void Activate()
 {
+  MOZ_ASSERT(sInitialized);
+  MOZ_ASSERT(!sHooksActive);
+
   
   
   if (sizeof(void*) > 4) {
@@ -514,14 +521,27 @@ void Init()
   Preferences::AddUintVarCache(&sLowMemoryNotificationIntervalMS,
       "memory.low_memory_notification_interval_ms", 10000);
 
+  NS_RegisterMemoryReporter(new NumLowCommitSpaceEventsMemoryReporter());
+  NS_RegisterMemoryReporter(new NumLowPhysicalMemoryEventsMemoryReporter());
+  if (sizeof(void*) == 4) {
+    NS_RegisterMemoryReporter(new NumLowVirtualMemoryEventsMemoryReporter());
+  }
+  sHooksActive = true;
+}
+
+void Init()
+{
   
   
   
   
 
-  if (!PR_GetEnv("MOZ_PGO_INSTRUMENTED") &&
-      (sLowVirtualMemoryThreshold != 0 || sLowPhysicalMemoryThreshold != 0)) {
-    sHooksInstalled = true;
+  if (!PR_GetEnv("MOZ_PGO_INSTRUMENTED")) {
+    
+    
+    
+    
+
     sKernel32Intercept.Init("Kernel32.dll");
     sKernel32Intercept.AddHook("VirtualAlloc",
       reinterpret_cast<intptr_t>(VirtualAllocHook),
@@ -535,15 +555,8 @@ void Init()
       reinterpret_cast<intptr_t>(CreateDIBSectionHook),
       (void**) &sCreateDIBSectionOrig);
   }
-  else {
-    sHooksInstalled = false;
-  }
 
-  NS_RegisterMemoryReporter(new NumLowCommitSpaceEventsMemoryReporter());
-  NS_RegisterMemoryReporter(new NumLowPhysicalMemoryEventsMemoryReporter());
-  if (sizeof(void*) == 4) {
-    NS_RegisterMemoryReporter(new NumLowVirtualMemoryEventsMemoryReporter());
-  }
+  sInitialized = true;
 }
 
 } 
