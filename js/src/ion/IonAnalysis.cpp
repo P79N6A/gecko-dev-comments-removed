@@ -455,26 +455,49 @@ ion::ReorderBlocks(MIRGraph &graph)
     
     Vector<size_t, 4, IonAllocPolicy> loops;
 
+    Vector<MBasicBlock *, 4, IonAllocPolicy> headers;
+
     while (!done.empty()) {
         current = done.popFront();
         current->unmark();
 
         if (current->isLoopHeader()) {
-            loopDepth = current->loopDepth();
-            if (!loops.append(pendingNonLoopBlocks.length()))
-                return false;
+            if (current->loopDepth() > loopDepth) {
+                
+                loopDepth = current->loopDepth();
+                if (!loops.append(pendingNonLoopBlocks.length()))
+                    return false;
+                if (!headers.append(current))
+                    return false;
+            } else {
+                
+                
+                JS_ASSERT(current->loopDepth() == loopDepth);
+                if (!pendingNonLoopBlocks.append(current))
+                    return false;
+                continue;
+            }
         }
 
-        if (current->isLoopBackedge() && current->loopDepth() == loopDepth) {
-            loopDepth--;
-            graph.addBlock(current);
+        if (current->isLoopBackedge()) {
+            if (current->loopHeaderOfBackedge() == headers.back()) {
+                loopDepth--;
+                headers.popBack();
 
-            
-            
-            size_t nblocks = pendingNonLoopBlocks.length() - loops.popCopy();
-            for (size_t i = 0; i < nblocks; i++)
-                done.pushFront(pendingNonLoopBlocks.popCopy());
-            continue;
+                graph.addBlock(current);
+
+                
+                
+                size_t nblocks = pendingNonLoopBlocks.length() - loops.popCopy();
+                for (size_t i = 0; i < nblocks; i++)
+                    done.pushFront(pendingNonLoopBlocks.popCopy());
+                continue;
+            } else {
+                
+                if (!pendingNonLoopBlocks.append(current))
+                    return false;
+                continue;
+            }
         } else if (current->loopDepth() < loopDepth) {
             
             
@@ -488,6 +511,7 @@ ion::ReorderBlocks(MIRGraph &graph)
     }
 
     JS_ASSERT(loopDepth == 0);
+    JS_ASSERT(headers.empty());
     JS_ASSERT(pendingNonLoopBlocks.empty());
     JS_ASSERT(graph.numBlocks() == numBlocks);
 
