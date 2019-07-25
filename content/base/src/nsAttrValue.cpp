@@ -1448,3 +1448,63 @@ nsAttrValue::StringToInteger(const nsAString& aValue, PRBool* aStrict,
   nsAutoString tmp(aValue);
   return tmp.ToInteger(aErrorCode);
 }
+
+PRInt64
+nsAttrValue::SizeOf() const
+{
+  PRInt64 size = sizeof(*this);
+
+  switch (BaseType()) {
+    case eStringBase:
+    {
+      
+      
+      nsStringBuffer* str = static_cast<nsStringBuffer*>(GetPtr());
+      size += str ? str->StorageSize() : 0;
+      break;
+    }
+    case eOtherBase:
+    {
+      MiscContainer* container = GetMiscContainer();
+
+      if (!container) {
+        break;
+      }
+
+      size += sizeof(*container);
+
+      void* otherPtr = MISC_STR_PTR(container);
+      
+      
+      if (otherPtr &&
+          static_cast<ValueBaseType>(container->mStringBits & NS_ATTRVALUE_BASETYPE_MASK) == eStringBase) {
+        
+        
+        nsStringBuffer* str = static_cast<nsStringBuffer*>(otherPtr);
+        size += str ? str->StorageSize() : 0;
+      }
+
+      
+      
+      if (Type() == eCSSStyleRule && container->mCSSStyleRule) {
+        
+        size += sizeof(*container->mCSSStyleRule);
+      } else if (Type() == eSVGValue && container->mSVGValue) {
+        
+        size += sizeof(*container->mSVGValue);
+      } else if (Type() == eAtomArray && container->mAtomArray) {
+        size += sizeof(container->mAtomArray) + sizeof(nsTArrayHeader);
+        size += container->mAtomArray->Capacity() * sizeof(nsCOMPtr<nsIAtom>);
+        
+      }
+
+      break;
+    }
+    case eAtomBase:    
+    case eIntegerBase: 
+      break;
+  }
+
+  return size;
+}
+

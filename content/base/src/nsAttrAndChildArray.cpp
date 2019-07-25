@@ -860,6 +860,12 @@ nsAttrAndChildArray::SizeOf() const
     
     
     size += mImpl->mBufferSize * sizeof(*(mImpl->mBuffer)) + NS_IMPL_EXTRA_SIZE;
+
+    PRUint32 slotCount = AttrSlotCount();
+    for (PRUint32 i = 0; i < slotCount && AttrSlotIsTaken(i); ++i) {
+      nsAttrValue* value = &ATTRS(mImpl)[i].mValue;
+      size += value->SizeOf() - sizeof(*value);
+    }
   }
 
   return size;
