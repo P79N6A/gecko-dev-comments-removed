@@ -95,7 +95,7 @@ public:
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
                           const DrawOptions &aOptions,
-                          const GlyphRenderingOptions *aRenderingOptions = NULL);
+                          const GlyphRenderingOptions *aRenderingOptions = nullptr);
   virtual void Mask(const Pattern &aSource,
                     const Pattern &aMask,
                     const DrawOptions &aOptions = DrawOptions());
@@ -132,7 +132,7 @@ public:
   
   
   
-  void PrepareForDrawing(cairo_t* aContext, const Path* aPath = NULL);
+  void PrepareForDrawing(cairo_t* aContext, const Path* aPath = nullptr);
 
 private: 
   enum DrawPatternType { DRAW_FILL, DRAW_STROKE };
@@ -149,7 +149,7 @@ private:
   
   
   
-  void WillChange(const Path* aPath = NULL);
+  void WillChange(const Path* aPath = nullptr);
 
   
   

@@ -92,7 +92,7 @@ void
 SourceSurfaceCairo::DrawTargetWillChange()
 {
   if (mDrawTarget) {
-    mDrawTarget = NULL;
+    mDrawTarget = nullptr;
 
     
     cairo_surface_t* surface = cairo_surface_create_similar(mSurface,
@@ -116,7 +116,7 @@ SourceSurfaceCairo::MarkIndependent()
 {
   if (mDrawTarget) {
     mDrawTarget->RemoveSnapshot(this);
-    mDrawTarget = NULL;
+    mDrawTarget = nullptr;
   }
 }
 
