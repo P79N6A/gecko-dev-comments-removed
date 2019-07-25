@@ -820,7 +820,7 @@ nsBaseWidget::GetShouldAccelerate()
 #endif
 
   
-  bool disableAcceleration =
+  bool disableAcceleration = (mWindowType == eWindowType_popup) || 
     Preferences::GetBool("layers.acceleration.disabled", false);
   mForceLayersAcceleration =
     Preferences::GetBool("layers.acceleration.force-enabled", false);
