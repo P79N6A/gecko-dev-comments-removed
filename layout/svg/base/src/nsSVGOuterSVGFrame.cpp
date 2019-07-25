@@ -631,21 +631,21 @@ nsSVGOuterSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
     } else if (aAttribute == nsGkAtoms::width ||
                aAttribute == nsGkAtoms::height) {
 
-        nsIFrame* embeddingFrame;
-        if (IsRootOfReplacedElementSubDoc(&embeddingFrame) && embeddingFrame) {
-          if (DependsOnIntrinsicSize(embeddingFrame)) {
-            
-            
-            embeddingFrame->PresContext()->PresShell()->
-              FrameNeedsReflow(embeddingFrame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
-          }
-          
-        } else {
+      nsIFrame* embeddingFrame;
+      if (IsRootOfReplacedElementSubDoc(&embeddingFrame) && embeddingFrame) {
+        if (DependsOnIntrinsicSize(embeddingFrame)) {
           
           
-          PresContext()->PresShell()->
-            FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+          embeddingFrame->PresContext()->PresShell()->
+            FrameNeedsReflow(embeddingFrame, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
         }
+        
+      } else {
+        
+        
+        PresContext()->PresShell()->
+          FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
+      }
     }
   }
 
