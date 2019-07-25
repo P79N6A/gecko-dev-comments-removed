@@ -457,16 +457,28 @@ function ModalPrompter(domWin) {
 }
 ModalPrompter.prototype = {
     domWin : null,
-    allowTabModal : true,
+    
 
-    QueryInterface : XPCOMUtils.generateQI([Ci.nsIPrompt, Ci.nsIAuthPrompt, Ci.nsIAuthPrompt2]),
+
+
+
+    allowTabModal : false,
+
+    QueryInterface : XPCOMUtils.generateQI([Ci.nsIPrompt, Ci.nsIAuthPrompt,
+Ci.nsIAuthPrompt2, Ci.nsIWritablePropertyBag2]),
 
 
     
 
 
     openPrompt : function (args) {
-        let allowTabModal = this.allowTabModal;
+        
+        const prefName = "prompts.tab_modal.enabled";
+        let prefValue = false;
+        if (Services.prefs.getPrefType(prefName) == Services.prefs.PREF_BOOL)
+            prefValue = Services.prefs.getBoolPref(prefName);
+
+        let allowTabModal = this.allowTabModal && prefValue;
 
         if (allowTabModal && this.domWin) {
             let tabPrompt = PromptUtils.getTabModalPrompt(this.domWin);
@@ -791,6 +803,17 @@ ModalPrompter.prototype = {
         
         
         throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    },
+
+    
+
+    
+
+    setPropertyAsBool : function(name, value) {
+        if (name == "allowTabModal")
+            this.allowTabModal = value;
+        else
+            throw Cr.NS_ERROR_ILLEGAL_VALUE;
     },
 };
 

@@ -1042,4 +1042,7 @@ pref("devtools.inspector.enabled", false);
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
 
+
+pref("prompts.tab_modal.enabled", true);
+
 pref("browser.panorama.animate_zoom", true);
