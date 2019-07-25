@@ -48,10 +48,6 @@ const MOUSE_SCROLL_ZOOM = 3;
 
 
 var FullZoom = {
-
-  
-  
-
   
   name: "browser.content.full-zoom",
 
@@ -59,22 +55,11 @@ var FullZoom = {
   
   
   get globalValue() {
-    var globalValue = this._cps.getPref(null, this.name);
+    var globalValue = Services.contentPrefs.getPref(null, this.name);
     if (typeof globalValue != "undefined")
       globalValue = this._ensureValid(globalValue);
     delete this.globalValue;
     return this.globalValue = globalValue;
-  },
-
-
-  
-  
-
-  
-  get _cps() {
-    delete this._cps;
-    return this._cps = Cc["@mozilla.org/content-pref/service;1"].
-                       getService(Ci.nsIContentPrefService);
   },
 
   
@@ -93,19 +78,11 @@ var FullZoom = {
   
   
 
-  
-  interfaces: [Components.interfaces.nsIDOMEventListener,
-               Components.interfaces.nsIObserver,
-               Components.interfaces.nsIContentPrefObserver,
-               Components.interfaces.nsISupportsWeakReference,
-               Components.interfaces.nsISupports],
-
-  QueryInterface: function FullZoom_QueryInterface(aIID) {
-    if (!this.interfaces.some(function (v) aIID.equals(v)))
-      throw Cr.NS_ERROR_NO_INTERFACE;
-    return this;
-  },
-
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMEventListener,
+                                         Ci.nsIObserver,
+                                         Ci.nsIContentPrefObserver,
+                                         Ci.nsISupportsWeakReference,
+                                         Ci.nsISupports]),
 
   
   
@@ -115,13 +92,11 @@ var FullZoom = {
     window.addEventListener("DOMMouseScroll", this, false);
 
     
-    this._cps.addObserver(this.name, this);
+    Services.contentPrefs.addObserver(this.name, this);
 
     
     
-    let os = Cc["@mozilla.org/observer-service;1"].
-             getService(Ci.nsIObserverService);
-    os.addObserver(this, "private-browsing", true);
+    Services.obs.addObserver(this, "private-browsing", true);
 
     
     this._inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
@@ -138,13 +113,10 @@ var FullZoom = {
   },
 
   destroy: function FullZoom_destroy() {
-    let os = Cc["@mozilla.org/observer-service;1"].
-             getService(Ci.nsIObserverService);
-    os.removeObserver(this, "private-browsing");
+    Services.obs.removeObserver(this, "private-browsing");
     gPrefService.removeObserver("browser.zoom.", this);
-    this._cps.removeObserver(this.name, this);
+    Services.contentPrefs.removeObserver(this.name, this);
     window.removeEventListener("DOMMouseScroll", this, false);
-    delete this._cps;
   },
 
 
@@ -231,7 +203,7 @@ var FullZoom = {
   
 
   onContentPrefSet: function FullZoom_onContentPrefSet(aGroup, aName, aValue) {
-    if (aGroup == this._cps.grouper.group(gBrowser.currentURI))
+    if (aGroup == Services.contentPrefs.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting(aValue);
     else if (aGroup == null) {
       this.globalValue = this._ensureValid(aValue);
@@ -239,13 +211,13 @@ var FullZoom = {
       
       
       
-      if (!this._cps.hasPref(gBrowser.currentURI, this.name))
+      if (!Services.contentPrefs.hasPref(gBrowser.currentURI, this.name))
         this._applyPrefToSetting();
     }
   },
 
   onContentPrefRemoved: function FullZoom_onContentPrefRemoved(aGroup, aName) {
-    if (aGroup == this._cps.grouper.group(gBrowser.currentURI))
+    if (aGroup == Services.contentPrefs.grouper.group(gBrowser.currentURI))
       this._applyPrefToSetting();
     else if (aGroup == null) {
       this.globalValue = undefined;
@@ -253,7 +225,7 @@ var FullZoom = {
       
       
       
-      if (!this._cps.hasPref(gBrowser.currentURI, this.name))
+      if (!Services.contentPrefs.hasPref(gBrowser.currentURI, this.name))
         this._applyPrefToSetting();
     }
   },
@@ -282,7 +254,7 @@ var FullZoom = {
     }
 
     var self = this;
-    this._cps.getPref(aURI, this.name, function(aResult) {
+    Services.contentPrefs.getPref(aURI, this.name, function (aResult) {
       
       let isSaneURI = (aBrowser && aBrowser.currentURI) ?
         aURI.equals(aBrowser.currentURI) : false;
@@ -366,12 +338,12 @@ var FullZoom = {
       return;
 
     var zoomLevel = ZoomManager.zoom;
-    this._cps.setPref(gBrowser.currentURI, this.name, zoomLevel);
+    Services.contentPrefs.setPref(gBrowser.currentURI, this.name, zoomLevel);
   },
 
   _removePref: function FullZoom__removePref() {
     if (!(content.document instanceof Ci.nsIImageDocument))
-      this._cps.removePref(gBrowser.currentURI, this.name);
+      Services.contentPrefs.removePref(gBrowser.currentURI, this.name);
   },
 
 
