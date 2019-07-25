@@ -447,6 +447,14 @@ nsUserFontSet::StartLoad(gfxProxyFontEntry *aProxy,
   return rv;
 }
 
+static PLDHashOperator DetachFontEntries(const nsAString& aKey,
+                                         nsRefPtr<gfxMixedFontFamily>& aFamily,
+                                         void* aUserArg)
+{
+  aFamily->DetachFontEntries();
+  return PL_DHASH_NEXT;
+}
+
 bool
 nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
 {
@@ -466,6 +474,7 @@ nsUserFontSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   
   
   
+  mFontFamilies.Enumerate(DetachFontEntries, nsnull);
   mFontFamilies.Clear();
 
   for (PRUint32 i = 0, i_end = aRules.Length(); i < i_end; ++i) {

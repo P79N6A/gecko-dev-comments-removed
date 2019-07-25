@@ -142,6 +142,20 @@ public:
     }
 
     
+    
+    
+    void DetachFontEntries() {
+        PRUint32 i = mAvailableFonts.Length();
+        while (i--) {
+            gfxFontEntry *fe = mAvailableFonts[i];
+            if (fe) {
+                fe->SetFamily(nsnull);
+            }
+        }
+        mAvailableFonts.Clear();
+    }
+
+    
     bool AllLoaded() 
     {
         PRUint32 numFonts = mAvailableFonts.Length();
