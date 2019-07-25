@@ -153,7 +153,7 @@ private:
 
 
   void CallWillPaintOnObservers(bool aWillSendDidPaint);
-  void CallDidPaintOnObservers();
+  void CallDidPaintOnObserver();
   void ReparentChildWidgets(nsIView* aView, nsIWidget *aNewWidget);
   void ReparentWidgets(nsIView* aView, nsIView *aParent);
   void InvalidateWidgetArea(nsView *aWidgetView, const nsRegion &aDamagedRegion);
@@ -161,12 +161,8 @@ private:
   void InvalidateViews(nsView *aView);
 
   
-  void Refresh(nsView *aView, nsIWidget *aWidget, const nsIntRegion& aRegion);
-  
-  
-  void RenderViews(nsView *aRootView, nsIWidget *aWidget,
-                   const nsRegion& aRegion, const nsIntRegion& aIntRegion,
-                   bool aPaintDefaultBackground, bool aWillSendDidPaint);
+  void Refresh(nsView *aView, nsIWidget *aWidget, const nsIntRegion& aRegion,
+               bool aWillSendDidPaint);
 
   void InvalidateRectDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut);
   void InvalidateHorizontalBandDifference(nsView *aView, const nsRect& aRect, const nsRect& aCutOut,
