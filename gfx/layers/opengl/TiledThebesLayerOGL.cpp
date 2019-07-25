@@ -166,6 +166,10 @@ TiledThebesLayerOGL::ProcessUploadQueue()
                                      resolution);
   }
 
+  
+  
+  mRegionToUpload.And(mRegionToUpload, mMainMemoryTiledBuffer.GetValidRegion());
+
   mVideoMemoryTiledBuffer.Upload(&mMainMemoryTiledBuffer,
                                  mMainMemoryTiledBuffer.GetValidRegion(),
                                  mRegionToUpload, resolution);
