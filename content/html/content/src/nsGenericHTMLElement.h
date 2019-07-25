@@ -1317,14 +1317,10 @@ NS_NewHTML##_elementName##Element(nsINodeInfo *aNodeInfo,         \
 }
 
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4003)
-#endif
-NS_DECLARE_NS_NEW_HTML_ELEMENT() 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+
+nsGenericHTMLElement*
+NS_NewHTMLElement(nsINodeInfo *aNodeInfo,
+                  PRUint32 aFromParser = 0);
 
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Shared)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedList)

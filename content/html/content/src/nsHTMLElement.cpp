@@ -62,14 +62,12 @@ public:
 };
 
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4003)
-#endif
-NS_IMPL_NS_NEW_HTML_ELEMENT() 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+
+nsGenericHTMLElement*
+NS_NewHTMLElement(nsINodeInfo *aNodeInfo, PRUint32 aFromParser)
+{
+  return new nsHTMLElement(aNodeInfo);
+}
 
 nsHTMLElement::nsHTMLElement(nsINodeInfo* aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
