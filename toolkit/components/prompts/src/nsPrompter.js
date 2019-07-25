@@ -420,7 +420,7 @@ function openTabPrompt(domWin, tabPrompt, args) {
     PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog");
 
     let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIDOMWindowUtils_MOZILLA_2_0_BRANCH);
+                         .getInterface(Ci.nsIDOMWindowUtils);
     let callerWin = winUtils.enterModalStateWithWindow();
 
     
