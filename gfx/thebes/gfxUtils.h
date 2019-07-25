@@ -99,6 +99,11 @@ public:
     
 
 
+    static void PathForRegion(gfxContext* aContext, const nsIntRegion& aRegion);
+
+    
+
+
     static int ImageFormatToDepth(gfxASurface::gfxImageFormat aFormat);
 
     
