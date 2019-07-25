@@ -111,7 +111,6 @@ struct THEBES_API gfxFontStyle {
     gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, PRInt16 aStretch,
                  gfxFloat aSize, nsIAtom *aLanguage,
                  float aSizeAdjust, PRPackedBool aSystemFont,
-                 PRPackedBool aFamilyNameQuirks,
                  PRPackedBool aPrinterFont,
                  const nsString& aFeatureSettings,
                  const nsString& aLanguageOverride);
@@ -127,10 +126,6 @@ struct THEBES_API gfxFontStyle {
 
     
     PRPackedBool printerFont : 1;
-
-    
-    
-    PRPackedBool familyNameQuirks : 1;
 
     
     PRUint16 weight;
@@ -177,8 +172,8 @@ struct THEBES_API gfxFontStyle {
     }
 
     PLDHashNumber Hash() const {
-        return ((style + (systemFont << 7) + (familyNameQuirks << 8) +
-            (weight << 9)) + PRUint32(size*1000) + PRUint32(sizeAdjust*1000)) ^
+        return ((style + (systemFont << 7) +
+            (weight << 8)) + PRUint32(size*1000) + PRUint32(sizeAdjust*1000)) ^
             nsISupportsHashKey::HashKey(language);
     }
 
@@ -189,7 +184,6 @@ struct THEBES_API gfxFontStyle {
             (style == other.style) &&
             (systemFont == other.systemFont) &&
             (printerFont == other.printerFont) &&
-            (familyNameQuirks == other.familyNameQuirks) &&
             (weight == other.weight) &&
             (stretch == other.stretch) &&
             (language == other.language) &&
