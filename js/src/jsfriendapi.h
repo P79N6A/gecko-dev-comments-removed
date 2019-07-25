@@ -205,6 +205,30 @@ JS_FRIEND_API(JSBool) obj_defineSetter(JSContext *cx, uintN argc, js::Value *vp)
 extern JS_FRIEND_API(bool)
 CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname);
 
+struct WeakMapTracer;
+
+
+
+
+
+
+
+typedef void
+(* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m,
+                         void *k, JSGCTraceKind kkind,
+                         void *v, JSGCTraceKind vkind);
+
+struct WeakMapTracer {
+    JSContext            *context;
+    WeakMapTraceCallback callback;
+
+    WeakMapTracer(JSContext *cx, WeakMapTraceCallback cb) 
+        : context(cx), callback(cb) {}
+};
+
+extern JS_FRIEND_API(void)
+TraceWeakMaps(WeakMapTracer *trc);
+
 
 
 

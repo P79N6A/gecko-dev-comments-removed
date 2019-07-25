@@ -2674,6 +2674,9 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind)
     rt->gcTriggerCompartment = NULL;
 
     
+    rt->gcWeakMapList = NULL;
+
+    
     rt->resetGCMallocBytes();
 
     AutoUnlockGC unlock(rt);
@@ -2935,7 +2938,6 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
     rt->gcRegenShapes = false;
     rt->setGCLastBytes(rt->gcBytes, gckind);
     rt->gcCurrentCompartment = NULL;
-    rt->gcWeakMapList = NULL;
 
     for (CompartmentsIter c(rt); !c.done(); c.next())
         c->setGCLastBytes(c->gcBytes, gckind);
