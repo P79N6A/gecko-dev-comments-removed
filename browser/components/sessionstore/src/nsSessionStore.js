@@ -879,7 +879,7 @@ SessionStoreService.prototype = {
       
       
       if (winData.tabs.length > 1 ||
-          (winData.tabs.length == 1 && winData.tabs[0].entries.length > 0)) {
+          (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]))) {
         this._closedWindows.unshift(winData);
         this._capClosedWindows();
       }
@@ -984,7 +984,7 @@ SessionStoreService.prototype = {
     this._updateTextAndScrollDataForTab(aWindow, aTab.linkedBrowser, tabState);
 
     
-    if (tabState.entries.length > 0) {
+    if (this._shouldSaveTabState(tabState)) {
       let tabTitle = aTab.label;
       let tabbrowser = aWindow.gBrowser;
       tabTitle = this._replaceLoadingTitle(tabTitle, tabbrowser, aTab);
@@ -3539,6 +3539,24 @@ SessionStoreService.prototype = {
     return max_resumed_crashes != -1 &&
            (aRecentCrashes > max_resumed_crashes ||
             sessionAge && sessionAge >= SIX_HOURS_IN_MS);
+  },
+
+  
+
+
+
+
+
+
+
+  _shouldSaveTabState: function sss__shouldSaveTabState(aTabState) {
+    
+    
+    
+    return aTabState.entries.length &&
+           !(aTabState.entries.length == 1 &&
+             aTabState.entries[0].url == "about:blank" &&
+             !aTabState.userTypedValue);
   },
 
   
