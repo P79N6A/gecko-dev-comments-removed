@@ -3365,6 +3365,8 @@ nsJSContext::PokeGC()
 
   if (!sGCTimer) {
     NS_WARNING("Failed to create timer");
+
+    GarbageCollectNow();
     return;
   }
 
@@ -3401,6 +3403,8 @@ nsJSContext::PokeCC()
 
   if (!sCCTimer) {
     NS_WARNING("Failed to create timer");
+
+    CycleCollectNow();
     return;
   }
 
@@ -3479,12 +3483,6 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
       if (!cx->runtime->gcTriggerCompartment) {
         nsJSContext::PokeCC();
       }
-    }
-
-    
-    
-    if (!sGCTimer && JS_GetGCParameter(cx->runtime, JSGC_UNUSED_CHUNKS) > 0) {
-      nsJSContext::PokeGC();
     }
   }
 

@@ -4445,11 +4445,6 @@ JSObject::freeSlot(JSContext *cx, uint32 slot)
     return false;
 }
 
-namespace js {
-
-
-}
-
 
 #define JSBOXEDWORD_INT_MAX_STRING "1073741823"
 
@@ -5057,7 +5052,7 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
     parent = obj->getParent();
     for (scopeIndex = 0;
          parent
-         ? IsCacheableNonGlobalScope(obj)
+         ? js_IsCacheableNonGlobalScope(obj)
          : !obj->getOps()->lookupProperty;
          ++scopeIndex) {
         protoIndex =
@@ -5171,7 +5166,7 @@ js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id)
 
 
     for (int scopeIndex = 0;
-         !obj->getParent() || IsCacheableNonGlobalScope(obj);
+         !obj->getParent() || js_IsCacheableNonGlobalScope(obj);
          scopeIndex++) {
         JSObject *pobj;
         JSProperty *prop;
