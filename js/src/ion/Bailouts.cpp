@@ -172,10 +172,17 @@ RestoreOneFrame(JSContext *cx, StackFrame *fp, IonBailoutIterator &iter)
     
     
     Value scopeChainv = iter.read();
-    if (scopeChainv.isObject())
-        fp->setScopeChainNoCallObj(scopeChainv.toObject());
-    else
+    if (scopeChainv.isObject()) {
+        
+        
+        
+        if (iter.bailoutKind() != Bailout_ArgumentCheck)
+            fp->setScopeChainNoCallObj(scopeChainv.toObject());
+        else
+            scopeChainv = ObjectValue(*fp->fun()->environment());
+    } else {
         JS_ASSERT(scopeChainv.isUndefined());
+    }
 
     if (fp->isFunctionFrame()) {
         Value thisv = iter.read();
