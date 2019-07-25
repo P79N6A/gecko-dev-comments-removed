@@ -183,7 +183,13 @@ public:
   {
     mManager = MediaManager::Get();
 
-    if (mPicture) {
+    
+    if (mPicture && (mAudio || mVideo)) {
+      NS_DispatchToMainThread(new ErrorCallbackRunnable(
+        mError, NS_LITERAL_STRING("NOT_SUPPORTED_ERR"), mWindowID
+      ));
+      return NS_OK;
+    } else {
       SendPicture();
       return NS_OK;
     }
