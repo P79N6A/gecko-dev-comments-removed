@@ -57,6 +57,7 @@
 class AccEvent;
 class AccGroupInfo;
 class EmbeddedObjCollector;
+class KeyBinding;
 class nsAccessible;
 class nsHyperTextAccessible;
 class nsHTMLLIAccessible;
@@ -407,6 +408,20 @@ public:
   
 
 
+  virtual KeyBinding AccessKey() const;
+
+  
+
+
+
+  virtual KeyBinding KeyboardShortcut() const;
+
+  
+  
+
+  
+
+
   virtual bool IsLink();
 
   
@@ -691,5 +706,62 @@ protected:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAccessible,
                               NS_ACCESSIBLE_IMPL_IID)
+
+
+
+
+
+
+class KeyBinding
+{
+public:
+  
+
+
+  static const PRUint32 kShift = 1;
+  static const PRUint32 kControl = 2;
+  static const PRUint32 kAlt = 4;
+  static const PRUint32 kMeta = 8;
+
+  KeyBinding() : mKey(0), mModifierMask(0) {}
+  KeyBinding(PRUint32 aKey, PRUint32 aModifierMask) :
+    mKey(aKey), mModifierMask(aModifierMask) {};
+
+  inline bool IsEmpty() const { return !mKey; }
+  inline PRUint32 Key() const { return mKey; }
+  inline PRUint32 ModifierMask() const { return mModifierMask; }
+
+  enum Format {
+    ePlatformFormat,
+    eAtkFormat
+  };
+
+  
+
+
+  inline void ToString(nsAString& aValue,
+                       Format aFormat = ePlatformFormat) const
+  {
+    aValue.Truncate();
+    AppendToString(aValue, aFormat);
+  }
+  inline void AppendToString(nsAString& aValue,
+                             Format aFormat = ePlatformFormat) const
+  {
+    if (mKey) {
+      if (aFormat == ePlatformFormat)
+        ToPlatformFormat(aValue);
+      else
+        ToAtkFormat(aValue);
+    }
+  }
+
+private:
+  void ToPlatformFormat(nsAString& aValue) const;
+  void ToAtkFormat(nsAString& aValue) const;
+
+  PRUint32 mKey;
+  PRUint32 mModifierMask;
+};
 
 #endif

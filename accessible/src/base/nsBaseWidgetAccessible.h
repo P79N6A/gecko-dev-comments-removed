@@ -92,13 +92,15 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
   NS_IMETHOD GetValue(nsAString& _retval);
   NS_IMETHOD TakeFocus();
-  NS_IMETHOD GetKeyboardShortcut(nsAString& _retval);
 
   
   virtual void Shutdown();
 
   
   virtual PRUint64 NativeState();
+
+  
+  virtual KeyBinding AccessKey() const;
 
   
   virtual already_AddRefed<nsIURI> AnchorURIAt(PRUint32 aAnchorIndex);

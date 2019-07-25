@@ -111,97 +111,53 @@ getActionNameCB(AtkAction *aAction, gint aActionIndex)
 const gchar *
 getKeyBindingCB(AtkAction *aAction, gint aActionIndex)
 {
-    nsAccessibleWrap *accWrap = GetAccessibleWrap(ATK_OBJECT(aAction));
-    if (!accWrap)
-        return nsnull;
+  nsAccessibleWrap* acc = GetAccessibleWrap(ATK_OBJECT(aAction));
+  if (!acc)
+    return nsnull;
 
-    
-    nsAutoString allKeyBinding;
+  
+  nsAutoString keyBindingsStr;
 
-    
-    nsAutoString accessKey;
-    nsresult rv = accWrap->GetKeyboardShortcut(accessKey);
+  
+  KeyBinding keyBinding = acc->AccessKey();
+  if (!keyBinding.IsEmpty()) {
+    keyBinding.AppendToString(keyBindingsStr, KeyBinding::eAtkFormat);
 
-    if (NS_SUCCEEDED(rv) && !accessKey.IsEmpty()) {
-        nsAccessible* parent = accWrap->GetParent();
-        if (parent) {
-          PRUint32 atkRole = atkRoleMap[parent->NativeRole()];
+    nsAccessible* parent = acc->GetParent();
+    PRUint32 role = parent ? parent->Role() : 0;
+    if (role == nsIAccessibleRole::ROLE_PARENT_MENUITEM ||
+        role == nsIAccessibleRole::ROLE_MENUITEM ||
+        role == nsIAccessibleRole::ROLE_RADIO_MENU_ITEM ||
+        role == nsIAccessibleRole::ROLE_CHECK_MENU_ITEM) {
+      
+      
+      nsAutoString keysInHierarchyStr = keyBindingsStr;
+      do {
+        KeyBinding parentKeyBinding = parent->AccessKey();
+        if (!parentKeyBinding.IsEmpty()) {
+          nsAutoString str;
+          parentKeyBinding.ToString(str, KeyBinding::eAtkFormat);
+          str.Append(':');
 
-            if (atkRole == ATK_ROLE_MENU_BAR) {
-                
-                nsAutoString rightChar;
-                accessKey.Right(rightChar, 1);
-                allKeyBinding = rightChar + NS_LITERAL_STRING(";<Alt>") +
-                                rightChar;
-            }
-            else if ((atkRole == ATK_ROLE_MENU) || (atkRole == ATK_ROLE_MENU_ITEM)) {
-                
-                nsAutoString allKey = accessKey;
-                nsAccessible* grandParent = parent;
-
-                do {
-                    nsAutoString grandParentKey;
-                    grandParent->GetKeyboardShortcut(grandParentKey);
-
-                    if (!grandParentKey.IsEmpty()) {
-                        nsAutoString rightChar;
-                        grandParentKey.Right(rightChar, 1);
-                        allKey = rightChar + NS_LITERAL_STRING(":") + allKey;
-                    }
-
-                } while ((grandParent = grandParent->GetParent()) &&
-                         atkRoleMap[grandParent->NativeRole()] != ATK_ROLE_MENU_BAR);
-
-                allKeyBinding = accessKey + NS_LITERAL_STRING(";<Alt>") +
-                                allKey;
-            }
+          keysInHierarchyStr.Insert(str, 0);
         }
-        else {
-            
-            nsAutoString rightChar;
-            accessKey.Right(rightChar, 1);
-            allKeyBinding = rightChar + NS_LITERAL_STRING(";<Alt>") + rightChar;
-        }
+      } while ((parent = parent->GetParent()) &&
+               parent->Role() != nsIAccessibleRole::ROLE_MENUBAR);
+
+      keyBindingsStr.Append(';');
+      keyBindingsStr.Append(keysInHierarchyStr);
     }
-    else  
-        allKeyBinding.AssignLiteral(";");
-
+  } else {
     
-    nsAutoString subShortcut;
-    nsCOMPtr<nsIDOMDOMStringList> keyBindings;
-    rv = accWrap->GetKeyBindings(aActionIndex, getter_AddRefs(keyBindings));
+    keyBindingsStr.Append(';');
+  }
 
-    if (NS_SUCCEEDED(rv) && keyBindings) {
-        PRUint32 length = 0;
-        keyBindings->GetLength(&length);
-        for (PRUint32 i = 0; i < length; i++) {
-            nsAutoString keyBinding;
-            keyBindings->Item(i, keyBinding);
+  
+  keyBindingsStr.Append(';');
+  keyBinding = acc->KeyboardShortcut();
+  if (!keyBinding.IsEmpty()) {
+    keyBinding.AppendToString(keyBindingsStr, KeyBinding::eAtkFormat);
+  }
 
-            
-            PRInt32 oldPos, curPos=0;
-            while ((curPos != -1) && (curPos < (PRInt32)keyBinding.Length())) {
-                oldPos = curPos;
-                nsAutoString subString;
-                curPos = keyBinding.FindChar('+', oldPos);
-                if (curPos == -1) {
-                    keyBinding.Mid(subString, oldPos, keyBinding.Length() - oldPos);
-                    subShortcut += subString;
-                } else {
-                    keyBinding.Mid(subString, oldPos, curPos - oldPos);
-
-                    
-                    if (subString.LowerCaseEqualsLiteral("ctrl"))
-                        subString.AssignLiteral("Control");
-
-                    subShortcut += NS_LITERAL_STRING("<") + subString +
-                                   NS_LITERAL_STRING(">");
-                    curPos++;
-                }
-            }
-        }
-    }
-
-    allKeyBinding += NS_LITERAL_STRING(";") + subShortcut;
-    return nsAccessibleWrap::ReturnString(allKeyBinding);
+  return nsAccessibleWrap::ReturnString(keyBindingsStr);
 }

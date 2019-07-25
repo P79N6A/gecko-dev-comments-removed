@@ -215,7 +215,6 @@ protected:
 
     
     static nsIStringBundle *gStringBundle;
-    static nsIStringBundle *gKeyStringBundle;
 
     static PRBool gIsFormFillEnabled;
 
