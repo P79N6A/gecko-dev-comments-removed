@@ -157,6 +157,38 @@ static int do_main(int argc, char* argv[])
   return XRE_main(argc, argv, &sAppData, 0);
 }
 
+#ifdef XP_WIN
+
+
+
+
+
+
+bool IsPrefetchDisabledViaService()
+{
+  
+  
+  
+  
+  
+  
+  HKEY baseKey;
+  LONG retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+                               L"SOFTWARE\\Mozilla\\MaintenanceService", 0,
+                               KEY_READ | KEY_WOW64_64KEY, &baseKey);
+  if (retCode != ERROR_SUCCESS) {
+    return false;
+  }
+  DWORD disabledValue = 0;
+  DWORD disabledValueSize = sizeof(DWORD);
+  RegQueryValueExW(baseKey, L"FFPrefetchDisabled", 0, NULL,
+                   reinterpret_cast<LPBYTE>(&disabledValue),
+                   &disabledValueSize);
+  RegCloseKey(baseKey);
+  return disabledValue == 1;
+}
+#endif
+
 int main(int argc, char* argv[])
 {
   char exePath[MAXPATHLEN];
@@ -187,9 +219,13 @@ int main(int argc, char* argv[])
   
   
   
+  
+  
+  
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
-  if (gotCounters && !ioCounters.ReadOperationCount)
+  if ((gotCounters && !ioCounters.ReadOperationCount) || 
+      IsPrefetchDisabledViaService())
 #endif
   {
       XPCOMGlueEnablePreload();

@@ -47,6 +47,35 @@
 
 
 
+BOOL
+WritePrefetchClearedReg()
+{
+  HKEY baseKeyRaw;
+  LONG retCode = RegOpenKeyExW(HKEY_LOCAL_MACHINE, 
+                               BASE_SERVICE_REG_KEY, 0,
+                               KEY_WRITE | KEY_WOW64_64KEY, &baseKeyRaw);
+  if (retCode != ERROR_SUCCESS) {
+    LOG(("Could not open key for prefetch. (%d)\n", retCode));
+    return FALSE;
+  }
+  nsAutoRegKey baseKey(baseKeyRaw);
+  DWORD disabledValue = 1;
+  if (RegSetValueExW(baseKey, L"FFPrefetchDisabled", 0, REG_DWORD,
+                     reinterpret_cast<LPBYTE>(&disabledValue),
+                     sizeof(disabledValue)) != ERROR_SUCCESS) {
+    LOG(("Could not write prefetch cleared value to registry. (%d)\n",
+         GetLastError()));
+    return FALSE;
+  }
+  return TRUE;
+}
+
+
+
+
+
+
+
 
 
 
@@ -179,6 +208,11 @@ ClearPrefetch(LPCWSTR prefetchProcessName)
 
   
   FindClose(findHandle);
+
+  if (deletedAllFFPrefetch) {
+    WritePrefetchClearedReg();
+  }
+
   return deletedAllFFPrefetch;
 }
 
