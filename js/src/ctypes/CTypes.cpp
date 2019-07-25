@@ -2763,7 +2763,7 @@ CType::Trace(JSTracer* trc, JSObject* obj)
   
   switch (TypeCode(JSVAL_TO_INT(slot))) {
   case TYPE_struct: {
-    slot = Jsvalify(obj->getReservedSlot(SLOT_FIELDINFO));
+    ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FIELDINFO, &slot));
     if (JSVAL_IS_VOID(slot))
       return;
 
@@ -2778,7 +2778,7 @@ CType::Trace(JSTracer* trc, JSObject* obj)
   }
   case TYPE_function: {
     
-    slot = Jsvalify(obj->getReservedSlot(SLOT_FNINFO));
+    ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_FNINFO, &slot));
     if (JSVAL_IS_VOID(slot))
       return;
 
