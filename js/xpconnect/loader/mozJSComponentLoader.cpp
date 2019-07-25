@@ -751,6 +751,8 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
     JSPrincipals* jsPrincipals = nsnull;
     JSCLContextHelper cx(this);
 
+    JS_AbortIfWrongThread(JS_GetRuntime(cx));
+
     
     js::AutoPreserveCompartment pc(cx);
 

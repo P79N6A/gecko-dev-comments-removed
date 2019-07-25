@@ -347,7 +347,8 @@ typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 
 }
 
-struct JSRuntime {
+struct JSRuntime
+{
     
     JSCompartment       *atomsCompartment;
 #ifdef JS_THREADSAFE
@@ -359,6 +360,20 @@ struct JSRuntime {
 
     
     JSRuntimeState      state;
+
+    
+#ifdef JS_THREADSAFE
+  public:
+    void clearOwnerThread();
+    void setOwnerThread();
+    JS_FRIEND_API(bool) onOwnerThread() const;
+  private:
+    void                *ownerThread_;
+  public:
+#else
+  public:
+    bool onOwnerThread() const { return true; }
+#endif
 
     
     JSContextCallback   cxCallback;
@@ -1320,11 +1335,11 @@ class AutoCheckRequestDepth {
 # define CHECK_REQUEST(cx)                                                    \
     JS_ASSERT((cx)->thread());                                                \
     JS_ASSERT((cx)->thread()->data.requestDepth || (cx)->thread() == (cx)->runtime->gcThread); \
+    JS_ASSERT(cx->runtime->onOwnerThread());                                  \
     AutoCheckRequestDepth _autoCheckRequestDepth(cx);
 
 #else
 # define CHECK_REQUEST(cx)          ((void) 0)
-# define CHECK_REQUEST_THREAD(cx)   ((void) 0)
 #endif
 
 struct AutoResolving {

@@ -4818,6 +4818,51 @@ JS_ClearContextThread(JSContext *cx);
 
 
 
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_AbortIfWrongThread(JSRuntime *rt);
+
+extern JS_PUBLIC_API(void)
+JS_ClearRuntimeThread(JSRuntime *rt);
+
+extern JS_PUBLIC_API(void)
+JS_SetRuntimeThread(JSRuntime *rt);
+
+#ifdef __cplusplus
+JS_END_EXTERN_C
+
+class JSAutoSetRuntimeThread
+{
+    JSRuntime *runtime;
+
+  public:
+    JSAutoSetRuntimeThread(JSRuntime *runtime) : runtime(runtime) {
+        JS_SetRuntimeThread(runtime);
+    }
+
+    ~JSAutoSetRuntimeThread() {
+        JS_ClearRuntimeThread(runtime);
+    }
+};
+
+JS_BEGIN_EXTERN_C
+#endif
+
+
+
+
+
+
+
+
+
+
 static JS_ALWAYS_INLINE JSBool
 JS_IsConstructing(JSContext *cx, const jsval *vp)
 {
