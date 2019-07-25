@@ -755,7 +755,7 @@ GLContextEGL::CreateSharedHandle(TextureImage::TextureShareType aType)
     MakeCurrent();
     GLuint texture = 0;
     ContextFormat fmt = ActualFormat();
-    CreateTextureForOffscreen(ChooseGLFormats(fmt), mOffscreenSize, texture);
+    CreateTextureForOffscreen(ChooseGLFormats(fmt, GLContext::ForceRGBA), mOffscreenSize, texture);
     
     
     EGLTextureWrapper* tex = new EGLTextureWrapper(this, texture);
