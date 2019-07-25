@@ -165,6 +165,40 @@ protected:
   void DoSetRange(nsINode* aStartN, PRInt32 aStartOffset,
                   nsINode* aEndN, PRInt32 aEndOffset,
                   nsINode* aRoot, bool aNotInsertedYet = false);
+
+  
+
+
+
+
+
+
+
+  nsINode* GetRegisteredCommonAncestor();
+
+  struct NS_STACK_CLASS AutoInvalidateSelection
+  {
+    AutoInvalidateSelection(nsRange* aRange) : mRange(aRange)
+    {
+#ifdef DEBUG
+      mWasInSelection = mRange->IsInSelection();
+#endif
+      if (!mRange->IsInSelection() || mIsNested) {
+        return;
+      }
+      mIsNested = true;
+      NS_ASSERTION(!mRange->IsDetached(), "detached range in selection");
+      mCommonAncestor = mRange->GetRegisteredCommonAncestor();
+    }
+    ~AutoInvalidateSelection();
+    nsRange* mRange;
+    nsRefPtr<nsINode> mCommonAncestor;
+#ifdef DEBUG
+    bool mWasInSelection;
+#endif
+    static bool mIsNested;
+  };
+  
 };
 
 
