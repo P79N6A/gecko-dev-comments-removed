@@ -236,11 +236,17 @@ CanvasBrowser.prototype = {
 
   
   
-  prepareForPanning: function prepareForPanning() {
+  startPanning: function startPanning() {
     this.flushRegion();
     
     
     this._isPanning = true;
+  },
+
+  endPanning: function endPanning() {
+    this.flushRegion();
+
+    this._isPanning = false;
   },
 
   viewportHandler: function viewportHandler(bounds, boundsSizeChanged) {

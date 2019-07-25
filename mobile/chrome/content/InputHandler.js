@@ -481,7 +481,7 @@ ContentPanningModule.prototype = {
     this._owner.grab(this);
     ws.dragStart(sX, sY);
 
-    Browser.canvasBrowser.prepareForPanning();
+    Browser.canvasBrowser.startPanning();
 
     
     this._kineticData.lastTime = Date.now();
@@ -500,6 +500,9 @@ ContentPanningModule.prototype = {
     else {
       ws.dragStop(sX, sY);
     }
+
+    
+    Browser.canvasBrowser.endPanning();
   },
 
   _dragMove: function _dragMove(sX, sY) {
