@@ -193,8 +193,11 @@ public class TabsTray extends LinearLayout
             
             mTabs = new ArrayList<Tab>();
             ArrayList<Tab> tabs = Tabs.getInstance().getTabsInOrder();
-            for (Tab tab : tabs) {
-                mTabs.add(tab);
+
+            if (tabs != null) {
+                for (Tab tab : tabs) {
+                    mTabs.add(tab);
+                }
             }
 
             notifyDataSetChanged(); 
