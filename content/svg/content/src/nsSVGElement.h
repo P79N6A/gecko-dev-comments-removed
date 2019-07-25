@@ -154,6 +154,7 @@ public:
   
   
   virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix) {}
+  virtual const gfxMatrix* GetAnimateMotionTransform() const { return nsnull; }
 
   bool IsStringAnimatable(PRUint8 aAttrEnum) {
     return GetStringInfo().mStringInfo[aAttrEnum].mIsAnimatable;

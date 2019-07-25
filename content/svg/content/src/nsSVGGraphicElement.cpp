@@ -152,7 +152,8 @@ nsSVGGraphicElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 {
   nsChangeHint retval =
     nsSVGGraphicElementBase::GetAttributeChangeHint(aAttribute, aModType);
-  if (aAttribute == nsGkAtoms::transform) {
+  if (aAttribute == nsGkAtoms::transform ||
+      aAttribute == nsGkAtoms::mozAnimateMotionDummyAttr) {
     
     
     nsIFrame* frame =
@@ -224,6 +225,12 @@ nsSVGGraphicElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
   }
 
   return result;
+}
+
+const gfxMatrix*
+nsSVGGraphicElement::GetAnimateMotionTransform() const
+{
+  return mAnimateMotionTransform.get();
 }
 
 void
