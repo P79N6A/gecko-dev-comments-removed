@@ -39,7 +39,9 @@
   margin: 20px 20px;
 }
 
-#view-port {
+#view-port-container {
+  
+  overflow: hidden;
   background-color: -moz-field;
   color: -moz-fieldtext;
   border: 1px solid threedshadow;
