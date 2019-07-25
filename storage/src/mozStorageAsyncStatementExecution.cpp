@@ -76,6 +76,7 @@ namespace storage {
 namespace {
 
 typedef AsyncExecuteStatements::ExecutionState ExecutionState;
+typedef AsyncExecuteStatements::StatementDataArray StatementDataArray;
 
 
 
@@ -141,7 +142,6 @@ private:
 
 
 
-
 class CompletionNotifier : public nsRunnable
 {
 public:
@@ -149,13 +149,14 @@ public:
 
 
 
+
   CompletionNotifier(mozIStorageStatementCallback *aCallback,
                      ExecutionState aReason,
-                     AsyncExecuteStatements *aKeepAsyncAlive)
-    : mKeepAsyncAlive(aKeepAsyncAlive)
-    , mCallback(aCallback)
+                     StatementDataArray &aStatementData)
+    : mCallback(aCallback)
     , mReason(aReason)
   {
+    mStatementData.SwapElements(aStatementData);
   }
 
   NS_IMETHOD Run()
@@ -165,11 +166,16 @@ public:
       NS_RELEASE(mCallback);
     }
 
+    
+    
+    
+    mStatementData.Clear();
+
     return NS_OK;
   }
 
 private:
-  nsRefPtr<AsyncExecuteStatements> mKeepAsyncAlive;
+  StatementDataArray mStatementData;
   mozIStorageStatementCallback *mCallback;
   ExecutionState mReason;
 };
@@ -448,8 +454,9 @@ AsyncExecuteStatements::notifyComplete()
   
   
   nsRefPtr<CompletionNotifier> completionEvent =
-    new CompletionNotifier(mCallback, mState, this);
-  NS_ENSURE_TRUE(completionEvent, NS_ERROR_OUT_OF_MEMORY);
+    new CompletionNotifier(mCallback, mState, mStatements);
+  NS_ASSERTION(mStatements.IsEmpty(),
+               "Should have given up ownership of mStatements!");
 
   
   mCallback = nsnull;

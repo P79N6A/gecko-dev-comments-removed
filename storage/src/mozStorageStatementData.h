@@ -44,6 +44,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
+#include "nsIEventTarget.h"
 
 #include "mozStorageBindingParamsArray.h"
 #include "mozIStorageBaseStatement.h"
@@ -65,12 +66,14 @@ public:
   , mParamsArray(aParamsArray)
   , mStatementOwner(aStatementOwner)
   {
+    NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
   }
   StatementData(const StatementData &aSource)
   : mStatement(aSource.mStatement)
   , mParamsArray(aSource.mParamsArray)
   , mStatementOwner(aSource.mStatementOwner)
   {
+    NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
   }
   StatementData()
   {
@@ -105,13 +108,22 @@ public:
 
 
 
-
-
-
-
-
   inline void finalize()
   {
+    NS_PRECONDITION(mStatementOwner, "Must have a statement owner!");
+#ifdef DEBUG
+    {
+      nsCOMPtr<nsIEventTarget> asyncThread =
+        mStatementOwner->getOwner()->getAsyncExecutionTarget();
+      
+      
+      if (asyncThread) {
+        PRBool onAsyncThread;
+        NS_ASSERTION(NS_SUCCEEDED(asyncThread->IsOnCurrentThread(&onAsyncThread)) && onAsyncThread,
+                     "This should only be running on the async thread!");
+      }
+    }
+#endif
     
     
     
