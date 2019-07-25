@@ -236,9 +236,13 @@ public:
   }
 
   ColorTextureLayerProgram *GetFBOLayerProgram() {
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[GetFBOLayerProgramType()]);
+  }
+
+  gl::ShaderProgramType GetFBOLayerProgramType() {
     if (mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB)
-      return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBARectLayerProgramType]);
-    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBALayerProgramType]);
+      return gl::RGBARectLayerProgramType;
+    return gl::RGBALayerProgramType;
   }
 
   GLContext *gl() const { return mGLContext; }
@@ -451,7 +455,7 @@ private:
   
 
 
-  void CopyToTarget();
+  void CopyToTarget(gfxContext *aTarget);
 
   
 

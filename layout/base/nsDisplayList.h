@@ -566,8 +566,12 @@ public:
 
   
   
-  nsDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame) :
-    mFrame(aFrame) {
+  nsDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
+    : mFrame(aFrame)
+#ifdef MOZ_DUMP_PAINTING
+    , mPainted(false)
+#endif
+  {
     if (aFrame) {
       mToReferenceFrame = aBuilder->ToReferenceFrame(aFrame);
     }
@@ -715,6 +719,19 @@ public:
 
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) {}
+
+#ifdef MOZ_DUMP_PAINTING
+  
+
+
+  bool Painted() { return mPainted; }
+
+  
+
+
+  void SetPainted() { mPainted = true; }
+#endif
+
   
 
 
@@ -850,6 +867,10 @@ protected:
   
   
   nsRect    mVisibleRect;
+#ifdef MOZ_DUMP_PAINTING
+  
+  bool      mPainted;
+#endif
 };
 
 
