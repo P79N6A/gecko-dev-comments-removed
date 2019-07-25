@@ -1,27 +1,27 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99 ft=cpp:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsapi.h"
 #include "jswrapper.h"
 
-
-
-
-
-
+// Xray wrappers re-resolve the original native properties on the native
+// object and always directly access to those properties.
+// Because they work so differently from the rest of the wrapper hierarchy,
+// we pull them out of the Wrapper inheritance hierarchy and create a
+// little world around them.
 
 class XPCWrappedNative;
 
 namespace xpc {
 
 JSBool
-holder_get(JSContext *cx, JSHandleObject holder, JSHandleId id, jsval *vp);
+holder_get(JSContext *cx, JSHandleObject holder, JSHandleId id, JSMutableHandleValue vp);
 JSBool
-holder_set(JSContext *cx, JSHandleObject holder, JSHandleId id, JSBool strict, jsval *vp);
+holder_set(JSContext *cx, JSHandleObject holder, JSHandleId id, JSBool strict, JSMutableHandleValue vp);
 
 namespace XrayUtils {
 
@@ -43,14 +43,14 @@ class XPCWrappedNativeXrayTraits;
 class ProxyXrayTraits;
 class DOMXrayTraits;
 
-
+// NB: Base *must* derive from JSProxyHandler
 template <typename Base, typename Traits = XPCWrappedNativeXrayTraits >
 class XrayWrapper : public Base {
   public:
     XrayWrapper(unsigned flags);
     virtual ~XrayWrapper();
 
-    
+    /* Fundamental proxy traps. */
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
                                        bool set, js::PropertyDescriptor *desc);
     virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
@@ -62,7 +62,7 @@ class XrayWrapper : public Base {
     virtual bool delete_(JSContext *cx, JSObject *wrapper, jsid id, bool *bp);
     virtual bool enumerate(JSContext *cx, JSObject *wrapper, js::AutoIdVector &props);
 
-    
+    /* Derived proxy traps. */
     virtual bool get(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id,
                      js::Value *vp);
     virtual bool set(JSContext *cx, JSObject *wrapper, JSObject *receiver, jsid id,

@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=78:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef ArgumentsObject_inl_h___
 #define ArgumentsObject_inl_h___
@@ -109,11 +109,11 @@ ArgumentsObject::markElementDeleted(uint32_t i)
 }
 
 inline bool
-ArgumentsObject::maybeGetElement(uint32_t i, Value *vp)
+ArgumentsObject::maybeGetElement(uint32_t i, MutableHandleValue vp)
 {
     if (i >= initialLength() || isElementDeleted(i))
         return false;
-    *vp = element(i);
+    vp.set(element(i));
     return true;
 }
 
@@ -149,6 +149,6 @@ NormalArgumentsObject::clearCallee()
     data()->callee.set(compartment(), MagicValue(JS_OVERWRITTEN_CALLEE));
 }
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* ArgumentsObject_inl_h___ */

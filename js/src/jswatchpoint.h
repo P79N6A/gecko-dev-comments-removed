@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jswatchpoint_h___
 #define jswatchpoint_h___
@@ -28,7 +28,7 @@ struct WatchKey {
 struct Watchpoint {
     JSWatchPointHandler handler;
     HeapPtrObject closure;
-    bool held;  
+    bool held;  /* true if currently running handler */
 };
 
 template <>
@@ -53,7 +53,7 @@ class WatchpointMap {
     void unwatchObject(JSObject *obj);
     void clear();
 
-    bool triggerWatchpoint(JSContext *cx, HandleObject obj, HandleId id, Value *vp);
+    bool triggerWatchpoint(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp);
 
     static bool markAllIteratively(JSTracer *trc);
     bool markIteratively(JSTracer *trc);
@@ -70,4 +70,4 @@ class WatchpointMap {
 
 }
 
-#endif 
+#endif /* jswatchpoint_h___ */

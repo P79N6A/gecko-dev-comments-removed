@@ -111,16 +111,17 @@ NPClass nsJSObjWrapper::sJSObjWrapperNPClass =
   };
 
 static JSBool
-NPObjWrapper_AddProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp);
+NPObjWrapper_AddProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
 static JSBool
-NPObjWrapper_DelProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp);
+NPObjWrapper_DelProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
 static JSBool
-NPObjWrapper_SetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, jsval *vp);
+NPObjWrapper_SetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
+                         JSMutableHandleValue vp);
 
 static JSBool
-NPObjWrapper_GetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp);
+NPObjWrapper_GetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
 static JSBool
 NPObjWrapper_newEnumerate(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
@@ -131,7 +132,7 @@ NPObjWrapper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsign
                         JSMutableHandleObject objp);
 
 static JSBool
-NPObjWrapper_Convert(JSContext *cx, JSHandleObject obj, JSType type, jsval *vp);
+NPObjWrapper_Convert(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp);
 
 static void
 NPObjWrapper_Finalize(JSFreeOp *fop, JSObject *obj);
@@ -158,9 +159,9 @@ static JSClass sNPObjectJSWrapperClass =
     (JSResolveOp)NPObjWrapper_NewResolve,
     NPObjWrapper_Convert,
     NPObjWrapper_Finalize,
-    nullptr,                                                
+    nsnull,                                                
     NPObjWrapper_Call,
-    nullptr,                                                
+    nsnull,                                                
     NPObjWrapper_Construct
   };
 
@@ -172,7 +173,7 @@ typedef struct NPObjectMemberPrivate {
 } NPObjectMemberPrivate;
 
 static JSBool
-NPObjectMember_Convert(JSContext *cx, JSHandleObject obj, JSType type, jsval *vp);
+NPObjectMember_Convert(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp);
 
 static void
 NPObjectMember_Finalize(JSFreeOp *fop, JSObject *obj);
@@ -189,8 +190,8 @@ static JSClass sNPObjectMemberClass =
     JS_PropertyStub, JS_PropertyStub,
     JS_PropertyStub, JS_StrictPropertyStub, JS_EnumerateStub,
     JS_ResolveStub, NPObjectMember_Convert,
-    NPObjectMember_Finalize, nullptr, NPObjectMember_Call,
-    nullptr, nullptr, NPObjectMember_Trace
+    NPObjectMember_Finalize, nsnull, NPObjectMember_Call,
+    nsnull, nsnull, NPObjectMember_Trace
   };
 
 static void
@@ -203,7 +204,7 @@ DelayedReleaseGCCallback(JSRuntime* rt, JSGCStatus status)
     
     
     nsAutoPtr<nsTArray<NPObject*> > delayedReleases(sDelayedReleases);
-    sDelayedReleases = nullptr;
+    sDelayedReleases = nsnull;
 
     if (delayedReleases) {
       for (PRUint32 i = 0; i < delayedReleases->Length(); ++i) {
@@ -226,7 +227,7 @@ OnWrapperCreated()
       return;
 
     rtsvc->GetRuntime(&sJSRuntime);
-    NS_ASSERTION(sJSRuntime != nullptr, "no JSRuntime?!");
+    NS_ASSERTION(sJSRuntime != nsnull, "no JSRuntime?!");
 
     
     
@@ -249,7 +250,7 @@ OnWrapperDestroyed()
       
       PL_DHashTableFinish(&sJSObjWrappers);
 
-      sJSObjWrappers.ops = nullptr;
+      sJSObjWrappers.ops = nsnull;
     }
 
     if (sNPObjWrappers.ops) {
@@ -259,11 +260,11 @@ OnWrapperDestroyed()
       
       PL_DHashTableFinish(&sNPObjWrappers);
 
-      sNPObjWrappers.ops = nullptr;
+      sNPObjWrappers.ops = nsnull;
     }
 
     
-    sJSRuntime = nullptr;
+    sJSRuntime = nsnull;
 
     NS_IF_RELEASE(sContextStack);
   }
@@ -288,10 +289,10 @@ struct AutoCXPusher
 
   ~AutoCXPusher()
   {
-    JSContext *cx = nullptr;
+    JSContext *cx = nsnull;
     sContextStack->Pop(&cx);
 
-    JSContext *currentCx = nullptr;
+    JSContext *currentCx = nsnull;
     sContextStack->Peek(&currentCx);
 
     if (!currentCx) {
@@ -316,25 +317,25 @@ namespace parent {
 JSContext *
 GetJSContext(NPP npp)
 {
-  NS_ENSURE_TRUE(npp, nullptr);
+  NS_ENSURE_TRUE(npp, nsnull);
 
   nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)npp->ndata;
-  NS_ENSURE_TRUE(inst, nullptr);
+  NS_ENSURE_TRUE(inst, nsnull);
 
   nsCOMPtr<nsIPluginInstanceOwner> owner;
   inst->GetOwner(getter_AddRefs(owner));
-  NS_ENSURE_TRUE(owner, nullptr);
+  NS_ENSURE_TRUE(owner, nsnull);
 
   nsCOMPtr<nsIDocument> doc;
   owner->GetDocument(getter_AddRefs(doc));
-  NS_ENSURE_TRUE(doc, nullptr);
+  NS_ENSURE_TRUE(doc, nsnull);
 
   nsCOMPtr<nsISupports> documentContainer = doc->GetContainer();
   nsCOMPtr<nsIScriptGlobalObject> sgo(do_GetInterface(documentContainer));
-  NS_ENSURE_TRUE(sgo, nullptr);
+  NS_ENSURE_TRUE(sgo, nsnull);
 
   nsIScriptContext *scx = sgo->GetContext();
-  NS_ENSURE_TRUE(scx, nullptr);
+  NS_ENSURE_TRUE(scx, nsnull);
 
   return scx->GetNativeContext();
 }
@@ -540,14 +541,14 @@ ReportExceptionIfPending(JSContext *cx)
     return JS_TRUE;
   }
 
-  ThrowJSException(cx, nullptr);
+  ThrowJSException(cx, nsnull);
 
   return JS_FALSE;
 }
 
 
 nsJSObjWrapper::nsJSObjWrapper(NPP npp)
-  : nsJSObjWrapperKey(nullptr, npp)
+  : nsJSObjWrapperKey(nsnull, npp)
 {
   MOZ_COUNT_CTOR(nsJSObjWrapper);
   OnWrapperCreated();
@@ -599,7 +600,7 @@ nsJSObjWrapper::NP_Invalidate(NPObject *npobj)
     }
 
     
-    jsnpobj->mJSObj = nullptr;
+    jsnpobj->mJSObj = nsnull;
   }
 }
 
@@ -1044,7 +1045,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
   if (!npp) {
     NS_ERROR("Null NPP passed to nsJSObjWrapper::GetNewOrUsed()!");
 
-    return nullptr;
+    return nsnull;
   }
 
   if (!cx) {
@@ -1053,7 +1054,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
     if (!cx) {
       NS_ERROR("Unable to find a JSContext in nsJSObjWrapper::GetNewOrUsed()!");
 
-      return nullptr;
+      return nsnull;
     }
   }
 
@@ -1076,7 +1077,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
     
     
     if (!npobj)
-      return nullptr;
+      return nsnull;
 
     if (LookupNPP(npobj) == npp)
       return _retainobject(npobj);
@@ -1096,11 +1097,11 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
         PL_DHashFinalizeStub
       };
 
-    if (!PL_DHashTableInit(&sJSObjWrappers, &ops, nullptr,
+    if (!PL_DHashTableInit(&sJSObjWrappers, &ops, nsnull,
                            sizeof(JSObjWrapperHashEntry), 16)) {
       NS_ERROR("Error initializing PLDHashTable!");
 
-      return nullptr;
+      return nsnull;
     }
   }
 
@@ -1111,7 +1112,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
 
   if (!entry) {
     
-    return nullptr;
+    return nsnull;
   }
 
   if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->mJSObjWrapper) {
@@ -1130,7 +1131,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
 
     PL_DHashTableRawRemove(&sJSObjWrappers, entry);
 
-    return nullptr;
+    return nsnull;
   }
 
   wrapper->mJSObj = obj;
@@ -1150,7 +1151,7 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
 
     PL_DHashTableRawRemove(&sJSObjWrappers, entry);
 
-    return nullptr;
+    return nsnull;
   }
 
   return wrapper;
@@ -1182,7 +1183,7 @@ GetNPObject(JSContext *cx, JSObject *obj)
 {
   obj = GetNPObjectWrapper(cx, obj,  false);
   if (!obj) {
-    return nullptr;
+    return nsnull;
   }
 
   return (NPObject *)::JS_GetPrivate(obj);
@@ -1192,7 +1193,7 @@ GetNPObject(JSContext *cx, JSObject *obj)
 
 
 static JSBool
-NPObjWrapper_AddProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp)
+NPObjWrapper_AddProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
 {
   NPObject *npobj = GetNPObject(cx, obj);
 
@@ -1233,7 +1234,7 @@ NPObjWrapper_AddProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval
 }
 
 static JSBool
-NPObjWrapper_DelProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp)
+NPObjWrapper_DelProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
 {
   NPObject *npobj = GetNPObject(cx, obj);
 
@@ -1258,13 +1259,14 @@ NPObjWrapper_DelProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval
   }
 
   if (!npobj->_class->removeProperty(npobj, identifier))
-    *vp = JSVAL_FALSE;
+    vp.set(JSVAL_FALSE);
 
   return ReportExceptionIfPending(cx);
 }
 
 static JSBool
-NPObjWrapper_SetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict, jsval *vp)
+NPObjWrapper_SetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBool strict,
+                         JSMutableHandleValue vp)
 {
   NPObject *npobj = GetNPObject(cx, obj);
 
@@ -1302,7 +1304,7 @@ NPObjWrapper_SetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBoo
   }
 
   NPVariant npv;
-  if (!JSValToNPVariant(npp, cx, *vp, &npv)) {
+  if (!JSValToNPVariant(npp, cx, vp, &npv)) {
     ThrowJSException(cx, "Error converting jsval to NPVariant!");
 
     return JS_FALSE;
@@ -1323,7 +1325,7 @@ NPObjWrapper_SetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBoo
 }
 
 static JSBool
-NPObjWrapper_GetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp)
+NPObjWrapper_GetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
 {
   NPObject *npobj = GetNPObject(cx, obj);
 
@@ -1371,10 +1373,10 @@ NPObjWrapper_GetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval
     if (success) {
       
       if (hasProperty && hasMethod)
-        return CreateNPObjectMember(npp, cx, obj, npobj, id, &npv, vp);
+        return CreateNPObjectMember(npp, cx, obj, npobj, id, &npv, vp.address());
 
       if (hasProperty) {
-        *vp = NPVariantToJSVal(npp, cx, &npv);
+        vp.set(NPVariantToJSVal(npp, cx, &npv));
         _releasevariantvalue(&npv);
 
         if (!ReportExceptionIfPending(cx))
@@ -1394,11 +1396,11 @@ NPObjWrapper_GetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval
 
   
   if (hasProperty && hasMethod)
-    return CreateNPObjectMember(npp, cx, obj, npobj, id, nullptr, vp);
+    return CreateNPObjectMember(npp, cx, obj, npobj, id, nsnull, vp.address());
 
   if (hasProperty) {
     if (npobj->_class->getProperty(npobj, identifier, &npv))
-      *vp = NPVariantToJSVal(npp, cx, &npv);
+      vp.set(NPVariantToJSVal(npp, cx, &npv));
 
     _releasevariantvalue(&npv);
 
@@ -1656,8 +1658,8 @@ NPObjWrapper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsign
   if (hasProperty) {
     NS_ASSERTION(JSID_IS_STRING(id) || JSID_IS_INT(id),
                  "id must be either string or int!\n");
-    if (!::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, nullptr,
-                                 nullptr, JSPROP_ENUMERATE)) {
+    if (!::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, nsnull,
+                                 nsnull, JSPROP_ENUMERATE)) {
         return JS_FALSE;
     }
 
@@ -1679,7 +1681,7 @@ NPObjWrapper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsign
 
     objp.set(obj);
 
-    return fnc != nullptr;
+    return fnc != nsnull;
   }
 
   
@@ -1687,7 +1689,7 @@ NPObjWrapper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsign
 }
 
 static JSBool
-NPObjWrapper_Convert(JSContext *cx, JSHandleObject obj, JSType hint, jsval *vp)
+NPObjWrapper_Convert(JSContext *cx, JSHandleObject obj, JSType hint, JSMutableHandleValue vp)
 {
   JS_ASSERT(hint == JSTYPE_NUMBER || hint == JSTYPE_STRING || hint == JSTYPE_VOID);
 
@@ -1706,9 +1708,9 @@ NPObjWrapper_Convert(JSContext *cx, JSHandleObject obj, JSType hint, jsval *vp)
   if (!JS_GetProperty(cx, obj, "toString", &v))
     return false;
   if (!JSVAL_IS_PRIMITIVE(v) && JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(v))) {
-    if (!JS_CallFunctionValue(cx, obj, v, 0, NULL, vp))
+    if (!JS_CallFunctionValue(cx, obj, v, 0, NULL, vp.address()))
       return false;
-    if (JSVAL_IS_PRIMITIVE(*vp))
+    if (JSVAL_IS_PRIMITIVE(vp))
       return true;
   }
 
@@ -1791,7 +1793,7 @@ nsNPObjWrapper::OnDestroy(NPObject *npobj)
     
     
 
-    ::JS_SetPrivate(entry->mJSObj, nullptr);
+    ::JS_SetPrivate(entry->mJSObj, nsnull);
 
     
     PL_DHashTableRawRemove(&sNPObjWrappers, entry);
@@ -1809,7 +1811,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
   if (!npobj) {
     NS_ERROR("Null NPObject passed to nsNPObjWrapper::GetNewOrUsed()!");
 
-    return nullptr;
+    return nsnull;
   }
 
   if (npobj->_class == &nsJSObjWrapper::sJSObjWrapperNPClass) {
@@ -1821,17 +1823,17 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
   if (!npp) {
     NS_ERROR("No npp passed to nsNPObjWrapper::GetNewOrUsed()!");
 
-    return nullptr;
+    return nsnull;
   }
 
   if (!sNPObjWrappers.ops) {
     
 
-    if (!PL_DHashTableInit(&sNPObjWrappers, PL_DHashGetStubOps(), nullptr,
+    if (!PL_DHashTableInit(&sNPObjWrappers, PL_DHashGetStubOps(), nsnull,
                            sizeof(NPObjWrapperHashEntry), 16)) {
       NS_ERROR("Error initializing PLDHashTable!");
 
-      return nullptr;
+      return nsnull;
     }
   }
 
@@ -1842,7 +1844,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
     
     JS_ReportOutOfMemory(cx);
 
-    return nullptr;
+    return nsnull;
   }
 
   if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->mJSObj) {
@@ -1864,7 +1866,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
 
   
 
-  JSObject *obj = ::JS_NewObject(cx, &sNPObjectJSWrapperClass, nullptr, nullptr);
+  JSObject *obj = ::JS_NewObject(cx, &sNPObjectJSWrapperClass, nsnull, nsnull);
 
   if (generation != sNPObjWrappers.generation) {
       
@@ -1881,7 +1883,7 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
 
     PL_DHashTableRawRemove(&sNPObjWrappers, entry);
 
-    return nullptr;
+    return nsnull;
   }
 
   OnWrapperCreated();
@@ -1910,7 +1912,7 @@ JSObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
     
     
     const PLDHashTableOps *ops = table->ops;
-    table->ops = nullptr;
+    table->ops = nsnull;
 
     if (npobj->_class && npobj->_class->invalidate) {
       npobj->_class->invalidate(npobj);
@@ -1945,7 +1947,7 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
     
     
     const PLDHashTableOps *ops = table->ops;
-    table->ops = nullptr;
+    table->ops = nsnull;
 
     NPObject *npobj = entry->mNPObj;
 
@@ -1971,7 +1973,7 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
       PR_Free(npobj);
     }
 
-    ::JS_SetPrivate(entry->mJSObj, nullptr);
+    ::JS_SetPrivate(entry->mJSObj, nsnull);
 
     table->ops = ops;    
 
@@ -2110,7 +2112,7 @@ LookupNPP(NPObject *npobj)
     (PL_DHashTableOperate(&sNPObjWrappers, npobj, PL_DHASH_ADD));
 
   if (PL_DHASH_ENTRY_IS_FREE(entry)) {
-    return nullptr;
+    return nsnull;
   }
 
   NS_ASSERTION(entry->mNpp, "Live NPObject entry w/o an NPP!");
@@ -2140,7 +2142,7 @@ CreateNPObjectMember(NPP npp, JSContext *cx, JSObject *obj, NPObject* npobj,
   
   memset(memberPrivate, 0, sizeof(NPObjectMemberPrivate));
 
-  JSObject *memobj = ::JS_NewObject(cx, &sNPObjectMemberClass, nullptr, nullptr);
+  JSObject *memobj = ::JS_NewObject(cx, &sNPObjectMemberClass, nsnull, nsnull);
   if (!memobj) {
     PR_Free(memberPrivate);
     return JS_FALSE;
@@ -2195,12 +2197,12 @@ CreateNPObjectMember(NPP npp, JSContext *cx, JSObject *obj, NPObject* npobj,
 }
 
 static JSBool
-NPObjectMember_Convert(JSContext *cx, JSHandleObject obj, JSType type, jsval *vp)
+NPObjectMember_Convert(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleValue vp)
 {
   NPObjectMemberPrivate *memberPrivate =
     (NPObjectMemberPrivate *)::JS_GetInstancePrivate(cx, obj,
                                                      &sNPObjectMemberClass,
-                                                     nullptr);
+                                                     nsnull);
   if (!memberPrivate) {
     NS_ERROR("no Ambiguous Member Private data!");
     return JS_FALSE;
@@ -2210,14 +2212,14 @@ NPObjectMember_Convert(JSContext *cx, JSHandleObject obj, JSType type, jsval *vp
   case JSTYPE_VOID:
   case JSTYPE_STRING:
   case JSTYPE_NUMBER:
-    *vp = memberPrivate->fieldValue;
-    if (!JSVAL_IS_PRIMITIVE(*vp)) {
-      return JS_DefaultValue(cx, JSVAL_TO_OBJECT(*vp), type, vp);
+    vp.set(memberPrivate->fieldValue);
+    if (!JSVAL_IS_PRIMITIVE(vp)) {
+      return JS_DefaultValue(cx, JSVAL_TO_OBJECT(vp), type, vp.address());
     }
     return JS_TRUE;
   case JSTYPE_BOOLEAN:
   case JSTYPE_OBJECT:
-    *vp = memberPrivate->fieldValue;
+    vp.set(memberPrivate->fieldValue);
     return JS_TRUE;
   case JSTYPE_FUNCTION:
     

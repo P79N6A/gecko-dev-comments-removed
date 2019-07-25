@@ -1,31 +1,31 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsperf.h"
-#include "jscntxt.h" 
-#include "jsobj.h" 
+#include "jscntxt.h" /* for error messages */
+#include "jsobj.h" /* for unwrapping without a context */
 
 #include "jsobjinlines.h"
 
 using JS::PerfMeasurement;
 
-
-
+// You cannot forward-declare a static object in C++, so instead
+// we have to forward-declare the helper functions that refer to it.
 static PerfMeasurement* GetPM(JSContext* cx, JSObject* obj, const char* fname);
 static PerfMeasurement* GetPMFromThis(JSContext* cx, jsval* vp);
 
-
+// Property access
 
 #define GETTER(name)                                                    \
     static JSBool                                                       \
-    pm_get_##name(JSContext* cx, JS::HandleObject obj, JS::HandleId /*unused*/, jsval* vp) \
+    pm_get_##name(JSContext* cx, JS::HandleObject obj, JS::HandleId /*unused*/, JS::MutableHandleValue vp) \
     {                                                                   \
         PerfMeasurement* p = GetPM(cx, obj, #name);                     \
         if (!p)                                                         \
             return JS_FALSE;                                            \
-        return JS_NewNumberValue(cx, double(p->name), vp);              \
+        return JS_NewNumberValue(cx, double(p->name), vp.address());    \
     }
 
 GETTER(cpu_cycles)
@@ -43,10 +43,10 @@ GETTER(eventsMeasured)
 
 #undef GETTER
 
-
+// Calls
 
 static JSBool
-pm_start(JSContext* cx, unsigned , jsval* vp)
+pm_start(JSContext* cx, unsigned /*unused*/, jsval* vp)
 {
     PerfMeasurement* p = GetPMFromThis(cx, vp);
     if (!p)
@@ -57,7 +57,7 @@ pm_start(JSContext* cx, unsigned , jsval* vp)
 }
 
 static JSBool
-pm_stop(JSContext* cx, unsigned , jsval* vp)
+pm_stop(JSContext* cx, unsigned /*unused*/, jsval* vp)
 {
     PerfMeasurement* p = GetPMFromThis(cx, vp);
     if (!p)
@@ -68,7 +68,7 @@ pm_stop(JSContext* cx, unsigned , jsval* vp)
 }
 
 static JSBool
-pm_reset(JSContext* cx, unsigned , jsval* vp)
+pm_reset(JSContext* cx, unsigned /*unused*/, jsval* vp)
 {
     PerfMeasurement* p = GetPMFromThis(cx, vp);
     if (!p)
@@ -79,7 +79,7 @@ pm_reset(JSContext* cx, unsigned , jsval* vp)
 }
 
 static JSBool
-pm_canMeasureSomething(JSContext* cx, unsigned , jsval* vp)
+pm_canMeasureSomething(JSContext* cx, unsigned /*unused*/, jsval* vp)
 {
     PerfMeasurement* p = GetPMFromThis(cx, vp);
     if (!p)
@@ -122,7 +122,7 @@ static JSPropertySpec pm_props[] = {
 
 #undef GETTER
 
-
+// If this were C++ these would be "static const" members.
 
 const uint8_t PM_CATTRS = JSPROP_ENUMERATE|JSPROP_READONLY|JSPROP_PERMANENT;
 
@@ -159,7 +159,7 @@ static JSClass pm_class = {
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, pm_finalize
 };
 
-
+// Constructor and destructor
 
 static JSBool
 pm_construct(JSContext* cx, unsigned argc, jsval* vp)
@@ -192,7 +192,7 @@ pm_finalize(JSFreeOp* fop, JSObject* obj)
     js::FreeOp::get(fop)->delete_(static_cast<PerfMeasurement*>(JS_GetPrivate(obj)));
 }
 
-
+// Helpers (declared above)
 
 static PerfMeasurement*
 GetPM(JSContext* cx, JSObject* obj, const char* fname)
@@ -202,8 +202,8 @@ GetPM(JSContext* cx, JSObject* obj, const char* fname)
     if (p)
         return p;
 
-    
-    
+    // JS_GetInstancePrivate only sets an exception if its last argument
+    // is nonzero, so we have to do it by hand.
     JS_ReportErrorNumber(cx, js_GetErrorMessage, 0, JSMSG_INCOMPATIBLE_PROTO,
                          pm_class.name, fname, JS_GetClass(obj)->name);
     return 0;
@@ -225,7 +225,7 @@ JSObject*
 RegisterPerfMeasurement(JSContext *cx, JSObject *global)
 {
     js::RootedObject prototype(cx);
-    prototype = JS_InitClass(cx, global, 0 ,
+    prototype = JS_InitClass(cx, global, 0 /* parent */,
                              &pm_class, pm_construct, 1,
                              pm_props, pm_fns, 0, 0);
     if (!prototype)
@@ -256,8 +256,8 @@ ExtractPerfMeasurement(jsval wrapper)
     if (JSVAL_IS_PRIMITIVE(wrapper))
         return 0;
 
-    
-    
+    // This is what JS_GetInstancePrivate does internally.  We can't
+    // call JS_anything from here, because we don't have a JSContext.
     JSObject *obj = JSVAL_TO_OBJECT(wrapper);
     if (obj->getClass() != js::Valueify(&pm_class))
         return 0;
@@ -265,4 +265,4 @@ ExtractPerfMeasurement(jsval wrapper)
     return (PerfMeasurement*) obj->getPrivate();
 }
 
-} 
+} // namespace JS

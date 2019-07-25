@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 40; indent-tabs-mode: nil -*- */
+/* vim: set ts=40 sw=4 et tw=99: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jstypedarray_h
 #define jstypedarray_h
@@ -17,14 +17,14 @@ typedef struct JSProperty JSProperty;
 
 namespace js {
 
-
-
-
-
-
-
-
-
+/*
+ * ArrayBufferObject
+ *
+ * This class holds the underlying raw buffer that the various ArrayBufferView
+ * subclasses (DataView and the TypedArrays) access. It can be created
+ * explicitly and passed to an ArrayBufferView subclass, or can be created
+ * implicitly by constructing a TypedArray with a size.
+ */
 class ArrayBufferObject : public JSObject
 {
     static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
@@ -73,42 +73,42 @@ class ArrayBufferObject : public JSObject
                       MutableHandleObject objp, MutableHandleShape propp);
 
     static JSBool
-    obj_defineGeneric(JSContext *cx, HandleObject obj, HandleId id, const Value *v,
+    obj_defineGeneric(JSContext *cx, HandleObject obj, HandleId id, HandleValue v,
                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
     static JSBool
-    obj_defineProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, const Value *v,
+    obj_defineProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue v,
                        PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
     static JSBool
-    obj_defineElement(JSContext *cx, HandleObject obj, uint32_t index, const Value *v,
+    obj_defineElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue v,
                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
     static JSBool
-    obj_defineSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, const Value *v,
+    obj_defineSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, HandleValue v,
                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
     static JSBool
-    obj_getGeneric(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id, Value *vp);
+    obj_getGeneric(JSContext *cx, HandleObject obj, HandleObject receiver, HandleId id, MutableHandleValue vp);
 
     static JSBool
     obj_getProperty(JSContext *cx, HandleObject obj, HandleObject receiver, HandlePropertyName name,
-                    Value *vp);
+                    MutableHandleValue vp);
 
     static JSBool
-    obj_getElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index, Value *vp);
+    obj_getElement(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index, MutableHandleValue vp);
     static JSBool
     obj_getElementIfPresent(JSContext *cx, HandleObject obj, HandleObject receiver, uint32_t index,
-                            Value *vp, bool *present);
+                            MutableHandleValue vp, bool *present);
 
     static JSBool
-    obj_getSpecial(JSContext *cx, HandleObject obj, HandleObject receiver, HandleSpecialId sid, Value *vp);
+    obj_getSpecial(JSContext *cx, HandleObject obj, HandleObject receiver, HandleSpecialId sid, MutableHandleValue vp);
 
     static JSBool
-    obj_setGeneric(JSContext *cx, HandleObject obj, HandleId id, Value *vp, JSBool strict);
+    obj_setGeneric(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp, JSBool strict);
     static JSBool
-    obj_setProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, Value *vp, JSBool strict);
+    obj_setProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, MutableHandleValue vp, JSBool strict);
     static JSBool
-    obj_setElement(JSContext *cx, HandleObject obj, uint32_t index, Value *vp, JSBool strict);
+    obj_setElement(JSContext *cx, HandleObject obj, uint32_t index, MutableHandleValue vp, JSBool strict);
     static JSBool
-    obj_setSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, Value *vp, JSBool strict);
+    obj_setSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, MutableHandleValue vp, JSBool strict);
 
     static JSBool
     obj_getGenericAttributes(JSContext *cx, HandleObject obj, HandleId id, unsigned *attrsp);
@@ -129,11 +129,11 @@ class ArrayBufferObject : public JSObject
     obj_setSpecialAttributes(JSContext *cx, HandleObject obj, HandleSpecialId sid, unsigned *attrsp);
 
     static JSBool
-    obj_deleteProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, Value *rval, JSBool strict);
+    obj_deleteProperty(JSContext *cx, HandleObject obj, HandlePropertyName name, MutableHandleValue rval, JSBool strict);
     static JSBool
-    obj_deleteElement(JSContext *cx, HandleObject obj, uint32_t index, Value *rval, JSBool strict);
+    obj_deleteElement(JSContext *cx, HandleObject obj, uint32_t index, MutableHandleValue rval, JSBool strict);
     static JSBool
-    obj_deleteSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, Value *rval, JSBool strict);
+    obj_deleteSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, MutableHandleValue rval, JSBool strict);
 
     static JSBool
     obj_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
@@ -149,21 +149,21 @@ class ArrayBufferObject : public JSObject
 
     inline uint8_t * dataPointer() const;
 
-   
-
-
-
+   /*
+     * Check if the arrayBuffer contains any data. This will return false for
+     * ArrayBuffer.prototype and neutered ArrayBuffers.
+     */
     inline bool hasData() const;
 
 };
 
-
-
-
-
-
-
-
+/*
+ * TypedArray
+ *
+ * The non-templated base class for the specific typed implementations.
+ * This class holds all the member variables that are used by
+ * the subclasses.
+ */
 
 struct TypedArray {
     enum {
@@ -176,17 +176,17 @@ struct TypedArray {
         TYPE_FLOAT32,
         TYPE_FLOAT64,
 
-        
-
-
-
+        /*
+         * Special type that's a uint8, but assignments are clamped to 0 .. 255.
+         * Treat the raw data type as a uint8.
+         */
         TYPE_UINT8_CLAMPED,
 
         TYPE_MAX
     };
 
     enum {
-        
+        /* Properties of the typed array stored in reserved slots. */
         FIELD_LENGTH = 0,
         FIELD_BYTEOFFSET,
         FIELD_BYTELENGTH,
@@ -196,11 +196,11 @@ struct TypedArray {
         NUM_FIXED_SLOTS = 7
     };
 
-    
+    // and MUST NOT be used to construct new objects.
     static Class classes[TYPE_MAX];
 
-    
-    
+    // These are the proto/original classes, used
+    // fo constructing new objects
     static Class protoClasses[TYPE_MAX];
 
     static JSBool obj_lookupGeneric(JSContext *cx, HandleObject obj, HandleId id,
@@ -242,10 +242,10 @@ struct TypedArray {
     static inline uint32_t slotWidth(int atype);
     static inline int slotWidth(JSObject *obj);
 
-    
-
-
-
+    /*
+     * Byte length above which created typed arrays and data views will have
+     * singleton types regardless of the context in which they are created.
+     */
     static const uint32_t SINGLETON_TYPE_BYTE_LENGTH = 1024 * 1024 * 10;
 
     static int lengthOffset();
@@ -384,6 +384,6 @@ class DataViewObject : public JSObject
 bool
 IsDataView(JSObject *obj);
 
-} 
+} // namespace js
 
-#endif 
+#endif /* jstypedarray_h */

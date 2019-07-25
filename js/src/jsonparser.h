@@ -84,7 +84,7 @@ class JSONParser
 
 
 
-    bool parse(js::Value *vp);
+    bool parse(js::MutableHandleValue vp);
 
   private:
     js::Value numberValue() const {

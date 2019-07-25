@@ -167,7 +167,7 @@ protected:
   
   
   static PRInt32 GetArrayIndexFromId(JSContext *cx, jsid id,
-                                     bool *aIsNumber = nullptr);
+                                     bool *aIsNumber = nsnull);
 
   static inline bool IsReadonlyReplaceable(jsid id)
   {
@@ -359,7 +359,7 @@ public:
   {
     nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryWrappedNative(wrapper));
 
-    NS_ASSERTION(!sgo || sgo->GetGlobalJSObject() == nullptr,
+    NS_ASSERTION(!sgo || sgo->GetGlobalJSObject() == nsnull,
                  "Multiple wrappers created for global object!");
 
     return NS_OK;
@@ -386,11 +386,11 @@ public:
                                               JSHandleId id, unsigned flags,
                                               JSMutableHandleObject objp);
   static JSBool GlobalScopePolluterGetProperty(JSContext *cx, JSHandleObject obj,
-                                               JSHandleId id, jsval *vp);
+                                               JSHandleId id, JSMutableHandleValue vp);
   static JSBool SecurityCheckOnAddDelProp(JSContext *cx, JSHandleObject obj, JSHandleId id,
-                                          jsval *vp);
+                                          JSMutableHandleValue vp);
   static JSBool SecurityCheckOnSetProp(JSContext *cx, JSHandleObject obj, JSHandleId id,
-                                       JSBool strict, jsval *vp);
+                                       JSBool strict, JSMutableHandleValue vp);
   static void InvalidateGlobalScopePolluter(JSContext *cx, JSObject *obj);
   static nsresult InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
                                              nsIHTMLDocument *doc);
@@ -780,13 +780,13 @@ protected:
 
 public:
   static JSBool DocumentAllGetProperty(JSContext *cx, JSHandleObject obj, JSHandleId id,
-                                       jsval *vp);
+                                       JSMutableHandleValue vp);
   static JSBool DocumentAllNewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id,
                                       unsigned flags, JSMutableHandleObject objp);
   static void ReleaseDocument(JSFreeOp *fop, JSObject *obj);
   static JSBool CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp);
   static JSBool DocumentAllHelperGetProperty(JSContext *cx, JSHandleObject obj,
-                                             JSHandleId id, jsval *vp);
+                                             JSHandleId id, JSMutableHandleValue vp);
   static JSBool DocumentAllHelperNewResolve(JSContext *cx, JSHandleObject obj,
                                             JSHandleId id, unsigned flags,
                                             JSMutableHandleObject objp);
@@ -1483,7 +1483,7 @@ public:
     nsresult rv = nsDOMGenericSH::PostCreatePrototype(cx, proto);
     if (NS_SUCCEEDED(rv)) {
       if (!::JS_DefineProperty(cx, proto, "VIEWPORT", INT_TO_JSVAL(0x0BA2),
-                               nullptr, nullptr, JSPROP_ENUMERATE))
+                               nsnull, nsnull, JSPROP_ENUMERATE))
       {
         return NS_ERROR_UNEXPECTED;
       }

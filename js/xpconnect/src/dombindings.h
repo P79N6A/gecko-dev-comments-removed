@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99 ft=cpp:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef dombindings_h
 #define dombindings_h
@@ -147,7 +147,7 @@ private:
     static js::Shape *getProtoShape(JSObject *obj);
     static void setProtoShape(JSObject *obj, js::Shape *shape);
 
-    static JSBool length_getter(JSContext *cx, JSHandleObject obj, JSHandleId id, jsval *vp);
+    static JSBool length_getter(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
     static inline bool getItemAt(ListType *list, uint32_t i, IndexGetterType &item);
     static inline bool setItemAt(JSContext *cx, ListType *list, uint32_t i, IndexSetterType item);
@@ -193,7 +193,7 @@ public:
     bool keys(JSContext *cx, JSObject *proxy, JS::AutoIdVector &props);
     bool iterate(JSContext *cx, JSObject *proxy, unsigned flags, JS::Value *vp);
 
-    
+    /* Spidermonkey extensions. */
     bool hasInstance(JSContext *cx, JSObject *proxy, const JS::Value *vp, bool *bp);
     JSString *obj_toString(JSContext *cx, JSObject *proxy);
     void finalize(JSFreeOp *fop, JSObject *proxy);
@@ -241,4 +241,4 @@ struct nsISupportsResult
 
 #include "dombindings_gen.h"
 
-#endif 
+#endif /* dombindings_h */

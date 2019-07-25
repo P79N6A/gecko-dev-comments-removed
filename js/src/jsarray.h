@@ -82,11 +82,12 @@ js_SetLengthProperty(JSContext *cx, js::HandleObject obj, double length);
 namespace js {
 
 extern JSBool
-array_defineElement(JSContext *cx, HandleObject obj, uint32_t index, const Value *value,
+array_defineElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue value,
                     PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
 extern JSBool
-array_deleteElement(JSContext *cx, HandleObject obj, uint32_t index, Value *rval, JSBool strict);
+array_deleteElement(JSContext *cx, HandleObject obj, uint32_t index,
+                    MutableHandleValue rval, JSBool strict);
 
 
 
