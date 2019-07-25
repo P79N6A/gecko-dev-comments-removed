@@ -608,6 +608,13 @@ public:
     
 
 
+
+
+    PRBool ClipContainsRect(const gfxRect& aRect);
+
+    
+
+
     void PushGroup(gfxASurface::gfxContentType content = gfxASurface::CONTENT_COLOR);
     
 
