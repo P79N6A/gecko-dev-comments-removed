@@ -50,6 +50,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 
 public class WidgetTileLayer extends Layer {
+    private static final String LOGTAG = "WidgetTileLayer";
 
     private int[] mTextureIDs;
     private CairoImage mImage;
@@ -110,7 +111,16 @@ public class WidgetTileLayer extends Layer {
                                 0);
 
         float top = viewport.height() - (bounds.top + bounds.height());
+
+        
+        
+        while (GLES11.glGetError() != GLES11.GL_NO_ERROR);
+
         GLES11Ext.glDrawTexfOES(bounds.left, top, 0.0f, bounds.width(), bounds.height());
+        int error = GLES11.glGetError();
+        if (error != GLES11.GL_NO_ERROR) {
+            Log.i(LOGTAG, "Failed to draw texture: " + error);
+        }
     }
 }
 
