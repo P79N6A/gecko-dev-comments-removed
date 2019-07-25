@@ -732,6 +732,7 @@ public:
   
   
   
+  
   PRPackedBool              mCreatingExtraFrames;
 
   nsCOMArray<nsIContent>    mGeneratedTextNodesWithInitializer;
@@ -3810,7 +3811,14 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
                ((bits & FCDATA_IS_LINE_PARTICIPANT) != 0),
                "Incorrectly set FCDATA_IS_LINE_PARTICIPANT bits");
 
-  if (!aState.mCreatingExtraFrames && !(bits & FCDATA_SKIP_FRAMESET)) {
+  
+  
+  
+  
+  if ((!aState.mCreatingExtraFrames ||
+       ((primaryFrame->GetStateBits() & NS_FRAME_GENERATED_CONTENT) &&
+        !aItem.mContent->GetPrimaryFrame())) &&
+       !(bits & FCDATA_SKIP_FRAMESET)) {
     aItem.mContent->SetPrimaryFrame(primaryFrame);
   }
 
