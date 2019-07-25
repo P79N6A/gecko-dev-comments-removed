@@ -123,12 +123,12 @@ public:
   nsresult UnlockImage();
   nsresult RequestDecode();
 
-  inline void SetWindowID(PRUint64 aWindowId) {
-    mWindowId = aWindowId;
+  inline void SetInnerWindowID(PRUint64 aInnerWindowId) {
+    mInnerWindowId = aInnerWindowId;
   }
 
-  inline PRUint64 WindowID() const {
-    return mWindowId;
+  inline PRUint64 InnerWindowID() const {
+    return mInnerWindowId;
   }
 
   
@@ -258,7 +258,7 @@ private:
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
   
-  PRUint64 mWindowId;
+  PRUint64 mInnerWindowId;
 
   
   

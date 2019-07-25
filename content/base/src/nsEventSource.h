@@ -257,7 +257,7 @@ protected:
   
   nsString mScriptFile;
   PRUint32 mScriptLine;
-  PRUint64 mWindowID;
+  PRUint64 mInnerWindowID;
 
 private:
   nsEventSource(const nsEventSource& x);   

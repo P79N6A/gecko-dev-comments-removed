@@ -85,7 +85,7 @@ nsEventSource::nsEventSource() :
   mLastConvertionResult(NS_OK),
   mReadyState(nsIEventSource::CONNECTING),
   mScriptLine(0),
-  mWindowID(0)
+  mInnerWindowID(0)
 {
 }
 
@@ -253,7 +253,7 @@ nsEventSource::Init(nsIPrincipal* aPrincipal,
       mScriptFile.AssignASCII(filename);
     }
 
-    mWindowID = nsJSUtils::GetCurrentlyRunningCodeWindowID(cx);
+    mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
   }
 
   
@@ -1072,7 +1072,7 @@ nsEventSource::PrintErrorOnConsole(const char *aBundleURI,
                            nsnull,
                            mScriptLine, 0,
                            nsIScriptError::errorFlag,
-                           "Event Source", mWindowID);
+                           "Event Source", mInnerWindowID);
 
   
   nsCOMPtr<nsIScriptError> logError = do_QueryInterface(errObj);

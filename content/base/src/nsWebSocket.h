@@ -99,7 +99,7 @@ public:
   
   static PRBool PrefEnabled();
 
-  const PRUint64 WindowID() const { return mWindowID; }
+  const PRUint64 InnerWindowID() const { return mInnerWindowID; }
   const nsCString& GetScriptFile() const { return mScriptFile; }
   const PRUint32 GetScriptLine() const { return mScriptLine; }
 
@@ -169,7 +169,7 @@ protected:
   
   nsCString mScriptFile;
   PRUint32 mScriptLine;
-  PRUint64 mWindowID;
+  PRUint64 mInnerWindowID;
 
 private:
   nsWebSocket(const nsWebSocket& x);   

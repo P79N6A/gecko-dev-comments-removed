@@ -798,14 +798,14 @@ nsUserFontSet::LogMessage(gfxProxyFontEntry *aProxy,
     do_CreateInstance(NS_SCRIPTERROR_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUint64 windowID = GetPresContext()->Document()->OuterWindowID();
+  PRUint64 innerWindowID = GetPresContext()->Document()->InnerWindowID();
   rv = scriptError->InitWithWindowID(NS_ConvertUTF8toUTF16(msg).get(),
                                      href.get(),   
                                      text.get(),   
                                      0, 0,         
                                      aFlags,       
                                      "CSS Loader", 
-                                     windowID);
+                                     innerWindowID);
   if (NS_SUCCEEDED(rv)){
     nsCOMPtr<nsIScriptError> logError = do_QueryInterface(scriptError);
     if (logError) {

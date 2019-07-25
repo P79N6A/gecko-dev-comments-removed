@@ -78,7 +78,7 @@ public:
 
 
 
-  static PRUint64 GetCurrentlyRunningCodeWindowID(JSContext *aContext);
+  static PRUint64 GetCurrentlyRunningCodeInnerWindowID(JSContext *aContext);
 };
 
 

@@ -156,7 +156,7 @@ public:
   virtual void SetOwningDocument(nsIDocument* aDocument);
 
   
-  virtual PRUint64 FindOwningWindowID() const;
+  PRUint64 FindOwningWindowInnerID() const;
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif

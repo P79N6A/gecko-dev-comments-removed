@@ -1712,7 +1712,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(aCX);
     if (doc) {
-      request->SetWindowID(doc->OuterWindowID());
+      request->SetInnerWindowID(doc->InnerWindowID());
     }
 
     

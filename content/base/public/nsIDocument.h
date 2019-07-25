@@ -722,6 +722,15 @@ public:
 
   
 
+
+  PRUint64 InnerWindowID()
+  {
+    nsPIDOMWindow *window = GetInnerWindow();
+    return window ? window->WindowID() : 0;
+  }
+
+  
+
  
   virtual nsScriptLoader* ScriptLoader() = 0;
 

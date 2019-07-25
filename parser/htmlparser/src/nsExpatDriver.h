@@ -169,7 +169,7 @@ private:
   nsString         mURISpec;
 
   
-  PRUint64         mWindowID;
+  PRUint64         mInnerWindowID;
 };
 
 #endif

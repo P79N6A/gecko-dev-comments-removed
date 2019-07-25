@@ -141,6 +141,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsUnicharUtilCIID.h"
 #include "nsCompressedCharMap.h"
 #include "nsINativeKeyBindings.h"
+#include "nsIDOMNSUIEvent.h"
 #include "nsIDOMNSEvent.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsXULPopupManager.h"
@@ -2733,7 +2734,7 @@ nsContentUtils::ReportToConsole(PropertiesFile aFile,
                                 PRUint32 aColumnNumber,
                                 PRUint32 aErrorFlags,
                                 const char *aCategory,
-                                PRUint64 aWindowId)
+                                PRUint64 aInnerWindowId)
 {
   NS_ASSERTION((aParams && aParamsLength) || (!aParams && !aParamsLength),
                "Supply either both parameters and their number or no"
@@ -2767,7 +2768,8 @@ nsContentUtils::ReportToConsole(PropertiesFile aFile,
                                      NS_ConvertUTF8toUTF16(spec).get(), 
                                      aSourceLine.get(),
                                      aLineNumber, aColumnNumber,
-                                     aErrorFlags, aCategory, aWindowId);
+                                     aErrorFlags, aCategory,
+                                     aInnerWindowId);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIScriptError> logError = do_QueryInterface(errorObject);
@@ -2788,17 +2790,17 @@ nsContentUtils::ReportToConsole(PropertiesFile aFile,
                                 nsIDocument* aDocument)
 {
   nsIURI* uri = aURI;
-  PRUint64 windowID = 0;
+  PRUint64 innerWindowID = 0;
   if (aDocument) {
     if (!uri) {
       uri = aDocument->GetDocumentURI();
     }
-    windowID = aDocument->OuterWindowID();
+    innerWindowID = aDocument->InnerWindowID();
   }
 
   return ReportToConsole(aFile, aMessageName, aParams, aParamsLength, uri,
                          aSourceLine, aLineNumber, aColumnNumber, aErrorFlags,
-                         aCategory, windowID);
+                         aCategory, innerWindowID);
 }
 
 PRBool
@@ -4136,12 +4138,13 @@ nsContentUtils::DOMEventToNativeKeyEvent(nsIDOMKeyEvent* aKeyEvent,
                                          nsNativeKeyEvent* aNativeEvent,
                                          PRBool aGetCharCode)
 {
-  nsCOMPtr<nsIDOMNSEvent> nsevent = do_QueryInterface(aKeyEvent);
+  nsCOMPtr<nsIDOMNSUIEvent> uievent = do_QueryInterface(aKeyEvent);
   PRBool defaultPrevented;
-  nsevent->GetPreventDefault(&defaultPrevented);
+  uievent->GetPreventDefault(&defaultPrevented);
   if (defaultPrevented)
     return PR_FALSE;
 
+  nsCOMPtr<nsIDOMNSEvent> nsevent = do_QueryInterface(aKeyEvent);
   PRBool trusted = PR_FALSE;
   nsevent->GetIsTrusted(&trusted);
   if (!trusted)
@@ -5516,8 +5519,9 @@ nsContentUtils::PlatformToDOMLineBreaks(nsString &aString)
   }
 }
 
-nsIWidget *
-nsContentUtils::WidgetForDocument(nsIDocument *aDoc)
+static already_AddRefed<LayerManager>
+LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent,
+                                bool* aAllowRetaining)
 {
   nsIDocument* doc = aDoc;
   nsIDocument* displayDoc = doc->GetDisplayDocument();
@@ -5552,26 +5556,18 @@ nsContentUtils::WidgetForDocument(nsIDocument *aDoc)
       if (rootView) {
         nsIView* displayRoot = nsIViewManager::GetDisplayRootFor(rootView);
         if (displayRoot) {
-          return displayRoot->GetNearestWidget(nsnull);
+          nsIWidget* widget = displayRoot->GetNearestWidget(nsnull);
+          if (widget) {
+            nsRefPtr<LayerManager> manager =
+              widget->
+                GetLayerManager(aRequirePersistent ? nsIWidget::LAYER_MANAGER_PERSISTENT : 
+                                                     nsIWidget::LAYER_MANAGER_CURRENT,
+                                aAllowRetaining);
+            return manager.forget();
+          }
         }
       }
     }
-  }
-
-  return nsnull;
-}
-
-static already_AddRefed<LayerManager>
-LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent,
-                                bool* aAllowRetaining)
-{
-  nsIWidget *widget = nsContentUtils::WidgetForDocument(aDoc);
-  if (widget) {
-    nsRefPtr<LayerManager> manager =
-      widget->GetLayerManager(aRequirePersistent ? nsIWidget::LAYER_MANAGER_PERSISTENT : 
-                              nsIWidget::LAYER_MANAGER_CURRENT,
-                              aAllowRetaining);
-    return manager.forget();
   }
 
   return nsnull;

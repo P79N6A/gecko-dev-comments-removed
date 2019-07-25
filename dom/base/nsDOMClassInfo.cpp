@@ -229,6 +229,7 @@
 #include "nsIDOMComment.h"
 #include "nsIDOMCDATASection.h"
 #include "nsIDOMProcessingInstruction.h"
+#include "nsIDOMNSEvent.h"
 #include "nsIDOMDataContainerEvent.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
@@ -315,6 +316,7 @@
 #include "nsIDOMHTMLVideoElement.h"
 #include "nsIDOMHTMLAudioElement.h"
 #include "nsIDOMProgressEvent.h"
+#include "nsIDOMNSUIEvent.h"
 #include "nsIDOMCSS2Properties.h"
 #include "nsIDOMCSSCharsetRule.h"
 #include "nsIDOMCSSImportRule.h"
@@ -473,6 +475,9 @@
 
 
 #include "nsIDOMSimpleGestureEvent.h"
+
+#include "nsIDOMNSMouseEvent.h"
+
 #include "nsIDOMMozTouchEvent.h"
 
 #include "nsIEventListenerService.h"
@@ -1702,7 +1707,7 @@ PrintWarningOnConsole(JSContext *cx, const char *stringBundleProperty)
                                               0, 
                                               nsIScriptError::warningFlag,
                                               "DOM:HTML",
-                                              nsJSUtils::GetCurrentlyRunningCodeWindowID(cx));
+                                              nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx));
 
   if (NS_SUCCEEDED(rv)){
     nsCOMPtr<nsIScriptError> logError = do_QueryInterface(scriptError);
@@ -2202,6 +2207,7 @@ nsDOMClassInfo::RegisterExternalClasses()
 
 #define DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES                                    \
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMUIEvent)                                    \
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSUIEvent)                                  \
     DOM_CLASSINFO_EVENT_MAP_ENTRIES
 
 nsresult
@@ -2460,18 +2466,21 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(MouseEvent, nsIDOMMouseEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MouseScrollEvent, nsIDOMMouseScrollEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseScrollEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(DragEvent, nsIDOMDragEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDragEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
@@ -3934,12 +3943,14 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN(SimpleGestureEvent, nsIDOMSimpleGestureEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMSimpleGestureEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozTouchEvent, nsIDOMMozTouchEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozTouchEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
@@ -9234,7 +9245,14 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  return objlc->GetPluginInstance(_result);
+  
+  
+  if (!nsContentUtils::IsSafeToRunScript()) {
+    return objlc->GetPluginInstance(_result);
+  }
+
+  
+  return objlc->EnsureInstantiation(_result);
 }
 
 
@@ -9338,8 +9356,19 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
 
   if (!pi_obj) {
     
+
     return NS_OK;
   }
+
+  if (IsObjInProtoChain(cx, obj, pi_obj)) {
+    
+    
+    
+    
+
+    return NS_OK;
+  }
+
 
   
   

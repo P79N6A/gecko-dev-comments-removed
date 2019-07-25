@@ -88,26 +88,6 @@ Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
   mInitialized = true;
 }
 
-
-
-void 
-Decoder::InitSharedDecoder(RasterImage* aImage, imgIDecoderObserver* aObserver) 
-{
-  
-  NS_ABORT_IF_FALSE(aImage, "Can't initialize decoder without an image!");
-
-  
-  NS_ABORT_IF_FALSE(mImage == nsnull, "Can't re-initialize a decoder!");
-
-  
-  mImage = aImage;
-  mObserver = aObserver;
-
-  
-  InitInternal();
-  mInitialized = true;
-}
-
 void
 Decoder::Write(const char* aBuffer, PRUint32 aCount)
 {
@@ -153,7 +133,7 @@ Decoder::Finish()
          NS_ConvertUTF8toUTF16(mImage->GetURIString()).get(),
          nsnull,
          0, 0, nsIScriptError::errorFlag,
-         "Image", mImage->WindowID()
+         "Image", mImage->InnerWindowID()
          );
   
       nsCOMPtr<nsIScriptError> error = do_QueryInterface(errorObject);
@@ -172,14 +152,6 @@ Decoder::Finish()
       mObserver->OnStopContainer(nsnull, mImage);
       mObserver->OnStopDecode(nsnull, salvage ? NS_OK : NS_ERROR_FAILURE, nsnull);
     }
-  }
-}
-
-void
-Decoder::FinishSharedDecoder()
-{
-  if (!HasError()) {
-    FinishInternal();
   }
 }
 
