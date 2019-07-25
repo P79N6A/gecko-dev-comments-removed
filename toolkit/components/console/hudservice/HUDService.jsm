@@ -111,6 +111,11 @@ const NEW_GROUP_DELAY = 5000;
 
 const SEARCH_DELAY = 200;
 
+
+
+
+const DEFAULT_LOG_LIMIT = 200;
+
 const ERRORS = { LOG_MESSAGE_MISSING_ARGS:
                  "Missing arguments: aMessage, aConsoleNode and aMessageNode are required.",
                  CANNOT_GET_HUD: "Cannot getHeads Up Display with provided ID",
@@ -1094,6 +1099,48 @@ NetworkPanel.prototype =
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+function pruneConsoleOutputIfNecessary(aConsoleNode)
+{
+  let logLimit;
+  try {
+    let prefBranch = Services.prefs.getBranch("devtools.hud.");
+    logLimit = prefBranch.getIntPref("loglimit");
+  } catch (e) {
+    logLimit = DEFAULT_LOG_LIMIT;
+  }
+
+  let messageNodes = aConsoleNode.querySelectorAll(".hud-msg-node");
+  for (let i = 0; i < messageNodes.length - logLimit; i++) {
+    let messageNode = messageNodes[i];
+    let groupNode = messageNode.parentNode;
+    if (!groupNode.classList.contains("hud-group")) {
+      throw new Error("pruneConsoleOutputIfNecessary: message node not in a " +
+                      "HUD group");
+    }
+
+    groupNode.removeChild(messageNode);
+
+    
+    if (!groupNode.querySelector(".hud-msg-node")) {
+      groupNode.parentNode.removeChild(groupNode);
+    }
+  }
+}
+
+
+
+
 function HUD_SERVICE()
 {
   
@@ -1861,6 +1908,8 @@ HUD_SERVICE.prototype =
 
     
     this.storage.recordEntry(aMessage.hudId, aMessage);
+
+    pruneConsoleOutputIfNecessary(aConsoleNode);
   },
 
   
@@ -3915,6 +3964,7 @@ JSTerm.prototype = {
 
     lastGroupNode.appendChild(node);
     ConsoleUtils.scrollToVisible(node);
+    pruneConsoleOutputIfNecessary(this.outputNode);
   },
 
   
@@ -3954,6 +4004,7 @@ JSTerm.prototype = {
 
     lastGroupNode.appendChild(node);
     ConsoleUtils.scrollToVisible(node);
+    pruneConsoleOutputIfNecessary(this.outputNode);
   },
 
   clearOutput: function JST_clearOutput()
