@@ -1181,6 +1181,20 @@ JS_THIS(JSContext *cx, jsval *vp)
 }
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+#define JS_THIS_VALUE(cx,vp)    ((vp)[1])
+
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
 

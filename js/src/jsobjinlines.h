@@ -1178,6 +1178,28 @@ CopyInitializerObject(JSContext *cx, JSObject *baseobj)
     return obj;
 }
 
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE bool
+ClassMethodIsNative(JSContext *cx, JSObject *obj, Class *clasp, jsid methodid,
+                    Native native)
+{
+    JS_ASSERT(obj->getClass() == clasp);
+
+    if (HasNativeMethod(obj, methodid, native))
+        return true;
+
+    JSObject *pobj = obj->getProto();
+    return pobj && pobj->getClass() == clasp &&
+           HasNativeMethod(pobj, methodid, native);
+}
+
 } 
 
 #endif 

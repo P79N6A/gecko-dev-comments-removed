@@ -1,7 +1,7 @@
 
 (function() {
   try {
-    (Function("__defineGetter__(\"x\",(Function(\"for(z=0;z<6;z++)(x)\")))"))()
+    (Function("this.__defineGetter__(\"x\",(Function(\"for(z=0;z<6;z++)(x)\")))"))()
   } catch(e) {}
 })()
 ((function f(d, aaaaaa) {

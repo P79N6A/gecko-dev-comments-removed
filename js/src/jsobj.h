@@ -1787,6 +1787,25 @@ js_PrimitiveToObject(JSContext *cx, js::Value *vp);
 extern JSBool
 js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JSObject **objp);
 
+namespace js {
+
+
+
+
+
+extern JSObject *
+ToObjectSlow(JSContext *cx, js::Value *vp);
+
+JS_ALWAYS_INLINE JSObject *
+ToObject(JSContext *cx, js::Value *vp)
+{
+    if (vp->isObject())
+        return &vp->toObject();
+    return ToObjectSlow(cx, vp);
+}
+
+}
+
 
 
 

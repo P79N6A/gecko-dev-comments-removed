@@ -847,21 +847,7 @@ PutActivationObjects(JSContext *cx, JSStackFrame *fp);
 
 
 extern bool
-ComputeThisFromArgv(JSContext *cx, js::Value *argv);
-
-JS_ALWAYS_INLINE JSObject *
-ComputeThisFromVp(JSContext *cx, js::Value *vp)
-{
-    extern bool ComputeThisFromArgv(JSContext *, js::Value *);
-    return ComputeThisFromArgv(cx, vp + 2) ? &vp[1].toObject() : NULL;
-}
-
-JS_ALWAYS_INLINE bool
-ComputeThisFromVpInPlace(JSContext *cx, js::Value *vp)
-{
-    extern bool ComputeThisFromArgv(JSContext *, js::Value *);
-    return ComputeThisFromArgv(cx, vp + 2);
-}
+BoxThisForVp(JSContext *cx, js::Value *vp);
 
 
 
@@ -882,10 +868,6 @@ struct CallArgs
     Value *argv() const { return argv_; }
     uintN argc() const { return argc_; }
     Value &rval() const { return argv_[-2]; }
-
-    bool computeThis(JSContext *cx) const {
-        return ComputeThisFromArgv(cx, argv_);
-    }
 };
 
 
@@ -953,13 +935,6 @@ class InvokeSessionGuard;
 extern bool
 ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
                uintN argc, Value *argv, Value *rval);
-
-static JS_ALWAYS_INLINE bool
-ExternalInvoke(JSContext *cx, JSObject *obj, const Value &fval,
-               uintN argc, Value *argv, Value *rval)
-{
-    return ExternalInvoke(cx, ObjectOrNullValue(obj), fval, argc, argv, rval);
-}
 
 extern bool
 ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,

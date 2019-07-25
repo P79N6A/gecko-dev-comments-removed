@@ -1007,8 +1007,7 @@ js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
 
 
 extern JSBool
-js_str_escape(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv,
-              js::Value *rval);
+js_str_escape(JSContext *cx, uintN argc, js::Value *argv, js::Value *rval);
 
 
 
