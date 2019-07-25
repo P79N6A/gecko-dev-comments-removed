@@ -2022,6 +2022,13 @@ public:
 
 
 
+  void InvalidateTransformLayer();
+
+  
+
+
+
+
 
 
 

@@ -3947,6 +3947,24 @@ nsIFrame::InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey)
   InvalidateWithFlags(aDamageRect, flags);
 }
 
+void
+nsIFrame::InvalidateTransformLayer()
+{
+  NS_ASSERTION(mParent, "How can a viewport frame have a transform?");
+
+  PRBool hasLayer =
+      FrameLayerBuilder::HasDedicatedLayer(this, nsDisplayItem::TYPE_TRANSFORM);
+  
+  
+  
+  
+  
+  
+  mParent->InvalidateInternal(GetVisualOverflowRect() + GetPosition(),
+                              0, 0, this,
+                              hasLayer ? INVALIDATE_NO_THEBES_LAYERS : 0);
+}
+
 class LayerActivity {
 public:
   LayerActivity(nsIFrame* aFrame) : mFrame(aFrame) {}

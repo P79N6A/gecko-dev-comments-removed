@@ -7742,8 +7742,9 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     
     if (aChange & nsChangeHint_UpdateTransformLayer) {
       aFrame->MarkLayersActive();
-      aFrame->InvalidateLayer(aFrame->GetVisualOverflowRectRelativeToSelf(),
-                              nsDisplayItem::TYPE_TRANSFORM);
+      
+      
+      aFrame->InvalidateTransformLayer();
     }
   }
 }
