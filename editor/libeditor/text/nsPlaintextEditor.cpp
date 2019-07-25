@@ -111,13 +111,6 @@ nsPlaintextEditor::~nsPlaintextEditor()
 {
   
   
-  if (mRules) {
-    nsCOMPtr<nsIEditActionListener> mListener = do_QueryInterface(mRules);
-    RemoveEditActionListener(mListener);
-  }
-  
-  
-  
   RemoveEventListeners();
 
   if (mRules)
