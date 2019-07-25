@@ -54,9 +54,6 @@
 
 #define ENABLE_FAST_PATH_8BIT
 
-
-
-
 class gfxFcFontSet;
 class gfxFcFont;
 class gfxProxyFontEntry;
@@ -133,26 +130,15 @@ private:
 
 
 
-    void InitTextRun(gfxTextRun *aTextRun, const gchar *aUTF8Text,
-                     PRUint32 aUTF8Length, PRUint32 aUTF8HeaderLength,
-                     PRBool aTake8BitPath);
+    void InitTextRun(gfxTextRun *aTextRun, const PRUnichar *aString,
+                     PRUint32 aLength, PRBool aTake8BitPath);
 
-    
-    nsresult SetGlyphs(gfxTextRun *aTextRun,
-                       const gchar *aUTF8, PRUint32 aUTF8Length,
-                       PRUint32 *aUTF16Offset, PangoGlyphString *aGlyphs,
-                       PangoGlyphUnit aOverrideSpaceWidth,
-                       PRBool aAbortOnMissingGlyph);
-    nsresult SetMissingGlyphs(gfxTextRun *aTextRun,
-                              const gchar *aUTF8, PRUint32 aUTF8Length,
-                              PRUint32 *aUTF16Offset);
     void CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
-                                  const gchar *aUTF8, PRUint32 aUTF8Length,
-                                  PRUint32 aUTF8HeaderLength);
-#if defined(ENABLE_FAST_PATH_8BIT) || defined(ENABLE_FAST_PATH_ALWAYS)
+                                  const PRUnichar *aString, PRUint32 aLength);
+#if defined(ENABLE_FAST_PATH_8BIT)
     PRBool CanTakeFastPath(PRUint32 aFlags);
     nsresult CreateGlyphRunsFast(gfxTextRun *aTextRun,
-                                 const gchar *aUTF8, PRUint32 aUTF8Length);
+                                 const PRUnichar *aString, PRUint32 aLength);
 #endif
 
     void GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
