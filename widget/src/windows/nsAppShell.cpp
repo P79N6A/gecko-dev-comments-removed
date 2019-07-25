@@ -146,10 +146,6 @@ nsAppShell::Init()
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
   sTaskbarButtonCreatedMsg = ::RegisterWindowMessageW(kTaskbarButtonEventId);
   NS_ASSERTION(sTaskbarButtonCreatedMsg, "Could not register taskbar button creation message");
-
-  
-  
-  mozilla::widget::WinTaskbar::RegisterAppUserModelID();
 #endif
 
   WNDCLASSW wc;
