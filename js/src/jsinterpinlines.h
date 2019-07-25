@@ -43,7 +43,6 @@
 
 #include "jsapi.h"
 #include "jsbool.h"
-#include "jscompartment.h"
 #include "jsinterp.h"
 #include "jsnum.h"
 #include "jsprobes.h"
@@ -52,7 +51,445 @@
 
 #include "jsfuninlines.h"
 
-#include "vm/Stack-inl.h"
+inline void
+JSStackFrame::initPrev(JSContext *cx)
+{
+    JS_ASSERT(flags_ & JSFRAME_HAS_PREVPC);
+    if (JSFrameRegs *regs = cx->regs) {
+        prev_ = regs->fp;
+        prevpc_ = regs->pc;
+        JS_ASSERT_IF(!prev_->isDummyFrame() && !prev_->hasImacropc(),
+                     uint32(prevpc_ - prev_->script()->code) < prev_->script()->length);
+    } else {
+        prev_ = NULL;
+#ifdef DEBUG
+        prevpc_ = (jsbytecode *)0xbadc;
+#endif
+    }
+}
+
+inline void
+JSStackFrame::resetGeneratorPrev(JSContext *cx)
+{
+    flags_ |= JSFRAME_HAS_PREVPC;
+    initPrev(cx);
+}
+
+inline void
+JSStackFrame::initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
+                            uint32 nactual, uint32 flagsArg)
+{
+    JS_ASSERT((flagsArg & ~(JSFRAME_CONSTRUCTING |
+                            JSFRAME_OVERFLOW_ARGS |
+                            JSFRAME_UNDERFLOW_ARGS)) == 0);
+    JS_ASSERT(fun == callee.getFunctionPrivate());
+
+    
+    flags_ = JSFRAME_FUNCTION | JSFRAME_HAS_PREVPC | JSFRAME_HAS_SCOPECHAIN | flagsArg;
+    exec.fun = fun;
+    args.nactual = nactual;  
+    scopeChain_ = callee.getParent();
+    initPrev(cx);
+    JS_ASSERT(!hasImacropc());
+    JS_ASSERT(!hasHookData());
+    JS_ASSERT(annotation() == NULL);
+
+    JS_ASSERT(!hasCallObj());
+}
+
+inline void
+JSStackFrame::resetInvokeCallFrame()
+{
+    
+
+    if (hasArgsObj())
+        args.nactual = argsObj().getArgsInitialLength();
+
+    JS_ASSERT(!(flags_ & ~(JSFRAME_FUNCTION |
+                           JSFRAME_OVERFLOW_ARGS |
+                           JSFRAME_UNDERFLOW_ARGS |
+                           JSFRAME_HAS_CALL_OBJ |
+                           JSFRAME_HAS_ARGS_OBJ |
+                           JSFRAME_OVERRIDE_ARGS |
+                           JSFRAME_HAS_PREVPC |
+                           JSFRAME_HAS_RVAL |
+                           JSFRAME_HAS_SCOPECHAIN |
+                           JSFRAME_HAS_ANNOTATION |
+                           JSFRAME_FINISHED_IN_INTERPRETER)));
+    flags_ &= JSFRAME_FUNCTION |
+              JSFRAME_OVERFLOW_ARGS |
+              JSFRAME_HAS_PREVPC |
+              JSFRAME_UNDERFLOW_ARGS;
+
+    JS_ASSERT_IF(!hasCallObj(), scopeChain_ == calleeValue().toObject().getParent());
+    JS_ASSERT_IF(hasCallObj(), scopeChain_ == callObj().getParent());
+    if (hasCallObj())
+        scopeChain_ = callObj().getParent();
+
+    JS_ASSERT(exec.fun == calleeValue().toObject().getFunctionPrivate());
+    JS_ASSERT(!hasImacropc());
+    JS_ASSERT(!hasHookData());
+    JS_ASSERT(annotation() == NULL);
+    JS_ASSERT(!hasCallObj());
+}
+
+inline void
+JSStackFrame::initCallFrameCallerHalf(JSContext *cx, uint32 flagsArg,
+                                      void *ncode)
+{
+    JS_ASSERT((flagsArg & ~(JSFRAME_CONSTRUCTING |
+                            JSFRAME_FUNCTION |
+                            JSFRAME_OVERFLOW_ARGS |
+                            JSFRAME_UNDERFLOW_ARGS)) == 0);
+
+    flags_ = JSFRAME_FUNCTION | flagsArg;
+    prev_ = cx->regs->fp;
+    ncode_ = ncode;
+}
+
+
+
+
+
+inline void
+JSStackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
+{
+    exec.fun = fun;
+    if (flags_ & (JSFRAME_OVERFLOW_ARGS | JSFRAME_UNDERFLOW_ARGS))
+        args.nactual = nactual;
+}
+
+
+
+
+
+inline void
+JSStackFrame::initCallFrameLatePrologue()
+{
+    SetValueRangeToUndefined(slots(), script()->nfixed);
+}
+
+inline void
+JSStackFrame::initEvalFrame(JSContext *cx, JSScript *script, JSStackFrame *prev, uint32 flagsArg)
+{
+    JS_ASSERT(flagsArg & JSFRAME_EVAL);
+    JS_ASSERT((flagsArg & ~(JSFRAME_EVAL | JSFRAME_DEBUGGER)) == 0);
+    JS_ASSERT(prev->flags_ & (JSFRAME_FUNCTION | JSFRAME_GLOBAL));
+
+    
+    js::Value *dstvp = (js::Value *)this - 2;
+    js::Value *srcvp = prev->flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL)
+                       ? (js::Value *)prev - 2
+                       : prev->formalArgs() - 2;
+    dstvp[0] = srcvp[0];
+    dstvp[1] = srcvp[1];
+    JS_ASSERT_IF(prev->flags_ & JSFRAME_FUNCTION,
+                 dstvp[0].toObject().isFunction());
+
+    
+    flags_ = flagsArg | JSFRAME_HAS_PREVPC | JSFRAME_HAS_SCOPECHAIN |
+             (prev->flags_ & (JSFRAME_FUNCTION | JSFRAME_GLOBAL | JSFRAME_HAS_CALL_OBJ));
+    if (isFunctionFrame()) {
+        exec = prev->exec;
+        args.script = script;
+    } else {
+        exec.script = script;
+    }
+
+    scopeChain_ = &prev->scopeChain();
+    JS_ASSERT_IF(isFunctionFrame(), &callObj() == &prev->callObj());
+
+    prev_ = prev;
+    prevpc_ = prev->pc(cx);
+    JS_ASSERT(!hasImacropc());
+    JS_ASSERT(!hasHookData());
+    setAnnotation(prev->annotation());
+}
+
+inline void
+JSStackFrame::initGlobalFrame(JSScript *script, JSObject &chain, uint32 flagsArg)
+{
+    JS_ASSERT((flagsArg & ~(JSFRAME_EVAL | JSFRAME_DEBUGGER)) == 0);
+
+    
+    js::Value *vp = (js::Value *)this - 2;
+    vp[0].setUndefined();
+    vp[1].setUndefined();  
+
+    
+    flags_ = flagsArg | JSFRAME_GLOBAL | JSFRAME_HAS_PREVPC | JSFRAME_HAS_SCOPECHAIN;
+    exec.script = script;
+    args.script = (JSScript *)0xbad;
+    scopeChain_ = &chain;
+    prev_ = NULL;
+    JS_ASSERT(!hasImacropc());
+    JS_ASSERT(!hasHookData());
+    JS_ASSERT(annotation() == NULL);
+}
+
+inline void
+JSStackFrame::initDummyFrame(JSContext *cx, JSObject &chain)
+{
+    js::PodZero(this);
+    flags_ = JSFRAME_DUMMY | JSFRAME_HAS_PREVPC | JSFRAME_HAS_SCOPECHAIN;
+    initPrev(cx);
+    chain.isGlobal();
+    setScopeChainNoCallObj(chain);
+}
+
+inline void
+JSStackFrame::stealFrameAndSlots(js::Value *vp, JSStackFrame *otherfp,
+                                 js::Value *othervp, js::Value *othersp)
+{
+    JS_ASSERT(vp == (js::Value *)this - (otherfp->formalArgsEnd() - othervp));
+    JS_ASSERT(othervp == otherfp->actualArgs() - 2);
+    JS_ASSERT(othersp >= otherfp->slots());
+    JS_ASSERT(othersp <= otherfp->base() + otherfp->numSlots());
+
+    PodCopy(vp, othervp, othersp - othervp);
+    JS_ASSERT(vp == this->actualArgs() - 2);
+
+    
+    if (otherfp->hasOverflowArgs())
+        Debug_SetValueRangeToCrashOnTouch(othervp, othervp + 2 + otherfp->numFormalArgs());
+
+    
+
+
+
+
+
+    if (hasCallObj()) {
+        callObj().setPrivate(this);
+        otherfp->flags_ &= ~JSFRAME_HAS_CALL_OBJ;
+        if (js_IsNamedLambda(fun())) {
+            JSObject *env = callObj().getParent();
+            JS_ASSERT(env->getClass() == &js_DeclEnvClass);
+            env->setPrivate(this);
+        }
+    }
+    if (hasArgsObj()) {
+        JSObject &args = argsObj();
+        JS_ASSERT(args.isArguments());
+        if (args.isNormalArguments())
+            args.setPrivate(this);
+        else
+            JS_ASSERT(!args.getPrivate());
+        otherfp->flags_ &= ~JSFRAME_HAS_ARGS_OBJ;
+    }
+}
+
+inline js::Value &
+JSStackFrame::canonicalActualArg(uintN i) const
+{
+    if (i < numFormalArgs())
+        return formalArg(i);
+    JS_ASSERT(i < numActualArgs());
+    return actualArgs()[i];
+}
+
+template <class Op>
+inline void
+JSStackFrame::forEachCanonicalActualArg(Op op)
+{
+    uintN nformal = fun()->nargs;
+    js::Value *formals = formalArgsEnd() - nformal;
+    uintN nactual = numActualArgs();
+    if (nactual <= nformal) {
+        uintN i = 0;
+        js::Value *actualsEnd = formals + nactual;
+        for (js::Value *p = formals; p != actualsEnd; ++p, ++i)
+            op(i, p);
+    } else {
+        uintN i = 0;
+        js::Value *formalsEnd = formalArgsEnd();
+        for (js::Value *p = formals; p != formalsEnd; ++p, ++i)
+            op(i, p);
+        js::Value *actuals = formalsEnd - (nactual + 2);
+        js::Value *actualsEnd = formals - 2;
+        for (js::Value *p = actuals; p != actualsEnd; ++p, ++i)
+            op(i, p);
+    }
+}
+
+template <class Op>
+inline void
+JSStackFrame::forEachFormalArg(Op op)
+{
+    js::Value *formals = formalArgsEnd() - fun()->nargs;
+    js::Value *formalsEnd = formalArgsEnd();
+    uintN i = 0;
+    for (js::Value *p = formals; p != formalsEnd; ++p, ++i)
+        op(i, p);
+}
+
+namespace js {
+
+struct STATIC_SKIP_INFERENCE CopyNonHoleArgsTo
+{
+    CopyNonHoleArgsTo(JSObject *aobj, Value *dst) : aobj(aobj), dst(dst) {}
+    JSObject *aobj;
+    Value *dst;
+    void operator()(uintN argi, Value *src) {
+        if (aobj->getArgsElement(argi).isMagic(JS_ARGS_HOLE))
+            dst->setUndefined();
+        else
+            *dst = *src;
+        ++dst;
+    }
+};
+
+struct CopyTo
+{
+    Value *dst;
+    CopyTo(Value *dst) : dst(dst) {}
+    void operator()(uintN, Value *src) {
+        *dst++ = *src;
+    }
+};
+
+}
+
+JS_ALWAYS_INLINE void
+JSStackFrame::clearMissingArgs()
+{
+    if (flags_ & JSFRAME_UNDERFLOW_ARGS)
+        SetValueRangeToUndefined(formalArgs() + numActualArgs(), formalArgsEnd());
+}
+
+inline bool
+JSStackFrame::computeThis(JSContext *cx)
+{
+    js::Value &thisv = thisValue();
+    if (thisv.isObject())
+        return true;
+    if (isFunctionFrame()) {
+        if (fun()->inStrictMode())
+            return true;
+        
+
+
+
+
+
+
+        JS_ASSERT(!isEvalFrame());
+    }
+    if (!js::BoxThisForVp(cx, &thisv - 1))
+        return false;
+    return true;
+}
+
+inline JSObject &
+JSStackFrame::varobj(js::StackSegment *seg) const
+{
+    JS_ASSERT(seg->contains(this));
+    return isFunctionFrame() ? callObj() : seg->getInitialVarObj();
+}
+
+inline JSObject &
+JSStackFrame::varobj(JSContext *cx) const
+{
+    JS_ASSERT(cx->activeSegment()->contains(this));
+    return isFunctionFrame() ? callObj() : cx->activeSegment()->getInitialVarObj();
+}
+
+inline uintN
+JSStackFrame::numActualArgs() const
+{
+    JS_ASSERT(hasArgs());
+    if (JS_UNLIKELY(flags_ & (JSFRAME_OVERFLOW_ARGS | JSFRAME_UNDERFLOW_ARGS)))
+        return hasArgsObj() ? argsObj().getArgsInitialLength() : args.nactual;
+    return numFormalArgs();
+}
+
+inline js::Value *
+JSStackFrame::actualArgs() const
+{
+    JS_ASSERT(hasArgs());
+    js::Value *argv = formalArgs();
+    if (JS_UNLIKELY(flags_ & JSFRAME_OVERFLOW_ARGS)) {
+        uintN nactual = hasArgsObj() ? argsObj().getArgsInitialLength() : args.nactual;
+        return argv - (2 + nactual);
+    }
+    return argv;
+}
+
+inline js::Value *
+JSStackFrame::actualArgsEnd() const
+{
+    JS_ASSERT(hasArgs());
+    if (JS_UNLIKELY(flags_ & JSFRAME_OVERFLOW_ARGS))
+        return formalArgs() - 2;
+    return formalArgs() + numActualArgs();
+}
+
+inline void
+JSStackFrame::setArgsObj(JSObject &obj)
+{
+    JS_ASSERT_IF(hasArgsObj(), &obj == args.obj);
+    JS_ASSERT_IF(!hasArgsObj(), numActualArgs() == obj.getArgsInitialLength());
+    args.obj = &obj;
+    flags_ |= JSFRAME_HAS_ARGS_OBJ;
+}
+
+inline void
+JSStackFrame::clearArgsObj()
+{
+    JS_ASSERT(hasArgsObj());
+    args.nactual = args.obj->getArgsInitialLength();
+    flags_ ^= JSFRAME_HAS_ARGS_OBJ;
+}
+
+inline void
+JSStackFrame::setScopeChainNoCallObj(JSObject &obj)
+{
+#ifdef DEBUG
+    JS_ASSERT(&obj != NULL);
+    JSObject *callObjBefore = maybeCallObj();
+    if (!hasCallObj() && &scopeChain() != sInvalidScopeChain) {
+        for (JSObject *pobj = &scopeChain(); pobj; pobj = pobj->getParent())
+            JS_ASSERT_IF(pobj->isCall(), pobj->getPrivate() != this);
+    }
+#endif
+    scopeChain_ = &obj;
+    flags_ |= JSFRAME_HAS_SCOPECHAIN;
+    JS_ASSERT(callObjBefore == maybeCallObj());
+}
+
+inline void
+JSStackFrame::setScopeChainAndCallObj(JSObject &obj)
+{
+    JS_ASSERT(&obj != NULL);
+    JS_ASSERT(!hasCallObj() && obj.isCall() && obj.getPrivate() == this);
+    scopeChain_ = &obj;
+    flags_ |= JSFRAME_HAS_SCOPECHAIN | JSFRAME_HAS_CALL_OBJ;
+}
+
+inline void
+JSStackFrame::clearCallObj()
+{
+    JS_ASSERT(hasCallObj());
+    flags_ ^= JSFRAME_HAS_CALL_OBJ;
+}
+
+inline JSObject &
+JSStackFrame::callObj() const
+{
+    JS_ASSERT(hasCallObj());
+    JSObject *pobj = &scopeChain();
+    while (JS_UNLIKELY(pobj->getClass() != &js_CallClass)) {
+        JS_ASSERT(js::IsCacheableNonGlobalScope(pobj) || pobj->isWith());
+        pobj = pobj->getParent();
+    }
+    return *pobj;
+}
+
+inline JSObject *
+JSStackFrame::maybeCallObj() const
+{
+    return hasCallObj() ? &callObj() : NULL;
+}
 
 namespace js {
 
@@ -71,10 +508,39 @@ class AutoPreserveEnumerators {
     }
 };
 
+struct AutoInterpPreparer  {
+    JSContext *cx;
+    JSScript *script;
+
+    AutoInterpPreparer(JSContext *cx, JSScript *script)
+      : cx(cx), script(script)
+    {
+        cx->interpLevel++;
+    }
+
+    ~AutoInterpPreparer()
+    {
+        --cx->interpLevel;
+    }
+};
+
+inline void
+PutActivationObjects(JSContext *cx, JSStackFrame *fp)
+{
+    JS_ASSERT(fp->isFunctionFrame() && !fp->isEvalFrame());
+
+    
+    if (fp->hasCallObj()) {
+        js_PutCallObject(cx, fp);
+    } else if (fp->hasArgsObj()) {
+        js_PutArgsObject(cx, fp);
+    }
+}
+
 class InvokeSessionGuard
 {
     InvokeArgsGuard args_;
-    InvokeFrameGuard ifg_;
+    InvokeFrameGuard frame_;
     Value savedCallee_, savedThis_;
     Value *formals_, *actuals_;
     unsigned nformals_;
@@ -82,14 +548,14 @@ class InvokeSessionGuard
     Value *stackLimit_;
     jsbytecode *stop_;
 
-    bool optimized() const { return ifg_.pushed(); }
+    bool optimized() const { return frame_.pushed(); }
 
   public:
-    InvokeSessionGuard() : args_(), ifg_() {}
+    InvokeSessionGuard() : args_(), frame_() {}
     ~InvokeSessionGuard() {}
 
     bool start(JSContext *cx, const Value &callee, const Value &thisv, uintN argc);
-    bool invoke(JSContext *cx);
+    bool invoke(JSContext *cx) const;
 
     bool started() const {
         return args_.pushed();
@@ -98,7 +564,7 @@ class InvokeSessionGuard
     Value &operator[](unsigned i) const {
         JS_ASSERT(i < argc());
         Value &arg = i < nformals_ ? formals_[i] : actuals_[i];
-        JS_ASSERT_IF(optimized(), &arg == &ifg_.fp()->canonicalActualArg(i));
+        JS_ASSERT_IF(optimized(), &arg == &frame_.fp()->canonicalActualArg(i));
         JS_ASSERT_IF(!optimized(), &arg == &args_[i]);
         return arg;
     }
@@ -108,12 +574,12 @@ class InvokeSessionGuard
     }
 
     const Value &rval() const {
-        return optimized() ? ifg_.fp()->returnValue() : args_.rval();
+        return optimized() ? frame_.fp()->returnValue() : args_.rval();
     }
 };
 
 inline bool
-InvokeSessionGuard::invoke(JSContext *cx)
+InvokeSessionGuard::invoke(JSContext *cx) const
 {
     
 
@@ -121,36 +587,46 @@ InvokeSessionGuard::invoke(JSContext *cx)
     formals_[-2] = savedCallee_;
     formals_[-1] = savedThis_;
 
-    
-    args_.calleeHasBeenReset();
+    if (!optimized())
+        return Invoke(cx, args_, 0);
 
 #ifdef JS_METHODJIT
+    mjit::JITScript *jit = script_->getJIT(false );
+    if (!jit) {
+        
+        mjit::CompileStatus status = mjit::TryCompile(cx, frame_.fp());
+        if (status == mjit::Compile_Error)
+            return false;
+        JS_ASSERT(status == mjit::Compile_Okay);
+        jit = script_->getJIT(false);
+    }
     void *code;
-    if (!optimized() || !(code = script_->getJIT(false )->invokeEntry))
-#else
-    if (!optimized())
+    if (!(code = jit->invokeEntry))
+        return Invoke(cx, args_, 0);
 #endif
-        return Invoke(cx, args_);
 
     
-    StackFrame *fp = ifg_.fp();
-    fp->resetCallFrame(script_);
+    JSStackFrame *fp = frame_.fp();
+    fp->clearMissingArgs();
+    fp->resetInvokeCallFrame();
+    SetValueRangeToUndefined(fp->slots(), script_->nfixed);
 
     JSBool ok;
     {
         AutoPreserveEnumerators preserve(cx);
-        args_.setActive();  
         Probes::enterJSFun(cx, fp->fun(), script_);
 #ifdef JS_METHODJIT
+        AutoInterpPreparer prepareInterp(cx, script_);
         ok = mjit::EnterMethodJIT(cx, fp, code, stackLimit_);
-        cx->regs().pc = stop_;
+        cx->regs->pc = stop_;
 #else
-        cx->regs().pc = script_->code;
+        cx->regs->pc = script_->code;
         ok = Interpret(cx, cx->fp());
 #endif
         Probes::exitJSFun(cx, fp->fun(), script_);
-        args_.setInactive();
     }
+
+    PutActivationObjects(cx, fp);
 
     
     return ok;
@@ -187,7 +663,7 @@ class PrimitiveBehavior<double> {
 } 
 
 template <typename T>
-inline bool
+bool
 GetPrimitiveThis(JSContext *cx, Value *vp, T *v)
 {
     typedef detail::PrimitiveBehavior<T> Behavior;
@@ -205,104 +681,6 @@ GetPrimitiveThis(JSContext *cx, Value *vp, T *v)
 
     ReportIncompatibleMethod(cx, vp, Behavior::getClass());
     return false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inline bool
-ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
-{
-    vp->setUndefined();
-
-    if (!funval.isObject())
-        return true;
-
-    if (!obj->isGlobal()) {
-        if (IsCacheableNonGlobalScope(obj))
-            return true;
-    } else {
-        JSObject *callee = &funval.toObject();
-
-        if (callee->isProxy()) {
-            callee = callee->unwrap();
-            if (!callee->isFunction())
-                return true; 
-        }
-        if (callee->isFunction()) {
-            JSFunction *fun = callee->getFunctionPrivate();
-            if (fun->isInterpreted() && fun->inStrictMode())
-                return true;
-        }
-        if (callee->getGlobal() == cx->fp()->scopeChain().getGlobal())
-            return true;;
-    }
-
-    obj = obj->thisObject(cx);
-    if (!obj)
-        return false;
-
-    vp->setObject(*obj);
-    return true;
-}
-
-inline bool
-ComputeThis(JSContext *cx, StackFrame *fp)
-{
-    Value &thisv = fp->thisValue();
-    if (thisv.isObject())
-        return true;
-    if (fp->isFunctionFrame()) {
-        if (fp->fun()->inStrictMode())
-            return true;
-        
-
-
-
-
-
-
-        JS_ASSERT(!fp->isEvalFrame());
-    }
-    return BoxNonStrictThis(cx, fp->callReceiver());
 }
 
 
@@ -341,31 +719,44 @@ ValuePropertyBearer(JSContext *cx, const Value &v, int spindex)
     return pobj;
 }
 
-inline bool
-ScriptPrologue(JSContext *cx, StackFrame *fp)
+static inline bool
+ScriptEpilogue(JSContext *cx, JSStackFrame *fp, JSBool ok)
 {
-    JS_ASSERT_IF(fp->isNonEvalFunctionFrame() && fp->fun()->isHeavyweight(), fp->hasCallObj());
+    if (!fp->isExecuteFrame())
+        Probes::exitJSFun(cx, fp->maybeFun(), fp->maybeScript());
 
-    if (fp->isConstructing()) {
-        JSObject *obj = js_CreateThisForFunction(cx, &fp->callee());
-        if (!obj)
-            return false;
-        fp->functionThis().setObject(*obj);
+    JSInterpreterHook hook =
+        fp->isExecuteFrame() ? cx->debugHooks->executeHook : cx->debugHooks->callHook;
+
+    void* hookData;
+    if (JS_UNLIKELY(hook != NULL) && (hookData = fp->maybeHookData()))
+        hook(cx, fp, JS_FALSE, &ok, hookData);
+
+    if (fp->isEvalFrame()) {
+        
+
+
+
+
+
+        if (fp->script()->strictModeCode) {
+            JS_ASSERT(!fp->isYielding());
+            JS_ASSERT(!fp->hasArgsObj());
+            JS_ASSERT(fp->hasCallObj());
+            JS_ASSERT(fp->callObj().callIsForEval());
+            js_PutCallObject(cx, fp);
+        }
+    } else {
+        
+
+
+
+
+        if (fp->isFunctionFrame() && !fp->isYielding()) {
+            JS_ASSERT_IF(fp->hasCallObj(), !fp->callObj().callIsForEval());
+            PutActivationObjects(cx, fp);
+        }
     }
-
-    Probes::enterJSFun(cx, fp->maybeFun(), fp->script());
-    if (cx->compartment->debugMode())
-        ScriptDebugPrologue(cx, fp);
-
-    return true;
-}
-
-inline bool
-ScriptEpilogue(JSContext *cx, StackFrame *fp, bool ok)
-{
-    Probes::exitJSFun(cx, fp->maybeFun(), fp->script());
-    if (cx->compartment->debugMode())
-        ok = ScriptDebugEpilogue(cx, fp, ok);
 
     
 
@@ -374,31 +765,12 @@ ScriptEpilogue(JSContext *cx, StackFrame *fp, bool ok)
     if (fp->isConstructing() && ok) {
         if (fp->returnValue().isPrimitive())
             fp->setReturnValue(ObjectValue(fp->constructorThis()));
+        JS_RUNTIME_METER(cx->runtime, constructs);
     }
 
     return ok;
 }
 
-inline bool
-ScriptPrologueOrGeneratorResume(JSContext *cx, StackFrame *fp)
-{
-    if (!fp->isGeneratorFrame())
-        return ScriptPrologue(cx, fp);
-    if (cx->compartment->debugMode())
-        ScriptDebugPrologue(cx, fp);
-    return true;
 }
 
-inline bool
-ScriptEpilogueOrGeneratorYield(JSContext *cx, StackFrame *fp, bool ok)
-{
-    if (!fp->isYielding())
-        return ScriptEpilogue(cx, fp, ok);
-    if (cx->compartment->debugMode())
-        return ScriptDebugEpilogue(cx, fp, ok);
-    return ok;
-}
-
-}  
-
-#endif
+#endif 
