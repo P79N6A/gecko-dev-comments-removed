@@ -615,7 +615,11 @@ protected:
   gfxAlphaBoxBlur blur;
   nsRefPtr<gfxContext> mContext;
   gfxContext* mDestinationCtx;
+
   
+
+  bool mPreTransformed;
+
 };
 
 #endif
