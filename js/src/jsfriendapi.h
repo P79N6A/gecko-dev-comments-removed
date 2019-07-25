@@ -510,4 +510,21 @@ js_DateIsValid(JSContext *cx, JSObject* obj);
 extern JS_FRIEND_API(double)
 js_DateGetMsecSinceEpoch(JSContext *cx, JSObject *obj);
 
+
+
+
+
+
+
+typedef enum JSErrNum {
+#define MSG_DEF(name, number, count, exception, format) \
+    name = number,
+#include "js.msg"
+#undef MSG_DEF
+    JSErr_Limit
+} JSErrNum;
+
+extern JS_FRIEND_API(const JSErrorFormatString *)
+js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber);
+
 #endif
