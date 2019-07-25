@@ -148,7 +148,3 @@ function test() {
   ss.setBrowserState(JSON.stringify(state));
 }
 
-
-function r() {
-  return "" + Date.now() + Math.random();
-}

@@ -52,54 +52,6 @@ function testBug600545() {
 
   
   
-  function waitForSaveState(aSaveStateCallback) {
-    let topic = "sessionstore-state-write";
-    Services.obs.addObserver(function() {
-      Services.obs.removeObserver(arguments.callee, topic, false);
-      executeSoon(aSaveStateCallback);
-    }, topic, false);
-  };
-
-  
-  function waitForBrowserState(aState, aSetStateCallback) {
-    let tabsRestored = 0;
-    let expectedTabs = getStateTabCount(aState);
-
-    
-    let newWin;
-
-    
-    function onTabRestored(aEvent) {
-      if (++tabsRestored == expectedTabs) {
-        gBrowser.tabContainer.removeEventListener("SSTabRestored", onTabRestored, true);
-        newWin.gBrowser.tabContainer.removeEventListener("SSTabRestored", onTabRestored, true);
-        executeSoon(aSetStateCallback);
-      }
-    }
-
-    
-    function windowObserver(aSubject, aTopic, aData) {
-      let theWin = aSubject.QueryInterface(Ci.nsIDOMWindow);
-      if (aTopic == "domwindowopened") {
-        theWin.addEventListener("load", function() {
-          theWin.removeEventListener("load", arguments.callee, false);
-
-          
-          newWin = theWin;
-
-          Services.ww.unregisterNotification(windowObserver);
-          theWin.gBrowser.tabContainer.addEventListener("SSTabRestored", onTabRestored, true);
-        }, false);
-      }
-    }
-
-    Services.ww.registerNotification(windowObserver);
-    gBrowser.tabContainer.addEventListener("SSTabRestored", onTabRestored, true);
-    ss.setBrowserState(JSON.stringify(aState));
-  }
-
-  
-  
   
   
   
@@ -124,6 +76,8 @@ function testBug600545() {
   ] };
 
   waitForBrowserState(state, function() {
+    
+    
     waitForSaveState(function () {
       let expectedNumberOfTabs = getStateTabCount(state);
       let retrievedState = JSON.parse(ss.getBrowserState());
