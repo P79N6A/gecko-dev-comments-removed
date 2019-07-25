@@ -198,7 +198,8 @@ PlacesTreeView.prototype = {
 
 
   _getParentByChildRow: function PTV__getParentByChildRow(aChildRow) {
-    let parent = this._getNodeForRow(aChildRow).parent;
+    let node = this._getNodeForRow(aChildRow);
+    let parent = (node === null) ? this._rootNode : node.parent;
 
     
     if (parent == this._rootNode)
@@ -212,6 +213,10 @@ PlacesTreeView.prototype = {
 
 
   _getNodeForRow: function PTV__getNodeForRow(aRow) {
+    if (aRow < 0) {
+      return null;
+    }
+  
     let node = this._rows[aRow];
     if (node !== undefined)
       return node;
