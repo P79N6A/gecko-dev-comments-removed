@@ -111,6 +111,10 @@ let gBrowserThumbnails = {
     let channel = aBrowser.docShell.currentDocumentChannel;
 
     
+    if (!channel)
+      return false;
+
+    
     
     if (channel.originalURI.schemeIs("about"))
       return false;
