@@ -259,7 +259,7 @@ def check_output(out, err, rc, test):
     if rc != test.expect_status:
         
         
-        return test.allow_oom and ': out of memory' in err and 'Assertion failure' not in err
+        return test.allow_oom and 'out of memory' in err and 'Assertion failure' not in err
 
     return True
 

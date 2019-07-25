@@ -6039,6 +6039,7 @@ struct JSErrorReport {
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
     int16_t         exnType;        
+    unsigned           column;         
 };
 
 
