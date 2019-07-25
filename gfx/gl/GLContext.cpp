@@ -2039,13 +2039,42 @@ GLContext::ReadPixelsIntoImageSurface(gfxImageSurface* dest)
 
     GLenum format;
     GLenum datatype;
-
     GetOptimalReadFormats(this, format, datatype);
 
+    GLsizei width = dest->Width();
+    GLsizei height = dest->Height();
+
     fReadPixels(0, 0,
-                dest->Width(), dest->Height(),
+                width, height,
                 format, datatype,
                 dest->Data());
+
+    
+    
+#ifdef XP_MACOSX
+    if (WorkAroundDriverBugs() &&
+        mVendor == VendorNVIDIA &&
+        dest->Format() == gfxASurface::ImageFormatARGB32 &&
+        width && height)
+    {
+        GLint alphaBits = 0;
+        fGetIntegerv(LOCAL_GL_ALPHA_BITS, &alphaBits);
+        if (!alphaBits) {
+            const uint32_t alphaMask = GFX_PACKED_PIXEL_NO_PREMULTIPLY(0xff,0,0,0);
+
+            uint32_t* itr = (uint32_t*)dest->Data();
+            uint32_t testPixel = *itr;
+            if ((testPixel & alphaMask) != alphaMask) {
+                
+                uint32_t* itrEnd = itr + width*height;  
+
+                for (; itr != itrEnd; itr++) {
+                    *itr |= alphaMask;
+                }
+            }
+        }
+    }
+#endif
 
     
     if (format == LOCAL_GL_RGBA) {
