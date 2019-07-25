@@ -49,7 +49,7 @@ var _passed = true;
 var _tests_pending = 0;
 var _passedChecks = 0, _falsePassedChecks = 0;
 var _cleanupFunctions = [];
-var _pendingCallbacks = [];
+var _pendingTimers = [];
 
 function _dump(str) {
   if (typeof _XPCSHELL_PROCESS == "undefined") {
@@ -90,15 +90,33 @@ try {
 catch (e) { }
 
 
-function _TimerCallback(func, timer) {
+
+
+
+
+
+const _timerFuzz = 15;
+
+function _Timer(func, delay) {
+  delay = Number(delay);
+  if (delay < 0)
+    do_throw("do_timeout() delay must be nonnegative");
+
   if (typeof func !== "function")
-    throw new Error("string callbacks no longer accepted; use a function!");
+    do_throw("string callbacks no longer accepted; use a function!");
 
   this._func = func;
+  this._start = Date.now();
+  this._delay = delay;
+
+  var timer = Components.classes["@mozilla.org/timer;1"]
+                        .createInstance(Components.interfaces.nsITimer);
+  timer.initWithCallback(this, delay + _timerFuzz, timer.TYPE_ONE_SHOT);
+
   
-  _pendingCallbacks.push(timer);
+  _pendingTimers.push(timer);
 }
-_TimerCallback.prototype = {
+_Timer.prototype = {
   QueryInterface: function(iid) {
     if (iid.Equals(Components.interfaces.nsITimerCallback) ||
         iid.Equals(Components.interfaces.nsISupports))
@@ -108,8 +126,26 @@ _TimerCallback.prototype = {
   },
 
   notify: function(timer) {
-    _pendingCallbacks.splice(_pendingCallbacks.indexOf(timer), 1);
-    this._func.call(null);
+    _pendingTimers.splice(_pendingTimers.indexOf(timer), 1);
+
+    
+    
+    
+    var end = Date.now();
+    var elapsed = end - this._start;
+    if (elapsed >= this._delay) {
+      try {
+        this._func.call(null);
+      } catch (e) {
+        do_throw("exception thrown from callLater callback: " + e);
+      }
+      return;
+    }
+
+    
+    
+    var newDelay = this._delay - elapsed;
+    do_timeout(newDelay, this._func);
   }
 };
 
@@ -224,10 +260,17 @@ function _load_files(aFiles) {
 
 
 
+
+
+
+
+
+
+
+
+
 function do_timeout(delay, func) {
-  var timer = Components.classes["@mozilla.org/timer;1"]
-                        .createInstance(Components.interfaces.nsITimer);
-  timer.initWithCallback(new _TimerCallback(func, timer), delay, timer.TYPE_ONE_SHOT);
+  new _Timer(func, Number(delay));
 }
 
 function do_execute_soon(callback) {

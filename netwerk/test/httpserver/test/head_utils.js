@@ -41,8 +41,6 @@ do_load_httpd_js();
 
 DEBUG = true;
 
-const Timer = CC("@mozilla.org/timer;1", "nsITimer", "initWithCallback");
-
 
 
 
@@ -214,20 +212,6 @@ function isException(e, code)
 
 
 
-var __pendingTimers = [];
-
-
-
-
-
-
-
-const __timerFuzz = 15;
-
-
-
-
-
 
 
 
@@ -236,48 +220,7 @@ const __timerFuzz = 15;
 
 function callLater(msecs, callback)
 {
-  do_check_true(msecs >= 0);
-
-  var start = Date.now();
-
-  function checkTime()
-  {
-    var index = __pendingTimers.indexOf(timer);
-    do_check_true(index >= 0); 
-    __pendingTimers.splice(index, 1);
-    do_check_eq(__pendingTimers.indexOf(timer), -1);
-
-    
-    
-    
-    var end = Date.now();
-    var elapsed = end - start;
-    if (elapsed >= msecs)
-    {
-      dumpn("*** TIMER FIRE " + elapsed + "ms (" + msecs + "ms requested)");
-      try
-      {
-        callback();
-      }
-      catch (e)
-      {
-        do_throw("exception thrown from callLater callback: " + e);
-      }
-      return;
-    }
-
-    
-    
-    var newDelay = msecs - elapsed;
-    dumpn("*** TIMER UNDERSHOOT " + newDelay + "ms " +
-          "(" + msecs + "ms requested, delaying)");
-
-    callLater(newDelay, callback);
-  }
-
-  var timer =
-    new Timer(checkTime, msecs + __timerFuzz, Ci.nsITimer.TYPE_ONE_SHOT);
-  __pendingTimers.push(timer);
+  do_timeout(msecs, callback);
 }
 
 
