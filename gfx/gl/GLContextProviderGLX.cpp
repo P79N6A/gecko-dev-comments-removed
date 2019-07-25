@@ -256,15 +256,9 @@ GLXLibrary::EnsureInitialized()
         NS_WARNING("Texture from pixmap disabled");
     }
 
-    if (HasExtension(extensionsStr, "GL_ARB_robustness")) {
-        if (!LibrarySymbolLoader::LoadSymbols(mOGLLibrary, symbols_robustness)) {
-            
-            
-            
-            
-        } else {
-            mHasRobustness = true;
-        }
+    if (HasExtension(extensionsStr, "GLX_ARB_create_context_robustness") &&
+        LibrarySymbolLoader::LoadSymbols(mOGLLibrary, symbols_robustness)) {
+        mHasRobustness = true;
     }
 
     gIsATI = serverVendor && DoesVendorStringMatch(serverVendor, "ATI");
@@ -826,6 +820,11 @@ TRY_AGAIN_NO_SHARING:
     bool IsDoubleBuffered()
     {
         return mDoubleBuffered;
+    }
+
+    bool SupportsRobustness()
+    {
+        return sGLXLibrary.HasRobustness();
     }
 
     bool SwapBuffers()
