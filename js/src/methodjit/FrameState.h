@@ -590,7 +590,7 @@ class FrameState
 
 
 
-    void storeTo(FrameEntry *fe, RegisterID dataReg, RegisterID typeReg, RegisterID tempReg);
+    void loadTo(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
 
     
 
@@ -653,6 +653,11 @@ class FrameState
 
 
     inline void forgetType(FrameEntry *fe);
+
+    
+
+
+    void discardFe(FrameEntry *fe);
 
     
 
