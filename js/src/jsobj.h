@@ -505,6 +505,10 @@ struct JSObject {
 
 
 
+
+
+
+
     static const uint32 JSSLOT_ARGS_LENGTH = JSSLOT_PRIVATE + 1;
     static const uint32 JSSLOT_ARGS_CALLEE = JSSLOT_PRIVATE + 2;
 
@@ -512,13 +516,31 @@ struct JSObject {
     
     static const uint32 ARGS_FIXED_RESERVED_SLOTS = 2;
 
-    inline uint32 getArgsInitialLength() const;
+    
+    static const uint32 ARGS_LENGTH_OVERRIDDEN_BIT = 0x1;
+    static const uint32 ARGS_CALLEE_IN_STRICT_MODE_BIT = 0x2;
+    static const uint32 ARGS_PACKED_BITS_COUNT = 2;
+
+    
+
+
+
     inline void setArgsLength(uint32 argc);
+
+    
+
+
+
+    inline uint32 getArgsInitialLength() const;
+
     inline void setArgsLengthOverridden();
     inline bool isArgsLengthOverridden() const;
 
     inline const js::Value &getArgsCallee() const;
     inline void setArgsCallee(const js::Value &callee);
+
+    inline void setArgsStrictMode();
+    inline bool isArgsStrictMode() const;
 
     inline const js::Value &getArgsElement(uint32 i) const;
     inline js::Value *addressOfArgsElement(uint32 i) const;
@@ -567,6 +589,8 @@ struct JSObject {
 
     inline bool hasMethodObj(const JSObject& obj) const;
     inline void setMethodObj(JSObject& obj);
+
+    inline JSFunction *getFunctionPrivate() const;
 
     
 

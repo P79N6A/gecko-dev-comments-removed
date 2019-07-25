@@ -15241,7 +15241,7 @@ TraceRecorder::guardArgsLengthNotAssigned(LIns* argsobj_ins)
     
     
     LIns *len_ins = stobj_get_fslot_uint32(argsobj_ins, JSObject::JSSLOT_ARGS_LENGTH);
-    LIns *ovr_ins = lir->ins2(LIR_andi, len_ins, INS_CONST(2));
+    LIns *ovr_ins = lir->ins2(LIR_andi, len_ins, INS_CONST(JSObject::ARGS_LENGTH_OVERRIDDEN_BIT));
     guard(true, lir->insEqI_0(ovr_ins), snapshot(BRANCH_EXIT));
     return len_ins;
 }
@@ -16048,7 +16048,9 @@ TraceRecorder::record_JSOP_LENGTH()
 
         
         
-        LIns* v_ins = lir->ins1(LIR_i2d, lir->ins2ImmI(LIR_rshi, slot_ins, 1));
+        LIns* v_ins =
+            lir->ins1(LIR_i2d, lir->ins2ImmI(LIR_rshi,
+                                             slot_ins, JSObject::ARGS_PACKED_BITS_COUNT));
         set(&l, v_ins);
         return ARECORD_CONTINUE;
     }
