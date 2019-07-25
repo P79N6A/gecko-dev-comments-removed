@@ -45,39 +45,9 @@
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsobj.h"
+#include "jsgcmark.h"
 
 namespace js {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -189,13 +159,16 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
     typedef typename Base::Enum Enum;
 
   public:
-    WeakMap(JSContext *cx) : Base(cx) { }
+    explicit WeakMap(JSRuntime *rt) : Base(rt) { }
+    explicit WeakMap(JSContext *cx) : Base(cx) { }
 
   private:
     void nonMarkingTrace(JSTracer *tracer) {
         MarkPolicy t(tracer);
-        for (Range r = Base::all(); !r.empty(); r.popFront())
-            t.markEntry(r.front().key, r.front().value);
+        for (Range r = Base::all(); !r.empty(); r.popFront()) {
+            t.markKey(r.front().key, "WeakMap entry key");
+            t.markValue(r.front().value, "WeakMap entry value");
+        }
     }
 
     bool markIteratively(JSTracer *tracer) {
@@ -203,29 +176,23 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
         bool markedAny = false;
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
             
-            if (t.markEntryIfLive(r.front().key, r.front().value)) {
+            if (!t.valueMarked(r.front().value) && t.keyMarked(r.front().key)) {
+                t.markValue(r.front().value, "WeakMap entry with live key");
                 
                 markedAny = true;
             }
-            JS_ASSERT_IF(t.keyMarked(r.front().key), t.valueMarked(r.front().value));
         }
         return markedAny;
     }
 
     void sweep(JSTracer *tracer) {
         MarkPolicy t(tracer);
-
-        
         for (Enum e(*this); !e.empty(); e.popFront()) {
             if (!t.keyMarked(e.front().key))
                 e.removeFront();
         }
-
 #if DEBUG
         
-
-
-
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
             JS_ASSERT(t.keyMarked(r.front().key));
             JS_ASSERT(t.valueMarked(r.front().value));
@@ -233,12 +200,6 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
 #endif
     }
 };
-
-
-
-
-
-
 
 template <>
 class DefaultMarkPolicy<JSObject *, Value> {
@@ -252,37 +213,28 @@ class DefaultMarkPolicy<JSObject *, Value> {
             return !IsAboutToBeFinalized(tracer->context, v.toGCThing());
         return true;
     }
-  private:
-    bool markUnmarkedValue(const Value &v) {
-        if (valueMarked(v))
-            return false;
-        js::gc::MarkValue(tracer, v, "WeakMap entry value");
-        return true;
+    void markKey(JSObject *k, const char *description) {
+        js::gc::MarkObject(tracer, *k, description);
     }
+    void markValue(const Value &v, const char *description) {
+        js::gc::MarkValue(tracer, v, description);
+    }
+};
 
-    
-    
-    bool overrideKeyMarking(JSObject *k) {
-        
-        
-        if (!IS_GC_MARKING_TRACER(tracer))
-            return false;
-        return k->getClass()->ext.isWrappedNative;
-    }
+template <>
+class DefaultMarkPolicy<JSObject *, JSObject *> {
   public:
-    bool markEntryIfLive(JSObject *k, const Value &v) {
-        if (keyMarked(k))
-            return markUnmarkedValue(v);
-        if (!overrideKeyMarking(k))
-            return false;
-        js::gc::MarkObject(tracer, *k, "WeakMap entry wrapper key");
-        markUnmarkedValue(v);
-        return true;
+    DefaultMarkPolicy(JSTracer *t) : tracer(t) { }
+    bool keyMarked(JSObject *k)   { return !IsAboutToBeFinalized(tracer->context, k); }
+    bool valueMarked(JSObject *v) { return !IsAboutToBeFinalized(tracer->context, v); }
+    void markKey(JSObject *k, const char *description) {
+        js::gc::MarkObject(tracer, *k, description);
     }
-    void markEntry(JSObject *k, const Value &v) {
-        js::gc::MarkObject(tracer, *k, "WeakMap entry key");
-        js::gc::MarkValue(tracer, v, "WeakMap entry value");
+    void markValue(JSObject *v, const char *description) {
+        js::gc::MarkObject(tracer, *v, description);
     }
+  protected:
+    JSTracer *tracer;
 };
 
 

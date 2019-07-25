@@ -46,6 +46,7 @@
 #include "jscompartment.h"
 #include "jsgc.h"
 #include "jshashtable.h"
+#include "jsweakmap.h"
 #include "jswrapper.h"
 #include "jsvalue.h"
 #include "vm/GlobalObject.h"
@@ -76,11 +77,27 @@ class Debug {
     FrameMap frames;
 
     
+    class ObjectMapMarkPolicy: public DefaultMarkPolicy<JSObject *, JSObject *> {
+        typedef DefaultMarkPolicy<JSObject *, JSObject *> Base;
+      public:
+        explicit ObjectMapMarkPolicy(JSTracer *tracer) : Base(tracer) { }
+
+        
+        
+        
+        
+        bool keyMarked(JSObject *k) { return k->unwrap()->isMarked(); }
+        void markKey(JSObject *k, const char *description) {
+            js::gc::MarkObject(tracer, *k->unwrap(), description);
+        }
+    };
+
     
     
-    typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, SystemAllocPolicy>
-        ObjectMap;
-    ObjectMap objects;
+    
+    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, ObjectMapMarkPolicy>
+        ObjectWeakMap;
+    ObjectWeakMap objects;
 
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
     void removeDebuggeeGlobal(GlobalObject *global, GlobalObjectSet::Enum *compartmentEnum,
@@ -91,7 +108,8 @@ class Debug {
                                       bool callHook = true);
     JSObject *unwrapDebuggeeArgument(JSContext *cx, Value *vp);
 
-    static void trace(JSTracer *trc, JSObject *obj);
+    static void traceObject(JSTracer *trc, JSObject *obj);
+    void trace(JSTracer *trc);
     static void finalize(JSContext *cx, JSObject *obj);
 
     static Class jsclass;

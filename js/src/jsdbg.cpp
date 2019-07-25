@@ -150,7 +150,7 @@ enum {
 
 Debug::Debug(JSObject *dbg, JSObject *hooks)
   : object(dbg), hooksObject(hooks), uncaughtExceptionHook(NULL), enabled(true),
-    hasDebuggerHandler(false), hasThrowHandler(false)
+    hasDebuggerHandler(false), hasThrowHandler(false), objects(dbg->compartment()->rt)
 {
     
     JSRuntime *rt = dbg->compartment()->rt;
@@ -259,7 +259,7 @@ Debug::wrapDebuggeeValue(JSContext *cx, Value *vp)
             return false;
         }
 
-        ObjectMap::AddPtr p = objects.lookupForAdd(ccwobj);
+        ObjectWeakMap::AddPtr p = objects.lookupForAdd(ccwobj);
         if (p) {
             vp->setObject(*p->value);
         } else {
@@ -560,36 +560,6 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
                             markedAny = true;
                         }
                     }
-
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    if (obj->isMarked() && (!comp || obj->compartment() == comp)) {
-                        for (ObjectMap::Range r = dbg->objects.all(); !r.empty(); r.popFront()) {
-                            
-                            
-                            
-                            if (!r.front().value->isMarked() &&
-                                (comp || r.front().key->unwrap()->isMarked())) {
-                                MarkObject(trc, *r.front().value,
-                                           "Debug.Object with live referent");
-                                markedAny = true;
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -598,21 +568,29 @@ Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
 }
 
 void
-Debug::trace(JSTracer *trc, JSObject *obj)
+Debug::traceObject(JSTracer *trc, JSObject *obj)
 {
-    if (Debug *dbg = (Debug *) obj->getPrivate()) {
-        MarkObject(trc, *dbg->hooksObject, "hooks");
-        if (dbg->uncaughtExceptionHook)
-            MarkObject(trc, *dbg->uncaughtExceptionHook, "hooks");
+    if (Debug *dbg = Debug::fromJSObject(obj))
+        dbg->trace(trc);
+}
 
-        
-        
-        for (FrameMap::Enum e(dbg->frames); !e.empty(); e.popFront()) {
-            JSObject *frameobj = e.front().value;
-            JS_ASSERT(frameobj->getPrivate());
-            MarkObject(trc, *frameobj, "live Debug.Frame");
-        }
+void
+Debug::trace(JSTracer *trc)
+{
+    MarkObject(trc, *hooksObject, "hooks");
+    if (uncaughtExceptionHook)
+        MarkObject(trc, *uncaughtExceptionHook, "hooks");
+
+    
+    
+    for (FrameMap::Enum e(frames); !e.empty(); e.popFront()) {
+        JSObject *frameobj = e.front().value;
+        JS_ASSERT(frameobj->getPrivate());
+        MarkObject(trc, *frameobj, "live Debug.Frame");
     }
+
+    
+    objects.trace(trc);
 }
 
 void
@@ -621,14 +599,7 @@ Debug::sweepAll(JSRuntime *rt)
     for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
         Debug *dbg = (Debug *) ((unsigned char *) p - offsetof(Debug, link));
 
-        if (dbg->object->isMarked()) {
-            
-            for (ObjectMap::Enum e(dbg->objects); !e.empty(); e.popFront()) {
-                JS_ASSERT(e.front().key->isMarked() == e.front().value->isMarked());
-                if (!e.front().value->isMarked())
-                    e.removeFront();
-            }
-        } else {
+        if (!dbg->object->isMarked()) {
             
             
             
@@ -690,7 +661,7 @@ Class Debug::jsclass = {
     NULL,                 
     NULL,                 
     NULL,                 
-    Debug::trace
+    Debug::traceObject
 };
 
 JSBool
