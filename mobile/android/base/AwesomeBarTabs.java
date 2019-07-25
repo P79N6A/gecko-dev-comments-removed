@@ -284,7 +284,7 @@ public class AwesomeBarTabs extends TabHost {
 
             try {
                 
-                Class cls = Class.forName("android.widget.CursorTreeAdapter"); 
+                Class<?> cls = Class.forName("android.widget.CursorTreeAdapter");
                 Field field = cls.getDeclaredField("mAutoRequery");
                 field.setAccessible(true);
                 field.set(mBookmarksAdapter, false);

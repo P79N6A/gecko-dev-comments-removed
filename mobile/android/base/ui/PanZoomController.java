@@ -297,7 +297,7 @@ public class PanZoomController
             cancelTouch();
             startPanning(event.getX(0), event.getY(0), event.getEventTime());
             GeckoApp.mAppContext.hidePlugins(false );
-            GeckoApp.mAppContext.mAutoCompletePopup.hide();
+            GeckoApp.mAutoCompletePopup.hide();
             track(event);
             return true;
 
