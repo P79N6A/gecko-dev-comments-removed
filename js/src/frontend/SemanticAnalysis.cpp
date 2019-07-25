@@ -38,11 +38,12 @@
 
 
 
-#include "frontend/Parser.h"
+#include "frontend/SemanticAnalysis.h"
 
 #include "jsfun.h"
 
 #include "frontend/BytecodeEmitter.h"
+#include "frontend/Parser.h"
 
 #include "jsfuninlines.h"
 
@@ -78,8 +79,8 @@ using namespace js::frontend;
 
 
 
-void
-Parser::cleanFunctionList(FunctionBox **funboxHead)
+static void
+CleanFunctionList(ParseNodeAllocator *allocator, FunctionBox **funboxHead)
 {
     FunctionBox **link = funboxHead;
     while (FunctionBox *box = *link) {
@@ -95,7 +96,7 @@ Parser::cleanFunctionList(FunctionBox **funboxHead)
 
 
             *link = box->siblings;
-            allocator.freeNode(box->node);
+            allocator->freeNode(box->node);
         } else {
             
 
@@ -116,25 +117,12 @@ Parser::cleanFunctionList(FunctionBox **funboxHead)
             }
 
             
-            cleanFunctionList(&box->kids);
+            CleanFunctionList(allocator, &box->kids);
 
             
             link = &box->siblings;
         }
     }
-}
-
-bool
-Parser::analyzeFunctions(TreeContext *tc)
-{
-    cleanFunctionList(&tc->functionList);
-    if (!tc->functionList)
-        return true;
-    if (!markFunArgs(tc->functionList))
-        return false;
-    markExtensibleScopeDescendants(tc->functionList, false);
-    setFunctionKinds(tc->functionList, &tc->flags);
-    return true;
 }
 
 
@@ -270,12 +258,12 @@ FindFunArgs(FunctionBox *funbox, int level, FunctionBoxQueue *queue)
     return allskipmin;
 }
 
-bool
-Parser::markFunArgs(FunctionBox *funbox)
+static bool
+MarkFunArgs(JSContext *cx, FunctionBox *funbox, uint32 functionCount)
 {
     FunctionBoxQueue queue;
     if (!queue.init(functionCount)) {
-        js_ReportOutOfMemory(context);
+        js_ReportOutOfMemory(cx);
         return false;
     }
 
@@ -563,15 +551,15 @@ ConsiderUnbranding(FunctionBox *funbox)
     }
 }
 
-void
-Parser::setFunctionKinds(FunctionBox *funbox, uint32 *tcflags)
+static void
+SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
 {
     for (; funbox; funbox = funbox->siblings) {
         ParseNode *fn = funbox->node;
         ParseNode *pn = fn->pn_body;
 
         if (funbox->kids) {
-            setFunctionKinds(funbox->kids, tcflags);
+            SetFunctionKinds(funbox->kids, tcflags, isDirectEval);
             ConsiderUnbranding(funbox);
         }
 
@@ -581,7 +569,7 @@ Parser::setFunctionKinds(FunctionBox *funbox, uint32 *tcflags)
 
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
             
-        } else if (callerFrame || funbox->inAnyDynamicScope()) {
+        } else if (isDirectEval || funbox->inAnyDynamicScope()) {
             
 
 
@@ -685,8 +673,8 @@ Parser::setFunctionKinds(FunctionBox *funbox, uint32 *tcflags)
 
 
 
-void
-Parser::markExtensibleScopeDescendants(FunctionBox *funbox, bool hasExtensibleParent)
+static void
+MarkExtensibleScopeDescendants(FunctionBox *funbox, bool hasExtensibleParent) 
 {
     for (; funbox; funbox = funbox->siblings) {
         
@@ -700,8 +688,22 @@ Parser::markExtensibleScopeDescendants(FunctionBox *funbox, bool hasExtensiblePa
             funbox->bindings.setExtensibleParents();
 
         if (funbox->kids) {
-            markExtensibleScopeDescendants(funbox->kids,
+            MarkExtensibleScopeDescendants(funbox->kids,
                                            hasExtensibleParent || funbox->scopeIsExtensible());
         }
     }
+}
+
+bool
+frontend::AnalyzeFunctions(TreeContext *tc)
+{
+    CleanFunctionList(&tc->parser->allocator, &tc->functionList);
+    if (!tc->functionList)
+        return true;
+    if (!MarkFunArgs(tc->parser->context, tc->functionList, tc->parser->functionCount))
+        return false;
+    MarkExtensibleScopeDescendants(tc->functionList, false);
+    bool isDirectEval = !!tc->parser->callerFrame;
+    SetFunctionKinds(tc->functionList, &tc->flags, isDirectEval);
+    return true;
 }
