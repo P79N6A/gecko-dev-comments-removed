@@ -353,10 +353,3 @@ input > .anonymous-div:after {
   margin: 16px;
 }
 
-
-
-
-
-video {
-    image-rendering: -moz-crisp-edges;
-}
