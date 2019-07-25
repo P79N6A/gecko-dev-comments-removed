@@ -550,6 +550,9 @@ static HWND CreateGroupBox(HINSTANCE        aHInst,
 
 static void InitializeExtendedDialog(HWND hdlg, PRInt16 aHowToEnableFrameUI) 
 {
+  NS_ABORT_IF_FALSE(aHowToEnableFrameUI != nsIPrintSettings::kFrameEnableNone,
+                    "should not be called");
+
   
   nsCOMPtr<nsIStringBundle> strBundle;
   if (NS_SUCCEEDED(GetLocalizedBundle(PRINTDLG_PROPERTIES, getter_AddRefs(strBundle)))) {
@@ -568,23 +571,13 @@ static void InitializeExtendedDialog(HWND hdlg, PRInt16 aHowToEnableFrameUI)
     
     gFrameSelectedRadioBtn = rad5;
 
-  } else if (aHowToEnableFrameUI == nsIPrintSettings::kFrameEnableAsIsAndEach) {
+  } else { 
     SetRadio(hdlg, rad4, PR_FALSE);  
     SetRadio(hdlg, rad5, PR_FALSE, PR_FALSE); 
     SetRadio(hdlg, rad6, PR_TRUE);
     
     gFrameSelectedRadioBtn = rad6;
-
-
-  } else {  
-    
-    SetRadio(hdlg, grp3, PR_FALSE, PR_FALSE); 
-    
-    SetRadio(hdlg, rad4, PR_FALSE, PR_FALSE); 
-    SetRadio(hdlg, rad5, PR_FALSE, PR_FALSE); 
-    SetRadio(hdlg, rad6, PR_FALSE, PR_FALSE); 
   }
-
 }
 
 
@@ -605,6 +598,10 @@ static UINT CALLBACK PrintHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM 
     if (printDlg == NULL) return 0L;
 
     PRInt16 howToEnableFrameUI = (PRInt16)printDlg->lCustData;
+    
+    
+    if (howToEnableFrameUI == nsIPrintSettings::kFrameEnableNone)
+      return TRUE;
 
     HINSTANCE hInst = (HINSTANCE)::GetWindowLongPtr(hdlg, GWLP_HINSTANCE);
     if (hInst == NULL) return 0L;
@@ -1106,6 +1103,11 @@ static BOOL APIENTRY PropSheetCallBack(HWND hdlg, UINT uiMsg, UINT wParam, LONG 
     
     
     PRInt16 howToEnableFrameUI = gFrameSelectedRadioBtn;
+    
+    
+    if (howToEnableFrameUI == nsIPrintSettings::kFrameEnableNone)
+      return TRUE;
+
     gFrameSelectedRadioBtn     = 0;
 
     HINSTANCE hInst = (HINSTANCE)::GetWindowLongPtr(hdlg, GWLP_HINSTANCE);
