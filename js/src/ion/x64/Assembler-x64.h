@@ -253,7 +253,7 @@ class Assembler : public AssemblerX86Shared
     {
     }
 
-    static void TraceRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
+    static void TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
 
     
     
@@ -270,6 +270,7 @@ class Assembler : public AssemblerX86Shared
     }
     void movq(ImmGCPtr ptr, const Register &dest) {
         masm.movq_i64r(ptr.value, dest.code());
+        writeDataRelocation(masm.currentOffset());
     }
     void movq(const Operand &src, const Register &dest) {
         switch (src.kind()) {

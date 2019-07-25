@@ -48,15 +48,15 @@ using namespace js::ion;
 void
 Assembler::writeRelocation(JmpSrc src)
 {
-    if (!relocations_.length()) {
+    if (!jumpRelocations_.length()) {
         
         
         
         
-        relocations_.writeFixedUint32(0);
+        jumpRelocations_.writeFixedUint32(0);
     }
-    relocations_.writeUnsigned(src.offset());
-    relocations_.writeUnsigned(jumps_.length());
+    jumpRelocations_.writeUnsigned(src.offset());
+    jumpRelocations_.writeUnsigned(jumps_.length());
 }
 
 void
@@ -81,8 +81,8 @@ Assembler::flush()
 
     
     
-    JS_ASSERT(relocations_.length() >= sizeof(uint32));
-    *(uint32 *)relocations_.buffer() = extendedJumpTable_;
+    JS_ASSERT(jumpRelocations_.length() >= sizeof(uint32));
+    *(uint32 *)jumpRelocations_.buffer() = extendedJumpTable_;
 
     for (size_t i = 0; i < jumps_.length(); i++) {
 #ifdef DEBUG
@@ -168,7 +168,7 @@ Assembler::CodeFromJump(IonCode *code, uint8 *jump)
 }
 
 void
-Assembler::TraceRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader)
+Assembler::TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader)
 {
     RelocationIterator iter(reader);
     while (iter.read()) {

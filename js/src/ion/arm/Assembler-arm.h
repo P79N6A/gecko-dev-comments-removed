@@ -784,7 +784,7 @@ class Assembler
     js::Vector<DeferredData *, 0, SystemAllocPolicy> data_;
     js::Vector<CodeLabel *, 0, SystemAllocPolicy> codeLabels_;
     js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
-    CompactBufferWriter relocations_;
+    CompactBufferWriter jumpRelocations_;
     size_t dataBytesNeeded_;
 
     bool enoughMemory_;
@@ -842,13 +842,13 @@ class Assembler
     bool oom() const {
         return m_buffer.oom() ||
             !enoughMemory_ ||
-            relocations_.oom();
+            jumpRelocations_.oom();
     }
 
     void executableCopy(void *buffer);
     void processDeferredData(IonCode *code, uint8 *data);
     void processCodeLabels(IonCode *code);
-    void copyRelocationTable(uint8 *buffer);
+    void copyJumpRelocationTable(uint8 *buffer);
 
     bool addDeferredData(DeferredData *data, size_t bytes) {
         data->setOffset(dataBytesNeeded_);
@@ -867,7 +867,7 @@ class Assembler
         return m_buffer.uncheckedSize();
     }
     
-    size_t relocationTableSize() const {
+    size_t jumpRelocationTableSize() const {
         return relocations_.length();
     }
     
@@ -875,7 +875,7 @@ class Assembler
         return dataBytesNeeded_;
     }
     size_t bytesNeeded() const {
-        return size() + dataSize() + relocationTableSize();
+        return size() + dataSize() + jumpRelocationTableSize();
     }
     
     void writeBlob(uint32 x)
@@ -1394,7 +1394,7 @@ class Assembler
     }
 #endif
   public:
-    static void TraceRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
+    static void TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
 
     
     

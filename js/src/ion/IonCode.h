@@ -70,7 +70,9 @@ class IonCode : public gc::Cell
     uint32 bufferSize_;             
     uint32 insnSize_;               
     uint32 dataSize_;               
-    uint32 relocTableSize_;         
+    uint32 jumpRelocTableBytes_;    
+    uint32 dataRelocTableBytes_;    
+    uint32 padding0_;
 
     IonCode()
       : code_(NULL),
@@ -82,14 +84,18 @@ class IonCode : public gc::Cell
         bufferSize_(bufferSize),
         insnSize_(0),
         dataSize_(0),
-        relocTableSize_(0)
+        jumpRelocTableBytes_(0),
+        dataRelocTableBytes_(0)
     { }
 
     uint32 dataOffset() const {
         return insnSize_;
     }
-    uint32 relocTableOffset() const {
+    uint32 jumpRelocTableOffset() const {
         return dataOffset() + dataSize_;
+    }
+    uint32 dataRelocTableOffset() const {
+        return jumpRelocTableOffset() + jumpRelocTableBytes_;
     }
 
   public:

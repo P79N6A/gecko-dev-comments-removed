@@ -47,6 +47,8 @@
 namespace js {
 namespace ion {
 
+class CompactBufferWriter;
+
 
 
 
@@ -82,6 +84,7 @@ class CompactBufferReader
       : buffer_(start),
         end_(end)
     { }
+    inline CompactBufferReader(const CompactBufferWriter &writer);
     uint8 readByte() {
         JS_ASSERT(buffer_ < end_);
         return *buffer_++;
@@ -168,6 +171,12 @@ class CompactBufferWriter
         return !enoughMemory_;
     }
 };
+
+CompactBufferReader::CompactBufferReader(const CompactBufferWriter &writer)
+  : buffer_(writer.buffer()),
+    end_(writer.buffer() + writer.length())
+{
+}
 
 } 
 } 
