@@ -157,3 +157,48 @@ MacroAssembler::PopRegsInMask(RegisterSet set)
     }
     freeStack(new_diff);
 }
+
+void
+MacroAssembler::branchTestValueTruthy(const ValueOperand &value, Label *ifTrue, FloatRegister fr)
+{
+    Register tag = splitTagForTest(value);
+    Label ifFalse;
+    Assembler::Condition cond;
+
+    
+    
+    
+    
+    branchTestUndefined(Assembler::Equal, tag, &ifFalse);
+
+    branchTestNull(Assembler::Equal, tag, &ifFalse);
+    branchTestObject(Assembler::Equal, tag, ifTrue);
+
+    Label notBoolean;
+    branchTestBoolean(Assembler::NotEqual, tag, &notBoolean);
+    branchTestBooleanTruthy(false, value, &ifFalse);
+    jump(ifTrue);
+    bind(&notBoolean);
+
+    Label notInt32;
+    branchTestInt32(Assembler::NotEqual, tag, &notInt32);
+    cond = testInt32Truthy(false, value);
+    j(cond, &ifFalse);
+    jump(ifTrue);
+    bind(&notInt32);
+
+    
+    Label notString;
+    branchTestString(Assembler::NotEqual, tag, &notString);
+    cond = testStringTruthy(false, value);
+    j(cond, &ifFalse);
+    jump(ifTrue);
+    bind(&notString);
+
+    
+    unboxDouble(value, fr);
+    cond = testDoubleTruthy(false, fr);
+    j(cond, &ifFalse);
+    jump(ifTrue);
+    bind(&ifFalse);
+}

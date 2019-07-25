@@ -186,49 +186,11 @@ bool
 CodeGenerator::visitTestVAndBranch(LTestVAndBranch *lir)
 {
     const ValueOperand value = ToValue(lir, LTestVAndBranch::Input);
-
-    Register tag = masm.splitTagForTest(value);
-
-    Assembler::Condition cond;
-
-    
-    
-    
-    
-    masm.branchTestUndefined(Assembler::Equal, tag, lir->ifFalse());
-
-    masm.branchTestNull(Assembler::Equal, tag, lir->ifFalse());
-    masm.branchTestObject(Assembler::Equal, tag, lir->ifTrue());
-
-    Label notBoolean;
-    masm.branchTestBoolean(Assembler::NotEqual, tag, &notBoolean);
-    masm.branchTestBooleanTruthy(false, value, lir->ifFalse());
-    masm.jump(lir->ifTrue());
-    masm.bind(&notBoolean);
-
-    Label notInt32;
-    masm.branchTestInt32(Assembler::NotEqual, tag, &notInt32);
-    cond = masm.testInt32Truthy(false, value);
-    masm.j(cond, lir->ifFalse());
-    masm.jump(lir->ifTrue());
-    masm.bind(&notInt32);
-
-    
-    Label notString;
-    masm.branchTestString(Assembler::NotEqual, tag, &notString);
-    cond = masm.testStringTruthy(false, value);
-    masm.j(cond, lir->ifFalse());
-    masm.jump(lir->ifTrue());
-    masm.bind(&notString);
-
-    
-    masm.unboxDouble(value, ToFloatRegister(lir->tempFloat()));
-    cond = masm.testDoubleTruthy(false, ToFloatRegister(lir->tempFloat()));
-    masm.j(cond, lir->ifFalse());
-    masm.jump(lir->ifTrue());
-
+    masm.branchTestValueTruthy(value, lir->ifTrue(), ToFloatRegister(lir->tempFloat()));
+    masm.jump(lir->ifFalse());
     return true;
 }
+
 
 bool
 CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32 *lir)
@@ -1218,13 +1180,23 @@ CodeGenerator::visitSetInitializedLength(LSetInitializedLength *lir)
 }
 
 bool
-CodeGenerator::visitNotV(LNotV *ins)
+CodeGenerator::visitNotV(LNotV *lir)
 {
-    typedef bool (*pf)(JSContext *, const Value &, JSBool *);
-    static const VMFunction FValueToBooleanComplement = FunctionInfo<pf>(ValueToBooleanComplement);
+    Label setFalse;
+    Label join;
+    masm.branchTestValueTruthy(ToValue(lir, LNotV::Input), &setFalse, ToFloatRegister(lir->tempFloat()));
 
-    pushArg(ToValue(ins, LNotV::Input));
-    return callVM(FValueToBooleanComplement, ins);
+    
+    masm.move32(Imm32(1), ToRegister(lir->getDef(0)));
+    masm.jump(&join);
+
+    
+    masm.bind(&setFalse);
+    masm.move32(Imm32(0), ToRegister(lir->getDef(0)));
+
+    
+    masm.bind(&join);
+    return true;
 }
 
 bool
