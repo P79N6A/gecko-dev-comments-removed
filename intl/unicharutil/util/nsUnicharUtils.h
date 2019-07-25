@@ -163,19 +163,4 @@ CaseInsensitiveUTF8CharsEqual(const char* aLeft, const char* aRight,
                               const char** aLeftNext, const char** aRightNext,
                               bool* aErr);
 
-namespace mozilla {
-
-
-
-
-
-
-
-
-
-PRUint32
-HashUTF8AsUTF16(const char* aUTF8, PRUint32 aLength, bool* aErr);
-
-} 
-
 #endif  

@@ -230,6 +230,28 @@ public:
   }
 
   
+  
+  static PRUint32 HashCode(const char* str,
+                           PRUint32* resultingStrLen = nsnull);
+
+  
+  static PRUint32 HashCode(const char* start, PRUint32 length);
+
+  
+  
+  static PRUint32 HashCode(const PRUnichar* str,
+                           PRUint32* resultingStrLen = nsnull);
+
+  
+  static PRUint32 HashCode(const PRUnichar* str, PRUint32 strLen);
+
+  
+  
+  
+  static PRUint32 HashCodeAsUTF16(const char* start, PRUint32 length,
+                                  bool* err);
+
+  
   static PRInt64 atoll(const char *str);
   
   static char ToUpper(char aChar) { return NS_ToUpper(aChar); }
