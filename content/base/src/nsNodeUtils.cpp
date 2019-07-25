@@ -41,7 +41,6 @@
 #include "nsIContent.h"
 #include "mozilla/dom/Element.h"
 #include "nsIMutationObserver.h"
-#include "nsIMutationObserver2.h"
 #include "nsIDocument.h"
 #include "nsIDOMUserDataHandler.h"
 #include "nsIEventListenerManager.h"
@@ -62,10 +61,10 @@
 #include "nsHTMLMediaElement.h"
 #endif 
 #include "nsImageLoadingContent.h"
+#include "jsobj.h"
+#include "jsgc.h"
 
 using namespace mozilla::dom;
-
-
 
 
 
@@ -192,32 +191,6 @@ nsNodeUtils::ContentRemoved(nsINode* aContainer,
   IMPL_MUTATION_NOTIFICATION(ContentRemoved, aContainer,
                              (document, container, aChild, aIndexInContainer,
                               aPreviousSibling));
-}
-
-void
-nsNodeUtils::AttributeChildRemoved(nsINode* aAttribute,
-                                   nsIContent* aChild)
-{
-  NS_PRECONDITION(aAttribute->IsNodeOfType(nsINode::eATTRIBUTE),
-                  "container must be a nsIAttribute");
-
-  
-  do {
-    nsINode::nsSlots* slots = aAttribute->GetExistingSlots();
-    if (slots && !slots->mMutationObservers.IsEmpty()) {
-      
-      nsTObserverArray<nsIMutationObserver*>::ForwardIterator iter_ =
-        slots->mMutationObservers;
-      nsCOMPtr<nsIMutationObserver2> obs_;
-      while (iter_.HasMore()) {
-        obs_ = do_QueryInterface(iter_.GetNext());
-        if (obs_) {
-          obs_->AttributeChildRemoved(aAttribute, aChild);
-        }
-      }
-    }
-    aAttribute = aAttribute->GetNodeParent();
-  } while (aAttribute);
 }
 
 void
@@ -515,6 +488,11 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
     }
   }
   else if (nodeInfoManager) {
+    
+    if (aCx && aOldScope->compartment() != aNewScope->compartment()) {
+      return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    }
+
     nsIDocument* oldDoc = aNode->GetOwnerDoc();
     PRBool wasRegistered = PR_FALSE;
     if (oldDoc && aNode->IsElement()) {
