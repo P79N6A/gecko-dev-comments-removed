@@ -183,11 +183,9 @@ public class HistoryTab extends AwesomeBarTab {
             
             
             
-            Log.i(LOGTAG, "xxx vis: " + bookmarkId + " " + display + " " + Combined.DISPLAY_READER);
             int visibility = (bookmarkId != 0 && display != Combined.DISPLAY_READER ?
                               View.VISIBLE : View.GONE);
 
-            Log.i(LOGTAG, "xxx vh: " + viewHolder.bookmarkIconView);
             viewHolder.bookmarkIconView.setVisibility(visibility);
             viewHolder.bookmarkIconView.setImageResource(R.drawable.ic_awesomebar_star);
 
