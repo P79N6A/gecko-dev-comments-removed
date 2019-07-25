@@ -91,6 +91,12 @@
 
 
 
+
+#define CSS_PROPERTY_STORES_CALC                  (1<<8)
+
+
+
+
 enum nsStyleAnimType {
   
   
