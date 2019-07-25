@@ -43,7 +43,12 @@
 #include <queue>
 #include <stack>
 
+#include "base/basictypes.h"
+
+#include "pratom.h"
+
 #include "mozilla/ipc/SyncChannel.h"
+#include "nsAutoPtr.h"
 
 namespace mozilla {
 namespace ipc {
@@ -54,6 +59,13 @@ class RPCChannel : public SyncChannel
     friend class CxxStackFrame;
 
 public:
+    
+    enum RacyRPCPolicy {
+        RRPError,
+        RRPChildWins,
+        RRPParentWins
+    };
+
     class  RPCListener :
         public SyncChannel::SyncListener
     {
@@ -77,19 +89,21 @@ public:
         virtual void OnExitedCxxStack()
         {
             NS_RUNTIMEABORT("default impl shouldn't be invoked");
-        }   
+        }
+
+        virtual RacyRPCPolicy MediateRPCRace(const Message& parent,
+                                             const Message& child)
+        {
+            return RRPChildWins;
+        }
     };
 
-    
-    enum RacyRPCPolicy {
-        RRPError,
-        RRPChildWins,
-        RRPParentWins
-    };
-
-    RPCChannel(RPCListener* aListener, RacyRPCPolicy aPolicy=RRPChildWins);
+    RPCChannel(RPCListener* aListener);
 
     virtual ~RPCChannel();
+
+    NS_OVERRIDE
+    void Clear();
 
     
     bool Call(Message* msg, Message* reply);
@@ -163,6 +177,15 @@ protected:
   private:
     
 
+    RPCListener* Listener() const {
+        return static_cast<RPCListener*>(mListener);
+    }
+
+    NS_OVERRIDE
+    virtual bool ShouldDeferNotifyMaybeError() {
+        return 0 < mCxxStackFrames;
+    }
+
     bool EventOccurred();
 
     void MaybeProcessDeferredIncall();
@@ -181,12 +204,12 @@ protected:
     
     void EnteredCxxStack()
     {
-        static_cast<RPCListener*>(mListener)->OnEnteredCxxStack();
+        Listener()->OnEnteredCxxStack();
     }
 
     void ExitedCxxStack()
     {
-        static_cast<RPCListener*>(mListener)->OnExitedCxxStack();
+        Listener()->OnExitedCxxStack();
     }
 
     class NS_STACK_CLASS CxxStackFrame
@@ -323,7 +346,6 @@ protected:
     
     
     size_t mRemoteStackDepthGuess;
-    RacyRPCPolicy mRacePolicy;
 
     
     bool mBlockedOnParent;
@@ -337,9 +359,56 @@ protected:
     
     
     int mCxxStackFrames;
+    
+private:
+
+    
+    
+    
+    
+    class RefCountedTask
+    {
+      public:
+        RefCountedTask(CancelableTask* aTask)
+        : mTask(aTask)
+        , mRefCnt(0) {}
+        ~RefCountedTask() { delete mTask; }
+        void Run() { mTask->Run(); }
+        void Cancel() { mTask->Cancel(); }
+        void AddRef() {
+            PR_AtomicIncrement(reinterpret_cast<PRInt32*>(&mRefCnt));
+        }
+        void Release() {
+            nsrefcnt count =
+                PR_AtomicDecrement(reinterpret_cast<PRInt32*>(&mRefCnt));
+            if (0 == count)
+                delete this;
+        }
+
+      private:
+        CancelableTask* mTask;
+        nsrefcnt mRefCnt;
+    };
+
+    
+    
+    
+    
+    class DequeueTask : public Task
+    {
+      public:
+        DequeueTask(RefCountedTask* aTask) : mTask(aTask) {}
+        void Run() { mTask->Run(); }
+        
+      private:
+        nsRefPtr<RefCountedTask> mTask;
+    };
+
+    
+    nsRefPtr<RefCountedTask> mDequeueOneTask;
 };
 
 
 } 
 } 
-#endif  
+#endif

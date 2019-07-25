@@ -4305,16 +4305,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_HSCROLL:
     case WM_VSCROLL:
-      
-      
-      
-      if (lParam) {
-        nsWindow* scrollbar = GetNSWindowPtr((HWND)lParam);
-
-        if (scrollbar) {
-          result = scrollbar->OnScroll(msg, wParam, lParam);
-        }
-      }
+      *aRetValue = 0;
+      result = OnScroll(msg, wParam, lParam);
       break;
 
     case WM_CTLCOLORLISTBOX:
@@ -6287,8 +6279,21 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
 
 PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
 {
-  if (aLParam)
-  {
+  static PRInt8 sMouseWheelEmulation = -1;
+  if (sMouseWheelEmulation < 0) {
+    nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE(prefs, PR_FALSE);
+    nsCOMPtr<nsIPrefBranch> prefBranch;
+    prefs->GetBranch(0, getter_AddRefs(prefBranch));
+    NS_ENSURE_TRUE(prefBranch, PR_FALSE);
+    PRBool emulate;
+    nsresult rv =
+      prefBranch->GetBoolPref("mousewheel.emulate_at_wm_scroll", &emulate);
+    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+    sMouseWheelEmulation = PRInt8(emulate);
+  }
+
+  if (aLParam || sMouseWheelEmulation) {
     
     
     PRBool quit, result;
@@ -6327,9 +6332,43 @@ PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
     }
     return PR_TRUE;
   }
+
   
-  
-  return PR_FALSE;
+  nsContentCommandEvent command(PR_TRUE, NS_CONTENT_COMMAND_SCROLL, this);
+
+  command.mScroll.mIsHorizontal = (aMsg == WM_HSCROLL);
+
+  switch (LOWORD(aWParam))
+  {
+    case SB_LINEUP:   
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
+      command.mScroll.mAmount = -1;
+      break;
+    case SB_LINEDOWN: 
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
+      command.mScroll.mAmount = 1;
+      break;
+    case SB_PAGEUP:   
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
+      command.mScroll.mAmount = -1;
+      break;
+    case SB_PAGEDOWN: 
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
+      command.mScroll.mAmount = 1;
+      break;
+    case SB_TOP:      
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
+      command.mScroll.mAmount = -1;
+      break;
+    case SB_BOTTOM:   
+      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
+      command.mScroll.mAmount = 1;
+      break;
+    default:
+      return PR_FALSE;
+  }
+  DispatchWindowEvent(&command);
+  return PR_TRUE;
 }
 
 
