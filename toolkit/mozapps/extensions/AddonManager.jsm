@@ -2118,6 +2118,12 @@ var AddonManager = {
   
   STARTUP_CHANGE_ENABLED: "enabled",
 
+#ifdef MOZ_EM_DEBUG
+  get __AddonManagerInternal__() {
+    return AddonManagerInternal;
+  },
+#endif
+
   getInstallForURL: function AM_getInstallForURL(aUrl, aCallback, aMimetype,
                                                  aHash, aName, aIconURL,
                                                  aVersion, aLoadGroup) {
