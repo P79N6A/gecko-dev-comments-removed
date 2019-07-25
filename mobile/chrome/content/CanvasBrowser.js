@@ -139,12 +139,11 @@ CanvasBrowser.prototype = {
   
   
   flushRegion: function flushRegion(viewingBoundsOnly) {
-    var ctx = this._canvas.getContext("2d");
     let rgn = this._rgnPage;
 
-    let outX = {}; let outY = {}; let outW = {}; let outH = {};
     let clearRegion = false;
-    let subls = [];
+    let drawls = [];
+    let outX = {}; let outY = {}; let outW = {}; let outH = {};
     let numRects = rgn.numRects;
     for (let i=0;i<numRects;i++) {
       rgn.getRect(i, outX, outY, outW, outH);
@@ -155,35 +154,43 @@ CanvasBrowser.prototype = {
         rect = rect.intersect(this._visibleBounds)
         if (!rect)
           continue;
-        
-        subls.push(rect.clone())
       } else {
         clearRegion = true;
       }
-      ctx.save();
-      ctx.scale(this._zoomLevel, this._zoomLevel);
+      drawls.push(rect)
+    }
+
+    if (clearRegion)
+      this.clearRegion();
+
+    let oldX = 0;
+    let oldY = 0;
+    var ctx = this._canvas.getContext("2d");
+    ctx.save();
+    ctx.scale(this._zoomLevel, this._zoomLevel);
+
+    
+    for each(let rect in drawls) {
+      
+      if (!clearRegion)
+        rgn.subtractRect(rect.left, rect.top,
+                         rect.width, rect.height);
       
       rect.round(this._zoomLevel);
-      ctx.translate(rect.x - this._pageBounds.x, rect.y - this._pageBounds.y);
+      let x = rect.x - this._pageBounds.x
+      let y = rect.y - this._pageBounds.y
+      
+      ctx.translate(x - oldX, y - oldY);
+      oldX = x;
+      oldY = y;
       ctx.drawWindow(this._browser.contentWindow,
                      rect.x, rect.y,
                      rect.width, rect.height,
                      "white",
                      (ctx.DRAWWINDOW_DO_NOT_FLUSH | ctx.DRAWWINDOW_DRAW_CARET));
-      ctx.restore();
     }
-
     
-    if (clearRegion)
-      this.clearRegion();
-    else {
-      
-      for each(let rect in subls) {
-        rgn.subtractRect(rect.left, rect.top,
-                         rect.width, rect.height);
-      }
-      
-    }
+    ctx.restore();
   },
 
   clearRegion: function clearRegion() {
