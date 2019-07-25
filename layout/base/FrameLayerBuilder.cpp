@@ -182,6 +182,11 @@ public:
     return aRect.ScaleToNearestPixels(mParameters.mXScale, mParameters.mYScale,
                                       mAppUnitsPerDevPixel);
   }
+  nsIntRegion ScaleRegionToNearestPixels(const nsRegion& aRegion)
+  {
+    return aRegion.ScaleToNearestPixels(mParameters.mXScale, mParameters.mYScale,
+                                        mAppUnitsPerDevPixel);
+  }
   nsIntRect ScaleToOutsidePixels(const nsRect& aRect, bool aSnap)
   {
     if (aSnap && mSnappingEnabled) {
@@ -197,6 +202,15 @@ public:
     }
     return aRect.ScaleToInsidePixels(mParameters.mXScale, mParameters.mYScale,
                                      mAppUnitsPerDevPixel);
+  }
+
+  nsIntRegion ScaleRegionToInsidePixels(const nsRegion& aRegion, bool aSnap)
+  {
+    if (aSnap && mSnappingEnabled) {
+      return ScaleRegionToNearestPixels(aRegion);
+    }
+    return aRegion.ScaleToInsidePixels(mParameters.mXScale, mParameters.mYScale,
+                                        mAppUnitsPerDevPixel);
   }
 
   const FrameLayerBuilder::ContainerParameters& ScaleParameters() { return mParameters; };
@@ -1482,17 +1496,23 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
   bool snap;
   nsRegion opaque = aItem->GetOpaqueRegion(aState->mBuilder, &snap);
   if (!opaque.IsEmpty()) {
+    nsRegion opaqueClipped;
     nsRegionRectIterator iter(opaque);
     for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
+      opaqueClipped.Or(opaqueClipped, aClip.ApproximateIntersect(*r));
+    }
+
+    nsIntRegion opaquePixels = aState->ScaleRegionToInsidePixels(opaqueClipped, snap);
+
+    nsIntRegionRectIterator iter2(opaquePixels);
+    for (const nsIntRect* r = iter2.Next(); r; r = iter2.Next()) {
       
       
       
       
       
-      nsIntRect rect =
-        aState->ScaleToInsidePixels(aClip.ApproximateIntersect(*r), snap);
       nsIntRegion tmp;
-      tmp.Or(mOpaqueRegion, rect);
+      tmp.Or(mOpaqueRegion, *r);
        
        
        
