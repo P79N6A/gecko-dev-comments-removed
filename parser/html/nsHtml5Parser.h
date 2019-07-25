@@ -346,12 +346,23 @@ class nsHtml5Parser : public nsAHtml5FragmentParser,
     
 
 
+
+    PRBool                        mDocWriteSpeculativeLastWasCR;
+
+    
+
+
     PRBool                        mFragmentMode;
 
     
 
 
     PRBool                        mBlocked;
+
+    
+
+
+    PRBool                        mDocWriteSpeculatorActive;
     
     
 
@@ -392,6 +403,16 @@ class nsHtml5Parser : public nsAHtml5FragmentParser,
 
 
     const nsAutoPtr<nsHtml5Tokenizer>   mTokenizer;
+
+    
+
+
+    nsAutoPtr<nsHtml5TreeBuilder> mDocWriteSpeculativeTreeBuilder;
+
+    
+
+
+    nsAutoPtr<nsHtml5Tokenizer>   mDocWriteSpeculativeTokenizer;
 
     
 

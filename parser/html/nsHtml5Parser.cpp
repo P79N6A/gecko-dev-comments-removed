@@ -100,6 +100,9 @@ nsHtml5Parser::nsHtml5Parser()
 nsHtml5Parser::~nsHtml5Parser()
 {
   mTokenizer->end();
+  if (mDocWriteSpeculativeTokenizer) {
+    mDocWriteSpeculativeTokenizer->end();
+  }
 }
 
 NS_IMETHODIMP_(void)
@@ -378,10 +381,49 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   }
 
   if (!mBlocked) { 
-    NS_ASSERTION(!buffer->hasMore(), "Buffer wasn't tokenized to completion?");  
+    NS_ASSERTION(!buffer->hasMore(), "Buffer wasn't tokenized to completion?");
     
     mTreeBuilder->Flush(); 
     mExecutor->FlushDocumentWrite(); 
+  } else if (buffer->hasMore()) {
+    
+    
+    
+    if (!mDocWriteSpeculatorActive) {
+      mDocWriteSpeculatorActive = PR_TRUE;
+      if (!mDocWriteSpeculativeTreeBuilder) {
+        
+        mDocWriteSpeculativeTreeBuilder =
+            new nsHtml5TreeBuilder(nsnull, mExecutor->GetStage());
+        mDocWriteSpeculativeTokenizer =
+            new nsHtml5Tokenizer(mDocWriteSpeculativeTreeBuilder);
+        mDocWriteSpeculativeTokenizer->setInterner(&mAtomTable);
+        mDocWriteSpeculativeTokenizer->start();
+      }
+      mDocWriteSpeculativeTokenizer->resetToDataState();
+      mDocWriteSpeculativeTreeBuilder->loadState(mTreeBuilder, &mAtomTable);
+      mDocWriteSpeculativeLastWasCR = PR_FALSE;
+    }
+
+    
+    
+    
+    
+    
+
+    PRInt32 originalStart = buffer->getStart();
+    while (buffer->hasMore()) {
+      buffer->adjust(mDocWriteSpeculativeLastWasCR);
+      if (buffer->hasMore()) {
+        mDocWriteSpeculativeLastWasCR =
+            mDocWriteSpeculativeTokenizer->tokenizeBuffer(buffer);
+      }
+    }
+    buffer->setStart(originalStart);
+
+    mDocWriteSpeculativeTreeBuilder->Flush();
+    mDocWriteSpeculativeTreeBuilder->DropHandles();
+    mExecutor->FlushSpeculativeLoads();
   }
 
   return NS_OK;
@@ -520,6 +562,8 @@ nsHtml5Parser::CancelParsingEvents()
 void
 nsHtml5Parser::Reset()
 {
+  NS_PRECONDITION(mExecutor->IsFragmentMode(),
+                  "Reset called on a non-fragment parser.");
   mExecutor->Reset();
   mLastWasCR = PR_FALSE;
   UnblockParser();
@@ -593,6 +637,8 @@ nsHtml5Parser::ParseUntilBlocked()
     return;
   }
   NS_ASSERTION(mExecutor->HasStarted(), "Bad life cycle.");
+
+  mDocWriteSpeculatorActive = PR_FALSE;
 
   for (;;) {
     if (!mFirstBuffer->hasMore()) {
