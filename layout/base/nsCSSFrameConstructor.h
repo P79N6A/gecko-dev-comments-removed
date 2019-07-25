@@ -695,6 +695,9 @@ private:
 
 
 #define FCDATA_CREATE_BLOCK_WRAPPER_FOR_ALL_KIDS 0x40000
+  
+
+#define FCDATA_IS_SVG_TEXT 0x80000
 
   
 
