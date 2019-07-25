@@ -1406,6 +1406,8 @@ struct JSRuntime {
     js::Value           negativeInfinityValue;
     js::Value           positiveInfinityValue;
 
+    js::DeflatedStringCache *deflatedStringCache;
+
     JSString            *emptyString;
 
     

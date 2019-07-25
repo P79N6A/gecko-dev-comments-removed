@@ -4163,15 +4163,47 @@ bufferTooSmall:
 
 namespace js {
 
+DeflatedStringCache::DeflatedStringCache()
+{
+#ifdef JS_THREADSAFE
+    lock = NULL;
+#endif
+}
+
 bool
 DeflatedStringCache::init()
 {
-    return map.init(32);
+#ifdef JS_THREADSAFE
+    JS_ASSERT(!lock);
+    lock = JS_NEW_LOCK();
+    if (!lock)
+        return false;
+#endif
+
+    
+
+
+
+    return map.init(2048);
+}
+
+DeflatedStringCache::~DeflatedStringCache()
+{
+#ifdef JS_THREADSAFE
+    if (lock)
+        JS_DESTROY_LOCK(lock);
+#endif
 }
 
 void
 DeflatedStringCache::sweep(JSContext *cx)
 {
+    
+
+
+
+    JS_ACQUIRE_LOCK(lock);
+
     for (Map::Enum e(map); !e.empty(); e.popFront()) {
         JSString *str = e.front().key;
         if (IsAboutToBeFinalized(str)) {
@@ -4187,38 +4219,52 @@ DeflatedStringCache::sweep(JSContext *cx)
             js_free(bytes);
         }
     }
+
+    JS_RELEASE_LOCK(lock);
 }
 
 void
 DeflatedStringCache::remove(JSString *str)
 {
+    JS_ACQUIRE_LOCK(lock);
+
     Map::Ptr p = map.lookup(str);
     if (p) {
         js_free(p->value);
         map.remove(p);
     }
+
+    JS_RELEASE_LOCK(lock);
 }
 
 bool
 DeflatedStringCache::setBytes(JSContext *cx, JSString *str, char *bytes)
 {
+    JS_ACQUIRE_LOCK(lock);
+
     Map::AddPtr p = map.lookupForAdd(str);
     JS_ASSERT(!p);
-    if (!map.add(p, str, bytes)) {
+    bool ok = map.add(p, str, bytes);
+
+    JS_RELEASE_LOCK(lock);
+
+    if (!ok)
         js_ReportOutOfMemory(cx);
-        return false;
-    }
-    return true;
+    return ok;
 }
 
 char *
 DeflatedStringCache::getBytes(JSContext *cx, JSString *str)
 {
+    JS_ACQUIRE_LOCK(lock);
     Map::AddPtr p = map.lookupForAdd(str);
-    if (p && p->value)
-        return p->value;
+    char *bytes = p ? p->value : NULL;
+    JS_RELEASE_LOCK(lock);
 
-    char *bytes = js_DeflateString(cx, str->chars(), str->length());
+    if (bytes)
+        return bytes;
+
+    bytes = js_DeflateString(cx, str->chars(), str->length());
     if (!bytes)
         return NULL;
 
@@ -4228,11 +4274,22 @@ DeflatedStringCache::getBytes(JSContext *cx, JSString *str)
 
 
 
-
-
-
     char *bytesToFree = NULL;
-    if (!map.add(p, str, bytes)) {
+    JSBool ok;
+#ifdef JS_THREADSAFE
+    JS_ACQUIRE_LOCK(lock);
+    ok = map.relookupOrAdd(p, str, bytes);
+    if (ok && p->value != bytes) {
+        
+        JS_ASSERT(!strcmp(p->value, bytes));
+        bytesToFree = bytes;
+        bytes = p->value;
+    }
+    JS_RELEASE_LOCK(lock);
+#else  
+    ok = map.add(p, str, bytes);
+#endif
+    if (!ok) {
         bytesToFree = bytes;
         bytes = NULL;
         if (cx)
@@ -4253,6 +4310,7 @@ DeflatedStringCache::getBytes(JSContext *cx, JSString *str)
 const char *
 js_GetStringBytes(JSContext *cx, JSString *str)
 {
+    JSRuntime *rt;
     char *bytes;
 
     if (JSString::isUnitString(str)) {
@@ -4283,7 +4341,14 @@ js_GetStringBytes(JSContext *cx, JSString *str)
         return JSString::deflatedIntStringTable + ((str - JSString::hundredStringTable) * 4);
     }
 
-    return str->asCell()->compartment()->deflatedStringCache.getBytes(cx, str);
+    if (cx) {
+        rt = cx->runtime;
+    } else {
+        
+        rt = GetGCThingRuntime(str);
+    }
+
+    return rt->deflatedStringCache->getBytes(cx, str);
 }
 
 
