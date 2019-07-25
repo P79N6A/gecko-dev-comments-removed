@@ -325,7 +325,7 @@ ic::PurgeMICs(JSContext *cx, JSScript *script)
           {
             
             JSC::RepatchBuffer repatch(mic.entry.executableAddress(), 50);
-            repatch.repatch(mic.shape, JSObjectMap::INVALID_SHAPE);
+            repatch.repatch(mic.shape, int(JSObjectMap::INVALID_SHAPE));
 
             
 
