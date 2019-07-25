@@ -111,7 +111,9 @@ public:
   private:
     PRUint32 mFloatInfoCount;
     nscoord mX, mY;
-    
+    PRPackedBool mPushedLeftFloatPastBreak;
+    PRPackedBool mPushedRightFloatPastBreak;
+
     friend class nsFloatManager;
   };
 
@@ -180,6 +182,17 @@ public:
 
 
   nsresult AddFloat(nsIFrame* aFloatFrame, const nsRect& aMarginRect);
+
+  
+
+
+
+
+
+  void SetPushedLeftFloatPastBreak()
+    { mPushedLeftFloatPastBreak = PR_TRUE; }
+  void SetPushedRightFloatPastBreak()
+    { mPushedRightFloatPastBreak = PR_TRUE; }
 
   
 
@@ -259,6 +272,10 @@ public:
   void AssertStateMatches(SavedState *aState) const
   {
     NS_ASSERTION(aState->mX == mX && aState->mY == mY &&
+                 aState->mPushedLeftFloatPastBreak ==
+                   mPushedLeftFloatPastBreak &&
+                 aState->mPushedRightFloatPastBreak ==
+                   mPushedRightFloatPastBreak &&
                  aState->mFloatInfoCount == mFloats.Length(),
                  "float manager state should match saved state");
   }
@@ -288,6 +305,15 @@ private:
   nscoord         mX, mY;     
   nsTArray<FloatInfo> mFloats;
   nsIntervalSet   mFloatDamage;
+
+  
+  
+  
+  
+  
+  
+  PRPackedBool mPushedLeftFloatPastBreak;
+  PRPackedBool mPushedRightFloatPastBreak;
 
   static PRInt32 sCachedFloatManagerCount;
   static void* sCachedFloatManagers[NS_FLOAT_MANAGER_CACHE_SIZE];
