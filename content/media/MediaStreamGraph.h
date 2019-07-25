@@ -203,6 +203,25 @@ class SourceMediaStream;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class MediaStream {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
