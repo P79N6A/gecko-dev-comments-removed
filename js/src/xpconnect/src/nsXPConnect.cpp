@@ -2781,6 +2781,16 @@ nsXPConnect::HoldObject(JSContext *aJSContext, JSObject *aObject,
     return NS_OK;
 }
 
+NS_IMETHODIMP_(void)
+nsXPConnect::GetCaller(JSContext **aJSContext, JSObject **aObj)
+{
+    XPCCallContext *ccx = XPCPerThreadData::GetData(nsnull)->GetCallContext();
+    *aJSContext = ccx->GetJSContext();
+
+    
+    *aObj = ccx->GetFlattenedJSObject();
+}
+
 
 JS_BEGIN_EXTERN_C
 JS_EXPORT_API(void) DumpJSStack()
