@@ -745,24 +745,59 @@ SessionStoreService.prototype = {
              !this._inPrivateBrowsing) {
       
       
-      let state = null;
-      let newClosedWindows = this._closedWindows.filter(function(aWinState) {
-        if (!state && !aWinState.isPopup) {
-          state = aWinState;
-          return false;
+      let closedWindowState = null;
+      let closedWindowIndex;
+      for (let i = 0; i < this._closedWindows.length; i++) {
+        
+        if (!this._closedWindows[i].isPopup) {
+          closedWindowState = this._closedWindows[i];
+          closedWindowIndex = i;
+          break;
         }
-        return true;
-      });
-      if (state) {
-        delete state.hidden;
+      }
+
+      if (closedWindowState) {
+        let newWindowState;
 #ifndef XP_MACOSX
-        if (!this._doResumeSession())
+        if (!this._doResumeSession()) {
 #endif
-          state.tabs = state.tabs.filter(function (tab) tab.pinned);
-        if (state.tabs.length > 0) {
-          this._closedWindows = newClosedWindows;
+          
+          
+          
+          
+          
+          let [appTabsState, normalTabsState] =
+            this._prepDataForDeferredRestore(JSON.stringify({ windows: [closedWindowState] }));
+
+          
+          if (appTabsState.windows.length) {
+            newWindowState = appTabsState.windows[0];
+            delete newWindowState.__lastSessionWindowID;
+          }
+
+          
+          if (!normalTabsState.windows.length) {
+            this._closedWindows.splice(closedWindowIndex, 1);
+          }
+          
+          else {
+            delete normalTabsState.windows[0].__lastSessionWindowID;
+            this._closedWindows[closedWindowIndex] = normalTabsState.windows[0];
+          }
+#ifndef XP_MACOSX
+        }
+        else {
+          
+          
+          this._closedWindows.splice(closedWindowIndex, 1);
+          newWindowState = closedWindowState;
+          delete newWindowState.hidden;
+        }
+#endif
+        if (newWindowState) {
+          
           this._restoreCount = 1;
-          state = { windows: [state] };
+          let state = { windows: [newWindowState] };
           this.restoreWindow(aWindow, state, this._isCmdLineEmpty(aWindow, state));
         }
       }
