@@ -352,7 +352,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     volatile uintptr_t  gcIsNeeded;
-    volatile uintptr_t  gcFullIsNeeded;
 
     js::WeakMapBase     *gcWeakMapList;
     js::gcstats::Statistics gcStats;
@@ -367,9 +366,6 @@ struct JSRuntime : js::RuntimeFriendFields
     js::gcreason::Reason gcTriggerReason;
 
     
-    bool                gcIsFull;
-
-    
 
 
 
@@ -382,13 +378,7 @@ struct JSRuntime : js::RuntimeFriendFields
     js::gc::State       gcIncrementalState;
 
     
-    bool                gcCompartmentCreated;
-
-    
     bool                gcLastMarkSlice;
-
-    
-    bool                gcIncrementalIsFull;
 
     
 

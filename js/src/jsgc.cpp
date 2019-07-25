@@ -1642,13 +1642,13 @@ ArenaLists::finalizeScripts(FreeOp *fop)
 }
 
 static void
-RunLastDitchGC(JSContext *cx, gcreason::Reason reason, bool full)
+RunLastDitchGC(JSContext *cx, gcreason::Reason reason)
 {
     JSRuntime *rt = cx->runtime;
 
     
     AutoKeepAtoms keep(rt);
-    GC(cx, full, GC_NORMAL, reason);
+    GC(cx, GC_NORMAL, reason);
 }
 
  void *
@@ -1664,7 +1664,7 @@ ArenaLists::refillFreeList(JSContext *cx, AllocKind thingKind)
     for (;;) {
         if (JS_UNLIKELY(runGC)) {
             PrepareCompartmentForGC(comp);
-            RunLastDitchGC(cx, gcreason::LAST_DITCH, rt->gcFullIsNeeded);
+            RunLastDitchGC(cx, gcreason::LAST_DITCH);
 
             
 
@@ -2240,7 +2240,7 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
     JSRuntime *rt = trc->runtime;
     JS_ASSERT(trc->callback != GCMarker::GrayCallback);
 
-    if (IS_GC_MARKING_TRACER(trc) && !rt->gcIsFull) {
+    if (IS_GC_MARKING_TRACER(trc)) {
         for (CompartmentsIter c(rt); !c.done(); c.next()) {
             if (!c->isCollecting())
                 c->markCrossCompartmentWrappers(trc);
@@ -2265,7 +2265,20 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
             MarkScriptRoot(trc, &vec[i].script, "scriptAndCountsVector");
     }
 
-    js_TraceAtomState(trc);
+    
+
+
+
+
+
+    bool isFullGC = true;
+    if (IS_GC_MARKING_TRACER(trc)) {
+        for (CompartmentsIter c(rt); !c.done(); c.next()) {
+            if (!c->isCollecting())
+                isFullGC = false;
+        }
+    }
+    MarkAtomState(trc, rt->gcKeepAtoms || !isFullGC);
     rt->staticStrings.trace(trc);
 
     for (ContextIter acx(rt); !acx.done(); acx.next())
@@ -2322,26 +2335,37 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
     }
 }
 
+static void
+TriggerOperationCallback(JSRuntime *rt, gcreason::Reason reason)
+{
+    if (rt->gcIsNeeded)
+        return;
+
+    rt->gcIsNeeded = true;
+    rt->gcTriggerReason = reason;
+    rt->triggerOperationCallback();
+}
+
 void
 TriggerGC(JSRuntime *rt, gcreason::Reason reason)
 {
     JS_ASSERT(rt->onOwnerThread());
 
-    if (rt->gcRunning || rt->gcIsNeeded)
+    if (rt->gcRunning)
         return;
 
-    
-    rt->gcIsNeeded = true;
-    rt->gcFullIsNeeded = true;
-    rt->gcTriggerReason = reason;
-    rt->triggerOperationCallback();
+    PrepareForFullGC(rt);
+    TriggerOperationCallback(rt, reason);
 }
 
 void
 TriggerCompartmentGC(JSCompartment *comp, gcreason::Reason reason)
 {
     JSRuntime *rt = comp->rt;
-    JS_ASSERT(!rt->gcRunning);
+    JS_ASSERT(rt->onOwnerThread());
+
+    if (rt->gcRunning)
+        return;
 
     if (rt->gcZeal() == ZealAllocValue) {
         TriggerGC(rt, reason);
@@ -2355,17 +2379,7 @@ TriggerCompartmentGC(JSCompartment *comp, gcreason::Reason reason)
     }
 
     PrepareCompartmentForGC(comp);
-
-    if (rt->gcIsNeeded)
-        return;
-
-    
-
-
-
-    rt->gcIsNeeded = true;
-    rt->gcTriggerReason = reason;
-    rt->triggerOperationCallback();
+    TriggerOperationCallback(rt, reason);
 }
 
 void
@@ -2375,13 +2389,14 @@ MaybeGC(JSContext *cx)
     JS_ASSERT(rt->onOwnerThread());
 
     if (rt->gcZeal() == ZealAllocValue || rt->gcZeal() == ZealPokeValue) {
-        GC(cx, true, GC_NORMAL, gcreason::MAYBEGC);
+        PrepareForFullGC(rt);
+        GC(cx, GC_NORMAL, gcreason::MAYBEGC);
         return;
     }
 
     JSCompartment *comp = cx->compartment;
     if (rt->gcIsNeeded) {
-        GCSlice(cx, rt->gcFullIsNeeded, GC_NORMAL, gcreason::MAYBEGC);
+        GCSlice(cx, GC_NORMAL, gcreason::MAYBEGC);
         return;
     }
 
@@ -2390,13 +2405,13 @@ MaybeGC(JSContext *cx)
         rt->gcIncrementalState == NO_INCREMENTAL)
     {
         PrepareCompartmentForGC(comp);
-        GCSlice(cx, false, GC_NORMAL, gcreason::MAYBEGC);
+        GCSlice(cx, GC_NORMAL, gcreason::MAYBEGC);
         return;
     }
 
     if (comp->gcMallocAndFreeBytes > comp->gcTriggerMallocAndFreeBytes) {
         PrepareCompartmentForGC(comp);
-        GCSlice(cx, false, GC_NORMAL, gcreason::MAYBEGC);
+        GCSlice(cx, GC_NORMAL, gcreason::MAYBEGC);
         return;
     }
 
@@ -2410,7 +2425,8 @@ MaybeGC(JSContext *cx)
         if (rt->gcChunkAllocationSinceLastGC ||
             rt->gcNumArenasFreeCommitted > FreeCommittedArenasThreshold)
         {
-            GCSlice(cx, true, GC_SHRINK, gcreason::MAYBEGC);
+            PrepareForFullGC(rt);
+            GCSlice(cx, GC_SHRINK, gcreason::MAYBEGC);
         } else {
             rt->gcNextFullGCTime = now + GC_IDLE_FULL_SPAN;
         }
@@ -2809,6 +2825,13 @@ GCHelperThread::doSweep()
 #endif 
 
 void
+PrepareForFullGC(JSRuntime *rt)
+{
+    for (CompartmentsIter c(rt); !c.done(); c.next())
+        c->scheduleGC();
+}
+
+void
 PrepareCompartmentForGC(JSCompartment *comp)
 {
     comp->scheduleGC();
@@ -2845,7 +2868,7 @@ SweepCompartments(FreeOp *fop, JSGCInvocationKind gckind)
     while (read < end) {
         JSCompartment *compartment = *read++;
 
-        if (!compartment->hold &&
+        if (!compartment->hold && compartment->isCollecting() &&
             (compartment->arenas.arenaListsAreEmpty() || !rt->hasContexts()))
         {
             compartment->arenas.checkEmptyFreeLists();
@@ -2978,11 +3001,9 @@ EndMarkPhase(JSContext *cx)
 
 #ifdef DEBUG
     
-    if (!rt->gcIsFull) {
-        for (CompartmentsIter c(rt); !c.done(); c.next()) {
-            JS_ASSERT_IF(!c->isCollecting() && c != rt->atomsCompartment,
-                         c->arenas.checkArenaListAllUnmarked());
-        }
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        JS_ASSERT_IF(!c->isCollecting() && c != rt->atomsCompartment,
+                     c->arenas.checkArenaListAllUnmarked());
     }
 #endif
 }
@@ -3129,7 +3150,7 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
     
     WeakMapBase::sweepAll(&rt->gcMarker);
 
-    js_SweepAtomState(rt);
+    SweepAtomState(rt);
 
     
     WatchpointMap::sweepAll(rt);
@@ -3140,7 +3161,7 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
     {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_COMPARTMENTS);
 
-        bool releaseTypes = rt->gcIsFull && ReleaseObservedTypes(rt);
+        bool releaseTypes = ReleaseObservedTypes(rt);
         for (GCCompartmentsIter c(rt); !c.done(); c.next())
             c->sweep(&fop, releaseTypes);
     }
@@ -3194,8 +3215,7 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
 
 
 
-        if (rt->gcIsFull)
-            SweepCompartments(&fop, gckind);
+        SweepCompartments(&fop, gckind);
 
 #ifndef JS_THREADSAFE
         
@@ -3260,7 +3280,7 @@ class AutoHeapSession {
 
 class AutoGCSession : AutoHeapSession {
   public:
-    explicit AutoGCSession(JSRuntime *rt, bool full);
+    explicit AutoGCSession(JSRuntime *rt);
     ~AutoGCSession();
 };
 
@@ -3279,13 +3299,12 @@ AutoHeapSession::~AutoHeapSession()
     runtime->gcRunning = false;
 }
 
-AutoGCSession::AutoGCSession(JSRuntime *rt, bool full)
+AutoGCSession::AutoGCSession(JSRuntime *rt)
   : AutoHeapSession(rt)
 {
-    rt->gcIsFull = full;
     DebugOnly<bool> any = false;
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        if (full || c->isGCScheduled()) {
+        if (c->isGCScheduled()) {
             c->setCollecting(true);
             any = true;
         }
@@ -3293,7 +3312,6 @@ AutoGCSession::AutoGCSession(JSRuntime *rt, bool full)
     JS_ASSERT(any);
 
     runtime->gcIsNeeded = false;
-    runtime->gcFullIsNeeded = false;
     runtime->gcInterFrameGC = true;
 
     runtime->gcNumber++;
@@ -3307,7 +3325,6 @@ AutoGCSession::AutoGCSession(JSRuntime *rt, bool full)
 
 AutoGCSession::~AutoGCSession()
 {
-    runtime->gcIsFull = false;
     for (GCCompartmentsIter c(runtime); !c.done(); c.next())
         c->setCollecting(false);
 
@@ -3324,7 +3341,6 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
     for (CompartmentsIter c(rt); !c.done(); c.next())
         c->needsBarrier_ = false;
 
-    rt->gcIncrementalIsFull = false;
     rt->gcMarker.reset();
     rt->gcMarker.stop();
     rt->gcIncrementalState = NO_INCREMENTAL;
@@ -3375,7 +3391,6 @@ AutoGCSlice::~AutoGCSlice()
             c->arenas.prepareForIncrementalGC(rt);
         } else {
             JS_ASSERT(rt->gcIncrementalState == NO_INCREMENTAL);
-
             c->needsBarrier_ = false;
         }
     }
@@ -3408,8 +3423,6 @@ IncrementalGCSlice(JSContext *cx, int64_t budget, JSGCInvocationKind gckind)
     gc::State initialState = rt->gcIncrementalState;
 
     if (rt->gcIncrementalState == NO_INCREMENTAL) {
-        JS_ASSERT(!rt->gcIncrementalIsFull);
-        rt->gcIncrementalIsFull = rt->gcIsFull;
         rt->gcIncrementalState = MARK_ROOTS;
         rt->gcLastMarkSlice = false;
     }
@@ -3455,8 +3468,6 @@ IncrementalGCSlice(JSContext *cx, int64_t budget, JSGCInvocationKind gckind)
 
         
 
-        rt->gcIncrementalIsFull = false;
-
         rt->gcIncrementalState = NO_INCREMENTAL;
     }
 }
@@ -3487,11 +3498,6 @@ class IncrementalSafety
 static IncrementalSafety
 IsIncrementalGCSafe(JSRuntime *rt)
 {
-    if (rt->gcCompartmentCreated) {
-        rt->gcCompartmentCreated = false;
-        return IncrementalSafety::Unsafe("compartment created");
-    }
-
     if (rt->gcKeepAtoms)
         return IncrementalSafety::Unsafe("gcKeepAtoms set");
 
@@ -3552,18 +3558,20 @@ BudgetIncrementalGC(JSRuntime *rt, int64_t *budget)
 
 
 static JS_NEVER_INLINE void
-GCCycle(JSContext *cx, bool full, int64_t budget, JSGCInvocationKind gckind)
+GCCycle(JSContext *cx, int64_t budget, JSGCInvocationKind gckind)
 {
     JSRuntime *rt = cx->runtime;
 
-    JS_ASSERT_IF(!full, !rt->atomsCompartment->isCollecting());
-    JS_ASSERT_IF(!full, rt->gcMode != JSGC_MODE_GLOBAL);
+#ifdef DEBUG
+    for (CompartmentsIter c(rt); !c.done(); c.next())
+        JS_ASSERT_IF(rt->gcMode == JSGC_MODE_GLOBAL, c->isGCScheduled());
+#endif
 
     
     if (rt->gcRunning)
         return;
 
-    AutoGCSession gcsession(rt, full);
+    AutoGCSession gcsession(rt);
 
     
     if (rt->inOOMReport)
@@ -3631,8 +3639,7 @@ IsDeterministicGCReason(gcreason::Reason reason)
 #endif
 
 static void
-Collect(JSContext *cx, bool full, int64_t budget,
-        JSGCInvocationKind gckind, gcreason::Reason reason)
+Collect(JSContext *cx, int64_t budget, JSGCInvocationKind gckind, gcreason::Reason reason)
 {
     JSRuntime *rt = cx->runtime;
     JS_AbortIfWrongThread(rt);
@@ -3667,14 +3674,22 @@ Collect(JSContext *cx, bool full, int64_t budget,
 
     RecordNativeStackTopForGC(rt);
 
-    if (rt->gcMode == JSGC_MODE_GLOBAL)
-        full = true;
+    int compartmentCount = 0;
+    int collectedCount = 0;
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        if (rt->gcMode == JSGC_MODE_GLOBAL)
+            c->scheduleGC();
 
-    
-    if (rt->gcIncrementalState != NO_INCREMENTAL && rt->gcIncrementalIsFull)
-        full = true;
+        
+        if (rt->gcIncrementalState != NO_INCREMENTAL && c->needsBarrier())
+            c->scheduleGC();
 
-    gcstats::AutoGCSlice agc(rt->gcStats, full, reason);
+        compartmentCount++;
+        if (c->isGCScheduled())
+            collectedCount++;
+    }
+
+    gcstats::AutoGCSlice agc(rt->gcStats, collectedCount, compartmentCount, reason);
 
     do {
         
@@ -3691,7 +3706,7 @@ Collect(JSContext *cx, bool full, int64_t budget,
             
             AutoLockGC lock(rt);
             rt->gcPoke = false;
-            GCCycle(cx, full, budget, gckind);
+            GCCycle(cx, budget, gckind);
         }
 
         if (rt->gcIncrementalState == NO_INCREMENTAL) {
@@ -3710,21 +3725,22 @@ Collect(JSContext *cx, bool full, int64_t budget,
 namespace js {
 
 void
-GC(JSContext *cx, bool full, JSGCInvocationKind gckind, gcreason::Reason reason)
+GC(JSContext *cx, JSGCInvocationKind gckind, gcreason::Reason reason)
 {
-    Collect(cx, full, SliceBudget::Unlimited, gckind, reason);
+    Collect(cx, SliceBudget::Unlimited, gckind, reason);
 }
 
 void
-GCSlice(JSContext *cx, bool full, JSGCInvocationKind gckind, gcreason::Reason reason)
+GCSlice(JSContext *cx, JSGCInvocationKind gckind, gcreason::Reason reason)
 {
-    Collect(cx, full, cx->runtime->gcSliceBudget, gckind, reason);
+    Collect(cx, cx->runtime->gcSliceBudget, gckind, reason);
 }
 
 void
 GCDebugSlice(JSContext *cx, int64_t objCount)
 {
-    Collect(cx, NULL, SliceBudget::WorkBudget(objCount), GC_NORMAL, gcreason::API);
+    PrepareForFullGC(cx->runtime);
+    Collect(cx, SliceBudget::WorkBudget(objCount), GC_NORMAL, gcreason::API);
 }
 
 void
@@ -3902,15 +3918,6 @@ NewCompartment(JSContext *cx, JSPrincipals *principals)
 
         {
             AutoLockGC lock(rt);
-
-            
-
-
-
-
-            if (rt->gcIncrementalState == MARK)
-                rt->gcCompartmentCreated = true;
-
             if (rt->compartments.append(compartment))
                 return compartment;
         }
@@ -3933,7 +3940,9 @@ RunDebugGC(JSContext *cx)
 
     if (rt->gcDebugCompartmentGC)
         PrepareCompartmentForGC(cx->compartment);
-    RunLastDitchGC(cx, gcreason::DEBUG_GC, !rt->gcDebugCompartmentGC);
+    else
+        PrepareForFullGC(cx->runtime);
+    RunLastDitchGC(cx, gcreason::DEBUG_GC);
 #endif
 }
 
@@ -4322,15 +4331,19 @@ EndVerifyBarriers(JSContext *cx)
         return;
 
     
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        
+        if (!c->needsBarrier_)
+            return;
+        c->needsBarrier_ = false;
+    }
+
+    
 
 
 
     JS_ASSERT(trc->number == rt->gcNumber);
     rt->gcNumber++;
-
-    
-    for (CompartmentsIter c(rt); !c.done(); c.next())
-        c->needsBarrier_ = false;
 
     for (CompartmentsIter c(rt); !c.done(); c.next())
         c->discardJitCode(rt->defaultFreeOp());

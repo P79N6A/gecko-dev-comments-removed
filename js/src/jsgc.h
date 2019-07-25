@@ -1384,6 +1384,9 @@ extern void
 ShrinkGCBuffers(JSRuntime *rt);
 
 extern void
+PrepareForFullGC(JSRuntime *rt);
+
+extern void
 PrepareCompartmentForGC(JSCompartment *comp);
 
 
@@ -1397,12 +1400,11 @@ typedef enum JSGCInvocationKind {
     GC_SHRINK             = 1
 } JSGCInvocationKind;
 
+extern void
+GC(JSContext *cx, JSGCInvocationKind gckind, js::gcreason::Reason reason);
 
 extern void
-GC(JSContext *cx, bool full, JSGCInvocationKind gckind, js::gcreason::Reason reason);
-
-extern void
-GCSlice(JSContext *cx, bool full, JSGCInvocationKind gckind, js::gcreason::Reason reason);
+GCSlice(JSContext *cx, JSGCInvocationKind gckind, js::gcreason::Reason reason);
 
 extern void
 GCDebugSlice(JSContext *cx, int64_t objCount);
