@@ -152,7 +152,15 @@ protected:
 
 
 
-    void Accumulate(const nsIntRect& aVisibleRect, PRBool aIsOpaque,
+
+
+
+
+
+
+
+    void Accumulate(const nsIntRect& aVisibleRect,
+                    const nsIntRect* aOpaqueRect,
                     nscolor* aSolidColor);
     nsIFrame* GetActiveScrolledRoot() { return mActiveScrolledRoot; }
 
@@ -234,10 +242,9 @@ protected:
 
 
 
-
   already_AddRefed<ThebesLayer> FindThebesLayerFor(const nsIntRect& aVisibleRect,
                                                    nsIFrame* aActiveScrolledRoot,
-                                                   PRBool aIsOpaque,
+                                                   const nsIntRect* aOpaqueRect,
                                                    nscolor* aSolidColor);
   ThebesLayerData* GetTopThebesLayerData()
   {
@@ -722,7 +729,7 @@ ContainerState::PopThebesLayerData()
 
 void
 ContainerState::ThebesLayerData::Accumulate(const nsIntRect& aRect,
-                                            PRBool aIsOpaque,
+                                            const nsIntRect* aOpaqueRect,
                                             nscolor* aSolidColor)
 {
   if (aSolidColor) {
@@ -743,16 +750,24 @@ ContainerState::ThebesLayerData::Accumulate(const nsIntRect& aRect,
 
   mVisibleRegion.Or(mVisibleRegion, aRect);
   mVisibleRegion.SimplifyOutward(4);
-  if (aIsOpaque) {
-    mOpaqueRegion.Or(mOpaqueRegion, aRect);
-    mOpaqueRegion.SimplifyInward(4);
+  if (aOpaqueRect) {
+    
+    
+    
+    
+    
+    nsIntRegion tmp;
+    tmp.Or(mOpaqueRegion, *aOpaqueRect);
+    if (tmp.GetNumRects() <= 4) {
+      mOpaqueRegion = tmp;
+    }
   }
 }
 
 already_AddRefed<ThebesLayer>
 ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
                                    nsIFrame* aActiveScrolledRoot,
-                                   PRBool aIsOpaque,
+                                   const nsIntRect* aOpaqueRect,
                                    nscolor* aSolidColor)
 {
   PRInt32 i;
@@ -807,7 +822,7 @@ ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
     layer = thebesLayerData->mLayer;
   }
 
-  thebesLayerData->Accumulate(aVisibleRect, aIsOpaque, aSolidColor);
+  thebesLayerData->Accumulate(aVisibleRect, aOpaqueRect, aSolidColor);
   return layer.forget();
 }
 
@@ -911,9 +926,14 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
       nscolor uniformColor;
       PRBool isUniform = item->IsUniform(mBuilder, &uniformColor);
+      PRBool isOpaque = item->IsOpaque(mBuilder);
+      nsIntRect opaqueRect;
+      if (isOpaque) {
+        opaqueRect = item->GetBounds(mBuilder).ToNearestPixels(appUnitsPerDevPixel);
+      }
       nsRefPtr<ThebesLayer> thebesLayer =
         FindThebesLayerFor(itemVisibleRect, activeScrolledRoot,
-                           item->IsOpaque(mBuilder),
+                           isOpaque ? &opaqueRect : nsnull,
                            isUniform ? &uniformColor : nsnull);
 
       InvalidateForLayerChange(item, thebesLayer);
