@@ -290,6 +290,11 @@ SyncEngine.prototype = {
 
   _recordObj: CryptoWrapper,
 
+  _init: function _init() {
+    Engine.prototype._init.call(this);
+    this.loadToFetch();
+  },
+
   get baseURL() {
     let url = Svc.Prefs.get("clusterURL");
     if (!url)
@@ -323,6 +328,19 @@ SyncEngine.prototype = {
     this._log.debug("Resetting " + this.name + " last sync time");
     Svc.Prefs.reset(this.name + ".lastSync");
     Svc.Prefs.set(this.name + ".lastSync", "0");
+  },
+
+  get toFetch() this._toFetch,
+  set toFetch(val) {
+    this._toFetch = val;
+    Utils.jsonSave("toFetch/" + this.name, this, val);
+  },
+
+  loadToFetch: function loadToFetch() {
+    
+    this._toFetch = [];
+    Utils.jsonLoad("toFetch/" + this.name, this, Utils.bind2(this, function(o)
+      this._toFetch = o));
   },
 
   
@@ -370,12 +388,6 @@ SyncEngine.prototype = {
 
   
   _processIncoming: function SyncEngine__processIncoming() {
-    
-    if (this.lastModified <= this.lastSync) {
-      this._log.debug("Nothing new from the server to process");
-      return;
-    }
-
     this._log.debug("Downloading & applying server changes");
 
     
@@ -389,10 +401,14 @@ SyncEngine.prototype = {
     newitems.newer = this.lastSync;
     newitems.full = true;
     newitems.sort = "index";
+    newitems.limit = 300;
 
     let count = {applied: 0, reconciled: 0};
-
+    let handled = [];
     newitems.recordHandler = Utils.bind2(this, function(item) {
+      
+      handled.push(item.id);
+
       try {
         item.decrypt(ID.get("WeaveCryptoID"));
         if (this._reconcile(item)) {
@@ -411,15 +427,50 @@ SyncEngine.prototype = {
       Sync.sleep(0);
     });
 
-    let resp = newitems.get();
-    if (!resp.success)
-      throw resp;
+    
+    if (this.lastModified > this.lastSync) {
+      let resp = newitems.get();
+      if (!resp.success)
+        throw resp;
+    }
+
+    
+    if (handled.length == newitems.limit) {
+      let guidColl = new Collection(this.engineURL);
+      guidColl.newer = this.lastSync;
+      guidColl.sort = "index";
+
+      let guids = guidColl.get();
+      if (!guids.success)
+        throw guids;
+
+      
+      
+      let extra = Utils.arraySub(guids.obj, handled);
+      if (extra.length > 0)
+        this.toFetch = extra.concat(Utils.arraySub(this.toFetch, extra));
+    }
+
+    if (this.toFetch.length > 0) {
+      
+      newitems.limit = 0;
+      newitems.newer = 0;
+
+      
+      
+      newitems.ids = this.toFetch.slice(0, 150);
+      this.toFetch = this.toFetch.slice(150);
+
+      let resp = newitems.get();
+      if (!resp.success)
+        throw resp;
+    }
 
     if (this.lastSync < this.lastModified)
       this.lastSync = this.lastModified;
 
-    this._log.info("Applied " + count.applied + " records, reconciled " +
-                    count.reconciled + " records");
+    this._log.info(["Records:", count.applied, "applied,", count.reconciled,
+      "reconciled,", this.toFetch.length, "left to fetch"].join(" "));
 
     
     this._store.cache.clear();
@@ -615,5 +666,6 @@ SyncEngine.prototype = {
 
   _resetClient: function SyncEngine__resetClient() {
     this.resetLastSync();
+    this.toFetch = [];
   }
 };
