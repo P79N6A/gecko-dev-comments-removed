@@ -2321,46 +2321,22 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
 
 
-
           if (aVisitor.mEvent->message == NS_KEY_PRESS &&
               (keyEvent->keyCode == NS_VK_RETURN ||
                keyEvent->keyCode == NS_VK_ENTER) &&
-              (mType == NS_FORM_INPUT_TEXT ||
-               mType == NS_FORM_INPUT_EMAIL ||
-               mType == NS_FORM_INPUT_SEARCH ||
-               mType == NS_FORM_INPUT_PASSWORD ||
-               mType == NS_FORM_INPUT_TEL ||
-               mType == NS_FORM_INPUT_URL ||
-               mType == NS_FORM_INPUT_FILE)) {
+               IsSingleLineTextControl(PR_FALSE, mType)) {
+            nsIFrame* primaryFrame = GetPrimaryFrame();
+            if (primaryFrame) {
+              nsITextControlFrame* textFrame = do_QueryFrame(primaryFrame);
 
-            PRBool isButton = PR_FALSE;
-            
-            
-            if (mType == NS_FORM_INPUT_FILE) {
-              nsCOMPtr<nsIContent> maybeButton =
-                do_QueryInterface(aVisitor.mEvent->originalTarget);
-              if (maybeButton) {
-                isButton = maybeButton->AttrValueIs(kNameSpaceID_None,
-                                                    nsGkAtoms::type,
-                                                    nsGkAtoms::button,
-                                                    eCaseMatters);
-              }
-            }
-
-            if (!isButton) {
-              nsIFrame* primaryFrame = GetPrimaryFrame();
-              if (primaryFrame) {
-                nsITextControlFrame* textFrame = do_QueryFrame(primaryFrame);
               
-                
-                if (textFrame) {
-                  textFrame->CheckFireOnChange();
-                }
+              if (textFrame) {
+                textFrame->CheckFireOnChange();
               }
-
-              rv = MaybeSubmitForm(aVisitor.mPresContext);
-              NS_ENSURE_SUCCESS(rv, rv);
             }
+
+            rv = MaybeSubmitForm(aVisitor.mPresContext);
+            NS_ENSURE_SUCCESS(rv, rv);
           }
 
         } break; 
