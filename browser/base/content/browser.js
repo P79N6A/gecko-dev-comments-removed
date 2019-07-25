@@ -5804,6 +5804,7 @@ var IndexedDBPromptHelper = {
 
   _quotaPrompt: "indexedDB-quota-prompt",
   _quotaResponse: "indexedDB-quota-response",
+  _quotaCancel: "indexedDB-quota-cancel",
 
   _notificationIcon: "indexedDB-notification-icon",
 
@@ -5811,18 +5812,21 @@ var IndexedDBPromptHelper = {
   function IndexedDBPromptHelper_init() {
     Services.obs.addObserver(this, this._permissionsPrompt, false);
     Services.obs.addObserver(this, this._quotaPrompt, false);
+    Services.obs.addObserver(this, this._quotaCancel, false);
   },
 
   uninit:
   function IndexedDBPromptHelper_uninit() {
     Services.obs.removeObserver(this, this._permissionsPrompt, false);
     Services.obs.removeObserver(this, this._quotaPrompt, false);
+    Services.obs.removeObserver(this, this._quotaCancel, false);
   },
 
   observe:
   function IndexedDBPromptHelper_observe(subject, topic, data) {
     if (topic != this._permissionsPrompt &&
-        topic != this._quotaPrompt) {
+        topic != this._quotaPrompt &&
+        topic != this._quotaCancel) {
       throw new Error("Unexpected topic!");
     }
 
@@ -5854,14 +5858,22 @@ var IndexedDBPromptHelper = {
                                                     [ host, data ]);
       responseTopic = this._quotaResponse;
     }
+    else if (topic == this._quotaCancel) {
+      responseTopic = this._quotaResponse;
+    }
 
-    var self = this;
+    const hiddenTimeoutDuration = 30000; 
+    const firstTimeoutDuration = 360000; 
+
+    var timeoutId;
+
     var observer = requestor.getInterface(Ci.nsIObserver);
 
     var mainAction = {
       label: gNavigatorBundle.getString("offlineApps.allow"),
       accessKey: gNavigatorBundle.getString("offlineApps.allowAccessKey"),
       callback: function() {
+        clearTimeout(timeoutId);
         observer.observe(null, responseTopic,
                          Ci.nsIPermissionManager.ALLOW_ACTION);
       }
@@ -5872,15 +5884,70 @@ var IndexedDBPromptHelper = {
         label: gNavigatorBundle.getString("offlineApps.never"),
         accessKey: gNavigatorBundle.getString("offlineApps.neverAccessKey"),
         callback: function() {
+          clearTimeout(timeoutId);
           observer.observe(null, responseTopic,
                            Ci.nsIPermissionManager.DENY_ACTION);
         }
       }
     ];
 
-    PopupNotifications.show(browser, topic, message, this._notificationIcon,
-                            mainAction, secondaryActions);
+    
+    
+    
+    var notification;
 
+    function timeoutNotification() {
+      
+      if (notification) {
+        notification.remove();
+      }
+
+      
+      
+      clearTimeout(timeoutId);
+
+      
+      observer.observe(null, responseTopic,
+                       Ci.nsIPermissionManager.UNKNOWN_ACTION);
+    }
+
+    var options = {
+      eventCallback: function(state) {
+        
+        if (!timeoutId) {
+          return;
+        }
+
+        
+        if (state == "dismissed") {
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(timeoutNotification, hiddenTimeoutDuration);
+          return;
+        }
+
+        
+        
+        if (state == "shown") {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
+    if (topic == this._quotaCancel) {
+      notification = PopupNotifications.getNotification(this._quotaPrompt,
+                                                        browser);
+      timeoutNotification();
+      return;
+    }
+
+    notification = PopupNotifications.show(browser, topic, message,
+                                           this._notificationIcon, mainAction,
+                                           secondaryActions, options);
+
+    
+    
+    
+    timeoutId = setTimeout(timeoutNotification, firstTimeoutDuration);
   }
 };
 
