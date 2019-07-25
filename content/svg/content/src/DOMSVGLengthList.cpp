@@ -119,7 +119,7 @@ DOMSVGLengthList::InternalListLengthWillChange(PRUint32 aNewLength)
   }
 
   nsRefPtr<DOMSVGLengthList> kungFuDeathGrip;
-  if (oldLength && !aNewLength) {
+  if (aNewLength < oldLength) {
     
     
     kungFuDeathGrip = this;

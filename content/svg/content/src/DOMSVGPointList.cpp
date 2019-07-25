@@ -148,7 +148,7 @@ DOMSVGPointList::InternalListWillChangeTo(const SVGPointList& aNewValue)
   }
 
   nsRefPtr<DOMSVGPointList> kungFuDeathGrip;
-  if (oldLength && !newLength) {
+  if (newLength < oldLength) {
     
     
     kungFuDeathGrip = this;

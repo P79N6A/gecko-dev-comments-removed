@@ -156,7 +156,7 @@ DOMSVGPathSegList::InternalListWillChangeTo(const SVGPathData& aNewValue)
   PRUint32 newSegType;
 
   nsRefPtr<DOMSVGPathSegList> kungFuDeathGrip;
-  if (length && aNewValue.IsEmpty()) {
+  if (aNewValue.Length() < length) {
     
     
     kungFuDeathGrip = this;
