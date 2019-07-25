@@ -122,7 +122,6 @@ let MetadataCollector = {
   getLocation: function MetadataCollector_getLocation() {
     
     
-
     return Application.prefs.getValue(LOCALE_PREF, "");
   },
 
