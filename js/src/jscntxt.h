@@ -1440,28 +1440,6 @@ struct JSContext
 
 namespace js {
 
-
-
-
-
-
-
-
-
-
-class RuntimeAllocPolicy
-{
-    JSRuntime *const runtime;
-
-  public:
-    RuntimeAllocPolicy(JSRuntime *rt) : runtime(rt) {}
-    RuntimeAllocPolicy(JSContext *cx) : runtime(cx->runtime) {}
-    void *malloc_(size_t bytes) { return runtime->malloc_(bytes); }
-    void *realloc_(void *p, size_t bytes) { return runtime->realloc_(p, bytes); }
-    void free_(void *p) { runtime->free_(p); }
-    void reportAllocOverflow() const {}
-};
-
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread() ? (cx)->thread()->id : 0)
 #endif
@@ -2629,6 +2607,46 @@ class AutoShapeVector : public AutoVectorRooter<const Shape *>
 
 JSIdArray *
 NewIdArray(JSContext *cx, jsint length);
+
+
+
+
+
+
+
+
+
+
+
+
+class RuntimeAllocPolicy
+{
+    JSRuntime *const runtime;
+
+  public:
+    RuntimeAllocPolicy(JSRuntime *rt) : runtime(rt) {}
+    RuntimeAllocPolicy(JSContext *cx) : runtime(cx->runtime) {}
+    void *malloc_(size_t bytes) { return runtime->malloc_(bytes); }
+    void *realloc_(void *p, size_t bytes) { return runtime->realloc_(p, bytes); }
+    void free_(void *p) { runtime->free_(p); }
+    void reportAllocOverflow() const {}
+};
+
+
+
+
+class ContextAllocPolicy
+{
+    JSContext *const cx;
+
+  public:
+    ContextAllocPolicy(JSContext *cx) : cx(cx) {}
+    JSContext *context() const { return cx; }
+    void *malloc_(size_t bytes) { return cx->malloc_(bytes); }
+    void *realloc_(void *p, size_t oldBytes, size_t bytes) { return cx->realloc_(p, oldBytes, bytes); }
+    void free_(void *p) { cx->free_(p); }
+    void reportAllocOverflow() const { js_ReportAllocationOverflow(cx); }
+};
 
 } 
 
