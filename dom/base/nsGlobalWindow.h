@@ -673,26 +673,7 @@ protected:
   }
 
   
-
-  virtual nsresult
-  OpenNoNavigate(const nsAString& aUrl,
-                 const nsAString& aName,
-                 const nsAString& aOptions,
-                 nsIDOMWindow **_retval);
-
   
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -731,7 +712,6 @@ protected:
                                     bool aContentModal,
                                     bool aCalledNoScript,
                                     bool aDoJSFixups,
-                                    bool aNavigate,
                                     nsIArray *argv,
                                     nsISupports *aExtraArgument,
                                     nsIPrincipal *aCalleePrincipal,
