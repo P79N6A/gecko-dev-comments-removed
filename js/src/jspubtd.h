@@ -44,7 +44,52 @@
 
 #include "jstypes.h"
 #include "jscompat.h"
-#include "jsval.h"
+
+
+
+
+
+#ifdef __cplusplus
+namespace JS { class Value; }
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef __cplusplus
+
+# if defined(DEBUG) && !defined(JS_NO_JSVAL_JSID_STRUCT_TYPES)
+#  define JS_USE_JSID_STRUCT_TYPES
+# endif
+
+# ifdef JS_USE_JSID_STRUCT_TYPES
+struct jsid
+{
+    size_t asBits;
+    bool operator==(jsid rhs) const { return asBits == rhs.asBits; }
+    bool operator!=(jsid rhs) const { return asBits != rhs.asBits; }
+};
+#  define JSID_BITS(id) (id.asBits)
+# else  
+typedef ptrdiff_t jsid;
+#  define JSID_BITS(id) (id)
+# endif  
+#else  
+typedef ptrdiff_t jsid;
+# define JSID_BITS(id) (id)
+#endif
 
 JS_BEGIN_EXTERN_C
 
@@ -59,7 +104,6 @@ typedef wchar_t   jschar;
 #else
 typedef JSUint16  jschar;
 #endif
-
 
 
 
@@ -144,435 +188,58 @@ typedef enum JSIterateOp {
 } JSIterateOp;
 
 
-typedef struct JSClass           JSClass;
-typedef struct JSConstDoubleSpec JSConstDoubleSpec;
-typedef struct JSContext         JSContext;
-typedef struct JSErrorReport     JSErrorReport;
-typedef struct JSFunction        JSFunction;
-typedef struct JSFunctionSpec    JSFunctionSpec;
-typedef struct JSTracer          JSTracer;
-typedef struct JSIdArray         JSIdArray;
-typedef struct JSPropertyDescriptor JSPropertyDescriptor;
-typedef struct JSPropertySpec    JSPropertySpec;
-typedef struct JSObjectMap       JSObjectMap;
-typedef struct JSRuntime         JSRuntime;
-typedef struct JSStackFrame      JSStackFrame;
-typedef struct JSXDRState        JSXDRState;
-typedef struct JSExceptionState  JSExceptionState;
-typedef struct JSLocaleCallbacks JSLocaleCallbacks;
-typedef struct JSSecurityCallbacks JSSecurityCallbacks;
-typedef struct JSCompartment     JSCompartment;
-typedef struct JSCrossCompartmentCall JSCrossCompartmentCall;
+typedef enum {
+    JSTRACE_OBJECT,
+    JSTRACE_STRING,
+    JSTRACE_SCRIPT,
+
+    
+
+
+
+#if JS_HAS_XML_SUPPORT
+    JSTRACE_XML,
+#endif
+    JSTRACE_SHAPE,
+    JSTRACE_TYPE_OBJECT,
+    JSTRACE_LAST = JSTRACE_TYPE_OBJECT
+} JSGCTraceKind;
+
+
+typedef struct JSClass                      JSClass;
+typedef struct JSCompartment                JSCompartment;
+typedef struct JSConstDoubleSpec            JSConstDoubleSpec;
+typedef struct JSContext                    JSContext;
+typedef struct JSCrossCompartmentCall       JSCrossCompartmentCall;
+typedef struct JSErrorReport                JSErrorReport;
+typedef struct JSExceptionState             JSExceptionState;
+typedef struct JSFunction                   JSFunction;
+typedef struct JSFunctionSpec               JSFunctionSpec;
+typedef struct JSIdArray                    JSIdArray;
+typedef struct JSLocaleCallbacks            JSLocaleCallbacks;
+typedef struct JSObject                     JSObject;
+typedef struct JSObjectMap                  JSObjectMap;
+typedef struct JSPrincipals                 JSPrincipals;
+typedef struct JSPropertyDescriptor         JSPropertyDescriptor;
+typedef struct JSPropertyName               JSPropertyName;
+typedef struct JSPropertySpec               JSPropertySpec;
+typedef struct JSRuntime                    JSRuntime;
+typedef struct JSSecurityCallbacks          JSSecurityCallbacks;
+typedef struct JSStackFrame                 JSStackFrame;
 typedef struct JSScript          JSScript;
-typedef struct JSStructuredCloneWriter JSStructuredCloneWriter;
-typedef struct JSStructuredCloneReader JSStructuredCloneReader;
-typedef struct JSStructuredCloneCallbacks JSStructuredCloneCallbacks;
-typedef struct JSPropertyName    JSPropertyName;
+typedef struct JSStructuredCloneCallbacks   JSStructuredCloneCallbacks;
+typedef struct JSStructuredCloneReader      JSStructuredCloneReader;
+typedef struct JSStructuredCloneWriter      JSStructuredCloneWriter;
+typedef struct JSTracer                     JSTracer;
+typedef struct JSXDRState                   JSXDRState;
 
 #ifdef __cplusplus
-typedef class JSWrapper          JSWrapper;
-typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
+class                                       JSFlatString;
+class                                       JSString;
+#else
+typedef struct JSFlatString                 JSFlatString;
+typedef struct JSString                     JSString;
 #endif
-
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSPropertyOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSStrictPropertyOp)(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSNewEnumerateOp)(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
-                     jsval *statep, jsid *idp);
-
-
-
-
-
-typedef JSBool
-(* JSEnumerateOp)(JSContext *cx, JSObject *obj);
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSResolveOp)(JSContext *cx, JSObject *obj, jsid id);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSNewResolveOp)(JSContext *cx, JSObject *obj, jsid id, uintN flags,
-                   JSObject **objp);
-
-
-
-
-
-typedef JSBool
-(* JSConvertOp)(JSContext *cx, JSObject *obj, JSType type, jsval *vp);
-
-
-
-
-typedef JSType
-(* JSTypeOfOp)(JSContext *cx, JSObject *obj);
-
-
-
-
-
-
-typedef void
-(* JSFinalizeOp)(JSContext *cx, JSObject *obj);
-
-
-
-
-
-typedef void
-(* JSStringFinalizeOp)(JSContext *cx, JSString *str);
-
-
-
-
-
-
-
-typedef JSBool
-(* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
-                    jsval *vp);
-
-
-
-
-
-typedef JSBool
-(* JSXDRObjectOp)(JSXDRState *xdr, JSObject **objp);
-
-
-
-
-
-
-typedef JSBool
-(* JSHasInstanceOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef void
-(* JSTraceOp)(JSTracer *trc, JSObject *obj);
-
-
-
-
-
-typedef void
-(* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
-
-typedef JSBool
-(* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
-
-
-
-
-
-
-
-typedef JSBool
-(* JSNative)(JSContext *cx, uintN argc, jsval *vp);
-
-
-
-typedef enum JSContextOp {
-    JSCONTEXT_NEW,
-    JSCONTEXT_DESTROY
-} JSContextOp;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSContextCallback)(JSContext *cx, uintN contextOp);
-
-#ifndef JS_THREADSAFE
-typedef void
-(* JSHeartbeatCallback)(JSRuntime *rt);
-#endif
-
-typedef enum JSGCStatus {
-    JSGC_BEGIN,
-    JSGC_END,
-    JSGC_MARK_END,
-    JSGC_FINALIZE_END
-} JSGCStatus;
-
-typedef JSBool
-(* JSGCCallback)(JSContext *cx, JSGCStatus status);
-
-
-
-
-
-typedef void
-(* JSTraceDataOp)(JSTracer *trc, void *data);
-
-typedef JSBool
-(* JSOperationCallback)(JSContext *cx);
-
-typedef void
-(* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
-
-
-
-
-
-
-typedef enum JSExnType {
-    JSEXN_NONE = -1,
-      JSEXN_ERR,
-        JSEXN_INTERNALERR,
-        JSEXN_EVALERR,
-        JSEXN_RANGEERR,
-        JSEXN_REFERENCEERR,
-        JSEXN_SYNTAXERR,
-        JSEXN_TYPEERR,
-        JSEXN_URIERR,
-        JSEXN_LIMIT
-} JSExnType;
-
-typedef struct JSErrorFormatString {
-    
-    const char *format;
-
-    
-    uint16 argCount;
-
-    
-    int16 exnType;
-} JSErrorFormatString;
-
-typedef const JSErrorFormatString *
-(* JSErrorCallback)(void *userRef, const char *locale,
-                    const uintN errorNumber);
-
-#ifdef va_start
-#define JS_ARGUMENT_FORMATTER_DEFINED 1
-
-typedef JSBool
-(* JSArgumentFormatter)(JSContext *cx, const char *format, JSBool fromJS,
-                        jsval **vpp, va_list *app);
-#endif
-
-typedef JSBool
-(* JSLocaleToUpperCase)(JSContext *cx, JSString *src, jsval *rval);
-
-typedef JSBool
-(* JSLocaleToLowerCase)(JSContext *cx, JSString *src, jsval *rval);
-
-typedef JSBool
-(* JSLocaleCompare)(JSContext *cx, JSString *src1, JSString *src2,
-                    jsval *rval);
-
-typedef JSBool
-(* JSLocaleToUnicode)(JSContext *cx, const char *src, jsval *rval);
-
-
-
-
-typedef struct JSPrincipals JSPrincipals;
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSPrincipalsTranscoder)(JSXDRState *xdr, JSPrincipals **principalsp);
-
-
-
-
-
-
-
-
-
-typedef JSPrincipals *
-(* JSObjectPrincipalsFinder)(JSContext *cx, JSObject *obj);
-
-
-
-
-
-typedef JSBool
-(* JSCSPEvalChecker)(JSContext *cx);
-
-
-
-
-
-
-typedef JSObject *
-(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
-                         uintN flags);
-
-
-
-
-
-
-typedef JSObject *
-(* JSPreWrapCallback)(JSContext *cx, JSObject *scope, JSObject *obj, uintN flags);
-
-typedef enum {
-    JSCOMPARTMENT_DESTROY
-} JSCompartmentOp;
-
-typedef JSBool
-(* JSCompartmentCallback)(JSContext *cx, JSCompartment *compartment, uintN compartmentOp);
-
-
-
-
-
-
-
-
-
-
-typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
-                                           uint32 tag, uint32 data, void *closure);
-
-
-
-
-
-
-
-
-
-
-
-
-typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
-                                         JSObject *obj, void *closure);
-
-
-
-
-
-
-typedef void (*StructuredCloneErrorOp)(JSContext *cx, uint32 errorid);
 
 JS_END_EXTERN_C
 

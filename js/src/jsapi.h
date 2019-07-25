@@ -48,6 +48,1207 @@
 #include "js-config.h"
 #include "jspubtd.h"
 #include "jsutil.h"
+#include "jsval.h"
+
+
+
+
+#define JSVAL_INT_BITS          32
+#define JSVAL_INT_MIN           ((jsint)0x80000000)
+#define JSVAL_INT_MAX           ((jsint)0x7fffffff)
+
+
+
+#ifdef __cplusplus
+namespace JS {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T> class AnchorPermitted;
+template<> class AnchorPermitted<JSObject *> { };
+template<> class AnchorPermitted<const JSObject *> { };
+template<> class AnchorPermitted<JSFunction *> { };
+template<> class AnchorPermitted<const JSFunction *> { };
+template<> class AnchorPermitted<JSString *> { };
+template<> class AnchorPermitted<const JSString *> { };
+template<> class AnchorPermitted<Value> { };
+
+template<typename T>
+class Anchor: AnchorPermitted<T>
+{
+  public:
+    Anchor() { }
+    explicit Anchor(T t) { hold = t; }
+    inline ~Anchor();
+    T &get() { return hold; }
+    const T &get() const { return hold; }
+    void set(const T &t) { hold = t; }
+    void clear() { hold = 0; }
+  private:
+    T hold;
+    
+    Anchor(const Anchor &);
+    const Anchor &operator=(const Anchor &);
+};
+
+#ifdef __GNUC__
+template<typename T>
+inline Anchor<T>::~Anchor()
+{
+    
+
+
+
+
+
+
+
+
+
+
+    asm volatile("":: "g" (hold) : "memory");
+}
+#else
+template<typename T>
+inline Anchor<T>::~Anchor()
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    volatile T sink;
+    sink = hold;
+}
+#endif  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Value
+{
+  public:
+    
+
+
+
+
+    
+
+    JS_ALWAYS_INLINE
+    void setNull() {
+        data.asBits = BUILD_JSVAL(JSVAL_TAG_NULL, 0).asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    void setUndefined() {
+        data.asBits = BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0).asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    void setInt32(int32 i) {
+        data = INT32_TO_JSVAL_IMPL(i);
+    }
+
+    JS_ALWAYS_INLINE
+    int32 &getInt32Ref() {
+        JS_ASSERT(isInt32());
+        return data.s.payload.i32;
+    }
+
+    JS_ALWAYS_INLINE
+    void setDouble(double d) {
+        data = DOUBLE_TO_JSVAL_IMPL(d);
+    }
+
+    JS_ALWAYS_INLINE
+    double &getDoubleRef() {
+        JS_ASSERT(isDouble());
+        return data.asDouble;
+    }
+
+    JS_ALWAYS_INLINE
+    void setString(JSString *str) {
+        data = STRING_TO_JSVAL_IMPL(str);
+    }
+
+    JS_ALWAYS_INLINE
+    void setString(const JS::Anchor<JSString *> &str) {
+        setString(str.get());
+    }
+
+    JS_ALWAYS_INLINE
+    void setObject(JSObject &obj) {
+        data = OBJECT_TO_JSVAL_IMPL(&obj);
+    }
+
+    JS_ALWAYS_INLINE
+    void setObject(const JS::Anchor<JSObject *> &obj) {
+        setObject(*obj.get());
+    }
+
+    JS_ALWAYS_INLINE
+    void setBoolean(bool b) {
+        data = BOOLEAN_TO_JSVAL_IMPL(b);
+    }
+
+    JS_ALWAYS_INLINE
+    void setMagic(JSWhyMagic why) {
+        data = MAGIC_TO_JSVAL_IMPL(why);
+    }
+
+    JS_ALWAYS_INLINE
+    void setMagicWithObjectOrNullPayload(JSObject *obj) {
+        data = MAGIC_OBJ_TO_JSVAL_IMPL(obj);
+    }
+
+    JS_ALWAYS_INLINE
+    JSObject *getMagicObjectOrNullPayload() const {
+        return MAGIC_JSVAL_TO_OBJECT_OR_NULL_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool setNumber(uint32 ui) {
+        if (ui > JSVAL_INT_MAX) {
+            setDouble((double)ui);
+            return false;
+        } else {
+            setInt32((int32)ui);
+            return true;
+        }
+    }
+
+    JS_ALWAYS_INLINE
+    bool setNumber(double d) {
+        int32 i;
+        if (JSDOUBLE_IS_INT32(d, &i)) {
+            setInt32(i);
+            return true;
+        } else {
+            setDouble(d);
+            return false;
+        }
+    }
+
+    JS_ALWAYS_INLINE
+    void setObjectOrNull(JSObject *arg) {
+        if (arg)
+            setObject(*arg);
+        else
+            setNull();
+    }
+
+    JS_ALWAYS_INLINE
+    void setObjectOrUndefined(JSObject *arg) {
+        if (arg)
+            setObject(*arg);
+        else
+            setUndefined();
+    }
+
+    JS_ALWAYS_INLINE
+    void swap(Value &rhs) {
+        uint64 tmp = rhs.data.asBits;
+        rhs.data.asBits = data.asBits;
+        data.asBits = tmp;
+    }
+
+    
+
+    JS_ALWAYS_INLINE
+    bool isUndefined() const {
+        return JSVAL_IS_UNDEFINED_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isNull() const {
+        return JSVAL_IS_NULL_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isNullOrUndefined() const {
+        return isNull() || isUndefined();
+    }
+
+    JS_ALWAYS_INLINE
+    bool isInt32() const {
+        return JSVAL_IS_INT32_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isInt32(int32 i32) const {
+        return JSVAL_IS_SPECIFIC_INT32_IMPL(data, i32);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isDouble() const {
+        return JSVAL_IS_DOUBLE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isNumber() const {
+        return JSVAL_IS_NUMBER_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isString() const {
+        return JSVAL_IS_STRING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isObject() const {
+        return JSVAL_IS_OBJECT_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isPrimitive() const {
+        return JSVAL_IS_PRIMITIVE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isObjectOrNull() const {
+        return JSVAL_IS_OBJECT_OR_NULL_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isGCThing() const {
+        return JSVAL_IS_GCTHING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isBoolean() const {
+        return JSVAL_IS_BOOLEAN_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isTrue() const {
+        return JSVAL_IS_SPECIFIC_BOOLEAN(data, true);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isFalse() const {
+        return JSVAL_IS_SPECIFIC_BOOLEAN(data, false);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isMagic() const {
+        return JSVAL_IS_MAGIC_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isMagic(JSWhyMagic why) const {
+        JS_ASSERT_IF(isMagic(), data.s.payload.why == why);
+        return JSVAL_IS_MAGIC_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool isMagicCheck(JSWhyMagic why) const {
+        return isMagic() && data.s.payload.why == why;
+    }
+
+#if JS_BITS_PER_WORD == 64
+    JS_ALWAYS_INLINE
+    bool hasPtrPayload() const {
+        return data.asBits >= JSVAL_LOWER_INCL_SHIFTED_TAG_OF_PTR_PAYLOAD_SET;
+    }
+#endif
+
+    JS_ALWAYS_INLINE
+    bool isMarkable() const {
+        return JSVAL_IS_TRACEABLE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSGCTraceKind gcKind() const {
+        JS_ASSERT(isMarkable());
+        return JSGCTraceKind(JSVAL_TRACE_KIND_IMPL(data));
+    }
+
+    JS_ALWAYS_INLINE
+    JSWhyMagic whyMagic() const {
+        JS_ASSERT(isMagic());
+        return data.s.payload.why;
+    }
+
+    
+
+    JS_ALWAYS_INLINE
+    bool operator==(const Value &rhs) const {
+        return data.asBits == rhs.data.asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    bool operator!=(const Value &rhs) const {
+        return data.asBits != rhs.data.asBits;
+    }
+
+    friend inline bool SameType(const Value &lhs, const Value &rhs);
+
+    
+
+    JS_ALWAYS_INLINE
+    int32 toInt32() const {
+        JS_ASSERT(isInt32());
+        return JSVAL_TO_INT32_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    double toDouble() const {
+        JS_ASSERT(isDouble());
+        return data.asDouble;
+    }
+
+    JS_ALWAYS_INLINE
+    double toNumber() const {
+        JS_ASSERT(isNumber());
+        return isDouble() ? toDouble() : double(toInt32());
+    }
+
+    JS_ALWAYS_INLINE
+    JSString *toString() const {
+        JS_ASSERT(isString());
+        return JSVAL_TO_STRING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSObject &toObject() const {
+        JS_ASSERT(isObject());
+        return *JSVAL_TO_OBJECT_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSObject *toObjectOrNull() const {
+        JS_ASSERT(isObjectOrNull());
+        return JSVAL_TO_OBJECT_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    void *toGCThing() const {
+        JS_ASSERT(isGCThing());
+        return JSVAL_TO_GCTHING_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    bool toBoolean() const {
+        JS_ASSERT(isBoolean());
+        return JSVAL_TO_BOOLEAN_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    uint32 payloadAsRawUint32() const {
+        JS_ASSERT(!isDouble());
+        return data.s.payload.u32;
+    }
+
+    JS_ALWAYS_INLINE
+    uint64 asRawBits() const {
+        return data.asBits;
+    }
+
+    JS_ALWAYS_INLINE
+    void setRawBits(uint64 bits) {
+        data.asBits = bits;
+    }
+
+    
+
+
+
+
+
+    JS_ALWAYS_INLINE
+    JSValueType extractNonDoubleType() const {
+        return JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSValueTag extractNonDoubleTag() const {
+        return JSVAL_EXTRACT_NON_DOUBLE_TAG_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    void unboxNonDoubleTo(uint64 *out) const {
+        UNBOX_NON_DOUBLE_JSVAL(data, out);
+    }
+
+    JS_ALWAYS_INLINE
+    void boxNonDoubleFrom(JSValueType type, uint64 *out) {
+        data = BOX_NON_DOUBLE_JSVAL(type, out);
+    }
+
+    
+
+
+
+
+    JS_ALWAYS_INLINE
+    JSValueType extractNonDoubleObjectTraceType() const {
+        JS_ASSERT(!isObject());
+        return JSVAL_EXTRACT_NON_DOUBLE_TYPE_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    JSValueTag extractNonDoubleObjectTraceTag() const {
+        JS_ASSERT(!isObject());
+        return JSVAL_EXTRACT_NON_DOUBLE_TAG_IMPL(data);
+    }
+
+    
+
+
+
+
+
+
+
+
+    JS_ALWAYS_INLINE
+    void setPrivate(void *ptr) {
+        data = PRIVATE_PTR_TO_JSVAL_IMPL(ptr);
+    }
+
+    JS_ALWAYS_INLINE
+    void *toPrivate() const {
+        JS_ASSERT(JSVAL_IS_DOUBLE_IMPL(data));
+        return JSVAL_TO_PRIVATE_PTR_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    void setPrivateUint32(uint32 ui) {
+        data = PRIVATE_UINT32_TO_JSVAL_IMPL(ui);
+    }
+
+    JS_ALWAYS_INLINE
+    uint32 toPrivateUint32() const {
+        JS_ASSERT(JSVAL_IS_DOUBLE_IMPL(data));
+        return JSVAL_TO_PRIVATE_UINT32_IMPL(data);
+    }
+
+    JS_ALWAYS_INLINE
+    uint32 &getPrivateUint32Ref() {
+        JS_ASSERT(isDouble());
+        return data.s.payload.u32;
+    }
+
+    
+
+
+
+
+
+    JS_ALWAYS_INLINE
+    void setUnmarkedPtr(void *ptr) {
+        data.asPtr = ptr;
+    }
+
+    JS_ALWAYS_INLINE
+    void *toUnmarkedPtr() const {
+        return data.asPtr;
+    }
+
+    const size_t *payloadWord() const {
+#if JS_BITS_PER_WORD == 32
+        return &data.s.payload.word;
+#elif JS_BITS_PER_WORD == 64
+        return &data.asWord;
+#endif
+    }
+
+  private:
+    void staticAssertions() {
+        JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
+        JS_STATIC_ASSERT(sizeof(JSValueTag) == 4);
+        JS_STATIC_ASSERT(sizeof(JSBool) == 4);
+        JS_STATIC_ASSERT(sizeof(JSWhyMagic) <= 4);
+        JS_STATIC_ASSERT(sizeof(Value) == 8);
+    }
+
+    jsval_layout data;
+
+    friend jsval_layout (::JSVAL_TO_IMPL)(Value);
+    friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
+} JSVAL_ALIGNMENT;
+
+
+
+static JS_ALWAYS_INLINE Value
+NullValue()
+{
+    Value v;
+    v.setNull();
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+UndefinedValue()
+{
+    Value v;
+    v.setUndefined();
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+Int32Value(int32 i32)
+{
+    Value v;
+    v.setInt32(i32);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+DoubleValue(double dbl)
+{
+    Value v;
+    v.setDouble(dbl);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+StringValue(JSString *str)
+{
+    Value v;
+    v.setString(str);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+BooleanValue(bool boo)
+{
+    Value v;
+    v.setBoolean(boo);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+ObjectValue(JSObject &obj)
+{
+    Value v;
+    v.setObject(obj);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+MagicValue(JSWhyMagic why)
+{
+    Value v;
+    v.setMagic(why);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+NumberValue(double dbl)
+{
+    Value v;
+    v.setNumber(dbl);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+ObjectOrNullValue(JSObject *obj)
+{
+    Value v;
+    v.setObjectOrNull(obj);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+PrivateValue(void *ptr)
+{
+    Value v;
+    v.setPrivate(ptr);
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
+PrivateUint32Value(uint32 ui)
+{
+    Value v;
+    v.setPrivateUint32(ui);
+    return v;
+}
+
+JS_ALWAYS_INLINE bool
+SameType(const Value &lhs, const Value &rhs)
+{
+    return JSVAL_SAME_TYPE_IMPL(lhs.data, rhs.data);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<>
+inline Anchor<Value>::~Anchor()
+{
+    volatile uint64 bits;
+    bits = hold.asRawBits();
+}
+
+}  
+
+
+
+
+
+
+
+
+typedef JS::Value jsval;
+
+static JS_ALWAYS_INLINE jsval_layout
+JSVAL_TO_IMPL(jsval v)
+{
+    return v.data;
+}
+
+static JS_ALWAYS_INLINE jsval
+IMPL_TO_JSVAL(jsval_layout l)
+{
+    JS::Value v;
+    v.data = l;
+    return v;
+}
+
+#else  
+
+
+
+
+
+
+
+typedef union jsval_layout jsval;
+
+static JS_ALWAYS_INLINE jsval_layout
+JSVAL_TO_IMPL(jsval v)
+{
+    return v;
+}
+
+static JS_ALWAYS_INLINE jsval
+IMPL_TO_JSVAL(jsval_layout l)
+{
+    return l;
+}
+
+#endif  
+
+JS_STATIC_ASSERT(sizeof(jsval_layout) == sizeof(jsval));
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSPropertyOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSStrictPropertyOp)(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSNewEnumerateOp)(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
+                     jsval *statep, jsid *idp);
+
+
+
+
+
+typedef JSBool
+(* JSEnumerateOp)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSResolveOp)(JSContext *cx, JSObject *obj, jsid id);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSNewResolveOp)(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                   JSObject **objp);
+
+
+
+
+
+typedef JSBool
+(* JSConvertOp)(JSContext *cx, JSObject *obj, JSType type, jsval *vp);
+
+
+
+
+typedef JSType
+(* JSTypeOfOp)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+
+typedef void
+(* JSFinalizeOp)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+typedef void
+(* JSStringFinalizeOp)(JSContext *cx, JSString *str);
+
+
+
+
+
+
+
+typedef JSBool
+(* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
+                    jsval *vp);
+
+
+
+
+
+typedef JSBool
+(* JSXDRObjectOp)(JSXDRState *xdr, JSObject **objp);
+
+
+
+
+
+
+typedef JSBool
+(* JSHasInstanceOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void
+(* JSTraceOp)(JSTracer *trc, JSObject *obj);
+
+
+
+
+
+typedef void
+(* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
+
+typedef JSBool
+(* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
+
+
+
+
+
+
+
+typedef JSBool
+(* JSNative)(JSContext *cx, uintN argc, jsval *vp);
+
+
+
+typedef enum JSContextOp {
+    JSCONTEXT_NEW,
+    JSCONTEXT_DESTROY
+} JSContextOp;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSContextCallback)(JSContext *cx, uintN contextOp);
+
+typedef enum JSGCStatus {
+    JSGC_BEGIN,
+    JSGC_END,
+    JSGC_MARK_END,
+    JSGC_FINALIZE_END
+} JSGCStatus;
+
+typedef JSBool
+(* JSGCCallback)(JSContext *cx, JSGCStatus status);
+
+
+
+
+
+typedef void
+(* JSTraceDataOp)(JSTracer *trc, void *data);
+
+typedef JSBool
+(* JSOperationCallback)(JSContext *cx);
+
+typedef void
+(* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
+
+
+
+
+
+
+typedef enum JSExnType {
+    JSEXN_NONE = -1,
+      JSEXN_ERR,
+        JSEXN_INTERNALERR,
+        JSEXN_EVALERR,
+        JSEXN_RANGEERR,
+        JSEXN_REFERENCEERR,
+        JSEXN_SYNTAXERR,
+        JSEXN_TYPEERR,
+        JSEXN_URIERR,
+        JSEXN_LIMIT
+} JSExnType;
+
+typedef struct JSErrorFormatString {
+    
+    const char *format;
+
+    
+    uint16 argCount;
+
+    
+    int16 exnType;
+} JSErrorFormatString;
+
+typedef const JSErrorFormatString *
+(* JSErrorCallback)(void *userRef, const char *locale,
+                    const uintN errorNumber);
+
+#ifdef va_start
+#define JS_ARGUMENT_FORMATTER_DEFINED 1
+
+typedef JSBool
+(* JSArgumentFormatter)(JSContext *cx, const char *format, JSBool fromJS,
+                        jsval **vpp, va_list *app);
+#endif
+
+typedef JSBool
+(* JSLocaleToUpperCase)(JSContext *cx, JSString *src, jsval *rval);
+
+typedef JSBool
+(* JSLocaleToLowerCase)(JSContext *cx, JSString *src, jsval *rval);
+
+typedef JSBool
+(* JSLocaleCompare)(JSContext *cx, JSString *src1, JSString *src2,
+                    jsval *rval);
+
+typedef JSBool
+(* JSLocaleToUnicode)(JSContext *cx, const char *src, jsval *rval);
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSPrincipalsTranscoder)(JSXDRState *xdr, JSPrincipals **principalsp);
+
+
+
+
+
+
+
+
+
+typedef JSPrincipals *
+(* JSObjectPrincipalsFinder)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+typedef JSBool
+(* JSCSPEvalChecker)(JSContext *cx);
+
+
+
+
+
+
+typedef JSObject *
+(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent,
+                         uintN flags);
+
+
+
+
+
+
+typedef JSObject *
+(* JSPreWrapCallback)(JSContext *cx, JSObject *scope, JSObject *obj, uintN flags);
+
+typedef enum {
+    JSCOMPARTMENT_DESTROY
+} JSCompartmentOp;
+
+typedef JSBool
+(* JSCompartmentCallback)(JSContext *cx, JSCompartment *compartment, uintN compartmentOp);
+
+
+
+
+
+
+
+
+
+
+typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
+                                           uint32 tag, uint32 data, void *closure);
+
+
+
+
+
+
+
+
+
+
+
+
+typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
+                                         JSObject *obj, void *closure);
+
+
+
+
+
+
+typedef void (*StructuredCloneErrorOp)(JSContext *cx, uint32 errorid);
+
+
 
 JS_BEGIN_EXTERN_C
 
@@ -56,76 +1257,49 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
-
-
-
-
-
-
-
-
-#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
-
-
-extern JS_PUBLIC_DATA(jsval) JSVAL_NULL;
-extern JS_PUBLIC_DATA(jsval) JSVAL_ZERO;
-extern JS_PUBLIC_DATA(jsval) JSVAL_ONE;
-extern JS_PUBLIC_DATA(jsval) JSVAL_FALSE;
-extern JS_PUBLIC_DATA(jsval) JSVAL_TRUE;
-extern JS_PUBLIC_DATA(jsval) JSVAL_VOID;
-
-#else
-
-
-#define JSVAL_NULL   BUILD_JSVAL(JSVAL_TAG_NULL,      0)
-#define JSVAL_ZERO   BUILD_JSVAL(JSVAL_TAG_INT32,     0)
-#define JSVAL_ONE    BUILD_JSVAL(JSVAL_TAG_INT32,     1)
-#define JSVAL_FALSE  BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_FALSE)
-#define JSVAL_TRUE   BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE)
-#define JSVAL_VOID   BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0)
-
+#ifdef _MSC_VER
+# pragma warning(disable:4190)
 #endif
+
+
+
+
+
+
+
+extern JS_PUBLIC_DATA(const jsval) JSVAL_NULL;
+extern JS_PUBLIC_DATA(const jsval) JSVAL_ZERO;
+extern JS_PUBLIC_DATA(const jsval) JSVAL_ONE;
+extern JS_PUBLIC_DATA(const jsval) JSVAL_FALSE;
+extern JS_PUBLIC_DATA(const jsval) JSVAL_TRUE;
+extern JS_PUBLIC_DATA(const jsval) JSVAL_VOID;
 
 
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_NULL(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_NULL_IMPL(l);
+    return JSVAL_IS_NULL_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_VOID(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_UNDEFINED_IMPL(l);
+    return JSVAL_IS_UNDEFINED_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_INT(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_INT32_IMPL(l);
+    return JSVAL_IS_INT32_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE jsint
 JSVAL_TO_INT(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_INT(v));
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_TO_INT32_IMPL(l);
+    return JSVAL_TO_INT32_IMPL(JSVAL_TO_IMPL(v));
 }
-
-#define JSVAL_INT_BITS          32
-#define JSVAL_INT_MIN           ((jsint)0x80000000)
-#define JSVAL_INT_MAX           ((jsint)0x7fffffff)
 
 static JS_ALWAYS_INLINE jsval
 INT_TO_JSVAL(int32 i)
@@ -136,9 +1310,7 @@ INT_TO_JSVAL(int32 i)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_DOUBLE(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_DOUBLE_IMPL(l);
+    return JSVAL_IS_DOUBLE_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE jsdouble
@@ -146,7 +1318,7 @@ JSVAL_TO_DOUBLE(jsval v)
 {
     jsval_layout l;
     JS_ASSERT(JSVAL_IS_DOUBLE(v));
-    l.asBits = JSVAL_BITS(v);
+    l = JSVAL_TO_IMPL(v);
     return l.asDouble;
 }
 
@@ -168,26 +1340,20 @@ UINT_TO_JSVAL(uint32 i)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_NUMBER(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_NUMBER_IMPL(l);
+    return JSVAL_IS_NUMBER_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_STRING(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_STRING_IMPL(l);
+    return JSVAL_IS_STRING_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSString *
 JSVAL_TO_STRING(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_STRING(v));
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_TO_STRING_IMPL(l);
+    return JSVAL_TO_STRING_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE jsval
@@ -199,18 +1365,14 @@ STRING_TO_JSVAL(JSString *str)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_OBJECT(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_OBJECT_OR_NULL_IMPL(l);
+    return JSVAL_IS_OBJECT_OR_NULL_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSObject *
 JSVAL_TO_OBJECT(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_OBJECT(v));
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_TO_OBJECT_IMPL(l);
+    return JSVAL_TO_OBJECT_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE jsval
@@ -224,18 +1386,14 @@ OBJECT_TO_JSVAL(JSObject *obj)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_BOOLEAN(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_BOOLEAN_IMPL(l);
+    return JSVAL_IS_BOOLEAN_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_TO_BOOLEAN(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_BOOLEAN(v));
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_TO_BOOLEAN_IMPL(l);
+    return JSVAL_TO_BOOLEAN_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE jsval
@@ -247,26 +1405,20 @@ BOOLEAN_TO_JSVAL(JSBool b)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_PRIMITIVE(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_PRIMITIVE_IMPL(l);
+    return JSVAL_IS_PRIMITIVE_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_GCTHING(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_GCTHING_IMPL(l);
+    return JSVAL_IS_GCTHING_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE void *
 JSVAL_TO_GCTHING(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_GCTHING(v));
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_TO_GCTHING_IMPL(l);
+    return JSVAL_TO_GCTHING_IMPL(JSVAL_TO_IMPL(v));
 }
 
 
@@ -280,10 +1432,8 @@ PRIVATE_TO_JSVAL(void *ptr)
 static JS_ALWAYS_INLINE void *
 JSVAL_TO_PRIVATE(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_DOUBLE(v));
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_TO_PRIVATE_PTR_IMPL(l);
+    return JSVAL_TO_PRIVATE_PTR_IMPL(JSVAL_TO_IMPL(v));
 }
 
 
@@ -323,7 +1473,7 @@ static JS_ALWAYS_INLINE JSString *
 JSID_TO_STRING(jsid id)
 {
     JS_ASSERT(JSID_IS_STRING(id));
-    return (JSString *)(JSID_BITS(id));
+    return (JSString *)JSID_BITS(id);
 }
 
 static JS_ALWAYS_INLINE JSBool
@@ -438,10 +1588,10 @@ JSID_IS_DEFAULT_XML_NAMESPACE(jsid id)
     return ((size_t)JSID_BITS(id) == JSID_TYPE_DEFAULT_XML_NAMESPACE);
 }
 
-#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+#ifdef JS_USE_JSID_STRUCT_TYPES
 extern JS_PUBLIC_DATA(jsid) JS_DEFAULT_XML_NAMESPACE_ID;
 #else
-#define JS_DEFAULT_XML_NAMESPACE_ID ((jsid)JSID_TYPE_DEFAULT_XML_NAMESPACE)
+# define JS_DEFAULT_XML_NAMESPACE_ID ((jsid)JSID_TYPE_DEFAULT_XML_NAMESPACE)
 #endif
 
 
@@ -467,12 +1617,12 @@ JSID_IS_EMPTY(jsid id)
 
 #undef id
 
-#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+#ifdef JS_USE_JSID_STRUCT_TYPES
 extern JS_PUBLIC_DATA(jsid) JSID_VOID;
 extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 #else
-# define JSID_VOID      ((jsid)JSID_TYPE_VOID)
-# define JSID_EMPTY     ((jsid)JSID_TYPE_OBJECT)
+# define JSID_VOID ((jsid)JSID_TYPE_VOID)
+# define JSID_EMPTY ((jsid)JSID_TYPE_OBJECT)
 #endif
 
 
@@ -1354,168 +2504,6 @@ js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name);
 extern JS_FRIEND_API(JSBool)
 js_RemoveRoot(JSRuntime *rt, void *rp);
 
-#ifdef __cplusplus
-JS_END_EXTERN_C
-
-namespace JS {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<typename T> class AnchorPermitted;
-template<> class AnchorPermitted<JSObject *> { };
-template<> class AnchorPermitted<const JSObject *> { };
-template<> class AnchorPermitted<JSFunction *> { };
-template<> class AnchorPermitted<const JSFunction *> { };
-template<> class AnchorPermitted<JSString *> { };
-template<> class AnchorPermitted<const JSString *> { };
-template<> class AnchorPermitted<jsval> { };
-
-template<typename T>
-class Anchor: AnchorPermitted<T> {
-  public:
-    Anchor() { }
-    explicit Anchor(T t) { hold = t; }
-    inline ~Anchor();
-    T &get() { return hold; }
-    const T &get() const { return hold; }
-    void set(const T &t) { hold = t; }
-    void clear() { hold = 0; }
-  private:
-    T hold;
-    
-    Anchor(const Anchor &);
-    const Anchor &operator=(const Anchor &);
-};
-
-#ifdef __GNUC__
-template<typename T>
-inline Anchor<T>::~Anchor() {
-    
-
-
-
-
-
-
-
-
-
-
-    asm volatile("":: "g" (hold) : "memory");
-}
-#else
-template<typename T>
-inline Anchor<T>::~Anchor() {
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    volatile T sink;
-    sink = hold;
-}
-
-#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
-
-
-
-
-
-
-
-
-
-
-
-template<>
-inline Anchor<jsval>::~Anchor() {
-    volatile jsval sink;
-    sink.asBits = hold.asBits;
-}
-#endif
-#endif
-
-}  
-
-JS_BEGIN_EXTERN_C
-#endif
-
 
 
 
@@ -1610,23 +2598,6 @@ JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
 
 
-typedef enum {
-    JSTRACE_OBJECT,
-    JSTRACE_STRING,
-    JSTRACE_SCRIPT,
-
-    
-
-
- 
-#if JS_HAS_XML_SUPPORT
-    JSTRACE_XML,
-#endif
-    JSTRACE_SHAPE,
-    JSTRACE_TYPE_OBJECT,
-    JSTRACE_LAST = JSTRACE_TYPE_OBJECT
-} JSGCTraceKind;
-
 
 
 
@@ -1634,9 +2605,7 @@ typedef enum {
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_TRACEABLE(jsval v)
 {
-    jsval_layout l;
-    l.asBits = JSVAL_BITS(v);
-    return JSVAL_IS_TRACEABLE_IMPL(l);
+    return JSVAL_IS_TRACEABLE_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static JS_ALWAYS_INLINE void *
@@ -1648,10 +2617,8 @@ JSVAL_TO_TRACEABLE(jsval v)
 static JS_ALWAYS_INLINE JSGCTraceKind
 JSVAL_TRACE_KIND(jsval v)
 {
-    jsval_layout l;
     JS_ASSERT(JSVAL_IS_GCTHING(v));
-    l.asBits = JSVAL_BITS(v);
-    return (JSGCTraceKind) JSVAL_TRACE_KIND_IMPL(l);
+    return (JSGCTraceKind) JSVAL_TRACE_KIND_IMPL(JSVAL_TO_IMPL(v));
 }
 
 
@@ -1981,7 +2948,6 @@ JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
 
 
 typedef void (*JSClassInternal)();
-
 
 struct JSClass {
     const char          *name;
@@ -3522,7 +4488,6 @@ JS_GetLocaleCallbacks(JSContext *cx);
 
 
 
-
 extern JS_PUBLIC_API(void)
 JS_ReportError(JSContext *cx, const char *format, ...);
 
@@ -3775,8 +4740,6 @@ JS_ClearContextThread(JSContext *cx);
 static JS_ALWAYS_INLINE JSBool
 JS_IsConstructing(JSContext *cx, const jsval *vp)
 {
-    jsval_layout l;
-
 #ifdef DEBUG
     JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
     if (JS_ObjectIsFunction(cx, callee)) {
@@ -3787,8 +4750,7 @@ JS_IsConstructing(JSContext *cx, const jsval *vp)
     }
 #endif
 
-    l.asBits = JSVAL_BITS(vp[1]);
-    return JSVAL_IS_MAGIC_IMPL(l);
+    return JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
 }
 
 
@@ -3829,8 +4791,7 @@ JS_IsConstructing_PossiblyWithGivenThisObject(JSContext *cx, const jsval *vp,
     }
 #endif
 
-    l.asBits = JSVAL_BITS(vp[1]);
-    isCtor = JSVAL_IS_MAGIC_IMPL(l);
+    isCtor = JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
     if (isCtor)
         *maybeThis = MAGIC_JSVAL_TO_OBJECT_OR_NULL_IMPL(l);
     return isCtor;

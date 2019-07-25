@@ -49,6 +49,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+
+
+namespace JS {}
+
+
+namespace mozilla {}
+
+
+namespace js {
+
+
+using namespace JS;
+using namespace mozilla;
+
+}  
+
+#endif  
+
 JS_BEGIN_EXTERN_C
 
 #define JS_CRASH_UNLESS(__cond)                                                 \
@@ -484,8 +503,6 @@ JS_END_EXTERN_C
 
 
 namespace js {
-
-using namespace mozilla;
 
 class OffTheBooks {
 public:
