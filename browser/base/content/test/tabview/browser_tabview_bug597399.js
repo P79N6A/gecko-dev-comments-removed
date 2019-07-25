@@ -49,9 +49,13 @@ function onTabViewWindowLoaded() {
   let number = -1;
 
   let onSearchEnabled = function() {
-    let searchBox = contentWindow.document.getElementById("searchbox");
-    is(searchBox.value, number, "The seach box matches the number: " + number);
-    contentWindow.hideSearch(null);
+    
+    
+    executeSoon(function() { 
+      let searchBox = contentWindow.document.getElementById("searchbox");
+      is(searchBox.value, number, "The seach box matches the number: " + number);
+      contentWindow.hideSearch(null);
+    });
   }
   let onSearchDisabled = function() {
     if (++number <= 9) {
