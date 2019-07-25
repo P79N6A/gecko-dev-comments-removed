@@ -315,6 +315,12 @@ class nsTArray : public nsTArray_base {
 
     
     
+    bool operator!=(const self_type& other) const {
+      return !operator==(other);
+    }
+
+    
+    
     
 
     

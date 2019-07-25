@@ -1553,7 +1553,7 @@ InvalidateFixedBackgroundFrames(nsIFrame* aRootFrame,
                "The root frame shouldn't be the one that's moving, that makes no sense");
 
   
-  nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE);
+  nsDisplayListBuilder builder(aRootFrame, nsDisplayListBuilder::OTHER, PR_TRUE);
   builder.EnterPresShell(aRootFrame, aUpdateRect);
   nsDisplayList list;
   nsresult rv =

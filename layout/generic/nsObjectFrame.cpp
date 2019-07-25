@@ -1273,6 +1273,22 @@ nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder,
     *aForceTransparentSurface = PR_FALSE;
   }
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
+  if (!aBuilder->IsForPluginGeometry()) {
+    nsIWidget* widget = f->GetWidget();
+    if (widget) {
+      nsTArray<nsIntRect> clip;
+      widget->GetWindowClipRegion(&clip);
+      nsTArray<nsIWidget::Configuration> configuration;
+      GetWidgetConfiguration(aBuilder, &configuration);
+      NS_ASSERTION(configuration.Length() == 1, "No configuration found");
+      if (clip != configuration[0].mClipRegion) {
+        
+        
+        
+    	return PR_FALSE;
+      }
+    }
+  }
   return f->IsOpaque();
 }
 

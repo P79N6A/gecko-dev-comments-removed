@@ -136,15 +136,25 @@ public:
 
 
 
-  nsDisplayListBuilder(nsIFrame* aReferenceFrame, PRBool aIsForEvents,
-                       PRBool aBuildCaret);
+  enum Mode {
+	PAINTING,
+	EVENT_DELIVERY,
+	PLUGIN_GEOMETRY,
+	OTHER
+  };
+  nsDisplayListBuilder(nsIFrame* aReferenceFrame, Mode aMode, PRBool aBuildCaret);
   ~nsDisplayListBuilder();
 
   
 
 
 
-  PRBool IsForEventDelivery() { return mEventDelivery; }
+  PRBool IsForEventDelivery() { return mMode == EVENT_DELIVERY; }
+  
+
+
+
+  PRBool IsForPluginGeometry() { return mMode == PLUGIN_GEOMETRY; }
   
 
 
@@ -393,8 +403,8 @@ private:
   nsAutoTArray<PresShellState,8> mPresShellStates;
   nsAutoTArray<nsIFrame*,100>    mFramesMarkedForDisplay;
   nsDisplayTableItem*            mCurrentTableItem;
+  Mode                           mMode;
   PRPackedBool                   mBuildCaret;
-  PRPackedBool                   mEventDelivery;
   PRPackedBool                   mIgnoreSuppression;
   PRPackedBool                   mHadToIgnoreSuppression;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
