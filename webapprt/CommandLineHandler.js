@@ -9,14 +9,6 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-
-
-
-
-try {
-  Cu.import("resource://gre/modules/Webapps.jsm");
-} catch(ex) {}
-
 function CommandLineHandler() {}
 
 CommandLineHandler.prototype = {
@@ -38,3 +30,36 @@ CommandLineHandler.prototype = {
 
 let components = [CommandLineHandler];
 let NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+
+
+
+
+
+
+
+
+
+
+try {
+  
+  Cu.import("resource://gre/modules/Webapps.jsm");
+
+  
+  if (!Services.prefs.getBoolPref("webapprt.firstrun")) {
+    Cu.import("resource://webapprt/modules/WebappRT.jsm");
+    let uri = Services.io.newURI(WebappRT.config.app.origin, null, null);
+
+    
+    Services.perms.add(uri, "pin-app", Ci.nsIPermissionManager.ALLOW_ACTION);
+    Services.perms.add(uri, "offline-app",
+                       Ci.nsIPermissionManager.ALLOW_ACTION);
+
+    
+    
+    Services.prefs.setBoolPref("webapprt.firstrun", true);
+  }
+} catch(ex) {
+#ifdef MOZ_DEBUG
+  dump(ex + "\n");
+#endif
+}
