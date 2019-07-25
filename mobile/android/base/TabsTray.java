@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko;
 
 import java.util.ArrayList;
@@ -59,6 +27,8 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import org.mozilla.gecko.sync.setup.SyncAccounts;
 
 public class TabsTray extends Activity implements Tabs.OnTabsChangedListener {
 
@@ -122,19 +92,23 @@ public class TabsTray extends Activity implements Tabs.OnTabsChangedListener {
         tabs.refreshThumbnails();
         onTabChanged(null, null);
 
-         
-         
-         if (AccountManager.get(getApplicationContext()).getAccountsByType("org.mozilla.firefox_sync").length > 0) {
-             TabsAccessor.areClientsAvailable(getApplicationContext(), new TabsAccessor.OnClientsAvailableListener() {
-                 @Override
-                 public void areAvailable(boolean available) {
-                     if (available)
-                         mRemoteTabs.setVisibility(View.VISIBLE);
-                     else
-                         mRemoteTabs.setVisibility(View.GONE);
-                 }
-             });
-        }
+        
+        final Context context = getApplicationContext();
+        new SyncAccounts.AccountsExistTask() {
+            @Override
+            protected void onPostExecute(Boolean result) {
+                if (!result.booleanValue()) {
+                    return;
+                }
+                TabsAccessor.areClientsAvailable(context, new TabsAccessor.OnClientsAvailableListener() {
+                    @Override
+                    public void areAvailable(boolean available) {
+                        final int visibility = available ? View.VISIBLE : View.GONE;
+                        mRemoteTabs.setVisibility(visibility);
+                    }
+                });
+            }
+        }.execute(context);
     }
 
     @Override
