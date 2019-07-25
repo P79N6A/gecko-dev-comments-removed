@@ -213,13 +213,10 @@ gfxPlatformFontList::gfxPlatformFontList(bool aNeedFullnamePostscriptNames)
     gFontListPrefObserver = new gfxFontListPrefObserver();
     NS_ADDREF(gFontListPrefObserver);
     Preferences::AddStrongObservers(gFontListPrefObserver, kObservedPrefs);
-
-    mSharedCmaps.Init(16);
 }
 
 gfxPlatformFontList::~gfxPlatformFontList()
 {
-    mSharedCmaps.Clear();
     NS_ASSERTION(gFontListPrefObserver, "There is no font list pref observer");
     Preferences::RemoveObservers(gFontListPrefObserver, kObservedPrefs);
     NS_RELEASE(gFontListPrefObserver);
@@ -717,41 +714,6 @@ gfxPlatformFontList::GetStandardFamilyName(const nsAString& aFontName, nsAString
     return !aFamilyName.IsEmpty();
 }
 
-gfxCharacterMap*
-gfxPlatformFontList::FindCharMap(gfxCharacterMap *aCmap)
-{
-    aCmap->CalcHash();
-    gfxCharacterMap *cmap = AddCmap(aCmap);
-    cmap->mShared = true;
-    return cmap;
-}
-
-
-gfxCharacterMap*
-gfxPlatformFontList::AddCmap(const gfxCharacterMap* aCharMap)
-{
-    CharMapHashKey *found =
-        mSharedCmaps.PutEntry(const_cast<gfxCharacterMap*>(aCharMap));
-    return found->GetKey();
-}
-
-
-void
-gfxPlatformFontList::RemoveCmap(const gfxCharacterMap* aCharMap)
-{
-    
-    if (mSharedCmaps.Count() == 0) {
-        return;
-    }
-
-    
-    CharMapHashKey *found =
-        mSharedCmaps.GetEntry(const_cast<gfxCharacterMap*>(aCharMap));
-    if (found && found->GetKey() == aCharMap) {
-        mSharedCmaps.RemoveEntry(const_cast<gfxCharacterMap*>(aCharMap));
-    }
-}
-
 void 
 gfxPlatformFontList::InitLoader()
 {
@@ -868,21 +830,6 @@ SizeOfStringEntryExcludingThis(nsStringHashKey*  aHashEntry,
     return aHashEntry->GetKey().SizeOfExcludingThisIfUnshared(aMallocSizeOf);
 }
 
-static size_t
-SizeOfSharedCmapExcludingThis(CharMapHashKey*   aHashEntry,
-                              nsMallocSizeOfFun aMallocSizeOf,
-                              void*             aUserArg)
-{
-    FontListSizes *sizes = static_cast<FontListSizes*>(aUserArg);
-
-    PRUint32 size = aHashEntry->GetKey()->SizeOfIncludingThis(aMallocSizeOf);
-    sizes->mCharMapsSize += size;
-
-    
-    
-    return 0;
-}
-
 void
 gfxPlatformFontList::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                          FontListSizes*    aSizes) const
@@ -918,10 +865,6 @@ gfxPlatformFontList::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
     aSizes->mFontListSize +=
         mBadUnderlineFamilyNames.SizeOfExcludingThis(SizeOfStringEntryExcludingThis,
                                                      aMallocSizeOf);
-
-    aSizes->mFontListSize +=
-        mSharedCmaps.SizeOfExcludingThis(SizeOfSharedCmapExcludingThis,
-                                         aMallocSizeOf, aSizes);
 }
 
 void
