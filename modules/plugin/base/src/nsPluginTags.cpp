@@ -412,16 +412,104 @@ nsPluginTag::SetBlocklisted(PRBool aBlocklisted)
   return NS_OK;
 }
 
+void
+nsPluginTag::RegisterWithCategoryManager(PRBool aOverrideInternalTypes,
+                                         nsPluginTag::nsRegisterType aType)
+{
+  if (!mMimeTypeArray)
+    return;
+  
+  PLUGIN_LOG(PLUGIN_LOG_NORMAL,
+             ("nsPluginTag::RegisterWithCategoryManager plugin=%s, removing = %s\n",
+              mFileName.get(), aType == ePluginUnregister ? "yes" : "no"));
+  
+  nsCOMPtr<nsICategoryManager> catMan = do_GetService(NS_CATEGORYMANAGER_CONTRACTID);
+  if (!catMan)
+    return;
+  
+  const char *contractId = "@mozilla.org/content/plugin/document-loader-factory;1";
+  
+  nsCOMPtr<nsIPrefBranch> psvc(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!psvc)
+    return; 
+  
+  
+  
+  
+  
+  
+  
+  
+  nsXPIDLCString overrideTypes;
+  psvc->GetCharPref("plugin.disable_full_page_plugin_for_types", getter_Copies(overrideTypes));
+  nsCAutoString overrideTypesFormatted;
+  overrideTypesFormatted.Assign(',');
+  overrideTypesFormatted += overrideTypes;
+  overrideTypesFormatted.Append(',');
+  
+  nsACString::const_iterator start, end;
+  for (int i = 0; i < mVariants; i++) {
+    if (aType == ePluginUnregister) {
+      nsXPIDLCString value;
+      if (NS_SUCCEEDED(catMan->GetCategoryEntry("Gecko-Content-Viewers",
+                                                mMimeTypeArray[i],
+                                                getter_Copies(value)))) {
+        
+        if (strcmp(value, contractId) == 0) {
+          catMan->DeleteCategoryEntry("Gecko-Content-Viewers",
+                                      mMimeTypeArray[i],
+                                      PR_TRUE);
+        }
+      }
+    } else {
+      overrideTypesFormatted.BeginReading(start);
+      overrideTypesFormatted.EndReading(end);
+      
+      nsDependentCString mimeType(mMimeTypeArray[i]);
+      nsCAutoString commaSeparated; 
+      commaSeparated.Assign(',');
+      commaSeparated += mimeType;
+      commaSeparated.Append(',');
+      if (!FindInReadable(commaSeparated, start, end)) {
+        catMan->AddCategoryEntry("Gecko-Content-Viewers",
+                                 mMimeTypeArray[i],
+                                 contractId,
+                                 PR_FALSE, 
+                                 aOverrideInternalTypes, 
+                                 nsnull);
+      }
+    }
+    
+    PLUGIN_LOG(PLUGIN_LOG_NOISY,
+               ("nsPluginTag::RegisterWithCategoryManager mime=%s, plugin=%s\n",
+                mMimeTypeArray[i], mFileName.get()));
+  }
+}
+
 void nsPluginTag::Mark(PRUint32 mask)
 {
   PRBool wasEnabled = IsEnabled();
   mFlags |= mask;
+  
+  if (mPluginHost && wasEnabled != IsEnabled()) {
+    if (wasEnabled)
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+    else
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
+  }
 }
 
 void nsPluginTag::UnMark(PRUint32 mask)
 {
   PRBool wasEnabled = IsEnabled();
   mFlags &= ~mask;
+  
+  if (mPluginHost && wasEnabled != IsEnabled()) {
+    if (wasEnabled)
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+    else
+      RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginRegister);
+  }
 }
 
 PRBool nsPluginTag::HasFlag(PRUint32 flag)
@@ -475,6 +563,12 @@ void nsPluginTag::TryUnloadPlugin()
   
   
   mLibrary = nsnull;
+  
+  
+  
+  if (mPluginHost) {
+    RegisterWithCategoryManager(PR_FALSE, nsPluginTag::ePluginUnregister);
+  }
 }
 
 
