@@ -4,25 +4,27 @@ from marionette_test import MarionetteTestCase
 
 class BatteryTest(MarionetteTestCase):
 
+    
     @unittest.expectedFailure
-    def test_chargingchange(self):
+    def dont_test_chargingchange(self):
         marionette = self.marionette
         self.assertTrue(marionette.emulator.is_running)
         marionette.set_script_timeout(10000)
 
-        moz_charging = marionette.execute_script("return navigator.mozBattery.charging;")
+        moz_charging = marionette.execute_script("return navigator.mozBattery.charging;",
+                                                 new_sandbox=False)
         emulator_charging = marionette.emulator.battery.charging
         self.assertEquals(moz_charging, emulator_charging)
 
         
         
         self.assertTrue(marionette.execute_script("""
-        window.wrappedJSObject._chargingchanged = false;
+        global.chargingchanged = false;
         navigator.mozBattery.addEventListener("chargingchange", function() {
-            window.wrappedJSObject._chargingchanged = true;
+            global.chargingchanged = true;
         });
         return true;
-    """))
+        """, new_sandbox=False))
 
         
         marionette.emulator.battery.charging = not emulator_charging
@@ -31,17 +33,12 @@ class BatteryTest(MarionetteTestCase):
 
         
         charging_changed = marionette.execute_async_script("""
-        var callback = arguments[arguments.length - 1];
-        function check_charging_change() {
-            if (window.wrappedJSObject._chargingchanged) {
-                callback(window.wrappedJSObject._chargingchanged);
-            }
-            else {
-                setTimeout(check_charging_change, 500);
-            }
-        }
-        setTimeout(check_charging_change, 0);
-    """)
+        waitFor(function () {
+            marionetteScriptFinished(global.chargingchanged);
+        }, function () {
+            return global.chargingchanged;
+        });
+        """, new_sandbox=False)
         self.assertTrue(charging_changed)
 
         
@@ -56,18 +53,19 @@ class BatteryTest(MarionetteTestCase):
 
         
         
-        moz_level = marionette.execute_script("return navigator.mozBattery.level;")
+        moz_level = marionette.execute_script("return navigator.mozBattery.level;",
+                                              new_sandbox=False)
         self.assertEquals(moz_level, marionette.emulator.battery.level)
 
         
         
         self.assertTrue(marionette.execute_script("""
-        window.wrappedJSObject._levelchanged = false;
+        global.levelchanged = false;
         navigator.mozBattery.addEventListener("levelchange", function() {
-            window.wrappedJSObject._levelchanged = true;
+            global.levelchanged = true;
         });
         return true;
-    """))
+        """, new_sandbox=False))
 
         
         if moz_level > 0.2:
@@ -82,18 +80,10 @@ class BatteryTest(MarionetteTestCase):
 
         
         level_changed = marionette.execute_async_script("""
-        var callback = arguments[arguments.length - 1];
-        function check_level_change() {
-            if (window.wrappedJSObject._levelchanged) {
-                callback(window.wrappedJSObject._levelchanged);
-            }
-            else {
-                setTimeout(check_level_change, 500);
-            }
-        }
-        setTimeout(check_level_change, 0);
-    """)
+        waitFor(function () {
+            marionetteScriptFinished(global.levelchanged);
+        }, function () {
+            return global.levelchanged;
+        });
+        """, new_sandbox=False)
         self.assertTrue(level_changed)
-
-
-
