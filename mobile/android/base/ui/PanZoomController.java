@@ -119,7 +119,8 @@ public class PanZoomController
 
         PANNING_HOLD_LOCKED, 
         PINCHING,       
-        ANIMATED_ZOOM   
+        ANIMATED_ZOOM,  
+        BOUNCE          
     }
 
     private final LayerController mController;
@@ -221,11 +222,12 @@ public class PanZoomController
         case FLING:
             mX.stopFling();
             mY.stopFling();
-            mState = PanZoomState.NOTHING;
             
+        case BOUNCE:
         case ANIMATED_ZOOM:
             
             
+            mState = PanZoomState.NOTHING;
             
         case NOTHING:
             
@@ -263,6 +265,7 @@ public class PanZoomController
         case ANIMATED_ZOOM:
             return false;
         case FLING:
+        case BOUNCE:
         case NOTHING:
             startTouch(event.getX(0), event.getY(0), event.getEventTime());
             return false;
@@ -284,6 +287,7 @@ public class PanZoomController
         switch (mState) {
         case NOTHING:
         case FLING:
+        case BOUNCE:
             
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             return false;
@@ -329,6 +333,7 @@ public class PanZoomController
         switch (mState) {
         case NOTHING:
         case FLING:
+        case BOUNCE:
             
             Log.e(LOGTAG, "Received impossible touch end while in " + mState);
             return false;
@@ -462,7 +467,7 @@ public class PanZoomController
             return;
         }
 
-        mState = PanZoomState.FLING;
+        mState = PanZoomState.BOUNCE;
 
         startAnimationTimer(new BounceRunnable(bounceStartMetrics, metrics));
     }
@@ -575,7 +580,7 @@ public class PanZoomController
 
 
 
-            if (mState != PanZoomState.FLING) {
+            if (mState != PanZoomState.BOUNCE) {
                 finishAnimation();
                 return;
             }
@@ -830,7 +835,18 @@ public class PanZoomController
     }
 
     public boolean getRedrawHint() {
-        return (mState != PanZoomState.PINCHING && mState != PanZoomState.ANIMATED_ZOOM);
+        switch (mState) {
+            case PINCHING:
+            case ANIMATED_ZOOM:
+            case BOUNCE:
+                
+                
+                
+                return false;
+            default:
+                
+                return true;
+        }
     }
 
     private void sendPointToGecko(String event, MotionEvent motionEvent) {
