@@ -26,8 +26,16 @@ public:
   
   void Add(UserDataKey *key, void *userData, destroyFunc destroy)
   {
-    
-    
+    for (int i=0; i<count; i++) {
+      if (key == entries[i].key) {
+        if (entries[i].destroy) {
+          entries[i].destroy(entries[i].userData);
+        }
+        entries[i].userData = userData;
+        entries[i].destroy = destroy;
+        return;
+      }
+    }
 
     
     
@@ -74,12 +82,21 @@ public:
     return NULL;
   }
 
-  ~UserData()
+  void Destroy()
   {
     for (int i=0; i<count; i++) {
-      entries[i].destroy(entries[i].userData);
+      if (entries[i].destroy) {
+        entries[i].destroy(entries[i].userData);
+      }
     }
     free(entries);
+    entries = NULL;
+    count = 0;
+  }
+
+  ~UserData()
+  {
+    Destroy();
   }
 
 private:
