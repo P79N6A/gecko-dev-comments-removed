@@ -2835,93 +2835,71 @@ let SessionStoreInternal = {
 
 
 
+
   _setTabsRestoringOrder : function ssi__setTabsRestoringOrder(
     aTabBrowser, aTabs, aTabData, aSelectedTab) {
+
     
+    let selectedTab;
+    if (aSelectedTab > 0 && aTabs[aSelectedTab - 1]) {
+      selectedTab = aTabs[aSelectedTab - 1];
+    }
+
     
-    
-    let pinnedTabs = aTabData.filter(function (aData) aData.pinned).length;
-    let pinnedTabsArray = [];
-    let pinnedTabsDataArray = [];
-    let pinnedSelectedTab = null;
-    if (pinnedTabs && aTabs.length > 1) {
+    let pinnedTabs = [];
+    let pinnedTabsData = [];
+    let hiddenTabs = [];
+    let hiddenTabsData = [];
+    if (aTabs.length > 1) {
       for (let t = aTabs.length - 1; t >= 0; t--) {
         if (aTabData[t].pinned) {
-          pinnedTabsArray.unshift(aTabs.splice(t, 1)[0]);
-          pinnedTabsDataArray.unshift(aTabData.splice(t, 1)[0]);
-          if (aSelectedTab) {
-            if (aSelectedTab > (t + 1))
-              --aSelectedTab;
-            else if (aSelectedTab == (t + 1)) {
-              aSelectedTab = null;
-              pinnedSelectedTab = 1;
-            }
-          } else if (pinnedSelectedTab) 
-            ++pinnedSelectedTab;
+          pinnedTabs.unshift(aTabs.splice(t, 1)[0]);
+          pinnedTabsData.unshift(aTabData.splice(t, 1)[0]);
+        } else if (aTabData[t].hidden) {
+          hiddenTabs.unshift(aTabs.splice(t, 1)[0]);
+          hiddenTabsData.unshift(aTabData.splice(t, 1)[0]);
         }
       }
     }
 
     
-    
-    let unhiddenTabs = aTabData.filter(function (aData) !aData.hidden).length;
-    if (unhiddenTabs && aTabs.length > 1) {
-      
-      for (let t = 0, tabsToReorder = aTabs.length - unhiddenTabs; tabsToReorder > 0; ) {
-        if (aTabData[t].hidden) {
-          aTabs = aTabs.concat(aTabs.splice(t, 1));
-          aTabData = aTabData.concat(aTabData.splice(t, 1));
-          if (aSelectedTab && aSelectedTab > t)
-            --aSelectedTab;
-          --tabsToReorder;
-          continue;
+    if (selectedTab) {
+      let selectedTabIndex = aTabs.indexOf(selectedTab);
+      if (selectedTabIndex > 0) {
+        let scrollSize = aTabBrowser.tabContainer.mTabstrip.scrollClientSize;
+        let tabWidth = aTabs[0].getBoundingClientRect().width;
+        let maxVisibleTabs = Math.ceil(scrollSize / tabWidth);
+        if (maxVisibleTabs < aTabs.length) {
+          let firstVisibleTab = 0;
+          let nonVisibleTabsCount = aTabs.length - maxVisibleTabs;
+          if (nonVisibleTabsCount >= selectedTabIndex) {
+            
+            firstVisibleTab = selectedTabIndex;
+          } else {
+            
+            firstVisibleTab = nonVisibleTabsCount;
+          }
+          aTabs = aTabs.splice(firstVisibleTab, maxVisibleTabs).concat(aTabs);
+          aTabData =
+            aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
         }
-        ++t;
-      }
-
-      
-      let maxVisibleTabs = Math.ceil(aTabBrowser.tabContainer.mTabstrip.scrollClientSize /
-                                     aTabs[unhiddenTabs - 1].getBoundingClientRect().width);
-
-      
-      if (aSelectedTab && maxVisibleTabs < unhiddenTabs && aSelectedTab > 1) {
-        let firstVisibleTab = 0;
-        if (unhiddenTabs - maxVisibleTabs > aSelectedTab) {
-          
-          firstVisibleTab = aSelectedTab - 1;
-        } else {
-          
-          firstVisibleTab = unhiddenTabs - maxVisibleTabs;
-        }
-        aTabs = aTabs.splice(firstVisibleTab, maxVisibleTabs).concat(aTabs);
-        aTabData = aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
-        aSelectedTab -= firstVisibleTab;
       }
     }
 
     
-    
-    if (pinnedTabsArray) {
-      
-      if (pinnedSelectedTab) {
-        aSelectedTab = pinnedSelectedTab;
-      } else {
-        aSelectedTab += pinnedTabsArray.length;
-      }
-      
-      for (let t = pinnedTabsArray.length - 1; t >= 0; t--) {
-        aTabs.unshift(pinnedTabsArray.splice(t, 1)[0]);
-        aTabData.unshift(pinnedTabsDataArray.splice(t, 1)[0]);
-      }
-    }
+    aTabs = pinnedTabs.concat(aTabs, hiddenTabs);
+    aTabData = pinnedTabsData.concat(aTabData, hiddenTabsData);
 
     
-    if (aSelectedTab-- && aTabs[aSelectedTab]) {
-      aTabs.unshift(aTabs.splice(aSelectedTab, 1)[0]);
-      aTabData.unshift(aTabData.splice(aSelectedTab, 1)[0]);
-      aTabBrowser.selectedTab = aTabs[0];
+    if (selectedTab) {
+      let selectedTabIndex = aTabs.indexOf(selectedTab);
+      if (selectedTabIndex > 0) {
+        aTabs = aTabs.splice(selectedTabIndex, 1).concat(aTabs);
+        aTabData = aTabData.splice(selectedTabIndex, 1).concat(aTabData);
+      }
+      aTabBrowser.selectedTab = selectedTab;
     }
-    
+
     return [aTabs, aTabData];
   },
   
