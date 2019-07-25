@@ -133,8 +133,9 @@ protected:
   PRPackedBool mSecure; 
                         
 
-  PRPackedBool mHasStrongEventListeners;
-  PRPackedBool mCheckThereAreStrongEventListeners;
+  PRPackedBool mKeepingAlive;
+  PRPackedBool mCheckMustKeepAlive;
+  PRPackedBool mTriggeredCloseEvent;
 
   nsCString mAsciiHost;  
   PRUint32  mPort;
