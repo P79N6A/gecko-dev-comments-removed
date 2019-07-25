@@ -545,6 +545,12 @@ struct NativeMapEntry {
     void            *ncode; 
 };
 
+
+struct PCLengthEntry {
+    double          codeLength; 
+    double          picsLength; 
+};
+
 struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
@@ -555,6 +561,8 @@ struct JITScript {
     void            *fastEntry;         
     void            *arityCheckEntry;   
     void            *argsCheckEntry;    
+
+    PCLengthEntry   *pcLengths;         
 
     
 

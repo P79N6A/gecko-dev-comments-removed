@@ -130,7 +130,8 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     inlining_(false),
     hasGlobalReallocation(false),
     oomInVector(false),
-    applyTricks(NoApplyTricks)
+    applyTricks(NoApplyTricks),
+    pcLengths(NULL)
 {
     JS_ASSERT(!outerScript->isUncachedEval);
 
@@ -799,6 +800,13 @@ mjit::Compiler::generatePrologue()
 
     recompileCheckHelper();
 
+    if (outerScript->pcCounters) {
+        size_t length = ssa.frameLength(ssa.numFrames() - 1);
+        pcLengths = (PCLengthEntry *) cx->calloc_(sizeof(pcLengths[0]) * length);
+        if (!pcLengths)
+            return Compile_Error;
+    }
+
     return Compile_Okay;
 }
 
@@ -913,6 +921,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         jit->argsCheckEntry = stubCode.locationOf(argsCheckLabel).executableAddress();
         jit->fastEntry = fullCode.locationOf(invokeLabel).executableAddress();
     }
+    jit->pcLengths = pcLengths;
 
     
 
@@ -1406,6 +1415,9 @@ mjit::Compiler::generateMethod()
     
     bool fallthrough = true;
 
+    
+    jsbytecode *lastPC = NULL;
+
     for (;;) {
         JSOp op = JSOp(*PC);
         int trap = stubs::JSTRAP_NONE;
@@ -1419,20 +1431,6 @@ mjit::Compiler::generateMethod()
             trap |= stubs::JSTRAP_SINGLESTEP;
 
         Bytecode *opinfo = analysis->maybeCode(PC);
-
-        if (cx->hasRunOption(JSOPTION_PCCOUNT) && script->pcCounters && opinfo) {
-            RegisterID r1 = frame.allocReg();
-            RegisterID r2 = frame.allocReg();
-
-            masm.move(ImmPtr(&script->pcCounters.get(JSRUNMODE_METHODJIT, PC - script->code)), r1);
-            Address pcCounter(r1);
-            masm.load32(pcCounter, r2);
-            masm.add32(Imm32(1), r2);
-            masm.store32(r2, pcCounter);
-
-            frame.freeReg(r1);
-            frame.freeReg(r2);
-        }
 
         if (!opinfo) {
             if (op == JSOP_STOP)
@@ -1483,8 +1481,15 @@ mjit::Compiler::generateMethod()
                     if (!startLoop(PC, j, PC))
                         return Compile_Error;
                 } else {
+                    Label start = masm.label();
                     if (!frame.syncForBranch(PC, Uses(0)))
                         return Compile_Error;
+                    if (script->pcCounters) {
+                        
+                        size_t length = masm.size() - masm.distanceOf(start);
+                        uint32 offset = ssa.frameLength(a->inlineIndex) + lastPC - script->code;
+                        pcLengths[offset].codeLength += length;
+                    }
                     JS_ASSERT(frame.consistentRegisters(PC));
                 }
             }
@@ -1501,24 +1506,6 @@ mjit::Compiler::generateMethod()
         }
         frame.assertValidRegisterState();
         a->jumpMap[uint32(PC - script->code)] = masm.label();
-
-#if defined(JS_METHODJIT_SPEW) && defined(DEBUG)
-        if (IsJaegerSpewChannelActive(JSpew_PCProf)) {
-            RegisterID r1 = frame.allocReg();
-            RegisterID r2 = frame.allocReg();
-
-            if (IsJaegerSpewChannelActive(JSpew_PCProf)) {
-                masm.move(ImmPtr(pcProfile), r1);
-                Address pcCounter(r1, sizeof(int) * (PC - script->code));
-                masm.load32(pcCounter, r2);
-                masm.add32(Imm32(1), r2);
-                masm.store32(r2, pcCounter);
-            }
-
-            frame.freeReg(r1);
-            frame.freeReg(r2);
-        }
-#endif
 
         SPEW_OPCODE();
         JS_ASSERT(frame.stackDepth() == opinfo->stackDepth);
@@ -1545,11 +1532,22 @@ mjit::Compiler::generateMethod()
             continue;
         }
 
+        Label codeStart = masm.label();
+        bool countersUpdated = false;
+
+        
+
+
+
+
+        if (script->pcCounters && JOF_OPTYPE(op) == JOF_JUMP)
+            updatePCCounters(PC, &codeStart, &countersUpdated);
+
     
 
  
 
-        jsbytecode *oldPC = PC;
+        lastPC = PC;
 
         switch (op) {
           BEGIN_CASE(JSOP_NOP)
@@ -1578,6 +1576,8 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_POPV)
 
           BEGIN_CASE(JSOP_RETURN)
+            if (script->pcCounters)
+                updatePCCounters(PC, &codeStart, &countersUpdated);
             emitReturn(frame.peek(-1));
             fallthrough = false;
           END_CASE(JSOP_RETURN)
@@ -1716,6 +1716,8 @@ mjit::Compiler::generateMethod()
             
             jsbytecode *target = NULL;
             if (fused != JSOP_NOP) {
+                if (script->pcCounters)
+                    updatePCCounters(PC, &codeStart, &countersUpdated);
                 target = next + GET_JUMP_OFFSET(next);
                 fixDoubleTypes(target);
             }
@@ -2065,6 +2067,8 @@ mjit::Compiler::generateMethod()
 
 
 
+            if (script->pcCounters)
+                updatePCCounters(PC, &codeStart, &countersUpdated);
 #if defined JS_CPU_ARM 
             frame.syncAndKillEverything();
             masm.move(ImmPtr(PC), Registers::ArgReg1);
@@ -2083,6 +2087,8 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_TABLESWITCH)
 
           BEGIN_CASE(JSOP_LOOKUPSWITCH)
+            if (script->pcCounters)
+                updatePCCounters(PC, &codeStart, &countersUpdated);
             frame.syncAndForgetEverything();
             masm.move(ImmPtr(PC), Registers::ArgReg1);
 
@@ -2124,6 +2130,8 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_MOREITER)
           {
             
+            if (script->pcCounters)
+                updatePCCounters(PC, &codeStart, &countersUpdated);
             jsbytecode *target = &PC[JSOP_MOREITER_LENGTH];
             JSOp next = JSOp(*target);
             JS_ASSERT(next == JSOP_IFNE || next == JSOP_IFNEX);
@@ -2569,6 +2577,8 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_CALLELEM)
 
           BEGIN_CASE(JSOP_STOP)
+            if (script->pcCounters)
+                updatePCCounters(PC, &codeStart, &countersUpdated);
             emitReturn(NULL);
             goto done;
           END_CASE(JSOP_STOP)
@@ -2669,20 +2679,32 @@ mjit::Compiler::generateMethod()
 
  
 
-        if (cx->typeInferenceEnabled() && PC == oldPC + GetBytecodeLength(oldPC)) {
+        if (cx->typeInferenceEnabled() && PC == lastPC + GetBytecodeLength(lastPC)) {
             
 
 
 
 
-            unsigned nuses = GetUseCount(script, oldPC - script->code);
-            unsigned ndefs = GetDefCount(script, oldPC - script->code);
+            unsigned nuses = GetUseCount(script, lastPC - script->code);
+            unsigned ndefs = GetDefCount(script, lastPC - script->code);
             for (unsigned i = 0; i < ndefs; i++) {
                 FrameEntry *fe = frame.getStack(opinfo->stackDepth - nuses + i);
                 if (fe) {
                     
-                    frame.extra(fe).types = analysis->pushedTypes(oldPC - script->code, i);
+                    frame.extra(fe).types = analysis->pushedTypes(lastPC - script->code, i);
                 }
+            }
+        }
+
+        if (script->pcCounters) {
+            size_t length = masm.size() - masm.distanceOf(codeStart);
+            if (countersUpdated || length != 0) {
+                if (!countersUpdated)
+                    updatePCCounters(lastPC, &codeStart, &countersUpdated);
+
+                
+                uint32 offset = ssa.frameLength(a->inlineIndex) + lastPC - script->code;
+                pcLengths[offset].codeLength += length;
             }
         }
 
@@ -2695,6 +2717,46 @@ mjit::Compiler::generateMethod()
 
 #undef END_CASE
 #undef BEGIN_CASE
+
+void
+mjit::Compiler::updatePCCounters(jsbytecode *pc, Label *start, bool *updated)
+{
+    
+
+
+
+
+
+    uint32 offset = ssa.frameLength(a->inlineIndex) + pc - script->code;
+
+    
+
+
+
+
+
+    RegisterID reg = Registers::ReturnReg;
+    masm.storePtr(reg, frame.addressOfTop());
+
+    double *code = &script->pcCounters.get(JSPCCounters::METHODJIT_CODE, pc - script->code);
+    double *codeLength = &pcLengths[offset].codeLength;
+    masm.addCounter(codeLength, code, reg);
+
+    double *pics = &script->pcCounters.get(JSPCCounters::METHODJIT_PICS, pc - script->code);
+    double *picsLength = &pcLengths[offset].picsLength;
+    masm.addCounter(picsLength, pics, reg);
+
+    static const double oneDouble = 1.0;
+    double *counter = &script->pcCounters.get(JSPCCounters::METHODJIT, pc - script->code);
+    masm.addCounter(&oneDouble, counter, reg);
+
+    
+    masm.loadPtr(frame.addressOfTop(), reg);
+
+    
+    *start = masm.label();
+    *updated = true;
+}
 
 JSC::MacroAssembler::Label
 mjit::Compiler::labelOf(jsbytecode *pc, uint32 inlineIndex)
@@ -3050,6 +3112,11 @@ JSC::MacroAssembler::Call
 mjit::Compiler::emitStubCall(void *ptr, DataLabelPtr *pinline)
 {
     JaegerSpew(JSpew_Insns, " ---- CALLING STUB ---- \n");
+
+    JS_STATIC_ASSERT(Registers::ReturnReg != Registers::ArgReg0);
+    JS_STATIC_ASSERT(Registers::ReturnReg != Registers::ArgReg1);
+    masm.bumpStubCounter(script, PC, Registers::ReturnReg);
+
     Call cl = masm.fallibleVMCall(cx->typeInferenceEnabled(),
                                   ptr, outerPC(), pinline, frame.totalDepth());
     JaegerSpew(JSpew_Insns, " ---- END STUB CALL ---- \n");
@@ -6372,12 +6439,22 @@ mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow, bool *tramp
 
 
 
-                stubcc.linkExitDirect(j, stubcc.masm.label());
+                Label start = stubcc.masm.label();
+                stubcc.linkExitDirect(j, start);
                 frame.prepareForJump(target, stubcc.masm, false);
                 if (!stubcc.jumpInScript(stubcc.masm.jump(), target))
                     return false;
                 if (trampoline)
                     *trampoline = true;
+                if (script->pcCounters) {
+                    
+
+
+
+                    uint32 offset = ssa.frameLength(a->inlineIndex) + PC - script->code;
+                    size_t length = stubcc.masm.size() - stubcc.masm.distanceOf(start);
+                    pcLengths[offset].codeLength += length;
+                }
             }
 
             if (slow) {

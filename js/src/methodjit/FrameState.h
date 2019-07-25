@@ -854,6 +854,8 @@ class FrameState
     Address addressOf(const FrameEntry *fe) const;
     Address addressOf(uint32 slot) const { return addressOf(a->callee_ + slot); }
 
+    Address addressOfTop() const { return addressOf(a->sp); }
+
     
     
     

@@ -992,7 +992,9 @@ FrameState::frameOffset(const FrameEntry *fe, ActiveFrame *a) const
 
 
     JS_STATIC_ASSERT(StackSpace::STACK_JIT_EXTRA >= TEMPORARY_LIMIT);
-    JS_ASSERT(fe >= a->callee_ && fe < a->sp);
+
+    
+    JS_ASSERT(fe >= a->callee_ && fe <= a->sp);
 
     if (fe >= a->locals)
         return StackFrame::offsetOfFixed(uint32(fe - a->locals));

@@ -1210,6 +1210,26 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
         return true;
     }
+
+    
+    void addCounter(const double *value, double *counter, RegisterID scratch)
+    {
+        loadDouble(value, Registers::FPConversionTemp);
+        move(ImmPtr(counter), scratch);
+        addDouble(Address(scratch), Registers::FPConversionTemp);
+        storeDouble(Registers::FPConversionTemp, Address(scratch));
+    }
+
+    
+    void bumpStubCounter(JSScript *script, jsbytecode *pc, RegisterID scratch)
+    {
+        if (script->pcCounters) {
+            double *counter = &script->pcCounters.get(JSPCCounters::METHODJIT_STUBS, pc - script->code);
+            addCounter(&oneDouble, counter, scratch);
+        }
+    }
+
+    static const double oneDouble;
 };
 
 
