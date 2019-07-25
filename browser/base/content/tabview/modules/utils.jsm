@@ -104,15 +104,52 @@ window.Rect.prototype = {
         && a.right == this.right
         && a.bottom == this.bottom);
   },
+
   
-  union: function(a){
-    var newLeft = Math.min(a.left, this.left);
-    var newTop = Math.min(a.top, this.top);
-    var newWidth = Math.max(a.right, this.right) - newLeft;
-    var newHeight = Math.max(a.bottom, this.bottom) - newTop;
-    var newRect = new Rect(newLeft, newTop, newWidth, newHeight); 
+  copy: function(a) {
+    this.left = a.left;
+    this.top = a.top;
+    this.width = a.width;
+    this.height = a.height;
+  }
+};
+
+
+
+window.Subscribable = function() {
+  this.onCloseSubscribers = [];
+};
+
+window.Subscribable.prototype = {
   
-    return newRect;
+  addOnClose: function(referenceElement, callback) {
+    var existing = jQuery.grep(this.onCloseSubscribers, function(element) {
+      return element.referenceElement == referenceElement;
+    });
+    
+    if(existing.size) {
+      Utils.assert('should only ever be one', existing.size == 1);
+      existing[0].callback = callback;
+    } else {  
+      this.onCloseSubscribers.push({
+        referenceElement: referenceElement, 
+        callback: callback
+      });
+    }
+  },
+  
+  
+  removeOnClose: function(referenceElement) {
+    this.onCloseSubscribers = jQuery.grep(this.onCloseSubscribers, function(element) {
+      return element.referenceElement == referenceElement;
+    }, true);
+  },
+  
+  
+  _sendOnClose: function() {
+    jQuery.each(this.onCloseSubscribers, function(index, object) { 
+      object.callback(this);
+    });
   }
 };
 
