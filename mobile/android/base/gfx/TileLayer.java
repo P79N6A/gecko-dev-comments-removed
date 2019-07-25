@@ -182,53 +182,18 @@ public abstract class TileLayer extends Layer {
         if (imageBuffer == null)
             return;
 
-        boolean newlyCreated = false;
-
         if (mTextureIDs == null) {
             mTextureIDs = new int[1];
             GLES20.glGenTextures(mTextureIDs.length, mTextureIDs, 0);
-            newlyCreated = true;
         }
-
-        IntSize bufferSize = mImage.getSize();
-        Rect bufferRect = new Rect(0, 0, bufferSize.width, bufferSize.height);
 
         int cairoFormat = mImage.getFormat();
         CairoGLInfo glInfo = new CairoGLInfo(cairoFormat);
 
         bindAndSetGLParameters();
 
-        if (newlyCreated || dirtyRect.contains(bufferRect)) {
-            GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width,
-                                mSize.height, 0, glInfo.format, glInfo.type, imageBuffer);
-            return;
-        }
-
-        
-        
-        if (!Rect.intersects(dirtyRect, bufferRect)) {
-            return;
-        }
-
-        
-
-
-
-
-
-
-        Buffer viewBuffer = imageBuffer.slice();
-        int bpp = CairoUtils.bitsPerPixelForCairoFormat(cairoFormat) / 8;
-        int position = dirtyRect.top * bufferSize.width * bpp;
-        if (position > viewBuffer.limit()) {
-            Log.e(LOGTAG, "### Position outside tile! " + dirtyRect.top);
-            return;
-        }
-
-        viewBuffer.position(position);
-        GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, dirtyRect.top, bufferSize.width,
-                               Math.min(bufferSize.height - dirtyRect.top, dirtyRect.height()),
-                               glInfo.format, glInfo.type, viewBuffer);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width,
+                            mSize.height, 0, glInfo.format, glInfo.type, imageBuffer);
     }
 
     private void bindAndSetGLParameters() {
