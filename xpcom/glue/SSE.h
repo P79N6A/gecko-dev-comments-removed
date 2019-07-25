@@ -161,61 +161,14 @@
 #endif
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 3)
-
-
-#include <cpuid.h>
-#define MOZILLA_SSE_HAVE_CPUID_DETECTION
-
-namespace mozilla {
-
-  namespace sse_private {
-
-    enum CPUIDRegister { eax = 0, ebx = 1, ecx = 2, edx = 3 };
-
-    inline bool
-    has_cpuid_bit(unsigned int level, CPUIDRegister reg, unsigned int bit)
-    {
-      unsigned int regs[4];
-      return __get_cpuid(level, &regs[0], &regs[1], &regs[2], &regs[3]) &&
-             (regs[reg] & bit);
-    }
-
-  }
-
-}
-
+  #define MOZILLA_SSE_HAVE_CPUID_DETECTION
 #endif
 
 #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_AMD64))
 
-
 #if _MSC_VER >= 1400
-#include <intrin.h>
-#define MOZILLA_SSE_HAVE_CPUID_DETECTION
-
-namespace mozilla {
-
-  namespace sse_private {
-
-    enum CPUIDRegister { eax = 0, ebx = 1, ecx = 2, edx = 3 };
-
-    inline bool
-    has_cpuid_bit(unsigned int level, CPUIDRegister reg, unsigned int bit)
-    {
-      
-      int regs[4];
-      __cpuid(regs, level & 0x80000000u);
-      if (unsigned(regs[0]) < level)
-        return false;
-
-      __cpuid(regs, level);
-      return !!(unsigned(regs[reg]) & bit);
-    }
-
-  }
-
-}
-
+  
+  #define MOZILLA_SSE_HAVE_CPUID_DETECTION
 #endif
 
 #if defined(_M_AMD64)
@@ -231,67 +184,6 @@ namespace mozilla {
 
 
 #define MOZILLA_SSE_HAVE_CPUID_DETECTION
-
-namespace mozilla {
-
-  namespace sse_private {
-
-    enum CPUIDRegister { eax = 0, ebx = 1, ecx = 2, edx = 3 };
-
-#ifdef __i386
-    inline void
-    moz_cpuid(int CPUInfo[4], int InfoType)
-    {
-      asm (
-        "xchg %esi, %ebx\n"
-        "cpuid\n"
-        "movl %eax, (%edi)\n"
-        "movl %ebx, 4(%edi)\n"
-        "movl %ecx, 8(%edi)\n"
-        "movl %edx, 12(%edi)\n"
-        "xchg %esi, %ebx\n"
-        :
-        : "a"(InfoType), 
-          "D"(CPUInfo) 
-        : "%ecx", "%edx", "%esi"
-      );
-    }
-#else
-    inline void
-    moz_cpuid(int CPUInfo[4], int InfoType)
-    {
-      asm (
-        "xchg %rsi, %rbx\n"
-        "cpuid\n"
-        "movl %eax, (%rdi)\n"
-        "movl %ebx, 4(%rdi)\n"
-        "movl %ecx, 8(%rdi)\n"
-        "movl %edx, 12(%rdi)\n"
-        "xchg %rsi, %rbx\n"
-        :
-        : "a"(InfoType), 
-          "D"(CPUInfo) 
-        : "%ecx", "%edx", "%rsi"
-      );
-    }
-#endif
-
-    inline bool
-    has_cpuid_bit(unsigned int level, CPUIDRegister reg, unsigned int bit)
-    {
-      
-      volatile int regs[4];
-      moz_cpuid((int *)regs, level & 0x80000000u);
-      if (unsigned(regs[0]) < level)
-        return false;
-
-      moz_cpuid((int *)regs, level);
-      return !!(unsigned(regs[reg]) & bit);
-    }
-
-  }
-
-}
 
 #if defined(__x86_64__)
   
