@@ -478,8 +478,7 @@ Statement::GetParameterIndex(const nsACString &aName,
   
   nsCAutoString name(":");
   name.Append(aName);
-  int ind = ::sqlite3_bind_parameter_index(mDBStatement,
-                                           PromiseFlatCString(name).get());
+  int ind = ::sqlite3_bind_parameter_index(mDBStatement, name.get());
   if (ind  == 0) 
     return NS_ERROR_INVALID_ARG;
 
