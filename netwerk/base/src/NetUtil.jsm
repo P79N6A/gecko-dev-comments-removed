@@ -52,6 +52,7 @@ let EXPORTED_SYMBOLS = [
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
+const Cu = Components.utils;
 
 const PR_UINT32_MAX = 0xffffffff;
 
@@ -140,6 +141,11 @@ const NetUtil = {
 
 
 
+
+
+
+
+
     asyncFetch: function NetUtil_asyncOpen(aSource, aCallback)
     {
         if (!aSource || !aCallback) {
@@ -164,13 +170,20 @@ const NetUtil = {
             onStartRequest: function(aRequest, aContext) {},
             onStopRequest: function(aRequest, aContext, aStatusCode) {
                 pipe.outputStream.close();
-                aCallback(pipe.inputStream, aStatusCode);
+                aCallback(pipe.inputStream, aStatusCode, aRequest);
             }
         });
 
         let channel = aSource;
         if (!(channel instanceof Ci.nsIChannel)) {
             channel = this.newChannel(aSource);
+        }
+
+        
+        
+        if (!channel.notificationCallbacks) {
+          
+          channel.notificationCallbacks = new BadCertHandler(true);
         }
 
         channel.asyncOpen(listener, null);
@@ -265,3 +278,9 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ioUtil", "@mozilla.org/io-util;1",
                                    "nsIIOUtil");
+
+XPCOMUtils.defineLazyGetter(this, "BadCertHandler", "@mozilla.org/io-util;1", function () {
+  var obj = {};
+  Cu.import("resource://gre/modules/CertUtils.jsm", obj);
+  return obj.BadCertHandler;
+});
