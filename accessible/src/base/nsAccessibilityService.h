@@ -446,7 +446,8 @@ static const char kRoleNames[][20] = {
   "listbox",             
   "flat equation",       
   "gridcell",            
-  "embedded object"      
+  "embedded object",     
+  "note"                 
 };
 
 
