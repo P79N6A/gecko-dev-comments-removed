@@ -143,6 +143,9 @@ IsSVGWhitespace(PRUnichar aChar)
 
 bool NS_SMILEnabled();
 
+bool NS_SVGDisplayListHitTestingEnabled();
+bool NS_SVGDisplayListPaintingEnabled();
+
 
 
 
@@ -224,6 +227,8 @@ class nsSVGUtils
 public:
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
   typedef mozilla::SVGPreserveAspectRatio SVGPreserveAspectRatio;
+
+  static void Init();
 
   
 
