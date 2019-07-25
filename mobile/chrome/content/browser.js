@@ -2441,13 +2441,6 @@ Tab.prototype = {
     browser.setAttribute("type", "content");
 
     
-    let container = document.getElementById("tile-container");
-    browser.setAttribute("contextmenu", container.getAttribute("contextmenu"));
-    let autocompletepopup = container.getAttribute("autocompletepopup");
-    if (autocompletepopup)
-      browser.setAttribute("autocompletepopup", autocompletepopup);
-
-    
     document.getElementById("browsers").appendChild(browser);
 
     
