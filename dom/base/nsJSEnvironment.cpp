@@ -140,9 +140,9 @@ static PRLogModuleInfo* gJSDiagnostics;
 
 
 
-#define NS_CC_DELAY                 5000 // ms
+#define NS_CC_DELAY                 6000 // ms
 
-#define NS_CC_SKIPPABLE_DELAY       250 // ms
+#define NS_CC_SKIPPABLE_DELAY       400 // ms
 
 #define NS_CC_FORCED                (5 * 60 * PR_USEC_PER_SEC) // 5 min
 
