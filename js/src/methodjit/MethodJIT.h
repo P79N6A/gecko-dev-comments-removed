@@ -264,13 +264,6 @@ enum RejoinState {
     REJOIN_NATIVE_LOWERED,
 
     
-
-
-
-
-    REJOIN_NATIVE_EXPANDED,
-
-    
     REJOIN_PUSH_BOOLEAN,
     REJOIN_PUSH_OBJECT,
 

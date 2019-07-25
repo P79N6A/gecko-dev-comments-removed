@@ -233,7 +233,7 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
     cx->compartment->types.frameExpansions++;
 
     RejoinState rejoin = (RejoinState) f->stubRejoin;
-    JS_ASSERT(rejoin != REJOIN_NATIVE_LOWERED && rejoin != REJOIN_NATIVE_EXPANDED);
+    JS_ASSERT(rejoin != REJOIN_NATIVE && rejoin != REJOIN_NATIVE_LOWERED);
 
     
 
@@ -249,13 +249,7 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
     StackFrame *innerfp = expandInlineFrameChain(cx, fp, inner);
 
     
-    if (f->stubRejoin == REJOIN_NATIVE) {
-        
-        if (f->regs.fp() == fp) {
-            patchNative(cx, fp->jit(), innerfp, f->regs.pc, f->regs.inlined(), rejoin);
-            f->stubRejoin = REJOIN_NATIVE_EXPANDED;
-        }
-    } else if (f->stubRejoin) {
+    if (f->stubRejoin) {
         
         if (f->regs.fp()->prev() == fp) {
             fp->prev()->setRejoin(StubRejoin(rejoin));
@@ -421,15 +415,10 @@ Recompiler::recompile(bool resetUses)
         RejoinState rejoin = (RejoinState) f->stubRejoin;
         if (rejoin == REJOIN_NATIVE || rejoin == REJOIN_NATIVE_LOWERED) {
             
-            if (fp->script() == script && fp->isConstructing()) {
+            if (fp->script() == script && fp->isConstructing())
                 patchNative(cx, script->jitCtor, fp, fp->pc(cx, NULL), NULL, rejoin);
-                f->stubRejoin = REJOIN_NATIVE_EXPANDED;
-            } else if (fp->script() == script) {
+            else if (fp->script() == script)
                 patchNative(cx, script->jitNormal, fp, fp->pc(cx, NULL), NULL, rejoin);
-                f->stubRejoin = REJOIN_NATIVE_EXPANDED;
-            }
-        } else if (rejoin == REJOIN_NATIVE_EXPANDED) {
-            
         } else if (rejoin) {
             
             if (fp->prev()->script() == script) {

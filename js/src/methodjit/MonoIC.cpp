@@ -842,6 +842,10 @@ class CallCompiler : public BaseCompiler
             return true;
 
         
+        if (f.regs.inlined())
+            return true;
+
+        
         if (!ic.hit) {
             ic.hit = true;
             return true;
