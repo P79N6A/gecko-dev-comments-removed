@@ -259,6 +259,11 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         if (result) {
           mMenuBarFrame->SetActive(PR_TRUE);
           result->OpenMenu(PR_TRUE);
+
+          
+          
+          mAccessKeyDown = mAccessKeyDownCanceled = PR_FALSE;
+
           aKeyEvent->StopPropagation();
           aKeyEvent->PreventDefault();
           retVal = NS_OK;       
