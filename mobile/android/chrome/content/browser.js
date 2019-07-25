@@ -252,13 +252,13 @@ var BrowserApp = {
 
     let loadParams = {};
     let url = "about:home";
-    let forceRestore = false;
+    let restoreMode = 0;
     let pinned = false;
     if ("arguments" in window) {
       if (window.arguments[0])
         url = window.arguments[0];
       if (window.arguments[1])
-        forceRestore = window.arguments[1];
+        restoreMode = window.arguments[1];
       if (window.arguments[2])
         gScreenWidth = window.arguments[2];
       if (window.arguments[3])
@@ -279,8 +279,11 @@ var BrowserApp = {
     window.dispatchEvent(event);
 
     
+    
+    
+    
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    if (forceRestore || ss.shouldRestore()) {
+    if (restoreMode || ss.shouldRestore()) {
       
       let restoreToFront = false;
 
@@ -320,7 +323,7 @@ var BrowserApp = {
       Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
 
       
-      ss.restoreLastSession(restoreToFront, forceRestore);
+      ss.restoreLastSession(restoreToFront, restoreMode == 1);
     } else {
       loadParams.showProgress = (url != "about:home");
       loadParams.pinned = pinned;
