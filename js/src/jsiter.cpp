@@ -41,6 +41,8 @@
 
 
 
+#include <string.h>     
+
 #include "mozilla/Util.h"
 
 #include "jstypes.h"
