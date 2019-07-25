@@ -4861,12 +4861,6 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       
       updateFlags = NS_VMREFRESH_IMMEDIATE;
     }
-    else if (aType < Flush_InterruptibleLayout) {
-      
-      
-      
-      updateFlags = NS_VMREFRESH_DEFERRED;
-    }
     batch.EndUpdateViewBatch(updateFlags);
   }
 }
