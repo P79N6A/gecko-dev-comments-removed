@@ -45,10 +45,10 @@
 #include "nsAutoRef.h"
 #include "nsThreadUtils.h"
 
+class nsIWidget;
+
 namespace mozilla {
 namespace layers {
-
-class BasicThebesLayer;
 
 
 
@@ -65,15 +65,25 @@ public:
 
 
 
-  BasicLayerManager(gfxContext* aContext);
-  virtual ~BasicLayerManager();
 
+  BasicLayerManager();
   
 
 
 
 
-  void SetRetain(PRBool aRetain);
+
+
+
+
+
+
+
+
+
+
+  BasicLayerManager(nsIWidget* aWidget);
+  virtual ~BasicLayerManager();
 
   
 
@@ -91,6 +101,10 @@ public:
     BUFFER_BUFFERED
   };
   void SetDefaultTarget(gfxContext* aContext, BufferMode aDoubleBuffering);
+  gfxContext* GetDefaultTarget() { return mDefaultTarget; }
+
+  nsIWidget* GetRetainerWidget() { return mWidget; }
+  void ClearRetainerWidget() { mWidget = nsnull; }
 
   virtual void BeginTransaction();
   virtual void BeginTransactionWithTarget(gfxContext* aTarget);
@@ -113,7 +127,7 @@ public:
   PRBool InTransaction() { return mPhase != PHASE_NONE; }
 #endif
   gfxContext* GetTarget() { return mTarget; }
-  PRBool IsRetained() { return mRetain; }
+  PRBool IsRetained() { return mWidget != nsnull; }
 
 private:
   
@@ -129,6 +143,9 @@ private:
                                  const gfxPoint& aSavedOffset);
 
   
+  
+  nsIWidget* mWidget;
+  
   nsRefPtr<gfxContext> mDefaultTarget;
   
   nsRefPtr<gfxContext> mTarget;
@@ -143,7 +160,6 @@ private:
 
   BufferMode   mDoubleBuffering;
   PRPackedBool mUsingDefaultTarget;
-  PRPackedBool mRetain;
 };
 
 }

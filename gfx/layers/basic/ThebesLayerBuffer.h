@@ -114,13 +114,22 @@ public:
 
 
 
-  PaintState BeginPaint(ThebesLayer* aLayer, gfxContext* aTarget,
+
+
+  PaintState BeginPaint(ThebesLayer* aLayer, gfxASurface* aReferenceSurface,
                         PRUint32 aFlags);
   
 
 
 
   void DrawTo(ThebesLayer* aLayer, PRUint32 aFlags, gfxContext* aTarget, float aOpacity);
+
+  
+
+
+
+
+  gfxASurface* GetBuffer() { return mBuffer; }
 
 protected:
   enum XSide {

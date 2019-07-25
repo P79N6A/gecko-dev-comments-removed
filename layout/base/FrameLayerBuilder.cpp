@@ -968,7 +968,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
     
     
     
-    tempManager = new BasicLayerManager(nsnull);
+    tempManager = new BasicLayerManager();
     tempManager->BeginTransaction();
     nsRefPtr<Layer> layer = aItem->BuildLayer(aBuilder, tempManager);
     if (!layer) {
