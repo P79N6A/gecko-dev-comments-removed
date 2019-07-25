@@ -55,7 +55,8 @@ WeaveService.prototype = {
       break;
    
 
-    case "profile-after-change":
+
+    case "sessionstore-windows-restored":
       Components.utils.import("resource://weave/service.js");
       Weave.Service.onStartup();
       break;
