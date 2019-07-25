@@ -292,12 +292,11 @@ struct JSScope : public JSObjectMap
                                        JSScopeProperty **spp);
 
   public:
-    JSScope(const JSObjectOps *ops, JSObject *obj)
-      : JSObjectMap(ops, 0), object(obj) {}
+    JSScope(JSObject *obj)
+      : JSObjectMap(0), object(obj) {}
 
     
-    static JSScope *create(JSContext *cx, const JSObjectOps *ops,
-                           js::Class *clasp, JSObject *obj, uint32 shape);
+    static JSScope *create(JSContext *cx, js::Class *clasp, JSObject *obj, uint32 shape);
 
     void destroy(JSContext *cx);
 
@@ -312,7 +311,7 @@ struct JSScope : public JSObjectMap
 
     inline bool ensureEmptyScope(JSContext *cx, js::Class *clasp);
 
-    inline bool canProvideEmptyScope(JSObjectOps *ops, js::Class *clasp);
+    inline bool canProvideEmptyScope(js::Class *clasp);
 
     JSScopeProperty *lookup(jsid id);
 
@@ -526,7 +525,7 @@ struct JSEmptyScope : public JSScope
     js::Class * const clasp;
     jsrefcount        nrefs;              
 
-    JSEmptyScope(JSContext *cx, const JSObjectOps *ops, js::Class *clasp);
+    JSEmptyScope(JSContext *cx, js::Class *clasp);
 
     JSEmptyScope *hold() {
         
@@ -898,6 +897,10 @@ JSScope::insertDictionaryProperty(JSScopeProperty *sprop, JSScopeProperty **chil
 #define SLOT_IN_SCOPE(slot,scope)         ((slot) < (scope)->freeslot)
 #define SPROP_HAS_VALID_SLOT(sprop,scope) SLOT_IN_SCOPE((sprop)->slot, scope)
 
+#ifndef JS_THREADSAFE
+# define js_GenerateShape(cx, gcLocked)    js_GenerateShape (cx)
+#endif
+
 extern uint32
 js_GenerateShape(JSContext *cx, bool gcLocked);
 
@@ -958,7 +961,7 @@ JSScope::search(jsid id, bool adding)
 #undef METER
 
 inline bool
-JSScope::canProvideEmptyScope(JSObjectOps *ops, js::Class *clasp)
+JSScope::canProvideEmptyScope(js::Class *clasp)
 {
     
 
@@ -966,7 +969,7 @@ JSScope::canProvideEmptyScope(JSObjectOps *ops, js::Class *clasp)
 
     if (!object)
         return false;
-    return this->ops == ops && (!emptyScope || emptyScope->clasp == clasp);
+    return !emptyScope || emptyScope->clasp == clasp;
 }
 
 inline bool

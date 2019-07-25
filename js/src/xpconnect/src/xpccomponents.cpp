@@ -3117,7 +3117,7 @@ sandbox_setProto(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 
     JSObject *pobj = JSVAL_TO_OBJECT(*vp);
     if (pobj) {
-        if (pobj->getJSClass() == &XPCCrossOriginWrapper::XOWClass.base &&
+        if (pobj->getClass() == &XPCCrossOriginWrapper::XOWClass &&
             !XPCWrapper::RewrapObject(cx, obj, pobj,
                                       XPCWrapper::XPCNW_EXPLICIT, vp)) {
             return JS_FALSE;
@@ -3826,12 +3826,8 @@ nsXPCComponents_Utils::GetGlobalForObject()
   *rval = OBJECT_TO_JSVAL(obj);
 
   
-  JSClass *clasp = JS_GetClass(cx, obj);
-  if (clasp->flags & JSCLASS_IS_EXTENDED) {
-    JSExtendedClass *xclasp = reinterpret_cast<JSExtendedClass *>(clasp);
-    if (JSObjectOp outerize = xclasp->outerObject)
+  if (JSObjectOp outerize = obj->getClass()->ext.outerObject)
       *rval = OBJECT_TO_JSVAL(outerize(cx, obj));
-  }
 
   cc->SetReturnValueWasSet(PR_TRUE);
   return NS_OK;

@@ -349,11 +349,32 @@ typedef JSBool
 
 
 
+typedef JSObject *
+(* JSObjectOp)(JSContext *cx, JSObject *obj);
+
+
+
+
+
+typedef JSObject *
+(* JSIteratorOp)(JSContext *cx, JSObject *obj, JSBool keysonly);
+
+
+
+
+
 #ifdef JS_C_STRINGS_ARE_UTF8
 # define js_CStringsAreUTF8 JS_TRUE
 #else
 extern JSBool js_CStringsAreUTF8;
 #endif
+
+
+
+
+
+extern JS_FRIEND_API(JSObject *)
+js_ObjectToOuterObject(JSContext *cx, JSObject *obj);
 
 JS_END_EXTERN_C
 

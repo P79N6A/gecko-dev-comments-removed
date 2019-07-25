@@ -420,10 +420,21 @@ Class js_ScriptClass = {
     "Script",
     JSCLASS_HAS_PRIVATE |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    PropertyStub,     PropertyStub,     PropertyStub,     PropertyStub,
-    EnumerateStub,    ResolveStub,      ConvertStub,      script_finalize,
-    NULL,             NULL,             NULL,             NULL,
-    NULL,             NULL,             JS_CLASS_TRACE(script_trace), NULL
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    EnumerateStub,
+    ResolveStub,
+    ConvertStub,
+    script_finalize,
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    JS_CLASS_TRACE(script_trace)
 };
 
 

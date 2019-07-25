@@ -688,14 +688,21 @@ Class js_ArgumentsClass = {
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::ARGS_FIXED_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    PropertyStub,       args_delProperty,
-    PropertyStub,       PropertyStub,
-    args_enumerate,     (JSResolveOp) args_resolve,
-    ConvertStub,        NULL,
-    NULL,               NULL,
-    NULL,               NULL,
-    NULL,               NULL,
-    JS_CLASS_TRACE(args_or_call_trace), NULL
+    PropertyStub,   
+    args_delProperty,
+    PropertyStub,   
+    PropertyStub,   
+    args_enumerate,
+    (JSResolveOp) args_resolve,
+    ConvertStub,
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    JS_CLASS_TRACE(args_or_call_trace)
 };
 
 const uint32 JSSLOT_CALLEE =                    JSSLOT_PRIVATE + 1;
@@ -709,9 +716,13 @@ const uint32 CALL_CLASS_FIXED_RESERVED_SLOTS =  2;
 Class js_DeclEnvClass = {
     js_Object_str,
     JSCLASS_HAS_PRIVATE | JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    PropertyStub,     PropertyStub,     PropertyStub,     PropertyStub,
-    EnumerateStub,    ResolveStub,      ConvertStub,      NULL,
-    JSCLASS_NO_OPTIONAL_MEMBERS
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    EnumerateStub,
+    ResolveStub,
+    ConvertStub
 };
 
 static JSBool
@@ -1269,14 +1280,21 @@ JS_PUBLIC_DATA(Class) js_CallClass = {
     JSCLASS_HAS_PRIVATE |
     JSCLASS_HAS_RESERVED_SLOTS(CALL_CLASS_FIXED_RESERVED_SLOTS) |
     JSCLASS_NEW_RESOLVE | JSCLASS_IS_ANONYMOUS | JSCLASS_MARK_IS_TRACE,
-    PropertyStub,       PropertyStub,
-    PropertyStub,       PropertyStub,
-    call_enumerate,     (JSResolveOp)call_resolve,
-    NULL,               NULL,
-    NULL,               NULL,
-    NULL,               NULL,
-    NULL,               NULL,
-    JS_CLASS_TRACE(args_or_call_trace), NULL
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    call_enumerate,
+    (JSResolveOp)call_resolve,
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    JS_CLASS_TRACE(args_or_call_trace)
 };
 
 bool
@@ -1912,14 +1930,21 @@ JS_PUBLIC_DATA(Class) js_FunctionClass = {
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::FUN_FIXED_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Function),
-    PropertyStub,     PropertyStub,
-    PropertyStub,     PropertyStub,
-    fun_enumerate,    (JSResolveOp)fun_resolve,
-    ConvertStub,      fun_finalize,
-    NULL,             NULL,
-    NULL,             NULL,
-    js_XDRFunctionObject, fun_hasInstance,
-    JS_CLASS_TRACE(fun_trace), NULL
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    fun_enumerate,
+    (JSResolveOp)fun_resolve,
+    ConvertStub,
+    fun_finalize,
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    js_XDRFunctionObject,
+    fun_hasInstance,
+    JS_CLASS_TRACE(fun_trace)
 };
 
 namespace js {
