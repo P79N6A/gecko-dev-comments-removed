@@ -315,11 +315,6 @@ public:
   
 
 
-  void GetMimeType(nsCString& aMimeType);
-
-  
-
-
 
   void NotifyAddedSource();
 
@@ -877,13 +872,6 @@ protected:
 
   
   bool mDownloadSuspendedByCache;
-
-  
-  
-  
-  
-  
-  nsCString mMimeType;
 };
 
 #endif
