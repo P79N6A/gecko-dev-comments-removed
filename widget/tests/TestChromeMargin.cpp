@@ -1,0 +1,189 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "TestHarness.h"
+
+#ifndef MOZILLA_INTERNAL_API
+
+#define nsAString_h___
+#define nsString_h___
+#define nsStringFwd_h___
+#define nsReadableUtils_h___
+class nsACString;
+class nsAString;
+class nsAFlatString;
+class nsAFlatCString;
+class nsAdoptingString;
+class nsAdoptingCString;
+class nsXPIDLString;
+template<class T> class nsReadingIterator;
+#endif
+
+#include "nscore.h"
+#include "nsIContentUtils.h"
+
+#ifndef MOZILLA_INTERNAL_API
+#undef nsString_h___
+#undef nsAString_h___
+#undef nsReadableUtils_h___
+#endif
+
+struct DATA {
+  bool shouldfail;
+  const char* margins;
+  int top;
+  int right;
+  int bottom;
+  int left;
+};
+
+const bool SHOULD_FAIL = true;
+const int SHOULD_PASS = false;
+
+const DATA Data[] = {
+  { SHOULD_FAIL, "", 1, 2, 3, 4 },
+  { SHOULD_FAIL, "1,0,0,0", 1, 2, 3, 4 },
+  { SHOULD_FAIL, "1,2,0,0", 1, 2, 3, 4 },
+  { SHOULD_FAIL, "1,2,3,0", 1, 2, 3, 4 },
+  { SHOULD_FAIL, "4,3,2,1", 1, 2, 3, 4 },
+  { SHOULD_FAIL, "azsasdasd", 0, 0, 0, 0 },
+  { SHOULD_FAIL, ",azsasdasd", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "           ", 1, 2, 3, 4 },
+  { SHOULD_FAIL, "azsdfsdfsdfsdfsdfsasdasd,asdasdasdasdasdasd,asdadasdasd,asdasdasdasd", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "as,as,as,as", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "0,0,0", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "0,0", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "4.6,1,1,1", 0, 0, 0, 0 },
+  { SHOULD_FAIL, ",,,,", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "1, , , ,", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "1, , ,", 0, 0, 0, 0 },
+  { SHOULD_FAIL, "@!@%^&^*()", 1, 2, 3, 4 },
+  { SHOULD_PASS, "4,3,2,1", 4, 3, 2, 1 },
+  { SHOULD_PASS, "-4,-3,-2,-1", -4, -3, -2, -1 },
+  { SHOULD_PASS, "10000,3,2,1", 10000, 3, 2, 1 },
+  { SHOULD_PASS, "4  , 3   , 2 , 1", 4, 3, 2, 1 },
+  { SHOULD_PASS, "4,    3   ,2,1", 4, 3, 2, 1 },
+  { SHOULD_FAIL, "4,3,2,10000000000000 --", 4, 3, 2, 10000000000000 },
+  { SHOULD_PASS, "4,3,2,1000", 4, 3, 2, 1000 },
+  { SHOULD_PASS, "2147483647,3,2,1000", 2147483647, 3, 2, 1000 },
+  { SHOULD_PASS, "2147483647,2147483647,2147483647,2147483647", 2147483647, 2147483647, 2147483647, 2147483647 },
+  { SHOULD_PASS, "-2147483647,3,2,1000", -2147483647, 3, 2, 1000 },
+  { SHOULD_FAIL, "2147483648,3,2,1000", 1, 3, 2, 1000 },
+  { 0, nsnull, 0, 0, 0, 0 }
+};
+
+void DoAttrValueTest()
+{
+  nsCOMPtr<nsIContentUtils> utils =
+   do_GetService("@mozilla.org/content/contentutils;1");
+
+  if (!utils)
+    fail("No nsIContentUtils");
+
+  int idx = -1;
+  bool didFail = false;
+  while (Data[++idx].margins) {
+    nsAutoString str;
+    str.AssignLiteral(Data[idx].margins);
+    nsIntMargin values(99,99,99,99);
+    bool result = utils->ParseIntMarginValue(str, values);
+
+    
+    if (!result) {
+      if (Data[idx].shouldfail)
+        continue;
+      fail(Data[idx].margins);
+      didFail = true;
+      printf("*1\n");
+      continue;
+    }
+
+    if (Data[idx].shouldfail) {
+      if (Data[idx].top == values.top &&
+          Data[idx].right == values.right &&
+          Data[idx].bottom == values.bottom &&
+          Data[idx].left == values.left) {
+        
+        fail(Data[idx].margins);
+        didFail = true;
+        printf("*2\n");
+        continue;
+      }
+      
+      continue;
+    }
+#if 0
+    printf("%d==%d %d==%d %d==%d %d==%d\n",
+      Data[idx].top, values.top,
+      Data[idx].right, values.right,
+      Data[idx].bottom, values.bottom,
+      Data[idx].left, values.left);
+#endif
+    if (Data[idx].top == values.top &&
+        Data[idx].right == values.right &&
+        Data[idx].bottom == values.bottom &&
+        Data[idx].left == values.left) {
+      
+      continue;
+    }
+    else {
+      fail(Data[idx].margins);
+      didFail = true;
+      printf("*3\n");
+      continue;
+    }
+  }
+
+  if (!didFail)
+    passed("nsAttrValue margin parsing tests passed.");
+}
+
+int main(int argc, char** argv)
+{
+  ScopedXPCOM xpcom("");
+  if (xpcom.failed())
+    return 1;
+  DoAttrValueTest();
+  return 0;
+}
