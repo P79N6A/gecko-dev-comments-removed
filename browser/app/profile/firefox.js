@@ -1024,6 +1024,7 @@ pref("devtools.errorconsole.enabled", false);
 
 
 pref("devtools.toolbar.enabled", false);
+pref("devtools.gcli.allowSet", false);
 
 
 pref("devtools.inspector.enabled", true);
