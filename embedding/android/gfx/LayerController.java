@@ -87,18 +87,14 @@ public class LayerController {
     
 
 
-    public LayerController(Context context, LayerClient layerClient) {
+    public LayerController(Context context) {
         mContext = context;
 
         mVisibleRect = new FloatRect(0.0f, 0.0f, 1.0f, 1.0f);
         
 
         mScreenSize = new IntSize(1, 1);
-
-        if (layerClient != null)
-            setLayerClient(layerClient);
-        else
-            mPageSize = new IntSize(LayerController.TILE_WIDTH, LayerController.TILE_HEIGHT);
+        mPageSize = new IntSize(LayerController.TILE_WIDTH, LayerController.TILE_HEIGHT);
 
         mPanZoomController = new PanZoomController(this);
         mView = new LayerView(context, this);
@@ -110,6 +106,7 @@ public class LayerController {
         mLayerClient = layerClient;
         mPageSize = layerClient.getPageSize();
         layerClient.setLayerController(this);
+        layerClient.init();
     }
 
     public Layer getRoot()              { return mRootLayer; }
