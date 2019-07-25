@@ -223,26 +223,30 @@ TabMatcher.prototype = {
   
   
   
-  _getTabsForOtherWindows: function TabMatcher__getTabsForOtherWindows() {
-    var enumerator = Services.wm.getEnumerator("navigator:browser");
-    var allTabs = [];
-
+  _getTabsForOtherWindows: function TabMatcher__getTabsForOtherWindows(){
+    var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                       .getService(Components.interfaces.nsIWindowMediator);
+    var enumerator = wm.getEnumerator("navigator:browser");    
+    var currentWindow = wm.getMostRecentWindow("navigator:browser");
+    
+    var allTabs = [];    
     while (enumerator.hasMoreElements()) {
       var win = enumerator.getNext();
       
-      if (win != gWindow) {
+      
+      if (win != currentWindow) {
+        
         
         
         let tvWindow = win.TabView.getContentWindow();
         if (tvWindow)
-          allTabs = allTabs.concat(tvWindow.TabItems.getItems());
+          allTabs = allTabs.concat( tvWindow.TabItems.getItems() );
         else
           
-          for (let i = 0; i < win.gBrowser.tabs.length; i++)
-            allTabs.push(win.gBrowser.tabs[i]);
-      }
+          for (var i=0; i<win.gBrowser.tabs.length; i++) allTabs.push( win.gBrowser.tabs[i] );
+      } 
     }
-    return allTabs;
+    return allTabs;    
   },
   
   
