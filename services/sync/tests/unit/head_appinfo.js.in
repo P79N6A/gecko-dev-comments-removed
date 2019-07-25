@@ -1,5 +1,5 @@
-
-
+// Load httpd from the add-on test harness or from xpcshell and declare Cc, etc.
+// without a var/const so they don't get hoisted and conflict with load_httpd.
 if (this.do_load_httpd_js == null) {
   Cc = Components.classes;
   Ci = Components.interfaces;
@@ -15,12 +15,12 @@ else {
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 try {
-  
+  // In the context of xpcshell tests, there won't be a default AppInfo
   Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
 }
 catch(ex) {
 
-
+// Make sure to provide the right OS so crypto loads the right binaries
 let OS = "XPCShell";
 if ("@mozilla.org/windows-registry-key;1" in Cc)
   OS = "WINNT";
@@ -59,6 +59,15 @@ registrar.registerFactory(Components.ID("{fbfae60b-64a4-44ef-a911-08ceb70b9f31}"
 
 }
 
-
+// Provide resource://services-sync if it isn't already available
 let weaveService = Cc["@mozilla.org/weave/service;1"].getService();
 weaveService.wrappedJSObject.addResourceAlias();
+
+
+// Some tests hang on OSX debug builds. See bug 604565.
+let DISABLE_TESTS_BUG_604565 = false;
+#ifdef XP_MACOSX
+#ifdef MOZ_DEBUG_SYMBOLS
+DISABLE_TESTS_BUG_604565 = true;
+#endif
+#endif
