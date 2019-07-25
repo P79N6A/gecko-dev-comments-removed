@@ -103,14 +103,14 @@ nsAccUtils::SetAccGroupAttrs(nsIPersistentProperties *aAttributes,
 PRInt32
 nsAccUtils::GetDefaultLevel(nsAccessible *aAccessible)
 {
-  PRUint32 role = nsAccUtils::Role(aAccessible);
+  PRUint32 role = aAccessible->Role();
 
   if (role == nsIAccessibleRole::ROLE_OUTLINEITEM)
     return 1;
 
   if (role == nsIAccessibleRole::ROLE_ROW) {
     nsAccessible *parent = aAccessible->GetParent();
-    if (Role(parent) == nsIAccessibleRole::ROLE_TREE_TABLE) {
+    if (parent && parent->Role() == nsIAccessibleRole::ROLE_TREE_TABLE) {
       
       
       return 1;
@@ -357,7 +357,7 @@ nsAccUtils::GetAncestorWithRole(nsAccessible *aDescendant, PRUint32 aRole)
   nsAccessible *document = aDescendant->GetDocAccessible();
   nsAccessible *parent = aDescendant;
   while ((parent = parent->GetParent())) {
-    PRUint32 testRole = nsAccUtils::Role(parent);
+    PRUint32 testRole = parent->Role();
     if (testRole == aRole)
       return parent;
 

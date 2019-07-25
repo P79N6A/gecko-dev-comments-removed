@@ -211,7 +211,7 @@ nsXULButtonAccessible::CacheChildren()
 
   nsRefPtr<nsAccessible> child;
   while ((child = walker.GetNextChild())) {
-    PRUint32 role = nsAccUtils::Role(child);
+    PRUint32 role = child->Role();
 
     if (role == nsIAccessibleRole::ROLE_MENUPOPUP) {
       
@@ -476,7 +476,7 @@ nsXULGroupboxAccessible::GetRelationByType(PRUint32 aRelationType,
     PRInt32 childCount = GetChildCount();
     for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
       nsAccessible *childAcc = GetChildAt(childIdx);
-      if (nsAccUtils::Role(childAcc) == nsIAccessibleRole::ROLE_LABEL) {
+      if (childAcc->Role() == nsIAccessibleRole::ROLE_LABEL) {
         
         
         

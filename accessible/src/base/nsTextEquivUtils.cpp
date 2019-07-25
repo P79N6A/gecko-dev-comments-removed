@@ -64,9 +64,7 @@ nsTextEquivUtils::GetNameFromSubtree(nsAccessible *aAccessible,
 
   gInitiatorAcc = aAccessible;
 
-  PRUint32 role = nsAccUtils::Role(aAccessible);
-  PRUint32 nameRule = gRoleToNameRulesMap[role];
-
+  PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
   if (nameRule == eFromSubtree) {
     
     if (aAccessible->IsContent()) {
@@ -269,9 +267,7 @@ nsTextEquivUtils::AppendFromAccessible(nsAccessible *aAccessible,
   
   
   if (isEmptyTextEquiv) {
-    PRUint32 role = nsAccUtils::Role(aAccessible);
-    PRUint32 nameRule = gRoleToNameRulesMap[role];
-
+    PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
     if (nameRule & eFromSubtreeIfRec) {
       rv = AppendFromAccessibleChildren(aAccessible, aString);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -294,9 +290,7 @@ nsresult
 nsTextEquivUtils::AppendFromValue(nsAccessible *aAccessible,
                                   nsAString *aString)
 {
-  PRUint32 role = nsAccUtils::Role(aAccessible);
-  PRUint32 nameRule = gRoleToNameRulesMap[role];
-
+  PRUint32 nameRule = gRoleToNameRulesMap[aAccessible->Role()];
   if (nameRule != eFromValue)
     return NS_OK_NO_NAME_CLAUSE_HANDLED;
 

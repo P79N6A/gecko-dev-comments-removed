@@ -279,8 +279,7 @@ nsHyperTextAccessible::GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset,
   PRInt32 startOffset = aStartOffset;
   PRInt32 endOffset = aEndOffset;
   
-  PRBool isPassword =
-    (nsAccUtils::Role(this) == nsIAccessibleRole::ROLE_PASSWORD_TEXT);
+  PRBool isPassword = (Role() == nsIAccessibleRole::ROLE_PASSWORD_TEXT);
 
   
   if (aText) {
@@ -804,7 +803,7 @@ nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell,
     nsAccessible *firstChild = mChildren.SafeElementAt(0, nsnull);
     
     if (pos.mContentOffset == 0 && firstChild &&
-        nsAccUtils::Role(firstChild) == nsIAccessibleRole::ROLE_STATICTEXT &&
+        firstChild->Role() == nsIAccessibleRole::ROLE_STATICTEXT &&
         static_cast<PRInt32>(nsAccUtils::TextLength(firstChild)) == hyperTextOffset) {
       
       hyperTextOffset = 0;
@@ -816,7 +815,7 @@ nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell,
   else if (aAmount == eSelectEndLine && finalAccessible) { 
     
     
-    if (nsAccUtils::Role(finalAccessible) == nsIAccessibleRole::ROLE_WHITESPACE) {  
+    if (finalAccessible->Role() == nsIAccessibleRole::ROLE_WHITESPACE) {  
       
       
       
@@ -983,7 +982,7 @@ nsresult nsHyperTextAccessible::GetTextHelper(EGetTextType aType, nsAccessibleTe
     nsRefPtr<nsAccessible> endAcc;
     nsIFrame *endFrame = GetPosAndText(startOffset, endOffset, nsnull, nsnull,
                                        nsnull, getter_AddRefs(endAcc));
-    if (nsAccUtils::Role(endAcc) == nsIAccessibleRole::ROLE_STATICTEXT) {
+    if (endAcc && endAcc->Role() == nsIAccessibleRole::ROLE_STATICTEXT) {
       
       
       startOffset = endOffset = finalStartOffset +

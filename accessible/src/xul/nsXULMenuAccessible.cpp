@@ -329,8 +329,7 @@ nsXULMenuitemAccessible::GetStateInternal(PRUint32 *aState,
   }
 
   
-  PRBool isComboboxOption =
-    (nsAccUtils::Role(this) == nsIAccessibleRole::ROLE_COMBOBOX_OPTION);
+  PRBool isComboboxOption = (Role() == nsIAccessibleRole::ROLE_COMBOBOX_OPTION);
   if (isComboboxOption) {
     
     PRBool isSelected = PR_FALSE;
@@ -353,7 +352,7 @@ nsXULMenuitemAccessible::GetStateInternal(PRUint32 *aState,
         
         nsAccessible* grandParentAcc = parentAcc->GetParent();
         NS_ENSURE_TRUE(grandParentAcc, NS_ERROR_FAILURE);
-        NS_ASSERTION(nsAccUtils::Role(grandParentAcc) == nsIAccessibleRole::ROLE_COMBOBOX,
+        NS_ASSERTION(grandParentAcc->Role() == nsIAccessibleRole::ROLE_COMBOBOX,
                      "grandparent of combobox listitem is not combobox");
         PRUint32 grandParentState, grandParentExtState;
         grandParentAcc->GetState(&grandParentState, &grandParentExtState);
@@ -486,7 +485,7 @@ nsXULMenuitemAccessible::NativeRole()
   if (xulContainer)
     return nsIAccessibleRole::ROLE_PARENT_MENUITEM;
 
-  if (nsAccUtils::Role(mParent) == nsIAccessibleRole::ROLE_COMBOBOX_LIST)
+  if (mParent && mParent->Role() == nsIAccessibleRole::ROLE_COMBOBOX_LIST)
     return nsIAccessibleRole::ROLE_COMBOBOX_OPTION;
 
   if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
@@ -666,7 +665,7 @@ nsXULMenupopupAccessible::NativeRole()
   
   
   if (mParent) {
-    PRUint32 role = nsAccUtils::Role(mParent);
+    PRUint32 role = mParent->Role();
     if (role == nsIAccessibleRole::ROLE_COMBOBOX ||
         role == nsIAccessibleRole::ROLE_AUTOCOMPLETE) {
       return nsIAccessibleRole::ROLE_COMBOBOX_LIST;
@@ -675,7 +674,8 @@ nsXULMenupopupAccessible::NativeRole()
     if (role == nsIAccessibleRole::ROLE_PUSHBUTTON) {
       
       nsAccessible* grandParent = mParent->GetParent();
-      if (nsAccUtils::Role(grandParent) == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
+      if (grandParent &&
+          grandParent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
         return nsIAccessibleRole::ROLE_COMBOBOX_LIST;
     }
   }
