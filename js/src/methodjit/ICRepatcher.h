@@ -88,6 +88,23 @@ class Repatcher : public JSC::RepatchBuffer
 
         CheckIsStubCall(call.labelAtOffset(0));
         JSC::RepatchBuffer::relink(call.callAtOffset(-4), stub);
+#elif defined JS_CPU_MIPS
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        JSC::RepatchBuffer::relink(call.callAtOffset(-8), stub);
 #else
 # error
 #endif
@@ -95,7 +112,7 @@ class Repatcher : public JSC::RepatchBuffer
 
     
     void patchAddressOffsetForValueLoad(CodeLocationLabel label, uint32_t offset) {
-#if defined JS_CPU_X64 || defined JS_CPU_ARM || defined JS_CPU_SPARC
+#if defined JS_CPU_X64 || defined JS_CPU_ARM || defined JS_CPU_SPARC || defined JS_CPU_MIPS 
         repatch(label.dataLabel32AtOffset(0), offset);
 #elif defined JS_CPU_X86
         static const unsigned LOAD_TYPE_OFFSET = 6;
@@ -115,7 +132,7 @@ class Repatcher : public JSC::RepatchBuffer
     }
 
     void patchAddressOffsetForValueStore(CodeLocationLabel label, uint32_t offset, bool typeConst) {
-#if defined JS_CPU_ARM || defined JS_CPU_X64 || defined JS_CPU_SPARC
+#if defined JS_CPU_ARM || defined JS_CPU_X64 || defined JS_CPU_SPARC || defined JS_CPU_MIPS
         (void) typeConst;
         repatch(label.dataLabel32AtOffset(0), offset);
 #elif defined JS_CPU_X86
