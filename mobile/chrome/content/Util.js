@@ -261,7 +261,7 @@ Util.Timeout.prototype = {
 
   
   clear: function clear() {
-    if (this._type) {
+    if (this._type !== null) {
       this._timer.cancel();
       this._type = null;
     }
