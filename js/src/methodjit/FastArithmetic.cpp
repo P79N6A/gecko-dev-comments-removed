@@ -785,23 +785,42 @@ mjit::Compiler::jsop_mod()
     masm.idiv(rhsReg);
 
     
-    RegisterID lhsData = frame.tempRegForData(lhs);
-    Jump negZero1 = masm.branchTest32(Assembler::NonZero, X86Registers::edx);
-    Jump negZero2 = masm.branchTest32(Assembler::Zero, lhsData, Imm32(0x80000000));
 
-    
-    masm.storeValue(DoubleValue(-0.0), frame.addressOf(lhs));
 
-    
 
-    Jump done = masm.jump();
-    negZero1.linkTo(masm.label(), &masm);
-    negZero2.linkTo(masm.label(), &masm);
+    bool lhsMaybeNeg = true;
+    bool lhsIsNeg = false;
+    if (lhs->isConstant()) {
+        
+        JS_ASSERT(lhs->getValue().isInt32());
+        lhsMaybeNeg = lhsIsNeg = (lhs->getValue().toInt32() < 0);
+    }
+
+    MaybeJump done;
+    if (lhsMaybeNeg) {
+        RegisterID lhsData;
+        if (!lhsIsNeg)
+            lhsData = frame.tempRegForData(lhs);
+        Jump negZero1 = masm.branchTest32(Assembler::NonZero, X86Registers::edx);
+        MaybeJump negZero2;
+        if (!lhsIsNeg)
+            negZero2 = masm.branchTest32(Assembler::Zero, lhsData, Imm32(0x80000000));
+        
+        masm.storeValue(DoubleValue(-0.0), frame.addressOf(lhs));
+
+        
+
+        done = masm.jump();
+        negZero1.linkTo(masm.label(), &masm);
+        if (negZero2.isSet())
+            negZero2.getJump().linkTo(masm.label(), &masm);
+    }
 
     
     masm.storeTypeTag(ImmType(JSVAL_TYPE_INT32), frame.addressOf(lhs));
 
-    done.linkTo(masm.label(), &masm);
+    if (done.isSet())
+        done.getJump().linkTo(masm.label(), &masm);
 
     if (slowPath) {
         stubcc.leave();
