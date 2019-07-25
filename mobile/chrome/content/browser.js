@@ -260,10 +260,11 @@ var Browser = {
   _selectedTab : null,
   windowUtils: window.QueryInterface(Ci.nsIInterfaceRequestor)
                      .getInterface(Ci.nsIDOMWindowUtils),
-  _isStartup : true,
 
   startup: function() {
     var self = this;
+
+    dump("begin startup\n");
 
     let container = document.getElementById("tile-container");
     let bv = this._browserView = new BrowserView(container, getVisibleRect());
@@ -348,6 +349,8 @@ var Browser = {
       if (e.target != window)
         return;
 
+      dump(window.innerWidth + "," + window.innerHeight + "\n");
+      
       let w = window.innerWidth;
       let maximize = (document.documentElement.getAttribute("sizemode") == "maximized");
       if (maximize && w > screen.width)
@@ -375,6 +378,14 @@ var Browser = {
       bv.commitBatchOperation();
     }
     window.addEventListener("resize", resizeHandler, false);
+    
+    function fullscreenHandler() {
+      if (!window.fullScreen)
+        document.getElementById("toolbar-main").setAttribute("fullscreen", "true");
+      else
+        document.getElementById("toolbar-main").removeAttribute("fullscreen");      
+    }
+    window.addEventListener("fullscreen", fullscreenHandler, false);
 
     
     ih = new InputHandler();
@@ -479,8 +490,10 @@ var Browser = {
       this.setPluginState(true);
     }
 
-
     bv.commitBatchOperation();
+
+
+    dump("end startup\n");
   },
 
   shutdown: function() {
@@ -537,6 +550,9 @@ var Browser = {
   },
 
   endLoading: function() {
+    if (!this._pageLoading)
+      alert("endLoading when page is already done\n");
+
     this._pageLoading = false;
     clearTimeout(this._loadingTimeout);
     
@@ -1550,23 +1566,20 @@ ProgressController.prototype = {
       if (this.browser.markupDocumentViewer.textZoom != kDefaultTextZoom)
         this.browser.markupDocumentViewer.textZoom = kDefaultTextZoom;
     }
+
+    
+    let event = document.createEvent("Events");
+    event.initEvent("URLChanged", true, false);
+    this.browser.dispatchEvent(event);
   },
 
-  _networkStop: function() {
+  _networkStop: function _networkStop() {
     this._tab.setLoading(false);
 
     if (Browser.selectedBrowser == this.browser) {
-      Browser.endLoading();
       BrowserUI.update(TOOLBARSTATE_LOADED);
       this.browser.docShell.isOffScreenBrowser = true;
-      if (Browser._isStartup) {
-        
-        
-
-        
-        
-        Browser._isStartup = false;
-      }
+      Browser.endLoading();
     }
 
     this._tab.updateThumbnail();
@@ -1666,7 +1679,7 @@ Tab.prototype = {
   load: function(uri) {
     dump("cb set src\n");
     this._browser.setAttribute("src", uri);
-    dump("cb set src\n");
+    dump("cb end src\n");
   },
 
   create: function() {
@@ -1691,7 +1704,7 @@ Tab.prototype = {
     let scaledHeight = kDefaultBrowserWidth * (window.innerHeight / window.innerWidth);
     let browser = this._browser = document.createElement("browser");
 
-    browser.setAttribute("style", "overflow: hidden; visibility: hidden; width: " + kDefaultBrowserWidth + "px; height: " + scaledHeight + "px;");
+    browser.setAttribute("style", "overflow: -moz-hidden-unscrollable; visibility: hidden; width: " + kDefaultBrowserWidth + "px; height: " + scaledHeight + "px;");
     browser.setAttribute("type", "content");
 
     
@@ -1703,6 +1716,9 @@ Tab.prototype = {
 
     
     document.getElementById("browsers").appendChild(browser);
+
+    
+    browser.stop();
 
     
     this._listener = new ProgressController(this);
