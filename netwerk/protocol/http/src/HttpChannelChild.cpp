@@ -172,7 +172,8 @@ HttpChannelChild::RecvOnStopRequest(const nsresult& statusCode)
 NS_IMETHODIMP
 HttpChannelChild::Cancel(nsresult status)
 {
-  DROP_DEAD();
+  
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -191,21 +192,28 @@ HttpChannelChild::Resume()
 
 
 NS_IMETHODIMP
-HttpChannelChild::GetOwner(nsISupports **aOwner)
+HttpChannelChild::GetOwner(nsISupports **result)
 {
-  DROP_DEAD();
+  
+  NS_ENSURE_ARG_POINTER(result);
+  *result = nsnull;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 HttpChannelChild::SetOwner(nsISupports *aOwner)
 {
+  
   DROP_DEAD();
 }
 
 NS_IMETHODIMP
 HttpChannelChild::GetSecurityInfo(nsISupports **aSecurityInfo)
 {
-  DROP_DEAD();
+  
+  NS_ENSURE_ARG_POINTER(aSecurityInfo);
+  *aSecurityInfo = 0;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -330,7 +338,8 @@ HttpChannelChild::SetupFallbackChannel(const char *aFallbackKey)
 NS_IMETHODIMP
 HttpChannelChild::GetCacheToken(nsISupports **aCacheToken)
 {
-  DROP_DEAD();
+  
+  return NS_ERROR_NOT_AVAILABLE;
 }
 NS_IMETHODIMP
 HttpChannelChild::SetCacheToken(nsISupports *aCacheToken)
@@ -352,7 +361,10 @@ HttpChannelChild::SetOfflineCacheToken(nsISupports *aOfflineCacheToken)
 NS_IMETHODIMP
 HttpChannelChild::GetCacheKey(nsISupports **aCacheKey)
 {
-  DROP_DEAD();
+  
+  NS_ENSURE_ARG_POINTER(aCacheKey);
+  *aCacheKey = 0;
+  return NS_OK;
 }
 NS_IMETHODIMP
 HttpChannelChild::SetCacheKey(nsISupports *aCacheKey)
@@ -400,9 +412,14 @@ HttpChannelChild::GetCacheFile(nsIFile **aCacheFile)
 }
 
 NS_IMETHODIMP
-HttpChannelChild::IsFromCache(PRBool *retval)
+HttpChannelChild::IsFromCache(PRBool *value)
 {
-  DROP_DEAD();
+  if (!mIsPending)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  
+  *value = false;
+  return NS_OK;
 }
 
 
@@ -418,9 +435,12 @@ HttpChannelChild::SetUploadStream(nsIInputStream *aStream,
 }
 
 NS_IMETHODIMP
-HttpChannelChild::GetUploadStream(nsIInputStream **aUploadStream)
+HttpChannelChild::GetUploadStream(nsIInputStream **stream)
 {
-  DROP_DEAD();
+  
+  NS_ENSURE_ARG_POINTER(stream);
+  *stream = 0;
+  return NS_OK;
 }
 
 
@@ -540,7 +560,9 @@ HttpChannelChild::SetApplicationCache(nsIApplicationCache *aApplicationCache)
 NS_IMETHODIMP
 HttpChannelChild::GetLoadedFromApplicationCache(PRBool *retval)
 {
-  DROP_DEAD();
+  
+  *retval = 0;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
