@@ -82,6 +82,10 @@ public:
 
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest, imgIContainer *aImage);
+  NS_IMETHOD OnStartDecode(imgIRequest *aRequest);
+  NS_IMETHOD OnStopDecode(imgIRequest *aRequest,
+                          nsresult status,
+                          const PRUnichar *statusArg);
   NS_IMETHOD OnStopFrame(imgIRequest *aRequest, PRUint32 aFrame);
   NS_IMETHOD OnStopRequest(imgIRequest *aRequest, bool aLastPart);
   
@@ -109,4 +113,8 @@ private:
   nsCOMPtr<imgIRequest> mRequest;
   PRUint32 mActions;
   nsRefPtr<nsImageLoader> mNextLoader;
+
+  
+  
+  bool mRequestRegistered;
 };
