@@ -367,6 +367,8 @@ var stringBundle;
     var contentDiv = document.getElementById("experiment-specific-text");
     var dataPrivacyDiv = document.getElementById("data-privacy-text");
     
+    
+    
     var eid = parseInt(getUrlParam("eid"));
     var experiment = TestPilotSetup.getTaskById(eid);
     if (!experiment) {
