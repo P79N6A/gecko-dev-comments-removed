@@ -61,11 +61,6 @@ IsSafeForLazyThisCoercion(JSContext *cx, JSObject *callee)
 
 
 
-
-
-
-
-
     if (callee->isProxy()) {
         callee = callee->unwrap();
         if (!callee->isFunction())
