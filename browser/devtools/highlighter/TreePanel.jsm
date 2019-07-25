@@ -322,12 +322,25 @@ TreePanel.prototype = {
 
     let target = aEvent.target;
 
+    if (!this.hasClass(target, "editable")) {
+      return;
+    }
+
+    let repObj = this.getRepObject(target);
+
     if (this.hasClass(target, "nodeValue")) {
-      let repObj = this.getRepObject(target);
       let attrName = target.getAttribute("data-attributeName");
       let attrVal = target.innerHTML;
 
-      this.editAttributeValue(target, repObj, attrName, attrVal);
+      this.editAttribute(target, repObj, attrName, attrVal);
+    }
+
+    if (this.hasClass(target, "nodeName")) {
+      let attrName = target.innerHTML;
+      let attrValNode = target.nextSibling.nextSibling; 
+
+      if (attrValNode)
+        this.editAttribute(target, repObj, attrName, attrValNode.innerHTML);
     }
   },
 
@@ -342,8 +355,9 @@ TreePanel.prototype = {
 
 
 
-  editAttributeValue:
-  function TP_editAttributeValue(aAttrObj, aRepObj, aAttrName, aAttrVal)
+
+  editAttribute:
+  function TP_editAttribute(aAttrObj, aRepObj, aAttrName, aAttrVal)
   {
     let editor = this.treeBrowserDocument.getElementById("attribute-editor");
     let editorInput =
@@ -357,7 +371,8 @@ TreePanel.prototype = {
     this.editingContext = {
       attrObj: aAttrObj,
       repObj: aRepObj,
-      attrName: aAttrName
+      attrName: aAttrName,
+      attrValue: aAttrVal
     };
 
     
@@ -367,7 +382,7 @@ TreePanel.prototype = {
     this.addClass(editor, "editing");
 
     
-    let editorVeritcalOffset = 2;
+    let editorVerticalOffset = 2;
 
     
     let editorViewportBoundary = 5;
@@ -384,7 +399,7 @@ TreePanel.prototype = {
                     
                     ((editorDims.width - attrDims.width) / 2);
     let editorTop = attrDims.top + this.treeIFrame.contentWindow.scrollY +
-                    attrDims.height + editorVeritcalOffset;
+                    attrDims.height + editorVerticalOffset;
 
     
     editorLeft = Math.max(0, Math.min(
@@ -403,8 +418,13 @@ TreePanel.prototype = {
     editor.style.top = editorTop + "px";
 
     
-    editorInput.value = aAttrVal;
-    editorInput.select();
+    if (this.hasClass(aAttrObj, "nodeValue")) {
+      editorInput.value = aAttrVal;
+      editorInput.select();
+    } else {
+      editorInput.value = aAttrName;
+      editorInput.select();
+    }
 
     
     this.bindEditorEvent(editor, "click", function(aEvent) {
@@ -510,15 +530,32 @@ TreePanel.prototype = {
   {
     let editorInput =
       this.treeBrowserDocument.getElementById("attribute-editor-input");
+    let dirty = false;
 
-    
-    this.editingContext.repObj.setAttribute(this.editingContext.attrName,
-                                              editorInput.value);
+    if (this.hasClass(this.editingContext.attrObj, "nodeValue")) {
+      
+      this.editingContext.repObj.setAttribute(this.editingContext.attrName,
+                                                editorInput.value);
 
-    
-    this.editingContext.attrObj.innerHTML = editorInput.value;
+      
+      this.editingContext.attrObj.innerHTML = editorInput.value;
+      dirty = true;
+    }
 
-    this.IUI.isDirty = true;
+    if (this.hasClass(this.editingContext.attrObj, "nodeName")) {
+      
+      this.editingContext.repObj.removeAttribute(this.editingContext.attrName);
+
+      
+      this.editingContext.repObj.setAttribute(editorInput.value,
+                                              this.editingContext.attrValue);
+
+      
+      this.editingContext.attrObj.innerHTML = editorInput.value;
+      dirty = true;
+    }
+
+    this.IUI.isDirty = dirty;
     this.IUI.nodeChanged(this.registrationObject);
 
     
