@@ -130,8 +130,9 @@ JarStore.prototype = {
   saveJarFile: function( filename, rawData, expectedHash ) {
     console.info("Saving a JAR file as " + filename + " hash = " + expectedHash);
     
+    let jarFile;
     try {
-    let jarFile = this._baseDir.clone();
+      jarFile = this._baseDir.clone();
       
       jarFile.append(filename.split("/").pop());
 
@@ -139,29 +140,32 @@ JarStore.prototype = {
       if (jarFile.exists()) {
         jarFile.remove(false);
       }
-    
-    jarFile.create( Ci.nsIFile.NORMAL_FILE_TYPE, 600);
-    let stream = Cc["@mozilla.org/network/safe-file-output-stream;1"].
-                    createInstance(Ci.nsIFileOutputStream);
-    stream.init(jarFile, 0x04 | 0x08 | 0x20, 0600, 0); 
-
-    stream.write(rawData, rawData.length);
-    if (stream instanceof Ci.nsISafeOutputStream) {
-      stream.finish();
-    } else {
-      stream.close();
-    }
-    
-    
-    if (this._verifyJar(jarFile, expectedHash)) {
-      this._indexJar(jarFile);
-      this._lastModified[jarFile.leafName] = jarFile.lastModifiedTime;
-    } else {
-      console.warn("Bad JAR file, doesn't match hash: " + expectedHash);
-      jarFile.remove(false);
-    }
+      
+      jarFile.create( Ci.nsIFile.NORMAL_FILE_TYPE, 0600);
+      let stream = Cc["@mozilla.org/network/safe-file-output-stream;1"].
+                      createInstance(Ci.nsIFileOutputStream);
+      stream.init(jarFile, 0x04 | 0x08 | 0x20, 0600, 0); 
+      stream.write(rawData, rawData.length);
+      if (stream instanceof Ci.nsISafeOutputStream) {
+        stream.finish();
+      } else {
+        stream.close();
+      }
+      
+      
+      if (this._verifyJar(jarFile, expectedHash)) {
+        this._indexJar(jarFile);
+        this._lastModified[jarFile.leafName] = jarFile.lastModifiedTime;
+      } else {
+        console.warn("Bad JAR file, doesn't match hash: " + expectedHash);
+        jarFile.remove(false);
+      }
     } catch(e) {
       console.warn("Error in saving jar file: " + e);
+      
+      if (jarFile.exists()) {
+        jarFile.remove(false);
+      }
     }
   },
 

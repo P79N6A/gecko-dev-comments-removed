@@ -247,7 +247,179 @@ exports.RemoteExperimentLoader.prototype = {
     return studiesToLoad;
   },
 
+  _executeFreshIndexFile: function(data, callback) {
+    try {
+      data = JSON.parse(data);
+    } catch (e) {
+      this._logger.warn("Error parsing index.json: " + e );
+      callback(false);
+      return;
+    }
+
+    
+    this._studyResults = data.results;
+    this._legacyStudies = data.legacy;
+
+    
+
+
+    let jarFiles = this.getLocalizedStudyInfo(data.new_experiments);
+    let numFilesToDload = jarFiles.length;
+    let self = this;
+
+    for each (let j in jarFiles) {
+      let filename = j.jarfile;
+      let hash = j.hash;
+      if (j.studyfile) {
+        this._experimentFileNames.push(j.studyfile);
+      }
+      this._logger.trace("I'm gonna go try to get the code for " + filename);
+      let modDate = this._jarStore.getFileModifiedDate(filename);
+
+      this._fileGetter(resolveUrl(this._baseUrl, filename),
+      function onDone(code) {
+        
+        if (code) {
+          self._logger.info("Downloaded jar file " + filename);
+          self._jarStore.saveJarFile(filename, code, hash);
+          self._logger.trace("Saved code for: " + filename);
+        } else {
+          self._logger.info("Nothing to download for " + filename);
+        }
+        numFilesToDload--;
+        if (numFilesToDload == 0) {
+          self._logger.trace("Calling callback.");
+          callback(true);
+        }
+      }, modDate);
+    }
+  },
+
+  _executeCachedIndexFile: function(data) {
+    
+
+
+
+    try {
+      data = JSON.parse(data);
+    } catch (e) {
+      this._logger.warn("Error parsing index.json: " + e );
+      return false;
+    }
+    
+    this._studyResults = data.results;
+    this._legacyStudies = data.legacy;
+
+    
+    let jarFiles = this.getLocalizedStudyInfo(data.new_experiments);
+    for each (let j in jarFiles) {
+      let filename = j.jarfile;
+      let hash = j.hash;
+      if (j.studyfile) {
+        this._experimentFileNames.push(j.studyfile);
+      }
+    }
+    return true;
+  },
+
+  
+  
+
+  
+    
+
+  
+
+  _cachedIndexNsiFile: null,
+  get cachedIndexNsiFile() {
+    if (!this._cachedIndexNsiFile) {
+      try {
+        let file = Cc["@mozilla.org/file/directory_service;1"].
+                         getService(Ci.nsIProperties).
+                         get("ProfD", Ci.nsIFile);
+        file.append("TestPilotExperimentFiles"); 
+        
+        
+        if (file.exists() && !file.isDirectory()) {
+          file.remove(false);
+        }
+        if (!file.exists()) {
+          file.create(Ci.nsIFile.DIRECTORY_TYPE, 0777);
+        }
+        file.append("index.json");
+        this._cachedIndexNsiFile = file;
+      } catch(e) {
+        console.warn("Error creating directory for cached index file: " + e);
+      }
+    }
+    return this._cachedIndexNsiFile;
+  },
+
+  _cacheIndexFile: function(data) {
+    
+    try {
+      let file = this.cachedIndexNsiFile;
+      if (file == null) {
+        console.warn("Can't cache index file because directory does not exist.");
+        return;
+      }
+      if (file.exists()) {
+        file.remove(false);
+      }
+      file.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
+      
+      let foStream = Cc["@mozilla.org/network/file-output-stream;1"].
+                               createInstance(Ci.nsIFileOutputStream);
+
+      foStream.init(file, 0x02 | 0x08 | 0x20, 0666, 0);
+      
+      let converter = Cc["@mozilla.org/intl/converter-output-stream;1"].
+                                createInstance(Ci.nsIConverterOutputStream);
+      converter.init(foStream, "UTF-8", 0, 0);
+      converter.writeString(data);
+      converter.close(); 
+    } catch(e) {
+      console.warn("Error cacheing index file: " + e);
+    }
+  },
+
+  
+  _loadCachedIndexFile: function() {
+    
+    
+    let file = this.cachedIndexNsiFile;
+    if (file == null) {
+      console.warn("Can't load cached index file because directory does not exist.");
+      return false;
+    }
+    if (file.exists()) {
+      try {
+        let data = "";
+        let fstream = Cc["@mozilla.org/network/file-input-stream;1"].
+                          createInstance(Ci.nsIFileInputStream);
+        let cstream = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                          createInstance(Ci.nsIConverterInputStream);
+        fstream.init(file, -1, 0, 0);
+        cstream.init(fstream, "UTF-8", 0, 0);
+        let str = {};
+        while (cstream.readString(4096, str) != 0) {
+          data += str.value;
+        }
+        cstream.close(); 
+        return data;
+      } catch(e) {
+        console.warn("Error occured in reading cached index file: " + e);
+        return false;
+      }
+    } else {
+      console.warn("Trying to load cached index file but it does not exist.");
+      return false;
+    }
+  },
+
   checkForUpdates: function(callback) {
+    
+    
     
 
 
@@ -260,60 +432,31 @@ exports.RemoteExperimentLoader.prototype = {
     this._logger.info("Unloading everything to prepare to check for updates.");
     this._refreshLoader();
 
-    
+    let modDate = 0;
+    if (this.cachedIndexNsiFile) {
+      if (this.cachedIndexNsiFile.exists()) {
+        modDate = this.cachedIndexNsiFile.lastModifiedTime;
+      }
+    }
     let url = resolveUrl(self._baseUrl, indexFileName);
     self._fileGetter(url, function onDone(data) {
       if (data) {
-        try {
-          data = JSON.parse(data);
-        } catch (e) {
-          self._logger.warn("Error parsing index.json: " + e );
-          callback(false);
-          return;
-        }
-
+        self._executeFreshIndexFile(data, callback);
         
-        self._studyResults = data.results;
-        self._legacyStudies = data.legacy;
-
-        
-
-
-        let jarFiles = self.getLocalizedStudyInfo(data.new_experiments);
-        let numFilesToDload = jarFiles.length;
-
-        for each (let j in jarFiles) {
-          let filename = j.jarfile;
-          let hash = j.hash;
-          if (j.studyfile) {
-            self._experimentFileNames.push(j.studyfile);
-          }
-          self._logger.trace("I'm gonna go try to get the code for " + filename);
-          let modDate = self._jarStore.getFileModifiedDate(filename);
-
-          self._fileGetter(resolveUrl(self._baseUrl, filename),
-            function onDone(code) {
-              
-              if (code) {
-                self._logger.info("Downloaded jar file " + filename);
-                self._jarStore.saveJarFile(filename, code, hash);
-                self._logger.trace("Saved code for: " + filename);
-              } else {
-                self._logger.info("Nothing to download for " + filename);
-              }
-              numFilesToDload--;
-              if (numFilesToDload == 0) {
-                self._logger.trace("Calling callback.");
-                callback(true);
-              }
-            }, modDate);
-        }
-
+        self._cacheIndexFile(data);
       } else {
-        self._logger.warn("Could not download index.json from test pilot server.");
-        callback(false);
+        self._logger.info("Could not download index.json, using cached version.");
+        let data = self._loadCachedIndexFile();
+        if (data) {
+          let success = self._executeCachedIndexFile(data);
+          callback(success);
+        } else {
+          self._logger.warn("Could not download index.json and no cached version.");
+          
+          callback(false);
+        }
       }
-    });
+    }, modDate);
   },
 
   getExperiments: function() {
@@ -343,18 +486,6 @@ exports.RemoteExperimentLoader.prototype = {
     return this._legacyStudies;
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
