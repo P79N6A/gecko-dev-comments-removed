@@ -41,7 +41,10 @@
 #include "jsnum.h"
 #include "MonoIC.h"
 #include "StubCalls.h"
+#include "assembler/assembler/LinkBuffer.h"
 #include "assembler/assembler/RepatchBuffer.h"
+#include "assembler/assembler/MacroAssembler.h"
+#include "CodeGenIncludes.h"
 #include "jsobj.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
@@ -180,5 +183,112 @@ ic::SetGlobalName(VMFrame &f, uint32 index)
     
     stubs::SetGlobalName(f, atom);
 }
+
+#ifdef JS_CPU_X86
+
+ic::NativeCallCompiler::NativeCallCompiler()
+    : jumps(SystemAllocPolicy())
+{}
+
+void
+ic::NativeCallCompiler::finish(JSScript *script, uint8 *start, uint8 *fallthrough)
+{
+    
+    Jump fallJump = masm.jump();
+    addLink(fallJump, fallthrough);
+
+    uint8 *result = (uint8 *)script->execPool->alloc(masm.size());
+    JSC::ExecutableAllocator::makeWritable(result, masm.size());
+    masm.executableCopy(result);
+
+    
+    BaseAssembler::insertJump(start, result);
+
+    
+    masm.finalize(result);
+
+    
+    JSC::LinkBuffer linkmasm(result, masm.size());
+
+    for (size_t i = 0; i < jumps.length(); i++)
+        linkmasm.link(jumps[i].from, JSC::CodeLocationLabel(jumps[i].to));
+}
+
+void
+ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fun)
+{
+    if (mic.u.generated) {
+        
+        return;
+    }
+    mic.u.generated = true;
+
+    JS_ASSERT(fun->isFastNative());
+    FastNative fn = (FastNative)fun->u.n.native;
+
+    typedef JSC::MacroAssembler::ImmPtr ImmPtr;
+    typedef JSC::MacroAssembler::Imm32 Imm32;
+    typedef JSC::MacroAssembler::Address Address;
+    typedef JSC::MacroAssembler::Jump Jump;
+
+    uint8 *start = (uint8*) mic.knownObject.executableAddress();
+    uint8 *stubEntry = (uint8*) mic.stubEntry.executableAddress();
+    uint8 *fallthrough = (uint8*) mic.callEnd.executableAddress();
+
+    NativeCallCompiler ncc;
+
+    Jump differentFunction = ncc.masm.branchPtr(Assembler::NotEqual, mic.dataReg, ImmPtr(fun));
+    ncc.addLink(differentFunction, stubEntry);
+
+    
+
+    
+    JSC::MacroAssembler::RegisterID temp = mic.dataReg;
+
+    
+    ncc.masm.storePtr(ImmPtr(cx->regs->pc),
+                      FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
+
+    
+    uint32 spOffset = sizeof(JSStackFrame) + (mic.frameDepth + mic.argc + 2) * sizeof(jsval);
+    ncc.masm.addPtr(Imm32(spOffset), JSFrameReg, temp);
+    ncc.masm.storePtr(temp, FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, sp)));
+
+    
+    const uint32 stackAdjustment = 16;
+    ncc.masm.sub32(Imm32(stackAdjustment), JSC::X86Registers::esp);
+
+    
+    uint32 vpOffset = sizeof(JSStackFrame) + mic.frameDepth * sizeof(jsval);
+    ncc.masm.addPtr(Imm32(vpOffset), JSFrameReg, temp);
+    ncc.masm.storePtr(temp, Address(JSC::X86Registers::esp, 0x8));
+
+    
+    ncc.masm.store32(Imm32(mic.argc), Address(JSC::X86Registers::esp, 0x4));
+
+    
+    ncc.masm.loadPtr(FrameAddress(stackAdjustment + offsetof(VMFrame, cx)), temp);
+    ncc.masm.storePtr(temp, Address(JSC::X86Registers::esp, 0));
+
+    
+    ncc.masm.call((void*)fn);
+
+    
+    ncc.masm.add32(Imm32(stackAdjustment), JSC::X86Registers::esp);
+
+    
+    Jump hasException =
+        ncc.masm.branchTest32(Assembler::Zero, Registers::ReturnReg, Registers::ReturnReg);
+    ncc.addLink(hasException, JS_FUNC_TO_DATA_PTR(uint8 *, JaegerThrowpoline));
+
+    
+    Address rval(JSFrameReg, vpOffset);
+    ncc.masm.loadPayload(rval, JSReturnReg_Data);
+    ncc.masm.loadTypeTag(rval, JSReturnReg_Type);
+
+    ncc.finish(script, start, fallthrough);
+}
+
+#endif 
 
 #endif 
