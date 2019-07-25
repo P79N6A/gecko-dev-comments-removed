@@ -117,6 +117,23 @@ PRInt32 gfxQuartzSurface::GetDefaultContextFlags() const
     return 0;
 }
 
+already_AddRefed<gfxImageSurface> gfxQuartzSurface::GetAsImageSurface()
+{
+    cairo_surface_t *surface = cairo_quartz_surface_get_image(mSurface);
+    if (!surface)
+        return nsnull;
+
+    nsRefPtr<gfxASurface> img = Wrap(surface);
+
+    
+    
+    
+    
+    img->Release();
+
+    return static_cast<gfxImageSurface*>(img.forget().get());
+}
+
 gfxQuartzSurface::~gfxQuartzSurface()
 {
     CGContextRelease(mCGContext);
