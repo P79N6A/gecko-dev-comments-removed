@@ -235,9 +235,19 @@ public:
   
 
 
-  inline bool HasAccessible(nsINode* aNode)
+  inline bool HasAccessible(nsINode* aNode) const
+    { return GetAccessible(aNode); }
+
+  
+
+
+  inline bool IsInDocument(nsAccessible* aAccessible) const
   {
-    return GetAccessible(aNode);
+    nsAccessible* acc = aAccessible;
+    while (acc && !acc->IsPrimaryForNode())
+      acc = acc->Parent();
+
+    return acc ? mNodeToAccessibleMap.Get(acc->GetNode()) : false;
   }
 
   
