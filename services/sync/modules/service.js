@@ -1100,7 +1100,16 @@ WeaveSvc.prototype = {
       throw "aborting sync, remote setup failed";
 
     
-    let info = new Resource(this.infoURL).get();
+    let infoURL = this.infoURL;
+    let now = Math.floor(Date.now() / 1000);
+    let lastPing = Svc.Prefs.get("lastPing", 0);
+    if (now - lastPing > 86400) { 
+      infoURL += "?";
+      Svc.Prefs.set("lastPing", now);
+    }
+
+    
+    let info = new Resource(infoURL).get();
     if (!info.success)
       throw "aborting sync, failed to get collections";
 
