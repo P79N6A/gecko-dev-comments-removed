@@ -48,8 +48,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x0c4d0b84, 0xb524, 0x4572, \
-  { 0x8e, 0xd1, 0x7f, 0x78, 0x14, 0x7c, 0x4d, 0xf1 } }
+{0x66660102, 0xd875, 0x47e2, \
+  {0xa1, 0xf7, 0x12, 0xbc, 0x83, 0xc9, 0x93, 0xa9}}
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -621,6 +621,13 @@ public:
 
 
   virtual bool IsInAppOrigin() = 0;
+
+  
+
+
+  virtual nsresult
+  OpenNoNavigate(const nsAString& aUrl, const nsAString& aName,
+                 const nsAString& aOptions, nsIDOMWindow **_retval) = 0;
 
 protected:
   
