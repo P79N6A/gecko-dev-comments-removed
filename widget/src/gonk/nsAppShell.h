@@ -86,6 +86,9 @@ protected:
 
     virtual void ScheduleNativeEventCallback();
 
+private:
+    nsresult AddFdHandler(int fd, FdHandlerCallback handlerFunc);
+
     
     bool mNativeCallbackRequest;
     nsTArray<FdHandler> mHandlers;
