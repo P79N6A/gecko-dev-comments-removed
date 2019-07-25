@@ -7895,7 +7895,6 @@ namespace
 
 
 
-
 class nsCopyFaviconCallback : public nsIFaviconDataCallback
 {
 public:
@@ -7907,9 +7906,14 @@ public:
     }
 
     NS_IMETHODIMP
-    OnFaviconDataAvailable(nsIURI *aFaviconURI, PRUint32 aDataLen,
-                           const PRUint8 *aData, const nsACString &aMimeType)
+    OnComplete(nsIURI *aFaviconURI, PRUint32 aDataLen,
+               const PRUint8 *aData, const nsACString &aMimeType)
     {
+        
+        if (!aFaviconURI) {
+          return NS_OK;
+        }
+
         NS_ASSERTION(aDataLen == 0,
                      "We weren't expecting the callback to deliver data.");
         nsCOMPtr<mozIAsyncFavicons> favSvc =

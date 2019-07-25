@@ -370,6 +370,16 @@ class NotifyIconObservers : public AsyncFaviconHelperBase
 public:
   NS_DECL_NSIRUNNABLE
 
+  
+
+
+
+
+
+
+
+
+
   NotifyIconObservers(IconData& aIcon,
                       PageData& aPage,
                       nsCOMPtr<nsIFaviconDataCallback>& aCallback);
@@ -378,6 +388,8 @@ public:
 protected:
   IconData mIcon;
   PageData mPage;
+
+  void SendGlobalNotifications(nsIURI* aIconURI);
 };
 
 } 

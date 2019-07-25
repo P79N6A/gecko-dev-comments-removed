@@ -103,7 +103,7 @@ function waitForFaviconChanged(aExpectedPageURI, aExpectedFaviconURI,
 function checkFaviconDataForPage(aPageURI, aExpectedMimeType, aExpectedData,
                                  aCallback) {
   PlacesUtils.favicons.getFaviconDataForPage(aPageURI,
-    function CFDFP_onFaviconDataAvailable(aURI, aDataLen, aData, aMimeType) {
+    function (aURI, aDataLen, aData, aMimeType) {
       do_check_eq(aExpectedMimeType, aMimeType);
       do_check_true(compareArrays(aExpectedData, aData));
       do_check_guid_for_uri(aPageURI);
@@ -120,21 +120,9 @@ function checkFaviconDataForPage(aPageURI, aExpectedMimeType, aExpectedData,
 
 
 function checkFaviconMissingForPage(aPageURI, aCallback) {
-  
-  let notificationReceived = false;
   PlacesUtils.favicons.getFaviconURLForPage(aPageURI,
-    function CFMFP_onFaviconDataAvailable() {
-      notificationReceived = true;
-    });
-
-  
-  
-  
-  
-  waitForAsyncUpdates(function CFMFP_asyncUpdates() {
-    do_execute_soon(function CFMFP_soon() {
-      do_check_false(notificationReceived);
+    function (aURI, aDataLen, aData, aMimeType) {
+      do_check_true(aURI === null);
       aCallback();
     });
-  });
 }
