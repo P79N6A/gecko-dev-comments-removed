@@ -1703,15 +1703,6 @@ public:
         const void *aText, PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
 
     
-    
-    
-    
-    
-    
-    virtual gfxTextRun *Clone(const gfxTextRunFactory::Parameters *aParams, const void *aText,
-                              PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
-
-    
 
 
 
