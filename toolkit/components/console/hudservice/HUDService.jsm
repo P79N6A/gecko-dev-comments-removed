@@ -1352,8 +1352,6 @@ HUD_SERVICE.prototype =
 
     this.unregisterActiveContext(hudId);
     this.unregisterDisplay(hudId);
-    window.wrappedJSObject.console = null;
-
   },
 
   
@@ -1711,6 +1709,13 @@ HUD_SERVICE.prototype =
     }
     
     parent.removeChild(outputNode);
+
+    this.windowRegistry[aId].forEach(function(aContentWindow) {
+      if (aContentWindow.wrappedJSObject.console instanceof HUDConsole) {
+        delete aContentWindow.wrappedJSObject.console;
+      }
+    });
+
     
     delete this._headsUpDisplays[aId];
     
@@ -1969,8 +1974,8 @@ HUD_SERVICE.prototype =
 
   getConsoleOutputNode: function HS_getConsoleOutputNode(aId)
   {
-    let displayNode = this.getHeadsUpDisplay(aHUDId);
-    return displayNode.querySelectorAll(".hud-output-node")[0];
+    let displayNode = this.getHeadsUpDisplay(aId);
+    return displayNode.querySelector(".hud-output-node");
   },
 
   
@@ -2568,12 +2573,18 @@ HUD_SERVICE.prototype =
 
 
 
-  initializeJSTerm: function HS_initializeJSTerm(aContext, aParentNode)
+
+
+
+  initializeJSTerm: function HS_initializeJSTerm(aContext, aParentNode, aConsole)
   {
     
     var context = Cu.getWeakReference(aContext);
+
+    
     var firefoxMixin = new JSTermFirefoxMixin(context, aParentNode);
-    var jsTerm = new JSTerm(context, aParentNode, firefoxMixin);
+    var jsTerm = new JSTerm(context, aParentNode, firefoxMixin, aConsole);
+
     
     
   },
@@ -2698,47 +2709,45 @@ HUD_SERVICE.prototype =
 
     this.registerDisplay(hudId, aContentWindow);
 
-    
-    let _console = aContentWindow.wrappedJSObject.console;
-    if (!_console) {
+    let hudNode;
+    let childNodes = nBox.childNodes;
+
+    for (let i = 0; i < childNodes.length; i++) {
+      let id = childNodes[i].getAttribute("id");
       
-      let hudNode;
-      let childNodes = nBox.childNodes;
-
-      for (var i = 0; i < childNodes.length; i++) {
-        let id = childNodes[i].getAttribute("id");
-        if (id.split("_")[0] == "hud") {
-          hudNode = childNodes[i];
-          break;
-        }
-      }
-
-      if (!hudNode) {
-        
-        let config = { parentNode: nBox,
-                       contentWindow: aContentWindow
-                     };
-
-        let _hud = new HeadsUpDisplay(config);
-
-        let hudWeakRef = Cu.getWeakReference(_hud);
-        HUDService.registerHUDWeakReference(hudWeakRef, hudId);
-      }
-      else {
-        
-        let config = { hudNode: hudNode,
-                       consoleOnly: true,
-                       contentWindow: aContentWindow
-                     };
-
-        let _hud = new HeadsUpDisplay(config);
-
-        let hudWeakRef = Cu.getWeakReference(_hud);
-        HUDService.registerHUDWeakReference(hudWeakRef, hudId);
-
-        aContentWindow.wrappedJSObject.console = _hud.console;
+      if (id.split("_")[0] == "hud") {
+        hudNode = childNodes[i];
+        break;
       }
     }
+
+    let hud;
+    
+    if (!hudNode) {
+      
+      let config = { parentNode: nBox,
+                     contentWindow: aContentWindow,
+                   };
+
+      hud = new HeadsUpDisplay(config);
+
+      let hudWeakRef = Cu.getWeakReference(hud);
+      HUDService.registerHUDWeakReference(hudWeakRef, hudId);
+    }
+    else {
+      hud = this.hudWeakReferences[hudId].get();
+      hud.reattachConsole(aContentWindow.top);
+    }
+
+    
+    
+    if (aContentWindow.wrappedJSObject.console) {
+      this.logWarningAboutReplacedAPI(hudId);
+    }
+    else {
+      aContentWindow.wrappedJSObject.console = hud.console;
+    }
+
     
     this.setOnErrorHandler(aContentWindow);
 
@@ -2782,23 +2791,6 @@ function HeadsUpDisplay(aConfig)
   
   
   
-  
-  
-  
-  
-  
-  
-
-  if (aConfig.consoleOnly) {
-    this.HUDBox = aConfig.hudNode;
-    this.parentNode = aConfig.hudNode.parentNode;
-    this.notificationBox = this.parentNode;
-    this.contentWindow = aConfig.contentWindow;
-    this.uriSpec = aConfig.contentWindow.location.href;
-    this.reattachConsole();
-    this.HUDBox.querySelectorAll(".jsterm-input-node")[0].focus();
-    return;
-  }
 
   this.HUDBox = null;
 
@@ -2886,11 +2878,10 @@ function HeadsUpDisplay(aConfig)
   this.notificationBox.insertBefore(splitter,
                                     this.notificationBox.childNodes[1]);
 
-  let console = this.createConsole();
-
   this.HUDBox.lastTimestamp = 0;
 
-  this.contentWindow.wrappedJSObject.console = console;
+  
+  this._console = this.createConsole();
 
   
   try {
@@ -2946,7 +2937,7 @@ HeadsUpDisplay.prototype = {
     if (appName() == "FIREFOX") {
       let outputCSSClassOverride = "hud-msg-node";
       let mixin = new JSTermFirefoxMixin(context, aParentNode, aExistingConsole, outputCSSClassOverride);
-      this.jsterm = new JSTerm(context, aParentNode, mixin);
+      this.jsterm = new JSTerm(context, aParentNode, mixin, this.console);
     }
     else {
       throw new Error("Unsupported Gecko Application");
@@ -2958,22 +2949,24 @@ HeadsUpDisplay.prototype = {
 
 
 
-  reattachConsole: function HUD_reattachConsole()
+
+  reattachConsole: function HUD_reattachConsole(aContentWindow)
   {
-    this.hudId = this.HUDBox.getAttribute("id");
+    this.contentWindow = aContentWindow;
+    this.contentDocument = this.contentWindow.document;
+    this.uriSpec = this.contentWindow.location.href;
 
-    this.outputNode = this.HUDBox.querySelectorAll(".hud-output-node")[0];
+    if (!this._console) {
+      this._console = this.createConsole();
+    }
 
-    this.chromeWindow = HUDService.
-      getChromeWindowFromContentWindow(this.contentWindow);
-    this.chromeDocument = this.HUDBox.ownerDocument;
-
-    if (this.outputNode) {
-      
-      this.createConsole();
+    if (!this.jsterm) {
+      this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
     }
     else {
-      throw new Error("Cannot get output node");
+      this.jsterm.context = Cu.getWeakReference(this.contentWindow);
+      this.jsterm.console = this.console;
+      this.jsterm.createSandbox();
     }
   },
 
@@ -3260,7 +3253,13 @@ HeadsUpDisplay.prototype = {
     }
   },
 
-  get console() { return this._console || this.createConsole(); },
+  get console() {
+    if (!this._console) {
+      this._console = this.createConsole();
+    }
+
+    return this._console;
+  },
 
   getLogCount: function HUD_getLogCount()
   {
@@ -3308,8 +3307,6 @@ function HUDConsole(aHeadsUpDisplay)
   let hudId = hud.hudId;
   let outputNode = hud.outputNode;
   let chromeDocument = hud.chromeDocument;
-
-  aHeadsUpDisplay._console = this;
 
   let sendToHUDService = function console_send(aLevel, aArguments)
   {
@@ -3801,7 +3798,7 @@ function JSTermHelper(aJSTerm)
 
 
 
-function JSTerm(aContext, aParentNode, aMixin)
+function JSTerm(aContext, aParentNode, aMixin, aConsole)
 {
   
 
@@ -3809,6 +3806,7 @@ function JSTerm(aContext, aParentNode, aMixin)
   this.context = aContext;
   this.parentNode = aParentNode;
   this.mixins = aMixin;
+  this.console = aConsole;
 
   this.xulElementFactory =
     NodeFactory("xul", "xul", aParentNode.ownerDocument);
@@ -3865,8 +3863,6 @@ JSTerm.prototype = {
   createSandbox: function JST_setupSandbox()
   {
     
-    this._window.wrappedJSObject.jsterm = {};
-    this.console = this._window.wrappedJSObject.console;
     this.sandbox = new Cu.Sandbox(this._window);
     this.sandbox.window = this._window;
     this.sandbox.console = this.console;
