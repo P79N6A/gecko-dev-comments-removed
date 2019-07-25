@@ -41,6 +41,11 @@
 #define mozilla_ClearOnShutdown_h
 
 #include "mozilla/LinkedList.h"
+#include "nsThreadUtils.h"
+
+
+
+
 
 
 
@@ -96,6 +101,8 @@ inline void ClearOnShutdown(SmartPtr *aPtr)
 {
   using namespace ClearOnShutdown_Internal;
 
+  MOZ_ASSERT(NS_IsMainThread());
+
   MOZ_ASSERT(!sHasShutDown);
   ShutdownObserver *observer = new PointerClearer<SmartPtr>(aPtr);
   sShutdownObservers.insertBack(observer);
@@ -106,6 +113,8 @@ inline void ClearOnShutdown(SmartPtr *aPtr)
 inline void KillClearOnShutdown()
 {
   using namespace ClearOnShutdown_Internal;
+
+  MOZ_ASSERT(NS_IsMainThread());
 
   ShutdownObserver *observer;
   while ((observer = sShutdownObservers.popFirst())) {
