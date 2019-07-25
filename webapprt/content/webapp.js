@@ -12,17 +12,19 @@ Cu.import("resource://gre/modules/Services.jsm");
 function onLoad() {
   window.removeEventListener("load", onLoad, false);
 
-  let installRecord = WebappRT.config.app;
-  let manifest = WebappRT.config.app.manifest;
-
   
+  let manifest = WebappRT.config.app.manifest;
   document.documentElement.setAttribute("title", manifest.name);
 
   
-  let url = Services.io.newURI(installRecord.origin, null, null);
-  if (manifest.launch_path)
-    url = Services.io.newURI(manifest.launch_path, null, url);
-  document.getElementById("content").setAttribute("src", url.spec);
+  if ("arguments" in window) {
+    
+    let installRecord = WebappRT.config.app;
+    let url = Services.io.newURI(installRecord.origin, null, null);
+    if (manifest.launch_path)
+      url = Services.io.newURI(manifest.launch_path, null, url);
+    document.getElementById("content").setAttribute("src", url.spec);
+  }
 }
 window.addEventListener("load", onLoad, false);
 
