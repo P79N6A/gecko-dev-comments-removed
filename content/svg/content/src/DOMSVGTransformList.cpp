@@ -184,6 +184,7 @@ DOMSVGTransformList::Clear()
   }
 
   if (Length() > 0) {
+    nsAttrValue emptyOrOldValue = Element()->WillChangeTransformList();
     
     
     
@@ -191,7 +192,7 @@ DOMSVGTransformList::Clear()
 
     mItems.Clear();
     InternalList().Clear();
-    Element()->DidChangeTransformList(true);
+    Element()->DidChangeTransformList(emptyOrOldValue);
     if (mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
     }
@@ -272,6 +273,7 @@ DOMSVGTransformList::InsertItemBefore(nsIDOMSVGTransform *newItem,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeTransformList();
   
   MaybeInsertNullInAnimValListAt(index);
 
@@ -285,7 +287,7 @@ DOMSVGTransformList::InsertItemBefore(nsIDOMSVGTransform *newItem,
 
   UpdateListIndicesFromIndex(mItems, index + 1);
 
-  Element()->DidChangeTransformList(true);
+  Element()->DidChangeTransformList(emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -316,6 +318,7 @@ DOMSVGTransformList::ReplaceItem(nsIDOMSVGTransform *newItem,
     domItem = domItem->Clone(); 
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeTransformList();
   if (mItems[index]) {
     
     
@@ -329,7 +332,7 @@ DOMSVGTransformList::ReplaceItem(nsIDOMSVGTransform *newItem,
   
   domItem->InsertingIntoList(this, index, IsAnimValList());
 
-  Element()->DidChangeTransformList(true);
+  Element()->DidChangeTransformList(emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -350,6 +353,7 @@ DOMSVGTransformList::RemoveItem(PRUint32 index, nsIDOMSVGTransform **_retval)
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeTransformList();
   
   
   
@@ -368,7 +372,7 @@ DOMSVGTransformList::RemoveItem(PRUint32 index, nsIDOMSVGTransform **_retval)
 
   UpdateListIndicesFromIndex(mItems, index);
 
-  Element()->DidChangeTransformList(true);
+  Element()->DidChangeTransformList(emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
