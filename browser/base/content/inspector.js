@@ -40,6 +40,7 @@
 
 
 
+
 #endif
 
 #include insideOutBox.js
@@ -70,6 +71,11 @@ const INSPECTOR_NOTIFICATIONS = {
 
   
   CLOSED: "inspector-closed",
+
+  
+  EDITOR_OPENED: "inspector-editor-opened",
+  EDITOR_CLOSED: "inspector-editor-closed",
+  EDITOR_SAVED: "inspector-editor-saved",
 };
 
 
@@ -591,6 +597,8 @@ var InspectorUI = {
     this.ioBox = new InsideOutBox(this, this.treePanelDiv);
     this.ioBox.createObjectBox(this.win.document.documentElement);
     this.treeLoaded = true;
+    this.editingContext = null;
+    this.editingEvents = {};
 
     
     this.initializeHighlighter();
@@ -614,6 +622,7 @@ var InspectorUI = {
       this.treeIFrame.setAttribute("flex", "1");
       this.treeIFrame.setAttribute("type", "content");
       this.treeIFrame.setAttribute("onclick", "InspectorUI.onTreeClick(event)");
+      this.treeIFrame.setAttribute("ondblclick", "InspectorUI.onTreeDblClick(event);");
       this.treeIFrame = this.treePanel.insertBefore(this.treeIFrame, resizerBox);
     }
 
@@ -817,6 +826,11 @@ var InspectorUI = {
 
   closeInspectorUI: function IUI_closeInspectorUI(aKeepStore)
   {
+    
+    
+    if (this.editingContext)
+      this.closeEditor();
+
     if (this.closing || !this.win || !this.browser) {
       return;
     }
@@ -893,6 +907,11 @@ var InspectorUI = {
 
   startInspecting: function IUI_startInspecting()
   {
+    
+    
+    if (this.editingContext)
+      this.closeEditor();
+
     document.getElementById("inspector-inspect-toolbutton").checked = true;
     this.attachPageListeners();
     this.inspecting = true;
@@ -933,6 +952,11 @@ var InspectorUI = {
 
   select: function IUI_select(aNode, forceUpdate, aScroll)
   {
+    
+    
+    if (this.editingContext)
+      this.closeEditor();
+
     if (!aNode)
       aNode = this.defaultSelection;
 
@@ -1044,6 +1068,17 @@ var InspectorUI = {
 
   onTreeClick: function IUI_onTreeClick(aEvent)
   {
+    
+    
+    if (this.editingContext) {
+      this.closeEditor();
+
+      
+      
+      aEvent.preventDefault();
+      return;
+    }
+
     let node;
     let target = aEvent.target;
     let hitTwisty = false;
@@ -1066,6 +1101,220 @@ var InspectorUI = {
         }
       }
     }
+  },
+
+  
+
+
+
+
+
+  onTreeDblClick: function IUI_onTreeDblClick(aEvent)
+  {
+    
+    
+    if (this.editingContext)
+      this.closeEditor();
+
+    let target = aEvent.target;
+
+    if (this.hasClass(target, "nodeValue")) {
+      let repObj = this.getRepObject(target);
+      let attrName = target.getAttribute("data-attributeName");
+      let attrVal = target.innerHTML;
+
+      this.editAttributeValue(target, repObj, attrName, attrVal);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  editAttributeValue: 
+  function IUI_editAttributeValue(aAttrObj, aRepObj, aAttrName, aAttrVal)
+  {
+    let editor = this.treeBrowserDocument.getElementById("attribute-editor");
+    let editorInput = 
+      this.treeBrowserDocument.getElementById("attribute-editor-input");
+    let attrDims = aAttrObj.getBoundingClientRect();
+    
+    let viewportWidth = this.treeBrowserDocument.documentElement.clientWidth;
+    let viewportHeight = this.treeBrowserDocument.documentElement.clientHeight;
+
+    
+    this.editingContext = {
+      attrObj: aAttrObj,
+      repObj: aRepObj,
+      attrName: aAttrName
+    };
+
+    
+    this.addClass(aAttrObj, "editingAttributeValue");
+
+    
+    this.addClass(editor, "editing");
+
+    
+    let editorVeritcalOffset = 2;
+
+    
+    let editorViewportBoundary = 5;
+
+    
+    editorInput.style.width = Math.min(attrDims.width, viewportWidth - 
+                                editorViewportBoundary) + "px";
+    editorInput.style.height = Math.min(attrDims.height, viewportHeight - 
+                                editorViewportBoundary) + "px";
+    let editorDims = editor.getBoundingClientRect();
+
+    
+    let editorLeft = attrDims.left + this.treeIFrame.contentWindow.scrollX -
+                    
+                    ((editorDims.width - attrDims.width) / 2); 
+    let editorTop = attrDims.top + this.treeIFrame.contentWindow.scrollY + 
+                    attrDims.height + editorVeritcalOffset;
+
+    
+    editorLeft = Math.max(0, Math.min(
+                                      (this.treeIFrame.contentWindow.scrollX + 
+                                          viewportWidth - editorDims.width),
+                                      editorLeft)
+                          );
+    editorTop = Math.max(0, Math.min(
+                                      (this.treeIFrame.contentWindow.scrollY + 
+                                          viewportHeight - editorDims.height),
+                                      editorTop)
+                          );
+
+    
+    editor.style.left = editorLeft + "px";
+    editor.style.top = editorTop + "px";
+
+    
+    editorInput.value = aAttrVal;
+    editorInput.select();
+
+    
+    this.bindEditorEvent(editor, "click", function(aEvent) {
+      aEvent.stopPropagation();
+    });
+    this.bindEditorEvent(editor, "dblclick", function(aEvent) {
+      aEvent.stopPropagation();
+    });
+    this.bindEditorEvent(editor, "keypress", 
+                          this.handleEditorKeypress.bind(this));
+
+    
+    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.EDITOR_OPENED, 
+                                  null);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  bindEditorEvent: 
+  function IUI_bindEditorEvent(aEditor, aEventName, aEventCallback)
+  {
+    this.editingEvents[aEventName] = aEventCallback;
+    aEditor.addEventListener(aEventName, aEventCallback, false);
+  },
+
+  
+
+
+
+
+
+
+
+  unbindEditorEvent: function IUI_unbindEditorEvent(aEditor, aEventName)
+  {
+    aEditor.removeEventListener(aEventName, this.editingEvents[aEventName], 
+                                  false);
+    this.editingEvents[aEventName] = null;
+  },
+
+  
+
+
+
+
+  handleEditorKeypress: function IUI_handleEditorKeypress(aEvent)
+  {
+    if (aEvent.which == KeyEvent.DOM_VK_RETURN) {
+      this.saveEditor();
+    } else if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE) {
+      this.closeEditor();
+    }
+  },
+
+  
+
+
+  closeEditor: function IUI_closeEditor()
+  {
+    let editor = this.treeBrowserDocument.getElementById("attribute-editor");
+    let editorInput = 
+      this.treeBrowserDocument.getElementById("attribute-editor-input");
+
+    
+    this.removeClass(this.editingContext.attrObj, "editingAttributeValue");
+
+    
+    this.removeClass(editor, "editing");
+
+    
+    this.unbindEditorEvent(editor, "click");
+    this.unbindEditorEvent(editor, "dblclick");
+    this.unbindEditorEvent(editor, "keypress");
+
+    
+    editorInput.value = "";
+    editorInput.blur();
+    this.editingContext = null;
+    this.editingEvents = {};
+
+    
+    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.EDITOR_CLOSED, 
+                                  null);
+  },
+
+  
+
+
+  saveEditor: function IUI_saveEditor()
+  {
+    let editorInput = 
+      this.treeBrowserDocument.getElementById("attribute-editor-input");
+
+    
+    this.editingContext.repObj.setAttribute(this.editingContext.attrName, 
+                                              editorInput.value);
+
+    
+    this.editingContext.attrObj.innerHTML = editorInput.value;
+
+    
+    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.EDITOR_SAVED, 
+                                  null);
+    
+    this.closeEditor();
   },
 
   
