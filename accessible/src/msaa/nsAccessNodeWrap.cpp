@@ -308,7 +308,7 @@ STDMETHODIMP nsAccessNodeWrap::get_attributesForNames(
      BSTR __RPC_FAR *aAttribValues)
 {
 __try {
-  if (IsDefunct() || IsDocument())
+  if (IsDefunct() || !IsElement())
     return E_FAIL;
 
   nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(mContent));
