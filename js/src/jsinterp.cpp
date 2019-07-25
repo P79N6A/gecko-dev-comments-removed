@@ -948,6 +948,13 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
             return false;
 
         
+        if (!innerizedChain->isNative()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_NON_NATIVE_SCOPE);
+            return false;
+        }
+
+        
         frame.fp()->initGlobalFrame(script, *innerizedChain, flags);
 
         
