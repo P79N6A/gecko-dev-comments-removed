@@ -603,7 +603,89 @@ class PluginTextInputHandler : public TextInputHandlerBase
 {
 public:
 
+  
+
+
+
+
+  nsresult StartComplexTextInputForCurrentEvent()
+  {
+    mPluginComplexTextInputRequested = PR_TRUE;
+    return NS_OK;
+  }
+
+  
+
+
+
+
+  void HandleKeyDownEventForPlugin(NSEvent* aNativeKeyEvent);
+
+  
+
+
+
+
+  void HandleKeyUpEventForPlugin(NSEvent* aNativeKeyEvent);
+
+  PRBool DoesIgnoreNextKeyUpEvent() { return mIgnoreNextKeyUpEvent; }
+  void ResetIgnoreNextKeyUpEvent() { mIgnoreNextKeyUpEvent = PR_FALSE; }
+
+  
+
+
+
+
+
+  static void ConvertCocoaKeyEventToNPCocoaEvent(NSEvent* aCocoaEvent,
+                                                 NPCocoaEvent& aPluginEvent);
+
 #ifndef NP_NO_CARBON
+
+  
+
+
+
+
+
+  static void InstallPluginKeyEventsHandler();
+  static void RemovePluginKeyEventsHandler();
+
+  
+
+
+
+  static void SwizzleMethods();
+
+  
+
+
+  void SetPluginTSMInComposition(PRBool aInComposition)
+  {
+    mPluginTSMInComposition = aInComposition;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  void ActivatePluginTSMDocument();
+
+  
+
+
+
+
+
+  void HandleCarbonPluginKeyEvent(EventRef aKeyEvent);
+
   
 
 
@@ -621,11 +703,43 @@ public:
                 NSEvent* aCocoaKeyEvent,
                 EventRecord& aCarbonKeyEvent,
                 PRBool aMakeKeyDownEventIfNSFlagsChanged = PR_FALSE);
+
 #endif 
 
 protected:
+  PRPackedBool mIgnoreNextKeyUpEvent;
+
   PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   ~PluginTextInputHandler();
+
+private:
+
+#ifndef NP_NO_CARBON
+  TSMDocumentID mPluginTSMDoc;
+
+  PRPackedBool mPluginTSMInComposition;
+#endif 
+
+  PRPackedBool mPluginComplexTextInputRequested;
+
+  
+
+
+
+
+
+
+  PRBool DispatchCocoaNPAPITextEvent(NSString* aString);
+
+  
+
+
+
+
+
+
+
+  PRBool IsInPluginComposition();
 
 #ifndef NP_NO_CARBON
 
@@ -639,6 +753,21 @@ protected:
 
   static PRBool ConvertUnicodeToCharCode(PRUnichar aUniChar,
                                          unsigned char* aOutChar);
+
+  
+
+
+
+
+
+
+
+
+  static OSStatus PluginKeyEventsHandler(EventHandlerCallRef aHandlerRef,
+                                         EventRef aEvent,
+                                         void *aUserData);
+
+  static EventHandlerRef sPluginKeyEventsHandler;
 
 #endif 
 };

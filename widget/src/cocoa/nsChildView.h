@@ -213,18 +213,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   
   nsIDragService* mDragService;
 
-#ifndef NP_NO_CARBON
-  
-  
-  
-  TSMDocumentID mPluginTSMDoc;
-  BOOL mPluginTSMInComposition;
-#endif
-  BOOL mPluginComplexTextInputRequested;
-
-  
-  BOOL mIgnoreNextKeyUpEvent;
-
   NSOpenGLContext *mGLContext;
 
   
@@ -272,11 +260,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 - (void)sendMouseEnterOrExitEvent:(NSEvent*)aEvent
                             enter:(BOOL)aEnter
                              type:(nsMouseEvent::exitType)aType;
-
-#ifndef NP_NO_CARBON
-- (void) processPluginKeyEvent:(EventRef)aKeyEvent;
-#endif
-- (void)pluginRequestsComplexTextInputForCurrentEvent;
 
 - (void)update;
 - (void)lockFocus;
@@ -468,6 +451,12 @@ public:
   nsCocoaWindow*    GetXULWindowWidget();
 
   NS_IMETHOD        ReparentNativeWidget(nsIWidget* aNewParent);
+
+  mozilla::widget::TextInputHandler* GetTextInputHandler()
+  {
+    return mTextInputHandler;
+  }
+
 protected:
 
   PRBool            ReportDestroyEvent();
