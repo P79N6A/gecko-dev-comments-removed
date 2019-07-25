@@ -400,6 +400,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mCustomNonClient      = PR_FALSE;
   mHideChrome           = PR_FALSE;
   mFullscreenMode       = PR_FALSE;
+  mMousePresent         = PR_FALSE;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
   mPopupType            = ePopupTypeAny;
@@ -4921,6 +4922,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       SetTimer(mWnd, KILL_PRIORITY_ID, 2000 , NULL);
 #endif
+      mMousePresent = PR_TRUE;
+
       
       
       
@@ -4940,6 +4943,13 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         DispatchPendingEvents();
       }
     }
+    break;
+
+    case WM_NCMOUSEMOVE:
+      
+      
+      if (mMousePresent && !mIsInMouseCapture)
+        SendMessage(mWnd, WM_MOUSELEAVE, 0, 0);
     break;
 
 #ifdef WINCE_WINDOWS_MOBILE
@@ -4977,6 +4987,10 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #ifndef WINCE
     case WM_MOUSELEAVE:
     {
+      if (!mMousePresent)
+        break;
+      mMousePresent = PR_FALSE;
+
       
       
       WPARAM mouseState = (GetKeyState(VK_LBUTTON) ? MK_LBUTTON : 0)
