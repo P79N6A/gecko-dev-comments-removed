@@ -4533,10 +4533,14 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
 static PRBool
 DisplaySystemMenu(HWND hWnd, nsSizeMode sizeMode, PRBool isRtl, PRInt32 x, PRInt32 y)
 {
-  GetSystemMenu(hWnd, TRUE); 
   HMENU hMenu = GetSystemMenu(hWnd, FALSE);
   if (hMenu) {
     
+    EnableMenuItem(hMenu, SC_RESTORE, MF_BYCOMMAND | MF_ENABLED);
+    EnableMenuItem(hMenu, SC_SIZE, MF_BYCOMMAND | MF_ENABLED);
+    EnableMenuItem(hMenu, SC_MOVE, MF_BYCOMMAND | MF_ENABLED);
+    EnableMenuItem(hMenu, SC_MAXIMIZE, MF_BYCOMMAND | MF_ENABLED);
+    EnableMenuItem(hMenu, SC_MINIMIZE, MF_BYCOMMAND | MF_ENABLED);
     switch(sizeMode) {
       case nsSizeMode_Fullscreen:
         EnableMenuItem(hMenu, SC_RESTORE, MF_BYCOMMAND | MF_GRAYED);
