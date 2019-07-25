@@ -45,8 +45,8 @@ function FormNotifier() {
   
   obs.addObserver({
     observe: function() {
-      obs.removeObserver(this, "profile-before-change");
-      baseForm = null;
+        obs.removeObserver(this, "profile-before-change");
+        baseForm = null;
     },
     QueryInterface: XPCOMUtils.generateQI([Ci.nsISupportsWeakReference,
                                            Ci.nsIObserver])
