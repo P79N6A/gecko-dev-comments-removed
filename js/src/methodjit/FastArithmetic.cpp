@@ -1162,7 +1162,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub,
         ic.stubEntry = stubEntry;
         ic.stub = stub;
 
-        bool useIC = (!addTraceHints || target >= PC) && !a->parent;
+        bool useIC = !a->parent;
 
         
         if (useIC) {

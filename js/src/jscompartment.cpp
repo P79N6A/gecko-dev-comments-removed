@@ -412,42 +412,6 @@ JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
     return true;
 }
 
-#if defined JS_METHODJIT && defined JS_MONOIC
-
-
-
-
-static inline bool
-ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
-                    uint32 releaseInterval, uint32 &counter)
-{
-    JSC::ExecutablePool *pool = jit->code.m_executablePool;
-    if (pool->m_gcNumber != cx->runtime->gcNumber) {
-        
-
-
-
-
-        pool->m_destroy = false;
-        pool->m_gcNumber = cx->runtime->gcNumber;
-        if (--counter == 0) {
-            pool->m_destroy = true;
-            counter = releaseInterval;
-        }
-    }
-    return pool->m_destroy;
-}
-
-static inline void
-ScriptTryDestroyCode(JSContext *cx, JSScript *script, bool normal,
-                     uint32 releaseInterval, uint32 &counter)
-{
-    mjit::JITScript *jit = normal ? script->jitNormal : script->jitCtor;
-    if (jit && ScriptPoolDestroyed(cx, jit, releaseInterval, counter))
-        mjit::ReleaseScriptCode(cx, script, !normal);
-}
-#endif 
-
 
 
 
@@ -492,7 +456,7 @@ JSCompartment::markTypes(JSTracer *trc)
 }
 
 void
-JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
+JSCompartment::sweep(JSContext *cx, bool releaseTypes)
 {
     
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
@@ -531,89 +495,40 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         traceMonitor()->sweep(cx);
 #endif
 
-#ifdef JS_METHODJIT
     
 
 
 
-
-
-    bool canPurgeNativeCalls = true;
-    VMFrame *f = hasJaegerCompartment() ? jaegerCompartment()->activeFrame() : NULL;
-    for (; f; f = f->previous) {
-        if (f->stubRejoin)
-            canPurgeNativeCalls = false;
-    }
-    for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-        JSScript *script = i.get<JSScript>();
-        if (script->hasJITCode()) {
-#ifdef JS_POLYIC
-            mjit::ic::PurgePICs(cx, script);
-#endif
-            if (canPurgeNativeCalls) {
-                if (script->jitNormal)
-                    script->jitNormal->purgeNativeCallStubs();
-                if (script->jitCtor)
-                    script->jitCtor->purgeNativeCallStubs();
-            }
-        }
-    }
-#endif
-
-    bool discardScripts = !active && (releaseInterval != 0 || hasDebugModeCodeToDrop);
-
-#if defined JS_METHODJIT && defined JS_MONOIC
-
-    
-
-
-
-
-
-
-    uint32 counter = 1;
-    if (discardScripts)
-        hasDebugModeCodeToDrop = false;
-
-    for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-        JSScript *script = i.get<JSScript>();
-        if (script->hasJITCode()) {
-            mjit::ic::SweepCallICs(cx, script, discardScripts);
-            if (discardScripts) {
-                ScriptTryDestroyCode(cx, script, true, releaseInterval, counter);
-                ScriptTryDestroyCode(cx, script, false, releaseInterval, counter);
-            }
-        }
-    }
-
-#endif
-
 #ifdef JS_METHODJIT
-    if (types.inferenceEnabled)
-        mjit::ClearAllFrames(this);
-#endif
+    mjit::ClearAllFrames(this);
 
-    if (activeAnalysis) {
+    for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+        JSScript *script = i.get<JSScript>();
+        mjit::ReleaseScriptCode(cx, script);
+
         
 
 
 
 
-#ifdef JS_METHODJIT
-        if (types.inferenceEnabled) {
-            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-                JSScript *script = i.get<JSScript>();
-                mjit::ReleaseScriptCode(cx, script);
-            }
-        }
+        script->resetUseCount();
+    }
 #endif
-    } else {
+
+    if (!activeAnalysis) {
         
 
 
 
         LifoAlloc oldAlloc(typeLifoAlloc.defaultChunkSize());
         oldAlloc.steal(&typeLifoAlloc);
+
+        
+
+
+
+        if (active)
+            releaseTypes = false;
 
         
 
@@ -626,12 +541,7 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
                 if (script->types) {
                     types::TypeScript::Sweep(cx, script);
 
-                    
-
-
-
-
-                    if (discardScripts) {
+                    if (releaseTypes) {
                         script->types->destroy();
                         script->types = NULL;
                         script->typesPurged = true;
@@ -683,20 +593,6 @@ JSCompartment::purge(JSContext *cx)
     if (cx->runtime->gcRegenShapes)
         if (hasTraceMonitor())
             traceMonitor()->needFlush = JS_TRUE;
-#endif
-
-#if defined JS_METHODJIT && defined JS_MONOIC
-    
-
-
-
-    if (cx->runtime->gcRegenShapes) {
-        for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
-            JSScript *script = i.get<JSScript>();
-            if (script->hasJITCode())
-                mjit::ic::PurgeMICs(cx, script);
-        }
-    }
 #endif
 }
 

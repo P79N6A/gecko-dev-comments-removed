@@ -6086,21 +6086,6 @@ TypeScript::Sweep(JSContext *cx, JSScript *script)
 
 
 
-
-    
-
-
-
-#ifdef JS_METHODJIT
-    mjit::ReleaseScriptCode(cx, script);
-
-    
-
-
-
-
-    script->resetUseCount();
-#endif
 }
 
 void
