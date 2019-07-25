@@ -98,8 +98,8 @@ protected:
 
   
   
-  mozilla::imagelib::BMPFILEHEADER mBMPFileHeader;
-  mozilla::imagelib::BMPINFOHEADER mBMPInfoHeader;
+  mozilla::image::BMPFILEHEADER mBMPFileHeader;
+  mozilla::image::BMPINFOHEADER mBMPInfoHeader;
 
   
   PRUint8* mImageBufferStart;

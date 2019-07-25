@@ -43,7 +43,7 @@
 class nsITimer;
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 class RasterImage;
 
 

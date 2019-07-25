@@ -42,7 +42,7 @@
 #include "nsIScriptError.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 Decoder::Decoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
   : mImage(aImage)

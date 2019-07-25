@@ -40,7 +40,7 @@
 #define MOZILLA_IMAGELIB_ICOHEADERS_H_
 
 namespace mozilla {
-  namespace imagelib {
+  namespace image {
 
     #define ICONFILEHEADERSIZE 6
     #define ICODIRENTRYSIZE 16

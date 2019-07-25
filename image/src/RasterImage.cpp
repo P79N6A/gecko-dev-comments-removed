@@ -73,7 +73,7 @@
 #include "mozilla/TimeStamp.h"
 
 using namespace mozilla;
-using namespace mozilla::imagelib;
+using namespace mozilla::image;
 using namespace mozilla::layers;
 
 
@@ -174,7 +174,7 @@ DiscardingEnabled()
 }
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 #ifndef DEBUG
 NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,

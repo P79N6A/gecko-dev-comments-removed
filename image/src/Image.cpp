@@ -38,7 +38,7 @@
 #include "Image.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 
 Image::Image(imgStatusTracker* aStatusTracker) :

@@ -63,7 +63,7 @@ extern "C" {
 #include <setjmp.h>
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 typedef struct {
     struct jpeg_error_mgr pub;  

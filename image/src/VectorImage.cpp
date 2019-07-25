@@ -59,7 +59,7 @@ namespace mozilla {
 
 using namespace dom;
 
-namespace imagelib {
+namespace image {
 
 
 class SVGRootRenderingObserver : public nsSVGRenderingObserver {

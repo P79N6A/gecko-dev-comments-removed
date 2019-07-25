@@ -56,7 +56,7 @@
 #include "nsISupportsPrimitives.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 #define ICONCOUNTOFFSET 4
 #define DIRENTRYOFFSET 6

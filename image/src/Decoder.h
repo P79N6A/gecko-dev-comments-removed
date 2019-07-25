@@ -44,7 +44,7 @@
 #include "imgIDecoderObserver.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 class Decoder
 {

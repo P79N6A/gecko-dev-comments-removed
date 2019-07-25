@@ -39,7 +39,7 @@
 #define MOZILLA_IMAGELIB_BMPHEADERS_H_
 
 namespace mozilla {
-  namespace imagelib {
+  namespace image {
 
     struct BMPFILEHEADER {
       char signature[2]; 

@@ -62,7 +62,7 @@ class nsSVGSVGElement;
 
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 class SVGDocumentWrapper MOZ_FINAL : public nsIStreamListener,
                                      public nsIObserver,

@@ -85,7 +85,7 @@
 #include "qcms.h"
 
 namespace mozilla {
-namespace imagelib {
+namespace image {
 
 
 
