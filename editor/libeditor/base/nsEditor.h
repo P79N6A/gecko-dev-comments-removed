@@ -661,6 +661,18 @@ public:
   
   virtual PRBool HasFocus();
 
+  
+  
+  
+  
+  
+  virtual already_AddRefed<nsIContent> FindSelectionRoot(nsINode* aNode);
+
+  
+  
+  
+  nsresult InitializeSelection(nsIDOMEventTarget* aFocusEventTarget);
+
 protected:
 
   PRUint32        mModCount;		

@@ -796,85 +796,37 @@ nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
 
 
 
-static already_AddRefed<nsIContent>
-FindSelectionRoot(nsEditor *aEditor, nsIContent *aContent)
-{
-  NS_PRECONDITION(aEditor, "aEditor must not be null");
-  nsIDocument *document = aContent->GetCurrentDoc();
-  if (!document) {
-    return nsnull;
-  }
-
-  nsIContent *root;
-  if (document->HasFlag(NODE_IS_EDITABLE)) {
-    NS_IF_ADDREF(root = document->GetRootElement());
-
-    return root;
-  }
-
-  
-  
-  
-  if (aEditor->IsReadonly()) {
-    
-    nsCOMPtr<nsIDOMElement> rootElement;
-    aEditor->GetRootElement(getter_AddRefs(rootElement));
-    if (!rootElement) {
-      return nsnull;
-    }
-
-    CallQueryInterface(rootElement, &root);
-
-    return root;
-  }
-
-  if (!aContent->HasFlag(NODE_IS_EDITABLE)) {
-    return nsnull;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  nsIContent *parent, *content = aContent;
-  while ((parent = content->GetParent()) && parent->HasFlag(NODE_IS_EDITABLE)) {
-    content = parent;
-  }
-
-  NS_IF_ADDREF(content);
-
-  return content;
-}
-
 NS_IMETHODIMP
 nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
 {
   NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_ARG(aEvent);
 
-  nsCOMPtr<nsIDOMEventTarget> target;
-  aEvent->GetTarget(getter_AddRefs(target));
-
   
   if (mEditor->IsDisabled()) {
     return NS_OK;
   }
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(target);
+  nsCOMPtr<nsIDOMEventTarget> target;
+  aEvent->GetTarget(getter_AddRefs(target));
+  nsCOMPtr<nsINode> node = do_QueryInterface(target);
+  NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
 
-  PRBool targetIsEditableDoc = PR_FALSE;
-  nsCOMPtr<nsIContent> editableRoot;
-  if (content) {
+  
+  
+  if (node->IsNodeOfType(nsINode::eDOCUMENT) &&
+      !node->HasFlag(NODE_IS_EDITABLE)) {
+    return NS_OK;
+  }
+
+  if (node->IsNodeOfType(nsINode::eCONTENT)) {
     
     
     
     
     
     
-    editableRoot = FindSelectionRoot(mEditor, content);
+    nsCOMPtr<nsIContent> editableRoot = mEditor->FindSelectionRoot(node);
 
     
     
@@ -888,50 +840,8 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
         return NS_OK;
     }
   }
-  else {
-    nsCOMPtr<nsIDocument> document = do_QueryInterface(target);
-    targetIsEditableDoc = document && document->HasFlag(NODE_IS_EDITABLE);
-  }
 
-  nsCOMPtr<nsISelectionController> selCon;
-  mEditor->GetSelectionController(getter_AddRefs(selCon));
-  if (selCon && (targetIsEditableDoc || editableRoot))
-  {
-    nsCOMPtr<nsISelection> selection;
-    selCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
-                         getter_AddRefs(selection));
-
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-    if (presShell) {
-      nsRefPtr<nsCaret> caret = presShell->GetCaret();
-      if (caret) {
-        caret->SetIgnoreUserModify(PR_FALSE);
-        if (selection) {
-          caret->SetCaretDOMSelection(selection);
-        }
-      }
-    }
-
-    selCon->SetCaretReadOnly(mEditor->IsReadonly());
-    selCon->SetCaretEnabled(PR_TRUE);
-    selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
-    selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
-
-    nsCOMPtr<nsISelectionPrivate> selectionPrivate =
-      do_QueryInterface(selection);
-    if (selectionPrivate)
-    {
-      selectionPrivate->SetAncestorLimiter(editableRoot);
-    }
-
-    if (selection && !editableRoot) {
-      PRInt32 rangeCount;
-      selection->GetRangeCount(&rangeCount);
-      if (rangeCount == 0) {
-        mEditor->BeginningOfDocument();
-      }
-    }
-  }
+  mEditor->InitializeSelection(target);
   return NS_OK;
 }
 

@@ -60,6 +60,7 @@
 #include "nsIDOMNodeList.h"
 #include "nsIDOMRange.h"
 #include "nsIDOMHTMLBRElement.h"
+#include "nsIDOMEventTarget.h"
 #include "nsIDocument.h"
 #include "nsITransactionManager.h"
 #include "nsIAbsorbingTransaction.h"
@@ -5096,6 +5097,78 @@ nsEditor::HandleInlineSpellCheck(PRInt32 action,
                                                        aStartOffset,
                                                        aEndNode,
                                                        aEndOffset) : NS_OK;
+}
+
+already_AddRefed<nsIContent>
+nsEditor::FindSelectionRoot(nsINode *aNode)
+{
+  nsCOMPtr<nsIContent> rootContent = do_QueryInterface(GetRoot());
+  return rootContent.forget();
+}
+
+nsresult
+nsEditor::InitializeSelection(nsIDOMEventTarget* aFocusEventTarget)
+{
+  nsCOMPtr<nsINode> targetNode = do_QueryInterface(aFocusEventTarget);
+  NS_ENSURE_TRUE(targetNode, NS_ERROR_INVALID_ARG);
+  nsCOMPtr<nsIContent> selectionRootContent = FindSelectionRoot(targetNode);
+  if (!selectionRootContent) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIDocument> targetDoc = do_QueryInterface(aFocusEventTarget);
+  PRBool isTargetDoc =
+    targetNode->IsNodeOfType(nsINode::eDOCUMENT) &&
+    targetNode->HasFlag(NODE_IS_EDITABLE);
+
+  nsCOMPtr<nsISelection> selection;
+  nsresult rv = GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIPresShell> presShell;
+  rv = GetPresShell(getter_AddRefs(presShell));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsISelectionController> selCon;
+  rv = GetSelectionController(getter_AddRefs(selCon));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsISelectionPrivate> selectionPrivate =
+    do_QueryInterface(selection);
+  NS_ENSURE_TRUE(selectionPrivate, NS_ERROR_UNEXPECTED);
+
+  
+  nsRefPtr<nsCaret> caret = presShell->GetCaret();
+  NS_ENSURE_TRUE(caret, NS_ERROR_UNEXPECTED);
+  caret->SetIgnoreUserModify(PR_FALSE);
+  caret->SetCaretDOMSelection(selection);
+  selCon->SetCaretReadOnly(IsReadonly());
+  selCon->SetCaretEnabled(PR_TRUE);
+
+  
+  selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
+  selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
+  
+  
+  
+  
+  
+  if (selectionRootContent->GetParent()) {
+    selectionPrivate->SetAncestorLimiter(selectionRootContent);
+  } else {
+    selectionPrivate->SetAncestorLimiter(nsnull);
+  }
+
+  
+  if (isTargetDoc) {
+    PRInt32 rangeCount;
+    selection->GetRangeCount(&rangeCount);
+    if (rangeCount == 0) {
+      BeginningOfDocument();
+    }
+  }
+
+  return NS_OK;
 }
 
 nsIDOMElement *
