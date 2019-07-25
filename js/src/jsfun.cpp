@@ -395,9 +395,6 @@ WrapEscapingClosure(JSContext *cx, JSStackFrame *fp, JSObject *funobj, JSFunctio
                                      : 0,
                                      (script->constOffset != 0)
                                      ? script->consts()->length
-                                     : 0,
-                                     (script->globalsOffset != 0)
-                                     ? script->globals()->length
                                      : 0);
     if (!wscript)
         return NULL;
@@ -419,10 +416,6 @@ WrapEscapingClosure(JSContext *cx, JSStackFrame *fp, JSObject *funobj, JSFunctio
     if (script->trynotesOffset != 0) {
         memcpy(wscript->trynotes()->vector, script->trynotes()->vector,
                wscript->trynotes()->length * sizeof(JSTryNote));
-    }
-    if (script->globalsOffset != 0) {
-        memcpy(wscript->globals()->vector, script->globals()->vector,
-               wscript->globals()->length * sizeof(GlobalSlotArray::Entry));
     }
 
     if (wfun->u.i.nupvars != 0) {
@@ -2048,14 +2041,13 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
 #ifdef NARCISSUS
 static JS_REQUIRES_STACK JSBool
-fun_applyConstructor(JSContext *cx, uintN argc, jsval *vp)
+fun_applyConstructor(JSContext *cx, uintN argc, Value *vp)
 {
     JSObject *aobj;
     uintN length, i;
-    jsval *sp;
 
-    if (JSVAL_IS_PRIMITIVE(vp[2]) ||
-        (aobj = JSVAL_TO_OBJECT(vp[2]),
+    if (vp[2].isPrimitive() ||
+        (aobj = &vp[2].asObject(),
          !aobj->isArray() &&
          !aobj->isArguments())) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
@@ -2074,16 +2066,16 @@ fun_applyConstructor(JSContext *cx, uintN argc, jsval *vp)
     if (!cx->stack().pushInvokeArgs(cx, length, args))
         return JS_FALSE;
 
-    jsval *sp = args.getvp();
+    Value *sp = args.getvp();
     *sp++ = vp[1];
-    *sp++ = JSVAL_NULL; 
+    *sp++ = NullTag(); 
     for (i = 0; i < length; i++) {
         if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), sp))
             return JS_FALSE;
         sp++;
     }
 
-    JSBool ok = js_InvokeConstructor(cx, args, JS_TRUE);
+    JSBool ok = InvokeConstructor(cx, args, JS_TRUE);
     *vp = *args.getvp();
     return ok;
 }
