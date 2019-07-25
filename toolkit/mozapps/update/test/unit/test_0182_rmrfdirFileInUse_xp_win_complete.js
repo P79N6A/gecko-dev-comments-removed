@@ -4,7 +4,7 @@
 
 
 
-const TEST_ID = "0171";
+const TEST_ID = "0182";
 
 
 const TEST_FILES = [
@@ -13,20 +13,20 @@ const TEST_FILES = [
   relPathDir       : "0/00/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
+  originalFile     : null,
   compareFile      : "data/complete.png"
 }, {
   fileName         : "00text0",
   relPathDir       : "0/00/",
-  originalContents : "ShouldNotBeModified\n",
-  compareContents  : "ShouldNotBeModified\n",
+  originalContents : "ToBeReplacedWithToBeModified\n",
+  compareContents  : "ToBeModified\n",
   originalFile     : null,
   compareFile      : null
 }, {
   fileName         : "00text1",
   relPathDir       : "0/00/",
-  originalContents : "ShouldNotBeDeleted\n",
-  compareContents  : "ShouldNotBeDeleted\n",
+  originalContents : "ToBeReplacedWithToBeDeleted\n",
+  compareContents  : "ToBeDeleted\n",
   originalFile     : null,
   compareFile      : null
 }, {
@@ -34,13 +34,13 @@ const TEST_FILES = [
   relPathDir       : "0/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
+  originalFile     : HELPER_BIN_FILE,
   compareFile      : "data/complete.png"
 }, {
   fileName         : "10text0",
   relPathDir       : "1/10/",
-  originalContents : "ShouldNotBeDeleted\n",
-  compareContents  : "ShouldNotBeDeleted\n",
+  originalContents : "ToBeReplacedWithToBeDeleted\n",
+  compareContents  : "ToBeDeleted\n",
   originalFile     : null,
   compareFile      : null
 }, {
@@ -48,11 +48,9 @@ const TEST_FILES = [
   relPathDir       : "",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
+  originalFile     : HELPER_BIN_FILE,
   compareFile      : "data/complete.png"
 }];
-
-
 
 function run_test() {
   if (!IS_WIN || IS_WINCE) {
@@ -63,19 +61,26 @@ function run_test() {
   do_test_pending();
   do_register_cleanup(cleanupUpdaterTest);
 
-  setupUpdaterTest(MAR_PARTIAL_FILE);
+  setupUpdaterTest(MAR_COMPLETE_FILE);
+
+  let fileInUseBin = getApplyDirFile(TEST_DIRS[4].relPathDir +
+                                     TEST_DIRS[4].subDirs[0] +
+                                     TEST_DIRS[4].subDirFiles[0]);
+  
+  
+  fileInUseBin.remove(false);
+
+  let helperBin = do_get_file(HELPER_BIN_FILE);
+  let fileInUseDir = getApplyDirFile(TEST_DIRS[4].relPathDir +
+                                    TEST_DIRS[4].subDirs[0]);
+  helperBin.copyTo(fileInUseDir, TEST_DIRS[4].subDirFiles[0]);
 
   
-  let helperBin = do_get_file(HELPER_BIN_FILE);
-  let applyToDir = getApplyDirFile();
-  helperBin.copyTo(applyToDir, HELPER_BIN_FILE);
-  helperBin = getApplyDirFile(HELPER_BIN_FILE);
-  let lockFileRelPath = TEST_FILES[3].relPathDir + TEST_FILES[3].fileName;
-  let args = [getApplyDirPath(), "input", "output", "-s", "20", lockFileRelPath];
-  let lockFileProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                     createInstance(AUS_Ci.nsIProcess);
-  lockFileProcess.init(helperBin);
-  lockFileProcess.run(false, args, args.length);
+  let args = [getApplyDirPath(), "input", "output", "-s", "20"];
+  let fileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
+                         createInstance(AUS_Ci.nsIProcess);
+  fileInUseProcess.init(fileInUseBin);
+  fileInUseProcess.run(false, args, args.length);
 
   do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
 }
@@ -84,7 +89,7 @@ function doUpdate() {
   
   let exitValue = runUpdate();
   logTestInfo("testing updater binary process exitValue for success when " +
-              "applying a partial mar");
+              "applying a complete mar");
   do_check_eq(exitValue, 0);
 
   setupHelperFinish();
@@ -94,17 +99,15 @@ function checkUpdate() {
   let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
   let applyToDir = getApplyDirFile();
 
-  logTestInfo("testing update.status should be " + STATE_FAILED);
-  
-  
-  do_check_eq(readStatusFile(updatesDir).split(": ")[0], STATE_FAILED);
+  logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
+  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
 
-  checkFilesAfterUpdateFailure();
+  checkFilesAfterUpdateSuccess();
 
-  logTestInfo("testing tobedeleted directory doesn't exist");
+  logTestInfo("testing tobedeleted directory exists");
   let toBeDeletedDir = applyToDir.clone();
   toBeDeletedDir.append("tobedeleted");
-  do_check_false(toBeDeletedDir.exists());
+  do_check_true(toBeDeletedDir.exists());
 
   checkCallbackAppLog();
 }

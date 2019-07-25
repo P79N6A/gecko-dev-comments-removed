@@ -7,62 +7,65 @@
 const TEST_ID = "0181";
 const MAR_IN_USE_WIN_FILE = "data/partial_in_use_win.mar";
 
-const TEST_HELPER_TIMEOUT = 1000;
-
 
 var TEST_FILES = [
 {
-  fileName         : "1_1_image1.png",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
+  fileName         : "00png0.png",
+  relPathDir       : "0/00/",
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
   compareFile      : "data/partial.png"
 }, {
-  fileName         : "1_1_text1",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
+  fileName         : "00text0",
+  relPathDir       : "0/00/",
   originalContents : "ToBeModified\n",
   compareContents  : "Modified\n",
   originalFile     : null,
   compareFile      : null
 }, {
-  fileName         : "1_1_text2",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
+  fileName         : "00text1",
+  relPathDir       : "0/00/",
   originalContents : "ToBeDeleted\n",
   compareContents  : null,
   originalFile     : null,
   compareFile      : null
 }, {
-  fileName         : "1_exe1.exe",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/",
+  fileName         : "0exe0.exe",
+  relPathDir       : "0/",
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/partial_in_use_win_before.exe",
   compareFile      : "data/partial_in_use_win_after.exe"
 }, {
-  fileName         : "2_1_text1",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/",
+  fileName         : "10text0",
+  relPathDir       : "1/10/",
   originalContents : "ToBeDeleted\n",
   compareContents  : null,
   originalFile     : null,
   compareFile      : null
 }, {
-  fileName         : "1_1_text3",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
+  fileName         : "00text2",
+  relPathDir       : "0/00/",
   originalContents : null,
   compareContents  : "Added\n",
   originalFile     : null,
   compareFile      : null
 }, {
-  fileName         : "3_1_text1",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/3/3_1/",
+  fileName         : "20text0",
+  relPathDir       : "2/20/",
   originalContents : null,
   compareContents  : "Added\n",
   originalFile     : null,
   compareFile      : null
+}, {
+  fileName         : "exe0.exe",
+  relPathDir       : "",
+  originalContents : null,
+  compareContents  : null,
+  originalFile     : "data/partial_in_use_win_before.exe",
+  compareFile      : "data/partial_in_use_win_after.exe"
 }];
-
-let gFileInUseProcess;
 
 function run_test() {
   if (!IS_WIN || IS_WINCE) {
@@ -71,51 +74,45 @@ function run_test() {
   }
 
   do_test_pending();
-  do_register_cleanup(end_test);
+  do_register_cleanup(cleanupUpdaterTest);
 
-  setupUpdaterTest(TEST_ID, MAR_IN_USE_WIN_FILE, TEST_FILES);
-
-  
-  let fileInUseBin = do_get_file(TEST_FILES[3].destinationDir +
-                                 TEST_FILES[3].fileName);
-  let args = ["-s", "20"];
-  gFileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
-                      createInstance(AUS_Ci.nsIProcess);
-  gFileInUseProcess.init(fileInUseBin);
-  gFileInUseProcess.run(false, args, args.length);
+  setupUpdaterTest(MAR_IN_USE_WIN_FILE);
 
   
-  
-  do_timeout(TEST_HELPER_TIMEOUT, testUpdate);
+  let fileInUseBin = getApplyDirFile(TEST_FILES[3].relPathDir +
+                                    TEST_FILES[3].fileName);
+  let args = [getApplyDirPath(), "input", "output", "-s", "20"];
+  let fileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
+                         createInstance(AUS_Ci.nsIProcess);
+  fileInUseProcess.init(fileInUseBin);
+  fileInUseProcess.run(false, args, args.length);
+
+  do_timeout(TEST_HELPER_TIMEOUT, waitForHelperSleep);
 }
 
-function end_test() {
-  cleanupUpdaterTest(TEST_ID);
-}
-
-function testUpdate() {
-  let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
-  let applyToDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX);
-
+function doUpdate() {
   
-  let exitValue = runUpdate(TEST_ID);
+  let exitValue = runUpdate();
   logTestInfo("testing updater binary process exitValue for success when " +
               "applying a partial mar");
   do_check_eq(exitValue, 0);
 
-  gFileInUseProcess.kill();
+  setupHelperFinish();
+}
 
-  checkFilesAfterUpdateSuccess(TEST_ID, TEST_FILES);
+function checkUpdate() {
+  let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
+  let applyToDir = getApplyDirFile();
 
-  logTestInfo("testing directory still exists after removal of the last file " +
-              "in the directory (bug 386760)");
-  let testDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/", true);
-  do_check_true(testDir.exists());
+  logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
+  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
+
+  checkFilesAfterUpdateSuccess();
 
   logTestInfo("testing tobedeleted directory exists");
   let toBeDeletedDir = applyToDir.clone();
   toBeDeletedDir.append("tobedeleted");
   do_check_true(toBeDeletedDir.exists());
 
-  checkCallbackAppLog(TEST_ID);
+  checkCallbackAppLog();
 }
