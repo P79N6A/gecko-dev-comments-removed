@@ -979,12 +979,12 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
         
 
         if (amt == 1)
-            jsop_binary(JSOP_ADD, stubs::Add, JSVAL_TYPE_UNKNOWN);
+            jsop_binary(JSOP_ADD, stubs::Add, type);
         else
-            jsop_binary(JSOP_SUB, stubs::Sub, JSVAL_TYPE_UNKNOWN);
+            jsop_binary(JSOP_SUB, stubs::Sub, type);
         
 
-        frame.storeLocal(slot, post || popped);
+        frame.storeLocal(slot, post || popped, type);
         
 
         
@@ -1040,12 +1040,14 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
 void
 mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 {
+    JSValueType type = knownArgumentType(slot);
+
     if (popped || (op == JSOP_INCARG || op == JSOP_DECARG)) {
         int amt = (op == JSOP_ARGINC || op == JSOP_INCARG) ? -1 : 1;
 
         
         
-        frame.pushArg(slot, JSVAL_TYPE_UNKNOWN);
+        frame.pushArg(slot, type);
 
         
         
@@ -1054,11 +1056,11 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
         
         
         
-        jsop_binary(JSOP_SUB, stubs::Sub, JSVAL_TYPE_UNKNOWN);
+        jsop_binary(JSOP_SUB, stubs::Sub, type);
 
         
         
-        frame.storeArg(slot, popped);
+        frame.storeArg(slot, popped, type);
 
         if (popped)
             frame.pop();
@@ -1067,7 +1069,7 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 
         
         
-        frame.pushArg(slot, JSVAL_TYPE_UNKNOWN);
+        frame.pushArg(slot, type);
 
         
         
@@ -1083,11 +1085,11 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 
         
         
-        jsop_binary(JSOP_ADD, stubs::Add, JSVAL_TYPE_UNKNOWN);
+        jsop_binary(JSOP_ADD, stubs::Add, type);
 
         
         
-        frame.storeArg(slot, true);
+        frame.storeArg(slot, true, type);
 
         
         
