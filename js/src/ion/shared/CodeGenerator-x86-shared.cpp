@@ -519,6 +519,58 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitModI(LModI *ins)
+{
+    Register remainder = ToRegister(ins->remainder());
+    Register lhs = ToRegister(ins->lhs());
+    Register rhs = ToRegister(ins->rhs());
+
+    
+    JS_ASSERT(remainder == edx);
+    JS_ASSERT(lhs == eax);
+
+    
+    masm.testl(rhs, rhs);
+    if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+        return false;
+
+    Label negative, join;
+
+    
+    
+    masm.xorl(edx, edx);
+
+    
+    masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
+    
+    {
+        masm.idiv(rhs);
+        masm.jump(&join);
+    }
+
+    
+    {
+        masm.bind(&negative);
+        masm.negl(lhs);
+        if (!bailoutIf(Assembler::Overflow, ins->snapshot()))
+            return false;
+
+        masm.idiv(rhs);
+
+        
+        masm.testl(remainder, remainder);
+        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+            return false; 
+
+        
+        masm.negl(remainder);
+    }
+
+    masm.bind(&join);
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitBitNot(LBitNot *ins)
 {
     const LAllocation *input = ins->getOperand(0);
