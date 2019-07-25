@@ -727,6 +727,12 @@ CodeGenerator::generateArgumentsChecks()
 bool
 CodeGenerator::generateInvalidateEpilogue()
 {
+    
+    
+    
+    for (size_t i = 0; i < sizeof(void *); i++)
+        masm.nop();
+
     masm.bind(&invalidate_);
 
     
