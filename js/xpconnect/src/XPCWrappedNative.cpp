@@ -1606,6 +1606,16 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 JS_SetPrivate(flat, nullptr);
             }
 
+            
+            
+            
+            {
+                JSAutoEnterCompartment innerAC;
+                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
+                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
+                    return NS_ERROR_FAILURE;
+            }
+
             {   
                 Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
                 Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
@@ -1639,16 +1649,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                              "wrapper already in new scope!");
 
                 (void) newMap->Add(wrapper);
-            }
-
-            
-            
-            
-            {
-                JSAutoEnterCompartment innerAC;
-                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
-                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
-                    return NS_ERROR_FAILURE;
             }
 
             JSObject *ww = wrapper->GetWrapper();
