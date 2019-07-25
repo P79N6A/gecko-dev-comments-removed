@@ -325,7 +325,8 @@ public:
     void *CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView& surfaceView);
 
     
-    EGLSurface RegisterCompositor();
+    void RegisterCompositor();
+    EGLSurface ProvideEGLSurface();
     void PerformPreRenderHook();
     void PerformPostRenderHook();
 
