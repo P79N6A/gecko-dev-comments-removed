@@ -42,6 +42,8 @@
 #include "nsIScriptContext.h"
 #include "nsIDOMScriptObjectFactory.h"
 
+#include "jspubtd.h"
+
 
 
 
@@ -80,6 +82,9 @@ public:
   }
   operator void *() const {
     return mObject;
+  }
+  JSScript* getScript() const {
+    return static_cast<JSScript*>(mObject);
   }
 
   

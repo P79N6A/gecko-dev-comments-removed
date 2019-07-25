@@ -3383,10 +3383,11 @@ nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
 
     if (isChromeDoc && useXULCache) {
         PRUint32 fetchedLang = nsIProgrammingLanguage::UNKNOWN;
-        void *newScriptObject =
-            nsXULPrototypeCache::GetInstance()->GetScript(
+        JSScript* newScriptObject =
+            static_cast<JSScript*>(
+                nsXULPrototypeCache::GetInstance()->GetScript(
                                    aScriptProto->mSrcURI,
-                                   &fetchedLang);
+                                   &fetchedLang));
         if (newScriptObject) {
             
             
