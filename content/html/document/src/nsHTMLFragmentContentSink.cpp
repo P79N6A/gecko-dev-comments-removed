@@ -993,11 +993,12 @@ nsHTMLParanoidFragmentSink::AddAttributes(const nsIParserNode& aNode,
     nsCOMPtr<nsIAtom> keyAtom = do_GetAtom(k);
 
     
-    if (!sAllowedAttributes || !sAllowedAttributes->GetEntry(keyAtom)) {
-      
-      if (!mProcessStyle || keyAtom != nsGkAtoms::style) {
-        continue;
-      }
+    
+    
+    if ((!sAllowedAttributes || !sAllowedAttributes->GetEntry(keyAtom)) &&
+        (!mProcessStyle || keyAtom != nsGkAtoms::style) &&
+        !StringBeginsWith(k, NS_LITERAL_STRING("data-"))) {
+      continue;
     }
 
     
