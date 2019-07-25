@@ -7129,8 +7129,14 @@ nsDocShell::RestoreFromHistory()
     rv = mContentViewer->Open(windowState, mLSHE);
 
     
+    
+    nsAutoPtr<nsDocShellEditorData> data(mLSHE->ForgetEditorData());
+
+    
     mLSHE->SetContentViewer(nsnull);
     mEODForCurrentDocument = PR_FALSE;
+
+    mLSHE->SetEditorData(data.forget());
 
 #ifdef DEBUG
  {
