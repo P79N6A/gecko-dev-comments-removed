@@ -116,7 +116,8 @@ namespace base {
 
 
 
-#ifndef OS_MACOSX
+
+#if !defined(OS_MACOSX) && !defined(OS_WIN)
 std::string SysWideToUTF8(const std::wstring& wide) {
   
   return GhettoStringConvert<std::wstring, std::string>(wide);
@@ -133,7 +134,7 @@ string16 SysWideToUTF16(const std::wstring& wide)
 #endif
 }
 
-#ifndef OS_MACOSX
+#if !defined(OS_MACOSX) && !defined(OS_WIN)
 std::wstring SysUTF8ToWide(const StringPiece& utf8) {
   
   return GhettoStringConvert<StringPiece, std::wstring>(utf8);
