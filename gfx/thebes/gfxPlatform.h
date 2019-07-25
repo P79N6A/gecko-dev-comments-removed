@@ -260,11 +260,6 @@ public:
     
 
 
-    PRBool PreserveOTLTablesWhenSanitizing();
-
-    
-
-
 
 
     PRBool UseHarfBuzzForScript(PRInt32 aScriptCode);
@@ -382,7 +377,6 @@ protected:
                                                
     PRBool  mAllowDownloadableFonts;
     PRBool  mDownloadableFontsSanitize;
-    PRBool  mSanitizePreserveOTLTables;
 
     
     PRInt32 mUseHarfBuzzScripts;
