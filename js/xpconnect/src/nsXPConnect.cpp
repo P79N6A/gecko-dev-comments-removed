@@ -99,12 +99,8 @@ nsXPConnect::~nsXPConnect()
         
         
         
-        
-        
         cx = JS_NewContext(mRuntime->GetJSRuntime(), 8192);
     }
-
-    XPCPerThreadData::CleanupAllThreads();
 
     
     
