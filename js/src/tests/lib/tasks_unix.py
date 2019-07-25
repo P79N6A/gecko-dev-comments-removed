@@ -6,8 +6,6 @@ import errno, os, sys, select
 from datetime import datetime, timedelta
 from results import TestOutput
 
-PROGRESS_BAR_GRANULARITY = 0.1 
-
 class Task(object):
     def __init__(self, test, pid, stdout, stderr):
         self.test = test
@@ -52,24 +50,22 @@ def get_max_wait(tasks, results, timeout):
     """
     Return the maximum time we can wait before any task should time out.
     """
-    now = datetime.now()
-    wait = timedelta(0)
-    for task in tasks:
-        remaining = timedelta(seconds=timeout) - (now - task.start)
-        if remaining > wait:
-            wait = remaining
-    wait = total_seconds(wait)
+
+    
+    wait = results.pb.update_granularity()
 
     
     
-    
-    if wait == 0:
-        return None
+    if timeout:
+        now = datetime.now()
+        timeout_delta = timedelta(seconds=timeout)
+        for task in tasks:
+            remaining = task.start + timeout_delta - now
+            if remaining < wait:
+                wait = remaining
 
     
-    wait = min(wait, PROGRESS_BAR_GRANULARITY)
-
-    return wait
+    return max(total_seconds(wait), 0)
 
 def flush_input(fd, frags):
     """
