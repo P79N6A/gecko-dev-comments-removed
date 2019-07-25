@@ -43,6 +43,7 @@
 #include "nsILineBreaker.h"
 
 class nsIAtom;
+class nsHyphenator;
 
 
 
@@ -56,7 +57,11 @@ public:
 
 
 
-  virtual void SetBreaks(PRUint32 aStart, PRUint32 aLength, PRPackedBool* aBreakBefore) = 0;
+
+
+
+
+  virtual void SetBreaks(PRUint32 aStart, PRUint32 aLength, PRUint8* aBreakBefore) = 0;
   
   
 
@@ -153,7 +158,12 @@ public:
 
 
 
-    BREAK_NEED_CAPITALIZATION = 0x08
+    BREAK_NEED_CAPITALIZATION = 0x08,
+    
+
+
+
+    BREAK_USE_AUTO_HYPHENATION = 0x10
   };
 
   
@@ -214,9 +224,18 @@ private:
   
   nsresult FlushCurrentWord();
 
+  void UpdateCurrentWordLangGroup(nsIAtom *aLangGroup);
+
+  void FindHyphenationPoints(nsHyphenator *aHyphenator,
+                             const PRUnichar *aTextStart,
+                             const PRUnichar *aTextLimit,
+                             PRPackedBool *aBreakState);
+
   nsAutoTArray<PRUnichar,100> mCurrentWord;
   
   nsAutoTArray<TextItem,2>    mTextItems;
+  nsIAtom*                    mCurrentWordLangGroup;
+  PRPackedBool                mCurrentWordContainsMixedLang;
   PRPackedBool                mCurrentWordContainsComplexChar;
 
   
