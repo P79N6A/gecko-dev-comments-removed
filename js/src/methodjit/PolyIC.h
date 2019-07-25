@@ -216,7 +216,7 @@ struct BaseIC : public MacroAssemblerTypedefs {
     int secondShapeGuard : 11;
 
     
-    JSOp op : 8;
+    JSOp op : 9;
 
     
     void releasePools() {
