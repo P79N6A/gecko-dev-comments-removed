@@ -249,11 +249,7 @@ function GroupItem(listOfEls, options) {
   this._init($container[0]);
 
   
-  
-  
-  
-  options.dontArrange = true;
-  listOfEls.forEach(function (el) {
+  Array.prototype.forEach.call(listOfEls, function(el) {
     self.add(el, options);
   });
 
