@@ -4504,10 +4504,9 @@ JSTerm.prototype = {
 
           case Ci.nsIDOMKeyEvent.DOM_VK_UP:
             
-            if (self.caretAtStartOfInput()) {
+            if (self.canCaretGoPrevious()) {
               let updated = self.historyPeruse(HISTORY_BACK);
               if (updated && aEvent.cancelable) {
-                self.inputNode.setSelectionRange(0, 0);
                 aEvent.preventDefault();
               }
             }
@@ -4515,11 +4514,9 @@ JSTerm.prototype = {
 
           case Ci.nsIDOMKeyEvent.DOM_VK_DOWN:
             
-            if (self.caretAtEndOfInput()) {
+            if (self.canCaretGoNext()) {
               let updated = self.historyPeruse(HISTORY_FORWARD);
               if (updated && aEvent.cancelable) {
-                let inputEnd = self.inputNode.value.length;
-                self.inputNode.setSelectionRange(inputEnd, inputEnd);
                 aEvent.preventDefault();
               }
             }
@@ -4629,10 +4626,19 @@ JSTerm.prototype = {
 
 
 
-  caretAtStartOfInput: function JST_caretAtStartOfInput()
+
+
+
+  canCaretGoPrevious: function JST_canCaretGoPrevious()
   {
-    return this.inputNode.selectionStart == this.inputNode.selectionEnd &&
-        this.inputNode.selectionStart == 0;
+    let node = this.inputNode;
+    if (node.selectionStart != node.selectionEnd) {
+      return false;
+    }
+
+    let multiline = /[\r\n]/.test(node.value);
+    return node.selectionStart == 0 ? true :
+           node.selectionStart == node.value.length && !multiline;
   },
 
   
@@ -4641,10 +4647,19 @@ JSTerm.prototype = {
 
 
 
-  caretAtEndOfInput: function JST_caretAtEndOfInput()
+
+
+
+  canCaretGoNext: function JST_canCaretGoNext()
   {
-    return this.inputNode.selectionStart == this.inputNode.selectionEnd &&
-        this.inputNode.selectionStart == this.inputNode.value.length;
+    let node = this.inputNode;
+    if (node.selectionStart != node.selectionEnd) {
+      return false;
+    }
+
+    let multiline = /[\r\n]/.test(node.value);
+    return node.selectionStart == node.value.length ? true :
+           node.selectionStart == 0 && !multiline;
   },
 
   history: [],
