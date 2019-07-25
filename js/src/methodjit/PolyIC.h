@@ -37,7 +37,7 @@
 
 
 
-#if !defined jsjaeger_poly_ic_h__ && defined JS_METHODJIT
+#if !defined jsjaeger_poly_ic_h__ && defined JS_METHODJIT && defined JS_POLYIC
 #define jsjaeger_poly_ic_h__
 
 #include "jscntxt.h"
@@ -46,9 +46,7 @@
 #include "assembler/assembler/MacroAssembler.h"
 #include "assembler/assembler/CodeLocation.h"
 #include "methodjit/MethodJIT.h"
-#include "BaseAssembler.h"
 #include "RematInfo.h"
-#include "BaseCompiler.h"
 
 namespace js {
 namespace mjit {
@@ -56,7 +54,6 @@ namespace ic {
 
 
 static const uint32 MAX_PIC_STUBS = 16;
-static const uint32 MAX_GETELEM_IC_STUBS = 17;
 
 
 #if defined JS_CPU_X86
@@ -165,32 +162,46 @@ union PICLabels {
     
     struct {
         
+        int32 dslotsLoadOffset : 8;
+
+        
+        int32 inlineShapeOffset : 8;
+        
+        
+        int32 inlineAtomOffset : 8;
+
+        
+        int32 inlineValueOffset : 8;
+
+        
+        
+        
+        int32 stubShapeJump : 8;
+    } getelem;
+
+    
+    struct {
+        
         int32 inlineJumpOffset : 8;
     } bindname;
 };
 #endif
 
-enum LookupStatus {
-    Lookup_Error = 0,
-    Lookup_Uncacheable,
-    Lookup_Cacheable
-};
-
-struct BaseIC : public MacroAssemblerTypedefs {
+struct BaseIC {
     
-    CodeLocationLabel fastPathStart;
+    JSC::CodeLocationLabel fastPathStart;
 
     
-    CodeLocationLabel fastPathRejoin;
+    JSC::CodeLocationLabel fastPathRejoin;
 
     
-    CodeLocationLabel slowPathStart;
+    JSC::CodeLocationLabel slowPathStart;
 
     
-    CodeLocationCall slowPathCall;
+    JSC::CodeLocationCall slowPathCall;
 
     
-    CodeLocationLabel lastStubStart;
+    JSC::CodeLocationLabel lastStubStart;
 
     typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
 
@@ -199,24 +210,15 @@ struct BaseIC : public MacroAssemblerTypedefs {
 
     
     
-    CodeLocationLabel lastPathStart() {
+    JSC::CodeLocationLabel lastPathStart() {
         return stubsGenerated > 0 ? lastStubStart : fastPathStart;
     }
 
     
     bool hit : 1;
-    bool slowCallPatched : 1;
 
     
     uint32 stubsGenerated : 5;
-
-    
-    
-    
-    int secondShapeGuard : 11;
-
-    
-    JSOp op : 8;
 
     
     void releasePools() {
@@ -227,122 +229,17 @@ struct BaseIC : public MacroAssemblerTypedefs {
         }
     }
 
-    void init() {
-        new (&execPools) ExecPoolVector(SystemAllocPolicy());
-    }
-    void finish() {
-        releasePools();
-        this->~BaseIC();
-    }
-
     void reset() {
         hit = false;
-        slowCallPatched = false;
         stubsGenerated = 0;
-        secondShapeGuard = 0;
         releasePools();
         execPools.clear();
     }
-    bool shouldUpdate(JSContext *cx);
-    void spew(JSContext *cx, const char *event, const char *reason);
-    LookupStatus disable(JSContext *cx, const char *reason, void *stub);
-    bool isCallOp();
-};
-
-struct GetElementIC : public BaseIC {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    RegisterID typeReg   : 5;
-
-    
-    
-    RegisterID objReg    : 5;
-
-    
-    
-    int inlineTypeGuard  : 6;
-
-    
-    
-    
-    int inlineClaspGuard : 6;
-
-    
-    
-    
-    bool inlineTypeGuardPatched : 1;
-
-    
-    
-    
-    
-    
-    bool inlineClaspGuardPatched : 1;
-
-    
-    
-    
-
-    
-    bool typeRegHasBaseShape : 1;
-
-    
-    
-    
-    int atomGuard : 8;          
-    int firstShapeGuard : 8;    
-    int secondShapeGuard : 8;   
-
-    bool hasLastStringStub : 1;
-    CodeLocationLabel lastStringStub;
-
-    
-    
-    
-    
-    
-    
-    
-    ValueRemat idRemat;
-
-    bool hasInlineTypeGuard() const {
-        return !idRemat.isTypeKnown();
-    }
-    bool shouldPatchInlineTypeGuard() {
-        return hasInlineTypeGuard() && !inlineTypeGuardPatched;
-    }
-    bool shouldPatchUnconditionalClaspGuard() {
-        return !hasInlineTypeGuard() && !inlineClaspGuardPatched;
-    }
-
-    void init() {
-        BaseIC::init();
-        reset();
-    }
-    void reset() {
-        BaseIC::reset();
-        inlineTypeGuardPatched = false;
-        inlineClaspGuardPatched = false;
-        typeRegHasBaseShape = false;
-        hasLastStringStub = false;
-    }
-    void purge();
-    LookupStatus update(JSContext *cx, JSObject *obj, const Value &v, jsid id, Value *vp);
-    LookupStatus attachGetProp(JSContext *cx, JSObject *obj, const Value &v, jsid id,
-                               Value *vp);
-    LookupStatus disable(JSContext *cx, const char *reason);
-    LookupStatus error(JSContext *cx);
-    bool shouldUpdate(JSContext *cx);
 };
 
 struct PICInfo : public BaseIC {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+
     
     enum Kind
 #ifdef _MSC_VER
@@ -355,6 +252,7 @@ struct PICInfo : public BaseIC {
         SETMETHOD,  
         NAME,       
         BIND,       
+        GETELEM,    
         XNAME       
     };
 
@@ -365,9 +263,19 @@ struct PICInfo : public BaseIC {
 
             
             int32 typeCheckOffset;
+
+            
+            int32 objRemat      : MIN_STATE_REMAT_BITS;
+            bool objNeedsRemat  : 1;
+            RegisterID idReg    : 5;  
         } get;
         ValueRemat vr;
     } u;
+
+    
+    
+    
+    int secondShapeGuard : 11;
 
     Kind kind : 3;
 
@@ -391,7 +299,7 @@ struct PICInfo : public BaseIC {
         return kind == SET || kind == SETMETHOD;
     }
     inline bool isGet() const {
-        return kind == GET || kind == CALL;
+        return kind == GET || kind == CALL || kind == GETELEM;
     }
     inline RegisterID typeReg() {
         JS_ASSERT(isGet());
@@ -401,12 +309,26 @@ struct PICInfo : public BaseIC {
         JS_ASSERT(isGet());
         return u.get.hasTypeCheck;
     }
+    inline const StateRemat objRemat() const {
+        JS_ASSERT(isGet());
+        return StateRemat::FromInt32(u.get.objRemat);
+    }
+    inline bool objNeedsRemat() {
+        JS_ASSERT(isGet());
+        return u.get.objNeedsRemat;
+    }
     inline bool shapeNeedsRemat() {
         return !shapeRegHasBaseShape;
     }
     inline bool isFastCall() {
         JS_ASSERT(kind == CALL);
         return !hasTypeCheck();
+    }
+
+    inline void setObjRemat(const StateRemat &sr) {
+        JS_ASSERT(isGet());
+        u.get.objRemat = sr.toInt32();
+        JS_ASSERT(u.get.objRemat == sr.toInt32());
     }
 
 #if defined JS_CPU_X64
@@ -420,30 +342,30 @@ struct PICInfo : public BaseIC {
     
     JSAtom *atom;
 
-    void init() {
-        BaseIC::init();
-        reset();
+    bool shouldGenerate() {
+        return stubsGenerated < MAX_PIC_STUBS || !inlinePathPatched;
     }
 
     
     
     void reset() {
         inlinePathPatched = false;
+        if (kind == GET || kind == CALL || kind == GETELEM)
+            u.get.objNeedsRemat = false;
+        secondShapeGuard = 0;
         shapeRegHasBaseShape = true;
         BaseIC::reset();
     }
 };
 
-#ifdef JS_POLYIC
 void PurgePICs(JSContext *cx, JSScript *script);
 void JS_FASTCALL GetProp(VMFrame &f, ic::PICInfo *);
+void JS_FASTCALL GetElem(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL SetProp(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL CallProp(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL Name(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL XName(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL BindName(VMFrame &f, ic::PICInfo *);
-void JS_FASTCALL GetElement(VMFrame &f, ic::GetElementIC *);
-#endif
 
 } 
 } 

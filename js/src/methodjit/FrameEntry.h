@@ -97,12 +97,6 @@ class FrameEntry
         return isTypeKnown() && getKnownType() != type_;
     }
 
-    
-    
-    bool mightBeType(JSValueType type_) const {
-        return !isNotType(type_);
-    }
-
 #if defined JS_NUNBOX32
     uint32 getPayload() const {
         
