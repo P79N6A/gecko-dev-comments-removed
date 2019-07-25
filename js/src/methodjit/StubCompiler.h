@@ -128,15 +128,16 @@ class StubCompiler
 
 
 
-    JSC::MacroAssembler::Label syncExit();
-    
-
-
-
-    JSC::MacroAssembler::Label syncExitAndJump();
+    JSC::MacroAssembler::Label syncExit(Uses uses);
 
     
-    void linkExit(Jump j);
+
+
+
+    JSC::MacroAssembler::Label syncExitAndJump(Uses uses);
+
+    
+    void linkExit(Jump j, Uses uses);
     void linkExitDirect(Jump j, Label L);
 
     void leave();
@@ -147,7 +148,7 @@ class StubCompiler
 
 
 
-    void rejoin(uint32 invalidationDepth);
+    void rejoin(Changes changes);
     void linkRejoin(Jump j);
 
     
