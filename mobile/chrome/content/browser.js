@@ -1191,10 +1191,10 @@ Browser.MainDragger.prototype = {
 
     
     
-    let dx = Math.round(doffset.x);
+    let dx = doffset.x;
     if ((this._stopAtSidebar > 0 && dx > 0) ||
         (this._stopAtSidebar < 0 && dx < 0)) {
-      if (dx != Math.round(panOffset.x))
+      if (dx != panOffset.x)
         this._hitSidebar = true;
       doffset.x = panOffset.x;
     } else {
