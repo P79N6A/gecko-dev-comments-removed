@@ -93,7 +93,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS11(WebSocketChannel,
                                nsIChannelEventSink)
 
 
-#define SEC_WEBSOCKET_VERSION "8"
+#define SEC_WEBSOCKET_VERSION "13"
 
 
 
@@ -1782,8 +1782,8 @@ WebSocketChannel::SetupRequest()
     NS_LITERAL_CSTRING(SEC_WEBSOCKET_VERSION), false);
 
   if (!mOrigin.IsEmpty())
-    mHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Sec-WebSocket-Origin"),
-                                   mOrigin, false);
+    mHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Origin"), mOrigin,
+                                   false);
 
   if (!mProtocol.IsEmpty())
     mHttpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Sec-WebSocket-Protocol"),
