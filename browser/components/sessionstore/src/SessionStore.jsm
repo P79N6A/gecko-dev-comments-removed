@@ -341,10 +341,6 @@ let SessionStoreInternal = {
     this._prefBranch.addObserver("sessionstore.restore_pinned_tabs_on_demand", this, true);
 
     
-    
-    gRestoreTabsProgressListener.ss = this;
-
-    
     this._sessionFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
     this._sessionFileBackup = this._sessionFile.clone();
     this._sessionFile.append("sessionstore.js");
@@ -513,9 +509,6 @@ let SessionStoreInternal = {
     this._tabsToRestore.priority = null;
     this._tabsToRestore.visible = null;
     this._tabsToRestore.hidden = null;
-
-    
-    gRestoreTabsProgressListener.ss = null;
 
     
     if (this._saveTimer) {
@@ -3101,7 +3094,7 @@ let SessionStoreInternal = {
     }
     history.QueryInterface(Ci.nsISHistoryInternal);
 
-    browser.__SS_shistoryListener = new SessionStoreSHistoryListener(this, tab);
+    browser.__SS_shistoryListener = new SessionStoreSHistoryListener(tab);
     history.addSHistoryListener(browser.__SS_shistoryListener);
 
     if (!tabData.entries) {
@@ -4502,7 +4495,6 @@ let SessionStoreInternal = {
 
 
 let gRestoreTabsProgressListener = {
-  ss: null,
   onStateChange: function(aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
     
     
@@ -4512,9 +4504,9 @@ let gRestoreTabsProgressListener = {
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
       
-      let tab = this.ss._getTabForBrowser(aBrowser);
-      this.ss._resetTabRestoringState(tab);
-      this.ss.restoreNextTab();
+      let tab = SessionStoreInternal._getTabForBrowser(aBrowser);
+      SessionStoreInternal._resetTabRestoringState(tab);
+      SessionStoreInternal.restoreNextTab();
     }
   }
 };
@@ -4522,9 +4514,8 @@ let gRestoreTabsProgressListener = {
 
 
 
-function SessionStoreSHistoryListener(ss, aTab) {
+function SessionStoreSHistoryListener(aTab) {
   this.tab = aTab;
-  this.ss = ss;
 }
 SessionStoreSHistoryListener.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
@@ -4532,7 +4523,6 @@ SessionStoreSHistoryListener.prototype = {
     Ci.nsISupportsWeakReference
   ]),
   browser: null,
-  ss: null,
   OnHistoryNewEntry: function(aNewURI) { },
   OnHistoryGoBack: function(aBackURI) { return true; },
   OnHistoryGoForward: function(aForwardURI) { return true; },
@@ -4542,7 +4532,7 @@ SessionStoreSHistoryListener.prototype = {
     
     
     
-    this.ss.restoreTab(this.tab);
+    SessionStoreInternal.restoreTab(this.tab);
     
     return false;
   }
