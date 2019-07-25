@@ -860,7 +860,9 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
     
     
     if (!mPresContext &&
-        (aParentWidget || containerView || mDocument->GetDisplayDocument())) {
+        (aParentWidget || containerView ||
+         (mDocument->GetDisplayDocument() &&
+          mDocument->GetDisplayDocument()->GetShell()))) {
       
       if (mIsPageMode) {
         
