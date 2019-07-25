@@ -137,7 +137,6 @@
 #include "nsUnicharUtils.h"
 #include "nsPluginManifestLineReader.h"
 
-#include "nsDefaultPlugin.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMHTMLObjectElement.h"
@@ -1513,24 +1512,10 @@ nsPluginHost::nsPluginHost()
       mOverrideInternalTypes = tmp;
     }
 
-    rv = mPrefService->GetBoolPref("plugin.allow_alien_star_handler", &tmp);
-    if (NS_SUCCEEDED(rv)) {
-      mAllowAlienStarHandler = tmp;
-    }
-
-    rv = mPrefService->GetBoolPref("plugin.default_plugin_disabled", &tmp);
-    if (NS_SUCCEEDED(rv)) {
-      mDefaultPluginDisabled = tmp;
-    }
-
     rv = mPrefService->GetBoolPref("plugin.disable", &tmp);
     if (NS_SUCCEEDED(rv)) {
       mPluginsDisabled = tmp;
     }
-
-#ifdef WINCE
-    mDefaultPluginDisabled = PR_TRUE;
-#endif
   }
 
   nsCOMPtr<nsIObserverService> obsService =
@@ -2194,8 +2179,6 @@ NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
       return NS_ERROR_CONTENT_BLOCKED_SHOW_ALT;
   }
 
-  
-  
   nsPluginTag* pluginTag = FindPluginForType(aMimeType, PR_FALSE);
   if (pluginTag) {
     if (!pluginTag->IsEnabled())
@@ -2245,44 +2228,16 @@ NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
 
   rv = SetUpPluginInstance(aMimeType, aURL, aOwner);
 
-  if (rv == NS_OK) {
-    rv = aOwner->GetInstance(instance);
-  } else {
-   
+  if (NS_FAILED(rv))
+    return NS_ERROR_FAILURE;
 
-
-
-
-
-
-    PRBool bHasPluginURL = PR_FALSE;
-    nsCOMPtr<nsIPluginTagInfo> pti(do_QueryInterface(aOwner));
-
-    if (pti) {
-      const char *value;
-      bHasPluginURL = NS_SUCCEEDED(pti->GetParameter("PLUGINURL", &value));
-    }
-
-    
-    
-    if (nsPluginTagType_Object == tagType && !bHasPluginURL)
-      return rv;
-
-    if (NS_FAILED(SetUpDefaultPluginInstance(aMimeType, aURL, aOwner)))
-      return NS_ERROR_FAILURE;
-
-    if (NS_FAILED(aOwner->GetInstance(instance)))
-      return NS_ERROR_FAILURE;
-
-    rv = NS_OK;
-  }
+  rv = aOwner->GetInstance(instance);
 
   
   
   if (rv == NS_ERROR_FAILURE)
     return rv;
 
-  
   
 
   NPWindow *window = nsnull;
@@ -2458,8 +2413,7 @@ nsresult nsPluginHost::FindStoppedPluginForURL(nsIURI* aURL,
 
 nsresult nsPluginHost::AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
                                                nsIPluginInstance* aInstance,
-                                               nsIURI* aURL,
-                                               PRBool aDefaultPlugin)
+                                               nsIURI* aURL)
 {
   nsCAutoString url;
   
@@ -2476,7 +2430,7 @@ nsresult nsPluginHost::AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
     NS_ASSERTION(pluginTag, "Plugin tag not found");
   }
 
-  nsPluginInstanceTag *instanceTag = new nsPluginInstanceTag(pluginTag, aInstance, url.get(), aDefaultPlugin);
+  nsPluginInstanceTag *instanceTag = new nsPluginInstanceTag(pluginTag, aInstance, url.get());
   if (!instanceTag)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -2616,7 +2570,7 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
   }
 
   
-  result = AddInstanceToActiveList(plugin, instance, aURL, PR_FALSE);
+  result = AddInstanceToActiveList(plugin, instance, aURL);
 
 #ifdef PLUGIN_LOGGING
   nsCAutoString urlSpec2;
@@ -2629,59 +2583,6 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
 
   PR_LogFlush();
 #endif
-
-  return result;
-}
-
-nsresult
-nsPluginHost::SetUpDefaultPluginInstance(const char *aMimeType,
-                                         nsIURI *aURL,
-                                         nsIPluginInstanceOwner *aOwner)
-{
-  if (mDefaultPluginDisabled) {
-    
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIPluginInstance> instance;
-  nsCOMPtr<nsIPlugin> plugin = NULL;
-  const char* mimetype = aMimeType;
-
-  if (!aURL)
-    return NS_ERROR_FAILURE;
-
-  GetPlugin("*", getter_AddRefs(plugin));
-
-  nsresult result = NS_ERROR_OUT_OF_MEMORY;
-  if (plugin)
-    result = plugin->CreatePluginInstance(getter_AddRefs(instance));
-  if (NS_FAILED(result))
-    return result;
-
-  
-  aOwner->SetInstance(instance);
-
-  
-  nsXPIDLCString mt;
-  if (!mimetype || !*mimetype) {
-    nsresult res = NS_OK;
-    nsCOMPtr<nsIMIMEService> ms (do_GetService(NS_MIMESERVICE_CONTRACTID, &res));
-    if (NS_SUCCEEDED(res)) {
-      res = ms->GetTypeFromURI(aURL, mt);
-      if (NS_SUCCEEDED(res))
-        mimetype = mt.get();
-    }
-  }
-
-  
-  result = instance->Initialize(aOwner, mimetype);
-  if (NS_FAILED(result)) {
-    aOwner->SetInstance(nsnull);
-    return result;
-  }
-
-  
-  result = AddInstanceToActiveList(plugin, instance, aURL, PR_TRUE);
 
   return result;
 }
@@ -3241,44 +3142,6 @@ class nsDefaultComparator<pluginFileinDirectory, pluginFileinDirectory>
 
 typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
 
-static nsresult FixUpPluginInfo(nsPluginInfo &aInfo, nsPluginFile &aPluginFile)
-{
-#ifndef XP_WIN
-  return NS_OK;
-#endif
-
-  for (PRUint32 i = 0; i < aInfo.fVariantCount; i++) {
-    if (PL_strcmp(aInfo.fMimeTypeArray[i], "*"))
-      continue;
-
-    
-    
-    
-    PRLibrary *library = nsnull;
-    if (NS_FAILED(aPluginFile.LoadPlugin(library)) || !library)
-      return NS_ERROR_FAILURE;
-
-    NP_GETMIMEDESCRIPTION pf = (NP_GETMIMEDESCRIPTION)PR_FindFunctionSymbol(library, "NP_GetMIMEDescription");
-
-    if (pf) {
-      
-      char * mimedescription = pf();
-      if (!PL_strncmp(mimedescription, NS_PLUGIN_DEFAULT_MIME_DESCRIPTION, 1))
-        return NS_OK;
-    }
-
-    
-    
-
-    
-    PL_strfree(aInfo.fMimeTypeArray[i]);
-    aInfo.fMimeTypeArray[i] = PL_strdup("[*]");
-
-    
-  }
-  return NS_OK;
-}
-
 nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
                                             nsIComponentManager * compManager,
                                             PRBool aCreatePluginList,
@@ -3423,12 +3286,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
         pluginFile.FreePluginInfo(info);
         continue;
       }
-
-      
-      
-      
-      if (!mAllowAlienStarHandler)
-        FixUpPluginInfo(info, pluginFile);
 
       pluginTag = new nsPluginTag(&info);
       pluginFile.FreePluginInfo(info);
@@ -4590,9 +4447,10 @@ nsPluginHost::HandleBadPlugin(PRLibrary* aLibrary, nsIPluginInstance *aInstance)
   nsCOMPtr<nsIPrompt> prompt;
   GetPrompt(owner, getter_AddRefs(prompt));
   if (prompt) {
-    nsCOMPtr<nsIStringBundleService> strings(do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv));
-    if (NS_FAILED(rv))
-      return rv;
+    nsCOMPtr<nsIStringBundleService> strings =
+      mozilla::services::GetStringBundleService();
+    if (!strings)
+      return NS_ERROR_FAILURE;
 
     nsCOMPtr<nsIStringBundle> bundle;
     rv = strings->CreateBundle(BRAND_PROPERTIES_URL, getter_AddRefs(bundle));
@@ -5129,16 +4987,9 @@ nsPluginHost::FindInstanceTag(nsIPluginInstance *instance)
 
 nsPluginInstanceTag*
 nsPluginHost::FindInstanceTag(const char *mimetype)
-{
-  PRBool defaultplugin = (PL_strcmp(mimetype, "*") == 0);
-  
+{  
   for (PRUint32 i = 0; i < mInstanceTags.Length(); i++) {
     nsPluginInstanceTag* instanceTag = mInstanceTags[i];
-    
-    
-    if (defaultplugin && instanceTag->mDefaultPlugin)
-      return instanceTag;
-    
     if (!instanceTag->mInstance)
       continue;
     

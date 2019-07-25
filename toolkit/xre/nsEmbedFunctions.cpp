@@ -129,6 +129,10 @@ using mozilla::startup::sChildProcessType;
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
+#ifdef XP_WIN
+static const PRUnichar kShellLibraryName[] =  L"shell32.dll";
+#endif
+
 void
 XRE_GetStaticComponents(nsStaticModuleInfo const **aStaticComponents,
                         PRUint32 *aComponentCount)
@@ -292,6 +296,33 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #endif 
 #endif 
 
+#if defined(XP_WIN)
+void
+SetTaskbarGroupId(const nsString& aId)
+{
+    typedef HRESULT (WINAPI * SetCurrentProcessExplicitAppUserModelIDPtr)(PCWSTR AppID);
+
+    SetCurrentProcessExplicitAppUserModelIDPtr funcAppUserModelID = nsnull;
+
+    HMODULE hDLL = ::LoadLibraryW(kShellLibraryName);
+
+    funcAppUserModelID = (SetCurrentProcessExplicitAppUserModelIDPtr)
+                          GetProcAddress(hDLL, "SetCurrentProcessExplicitAppUserModelID");
+
+    if (!funcAppUserModelID) {
+        ::FreeLibrary(hDLL);
+        return;
+    }
+
+    if (FAILED(funcAppUserModelID(aId.get()))) {
+        NS_WARNING("SetCurrentProcessExplicitAppUserModelID failed for child process.");
+    }
+
+    if (hDLL)
+        ::FreeLibrary(hDLL);
+}
+#endif
+
 nsresult
 XRE_InitChildProcess(int aArgc,
                      char* aArgv[],
@@ -335,6 +366,25 @@ XRE_InitChildProcess(int aArgc,
   base::ProcessHandle parentHandle;
   bool ok = base::OpenProcessHandle(parentPID, &parentHandle);
   NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
+
+#if defined(XP_WIN)
+  
+  
+  
+  const char* const appModelUserId = aArgv[aArgc-1];
+  --aArgc;
+  if (appModelUserId) {
+    
+    if (*appModelUserId != '-') {
+      nsString appId;
+      appId.AssignWithConversion(nsDependentCString(appModelUserId));
+      
+      appId.Trim(NS_LITERAL_CSTRING("\"").get());
+      
+      SetTaskbarGroupId(appId);
+    }
+  }
+#endif
 
   base::AtExitManager exitManager;
   NotificationService notificationService;

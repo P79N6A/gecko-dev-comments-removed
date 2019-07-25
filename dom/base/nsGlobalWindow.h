@@ -679,6 +679,7 @@ protected:
   already_AddRefed<nsPIWindowRoot> GetTopWindowRoot();
 
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
+  void NotifyWindowIDDestroyed(const char* aTopic);
 
   
   
@@ -745,6 +746,9 @@ protected:
 
   
   PRPackedBool           mHasAcceleration  : 1;
+
+  
+  PRPackedBool           mNotifiedIDDestroyed : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
