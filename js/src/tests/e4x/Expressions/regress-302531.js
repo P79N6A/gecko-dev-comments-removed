@@ -6,6 +6,7 @@
 
 
 
+
 var summary = "E4X QuoteString should deal with empty string";
 var BUGNUMBER = 302531;
 var actual = '';

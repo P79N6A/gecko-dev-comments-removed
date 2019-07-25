@@ -6,6 +6,7 @@
 
 
 
+
 var summary = 'duplicate attribute names';
 var BUGNUMBER = 277664;
 var actual = '';

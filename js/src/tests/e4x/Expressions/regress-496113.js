@@ -7,6 +7,7 @@
 
 
 
+
 var summary = 'simple filter';
 var BUGNUMBER = 496113;
 var actual = '';

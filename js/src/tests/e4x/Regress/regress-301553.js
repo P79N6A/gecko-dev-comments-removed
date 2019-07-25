@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "E4X - Should not repress exceptions";
 var BUGNUMBER = 301553;
 var actual = 'No exception';

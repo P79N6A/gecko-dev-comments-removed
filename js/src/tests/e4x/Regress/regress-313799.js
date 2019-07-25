@@ -4,6 +4,7 @@
 
 
 
+
 var summary = 'Do not crash on XMLListInitializer.child(0)';
 var BUGNUMBER = 313799;
 var actual = 'No Crash';

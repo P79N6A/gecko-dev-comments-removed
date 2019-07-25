@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 374116;
 var summary = 'Crash with <a/>.@b[1] = 2;';
 var actual = 'No Crash';

@@ -5,6 +5,7 @@
 
 
 
+
 START("11.4.1 - Addition Operator");
 
 employeeData = <name>Fred</name> + <age>28</age> + <hobby>skiing</hobby>;

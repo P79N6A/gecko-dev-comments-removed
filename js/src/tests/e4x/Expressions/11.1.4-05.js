@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "11.1.4 - XML Initializer - Comment hiding parsing/scanning";
 var BUGNUMBER = 311157;
 var actual;

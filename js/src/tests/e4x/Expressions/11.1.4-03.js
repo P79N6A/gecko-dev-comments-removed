@@ -4,6 +4,7 @@
 
 
 
+
 var summary = '11.1.4 - XML Initializer should accept single comment';
 var BUGNUMBER = 257679;
 var actual = '';

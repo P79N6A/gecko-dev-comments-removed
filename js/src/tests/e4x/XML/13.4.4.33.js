@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.33 - XML setChildren()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("setChildren"));

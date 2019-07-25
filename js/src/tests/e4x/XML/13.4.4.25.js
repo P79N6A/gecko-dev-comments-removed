@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.25 - XML nodeKind()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("nodeKind"));

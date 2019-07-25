@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 352797;
 var summary = 'Do not assert: OBJ_GET_CLASS(cx, obj) == &js_BlockClass';
 var actual = 'No Crash';

@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'Do not crash @ TraceRecorder::hasMethod';
 var BUGNUMBER = 465063;
 var actual = '';

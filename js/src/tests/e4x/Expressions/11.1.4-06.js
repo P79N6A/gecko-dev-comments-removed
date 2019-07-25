@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "11.1.4 - ]] should be allowed in CDATA Section";
 var BUGNUMBER = 313929;
 var actual = 'No error';

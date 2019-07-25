@@ -5,6 +5,7 @@
 
 
 
+
 START("10.1.2 - XMLList.toString");
 
 var n = 0;

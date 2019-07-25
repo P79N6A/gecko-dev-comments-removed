@@ -4,6 +4,7 @@
 
 
 
+
 var summary = 'throw error when two attributes with the same local name and ' +
     'the same namespace';
 var BUGNUMBER = 283972;

@@ -1,5 +1,6 @@
 
 
+
 assertEq(JSON.stringify({foo: 123, bar: <x><y></y></x>, baz: 123}),
          '{"foo":123,"baz":123}');
 

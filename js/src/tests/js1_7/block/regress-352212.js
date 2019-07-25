@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 352212;
 var summary = 'Do not crash with XML filtering predicate, |let|, string.replace';
 var actual = 'No Crash';

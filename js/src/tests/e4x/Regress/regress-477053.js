@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'Do not assert: JSVAL_IS_STRING(v)';
 var BUGNUMBER = 477053;
 var actual = '';

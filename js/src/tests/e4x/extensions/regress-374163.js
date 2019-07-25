@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 374163;
 var summary =
   "Set E4X xml.function::__proto__ = null shouldn't affect " +

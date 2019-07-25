@@ -5,6 +5,7 @@
 
 
 
+
 START("13.2.5 - Properties of Namespace Instances");
 
 n = new Namespace("ns", "http://someuri");

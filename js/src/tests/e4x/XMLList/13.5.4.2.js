@@ -5,6 +5,7 @@
 
 
 
+
 START("13.5.4.2 - XMLList attribute()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("attribute"));

@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "13.4.4.3 - XML.appendChild should copy child";
 
 var BUGNUMBER = 312692;

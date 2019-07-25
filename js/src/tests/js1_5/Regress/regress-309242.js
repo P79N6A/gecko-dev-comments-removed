@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 309242;
 var summary = 'E4X should be on by default while preserving comment hack';
 var actual = '';

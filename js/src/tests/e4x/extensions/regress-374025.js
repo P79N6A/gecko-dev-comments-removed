@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'Do not crash with XML.prettyIndent = 2147483648';
 var BUGNUMBER = 374025;
 var actual = 'No Crash';

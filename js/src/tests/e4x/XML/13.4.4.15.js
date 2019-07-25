@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.15 - hasComplexContent()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("hasComplexContent"));

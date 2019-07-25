@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 352223;
 var summary = 'Reject invalid spaces in tags';
 var actual = '';

@@ -1,3 +1,4 @@
+
 var o = { normal:"a" };
 Object.defineProperty(o, new QName, { enumerable:true });
 var keys = Object.keys(o);

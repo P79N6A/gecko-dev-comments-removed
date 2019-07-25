@@ -5,6 +5,7 @@
 
 
 
+
 START("13.2.2 - Namespace Constructor");
 
 n = new Namespace();

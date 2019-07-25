@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 354998;
 var summary = 'prototype should not be enumerated for XML objects.';
 var actual = '';

@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.7 - XML childIndex()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("childIndex"));

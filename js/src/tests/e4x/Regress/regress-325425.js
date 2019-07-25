@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 325425;
 var summary = 'jsxml.c: Bad assumptions about js_ConstructObject';
 var actual = 'No Crash';

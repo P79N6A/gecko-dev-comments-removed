@@ -1,6 +1,7 @@
 
 
 
+
 try
 {
   var r = Object.create(<a/>);

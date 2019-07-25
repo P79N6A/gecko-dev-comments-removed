@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.22 - XML name()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("name"));

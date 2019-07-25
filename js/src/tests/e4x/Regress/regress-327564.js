@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "Hang due to cycle in XML object";
 var BUGNUMBER = 327564;
 

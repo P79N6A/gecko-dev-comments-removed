@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 372564;
 var summary = 'Do not assert: op == JSOP_ADD';
 var actual = 'No Crash';

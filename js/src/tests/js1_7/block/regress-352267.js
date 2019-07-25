@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 352267;
 var summary = 'Do not assert with |if|, block, |let|';
 var actual = 'No Crash';

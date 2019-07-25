@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "Extending E4X XML objects with __noSuchMethod__";
 var BUGNUMBER = 312196;
 var actual = '';

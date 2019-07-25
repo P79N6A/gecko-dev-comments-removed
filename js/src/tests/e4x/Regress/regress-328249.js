@@ -5,6 +5,7 @@
 
 
 
+
 var summary = "Crash due to infinite recursion in js_IsXMLName";
 var BUGNUMBER = 328249;
 var actual = 'No Crash';

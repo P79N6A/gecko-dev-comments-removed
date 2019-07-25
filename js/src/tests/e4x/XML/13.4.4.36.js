@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.36 - setNamespace");
 
 TEST(1, true, XML.prototype.hasOwnProperty("setNamespace"));

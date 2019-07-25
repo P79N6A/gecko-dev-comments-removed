@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'XML, XMLList, QName are mutable, Namespace is not.';
 var BUGNUMBER = 407323;
 var actual = '';

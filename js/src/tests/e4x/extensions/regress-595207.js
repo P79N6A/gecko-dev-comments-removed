@@ -3,6 +3,7 @@
 
 
 
+
 var summary = "Recognize the function namespace anti-URI";
 var expect = "1";
 var actual;

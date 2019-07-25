@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 373072;
 var summary = 'XML.prototype.namespace() does not check for xml list';
 var actual = '';

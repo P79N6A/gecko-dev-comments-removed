@@ -5,6 +5,7 @@
 
 
 
+
 START("Assignment to XML property removes attributes");
 printBugNumber(369536);
 

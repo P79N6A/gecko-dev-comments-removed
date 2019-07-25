@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'Do not crash @ PutProperty setting <a/>.attribute("")[0]';
 var BUGNUMBER = 375406;
 var actual = '';

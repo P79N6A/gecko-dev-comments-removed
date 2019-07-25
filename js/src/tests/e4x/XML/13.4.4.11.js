@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.11 - XML copy()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("copy"));

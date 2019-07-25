@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 371369;
 var summary = 'delete xml.function::name does not work';
 var actual = 'No Exception';

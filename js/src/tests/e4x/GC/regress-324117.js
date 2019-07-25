@@ -5,6 +5,7 @@
 
 
 
+
 var summary = "GC hazard during namespace scanning";
 var BUGNUMBER = 324117;
 var actual = 'No Crash';

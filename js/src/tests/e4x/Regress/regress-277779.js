@@ -6,6 +6,7 @@
 
 
 
+
 var summary = 'call setNamespace on element with already existing default namespace';
 var BUGNUMBER = 277779;
 var actual = '';

@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER     = "350629";
 var summary = ".toXMLString can include invalid generated prefixes";
 var actual, expect;

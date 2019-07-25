@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 374106;
 var summary = 'e4x XMLList.contains execution halts with complex match';
 var actual = 'No Error';

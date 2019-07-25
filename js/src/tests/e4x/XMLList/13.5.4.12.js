@@ -5,6 +5,7 @@
 
 
 
+
 START("13.5.4.12 - XMLList hasComplexContent()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("hasComplexContent"));

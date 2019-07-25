@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 471373;
 var summary = 'TM: do not assert: (size_t)(regs.pc - script->code) < script->length';
 var actual = '';

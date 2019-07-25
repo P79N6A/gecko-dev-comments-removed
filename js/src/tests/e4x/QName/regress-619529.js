@@ -4,6 +4,7 @@
 
 
 
+
 var b = Proxy.create({ enumerateOwn: function () { @f; }});
 Object.freeze(this);
 

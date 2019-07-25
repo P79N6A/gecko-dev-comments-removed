@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 370048;
 var summary = 'with (obj) function:: with xml lists';
 var actual = '';

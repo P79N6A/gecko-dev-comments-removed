@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "Regression - Do not crash calling __proto__";
 var BUGNUMBER = 313080;
 var actual = 'No Crash';

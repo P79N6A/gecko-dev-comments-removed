@@ -4,6 +4,7 @@
 
 
 
+
 try {
   (function() {
     __defineSetter__("x", Math.sin);

@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER     = "336376";
 var summary = "Tests reserved words in contexts in which they are not reserved";
 var actual, expect;

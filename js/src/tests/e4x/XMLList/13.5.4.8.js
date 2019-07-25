@@ -5,6 +5,7 @@
 
 
 
+
 START("13.5.4.8 - XMLList copy()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("copy"));

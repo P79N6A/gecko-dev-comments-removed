@@ -6,6 +6,7 @@
 
 
 
+
 var summary = 'xml:lang attribute in XML literal';
 var BUGNUMBER = 277650;
 var actual = '';

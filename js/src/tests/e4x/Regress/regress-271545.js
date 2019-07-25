@@ -5,6 +5,7 @@
 
 
 
+
 START('XML("") should create empty text node');
 printBugNumber(271545);
 

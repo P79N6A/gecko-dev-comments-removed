@@ -5,6 +5,7 @@
 
 
 
+
 var nTest = 0;
 
 START("13.4.4.10 - XML contains()");

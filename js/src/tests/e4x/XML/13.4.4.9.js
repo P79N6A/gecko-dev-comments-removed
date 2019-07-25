@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.9 - XML comments()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("comments"));

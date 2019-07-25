@@ -5,6 +5,7 @@
 
 
 
+
 START("13.4.4.19 - insertChildBefore()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("insertChildBefore"));

@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'Proper quoting of attribute by uneval/toSource';
 var BUGNUMBER = 410192;
 var actual = '';

@@ -5,6 +5,7 @@
 
 
 
+
 var summary = '13.3 QName Objects - Do not assert: op == JSOP_ADD';
 var BUGNUMBER = 373595;
 var actual = 'No Crash';

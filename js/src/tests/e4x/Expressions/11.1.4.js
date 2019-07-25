@@ -5,6 +5,7 @@
 
 
 
+
 START("11.1.4 - XML Initializer");
 
 person = <person><name>John</name><age>25</age></person>;

@@ -1,3 +1,4 @@
+
 try {
     Object.defineProperty(<x/>, "p", {});  
 } catch (exc) {}

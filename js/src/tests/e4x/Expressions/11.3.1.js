@@ -5,6 +5,7 @@
 
 
 
+
 START("11.3.1 - Delete Operator");
 
 order =

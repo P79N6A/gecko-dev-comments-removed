@@ -4,6 +4,7 @@
 
 
 
+
 var summary = "Regression - XML instance methods should type check in " +
     "JS_GetPrivate()";
 var BUGNUMBER = 305335;

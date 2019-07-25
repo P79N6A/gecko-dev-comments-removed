@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 350442;
 var summary = 'toXMLString with namespace definitions';
 var actual, expect;

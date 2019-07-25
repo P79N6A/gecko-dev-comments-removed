@@ -5,6 +5,7 @@
 
 
 
+
 var summary = 'Do not crash: __proto__ = <x/>; <x/>.indexOf(this)';
 var BUGNUMBER = 450871;
 var actual = 'No Crash';

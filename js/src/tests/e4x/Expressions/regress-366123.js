@@ -5,6 +5,7 @@
 
 
 
+
 var BUGNUMBER = 366123;
 var summary = 'Compiling long XML filtering predicate';
 var actual = 'No Crash';

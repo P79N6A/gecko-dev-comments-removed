@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 476871;
 var summary = 'Do not crash @ js_StepXMLListFilter';
 var actual = '';
