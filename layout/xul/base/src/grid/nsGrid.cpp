@@ -298,24 +298,21 @@ nsGrid::FindRowsAndColumns(nsIBox** aRows, nsIBox** aColumns)
        child = do_QueryFrame(scrolledFrame);
     }
 
-    nsCOMPtr<nsIBoxLayout> layout;
-    child->GetLayoutManager(getter_AddRefs(layout));
+    nsCOMPtr<nsIGridPart> monument = GetPartFromBox(child);
+    if (monument)
+    {
+      nsGridRowGroupLayout* rowGroup = monument->CastToRowGroupLayout();
+      if (rowGroup) {
+         PRBool isHorizontal = !nsSprocketLayout::IsHorizontal(child);
+         if (isHorizontal)
+           *aRows = child;
+         else
+           *aColumns = child;
 
-     nsCOMPtr<nsIGridPart> monument( do_QueryInterface(layout) );
-     if (monument)
-     {
-       nsGridRowGroupLayout* rowGroup = monument->CastToRowGroupLayout();
-       if (rowGroup) {
-          PRBool isHorizontal = !nsSprocketLayout::IsHorizontal(child);
-          if (isHorizontal)
-            *aRows = child;
-          else
-            *aColumns = child;
-         
-          if (*aRows && *aColumns)
-            return;
-       }
-     }
+         if (*aRows && *aColumns)
+           return;
+      }
+    }
 
     if (scrollFrame) {
       child = oldBox;
@@ -337,13 +334,9 @@ nsGrid::CountRowsColumns(nsIBox* aRowBox, PRInt32& aRowCount, PRInt32& aComputed
   aComputedColumnCount = 0;
   
   if (aRowBox) {
-    nsCOMPtr<nsIBoxLayout> layout;
-    aRowBox->GetLayoutManager(getter_AddRefs(layout));
-    if (layout) {
-       nsCOMPtr<nsIGridPart> monument( do_QueryInterface(layout) );
-       if (monument) 
-          monument->CountRowsColumns(aRowBox, aRowCount, aComputedColumnCount);
-    }
+    nsCOMPtr<nsIGridPart> monument = GetPartFromBox(aRowBox);
+    if (monument) 
+       monument->CountRowsColumns(aRowBox, aRowCount, aComputedColumnCount);
   }
 }
 
@@ -395,13 +388,9 @@ nsGrid::BuildRows(nsIBox* aBox, PRInt32 aRowCount, nsGridRow** aRows, PRBool aIs
   
   if (aBox)
   {
-    nsCOMPtr<nsIBoxLayout> layout;
-    aBox->GetLayoutManager(getter_AddRefs(layout));
-    if (layout) {
-      nsCOMPtr<nsIGridPart> monument( do_QueryInterface(layout) );
-      if (monument) {
-         monument->BuildRows(aBox, row);
-      }
+    nsCOMPtr<nsIGridPart> monument = GetPartFromBox(aBox);
+    if (monument) {
+       monument->BuildRows(aBox, row);
     }
   }
 
@@ -500,13 +489,9 @@ nsGrid::DirtyRows(nsIBox* aRowBox, nsBoxLayoutState& aState)
 
   
   if (aRowBox) {
-    nsCOMPtr<nsIBoxLayout> layout;
-    aRowBox->GetLayoutManager(getter_AddRefs(layout));
-    if (layout) {
-       nsCOMPtr<nsIGridPart> part( do_QueryInterface(layout) );
-       if (part) 
-          part->DirtyRows(aRowBox, aState);
-    }
+    nsCOMPtr<nsIGridPart> part = GetPartFromBox(aRowBox);
+    if (part) 
+       part->DirtyRows(aRowBox, aState);
   }
 
   mMarkingDirty = PR_FALSE;
@@ -604,22 +589,15 @@ nsGrid::GetMaxRowSize(nsBoxLayoutState& aState, PRInt32 aRowIndex, PRBool aIsHor
   return size;
 }
 
-void 
-nsGrid::GetPartFromBox(nsIBox* aBox, nsIGridPart** aPart)
-{
-  *aPart = nsnull;
 
-  if (aBox) {
-    nsCOMPtr<nsIBoxLayout> layout;
-    aBox->GetLayoutManager(getter_AddRefs(layout));
-    if (layout) {
-       nsCOMPtr<nsIGridPart> part( do_QueryInterface(layout) );
-       if (part) { 
-          *aPart = part.get();
-          NS_IF_ADDREF(*aPart);
-       }
-    }
-  }
+nsIGridPart*
+nsGrid::GetPartFromBox(nsIBox* aBox)
+{
+  if (!aBox)
+    return nsnull;
+
+  nsIBoxLayout* layout = aBox->GetLayoutManager();
+  return layout ? layout->AsGridPart() : nsnull;
 }
 
 nsMargin
@@ -629,8 +607,7 @@ nsGrid::GetBoxTotalMargin(nsIBox* aBox, PRBool aIsHorizontal)
   
   
   
-  nsCOMPtr<nsIGridPart> part;
-  GetPartFromBox(aBox, getter_AddRefs(part));
+  nsIGridPart* part = GetPartFromBox(aBox);
   if (part)
     margin = part->GetTotalMargin(aBox, aIsHorizontal);
 
@@ -1092,11 +1069,7 @@ nsGrid::GetMaxRowHeight(nsBoxLayoutState& aState, PRInt32 aIndex, PRBool aIsHori
 PRBool
 nsGrid::IsGrid(nsIBox* aBox)
 {
-  if (!aBox)
-    return PR_FALSE;
-
-  nsCOMPtr<nsIGridPart> part;
-  GetPartFromBox(aBox, getter_AddRefs(part));
+  nsIGridPart* part = GetPartFromBox(aBox);
   if (!part)
     return PR_FALSE;
 
@@ -1307,8 +1280,6 @@ nsGrid::GetScrollBox(nsIBox* aChild)
 
   
   nsIBox* parent = aChild->GetParentBox();
-  nsCOMPtr<nsIBoxLayout> layout;
-  nsCOMPtr<nsIGridPart> parentGridRow;
 
   
   
@@ -1320,8 +1291,7 @@ nsGrid::GetScrollBox(nsIBox* aChild)
     if (scrollFrame)
       return parent;
 
-    parent->GetLayoutManager(getter_AddRefs(layout));
-    parentGridRow = do_QueryInterface(layout);
+    nsCOMPtr<nsIGridPart> parentGridRow = GetPartFromBox(parent);
     
     if (parentGridRow) 
       break;

@@ -92,7 +92,7 @@ public:
 
 
 
-  virtual void GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox, nsIGridPart** aParentGridRow)=0;
+  virtual nsIGridPart* GetParentGridPart(nsIBox* aBox, nsIBox** aParentBox) = 0;
 
   
 
