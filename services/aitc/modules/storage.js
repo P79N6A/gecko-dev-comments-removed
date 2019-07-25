@@ -194,7 +194,8 @@ AitcStorageImpl.prototype = {
     
     DOMApplicationRegistry.getAllWithoutManifests(
       function _processAppsGotLocalApps(localApps) {
-        self._processApps(remoteApps, localApps, callback);
+        let changes = self._determineLocalChanges(localApps, remoteApps);
+        self._processChanges(changes, callback);
       }
     );
   },
@@ -218,91 +219,137 @@ AitcStorageImpl.prototype = {
 
 
 
-
-  _processApps: function _processApps(remoteApps, lApps, callback) {
-    let toDelete = {};
-    let localApps = {};
+  _determineLocalChanges: function _determineChanges(localApps, remoteApps) {
+    let changes = new Map();
+    changes.deleteIDs = [];
+    changes.installs  = {};
 
     
     
     
     
     if (!Object.keys(remoteApps).length) {
-      this._log.warn("Empty set of remote apps to _processApps, returning");
-      callback();
-      return;
+      this._log.warn("Empty set of remote apps. Not taking any action.");
+      return changes;
     }
 
     
-    for (let [id, app] in Iterator(lApps)) {
-      app.id = id;
-      toDelete[app.origin] = app;
-      localApps[app.origin] = app;
+    
+    let deletes       = {};
+    let remoteOrigins = {};
+
+    let localOrigins = {};
+    for (let [id, app] in Iterator(localApps)) {
+      localOrigins[app.origin] = id;
     }
 
-    
-    let toInstall = [];
-    for each (let app in remoteApps) {
-      
-      let origin = app.origin;
-      if (!app.hidden) {
-        delete toDelete[origin];
-      }
+    for (let remoteApp of remoteApps) {
+      let origin = remoteApp.origin;
+      remoteOrigins[origin] = true;
 
       
-      if (app.hidden && !localApps[origin]) {
+      
+      if (remoteApp.hidden) {
+        if (origin in localOrigins) {
+          deletes[localOrigins[origin]] = true;
+        }
+
         continue;
       }
 
       
       
-      let id;
       if (!localApps[origin]) {
-        id = DOMApplicationRegistry.makeAppId();
-      }
-      if (localApps[origin] &&
-          (localApps[origin].installTime < app.installTime)) {
-        id = localApps[origin].id;
+        changes.installs[DOMApplicationRegistry.makeAppId()] = remoteApp;
+        continue;
       }
 
       
-      if (id) {
-        toInstall.push({id: id, value: app});
+      
+      if (localApps[origin].installTime < remoteApp.installTime) {
+        changes.installs[localApps[origin]] = remoteApp;
+        continue;
       }
     }
 
     
-    let toUninstall = [];
-    for (let origin in toDelete) {
-      toUninstall.push({id: toDelete[origin].id, hidden: true});
+    
+    for (let [id, app] in Iterator(localApps)) {
+      if (!(app.origin in remoteOrigins)) {
+        deletes[id] = true;
+      }
+    }
+
+    changes.deleteIDs = Object.keys(deletes);
+
+    return changes;
+  },
+
+  
+
+
+
+
+
+
+
+  _processChanges: function _processChanges(changes, cb) {
+
+    if (!changes.deleteIDs.length && !Object.keys(changes.installs).length) {
+      this._log.info("No changes to be applied.");
+      cb();
+      return;
     }
 
     
-    if (toUninstall.length) {
-      this._log.info("Applying uninstalls to registry");
+    let installs = [];
+    for (let [id, record] in Iterator(changes.installs)) {
+      installs.push({id: id, value: record});
+    }
 
-      let self = this;
-      DOMApplicationRegistry.updateApps(toUninstall, function() {
-        
-        if (toInstall.length) {
-          self._applyInstalls(toInstall, callback);
-          return;
+    let uninstalls = [];
+    for (let id of changes.deleteIDs) {
+      this._log.info("Uninstalling app: " + id);
+      uninstalls.push({id: id, hidden: true});
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    let doInstalls = function doInstalls() {
+      if (!installs.length) {
+        if (cb) {
+          try {
+            cb();
+          } catch (ex) {
+            this._log.warn("Exception when invoking callback: " +
+                           CommonUtils.exceptionStr(ex));
+          } finally {
+            cb = null;
+          }
         }
-        callback();
+        return;
+      }
+
+      this._applyInstalls(installs, cb);
+
+      
+      installs = [];
+      cb       = null;
+    }.bind(this);
+
+    if (uninstalls.length) {
+      DOMApplicationRegistry.updateApps(uninstalls, function onComplete() {
+        doInstalls();
+        return;
       });
-
-      return;
+    } else {
+      doInstalls();
     }
-
-    
-    if (toInstall.length) {
-      this._applyInstalls(toInstall, callback);
-      return;
-    }
-
-    this._log.info("There were no changes to be applied, returning");
-    callback();
-    return;
   },
 
   
