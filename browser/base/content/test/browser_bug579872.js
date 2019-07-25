@@ -35,7 +35,7 @@
 
 
 function test() {
-  let newTab = gBrowser.addTab("http://www.example.com");
+  let newTab = gBrowser.addTab();
   waitForExplicitFinish();
   newTab.linkedBrowser.addEventListener("load", mainPart, true);
   
@@ -57,4 +57,5 @@ function test() {
     gBrowser.removeTab(gBrowser.tabs[1]); 
     finish();
   }
+  newTab.linkedBrowser.loadURI("http://www.example.com");
 }
