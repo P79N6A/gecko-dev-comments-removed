@@ -12,7 +12,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
-const DEBUG = false; 
+
+const DEBUG = RIL.DEBUG_RIL;
 
 const RADIOINTERFACELAYER_CID =
   Components.ID("{2d831c8d-6017-435b-a80c-e5d422810cea}");
@@ -45,6 +46,8 @@ const RIL_IPC_MSG_NAMES = [
   "RIL:HoldCall",
   "RIL:ResumeCall",
   "RIL:GetAvailableNetworks",
+  "RIL:SelectNetwork",
+  "RIL:SelectNetworkAuto",
   "RIL:GetCardLock",
   "RIL:UnlockCardLock",
   "RIL:SetCardLock",
@@ -249,6 +252,11 @@ RadioInterfaceLayer.prototype = {
       case "RIL:GetAvailableNetworks":
         this.getAvailableNetworks(msg.json);
         break;
+      case "RIL:SelectNetwork":
+        this.selectNetwork(msg.json);
+        break;
+      case "RIL:SelectNetworkAuto":
+        this.selectNetworkAuto(msg.json);
       case "RIL:GetCardLock":
         this.getCardLock(msg.json);
         break;
@@ -301,6 +309,18 @@ RadioInterfaceLayer.prototype = {
         break;
       case "getAvailableNetworks":
         this.handleGetAvailableNetworks(message);
+        break;
+      case "selectNetwork":
+        this.handleSelectNetwork(message);
+        break;
+      case "selectNetworkAuto":
+        this.handleSelectNetworkAuto(message);
+        break;
+      case "networkinfochanged":
+        this.updateNetworkInfo(message);
+        break;
+      case "networkselectionmodechange":
+        this.updateNetworkSelectionMode(message);
         break;
       case "voiceregistrationstatechange":
         this.updateVoiceConnection(message);
@@ -398,10 +418,64 @@ RadioInterfaceLayer.prototype = {
     }
   },
 
+  updateNetworkInfo: function updateNetworkInfo(message) {
+    let voiceMessage = message[RIL.NETWORK_INFO_VOICE_REGISTRATION_STATE];
+    let dataMessage = message[RIL.NETWORK_INFO_DATA_REGISTRATION_STATE];
+    let operatorMessage = message[RIL.NETWORK_INFO_OPERATOR];
+    let selectionMessage = message[RIL.NETWORK_INFO_NETWORK_SELECTION_MODE];
+
+    
+    let voiceInfoChanged = false;
+    if (voiceMessage) {
+      voiceMessage.batch = true;
+      voiceInfoChanged = this.updateVoiceConnection(voiceMessage);
+    }
+
+    let dataInfoChanged = false;
+    if (dataMessage) {
+      dataMessage.batch = true;
+      dataInfoChanged = this.updateDataConnection(dataMessage);
+    }
+
+    let voice = this.rilContext.voice;
+    let data = this.rilContext.data;
+    if (operatorMessage) {
+      if (this.networkChanged(operatorMessage, voice.network)) {
+        voiceInfoChanged = true;
+        voice.network = operatorMessage;
+      }
+
+      if (this.networkChanged(operatorMessage, data.network)) {
+        dataInfoChanged = true;
+        data.network = operatorMessage;
+      }
+    }
+
+    if (voiceInfoChanged) {
+      ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", voice);
+    }
+    if (dataInfoChanged) {
+      ppmm.sendAsyncMessage("RIL:DataInfoChanged", data);
+    }
+
+    if (selectionMessage) {
+      this.updateNetworkSelectionMode(selectionMessage);
+    }
+  },
+
+  
+
+
+
+
+
+
+
   updateVoiceConnection: function updateVoiceConnection(state) {
     let voiceInfo = this.rilContext.voice;
+    let regState = state.regState;
     voiceInfo.type = "gsm"; 
-    if (!state || state.regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
+    if (!state || regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
       voiceInfo.connected = false;
       voiceInfo.emergencyCallsOnly = false;
       voiceInfo.roaming = false;
@@ -413,17 +487,30 @@ RadioInterfaceLayer.prototype = {
                             voiceInfo);
       return;
     }
-    voiceInfo.emergencyCallsOnly = state.emergencyCallsOnly;
-    voiceInfo.connected =
-      (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_HOME) ||
-      (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
-    voiceInfo.roaming =
-      voiceInfo.connected &&
-      (state == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);    
-    voiceInfo.type =
-      RIL.GECKO_RADIO_TECH[state.radioTech] || null;
-    ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", voiceInfo);
 
+    let isRoaming = regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING;
+    let isHome = regState == RIL.NETWORK_CREG_STATE_REGISTERED_HOME;
+    let isConnected = isRoaming || isHome;
+    let radioTech = RIL.GECKO_RADIO_TECH[state.radioTech] || null;
+
+    
+    if (voiceInfo.emergencyCallsOnly != state.emergencyCallsOnly ||
+        voiceInfo.connected != isConnected ||
+        voiceInfo.roaming != isRoaming ||
+        voiceInfo.type != radioTech) {
+
+      voiceInfo.emergencyCallsOnly = state.emergencyCallsOnly;
+      voiceInfo.connected = isConnected;
+      voiceInfo.roaming = isRoaming;
+      voiceInfo.type = radioTech;
+
+      
+      if (!state.batch) {
+        ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", voiceInfo);
+      }
+      return true;
+    }
+    return false;
   },
 
   _isDataEnabled: function _isDataEnabled() {
@@ -444,7 +531,7 @@ RadioInterfaceLayer.prototype = {
 
   updateDataConnection: function updateDataConnection(state) {
     if (!this._isDataEnabled()) {
-      return;
+      return false;
     }
 
     let isRegistered =
@@ -462,6 +549,7 @@ RadioInterfaceLayer.prototype = {
     
     
     
+    return false;
   },
 
   handleSignalStrengthChange: function handleSignalStrengthChange(message) {
@@ -611,6 +699,30 @@ RadioInterfaceLayer.prototype = {
     debug("handleGetAvailableNetworks: " + JSON.stringify(message));
 
     ppmm.sendAsyncMessage("RIL:GetAvailableNetworks", message);
+  },
+
+  
+
+
+  updateNetworkSelectionMode: function updateNetworkSelectionMode(message) {
+    debug("updateNetworkSelectionMode: " + JSON.stringify(message));
+    ppmm.sendAsyncMessage("RIL:NetworkSelectionModeChanged", message);
+  },
+
+  
+
+
+  handleSelectNetwork: function handleSelectNetwork(message) {
+    debug("handleSelectNetwork: " + JSON.stringify(message));
+    ppmm.sendAsyncMessage("RIL:SelectNetwork", message);
+  },
+
+  
+
+
+  handleSelectNetworkAuto: function handleSelectNetworkAuto(message) {
+    debug("handleSelectNetworkAuto: " + JSON.stringify(message));
+    ppmm.sendAsyncMessage("RIL:SelectNetworkAuto", message);
   },
 
   
@@ -950,6 +1062,16 @@ RadioInterfaceLayer.prototype = {
     message.type = "cancelUSSD";
     this.worker.postMessage(message);
   },
+
+  selectNetworkAuto: function selectNetworkAuto(requestId) {
+    this.worker.postMessage({type: "selectNetworkAuto", requestId: requestId});
+  },
+
+  selectNetwork: function selectNetwork(message) {
+    message.type = "selectNetwork";
+    this.worker.postMessage(message);
+  },
+
 
   get microphoneMuted() {
     return gAudioManager.microphoneMuted;
