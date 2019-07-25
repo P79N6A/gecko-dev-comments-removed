@@ -255,6 +255,11 @@ var PreferencesView = {
           display = Browser.selectedBrowser.contentTitle || currentURL;
         }
         break;
+      case "custom":
+        
+        
+        
+        return;
     }
 
     
