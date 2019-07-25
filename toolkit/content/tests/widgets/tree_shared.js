@@ -1031,6 +1031,20 @@ function testtag_tree_TreeView_rows_sort(tree, testid, rowInfo)
   
   is(columnElement.getAttribute("sortDirection"), "",
      "cycleHeader column sortDirection");
+
+  columnElement.setAttribute("sorthints", "twostate");
+  view.cycleHeader(column);
+  is(tree.getAttribute("sortDirection"), "ascending", "cycleHeader sortDirection ascending twostate");
+  view.cycleHeader(column);
+  is(tree.getAttribute("sortDirection"), "descending", "cycleHeader sortDirection ascending twostate");
+  view.cycleHeader(column);
+  is(tree.getAttribute("sortDirection"), "ascending", "cycleHeader sortDirection ascending twostate again");
+  columnElement.removeAttribute("sorthints");
+  view.cycleHeader(column);
+  view.cycleHeader(column);
+
+  is(columnElement.getAttribute("sortDirection"), "",
+     "cycleHeader column sortDirection reset");
 }
 
 
