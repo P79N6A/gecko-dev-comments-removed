@@ -330,15 +330,6 @@ template <class T> class MediaQueue : private nsDeque {
     return GetSize() == 0 && mEndOfStream;    
   }
 
-  
-  
-  
-  PRBool IsFinished() {
-    MonitorAutoEnter mon(mMonitor);
-    return mEndOfStream;    
-  }
-
-  
   void Finish() {
     MonitorAutoEnter mon(mMonitor);
     mEndOfStream = PR_TRUE;    
