@@ -181,7 +181,24 @@ using mozilla::TimeStamp;
 
 
 
-static const char *kPluginRegistryVersion = "0.16";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const char *kPluginRegistryVersion = "0.15";
+
+static const char *kMinimumRegistryVersion = "0.9";
 
 static NS_DEFINE_IID(kIPluginTagInfoIID, NS_IPLUGINTAGINFO_IID);
 static const char kDirectoryServiceContractID[] = "@mozilla.org/file/directory_service;1";
@@ -224,7 +241,7 @@ nsPluginHost *nsPluginHost::sInst;
 
 NS_IMPL_ISUPPORTS0(nsInvalidPluginTag)
 
-nsInvalidPluginTag::nsInvalidPluginTag(const nsAString& aFullPath, PRInt64 aLastModifiedTime)
+nsInvalidPluginTag::nsInvalidPluginTag(const char* aFullPath, PRInt64 aLastModifiedTime)
 : mFullPath(aFullPath),
   mLastModifiedTime(aLastModifiedTime),
   mSeen(false)
@@ -1522,7 +1539,7 @@ public:
     if (prefService &&
         NS_SUCCEEDED(prefService->GetBoolPref("plugin.expose_full_path", &bShowPath)) &&
         bShowPath) {
-      aFilename = mPluginTag.mFullPath;
+      CopyUTF8toUTF16(mPluginTag.mFullPath, aFilename);
     } else {
       CopyUTF8toUTF16(mPluginTag.mFileName, aFilename);
     }
@@ -1702,6 +1719,24 @@ nsPluginHost::FindPluginEnabledForExtension(const char* aExtension,
   return nsnull;
 }
 
+static nsresult ConvertToNative(nsIUnicodeEncoder *aEncoder,
+                                const nsACString& aUTF8String,
+                                nsACString& aNativeString)
+{
+  NS_ConvertUTF8toUTF16 utf16(aUTF8String);
+  PRInt32 len = utf16.Length();
+  PRInt32 outLen;
+  nsresult rv = aEncoder->GetMaxLength(utf16.get(), len, &outLen);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!EnsureStringLength(aNativeString, outLen))
+    return NS_ERROR_OUT_OF_MEMORY;
+  rv = aEncoder->Convert(utf16.get(), &len,
+                         aNativeString.BeginWriting(), &outLen);
+  NS_ENSURE_SUCCESS(rv, rv);
+  aNativeString.SetLength(outLen);
+  return NS_OK;
+}
+
 static nsresult CreateNPAPIPlugin(nsPluginTag *aPluginTag,
                                   nsNPAPIPlugin **aOutNPAPIPlugin)
 {
@@ -1714,7 +1749,7 @@ static nsresult CreateNPAPIPlugin(nsPluginTag *aPluginTag,
     if (aPluginTag->mFullPath.IsEmpty())
       return NS_ERROR_FAILURE;
     nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
-    file->InitWithPath(aPluginTag->mFullPath);
+    file->InitWithPath(NS_ConvertUTF8toUTF16(aPluginTag->mFullPath));
     nsPluginFile pluginFile(file);
     PRLibrary* pluginLibrary = NULL;
 
@@ -1729,16 +1764,36 @@ static nsresult CreateNPAPIPlugin(nsPluginTag *aPluginTag,
     do_GetService(NS_PLATFORMCHARSET_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = nsNPAPIPlugin::CreatePlugin(aPluginTag, aOutNPAPIPlugin);
+  nsCAutoString charset;
+  rv = pcs->GetCharset(kPlatformCharsetSel_FileName, charset);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCAutoString fullPath;
+  if (!charset.LowerCaseEqualsLiteral("utf-8")) {
+    nsCOMPtr<nsIUnicodeEncoder> encoder;
+    nsCOMPtr<nsICharsetConverterManager> ccm =
+      do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = ccm->GetUnicodeEncoderRaw(charset.get(), getter_AddRefs(encoder));
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = ConvertToNative(encoder, aPluginTag->mFullPath, fullPath);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    fullPath = aPluginTag->mFullPath;
+  }
 
 #if defined(XP_MACOSX) && !defined(__LP64__)
   short appRefNum = ::CurResFile();
   nsCOMPtr<nsILocalFile> pluginPath;
-  NS_NewLocalFile(aPluginTag->mFullPath, PR_TRUE,
-                  getter_AddRefs(pluginPath));
+  NS_NewNativeLocalFile(nsDependentCString(fullPath.get()), PR_TRUE,
+                        getter_AddRefs(pluginPath));
   nsPluginFile pluginFile(pluginPath);
   short pluginRefNum = pluginFile.OpenPluginResource();
+#endif
 
+  rv = nsNPAPIPlugin::CreatePlugin(aPluginTag, aOutNPAPIPlugin);
+
+#if defined(XP_MACOSX) && !defined(__LP64__)
   if (NS_SUCCEEDED(rv))
     (*aOutNPAPIPlugin)->SetPluginRefNum(pluginRefNum);
   else if (pluginRefNum > 0)
@@ -2173,8 +2228,9 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     PRInt64 fileModTime = pfd.mModTime;
 
     
+    NS_ConvertUTF16toUTF8 filePath(pfd.mFilePath);
     nsRefPtr<nsPluginTag> pluginTag;
-    RemoveCachedPluginsInfo(pfd.mFilePath,
+    RemoveCachedPluginsInfo(filePath.get(),
                             getter_AddRefs(pluginTag));
 
     PRBool enabled = PR_TRUE;
@@ -2222,7 +2278,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     for (nsRefPtr<nsInvalidPluginTag> invalidPlugins = mInvalidPlugins;
          invalidPlugins; invalidPlugins = invalidPlugins->mNext) {
       
-      if (invalidPlugins->mFullPath.Equals(pfd.mFilePath) &&
+      if (invalidPlugins->mFullPath.Equals(filePath.get()) &&
           invalidPlugins->mLastModifiedTime == fileModTime) {
         if (aCreatePluginList) {
           invalidPlugins->mSeen = true;
@@ -2246,7 +2302,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       nsresult res = pluginFile.GetPluginInfo(info, &library);
       
       if (NS_FAILED(res) || !info.fMimeTypeArray) {
-        nsRefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(pfd.mFilePath,
+        nsRefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(filePath.get(),
                                                                          fileModTime);
         pluginFile.FreePluginInfo(info);
         
@@ -2705,13 +2761,13 @@ nsPluginHost::WritePluginInfo()
       
       
       PR_fprintf(fd, "%s%c%c\n%s%c%c\n%s%c%c\n",
-        tag->mFileName.get(),
+        (!tag->mFileName.IsEmpty() ? tag->mFileName.get() : ""),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
         PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        tag->mFullPath.get(),
+        (!tag->mFullPath.IsEmpty() ? tag->mFullPath.get() : ""),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
         PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        tag->mVersion.get(),
+        (!tag->mVersion.IsEmpty() ? tag->mVersion.get() : ""),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
         PLUGIN_REGISTRY_END_OF_LINE_MARKER);
 
@@ -2768,7 +2824,7 @@ nsPluginHost::WritePluginInfo()
   while (invalidPlugins) {
     
     PR_fprintf(fd, "%s%c%c\n",
-      NS_ConvertUTF16toUTF8(invalidPlugins->mFullPath).get(),
+      (!invalidPlugins->mFullPath.IsEmpty() ? invalidPlugins->mFullPath.get() : ""),
       PLUGIN_REGISTRY_FIELD_DELIMITER,
       PLUGIN_REGISTRY_END_OF_LINE_MARKER);
 
@@ -2875,71 +2931,114 @@ nsPluginHost::ReadPluginInfo()
     return rv;
 
   
-  if (!strcmp(values[1], kPluginRegistryVersion))
+  PRInt32 vdiff = NS_CompareVersions(values[1], kPluginRegistryVersion);
+  
+  if (vdiff > 0)
+    return rv;
+  
+  if (NS_CompareVersions(values[1], kMinimumRegistryVersion) < 0)
     return rv;
 
-  char* archValues[6];
+  
+  PRBool regHasVersion = NS_CompareVersions(values[1], "0.10") >= 0;
+
+  
+  if (NS_CompareVersions(values[1], "0.13") >= 0) {
+    char* archValues[6];
     
-  if (!reader.NextLine()) {
-    return rv;
-  }
+    if (!reader.NextLine()) {
+      return rv;
+    }
     
-  
-  if (2 != reader.ParseLine(archValues, 2)) {
-    return rv;
-  }
+    
+    if (2 != reader.ParseLine(archValues, 2)) {
+      return rv;
+    }
       
-  
-  if (PL_strcmp(archValues[0], "Arch")) {
-    return rv;
-  }
+    
+    if (PL_strcmp(archValues[0], "Arch")) {
+      return rv;
+    }
       
-  nsCOMPtr<nsIXULRuntime> runtime = do_GetService("@mozilla.org/xre/runtime;1");
-  if (!runtime) {
-    return rv;
-  }
+    nsCOMPtr<nsIXULRuntime> runtime = do_GetService("@mozilla.org/xre/runtime;1");
+    if (!runtime) {
+      return rv;
+    }
       
-  nsCAutoString arch;
-  if (NS_FAILED(runtime->GetXPCOMABI(arch))) {
-    return rv;
-  }
+    nsCAutoString arch;
+    if (NS_FAILED(runtime->GetXPCOMABI(arch))) {
+      return rv;
+    }
       
-  
-  if (PL_strcmp(archValues[1], arch.get())) {
-    return rv;
+    
+    if (PL_strcmp(archValues[1], arch.get())) {
+      return rv;
+    }
   }
   
+  
+  bool hasInvalidPlugins = (NS_CompareVersions(values[1], "0.13") >= 0);
+
   if (!ReadSectionHeader(reader, "PLUGINS"))
     return rv;
+
+#if defined(XP_MACOSX)
+  PRBool hasFullPathInFileNameField = PR_FALSE;
+#else
+  PRBool hasFullPathInFileNameField = (NS_CompareVersions(values[1], "0.11") < 0);
+#endif
 
   while (reader.NextLine()) {
     const char *filename;
     const char *fullpath;
     nsCAutoString derivedFileName;
     
-    if (*reader.LinePtr() == '[') {
+    if (hasInvalidPlugins && *reader.LinePtr() == '[') {
       break;
     }
     
-    filename = reader.LinePtr();
-    if (!reader.NextLine())
-      return rv;
+    if (hasFullPathInFileNameField) {
+      fullpath = reader.LinePtr();
+      if (!reader.NextLine())
+        return rv;
+      
+      if (fullpath) {
+        nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
+        file->InitWithNativePath(nsDependentCString(fullpath));
+        file->GetNativeLeafName(derivedFileName);
+        filename = derivedFileName.get();
+      } else {
+        filename = NULL;
+      }
 
-    fullpath = reader.LinePtr();
-    if (!reader.NextLine())
-      return rv;
+      
+      if (!reader.NextLine())
+        return rv;
+    } else {
+      filename = reader.LinePtr();
+      if (!reader.NextLine())
+        return rv;
+
+      fullpath = reader.LinePtr();
+      if (!reader.NextLine())
+        return rv;
+    }
 
     const char *version;
-    version = reader.LinePtr();
-    if (!reader.NextLine())
-      return rv;
+    if (regHasVersion) {
+      version = reader.LinePtr();
+      if (!reader.NextLine())
+        return rv;
+    } else {
+      version = "0";
+    }
 
     
     if (reader.ParseLine(values, 3) != 3)
       return rv;
 
     
-    PRInt64 lastmod = nsCRT::atoll(values[0]);
+    PRInt64 lastmod = (vdiff == 0) ? nsCRT::atoll(values[0]) : -1;
     PRBool canunload = atoi(values[1]);
     PRUint32 tagflag = atoi(values[2]);
     if (!reader.NextLine())
@@ -2995,7 +3094,7 @@ nsPluginHost::ReadPluginInfo()
     nsRefPtr<nsPluginTag> tag = new nsPluginTag(name,
       description,
       filename,
-      NS_ConvertUTF8toUTF16(fullpath),
+      fullpath,
       version,
       (const char* const*)mimetypes,
       (const char* const*)mimedescriptions,
@@ -3015,34 +3114,34 @@ nsPluginHost::ReadPluginInfo()
     mCachedPlugins = tag;
   }
   
-  if (!ReadSectionHeader(reader, "INVALID")) {
-    return rv;
-  }
-
-  while (reader.NextLine()) {
-    const char *fullpath = reader.LinePtr();
-    if (!reader.NextLine()) {
+  if (hasInvalidPlugins) {
+    if (!ReadSectionHeader(reader, "INVALID")) {
       return rv;
     }
-      
-    const char *lastModifiedTimeStamp = reader.LinePtr();
-    PRInt64 lastmod = nsCRT::atoll(lastModifiedTimeStamp);
-      
-    nsRefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(NS_ConvertUTF8toUTF16(fullpath),
-                                                                     lastmod);
 
-    invalidTag->mNext = mInvalidPlugins;
-    if (mInvalidPlugins) {
-      mInvalidPlugins->mPrev = invalidTag;
+    while (reader.NextLine()) {
+      const char *fullpath = reader.LinePtr();
+      if (!reader.NextLine()) {
+        return rv;
+      }
+      
+      const char *lastModifiedTimeStamp = reader.LinePtr();
+      PRInt64 lastmod = (vdiff == 0) ? nsCRT::atoll(lastModifiedTimeStamp) : -1;
+      
+      nsRefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(fullpath, lastmod);
+      
+      invalidTag->mNext = mInvalidPlugins;
+      if (mInvalidPlugins) {
+        mInvalidPlugins->mPrev = invalidTag;
+      }
+      mInvalidPlugins = invalidTag;
     }
-    mInvalidPlugins = invalidTag;
   }
-
   return NS_OK;
 }
 
 void
-nsPluginHost::RemoveCachedPluginsInfo(const nsAString& filePath, nsPluginTag **result)
+nsPluginHost::RemoveCachedPluginsInfo(const char *filePath, nsPluginTag **result)
 {
   nsRefPtr<nsPluginTag> prev;
   nsRefPtr<nsPluginTag> tag = mCachedPlugins;
