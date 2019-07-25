@@ -8095,11 +8095,12 @@ void
 nsIDocument::CancelFrameRequestCallback(PRInt32 aHandle)
 {
   
-  mFrameRequestCallbacks.RemoveElementSorted(aHandle);
-
-  
-  
-  
+  if (mFrameRequestCallbacks.RemoveElementSorted(aHandle) &&
+      mFrameRequestCallbacks.IsEmpty() &&
+      mPresShell && IsEventHandlingEnabled()) {
+    mPresShell->GetPresContext()->RefreshDriver()->
+      RevokeFrameRequestCallbacks(this);
+  }
 }
 
 nsresult
