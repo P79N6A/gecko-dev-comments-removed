@@ -1015,12 +1015,12 @@ SessionStoreService.prototype = {
     
     let browser = aWindow.gBrowser;
     let tab = browser.addTab();
-      
-    
-    browser.moveTabTo(tab, closedTab.pos);
 
     
     this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
+      
+    
+    browser.moveTabTo(tab, closedTab.pos);
 
     
     let content = browser.getBrowserForTab(tab).contentWindow;
