@@ -697,6 +697,16 @@ nsApplicationAccessibleWrap::Unload()
 }
 
 NS_IMETHODIMP
+nsApplicationAccessibleWrap::GetName(nsAString& aName)
+{
+  
+  
+  
+  
+  return GetAppName(aName);
+}
+
+NS_IMETHODIMP
 nsApplicationAccessibleWrap::GetNativeInterface(void **aOutAccessible)
 {
     *aOutAccessible = nsnull;
