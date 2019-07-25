@@ -792,6 +792,7 @@ protected:
     PRPackedBool               mIsOffScreenBrowser;
     PRPackedBool               mIsActive;
     PRPackedBool               mIsAppTab;
+    PRPackedBool               mUseGlobalHistory;
 
     
     
