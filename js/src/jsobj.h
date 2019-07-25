@@ -1596,7 +1596,7 @@ MarkStandardClassInitializedNoProto(JSObject *obj, js::Class *clasp);
 
 
 
-struct NewObjectCache
+class NewObjectCache
 {
     struct Entry
     {
@@ -1629,31 +1629,45 @@ struct NewObjectCache
 
 
         JSObject_Slots16 templateObject;
-
-        inline void fill(Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
     };
 
     Entry entries[41];
 
-    void reset() { PodZero(this); }
-
-    bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, Entry **pentry)
-    {
-        jsuword hash = (jsuword(clasp) ^ jsuword(key)) + kind;
-        Entry *entry = *pentry = &entries[hash % JS_ARRAY_LENGTH(entries)];
-
-        
-        return (entry->clasp == clasp && entry->key == key);
-    }
-
-    void invalidateEntriesForShape(JSContext *cx, Shape *shape, JSObject *proto);
-
     void staticAsserts() {
         JS_STATIC_ASSERT(gc::FINALIZE_OBJECT_LAST == gc::FINALIZE_OBJECT16_BACKGROUND);
     }
+
+  public:
+
+    typedef int EntryIndex;
+
+    void reset() { PodZero(this); }
+
+    
+
+
+
+    inline bool lookupProto(Class *clasp, JSObject *proto, gc::AllocKind kind, EntryIndex *pentry);
+    inline bool lookupGlobal(Class *clasp, js::GlobalObject *global, gc::AllocKind kind, EntryIndex *pentry);
+    inline bool lookupType(Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, EntryIndex *pentry);
+
+    
+    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry);
+
+    
+    inline void fillProto(EntryIndex entry, Class *clasp, JSObject *proto, gc::AllocKind kind, JSObject *obj);
+    inline void fillGlobal(EntryIndex entry, Class *clasp, js::GlobalObject *global, gc::AllocKind kind, JSObject *obj);
+    inline void fillType(EntryIndex entry, Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, JSObject *obj);
+
+    
+    void invalidateEntriesForShape(JSContext *cx, Shape *shape, JSObject *proto);
+
+  private:
+    inline bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, EntryIndex *pentry);
+    inline void fill(EntryIndex entry, Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
 };
 
-}
+} 
 
 
 
