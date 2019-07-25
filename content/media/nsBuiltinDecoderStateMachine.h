@@ -172,11 +172,6 @@ public:
   virtual void UpdatePlaybackPosition(PRInt64 aTime);
   virtual void StartBuffering();
 
-
-  
-  
-  virtual void LoadMetadata();
-
   
   
   NS_IMETHOD Run();
@@ -214,11 +209,11 @@ public:
 
   
   
-  PRBool OnAudioThread() {
+  PRBool OnAudioThread() const {
     return IsCurrentThread(mAudioThread);
   }
 
-  PRBool OnStateMachineThread() {
+  PRBool OnStateMachineThread() const {
     return mDecoder->OnStateMachineThread();
   }
 
@@ -410,6 +405,10 @@ protected:
   
   
   PRInt64 GetDecodedAudioDuration();
+
+  
+  
+  nsresult DecodeMetadata();
 
   
   
