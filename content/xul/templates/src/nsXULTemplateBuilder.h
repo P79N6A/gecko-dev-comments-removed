@@ -164,8 +164,11 @@ public:
         }
       }
     }
-    void UninitFalse() { Uninit(PR_FALSE); }
-    void UninitTrue() { Uninit(PR_TRUE); }
+
+    
+    
+    void UninitFalse() { Uninit(PR_FALSE); mRoot = nsnull; }
+    void UninitTrue() { Uninit(PR_TRUE); mRoot = nsnull; }
 
     
 
