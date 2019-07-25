@@ -3398,6 +3398,52 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
   }
 
   
+  const nsCSSValue* decorationColorValue =
+    aRuleData->ValueForTextDecorationColor();
+  nscolor decorationColor;
+  if (eCSSUnit_Inherit == decorationColorValue->GetUnit()) {
+    canStoreInRuleTree = PR_FALSE;
+    if (parentContext) {
+      PRBool isForeground;
+      parentText->GetDecorationColor(decorationColor, isForeground);
+      if (isForeground) {
+        text->SetDecorationColor(parentContext->GetStyleColor()->mColor);
+      } else {
+        text->SetDecorationColor(decorationColor);
+      }
+    } else {
+      text->SetDecorationColorToForeground();
+    }
+  }
+  else if (SetColor(*decorationColorValue, 0, mPresContext, aContext,
+                    decorationColor, canStoreInRuleTree)) {
+    text->SetDecorationColor(decorationColor);
+  }
+  else if (eCSSUnit_Initial == decorationColorValue->GetUnit() ||
+           eCSSUnit_Enumerated == decorationColorValue->GetUnit()) {
+    NS_ABORT_IF_FALSE(eCSSUnit_Enumerated != decorationColorValue->GetUnit() ||
+                      decorationColorValue->GetIntValue() ==
+                        NS_STYLE_COLOR_MOZ_USE_TEXT_COLOR,
+                      "unexpected enumerated value");
+    text->SetDecorationColorToForeground();
+  }
+  else if (eCSSUnit_Initial == decorationColorValue->GetUnit()) {
+    text->SetDecorationColorToForeground();
+  }
+
+  
+  const nsCSSValue* decorationStyleValue =
+    aRuleData->ValueForTextDecorationStyle();
+  if (eCSSUnit_Enumerated == decorationStyleValue->GetUnit()) {
+    text->SetDecorationStyle(decorationStyleValue->GetIntValue());
+  } else if (eCSSUnit_Inherit == decorationStyleValue->GetUnit()) {
+    text->SetDecorationStyle(parentText->GetDecorationStyle());
+    canStoreInRuleTree = PR_FALSE;
+  } else if (eCSSUnit_Initial == decorationStyleValue->GetUnit()) {
+    text->SetDecorationStyle(NS_STYLE_TEXT_DECORATION_STYLE_SOLID);
+  }
+
+  
   SetDiscrete(*aRuleData->ValueForUnicodeBidi(), text->mUnicodeBidi, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentText->mUnicodeBidi,
               NS_STYLE_UNICODE_BIDI_NORMAL, 0, 0, 0, 0);

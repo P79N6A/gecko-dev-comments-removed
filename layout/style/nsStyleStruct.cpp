@@ -2531,6 +2531,9 @@ nsStyleTextReset::nsStyleTextReset(void)
   MOZ_COUNT_CTOR(nsStyleTextReset);
   mVerticalAlign.SetIntValue(NS_STYLE_VERTICAL_ALIGN_BASELINE, eStyleUnit_Enumerated);
   mTextDecoration = NS_STYLE_TEXT_DECORATION_NONE;
+  mTextDecorationColor = NS_RGB(0,0,0);
+  mTextDecorationStyle =
+    NS_STYLE_TEXT_DECORATION_STYLE_SOLID | BORDER_COLOR_FOREGROUND;
   mUnicodeBidi = NS_STYLE_UNICODE_BIDI_NORMAL;
 }
 
@@ -2549,12 +2552,35 @@ nsChangeHint nsStyleTextReset::CalcDifference(const nsStyleTextReset& aOther) co
 {
   if (mVerticalAlign == aOther.mVerticalAlign
       && mUnicodeBidi == aOther.mUnicodeBidi) {
-    if (mTextDecoration != aOther.mTextDecoration) {
+    PRUint8 lineStyle = GetDecorationStyle();
+    PRUint8 otherLineStyle = aOther.GetDecorationStyle();
+    if (mTextDecoration != aOther.mTextDecoration ||
+        lineStyle != otherLineStyle) {
       
-      return
-        (mTextDecoration & NS_STYLE_TEXT_DECORATION_BLINK) ==
-        (aOther.mTextDecoration & NS_STYLE_TEXT_DECORATION_BLINK) ?
-          NS_STYLE_HINT_VISUAL : NS_STYLE_HINT_REFLOW;
+      if ((mTextDecoration & NS_STYLE_TEXT_DECORATION_BLINK) !=
+            (aOther.mTextDecoration & NS_STYLE_TEXT_DECORATION_BLINK)) {
+        return NS_STYLE_HINT_REFLOW;
+      }
+      
+      
+      if (lineStyle == NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE ||
+          lineStyle == NS_STYLE_TEXT_DECORATION_STYLE_WAVY ||
+          otherLineStyle == NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE ||
+          otherLineStyle == NS_STYLE_TEXT_DECORATION_STYLE_WAVY) {
+        return NS_STYLE_HINT_REFLOW;
+      }
+      
+      
+      return NS_STYLE_HINT_VISUAL;
+    }
+
+    
+    nscolor decColor, otherDecColor;
+    PRBool isFG, otherIsFG;
+    GetDecorationColor(decColor, isFG);
+    aOther.GetDecorationColor(otherDecColor, otherIsFG);
+    if (isFG != otherIsFG || (!isFG && decColor != otherDecColor)) {
+      return NS_STYLE_HINT_VISUAL;
     }
 
     return NS_STYLE_HINT_NONE;
