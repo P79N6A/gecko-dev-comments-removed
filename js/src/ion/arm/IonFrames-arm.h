@@ -53,6 +53,7 @@ class IonCommonFrameLayout
     void *returnAddress_;
     void *padding;
     uintptr_t descriptor_;
+
   public:
     static size_t offsetOfDescriptor() {
         return offsetof(IonCommonFrameLayout, descriptor_);
@@ -78,6 +79,7 @@ class IonCommonFrameLayout
         return NULL;
     }
 };
+
 
 class IonEntryFrameLayout : public IonCommonFrameLayout
 {
@@ -116,4 +118,5 @@ class IonExitFrameLayout : public IonCommonFrameLayout
 
 } 
 } 
+
 #endif 

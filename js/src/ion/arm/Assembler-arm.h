@@ -47,6 +47,7 @@
 #include "ion/CompactBuffer.h"
 #include "ion/IonCode.h"
 #include "ion/arm/Architecture-arm.h"
+
 namespace js {
 namespace ion {
 
@@ -146,8 +147,9 @@ class VFPRegister
         UInt   = 0x2,
         Int    = 0x3
     };
-  private:
-    RegType kind:2;
+
+  protected:
+    RegType kind : 2;
     
     
     
@@ -155,26 +157,35 @@ class VFPRegister
     
     
     
-    uint32 _code:5;
-    bool _isInvalid:1;
-    bool _isMissing:1;
+    uint32 _code : 5;
+    bool _isInvalid : 1;
+    bool _isMissing : 1;
+
     VFPRegister(int  r, RegType k)
-        : kind(k), _code (r), _isInvalid(false), _isMissing(false) {}
+      : kind(k), _code (r), _isInvalid(false), _isMissing(false)
+    { }
+
   public:
     VFPRegister()
-        : _isInvalid(true), _isMissing(false) {}
+      : _isInvalid(true), _isMissing(false)
+    { }
+
     VFPRegister(bool b)
-        : _isInvalid(false), _isMissing(b) {}
+      : _isInvalid(false), _isMissing(b)
+    { }
+
     VFPRegister(FloatRegister fr)
-        : kind(Double), _code(fr.code()), _isInvalid(false), _isMissing(false)
+      : kind(Double), _code(fr.code()), _isInvalid(false), _isMissing(false)
     {
         JS_ASSERT(_code == (unsigned)fr.code());
     }
+
     VFPRegister(FloatRegister fr, RegType k)
-        : kind(k), _code (fr.code()), _isInvalid(false), _isMissing(false)
+      : kind(k), _code (fr.code()), _isInvalid(false), _isMissing(false)
     {
         JS_ASSERT(_code == (unsigned)fr.code());
     }
+
     bool isDouble() { return kind == Double; }
     bool isSingle() { return kind == Single; }
     bool isFloat() { return (kind == Double) || (kind == Single); }
@@ -182,31 +193,39 @@ class VFPRegister
     bool isSInt()   { return kind == Int; }
     bool isUInt()   { return kind == UInt; }
     bool equiv(VFPRegister other) { return other.kind == kind; }
+
+    bool isInvalid();
+    bool isMissing();
+
     VFPRegister doubleOverlay();
     VFPRegister singleOverlay();
     VFPRegister sintOverlay();
     VFPRegister uintOverlay();
-    bool isInvalid();
-    bool isMissing();
+
     struct VFPRegIndexSplit;
     VFPRegIndexSplit encode();
+
     
     struct VFPRegIndexSplit {
         const uint32 block : 4;
         const uint32 bit : 1;
+
       private:
         friend VFPRegIndexSplit js::ion::VFPRegister::encode();
+
         VFPRegIndexSplit (uint32 block_, uint32 bit_)
-            : block(block_), bit(bit_)
+          : block(block_), bit(bit_)
         {
             JS_ASSERT (block == block_);
             JS_ASSERT(bit == bit_);
         }
     };
+
     uint32 code() {
         return _code;
     }
 };
+
 
 
 extern VFPRegister NoVFPRegister;
@@ -214,14 +233,14 @@ extern VFPRegister NoVFPRegister;
 struct ImmTag : public Imm32
 {
     ImmTag(JSValueTag mask)
-        : Imm32(int32(mask))
+      : Imm32(int32(mask))
     { }
 };
 
 struct ImmType : public ImmTag
 {
     ImmType(JSValueType type)
-        : ImmTag(JSVAL_TYPE_TO_TAG(type))
+      : ImmTag(JSVAL_TYPE_TO_TAG(type))
     { }
 };
 
@@ -393,8 +412,11 @@ struct Reg
     
     uint32 ShiftAmount : 5;
     uint32 pad : 20;
+
     Reg(uint32 rm, ShiftType type, uint32 rsr, uint32 shiftamount)
-        : RM(rm), RRS(rsr), Type(type), ShiftAmount(shiftamount), pad(0) {}
+      : RM(rm), RRS(rsr), Type(type), ShiftAmount(shiftamount), pad(0)
+    { }
+
     uint32 encode() {
         return RM | RRS << 4 | Type << 5 | ShiftAmount << 7;
     }
@@ -403,25 +425,32 @@ struct Reg
 
 
 
+
 struct Imm8mData
 {
   private:
-    uint32 data:8;
-    uint32 rot:4;
+    uint32 data : 8;
+    uint32 rot : 4;
     
     
     
     uint32 buff : 19;
   public:
     uint32 invalid : 1;
+
     uint32 encode() {
         JS_ASSERT(!invalid);
         return data | rot << 8;
     };
+
     
-    Imm8mData() : data(0xff), rot(0xf), invalid(1) {}
+    Imm8mData()
+      : data(0xff), rot(0xf), invalid(1)
+    { }
+
     Imm8mData(uint32 data_, uint32 rot_)
-        : data(data_), rot(rot_), invalid(0)  {}
+      : data(data_), rot(rot_), invalid(0)
+    { }
 };
 
 struct Imm8Data
@@ -430,6 +459,7 @@ struct Imm8Data
     uint32 imm4L : 4;
     uint32 pad : 4;
     uint32 imm4H : 4;
+
   public:
     uint32 encode() {
         return imm4L | (imm4H << 8);
@@ -440,10 +470,12 @@ struct Imm8Data
 };
 
 
+
 struct Imm8VFPOffData
 {
   private:
     uint32 data;
+
   public:
     uint32 encode() {
         return data;
@@ -454,6 +486,7 @@ struct Imm8VFPOffData
 };
 
 
+
 struct Imm8VFPImmData
 {
   private:
@@ -461,66 +494,104 @@ struct Imm8VFPImmData
     uint32 pad : 12;
     uint32 imm4H : 4;
     int32 isInvalid : 12;
+
   public:
+    Imm8VFPImmData()
+      : imm4L(-1U & 0xf), imm4H(-1U & 0xf), isInvalid(-1)
+    { }
+
+    Imm8VFPImmData(uint32 imm)
+      : imm4L(imm&0xf), imm4H(imm>>4), isInvalid(0)
+    {
+        JS_ASSERT(imm <= 0xff);
+    }
+
     uint32 encode() {
         if (isInvalid != 0)
             return -1;
         return imm4L | (imm4H << 16);
     };
-    Imm8VFPImmData() : imm4L(-1U & 0xf), imm4H(-1U & 0xf), isInvalid(-1) {}
-    Imm8VFPImmData(uint32 imm) : imm4L(imm&0xf), imm4H(imm>>4), isInvalid(0) {
-        JS_ASSERT(imm <= 0xff);
-    }
 };
 
 struct Imm12Data
 {
     uint32 data : 12;
-    Imm12Data(uint32 imm) : data(imm) { JS_ASSERT(data == imm); }
-    uint32 encode() { return data; }
+    uint32 encode() {
+        return data;
+    }
+
+    Imm12Data(uint32 imm)
+      : data(imm)
+    {
+        JS_ASSERT(data == imm);
+    }
+
 };
 
 struct RIS
 {
     uint32 ShiftAmount : 5;
-    RIS(uint32 imm) : ShiftAmount(imm) { ASSERT(ShiftAmount == imm); }
     uint32 encode () {
         return ShiftAmount;
     }
+
+    RIS(uint32 imm)
+      : ShiftAmount(imm)
+    {
+        JS_ASSERT(ShiftAmount == imm);
+    }
 };
+
 struct RRS
 {
     uint32 MustZero : 1;
     
     uint32 RS : 4;
-    RRS(uint32 rs) : RS(rs) { ASSERT(rs == RS); }
-    uint32 encode () {return RS << 1;}
+
+    RRS(uint32 rs)
+      : RS(rs)
+    {
+        JS_ASSERT(rs == RS);
+    }
+
+    uint32 encode () {
+        return RS << 1;
+    }
 };
 
 } 
 
-
 class MacroAssemblerARM;
 class Operand;
+
 class Operand2
 {
+    friend class Operand;
+    friend class MacroAssemblerARM;
+
   public:
     uint32 oper : 31;
     uint32 invalid : 1;
-    
+
   protected:
-    friend class MacroAssemblerARM;
     Operand2(datastore::Imm8mData base)
-        : oper(base.invalid ? -1 : (base.encode() | (uint32)IsImmOp2)),
-          invalid(base.invalid)
-    {
-    }
-    Operand2(datastore::Reg base) : oper(base.encode() | (uint32)IsNotImmOp2) {}
+      : oper(base.invalid ? -1 : (base.encode() | (uint32)IsImmOp2)),
+        invalid(base.invalid)
+    { }
+
+    Operand2(datastore::Reg base)
+      : oper(base.encode() | (uint32)IsNotImmOp2)
+    { }
+
   private:
-    friend class Operand;
-    Operand2(int blob) : oper(blob) {}
+    Operand2(int blob)
+      : oper(blob)
+    { }
+
   public:
-    uint32 encode() { return oper; }
+    uint32 encode() {
+        return oper;
+    }
 };
 
 class Imm8 : public Operand2
@@ -560,35 +631,50 @@ class Imm8 : public Operand2
     struct TwoImm8mData
     {
         datastore::Imm8mData fst, snd;
-        TwoImm8mData() : fst(), snd() {}
+
+        TwoImm8mData()
+          : fst(), snd()
+        { }
+
         TwoImm8mData(datastore::Imm8mData _fst, datastore::Imm8mData _snd)
-            : fst(_fst), snd(_snd) {}
+          : fst(_fst), snd(_snd)
+        { }
     };
+
     static TwoImm8mData encodeTwoImms(uint32);
-    Imm8(uint32 imm) : Operand2(encodeImm(imm)) {}
+    Imm8(uint32 imm)
+      : Operand2(encodeImm(imm))
+    { }
 };
 
 class Op2Reg : public Operand2
 {
-  protected:
+  public:
     Op2Reg(Register rm, ShiftType type, datastore::RIS shiftImm)
-        : Operand2(datastore::Reg(rm.code(), type, 0, shiftImm.encode())) {}
+      : Operand2(datastore::Reg(rm.code(), type, 0, shiftImm.encode()))
+    { }
+
     Op2Reg(Register rm, ShiftType type, datastore::RRS shiftReg)
-        : Operand2(datastore::Reg(rm.code(), type, 1, shiftReg.encode())) {}
+      : Operand2(datastore::Reg(rm.code(), type, 1, shiftReg.encode()))
+    { }
 };
+
 class O2RegImmShift : public Op2Reg
 {
   public:
     O2RegImmShift(Register rn, ShiftType type, uint32 shift)
-        : Op2Reg(rn, type, datastore::RIS(shift)) {}
+      : Op2Reg(rn, type, datastore::RIS(shift))
+    { }
 };
 
 class O2RegRegShift : public Op2Reg
 {
   public:
     O2RegRegShift(Register rn, ShiftType type, Register rs)
-        : Op2Reg(rn, type, datastore::RRS(rs.code())) {}
+      : Op2Reg(rn, type, datastore::RRS(rs.code()))
+    { }
 };
+
 O2RegImmShift O2Reg(Register r);
 O2RegImmShift lsl (Register r, int amt);
 O2RegImmShift lsr (Register r, int amt);
@@ -609,11 +695,16 @@ O2RegRegShift ror (Register r, Register amt);
 class DtrOff
 {
     uint32 data;
+
   protected:
     DtrOff(datastore::Imm12Data immdata, IsUp_ iu)
-    : data(immdata.encode() | (uint32)IsImmDTR | ((uint32)iu)) {}
+      : data(immdata.encode() | (uint32)IsImmDTR | ((uint32)iu))
+    { }
+
     DtrOff(datastore::Reg reg, IsUp_ iu = IsUp)
-        : data(reg.encode() | (uint32) IsNotImmDTR | iu) {}
+      : data(reg.encode() | (uint32) IsNotImmDTR | iu)
+    { }
+
   public:
     uint32 encode() { return data; }
 };
@@ -622,8 +713,10 @@ class DtrOffImm : public DtrOff
 {
   public:
     DtrOffImm(int32 imm)
-        : DtrOff(datastore::Imm12Data(abs(imm)), imm >= 0 ? IsUp : IsDown)
-    { JS_ASSERT((imm < 4096) && (imm > -4096)); }
+      : DtrOff(datastore::Imm12Data(abs(imm)), imm >= 0 ? IsUp : IsDown)
+    {
+        JS_ASSERT((imm < 4096) && (imm > -4096));
+    }
 };
 
 class DtrOffReg : public DtrOff
@@ -632,23 +725,28 @@ class DtrOffReg : public DtrOff
     
   protected:
     DtrOffReg(Register rn, ShiftType type, datastore::RIS shiftImm)
-        : DtrOff(datastore::Reg(rn.code(), type, 0, shiftImm.encode())) {}
+      : DtrOff(datastore::Reg(rn.code(), type, 0, shiftImm.encode()))
+    { }
+
     DtrOffReg(Register rn, ShiftType type, datastore::RRS shiftReg)
-        : DtrOff(datastore::Reg(rn.code(), type, 1, shiftReg.encode())) {}
+      : DtrOff(datastore::Reg(rn.code(), type, 1, shiftReg.encode()))
+    { }
 };
 
 class DtrRegImmShift : public DtrOffReg
 {
   public:
     DtrRegImmShift(Register rn, ShiftType type, uint32 shift)
-        : DtrOffReg(rn, type, datastore::RIS(shift)) {}
+      : DtrOffReg(rn, type, datastore::RIS(shift))
+    { }
 };
 
 class DtrRegRegShift : public DtrOffReg
 {
   public:
     DtrRegRegShift(Register rn, ShiftType type, Register rs)
-        : DtrOffReg(rn, type, datastore::RRS(rs.code())) {}
+      : DtrOffReg(rn, type, datastore::RRS(rs.code()))
+    { }
 };
 
 
@@ -656,34 +754,50 @@ class DtrRegRegShift : public DtrOffReg
 class DTRAddr
 {
     uint32 data;
+
   public:
     DTRAddr(Register reg, DtrOff dtr)
-        : data(dtr.encode() | (reg.code() << 16)) {}
-    uint32 encode() { return data; }
+      : data(dtr.encode() | (reg.code() << 16))
+    { }
+
+    uint32 encode() {
+        return data;
+    }
+
   private:
     friend class Operand;
-    DTRAddr(uint32 blob) : data(blob) {}
+    DTRAddr(uint32 blob)
+      : data(blob)
+    { }
 };
 
 
 
 class EDtrOff
 {
-  protected:
     uint32 data;
+
+  protected:
     EDtrOff(datastore::Imm8Data imm8, IsUp_ iu = IsUp)
-        : data(imm8.encode() | IsImmEDTR | (uint32)iu) {}
+      : data(imm8.encode() | IsImmEDTR | (uint32)iu)
+    { }
+
     EDtrOff(Register rm, IsUp_ iu = IsUp)
-        : data(rm.code() | IsNotImmEDTR | iu) {}
+      : data(rm.code() | IsNotImmEDTR | iu)
+    { }
+
   public:
-    uint32 encode() { return data; }
+    uint32 encode() {
+        return data;
+    }
 };
 
 class EDtrOffImm : public EDtrOff
 {
   public:
     EDtrOffImm(uint32 imm)
-        : EDtrOff(datastore::Imm8Data(abs(imm)), (imm >= 0) ? IsUp : IsDown) {}
+      : EDtrOff(datastore::Imm8Data(abs(imm)), (imm >= 0) ? IsUp : IsDown)
+    { }
 };
 
 
@@ -692,57 +806,86 @@ class EDtrOffImm : public EDtrOff
 class EDtrOffReg : EDtrOff
 {
   public:
-    EDtrOffReg(Register rm) : EDtrOff(rm) {}
+    EDtrOffReg(Register rm)
+      : EDtrOff(rm)
+    { }
 };
 
 class EDtrAddr
 {
     uint32 data;
+
   public:
-    EDtrAddr(Register r, EDtrOff off) : data(RN(r) | off.encode()) {}
-    uint32 encode() { return data; }
+    EDtrAddr(Register r, EDtrOff off)
+      : data(RN(r) | off.encode())
+    { }
+
+    uint32 encode() {
+        return data;
+    }
 };
 
 class VFPOff
 {
     uint32 data;
+
   protected:
     VFPOff(datastore::Imm8VFPOffData imm, IsUp_ isup)
-        : data(imm.encode() | (uint32)isup) {}
+      : data(imm.encode() | (uint32)isup)
+    { }
+
   public:
-    uint32 encode() { return data; }
+    uint32 encode() {
+        return data;
+    }
 };
 
 class VFPOffImm : public VFPOff
 {
   public:
     VFPOffImm(uint32 imm)
-        : VFPOff(datastore::Imm8VFPOffData(imm >> 2), imm < 0 ? IsDown : IsUp) {}
+      : VFPOff(datastore::Imm8VFPOffData(imm >> 2), imm < 0 ? IsDown : IsUp)
+    { }
 };
 class VFPAddr
 {
-    uint32 data;
     friend class Operand;
-    VFPAddr(uint32 blob) : data(blob) {}
+
+    uint32 data;
+
+  protected:
+    VFPAddr(uint32 blob)
+      : data(blob)
+    { }
+
   public:
     VFPAddr(Register base, VFPOff off)
-        : data(RN(base) | off.encode())
-    {
+      : data(RN(base) | off.encode())
+    { }
+
+    uint32 encode() {
+        return data;
     }
-    uint32 encode() { return data; }
 };
 
 class VFPImm {
     uint32 data;
+
   public:
     VFPImm(uint32 top);
-    uint32 encode() { return data; }
-    bool isValid() { return data != -1U; }
+
+    uint32 encode() {
+        return data;
+    }
+    bool isValid() {
+        return data != -1U;
+    }
 };
 
 class BOffImm
 {
     uint32 data;
+
   public:
     uint32 encode() {
         return data;
@@ -751,34 +894,52 @@ class BOffImm
         return (data << 8) >> 6;
     }
 
-    BOffImm(int offset) : data (offset >> 2 & 0x00ffffff) {
+    BOffImm(int offset)
+      : data (offset >> 2 & 0x00ffffff)
+    {
         JS_ASSERT ((offset & 0x3) == 0);
         JS_ASSERT (offset >= -33554432);
         JS_ASSERT (offset <= 33554428);
     }
-    BOffImm() : data(-1) {}
+
+    BOffImm()
+      : data(-1)
+    { }
+
     bool isInvalid() {
         return data == 0x00ffffff;
     }
     Instruction *getDest(Instruction *src);
+
   private:
     friend class InstBranchImm;
     BOffImm(Instruction &inst);
 };
+
 class Imm16
 {
     uint32 lower : 12;
     uint32 pad : 4;
     uint32 upper : 4;
     uint32 invalid : 12;
+
   public:
+    Imm16();
     Imm16(uint32 imm);
     Imm16(Instruction &inst);
-    uint32 encode() { return lower | upper << 16; }
-    uint32 decode() { return lower | upper << 12; }
-    Imm16();
-    bool isInvalid () { return invalid; }
+
+    uint32 encode() {
+        return lower | upper << 16;
+    }
+    uint32 decode() {
+        return lower | upper << 12;
+    }
+
+    bool isInvalid () {
+        return invalid;
+    }
 };
+
 
 
 
@@ -798,24 +959,48 @@ class Operand
     
     
   public:
-
     enum Tag_ {
         OP2,
         MEM,
         FOP
     };
+
   private:
     Tag_ Tag : 3;
     uint32 reg : 5;
     int32 offset;
     uint32 data;
+
   public:
-    Operand (Register reg_)  : Tag(OP2), reg(reg_.code()) {}
-    Operand (FloatRegister freg)  : Tag(FOP), reg(freg.code()) {}
-    Operand (Register base, Imm32 off) : Tag(MEM), reg(base.code()), offset(off.value) {}
-    Operand (Register base, int32 off) : Tag(MEM), reg(base.code()), offset(off) {}
-    Tag_ getTag() const { return Tag; }
-    Operand2 toOp2() { JS_ASSERT(Tag == OP2); return O2Reg(Register::FromCode(reg)); }
+    Operand (Register reg_)
+      : Tag(OP2), reg(reg_.code())
+    { }
+
+    Operand (FloatRegister freg)
+      : Tag(FOP), reg(freg.code())
+    { }
+
+    Operand (Register base, Imm32 off)
+      : Tag(MEM), reg(base.code()), offset(off.value)
+    { }
+
+    Operand (Register base, int32 off)
+      : Tag(MEM), reg(base.code()), offset(off)
+    { }
+
+    Operand (const Address &addr)
+      : Tag(MEM), reg(addr.base.code()), offset(addr.offset)
+    { }
+
+    Tag_ getTag() const {
+        return Tag;
+    }
+
+    Operand2 toOp2() const {
+        JS_ASSERT(Tag == OP2);
+        return O2Reg(Register::FromCode(reg));
+    }
+
     void toAddr(Register *r, Imm32 *dest) const {
         JS_ASSERT(Tag == MEM);
         *r = Register::FromCode(reg);
@@ -910,6 +1095,7 @@ class Assembler
     BufferOffset nextOffset () {
         return BufferOffset(m_buffer.uncheckedSize());
     }
+
   protected:
     BufferOffset labelOffset (Label *l) {
         return BufferOffset(l->bound());
@@ -918,16 +1104,31 @@ class Assembler
     Instruction * editSrc (BufferOffset bo) {
         return (Instruction*)(((char*)m_buffer.data()) + bo.getOffset());
     }
-    
-    
+
   public:
+    
+    
     class BufferOffset
     {
         int offset;
+
       public:
         friend BufferOffset nextOffset();
-        explicit BufferOffset(int offset_) : offset(offset_) {}
-        int getOffset() const { return offset; }
+
+        BufferOffset()
+          : offset(INT_MIN)
+        { }
+        explicit BufferOffset(int offset_)
+          : offset(offset_)
+        { }
+        explicit BufferOffset(Label *l)
+          : offset(l->offset())
+        { }
+
+        int getOffset() const {
+            return offset;
+        }
+
         BOffImm diffB(BufferOffset other) const {
             return BOffImm(offset - other.offset-8);
         }
@@ -935,16 +1136,15 @@ class Assembler
             JS_ASSERT(other->bound());
             return BOffImm(offset - other->offset()-8);
         }
-        explicit BufferOffset(Label *l) : offset(l->offset()) {
-        }
-        BufferOffset() : offset(INT_MIN) {}
+
         bool assigned() { return offset != INT_MIN; };
     };
   protected:
 
     
     
-    struct RelativePatch {
+    struct RelativePatch
+    {
         
         
         BufferOffset offset;
@@ -957,6 +1157,7 @@ class Assembler
             kind(kind)
         { }
     };
+
     
     
     class JumpPool;
@@ -964,7 +1165,8 @@ class Assembler
     js::Vector<CodeLabel *, 0, SystemAllocPolicy> codeLabels_;
     js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
     js::Vector<JumpPool *, 0, SystemAllocPolicy> jumpPools_;
-    class JumpPool : TempObject {
+    class JumpPool : TempObject
+    {
         BufferOffset start;
         uint32 size;
         bool fixup(IonCode *code, uint8 *data);
@@ -1004,9 +1206,8 @@ public:
         lastWasUBranch(true),
         dtmActive(false),
         dtmCond(Always)
+    { }
 
-    {
-    }
     static Condition InvertCondition(Condition cond);
 
     
@@ -1221,11 +1422,13 @@ public:
         FloatToCore = 1 << 20,
         CoreToFloat = 0 << 20
     };
+
   private:
     enum VFPXferSize {
         WordTransfer   = 0x02000010,
         DoubleTransfer = 0x00400010
     };
+
   public:
     
     
@@ -1270,6 +1473,7 @@ public:
   public:
     static void TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
     static void TraceDataRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
+
   protected:
     void addPendingJump(BufferOffset src, void *target, Relocation::Kind kind) {
         enoughMemory_ &= jumps_.append(RelativePatch(src, target, kind));
@@ -1280,7 +1484,9 @@ public:
   public:
     
     
-    void flush() {}
+    void flush() {
+        return;
+    }
 
     
     
@@ -1387,6 +1593,7 @@ public:
 class Instruction
 {
     uint32 data;
+
   protected:
     
     
@@ -1400,17 +1607,22 @@ class Instruction
     
     
     
+
   public:
     uint32 encode() {
         return data;
     }
     
     template <class C>
-    bool is() { return C::isTHIS(*this); }
+    bool is() {
+        return C::isTHIS(*this);
+    }
 
     
     template <class C>
-    C *as() { return C::asTHIS(*this); }
+    C *as() {
+        return C::asTHIS(*this);
+    }
 
     const Instruction & operator=(const Instruction &src) {
         data = src.data;
@@ -1431,6 +1643,7 @@ class Instruction
     uint32 *raw() { return (uint32*)this; }
 }; 
 
+
 JS_STATIC_ASSERT(sizeof(Instruction) == 4);
 
 
@@ -1443,13 +1656,17 @@ class InstDTR : public Instruction
     };
     static const int IsDTR     = 0x04000000;
     static const int IsDTRMask = 0x0c000000;
-    InstDTR(LoadStore ls, IsByte_ ib, Index mode, Register rt, DTRAddr addr, Assembler::Condition c) :
-        
-        Instruction(ls | ib | mode | RT(rt) | addr.encode() ,c) {}
+
+    
+    InstDTR(LoadStore ls, IsByte_ ib, Index mode, Register rt, DTRAddr addr, Assembler::Condition c)
+      : Instruction(ls | ib | mode | RT(rt) | addr.encode() ,c)
+    { }
+
     static bool isTHIS(Instruction &i);
     static InstDTR *asTHIS(Instruction &i);
 };
 JS_STATIC_ASSERT(sizeof(InstDTR) == sizeof(Instruction));
+
 
 class InstBranchReg : public Instruction
 {
@@ -1460,7 +1677,11 @@ class InstBranchReg : public Instruction
         IsBLX = 0x012fff30
     };
     static const uint32 IsBRegMask = 0x0ffffff0;
-    InstBranchReg(BranchTag tag, Register rm, Assembler::Condition c) : Instruction(tag | RM(rm), c) {}
+
+    InstBranchReg(BranchTag tag, Register rm, Assembler::Condition c)
+      : Instruction(tag | RM(rm), c)
+    { }
+
   public:
     static bool isTHIS (Instruction &i);
     static InstBranchReg *asTHIS (Instruction &i);
@@ -1481,8 +1702,10 @@ class InstBranchImm : public Instruction
     };
     static const uint32 IsBImmMask = 0x0f000000;
 
-    InstBranchImm(BranchTag tag, BOffImm off, Assembler::Condition c) :
-        Instruction(tag | off.encode(), c) {}
+    InstBranchImm(BranchTag tag, BOffImm off, Assembler::Condition c)
+      : Instruction(tag | off.encode(), c)
+    { }
+
   public:
     static bool isTHIS (Instruction &i);
     static InstBranchImm *asTHIS (Instruction &i);
@@ -1506,16 +1729,22 @@ class InstBLXReg : public InstBranchReg
 class InstBImm : public InstBranchImm
 {
   public:
+    InstBImm(BOffImm off, Assembler::Condition c)
+      : InstBranchImm(IsB, off, c)
+    { }
+
     static bool isTHIS (Instruction &i);
     static InstBImm *asTHIS (Instruction &i);
-    InstBImm(BOffImm off, Assembler::Condition c) : InstBranchImm(IsB, off, c) {};
 };
 class InstBLImm : public InstBranchImm
 {
   public:
+    InstBLImm(BOffImm off, Assembler::Condition c)
+      : InstBranchImm(IsBL, off, c)
+    { }
+
     static bool isTHIS (Instruction &i);
     static InstBLImm *asTHIS (Instruction &i);
-    InstBLImm(BOffImm off, Assembler::Condition c) : InstBranchImm(IsBL, off, c) {}
 };
 
 
@@ -1528,15 +1757,19 @@ class InstMovWT : public Instruction
         IsT = 0x03400000
     };
     static const uint32 IsWTMask = 0x0ff00000;
-    InstMovWT(Register rd, Imm16 imm, WT wt, Assembler::Condition c) :
-        Instruction (RD(rd) | imm.encode() | wt, c) {}
+
+    InstMovWT(Register rd, Imm16 imm, WT wt, Assembler::Condition c)
+      : Instruction (RD(rd) | imm.encode() | wt, c)
+    { }
+
   public:
-    static bool isTHIS (Instruction &i);
-    static InstMovWT *asTHIS (Instruction &i);
     void extractImm(Imm16 *dest);
     void extractDest(Register *dest);
     bool checkImm(Imm16 dest);
     bool checkDest(Register dest);
+
+    static bool isTHIS (Instruction &i);
+    static InstMovWT *asTHIS (Instruction &i);
 
 };
 JS_STATIC_ASSERT(sizeof(InstMovWT) == sizeof(Instruction));
@@ -1544,8 +1777,10 @@ JS_STATIC_ASSERT(sizeof(InstMovWT) == sizeof(Instruction));
 class InstMovW : public InstMovWT
 {
   public:
-    InstMovW (Register rd, Imm16 imm, Assembler::Condition c) :
-        InstMovWT(rd, imm, IsW, c) {}
+    InstMovW (Register rd, Imm16 imm, Assembler::Condition c)
+      : InstMovWT(rd, imm, IsW, c)
+    { }
+
     static bool isTHIS (Instruction &i);
     static InstMovW *asTHIS (Instruction &i);
 };
@@ -1553,11 +1788,14 @@ class InstMovW : public InstMovWT
 class InstMovT : public InstMovWT
 {
   public:
-    InstMovT (Register rd, Imm16 imm, Assembler::Condition c) :
-        InstMovWT(rd, imm, IsT, c) {}
+    InstMovT (Register rd, Imm16 imm, Assembler::Condition c)
+      : InstMovWT(rd, imm, IsT, c)
+    { }
+
     static bool isTHIS (Instruction &i);
     static InstMovT *asTHIS (Instruction &i);
 };
+
 static const uint32 NumArgRegs = 4;
 
 static inline bool
@@ -1609,14 +1847,21 @@ class DoubleEncoder {
             rep(b, 8) << 22 |
             cdefgh << 16;
     }
-    struct DoubleEntry {
+
+    struct DoubleEntry
+    {
         uint32 dblTop;
         datastore::Imm8VFPImmData data;
+
+        DoubleEntry()
+          : dblTop(-1)
+        { }
         DoubleEntry(uint32 dblTop_, datastore::Imm8VFPImmData data_)
-            : dblTop(dblTop_), data(data_) {}
-        DoubleEntry() :dblTop(-1) {}
+          : dblTop(dblTop_), data(data_)
+        { }
     };
     DoubleEntry table [256];
+
     
     static DoubleEncoder _this;
     DoubleEncoder()

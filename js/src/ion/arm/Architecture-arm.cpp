@@ -1,5 +1,46 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 namespace ion {
+
 bool hasMOVWT()
 {
     return true;
@@ -12,5 +53,7 @@ bool has32DR()
 {
     return true;
 }
-}
-}
+
+} 
+} 
+
