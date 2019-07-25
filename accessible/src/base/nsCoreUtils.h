@@ -370,11 +370,6 @@ public:
       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::scope);
   }
 
-  
-
-
-  static bool CheckVisibilityInParentChain(nsIFrame* aFrame);
-
 };
 
 

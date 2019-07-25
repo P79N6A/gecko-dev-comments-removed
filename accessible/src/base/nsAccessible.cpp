@@ -654,7 +654,7 @@ nsAccessible::IsVisible(bool* aIsOffscreen)
   }
 
   
-  bool isVisible = nsCoreUtils::CheckVisibilityInParentChain(frame);
+  bool isVisible = frame->IsVisibleConsideringAncestors(nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY);
   if (isVisible && rectVisibility == nsRectVisibility_kVisible) {
     *aIsOffscreen = false;
   }
