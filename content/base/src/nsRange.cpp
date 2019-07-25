@@ -271,6 +271,12 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
 {
   NS_ASSERTION(mIsPositioned, "shouldn't be notified if not positioned");
 
+  nsINode* newRoot = nsnull;
+  nsINode* newStartNode = nsnull;
+  nsINode* newEndNode = nsnull;
+  PRUint32 newStartOffset = 0;
+  PRUint32 newEndOffset = 0;
+
   
   
   if (aContent == mStartParent &&
@@ -282,8 +288,11 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
                    "only a split can start before the end");
       NS_ASSERTION(static_cast<PRUint32>(mStartOffset) <= aInfo->mChangeEnd,
                    "mStartOffset is beyond the end of this node");
-      mStartOffset = static_cast<PRUint32>(mStartOffset) - aInfo->mChangeStart;
-      mStartParent = aInfo->mDetails->mNextSibling;
+      newStartOffset = static_cast<PRUint32>(mStartOffset) - aInfo->mChangeStart;
+      newStartNode = aInfo->mDetails->mNextSibling;
+      if (NS_UNLIKELY(aContent == mRoot)) {
+        newRoot = IsValidBoundary(newStartNode);
+      }
     } else {
       
       
@@ -295,16 +304,19 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
   }
 
   
-  if (aContent == mEndParent && aInfo->mChangeStart < static_cast<PRUint32>(mEndOffset)) {
-    if (aInfo->mDetails) {
+  
+  
+  if (aContent == mEndParent &&
+      aInfo->mChangeStart < static_cast<PRUint32>(mEndOffset)) {
+    if (aInfo->mDetails && (aContent->GetParent() || newStartNode)) {
       
       NS_ASSERTION(aInfo->mDetails->mType ==
                    CharacterDataChangeInfo::Details::eSplit,
                    "only a split can start before the end");
       NS_ASSERTION(static_cast<PRUint32>(mEndOffset) <= aInfo->mChangeEnd,
                    "mEndOffset is beyond the end of this node");
-      mEndOffset = static_cast<PRUint32>(mEndOffset) - aInfo->mChangeStart;
-      mEndParent = aInfo->mDetails->mNextSibling;
+      newEndOffset = static_cast<PRUint32>(mEndOffset) - aInfo->mChangeStart;
+      newEndNode = aInfo->mDetails->mNextSibling;
     } else {
       mEndOffset = static_cast<PRUint32>(mEndOffset) <= aInfo->mChangeEnd ?
         aInfo->mChangeStart :
@@ -319,13 +331,35 @@ nsRange::CharacterDataChanged(nsIDocument* aDocument,
     
     nsIContent* removed = aInfo->mDetails->mNextSibling;
     if (removed == mStartParent) {
-      mStartOffset = static_cast<PRUint32>(mStartOffset) + aInfo->mChangeStart;
-      mStartParent = aContent;
+      newStartOffset = static_cast<PRUint32>(mStartOffset) + aInfo->mChangeStart;
+      newStartNode = aContent;
+      if (NS_UNLIKELY(removed == mRoot)) {
+        newRoot = IsValidBoundary(newStartNode);
+      }
     }
     if (removed == mEndParent) {
-      mEndOffset = static_cast<PRUint32>(mEndOffset) + aInfo->mChangeStart;
-      mEndParent = aContent;
+      newEndOffset = static_cast<PRUint32>(mEndOffset) + aInfo->mChangeStart;
+      newEndNode = aContent;
+      if (NS_UNLIKELY(removed == mRoot)) {
+        newRoot = IsValidBoundary(newEndNode);
+      }
     }
+  }
+  if (newStartNode || newEndNode) {
+    if (!newStartNode) {
+      newStartNode = mStartParent;
+      newStartOffset = mStartOffset;
+    }
+    if (!newEndNode) {
+      newEndNode = mEndParent;
+      newEndOffset = mEndOffset;
+    }
+    DoSetRange(newStartNode, newStartOffset, newEndNode, newEndOffset,
+               newRoot ? newRoot : mRoot.get()
+#ifdef DEBUG
+               , !newEndNode->GetParent()
+#endif
+               );
   }
 }
 
@@ -473,12 +507,16 @@ static PRUint32 GetNodeLength(nsINode *aNode)
 void
 nsRange::DoSetRange(nsINode* aStartN, PRInt32 aStartOffset,
                     nsINode* aEndN, PRInt32 aEndOffset,
-                    nsINode* aRoot)
+                    nsINode* aRoot
+#ifdef DEBUG
+                    , bool aNotInsertedYet
+#endif
+                    )
 {
   NS_PRECONDITION((aStartN && aEndN && aRoot) ||
                   (!aStartN && !aEndN && !aRoot),
                   "Set all or none");
-  NS_PRECONDITION(!aRoot ||
+  NS_PRECONDITION(!aRoot || aNotInsertedYet ||
                   (nsContentUtils::ContentIsDescendantOf(aStartN, aRoot) &&
                    nsContentUtils::ContentIsDescendantOf(aEndN, aRoot) &&
                    aRoot == IsValidBoundary(aStartN) &&

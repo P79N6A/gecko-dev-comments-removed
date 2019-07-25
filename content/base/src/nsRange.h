@@ -149,7 +149,13 @@ public:
 protected:
   void DoSetRange(nsINode* aStartN, PRInt32 aStartOffset,
                   nsINode* aEndN, PRInt32 aEndOffset,
-                  nsINode* aRoot);
+                  nsINode* aRoot
+#ifdef DEBUG
+                  
+                  
+                  , bool aNotInsertedYet = false
+#endif
+                  );
 };
 
 
