@@ -500,7 +500,7 @@ JA(JSContext *cx, JSObject *obj, StringifyContext *scx)
         return JS_FALSE;
 
     
-    unsigned length;
+    uint32_t length;
     if (!js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
 
@@ -649,7 +649,7 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBu
 
 
             
-            unsigned len;
+            uint32_t len;
             JS_ALWAYS_TRUE(js_GetLengthProperty(cx, replacer, &len));
             if (replacer->isDenseArray())
                 len = JS_MIN(len, replacer->getDenseArrayCapacity());
@@ -659,7 +659,7 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBu
                 return false;
 
             
-            unsigned i = 0;
+            uint32_t i = 0;
 
             
             for (; i < len; i++) {

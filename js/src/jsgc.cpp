@@ -724,7 +724,7 @@ Chunk::removeFromAvailableList()
 
 
 
-unsigned
+uint32_t
 Chunk::findDecommittedArenaOffset()
 {
     
