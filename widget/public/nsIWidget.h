@@ -231,8 +231,51 @@ struct nsIMEUpdatePreference {
 
 
 
-struct IMEContext {
-  PRUint32 mStatus;
+
+namespace mozilla {
+namespace widget {
+
+struct InputContext {
+  
+
+
+
+
+
+
+
+
+  enum {
+    
+
+
+
+    IME_DISABLED = 0,
+    
+
+
+    IME_ENABLED = 1,
+    
+
+
+
+
+
+    IME_PASSWORD = 2,
+    
+
+
+
+
+
+    IME_PLUGIN = 3,
+    
+
+
+    IME_ENABLED_STATE_MASK = 0xF
+  };
+
+  PRUint32 mIMEEnabled;
 
   
   enum {
@@ -264,6 +307,8 @@ struct IMEContext {
   nsString mActionHint;
 };
 
+} 
+} 
 
 
 
@@ -277,6 +322,7 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::LayerManager LayerManager;
     typedef LayerManager::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayersChild PLayersChild;
+    typedef mozilla::widget::InputContext InputContext;
 
     
     struct ThemeGeometry {
@@ -1263,41 +1309,6 @@ class nsIWidget : public nsISupports {
     
 
 
-
-
-
-
-
-
-    enum IMEStatus {
-      
-
-
-
-      IME_STATUS_DISABLED = 0,
-      
-
-
-      IME_STATUS_ENABLED = 1,
-      
-
-
-
-
-
-      IME_STATUS_PASSWORD = 2,
-      
-
-
-
-
-
-      IME_STATUS_PLUGIN = 3
-    };
-
-    
-
-
     NS_IMETHOD CancelIMEComposition() = 0;
 
     
@@ -1306,12 +1317,13 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetInputMode(const IMEContext& aContext) = 0;
+    NS_IMETHOD SetInputMode(const InputContext& aContext) = 0;
 
     
 
 
-    NS_IMETHOD GetInputMode(IMEContext& aContext) = 0;
+
+    NS_IMETHOD GetInputMode(InputContext& aContext) = 0;
 
     
 

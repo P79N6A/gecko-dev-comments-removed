@@ -96,6 +96,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::widget;
 
 
 
@@ -340,13 +341,13 @@ nsFocusManager::GetRedirectedFocus(nsIContent* aContent)
 PRUint32
 nsFocusManager::GetFocusMoveReason(PRUint32 aFlags)
 {
-  PRUint32 reason = IMEContext::FOCUS_MOVED_UNKNOWN;
+  PRUint32 reason = InputContext::FOCUS_MOVED_UNKNOWN;
   if (aFlags & nsIFocusManager::FLAG_BYMOUSE) {
-    reason = IMEContext::FOCUS_MOVED_BY_MOUSE;
+    reason = InputContext::FOCUS_MOVED_BY_MOUSE;
   } else if (aFlags & nsIFocusManager::FLAG_BYKEY) {
-    reason = IMEContext::FOCUS_MOVED_BY_KEY;
+    reason = InputContext::FOCUS_MOVED_BY_KEY;
   } else if (aFlags & nsIFocusManager::FLAG_BYMOVEFOCUS) {
-    reason = IMEContext::FOCUS_MOVED_BY_MOVEFOCUS;
+    reason = InputContext::FOCUS_MOVED_BY_MOVEFOCUS;
   }
 
   return reason;
@@ -964,7 +965,8 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
 
   nsIMEStateManager::OnTextStateBlur(nsnull, nsnull);
   if (presShell) {
-    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull, IMEContext::FOCUS_REMOVED);
+    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull,
+                                     InputContext::FOCUS_REMOVED);
     SetCaretVisible(presShell, false, nsnull);
   }
 
@@ -1523,8 +1525,10 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
   
   
   nsIMEStateManager::OnTextStateBlur(nsnull, nsnull);
-  if (mActiveWindow)
-    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull, IMEContext::FOCUS_REMOVED);
+  if (mActiveWindow) {
+    nsIMEStateManager::OnChangeFocus(presShell->GetPresContext(), nsnull,
+                                     InputContext::FOCUS_REMOVED);
+  }
 
   
   
@@ -1803,7 +1807,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       nsIMEStateManager::OnTextStateFocus(presContext, aContent);
     } else {
       nsIMEStateManager::OnTextStateBlur(presContext, nsnull);
-      nsIMEStateManager::OnChangeFocus(presContext, nsnull, IMEContext::FOCUS_REMOVED);
+      nsIMEStateManager::OnChangeFocus(presContext, nsnull,
+                                       InputContext::FOCUS_REMOVED);
       if (!aWindowRaised) {
         aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
       }
@@ -1826,7 +1831,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
 
     nsPresContext* presContext = presShell->GetPresContext();
     nsIMEStateManager::OnTextStateBlur(presContext, nsnull);
-    nsIMEStateManager::OnChangeFocus(presContext, nsnull, IMEContext::FOCUS_REMOVED);
+    nsIMEStateManager::OnChangeFocus(presContext, nsnull,
+                                     InputContext::FOCUS_REMOVED);
 
     if (!aWindowRaised)
       aWindow->UpdateCommands(NS_LITERAL_STRING("focus"));
