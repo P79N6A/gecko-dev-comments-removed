@@ -171,8 +171,17 @@ class LIRGeneratorShared : public MInstructionVisitor
     bool defineTypedPhi(MPhi *phi, size_t lirIndex);
 
     LSnapshot *buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind);
-    bool assignSnapshot(LInstruction *ins, BailoutKind kind = Bailout_Normal);
     bool assignPostSnapshot(MInstruction *mir, LInstruction *ins);
+
+    
+    
+    
+    
+    bool assignSnapshot(LInstruction *ins, BailoutKind kind = Bailout_Normal);
+
+    
+    
+    
     bool assignSafepoint(LInstruction *ins, MInstruction *mir);
 
   public:
