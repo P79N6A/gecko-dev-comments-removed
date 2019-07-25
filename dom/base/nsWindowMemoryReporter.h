@@ -42,6 +42,7 @@
 #include "nsIObserver.h"
 #include "nsDataHashtable.h"
 #include "nsWeakReference.h"
+#include "nsAutoPtr.h"
 #include "mozilla/TimeStamp.h"
 
 
@@ -139,6 +140,23 @@ public:
   static void Init();
 
 private:
+  
+
+
+
+
+  class nsGhostWindowMemoryReporter: public nsIMemoryMultiReporter
+  {
+  public:
+    nsGhostWindowMemoryReporter(nsWindowMemoryReporter* aWindowReporter);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIMEMORYMULTIREPORTER
+
+  private:
+    nsRefPtr<nsWindowMemoryReporter> mWindowReporter;
+  };
+
   
   nsWindowMemoryReporter();
 
