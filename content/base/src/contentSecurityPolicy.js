@@ -37,6 +37,7 @@ function ContentSecurityPolicy() {
   this._policy._allowEval = true;
 
   this._request = "";
+  this._referrer = "";
   this._docRequest = null;
   CSPdebug("CSP POLICY INITED TO 'default-src *'");
 }
@@ -152,13 +153,13 @@ ContentSecurityPolicy.prototype = {
     switch (aViolationType) {
     case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT:
       if (!this._policy.allowsInlineScripts)
-        this._asyncReportViolation('self','inline script base restriction',
+        this._asyncReportViolation('self',null,'inline script base restriction',
                                    'violated base restriction: Inline Scripts will not execute',
                                    aSourceFile, aScriptSample, aLineNum);
       break;
     case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_EVAL:
       if (!this._policy.allowsEvalInScripts)
-        this._asyncReportViolation('self','eval script base restriction',
+        this._asyncReportViolation('self',null,'eval script base restriction',
                                    'violated base restriction: Code will not be created from strings',
                                    aSourceFile, aScriptSample, aLineNum);
       break;
@@ -188,25 +189,18 @@ ContentSecurityPolicy.prototype = {
   function(aChannel) {
     if (!aChannel)
       return;
-    
-    var internalChannel = null;
-    try {
-      internalChannel = aChannel.QueryInterface(Ci.nsIHttpChannelInternal);
-    } catch (e) {
-      CSPdebug("No nsIHttpChannelInternal for " + aChannel.URI.asciiSpec);
-    }
 
-    this._request = aChannel.requestMethod + " " + aChannel.URI.asciiSpec;
+    
     this._docRequest = aChannel;
 
     
-    
-    if (internalChannel) {
-      var reqMaj = {};
-      var reqMin = {};
-      var reqVersion = internalChannel.getRequestVersion(reqMaj, reqMin);
-      this._request += " HTTP/" + reqMaj.value + "." + reqMin.value;
-    }
+    let uri = aChannel.URI.cloneIgnoringRef();
+    uri.userPass = '';
+    this._request = uri.asciiSpec;
+
+    let referrer = aChannel.referrer.cloneIgnoringRef();
+    referrer.userPass = '';
+    this._referrer = referrer.asciiSpec;
   },
 
 
@@ -253,10 +247,28 @@ ContentSecurityPolicy.prototype = {
 
 
   sendReports:
-  function(blockedUri, violatedDirective, aSourceFile, aScriptSample, aLineNum) {
+  function(blockedUri, originalUri, violatedDirective,
+           aSourceFile, aScriptSample, aLineNum) {
     var uriString = this._policy.getReportURIs();
     var uris = uriString.split(/\s+/);
     if (uris.length > 0) {
+      
+      let blocked = '';
+      if (originalUri) {
+        
+        let clone = blockedUri.clone();
+        clone.path = '';
+        blocked = clone.asciiSpec;
+      }
+      else if (blockedUri instanceof Ci.nsIURI) {
+        blocked = blockedUri.cloneIgnoringRef().asciiSpec;
+      }
+      else {
+        
+        blocked = blockedUri;
+      }
+
+      
       
       
       
@@ -267,13 +279,16 @@ ContentSecurityPolicy.prototype = {
       
       var report = {
         'csp-report': {
-          'request': this._request,
-          'blocked-uri': (blockedUri instanceof Ci.nsIURI ?
-                          blockedUri.asciiSpec : blockedUri),
+          'document-uri': this._request,
+          'referrer': this._referrer,
+          'blocked-uri': blocked,
           'violated-directive': violatedDirective
         }
       }
+
       
+      if (originalUri)
+        report["csp-report"]["original-uri"] = originalUri.cloneIgnoringRef().asciiSpec;
       if (aSourceFile)
         report["csp-report"]["source-file"] = aSourceFile;
       if (aScriptSample)
@@ -403,7 +418,7 @@ ContentSecurityPolicy.prototype = {
                                 ? 'default-src' : 'frame-ancestors ')
                                 + directive.toString();
 
-        this._asyncReportViolation(ancestors[i], violatedPolicy);
+        this._asyncReportViolation(ancestors[i], null, violatedPolicy);
 
         
         return this._reportOnlyMode;
@@ -423,7 +438,7 @@ ContentSecurityPolicy.prototype = {
                           aRequestOrigin, 
                           aContext, 
                           aMimeTypeGuess, 
-                          aExtra) {
+                          aOriginalUri) {
 
     
     if (aContentLocation.scheme === 'chrome' ||
@@ -457,7 +472,7 @@ ContentSecurityPolicy.prototype = {
         let violatedPolicy = (directive._isImplicit
                                 ? 'default-src' : cspContext)
                                 + ' ' + directive.toString();
-        this._asyncReportViolation(aContentLocation, violatedPolicy);
+        this._asyncReportViolation(aContentLocation, aOriginalUri, violatedPolicy);
       } catch(e) {
         CSPdebug('---------------- ERROR: ' + e);
       }
@@ -499,8 +514,10 @@ ContentSecurityPolicy.prototype = {
 
 
 
+
+
   _asyncReportViolation:
-  function(blockedContentSource, violatedDirective, observerSubject,
+  function(blockedContentSource, originalUri, violatedDirective, observerSubject,
            aSourceFile, aScriptSample, aLineNum) {
     
     
@@ -523,7 +540,8 @@ ContentSecurityPolicy.prototype = {
         Services.obs.notifyObservers(observerSubject,
                                      CSP_VIOLATION_TOPIC,
                                      violatedDirective);
-        reportSender.sendReports(blockedContentSource, violatedDirective,
+        reportSender.sendReports(blockedContentSource, originalUri,
+                                 violatedDirective,
                                  aSourceFile, aScriptSample, aLineNum);
       }, Ci.nsIThread.DISPATCH_NORMAL);
   },
