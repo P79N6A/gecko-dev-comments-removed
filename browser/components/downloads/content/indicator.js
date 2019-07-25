@@ -59,30 +59,6 @@ const DownloadsButton = {
 
 
 
-
-  initializePlaceholder: function DB_initializePlaceholder()
-  {
-    
-    
-    if (gPrefService.getBoolPref("browser.download.useToolkitUI")) {
-      return;
-    }
-
-    
-    
-    let placeholder = this._placeholder;
-    if (placeholder) {
-      placeholder.collapsed = true;
-    }
-  },
-
-  
-
-
-
-
-
-
   initializeIndicator: function DB_initializeIndicator()
   {
     this._update();
@@ -141,12 +117,8 @@ const DownloadsButton = {
   _update: function DB_update() {
     this._updatePositionInternal();
 
-    let placeholder = this._placeholder;
     if (!DownloadsCommon.useToolkitUI) {
       DownloadsIndicatorView.ensureInitialized();
-      if (placeholder) {
-        placeholder.collapsed = true;
-      }
     } else {
       DownloadsIndicatorView.ensureTerminated();
     }
@@ -181,47 +153,27 @@ const DownloadsButton = {
     }
 
     let placeholder = this._placeholder;
-
-    
-    if (!placeholder && !this._anchorRequested &&
-        !DownloadsIndicatorView.hasDownloads) {
+    if (!placeholder) {
+      
       indicator.collapsed = true;
       return null;
     }
+
+    
+    
+    
+    placeholder.parentNode.insertBefore(indicator, placeholder);
+    placeholder.collapsed = true;
     indicator.collapsed = false;
 
     indicator.open = this._anchorRequested;
 
     
-    if (placeholder) {
-      placeholder.parentNode.insertBefore(indicator, placeholder);
-      
-      if (isElementVisible(placeholder.parentNode)) {
-        return DownloadsIndicatorView.indicatorAnchor;
-      }
-    }
-
-    
-    
-    if (!this._anchorRequested) {
-      this._navBar.appendChild(indicator);
+    if (!isElementVisible(placeholder.parentNode)) {
       return null;
     }
 
-    
-    if (isElementVisible(this._navBar)) {
-      this._navBar.appendChild(indicator);
-      return DownloadsIndicatorView.indicatorAnchor;
-    }
-
-    
-    if (!this._tabsToolbar.collapsed) {
-      this._tabsToolbar.appendChild(indicator);
-      return DownloadsIndicatorView.indicatorAnchor;
-    }
-
-    
-    return null;
+    return DownloadsIndicatorView.indicatorAnchor;
   },
 
   
@@ -383,6 +335,10 @@ const DownloadsIndicatorView = {
       if (this._notificationTimeout) {
         clearTimeout(this._notificationTimeout);
       }
+
+      
+      
+      DownloadsButton.updatePosition();
 
       let indicator = this.indicator;
       indicator.setAttribute("notification", "true");
