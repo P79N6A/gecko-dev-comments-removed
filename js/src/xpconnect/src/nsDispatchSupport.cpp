@@ -114,7 +114,6 @@ ClassExists(const CLSID &clsid)
 static PRBool
 ClassImplementsCategory(const CLSID &clsid, const CATID &catid, PRBool &bClassExists)
 {
-#ifndef WINCE
     bClassExists = ClassExists(clsid);
     
     if(!bClassExists)
@@ -141,7 +140,6 @@ ClassImplementsCategory(const CLSID &clsid, const CATID &catid, PRBool &bClassEx
         if(::IsEqualCATID(catid, catidNext))
             return PR_TRUE; 
     }
-#endif
     return PR_FALSE;
 }
 

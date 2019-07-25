@@ -159,7 +159,7 @@ nsAutoString *gWorkingDirectory = nsnull;
 static JSBool
 GetLocationProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
-#if (!defined(XP_WIN) && !defined(XP_UNIX)) || defined(WINCE)
+#if !defined(XP_WIN) && !defined(XP_UNIX)
     
     return JS_FALSE;
 #else
@@ -678,6 +678,8 @@ Clear(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
+#ifdef MOZ_IPC
+
 static JSBool
 SendCommand(JSContext* cx,
             uintN argc,
@@ -721,6 +723,8 @@ GetChildGlobalObject(JSContext* cx,
     }
     return JS_FALSE;
 }
+
+#endif 
 
 
 
@@ -856,8 +860,10 @@ static JSFunctionSpec glob_functions[] = {
 #ifdef DEBUG
     {"dumpHeap",        DumpHeap,       5,0},
 #endif
+#ifdef MOZ_IPC
     {"sendCommand",     SendCommand,    1,0},
     {"getChildGlobalObject", GetChildGlobalObject, 0,0},
+#endif
 #ifdef MOZ_CALLGRIND
     {"startCallgrind",  js_StartCallgrind,  0,0},
     {"stopCallgrind",   js_StopCallgrind,   0,0},
@@ -1735,7 +1741,7 @@ ContextCallback(JSContext *cx, uintN contextOp)
 static bool
 GetCurrentWorkingDirectory(nsAString& workingDirectory)
 {
-#if (!defined(XP_WIN) && !defined(XP_UNIX)) || defined(WINCE)
+#if !defined(XP_WIN) && !defined(XP_UNIX)
     
     return false;
 #elif XP_WIN
@@ -1770,19 +1776,9 @@ GetCurrentWorkingDirectory(nsAString& workingDirectory)
     return true;
 }
 
-#ifdef WINCE
-#include "nsWindowsWMain.cpp"
-#endif
-
 int
-#ifndef WINCE
 main(int argc, char **argv, char **envp)
 {
-#else
-main(int argc, char **argv)
-{
-	char **envp = 0;
-#endif
 #ifdef XP_MACOSX
     InitAutoreleasePool();
 #endif
@@ -2013,8 +2009,10 @@ main(int argc, char **argv)
         JS_DestroyContext(cx);
     } 
 
+#ifdef MOZ_IPC
     if (!XRE_ShutdownTestShell())
         NS_ERROR("problem shutting down testshell");
+#endif
 
 #ifdef MOZ_CRASHREPORTER
     

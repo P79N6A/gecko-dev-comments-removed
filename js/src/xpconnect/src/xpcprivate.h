@@ -139,16 +139,6 @@
 #ifdef XPC_IDISPATCH_SUPPORT
 
 
-#ifdef WINCE
-
-
-
-
-
-#include <windows.h>
-static FARPROC GetProcAddressA(HMODULE hMod, wchar_t *procName);
-#endif 
-
 #include <atlbase.h>
 #include "oaidl.h"
 #endif
@@ -554,7 +544,7 @@ public:
     static JSBool Base64Decode(JSContext *cx, jsval val, jsval *out);
 
     
-    NS_IMETHOD Root(void *p);
+    NS_IMETHOD RootAndUnlinkJSObjects(void *p);
     NS_IMETHOD Unlink(void *p);
     NS_IMETHOD Unroot(void *p);
     NS_IMETHOD Traverse(void *p,
@@ -2454,8 +2444,8 @@ public:
     {
       NS_DECL_CYCLE_COLLECTION_CLASS_BODY_NO_UNLINK(XPCWrappedNative,
                                                     XPCWrappedNative)
-      NS_IMETHOD Root(void *p) { return NS_OK; }
-      NS_IMETHOD Unlink(void *p);
+      NS_IMETHOD RootAndUnlinkJSObjects(void *p);
+      NS_IMETHOD Unlink(void *p) { return NS_OK; }
       NS_IMETHOD Unroot(void *p) { return NS_OK; }
     };
     NS_CYCLE_COLLECTION_PARTICIPANT_INSTANCE
@@ -2963,7 +2953,13 @@ public:
     NS_DECL_NSISUPPORTSWEAKREFERENCE
     NS_DECL_NSIPROPERTYBAG
 
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsXPCWrappedJS, nsIXPConnectWrappedJS)
+    class NS_CYCLE_COLLECTION_INNERCLASS
+     : public nsXPCOMCycleCollectionParticipant
+    {
+      NS_IMETHOD RootAndUnlinkJSObjects(void *p);
+      NS_DECL_CYCLE_COLLECTION_CLASS_BODY(nsXPCWrappedJS, nsIXPConnectWrappedJS)
+    };
+    NS_CYCLE_COLLECTION_PARTICIPANT_INSTANCE
     NS_DECL_CYCLE_COLLECTION_UNMARK_PURPLE_STUB(nsXPCWrappedJS)
 
     NS_IMETHOD CallMethod(PRUint16 methodIndex,
@@ -4568,27 +4564,6 @@ ParticipatesInCycleCollection(JSContext *cx, js::gc::Cell *cell)
 
 #ifdef XPC_IDISPATCH_SUPPORT
 
-#ifdef WINCE
-
-FARPROC GetProcAddressA(HMODULE hMod, wchar_t *procName) {
-  FARPROC ret = NULL;
-  int len = wcslen(procName);
-  char *s = new char[len + 1];
-
-  for (int i = 0; i < len; i++) {
-    s[i] = (char) procName[i];
-  }
-  s[len-1] = 0;
-
-  ret = ::GetProcAddress(hMod, s);
-  delete [] s;
-
-  return ret;
-}
-#endif 
-
-
-
 #include "XPCDispPrivate.h"
 #endif
 
@@ -4604,4 +4579,4 @@ FARPROC GetProcAddressA(HMODULE hMod, wchar_t *procName) {
 
 
 
-#endif 
+#endif

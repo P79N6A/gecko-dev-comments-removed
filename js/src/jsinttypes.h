@@ -125,12 +125,6 @@ typedef intptr_t JSIntPtr;
 typedef uintptr_t JSUintPtr;
 
 
-#elif defined(JS_CRTDEFS_H_HAS_INTPTR_T)
-#include <crtdefs.h>
-typedef intptr_t JSIntPtr;
-typedef uintptr_t JSUintPtr;
-
-
 #elif defined(JS_INTPTR_TYPE)
 typedef signed   JS_INTPTR_TYPE JSIntPtr;
 typedef unsigned JS_INTPTR_TYPE JSUintPtr;

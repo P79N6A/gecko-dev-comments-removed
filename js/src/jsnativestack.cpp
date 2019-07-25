@@ -61,63 +61,7 @@
 
 namespace js {
 
-#if defined(XP_WIN) && defined(WINCE)
-
-inline bool
-isPageWritable(void *page)
-{
-    MEMORY_BASIC_INFORMATION memoryInformation;
-    jsuword result = VirtualQuery(page, &memoryInformation, sizeof(memoryInformation));
-
-    
-    if (result != sizeof(memoryInformation))
-        return false;
-
-    jsuword protect = memoryInformation.Protect & ~(PAGE_GUARD | PAGE_NOCACHE);
-    return protect == PAGE_READWRITE ||
-           protect == PAGE_WRITECOPY ||
-           protect == PAGE_EXECUTE_READWRITE ||
-           protect == PAGE_EXECUTE_WRITECOPY;
-}
-
-void *
-GetNativeStackBase()
-{
-    
-    bool isGrowingDownward = JS_STACK_GROWTH_DIRECTION < 0;
-    void *thisFrame = (void *)(&isGrowingDownward);
-
-    static jsuword pageSize = 0;
-    if (!pageSize) {
-        SYSTEM_INFO systemInfo;
-        GetSystemInfo(&systemInfo);
-        pageSize = systemInfo.dwPageSize;
-    }
-
-    
-    register char *currentPage = (char *)((jsuword)thisFrame & ~(pageSize - 1));
-    if (isGrowingDownward) {
-        while (currentPage > 0) {
-            
-            if (currentPage >= (char *)pageSize)
-                currentPage -= pageSize;
-            else
-                currentPage = 0;
-            if (!isPageWritable(currentPage))
-                return currentPage + pageSize;
-        }
-        return 0;
-    } else {
-        while (true) {
-            
-            currentPage += pageSize;
-            if (!isPageWritable(currentPage))
-                return currentPage;
-        }
-    }
-}
-
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
 
 void *
 GetNativeStackBaseImpl()

@@ -69,82 +69,6 @@
 
 #ifdef XP_WIN
 
-
-
-
-
-
-# if defined(WINCE) && !defined(MOZ_MEMORY_WINCE6)
-
-#  define JS_GC_HAS_MAP_ALIGN
-
-static void
-UnmapPagesAtBase(void *p)
-{
-    JS_ALWAYS_TRUE(VirtualFree(p, 0, MEM_RELEASE));
-}
-
-static void *
-MapAlignedPages(size_t size, size_t alignment)
-{
-    JS_ASSERT(size % alignment == 0);
-    JS_ASSERT(size >= alignment);
-
-    void *reserve = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_NOACCESS);
-    if (!reserve)
-        return NULL;
-
-    void *p = VirtualAlloc(reserve, size, MEM_COMMIT, PAGE_READWRITE);
-    JS_ASSERT(p == reserve);
-
-    size_t mask = alignment - 1;
-    size_t offset = (uintptr_t) p & mask;
-    if (!offset)
-        return p;
-
-    
-    UnmapPagesAtBase(reserve);
-    reserve = VirtualAlloc(NULL, size + alignment - offset, MEM_RESERVE,
-                           PAGE_NOACCESS);
-    if (!reserve)
-        return NULL;
-    if (offset == ((uintptr_t) reserve & mask)) {
-        void *aligned = (void *) ((uintptr_t) reserve + alignment - offset);
-        p = VirtualAlloc(aligned, size, MEM_COMMIT, PAGE_READWRITE);
-        JS_ASSERT(p == aligned);
-        return p;
-    }
-
-    
-    UnmapPagesAtBase(reserve);
-    reserve = VirtualAlloc(NULL, size + alignment, MEM_RESERVE, PAGE_NOACCESS);
-    if (!reserve)
-        return NULL;
-
-    offset = (uintptr_t) reserve & mask;
-    void *aligned = (void *) ((uintptr_t) reserve + alignment - offset);
-    p = VirtualAlloc(aligned, size, MEM_COMMIT, PAGE_READWRITE);
-    JS_ASSERT(p == aligned);
-
-    return p;
-}
-
-static void
-UnmapPages(void *p, size_t size)
-{
-    if (VirtualFree(p, 0, MEM_RELEASE))
-        return;
-
-    
-    JS_ASSERT(GetLastError() == ERROR_INVALID_PARAMETER);
-    MEMORY_BASIC_INFORMATION info;
-    VirtualQuery(p, &info, sizeof(info));
-
-    UnmapPagesAtBase(info.AllocationBase);
-}
-
-# else 
-
 static void *
 MapPages(void *addr, size_t size)
 {
@@ -158,8 +82,6 @@ UnmapPages(void *addr, size_t size)
 {
     JS_ALWAYS_TRUE(VirtualFree(addr, 0, MEM_RELEASE));
 }
-
-# endif 
 
 #elif defined(XP_OS2)
 

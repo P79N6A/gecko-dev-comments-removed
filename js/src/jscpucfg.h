@@ -42,7 +42,7 @@
 
 #define JS_HAVE_LONG_LONG
 
-#if defined(XP_WIN) || defined(XP_OS2) || defined(WINCE)
+#if defined(XP_WIN) || defined(XP_OS2)
 
 #if defined(_WIN64)
 
@@ -57,7 +57,7 @@
 #error "CPU type is unknown"
 #endif 
 
-#elif defined(_WIN32) || defined(XP_OS2) || defined(WINCE)
+#elif defined(_WIN32) || defined(XP_OS2)
 
 #ifdef __WATCOMC__
 #define HAVE_VA_LIST_AS_ARRAY 1

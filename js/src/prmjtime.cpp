@@ -65,7 +65,7 @@
 #include <math.h>     
 #include <mmsystem.h> 
 
-#if _MSC_VER >= 1400 && !defined(WINCE)
+#if _MSC_VER >= 1400
 #define NS_HAVE_INVALID_PARAMETER_HANDLER 1
 #endif
 #ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
@@ -119,7 +119,7 @@ ComputeLocalTime(time_t local, struct tm *ptm)
 JSInt32
 PRMJ_LocalGMTDifference()
 {
-#if defined(XP_WIN) && !defined(WINCE)
+#if defined(XP_WIN)
     
 
 
@@ -200,9 +200,6 @@ typedef struct CalibrationData {
     CRITICAL_SECTION data_lock;
     CRITICAL_SECTION calibration_lock;
 #endif
-#ifdef WINCE
-    JSInt64 granularity;
-#endif
 } CalibrationData;
 
 static CalibrationData calibration = { 0 };
@@ -233,10 +230,6 @@ NowCalibrate()
         } while (memcmp(&ftStart,&ft, sizeof(ft)) == 0);
         timeEndPeriod(1);
 
-#ifdef WINCE
-        calibration.granularity = (FILETIME2INT64(ft) -
-                                   FILETIME2INT64(ftStart))/10;
-#endif
         
 
 
@@ -268,13 +261,8 @@ NowInit(void)
 {
     memset(&calibration, 0, sizeof(calibration));
     NowCalibrate();
-#ifdef WINCE
-    InitializeCriticalSection(&calibration.calibration_lock);
-    InitializeCriticalSection(&calibration.data_lock);
-#else
     InitializeCriticalSectionAndSpinCount(&calibration.calibration_lock, CALIBRATIONLOCK_SPINCOUNT);
     InitializeCriticalSectionAndSpinCount(&calibration.data_lock, DATALOCK_SPINCOUNT);
-#endif
     return PR_SUCCESS;
 }
 
@@ -288,11 +276,7 @@ PRMJ_NowShutdown()
 #define MUTEX_LOCK(m) EnterCriticalSection(m)
 #define MUTEX_TRYLOCK(m) TryEnterCriticalSection(m)
 #define MUTEX_UNLOCK(m) LeaveCriticalSection(m)
-#ifdef WINCE
-#define MUTEX_SETSPINCOUNT(m, c)
-#else
 #define MUTEX_SETSPINCOUNT(m, c) SetCriticalSectionSpinCount((m),(c))
-#endif
 
 static PRCallOnceType calibrationOnce = { 0 };
 
@@ -491,10 +475,6 @@ PRMJ_Now(void)
             returnedTime = calibration.last;
             MUTEX_UNLOCK(&calibration.data_lock);
 
-#ifdef WINCE
-            
-            skewThreshold = calibration.granularity;
-#else
             
             if (GetSystemTimeAdjustment(&timeAdjustment,
                                         &timeIncrement,
@@ -507,7 +487,7 @@ PRMJ_Now(void)
                     skewThreshold = timeIncrement/10.0;
                 }
             }
-#endif
+
             
             diff = lowresTime - highresTime;
 
@@ -698,7 +678,7 @@ DSTOffsetCache::computeDSTOffsetMilliseconds(int64 localTimeSeconds)
     JS_ASSERT(localTimeSeconds >= 0);
     JS_ASSERT(localTimeSeconds <= MAX_UNIX_TIMET);
 
-#if defined(XP_WIN) && !defined(WINCE)
+#if defined(XP_WIN)
     
 
 
