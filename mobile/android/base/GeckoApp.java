@@ -678,7 +678,7 @@ abstract public class GeckoApp
 
         
         if (!mDoorHangerPopup.isShowing() || !uri.equals(tab.getURL()))
-            tab.removeTransientDoorHangers();
+            mDoorHangerPopup.removeTransientDoorHangers(tabId);
 
         tab.updateURL(uri);
         tab.setDocumentURI(documentURI);
