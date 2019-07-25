@@ -42,6 +42,7 @@
 
 
 
+
 let Keys = { meta: false };
 
 
@@ -261,6 +262,15 @@ let UI = {
     this._reorderTabItemsOnShow = null;
     this._reorderTabsOnHide = null;
     this._frameInitialized = false;
+  },
+
+  
+  
+  
+  blurAll: function UI_blurAll() {
+    iQ(":focus").each(function(element) {
+      element.blur();
+    });
   },
 
   
