@@ -71,6 +71,28 @@ abstract public class GeckoApp
     public static boolean mFullscreen = false;
     ProgressDialog mProgressDialog;
 
+    enum LaunchState {PreLaunch, Launching, WaitButton,
+                      Launched, GeckoRunning, GeckoExiting};
+    private LaunchState mLaunchState = LaunchState.PreLaunch;
+
+    
+    synchronized boolean checkLaunchState(LaunchState checkState) {
+        return mLaunchState == checkState;
+    }
+    
+    synchronized void setLaunchState(LaunchState setState) {
+        mLaunchState = setState;
+    }
+
+    
+    
+    synchronized boolean checkAndSetLaunchState(LaunchState checkState, LaunchState setState) {
+        if (mLaunchState != checkState)
+            return false;
+        mLaunchState = setState;
+        return true;
+    }
+
     void showErrorDialog(String message)
     {
         new AlertDialog.Builder(this)
@@ -86,28 +108,40 @@ abstract public class GeckoApp
                                }).show();
     }
 
-    void launch()
+    
+    boolean launch(Intent i)
     {
+        if (!checkAndSetLaunchState(LaunchState.Launching, LaunchState.Launched))
+            return false;
+
         
         try {
             unpackComponents();
         } catch (FileNotFoundException fnfe) {
             showErrorDialog(getString(R.string.error_loading_file));
-            return;
+            return false;
         } catch (IOException ie) {
             String msg = ie.getMessage();
             if (msg.equalsIgnoreCase("No space left on device"))
                 showErrorDialog(getString(R.string.no_space_to_start_error));
             else
                 showErrorDialog(getString(R.string.error_loading_file));
-            return;
+            return false;
         }
+
+        mProgressDialog = 
+            ProgressDialog.show(GeckoApp.this, "",
+                                getString(R.string.splash_screen_label),
+                                true);
+
         
-        Intent i = getIntent();
+        if (i == null)
+            i = getIntent();
         String env = i.getStringExtra("env0");
         GeckoAppShell.runGecko(getApplication().getPackageResourcePath(),
                                i.getStringExtra("args"),
                                i.getDataString());
+        return true;
     }
 
     
@@ -136,11 +170,81 @@ abstract public class GeckoApp
         setContentView(mainLayout,
                        new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
                                                   ViewGroup.LayoutParams.FILL_PARENT));
+
+        if (!checkAndSetLaunchState(LaunchState.PreLaunch,
+                                    LaunchState.Launching))
+            return;
+
+        checkAndLaunchUpdate();
+
+        if (!checkCPUCompatability())
+            return;
+        
+        GeckoAppShell.loadGeckoLibs(getApplication().getPackageResourcePath());
+    }
+
+
+    boolean checkCPUCompatability() {
+        try {
+            BufferedReader reader =
+                new BufferedReader(new FileReader("/proc/cpuinfo"));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                int index = line.indexOf("Processor");
+                if (index == -1)
+                    continue;
+
+                int version = 5;
+                if (line.indexOf("(v8l)") != -1)
+                    version = 8;
+                if (line.indexOf("(v7l)") != -1)
+                    version = 7;
+                if (line.indexOf("(v6l)") != -1)
+                    version = 6;
+                
+                if (version < getMinCPUVersion()) {
+                    showErrorDialog(
+                        getString(R.string.incompatable_cpu_error));
+                    return false;
+                }
+                else {
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+            
+            Log.i("GeckoApp", "exception: " + ex);
+        }
+        return true;
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
+        if (checkLaunchState(LaunchState.GeckoExiting)) {
+            
+            
+            System.exit(0);
+            return;
+        }
         final String action = intent.getAction();
+        if (action.equals("org.mozilla.gecko.DEBUG") &&
+            checkAndSetLaunchState(LaunchState.Launching, LaunchState.WaitButton)) {
+            final Button launchButton = new Button(this);
+            launchButton.setText("Launch"); 
+            launchButton.setOnClickListener(new Button.OnClickListener() {
+                    public void onClick (View v) {
+                        
+                        mainLayout.removeView(launchButton);
+                        setLaunchState(LaunchState.Launching);
+                        launch(null);
+                    }
+                });
+            mainLayout.addView(launchButton, 300, 200);
+            return;
+        }
+        if (checkLaunchState(LaunchState.WaitButton) || launch(intent))
+            return;
+
         if (Intent.ACTION_VIEW.equals(action)) {
             String uri = intent.getDataString();
             GeckoAppShell.sendEventToGecko(new GeckoEvent(uri));
@@ -177,11 +281,16 @@ abstract public class GeckoApp
     public void onResume()
     {
         Log.i("GeckoApp", "resume");
-        if (GeckoAppShell.sGeckoRunning)
+        if (checkLaunchState(LaunchState.GeckoRunning))
             GeckoAppShell.onResume();
         
         
         super.onResume();
+
+        
+        if (checkLaunchState(LaunchState.PreLaunch) ||
+            checkLaunchState(LaunchState.Launching))
+            onNewIntent(getIntent());
     }
 
     @Override
@@ -216,75 +325,6 @@ abstract public class GeckoApp
     {
         Log.i("GeckoApp", "start");
         super.onStart();
-
-        boolean useLaunchButton = false;
-
-        String intentAction = getIntent().getAction();
-        if (intentAction != null && intentAction.equals("org.mozilla.gecko.DEBUG"))
-            useLaunchButton = true;
-
-        if (!GeckoAppShell.sGeckoRunning) {
-            checkAndLaunchUpdate();
-
-            try {
-                BufferedReader reader =
-                    new BufferedReader(new FileReader("/proc/cpuinfo"));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    int index = line.indexOf("Processor");
-                    if (index == -1)
-                        continue;
-
-                    int version = 5;
-                    if (line.indexOf("(v8l)") != -1)
-                        version = 8;
-                    if (line.indexOf("(v7l)") != -1)
-                        version = 7;
-                    if (line.indexOf("(v6l)") != -1)
-                        version = 6;
-
-                    if (version < getMinCPUVersion()) {
-                        showErrorDialog(
-                            getString(R.string.incompatable_cpu_error));
-                        return;
-                    }
-                    else {
-                        break;
-                    }
-                }
-                
-            } catch (Exception ex) {
-                
-                Log.i("GeckoApp", "exception: " + ex);
-            }
-
-            if (!useLaunchButton) {
-                mProgressDialog = 
-                    ProgressDialog.show(GeckoApp.this, "",
-                                        getString(R.string.splash_screen_label),
-                                        true);
-            }
-
-            
-            
-            
-            GeckoAppShell.loadGeckoLibs(getApplication().getPackageResourcePath());
-
-            if (useLaunchButton) {
-                final Button b = new Button(this);
-                b.setText("Launch"); 
-                b.setOnClickListener(new Button.OnClickListener() {
-                        public void onClick (View v) {
-                            
-                            mainLayout.removeView(b);
-                            launch();
-                        }
-                    });
-                mainLayout.addView(b, 300, 200);
-            } else {
-                launch();
-            }
-        }
     }
 
     @Override
@@ -311,7 +351,7 @@ abstract public class GeckoApp
     public void onLowMemory()
     {
         Log.i("GeckoApp", "low memory");
-        if (GeckoAppShell.sGeckoRunning)
+        if (checkLaunchState(LaunchState.GeckoRunning))
             GeckoAppShell.onLowMemory();
         super.onLowMemory();
     }
