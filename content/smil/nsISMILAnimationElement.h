@@ -57,6 +57,12 @@ class nsIContent;
 class nsIAtom;
 class nsAttrValue;
 
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
+
 enum nsSMILTargetAttrType {
   eSMILTargetAttrType_auto,
   eSMILTargetAttrType_CSS,
@@ -110,7 +116,7 @@ public:
   
 
 
-  virtual nsIContent* GetTargetElementContent() = 0;
+  virtual mozilla::dom::Element* GetTargetElementContent() = 0;
 
   
 

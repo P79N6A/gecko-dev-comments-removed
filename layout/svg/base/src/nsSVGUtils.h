@@ -210,7 +210,7 @@ public:
   
 
 
-  static nsIContent *GetParentElement(nsIContent *aContent);
+  static mozilla::dom::Element *GetParentElement(nsIContent *aContent);
 
   
 

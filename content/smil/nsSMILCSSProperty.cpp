@@ -46,6 +46,8 @@
 #include "nsIContent.h"
 #include "nsIDOMElement.h"
 
+using namespace mozilla::dom;
+
 
 static PRBool
 GetCSSComputedValue(nsIContent* aElem,
@@ -85,7 +87,7 @@ GetCSSComputedValue(nsIContent* aElem,
 
 
 nsSMILCSSProperty::nsSMILCSSProperty(nsCSSProperty aPropID,
-                                     nsIContent* aElement)
+                                     Element* aElement)
   : mPropID(aPropID), mElement(aElement)
 {
   NS_ABORT_IF_FALSE(IsPropertyAnimatable(mPropID),

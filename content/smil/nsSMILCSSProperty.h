@@ -48,6 +48,12 @@
 class nsIContent;
 class nsCSSDeclaration;
 
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
+
 
 
 
@@ -61,7 +67,7 @@ public:
 
 
 
-  nsSMILCSSProperty(nsCSSProperty aPropID, nsIContent* aElement);
+  nsSMILCSSProperty(nsCSSProperty aPropID, mozilla::dom::Element* aElement);
 
   
   virtual nsresult ValueFromString(const nsAString& aStr,
@@ -88,7 +94,7 @@ protected:
   
   
   
-  nsIContent*   mElement;
+  mozilla::dom::Element*   mElement;
 };
 
 #endif 

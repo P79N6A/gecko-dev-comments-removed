@@ -235,7 +235,7 @@ NS_SMILEnabled()
 }
 #endif 
 
-nsIContent*
+Element*
 nsSVGUtils::GetParentElement(nsIContent *aContent)
 {
   
@@ -250,12 +250,13 @@ nsSVGUtils::GetParentElement(nsIContent *aContent)
     
     nsIContent *result = bindingManager->GetInsertionParent(aContent);
     if (result) {
-      return result;
+      return result->AsElement();
     }
   }
 
   
-  return aContent->GetParent();
+  nsIContent* parent = aContent->GetParent();
+  return parent ? parent->AsElement() : nsnull;
 }
 
 float
