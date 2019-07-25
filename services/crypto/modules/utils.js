@@ -51,19 +51,34 @@ let CryptoUtils = {
     return result;
   },
 
-  _sha1: function _sha1(message) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  UTF8AndSHA1: function UTF8AndSHA1(message) {
     let hasher = Cc["@mozilla.org/security/hash;1"]
                  .createInstance(Ci.nsICryptoHash);
     hasher.init(hasher.SHA1);
+
     return CryptoUtils.digestUTF8(message, hasher);
   },
 
   sha1: function sha1(message) {
-    return CommonUtils.bytesAsHex(CryptoUtils._sha1(message));
+    return CommonUtils.bytesAsHex(CryptoUtils.UTF8AndSHA1(message));
   },
 
   sha1Base32: function sha1Base32(message) {
-    return CommonUtils.encodeBase32(CryptoUtils._sha1(message));
+    return CommonUtils.encodeBase32(CryptoUtils.UTF8AndSHA1(message));
   },
 
   
