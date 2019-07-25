@@ -249,8 +249,9 @@ BrowserStreamChild::Deliver()
   
   
   if (mStreamAsFilePending) {
-    mInstance->mPluginIface->asfile(&mInstance->mData, &mStream,
-                                    mStreamAsFileName.get());
+    if (mStreamStatus == kStreamOpen)
+      mInstance->mPluginIface->asfile(&mInstance->mData, &mStream,
+                                      mStreamAsFileName.get());
     mStreamAsFilePending = false;
   }
 
