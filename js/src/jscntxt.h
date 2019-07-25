@@ -893,20 +893,6 @@ struct JSThreadData {
     DtoaState           *dtoaState;
 
     
-
-
-
-
-
-
-
-    struct {
-        jsdouble d;
-        jsint    base;
-        JSString *s;        
-    } dtoaCache;
-
-    
     jsuword             *nativeStackBase;
 
     

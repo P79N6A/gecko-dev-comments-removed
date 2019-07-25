@@ -451,6 +451,7 @@ void
 JSCompartment::purge(JSContext *cx)
 {
     freeLists.purge();
+    dtoaCache.purge();
 
     
     js_DestroyScriptsToGC(cx, this);

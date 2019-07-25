@@ -332,6 +332,33 @@ class NativeIterCache {
     }
 };
 
+
+
+
+
+
+
+
+class DtoaCache {
+    double   d;
+    jsint    base;
+    JSString *s;        
+  public:
+    DtoaCache() : s(NULL) {}
+    void purge() { s = NULL; }
+
+    JSString *lookup(jsint base, double d) {
+        return this->s && base == this->base && d == this->d ? this->s : NULL;
+    }
+
+    void cache(jsint base, double d, JSString *s) {
+        this->base = base;
+        this->d = d;
+        this->s = s;
+    }
+
+};
+
 } 
 
 struct JS_FRIEND_API(JSCompartment) {
@@ -400,6 +427,8 @@ struct JS_FRIEND_API(JSCompartment) {
     bool arenaListsAreEmpty();
 
     void setGCLastBytes(size_t lastBytes);
+
+    js::DtoaCache dtoaCache;
 
   private:
     js::MathCache                *mathCache;
