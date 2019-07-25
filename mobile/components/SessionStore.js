@@ -373,8 +373,8 @@ SessionStore.prototype = {
   },
 
   onTabAdd: function ss_onTabAdd(aWindow, aBrowser, aNoNotification) {
-    aBrowser.messageManager.addMessageListener("DOMContentLoaded", this);
     aBrowser.messageManager.addMessageListener("pageshow", this);
+    aBrowser.messageManager.addMessageListener("Content:SessionHistory", this);
 
     if (!aNoNotification)
       this.saveStateDelayed();
@@ -382,8 +382,8 @@ SessionStore.prototype = {
   },
 
   onTabRemove: function ss_onTabRemove(aWindow, aBrowser, aNoNotification) {
-    aBrowser.messageManager.removeMessageListener("DOMContentLoaded", this);
     aBrowser.messageManager.removeMessageListener("pageshow", this);
+    aBrowser.messageManager.removeMessageListener("Content:SessionHistory", this);
 
     
     if (aBrowser.__SS_restore)
@@ -421,12 +421,15 @@ SessionStore.prototype = {
     if (!aBrowser.canGoBack && aBrowser.currentURI.spec == "about:blank")
       return;
 
-    delete aBrowser.__SS_data;
-    this._collectTabData(aBrowser);
+    if (aMessage.name == "Content:SessionHistory") {
+      delete aBrowser.__SS_data;
+      this._collectTabData(aBrowser, aMessage.json);
+    }
 
     
     if (aMessage.name == "pageshow")
       this.saveStateNow();
+
     this._updateCrashReportURL(aWindow);
   },
 
@@ -441,8 +444,15 @@ SessionStore.prototype = {
     
     if (aBrowser.__SS_restore) {
       let data = aBrowser.__SS_data;
-      if (data.entries.length > 0)
-        aBrowser.loadURI(data.entries[0].url, null, null);
+      if (data.entries.length > 0) {
+        let json = {
+          uri: data.entries[data.index - 1].url,
+          flags: null,
+          entries: data.entries,
+          index: data.index
+        };
+        aBrowser.messageManager.sendAsyncMessage("WebNavigation:LoadURI", json);
+      }
 
       delete aBrowser.__SS_restore;
     }
@@ -495,14 +505,16 @@ SessionStore.prototype = {
     return data;
   },
 
-  _collectTabData: function ss__collectTabData(aBrowser) {
+  _collectTabData: function ss__collectTabData(aBrowser, aHistory) {
     
     if (aBrowser.__SS_restore)
       return;
 
-    let tabData = { entries: [{}] };
-    tabData.entries[0] = { url: aBrowser.currentURI.spec, title: aBrowser.contentTitle };
-    tabData.index = 1;
+    let aHistory = aHistory || { entries: [{ url: aBrowser.currentURI.spec, title: aBrowser.contentTitle }], index: 1 };
+
+    let tabData = {};
+    tabData.entries = aHistory.entries;
+    tabData.index = aHistory.index;
     tabData.attributes = { image: aBrowser.mIconURL };
 
     aBrowser.__SS_data = tabData;
@@ -731,39 +743,48 @@ SessionStore.prototype = {
         }
 
         let window = Services.wm.getMostRecentWindow("navigator:browser");
-    
+
         let selected = data.windows[0].selected;
         let tabs = data.windows[0].tabs;
         for (let i=0; i<tabs.length; i++) {
           let tabData = tabs[i];
-    
+
           
           let params = { getAttention: false, delayLoad: true };
-          if (i + 1 == selected)
-            params.delayLoad = false;
-    
+
           
           
           
           let bringToFront = (i + 1 <= selected) && aBringToFront;
-          let tab = window.Browser.addTab(tabData.entries[0].url, bringToFront, null, params);
-    
+          let tab = window.Browser.addTab(tabData.entries[tabData.index - 1].url, bringToFront, null, params);
+
           
-          if (tabData.extData && params.delayLoad) {
-              let canvas = tab.chromeTab.thumbnail;
-              canvas.setAttribute("restored", "true");
-    
-              let image = new window.Image();
-              image.onload = function() {
-                if (canvas)
-                  canvas.getContext("2d").drawImage(image, 0, 0);
-              };
-              image.src = tabData.extData.thumbnail;
+          if (i + 1 == selected) {
+            let json = {
+              uri: tabData.entries[tabData.index - 1].url,
+              flags: null,
+              entries: tabData.entries,
+              index: tabData.index
+            };
+            tab.browser.messageManager.sendAsyncMessage("WebNavigation:LoadURI", json);
+          } else {
+            
+            tab.browser.__SS_data = tabData;
+            tab.browser.__SS_restore = true;
+
+            
+            let canvas = tab.chromeTab.thumbnail;
+            canvas.setAttribute("restored", "true");
+  
+            let image = new window.Image();
+            image.onload = function() {
+              if (canvas)
+                canvas.getContext("2d").drawImage(image, 0, 0);
+            };
+            image.src = tabData.extData.thumbnail;
           }
-    
-          tab.browser.__SS_data = tabData;
+
           tab.browser.__SS_extdata = tabData.extData;
-          tab.browser.__SS_restore = params.delayLoad;
         }
     
         notifyObservers();

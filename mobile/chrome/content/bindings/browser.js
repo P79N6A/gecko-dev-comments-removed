@@ -1,6 +1,9 @@
 
 let Cc = Components.classes;
 let Ci = Components.interfaces;
+let Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
 
 dump("!! remote browser loaded\n");
 
@@ -57,6 +60,92 @@ let WebProgressListener = {
       let scrollOffset = ContentScroll.getScrollOffset(content);
       sendAsyncMessage("Browser:FirstPaint", scrollOffset);
     }, true);
+
+    
+    let entries = [];
+    let history = docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory;
+    for (let i = 0; i < history.count; i++) {
+      let entry = this._serializeHistoryEntry(history.getEntryAtIndex(i, false));
+      entries.push(entry);
+    }
+    let index = history.index + 1;
+    sendAsyncMessage("Content:SessionHistory", { entries: entries, index: index });
+  },
+
+  _serializeHistoryEntry: function _serializeHistoryEntry(aEntry) {
+    let entry = { url: aEntry.URI.spec };
+
+    if (aEntry.title && aEntry.title != entry.url)
+      entry.title = aEntry.title;
+
+    if (!(aEntry instanceof Ci.nsISHEntry))
+      return entry;
+
+    let cacheKey = aEntry.cacheKey;
+    if (cacheKey && cacheKey instanceof Ci.nsISupportsPRUint32 && cacheKey.data != 0)
+      entry.cacheKey = cacheKey.data;
+
+    entry.ID = aEntry.ID;
+    entry.docshellID = aEntry.docshellID;
+
+    if (aEntry.referrerURI)
+      entry.referrer = aEntry.referrerURI.spec;
+
+    if (aEntry.contentType)
+      entry.contentType = aEntry.contentType;
+
+    let x = {}, y = {};
+    aEntry.getScrollPosition(x, y);
+    if (x.value != 0 || y.value != 0)
+      entry.scroll = x.value + "," + y.value;
+
+    if (aEntry.owner) {
+      try {
+        let binaryStream = Cc["@mozilla.org/binaryoutputstream;1"].createInstance(Ci.nsIObjectOutputStream);
+        let pipe = Cc["@mozilla.org/pipe;1"].createInstance(Ci.nsIPipe);
+        pipe.init(false, false, 0, 0xffffffff, null);
+        binaryStream.setOutputStream(pipe.outputStream);
+        binaryStream.writeCompoundObject(aEntry.owner, Ci.nsISupports, true);
+        binaryStream.close();
+
+        
+        let scriptableStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(Ci.nsIBinaryInputStream);
+        scriptableStream.setInputStream(pipe.inputStream);
+        let ownerBytes = scriptableStream.readByteArray(scriptableStream.available());
+        
+        
+        
+        entry.owner_b64 = btoa(String.fromCharCode.apply(null, ownerBytes));
+      } catch (e) { dump(e); }
+    }
+
+    if (aEntry.docIdentifier)
+      entry.docIdentifier = aEntry.docIdentifier;
+
+    if (aEntry.stateData)
+      entry.stateData = aEntry.stateData;
+
+    if (!(aEntry instanceof Ci.nsISHContainer))
+      return entry;
+
+    if (aEntry.childCount > 0) {
+      entry.children = [];
+      for (let i = 0; i < aEntry.childCount; i++) {
+        let child = aEntry.GetChildAt(i);
+        if (child)
+          entry.children.push(this._serializeHistoryEntry(child));
+        else 
+          entry.children.push({ url: "about:blank" });
+
+        
+        if (/^wyciwyg:\/\//.test(entry.children[i].url)) {
+          delete entry.children;
+          break;
+        }
+      }
+    }
+
+    return entry;
   },
 
   onStatusChange: function onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {
@@ -109,6 +198,7 @@ let SecurityUI = {
 
 let WebNavigation =  {
   _webNavigation: docShell.QueryInterface(Ci.nsIWebNavigation),
+  _timer: null,
 
   init: function() {
     addMessageListener("WebNavigation:GoBack", this);
@@ -157,6 +247,141 @@ let WebNavigation =  {
   loadURI: function(message) {
     let flags = message.json.flags || this._webNavigation.LOAD_FLAGS_NONE;
     this._webNavigation.loadURI(message.json.uri, flags, null, null, null);
+
+    let tabData = message.json;
+    if (tabData.entries) {
+      
+      
+      this._webNavigation.stop(this._webNavigation.STOP_ALL);
+      this._restoreHistory(tabData, 0);
+    }
+  },
+
+  _restoreHistory: function _restoreHistory(aTabData, aCount) {
+    
+    
+    try {
+      if (!this._webNavigation.sessionHistory)
+        throw new Error();
+    } catch (ex) {
+      if (aCount < 10) {
+        let self = this;
+        this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+        this._timer.initWithCallback(function(aTimer) {
+          self._timer = null;
+          self._restoreHistory(aTabData, aCount + 1);
+        }, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+        return;
+      }
+    }
+
+    let history = this._webNavigation.sessionHistory;
+    if (history.count > 0)
+      history.PurgeHistory(history.count);
+    history.QueryInterface(Ci.nsISHistoryInternal);
+
+    
+    
+    let idMap = { used: {} };
+    let docIdentMap = {};
+
+    for (let i = 0; i < aTabData.entries.length; i++) {
+      if (!aTabData.entries[i].url)
+        continue;
+      history.addEntry(this._deserializeHistoryEntry(aTabData.entries[i], idMap, docIdentMap), true);
+    }
+
+    
+    
+    let activeIndex = (aTabData.index || aTabData.entries.length) - 1;
+    history.getEntryAtIndex(activeIndex, true);
+    history.QueryInterface(Ci.nsISHistory).reloadCurrentEntry();
+  },
+
+  _deserializeHistoryEntry: function _deserializeHistoryEntry(aEntry, aIdMap, aDocIdentMap) {
+    let shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].createInstance(Ci.nsISHEntry);
+
+    shEntry.setURI(Services.io.newURI(aEntry.url, null, null));
+    shEntry.setTitle(aEntry.title || aEntry.url);
+    if (aEntry.subframe)
+      shEntry.setIsSubFrame(aEntry.subframe || false);
+    shEntry.loadType = Ci.nsIDocShellLoadInfo.loadHistory;
+    if (aEntry.contentType)
+      shEntry.contentType = aEntry.contentType;
+    if (aEntry.referrer)
+      shEntry.referrerURI = Services.io.newURI(aEntry.referrer, null, null);
+
+    if (aEntry.cacheKey) {
+      let cacheKey = Cc["@mozilla.org/supports-PRUint32;1"].createInstance(Ci.nsISupportsPRUint32);
+      cacheKey.data = aEntry.cacheKey;
+      shEntry.cacheKey = cacheKey;
+    }
+
+    if (aEntry.ID) {
+      
+      
+      let id = aIdMap[aEntry.ID] || 0;
+      if (!id) {
+        for (id = Date.now(); id in aIdMap.used; id++);
+        aIdMap[aEntry.ID] = id;
+        aIdMap.used[id] = true;
+      }
+      shEntry.ID = id;
+    }
+
+    if (aEntry.docshellID)
+      shEntry.docshellID = aEntry.docshellID;
+
+    if (aEntry.stateData)
+      shEntry.stateData = aEntry.stateData;
+
+    if (aEntry.scroll) {
+      let scrollPos = aEntry.scroll.split(",");
+      scrollPos = [parseInt(scrollPos[0]) || 0, parseInt(scrollPos[1]) || 0];
+      shEntry.setScrollPosition(scrollPos[0], scrollPos[1]);
+    }
+
+    if (aEntry.docIdentifier) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      let ident = aDocIdentMap[aEntry.docIdentifier];
+      if (!ident) {
+        shEntry.setUniqueDocIdentifier();
+        aDocIdentMap[aEntry.docIdentifier] = shEntry.docIdentifier;
+      } else {
+        shEntry.docIdentifier = ident;
+      }
+    }
+
+    if (aEntry.owner_b64) {
+      let ownerInput = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(Ci.nsIStringInputStream);
+      let binaryData = atob(aEntry.owner_b64);
+      ownerInput.setData(binaryData, binaryData.length);
+      let binaryStream = Cc["@mozilla.org/binaryinputstream;1"].createInstance(Ci.nsIObjectInputStream);
+      binaryStream.setInputStream(ownerInput);
+      try { 
+        shEntry.owner = binaryStream.readObject(true);
+      } catch (ex) { dump(ex); }
+    }
+
+    if (aEntry.children && shEntry instanceof Ci.nsISHContainer) {
+      for (let i = 0; i < aEntry.children.length; i++) {
+        if (!aEntry.children[i].url)
+          continue;
+        shEntry.AddChild(this._deserializeHistoryEntry(aEntry.children[i], aIdMap, aDocIdentMap), i);
+      }
+    }
+    
+    return shEntry;
   },
 
   reload: function(message) {
@@ -488,7 +713,7 @@ let IndexedDB = {
       host: contentDocument.documentURIObject.asciiHost,
       location: contentDocument.location.toString(),
       data: aData,
-      observerId: this.addWaitingObserver(observer),
+      observerId: this.addWaitingObserver(observer)
     });
   },
 
@@ -513,7 +738,7 @@ let IndexedDB = {
     let observer = this.waitingObservers[aObserverId];
     delete this.waitingObservers[aObserverId];
     return observer;
-  },
+  }
 };
 
 IndexedDB.init();
