@@ -1539,15 +1539,6 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 
-
-#define JS_CHECK_OPERATION_LIMIT(cx)                                          \
-    (JS_ASSERT_REQUEST_DEPTH(cx),                                             \
-     (!cx->runtime->interrupt || js_InvokeOperationCallback(cx)))
-
-
-
-
-
 extern JSBool
 js_InvokeOperationCallback(JSContext *cx);
 
@@ -1559,6 +1550,18 @@ js_GetCurrentBytecodePC(JSContext* cx);
 
 extern JSScript *
 js_GetCurrentScript(JSContext* cx);
+
+
+
+
+
+
+static MOZ_ALWAYS_INLINE bool
+JS_CHECK_OPERATION_LIMIT(JSContext *cx)
+{
+    JS_ASSERT_REQUEST_DEPTH(cx);
+    return !cx->runtime->interrupt || js_InvokeOperationCallback(cx);
+}
 
 namespace js {
 
