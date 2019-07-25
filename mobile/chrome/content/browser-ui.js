@@ -564,6 +564,9 @@ var BrowserUI = {
     button.parentNode.selectedItem = null;
 
     
+    let searchValue = this._edit.value;
+
+    
     Browser.hideSidebars();
     this.activePanel = null;
     this.closeAutoComplete(false);
@@ -571,7 +574,7 @@ var BrowserUI = {
     
     Util.forceOnline();
 
-    let submission = button.engine.getSubmission(this._edit.value, null);
+    let submission = button.engine.getSubmission(searchValue, null);
     Browser.loadURI(submission.uri.spec, { postData: submission.postData });
   },
 
