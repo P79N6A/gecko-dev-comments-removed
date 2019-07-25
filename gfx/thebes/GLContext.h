@@ -323,6 +323,12 @@ public:
 
     void SetFilter(gfxPattern::GraphicsFilter aFilter) { mFilter = aFilter; }
 
+    
+
+
+
+    virtual void ApplyFilter() = 0;
+
 protected:
     friend class GLContext;
 
@@ -339,12 +345,6 @@ protected:
         , mWrapMode(aWrapMode)
         , mContentType(aContentType)
     {}
-
-    
-
-
-
-    virtual void ApplyFilter() = 0;
 
     nsIntSize mSize;
     GLenum mWrapMode;
@@ -403,6 +403,8 @@ public:
     virtual bool InUpdate() const { return !!mUpdateSurface; }
 
     virtual void Resize(const nsIntSize& aSize);
+
+    virtual void ApplyFilter();
 protected:
 
     GLuint mTexture;
@@ -413,8 +415,6 @@ protected:
 
     
     nsIntPoint mUpdateOffset;
-
-    virtual void ApplyFilter();
 };
 
 
@@ -444,6 +444,7 @@ public:
     virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
     virtual bool InUpdate() const { return mInUpdate; };
     virtual void BindTexture(GLenum);
+    virtual void ApplyFilter();
 protected:
     unsigned int mCurrentImage;
     nsTArray< nsRefPtr<TextureImage> > mImages;
@@ -458,8 +459,6 @@ protected:
     
     nsIntRegion mUpdateRegion;
     TextureState mTextureState;
-
-    virtual void ApplyFilter();
 };
 
 struct THEBES_API ContextFormat
