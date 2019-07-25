@@ -49,6 +49,7 @@ nsHttpConnection::nsHttpConnection()
     , mTotalBytesWritten(0)
     , mKeepAlive(true) 
     , mKeepAliveMask(true)
+    , mDontReuse(false)
     , mSupportsPipelining(false) 
     , mIsReused(false)
     , mCompletedProxyConnect(false)
@@ -516,6 +517,7 @@ nsHttpConnection::DontReuse()
 {
     mKeepAliveMask = false;
     mKeepAlive = false;
+    mDontReuse = true;
     mIdleTimeout = 0;
     if (mSpdySession)
         mSpdySession->DontReuse();
@@ -532,12 +534,15 @@ nsHttpConnection::SupportsPipelining()
              this, mTransaction->PipelineDepth(), mRemainingConnectionUses));
         return false;
     }
-    return mSupportsPipelining && IsKeepAlive();
+    return mSupportsPipelining && IsKeepAlive() && !mDontReuse;
 }
 
 bool
 nsHttpConnection::CanReuse()
 {
+    if (mDontReuse)
+        return false;
+
     if ((mTransaction ? mTransaction->PipelineDepth() : 0) >=
         mRemainingConnectionUses) {
         return false;
