@@ -274,7 +274,6 @@ WeaveSvc.prototype = {
     }
 
     Svc.Obs.add("network:offline-status-changed", this);
-    Svc.Obs.add("private-browsing", this);
     Svc.Obs.add("weave:service:sync:finish", this);
     Svc.Obs.add("weave:service:sync:error", this);
     Svc.Obs.add("weave:service:backoff:interval", this);
@@ -408,11 +407,6 @@ WeaveSvc.prototype = {
       case "network:offline-status-changed":
         
         this._log.trace("Network offline status change: " + data);
-        this._checkSyncStatus();
-        break;
-      case "private-browsing":
-        
-        this._log.trace("Private browsing change: " + data);
         this._checkSyncStatus();
         break;
       case "weave:service:sync:error":
@@ -1037,9 +1031,6 @@ WeaveSvc.prototype = {
       reason = kSyncWeaveDisabled;
     else if (Svc.IO.offline)
       reason = kSyncNetworkOffline;
-    else if (Svc.Private && Svc.Private.privateBrowsingEnabled)
-      
-      reason = kSyncInPrivateBrowsing;
     else if (Status.minimumNextSync > Date.now())
       reason = kSyncBackoffNotMet;
     else if (!this._loggedIn)

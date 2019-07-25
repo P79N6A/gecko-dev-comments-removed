@@ -48,6 +48,14 @@ Cu.import("resource://services-sync/stores.js");
 Cu.import("resource://services-sync/trackers.js");
 Cu.import("resource://services-sync/type_records/tabs.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/ext/Preferences.js");
+
+
+
+
+
+
+const PBPrefs = new Preferences("browser.privatebrowsing.");
 
 function TabEngine() {
   SyncEngine.call(this, "Tabs");
@@ -143,6 +151,12 @@ TabStore.prototype = {
     record.clientName = Clients.localName;
 
     
+    if (Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
+      record.tabs = [];
+      return record;
+    }
+
+    
     let tabs = this.getAllTabs(true).sort(function(a, b) {
       return b.lastUsed - a.lastUsed;
     });
@@ -172,7 +186,11 @@ TabStore.prototype = {
   },
 
   getAllIDs: function TabStore_getAllIds() {
+    
     let ids = {};
+    if (Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart"))
+      return ids;
+
     ids[Clients.localID] = true;
     return ids;
   },
@@ -197,12 +215,18 @@ TabStore.prototype = {
     
     else if (notifyState != roundModify)
       Svc.Prefs.set("notifyTabState", 0);
+  },
+
+  update: function update(record) {
+    this._log.trace("Ignoring tab updates as local ones win");
   }
 };
 
 
 function TabTracker(name) {
   Tracker.call(this, name);
+
+  Svc.Obs.add("private-browsing", this);
 
   
   this.onTab = Utils.bind2(this, this.onTab);
@@ -245,9 +269,17 @@ TabTracker.prototype = {
         self._registerListenersForWindow(aSubject);
       }, false);
     }
+    else if (aTopic == "private-browsing" && aData == "enter"
+             && !PBPrefs.get("autostart"))
+      this.clearChangedIDs();
   },
 
   onTab: function onTab(event) {
+    if (Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
+      this._log.trace("Ignoring tab event from private browsing.");
+      return;
+    }
+
     this._log.trace("onTab event: " + event.type);
     this.addChangedID(Clients.localID);
 
