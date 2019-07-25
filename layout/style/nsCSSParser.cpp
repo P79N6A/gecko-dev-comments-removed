@@ -1112,15 +1112,16 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
                              PRBool aIsImportant)
 {
   NS_PRECONDITION(aSheetPrincipal, "Must have principal here!");
+  NS_PRECONDITION(aBaseURI, "need base URI");
+  NS_PRECONDITION(aDeclaration, "Need declaration to parse into!");
   AssertInitialState();
-
-  NS_ASSERTION(nsnull != aBaseURI, "need base URI");
-  NS_ASSERTION(nsnull != aDeclaration, "Need declaration to parse into!");
-  *aChanged = PR_FALSE;
+  mData.AssertInitialState();
+  mTempData.AssertInitialState();
 
   InitScanner(aPropValue, aSheetURI, 0, aBaseURI, aSheetPrincipal);
-
   mSection = eCSSSection_General;
+
+  *aChanged = PR_FALSE;
 
   if (eCSSProperty_UNKNOWN == aPropID) { 
     NS_ConvertASCIItoUTF16 propName(nsCSSProps::GetStringValue(aPropID));
@@ -1134,42 +1135,14 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
     return NS_OK;
   }
 
-  mData.AssertInitialState();
-  mTempData.AssertInitialState();
-
-  
-  
-  
-  
-  
-  
-  if (!aDeclaration->EnsureMutable()) {
-    NS_WARNING("out of memory");
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  void* valueSlot = nsnull;
-  if (!aIsImportant) {
-    valueSlot = aDeclaration->SlotForValue(aPropID);
-  }
-  if (!valueSlot) {
-    
-    aDeclaration->ExpandTo(&mData);
-  }
-  nsresult result = NS_OK;
   PRBool parsedOK = ParseProperty(aPropID);
-  if (parsedOK && !GetToken(PR_TRUE)) {
-    if (valueSlot) {
-      CopyValue(mTempData.PropertyAt(aPropID), valueSlot, aPropID, aChanged);
-      mTempData.ClearPropertyBit(aPropID);
-    } else {
-      TransferTempData(aDeclaration, aPropID, aIsImportant,
-                       PR_TRUE, PR_FALSE, aChanged);
-    }
-  } else {
-    if (parsedOK) {
-      
-      REPORT_UNEXPECTED_TOKEN(PEExpectEndValue);
-    }
+  
+  if (parsedOK && GetToken(PR_TRUE)) {
+    REPORT_UNEXPECTED_TOKEN(PEExpectEndValue);
+    parsedOK = PR_FALSE;
+  }
+
+  if (!parsedOK) {
     NS_ConvertASCIItoUTF16 propName(nsCSSProps::GetStringValue(aPropID));
     const PRUnichar *params[] = {
       propName.get()
@@ -1178,14 +1151,32 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
     REPORT_UNEXPECTED(PEDeclDropped);
     OUTPUT_ERROR();
     ClearTempData(aPropID);
-    result = mScanner.GetLowLevelError();
-  }
-  CLEAR_ERROR();
+  } else {
 
-  if (!valueSlot) {
-    aDeclaration->CompressFrom(&mData);
+    
+    
+    
+    
+    
+    
+    if (!aDeclaration->EnsureMutable()) {
+      NS_WARNING("out of memory");
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+    void* valueSlot = aDeclaration->SlotForValue(aPropID, aIsImportant);
+    if (valueSlot) {
+      CopyValue(mTempData.PropertyAt(aPropID), valueSlot, aPropID, aChanged);
+      mTempData.ClearPropertyBit(aPropID);
+    } else {
+      aDeclaration->ExpandTo(&mData);
+      TransferTempData(aDeclaration, aPropID, aIsImportant, PR_TRUE, PR_FALSE,
+                       aChanged);
+      aDeclaration->CompressFrom(&mData);
+    }
+    CLEAR_ERROR();
   }
 
+  nsresult result = mScanner.GetLowLevelError();
   ReleaseScanner();
   return result;
 }

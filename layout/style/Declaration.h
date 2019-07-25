@@ -146,17 +146,26 @@ public:
 
 
 
-  void* SlotForValue(nsCSSProperty aProperty) {
-    NS_PRECONDITION(mData, "How did that happen?");
+  void* SlotForValue(nsCSSProperty aProperty, PRBool aIsImportant) {
+    NS_ABORT_IF_FALSE(mData, "called while expanded");
+
     if (nsCSSProps::IsShorthand(aProperty)) {
       return nsnull;
     }
+    nsCSSCompressedDataBlock *block = aIsImportant ? mImportantData : mData;
+    
+    if (!block) {
+      return nsnull;
+    }
 
-    void* slot = mData->SlotForValue(aProperty);
-
-    NS_ASSERTION(!slot || !mImportantData ||
-                 !mImportantData->StorageFor(aProperty),
-                 "Property both important and not?");
+    void *slot = block->SlotForValue(aProperty);
+#ifdef DEBUG
+    {
+      nsCSSCompressedDataBlock *other = aIsImportant ? mData : mImportantData;
+      NS_ABORT_IF_FALSE(!slot || !other || !other->StorageFor(aProperty),
+                        "Property both important and not?");
+    }
+#endif
     return slot;
   }
 
