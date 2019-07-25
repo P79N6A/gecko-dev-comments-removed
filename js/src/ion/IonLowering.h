@@ -100,8 +100,24 @@ class LIRGenerator : public MInstructionVisitor
     }
 
   protected:
+    
+    
+    
+    
+    
+    
+    
+    
+    
     bool emitAtUses(MInstruction *mir);
 
+    
+    
+    inline void startUsing(MInstruction *mir);
+    inline void stopUsing(MInstruction *mir);
+
+    
+    
     LUse use(MInstruction *mir, LUse policy);
     inline LUse use(MInstruction *mir);
     inline LUse useRegister(MInstruction *mir);
@@ -110,12 +126,16 @@ class LIRGenerator : public MInstructionVisitor
     inline LAllocation useOrConstant(MInstruction *mir);
     inline LAllocation useRegisterOrConstant(MInstruction *mir);
 
+    
+    inline LDefinition temp(LDefinition::Type type);
+
     template <size_t X, size_t Y>
     inline bool define(LInstructionHelper<1, X, Y> *lir, MInstruction *mir,
                         const LDefinition &def);
 
     template <size_t X, size_t Y>
-    inline bool define(LInstructionHelper<1, X, Y> *lir, MInstruction *mir);
+    inline bool define(LInstructionHelper<1, X, Y> *lir, MInstruction *mir,
+                       LDefinition::Policy policy = LDefinition::DEFAULT);
 
     template <size_t X, size_t Y>
     bool defineBox(LInstructionHelper<BOX_PIECES, X, Y> *lir, MInstruction *mir,

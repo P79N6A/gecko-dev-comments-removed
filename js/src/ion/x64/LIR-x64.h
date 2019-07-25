@@ -62,6 +62,69 @@ class LBox : public LInstructionHelper<1, 1, 0>
     }
 };
 
+
+
+class LUnboxBoolean : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(UnboxBoolean);
+
+    LUnboxBoolean(const LAllocation &input, const LDefinition &temp) {
+        setOperand(0, input);
+        setTemp(0, temp);
+    }
+};
+
+
+
+class LUnboxInteger : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(UnboxInteger);
+
+    LUnboxInteger(const LAllocation &input, const LDefinition &temp) {
+        setOperand(0, input);
+        setTemp(0, temp);
+    }
+};
+
+
+
+class LUnboxDouble : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(UnboxDouble);
+
+    LUnboxDouble(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
+
+
+class LUnboxObject : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(UnboxObject);
+
+    LUnboxObject(const LAllocation &input) {
+        setOperand(0, input);
+    }
+};
+
+
+
+class LUnboxString : public LInstructionHelper<1, 1, 1>
+{
+  public:
+    LIR_HEADER(UnboxString);
+
+    LUnboxString(const LAllocation &input, const LDefinition &temp) {
+        setOperand(0, input);
+        setTemp(0, temp);
+    }
+};
+
 } 
 } 
 

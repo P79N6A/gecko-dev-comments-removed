@@ -54,9 +54,16 @@ class LIRGeneratorX86 : public LIRGenerator
       : LIRGenerator(gen, graph)
     { }
 
+  protected:
+    
+    
+    LUse useType(MInstruction *mir);
+    LUse usePayloadInRegister(MInstruction *mir);
+
   public:
-    bool visitConstant(MConstant *ins);
     bool visitBox(MBox *box);
+    bool visitUnbox(MUnbox *unbox);
+    bool visitConstant(MConstant *ins);
     bool visitReturn(MReturn *ret);
 };
 

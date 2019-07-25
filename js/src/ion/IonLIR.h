@@ -197,7 +197,6 @@ class LUse : public LAllocation
     enum Policy {
         ANY,                
         REGISTER,           
-        TEMPORARY,          
         FIXED               
     };
 
@@ -214,6 +213,10 @@ class LUse : public LAllocation
     }
 
   public:
+    LUse(uint32 vreg, Policy policy, uint32 flags = 0) {
+        set(policy, 0, flags);
+        setVirtualRegister(vreg);
+    }
     LUse(Policy policy, uint32 flags = 0) {
         set(policy, 0, flags);
     }
@@ -348,11 +351,22 @@ class LDefinition
     
     
     enum Policy {
-        DEFAULT,                    
-        CAN_REUSE_FIRST_INPUT,      
-        MUST_REUSE_FIRST_INPUT,     
-        PRESET                      
-                                    
+        
+        DEFAULT,
+
+        
+        
+        
+        
+        
+        
+        
+        PRESET,
+
+        
+        
+        CAN_REUSE_INPUT,
+        MUST_REUSE_INPUT
     };
 
     enum Type {
@@ -443,7 +457,7 @@ class LInstruction : public TempObject,
     
     
     virtual size_t numTemps() const = 0;
-    virtual LAllocation *getTemp(size_t index) = 0;
+    virtual LDefinition *getTemp(size_t index) = 0;
 
   public:
     
@@ -461,7 +475,7 @@ class LInstructionHelper : public LInstruction
 {
     FixedArityList<LDefinition, Defs> defs_;
     FixedArityList<LAllocation, Operands> operands_;
-    FixedArityList<LAllocation, Temps> temps_;
+    FixedArityList<LDefinition, Temps> temps_;
 
   public:
     size_t numDefs() const {
@@ -479,7 +493,7 @@ class LInstructionHelper : public LInstruction
     size_t numTemps() const {
         return Temps;
     }
-    LAllocation *getTemp(size_t index) {
+    LDefinition *getTemp(size_t index) {
         return &temps_[index];
     }
 
@@ -489,6 +503,16 @@ class LInstructionHelper : public LInstruction
     void setOperand(size_t index, const LAllocation &a) {
         operands_[index] = a;
     }
+    void setTemp(size_t index, const LDefinition &a) {
+        temps_[index] = a;
+    }
+};
+
+
+
+class LRecord
+{
+  public:
 };
 
 LUse *LAllocation::toUse() {
