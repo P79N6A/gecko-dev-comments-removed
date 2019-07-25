@@ -5,8 +5,6 @@
 #include "MediaManager.h"
 
 #include "MediaStreamGraph.h"
-#include "MediaEngineDefault.h"
-
 #include "nsIDOMFile.h"
 #include "nsIEventTarget.h"
 #include "nsIScriptGlobalObject.h"
@@ -15,6 +13,13 @@
 #include "nsJSUtils.h"
 #include "nsDOMFile.h"
 #include "nsGlobalWindow.h"
+
+
+#if defined(MOZ_WEBRTC)
+#include "MediaEngineWebRTC.h"
+#else
+#include "MediaEngineDefault.h"
+#endif
 
 namespace mozilla {
 
@@ -63,12 +68,6 @@ public:
     , mFile(aFile)
     , mWindowID(aWindowID) {}
 
-  SuccessCallbackRunnable(nsIDOMGetUserMediaSuccessCallback* aSuccess,
-    nsIDOMMediaStream* aStream, PRUint64 aWindowID)
-    : mSuccess(aSuccess)
-    , mStream(aStream)
-    , mWindowID(aWindowID) {}
-
   NS_IMETHOD
   Run()
   {
@@ -76,11 +75,7 @@ public:
     WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
     if (activeWindows->Get(mWindowID)) {
       
-      if (mFile) {
-        mSuccess->OnSuccess(mFile);
-      } else if (mStream) {
-        mSuccess->OnSuccess(mStream);
-      }
+      mSuccess->OnSuccess(mFile);
     }
     return NS_OK;
   }
@@ -88,7 +83,6 @@ public:
 private:
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mSuccess;
   nsCOMPtr<nsIDOMFile> mFile;
-  nsCOMPtr<nsIDOMMediaStream> mStream;
   PRUint64 mWindowID;
 };
 
@@ -96,144 +90,55 @@ private:
 
 
 
-class GetUserMediaCallbackRunnable : public nsRunnable
+
+
+class GetUserMediaStreamRunnable : public nsRunnable
 {
 public:
-  GetUserMediaCallbackRunnable(MediaEngineSource* aSource, TrackID aId,
-    nsIDOMGetUserMediaSuccessCallback* aSuccess,
-    nsIDOMGetUserMediaErrorCallback* aError,
-    PRUint64 aWindowID,
-    StreamListeners* aListeners)
-    : mSource(aSource)
-    , mId(aId)
-    , mSuccess(aSuccess)
-    , mError(aError)
+  GetUserMediaStreamRunnable(nsIDOMGetUserMediaSuccessCallback* aSuccess,
+    MediaEngineSource* aSource, StreamListeners* aListeners,
+    PRUint64 aWindowID, TrackID aTrackID)
+    : mSuccess(aSuccess)
+    , mSource(aSource)
+    , mListeners(aListeners)
     , mWindowID(aWindowID)
-    , mListeners(aListeners) {}
+    , mTrackID(aTrackID) {}
+
+  ~GetUserMediaStreamRunnable() {}
 
   NS_IMETHOD
   Run()
   {
     
-
-
-
-
-
-
-
-    nsCOMPtr<nsDOMMediaStream> comStream = mSource->Allocate();
-    if (!comStream) {
-      NS_DispatchToMainThread(new ErrorCallbackRunnable(
-        mError, NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"), mWindowID
-      ));
-      return NS_OK;
-    }
+    nsCOMPtr<nsDOMMediaStream> stream = nsDOMMediaStream::CreateInputStream();
 
     
     
     
     GetUserMediaCallbackMediaStreamListener* listener =
-      new GetUserMediaCallbackMediaStreamListener(mSource, comStream, mId);
-    comStream->GetStream()->AddListener(listener);
-
-    {
-      MutexAutoLock lock(*(MediaManager::Get()->GetLock()));
-      mListeners->AppendElement(listener);
-    }
+      new GetUserMediaCallbackMediaStreamListener(mSource, stream, mTrackID);
+    stream->GetStream()->AddListener(listener);
 
     
-    NS_DispatchToMainThread(new SuccessCallbackRunnable(
-      mSuccess, comStream.get(), mWindowID
-    ));
+    mListeners->AppendElement(listener);
+
+    
+    WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
+    if (activeWindows->Get(mWindowID)) {
+      mSuccess->OnSuccess(stream);
+    }
+
     return NS_OK;
   }
 
 private:
-  nsCOMPtr<MediaEngineSource> mSource;
-  TrackID mId;
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mSuccess;
-  nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mError;
-  PRUint64 mWindowID;
+  nsRefPtr<MediaEngineSource> mSource;
   StreamListeners* mListeners;
-};
-
-
-
-
-
-
-class GetUserMediaSnapshotCallbackRunable : public nsRunnable
-{
-public:
-  GetUserMediaSnapshotCallbackRunable(MediaEngineSource* aSource,
-    PRUint32 aDuration,
-    nsIDOMGetUserMediaSuccessCallback* aSuccessCallback,
-    nsIDOMGetUserMediaErrorCallback* aErrorCallback,
-    nsPIDOMWindow* aWindow)
-    : mSource(aSource)
-    , mDuration(aDuration)
-    , mSuccessCallback(aSuccessCallback)
-    , mErrorCallback(aErrorCallback)
-    , mWindow(aWindow) {}
-
-  NS_IMETHOD
-  Run()
-  {
-    mWindowID = mWindow->WindowID();
-
-    
-    
-    
-
-    if (mWindow->GetPopupControlState() <= openControlled) {
-      return NS_OK;
-    }
-    
-    nsCOMPtr<nsIPopupWindowManager> pm =
-      do_GetService(NS_POPUPWINDOWMANAGER_CONTRACTID);
-    if (!pm) {
-      return NS_OK;
-    }
-
-    PRUint32 permission;
-    nsCOMPtr<nsIDocument> doc = mWindow->GetExtantDoc();
-    pm->TestPermission(doc->GetDocumentURI(), &permission);
-    if (permission == nsIPopupWindowManager::DENY_POPUP) {
-      nsCOMPtr<nsIDOMDocument> domDoc = mWindow->GetExtantDocument();
-      nsGlobalWindow::FirePopupBlockedEvent(
-        domDoc, mWindow, nsnull, EmptyString(), EmptyString()
-      );
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsDOMMediaStream> comStream = mSource->Allocate();
-    if (!comStream) {
-      NS_DispatchToMainThread(new ErrorCallbackRunnable(
-        mErrorCallback, NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"), mWindowID
-      ));
-      return NS_OK;
-    }
-
-    nsCOMPtr<nsIDOMFile> file;
-    mSource->Snapshot(mDuration, getter_AddRefs(file));
-    mSource->Deallocate();
-
-    NS_DispatchToMainThread(new SuccessCallbackRunnable(
-      mSuccessCallback, file, mWindowID
-    ));
-    return NS_OK;
-  }
-
-private:
-  nsCOMPtr<MediaEngineSource> mSource;
-  PRUint32 mDuration;
-  nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mSuccessCallback;
-  nsCOMPtr<nsIDOMGetUserMediaErrorCallback>  mErrorCallback;
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-
   PRUint64 mWindowID;
+  TrackID mTrackID;
 };
+
 
 
 
@@ -249,14 +154,14 @@ public:
   GetUserMediaRunnable(bool aAudio, bool aVideo, bool aPicture,
     nsIDOMGetUserMediaSuccessCallback* aSuccess,
     nsIDOMGetUserMediaErrorCallback* aError,
-    nsPIDOMWindow* aWindow, StreamListeners* aListeners)
+    StreamListeners* aListeners, PRUint64 aWindowID)
     : mAudio(aAudio)
     , mVideo(aVideo)
     , mPicture(aPicture)
     , mSuccess(aSuccess)
     , mError(aError)
-    , mWindow(aWindow)
-    , mListeners(aListeners) {}
+    , mListeners(aListeners)
+    , mWindowID(aWindowID) {}
 
   ~GetUserMediaRunnable() {}
 
@@ -270,7 +175,6 @@ public:
   Run()
   {
     mManager = MediaManager::Get();
-    mWindowID = mWindow->WindowID();
 
     if (mPicture) {
       SendPicture();
@@ -299,6 +203,60 @@ public:
   }
 
   
+
+
+
+  void
+  ProcessGetUserMedia(MediaEngineSource* aSource, TrackID aTrackID)
+  {
+    
+
+
+
+
+
+
+
+    nsresult rv = aSource->Allocate();
+    if (NS_FAILED(rv)) {
+      NS_DispatchToMainThread(new ErrorCallbackRunnable(
+        mError, NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"), mWindowID
+      ));
+      return;
+    }
+
+    NS_DispatchToMainThread(new GetUserMediaStreamRunnable(
+      mSuccess.get(), aSource, mListeners, mWindowID, aTrackID
+    ));
+    return;
+  }
+
+  
+
+
+
+  void
+  ProcessGetUserMediaSnapshot(MediaEngineSource* aSource, int aDuration)
+  {
+    nsresult rv = aSource->Allocate();
+    if (NS_FAILED(rv)) {
+      NS_DispatchToMainThread(new ErrorCallbackRunnable(
+        mError, NS_LITERAL_STRING("HARDWARE_UNAVAILABLE"), mWindowID
+      ));
+      return;
+    }
+
+    nsCOMPtr<nsIDOMFile> file;
+    aSource->Snapshot(aDuration, getter_AddRefs(file));
+    aSource->Deallocate();
+
+    NS_DispatchToMainThread(new SuccessCallbackRunnable(
+      mSuccess, file, mWindowID
+    ));
+    return;
+  }
+
+  
   void
   SendPicture()
   {
@@ -312,10 +270,11 @@ public:
       ));
       return;
     }
-    MediaEngineVideoSource* videoSource = videoSources[count - 1];
-    NS_DispatchToMainThread(new GetUserMediaSnapshotCallbackRunable(
-      videoSource, 0 , mSuccess, mError, mWindow
-    ));
+
+    
+    
+    MediaEngineVideoSource* videoSource = videoSources[0];
+    ProcessGetUserMediaSnapshot(videoSource, 0 );
   }
 
   
@@ -333,10 +292,8 @@ public:
       return;
     }
 
-    MediaEngineVideoSource* videoSource = videoSources[count - 1];
-    NS_DispatchToMainThread(new GetUserMediaCallbackRunnable(
-      videoSource, kVideoTrack, mSuccess, mError, mWindowID, mListeners
-    ));
+    MediaEngineVideoSource* videoSource = videoSources[0];
+    ProcessGetUserMedia(videoSource, kVideoTrack);
   }
 
   
@@ -354,10 +311,8 @@ public:
       return;
     }
 
-    MediaEngineAudioSource* audioSource = audioSources[count - 1];
-    NS_DispatchToMainThread(new GetUserMediaCallbackRunnable(
-      audioSource, kAudioTrack, mSuccess, mError, mWindowID, mListeners
-    ));
+    MediaEngineAudioSource* audioSource = audioSources[0];
+    ProcessGetUserMedia(audioSource, kAudioTrack);
   }
 
 private:
@@ -367,11 +322,10 @@ private:
 
   nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> mSuccess;
   nsCOMPtr<nsIDOMGetUserMediaErrorCallback> mError;
-  nsCOMPtr<nsPIDOMWindow> mWindow;
   StreamListeners* mListeners;
+  PRUint64 mWindowID;
 
   MediaManager* mManager;
-  PRUint64 mWindowID;
 };
 
 
@@ -390,10 +344,43 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow, nsIMediaStreamOptions* aParam
   nsIDOMGetUserMediaErrorCallback* onError)
 {
   NS_ENSURE_TRUE(aParams, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(aWindow, NS_ERROR_NULL_POINTER);
 
   bool audio, video, picture;
+
   nsresult rv = aParams->GetPicture(&picture);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+
+
+
+
+
+
+#if !defined(MOZ_WEBRTC)
+  if (picture) {
+    if (aWindow->GetPopupControlState() <= openControlled) {
+      return NS_ERROR_FAILURE;
+    }
+    nsCOMPtr<nsIPopupWindowManager> pm =
+      do_GetService(NS_POPUPWINDOWMANAGER_CONTRACTID);
+    if (!pm) {
+      return NS_ERROR_FAILURE;
+    }
+
+    PRUint32 permission;
+    nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
+    pm->TestPermission(doc->GetDocumentURI(), &permission);
+    if (aWindow && (permission == nsIPopupWindowManager::DENY_POPUP)) {
+      nsCOMPtr<nsIDOMDocument> domDoc = aWindow->GetExtantDocument();
+      nsGlobalWindow::FirePopupBlockedEvent(
+        domDoc, aWindow, nsnull, EmptyString(), EmptyString()
+      );
+      return NS_ERROR_FAILURE;
+    }
+  }
+#endif
 
   rv = aParams->GetAudio(&audio);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -418,7 +405,7 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow, nsIMediaStreamOptions* aParam
   
   
   nsCOMPtr<nsIRunnable> gUMRunnable = new GetUserMediaRunnable(
-    audio, video, picture, onSuccess, onError, aWindow, listeners
+    audio, video, picture, onSuccess, onError, listeners, windowID
   );
 
   
@@ -437,8 +424,13 @@ MediaManager::GetBackend()
   
   
   if (!mBackend) {
+#if defined(MOZ_WEBRTC)
+    mBackend = new MediaEngineWebRTC();
+#else
     mBackend = new MediaEngineDefault();
+#endif
   }
+
   return mBackend;
 }
 
@@ -458,7 +450,6 @@ MediaManager::OnNavigation(PRUint64 aWindowID)
     return;
   }
 
-  MutexAutoLock lock(*mLock);
   PRUint32 length = listeners->Length();
   for (PRUint32 i = 0; i < length; i++) {
     nsRefPtr<GetUserMediaCallbackMediaStreamListener> listener =
