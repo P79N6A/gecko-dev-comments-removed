@@ -684,9 +684,7 @@ window.TabItems = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      setTimeout(function() { 
-        self.link(tab);
-      }, 1);
+      self.link(tab);
     }
     
     
@@ -694,18 +692,14 @@ window.TabItems = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      setTimeout(function() { 
-        self.update(tab);
-      }, 1);
+      self.update(tab);
     }
     
     this._eventListeners["close"] = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      setTimeout(function() { 
-        self.unlink(tab);
-      }, 1);
+      self.unlink(tab);
     }
     for (let name in this._eventListeners) {
       AllTabs.register(name, this._eventListeners[name]);

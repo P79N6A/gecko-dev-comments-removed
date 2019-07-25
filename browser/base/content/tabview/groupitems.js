@@ -656,11 +656,6 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         this.arrange();
       }
       UI.setReorderTabsOnHide(this);
-
-      if (this._nextNewTabCallback) {
-        this._nextNewTabCallback.apply(this, [item])
-        this._nextNewTabCallback = null;
-      }
     } catch(e) {
       Utils.log('GroupItem.add error', e);
     }
@@ -1189,59 +1184,41 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     GroupItems.setActiveGroupItem(this);
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
+    
+    let newItem = newTab.tabItem;
+
     var self = this;
-    var doNextTab = function(tab) {
-      var groupItem = GroupItems.getActiveGroupItem();
-
-      iQ(tab.container).css({opacity: 0});
-      var $anim = iQ("<div>")
-        .addClass('newTabAnimatee')
-        .css({
-          top: tab.bounds.top+5,
-          left: tab.bounds.left+5,
-          width: tab.bounds.width-10,
-          height: tab.bounds.height-10,
-          zIndex: 999,
-          opacity: 0
-        })
-        .appendTo("body")
-        .animate({
-          opacity: 1.0
-        }, {
-          duration: 500,
-          complete: function() {
-            $anim.animate({
-              top: 0,
-              left: 0,
-              width: window.innerWidth,
-              height: window.innerHeight
-            }, {
-              duration: 270,
-              complete: function() {
-                iQ(tab.container).css({opacity: 1});
-                newTab.tabItem.zoomIn(!url);
-                $anim.remove();
-                
-                
-                
-                
-                
-                
-                setTimeout(function() {
-                  self._sendToSubscribers("tabAdded", { groupItemId: self.id });
-                }, 1);
-              }
-            });
-          }
-        });
-    }
-
-    
-    
-    
-    
-    
-    self.onNextNewTab(doNextTab);
+    iQ(newItem.container).css({opacity: 0});
+    let $anim = iQ("<div>")
+      .addClass("newTabAnimatee")
+      .css({
+        top: newItem.bounds.top + 5,
+        left: newItem.bounds.left + 5,
+        width: newItem.bounds.width - 10,
+        height: newItem.bounds.height - 10,
+        zIndex: 999,
+        opacity: 0
+      })
+      .appendTo("body")
+      .animate({opacity: 1}, {
+        duration: 500,
+        complete: function() {
+          $anim.animate({
+            top: 0,
+            left: 0,
+            width: window.innerWidth,
+            height: window.innerHeight
+          }, {
+            duration: 270,
+            complete: function() {
+              iQ(newItem.container).css({opacity: 1});
+              newItem.zoomIn(!url);
+              $anim.remove();
+              self._sendToSubscribers("tabAdded", {groupItemId: self.id});
+            }
+          });
+        }
+      });
   },
 
   
@@ -1320,19 +1297,6 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   getChildren: function() {
     return this._children;
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  onNextNewTab: function(callback) {
-    this._nextNewTabCallback = callback;
   }
 });
 
@@ -1757,6 +1721,7 @@ window.GroupItems = {
           gBrowser.selectTabAtIndex(index + 1);
         else
           gBrowser.selectTabAtIndex(index - 1);
+        shouldUpdateTabBar = true;
       } else {
         shouldShowTabView = true;
       }

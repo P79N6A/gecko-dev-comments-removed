@@ -68,10 +68,6 @@ var UIManager = {
 
   
   
-  _stopZoomPreparation : false,
-
-  
-  
   
   _reorderTabItemsOnShow : [],
 
@@ -158,6 +154,10 @@ var UIManager = {
       GroupItems.reconstitute(groupItemsData, groupItemData);
       GroupItems.killNewTabGroup(); 
 
+      
+      TabItems.init();
+      TabItems.pausePainting();
+
       if (firstTime) {
         var padding = 10;
         var infoWidth = 350;
@@ -202,10 +202,6 @@ var UIManager = {
         var infoItem = new InfoItem(box);
         infoItem.html(html);
       }
-
-      
-      TabItems.init();
-      TabItems.pausePainting();
 
       
       if (this._pageBounds)
@@ -440,14 +436,6 @@ var UIManager = {
               tab.tabItem.setZoomPrep(false);
             self.showTabView();
           }
-          
-          
-          
-          setTimeout(function() { 
-            if ((groupItem && groupItem._children.length > 0) ||
-              (groupItem == null && gBrowser.visibleTabs.length > 0))
-              self.hideTabView();
-          }, 1);
         }
       }
     });
@@ -456,11 +444,9 @@ var UIManager = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      setTimeout(function() { 
-        var activeGroupItem = GroupItems.getActiveGroupItem();
-        if (activeGroupItem)
-          self.setReorderTabItemsOnShow(activeGroupItem);
-      }, 1);
+      let activeGroupItem = GroupItems.getActiveGroupItem();
+      if (activeGroupItem)
+        self.setReorderTabItemsOnShow(activeGroupItem);
     });
 
     AllTabs.register("select", function(tab) {
@@ -497,54 +483,40 @@ var UIManager = {
     this._closedLastVisibleTab = false;
     this._closedSelectedTabInTabView = false;
 
-    setTimeout(function() { 
-      
-      if (self._stopZoomPreparation) {
-        self._stopZoomPreparation = false;
-        if (focusTab && focusTab.tabItem)
-          self.setActiveTab(focusTab.tabItem);
-        return;
-      }
+    
+    if (focusTab != self._currentTab)
+      return;
 
-      if (focusTab != self._currentTab) {
-        
-        return;
+    let newItem = null;
+    if (focusTab && focusTab.tabItem) {
+      newItem = focusTab.tabItem;
+      if (newItem.parent)
+        GroupItems.setActiveGroupItem(newItem.parent);
+      else {
+        GroupItems.setActiveGroupItem(null);
+        GroupItems.setActiveOrphanTab(newItem);
       }
+      GroupItems.updateTabBar();
+    }
 
-      var visibleTabCount = gBrowser.visibleTabs.length;
+    
+    let oldItem = null;
+    if (currentTab && currentTab.tabItem)
+      oldItem = currentTab.tabItem;
 
-      var newItem = null;
-      if (focusTab && focusTab.tabItem) {
-        newItem = focusTab.tabItem;
-        if (newItem.parent)
-          GroupItems.setActiveGroupItem(newItem.parent);
-        else {
-          GroupItems.setActiveGroupItem(null);
-          GroupItems.setActiveOrphanTab(newItem);
-        }
-        GroupItems.updateTabBar();
-      }
+    if (newItem != oldItem) {
+      if (oldItem)
+        oldItem.setZoomPrep(false);
 
       
-      var oldItem = null;
-      if (currentTab && currentTab.tabItem)
-        oldItem = currentTab.tabItem;
-
-      if (newItem != oldItem) {
-        if (oldItem)
-          oldItem.setZoomPrep(false);
-
-        
-        
-        if (visibleTabCount > 0 && newItem && !self._isTabViewVisible())
-          newItem.setZoomPrep(true);
-      } else {
-        
-        
-        if (oldItem)
-          oldItem.setZoomPrep(!self._isTabViewVisible());
-      }
-    }, 1);
+      
+      let visibleTabCount = gBrowser.visibleTabs.length;
+      if (visibleTabCount > 0 && newItem && !self._isTabViewVisible())
+        newItem.setZoomPrep(true);
+    }
+    
+    else if (oldItem)
+      oldItem.setZoomPrep(!self._isTabViewVisible());
   },
 
   
