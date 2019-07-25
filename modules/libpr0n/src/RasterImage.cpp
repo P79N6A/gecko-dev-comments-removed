@@ -77,6 +77,22 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 #endif
 
 
+static PRUint32 gDecodeBytesAtATime = 200000;
+static PRUint32 gMaxMSBeforeYield = 400;
+
+void
+RasterImage::SetDecodeBytesAtATime(PRUint32 aBytesAtATime)
+{
+  gDecodeBytesAtATime = aBytesAtATime;
+}
+void
+RasterImage::SetMaxMSBeforeYield(PRUint32 aMaxMS)
+{
+  gMaxMSBeforeYield = aMaxMS;
+}
+
+
+
 
 
 
@@ -2558,10 +2574,6 @@ RasterImage::DoError()
 }
 
 
-#define DECODE_BYTES_AT_A_TIME 4096
-#define MAX_USEC_BEFORE_YIELD (1000 * 5)
-
-
 
 NS_IMETHODIMP
 imgDecodeWorker::Run()
@@ -2598,11 +2610,11 @@ imgDecodeWorker::Run()
   
   
   PRUint32 maxBytes = image->mDecoder->IsSizeDecode()
-    ? image->mSourceData.Length() : DECODE_BYTES_AT_A_TIME;
+    ? image->mSourceData.Length() : gDecodeBytesAtATime;
 
   
   PRBool haveMoreData = PR_TRUE;
-  nsTime deadline(PR_Now() + MAX_USEC_BEFORE_YIELD);
+  nsTime deadline(PR_Now() + 1000 * gMaxMSBeforeYield);
 
   
   

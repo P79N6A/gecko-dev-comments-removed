@@ -290,6 +290,10 @@ public:
     kDisposeRestorePrevious 
   };
 
+  
+  static void SetDecodeBytesAtATime(PRUint32 aBytesAtATime);
+  static void SetMaxMSBeforeYield(PRUint32 aMaxMS);
+
 private:
   struct Anim
   {
