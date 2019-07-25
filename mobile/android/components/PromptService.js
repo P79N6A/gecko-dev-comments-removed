@@ -154,7 +154,7 @@ Prompt.prototype = {
   
   commonPrompt: function commonPrompt(aTitle, aText, aButtons, aCheckMsg, aCheckState, aInputs) {
     if (aCheckMsg)
-      aInputs.push({ type: "checkbox", label: aCheckMsg, checked: aCheckState.value });
+      aInputs.push({ type: "checkbox", label: PromptUtils.cleanUpLabel(aCheckMsg), checked: aCheckState.value });
 
     let msg = { type: "Prompt:Show" };
     if (aTitle) msg.title = aTitle;
@@ -165,49 +165,6 @@ Prompt.prototype = {
     ];
     msg.inputs = aInputs;
     return PromptUtils.sendMessageToJava(msg);
-  },
-
-  
-  
-  
-  setLabelForNode: function setLabelForNode(aNode, aLabel) {
-    
-    
-    
-    
-    
-    
-
-    
-    
-
-    if (!aLabel)
-      return;
-
-    var accessKey = null;
-    if (/ *\(\&([^&])\)(:)?$/.test(aLabel)) {
-      aLabel = RegExp.leftContext + RegExp.$2;
-      accessKey = RegExp.$1;
-    } else if (/^(.*[^&])?\&(([^&]).*$)/.test(aLabel)) {
-      aLabel = RegExp.$1 + RegExp.$2;
-      accessKey = RegExp.$3;
-    }
-
-    
-    aLabel = aLabel.replace(/\&\&/g, "&");
-    if (aNode instanceof Ci.nsIDOMXULLabelElement) {
-      aNode.setAttribute("value", aLabel);
-    } else if (aNode instanceof Ci.nsIDOMXULDescriptionElement) {
-      let text = aNode.ownerDocument.createTextNode(aLabel);
-      aNode.appendChild(text);
-    } else {    
-      aNode.setAttribute("label", aLabel);
-    }
-
-    
-    
-    if (accessKey)
-      aNode.setAttribute("accesskey", accessKey);
   },
 
   
@@ -300,7 +257,7 @@ Prompt.prototype = {
           bTitle = PromptUtils.getLocaleString("Revert");
           break;
         case Ci.nsIPromptService.BUTTON_TITLE_IS_STRING :
-          bTitle = titles[i];
+          bTitle = PromptUtils.cleanUpLabel(titles[i]);
         break;
       }
 
@@ -551,9 +508,36 @@ Prompt.prototype = {
 let PromptUtils = {
   getLocaleString: function pu_getLocaleString(aKey, aService) {
     if (aService == "passwdmgr")
-      return this.passwdBundle.GetStringFromName(aKey).replace(/&/g, "");
+      return this.cleanUpLabel(this.passwdBundle.GetStringFromName(aKey));
 
-    return this.bundle.GetStringFromName(aKey).replace(/&/g, "");
+    return this.cleanUpLabel(this.bundle.GetStringFromName(aKey));
+  },
+
+  
+  
+  
+  cleanUpLabel: function cleanUpLabel(aLabel) {
+    
+    
+    
+    
+    
+
+    
+    
+    if (!aLabel)
+      return "";
+
+    if (/ *\(\&([^&])\)(:)?$/.test(aLabel)) {
+      aLabel = RegExp.leftContext + RegExp.$2;
+    } else if (/^(.*[^&])?\&(([^&]).*$)/.test(aLabel)) {
+      aLabel = RegExp.$1 + RegExp.$2;
+    }
+
+    
+    aLabel = aLabel.replace(/\&\&/g, "&");
+
+    return aLabel;
   },
 
   get pwmgr() {
