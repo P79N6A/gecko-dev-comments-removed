@@ -37,9 +37,10 @@
 
 
 
+
 const TEST_URI = "http://example.com/browser/dom/tests/browser/test-console-api.html";
 
-var gWindow;
+var gWindow, gLevel, gArgs;
 
 function test() {
   waitForExplicitFinish();
@@ -65,8 +66,6 @@ function test() {
   }, false);
 }
 
-var gWindow;
-
 function testConsoleData(aMessageObject) {
   let messageWindow = getWindowByWindowId(aMessageObject.ID);
   is(messageWindow, gWindow, "found correct window by window ID");
@@ -80,8 +79,7 @@ function testConsoleData(aMessageObject) {
        "stack trace is correct");
 
     
-    ConsoleObserver.destroy();
-    finish();
+    startLocationTest();
   }
   else {
     gArgs.forEach(function (a, i) {
@@ -93,6 +91,26 @@ function testConsoleData(aMessageObject) {
     
     startTraceTest();
   }
+}
+
+function testLocationData(aMessageObject) {
+  let messageWindow = getWindowByWindowId(aMessageObject.ID);
+  is(messageWindow, gWindow, "found correct window by window ID");
+
+  is(aMessageObject.level, gLevel, "expected level received");
+  ok(aMessageObject.arguments, "we have arguments");
+
+  is(aMessageObject.filename, gArgs[0].filename, "filename matches");
+  is(aMessageObject.lineNumber, gArgs[0].lineNumber, "lineNumber matches");
+  is(aMessageObject.functionName, gArgs[0].functionName, "functionName matches");
+  is(aMessageObject.arguments.length, gArgs[0].arguments.length, "arguments.length matches");
+  gArgs[0].arguments.forEach(function (a, i) {
+    is(aMessageObject.arguments[i], a, "correct arg " + i);
+  });
+
+  
+  ConsoleObserver.destroy();
+  finish();
 }
 
 function startTraceTest() {
@@ -109,7 +127,27 @@ function startTraceTest() {
   EventUtils.synthesizeMouse(button, 2, 2, {}, gWindow);
 }
 
-var gLevel, gArgs;
+function startLocationTest() {
+  
+  ConsoleObserver.observe = function CO_observe(aSubject, aTopic, aData) {
+    try {
+      testLocationData(aSubject.wrappedJSObject);
+    } catch (ex) {
+      
+      
+      ok(false, "Exception thrown in CO_observe: " + ex);
+    }
+  };
+  gLevel = "log";
+  gArgs = [
+    {filename: TEST_URI, lineNumber: 19, functionName: "foobar646025", arguments: ["omg", "o", "d"]}
+  ];
+
+  let button = gWindow.document.getElementById("test-location");
+  ok(button, "found #test-location button");
+  EventUtils.synthesizeMouse(button, 2, 2, {}, gWindow);
+}
+
 function expect(level) {
   gLevel = level;
   gArgs = Array.slice(arguments, 1);

@@ -1976,12 +1976,7 @@ HUD_SERVICE.prototype =
 
 
 
-
-
-
-  logConsoleAPIMessage: function HS_logConsoleAPIMessage(aHUDId,
-                                                         aLevel,
-                                                         aArguments)
+  logConsoleAPIMessage: function HS_logConsoleAPIMessage(aHUDId, aMessage)
   {
     
     let hud = HUDService.hudReferences[aHUDId];
@@ -1993,32 +1988,36 @@ HUD_SERVICE.prototype =
     let clipboardText = null;
     let sourceURL = null;
     let sourceLine = 0;
+    let level = aMessage.level;
+    let args = aMessage.arguments;
 
-    switch (aLevel) {
+    switch (level) {
       case "log":
       case "info":
       case "warn":
       case "error":
       case "debug":
-        let mappedArguments = Array.map(aArguments, formatResult);
+        let mappedArguments = Array.map(args, formatResult);
         body = Array.join(mappedArguments, " ");
+        sourceURL = aMessage.filename;
+        sourceLine = aMessage.lineNumber;
         break;
 
       case "trace":
-        let filename = ConsoleUtils.abbreviateSourceURL(aArguments[0].filename);
-        let functionName = aArguments[0].functionName ||
+        let filename = ConsoleUtils.abbreviateSourceURL(args[0].filename);
+        let functionName = args[0].functionName ||
                            this.getStr("stacktrace.anonymousFunction");
-        let lineNumber = aArguments[0].lineNumber;
+        let lineNumber = args[0].lineNumber;
 
         body = this.getFormatStr("stacktrace.outputMessage",
                                  [filename, functionName, lineNumber]);
 
-        sourceURL = aArguments[0].filename;
-        sourceLine = aArguments[0].lineNumber;
+        sourceURL = args[0].filename;
+        sourceLine = args[0].lineNumber;
 
         clipboardText = "";
 
-        aArguments.forEach(function(aFrame) {
+        args.forEach(function(aFrame) {
           clipboardText += aFrame.filename + " :: " +
                            aFrame.functionName + " :: " +
                            aFrame.lineNumber + "\n";
@@ -2028,13 +2027,13 @@ HUD_SERVICE.prototype =
         break;
 
       default:
-        Cu.reportError("Unknown Console API log level: " + aLevel);
+        Cu.reportError("Unknown Console API log level: " + level);
         return;
     }
 
     let node = ConsoleUtils.createMessageNode(hud.outputNode.ownerDocument,
                                               CATEGORY_WEBDEV,
-                                              LEVELS[aLevel],
+                                              LEVELS[level],
                                               body,
                                               sourceURL,
                                               sourceLine,
@@ -2042,8 +2041,8 @@ HUD_SERVICE.prototype =
 
     
     
-    if (aLevel == "trace") {
-      node._stacktrace = aArguments;
+    if (level == "trace") {
+      node._stacktrace = args;
 
       let linkNode = node.querySelector(".webconsole-msg-body");
       linkNode.classList.add("hud-clickable");
@@ -2513,7 +2512,6 @@ HUD_SERVICE.prototype =
         0x5006: "TRANSACTION_CLOSE",
 
         0x804b0003: "STATUS_RESOLVING",
-        0x804b000b: "STATUS_RESOLVED",
         0x804b0007: "STATUS_CONNECTING_TO",
         0x804b0004: "STATUS_CONNECTED_TO",
         0x804b0005: "STATUS_SENDING_TO",
@@ -3599,7 +3597,7 @@ let ConsoleAPIObserver = {
       if (!hudId)
         return;
 
-      HUDService.logConsoleAPIMessage(hudId, aMessage.level, aMessage.arguments);
+      HUDService.logConsoleAPIMessage(hudId, aMessage);
     }
     else if (aTopic == "quit-application-granted") {
       HUDService.shutdown();
