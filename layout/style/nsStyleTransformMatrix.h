@@ -111,6 +111,16 @@ class nsStyleTransformMatrix
 
 
 
+  static nsCSSKeyword TransformFunctionOf(const nsCSSValue::Array* aData);
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -160,6 +170,16 @@ class nsStyleTransformMatrix
 
   nscoord GetXTranslation(const nsRect& aBounds) const;
   nscoord GetYTranslation(const nsRect& aBounds) const;
+
+  
+
+
+  nscoord GetCoordXTranslation() const { return mDelta[0]; }
+  nscoord GetCoordYTranslation() const { return mDelta[1]; }
+  float GetWidthRelativeXTranslation() const { return mX[0]; }
+  float GetWidthRelativeYTranslation() const { return mX[1]; }
+  float GetHeightRelativeXTranslation() const { return mY[0]; }
+  float GetHeightRelativeYTranslation() const { return mY[1]; }
 
   
 

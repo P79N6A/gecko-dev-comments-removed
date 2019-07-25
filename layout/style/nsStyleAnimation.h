@@ -238,6 +238,7 @@ public:
     eUnit_CSSRect, 
     eUnit_Dasharray, 
     eUnit_Shadow, 
+    eUnit_Transform, 
     eUnit_CSSValuePairList, 
     eUnit_UnparsedString 
   };
@@ -376,7 +377,8 @@ public:
       return aUnit == eUnit_CSSRect;
     }
     static PRBool IsCSSValueListUnit(Unit aUnit) {
-      return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow;
+      return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow ||
+             aUnit == eUnit_Transform;
     }
     static PRBool IsCSSValuePairListUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePairList;

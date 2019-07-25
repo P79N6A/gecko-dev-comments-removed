@@ -217,6 +217,14 @@ static nscoord CalcLength(const nsCSSValue &aValue,
                           nsPresContext* aPresContext,
                           PRBool &aCanStoreInRuleTree)
 {
+  if (aValue.GetUnit() == eCSSUnit_Pixel) {
+    
+    
+    
+    
+    
+    return nsPresContext::CSSPixelsToAppUnits(aValue.GetFloatValue());
+  }
   return nsRuleNode::CalcLength(aValue, aContext, aPresContext,
                                 aCanStoreInRuleTree);
 }
@@ -535,6 +543,18 @@ static void ProcessRotate(float aMain[4], const nsCSSValue::Array* aData)
 
 
 
+ nsCSSKeyword
+nsStyleTransformMatrix::TransformFunctionOf(const nsCSSValue::Array* aData)
+{
+  nsAutoString keyword;
+  aData->Item(0).GetStringValue(keyword);
+  return nsCSSKeywords::LookupKeyword(keyword);
+}
+
+
+
+
+
 void
 nsStyleTransformMatrix::SetToTransformFunction(const nsCSSValue::Array * aData,
                                                nsStyleContext* aContext,
@@ -542,18 +562,17 @@ nsStyleTransformMatrix::SetToTransformFunction(const nsCSSValue::Array * aData,
                                                PRBool& aCanStoreInRuleTree)
 {
   NS_PRECONDITION(aData, "Why did you want to get data from a null array?");
-  NS_PRECONDITION(aContext, "Need a context for unit conversion!");
-  NS_PRECONDITION(aPresContext, "Need a context for unit conversion!");
   
+  
+  
+
   
 
 
   SetToIdentity();
 
   
-  nsAutoString keyword;
-  aData->Item(0).GetStringValue(keyword);
-  switch (nsCSSKeywords::LookupKeyword(keyword)) {
+  switch (TransformFunctionOf(aData)) {
   case eCSSKeyword_translatex:
     ProcessTranslateX(mDelta, mX, aData, aContext, aPresContext,
                       aCanStoreInRuleTree);
