@@ -959,13 +959,23 @@ nsIAtom*
 nsFrame::GetAdditionalChildListName(PRInt32 aIndex) const
 {
   NS_PRECONDITION(aIndex >= 0, "invalid index number");
+  
+  
+  if (aIndex == 0) {
+    return GetAbsoluteListName();
+  }
   return nsnull;
 }
 
 nsFrameList
 nsFrame::GetChildList(nsIAtom* aListName) const
 {
-  return nsFrameList::EmptyList();
+  if (IsAbsoluteContainer() &&
+      aListName == GetAbsoluteListName()) {
+    return GetAbsoluteContainingBlock()->GetChildList();
+  } else {
+    return nsFrameList::EmptyList();
+  }
 }
 
 static nsIFrame*
@@ -1487,6 +1497,9 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   }
 #endif
 
+  
+  MarkAbsoluteFramesForDisplayList(aBuilder, aDirtyRect);
+
   nsDisplayListCollection set;
   nsresult rv;
   {    
@@ -1621,7 +1634,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 
   if (aChild->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
     return NS_OK;
-  
+
   const nsStyleDisplay* disp = aChild->GetStyleDisplay();
   
   PRBool pseudoStackingContext =
@@ -1667,9 +1680,15 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       dirty.SetEmpty();
     }
     pseudoStackingContext = PR_TRUE;
-  } else if (aBuilder->GetSelectedFramesOnly() &&
-             aChild->IsLeaf() &&
-             !(aChild->GetStateBits() & NS_FRAME_SELECTED_CONTENT)) {
+  }
+
+  
+  aChild->MarkAbsoluteFramesForDisplayList(aBuilder, dirty);
+
+  if (childType != nsGkAtoms::placeholderFrame &&
+      aBuilder->GetSelectedFramesOnly() &&
+      aChild->IsLeaf() &&
+      !(aChild->GetStateBits() & NS_FRAME_SELECTED_CONTENT)) {
     return NS_OK;
   }
 
@@ -1832,6 +1851,15 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   aLists.PositionedDescendants()->AppendToTop(&extraPositionedDescendants);
   return NS_OK;
+}
+
+void
+nsIFrame::MarkAbsoluteFramesForDisplayList(nsDisplayListBuilder* aBuilder,
+                                           const nsRect& aDirtyRect)
+{
+  if (IsAbsoluteContainer()) {
+    aBuilder->MarkFramesForDisplayList(this, GetAbsoluteContainingBlock()->GetChildList(), aDirtyRect);
+  }
 }
 
 void
@@ -3584,6 +3612,7 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
 {
   NS_FRAME_TRACE_MSG(NS_FRAME_TRACE_CALLS,
                      ("nsFrame::DidReflow: aStatus=%d", aStatus));
+
   if (NS_FRAME_REFLOW_FINISHED == aStatus) {
     mState &= ~(NS_FRAME_IN_REFLOW | NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
                 NS_FRAME_HAS_DIRTY_CHILDREN);
@@ -3602,6 +3631,55 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   }
 
   return NS_OK;
+}
+
+void
+nsFrame::FinishReflowWithAbsoluteFrames(nsPresContext*           aPresContext,
+                                        nsHTMLReflowMetrics&     aDesiredSize,
+                                        const nsHTMLReflowState& aReflowState,
+                                        nsReflowStatus&          aStatus)
+{
+  ReflowAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
+
+  FinishAndStoreOverflow(&aDesiredSize);
+}
+
+void
+nsFrame::DestroyAbsoluteFrames(nsIFrame* aDestructRoot)
+{
+  if (IsAbsoluteContainer()) {
+    GetAbsoluteContainingBlock()->DestroyFrames(this, aDestructRoot);
+  }
+}
+
+void
+nsFrame::ReflowAbsoluteFrames(nsPresContext*           aPresContext,
+                              nsHTMLReflowMetrics&     aDesiredSize,
+                              const nsHTMLReflowState& aReflowState,
+                              nsReflowStatus&          aStatus)
+{
+  if (HasAbsolutelyPositionedChildren()) {
+    nsAbsoluteContainingBlock* absoluteContainer = GetAbsoluteContainingBlock();
+
+    
+    
+
+    
+    nsMargin computedBorder =
+      aReflowState.mComputedBorderPadding - aReflowState.mComputedPadding;
+    nscoord containingBlockWidth =
+      aDesiredSize.width - computedBorder.LeftRight();
+    nscoord containingBlockHeight =
+      aDesiredSize.height - computedBorder.TopBottom();
+
+    nsContainerFrame* container = do_QueryFrame(this);
+    NS_ASSERTION(container, "Abs-pos children only supported on container frames for now");
+
+    absoluteContainer->Reflow(container, aPresContext, aReflowState, aStatus,
+                              containingBlockWidth, containingBlockHeight,
+                              PR_TRUE, PR_TRUE, PR_TRUE, 
+                              &aDesiredSize.mOverflowAreas);
+  }
 }
 
  PRBool
@@ -6189,8 +6267,7 @@ inline PRBool
 IsInlineFrame(nsIFrame *aFrame)
 {
   nsIAtom *type = aFrame->GetType();
-  return type == nsGkAtoms::inlineFrame ||
-         type == nsGkAtoms::positionedInlineFrame;
+  return type == nsGkAtoms::inlineFrame;
 }
 
 void 
@@ -7905,7 +7982,6 @@ void DR_State::InitFrameTypeTable()
   AddFrameTypeInfo(nsGkAtoms::objectFrame,           "obj",       "object");
   AddFrameTypeInfo(nsGkAtoms::pageFrame,             "page",      "page");
   AddFrameTypeInfo(nsGkAtoms::placeholderFrame,      "place",     "placeholder");
-  AddFrameTypeInfo(nsGkAtoms::positionedInlineFrame, "posInline", "positionedInline");
   AddFrameTypeInfo(nsGkAtoms::canvasFrame,           "canvas",    "canvas");
   AddFrameTypeInfo(nsGkAtoms::rootFrame,             "root",      "root");
   AddFrameTypeInfo(nsGkAtoms::scrollFrame,           "scroll",    "scroll");
