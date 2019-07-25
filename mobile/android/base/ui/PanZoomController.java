@@ -635,8 +635,12 @@ public class PanZoomController
             if (flingingX || flingingY) {
                 mX.displace(); mY.displace();
                 updatePosition();
-                return;
             }
+
+            
+            PointF velocityVector = new PointF(mX.getRealVelocity(), mY.getRealVelocity());
+            if (PointUtils.distance(velocityVector) >= STOPPED_THRESHOLD)
+                return;
 
             
 
@@ -745,6 +749,11 @@ public class PanZoomController
             float excess = getExcess();
             if (excess > 0.0f)
                 velocity *= SNAP_LIMIT - excess / getViewportLength();
+        }
+
+        
+        public float getRealVelocity() {
+            return locked ? 0.0f : velocity;
         }
 
         public void startFling(boolean stopped) {
