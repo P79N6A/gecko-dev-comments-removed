@@ -23,6 +23,10 @@ function test() {
     Services.prefs.clearUserPref("browser.sessionstore.interval");
   });
 
+  waitForSaveState(setup);
+}
+
+function setup() {
   
   
   while (ss.getClosedWindowCount()) {
