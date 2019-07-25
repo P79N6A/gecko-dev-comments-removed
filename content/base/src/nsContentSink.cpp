@@ -291,8 +291,8 @@ nsContentSink::Init(nsIDocument* aDoc,
   if (mDocShell) {
     PRUint32 loadType = 0;
     mDocShell->GetLoadType(&loadType);
-    mDocument->SetChangeScrollPosWhenScrollingToRef(
-      (loadType & nsIDocShell::LOAD_CMD_HISTORY) == 0);
+    mChangeScrollPosWhenScrollingToRef =
+      ((loadType & nsIDocShell::LOAD_CMD_HISTORY) == 0);
   }
 
   
@@ -1235,7 +1235,54 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
 void
 nsContentSink::ScrollToRef()
 {
-  mDocument->ScrollToRef();
+  if (mRef.IsEmpty()) {
+    return;
+  }
+
+  if (mScrolledToRefAlready) {
+    return;
+  }
+
+  char* tmpstr = ToNewCString(mRef);
+  if (!tmpstr) {
+    return;
+  }
+
+  nsUnescape(tmpstr);
+  nsCAutoString unescapedRef;
+  unescapedRef.Assign(tmpstr);
+  nsMemory::Free(tmpstr);
+
+  nsresult rv = NS_ERROR_FAILURE;
+  
+  
+  NS_ConvertUTF8toUTF16 ref(unescapedRef);
+
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
+  if (shell) {
+    
+    if (!ref.IsEmpty()) {
+      
+      rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+    } else {
+      rv = NS_ERROR_FAILURE;
+    }
+
+    
+    
+
+    if (NS_FAILED(rv)) {
+      const nsACString &docCharset = mDocument->GetDocumentCharacterSet();
+
+      rv = nsContentUtils::ConvertStringFromCharset(docCharset, unescapedRef, ref);
+
+      if (NS_SUCCEEDED(rv) && !ref.IsEmpty())
+        rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+    }
+    if (NS_SUCCEEDED(rv)) {
+      mScrolledToRefAlready = PR_TRUE;
+    }
+  }
 }
 
 void
@@ -1285,7 +1332,27 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
   
   
 
-  mDocument->SetScrollToRef(mDocumentURI);
+  if (mDocumentURI) {
+    nsCAutoString ref;
+
+    
+    
+    
+    
+
+    mDocumentURI->GetSpec(ref);
+
+    nsReadingIterator<char> start, end;
+
+    ref.BeginReading(start);
+    ref.EndReading(end);
+
+    if (FindCharInReadable('#', start, end)) {
+      ++start; 
+
+      mRef = Substring(start, end);
+    }
+  }
 }
 
 void
@@ -1672,7 +1739,7 @@ nsContentSink::WillBuildModelImpl()
     mBeginLoadTime = PR_IntervalToMicroseconds(PR_IntervalNow());
   }
 
-  mDocument->ResetScrolledToRefAlready();
+  mScrolledToRefAlready = PR_FALSE;
 
   if (mProcessLinkHeaderEvent.get()) {
     mProcessLinkHeaderEvent.Revoke();
