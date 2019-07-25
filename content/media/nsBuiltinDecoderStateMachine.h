@@ -359,16 +359,7 @@ protected:
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  enum eStopMode {AUDIO_PAUSE, AUDIO_SHUTDOWN};
-  void StopPlayback(eStopMode aMode);
+  void StopPlayback();
 
   
   
@@ -420,12 +411,6 @@ protected:
 
   
   
-  
-  
-  ReentrantMonitor mAudioReentrantMonitor;
-
-  
-  
   PRUint32 mCbCrSize;
 
   
@@ -470,6 +455,7 @@ protected:
   
   PRInt64 mSeekTime;
 
+  
   
   
   
