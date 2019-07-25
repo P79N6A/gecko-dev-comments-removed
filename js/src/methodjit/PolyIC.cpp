@@ -1701,7 +1701,14 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
     if (!obj->getProperty(f.cx, ATOM_TO_JSID(atom), &v))
         THROW();
 
-    if (v.isUndefined())
+    
+
+
+
+
+
+
+    if (v.isUndefined() && pic->usePropCache)
         f.script()->typeMonitorUndefined(f.cx, f.regs.pc, 0);
 
     f.regs.sp[-1] = v;

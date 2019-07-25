@@ -2515,6 +2515,9 @@ obj_create(JSContext *cx, uintN argc, Value *vp)
     vp->setObject(*obj); 
 
     
+    cx->markTypeObjectUnknownProperties(obj->getType());
+
+    
     if (argc > 1 && !vp[3].isUndefined()) {
         if (vp[3].isPrimitive()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
@@ -2842,14 +2845,17 @@ js_CreateThis(JSContext *cx, JSObject *callee)
     JSObject *parent = callee->getParent();
     gc::FinalizeKind kind = NewObjectGCKind(cx, newclasp);
     JSObject *obj = NewObject<WithProto::Class>(cx, newclasp, proto, parent, kind);
-    if (obj)
+    if (obj) {
         obj->syncSpecialEquality();
+        cx->markTypeArrayNotPacked(obj->getType(), true, true);
+    }
     return obj;
 }
 
 JSObject *
 js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *proto)
 {
+    
     gc::FinalizeKind kind = NewObjectGCKind(cx, &js_ObjectClass);
     return NewNonFunction<WithProto::Class>(cx, &js_ObjectClass, proto, callee->getParent(), kind);
 }
@@ -2863,7 +2869,16 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee)
                              &protov)) {
         return NULL;
     }
-    JSObject *proto = protov.isObject() ? &protov.toObject() : NULL;
+    JSObject *proto;
+    if (protov.isObject()) {
+        proto = &protov.toObject();
+        TypeObject *type = proto->getNewType(cx);
+        if (!type)
+            return NULL;
+        cx->markTypeArrayNotPacked(type, true, true);
+    } else {
+        proto = NULL;
+    }
     return js_CreateThisForFunctionWithProto(cx, callee, proto);
 }
 
@@ -2948,6 +2963,10 @@ js_CreateThisFromTrace(JSContext *cx, Class *clasp, JSObject *ctor)
     if (pval.isObject()) {
         
         proto = &pval.toObject();
+        TypeObject *type = proto->getNewType(cx);
+        if (!type)
+            return NULL;
+        cx->markTypeArrayNotPacked(type, true, true);
     } else {
         
         JSObject *objProto;
@@ -4376,6 +4395,7 @@ js_ConstructObject(JSContext *cx, Class *clasp, JSObject *proto, JSObject *paren
         return NULL;
 
     obj->syncSpecialEquality();
+    cx->markTypeObjectUnknownProperties(obj->getType());
 
     Value rval;
     if (!InvokeConstructorWithGivenThis(cx, obj, cval, argc, argv, &rval))

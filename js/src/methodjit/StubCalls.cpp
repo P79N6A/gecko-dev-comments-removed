@@ -2099,8 +2099,7 @@ stubs::GetPropNoCache(VMFrame &f, JSAtom *atom)
     if (!obj->getProperty(cx, ATOM_TO_JSID(atom), vp))
         THROW();
 
-    if (vp->isUndefined())
-        f.script()->typeMonitorUndefined(cx, f.regs.pc, 0);
+    
 }
 
 void JS_FASTCALL
