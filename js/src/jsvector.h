@@ -441,13 +441,6 @@ class Vector : private AllocPolicy
 
 
     void erase(T *t);
-
-    
-
-
-
-    const T *find(const T &v) const;
-    T *find(const T &v);
 };
 
 
@@ -764,24 +757,6 @@ Vector<T,N,AP>::erase(T *it)
         ++it;
     }
     popBack();
-}
-
-template<typename T, size_t N, class AP>
-inline const T *
-Vector<T,N,AP>::find(const T &v) const
-{
-    T *p;
-    for (p = begin(); p != end(); ++p)
-        if (*p == v)
-            break;
-    return p;
-}
-
-template<typename T, size_t N, class AP>
-inline T *
-Vector<T,N,AP>::find(const T &v)
-{
-    return const_cast<T *>(const_cast<const Vector *>(this)->find(v));
 }
 
 template <class T, size_t N, class AP>
