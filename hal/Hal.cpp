@@ -363,6 +363,22 @@ void SetScreenEnabled(bool enabled)
   PROXY_IF_SANDBOXED(SetScreenEnabled(enabled));
 }
 
+bool GetCpuSleepAllowed()
+{
+  
+  
+  
+  
+  AssertMainThread();
+  RETURN_PROXY_IF_SANDBOXED(GetCpuSleepAllowed());
+}
+
+void SetCpuSleepAllowed(bool allowed)
+{
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(SetCpuSleepAllowed(allowed));
+}
+
 double GetScreenBrightness()
 {
   AssertMainThread();
