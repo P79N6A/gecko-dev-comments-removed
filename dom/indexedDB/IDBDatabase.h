@@ -77,7 +77,7 @@ public:
   static already_AddRefed<IDBDatabase>
   Create(nsIScriptContext* aScriptContext,
          nsPIDOMWindow* aOwner,
-         DatabaseInfo* aDatabaseInfo,
+         already_AddRefed<DatabaseInfo> aDatabaseInfo,
          const nsACString& aASCIIOrigin);
 
   
@@ -88,7 +88,10 @@ public:
     return mDatabaseId;
   }
 
-  DatabaseInfo* Info() const;
+  DatabaseInfo* Info() const
+  {
+    return mDatabaseInfo;
+  }
 
   const nsString& Name()
   {
@@ -132,7 +135,7 @@ public:
   
   bool IsInvalidated();
 
-  void CloseInternal();
+  void CloseInternal(bool aIsDead);
 
   
   bool IsClosed();
@@ -146,6 +149,7 @@ private:
 
   void OnUnlink();
 
+  nsRefPtr<DatabaseInfo> mDatabaseInfo;
   nsCOMPtr<nsIAtom> mDatabaseId;
   nsString mName;
   nsString mFilePath;
@@ -154,6 +158,7 @@ private:
   PRInt32 mInvalidated;
   bool mRegistered;
   bool mClosed;
+  bool mRunningVersionChange;
 
   
   nsRefPtr<nsDOMEventListenerWrapper> mOnErrorListener;
