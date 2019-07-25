@@ -2870,8 +2870,8 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-    bool topLevel = tc->atTopLevel();
-    pn->pn_dflags = (lambda || !topLevel) ? PND_FUNARG : 0;
+    bool bodyLevel = tc->atBodyLevel();
+    pn->pn_dflags = (lambda || !bodyLevel) ? PND_FUNARG : 0;
 
     
 
@@ -2899,7 +2899,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
                 }
             }
 
-            if (topLevel) {
+            if (bodyLevel) {
                 ALE_SET_DEFN(ale, pn);
                 pn->pn_defn = true;
                 pn->dn_uses = dn;               
@@ -2907,7 +2907,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
                 if (!MakeDefIntoUse(dn, pn, funAtom, tc))
                     return NULL;
             }
-        } else if (topLevel) {
+        } else if (bodyLevel) {
             
 
 
@@ -2943,7 +2943,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-        if (topLevel && tc->inFunction()) {
+        if (bodyLevel && tc->inFunction()) {
             
 
 
@@ -3103,7 +3103,8 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-        if (!topLevel && lambda == 0 && funAtom)
+
+        if (!bodyLevel && lambda == 0 && funAtom)
             outertc->flags |= TCF_FUN_HEAVYWEIGHT;
     }
 
@@ -3129,7 +3130,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
         result->pn_pos = pn->pn_pos;
         result->pn_kid = pn;
         op = JSOP_LAMBDA;
-    } else if (!topLevel) {
+    } else if (!bodyLevel) {
         
 
 
@@ -3151,8 +3152,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
         pn->pn_body = body;
     }
 
-    if (!outertc->inFunction() && topLevel && funAtom && !lambda &&
-        outertc->compiling()) {
+    if (!outertc->inFunction() && bodyLevel && funAtom && !lambda && outertc->compiling()) {
         JS_ASSERT(pn->pn_cookie.isFree());
         if (!DefineGlobal(pn, outertc->asCodeGenerator(), funAtom))
             return false;
@@ -3276,7 +3276,7 @@ Parser::statements()
     saveBlock = tc->blockNode;
     tc->blockNode = pn;
 
-    bool inDirectivePrologue = tc->atTopLevel();
+    bool inDirectivePrologue = tc->atBodyLevel();
     tokenStream.setOctalCharacterEscape(false);
     for (;;) {
         tt = tokenStream.peekToken(TSF_OPERAND);
@@ -3308,7 +3308,7 @@ Parser::statements()
 
 
 
-            if (tc->atTopLevel())
+            if (tc->atBodyLevel())
                 pn->pn_xflags |= PNX_FUNCDEFS;
             else
                 tc->flags |= TCF_HAS_FUNCTION_STMT;
@@ -3381,7 +3381,7 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
 
-    JS_ASSERT(!tc->atTopLevel());
+    JS_ASSERT(!tc->atBodyLevel());
 
     pn = data->pn;
     if (!CheckStrictBinding(cx, tc, atom, pn))

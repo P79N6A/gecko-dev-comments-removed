@@ -364,8 +364,16 @@ struct JSTreeContext {
     JSObject *blockChain() {
         return blockChainBox ? blockChainBox->object : NULL;
     }
+
     
-    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
+
+
+
+
+
+
+
+    bool atBodyLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
     
     bool inStatement(JSStmtType type);
