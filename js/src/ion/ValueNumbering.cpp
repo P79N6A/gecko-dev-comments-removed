@@ -450,7 +450,10 @@ ValueNumberer::breakClass(MDefinition *def)
         
         if (defdata->classNext == NULL)
             return;
-
+        
+        
+        if (def->congruentTo(defdata->classNext))
+            return;
         
         MDefinition *newRep = defdata->classNext;
 
@@ -469,6 +472,10 @@ ValueNumberer::breakClass(MDefinition *def)
             markConsumers(tmp);
         }
 
+        
+        
+        
+        
         
         values.putNew(newRep, newRep->id());
     } else {
