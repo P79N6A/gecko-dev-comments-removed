@@ -70,23 +70,24 @@ let (ios = Components.classes["@mozilla.org/network/io-service;1"]
 
 
 
-if ("@mozilla.org/toolkit/crash-reporter;1" in Components.classes) {
-  
-  
-  let (crashReporter =
-        Components.classes["@mozilla.org/toolkit/crash-reporter;1"]
-        .getService(Components.interfaces.nsICrashReporter)) {
-    crashReporter.enabled = true;
 
-    try { 
-	let processType = Components.classes["@mozilla.org/xre/runtime;1"].
-	    getService(Components.interfaces.nsIXULRuntime).processType;
-	if (Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT == processType)
-	    crashReporter.minidumpPath = do_get_cwd();
+
+try { 
+  let processType = Components.classes["@mozilla.org/xre/runtime;1"].
+    getService(Components.interfaces.nsIXULRuntime).processType;
+  if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT &&
+      "@mozilla.org/toolkit/crash-reporter;1" in Components.classes) {
+    
+    
+    let (crashReporter =
+          Components.classes["@mozilla.org/toolkit/crash-reporter;1"]
+          .getService(Components.interfaces.nsICrashReporter)) {
+      crashReporter.enabled = true;
+      crashReporter.minidumpPath = do_get_cwd();
     }
-    catch (e) { }
   }
 }
+catch (e) { }
 
 
 function _TimerCallback(func, timer) {
