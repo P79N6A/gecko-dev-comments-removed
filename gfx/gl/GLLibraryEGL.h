@@ -421,13 +421,6 @@ public:
         return b;
     }
 
-    void fImageTargetTexture2DOES(GLenum target, EGLImage image)
-    {
-        BEFORE_GL_CALL;
-        mSymbols.fImageTargetTexture2DOES(target, image);
-        AFTER_GL_CALL;
-    }
-
 
     EGLDisplay Display() {
         return mEGLDisplay;
@@ -542,11 +535,6 @@ public:
         pfnClientWaitSync fClientWaitSync;
         typedef EGLBoolean (GLAPIENTRY * pfnGetSyncAttrib)(EGLDisplay dpy, EGLSync sync, EGLint attribute, EGLint *value);
         pfnGetSyncAttrib fGetSyncAttrib;
-
-        
-        
-        typedef void (GLAPIENTRY * pfnImageTargetTexture2DOES)(GLenum target, EGLImage image);
-        pfnImageTargetTexture2DOES fImageTargetTexture2DOES;
     } mSymbols;
 
 private:
