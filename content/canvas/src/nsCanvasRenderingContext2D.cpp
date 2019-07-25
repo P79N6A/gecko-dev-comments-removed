@@ -2327,8 +2327,7 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     
     
     const nsCSSValue *fsaVal =
-      declaration->GetNormalBlock()->
-        ValueStorageFor(eCSSProperty_font_size_adjust);
+      declaration->GetNormalBlock()->ValueFor(eCSSProperty_font_size_adjust);
     if (!fsaVal || (fsaVal->GetUnit() != eCSSUnit_None &&
                     fsaVal->GetUnit() != eCSSUnit_System_Font)) {
         

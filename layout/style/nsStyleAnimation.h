@@ -53,6 +53,7 @@
 class nsIContent;
 class nsPresContext;
 class nsStyleContext;
+class nsCSSValue;
 struct nsCSSValueList;
 struct nsCSSValuePair;
 struct nsCSSValuePairList;
@@ -190,14 +191,10 @@ public:
 
 
 
-
-
-
-
   static PRBool UncomputeValue(nsCSSProperty aProperty,
                                nsPresContext* aPresContext,
                                const Value& aComputedValue,
-                               void* aSpecifiedValue);
+                               nsCSSValue& aSpecifiedValue);
   static PRBool UncomputeValue(nsCSSProperty aProperty,
                                nsPresContext* aPresContext,
                                const Value& aComputedValue,

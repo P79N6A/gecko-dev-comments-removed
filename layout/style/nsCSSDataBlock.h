@@ -88,24 +88,13 @@ public:
 
 
 
-
-    const void* StorageFor(nsCSSProperty aProperty) const;
-
-    
-
-
-    void* SlotForValue(nsCSSProperty aProperty) {
-      return const_cast<void*>(StorageFor(aProperty));
-    }
+    const nsCSSValue* ValueFor(nsCSSProperty aProperty) const;
 
     
 
 
-
-    const nsCSSValue* ValueStorageFor(nsCSSProperty aProperty) const {
-      NS_ABORT_IF_FALSE(nsCSSProps::kTypeTable[aProperty] == eCSSType_Value,
-                        "type mismatch");
-      return static_cast<const nsCSSValue*>(StorageFor(aProperty));
+    nsCSSValue* SlotForValue(nsCSSProperty aProperty) {
+      return const_cast<nsCSSValue*>(ValueFor(aProperty));
     }
 
     
@@ -124,12 +113,8 @@ public:
 
 
 
+    static PRBool MoveValue(nsCSSValue* aSource, nsCSSValue* aDest);
 
-
-
-
-    static void MoveValue(void *aSource, void *aDest, nsCSSProperty aPropID,
-                          PRBool* aChanged);
 
 private:
     PRInt32 mStyleBits; 
@@ -232,14 +217,12 @@ public:
 
 
 
-
-    void TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
-                           nsCSSProperty aPropID,
-                           PRBool aIsImportant,
-                           PRBool aOverrideImportant,
-                           PRBool aMustCallValueAppended,
-                           mozilla::css::Declaration* aDeclaration,
-                           PRBool* aChanged);
+    PRBool TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+                             nsCSSProperty aPropID,
+                             PRBool aIsImportant,
+                             PRBool aOverrideImportant,
+                             PRBool aMustCallValueAppended,
+                             mozilla::css::Declaration* aDeclaration);
 
     void AssertInitialState() {
 #ifdef DEBUG
@@ -262,13 +245,12 @@ private:
     
 
 
-    void DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
-                             nsCSSProperty aPropID,
-                             PRBool aIsImportant,
-                             PRBool aOverrideImportant,
-                             PRBool aMustCallValueAppended,
-                             mozilla::css::Declaration* aDeclaration,
-                             PRBool* aChanged);
+    PRBool DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+                               nsCSSProperty aPropID,
+                               PRBool aIsImportant,
+                               PRBool aOverrideImportant,
+                               PRBool aMustCallValueAppended,
+                               mozilla::css::Declaration* aDeclaration);
 
 #ifdef DEBUG
     void DoAssertInitialState();
@@ -295,10 +277,10 @@ public:
 
 
 
-
-    void* PropertyAt(nsCSSProperty aProperty) {
+    nsCSSValue* PropertyAt(nsCSSProperty aProperty) {
         size_t offset = nsCSSExpandedDataBlock::kOffsetTable[aProperty];
-        return reinterpret_cast<void*>(reinterpret_cast<char*>(this) + offset);
+        return reinterpret_cast<nsCSSValue*>(reinterpret_cast<char*>(this) +
+                                             offset);
     }
 
     void SetPropertyBit(nsCSSProperty aProperty) {

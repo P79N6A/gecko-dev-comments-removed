@@ -107,7 +107,8 @@ struct nsRuleData
 
 
 
-  void* StorageFor(nsCSSProperty aProperty);
+
+  nsCSSValue* ValueFor(nsCSSProperty aProperty);
 };
 
 #endif
