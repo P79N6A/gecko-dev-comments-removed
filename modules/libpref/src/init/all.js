@@ -786,6 +786,8 @@ pref("network.IDN.whitelist.vn", true);
 
 
 
+pref("network.IDN.whitelist.xn--mgbaam7a8h", true); 
+
 pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
 
 pref("network.IDN.whitelist.xn--p1ai", true);
