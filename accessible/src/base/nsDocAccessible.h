@@ -323,7 +323,7 @@ public:
   
 
 
-  void RecreateAccessible(nsINode* aNode);
+  void RecreateAccessible(nsIContent* aContent);
 
   
 

@@ -204,6 +204,23 @@ public:
       ScheduleProcessing();
   }
 
+  
+
+
+
+
+
+  template<class Class, class Arg>
+  inline void ScheduleNotification(Class* aInstance,
+                                   typename TNotification<Class, Arg>::Callback aMethod,
+                                   Arg* aArg)
+  {
+    nsRefPtr<Notification> notification =
+      new TNotification<Class, Arg>(aInstance, aMethod, aArg);
+    if (notification && mNotifications.AppendElement(notification))
+      ScheduleProcessing();
+  }
+
 protected:
   nsAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD

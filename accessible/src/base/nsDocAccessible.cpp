@@ -1426,63 +1426,22 @@ nsDocAccessible::ContentRemoved(nsIContent* aContainerNode,
 }
 
 void
-nsDocAccessible::RecreateAccessible(nsINode* aNode)
+nsDocAccessible::RecreateAccessible(nsIContent* aContent)
 {
   
   
   
   
 
-  nsAccessible* parent = nsnull;
-
   
-  nsAccessible* oldAccessible =
-    GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
-  if (oldAccessible) {
-    parent = oldAccessible->GetParent();
-
-    nsRefPtr<AccEvent> hideEvent = new AccHideEvent(oldAccessible, aNode);
-    if (hideEvent)
-      FireDelayedAccessibleEvent(hideEvent);
+  nsIContent* parentContent = aContent->GetParent();
+  if (parentContent && parentContent->IsInDoc()) {
+    nsAccessible* container = GetAccessibleOrContainer(parentContent);
 
     
-    parent->RemoveChild(oldAccessible);
-
-    if (oldAccessible->IsPrimaryForNode() &&
-        mNodeToAccessibleMap.Get(oldAccessible->GetNode()) == oldAccessible)
-      mNodeToAccessibleMap.Remove(oldAccessible->GetNode());
-
-  } else {
-    
-    
-    
-    
-    
-    
-    parent = GetContainerAccessible(aNode);
-    if (!parent)
-      return;
-  }
-
-  
-  parent->UpdateChildren();
-
-  nsAccessible* newAccessible =
-    GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
-  if (newAccessible) {
-    nsRefPtr<AccEvent> showEvent = new AccShowEvent(newAccessible, aNode);
-    if (showEvent)
-      FireDelayedAccessibleEvent(showEvent);
-  }
-
-  
-  if (oldAccessible || newAccessible) {
-    nsRefPtr<AccEvent> reorderEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, parent->GetNode(),
-                   eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
-
-    if (reorderEvent)
-      FireDelayedAccessibleEvent(reorderEvent);
+    UpdateTree(container, aContent, PR_FALSE);
+    container->UpdateChildren();
+    UpdateTree(container, aContent, PR_TRUE);
   }
 }
 
@@ -1651,7 +1610,7 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    HandleNotification<nsDocAccessible, nsINode>
+    HandleNotification<nsDocAccessible, nsIContent>
       (this, &nsDocAccessible::RecreateAccessible, aElement);
 
     return true;
@@ -1662,7 +1621,10 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    HandleNotification<nsDocAccessible, nsINode>
+
+    
+    
+    mNotificationController->ScheduleNotification<nsDocAccessible, nsIContent>
       (this, &nsDocAccessible::RecreateAccessible, aElement);
 
     return true;
@@ -1673,7 +1635,7 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     
-    HandleNotification<nsDocAccessible, nsINode>
+    HandleNotification<nsDocAccessible, nsIContent>
       (this, &nsDocAccessible::RecreateAccessible, aElement);
 
     return true;
