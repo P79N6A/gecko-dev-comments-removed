@@ -163,6 +163,8 @@ js_AtomizeString(JSContext *cx, JSString *str, js::InternBehavior ib = js::DoNot
 
 
 
+
+
 class JSString : public js::gc::Cell
 {
   protected:
@@ -726,6 +728,16 @@ class StaticStrings
     JSAtom *getLength2(jschar c1, jschar c2);
     JSAtom *getLength2(uint32 i);
 };
+
+
+
+
+
+
+
+
+
+
 
 
 
