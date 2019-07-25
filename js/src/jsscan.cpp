@@ -375,7 +375,7 @@ TokenStream::ungetCharIgnoreEOL(int32 c)
 
 
 
-JSBool
+bool
 TokenStream::peekChars(intN n, jschar *cp)
 {
     intN i, j;
@@ -433,7 +433,7 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
     uintN i;
 
     if (JSREPORT_IS_STRICT(flags) && !cx->hasStrictOption())
-        return JS_TRUE;
+        return true;
 
     warning = JSREPORT_IS_WARNING(flags);
     if (warning && cx->hasWErrorOption()) {
@@ -595,7 +595,7 @@ js::ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, JSParseNode *pn,
 
 #if JS_HAS_XML_SUPPORT
 
-JSBool
+bool
 TokenStream::getXMLEntity()
 {
     ptrdiff_t offset, length, i;
@@ -610,21 +610,21 @@ TokenStream::getXMLEntity()
     
     offset = tb.length();
     if (!tb.append('&'))
-        return JS_FALSE;
+        return false;
     while ((c = getChar()) != ';') {
         if (c == EOF || c == '\n') {
             ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_END_OF_XML_ENTITY);
-            return JS_FALSE;
+            return false;
         }
         if (!tb.append(c))
-            return JS_FALSE;
+            return false;
     }
 
     
     length = tb.length() - offset;
     bp = tb.begin() + offset;
     c = d = 0;
-    ispair = JS_FALSE;
+    ispair = false;
     if (length > 2 && bp[1] == '#') {
         
         i = 2;
@@ -652,7 +652,7 @@ TokenStream::getXMLEntity()
             
             d = 0xDC00 + (c & 0x3FF);
             c = 0xD7C0 + (c >> 10);
-            ispair = JS_TRUE;
+            ispair = true;
         } else {
             
             if (c != 0x9 && c != 0xA && c != 0xD &&
@@ -696,7 +696,7 @@ TokenStream::getXMLEntity()
     if (ispair)
         *bp++ = (jschar) d;
     tb.shrinkBy(tb.end() - bp);
-    return JS_TRUE;
+    return true;
 
   badncr:
     msg = JSMSG_BAD_XML_NCR;
@@ -708,145 +708,17 @@ TokenStream::getXMLEntity()
         ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, msg, bytes);
         cx->free_(bytes);
     }
-    return JS_FALSE;
-}
-
-#endif 
-
-
-
-
-
-
-
-bool
-TokenStream::peekUnicodeEscape(int *result)
-{
-    jschar cp[5];
-
-    if (peekChars(5, cp) && cp[0] == 'u' &&
-        JS7_ISHEX(cp[1]) && JS7_ISHEX(cp[2]) &&
-        JS7_ISHEX(cp[3]) && JS7_ISHEX(cp[4]))
-    {
-        *result = (((((JS7_UNHEX(cp[1]) << 4)
-                + JS7_UNHEX(cp[2])) << 4)
-              + JS7_UNHEX(cp[3])) << 4)
-            + JS7_UNHEX(cp[4]);
-        return true;
-    }
     return false;
 }
 
 bool
-TokenStream::matchUnicodeEscapeIdStart(int32 *cp)
-{
-    if (peekUnicodeEscape(cp) && JS_ISIDSTART(*cp)) {
-        skipChars(5);
-        return true;
-    }
-    return false;
-}
-
-bool
-TokenStream::matchUnicodeEscapeIdent(int32 *cp)
-{
-    if (peekUnicodeEscape(cp) && JS_ISIDENT(*cp)) {
-        skipChars(5);
-        return true;
-    }
-    return false;
-}
-
-Token *
-TokenStream::newToken(ptrdiff_t adjust)
-{
-    cursor = (cursor + 1) & ntokensMask;
-    Token *tp = &tokens[cursor];
-    tp->ptr = userbuf.addressOfNextRawChar() + adjust;
-    tp->pos.begin.index = tp->ptr - linebase;
-    tp->pos.begin.lineno = tp->pos.end.lineno = lineno;
-    return tp;
-}
-
-JS_ALWAYS_INLINE JSAtom *
-TokenStream::atomize(JSContext *cx, CharBuffer &cb)
-{
-    return js_AtomizeChars(cx, cb.begin(), cb.length(), 0);
-}
-
-#ifdef DEBUG
-bool
-IsTokenSane(Token *tp)
-{
-    
-
-
-
-    if (tp->type < TOK_ERROR || tp->type >= TOK_LIMIT || tp->type == TOK_EOL)
-        return false;
-
-    if (tp->pos.begin.lineno == tp->pos.end.lineno) {
-        if (tp->pos.begin.index > tp->pos.end.index)
-            return false;
-    } else {
-        
-        switch (tp->type) {
-          case TOK_STRING:
-          case TOK_XMLATTR:
-          case TOK_XMLSPACE:
-          case TOK_XMLTEXT:
-          case TOK_XMLCOMMENT:
-          case TOK_XMLCDATA:
-          case TOK_XMLPI:
-            break;
-          default:
-            return false;
-        }
-    }
-    return true;
-}
-#endif
-
-bool
-TokenStream::putIdentInTokenbuf(const jschar *identStart)
-{
-    int32 c, qc;
-    const jschar *tmp = userbuf.addressOfNextRawChar(); 
-    userbuf.setAddressOfNextRawChar(identStart);
-
-    tokenbuf.clear();
-    for (;;) {
-        c = getCharIgnoreEOL();
-        if (!JS_ISIDENT(c)) {
-            if (c != '\\' || !matchUnicodeEscapeIdent(&qc))
-                break;
-            c = qc;
-        }
-        if (!tokenbuf.append(c)) {
-            userbuf.setAddressOfNextRawChar(tmp);
-            return false;
-        }
-    }
-    userbuf.setAddressOfNextRawChar(tmp);
-    return true;
-}
-
-TokenKind
-TokenStream::getTokenInternal()
+TokenStream::getXMLTextOrTag(TokenKind *ttp, Token **tpp)
 {
     TokenKind tt;
     int c, qc;
     Token *tp;
     JSAtom *atom;
-    bool hadUnicodeEscape;
-    const jschar *numStart;
-#if JS_HAS_XML_SUPPORT
-    JSBool inTarget;
-    size_t targetLength;
-    ptrdiff_t contentIndex;
-#endif
 
-#if JS_HAS_XML_SUPPORT
     
 
 
@@ -887,7 +759,8 @@ TokenStream::getTokenInternal()
     
 
 
-    if (flags & TSF_XMLTAGMODE) {
+    else {
+        JS_ASSERT(flags & TSF_XMLTAGMODE);
         tp = newToken(0);
         c = getChar();
         if (JS_ISXMLSPACE(c)) {
@@ -1008,9 +881,388 @@ TokenStream::getTokenInternal()
             ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_BAD_XML_CHARACTER);
             goto error;
         }
-        
+        JS_NOT_REACHED("getXMLTextOrTag 1");
     }
+    JS_NOT_REACHED("getXMLTextOrTag 2");
+
+  out:
+    *ttp = tt;
+    *tpp = tp;
+    return true;
+
+  error:
+    *ttp = TOK_ERROR;
+    *tpp = tp;
+    return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+TokenStream::getXMLMarkup(TokenKind *ttp, Token **tpp)
+{
+    TokenKind tt;
+    int c;
+    Token *tp = *tpp;
+    JSAtom *atom;
+    JSBool inTarget;
+    size_t targetLength;
+    ptrdiff_t contentIndex;
+
+    
+    if (matchChar('!')) {
+        tokenbuf.clear();
+
+        
+        if (matchChar('-')) {
+            if (!matchChar('-'))
+                goto bad_xml_markup;
+            while ((c = getChar()) != '-' || !matchChar('-')) {
+                if (c == EOF)
+                    goto bad_xml_markup;
+                if (!tokenbuf.append(c))
+                    goto error;
+            }
+            tt = TOK_XMLCOMMENT;
+            tp->t_op = JSOP_XMLCOMMENT;
+            goto finish_xml_markup;
+        }
+
+        
+        if (matchChar('[')) {
+            jschar cp[6];
+            if (peekChars(6, cp) &&
+                cp[0] == 'C' &&
+                cp[1] == 'D' &&
+                cp[2] == 'A' &&
+                cp[3] == 'T' &&
+                cp[4] == 'A' &&
+                cp[5] == '[') {
+                skipChars(6);
+                while ((c = getChar()) != ']' ||
+                       !peekChars(2, cp) ||
+                       cp[0] != ']' ||
+                       cp[1] != '>') {
+                    if (c == EOF)
+                        goto bad_xml_markup;
+                    if (!tokenbuf.append(c))
+                        goto error;
+                }
+                getChar();            
+                tt = TOK_XMLCDATA;
+                tp->t_op = JSOP_XMLCDATA;
+                goto finish_xml_markup;
+            }
+            goto bad_xml_markup;
+        }
+    }
+
+    
+    if (matchChar('?')) {
+        inTarget = JS_TRUE;
+        targetLength = 0;
+        contentIndex = -1;
+
+        tokenbuf.clear();
+        while ((c = getChar()) != '?' || peekChar() != '>') {
+            if (c == EOF)
+                goto bad_xml_markup;
+            if (inTarget) {
+                if (JS_ISXMLSPACE(c)) {
+                    if (tokenbuf.empty())
+                        goto bad_xml_markup;
+                    inTarget = JS_FALSE;
+                } else {
+                    if (!(tokenbuf.empty()
+                          ? JS_ISXMLNSSTART(c)
+                          : JS_ISXMLNS(c))) {
+                        goto bad_xml_markup;
+                    }
+                    ++targetLength;
+                }
+            } else {
+                if (contentIndex < 0 && !JS_ISXMLSPACE(c))
+                    contentIndex = tokenbuf.length();
+            }
+            if (!tokenbuf.append(c))
+                goto error;
+        }
+        if (targetLength == 0)
+            goto bad_xml_markup;
+        if (contentIndex < 0) {
+            atom = cx->runtime->atomState.emptyAtom;
+        } else {
+            atom = js_AtomizeChars(cx, tokenbuf.begin() + contentIndex,
+                                   tokenbuf.length() - contentIndex, 0);
+            if (!atom)
+                goto error;
+        }
+        tokenbuf.shrinkBy(tokenbuf.length() - targetLength);
+        tp->t_atom2 = atom;
+        tt = TOK_XMLPI;
+
+  finish_xml_markup:
+        if (!matchChar('>'))
+            goto bad_xml_markup;
+        atom = atomize(cx, tokenbuf);
+        if (!atom)
+            goto error;
+        tp->t_atom = atom;
+        tp->pos.end.lineno = lineno;
+        goto out;
+    }
+
+    
+    tt = matchChar('/') ? TOK_XMLETAGO : TOK_XMLSTAGO;
+
+  out:
+    *ttp = tt;
+    *tpp = tp;
+    return true;
+
+  bad_xml_markup:
+    ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_BAD_XML_MARKUP);
+  error:
+    *ttp = TOK_ERROR;
+    *tpp = tp;
+    return false;
+}
 #endif 
+
+
+
+
+
+
+
+bool
+TokenStream::peekUnicodeEscape(int *result)
+{
+    jschar cp[5];
+
+    if (peekChars(5, cp) && cp[0] == 'u' &&
+        JS7_ISHEX(cp[1]) && JS7_ISHEX(cp[2]) &&
+        JS7_ISHEX(cp[3]) && JS7_ISHEX(cp[4]))
+    {
+        *result = (((((JS7_UNHEX(cp[1]) << 4)
+                + JS7_UNHEX(cp[2])) << 4)
+              + JS7_UNHEX(cp[3])) << 4)
+            + JS7_UNHEX(cp[4]);
+        return true;
+    }
+    return false;
+}
+
+bool
+TokenStream::matchUnicodeEscapeIdStart(int32 *cp)
+{
+    if (peekUnicodeEscape(cp) && JS_ISIDSTART(*cp)) {
+        skipChars(5);
+        return true;
+    }
+    return false;
+}
+
+bool
+TokenStream::matchUnicodeEscapeIdent(int32 *cp)
+{
+    if (peekUnicodeEscape(cp) && JS_ISIDENT(*cp)) {
+        skipChars(5);
+        return true;
+    }
+    return false;
+}
+
+bool
+TokenStream::getAtLine()
+{
+    int c;
+    jschar cp[5];
+    uintN i, line, temp;
+    char filenameBuf[1024];
+
+    
+
+
+
+
+    if (peekChars(5, cp) &&
+        cp[0] == '@' &&
+        cp[1] == 'l' &&
+        cp[2] == 'i' &&
+        cp[3] == 'n' &&
+        cp[4] == 'e') {
+        skipChars(5);
+        while ((c = getChar()) != '\n' && JS_ISSPACE_OR_BOM((jschar)c))
+            continue;
+        if (JS7_ISDEC(c)) {
+            line = JS7_UNDEC(c);
+            while ((c = getChar()) != EOF && JS7_ISDEC(c)) {
+                temp = 10 * line + JS7_UNDEC(c);
+                if (temp < line) {
+                    
+                    return true;
+                }
+                line = temp;
+            }
+            while (c != '\n' && JS_ISSPACE_OR_BOM((jschar)c))
+                c = getChar();
+            i = 0;
+            if (c == '"') {
+                while ((c = getChar()) != EOF && c != '"') {
+                    if (c == '\n') {
+                        ungetChar(c);
+                        return true;
+                    }
+                    if ((c >> 8) != 0 || i >= sizeof filenameBuf - 1)
+                        return true;
+                    filenameBuf[i++] = (char) c;
+                }
+                if (c == '"') {
+                    while ((c = getChar()) != '\n' &&
+                           JS_ISSPACE_OR_BOM((jschar)c)) {
+                        continue;
+                    }
+                }
+            }
+            filenameBuf[i] = '\0';
+            if (c == EOF || c == '\n') {
+                if (i > 0) {
+                    if (flags & TSF_OWNFILENAME)
+                        cx->free_((void *) filename);
+                    filename = JS_strdup(cx, filenameBuf);
+                    if (!filename)
+                        return false;
+                    flags |= TSF_OWNFILENAME;
+                }
+                lineno = line;
+            }
+        }
+        ungetChar(c);
+    }
+    return true;
+}
+
+Token *
+TokenStream::newToken(ptrdiff_t adjust)
+{
+    cursor = (cursor + 1) & ntokensMask;
+    Token *tp = &tokens[cursor];
+    tp->ptr = userbuf.addressOfNextRawChar() + adjust;
+    tp->pos.begin.index = tp->ptr - linebase;
+    tp->pos.begin.lineno = tp->pos.end.lineno = lineno;
+    return tp;
+}
+
+JS_ALWAYS_INLINE JSAtom *
+TokenStream::atomize(JSContext *cx, CharBuffer &cb)
+{
+    return js_AtomizeChars(cx, cb.begin(), cb.length(), 0);
+}
+
+#ifdef DEBUG
+bool
+IsTokenSane(Token *tp)
+{
+    
+
+
+
+    if (tp->type < TOK_ERROR || tp->type >= TOK_LIMIT || tp->type == TOK_EOL)
+        return false;
+
+    if (tp->pos.begin.lineno == tp->pos.end.lineno) {
+        if (tp->pos.begin.index > tp->pos.end.index)
+            return false;
+    } else {
+        
+        switch (tp->type) {
+          case TOK_STRING:
+          case TOK_XMLATTR:
+          case TOK_XMLSPACE:
+          case TOK_XMLTEXT:
+          case TOK_XMLCOMMENT:
+          case TOK_XMLCDATA:
+          case TOK_XMLPI:
+            break;
+          default:
+            return false;
+        }
+    }
+    return true;
+}
+#endif
+
+bool
+TokenStream::putIdentInTokenbuf(const jschar *identStart)
+{
+    int32 c, qc;
+    const jschar *tmp = userbuf.addressOfNextRawChar(); 
+    userbuf.setAddressOfNextRawChar(identStart);
+
+    tokenbuf.clear();
+    for (;;) {
+        c = getCharIgnoreEOL();
+        if (!JS_ISIDENT(c)) {
+            if (c != '\\' || !matchUnicodeEscapeIdent(&qc))
+                break;
+            c = qc;
+        }
+        if (!tokenbuf.append(c)) {
+            userbuf.setAddressOfNextRawChar(tmp);
+            return false;
+        }
+    }
+    userbuf.setAddressOfNextRawChar(tmp);
+    return true;
+}
+
+TokenKind
+TokenStream::getTokenInternal()
+{
+    TokenKind tt;
+    int c, qc;
+    Token *tp;
+    bool hadUnicodeEscape;
+    const jschar *numStart;
+
+#if JS_HAS_XML_SUPPORT
+    
+
+
+    if (flags & (TSF_XMLTEXTMODE|TSF_XMLTAGMODE)) {
+        if (!getXMLTextOrTag(&tt, &tp))
+            goto error;
+        goto out;
+    }
+#endif
 
   retry:
     
@@ -1109,6 +1361,7 @@ TokenStream::getTokenInternal()
 
 
 
+        JSAtom *atom;
         if (!hadUnicodeEscape)
             atom = js_AtomizeChars(cx, identStart, userbuf.addressOfNextRawChar() - identStart, 0);
         else if (putIdentInTokenbuf(identStart))
@@ -1332,7 +1585,7 @@ TokenStream::getTokenInternal()
             if (!tokenbuf.append(c))
                 goto error;
         }
-        atom = atomize(cx, tokenbuf);
+        JSAtom *atom = atomize(cx, tokenbuf);
         if (!atom)
             goto error;
         tp->pos.end.lineno = lineno;
@@ -1429,148 +1682,12 @@ TokenStream::getTokenInternal()
 
       case '<':
 #if JS_HAS_XML_SUPPORT
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         if ((flags & TSF_OPERAND) && (hasXML() || peekChar() != '!')) {
-            
-            if (matchChar('!')) {
-                tokenbuf.clear();
-
-                
-                if (matchChar('-')) {
-                    if (!matchChar('-'))
-                        goto bad_xml_markup;
-                    while ((c = getChar()) != '-' || !matchChar('-')) {
-                        if (c == EOF)
-                            goto bad_xml_markup;
-                        if (!tokenbuf.append(c))
-                            goto error;
-                    }
-                    tt = TOK_XMLCOMMENT;
-                    tp->t_op = JSOP_XMLCOMMENT;
-                    goto finish_xml_markup;
-                }
-
-                
-                if (matchChar('[')) {
-                    jschar cp[6];
-                    if (peekChars(6, cp) &&
-                        cp[0] == 'C' &&
-                        cp[1] == 'D' &&
-                        cp[2] == 'A' &&
-                        cp[3] == 'T' &&
-                        cp[4] == 'A' &&
-                        cp[5] == '[') {
-                        skipChars(6);
-                        while ((c = getChar()) != ']' ||
-                               !peekChars(2, cp) ||
-                               cp[0] != ']' ||
-                               cp[1] != '>') {
-                            if (c == EOF)
-                                goto bad_xml_markup;
-                            if (!tokenbuf.append(c))
-                                goto error;
-                        }
-                        getChar();            
-                        tt = TOK_XMLCDATA;
-                        tp->t_op = JSOP_XMLCDATA;
-                        goto finish_xml_markup;
-                    }
-                    goto bad_xml_markup;
-                }
-            }
-
-            
-            if (matchChar('?')) {
-                inTarget = JS_TRUE;
-                targetLength = 0;
-                contentIndex = -1;
-
-                tokenbuf.clear();
-                while ((c = getChar()) != '?' || peekChar() != '>') {
-                    if (c == EOF)
-                        goto bad_xml_markup;
-                    if (inTarget) {
-                        if (JS_ISXMLSPACE(c)) {
-                            if (tokenbuf.empty())
-                                goto bad_xml_markup;
-                            inTarget = JS_FALSE;
-                        } else {
-                            if (!(tokenbuf.empty()
-                                  ? JS_ISXMLNSSTART(c)
-                                  : JS_ISXMLNS(c))) {
-                                goto bad_xml_markup;
-                            }
-                            ++targetLength;
-                        }
-                    } else {
-                        if (contentIndex < 0 && !JS_ISXMLSPACE(c))
-                            contentIndex = tokenbuf.length();
-                    }
-                    if (!tokenbuf.append(c))
-                        goto error;
-                }
-                if (targetLength == 0)
-                    goto bad_xml_markup;
-                if (contentIndex < 0) {
-                    atom = cx->runtime->atomState.emptyAtom;
-                } else {
-                    atom = js_AtomizeChars(cx, tokenbuf.begin() + contentIndex,
-                                           tokenbuf.length() - contentIndex, 0);
-                    if (!atom)
-                        goto error;
-                }
-                tokenbuf.shrinkBy(tokenbuf.length() - targetLength);
-                tp->t_atom2 = atom;
-                tt = TOK_XMLPI;
-
-        finish_xml_markup:
-                if (!matchChar('>'))
-                    goto bad_xml_markup;
-                atom = atomize(cx, tokenbuf);
-                if (!atom)
-                    goto error;
-                tp->t_atom = atom;
-                tp->pos.end.lineno = lineno;
-                goto out;
-            }
-
-            
-            tt = matchChar('/') ? TOK_XMLETAGO : TOK_XMLSTAGO;
+            if (!getXMLMarkup(&tt, &tp))
+                goto error;
             goto out;
-
-        bad_xml_markup:
-            ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_BAD_XML_MARKUP);
-            goto error;
         }
-#endif 
+#endif
 
         
         if (matchChar('!')) {
@@ -1608,72 +1725,12 @@ TokenStream::getTokenInternal()
         break;
 
       case '/':
+        
+
+
         if (matchChar('/')) {
-            
-
-
-
-
-            if (cx->hasAtLineOption()) {
-                jschar cp[5];
-                uintN i, line, temp;
-                char filenameBuf[1024];
-
-                if (peekChars(5, cp) &&
-                    cp[0] == '@' &&
-                    cp[1] == 'l' &&
-                    cp[2] == 'i' &&
-                    cp[3] == 'n' &&
-                    cp[4] == 'e') {
-                    skipChars(5);
-                    while ((c = getChar()) != '\n' && JS_ISSPACE_OR_BOM((jschar)c))
-                        continue;
-                    if (JS7_ISDEC(c)) {
-                        line = JS7_UNDEC(c);
-                        while ((c = getChar()) != EOF && JS7_ISDEC(c)) {
-                            temp = 10 * line + JS7_UNDEC(c);
-                            if (temp < line) {
-                                
-                                goto skipline;
-                            }
-                            line = temp;
-                        }
-                        while (c != '\n' && JS_ISSPACE_OR_BOM((jschar)c))
-                            c = getChar();
-                        i = 0;
-                        if (c == '"') {
-                            while ((c = getChar()) != EOF && c != '"') {
-                                if (c == '\n') {
-                                    ungetChar(c);
-                                    goto skipline;
-                                }
-                                if ((c >> 8) != 0 || i >= sizeof filenameBuf - 1)
-                                    goto skipline;
-                                filenameBuf[i++] = (char) c;
-                            }
-                            if (c == '"') {
-                                while ((c = getChar()) != '\n' &&
-                                       JS_ISSPACE_OR_BOM((jschar)c)) {
-                                    continue;
-                                }
-                            }
-                        }
-                        filenameBuf[i] = '\0';
-                        if (c == EOF || c == '\n') {
-                            if (i > 0) {
-                                if (flags & TSF_OWNFILENAME)
-                                    cx->free_((void *) filename);
-                                filename = JS_strdup(cx, filenameBuf);
-                                if (!filename)
-                                    goto error;
-                                flags |= TSF_OWNFILENAME;
-                            }
-                            lineno = line;
-                        }
-                    }
-                    ungetChar(c);
-                }
-            }
+            if (cx->hasAtLineOption() && !getAtLine())
+                goto error;
 
   skipline:
             
@@ -1690,6 +1747,9 @@ TokenStream::getTokenInternal()
             cursor = (cursor - 1) & ntokensMask;
             goto retry;
         }
+
+        
+
 
         if (matchChar('*')) {
             uintN linenoBefore = lineno;
@@ -1709,6 +1769,9 @@ TokenStream::getTokenInternal()
             cursor = (cursor - 1) & ntokensMask;
             goto retry;
         }
+
+        
+
 
         if (flags & TSF_OPERAND) {
             uintN reflags, length;
@@ -1848,11 +1911,9 @@ TokenStream::getTokenInternal()
             goto badchar;
         break;
       }
-#endif 
 
-#if JS_HAS_SHARP_VARS || JS_HAS_XML_SUPPORT
       badchar:
-#endif
+#endif 
 
       default:
         ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_ILLEGAL_CHARACTER);
