@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if !defined(MediaResource_h_)
 #define MediaResource_h_
 
@@ -15,14 +47,13 @@
 #include "nsIChannelEventSink.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsMediaCache.h"
-#include "mozilla/Attributes.h"
 
 
 
 
-static const int64_t SEEK_VS_READ_THRESHOLD = 32*1024;
+static const PRInt64 SEEK_VS_READ_THRESHOLD = 32*1024;
 
-static const uint32_t HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
+static const PRUint32 HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
 
 class nsMediaDecoder;
 
@@ -62,7 +93,7 @@ public:
     mAccumulatedTime += aNow - mLastStartTime;
     mIsStarted = false;
   }
-  void AddBytes(int64_t aBytes) {
+  void AddBytes(PRInt64 aBytes) {
     if (!mIsStarted) {
       
       
@@ -89,7 +120,7 @@ public:
     return static_cast<double>(mAccumulatedBytes)/seconds;
   }
 private:
-  int64_t      mAccumulatedBytes;
+  PRInt64      mAccumulatedBytes;
   TimeDuration mAccumulatedTime;
   TimeStamp    mLastStartTime;
   bool         mIsStarted;
@@ -101,7 +132,7 @@ class MediaByteRange {
 public:
   MediaByteRange() : mStart(0), mEnd(0) {}
 
-  MediaByteRange(int64_t aStart, int64_t aEnd)
+  MediaByteRange(PRInt64 aStart, PRInt64 aEnd)
     : mStart(aStart), mEnd(aEnd)
   {
     NS_ASSERTION(mStart < mEnd, "Range should end after start!");
@@ -111,7 +142,7 @@ public:
     return mStart == 0 && mEnd == 0;
   }
 
-  int64_t mStart, mEnd;
+  PRInt64 mStart, mEnd;
 };
 
 
@@ -163,12 +194,6 @@ public:
   
   
   
-  
-  
-  virtual bool CanClone() { return false; }
-  
-  
-  
   virtual MediaResource* CloneData(nsMediaDecoder* aDecoder) = 0;
 
   
@@ -177,21 +202,14 @@ public:
   
   
   
-  virtual void SetPlaybackRate(uint32_t aBytesPerSecond) = 0;
+  virtual void SetPlaybackRate(PRUint32 aBytesPerSecond) = 0;
   
   
   
   
   
   
-  virtual nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes) = 0;
-  
-  
-  
-  
-  
-  
-  
+  virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes) = 0;
   
   
   
@@ -211,11 +229,16 @@ public:
   
   
   
-  virtual nsresult Seek(int32_t aWhence, int64_t aOffset) = 0;
-  virtual void StartSeekingForMetadata() = 0;
-  virtual void EndSeekingForMetadata() = 0;
   
-  virtual int64_t Tell() = 0;
+  
+  
+  
+  
+  
+  
+  virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset) = 0;
+  
+  virtual PRInt64 Tell() = 0;
   
   
   
@@ -239,16 +262,16 @@ public:
   
   
   
-  virtual int64_t GetLength() = 0;
+  virtual PRInt64 GetLength() = 0;
   
   
-  virtual int64_t GetNextCachedData(int64_t aOffset) = 0;
+  virtual PRInt64 GetNextCachedData(PRInt64 aOffset) = 0;
   
   
-  virtual int64_t GetCachedDataEnd(int64_t aOffset) = 0;
+  virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset) = 0;
   
   
-  virtual bool IsDataCachedToEndOfResource(int64_t aOffset) = 0;
+  virtual bool IsDataCachedToEndOfResource(PRInt64 aOffset) = 0;
   
   
   
@@ -267,8 +290,8 @@ public:
   
   
   virtual nsresult ReadFromCache(char* aBuffer,
-                                 int64_t aOffset,
-                                 uint32_t aCount) = 0;
+                                 PRInt64 aOffset,
+                                 PRUint32 aCount) = 0;
 
   
 
@@ -346,8 +369,6 @@ public:
   
   
   void CacheClientNotifyDataEnded(nsresult aStatus);
-  
-  void CacheClientNotifyPrincipalChanged();
 
   
   
@@ -356,7 +377,7 @@ public:
   
   
   
-  nsresult CacheClientSeek(int64_t aOffset, bool aResume);
+  nsresult CacheClientSeek(PRInt64 aOffset, bool aResume);
   
   nsresult CacheClientSuspend();
   
@@ -370,34 +391,31 @@ public:
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
   bool IsClosed() const { return mCacheStream.IsClosed(); }
-  virtual bool     CanClone();
   virtual MediaResource* CloneData(nsMediaDecoder* aDecoder);
-  virtual nsresult ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount);
+  virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
   virtual void     EnsureCacheUpToDate();
 
   
   virtual void     SetReadMode(nsMediaCacheStream::ReadMode aMode);
-  virtual void     SetPlaybackRate(uint32_t aBytesPerSecond);
-  virtual nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
-  virtual nsresult Seek(int32_t aWhence, int64_t aOffset);
-  virtual void     StartSeekingForMetadata();
-  virtual void     EndSeekingForMetadata();
-  virtual int64_t  Tell();
+  virtual void     SetPlaybackRate(PRUint32 aBytesPerSecond);
+  virtual nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
+  virtual nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
+  virtual PRInt64  Tell();
 
   
   virtual void    Pin();
   virtual void    Unpin();
   virtual double  GetDownloadRate(bool* aIsReliable);
-  virtual int64_t GetLength();
-  virtual int64_t GetNextCachedData(int64_t aOffset);
-  virtual int64_t GetCachedDataEnd(int64_t aOffset);
-  virtual bool    IsDataCachedToEndOfResource(int64_t aOffset);
+  virtual PRInt64 GetLength();
+  virtual PRInt64 GetNextCachedData(PRInt64 aOffset);
+  virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset);
+  virtual bool    IsDataCachedToEndOfResource(PRInt64 aOffset);
   virtual bool    IsSuspendedByCache(MediaResource** aActiveResource);
   virtual bool    IsSuspended();
 
-  class Listener MOZ_FINAL : public nsIStreamListener,
-                             public nsIInterfaceRequestor,
-                             public nsIChannelEventSink
+  class Listener : public nsIStreamListener,
+                   public nsIInterfaceRequestor,
+                   public nsIChannelEventSink
   {
   public:
     Listener(ChannelMediaResource* aResource) : mResource(aResource) {}
@@ -408,7 +426,7 @@ public:
     NS_DECL_NSICHANNELEVENTSINK
     NS_DECL_NSIINTERFACEREQUESTOR
 
-    void Revoke() { mResource = nullptr; }
+    void Revoke() { mResource = nsnull; }
 
   private:
     ChannelMediaResource* mResource;
@@ -423,8 +441,8 @@ protected:
   nsresult OnStopRequest(nsIRequest* aRequest, nsresult aStatus);
   nsresult OnDataAvailable(nsIRequest* aRequest,
                            nsIInputStream* aStream,
-                           uint32_t aCount);
-  nsresult OnChannelRedirect(nsIChannel* aOld, nsIChannel* aNew, uint32_t aFlags);
+                           PRUint32 aCount);
+  nsresult OnChannelRedirect(nsIChannel* aOld, nsIChannel* aNew, PRUint32 aFlags);
 
   
   
@@ -440,9 +458,9 @@ protected:
   static NS_METHOD CopySegmentToCache(nsIInputStream *aInStream,
                                       void *aClosure,
                                       const char *aFromSegment,
-                                      uint32_t aToOffset,
-                                      uint32_t aCount,
-                                      uint32_t *aWriteCount);
+                                      PRUint32 aToOffset,
+                                      PRUint32 aCount,
+                                      PRUint32 *aWriteCount);
 
   
   
@@ -453,12 +471,12 @@ protected:
   void PossiblyResume();
 
   
-  int64_t            mOffset;
+  PRInt64            mOffset;
   nsRefPtr<Listener> mListener;
   
   
   nsRevocableEventPtr<nsRunnableMethod<ChannelMediaResource, void, false> > mDataReceivedEvent;
-  uint32_t           mSuspendCount;
+  PRUint32           mSuspendCount;
   
   
   bool               mReopenOnError;
@@ -477,9 +495,6 @@ protected:
   
   
   bool mIgnoreResume;
-
-  
-  bool mSeekingForMetadata;
 };
 
 }

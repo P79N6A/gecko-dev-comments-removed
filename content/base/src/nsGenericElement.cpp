@@ -86,6 +86,7 @@
 #include "nsMutationEvent.h"
 #include "nsNodeUtils.h"
 #include "nsDocument.h"
+#include "nsAttrValueOrString.h"
 #ifdef MOZ_XUL
 #include "nsXULElement.h"
 #endif 
@@ -212,9 +213,16 @@ nsINode::nsSlots::Unlink()
 
 
 
+nsINode *nsINode::sOrphanNodeHead = nsnull;
+
 nsINode::~nsINode()
 {
   NS_ASSERTION(!HasSlots(), "nsNodeUtils::LastRelease was not called?");
+
+  MOZ_ASSERT(IsOrphan(), "Node should be orphan by the time it's deleted!");
+
+  mPreviousOrphanNode->mNextOrphanNode = mNextOrphanNode;
+  mNextOrphanNode->mPreviousOrphanNode = mPreviousOrphanNode;
 }
 
 void*
@@ -3227,7 +3235,7 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
 
   
   UnsetFlags(NODE_FORCE_XBL_BINDINGS);
-  
+
 #ifdef MOZ_XUL
   nsXULElement* xulElem = nsXULElement::FromContent(this);
   if (xulElem) {
@@ -3819,6 +3827,21 @@ NS_IMETHODIMP
 nsGenericElement::SetTextContent(const nsAString& aTextContent)
 {
   return nsContentUtils::SetNodeTextContent(this, aTextContent, false);
+}
+
+
+void
+nsINode::Init()
+{
+  
+  static MOZ_ALIGNED_DECL(char orphanNodeListHead[sizeof(nsINode)], 8);
+  sOrphanNodeHead = reinterpret_cast<nsINode *>(&orphanNodeListHead[0]);
+
+  sOrphanNodeHead->mNextOrphanNode = sOrphanNodeHead;
+  sOrphanNodeHead->mPreviousOrphanNode = sOrphanNodeHead;
+
+  sOrphanNodeHead->mFirstChild = reinterpret_cast<nsIContent *>(0xdeadbeef);
+  sOrphanNodeHead->mParent = reinterpret_cast<nsIContent *>(0xdeadbeef);
 }
 
 
@@ -4980,10 +5003,14 @@ nsGenericElement::CopyInnerTo(nsGenericElement* aDst) const
 }
 
 bool
-nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
-                                        nsIAtom* aPrefix, const nsAString& aValue,
-                                        bool aNotify, nsAutoString* aOldValue,
-                                        PRUint8* aModType, bool* aHasListeners)
+nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID,
+                                        nsIAtom* aName,
+                                        nsIAtom* aPrefix,
+                                        const nsAttrValueOrString& aValue,
+                                        bool aNotify,
+                                        nsAttrValue& aOldValue,
+                                        PRUint8* aModType,
+                                        bool* aHasListeners)
 {
   bool modification = false;
   *aHasListeners = aNotify &&
@@ -5001,16 +5028,19 @@ nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
     if (info.mValue) {
       
       
-      bool valueMatches;
       if (*aHasListeners) {
         
-        info.mValue->ToString(*aOldValue);
-        valueMatches = aValue.Equals(*aOldValue);
-      } else {
-        NS_ABORT_IF_FALSE(aNotify,
-                          "Either hasListeners or aNotify should be true.");
-        valueMatches = info.mValue->Equals(aValue, eCaseMatters);
+        
+        
+        
+        
+        
+        
+        
+        
+        aOldValue.SetToSerialized(*info.mValue);
       }
+      bool valueMatches = aValue.EqualsAsStrings(*info.mValue);
       if (valueMatches && aPrefix == info.mName->GetPrefix()) {
         return true;
       }
@@ -5040,14 +5070,15 @@ nsGenericElement::SetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   PRUint8 modType;
   bool hasListeners;
-  nsAutoString oldValue;
+  nsAttrValueOrString value(aValue);
+  nsAttrValue oldValue;
 
-  if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, aValue, aNotify,
-                            &oldValue, &modType, &hasListeners)) {
+  if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, value, aNotify,
+                            oldValue, &modType, &hasListeners)) {
     return NS_OK;
   }
 
-  nsresult rv = BeforeSetAttr(aNamespaceID, aName, &aValue, aNotify);
+  nsresult rv = BeforeSetAttr(aNamespaceID, aName, &value, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aNotify) {
@@ -5065,7 +5096,7 @@ nsGenericElement::SetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   return SetAttrAndNotify(aNamespaceID, aName, aPrefix, oldValue,
                           attrValue, modType, hasListeners, aNotify,
-                          &aValue);
+                          kCallAfterSetAttr);
 }
 
 nsresult
@@ -5083,15 +5114,14 @@ nsGenericElement::SetParsedAttr(PRInt32 aNamespaceID, nsIAtom* aName,
     return NS_ERROR_FAILURE;
   }
 
-  nsAutoString value;
-  aParsedValue.ToString(value);
 
   PRUint8 modType;
   bool hasListeners;
-  nsAutoString oldValue;
+  nsAttrValueOrString value(aParsedValue);
+  nsAttrValue oldValue;
 
   if (MaybeCheckSameAttrVal(aNamespaceID, aName, aPrefix, value, aNotify,
-                            &oldValue, &modType, &hasListeners)) {
+                            oldValue, &modType, &hasListeners)) {
     return NS_OK;
   }
 
@@ -5104,19 +5134,19 @@ nsGenericElement::SetParsedAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   return SetAttrAndNotify(aNamespaceID, aName, aPrefix, oldValue,
                           aParsedValue, modType, hasListeners, aNotify,
-                          &value);
+                          kCallAfterSetAttr);
 }
 
 nsresult
 nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
                                    nsIAtom* aName,
                                    nsIAtom* aPrefix,
-                                   const nsAString& aOldValue,
+                                   const nsAttrValue& aOldValue,
                                    nsAttrValue& aParsedValue,
                                    PRUint8 aModType,
                                    bool aFireMutation,
                                    bool aNotify,
-                                   const nsAString* aValueForAfterSetAttr)
+                                   bool aCallAfterSetAttr)
 {
   nsresult rv;
 
@@ -5124,6 +5154,13 @@ nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
 
   nsMutationGuard::DidMutate();
+
+  
+  
+  nsAttrValue aValueForAfterSetAttr;
+  if (aCallAfterSetAttr) {
+    aValueForAfterSetAttr.SetTo(aParsedValue);
+  }
 
   if (aNamespaceID == kNameSpaceID_None) {
     
@@ -5162,8 +5199,8 @@ nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
       aName == nsGkAtoms::event && mNodeInfo->GetDocument()) {
     mNodeInfo->GetDocument()->AddXMLEventsContent(this);
   }
-  if (aValueForAfterSetAttr) {
-    rv = AfterSetAttr(aNamespaceID, aName, aValueForAfterSetAttr, aNotify);
+  if (aCallAfterSetAttr) {
+    rv = AfterSetAttr(aNamespaceID, aName, &aValueForAfterSetAttr, aNotify);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -5183,8 +5220,8 @@ nsGenericElement::SetAttrAndNotify(PRInt32 aNamespaceID,
     if (!newValue.IsEmpty()) {
       mutation.mNewAttrValue = do_GetAtom(newValue);
     }
-    if (!aOldValue.IsEmpty()) {
-      mutation.mPrevAttrValue = do_GetAtom(aOldValue);
+    if (!aOldValue.IsEmptyString()) {
+      mutation.mPrevAttrValue = aOldValue.GetAsAtom();
     }
     mutation.mAttrChange = aModType;
 
@@ -5334,8 +5371,8 @@ nsGenericElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
   nsresult rv = BeforeSetAttr(aNameSpaceID, aName, nsnull, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
-  
-  nsIDocument *document = GetCurrentDoc();    
+
+  nsIDocument *document = GetCurrentDoc();
   mozAutoDocUpdate updateBatch(document, UPDATE_CONTENT_MODEL, aNotify);
 
   if (aNotify) {

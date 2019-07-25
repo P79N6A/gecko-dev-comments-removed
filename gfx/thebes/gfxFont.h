@@ -510,7 +510,8 @@ public:
         mFaceNamesInitialized(false),
         mHasStyles(false),
         mIsSimpleFamily(false),
-        mIsBadUnderlineFamily(false)
+        mIsBadUnderlineFamily(false),
+        mCharacterMapInitialized(false)
         { }
 
     virtual ~gfxFontFamily() {
@@ -583,10 +584,28 @@ public:
     
     void ReadCMAP() {
         PRUint32 i, numFonts = mAvailableFonts.Length();
-        
-        
-        for (i = 0; i < numFonts; i++)
-            mAvailableFonts[i]->ReadCMAP();
+        for (i = 0; i < numFonts; i++) {
+            gfxFontEntry *fe = mAvailableFonts[i];
+            if (!fe) {
+                continue;
+            }
+            fe->ReadCMAP();
+            mCharacterMap.Union(fe->mCharacterMap);
+        }
+        mCharacterMap.Compact();
+        mCharacterMapInitialized = true;
+    }
+
+    bool TestCharacterMap(PRUint32 aCh) {
+        if (!mCharacterMapInitialized) {
+            ReadCMAP();
+        }
+        return mCharacterMap.test(aCh);
+    }
+
+    void ResetCharacterMap() {
+        mCharacterMap.reset();
+        mCharacterMapInitialized = false;
     }
 
     
@@ -629,12 +648,14 @@ protected:
 
     nsString mName;
     nsTArray<nsRefPtr<gfxFontEntry> >  mAvailableFonts;
+    gfxSparseBitSet mCharacterMap;
     bool mOtherFamilyNamesInitialized;
     bool mHasOtherFamilyNames;
     bool mFaceNamesInitialized;
     bool mHasStyles;
     bool mIsSimpleFamily;
     bool mIsBadUnderlineFamily;
+    bool mCharacterMapInitialized;
 
     enum {
         

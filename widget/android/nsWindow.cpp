@@ -730,6 +730,12 @@ nsWindow::DispatchEvent(nsGUIEvent *aEvent)
         case NS_TEXT_TEXT:
             mIMEComposingText = static_cast<nsTextEvent*>(aEvent)->theText;
             break;
+        case NS_KEY_PRESS:
+            
+            
+            OnIMETextChange(0, 0, 0);
+            OnIMESelectionChange();
+            break;
         }
         return status;
     }

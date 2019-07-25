@@ -3026,7 +3026,19 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
   
   
   
-  if (!aImg->mHasSourceData && aDecodeType != DECODE_TYPE_UNTIL_SIZE) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (aDecodeType != DECODE_TYPE_UNTIL_SIZE &&
+      !aImg->mDecoder->HasError() &&
+      !aImg->mHasSourceData) {
     aImg->mInDecoder = true;
     aImg->mDecoder->FlushInvalidations();
     aImg->mInDecoder = false;

@@ -106,6 +106,8 @@ public:
   explicit nsAttrValue(const nsIntMargin& aValue);
   ~nsAttrValue();
 
+  inline const nsAttrValue& operator=(const nsAttrValue& aOther);
+
   static nsresult Init();
   static void Shutdown();
 
@@ -136,9 +138,23 @@ public:
   void SetTo(mozilla::css::StyleRule* aValue, const nsAString* aSerialized);
   void SetTo(const nsIntMargin& aValue);
 
+  
+
+
+
+
+
+
+  void SetToSerialized(const nsAttrValue& aValue);
+
   void SwapValueWith(nsAttrValue& aOther);
 
   void ToString(nsAString& aResult) const;
+  
+
+
+
+  already_AddRefed<nsIAtom> GetAsAtom() const;
 
   
   
@@ -174,6 +190,15 @@ public:
   bool Equals(const nsAttrValue& aOther) const;
   bool Equals(const nsAString& aValue, nsCaseTreatment aCaseSensitive) const;
   bool Equals(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
+
+  
+
+
+
+
+
+
+  bool EqualsAsStrings(const nsAttrValue& aOther) const;
 
   
 
@@ -392,6 +417,13 @@ private:
 
 
 
+
+inline const nsAttrValue&
+nsAttrValue::operator=(const nsAttrValue& aOther)
+{
+  SetTo(aOther);
+  return *this;
+}
 
 inline nsIAtom*
 nsAttrValue::GetAtomValue() const

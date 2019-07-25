@@ -958,10 +958,7 @@ nsresult
 nsPlaintextEditor::UpdateIMEComposition(const nsAString& aCompositionString,
                                         nsIPrivateTextRangeList* aTextRangeList)
 {
-  if (!aTextRangeList && !aCompositionString.IsEmpty()) {
-    NS_ERROR("aTextRangeList is null but the composition string is not null");
-    return NS_ERROR_NULL_POINTER;
-  }
+  NS_ABORT_IF_FALSE(aTextRangeList, "aTextRangeList must not be NULL");
 
   nsCOMPtr<nsIPresShell> ps = GetPresShell();
   NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
@@ -974,26 +971,13 @@ nsPlaintextEditor::UpdateIMEComposition(const nsAString& aCompositionString,
 
   
   
-  
-  
+  mIMETextRangeList = aTextRangeList;
 
   
-  
-  
-  
+  SetIsIMEComposing();
 
-  
-  
-  
-  
-
-  bool notifyEditorObservers = false;
-  if (!aCompositionString.IsEmpty() || (mIMETextNode && aTextRangeList)) {
-    mIMETextRangeList = aTextRangeList;
-
+  {
     nsAutoPlaceHolderBatch batch(this, nsGkAtoms::IMETxnName);
-
-    SetIsIMEComposing(); 
 
     rv = InsertText(aCompositionString);
 
@@ -1002,20 +986,13 @@ nsPlaintextEditor::UpdateIMEComposition(const nsAString& aCompositionString,
     if (caretP) {
       caretP->SetCaretDOMSelection(selection);
     }
-
-    
-    if (aCompositionString.IsEmpty()) {
-      mIMETextNode = nsnull;
-    }
-
-    
-    
-    
-    
-    notifyEditorObservers = mIsIMEComposing;
   }
 
-  if (notifyEditorObservers) {
+  
+  
+  
+  
+  if (mIsIMEComposing) {
     NotifyEditorObservers();
   }
 

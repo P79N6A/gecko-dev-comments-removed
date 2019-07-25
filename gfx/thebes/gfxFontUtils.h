@@ -165,8 +165,6 @@ public:
         Block *block = mBlocks[blockIndex];
         if (!block) {
             block = new Block;
-            if (NS_UNLIKELY(!block)) 
-                return;
             mBlocks[blockIndex] = block;
         }
         block->mBits[(aIndex>>3) & (BLOCK_SIZE - 1)] |= 1 << (aIndex & 0x7);
@@ -201,9 +199,6 @@ public:
                     fullBlock = true;
 
                 block = new Block(fullBlock ? 0xFF : 0);
-
-                if (NS_UNLIKELY(!block)) 
-                    return;
                 mBlocks[i] = block;
 
                 if (fullBlock)
@@ -279,7 +274,44 @@ public:
         for (i = 0; i < mBlocks.Length(); i++)
             mBlocks[i] = nsnull;    
     }
+
     
+    void Union(const gfxSparseBitSet& aBitset) {
+        
+        PRUint32 blockCount = aBitset.mBlocks.Length();
+        if (blockCount > mBlocks.Length()) {
+            PRUint32 needed = blockCount - mBlocks.Length();
+            nsAutoPtr<Block> *blocks = mBlocks.AppendElements(needed);
+            if (NS_UNLIKELY(!blocks)) { 
+                return;
+            }
+        }
+        
+        for (PRUint32 i = 0; i < blockCount; ++i) {
+            
+            if (!aBitset.mBlocks[i]) {
+                continue;
+            }
+            
+            if (!mBlocks[i]) {
+                mBlocks[i] = new Block(*aBitset.mBlocks[i]);
+                continue;
+            }
+            
+            PRUint32 *dst = reinterpret_cast<PRUint32*>(mBlocks[i]->mBits);
+            const PRUint32 *src =
+                reinterpret_cast<const PRUint32*>(aBitset.mBlocks[i]->mBits);
+            for (PRUint32 j = 0; j < BLOCK_SIZE / 4; ++j) {
+                dst[j] |= src[j];
+            }
+        }
+    }
+
+    void Compact() {
+        mBlocks.Compact();
+    }
+
+private:
     nsTArray< nsAutoPtr<Block> > mBlocks;
 };
 

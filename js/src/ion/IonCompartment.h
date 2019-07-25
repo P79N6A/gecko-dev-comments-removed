@@ -66,6 +66,7 @@ class IonCompartment
 
     friend class IonActivation;
 
+    
     JSC::ExecutableAllocator *execAlloc_;
 
     

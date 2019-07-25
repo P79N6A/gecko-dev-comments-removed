@@ -322,7 +322,7 @@ GDIFontEntry::GetFontTable(PRUint32 aTableTag,
 }
 
 void
-GDIFontEntry::FillLogFont(LOGFONTW *aLogFont, bool aItalic,
+GDIFontEntry::FillLogFont(LOGFONTW *aLogFont,
                           PRUint16 aWeight, gfxFloat aSize,
                           bool aUseCleartype)
 {
@@ -330,16 +330,28 @@ GDIFontEntry::FillLogFont(LOGFONTW *aLogFont, bool aItalic,
 
     aLogFont->lfHeight = (LONG)-ROUND(aSize);
 
-    if (aLogFont->lfHeight == 0)
+    if (aLogFont->lfHeight == 0) {
         aLogFont->lfHeight = -1;
+    }
 
     
     
     
     
-    aLogFont->lfItalic         = aItalic;
-    aLogFont->lfWeight         = aWeight;
-    aLogFont->lfQuality        = (aUseCleartype ? CLEARTYPE_QUALITY : DEFAULT_QUALITY);
+    
+    if (aWeight) {
+        aLogFont->lfWeight = aWeight;
+    }
+
+    
+    
+    
+    
+    if (IsUserFont() && !IsLocalUserFont()) {
+        aLogFont->lfItalic = 0;
+    }
+
+    aLogFont->lfQuality = (aUseCleartype ? CLEARTYPE_QUALITY : DEFAULT_QUALITY);
 }
 
 #define MISSING_GLYPH 0x1F // glyph index returned for missing characters

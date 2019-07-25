@@ -201,7 +201,7 @@ private:
   nestegg* mContext;
 
   
-  vpx_codec_ctx_t  mVP8;
+  vpx_codec_ctx_t mVP8;
 
   
   vorbis_info mVorbisInfo;
@@ -238,12 +238,16 @@ private:
   nsIntRect mPicture;
 
   
+  
+  PRInt32 mForceStereoMode;
+
+  
   bool mHasVideo;
   bool mHasAudio;
 
   
   
-  PRInt32 mForceStereoMode;
+  bool mStereoModeForced;
 };
 
 #endif

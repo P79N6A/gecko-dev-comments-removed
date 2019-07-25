@@ -43,10 +43,11 @@
 #include "nsIPrincipal.h"
 #include "nsCOMPtr.h"
 
-class nsMediaStream;
-class nsByteRange;
-
 namespace mozilla {
+
+class ChannelMediaResource;
+class MediaByteRange;
+class MediaResource;
 class ReentrantMonitorAutoEnter;
 }
 
@@ -204,8 +205,6 @@ class ReentrantMonitorAutoEnter;
 
 class nsMediaCache;
 
-class nsMediaChannelStream;
-
 
 
 
@@ -213,9 +212,12 @@ class nsMediaChannelStream;
 
 
 class nsMediaCacheStream {
+public:
+  typedef mozilla::ChannelMediaResource ChannelMediaResource;
+  typedef mozilla::MediaByteRange MediaByteRange;
+  typedef mozilla::MediaResource MediaResource;
   typedef mozilla::ReentrantMonitorAutoEnter ReentrantMonitorAutoEnter;
 
-public:
   enum {
     
     BLOCK_SIZE = 32768
@@ -227,7 +229,7 @@ public:
 
   
   
-  nsMediaCacheStream(nsMediaChannelStream* aClient)
+  nsMediaCacheStream(ChannelMediaResource* aClient)
     : mClient(aClient), mResourceID(0), mInitialized(false),
       mHasHadUpdate(false),
       mIsSeekable(false), mCacheSuspended(false),
@@ -329,7 +331,7 @@ public:
   
   
   
-  nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges);
+  nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges);
 
   
   
@@ -358,7 +360,7 @@ public:
   
   
   
-  bool AreAllStreamsForResourceSuspended(nsMediaStream** aActiveStream);
+  bool AreAllStreamsForResourceSuspended(MediaResource** aActiveResource);
 
   
   
@@ -453,7 +455,7 @@ private:
   void UpdatePrincipal(nsIPrincipal* aPrincipal);
 
   
-  nsMediaChannelStream*  mClient;
+  ChannelMediaResource*  mClient;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
   

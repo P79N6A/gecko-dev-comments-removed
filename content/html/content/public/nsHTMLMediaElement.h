@@ -48,8 +48,8 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
-#include "ImageLayers.h"
 #include "nsAudioStream.h"
+#include "VideoFrameContainer.h"
 
 
 
@@ -60,12 +60,10 @@ typedef PRUint16 nsMediaReadyState;
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver
 {
-  typedef mozilla::layers::ImageContainer ImageContainer;
-
 public:
-
   typedef mozilla::TimeStamp TimeStamp;
-  typedef mozilla::TimeDuration TimeDuration;
+  typedef mozilla::layers::ImageContainer ImageContainer;
+  typedef mozilla::VideoFrameContainer VideoFrameContainer;
 
   enum CanPlayStatus {
     CANPLAY_NO,
@@ -192,7 +190,12 @@ public:
 
   
   
-  ImageContainer* GetImageContainer();
+  VideoFrameContainer* GetVideoFrameContainer();
+  ImageContainer* GetImageContainer()
+  {
+    VideoFrameContainer* container = GetVideoFrameContainer();
+    return container ? container->GetImageContainer() : nsnull;
+  }
 
   
   
@@ -571,7 +574,7 @@ protected:
 
   
   
-  nsRefPtr<ImageContainer> mImageContainer;
+  nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
 
   
   
@@ -641,6 +644,9 @@ protected:
   
   PreloadAction mPreloadAction;
 
+  
+  
+  
   
   
   nsIntSize mMediaSize;

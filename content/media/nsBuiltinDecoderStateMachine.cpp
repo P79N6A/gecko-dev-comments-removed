@@ -1651,7 +1651,7 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
   
 
   nsCOMPtr<nsIRunnable> stopEvent;
-  bool isLiveStream = mDecoder->GetStream()->GetLength() == -1;
+  bool isLiveStream = mDecoder->GetResource()->GetLength() == -1;
   if (GetMediaTime() == mEndTime && !isLiveStream) {
     
     
@@ -1721,8 +1721,8 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
-  nsMediaStream* stream = mDecoder->GetStream();
-  NS_ENSURE_TRUE(stream, NS_ERROR_NULL_POINTER);
+  MediaResource* resource = mDecoder->GetResource();
+  NS_ENSURE_TRUE(resource, NS_ERROR_NULL_POINTER);
 
   switch (mState) {
     case DECODER_STATE_SHUTDOWN: {
@@ -1802,13 +1802,13 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       
       
       TimeDuration elapsed = now - mBufferingStart;
-      bool isLiveStream = mDecoder->GetStream()->GetLength() == -1;
+      bool isLiveStream = mDecoder->GetResource()->GetLength() == -1;
       if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
             elapsed < TimeDuration::FromSeconds(mBufferingWait) &&
             (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
                             : (GetUndecodedData() < mBufferingWait * USECS_PER_S / 1000)) &&
-            !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-            !stream->IsSuspended())
+            !resource->IsDataCachedToEndOfResource(mDecoder->mDecoderPosition) &&
+            !resource->IsSuspended())
       {
         LOG(PR_LOG_DEBUG,
             ("%p Buffering: %.3lfs/%ds, timeout in %.3lfs %s",
@@ -1908,9 +1908,9 @@ void nsBuiltinDecoderStateMachine::RenderVideoFrame(VideoData* aData,
     return;
   }
 
-  nsRefPtr<Image> image = aData->mImage;
-  if (image) {
-    mDecoder->SetVideoData(aData->mDisplay, image, aTarget);
+  VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+  if (container) {
+    container->SetCurrentFrame(aData->mDisplay, aData->mImage, aTarget);
   }
 }
 
@@ -2000,12 +2000,12 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
 
   
   
-  nsMediaStream* stream = mDecoder->GetStream();
+  MediaResource* resource = mDecoder->GetResource();
   if (mState == DECODER_STATE_DECODING &&
       mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING &&
       HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_USECS) &&
-      !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-      !stream->IsSuspended() &&
+      !resource->IsDataCachedToEndOfResource(mDecoder->mDecoderPosition) &&
+      !resource->IsSuspended() &&
       (JustExitedQuickBuffering() || HasLowUndecodedData()))
   {
     if (currentFrame) {
@@ -2178,11 +2178,11 @@ void nsBuiltinDecoderStateMachine::StartBuffering()
 }
 
 nsresult nsBuiltinDecoderStateMachine::GetBuffered(nsTimeRanges* aBuffered) {
-  nsMediaStream* stream = mDecoder->GetStream();
-  NS_ENSURE_TRUE(stream, NS_ERROR_FAILURE);
-  stream->Pin();
+  MediaResource* resource = mDecoder->GetResource();
+  NS_ENSURE_TRUE(resource, NS_ERROR_FAILURE);
+  resource->Pin();
   nsresult res = mReader->GetBuffered(aBuffered, mStartTime);
-  stream->Unpin();
+  resource->Unpin();
   return res;
 }
 

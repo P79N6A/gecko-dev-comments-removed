@@ -266,6 +266,7 @@ public:
 
 
 
+
   void SetCurrentImage(Image* aImage);
 
   
