@@ -5,6 +5,7 @@
 
 
 
+#include "jsanalyze.h"
 #include "jscntxt.h"
 #include "jsscope.h"
 #include "jsobj.h"
@@ -13,12 +14,13 @@
 #include "jsnum.h"
 #include "jsxml.h"
 #include "jsbool.h"
+#include "jstypes.h"
+
 #include "assembler/assembler/MacroAssemblerCodeRef.h"
 #include "assembler/assembler/CodeLocation.h"
-#include "jstypes.h"
+#include "builtin/Eval.h"
 #include "methodjit/StubCalls.h"
 #include "methodjit/MonoIC.h"
-#include "jsanalyze.h"
 #include "methodjit/BaseCompiler.h"
 #include "methodjit/ICRepatcher.h"
 #include "vm/Debugger.h"
@@ -29,6 +31,7 @@
 #include "jsobjinlines.h"
 #include "jscntxtinlines.h"
 #include "jsatominlines.h"
+
 #include "StubCalls-inl.h"
 
 #include "jsautooplen.h"
