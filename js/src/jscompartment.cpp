@@ -491,6 +491,9 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
         discardJitCode(fop);
     }
 
+    if (global_ && !IsObjectMarked(&global_))
+        global_ = NULL;
+
     
     regExps.sweep(rt);
 

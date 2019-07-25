@@ -119,12 +119,23 @@ struct JSCompartment
   private:
     js::GlobalObject             *global_;
   public:
-    js::GlobalObject &global() const {
-        JS_ASSERT(global_->compartment() == this);
-        return *global_;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    js::GlobalObject *maybeGlobal() const {
+        JS_ASSERT_IF(global_, global_->compartment() == this);
+        return global_;
     }
 
     void initGlobal(js::GlobalObject &global) {
+        JS_ASSERT(global.compartment() == this);
         JS_ASSERT(!global_);
         global_ = &global;
     }
