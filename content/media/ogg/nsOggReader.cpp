@@ -266,9 +266,12 @@ nsresult nsOggReader::ReadMetadata(nsVideoInfo* aInfo)
       mInfo.mDisplay = displaySize;
       mPicture = picture;
 
-      mDecoder->SetVideoData(gfxIntSize(displaySize.width, displaySize.height),
-                             nsnull,
-                             TimeStamp::Now());
+      VideoFrameContainer* container = mDecoder->GetVideoFrameContainer();
+      if (container) {
+        container->SetCurrentFrame(gfxIntSize(displaySize.width, displaySize.height),
+                                   nsnull,
+                                   TimeStamp::Now());
+      }
 
       
       memcpy(&mTheoraInfo, &mTheoraState->mInfo, sizeof(mTheoraInfo));

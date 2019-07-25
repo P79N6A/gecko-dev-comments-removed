@@ -48,8 +48,8 @@
 #include "nsITimer.h"
 #include "ImageLayers.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "mozilla/Mutex.h"
 #include "nsIMemoryReporter.h"
+#include "VideoFrameContainer.h"
 
 class nsHTMLMediaElement;
 class nsMediaStream;
@@ -72,12 +72,12 @@ static const PRUint32 FRAMEBUFFER_LENGTH_MAX = 16384;
 class nsMediaDecoder : public nsIObserver
 {
 public:
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
-  typedef mozilla::layers::ImageContainer ImageContainer;
+  typedef mozilla::VideoFrameContainer VideoFrameContainer;
   typedef mozilla::layers::Image Image;
-  typedef mozilla::ReentrantMonitor ReentrantMonitor;
-  typedef mozilla::Mutex Mutex;
+  typedef mozilla::layers::ImageContainer ImageContainer;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -276,11 +276,6 @@ public:
   
   
   
-  double GetFrameDelay();
-
-  
-  
-  
   
   virtual Statistics GetStatistics() = 0;
   
@@ -306,7 +301,12 @@ public:
   virtual void SetEndTime(double aTime) = 0;
 
   
-  virtual void Invalidate();
+  void Invalidate()
+  {
+    if (mVideoFrameContainer) {
+      mVideoFrameContainer->Invalidate();
+    }
+  }
 
   
   
@@ -377,18 +377,6 @@ public:
 
   
   
-  
-  ImageContainer* GetImageContainer() { return mImageContainer; }
-
-  
-  
-  
-  void SetVideoData(const gfxIntSize& aSize,
-                    Image* aImage,
-                    TimeStamp aTarget);
-
-  
-  
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
 
   
@@ -399,6 +387,12 @@ public:
   
   virtual PRInt64 VideoQueueMemoryInUse() = 0;
   virtual PRInt64 AudioQueueMemoryInUse() = 0;
+
+  VideoFrameContainer* GetVideoFrameContainer() { return mVideoFrameContainer; }
+  ImageContainer* GetImageContainer()
+  {
+    return mVideoFrameContainer ? mVideoFrameContainer->GetImageContainer() : nsnull;
+  }
 
 protected:
 
@@ -422,22 +416,10 @@ protected:
   
   nsHTMLMediaElement* mElement;
 
-  PRInt32 mRGBWidth;
-  PRInt32 mRGBHeight;
-
   
   FrameStatistics mFrameStats;
 
-  
-  
-  TimeStamp mPaintTarget;
-
-  
-  
-  
-  TimeDuration mPaintDelay;
-
-  nsRefPtr<ImageContainer> mImageContainer;
+  nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
 
   
   
@@ -451,36 +433,11 @@ protected:
   TimeStamp mDataTime;
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  Mutex mVideoUpdateLock;
-
-  
   PRUint32 mFrameBufferLength;
 
   
   
   bool mPinnedForSeek;
-
-  
-  
-  
-  
-  bool mSizeChanged;
-
-  
-  
-  
-  
-  
-  
-  bool mImageContainerSizeChanged;
 
   
   

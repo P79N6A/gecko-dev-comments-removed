@@ -514,7 +514,6 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   virtual nsresult RequestFrameBufferLength(PRUint32 aLength);
 
- public:
   
   
   PlayState GetState() {
@@ -618,7 +617,6 @@ class nsBuiltinDecoder : public nsMediaDecoder
    
    virtual void NotifyAudioAvailableListener();
 
-public:
   
   void DecodeError();
 
