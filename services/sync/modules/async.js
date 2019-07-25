@@ -62,6 +62,36 @@ let Async = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  chain: function chain() {
+    let funcs = Array.slice(arguments);
+    let thisObj = this;
+    return function callback() {
+      if (funcs.length) {
+        let args = Array.slice(arguments).concat(callback);
+        let f = funcs.shift();
+        f.apply(thisObj, args);
+      }
+    };
+  },
+
+  
+
+
+
+
+
   
 
 
