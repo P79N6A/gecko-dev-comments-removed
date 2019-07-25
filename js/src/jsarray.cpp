@@ -1407,7 +1407,7 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
     if (!locale && !seplen && obj->isDenseArray() && !js_PrototypeHasIndexedProperties(cx, obj)) {
         
         Value *beg = obj->getDenseArrayElements();
-        Value *end = beg + Min(length, obj->getDenseArrayCapacity());
+        Value *end = beg + Min(length, obj->getDenseArrayInitializedLength());
         for (Value *vp = beg; vp != end; ++vp) {
             if (!JS_CHECK_OPERATION_LIMIT(cx))
                 return false;
