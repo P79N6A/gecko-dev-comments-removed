@@ -1006,7 +1006,8 @@ let TabItems = {
           if (groupItem) {
             groupItem.add(item);
 
-            if (item.tab == gBrowser.selectedTab)
+            
+            if (!item.tab.hidden)
               GroupItems.setActiveGroupItem(item.parent);
           }
         }
