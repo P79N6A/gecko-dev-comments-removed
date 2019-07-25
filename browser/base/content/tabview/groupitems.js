@@ -1386,7 +1386,39 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     
-    newTab.tabItem.zoomIn(!url);
+    let newItem = newTab.tabItem;
+
+    var self = this;
+    iQ(newItem.container).css({opacity: 0});
+    let $anim = iQ("<div>")
+      .addClass("newTabAnimatee")
+      .css({
+        top: newItem.bounds.top + 5,
+        left: newItem.bounds.left + 5,
+        width: newItem.bounds.width - 10,
+        height: newItem.bounds.height - 10,
+        zIndex: 999,
+        opacity: 0
+      })
+      .appendTo("body")
+      .animate({opacity: 1}, {
+        duration: 500,
+        complete: function() {
+          $anim.animate({
+            top: 0,
+            left: 0,
+            width: window.innerWidth,
+            height: window.innerHeight
+          }, {
+            duration: 270,
+            complete: function() {
+              iQ(newItem.container).css({opacity: 1});
+              newItem.zoomIn(!url);
+              $anim.remove();
+            }
+          });
+        }
+      });
   },
 
   
@@ -1511,7 +1543,6 @@ let GroupItems = {
 
   
   
-  
   _handleAttrModified: function GroupItems__handleAttrModified(xulTab) {
     if (xulTab.ownerDocument.defaultView != gWindow || !xulTab.pinned)
       return;
@@ -1531,8 +1562,7 @@ let GroupItems = {
 
   
   
-  
-  addAppTab: function GroupItems_addAppTab(xulTab) {
+  handleTabPin: function GroupItems_handleTabPin(xulTab) {
     this.groupItems.forEach(function(groupItem) {
       groupItem.addAppTab(xulTab);
     });
@@ -1540,8 +1570,7 @@ let GroupItems = {
 
   
   
-  
-  removeAppTab: function GroupItems_removeAppTab(xulTab) {
+  handleTabUnpin: function GroupItems_handleTabUnpin(xulTab) {
     this.groupItems.forEach(function(groupItem) {
       groupItem.removeAppTab(xulTab);
     });
@@ -1940,13 +1969,6 @@ let GroupItems = {
       if (groupItems.length > 0) {
         groupItems.some(function(groupItem) {
           if (!groupItem.hidden) {
-            
-            let activeTab = groupItem.getActiveTab();
-            if (activeTab) {
-              tabItem = activeTab;
-              return true;
-            }
-            
             var child = groupItem.getChild(0);
             if (child) {
               tabItem = child;
@@ -1968,13 +1990,6 @@ let GroupItems = {
       var firstGroupItems = groupItems.slice(currentIndex + 1);
       firstGroupItems.some(function(groupItem) {
         if (!groupItem.hidden) {
-          
-          let activeTab = groupItem.getActiveTab();
-          if (activeTab) {
-            tabItem = activeTab;
-            return true;
-          }
-          
           var child = groupItem.getChild(0);
           if (child) {
             tabItem = child;
@@ -1992,13 +2007,6 @@ let GroupItems = {
         var secondGroupItems = groupItems.slice(0, currentIndex);
         secondGroupItems.some(function(groupItem) {
           if (!groupItem.hidden) {
-            
-            let activeTab = groupItem.getActiveTab();
-            if (activeTab) {
-              tabItem = activeTab;
-              return true;
-            }
-            
             var child = groupItem.getChild(0);
             if (child) {
               tabItem = child;

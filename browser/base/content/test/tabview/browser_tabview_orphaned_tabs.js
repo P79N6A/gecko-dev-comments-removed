@@ -76,30 +76,23 @@ function onTabViewWindowLoaded() {
     is(groupItem.getChildren().length, 1, "The group item has an item");
     is(contentWindow.GroupItems.getOrphanedTabs().length, 0, "No orphaned tabs");
     
-    let checkAndFinish = function() {
-      
-      let tabData = contentWindow.Storage.getTabData(tabItem.tab);
-      ok(tabData && contentWindow.TabItems.storageSanity(tabData) && tabData.groupID, 
-         "Tab two has stored group data");
-
-      
-      newWin.gBrowser.removeTab(tabOne);
-      newWin.gBrowser.removeTab(tabItem.tab);
-      whenWindowObservesOnce(newWin, "domwindowclosed", function() {
-        finish();
-      });
-      newWin.close();
-    };
-    let tabItem = groupItem.getChild(0);
     
-    if (tabItem.reconnected) {
-      checkAndFinish();
-    } else {
-      tabItem.addSubscriber(tabItem, "reconnected", function() {
-        tabItem.removeSubscriber(tabItem, "reconnected");
-        checkAndFinish();
-      });
-    }
+    let tabData = contentWindow.Storage.getTabData(tabOne);
+    ok(tabData && contentWindow.TabItems.storageSanity(tabData) && tabData.groupID, 
+       "Tab one has stored group data");
+
+    let tabItem = groupItem.getChild(0);
+    let tabData = contentWindow.Storage.getTabData(tabItem.tab);
+    ok(tabData && contentWindow.TabItems.storageSanity(tabData) && tabData.groupID, 
+       "Tab two has stored group data");
+
+    
+    newWin.gBrowser.removeTab(tabOne);
+    newWin.gBrowser.removeTab(tabItem.tab);
+    whenWindowObservesOnce(newWin, "domwindowclosed", function() {
+      finish();
+    });
+    newWin.close();
   };
   newWin.addEventListener("tabviewhidden", onTabViewHidden, false);
 
