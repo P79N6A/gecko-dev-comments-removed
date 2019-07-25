@@ -1163,15 +1163,29 @@ let BookmarksMenuButton = {
 
     let bookmarksToolbarItem = this.bookmarksToolbarItem;
     if (isElementVisible(bookmarksToolbarItem)) {
-      bookmarksToolbarItem.appendChild(this.button);
+      if (this.button.parentNode != bookmarksToolbarItem) {
+        this.resetView();
+        bookmarksToolbarItem.appendChild(this.button);
+      }
       this.button.classList.add("bookmark-item");
       this.button.classList.remove("toolbarbutton-1");
     }
     else {
-      this.navbarButtonContainer.appendChild(this.button);
+      if (this.button.parentNode != this.navbarButtonContainer) {
+        this.resetView();
+        this.navbarButtonContainer.appendChild(this.button);
+      }
       this.button.classList.remove("bookmark-item");
       this.button.classList.add("toolbarbutton-1");
     }
+  },
+
+  resetView: function BMB_resetView() {
+    
+    
+    
+    if (this.button._placesView)
+      this.button._placesView.uninit();
   },
 
   customizeStart: function BMB_customizeStart() {
@@ -1181,6 +1195,7 @@ let BookmarksMenuButton = {
   },
 
   customizeDone: function BMB_customizeDone() {
+    this.resetView();
     this.updatePosition();
   }
 };
