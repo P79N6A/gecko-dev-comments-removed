@@ -38,19 +38,24 @@ namespace JSC {
 
 
 
-void ARMAssembler::patchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
+void ARMAssembler::patchConstantPoolLoad(void* load, void* pool)
 {
-    ARMWord *ldr = reinterpret_cast<ARMWord*>(loadAddr);
-    ARMWord diff = reinterpret_cast<ARMWord*>(constPoolAddr) - ldr;
-    ARMWord index = (*ldr & 0xfff) >> 1;
+    ARMWord *   ldr = reinterpret_cast<ARMWord*>(load);
+    ARMWord     index = (*ldr & 0xfff) >> 1;
+    ARMWord *   slot = reinterpret_cast<ARMWord*>(pool) + index;
 
-    ASSERT(diff >= 1);
-    if (diff >= 2 || index > 0) {
-        diff = (diff + index - 2) * sizeof(ARMWord);
-        ASSERT(diff <= 0xfff);
-        *ldr = (*ldr & ~0xfff) | diff;
-    } else
-        *ldr = (*ldr & ~(0xfff | ARMAssembler::DT_UP)) | sizeof(ARMWord);
+    ptrdiff_t   offset = getApparentPCOffset(ldr, slot);
+
+    ASSERT(offset >= 0);        
+    ASSERT(!(offset & 0x3));    
+    ASSERT(offset <= 0xfff);
+    ASSERT(checkIsLDRLiteral(ldr));
+
+    
+    
+    
+    
+    *ldr = (*ldr & 0xfffff000) | offset;
 }
 
 
@@ -540,27 +545,23 @@ void ARMAssembler::baseIndexFloatTransfer(bool isLoad, bool isDouble, FPRegister
 
 inline void ARMAssembler::fixUpOffsets(void * buffer)
 {
-    char * data = reinterpret_cast<char *>(buffer);
+    char * base = reinterpret_cast<char *>(buffer);
     for (Jumps::Iterator iter = m_jumps.begin(); iter != m_jumps.end(); ++iter) {
         
-        int pos = (*iter) & (~0x1);
-        ARMWord* ldrAddr = reinterpret_cast<ARMWord*>(data + pos);
-        ARMWord* addr = getLdrImmAddress(ldrAddr);
-        if (*addr != InvalidBranchTarget) {
+        int         offset_to_branch = (*iter) & (~0x1);
+        bool        patchable = (*iter) & 0x1;
+        ARMWord *   branch = reinterpret_cast<ARMWord*>(base + offset_to_branch);
+        ARMWord *   slot = getLdrImmAddress(branch);
 
+        
+        
+        
+        if (*slot != InvalidBranchTarget) {
+            void *      to = reinterpret_cast<void*>(base + *slot);
 
-
-#if 0
-            if (!(*iter & 1)) {
-                int diff = reinterpret_cast<ARMWord*>(data + *addr) - (ldrAddr + DefaultPrefetching);
-
-                if ((diff <= BOFFSET_MAX && diff >= BOFFSET_MIN)) {
-                    *ldrAddr = B | getConditionalField(*ldrAddr) | (diff & BRANCH_MASK);
-                    continue;
-                }
-            }
-#endif
-            *addr = reinterpret_cast<ARMWord>(data + *addr);
+            
+            
+            patchLiteral32(branch, to, patchable);
         }
     }
 }
