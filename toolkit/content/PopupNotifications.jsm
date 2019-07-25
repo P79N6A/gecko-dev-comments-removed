@@ -42,6 +42,10 @@ var Cc = Components.classes, Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+const NOTIFICATION_EVENT_DISMISSED = "dismissed";
+const NOTIFICATION_EVENT_REMOVED = "removed";
+const NOTIFICATION_EVENT_SHOWN = "shown";
+
 
 
 
@@ -60,6 +64,16 @@ function Notification(id, message, anchorID, mainAction, secondaryActions,
 }
 
 Notification.prototype = {
+
+  id: null,
+  message: null,
+  anchorID: null,
+  mainAction: null,
+  secondaryActions: null,
+  browser: null,
+  owner: null,
+  options: null,
+
   
 
 
@@ -129,6 +143,12 @@ function PopupNotifications(tabbrowser, panel, iconBox) {
 }
 
 PopupNotifications.prototype = {
+
+  window: null,
+  panel: null,
+  tabbrowser: null,
+
+  _iconBox: null,
   set iconBox(iconBox) {
     
     if (this._iconBox) {
@@ -159,7 +179,7 @@ PopupNotifications.prototype = {
   getNotification: function PopupNotifications_getNotification(id, browser) {
     let n = null;
     let notifications = this._getNotificationsForBrowser(browser || this.tabbrowser.selectedBrowser);
-    notifications.some(function(x) x.id == id && (n = x))
+    notifications.some(function(x) x.id == id && (n = x));
     return n;
   },
 
@@ -298,7 +318,7 @@ PopupNotifications.prototype = {
           notification.options.persistence--;
         return true;
       }
-      
+
       
       
       if ("persistence" in notification.options &&
@@ -313,7 +333,7 @@ PopupNotifications.prototype = {
         return true;
       }
 
-      this._fireCallback(notification, "removed");
+      this._fireCallback(notification, NOTIFICATION_EVENT_REMOVED);
       return false;
     }, this);
 
@@ -338,6 +358,9 @@ PopupNotifications.prototype = {
 
 
 
+  _ignoreDismissal: null,
+  _currentAnchorElement: null,
+
   
 
 
@@ -361,9 +384,9 @@ PopupNotifications.prototype = {
 
     
     notifications.splice(index, 1);
-    this._fireCallback(notification, "removed");
+    this._fireCallback(notification, NOTIFICATION_EVENT_REMOVED);
   },
-  
+
   
 
 
@@ -459,7 +482,7 @@ PopupNotifications.prototype = {
 
     this.panel.openPopup(anchorElement, "bottomcenter topleft");
     notificationsToShow.forEach(function (n) {
-      this._fireCallback(n, "shown");
+      this._fireCallback(n, NOTIFICATION_EVENT_SHOWN);
     }, this);
   },
 
@@ -569,7 +592,7 @@ PopupNotifications.prototype = {
         this._remove(notificationObj);
       else {
         notificationObj.dismissed = true;
-        this._fireCallback(notificationObj, "dismissed");
+        this._fireCallback(notificationObj, NOTIFICATION_EVENT_DISMISSED);
       }
     }, this);
 
@@ -614,5 +637,5 @@ PopupNotifications.prototype = {
 
   _notify: function PopupNotifications_notify(topic) {
     Services.obs.notifyObservers(null, "PopupNotifications-" + topic, "");
-  }
-}
+  },
+};
