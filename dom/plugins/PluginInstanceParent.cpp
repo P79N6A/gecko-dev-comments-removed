@@ -549,6 +549,16 @@ PluginInstanceParent::RecvShow(const NPRect& updatedRect,
     else
         *prevSurface = null_t();
 
+    if (surface) {
+        
+        
+        gfxRect ur(updatedRect.left, updatedRect.top,
+                   updatedRect.right - updatedRect.left,
+                   updatedRect.bottom - updatedRect.top);
+        surface->MarkDirty(ur);
+        surface->Flush();
+    }
+
     mFrontSurface = surface;
     RecvNPN_InvalidateRect(updatedRect);
 
