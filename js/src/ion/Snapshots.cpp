@@ -102,6 +102,11 @@ using namespace js::ion;
 
 
 
+
+
+
+
+
 SnapshotReader::SnapshotReader(const uint8 *buffer, const uint8 *end)
   : reader_(buffer, end)
 #ifdef DEBUG
@@ -128,6 +133,12 @@ static const uint32 NUNBOX32_STACK_REG   = 1;
 static const uint32 NUNBOX32_REG_STACK   = 2;
 static const uint32 NUNBOX32_REG_REG     = 3;
 #endif
+
+static const uint32 MAX_TYPE_FIELD_VALUE = 7;
+static const uint32 MAX_REG_FIELD_VALUE  = 31;
+
+
+static const uint32 SINGLETON_VALUE      = 30;
 
 SnapshotReader::Slot
 SnapshotReader::readSlot()
@@ -157,14 +168,18 @@ SnapshotReader::readSlot()
         return Slot(TYPED_STACK, type, Location::From(reader_.readSigned()));
 
       case JSVAL_TYPE_NULL:
-        return Slot(JS_NULL);
+        if (code == SINGLETON_VALUE)
+            return Slot(JS_NULL);
+        if (code == MAX_REG_FIELD_VALUE)
+            return Slot(JS_INT32, reader_.readSigned());
+        return Slot(JS_INT32, code);
 
       case JSVAL_TYPE_UNDEFINED:
-      {
-        if (code)
-          return Slot(CONSTANT, code);
-        return Slot(JS_UNDEFINED);
-      }
+        if (code == SINGLETON_VALUE)
+            return Slot(JS_UNDEFINED);
+        if (code == MAX_REG_FIELD_VALUE)
+            return Slot(CONSTANT, reader_.readUnsigned());
+        return Slot(CONSTANT, code);
 
       default:
       {
@@ -250,8 +265,8 @@ SnapshotWriter::start(JSFunction *fun, JSScript *script, jsbytecode *pc,
 void
 SnapshotWriter::writeSlotHeader(JSValueType type, uint32 regCode)
 {
-    JS_ASSERT(uint32(type) < 8);
-    JS_ASSERT(uint32(regCode) < 32);
+    JS_ASSERT(uint32(type) <= MAX_TYPE_FIELD_VALUE);
+    JS_ASSERT(uint32(regCode) <= MAX_REG_FIELD_VALUE);
 
     uint8 byte = uint32(type) | (regCode << 3);
     writer_.writeByte(byte);
@@ -334,13 +349,13 @@ SnapshotWriter::addSlot(int32 valueStackSlot)
 void
 SnapshotWriter::addUndefinedSlot()
 {
-    writeSlotHeader(JSVAL_TYPE_UNDEFINED, 0);
+    writeSlotHeader(JSVAL_TYPE_UNDEFINED, SINGLETON_VALUE);
 }
 
 void
 SnapshotWriter::addNullSlot()
 {
-    writeSlotHeader(JSVAL_TYPE_NULL, 0);
+    writeSlotHeader(JSVAL_TYPE_NULL, SINGLETON_VALUE);
 }
 
 void
@@ -353,5 +368,27 @@ SnapshotWriter::endSnapshot()
 #ifdef DEBUG
     writer_.writeSigned(-1);
 #endif
+}
+
+void
+SnapshotWriter::addInt32Slot(int32 value)
+{
+    if (value >= 0 && uint32(value) < SINGLETON_VALUE) {
+        writeSlotHeader(JSVAL_TYPE_NULL, value);
+    } else {
+        writeSlotHeader(JSVAL_TYPE_NULL, MAX_REG_FIELD_VALUE);
+        writer_.writeSigned(value);
+    }
+}
+
+void
+SnapshotWriter::addConstantPoolSlot(uint32 index)
+{
+    if (index >= 0 && uint32(index) < SINGLETON_VALUE) {
+        writeSlotHeader(JSVAL_TYPE_UNDEFINED, index);
+    } else {
+        writeSlotHeader(JSVAL_TYPE_UNDEFINED, MAX_REG_FIELD_VALUE);
+        writer_.writeUnsigned(index);
+    }
 }
 

@@ -185,6 +185,12 @@ struct AbsoluteLabel : public LabelBase
     void setPrev(int32 offset) {
         use(offset);
     }
+    void bind() {
+        bound_ = true;
+
+        
+        offset_ = -1;
+    }
 };
 
 
@@ -236,7 +242,7 @@ class DeferredData : public TempObject
     }
 
     
-    virtual void copy(uint8 *code, uint8 *buffer) const = 0;
+    virtual void copy(IonCode *code, uint8 *buffer) const = 0;
 };
 
 } 
