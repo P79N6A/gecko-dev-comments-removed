@@ -88,6 +88,7 @@ MBasicBlock::MBasicBlock(MIRGenerator *gen, jsbytecode *pc)
     instructions_(TempAllocPolicy(gen->cx)),
     predecessors_(TempAllocPolicy(gen->cx)),
     phis_(TempAllocPolicy(gen->cx)),
+    slots_(NULL),
     stackPosition_(gen->firstStackSlot()),
     lastIns_(NULL),
     pc_(pc),
@@ -359,9 +360,26 @@ MBasicBlock::addPhi(MPhi *phi)
     return true;
 }
 
+void
+MBasicBlock::inheritPhi(MPhi *phi)
+{
+    setSlot(phi->slot(), phi);
+    header_[phi->slot()] = phi;
+}
+
+void
+MBasicBlock::inheritPhis(MBasicBlock *loopHeader)
+{
+    for (size_t i = 0; i < loopHeader->numPhis(); i++)
+        inheritPhi(loopHeader->getPhi(i));
+}
+
 bool
 MBasicBlock::addPredecessor(MBasicBlock *pred)
 {
+    if (!header_)
+        return inherit(pred) && initHeader();
+
     
     JS_ASSERT(pred->lastIns_);
     JS_ASSERT(pred->stackPosition_ == stackPosition_);
@@ -376,12 +394,12 @@ MBasicBlock::addPredecessor(MBasicBlock *pred)
             
             
             
-            if (predecessors_[0]->getSlot(i) != mine) {
-                
+            if (mine->isPhi() && mine->block() == this) {
+                JS_ASSERT(predecessors_.length());
                 phi = mine->toPhi();
             } else {
                 
-                phi = MPhi::New(gen);
+                phi = MPhi::New(gen, i);
                 if (!addPhi(phi) || !phi->addInput(gen, mine))
                     return false;
 
@@ -414,12 +432,13 @@ MBasicBlock::assertUsesAreNotWithin(MOperand *use)
 }
 
 bool
-MBasicBlock::addBackedge(MBasicBlock *pred, MBasicBlock *successor)
+MBasicBlock::setBackedge(MBasicBlock *pred)
 {
     
     JS_ASSERT(lastIns_);
     JS_ASSERT(pred->lastIns_);
     JS_ASSERT(pred->stackPosition_ == stackPosition_);
+    JS_ASSERT(headerSlots_ == stackPosition_);
 
     
     
@@ -439,7 +458,7 @@ MBasicBlock::addBackedge(MBasicBlock *pred, MBasicBlock *successor)
 
         
         
-        MPhi *phi = MPhi::New(gen);
+        MPhi *phi = MPhi::New(gen, i);
         if (!addPhi(phi))
             return false;
 
@@ -478,8 +497,8 @@ MBasicBlock::addBackedge(MBasicBlock *pred, MBasicBlock *successor)
 
         if (!phi->addInput(gen, entryDef) || !phi->addInput(gen, exitDef))
             return false;
-        successor->setSlot(i, phi);
-        successor->header_[i] = phi;
+
+        setSlot(i, phi);
     }
 
     return predecessors_.append(pred);

@@ -57,6 +57,14 @@ class BytecodeAnalyzer : public MIRGenerator
         ControlStatus_None          
     };
 
+    struct LoopInfo {
+        uint32 cfgEntry;
+
+        LoopInfo(uint32 cfgEntry)
+          : cfgEntry(cfgEntry)
+        { }
+    };
+
     
     
     
@@ -83,20 +91,24 @@ class BytecodeAnalyzer : public MIRGenerator
                 MBasicBlock *ifTrue;    
             } branch;
             struct {
-                MBasicBlock *entry;     
+                
+                MBasicBlock *entry;
 
                 
+                jsbytecode *bodyStart;
+                jsbytecode *bodyEnd;
+
                 
+                jsbytecode *exitpc;
+
                 
                 MBasicBlock *repeat;
 
-                union {
-                    struct {
-                        jsbytecode *bodyStart;  
-                        jsbytecode *bodyEnd;    
-                        MBasicBlock *successor; 
-                    } w;
-                };
+                
+                MBasicBlock *exit;
+
+                
+                MBasicBlock *successor;
             } loop;
         };
 
@@ -113,9 +125,6 @@ class BytecodeAnalyzer : public MIRGenerator
 
         static CFGState If(jsbytecode *join, MBasicBlock *ifFalse);
         static CFGState IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse);
-        static CFGState DoWhile(jsbytecode *ifne, MBasicBlock *entry);
-        static CFGState While(jsbytecode *ifne, jsbytecode *bodyStart, jsbytecode *bodyEnd,
-                              MBasicBlock *entry);
     };
 
   public:
@@ -131,6 +140,7 @@ class BytecodeAnalyzer : public MIRGenerator
     bool inspectOpcode(JSOp op);
     uint32 readIndex(jsbytecode *pc);
 
+    void popCfgStack();
     CFGState &findInnermostLoop();
     ControlStatus processControlEnd();
     ControlStatus processCfgStack();
@@ -143,6 +153,9 @@ class BytecodeAnalyzer : public MIRGenerator
     ControlStatus processWhileBodyEnd(CFGState &state);
     ControlStatus processReturn(JSOp op);
     ControlStatus simpleContinue(JSOp op, jssrcnote *sn);
+    ControlStatus simpleBreak(JSOp op, jssrcnote *sn);
+    bool pushLoop(CFGState::State state, jsbytecode *stopAt, MBasicBlock *entry,
+                  jsbytecode *bodyStart, jsbytecode *bodyEnd, jsbytecode *exitpc);
 
     MBasicBlock *newBlock(MBasicBlock *predecessor, jsbytecode *pc);
     MBasicBlock *newLoopHeader(MBasicBlock *predecessor, jsbytecode *pc);
@@ -170,6 +183,7 @@ class BytecodeAnalyzer : public MIRGenerator
     JSAtom **atoms;
     MBasicBlock *current;
     Vector<CFGState, 8, TempAllocPolicy> cfgStack_;
+    Vector<LoopInfo, 4, TempAllocPolicy> loops_;
 };
 
 } 

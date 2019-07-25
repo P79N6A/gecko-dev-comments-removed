@@ -298,6 +298,7 @@ class MInstruction : public TempObject
 
     
     MBasicBlock *block() const {
+        JS_ASSERT(block_);
         return block_;
     }
 
@@ -320,6 +321,7 @@ class MInstruction : public TempObject
 
     
     virtual MInstruction *getOperand(size_t index) const = 0;
+    virtual size_t numOperands() const = 0;
 
     
     
@@ -395,6 +397,9 @@ class MAryInstruction : public MInstruction
   public:
     MInstruction *getOperand(size_t index) const {
         return operands_[index]->ins();
+    }
+    size_t numOperands() const {
+        return Arity;
     }
 };
 
@@ -478,6 +483,9 @@ class MAryControlInstruction : public MControlInstruction
   public:
     MInstruction *getOperand(size_t index) const {
         return operands_[index]->ins();
+    }
+    size_t numOperands() const {
+        return Arity;
     }
 };
 
@@ -569,9 +577,11 @@ class MBitAnd : public MBinaryInstruction
 class MPhi : public MInstruction
 {
     js::Vector<MOperand *, 2, TempAllocPolicy> inputs_;
+    uint32 slot_;
 
-    MPhi(JSContext *cx)
-      : inputs_(TempAllocPolicy(cx))
+    MPhi(JSContext *cx, uint32 slot)
+      : inputs_(TempAllocPolicy(cx)),
+        slot_(slot)
     { }
 
   protected:
@@ -580,7 +590,7 @@ class MPhi : public MInstruction
     }
 
   public:
-    static MPhi *New(MIRGenerator *gen);
+    static MPhi *New(MIRGenerator *gen, uint32 slot);
 
     virtual Opcode op() const {
         return MInstruction::Op_Phi;
@@ -588,6 +598,12 @@ class MPhi : public MInstruction
 
     MInstruction *getOperand(size_t index) const {
         return inputs_[index]->ins();
+    }
+    size_t numOperands() const {
+        return inputs_.length();
+    }
+    uint32 slot() const {
+        return slot_;
     }
     bool addInput(MIRGenerator *gen, MInstruction *ins);
 };

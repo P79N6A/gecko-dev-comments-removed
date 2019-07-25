@@ -120,6 +120,8 @@ class MBasicBlock : public TempObject
     
     MInstruction *getSlot(uint32 index);
 
+    void inheritPhi(MPhi *phi);
+
   public:
     
     
@@ -174,7 +176,11 @@ class MBasicBlock : public TempObject
     
     
     
-    bool addBackedge(MBasicBlock *block, MBasicBlock *successor);
+    bool setBackedge(MBasicBlock *block);
+
+    
+    
+    void inheritPhis(MBasicBlock *loopHeader);
 
     jsbytecode *pc() const {
         return pc_;
@@ -201,8 +207,14 @@ class MBasicBlock : public TempObject
     size_t numInstructions() const {
         return instructions_.length();
     }
-    MInstruction * getInstruction(size_t i) const {
+    MInstruction *getInstruction(size_t i) const {
         return instructions_[i];
+    }
+    size_t numPhis() const {
+        return phis_.length();
+    }
+    MPhi *getPhi(size_t i) const {
+        return phis_[i];
     }
 
   private:
