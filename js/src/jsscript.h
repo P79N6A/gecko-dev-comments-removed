@@ -176,7 +176,9 @@ class Bindings {
     uint16_t nargs;
     uint16_t nvars;
     uint16_t nupvars;
+    bool     hasDup_:1;     
 
+    inline Shape *initialShape(JSContext *cx) const;
   public:
     inline Bindings(JSContext *cx);
 
@@ -210,6 +212,12 @@ class Bindings {
 
     
     inline Shape *lastShape() const;
+
+    
+
+
+
+    Shape *callObjectShape(JSContext *cx) const;
 
     
     inline bool extensibleParents();
@@ -262,6 +270,9 @@ class Bindings {
         *slotp = nargs;
         return add(cx, NULL, ARGUMENT);
     }
+
+    void noteDup() { hasDup_ = true; }
+    bool hasDup() const { return hasDup_; }
 
     
 
