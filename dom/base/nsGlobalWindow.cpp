@@ -11095,8 +11095,7 @@ nsGlobalWindow::SetHasAudioAvailableEventListeners()
     if (!obj) {                                                              \
       return NS_ERROR_UNEXPECTED;                                            \
     }                                                                        \
-    return elm->SetEventHandlerToJsval(nsGkAtoms::on##name_, cx, obj, v,     \
-                                       true);                                \
+    return elm->SetEventHandlerToJsval(nsGkAtoms::on##name_, cx, obj, v);    \
   }
 #define WINDOW_ONLY_EVENT EVENT
 #define TOUCH_EVENT EVENT
