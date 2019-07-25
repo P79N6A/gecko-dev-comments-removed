@@ -2808,20 +2808,6 @@ JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type)
     return str;
 }
 
-JS_PUBLIC_API(intN)
-JS_GetExternalStringGCType(JSRuntime *rt, JSString *str)
-{
-    
-
-
-
-
-    if (JSString::isStatic(str))
-        return -1;
-
-    return js_GetExternalStringGCType(str);
-}
-
 JS_PUBLIC_API(void)
 JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr)
 {

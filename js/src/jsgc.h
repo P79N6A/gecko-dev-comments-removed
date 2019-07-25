@@ -84,9 +84,6 @@ struct Shape;
 namespace gc {
 
 
-
-
-
 enum FinalizeKind {
     FINALIZE_OBJECT0,
     FINALIZE_OBJECT2,
@@ -535,28 +532,6 @@ GetFinalizableTraceKind(size_t thingKind)
     return map[thingKind];
 }
 
-static inline bool
-IsFinalizableStringKind(unsigned thingKind)
-{
-    return unsigned(FINALIZE_SHORT_STRING) <= thingKind &&
-           thingKind <= unsigned(FINALIZE_EXTERNAL_STRING);
-}
-
-
-
-
-
-static inline intN
-GetExternalStringGCType(JSExternalString *str)
-{
-    JS_STATIC_ASSERT(FINALIZE_STRING + 1 == FINALIZE_EXTERNAL_STRING);
-    JS_ASSERT(!JSString::isStatic(str));
-
-    unsigned thingKind = str->externalStringType;
-    JS_ASSERT(IsFinalizableStringKind(thingKind));
-    return intN(thingKind);
-}
-
 static inline uint32
 GetGCThingTraceKind(void *thing)
 {
@@ -747,13 +722,6 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind);
 extern bool
 CheckAllocation(JSContext *cx);
 #endif
-
-
-
-
-
-extern intN
-js_GetExternalStringGCType(JSString *str);
 
 extern JS_FRIEND_API(uint32)
 js_GetGCThingTraceKind(void *thing);

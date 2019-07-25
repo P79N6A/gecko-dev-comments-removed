@@ -1872,13 +1872,6 @@ JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type);
 
 
 
-
-extern JS_PUBLIC_API(intN)
-JS_GetExternalStringGCType(JSRuntime *rt, JSString *str);
-
-
-
-
 extern JS_PUBLIC_API(void)
 JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
 
