@@ -1173,20 +1173,6 @@ static void
 call_trace(JSTracer *trc, JSObject *obj)
 {
     JS_ASSERT(obj->isCall());
-    if (StackFrame *fp = obj->maybeCallObjStackFrame()) {
-        
-
-
-
-
-
-
-        uintN first = JSObject::CALL_RESERVED_SLOTS;
-        uintN count = fp->script()->bindings.countArgsAndVars();
-
-        JS_ASSERT(obj->numSlots() >= first + count);
-        obj->clearSlotRange(first, count);
-    }
 
     MaybeMarkGenerator(trc, obj);
 }
