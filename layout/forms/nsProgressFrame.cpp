@@ -279,28 +279,6 @@ nsProgressFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   return autoSize;
 }
 
-nscoord
-nsProgressFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
-{
-  nsRefPtr<nsFontMetrics> fontMet;
-  NS_ENSURE_SUCCESS(
-      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet)), 0);
-
-  nscoord minWidth = fontMet->Font().size; 
-
-  if (GetStyleDisplay()->mOrient == NS_STYLE_ORIENT_HORIZONTAL) {
-    minWidth *= 10; 
-  }
-
-  return minWidth;
-}
-
-nscoord
-nsProgressFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
-{
-  return GetMinWidth(aRenderingContext);
-}
-
 bool
 nsProgressFrame::ShouldUseNativeStyle() const
 {
