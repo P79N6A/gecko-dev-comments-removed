@@ -1165,6 +1165,12 @@ pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 pref("image.mem.max_decoded_image_kb", 256000);
 
 
+#ifdef ENABLE_MARIONETTE
+pref("marionette.defaultPrefs.enabled", true);
+pref("marionette.defaultPrefs.port", 2828);
+#endif
+
+
 pref("social.manifest.motown", "{\"origin\":\"https://motown-dev.mozillalabs.com\",\"name\":\"MoTown\",\"workerURL\":\"https://motown-dev.mozillalabs.com/social/worker.js\",\"iconURL\":\"https://motown-dev.mozillalabs.com/images/motown-icon.png\",\"sidebarURL\":\"https://motown-dev.mozillalabs.com/social/sidebar\"}");
 
 
