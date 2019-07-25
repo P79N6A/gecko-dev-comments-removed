@@ -8899,14 +8899,6 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
     return PR_TRUE;
   }
 
-  nsIContent* content = aFrame->GetContent();
-  if (content && content->IsRootOfNativeAnonymousSubtree()) {
-    
-    
-    *aResult = RecreateFramesForContent(content->GetParent(), PR_FALSE);
-    return PR_TRUE;
-  }
-
   
   nsIFrame* inFlowFrame =
     (aFrame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) ?
@@ -9037,6 +9029,16 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
     nsIFrame* nonGeneratedAncestor = nsLayoutUtils::GetNonGeneratedAncestor(frame);
     if (nonGeneratedAncestor->GetContent() != aContent) {
       return RecreateFramesForContent(nonGeneratedAncestor->GetContent(), aAsyncInsert);
+    }
+
+    nsIFrame* parent = frame->GetParent();
+    nsIContent* parentContent = parent ? parent->GetContent() : nsnull;
+    
+    
+    
+    if (parent && parent->IsLeaf() && parentContent &&
+        parentContent != aContent) {
+      return RecreateFramesForContent(parentContent, aAsyncInsert);
     }
   }
 
