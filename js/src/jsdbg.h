@@ -58,7 +58,7 @@ class Debug {
   private:
     JSCList link;                       
     JSObject *object;                   
-    GlobalObject *debuggeeGlobal;       
+    GlobalObjectSet debuggees;          
     JSObject *hooksObject;              
     JSObject *uncaughtExceptionHook;    
     bool enabled;
@@ -80,6 +80,10 @@ class Debug {
     typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, SystemAllocPolicy>
         ObjectMap;
     ObjectMap objects;
+
+    bool addDebuggee(JSContext *cx, GlobalObject *obj);
+    void removeDebuggee(GlobalObject *global, GlobalObjectSet::Enum *compartmentEnum,
+                        GlobalObjectSet::Enum *debugEnum);
 
     JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
     JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
@@ -124,7 +128,6 @@ class Debug {
     inline JSObject *toJSObject() const;
     static inline Debug *fromJSObject(JSObject *obj);
     static Debug *fromChildJSObject(JSObject *obj);
-    void removeDebuggee(GlobalObject *global, GlobalObjectSet::Enum *e);
     static void detachFromCompartment(JSCompartment *comp);
 
     
@@ -146,6 +149,8 @@ class Debug {
     static bool mark(GCMarker *trc, JSCompartment *compartment, JSGCInvocationKind gckind);
     static void sweepAll(JSRuntime *rt);
     static void sweepCompartment(JSCompartment *compartment);
+    static void detachAllDebuggersFromGlobal(GlobalObject *global,
+                                             GlobalObjectSet::Enum *compartmentEnum);
 
     static inline void leaveStackFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
@@ -209,7 +214,7 @@ Debug::hasAnyLiveHooks() const
 bool
 Debug::observesScope(JSObject *obj) const
 {
-    return obj->getGlobal() == debuggeeGlobal;
+    return debuggees.has(obj->getGlobal());
 }
 
 bool
