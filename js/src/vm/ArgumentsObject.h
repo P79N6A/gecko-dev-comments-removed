@@ -166,12 +166,20 @@ class ArgumentsObject : public JSObject
 #endif
 
     void initInitialLength(uint32_t length);
-
     void initData(ArgumentsData *data);
+    static ArgumentsObject *create(JSContext *cx, uint32_t argc, JSObject &callee);
 
   public:
     
-    static ArgumentsObject *create(JSContext *cx, uint32_t argc, JSObject &callee);
+    static bool create(JSContext *cx, StackFrame *fp);
+
+    
+
+
+
+
+
+    static ArgumentsObject *createUnexpected(JSContext *cx, StackFrame *fp);
 
     
 
@@ -223,11 +231,6 @@ class ArgumentsObject : public JSObject
 
 class NormalArgumentsObject : public ArgumentsObject
 {
-    friend bool JSObject::isNormalArguments() const;
-    friend struct EmptyShape; 
-    friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee);
-
   public:
     
 
@@ -237,14 +240,17 @@ class NormalArgumentsObject : public ArgumentsObject
 
     
     inline void clearCallee();
+
+    
+
+
+
+
+    static bool optimizedGetElem(JSContext *cx, StackFrame *fp, const Value &elem, Value *vp);
 };
 
 class StrictArgumentsObject : public ArgumentsObject
-{
-    friend bool JSObject::isStrictArguments() const;
-    friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee);
-};
+{};
 
 } 
 

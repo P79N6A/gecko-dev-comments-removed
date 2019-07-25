@@ -65,13 +65,6 @@ js_PutCallObject(StackFrame *fp)
     JS_ASSERT_IF(fp->isEvalFrame(), fp->isStrictEvalFrame());
     JS_ASSERT(fp->isEvalFrame() == callobj.isForEval());
 
-    
-    if (fp->hasArgsObj()) {
-        if (callobj.arguments().isMagic(JS_UNASSIGNED_ARGUMENTS))
-            callobj.setArguments(ObjectValue(fp->argsObj()));
-        js_PutArgsObject(fp);
-    }
-
     JSScript *script = fp->script();
     Bindings &bindings = script->bindings;
 
@@ -253,6 +246,8 @@ CallObject::createForFunction(JSContext *cx, StackFrame *fp)
 
     callobj->setStackFrame(fp);
     fp->setScopeChainWithOwnCallObj(*callobj);
+    if (fp->hasArgsObj())
+        callobj->setArguments(ObjectValue(fp->argsObj()));
     return callobj;
 }
 
@@ -271,26 +266,33 @@ CallObject::createForStrictEval(JSContext *cx, StackFrame *fp)
 JSBool
 CallObject::getArgumentsOp(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
-    CallObject &callobj = obj->asCall();
+    *vp = obj->asCall().arguments();
 
-    StackFrame *fp = callobj.maybeStackFrame();
-    if (fp && callobj.arguments().isMagic(JS_UNASSIGNED_ARGUMENTS)) {
-        JSObject *argsobj = js_GetArgsObject(cx, fp);
-        if (!argsobj)
+    
+
+
+
+
+    if (vp->isMagic(JS_UNASSIGNED_ARGUMENTS)) {
+#ifdef DEBUG
+        for (StackFrame *fp = cx->fp(); !fp->isDebuggerFrame(); fp = fp->prev())
+            JS_ASSERT(fp->isEvalFrame());
+#endif
+        StackFrame *fp = obj->asCall().maybeStackFrame();
+        ArgumentsObject *argsObj = ArgumentsObject::createUnexpected(cx, fp);
+        if (!argsObj)
             return false;
-        vp->setObject(*argsobj);
-    } else {
-        
-        JS_ASSERT(!callobj.arguments().isMagic(JS_UNASSIGNED_ARGUMENTS));
-        *vp = callobj.arguments();
+
+        *vp = ObjectValue(*argsObj);
+        obj->asCall().setArguments(*vp);
     }
+
     return true;
 }
 
 JSBool
 CallObject::setArgumentsOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 {
-    
     JS_ASSERT(obj->asCall().maybeStackFrame());
     obj->asCall().setArguments(*vp);
     return true;

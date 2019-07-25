@@ -348,19 +348,6 @@ JSFunction::toExtended() const
     return static_cast<const js::FunctionExtended *>(this);
 }
 
-
-
-
-
-
-
-
-
-
-
-extern js::ArgumentsObject *
-js_GetArgsObject(JSContext *cx, js::StackFrame *fp);
-
 extern void
 js_PutArgsObject(js::StackFrame *fp);
 
