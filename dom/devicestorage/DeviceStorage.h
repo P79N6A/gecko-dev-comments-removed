@@ -63,6 +63,11 @@ private:
 
   bool  mIsWatchingFile;
 
+#ifdef MOZ_WIDGET_GONK
+  PRUint32 mLastVolumeState; 
+  void DispatchMountChangeEvent(bool aMounted);
+#endif
+
   
   enum {
       DEVICE_STORAGE_TYPE_DEFAULT = 0,
