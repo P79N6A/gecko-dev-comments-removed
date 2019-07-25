@@ -382,6 +382,21 @@ function SyncTestingInfrastructure(engineFactory) {
 
 
 
+function ensureThrows(func) {
+  return function() {
+    try {
+      func.apply(this, arguments);
+    } catch (ex) {
+      do_throw(ex);
+    }
+  };
+}
+
+
+
+
+
+
 
 
 

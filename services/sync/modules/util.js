@@ -1062,19 +1062,22 @@ let Utils = {
       that._log.trace("Loading json from disk: " + filePath);
 
     let file = Utils.getProfileFile(filePath);
-    if (!file.exists())
+    if (!file.exists()) {
+      callback.call(that);
       return;
+    }
 
+    let json;
     try {
       let [is] = Utils.open(file, "<");
-      let json = Utils.readStream(is);
+      json = JSON.parse(Utils.readStream(is));
       is.close();
-      callback.call(that, JSON.parse(json));
     }
     catch (ex) {
       if (that._log)
         that._log.debug("Failed to load json: " + Utils.exceptionStr(ex));
     }
+    callback.call(that, json);
   },
 
   
@@ -1088,17 +1091,22 @@ let Utils = {
 
 
 
-  jsonSave: function Utils_jsonSave(filePath, that, callback) {
+
+
+  jsonSave: function Utils_jsonSave(filePath, that, obj, callback) {
     filePath = "weave/" + filePath + ".json";
     if (that._log)
       that._log.trace("Saving json to disk: " + filePath);
 
     let file = Utils.getProfileFile({ autoCreate: true, path: filePath });
-    let json = typeof callback == "function" ? callback.call(that) : callback;
+    let json = typeof obj == "function" ? obj.call(that) : obj;
     let out = JSON.stringify(json);
     let [fos] = Utils.open(file, ">");
     fos.writeString(out);
     fos.close();
+    if (typeof callback == "function") {
+      callback.call(that);
+    }
   },
 
   
