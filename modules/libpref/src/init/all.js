@@ -325,6 +325,9 @@ pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.
 pref("toolkit.telemetry.debugSlowSql", false);
 
 
+pref("toolkit.identity.debug", false);
+
+
 pref("devtools.debugger.log", false);
 
 pref("devtools.debugger.remote-enabled", false);
