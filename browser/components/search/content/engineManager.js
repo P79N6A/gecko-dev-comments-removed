@@ -192,22 +192,23 @@ var gEngineManagerDialog = {
 
   onSelect: function engineManager_onSelect() {
     
-    var disableButtons = (gEngineView.selectedIndex == -1) ||
-                         (gEngineView.lastIndex == 0);
+    
     var lastSelected = (gEngineView.selectedIndex == gEngineView.lastIndex);
     var firstSelected = (gEngineView.selectedIndex == 0);
     var noSelection = (gEngineView.selectedIndex == -1);
 
-    document.getElementById("cmd_remove").setAttribute("disabled",
-                                                       disableButtons);
+    document.getElementById("cmd_remove")
+            .setAttribute("disabled", noSelection ||
+                                      (firstSelected && lastSelected));
 
-    document.getElementById("cmd_moveup").setAttribute("disabled",
-                                            disableButtons || firstSelected);
+    document.getElementById("cmd_moveup")
+            .setAttribute("disabled", noSelection || firstSelected);
 
-    document.getElementById("cmd_movedown").setAttribute("disabled",
-                                             disableButtons || lastSelected);
-    document.getElementById("cmd_editkeyword").setAttribute("disabled",
-                                                            noSelection);
+    document.getElementById("cmd_movedown")
+            .setAttribute("disabled", noSelection || lastSelected);
+
+    document.getElementById("cmd_editkeyword")
+            .setAttribute("disabled", noSelection);
   }
 };
 
