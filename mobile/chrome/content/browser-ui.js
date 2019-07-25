@@ -555,6 +555,21 @@ var BrowserUI = {
     } else {
       Elements.urlbarState.removeAttribute("tablet");
     }
+
+    
+    
+    
+    setTimeout(function(self) {
+      self._updateAllTabThumbnails();
+    }, 0, this);
+  },
+
+  _updateAllTabThumbnails: function() {
+    let tabs = Browser.tabs;
+
+    tabs.forEach(function(tab) {
+      tab.updateThumbnail({ force: true });
+    });
   },
 
   update: function(aState) {
