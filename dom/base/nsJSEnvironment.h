@@ -56,6 +56,10 @@ namespace mozilla {
 template <class> class Maybe;
 }
 
+
+
+#define NS_GC_DELAY                 4000 // ms
+
 class nsJSContext : public nsIScriptContext,
                     public nsIXPCScriptNotify
 {

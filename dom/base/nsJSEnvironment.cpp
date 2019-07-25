@@ -125,10 +125,6 @@ static PRLogModuleInfo* gJSDiagnostics;
 #undef CompareString
 #endif
 
-
-
-#define NS_GC_DELAY                 4000 // ms
-
 #define NS_SHRINK_GC_BUFFERS_DELAY  4000 // ms
 
 
