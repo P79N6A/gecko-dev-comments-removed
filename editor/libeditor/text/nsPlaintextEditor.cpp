@@ -783,7 +783,7 @@ NS_IMETHODIMP nsPlaintextEditor::DeleteSelection(nsIEditor::EDirection aAction)
     }
   }
 
-  nsTextRulesInfo ruleInfo(nsTextEditRules::kDeleteSelection);
+  nsTextRulesInfo ruleInfo(kOpDeleteSelection);
   ruleInfo.collapsedAction = aAction;
   bool cancel, handled;
   result = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
@@ -808,11 +808,9 @@ NS_IMETHODIMP nsPlaintextEditor::InsertText(const nsAString &aStringToInsert)
   
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
-  PRInt32 theAction = nsTextEditRules::kInsertText;
-  PRInt32 opID = kOpInsertText;
+  OperationID opID = kOpInsertText;
   if (mInIMEMode) 
   {
-    theAction = nsTextEditRules::kInsertTextIME;
     opID = kOpInsertIMEText;
   }
   nsAutoPlaceHolderBatch batch(this, nsnull); 
@@ -827,7 +825,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertText(const nsAString &aStringToInsert)
   
   
   
-  nsTextRulesInfo ruleInfo(theAction);
+  nsTextRulesInfo ruleInfo(opID);
   ruleInfo.inString = &aStringToInsert;
   ruleInfo.outString = &resultString;
   ruleInfo.maxLength = mMaxTextLength;
@@ -870,7 +868,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   NS_ENSURE_TRUE(shell, NS_ERROR_NOT_INITIALIZED);
   shell->MaybeInvalidateCaretPosition();
 
-  nsTextRulesInfo ruleInfo(nsTextEditRules::kInsertBreak);
+  nsTextRulesInfo ruleInfo(kOpInsertBreak);
   ruleInfo.maxLength = mMaxTextLength;
   bool cancel, handled;
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
@@ -1209,7 +1207,7 @@ nsPlaintextEditor::Undo(PRUint32 aCount)
 
   nsAutoRules beginRulesSniffing(this, kOpUndo, nsIEditor::eNone);
 
-  nsTextRulesInfo ruleInfo(nsTextEditRules::kUndo);
+  nsTextRulesInfo ruleInfo(kOpUndo);
   nsCOMPtr<nsISelection> selection;
   GetSelection(getter_AddRefs(selection));
   bool cancel, handled;
@@ -1239,7 +1237,7 @@ nsPlaintextEditor::Redo(PRUint32 aCount)
 
   nsAutoRules beginRulesSniffing(this, kOpRedo, nsIEditor::eNone);
 
-  nsTextRulesInfo ruleInfo(nsTextEditRules::kRedo);
+  nsTextRulesInfo ruleInfo(kOpRedo);
   nsCOMPtr<nsISelection> selection;
   GetSelection(getter_AddRefs(selection));
   bool cancel, handled;
@@ -1385,7 +1383,7 @@ nsPlaintextEditor::OutputToString(const nsAString& aFormatType,
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   nsString resultString;
-  nsTextRulesInfo ruleInfo(nsTextEditRules::kOutputText);
+  nsTextRulesInfo ruleInfo(kOpOutputText);
   ruleInfo.outString = &resultString;
   
   nsAutoString str(aFormatType);
@@ -1526,7 +1524,7 @@ nsPlaintextEditor::InsertAsQuotation(const nsAString& aQuotedText,
   nsAutoRules beginRulesSniffing(this, kOpInsertText, nsIEditor::eNext);
 
   
-  nsTextRulesInfo ruleInfo(nsTextEditRules::kInsertElement);
+  nsTextRulesInfo ruleInfo(kOpInsertElement);
   bool cancel, handled;
   rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1652,7 +1650,8 @@ nsPlaintextEditor::GetEmbeddedObjects(nsISupportsArray** aNodeList)
 
 
 NS_IMETHODIMP
-nsPlaintextEditor::StartOperation(PRInt32 opID, nsIEditor::EDirection aDirection)
+nsPlaintextEditor::StartOperation(OperationID opID,
+                                  nsIEditor::EDirection aDirection)
 {
   
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);

@@ -130,7 +130,8 @@ public:
 
   
 
-  NS_IMETHOD StartOperation(PRInt32 opID, nsIEditor::EDirection aDirection);
+  NS_IMETHOD StartOperation(OperationID opID,
+                            nsIEditor::EDirection aDirection);
 
   
 
