@@ -3925,23 +3925,53 @@ var ClipboardHelper = {
 
 var PluginHelper = {
   showDoorHanger: function(aTab) {
+    if (!aTab.browser)
+      return;
+
+    
+    
     aTab.clickToPlayPluginDoorhangerShown = true;
-    let message = Strings.browser.GetStringFromName("clickToPlayPlugins.message");
+
+    let uri = aTab.browser.currentURI;
+
+    
+    
+    let permValue = Services.perms.testPermission(uri, "plugins");
+    if (permValue != Services.perms.UNKNOWN_ACTION) {
+      if (permValue == Services.perms.ALLOW_ACTION)
+        PluginHelper.playAllPlugins(aTab.browser.contentWindow);
+
+      return;
+    }
+
+    let message = Strings.browser.formatStringFromName("clickToPlayPlugins.message1",
+                                                       [uri.host], 1);
     let buttons = [
       {
         label: Strings.browser.GetStringFromName("clickToPlayPlugins.yes"),
-        callback: function() {
+        callback: function(aChecked) {
+          
+          if (aChecked)
+            Services.perms.add(uri, "plugins", Ci.nsIPermissionManager.ALLOW_ACTION);
+
           PluginHelper.playAllPlugins(aTab.browser.contentWindow);
         }
       },
       {
         label: Strings.browser.GetStringFromName("clickToPlayPlugins.no"),
-        callback: function() {
+        callback: function(aChecked) {
           
-        }
+          if (aChecked)
+            Services.perms.add(uri, "plugins", Ci.nsIPermissionManager.DENY_ACTION);
+
+          
       }
-    ]
-    NativeWindow.doorhanger.show(message, "ask-to-play-plugins", buttons, aTab.id);
+    ];
+
+    
+    let options = { checkbox: Strings.browser.GetStringFromName("clickToPlayPlugins.dontAskAgain") };
+
+    NativeWindow.doorhanger.show(message, "ask-to-play-plugins", buttons, aTab.id, options);
   },
 
   playAllPlugins: function(aContentWindow) {
@@ -4003,7 +4033,7 @@ var PluginHelper = {
 var PermissionsHelper = {
 
   _permissonTypes: ["password", "geolocation", "popup", "indexedDB",
-                    "offline-app", "desktop-notification"],
+                    "offline-app", "desktop-notification", "plugins"],
   _permissionStrings: {
     "password": {
       label: "password.rememberPassword",
@@ -4034,6 +4064,11 @@ var PermissionsHelper = {
       label: "desktopNotification.useNotifications",
       allowed: "desktopNotification.allow",
       denied: "desktopNotification.dontAllow"
+    },
+    "plugins": {
+      label: "clickToPlayPlugins.playPlugins",
+      allowed: "clickToPlayPlugins.yes",
+      denied: "clickToPlayPlugins.no"
     }
   },
 
