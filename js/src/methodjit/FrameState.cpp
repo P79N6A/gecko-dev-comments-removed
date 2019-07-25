@@ -257,6 +257,8 @@ FrameState::assertValidRegisterState() const
         JS_ASSERT_IF(fe->isCopy(),
                      fe->trackerIndex() > fe->copyOf()->trackerIndex());
         JS_ASSERT_IF(fe->isCopy(), !fe->type.inRegister() && !fe->data.inRegister());
+        JS_ASSERT_IF(fe->isCopy(), fe->copyOf() < tos);
+        JS_ASSERT_IF(fe->isCopy(), fe->copyOf()->isCopied());
 
         if (fe->isCopy())
             continue;
@@ -769,41 +771,83 @@ FrameState::uncopy(FrameEntry *original)
     JS_ASSERT(original->isCopied());
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     uint32 firstCopy = InvalidIndex;
     FrameEntry *tos = tosFe();
+    FrameEntry *bestFe = NULL;
+    uint32 ncopies = 0;
     for (uint32 i = 0; i < tracker.nentries; i++) {
         FrameEntry *fe = tracker[i];
         if (fe >= tos)
             continue;
         if (fe->isCopy() && fe->copyOf() == original) {
-            firstCopy = i;
-            break;
+            if (firstCopy == InvalidIndex) {
+                firstCopy = i;
+                bestFe = fe;
+            } else if (fe < bestFe) {
+                bestFe = fe;
+            }
+            ncopies++;
         }
     }
 
-    if (firstCopy == InvalidIndex) {
+    if (!ncopies) {
+        JS_ASSERT(firstCopy == InvalidIndex);
+        JS_ASSERT(!bestFe);
         original->copied = false;
         return NULL;
     }
 
+    JS_ASSERT(firstCopy != InvalidIndex);
+    JS_ASSERT(bestFe);
+
     
-    FrameEntry *fe = tracker[firstCopy];
+    bestFe->setCopyOf(NULL);
+    if (ncopies > 1) {
+        bestFe->setCopied();
+        for (uint32 i = firstCopy; i < tracker.nentries; i++) {
+            FrameEntry *other = tracker[i];
+            if (other >= tos || other == bestFe)
+                continue;
 
-    fe->setCopyOf(NULL);
-    for (uint32 i = firstCopy + 1; i < tracker.nentries; i++) {
-        FrameEntry *other = tracker[i];
-        if (other >= tos)
-            continue;
+            
+            JS_ASSERT(other != original);
 
-        
-        JS_ASSERT(other != original);
+            if (!other->isCopy() || other->copyOf() != original)
+                continue;
 
-        if (!other->isCopy() || other->copyOf() != original)
-            continue;
+            other->setCopyOf(bestFe);
 
-        other->setCopyOf(fe);
-        fe->setCopied();
+            
+
+
+
+
+
+
+            if (other->trackerIndex() < bestFe->trackerIndex())
+                swapInTracker(bestFe, other);
+        }
+    } else {
+        bestFe->setNotCopied();
     }
+
+    FrameEntry *fe = bestFe;
 
     
 
