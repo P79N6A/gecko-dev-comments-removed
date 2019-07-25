@@ -312,22 +312,25 @@ STDMETHODIMP nsAccessibleWrap::get_accValue(
 {
 __try {
   *pszValue = NULL;
-  nsAccessible *xpAccessible = GetXPAccessibleFor(varChild);
-  if (xpAccessible) {
-    nsAutoString value;
-    if (NS_FAILED(xpAccessible->GetValue(value)))
-      return E_FAIL;
 
-    
-    
-    
-    if (value.IsEmpty())
-      return S_FALSE;
+  nsAccessible* xpAccessible = GetXPAccessibleFor(varChild);
+  if (!xpAccessible || xpAccessible->IsDefunct())
+    return E_FAIL;
 
-    *pszValue = ::SysAllocStringLen(value.get(), value.Length());
-    if (!*pszValue)
-      return E_OUTOFMEMORY;
-  }
+  nsAutoString value;
+  if (NS_FAILED(xpAccessible->GetValue(value)))
+    return E_FAIL;
+
+  
+  
+  
+  if (value.IsEmpty())
+    return S_FALSE;
+
+  *pszValue = ::SysAllocStringLen(value.get(), value.Length());
+  if (!*pszValue)
+    return E_OUTOFMEMORY;
+
 } __except(FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
   return S_OK;
 }
