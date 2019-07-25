@@ -414,6 +414,10 @@ pref("dom.sms.whitelist", "file://,http://localhost:6666");
 pref("b2g.ignoreXFrameOptions", true);
 
 
+pref("device.camera.enabled", true);
+pref("media.realtime_decoder.enabled", true);
+
+
 
 
 

@@ -79,9 +79,10 @@ function startupHttpd(baseDir, port) {
 
 
 
+
 function addPermissions(urls) {
   let permissions = [
-    'indexedDB', 'indexedDB-unlimited', 'webapps-manage', 'offline-app'
+    'indexedDB', 'indexedDB-unlimited', 'webapps-manage', 'offline-app', 'content-camera'
   ];
   urls.forEach(function(url) {
     let uri = Services.io.newURI(url, null, null);
