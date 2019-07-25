@@ -107,7 +107,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
         return nsnull;
 
     
-    obj = GetCurrentOuter(cx, obj);
+    GetCurrentOuter(cx, obj);
     if (obj->getClass()->ext.innerObject)
         return DoubleWrap(cx, obj, flags);
 
