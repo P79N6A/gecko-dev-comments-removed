@@ -318,23 +318,12 @@ InputHandler.prototype = {
 
 
 
-
-
-
-
-
-
-
-
-
-
 function MouseModule(owner, browserViewContainer) {
   this._owner = owner;
   this._browserViewContainer = browserViewContainer;
   this._dragData = new DragData(kTapRadius);
 
   this._dragger = null;
-  this._clicker = null;
 
   this._downUpEvents = [];
   this._targetScrollInterface = null;
@@ -400,14 +389,6 @@ MouseModule.prototype = {
   },
 
   
-
-
-
-
-
-
-
-
   _onMouseDown: function _onMouseDown(aEvent) {
     this._owner.allowClicks();
 
@@ -428,46 +409,31 @@ MouseModule.prototype = {
     if (this._kinetic.isActive() && this._dragger != dragger)
       this._kinetic.end();
 
-    let targetClicker = this.getClickerFromElement(aEvent.target);
-
     this._targetScrollInterface = targetScrollInterface;
     this._dragger = dragger;
-    this._clicker = (targetClicker) ? targetClicker.customClicker : null;
     this._target = aEvent.target;
 
-    if (this._clicker)
-      this._clicker.mouseDown(aEvent.clientX, aEvent.clientY);
+    if (this._targetIsContent(aEvent)) {
+      let event = document.createEvent("Events");
+      event.initEvent("TapDown", true, false);
+      event.clientX = aEvent.clientX;
+      event.clientY = aEvent.clientY;
+      aEvent.target.dispatchEvent(event);
+
+      this._recordEvent(aEvent);
+    } else {
+      
+      this._cleanClickBuffer();
+    }
 
     if (this._dragger) {
       let draggable = this._dragger.isDraggable(targetScrollbox, targetScrollInterface);
       if (draggable.x || draggable.y)
         this._doDragStart(aEvent);
     }
-
-    if (this._targetIsContent(aEvent)) {
-      this._recordEvent(aEvent);
-    }
-    else {
-      
-      this._cleanClickBuffer();
-
-      if (this._dragger) {
-        
-        let draggable = this._dragger.isDraggable(targetScrollbox, targetScrollInterface);
-        dragData.locked = !draggable.x || !draggable.y;
-      }
-    }
   },
 
   
-
-
-
-
-
-
-
-
   _onMouseUp: function _onMouseUp(aEvent) {
     let dragData = this._dragData;
     let oldIsPan = dragData.isPan();
@@ -478,15 +444,21 @@ MouseModule.prototype = {
     }
 
     if (this._targetIsContent(aEvent)) {
+      if (this._dragger) {
+        let event = document.createEvent("Events");
+        event.initEvent("TapUp", true, false);
+        event.clientX = aEvent.clientX
+        event.clientY = aEvent.clientY;
+        aEvent.target.dispatchEvent(event);
+      }
+
       
       this._recordEvent(aEvent);
-      let commitToClicker = this._clicker && dragData.isClick() && (this._downUpEvents.length > 1);
+      let commitToClicker = dragData.isClick() && (this._downUpEvents.length > 1);
       if (commitToClicker)
         
         this._commitAnotherClick();
       else
-        
-        
         
         this._cleanClickBuffer();
     }
@@ -497,14 +469,13 @@ MouseModule.prototype = {
       let generatesClick = aEvent.detail;
       if (generatesClick)
         this._owner.suppressNextClick();
-    }
 
-    let clicker = this._clicker;
-    if (clicker) {
       
-      if (!oldIsPan && dragData.isPan())
-        clicker.panBegin();
-      clicker.mouseUp(aEvent.clientX, aEvent.clientY);
+      if (!oldIsPan) {
+        let event = document.createEvent("Events");
+        event.initEvent("PanBegin", true, false);
+        document.dispatchEvent(event);
+      }
     }
 
     this._owner.ungrab(this);
@@ -528,9 +499,11 @@ MouseModule.prototype = {
         this._doDragMove();
 
         
-        let clicker = this._clicker;
-        if (!oldIsPan && clicker)
-          clicker.panBegin();
+        if (!oldIsPan && dragData.isPan()) {
+          let event = document.createEvent("Events");
+          event.initEvent("PanBegin", true, false);
+          aEvent.target.dispatchEvent(event);
+        }
       }
     }
   },
@@ -619,7 +592,6 @@ MouseModule.prototype = {
 
 
 
-
   _commitAnotherClick: function _commitAnotherClick() {
     if (this._singleClickTimeout.isPending()) {   
       this._singleClickTimeout.clear();
@@ -630,8 +602,6 @@ MouseModule.prototype = {
   },
 
   
-
-
   _doSingleClick: function _doSingleClick() {
     let ev = this._downUpEvents[1];
     this._cleanClickBuffer();
@@ -642,19 +612,29 @@ MouseModule.prototype = {
       (ev.ctrlKey  ? Ci.nsIDOMNSEvent.CONTROL_MASK : 0) |
       (ev.shiftKey ? Ci.nsIDOMNSEvent.SHIFT_MASK   : 0) |
       (ev.metaKey  ? Ci.nsIDOMNSEvent.META_MASK    : 0);
-    this._clicker.singleClick(ev.clientX, ev.clientY, modifiers);
+
+    let event = document.createEvent("Events");
+    event.initEvent("TapSingle", true, false);
+    event.clientX = ev.clientX;
+    event.clientY = ev.clientY;
+    event.modifiers = modifiers;
+    ev.target.dispatchEvent(event);
   },
 
   
-
-
   _doDoubleClick: function _doDoubleClick() {
     let mouseUp1 = this._downUpEvents[1];
     
     let mouseUp2 = this._downUpEvents[Math.min(3, this._downUpEvents.length - 1)];
     this._cleanClickBuffer();
-    this._clicker.doubleClick(mouseUp1.clientX, mouseUp1.clientY,
-                              mouseUp2.clientX, mouseUp2.clientY);
+
+    let event = document.createEvent("Events");
+    event.initEvent("TapDouble", true, false);
+    event.clientX1 = mouseUp1.clientX;
+    event.clientY1 = mouseUp1.clientY;
+    event.clientX2 = mouseUp1.clientX;
+    event.clientY2 = mouseUp1.clientY;
+    mouseUp1.target.dispatchEvent(event);
   },
 
   
@@ -759,23 +739,10 @@ MouseModule.prototype = {
     return [scrollbox, qinterface, (scrollbox ? (scrollbox.customDragger || this._defaultDragger) : null)];
   },
 
-  
-
-
-
-  getClickerFromElement: function getClickerFromElement(elem) {
-    for (; elem; elem = elem.parentNode)
-      if (elem.customClicker)
-        break;
-
-    return (elem) ? elem : null;
-  },
-
   toString: function toString() {
     return '[MouseModule] {'
       + '\n\tdragData=' + this._dragData + ', '
       + 'dragger=' + this._dragger + ', '
-      + 'clicker=' + this._clicker + ', '
       + '\n\tdownUpEvents=' + this._downUpEvents + ', '
       + 'length=' + this._downUpEvents.length + ', '
       + '\n\ttargetScroller=' + this._targetScrollInterface + ', '
@@ -1128,13 +1095,6 @@ function KeyModule(owner, browserViewContainer) {
 }
 
 KeyModule.prototype = {
-  getClickerFromElement: function getClickerFromElement(elem) {
-    for (; elem; elem = elem.parentNode)
-      if (elem.customKeySender)
-        break;
-    return (elem) ? elem : null;
-  },
-
   handleEvent: function handleEvent(aEvent) {
     if (aEvent.type == "keydown" || aEvent.type == "keyup" || aEvent.type == "keypress") {
       let keyer = this._browserViewContainer.customKeySender;
@@ -1288,10 +1248,6 @@ GestureModule.prototype = {
       this._owner.ungrab(this);
       return;
     }
-
-    
-    
-    document.getElementById("inputhandler-overlay").customClicker.panBegin();
 
     
     this._pinchZoom = AnimatedZoom;
