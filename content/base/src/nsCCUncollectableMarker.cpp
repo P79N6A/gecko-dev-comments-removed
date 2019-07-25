@@ -317,7 +317,7 @@ nsCCUncollectableMarker::Observe(nsISupports* aSubject, const char* aTopic,
 
   
   bool cleanupJS =
-    !nsJSContext::CleanupSinceLastGC() &&
+    nsJSContext::CleanupsSinceLastGC() == 0 &&
     !strcmp(aTopic, "cycle-collector-forget-skippable");
 
   bool prepareForCC = !strcmp(aTopic, "cycle-collector-begin");
