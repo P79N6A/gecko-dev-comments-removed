@@ -4045,18 +4045,12 @@ PresShell::ScrollToAnchor()
 
 
 
-
-
-
 static void
 AccumulateFrameBounds(nsIFrame* aContainerFrame,
                       nsIFrame* aFrame,
                       PRBool aUseWholeLineHeightForInlines,
                       nsRect& aRect,
-                      PRBool& aHaveRect,
-                      nsIFrame*& aPrevBlock,
-                      nsAutoLineIterator& aLines,
-                      PRInt32& aCurLine)
+                      PRBool& aHaveRect)
 {
   nsRect frameBounds = aFrame->GetRect() +
     aFrame->GetParent()->GetOffsetTo(aContainerFrame);
@@ -4079,22 +4073,17 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
         f &&
         frameType == nsGkAtoms::blockFrame) {
       
-      if (f != aPrevBlock) {
-        aLines = f->GetLineIterator();
-        aPrevBlock = f;
-        aCurLine = 0;
-      }
-      if (aLines) {
-        PRInt32 index = aLines->FindLineContaining(prevFrame, aCurLine);
+      nsAutoLineIterator lines = f->GetLineIterator();
+      if (lines) {
+        PRInt32 index = lines->FindLineContaining(prevFrame);
         if (index >= 0) {
-          aCurLine = index;
           nsIFrame *trash1;
           PRInt32 trash2;
           nsRect lineBounds;
           PRUint32 trash3;
 
-          if (NS_SUCCEEDED(aLines->GetLine(index, &trash1, &trash2,
-                                           lineBounds, &trash3))) {
+          if (NS_SUCCEEDED(lines->GetLine(index, &trash1, &trash2,
+                                          lineBounds, &trash3))) {
             lineBounds += f->GetOffsetTo(aContainerFrame);
             if (lineBounds.y < frameBounds.y) {
               frameBounds.height = frameBounds.YMost() - lineBounds.y;
@@ -4297,16 +4286,9 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
   nsRect frameBounds;
   PRBool haveRect = PR_FALSE;
   PRBool useWholeLineHeightForInlines = aVPercent != NS_PRESSHELL_SCROLL_ANYWHERE;
-  
-  
-  nsIFrame* prevBlock = nsnull;
-  nsAutoLineIterator lines;
-  
-  
-  PRInt32 curLine = 0;
   do {
     AccumulateFrameBounds(container, frame, useWholeLineHeightForInlines,
-                          frameBounds, haveRect, prevBlock, lines, curLine);
+                          frameBounds, haveRect);
   } while ((frame = frame->GetNextContinuation()));
 
   ScrollFrameRectIntoView(container, frameBounds, aVPercent, aHPercent,

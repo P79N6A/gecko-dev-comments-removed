@@ -261,9 +261,7 @@ public:
 
 
 
-
-
-  virtual PRInt32 FindLineContaining(nsIFrame* aFrame, PRInt32 aStartLine = 0);
+  virtual PRInt32 FindLineContaining(nsIFrame* aFrame);
 
   
 
