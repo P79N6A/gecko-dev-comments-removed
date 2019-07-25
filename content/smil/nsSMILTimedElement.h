@@ -232,12 +232,6 @@ public:
 
 
 
-  void Reset();
-
-  
-
-
-
 
 
 
@@ -346,6 +340,10 @@ protected:
   };
 
   
+  template <class TestFunctor>
+  void RemoveInstanceTimes(InstanceTimeList& aArray, TestFunctor& aTest);
+
+  
   
   
 
@@ -376,6 +374,40 @@ protected:
                                       PRBool aIsBegin);
   void              ClearBeginOrEndSpecs(PRBool aIsBegin);
   void              DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  void ApplyEarlyEnd(const nsSMILTimeValue& aSampleTime);
+
+  
+
+
+
+
+  void Reset();
+
+  
+
+
+
+
+
+  void FilterHistory();
+
+  
+  
+  void FilterIntervals();
+  void FilterInstanceTimes(InstanceTimeList& aList);
 
   
 
@@ -483,6 +515,8 @@ protected:
   IntervalList                    mOldIntervals;
   nsSMILMilestone                 mPrevRegisteredMilestone;
   static const nsSMILMilestone    sMaxMilestone;
+  static const PRUint8            sMaxNumIntervals;
+  static const PRUint8            sMaxNumInstanceTimes;
 
   
   

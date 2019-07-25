@@ -57,7 +57,7 @@ public:
   nsSMILInterval(const nsSMILInterval& aOther);
   ~nsSMILInterval();
   void NotifyChanged(const nsSMILTimeContainer* aContainer);
-  void NotifyDeleting();
+  void Unlink(PRBool aFiltered = PR_FALSE);
 
   const nsSMILInstanceTime* Begin() const
   {
@@ -83,36 +83,14 @@ public:
     SetEnd(aEnd);
   }
 
-  void FreezeBegin()
-  {
-    NS_ABORT_IF_FALSE(mBegin && mEnd,
-        "Freezing Begin() on un-initialized instance time");
-    mBegin->MarkNoLongerUpdating();
-  }
-
-  void FreezeEnd()
-  {
-    NS_ABORT_IF_FALSE(mBegin && mEnd,
-        "Freezing End() on un-initialized instance time");
-    NS_ABORT_IF_FALSE(!mBegin->MayUpdate(),
-        "Freezing the end of an interval without a fixed begin");
-    mEnd->MarkNoLongerUpdating();
-  }
-
-  
-  void Unfreeze()
-  {
-    
-    UnfreezeEnd();
-  }
-
-  void UnfreezeEnd()
-  {
-    
-  }
+  void FixBegin();
+  void FixEnd();
 
   void AddDependentTime(nsSMILInstanceTime& aTime);
   void RemoveDependentTime(const nsSMILInstanceTime& aTime);
+
+  
+  PRBool IsDependencyChainLink() const;
 
 private:
   nsRefPtr<nsSMILInstanceTime> mBegin;
@@ -122,6 +100,18 @@ private:
 
   
   InstanceTimeList mDependentTimes;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRPackedBool mBeginFixed;
+  PRPackedBool mEndFixed;
 
   
   

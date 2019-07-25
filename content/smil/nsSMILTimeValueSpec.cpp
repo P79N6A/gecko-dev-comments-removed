@@ -161,7 +161,7 @@ nsSMILTimeValueSpec::HandleChangedInstanceTime(
 {
   
   
-  if (!aInstanceTimeToUpdate.MayUpdate())
+  if (aInstanceTimeToUpdate.IsFixedTime())
     return;
 
   nsSMILTimeValue updatedTime =

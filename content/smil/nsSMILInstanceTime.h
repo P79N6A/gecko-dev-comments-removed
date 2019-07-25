@@ -92,24 +92,29 @@ public:
                              PRBool aBeginObjectChanged,
                              PRBool aEndObjectChanged);
   void HandleDeletedInterval();
+  void HandleFilteredInterval();
 
   const nsSMILTimeValue& Time() const { return mTime; }
   const nsSMILTimeValueSpec* GetCreator() const { return mCreator; }
 
-  PRBool ClearOnReset() const { return !!(mFlags & kClearOnReset); }
-  PRBool MayUpdate() const { return !!(mFlags & kMayUpdate); }
+  PRBool IsDynamic() const { return !!(mFlags & kDynamic); }
+  PRBool IsFixedTime() const { return !(mFlags & kMayUpdate); }
   PRBool FromDOM() const { return !!(mFlags & kFromDOM); }
+  PRBool IsUsedAsFixedEndpoint() const { return mFixedEndpointRefCnt > 0; }
 
-  void MarkNoLongerUpdating() { mFlags &= ~kMayUpdate; }
+  void AddRefFixedEndpoint();
+  void ReleaseFixedEndpoint();
 
   void DependentUpdate(const nsSMILTimeValue& aNewTime)
   {
-    NS_ABORT_IF_FALSE(MayUpdate(),
+    NS_ABORT_IF_FALSE(!IsFixedTime(),
         "Updating an instance time that is not expected to be updated");
     mTime = aNewTime;
   }
 
-  PRBool IsDependent(const nsSMILInstanceTime& aOther) const;
+  PRBool IsDependent() const { return !!mBaseInterval; }
+  PRBool IsDependentOn(const nsSMILInstanceTime& aOther) const;
+  const nsSMILInterval* GetBaseInterval() const { return mBaseInterval; }
 
   PRBool SameTimeAndBase(const nsSMILInstanceTime& aOther) const
   {
@@ -133,9 +138,10 @@ protected:
   enum {
     
     
-    kClearOnReset = 1,
-
     
+    
+    kDynamic = 1,
+
     
     
     
@@ -149,15 +155,26 @@ protected:
     
     kFromDOM = 4
   };
-  PRUint8       mFlags; 
+  PRUint8       mFlags;   
+  PRPackedBool  mVisited; 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRUint16      mFixedEndpointRefCnt;
+
   PRUint32      mSerial; 
                          
                          
-  PRPackedBool  mVisited; 
-  PRPackedBool  mChainEnd; 
-                           
-                           
-                           
 
   nsSMILTimeValueSpec* mCreator; 
                                  
