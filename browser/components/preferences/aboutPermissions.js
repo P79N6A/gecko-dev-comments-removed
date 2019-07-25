@@ -145,6 +145,15 @@ Site.prototype = {
 
 
   getPermission: function Site_getPermission(aType, aResultObj) {
+    
+    
+    if (aType == "password") {
+      aResultObj.value =  this.loginSavingEnabled ?
+                          Ci.nsIPermissionManager.ALLOW_ACTION :
+                          Ci.nsIPermissionManager.DENY_ACTION;
+      return true;
+    }
+
     let permissionValue;
     if (TEST_EXACT_PERM_TYPES.indexOf(aType) == -1) {
       permissionValue = Services.perms.testPermission(this.httpURI, aType);
@@ -167,6 +176,13 @@ Site.prototype = {
 
 
   setPermission: function Site_setPermission(aType, aPerm) {
+    
+    
+    if (aType == "password") {
+      this.loginSavingEnabled = aPerm == Ci.nsIPermissionManager.ALLOW_ACTION;
+      return;
+    }
+
     
     
     Services.perms.add(this.httpURI, aType, aPerm);
@@ -685,14 +701,8 @@ let AboutPermissions = {
     let permissionMenulist = document.getElementById(aType + "-menulist");
     let permissionValue;    
     if (!this._selectedSite) {
-
       
       permissionValue = PermissionDefaults[aType];
-    } else if (aType == "password") {
-      
-      
-      permissionValue = this._selectedSite.loginSavingEnabled ?
-                        PermissionDefaults.ALLOW : PermissionDefaults.DENY;
     } else {
       let result = {};
       permissionValue = this._selectedSite.getPermission(aType, result) ?
@@ -709,9 +719,6 @@ let AboutPermissions = {
     if (!this._selectedSite) {
       
       PermissionDefaults[permissionType] = permissionValue;
-    } else if (permissionType == "password") {
-      let isEnabled = permissionValue == PermissionDefaults.ALLOW;
-      this._selectedSite.loginSavingEnabled = isEnabled;
     } else {
       this._selectedSite.setPermission(permissionType, permissionValue);
     }
