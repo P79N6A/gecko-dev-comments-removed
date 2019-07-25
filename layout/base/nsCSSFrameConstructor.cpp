@@ -2291,7 +2291,10 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
   
   
   
-  nsIContent* propagatedScrollFrom = PropagateScrollToViewport();
+#ifdef DEBUG
+  nsIContent* propagatedScrollFrom =
+#endif
+    PropagateScrollToViewport();
 
   SetUpDocElementContainingBlock(aDocElement);
 
