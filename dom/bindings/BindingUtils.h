@@ -139,17 +139,24 @@ IsArrayLike(JSContext* cx, JSObject* obj)
 {
   MOZ_ASSERT(obj);
   
+  
+  
+  JSAutoEnterCompartment ac;
   if (js::IsWrapper(obj)) {
     obj = XPCWrapper::Unwrap(cx, obj, false);
     if (!obj) {
       
       return false;
     }
+
+    if (!ac.enter(cx, obj)) {
+      return false;
+    }
   }
 
   
   
-  return JS_IsArrayObject(cx, obj);
+  return JS_IsArrayObject(cx, obj) || JS_IsTypedArrayObject(obj, cx);
 }
 
 inline bool
