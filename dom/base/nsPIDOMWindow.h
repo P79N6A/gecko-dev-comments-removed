@@ -288,9 +288,6 @@ public:
   virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
   virtual void SetInitialPrincipalToSubject() = 0;
 
-  
-  virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
-
   virtual PopupControlState PushPopupControlState(PopupControlState aState,
                                                   bool aForce) const = 0;
   virtual void PopPopupControlState(PopupControlState state) const = 0;
