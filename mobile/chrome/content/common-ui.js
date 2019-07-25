@@ -859,6 +859,7 @@ var FormHelperUI = {
     } else if (aElementRect && !Browser.selectedTab.allowZoom && autozoomEnabled) {
       
       
+      zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, browser.scale);
       Browser.animatedZoomTo(zoomRect);
     }
 
@@ -866,7 +867,7 @@ var FormHelperUI = {
   },
 
   _ensureCaretVisible: function _ensureCaretVisible(aCaretRect) {
-    if (!aCaretRect)
+    if (!aCaretRect || !Services.prefs.getBoolPref("formhelper.autozoom.caret"))
       return;
 
     
@@ -884,7 +885,7 @@ var FormHelperUI = {
     let zoomRect = Rect.fromRect(browser.getBoundingClientRect());
 
     this._currentCaretRect = aCaretRect;
-    let caretRect = aCaretRect.scale(browser.scale, browser.scale);
+    let caretRect = aCaretRect.clone().scale(browser.scale, browser.scale);
 
     let scroll = browser.getPosition();
     zoomRect = new Rect(scroll.x, scroll.y, zoomRect.width, zoomRect.height);
