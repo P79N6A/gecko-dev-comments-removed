@@ -31,6 +31,10 @@ const MMS_PDU_TYPE_CANCEL_CONF = 151;
 
 
 
+const MMS_VERSION = (0x01 << 4) | 0x03;
+
+
+
 const MMS_PDU_ERROR_OK                            = 128;
 const MMS_PDU_ERROR_TRANSIENT_FAILURE             = 192;
 const MMS_PDU_ERROR_TRANSIENT_MESSAGE_NOT_FOUND   = 193;
