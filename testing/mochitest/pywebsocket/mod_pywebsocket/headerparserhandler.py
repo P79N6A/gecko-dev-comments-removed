@@ -78,10 +78,36 @@ class ApacheLogHandler(logging.Handler):
         apache_level = apache.APLOG_DEBUG
         if record.levelno in ApacheLogHandler._LEVELS:
             apache_level = ApacheLogHandler._LEVELS[record.levelno]
-        self.log_error(record.getMessage(), apache_level)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        self.log_error(record.getMessage(), apache_level, apache.main_server)
 
 
-logging.getLogger('mod_pywebsocket').addHandler(ApacheLogHandler())
+_LOGGER = logging.getLogger('mod_pywebsocket')
+
+
+
+_LOGGER.setLevel(logging.DEBUG)
+_LOGGER.addHandler(ApacheLogHandler())
 
 
 def _create_dispatcher():

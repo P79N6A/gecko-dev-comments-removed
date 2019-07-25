@@ -54,6 +54,8 @@ _NOOP_MASKER = util.NoopMasker()
 
 
 
+
+
 def create_length_header(length, mask):
     """Creates a length header.
 
@@ -169,7 +171,11 @@ def create_close_frame(body, mask=False):
 
 
 class StreamOptions(object):
+    """Holds option values to configure Stream objects."""
+
     def __init__(self):
+        """Constructs StreamOptions."""
+
         self.deflate = False
         self.mask_send = False
         self.unmask_receive = True
@@ -235,6 +241,9 @@ class Stream(StreamBase):
                 'Mask bit on the received frame did\'nt match masking '
                 'configuration for received frames')
 
+        
+        
+        
         if payload_length == 127:
             extended_payload_length = self.receive_bytes(8)
             payload_length = struct.unpack(
@@ -294,7 +303,8 @@ class Stream(StreamBase):
 
         if self._request.client_terminated:
             raise BadOperationException(
-                'Requested receive_message after receiving a closing handshake')
+                'Requested receive_message after receiving a closing '
+                'handshake')
 
         while True:
             
@@ -415,8 +425,8 @@ class Stream(StreamBase):
                             
                             
                             self._logger.debug(
-                                'Ping %r is acked (%d pings were ignored)' %
-                                (expected_body, len(inflight_pings)))
+                                'Ping %r is acked (%d pings were ignored)',
+                                expected_body, len(inflight_pings))
                             break
                         else:
                             inflight_pings.append(expected_body)

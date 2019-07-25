@@ -40,6 +40,9 @@ from mod_pywebsocket import util
 from mod_pywebsocket.handshake import draft75
 from mod_pywebsocket.handshake import hybi00
 from mod_pywebsocket.handshake import hybi06
+
+from mod_pywebsocket.handshake._base import Extension
+
 from mod_pywebsocket.handshake._base import HandshakeError
 
 
@@ -76,8 +79,22 @@ class Handshaker(object):
     def do_handshake(self):
         """Perform WebSocket Handshake."""
 
+        self._logger.debug('Opening handshake resource: %r', self._request.uri)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         self._logger.debug(
-            'Opening handshake headers: %s' % self._request.headers_in)
+            'Opening handshake request headers: %r',
+            dict(self._request.headers_in))
 
         handshakers = [
             ('HyBi 07', self._hybi07Handshaker),
@@ -86,13 +103,14 @@ class Handshaker(object):
         last_error = HandshakeError('No handshaker available')
         for name, handshaker in handshakers:
             if handshaker:
-                self._logger.info('Trying %s protocol' % name)
+                self._logger.info('Trying %s protocol', name)
                 try:
                     handshaker.do_handshake()
                     return
                 except HandshakeError, e:
-                    self._logger.info('%s handshake failed: %s' % (name, e))
+                    self._logger.info('%s handshake failed: %s', name, e)
                     last_error = e
         raise last_error
+
 
 
