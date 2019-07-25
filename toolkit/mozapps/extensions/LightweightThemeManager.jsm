@@ -556,10 +556,6 @@ AddonWrapper.prototype = {
     return AddonManager.SCOPE_PROFILE;
   },
 
-  get foreignInstall() {
-    return false;
-  },
-
   
   isCompatibleWith: function(appVersion, platformVersion) {
     return true;
