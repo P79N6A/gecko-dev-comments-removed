@@ -2222,8 +2222,14 @@ SessionStoreService.prototype = {
       if (!aWindow._hosts)
         return;
       for (var [host, isPinned] in Iterator(aWindow._hosts)) {
-        var list = CookieSvc.getCookiesFromHost(host);
-        while (list.hasMoreElements()) {
+        let list;
+        try {
+          list = CookieSvc.getCookiesFromHost(host);
+        }
+        catch (ex) {
+          debug("getCookiesFromHost failed. Host: " + host);
+        }
+        while (list && list.hasMoreElements()) {
           var cookie = list.getNext().QueryInterface(Ci.nsICookie2);
           
           
