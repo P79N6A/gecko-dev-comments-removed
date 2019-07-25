@@ -1698,7 +1698,9 @@ nsFtpState::Init(nsFtpChannel *channel)
 
     
     char *fwdPtr = path.BeginWriting();
-    if (fwdPtr && (*fwdPtr == '/'))
+    if (!fwdPtr)
+        return NS_ERROR_OUT_OF_MEMORY;
+    if (*fwdPtr == '/')
         fwdPtr++;
     if (*fwdPtr != '\0') {
         
