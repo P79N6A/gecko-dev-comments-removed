@@ -392,7 +392,7 @@ private:
     static JSBool
     CheckObjectAccess(JSContext *cx, JSHandleObject obj,
                       JSHandleId id, JSAccessMode mode,
-                      jsval *vp);
+                      JSMutableHandleValue vp);
     
     
     static JSBool
