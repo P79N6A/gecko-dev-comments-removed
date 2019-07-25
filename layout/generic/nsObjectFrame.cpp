@@ -480,20 +480,6 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
         break;
       }
     }
-
-#ifdef XP_MACOSX
-    
-    
-    nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-    if (!pluginWidget)
-      return NS_ERROR_FAILURE;
-    pluginWidget->SetPluginEventModel(mInstanceOwner->GetEventModel());
-    pluginWidget->SetPluginDrawingModel(mInstanceOwner->GetDrawingModel());
-
-    if (mInstanceOwner->GetDrawingModel() == NPDrawingModelCoreAnimation) {
-      mInstanceOwner->SetupCARefresh();
-    }
-#endif
   } else {
     
     FixupWindow(GetContentRectRelativeToSelf().Size());

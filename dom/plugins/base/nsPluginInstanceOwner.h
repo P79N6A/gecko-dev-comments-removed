@@ -182,9 +182,8 @@ public:
   bool IsRemoteDrawingCoreAnimation();
   NPEventModel GetEventModel();
   static void CARefresh(nsITimer *aTimer, void *aClosure);
-  static void AddToCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
-  static void RemoveFromCARefreshTimer(nsPluginInstanceOwner *aPluginInstance);
-  void SetupCARefresh();
+  void AddToCARefreshTimer();
+  void RemoveFromCARefreshTimer();
   
   void* FixUpPluginWindow(PRInt32 inPaintState);
   void HidePluginWindow();

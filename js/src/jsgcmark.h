@@ -100,22 +100,22 @@ MarkIdRootRange(JSTracer *trc, size_t len, jsid *vec, const char *name);
 
 
 void
-MarkValue(JSTracer *trc, const js::HeapValue &v, const char *name);
+MarkValue(JSTracer *trc, HeapValue *v, const char *name);
 
 void
-MarkValueRange(JSTracer *trc, size_t len, const HeapValue *vec, const char *name);
+MarkValueRange(JSTracer *trc, size_t len, HeapValue *vec, const char *name);
 
 void
-MarkValueRoot(JSTracer *trc, const Value &v, const char *name);
+MarkValueRoot(JSTracer *trc, Value *v, const char *name);
 
 void
-MarkThingOrValueRoot(JSTracer *trc, uintptr_t word, const char *name);
+MarkThingOrValueRoot(JSTracer *trc, uintptr_t *word, const char *name);
 
 void
-MarkValueRootRange(JSTracer *trc, size_t len, const Value *vec, const char *name);
+MarkValueRootRange(JSTracer *trc, size_t len, Value *vec, const char *name);
 
 inline void
-MarkValueRootRange(JSTracer *trc, const Value *begin, const Value *end, const char *name)
+MarkValueRootRange(JSTracer *trc, Value *begin, Value *end, const char *name)
 {
     MarkValueRootRange(trc, end - begin, begin, name);
 }
@@ -128,14 +128,14 @@ MarkShape(JSTracer *trc, const HeapPtr<const Shape> &thing, const char *name);
 
 
 void
-MarkValueUnbarriered(JSTracer *trc, const js::Value &v, const char *name);
+MarkValueUnbarriered(JSTracer *trc, Value *v, const char *name);
 
 
 
 
 
 void
-MarkCrossCompartmentValue(JSTracer *trc, const js::HeapValue &v, const char *name);
+MarkCrossCompartmentValue(JSTracer *trc, HeapValue *v, const char *name);
 
 
 
@@ -159,7 +159,7 @@ MarkCycleCollectorChildren(JSTracer *trc, const Shape *shape);
 
 
 inline void
-Mark(JSTracer *trc, const js::HeapValue &v, const char *name)
+Mark(JSTracer *trc, HeapValue *v, const char *name)
 {
     MarkValue(trc, v, name);
 }
@@ -183,7 +183,7 @@ Mark(JSTracer *trc, const HeapPtr<ion::IonCode> &code, const char *name)
 }
 
 inline bool
-IsMarked(const js::Value &v)
+IsMarked(const Value &v)
 {
     if (v.isMarkable())
         return !IsAboutToBeFinalized(v);

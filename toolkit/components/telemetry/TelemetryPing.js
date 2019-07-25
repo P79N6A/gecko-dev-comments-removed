@@ -34,6 +34,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -193,52 +194,72 @@ TelemetryPing.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+  packHistogram: function packHistogram(hgram) {
+    let r = hgram.ranges;;
+    let c = hgram.counts;
+    let retgram = {
+      range: [r[1], r[r.length - 1]],
+      bucket_count: r.length,
+      histogram_type: hgram.histogram_type,
+      values: {},
+      sum: hgram.sum
+    };
+    let first = true;
+    let last = 0;
+
+    for (let i = 0; i < c.length; i++) {
+      let value = c[i];
+      if (!value)
+        continue;
+
+      
+      if (i && first) {
+        retgram.values[r[i - 1]] = 0;
+      }
+      first = false;
+      last = i + 1;
+      retgram.values[r[i]] = value;
+    }
+
+    
+    if (last && last < c.length)
+      retgram.values[r[last]] = 0;
+    return retgram;
+  },
+
   getHistograms: function getHistograms() {
     let hls = Telemetry.histogramSnapshots;
     let info = Telemetry.registeredHistograms;
     let ret = {};
 
-    function processHistogram(name, hgram) {
-      let r = hgram.ranges;;
-      let c = hgram.counts;
-      let retgram = {
-        range: [r[1], r[r.length - 1]],
-        bucket_count: r.length,
-        histogram_type: hgram.histogram_type,
-        values: {},
-        sum: hgram.sum
-      };
-      let first = true;
-      let last = 0;
-
-      for (let i = 0; i < c.length; i++) {
-        let value = c[i];
-        if (!value)
-          continue;
-
-        
-        if (i && first) {
-          first = false;
-          retgram.values[r[i - 1]] = 0;
-        }
-        first = false;
-        last = i + 1;
-        retgram.values[r[i]] = value;
-      }
-
-      
-      if (last && last < c.length)
-        retgram.values[r[last]] = 0;
-      ret[name] = retgram;
-    };
-
     for (let name in hls) {
       if (info[name]) {
-        processHistogram(name, hls[name]);
+        ret[name] = this.packHistogram(hls[name]);
         let startup_name = "STARTUP_" + name;
         if (hls[startup_name])
-          processHistogram(startup_name, hls[startup_name]);
+          ret[startup_name] = this.packHistogram(hls[startup_name]);
       }
+    }
+
+    return ret;
+  },
+
+  getAddonHistograms: function getAddonHistograms() {
+    let ahs = Telemetry.addonHistogramSnapshots;
+    let ret = {};
+
+    for (let name in ahs) {
+      ret[name] = this.convertHistogram(ahs[name]);
     }
 
     return ret;
@@ -416,7 +437,8 @@ TelemetryPing.prototype = {
       info: this.getMetadata(reason),
       simpleMeasurements: getSimpleMeasurements(),
       histograms: this.getHistograms(),
-      slowSQL: Telemetry.slowSQL
+      slowSQL: Telemetry.slowSQL,
+      addonHistograms: this.getAddonHistograms()
     };
     if (Object.keys(this._slowSQLStartup.mainThread).length
 	|| Object.keys(this._slowSQLStartup.otherThreads).length) {

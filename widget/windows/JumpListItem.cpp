@@ -738,11 +738,6 @@ nsresult JumpListLink::GetShellItem(nsCOMPtr<nsIJumpListItem>& item, nsRefPtr<IS
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!WinUtils::VistaCreateItemFromParsingNameInit()) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  
   if (FAILED(WinUtils::SHCreateItemFromParsingName(
                NS_ConvertASCIItoUTF16(spec).get(), NULL, IID_PPV_ARGS(&psi)))) {
     return NS_ERROR_INVALID_ARG;

@@ -541,8 +541,10 @@ public:
               bool aIsOffscreen = false,
               GLContext *aSharedContext = nsnull)
       : mFlushGuaranteesResolve(false),
-        mBoundDrawFBO(0),
-        mBoundReadFBO(0),
+        mUserBoundDrawFBO(0),
+        mUserBoundReadFBO(0),
+        mInternalBoundDrawFBO(0),
+        mInternalBoundReadFBO(0),
         mOffscreenFBOsDirty(false),
         mInitialized(false),
         mIsOffscreen(aIsOffscreen),
@@ -862,23 +864,67 @@ public:
 
 
 private:
-    GLuint mBoundDrawFBO;
-    GLuint mBoundReadFBO;
+    GLuint mUserBoundDrawFBO;
+    GLuint mUserBoundReadFBO;
+    GLuint mInternalBoundDrawFBO;
+    GLuint mInternalBoundReadFBO;
 
 public:
     void fBindFramebuffer(GLenum target, GLuint framebuffer) {
         switch (target) {
-          case LOCAL_GL_FRAMEBUFFER:
-            mBoundDrawFBO = mBoundReadFBO = framebuffer;
-            break;
           case LOCAL_GL_DRAW_FRAMEBUFFER_EXT:
-            mBoundDrawFBO = framebuffer;
+            mUserBoundDrawFBO = framebuffer;
+
+            if (framebuffer == 0) {
+                mInternalBoundDrawFBO = mOffscreenDrawFBO;
+            } else {
+                mInternalBoundDrawFBO = mUserBoundDrawFBO;
+            }
+
+            raw_fBindFramebuffer(LOCAL_GL_DRAW_FRAMEBUFFER_EXT,
+                                 mInternalBoundDrawFBO);
             break;
+
           case LOCAL_GL_READ_FRAMEBUFFER_EXT:
-            mBoundReadFBO = framebuffer;
+            mUserBoundReadFBO = framebuffer;
+
+            if (framebuffer == 0) {
+                mInternalBoundReadFBO = mOffscreenReadFBO;
+            } else {
+                mInternalBoundReadFBO = mUserBoundReadFBO;
+            }
+
+            raw_fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER_EXT,
+                                 mInternalBoundReadFBO);
+            break;
+
+          case LOCAL_GL_FRAMEBUFFER:
+            mUserBoundDrawFBO = mUserBoundReadFBO = framebuffer;
+
+            if (framebuffer == 0) {
+                mInternalBoundDrawFBO = mOffscreenDrawFBO;
+                mInternalBoundReadFBO = mOffscreenReadFBO;
+            } else {
+                mInternalBoundDrawFBO = mUserBoundDrawFBO;
+                mInternalBoundReadFBO = mUserBoundReadFBO;
+            }
+
+            if (SupportsOffscreenSplit()) {
+                raw_fBindFramebuffer(LOCAL_GL_DRAW_FRAMEBUFFER_EXT,
+                                     mInternalBoundDrawFBO);
+                raw_fBindFramebuffer(LOCAL_GL_READ_FRAMEBUFFER_EXT,
+                                     mInternalBoundReadFBO);
+            } else {
+                raw_fBindFramebuffer(LOCAL_GL_FRAMEBUFFER,
+                                     mInternalBoundDrawFBO);
+            }
+
+            break;
+
+          default:
+            raw_fBindFramebuffer(target, framebuffer);
             break;
         }
-        raw_fBindFramebuffer(target, framebuffer);
     }
 
     GLuint GetBoundDrawFBO() {
@@ -886,32 +932,38 @@ public:
         GLint ret = 0;
         
         
-        fGetIntegerv(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT, &ret);
+        
+        
+        raw_fGetIntegerv(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING_EXT, &ret);
 
-        if (mBoundDrawFBO != (GLuint)ret) {
-          printf_stderr("!!! Draw FBO mismatch: Was: %d, Expected: %d\n", ret, mBoundDrawFBO);
+        if (mInternalBoundDrawFBO != (GLuint)ret) {
+          printf_stderr("!!! Draw FBO mismatch: Was: %d, Expected: %d\n", ret, mInternalBoundDrawFBO);
           NS_ABORT();
         }
 #endif
 
-        return mBoundDrawFBO;
+        
+        return mUserBoundDrawFBO;
     }
 
     GLuint GetBoundReadFBO() {
 #ifdef DEBUG
         GLint ret = 0;
+        
+        
         if (SupportsOffscreenSplit())
-            fGetIntegerv(LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT, &ret);
+            raw_fGetIntegerv(LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT, &ret);
         else
-            fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, &ret);
+            raw_fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, &ret);
 
-        if (mBoundReadFBO != (GLuint)ret) {
-          printf_stderr("!!! Read FBO mismatch: Was: %d, Expected: %d\n", ret, mBoundReadFBO);
+        if (mInternalBoundReadFBO != (GLuint)ret) {
+          printf_stderr("!!! Read FBO mismatch: Was: %d, Expected: %d\n", ret, mInternalBoundReadFBO);
           NS_ABORT();
         }
 #endif
 
-        return mBoundReadFBO;
+        
+        return mUserBoundReadFBO;
     }
 
     void BindDrawFBO(GLuint name) {
@@ -954,8 +1006,6 @@ public:
     }
 
 private:
-    GLuint mPrevDrawFBOBinding;
-    GLuint mPrevReadFBOBinding;
     bool mOffscreenFBOsDirty;
 
     void GetShaderPrecisionFormatNonES2(GLenum shadertype, GLenum precisiontype, GLint* range, GLint* precision) {
@@ -980,40 +1030,29 @@ private:
         }
     }
 
+    
+    
     void BeforeGLDrawCall() {
-        
-        mPrevDrawFBOBinding = GetBoundDrawFBO();
-        if (mPrevDrawFBOBinding == 0) {
-            BindDrawFBO(mOffscreenDrawFBO);
-        } else if (mPrevDrawFBOBinding != mOffscreenDrawFBO)
+        if (mInternalBoundDrawFBO != mOffscreenDrawFBO)
             return;
 
-        
         if (mOffscreenDrawFBO == mOffscreenReadFBO)
-            return;
-
-        
-        if (mOffscreenFBOsDirty)
             return;
 
         mOffscreenFBOsDirty = true;
     }
 
+    
+    
     void AfterGLDrawCall() {
-        if (mPrevDrawFBOBinding == 0) {
-            BindDrawFBO(0);
-        }
     }
 
+    
+    
     void BeforeGLReadCall() {
-        
-        mPrevReadFBOBinding = GetBoundReadFBO();
-        if (mPrevReadFBOBinding == 0) {
-            BindReadFBO(mOffscreenReadFBO);
-        } else if (mPrevReadFBOBinding != mOffscreenReadFBO)
+        if (mInternalBoundReadFBO != mOffscreenReadFBO)
             return;
 
-        
         if (mOffscreenDrawFBO == mOffscreenReadFBO)
             return;
 
@@ -1027,7 +1066,7 @@ private:
 
         
         GLuint prevDraw = SwapBoundDrawFBO(mOffscreenReadFBO);
-        BindReadFBO(mOffscreenDrawFBO); 
+        GLuint prevRead = SwapBoundReadFBO(mOffscreenDrawFBO);
 
         GLint width = mOffscreenActualSize.width;
         GLint height = mOffscreenActualSize.height;
@@ -1037,7 +1076,7 @@ private:
                              LOCAL_GL_NEAREST);
 
         BindDrawFBO(prevDraw);
-        BindReadFBO(mOffscreenReadFBO);
+        BindReadFBO(prevRead);
 
         if (scissor)
             fEnable(LOCAL_GL_SCISSOR_TEST);
@@ -1045,10 +1084,9 @@ private:
         mOffscreenFBOsDirty = false;
     }
 
+    
+    
     void AfterGLReadCall() {
-        if (mPrevReadFBOBinding == 0) {
-            BindReadFBO(0);
-        }
     }
 
 public:
@@ -1997,10 +2035,32 @@ public:
         return retval;
     }
 
-    void fGetIntegerv(GLenum pname, GLint *params) {
+private:
+    void raw_fGetIntegerv(GLenum pname, GLint *params) {
         BEFORE_GL_CALL;
         mSymbols.fGetIntegerv(pname, params);
         AFTER_GL_CALL;
+    }
+
+public:
+    void fGetIntegerv(GLenum pname, GLint *params) {
+        switch (pname)
+        {
+            
+            
+            
+            case LOCAL_GL_FRAMEBUFFER_BINDING:
+                *params = GetBoundDrawFBO();
+                break;
+
+            case LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT:
+                *params = GetBoundReadFBO();
+                break;
+
+            default:
+                raw_fGetIntegerv(pname, params);
+                break;
+        }
     }
 
     void fGetFloatv(GLenum pname, GLfloat *params) {

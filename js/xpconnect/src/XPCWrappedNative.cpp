@@ -1091,7 +1091,7 @@ XPCWrappedNative::Init(XPCCallContext& ccx,
 
     
 
-    JSClass* jsclazz = si ? si->GetJSClass() : Jsvalify(&XPC_WN_NoHelper_JSClass);
+    JSClass* jsclazz = si ? si->GetJSClass() : Jsvalify(&XPC_WN_NoHelper_JSClass.base);
 
     if (isGlobal) {
         

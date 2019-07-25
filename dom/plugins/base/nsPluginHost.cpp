@@ -3115,8 +3115,13 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
   
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
   if (httpChannel) {
-    rv = httpChannel->SetReferrer(doc->GetDocumentURI());  
-    NS_ENSURE_SUCCESS(rv,rv);
+    if (!aPostStream) {
+      
+      
+      
+      rv = httpChannel->SetReferrer(doc->GetDocumentURI());  
+      NS_ENSURE_SUCCESS(rv,rv);
+    }
       
     if (aPostStream) {
       

@@ -970,6 +970,7 @@ JSContext::JSContext(JSRuntime *rt)
     stack(thisDuringConstruction()),  
     parseMapPool_(NULL),
     globalObject(NULL),
+    sharpObjectMap(this),
     argumentFormatMap(NULL),
     lastMessage(NULL),
     errorReporter(NULL),
@@ -1268,6 +1269,26 @@ JSContext::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
 
 
     return mallocSizeOf(this) + busyArrays.sizeOfExcludingThis(mallocSizeOf);
+}
+
+void
+JSContext::mark(JSTracer *trc)
+{
+    
+
+    
+    if (globalObject && !hasRunOption(JSOPTION_UNROOTED_GLOBAL))
+        MarkObjectRoot(trc, globalObject, "global object");
+    if (isExceptionPending())
+        MarkValueRoot(trc, &exception, "exception");
+
+    if (autoGCRooters)
+        autoGCRooters->traceAll(trc);
+
+    if (sharpObjectMap.depth > 0)
+        js_TraceSharpMap(trc, &sharpObjectMap);
+
+    MarkValueRoot(trc, &iterValue, "iterValue");
 }
 
 namespace JS {

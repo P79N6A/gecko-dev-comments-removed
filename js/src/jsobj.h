@@ -1000,22 +1000,6 @@ struct JSObject : js::gc::Cell
 
     
 
-
-
-  private:
-    static const uint32_t JSSLOT_PRIMITIVE_THIS = 0;
-
-  public:
-    inline const js::Value &getPrimitiveThis() const;
-    inline void setPrimitiveThis(const js::Value &pthis);
-
-    static size_t getPrimitiveThisOffset() {
-        
-        return getFixedSlotOffset(JSSLOT_PRIMITIVE_THIS);
-    }
-
-    
-
     js::ObjectElements *getElementsHeader() const {
         return js::ObjectElements::fromElements(elements);
     }
@@ -1365,8 +1349,6 @@ struct JSObject : js::gc::Cell
 
     static bool thisObject(JSContext *cx, const js::Value &v, js::Value *vp);
 
-    inline JSObject *getThrowTypeError() const;
-
     bool swap(JSContext *cx, JSObject *other);
 
     inline void initArrayClass();
@@ -1554,13 +1536,8 @@ class ValueArray {
 };
 
 
-#define SHARP_BIT       ((jsatomid) 1)
-#define SHARP_ID_SHIFT  2
-#define IS_SHARP(he)    (uintptr_t((he)->value) & SHARP_BIT)
-#define MAKE_SHARP(he)  ((he)->value = (void *) (uintptr_t((he)->value)|SHARP_BIT))
-
-extern JSHashEntry *
-js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap, bool *alreadySeen);
+extern bool
+js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap, bool *alreadySeen, bool *isSharp);
 
 extern void
 js_LeaveSharpObject(JSContext *cx, JSIdArray **idap);

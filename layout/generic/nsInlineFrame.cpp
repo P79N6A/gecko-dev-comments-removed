@@ -71,6 +71,20 @@ NS_NewInlineFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsInlineFrame(aContext);
 }
 
+NS_IMETHODIMP
+nsInlineFrame::Init(nsIContent*      aContent,
+                    nsIFrame*        aParent,
+                    nsIFrame*        aPrevInFlow)
+{
+  
+  nsresult rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
+
+  
+  mState &= ~NS_FRAME_MAY_BE_TRANSFORMED;
+
+  return rv;
+}
+
 NS_IMPL_FRAMEARENA_HELPERS(nsInlineFrame)
 
 NS_QUERYFRAME_HEAD(nsInlineFrame)
