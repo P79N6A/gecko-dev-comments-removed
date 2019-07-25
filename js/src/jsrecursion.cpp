@@ -697,7 +697,8 @@ TraceRecorder::downRecursion()
     guard(true, lir->ins2(LIR_ltp, sp_top, eos_ins), OOM_EXIT);
 
     
-    LIns* rp_top = lir->ins2(LIR_addp, lirbuf->rp, lir->insImmWord(sizeof(FrameInfo*)));
+    LIns* rp_top = lir->ins2(LIR_addp, lirbuf->rp,
+                             lir->insImmWord((tree->maxCallDepth + 1) * sizeof(FrameInfo*)));
     guard(true, lir->ins2(LIR_ltp, rp_top, eor_ins), OOM_EXIT);
 
     
