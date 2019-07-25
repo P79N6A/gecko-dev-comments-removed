@@ -408,6 +408,13 @@ public:
 
   
   
+  
+  
+  
+  PRBool CanUseOpaqueSurface();
+
+  
+  
   void SetUserData(void* aData) { mUserData = aData; }
   void* GetUserData() { return mUserData; }
 

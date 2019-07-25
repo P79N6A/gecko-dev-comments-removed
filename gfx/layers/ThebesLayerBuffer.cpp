@@ -43,8 +43,9 @@
 namespace mozilla {
 namespace layers {
 
-static void
-ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion)
+ void
+ThebesLayerBuffer::ClipToRegion(gfxContext* aContext,
+                                const nsIntRegion& aRegion)
 {
   aContext->NewPath();
   nsIntRegionRectIterator iter(aRegion);
@@ -124,34 +125,19 @@ WrapRotationAxis(PRInt32* aRotationPoint, PRInt32 aSize)
   }
 }
 
-static already_AddRefed<gfxASurface>
-CreateBuffer(gfxASurface* aTargetSurface, gfxASurface::gfxContentType aType,
-             const nsIntSize& aSize)
-{
-  return aTargetSurface->CreateSimilarSurface(aType, gfxIntSize(aSize.width, aSize.height));
-}
-
 ThebesLayerBuffer::PaintState
-ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer,
-                              gfxASurface* aReferenceSurface,
-                              PRUint32 aFlags)
+ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType)
 {
   PaintState result;
 
   result.mRegionToDraw.Sub(aLayer->GetVisibleRegion(), aLayer->GetValidRegion());
 
-  gfxASurface::gfxContentType desiredContentType = gfxASurface::CONTENT_COLOR_ALPHA;
-  if (aReferenceSurface->AreSimilarSurfacesSensitiveToContentType()) {
-    if (aFlags & OPAQUE_CONTENT) {
-      desiredContentType = gfxASurface::CONTENT_COLOR;
-    }
-    if (mBuffer && desiredContentType != mBuffer->GetContentType()) {
-      
-      
-      result.mRegionToDraw = aLayer->GetVisibleRegion();
-      result.mRegionToInvalidate = aLayer->GetValidRegion();
-      Clear();
-    }
+  if (mBuffer && aContentType != mBuffer->GetContentType()) {
+    
+    
+    result.mRegionToDraw = aLayer->GetVisibleRegion();
+    result.mRegionToInvalidate = aLayer->GetValidRegion();
+    Clear();
   }
 
   if (result.mRegionToDraw.IsEmpty())
@@ -162,8 +148,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer,
   nsRefPtr<gfxASurface> destBuffer;
   nsIntRect destBufferRect;
 
-  if (mBufferRect.width >= visibleBounds.width &&
-      mBufferRect.height >= visibleBounds.height) {
+  if (BufferSizeOkFor(visibleBounds.Size())) {
     
     if (mBufferRect.Contains(visibleBounds)) {
       
@@ -196,8 +181,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer,
           
           
           destBufferRect = visibleBounds;
-          destBuffer = CreateBuffer(aReferenceSurface, desiredContentType,
-                                    destBufferRect.Size());
+          destBuffer = CreateBuffer(aContentType, destBufferRect.Size());
           if (!destBuffer)
             return result;
         }
@@ -215,8 +199,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer,
   } else {
     
     destBufferRect = visibleBounds;
-    destBuffer = CreateBuffer(aReferenceSurface, desiredContentType,
-                              destBufferRect.Size());
+    destBuffer = CreateBuffer(aContentType, destBufferRect.Size());
     if (!destBuffer)
       return result;
   }
@@ -256,24 +239,12 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer,
   result.mContext->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
 
   ClipToRegion(result.mContext, result.mRegionToDraw);
-  if (desiredContentType == gfxASurface::CONTENT_COLOR_ALPHA && !isClear) {
+  if (aContentType == gfxASurface::CONTENT_COLOR_ALPHA && !isClear) {
     result.mContext->SetOperator(gfxContext::OPERATOR_CLEAR);
     result.mContext->Paint();
     result.mContext->SetOperator(gfxContext::OPERATOR_OVER);
   }
   return result;
-}
-
-void
-ThebesLayerBuffer::DrawTo(ThebesLayer* aLayer, PRUint32 aFlags, gfxContext* aTarget, float aOpacity)
-{
-  aTarget->Save();
-  ClipToRegion(aTarget, aLayer->GetVisibleRegion());
-  if (aFlags & OPAQUE_CONTENT) {
-    aTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
-  }
-  DrawBufferWithRotation(aTarget, aOpacity);
-  aTarget->Restore();
 }
 
 }

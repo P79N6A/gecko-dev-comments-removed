@@ -67,11 +67,27 @@ class ThebesLayer;
 
 class ThebesLayerBuffer {
 public:
-  ThebesLayerBuffer() : mBufferRotation(0,0)
+  typedef gfxASurface::gfxContentType ContentType;
+
+  
+
+
+
+
+
+
+  enum BufferSizePolicy {
+    SizedToVisibleBounds,
+    ContainsVisibleBounds
+  };
+
+  ThebesLayerBuffer(BufferSizePolicy aBufferSizePolicy)
+    : mBufferRotation(0,0)
+    , mBufferSizePolicy(aBufferSizePolicy)
   {
     MOZ_COUNT_CTOR(ThebesLayerBuffer);
   }
-  ~ThebesLayerBuffer()
+  virtual ~ThebesLayerBuffer()
   {
     MOZ_COUNT_DTOR(ThebesLayerBuffer);
   }
@@ -99,13 +115,7 @@ public:
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
   };
-  
 
-
-
-  enum {
-    OPAQUE_CONTENT = 0x01
-  };
   
 
 
@@ -114,15 +124,13 @@ public:
 
 
 
+  PaintState BeginPaint(ThebesLayer* aLayer, ContentType aContentType);
 
-
-  PaintState BeginPaint(ThebesLayer* aLayer, gfxASurface* aReferenceSurface,
-                        PRUint32 aFlags);
   
 
 
-
-  void DrawTo(ThebesLayer* aLayer, PRUint32 aFlags, gfxContext* aTarget, float aOpacity);
+  virtual already_AddRefed<gfxASurface>
+  CreateBuffer(ContentType aType, const nsIntSize& aSize) = 0;
 
   
 
@@ -132,6 +140,9 @@ public:
   gfxASurface* GetBuffer() { return mBuffer; }
 
 protected:
+  
+  static void ClipToRegion(gfxContext* aContext, const nsIntRegion& aRegion);
+
   enum XSide {
     LEFT, RIGHT
   };
@@ -142,7 +153,17 @@ protected:
   void DrawBufferQuadrant(gfxContext* aTarget, XSide aXSide, YSide aYSide, float aOpacity);
   void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity);
 
+  const nsIntRect& BufferRect() const { return mBufferRect; }
+  const nsIntPoint& BufferRotation() const { return mBufferRotation; }
+
 private:
+  PRBool BufferSizeOkFor(const nsIntSize& aSize)
+  {
+    return (aSize == mBufferRect.Size() ||
+            (SizedToVisibleBounds != mBufferSizePolicy &&
+             aSize < mBufferRect.Size()));
+  }
+
   nsRefPtr<gfxASurface> mBuffer;
   
   nsIntRect             mBufferRect;
@@ -157,9 +178,10 @@ private:
 
 
   nsIntPoint            mBufferRotation;
+  BufferSizePolicy      mBufferSizePolicy;
 };
 
 }
 }
 
-#endif
+#endif 

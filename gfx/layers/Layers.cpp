@@ -138,10 +138,26 @@ AppendToString(nsACString& s, const nsIntRegion& r,
 
 namespace mozilla {
 namespace layers {
- 
 
 
- 
+
+
+PRBool
+Layer::CanUseOpaqueSurface()
+{
+  
+  
+  if (IsOpaqueContent())
+    return PR_TRUE;
+  
+  
+  
+  
+  ContainerLayer* parent = GetParent();
+  return parent && parent->GetFirstChild() == this &&
+    parent->CanUseOpaqueSurface();
+}
+
 #ifdef MOZ_LAYERS_HAVE_LOG
 
 void

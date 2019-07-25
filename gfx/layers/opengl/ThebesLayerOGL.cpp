@@ -50,29 +50,6 @@ namespace layers {
 
 using namespace mozilla::gl;
 
-
-
-
-
-
-static PRBool
-UseOpaqueSurface(Layer* aLayer)
-{
-  
-  
-  if (aLayer->IsOpaqueContent())
-    return PR_TRUE;
-  
-  
-  
-  
-  ContainerLayerOGL* parent =
-    static_cast<ContainerLayerOGL*>(aLayer->GetParent());
-  return parent && parent->GetFirstChild() == aLayer &&
-         UseOpaqueSurface(parent);
-}
-
-
 ThebesLayerOGL::ThebesLayerOGL(LayerManagerOGL *aManager)
   : ThebesLayer(aManager, nsnull)
   , LayerOGL(aManager)
@@ -92,8 +69,8 @@ ThebesLayerOGL::EnsureSurface()
 {
   nsIntSize visibleSize = mVisibleRegion.GetBounds().Size();
   TextureImage::ContentType contentType =
-    UseOpaqueSurface(this) ? gfxASurface::CONTENT_COLOR :
-                             gfxASurface::CONTENT_COLOR_ALPHA;
+    CanUseOpaqueSurface() ? gfxASurface::CONTENT_COLOR :
+                            gfxASurface::CONTENT_COLOR_ALPHA;
   if (!mTexImage ||
       mTexImage->GetSize() != visibleSize ||
       mTexImage->GetContentType() != contentType)
@@ -189,7 +166,7 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
   
   
   ColorTextureLayerProgram *program =
-    UseOpaqueSurface(this)
+    CanUseOpaqueSurface()
     ? mOGLManager->GetBGRXLayerProgram()
     : mOGLManager->GetBGRALayerProgram();
 
