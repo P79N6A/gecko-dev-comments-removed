@@ -515,3 +515,6 @@ pref("hal.processPriorityManager.gonk.backgroundNice", 10);
 pref("dom.ipc.processPrelauch.enabled", true);
 
 pref("dom.ipc.processPrelauch.delayMs", 1000);
+
+
+pref("dom.disable_window_open_dialog_feature", true);
