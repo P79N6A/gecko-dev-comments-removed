@@ -952,6 +952,10 @@ nsSVGSVGElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   if (aVisitor.mEvent->message == NS_SVG_LOAD) {
     if (mTimedDocumentRoot) {
       mTimedDocumentRoot->Begin();
+      
+      
+      
+      AnimationNeedsResample();
     }
   }
   return nsSVGSVGElementBase::PreHandleEvent(aVisitor);
