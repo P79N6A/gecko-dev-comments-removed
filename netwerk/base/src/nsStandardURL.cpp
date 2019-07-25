@@ -1519,6 +1519,10 @@ nsStandardURL::SetPort(PRInt32 port)
     if ((port == mPort) || (mPort == -1 && port == mDefaultPort))
         return NS_OK;
 
+    
+    if (port <= 0 && port != -1) 
+        return NS_ERROR_MALFORMED_URI;
+
     if (mURLType == URLTYPE_NO_AUTHORITY) {
         NS_WARNING("cannot set port on no-auth url");
         return NS_ERROR_UNEXPECTED;
