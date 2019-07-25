@@ -3148,14 +3148,14 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
                                      : js_variable_str,
                                      name);
         }
-        return JS_FALSE;
+        return false;
     }
 
     n = OBJ_BLOCK_COUNT(cx, blockObj);
     if (n == JS_BIT(16)) {
         ReportCompileErrorNumber(cx, TS(tc->parser), pn,
                                  JSREPORT_ERROR, data->let.overflow);
-        return JS_FALSE;
+        return false;
     }
 
     
@@ -3163,7 +3163,7 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
     if (!Define(pn, atom, tc, true))
-        return JS_FALSE;
+        return false;
 
     
 
@@ -3181,7 +3181,7 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
     if (!js_DefineBlockVariable(cx, blockObj, ATOM_TO_JSID(atom), n))
-        return JS_FALSE;
+        return false;
 
     
 
@@ -3190,13 +3190,11 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
     uintN slot = JSSLOT_FREE(&js_BlockClass) + n;
-    if (slot >= blockObj->numSlots() &&
-        !blockObj->growSlots(cx, slot + 1)) {
-        return JS_FALSE;
-    }
+    if (slot >= blockObj->numSlots() && !blockObj->growSlots(cx, slot + 1))
+        return false;
     blockObj->scope()->freeslot = slot + 1;
     blockObj->setSlot(slot, PRIVATE_TO_JSVAL(pn));
-    return JS_TRUE;
+    return true;
 }
 
 static void

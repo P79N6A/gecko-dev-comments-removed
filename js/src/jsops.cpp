@@ -1739,17 +1739,12 @@ BEGIN_CASE(JSOP_SETMETHOD)
                 PCMETER(cache->pchits++);
                 PCMETER(cache->addpchits++);
 
-                
-
-
-
-
-                if (slot < obj->numSlots() &&
-                    !obj->getClass()->reserveSlots) {
+                if (slot < obj->numSlots()) {
                     ++scope->freeslot;
                 } else {
                     if (!js_AllocSlot(cx, obj, &slot))
                         goto error;
+                    JS_ASSERT(slot + 1 == scope->freeslot);
                 }
 
                 
@@ -1762,7 +1757,11 @@ BEGIN_CASE(JSOP_SETMETHOD)
 
 
 
-                if (slot != sprop->slot || scope->table) {
+
+
+                if (slot == sprop->slot && !scope->table) {
+                    scope->extend(cx, sprop);
+                } else {
                     JSScopeProperty *sprop2 =
                         scope->putProperty(cx, sprop->id,
                                            sprop->getter(), sprop->setter(),
@@ -1773,8 +1772,6 @@ BEGIN_CASE(JSOP_SETMETHOD)
                         goto error;
                     }
                     sprop = sprop2;
-                } else {
-                    scope->extend(cx, sprop);
                 }
 
                 
@@ -3252,7 +3249,6 @@ BEGIN_CASE(JSOP_INITMETHOD)
     lval = FETCH_OPND(-2);
     obj = JSVAL_TO_OBJECT(lval);
     JS_ASSERT(obj->isNative());
-    JS_ASSERT(!obj->getClass()->reserveSlots);
 
     JSScope *scope = obj->scope();
     PropertyCacheEntry *entry;

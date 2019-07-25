@@ -399,21 +399,6 @@ typedef void
 
 
 
-
-
-
-
-
-
-
-
-
-
-typedef uint32
-(* JSReserveSlotsOp)(JSContext *cx, JSObject *obj);
-
-
-
 typedef JSBool
 (* JSEqualityOp)(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
 

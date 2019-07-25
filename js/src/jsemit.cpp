@@ -65,10 +65,12 @@
 #include "jsregexp.h"
 #include "jsscan.h"
 #include "jsscope.h"
-#include "jsscopeinlines.h"
 #include "jsscript.h"
 #include "jsautooplen.h"        
 #include "jsstaticcheck.h"
+
+#include "jsobjinlines.h"
+#include "jsscopeinlines.h"
 
 
 #define BYTECODE_CHUNK  256     /* code allocation increment */

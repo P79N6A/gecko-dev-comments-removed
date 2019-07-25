@@ -1443,6 +1443,7 @@ struct JSRuntime {
     JSEmptyScope          *emptyArgumentsScope;
     JSEmptyScope          *emptyBlockScope;
     JSEmptyScope          *emptyCallScope;
+    JSEmptyScope          *emptyWithScope;
 
     
 
