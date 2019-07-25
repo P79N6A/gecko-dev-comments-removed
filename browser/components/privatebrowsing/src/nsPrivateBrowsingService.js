@@ -479,6 +479,10 @@ PrivateBrowsingService.prototype = {
         this._obs.removeObserver(this, "command-line-startup");
         aSubject.QueryInterface(Ci.nsICommandLine);
         if (aSubject.findFlag("private", false) >= 0) {
+          
+          if (this._autoStarted)
+            aSubject.handleFlag("private", false);
+
           this.privateBrowsingEnabled = true;
           this._autoStarted = true;
           this._lastChangedByCommandLine = true;
