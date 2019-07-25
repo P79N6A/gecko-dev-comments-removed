@@ -1156,6 +1156,9 @@ struct JSThreadData {
 
 
 
+
+
+
     struct {
         jsdouble d;
         jsint    base;

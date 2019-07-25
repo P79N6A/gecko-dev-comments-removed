@@ -109,9 +109,25 @@ typedef enum JSDToStrMode {
 
 
 
+
+
+
+
+
+
+
+
+
 char *
 js_dtostr(DtoaState *state, char *buffer, size_t bufferSize, JSDToStrMode mode, int precision,
           double dval);
+
+
+
+
+
+
+
 
 
 

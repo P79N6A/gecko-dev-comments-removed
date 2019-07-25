@@ -90,7 +90,6 @@
 #include "jscntxt.h"
 #include "jsversion.h"
 #include "jsdbgapi.h" 
-#include "jsdtoa.h"
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsinterp.h"

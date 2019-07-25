@@ -56,7 +56,6 @@
 #include "jsarena.h" 
 #include "jsbit.h"
 #include "jsutil.h" 
-#include "jsdtoa.h"
 #include "jsprf.h"
 #include "jsapi.h"
 #include "jsatom.h"
