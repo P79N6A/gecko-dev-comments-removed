@@ -7618,7 +7618,6 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
 
 
 
-
 static void
 UpdateViewsForTree(nsIFrame* aFrame,
                    nsFrameManager* aFrameManager,
@@ -7675,11 +7674,21 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
                   "should only be called within ApplyRenderingChangeToTree");
 
   for ( ; aFrame; aFrame = nsLayoutUtils::GetNextContinuationOrSpecialSibling(aFrame)) {
+    NS_ASSERTION(!(aChange & nsChangeHint_UpdateTransformLayer) || aFrame->IsTransformed(),
+                 "Only transformed frames should have UpdateTransformLayer hint");
+
     
     
     
     
-    UpdateViewsForTree(aFrame, aFrameManager, aChange);
+    
+    
+    
+    
+    UpdateViewsForTree(aFrame, aFrameManager,
+                       nsChangeHint(aChange & (nsChangeHint_RepaintFrame |
+                                               nsChangeHint_SyncFrameView |
+                                               nsChangeHint_UpdateOpacityLayer)));
 
     
     if (aChange & nsChangeHint_RepaintFrame) {
