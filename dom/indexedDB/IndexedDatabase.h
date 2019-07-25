@@ -58,11 +58,4 @@
 #define USING_INDEXEDDB_NAMESPACE \
   using namespace mozilla::dom::indexedDB;
 
-BEGIN_INDEXEDDB_NAMESPACE
-
-
-extern void Shutdown();
-
-END_INDEXEDDB_NAMESPACE
-
 #endif 
