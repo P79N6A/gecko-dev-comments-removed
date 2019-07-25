@@ -255,6 +255,13 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
   NS_ENSURE_SUCCESS(res, res);
 
   
+  nsCOMPtr<dom::Element> focusElementNode = do_QueryInterface(focusElement);
+  NS_ENSURE_STATE(focusElementNode);
+  if (!focusElementNode->IsInDoc()) {
+    return NS_OK;
+  }
+
+  
   nsAutoString focusTagName;
   res = focusElement->GetTagName(focusTagName);
   NS_ENSURE_SUCCESS(res, res);
