@@ -285,6 +285,7 @@ class ObjectImpl : public gc::Cell
     static inline void writeBarrierPost(ObjectImpl *obj, void *addr);
     inline void privateWriteBarrierPre(void **oldval);
     inline void privateWriteBarrierPost(void **oldval);
+    void markChildren(JSTracer *trc);
 
     
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
