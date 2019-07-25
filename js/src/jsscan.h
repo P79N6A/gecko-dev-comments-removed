@@ -452,7 +452,7 @@ class TokenStream
     } TokenBuf;
 
     TokenKind getTokenInternal();     
-    int getLineFromFile(char *buf, int size, FILE *file);
+    int fillUserbuf();
     int32 getChar();
     void ungetChar(int32 c);
     Token *newToken(ptrdiff_t adjust);

@@ -268,7 +268,7 @@ js_fgets(char *buf, int size, FILE *file)
 
 
 int
-TokenStream::getLineFromFile(char *buf, int size, FILE *file)
+TokenStream::fillUserbuf()
 {
     
     
@@ -281,14 +281,15 @@ TokenStream::getLineFromFile(char *buf, int size, FILE *file)
     
     
 
-    int n = size - 1;   
+    jschar *buf = userbuf.base;
+    int n = LINE_LIMIT - 1;     
     JS_ASSERT(n > 0);
     int i;
     for (i = 0; i < n; i++) {
         int c = fast_getc(file);
         if (c == EOF)
             break;
-        buf[i] = c;
+        buf[i] = (jschar) (unsigned char) c;
         if (c == '\n') {
             i++;
             break;
@@ -299,7 +300,7 @@ TokenStream::getLineFromFile(char *buf, int size, FILE *file)
             c = fast_getc(file);
             if (c == EOF)
                 break;
-            buf[i] = c;
+            buf[i] = (jschar) (unsigned char) c;
             if (c == '\n') {
                 i++;
                 break;
@@ -311,12 +312,14 @@ TokenStream::getLineFromFile(char *buf, int size, FILE *file)
     return i;
 }
 
+
+
+
 int32
 TokenStream::getChar()
 {
     int32 c;
     ptrdiff_t len, olen;
-    char cbuf[LINE_LIMIT];
 
     if (ungetpos != 0) {
         c = ungetbuf[--ungetpos];
@@ -330,14 +333,13 @@ TokenStream::getChar()
                 }
 
                 
-                len = getLineFromFile(cbuf, LINE_LIMIT, file);
-                if (len <= 0) {
+                len = fillUserbuf();
+                JS_ASSERT(len >= 0);
+                if (len == 0) {
                     flags |= TSF_EOF;
                     return EOF;
                 }
                 olen = len;
-                for (int i = 0; i < len; i++)
-                    userbuf.base[i] = (jschar) (unsigned char) cbuf[i];
                 userbuf.limit = userbuf.base + len;
                 userbuf.ptr = userbuf.base;
             }
