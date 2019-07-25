@@ -118,7 +118,6 @@
 #include "nsITextToSubURI.h" 
 #include "nsIMIMEHeaderParam.h"
 
-#include "nsIPrefService.h"
 #include "nsIWindowWatcher.h"
 
 #include "nsIDownloadHistory.h" 
@@ -149,6 +148,10 @@
 #include "AndroidBridge.h"
 #endif
 
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
+
 
 #define BUFFERED_OUTPUT_SIZE (1024 * 32)
 
@@ -172,9 +175,10 @@ PRLogModuleInfo* nsExternalHelperAppService::mLog = nsnull;
 #define LOG(args) PR_LOG(mLog, 3, args)
 #define LOG_ENABLED() PR_LOG_TEST(mLog, 3)
 
-static const char NEVER_ASK_PREF_BRANCH[] = "browser.helperApps.neverAsk.";
-static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] = "saveToDisk";
-static const char NEVER_ASK_FOR_OPEN_FILE_PREF[]    = "openFile";
+static const char NEVER_ASK_FOR_SAVE_TO_DISK_PREF[] =
+  "browser.helperApps.neverAsk.saveToDisk";
+static const char NEVER_ASK_FOR_OPEN_FILE_PREF[] =
+  "browser.helperApps.neverAsk.openFile";
 
 
 
@@ -420,21 +424,15 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
   nsCOMPtr<nsIFile> dir;
 #ifdef XP_MACOSX
   
-  nsCOMPtr<nsIPrefBranch> prefs =
-    do_GetService(NS_PREFSERVICE_CONTRACTID);
-  NS_ENSURE_TRUE(prefs, NS_ERROR_UNEXPECTED);
-
-  PRInt32 folderValue = -1;
-  (void) prefs->GetIntPref(NS_PREF_DOWNLOAD_FOLDERLIST, &folderValue);
-  switch (folderValue) {
+  switch (Preferences::GetInt(NS_PREF_DOWNLOAD_FOLDERLIST, -1)) {
     case NS_FOLDER_VALUE_DESKTOP:
       (void) NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR, getter_AddRefs(dir));
       break;
     case NS_FOLDER_VALUE_CUSTOM:
       {
-        (void) prefs->GetComplexValue(NS_PREF_DOWNLOAD_DIR,
-                                      NS_GET_IID(nsILocalFile),
-                                      getter_AddRefs(dir));
+        Preferences::GetComplex(NS_PREF_DOWNLOAD_DIR,
+                                NS_GET_IID(nsILocalFile),
+                                getter_AddRefs(dir));
         if (!dir) break;
 
         
@@ -942,33 +940,21 @@ NS_IMETHODIMP nsExternalHelperAppService::IsExposedProtocol(const char * aProtoc
 {
   
   
-  
-  *aResult = PR_FALSE;
 
-  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (prefs)
-  {
-    PRBool val;
-    nsresult rv;
-
-    
-    
-
-    nsCAutoString name;
-    name = NS_LITERAL_CSTRING("network.protocol-handler.expose.")
-         + nsDependentCString(aProtocolScheme);
-    rv = prefs->GetBoolPref(name.get(), &val);
-    if (NS_SUCCEEDED(rv))
-    {
-      *aResult = val;
-    }
-    else
-    {
-      rv = prefs->GetBoolPref("network.protocol-handler.expose-all", &val);
-      if (NS_SUCCEEDED(rv) && val)
-        *aResult = PR_TRUE;
-    }
+  nsCAutoString prefName("network.protocol-handler.expose.");
+  prefName += aProtocolScheme;
+  PRBool val;
+  if (NS_SUCCEEDED(Preferences::GetBool(prefName.get(), &val))) {
+    *aResult = val;
+    return NS_OK;
   }
+
+  
+  
+  
+  *aResult =
+    Preferences::GetBool("network.protocol-handler.expose-all", PR_FALSE);
+
   return NS_OK;
 }
 
@@ -1010,22 +996,21 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
   if (scheme.IsEmpty())
     return NS_OK; 
 
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (!prefs)
-    return NS_OK; 
-
   
   nsCAutoString externalPref(kExternalProtocolPrefPrefix);
   externalPref += scheme;
   PRBool allowLoad  = PR_FALSE;
-  rv = prefs->GetBoolPref(externalPref.get(), &allowLoad);
-  if (NS_FAILED(rv))
-  {
+  if (NS_FAILED(Preferences::GetBool(externalPref.get(), &allowLoad))) {
     
-    rv = prefs->GetBoolPref(kExternalProtocolDefaultPref, &allowLoad);
+    if (NS_FAILED(Preferences::GetBool(kExternalProtocolDefaultPref,
+                                       &allowLoad))) {
+      return NS_OK; 
+    }
   }
-  if (NS_FAILED(rv) || !allowLoad)
+
+  if (!allowLoad) {
     return NS_OK; 
+  }
 
  
   nsCOMPtr<nsIHandlerInfo> handler;
@@ -1167,20 +1152,15 @@ nsExternalHelperAppService::SetProtocolHandlerDefaults(nsIHandlerInfo *aHandlerI
     aHandlerInfo->SetPreferredAction(nsIHandlerInfo::useSystemDefault);
 
     
-    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-    if (!prefs)
-      return NS_OK; 
-
     nsCAutoString scheme;
     aHandlerInfo->GetType(scheme);
     
     nsCAutoString warningPref(kExternalWarningPrefPrefix);
     warningPref += scheme;
-    PRBool warn = PR_TRUE;
-    nsresult rv = prefs->GetBoolPref(warningPref.get(), &warn);
-    if (NS_FAILED(rv)) {
+    PRBool warn;
+    if (NS_FAILED(Preferences::GetBool(warningPref.get(), &warn))) {
       
-      prefs->GetBoolPref(kExternalWarningDefaultPref, &warn);
+      warn = Preferences::GetBool(kExternalWarningDefaultPref, PR_TRUE);
     }
     aHandlerInfo->SetAlwaysAskBeforeHandling(warn);
   } else {
@@ -1276,17 +1256,7 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 
   gExtProtSvc->AddRef();
 
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (!prefs)
-    return;
-
-  mBufferSize = 4096;
-  PRInt32 size;
-  nsresult rv = prefs->GetIntPref("network.buffer.cache.size", &size);
-  if (NS_SUCCEEDED(rv)) {
-    mBufferSize = size;
-  }
-
+  mBufferSize = Preferences::GetUint("network.buffer.cache.size", 4096);
   mDataBuffer = (char*) malloc(mBufferSize);
   if (!mDataBuffer)
     return;
@@ -2338,23 +2308,21 @@ nsresult nsExternalAppHandler::OpenWithApplication()
   
   if (mStopRequestIssued)
   {
-    PRBool deleteTempFileOnExit;
-    nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
-    if (!prefs || NS_FAILED(prefs->GetBoolPref(
-        "browser.helperApps.deleteTempFileOnExit", &deleteTempFileOnExit))) {
-      
-#if !defined(XP_MACOSX)
-      
-      
-      
-      deleteTempFileOnExit = PR_TRUE;
-#else
-      deleteTempFileOnExit = PR_FALSE;
-#endif
-    }
 
     
     
+    
+    
+    PRBool deleteTempFileOnExit =
+      Preferences::GetBool("browser.helperApps.deleteTempFileOnExit",
+#if !defined(XP_MACOSX)
+                           PR_TRUE);
+#else
+                           PR_FALSE);
+#endif
+
+
+
     if (deleteTempFileOnExit || gExtProtSvc->InPrivateBrowsing())
       mFinalFileDestination->SetPermissions(0400);
 
@@ -2528,28 +2496,18 @@ void nsExternalAppHandler::ProcessAnyRefreshTags()
 PRBool nsExternalAppHandler::GetNeverAskFlagFromPref(const char * prefName, const char * aContentType)
 {
   
-  nsresult rv;
-  nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
-  nsCOMPtr<nsIPrefBranch> prefBranch;
-  if (prefs)
-    rv = prefs->GetBranch(NEVER_ASK_PREF_BRANCH, getter_AddRefs(prefBranch));
-  if (NS_SUCCEEDED(rv) && prefBranch)
-  {
-    nsXPIDLCString prefCString;
-    nsCAutoString prefValue;
-    rv = prefBranch->GetCharPref(prefName, getter_Copies(prefCString));
-    if (NS_SUCCEEDED(rv) && !prefCString.IsEmpty())
-    {
-      NS_UnescapeURL(prefCString);
-      nsACString::const_iterator start, end;
-      prefCString.BeginReading(start);
-      prefCString.EndReading(end);
-      if (CaseInsensitiveFindInReadable(nsDependentCString(aContentType), start, end))
-        return PR_FALSE;
-    }
+  nsAdoptingCString prefCString = Preferences::GetCString(prefName);
+  if (prefCString.IsEmpty()) {
+    
+    return PR_TRUE;
   }
-  
-  return PR_TRUE;
+
+  NS_UnescapeURL(prefCString);
+  nsACString::const_iterator start, end;
+  prefCString.BeginReading(start);
+  prefCString.EndReading(end);
+  return !CaseInsensitiveFindInReadable(nsDependentCString(aContentType),
+                                        start, end);
 }
 
 nsresult nsExternalAppHandler::MaybeCloseWindow()
