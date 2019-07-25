@@ -584,6 +584,58 @@ ToCStringBuf::~ToCStringBuf()
         js_free(dbuf);
 }
 
+namespace js {
+
+JSString *
+Int32ToString(JSContext *cx, int32 si)
+{
+    uint32 ui;
+    if (si >= 0) {
+        if (si < INT_STRING_LIMIT)
+            return JSString::intString(si);
+        if (si < 100)
+            return JSString::length2String(si);
+        ui = si;
+    } else {
+        ui = uint32(-si);
+        JS_ASSERT_IF(si == INT32_MIN, ui == uint32(INT32_MAX) + 1);
+    }
+
+    JSThreadData *data = JS_THREAD_DATA(cx);
+    if (data->dtoaCache.s && data->dtoaCache.base == 10 && data->dtoaCache.d == si)
+        return data->dtoaCache.s;
+
+    JSShortString *str = js_NewGCShortString(cx);
+    if (!str)
+        return NULL;
+
+    
+    JS_STATIC_ASSERT(JSShortString::MAX_SHORT_STRING_LENGTH + 1 >= sizeof("-2147483648"));
+
+    jschar *end = str->getInlineStorageBeforeInit() + JSShortString::MAX_SHORT_STRING_LENGTH;
+    jschar *cp = end;
+    *cp = 0;
+
+    do {
+        jsuint newui = ui / 10, digit = ui % 10;  
+        *--cp = '0' + digit;
+        ui = newui;
+    } while (ui != 0);
+
+    if (si < 0)
+        *--cp = '-';
+
+    str->initAtOffsetInBuffer(cp, end - cp);
+
+    JSString *ret = str->header();
+    data->dtoaCache.base = 10;
+    data->dtoaCache.d = si;
+    data->dtoaCache.s = ret;
+    return ret;
+}
+
+}
+
 
 static char *
 IntToCString(ToCStringBuf *cbuf, jsint i, jsint base = 10)
