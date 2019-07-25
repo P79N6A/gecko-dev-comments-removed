@@ -329,6 +329,7 @@ void nsBuiltinDecoder::MetadataLoaded()
 
   
   
+  MonitorAutoEnter mon(mMonitor);
   PRBool resourceIsLoaded = !mResourceLoaded && mStream &&
     mStream->IsDataCachedToEndOfStream(mDecoderPosition);
   if (mElement && notifyElement) {
@@ -339,7 +340,6 @@ void nsBuiltinDecoder::MetadataLoaded()
   
   
   
-  MonitorAutoEnter mon(mMonitor);
   if (mPlayState == PLAY_STATE_LOADING) {
     if (mRequestedSeekTime >= 0.0) {
       ChangeState(PLAY_STATE_SEEKING);
