@@ -3018,11 +3018,10 @@ CreateThisForFunctionWithType(JSContext *cx, types::TypeObject *type, JSObject *
 JSObject *
 js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *proto)
 {
-    JSScript *calleeScript = callee->getFunctionPrivate()->script();
     JSObject *res;
 
     if (proto) {
-        types::TypeObject *type = proto->getNewType(cx, calleeScript);
+        types::TypeObject *type = proto->getNewType(cx, callee->getFunctionPrivate());
         if (!type)
             return NULL;
         res = CreateThisForFunctionWithType(cx, type, callee->getParent());
@@ -3032,7 +3031,7 @@ js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *pro
     }
 
     if (res && cx->typeInferenceEnabled())
-        TypeScript::SetThis(cx, calleeScript, types::Type::ObjectType(res));
+        TypeScript::SetThis(cx, callee->getFunctionPrivate()->script(), types::Type::ObjectType(res));
 
     return res;
 }
@@ -3803,6 +3802,10 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
     JS_ASSERT(!a->isArrayBuffer() && !b->isArrayBuffer());
 
     
+    TypeObject *newTypeA = a->newType;
+    TypeObject *newTypeB = b->newType;
+
+    
     const size_t size = a->structSize();
     if (size == b->structSize()) {
         
@@ -3872,6 +3875,9 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         reserved.newaslots = NULL;
         reserved.newbslots = NULL;
     }
+
+    a->newType = newTypeA;
+    b->newType = newTypeB;
 }
 
 
@@ -4485,6 +4491,14 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
 
 
 
+    JS_ASSERT_IF(isCall(), maybeCallObjStackFrame() != NULL);
+
+    
+
+
+
+
+
 
     static const size_t CAPACITY_DOUBLING_MAX = 1024 * 1024;
     static const size_t CAPACITY_CHUNK = CAPACITY_DOUBLING_MAX / sizeof(Value);
@@ -4545,6 +4559,15 @@ JSObject::growSlots(JSContext *cx, size_t newcap)
 void
 JSObject::shrinkSlots(JSContext *cx, size_t newcap)
 {
+    
+
+
+
+
+
+    if (isCall())
+        return;
+
     uint32 oldcap = numSlots();
     JS_ASSERT(newcap <= oldcap);
     JS_ASSERT(newcap >= slotSpan());
