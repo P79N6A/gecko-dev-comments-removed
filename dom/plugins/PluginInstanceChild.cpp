@@ -1176,12 +1176,15 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         return 0;
     }
 
+    LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
+                                 lParam);
+
     
     
     
     
     
-    switch(message) {    
+    switch (message) {
       case WM_LBUTTONDOWN:
       case WM_MBUTTONDOWN:
       case WM_RBUTTONDOWN:
@@ -1191,9 +1194,6 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
       ReleaseCapture();
       break;
     }
-
-    LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
-                                 lParam);
 
     if (message == WM_CLOSE)
         self->DestroyPluginWindow();
