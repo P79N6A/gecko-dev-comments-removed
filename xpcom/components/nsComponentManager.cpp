@@ -834,6 +834,9 @@ nsresult nsComponentManagerImpl::Shutdown(void)
 
     mLoaderData.Clear();
 
+    delete sStaticModules;
+    delete sModuleLocations;
+
     
     mNativeModuleLoader.UnloadLibraries();
 
