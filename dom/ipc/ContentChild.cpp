@@ -41,6 +41,10 @@
 #include <gtk/gtk.h>
 #endif
 
+#ifdef MOZ_WIDGET_QT
+#include <QApplication>
+#endif
+
 #include "ContentChild.h"
 #include "TabChild.h"
 
@@ -186,6 +190,11 @@ ContentChild::Init(MessageLoop* aIOLoop,
 #ifdef MOZ_WIDGET_GTK2
     
     gtk_init(NULL, NULL);
+#endif
+
+#ifdef MOZ_WIDGET_QT
+    
+    QApplication qapp(NULL, NULL, false);
 #endif
 
 #ifdef MOZ_X11
