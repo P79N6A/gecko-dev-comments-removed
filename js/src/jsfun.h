@@ -120,12 +120,6 @@ struct JSFunction : public JSObject_Slots2
             uint16       skipmin; 
 
 
-            JSPackedBool wrapper; 
-
-
-
-
-
             js::Shape   *names;   
         } i;
         void            *nativeOrScript;
