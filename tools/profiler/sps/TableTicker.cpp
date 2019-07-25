@@ -135,6 +135,10 @@ public:
     , mEntrySize(aEntrySize)
   {
     mEntries = new ProfileEntry[mEntrySize];
+    mNeedsSharedLibraryInfo = false;
+#ifdef ENABLE_SPS_LEAF_DATA
+    mNeedsSharedLibraryInfo = true;
+#endif
   }
 
   ~Profile()
@@ -156,11 +160,11 @@ public:
 
   void ToString(string* profile)
   {
-    
-    
-#ifdef ENABLE_SPS_LEAF_DATA
-    mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
-#endif
+    if (mNeedsSharedLibraryInfo) {
+      
+      
+      mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
+    }
 
     *profile = "";
     int oldReadPos = mReadPos;
@@ -173,11 +177,11 @@ public:
 
   void WriteProfile(FILE* stream)
   {
-    
-    
-#ifdef ENABLE_SPS_LEAF_DATA
-    mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
-#endif
+    if (mNeedsSharedLibraryInfo) {
+      
+      
+      mSharedLibraryInfo = SharedLibraryInfo::GetInfoForSelf();
+    }
 
     int oldReadPos = mReadPos;
     while (mReadPos != mWritePos) {
@@ -187,12 +191,10 @@ public:
     mReadPos = oldReadPos;
   }
 
-#ifdef ENABLE_SPS_LEAF_DATA
   SharedLibraryInfo& getSharedLibraryInfo()
   {
     return mSharedLibraryInfo;
   }
-#endif
 private:
   
   
@@ -200,9 +202,8 @@ private:
   int mWritePos; 
   int mReadPos;  
   int mEntrySize;
-#ifdef ENABLE_SPS_LEAF_DATA
+  bool mNeedsSharedLibraryInfo;
   SharedLibraryInfo mSharedLibraryInfo;
-#endif
 };
 
 class SaveProfileTask;
