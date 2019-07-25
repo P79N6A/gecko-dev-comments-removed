@@ -8399,9 +8399,9 @@ var gIdentityHandler = {
       return; 
 
     
-    gURLBar.handleRevert();
-
-    if (this._mode == this.IDENTITY_MODE_CHROMEUI)
+    
+    if (this._mode == this.IDENTITY_MODE_CHROMEUI ||
+        gURLBar.getAttribute("pageproxystate") != "valid")
       return;
 
     
