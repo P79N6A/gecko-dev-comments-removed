@@ -5825,8 +5825,6 @@ static void DrawThebesLayer(ThebesLayer* aLayer,
   nsIFrame* frame = params->mFrame;
   if (frame) {
     
-    
-    
     nsIDeviceContext* devCtx = frame->PresContext()->DeviceContext();
     nsCOMPtr<nsIRenderingContext> rc;
     nsresult rv = devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
@@ -5837,7 +5835,8 @@ static void DrawThebesLayer(ThebesLayer* aLayer,
       nsIRenderingContext::AutoPushTranslation
         push(rc, -params->mOffsetToWidget.x, -params->mOffsetToWidget.y);
       nsLayoutUtils::PaintFrame(rc, frame, dirtyRegion,
-                                params->mBackgroundColor);
+                                params->mBackgroundColor,
+                                nsLayoutUtils::PAINT_WIDGET_LAYERS);
     }
   } else {
     aContext->NewPath();
