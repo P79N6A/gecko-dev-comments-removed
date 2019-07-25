@@ -1121,6 +1121,9 @@ JSRuntime::onTooMuchMalloc()
 JS_FRIEND_API(void *)
 JSRuntime::onOutOfMemory(void *p, size_t nbytes, JSContext *cx)
 {
+    if (gcRunning)
+        return NULL;
+
     
 
 
