@@ -36,7 +36,7 @@
 
 
 
-#include "nsIFormSubmission.h"
+#include "nsFormSubmission.h"
 
 #include "nsCOMPtr.h"
 #include "nsIForm.h"
