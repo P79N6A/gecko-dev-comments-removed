@@ -328,11 +328,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
     }
     masm.bind(&frameFixupDone);
 
-    
-    
-
-    masm.movq(ImmWord(JS_THREAD_DATA(cx)), rdx);
-    masm.movq(rsp, Operand(rdx, offsetof(ThreadData, ionTop)));
+    masm.linkExitFrame(rdx);
 
     Label exception;
 
@@ -394,11 +390,10 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
 
     
     MacroAssembler masm;
-    Register cframe, tmp;
 
     
     
-    const GeneralRegisterSet allocatableRegs(Registers::VolatileMask & ~Registers::ArgRegMask);
+    const GeneralRegisterSet allocatableRegs(Registers::AllocatableMask & ~Registers::ArgRegMask);
     GeneralRegisterSet regs(allocatableRegs);
 
     
@@ -407,38 +402,16 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
     
     
     
+    
+    masm.linkExitFrame(rdx);
 
     
-    masm.subPtr(Imm32(offsetof(IonCFrame, returnAddress)), StackPointer);
+    Register argsBase = InvalidReg;
+    if (f.explicitArgs) {
+        argsBase = regs.takeAny();
+        masm.lea(Operand(rsp, sizeof(IonExitFrameLayout)), argsBase);
+    }
 
-    
-    cframe = StackPointer;
-
-    
-    tmp = regs.takeAny();
-    masm.mov(Operand(cframe, offsetof(IonCFrame, frameSize)), tmp);
-
-    
-    masm.lea(Operand(cframe, tmp, TimesOne, sizeof(IonCFrame) + f.explicitArgs * sizeof(void *)), tmp);
-    masm.mov(tmp, Operand(cframe, offsetof(IonCFrame, topFrame)));
-
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    masm.movePtr(ImmWord(this), tmp);
-    masm.mov(cframe, Operand(tmp, offsetof(IonCompartment, topCFrame_)));
-
-    
-    masm.setupUnalignedABICall(f.argc(), tmp);
     
     Register outReg = InvalidReg;
     if (f.outParam == VMFunction::OutParam_Value) {
@@ -447,15 +420,15 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
         masm.movl(rsp, outReg);
     }
 
+    Register temp = regs.takeAny();
+    masm.setupUnalignedABICall(f.argc(), temp);
+
     
-    masm.movePtr(ImmWord(cx), ArgReg0);
+    masm.movq(ImmWord(cx), ArgReg0);
     masm.setABIArg(0, ArgReg0);
 
     
     if (f.explicitArgs) {
-        Register argsBase = regs.takeAny();
-        masm.lea(Operand(cframe, sizeof(IonCFrame)), argsBase);
-
         for (uint32 i = 0; i < f.explicitArgs; i++)
             masm.setABIArg(i + 1, MoveOperand(argsBase, i * sizeof(void *)));
     }
@@ -467,48 +440,36 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
     masm.callWithABI(f.wrapped);
 
     
+    Label exception;
+    if (f.returnType == VMFunction::ReturnPointer)
+        masm.testq(rax, rax);
+    else
+        masm.testl(rax, rax);
+    masm.j(Assembler::Zero, &exception);
+
+    
     if (f.outParam == VMFunction::OutParam_Value) {
         masm.loadValue(Operand(esp, 0), JSReturnOperand);
         masm.freeStack(sizeof(Value));
     }
 
     
-    
-    
-
-    
-    regs = GeneralRegisterSet(Registers::VolatileMask & ~Registers::JSCCallMask);
-    tmp = regs.takeAny();
-
-    
-    masm.mov(Operand(StackPointer, offsetof(IonCFrame, returnAddress)), tmp);
-
-    
-    masm.addPtr(Imm32(sizeof(IonCFrame) + f.explicitArgs * sizeof(void *)), StackPointer);
-
-    
-    masm.push(tmp);
-    
+    regs = GeneralRegisterSet(Registers::AllocatableMask & ~Registers::JSCCallMask);
+    temp = regs.takeAny();
 
     
     
-    
-    switch (f.returnType)
-    {
-      case VMFunction::ReturnBool:
-      case VMFunction::ReturnPointer:
-        masm.testPtr(ReturnReg, ReturnReg);
-        break;
-    }
-
+    masm.movq(Operand(rsp, IonExitFrameLayout::offsetOfReturnAddress()), temp);
+    masm.addq(Imm32(sizeof(IonExitFrameLayout) + f.explicitArgs * sizeof(void *)), rsp);
+    masm.push(temp);
     masm.ret();
+
+    masm.bind(&exception);
+    masm.handleException();
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx);
-    if (!wrapper)
-        return NULL;
-
-    if(!functionWrappers_->add(p, &f, wrapper))
+    if (!wrapper || !functionWrappers_->add(p, &f, wrapper))
         return NULL;
 
     return wrapper;

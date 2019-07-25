@@ -58,7 +58,6 @@ typedef void (*EnterIonCode)(void *code, int argc, Value *argv, Value *vp,
 
 class IonActivation;
 struct VMFunction;
-class IonCFrame;
 
 class IonCompartment
 {
@@ -86,9 +85,6 @@ class IonCompartment
 
     
     VMWrapperMap *functionWrappers_;
-
-    
-    IonCFrame *topCFrame_;
 
   private:
     IonCode *generateEnterJIT(JSContext *cx);
@@ -146,10 +142,6 @@ class IonCompartment
 
     IonActivation *activation() const {
         return active_;
-    }
-
-    IonCFrame *topCFrame() const {
-        return topCFrame_;
     }
 };
 
