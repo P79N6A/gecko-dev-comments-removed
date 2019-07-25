@@ -125,7 +125,7 @@ FennecProgressListener.prototype = {
               "type"            : "onStateChange",
               "windowID"        : windowID,
               "state"           : state,
-              "stateIs"         : stateIs,
+              "stateIs"         : stateIs
           }};
             
       SendMessageToJava(message);
@@ -135,7 +135,7 @@ FennecProgressListener.prototype = {
           let uri = browser.currentURI.spec;
           
           
-          browser.contentDocument.addEventListener("DOMContentLoaded", function () {
+          browser.contentDocument.addEventListener("DOMTitleChanged", function () {
 
               let stat = 0;
               if (responses[uri]) {
@@ -181,7 +181,7 @@ FennecProgressListener.prototype = {
                 let showMessage = {
                     "gecko": {
                         "type"       : "hideLoadingScreen",
-                        "windowID"   : windowID,
+                        "windowID"   : windowID
                     }};
                 
                 SendMessageToJava(showMessage);
@@ -199,7 +199,7 @@ FennecProgressListener.prototype = {
                 "type"       :   "onProgressChange", 
                 "windowID"   :   windowID,
                 "current"    :   aCurTotalProgress,
-                "total"      :   aMaxTotalProgress,
+                "total"      :   aMaxTotalProgress
             }};
 
         SendMessageToJava(message);
