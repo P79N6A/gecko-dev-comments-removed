@@ -646,8 +646,10 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         if (typeof(item.setResizable) == 'function')
           item.setResizable(false);
 
-        if (item.tab == gBrowser.selectedTab)
+        if (item.tab == gBrowser.selectedTab) {
           GroupItems.setActiveGroupItem(this);
+          GroupItems.updateTabBarForActiveGroupItem();
+        }
       }
 
       if (!options.dontArrange) {
@@ -986,6 +988,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
 
     GroupItems.setActiveGroupItem(self);
+    GroupItems.updateTabBarForActiveGroupItem();
     return { shouldZoom: true };
 
     
@@ -996,6 +999,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var self = this;
     
     GroupItems.setActiveGroupItem(self);
+    GroupItems.updateTabBarForActiveGroupItem();
     var startBounds = this.getChild(0).getBounds();
     var $tray = iQ("<div>").css({
       top: startBounds.top,
@@ -1123,6 +1127,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.dropOptions.drop = function(event) {
       iQ(this.container).removeClass("acceptsDrop");
       this.add(drag.info.$el, {left:event.pageX, top:event.pageY});
+      GroupItems.setActiveGroupItem(this);
     };
 
     if (!this.locked.bounds)
@@ -1195,6 +1200,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   newTab: function(url) {
     GroupItems.setActiveGroupItem(this);
+    GroupItems.updateTabBarForActiveGroupItem();
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
     
@@ -1364,7 +1370,7 @@ window.GroupItems = {
   groupItems: [],
   nextID: 1,
   _inited: false,
-  _activeGroup: null,
+  _activeGroupItem: null,
   _activeOrphanTab: null,
 
   
@@ -1511,6 +1517,7 @@ window.GroupItems = {
 
     if (groupItem == this._activeGroupItem)
       this._activeGroupItem = null;
+
   },
 
   
@@ -1578,20 +1585,18 @@ window.GroupItems = {
   
   
   newTab: function(tabItem) {
-    let groupItem = this.getActiveGroupItem();
+    let activeGroupItem = this.getActiveGroupItem();
     let orphanTab = this.getActiveOrphanTab();
 
-    if (groupItem) {
-      groupItem.add(tabItem);
-    } else if ( orphanTab ) {
+    if (activeGroupItem) {
+      activeGroupItem.add(tabItem);
+    } else if (orphanTab) {
       let newGroupItemBounds = orphanTab.getBoundsWithTitle();
       newGroupItemBounds.inset(-40,-40);
-
       let newGroupItem = new GroupItem([orphanTab, tabItem], {bounds: newGroupItemBounds});
       newGroupItem.snap();
-
       this.setActiveGroupItem(newGroupItem);
-
+      this.updateTabBarForActiveGroupItem();
     } else {
       this.positionNewTabAtBottom(tabItem);
     }
@@ -1619,7 +1624,6 @@ window.GroupItems = {
   
   
   
-  
   getActiveGroupItem: function() {
     return this._activeGroupItem;
   },
@@ -1632,14 +1636,21 @@ window.GroupItems = {
   
   
   
-  
   setActiveGroupItem: function(groupItem) {
-    this._activeGroupItem = groupItem;
-    this.updateTabBarForActiveGroupItem();
-    
-    this.setActiveOrphanTab(null);
-  },
 
+    if (this._activeGroupItem)
+      iQ(this._activeGroupItem.container).removeClass('activeGroupItem');
+
+    if (groupItem !== null) {
+      if (groupItem)
+        iQ(groupItem.container).addClass('activeGroupItem');
+      
+      this.setActiveOrphanTab(null);
+    }
+
+    this._activeGroupItem = groupItem;
+  },
+  
   
   
   
