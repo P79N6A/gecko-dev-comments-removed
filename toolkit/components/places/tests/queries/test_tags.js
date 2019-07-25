@@ -590,6 +590,12 @@ var gTests = [
     cleanDatabase(run_next_test);
   },
 
+  function lastTestJustCallsTestFinished() {
+    
+    do_test_finished();
+    
+    run_next_test();
+  },
 ];
 
 
@@ -826,5 +832,9 @@ function setsAreEqual(aArr1, aArr2, aIsOrdered) {
 
 
 function run_test() {
+  
+  
+  
+  do_test_pending();
   run_next_test();
 }
