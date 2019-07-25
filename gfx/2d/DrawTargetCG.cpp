@@ -43,6 +43,9 @@
 
 
 
+
+CG_EXTERN void CGContextSetCTM(CGContextRef, CGAffineTransform);
+
 namespace mozilla {
 namespace gfx {
 
@@ -923,7 +926,12 @@ DrawTargetCG::PushClipRect(const Rect &aRect)
 {
   CGContextSaveGState(mCg);
 
+  
+
+  CGAffineTransform previousTransform = CGContextGetCTM(mCg);
+  CGContextConcatCTM(mCg, GfxMatrixToCGAffineTransform(mTransform));
   CGContextClipToRect(mCg, RectToCGRect(aRect));
+  CGContextSetCTM(mCg, previousTransform);
 }
 
 
@@ -946,7 +954,14 @@ DrawTargetCG::PushClip(const Path *aPath)
   }
 
 
+  
+
+
+  CGContextSaveGState(mCg);
+  CGContextConcatCTM(mCg, GfxMatrixToCGAffineTransform(mTransform));
   CGContextAddPath(mCg, cgPath->GetPath());
+  CGContextRestoreGState(mCg);
+
   if (cgPath->GetFillRule() == FILL_EVEN_ODD)
     CGContextEOClip(mCg);
   else
