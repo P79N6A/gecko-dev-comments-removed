@@ -139,6 +139,8 @@ private:
     
     GtkWidget     *mHiddenWidget;
     
+    GtkWidget     *mGrabWidget;
+    
     nsCOMPtr<nsISupportsArray> mSourceDataItems;
     
     GtkTargetList *GetSourceList(void);

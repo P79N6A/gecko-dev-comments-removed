@@ -82,7 +82,19 @@ enum {
   MOZ_GTK_DRAG_RESULT_NO_TARGET
 };
 
+
+
+template<class T> static inline gpointer
+FuncToGpointer(T aFunction)
+{
+    return reinterpret_cast<gpointer>
+        (reinterpret_cast<uintptr_t>
+         
+         (reinterpret_cast<void (*)()>(aFunction)));
+}
+
 static PRLogModuleInfo *sDragLm = NULL;
+static guint sMotionEventTimerID;
 
 static const char gMimeListType[] = "application/x-moz-internal-item-list";
 static const char gMozUrlType[] = "_NETSCAPE_URL";
@@ -141,6 +153,7 @@ nsDragService::nsDragService()
     if (!sDragLm)
         sDragLm = PR_NewLogModule("nsDragService");
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::nsDragService"));
+    mGrabWidget = 0;
     mTargetWidget = 0;
     mTargetDragContext = 0;
     mTargetTime = 0;
@@ -178,6 +191,88 @@ nsDragService::Observe(nsISupports *aSubject, const char *aTopic,
   }
 
   return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct MotionEventData {
+    MotionEventData(GtkWidget *aWidget, GdkEvent *aEvent)
+        : mWidget(aWidget), mEvent(gdk_event_copy(aEvent))
+    {
+        MOZ_COUNT_CTOR(MotionEventData);
+        g_object_ref(mWidget);
+    }
+    ~MotionEventData()
+    {
+        MOZ_COUNT_DTOR(MotionEventData);
+        g_object_unref(mWidget);
+        gdk_event_free(mEvent);
+    }
+    GtkWidget *mWidget;
+    GdkEvent *mEvent;
+};
+
+static void
+DestroyMotionEventData(gpointer data)
+{
+    delete static_cast<MotionEventData*>(data);
+}
+
+static gboolean
+DispatchMotionEventCopy(gpointer aData)
+{
+    MotionEventData *data = static_cast<MotionEventData*>(aData);
+
+    
+    sMotionEventTimerID = 0;
+
+    
+    
+    if (gtk_grab_get_current() == data->mWidget) {
+        gtk_propagate_event(data->mWidget, data->mEvent);
+    }
+
+    
+    
+    return FALSE;
+}
+
+static void
+OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
+{
+    if (event->type != GDK_MOTION_NOTIFY)
+        return;
+
+    if (sMotionEventTimerID) {
+        g_source_remove(sMotionEventTimerID);
+    }
+
+    MotionEventData *data = new MotionEventData(widget, event);
+
+    
+    
+    
+    
+    
+    
+    sMotionEventTimerID = 
+        g_timeout_add_full(G_PRIORITY_DEFAULT_IDLE, 350,
+                           DispatchMotionEventCopy, data, DestroyMotionEventData);
 }
 
 
@@ -270,6 +365,16 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
 
         if (needsFallbackIcon)
           gtk_drag_set_icon_default(context);
+
+        
+        mGrabWidget = gtk_grab_get_current();
+        if (mGrabWidget) {
+            g_object_ref(mGrabWidget);
+            
+            
+            g_signal_connect(mGrabWidget, "event-after",
+                             G_CALLBACK(OnSourceGrabEventAfter), NULL);
+        }
     }
 
     gtk_target_list_unref(sourceList);
@@ -341,6 +446,19 @@ nsDragService::EndDragSession(PRBool aDoneDrag)
 {
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::EndDragSession %d",
                                    aDoneDrag));
+
+    if (mGrabWidget) {
+        g_signal_handlers_disconnect_by_func(mGrabWidget,
+             FuncToGpointer(OnSourceGrabEventAfter), NULL);
+        g_object_unref(mGrabWidget);
+        mGrabWidget = NULL;
+
+        if (sMotionEventTimerID) {
+            g_source_remove(sMotionEventTimerID);
+            sMotionEventTimerID = 0;
+        }
+    }
+
     
     SetDragAction(DRAGDROP_ACTION_NONE);
     return nsBaseDragService::EndDragSession(aDoneDrag);
