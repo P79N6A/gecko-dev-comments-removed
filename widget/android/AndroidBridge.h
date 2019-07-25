@@ -79,6 +79,7 @@ class NetworkInformation;
 } 
 
 namespace dom {
+class ScreenOrientationWrapper;
 namespace sms {
 struct SmsFilterData;
 } 
@@ -388,6 +389,14 @@ public:
     void ShowSurface(jobject surface, const gfxRect& aRect, bool aInverted, bool aBlend);
     void HideSurface(jobject surface);
 
+    
+    
+    
+    
+    void GetScreenOrientation(dom::ScreenOrientationWrapper& aOrientation);
+    void EnableScreenOrientationNotifications();
+    void DisableScreenOrientationNotifications();
+
 protected:
     static AndroidBridge *sBridge;
 
@@ -486,6 +495,10 @@ protected:
     jmethodID jGetCurrentNetworkInformation;
     jmethodID jEnableNetworkNotifications;
     jmethodID jDisableNetworkNotifications;
+
+    jmethodID jGetScreenOrientation;
+    jmethodID jEnableScreenOrientationNotifications;
+    jmethodID jDisableScreenOrientationNotifications;
 
     
     jclass jEGLSurfaceImplClass;
