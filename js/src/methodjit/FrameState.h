@@ -293,13 +293,6 @@ class FrameState
 
 
 
-    inline void pushUntypedValue(Value &value);
-
-    
-
-
-
-
 
 
 
