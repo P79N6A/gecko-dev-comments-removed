@@ -54,8 +54,10 @@
 NotificationController::NotificationController(nsDocAccessible* aDocument,
                                                nsIPresShell* aPresShell) :
   mObservingState(eNotObservingRefresh), mDocument(aDocument),
-  mPresShell(aPresShell)
+  mPresShell(aPresShell), mTreeConstructedState(eTreeConstructionPending)
 {
+  
+  ScheduleProcessing();
 }
 
 NotificationController::~NotificationController()
@@ -129,6 +131,10 @@ NotificationController::ScheduleContentInsertion(nsAccessible* aContainer,
                                                  nsIContent* aStartChildNode,
                                                  nsIContent* aEndChildNode)
 {
+  
+  if (mTreeConstructedState == eTreeConstructionPending)
+    return;
+
   nsRefPtr<ContentInsertion> insertion =
     new ContentInsertion(mDocument, aContainer, aStartChildNode, aEndChildNode);
 
@@ -176,6 +182,15 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   
   
   mObservingState = eRefreshProcessingForUpdate;
+
+  
+  if (mTreeConstructedState == eTreeConstructionPending) {
+    mTreeConstructedState = eTreeConstructed;
+    mDocument->CacheChildrenInSubtree(mDocument);
+
+    NS_ASSERTION(mContentInsertions.Length() == 0,
+                 "Pending content insertions while initial accessible tree isn't created!");
+  }
 
   
   

@@ -259,6 +259,17 @@ private:
   
 
 
+
+
+  enum eTreeConstructedState {
+    eTreeConstructed,
+    eTreeConstructionPending
+  };
+  eTreeConstructedState mTreeConstructedState;
+
+  
+
+
   class ContentInsertion
   {
   public:
