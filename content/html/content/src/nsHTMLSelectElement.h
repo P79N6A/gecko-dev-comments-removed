@@ -43,7 +43,6 @@
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
 #include "nsGenericHTMLElement.h"
-#include "nsISelectElement.h"
 #include "nsIDOMHTMLSelectElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMHTMLOptionElement.h"
@@ -243,7 +242,6 @@ private:
 
 class nsHTMLSelectElement : public nsGenericHTMLFormElement,
                             public nsIDOMHTMLSelectElement,
-                            public nsISelectElement,
                             public nsIConstraintValidation
 {
 public:
@@ -297,7 +295,81 @@ public:
   nsEventStates IntrinsicState() const;
 
   
-  NS_DECL_NSISELECTELEMENT
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD WillAddOptions(nsIContent* aOptions,
+                            nsIContent* aParent,
+                            PRInt32 aContentIndex,
+                            PRBool aNotify);
+
+  
+
+
+
+
+
+
+
+  NS_IMETHOD WillRemoveOptions(nsIContent* aParent,
+                               PRInt32 aContentIndex,
+                               PRBool aNotify);
+
+  
+
+
+
+
+
+  NS_IMETHOD IsOptionDisabled(PRInt32 aIndex,
+                              PRBool *aIsDisabled NS_OUTPARAM);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  NS_IMETHOD SetOptionsSelectedByIndex(PRInt32 aStartIndex,
+                                       PRInt32 aEndIndex,
+                                       PRBool aIsSelected,
+                                       PRBool aClearAll,
+                                       PRBool aSetDisabled,
+                                       PRBool aNotify,
+                                       PRBool* aChangedSomething NS_OUTPARAM);
+
+  
+
+
+
+
+
+
+
+  NS_IMETHOD GetOptionIndex(nsIDOMHTMLOptionElement* aOption,
+                            PRInt32 aStartIndex,
+                            PRBool aForward,
+                            PRInt32* aIndex NS_OUTPARAM);
+
+  
+  NS_IMETHOD GetHasOptGroups(PRBool* aHasGroups);
 
   
 
