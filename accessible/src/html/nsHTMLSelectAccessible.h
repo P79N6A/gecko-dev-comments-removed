@@ -122,8 +122,6 @@ public:
   virtual PRUint64 NativeState();
 
   virtual PRInt32 GetLevelInternal();
-  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
-                                          PRInt32 *aSetSize);
 
   
   virtual PRUint8 ActionCount();
