@@ -395,35 +395,41 @@ public:
     JS_TriggerOperationCallback(cx);
 
     PRBool killWorkerWhenDone;
-
-    
-    if (mWorker->SetGlobalForContext(cx)) {
-      RunQueue(cx, &killWorkerWhenDone);
-
-      
-      
-      JSAutoRequest ar(cx);
+    {
+      nsLazyAutoRequest ar;
+      JSAutoCrossCompartmentCall axcc;
 
       
-      
-      JS_SetGlobalObject(cx, NULL);
-      JS_SetContextPrivate(cx, NULL);
-    }
-    else {
-      {
+      if (mWorker->SetGlobalForContext(cx, &ar, &axcc)) {
+        NS_ASSERTION(ar.entered(), "SetGlobalForContext must enter request on success");
+        NS_ASSERTION(axcc.entered(), "SetGlobalForContext must enter xcc on success");
+
+        RunQueue(cx, &killWorkerWhenDone);
+
         
-        
-        JSAutoRequest ar(cx);
-
         
         JS_SetGlobalObject(cx, NULL);
         JS_SetContextPrivate(cx, NULL);
       }
+      else {
+        NS_ASSERTION(!ar.entered(), "SetGlobalForContext must not enter request on failure");
+        NS_ASSERTION(!axcc.entered(), "SetGlobalForContext must not enter xcc on failure");
 
-      nsAutoMonitor mon(gDOMThreadService->mMonitor);
-      killWorkerWhenDone = mKillWorkerWhenDone;
-      gDOMThreadService->WorkerComplete(this);
-      mon.NotifyAll();
+        {
+          
+          
+          JSAutoRequest ar2(cx);
+
+          
+          JS_SetGlobalObject(cx, NULL);
+          JS_SetContextPrivate(cx, NULL);
+        }
+
+        nsAutoMonitor mon(gDOMThreadService->mMonitor);
+        killWorkerWhenDone = mKillWorkerWhenDone;
+        gDOMThreadService->WorkerComplete(this);
+        mon.NotifyAll();
+      }
     }
 
     if (killWorkerWhenDone) {
