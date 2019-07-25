@@ -558,6 +558,31 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
   return mSpellChecker->SetCurrentDictionary(aDictionary);
 }
 
+NS_IMETHODIMP
+nsEditorSpellCheck::CheckCurrentDictionary()
+{
+  mSpellChecker->CheckCurrentDictionary();
+
+  
+  nsAutoString currentDictionary;
+  nsresult rv = GetCurrentDictionary(currentDictionary);
+  if (NS_SUCCEEDED(rv) && !currentDictionary.IsEmpty()) {
+    return NS_OK;
+  }
+
+  
+  nsTArray<nsString> dictList;
+  rv = mSpellChecker->GetDictionaryList(&dictList);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (dictList.Length() > 0) {
+    rv = SetCurrentDictionary(dictList[0]);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP    
 nsEditorSpellCheck::UninitSpellChecker()
 {
@@ -657,8 +682,6 @@ nsEditorSpellCheck::UpdateCurrentDictionary()
       AppendUTF8toUTF16(utf8DictName, dictName);
     }
   }
-
-  SetCurrentDictionary(EmptyString());
 
   if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
     rv = SetCurrentDictionary(dictName);
