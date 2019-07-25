@@ -283,8 +283,16 @@ const NetUtil = {
 
 
 
+
+
+
+
+
+
+
     readInputStreamToString: function NetUtil_readInputStreamToString(aInputStream,
-                                                                      aCount)
+                                                                      aCount,
+                                                                      aOptions)
     {
         if (!(aInputStream instanceof Ci.nsIInputStream)) {
             let exception = new Components.Exception(
@@ -302,6 +310,33 @@ const NetUtil = {
                 Components.stack.caller
             );
             throw exception;
+        }
+
+        if (aOptions && "charset" in aOptions) {
+          let cis = Cc["@mozilla.org/intl/converter-input-stream;1"].
+                    createInstance(Ci.nsIConverterInputStream);
+          try {
+            
+            
+            if (!("replacement" in aOptions)) {
+              
+              
+              
+              aOptions.replacement = 0;
+            }
+
+            cis.init(aInputStream, aOptions.charset, aCount,
+                     aOptions.replacement);
+            let str = {};
+            cis.readString(-1, str);
+            cis.close();
+            return str.value;
+          }
+          catch (e) {
+            
+            throw new Components.Exception(e.message, e.result,
+                                           Components.stack.caller, e.data);
+          }
         }
 
         let sis = Cc["@mozilla.org/scriptableinputstream;1"].
