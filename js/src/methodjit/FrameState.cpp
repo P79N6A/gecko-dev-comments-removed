@@ -1533,7 +1533,7 @@ FrameState::syncAndKill(Registers kill, Uses uses, Uses ignore)
 
 
 
-        loop->flushRegisters(stubcc);
+        loop->clearRegisters();
     }
 
     FrameEntry *spStop = sp - ignore.nuses;
