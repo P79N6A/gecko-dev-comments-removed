@@ -259,6 +259,26 @@ class ObjectImpl : public gc::Cell
         return ObjectElements::fromElements(elements);
     }
 
+    inline HeapValue * fixedElements() const {
+        MOZ_STATIC_ASSERT(2 * sizeof(Value) == sizeof(ObjectElements),
+                          "when elements are stored inline, the first two "
+                          "slots will hold the ObjectElements header");
+        return &fixedSlots()[2];
+    }
+
+    void setFixedElements() { this->elements = fixedElements(); }
+
+    inline bool hasDynamicElements() const {
+        
+
+
+
+
+
+
+        return elements != emptyObjectElements && elements != fixedElements();
+    }
+
     
     static inline void readBarrier(ObjectImpl *obj);
     static inline void writeBarrierPre(ObjectImpl *obj);

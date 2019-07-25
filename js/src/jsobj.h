@@ -818,24 +818,6 @@ struct JSObject : public js::ObjectImpl
     bool growElements(JSContext *cx, uintN cap);
     void shrinkElements(JSContext *cx, uintN cap);
 
-    inline js::HeapValue* fixedElements() const {
-        JS_STATIC_ASSERT(2 * sizeof(js::Value) == sizeof(js::ObjectElements));
-        return &fixedSlots()[2];
-    }
-
-    void setFixedElements() { this->elements = fixedElements(); }
-
-    inline bool hasDynamicElements() const {
-        
-
-
-
-
-
-
-        return elements != js::emptyObjectElements && elements != fixedElements();
-    }
-
     inline js::ElementIteratorObject *asElementIterator();
 
     
