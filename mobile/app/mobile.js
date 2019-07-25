@@ -82,6 +82,10 @@ pref("offline-apps.quota.max", 2048);
 pref("offline-apps.quota.warn", 1024); 
 
 
+pref("network.protocol-handler.warn-external.tel", false);
+pref("network.protocol-handler.warn-external.mailto", false);
+
+
 pref("network.http.pipelining", true);
 pref("network.http.pipelining.ssl", true);
 pref("network.http.proxy.pipelining", true);
