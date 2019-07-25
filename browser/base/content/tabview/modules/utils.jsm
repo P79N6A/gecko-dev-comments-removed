@@ -24,7 +24,14 @@ window.Point = function(x, y) {
 }
 
 
+
+
+
+
+
+
 window.Rect = function(a, top, width, height) {
+  
   if(typeof(a.left) != 'undefined' && typeof(a.top) != 'undefined'
       && typeof(a.right) != 'undefined' && typeof(a.bottom) != 'undefined') {
     this.left = a.left;
