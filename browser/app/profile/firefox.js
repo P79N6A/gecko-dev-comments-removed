@@ -907,6 +907,8 @@ pref("browser.shell.checkDefaultBrowser", false);
 
 pref("browser.sessionhistory.max_total_viewers", 0);
 
+pref("browser.sessionhistory.optimize_eviction", false);
+
 
 pref("content.sink.interactive_deflect_count", 10); 
 pref("content.sink.perf_deflect_count", 50); 
