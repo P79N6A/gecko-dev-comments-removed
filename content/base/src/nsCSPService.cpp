@@ -96,13 +96,12 @@ CSPService::ShouldLoad(PRUint32 aContentType,
                      NS_ConvertUTF16toUTF8(policy).get()));
 #endif
             
-            
             csp->ShouldLoad(aContentType,
                             aContentLocation,
                             aRequestOrigin,
                             aRequestContext,
                             aMimeTypeGuess,
-                            nsnull,
+                            aExtra,
                             aDecision);
         }
     }
@@ -221,15 +220,13 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   
   nsCOMPtr<nsIURI> newUri;
   newChannel->GetURI(getter_AddRefs(newUri));
-  nsCOMPtr<nsIURI> originalUri;
-  oldChannel->GetOriginalURI(getter_AddRefs(originalUri));
   PRInt16 aDecision = nsIContentPolicy::ACCEPT;
   csp->ShouldLoad(loadType,        
                   newUri,          
                   nsnull,          
                   nsnull,          
                   EmptyCString(),  
-                  originalUri,     
+                  nsnull,          
                   &aDecision);
 
 #ifdef PR_LOGGING
