@@ -112,7 +112,6 @@
 
 #include "gfxFont.h"
 #include "gfxContext.h"
-#include "gfxTextRunWordCache.h"
 #include "gfxImageSurface.h"
 
 #include "mozilla/dom/Element.h"
@@ -539,9 +538,6 @@ public:
     if (aTextRun->GetExpirationState()->IsTracked()) {
       RemoveObject(aTextRun);
     }
-    if (aTextRun->GetFlags() & gfxTextRunWordCache::TEXT_IN_CACHE) {
-      gfxTextRunWordCache::RemoveTextRun(aTextRun);
-    }
   }
 
   
@@ -552,49 +548,19 @@ public:
   }
 };
 
-static gfxTextRun *
-MakeTextRun(const PRUnichar *aText, PRUint32 aLength,
-            gfxFontGroup *aFontGroup, const gfxFontGroup::Parameters* aParams,
-            PRUint32 aFlags)
-{
-    nsAutoPtr<gfxTextRun> textRun;
-    if (aLength == 0) {
-        textRun = aFontGroup->MakeEmptyTextRun(aParams, aFlags);
-    } else if (aLength == 1 && aText[0] == ' ') {
-        textRun = aFontGroup->MakeSpaceTextRun(aParams, aFlags);
-    } else {
-        textRun = gfxTextRunWordCache::MakeTextRun(aText, aLength, aFontGroup,
-            aParams, aFlags);
-    }
-    if (!textRun)
-        return nsnull;
-    nsresult rv = gTextRuns->AddObject(textRun);
-    if (NS_FAILED(rv)) {
-        gTextRuns->RemoveFromCache(textRun);
-        return nsnull;
-    }
-#ifdef NOISY_BIDI
-    printf("Created textrun\n");
-#endif
-    return textRun.forget();
-}
 
-static gfxTextRun *
-MakeTextRun(const PRUint8 *aText, PRUint32 aLength,
+
+template<typename T>
+gfxTextRun *
+MakeTextRun(const T *aText, PRUint32 aLength,
             gfxFontGroup *aFontGroup, const gfxFontGroup::Parameters* aParams,
             PRUint32 aFlags)
 {
-    nsAutoPtr<gfxTextRun> textRun;
-    if (aLength == 0) {
-        textRun = aFontGroup->MakeEmptyTextRun(aParams, aFlags);
-    } else if (aLength == 1 && aText[0] == ' ') {
-        textRun = aFontGroup->MakeSpaceTextRun(aParams, aFlags);
-    } else {
-        textRun = gfxTextRunWordCache::MakeTextRun(aText, aLength, aFontGroup,
-            aParams, aFlags);
-    }
-    if (!textRun)
+    nsAutoPtr<gfxTextRun> textRun(aFontGroup->MakeTextRun(aText, aLength,
+                                                          aParams, aFlags));
+    if (!textRun) {
         return nsnull;
+    }
     nsresult rv = gTextRuns->AddObject(textRun);
     if (NS_FAILED(rv)) {
         gTextRuns->RemoveFromCache(textRun);
@@ -943,7 +909,7 @@ public:
 
     void Finish() {
       NS_ASSERTION(!(mTextRun->GetFlags() &
-                     (gfxTextRunWordCache::TEXT_UNUSED_FLAGS |
+                     (gfxTextRunFactory::TEXT_UNUSED_FLAGS |
                       nsTextFrameUtils::TEXT_UNUSED_FLAG)),
                    "Flag set that should never be set! (memory safety error?)");
       if (mTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_TRANSFORMED) {
@@ -1390,7 +1356,7 @@ void BuildTextRunsScanner::FlushFrames(bool aFlushLineBreaks, bool aSuppressTrai
     if (!mSkipIncompleteTextRuns && mCurrentFramesAllSameTextRun &&
         ((mCurrentFramesAllSameTextRun->GetFlags() & nsTextFrameUtils::TEXT_INCOMING_WHITESPACE) != 0) ==
         ((mCurrentRunContextInfo & nsTextFrameUtils::INCOMING_WHITESPACE) != 0) &&
-        ((mCurrentFramesAllSameTextRun->GetFlags() & gfxTextRunWordCache::TEXT_INCOMING_ARABICCHAR) != 0) ==
+        ((mCurrentFramesAllSameTextRun->GetFlags() & gfxTextRunFactory::TEXT_INCOMING_ARABICCHAR) != 0) ==
         ((mCurrentRunContextInfo & nsTextFrameUtils::INCOMING_ARABICCHAR) != 0) &&
         IsTextRunValidForMappedFlows(mCurrentFramesAllSameTextRun)) {
       
@@ -1403,7 +1369,7 @@ void BuildTextRunsScanner::FlushFrames(bool aFlushLineBreaks, bool aSuppressTrai
       if (textRun->GetFlags() & nsTextFrameUtils::TEXT_TRAILING_WHITESPACE) {
         mNextRunContextInfo |= nsTextFrameUtils::INCOMING_WHITESPACE;
       }
-      if (textRun->GetFlags() & gfxTextRunWordCache::TEXT_TRAILING_ARABICCHAR) {
+      if (textRun->GetFlags() & gfxTextRunFactory::TEXT_TRAILING_ARABICCHAR) {
         mNextRunContextInfo |= nsTextFrameUtils::INCOMING_ARABICCHAR;
       }
     } else {
@@ -1691,7 +1657,6 @@ GetReferenceRenderingContext(nsTextFrame* aTextFrame, nsRenderingContext* aRC)
 
 
 
-
 static gfxTextRun*
 GetHyphenTextRun(gfxTextRun* aTextRun, gfxContext* aContext, nsTextFrame* aTextFrame)
 {
@@ -1711,14 +1676,13 @@ GetHyphenTextRun(gfxTextRun* aTextRun, gfxContext* aContext, nsTextFrame* aTextF
   static const PRUnichar unicodeHyphen = 0x2010;
   gfxFont *font = fontGroup->GetFontAt(0);
   if (font && font->HasCharacter(unicodeHyphen)) {
-    return gfxTextRunCache::MakeTextRun(&unicodeHyphen, 1, fontGroup, ctx,
-                                        aTextRun->GetAppUnitsPerDevUnit(), flags);
+    return fontGroup->MakeTextRun(&unicodeHyphen, 1, ctx,
+                                  aTextRun->GetAppUnitsPerDevUnit(), flags);
   }
 
   static const PRUint8 dash = '-';
-  return gfxTextRunCache::MakeTextRun(&dash, 1, fontGroup, ctx,
-                                      aTextRun->GetAppUnitsPerDevUnit(),
-                                      flags);
+  return fontGroup->MakeTextRun(&dash, 1, ctx,
+                                aTextRun->GetAppUnitsPerDevUnit(), flags);
 }
 
 static gfxFont::Metrics
@@ -1761,7 +1725,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     textFlags |= nsTextFrameUtils::TEXT_INCOMING_WHITESPACE;
   }
   if (mCurrentRunContextInfo & nsTextFrameUtils::INCOMING_ARABICCHAR) {
-    textFlags |= gfxTextRunWordCache::TEXT_INCOMING_ARABICCHAR;
+    textFlags |= gfxTextRunFactory::TEXT_INCOMING_ARABICCHAR;
   }
 
   nsAutoTArray<PRInt32,50> textBreakPoints;
@@ -1913,7 +1877,7 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     textFlags |= nsTextFrameUtils::TEXT_TRAILING_WHITESPACE;
   }
   if (mNextRunContextInfo & nsTextFrameUtils::INCOMING_ARABICCHAR) {
-    textFlags |= gfxTextRunWordCache::TEXT_TRAILING_ARABICCHAR;
+    textFlags |= gfxTextRunFactory::TEXT_TRAILING_ARABICCHAR;
   }
   
   
@@ -2896,7 +2860,7 @@ gfxFloat
 PropertyProvider::GetHyphenWidth()
 {
   if (mHyphenWidth < 0) {
-    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, nsnull, mFrame));
+    nsAutoPtr<gfxTextRun> hyphenTextRun(GetHyphenTextRun(mTextRun, nsnull, mFrame));
     mHyphenWidth = mLetterSpacing;
     if (hyphenTextRun.get()) {
       mHyphenWidth += hyphenTextRun->GetAdvanceWidth(0, hyphenTextRun->GetLength(), nsnull);
@@ -3038,7 +3002,7 @@ PropertyProvider::SetupJustificationSpacing()
     mTextRun->GetAdvanceWidth(mStart.GetSkippedOffset(),
                               GetSkippedDistance(mStart, realEnd), this);
   if (mFrame->GetStateBits() & TEXT_HYPHEN_BREAK) {
-    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, nsnull, mFrame));
+    nsAutoPtr<gfxTextRun> hyphenTextRun(GetHyphenTextRun(mTextRun, nsnull, mFrame));
     if (hyphenTextRun.get()) {
       naturalWidth +=
         hyphenTextRun->GetAdvanceWidth(0, hyphenTextRun->GetLength(), nsnull);
@@ -4136,8 +4100,7 @@ nsTextFrame::ClearTextRun(nsTextFrame* aStartContinuation,
 
 
 
-  if (!(textRun->GetFlags() & gfxTextRunWordCache::TEXT_IN_CACHE) &&
-      !textRun->GetUserData()) {
+  if (!textRun->GetUserData()) {
     
     gTextRuns->RemoveFromCache(textRun);
     delete textRun;
@@ -4900,7 +4863,7 @@ AddHyphenToMetrics(nsTextFrame* aTextFrame, gfxTextRun* aBaseTextRun,
                    gfxContext* aContext)
 {
   
-  gfxTextRunCache::AutoTextRun hyphenTextRun(
+  nsAutoPtr<gfxTextRun> hyphenTextRun(
     GetHyphenTextRun(aBaseTextRun, aContext, aTextFrame));
   if (!hyphenTextRun.get())
     return;
@@ -5452,7 +5415,7 @@ nsTextFrame::DrawTextRun(gfxContext* const aCtx,
   if (aDrawSoftHyphen) {
     
     
-    gfxTextRunCache::AutoTextRun hyphenTextRun(GetHyphenTextRun(mTextRun, nsnull, this));
+    nsAutoPtr<gfxTextRun> hyphenTextRun(GetHyphenTextRun(mTextRun, nsnull, this));
     if (hyphenTextRun.get()) {
       
       

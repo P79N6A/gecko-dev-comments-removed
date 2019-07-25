@@ -53,7 +53,6 @@
 #include "gfxContext.h"
 #include "gfxMatrix.h"
 #include "gfxPlatform.h"
-#include "gfxTextRunWordCache.h"
 
 using namespace mozilla;
 
@@ -1488,9 +1487,6 @@ nsSVGGlyphFrame::SetupGlobalTransform(gfxContext *aContext)
 void
 nsSVGGlyphFrame::ClearTextRun()
 {
-  if (!mTextRun)
-    return;
-  gfxTextRunWordCache::RemoveTextRun(mTextRun);
   delete mTextRun;
   mTextRun = nsnull;
 }
@@ -1611,8 +1607,8 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
     gfxTextRunFactory::Parameters params = {
         tmpCtx, nsnull, nsnull, nsnull, 0, GetTextRunUnitsFactor()
     };
-    mTextRun = gfxTextRunWordCache::MakeTextRun(text.get(), text.Length(),
-      fontGroup, &params, flags);
+    mTextRun =
+      fontGroup->MakeTextRun(text.get(), text.Length(), &params, flags);
     if (!mTextRun)
       return false;
   }

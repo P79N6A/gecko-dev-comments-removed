@@ -1399,7 +1399,22 @@ public:
 
 
 
-        TEXT_RUN_SIZE_ACCOUNTED      = 0x0200
+        TEXT_RUN_SIZE_ACCOUNTED      = 0x0200,
+
+        
+
+
+
+
+        TEXT_TRAILING_ARABICCHAR = 0x20000000,
+        
+
+
+
+
+        TEXT_INCOMING_ARABICCHAR = 0x40000000,
+
+        TEXT_UNUSED_FLAGS = 0x90000000
     };
 
     
@@ -2104,12 +2119,6 @@ public:
     }
 
 #ifdef DEBUG
-    
-    PRUint32 mCachedWords;
-    
-    
-    PRUint32 mCacheGeneration;
-    
     void Dump(FILE* aOutput);
 #endif
 
@@ -2394,17 +2403,6 @@ public:
 
 
 
-    gfxTextRun *MakeEmptyTextRun(const Parameters *aParams, PRUint32 aFlags);
-    
-
-
-
-    gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags);
-
-    
-
-
-
 
 
     virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
@@ -2417,6 +2415,22 @@ public:
 
     virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
                                     const Parameters *aParams, PRUint32 aFlags);
+
+    
+
+
+
+    template<typename T>
+    gfxTextRun *MakeTextRun(const T *aString, PRUint32 aLength,
+                            gfxContext *aRefContext,
+                            PRUint32 aAppUnitsPerDevUnit,
+                            PRUint32 aFlags)
+    {
+        gfxTextRunFactory::Parameters params = {
+            aRefContext, nsnull, nsnull, nsnull, 0, aAppUnitsPerDevUnit
+        };
+        return MakeTextRun(aString, aLength, &params, aFlags);
+    }
 
     
 
@@ -2500,6 +2514,15 @@ protected:
     bool                    mSkipDrawing; 
                                           
                                           
+
+    
+
+
+
+    gfxTextRun *MakeEmptyTextRun(const Parameters *aParams, PRUint32 aFlags);
+    gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags);
+    gfxTextRun *MakeBlankTextRun(const void* aText, PRUint32 aLength,
+                                 const Parameters *aParams, PRUint32 aFlags);
 
     
     
