@@ -608,7 +608,6 @@ protected:
   
   static MSG            sRedirectedKeyDown;
 
-  static bool sEnablePixelScrolling;
   static bool sNeedsToInitMouseWheelSettings;
   static void InitMouseWheelScrollData();
 
