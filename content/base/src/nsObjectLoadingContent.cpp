@@ -904,22 +904,25 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
 
   if (mFinalListener) {
     mType = newType;
+
     mSrcStreamLoading = true;
     rv = mFinalListener->OnStartRequest(aRequest, aContext);
     mSrcStreamLoading = false;
-    if (NS_FAILED(rv)) {
-#ifdef XP_MACOSX
+
+    if (NS_SUCCEEDED(rv)) {
       
+      if (mType == eType_Plugin) {
+        NotifyContentObjectWrapper();
+      }
+    } else {
       
-      if (mContentType.EqualsLiteral("application/x-director")) {
+      if (mType == eType_Plugin) {
         rv = NS_OK; 
         return NS_BINDING_ABORTED;
       }
-#endif
       Fallback(false);
-    } else if (mType == eType_Plugin) {
-      NotifyContentObjectWrapper();
     }
+
     return rv;
   }
 
