@@ -46,7 +46,6 @@
 
 #include "nsBoxLayoutState.h"
 
-#include "nsIPrivateDOMEvent.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDocument.h" 
 #include "nsIStyleSheet.h"
