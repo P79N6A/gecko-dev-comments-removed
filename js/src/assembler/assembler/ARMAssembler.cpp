@@ -271,19 +271,62 @@ ARMWord ARMAssembler::encodeComplexImm(ARMWord imm, int dest)
 
 
 
+void ARMAssembler::dataTransferN(bool isLoad, bool isSigned, int size, RegisterID rt, RegisterID base, int32_t offset)
+{
+    bool posOffset = true;
+
+    
+    if (offset == 0x80000000) {
+        
+        
+        moveImm(offset, ARMRegisters::S0);
+        mem_reg_off(isLoad, isSigned, size, posOffset, rt, base, ARMRegisters::S0);
+        return;
+    }
+    if (offset < 0) {
+        offset = - offset;
+        posOffset = false;
+    }
+    if (offset <= 0xfff) {
+        
+        mem_imm_off(isLoad, isSigned, size, posOffset, rt, base, offset);
+    } else if (offset <= 0xfffff) {
+        
+        if (posOffset) {
+            add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
+        } else {
+            sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
+        }
+        
+        mem_imm_off(isLoad, isSigned, size, posOffset, rt,
+                    ARMRegisters::S0, (offset & 0xfff));
+    } else {
+        
+        
+        moveImm(offset, ARMRegisters::S0);
+        mem_reg_off(isLoad, isSigned, size, posOffset, rt, base, ARMRegisters::S0);
+    }
+}
+
 void ARMAssembler::dataTransfer32(bool isLoad, RegisterID srcDst, RegisterID base, int32_t offset)
 {
     if (offset >= 0) {
         if (offset <= 0xfff)
+            
             dtr_u(isLoad, srcDst, base, offset);
         else if (offset <= 0xfffff) {
+            
             add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
+            
             dtr_u(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
         } else {
+            
+            
             moveImm(offset, ARMRegisters::S0);
             dtr_ur(isLoad, srcDst, base, ARMRegisters::S0);
         }
     } else {
+        
         offset = -offset;
         if (offset <= 0xfff)
             dtr_d(isLoad, srcDst, base, offset);
@@ -297,31 +340,53 @@ void ARMAssembler::dataTransfer32(bool isLoad, RegisterID srcDst, RegisterID bas
     }
 }
 
-void ARMAssembler::dataTransfer8(bool isLoad, RegisterID srcDst, RegisterID base, int32_t offset)
+void ARMAssembler::dataTransfer8(bool isLoad, RegisterID srcDst, RegisterID base, int32_t offset, bool isSigned)
 {
     if (offset >= 0) {
-        if (offset <= 0xfff)
-            dtrb_u(isLoad, srcDst, base, offset);
-        else if (offset <= 0xfffff) {
+        if (offset <= 0xfff) {
+            if (isSigned)
+                mem_imm_off(isLoad, true, 8, true, srcDst, base, offset);
+            else
+                dtrb_u(isLoad, srcDst, base, offset);
+        } else if (offset <= 0xfffff) {
             add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            dtrb_u(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
+            if (isSigned)
+                mem_imm_off(isLoad, true, 8, true, srcDst, ARMRegisters::S0, (offset & 0xfff));
+            else
+                dtrb_u(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
         } else {
             moveImm(offset, ARMRegisters::S0);
-            dtrb_ur(isLoad, srcDst, base, ARMRegisters::S0);
+            if (isSigned)
+                mem_reg_off(isLoad, true, 8, true, srcDst, base, ARMRegisters::S0);
+            else
+                dtrb_ur(isLoad, srcDst, base, ARMRegisters::S0);
         }
     } else {
         offset = -offset;
-        if (offset <= 0xfff)
-            dtrb_d(isLoad, srcDst, base, offset);
+        if (offset <= 0xfff) {
+            if (isSigned)
+                mem_imm_off(isLoad, true, 8, false, srcDst, base, offset);
+            else
+                dtrb_d(isLoad, srcDst, base, offset);
+        }
         else if (offset <= 0xfffff) {
             sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            dtrb_d(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
+            if (isSigned)
+                mem_imm_off(isLoad, true, 8, false, srcDst, ARMRegisters::S0, (offset & 0xfff));
+            else
+                dtrb_d(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
+
         } else {
             moveImm(offset, ARMRegisters::S0);
-            dtrb_dr(isLoad, srcDst, base, ARMRegisters::S0);
+            if (isSigned)
+                mem_reg_off(isLoad, true, 8, false, srcDst, base, ARMRegisters::S0);
+            else
+                dtrb_dr(isLoad, srcDst, base, ARMRegisters::S0);
+                
         }
     }
 }
+
 
 void ARMAssembler::baseIndexTransfer32(bool isLoad, RegisterID srcDst, RegisterID base, RegisterID index, int scale, int32_t offset)
 {
@@ -344,6 +409,28 @@ void ARMAssembler::baseIndexTransfer32(bool isLoad, RegisterID srcDst, RegisterI
     ldr_un_imm(ARMRegisters::S0, offset);
     add_r(ARMRegisters::S0, ARMRegisters::S0, op2);
     dtr_ur(isLoad, srcDst, base, ARMRegisters::S0);
+}
+
+void ARMAssembler::baseIndexTransferN(bool isLoad, bool isSigned, int size, RegisterID srcDst, RegisterID base, RegisterID index, int scale, int32_t offset)
+{
+    ARMWord op2;
+
+    ASSERT(scale >= 0 && scale <= 3);
+    op2 = lsl(index, scale);
+
+    if (offset >= -0xfff && offset <= 0xfff) {
+        add_r(ARMRegisters::S0, base, op2);
+        bool posOffset = true;
+        if (offset < 0) {
+            posOffset = false;
+            offset = -offset;
+        }
+        mem_imm_off(isLoad, isSigned, size, posOffset, srcDst, ARMRegisters::S0, offset);
+        return;
+    }
+    ldr_un_imm(ARMRegisters::S0, offset);
+    add_r(ARMRegisters::S0, ARMRegisters::S0, op2);
+    mem_reg_off(isLoad, isSigned, size, true, srcDst, base, ARMRegisters::S0);
 }
 
 void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset)
@@ -382,6 +469,71 @@ void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID b
     ldr_un_imm(ARMRegisters::S0, offset);
     add_r(ARMRegisters::S0, ARMRegisters::S0, base);
     fdtr_u(isLoad, srcDst, ARMRegisters::S0, 0);
+}
+
+void ARMAssembler::floatTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset)
+{
+    if (offset & 0x3) {
+        if (offset <= 0x3ff && offset >= 0) {
+            fmem_imm_off(isLoad, false, true, srcDst, base, offset >> 2);
+            return;
+        }
+        if (offset <= 0x3ffff && offset >= 0) {
+            add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 10) | (11 << 8));
+            fmem_imm_off(isLoad, false, true, srcDst, ARMRegisters::S0, (offset >> 2) & 0xff);
+            return;
+        }
+        offset = -offset;
+
+        if (offset <= 0x3ff && offset >= 0) {
+            fmem_imm_off(isLoad, false, false, srcDst, base, offset >> 2);
+            return;
+        }
+        if (offset <= 0x3ffff && offset >= 0) {
+            sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 10) | (11 << 8));
+            fmem_imm_off(isLoad, false, true, srcDst, ARMRegisters::S0, (offset >> 2) & 0xff);
+            return;
+        }
+        offset = -offset;
+    }
+
+    
+    
+    
+    
+    
+    ASSERT((offset & 0x3) == 0);
+
+    ldr_un_imm(ARMRegisters::S0, offset);
+    add_r(ARMRegisters::S0, ARMRegisters::S0, base);
+    fmem_imm_off(isLoad, false, true, srcDst, ARMRegisters::S0, 0);
+}
+
+void ARMAssembler::baseIndexFloatTransfer(bool isLoad, bool isDouble, FPRegisterID srcDst, RegisterID base, RegisterID index, int scale, int32_t offset)
+{
+    ARMWord op2;
+
+    ASSERT(scale >= 0 && scale <= 3);
+    op2 = lsl(index, scale);
+    
+    
+    if (offset >= -(0xff<<2) && offset <= (0xff<<2)) {
+        add_r(ARMRegisters::S0, base, op2);
+        bool posOffset = true;
+        if (offset < 0) {
+            posOffset = false;
+            offset = -offset;
+        }
+        fmem_imm_off(isLoad, isDouble, posOffset, srcDst, ARMRegisters::S0, offset >> 2);
+        return;
+    }
+
+    ldr_un_imm(ARMRegisters::S0, offset);
+    
+    add_r(ARMRegisters::S0, ARMRegisters::S0, op2);
+    add_r(ARMRegisters::S0, ARMRegisters::S0, base);
+
+    fmem_imm_off(isLoad, isDouble, true, srcDst, ARMRegisters::S0, 0);
 }
 
 

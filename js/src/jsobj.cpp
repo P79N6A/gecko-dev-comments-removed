@@ -165,9 +165,14 @@ obj_getProto(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     return CheckAccess(cx, obj, id, JSACC_PROTO, vp, &attrs);
 }
 
+size_t sSetProtoCalled = 0;
+
 static JSBool
 obj_setProto(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 {
+    if (!cx->runningWithTrustedPrincipals())
+        ++sSetProtoCalled;
+
     
     if (!obj->isExtensible()) {
         obj->reportNotExtensible(cx);
@@ -4560,6 +4565,9 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
     JS_ASSERT(!(flags & Shape::METHOD));
 
     
+    id = js_CheckForStringIndex(id);
+
+    
 
 
 
@@ -4569,8 +4577,6 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
     if (!obj->ensureClassReservedSlots(cx))
         return NULL;
 
-    
-    id = js_CheckForStringIndex(id);
     return obj->putProperty(cx, id, getter, setter, slot, attrs, flags, shortid);
 }
 
@@ -6580,7 +6586,6 @@ DumpProperty(JSObject *obj, const Shape &shape)
     if (attrs & JSPROP_READONLY) fprintf(stderr, "readonly ");
     if (attrs & JSPROP_PERMANENT) fprintf(stderr, "permanent ");
     if (attrs & JSPROP_SHARED) fprintf(stderr, "shared ");
-    if (shape.isAlias()) fprintf(stderr, "alias ");
     if (shape.isMethod()) fprintf(stderr, "method=%p ", (void *) &shape.methodObject());
 
     if (shape.hasGetterValue())
