@@ -77,6 +77,9 @@ protected:
   virtual void DetachFromNSWindow();
 
   
+  PRBool IsWindowAvailable() const;
+
+  
   virtual nsresult ShowActive(PRBool active) = 0;
   
   virtual HWND& PreviewWindow() = 0;
