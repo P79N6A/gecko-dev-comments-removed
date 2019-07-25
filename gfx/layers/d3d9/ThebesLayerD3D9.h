@@ -65,16 +65,7 @@ public:
   virtual void RenderLayer();
   virtual void CleanResources();
 
-  
-  nsIntRect GetVisibleRect() { return mVisibleRegion.GetBounds(); }
-  const nsIntRect &GetInvalidatedRect();
-
 private:
-  
-
-
-  nsIntRect mInvalidatedRect;
-
   
 
 

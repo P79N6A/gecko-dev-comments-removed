@@ -55,61 +55,135 @@ ThebesLayerD3D9::~ThebesLayerD3D9()
 }
 
 
+
+
+
+
+#define RETENTION_THRESHOLD 16384
+
 void
 ThebesLayerD3D9::SetVisibleRegion(const nsIntRegion &aRegion)
 {
   if (aRegion.IsEqual(mVisibleRegion)) {
     return;
   }
+  nsIntRegion oldVisibleRegion = mVisibleRegion;
+  nsRefPtr<IDirect3DTexture9> oldTexture = mTexture;
+
   ThebesLayer::SetVisibleRegion(aRegion);
 
-  mInvalidatedRect = mVisibleRegion.GetBounds();
-  device()->CreateTexture(mInvalidatedRect.width, mInvalidatedRect.height, 1,
+  nsIntRect oldBounds = oldVisibleRegion.GetBounds();
+  nsIntRect newBounds = mVisibleRegion.GetBounds();
+  
+  device()->CreateTexture(newBounds.width, newBounds.height, 1,
                           D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8,
                           D3DPOOL_DEFAULT, getter_AddRefs(mTexture), NULL);
+
+  
+  
+  oldVisibleRegion.And(oldVisibleRegion, mVisibleRegion);
+  
+  oldVisibleRegion.And(oldVisibleRegion, mValidRegion);
+
+  nsIntRect largeRect = oldVisibleRegion.GetLargestRectangle();
+
+  
+  
+  
+  
+  
+  
+  if (!oldTexture || !mTexture ||
+      largeRect.width * largeRect.height < RETENTION_THRESHOLD) {
+    mValidRegion.SetEmpty();
+    return;
+  }
+
+  nsRefPtr<IDirect3DSurface9> srcSurface, dstSurface;
+  oldTexture->GetSurfaceLevel(0, getter_AddRefs(srcSurface));
+  mTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+
+  nsIntRegion retainedRegion;
+  nsIntRegionRectIterator iter(oldVisibleRegion);
+  const nsIntRect *r;
+  while ((r = iter.Next())) {
+    if (r->width * r->height > RETENTION_THRESHOLD) {
+      RECT oldRect, newRect;
+
+      
+      
+      oldRect.left = r->x - oldBounds.x;
+      oldRect.top = r->y - oldBounds.y;
+      oldRect.right = oldRect.left + r->width;
+      oldRect.bottom = oldRect.top + r->height;
+
+      newRect.left = r->x - newBounds.x;
+      newRect.top = r->y - newBounds.y;
+      newRect.right = newRect.left + r->width;
+      newRect.bottom = newRect.top + r->height;
+
+      
+      HRESULT hr = device()->
+        StretchRect(srcSurface, &oldRect, dstSurface, &newRect, D3DTEXF_NONE);
+
+      if (SUCCEEDED(hr)) {
+        retainedRegion.Or(retainedRegion, *r);
+      }
+    }
+  }
+
+  
+  mValidRegion.And(mValidRegion, retainedRegion);  
 }
 
 
 void
 ThebesLayerD3D9::InvalidateRegion(const nsIntRegion &aRegion)
 {
-  nsIntRegion invalidatedRegion;
-  invalidatedRegion.Or(aRegion, mInvalidatedRect);
-  invalidatedRegion.And(invalidatedRegion, mVisibleRegion);
-  mInvalidatedRect = invalidatedRegion.GetBounds();
+  mValidRegion.Sub(mValidRegion, aRegion);
 }
 
 void
 ThebesLayerD3D9::RenderLayer()
 {
+  if (mVisibleRegion.IsEmpty()) {
+    return;
+  }
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
 
   if (!mTexture) {
     device()->CreateTexture(visibleRect.width, visibleRect.height, 1,
                             D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8,
                             D3DPOOL_DEFAULT, getter_AddRefs(mTexture), NULL);
-    mInvalidatedRect = visibleRect;
+    mValidRegion.SetEmpty();
   }
-  if (!mInvalidatedRect.IsEmpty()) {
-    nsIntRegion region = mInvalidatedRect;
+
+  if (!mValidRegion.IsEqual(mVisibleRegion)) {
+    nsIntRegion region;
+    region.Sub(mVisibleRegion, mValidRegion);
+    nsIntRect bounds = region.GetBounds();
 
     gfxASurface::gfxImageFormat imageFormat = gfxASurface::ImageFormatARGB32;;
     nsRefPtr<gfxASurface> destinationSurface;
     nsRefPtr<gfxContext> context;
 
+    
+    
+    
+    
     destinationSurface =
       gfxPlatform::GetPlatform()->
-        CreateOffscreenSurface(gfxIntSize(mInvalidatedRect.width,
-                                          mInvalidatedRect.height),
+        CreateOffscreenSurface(gfxIntSize(bounds.width,
+                                          bounds.height),
                                imageFormat);
 
     context = new gfxContext(destinationSurface);
-    context->Translate(gfxPoint(-mInvalidatedRect.x, -mInvalidatedRect.y));
+    context->Translate(gfxPoint(-bounds.x, -bounds.y));
     LayerManagerD3D9::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
     cbInfo.Callback(this, context, region, nsIntRegion(), cbInfo.CallbackData);
 
     nsRefPtr<IDirect3DTexture9> tmpTexture;
-    device()->CreateTexture(mInvalidatedRect.width, mInvalidatedRect.height, 1,
+    device()->CreateTexture(bounds.width, bounds.height, 1,
                             0, D3DFMT_A8R8G8B8,
                             D3DPOOL_SYSTEMMEM, getter_AddRefs(tmpTexture), NULL);
 
@@ -118,8 +192,8 @@ ThebesLayerD3D9::RenderLayer()
 
     nsRefPtr<gfxImageSurface> imgSurface =
       new gfxImageSurface((unsigned char *)r.pBits,
-                          gfxIntSize(mInvalidatedRect.width,
-                                     mInvalidatedRect.height),
+                          gfxIntSize(bounds.width,
+                                     bounds.height),
                           r.Pitch,
                           imageFormat);
 
@@ -138,10 +212,20 @@ ThebesLayerD3D9::RenderLayer()
     mTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
     tmpTexture->GetSurfaceLevel(0, getter_AddRefs(srcSurface));
 
-    POINT point;
-    point.x = mInvalidatedRect.x - visibleRect.x;
-    point.y = mInvalidatedRect.y - visibleRect.y;
-    device()->UpdateSurface(srcSurface, NULL, dstSurface, &point);
+    nsIntRegionRectIterator iter(region);
+    const nsIntRect *iterRect;
+    while ((iterRect = iter.Next())) {
+      RECT rect;
+      rect.left = iterRect->x - bounds.x;
+      rect.top = iterRect->y - bounds.y;
+      rect.right = rect.left + iterRect->width;
+      rect.bottom = rect.top + iterRect->height;
+      POINT point;
+      point.x = iterRect->x - visibleRect.x;
+      point.y = iterRect->y - visibleRect.y;
+      device()->UpdateSurface(srcSurface, &rect, dstSurface, &point);
+    }
+    mValidRegion = mVisibleRegion;
   }
 
   float quadTransform[4][4];
@@ -181,12 +265,6 @@ void
 ThebesLayerD3D9::CleanResources()
 {
   mTexture = nsnull;
-}
-
-const nsIntRect&
-ThebesLayerD3D9::GetInvalidatedRect()
-{
-  return mInvalidatedRect;
 }
 
 Layer*
