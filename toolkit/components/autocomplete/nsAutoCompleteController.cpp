@@ -1169,14 +1169,17 @@ nsAutoCompleteController::EnterMatch(bool aIsPopupSelection)
     bool completeSelection;
     input->GetCompleteSelectedIndex(&completeSelection);
 
-    
-    
-    
-    
     PRInt32 selectedIndex;
     popup->GetSelectedIndex(&selectedIndex);
-    if (selectedIndex >= 0 && (!completeSelection || aIsPopupSelection))
-      GetResultValueAt(selectedIndex, true, value);
+    if (selectedIndex >= 0) {
+      
+      
+      
+      
+      
+      if (!completeSelection || aIsPopupSelection)
+        GetResultValueAt(selectedIndex, true, value);
+    }
     else if (shouldComplete) {
       
       
@@ -1184,10 +1187,7 @@ nsAutoCompleteController::EnterMatch(bool aIsPopupSelection)
       
       
       nsAutoString defaultIndexValue;
-      nsAutoString inputValue;
-      input->GetTextValue(inputValue);
-      if (NS_SUCCEEDED(GetDefaultCompleteValue(-1, false, defaultIndexValue)) &&
-          defaultIndexValue.Equals(inputValue, nsCaseInsensitiveStringComparator()))
+      if (NS_SUCCEEDED(GetFinalDefaultCompleteValue(defaultIndexValue)))
         value = defaultIndexValue;
     }
 
@@ -1444,34 +1444,34 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aResultIndex)
 }
 
 nsresult
-nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aResultIndex,
-                                                  bool aPreserveCasing,
-                                                  nsAString &_retval)
+nsAutoCompleteController::GetDefaultCompleteResult(PRInt32 aResultIndex,
+                                                   nsIAutoCompleteResult** _result,
+                                                   PRInt32* _defaultIndex)
 {
-  PRInt32 defaultIndex = -1;
-  PRInt32 index = aResultIndex;
-  if (index < 0) {
-    PRUint32 count = mResults.Count();
-    for (PRUint32 i = 0; i < count; ++i) {
-      nsIAutoCompleteResult *result = mResults[i];
-      if (result && NS_SUCCEEDED(result->GetDefaultIndex(&defaultIndex)) &&
-          defaultIndex >= 0) {
-        index = i;
-        break;
-      }
+  *_defaultIndex = -1;
+  PRInt32 resultIndex = aResultIndex;
+
+  
+  for (PRInt32 i = 0; resultIndex < 0 && i < mResults.Count(); ++i) {
+    nsIAutoCompleteResult *result = mResults[i];
+    if (result &&
+        NS_SUCCEEDED(result->GetDefaultIndex(_defaultIndex)) &&
+        *_defaultIndex >= 0) {
+      resultIndex = i;
     }
   }
-  NS_ENSURE_TRUE(index >= 0, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(resultIndex >= 0, NS_ERROR_FAILURE);
 
-  nsIAutoCompleteResult *result = mResults.SafeObjectAt(index);
-  NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
+  *_result = mResults.SafeObjectAt(resultIndex);
+  NS_ENSURE_TRUE(*_result, NS_ERROR_FAILURE);
 
-  if (defaultIndex < 0) {
+  if (*_defaultIndex < 0) {
     
     
-    result->GetDefaultIndex(&defaultIndex);
+    (*_result)->GetDefaultIndex(_defaultIndex);
   }
-  if (defaultIndex < 0) {
+
+  if (*_defaultIndex < 0) {
     
     
     return NS_ERROR_FAILURE;
@@ -1481,10 +1481,24 @@ nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aResultIndex,
   
   
   PRUint32 matchCount = 0;
-  result->GetMatchCount(&matchCount);
+  (*_result)->GetMatchCount(&matchCount);
   
-  if ((PRUint32)defaultIndex >= matchCount)
+  if ((PRUint32)(*_defaultIndex) >= matchCount) {
     return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aResultIndex,
+                                                  bool aPreserveCasing,
+                                                  nsAString &_retval)
+{
+  nsIAutoCompleteResult *result;
+  PRInt32 defaultIndex = -1;
+  nsresult rv = GetDefaultCompleteResult(aResultIndex, &result, &defaultIndex);
+  if (NS_FAILED(rv)) return rv;
 
   nsAutoString resultValue;
   result->GetValueAt(defaultIndex, resultValue);
@@ -1508,6 +1522,38 @@ nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aResultIndex,
   }
   else
     _retval = resultValue;
+
+  return NS_OK;
+}
+
+nsresult
+nsAutoCompleteController::GetFinalDefaultCompleteValue(nsAString &_retval)
+{
+  nsIAutoCompleteResult *result;
+  PRInt32 defaultIndex = -1;
+  nsresult rv = GetDefaultCompleteResult(-1, &result, &defaultIndex);
+  if (NS_FAILED(rv)) return rv;
+
+  result->GetValueAt(defaultIndex, _retval);
+  nsAutoString inputValue;
+  mInput->GetTextValue(inputValue);
+  if (!_retval.Equals(inputValue, nsCaseInsensitiveStringComparator())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  
+  
+  
+  
+  bool isTypeAheadResult = false;
+  nsAutoString commentValue;
+  if (NS_SUCCEEDED(result->GetTypeAheadResult(&isTypeAheadResult)) &&
+      isTypeAheadResult &&
+      NS_SUCCEEDED(result->GetCommentAt(defaultIndex, commentValue)) &&
+      !commentValue.IsEmpty()) {
+    _retval = commentValue;
+  }
 
   return NS_OK;
 }

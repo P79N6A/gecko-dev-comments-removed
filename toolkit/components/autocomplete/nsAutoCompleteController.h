@@ -66,8 +66,49 @@ private:
   nsresult GetResultValueLabelAt(PRInt32 aIndex, bool aValueOnly,
                                  bool aGetValue, nsAString & _retval);
 protected:
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsresult GetDefaultCompleteResult(PRInt32 aResultIndex,
+                                    nsIAutoCompleteResult** _result,
+                                    PRInt32* _defaultIndex);
+
+  
+
+
+
+
+
+
+
+
+
   nsresult GetDefaultCompleteValue(PRInt32 aResultIndex, bool aPreserveCasing,
                                    nsAString &_retval);
+
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult GetFinalDefaultCompleteValue(nsAString &_retval);
+
   nsresult ClearResults();
   
   nsresult RowIndexToSearch(PRInt32 aRowIndex,
