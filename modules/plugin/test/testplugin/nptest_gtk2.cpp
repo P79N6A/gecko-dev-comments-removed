@@ -657,7 +657,11 @@ CrasherThread(void* data)
   
   usleep(200);
 
-  IntentionalCrash();
+  
+  
+  
+  
+  _exit(1);
 
   
   return(NULL);
