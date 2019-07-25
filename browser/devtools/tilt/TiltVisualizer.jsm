@@ -370,6 +370,7 @@ TiltVisualizer.Presenter.prototype = {
     let transforms = this.transforms;
     let w = renderer.width;
     let h = renderer.height;
+    let ih = renderer.initialHeight;
 
     
     if (!this.meshStacks || !this.meshWireframe) {
@@ -392,7 +393,7 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    renderer.translate(w * 0.5, h * 0.5, -INITIAL_Z_TRANSLATION);
+    renderer.translate(w * 0.5, ih * 0.5, -INITIAL_Z_TRANSLATION);
 
     
     renderer.translate(transforms.translation[0], 0,
