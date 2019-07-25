@@ -86,6 +86,7 @@ class nsHttpChannel : public HttpBaseChannel
                     , public nsITraceableChannel
                     , public nsIApplicationCacheChannel
                     , public nsIAsyncVerifyRedirectCallback
+                    , public nsIHttpChannelParentInternal
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -102,6 +103,7 @@ public:
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
     NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
+    NS_DECL_NSIHTTPCHANNELPARENTINTERNAL
 
     
     
@@ -148,7 +150,6 @@ public:
 public:  
     typedef void (nsHttpChannel:: *nsAsyncCallback)(void);
     nsHttpResponseHead * GetResponseHead() const { return mResponseHead; }
-    void SetRemoteChannel(bool aRemote) { mRemoteChannel = aRemote; }
     void InternalSetUploadStream(nsIInputStream *uploadStream) 
       { mUploadStream = uploadStream; }
     void SetUploadStreamHasHeaders(PRBool hasHeaders) 
@@ -217,7 +218,16 @@ private:
     nsresult ResolveProxy();
 
     
-    nsresult OpenCacheEntry(PRBool offline, PRBool *delayed);
+    nsresult OpenCacheEntry();
+    nsresult OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
+                                          nsCacheAccessMode aAccess,
+                                          nsresult aResult,
+                                          PRBool aSync);
+    nsresult OpenNormalCacheEntry(PRBool aSync);
+    nsresult OnNormalCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
+                                         nsCacheAccessMode aAccess,
+                                         nsresult aResult,
+                                         PRBool aSync);
     nsresult OpenOfflineCacheEntryForWriting();
     nsresult GenerateCacheKey(PRUint32 postID, nsACString &key);
     nsresult UpdateExpirationTime();
@@ -235,6 +245,7 @@ private:
     nsresult InstallOfflineCacheListener();
     void     MaybeInvalidateCacheEntryForSubsequentGet();
     nsCacheStoragePolicy DetermineStoragePolicy();
+    nsresult DetermineCacheAccess(nsCacheAccessMode *_retval);
     void     AsyncOnExamineCachedResponse();
 
     
@@ -276,6 +287,11 @@ private:
     nsCacheAccessMode                 mCacheAccess;
     PRUint32                          mPostID;
     PRUint32                          mRequestTime;
+
+    typedef nsresult (nsHttpChannel:: *nsOnCacheEntryAvailableCallback)(
+        nsICacheEntryDescriptor *, nsCacheAccessMode, nsresult, PRBool);
+    nsOnCacheEntryAvailableCallback   mOnCacheEntryAvailableCallback;
+    PRBool                            mAsyncCacheOpen;
 
     nsCOMPtr<nsICacheEntryDescriptor> mOfflineCacheEntry;
     nsCacheAccessMode                 mOfflineCacheAccess;
