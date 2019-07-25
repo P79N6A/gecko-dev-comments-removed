@@ -68,7 +68,7 @@ var UtteranceGenerator = {
 
 
 
-  genForObject: function(aAccessible, aForceName) {
+  genForObject: function genForObject(aAccessible, aForceName) {
     let roleString = gAccRetrieval.getStringRole(aAccessible.role);
 
     let func = this.objectUtteranceFunctions[roleString] ||
@@ -91,7 +91,7 @@ var UtteranceGenerator = {
 
 
 
-  genForAction: function(aObject, aActionName) {
+  genForAction: function genForAction(aObject, aActionName) {
     return [gStringBundle.GetStringFromName(this.gActionMap[aActionName])];
   },
 
@@ -103,7 +103,7 @@ var UtteranceGenerator = {
 
 
 
-  genForTabStateChange: function (aObject, aTabState) {
+  genForTabStateChange: function genForTabStateChange(aObject, aTabState) {
     switch (aTabState) {
       case 'newtab':
         return [gStringBundle.GetStringFromName('tabNew')];
@@ -177,7 +177,8 @@ var UtteranceGenerator = {
   objectUtteranceFunctions: {
     defaultFunc: function defaultFunc(aAccessible, aRoleStr, aFlags) {
       let name = (aFlags & INCLUDE_NAME) ? (aAccessible.name || '') : '';
-      let desc = (aFlags & INCLUDE_ROLE) ? this._getLocalizedRole(aRoleStr) : '';
+      let desc = (aFlags & INCLUDE_ROLE) ?
+        this._getLocalizedRole(aRoleStr) : '';
 
       let utterance = [];
 
@@ -207,7 +208,7 @@ var UtteranceGenerator = {
       return utterance;
     },
 
-    heading: function(aAccessible, aRoleStr, aFlags) {
+    heading: function heading(aAccessible, aRoleStr, aFlags) {
       let name = (aFlags & INCLUDE_NAME) ? (aAccessible.name || '') : '';
       let level = {};
       aAccessible.groupPosition(level, {}, {});
@@ -220,7 +221,7 @@ var UtteranceGenerator = {
       return utterance;
     },
 
-    listitem: function(aAccessible, aRoleStr, aFlags) {
+    listitem: function listitem(aAccessible, aRoleStr, aFlags) {
       let name = (aFlags & INCLUDE_NAME) ? (aAccessible.name || '') : '';
       let localizedRole = this._getLocalizedRole(aRoleStr);
       let itemno = {};

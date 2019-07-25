@@ -52,7 +52,9 @@ Presenter.prototype = {
   
 
 
-  textChanged: function textChanged(aIsInserted, aStartOffset, aLength, aText, aModifiedText) {},
+  textChanged: function textChanged(aIsInserted, aStartOffset,
+                                    aLength, aText,
+                                    aModifiedText) {},
 
   
 
@@ -95,228 +97,236 @@ Presenter.prototype = {
 
 function VisualPresenter() {}
 
-VisualPresenter.prototype = new Presenter();
-
-
-
-
-VisualPresenter.prototype.BORDER_PADDING = 2;
-
-VisualPresenter.prototype.attach = function(aWindow) {
-  this.chromeWin = aWindow;
+VisualPresenter.prototype = {
+  __proto__: Presenter.prototype,
 
   
-  let stylesheetURL = 'chrome://global/content/accessibility/AccessFu.css';
-  this.stylesheet = aWindow.document.createProcessingInstruction(
-    'xml-stylesheet', 'href="' + stylesheetURL + '" type="text/css"');
-  aWindow.document.insertBefore(this.stylesheet, aWindow.document.firstChild);
-
-  
-  this.highlightBox = this.chromeWin.document.
-    createElementNS('http://www.w3.org/1999/xhtml', 'div');
-  this.chromeWin.document.documentElement.appendChild(this.highlightBox);
-  this.highlightBox.id = 'virtual-cursor-box';
-
-  
-  let inset = this.chromeWin.document.
-    createElementNS('http://www.w3.org/1999/xhtml', 'div');
-  inset.id = 'virtual-cursor-inset';
-
-  this.highlightBox.appendChild(inset);
-};
-
-VisualPresenter.prototype.detach = function() {
-  this.chromeWin.document.removeChild(this.stylesheet);
-  this.highlightBox.parentNode.removeChild(this.highlightBox);
-  this.highlightBox = this.stylesheet = null;
-};
-
-VisualPresenter.prototype.viewportChanged = function() {
-  if (this._currentObject)
-    this.highlight(this._currentObject);
-};
-
-VisualPresenter.prototype.pivotChanged = function(aObject, aNewContext) {
-  this._currentObject = aObject;
-
-  if (!aObject) {
-    this.hide();
-    return;
-  }
-
-  try {
-    aObject.scrollTo(Ci.nsIAccessibleScrollType.SCROLL_TYPE_ANYWHERE);
-    this.highlight(aObject);
-  } catch (e) {
-    dump('Error getting bounds: ' + e);
-    return;
-  }
-};
-
-VisualPresenter.prototype.tabSelected = function(aDocObj) {
-  let vcPos = aDocObj ?
-    aDocObj.QueryInterface(Ci.nsIAccessibleCursorable).virtualCursor.position :
-    null;
-
-  this.pivotChanged(vcPos);
-};
-
-VisualPresenter.prototype.tabStateChanged = function(aDocObj, aPageState) {
-  if (aPageState == "newdoc")
-    this.pivotChanged(null);
-};
 
 
+  BORDER_PADDING: 2,
 
-VisualPresenter.prototype.hide = function hide() {
-  this.highlightBox.style.display = 'none';
-};
+  attach: function VisualPresenter_attach(aWindow) {
+    this.chromeWin = aWindow;
 
-VisualPresenter.prototype.highlight = function(aObject) {
-  let vp = (Services.appinfo.OS == 'Android') ?
-    this.chromeWin.BrowserApp.selectedTab.getViewport() :
-    { zoom: 1.0, offsetY: 0 };
-
-  let bounds = this.getBounds(aObject, vp.zoom);
-
-  
-  this.highlightBox.style.display = 'none';
-  this.highlightBox.style.top = bounds.top + 'px';
-  this.highlightBox.style.left = bounds.left + 'px';
-  this.highlightBox.style.width = bounds.width + 'px';
-  this.highlightBox.style.height = bounds.height + 'px';
-  this.highlightBox.style.display = 'block';
-};
-
-VisualPresenter.prototype.getBounds = function(aObject, aZoom, aStart, aEnd) {
-  let objX = {}, objY = {}, objW = {}, objH = {};
-
-  if (aEnd >= 0 && aStart >= 0 && aEnd != aStart) {
     
-    
-  }
+    let stylesheetURL = 'chrome://global/content/accessibility/AccessFu.css';
+    this.stylesheet = aWindow.document.createProcessingInstruction(
+      'xml-stylesheet', 'href="' + stylesheetURL + '" type="text/css"');
+    aWindow.document.insertBefore(this.stylesheet, aWindow.document.firstChild);
 
-  aObject.getBounds(objX, objY, objW, objH);
+    
+    this.highlightBox = this.chromeWin.document.
+      createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    this.chromeWin.document.documentElement.appendChild(this.highlightBox);
+    this.highlightBox.id = 'virtual-cursor-box';
+
+    
+    let inset = this.chromeWin.document.
+      createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    inset.id = 'virtual-cursor-inset';
+
+    this.highlightBox.appendChild(inset);
+  },
+
+  detach: function VisualPresenter_detach() {
+    this.chromeWin.document.removeChild(this.stylesheet);
+    this.highlightBox.parentNode.removeChild(this.highlightBox);
+    this.highlightBox = this.stylesheet = null;
+  },
+
+  viewportChanged: function VisualPresenter_viewportChanged() {
+    if (this._currentObject)
+      this._highlight(this._currentObject);
+  },
+
+  pivotChanged: function VisualPresenter_pivotChanged(aObject, aNewContext) {
+    this._currentObject = aObject;
+
+    if (!aObject) {
+      this._hide();
+      return;
+    }
+
+    try {
+      aObject.scrollTo(Ci.nsIAccessibleScrollType.SCROLL_TYPE_ANYWHERE);
+      this._highlight(aObject);
+    } catch (e) {
+      dump('Error getting bounds: ' + e);
+      return;
+    }
+  },
+
+  tabSelected: function VisualPresenter_tabSelected(aDocObj) {
+    let vcPos = aDocObj ? aDocObj.QueryInterface(Ci.nsIAccessibleCursorable).
+      virtualCursor.position : null;
+
+    this.pivotChanged(vcPos);
+  },
+
+  tabStateChanged: function VisualPresenter_tabStateChanged(aDocObj,
+                                                            aPageState) {
+    if (aPageState == 'newdoc')
+      this.pivotChanged(null);
+  },
 
   
-  let docX = {}, docY = {};
-  let docRoot = aObject.rootDocument.QueryInterface(Ci.nsIAccessible);
-  docRoot.getBounds(docX, docY, {}, {});
 
-  let rv = {
-    left: Math.round((objX.value - docX.value - this.BORDER_PADDING) * aZoom),
-    top: Math.round((objY.value - docY.value - this.BORDER_PADDING) * aZoom),
-    width: Math.round((objW.value + (this.BORDER_PADDING * 2)) * aZoom),
-    height: Math.round((objH.value + (this.BORDER_PADDING * 2)) * aZoom)
-  };
+  _hide: function _hide() {
+    this.highlightBox.style.display = 'none';
+  },
 
-  return rv;
+  _highlight: function _highlight(aObject) {
+    let vp = (Services.appinfo.OS == 'Android') ?
+      this.chromeWin.BrowserApp.selectedTab.getViewport() :
+      { zoom: 1.0, offsetY: 0 };
+
+    let bounds = this._getBounds(aObject, vp.zoom);
+
+    
+    this.highlightBox.style.display = 'none';
+    this.highlightBox.style.top = bounds.top + 'px';
+    this.highlightBox.style.left = bounds.left + 'px';
+    this.highlightBox.style.width = bounds.width + 'px';
+    this.highlightBox.style.height = bounds.height + 'px';
+    this.highlightBox.style.display = 'block';
+  },
+
+  _getBounds: function _getBounds(aObject, aZoom, aStart, aEnd) {
+    let objX = {}, objY = {}, objW = {}, objH = {};
+
+    if (aEnd >= 0 && aStart >= 0 && aEnd != aStart) {
+      
+      
+    }
+
+    aObject.getBounds(objX, objY, objW, objH);
+
+    
+    let docX = {}, docY = {};
+    let docRoot = aObject.rootDocument.QueryInterface(Ci.nsIAccessible);
+    docRoot.getBounds(docX, docY, {}, {});
+
+    let rv = {
+      left: Math.round((objX.value - docX.value - this.BORDER_PADDING) * aZoom),
+      top: Math.round((objY.value - docY.value - this.BORDER_PADDING) * aZoom),
+      width: Math.round((objW.value + (this.BORDER_PADDING * 2)) * aZoom),
+      height: Math.round((objH.value + (this.BORDER_PADDING * 2)) * aZoom)
+    };
+
+    return rv;
+  }
 };
 
 
 
 
-
-const ANDROID_TYPE_VIEW_CLICKED = 0x01;
-const ANDROID_TYPE_VIEW_LONG_CLICKED = 0x02;
-const ANDROID_TYPE_VIEW_SELECTED = 0x04;
-const ANDROID_TYPE_VIEW_FOCUSED = 0x08;
-const ANDROID_TYPE_VIEW_TEXT_CHANGED = 0x10;
-const ANDROID_TYPE_WINDOW_STATE_CHANGED = 0x20;
 
 function AndroidPresenter() {}
 
-AndroidPresenter.prototype = new Presenter();
+AndroidPresenter.prototype = {
+  __proto__: Presenter.prototype,
 
-AndroidPresenter.prototype.pivotChanged = function(aObject, aNewContext) {
-  let output = [];
-  for (let i in aNewContext)
-    output.push.apply(output,
-                      UtteranceGenerator.genForObject(aNewContext[i]));
-
-  output.push.apply(output,
-                    UtteranceGenerator.genForObject(aObject, true));
-
-  this.sendMessageToJava({
-    gecko: {
-      type: 'Accessibility:Event',
-      eventType: ANDROID_TYPE_VIEW_FOCUSED,
-      text: output
-    }
-  });
-};
-
-AndroidPresenter.prototype.actionInvoked = function(aObject, aActionName) {
-  this.sendMessageToJava({
-    gecko: {
-      type: 'Accessibility:Event',
-      eventType: ANDROID_TYPE_VIEW_CLICKED,
-      text: UtteranceGenerator.genForAction(aObject, aActionName)
-    }
-  });
-};
-
-AndroidPresenter.prototype.tabSelected = function(aDocObj) {
   
-  let vcDoc = aDocObj.QueryInterface(Ci.nsIAccessibleCursorable);
-  let context = [];
+  ANDROID_VIEW_CLICKED: 0x01,
+  ANDROID_VIEW_LONG_CLICKED: 0x02,
+  ANDROID_VIEW_SELECTED: 0x04,
+  ANDROID_VIEW_FOCUSED: 0x08,
+  ANDROID_VIEW_TEXT_CHANGED: 0x10,
+  ANDROID_WINDOW_STATE_CHANGED: 0x20,
 
-  let parent = vcDoc.virtualCursor.position || aDocObj;
-  while ((parent = parent.parent)) {
-    context.push(parent);
-    if (parent == aDocObj)
-      break;
-  }
+  pivotChanged: function AndroidPresenter_pivotChanged(aObject, aNewContext) {
+    let output = [];
+    for (let i in aNewContext)
+      output.push.apply(output,
+                        UtteranceGenerator.genForObject(aNewContext[i]));
 
-  context.reverse();
+    output.push.apply(output,
+                      UtteranceGenerator.genForObject(aObject, true));
 
-  this.pivotChanged(vcDoc.virtualCursor.position || aDocObj, context);
-};
+    this.sendMessageToJava({
+      gecko: {
+        type: 'Accessibility:Event',
+        eventType: this.ANDROID_VIEW_FOCUSED,
+        text: output
+      }
+    });
+  },
 
-AndroidPresenter.prototype.tabStateChanged = function(aDocObj, aPageState) {
-  let stateUtterance = UtteranceGenerator.
-    genForTabStateChange(aDocObj, aPageState);
+  actionInvoked: function AndroidPresenter_actionInvoked(aObject, aActionName) {
+    this.sendMessageToJava({
+      gecko: {
+        type: 'Accessibility:Event',
+        eventType: this.ANDROID_VIEW_CLICKED,
+        text: UtteranceGenerator.genForAction(aObject, aActionName)
+      }
+    });
+  },
 
-  if (!stateUtterance.length)
-    return;
+  tabSelected: function AndroidPresenter_tabSelected(aDocObj) {
+    
+    let vcDoc = aDocObj.QueryInterface(Ci.nsIAccessibleCursorable);
+    let context = [];
 
-  this.sendMessageToJava({
-    gecko: {
-      type: 'Accessibility:Event',
-      eventType: ANDROID_TYPE_VIEW_TEXT_CHANGED,
-      text: stateUtterance,
-      addedCount: stateUtterance.join(' ').length,
-      removedCount: 0,
-      fromIndex: 0
+    let parent = vcDoc.virtualCursor.position || aDocObj;
+    while ((parent = parent.parent)) {
+      context.push(parent);
+      if (parent == aDocObj)
+        break;
     }
-  });
-};
 
-AndroidPresenter.prototype.textChanged = function(aIsInserted, aStart, aLength, aText, aModifiedText) {
-  let androidEvent = {
-    type: 'Accessibility:Event',
-    eventType: ANDROID_TYPE_VIEW_TEXT_CHANGED,
-    text: [aText],
-    fromIndex: aStart
-  };
+    context.reverse();
 
-  if (aIsInserted) {
-    androidEvent.addedCount = aLength;
-    androidEvent.beforeText =
-      aText.substring(0, aStart) + aText.substring(aStart + aLength);
-  } else {
-    androidEvent.removedCount = aLength;
-    androidEvent.beforeText =
-      aText.substring(0, aStart) + aModifiedText + aText.substring(aStart);
+    this.pivotChanged(vcDoc.virtualCursor.position || aDocObj, context);
+  },
+
+  tabStateChanged: function AndroidPresenter_tabStateChanged(aDocObj,
+                                                             aPageState) {
+    let stateUtterance = UtteranceGenerator.
+      genForTabStateChange(aDocObj, aPageState);
+
+    if (!stateUtterance.length)
+      return;
+
+    this.sendMessageToJava({
+      gecko: {
+        type: 'Accessibility:Event',
+        eventType: this.ANDROID_VIEW_TEXT_CHANGED,
+        text: stateUtterance,
+        addedCount: stateUtterance.join(' ').length,
+        removedCount: 0,
+        fromIndex: 0
+      }
+    });
+  },
+
+  textChanged: function AndroidPresenter_textChanged(aIsInserted, aStart,
+                                                     aLength, aText,
+                                                     aModifiedText) {
+    let androidEvent = {
+      type: 'Accessibility:Event',
+      eventType: this.ANDROID_VIEW_TEXT_CHANGED,
+      text: [aText],
+      fromIndex: aStart
+    };
+
+    if (aIsInserted) {
+      androidEvent.addedCount = aLength;
+      androidEvent.beforeText =
+        aText.substring(0, aStart) + aText.substring(aStart + aLength);
+    } else {
+      androidEvent.removedCount = aLength;
+      androidEvent.beforeText =
+        aText.substring(0, aStart) + aModifiedText + aText.substring(aStart);
+    }
+
+    this.sendMessageToJava({gecko: androidEvent});
+  },
+
+  sendMessageToJava: function AndroidPresenter_sendMessageTojava(aMessage) {
+    return Cc['@mozilla.org/android/bridge;1'].
+      getService(Ci.nsIAndroidBridge).
+      handleGeckoMessage(JSON.stringify(aMessage));
   }
-
-  this.sendMessageToJava({gecko: androidEvent});
-};
-
-AndroidPresenter.prototype.sendMessageToJava = function(aMessage) {
-  return Cc['@mozilla.org/android/bridge;1'].
-    getService(Ci.nsIAndroidBridge).
-    handleGeckoMessage(JSON.stringify(aMessage));
 };
 
 
@@ -325,8 +335,10 @@ AndroidPresenter.prototype.sendMessageToJava = function(aMessage) {
 
 function DummyAndroidPresenter() {}
 
-DummyAndroidPresenter.prototype = new AndroidPresenter();
+DummyAndroidPresenter.prototype = {
+  __proto__: AndroidPresenter.prototype,
 
-DummyAndroidPresenter.prototype.sendMessageToJava = function(aMessage) {
-  dump(JSON.stringify(aMessage, null, 2) + '\n');
+  sendMessageToJava: function DummyAndroidPresenter_sendMessageToJava(aMsg) {
+    dump(JSON.stringify(aMsg, null, 2) + '\n');
+  }
 };

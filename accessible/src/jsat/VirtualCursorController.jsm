@@ -20,14 +20,15 @@ var gAccRetrieval = Cc['@mozilla.org/accessibleRetrieval;1'].
 var VirtualCursorController = {
   attach: function attach(aWindow) {
     this.chromeWin = aWindow;
-    this.chromeWin.document.addEventListener('keypress', this.onkeypress, true);
+    this.chromeWin.document.addEventListener('keypress', this._onkeypress, true);
   },
 
   detach: function detach() {
-    this.chromeWin.document.removeEventListener('keypress', this.onkeypress, true);
+    this.chromeWin.document.removeEventListener('keypress', this._onkeypress,
+                                                true);
   },
 
-  getBrowserApp: function getBrowserApp() {
+  _getBrowserApp: function _getBrowserApp() {
     switch (Services.appinfo.OS) {
       case 'Android':
         return this.chromeWin.BrowserApp;
@@ -36,8 +37,8 @@ var VirtualCursorController = {
     }
   },
 
-  onkeypress: function onkeypress(aEvent) {
-    let document = VirtualCursorController.getBrowserApp().
+  _onkeypress: function _onkeypress(aEvent) {
+    let document = VirtualCursorController._getBrowserApp().
       selectedBrowser.contentDocument;
 
     dump('keypress ' + aEvent.keyCode + '\n');
@@ -110,7 +111,7 @@ var VirtualCursorController = {
   },
 
   SimpleTraversalRule: {
-    getMatchRoles: function(aRules) {
+    getMatchRoles: function SimpleTraversalRule_getmatchRoles(aRules) {
       aRules.value = this._matchRoles;
       return this._matchRoles.length;
     },
@@ -118,7 +119,7 @@ var VirtualCursorController = {
     preFilter: Ci.nsIAccessibleTraversalRule.PREFILTER_DEFUNCT |
       Ci.nsIAccessibleTraversalRule.PREFILTER_INVISIBLE,
 
-    match: function(aAccessible) {
+    match: function SimpleTraversalRule_match(aAccessible) {
       switch (aAccessible.role) {
       case Ci.nsIAccessibleRole.ROLE_COMBOBOX:
         
