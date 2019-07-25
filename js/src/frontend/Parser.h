@@ -231,7 +231,17 @@ struct Parser : private AutoGCRooter
 
 #if JS_HAS_XML_SUPPORT
     
-    bool allowsXML() const { return tokenStream.allowsXML(); }
+    
+    
+    
+    
+    
+    
+    
+    
+    bool allowsXML() const {
+        return tc->sc->strictModeState == StrictMode::NOTSTRICT && tokenStream.allowsXML();
+    }
 
     ParseNode *endBracketedExpr();
 

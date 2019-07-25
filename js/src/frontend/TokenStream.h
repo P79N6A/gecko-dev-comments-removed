@@ -500,6 +500,8 @@ class TokenStream
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
+    
+    
     bool allowsXML() const { return allowXML && strictModeState() != StrictMode::STRICT; }
     bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
     void setMoarXML(bool enabled) { moarXML = enabled; }
