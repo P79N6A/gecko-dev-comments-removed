@@ -1105,9 +1105,6 @@ nsCacheService::Shutdown()
 
         mInitialized = false;
 
-        mObserver->Remove();
-        NS_RELEASE(mObserver);
-        
         
         ClearDoomList();
         ClearActiveEntries();
@@ -1115,6 +1112,9 @@ nsCacheService::Shutdown()
         
         
         (void) SyncWithCacheIOThread();
+        
+        mObserver->Remove();
+        NS_RELEASE(mObserver);
         
         
         
