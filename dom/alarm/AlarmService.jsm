@@ -24,6 +24,10 @@ XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIFrameMessageManager);
 });
 
+XPCOMUtils.defineLazyGetter(this, "messenger", function() {
+  return Cc["@mozilla.org/system-message-internal;1"].getService(Ci.nsISystemMessagesInternal);
+});
+
 let myGlobal = this;
 
 let AlarmService = {
@@ -97,7 +101,8 @@ let AlarmService = {
           date: json.date, 
           ignoreTimezone: json.ignoreTimezone, 
           timezoneOffset: this._currentTimezoneOffset, 
-          data: json.data
+          data: json.data,
+          manifestURL: json.manifestURL
         };
 
         this._db.add(
@@ -205,7 +210,8 @@ let AlarmService = {
 
     if (this._currentAlarm) {
       debug("Fire system intent: " + JSON.stringify(this._currentAlarm));
-      
+      if (this._currentAlarm.manifestURL)
+        messenger.sendMessage("alarm", this._currentAlarm, this._currentAlarm.manifestURL);
       this._currentAlarm = null;
     }
 
@@ -220,7 +226,8 @@ let AlarmService = {
       
       if (nextAlarmTime <= nowTime) {
         debug("Fire system intent: " + JSON.stringify(nextAlarm));
-        
+        if (nextAlarm.manifestURL)
+          messenger.sendMessage("alarm", nextAlarm, nextAlarm.manifestURL);
       } else {
         this._currentAlarm = nextAlarm;
         break;
