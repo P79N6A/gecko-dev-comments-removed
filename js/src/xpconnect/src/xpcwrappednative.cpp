@@ -2830,6 +2830,10 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
     if(paramInfo.IsDipper())
         return HandleDipperParam(dp, paramInfo);
 
+    
+    if(paramInfo.IsIndirect())
+        dp->SetIndirect();
+
     if(type_tag == nsXPTType::T_INTERFACE)
     {
         dp->SetValIsInterface();
@@ -2845,9 +2849,6 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
     if(type_tag == nsXPTType::T_JSVAL)
     {
         
-        dp->SetIndirect();
-
-        
         JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(dp->val));
         jsval *rootp = (jsval *)&dp->val;
         dp->ptr = rootp;
@@ -2859,8 +2860,6 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
 
     if(paramInfo.IsOut())
     {
-        dp->SetIndirect();
-
         if(type.IsPointer() &&
            type_tag != nsXPTType::T_INTERFACE &&
            !paramInfo.IsShared())
@@ -2966,6 +2965,10 @@ CallMethodHelper::ConvertDependentParams()
         nsXPTCVariant* dp = GetDispatchParam(i);
         dp->type = type;
 
+        
+        if(paramInfo.IsIndirect())
+            dp->SetIndirect();
+
         if(isArray)
         {
             dp->SetValIsArray();
@@ -2992,8 +2995,6 @@ CallMethodHelper::ConvertDependentParams()
 
         if(paramInfo.IsOut())
         {
-            dp->SetIndirect();
-
             if(datum_type.IsPointer() &&
                !datum_type.IsInterfacePointer() &&
                (isArray || !paramInfo.IsShared()))
