@@ -5639,26 +5639,48 @@ const jschar js_uriUnescaped_ucstr[] =
      'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
      '-', '_', '.', '!', '~', '*', '\'', '(', ')', 0};
 
+#define ____ false
+
 
 
 
 
 const bool js_alnum[] = {
 
- false, false, false, false, false, false, false, false, false, false,
- false, false, false, false, false, false, false, false, false, false,
- false, false, false, false, false, false, false, false, false, false,
- false, false, false, false, false, false, false, false, false, false,
- false, false, false, false, false, false, false, false, true,  true,
- true,  true,  true,  true,  true,  true,  true,  true,  false, false,
- false, false, false, false, false, true,  true,  true,  true,  true,
- true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
- true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
- true,  false, false, false, false, true,  false, true,  true,  true,
- true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
- true,  true,  true,  true,  true,  true,  true,  true,  true,  true,
- true,  true,  true,  false, false, false, false, false
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, true, true,
+ true, true, true, true, true, true, true, true, ____, ____,
+ ____, ____, ____, ____, ____, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, ____, ____, ____, ____, true, ____, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, ____, ____, ____, ____, ____
 };
+
+
+const bool js_isspace[] = {
+
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, true,
+ true, true, true, true, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, true, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
+ ____, ____, ____, ____, ____, ____, ____, ____
+};
+
+#undef ____
 
 #define URI_CHUNK 64U
 
@@ -5669,7 +5691,7 @@ TransferBufferToString(JSContext *cx, StringBuffer &sb, Value *rval)
     if (!str)
         return false;
     rval->setString(str);
-    return true;;
+    return true;
 }
 
 
