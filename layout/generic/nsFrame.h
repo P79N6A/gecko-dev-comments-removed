@@ -296,6 +296,28 @@ public:
                            nscoord aWidthInCB);
 
   NS_IMETHOD  WillReflow(nsPresContext* aPresContext);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   NS_IMETHOD  Reflow(nsPresContext*          aPresContext,
                      nsHTMLReflowMetrics&     aDesiredSize,
                      const nsHTMLReflowState& aReflowState,

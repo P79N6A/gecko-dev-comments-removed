@@ -176,12 +176,20 @@ typedef uint64_t nsFrameState;
 
 
 
+
 #define NS_FRAME_IS_DIRTY                           NS_FRAME_STATE_BIT(10)
 
 
 
 
 #define NS_FRAME_TOO_DEEP_IN_FRAME_TREE             NS_FRAME_STATE_BIT(11)
+
+
+
+
+
+
+
 
 
 
