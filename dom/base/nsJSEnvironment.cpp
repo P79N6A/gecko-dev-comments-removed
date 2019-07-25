@@ -3872,6 +3872,12 @@ ReadSourceFromFilename(JSContext *cx, const char *filename, jschar **src, PRUint
   nsresult rv;
 
   
+  
+  const char *arrow = strstr(filename, " -> ");
+  if (arrow)
+    filename = arrow + strlen(" -> ");
+
+  
   nsCOMPtr<nsIURI> uri;
   rv = NS_NewURI(getter_AddRefs(uri), filename);
   NS_ENSURE_SUCCESS(rv, rv);
