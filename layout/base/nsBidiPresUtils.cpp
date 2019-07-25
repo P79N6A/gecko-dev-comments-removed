@@ -805,7 +805,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
 
 
 
-              while (end < endLine && nextSibling) {
+              while (end < endLine && nextSibling) { 
                 mBuffer.Append(Substring(text, start, end - start));
 
                 AdvanceAndAppendFrame(&frame, aLineIter, &nextSibling);
