@@ -5202,6 +5202,9 @@ js_NativeSet(JSContext *cx, JSObject *obj, const Shape *shape, bool added, Value
         AutoShapeRooter tvr(cx, shape);
         if (!shape->set(cx, obj, vp))
             return false;
+
+        JS_ASSERT_IF(!obj->inDictionaryMode(), shape->slot == slot);
+        slot = shape->slot;
     }
 
     if (obj->containsSlot(slot) &&
@@ -5472,7 +5475,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
         if (!pobj->isNative()) {
             if (pobj->isProxy()) {
                 AutoPropertyDescriptorRooter pd(cx);
-                if (!JSProxy::getPropertyDescriptor(cx, pobj, id, true, &pd))
+                if (!pobj->getProxyHandler()->getPropertyDescriptor(cx, pobj, id, true, &pd))
                     return false;
 
                 if (pd.attrs & JSPROP_SHARED)
