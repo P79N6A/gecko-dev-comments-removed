@@ -925,10 +925,7 @@ JSCompartment::markTrapClosuresIteratively(JSTracer *trc)
         BreakpointSite *site = r.front().value;
 
         
-        
-        if (site->trapHandler &&
-            (!site->scriptObject || !IsAboutToBeFinalized(cx, site->scriptObject)))
-        {
+        if (site->trapHandler && !IsAboutToBeFinalized(cx, site->script)) {
             if (site->trapClosure.isMarkable() &&
                 IsAboutToBeFinalized(cx, site->trapClosure.toGCThing()))
             {
@@ -945,21 +942,19 @@ JSCompartment::sweepBreakpoints(JSContext *cx)
 {
     for (BreakpointSiteMap::Enum e(breakpointSites); !e.empty(); e.popFront()) {
         BreakpointSite *site = e.front().value;
-        if (site->scriptObject) {
-            
-            
-            bool scriptGone = IsAboutToBeFinalized(cx, site->scriptObject);
-            bool clearTrap = scriptGone && site->hasTrap();
-
-            Breakpoint *nextbp;
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = nextbp) {
-                nextbp = bp->nextInSite();
-                if (scriptGone || IsAboutToBeFinalized(cx, bp->debugger->toJSObject()))
-                    bp->destroy(cx, &e);
-            }
-
-            if (clearTrap)
-                site->clearTrap(cx, &e);
+        
+        
+        bool scriptGone = IsAboutToBeFinalized(cx, site->script);
+        bool clearTrap = scriptGone && site->hasTrap();
+        
+        Breakpoint *nextbp;
+        for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = nextbp) {
+            nextbp = bp->nextInSite();
+            if (scriptGone || IsAboutToBeFinalized(cx, bp->debugger->toJSObject()))
+                bp->destroy(cx, &e);
         }
+        
+        if (clearTrap)
+            site->clearTrap(cx, &e);
     }
 }

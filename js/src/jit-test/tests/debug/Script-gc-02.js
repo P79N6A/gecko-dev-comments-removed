@@ -10,5 +10,5 @@ assertEq(arr.length, 10);
 gc();
 
 for (var i = 0; i < arr.length; i++)
-    assertEq(arr[i].live, true); 
+    assertEq(arr[i].lineCount, 1);
 

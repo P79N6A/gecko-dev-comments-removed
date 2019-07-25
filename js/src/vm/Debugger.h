@@ -59,8 +59,6 @@ class Debugger {
     friend JSBool (::JS_DefineDebuggerObject)(JSContext *cx, JSObject *obj);
 
   public:
-    enum NewScriptKind { NewNonHeldScript, NewHeldScript };
-
     enum Hook {
         OnDebuggerStatement,
         OnExceptionUnwind,
@@ -105,41 +103,14 @@ class Debugger {
         FrameMap;
     FrameMap frames;
 
-    
-    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
-        ObjectWeakMap;
-    ObjectWeakMap objects;
+    typedef WeakMap<gc::Cell *, JSObject *, DefaultHasher<gc::Cell *>, CrossCompartmentMarkPolicy>
+        CellWeakMap;
 
     
-
-
-
-    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
-        ScriptWeakMap;
+    CellWeakMap objects;
 
     
-
-
-
-
-
-    ScriptWeakMap heldScripts;
-
-    
-
-
-
-    typedef HashMap<JSScript *, JSObject *, DefaultHasher<JSScript *>, RuntimeAllocPolicy>
-        ScriptMap;
-
-    
-
-
-
-
-
-
-    ScriptMap nonHeldScripts;
+    CellWeakMap scripts;
 
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
     void removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
@@ -195,7 +166,7 @@ class Debugger {
     static void traceObject(JSTracer *trc, JSObject *obj);
     void trace(JSTracer *trc);
     static void finalize(JSContext *cx, JSObject *obj);
-    static void markKeysInCompartment(JSTracer *tracer, const ObjectWeakMap &map);
+    static void markKeysInCompartment(JSTracer *tracer, const CellWeakMap &map, bool scripts);
 
     static Class jsclass;
 
@@ -230,9 +201,7 @@ class Debugger {
     static void slowPathOnEnterFrame(JSContext *cx);
     static void slowPathOnLeaveFrame(JSContext *cx);
     static void slowPathOnNewScript(JSContext *cx, JSScript *script, JSObject *obj,
-                                    NewScriptKind kind);
-    static void slowPathOnDestroyScript(JSScript *script);
-
+                                    GlobalObject *compileAndGoGlobal);
     static JSTrapStatus dispatchHook(JSContext *cx, js::Value *vp, Hook which);
 
     JSTrapStatus fireDebuggerStatement(JSContext *cx, Value *vp);
@@ -247,20 +216,11 @@ class Debugger {
     JSObject *newDebuggerScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     
-    JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
-
-    
 
 
 
 
-
-
-
-    void fireNewScript(JSContext *cx, JSScript *script, JSObject *obj, NewScriptKind kind);
-
-    
-    void destroyNonHeldScript(JSScript *script);
+    void fireNewScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
@@ -302,8 +262,7 @@ class Debugger {
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
     static inline JSTrapStatus onExceptionUnwind(JSContext *cx, js::Value *vp);
     static inline void onNewScript(JSContext *cx, JSScript *script, JSObject *obj,
-                                   NewScriptKind kind);
-    static inline void onDestroyScript(JSScript *script);
+                                   GlobalObject *compileAndGoGlobal);
     static JSTrapStatus onTrap(JSContext *cx, Value *vp);
     static JSTrapStatus onSingleStep(JSContext *cx, Value *vp);
 
@@ -385,14 +344,7 @@ class Debugger {
 
 
 
-    JSObject *wrapJSAPIScript(JSContext *cx, JSObject *scriptObj);
-
-    
-
-
-
-
-    JSObject *wrapNonHeldScript(JSContext *cx, JSScript *script);
+    JSObject *wrapScript(JSContext *cx, JSScript *script, JSObject *obj);
 
   private:
     
@@ -564,18 +516,13 @@ Debugger::onExceptionUnwind(JSContext *cx, js::Value *vp)
 }
 
 void
-Debugger::onNewScript(JSContext *cx, JSScript *script, JSObject *obj, NewScriptKind kind)
+Debugger::onNewScript(JSContext *cx, JSScript *script, JSObject *obj,
+                      GlobalObject *compileAndGoGlobal)
 {
-    JS_ASSERT_IF(kind == NewHeldScript || script->compileAndGo, obj);
+    JS_ASSERT_IF(script->compileAndGo, compileAndGoGlobal);
+    JS_ASSERT_IF(!script->compileAndGo, !compileAndGoGlobal);
     if (!script->compartment()->getDebuggees().empty())
-        slowPathOnNewScript(cx, script, obj, kind);
-}
-
-void
-Debugger::onDestroyScript(JSScript *script)
-{
-    if (!script->compartment()->getDebuggees().empty())
-        slowPathOnDestroyScript(script);
+        slowPathOnNewScript(cx, script, obj, compileAndGoGlobal);
 }
 
 extern JSBool
