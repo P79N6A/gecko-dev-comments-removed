@@ -5022,9 +5022,13 @@ WebGLContext::CompileShader(WebGLShader *shader)
             
             
             
+            char mappedNameLength = strlen(mapped_name);
+            char mappedNameLastChar = mappedNameLength > 1
+                                      ? mapped_name[mappedNameLength - 1]
+                                      : 0;
             shader->mUniformInfos.AppendElement(WebGLUniformInfo(
                                                     size,
-                                                    length > 1 && mapped_name[length - 1] == ']',
+                                                    mappedNameLastChar == ']',
                                                     type));
         }
 
