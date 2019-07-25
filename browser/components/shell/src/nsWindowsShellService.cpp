@@ -194,8 +194,6 @@ static SETTING gDDESettings[] = {
   { MAKE_KEY_NAME1("Software\\Classes\\HTTPS", SOD) }
 };
 
-
-#if 0
 #if defined(MOZ_MAINTENANCE_SERVICE)
 
 #define ONLY_SERVICE_LAUNCHING
@@ -205,7 +203,6 @@ static SETTING gDDESettings[] = {
 static const char *kPrefetchClearedPref =
   "app.update.service.lastVersionPrefetchCleared";
 static nsCOMPtr<nsIThread> sThread;
-#endif
 #endif
 
 nsresult
@@ -1004,8 +1001,6 @@ nsWindowsShellService::SetDesktopBackgroundColor(PRUint32 aColor)
 nsWindowsShellService::nsWindowsShellService() : 
   mCheckedThisSession(false) 
 {
-
-#if 0
 #if defined(MOZ_MAINTENANCE_SERVICE)
 
   
@@ -1050,13 +1045,10 @@ nsWindowsShellService::nsWindowsShellService() :
       nsnull, CLEAR_PREFETCH_TIMEOUT_MS, nsITimer::TYPE_ONE_SHOT);
   }
 #endif
-#endif
 }
 
 nsWindowsShellService::~nsWindowsShellService()
 {
-
-#if 0
 #if defined(MOZ_MAINTENANCE_SERVICE)
  if (mTimer) {
     mTimer->Cancel();
@@ -1067,11 +1059,8 @@ nsWindowsShellService::~nsWindowsShellService()
     sThread = nsnull;
   }
 #endif
-#endif
 }
 
-
-#if 0
 #if defined(MOZ_MAINTENANCE_SERVICE)
 
 class ClearPrefetchEvent : public nsRunnable {
@@ -1094,7 +1083,6 @@ public:
   }
 };
 #endif
-#endif
 
 
 
@@ -1105,8 +1093,6 @@ public:
 
 
  
-
-#if 0
 #if defined(MOZ_MAINTENANCE_SERVICE)
 void
 nsWindowsShellService::LaunchPrefetchClearCommand(nsITimer *aTimer, void*)
@@ -1130,7 +1116,6 @@ nsWindowsShellService::LaunchPrefetchClearCommand(nsITimer *aTimer, void*)
     sThread->Dispatch(prefetchEvent, NS_DISPATCH_NORMAL);
   }
 }
-#endif
 #endif
 
 NS_IMETHODIMP
