@@ -7603,6 +7603,125 @@ HWND nsWindow::FindOurProcessWindow(HWND aHWND)
   return nsnull;
 }
 
+static PRBool PointInWindow(HWND aHWND, const POINT& aPoint)
+{
+  RECT bounds;
+  if (!::GetWindowRect(aHWND, &bounds)) {
+    return PR_FALSE;
+  }
+
+  if (aPoint.x < bounds.left
+      || aPoint.x >= bounds.right
+      || aPoint.y < bounds.top
+      || aPoint.y >= bounds.bottom) {
+    return PR_FALSE;
+  }
+
+  return PR_TRUE;
+}
+
+static HWND FindTopmostWindowAtPoint(HWND aHWND, const POINT& aPoint)
+{
+  if (!::IsWindowVisible(aHWND) || !PointInWindow(aHWND, aPoint)) {
+    return 0;
+  }
+
+  HWND childWnd = ::GetTopWindow(aHWND);
+  while (childWnd) {
+    HWND topmostWnd = FindTopmostWindowAtPoint(childWnd, aPoint);
+    if (topmostWnd) {
+      return topmostWnd;
+    }
+    childWnd = ::GetNextWindow(childWnd, GW_HWNDNEXT);
+  }
+
+  return aHWND;
+}
+
+struct FindOurWindowAtPointInfo
+{
+  POINT mInPoint;
+  HWND mOutHWND;
+};
+
+
+BOOL CALLBACK nsWindow::FindOurWindowAtPointCallback(HWND aHWND, LPARAM aLPARAM)
+{
+  if (!nsWindow::IsOurProcessWindow(aHWND)) {
+    
+    return TRUE;
+  }
+
+  
+  
+  
+  
+  FindOurWindowAtPointInfo* info = reinterpret_cast<FindOurWindowAtPointInfo*>(aLPARAM);
+  HWND childWnd = FindTopmostWindowAtPoint(aHWND, info->mInPoint);
+  if (!childWnd) {
+    
+    return TRUE;
+  }
+
+  
+  info->mOutHWND = childWnd;
+  return FALSE;
+}
+
+
+HWND nsWindow::FindOurWindowAtPoint(const POINT& aPoint)
+{
+  FindOurWindowAtPointInfo info;
+  info.mInPoint = aPoint;
+  info.mOutHWND = 0;
+
+  
+  EnumWindows(FindOurWindowAtPointCallback, reinterpret_cast<LPARAM>(&info));
+  return info.mOutHWND;
+}
+
+typedef DWORD (*GetProcessImageFileNameProc)(HANDLE, LPTSTR, DWORD);
+
+
+
+
+
+static PRBool IsElantechHelperWindow(HWND aHWND)
+{
+  static HMODULE hPSAPI = ::LoadLibrary(L"psapi.dll");
+  static GetProcessImageFileNameProc pGetProcessImageFileName =
+    reinterpret_cast<GetProcessImageFileNameProc>(::GetProcAddress(hPSAPI, "GetProcessImageFileNameW"));
+
+  if (!pGetProcessImageFileName) {
+    return PR_FALSE;
+  }
+
+  const PRUnichar* filenameSuffix = L"\\etdctrl.exe";
+  const int filenameSuffixLength = 12;
+
+  DWORD pid;
+  ::GetWindowThreadProcessId(aHWND, &pid);
+
+  PRBool result = PR_FALSE;
+
+  HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+  if (hProcess) {
+    PRUnichar path[256];
+    if (pGetProcessImageFileName(hProcess, path, sizeof path)) {
+      path[255] = 0;
+      int pathLength = lstrlen(path);
+      if (pathLength >= filenameSuffixLength) {
+        if (lstrcmpi(path + pathLength - filenameSuffixLength, filenameSuffix) == 0) {
+          result = PR_TRUE;
+        }
+      }
+    }
+    ::CloseHandle(hProcess);
+  }
+
+  return result;
+}
+
 
 
 
@@ -7656,6 +7775,14 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
   
   
   
+
+  if (sUseElantechGestureHacks && IsElantechHelperWindow(destWnd)) {
+    
+    
+    
+    
+    destWnd = FindOurWindowAtPoint(point);
+  }
 
   if (!destWnd) {
     
@@ -8992,7 +9119,7 @@ IsObsoleteElantechDriver()
     if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
       int majorVersion = wcstol(p, NULL, 10);
       
-      if (majorVersion == 7)
+      if (majorVersion == 7 || majorVersion == 8)
         return PR_TRUE;
     }
   }
