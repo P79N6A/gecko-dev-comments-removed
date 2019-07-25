@@ -258,17 +258,9 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     if (ownerContent) {
       nsAccessible* outerDocAcc = mDocument->GetAccessible(ownerContent);
       if (outerDocAcc && outerDocAcc->AppendChild(childDoc)) {
-        if (mDocument->AppendChildDocument(childDoc)) {
-          
-          
-          nsRefPtr<AccEvent> reorderEvent =
-              new AccEvent(nsIAccessibleEvent::EVENT_REORDER, outerDocAcc,
-                           eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
-          if (reorderEvent)
-            QueueEvent(reorderEvent);
-
+        if (mDocument->AppendChildDocument(childDoc))
           continue;
-        }
+
         outerDocAcc->RemoveChild(childDoc);
       }
 

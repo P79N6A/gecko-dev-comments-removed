@@ -178,6 +178,18 @@ const DO_NOT_FINISH_TEST = 1;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 function eventQueue(aEventType)
 {
   
@@ -328,9 +340,10 @@ function eventQueue(aEventType)
       invoker.debugCheck(aEvent);
 
     
+    
     var idx = 0;
     for (; idx < this.mEventSeq.length; idx++) {
-      if (!this.isEventUnexpected(idx) && (invoker.wasCaught[idx] == true) &&
+      if (this.isEventExpected(idx) && (invoker.wasCaught[idx] == true) &&
           this.isAlreadyCaught(idx, aEvent)) {
 
         var msg = "Doubled event { event type: " +
@@ -342,51 +355,84 @@ function eventQueue(aEventType)
     }
 
     
+    
     for (idx = 0; idx < this.mEventSeq.length; idx++) {
       if (this.isEventUnexpected(idx) && this.compareEvents(idx, aEvent))
         invoker.wasCaught[idx] = true;
     }
 
     
-    if (this.mEventSeqIdx == this.mEventSeq.length)
+    
+    var idxObj = {};
+    if (!this.prepareForExpectedEvent(invoker, idxObj))
       return;
 
     
-    for (idx = this.mEventSeqIdx + 1;
-         idx < this.mEventSeq.length && this.mEventSeq[idx].unexpected;
-         idx++);
-
-    
-    
-    if (idx == this.mEventSeq.length) {
-      this.mEventSeqIdx = idx;
-      this.processNextInvokerInTimeout();
-      return;
+    var matched = false;
+    idx = idxObj.value;
+    if (idx < this.mEventSeq.length) {
+      matched = this.compareEvents(idx, aEvent);
+      if (matched)
+        this.mEventSeqIdx = idx;
     }
 
     
-    var matched = this.compareEvents(idx, aEvent);
+    if (!matched) {
+      for (idx = 0; idx < this.mEventSeq.length; idx++) {
+        if (this.mEventSeq[idx].async) {
+          matched = this.compareEvents(idx, aEvent);
+          if (matched)
+            break;
+        }
+      }
+    }
     this.dumpEventToDOM(aEvent, idx, matched);
 
     if (matched) {
       this.checkEvent(idx, aEvent);
       invoker.wasCaught[idx] = true;
-      this.mEventSeqIdx = idx;
 
-      
-      while (++idx < this.mEventSeq.length && this.mEventSeq[idx].unexpected);
-
-      
-      
-      
-      if (idx == this.mEventSeq.length) {
-        this.mEventSeqIdx = idx;
-        this.processNextInvokerInTimeout();
-      }
+      this.prepareForExpectedEvent(invoker);
     }
   }
 
   
+  this.prepareForExpectedEvent =
+    function eventQueue_prepareForExpectedEvent(aInvoker, aIdxObj)
+  {
+    
+    if (this.mEventSeqFinished)
+      return false;
+
+    
+    for (var idx = this.mEventSeqIdx + 1;
+         idx < this.mEventSeq.length &&
+         (this.mEventSeq[idx].unexpected || this.mEventSeq[idx].async);
+         idx++);
+
+    
+    
+    if (idx == this.mEventSeq.length) {
+      var allHandled = true;
+      for (var jdx = 0; jdx < this.mEventSeq.length; jdx++) {
+        if (this.isEventExpected(jdx) && !aInvoker.wasCaught[jdx])
+          allHandled = false;
+      }
+
+      if (allHandled) {
+        this.mEventSeqIdx = this.mEventSeq.length;
+        this.mEventFinished = true;
+        this.processNextInvokerInTimeout();
+        return false;
+      }
+    }
+
+    if (aIdxObj)
+      aIdxObj.value = idx;
+
+    return true;
+  }
+
   this.getInvoker = function eventQueue_getInvoker()
   {
     return this.mInvokers[this.mIndex];
@@ -405,18 +451,24 @@ function eventQueue(aEventType)
       aInvoker.eventSeq :
       [ new invokerChecker(this.mDefEventType, aInvoker.DOMNode) ];
 
-    for (var idx = 0; idx < this.mEventSeq.length; idx++)
+    for (var idx = 0; idx < this.mEventSeq.length; idx++) {
       this.mEventSeq[idx].unexpected = false;
+      if (!("async" in this.mEventSeq[idx]))
+        this.mEventSeq[idx].async = false;
+    }
 
     var unexpectedSeq = aInvoker.unexpectedEventSeq;
     if (unexpectedSeq) {
-      for (var idx = 0; idx < unexpectedSeq.length; idx++)
+      for (var idx = 0; idx < unexpectedSeq.length; idx++) {
         unexpectedSeq[idx].unexpected = true;
+        unexpectedSeq[idx].async = false;
+      }
 
       this.mEventSeq = this.mEventSeq.concat(unexpectedSeq);
     }
 
     this.mEventSeqIdx = -1;
+    this.mEventSeqFinished = false;
 
     
     if (this.mEventSeq) {
@@ -517,6 +569,10 @@ function eventQueue(aEventType)
   {
     return this.mEventSeq[aIdx].unexpected;
   }
+  this.isEventExpected = function eventQueue_isEventExpected(aIdx)
+  {
+    return !this.mEventSeq[aIdx].unexpected;
+  }
 
   this.compareEvents = function eventQueue_compareEvents(aIdx, aEvent)
   {
@@ -598,20 +654,17 @@ function eventQueue(aEventType)
       gLogger.logToDOM(info);
     }
 
-    var currType = this.getEventTypeAsString(aExpectedEventIdx);
-    var currTarget = this.getEventTarget(aExpectedEventIdx);
+    if (!aMatch)
+      return;
 
     var msg = "EQ: ";
-    var emphText = "";
-    if (aMatch) {
-      emphText = "matched ";
+    var emphText = "matched ";
 
-      var consoleMsg = "*****\nEQ matched: " + currType + "\n*****";
-      gLogger.logToConsole(consoleMsg);
+    var currType = this.getEventTypeAsString(aExpectedEventIdx);
+    var currTarget = this.getEventTarget(aExpectedEventIdx);
+    var consoleMsg = "*****\nEQ matched: " + currType + "\n*****";
+    gLogger.logToConsole(consoleMsg);
 
-    } else {
-      msg += "expected";
-    }
     msg += " event, type: " + currType + ", target: " + prettyName(currTarget);
 
     gLogger.logToDOM(msg, true, emphText);
@@ -624,6 +677,7 @@ function eventQueue(aEventType)
 
   this.mEventSeq = null;
   this.mEventSeqIdx = -1;
+  this.mEventSeqFinished = false;
 }
 
 
@@ -896,9 +950,10 @@ function synthSelectAll(aNodeOrID, aCheckerOrEventSeq, aEventType)
 
 
 
-function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
+function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg, aIsAsync)
 {
   this.type = aEventType;
+  this.async = aIsAsync;
 
   this.__defineGetter__("target", invokerChecker_targetGetter);
   this.__defineSetter__("target", invokerChecker_targetSetter);
@@ -930,6 +985,15 @@ function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
 
   this.mTarget = aTargetOrFunc;
   this.mTargetFuncArg = aTargetFuncArg;
+}
+
+
+
+
+function asyncInvokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new invokerChecker(aEventType, aTargetOrFunc,
+                                      aTargetFuncArg, true);
 }
 
 

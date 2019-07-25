@@ -469,11 +469,12 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 
     
     
+    
+    
     nsRefPtr<AccEvent> reorderEvent =
       new AccEvent(nsIAccessibleEvent::EVENT_REORDER, appAcc, eAutoDetect,
                    AccEvent::eCoalesceFromSameSubtree);
-    if (reorderEvent)
-      docAcc->FireDelayedAccessibleEvent(reorderEvent);
+    docAcc->FireDelayedAccessibleEvent(reorderEvent);
 
   } else {
     parentDocAcc->BindChildDocument(docAcc);

@@ -1494,6 +1494,17 @@ nsDocAccessible::NotifyOfInitialUpdate()
 
   
   CacheChildrenInSubtree(this);
+
+  
+  
+  
+  
+  if (!IsRoot()) {
+    nsRefPtr<AccEvent> reorderEvent =
+      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, GetParent(),
+                   eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
+    ParentDocument()->FireDelayedAccessibleEvent(reorderEvent);
+  }
 }
 
 void
