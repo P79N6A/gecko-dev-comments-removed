@@ -504,9 +504,14 @@ ExecuteServiceCommand(int argc, LPWSTR *argv)
     
     
     LOG(("Service command %ls complete.\n", argv[2]));
-  } else if (!lstrcmpi(argv[2], L"clear-prefetch")) {
+  }
+  
+#if 0
+  else if (!lstrcmpi(argv[2], L"clear-prefetch")) {
     result = ClearKnownPrefetch();
-  } else {
+  } 
+#endif
+  else {
     LOG(("Service command not recognized: %ls.\n", argv[2]));
     
   }
