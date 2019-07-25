@@ -35,6 +35,9 @@
 
 
 
+#include "nsIServiceManager.h"
+#include "nsIPrefService.h"
+#include "nsIPrefBranch2.h"
 
 #include "nsComponentManagerUtils.h"
 #include "nsITimer.h"
@@ -43,8 +46,7 @@
 
 static PRBool sInitialized = PR_FALSE;
 static PRBool sTimerOn = PR_FALSE;
-
-static PRUint32 sMinDiscardTimeoutMs = 10000;
+static PRUint32 sMinDiscardTimeoutMs = 10000; 
 static nsITimer *sTimer = nsnull;
 static struct imgDiscardTrackerNode sHead, sSentinel, sTail;
 
@@ -130,6 +132,9 @@ imgDiscardTracker::Initialize()
   sSentinel.next = &sTail;
 
   
+  ReloadTimeout();
+
+  
   nsCOMPtr<nsITimer> t = do_CreateInstance("@mozilla.org/timer;1");
   NS_ENSURE_TRUE(t, NS_ERROR_OUT_OF_MEMORY);
   t.forget(&sTimer);
@@ -152,6 +157,37 @@ imgDiscardTracker::Shutdown()
     sTimer->Cancel();
     NS_RELEASE(sTimer);
     sTimer = nsnull;
+  }
+}
+
+
+
+
+void
+imgDiscardTracker::ReloadTimeout()
+{
+  nsresult rv;
+
+  
+  PRInt32 discardTimeout;
+  nsCOMPtr<nsIPrefBranch2> branch = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  rv = branch->GetIntPref(DISCARD_TIMEOUT_PREF, &discardTimeout);
+
+  
+  if (!NS_SUCCEEDED(rv) || discardTimeout <= 0)
+    return;
+
+  
+  if ((PRUint32) discardTimeout == sMinDiscardTimeoutMs)
+    return;
+
+  
+  sMinDiscardTimeoutMs = (PRUint32) discardTimeout;
+
+  
+  if (sTimerOn) {
+    TimerOff();
+    TimerOn();
   }
 }
 
