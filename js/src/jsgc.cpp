@@ -2972,7 +2972,10 @@ BeginMarkPhase(JSRuntime *rt)
 
 
 
-    PurgeRuntime(rt);
+    {
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_PURGE);
+        PurgeRuntime(rt);
+    }
 
     
 
@@ -3156,18 +3159,6 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt = cx->runtime;
 
-#ifdef JS_THREADSAFE
-    if (rt->hasContexts() && rt->gcHelperThread.prepareForBackgroundSweep())
-        cx->gcBackgroundFree = &rt->gcHelperThread;
-#endif
-
-    
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
-        c->arenas.purge();
-
-    if (rt->gcFinalizeCallback)
-        rt->gcFinalizeCallback(cx, JSFINALIZE_START);
-
     
 
 
@@ -3184,6 +3175,21 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
 
     gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP);
 
+#ifdef JS_THREADSAFE
+    if (rt->hasContexts() && rt->gcHelperThread.prepareForBackgroundSweep())
+        cx->gcBackgroundFree = &rt->gcHelperThread;
+#endif
+
+    
+    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+        c->arenas.purge();
+
+    {
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_FINALIZE_START);
+        if (rt->gcFinalizeCallback)
+            rt->gcFinalizeCallback(cx, JSFINALIZE_START);
+    }
+
     
     WeakMapBase::sweepAll(&rt->gcMarker);
 
@@ -3195,9 +3201,13 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
     if (!rt->gcCurrentCompartment)
         Debugger::sweepAll(cx);
 
-    bool releaseTypes = !rt->gcCurrentCompartment && ReleaseObservedTypes(rt);
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
-        c->sweep(cx, releaseTypes);
+    {
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_COMPARTMENTS);
+
+        bool releaseTypes = !rt->gcCurrentCompartment && ReleaseObservedTypes(rt);
+        for (GCCompartmentsIter c(rt); !c.done(); c.next())
+            c->sweep(cx, releaseTypes);
+    }
 
     {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_OBJECT);
@@ -3262,7 +3272,7 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
     }
 
     {
-        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_XPCONNECT);
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_FINALIZE_END);
         if (rt->gcFinalizeCallback)
             rt->gcFinalizeCallback(cx, JSFINALIZE_END);
     }
@@ -3464,8 +3474,10 @@ IncrementalGCSlice(JSContext *cx, int64_t budget, JSGCInvocationKind gckind)
         rt->gcMarker.start(rt);
         JS_ASSERT(IS_GC_MARKING_TRACER(&rt->gcMarker));
 
-        for (GCCompartmentsIter c(rt); !c.done(); c.next())
+        for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+            gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_DISCARD_CODE);
             c->discardJitCode(cx);
+        }
 
         BeginMarkPhase(rt);
 
@@ -3622,8 +3634,12 @@ GCCycle(JSContext *cx, JSCompartment *comp, int64_t budget, JSGCInvocationKind g
 
 
 
-    JS_ASSERT(!cx->gcBackgroundFree);
-    rt->gcHelperThread.waitBackgroundSweepOrAllocEnd();
+    {
+        gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
+
+        JS_ASSERT(!cx->gcBackgroundFree);
+        rt->gcHelperThread.waitBackgroundSweepOrAllocEnd();
+    }
 #endif
 
     if (budget == SliceBudget::Unlimited) {
@@ -3711,6 +3727,7 @@ Collect(JSContext *cx, JSCompartment *comp, int64_t budget,
 
 
         if (rt->gcIncrementalState == NO_INCREMENTAL) {
+            gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_GC_BEGIN);
             if (JSGCCallback callback = rt->gcCallback)
                 callback(rt, JSGC_BEGIN);
         }
@@ -3723,6 +3740,7 @@ Collect(JSContext *cx, JSCompartment *comp, int64_t budget,
         }
 
         if (rt->gcIncrementalState == NO_INCREMENTAL) {
+            gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_GC_END);
             if (JSGCCallback callback = rt->gcCallback)
                 callback(rt, JSGC_END);
         }
