@@ -78,6 +78,7 @@ NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant* params)
 {
 #ifdef __GNUC__            
+  PRUint32 methodIndexReg = methodIndex;
   PRUint32 result;
   
 
@@ -165,7 +166,8 @@ NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
       "=m" (saved_esp)      
 #endif
     : "g" (that),           
-      "g" (methodIndex),    
+      
+      "r" (methodIndexReg), 
       "1" (paramCount),     
       "2" (params),         
 #ifdef KEEP_STACK_16_BYTE_ALIGNED
