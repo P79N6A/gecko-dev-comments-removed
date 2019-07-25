@@ -193,7 +193,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         checkMonitoringEnabled();
+        createProgram();
+        activateProgram();
+    }
 
+    public void createProgram() {
         int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
         int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
 
@@ -211,20 +215,20 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         int maxTextureSizeResult[] = new int[1];
         GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, maxTextureSizeResult, 0);
         mMaxTextureSize = maxTextureSizeResult[0];
+    }
 
-        
-        
-
+    
+    public void activateProgram() {
         
         GLES20.glUseProgram(mProgram);
 
         
         GLES20.glUniformMatrix4fv(mTMatrixHandle, 1, false, TEXTURE_MATRIX, 0);
 
-        
         Log.e(LOGTAG, "### Position handle is " + mPositionHandle + ", texture handle is " +
               mTextureHandle + ", last error is " + GLES20.glGetError());
 
+        
         GLES20.glEnableVertexAttribArray(mPositionHandle);
         GLES20.glEnableVertexAttribArray(mTextureHandle);
 
@@ -234,8 +238,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         
         
-        
+    }
 
+    
+    
+    public void deactivateProgram() {
         GLES20.glDisableVertexAttribArray(mTextureHandle);
         GLES20.glDisableVertexAttribArray(mPositionHandle);
         GLES20.glUseProgram(0);
