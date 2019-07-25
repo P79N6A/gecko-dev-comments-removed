@@ -1794,20 +1794,15 @@ nsCacheService::CreateRequest(nsCacheSession *   session,
 {
     NS_ASSERTION(request, "CreateRequest: request is null");
      
-    nsCString * key = new nsCString(*session->ClientID());
-    if (!key)
-        return NS_ERROR_OUT_OF_MEMORY;
-    key->Append(':');
-    key->Append(clientKey);
+    nsCAutoString key(*session->ClientID());
+    key.Append(':');
+    key.Append(clientKey);
 
-    if (mMaxKeyLength < key->Length()) mMaxKeyLength = key->Length();
+    if (mMaxKeyLength < key.Length()) mMaxKeyLength = key.Length();
 
     
-    *request = new  nsCacheRequest(key, listener, accessRequested, blockingMode, session);    
-    if (!*request) {
-        delete key;
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
+    *request = new nsCacheRequest(key, listener, accessRequested,
+                                  blockingMode, session);
 
     if (!listener)  return NS_OK;  
 
@@ -2059,13 +2054,13 @@ nsCacheService::ActivateEntry(nsCacheRequest * request,
         return NS_ERROR_FAILURE;
 
     
-    nsCacheEntry *entry = mActiveEntries.GetEntry(request->mKey);
+    nsCacheEntry *entry = mActiveEntries.GetEntry(&(request->mKey));
     CACHE_LOG_DEBUG(("Active entry for request %p is %p\n", request, entry));
 
     if (!entry) {
         
         bool collision = false;
-        entry = SearchCacheDevices(request->mKey, request->StoragePolicy(), &collision);
+        entry = SearchCacheDevices(&(request->mKey), request->StoragePolicy(), &collision);
         CACHE_LOG_DEBUG(("Device search for request %p returned %p\n",
                          request, entry));
         
