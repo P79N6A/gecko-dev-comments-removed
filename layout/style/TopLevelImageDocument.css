@@ -37,25 +37,27 @@
 
 
 
-body {
-  background-color: #222;
-  margin: 0;
-}
+@media not print {
+  body {
+    background-color: #222;
+    margin: 0;
+  }
+
+  
 
 
 
 
 
-
-
-img {
-  color: #eee;
-  text-align: center;
-  display: block;
-  position: absolute;
-  margin: auto;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  img {
+    color: #eee;
+    text-align: center;
+    display: block;
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
 }
