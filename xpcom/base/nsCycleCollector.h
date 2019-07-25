@@ -46,16 +46,6 @@ class nsCycleCollectionParticipant;
 class nsCycleCollectionTraversalCallback;
 
 
-
-
-struct nsCycleCollectionLanguageRuntime
-{
-    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb) = 0;
-    virtual nsresult FinishTraverse() = 0;
-    virtual nsCycleCollectionParticipant *ToParticipant(void *p) = 0;
-};
-
-
 class nsCycleCollectorResults
 {
 public:
@@ -90,12 +80,11 @@ void nsCycleCollector_shutdownThreads();
 void nsCycleCollector_shutdown();
 
 
-
-
-
-
-struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
+struct nsCycleCollectionJSRuntime
 {
+    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb) = 0;
+    virtual nsresult FinishTraverse() = 0;
+
     
 
 
@@ -124,15 +113,14 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
     virtual nsCycleCollectionParticipant *GetParticipant() = 0;
 };
 
+
+void nsCycleCollector_registerJSRuntime(nsCycleCollectionJSRuntime *rt);
+void nsCycleCollector_forgetJSRuntime();
+
 #ifdef DEBUG
 void nsCycleCollector_DEBUG_shouldBeFreed(nsISupports *n);
 void nsCycleCollector_DEBUG_wasFreed(nsISupports *n);
 #endif
-
-
-
-void nsCycleCollector_registerRuntime(PRUint32 langID, nsCycleCollectionLanguageRuntime *rt);
-void nsCycleCollector_forgetRuntime(PRUint32 langID);
 
 #define NS_CYCLE_COLLECTOR_LOGGER_CID \
 { 0x58be81b4, 0x39d2, 0x437c, \
