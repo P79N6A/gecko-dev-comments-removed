@@ -181,6 +181,9 @@ nsDOMDesktopNotification::HandleAlertServiceNotification(const char *aTopic)
 NS_IMETHODIMP
 nsDOMDesktopNotification::Show()
 {
+  if (nsContentUtils::GetBoolPref("notification.disabled", PR_FALSE))
+    return NS_OK;
+
   
   
   if (nsContentUtils::GetBoolPref("notification.prompt.testing", PR_FALSE) &&
