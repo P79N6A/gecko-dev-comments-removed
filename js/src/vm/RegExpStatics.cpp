@@ -42,8 +42,6 @@
 
 #include "jsobjinlines.h"
 
-#include "vm/RegExpStatics-inl.h"
-
 using namespace js;
 
 
@@ -92,12 +90,12 @@ static Class regexp_statics_class = {
 JSObject *
 RegExpStatics::create(JSContext *cx, GlobalObject *parent)
 {
-    JSObject *obj = NewObject<WithProto::Given>(cx, &regexp_statics_class, NULL, parent);
+    JSObject *obj = NewObjectWithGivenProto(cx, &regexp_statics_class, NULL, parent);
     if (!obj)
         return NULL;
     RegExpStatics *res = cx->new_<RegExpStatics>();
     if (!res)
         return NULL;
-    obj->initPrivate(static_cast<void *>(res));
+    obj->setPrivate(static_cast<void *>(res));
     return obj;
 }

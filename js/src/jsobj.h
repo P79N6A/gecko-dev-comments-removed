@@ -376,8 +376,8 @@ struct ObjectElements
     
     uint32 unused;
 
-    ObjectElements(uint32 capacity)
-        : capacity(capacity), initializedLength(0), length(0)
+    ObjectElements(uint32 capacity, uint32 length)
+        : capacity(capacity), initializedLength(0), length(length)
     {}
 
     Value * elements() { return (Value *)(jsuword(this) + sizeof(ObjectElements)); }
@@ -493,10 +493,10 @@ struct JSObject : js::gc::Cell
     inline void setLastPropertyInfallible(const js::Shape *shape);
 
     
-    bool setInitialProperty(JSContext *cx, const js::Shape *shape);
+    inline void initialize(js::Shape *shape, js::types::TypeObject *type, JS::Value *slots);
 
     
-    void setInitialPropertyInfallible(const js::Shape *shape);
+    inline void initializeDenseArray(js::Shape *shape, js::types::TypeObject *type, uint32 length);
 
     
 
@@ -531,7 +531,6 @@ struct JSObject : js::gc::Cell
   public:
 
     inline bool isNative() const;
-    inline bool isNewborn() const { return !shape_; }
 
     inline js::Class *getClass() const;
     inline JSClass *getJSClass() const;
@@ -572,9 +571,9 @@ struct JSObject : js::gc::Cell
     inline bool isVarObj() const;
     inline bool setVarObj(JSContext *cx);
 
-  private:
     bool generateOwnShape(JSContext *cx, js::Shape *newShape = NULL);
 
+  private:
     enum GenerateShape {
         GENERATE_NONE,
         GENERATE_SHAPE
@@ -585,11 +584,6 @@ struct JSObject : js::gc::Cell
 
   public:
     inline bool nativeEmpty() const;
-
-    
-    bool initCall(JSContext *cx, const js::Bindings &bindings, JSObject *parent);
-    bool initClonedBlock(JSContext *cx, js::types::TypeObject *type, js::StackFrame *priv);
-    void setBlockOwnShape(JSContext *cx);
 
     const js::Shape *methodShapeChange(JSContext *cx, const js::Shape &shape);
     bool protoShapeChange(JSContext *cx);
@@ -1116,34 +1110,8 @@ struct JSObject : js::gc::Cell
 
     inline bool isCallable();
 
-    
-    void earlyInit()
-    {
-        
-        shape_ = NULL;
-    }
-
-    
-    void init(JSContext *cx, js::types::TypeObject *type);
-
-    
-
-
-
-    void initDenseArray();
-
     inline void finish(JSContext *cx);
     JS_ALWAYS_INLINE void finalize(JSContext *cx, bool background);
-
-    
-
-
-
-    inline bool initSharingEmptyShape(JSContext *cx,
-                                      js::Class *clasp,
-                                      js::types::TypeObject *type,
-                                      void *priv,
-                                      js::gc::AllocKind kind);
 
     inline bool hasProperty(JSContext *cx, jsid id, bool *foundp, uintN flags = 0);
 

@@ -409,18 +409,6 @@ static inline JSObject *
 NewIteratorObject(JSContext *cx, uintN flags)
 {
     if (flags & JSITER_ENUMERATE) {
-        
-
-
-
-
-
-
-
-        JSObject *obj = js_NewGCObject(cx, FINALIZE_OBJECT2);
-        if (!obj)
-            return NULL;
-
         types::TypeObject *type = cx->compartment->getEmptyType(cx);
         if (!type)
             return NULL;
@@ -430,8 +418,11 @@ NewIteratorObject(JSContext *cx, uintN flags)
         if (!emptyEnumeratorShape)
             return NULL;
 
-        obj->init(cx, type);
-        obj->setInitialPropertyInfallible(emptyEnumeratorShape);
+        JSObject *obj = js_NewGCObject(cx, FINALIZE_OBJECT2);
+        if (!obj)
+            return NULL;
+
+        obj->initialize(emptyEnumeratorShape, type, NULL);
 
         JS_ASSERT(obj->numFixedSlots() == JSObject::ITER_CLASS_NFIXED_SLOTS);
         return obj;
@@ -1194,7 +1185,7 @@ js_NewGenerator(JSContext *cx)
     JSObject *proto = global->getOrCreateGeneratorPrototype(cx);
     if (!proto)
         return NULL;
-    JSObject *obj = NewNonFunction<WithProto::Given>(cx, &GeneratorClass, proto, global);
+    JSObject *obj = NewObjectWithGivenProto(cx, &GeneratorClass, proto, global);
     if (!obj)
         return NULL;
 

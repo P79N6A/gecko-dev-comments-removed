@@ -57,13 +57,31 @@ CallObject::create(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObje
     Bindings &bindings = script->bindings;
     gc::AllocKind kind = gc::GetGCObjectKind(bindings.lastShape()->numFixedSlots() + 1);
 
+    js::types::TypeObject *type = cx->compartment->getEmptyType(cx);
+    if (!type)
+        return NULL;
+
+    Value *slots;
+    if (!ReserveObjectDynamicSlots(cx, bindings.lastShape(), &slots))
+        return NULL;
+
     JSObject *obj = js_NewGCObject(cx, kind);
     if (!obj)
         return NULL;
 
+    obj->initialize(bindings.lastShape(), type, slots);
+
     
-    if (!obj->initCall(cx, bindings, &scopeChain))
-        return NULL;
+
+
+
+
+    JSObject *global = scopeChain.getGlobal();
+    if (global != obj->getParentMaybeScope()) {
+        JS_ASSERT(obj->getParentMaybeScope() == NULL);
+        if (!obj->setParent(cx, global))
+            return NULL;
+    }
 
 #ifdef DEBUG
     for (Shape::Range r = obj->lastProperty(); !r.empty(); r.popFront()) {
@@ -74,6 +92,18 @@ CallObject::create(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObje
         }
     }
 #endif
+
+    JS_ASSERT(obj->isCall());
+    JS_ASSERT(!obj->inDictionaryMode());
+
+    obj->setScopeChain(&scopeChain);
+
+    
+
+
+
+    if (obj->lastProperty()->extensibleParents() && !obj->generateOwnShape(cx))
+        return NULL;
 
     CallObject &callobj = obj->asCall();
     callobj.setCallee(callee);
