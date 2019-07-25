@@ -917,7 +917,13 @@ public class PanZoomController
         if (mState == PanZoomState.ANIMATED_ZOOM)
             return false;
 
-        float spanRatio = detector.getCurrentSpan() / detector.getPreviousSpan();
+        float prevSpan = detector.getPreviousSpan();
+        if (FloatUtils.fuzzyEquals(prevSpan, 0.0f)) {
+            
+            return true;
+        }
+
+        float spanRatio = detector.getCurrentSpan() / prevSpan;
 
         
 
