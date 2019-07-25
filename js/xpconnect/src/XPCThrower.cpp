@@ -44,15 +44,11 @@ Throw(JSContext *cx, nsresult rv)
 JSBool
 XPCThrower::CheckForPendingException(nsresult result, JSContext *cx)
 {
-    nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-    if (!xpc)
-        return false;
-
     nsCOMPtr<nsIException> e;
-    xpc->GetPendingException(getter_AddRefs(e));
+    XPCJSRuntime::Get()->GetPendingException(getter_AddRefs(e));
     if (!e)
         return false;
-    xpc->SetPendingException(nsnull);
+    XPCJSRuntime::Get()->SetPendingException(nsnull);
 
     nsresult e_result;
     if (NS_FAILED(e->GetResult(&e_result)) || e_result != result)
@@ -184,22 +180,21 @@ XPCThrower::BuildAndThrowException(JSContext* cx, nsresult rv, const char* sz)
     nsCOMPtr<nsIException> finalException;
     nsCOMPtr<nsIException> defaultException;
     nsXPCException::NewException(sz, rv, nsnull, nsnull, getter_AddRefs(defaultException));
-    XPCPerThreadData* tls = XPCPerThreadData::GetData(cx);
-    if (tls) {
-        nsIExceptionManager * exceptionManager = tls->GetExceptionManager();
-        if (exceptionManager) {
-           
-           
-            exceptionManager->GetExceptionFromProvider(rv,
-                                                       defaultException,
-                                                       getter_AddRefs(finalException));
-            
-            
-            if (finalException == nsnull) {
-                finalException = defaultException;
-            }
+
+    nsIExceptionManager * exceptionManager = XPCJSRuntime::Get()->GetExceptionManager();
+    if (exceptionManager) {
+        
+        
+        exceptionManager->GetExceptionFromProvider(rv,
+                                                   defaultException,
+                                                   getter_AddRefs(finalException));
+        
+        
+        if (finalException == nsnull) {
+            finalException = defaultException;
         }
     }
+
     
     
     if (finalException)

@@ -976,7 +976,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
 
         
         if (!xpc_exception) {
-            ccx.GetThreadData()->SetException(nsnull); 
+            XPCJSRuntime::Get()->SetPendingException(nsnull); 
         }
     }
 
@@ -1103,7 +1103,7 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
             
             
             if (NS_FAILED(e_result)) {
-                ccx.GetThreadData()->SetException(xpc_exception);
+                XPCJSRuntime::Get()->SetPendingException(xpc_exception);
                 return e_result;
             }
         }
@@ -1182,7 +1182,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
 
     xpcc->SetPendingResult(pending_result);
     xpcc->SetException(nsnull);
-    ccx.GetThreadData()->SetException(nsnull);
+    XPCJSRuntime::Get()->SetPendingException(nsnull);
 
     if (XPCPerThreadData::IsMainThread(ccx)) {
         
@@ -1509,7 +1509,7 @@ pre_call_clean_up:
         return CheckForException(ccx, name, GetInterfaceName(), forceReport);
     }
 
-    ccx.GetThreadData()->SetException(nsnull); 
+    XPCJSRuntime::Get()->SetPendingException(nsnull); 
 
     
     
