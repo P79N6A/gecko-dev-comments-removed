@@ -143,6 +143,9 @@ AsyncResource.prototype = {
   _logName: "Net.Resource",
 
   
+  _userAgent: "FxSync/" + WEAVE_VERSION + "." + Svc.AppInfo.appBuildID + ".",
+
+  
   ABORT_TIMEOUT: 300000,
 
   
@@ -224,6 +227,12 @@ AsyncResource.prototype = {
     
     channel.notificationCallbacks = new BadCertListener();
 
+    
+    if (Svc.Prefs.get("sendVersionInfo", true)) {
+      let ua = this._userAgent + Svc.Prefs.get("client.type", "desktop");
+      channel.setRequestHeader("user-agent", ua, false);
+    }
+    
     
     let headers = this.headers;
     for (let key in headers) {
