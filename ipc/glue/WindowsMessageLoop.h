@@ -113,14 +113,13 @@ private:
 class DeferredUpdateMessage : public DeferredMessage
 {
 public:
-  DeferredUpdateMessage(HWND aHWnd)
-    : hWnd(aHWnd)
-  { }
+  DeferredUpdateMessage(HWND aHWnd);
 
   virtual void Run();
 
 private:
-  HWND hWnd;
+  HWND mWnd;
+  RECT mUpdateRect;
 };
 
 
