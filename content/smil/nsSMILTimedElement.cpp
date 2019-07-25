@@ -972,6 +972,10 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
     endSpec->ResolveReferences(aContextNode);
   }
 
+  
+  
+  mPrevRegisteredMilestone = sMaxMilestone;
+
   RegisterMilestone();
 }
 
