@@ -173,15 +173,15 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 
     
     if (enterJIT_)
-        MarkRoot(trc, enterJIT_, "enterJIT");
+        MarkRoot(trc, enterJIT_.unsafeGet(), "enterJIT");
 
     
     
     if (bailoutHandler_)
-        MarkRoot(trc, bailoutHandler_, "bailoutHandler");
+        MarkRoot(trc, bailoutHandler_.unsafeGet(), "bailoutHandler");
     for (size_t i = 0; i < bailoutTables_.length(); i++) {
         if (bailoutTables_[i])
-            MarkRoot(trc, bailoutTables_[i], "bailoutTable");
+            MarkRoot(trc, bailoutTables_[i].unsafeGet(), "bailoutTable");
     }
 
     
