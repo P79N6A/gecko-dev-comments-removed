@@ -135,9 +135,7 @@ public:
 #endif
 
   nsresult Destroy();  
-  
-  void PrepareToStop(bool aDelayedStop);
-  
+
 #ifdef XP_WIN
   void Paint(const RECT& aDirty, HDC aDC);
 #elif defined(XP_MACOSX)
@@ -164,14 +162,11 @@ public:
   
   
   
-  nsresult Init(nsPresContext* aPresContext, nsObjectFrame* aFrame,
-                nsIContent* aContent);
+  nsresult Init(nsIContent* aContent);
   
   void* GetPluginPortFromWidget();
   void ReleasePluginPort(void* pluginPort);
-  
-  void SetPluginHost(nsIPluginHost* aHost);
-  
+
   nsEventStatus ProcessEvent(const nsGUIEvent & anEvent);
   
 #ifdef XP_MACOSX
@@ -210,16 +205,10 @@ public:
   void UpdateWindowVisibility(bool aVisible);
   void UpdateDocumentActiveState(bool aIsActive);
 #endif 
-  void CallSetWindow();
-  
-  void SetOwner(nsObjectFrame *aOwner)
-  {
-    mObjectFrame = aOwner;
-  }
-  nsObjectFrame* GetOwner() {
-    return mObjectFrame;
-  }
-  
+
+  void SetFrame(nsObjectFrame *aFrame);
+  nsObjectFrame* GetFrame();
+
   PRUint32 GetLastEventloopNestingLevel() const {
     return mLastEventloopNestingLevel; 
   }
@@ -318,10 +307,11 @@ private:
  
   nsPluginNativeWindow       *mPluginWindow;
   nsRefPtr<nsNPAPIPluginInstance> mInstance;
-  nsObjectFrame              *mObjectFrame; 
-  nsCOMPtr<nsIContent>        mContent;
+  nsObjectFrame              *mObjectFrame;
+  nsIContent                 *mContent; 
   nsCString                   mDocumentBase;
   char                       *mTagText;
+  bool                        mWidgetCreationComplete;
   nsCOMPtr<nsIWidget>         mWidget;
   nsRefPtr<nsPluginHost>      mPluginHost;
   
@@ -357,10 +347,7 @@ private:
 #endif
   bool                        mPluginWindowVisible;
   bool                        mPluginDocumentActiveState;
-  
-  
-  
-  bool                        mDestroyWidget;
+
   PRUint16          mNumCachedAttrs;
   PRUint16          mNumCachedParams;
   char              **mCachedAttrParamNames;
@@ -368,6 +355,11 @@ private:
   
 #ifdef XP_MACOSX
   NPEventModel mEventModel;
+  
+  
+  
+  
+  bool mUseAsyncRendering;
 #endif
   
   
