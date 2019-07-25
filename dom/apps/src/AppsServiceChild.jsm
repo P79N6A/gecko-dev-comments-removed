@@ -14,6 +14,7 @@ const Ci = Components.interfaces;
 let EXPORTED_SYMBOLS = ["DOMApplicationRegistry"];
 
 Cu.import("resource://gre/modules/AppsUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 function debug(s) {
   
@@ -32,6 +33,16 @@ let DOMApplicationRegistry = {
     
     
     this.webapps = this.cpmm.sendSyncMessage("Webapps:GetList", { })[0];
+    Services.obs.addObserver(this, "xpcom-shutdown", false);
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    
+    
+    this.webapps = null;
+    ["Webapps:AddApp", "Webapps:RemoveApp"].forEach((function(aMsgName) {
+      this.cpmm.removeMessageListener(aMsgName, this);
+    }).bind(this));
   },
 
   receiveMessage: function receiveMessage(aMessage) {
