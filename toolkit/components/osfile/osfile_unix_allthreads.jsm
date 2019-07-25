@@ -109,7 +109,7 @@ if (typeof Components != "undefined") {
 
   Object.defineProperty(OSError.prototype, "becauseExists", {
     get: function becauseExists() {
-      return this.unixErrno == OS.Constants.libc.EEXISTS;
+      return this.unixErrno == OS.Constants.libc.EEXIST;
     }
   });
   
@@ -121,6 +121,16 @@ if (typeof Components != "undefined") {
       return this.unixErrno == OS.Constants.libc.ENOENT;
     }
   });
+
+  
+
+
+
+   Object.defineProperty(OSError.prototype, "becauseNotEmpty", {
+     get: function becauseNotEmpty() {
+       return this.unixErrno == OS.Constants.libc.ENOTEMPTY;
+     }
+   });
 
   
 

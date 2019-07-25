@@ -276,6 +276,49 @@
 
 
 
+     File.removeEmptyDir = function removeEmptyDir(path, options) {
+       options = options || noOptions;
+       let result = UnixFile.rmdir(path);
+       if (result == -1) {
+         if (options.ignoreAbsent && ctypes.errno == Const.ENOENT) {
+           return;
+         }
+         throw new File.Error("removeEmptyDir");
+       }
+     };
+
+     
+
+
+     const DEFAULT_UNIX_MODE_DIR = Const.S_IRWXU;
+
+     
+
+
+
+
+
+
+
+
+
+
+
+     File.makeDir = function makeDir(path, options) {
+       options = options || noOptions;
+       let omode = options.unixMode || DEFAULT_UNIX_MODE_DIR;
+       throw_on_negative("makeDir",
+         UnixFile.mkdir(path, omode));
+     };
+
+     
+
+
+
+
+
+
+
 
 
 
