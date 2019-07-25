@@ -2438,11 +2438,6 @@ var ViewportHandler = {
 
     
     
-    if (aWindow.frames.length > 0 && (aWindow.document.body instanceof HTMLFrameSetElement))
-      return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
-
-    
-    
     
 
     
