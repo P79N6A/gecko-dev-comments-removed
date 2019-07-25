@@ -3,6 +3,7 @@
 
 
 #include <windows.h>
+#include <mmsystem.h>
 #include "platform.h"
 #include <process.h>
 
@@ -63,11 +64,22 @@ class SamplerThread : public Thread {
 
   
   virtual void Run() {
+
+    
+    
+    
+    if (interval_ < 10)
+        ::timeBeginPeriod(interval_);
+
     while (sampler_->IsActive()) {
       if (!sampler_->IsPaused())
         SampleContext(sampler_);
       OS::Sleep(interval_);
     }
+
+    
+    if (interval_ < 10)
+        ::timeEndPeriod(interval_);
   }
 
   void SampleContext(Sampler* sampler) {
