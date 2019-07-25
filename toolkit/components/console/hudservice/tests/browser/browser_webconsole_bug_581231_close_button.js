@@ -22,12 +22,12 @@ function testCloseButton() {
 
   openConsole();
 
-  hudId = HUDService.displaysIndex()[0];
-  hudBox = HUDService.getHeadsUpDisplay(hudId);
+  let hud = HUDService.getHudByWindow(content);
+  let hudId = hud.hudId;
 
   HUDService.disableAnimation(hudId);
   executeSoon(function() {
-    let closeButton = hudBox.querySelector(".webconsole-close-button");
+    let closeButton = hud.HUDBox.querySelector(".webconsole-close-button");
     ok(closeButton != null, "we have the close button");
 
     
