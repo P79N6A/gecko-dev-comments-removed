@@ -498,8 +498,8 @@ function BuildConditionSandbox(aURL) {
     } catch(e) {
         sandbox.xulRuntime.XPCOMABI = "";
     }
- 
-    
+
+
 #if REFTEST_B2G
     
     sandbox.d2d = false;
@@ -622,6 +622,10 @@ function BuildConditionSandbox(aURL) {
     
     sandbox.browserIsRemote = gBrowserIsRemote;
     sandbox.bug685516 = sandbox.browserIsRemote && sandbox.Android;
+
+    
+    sandbox.xulFennec    = sandbox.Android &&  sandbox.browserIsRemote;
+    sandbox.nativeFennec = sandbox.Android && !sandbox.browserIsRemote;
 
     if (!gDumpedConditionSandbox) {
         dump("REFTEST INFO | Dumping JSON representation of sandbox \n");
