@@ -138,7 +138,7 @@ struct StmtInfo {
     ptrdiff_t       continues;      
     union {
         JSAtom      *label;         
-        ObjectBox   *blockBox;      
+        JSObject    *blockObj;      
     };
     StmtInfo        *down;          
     StmtInfo        *downScope;     
@@ -299,7 +299,7 @@ struct TreeContext {
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
-    ObjectBox       *blockChainBox; 
+    JSObject        *blockChain;    
 
 
     ParseNode       *blockNode;     
@@ -375,10 +375,6 @@ struct TreeContext {
     }
 
     uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
-
-    JSObject *blockChain() {
-        return blockChainBox ? blockChainBox->object : NULL;
-    }
 
     
 
@@ -800,12 +796,6 @@ Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode o
 
 
 ptrdiff_t
-Emit5(JSContext *cx, BytecodeEmitter *bce, JSOp op, uint16_t op1, uint16_t op2);
-
-
-
-
-ptrdiff_t
 EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
 
@@ -843,7 +833,7 @@ PushStatement(TreeContext *tc, StmtInfo *stmt, StmtType type, ptrdiff_t top);
 
 
 void
-PushBlockScope(TreeContext *tc, StmtInfo *stmt, ObjectBox *blockBox, ptrdiff_t top);
+PushBlockScope(TreeContext *tc, StmtInfo *stmt, JSObject *blockObj, ptrdiff_t top);
 
 
 

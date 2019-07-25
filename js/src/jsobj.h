@@ -908,7 +908,7 @@ struct JSObject : js::gc::Cell
 
 
 
-    inline JSObject *getStaticBlockScopeChain() const;
+    inline JSObject *staticBlockScopeChain() const;
     inline void setStaticBlockScopeChain(JSObject *obj);
 
     

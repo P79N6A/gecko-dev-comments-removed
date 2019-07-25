@@ -51,27 +51,19 @@
 
 namespace js {
 
-extern JSObject *
-GetBlockChain(JSContext *cx, StackFrame *fp);
 
-extern JSObject *
-GetBlockChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
+
+
+
+
+
+
 
 extern JSObject *
 GetScopeChain(JSContext *cx);
 
-
-
-
-
-
-
-
 extern JSObject *
 GetScopeChain(JSContext *cx, StackFrame *fp);
-
-extern JSObject *
-GetScopeChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
 
 
 

@@ -5,7 +5,7 @@ x = "notset";
 function myparent(nested) {
   if (nested) {
     
-    trap(myparent, 50, "success()");
+    trap(myparent, 49, "success()");
   } else {
     myparent(true);
     x = "failure";

@@ -6,5 +6,5 @@ function caller(code, obj) {
   eval(code); 
   return x;
 }
-trap(caller, 14, "var x = 'success'; nop()");
+trap(caller, 12, "var x = 'success'; nop()");
 assertEq(caller("var y = 'ignominy'", this), "success");

@@ -57,20 +57,6 @@ class BytecodeRange {
     jsbytecode *pc, *end;
 };
 
-
-
-
-
-JS_ALWAYS_INLINE jsbytecode *
-AdvanceOverBlockchainOp(jsbytecode *pc)
-{
-    if (*pc == JSOP_NULLBLOCKCHAIN)
-        return pc + JSOP_NULLBLOCKCHAIN_LENGTH;
-    if (*pc == JSOP_BLOCKCHAIN)
-        return pc + JSOP_BLOCKCHAIN_LENGTH;
-    return pc;
-}
-
 class SrcNoteLineScanner
 {
     
