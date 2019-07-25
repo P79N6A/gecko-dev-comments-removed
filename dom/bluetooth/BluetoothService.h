@@ -192,6 +192,19 @@ public:
                                   const nsAString& aPattern,
                                   int aAttributeId) = 0;
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsCOMPtr<nsIThread> mBluetoothCommandThread;
 protected:
   BluetoothService()
   {
