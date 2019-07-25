@@ -353,4 +353,32 @@ $(".tab").data('isDragging', false)
   .draggable(window.Groups.dragOptions)
   .droppable(window.Groups.dropOptions);
 
+$(".tab").click(function(){
+  
+  var [w,h] = [$(this).width(), $(this).height()];
+  var origPos = $(this).position();
+  var scale = window.innerWidth/w;
+  var fontSize = parseInt($(this).css("font-size"));
+  
+  $(this).addClass("scale-animate").css({
+    top: 0, left: 0,
+    width:w*scale, height:h*scale,
+    fontSize: fontSize*scale
+  }).bind("transitionend", function(e){
+    
+    
+    if( e.originalEvent.propertyName != "width" ) return;
+
+    
+    
+    var self = this;
+    setTimeout(function(){
+      $(self)
+        .removeClass("scale-animate")
+        .css({top: origPos.top, left: origPos.left, width:w, height:h, fontSize:fontSize});
+    }, 500);
+    
+  })
+})
+
 })();

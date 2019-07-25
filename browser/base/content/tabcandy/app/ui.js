@@ -27,14 +27,35 @@ var Page = {
         $div.draggable(window.Groups.dragOptions);
         $div.droppable(window.Groups.dropOptions);
       }
-        
+              
       $div.mouseup(function(e){
         if( e.target.className == "close" ){
           $(this).find("canvas").data("link").tab.close(); }
         else {
-          if(!$(this).data('isDragging')) {
-            Navbar.show();
-            $(this).find("canvas").data("link").tab.focus();            
+          if(!$(this).data('isDragging')) {  
+            
+            var [w,h] = [$(this).width(), $(this).height()];
+            var origPos = $(this).position();
+            var scale = window.innerWidth/w;
+            
+            $(this).addClass("scale-animate").css({
+              top: 0, left: 0,
+              width:w*scale, height:h*scale
+            }).bind("transitionend", function(e){
+              
+              
+              if( e.originalEvent.propertyName != "width" ) return;
+
+              
+              
+              $(this).find("canvas").data("link").tab.focus();
+              $(this)
+                .removeClass("scale-animate")
+                .css({top: origPos.top, left: origPos.left, width:w, height:h});
+              Navbar.show();
+            })
+            
+            
           } else {
             $(this).find("canvas").data("link").tab.raw.pos = $(this).position();
           }
