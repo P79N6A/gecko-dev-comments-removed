@@ -748,7 +748,7 @@ public:
 
 
 
-  virtual void RequestFullScreen(Element* aElement) = 0;
+  virtual void AsyncRequestFullScreen(Element* aElement) = 0;
 
   
 
