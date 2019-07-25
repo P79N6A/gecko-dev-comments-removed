@@ -121,7 +121,7 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, Shared
     constList(sc->context),
     typesetCount(0),
     hasSingletons(false),
-    inForInit(false),
+    emittingForInit(false),
     hasGlobalScope(hasGlobalScope),
     selfHostingMode(selfHostingMode)
 {
@@ -1302,7 +1302,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-            if (bce->inForInit)
+            if (bce->emittingForInit)
                 return true;
 
             
@@ -1819,11 +1819,11 @@ EmitXMLName(JSContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
     JS_ASSERT(op == JSOP_XMLNAME || op == JSOP_CALLXMLNAME);
 
     ParseNode *pn2 = pn->pn_kid;
-    bool oldInForInit = bce->inForInit;
-    bce->inForInit = false;
+    bool oldEmittingForInit = bce->emittingForInit;
+    bce->emittingForInit = false;
     if (!EmitTree(cx, bce, pn2))
         return false;
-    bce->inForInit = oldInForInit;
+    bce->emittingForInit = oldEmittingForInit;
     if (NewSrcNote2(cx, bce, SRC_PCBASE, bce->offset() - pn2->pn_offset) < 0)
         return false;
 
@@ -3409,11 +3409,11 @@ EmitVariables(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, VarEmitOption 
                 return false;
             }
 
-            bool oldInForInit = bce->inForInit;
-            bce->inForInit = false;
+            bool oldEmittingForInit = bce->emittingForInit;
+            bce->emittingForInit = false;
             if (!EmitTree(cx, bce, pn3))
                 return false;
-            bce->inForInit = oldInForInit;
+            bce->emittingForInit = oldEmittingForInit;
         } else if (letNotes) {
             
             if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
@@ -4563,10 +4563,10 @@ EmitForIn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
     if (pn1) {
         ParseNode *decl = letDecl ? pn1->pn_expr : pn1;
         JS_ASSERT(decl->isKind(PNK_VAR) || decl->isKind(PNK_LET));
-        bce->inForInit = true;
+        bce->emittingForInit = true;
         if (!EmitVariables(cx, bce, decl, DefineVars))
             return false;
-        bce->inForInit = false;
+        bce->emittingForInit = false;
     }
 
     
@@ -4708,7 +4708,7 @@ EmitNormalFor(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
         
         op = JSOP_NOP;
     } else {
-        bce->inForInit = true;
+        bce->emittingForInit = true;
 #if JS_HAS_DESTRUCTURING
         if (pn3->isKind(PNK_ASSIGN)) {
             JS_ASSERT(pn3->isOp(JSOP_NOP));
@@ -4733,7 +4733,7 @@ EmitNormalFor(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
                     op = JSOP_NOP;
             }
         }
-        bce->inForInit = false;
+        bce->emittingForInit = false;
     }
 
     
@@ -5400,13 +5400,13 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
             ParseNode *receiver = pn2->pn_next;
             if (!EmitTree(cx, bce, receiver))
                 return false;
-            bool oldInForInit = bce->inForInit;
-            bce->inForInit = false;
+            bool oldEmittingForInit = bce->emittingForInit;
+            bce->emittingForInit = false;
             for (ParseNode *argpn = receiver->pn_next; argpn != funNode; argpn = argpn->pn_next) {
                 if (!EmitTree(cx, bce, argpn))
                     return false;
             }
-            bce->inForInit = oldInForInit;
+            bce->emittingForInit = oldEmittingForInit;
             argc -= 2;
             emitArgs = false;
             break;
@@ -5446,13 +5446,13 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 
 
 
-        bool oldInForInit = bce->inForInit;
-        bce->inForInit = false;
+        bool oldEmittingForInit = bce->emittingForInit;
+        bce->emittingForInit = false;
         for (ParseNode *pn3 = pn2->pn_next; pn3; pn3 = pn3->pn_next) {
             if (!EmitTree(cx, bce, pn3))
                 return false;
         }
-        bce->inForInit = oldInForInit;
+        bce->emittingForInit = oldEmittingForInit;
     }
     if (NewSrcNote2(cx, bce, SRC_PCBASE, bce->offset() - top) < 0)
         return false;
@@ -5967,12 +5967,12 @@ EmitUnary(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (op == JSOP_TYPEOF && !pn2->isKind(PNK_NAME))
         op = JSOP_TYPEOFEXPR;
 
-    bool oldInForInit = bce->inForInit;
-    bce->inForInit = false;
+    bool oldEmittingForInit = bce->emittingForInit;
+    bce->emittingForInit = false;
     if (!EmitTree(cx, bce, pn2))
         return false;
 
-    bce->inForInit = oldInForInit;
+    bce->emittingForInit = oldEmittingForInit;
     return Emit1(cx, bce, op) >= 0;
 }
 
@@ -6368,8 +6368,8 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-            bool oldInForInit = bce->inForInit;
-            bce->inForInit = false;
+            bool oldEmittingForInit = bce->emittingForInit;
+            bce->emittingForInit = false;
 #endif
 
             
@@ -6378,7 +6378,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (!EmitTree(cx, bce, pn->pn_right))
                 return false;
 #if JS_HAS_XML_SUPPORT
-            bce->inForInit = oldInForInit;
+            bce->emittingForInit = oldEmittingForInit;
 #endif
             if (Emit1(cx, bce, pn->getOp()) < 0)
                 return false;
@@ -6393,11 +6393,11 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         } else {
             JSOp op = pn->getOp();
             JS_ASSERT(op == JSOP_BINDXMLNAME || op == JSOP_SETXMLNAME);
-            bool oldInForInit = bce->inForInit;
-            bce->inForInit = false;
+            bool oldEmittingForInit = bce->emittingForInit;
+            bce->emittingForInit = false;
             if (!EmitTree(cx, bce, pn->pn_kid))
                 return false;
-            bce->inForInit = oldInForInit;
+            bce->emittingForInit = oldEmittingForInit;
             if (Emit1(cx, bce, op) < 0)
                 return false;
         }

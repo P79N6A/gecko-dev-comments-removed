@@ -700,7 +700,7 @@ Parser::functionBody(FunctionBodyType type)
     PushStatementPC(pc, &stmtInfo, STMT_BLOCK);
     stmtInfo.isFunctionBodyBlock = true;
 
-    JS_ASSERT(!pc->hasReturnExpr && !pc->hasReturnVoid);
+    JS_ASSERT(!pc->funHasReturnExpr && !pc->funHasReturnVoid);
 
     ParseNode *pn;
     if (type == StatementListBody) {
@@ -739,7 +739,7 @@ Parser::functionBody(FunctionBodyType type)
     FinishPopStatement(pc);
 
     
-    if (context->hasStrictOption() && pc->hasReturnExpr &&
+    if (context->hasStrictOption() && pc->funHasReturnExpr &&
         !CheckFinalReturn(context, this, pn))
     {
         pn = NULL;
@@ -2559,24 +2559,24 @@ Parser::returnOrYield(bool useAssignExpr)
 #if JS_HAS_GENERATORS
         if (tt == TOK_RETURN)
 #endif
-            pc->hasReturnExpr = true;
+            pc->funHasReturnExpr = true;
         pn->pn_pos.end = pn2->pn_pos.end;
         pn->pn_kid = pn2;
     } else {
 #if JS_HAS_GENERATORS
         if (tt == TOK_RETURN)
 #endif
-            pc->hasReturnVoid = true;
+            pc->funHasReturnVoid = true;
     }
 
-    if (pc->hasReturnExpr && pc->sc->funIsGenerator()) {
+    if (pc->funHasReturnExpr && pc->sc->funIsGenerator()) {
         
         ReportBadReturn(context, this, pn, &Parser::reportError, JSMSG_BAD_GENERATOR_RETURN,
                         JSMSG_BAD_ANON_GENERATOR_RETURN);
         return NULL;
     }
 
-    if (context->hasStrictOption() && pc->hasReturnExpr && pc->hasReturnVoid &&
+    if (context->hasStrictOption() && pc->funHasReturnExpr && pc->funHasReturnVoid &&
         !ReportBadReturn(context, this, pn, &Parser::reportStrictWarning,
                          JSMSG_NO_RETURN_VALUE, JSMSG_ANON_NO_RETURN_VALUE))
     {
@@ -2974,7 +2974,7 @@ Parser::forStatement()
 
 
 
-            pc->inForInit = true;
+            pc->parsingForInit = true;
             if (tt == TOK_VAR || tt == TOK_CONST) {
                 forDecl = true;
                 tokenStream.consumeKnownToken(tt);
@@ -2997,7 +2997,7 @@ Parser::forStatement()
             else {
                 pn1 = expr();
             }
-            pc->inForInit = false;
+            pc->parsingForInit = false;
             if (!pn1)
                 return NULL;
         }
@@ -4075,7 +4075,7 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
             if (!CheckDestructuring(context, &data, pn2, this))
                 return NULL;
             bool ignored;
-            if (pc->inForInit && matchInOrOf(&ignored)) {
+            if (pc->parsingForInit && matchInOrOf(&ignored)) {
                 tokenStream.ungetToken();
                 pn->append(pn2);
                 continue;
@@ -4281,8 +4281,8 @@ BEGIN_EXPR_PARSER(relExpr1)
 
 
 
-    bool oldInForInit = pc->inForInit;
-    pc->inForInit = false;
+    bool oldParsingForInit = pc->parsingForInit;
+    pc->parsingForInit = false;
 
     ParseNode *pn = shiftExpr1i();
     while (pn &&
@@ -4291,14 +4291,14 @@ BEGIN_EXPR_PARSER(relExpr1)
 
 
 
-            (oldInForInit == 0 && tokenStream.isCurrentTokenType(TOK_IN)) ||
+            (oldParsingForInit == 0 && tokenStream.isCurrentTokenType(TOK_IN)) ||
             tokenStream.isCurrentTokenType(TOK_INSTANCEOF))) {
         ParseNodeKind kind = RelationalTokenToParseNodeKind(tokenStream.currentToken());
         JSOp op = tokenStream.currentToken().t_op;
         pn = ParseNode::newBinaryOrAppend(kind, op, pn, shiftExpr1n(), this);
     }
     
-    pc->inForInit |= oldInForInit;
+    pc->parsingForInit |= oldParsingForInit;
 
     return pn;
 }
@@ -4392,10 +4392,10 @@ Parser::condExpr1()
 
 
 
-    bool oldInForInit = pc->inForInit;
-    pc->inForInit = false;
+    bool oldParsingForInit = pc->parsingForInit;
+    pc->parsingForInit = false;
     ParseNode *thenExpr = assignExpr();
-    pc->inForInit = oldInForInit;
+    pc->parsingForInit = oldParsingForInit;
     if (!thenExpr)
         return NULL;
 
@@ -4810,7 +4810,7 @@ GenexpGuard::maybeNoteGenerator(ParseNode *pn)
             parser->reportError(NULL, JSMSG_BAD_RETURN_OR_YIELD, js_yield_str);
             return false;
         }
-        if (pc->hasReturnExpr) {
+        if (pc->funHasReturnExpr) {
             
             ReportBadReturn(pc->sc->context, parser, pn, &Parser::reportError,
                             JSMSG_BAD_GENERATOR_RETURN, JSMSG_BAD_ANON_GENERATOR_RETURN);
@@ -5696,10 +5696,10 @@ Parser::bracketedExpr()
 
 
 
-    bool oldInForInit = pc->inForInit;
-    pc->inForInit = false;
+    bool oldParsingForInit = pc->parsingForInit;
+    pc->parsingForInit = false;
     ParseNode *pn = expr();
-    pc->inForInit = oldInForInit;
+    pc->parsingForInit = oldParsingForInit;
     return pn;
 }
 

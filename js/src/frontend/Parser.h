@@ -181,13 +181,14 @@ struct ParseContext
 
 
     
+    
+    bool            funHasReturnExpr:1; 
+    bool            funHasReturnVoid:1; 
 
+    
+    
+    bool            parsingForInit:1;   
 
-
-    bool            hasReturnExpr:1; 
-    bool            hasReturnVoid:1; 
-
-    bool            inForInit:1;    
 
     
     

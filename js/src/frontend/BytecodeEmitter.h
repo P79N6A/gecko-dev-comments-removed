@@ -112,7 +112,7 @@ struct BytecodeEmitter
 
     bool            hasSingletons:1;    
 
-    bool            inForInit:1;        
+    bool            emittingForInit:1;  
 
     const bool      hasGlobalScope:1;   
 
