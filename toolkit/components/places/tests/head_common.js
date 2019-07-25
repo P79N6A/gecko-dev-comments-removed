@@ -888,6 +888,7 @@ NavHistoryResultObserver.prototype = {
 
 
 
+
 function addVisits(aPlaceInfo, aCallback, aStack)
 {
   let stack = aStack || Components.stack.caller;
@@ -910,7 +911,8 @@ function addVisits(aPlaceInfo, aCallback, aStack)
     places[i].visits = [{
       transitionType: places[i].transition === undefined ? TRANSITION_LINK
                                                          : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000
+      visitDate: places[i].visitDate || (now++) * 1000,
+      referrerURI: places[i].referrer
     }];
   }
 

@@ -1204,10 +1204,11 @@ nsNavHistory::invalidateFrecencies(const nsCString& aPlaceIdsQueryString)
       "THEN 0 "
       "ELSE -1 "
       "END) "
+    "WHERE frecency > 0 "
   );
 
   if (!aPlaceIdsQueryString.IsEmpty()) {
-    invalideFrecenciesSQLFragment.AppendLiteral("WHERE id IN(");
+    invalideFrecenciesSQLFragment.AppendLiteral("AND id IN(");
     invalideFrecenciesSQLFragment.Append(aPlaceIdsQueryString);
     invalideFrecenciesSQLFragment.AppendLiteral(")");
   }
@@ -1748,7 +1749,6 @@ private:
   PRUint16 mResultType;
   PRUint16 mQueryType;
   bool mIncludeHidden;
-  PRUint16 mRedirectsMode;
   PRUint16 mSortingMode;
   PRUint32 mMaxResults;
 
@@ -1771,7 +1771,6 @@ PlacesSQLQueryBuilder::PlacesSQLQueryBuilder(
 , mResultType(aOptions->ResultType())
 , mQueryType(aOptions->QueryType())
 , mIncludeHidden(aOptions->IncludeHidden())
-, mRedirectsMode(aOptions->RedirectsMode())
 , mSortingMode(aOptions->SortingMode())
 , mMaxResults(aOptions->MaxResults())
 , mSkipOrderBy(false)
@@ -2248,27 +2247,6 @@ PlacesSQLQueryBuilder::Where()
   nsCAutoString additionalVisitsConditions;
   nsCAutoString additionalPlacesConditions;
 
-  if (mRedirectsMode == nsINavHistoryQueryOptions::REDIRECTS_MODE_SOURCE) {
-    
-    additionalVisitsConditions += NS_LITERAL_CSTRING(
-      "AND visit_type NOT IN ") +
-      nsPrintfCString("(%d,%d) ", nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT,
-                                  nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY);
-  }
-  else if (mRedirectsMode == nsINavHistoryQueryOptions::REDIRECTS_MODE_TARGET) {
-    
-    additionalPlacesConditions += nsPrintfCString(1024,
-      "AND EXISTS ( "
-        "SELECT id "
-        "FROM moz_historyvisits v "
-        "WHERE place_id = h.id "
-          "AND NOT EXISTS(SELECT id FROM moz_historyvisits "
-                         "WHERE from_visit = v.id AND visit_type IN (%d,%d)) "
-      ") ",
-      nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT,
-      nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY);
-  }
-
   if (!mIncludeHidden) {
     additionalPlacesConditions += NS_LITERAL_CSTRING("AND hidden = 0 ");
   }
@@ -2507,33 +2485,7 @@ nsNavHistory::ConstructQueryString(
     queryString.AppendInt(aOptions->MaxResults());
 
     nsCAutoString additionalQueryOptions;
-    if (aOptions->RedirectsMode() ==
-          nsINavHistoryQueryOptions::REDIRECTS_MODE_SOURCE) {
-      
-      additionalQueryOptions +=  nsPrintfCString(256,
-        "AND EXISTS ( "
-          "SELECT id "
-          "FROM moz_historyvisits "
-          "WHERE place_id = h.id "
-            "AND visit_type NOT IN (%d,%d)"
-        ") ",
-        TRANSITION_REDIRECT_PERMANENT,
-        TRANSITION_REDIRECT_TEMPORARY);
-    }
-    else if (aOptions->RedirectsMode() ==
-              nsINavHistoryQueryOptions::REDIRECTS_MODE_TARGET) {
-      
-      additionalQueryOptions += nsPrintfCString(1024,
-        "AND EXISTS ( "
-          "SELECT id "
-          "FROM moz_historyvisits v "
-          "WHERE place_id = h.id "
-            "AND NOT EXISTS(SELECT id FROM moz_historyvisits "
-                           "WHERE from_visit = v.id AND visit_type IN (%d,%d)) "
-        ") ",
-        TRANSITION_REDIRECT_PERMANENT,
-        TRANSITION_REDIRECT_TEMPORARY);
-    }
+
     queryString.ReplaceSubstring("{QUERY_OPTIONS}",
                                   additionalQueryOptions.get());
     return NS_OK;

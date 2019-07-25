@@ -409,29 +409,18 @@ nsXPConnect::Collect(PRUint32 reason, PRUint32 kind)
     
     
 
-    XPCCallContext ccx(NATIVE_CALLER);
-    if (!ccx.IsValid())
-        return;
-
-    JSContext *cx = ccx.GetJSContext();
-    JSRuntime *rt = GetRuntime()->GetJSRuntime();
-
-    
-    
-    
-    
-    
-    js::AutoSkipConservativeScan ascs(cx);
     MOZ_ASSERT(reason < js::gcreason::NUM_REASONS);
     js::gcreason::Reason gcreason = (js::gcreason::Reason)reason;
+
+    JSRuntime *rt = GetRuntime()->GetJSRuntime();
     js::PrepareForFullGC(rt);
     if (kind == nsGCShrinking) {
-        js::ShrinkingGC(cx, gcreason);
+        js::ShrinkingGC(rt, gcreason);
     } else if (kind == nsGCIncremental) {
-        js::IncrementalGC(cx, gcreason);
+        js::IncrementalGC(rt, gcreason);
     } else {
         MOZ_ASSERT(kind == nsGCNormal);
-        js::GCForReason(cx, gcreason);
+        js::GCForReason(rt, gcreason);
     }
 }
 
@@ -2804,17 +2793,7 @@ nsXPConnect::GetTelemetryValue(JSContext *cx, jsval *rval)
 NS_IMETHODIMP
 nsXPConnect::NotifyDidPaint()
 {
-    JSRuntime *rt = mRuntime->GetJSRuntime();
-    if (!js::WantGCSlice(rt))
-        return NS_OK;
-
-    XPCCallContext ccx(NATIVE_CALLER);
-    if (!ccx.IsValid())
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
-    JSContext *cx = ccx.GetJSContext();
-
-    js::NotifyDidPaint(cx);
+    js::NotifyDidPaint(GetRuntime()->GetJSRuntime());
     return NS_OK;
 }
 

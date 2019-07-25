@@ -88,7 +88,6 @@ enum State {
     NO_INCREMENTAL,
     MARK_ROOTS,
     MARK,
-    SWEEP,
     INVALID
 };
 
@@ -1404,13 +1403,13 @@ typedef enum JSGCInvocationKind {
 } JSGCInvocationKind;
 
 extern void
-GC(JSContext *cx, JSGCInvocationKind gckind, js::gcreason::Reason reason);
+GC(JSRuntime *rt, JSGCInvocationKind gckind, js::gcreason::Reason reason);
 
 extern void
-GCSlice(JSContext *cx, JSGCInvocationKind gckind, js::gcreason::Reason reason);
+GCSlice(JSRuntime *rt, JSGCInvocationKind gckind, js::gcreason::Reason reason);
 
 extern void
-GCDebugSlice(JSContext *cx, bool limit, int64_t objCount);
+GCDebugSlice(JSRuntime *rt, bool limit, int64_t objCount);
 
 extern void
 PrepareForDebugGC(JSRuntime *rt);
@@ -1452,7 +1451,7 @@ class GCHelperThread {
     PRCondVar         *done;
     volatile State    state;
 
-    JSContext         *finalizationContext;
+    bool              sweepFlag;
     bool              shrinkFlag;
 
     Vector<void **, 16, js::SystemAllocPolicy> freeVector;
@@ -1488,7 +1487,7 @@ class GCHelperThread {
         wakeup(NULL),
         done(NULL),
         state(IDLE),
-        finalizationContext(NULL),
+        sweepFlag(false),
         shrinkFlag(false),
         freeCursor(NULL),
         freeCursorEnd(NULL),
@@ -1499,7 +1498,7 @@ class GCHelperThread {
     void finish();
 
     
-    void startBackgroundSweep(JSContext *cx, bool shouldShrink);
+    void startBackgroundSweep(bool shouldShrink);
 
     
     void startBackgroundShrink();
@@ -2005,7 +2004,7 @@ const int ZealFrameVerifierValue = 5;
 
 
 void
-VerifyBarriers(JSContext *cx);
+VerifyBarriers(JSRuntime *rt);
 
 void
 MaybeVerifyBarriers(JSContext *cx, bool always = false);
@@ -2013,7 +2012,7 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false);
 #else
 
 static inline void
-VerifyBarriers(JSContext *cx)
+VerifyBarriers(JSRuntime *rt)
 {
 }
 

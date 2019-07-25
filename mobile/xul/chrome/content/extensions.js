@@ -1,39 +1,39 @@
-// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Mobile Browser.
- *
- * The Initial Developer of the Original Code is Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Mark Finkle <mfinkle@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const PREFIX_ITEM_URI = "urn:mozilla:item:";
 const PREFIX_NS_EM = "http://www.mozilla.org/2004/em-rdf#";
@@ -48,21 +48,6 @@ const URI_GENERIC_ICON_XPINSTALL = "drawable://alertaddons";
 const URI_GENERIC_ICON_XPINSTALL = "chrome://browser/skin/images/alert-addons-30.png";
 #endif
 const ADDONS_NOTIFICATION_NAME = "addons";
-
-XPCOMUtils.defineLazyGetter(this, "AddonManager", function() {
-  Cu.import("resource://gre/modules/AddonManager.jsm");
-  return AddonManager;
-});
-
-XPCOMUtils.defineLazyGetter(this, "AddonRepository", function() {
-  Cu.import("resource://gre/modules/AddonRepository.jsm");
-  return AddonRepository;
-});
-
-XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
-  Cu.import("resource://gre/modules/NetUtil.jsm");
-  return NetUtil;
-});
 
 var ExtensionsView = {
   _strings: {},
@@ -116,11 +101,11 @@ var ExtensionsView = {
 
   _messageActions: function ev__messageActions(aData) {
     if (aData == "addons-restart-app") {
-      // Notify all windows that an application quit has been requested
+      
       var cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
       Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
 
-      // If nothing aborted, quit the app
+      
       if (cancelQuit.data == false) {
         let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci.nsIAppStartup);
         appStartup.quit(Ci.nsIAppStartup.eRestart | Ci.nsIAppStartup.eAttemptQuit);
@@ -158,10 +143,10 @@ var ExtensionsView = {
   },
 
   showRestart: function ev_showRestart(aMode) {
-    // Increment the count in case the view is not completely initialized
+    
     this._restartCount++;
 
-    // Pick the right message key from the properties file
+    
     aMode = aMode || "normal";
 
     if (this._msg) {
@@ -189,7 +174,7 @@ var ExtensionsView = {
     if (!item)
       return;
 
-    // if the element is not the selected element, select it
+    
     if (item != this._list.selectedItem)
       this._list.selectedItem = item;
 
@@ -223,7 +208,7 @@ var ExtensionsView = {
     this._dloadmgr = new AddonInstallListener();
     AddonManager.addInstallListener(this._dloadmgr);
 
-    // Watch for add-on update notifications
+    
     let os = Services.obs;
     os.addObserver(this, "addon-update-started", false);
     os.addObserver(this, "addon-update-ended", false);
@@ -233,19 +218,19 @@ var ExtensionsView = {
     if (this._list)
       return;
 
-    this.init(); // In case the panel is selected before init has been called.
+    this.init(); 
 
     this._list = document.getElementById("addons-list");
     this._localItem = document.getElementById("addons-local");
     this._repoItem = document.getElementById("addons-repo");
     this._msg = document.getElementById("addons-messages");
 
-    // Show the restart notification in case a restart is needed, but the view
-    // was not visible at the time
+    
+    
     let notification = this._msg.getNotificationWithValue("restart-app");
     if (this._restartCount > 0 && !notification) {
       this.showRestart();
-      this._restartCount--; // showRestart() always increments
+      this._restartCount--; 
     }
 
     let strings = Strings.browser;
@@ -275,7 +260,7 @@ var ExtensionsView = {
   },
 
   hideOnSelect: function ev_handleEvent(aEvent) {
-    // When list selection changes, be sure to close up any open options sections
+    
     if (aEvent.target == this._list)
       this.hideOptions();
   },
@@ -333,7 +318,7 @@ var ExtensionsView = {
         self.addItem(listitem);
       }
 
-      // Load the search engines
+      
       let defaults = Services.search.getDefaultEngines({ }).map(function (e) e.name);
       function isDefault(aEngine)
         defaults.indexOf(aEngine.name) != -1
@@ -390,7 +375,7 @@ var ExtensionsView = {
       aItem._engine.hidden = false;
       opType = "needs-enable";
     } else if (aItem.getAttribute("type") == "theme") {
-      // we can have only one theme enabled, so disable the current one if any
+      
       let theme = null;
       let item = this._localItem.nextSibling;
       while (item != this._repoItem) {
@@ -481,12 +466,12 @@ var ExtensionsView = {
   uninstall: function ev_uninstall(aItem) {
     let opType;
     if (aItem.getAttribute("type") == "search") {
-      // Make sure the engine isn't hidden before removing it, to make sure it's
-      // visible if the user later re-adds it (works around bug 341833)
+      
+      
       aItem._engine.hidden = false;
       Services.search.removeEngine(aItem._engine);
-      // the search-engine-modified observer in browser.js will take care of
-      // updating the list
+      
+      
     } else {
       if (!aItem.addon) {
         this._list.removeChild(aItem);
@@ -499,8 +484,8 @@ var ExtensionsView = {
       if (aItem.addon.pendingOperations & AddonManager.PENDING_UNINSTALL) {
         this.showRestart();
 
-        // A disabled addon doesn't need a restart so it has no pending ops and
-        // can't be cancelled
+        
+        
         if (!aItem.addon.isActive && opType == "")
           opType = "needs-uninstall";
 
@@ -526,7 +511,7 @@ var ExtensionsView = {
   installFromRepo: function ev_installFromRepo(aItem) {
     aItem.install.install();
 
-    // display the progress bar early
+    
     let opType = aItem.getAttribute("opType");
     if (!opType)
       aItem.setAttribute("opType", "needs-install");
@@ -562,21 +547,21 @@ var ExtensionsView = {
   getAddonsFromRepo: function ev_getAddonsFromRepo(aTerms, aSelectFirstResult) {
     this.clearSection("repo");
 
-    // Make sure we're online before attempting to load
+    
     Util.forceOnline();
 
-    if (AddonRepository.isSearching)
-      AddonRepository.cancelSearch();
+    if (this._AddonRepository.isSearching)
+      this._AddonRepository.cancelSearch();
 
     let strings = Strings.browser;
     if (aTerms) {
       AddonSearchResults.selectFirstResult = aSelectFirstResult;
       this.displaySectionMessage("repo", strings.GetStringFromName("addonsSearchStart.label"), strings.GetStringFromName("addonsSearchStart.button"), false);
-      AddonRepository.searchAddons(aTerms, Services.prefs.getIntPref(PREF_GETADDONS_MAXRESULTS), AddonSearchResults);
+      this._AddonRepository.searchAddons(aTerms, Services.prefs.getIntPref(PREF_GETADDONS_MAXRESULTS), AddonSearchResults);
     }
     else {
       this.displaySectionMessage("repo", strings.GetStringFromName("addonsSearchStart.label"), strings.GetStringFromName("addonsSearchStart.button"), false);
-      AddonRepository.retrieveRecommendedAddons(Services.prefs.getIntPref(PREF_GETADDONS_MAXRESULTS), RecommendedSearchResults);
+      this._AddonRepository.retrieveRecommendedAddons(Services.prefs.getIntPref(PREF_GETADDONS_MAXRESULTS), RecommendedSearchResults);
     }
   },
 
@@ -587,13 +572,13 @@ var ExtensionsView = {
     for (let i = 0; i < aAddons.length; i++) {
       let addon = aAddons[i];
 
-      // Check for a duplicate add-on, already in the search results
-      // (can happen when blending the recommended and browsed lists)
+      
+      
       let element = ExtensionsView.getElementForAddon(addon.install.sourceURI.spec);
       if (element)
         continue;
 
-      // Check for any items with potentially unsafe urls
+      
       if (urlproperties.some(function (p) !this._isSafeURI(addon[p]), this))
         continue;
       if (addon.screenshots && addon.screenshots.length) {
@@ -601,7 +586,7 @@ var ExtensionsView = {
           continue;
       }
 
-      // Convert the numeric type to a string
+      
       let types = {"2":"extension", "4":"theme", "8":"locale"};
       addon.type = types[addon.type];
 
@@ -616,8 +601,8 @@ var ExtensionsView = {
 
       let item = this.addItem(listitem, "repo");
       appendedAddons.push(listitem);
-      // Hide any overflow add-ons. The user can see them later by pressing the
-      // "See More" button
+      
+      
       aShowCount--;
       if (aShowCount < 0)
         item.hidden = true;
@@ -626,22 +611,22 @@ var ExtensionsView = {
   },
 
   showMoreSearchResults: function showMoreSearchResults() {
-    // Show more add-ons, if we have them
+    
     let showCount = kAddonPageSize;
 
-    // Find the first hidden add-on
+    
     let item = this._repoItem.nextSibling;
     while (item && !item.hidden)
       item = item.nextSibling;
 
-    // Start showing the hidden add-ons
+    
     while (showCount > 0 && item && item.hidden) {
       showCount--;
       item.hidden = false;
       item = item.nextSibling;
     }
 
-    // Hide the "Show More" button if there are no more to show
+    
     if (item == this._list.lastChild)
       item.setAttribute("hidepage", "true");
   },
@@ -677,20 +662,20 @@ var ExtensionsView = {
       return;
     }
 
-    // Locale sensitive sort
+    
     function nameCompare(a, b) {
       return String.localeCompare(a.name, b.name);
     }
     aRecommendedAddons.sort(nameCompare);
 
-    // Rating sort
+    
     function ratingCompare(a, b) {
       return a.averageRating < b.averageRating;
     }
     aBrowseAddons.sort(ratingCompare);
 
-    // We only show extra browse add-ons if the recommended count is small. Otherwise, the user
-    // can see more by pressing the "Show More" button
+    
+    
     this.appendSearchResults(aRecommendedAddons, false, aRecommendedAddons.length);
     let minOverflow = (aRecommendedAddons.length >= kAddonPageSize ? 0 : kAddonPageSize);
     let numAdded = this.appendSearchResults(aBrowseAddons, true, minOverflow).length;
@@ -817,7 +802,7 @@ var ExtensionsView = {
             if (addon.pendingOperations & AddonManager.PENDING_INSTALL || addon.pendingOperations & AddonManager.PENDING_UPGRADE)
               updateable = true;
 
-            // A compatibility update may require a restart, but will not fire an install
+            
             if (addon.pendingOperations & AddonManager.PENDING_ENABLE &&
                 addon.operationsRequiringRestart & AddonManager.OP_NEEDS_RESTART_ENABLE) {
               statusMsg = strings.GetStringFromName("addonUpdate.compatibility");
@@ -828,12 +813,12 @@ var ExtensionsView = {
             statusMsg = strings.GetStringFromName("addonUpdate.error");
             break;
           case "no-update":
-            // Ignore if no updated was found. Just let the message go blank.
-            //statusMsg = strings.GetStringFromName("addonUpdate.noupdate");
+            
+            
             break;
           default:
-            // Ignore if no updated was found. Just let the message go blank.
-            //statusMsg = strings.GetStringFromName("addonUpdate.noupdate");
+            
+            
         }
 
         if (statusMsg)
@@ -841,7 +826,7 @@ var ExtensionsView = {
         else
           element.removeAttribute("updateStatus");
 
-        // Tag the add-on so the AddonInstallListener knows it's an update
+        
         if (updateable)
           element.setAttribute("updating", "true");
         break;
@@ -859,7 +844,7 @@ var ExtensionsView = {
     };
 
     if (aForceDisplay) {
-      // Show a toaster alert for restartless add-ons all the time
+      
       let toaster = Cc["@mozilla.org/toaster-alerts-service;1"].getService(Ci.nsIAlertsService);
       let image = "chrome://browser/skin/images/alert-addons-30.png";
       if (this.visible)
@@ -867,13 +852,13 @@ var ExtensionsView = {
       else
         toaster.showAlertNotification(image, strings.GetStringFromName("alertAddons"), aMessage, true, "", observer);
     } else {
-      // Only show an alert for a normal add-on if the manager is not visible
+      
       if (!this.visible) {
         let alerts = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
         alerts.showAlertNotification(URI_GENERIC_ICON_XPINSTALL, strings.GetStringFromName("alertAddons"),
                                      aMessage, true, "", observer, ADDONS_NOTIFICATION_NAME);
 
-        // Use a preference to help us cleanup this notification in case we don't shutdown correctly
+        
         Services.prefs.setBoolPref("browser.notifications.pending.addons", true);
         Services.prefs.savePrefFile(null);
       }
@@ -888,7 +873,7 @@ var ExtensionsView = {
       progressListener.onCancel(ADDONS_NOTIFICATION_NAME);
 #endif
 
-    // Keep our preference in sync
+    
     Services.prefs.clearUserPref("browser.notifications.pending.addons");
   },
 };
@@ -905,23 +890,27 @@ function searchFailed() {
   let failButton = strings.GetStringFromName("addonsSearchFail.retryButton");
   ExtensionsView.displaySectionMessage("repo", failLabel, failButton, true);
 }
+ 
+XPCOMUtils.defineLazyModuleGetter(ExtensionsView, "_AddonRepository",
+                                  "resource://gre/modules/AddonRepository.jsm", "AddonRepository");
 
 
-///////////////////////////////////////////////////////////////////////////////
-// callback for the recommended search
+
+
 var RecommendedSearchResults = {
   cache: null,
 
   searchSucceeded: function(aAddons, aAddonCount, aTotalResults) {
     this.cache = aAddons;
-    AddonRepository.searchAddons(" ", Services.prefs.getIntPref(PREF_GETADDONS_MAXRESULTS), BrowseSearchResults);
+    ExtensionsView._AddonRepository.searchAddons(" ", Services.prefs.getIntPref(PREF_GETADDONS_MAXRESULTS),
+                                                 BrowseSearchResults);
   },
 
   searchFailed: searchFailed
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// callback for the browse search
+
+
 var BrowseSearchResults = {
   searchSucceeded: function(aAddons, aAddonCount, aTotalResults) {
     ExtensionsView.displayRecommendedResults(RecommendedSearchResults.cache, aAddons);
@@ -930,10 +919,10 @@ var BrowseSearchResults = {
   searchFailed: searchFailed
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// callback for a standard search
+
+
 var AddonSearchResults = {
-  // set by ExtensionsView
+  
   selectFirstResult: false,
 
   searchSucceeded: function(aAddons, aAddonCount, aTotalResults) {
@@ -943,8 +932,8 @@ var AddonSearchResults = {
   searchFailed: searchFailed
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// XPInstall download helper
+
+
 function AddonInstallListener() {
 }
 
@@ -962,15 +951,15 @@ AddonInstallListener.prototype = {
 
     this._clearRecommendedCache();
 
-    // if we already have a mode, then we need to show a restart notification
-    // otherwise, we are likely a bootstrapped addon
+    
+    
     if (needsRestart)
       ExtensionsView.showRestart(mode);
 
     if (aAddon.type != "locale")
       this._showInstallCompleteAlert(true, needsRestart);
 
-    // only do this if the view has already been inited
+    
     if (!ExtensionsView._list)
       return;
 
@@ -995,7 +984,7 @@ AddonInstallListener.prototype = {
 
     element.setAttribute("status", "success");
 
-    // If we are updating an add-on, change the status
+    
     if (element.hasAttribute("updating")) {
       let strings = Strings.browser;
       element.setAttribute("updateStatus", strings.formatStringFromName("addonUpdate.updated", [aAddon.version], 1));
@@ -1078,7 +1067,7 @@ AddonInstallListener.prototype = {
       error += "Incompatible";
     else {
       ExtensionsView.hideAlerts();
-      return; // no need to show anything in this case
+      return; 
     }
 
     let messageString = strings.GetStringFromName(error);

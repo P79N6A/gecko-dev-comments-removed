@@ -150,15 +150,8 @@ struct ConservativeGCData
         uintptr_t       words[JS_HOWMANY(sizeof(jmp_buf), sizeof(uintptr_t))];
     } registerSnapshot;
 
-    
-
-
-
-
-    unsigned requestThreshold;
-
     ConservativeGCData()
-      : nativeStackTop(NULL), requestThreshold(0)
+      : nativeStackTop(NULL)
     {}
 
     ~ConservativeGCData() {
@@ -186,6 +179,13 @@ struct ConservativeGCData
         return !!nativeStackTop;
     }
 };
+
+
+
+
+
+
+
 
 class FreeOp : public JSFreeOp {
     bool        shouldFreeLater_;
@@ -1161,14 +1161,6 @@ struct JSContext : js::ContextFriendFields
         genStack.popBack();
     }
 
-#ifdef JS_THREADSAFE
-    
-
-
-
-    js::GCHelperThread *gcBackgroundFree;
-#endif
-
     inline void* malloc_(size_t bytes) {
         return runtime->malloc_(bytes, this);
     }
@@ -1192,12 +1184,6 @@ struct JSContext : js::ContextFriendFields
     }
 
     inline void free_(void* p) {
-#ifdef JS_THREADSAFE
-        if (gcBackgroundFree) {
-            gcBackgroundFree->freeLater(p);
-            return;
-        }
-#endif
         runtime->free_(p);
     }
 
@@ -1503,24 +1489,23 @@ public:
     }
 };
 
-} 
-
 
 
 
 
 extern JSContext *
-js_NewContext(JSRuntime *rt, size_t stackChunkSize);
+NewContext(JSRuntime *rt, size_t stackChunkSize);
 
-typedef enum JSDestroyContextMode {
-    JSDCM_NO_GC,
-    JSDCM_MAYBE_GC,
-    JSDCM_FORCE_GC,
-    JSDCM_NEW_FAILED
-} JSDestroyContextMode;
+enum DestroyContextMode {
+    DCM_NO_GC,
+    DCM_FORCE_GC,
+    DCM_NEW_FAILED
+};
 
 extern void
-js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
+DestroyContext(JSContext *cx, DestroyContextMode mode);
+
+} 
 
 #ifdef va_start
 extern JSBool

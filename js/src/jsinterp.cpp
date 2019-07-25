@@ -1520,7 +1520,7 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
 
 
 
-    JSAtom **atoms = script->atoms;
+    HeapPtrAtom *atoms = script->atoms;
 
 #if JS_HAS_GENERATORS
     if (JS_UNLIKELY(regs.fp()->isGeneratorFrame())) {

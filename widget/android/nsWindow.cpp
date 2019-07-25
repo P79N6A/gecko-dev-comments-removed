@@ -1442,28 +1442,66 @@ getDistance(const nsIntPoint &p1, const nsIntPoint &p2)
 
 bool nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
 {
+    
+    
+    
+    static bool sDefaultPreventedNotified = false;
+    static bool sLastWasDownEvent = false;
+
+    bool preventDefaultActions = false;
+    bool isDownEvent = false;
     switch (ae->Action() & AndroidMotionEvent::ACTION_MASK) {
         case AndroidMotionEvent::ACTION_DOWN:
         case AndroidMotionEvent::ACTION_POINTER_DOWN: {
             nsTouchEvent event(true, NS_TOUCH_START, this);
-            return DispatchMultitouchEvent(event, ae);
+            preventDefaultActions = DispatchMultitouchEvent(event, ae);
+            isDownEvent = true;
+            break;
         }
         case AndroidMotionEvent::ACTION_MOVE: {
             nsTouchEvent event(true, NS_TOUCH_MOVE, this);
-            return DispatchMultitouchEvent(event, ae);
+            preventDefaultActions = DispatchMultitouchEvent(event, ae);
+            break;
         }
         case AndroidMotionEvent::ACTION_UP:
         case AndroidMotionEvent::ACTION_POINTER_UP: {
             nsTouchEvent event(true, NS_TOUCH_END, this);
-            return DispatchMultitouchEvent(event, ae);
+            preventDefaultActions = DispatchMultitouchEvent(event, ae);
+            break;
         }
         case AndroidMotionEvent::ACTION_OUTSIDE:
         case AndroidMotionEvent::ACTION_CANCEL: {
             nsTouchEvent event(true, NS_TOUCH_CANCEL, this);
-            return DispatchMultitouchEvent(event, ae);
+            preventDefaultActions = DispatchMultitouchEvent(event, ae);
+            break;
         }
     }
-    return false;
+
+    
+    
+    
+    if (sLastWasDownEvent && !sDefaultPreventedNotified) {
+        
+        
+        bool defaultPrevented = isDownEvent ? false : preventDefaultActions;
+        AndroidBridge::Bridge()->NotifyDefaultPrevented(defaultPrevented);
+        sDefaultPreventedNotified = true;
+    }
+
+    
+    
+    
+    if (isDownEvent) {
+        if (preventDefaultActions) {
+            AndroidBridge::Bridge()->NotifyDefaultPrevented(true);
+            sDefaultPreventedNotified = true;
+        } else {
+            sDefaultPreventedNotified = false;
+        }
+    }
+    sLastWasDownEvent = isDownEvent;
+
+    return preventDefaultActions;
 }
 
 bool
@@ -1503,11 +1541,7 @@ nsWindow::DispatchMultitouchEvent(nsTouchEvent &event, AndroidGeckoEvent *ae)
 
     nsEventStatus status;
     DispatchEvent(&event, status);
-    bool preventPanning = (status == nsEventStatus_eConsumeNoDefault);
-    if (preventPanning || action == AndroidMotionEvent::ACTION_MOVE) {
-        AndroidBridge::Bridge()->SetPreventPanning(preventPanning);
-    }
-    return preventPanning;
+    return (status == nsEventStatus_eConsumeNoDefault);
 }
 
 void

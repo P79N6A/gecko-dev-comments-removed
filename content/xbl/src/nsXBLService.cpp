@@ -400,7 +400,7 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 
     if (!bindingDocument->GetRootElement()) {
       
-      NS_WARNING("*** XBL doc with no root element! Something went horribly wrong! ***");
+      NS_WARNING("XBL doc with no root element - this usually shouldn't happen");
       return NS_ERROR_FAILURE;
     }
 
