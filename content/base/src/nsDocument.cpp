@@ -2739,8 +2739,7 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
   }
 
   
-  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc =
-    do_QueryInterface(static_cast<nsIDocument*>(this));
+  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryObject(this);
   if (htmlDoc) {
     nsCOMPtr<nsIDOMHTMLElement> bodyElement;
     htmlDoc->GetBody(getter_AddRefs(bodyElement));

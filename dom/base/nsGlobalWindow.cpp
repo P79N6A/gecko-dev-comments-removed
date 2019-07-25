@@ -1101,8 +1101,7 @@ nsGlobalWindow::CleanUp(PRBool aIgnoreModalDialog)
 {
   if (IsOuterWindow() && !aIgnoreModalDialog) {
     nsGlobalWindow* inner = GetCurrentInnerWindowInternal();
-    nsCOMPtr<nsIDOMModalContentWindow>
-      dlg(do_QueryInterface(static_cast<nsPIDOMWindow*>(inner)));
+    nsCOMPtr<nsIDOMModalContentWindow> dlg(do_QueryObject(inner));
     if (dlg) {
       
       
@@ -9779,8 +9778,7 @@ nsGlobalWindow::BuildURIfromBase(const char *aURL, nsIURI **aBuiltURI,
   if (!scx || !mDocument)
     return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDOMChromeWindow> chrome_win =
-    do_QueryInterface(static_cast<nsIDOMWindow *>(this));
+  nsCOMPtr<nsIDOMChromeWindow> chrome_win = do_QueryObject(this);
 
   if (nsContentUtils::IsCallerChrome() && !chrome_win) {
     
