@@ -67,7 +67,6 @@
 #include "gfxMatrix.h"
 #include "gfxWindowsPlatform.h"
 #include "gfxWindowsSurface.h"
-#include "gfxWindowsNativeDrawing.h"
 
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
@@ -413,6 +412,143 @@ nsNativeThemeWin::QueueAnimation(gfxWindowsNativeDrawing* aNativeDrawing,
   if (!aNativeDrawing->IsDoublePass() || aNativeDrawing->IsSecondPass())
     QueueAnimatedContentRefreshForFade(aContent, aDirection,
       DEFAULT_ANIMATION_FPS, aDuration, aUserValue);
+}
+
+
+
+
+
+static int
+GetScrollbarButtonBasicState(int aState)
+{
+  switch(aState) {
+    case ABS_UPHOT:
+    case ABS_DOWNHOT:
+    case ABS_LEFTHOT:
+    case ABS_RIGHTHOT:
+      return TS_HOVER;
+    break;
+    case ABS_UPPRESSED:
+    case ABS_DOWNPRESSED:
+    case ABS_LEFTPRESSED:
+    case ABS_RIGHTPRESSED:
+      return TS_ACTIVE;
+    break;
+    case ABS_UPDISABLED:
+    case ABS_DOWNDISABLED:
+    case ABS_LEFTDISABLED:
+    case ABS_RIGHTDISABLED:
+      return TS_DISABLED;
+    break;
+    case ABS_UPHOVER:
+    case ABS_DOWNHOVER:
+    case ABS_LEFTHOVER:
+    case ABS_RIGHTHOVER:
+      return TS_FOCUSED;
+    break;
+    default:
+      return TS_NORMAL;
+  }
+}
+
+
+
+
+
+void
+nsNativeThemeWin::GetScrollbarButtonProperFadeStates(int aBasicState,
+                                                     nsIContent* aContent,
+                                                     int aWidgetType,
+                                                     int& aStartState,
+                                                     int& aFinalState)
+{
+  if (aBasicState == TS_FOCUSED) {
+    
+    switch(aWidgetType) {
+      case NS_THEME_SCROLLBAR_BUTTON_UP:
+        aStartState = ABS_UPNORMAL;
+        aFinalState = ABS_UPHOVER;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_DOWN:
+        aStartState = ABS_DOWNNORMAL;
+        aFinalState = ABS_DOWNHOVER;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_LEFT:
+        aStartState = ABS_LEFTNORMAL;
+        aFinalState = ABS_LEFTHOVER;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_RIGHT:
+        aStartState = ABS_RIGHTNORMAL;
+        aFinalState = ABS_RIGHTHOVER;
+      break;
+    }
+  } else if (aBasicState == TS_HOVER) {
+    
+    switch(aWidgetType) {
+      case NS_THEME_SCROLLBAR_BUTTON_UP:
+        aStartState = ABS_UPNORMAL;
+        aFinalState = ABS_UPHOT;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_DOWN:
+        aStartState = ABS_DOWNNORMAL;
+        aFinalState = ABS_DOWNHOT;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_LEFT:
+        aStartState = ABS_LEFTNORMAL;
+        aFinalState = ABS_LEFTHOT;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_RIGHT:
+        aStartState = ABS_RIGHTNORMAL;
+        aFinalState = ABS_RIGHTHOT;
+      break;
+    }
+  } else if (aBasicState == TS_NORMAL) {
+    switch(aWidgetType) {
+      case NS_THEME_SCROLLBAR_BUTTON_UP:
+        aStartState = ABS_UPNORMAL;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_DOWN:
+        aStartState = ABS_DOWNNORMAL;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_LEFT:
+        aStartState = ABS_LEFTNORMAL;
+      break;
+      case NS_THEME_SCROLLBAR_BUTTON_RIGHT:
+        aStartState = ABS_RIGHTNORMAL;
+      break;
+    }
+    aFinalState = GetFadeUserData(aContent);
+  } else {
+    NS_NOTREACHED("Unexpected state for Win7/Vista scroll bar buttons");
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+static DWORD
+GetThemedTransitionDuration(HANDLE aTheme, int aPartId,
+                            int aStateIdFrom, int aStateIdTo)
+{
+  DWORD duration = 0;
+  
+  if (!nsUXThemeData::getThemeTransitionDuration)
+    return 0;
+  nsUXThemeData::getThemeTransitionDuration(aTheme, aPartId,
+                                            aStateIdFrom,
+                                            aStateIdTo,
+                                            TMT_TRANSITIONDURATIONS,
+                                            &duration);
+  return duration;
 }
 
 static HRESULT DrawThemeBGRTLAware(HANDLE theme, HDC hdc, int part, int state,
@@ -1651,6 +1787,101 @@ RENDER_AGAIN:
     DrawThemeBGRTLAware(theme, hdc, part, state,
                         &widgetRect, &clipRect, IsFrameRTL(aFrame));
   }
+  else if (aWidgetType == NS_THEME_SCROLLBAR_THUMB_VERTICAL ||
+           aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL) {
+    
+    SIZE gripSize;
+    MARGINS thumbMgns;
+    int gripPart = (aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL) ?
+                    SP_GRIPPERHOR : SP_GRIPPERVERT;
+    bool drawGripper = 
+      (GetThemePartSize(theme, hdc, gripPart, state, NULL,
+                        TS_TRUE, &gripSize) == S_OK &&
+       GetThemeMargins(theme, hdc, part, state,
+                       TMT_CONTENTMARGINS, NULL,
+                       &thumbMgns) == S_OK &&
+       gripSize.cx + thumbMgns.cxLeftWidth + thumbMgns.cxRightWidth <=
+         widgetRect.right - widgetRect.left &&
+       gripSize.cy + thumbMgns.cyTopHeight + thumbMgns.cyBottomHeight <=
+         widgetRect.bottom - widgetRect.top);
+
+    nsIContent* content = nsnull;
+    if (aFrame) {
+      content = aFrame->GetContent();
+    }
+    FadeState fState = GetFadeState(content);
+    DWORD duration = GetThemedTransitionDuration(theme, part,
+                                                 TS_NORMAL,
+                                                 TS_HOVER);
+    
+    if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION ||
+        state == TS_ACTIVE || state == TS_DISABLED ||
+        (state == TS_NORMAL && fState == FADE_NOTACTIVE) ||
+        !aFrame || !duration || !content) {
+      
+      
+      
+      DrawThemeBackground(theme, hdc, part, state, &widgetRect, &clipRect);
+      if (drawGripper)
+        DrawThemeBackground(theme, hdc, gripPart, state, &widgetRect,
+                            &clipRect);
+      if (state == TS_ACTIVE) {
+        
+        
+        FinishFadeIn(content);
+      }
+    } else {
+      int partsList[2];
+      partsList[0] = part;
+      partsList[1] = gripPart;
+      int partCount = (drawGripper ? 2 : 1);
+      if (RenderThemedAnimationFrame(ctx, &nativeDrawing, theme, hdc,
+                                     partsList, partCount,
+                                     TS_NORMAL, TS_HOVER,
+                                     GetFadeAlpha(content),
+                                     tr, dr, widgetRect, clipRect)) {
+        QueueAnimation(&nativeDrawing, content,
+                       (state == TS_HOVER ? FADE_IN : FADE_OUT), duration);
+      }
+    }
+  }
+  else if (aWidgetType == NS_THEME_SCROLLBAR_BUTTON_UP ||
+           aWidgetType == NS_THEME_SCROLLBAR_BUTTON_DOWN ||
+           aWidgetType == NS_THEME_SCROLLBAR_BUTTON_LEFT ||
+           aWidgetType == NS_THEME_SCROLLBAR_BUTTON_RIGHT) {
+    int basicState = GetScrollbarButtonBasicState(state);
+    nsIContent* content = nsnull;
+    if (aFrame) {
+      content = aFrame->GetContent();
+    }
+    FadeState fState = GetFadeState(content);
+    
+    DWORD duration = GetThemedTransitionDuration(theme,
+                                                 SBP_ARROWBTN,
+                                                 ABS_UPNORMAL,
+                                                 ABS_UPHOT);
+    if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION ||
+        basicState == TS_ACTIVE || basicState == TS_DISABLED ||
+        (basicState == TS_NORMAL && fState == FADE_NOTACTIVE) ||
+        !aFrame || !duration || !content) {
+      DrawThemeBackground(theme, hdc, part, state, &widgetRect, &clipRect);
+    } else {
+      int partsList[1];
+      partsList[0] = part;
+      int startState, finalState;
+      GetScrollbarButtonProperFadeStates(basicState, content, aWidgetType,
+                                         startState, finalState);
+      if (RenderThemedAnimationFrame(ctx, &nativeDrawing, theme, hdc,
+                                     partsList, 1,
+                                     startState, finalState,
+                                     GetFadeAlpha(content),
+                                     tr, dr, widgetRect, clipRect)) {
+        QueueAnimation(&nativeDrawing, content,
+                       (basicState == TS_NORMAL ? FADE_OUT : FADE_IN),
+                       duration, finalState);
+      }
+    }
+  }
   
   
   else if (part >= 0) {
@@ -1718,24 +1949,6 @@ RENDER_AGAIN:
     widgetRect.bottom = widgetRect.top + TB_SEPARATOR_HEIGHT;
     DrawThemeEdge(theme, hdc, RP_BAND, 0, &widgetRect, EDGE_ETCHED, BF_TOP, NULL);
   }
-  else if (aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL ||
-           aWidgetType == NS_THEME_SCROLLBAR_THUMB_VERTICAL)
-  {
-    
-
-    SIZE gripSize;
-    MARGINS thumbMgns;
-    int gripPart = (aWidgetType == NS_THEME_SCROLLBAR_THUMB_HORIZONTAL) ?
-                   SP_GRIPPERHOR : SP_GRIPPERVERT;
-
-    if (GetThemePartSize(theme, hdc, gripPart, state, NULL, TS_TRUE, &gripSize) == S_OK &&
-        GetThemeMargins(theme, hdc, part, state, TMT_CONTENTMARGINS, NULL, &thumbMgns) == S_OK &&
-        gripSize.cx + thumbMgns.cxLeftWidth + thumbMgns.cxRightWidth <= widgetRect.right - widgetRect.left &&
-        gripSize.cy + thumbMgns.cyTopHeight + thumbMgns.cyBottomHeight <= widgetRect.bottom - widgetRect.top)
-    {
-      DrawThemeBackground(theme, hdc, gripPart, state, &widgetRect, &clipRect);
-    }
-  }
   else if ((aWidgetType == NS_THEME_WINDOW_BUTTON_BOX ||
             aWidgetType == NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED) &&
             nsUXThemeData::CheckForCompositor())
@@ -1789,7 +2002,8 @@ RENDER_AGAIN:
 
     if (indeterminate ||
         WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
-      if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 30)) {
+      if (!QueueAnimatedContentForRefresh(aFrame->GetContent(),
+                                          DEFAULT_ANIMATION_FPS)) {
         NS_WARNING("unable to animate progress widget!");
       }
 
@@ -3582,7 +3796,8 @@ RENDER_AGAIN:
 
 
 
-      if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 30)) {
+      if (!QueueAnimatedContentForRefresh(aFrame->GetContent(),
+                                          DEFAULT_ANIMATION_FPS)) {
         NS_WARNING("unable to animate progress widget!");
       }
 

@@ -142,6 +142,13 @@ public:
   static bool IsDefaultWindowTheme();
 
   
+  typedef HRESULT (WINAPI*GetThemeTransitionDurationPtr)(HTHEME hTheme, int iPartId,
+                                                         int iStateIdFrom, int iStateIdTo,
+                                                         int iPropId, DWORD *pdwDuration);
+
+  static GetThemeTransitionDurationPtr getThemeTransitionDuration;
+
+  
   typedef HRESULT (WINAPI*DwmExtendFrameIntoClientAreaProc)(HWND hWnd, const MARGINS *pMarInset);
   typedef HRESULT (WINAPI*DwmIsCompositionEnabledProc)(BOOL *pfEnabled);
   typedef HRESULT (WINAPI*DwmSetIconicThumbnailProc)(HWND hWnd, HBITMAP hBitmap, DWORD dwSITFlags);
