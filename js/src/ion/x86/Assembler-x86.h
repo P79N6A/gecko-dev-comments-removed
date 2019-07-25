@@ -312,12 +312,12 @@ class Assembler : public AssemblerX86Shared
 
     void call(void *target) {
         JmpSrc src = masm.call();
-        addPendingJump(src, target, Relocation::CODE);
+        addPendingJump(src, target, Relocation::EXTERNAL);
     }
 
     void call(IonCode *target) {
         JmpSrc src = masm.call();
-        addPendingJump(src, target, Relocation::EXTERNAL);
+        addPendingJump(src, target, Relocation::CODE);
     }
 
     
