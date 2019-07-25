@@ -1295,6 +1295,12 @@ typedef struct JSPropertyTreeEntry {
 typedef void
 (* JSActivityCallback)(void *arg, JSBool active);
 
+namespace js {
+
+typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> WrapperVector;
+
+}
+
 struct JSRuntime {
     
     JSCompartment       *defaultCompartment;
@@ -1303,7 +1309,7 @@ struct JSRuntime {
 #endif
 
     
-    js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> compartments;
+    js::WrapperVector compartments;
 
     
     JSRuntimeState      state;

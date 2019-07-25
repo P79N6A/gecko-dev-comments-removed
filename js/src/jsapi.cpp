@@ -1148,9 +1148,8 @@ JS_SetCompartmentCallback(JSRuntime *rt, JSCompartmentCallback callback)
 }
 
 JS_PUBLIC_API(JSWrapObjectCallback)
-JS_SetWrapObjectCallback(JSContext *cx, JSWrapObjectCallback callback)
+JS_SetWrapObjectCallback(JSRuntime *rt, JSWrapObjectCallback callback)
 {
-    JSRuntime *rt = cx->runtime;
     JSWrapObjectCallback old = rt->wrapObjectCallback;
     rt->wrapObjectCallback = callback;
     return old;
@@ -1225,6 +1224,69 @@ JS_WrapValue(JSContext *cx, jsval *vp)
 {
     CHECK_REQUEST(cx);
     return cx->compartment->wrap(cx, Valueify(vp));
+}
+
+JS_PUBLIC_API(JSObject *)
+JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
+{
+    JS_ASSERT(wrapper->isWrapper());
+
+    
+
+
+
+
+    JSCompartment *destination = target->getCompartment(cx);
+
+    JSObject *obj;
+    WrapperMap &map = destination->crossCompartmentWrappers;
+    Value wrapperv = ObjectValue(*wrapper);
+
+    
+    if (WrapperMap::Ptr p = map.lookup(wrapperv)) {
+        
+        
+        
+        obj = &p->value.toObject();
+        map.remove(p);
+        obj->swap(target);
+    } else {
+        
+        
+        obj = target;
+    }
+
+    
+    
+    
+    
+    Value targetv = ObjectValue(*target);
+    WrapperVector &vector = cx->runtime->compartments;
+    for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
+        WrapperMap &pmap = (*p)->crossCompartmentWrappers;
+        if (WrapperMap::Ptr wp = pmap.lookup(wrapperv)) {
+            
+            JSObject *wobj = &wp->value.toObject();
+
+            
+            
+            JSAutoEnterCompartment ec;
+            JSObject *tobj = obj;
+            if (!ec.enter(cx, wobj) || !(*p)->wrap(cx, &tobj))
+                return NULL;
+
+            
+            
+            
+            
+            
+            wobj->swap(tobj);
+            pmap.put(targetv, ObjectValue(*wobj));
+            pmap.remove(wp);
+        }
+    }
+
+    return obj;
 }
 
 JS_PUBLIC_API(JSObject *)
