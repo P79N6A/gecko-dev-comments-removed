@@ -56,98 +56,117 @@ typedef struct BindData BindData;
 
 namespace js {
 
-JS_ENUM_HEADER(TreeContextFlags, uint32_t)
-{
-    
-    TCF_FUN_HEAVYWEIGHT =                      0x1,
-
-    
-    TCF_FUN_IS_GENERATOR =                     0x2,
-
-    
-    
-    
-    
-    
-    TCF_STRICT_MODE_CODE =                     0x4,
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    TCF_BINDINGS_ACCESSED_DYNAMICALLY =        0x8,
-
-    
-    
-    TCF_FUN_MIGHT_ALIAS_LOCALS =              0x10,
-
-    
-    
-    
-    
-    
-    
-    
-    TCF_FUN_EXTENSIBLE_SCOPE =                0x20,
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    TCF_ARGUMENTS_HAS_LOCAL_BINDING =         0x40,
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    TCF_DEFINITELY_NEEDS_ARGS_OBJ =           0x80
-
-} JS_ENUM_FOOTER(TreeContextFlags);
-
 struct StmtInfo;
+
+class ContextFlags {
+
+    
+    friend class SharedContext;
+    friend class FunctionBox;
+
+    
+    
+    
+    
+    
+    bool            inStrictMode:1;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool            bindingsAccessedDynamically:1;
+
+    
+    
+    
+
+    
+    bool            funIsHeavyweight:1; 
+
+    
+    bool            funIsGenerator:1;
+
+    
+    
+    bool            funMightAliasLocals:1;
+
+    
+    
+    
+    
+    
+    
+    
+    bool            funHasExtensibleScope:1;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool            funArgumentsHasLocalBinding:1;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool            funDefinitelyNeedsArgsObj:1;
+
+  public:
+    ContextFlags(JSContext *cx)
+      : inStrictMode(cx->hasRunOption(JSOPTION_STRICT_MODE)),
+        bindingsAccessedDynamically(false),
+        funIsHeavyweight(false),
+        funIsGenerator(false),
+        funMightAliasLocals(false),
+        funHasExtensibleScope(false),
+        funArgumentsHasLocalBinding(false),
+        funDefinitelyNeedsArgsObj(false)
+    { }
+};
 
 struct SharedContext {
     JSContext       *context;
 
-    uint32_t        flags;          
     uint32_t        bodyid;         
     uint32_t        blockidGen;     
 
@@ -179,21 +198,28 @@ struct SharedContext {
 
     bool            inForInit:1;    
 
+    ContextFlags    cxFlags;
+
     inline SharedContext(JSContext *cx, bool inFunction);
 
-    bool inStrictMode()                const { return flags & TCF_STRICT_MODE_CODE; }
-    bool bindingsAccessedDynamically() const { return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY; }
-    bool mightAliasLocals()            const { return flags & TCF_FUN_MIGHT_ALIAS_LOCALS; }
-    bool hasExtensibleScope()          const { return flags & TCF_FUN_EXTENSIBLE_SCOPE; }
-    bool argumentsHasLocalBinding()    const { return flags & TCF_ARGUMENTS_HAS_LOCAL_BINDING; }
-    bool definitelyNeedsArgsObj()      const { return flags & TCF_DEFINITELY_NEEDS_ARGS_OBJ; }
+    bool inStrictMode()                const { return cxFlags.inStrictMode; }
+    bool bindingsAccessedDynamically() const { return cxFlags.bindingsAccessedDynamically; }
+    bool funIsHeavyweight()            const { return cxFlags.funIsHeavyweight; }
+    bool funIsGenerator()              const { return cxFlags.funIsGenerator; }
+    bool funMightAliasLocals()         const { return cxFlags.funMightAliasLocals; }
+    bool funHasExtensibleScope()       const { return cxFlags.funHasExtensibleScope; }
+    bool funArgumentsHasLocalBinding() const { return cxFlags.funArgumentsHasLocalBinding; }
+    bool funDefinitelyNeedsArgsObj()   const { return cxFlags.funDefinitelyNeedsArgsObj; }
 
-    void noteMightAliasLocals()             { flags |= TCF_FUN_MIGHT_ALIAS_LOCALS; }
-    void noteBindingsAccessedDynamically()  { flags |= TCF_BINDINGS_ACCESSED_DYNAMICALLY; }
-    void noteHasExtensibleScope()           { flags |= TCF_FUN_EXTENSIBLE_SCOPE; }
-    void noteArgumentsHasLocalBinding()     { flags |= TCF_ARGUMENTS_HAS_LOCAL_BINDING; }
-    void noteDefinitelyNeedsArgsObj()       { JS_ASSERT(argumentsHasLocalBinding());
-                                              flags |= TCF_DEFINITELY_NEEDS_ARGS_OBJ; }
+    void setInStrictMode()                  { cxFlags.inStrictMode                = true; }
+    void setBindingsAccessedDynamically()   { cxFlags.bindingsAccessedDynamically = true; }
+    void setFunIsHeavyweight()              { cxFlags.funIsHeavyweight            = true; }
+    void setFunIsGenerator()                { cxFlags.funIsGenerator              = true; }
+    void setFunMightAliasLocals()           { cxFlags.funMightAliasLocals         = true; }
+    void setFunHasExtensibleScope()         { cxFlags.funHasExtensibleScope       = true; }
+    void setFunArgumentsHasLocalBinding()   { cxFlags.funArgumentsHasLocalBinding = true; }
+    void setFunDefinitelyNeedsArgsObj()     { JS_ASSERT(cxFlags.funArgumentsHasLocalBinding);
+                                              cxFlags.funDefinitelyNeedsArgsObj   = true; }
 
     unsigned argumentsLocalSlot() const;
 

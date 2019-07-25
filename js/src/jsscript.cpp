@@ -1329,24 +1329,28 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
         bce->regexpList.finish(script->regexps());
     if (bce->constList.length() != 0)
         bce->constList.finish(script->consts());
-    if (bce->sc->flags & TCF_STRICT_MODE_CODE)
-        script->strictModeCode = true;
+    script->strictModeCode = bce->sc->inStrictMode();
     if (bce->parser->compileAndGo) {
         script->compileAndGo = true;
         const StackFrame *fp = bce->parser->callerFrame;
         if (fp && fp->isFunctionFrame())
             script->savedCallerFun = true;
     }
-    if (bce->sc->bindingsAccessedDynamically())
-        script->bindingsAccessedDynamically = true;
+    script->bindingsAccessedDynamically = bce->sc->bindingsAccessedDynamically();
     script->hasSingletons = bce->hasSingletons;
-    if (bce->sc->flags & TCF_FUN_IS_GENERATOR)
-        script->isGenerator = true;
 
-    if (bce->sc->argumentsHasLocalBinding()) {
-        script->setArgumentsHasLocalBinding(bce->sc->argumentsLocalSlot());
-        if (bce->sc->definitelyNeedsArgsObj())
-            script->setNeedsArgsObj(true);
+    if (bce->sc->inFunction) {
+        if (bce->sc->funArgumentsHasLocalBinding()) {
+            
+            script->setArgumentsHasLocalBinding(bce->sc->argumentsLocalSlot());
+            if (bce->sc->funDefinitelyNeedsArgsObj())
+                script->setNeedsArgsObj(true);
+        } else {
+            JS_ASSERT(!bce->sc->funDefinitelyNeedsArgsObj());
+        }
+    } else {
+        JS_ASSERT(!bce->sc->funArgumentsHasLocalBinding());
+        JS_ASSERT(!bce->sc->funDefinitelyNeedsArgsObj());
     }
 
     if (nClosedArgs)
@@ -1360,6 +1364,9 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
     if (bce->sc->inFunction) {
         JS_ASSERT(!bce->noScriptRval);
         JS_ASSERT(!bce->needScriptGlobal);
+
+        script->isGenerator = bce->sc->funIsGenerator();
+
         
 
 
@@ -1367,7 +1374,7 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
         fun = bce->sc->fun();
         JS_ASSERT(fun->isInterpreted());
         JS_ASSERT(!fun->script());
-        if (bce->sc->flags & TCF_FUN_HEAVYWEIGHT)
+        if (bce->sc->funIsHeavyweight())
             fun->flags |= JSFUN_HEAVYWEIGHT;
 
         
@@ -1383,7 +1390,12 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
 
         fun->setScript(script);
         script->globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
+
     } else {
+        
+        
+        JS_ASSERT(!bce->sc->funIsGenerator());
+
         
 
 

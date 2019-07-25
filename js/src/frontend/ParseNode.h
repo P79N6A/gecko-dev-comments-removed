@@ -47,6 +47,7 @@
 
 #include "frontend/ParseMaps.h"
 #include "frontend/TokenStream.h"
+#include "frontend/TreeContext.h"
 
 namespace js {
 
@@ -1534,18 +1535,25 @@ struct ObjectBox {
 
 struct FunctionBox : public ObjectBox
 {
-    ParseNode           *node;
-    FunctionBox         *siblings;
-    FunctionBox         *kids;
-    FunctionBox         *parent;
-    Bindings            bindings;               
-    uint32_t            queued:1,
-                        inLoop:1,               
-                        level:JSFB_LEVEL_BITS;
-    uint32_t            tcflags;
-    bool                inWith:1;               
+    ParseNode       *node;
+    FunctionBox     *siblings;
+    FunctionBox     *kids;
+    FunctionBox     *parent;
+    Bindings        bindings;               
+    uint32_t        level:JSFB_LEVEL_BITS;
+    bool            queued:1;
+    bool            inLoop:1;               
+    bool            inWith:1;               
 
-    bool                inGenexpLambda:1;       
+    bool            inGenexpLambda:1;       
+
+    ContextFlags    cxFlags;
+
+    bool funIsHeavyweight()      const { return cxFlags.funIsHeavyweight; }
+    bool funIsGenerator()        const { return cxFlags.funIsGenerator; }
+    bool funHasExtensibleScope() const { return cxFlags.funHasExtensibleScope; }
+
+    void setFunIsHeavyweight()         { cxFlags.funIsHeavyweight = true; }
 
     JSFunction *function() const { return (JSFunction *) object; }
 
@@ -1554,12 +1562,6 @@ struct FunctionBox : public ObjectBox
 
 
     bool inAnyDynamicScope() const;
-
-    
-
-
-
-    bool scopeIsExtensible() const;
 };
 
 struct FunctionBoxQueue {
