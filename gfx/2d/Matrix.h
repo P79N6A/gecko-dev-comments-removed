@@ -147,6 +147,21 @@ public:
   
 
 
+  bool operator==(const Matrix& other) const
+  {
+    return FuzzyEqual(_11, other._11) && FuzzyEqual(_12, other._12) &&
+           FuzzyEqual(_21, other._21) && FuzzyEqual(_22, other._22) &&
+           FuzzyEqual(_31, other._31) && FuzzyEqual(_32, other._32);
+  }
+
+  bool operator!=(const Matrix& other) const
+  {
+    return !(*this == other);
+  }
+
+  
+
+
   bool IsRectilinear() {
     if (FuzzyEqual(_12, 0) && FuzzyEqual(_21, 0)) {
       return true;
