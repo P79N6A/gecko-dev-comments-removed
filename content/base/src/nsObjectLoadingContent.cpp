@@ -1031,7 +1031,8 @@ nsObjectLoadingContent::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
                                                nsIAsyncVerifyRedirectCallback *cb)
 {
   
-  if (aOldChannel != mChannel) {
+  
+  if (!mChannel || aOldChannel != mChannel) {
     return NS_BINDING_ABORTED;
   }
 
