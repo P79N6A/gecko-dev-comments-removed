@@ -263,25 +263,35 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (!subdocView)
     return NS_OK;
 
-  nsCOMPtr<nsIPresShell> presShell;
+  nsCOMPtr<nsIPresShell> presShell = nsnull;
 
   nsIFrame* subdocRootFrame =
     static_cast<nsIFrame*>(subdocView->GetClientData());
 
   if (subdocRootFrame) {
     presShell = subdocRootFrame->PresContext()->PresShell();
-  } else {
+  }
+  
+  
+  if (!presShell || (presShell->IsPaintingSuppressed() &&
+                     !aBuilder->IsIgnoringPaintSuppression())) {
     
     
     
     nsIView* nextView = subdocView->GetNextSibling();
+    nsIFrame* frame = nsnull;
     if (nextView) {
-      subdocRootFrame = static_cast<nsIFrame*>(nextView->GetClientData());
+      frame = static_cast<nsIFrame*>(nextView->GetClientData());
     }
-    if (subdocRootFrame) {
-      subdocView = nextView;
-      presShell = subdocRootFrame->PresContext()->PresShell();
-    } else {
+    if (frame) {
+      nsIPresShell* ps = frame->PresContext()->PresShell();
+      if (!presShell || (ps && !ps->IsPaintingSuppressed())) {
+        subdocView = nextView;
+        subdocRootFrame = frame;
+        presShell = ps;
+      }
+    }
+    if (!presShell) {
       
       if (!mFrameLoader)
         return NS_OK;
