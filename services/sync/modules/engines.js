@@ -211,6 +211,11 @@ Store.prototype = {
     for each (let record in records) {
       try {
         this.applyIncoming(record);
+      } catch (ex if (ex.code == Engine.prototype.eEngineAbortApplyIncoming)) {
+        
+        
+        
+        throw ex.cause;
       } catch (ex) {
         this._log.warn("Failed to apply incoming record " + record.id);
         this._log.warn("Encountered exception: " + Utils.exceptionStr(ex));
@@ -361,6 +366,10 @@ Engine.prototype = {
   
   _storeObj: Store,
   _trackerObj: Tracker,
+
+  
+  
+  eEngineAbortApplyIncoming: "error.engine.abort.applyincoming",
 
   get prefName() this.name,
   get enabled() Svc.Prefs.get("engine." + this.prefName, false),
@@ -659,9 +668,22 @@ SyncEngine.prototype = {
     
     this.previousFailed = [];
 
+    
+    
+    
+    let aborting = undefined;
+
     function doApplyBatch() {
       this._tracker.ignoreAll = true;
-      failed = failed.concat(this._store.applyIncomingBatch(applyBatch));
+      try {
+        failed = failed.concat(this._store.applyIncomingBatch(applyBatch));
+      } catch (ex) {
+        
+        
+        this._log.warn("Got exception " + Utils.exceptionStr(ex) +
+                       ", aborting processIncoming.");
+        aborting = ex;
+      }
       this._tracker.ignoreAll = false;
       applyBatch = [];
     }
@@ -684,6 +706,10 @@ SyncEngine.prototype = {
     
     let self = this;
     newitems.recordHandler = function(item) {
+      if (aborting) {
+        return;
+      }
+
       
       if (self.lastModified == null || item.modified > self.lastModified)
         self.lastModified = item.modified;
@@ -737,6 +763,10 @@ SyncEngine.prototype = {
       let shouldApply;
       try {
         shouldApply = self._reconcile(item);
+      } catch (ex if (ex.code == Engine.prototype.eEngineAbortApplyIncoming)) {
+        self._log.warn("Reconciliation failed: aborting incoming processing.");
+        failed.push(item.id);
+        aborting = ex.cause;
       } catch (ex) {
         self._log.warn("Failed to reconcile incoming record " + item.id);
         self._log.warn("Encountered exception: " + Utils.exceptionStr(ex));
@@ -765,6 +795,10 @@ SyncEngine.prototype = {
       if (!resp.success) {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
         throw resp;
+      }
+
+      if (aborting) {
+        throw aborting;
       }
     }
 
@@ -804,7 +838,7 @@ SyncEngine.prototype = {
     batchSize = isMobile ? this.mobileGUIDFetchBatchSize :
                            this.guidFetchBatchSize;
 
-    while (fetchBatch.length) {
+    while (fetchBatch.length && !aborting) {
       
       
       newitems.limit = 0;
@@ -828,6 +862,11 @@ SyncEngine.prototype = {
         this._log.debug("Records that failed to apply: " + failed);
       }
       failed = [];
+
+      if (aborting) {
+        throw aborting;
+      }
+
       if (this.lastSync < this.lastModified) {
         this.lastSync = this.lastModified;
       }
