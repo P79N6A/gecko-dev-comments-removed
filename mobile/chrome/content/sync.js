@@ -36,11 +36,17 @@
 
 
 
+
 let WeaveGlue = {
   setupData: null,
+  _boundOnEngineSync: null,     
+  _boundOnServiceSync: null,
   jpake: null,
   _bundle: null,
   _loginError: false,
+  _progressBar: null,
+  _progressValue: 0,
+  _progressMax: null,
 
   init: function init() {
     if (this._bundle)
@@ -64,6 +70,9 @@ let WeaveGlue = {
     } else if (Weave.Status.login != Weave.LOGIN_FAILED_NO_USERNAME) {
       this.loadSetupData();
     }
+    this._boundOnEngineSync = this.onEngineSync.bind(this);
+    this._boundOnServiceSync = this.onServiceSync.bind(this);
+    this._progressBar = document.getElementById("syncsetup-progressbar");
   },
 
   abortEasySetup: function abortEasySetup() {
@@ -128,7 +137,16 @@ let WeaveGlue = {
 
       onComplete: function onComplete(aCredentials) {
         self.jpake = null;
-        self.close();
+
+        self._progressBar.mode = "determined";
+        document.getElementById("syncsetup-waiting-desc").hidden = true;
+        document.getElementById("syncsetup-waiting-cancel").hidden = true;
+        document.getElementById("syncsetup-waitingdownload-desc").hidden = false;
+        document.getElementById("syncsetup-waiting-close").hidden = false;
+        Services.obs.addObserver(self._boundOnEngineSync, "weave:engine:sync:finish", false);
+        Services.obs.addObserver(self._boundOnEngineSync, "weave:engine:sync:error", false);
+        Services.obs.addObserver(self._boundOnServiceSync, "weave:service:sync:finish", false);
+        Services.obs.addObserver(self._boundOnServiceSync, "weave:service:sync:error", false);
         self.setupData = aCredentials;
         self.connect();
       },
@@ -204,7 +222,37 @@ let WeaveGlue = {
     this.canConnect();
   },
 
+  onEngineSync: function onEngineSync(subject, topic, data) {
+    
+    
+    
+    
+    if (data == 'clients') {
+      return;
+    }
+    if (this._progressMax == null) {
+      this._progressMax = Weave.Engines.getEnabled().length;
+      this._progressBar.max = this._progressMax;
+    }
+    this._progressValue += 1;
+    this._progressBar.setAttribute("value", this._progressValue);
+  },
+
+  onServiceSync: function onServiceSync() {
+    this.close();
+  },
+
   close: function close() {
+    try {
+      Services.obs.removeObserver(this._boundOnEngineSync, "weave:engine:sync:finish");
+      Services.obs.removeObserver(this._boundOnEngineSync, "weave:engine:sync:error");
+      Services.obs.removeObserver(this._boundOnServiceSync, "weave:service:sync:finish");
+      Services.obs.removeObserver(this._boundOnServiceSync, "weave:service:sync:error");
+    }
+    catch(e) {
+      
+    }
+
     if (this.jpake)
       this.abortEasySetup();
 
@@ -226,6 +274,15 @@ let WeaveGlue = {
     this._elements.usecustomserver.checked = false;
     this._elements.customserver.disabled = true;
     this._elements.customserver.value = "";
+    document.getElementById("syncsetup-waiting-desc").hidden = false;
+    document.getElementById("syncsetup-waiting-cancel").hidden = false;
+    document.getElementById("syncsetup-waitingdownload-desc").hidden = true;
+    document.getElementById("syncsetup-waiting-close").hidden = true;
+    this._progressMax = null;
+    this._progressValue = 0;
+    this._progressBar.max = 0;
+    this._progressBar.value = 0;
+    this._progressBar.mode = "undetermined";
 
     
     document.getElementById("syncsetup-container").hidden = true;
