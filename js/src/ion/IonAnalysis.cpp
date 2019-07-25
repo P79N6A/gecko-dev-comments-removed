@@ -83,15 +83,25 @@ class TypeAnalyzer
   private:
     bool addToWorklist(MInstruction *ins);
     MInstruction *popFromWorklist();
+    bool canSpecializeAtDef(MInstruction *ins);
+
+    bool populate();
+    bool propagate();
+    bool insertConversions();
+
+    
+    bool inspectOperands(MInstruction *ins);
+    bool propagateUsedTypes(MInstruction *ins);
+
+    
+    bool specializePhi(MPhi *phi);
+    bool fixup(MInstruction *ins);
+    void rewriteUses(MInstruction *old, MInstruction *ins);
 
   public:
     TypeAnalyzer(MIRGraph &graph);
 
     bool analyze();
-    bool populate();
-    bool propagate();
-    bool inspectOperands(MInstruction *ins);
-    bool propagateUsedTypes(MInstruction *ins);
 };
 
 TypeAnalyzer::TypeAnalyzer(MIRGraph &graph)
@@ -115,6 +125,36 @@ TypeAnalyzer::popFromWorklist()
     MInstruction *ins = worklist.popCopy();
     ins->setNotInWorklist();
     return ins;
+}
+
+bool
+TypeAnalyzer::populate()
+{
+    
+    
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        for (size_t i = 0; i < block->numPhis(); i++) {
+            if (!addToWorklist(block->getPhi(i)))
+                return false;
+        }
+        MInstructionIterator i = block->begin();
+        while (i != block->end()) {
+            if (i->isCopy()) {
+                
+                MCopy *copy = i->toCopy();
+                MUseIterator uses(copy);
+                while (uses.more())
+                    uses->ins()->replaceOperand(uses, copy->getInput(0));
+                i = copy->block()->removeAt(i);
+                continue;
+            }
+            addToWorklist(*i);
+            i++;
+        }
+    }
+    
+    return true;
 }
 
 bool
@@ -147,36 +187,6 @@ TypeAnalyzer::propagateUsedTypes(MInstruction *ins)
         }
     }
 
-    return true;
-}
-
-bool
-TypeAnalyzer::populate()
-{
-    
-    
-    for (size_t i = 0; i < graph.numBlocks(); i++) {
-        MBasicBlock *block = graph.getBlock(i);
-        for (size_t i = 0; i < block->numPhis(); i++) {
-            if (!addToWorklist(block->getPhi(i)))
-                return false;
-        }
-        MInstructionIterator i = block->begin();
-        while (i != block->end()) {
-            if (i->isCopy()) {
-                
-                MCopy *copy = i->toCopy();
-                MUseIterator uses(copy);
-                while (uses.more())
-                    uses->ins()->replaceOperand(uses, copy->getInput(0));
-                i = copy->block()->removeAt(i);
-                continue;
-            }
-            addToWorklist(*i);
-            i++;
-        }
-    }
-    
     return true;
 }
 
@@ -215,14 +225,106 @@ TypeAnalyzer::propagate()
 }
 
 bool
+TypeAnalyzer::canSpecializeAtDef(MInstruction *ins)
+{
+    
+    
+    return !!ins->snapshot();
+}
+
+
+
+
+void
+TypeAnalyzer::rewriteUses(MInstruction *old, MInstruction *ins)
+{
+    JS_ASSERT(old->type() == MIRType_Value && ins->type() < MIRType_Value);
+
+    MUseIterator iter(old);
+    while (iter.more()) {
+        MInstruction *use = iter->ins();
+
+        MIRType required = use->requiredInputType(iter->index());
+        if ((required != MIRType_Any && required != ins->type()) ||
+            use == ins->snapshot())
+        {
+            
+            
+            
+            iter.next();
+            continue;
+        }
+
+        use->replaceOperand(iter, ins);
+    }
+}
+
+bool
+TypeAnalyzer::specializePhi(MPhi *phi)
+{
+    
+    
+    MIRType usedAs = phi->usedAsType();
+    if (usedAs == MIRType_Value)
+        return true;
+
+    
+    for (size_t i = 0; i < phi->numOperands(); i++) {
+        MInstruction *ins = phi->getInput(i);
+        if (ins->type() == usedAs)
+            continue;
+
+        
+        
+        if (ins->type() != MIRType_Value)
+            return true;
+
+        if (!canSpecializeAtDef(ins))
+            return true;
+    }
+
+    MBasicBlock *block = phi->block();
+    MUnbox *unbox = MUnbox::New(phi, usedAs);
+    unbox->assignSnapshot(block->entrySnapshot());
+    block->insertBefore(*block->begin(), unbox);
+    rewriteUses(phi, unbox);
+
+    return true;
+}
+
+bool
+TypeAnalyzer::fixup(MInstruction *ins)
+{
+    return true;
+}
+
+bool
+TypeAnalyzer::insertConversions()
+{
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        for (size_t i = 0; i < block->numPhis(); i++) {
+            if (!specializePhi(block->getPhi(i)))
+                return false;
+        }
+        for (MInstructionIterator iter = block->begin(); iter != block->end(); iter++) {
+            if (!fixup(*iter))
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool
 TypeAnalyzer::analyze()
 {
     if (!populate())
         return false;
-
     if (!propagate())
         return false;
-
+    if (!insertConversions())
+        return false;
     return true;
 }
 

@@ -327,6 +327,9 @@ class MInstruction
         JS_ASSERT(inWorklist());
         inWorklist_ = false;
     }
+    MSnapshot *snapshot() const {
+        return snapshot_;
+    }
 
     
     
