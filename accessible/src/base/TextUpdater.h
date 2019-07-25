@@ -3,11 +3,14 @@
 
 
 
-#ifndef TextUpdater_h_
-#define TextUpdater_h_
+#ifndef mozilla_a11y_TextUpdater_h__
+#define mozilla_a11y_TextUpdater_h__
 
 #include "AccEvent.h"
 #include "HyperTextAccessible.h"
+
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -19,13 +22,11 @@ public:
   
 
 
-  static void Run(DocAccessible* aDocument,
-                  mozilla::a11y::TextLeafAccessible* aTextLeaf,
+  static void Run(DocAccessible* aDocument, TextLeafAccessible* aTextLeaf,
                   const nsAString& aNewText);
 
 private:
-  TextUpdater(DocAccessible* aDocument,
-              mozilla::a11y::TextLeafAccessible* aTextLeaf) :
+  TextUpdater(DocAccessible* aDocument, TextLeafAccessible* aTextLeaf) :
     mDocument(aDocument), mTextLeaf(aTextLeaf), mHyperText(nsnull),
     mTextOffset(-1) { }
 
@@ -84,9 +85,12 @@ private:
 
 private:
   DocAccessible* mDocument;
-  mozilla::a11y::TextLeafAccessible* mTextLeaf;
+  TextLeafAccessible* mTextLeaf;
   HyperTextAccessible* mHyperText;
   PRInt32 mTextOffset;
 };
+
+} 
+} 
 
 #endif

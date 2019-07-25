@@ -4,11 +4,14 @@
 
 
 
-#ifndef _XULSelectControlAccessible_H_
-#define _XULSelectControlAccessible_H_
+#ifndef mozilla_a11y_XULSelectControlAccessible_h__
+#define mozilla_a11y_XULSelectControlAccessible_h__
 
 #include "AccessibleWrap.h"
 #include "nsIDOMXULSelectCntrlEl.h"
+
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -42,6 +45,9 @@ protected:
   
   nsCOMPtr<nsIDOMXULSelectControlElement> mSelectControl;
 };
+
+} 
+} 
 
 #endif
 
