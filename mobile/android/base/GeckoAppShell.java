@@ -365,6 +365,7 @@ public class GeckoAppShell
                 return;
             loadMozGlue();
             
+            loadLibsSetup(context);
             loadSQLiteLibsNative(apkName, false);
             sSQLiteLibsLoaded = true;
         }
