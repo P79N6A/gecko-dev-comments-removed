@@ -143,7 +143,12 @@ public:
   
 
  
-  Nv3DVUtils *GetNv3DVUtils()  { return mNv3DVUtils; } 
+  Nv3DVUtils *GetNv3DVUtils()  { return mNv3DVUtils; }
+
+  
+
+
+  bool DeviceWasRemoved() { return mDeviceWasRemoved; }
 
   
 
@@ -205,6 +210,9 @@ private:
 
   
   bool mHasDynamicTextures;
+
+  
+  bool mDeviceWasRemoved;
 
    
   nsAutoPtr<Nv3DVUtils> mNv3DVUtils; 
