@@ -286,20 +286,25 @@ IsRepeatedFrame(nsIFrame* kidFrame)
 }
 
 PRBool
-nsTableFrame::PageBreakAfter(nsIFrame& aSourceFrame,
+nsTableFrame::PageBreakAfter(nsIFrame* aSourceFrame,
                              nsIFrame* aNextFrame)
 {
-  const nsStyleDisplay* display = aSourceFrame.GetStyleDisplay();
+  const nsStyleDisplay* display = aSourceFrame->GetStyleDisplay();
+  nsTableRowGroupFrame* prevRg = do_QueryFrame(aSourceFrame);
   
-  if (display->mBreakAfter && !IsRepeatedFrame(&aSourceFrame)) {
+  if (display->mBreakAfter || (prevRg && prevRg->HasInternalBreakAfter()) &&
+      !IsRepeatedFrame(aSourceFrame)) {
     return !(aNextFrame && IsRepeatedFrame(aNextFrame)); 
   }
 
   if (aNextFrame) {
     display = aNextFrame->GetStyleDisplay();
     
-    if (display->mBreakBefore && !IsRepeatedFrame(aNextFrame)) {
-      return !IsRepeatedFrame(&aSourceFrame); 
+     nsTableRowGroupFrame* nextRg = do_QueryFrame(aNextFrame);
+    if (display->mBreakBefore ||
+        (nextRg && nextRg->HasInternalBreakBefore()) &&
+        !IsRepeatedFrame(aNextFrame)) {
+      return !IsRepeatedFrame(aSourceFrame); 
     }
   }
   return PR_FALSE;
@@ -2613,6 +2618,34 @@ nsTableFrame::SetupHeaderFooterChild(const nsTableReflowState& aReflowState,
   return NS_OK;
 }
 
+void 
+nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
+                                  nsTableRowGroupFrame *aTfoot,
+                                  nscoord aFooterHeight)
+{
+  nsPresContext* presContext = PresContext();
+  nsSize kidAvailSize(aReflowState.availSize);
+  kidAvailSize.height = aFooterHeight;
+  nsHTMLReflowState footerReflowState(presContext,
+                                      aReflowState.reflowState,
+                                      aTfoot, kidAvailSize,
+                                      -1, -1, PR_FALSE);
+  InitChildReflowState(footerReflowState);
+  aReflowState.y += GetCellSpacingY();
+
+  nsRect origTfootRect = aTfoot->GetRect();
+  nsRect origTfootOverflowRect = aTfoot->GetOverflowRect();
+          
+  nsReflowStatus footerStatus;
+  nsHTMLReflowMetrics desiredSize;
+  desiredSize.width = desiredSize.height = 0;
+  ReflowChild(aTfoot, presContext, desiredSize, footerReflowState,
+              aReflowState.x, aReflowState.y,
+              NS_FRAME_INVALIDATE_ON_MOVE, footerStatus);
+  PlaceChild(aReflowState, aTfoot, desiredSize, origTfootRect,
+             origTfootOverflowRect);
+}
+                    
 
 
 NS_METHOD
@@ -2630,7 +2663,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 
   nsPresContext* presContext = PresContext();
   
-  PRBool isPaginated = presContext->IsPaginated();
+  PRBool isPaginated = presContext->IsPaginated() &&
+                       NS_UNCONSTRAINEDSIZE != aReflowState.availSize.height;
 
   aOverflowArea = nsRect (0, 0, 0, 0);
 
@@ -2665,7 +2699,8 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
         return rv;
     }
   }
-
+   
+  PRBool allowRepeatedFooter = PR_FALSE;
   for (PRUint32 childX = 0; childX < rowGroups.Length(); childX++) {
     nsIFrame* kidFrame = rowGroups[childX];
     
@@ -2677,13 +2712,15 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
                           NS_FRAME_CONTAINS_RELATIVE_HEIGHT)))) {
       if (pageBreak) {
         PushChildren(rowGroups, childX);
+        if (allowRepeatedFooter) {
+          PlaceRepeatedFooter(aReflowState, tfoot, footerHeight);
+        }
         aStatus = NS_FRAME_NOT_COMPLETE;
         break;
       }
 
       nsSize kidAvailSize(aReflowState.availSize);
-      
-      PRBool allowRepeatedFooter = PR_FALSE;
+      allowRepeatedFooter = PR_FALSE;
       if (isPaginated && (NS_UNCONSTRAINEDSIZE != kidAvailSize.height)) {
         nsTableRowGroupFrame* kidRG =
           static_cast<nsTableRowGroupFrame*>(kidFrame);
@@ -2754,6 +2791,9 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
             if (nextRowGroupFrame) {
               PlaceChild(aReflowState, kidFrame, desiredSize, oldKidRect,
                          oldKidOverflowRect);
+              if (allowRepeatedFooter) {
+                PlaceRepeatedFooter(aReflowState, tfoot, footerHeight);
+              }
               aStatus = NS_FRAME_NOT_COMPLETE;
               PushChildren(rowGroups, childX + 1);
               aLastChildReflowed = kidFrame;
@@ -2763,7 +2803,9 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
         }
         else { 
           if (prevKidFrame) { 
-            
+            if (allowRepeatedFooter) {
+              PlaceRepeatedFooter(aReflowState, tfoot, footerHeight);
+            }
             aStatus = NS_FRAME_NOT_COMPLETE;
             PushChildren(rowGroups, childX);
             aLastChildReflowed = prevKidFrame;
@@ -2780,7 +2822,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
           (NS_UNCONSTRAINEDSIZE != kidReflowState.availableHeight)) {
         nsIFrame* nextKid =
           (childX + 1 < rowGroups.Length()) ? rowGroups[childX + 1] : nsnull;
-        pageBreak = PageBreakAfter(*kidFrame, nextKid);
+        pageBreak = PageBreakAfter(kidFrame, nextKid);
       }
 
       
@@ -2823,23 +2865,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
           PushChildren(rowGroups, childX + 1);
         }
         if (allowRepeatedFooter) {
-          kidAvailSize.height = footerHeight;
-          nsHTMLReflowState footerReflowState(presContext,
-                                              aReflowState.reflowState,
-                                              tfoot, kidAvailSize,
-                                              -1, -1, PR_FALSE);
-          InitChildReflowState(footerReflowState);
-          aReflowState.y += cellSpacingY;
-
-          nsRect origTfootRect = tfoot->GetRect();
-          nsRect origTfootOverflowRect = tfoot->GetOverflowRect();
-
-          nsReflowStatus footerStatus;
-          rv = ReflowChild(tfoot, presContext, desiredSize, footerReflowState,
-                           aReflowState.x, aReflowState.y,
-                           NS_FRAME_INVALIDATE_ON_MOVE, footerStatus);
-          PlaceChild(aReflowState, tfoot, desiredSize, origTfootRect,
-                     origTfootOverflowRect);
+          PlaceRepeatedFooter(aReflowState, tfoot, footerHeight);
         }
         break;
       }

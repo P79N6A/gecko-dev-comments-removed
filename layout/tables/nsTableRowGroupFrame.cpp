@@ -363,7 +363,8 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
 
   
   
-  PRBool isPaginated = aPresContext->IsPaginated();
+  PRBool isPaginated = aPresContext->IsPaginated() && 
+                       NS_UNCONSTRAINEDSIZE != aReflowState.availSize.height;
 
   PRBool haveRow = PR_FALSE;
   PRBool reflowAllKids = aReflowState.reflowState.ShouldReflowAllKids() ||
@@ -459,7 +460,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
       if (isPaginated && aPageBreakBeforeEnd && !*aPageBreakBeforeEnd) {
         nsTableRowFrame* nextRow = rowFrame->GetNextRow();
         if (nextRow) {
-          *aPageBreakBeforeEnd = nsTableFrame::PageBreakAfter(*kidFrame, nextRow);
+          *aPageBreakBeforeEnd = nsTableFrame::PageBreakAfter(kidFrame, nextRow);
         }
       }
     } else {
@@ -1268,7 +1269,7 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
       prevRowFrame = rowFrame;
       
       nsTableRowFrame* nextRow = rowFrame->GetNextRow();
-      if (nextRow && nsTableFrame::PageBreakAfter(*rowFrame, nextRow)) {
+      if (nextRow && nsTableFrame::PageBreakAfter(rowFrame, nextRow)) {
         PushChildren(aPresContext, nextRow, rowFrame);
         aStatus = NS_FRAME_NOT_COMPLETE;
         break;
@@ -1570,6 +1571,24 @@ nsTableRowGroupFrame::GetType() const
 }
 
 
+PRBool 
+nsTableRowGroupFrame::HasInternalBreakBefore() const
+{
+ nsIFrame* firstChild = mFrames.FirstChild(); 
+  if (!firstChild)
+    return PR_FALSE;
+  return firstChild->GetStyleDisplay()->mBreakBefore;
+}
+
+
+PRBool 
+nsTableRowGroupFrame::HasInternalBreakAfter() const
+{
+  nsIFrame* lastChild = mFrames.LastChild(); 
+  if (!lastChild)
+    return PR_FALSE;
+  return lastChild->GetStyleDisplay()->mBreakAfter;
+}
 
 
 nsIFrame*
