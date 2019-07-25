@@ -46,10 +46,38 @@
 #include "secasn1.h"
 #include "crmfit.h"
 #include "secerr.h"
+#include "blapit.h"
 
 #define CRMF_DEFAULT_ARENA_SIZE   1024
-#define MAX_WRAPPED_KEY_LEN       2048
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define MAX_WRAPPED_KEY_LEN       RSA_MAX_MODULUS_BITS
 
 #define CRMF_BITS_TO_BYTES(bits) (((bits)+7)/8)
 #define CRMF_BYTES_TO_BITS(bytes) ((bytes)*8)
