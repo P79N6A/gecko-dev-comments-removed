@@ -50,11 +50,7 @@
 #include "nsIPrefService.h"
 #endif
 
-
 using namespace mozilla::widget;
-
-
-NS_IMPL_ISUPPORTS1(GfxInfo, nsIGfxInfo)
 
 
 
