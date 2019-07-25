@@ -1957,6 +1957,13 @@ abstract public class GeckoApp
             return;
         }
 
+        
+        
+        if (!mInitialized) {
+            setIntent(intent);
+            return;
+        }
+
         if (checkLaunchState(LaunchState.Launched)) {
             Uri data = intent.getData();
             Bundle bundle = intent.getExtras();
