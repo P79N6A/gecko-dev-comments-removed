@@ -6267,7 +6267,7 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   
   nsAutoPtr<TextOverflow> textOverflow(
-    TextOverflow::WillProcessLines(aBuilder, aLists, this));
+    TextOverflow::WillProcessLines(aBuilder, this));
 
   
   nsDisplayListCollection linesDisplayListCollection;

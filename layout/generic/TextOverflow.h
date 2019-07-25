@@ -29,7 +29,6 @@ class TextOverflow {
 
 
   static TextOverflow* WillProcessLines(nsDisplayListBuilder*   aBuilder,
-                                        const nsDisplayListSet& aLists,
                                         nsIFrame*               aBlockFrame);
   
 
@@ -55,7 +54,6 @@ class TextOverflow {
  protected:
   TextOverflow() {}
   void Init(nsDisplayListBuilder*   aBuilder,
-            const nsDisplayListSet& aLists,
             nsIFrame*               aBlockFrame);
 
   struct AlignmentEdges {
