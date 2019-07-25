@@ -37,10 +37,7 @@
 
 #include <ostream>
 #include <istream>
-#ifdef DEBUG
 #include <string>
-#endif
-
 
 
 
@@ -63,7 +60,6 @@ namespace std {
     template ostream& __ostream_insert(ostream&, const char*, streamsize);
     template istream& istream::_M_extract(double&);
 #endif
-#ifdef DEBUG
 #if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 14)
     
 
@@ -77,7 +73,6 @@ namespace std {
     template wstring::basic_string(wstring&&);
     template wstring& wstring::operator=(wstring&&);
     template wstring& wstring::assign(wstring&&);
-#endif 
 #endif 
 #endif 
 }
