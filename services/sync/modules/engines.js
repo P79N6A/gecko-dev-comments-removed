@@ -365,6 +365,12 @@ SyncEngine.prototype = {
     }
 
     
+    if (item.cleartext === null) {
+      self.done(true);
+      return;
+    }
+
+    
     for (let id in this._tracker.changedIDs) {
       let out = this._createRecord(id);
       if (this._recordLike(item, out)) {
