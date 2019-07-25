@@ -104,6 +104,34 @@ private:
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+template<ID id>
+class AutoCounter {
+public:
+  AutoCounter(PRUint32 counterStart = 0 MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM)
+    : counter(counterStart)
+  {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
+  }
+
+  ~AutoCounter() {
+    Accumulate(id, counter);
+  }
+
+  
+  void operator++() {
+    ++counter;
+  }
+
+  
+  void operator+=(int increment) {
+    counter += increment;
+  }
+
+private:
+  PRUint32 counter;
+  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 
 
 
