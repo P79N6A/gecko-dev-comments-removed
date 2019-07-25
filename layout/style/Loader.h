@@ -178,7 +178,7 @@ public:
 
 
   nsresult LoadInlineStyle(nsIContent* aElement,
-                           nsIUnicharInputStream* aStream,
+                           const nsAString& aBuffer,
                            PRUint32 aLineNumber,
                            const nsAString& aTitle,
                            const nsAString& aMedia,
@@ -443,7 +443,8 @@ private:
   
   
   
-  nsresult ParseSheet(nsIUnicharInputStream* aStream,
+  template <typename T>
+  nsresult ParseSheet(T& aStream,
                       SheetLoadData* aLoadData,
                       PRBool& aCompleted);
 
