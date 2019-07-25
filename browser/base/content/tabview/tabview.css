@@ -109,6 +109,22 @@ body {
   position: absolute;
 }
 
+.title-container {
+  
+
+
+  width: -moz-calc(100% - 16px - 6px - 6px);
+}
+
+input.name {
+  text-overflow: ellipsis;
+  width: -moz-available;
+}
+
+input.name:focus {
+  text-overflow: clip;
+}
+
 
 
 
