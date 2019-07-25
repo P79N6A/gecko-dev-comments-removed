@@ -1,5 +1,5 @@
-// Any copyright is dedicated to the Public Domain.
-// http://creativecommons.org/licenses/publicdomain/
+
+
 
 var BUGNUMBER = 373118;
 var summary =
@@ -8,7 +8,7 @@ var summary =
 
 print(BUGNUMBER + ": " + summary);
 
-//-----------------------------------------------------------------------------
+
 
 var a;
 
@@ -29,6 +29,6 @@ assertEq(a.join(), '1,2,3');
 
 assertEq((20).toString(undefined), '20');
 
-//-----------------------------------------------------------------------------
+
 
 reportCompare(true, true);
