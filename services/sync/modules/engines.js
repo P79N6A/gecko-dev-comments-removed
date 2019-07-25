@@ -35,8 +35,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Engines',
-                          'Engine'];
+const EXPORTED_SYMBOLS = ['Engines', 'Engine', 'SyncEngine', 'FileEngine'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -112,64 +111,47 @@ Engine.prototype = {
   
   get serverPrefix() { throw "serverPrefix property must be overridden in subclasses"; },
 
-  get snapshot() this._snapshot,
-
   get _remote() {
-    if (!this.__remote)
-      this.__remote = new RemoteStore(this);
-    return this.__remote;
+    let remote = new RemoteStore(this);
+    this.__defineGetter__("_remote", function() remote);
+    return remote;
   },
 
   get enabled() {
     return Utils.prefs.getBoolPref("engine." + this.name);
   },
 
-  __os: null,
   get _os() {
-    if (!this.__os)
-      this.__os = Cc["@mozilla.org/observer-service;1"]
-        .getService(Ci.nsIObserverService);
-    return this.__os;
+    let os = Cc["@mozilla.org/observer-service;1"].
+      getService(Ci.nsIObserverService);
+    this.__defineGetter__("_os", function() os);
+    return os;
   },
 
-  __json: null,
   get _json() {
-    if (!this.__json)
-      this.__json = Cc["@mozilla.org/dom/json;1"].
-        createInstance(Ci.nsIJSON);
-    return this.__json;
+    let json = Cc["@mozilla.org/dom/json;1"].
+      createInstance(Ci.nsIJSON);
+    this.__defineGetter__("_json", function() json);
+    return json;
   },
 
   
-  __store: null,
   get _store() {
-    if (!this.__store)
-      this.__store = new Store();
-    return this.__store;
+    let store = new Store();
+    this.__defineGetter__("_store", function() store);
+    return store;
   },
 
-  __core: null,
   get _core() {
-    if (!this.__core)
-      this.__core = new SyncCore(this._store);
-    return this.__core;
+    let core = new SyncCore(this._store);
+    this.__defineGetter__("_core", function() core);
+    return core;
   },
 
-  __tracker: null,
   get _tracker() {
-    if (!this.__tracker)
-      this.__tracker = new Tracker();
-    return this.__tracker;
-  },
-
-  __snapshot: null,
-  get _snapshot() {
-    if (!this.__snapshot)
-      this.__snapshot = new SnapshotStore(this.name);
-    return this.__snapshot;
-  },
-  set _snapshot(value) {
-    this.__snapshot = value;
+    let tracker = new tracker();
+    this.__defineGetter__("_tracker", function() tracker);
+    return tracker;
   },
 
   get engineId() {
@@ -217,42 +199,104 @@ Engine.prototype = {
     this._log.debug("Client reset completed successfully");
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   _sync: function Engine__sync() {
+    let self = yield;
+    throw "_sync needs to be subclassed";
+  },
+
+  _initialUpload: function Engine__initialUpload() {
+    let self = yield;
+    this._log.info("Initial upload to server");
+    this._snapshot.data = this._store.wrap();
+    this._snapshot.version = 0;
+    this._snapshot.GUID = null; 
+    yield this._remote.initialize(self.cb, this._snapshot);
+    this._snapshot.save();
+  },
+
+  _share: function Engine__share(guid, username) {
+    let self = yield;
+    
+
+
+    self.done();
+  },
+
+  _stopSharing: function Engine__stopSharing(guid, username) {
+    let self = yield;
+    
+
+
+    self.done();
+  },
+
+  sync: function Engine_sync(onComplete) {
+    return this._sync.async(this, onComplete);
+  },
+
+  share: function Engine_share(onComplete, guid, username) {
+    return this._share.async(this, onComplete, guid, username);
+  },
+
+  stopSharing: function Engine_share(onComplete, guid, username) {
+    return this._stopSharing.async(this, onComplete, guid, username);
+  },
+
+  resetServer: function Engimne_resetServer(onComplete) {
+    this._notify("reset-server", this._resetServer).async(this, onComplete);
+  },
+
+  resetClient: function Engine_resetClient(onComplete) {
+    this._notify("reset-client", this._resetClient).async(this, onComplete);
+  }
+};
+
+function SyncEngine() {}
+SyncEngine.prototype = {
+  __proto__: new Engine(),
+
+  get snapshot() {
+    let snap = new SnapshotStore(this.name);
+    this.__defineGetter__("_snapshot", function() snapshot);
+    return snap;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  _sync: function SyncEng__sync() {
     let self = yield;
 
     this._log.info("Beginning sync");
     this._os.notifyObservers(null, "weave:service:sync:engine:start", this.displayName);
 
     try {
-      yield this._remote.openSession(self.cb);
+      yield this._remote.openSession(self.cb, this._snapshot);
     } catch (e if e.status == 404) {
       yield this._initialUpload.async(this, self.cb);
       return;
@@ -423,51 +467,190 @@ Engine.prototype = {
 
     this._log.info("Sync complete");
     self.done(true);
-  },
+  }
+};
 
-  _initialUpload: function Engine__initialUpload() {
-    let self = yield;
-    this._log.info("Initial upload to server");
-    this._snapshot.data = this._store.wrap();
-    this._snapshot.version = 0;
-    this._snapshot.GUID = null; 
-    yield this._remote.initialize(self.cb, this._snapshot);
-    this._snapshot.save();
-  },
+function FileEngine() {}
+FileEngine.prototype = {
+  __proto__: new Engine(),
 
-  _share: function Engine__share(guid, username) {
+  _sync: function FileEng__sync() {
     let self = yield;
+
+    this._log.info("Beginning sync");
+    this._os.notifyObservers(null, "weave:service:sync:engine:start", this.displayName);
+
+    try {
+      yield this._remote.openSession(self.cb, this._snapshot);
+    } catch (e if e.status == 404) {
+      yield this._initialUpload.async(this, self.cb);
+      return;
+    }
+
+    if (this._remote.status.data.GUID != this._snapshot.GUID) {
+      this._log.debug("Remote/local sync GUIDs do not match.  " +
+                     "Forcing initial sync.");
+      this._log.trace("Remote: " + this._remote.status.data.GUID);
+      this._log.trace("Local: " + this._snapshot.GUID);
+      yield this._store.resetGUIDs(self.cb);
+      this._snapshot.data = {};
+      this._snapshot.version = -1;
+      this._snapshot.GUID = this._remote.status.data.GUID;
+    }
+
+    this._log.info("Local snapshot version: " + this._snapshot.version);
+    this._log.info("Server maxVersion: " + this._remote.status.data.maxVersion);
+
+    if ("none" != Utils.prefs.getCharPref("encryption"))
+      yield this._remote.keys.getKeyAndIV(self.cb, this.engineId);
+
     
 
+    this._os.notifyObservers(null, "weave:service:sync:status", "status.downloading-deltas");
+    let server = {};
+    let serverSnap = yield this._remote.wrap(self.cb, this._snapshot);
+    server.snapshot = serverSnap.data;
+    this._core.detectUpdates(self.cb, this._snapshot.data, server.snapshot);
+    server.updates = yield;
 
-    self.done();
-  },
-
-  _stopSharing: function Engine__stopSharing(guid, username) {
-    let self = yield;
     
 
+    this._os.notifyObservers(null, "weave:service:sync:status", "status.calculating-differences");
+    let localJson = new SnapshotStore();
+    localJson.data = this._store.wrap();
+    this._core.detectUpdates(self.cb, this._snapshot.data, localJson.data);
+    let localUpdates = yield;
 
-    self.done();
-  },
+    this._log.trace("local json:\n" + localJson.serialize());
+    this._log.trace("Local updates: " + this._serializeCommands(localUpdates));
+    this._log.trace("Server updates: " + this._serializeCommands(server.updates));
 
-  sync: function Engine_sync(onComplete) {
-    return this._sync.async(this, onComplete);
-  },
+    if (server.updates.length == 0 && localUpdates.length == 0) {
+      this._snapshot.version = this._remote.status.data.maxVersion;
+      this._os.notifyObservers(null, "weave:service:sync:status", "status.no-changes-required");
+      this._log.info("Sync complete: no changes needed on client or server");
+      self.done(true);
+      return;
+    }
 
-  share: function Engine_share(onComplete, guid, username) {
-    return this._share.async(this, onComplete, guid, username);
-  },
+    
 
-  stopSharing: function Engine_share(onComplete, guid, username) {
-    return this._stopSharing.async(this, onComplete, guid, username);
-  },
+    this._os.notifyObservers(null, "weave:service:sync:status", "status.reconciling-updates");
+    this._log.info("Reconciling client/server updates");
+    this._core.reconcile(self.cb, localUpdates, server.updates);
+    let ret = yield;
 
-  resetServer: function Engimne_resetServer(onComplete) {
-    this._notify("reset-server", this._resetServer).async(this, onComplete);
-  },
+    let clientChanges = ret.propagations[0];
+    let serverChanges = ret.propagations[1];
+    let clientConflicts = ret.conflicts[0];
+    let serverConflicts = ret.conflicts[1];
 
-  resetClient: function Engine_resetClient(onComplete) {
-    this._notify("reset-client", this._resetClient).async(this, onComplete);
+    this._log.info("Changes for client: " + clientChanges.length);
+    this._log.info("Predicted changes for server: " + serverChanges.length);
+    this._log.info("Client conflicts: " + clientConflicts.length);
+    this._log.info("Server conflicts: " + serverConflicts.length);
+    this._log.trace("Changes for client: " + this._serializeCommands(clientChanges));
+    this._log.trace("Predicted changes for server: " + this._serializeCommands(serverChanges));
+    this._log.trace("Client conflicts: " + this._serializeConflicts(clientConflicts));
+    this._log.trace("Server conflicts: " + this._serializeConflicts(serverConflicts));
+
+    if (!(clientChanges.length || serverChanges.length ||
+          clientConflicts.length || serverConflicts.length)) {
+      this._os.notifyObservers(null, "weave:service:sync:status", "status.no-changes-required");
+      this._log.info("Sync complete: no changes needed on client or server");
+      this._snapshot.data = localJson.data;
+      this._snapshot.version = this._remote.status.data.maxVersion;
+      this._snapshot.save();
+      self.done(true);
+      return;
+    }
+
+    if (clientConflicts.length || serverConflicts.length) {
+      this._log.warn("Conflicts found!  Discarding server changes");
+    }
+
+    let savedSnap = Utils.deepCopy(this._snapshot.data);
+    let savedVersion = this._snapshot.version;
+    let newSnapshot;
+
+    
+
+    if (clientChanges.length) {
+      this._log.info("Applying changes locally");
+      this._os.notifyObservers(null, "weave:service:sync:status", "status.applying-changes");
+
+      
+      
+
+      localJson.applyCommands.async(localJson, self.cb, clientChanges);
+      yield;
+      this._snapshot.data = localJson.data;
+      this._snapshot.version = this._remote.status.data.maxVersion;
+      this._store.applyCommands.async(this._store, self.cb, clientChanges);
+      yield;
+      newSnapshot = this._store.wrap();
+
+      this._core.detectUpdates(self.cb, this._snapshot.data, newSnapshot);
+      let diff = yield;
+      if (diff.length != 0) {
+        this._log.warn("Commands did not apply correctly");
+        this._log.trace("Diff from snapshot+commands -> " +
+                        "new snapshot after commands:\n" +
+                        this._serializeCommands(diff));
+        
+        this._snapshot.data = Utils.deepCopy(savedSnap);
+        this._snapshot.version = savedVersion;
+      }
+      this._snapshot.save();
+    }
+
+    
+
+    
+    
+    
+
+    this._os.notifyObservers(null, "weave:service:sync:status", "status.calculating-differences");
+    newSnapshot = this._store.wrap();
+    this._core.detectUpdates(self.cb, server.snapshot, newSnapshot);
+    let serverDelta = yield;
+
+    
+    if (!(serverConflicts.length ||
+          Utils.deepEquals(serverChanges, serverDelta)))
+      this._log.warn("Predicted server changes differ from " +
+                     "actual server->client diff (can be ignored in many cases)");
+
+    this._log.info("Actual changes for server: " + serverDelta.length);
+    this._log.trace("Actual changes for server: " +
+                    this._serializeCommands(serverDelta));
+
+    if (serverDelta.length) {
+      this._log.info("Uploading changes to server");
+      this._snapshot.data = newSnapshot;
+      this._snapshot.version = ++this._remote.status.data.maxVersion;
+
+      
+      if (this._remote.status.data.formatVersion != ENGINE_STORAGE_FORMAT_VERSION)
+        yield this._remote.initialize(self.cb, this._snapshot);
+
+      let c = 0;
+      for (GUID in this._snapshot.data)
+        c++;
+
+      this._os.notifyObservers(null, "weave:service:sync:status", "status.uploading-deltas");
+
+      this._remote.appendDelta(self.cb, this._snapshot, serverDelta,
+                               {maxVersion: this._snapshot.version,
+                                deltasEncryption: Crypto.defaultAlgorithm,
+                                itemCount: c});
+      yield;
+
+      this._log.info("Successfully updated deltas and status on server");
+      this._snapshot.save();
+    }
+
+    this._log.info("Sync complete");
+    self.done(true);
   }
 };
