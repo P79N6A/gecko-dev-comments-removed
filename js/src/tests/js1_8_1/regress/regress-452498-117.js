@@ -76,10 +76,6 @@ function test()
 
 
 
-  for(let x = [ "" for (y in /x/g ) if (x)] in (""));
-
-
-
   (function(){const x = 0, y = delete x;})()
 
 

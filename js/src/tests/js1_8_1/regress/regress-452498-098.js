@@ -54,15 +54,6 @@ function test()
 
 
 
-  try
-  {
-    for(let [x] = (x) in []) {}
-
-  }
-  catch(ex)
-  {
-  }
-
   uneval(function(){(Number(0) for each (NaN in []) for each (x4 in this))});
 
 
