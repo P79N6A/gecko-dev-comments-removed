@@ -3989,8 +3989,20 @@ var FullScreen = {
     }
   },
 
-  exitDomFullScreen : function(e) {
+  exitDomFullScreen : function() {
     document.mozCancelFullScreen();
+  },
+
+  handleEvent: function (event) {
+    switch (event.type) {
+      case "deactivate":
+        
+        
+        
+        
+        setTimeout(this.exitDomFullScreen.bind(this), 0);
+        break;
+    }
   },
 
   enterDomFullScreen : function(event) {
@@ -4039,7 +4051,7 @@ var FullScreen = {
 
     
     if (gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
-      window.addEventListener("deactivate", this.exitDomFullScreen, true);
+      window.addEventListener("deactivate", this);
     }
 
     
@@ -4074,7 +4086,7 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      window.removeEventListener("deactivate", this.exitDomFullScreen, true);
+      window.removeEventListener("deactivate", this);
     }
   },
 
