@@ -496,14 +496,6 @@ protected:
   }
 
   
-
-
-  PRInt32 GetDefaultSize() const
-  {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::multiple) ? 4 : 1;
-  }
-
-  
   nsRefPtr<nsHTMLOptionCollection> mOptions;
   
   PRPackedBool    mIsDoneAddingChildren;
