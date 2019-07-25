@@ -144,6 +144,7 @@ class nsAutoScriptBlockerSuppressNodeRemoved;
 struct nsIntMargin;
 class nsPIDOMWindow;
 class nsIDocumentLoaderFactory;
+class nsIDOMHTMLInputElement;
 
 namespace mozilla {
 
@@ -1847,7 +1848,18 @@ public:
 
   static nsresult Atob(const nsAString& aAsciiString,
                        nsAString& aBinaryData);
+
   
+
+
+
+
+
+
+
+
+  static bool IsAutocompleteEnabled(nsIDOMHTMLInputElement* aInput);
+
 private:
   static bool InitializeEventTable();
 
