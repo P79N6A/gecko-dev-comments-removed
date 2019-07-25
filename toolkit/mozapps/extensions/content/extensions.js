@@ -1998,7 +1998,8 @@ var gDiscoverView = {
     
     
     
-    if (!Components.isSuccessCode(aStatus) ||
+    const NS_ERROR_PARSED_DATA_CACHED = 0x805D0021;
+    if (!(Components.isSuccessCode(aStatus) || aStatus == NS_ERROR_PARSED_DATA_CACHED) ||
         (aRequest && aRequest instanceof Ci.nsIHttpChannel && !aRequest.requestSucceeded)) {
       this.showError();
     } else {
