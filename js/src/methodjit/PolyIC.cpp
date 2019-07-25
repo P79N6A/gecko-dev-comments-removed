@@ -1091,28 +1091,7 @@ class GetPropCompiler : public PICStubCompiler
 
 
 
-
-        int32_t initialFrameDepth = f.regs.sp - f.fp()->slots() + 3;
-        int32_t objHandleOffset = (char *) f.regs.sp - (char *) f.fp();
-        int32_t idHandleOffset = (char *) (f.regs.sp + 1) - (char *) f.fp();
-        int32_t vpOffset = (char *) (f.regs.sp + 2) - (char *) f.fp();
-
-        masm.storePtr(holdObjReg, Address(JSFrameReg, objHandleOffset));
-        masm.storePtr(ImmPtr((void *) JSID_BITS(userid)), Address(JSFrameReg, idHandleOffset));
-
-        
-
-
-
-
-
-
-
-#if JS_BITS_PER_WORD == 32
-        masm.storePtr(ImmPtr(NULL), masm.tagOf(Address(JSFrameReg, objHandleOffset)));
-        masm.storePtr(ImmPtr(NULL), masm.tagOf(Address(JSFrameReg, idHandleOffset)));
-#endif
-
+        int32_t vpOffset = (char *) f.regs.sp - (char *) f.fp();
         if (shape->hasSlot()) {
             masm.loadObjProp(obj, holdObjReg, shape,
                              Registers::ClobberInCall, t0);
@@ -1121,6 +1100,8 @@ class GetPropCompiler : public PICStubCompiler
             masm.storeValue(UndefinedValue(), Address(JSFrameReg, vpOffset));
         }
 
+        
+        int32_t initialFrameDepth = f.regs.sp + 1 - f.fp()->slots();
         masm.setupFallibleABICall(cx->typeInferenceEnabled(), f.regs.pc, initialFrameDepth);
 
         
@@ -1133,15 +1114,12 @@ class GetPropCompiler : public PICStubCompiler
 
         
         RegisterID vpReg = t0;
-        RegisterID idReg = tempRegs.takeAnyReg().reg();
         masm.addPtr(Imm32(vpOffset), JSFrameReg, vpReg);
-        masm.addPtr(Imm32(idHandleOffset), JSFrameReg, idReg);
-        masm.addPtr(Imm32(objHandleOffset), JSFrameReg, holdObjReg);
 
         masm.restoreStackBase();
         masm.setupABICall(Registers::NormalCall, 4);
         masm.storeArg(3, vpReg);
-        masm.storeArg(2, idReg);
+        masm.storeArg(2, ImmPtr((void *) JSID_BITS(userid)));
         masm.storeArg(1, holdObjReg);
         masm.storeArg(0, cxReg);
 
@@ -2505,7 +2483,7 @@ GetElementIC::attachTypedArray(VMFrame &f, JSObject *obj, const Value &v, jsid i
     disable(f, "generated typed array stub");
 
     
-    if (!obj->getGeneric(cx, RootedVarId(cx, id), vp))
+    if (!obj->getGeneric(cx, id, vp))
         return Lookup_Error;
 
     return Lookup_Cacheable;
@@ -2595,7 +2573,7 @@ ic::GetElement(VMFrame &f, ic::GetElementIC *ic)
         }
     }
 
-    if (!obj->getGeneric(cx, RootedVarId(cx, id), &f.regs.sp[-2]))
+    if (!obj->getGeneric(cx, id, &f.regs.sp[-2]))
         THROW();
 
 #if JS_HAS_NO_SUCH_METHOD

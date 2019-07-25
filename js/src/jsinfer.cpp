@@ -4393,10 +4393,10 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
 
 
 
-            RootedVarId id(cx, NameToId(script->getName(GET_UINT32_INDEX(pc))));
+            jsid id = NameToId(script->getName(GET_UINT32_INDEX(pc)));
             if (MakeTypeId(cx, id) != id)
                 return false;
-            if (id_prototype(cx) == id || id___proto__(cx) == id || id_constructor(cx) == id)
+            if (id == id_prototype(cx) || id == id___proto__(cx) || id == id_constructor(cx))
                 return false;
 
             

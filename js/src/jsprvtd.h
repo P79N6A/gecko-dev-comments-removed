@@ -412,19 +412,37 @@ typedef struct JSDebugHooks {
 
 
 
+
+
+
+
+
+
+
+typedef JSBool
+(* JSLookupPropOp)(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                   JSProperty **propp);
+
+
+
+
+
+typedef JSBool
+(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, unsigned *attrsp);
+
+
+
+
+
 typedef JSObject *
-(* JSObjectOp)(JSContext *cx, JSHandleObject obj);
-
-
-typedef JSObject *
-(* JSClassInitializerOp)(JSContext *cx, JSObject *obj);
+(* JSObjectOp)(JSContext *cx, JSObject *obj);
 
 
 
 
 
 typedef JSObject *
-(* JSIteratorOp)(JSContext *cx, JSHandleObject obj, JSBool keysonly);
+(* JSIteratorOp)(JSContext *cx, JSObject *obj, JSBool keysonly);
 
 
 
