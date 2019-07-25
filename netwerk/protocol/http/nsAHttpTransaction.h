@@ -39,6 +39,7 @@
 #define nsAHttpTransaction_h__
 
 #include "nsISupports.h"
+#include "nsTArray.h"
 
 class nsAHttpConnection;
 class nsAHttpSegmentReader;
@@ -101,6 +102,18 @@ public:
     
     
     virtual PRUint32 Http1xTransactionCount() = 0;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    virtual nsresult TakeSubTransactions(
+        nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions) = 0;
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -118,7 +131,8 @@ public:
     void     Close(nsresult reason);                                    \
     void     SetSSLConnectFailed();                                     \
     nsHttpRequestHead *RequestHead();                                   \
-    PRUint32 Http1xTransactionCount();
+    PRUint32 Http1xTransactionCount();                                  \
+    nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions);
 
 
 

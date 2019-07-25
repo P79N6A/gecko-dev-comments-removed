@@ -3138,7 +3138,18 @@ BEGIN_CASE(JSOP_DEFCONST)
 BEGIN_CASE(JSOP_DEFVAR)
 {
     PropertyName *dn = atoms[GET_INDEX(regs.pc)]->asPropertyName();
-    if (!DefVarOrConstOperation(cx, op, dn, regs.fp()))
+
+    
+    uintN attrs = JSPROP_ENUMERATE;
+    if (!regs.fp()->isEvalFrame())
+        attrs |= JSPROP_PERMANENT;
+    if (op == JSOP_DEFCONST)
+        attrs |= JSPROP_READONLY;
+
+    
+    JSObject &obj = regs.fp()->varObj();
+
+    if (!DefVarOrConstOperation(cx, obj, dn, attrs))
         goto error;
 }
 END_CASE(JSOP_DEFVAR)

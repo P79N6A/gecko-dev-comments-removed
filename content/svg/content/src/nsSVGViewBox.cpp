@@ -127,10 +127,16 @@ void
 nsSVGViewBox::SetBaseValue(float aX, float aY, float aWidth, float aHeight,
                            nsSVGElement *aSVGElement)
 {
+  if (mHasBaseVal && mBaseVal == nsSVGViewBoxRect(aX, aY, aWidth, aHeight)) {
+    return;
+  }
+
+  nsAttrValue emptyOrOldValue = aSVGElement->WillChangeViewBox();
+
   mBaseVal = nsSVGViewBoxRect(aX, aY, aWidth, aHeight);
   mHasBaseVal = true;
 
-  aSVGElement->DidChangeViewBox(true);
+  aSVGElement->DidChangeViewBox(emptyOrOldValue);
   if (mAnimVal) {
     aSVGElement->AnimationNeedsResample();
   }

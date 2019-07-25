@@ -269,6 +269,7 @@ DOMSVGPathSegList::Clear()
   }
 
   if (Length() > 0) {
+    nsAttrValue emptyOrOldValue = Element()->WillChangePathSegList();
     
     
     
@@ -285,7 +286,7 @@ DOMSVGPathSegList::Clear()
     }
 
     InternalList().Clear();
-    Element()->DidChangePathSegList(true);
+    Element()->DidChangePathSegList(emptyOrOldValue);
     if (AttrIsAnimating()) {
       Element()->AnimationNeedsResample();
     }
@@ -371,6 +372,7 @@ DOMSVGPathSegList::InsertItemBefore(nsIDOMSVGPathSeg *aNewItem,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangePathSegList();
   
   MaybeInsertNullInAnimValListAt(aIndex, internalIndex, argCount);
 
@@ -387,7 +389,7 @@ DOMSVGPathSegList::InsertItemBefore(nsIDOMSVGPathSeg *aNewItem,
 
   UpdateListIndicesFromIndex(aIndex + 1, argCount + 1);
 
-  Element()->DidChangePathSegList(true);
+  Element()->DidChangePathSegList(emptyOrOldValue);
   if (AttrIsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -416,6 +418,7 @@ DOMSVGPathSegList::ReplaceItem(nsIDOMSVGPathSeg *aNewItem,
     domItem = domItem->Clone(); 
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangePathSegList();
   if (ItemAt(aIndex)) {
     
     
@@ -451,7 +454,7 @@ DOMSVGPathSegList::ReplaceItem(nsIDOMSVGPathSeg *aNewItem,
     }
   }
 
-  Element()->DidChangePathSegList(true);
+  Element()->DidChangePathSegList(emptyOrOldValue);
   if (AttrIsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -474,6 +477,7 @@ DOMSVGPathSegList::RemoveItem(PRUint32 aIndex,
   
   EnsureItemAt(aIndex);
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangePathSegList();
   
   
   ItemAt(aIndex)->RemovingFromList();
@@ -493,7 +497,7 @@ DOMSVGPathSegList::RemoveItem(PRUint32 aIndex,
 
   UpdateListIndicesFromIndex(aIndex, -(argCount + 1));
 
-  Element()->DidChangePathSegList(true);
+  Element()->DidChangePathSegList(emptyOrOldValue);
   if (AttrIsAnimating()) {
     Element()->AnimationNeedsResample();
   }

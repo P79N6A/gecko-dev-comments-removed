@@ -83,6 +83,7 @@
 #include "nsDisplayList.h"
 #include "nsDOMCSSDeclaration.h"
 #include "mozilla/dom/Element.h"
+#include "nsGenericElement.h"
 #include "CSSCalc.h"
 
 using namespace mozilla;
@@ -161,7 +162,25 @@ nsComputedDOMStyle::Shutdown()
 }
 
 
+
+
+
 NS_IMPL_CYCLE_COLLECTION_1(nsComputedDOMStyle, mContent)
+
+
+
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsComputedDOMStyle)
+  return !tmp->mContent || nsGenericElement::CanSkip(tmp->mContent, true);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsComputedDOMStyle)
+  return !tmp->mContent || nsGenericElement::CanSkipInCC(tmp->mContent);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
+
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsComputedDOMStyle)
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 
 NS_INTERFACE_MAP_BEGIN(nsComputedDOMStyle)

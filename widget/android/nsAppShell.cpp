@@ -370,6 +370,9 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     case AndroidGeckoEvent::ACTIVITY_STOPPING: {
+        if (curEvent->Flags() > 0)
+            break;
+
         nsCOMPtr<nsIObserverService> obsServ =
             mozilla::services::GetObserverService();
         NS_NAMED_LITERAL_STRING(minimize, "heap-minimize");
@@ -395,6 +398,14 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     case AndroidGeckoEvent::ACTIVITY_PAUSING: {
+        if (curEvent->Flags() == 0) {
+            
+            
+            nsCOMPtr<nsIObserverService> obsServ =
+                mozilla::services::GetObserverService();
+            obsServ->NotifyObservers(nsnull, "application-background", nsnull);
+        }
+
         
         
         
@@ -413,6 +424,9 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     case AndroidGeckoEvent::ACTIVITY_START: {
+        if (curEvent->Flags() > 0)
+            break;
+
         nsCOMPtr<nsIObserverService> obsServ =
             mozilla::services::GetObserverService();
         obsServ->NotifyObservers(nsnull, "application-foreground", nsnull);
@@ -480,6 +494,17 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     case AndroidGeckoEvent::NETWORK_CHANGED: {
         hal::NotifyNetworkChange(hal::NetworkInformation(curEvent->Bandwidth(),
                                                          curEvent->CanBeMetered()));
+        break;
+    }
+
+    case AndroidGeckoEvent::ACTIVITY_RESUMING: {
+        if (curEvent->Flags() == 0) {
+            
+            
+            nsCOMPtr<nsIObserverService> obsServ =
+                mozilla::services::GetObserverService();
+            obsServ->NotifyObservers(nsnull, "application-foreground", nsnull);
+        }
         break;
     }
 
