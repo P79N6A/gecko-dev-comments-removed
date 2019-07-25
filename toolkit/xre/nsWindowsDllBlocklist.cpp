@@ -50,6 +50,7 @@
 #endif
 
 #include "nsAutoPtr.h"
+#include "nsThreadUtils.h"
 
 #include "prlog.h"
 
@@ -151,11 +152,75 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
 #undef DEBUG_very_verbose
 
+extern bool gInXPCOMLoadOnMainThread;
+
 namespace {
 
 typedef NTSTATUS (NTAPI *LdrLoadDll_func) (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileName, PHANDLE handle);
 
 static LdrLoadDll_func stub_LdrLoadDll = 0;
+
+template <class T>
+struct RVAMap {
+  RVAMap(HANDLE map, DWORD offset) {
+    SYSTEM_INFO info;
+    GetSystemInfo(&info);
+
+    DWORD alignedOffset = (offset / info.dwAllocationGranularity) *
+                          info.dwAllocationGranularity;
+
+    NS_ASSERTION(offset - alignedOffset < info.dwAllocationGranularity, "Wtf");
+
+    void* mRealView = ::MapViewOfFile(map, FILE_MAP_READ, 0, alignedOffset,
+                                      sizeof(T) + (offset - alignedOffset));
+
+    mMappedView = reinterpret_cast<T*>((char*)mRealView + (offset - alignedOffset));
+  }
+  ~RVAMap() {
+    if (mRealView) {
+      ::UnmapViewOfFile(mRealView);
+    }
+  }
+  operator const T*() const { return mMappedView; }
+  const T* operator->() const { return mMappedView; }
+private:
+  const T* mMappedView;
+  void* mRealView;
+};
+
+bool
+CheckASLR(const wchar_t* path)
+{
+  bool retval = false;
+
+  HANDLE file = ::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
+                              NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                              NULL);
+  if (file != INVALID_HANDLE_VALUE) {
+    HANDLE map = ::CreateFileMappingW(file, NULL, PAGE_READONLY, 0, 0, NULL);
+    if (map) {
+      RVAMap<IMAGE_DOS_HEADER> peHeader(map, 0);
+      if (peHeader) {
+        RVAMap<IMAGE_NT_HEADERS> ntHeader(map, peHeader->e_lfanew);
+        if (ntHeader) {
+          
+          if (ntHeader->OptionalHeader.SizeOfCode == 0) {
+            retval = true;
+          }
+          
+          else if ((ntHeader->OptionalHeader.DllCharacteristics &
+                    IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE) != 0) {
+            retval = true;
+          }
+        }
+      }
+      ::CloseHandle(map);
+    }
+    ::CloseHandle(file);
+  }
+
+  return retval;
+}
 
 
 
@@ -224,6 +289,29 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
 
   int len = moduleFileName->Length / 2;
   wchar_t *fname = moduleFileName->Buffer;
+
+  
+  
+  
+  
+  PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
+
+  
+  DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
+  if (pathlen == 0) {
+    
+    printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
+    return STATUS_DLL_NOT_FOUND;
+  }
+
+  nsAutoArrayPtr<wchar_t> full_fname(new wchar_t[pathlen+1]);
+  if (!full_fname) {
+    
+    return STATUS_DLL_NOT_FOUND;
+  }
+
+  
+  SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
 
   
   
@@ -305,29 +393,6 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
         goto continue_loading;
       }
 
-      
-      
-      
-      
-      PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
-
-      
-      DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
-      if (pathlen == 0) {
-        
-        printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
-        return STATUS_DLL_NOT_FOUND;
-      }
-
-      wchar_t *full_fname = (wchar_t*) malloc(sizeof(wchar_t)*(pathlen+1));
-      if (!full_fname) {
-        
-        return STATUS_DLL_NOT_FOUND;
-      }
-
-      
-      SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
-
       DWORD zero;
       DWORD infoSize = GetFileVersionInfoSizeW(full_fname, &zero);
 
@@ -351,8 +416,6 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
             load_ok = true;
         }
       }
-
-      free(full_fname);
     }
 
     if (!load_ok) {
@@ -367,6 +430,14 @@ continue_loading:
 #endif
 
   NS_SetHasLoadedNewDLLs();
+
+  if (gInXPCOMLoadOnMainThread && NS_IsMainThread()) {
+    
+    if (!CheckASLR(full_fname)) {
+      printf_stderr("LdrLoadDll: Blocking load of '%s'.  XPCOM components must support ASLR.\n", dllName);
+      return STATUS_DLL_NOT_FOUND;
+    }
+  }
 
   return stub_LdrLoadDll(filePath, flags, moduleFileName, handle);
 }
