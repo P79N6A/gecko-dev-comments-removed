@@ -162,8 +162,9 @@ public:
   nsMediaQuery* Clone() const;
 
   
+  
   PRBool Matches(nsPresContext* aPresContext,
-                 nsMediaQueryResultCacheKey& aKey) const;
+                 nsMediaQueryResultCacheKey* aKey) const;
 
 private:
   PRPackedBool mNegated;
@@ -184,8 +185,12 @@ public:
 
   nsresult GetText(nsAString& aMediaText);
   nsresult SetText(const nsAString& aMediaText);
+
+  
+  
   PRBool Matches(nsPresContext* aPresContext,
-                 nsMediaQueryResultCacheKey& aKey);
+                 nsMediaQueryResultCacheKey* aKey);
+
   nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
   nsresult AppendQuery(nsAutoPtr<nsMediaQuery>& aQuery) {
     
