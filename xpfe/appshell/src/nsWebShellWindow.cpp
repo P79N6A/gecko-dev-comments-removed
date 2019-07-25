@@ -381,16 +381,13 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         eventWindow->SetPersistenceTimer(PAD_MISC);
         result = nsEventStatus_eConsumeDoDefault;
 
-        nsCOMPtr<nsPIDOMWindow> ourWindow = do_GetInterface(docShell);
-        if (ourWindow) {
-          
-          
-          if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
+        
+        
+        
+        if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
+          nsCOMPtr<nsIDOMWindowInternal> ourWindow = do_GetInterface(docShell);
+          if (ourWindow)
             ourWindow->SetFullScreen(PR_TRUE);
-          }
-
-          
-          ourWindow->DispatchCustomEvent("sizemodechange");
         }
 
         

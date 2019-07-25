@@ -383,7 +383,6 @@ public:
   virtual NS_HIDDEN_(void) SetHasOrientationEventListener();
   virtual NS_HIDDEN_(void) MaybeUpdateTouchState();
   virtual NS_HIDDEN_(void) UpdateTouchState();
-  virtual NS_HIDDEN_(PRBool) DispatchCustomEvent(const char *aEventName);
 
   
   NS_DECL_NSIDOMSTORAGEWINDOW
@@ -729,6 +728,8 @@ protected:
   {
     return GetParentInternal() != nsnull;
   }
+
+  PRBool DispatchCustomEvent(const char *aEventName);
 
   
   
