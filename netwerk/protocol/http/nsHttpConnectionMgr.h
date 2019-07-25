@@ -55,7 +55,7 @@
 #include "nsITimer.h"
 #include "nsIX509Cert3.h"
 
-class nsHttpPipeline;
+#include "nsHttpPipeline.h"
 
 
 
@@ -184,6 +184,10 @@ public:
         
         
         BadInsufficientFraming = kPipelineInfoTypeBad | 0x0008,
+        
+        
+        
+        BadUnexpectedLarge = kPipelineInfoTypeBad | 0x000B,
 
         
         
