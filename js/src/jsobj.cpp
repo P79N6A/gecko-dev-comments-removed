@@ -5929,8 +5929,6 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
         compartment->marked = true;
     }
 
-    obj->traceProtoAndParent(trc);
-
     
 
 
