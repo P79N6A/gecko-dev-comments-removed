@@ -891,15 +891,15 @@ var BrowserUI = {
     }
 
     
-    if (this.activePanel) {
-      this.activePanel = null;
+    let dialog = this.activeDialog;
+    if (dialog && dialog != this.activePanel) {
+      dialog.close();
       return;
     }
 
     
-    let dialog = this.activeDialog;
-    if (dialog) {
-      dialog.close();
+    if (this.activePanel) {
+      this.activePanel = null;
       return;
     }
 
