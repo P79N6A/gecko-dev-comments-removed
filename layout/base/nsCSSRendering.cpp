@@ -4144,9 +4144,9 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
   
   
   
-  
   gfxMatrix transform = aDestinationCtx->CurrentMatrix();
-  if (transform.HasNonAxisAlignedTransform()) {
+  
+  if (transform.HasNonAxisAlignedTransform() || transform.xx <= 0.0 || transform.yy <= 0.0) {
     transform = gfxMatrix();
   } else {
     scaleX = transform.xx;
