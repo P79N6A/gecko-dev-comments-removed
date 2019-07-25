@@ -3128,9 +3128,7 @@ struct JSClass {
                                                    object in prototype chain
                                                    passed in via *objp in/out
                                                    parameter */
-#define JSCLASS_CONSTRUCT_PROTOTYPE     (1<<5)  
-
-#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
+#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  
 
 
 
@@ -4972,50 +4970,6 @@ JS_IsConstructing(JSContext *cx, const jsval *vp)
 #endif
 
     return JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static JS_ALWAYS_INLINE JSBool
-JS_IsConstructing_PossiblyWithGivenThisObject(JSContext *cx, const jsval *vp,
-                                              JSObject **maybeThis)
-{
-    jsval_layout l;
-    JSBool isCtor;
-
-#ifdef DEBUG
-    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
-    if (JS_ObjectIsFunction(cx, callee)) {
-        JSFunction *fun = JS_ValueToFunction(cx, JS_CALLEE(cx, vp));
-        JS_ASSERT((JS_GetFunctionFlags(fun) & JSFUN_CONSTRUCTOR) != 0);
-    } else {
-        JS_ASSERT(JS_GET_CLASS(cx, callee)->construct != NULL);
-    }
-#endif
-
-    isCtor = JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
-    if (isCtor)
-        *maybeThis = MAGIC_JSVAL_TO_OBJECT_OR_NULL_IMPL(l);
-    return isCtor;
 }
 
 

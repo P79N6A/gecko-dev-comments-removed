@@ -48,41 +48,6 @@
 
 
 
-
-
-JSObject *
-xpc_CloneJSFunction(XPCCallContext &ccx, JSObject *funobj, JSObject *parent)
-{
-    JSObject *clone = JS_CloneFunctionObject(ccx, funobj, parent);
-    if (!clone)
-        return nsnull;
-
-    AUTO_MARK_JSVAL(ccx, OBJECT_TO_JSVAL(clone));
-
-    XPCWrappedNativeScope *scope =
-        XPCWrappedNativeScope::FindInJSObjectScope(ccx, parent);
-
-    if (!scope) {
-        return nsnull;
-    }
-
-    
-    
-    
-    JS_SetPrototype(ccx, clone, scope->GetPrototypeJSFunction());
-
-    
-    jsval ifaceVal = js::GetFunctionNativeReserved(funobj, 0);
-    jsval memberVal = js::GetFunctionNativeReserved(funobj, 1);
-    js::SetFunctionNativeReserved(clone, 0, ifaceVal);
-    js::SetFunctionNativeReserved(clone, 1, memberVal);
-
-    return clone;
-}
-
-
-
-
 JSBool
 XPCNativeMember::GetCallInfo(XPCCallContext& ccx,
                              JSObject* funobj,
