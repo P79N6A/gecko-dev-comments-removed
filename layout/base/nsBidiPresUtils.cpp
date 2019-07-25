@@ -308,7 +308,6 @@ AdvanceLineIteratorToFrame(nsIFrame* aFrame,
 
 
 
-
 nsresult
 nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
 {
@@ -383,8 +382,6 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   PRInt32     frameIndex     = -1;  
   PRInt32     frameCount     = mLogicalFrames.Length();
   PRInt32     contentOffset  = 0;   
-  PRUint8     charType;
-  PRUint8     prevType       = eCharType_LeftToRight;
   PRBool      isTextFrame    = PR_FALSE;
   nsIFrame*   frame = nsnull;
   nsIContent* content = nsnull;
@@ -494,14 +491,6 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
       propTable->Set(frame, nsIFrame::BaseLevelProperty(),
                      NS_INT32_TO_PTR(paraLevel));
       if (isTextFrame) {
-        PRInt32 typeLimit = NS_MIN(logicalLimit, lineOffset + fragmentLength);
-        CalculateCharType(lineOffset, typeLimit, logicalLimit, runLength,
-                           runCount, charType, prevType);
-        
-        propTable->Set(frame, nsIFrame::CharTypeProperty(),
-                       NS_INT32_TO_PTR(charType));
-        
-
         if ( (runLength > 0) && (runLength < fragmentLength) ) {
           
 
@@ -1199,11 +1188,9 @@ nsBidiPresUtils::RemoveBidiContinuation(nsIFrame*       aFrame,
 {
   FrameProperties props = aFrame->Properties();
   nsBidiLevel embeddingLevel =
-    (nsCharType)NS_PTR_TO_INT32(props.Get(nsIFrame::EmbeddingLevelProperty()));
+    (nsBidiLevel)NS_PTR_TO_INT32(props.Get(nsIFrame::EmbeddingLevelProperty()));
   nsBidiLevel baseLevel =
-    (nsCharType)NS_PTR_TO_INT32(props.Get(nsIFrame::BaseLevelProperty()));
-  nsCharType charType =
-    (nsCharType)NS_PTR_TO_INT32(props.Get(nsIFrame::CharTypeProperty()));
+    (nsBidiLevel)NS_PTR_TO_INT32(props.Get(nsIFrame::BaseLevelProperty()));
 
   for (PRInt32 index = aFirstIndex + 1; index <= aLastIndex; index++) {
     nsIFrame* frame = mLogicalFrames[index];
@@ -1219,8 +1206,6 @@ nsBidiPresUtils::RemoveBidiContinuation(nsIFrame*       aFrame,
                      NS_INT32_TO_PTR(embeddingLevel));
       frameProps.Set(nsIFrame::BaseLevelProperty(),
                      NS_INT32_TO_PTR(baseLevel));
-      frameProps.Set(nsIFrame::CharTypeProperty(),
-                     NS_INT32_TO_PTR(charType));
       frame->AddStateBits(NS_FRAME_IS_BIDI);
       while (frame) {
         nsIFrame* prev = frame->GetPrevContinuation();
