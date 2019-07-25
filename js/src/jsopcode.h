@@ -440,26 +440,80 @@ DecompileValueGenerator(JSContext *cx, intN spindex, const Value &v,
 
 
 
-struct Sprinter {
-    JSContext       *context;       
-    LifoAlloc       *pool;          
-    char            *base;          
-    size_t          size;           
-    ptrdiff_t       offset;         
+class Sprinter
+{
+  public:
+    struct InvariantChecker
+    {
+        const Sprinter *parent;
+
+        explicit InvariantChecker(const Sprinter *p) : parent(p) {
+            parent->checkInvariants();
+        }
+
+        ~InvariantChecker() {
+            parent->checkInvariants();
+        }
+    };
+
+    JSContext               *context;       
+
+  private:
+    static const size_t     DefaultSize;
+#ifdef DEBUG
+    bool                    initialized;    
+#endif
+    char                    *base;          
+    size_t                  size;           
+    ptrdiff_t               offset;         
+
+    bool realloc_(size_t newSize);
+
+  public:
+    explicit Sprinter(JSContext *cx);
+    ~Sprinter();
+
+    
+    bool init();
+
+    void checkInvariants() const;
+
+    const char *string() const;
+    const char *stringEnd() const;
+    
+    char *stringAt(ptrdiff_t off) const;
+    
+    char &operator[](size_t off);
+    
+    bool empty() const;
+
+    
+
+
+
+
+    char *reserve(size_t len);
+    
+    char *reserveAndClear(size_t len);
+
+    
+
+
+
+    ptrdiff_t put(const char *s, size_t len);
+    ptrdiff_t putString(JSString *str);
+
+    
+    int printf(const char *fmt, ...);
+
+    
+    void setOffset(const char *end);
+    void setOffset(ptrdiff_t off);
+
+    
+    ptrdiff_t getOffset() const;
+    ptrdiff_t getOffsetOf(const char *string) const;
 };
-
-#define INIT_SPRINTER(cx, sp, ap, off) \
-    ((sp)->context = cx, (sp)->pool = ap, (sp)->base = NULL, (sp)->size = 0,  \
-     (sp)->offset = off)
-
-
-
-
-
-
-
-extern char *
-SprintReserveAmount(Sprinter *sp, size_t len);
 
 extern ptrdiff_t
 SprintPut(Sprinter *sp, const char *s, size_t len);
