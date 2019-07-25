@@ -473,7 +473,8 @@ static nsresult
 Merge(ChunkSet* aStoreChunks,
       nsTArray<T>* aStorePrefixes,
       ChunkSet& aUpdateChunks,
-      nsTArray<T>& aUpdatePrefixes)
+      nsTArray<T>& aUpdatePrefixes,
+      bool aAllowMerging = false)
 {
   EntrySort(aUpdatePrefixes);
 
@@ -488,6 +489,12 @@ Merge(ChunkSet* aStoreChunks,
   nsTArray<T> adds;
 
   for (; updateIter != updateEnd; updateIter++) {
+    
+    
+    
+    if (aStoreChunks->Has(updateIter->Chunk()))
+      if (!aAllowMerging)
+        continue;
     
     
     while (storeIter < storeEnd && (storeIter->Compare(*updateIter) < 0)) {
@@ -529,7 +536,7 @@ HashStore::ApplyUpdate(TableUpdate &update)
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = Merge(&mAddChunks, &mAddCompletes,
-             update.AddChunks(), update.AddCompletes());
+             update.AddChunks(), update.AddCompletes(), true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = Merge(&mSubChunks, &mSubPrefixes,
@@ -537,7 +544,7 @@ HashStore::ApplyUpdate(TableUpdate &update)
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = Merge(&mSubChunks, &mSubCompletes,
-             update.SubChunks(), update.SubCompletes());
+             update.SubChunks(), update.SubCompletes(), true);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
