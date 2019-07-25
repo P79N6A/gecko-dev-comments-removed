@@ -106,7 +106,6 @@ pref("mozilla.widget.force-24bpp", true);
 pref("mozilla.widget.use-buffer-pixmap", true);
 pref("mozilla.widget.disable-native-theme", true);
 pref("layout.reflow.synthMouseMove", false);
-pref("dom.send_after_paint_to_content", true);
 
 
 pref("browser.download.useDownloadDir", true);
@@ -427,6 +426,10 @@ pref("layout.frame_rate.precise", true);
 
 pref("b2g.remote-js.enabled", true);
 pref("b2g.remote-js.port", 9999);
+
+
+pref("b2g.keys.menu.enabled", true);
+pref("b2g.keys.search.enabled", false);
 
 
 pref("power.screen.timeout", 60);
