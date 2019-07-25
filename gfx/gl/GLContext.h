@@ -1372,6 +1372,14 @@ protected:
 
     PRUint32 mDebugMode;
 
+    inline PRUint32 DebugMode() {
+#ifdef DEBUG
+        return mDebugMode;
+#else
+        return 0;
+#endif
+    }
+
     ContextFormat mCreationFormat;
     nsRefPtr<GLContext> mSharedContext;
 
@@ -1407,7 +1415,7 @@ protected:
         if (!mCreationFormat.samples)
             return false;
 
-        if (mDebugMode) {
+        if (DebugMode()) {
             printf_stderr("Requested level of multisampling is unavailable, continuing without multisampling\n");
         }
 
@@ -1499,7 +1507,7 @@ protected:
 public:
 
     void BeforeGLCall(const char* glFunction) {
-        if (mDebugMode) {
+        if (DebugMode()) {
             
             
             
@@ -1509,7 +1517,7 @@ public:
                          "It needs to be patched by making GLContext::sCurrentGLContext be thread-local.\n");
                 NS_ABORT();
             }
-            if (mDebugMode & DebugTrace)
+            if (DebugMode() & DebugTrace)
                 printf_stderr("[gl:%p] > %s\n", this, glFunction);
             if (this != sCurrentGLContext) {
                 printf_stderr("Fatal: %s called on non-current context %p. "
@@ -1521,20 +1529,20 @@ public:
     }
 
     void AfterGLCall(const char* glFunction) {
-        if (mDebugMode) {
+        if (DebugMode()) {
             
             
             
             mSymbols.fFinish();
             mGLError = mSymbols.fGetError();
-            if (mDebugMode & DebugTrace)
+            if (DebugMode() & DebugTrace)
                 printf_stderr("[gl:%p] < %s [0x%04x]\n", this, glFunction, mGLError);
             if (mGLError != LOCAL_GL_NO_ERROR) {
                 printf_stderr("GL ERROR: %s generated GL error %s(0x%04x)\n", 
                               glFunction,
                               GLErrorToString(mGLError),
                               mGLError);
-                if (mDebugMode & DebugAbortOnError)
+                if (DebugMode() & DebugAbortOnError)
                     NS_ABORT();
             }
         }
@@ -1584,7 +1592,7 @@ public:
     GLenum fGetError() {
 #ifdef DEBUG
         
-        if (mDebugMode) {
+        if (DebugMode()) {
             GLenum err = mGLError;
             mGLError = LOCAL_GL_NO_ERROR;
             return err;
