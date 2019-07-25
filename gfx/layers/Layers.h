@@ -167,60 +167,10 @@ public:
 
 
 
-
-
-
-class THEBES_API LayerUserDataSet {
-public:
-  LayerUserDataSet() : mKey(nsnull) {}
-
-  void Set(void* aKey, LayerUserData* aValue)
-  {
-    NS_ASSERTION(!mKey || mKey == aKey,
-                 "Multiple LayerUserData objects not supported");
-    mKey = aKey;
-    mValue = aValue;
-  }
-  
-
-
-  LayerUserData* Remove(void* aKey)
-  {
-    if (mKey == aKey) {
-      mKey = nsnull;
-      LayerUserData* d = mValue.forget();
-      return d;
-    }
-    return nsnull;
-  }
-  
-
-
-  bool Has(void* aKey)
-  {
-    return mKey == aKey;
-  }
-  
-
-
-  LayerUserData* Get(void* aKey)
-  {
-    return mKey == aKey ? mValue.get() : nsnull;
-  }
-
-  
-
-
-  void Clear()
-  {
-    mKey = nsnull;
-    mValue = nsnull;
-  }
-
-private:
-  void* mKey;
-  nsAutoPtr<LayerUserData> mValue;
-};
+static void LayerManagerUserDataDestroy(void *data)
+{
+  delete static_cast<LayerUserData*>(data);
+}
 
 
 
@@ -270,7 +220,7 @@ public:
 
 
 
-  virtual void Destroy() { mDestroyed = true; mUserData.Clear(); }
+  virtual void Destroy() { mDestroyed = true; mUserData.Destroy(); }
   bool IsDestroyed() { return mDestroyed; }
 
   virtual ShadowLayerForwarder* AsShadowForwarder()
@@ -464,23 +414,32 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  { mUserData.Set(aKey, aData); }
+  {
+    mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
+  }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
+  { 
+    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
+    return d;
+  }
   
 
 
   bool HasUserData(void* aKey)
-  { return mUserData.Has(aKey); }
+  {
+    return GetUserData(aKey);
+  }
   
 
 
 
   LayerUserData* GetUserData(void* aKey)
-  { return mUserData.Get(aKey); }
+  { 
+    return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
+  }
 
   
 
@@ -530,7 +489,7 @@ public:
 
 protected:
   nsRefPtr<Layer> mRoot;
-  LayerUserDataSet mUserData;
+  gfx::UserData mUserData;
   bool mDestroyed;
   bool mSnapEffectiveTransforms;
 
@@ -789,23 +748,32 @@ public:
 
 
   void SetUserData(void* aKey, LayerUserData* aData)
-  { mUserData.Set(aKey, aData); }
+  { 
+    mUserData.Add(static_cast<gfx::UserDataKey*>(aKey), aData, LayerManagerUserDataDestroy);
+  }
   
 
 
   nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
-  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
+  { 
+    nsAutoPtr<LayerUserData> d(static_cast<LayerUserData*>(mUserData.Remove(static_cast<gfx::UserDataKey*>(aKey)))); 
+    return d;
+  }
   
 
 
   bool HasUserData(void* aKey)
-  { return mUserData.Has(aKey); }
+  {
+    return GetUserData(aKey);
+  }
   
 
 
 
   LayerUserData* GetUserData(void* aKey)
-  { return mUserData.Get(aKey); }
+  { 
+    return static_cast<LayerUserData*>(mUserData.Get(static_cast<gfx::UserDataKey*>(aKey)));
+  }
 
   
 
@@ -991,7 +959,7 @@ protected:
   Layer* mPrevSibling;
   void* mImplData;
   nsRefPtr<Layer> mMaskLayer;
-  LayerUserDataSet mUserData;
+  gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
   gfx3DMatrix mEffectiveTransform;
