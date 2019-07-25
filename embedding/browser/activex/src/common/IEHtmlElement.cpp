@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Adam Lock <adamlock@netscape.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "stdafx.h"
 
@@ -46,7 +46,6 @@
 
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMNSHTMLElement.h"
-#include "nsIDOM3Node.h"
 #include "nsIDOMDocumentRange.h"
 #include "nsIDOMRange.h"
 #include "nsIDOMNSRange.h"
@@ -76,7 +75,7 @@ void CIEHtmlElement::FinalRelease( )
 
 HRESULT CIEHtmlElement::GetChildren(CIEHtmlElementCollectionInstance **ppCollection)
 {
-    // Validate parameters
+    
     if (ppCollection == NULL)
     {
         return E_INVALIDARG;
@@ -84,7 +83,7 @@ HRESULT CIEHtmlElement::GetChildren(CIEHtmlElementCollectionInstance **ppCollect
 
     *ppCollection = NULL;
 
-    // Create a collection representing the children of this node
+    
     CIEHtmlElementCollectionInstance *pCollection = NULL;
     CIEHtmlElementCollection::CreateFromParentNode(this, FALSE, (CIEHtmlElementCollection **) &pCollection);
     if (pCollection)
@@ -102,7 +101,7 @@ HRESULT CIEHtmlElement::GetHtmlDomNode(CIEHtmlDomNode **ppHtmlDomNode)
         return E_FAIL;
     *ppHtmlDomNode = NULL;
     IHTMLDOMNode* pHtmlNode = NULL;
-    // This causes an AddRef on outer unknown:
+    
     HRESULT hr = m_pNodeAgg->QueryInterface(__uuidof(IHTMLDOMNode), (void**)&pHtmlNode);
     *ppHtmlDomNode = (CIEHtmlDomNode*)pHtmlNode;
     return hr;
@@ -111,11 +110,11 @@ HRESULT CIEHtmlElement::GetHtmlDomNode(CIEHtmlDomNode **ppHtmlDomNode)
 HRESULT CIEHtmlElement::SetDOMNode(nsIDOMNode *pDomNode)
 {
     mDOMNode = pDomNode;
-    // Forward to aggregated object:
+    
     CIEHtmlDomNode *pHtmlDomNode;
     GetHtmlDomNode(&pHtmlDomNode);
     HRESULT hr = pHtmlDomNode->SetDOMNode(pDomNode);
-    // Release on outer unknown because GetHtmlDomNode does AddRef on it:
+    
     GetControllingUnknown()->Release();
     return hr;
 }
@@ -123,17 +122,17 @@ HRESULT CIEHtmlElement::SetDOMNode(nsIDOMNode *pDomNode)
 HRESULT CIEHtmlElement::SetParent(CNode *pParent)
 {
     CNode::SetParent(pParent);
-    // Forward to aggregated object:
+    
     CIEHtmlDomNode *pHtmlDomNode;
     GetHtmlDomNode(&pHtmlDomNode);
     HRESULT hr = pHtmlDomNode->SetParent(pParent);
-    // Release on outer unknown because GetHtmlDomNode does AddRef on it:
+    
     GetControllingUnknown()->Release();
     return hr;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-// IHTMLElement implementation
+
+
 
 HRESULT STDMETHODCALLTYPE CIEHtmlElement::setAttribute(BSTR strAttributeName, VARIANT AttributeValue, LONG lFlags)
 {
@@ -148,18 +147,18 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::setAttribute(BSTR strAttributeName, VA
         return E_UNEXPECTED;
     }
 
-    // Get the name from the BSTR
+    
     USES_CONVERSION;
     nsAutoString name(OLE2W(strAttributeName));
 
-    // Get the value from the variant
+    
     CComVariant vValue;
     if (FAILED(vValue.ChangeType(VT_BSTR, &AttributeValue)))
     {
         return E_INVALIDARG;
     }
 
-    // Set the attribute
+    
     nsAutoString value(OLE2W(vValue.bstrVal));
     element->SetAttribute(name, value);
 
@@ -178,7 +177,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::getAttribute(BSTR strAttributeName, LO
     }
     VariantInit(AttributeValue);
 
-    // Get the name from the BSTR
+    
     USES_CONVERSION;
     nsAutoString name(OLE2W(strAttributeName));
 
@@ -191,7 +190,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::getAttribute(BSTR strAttributeName, LO
     BOOL bCaseSensitive = (lFlags == VARIANT_TRUE) ? TRUE : FALSE;
 
 
-    // Get the attribute
+    
     nsAutoString value;
     nsresult rv = element->GetAttribute(name, value);
     if (NS_SUCCEEDED(rv))
@@ -224,11 +223,11 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::removeAttribute(BSTR strAttributeName,
 
     BOOL bCaseSensitive = (lFlags == VARIANT_TRUE) ? TRUE : FALSE;
 
-    // Get the name from the BSTR
+    
     USES_CONVERSION;
     nsAutoString name(OLE2W(strAttributeName));
 
-    // Remove the attribute
+    
     nsresult nr = element->RemoveAttribute(name);
     BOOL bRemoved = (nr == NS_OK) ? TRUE : FALSE;
 
@@ -617,29 +616,27 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_innerHTML(BSTR __RPC_FAR *p)
 
 HRESULT STDMETHODCALLTYPE CIEHtmlElement::put_innerText(BSTR v)
 {
-    nsCOMPtr<nsIDOM3Node> node = do_QueryInterface(mDOMNode);
-    if (!node)
+    if (!mDOMNode)
     {
         return E_UNEXPECTED;
     }
 
     USES_CONVERSION;
     nsAutoString innerText(OLE2W(v));
-    node->SetTextContent(innerText);
+    mDOMNode->SetTextContent(innerText);
 
     return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_innerText(BSTR __RPC_FAR *p)
 {
-    nsCOMPtr<nsIDOM3Node> node = do_QueryInterface(mDOMNode);
-    if (!node)
+    if (!mDOMNode)
     {
         return E_UNEXPECTED;
     }
 
     nsAutoString innerText;
-    node->GetTextContent(innerText);
+    mDOMNode->GetTextContent(innerText);
 
     USES_CONVERSION;
     *p = SysAllocString(W2COLE(innerText.get()));
@@ -735,7 +732,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::insertAdjacentHTML(BSTR where, BSTR ht
     nsCOMPtr<nsIDOMDocumentFragment> domDocFragment;
 
     NS_ASSERTION(mDOMNode, "");
-    //Create a range:
+    
     mDOMNode->GetOwnerDocument(getter_AddRefs(domDoc));
     nsCOMPtr<nsIDOMDocumentRange> domDocRange = do_QueryInterface(domDoc);
     if (!domDocRange)
@@ -743,11 +740,11 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::insertAdjacentHTML(BSTR where, BSTR ht
     domDocRange->CreateRange(getter_AddRefs(domRange));
     if (!domRange)
         return E_FAIL;
-    // Must position range first before calling CreateContextualFragment:
+    
     if (domRange->SetStartBefore(mDOMNode))
         return E_FAIL;
     USES_CONVERSION;
-    // Create doc fragment:
+    
     nsDependentString strAdjacentHTML(OLE2CW(html));
     nsCOMPtr<nsIDOMNSRange> domNSRange = do_QueryInterface(domRange);
     domNSRange->CreateContextualFragment(strAdjacentHTML, getter_AddRefs(domDocFragment));
@@ -755,7 +752,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::insertAdjacentHTML(BSTR where, BSTR ht
         return E_FAIL;
     if (_wcsicmp(OLE2CW(where), L"beforeBegin") == 0)
     {
-        // Insert fragment immediately before us:
+        
         nsCOMPtr<nsIDOMNode> parentNode;
         mDOMNode->GetParentNode(getter_AddRefs(parentNode));
         nsCOMPtr<nsIDOMNode> dummyNode;
@@ -764,7 +761,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::insertAdjacentHTML(BSTR where, BSTR ht
     }
     if (_wcsicmp(OLE2CW(where), L"afterEnd") == 0)
     {
-        // Insert fragment immediately after us:
+        
         nsCOMPtr<nsIDOMNode> parentNode;
         mDOMNode->GetParentNode(getter_AddRefs(parentNode));
         nsCOMPtr<nsIDOMNode> dummyNode;
@@ -772,30 +769,30 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::insertAdjacentHTML(BSTR where, BSTR ht
         mDOMNode->GetNextSibling(getter_AddRefs(nextNode));
         if (nextNode)
         {
-            // Insert immediately before next node:
+            
             rv = parentNode->InsertBefore(domDocFragment, nextNode, getter_AddRefs(dummyNode));
         }
         else
         {
-            // We are the last child, insert after us:
+            
             rv = parentNode->AppendChild(domDocFragment, getter_AddRefs(dummyNode));
         }
         return SUCCEEDED(rv)? S_OK: E_FAIL;
     }
     if (_wcsicmp(OLE2CW(where), L"afterBegin") == 0)
     {
-        // Insert fragment immediately before first child:
+        
         nsCOMPtr<nsIDOMNode> firstChildNode;
         mDOMNode->GetFirstChild(getter_AddRefs(firstChildNode));
         if (!firstChildNode)
-            return E_FAIL; // IE fails when inserting into a tag that has no childs
+            return E_FAIL; 
         nsCOMPtr<nsIDOMNode> dummyNode;
         rv = mDOMNode->InsertBefore(domDocFragment, firstChildNode, getter_AddRefs(dummyNode));
         return SUCCEEDED(rv)? S_OK: E_FAIL;
     }
     if (_wcsicmp(OLE2CW(where), L"beforeEnd") == 0)
     {
-        // Insert fragment immediately as last child:
+        
         nsCOMPtr<nsIDOMNode> dummyNode;
         rv = mDOMNode->AppendChild(domDocFragment, getter_AddRefs(dummyNode));
         return SUCCEEDED(rv)? S_OK: E_FAIL;
@@ -935,7 +932,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_onfilterchange(VARIANT __RPC_FAR *
 
 HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_children(IDispatch __RPC_FAR *__RPC_FAR *p)
 {
-    // Validate parameters
+    
     if (p == NULL)
     {
         return E_INVALIDARG;
@@ -943,7 +940,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_children(IDispatch __RPC_FAR *__RP
 
     *p = NULL;
 
-    // Create a collection representing the children of this node
+    
     CIEHtmlElementCollectionInstance *pCollection = NULL;
     HRESULT hr = GetChildren(&pCollection);
     if (SUCCEEDED(hr))
@@ -956,7 +953,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_children(IDispatch __RPC_FAR *__RP
 
 HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_all(IDispatch __RPC_FAR *__RPC_FAR *p)
 {
-    // Validate parameters
+    
     if (p == NULL)
     {
         return E_INVALIDARG;
@@ -964,7 +961,7 @@ HRESULT STDMETHODCALLTYPE CIEHtmlElement::get_all(IDispatch __RPC_FAR *__RPC_FAR
 
     *p = NULL;
 
-    // TODO get ALL contained elements, not just the immediate children
+    
 
     CIEHtmlElementCollectionInstance *pCollection = NULL;
     CIEHtmlElementCollection::CreateFromParentNode(this, TRUE, (CIEHtmlElementCollection **) &pCollection);

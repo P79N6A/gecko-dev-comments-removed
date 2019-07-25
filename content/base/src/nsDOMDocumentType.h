@@ -53,8 +53,20 @@
 
 
 
-class nsDOMDocumentType : public nsGenericDOMDataNode,
-                          public nsIDOMDocumentType
+class nsDOMDocumentTypeForward : public nsGenericDOMDataNode,
+                                 public nsIDOMDocumentType
+{
+public:
+  nsDOMDocumentTypeForward(already_AddRefed<nsINodeInfo> aNodeInfo)
+    : nsGenericDOMDataNode(aNodeInfo)
+  {
+  }
+
+  
+  NS_FORWARD_NSIDOMNODE(nsGenericDOMDataNode::)
+};
+
+class nsDOMDocumentType : public nsDOMDocumentTypeForward
 {
 public:
   nsDOMDocumentType(already_AddRefed<nsINodeInfo> aNodeInfo,
@@ -69,17 +81,35 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMPL_NSIDOMNODE_USING_GENERIC_DOM_DATA
+  
 
   
   NS_DECL_NSIDOMDOCUMENTTYPE
 
+  NS_IMETHODIMP GetNodeValue(nsAString& aNodeValue)
+  {
+    SetDOMStringToNull(aNodeValue);
+  
+    return NS_OK;
+  }
+  NS_IMETHODIMP SetNodeValue(const nsAString& aNodeValue)
+  {
+    return NS_OK;
+  }
+
   
   virtual PRBool IsNodeOfType(PRUint32 aFlags) const;
+  virtual PRUint16 NodeType();
+  virtual void NodeName(nsAString& aNodeName);
+
+  
   virtual const nsTextFragment* GetText();
   virtual nsresult BindToTree(nsIDocument *aDocument, nsIContent *aParent,
                               nsIContent *aBindingParent,
                               PRBool aCompileEventHandlers);
+
+  virtual nsGenericDOMDataNode* CloneDataNode(nsINodeInfo *aNodeInfo,
+                                              PRBool aCloneText) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
@@ -98,4 +128,4 @@ NS_NewDOMDocumentType(nsIDOMDocumentType** aDocType,
                       const nsAString& aSystemId,
                       const nsAString& aInternalSubset);
 
-#endif 
+#endif
