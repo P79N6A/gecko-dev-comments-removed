@@ -491,6 +491,8 @@ ContentPanningModule.prototype = {
     this._owner.grab(this);
     ws.dragStart(sX, sY);
 
+    Browser.canvasBrowser.prepareForPanning();
+    
     
     this._kineticData.lastTime = Date.now();
   },
