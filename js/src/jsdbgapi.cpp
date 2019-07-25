@@ -112,58 +112,58 @@ JS_SetRuntimeDebugMode(JSRuntime *rt, JSBool debug)
     rt->debugMode = debug;
 }
 
-JS_FRIEND_API(JSBool)
-JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
+#ifdef DEBUG
+static bool
+CompartmentHasLiveScripts(JSCompartment *comp)
 {
-    JSRuntime *rt = cx->runtime;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-
-    JSContext *iter = NULL;
-#ifdef JS_THREADSAFE
+#ifdef JS_METHODJIT
+# ifdef JS_THREADSAFE
     jsword currentThreadId = reinterpret_cast<jsword>(js_CurrentThreadId());
+# endif
 #endif
-    typedef HashSet<JSScript *, DefaultHasher<JSScript*>, ContextAllocPolicy> ScriptMap;
-    ScriptMap liveScripts(cx);
-    if (!liveScripts.init())
-        return JS_FALSE;
 
+    
+    
+    JSContext *iter = NULL;
     JSContext *icx;
-    while ((icx = JS_ContextIterator(rt, &iter))) {
+    while ((icx = JS_ContextIterator(comp->rt, &iter))) {
 #ifdef JS_THREADSAFE
         if (JS_GetContextThread(icx) != currentThreadId)
             continue;
 #endif
-
         for (AllFramesIter i(icx); !i.done(); ++i) {
             JSScript *script = i.fp()->maybeScript();
-            if (script)
-                liveScripts.put(script);
+            if (script && script->compartment == comp)
+                return JS_TRUE;
         }
     }
 
+    return JS_FALSE;
+}
+#endif
+
+JS_FRIEND_API(JSBool)
+JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
+{
+    
+    
+    
+    JS_ASSERT(!CompartmentHasLiveScripts(comp));
+
+    
     comp->debugMode = debug;
 
-    JSAutoEnterCompartment ac;
+    
+    
 
 #ifdef JS_METHODJIT
+    JSAutoEnterCompartment ac;
+
     for (JSScript *script = (JSScript *)comp->scripts.next;
          &script->links != &comp->scripts;
          script = (JSScript *)script->links.next)
     {
         if (!script->debugMode == !debug)
-            continue;
-        if (liveScripts.has(script))
             continue;
 
         
