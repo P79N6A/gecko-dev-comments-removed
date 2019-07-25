@@ -2,6 +2,6 @@
 
 
 
-assertEq("length" in Object.getOwnPropertyNames(Array.prototype), true);
+assertEq(Object.getOwnPropertyNames(Array.prototype).indexOf("length") >= 0, true);
 
 reportCompare("ok", "ok", "bug 583429");
