@@ -1042,14 +1042,17 @@ function pad(aS, aN, aC)
 
 
 
-const kHorizontal       = "\u2500",
-      kVertical         = "\u2502",
-      kUpAndRight       = "\u2514",
-      kVerticalAndRight = "\u251c",
-      kNoKidsSep        = " \u2500\u2500 ",
-      kHideKidsSep      = " ++ ",
-      kShowKidsSep      = " -- ";
+const kHorizontal                   = "\u2500",
+      kVertical                     = "\u2502",
+      kUpAndRight                   = "\u2514",
+      kUpAndRight_Right_Right       = "\u2514\u2500\u2500",
+      kVerticalAndRight             = "\u251c",
+      kVerticalAndRight_Right_Right = "\u251c\u2500\u2500",
+      kVertical_Space_Space         = "\u2502  ";
 
+const kNoKidsSep                    = " \u2500\u2500 ",
+      kHideKidsSep                  = " ++ ",
+      kShowKidsSep                  = " -- ";
 
 function appendMrValueSpan(aP, aValue, aIsInvalid)
 {
@@ -1205,32 +1208,30 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
 
 
-
-  function appendTreeElements2(aP, aUnsafeNames, aT, aIndentGuide,
-                               aBaseIndentText, aParentStringLength)
+  function appendTreeElements2(aP, aUnsafeNames, aT, aTreelineText1,
+                               aTreelineText2a, aTreelineText2b,
+                               aParentStringLength)
   {
-    function repeatStr(aA, aC, aN)
+    function appendN(aS, aC, aN)
     {
       for (let i = 0; i < aN; i++) {
-        aA.push(aC);
+        aS += aC;
       }
+      return aS;
     }
 
     
-    
-    let tString = aT.toString();
-    let extraIndentLength = Math.max(aParentStringLength - tString.length, 0);
-    let indentText;
-    if (extraIndentLength > 0) {
-      let extraIndentArray = [];
-      repeatStr(extraIndentArray, kHorizontal, extraIndentLength);
-      aIndentGuide[aIndentGuide.length - 1]._depth += extraIndentLength;
-      indentText = aBaseIndentText + extraIndentArray.join("");
+    let valueText = aT.toString();
+    let extraTreelineLength =
+      Math.max(aParentStringLength - valueText.length, 0);
+    if (extraTreelineLength > 0) {
+      aTreelineText2a =
+        appendN(aTreelineText2a, kHorizontal, extraTreelineLength);
+      aTreelineText2b =
+        appendN(aTreelineText2b, " ",         extraTreelineLength);
     }
-    else {
-      indentText = aBaseIndentText;
-    }
-    appendElementWithText(aP, "span", "treeLine", indentText);
+    let treelineText = aTreelineText1 + aTreelineText2a;
+    appendElementWithText(aP, "span", "treeline", treelineText);
 
     
     
@@ -1275,7 +1276,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
       d = aP;
     }
 
-    appendMrValueSpan(d, tString, tIsInvalid);
+    appendMrValueSpan(d, valueText, tIsInvalid);
     appendElementWithText(d, "span", "mrPerc", percText);
     appendElementWithText(d, "span", "mrSep", sep);
 
@@ -1292,29 +1293,21 @@ function appendTreeElements(aPOuter, aT, aProcess)
       
       d = appendElement(aP, "span", showSubtrees ? "kids" : "kids hidden");
 
+      let kidTreelineText1 = aTreelineText1 + aTreelineText2b;
       for (let i = 0; i < aT._kids.length; i++) {
-        
-        aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-
-        
-        let baseIndentArray = [];
-        if (aIndentGuide.length > 0) {
-          let j;
-          for (j = 0; j < aIndentGuide.length - 1; j++) {
-            baseIndentArray.push(aIndentGuide[j]._isLastKid ? " " : kVertical);
-            repeatStr(baseIndentArray, " ", aIndentGuide[j]._depth - 1);
-          }
-          baseIndentArray.push(aIndentGuide[j]._isLastKid ?
-                               kUpAndRight : kVerticalAndRight);
-          repeatStr(baseIndentArray, kHorizontal, aIndentGuide[j]._depth - 1);
+        let kidTreelineText2a, kidTreelineText2b;
+        if (i < aT._kids.length - 1) {
+          kidTreelineText2a = kVerticalAndRight_Right_Right;
+          kidTreelineText2b = kVertical_Space_Space;
+        } else {
+          kidTreelineText2a = kUpAndRight_Right_Right;
+          kidTreelineText2b = "   ";
         }
-
-        let baseIndentText = baseIndentArray.join("");
         aUnsafeNames.push(aT._kids[i]._unsafeName);
-        appendTreeElements2(d, aUnsafeNames, aT._kids[i], aIndentGuide,
-                            baseIndentText, tString.length);
+        appendTreeElements2(d, aUnsafeNames, aT._kids[i], kidTreelineText1,
+                            kidTreelineText2a, kidTreelineText2b,
+                            valueText.length);
         aUnsafeNames.pop();
-        aIndentGuide.pop();
       }
     }
   }
@@ -1322,7 +1315,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
   appendSectionHeader(aPOuter, kSectionNames[aT._unsafeName]);
  
   let pre = appendElement(aPOuter, "pre", "entries");
-  appendTreeElements2(pre, [aT._unsafeName], aT, [], "", rootStringLength);
+  appendTreeElements2(pre, [aT._unsafeName], aT, "", "", "", rootStringLength);
   appendTextNode(aPOuter, "\n");  
 }
 
