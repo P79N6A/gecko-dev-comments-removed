@@ -817,6 +817,9 @@ pref("network.IDN.whitelist.xn--fiqs8s", true);
 
 pref("network.IDN.whitelist.xn--j6w193g", true);
 
+pref("network.IDN.whitelist.xn--mgba3a4f16a", true);
+pref("network.IDN.whitelist.xn--mgba3a4fra", true);
+
 pref("network.IDN.whitelist.xn--mgbayh7gpa", true);
 
 pref("network.IDN.whitelist.xn--p1ai", true);
@@ -1320,6 +1323,12 @@ pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
+#endif
+
+#ifdef XP_WIN
+
+
+pref("dom.ipc.plugins.java.enabled", false);
 #endif
 
 #ifndef ANDROID
@@ -3237,7 +3246,7 @@ pref("gfx.direct2d.disabled", false);
 pref("gfx.direct2d.force-enabled", false);
 
 pref("layers.prefer-opengl", false);
-pref("layers.use-d3d10", false);
+pref("layers.prefer-d3d9", false);
 #endif
 #endif
 
