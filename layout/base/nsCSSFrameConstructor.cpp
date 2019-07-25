@@ -5514,6 +5514,13 @@ nsCSSFrameConstructor::GetFrameFor(nsIContent* aContent)
   if (!frame)
     return nsnull;
 
+  
+  
+  
+  if (frame->GetContent() != aContent) {
+    return nsnull;
+  }
+
   nsIFrame* insertionFrame = frame->GetContentInsertionFrame();
 
   NS_ASSERTION(insertionFrame == frame || !frame->IsLeaf(),
@@ -6259,11 +6266,6 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
   
   
   
-  PRBool bogusPrimaryFrame = PR_FALSE;
-
-  
-  
-  
   
   
   PRBool noPrimaryFrame = PR_FALSE;
@@ -6275,15 +6277,10 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
     if (content->GetPrimaryFrame() && content->GetPrimaryFrame()->IsLeaf()) {
       noPrimaryFrame = needsFrameBitSet = PR_FALSE;
     }
-    if (!bogusPrimaryFrame && content->GetPrimaryFrame() &&
-        content->GetPrimaryFrame()->GetContent() != content) {
-      bogusPrimaryFrame = PR_TRUE;
-    }
-    if (!noPrimaryFrame && !content->GetPrimaryFrame() && !bogusPrimaryFrame) {
+    if (!noPrimaryFrame && !content->GetPrimaryFrame()) {
       noPrimaryFrame = PR_TRUE;
     }
-    if (!needsFrameBitSet && content->HasFlag(NODE_NEEDS_FRAME) &&
-        !bogusPrimaryFrame) {
+    if (!needsFrameBitSet && content->HasFlag(NODE_NEEDS_FRAME)) {
       needsFrameBitSet = PR_TRUE;
     }
 #endif
