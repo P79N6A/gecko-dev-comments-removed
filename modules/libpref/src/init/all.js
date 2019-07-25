@@ -318,6 +318,9 @@ pref("toolkit.telemetry.debugSlowSql", false);
 
 pref("devtools.debugger.log", false);
 
+pref("devtools.debugger.remote-enabled", false);
+pref("devtools.debugger.remote-port", 6000);
+
 
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
@@ -658,8 +661,6 @@ pref("javascript.options.methodjit.chrome",  true);
 pref("javascript.options.pccounts.content", false);
 pref("javascript.options.pccounts.chrome",  false);
 pref("javascript.options.methodjit_always", false);
-pref("javascript.options.xml.content", true);
-pref("javascript.options.xml.chrome", true);
 pref("javascript.options.jit_hardening", true);
 pref("javascript.options.typeinference", true);
 
@@ -848,7 +849,7 @@ pref("network.http.fast-fallback-to-IPv4", true);
 
 pref("network.http.spdy.enabled", true);
 pref("network.http.spdy.enabled.v2", true);
-pref("network.http.spdy.enabled.v3", true);
+pref("network.http.spdy.enabled.v3", false);
 pref("network.http.spdy.chunk-size", 4096);
 pref("network.http.spdy.timeout", 180);
 pref("network.http.spdy.coalesce-hostnames", true);
