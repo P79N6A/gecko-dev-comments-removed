@@ -12,15 +12,19 @@ import org.mozilla.gecko.GeckoAppShell;
 
 final class DisplayPortCalculator {
     private static final String LOGTAG = "GeckoDisplayPortCalculator";
+    private static final PointF ZERO_VELOCITY = new PointF(0, 0);
 
     private static DisplayPortStrategy sStrategy = new FixedMarginStrategy();
 
     static DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
-        return sStrategy.calculate(metrics, velocity);
+        return sStrategy.calculate(metrics, (velocity == null ? ZERO_VELOCITY : velocity));
     }
 
     static boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
-        return sStrategy.aboutToCheckerboard(metrics, velocity, displayPort);
+        if (displayPort == null) {
+            return true;
+        }
+        return sStrategy.aboutToCheckerboard(metrics, (velocity == null ? ZERO_VELOCITY : velocity), displayPort);
     }
 
     private interface DisplayPortStrategy {
@@ -126,10 +130,6 @@ final class DisplayPortCalculator {
         }
 
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
-            if (displayPort == null) {
-                return true;
-            }
-
             
             
             
@@ -288,7 +288,7 @@ final class DisplayPortCalculator {
 
             float width = baseWidth;
             float height = baseHeight;
-            if (velocity != null && velocity.length() > VELOCITY_EXPANSION_THRESHOLD) {
+            if (velocity.length() > VELOCITY_EXPANSION_THRESHOLD) {
                 
                 float velocityFactor = Math.max(Math.abs(velocity.x) / width,
                                                 Math.abs(velocity.y) / height);
@@ -402,10 +402,6 @@ final class DisplayPortCalculator {
         }
 
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
-            if (displayPort == null) {
-                return true;
-            }
-
             
             
             
@@ -417,7 +413,7 @@ final class DisplayPortCalculator {
 
             
             
-            if (velocity != null && velocity.length() > 0) {
+            if (velocity.length() > 0) {
                 if (velocity.x < 0) {
                     left += velocity.x * PREDICTION_VELOCITY_MULTIPLIER;
                 } else if (velocity.x > 0) {
