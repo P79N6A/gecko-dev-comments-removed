@@ -146,21 +146,29 @@ const char *const js_common_atom_names[] = {
     js_eval_str,                
     js_fileName_str,            
     js_get_str,                 
+    js_global_str,              
+    js_ignoreCase_str,          
     js_index_str,               
     js_input_str,               
     js_iterator_str,            
+    js_lastIndex_str,           
     js_length_str,              
     js_lineNumber_str,          
     js_message_str,             
+    js_multiline_str,           
     js_name_str,                
     js_next_str,                
     js_noSuchMethod_str,        
     js_proto_str,               
     js_set_str,                 
+    js_source_str,              
     js_stack_str,               
+    js_sticky_str,              
+    js_toGMTString_str,         
     js_toLocaleString_str,      
     js_toSource_str,            
     js_toString_str,            
+    js_toUTCString_str,         
     js_valueOf_str,             
     js_toJSON_str,              
     "(void 0)",                 
@@ -232,12 +240,16 @@ const char js_eval_str[]            = "eval";
 const char js_fileName_str[]        = "fileName";
 const char js_get_str[]             = "get";
 const char js_getter_str[]          = "getter";
+const char js_global_str[]          = "global";
+const char js_ignoreCase_str[]      = "ignoreCase";
 const char js_index_str[]           = "index";
 const char js_input_str[]           = "input";
 const char js_iterator_str[]        = "__iterator__";
+const char js_lastIndex_str[]       = "lastIndex";
 const char js_length_str[]          = "length";
 const char js_lineNumber_str[]      = "lineNumber";
 const char js_message_str[]         = "message";
+const char js_multiline_str[]       = "multiline";
 const char js_name_str[]            = "name";
 const char js_next_str[]            = "next";
 const char js_noSuchMethod_str[]    = "__noSuchMethod__";
@@ -245,10 +257,14 @@ const char js_object_str[]          = "object";
 const char js_proto_str[]           = "__proto__";
 const char js_setter_str[]          = "setter";
 const char js_set_str[]             = "set";
+const char js_source_str[]          = "source";
 const char js_stack_str[]           = "stack";
+const char js_sticky_str[]          = "sticky";
+const char js_toGMTString_str[]     = "toGMTString";
+const char js_toLocaleString_str[]  = "toLocaleString";
 const char js_toSource_str[]        = "toSource";
 const char js_toString_str[]        = "toString";
-const char js_toLocaleString_str[]  = "toLocaleString";
+const char js_toUTCString_str[]     = "toUTCString";
 const char js_undefined_str[]       = "undefined";
 const char js_valueOf_str[]         = "valueOf";
 const char js_toJSON_str[]          = "toJSON";

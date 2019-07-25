@@ -122,10 +122,6 @@ template<typename T> class Seq;
 
 }  
 
-namespace JSC {
-    class ExecutableAllocator;
-}
-
 namespace js {
 
 
@@ -221,24 +217,6 @@ struct TracerState
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~TracerState();
 };
-
-namespace mjit {
-    struct ThreadData
-    {
-        JSC::ExecutableAllocator *execPool;
-
-        
-        typedef js::HashSet<JSScript*, DefaultHasher<JSScript*>, js::SystemAllocPolicy> ScriptSet;
-        ScriptSet picScripts;
-
-        bool Initialize();
-        void Finish();
-
-        bool addScript(JSScript *script);
-        void removeScript(JSScript *script);
-        void purge(JSContext *cx);
-    };
-}
 
 
 
@@ -651,6 +629,9 @@ class StackSpace
     inline Value *firstUnused() const;
 
     inline void assertIsCurrent(JSContext *cx) const;
+#ifdef DEBUG
+    CallStack *getCurrentCallStack() const { return currentCallStack; }
+#endif
 
     
 
@@ -777,8 +758,6 @@ class StackSpace
     
     JS_REQUIRES_STACK
     JS_FRIEND_API(bool) pushInvokeArgsFriendAPI(JSContext *, uintN, InvokeArgsGuard &);
-
-    CallStack *getCurrentCallStack() const { return currentCallStack; }
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
@@ -809,20 +788,6 @@ class FrameRegsIter
     JSStackFrame *fp() const { return curfp; }
     Value *sp() const { return cursp; }
     jsbytecode *pc() const { return curpc; }
-};
-
-class AllFramesIter
-{
-    CallStack         *curcs;
-    JSStackFrame      *curfp;
-
-  public:
-    JS_REQUIRES_STACK AllFramesIter(JSContext *cx);
-
-    bool done() const { return curfp == NULL; }
-    AllFramesIter &operator++();
-
-    JSStackFrame *fp() const { return curfp; }
 };
 
 
@@ -993,29 +958,6 @@ struct JSFunctionMeter {
 # undef identity
 #endif
 
-struct JSLocalRootChunk;
-
-#define JSLRS_CHUNK_SHIFT       8
-#define JSLRS_CHUNK_SIZE        JS_BIT(JSLRS_CHUNK_SHIFT)
-#define JSLRS_CHUNK_MASK        JS_BITMASK(JSLRS_CHUNK_SHIFT)
-
-struct JSLocalRootChunk {
-    void                *roots[JSLRS_CHUNK_SIZE];
-    JSLocalRootChunk    *down;
-};
-
-struct JSLocalRootStack {
-    uint32              scopeMark;
-    uint32              rootCount;
-    JSLocalRootChunk    *topChunk;
-    JSLocalRootChunk    firstChunk;
-
-    
-    JSGCFreeLists       gcFreeLists;
-};
-
-const uint32 JSLRS_NULL_MARK = uint32(-1);
-
 #define NATIVE_ITER_CACHE_LOG2  8
 #define NATIVE_ITER_CACHE_MASK  JS_BITMASK(NATIVE_ITER_CACHE_LOG2)
 #define NATIVE_ITER_CACHE_SIZE  JS_BIT(NATIVE_ITER_CACHE_LOG2)
@@ -1047,16 +989,9 @@ struct JSThreadData {
     
     js::PropertyCache   propertyCache;
 
-    
-    JSLocalRootStack    *localRootStack;
-
 #ifdef JS_TRACER
     
     js::TraceMonitor    traceMonitor;
-#endif
-
-#ifdef JS_METHODJIT
-    js::mjit::ThreadData jmData;
 #endif
 
     
@@ -1089,11 +1024,12 @@ struct JSThreadData {
     
     JSPendingProxyOperation *pendingProxyOperation;
 
+    js::ConservativeGCThreadData conservativeGC;
+
     bool init();
     void finish();
     void mark(JSTracer *trc);
     void purge(JSContext *cx);
-    void purgeGCFreeLists();
 };
 
 #ifdef JS_THREADSAFE
@@ -1201,7 +1137,7 @@ struct GCPtrHasher
     static HashNumber hash(void *key) {
         return HashNumber(uintptr_t(key) >> JS_GCTHING_ZEROBITS);
     }
-    
+
     static bool match(void *l, void *k) {
         return l == k;
     }
@@ -1221,14 +1157,46 @@ typedef js::HashMap<void *,
                     js::DefaultHasher<void *>,
                     js::SystemAllocPolicy> RootedValueMap;
 
+struct WrapperHasher
+{
+    typedef jsval Lookup;
+    
+    static HashNumber hash(jsval key) {
+        return GCPtrHasher::hash(JSVAL_TO_GCTHING(key));
+    }
+
+    static bool match(jsval l, jsval k) {
+        return l == k;
+    }
+};
+
+typedef HashMap<void *, jsval, WrapperHasher, SystemAllocPolicy> WrapperMap;
+
+class AutoValueVector;
+
 } 
 
 struct JSCompartment {
     JSRuntime *rt;
+    JSPrincipals *principals;
     bool marked;
+    js::WrapperMap crossCompartmentWrappers;
 
     JSCompartment(JSRuntime *cx);
     ~JSCompartment();
+
+    bool init();
+
+    bool wrap(JSContext *cx, jsval *vp);
+    bool wrap(JSContext *cx, JSString **strp);
+    bool wrap(JSContext *cx, JSObject **objp);
+    bool wrapId(JSContext *cx, jsid *idp);
+    bool wrap(JSContext *cx, JSPropertyOp *op);
+    bool wrap(JSContext *cx, JSPropertyDescriptor *desc);
+    bool wrap(JSContext *cx, js::AutoValueVector &props);
+    bool wrapException(JSContext *cx);
+
+    void sweep(JSContext *cx);
 };
 
 struct JSRuntime {
@@ -1488,9 +1456,16 @@ struct JSRuntime {
     
     JSAtomState         atomState;
 
+    
+
+
+
     JSEmptyScope          *emptyArgumentsScope;
     JSEmptyScope          *emptyBlockScope;
     JSEmptyScope          *emptyCallScope;
+    JSEmptyScope          *emptyDeclEnvScope;
+    JSEmptyScope          *emptyEnumeratorScope;
+    JSEmptyScope          *emptyWithScope;
 
     
 
@@ -1576,6 +1551,8 @@ struct JSRuntime {
     char                lastScriptFilename[1024];
 #endif
 
+    JSWrapObjectCallback wrapObjectCallback;
+
     JSRuntime();
     ~JSRuntime();
 
@@ -1610,7 +1587,6 @@ struct JSRuntime {
 #define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
 #define JS_TRACE_MONITOR(cx)    (JS_THREAD_DATA(cx)->traceMonitor)
-#define JS_METHODJIT_DATA(cx)   (JS_THREAD_DATA(cx)->jmData)
 #define JS_SCRIPTS_TO_GC(cx)    (JS_THREAD_DATA(cx)->scriptsToGC)
 
 #ifdef JS_EVAL_CACHE_METERING
@@ -1696,9 +1672,7 @@ struct JSContext
 
 
 
-    volatile jsword     interruptFlags;
-
-    static const jsword INTERRUPT_OPERATION_CALLBACK = 0x1;
+    volatile jsint      operationCallbackFlag;
 
     
     JSCList             link;
@@ -1737,7 +1711,7 @@ struct JSContext
     JSPackedBool        insideGCMarkCallback;
 
     
-    JSBool              throwing;           
+    JSPackedBool        throwing;           
     js::Value           exception;          
 
     
@@ -1763,7 +1737,7 @@ struct JSContext
     JS_REQUIRES_STACK
     JSFrameRegs         *regs;
 
-  public:
+  private:
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *);
 
@@ -1776,6 +1750,7 @@ struct JSContext
         this->regs = regs;
     }
 
+  public:
     
     JSArenaPool         tempPool;
 
@@ -1874,6 +1849,10 @@ struct JSContext
     jsrefcount          requestDepth;
     
     jsrefcount          outstandingRequests;
+# ifdef DEBUG
+    unsigned            checkRequestDepth;
+# endif    
+
     JSTitle             *lockedSealedTitle; 
 
     JSCList             threadLinks;        
@@ -2177,8 +2156,29 @@ InvokeArgsGuard::~InvokeArgsGuard()
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread ? (cx)->thread->id : 0)
+#endif
+
+#if defined JS_THREADSAFE && defined DEBUG
+
+namespace js {
+
+class AutoCheckRequestDepth {
+    JSContext *cx;
+  public:
+    AutoCheckRequestDepth(JSContext *cx) : cx(cx) { cx->checkRequestDepth++; }
+
+    ~AutoCheckRequestDepth() {
+        JS_ASSERT(cx->checkRequestDepth != 0);
+        cx->checkRequestDepth--;
+    }
+};
+
+}
+
 # define CHECK_REQUEST(cx)                                                  \
-    JS_ASSERT((cx)->requestDepth || (cx)->thread == (cx)->runtime->gcThread)
+    JS_ASSERT((cx)->requestDepth || (cx)->thread == (cx)->runtime->gcThread);\
+    AutoCheckRequestDepth _autoCheckRequestDepth(cx);
+
 #else
 # define CHECK_REQUEST(cx)       ((void)0)
 #endif
@@ -2199,24 +2199,6 @@ FrameAtomBase(JSContext *cx, JSStackFrame *fp)
 
 namespace js {
 
-class AutoNewCompartment {
-    JSContext *cx;
-    JSCompartment *compartment;
-  public:
-    JS_FRIEND_API(AutoNewCompartment(JSContext *cx));
-    JS_FRIEND_API(~AutoNewCompartment());
-
-    JS_FRIEND_API(bool) init();
-};
-
-class AutoCompartment {
-    JSContext *cx;
-    JSCompartment *compartment;
-  public:
-    JS_FRIEND_API(AutoCompartment(JSContext *cx, JSObject *obj));
-    JS_FRIEND_API(~AutoCompartment());
-};
-
 class AutoGCRooter {
   public:
     AutoGCRooter(JSContext *cx, ptrdiff_t tag)
@@ -2231,6 +2213,7 @@ class AutoGCRooter {
         context->autoGCRooters = down;
     }
 
+    
     inline void trace(JSTracer *trc);
 
 #ifdef __GNUC__
@@ -2826,34 +2809,6 @@ js_StopResolving(JSContext *cx, JSResolvingKey *key, uint32 flag,
 
 
 
-extern JSBool
-js_EnterLocalRootScope(JSContext *cx);
-
-extern void
-js_LeaveLocalRootScopeWithResult(JSContext *cx, void *thing);
-
-static inline void
-js_LeaveLocalRootScope(JSContext *cx)
-{
-    js_LeaveLocalRootScopeWithResult(cx, NULL);
-}
-
-static inline void
-js_LeaveLocalRootScopeWithResult(JSContext *cx, const js::Value &v)
-{
-    js_LeaveLocalRootScopeWithResult(cx, v.isGCThing() ? v.asGCThing() : NULL);
-}
-
-
-extern void
-js_ForgetLocalRoot(JSContext *cx, void *thing);
-
-extern int
-js_PushLocalRoot(JSContext *cx, JSLocalRootStack *lrs, void *thing);
-
-
-
-
 
 typedef enum JSErrNum {
 #define MSG_DEF(name, number, count, exception, format) \
@@ -2967,8 +2922,7 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 #define JS_CHECK_OPERATION_LIMIT(cx) \
-    (!((cx)->interruptFlags & JSContext::INTERRUPT_OPERATION_CALLBACK) || \
-     js_InvokeOperationCallback(cx))
+    (!(cx)->operationCallbackFlag || js_InvokeOperationCallback(cx))
 
 
 
@@ -2984,9 +2938,6 @@ js_InvokeOperationCallback(JSContext *cx);
 
 void
 js_TriggerAllOperationCallbacks(JSRuntime *rt, JSBool gcLocked);
-
-extern JSBool
-js_HandleExecutionInterrupt(JSContext *cx);
 
 extern JSStackFrame *
 js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp);

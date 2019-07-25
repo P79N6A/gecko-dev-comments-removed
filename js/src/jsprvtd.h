@@ -346,8 +346,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSCheckAccessIdOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
-                      jsval *vp, uintN *attrsp);
+(* JSCallOp)(JSContext *cx, uintN argc, jsval *vp);
 
 
 

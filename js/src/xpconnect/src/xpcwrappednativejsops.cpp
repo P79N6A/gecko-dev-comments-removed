@@ -1459,6 +1459,36 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj)
         return nsnull;
     }
 
+    
+    
+    
+    JSObject* innerobj = obj;
+    OBJ_TO_INNER_OBJECT(cx, innerobj);
+    if(!innerobj)
+        return nsnull;
+
+    if(innerobj == scope)
+    {
+        
+        
+        
+
+        XPCWrappedNative *wn =
+            static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
+
+        if(!wn->NeedsXOW())
+            return obj;
+
+        XPCWrappedNativeWithXOW *wnxow =
+            static_cast<XPCWrappedNativeWithXOW *>(wn);
+        JSObject *wrapper = wnxow->GetXOW();
+        if(wrapper)
+            return wrapper;
+
+        
+        
+    }
+
     XPCPerThreadData *threadData = XPCPerThreadData::GetData(cx);
     if(!threadData)
     {
@@ -1468,27 +1498,6 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj)
 
     AutoPopJSContext popper(threadData->GetJSContextStack());
     popper.PushIfNotTop(cx);
-
-    JSObject* outerscope = scope;
-    Outerize(cx, &outerscope);
-    if(!outerscope)
-        return nsnull;
-
-    if(obj == outerscope)
-    {
-        
-        
-        
-
-        if(!XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name))
-            return obj;
-
-        js::AutoValueRooter tvr(cx, js::ObjectTag(*obj));
-        if(!XPCCrossOriginWrapper::WrapObject(cx, scope, tvr.jsval_addr()))
-            return nsnull;
-
-        return &tvr.value().asObject();
-    }
 
     nsIScriptSecurityManager* secMan = XPCWrapper::GetSecurityManager();
     if(!secMan)

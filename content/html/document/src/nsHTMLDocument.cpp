@@ -342,7 +342,7 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   
   
   
-  mContentType = "text/html";
+  SetContentTypeInternal(nsDependentCString("text/html"));
 }
 
 nsStyleSet::sheetType
@@ -1247,7 +1247,7 @@ nsHTMLDocument::SetCompatibilityMode(nsCompatibility aMode)
 
   mCompatMode = aMode;
   CSSLoader()->SetCompatibilityMode(mCompatMode);
-  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
+  nsCOMPtr<nsIPresShell> shell = GetShell();
   if (shell) {
     nsPresContext *pc = shell->GetPresContext();
     if (pc) {
@@ -1592,16 +1592,8 @@ nsHTMLDocument::GetBody(nsresult *aResult)
 
   
   
-  nsRefPtr<nsContentList> nodeList;
-
-  if (IsHTML()) {
-    nodeList = nsDocument::GetElementsByTagName(NS_LITERAL_STRING("frameset"));
-  } else {
-    nodeList =
-      nsDocument::GetElementsByTagNameNS(NS_LITERAL_STRING("http://www.w3.org/1999/xhtml"),
-                             NS_LITERAL_STRING("frameset"));
-  }
-
+  nsRefPtr<nsContentList> nodeList =
+    NS_GetContentList(this, nsGkAtoms::frameset, kNameSpaceID_XHTML);
   if (!nodeList) {
     *aResult = NS_ERROR_OUT_OF_MEMORY;
 
@@ -1939,6 +1931,15 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
       }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    mMayStartLayout = PR_FALSE;
+
     nsCOMPtr<nsIWebNavigation> webnav(do_QueryInterface(shell));
     webnav->Stop(nsIWebNavigation::STOP_NETWORK);
 
@@ -1947,6 +1948,10 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
     
     
     EnsureOnloadBlocker();
+  } else {
+    
+    
+    mMayStartLayout = PR_FALSE;
   }
 
   
@@ -2022,7 +2027,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   }
 
   
-  mContentType = aContentType;
+  SetContentTypeInternal(aContentType);
 
   mWriteState = eDocumentOpened;
 
@@ -2121,7 +2126,7 @@ nsHTMLDocument::Close()
 
     ++mWriteLevel;
     rv = mParser->Parse(EmptyString(), mParser->GetRootContextKey(),
-                        mContentType, PR_TRUE);
+                        GetContentTypeInternal(), PR_TRUE);
     --mWriteLevel;
 
     
@@ -2145,7 +2150,7 @@ nsHTMLDocument::Close()
     
     
     
-    if (GetPrimaryShell()) {
+    if (GetShell()) {
       FlushPendingNotifications(Flush_Layout);
     }
 
@@ -2221,11 +2226,11 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
   
   if (aNewlineTerminate) {
     rv = mParser->Parse(aText + new_line,
-                        key, mContentType,
+                        key, GetContentTypeInternal(),
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   } else {
     rv = mParser->Parse(aText,
-                        key, mContentType,
+                        key, GetContentTypeInternal(),
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   }
 
@@ -2289,6 +2294,13 @@ nsHTMLDocument::MatchNameAttribute(nsIContent* aContent, PRInt32 aNamespaceID,
     aContent->GetNameSpaceID() == kNameSpaceID_XHTML &&
     aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
                           *elementName, eCaseMatters);
+}
+
+
+void*
+nsHTMLDocument::UseExistingNameString(nsINode* aRootNode, const nsString* aName)
+{
+  return const_cast<nsString*>(aName);
 }
 
 NS_IMETHODIMP
@@ -2657,11 +2669,9 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 {
   *aResult = nsnull;
 
-  nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
-
   
   
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(name);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aName);
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   if (entry->IsInvalidName()) {
@@ -2685,7 +2695,14 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 
     Element* root = GetRootElement();
     if (root && !aName.IsEmpty()) {
-      FindNamedItems(name, root, entry);
+      
+      
+      
+      nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
+
+      if (name) {
+        FindNamedItems(name, root, entry);
+      }
     }
   }
 
@@ -2790,7 +2807,8 @@ nsHTMLDocument::PrePopulateIdentifierMap()
     nsCOMPtr<nsIAtom> atom(do_GetAtom(names[i]));
     NS_ENSURE_TRUE(atom, NS_ERROR_OUT_OF_MEMORY);
   
-    nsIdentifierMapEntry* entry = mIdentifierMap.PutEntry(atom);
+    nsIdentifierMapEntry* entry =
+      mIdentifierMap.PutEntry(nsDependentAtomString(atom));
     NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
     entry->SetInvalidName();
@@ -3115,8 +3133,7 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult
 {
   *aResult = nsnull;
 
-  nsCOMPtr<nsIAtom> id = do_GetAtom(aID);
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(id);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   Element* root = GetRootElement();
@@ -3126,6 +3143,8 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult
 
   nsRefPtr<nsContentList> docAllList = entry->GetDocAllList();
   if (!docAllList) {
+    nsCOMPtr<nsIAtom> id = do_GetAtom(aID);
+
     docAllList = new nsContentList(root, DocAllResultMatch,
                                    nsnull, nsnull, PR_TRUE, id);
     NS_ENSURE_TRUE(docAllList, NS_ERROR_OUT_OF_MEMORY);

@@ -152,6 +152,11 @@ typedef struct JSLocaleCallbacks JSLocaleCallbacks;
 typedef struct JSSecurityCallbacks JSSecurityCallbacks;
 typedef struct JSONParser        JSONParser;
 typedef struct JSCompartment     JSCompartment;
+typedef struct JSCrossCompartmentCall JSCrossCompartmentCall;
+#ifdef __cplusplus
+typedef class JSWrapper          JSWrapper;
+typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
+#endif
 
 
 
@@ -310,12 +315,6 @@ typedef JSObjectOps *
 
 
 
-
-
-
-
-
-
 typedef JSBool
 (* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                     jsval *vp);
@@ -401,21 +400,6 @@ typedef void
 
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef uint32
-(* JSReserveSlotsOp)(JSContext *cx, JSObject *obj);
 
 
 
@@ -592,6 +576,14 @@ typedef JSPrincipals *
 
 typedef JSBool
 (* JSCSPEvalChecker)(JSContext *cx);
+
+
+
+
+
+
+typedef JSObject *
+(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto);
 
 JS_END_EXTERN_C
 

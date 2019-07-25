@@ -88,6 +88,9 @@ JSBool
 WrapperMoved(JSContext *cx, XPCWrappedNative *innerObj,
              XPCWrappedNativeScope *newScope);
 
+void
+WindowNavigated(JSContext *cx, XPCWrappedNative *innerObj);
+
 
 
 
@@ -223,6 +226,32 @@ enum FunctionObjectSlot {
 
 
 extern const PRUint32 sSecMgrSetProp, sSecMgrGetProp;
+
+inline jsval
+GetFlags(JSContext *cx, JSObject *wrapper)
+{
+  jsval flags;
+  JS_GetReservedSlot(cx, wrapper, sFlagsSlot, &flags);
+  return flags;
+}
+
+inline void
+SetFlags(JSContext *cx, JSObject *wrapper, jsval flags)
+{
+  JS_SetReservedSlot(cx, wrapper, sFlagsSlot, flags);
+}
+
+inline jsval
+AddFlags(jsval origflags, PRInt32 newflags)
+{
+  return INT_TO_JSVAL(JSVAL_TO_INT(origflags) | newflags);
+}
+
+inline jsval
+RemoveFlags(jsval origflags, PRInt32 oldflags)
+{
+  return INT_TO_JSVAL(JSVAL_TO_INT(origflags) & ~oldflags);
+}
 
 
 

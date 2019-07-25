@@ -129,6 +129,7 @@ class nsIBidiKeyboard;
 class nsIMIMEHeaderParam;
 class nsIObserver;
 class nsPresContext;
+class nsIChannel;
 
 #ifndef have_PrefChangedFunc_typedef
 typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
@@ -161,9 +162,12 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
-struct EventNameMapping {
-  PRUint32  mId;
-  PRInt32 mType;
+struct EventNameMapping
+{
+  nsIAtom* mAtom;
+  PRUint32 mId;
+  PRInt32  mType;
+  PRUint32 mStructType;
 };
 
 struct nsShortcutCandidate {
@@ -396,6 +400,16 @@ public:
 
 
   static PRBool IsHTMLWhitespace(PRUnichar aChar);
+
+  
+
+
+
+
+
+
+
+  static PRBool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
 
   static void Shutdown();
 
@@ -953,6 +967,19 @@ public:
 
 
   static PRUint32 GetEventId(nsIAtom* aName);
+
+  
+
+
+
+
+
+
+
+
+  static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
+                                    PRUint32 aEventStruct,
+                                    PRUint32* aEventID);
 
   
 
@@ -1524,6 +1551,8 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
+  static PRBool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
+
   
 
 
@@ -1666,7 +1695,9 @@ private:
 
   static nsIConsoleService* sConsoleService;
 
-  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sEventTable;
+  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sAtomEventTable;
+  static nsDataHashtable<nsStringHashKey, EventNameMapping>* sStringEventTable;
+  static nsCOMArray<nsIAtom>* sUserDefinedEvents;
 
   static nsIStringBundleService* sStringBundleService;
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];

@@ -60,6 +60,17 @@ struct JSXMLArray {
     uint32              capacity;
     void                **vector;
     JSXMLArrayCursor    *cursors;
+
+    void init() {
+        length = capacity = 0;
+        vector = NULL;
+        cursors = NULL;
+    }
+
+    void finish(JSContext *cx);
+
+    bool setCapacity(JSContext *cx, uint32 capacity);
+    void trim();
 };
 
 struct JSXMLArrayCursor
@@ -333,9 +344,6 @@ js_ValueToXMLObject(JSContext *cx, const js::Value &v);
 
 extern JSObject *
 js_ValueToXMLListObject(JSContext *cx, const js::Value &v);
-
-extern JSObject *
-js_CloneXMLObject(JSContext *cx, JSObject *obj);
 
 extern JSObject *
 js_NewXMLSpecialObject(JSContext *cx, JSXMLClass xml_class, JSString *name,

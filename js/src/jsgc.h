@@ -42,6 +42,9 @@
 
 
 
+#include <setjmp.h>
+
+#include "jstypes.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsdhash.h"
@@ -190,18 +193,6 @@ typedef enum JSGCInvocationKind {
 extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
-
-
-
-
-
-
-
-
-extern bool
-js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
-                                     uint32 slot, JSObject *pobj);
-
 #ifdef JS_THREADSAFE
 
 
@@ -337,9 +328,9 @@ struct JSWeakRoots {
 
 #define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
-#ifdef JS_THREADSAFE
-
 namespace js {
+
+#ifdef JS_THREADSAFE
 
 
 
@@ -383,8 +374,31 @@ class BackgroundSweepTask : public JSBackgroundTask {
     virtual void run();
 };
 
-}
-#endif
+#endif 
+
+struct ConservativeGCThreadData {
+
+    
+
+
+
+    jsuword             *nativeStackTop;
+
+    union {
+        jmp_buf         jmpbuf;
+        jsuword         words[JS_HOWMANY(sizeof(jmp_buf), sizeof(jsuword))];
+    } registerSnapshot;
+
+    int                 enableCount;
+
+    JS_NEVER_INLINE JS_FRIEND_API(void) enable(bool knownStackBoundary = false);
+    JS_FRIEND_API(void) disable();
+    bool isEnabled() const { return enableCount > 0; }
+};
+
+} 
+
+#define JS_DUMP_CONSERVATIVE_GC_ROOTS 1
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
@@ -394,6 +408,25 @@ const bool JS_WANT_GC_METER_PRINT = true;
 #elif defined DEBUG
 # define JS_GCMETER 1
 const bool JS_WANT_GC_METER_PRINT = false;
+#endif
+
+#if defined JS_GCMETER || defined JS_DUMP_CONSERVATIVE_GC_ROOTS
+
+struct JSConservativeGCStats {
+    uint32  words;      
+    uint32  oddaddress; 
+    uint32  special;    
+    uint32  notarena;   
+    uint32  notchunk;   
+    uint32  freearena;  
+    uint32  wrongtag;   
+    uint32  notlive;    
+    uint32  gcthings;   
+    uint32  raw;        
+    uint32  unmarked;   
+
+};
+
 #endif
 
 #ifdef JS_GCMETER
@@ -443,6 +476,8 @@ struct JSGCStats {
     uint32  maxnchunks;     
 
     JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
+
+    JSConservativeGCStats conservative;
 };
 
 extern JS_FRIEND_API(void)
@@ -458,6 +493,16 @@ extern void
 js_MarkTraps(JSTracer *trc);
 
 namespace js {
+
+
+
+
+
+
+
+
+extern bool
+SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto);
 
 
 void
@@ -579,10 +624,7 @@ MarkGCThing(JSTracer *trc, void *thing, const char *name, size_t index)
 }
 
 JSCompartment *
-NewCompartment(JSContext *cx);
-
-void
-SweepCompartments(JSContext *cx);
+NewCompartment(JSContext *cx, JSPrincipals *principals);
 
 } 
 

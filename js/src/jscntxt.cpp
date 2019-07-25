@@ -65,6 +65,7 @@
 #include "jsiter.h"
 #include "jslock.h"
 #include "jsmath.h"
+#include "jsnativestack.h"
 #include "jsnum.h"
 #include "jsobj.h"
 #include "jsopcode.h"
@@ -75,12 +76,11 @@
 #include "jsstaticcheck.h"
 #include "jsstr.h"
 #include "jstracer.h"
-#include "jsnativestack.h"
 
 #include "jscntxtinlines.h"
 
 #ifdef XP_WIN
-# include "jswin.h"
+# include <windows.h>
 #elif defined(XP_OS2)
 # define INCL_DOSMEMMGR
 # include <os2.h>
@@ -103,9 +103,6 @@ static const size_t TEMP_POOL_CHUNK_SIZE = 4096 - ARENA_HEADER_SIZE_HACK;
 
 static void
 FreeContext(JSContext *cx);
-
-static void
-MarkLocalRoots(JSTracer *trc, JSLocalRootStack *lrs);
 
 #ifdef DEBUG
 JS_REQUIRES_STACK bool
@@ -169,7 +166,7 @@ StackSpace::finish()
 #elif defined(XP_OS2)
     DosFreeMem(base);
 #else
-    munmap((caddr_t)base, CAPACITY_BYTES);
+    munmap(base, CAPACITY_BYTES);
 #endif
 }
 
@@ -508,40 +505,6 @@ FrameRegsIter::operator++()
     return *this;
 }
 
-JS_REQUIRES_STACK
-AllFramesIter::AllFramesIter(JSContext *cx)
-{
-#ifdef JS_THREADSAFE
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-#endif
-
-    curcs = cx->stack().getCurrentCallStack();
-    if (!curcs) {
-        curfp = NULL;
-        return;
-    }
-
-    curfp = curcs->getCurrentFrame();
-}
-
-AllFramesIter &
-AllFramesIter::operator++()
-{
-    JS_ASSERT(!done());
-
-    if (curfp == curcs->getInitialFrame()) {
-        curcs = curcs->getPreviousInThread();
-        if (curcs)
-            curfp = curcs->getCurrentFrame();
-        else
-            curfp = NULL;
-    } else {
-        curfp = curfp->down;
-    }
-
-    return *this;
-}
-
 bool
 JSThreadData::init()
 {
@@ -554,9 +517,6 @@ JSThreadData::init()
         return false;
 #ifdef JS_TRACER
     InitJIT(&traceMonitor);
-#endif
-#ifdef JS_METHODJIT
-    jmData.Initialize();
 #endif
     dtoaState = js_NewDtoaState();
     if (!dtoaState) {
@@ -575,7 +535,7 @@ JSThreadData::finish()
     JS_ASSERT(gcFreeLists.isEmpty());
     for (size_t i = 0; i != JS_ARRAY_LENGTH(scriptsToGC); ++i)
         JS_ASSERT(!scriptsToGC[i]);
-    JS_ASSERT(!localRootStack);
+    JS_ASSERT(!conservativeGC.isEnabled());
 #endif
 
     if (dtoaState)
@@ -585,9 +545,6 @@ JSThreadData::finish()
     propertyCache.~PropertyCache();
 #if defined JS_TRACER
     FinishJIT(&traceMonitor);
-#endif
-#if defined JS_METHODJIT
-    jmData.Finish();
 #endif
     stackSpace.finish();
 }
@@ -599,14 +556,12 @@ JSThreadData::mark(JSTracer *trc)
 #ifdef JS_TRACER
     traceMonitor.mark(trc);
 #endif
-    if (localRootStack)
-        MarkLocalRoots(trc, localRootStack);
 }
 
 void
 JSThreadData::purge(JSContext *cx)
 {
-    purgeGCFreeLists();
+    gcFreeLists.purge();
 
     js_PurgeGSNCache(&gsnCache);
 
@@ -621,9 +576,6 @@ JSThreadData::purge(JSContext *cx)
     if (cx->runtime->gcRegenShapes)
         traceMonitor.needFlush = JS_TRUE;
 #endif
-#ifdef JS_METHODJIT
-    jmData.purge(cx);
-#endif
 
     
     js_DestroyScriptsToGC(cx, this);
@@ -632,17 +584,6 @@ JSThreadData::purge(JSContext *cx)
     memset(cachedNativeIterators, 0, sizeof(cachedNativeIterators));
 
     dtoaCache.s = NULL;
-}
-
-void
-JSThreadData::purgeGCFreeLists()
-{
-    if (!localRootStack) {
-        gcFreeLists.purge();
-    } else {
-        JS_ASSERT(gcFreeLists.isEmpty());
-        localRootStack->gcFreeLists.purge();
-    }
 }
 
 #ifdef JS_THREADSAFE
@@ -793,7 +734,7 @@ js_PurgeThreads(JSContext *cx)
 
 
 
-            thread->data.purgeGCFreeLists();
+            thread->data.gcFreeLists.purge();
             DestroyThread(thread);
             e.removeFront();
         } else {
@@ -950,8 +891,19 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
             ok = js_InitRuntimeScriptState(rt);
         if (ok)
             ok = js_InitRuntimeNumberState(cx);
-        if (ok)
+        if (ok) {
+            
+
+
+
+
+
+            uint32 shapeGen = rt->shapeGen;
+            rt->shapeGen = 0;
             ok = JSScope::initRuntimeState(cx);
+            if (rt->shapeGen < shapeGen)
+                rt->shapeGen = shapeGen;
+        }
 
 #ifdef JS_THREADSAFE
         JS_EndRequest(cx);
@@ -1391,225 +1343,6 @@ js_StopResolving(JSContext *cx, JSResolvingKey *key, uint32 flag,
         JS_DHashTableRawRemove(table, &entry->hdr);
     else
         JS_DHashTableOperate(table, key, JS_DHASH_REMOVE);
-}
-
-JSBool
-js_EnterLocalRootScope(JSContext *cx)
-{
-    JSThreadData *td = JS_THREAD_DATA(cx);
-    JSLocalRootStack *lrs = td->localRootStack;
-    if (!lrs) {
-        lrs = (JSLocalRootStack *) js_malloc(sizeof *lrs);
-        if (!lrs) {
-            js_ReportOutOfMemory(cx);
-            return false;
-        }
-        lrs->scopeMark = JSLRS_NULL_MARK;
-        lrs->rootCount = 0;
-        lrs->topChunk = &lrs->firstChunk;
-        lrs->firstChunk.down = NULL;
-        td->gcFreeLists.moveTo(&lrs->gcFreeLists);
-        td->localRootStack = lrs;
-    }
-
-    
-    int mark = js_PushLocalRoot(cx, lrs, (void *)lrs->scopeMark);
-    if (mark < 0)
-        return JS_FALSE;
-    lrs->scopeMark = (uint32) mark;
-    return true;
-}
-
-void
-js_LeaveLocalRootScopeWithResult(JSContext *cx, void *thing)
-{
-    JSLocalRootStack *lrs;
-    uint32 mark, m, n;
-    JSLocalRootChunk *lrc;
-
-    
-    lrs = JS_THREAD_DATA(cx)->localRootStack;
-    JS_ASSERT(lrs && lrs->rootCount != 0);
-    if (!lrs || lrs->rootCount == 0)
-        return;
-
-    mark = lrs->scopeMark;
-    JS_ASSERT(mark != JSLRS_NULL_MARK);
-    if (mark == JSLRS_NULL_MARK)
-        return;
-
-    
-    m = mark >> JSLRS_CHUNK_SHIFT;
-    n = (lrs->rootCount - 1) >> JSLRS_CHUNK_SHIFT;
-    while (n > m) {
-        lrc = lrs->topChunk;
-        JS_ASSERT(lrc != &lrs->firstChunk);
-        lrs->topChunk = lrc->down;
-        js_free(lrc);
-        --n;
-    }
-
-    
-
-
-
-    lrc = lrs->topChunk;
-    m = mark & JSLRS_CHUNK_MASK;
-    lrs->scopeMark = (uint32)(size_t)lrc->roots[m];
-    if (thing) {
-        if (mark == 0) {
-            cx->weakRoots.lastInternalResult = thing;
-        } else {
-            
-
-
-
-
-
-            lrc->roots[m++] = thing;
-            ++mark;
-        }
-    }
-    lrs->rootCount = (uint32) mark;
-
-    
-
-
-
-
-
-
-
-
-    if (mark == 0) {
-        JSThreadData *td = JS_THREAD_DATA(cx);
-        JS_ASSERT(td->gcFreeLists.isEmpty());
-        lrs->gcFreeLists.moveTo(&td->gcFreeLists);
-        td->localRootStack = NULL;
-        js_free(lrs);
-    } else if (m == 0) {
-        lrs->topChunk = lrc->down;
-        js_free(lrc);
-    }
-}
-
-void
-js_ForgetLocalRoot(JSContext *cx, void *thing)
-{
-    JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
-    JS_ASSERT(lrs && lrs->rootCount);
-    if (!lrs || lrs->rootCount == 0)
-        return;
-
-    
-    uint32 n = lrs->rootCount - 1;
-    uint32 m = n & JSLRS_CHUNK_MASK;
-    JSLocalRootChunk *lrc = lrs->topChunk;
-    void *top = lrc->roots[m];
-
-    
-    uint32 mark = lrs->scopeMark;
-    JS_ASSERT(mark < n);
-    if (mark >= n)
-        return;
-
-    
-    if (top != thing) {
-        
-        uint32 i = n;
-        uint32 j = m;
-        JSLocalRootChunk *lrc2 = lrc;
-        while (--i > mark) {
-            if (j == 0)
-                lrc2 = lrc2->down;
-            j = i & JSLRS_CHUNK_MASK;
-            if (lrc2->roots[j] == thing)
-                break;
-        }
-
-        
-        JS_ASSERT(i != mark);
-        if (i == mark)
-            return;
-
-        
-        lrc2->roots[j] = top;
-    }
-
-    
-    lrc->roots[m] = NULL;
-    lrs->rootCount = n;
-    if (m == 0) {
-        JS_ASSERT(n != 0);
-        JS_ASSERT(lrc != &lrs->firstChunk);
-        lrs->topChunk = lrc->down;
-        cx->free(lrc);
-    }
-}
-
-int
-js_PushLocalRoot(JSContext *cx, JSLocalRootStack *lrs, void *thing)
-{
-    uint32 n, m;
-    JSLocalRootChunk *lrc;
-
-    n = lrs->rootCount;
-    m = n & JSLRS_CHUNK_MASK;
-    if (n == 0 || m != 0) {
-        
-
-
-
-        if ((uint32)(n + 1) == 0) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_TOO_MANY_LOCAL_ROOTS);
-            return -1;
-        }
-        lrc = lrs->topChunk;
-        JS_ASSERT(n != 0 || lrc == &lrs->firstChunk);
-    } else {
-        
-
-
-
-        lrc = (JSLocalRootChunk *) js_malloc(sizeof *lrc);
-        if (!lrc) {
-            js_ReportOutOfMemory(cx);
-            return -1;
-        }
-        lrc->down = lrs->topChunk;
-        lrs->topChunk = lrc;
-    }
-    lrs->rootCount = n + 1;
-    lrc->roots[m] = thing;
-    return (int) n;
-}
-
-static void
-MarkLocalRoots(JSTracer *trc, JSLocalRootStack *lrs)
-{
-    uint32 n = lrs->rootCount;
-    if (n == 0)
-        return;
-
-    uint32 mark = lrs->scopeMark;
-    JSLocalRootChunk *lrc = lrs->topChunk;
-    do {
-        uint32 m;
-        while (--n > mark) {
-            m = n & JSLRS_CHUNK_MASK;
-            void *thing = lrc->roots[m];
-            JS_ASSERT(thing != NULL);
-            MarkGCThing(trc, thing, "local_root", n);
-            if (m == 0)
-                lrc = lrc->down;
-        }
-        m = n & JSLRS_CHUNK_MASK;
-        mark = (uint32)(size_t)lrc->roots[m];
-        if (m == 0)
-            lrc = lrc->down;
-    } while (n != 0);
-    JS_ASSERT(!lrc);
 }
 
 static void
@@ -2147,15 +1880,14 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
 JSBool
 js_InvokeOperationCallback(JSContext *cx)
 {
-    JS_ASSERT(cx->interruptFlags & JSContext::INTERRUPT_OPERATION_CALLBACK);
+    JS_ASSERT(cx->operationCallbackFlag);
 
     
 
 
 
 
-    JS_ATOMIC_CLEAR_MASK((jsword*)&cx->interruptFlags,
-                         JSContext::INTERRUPT_OPERATION_CALLBACK);
+    cx->operationCallbackFlag = 0;
 
     
 
@@ -2196,15 +1928,6 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
     return !cb || cb(cx);
-}
-
-JSBool
-js_HandleExecutionInterrupt(JSContext *cx)
-{
-    JSBool result = JS_TRUE;
-    if (cx->interruptFlags & JSContext::INTERRUPT_OPERATION_CALLBACK)
-        result = js_InvokeOperationCallback(cx) && result;
-    return result;
 }
 
 void
@@ -2468,7 +2191,7 @@ JSContext::checkMallocGCPressure(void *p)
 
 
 
-            JS_THREAD_DATA(this)->purgeGCFreeLists();
+            JS_THREAD_DATA(this)->gcFreeLists.purge();
             js_TriggerGC(this, true);
         }
     }
@@ -2509,45 +2232,6 @@ JSContext::purge()
     FreeOldArenas(runtime, &regexpPool);
 }
 
-JSCompartment::JSCompartment(JSRuntime *rt) : rt(rt), marked(false)
-{
-}
-
-JSCompartment::~JSCompartment()
-{
-}
-
-namespace js {
-
-AutoNewCompartment::AutoNewCompartment(JSContext *cx) :
-    cx(cx), compartment(cx->compartment)
-{
-    cx->compartment = NULL;
-}
-
-bool
-AutoNewCompartment::init()
-{
-    return !!(cx->compartment = NewCompartment(cx));
-}
-
-AutoNewCompartment::~AutoNewCompartment()
-{
-    cx->compartment = compartment;
-}
-
-AutoCompartment::AutoCompartment(JSContext *cx, JSObject *obj) :
-    cx(cx), compartment(cx->compartment)
-{
-    cx->compartment = obj->getCompartment(cx);
-}
-
-AutoCompartment::~AutoCompartment()
-{
-    cx->compartment = compartment;
-}
-
-}
 
 namespace js {
 

@@ -113,7 +113,7 @@ static uint8 xpc_reflectable_flags[XPC_FLAG_COUNT] = {
     XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
     XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
     XPC_MK_FLAG(  0  ,  1  ,   0 ,  0 ), 
-    XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
+    XPC_MK_FLAG(  1  ,  0  ,   1 ,  0 ), 
     XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
     XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
     XPC_MK_FLAG(  0  ,  0  ,   0 ,  0 ), 
@@ -286,6 +286,11 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
             *d = STRING_TO_JSVAL(str);
             break;
         }
+
+    case nsXPTType::T_JSVAL :
+        *d = *((jsval*)s);
+        break;
+
     default:
         if(!type.IsPointer())
         {
@@ -474,6 +479,7 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
                 }
                 break;
             }
+
         default:
             NS_ERROR("bad type");
             return JS_FALSE;
@@ -611,6 +617,9 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
             *((uint16*)d)  = (uint16) chars[0];
             break;
         }
+    case nsXPTType::T_JSVAL :
+        *((jsval*)d) = s;
+        break;
     default:
         if(!type.IsPointer())
         {

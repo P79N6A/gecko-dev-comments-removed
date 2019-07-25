@@ -40,6 +40,13 @@
 #ifndef jstl_h_
 #define jstl_h_
 
+
+#ifdef mozilla_mozalloc_macro_wrappers_h
+#  define JS_UNDEFD_MOZALLOC_WRAPPERS
+
+#  include "mozilla/mozalloc_undef_macro_wrappers.h"
+#endif
+
 #include "jsbit.h"
 
 #include <new>
@@ -343,6 +350,11 @@ class LazilyConstructed
     T &ref() {
         JS_ASSERT(constructed);
         return asT();
+    }
+
+    void destroy() {
+        ref().~T();
+        constructed = false;
     }
 };
 
