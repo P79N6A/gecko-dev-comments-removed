@@ -26,6 +26,14 @@ function testCharacterCount(aIDs, aCount)
   }
 }
 
+
+
+
+
+
+
+
+
 function testText(aIDs, aStartOffset, aEndOffset, aText)
 {
   for (var i = 0; i < aIDs.length; i++)
@@ -34,6 +42,34 @@ function testText(aIDs, aStartOffset, aEndOffset, aText)
     try {
       is(acc.getText(aStartOffset, aEndOffset), aText,
          "getText: wrong text between start and end offsets '" + aStartOffset +
+         "', '" + aEndOffset + " for '" + prettyName(aIDs[i]) + "'");
+    } catch (e) {
+      ok(false,
+         "getText fails between start and end offsets '" + aStartOffset +
+         "', '" + aEndOffset + " for '" + prettyName(aIDs[i]) + "'");
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function testPasswordText(aIDs, aStartOffset, aEndOffset, aText)
+{
+  for (var i = 0; i < aIDs.length; i++)
+  {
+    var acc = getAccessible(aIDs[i], nsIAccessibleText);
+    try {
+      isnot(acc.getText(aStartOffset, aEndOffset), aText,
+         "getText: plain text between start and end offsets '" + aStartOffset +
          "', '" + aEndOffset + " for '" + prettyName(aIDs[i]) + "'");
     } catch (e) {
       ok(false,
