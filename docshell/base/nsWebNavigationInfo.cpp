@@ -39,6 +39,7 @@
 #include "nsIWebNavigation.h"
 #include "nsString.h"
 #include "nsServiceManagerUtils.h"
+#include "nsIContentUtils.h"
 #include "nsIDocumentLoaderFactory.h"
 #include "nsIPluginHost.h"
 
@@ -106,33 +107,32 @@ nsresult
 nsWebNavigationInfo::IsTypeSupportedInternal(const nsCString& aType,
                                              PRUint32* aIsSupported)
 {
-  NS_PRECONDITION(mCategoryManager, "Must have category manager");
   NS_PRECONDITION(aIsSupported, "Null out param?");
 
-  nsXPIDLCString value;
-  nsresult rv = mCategoryManager->GetCategoryEntry("Gecko-Content-Viewers",
-                                                   aType.get(),
-                                                   getter_Copies(value));
 
-  
-  
-  
+  nsCOMPtr<nsIContentUtils> cutils = do_GetService("@mozilla.org/content/contentutils;1");
+  if (!cutils)
+      return NS_ERROR_FAILURE;
 
-  if (NS_FAILED(rv) && rv != NS_ERROR_NOT_AVAILABLE)
-    return rv;
+  nsIContentUtils::ContentViewerType vtype = nsIContentUtils::TYPE_UNSUPPORTED;
 
+  nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory =
+    cutils->FindInternalContentViewer(aType.get(), &vtype);
   
-  
-  nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory;
-  if (!value.IsEmpty()) {
-    docLoaderFactory = do_GetService(value.get());
-  }
-
-  
-  if (!docLoaderFactory) {
+  switch (vtype) {
+  case nsIContentUtils::TYPE_UNSUPPORTED:
     *aIsSupported = nsIWebNavigationInfo::UNSUPPORTED;
-  }
-  else if (value.EqualsLiteral(CONTENT_DLF_CONTRACT)) {
+    break;
+
+  case nsIContentUtils::TYPE_PLUGIN:
+    *aIsSupported = nsIWebNavigationInfo::PLUGIN;
+    break;
+
+  case nsIContentUtils::TYPE_UNKNOWN:
+    *aIsSupported = nsIWebNavigationInfo::OTHER;
+    break;
+
+  case nsIContentUtils::TYPE_CONTENT:
     PRBool isImage = PR_FALSE;
     mImgLoader->SupportImageWithMimeType(aType.get(), &isImage);
     if (isImage) {
@@ -141,12 +141,7 @@ nsWebNavigationInfo::IsTypeSupportedInternal(const nsCString& aType,
     else {
       *aIsSupported = nsIWebNavigationInfo::OTHER;
     }
-  }
-  else if (value.EqualsLiteral(PLUGIN_DLF_CONTRACT)) {
-    *aIsSupported = nsIWebNavigationInfo::PLUGIN;
-  }
-  else {
-    *aIsSupported = nsIWebNavigationInfo::OTHER;
+    break;
   }
   
   return NS_OK;
