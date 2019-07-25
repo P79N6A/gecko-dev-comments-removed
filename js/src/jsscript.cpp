@@ -1264,7 +1264,17 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
         return NULL;
     }
     script->nslots = script->nfixed + bce->maxStackDepth;
+
+    
+    
+    
+    
+    if (bce->sc->staticLevel > UINT_MAX) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_DEEP, js_function_str);
+        return NULL;
+    }
     script->staticLevel = uint16_t(bce->sc->staticLevel);
+
     script->principals = bce->parser->principals;
 
     if (script->principals)
