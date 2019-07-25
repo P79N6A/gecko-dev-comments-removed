@@ -2662,8 +2662,8 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_BufferIsCompilableUnit(JSContext *cx, JSObject *obj,
-                          const char *bytes, size_t length);
+JS_BufferIsCompilableUnit(JSContext *cx, JSBool bytes_are_utf8,
+                          JSObject *obj, const char *bytes, size_t length);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_CompileScript(JSContext *cx, JSObject *obj,
@@ -3185,6 +3185,8 @@ JS_SetCStringsAreUTF8(void);
 
 
 
+
+
 JS_PUBLIC_API(JSBool)
 JS_EncodeCharacters(JSContext *cx, const jschar *src, size_t srclen, char *dst,
                     size_t *dstlenp);
@@ -3192,6 +3194,10 @@ JS_EncodeCharacters(JSContext *cx, const jschar *src, size_t srclen, char *dst,
 JS_PUBLIC_API(JSBool)
 JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
                size_t *dstlenp);
+
+JS_PUBLIC_API(JSBool)
+JS_DecodeUTF8(JSContext *cx, const char *src, size_t srclen, jschar *dst,
+              size_t *dstlenp);
 
 
 
