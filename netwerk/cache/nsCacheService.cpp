@@ -40,7 +40,6 @@
 
 
 
-
 #include "mozilla/Util.h"
 
 #include "necko-config.h"
@@ -1387,35 +1386,36 @@ nsCacheService::EvictEntriesForClient(const char *          clientID,
         storagePolicy == nsICache::STORE_ON_DISK) {
 
         if (mEnableDiskDevice) {
-            nsresult rv;
+            nsresult rv = NS_OK;
             if (!mDiskDevice)
                 rv = CreateDiskDevice();
             if (mDiskDevice)
                 rv = mDiskDevice->EvictEntries(clientID);
-            if (NS_FAILED(rv)) res = rv;
+            if (NS_FAILED(rv))
+                res = rv;
         }
     }
 
     
     if (storagePolicy == nsICache::STORE_OFFLINE) {
         if (mEnableOfflineDevice) {
-            nsresult rv;
+            nsresult rv = NS_OK;
             if (!mOfflineDevice)
                 rv = CreateOfflineDevice();
             if (mOfflineDevice)
                 rv = mOfflineDevice->EvictEntries(clientID);
-            if (NS_FAILED(rv)) res = rv;
+            if (NS_FAILED(rv))
+                res = rv;
         }
     }
 
     if (storagePolicy == nsICache::STORE_ANYWHERE ||
         storagePolicy == nsICache::STORE_IN_MEMORY) {
-
         
         if (mMemoryDevice) {
-            nsresult rv;
-            rv = mMemoryDevice->EvictEntries(clientID);
-            if (NS_FAILED(rv)) res = rv;
+            nsresult rv = mMemoryDevice->EvictEntries(clientID);
+            if (NS_FAILED(rv))
+                res = rv;
         }
     }
 
