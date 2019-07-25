@@ -39,6 +39,8 @@
 
 #include "places_test_harness.h"
 #include "nsIBrowserHistory.h"
+#include "nsIPrefService.h"
+#include "nsIPrefBranch.h"
 
 #include "mock_Link.h"
 using namespace mozilla::dom;
@@ -126,6 +128,22 @@ NS_IMPL_ISUPPORTS1(
 
 
 
+
+void
+test_set_places_enabled()
+{
+  
+  nsresult rv;
+  nsCOMPtr<nsIPrefBranch> prefBranch =
+    do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
+  do_check_success(rv);
+
+  rv = prefBranch->SetBoolPref("places.history.enabled", PR_TRUE);
+  do_check_success(rv);
+
+  
+  run_next_test();
+}
 
 
 
@@ -585,6 +603,7 @@ test_two_null_links_same_uri()
 
 
 Test gTests[] = {
+  TEST(test_set_places_enabled), 
   TEST(test_unvisted_does_not_notify_part1), 
   TEST(test_visited_notifies),
   TEST(test_unvisted_does_not_notify_part2), 
