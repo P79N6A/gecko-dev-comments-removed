@@ -725,19 +725,6 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setNewTabButtonBounds: function(box, immediately) {
-    if (!immediately)
-      this.$ntb.animate(box.css(), {
-        duration: 320,
-        easing: "tabviewBounce"
-      });
-    else
-      this.$ntb.css(box.css());
-  },
-
-  
-  
-  
   hideExpandControl: function() {
     this.$expander.hide();
   },
