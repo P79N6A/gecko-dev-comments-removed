@@ -3421,6 +3421,12 @@ var FormAssistant = {
     if (!this._isAutoComplete(aElement))
       return false;
 
+    
+    
+    if (aElement.value.length > 0) {
+        return false;
+    }
+
     let autoCompleteSuggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
     let listSuggestions = this._getListSuggestions(aElement);
 
