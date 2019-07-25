@@ -407,6 +407,7 @@ public:
   static const PRInt32 kTextBlinkKTable[];
   static const PRInt32 kTextDecorationLineKTable[];
   static const PRInt32 kTextDecorationStyleKTable[];
+  static const PRInt32 kTextOverflowKTable[];
   static const PRInt32 kTextTransformKTable[];
   static const PRInt32 kTransitionTimingFunctionKTable[];
   static const PRInt32 kUnicodeBidiKTable[];

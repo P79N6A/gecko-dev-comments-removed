@@ -67,6 +67,7 @@
 
 
 
+
 CSS_KEY(-moz-activehyperlinktext, _moz_activehyperlinktext)
 CSS_KEY(-moz-all, _moz_all)
 CSS_KEY(-moz-alt-content, _moz_alt_content)
@@ -221,6 +222,7 @@ CSS_KEY(center, center)
 CSS_KEY(ch, ch)
 CSS_KEY(circle, circle)
 CSS_KEY(cjk-ideographic, cjk_ideographic)
+CSS_KEY(clip, clip)
 CSS_KEY(close-quote, close_quote)
 CSS_KEY(closest-corner, closest_corner)
 CSS_KEY(closest-side, closest_side)
@@ -257,6 +259,7 @@ CSS_KEY(ease-out, ease_out)
 CSS_KEY(element, element)
 CSS_KEY(elements, elements)
 CSS_KEY(ellipse, ellipse)
+CSS_KEY(ellipsis, ellipsis)
 CSS_KEY(em, em)
 CSS_KEY(embed, embed)
 CSS_KEY(enabled, enabled)

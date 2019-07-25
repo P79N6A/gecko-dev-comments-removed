@@ -661,6 +661,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_TEXT_DECORATION_STYLE_MAX      NS_STYLE_TEXT_DECORATION_STYLE_WAVY
 
 
+#define NS_STYLE_TEXT_OVERFLOW_CLIP     0
+#define NS_STYLE_TEXT_OVERFLOW_ELLIPSIS 1
+#define NS_STYLE_TEXT_OVERFLOW_STRING   2
+
+
 #define NS_STYLE_TEXT_TRANSFORM_NONE            0
 #define NS_STYLE_TEXT_TRANSFORM_CAPITALIZE      1
 #define NS_STYLE_TEXT_TRANSFORM_LOWERCASE       2

@@ -36,6 +36,7 @@
 
 
 
+
  
  
 
@@ -45,6 +46,7 @@
 *|*::-moz-fieldset-content {
   display: block;
   unicode-bidi: inherit;
+  text-overflow: inherit;
   height: 100%;   
 }
 
@@ -624,6 +626,7 @@ input > .anonymous-div,
 *|*::-moz-display-comboboxcontrol-frame,
 optgroup:before {
   unicode-bidi: inherit;
+  text-overflow: inherit;
 }
 
  

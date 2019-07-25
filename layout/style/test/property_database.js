@@ -37,6 +37,7 @@
 
 
 
+
 const CSS_TYPE_LONGHAND = 0;
 
 
@@ -2497,6 +2498,14 @@ var gCSSProperties = {
 			"-moz-calc(3*25px + 50%)",
 		],
 		invalid_values: []
+	},
+	"text-overflow": {
+		domProp: "textOverflow",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "clip" ],
+		other_values: [ "ellipsis", '""', "''", '"hello"' ],
+		invalid_values: [ "none", "auto" ]
 	},
 	"text-shadow": {
 		domProp: "textShadow",

@@ -34,6 +34,7 @@
 
 
 
+
 @import url(resource://gre-resources/html.css);
 @import url(chrome://global/content/xul.css);
 
@@ -122,6 +123,7 @@
   display: block !important;
   position: static !important;
   unicode-bidi: inherit;
+  text-overflow: inherit;
 }
 
 *|*::-moz-anonymous-block, *|*::-moz-anonymous-positioned-block {
@@ -153,6 +155,7 @@
   
 
   unicode-bidi: inherit;
+  text-overflow: inherit;
   -moz-column-count: inherit;
   -moz-column-width: inherit;
   -moz-column-gap: inherit;
@@ -179,6 +182,7 @@
   
   
   unicode-bidi: inherit;
+  text-overflow: inherit;
   
   display: inherit !important;
   
@@ -222,6 +226,7 @@
   clip: inherit;
   opacity: inherit;
   unicode-bidi: inherit;
+  text-overflow: inherit;
 }
 
 

@@ -3451,6 +3451,24 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
   }
 
   
+  const nsCSSValue* textOverflowValue =
+    aRuleData->ValueForTextOverflow();
+  if (eCSSUnit_Enumerated == textOverflowValue->GetUnit() ||
+      eCSSUnit_Initial    == textOverflowValue->GetUnit()) {
+    SetDiscrete(*textOverflowValue, text->mTextOverflow.mType,
+                canStoreInRuleTree,
+                SETDSC_ENUMERATED, parentText->mTextOverflow.mType,
+                NS_STYLE_TEXT_OVERFLOW_CLIP, 0, 0, 0, 0);
+    text->mTextOverflow.mString.Truncate();
+  } else if (eCSSUnit_Inherit == textOverflowValue->GetUnit()) {
+    canStoreInRuleTree = PR_FALSE;
+    text->mTextOverflow = parentText->mTextOverflow;
+  } else if (eCSSUnit_String == textOverflowValue->GetUnit()) {
+    textOverflowValue->GetStringValue(text->mTextOverflow.mString);
+    text->mTextOverflow.mType = NS_STYLE_TEXT_OVERFLOW_STRING;
+  }
+
+  
   SetDiscrete(*aRuleData->ValueForUnicodeBidi(), text->mUnicodeBidi, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentText->mUnicodeBidi,
               NS_STYLE_UNICODE_BIDI_NORMAL, 0, 0, 0, 0);

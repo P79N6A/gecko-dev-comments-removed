@@ -2207,6 +2207,15 @@ CSS_PROP_TEXT(
     nsnull,
     offsetof(nsStyleText, mTextIndent),
     eStyleAnimType_Coord)
+CSS_PROP_TEXTRESET(
+    text-overflow,
+    text_overflow,
+    TextOverflow,
+    CSS_PROPERTY_PARSE_VALUE,
+    VARIANT_HK | VARIANT_STRING,
+    kTextOverflowKTable,
+    offsetof(nsStyleTextReset, mTextOverflow),
+    eStyleAnimType_None)
 CSS_PROP_TEXT(
     text-shadow,
     text_shadow,

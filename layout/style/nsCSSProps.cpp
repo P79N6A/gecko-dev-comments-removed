@@ -1214,6 +1214,12 @@ const PRInt32 nsCSSProps::kTextDecorationStyleKTable[] = {
   eCSSKeyword_UNKNOWN,-1
 };
 
+const PRInt32 nsCSSProps::kTextOverflowKTable[] = {
+  eCSSKeyword_clip, NS_STYLE_TEXT_OVERFLOW_CLIP,
+  eCSSKeyword_ellipsis, NS_STYLE_TEXT_OVERFLOW_ELLIPSIS,
+  eCSSKeyword_UNKNOWN, -1
+};
+
 const PRInt32 nsCSSProps::kTextTransformKTable[] = {
   eCSSKeyword_none, NS_STYLE_TEXT_TRANSFORM_NONE,
   eCSSKeyword_capitalize, NS_STYLE_TEXT_TRANSFORM_CAPITALIZE,
