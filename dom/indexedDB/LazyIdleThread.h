@@ -153,6 +153,14 @@ private:
   
 
 
+
+  PRBool UseRunnableQueue() {
+    return !!mQueuedRunnables;
+  }
+
+  
+
+
   mozilla::Mutex mMutex;
 
   
@@ -178,6 +186,12 @@ private:
 
 
   nsIObserver* mIdleObserver;
+
+  
+
+
+
+  nsTArray<nsCOMPtr<nsIRunnable> >* mQueuedRunnables;
 
   
 
