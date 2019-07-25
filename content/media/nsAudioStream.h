@@ -79,7 +79,7 @@ public:
   virtual nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat) = 0;
 
   
-  virtual void Shutdown() = 0;
+  virtual nsresult Shutdown() = 0;
 
   
   
@@ -95,7 +95,7 @@ public:
 
   
   
-  virtual void SetVolume(double aVolume) = 0;
+  virtual nsresult SetVolume(double aVolume) = 0;
 
   
   virtual nsresult Drain() = 0;
