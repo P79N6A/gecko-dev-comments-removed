@@ -230,84 +230,69 @@ IonCode *
 IonCompartment::generateArgumentsRectifier(JSContext *cx)
 {
     MacroAssembler masm(cx);
-#if 0
     
     
     JS_ASSERT(ArgumentsRectifierReg == r8);
 
     
-    masm.ma_ldr(DTRAddr(sp, DtrOffsetImm(offsetof(IonFrameData, calleeToken_))), r1);
-    masm.ma_ldrh(EDTRAddr(r1, EDtrOffsetImm(offsetof(JSFunction, nargs))), r2);
+    masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonFrameData::offsetOfCalleeToken())), r1);
+    masm.ma_ldrh(EDtrAddr(r1, EDtrOffImm(offsetof(JSFunction, nargs))), r6);
 
-    masm.ma_sub(r2, r8, r2);
-    
-    masm.moveValue(UndefinedValue(), r10);
+    masm.ma_sub(r6, r8, r2);
 
-    masm.movq(rsp, rbp); 
+    masm.moveValue(UndefinedValue(), r4, r5);
+
+    masm.ma_mov(sp, r3); 
 
     
     {
         Label undefLoopTop;
         masm.bind(&undefLoopTop);
+        masm.ma_dataTransferN(IsStore, 64, true, sp, Imm32(-8), r4, PreIndex);
+        masm.ma_sub(r2, Imm32(1), r2);
 
-        masm.push(r10);
-        masm.subl(Imm32(1), rcx);
-
-        masm.testl(rcx, rcx);
-        masm.j(Assembler::NonZero, &undefLoopTop);
+        masm.ma_b(&undefLoopTop, Assembler::NonZero);
     }
 
     
-    masm.movq(r8, r9);
-    masm.shlq(Imm32(3), r9); 
 
-    masm.movq(rbp, rcx);
-    masm.addq(Imm32(sizeof(IonFrameData)), rcx);
-    masm.addq(r9, rcx);
+    masm.ma_alu(r3, lsl(r8, 3), r3, op_add); 
+    masm.ma_add(r3, Imm32(sizeof(IonFrameData)), r3);
 
     
     {
-        Label copyLoopTop, initialSkip;
-
-        masm.jump(&initialSkip);
-
+        Label copyLoopTop;
         masm.bind(&copyLoopTop);
-        masm.subq(Imm32(sizeof(Value)), rcx);
-        masm.subl(Imm32(1), r8);
-        masm.bind(&initialSkip);
+        masm.ma_dataTransferN(IsLoad, 64, true, r3, Imm32(-8), r4, PostIndex);
+        masm.ma_dataTransferN(IsStore, 64, true, sp, Imm32(-8), r4, PreIndex);
 
-        masm.mov(Operand(rcx, 0x0), rdx);
-        masm.push(rdx);
-
-        masm.testl(r8, r8);
-        masm.j(Assembler::NonZero, &copyLoopTop);
+        masm.ma_sub(r8, Imm32(1), r8, SetCond);
+        masm.ma_b(&copyLoopTop, Assembler::NonZero);
     }
 
     
-    masm.subq(rsp, rbp);
-    masm.shll(Imm32(IonFramePrefix::FrameTypeBits), rbp);
-    masm.orl(Imm32(IonFramePrefix::RectifierFrame), rbp);
+    masm.makeFrameDescriptor(r6, IonFrame_Rectifier);
 
     
-    masm.push(rax); 
-    masm.push(rbp); 
+    masm.ma_push(r0); 
+    masm.ma_push(r1); 
+    masm.ma_push(r6); 
 
     
     
-    masm.movq(Operand(rax, offsetof(JSFunction, u.i.script)), rax);
-    masm.movq(Operand(rax, offsetof(JSScript, ion)), rax);
-    masm.movq(Operand(rax, offsetof(IonScript, method_)), rax);
-    masm.movq(Operand(rax, IonCode::OffsetOfCode()), rax);
-    masm.call(rax);
+    masm.ma_ldr(DTRAddr(r3, DtrOffImm(offsetof(JSFunction, u.i.script_))), r3);
+    masm.ma_ldr(DTRAddr(r3, DtrOffImm(offsetof(JSScript, ion))), r3);
+    masm.ma_ldr(DTRAddr(r3, DtrOffImm(offsetof(IonScript, method_))), r3);
+    masm.ma_ldr(DTRAddr(r3, DtrOffImm(IonCode::OffsetOfCode())), r3);
+    masm.ma_callIonHalfPush(r3);
 
     
-    masm.pop(rbp);            
-    masm.shrl(Imm32(IonFramePrefix::FrameTypeBits), rbp); 
-    masm.pop(r11);            
-    masm.addq(rbp, rsp);      
+    masm.ma_pop(r3);            
+    
+    masm.ma_pop(r11);            
+    masm.ma_alu(sp, lsr(r3, FRAMETYPE_BITS), sp, op_add);      
 
     masm.ret();
-#endif
     Linker linker(masm);
     return linker.newCode(cx);
 }
