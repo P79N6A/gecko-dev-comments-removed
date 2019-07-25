@@ -959,7 +959,6 @@ protected:
     bool mDrawSinceRobustnessTimerSet;
     ContextStatus mContextStatus;
     bool mContextLostErrorSet;
-    bool mContextLostDueToTest;
 
 #ifdef XP_MACOSX
     
