@@ -240,6 +240,10 @@ NS_NewSVGSetElement(nsIContent **aResult,
                     already_AddRefed<nsINodeInfo> aNodeInfo);
 
 nsresult
+NS_NewSVGUnknownElement(nsIContent **aResult,
+                        already_AddRefed<nsINodeInfo> aNodeInfo);
+
+nsresult
 NS_NewSVGElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo,
                  FromParser aFromParser)
 {
@@ -380,6 +384,6 @@ NS_NewSVGElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo,
   }
 
   
-  return NS_NewXMLElement(aResult, aNodeInfo);
+  return NS_NewSVGUnknownElement(aResult, aNodeInfo);
 }
 
