@@ -26,6 +26,9 @@ public:
   NS_IMETHOD SetDocShell(nsIDocShell* aDocShell);
 
 protected:
+  
+  void EnsureFresh();
+
   nsIDocShellTreeNode* mDocShellNode; 
 };
 
