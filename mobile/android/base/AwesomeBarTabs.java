@@ -865,10 +865,8 @@ public class AwesomeBarTabs extends TabHost {
 
     private void handleBookmarkItemClick(int position) {
         
-        if (position == 0) {
-            mBookmarksAdapter.moveToParentFolder();
+        if (position == 0)
             return;
-        }
 
         Cursor cursor = mBookmarksAdapter.getCursor();
         
