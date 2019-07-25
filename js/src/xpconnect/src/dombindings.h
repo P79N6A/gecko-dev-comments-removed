@@ -50,6 +50,24 @@ class nsIHTMLCollection;
 namespace xpc {
 namespace dom {
 
+inline nsWrapperCache*
+GetWrapperCache(nsWrapperCache *cache)
+{
+    return cache;
+}
+
+
+
+class nsGlobalWindow;
+inline nsWrapperCache*
+GetWrapperCache(nsGlobalWindow *not_allowed);
+
+inline nsWrapperCache*
+GetWrapperCache(void *p)
+{
+    return nsnull;
+}
+
 class ProxyHandler : public js::ProxyHandler {
 protected:
     ProxyHandler() : js::ProxyHandler(ProxyFamily())
