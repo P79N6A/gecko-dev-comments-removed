@@ -289,13 +289,18 @@ typedef PRUint64 nsFrameState;
 
 
 enum nsSelectionAmount {
-  eSelectCharacter = 0,
-  eSelectWord      = 1,
-  eSelectLine      = 2,  
-  eSelectBeginLine = 3,
-  eSelectEndLine   = 4,
-  eSelectNoAmount  = 5,   
-  eSelectParagraph = 6    
+  eSelectCharacter = 0, 
+                        
+                        
+  eSelectCluster   = 1, 
+                        
+                        
+  eSelectWord      = 2,
+  eSelectLine      = 3, 
+  eSelectBeginLine = 4,
+  eSelectEndLine   = 5,
+  eSelectNoAmount  = 6, 
+  eSelectParagraph = 7  
 };
 
 enum nsDirection {
@@ -2684,7 +2689,11 @@ protected:
 
 
 
-  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset) = 0;
+
+
+
+  virtual PRBool PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
+                                     PRBool aRespectClusters = PR_TRUE) = 0;
   
   
 

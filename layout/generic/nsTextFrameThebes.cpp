@@ -5580,19 +5580,35 @@ private:
 };
 
 static PRBool
-IsAcceptableCaretPosition(const gfxSkipCharsIterator& aIter, gfxTextRun* aTextRun,
+IsAcceptableCaretPosition(const gfxSkipCharsIterator& aIter,
+                          PRBool aRespectClusters,
+                          gfxTextRun* aTextRun,
                           nsIFrame* aFrame)
 {
   if (aIter.IsOriginalCharSkipped())
     return PR_FALSE;
   PRUint32 index = aIter.GetSkippedOffset();
-  if (!aTextRun->IsClusterStart(index))
+  if (aRespectClusters && !aTextRun->IsClusterStart(index))
     return PR_FALSE;
+  if (index > 0) {
+    
+    
+    
+    
+    
+    
+    
+    const PRUnichar *txt = aTextRun->GetTextUnicode();
+    if (txt && NS_IS_LOW_SURROGATE(txt[index]) &&
+               NS_IS_HIGH_SURROGATE(txt[index-1]))
+      return PR_FALSE;
+  }
   return PR_TRUE;
 }
 
 PRBool
-nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
+nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset,
+                                 PRBool aRespectClusters)
 {
   PRInt32 contentLength = GetContentLength();
   NS_ASSERTION(aOffset && *aOffset <= contentLength, "aOffset out of range");
@@ -5617,7 +5633,7 @@ nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
     for (PRInt32 i = NS_MIN(trimmed.GetEnd(), startOffset) - 1;
          i >= trimmed.mStart; --i) {
       iter.SetOriginalOffset(i);
-      if (IsAcceptableCaretPosition(iter, mTextRun, this)) {
+      if (IsAcceptableCaretPosition(iter, aRespectClusters, mTextRun, this)) {
         *aOffset = i - mContentOffset;
         return PR_TRUE;
       }
@@ -5634,7 +5650,7 @@ nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
       for (PRInt32 i = startOffset + 1; i <= trimmed.GetEnd(); ++i) {
         iter.SetOriginalOffset(i);
         if (i == trimmed.GetEnd() ||
-            IsAcceptableCaretPosition(iter, mTextRun, this)) {
+            IsAcceptableCaretPosition(iter, aRespectClusters, mTextRun, this)) {
           *aOffset = i - mContentOffset;
           return PR_TRUE;
         }
