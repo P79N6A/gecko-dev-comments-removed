@@ -1269,9 +1269,6 @@ LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
     return true;
 }
 
-static bool
-DefineGlobal(ParseNode *pn, BytecodeEmitter *bce, Handle<PropertyName*> name);
-
 
 
 
@@ -1709,11 +1706,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
         pn->pn_body = body;
     }
 
-    if (!outertc->inFunction() && bodyLevel && kind == Statement && outertc->compiling()) {
-        JS_ASSERT(pn->pn_cookie.isFree());
-        if (!DefineGlobal(pn, outertc->asBytecodeEmitter(), funName))
-            return NULL;
-    }
+    JS_ASSERT_IF(!outertc->inFunction() && bodyLevel && kind == Statement, pn->pn_cookie.isFree());
 
     pn->pn_blockid = outertc->blockid();
 
@@ -2069,152 +2062,6 @@ OuterLet(TreeContext *tc, StmtInfo *stmt, JSAtom *atom)
     return false;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-DefineGlobal(ParseNode *pn, BytecodeEmitter *bce, Handle<PropertyName*> name)
-{
-    GlobalScope *globalScope = bce->globalScope;
-    HandleObject globalObj = globalScope->globalObj;
-
-    if (!bce->compileAndGo() || !globalObj || bce->compilingForEval())
-        return true;
-
-    AtomIndexAddPtr p = globalScope->names.lookupForAdd(name);
-    if (!p) {
-        JSContext *cx = bce->parser->context;
-
-        JSObject *holder;
-        JSProperty *prop;
-        if (!globalObj->lookupProperty(cx, name, &holder, &prop))
-            return false;
-
-        FunctionBox *funbox = pn->isKind(PNK_FUNCTION) ? pn->pn_funbox : NULL;
-
-        GlobalScope::GlobalDef def;
-        if (prop) {
-            
-
-
-
-
-
-            const Shape *shape = (const Shape *)prop;
-            if (funbox ||
-                globalObj != holder ||
-                shape->configurable() ||
-                !shape->hasSlot() ||
-                !shape->hasDefaultGetter() ||
-                !shape->hasDefaultSetter()) {
-                return true;
-            }
-
-            def = GlobalScope::GlobalDef(shape->slot());
-        } else {
-            def = GlobalScope::GlobalDef(name, funbox);
-        }
-
-        if (!globalScope->defs.append(def))
-            return false;
-
-        jsatomid index = globalScope->names.count();
-        if (!globalScope->names.add(p, name, index))
-            return false;
-
-        JS_ASSERT(index == globalScope->defs.length() - 1);
-    } else {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-        if (pn->isKind(PNK_FUNCTION)) {
-            JS_ASSERT(pn->isArity(PN_FUNC));
-            jsatomid index = p.value();
-            globalScope->defs[index].funbox = pn->pn_funbox;
-        }
-    }
-
-    pn->pn_dflags |= PND_GVAR;
-
-    return true;
-}
-
-static bool
-BindTopLevelVar(JSContext *cx, BindData *data, ParseNode *pn, TreeContext *tc)
-{
-    JS_ASSERT(pn->isOp(JSOP_NAME));
-    JS_ASSERT(!tc->inFunction());
-
-    
-    if (!tc->compiling())
-        return true;
-
-    
-
-
-
-    if (tc->parser->callerFrame) {
-        
-
-
-
-
-
-        if (!tc->inStrictMode())
-            return true;
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        return true;
-    }
-
-    if (pn->pn_dflags & PND_CONST)
-        return true;
-
-    
-
-
-
-
-    return DefineGlobal(pn, tc->asBytecodeEmitter(),
-                        RootedVarPropertyName(cx, pn->pn_atom->asPropertyName()));
-}
-
 static bool
 BindFunctionLocal(JSContext *cx, BindData *data, MultiDeclRange &mdl, TreeContext *tc)
 {
@@ -2396,7 +2243,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, TreeContext *tc)
     if (tc->inFunction())
         return BindFunctionLocal(cx, data, mdl, tc);
 
-    return BindTopLevelVar(cx, data, pn, tc);
+    return true;
 }
 
 static bool
@@ -2506,12 +2353,12 @@ BindDestructuringVar(JSContext *cx, BindData *data, ParseNode *pn, TreeContext *
 
 
 
-    if (pn->pn_dflags & PND_BOUND) {
-        JS_ASSERT(!(pn->pn_dflags & PND_GVAR));
+    if (pn->pn_dflags & PND_BOUND)
         pn->setOp(JSOP_SETLOCAL);
-    } else {
-        pn->setOp((data->op == JSOP_DEFCONST) ? JSOP_SETCONST : JSOP_SETNAME);
-    }
+    else if (data->op == JSOP_DEFCONST)
+        pn->setOp(JSOP_SETCONST);
+    else
+        pn->setOp(JSOP_SETNAME);
 
     if (data->op == JSOP_DEFCONST)
         pn->pn_dflags |= PND_CONST;
@@ -4416,8 +4263,6 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
             } else {
                 pn2->pn_expr = init;
             }
-
-            JS_ASSERT_IF(pn2->pn_dflags & PND_GVAR, !(pn2->pn_dflags & PND_BOUND));
 
             pn2->setOp((pn2->pn_dflags & PND_BOUND)
                        ? JSOP_SETLOCAL

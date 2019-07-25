@@ -332,8 +332,6 @@ static const uint32_t TCF_FUN_FLAGS = TCF_FUN_HEAVYWEIGHT |
                                       TCF_ARGUMENTS_HAS_LOCAL_BINDING |
                                       TCF_DEFINITELY_NEEDS_ARGS_OBJ;
 
-struct BytecodeEmitter;
-
 struct TreeContext {                
     uint32_t        flags;          
     uint32_t        bodyid;         
@@ -552,42 +550,11 @@ class GCConstList {
 };
 
 struct GlobalScope {
-    GlobalScope(JSContext *cx, JSObject *globalObj, BytecodeEmitter *bce)
-      : globalObj(cx, globalObj), bce(bce), defs(cx), names(cx),
-        defsRoot(cx, &defs), namesRoot(cx, &names)
+    GlobalScope(JSContext *cx, JSObject *globalObj)
+      : globalObj(cx, globalObj)
     { }
 
-    struct GlobalDef {
-        JSAtom        *atom;        
-        FunctionBox   *funbox;      
-                                    
-        uint32_t      knownSlot;    
-
-        GlobalDef() { }
-        GlobalDef(uint32_t knownSlot) : atom(NULL), knownSlot(knownSlot) { }
-        GlobalDef(JSAtom *atom, FunctionBox *box) : atom(atom), funbox(box) { }
-    };
-
     RootedVarObject globalObj;
-    BytecodeEmitter *bce;
-
-    
-
-
-
-
-
-
-
-    Vector<GlobalDef, 16> defs;
-    AtomIndexMap      names;
-
-    
-
-
-
-    JS::SkipRoot      defsRoot;
-    JS::SkipRoot      namesRoot;
 };
 
 struct BytecodeEmitter : public TreeContext
@@ -628,11 +595,6 @@ struct BytecodeEmitter : public TreeContext
 
     GlobalScope     *globalScope;   
 
-    typedef Vector<GlobalSlotArray::Entry, 16> GlobalUseVector;
-
-    GlobalUseVector globalUses;     
-    OwnedAtomIndexMapPtr globalMap; 
-
     
     typedef Vector<uint32_t, 8> SlotVector;
     SlotVector      closedArgs;
@@ -654,22 +616,6 @@ struct BytecodeEmitter : public TreeContext
 
 
     ~BytecodeEmitter();
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool addGlobalUse(JSAtom *atom, uint32_t slot, UpvarCookie *cookie);
 
     bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
     JSVersion version() const { return parser->versionWithFlags(); }

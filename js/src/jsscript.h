@@ -92,15 +92,6 @@ struct TryNoteArray {
     uint32_t        length;     
 };
 
-struct GlobalSlotArray {
-    struct Entry {
-        uint32_t    atomIndex;  
-        uint32_t    slot;       
-    };
-    Entry           *vector;
-    uint32_t        length;
-};
-
 struct ClosedSlotArray {
     uint32_t        *vector;    
     uint32_t        length;     
@@ -517,7 +508,6 @@ struct JSScript : public js::gc::Cell
         OBJECTS,
         REGEXPS,
         TRYNOTES,
-        GLOBALS,
         CLOSED_ARGS,
         CLOSED_VARS,
         LIMIT
@@ -592,7 +582,7 @@ struct JSScript : public js::gc::Cell
   public:
     static JSScript *NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
                                uint32_t nobjects, uint32_t nregexps,
-                               uint32_t ntrynotes, uint32_t nconsts, uint32_t nglobals,
+                               uint32_t ntrynotes, uint32_t nconsts,
                                uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
                                JSVersion version);
     static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
@@ -763,7 +753,6 @@ struct JSScript : public js::gc::Cell
     bool hasObjects()       { return hasArray(OBJECTS);     }
     bool hasRegexps()       { return hasArray(REGEXPS);     }
     bool hasTrynotes()      { return hasArray(TRYNOTES);    }
-    bool hasGlobals()       { return hasArray(GLOBALS);     }
     bool hasClosedArgs()    { return hasArray(CLOSED_ARGS); }
     bool hasClosedVars()    { return hasArray(CLOSED_VARS); }
 
@@ -773,8 +762,7 @@ struct JSScript : public js::gc::Cell
     size_t objectsOffset()    { return OFF(constsOffset,     hasConsts,     js::ConstArray);      }
     size_t regexpsOffset()    { return OFF(objectsOffset,    hasObjects,    js::ObjectArray);     }
     size_t trynotesOffset()   { return OFF(regexpsOffset,    hasRegexps,    js::ObjectArray);     }
-    size_t globalsOffset()    { return OFF(trynotesOffset,   hasTrynotes,   js::TryNoteArray);    }
-    size_t closedArgsOffset() { return OFF(globalsOffset,    hasGlobals,    js::GlobalSlotArray); }
+    size_t closedArgsOffset() { return OFF(trynotesOffset,   hasTrynotes,   js::TryNoteArray);    }
     size_t closedVarsOffset() { return OFF(closedArgsOffset, hasClosedArgs, js::ClosedSlotArray); }
 
     js::ConstArray *consts() {
@@ -795,11 +783,6 @@ struct JSScript : public js::gc::Cell
     js::TryNoteArray *trynotes() {
         JS_ASSERT(hasTrynotes());
         return reinterpret_cast<js::TryNoteArray *>(data + trynotesOffset());
-    }
-
-    js::GlobalSlotArray *globals() {
-        JS_ASSERT(hasGlobals());
-        return reinterpret_cast<js::GlobalSlotArray *>(data + globalsOffset());
     }
 
     js::ClosedSlotArray *closedArgs() {

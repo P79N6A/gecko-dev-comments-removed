@@ -53,60 +53,13 @@ using namespace js;
 using namespace js::frontend;
 
 bool
-DefineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript* script)
+MarkInnerAndOuterFunctions(JSContext *cx, JSScript* script)
 {
     Root<JSScript*> root(cx, &script);
-
-    HandleObject globalObj = globalScope.globalObj;
-
-    
-    for (size_t i = 0; i < globalScope.defs.length(); i++) {
-        GlobalScope::GlobalDef &def = globalScope.defs[i];
-
-        
-        if (!def.atom)
-            continue;
-
-        jsid id = AtomToId(def.atom);
-        Value rval;
-
-        if (def.funbox) {
-            JSFunction *fun = def.funbox->function();
-
-            
-
-
-
-            rval.setObject(*fun);
-            types::AddTypePropertyId(cx, globalObj, id, rval);
-        } else {
-            rval.setUndefined();
-        }
-
-        
-
-
-
-
-
-
-        const Shape *shape =
-            DefineNativeProperty(cx, globalObj, id, rval, JS_PropertyStub, JS_StrictPropertyStub,
-                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0, DNP_SKIP_TYPE);
-        if (!shape)
-            return false;
-        def.knownSlot = shape->slot();
-    }
 
     Vector<JSScript *, 16> worklist(cx);
     if (!worklist.append(script))
         return false;
-
-    
-
-
-
-
 
     while (worklist.length()) {
         JSScript *outer = worklist.back();
@@ -132,22 +85,11 @@ DefineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript* script)
                     outer->isOuterFunction = true;
                     inner->isInnerFunction = true;
                 }
-                if (!inner->hasGlobals() && !inner->hasObjects())
+                if (!inner->hasObjects())
                     continue;
                 if (!worklist.append(inner))
                     return false;
             }
-        }
-
-        if (!outer->hasGlobals())
-            continue;
-
-        GlobalSlotArray *globalUses = outer->globals();
-        uint32_t nGlobalUses = globalUses->length;
-        for (uint32_t i = 0; i < nGlobalUses; i++) {
-            uint32_t index = globalUses->vector[i].slot;
-            JS_ASSERT(index < globalScope.defs.length());
-            globalUses->vector[i].slot = globalScope.defs[index].knownSlot;
         }
     }
 
@@ -200,7 +142,7 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
     RootedVar<JSScript*> script(cx);
 
-    GlobalScope globalScope(cx, globalObj, &bce);
+    GlobalScope globalScope(cx, globalObj);
     bce.flags |= tcflags;
     bce.setScopeChain(scopeChain);
     bce.globalScope = &globalScope;
@@ -328,7 +270,7 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
     JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
-    if (!DefineGlobals(cx, globalScope, script))
+    if (!MarkInnerAndOuterFunctions(cx, script))
         script = NULL;
 
   out:
