@@ -2719,7 +2719,6 @@ nsXPCComponents_Utils::LookupMethod()
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
     jsval funval;
-    JSFunction *oldfunction;
 
     
     if (!member->NewFunctionObject(inner_cc, iface,
@@ -2727,8 +2726,8 @@ nsXPCComponents_Utils::LookupMethod()
                                    &funval))
         return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-    oldfunction = JS_ValueToFunction(inner_cc, funval);
-    NS_ASSERTION(oldfunction, "Function is not a function");
+    NS_ASSERTION(JS_ValueToFunction(inner_cc, funval),
+                 "Function is not a function");
 
     
     *retval = funval;
