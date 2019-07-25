@@ -35,6 +35,7 @@
 
 
 
+var gTestfile = 'regress-422269.js';
 
 var BUGNUMBER = 422269;
 var summary = 'Compile-time let block should not capture runtime references';
@@ -70,6 +71,10 @@ function test()
     gc();
     var n = countHeap();
     x = null;
+    
+    
+    
+    eval("");
     gc();
 
     var n2 = countHeap();
