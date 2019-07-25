@@ -105,6 +105,8 @@ protected:
 private:
     static ContentParent* gSingleton;
 
+    void Cleanup();
+
     
     
     using PContentParent::SendPBrowserConstructor;
