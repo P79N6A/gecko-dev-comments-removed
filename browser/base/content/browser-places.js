@@ -1067,30 +1067,24 @@ var PlacesStarButton = {
 
 let PlacesToolbarHelper = {
   _place: "place:folder=TOOLBAR",
-  _cachedElt: null,
 
-  onBrowserWindowClose: function PTH_onBrowserWindowClose() {
-    if (this._cachedElt)
-      this._cachedElt._placesView.uninit();
+  get _viewElt() {
+    return document.getElementById("PlacesToolbar");
   },
 
-  updateState: function PTH_updateState() {
-    let currentElt = document.getElementById("PlacesToolbar");
-
-    
-    if (currentElt == this._cachedElt)
-      return;
-
-    if (!this._cachedElt) {
-      
+  init: function PTH_init() {
+    if (this._viewElt)
       new PlacesToolbar(this._place);
-      this._cachedElt = currentElt;
-    }
-    else {
-      
-      this._cachedElt._placesView.uninit();
-      this._cachedElt = null;
-    }
+  },
+
+  customizeStart: function PTH_customizeStart() {
+    let viewElt = this._viewElt;
+    if (viewElt && viewElt._placesView)
+      viewElt._placesView.uninit();
+  },
+
+  customizeDone: function PTH_customizeDone() {
+    this.init();
   }
 };
 
