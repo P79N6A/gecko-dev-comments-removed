@@ -140,7 +140,7 @@ Engine.prototype = {
 
     this._log = Log4Moz.repository.getLogger("Engine." + this.logName);
     this._log.level = Log4Moz.Level[level];
-    this._osPrefix = "weave:" + this.name + ":";
+    this._osPrefix = "weave:" + this.name + "-engine:";
 
     this._tracker; 
     this._log.debug("Engine initialized");
