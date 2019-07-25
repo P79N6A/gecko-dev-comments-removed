@@ -123,7 +123,9 @@ public:
   FrameLayerBuilder() :
     mRetainingManager(nsnull),
     mDetectedDOMModification(false),
-    mInvalidateAllLayers(false)
+    mInvalidateAllLayers(false),
+    mContainerLayerGeneration(0),
+    mMaxContainerLayerGeneration(0)
   {
     MOZ_COUNT_CTOR(FrameLayerBuilder);
     mNewDisplayItemData.Init();
@@ -467,11 +469,16 @@ protected:
 
   class DisplayItemData {
   public:
-    DisplayItemData(Layer* aLayer, PRUint32 aKey, LayerState aLayerState)
-      : mLayer(aLayer), mDisplayItemKey(aKey), mLayerState(aLayerState) {}
+    DisplayItemData(Layer* aLayer, PRUint32 aKey, LayerState aLayerState, PRUint32 aGeneration)
+      : mLayer(aLayer)
+      , mDisplayItemKey(aKey)
+      , mContainerLayerGeneration(aGeneration)
+      , mLayerState(aLayerState)
+    {}
 
     nsRefPtr<Layer> mLayer;
     PRUint32        mDisplayItemKey;
+    PRUint32        mContainerLayerGeneration;
     LayerState      mLayerState;
   };
 
@@ -495,12 +502,14 @@ protected:
       
       mData.SwapElements(toCopy.mData);
       mInvalidRegion.swap(toCopy.mInvalidRegion);
+      mContainerLayerGeneration = toCopy.mContainerLayerGeneration;
     }
 
     bool HasNonEmptyContainerLayer();
 
     nsAutoTArray<DisplayItemData, 1> mData;
     nsRefPtr<RefCountedRegion> mInvalidRegion;
+    PRUint32 mContainerLayerGeneration;
     bool mIsSharingContainerLayer;
 
     enum { ALLOW_MEMMOVE = false };
@@ -544,13 +553,14 @@ protected:
 
 
   struct ClippedDisplayItem {
-    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip)
-      : mItem(aItem), mClip(aClip)
+    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip, PRUint32 aGeneration)
+      : mItem(aItem), mClip(aClip), mContainerLayerGeneration(aGeneration)
     {
     }
 
     nsDisplayItem* mItem;
     Clip mClip;
+    PRUint32 mContainerLayerGeneration;
     bool mInactiveLayer;
   };
 
@@ -575,6 +585,7 @@ public:
     
     
     nsIntPoint mLastPaintOffset;
+    PRUint32 mContainerLayerGeneration;
     bool mHasExplicitLastPaintOffset;
     
 
@@ -602,6 +613,11 @@ protected:
                                                        void* aUserArg);
   static PLDHashOperator StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
                                                  void* aUserArg);
+  static PLDHashOperator RestoreDisplayItemData(DisplayItemDataEntry* aEntry,
+                                                void *aUserArg);
+
+  static PLDHashOperator RestoreThebesLayerItemEntries(ThebesLayerItemsEntry* aEntry,
+                                                       void *aUserArg);
 
   
 
@@ -643,6 +659,9 @@ protected:
 
 
   bool                                mInvalidateAllLayers;
+
+  PRUint32                            mContainerLayerGeneration;
+  PRUint32                            mMaxContainerLayerGeneration;
 };
 
 }
