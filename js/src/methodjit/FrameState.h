@@ -329,6 +329,11 @@ class FrameState
     
 
 
+    inline void forgetType(FrameEntry *fe);
+
+    
+
+
 
     inline Jump testInt32(Assembler::Condition cond, FrameEntry *fe);
 
