@@ -2129,9 +2129,13 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
   nsIntRegion childWindowRegion;
 
   ::EnumChildWindows(mWnd, AddClientAreaToRegion, reinterpret_cast<LPARAM>(&childWindowRegion));
+
+  nsIntPoint clientOffset;
+  GetClientOffset(clientOffset);
+  childWindowRegion.MoveBy(-clientOffset);
+
   RECT r;
   ::GetWindowRect(mWnd, &r);
-
   childWindowRegion.MoveBy(-r.left, -r.top);
 
   nsIntRect clientBounds;
@@ -3298,7 +3302,34 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   if (event->message == NS_DEACTIVATE && BlurEventsSuppressed())
     return NS_OK;
 
-  if (nsnull != mEventCallback) {
+  
+  
+  
+  
+  if (mViewCallback) {
+    
+    switch(event->message) {
+      
+      case NS_UISTATECHANGED:
+      case NS_DESTROY:
+      case NS_SETZLEVEL:
+      case NS_XUL_CLOSE:
+      case NS_MOVE:
+        (*mEventCallback)(event); 
+        return NS_OK;
+
+      
+      case NS_SIZE:
+      case NS_DEACTIVATE:
+      case NS_ACTIVATE:
+      case NS_SIZEMODE:
+        (*mEventCallback)(event); 
+        break;
+    };
+    
+    aStatus = (*mViewCallback)(event);
+  }
+  else if (mEventCallback) {
     aStatus = (*mEventCallback)(event);
   }
 
