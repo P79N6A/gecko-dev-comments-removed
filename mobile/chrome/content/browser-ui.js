@@ -1174,9 +1174,11 @@ var PageActions = {
 
   updatePageSaveAs: function updatePageSaveAs() {
     this.removeItems("saveas");
+
     
-    
-    
+    let contentDocument = Browser.selectedBrowser.contentDocument;
+    if (contentDocument && contentDocument instanceof XULDocument)
+      return;
 
     let strings = Elements.browserBundle;
     let node = this.appendItem("saveas", strings.getString("pageactions.saveas.pdf"), "");
