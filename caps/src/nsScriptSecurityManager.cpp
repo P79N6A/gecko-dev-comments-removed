@@ -2439,8 +2439,9 @@ nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
     {
         
         
-        *result = true;
-
+        nsresult ignored;
+        nsIPrincipal *subjectPrin = doGetSubjectPrincipal(&ignored);
+        *result = (!subjectPrin || subjectPrin == mSystemPrincipal);
         return NS_OK;
     }
 
