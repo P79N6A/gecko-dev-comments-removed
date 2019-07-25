@@ -179,7 +179,7 @@ public:
   void  SetNoneValue();
   void  SetCalcValue(Calc* aValue);
 
-public: 
+private:
   nsStyleUnit   mUnit;
   nsStyleUnion  mValue;
 };
