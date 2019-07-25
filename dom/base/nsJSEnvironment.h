@@ -298,7 +298,7 @@ private:
 
   
   
-  nsCOMPtr<nsISupports> mGlobalObjectRef;
+  nsCOMPtr<nsIScriptGlobalObject> mGlobalObjectRef;
 
   static int JSOptionChangedCallback(const char *pref, void *data);
 

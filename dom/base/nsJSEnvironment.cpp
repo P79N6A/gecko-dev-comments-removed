@@ -2179,10 +2179,19 @@ nsJSContext::GetGlobalObject()
     return nsnull;
   }
 
-  OBJ_TO_INNER_OBJECT(mContext, global);
-  if (!global) {
-    return nsnull;
+  if (mGlobalObjectRef)
+    return mGlobalObjectRef;
+
+#ifdef DEBUG
+  {
+    JSObject *inner = global;
+    OBJ_TO_INNER_OBJECT(mContext, inner);
+
+    
+    
+    NS_ASSERTION(inner == global, "Shouldn't be able to innerize here");
   }
+#endif
 
   JSClass *c = JS_GET_CLASS(mContext, global);
 
@@ -2208,11 +2217,7 @@ nsJSContext::GetGlobalObject()
 
   
   
-  nsCOMPtr<nsPIDOMWindow> pwin(do_QueryInterface(sgo));
-  if (!pwin)
-    return sgo;
-
-  return static_cast<nsGlobalWindow *>(pwin->GetOuterWindow());
+  return sgo;
 }
 
 void *
