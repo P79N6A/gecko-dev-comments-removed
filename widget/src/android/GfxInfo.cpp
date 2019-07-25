@@ -88,8 +88,6 @@ GfxInfo::GetCleartypeParameters(nsAString & aCleartypeParams)
 nsresult
 GfxInfo::Init()
 {
-  mSetCrashReportAnnotations = false;
-
   mAdapterDescription.AssignASCII(mozilla::gl::GetVendor());
   if (mozilla::AndroidBridge::Bridge()) {
     nsAutoString str;
@@ -123,6 +121,8 @@ GfxInfo::Init()
     mAdapterDescription.Append(NS_LITERAL_STRING("'"));
     mAndroidSDKVersion = version;
   }
+
+  AddOpenGLCrashReportAnnotations();
 
   return GfxInfoBase::Init();
 }
@@ -311,11 +311,6 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
   
   if (!aDriverInfo.Length()) {
     if (aFeature == FEATURE_OPENGL_LAYERS) {
-      if (!mSetCrashReportAnnotations) {
-        AddOpenGLCrashReportAnnotations();
-        mSetCrashReportAnnotations = true;
-      }
-
       
 
 
