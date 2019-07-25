@@ -92,7 +92,7 @@ namespace nanojit
     
     
     
-    RegisterMask hints[LIR_sentinel+1] = {
+    RegisterMask Assembler::nHints[LIR_sentinel+1] = {
 #define OP___(op, number, repKind, retType, isCse) \
         0,
 #include "LIRopcode.tbl"
