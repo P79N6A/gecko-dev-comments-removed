@@ -616,13 +616,18 @@ abstract public class GeckoApp
                 mLastTitle = lastHistoryEntry.mTitle;
                 Bitmap bitmap = mSoftwareLayerClient.getBitmap();
                 if (bitmap != null) {
-                    
-                    if (tab == mThumbnailTab)
-                        mThumbnailTab.updateThumbnail(bitmap);
-
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     bitmap.compress(Bitmap.CompressFormat.PNG, 0, bos);
                     mLastScreen = bos.toByteArray();
+
+                    
+                    
+                    if (tab == mThumbnailTab) {
+                        if (mThumbnailTab.getURL().equals("about:home"))
+                            mThumbnailTab.updateThumbnail(null);
+                        else
+                            mThumbnailTab.updateThumbnail(bitmap);
+                    }
                 } else {
                     mLastScreen = null;
                 }
