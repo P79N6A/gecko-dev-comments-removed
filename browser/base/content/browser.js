@@ -6705,6 +6705,8 @@ var FeedHandler = {
 
 
   updateFeeds: function() {
+    clearTimeout(this._updateFeedTimeout);
+
     var feeds = gBrowser.selectedBrowser.feeds;
     var haveFeeds = feeds && feeds.length > 0;
 
@@ -6742,6 +6744,15 @@ var FeedHandler = {
       browserForLink.feeds = [];
 
     browserForLink.feeds.push({ href: link.href, title: link.title });
+
+    
+    
+    if (browserForLink == gBrowser.selectedBrowser) {
+      
+      
+      clearTimeout(this._updateFeedTimeout);
+      this._updateFeedTimeout = setTimeout(this.updateFeeds.bind(this), 100);
+    }
   }
 };
 
