@@ -863,3 +863,63 @@ NS_IMETHODIMP GfxInfoBase::GetFailures(PRUint32 *failureCount NS_OUTPARAM, char 
 
   return NS_OK;
 }
+
+nsTArray<GfxInfoCollectorBase*> *sCollectors;
+
+static void
+InitCollectors()
+{
+  if (!sCollectors)
+    sCollectors = new nsTArray<GfxInfoCollectorBase*>;
+}
+
+nsresult GfxInfoBase::GetInfo(JSContext* aCx, jsval* aResult)
+{
+  InitCollectors();
+  InfoObject obj(aCx);
+
+  for (PRUint32 i = 0; i < sCollectors->Length(); i++) {
+    (*sCollectors)[i]->GetInfo(obj);
+  }
+
+  
+  
+  
+  
+
+  if (!obj.mOk) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aResult = OBJECT_TO_JSVAL(obj.mObj);
+  return NS_OK;
+}
+
+void
+GfxInfoBase::AddCollector(GfxInfoCollectorBase* collector)
+{
+  InitCollectors();
+  sCollectors->AppendElement(collector);
+}
+
+void
+GfxInfoBase::RemoveCollector(GfxInfoCollectorBase* collector)
+{
+  InitCollectors();
+  for (PRUint32 i = 0; i < sCollectors->Length(); i++) {
+    if ((*sCollectors)[i] == collector) {
+      sCollectors->RemoveElementAt(i);
+      break;
+    }
+  }
+}
+
+GfxInfoCollectorBase::GfxInfoCollectorBase()
+{
+  GfxInfoBase::AddCollector(this);
+}
+
+GfxInfoCollectorBase::~GfxInfoCollectorBase()
+{
+  GfxInfoBase::RemoveCollector(this);
+}
