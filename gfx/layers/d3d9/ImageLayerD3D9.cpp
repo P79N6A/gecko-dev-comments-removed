@@ -269,23 +269,35 @@ PlanarYCbCrImageD3D9::SetData(const PlanarYCbCrImage::Data &aData)
      
      width_shift = 0;
      height_shift = 0;
+     mType = gfx::YV24;
   } else if (aData.mYSize.width / 2 == aData.mCbCrSize.width &&
              aData.mYSize.height == aData.mCbCrSize.height) {
     
     width_shift = 1;
     height_shift = 0;
+    mType = gfx::YV16;
   } else if (aData.mYSize.width / 2 == aData.mCbCrSize.width &&
              aData.mYSize.height / 2 == aData.mCbCrSize.height ) {
       
     width_shift = 1;
     height_shift = 1;
+    mType = gfx::YV12;
   } else {
     NS_ERROR("YCbCr format not supported");
   }
 
   mData = aData;
   mData.mCbCrStride = mData.mCbCrSize.width = aData.mPicSize.width >> width_shift;
+  
+  
+  if (width_shift && (aData.mPicSize.width & 1)) {
+    mData.mCbCrStride++;
+    mData.mCbCrSize.width++;
+  }
   mData.mCbCrSize.height = aData.mPicSize.height >> height_shift;
+  if (height_shift && (aData.mPicSize.height & 1)) {
+      mData.mCbCrSize.height++;
+  }
   mData.mYSize = aData.mPicSize;
   mData.mYStride = mData.mYSize.width;
 
@@ -458,7 +470,7 @@ PlanarYCbCrImageD3D9::GetAsSurface()
                            mData.mYStride,
                            mData.mCbCrStride,
                            imageSurface->Stride(),
-                           gfx::YV12);
+                           mType);
 
   return imageSurface.forget().get();
 }
