@@ -270,10 +270,10 @@ struct JSCompartment
 
 #ifdef DEBUG
     
-    jsrefcount                   livePropTreeNodes;
-    jsrefcount                   totalPropTreeNodes;
-    jsrefcount                   propTreeKidsChunks;
-    jsrefcount                   liveDictModeNodes;
+    unsigned                     livePropTreeNodes;
+    unsigned                     totalPropTreeNodes;
+    unsigned                     propTreeKidsChunks;
+    unsigned                     liveDictModeNodes;
 #endif
 
     
