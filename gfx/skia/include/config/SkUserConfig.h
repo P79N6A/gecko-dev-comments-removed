@@ -43,6 +43,16 @@
 
 
 
+#include "mozilla/mozalloc.h"
+
+
+
+
+
+
+
+
+
 
 
 
