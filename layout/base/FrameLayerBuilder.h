@@ -287,7 +287,7 @@ public:
 
 
 
-  static void DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile = stdout);
+  static void DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile = stdout, bool aDumpHtml = false);
 #endif
 
   
