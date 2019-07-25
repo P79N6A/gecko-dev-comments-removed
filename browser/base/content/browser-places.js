@@ -961,6 +961,11 @@ var PlacesStarButton = {
     
     this._starIcon.hidden = true;
 
+    
+    if (this._uri.spec == "about:blank") {
+      return;
+    }
+
     PlacesUtils.asyncGetBookmarkIds(this._uri, function (aItemIds) {
       this._itemIds = aItemIds;
       this._updateStateInternal();
