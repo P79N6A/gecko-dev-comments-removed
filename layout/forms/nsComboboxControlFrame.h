@@ -168,6 +168,7 @@ public:
 
 
   virtual nsIContent* Rollup(PRUint32 aCount, bool aGetLastRolledUp = false);
+  virtual void NotifyGeometryChange();
 
   
 
