@@ -779,9 +779,23 @@ public:
   void *GetUserData(UserDataKey *key) {
     return mUserData.Get(key);
   }
+
+  
+
+
+
+
+  void SetOpaqueRect(const IntRect &aRect) {
+    mOpaqueRect = aRect;
+  }
+
+  const IntRect &GetOpaqueRect() const {
+    return mOpaqueRect;
+  }
 protected:
   UserData mUserData;
   Matrix mTransform;
+  IntRect mOpaqueRect;
   bool mTransformDirty : 1;
 
   SurfaceFormat mFormat;
