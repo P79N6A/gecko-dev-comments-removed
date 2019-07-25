@@ -140,7 +140,7 @@
 #include "nsIPrivateBrowsingService.h"
 
 #ifdef MOZ_IPC
-#include "TabChild.h"
+#include "ContentChild.h"
 #include "nsXULAppAPI.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocShellTreeOwner.h"
@@ -689,14 +689,10 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     
     
     
-    nsCOMPtr<nsIDocShell> docshell(do_GetInterface(aWindowContext));
-    nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(docshell);
-    nsCOMPtr<nsIDocShellTreeOwner> owner;
-    item->GetTreeOwner(getter_AddRefs(owner));
-    NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
-
-    nsCOMPtr<nsITabChild> tabchild = do_GetInterface(owner);
-    if (!tabchild)
+    using mozilla::dom::ContentChild;
+    using mozilla::dom::ExternalHelperAppChild;
+    ContentChild *child = ContentChild::GetSingleton();
+    if (!child)
       return NS_ERROR_FAILURE;
 
     nsCString disp;
@@ -707,9 +703,6 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     
     
     
-    using mozilla::dom::TabChild;
-    using mozilla::dom::ExternalHelperAppChild;
-    TabChild *child = static_cast<TabChild*>(tabchild.get());
     mozilla::dom::PExternalHelperAppChild *pc;
     pc = child->SendPExternalHelperAppConstructor(IPC::URI(uri),
                                                   nsCString(aMimeContentType),
