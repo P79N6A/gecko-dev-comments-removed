@@ -235,6 +235,9 @@ nsMediaChannelStream::OnStartRequest(nsIRequest* aRequest)
       
       mCacheStream.NotifyDataStarted(0);
       mOffset = 0;
+
+      
+      acceptsRanges = PR_FALSE;
     } else if (mOffset == 0 &&
                (responseStatus == HTTP_OK_CODE ||
                 responseStatus == HTTP_PARTIAL_RESPONSE_CODE)) {
