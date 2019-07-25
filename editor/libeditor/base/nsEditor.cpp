@@ -368,7 +368,9 @@ nsEditor::GetDesiredSpellCheckState()
     return PR_FALSE;                    
   }
 
-  if (!CanEnableSpellCheck()) {
+  
+  
+  if (IsPasswordEditor() || IsReadonly() || IsDisabled()) {
     return PR_FALSE;
   }
 
@@ -441,12 +443,6 @@ nsEditor::GetFlags(PRUint32 *aFlags)
 NS_IMETHODIMP
 nsEditor::SetFlags(PRUint32 aFlags)
 {
-  
-  
-  
-  
-
-  PRBool spellcheckerWasEnabled = CanEnableSpellCheck();
   mFlags = aFlags;
 
   if (!mDocWeak || !mPresShellWeak) {
@@ -457,10 +453,8 @@ nsEditor::SetFlags(PRUint32 aFlags)
   }
 
   
-  if (CanEnableSpellCheck() != spellcheckerWasEnabled) {
-    nsresult rv = SyncRealTimeSpell();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  nsresult rv = SyncRealTimeSpell();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -468,7 +462,7 @@ nsEditor::SetFlags(PRUint32 aFlags)
     
     
     PRUint32 newState = nsIContent::IME_STATUS_ENABLE;
-    nsresult rv = GetPreferredIMEState(&newState);
+    rv = GetPreferredIMEState(&newState);
     if (NS_SUCCEEDED(rv)) {
       
       
