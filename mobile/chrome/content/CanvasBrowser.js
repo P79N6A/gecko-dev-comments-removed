@@ -78,6 +78,9 @@ CanvasBrowser.prototype = {
   
   _maxRight: 0,
   _maxBottom: 0,
+  
+  
+  _needToPanToTop: false,
 
   get canvasDimensions() {
     if (!this._canvasRect) {
@@ -238,18 +241,10 @@ CanvasBrowser.prototype = {
   },
 
   startLoading: function startLoading() {
-    
-    
-    
-    this.clearRegion();
-    var ctx = this._canvas.getContext("2d");
-    ctx.fillStyle = "rgb(255,255,255)";
-    ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
-
     this._maxRight = 0;
     this._maxBottom = 0;
-
     this._pageLoading = true;
+    this._needToPanToTop = true;
   },
 
   endLoading: function() {
@@ -285,8 +280,6 @@ CanvasBrowser.prototype = {
     this._isPanning = false;
     let pageBounds = bounds.clone();
     let visibleBounds = ws.viewportVisibleRect;
-
-    
 
     
     pageBounds.top = this._screenToPage(pageBounds.top);
@@ -495,7 +488,14 @@ CanvasBrowser.prototype = {
   },
 
   zoomToPage: function() {
+    let needToPanToTop = this._needToPanToTop;
     
+    
+    if (needToPanToTop) {
+      ws.beginUpdateBatch();      
+      this._needToPanToTop = false;
+      ws.panTo(0, 0);
+    }
     
     
     let [contentW, ] = this._contentAreaDimensions;
@@ -503,6 +503,9 @@ CanvasBrowser.prototype = {
 
     if (contentW > canvasW)
       this.zoomLevel = canvasW / contentW;
+    
+    if (needToPanToTop)
+      ws.endUpdateBatch();
   },
 
   zoomToElement: function(aElement) {
