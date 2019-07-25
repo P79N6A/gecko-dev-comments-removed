@@ -283,11 +283,18 @@ public:
   static nsIFrame* GetFrameToLeftOf(const nsIFrame*  aFrame,
                                     nsIFrame*        aFirstFrameOnLine,
                                     PRInt32          aNumFramesOnLine);
+
+  static nsIFrame* GetFirstLeaf(nsIFrame* aFrame);
     
   
 
 
   static nsBidiLevel GetFrameEmbeddingLevel(nsIFrame* aFrame);
+    
+  
+
+
+  static PRUint8 GetParagraphDepth(nsIFrame* aFrame);
 
   
 
