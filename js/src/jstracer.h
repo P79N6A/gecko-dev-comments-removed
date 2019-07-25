@@ -539,8 +539,6 @@ struct LinkableFragment : public VMFragment
     SlotList*               globalSlots;
 };
 
-struct PICTable;
-
 
 
 
@@ -566,7 +564,6 @@ struct TreeFragment : public LinkableFragment
         sideExits(alloc),
         gcthings(alloc),
         shapes(alloc),
-        picTables(alloc),
         visiting(false)
     { }
 
@@ -593,7 +590,6 @@ struct TreeFragment : public LinkableFragment
     
     Queue<Value>            gcthings;
     Queue<const js::Shape*> shapes;
-    Queue<PICTable*>        picTables;
     unsigned                maxNativeStackSlots;
     
     uintN                   execs;
