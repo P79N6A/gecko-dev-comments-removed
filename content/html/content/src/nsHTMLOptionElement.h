@@ -56,6 +56,14 @@ public:
   virtual ~nsHTMLOptionElement();
 
   
+  static nsHTMLOptionElement* FromContent(nsIContent *aContent)
+  {
+    if (aContent->NodeInfo()->Equals(nsGkAtoms::option, kNameSpaceID_XHTML))
+      return static_cast<nsHTMLOptionElement*>(aContent);
+    return nsnull;
+  }
+
+  
   NS_DECL_ISUPPORTS_INHERITED
 
   
