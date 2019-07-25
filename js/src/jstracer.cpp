@@ -12354,9 +12354,6 @@ TraceRecorder::setProperty(JSObject* obj, LIns* obj_ins, const Value &v, LIns* v
 }
 
 
-
-
-
 JS_REQUIRES_STACK RecordingStatus
 TraceRecorder::recordSetPropertyOp()
 {
@@ -12429,8 +12426,11 @@ TraceRecorder::recordInitPropertyOp(jsbytecode op)
     }
 
     
-    if (atom == cx->runtime->atomState.protoAtom)
-        return recordSetPropertyOp();
+    
+    if (atom == cx->runtime->atomState.protoAtom) {
+        bool deferred;
+        return setProperty(obj, obj_ins, v, v_ins, &deferred);
+    }
 
     
     return addDataProperty(obj);
