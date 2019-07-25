@@ -311,6 +311,63 @@ struct BaseRect {
   
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+  void Round()
+  {
+    T x0 = static_cast<T>(floor(T(X()) + 0.5));
+    T y0 = static_cast<T>(floor(T(Y()) + 0.5));
+    T x1 = static_cast<T>(floor(T(XMost()) + 0.5));
+    T y1 = static_cast<T>(floor(T(YMost()) + 0.5));
+
+    x = x0;
+    y = y0;
+
+    width = x1 - x0;
+    height = y1 - y0;
+  }
+
+  
+  
+  void RoundIn()
+  {
+    T x0 = static_cast<T>(ceil(T(X())));
+    T y0 = static_cast<T>(ceil(T(Y())));
+    T x1 = static_cast<T>(floor(T(XMost())));
+    T y1 = static_cast<T>(floor(T(YMost())));
+
+    x = x0;
+    y = y0;
+
+    width = x1 - x0;
+    height = y1 - y0;
+  }
+
+  
+  
+  void RoundOut()
+  {
+    T x0 = static_cast<T>(floor(T(X())));
+    T y0 = static_cast<T>(floor(T(Y())));
+    T x1 = static_cast<T>(ceil(T(XMost())));
+    T y1 = static_cast<T>(ceil(T(YMost())));
+
+    x = x0;
+    y = y0;
+
+    width = x1 - x0;
+    height = y1 - y0;
+  }
+
+  
+  
+  
   void ScaleRoundOut(double aScale) { ScaleRoundOut(aScale, aScale); }
   
   

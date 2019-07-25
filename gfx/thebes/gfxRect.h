@@ -107,27 +107,6 @@ struct THEBES_API gfxRect :
 
     bool WithinEpsilonOfIntegerPixels(gfxFloat aEpsilon) const;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    void Round();
-
-    
-    
-    void RoundIn();
-    
-    
-    
-    void RoundOut();
-
     gfxPoint AtCorner(mozilla::css::Corner corner) const {
         switch (corner) {
             case NS_CORNER_TOP_LEFT: return TopLeft();
