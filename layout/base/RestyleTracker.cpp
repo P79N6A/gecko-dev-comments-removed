@@ -108,7 +108,8 @@ CollectRestyles(nsISupports* aElement,
   NS_ASSERTION(!element->HasFlag(collector->tracker->RootBit()) ||
                
                (element->GetFlattenedTreeParent() &&
-                !element->GetFlattenedTreeParent()->GetPrimaryFrame()) ||
+                (!element->GetFlattenedTreeParent()->GetPrimaryFrame()||
+                 element->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf())) ||
                
                
                
