@@ -63,7 +63,7 @@ typedef struct gif_struct {
     PRUint8 firstchar;
     int count;                  
     int bits;                   
-    int32 datum;                
+    PRInt32 datum;              
 
     
     int ipass;                  
