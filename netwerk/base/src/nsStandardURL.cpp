@@ -1428,7 +1428,7 @@ nsStandardURL::SetHost(const nsACString &input)
         return NS_ERROR_UNEXPECTED;
     }
 
-    if (host && strlen(host) < flat.Length())
+    if (strlen(host) < flat.Length())
         return NS_ERROR_MALFORMED_URI; 
 
     
@@ -1439,7 +1439,7 @@ nsStandardURL::SetHost(const nsACString &input)
     InvalidateCache();
     mHostEncoding = eEncoding_ASCII;
 
-    if (!(host && *host)) {
+    if (!*host) {
         
         if (mHost.mLen > 0) {
             
