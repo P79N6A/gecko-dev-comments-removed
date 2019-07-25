@@ -397,7 +397,7 @@ void nsTimerImpl::Fire()
 #endif
 
   TimeStamp timeout = mTimeout;
-  if (mType == TYPE_REPEATING_PRECISE) {
+  if (IsRepeatingPrecisely()) {
     
     
     timeout -= TimeDuration::FromMilliseconds(mDelay);
@@ -461,8 +461,12 @@ void nsTimerImpl::Fire()
 
   
   
-  if (mType == TYPE_REPEATING_SLACK && !mArmed) {
-    SetDelayInternal(mDelay); 
+  
+  if (IsRepeating() && mType != TYPE_REPEATING_PRECISE && !mArmed) {
+    if (mType == TYPE_REPEATING_SLACK)
+      SetDelayInternal(mDelay); 
+                                
+                                
     if (gThread)
       gThread->AddTimer(this);
   }
@@ -539,9 +543,11 @@ nsresult nsTimerImpl::PostTimerEvent()
 
   
   
-  if (mType == TYPE_REPEATING_PRECISE) {
+  if (IsRepeatingPrecisely()) {
     SetDelayInternal(mDelay);
-    if (gThread) {
+
+    
+    if (gThread && mType == TYPE_REPEATING_PRECISE) {
       nsresult rv = gThread->AddTimer(this);
       if (NS_FAILED(rv))
         return rv;
