@@ -278,15 +278,9 @@ private:
     void DoAssertInitialState();
 #endif
 
-    struct PropertyOffsetInfo {
-        
-        
-        size_t block_offset; 
-        size_t ruledata_struct_offset; 
-        size_t ruledata_member_offset; 
-    };
-
-    static const PropertyOffsetInfo kOffsetTable[];
+    
+    
+    static const size_t kOffsetTable[];
 
     
 
@@ -307,28 +301,8 @@ public:
 
 
     void* PropertyAt(nsCSSProperty aProperty) {
-        const PropertyOffsetInfo& offsets =
-            nsCSSExpandedDataBlock::kOffsetTable[aProperty];
-        return reinterpret_cast<void*>(reinterpret_cast<char*>(this) +
-                                          offsets.block_offset);
-    }
-
-    
-
-
-
-
-    static void* RuleDataPropertyAt(nsRuleData *aRuleData,
-                                    nsCSSProperty aProperty) {
-        const PropertyOffsetInfo& offsets =
-            nsCSSExpandedDataBlock::kOffsetTable[aProperty];
-        NS_ASSERTION(offsets.ruledata_struct_offset != size_t(-1),
-                     "property should not use CSS_PROP_BACKENDONLY");
-        char* cssstruct = *reinterpret_cast<char**>
-                                           (reinterpret_cast<char*>(aRuleData) +
-                              offsets.ruledata_struct_offset);
-        return reinterpret_cast<void*>
-                               (cssstruct + offsets.ruledata_member_offset);
+        size_t offset = nsCSSExpandedDataBlock::kOffsetTable[aProperty];
+        return reinterpret_cast<void*>(reinterpret_cast<char*>(this) + offset);
     }
 
     void SetPropertyBit(nsCSSProperty aProperty) {

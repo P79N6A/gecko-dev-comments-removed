@@ -44,12 +44,14 @@
 #ifndef nsRuleData_h_
 #define nsRuleData_h_
 
+#include "nsCSSProps.h"
 #include "nsCSSStruct.h"
 #include "nsStyleStructFwd.h"
+
 class nsPresContext;
 class nsStyleContext;
-
 struct nsRuleData;
+
 typedef void (*nsPostResolveFunc)(void* aStyleStruct, nsRuleData* aData);
 
 struct nsRuleData
@@ -61,7 +63,9 @@ struct nsRuleData
   nsPresContext* mPresContext;
   nsStyleContext* mStyleContext;
   nsPostResolveFunc mPostResolveCallback;
-  nsRuleDataFont* mFontData; 
+
+  
+  nsRuleDataFont* mFontData;
   nsRuleDataDisplay* mDisplayData;
   nsRuleDataMargin* mMarginData;
   nsRuleDataList* mListData;
@@ -73,18 +77,37 @@ struct nsRuleData
   nsRuleDataUserInterface* mUserInterfaceData;
   nsRuleDataXUL* mXULData;
   nsRuleDataSVG* mSVGData;
-
   nsRuleDataColumn* mColumnData;
 
-  nsRuleData(PRUint32 aSIDs, nsPresContext* aContext, nsStyleContext* aStyleContext) 
-    :mSIDs(aSIDs), mPresContext(aContext), mStyleContext(aStyleContext), mPostResolveCallback(nsnull),
-     mFontData(nsnull), mDisplayData(nsnull), mMarginData(nsnull), mListData(nsnull), 
-     mPositionData(nsnull), mTableData(nsnull), mColorData(nsnull), mContentData(nsnull), mTextData(nsnull),
-     mUserInterfaceData(nsnull), mXULData(nsnull), mSVGData(nsnull), mColumnData(nsnull)
-  {
-    mCanStoreInRuleTree = PR_TRUE;
-  }
+  nsRuleData(PRUint32 aSIDs,
+             nsPresContext* aContext,
+             nsStyleContext* aStyleContext)
+    : mSIDs(aSIDs),
+      mCanStoreInRuleTree(PR_TRUE),
+      mPresContext(aContext),
+      mStyleContext(aStyleContext),
+      mPostResolveCallback(nsnull),
+      mFontData(nsnull),
+      mDisplayData(nsnull),
+      mMarginData(nsnull),
+      mListData(nsnull),
+      mPositionData(nsnull),
+      mTableData(nsnull),
+      mColorData(nsnull),
+      mContentData(nsnull),
+      mTextData(nsnull),
+      mUserInterfaceData(nsnull),
+      mXULData(nsnull),
+      mSVGData(nsnull),
+      mColumnData(nsnull)
+  {}
   ~nsRuleData() {}
+
+  
+
+
+
+  void* StorageFor(nsCSSProperty aProperty);
 };
 
 #endif
