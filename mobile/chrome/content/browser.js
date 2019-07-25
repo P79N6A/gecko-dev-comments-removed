@@ -1184,8 +1184,6 @@ Browser.MainDragger.prototype = {
         
         let browser = getBrowser();
         browser._updateCSSViewport();
-        let view = browser.getRootView();
-        view._updateCacheViewport();
         break;
       }
       case "SizeChanged":
