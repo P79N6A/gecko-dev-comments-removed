@@ -93,6 +93,12 @@ pref("offline-apps.quota.max",        204800);
 pref("offline-apps.quota.warn",        51200);
 
 
+
+
+
+pref("browser.cache.compression_level", 5);
+
+
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
@@ -792,6 +798,13 @@ pref("network.http.connection-retry-timeout", 250);
 pref("network.http.fast-fallback-to-IPv4", true);
 
 
+pref("network.http.spdy.enabled", false);
+pref("network.http.spdy.chunk-size", 4096);
+pref("network.http.spdy.timeout", 180);
+pref("network.http.spdy.coalesce-hostnames", true);
+pref("network.http.spdy.use-alternate-protocol", true);
+
+
 
 
 
@@ -1156,6 +1169,7 @@ pref("intl.hyphenation-alias.uk-*", "uk");
 
 pref("intl.hyphenation-alias.de", "de-1996");
 pref("intl.hyphenation-alias.de-*", "de-1996");
+pref("intl.hyphenation-alias.de-AT-1901", "de-1901");
 pref("intl.hyphenation-alias.de-DE-1901", "de-1901");
 pref("intl.hyphenation-alias.de-CH-*", "de-CH");
 
@@ -1463,6 +1477,9 @@ pref("dom.max_script_run_time", 10);
 
 
 pref("hangmonitor.timeout", 0);
+
+
+pref("plugins.click_to_play", false);
 
 #ifndef DEBUG
 
@@ -3383,6 +3400,10 @@ pref("dom.event.handling-user-input-time-limit", 1000);
 
 pref("layout.3d-transforms.enabled", true);
 
+pref("dom.vibrator.enabled", true);
+pref("dom.vibrator.max_vibrate_ms", 10000);
+pref("dom.vibrator.max_vibrate_list_len", 128);
+
 
 pref("dom.battery.enabled", true);
 
@@ -3398,3 +3419,17 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+#ifdef XP_WIN
+
+
+pref("memory.low_virtual_memory_threshold_mb", 128);
+
+
+
+pref("memory.low_physical_mem_threshold_mb", 0);
+
+
+
+
+pref("memory.low_physical_memory_notification_interval_ms", 10000);
+#endif
