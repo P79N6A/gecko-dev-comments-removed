@@ -460,11 +460,22 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
   if (pid == -1)
     return false;
   else if (pid == 0) {
+#if !defined(__ANDROID__)
     
     
     unsetenv("LD_LIBRARY_PATH");
     (void) execl(crashReporterPath,
                  crashReporterPath, minidumpPath, (char*)0);
+#else
+    
+    (void) execlp("/system/bin/am",
+                 "/system/bin/am",
+                 "start",
+                 "-a", "org.mozilla.gecko.reportCrash",
+                 "-n", crashReporterPath,
+                 "--es", "minidumpPath", minidumpPath,
+                 (char*)0);
+#endif
     _exit(1);
   }
 #endif 
@@ -557,11 +568,18 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   exePath->GetPath(crashReporterPath_temp);
 
   crashReporterPath = ToNewUnicode(crashReporterPath_temp);
-#else
+#elif !defined(__ANDROID__)
   nsCString crashReporterPath_temp;
   exePath->GetNativePath(crashReporterPath_temp);
 
   crashReporterPath = ToNewCString(crashReporterPath_temp);
+#else
+  
+  
+  
+  
+  nsCString package("org.mozilla." MOZ_APP_NAME "/.CrashReporter");
+  crashReporterPath = ToNewCString(package);
 #endif
 
   
@@ -589,6 +607,13 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
     return NS_ERROR_FAILURE;
 
   tempPath = path;
+
+#elif defined(__ANDROID__)
+  
+  const char *tempenv = PR_GetEnv("TMPDIR");
+  if (!tempenv)
+    return NS_ERROR_FAILURE;
+  nsCString tempPath(tempenv);
 
 #elif defined(XP_UNIX)
   
