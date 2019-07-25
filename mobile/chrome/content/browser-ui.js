@@ -478,14 +478,6 @@ var BrowserUI = {
   },
 
   getDisplayURI : function(browser) {
-    let loadGroup = browser.webNavigation.QueryInterface(Ci.nsIDocumentLoader).loadGroup;
-    if (loadGroup.activeCount && loadGroup.defaultLoadRequest) {
-      
-      
-      
-      return loadGroup.defaultLoadRequest.QueryInterface(Ci.nsIChannel).originalURI.spec;
-    }
-
     if (!this._URIFixup)
       this._URIFixup = Cc["@mozilla.org/docshell/urifixup;1"].getService(Ci.nsIURIFixup);
 
