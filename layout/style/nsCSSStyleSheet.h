@@ -165,6 +165,9 @@ public:
   
   nsIPrincipal* Principal() const { return mInner->mPrincipal; }
 
+  
+  nsIDocument* GetDocument() const { return mDocument; }
+
   void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
   void SetMedia(nsMediaList* aMedia);
   void SetOwningNode(nsIDOMNode* aOwningNode) { mOwningNode = aOwningNode;  }
