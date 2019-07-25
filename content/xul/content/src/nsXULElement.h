@@ -500,9 +500,6 @@ public:
 
     virtual nsIDOMNode* AsDOMNode() { return this; }
 protected:
-    
-    
-    friend class nsNodeUtils;
 
     
     friend class nsNSElementTearoff;
