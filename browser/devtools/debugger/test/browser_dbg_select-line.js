@@ -74,6 +74,10 @@ function testSelectLine() {
         });
 
         
+        let stackframes = gDebugger.document.getElementById("stackframes");
+        stackframes.scrollTop = stackframes.scrollHeight;
+
+        
         let frames = gDebugger.DebuggerView.Stackframes._frames;
         is(frames.querySelectorAll(".dbg-stackframe").length, 4,
           "Should have four frames.");
