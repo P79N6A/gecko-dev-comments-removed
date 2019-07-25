@@ -299,7 +299,7 @@ nsPluginStreamListenerPeer::~nsPluginStreamListenerPeer()
 #endif
 
   if (mPStreamListener) {
-    mPStreamListener->SetStreamListenerPeer(this);
+    mPStreamListener->SetStreamListenerPeer(nsnull);
   }
 
   
