@@ -2,6 +2,9 @@ const EXPORTED_SYMBOLS = ['HTTPPollingTransport'];
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
+var Cu = Components.utils;
+
+Cu.import("resource://weave/log4moz.js");
 
 
 
