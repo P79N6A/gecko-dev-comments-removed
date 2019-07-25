@@ -221,10 +221,8 @@ namespace nanojit
         
         
         int64_t offset = target ? target - _nIns : 0;
-        if (!isS32(offset)) {
+        if (!isS32(offset))
             setError(BranchTooFar);
-            NanoAssert(0);  
-        }
         emit(op | uint64_t(uint32_t(offset))<<32);
     }
 
@@ -2014,7 +2012,7 @@ namespace nanojit
         
         if (!isS32(target - next)) {
             setError(BranchTooFar);
-            NanoAssert(0);  
+            return;         
         }
         ((int32_t*)next)[-1] = int32_t(target - next);
         if (next[0] == 0x0F && next[1] == 0x8A) {
@@ -2022,7 +2020,10 @@ namespace nanojit
             
             next += 6;
             NanoAssert(((int32_t*)next)[-1] == 0);
-            NanoAssert(isS32(target - next));
+            if (!isS32(target - next)) {
+                setError(BranchTooFar);
+                return;     
+            }
             ((int32_t*)next)[-1] = int32_t(target - next);
         }
     }
