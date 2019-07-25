@@ -287,7 +287,7 @@ ContentSecurityPolicy.prototype = {
 
         try {
           req.open("POST", uris[i], true);
-          req.setRequestHeader('Content-Type', 'application/xml');
+          req.setRequestHeader('Content-Type', 'application/json');
           req.upload.addEventListener("error", failure, false);
           req.upload.addEventListener("abort", failure, false);
           
