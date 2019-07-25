@@ -3234,11 +3234,9 @@ PluginObserver.prototype = {
         let browser = ev.lastTab.browser;
         let oldDoc = browser.contentDocument;
 
-        let plugins = oldDoc.querySelectorAll("embed,object");
-
         browser.removeEventListener("ZoomChanged", this, false);
         browser.removeEventListener("MozAfterPaint", this, false);
-        this.updateEmbedRegions(plugins, this._emptyRect);
+        this.updateEmbedRegions(this.getPluginNodes(oldDoc), this._emptyRect);
       }
 
       let browser = Browser.selectedBrowser;
@@ -3247,6 +3245,21 @@ PluginObserver.prototype = {
     }
 
     this.updateCurrentBrowser();
+  },
+
+  
+  getPluginNodes: function getPluginNodes(doc) {
+    let docs = Util.getAllDocuments(doc);
+    let result = [];
+
+    let i;
+    let plugins;
+    for (i = 0; i < docs.length; i++) {
+      plugins = docs[i].querySelectorAll("embed,object");
+      result.push.apply(result, Array.prototype.slice.call(plugins));
+    }
+
+    return result;
   },
 
   
@@ -3261,16 +3274,14 @@ PluginObserver.prototype = {
       
       if (rect == this._emptyRect)
         this._isRendering = false;
-        let plugins = doc.querySelectorAll("embed,object");
-        this.updateEmbedRegions(plugins, rect);
+      this.updateEmbedRegions(this.getPluginNodes(doc), rect);
     } else {
       
       let self = this;
       setTimeout(function() {
         self._isRendering = true;
         
-        let plugins = doc.querySelectorAll("embed,object");
-        self.updateEmbedRegions(plugins, self.getCriticalRect());
+        self.updateEmbedRegions(self.getPluginNodes(doc), self.getCriticalRect());
       }, 0);
     }
   },
@@ -3278,6 +3289,8 @@ PluginObserver.prototype = {
   
   getCriticalRect: function getCriticalRect() {
     let bv = this._bv;
+    if (Browser.selectedTab._loading)
+      return this._emptyRect;
     if (!bv.isRendering())
       return this._emptyRect;
     if (Elements.contentShowing.hasAttribute("disabled"))
