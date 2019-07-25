@@ -36,6 +36,7 @@
 
 
 
+
 function test() {
   waitForExplicitFinish();
 
@@ -92,13 +93,20 @@ function runNextTest() {
       info("[Test #" + gTestIndex + "] popup shown");
       nextTest.onShown(this);
     });
-  
+
+    
+    
+    let onHiddenArray = nextTest.onHidden instanceof Array ?
+                        nextTest.onHidden :
+                        [nextTest.onHidden];
     doOnPopupEvent("popuphidden", function () {
-      info("[Test #" + gTestIndex + "] popup hidden");
-      nextTest.onHidden(this);
-  
-      goNext();
-    });
+      let onHidden = onHiddenArray.shift();
+      info("[Test #" + gTestIndex + "] popup hidden (" + onHiddenArray.length + " hides remaining)");
+      onHidden.call(nextTest, this);
+      if (!onHiddenArray.length)
+        goNext();
+    }, onHiddenArray.length);
+
     info("[Test #" + gTestIndex + "] added listeners; panel state: " + PopupNotifications.isPanelOpen);
   }
 
@@ -106,12 +114,16 @@ function runNextTest() {
   nextTest.run();
 }
 
-function doOnPopupEvent(eventName, callback) {
+function doOnPopupEvent(eventName, callback, numExpected) {
   gActiveListeners[eventName] = function (event) {
     if (event.target != PopupNotifications.panel)
       return;
-    PopupNotifications.panel.removeEventListener(eventName, gActiveListeners[eventName], false);
-    delete gActiveListeners[eventName];
+    if (typeof(numExpected) === "number")
+      numExpected--;
+    if (!numExpected) {
+      PopupNotifications.panel.removeEventListener(eventName, gActiveListeners[eventName], false);
+      delete gActiveListeners[eventName];
+    }
 
     callback.call(PopupNotifications.panel);
   }
@@ -335,11 +347,15 @@ var tests = [
          "geo anchor shouldn't be visible");
       dismissNotification(popup);
     },
-    onHidden: function (popup) {
+    onHidden: [
+      function (popup) {
+        
+        this.firstNotification.remove();
+        ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
+      },
       
-      this.firstNotification.remove();
-      ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
-    }
+      function (popup) {}
+    ],
   },
   
   { 
