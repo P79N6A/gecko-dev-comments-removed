@@ -45,6 +45,7 @@
 #include "nsID.h"
 #include "nsInterfaceHashtable.h"
 #include "nsIObserver.h"
+#include "nsIUrlClassifierPrefixSet.h"
 #include "nsIUrlClassifierHashCompleter.h"
 #include "nsIUrlClassifierDBService.h"
 #include "nsIURIClassifier.h"
@@ -123,6 +124,9 @@ private:
 
   
   nsTArray<nsCString> mGethashWhitelist;
+
+  
+  nsCOMPtr<nsIUrlClassifierPrefixSet> mPrefixSet;
 
   
   static nsIThread* gDbBackgroundThread;
