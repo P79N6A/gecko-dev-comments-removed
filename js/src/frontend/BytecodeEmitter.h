@@ -168,43 +168,34 @@ struct StmtInfo {
 JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 {
     
-
-
-
-
-
-
-    TCF_COMPILING =                            0x1,
+    TCF_IN_FUNCTION =                          0x1,
 
     
-    TCF_IN_FUNCTION =                          0x2,
+    TCF_RETURN_EXPR =                          0x2,
 
     
-    TCF_RETURN_EXPR =                          0x4,
+    TCF_RETURN_VOID =                          0x4,
 
     
-    TCF_RETURN_VOID =                          0x8,
+    TCF_IN_FOR_INIT =                          0x8,
 
     
-    TCF_IN_FOR_INIT =                         0x10,
+    TCF_FUN_HEAVYWEIGHT =                     0x10,
 
     
-    TCF_FUN_HEAVYWEIGHT =                     0x20,
+    TCF_FUN_IS_GENERATOR =                    0x20,
 
     
-    TCF_FUN_IS_GENERATOR =                    0x40,
+    TCF_HAS_FUNCTION_STMT =                   0x40,
 
     
-    TCF_HAS_FUNCTION_STMT =                   0x80,
+    TCF_GENEXP_LAMBDA =                       0x80,
 
     
-    TCF_GENEXP_LAMBDA =                      0x100,
+    TCF_COMPILE_N_GO =                       0x100,
 
     
-    TCF_COMPILE_N_GO =                       0x200,
-
-    
-    TCF_NO_SCRIPT_RVAL =                     0x400,
+    TCF_NO_SCRIPT_RVAL =                     0x200,
 
     
 
@@ -217,7 +208,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_DECL_DESTRUCTURING =                 0x800,
+    TCF_DECL_DESTRUCTURING =                 0x400,
 
     
 
@@ -225,7 +216,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_STRICT_MODE_CODE =                  0x1000,
+    TCF_STRICT_MODE_CODE =                   0x800,
 
     
 
@@ -249,35 +240,22 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_BINDINGS_ACCESSED_DYNAMICALLY =     0x2000,
+    TCF_BINDINGS_ACCESSED_DYNAMICALLY =     0x1000,
 
     
-    TCF_COMPILE_FOR_EVAL =                  0x4000,
-
-    
-
-
-
-    TCF_FUN_MIGHT_ALIAS_LOCALS =            0x8000,
-
-    
-    TCF_HAS_SINGLETONS =                   0x10000,
-
-    
-    TCF_IN_WITH =                          0x20000,
+    TCF_COMPILE_FOR_EVAL =                  0x2000,
 
     
 
 
 
-
-
-
-
-    TCF_FUN_EXTENSIBLE_SCOPE =             0x40000,
+    TCF_FUN_MIGHT_ALIAS_LOCALS =            0x4000,
 
     
-    TCF_NEED_SCRIPT_GLOBAL =               0x80000,
+    TCF_HAS_SINGLETONS =                    0x8000,
+
+    
+    TCF_IN_WITH =                          0x10000,
 
     
 
@@ -287,21 +265,10 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
+    TCF_FUN_EXTENSIBLE_SCOPE =             0x20000,
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    TCF_ARGUMENTS_HAS_LOCAL_BINDING =     0x100000,
+    
+    TCF_NEED_SCRIPT_GLOBAL =               0x40000,
 
     
 
@@ -313,7 +280,31 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 
 
 
-    TCF_DEFINITELY_NEEDS_ARGS_OBJ =       0x200000
+
+
+
+
+
+
+
+
+
+
+
+
+    TCF_ARGUMENTS_HAS_LOCAL_BINDING =      0x80000,
+
+    
+
+
+
+
+
+
+
+
+
+    TCF_DEFINITELY_NEEDS_ARGS_OBJ =       0x100000
 
 } JS_ENUM_FOOTER(TreeContextFlags);
 
@@ -382,13 +373,7 @@ struct TreeContext {
 
     OwnedAtomDefnMapPtr lexdeps;    
 
-    
-
-
-
-
-
-    TreeContext     *parent;
+    TreeContext     *parent;        
 
     unsigned        staticLevel;    
 
@@ -451,9 +436,6 @@ struct TreeContext {
 
     bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
-
-    bool compiling() const { return flags & TCF_COMPILING; }
-    inline BytecodeEmitter *asBytecodeEmitter();
 
     void noteBindingsAccessedDynamically() {
         flags |= TCF_BINDINGS_ACCESSED_DYNAMICALLY;
@@ -610,6 +592,13 @@ struct BytecodeEmitter : public TreeContext
     }
 
     
+    
+    
+    BytecodeEmitter *parentBCE() {
+        return static_cast<BytecodeEmitter *>(parent);
+    }
+
+    
 
 
 
@@ -674,13 +663,6 @@ struct BytecodeEmitter : public TreeContext
 
     inline ptrdiff_t countFinalSourceNotes();
 };
-
-inline BytecodeEmitter *
-TreeContext::asBytecodeEmitter()
-{
-    JS_ASSERT(compiling());
-    return static_cast<BytecodeEmitter *>(this);
-}
 
 namespace frontend {
 

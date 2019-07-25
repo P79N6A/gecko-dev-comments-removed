@@ -80,7 +80,6 @@ struct Parser : private AutoGCRooter
     uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
 
-    
     TreeContext         *tc;            
 
     
