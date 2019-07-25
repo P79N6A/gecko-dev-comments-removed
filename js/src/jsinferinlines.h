@@ -531,6 +531,30 @@ JSScript::typeSetThis(JSContext *cx, js::types::jstype type)
 }
 
 inline bool
+JSScript::typeSetNewCalled(JSContext *cx)
+{
+    if (!cx->typeInferenceEnabled() || calledWithNew)
+        return true;
+    calledWithNew = true;
+
+    
+
+
+
+
+
+
+    if (analyzed) {
+        
+        js::types::AutoEnterTypeInference enter(cx);
+        js::types::AnalyzeScriptNew(cx, this);
+        if (!cx->compartment->types.checkPendingRecompiles(cx))
+            return false;
+    }
+    return true;
+}
+
+inline bool
 JSScript::typeSetLocal(JSContext *cx, unsigned local, const js::Value &value)
 {
     if (!cx->typeInferenceEnabled())

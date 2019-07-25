@@ -571,7 +571,7 @@ struct TypeScript
 void AnalyzeScriptTypes(JSContext *cx, JSScript *script);
 
 
-void DestroyScriptTypes(JSContext *cx, JSScript *script);
+void AnalyzeScriptNew(JSContext *cx, JSScript *script);
 
 
 struct TypeCompartment
