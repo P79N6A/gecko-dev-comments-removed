@@ -1910,14 +1910,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                ? JSOP_IFEQ                                                    \
                : JSOP_NOP)
 
-
-
-
-
-#define ATOM_IS_IDENTIFIER(atom) js_IsIdentifier(ATOM_TO_STRING(atom))
-#define ATOM_IS_KEYWORD(atom)                                                 \
-    (js_CheckKeyword(ATOM_TO_STRING(atom)->chars(),                           \
-                     ATOM_TO_STRING(atom)->length()) != TOK_EOF)
+#define ATOM_IS_IDENTIFIER(atom) js_IsIdentifier(atom)
 
 
 

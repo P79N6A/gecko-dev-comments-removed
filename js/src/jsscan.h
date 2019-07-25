@@ -529,12 +529,23 @@ js_CloseTokenStream(JSContext *cx, js::TokenStream *ts);
 extern JS_FRIEND_API(int)
 js_fgets(char *buf, int size, FILE *file);
 
+namespace js {
+
+struct KeywordInfo {
+    const char  *chars;         
+    TokenKind   tokentype;
+    JSOp        op;             
+    JSVersion   version;        
+};
 
 
 
 
-extern js::TokenKind
-js_CheckKeyword(const jschar *chars, size_t length);
+
+extern const KeywordInfo *
+FindKeyword(const jschar *s, size_t length);
+
+} 
 
 
 

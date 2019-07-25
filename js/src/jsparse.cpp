@@ -1431,13 +1431,26 @@ CheckStrictBinding(JSContext *cx, JSTreeContext *tc, JSAtom *atom, JSParseNode *
         return true;
 
     JSAtomState *atomState = &cx->runtime->atomState;
-    if (atom == atomState->evalAtom || atom == atomState->argumentsAtom) {
+    if (atom == atomState->evalAtom ||
+        atom == atomState->argumentsAtom ||
+        FindKeyword(atom->charsZ(), atom->length()))
+    {
         JSAutoByteString name;
         if (!js_AtomToPrintableString(cx, atom, &name))
             return false;
         return ReportStrictModeError(cx, TS(tc->parser), tc, pn, JSMSG_BAD_BINDING, name.ptr());
     }
+
     return true;
+}
+
+static bool
+ReportBadParameter(JSContext *cx, JSTreeContext *tc, JSAtom *name, uintN errorNumber)
+{
+    JSDefinition *dn = ALE_DEFN(tc->decls.lookup(name));
+    JSAutoByteString bytes;
+    return js_AtomToPrintableString(cx, name, &bytes) &&
+           ReportStrictModeError(cx, TS(tc->parser), tc, dn, errorNumber, bytes.ptr());
 }
 
 
@@ -1446,51 +1459,49 @@ CheckStrictBinding(JSContext *cx, JSTreeContext *tc, JSAtom *atom, JSParseNode *
 
 
 
-
-
-
-
-
-
-
 static bool
-CheckStrictFormals(JSContext *cx, JSTreeContext *tc, JSFunction *fun,
-                   JSParseNode *pn)
+CheckStrictParameters(JSContext *cx, JSTreeContext *tc)
 {
-    if (!tc->needStrictChecks())
+    JS_ASSERT(tc->inFunction());
+
+    if (!tc->needStrictChecks() || tc->bindings.countArgs() == 0)
         return true;
 
-    if (JSAtom *atom = tc->bindings.findDuplicateArgument()) {
-        
+    JSAtom *argumentsAtom = cx->runtime->atomState.argumentsAtom;
+    JSAtom *evalAtom = cx->runtime->atomState.evalAtom;
+
+    HashSet<JSAtom *> parameters(cx);
+    if (!parameters.init(tc->bindings.countArgs()))
+        return false;
+
+    
+    for (Shape::Range r = tc->bindings.lastVariable(); !r.empty(); r.popFront()) {
+        jsid id = r.front().id;
+        if (!JSID_IS_ATOM(id))
+            continue;
+
+        JSAtom *name = JSID_TO_ATOM(id);
+
+        if (name == argumentsAtom || name == evalAtom) {
+            if (!ReportBadParameter(cx, tc, name, JSMSG_BAD_BINDING))
+                return false;
+        }
+
+        if (tc->inStrictMode() && FindKeyword(name->charsZ(), name->length())) {
+            
 
 
 
-
-        JSDefinition *dn = ALE_DEFN(tc->decls.lookup(atom));
-        if (dn->pn_op == JSOP_GETARG)
-            pn = dn;
-        JSAutoByteString name;
-        if (!js_AtomToPrintableString(cx, atom, &name) ||
-            !ReportStrictModeError(cx, TS(tc->parser), tc, pn, JSMSG_DUPLICATE_FORMAL,
-                                   name.ptr())) {
+            JS_ALWAYS_TRUE(!ReportBadParameter(cx, tc, name, JSMSG_RESERVED_ID));
             return false;
         }
-    }
 
-    if (tc->flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_PARAM_EVAL)) {
-        JSAtomState *atoms = &cx->runtime->atomState;
-        JSAtom *atom = (tc->flags & TCF_FUN_PARAM_ARGUMENTS)
-                       ? atoms->argumentsAtom
-                       : atoms->evalAtom;
-
-        
-        JSDefinition *dn = ALE_DEFN(tc->decls.lookup(atom));
-        JS_ASSERT(dn->pn_atom == atom);
-        JSAutoByteString name;
-        if (!js_AtomToPrintableString(cx, atom, &name) ||
-            !ReportStrictModeError(cx, TS(tc->parser), tc, dn, JSMSG_BAD_BINDING, name.ptr())) {
+        HashSet<JSAtom *>::AddPtr p = parameters.lookupForAdd(name);
+        if (p && !ReportBadParameter(cx, tc, name, JSMSG_DUPLICATE_FORMAL))
             return false;
-        }
+
+        if (!parameters.add(p, name))
+            return false;
     }
 
     return true;
@@ -1744,8 +1755,6 @@ DefineArg(JSParseNode *pn, JSAtom *atom, uintN i, JSTreeContext *tc)
     
     if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
         tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
-    if (atom == tc->parser->context->runtime->atomState.evalAtom)
-        tc->flags |= TCF_FUN_PARAM_EVAL;
 
     
 
@@ -1852,7 +1861,7 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
     tokenStream.mungeCurrentToken(TOK_LC);
     JSParseNode *pn = fn ? parser.functionBody() : NULL;
     if (pn) {
-        if (!CheckStrictFormals(cx, &funcg, fun, pn)) {
+        if (!CheckStrictParameters(cx, &funcg)) {
             pn = NULL;
         } else if (!tokenStream.matchToken(TOK_EOF)) {
             parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
@@ -1933,8 +1942,6 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext 
     
     if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
         tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
-    if (atom == tc->parser->context->runtime->atomState.evalAtom)
-        tc->flags |= TCF_FUN_PARAM_EVAL;
 
     JS_ASSERT(tc->inFunction());
 
@@ -3196,10 +3203,10 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
     if (!body)
         return NULL;
 
-    if (!CheckStrictBinding(context, &funtc, funAtom, pn))
+    if (funAtom && !CheckStrictBinding(context, &funtc, funAtom, pn))
         return NULL;
 
-    if (!CheckStrictFormals(context, &funtc, fun, pn))
+    if (!CheckStrictParameters(context, &funtc))
         return NULL;
 
 #if JS_HAS_EXPR_CLOSURES
@@ -8906,13 +8913,15 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-                tt = js_CheckKeyword(pn->pn_atom->chars(), pn->pn_atom->length());
-                if (tt == TOK_FUNCTION) {
+                const KeywordInfo *ki = FindKeyword(pn->pn_atom->charsZ(), pn->pn_atom->length());
+                if (ki) {
+                    if (ki->tokentype != TOK_FUNCTION) {
+                        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_KEYWORD_NOT_NS);
+                        return NULL;
+                    }
+
                     pn->pn_arity = PN_NULLARY;
                     pn->pn_type = TOK_FUNCTION;
-                } else if (tt != TOK_EOF) {
-                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_KEYWORD_NOT_NS);
-                    return NULL;
                 }
             }
             pn = qualifiedSuffix(pn);

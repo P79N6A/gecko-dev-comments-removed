@@ -268,12 +268,6 @@ class Bindings {
 
 
 
-    JSAtom *findDuplicateArgument() const;
-
-    
-
-
-
 
 
 
