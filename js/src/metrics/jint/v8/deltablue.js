@@ -23,6 +23,272 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+function Benchmark(name, run, setup, tearDown) {
+  this.name = name;
+  this.run = run;
+  this.Setup = setup ? setup : function() { };
+  this.TearDown = tearDown ? tearDown : function() { };
+}
+
+
+
+
+
+function BenchmarkResult(benchmark, time) {
+  this.benchmark = benchmark;
+  this.time = time;
+}
+
+
+
+
+BenchmarkResult.prototype.valueOf = function() {
+  return this.time;
+}
+
+
+
+
+
+
+function BenchmarkSuite(name, reference, benchmarks) {
+  this.name = name;
+  this.reference = reference;
+  this.benchmarks = benchmarks;
+  BenchmarkSuite.suites.push(this);
+}
+
+
+
+BenchmarkSuite.suites = [];
+
+
+
+
+
+BenchmarkSuite.version = '5';
+
+
+
+
+Math.random = (function() {
+  var seed = 49734321;
+  return function() {
+    
+    seed = ((seed + 0x7ed55d16) + (seed << 12))  & 0xffffffff;
+    seed = ((seed ^ 0xc761c23c) ^ (seed >>> 19)) & 0xffffffff;
+    seed = ((seed + 0x165667b1) + (seed << 5))   & 0xffffffff;
+    seed = ((seed + 0xd3a2646c) ^ (seed << 9))   & 0xffffffff;
+    seed = ((seed + 0xfd7046c5) + (seed << 3))   & 0xffffffff;
+    seed = ((seed ^ 0xb55a4f09) ^ (seed >>> 16)) & 0xffffffff;
+    return (seed & 0xfffffff) / 0x10000000;
+  };
+})();
+
+
+
+
+
+
+BenchmarkSuite.RunSuites = function(runner) {
+  var continuation = null;
+  var suites = BenchmarkSuite.suites;
+  var length = suites.length;
+  BenchmarkSuite.scores = [];
+  var index = 0;
+  function RunStep() {
+    while (continuation || index < length) {
+      if (continuation) {
+        continuation = continuation();
+      } else {
+        var suite = suites[index++];
+        if (runner.NotifyStart) runner.NotifyStart(suite.name);
+        continuation = suite.RunStep(runner);
+      }
+      if (continuation && typeof window != 'undefined' && window.setTimeout) {
+        window.setTimeout(RunStep, 25);
+        return;
+      }
+    }
+    if (runner.NotifyScore) {
+      var score = BenchmarkSuite.GeometricMean(BenchmarkSuite.scores);
+      var formatted = BenchmarkSuite.FormatScore(100 * score);
+      runner.NotifyScore(formatted);
+    }
+  }
+  RunStep();
+}
+
+
+
+
+BenchmarkSuite.CountBenchmarks = function() {
+  var result = 0;
+  var suites = BenchmarkSuite.suites;
+  for (var i = 0; i < suites.length; i++) {
+    result += suites[i].benchmarks.length;
+  }
+  return result;
+}
+
+
+
+BenchmarkSuite.GeometricMean = function(numbers) {
+  var log = 0;
+  for (var i = 0; i < numbers.length; i++) {
+    log += Math.log(numbers[i]);
+  }
+  return Math.pow(Math.E, log / numbers.length);
+}
+
+
+
+
+BenchmarkSuite.FormatScore = function(value) {
+  if (value > 100) {
+    return value.toFixed(0);
+  } else {
+    return value.toPrecision(3);
+  }
+}
+
+
+
+BenchmarkSuite.prototype.NotifyStep = function(result) {
+  this.results.push(result);
+  if (this.runner.NotifyStep) this.runner.NotifyStep(result.benchmark.name);
+}
+
+
+
+
+BenchmarkSuite.prototype.NotifyResult = function() {
+  var mean = BenchmarkSuite.GeometricMean(this.results);
+  var score = this.reference / mean;
+  BenchmarkSuite.scores.push(score);
+  if (this.runner.NotifyResult) {
+    var formatted = BenchmarkSuite.FormatScore(100 * score);
+    this.runner.NotifyResult(this.name, formatted);
+  }
+}
+
+
+
+BenchmarkSuite.prototype.NotifyError = function(error) {
+  if (this.runner.NotifyError) {
+    this.runner.NotifyError(this.name, error);
+  }
+  if (this.runner.NotifyStep) {
+    this.runner.NotifyStep(this.name);
+  }
+}
+
+
+
+
+BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark) {
+  var elapsed = 0;
+  var start = new Date();
+  for (var n = 0; elapsed < 50; n++) {
+    benchmark.run();
+    elapsed = new Date() - start;
+  }
+  var usec = (elapsed * 1000) / n;
+  this.NotifyStep(new BenchmarkResult(benchmark, usec));
+}
+
+
+
+
+
+
+BenchmarkSuite.prototype.RunStep = function(runner) {
+  this.results = [];
+  this.runner = runner;
+  var length = this.benchmarks.length;
+  var index = 0;
+  var suite = this;
+
+  
+  
+  
+
+  function RunNextSetup() {
+    if (index < length) {
+      try {
+        suite.benchmarks[index].Setup();
+      } catch (e) {
+        suite.NotifyError(e);
+        return null;
+      }
+      return RunNextBenchmark;
+    }
+    suite.NotifyResult();
+    return null;
+  }
+
+  function RunNextBenchmark() {
+    try {
+      suite.RunSingleBenchmark(suite.benchmarks[index]);
+    } catch (e) {
+      suite.NotifyError(e);
+      return null;
+    }
+    return RunNextTearDown;
+  }
+
+  function RunNextTearDown() {
+    try {
+      suite.benchmarks[index++].TearDown();
+    } catch (e) {
+      suite.NotifyError(e);
+      return null;
+    }
+    return RunNextSetup;
+  }
+
+  
+  return RunNextSetup();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var DeltaBlue = new BenchmarkSuite('DeltaBlue', 71104, [
   new Benchmark('DeltaBlue', deltaBlue)
 ]);
@@ -75,6 +341,7 @@ OrderedCollection.prototype.removeFirst = function () {
 
 OrderedCollection.prototype.remove = function (elm) {
   var index = 0, skipped = 0;
+  
   for (var i = 0; i < this.elms.length; i++) {
     var value = this.elms[i];
     if (value != elm) {
@@ -84,8 +351,11 @@ OrderedCollection.prototype.remove = function (elm) {
       skipped++;
     }
   }
+  
+  
   for (var i = 0; i < skipped; i++)
     this.elms.pop();
+  
 }
 
 
@@ -588,8 +858,10 @@ function Planner() {
 Planner.prototype.incrementalAdd = function (c) {
   var mark = this.newMark();
   var overridden = c.satisfy(mark);
+  
   while (overridden != null)
     overridden = overridden.satisfy(mark);
+  
 }
 
 
@@ -609,14 +881,18 @@ Planner.prototype.incrementalRemove = function (c) {
   c.removeFromGraph();
   var unsatisfied = this.removePropagateFrom(out);
   var strength = Strength.REQUIRED;
+  
   do {
+  
     for (var i = 0; i < unsatisfied.size(); i++) {
       var u = unsatisfied.at(i);
       if (u.strength == strength)
         this.incrementalAdd(u);
     }
+  
     strength = strength.nextWeaker();
   } while (strength != Strength.WEAKEST);
+  
 }
 
 
@@ -649,6 +925,7 @@ Planner.prototype.makePlan = function (sources) {
   var mark = this.newMark();
   var plan = new Plan();
   var todo = sources;
+  
   while (todo.size() > 0) {
     var c = todo.removeFirst();
     if (c.output().mark != mark && c.inputsKnown(mark)) {
@@ -657,6 +934,7 @@ Planner.prototype.makePlan = function (sources) {
       this.addConstraintsConsumingTo(c.output(), todo);
     }
   }
+  
   return plan;
 }
 
@@ -666,12 +944,14 @@ Planner.prototype.makePlan = function (sources) {
 
 Planner.prototype.extractPlanFromConstraints = function (constraints) {
   var sources = new OrderedCollection();
+  
   for (var i = 0; i < constraints.size(); i++) {
     var c = constraints.at(i);
     if (c.isInput() && c.isSatisfied())
       
       sources.add(c);
   }
+  
   return this.makePlan(sources);
 }
 
@@ -691,6 +971,7 @@ Planner.prototype.extractPlanFromConstraints = function (constraints) {
 Planner.prototype.addPropagate = function (c, mark) {
   var todo = new OrderedCollection();
   todo.add(c);
+  
   while (todo.size() > 0) {
     var d = todo.removeFirst();
     if (d.output().mark == mark) {
@@ -700,6 +981,7 @@ Planner.prototype.addPropagate = function (c, mark) {
     d.recalculate();
     this.addConstraintsConsumingTo(d.output(), todo);
   }
+  
   return true;
 }
 
@@ -716,14 +998,18 @@ Planner.prototype.removePropagateFrom = function (out) {
   var unsatisfied = new OrderedCollection();
   var todo = new OrderedCollection();
   todo.add(out);
+  
   while (todo.size() > 0) {
     var v = todo.removeFirst();
+  
     for (var i = 0; i < v.constraints.size(); i++) {
       var c = v.constraints.at(i);
       if (!c.isSatisfied())
         unsatisfied.add(c);
     }
+  
     var determining = v.determinedBy;
+  
     for (var i = 0; i < v.constraints.size(); i++) {
       var next = v.constraints.at(i);
       if (next != determining && next.isSatisfied()) {
@@ -731,18 +1017,22 @@ Planner.prototype.removePropagateFrom = function (out) {
         todo.add(next.output());
       }
     }
+  
   }
+  
   return unsatisfied;
 }
 
 Planner.prototype.addConstraintsConsumingTo = function (v, coll) {
   var determining = v.determinedBy;
   var cc = v.constraints;
+  
   for (var i = 0; i < cc.size(); i++) {
     var c = cc.at(i);
     if (c != determining && c.isSatisfied())
       coll.add(c);
   }
+  
 }
 
 
@@ -771,10 +1061,12 @@ Plan.prototype.constraintAt = function (index) {
 }
 
 Plan.prototype.execute = function () {
+  
   for (var i = 0; i < this.size(); i++) {
     var c = this.constraintAt(i);
     c.execute();
   }
+  
 }
 
 
@@ -799,6 +1091,7 @@ function chainTest(n) {
   var prev = null, first = null, last = null;
 
   
+  
   for (var i = 0; i <= n; i++) {
     var name = "v" + i;
     var v = new Variable(name);
@@ -808,18 +1101,21 @@ function chainTest(n) {
     if (i == n) last = v;
     prev = v;
   }
+  
 
   new StayConstraint(last, Strength.STRONG_DEFAULT);
   var edit = new EditConstraint(first, Strength.PREFERRED);
   var edits = new OrderedCollection();
   edits.add(edit);
   var plan = planner.extractPlanFromConstraints(edits);
+  
   for (var i = 0; i < 100; i++) {
     first.value = i;
     plan.execute();
     if (last.value != i)
       alert("Chain test failed.");
   }
+  
 }
 
 
@@ -835,6 +1131,7 @@ function projectionTest(n) {
   var src = null, dst = null;
 
   var dests = new OrderedCollection();
+  
   for (var i = 0; i < n; i++) {
     src = new Variable("src" + i, i);
     dst = new Variable("dst" + i, i);
@@ -842,21 +1139,26 @@ function projectionTest(n) {
     new StayConstraint(src, Strength.NORMAL);
     new ScaleConstraint(src, scale, offset, dst, Strength.REQUIRED);
   }
+  
 
   change(src, 17);
   if (dst.value != 1170) alert("Projection 1 failed");
   change(dst, 1050);
   if (src.value != 5) alert("Projection 2 failed");
   change(scale, 5);
+  
   for (var i = 0; i < n - 1; i++) {
     if (dests.at(i).value != i * 5 + 1000)
       alert("Projection 3 failed");
   }
+  
   change(offset, 2000);
+  
   for (var i = 0; i < n - 1; i++) {
     if (dests.at(i).value != i * 5 + 2000)
       alert("Projection 4 failed");
   }
+  
 }
 
 function change(v, newValue) {
@@ -864,10 +1166,12 @@ function change(v, newValue) {
   var edits = new OrderedCollection();
   edits.add(edit);
   var plan = planner.extractPlanFromConstraints(edits);
+  
   for (var i = 0; i < 10; i++) {
     v.value = newValue;
     plan.execute();
   }
+  
   edit.destroyConstraint();
 }
 
@@ -878,3 +1182,15 @@ function deltaBlue() {
   chainTest(100);
   projectionTest(100);
 }
+
+function PrintResult(name, result) {
+}
+
+
+function PrintScore(score) {
+}
+
+
+BenchmarkSuite.RunSuites({ NotifyResult: PrintResult,
+                           NotifyScore: PrintScore });
+
