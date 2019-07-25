@@ -75,9 +75,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     int32 frameDepth_;
 
     
-    int32 frameStaticSize_;
-
-    
     FrameSizeClass frameClass_;
 
     inline int32 ArgToStackOffset(int32 slot) {
