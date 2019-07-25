@@ -35,7 +35,11 @@
 
 
 
-#ifdef JS_METHODJIT
+
+
+
+#if defined JS_METHODJIT
+
 #include "Retcon.h"
 #include "MethodJIT.h"
 #include "Compiler.h"
@@ -198,7 +202,8 @@ CallStackIterator::bottom() const {
     return FrameIterator(curcs->getInitialFrame()->down);
 }
 
-}
-}
+} 
+} 
 
-#endif
+#endif 
+

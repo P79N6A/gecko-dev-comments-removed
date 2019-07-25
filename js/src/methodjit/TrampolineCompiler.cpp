@@ -1,4 +1,45 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined JS_METHODJIT
+
 #include "TrampolineCompiler.h"
 #include "StubCalls.h"
 #include "assembler/assembler/LinkBuffer.h"
@@ -117,5 +158,8 @@ TrampolineCompiler::generateForceReturn(Assembler &masm)
     return true;
 }
 
-}
-}
+} 
+} 
+
+#endif 
+

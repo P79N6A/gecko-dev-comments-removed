@@ -1,6 +1,45 @@
 
-#ifndef trampolines_h__
-#define trampolines_h__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef jsjaeger_trampolinecompiler_h__ && defined JS_METHODJIT
+#define jsjaeger_trampolinecompiler_h__
 
 #include "assembler/jit/ExecutableAllocator.h"
 #include "nunbox/Assembler.h"
@@ -35,7 +74,8 @@ private:
     Trampolines *trampolines;
 };
 
-}
-}
+} 
+} 
 
 #endif
+
