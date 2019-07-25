@@ -3539,10 +3539,15 @@ SessionStoreService.prototype = {
     function sss__resetTabRestoringState(aTab, aRestoreNextTab, aRestoreThisTab) {
     let browser = aTab.linkedBrowser;
 
-    
-    delete browser.__SS_shistoryListener;
-
     if (browser.__SS_restoring) {
+      
+      
+      if (browser.__SS_shistoryListener) {
+        browser.webNavigation.sessionHistory.
+                              removeSHistoryListener(browser.__SS_shistoryListener);
+        delete browser.__SS_shistoryListener;
+      }
+
       delete browser.__SS_restoring;
       if (aRestoreNextTab) {
         
@@ -3721,8 +3726,12 @@ let gRestoreTabsProgressListener = {
         aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
-      delete aBrowser.__SS_restoring;
-      this.ss.restoreNextTab(true);
+      
+      
+      
+      let window = aBrowser.ownerDocument.defaultView;
+      let tab = window.gBrowser._getTabForContentWindow(aBrowser.contentWindow);
+      this.ss._resetTabRestoringState(tab, true, false);
     }
   }
 }
