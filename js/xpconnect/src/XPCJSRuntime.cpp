@@ -66,8 +66,6 @@
 
 #include "jscntxt.h"
 #if 0
-JS_LOCK_GC, JS_UNLOCK_GC
-
 js_NextActiveContext, js::TriggerOperationCallback
         mWatchdogWakeup = JS_NEW_CONDVAR(mJSRuntime->gcLock);
 #endif
@@ -938,27 +936,13 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
 }
 
 
-class AutoLockJSGC
-{
-public:
-    AutoLockJSGC(JSRuntime* rt) : mJSRuntime(rt) { JS_LOCK_GC(mJSRuntime); }
-    ~AutoLockJSGC() { JS_UNLOCK_GC(mJSRuntime); }
-private:
-    JSRuntime* mJSRuntime;
-
-    
-    AutoLockJSGC(const AutoLockJSGC&);
-    void operator=(const AutoLockJSGC&);
-};
-
-
 void
 XPCJSRuntime::WatchdogMain(void *arg)
 {
     XPCJSRuntime* self = static_cast<XPCJSRuntime*>(arg);
 
     
-    AutoLockJSGC lock(self->mJSRuntime);
+    js::AutoLockGC lock(self->mJSRuntime);
 
     PRIntervalTime sleepInterval;
     while (self->mWatchdogThread) {
@@ -1087,7 +1071,7 @@ XPCJSRuntime::~XPCJSRuntime()
         
         
         {
-            AutoLockJSGC lock(mJSRuntime);
+            js::AutoLockGC lock(mJSRuntime);
             if (mWatchdogThread) {
                 mWatchdogThread = nsnull;
                 PR_NotifyCondVar(mWatchdogWakeup);
@@ -2022,7 +2006,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 #endif
 
     if (mWatchdogWakeup) {
-        AutoLockJSGC lock(mJSRuntime);
+        js::AutoLockGC lock(mJSRuntime);
 
         mWatchdogThread = PR_CreateThread(PR_USER_THREAD, WatchdogMain, this,
                                           PR_PRIORITY_NORMAL, PR_LOCAL_THREAD,
