@@ -62,6 +62,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "DOMUtils",
 
 const kStateActive = 0x00000001; 
 
+const kXLinkNamespace = "http://www.w3.org/1999/xlink";
+
 
 
 
@@ -922,19 +924,18 @@ var NativeWindow = {
   contextmenus: {
     items: {}, 
     textContext: null, 
-    linkContext: null, 
+
     _contextId: 0, 
 
     init: function() {
       this.textContext = this.SelectorContext("input[type='text'],input[type='password'],textarea");
-      this.linkContext = this.SelectorContext("a:not([href='']),area:not([href='']),link");
       this.imageContext = this.SelectorContext("img");
 
       Services.obs.addObserver(this, "Gesture:LongPress", false);
 
       
       this.add(Strings.browser.GetStringFromName("contextmenu.openInNewTab"),
-               this.linkContext,
+               this.linkOpenableContext,
                function(aTarget) {
                  let url = NativeWindow.contextmenus._getLinkURL(aTarget);
                  BrowserApp.addTab(url, { selected: false, parentId: BrowserApp.selectedTab.id });
@@ -1007,6 +1008,32 @@ var NativeWindow = {
       }
     },
 
+    linkOpenableContext: {
+      matches: function linkOpenableContextMatches(aElement) {
+        if (aElement.nodeType == Ci.nsIDOMNode.ELEMENT_NODE &&
+            ((aElement instanceof Ci.nsIDOMHTMLAnchorElement && aElement.href) ||
+            (aElement instanceof Ci.nsIDOMHTMLAreaElement && aElement.href) ||
+            aElement instanceof Ci.nsIDOMHTMLLinkElement ||
+            aElement.getAttributeNS(kXLinkNamespace, "type") == "simple")) {
+          let uri;
+          try {
+            let url = NativeWindow.contextmenus._getLinkURL(aElement);
+            uri = Services.io.newURI(url, null, null);
+          } catch (e) {
+            return false;
+          }
+
+          let scheme = uri.scheme;
+          if (!scheme)
+            return false;
+
+          let dontOpen = /^(mailto|javascript|news|snews)$/;
+          return (scheme && !dontOpen.test(scheme));
+        }
+        return false;
+      }
+    },
+
     _sendToContent: function(aX, aY) {
       
       let rootElement = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow, aX, aY);
@@ -1029,7 +1056,7 @@ var NativeWindow = {
           }
         }
 
-        if (this.linkContext.matches(element) || this.textContext.matches(element))
+        if (this.linkOpenableContext.matches(element) || this.textContext.matches(element))
           break;
         element = element.parentNode;
       }
@@ -1124,7 +1151,7 @@ var NativeWindow = {
         throw "Empty href";
       }
 
-      return Util.makeURLAbsolute(aLink.baseURI, href);
+      return this.makeURLAbsolute(aLink.baseURI, href);
     }
   }
 };
