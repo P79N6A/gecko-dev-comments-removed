@@ -44,7 +44,7 @@ AssertIsOnMainThread()
 
 
 JSBool
-ResolveWorkerClasses(JSContext* aCx, JSObject* aObj, jsid aId, unsigned aFlags,
+ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsigned aFlags,
                      JSObject** aObjp);
 
 void
