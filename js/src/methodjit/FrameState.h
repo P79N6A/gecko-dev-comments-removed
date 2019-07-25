@@ -182,6 +182,11 @@ class FrameState
     
 
 
+    void pushLocal(uint32 n);
+
+    
+
+
 
 
     inline RegisterID tempRegForType(FrameEntry *fe);
@@ -261,6 +266,11 @@ class FrameState
     
 
 
+    void storeLocal(FrameEntry *fe, uint32 n);
+
+    
+
+
     void merge(Assembler &masm, uint32 ivD) const;
 
     
@@ -324,11 +334,20 @@ class FrameState
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
     inline FrameEntry *addToTracker(uint32 index);
-    inline void syncType(const FrameEntry *fe, Assembler &masm) const;
-    inline void syncData(const FrameEntry *fe, Assembler &masm) const;
+    inline void syncType(const FrameEntry *fe, Address to, Assembler &masm) const;
+    inline void syncData(const FrameEntry *fe, Address to, Assembler &masm) const;
+    inline FrameEntry *getLocal(uint32 slot);
 
-    void
-    moveOwnership(RegisterID reg, FrameEntry *newFe) {
+    uint32 localIndex(uint32 n) {
+        return nargs + n;
+    }
+
+    FrameEntry *entryFor(uint32 index) const {
+        JS_ASSERT(base[index]);
+        return &entries[index];
+    }
+
+    void moveOwnership(RegisterID reg, FrameEntry *newFe) {
         regstate[reg].fe = newFe;
     }
 
