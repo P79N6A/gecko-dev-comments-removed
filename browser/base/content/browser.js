@@ -6708,10 +6708,6 @@ var gIdentityHandler = {
     this._identityPopup.hidden = false;
 
     
-    this._identityPopup.popupBoxObject
-        .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-
-    
     this.setPopupMessages(this._identityBox.className);
 
     
