@@ -1059,12 +1059,6 @@ PRBool imgLoader::PutIntoCache(nsIURI *key, imgCacheEntry *entry)
     PR_LOG(gImgLog, PR_LOG_DEBUG,
            ("[this=%p] imgLoader::PutIntoCache -- Element already in the cache", nsnull));
     nsRefPtr<imgRequest> tmpRequest = getter_AddRefs(tmpCacheEntry->GetRequest());
-    void *cacheId = NS_GetCurrentThread();
-
-    
-    
-    if (!tmpRequest->IsReusable(cacheId))
-      return PR_FALSE;
 
     
     
@@ -1399,26 +1393,6 @@ PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
 
   
   
-  
-  
-  void *cacheId = NS_GetCurrentThread();
-  if (!request->IsReusable(cacheId)) {
-    
-    
-    
-    
-    
-    
-    
-    PR_LOG(gImgLog, PR_LOG_DEBUG,
-           ("imgLoader::ValidateEntry -- DANGER!! Unable to use cached "
-            "imgRequest [request=%p]\n", address_of(request)));
-
-    return PR_FALSE;
-  }
-
-  
-  
   nsCOMPtr<nsIApplicationCacheContainer> appCacheContainer;
   nsCOMPtr<nsIApplicationCache> requestAppCache;
   nsCOMPtr<nsIApplicationCache> groupAppCache;
@@ -1705,8 +1679,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
         do_CreateInstance(NS_LOADGROUP_CONTRACTID);
     newChannel->SetLoadGroup(loadGroup);
 
-    void *cacheId = NS_GetCurrentThread();
-    request->Init(aURI, aURI, loadGroup, newChannel, entry, cacheId, aCX,
+    request->Init(aURI, aURI, loadGroup, newChannel, entry, aCX,
                   aLoadingPrincipal, corsmode);
 
     
@@ -1904,7 +1877,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 
     
     request->Init(originalURI, uri, channel, channel, entry,
-                  NS_GetCurrentThread(), aCX, nsnull, imgIRequest::CORS_NONE);
+                  aCX, nsnull, imgIRequest::CORS_NONE);
 
     ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
     NS_ADDREF(pl);
@@ -2211,7 +2184,7 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   nsCOMPtr<nsIURI> originalURI;
   channel->GetOriginalURI(getter_AddRefs(originalURI));
   mNewRequest->Init(originalURI, uri, channel, channel, mNewEntry,
-                    NS_GetCurrentThread(), mContext, loadingPrincipal,
+                    mContext, loadingPrincipal,
                     corsmode);
 
   mDestListener = new ProxyListener(mNewRequest);

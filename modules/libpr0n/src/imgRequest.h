@@ -94,7 +94,6 @@ public:
                 nsIRequest *aRequest,
                 nsIChannel *aChannel,
                 imgCacheEntry *aCacheEntry,
-                void *aCacheId,
                 void *aLoadId,
                 nsIPrincipal* aLoadingPrincipal,
                 PRInt32 aCORSMode);
@@ -106,11 +105,6 @@ public:
   nsresult RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBool aNotify);
 
   void SniffMimeType(const char *buf, PRUint32 len);
-
-  
-  
-  
-  PRBool IsReusable(void *aCacheId);
 
   
   
@@ -246,8 +240,6 @@ private:
   nsCString mContentType;
 
   nsRefPtr<imgCacheEntry> mCacheEntry; 
-
-  void *mCacheId;
 
   void *mLoadId;
 
