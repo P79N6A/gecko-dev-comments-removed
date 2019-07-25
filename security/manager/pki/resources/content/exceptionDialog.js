@@ -96,17 +96,13 @@ function initExceptionDialog() {
       
       
       
-      
-      
-      
-      
-      
       if (args[0].prefetchCert) {
-        
+
+        document.getElementById("checkCertButton").disabled = true;
         gChecking = true;
         updateCertStatus();
         
-        window.setTimeout(checkCert, 2000);
+        window.setTimeout(checkCert, 0);
       }
     }
     
@@ -304,7 +300,9 @@ function updateCertStatus() {
       gDialog.getButton("extra1").disabled = true;
       document.getElementById("permanent").disabled = true;
     }
+
     
+    document.getElementById("checkCertButton").disabled = false;
     document.getElementById("viewCertButton").disabled = false;
 
     
@@ -315,6 +313,10 @@ function updateCertStatus() {
   else if (gChecking) {
     shortDesc = "addExceptionCheckingShort";
     longDesc  = "addExceptionCheckingLong";
+    
+    
+    
+    document.getElementById("checkCertButton").disabled = true;
     document.getElementById("viewCertButton").disabled = true;
     gDialog.getButton("extra1").disabled = true;
     document.getElementById("permanent").disabled = true;
@@ -322,6 +324,8 @@ function updateCertStatus() {
   else {
     shortDesc = "addExceptionNoCertShort";
     longDesc  = "addExceptionNoCertLong";
+    
+    document.getElementById("checkCertButton").disabled = false;
     document.getElementById("viewCertButton").disabled = true;
     gDialog.getButton("extra1").disabled = true;
     document.getElementById("permanent").disabled = true;
