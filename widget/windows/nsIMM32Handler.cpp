@@ -1104,24 +1104,6 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
     }
   }
 
-  if (!IS_COMMITTING_LPARAM(lParam) && !IS_COMPOSING_LPARAM(lParam)) {
-    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
-      ("IMM32: HandleComposition, Handle 0 length TextEvent\n"));
-
-    
-    
-
-    if (!mIsComposing) {
-      HandleStartComposition(aWindow, aIMEContext);
-    }
-
-    mCompositionString.Truncate();
-    DispatchTextEvent(aWindow, aIMEContext, false);
-
-    return ShouldDrawCompositionStringOurselves();
-  }
-
-
   bool startCompositionMessageHasBeenSent = mIsComposing;
 
   
@@ -1160,6 +1142,32 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
     ("IMM32: HandleComposition, GCS_COMPSTR\n"));
 
   GetCompositionString(aIMEContext, GCS_COMPSTR);
+
+  if (!IS_COMPOSING_LPARAM(lParam)) {
+    PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
+      ("IMM32: HandleComposition, lParam doesn't indicate composing, "
+       "mCompositionString=\"%s\", mLastDispatchedCompositionString=\"%s\"",
+       NS_ConvertUTF16toUTF8(mCompositionString).get(),
+       NS_ConvertUTF16toUTF8(mLastDispatchedCompositionString).get()));
+
+    
+    
+    if (mLastDispatchedCompositionString == mCompositionString) {
+      return ShouldDrawCompositionStringOurselves();
+    }
+
+    
+    
+    
+    
+    if (mCompositionString.IsEmpty()) {
+      DispatchTextEvent(aWindow, aIMEContext, false);
+      return ShouldDrawCompositionStringOurselves();
+    }
+
+    
+    
+  }
 
   
   if (mCompositionString.IsEmpty() && !startCompositionMessageHasBeenSent) {
