@@ -4020,50 +4020,6 @@ var XPIDatabase = {
 
 
 
-function XPINotificationCallbacks(aWindow, aNeedBadCertHandling) {
-  this.window = aWindow;
-
-  
-  
-  this.needBadCertHandling = aNeedBadCertHandling;
-
-  if (this.needBadCertHandling) {
-    Components.utils.import("resource://gre/modules/CertUtils.jsm");
-    let requireBuiltIn = Prefs.getBoolPref(PREF_INSTALL_REQUIREBUILTINCERTS, true);
-    this.badCertHandler = new BadCertHandler(!requireBuiltIn);
-  }
-}
-
-XPINotificationCallbacks.prototype = {
-  QueryInterface: function(iid) {
-    if (iid.equals(Ci.nsISupports) || iid.equals(Ci.nsIInterfaceRequestor))
-      return this;
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  },
-
-  getInterface: function(iid) {
-    if (iid.equals(Components.interfaces.nsIAuthPrompt2)) {
-      var factory = Cc["@mozilla.org/prompter;1"].
-                    getService(Ci.nsIPromptFactory);
-      return factory.getPrompt(this.window, Ci.nsIAuthPrompt);
-    }
-
-    if (this.needBadCertHandling)
-      return this.badCertHandler.getInterface(iid);
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  },
-};
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4196,6 +4152,7 @@ AddonInstall.prototype = {
   crypto: null,
   hash: null,
   loadGroup: null,
+  badCertHandler: null,
   listeners: null,
 
   name: null,
@@ -4546,30 +4503,6 @@ AddonInstall.prototype = {
       return;
     }
 
-    this.crypto = Cc["@mozilla.org/security/hash;1"].
-                  createInstance(Ci.nsICryptoHash);
-    if (this.hash) {
-      [alg, this.hash] = this.hash.split(":", 2);
-
-      try {
-        this.crypto.initWithString(alg);
-      }
-      catch (e) {
-        WARN("Unknown hash algorithm " + alg);
-        this.state = AddonManager.STATE_DOWNLOAD_FAILED;
-        this.error = AddonManager.ERROR_INCORRECT_HASH;
-        XPIProvider.removeActiveInstall(this);
-        AddonManagerPrivate.callInstallListeners("onDownloadFailed",
-                                                 this.listeners, this.wrapper);
-        return;
-      }
-    }
-    else {
-      
-      
-      this.crypto.initWithString("sha1");
-    }
-
     try {
       this.file = getTemporaryFile();
       this.ownsTempFile = true;
@@ -4592,9 +4525,12 @@ AddonInstall.prototype = {
                    createInstance(Ci.nsIStreamListenerTee);
     listener.init(this, this.stream);
     try {
+      Components.utils.import("resource://gre/modules/CertUtils.jsm");
+      let requireBuiltIn = Prefs.getBoolPref(PREF_INSTALL_REQUIREBUILTINCERTS, true);
+      this.badCertHandler = new BadCertHandler(!requireBuiltIn);
+
       this.channel = NetUtil.newChannel(this.sourceURI);
-      this.channel.notificationCallbacks =
-        new XPINotificationCallbacks(this.window, !this.hash);
+      this.channel.notificationCallbacks = this;
       this.channel.QueryInterface(Ci.nsIHttpChannelInternal)
                   .forceAllowThirdPartyCookie = true;
       this.channel.asyncOpen(listener, null);
@@ -4631,7 +4567,56 @@ AddonInstall.prototype = {
 
 
 
+
+  asyncOnChannelRedirect: function(aOldChannel, aNewChannel, aFlags, aCallback) {
+    if (!this.hash && aOldChannel.originalURI.schemeIs("https") &&
+        aOldChannel instanceof Ci.nsIHttpChannel) {
+      try {
+        this.hash = aOldChannel.getResponseHeader("X-Target-Digest");
+      }
+      catch (e) {
+      }
+    }
+
+    
+    
+    if (!this.hash)
+      this.badCertHandler.asyncOnChannelRedirect(aOldChannel, aNewChannel, aFlags, aCallback);
+    else
+      aCallback.onRedirectVerifyCallback(Cr.NS_OK);
+  },
+
+  
+
+
+
+
   onStartRequest: function AI_onStartRequest(aRequest, aContext) {
+    this.crypto = Cc["@mozilla.org/security/hash;1"].
+                  createInstance(Ci.nsICryptoHash);
+    if (this.hash) {
+      [alg, this.hash] = this.hash.split(":", 2);
+
+      try {
+        this.crypto.initWithString(alg);
+      }
+      catch (e) {
+        WARN("Unknown hash algorithm " + alg);
+        this.state = AddonManager.STATE_DOWNLOAD_FAILED;
+        this.error = AddonManager.ERROR_INCORRECT_HASH;
+        XPIProvider.removeActiveInstall(this);
+        AddonManagerPrivate.callInstallListeners("onDownloadFailed",
+                                                 this.listeners, this.wrapper);
+        aRequest.cancel(Cr.NS_BINDING_ABORTED);
+        return;
+      }
+    }
+    else {
+      
+      
+      this.crypto.initWithString("sha1");
+    }
+
     this.progress = 0;
     if (aRequest instanceof Ci.nsIChannel) {
       try {
@@ -4652,6 +4637,7 @@ AddonInstall.prototype = {
   onStopRequest: function AI_onStopRequest(aRequest, aContext, aStatus) {
     this.stream.close();
     this.channel = null;
+    this.badCerthandler = null;
     Services.obs.removeObserver(this, "network:offline-about-to-go-offline");
 
     
@@ -4931,6 +4917,19 @@ AddonInstall.prototype = {
     finally {
       this.removeTemporaryFile();
     }
+  },
+
+  getInterface: function(iid) {
+    if (iid.equals(Ci.nsIAuthPrompt2)) {
+      var factory = Cc["@mozilla.org/prompter;1"].
+                    getService(Ci.nsIPromptFactory);
+      return factory.getPrompt(null, Ci.nsIAuthPrompt);
+    }
+    else if (iid.equals(Ci.nsIChannelEventSink)) {
+      return this;
+    }
+
+    return this.badCertHandler.getInterface(iid);
   }
 }
 
