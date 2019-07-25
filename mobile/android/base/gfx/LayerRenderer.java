@@ -226,8 +226,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         GLES20.glUniform1i(mSampleHandle, 0);
 
-        TextureGenerator.get().fill();
-
         
         
     }
@@ -614,8 +612,17 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             LayerController controller = mView.getController();
 
             
-            for (Layer layer : mExtraLayers)
-                layer.draw(mPageContext);
+            if (mExtraLayers.size() > 0) {
+                
+                
+                
+                deactivateDefaultProgram();
+                
+                for (Layer layer : mExtraLayers)
+                    layer.draw(mPageContext);
+
+                activateDefaultProgram();
+            }
 
             
             IntSize screenSize = new IntSize(controller.getViewportSize());
