@@ -661,7 +661,7 @@ struct TypeObject
 
 
     uint32 contribution;
-    static const uint32 CONTRIBUTION_LIMIT = 20000;
+    static const uint32 CONTRIBUTION_LIMIT = 2000;
 
     
 

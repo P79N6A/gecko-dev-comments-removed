@@ -54,7 +54,9 @@ enum CompileRequest
 
 
 
-static const size_t USES_BEFORE_COMPILE = 16;
+
+static const size_t USES_BEFORE_COMPILE       = 16;
+static const size_t INFER_USES_BEFORE_COMPILE = 40;
 
 static inline CompileStatus
 CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest request)
@@ -67,7 +69,9 @@ CanMethodJIT(JSContext *cx, JSScript *script, StackFrame *fp, CompileRequest req
     if (request == CompileRequest_Interpreter &&
         status == JITScript_None &&
         !cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS) &&
-        script->incUseCount() <= USES_BEFORE_COMPILE)
+        (cx->typeInferenceEnabled()
+         ? script->incUseCount() <= INFER_USES_BEFORE_COMPILE
+         : script->incUseCount() <= USES_BEFORE_COMPILE))
     {
         return Compile_Skipped;
     }
@@ -117,7 +121,7 @@ CanMethodJITAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode
 
 
         if (cx->typeInferenceEnabled()) {
-            if (script->incUseCount() <= USES_BEFORE_COMPILE)
+            if (script->incUseCount() <= INFER_USES_BEFORE_COMPILE)
                 return Compile_Skipped;
         } else {
             if (cx->compartment->incBackEdgeCount(pc) <= USES_BEFORE_COMPILE)
