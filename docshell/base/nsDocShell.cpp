@@ -11991,7 +11991,7 @@ nsDocShell::SetIsBrowserFrame(bool aValue)
   
   
   
-  NS_ENSURE_STATE(!mIsBrowserFrame);
+  NS_ENSURE_STATE(!mIsBrowserFrame || aValue);
 
   bool wasBrowserFrame = mIsBrowserFrame;
   mIsBrowserFrame = aValue;
