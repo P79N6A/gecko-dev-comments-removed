@@ -439,6 +439,9 @@ var Browser = {
     notifications.addEventListener("AlertClose", notificationHandler, false);
 
     
+    container.addEventListener("contextmenu", ContextHelper, false);
+
+    
     ih = new InputHandler(container);
 
     BrowserUI.init();
