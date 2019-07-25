@@ -350,10 +350,6 @@ imgRequestProxy::UnlockImage()
 NS_IMETHODIMP
 imgRequestProxy::IncrementAnimationConsumers()
 {
-  
-  if (!HasObserver())
-    return NS_OK;
-
   mAnimationConsumers++;
   if (mImage)
     mImage->IncrementAnimationConsumers();
@@ -363,14 +359,6 @@ imgRequestProxy::IncrementAnimationConsumers()
 NS_IMETHODIMP
 imgRequestProxy::DecrementAnimationConsumers()
 {
-  if (!HasObserver()) {
-    NS_ABORT_IF_FALSE(mAnimationConsumers == 0,
-                      "How can we have animation consumers without an observer?");
-
-    
-    return NS_OK;
-  }
-
   
   
   
@@ -388,9 +376,6 @@ imgRequestProxy::DecrementAnimationConsumers()
 void
 imgRequestProxy::ClearAnimationConsumers()
 {
-  NS_ABORT_IF_FALSE(HasObserver() || mAnimationConsumers == 0,
-                    "How can we have animation consumers without an observer?");
-
   while (mAnimationConsumers > 0)
     DecrementAnimationConsumers();
 }

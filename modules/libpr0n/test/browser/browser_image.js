@@ -35,7 +35,7 @@ function testBFCache() {
     do {
       gTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       gTimer.initWithCallback(function() {
-        if (gImage.framesNotified >= 10) {
+        if (gImage.framesNotified >= 20) {
           goer.send(true);
         } else {
           chances--;
@@ -58,7 +58,7 @@ function testBFCache() {
         
         is(gImage.framesNotified == gFrames, true, "Must have not animated in bfcache!");
         goer.next();
-      }, 4000, Ci.nsITimer.TYPE_ONE_SHOT);
+      }, 4000, Ci.nsITimer.TYPE_ONE_SHOT); 
     }, 0, Ci.nsITimer.TYPE_ONE_SHOT); 
     yield;
 
@@ -69,7 +69,7 @@ function testBFCache() {
     do {
       gTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       gTimer.initWithCallback(function() {
-        if (gImage.framesNotified - gFrames >= 10) {
+        if (gImage.framesNotified - gFrames >= 20) {
           goer.send(true);
         } else {
           chances--;
@@ -78,6 +78,19 @@ function testBFCache() {
       }, 500, Ci.nsITimer.TYPE_ONE_SHOT);
     } while (!(yield));
     is(chances > 0, true, "Must have animated once out of bfcache!");
+
+    
+    
+    
+    
+    
+    var doc = gBrowser.selectedBrowser.contentWindow.document;
+    var div = doc.getElementById("background_div");
+    div.innerHTML += '<img src="animated2.gif" id="img3">';
+    actOnMozImage(doc, "img3", function(image) {
+      is(Math.abs(image.framesNotified - gImage.framesNotified)/gImage.framesNotified < 0.5, true,
+         "Must have also animated the background image, and essentially the same # of frames");
+    });
 
     gBrowser.removeCurrentTab();
 
