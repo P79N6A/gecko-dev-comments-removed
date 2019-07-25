@@ -68,6 +68,7 @@ class JSProxyHandler {
 
     
     virtual void finalize(JSContext *cx, JSObject *proxy);
+    virtual void trace(JSTracer *trc, JSObject *proxy);
     virtual void *family() = 0;
 };
 
@@ -99,6 +100,7 @@ class JSNoopProxyHandler {
 
     
     virtual JS_FRIEND_API(void) finalize(JSContext *cx, JSObject *proxy);
+    virtual JS_FRIEND_API(void) trace(JSTracer *trc, JSObject *proxy);
     virtual JS_FRIEND_API(void) *family();
 
     static JSNoopProxyHandler singleton;
