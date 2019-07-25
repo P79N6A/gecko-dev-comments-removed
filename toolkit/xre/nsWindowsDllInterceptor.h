@@ -189,7 +189,6 @@ protected:
 
     int nBytes = 0;
 #if defined(_M_IX86)
-    int nJmp32 = -1;
     while (nBytes < 5) {
       
       
@@ -217,11 +216,6 @@ protected:
       } else if (origBytes[nBytes] == 0x6A) {
         
         nBytes += 2;
-      } else if (origBytes[nBytes] == 0xe9) {
-        
-        nJmp32 = nBytes;
-        
-        nBytes += 5;
       } else {
         
         return 0;
@@ -355,16 +349,8 @@ protected:
     byteptr_t trampDest = origBytes + nBytes;
 
 #if defined(_M_IX86)
-    if (nJmp32 >= 0) {
-      
-      byteptr_t targetAddress =
-        origBytes + nJmp32 + 5 + (*((LONG*)(origBytes+nJmp32+1)));
-      *((intptr_t*)(tramp+nJmp32+1)) =
-        (intptr_t)targetAddress - (intptr_t)(tramp+nJmp32+5);
-    } else {
-      tramp[nBytes] = 0xE9; 
-      *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
-    }
+    tramp[nBytes] = 0xE9; 
+    *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
 #elif defined(_M_X64)
     
     if (pJmp32 >= 0) {
