@@ -355,9 +355,18 @@ static const PRInt32 kProgressDeterminedXPOverflow = 11;
 
 static const PRInt32 kProgressDeterminedVistaOverflow = 4;
 
+
+static const PRInt32 kProgressIndeterminateOverflow = 2;
+
 static const PRInt32 kProgressVistaOverlayWidth = 120;
 
+static const PRInt32 kProgressXPOverlayWidth = 55;
+
 static const double kProgressDeterminedVistaSpeed = 0.3;
+
+static const double kProgressIndeterminateSpeed = 0.175;
+
+static const PRInt32 kProgressIndeterminateDelay = 500;
 
 
 static void AddPaddingRect(nsIntSize* aSize, CaptionButton button) {
@@ -674,7 +683,12 @@ nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType,
       return NS_OK;
     }
     case NS_THEME_PROGRESSBAR_CHUNK: {
-      aPart = nsUXThemeData::sIsVistaOrLater ? PP_FILL : PP_CHUNK;
+      nsIFrame* stateFrame = aFrame->GetParent();
+      nsEventStates eventStates = GetContentState(stateFrame, aWidgetType);
+      
+      
+      aPart = IsIndeterminateProgress(stateFrame, eventStates)
+                ? -1 : nsUXThemeData::sIsVistaOrLater ? PP_FILL : PP_CHUNK;
       aState = TS_NORMAL;
       return NS_OK;
     }
@@ -1306,9 +1320,13 @@ RENDER_AGAIN:
   else if (aWidgetType == NS_THEME_WINDOW_BUTTON_CLOSE) {
     OffsetBackgroundRect(widgetRect, CAPTIONBUTTON_CLOSE);
   } else if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK) {
-    widgetRect.bottom -= nsUXThemeData::sIsVistaOrLater
-                           ? kProgressDeterminedVistaOverflow
-                           : kProgressDeterminedXPOverflow;
+    nsIFrame* stateFrame = aFrame->GetParent();
+    nsEventStates eventStates = GetContentState(stateFrame, aWidgetType);
+    widgetRect.bottom -= IsIndeterminateProgress(stateFrame, eventStates)
+                           ? kProgressIndeterminateOverflow
+                           : nsUXThemeData::sIsVistaOrLater
+                             ? kProgressDeterminedVistaOverflow
+                             : kProgressDeterminedXPOverflow;
   }
 
   
@@ -1543,30 +1561,55 @@ RENDER_AGAIN:
 
     ctx->Restore();
     ctx->SetOperator(currentOp);
-  } else if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK &&
-             nsUXThemeData::sIsVistaOrLater) {
-    if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 60)) {
-      NS_WARNING("unable to animate progress widget!");
+  } else if (aWidgetType == NS_THEME_PROGRESSBAR_CHUNK) {
+    
+
+
+
+
+
+
+
+
+
+    nsIFrame* stateFrame = aFrame->GetParent();
+    nsEventStates eventStates = GetContentState(stateFrame, aWidgetType);
+    bool indeterminate = IsIndeterminateProgress(stateFrame, eventStates);
+
+    if (indeterminate || nsUXThemeData::sIsVistaOrLater) {
+      if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 60)) {
+        NS_WARNING("unable to animate progress widget!");
+      }
+
+      const PRInt32 overlayWidth = nsUXThemeData::sIsVistaOrLater
+                                     ? kProgressVistaOverlayWidth
+                                     : kProgressXPOverlayWidth;
+      const double pixelsPerMillisecond = indeterminate
+                                            ? kProgressIndeterminateSpeed
+                                            : kProgressDeterminedVistaSpeed;
+
+      const PRInt32 frameWidth = widgetRect.right - widgetRect.left;
+      PRInt32 animationWidth = frameWidth + overlayWidth;
+      
+      if (indeterminate) {
+        animationWidth += static_cast<PRInt32>(pixelsPerMillisecond *
+                          kProgressIndeterminateDelay);
+      }
+      const double interval = animationWidth / pixelsPerMillisecond;
+      
+      double tempValue;
+      double ratio = modf(PR_IntervalToMilliseconds(PR_IntervalNow())/interval,
+                          &tempValue);
+      PRInt32 dx = static_cast<PRInt32>(animationWidth * ratio) - overlayWidth;
+
+      RECT overlayRect = widgetRect;
+      overlayRect.left += dx;
+      overlayRect.right = overlayRect.left + overlayWidth;
+      nsUXThemeData::drawThemeBG(theme, hdc,
+                                 nsUXThemeData::sIsVistaOrLater ? PP_MOVEOVERLAY
+                                                                : PP_CHUNK,
+                                 state, &overlayRect, &clipRect);
     }
-
-    
-    const PRInt32 frameWidth = widgetRect.right - widgetRect.left;
-    static const PRInt32 overlayWidth = kProgressVistaOverlayWidth;
-    static const double pixelsPerMillisecond = kProgressDeterminedVistaSpeed;
-
-    PRInt32 animationWidth = frameWidth + overlayWidth;
-    double interval = animationWidth / pixelsPerMillisecond;
-    
-    double tempValue;
-    double ratio = modf(PR_IntervalToMilliseconds(PR_IntervalNow())/interval,
-                        &tempValue);
-    PRInt32 dx = static_cast<PRInt32>(animationWidth * ratio) - overlayWidth;
-
-    RECT overlayRect = widgetRect;
-    overlayRect.left += dx;
-    overlayRect.right = overlayRect.left + overlayWidth;
-    nsUXThemeData::drawThemeBG(theme, hdc, PP_MOVEOVERLAY, state, &overlayRect,
-                               &clipRect);
   }
 
 
