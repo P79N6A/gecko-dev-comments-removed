@@ -56,17 +56,6 @@ gfxAndroidPlatform::CreateOffscreenSurface(const gfxIntSize& size,
     return newSurface.forget();
 }
 
-mozilla::gfx::SurfaceFormat
-gfxAndroidPlatform::Optimal2DFormatForContent(gfxASurface::gfxContentType aContent)
-{
-    
-    if (aContent == gfxASurface::CONTENT_COLOR) {
-        return mozilla::gfx::FORMAT_R5G6B5;
-    } else {
-        return gfxPlatform::Optimal2DFormatForContent(aContent);
-    }
-}
-
 nsresult
 gfxAndroidPlatform::GetFontList(nsIAtom *aLangGroup,
                                 const nsACString& aGenericFamily,
