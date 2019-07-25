@@ -2081,14 +2081,12 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       if (!dataTransfer)
         return;
 
-      bool isInEditor = false;
-      bool isSelection = false;
+      nsCOMPtr<nsISelection> selection;
       nsCOMPtr<nsIContent> eventContent, targetContent;
       mCurrentTarget->GetContentForEvent(aEvent, getter_AddRefs(eventContent));
       if (eventContent)
         DetermineDragTarget(aPresContext, eventContent, dataTransfer,
-                            &isSelection, &isInEditor,
-                            getter_AddRefs(targetContent));
+                            getter_AddRefs(selection), getter_AddRefs(targetContent));
 
       
       
@@ -2129,9 +2127,8 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
       
       
       nsEventStatus status = nsEventStatus_eIgnore;
-      if (!isInEditor)
-        nsEventDispatcher::Dispatch(targetContent, aPresContext, &startEvent, nsnull,
-                                    &status);
+      nsEventDispatcher::Dispatch(targetContent, aPresContext, &startEvent, nsnull,
+                                  &status);
 
       nsDragEvent* event = &startEvent;
       if (status != nsEventStatus_eConsumeNoDefault) {
@@ -2148,7 +2145,7 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
 
       if (status != nsEventStatus_eConsumeNoDefault) {
         bool dragStarted = DoDefaultDragStart(aPresContext, event, dataTransfer,
-                                                targetContent, isSelection);
+                                              targetContent, selection);
         if (dragStarted) {
           sActiveESM = nsnull;
           aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
@@ -2173,12 +2170,10 @@ void
 nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
                                          nsIContent* aSelectionTarget,
                                          nsDOMDataTransfer* aDataTransfer,
-                                         bool* aIsSelection,
-                                         bool* aIsInEditor,
+                                         nsISelection** aSelection,
                                          nsIContent** aTargetNode)
 {
   *aTargetNode = nsnull;
-  *aIsInEditor = false;
 
   nsCOMPtr<nsISupports> container = aPresContext->GetContainer();
   nsCOMPtr<nsIDOMWindow> window = do_GetInterface(container);
@@ -2186,24 +2181,16 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
   
   
   
+  
+  
   bool canDrag;
   nsCOMPtr<nsIContent> dragDataNode;
-  nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(container);
-  if (dsti) {
-    PRInt32 type = -1;
-    if (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
-        type != nsIDocShellTreeItem::typeChrome) {
-      
-      
-      nsresult rv =
-        nsContentAreaDragDrop::GetDragData(window, mGestureDownContent,
-                                           aSelectionTarget, mGestureDownAlt,
-                                           aDataTransfer, &canDrag, aIsSelection,
-                                           getter_AddRefs(dragDataNode));
-      if (NS_FAILED(rv) || !canDrag)
-        return;
-    }
-  }
+  nsresult rv = nsContentAreaDragDrop::GetDragData(window, mGestureDownContent,
+                                                   aSelectionTarget, mGestureDownAlt,
+                                                   aDataTransfer, &canDrag, aSelection,
+                                                   getter_AddRefs(dragDataNode));
+  if (NS_FAILED(rv) || !canDrag)
+    return;
 
   
   
@@ -2211,7 +2198,7 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
   nsIContent* dragContent = mGestureDownContent;
   if (dragDataNode)
     dragContent = dragDataNode;
-  else if (*aIsSelection)
+  else if (*aSelection)
     dragContent = aSelectionTarget;
 
   nsIContent* originalDragContent = dragContent;
@@ -2220,7 +2207,7 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
   
   
   
-  if (!*aIsSelection) {
+  if (!*aSelection) {
     while (dragContent) {
       nsCOMPtr<nsIDOMHTMLElement> htmlElement = do_QueryInterface(dragContent);
       if (htmlElement) {
@@ -2245,17 +2232,6 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
         
       }
       dragContent = dragContent->GetParent();
-
-      
-      
-      
-      
-      
-      nsCOMPtr<nsIDOMNSEditableElement> editableElement = do_QueryInterface(dragContent);
-      if (editableElement) {
-        *aIsInEditor = true;
-        break;
-      }
     }
   }
 
@@ -2279,7 +2255,7 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
                                         nsDragEvent* aDragEvent,
                                         nsDOMDataTransfer* aDataTransfer,
                                         nsIContent* aDragTarget,
-                                        bool aIsSelection)
+                                        nsISelection* aSelection)
 {
   nsCOMPtr<nsIDragService> dragService =
     do_GetService("@mozilla.org/widget/dragservice;1");
@@ -2333,22 +2309,6 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   PRInt32 imageX, imageY;
   nsIDOMElement* dragImage = aDataTransfer->GetDragImage(&imageX, &imageY);
 
-  
-  
-  
-  
-  nsISelection* selection = nsnull;
-  if (aIsSelection && !dragImage) {
-    nsIDocument* doc = aDragTarget->GetCurrentDoc();
-    if (doc) {
-      nsIPresShell* presShell = doc->GetShell();
-      if (presShell) {
-        selection = presShell->GetCurrentSelection(
-                      nsISelectionController::SELECTION_NORMAL);
-      }
-    }
-  }
-
   nsCOMPtr<nsISupportsArray> transArray;
   aDataTransfer->GetTransferables(getter_AddRefs(transArray));
   if (!transArray)
@@ -2363,8 +2323,13 @@ nsEventStateManager::DoDefaultDragStart(nsPresContext* aPresContext,
   nsCOMPtr<nsIDOMDragEvent> domDragEvent = do_QueryInterface(domEvent);
   
   
-  if (selection) {
-    dragService->InvokeDragSessionWithSelection(selection, transArray,
+
+  
+  
+  
+  
+  if (!dragImage && aSelection) {
+    dragService->InvokeDragSessionWithSelection(aSelection, transArray,
                                                 action, domDragEvent,
                                                 aDataTransfer);
   }
