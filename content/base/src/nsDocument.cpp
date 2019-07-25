@@ -3087,7 +3087,7 @@ nsDocument::SetHeaderData(nsIAtom* aHeaderField, const nsAString& aData)
       
       
       
-      refresher->SetupRefreshURIFromHeader(mDocumentURI, NodePrincipal(),
+      refresher->SetupRefreshURIFromHeader(mDocumentURI,
                                            NS_ConvertUTF16toUTF8(aData));
     }
   }
