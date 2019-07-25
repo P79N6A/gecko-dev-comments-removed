@@ -52,7 +52,6 @@
 #define READTYPE  PRInt32
 #include "zlib.h"
 #include "nsISupportsUtils.h"
-#include "nsRecyclingAllocator.h"
 #include "prio.h"
 #include "plstr.h"
 #include "prlog.h"
@@ -65,12 +64,6 @@
 #if defined(XP_WIN)
 #include <windows.h>
 #endif
-
-
-
-
-#define NBUCKETS 6
-nsRecyclingAllocator *gZlibAllocator = NULL;
 
 
 #include NEW_H
@@ -123,41 +116,9 @@ static nsresult ResolveSymlink(const char *path);
 
 
 
-
-
-
-static void *
-zlibAlloc(void *opaque, uInt items, uInt size)
-{
-  nsRecyclingAllocator *zallocator = (nsRecyclingAllocator *)opaque;
-  if (zallocator) {
-    return gZlibAllocator->Malloc(items * size);
-  }
-  return malloc(items * size);
-}
-
-static void
-zlibFree(void *opaque, void *ptr)
-{
-  nsRecyclingAllocator *zallocator = (nsRecyclingAllocator *)opaque;
-  if (zallocator)
-    zallocator->Free(ptr);
-  else
-    free(ptr);
-}
-
 nsresult gZlibInit(z_stream *zs)
 {
   memset(zs, 0, sizeof(z_stream));
-  
-  if (!gZlibAllocator) {
-    gZlibAllocator = new nsRecyclingAllocator(NBUCKETS, NS_DEFAULT_RECYCLE_TIMEOUT, "libjar");
-  }
-  if (gZlibAllocator) {
-    zs->zalloc = zlibAlloc;
-    zs->zfree = zlibFree;
-    zs->opaque = gZlibAllocator;
-  }
   int zerr = inflateInit2(zs, -MAX_WBITS);
   if (zerr != Z_OK) return NS_ERROR_OUT_OF_MEMORY;
 
