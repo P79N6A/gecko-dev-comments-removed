@@ -137,13 +137,6 @@ private:
 
   Layer* GetPrimaryScrollableLayer();
 
-  
-
-
-
-
-  void UntranslateFixedLayers(Layer* aLayer, const ViewTransform& aTransform);
-
   nsRefPtr<LayerManager> mLayerManager;
   nsIWidget* mWidget;
   CancelableTask *mCurrentCompositeTask;
@@ -157,7 +150,6 @@ private:
   float mYScale;
   nsIntPoint mScrollOffset;
   nsIntSize mContentSize;
-  nsIntSize mWidgetSize;
 
   
   
