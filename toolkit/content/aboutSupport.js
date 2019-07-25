@@ -51,6 +51,7 @@ const ELLIPSIS = Services.prefs.getComplexValue("intl.ellipsis",
 
 const PREFS_WHITELIST = [
   "accessibility.",
+  "browser.cache.",
   "browser.display.",
   "browser.fixup.",
   "browser.history_expire_",
@@ -67,10 +68,12 @@ const PREFS_WHITELIST = [
   "general.useragent.",
   "gfx.",
   "html5.",
-  "layers.",
+  "image.mem.",
   "javascript.",
   "keyword.",
+  "layers.",
   "layout.css.dpi",
+  "media.",
   "mousewheel.",
   "network.",
   "permissions.default.image",
@@ -80,6 +83,7 @@ const PREFS_WHITELIST = [
   "print.",
   "privacy.",
   "security.",
+  "svg.",
   "webgl."
 ];
 
