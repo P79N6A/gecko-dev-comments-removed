@@ -460,8 +460,7 @@ public:
     
     if (mIsWorkerScript) {
       
-      rv = mWorkerPrivate->SetBaseURI(finalURI);
-      NS_ENSURE_SUCCESS(rv, rv);
+      mWorkerPrivate->SetBaseURI(finalURI);
 
       
       WorkerPrivate* parent = mWorkerPrivate->GetParent();
