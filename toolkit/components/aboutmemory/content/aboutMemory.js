@@ -1192,7 +1192,8 @@ function appendMrNameSpan(aP, aKind, aKidsState, aDescription, aUnsafeName,
 
 
 
-let gTogglesBySafeTreeId = {};
+
+let gShowSubtreesBySafeTreeId = {};
 
 function assertClassListContains(e, className) {
   assert(e, "undefined " + className);
@@ -1216,6 +1217,7 @@ function toggle(aEvent)
   let minusSpan = outerSpan.childNodes[3];
   assertClassListContains(plusSpan,  "mrSep");
   assertClassListContains(minusSpan, "mrSep");
+  let isExpansion = !plusSpan.classList.contains("hidden");
   plusSpan .classList.toggle("hidden");
   minusSpan.classList.toggle("hidden");
 
@@ -1226,10 +1228,10 @@ function toggle(aEvent)
 
   
   let safeTreeId = outerSpan.id;
-  if (gTogglesBySafeTreeId[safeTreeId]) {
-    delete gTogglesBySafeTreeId[safeTreeId];
+  if (gShowSubtreesBySafeTreeId[safeTreeId] !== undefined) {
+    delete gShowSubtreesBySafeTreeId[safeTreeId];
   } else {
-    gTogglesBySafeTreeId[safeTreeId] = true;
+    gShowSubtreesBySafeTreeId[safeTreeId] = isExpansion;
   }
 }
 
@@ -1346,8 +1348,8 @@ function appendTreeElements(aPOuter, aT, aProcess)
       
       let safeTreeId = flipBackslashes(aProcess + ":" + unsafePath);
       showSubtrees = !aT._hideKids;
-      if (gTogglesBySafeTreeId[safeTreeId]) {
-        showSubtrees = !showSubtrees;
+      if (gShowSubtreesBySafeTreeId[safeTreeId] !== undefined) {
+        showSubtrees = gShowSubtreesBySafeTreeId[safeTreeId];
       }
       d = appendElement(aP, "span", "hasKids");
       d.id = safeTreeId;
