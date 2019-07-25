@@ -191,21 +191,6 @@ HttpChannelChild::Resume()
 
 
 
-NS_IMETHODIMP
-HttpChannelChild::GetOwner(nsISupports **result)
-{
-  
-  NS_ENSURE_ARG_POINTER(result);
-  *result = nsnull;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HttpChannelChild::SetOwner(nsISupports *aOwner)
-{
-  
-  DROP_DEAD();
-}
 
 NS_IMETHODIMP
 HttpChannelChild::GetSecurityInfo(nsISupports **aSecurityInfo)
