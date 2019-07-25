@@ -43,6 +43,8 @@
 #include "CrossOriginWrapper.h"
 #include "WrapperFactory.h"
 
+#include "jscntxt.h"
+
 #include "nsINode.h"
 #include "nsIDocument.h"
 
@@ -259,7 +261,7 @@ ResolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid i
 
     
     
-    if (!JSID_IS_STRING(id)) {
+    if (!JSID_IS_ATOM(id)) {
         
         return true;
     }

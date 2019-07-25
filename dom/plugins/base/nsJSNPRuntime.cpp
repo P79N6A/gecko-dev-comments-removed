@@ -38,8 +38,8 @@
 
 #include "base/basictypes.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+
+#include "jscntxt.h"
 
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsJSNPRuntime.h"

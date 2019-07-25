@@ -37,7 +37,7 @@
 
 
 
-#include "jsapi.h"
+#include "jscntxt.h"
 #include "nsJSEnvironment.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptObjectPrincipal.h"
@@ -224,7 +224,7 @@ private:
   }
 
   nsAutoTArray<jsval, 16> vals;
-  JS::AutoArrayRooter avr;
+  js::AutoArrayRooter avr;
 };
 
 
@@ -720,8 +720,8 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
 
   
   JSStackFrame* fp = ::JS_GetScriptedCaller(cx, NULL);
-  bool debugPossible = (fp != nsnull && js::GetContextDebugHooks(cx) &&
-                          js::GetContextDebugHooks(cx)->debuggerHandler != nsnull);
+  bool debugPossible = (fp != nsnull && cx->debugHooks &&
+                          cx->debugHooks->debuggerHandler != nsnull);
 #ifdef MOZ_JSDEBUGGER
   
   if (debugPossible) {
@@ -850,10 +850,10 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   else if ((buttonPressed == 2) && debugPossible) {
     
     jsval rval;
-    JSDebugHooks *hooks = js::GetContextDebugHooks(cx);
-    switch(hooks->debuggerHandler(cx, script, ::JS_GetFramePC(cx, fp),
-                                  &rval,
-                                  hooks->debuggerHandlerData)) {
+    switch(cx->debugHooks->debuggerHandler(cx, script, ::JS_GetFramePC(cx, fp),
+                                           &rval,
+                                           cx->debugHooks->
+                                           debuggerHandlerData)) {
       case JSTRAP_RETURN:
         JS_SetFrameReturnValue(cx, fp, rval);
         return JS_TRUE;
@@ -1152,7 +1152,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsJSContext)
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsJSContext)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsJSContext)
-  NS_ASSERTION(!tmp->mContext || js::GetContextOutstandingRequests(tmp->mContext) == 0,
+  NS_ASSERTION(!tmp->mContext || tmp->mContext->outstandingRequests == 0,
                "Trying to unlink a context with outstanding requests.");
   tmp->mIsInitialized = false;
   tmp->mGCOnDestruction = false;
@@ -1182,7 +1182,7 @@ nsJSContext::GetCCRefcnt()
 {
   nsrefcnt refcnt = mRefCnt.get();
   if (NS_LIKELY(mContext))
-    refcnt += js::GetContextOutstandingRequests(mContext);
+    refcnt += mContext->outstandingRequests;
   return refcnt;
 }
 
@@ -3373,7 +3373,6 @@ static JSBool
 DOMGCCallback(JSContext *cx, JSGCStatus status)
 {
   static PRTime start;
-  JSBool compartmental = JS_WasLastGCCompartmental(cx);
 
   if (sPostGCEventsToConsole && NS_IsMainThread()) {
     if (status == JSGC_BEGIN) {
@@ -3383,7 +3382,7 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
       NS_NAMED_LITERAL_STRING(kFmt, "GC mode: %s, timestamp: %lld, duration: %llu ms.");
       nsString msg;
       msg.Adopt(nsTextFormatter::smprintf(kFmt.get(),
-                compartmental ? "compartment" : "full",
+                cx->runtime->gcTriggerCompartment ? "compartment" : "full",
                 now,
                 (now - start) / PR_USEC_PER_MSEC));
       nsCOMPtr<nsIConsoleService> cs = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
@@ -3404,7 +3403,7 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
       
       
       
-      if (compartmental) {
+      if (cx->runtime->gcTriggerCompartment) {
         nsJSContext::PokeGC();
 
         
@@ -3412,7 +3411,7 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
       }
     } else {
       
-      if (!compartmental) {
+      if (!cx->runtime->gcTriggerCompartment) {
         sGCHasRun = true;
         nsJSContext::PokeCC();
       }
@@ -3420,7 +3419,7 @@ DOMGCCallback(JSContext *cx, JSGCStatus status)
 
     
     
-    if (!sGCTimer && JS_GetGCParameter(JS_GetRuntime(cx), JSGC_UNUSED_CHUNKS) > 0) {
+    if (!sGCTimer && JS_GetGCParameter(cx->runtime, JSGC_UNUSED_CHUNKS) > 0) {
       nsJSContext::PokeGC();
     }
   }
