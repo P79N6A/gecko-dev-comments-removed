@@ -500,9 +500,6 @@ class FrameState
                         bool resultNeeded = true);
 
     
-    void ensureFullRegs(FrameEntry *fe);
-
-    
 
 
 
