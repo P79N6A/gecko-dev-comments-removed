@@ -42,51 +42,11 @@
 
 #include "jsapi.h"
 #include "methodjit/MachineRegs.h"
+#include "methodjit/RematInfo.h"
 #include "assembler/assembler/MacroAssembler.h"
 
 namespace js {
 namespace mjit {
-
-struct RematInfo {
-    typedef JSC::MacroAssembler::RegisterID RegisterID;
-
-    
-    enum PhysLoc {
-        
-        PhysLoc_Copy,
-
-        
-        PhysLoc_Constant,
-
-        
-        PhysLoc_Register,
-
-        
-        PhysLoc_Memory
-    };
-
-    void setRegister(RegisterID reg) {
-        reg_ = reg;
-        location_ = PhysLoc_Register;
-        synced_ = false;
-    }
-
-    bool isCopy() { return location_ == PhysLoc_Copy; }
-    void setConstant() { location_ = PhysLoc_Constant; }
-    void unsync() { synced_ = false; }
-    bool isConstant() { return location_ == PhysLoc_Constant; }
-    bool inRegister() { return location_ == PhysLoc_Register; }
-    RegisterID reg() { return reg_; }
-    void setMemory() {
-        synced_ = true;
-        location_ = PhysLoc_Memory;
-    }
-    bool synced() { return synced_; }
-
-    RegisterID reg_;
-    PhysLoc    location_;
-    bool       synced_;
-};
 
 class FrameEntry
 {
