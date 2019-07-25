@@ -181,11 +181,12 @@ public class PanZoomController
                 RectF viewableRect = mController.getViewport();
                 float y = viewableRect.top;
                 
-                float dh = viewableRect.height()*(1 - pageSize.width/viewableRect.width()); 
+                float newHeight = viewableRect.height() * pageSize.width / viewableRect.width();
+                float dh = viewableRect.height() - newHeight; 
                 final RectF r = new RectF(0.0f,
                                     y + dh/2,
                                     pageSize.width,
-                                    (y + pageSize.width * viewableRect.height()/viewableRect.width()));
+                                    y + dh/2 + newHeight);
                 mController.post(new Runnable() {
                     public void run() {
                         animatedZoomTo(r);
