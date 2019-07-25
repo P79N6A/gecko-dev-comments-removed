@@ -94,6 +94,7 @@ public:
   nsresult CacheCompletions(const CacheResultArray& aResults);
   PRUint32 GetHashKey(void) { return mHashKey; };
   void SetFreshTime(PRUint32 aTime) { mFreshTime = aTime; };
+  void SetPerClientRandomize(bool aRandomize) { mPerClientRandomize = aRandomize; };
   
 
 
@@ -122,6 +123,7 @@ private:
   
   nsDataHashtable<nsCStringHashKey, PRInt64> mTableFreshness;
   PRUint32 mFreshTime;
+  bool mPerClientRandomize;
 };
 
 }

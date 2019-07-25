@@ -82,8 +82,10 @@ namespace safebrowsing {
 const uint32 LOOKUPCACHE_MAGIC = 0x1231af3e;
 const uint32 CURRENT_VERSION = 1;
 
-LookupCache::LookupCache(const nsACString& aTableName, nsIFile* aStoreDir)
+LookupCache::LookupCache(const nsACString& aTableName, nsIFile* aStoreDir,
+                         bool aPerClientRandomize)
   : mPrimed(false)
+  , mPerClientRandomize(aPerClientRandomize)
   , mTableName(aTableName)
   , mStoreDirectory(aStoreDir)
 {
@@ -230,7 +232,7 @@ LookupCache::Has(const Completion& aCompletion,
   PRUint32 prefix = aCompletion.ToUint32();
   PRUint32 hostkey = aHostkey.ToUint32();
   PRUint32 codedkey;
-  nsresult rv = KeyedHash(prefix, hostkey, aHashKey, &codedkey);
+  nsresult rv = KeyedHash(prefix, hostkey, aHashKey, &codedkey, !mPerClientRandomize);
   NS_ENSURE_SUCCESS(rv, rv);
 
   Prefix codedPrefix;
@@ -630,8 +632,15 @@ LookupCache::GetHostKeys(const nsACString& aSpec,
 
 
  nsresult LookupCache::KeyedHash(PRUint32 aPref, PRUint32 aDomain,
-                                             PRUint32 aKey, PRUint32* aOut)
+                                             PRUint32 aKey, PRUint32* aOut,
+                                             bool aPassthrough)
 {
+  
+  if (aPassthrough) {
+    *aOut = aPref;
+    return NS_OK;
+  }
+
   
 
 

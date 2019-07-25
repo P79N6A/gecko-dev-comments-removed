@@ -127,10 +127,13 @@ public:
 
 
 
-  static nsresult KeyedHash(PRUint32 aPref, PRUint32 aDomain,
-                            PRUint32 aKey, PRUint32* aOut);
 
-  LookupCache(const nsACString& aTableName, nsIFile* aStoreFile);
+  static nsresult KeyedHash(PRUint32 aPref, PRUint32 aDomain,
+                            PRUint32 aKey, PRUint32* aOut,
+                            bool aPassthrough);
+
+  LookupCache(const nsACString& aTableName, nsIFile* aStoreFile,
+              bool aPerClientRandomize);
   ~LookupCache();
 
   const nsCString &TableName() const { return mTableName; }
@@ -174,6 +177,7 @@ private:
   Header mHeader;
 
   bool mPrimed;
+  bool mPerClientRandomize;
   nsCString mTableName;
   nsCOMPtr<nsIFile> mStoreDirectory;
   nsCOMPtr<nsIInputStream> mInputStream;

@@ -320,6 +320,9 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
+pref("urlclassifier.randomizeclient", true);
+
+
 pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
 
 
