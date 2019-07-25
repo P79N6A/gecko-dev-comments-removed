@@ -164,7 +164,7 @@ void MozQWidget::focusInEvent(QFocusEvent* aEvent)
     
     
     if (gFailedOpenKeyboard)
-        requestVKB(0);
+        requestVKB(0, this);
 }
 
 #ifdef MOZ_ENABLE_QTMOBILITY
@@ -566,15 +566,16 @@ QVariant MozQWidget::inputMethodQuery(Qt::InputMethodQuery aQuery) const
 
 
 
-void MozQWidget::requestVKB(int aTimeout)
+void MozQWidget::requestVKB(int aTimeout, QObject* aWidget)
 {
     if (!gPendingVKBOpen) {
         gPendingVKBOpen = true;
 
-        if (aTimeout == 0)
+        if (aTimeout == 0 || !aWidget) {
             showVKB();
-        else
-            QTimer::singleShot(aTimeout, this, SLOT(showVKB()));
+        } else {
+            QTimer::singleShot(aTimeout, aWidget, SLOT(showVKB()));
+        }
     }
 }
 
@@ -583,8 +584,9 @@ void MozQWidget::requestVKB(int aTimeout)
 void MozQWidget::showVKB()
 {
     
-    if (!gPendingVKBOpen)
+    if (!gPendingVKBOpen) {
         return;
+    }
 
     gPendingVKBOpen = false;
 
