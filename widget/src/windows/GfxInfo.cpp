@@ -353,9 +353,7 @@ GfxInfo::Init()
         setupGetDeviceRegistryProperty &&
         setupDestroyDeviceInfoList) {
       
-      HDEVINFO devinfo = setupGetClassDevs(NULL,
-                                           PromiseFlatString(mDeviceID).get(),
-                                           NULL,
+      HDEVINFO devinfo = setupGetClassDevs(NULL, mDeviceID.get(), NULL,
                                            DIGCF_PRESENT | DIGCF_PROFILE | DIGCF_ALLCLASSES);
 
       if (devinfo != INVALID_HANDLE_VALUE) {
