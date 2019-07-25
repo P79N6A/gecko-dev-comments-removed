@@ -332,6 +332,10 @@ public class GeckoAppShell
         GeckoAppShell.putenv("MOZ_LINKER_CACHE=" + cacheFile.getPath());
 
         
+        f = geckoApp.getCacheDir();
+        GeckoAppShell.putenv("CACHE_DIRECTORY=" + f.getPath());
+
+        
         long freeSpace = getFreeSpace();
         try {
             File downloadDir = null;
