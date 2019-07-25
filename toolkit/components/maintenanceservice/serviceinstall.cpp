@@ -236,6 +236,11 @@ SvcInstall(SvcInstallAction action)
     
     
     
+    PathUnquoteSpacesW(serviceConfig.lpBinaryPathName);
+
+    
+    
+    
     DWORD existingA, existingB, existingC, existingD;
     DWORD newA, newB, newC, newD; 
     BOOL obtainedExistingVersionInfo = 
@@ -372,7 +377,7 @@ SvcInstall(SvcInstallAction action)
   }
 
   
-  PathQuoteSpaces(newServiceBinaryPath);
+  PathQuoteSpacesW(newServiceBinaryPath);
   
   schService.own(CreateServiceW(schSCManager, SVC_NAME, SVC_DISPLAY_NAME,
                                 SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
