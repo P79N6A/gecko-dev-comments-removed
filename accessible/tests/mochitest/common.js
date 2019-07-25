@@ -88,6 +88,18 @@ var gAccRetrieval = Components.classes["@mozilla.org/accessibleRetrieval;1"].
 
 
 
+function enableLogging(aModules)
+{
+  gAccRetrieval.setLogging(aModules);
+}
+function disableLogging()
+{
+  gAccRetrieval.setLogging("");
+}
+
+
+
+
 
 
 

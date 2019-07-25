@@ -17,6 +17,7 @@ class DocAccessible;
 class nsIDocument;
 class nsINode;
 class nsIRequest;
+class nsISelection;
 class nsIWebProgress;
 
 namespace mozilla {
@@ -31,10 +32,17 @@ enum EModules {
   eDocCreate = 1 << 1,
   eDocDestroy = 1 << 2,
   eDocLifeCycle = eDocLoad | eDocCreate | eDocDestroy,
-  ePlatforms = 1 << 3,
-  eStack = 1 << 4,
-  eText = 1 << 5,
-  eTree = 1 << 6
+
+  eEvents = 1 << 3,
+  ePlatforms = 1 << 4,
+  eStack = 1 << 5,
+  eText = 1 << 6,
+  eTree = 1 << 7,
+
+  eDOMEvents = 1 << 8,
+  eFocus = 1 << 9,
+  eSelection = 1 << 10,
+  eNotifications = eDOMEvents | eSelection | eFocus
 };
 
 
@@ -75,6 +83,11 @@ void DocDestroy(const char* aMsg, nsIDocument* aDocumentNode,
 
 
 void OuterDocDestroy(OuterDocAccessible* OuterDoc);
+
+
+
+
+void SelChange(nsISelection* aSelection, DocAccessible* aDocument);
 
 
 
