@@ -493,7 +493,12 @@ nsAppShell::nsAppShell()
 
 nsAppShell::~nsAppShell()
 {
-    status_t result = mReaderThread->requestExitAndWait();
+    
+    
+    mReaderThread->requestExit();
+    mEventHub->wake();
+
+    status_t result = mReaderThread->join();
     if (result)
         LOG("Could not stop reader thread - %d", result);
     gAppShell = NULL;
