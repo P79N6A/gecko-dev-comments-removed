@@ -303,9 +303,6 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 static inline JSAtom *
 GetAtomFromBytecode(JSContext *cx, jsbytecode *pc, JSOp op, const JSCodeSpec &cs)
 {
-    if (op == JSOP_LENGTH)
-        return cx->runtime->atomState.lengthAtom;
-
     
     
     if (op == JSOP_INSTANCEOF)

@@ -404,24 +404,24 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 #endif
     JaegerSpew(JSpew_Insns, "## Fast code (masm) size = %u, Slow code (stubcc) size = %u.\n", masm.size(), stubcc.size());
 
-    size_t codeSize = masm.size() +
-                      stubcc.size() +
-                      doubleList.length() * sizeof(double) +
-                      jumpTableOffsets.length() * sizeof(void *);
+    size_t totalSize = masm.size() +
+                       stubcc.size() +
+                       doubleList.length() * sizeof(double) +
+                       jumpTableOffsets.length() * sizeof(void *);
 
     JSC::ExecutablePool *execPool;
     uint8 *result =
-        (uint8 *)script->compartment->jaegerCompartment->execAlloc()->alloc(codeSize, &execPool);
+        (uint8 *)script->compartment->jaegerCompartment->execAlloc()->alloc(totalSize, &execPool);
     if (!result) {
         js_ReportOutOfMemory(cx);
         return Compile_Error;
     }
     JS_ASSERT(execPool);
-    JSC::ExecutableAllocator::makeWritable(result, codeSize);
+    JSC::ExecutableAllocator::makeWritable(result, totalSize);
     masm.executableCopy(result);
     stubcc.masm.executableCopy(result + masm.size());
     
-    JSC::LinkBuffer fullCode(result, codeSize);
+    JSC::LinkBuffer fullCode(result, totalSize);
     JSC::LinkBuffer stubCode(result + masm.size(), stubcc.size());
 
     size_t nNmapLive = 0;
@@ -432,23 +432,23 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     }
 
     
-    size_t dataSize = sizeof(JITScript) +
-                      sizeof(NativeMapEntry) * nNmapLive +
+    size_t totalBytes = sizeof(JITScript) +
+                        sizeof(NativeMapEntry) * nNmapLive +
 #if defined JS_MONOIC
-                      sizeof(ic::GetGlobalNameIC) * getGlobalNames.length() +
-                      sizeof(ic::SetGlobalNameIC) * setGlobalNames.length() +
-                      sizeof(ic::CallICInfo) * callICs.length() +
-                      sizeof(ic::EqualityICInfo) * equalityICs.length() +
-                      sizeof(ic::TraceICInfo) * traceICs.length() +
+                        sizeof(ic::GetGlobalNameIC) * getGlobalNames.length() +
+                        sizeof(ic::SetGlobalNameIC) * setGlobalNames.length() +
+                        sizeof(ic::CallICInfo) * callICs.length() +
+                        sizeof(ic::EqualityICInfo) * equalityICs.length() +
+                        sizeof(ic::TraceICInfo) * traceICs.length() +
 #endif
 #if defined JS_POLYIC
-                       sizeof(ic::PICInfo) * pics.length() +
-                       sizeof(ic::GetElementIC) * getElemICs.length() +
-                       sizeof(ic::SetElementIC) * setElemICs.length() +
+                        sizeof(ic::PICInfo) * pics.length() +
+                        sizeof(ic::GetElementIC) * getElemICs.length() +
+                        sizeof(ic::SetElementIC) * setElemICs.length() +
 #endif
-                       sizeof(CallSite) * callSites.length();
+                        sizeof(CallSite) * callSites.length();
 
-    uint8 *cursor = (uint8 *)cx->calloc_(dataSize);
+    uint8 *cursor = (uint8 *)cx->calloc_(totalBytes);
     if (!cursor) {
         execPool->release();
         js_ReportOutOfMemory(cx);
@@ -808,12 +808,12 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
         to.initialize(codeOffset, from.pc - script->code, from.id);
     }
 
-    JS_ASSERT(size_t(cursor - (uint8*)jit) == dataSize);
+    JS_ASSERT(size_t(cursor - (uint8*)jit) == totalBytes);
 
     *jitp = jit;
 
     
-    cx->runtime->mjitDataSize += dataSize;
+    cx->runtime->mjitMemoryUsed += totalSize + totalBytes;
 
     return Compile_Okay;
 }
@@ -1335,35 +1335,11 @@ mjit::Compiler::generateMethod()
             jsop_eleminc(op, STRICT_VARIANT(stubs::ElemDec));
           END_CASE(JSOP_ELEMDEC)
 
-          BEGIN_CASE(JSOP_GETTHISPROP)
-            
-            jsop_this();
-            if (!jsop_getprop(script->getAtom(fullAtomIndex(PC))))
-                return Compile_Error;
-          END_CASE(JSOP_GETTHISPROP);
-
-          BEGIN_CASE(JSOP_GETARGPROP)
-            
-            frame.pushArg(GET_SLOTNO(PC));
-            if (!jsop_getprop(script->getAtom(fullAtomIndex(&PC[ARGNO_LEN]))))
-                return Compile_Error;
-          END_CASE(JSOP_GETARGPROP)
-
-          BEGIN_CASE(JSOP_GETLOCALPROP)
-            frame.pushLocal(GET_SLOTNO(PC));
-            if (!jsop_getprop(script->getAtom(fullAtomIndex(&PC[SLOTNO_LEN]))))
-                return Compile_Error;
-          END_CASE(JSOP_GETLOCALPROP)
-
           BEGIN_CASE(JSOP_GETPROP)
+          BEGIN_CASE(JSOP_LENGTH)
             if (!jsop_getprop(script->getAtom(fullAtomIndex(PC))))
                 return Compile_Error;
           END_CASE(JSOP_GETPROP)
-
-          BEGIN_CASE(JSOP_LENGTH)
-            if (!jsop_length())
-                return Compile_Error;
-          END_CASE(JSOP_LENGTH)
 
           BEGIN_CASE(JSOP_GETELEM)
             if (!jsop_getelem(false))
@@ -2959,39 +2935,6 @@ mjit::Compiler::jsop_callprop_slow(JSAtom *atom)
     return true;
 }
 
-bool
-mjit::Compiler::jsop_length()
-{
-    FrameEntry *top = frame.peek(-1);
-
-    if (top->isTypeKnown() && top->getKnownType() == JSVAL_TYPE_STRING) {
-        if (top->isConstant()) {
-            JSString *str = top->getValue().toString();
-            Value v;
-            v.setNumber(uint32(str->length()));
-            frame.pop();
-            frame.push(v);
-        } else {
-            RegisterID str = frame.ownRegForData(top);
-            masm.loadPtr(Address(str, JSString::offsetOfLengthAndFlags()), str);
-            masm.urshift32(Imm32(JSString::LENGTH_SHIFT), str);
-            frame.pop();
-            frame.pushTypedPayload(JSVAL_TYPE_INT32, str);
-        }
-        return true;
-    }
-
-#if defined JS_POLYIC
-    return jsop_getprop(cx->runtime->atomState.lengthAtom);
-#else
-    prepareStubCall(Uses(1));
-    INLINE_STUBCALL(stubs::Length);
-    frame.pop();
-    frame.pushSynced();
-    return true;
-#endif
-}
-
 #ifdef JS_MONOIC
 void
 mjit::Compiler::passMICAddress(GlobalNameICInfo &ic)
@@ -3013,9 +2956,7 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, bool doTypeCheck, bool usePropCache)
     FrameEntry *top = frame.peek(-1);
 
     
-    if (top->isTypeKnown() && top->getKnownType() != JSVAL_TYPE_OBJECT) {
-        JS_ASSERT_IF(atom == cx->runtime->atomState.lengthAtom,
-                     top->getKnownType() != JSVAL_TYPE_STRING);
+    if (top->isNotType(JSVAL_TYPE_OBJECT)) {
         jsop_getprop_slow(atom, usePropCache);
         return true;
     }

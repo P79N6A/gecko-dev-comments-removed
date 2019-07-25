@@ -1660,15 +1660,11 @@ DecompileDestructuring(SprintStack *ss, jsbytecode *pc, jsbytecode *endpc)
             }
             break;
 
-          case JSOP_LENGTH:
-            atom = cx->runtime->atomState.lengthAtom;
-            goto do_destructure_atom;
-
           case JSOP_CALLPROP:
           case JSOP_GETPROP:
-            LOAD_ATOM(0);
-          do_destructure_atom:
+          case JSOP_LENGTH:
           {
+            LOAD_ATOM(0);
             *OFF2STR(&ss->sprinter, head) = '{';
 #if JS_HAS_DESTRUCTURING_SHORTHAND
             nameoff = ss->sprinter.offset;
@@ -2111,28 +2107,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                           case JSOP_ENUMELEM:
                           case JSOP_ENUMCONSTELEM:
                             op = JSOP_GETELEM;
-                            break;
-                          case JSOP_GETTHISPROP:
-                            
-
-
-
-
-
-
-
-
-
-
-
-
-
-                            break;
-                          case JSOP_GETARGPROP:
-                            op = JSOP_GETARG;
-                            break;
-                          case JSOP_GETLOCALPROP:
-                            op = JSOP_GETLOCAL;
                             break;
                           case JSOP_SETXMLNAME:
                             op = JSOp(JSOP_GETELEM2);
@@ -3842,11 +3816,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 }
                 break;
 
-              case JSOP_LENGTH:
-                fmt = dot_format;
-                rval = js_length_str;
-                goto do_getprop_lval;
-
               case JSOP_GETPROP2:
                 op = JSOP_GETPROP;
                 (void) PopOff(ss, lastop);
@@ -3855,49 +3824,14 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
               case JSOP_CALLPROP:
               case JSOP_GETPROP:
               case JSOP_GETXPROP:
+              case JSOP_LENGTH:
                 LOAD_ATOM(0);
 
-              do_getprop:
                 GET_QUOTE_AND_FMT(index_format, dot_format, rval);
-              do_getprop_lval:
                 PROPAGATE_CALLNESS();
                 lval = POP_STR();
                 todo = Sprint(&ss->sprinter, fmt, lval, rval);
                 break;
-
-              case JSOP_GETTHISPROP:
-                LOAD_ATOM(0);
-                GET_QUOTE_AND_FMT(index_format, dot_format, rval);
-                todo = Sprint(&ss->sprinter, fmt, js_this_str, rval);
-                break;
-
-              case JSOP_GETARGPROP:
-                
-                i = GET_ARGNO(pc);
-
-              do_getarg_prop:
-                atom = GetArgOrVarAtom(ss->printer, i);
-                LOCAL_ASSERT(atom);
-                lval = QuoteString(&ss->sprinter, atom, 0);
-                if (!lval || !PushOff(ss, STR2OFF(&ss->sprinter, lval), op))
-                    return NULL;
-
-                
-                LOAD_ATOM(ARGNO_LEN);
-                goto do_getprop;
-
-              case JSOP_GETLOCALPROP:
-                if (IsVarSlot(jp, pc, &i))
-                    goto do_getarg_prop;
-                LOCAL_ASSERT((uintN)i < ss->top);
-                lval = GetLocal(ss, i);
-                if (!lval)
-                    return NULL;
-                todo = SprintCString(&ss->sprinter, lval);
-                if (todo < 0 || !PushOff(ss, todo, op))
-                    return NULL;
-                LOAD_ATOM(2);
-                goto do_getprop;
 
               case JSOP_SETPROP:
               case JSOP_SETMETHOD:

@@ -1090,13 +1090,8 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
             if ((cs->format & JOF_SHARPSLOT) ||
                 JOF_TYPE(cs->format) == JOF_LOCAL ||
                 (JOF_TYPE(cs->format) == JOF_SLOTATOM)) {
-                
-
-
-
                 JS_ASSERT_IF(!(cs->format & JOF_SHARPSLOT),
-                             (JOF_TYPE(cs->format) == JOF_SLOTATOM) ==
-                             (op == JSOP_GETLOCALPROP));
+                             JOF_TYPE(cs->format) != JOF_SLOTATOM);
                 slot = GET_SLOTNO(code);
                 if (!(cs->format & JOF_SHARPSLOT))
                     slot += cg.sharpSlots();
