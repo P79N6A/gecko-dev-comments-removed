@@ -295,6 +295,13 @@ class GeckoSurfaceView
             GeckoAppShell.scheduleRedraw();
             GeckoAppShell.geckoEventSync();
         }
+
+        
+        
+        
+        if (mIMEState == IME_STATE_ENABLED) {
+            GeckoAppShell.sendEventToGecko(new GeckoEvent("ScrollTo:FocusedInput", null));
+        }
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
