@@ -278,10 +278,7 @@ public:
     HashSet<JSObject *> objectStack;
 };
 
-static JSBool CallReplacerFunction(JSContext *cx, jsid id, JSObject *holder,
-                                   StringifyContext *scx, Value *vp);
-static JSBool Str(JSContext *cx, jsid id, JSObject *holder,
-                  StringifyContext *scx, Value *vp, bool callReplacer = true);
+static JSBool Str(JSContext *cx, const Value &v, StringifyContext *scx);
 
 static JSBool
 WriteIndent(JSContext *cx, StringifyContext *scx, uint32 limit)
@@ -323,11 +320,116 @@ class CycleDetector
     JSObject *const obj;
 };
 
-static JSBool
-JO(JSContext *cx, Value *vp, StringifyContext *scx)
-{
-    JSObject *obj = &vp->toObject();
 
+
+
+
+static bool
+PreprocessValue(JSContext *cx, JSObject *holder, jsid key, Value *vp, StringifyContext *scx)
+{
+    JSString *keyStr = NULL;
+
+    
+    if (vp->isObject()) {
+        Value toJSON;
+        jsid id = ATOM_TO_JSID(cx->runtime->atomState.toJSONAtom);
+        if (!js_GetMethod(cx, &vp->toObject(), id, JSGET_NO_METHOD_BARRIER, &toJSON))
+            return false;
+
+        if (js_IsCallable(toJSON)) {
+            keyStr = IdToString(cx, key);
+            if (!keyStr)
+                return false;
+
+            LeaveTrace(cx);
+            InvokeArgsGuard args;
+            if (!cx->stack().pushInvokeArgs(cx, 1, &args))
+                return false;
+
+            args.callee() = toJSON;
+            args.thisv() = *vp;
+            args[0] = StringValue(keyStr);
+
+            if (!Invoke(cx, args, 0))
+                return false;
+            *vp = args.rval();
+        }
+    }
+
+    
+    if (scx->replacer && scx->replacer->isCallable()) {
+        if (!keyStr) {
+            keyStr = IdToString(cx, key);
+            if (!keyStr)
+                return false;
+        }
+
+        LeaveTrace(cx);
+        InvokeArgsGuard args;
+        if (!cx->stack().pushInvokeArgs(cx, 2, &args))
+            return false;
+
+        args.callee() = ObjectValue(*scx->replacer);
+        args.thisv() = ObjectValue(*holder);
+        args[0] = StringValue(keyStr);
+        args[1] = *vp;
+
+        if (!Invoke(cx, args, 0))
+            return false;
+        *vp = args.rval();
+    }
+
+    
+    if (vp->isObject()) {
+        JSObject *obj = &vp->toObject();
+        Class *clasp = obj->getClass();
+        if (clasp == &js_NumberClass) {
+            double d;
+            if (!ValueToNumber(cx, *vp, &d))
+                return false;
+            vp->setNumber(d);
+        } else if (clasp == &js_StringClass) {
+            JSString *str = js_ValueToString(cx, *vp);
+            if (!str)
+                return false;
+            vp->setString(str);
+        } else if (clasp == &js_BooleanClass) {
+            *vp = obj->getPrimitiveThis();
+            JS_ASSERT(vp->isBoolean());
+        }
+    }
+
+    return true;
+}
+
+
+
+
+
+
+
+
+static inline bool
+IsFilteredValue(const Value &v)
+{
+    return v.isUndefined() || js_IsCallable(v) || (v.isObject() && v.toObject().isXML());
+}
+
+
+static JSBool
+JO(JSContext *cx, JSObject *obj, StringifyContext *scx)
+{
+    
+
+
+
+
+
+
+
+
+
+    
     CycleDetector detect(scx, obj);
     if (!detect.init(cx))
         return JS_FALSE;
@@ -335,31 +437,27 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
     if (!scx->sb.append('{'))
         return JS_FALSE;
 
-    Value vec[3] = { NullValue(), NullValue(), NullValue() };
-    AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(vec), vec);
-    Value& outputValue = vec[0];
-    Value& whitelistElement = vec[1];
     AutoIdRooter idr(cx);
     jsid& id = *idr.addr();
 
-    Value *keySource = vp;
+    
+    
+    Value keySource = ObjectValue(*obj);
     bool usingWhitelist = false;
 
     
     if (scx->replacer && JS_IsArrayObject(cx, scx->replacer)) {
         usingWhitelist = true;
-        vec[2].setObject(*scx->replacer);
-        keySource = &vec[2];
+        keySource.setObject(*scx->replacer);
     }
 
-    JSBool memberWritten = JS_FALSE;
+    bool wroteMember = false;
     AutoIdVector props(cx);
-    if (!GetPropertyNames(cx, &keySource->toObject(), JSITER_OWNONLY, &props))
+    if (!GetPropertyNames(cx, &keySource.toObject(), JSITER_OWNONLY, &props))
         return JS_FALSE;
 
+    
     for (size_t i = 0, len = props.length(); i < len; i++) {
-        outputValue.setUndefined();
-
         if (!usingWhitelist) {
             if (!js_ValueToStringId(cx, IdToValue(props[i]), &id))
                 return JS_FALSE;
@@ -369,6 +467,7 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
             if (!js_IdIsIndex(props[i], &index))
                 continue;
 
+            Value whitelistElement;
             if (!scx->replacer->getProperty(cx, props[i], &whitelistElement))
                 return JS_FALSE;
 
@@ -377,31 +476,24 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
         }
 
         
-        
-        
-        JS_ASSERT(JSID_IS_ATOM(id));
 
-        if (!JS_GetPropertyById(cx, obj, id, Jsvalify(&outputValue)))
+
+
+
+
+
+        Value outputValue;
+        if (!obj->getProperty(cx, id, &outputValue))
             return JS_FALSE;
-
-        if (outputValue.isObjectOrNull() && !js_TryJSON(cx, &outputValue))
+        if (!PreprocessValue(cx, obj, id, &outputValue, scx))
             return JS_FALSE;
-
-        
-        
-        if (!CallReplacerFunction(cx, id, obj, scx, &outputValue))
-            return JS_FALSE;
-
-        JSType type = JS_TypeOfValue(cx, Jsvalify(outputValue));
-
-        
-        if (outputValue.isUndefined() || type == JSTYPE_FUNCTION || type == JSTYPE_XML)
+        if (IsFilteredValue(outputValue))
             continue;
 
         
-        if (memberWritten && !scx->sb.append(','))
+        if (wroteMember && !scx->sb.append(','))
             return JS_FALSE;
-        memberWritten = JS_TRUE;
+        wroteMember = true;
 
         if (!WriteIndent(cx, scx, scx->depth))
             return JS_FALSE;
@@ -420,22 +512,32 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
         if (!write_string(cx, scx->sb, chars, length) ||
             !scx->sb.append(':') ||
             !(scx->gap.empty() || scx->sb.append(' ')) ||
-            !Str(cx, id, obj, scx, &outputValue, true)) {
+            !Str(cx, outputValue, scx)) {
             return JS_FALSE;
         }
     }
 
-    if (memberWritten && !WriteIndent(cx, scx, scx->depth - 1))
+    if (wroteMember && !WriteIndent(cx, scx, scx->depth - 1))
         return JS_FALSE;
 
     return scx->sb.append('}');
 }
 
-static JSBool
-JA(JSContext *cx, Value *vp, StringifyContext *scx)
-{
-    JSObject *obj = &vp->toObject();
 
+static JSBool
+JA(JSContext *cx, JSObject *obj, StringifyContext *scx)
+{
+    
+
+
+
+
+
+
+
+
+
+    
     CycleDetector detect(scx, obj);
     if (!detect.init(cx))
         return JS_FALSE;
@@ -443,62 +545,63 @@ JA(JSContext *cx, Value *vp, StringifyContext *scx)
     if (!scx->sb.append('['))
         return JS_FALSE;
 
+    
     jsuint length;
     if (!js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
 
-    if (length != 0 && !WriteIndent(cx, scx, scx->depth))
-        return JS_FALSE;
-
-    AutoValueRooter outputValue(cx);
-
-    jsid id;
-    jsuint i;
-    for (i = 0; i < length; i++) {
-        id = INT_TO_JSID(i);
-
-        if (!obj->getProperty(cx, id, outputValue.addr()))
+    
+    if (length != 0) {
+        
+        if (!WriteIndent(cx, scx, scx->depth))
             return JS_FALSE;
 
-        if (!Str(cx, id, obj, scx, outputValue.addr()))
+        
+        Value outputValue;
+        for (jsuint i = 0; i < length; i++) {
+            jsid id = INT_TO_JSID(i);
+
+            
+
+
+
+
+
+            if (!obj->getProperty(cx, id, &outputValue))
+                return JS_FALSE;
+            if (!PreprocessValue(cx, obj, id, &outputValue, scx))
+                return JS_FALSE;
+            if (IsFilteredValue(outputValue)) {
+                if (!scx->sb.append("null"))
+                    return JS_FALSE;
+            } else {
+                if (!Str(cx, outputValue, scx))
+                    return JS_FALSE;
+            }
+
+            
+            if (i < length - 1) {
+                if (!scx->sb.append(','))
+                    return JS_FALSE;
+                if (!WriteIndent(cx, scx, scx->depth))
+                    return JS_FALSE;
+            }
+        }
+
+        
+        if (!WriteIndent(cx, scx, scx->depth - 1))
             return JS_FALSE;
-
-        if (outputValue.value().isUndefined()) {
-            if (!scx->sb.append("null"))
-                return JS_FALSE;
-        }
-
-        if (i < length - 1) {
-            if (!scx->sb.append(','))
-                return JS_FALSE;
-            if (!WriteIndent(cx, scx, scx->depth))
-                return JS_FALSE;
-        }
     }
-
-    if (length != 0 && !WriteIndent(cx, scx, scx->depth - 1))
-        return JS_FALSE;
 
     return scx->sb.append(']');
 }
 
 static JSBool
-CallReplacerFunction(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp)
+Str(JSContext *cx, const Value &v, StringifyContext *scx)
 {
-    if (scx->replacer && scx->replacer->isCallable()) {
-        Value vec[2] = { IdToValue(id), *vp};
-        if (!JS_CallFunctionValue(cx, holder, OBJECT_TO_JSVAL(scx->replacer),
-                                  2, Jsvalify(vec), Jsvalify(vp))) {
-            return JS_FALSE;
-        }
-    }
+    
+    JS_ASSERT(!IsFilteredValue(v));
 
-    return JS_TRUE;
-}
-
-static JSBool
-Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp, bool callReplacer)
-{
     JS_CHECK_RECURSION(cx, return false);
 
     
@@ -507,36 +610,16 @@ Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp, 
 
 
 
-    
-    if (vp->isObject() && !js_TryJSON(cx, vp))
-        return false;
+
+
+
+
+
+
 
     
-    if (callReplacer && !CallReplacerFunction(cx, id, holder, scx, vp))
-        return false;
-
-    
-    if (vp->isObject()) {
-        JSObject *obj = &vp->toObject();
-        Class *clasp = obj->getClass();
-        if (clasp == &js_NumberClass) {
-            double d;
-            if (!ValueToNumber(cx, *vp, &d))
-                return false;
-            vp->setNumber(d);
-        } else if (clasp == &js_StringClass) {
-            JSString *str = js_ValueToString(cx, *vp);
-            if (!str)
-                return false;
-            vp->setString(str);
-        } else if (clasp == &js_BooleanClass) {
-            *vp = obj->getPrimitiveThis();
-        }
-    }
-
-    
-    if (vp->isString()) {
-        JSString *str = vp->toString();
+    if (v.isString()) {
+        JSString *str = v.toString();
         size_t length = str->length();
         const jschar *chars = str->getChars(cx);
         if (!chars)
@@ -545,42 +628,36 @@ Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp, 
     }
 
     
-    if (vp->isNull())
+    if (v.isNull())
         return scx->sb.append("null");
 
     
-    if (vp->isBoolean())
-        return vp->toBoolean() ? scx->sb.append("true") : scx->sb.append("false");
+    if (v.isBoolean())
+        return v.toBoolean() ? scx->sb.append("true") : scx->sb.append("false");
 
     
-    if (vp->isNumber()) {
-        if (vp->isDouble()) {
-            jsdouble d = vp->toDouble();
-            if (!JSDOUBLE_IS_FINITE(d))
+    if (v.isNumber()) {
+        if (v.isDouble()) {
+            if (!JSDOUBLE_IS_FINITE(v.toDouble()))
                 return scx->sb.append("null");
         }
 
         StringBuffer sb(cx);
-        if (!NumberValueToStringBuffer(cx, *vp, sb))
+        if (!NumberValueToStringBuffer(cx, v, sb))
             return false;
 
         return scx->sb.append(sb.begin(), sb.length());
     }
 
     
-    if (vp->isObject() && !IsFunctionObject(*vp) && !IsXML(*vp)) {
-        JSBool ok;
+    JS_ASSERT(v.isObject());
+    JSBool ok;
 
-        scx->depth++;
-        ok = (JS_IsArrayObject(cx, &vp->toObject()) ? JA : JO)(cx, vp, scx);
-        scx->depth--;
+    scx->depth++;
+    ok = (JS_IsArrayObject(cx, &v.toObject()) ? JA : JO)(cx, &v.toObject(), scx);
+    scx->depth--;
 
-        return ok;
-    }
-
-    
-    vp->setUndefined();
-    return true;
+    return ok;
 }
 
 JSBool
@@ -596,12 +673,15 @@ js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, const Value &space,
         return JS_FALSE;
 
     AutoObjectRooter tvr(cx, obj);
-    if (!obj->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.emptyAtom),
-                             *vp, NULL, NULL, JSPROP_ENUMERATE)) {
+    jsid emptyId = ATOM_TO_JSID(cx->runtime->atomState.emptyAtom);
+    if (!obj->defineProperty(cx, emptyId, *vp, NULL, NULL, JSPROP_ENUMERATE))
         return JS_FALSE;
-    }
 
-    return Str(cx, ATOM_TO_JSID(cx->runtime->atomState.emptyAtom), obj, &scx, vp);
+    if (!PreprocessValue(cx, obj, emptyId, vp, &scx))
+        return JS_FALSE;
+    if (IsFilteredValue(*vp))
+        return JS_TRUE;
+    return Str(cx, *vp, &scx);
 }
 
 
