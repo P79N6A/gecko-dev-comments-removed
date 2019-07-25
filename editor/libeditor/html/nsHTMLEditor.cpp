@@ -4282,12 +4282,14 @@ void nsHTMLEditor::IsTextPropertySetByContent(nsIDOMNode        *aNode,
 PRBool
 nsHTMLEditor::IsNodeInActiveEditor(nsIDOMNode* aNode)
 {
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  if (!node) {
+    return PR_FALSE;
+  }
   nsIContent* activeEditingHost = GetActiveEditingHost();
   if (!activeEditingHost) {
     return PR_FALSE;
   }
-  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-  NS_ENSURE_TRUE(node, PR_FALSE);
   return nsContentUtils::ContentIsDescendantOf(node, activeEditingHost);
 }
 
@@ -4596,7 +4598,10 @@ nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outN
   {
     res = node->GetPreviousSibling(getter_AddRefs(temp));
     NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_TRUE(temp, NS_OK);  
+    if (!temp) {
+      
+      return NS_OK;
+    }
     
     if (IsEditable(temp)) break;
     
@@ -4619,7 +4624,10 @@ nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMP
   NS_ENSURE_TRUE(outNode && inParent, NS_ERROR_NULL_POINTER);
   nsresult res = NS_OK;
   *outNode = nsnull;
-  NS_ENSURE_TRUE(inOffset, NS_OK);  
+  if (inOffset <= 0) {
+    
+    return NS_OK;
+  }
   nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent,inOffset-1);
   if (node && IsEditable(node)) {
     *outNode = node;
@@ -4647,7 +4655,10 @@ nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outNo
   {
     res = node->GetNextSibling(getter_AddRefs(temp));
     NS_ENSURE_SUCCESS(res, res);
-    NS_ENSURE_TRUE(temp, NS_OK);  
+    if (!temp) {
+      
+      return NS_OK;
+    }
     
     if (IsEditable(temp)) break;
     
@@ -4671,7 +4682,10 @@ nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMPt
   nsresult res = NS_OK;
   *outNode = nsnull;
   nsCOMPtr<nsIDOMNode> node = nsEditor::GetChildAt(inParent,inOffset);
-  NS_ENSURE_TRUE(node, NS_OK); 
+  if (!node) {
+    
+    return NS_OK;
+  }
   if (node && IsEditable(node)) {
     *outNode = node;
     return res;

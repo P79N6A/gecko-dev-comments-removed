@@ -660,7 +660,10 @@ nsWSRunObject::AdjustWhitespace()
   
   
   
-  NS_ENSURE_TRUE(mLastNBSPNode, NS_OK); 
+  if (!mLastNBSPNode) {
+    
+    return NS_OK;
+  }
   nsresult res = NS_OK;
   WSFragment *curRun = mStartRun;
   while (curRun)

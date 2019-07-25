@@ -2585,7 +2585,12 @@ nsHTMLDocument::DeferredContentEditableCountChange(nsIContent *aElement)
         NS_ENSURE_SUCCESS(rv, );
 
         rv = range->SelectNode(node);
-        NS_ENSURE_SUCCESS(rv, );
+        if (NS_FAILED(rv)) {
+          
+          
+          
+          return;
+        }
 
         nsCOMPtr<nsIInlineSpellChecker> spellChecker;
         rv = editor->GetInlineSpellChecker(PR_FALSE,
