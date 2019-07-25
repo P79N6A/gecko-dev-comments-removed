@@ -362,20 +362,7 @@ public:
   
   
   
-  nsPoint ViewToWidgetOffset() const {
-    nsIView* parent = reinterpret_cast<nsIView*>(mParent);
-    if (parent && parent->GetViewManager() != GetViewManager()) {
-      
-      
-      
-      
-      
-      
-      
-      return parent->ViewToWidgetOffset();
-    }
-    return mViewToWidgetOffset;
-  }
+  nsPoint ViewToWidgetOffset() const { return mViewToWidgetOffset; }
 
 protected:
   friend class nsWeakView;
