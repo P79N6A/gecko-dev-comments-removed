@@ -445,6 +445,14 @@ nsCOMPtr_base
           private:
             using T::AddRef;
             using T::Release;
+            
+            ~nsDerivedSafe(); 
+            
+
+
+
+
+
 
           protected:
             nsDerivedSafe(); 
