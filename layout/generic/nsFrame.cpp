@@ -2544,6 +2544,8 @@ NS_IMETHODIMP nsFrame::HandleRelease(nsPresContext* aPresContext,
 {
   nsIFrame* activeFrame = GetActiveSelectionFrame(aPresContext, this);
 
+  nsCOMPtr<nsIContent> captureContent = nsIPresShell::GetCapturingContent();
+
   
   
   nsIPresShell::SetCapturingContent(nsnull, 0);
@@ -2585,11 +2587,26 @@ NS_IMETHODIMP nsFrame::HandleRelease(nsPresContext* aPresContext,
   
   
   
+  nsRefPtr<nsFrameSelection> frameSelection;
   if (activeFrame != this &&
       static_cast<nsFrame*>(activeFrame)->DisplaySelection(activeFrame->PresContext())
         != nsISelectionController::SELECTION_OFF) {
-    nsRefPtr<nsFrameSelection> frameSelection =
-      activeFrame->GetFrameSelection();
+      frameSelection = activeFrame->GetFrameSelection();
+  }
+
+  
+  
+  if (!frameSelection && captureContent) {
+    nsIDocument* doc = captureContent->GetCurrentDoc();
+    if (doc) {
+      nsIPresShell* capturingShell = doc->GetShell();
+      if (capturingShell && capturingShell != PresContext()->GetPresShell()) {
+        frameSelection = capturingShell->FrameSelection();
+      }
+    }
+  }
+
+  if (frameSelection) {
     frameSelection->SetMouseDownState(PR_FALSE);
     frameSelection->StopAutoScrollTimer();
   }
