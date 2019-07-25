@@ -140,9 +140,9 @@ nsDOMEvent::nsDOMEvent(nsPresContext* aPresContext, nsEvent* aEvent)
 
   
   {
-    mExplicitOriginalTarget = GetTargetFromFrame();
-    mTmpRealOriginalTarget = mExplicitOriginalTarget;
-    nsCOMPtr<nsIContent> content = do_QueryInterface(mExplicitOriginalTarget);
+    nsCOMPtr<nsIContent> content = GetTargetFromFrame();
+    mTmpRealOriginalTarget = do_QueryInterface(content);
+    mExplicitOriginalTarget = mTmpRealOriginalTarget;
     if (content && content->IsInAnonymousSubtree()) {
       mExplicitOriginalTarget = nsnull;
     }
@@ -199,7 +199,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDOMEvent)
   }
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mPresContext);
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mTmpRealOriginalTarget)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mExplicitOriginalTarget)
+  
+  
+  tmp->mExplicitOriginalTarget = nsnull;
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMEvent)
@@ -234,7 +236,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMEvent)
   }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_MEMBER(mPresContext.get(), nsPresContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mTmpRealOriginalTarget)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mExplicitOriginalTarget)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
@@ -288,7 +289,7 @@ nsDOMEvent::GetCurrentTarget(nsIDOMEventTarget** aCurrentTarget)
 
 
 
-already_AddRefed<nsIDOMEventTarget>
+already_AddRefed<nsIContent>
 nsDOMEvent::GetTargetFromFrame()
 {
   if (!mPresContext) { return nsnull; }
@@ -301,12 +302,7 @@ nsDOMEvent::GetTargetFromFrame()
   
   nsCOMPtr<nsIContent> realEventContent;
   targetFrame->GetContentForEvent(mPresContext, mEvent, getter_AddRefs(realEventContent));
-  if (!realEventContent) { return nsnull; }
-
-  
-  nsIDOMEventTarget* target = nsnull;
-  CallQueryInterface(realEventContent, &target);
-  return target;
+  return realEventContent.forget();
 }
 
 NS_IMETHODIMP
