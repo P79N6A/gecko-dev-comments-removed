@@ -1967,7 +1967,11 @@ public:
 
      void GLAPIENTRY fDeleteFramebuffers(GLsizei n, GLuint *names) {
          BEFORE_GL_CALL;
-         mSymbols.fDeleteFramebuffers(n, names);
+         if (n == 1 && *names == 0) {
+            
+         } else {
+            mSymbols.fDeleteFramebuffers(n, names);
+         }
          AFTER_GL_CALL;
          TRACKING_CONTEXT(DeletedFramebuffers(this, n, names));
      }
