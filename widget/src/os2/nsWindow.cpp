@@ -404,9 +404,7 @@ NS_METHOD nsWindow::Create(nsIWidget* aParent,
     
     
     if (mWindowType == eWindowType_toplevel ||
-        mWindowType == eWindowType_invisible ||
-        (mWindowType == eWindowType_child &&
-         aInitData->mContentType == eContentTypeContent)) {
+        mWindowType == eWindowType_invisible) {
       mNoPaint = PR_TRUE;
     }
   }

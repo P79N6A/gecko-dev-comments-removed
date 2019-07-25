@@ -120,23 +120,10 @@ enum nsBorderStyle {
 
 
 
-enum nsContentType {
-  eContentTypeInherit      = -1,
-  eContentTypeUI           = 0,
-  eContentTypeContent      = 1,
-  eContentTypeContentFrame = 2
-};
-
-
-
-
-
-
 struct nsWidgetInitData {
   nsWidgetInitData() :
       mWindowType(eWindowType_child),
       mBorderStyle(eBorderStyle_default),
-      mContentType(eContentTypeInherit),
       mPopupHint(ePopupTypePanel),
       mPopupLevel(ePopupLevelTop),
       clipChildren(PR_FALSE), 
@@ -151,7 +138,6 @@ struct nsWidgetInitData {
 
   nsWindowType  mWindowType;
   nsBorderStyle mBorderStyle;
-  nsContentType mContentType;  
   nsPopupType   mPopupHint;
   nsPopupLevel  mPopupLevel;
   

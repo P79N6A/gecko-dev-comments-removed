@@ -120,22 +120,19 @@ public:
   
   nsresult CreateWidget(nsWidgetInitData *aWidgetInitData,
                         PRBool aEnableDragDrop,
-                        PRBool aResetVisibility,
-                        nsContentType aContentType);
+                        PRBool aResetVisibility);
 
   
   nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
                                  nsWidgetInitData *aWidgetInitData,
                                  PRBool aEnableDragDrop,
-                                 PRBool aResetVisibility,
-                                 nsContentType aContentType);
+                                 PRBool aResetVisibility);
 
   
   nsresult CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
                                 nsIWidget* aParentWidget,
                                 PRBool aEnableDragDrop,
-                                PRBool aResetVisibility,
-                                nsContentType aContentType);
+                                PRBool aResetVisibility);
 
   
   

@@ -386,8 +386,6 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
     widgetInitData.clipChildren = PR_TRUE;
 #endif
 
-  widgetInitData.mContentType = eContentTypeUI;                
-
   
   
   if (aChromeMask & nsIWebBrowserChrome::CHROME_DEFAULT)
