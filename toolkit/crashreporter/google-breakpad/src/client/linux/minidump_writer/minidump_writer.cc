@@ -437,7 +437,8 @@ class MinidumpWriter {
   
   MinidumpWriter(const char* filename,
                  pid_t pid,
-                 pid_t blame_thread)
+                 pid_t blame_thread,
+                 const MappingList& mappings)
       : filename_(filename),
         siginfo_(NULL),         
         ucontext_(NULL),
@@ -445,7 +446,8 @@ class MinidumpWriter {
         crashing_tid_(blame_thread),
         crashing_tid_pc_(0),    
         dumper_(pid),
-        memory_blocks_(dumper_.allocator()) {
+        memory_blocks_(dumper_.allocator()),
+        mapping_info_(mappings) {
   }
 
   bool Init() {
@@ -1379,7 +1381,9 @@ bool WriteMinidump(const char* filename, pid_t crashing_process,
 
 bool WriteMinidump(const char* filename, pid_t process,
                    pid_t process_blamed_thread) {
-  MinidumpWriter writer(filename, process, process_blamed_thread);
+  
+  MappingList m;
+  MinidumpWriter writer(filename, process, process_blamed_thread, m);
   if (!writer.Init())
     return false;
   return writer.Dump();
