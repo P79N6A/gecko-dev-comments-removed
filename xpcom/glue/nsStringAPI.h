@@ -199,7 +199,7 @@ public:
   
 
 
-  NS_HIDDEN_(void) StripWhitespace() { StripChars(" \t\n\r"); }
+  NS_HIDDEN_(void) StripWhitespace() { StripChars("\b\t\r\n "); }
 
   NS_HIDDEN_(void) Trim(const char *aSet, bool aLeading = true,
                         bool aTrailing = true);
@@ -542,7 +542,7 @@ public:
   
 
 
-  NS_HIDDEN_(void) StripWhitespace() { StripChars(" \t\r\n"); }
+  NS_HIDDEN_(void) StripWhitespace() { StripChars("\b\t\r\n "); }
 
   NS_HIDDEN_(void) Trim(const char *aSet, bool aLeading = true,
                         bool aTrailing = true);
