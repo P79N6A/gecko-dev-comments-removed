@@ -3046,6 +3046,12 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   ScopedFPHandler handler;
 #endif 
 
+  if (PR_GetEnv("MOZ_SAFE_MODE_RESTART")) {
+    gSafeMode = PR_TRUE;
+    
+    PR_SetEnv("MOZ_SAFE_MODE_RESTART=");
+  }
+
   ar = CheckArg("safe-mode", PR_TRUE);
   if (ar == ARG_BAD) {
     PR_fprintf(PR_STDERR, "Error: argument -safe-mode is invalid when argument -osint is specified\n");

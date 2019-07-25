@@ -52,6 +52,7 @@
 #   Gavin Sharp <gavin@gavinsharp.com>
 #   Justin Dolske <dolske@mozilla.com>
 #   Rob Campbell <rcampbell@mozilla.com>
+#   David Dahl <ddahl@mozilla.com>
 #   Patrick Walton <pcwalton@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
@@ -7994,6 +7995,20 @@ XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
 });
 
 
+function safeModeRestart()
+{
+  
+  let promptTitle = gNavigatorBundle.getString("safeModeRestartPromptTitle");
+  let promptMessage = 
+    gNavigatorBundle.getString("safeModeRestartPromptMessage");
+  let rv = Services.prompt.confirm(window, promptTitle, promptMessage);
+  if (rv) {
+    let environment = Components.classes["@mozilla.org/process/environment;1"].
+      getService(Components.interfaces.nsIEnvironment);
+    environment.set("MOZ_SAFE_MODE_RESTART", "1");
+    Application.restart();
+  }
+}
 
 
 
