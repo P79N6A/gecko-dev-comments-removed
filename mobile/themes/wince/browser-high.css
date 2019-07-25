@@ -287,12 +287,6 @@ box[type="documenttab"] .documenttab-close {
 }
 
 
-findbar .findbar-closebutton {
-  list-style-image: url("chrome://browser/skin/images/close-30.png");
-  -moz-image-region: -moz-initial;
-}
-
-
 #identity-popup-icon {
   padding: 0;
   list-style-image: url("chrome://browser/skin/images/identity-64.png");
