@@ -83,6 +83,8 @@ class nsStyleSet
  public:
   nsStyleSet();
 
+  size_t SizeOf() const;
+
   
   
 
