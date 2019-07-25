@@ -106,19 +106,10 @@ var Tabbar = {
         options = {};
           
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
-      var visibleTabs = [];
       var tabBarTabs = this.getAllTabs();
-            
-      tabs.forEach(function(tab) {
-        var rawTab = tab.tab.raw;
-        tabBarTabs.some(function(tabBarTab) {
-          if (tabBarTab == rawTab) {
-            visibleTabs.push(tabBarTab);
-            return true;
-          }
-        });
-      });
-
+      
+      var visibleTabs = [ tab.tab.raw for each ( tab in tabs ) if (tab.tab.tabbrowser == tabbrowser) ];
+      
       
       
       
