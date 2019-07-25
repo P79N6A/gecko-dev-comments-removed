@@ -1670,8 +1670,7 @@ nsTreeBodyFrame::GetCellAt(nscoord aX, nscoord aY, PRInt32* aRow,
 
     if (aX >= cellRect.x && aX < cellRect.x + cellRect.width) {
       
-      if (aCol)
-        *aCol = currCol;
+      *aCol = currCol;
 
       if (currCol->IsCycler())
         
