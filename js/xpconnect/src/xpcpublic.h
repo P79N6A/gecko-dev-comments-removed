@@ -77,10 +77,18 @@ DebugCheckWrapperClass(JSObject* obj)
 
 
 
+
+
+
+
+
+#define WRAPPER_MULTISLOT 0
+
+
 #define IS_WN_WRAPPER_OBJECT(obj)                                             \
-    (DebugCheckWrapperClass(obj) && js::GetReservedSlot(obj, 0).isUndefined())
+    (DebugCheckWrapperClass(obj) && !js::GetReservedSlot(obj, WRAPPER_MULTISLOT).isDouble())
 #define IS_SLIM_WRAPPER_OBJECT(obj)                                           \
-    (DebugCheckWrapperClass(obj) && !js::GetReservedSlot(obj, 0).isUndefined())
+    (DebugCheckWrapperClass(obj) && js::GetReservedSlot(obj, WRAPPER_MULTISLOT).isDouble())
 
 
 
