@@ -1193,7 +1193,6 @@ nsHttpConnectionMgr::RestrictConnections(nsConnectionEntry *ent)
     
     bool doRestrict = ent->mConnInfo->UsingSSL() &&
         gHttpHandler->IsSpdyEnabled() &&
-        !ent->mConnInfo->UsingHttpProxy() &&
         (!ent->mTestedSpdy || ent->mUsingSpdy) &&
         (ent->mHalfOpens.Length() || ent->mActiveConns.Length());
 
@@ -2699,6 +2698,7 @@ nsHttpConnectionMgr::nsHalfOpenSocket::OnTransportStatus(nsITransport *trans,
     if (trans != mSocketTransport)
         return NS_OK;
 
+    
     
     
     
