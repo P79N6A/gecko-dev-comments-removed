@@ -91,7 +91,7 @@ var Tabbar = {
     
     for( var i=0; i<UI.tabBar.el.children.length; i++ ){
       var tab = UI.tabBar.el.children[i];
-      if( tab.collapsed = false )
+      if( tab.collapsed == false )
         visibleTabs.push();
     }
     
