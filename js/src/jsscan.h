@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef jsscan_h___
 #define jsscan_h___
 
@@ -485,6 +486,14 @@ class TokenStream
         return matchToken(tt);
     }
 
+    
+
+
+    const jschar *releaseSourceMap() {
+        const jschar* sm = sourceMap;
+        sourceMap = NULL;
+        return sm;
+    }
 
   private:
     
@@ -589,6 +598,7 @@ class TokenStream
     bool matchUnicodeEscapeIdent(int32 *c);
     bool peekChars(intN n, jschar *cp);
     bool getAtLine();
+    bool getAtSourceMappingURL();
 
     bool getXMLEntity();
     bool getXMLTextOrTag(TokenKind *ttp, Token **tpp);
@@ -626,6 +636,7 @@ class TokenStream
     const jschar        *prevLinebase;  
     TokenBuf            userbuf;        
     const char          *filename;      
+    jschar              *sourceMap;     
     void                *listenerTSData;
     CharBuffer          tokenbuf;       
     int8                oneCharTokens[128];  

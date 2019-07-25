@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef jsdbgapi_h___
 #define jsdbgapi_h___
 
@@ -348,6 +349,9 @@ JS_GetValidFrameCalleeObject(JSContext *cx, JSStackFrame *fp, jsval *vp);
 
 extern JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script);
+
+extern JS_PUBLIC_API(const jschar *)
+JS_GetScriptSourceMap(JSContext *cx, JSScript *script);
 
 extern JS_PUBLIC_API(uintN)
 JS_GetScriptBaseLineNumber(JSContext *cx, JSScript *script);

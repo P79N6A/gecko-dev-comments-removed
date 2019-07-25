@@ -41,6 +41,7 @@
 
 
 
+
 #include <string.h>
 #include "jstypes.h"
 #include "jsstdint.h"
@@ -1190,6 +1191,8 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     if (script->principals)
         JSPRINCIPALS_HOLD(cx, script->principals);
 
+    script->sourceMap = (jschar *) cg->parser->tokenStream.releaseSourceMap();
+
     if (!js_FinishTakingSrcNotes(cx, cg, script->notes()))
         goto bad;
     if (cg->ntrynotes != 0)
@@ -1401,6 +1404,9 @@ DestroyScript(JSContext *cx, JSScript *script, JSObject *owner)
     JS_REMOVE_LINK(&script->links);
 
     script->pcCounters.destroy(cx);
+
+    if (script->sourceMap)
+        cx->free_(script->sourceMap);
 
     memset(script, JS_FREE_PATTERN, script->totalSize());
     cx->free_(script);
