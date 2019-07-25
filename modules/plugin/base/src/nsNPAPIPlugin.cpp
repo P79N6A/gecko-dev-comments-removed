@@ -593,10 +593,15 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
   if (!pluginHost) return NPERR_GENERIC_ERROR;
 
   nsCOMPtr<nsIPluginStreamListener> listener;
+  
+  
+  
+  
+  
   if (!target)
     ((nsNPAPIPluginInstance*)inst)->NewNotifyStream(getter_AddRefs(listener),
                                                     notifyData,
-                                                    bDoNotify, relativeURL);
+                                                    PR_FALSE, relativeURL);
 
   switch (type) {
   case eNPPStreamTypeInternal_Get:
@@ -614,6 +619,15 @@ MakeNewNPAPIStreamInternal(NPP npp, const char *relativeURL, const char *target,
     }
   default:
     NS_ERROR("how'd I get here");
+  }
+
+  if (listener) {
+    
+    
+    
+    nsNPAPIPluginStreamListener* npAPIPluginStreamListener = 
+      static_cast<nsNPAPIPluginStreamListener*>(listener.get());
+    npAPIPluginStreamListener->SetCallNotify(bDoNotify);
   }
 
   return NPERR_NO_ERROR;
