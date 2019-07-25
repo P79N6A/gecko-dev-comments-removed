@@ -3465,6 +3465,15 @@ static StyleIDs SelectionStyleIDs[] = {
     nsILookAndFeel::eMetricFloat_SpellCheckerUnderlineRelativeSize }
 };
 
+static PRUint8 sUnderlineStyles[] = {
+  nsCSSRendering::DECORATION_STYLE_NONE,   
+  nsCSSRendering::DECORATION_STYLE_DOTTED, 
+  nsCSSRendering::DECORATION_STYLE_DASHED, 
+  nsCSSRendering::DECORATION_STYLE_SOLID,  
+  nsCSSRendering::DECORATION_STYLE_DOUBLE, 
+  nsCSSRendering::DECORATION_STYLE_WAVY    
+};
+
 void
 nsTextPaintStyle::InitSelectionStyle(PRInt32 aIndex)
 {
@@ -3537,9 +3546,9 @@ nsTextPaintStyle::GetSelectionUnderline(nsPresContext* aPresContext,
 
   look->GetColor(styleID.mLine, color);
   look->GetMetric(styleID.mLineStyle, style);
-  if (style > NS_STYLE_TEXT_DECORATION_STYLE_MAX) {
+  if (!NS_IS_VALID_UNDERLINE_STYLE(style)) {
     NS_ERROR("Invalid underline style value is specified");
-    style = NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
+    style = NS_UNDERLINE_STYLE_SOLID;
   }
   look->GetMetric(styleID.mLineRelativeSize, size);
 
@@ -3549,9 +3558,9 @@ nsTextPaintStyle::GetSelectionUnderline(nsPresContext* aPresContext,
     *aLineColor = color;
   }
   *aRelativeSize = size;
-  *aStyle = style;
+  *aStyle = sUnderlineStyles[style];
 
-  return style != NS_STYLE_TEXT_DECORATION_STYLE_NONE &&
+  return sUnderlineStyles[style] != nsCSSRendering::DECORATION_STYLE_NONE &&
          color != NS_TRANSPARENT &&
          size > 0.0f;
 }
@@ -4261,15 +4270,13 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
       
       
       useOverride = PR_TRUE;
-      overrideColor = context->GetVisitedDependentColor(
-                                 eCSSProperty_text_decoration_color);
+      overrideColor = context->GetVisitedDependentColor(eCSSProperty_color);
     }
 
     
     PRUint8 useDecorations = decorMask & styleText->mTextDecoration;
     if (useDecorations) {
-      nscolor color = context->GetVisitedDependentColor(
-                                 eCSSProperty_text_decoration_color);
+      nscolor color = context->GetVisitedDependentColor(eCSSProperty_color);
 
       
       
@@ -4282,19 +4289,16 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
       
       if (NS_STYLE_TEXT_DECORATION_UNDERLINE & useDecorations) {
         decorations.mUnderColor = useOverride ? overrideColor : color;
-        decorations.mUnderStyle = styleText->GetDecorationStyle();
         decorMask &= ~NS_STYLE_TEXT_DECORATION_UNDERLINE;
         decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_UNDERLINE;
       }
       if (NS_STYLE_TEXT_DECORATION_OVERLINE & useDecorations) {
         decorations.mOverColor = useOverride ? overrideColor : color;
-        decorations.mOverStyle = styleText->GetDecorationStyle();
         decorMask &= ~NS_STYLE_TEXT_DECORATION_OVERLINE;
         decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_OVERLINE;
       }
       if (NS_STYLE_TEXT_DECORATION_LINE_THROUGH & useDecorations) {
         decorations.mStrikeColor = useOverride ? overrideColor : color;
-        decorations.mStrikeStyle = styleText->GetDecorationStyle();
         decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
         decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_LINE_THROUGH;
       }
@@ -4389,7 +4393,8 @@ nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
     size.height = fontMetrics.underlineSize;
     nsCSSRendering::PaintDecorationLine(
       aCtx, lineColor, pt, size, ascent, fontMetrics.maxAscent,
-      NS_STYLE_TEXT_DECORATION_OVERLINE, decorations.mOverStyle);
+      NS_STYLE_TEXT_DECORATION_OVERLINE,
+      nsCSSRendering::DECORATION_STYLE_SOLID);
   }
   if (decorations.HasUnderline()) {
     lineColor = aOverrideColor ? *aOverrideColor : decorations.mUnderColor;
@@ -4397,7 +4402,8 @@ nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
     gfxFloat offset = aProvider.GetFontGroup()->GetUnderlineOffset();
     nsCSSRendering::PaintDecorationLine(
       aCtx, lineColor, pt, size, ascent, offset,
-      NS_STYLE_TEXT_DECORATION_UNDERLINE, decorations.mUnderStyle);
+      NS_STYLE_TEXT_DECORATION_UNDERLINE,
+      nsCSSRendering::DECORATION_STYLE_SOLID);
   }
   if (decorations.HasStrikeout()) {
     lineColor = aOverrideColor ? *aOverrideColor : decorations.mStrikeColor;
@@ -4405,7 +4411,8 @@ nsTextFrame::PaintTextDecorations(gfxContext* aCtx, const gfxRect& aDirtyRect,
     gfxFloat offset = fontMetrics.strikeoutOffset;
     nsCSSRendering::PaintDecorationLine(
       aCtx, lineColor, pt, size, ascent, offset,
-      NS_STYLE_TEXT_DECORATION_LINE_THROUGH, decorations.mStrikeStyle);
+      NS_STYLE_TEXT_DECORATION_LINE_THROUGH,
+      nsCSSRendering::DECORATION_STYLE_SOLID);
   }
 }
 
@@ -4432,6 +4439,30 @@ static const SelectionType SelectionTypesWithDecorations =
   nsISelectionController::SELECTION_IME_SELECTEDRAWTEXT |
   nsISelectionController::SELECTION_IME_CONVERTEDTEXT |
   nsISelectionController::SELECTION_IME_SELECTEDCONVERTEDTEXT;
+
+static PRUint8
+GetTextDecorationStyle(const nsTextRangeStyle &aRangeStyle)
+{
+  NS_PRECONDITION(aRangeStyle.IsLineStyleDefined(),
+                  "aRangeStyle.mLineStyle have to be defined");
+  switch (aRangeStyle.mLineStyle) {
+    case nsTextRangeStyle::LINESTYLE_NONE:
+      return nsCSSRendering::DECORATION_STYLE_NONE;
+    case nsTextRangeStyle::LINESTYLE_SOLID:
+      return nsCSSRendering::DECORATION_STYLE_SOLID;
+    case nsTextRangeStyle::LINESTYLE_DOTTED:
+      return nsCSSRendering::DECORATION_STYLE_DOTTED;
+    case nsTextRangeStyle::LINESTYLE_DASHED:
+      return nsCSSRendering::DECORATION_STYLE_DASHED;
+    case nsTextRangeStyle::LINESTYLE_DOUBLE:
+      return nsCSSRendering::DECORATION_STYLE_DOUBLE;
+    case nsTextRangeStyle::LINESTYLE_WAVY:
+      return nsCSSRendering::DECORATION_STYLE_WAVY;
+    default:
+      NS_WARNING("Requested underline style is not valid");
+      return nsCSSRendering::DECORATION_STYLE_SOLID;
+  }
+}
 
 static gfxFloat
 ComputeSelectionUnderlineHeight(nsPresContext* aPresContext,
@@ -4518,7 +4549,7 @@ static void DrawSelectionDecorations(gfxContext* aContext, SelectionType aType,
           if (aRangeStyle.mLineStyle == nsTextRangeStyle::LINESTYLE_NONE) {
             return;
           }
-          style = aRangeStyle.mLineStyle;
+          style = GetTextDecorationStyle(aRangeStyle);
           relativeSize = aRangeStyle.mIsBoldLine ? 2.0f : 1.0f;
         } else if (!weDefineSelectionUnderline) {
           
@@ -5327,7 +5358,7 @@ nsTextFrame::CombineSelectionUnderlineRect(nsPresContext* aPresContext,
             rangeStyle.mLineStyle == nsTextRangeStyle::LINESTYLE_NONE) {
           continue;
         }
-        style = rangeStyle.mLineStyle;
+        style = GetTextDecorationStyle(rangeStyle);
         relativeSize = rangeStyle.mIsBoldLine ? 2.0f : 1.0f;
       } else if (!nsTextPaintStyle::GetSelectionUnderline(aPresContext, index,
                                                           nsnull, &relativeSize,
@@ -6042,7 +6073,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsIRenderingContext *aRenderingContext,
   PRBool hyphenating = frag->GetLength() > 0 &&
     (mTextRun->GetFlags() & gfxTextRunFactory::TEXT_ENABLE_HYPHEN_BREAKS) != 0;
   if (hyphenating) {
-    len = frag->GetLength() - iter.GetOriginalOffset();
+    len = GetInFlowContentLength() - iter.GetOriginalOffset();
 #ifdef DEBUG
     
     
