@@ -4659,7 +4659,9 @@ MJitDataStats(JSContext *cx, uintN argc, jsval *vp)
 JSBool
 StringStats(JSContext *cx, uintN argc, jsval *vp)
 {
-    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(cx->runtime->stringMemoryUsed));
+    
+    
+    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(0));
     return true;
 }
 
