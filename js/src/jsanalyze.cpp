@@ -581,10 +581,14 @@ Script::analyze(JSContext *cx, JSScript *script)
           case JSOP_SETLOCAL:
           case JSOP_FORLOCAL: {
             uint32 local = GET_SLOTNO(pc);
-            JS_ASSERT_IF(local < nfixed &&
-                         locals[local] != LOCAL_CONDITIONALLY_DEFINED &&
-                         locals[local] != LOCAL_USE_BEFORE_DEF,
-                         locals[local] <= offset);
+
+            
+
+
+
+
+
+
             if (local < nfixed && locals[local] == LOCAL_CONDITIONALLY_DEFINED) {
                 if (forwardJump) {
                     
