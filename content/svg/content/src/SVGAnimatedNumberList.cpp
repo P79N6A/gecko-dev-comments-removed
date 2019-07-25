@@ -43,7 +43,7 @@
 #include "SVGNumberListSMILType.h"
 #endif 
 
-using namespace mozilla;
+namespace mozilla {
 
 nsresult
 SVGAnimatedNumberList::SetBaseValueString(const nsAString& aValue)
@@ -214,3 +214,5 @@ SVGAnimatedNumberList::SMILAnimatedNumberList::ClearAnimValue()
   }
 }
 #endif 
+
+} 

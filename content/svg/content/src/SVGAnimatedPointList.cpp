@@ -45,7 +45,7 @@
 
 
 
-using namespace mozilla;
+namespace mozilla {
 
 nsresult
 SVGAnimatedPointList::SetBaseValueString(const nsAString& aValue)
@@ -241,3 +241,4 @@ SVGAnimatedPointList::SMILAnimatedPointList::ClearAnimValue()
 }
 #endif 
 
+} 

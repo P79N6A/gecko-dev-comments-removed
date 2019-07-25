@@ -56,7 +56,7 @@
 
 
 
-using namespace mozilla;
+namespace mozilla {
 
  SVGNumberListSMILType SVGNumberListSMILType::sSingleton;
 
@@ -240,3 +240,5 @@ SVGNumberListSMILType::Interpolate(const nsSMILValue& aStartVal,
   }
   return NS_OK;
 }
+
+} 

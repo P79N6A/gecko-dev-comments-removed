@@ -45,7 +45,7 @@
 
 
 
-using namespace mozilla;
+namespace mozilla {
 
 nsresult
 SVGAnimatedPathSegList::SetBaseValueString(const nsAString& aValue)
@@ -238,3 +238,4 @@ SVGAnimatedPathSegList::SMILAnimatedPathSegList::ClearAnimValue()
 }
 #endif 
 
+} 

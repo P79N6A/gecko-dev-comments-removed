@@ -39,7 +39,7 @@
 #include "SVGPathData.h"
 #include <math.h>
 
-using namespace mozilla;
+namespace mozilla {
 
  SVGPathSegListSMILType SVGPathSegListSMILType::sSingleton;
 
@@ -469,3 +469,5 @@ SVGPathSegListSMILType::Interpolate(const nsSMILValue& aStartVal,
 
   return NS_OK;
 }
+
+} 
