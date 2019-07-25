@@ -98,7 +98,12 @@ public:
     return nsGkAtoms::d;
   }
 
-  gfxFloat GetScale();
+  
+
+
+
+
+  gfxFloat GetPathLengthScale();
 
 protected:
 

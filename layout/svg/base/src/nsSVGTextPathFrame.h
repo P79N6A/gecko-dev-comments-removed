@@ -84,8 +84,20 @@ public:
   already_AddRefed<gfxFlattenedPath> GetFlattenedPath();
   nsIFrame *GetPathFrame();
 
+  
+
+
+
+
+  gfxFloat GetOffsetScale();
+
+  
+
+
+
+
   gfxFloat GetStartOffset();
-  gfxFloat GetPathScale();
+
 protected:
 
   virtual void GetXY(SVGUserUnitList *aX, SVGUserUnitList *aY);
