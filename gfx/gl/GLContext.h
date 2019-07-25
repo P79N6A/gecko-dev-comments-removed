@@ -1384,12 +1384,17 @@ public:
 
 
 
+
+
+
+
     ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
                                              const nsIntRegion& aDstRegion,
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
                                              const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
-                                             bool aPixelBuffer = false);
+                                             bool aPixelBuffer = false,
+                                             GLenum aTextureUnit = LOCAL_GL_TEXTURE0);
 
     
     void TexImage2D(GLenum target, GLint level, GLint internalformat, 
