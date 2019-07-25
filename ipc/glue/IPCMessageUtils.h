@@ -96,6 +96,37 @@ struct null_t {
 
 namespace IPC {
 
+
+
+
+
+
+
+
+template <typename E, E lowBound, E highBound>
+struct EnumSerializer {
+  typedef E paramType;
+
+  static bool IsLegalValue(const paramType &aValue) {
+    return lowBound <= aValue && aValue < highBound;
+  }
+
+  static void Write(Message* aMsg, const paramType& aValue) {
+    MOZ_ASSERT(IsLegalValue(aValue));
+    WriteParam(aMsg, (int32)aValue);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
+    int32 value;
+    if(!ReadParam(aMsg, aIter, &value) ||
+       !IsLegalValue(paramType(value))) {
+      return false;
+    }
+    *aResult = paramType(value);
+    return true;
+  }
+};
+
 template<>
 struct ParamTraits<PRInt8>
 {
