@@ -64,8 +64,12 @@ class CGNativePropertyHooks(CGThing):
         CGThing.__init__(self)
         self.descriptor = descriptor
     def declare(self):
+        if self.descriptor.workers:
+            return ""
         return "  extern const NativePropertyHooks NativeHooks;\n"
     def define(self):
+        if self.descriptor.workers:
+            return ""
         parent = self.descriptor.interface.parent
         parentHooks = ("&" + toBindingNamespace(parent.identifier.name) + "::NativeHooks"
                        if parent else 'NULL')
@@ -92,6 +96,7 @@ class CGDOMJSClass(CGThing):
         while len(protoList) < self.descriptor.config.maxProtoChainLength:
             protoList.append('prototypes::id::_ID_Count')
         prototypeChainString = ', '.join(protoList)
+        nativeHooks = "NULL" if self.descriptor.workers else "&NativeHooks"
         return """
 DOMJSClass Class = {
   { "%s",
@@ -113,12 +118,13 @@ DOMJSClass Class = {
   },
   { %s },
   -1, %s, DOM_OBJECT_SLOT,
-  &NativeHooks
+  %s
 };
 """ % (self.descriptor.interface.identifier.name,
        ADDPROPERTY_HOOK_NAME if self.descriptor.concrete and not self.descriptor.workers else 'JS_PropertyStub',
        FINALIZE_HOOK_NAME, traceHook, prototypeChainString,
-       str(self.descriptor.nativeIsISupports).lower())
+       str(self.descriptor.nativeIsISupports).lower(),
+       nativeHooks)
 
 class CGPrototypeJSClass(CGThing):
     def __init__(self, descriptor):
@@ -661,10 +667,8 @@ class PropertyDefiner:
         
         
         return ((self.name is "Methods" or self.name is "Attributes") and
-                
-                
-                
-                (self.descriptor.workers or chrome == self.hasChromeOnly()))
+                chrome == self.hasChromeOnly() and
+                not self.descriptor.workers)
 
     def __str__(self):
         
@@ -944,17 +948,16 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         assert needInterfaceObject or needInterfacePrototypeObject
 
         idsToInit = []
-        for var in self.properties.xrayRelevantArrayNames():
-            props = getattr(self.properties, var)
-            
-            
-            
-            
-            if (props.hasNonChromeOnly() and
-                (self.descriptor.workers or not props.hasChromeOnly())):
-                idsToInit.append(props.variableName(False))
-            if props.hasChromeOnly() and not self.descriptor.workers:
-                idsToInit.append(props.variableName(True))
+        
+        
+        if not self.descriptor.workers:
+            for var in self.properties.xrayRelevantArrayNames():
+                props = getattr(self.properties, var)
+                
+                if props.hasChromeOnly():
+                    idsToInit.append(props.variableName(True))
+                elif props.hasNonChromeOnly():
+                    idsToInit.append(props.variableName(False))
         if len(idsToInit) > 0:
             initIds = CGList(
                 [CGGeneric("!InitIds(aCx, %s, %s_ids)" % (varname, varname)) for
@@ -3171,7 +3174,11 @@ class CGDescriptor(CGThing):
         else:
             cgThings.append(CGIndenter(CGGetConstructorObjectMethod(descriptor)))
 
-        if descriptor.concrete or descriptor.interface.hasInterfacePrototypeObject():
+        
+        
+        if ((descriptor.concrete or
+             descriptor.interface.hasInterfacePrototypeObject()) and
+            not descriptor.workers):
             cgThings.append(CGResolveProperty(descriptor, properties))
             cgThings.append(CGEnumerateProperties(descriptor, properties))
 
