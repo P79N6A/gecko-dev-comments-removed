@@ -586,10 +586,7 @@ public:
   nsresult CountEditableChildren(nsIDOMNode *aNode, PRUint32 &outCount);
   
   
-  nsresult GetFirstEditableNode(nsIDOMNode *aRoot, nsCOMPtr<nsIDOMNode> *outFirstNode);
-#ifdef XXX_DEAD_CODE
-  nsresult GetLastEditableNode(nsIDOMNode *aRoot, nsCOMPtr<nsIDOMNode> *outLastNode);
-#endif
+  nsINode* GetFirstEditableNode(nsINode* aRoot);
 
   nsresult GetIMEBufferLength(PRInt32* length);
   bool     IsIMEComposing();    
