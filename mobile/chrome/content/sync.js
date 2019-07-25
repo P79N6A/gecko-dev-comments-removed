@@ -99,6 +99,15 @@ let WeaveGlue = {
       return;
 
     
+    let nls = Cc["@mozilla.org/network/network-link-service;1"].getService(Ci.nsINetworkLinkService);
+    if (!nls.isLinkUp) {
+      Services.prompt.alert(window,
+                             this._bundle.GetStringFromName("sync.setup.error.title"),
+                             this._bundle.GetStringFromName("sync.setup.error.network"));
+      return;
+    }
+
+    
     this.abortEasySetup();
 
     
@@ -130,13 +139,33 @@ let WeaveGlue = {
           return;
 
         
-        if (aError == Weave.JPAKE_ERROR_CHANNEL) {
-          self.openManual();
-          return;
-        }
+        let brandShortName = Strings.brand.GetStringFromName("brandShortName");
+        let tryAgain = self._bundle.GetStringFromName("sync.setup.tryagain");
+        let manualSetup = self._bundle.GetStringFromName("sync.setup.manual");
+        let buttonFlags = Ci.nsIPrompt.BUTTON_POS_1_DEFAULT +
+                         (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
+                         (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1) +
+                         (Ci.nsIPrompt.BUTTON_TITLE_CANCEL    * Ci.nsIPrompt.BUTTON_POS_2);
 
-        
-        self.open();
+        let button = Services.prompt.confirmEx(window,
+                               self._bundle.GetStringFromName("sync.setup.error.title"),
+                               self._bundle.formatStringFromName("sync.setup.error.nodata", [brandShortName], 1),
+                               buttonFlags, tryAgain, manualSetup, null, "", {});
+        switch (button) {
+          case 0:
+            
+            container.hidden = true;
+            self.open();
+            break;
+          case 1:
+            self.openManual();
+            break;
+          case 2:
+          default:
+            self.abortEasySetup();
+            self.close();
+            break;
+        }
       }
     });
     this.jpake.receiveNoPIN();
