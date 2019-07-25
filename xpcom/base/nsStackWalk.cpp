@@ -1031,7 +1031,7 @@ NS_DescribeCodeAddress(void *aPC, nsCodeAddressDetails *aDetails)
         
         
 
-        DWORD addr = (DWORD)aPC;
+        DWORD_PTR addr = (DWORD_PTR)aPC;
         IMAGEHLP_MODULE modInfo;
         IMAGEHLP_LINE lineInfo;
         BOOL modInfoRes;
