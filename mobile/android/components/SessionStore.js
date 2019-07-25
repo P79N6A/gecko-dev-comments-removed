@@ -34,6 +34,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -457,7 +458,7 @@ SessionStore.prototype = {
     if (aBrowser.__SS_restore) {
       let data = aBrowser.__SS_data;
       if (data.entries.length > 0)
-        aBrowser.loadURI(data.entries[data.index - 1].url);
+        this._restoreHistory(data, aBrowser.sessionHistory);
 
       delete aBrowser.__SS_restore;
     }
@@ -977,21 +978,22 @@ SessionStore.prototype = {
 
         for (let i=0; i<tabs.length; i++) {
           let tabData = tabs[i];
-          let isSelected = (i + 1 <= selected) && aBringToFront;
+          let isSelected = (i + 1 == selected) && aBringToFront;
           let entry = tabData.entries[tabData.index - 1];
 
           
-          let params = { selected: isSelected, delayLoad: !isSelected, title: entry.title };
+          let params = { selected: isSelected, delayLoad: true, title: entry.title };
           let tab = window.BrowserApp.addTab(entry.url, params);
 
-          if (!isSelected) {
+          if (isSelected) {
+            self._restoreHistory(tabData, tab.browser.sessionHistory);
+          } else {
             
             tab.browser.__SS_data = tabData;
             tab.browser.__SS_restore = true;
           }
 
           tab.browser.__SS_extdata = tabData.extData;
-          self._restoreHistory(tabData, tab.browser.sessionHistory);
         }
 
         notifyObservers();
