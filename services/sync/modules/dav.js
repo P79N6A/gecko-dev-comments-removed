@@ -125,8 +125,6 @@ DAVCollection.prototype = {
     else
       path = path.slice(1); 
     
-    dump("DefaultPrefix is " + this._defaultPrefix + "\n");
-    dump(" In _makeRequest, after fixing the path, it is " + path +"\n");
 
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
 
