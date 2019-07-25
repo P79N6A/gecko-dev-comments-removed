@@ -76,7 +76,7 @@ extern bool stack_key_initialized;
 #warning Please add support for your architecture in chromium_types.h
 #endif
 
-#define PROFILE_DEFAULT_ENTRY 100000
+#define PROFILE_DEFAULT_ENTRY 1000000
 #ifdef ANDROID
 
 
