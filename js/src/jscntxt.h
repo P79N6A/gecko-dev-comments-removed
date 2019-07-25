@@ -451,8 +451,43 @@ struct JSRuntime {
     bool                gcRunning;
     bool                gcRegenShapes;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef JS_GC_ZEAL
-    jsrefcount          gcZeal;
+    int                 gcZeal_;
+    int                 gcZealFrequency;
+    int                 gcNextScheduled;
+    bool                gcDebugCompartmentGC;
+
+    int gcZeal() { return gcZeal_; }
+
+    bool needZealousGC() {
+        if (gcNextScheduled > 0 && --gcNextScheduled == 0) {
+            if (gcZeal() >= 2)
+                gcNextScheduled = gcZealFrequency;
+            return true;
+        }
+        return false;
+    }
+#else
+    int gcZeal() { return 0; }
+    bool needZealousGC() { return false; }
 #endif
 
     JSGCCallback        gcCallback;

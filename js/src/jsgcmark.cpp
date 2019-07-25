@@ -107,7 +107,7 @@ Mark(JSTracer *trc, T *thing)
     JS_ASSERT(trc->debugPrinter || trc->debugPrintArg);
 
     JS_ASSERT(!JSAtom::isStatic(thing));
-    JS_ASSERT(thing->asFreeCell()->isAligned());
+    JS_ASSERT(thing->isAligned());
 
     JSRuntime *rt = trc->context->runtime;
     JS_ASSERT(thing->arenaHeader()->compartment);
