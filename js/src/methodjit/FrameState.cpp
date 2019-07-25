@@ -272,17 +272,16 @@ FrameState::assertValidRegisterState() const
 {
     Registers checkedFreeRegs;
 
-    FrameEntry *tos = tosFe();
     for (uint32 i = 0; i < tracker.nentries; i++) {
         FrameEntry *fe = tracker[i];
-        if (fe >= tos)
+        if (fe >= sp)
             continue;
 
         JS_ASSERT(i == fe->trackerIndex());
         JS_ASSERT_IF(fe->isCopy(),
                      fe->trackerIndex() > fe->copyOf()->trackerIndex());
         JS_ASSERT_IF(fe->isCopy(), !fe->type.inRegister() && !fe->data.inRegister());
-        JS_ASSERT_IF(fe->isCopy(), fe->copyOf() < tos);
+        JS_ASSERT_IF(fe->isCopy(), fe->copyOf() < sp);
         JS_ASSERT_IF(fe->isCopy(), fe->copyOf()->isCopied());
 
         if (fe->isCopy())
@@ -314,10 +313,9 @@ FrameState::syncFancy(Assembler &masm, Registers avail, uint32 resumeAt,
     
     reifier.reset(&masm, avail, tracker.nentries, bottom);
 
-    FrameEntry *tos = tosFe();
     for (uint32 i = resumeAt; i < tracker.nentries; i--) {
         FrameEntry *fe = tracker[i];
-        if (fe >= tos)
+        if (fe >= sp)
             continue;
 
         reifier.sync(fe);
@@ -334,15 +332,14 @@ FrameState::sync(Assembler &masm, Uses uses) const
     Registers avail(freeRegs);
     Registers temp(Registers::TempRegs);
 
-    FrameEntry *tos = tosFe();
-    FrameEntry *bottom = tos - uses.nuses;
+    FrameEntry *bottom = sp - uses.nuses;
 
     if (inTryBlock)
         bottom = NULL;
 
     for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
         FrameEntry *fe = tracker[i];
-        if (fe >= tos)
+        if (fe >= sp)
             continue;
 
         Address address = addressOf(fe);
@@ -397,15 +394,14 @@ void
 FrameState::syncAndKill(Registers kill, Uses uses)
 {
     
-    FrameEntry *tos = tosFe();
-    FrameEntry *bottom = tos - uses.nuses;
+    FrameEntry *bottom = sp - uses.nuses;
 
     if (inTryBlock)
         bottom = NULL;
 
     for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
         FrameEntry *fe = tracker[i];
-        if (fe >= tos)
+        if (fe >= sp)
             continue;
 
         Address address = addressOf(fe);
@@ -454,12 +450,11 @@ FrameState::syncAndKill(Registers kill, Uses uses)
 void
 FrameState::merge(Assembler &masm, Changes changes) const
 {
-    FrameEntry *tos = tosFe();
     Registers temp(Registers::TempRegs);
 
     for (uint32 i = 0; i < tracker.nentries; i++) {
         FrameEntry *fe = tracker[i];
-        if (fe >= tos)
+        if (fe >= sp)
             continue;
 
         
@@ -784,12 +779,11 @@ FrameState::uncopy(FrameEntry *original)
 
 
     uint32 firstCopy = InvalidIndex;
-    FrameEntry *tos = tosFe();
     FrameEntry *bestFe = NULL;
     uint32 ncopies = 0;
     for (uint32 i = 0; i < tracker.nentries; i++) {
         FrameEntry *fe = tracker[i];
-        if (fe >= tos)
+        if (fe >= sp)
             continue;
         if (fe->isCopy() && fe->copyOf() == original) {
             if (firstCopy == InvalidIndex) {
@@ -818,7 +812,7 @@ FrameState::uncopy(FrameEntry *original)
         bestFe->setCopied();
         for (uint32 i = firstCopy; i < tracker.nentries; i++) {
             FrameEntry *other = tracker[i];
-            if (other >= tos || other == bestFe)
+            if (other >= sp || other == bestFe)
                 continue;
 
             
@@ -971,10 +965,9 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
 
 
 
-        FrameEntry *tos = tosFe();
         for (uint32 i = backing->trackerIndex() + 1; i < tracker.nentries; i++) {
             FrameEntry *fe = tracker[i];
-            if (fe >= tos)
+            if (fe >= sp)
                 continue;
             if (fe->isCopy() && fe->copyOf() == backing)
                 fe->setCopyOf(localFe);
