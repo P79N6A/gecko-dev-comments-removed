@@ -238,6 +238,9 @@ TelemetryPing.prototype = {
         val = Math.floor(mr.amount / 1024);
       }
       else if (mr.units == Ci.nsIMemoryReporter.UNITS_COUNT) {
+        val = mr.amount;
+      }
+      else if (mr.units == Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE) {
         
         
 
