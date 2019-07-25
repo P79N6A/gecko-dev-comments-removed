@@ -163,7 +163,15 @@ struct JSFunction : public JSObject_Slots2
         return flags & JSFUN_JOINABLE;
     }
 
+    
+
+
+
+
     inline JSObject *callScope() const;
+    inline void setCallScope(JSObject *obj);
+
+    static inline size_t offsetOfCallScope() { return offsetof(JSFunction, u.i.scope); }
 
     
 

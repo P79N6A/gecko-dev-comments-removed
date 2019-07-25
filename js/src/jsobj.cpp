@@ -1039,20 +1039,9 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, StackFrame *caller, uintN st
 
 
 
-
-                    JSObjectArray *objarray = script->objects();
-                    int i = 1;
-
-                    if (objarray->length == 1) {
-                        if (JSScript::isValidOffset(script->regexpsOffset)) {
-                            objarray = script->regexps();
-                            i = 0;
-                        } else {
-                            i = -1;
-                        }
-                    }
-                    if (i < 0 ||
-                        objarray->vector[i]->getParent() == &scopeobj) {
+                    JS_ASSERT(script->objects()->length >= 1);
+                    if (script->objects()->length == 1 &&
+                        !JSScript::isValidOffset(script->regexpsOffset)) {
                         JS_ASSERT(staticLevel == script->staticLevel);
                         *scriptp = script->u.evalHashLink;
                         script->u.evalHashLink = NULL;
