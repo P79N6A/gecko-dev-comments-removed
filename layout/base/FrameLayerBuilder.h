@@ -317,6 +317,11 @@ public:
     
     void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext);
 
+    
+    
+    
+    nsRect ApproximateIntersect(const nsRect& aRect) const;
+
     bool operator==(const Clip& aOther) const {
       return mHaveClipRect == aOther.mHaveClipRect &&
              (!mHaveClipRect || mClipRect == aOther.mClipRect) &&

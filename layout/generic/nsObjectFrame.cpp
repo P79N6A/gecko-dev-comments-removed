@@ -1290,13 +1290,14 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   return nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion);
 }
 
-PRBool
-nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder,
-                          PRBool* aForceTransparentSurface)
+nsRegion
+nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
+                                 PRBool* aForceTransparentSurface)
 {
   if (aForceTransparentSurface) {
     *aForceTransparentSurface = PR_FALSE;
   }
+  nsRegion result;
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
   if (!aBuilder->IsForPluginGeometry()) {
     nsIWidget* widget = f->GetWidget();
@@ -1310,11 +1311,14 @@ nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder,
         
         
         
-    	return PR_FALSE;
+    	return result;
       }
     }
   }
-  return f->IsOpaque();
+  if (f->IsOpaque()) {
+    result = GetBounds(aBuilder);
+  }
+  return result;
 }
 
 void
