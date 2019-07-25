@@ -65,13 +65,7 @@ public:
   virtual ~nsPrefService();
 
   nsresult Init();
-
-  
-
-
-
-
-  static bool CheckAndLogBackgroundThreadUse();
+                           
 protected:
   nsresult NotifyServiceObservers(const char *aSubject);
   nsresult UseDefaultPrefFile();
