@@ -45,9 +45,9 @@
 
 
 #ifdef __ATK_H__
-typedef void (*AtkSocketEmbedType) (AtkSocket*, gchar*);
+extern "C" typedef void (*AtkSocketEmbedType) (AtkSocket*, gchar*);
 #else
-typedef void (*AtkSocketEmbedType) (void*, void*);
+extern "C" typedef void (*AtkSocketEmbedType) (void*, void*);
 #endif
 
 
