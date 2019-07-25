@@ -2283,6 +2283,22 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   nsRefPtr<ContainerLayer> containerLayer;
   if (aManager == mRetainingManager) {
     Layer* oldLayer = GetOldLayerFor(aContainerFrame, containerDisplayItemKey);
+
+    
+    
+    
+    
+    if (!oldLayer && aContainerItem) {
+      nsAutoTArray<nsIFrame*,4> mergedFrames;
+      aContainerItem->GetMergedFrames(&mergedFrames);
+      for (uint32_t i = 0; i < mergedFrames.Length(); ++i) {
+        oldLayer = GetOldLayerFor(mergedFrames[i], containerDisplayItemKey);
+        if (oldLayer) {
+          break;
+        }
+      }
+    }
+
     if (oldLayer) {
       NS_ASSERTION(oldLayer->Manager() == aManager, "Wrong manager");
       if (oldLayer->HasUserData(&gThebesDisplayItemLayerUserData)) {
@@ -2376,6 +2392,13 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
         nsIFrame* mergedFrame = mergedFrames[i];
         DisplayItemDataEntry* entry = mNewDisplayItemData.PutEntry(mergedFrame);
         if (entry) {
+          
+          
+          
+          entry->mData.AppendElement(
+              DisplayItemData(containerLayer, containerDisplayItemKey,
+                              LAYER_ACTIVE, mContainerLayerGeneration));
+
           
           
           entry->mIsSharingContainerLayer = true;
