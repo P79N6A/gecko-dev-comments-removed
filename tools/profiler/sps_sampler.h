@@ -277,6 +277,25 @@ inline void mozilla_sampler_call_exit(void *aHandle)
   stack->pop();
 }
 
+inline void mozilla_sampler_call_exit_no_handle()
+{
+  
+  
+  if (!stack_key_initialized)
+    return;
+
+  ProfileStack *stack = tlsStack.get();
+  
+  
+  
+  
+  if (!stack) {
+    return;
+  }
+
+  stack->pop();
+}
+
 inline void mozilla_sampler_add_marker(const char *aMarker)
 {
   ProfileStack *stack = tlsStack.get();
