@@ -69,9 +69,9 @@ let WeaveGlue = {
   },
 
   abortEasySetup: function abortEasySetup() {
-    document.getElementById("syncsetup-code1").value = "";
-    document.getElementById("syncsetup-code2").value = "";
-    document.getElementById("syncsetup-code3").value = "";
+    document.getElementById("syncsetup-code1").value = "....";
+    document.getElementById("syncsetup-code2").value = "....";
+    document.getElementById("syncsetup-code3").value = "....";
     if (!this.jpake)
       return;
 
@@ -80,6 +80,9 @@ let WeaveGlue = {
   },
 
   open: function open() {
+    
+    this.abortEasySetup();
+    
     
     document.getElementById("syncsetup-container").hidden = false;
     document.getElementById("syncsetup-jpake").hidden = false;
