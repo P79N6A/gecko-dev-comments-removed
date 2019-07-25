@@ -1644,7 +1644,6 @@ PR_IMPLEMENT(PRStatus) PR_SetCurrentThreadName(const char *name)
 
 
 
-
 #if defined(DARWIN)
     int (*dynamic_pthread_setname_np)(const char*);
 #else
@@ -1656,6 +1655,12 @@ PR_IMPLEMENT(PRStatus) PR_SetCurrentThreadName(const char *name)
     if (!dynamic_pthread_setname_np)
         return PR_SUCCESS;
 
+    
+
+
+
+
+
 #define SETNAME_LENGTH_CONSTRAINT 15
 #define SETNAME_FRAGMENT1_LENGTH (SETNAME_LENGTH_CONSTRAINT >> 1)
 #define SETNAME_FRAGMENT2_LENGTH \
@@ -1664,10 +1669,10 @@ PR_IMPLEMENT(PRStatus) PR_SetCurrentThreadName(const char *name)
     if (nameLen > SETNAME_LENGTH_CONSTRAINT) {
         memcpy(name_dup, name, SETNAME_FRAGMENT1_LENGTH);
         name_dup[SETNAME_FRAGMENT1_LENGTH] = '~';
+        
         memcpy(name_dup + SETNAME_FRAGMENT1_LENGTH + 1,
                name + nameLen - SETNAME_FRAGMENT2_LENGTH,
-               SETNAME_FRAGMENT2_LENGTH);
-        name_dup[SETNAME_LENGTH_CONSTRAINT] = '\0';
+               SETNAME_FRAGMENT2_LENGTH + 1);
         name = name_dup;
     }
 
