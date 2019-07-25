@@ -44,7 +44,24 @@
 #include "nsSMILParserUtils.h"
 #include "nsISMILAnimationElement.h"
 #include "nsContentUtils.h"
+#include "nsIEventListenerManager.h"
+#include "nsIDOMEventGroup.h"
+#include "nsGUIEvent.h"
 #include "nsString.h"
+
+
+
+
+NS_IMPL_ISUPPORTS1(nsSMILTimeValueSpec::EventListener, nsIDOMEventListener)
+
+NS_IMETHODIMP
+nsSMILTimeValueSpec::EventListener::HandleEvent(nsIDOMEvent* aEvent)
+{
+  if (mSpec) {
+    mSpec->HandleEvent(aEvent);
+  }
+  return NS_OK;
+}
 
 
 
@@ -60,7 +77,7 @@ nsSMILTimeValueSpec::nsSMILTimeValueSpec(nsSMILTimedElement& aOwner,
                                          PRBool aIsBegin)
   : mOwner(&aOwner),
     mIsBegin(aIsBegin),
-    mTimebase(this)
+    mReferencedElement(this)
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -69,7 +86,11 @@ nsSMILTimeValueSpec::nsSMILTimeValueSpec(nsSMILTimedElement& aOwner,
 
 nsSMILTimeValueSpec::~nsSMILTimeValueSpec()
 {
-  UnregisterFromTimebase(GetTimebaseElement());
+  UnregisterFromReferencedElement(mReferencedElement.get());
+  if (mEventListener) {
+    mEventListener->Disconnect();
+    mEventListener = nsnull;
+  }
 }
 
 nsresult
@@ -91,11 +112,7 @@ nsSMILTimeValueSpec::SetSpec(const nsAString& aStringSpec,
   
   if (mParams.mType == nsSMILTimeValueSpecParams::OFFSET ||
       (!mIsBegin && mParams.mType == nsSMILTimeValueSpecParams::INDEFINITE)) {
-    nsRefPtr<nsSMILInstanceTime> instance =
-      new nsSMILInstanceTime(mParams.mOffset);
-    if (!instance)
-      return NS_ERROR_OUT_OF_MEMORY;
-    mOwner->AddInstanceTime(instance, mIsBegin);
+    mOwner->AddInstanceTime(new nsSMILInstanceTime(mParams.mOffset), mIsBegin);
   }
 
   ResolveReferences(aContextNode);
@@ -106,7 +123,8 @@ nsSMILTimeValueSpec::SetSpec(const nsAString& aStringSpec,
 void
 nsSMILTimeValueSpec::ResolveReferences(nsIContent* aContextNode)
 {
-  if (mParams.mType != nsSMILTimeValueSpecParams::SYNCBASE)
+  if (mParams.mType != nsSMILTimeValueSpecParams::SYNCBASE &&
+      mParams.mType != nsSMILTimeValueSpecParams::EVENT)
     return;
 
   NS_ABORT_IF_FALSE(aContextNode,
@@ -119,13 +137,23 @@ nsSMILTimeValueSpec::ResolveReferences(nsIContent* aContextNode)
 
   
   
-  nsRefPtr<nsIContent> oldTimebaseContent = mTimebase.get();
+  
+  nsRefPtr<nsIContent> oldReferencedContent = mReferencedElement.get();
 
-  NS_ABORT_IF_FALSE(mParams.mDependentElemID, "NULL syncbase element id");
+  
+  NS_ABORT_IF_FALSE(mParams.mDependentElemID, "NULL dependent element id");
   nsString idStr;
   mParams.mDependentElemID->ToString(idStr);
-  mTimebase.ResetWithID(aContextNode, idStr);
-  UpdateTimebase(oldTimebaseContent, mTimebase.get());
+  mReferencedElement.ResetWithID(aContextNode, idStr);
+  UpdateReferencedElement(oldReferencedContent, mReferencedElement.get());
+}
+
+PRBool
+nsSMILTimeValueSpec::IsEventBased() const
+{
+  return mParams.mType == nsSMILTimeValueSpecParams::EVENT ||
+         mParams.mType == nsSMILTimeValueSpecParams::REPEAT ||
+         mParams.mType == nsSMILTimeValueSpecParams::ACCESSKEY;
 }
 
 void
@@ -146,9 +174,6 @@ nsSMILTimeValueSpec::HandleNewInterval(nsSMILInterval& aInterval,
   nsRefPtr<nsSMILInstanceTime> newInstance =
     new nsSMILInstanceTime(newTime, nsSMILInstanceTime::SOURCE_SYNCBASE, this,
                            &aInterval);
-  if (!newInstance)
-    return;
-
   mOwner->AddInstanceTime(newInstance, mIsBegin);
 }
 
@@ -196,41 +221,52 @@ nsSMILTimeValueSpec::DependsOnBegin() const
 void
 nsSMILTimeValueSpec::Traverse(nsCycleCollectionTraversalCallback* aCallback)
 {
-  mTimebase.Traverse(aCallback);
+  mReferencedElement.Traverse(aCallback);
 }
 
 void
 nsSMILTimeValueSpec::Unlink()
 {
-  UnregisterFromTimebase(GetTimebaseElement());
-  mTimebase.Unlink();
+  UnregisterFromReferencedElement(mReferencedElement.get());
+  mReferencedElement.Unlink();
 }
 
 
 
 
 void
-nsSMILTimeValueSpec::UpdateTimebase(nsIContent* aFrom, nsIContent* aTo)
+nsSMILTimeValueSpec::UpdateReferencedElement(nsIContent* aFrom, nsIContent* aTo)
 {
   if (aFrom == aTo)
     return;
 
-  UnregisterFromTimebase(GetTimedElementFromContent(aFrom));
+  UnregisterFromReferencedElement(aFrom);
 
-  nsSMILTimedElement* to = GetTimedElementFromContent(aTo);
-  if (to) {
-    to->AddDependent(*this);
+  if (mParams.mType == nsSMILTimeValueSpecParams::SYNCBASE) {
+    nsSMILTimedElement* to = GetTimedElementFromContent(aTo);
+    if (to) {
+      to->AddDependent(*this);
+    }
+  } else if (mParams.mType == nsSMILTimeValueSpecParams::EVENT) {
+    RegisterEventListener(aTo);
   }
 }
 
 void
-nsSMILTimeValueSpec::UnregisterFromTimebase(nsSMILTimedElement* aTimedElement)
+nsSMILTimeValueSpec::UnregisterFromReferencedElement(nsIContent* aContent)
 {
-  if (!aTimedElement)
+  if (!aContent)
     return;
 
-  aTimedElement->RemoveDependent(*this);
-  mOwner->RemoveInstanceTimesForCreator(this, mIsBegin);
+  if (mParams.mType == nsSMILTimeValueSpecParams::SYNCBASE) {
+    nsSMILTimedElement* timedElement = GetTimedElementFromContent(aContent);
+    if (timedElement) {
+      timedElement->RemoveDependent(*this);
+    }
+    mOwner->RemoveInstanceTimesForCreator(this, mIsBegin);
+  } else if (mParams.mType == nsSMILTimeValueSpecParams::EVENT) {
+    UnregisterEventListener(aContent);
+  }
 }
 
 nsSMILTimedElement*
@@ -246,10 +282,93 @@ nsSMILTimeValueSpec::GetTimedElementFromContent(nsIContent* aContent)
   return &animElement->TimedElement();
 }
 
-nsSMILTimedElement*
-nsSMILTimeValueSpec::GetTimebaseElement()
+void
+nsSMILTimeValueSpec::RegisterEventListener(nsIContent* aTarget)
 {
-  return GetTimedElementFromContent(mTimebase.get());
+  NS_ABORT_IF_FALSE(mParams.mType == nsSMILTimeValueSpecParams::EVENT,
+    "Attempting to register event-listener for non-event nsSMILTimeValueSpec");
+  NS_ABORT_IF_FALSE(mParams.mEventSymbol,
+    "Attempting to register event-listener but there is no event name");
+
+  
+  if (!aTarget)
+    return;
+
+  if (!mEventListener) {
+    mEventListener = new EventListener(this);
+  }
+
+  nsCOMPtr<nsIDOMEventGroup> sysGroup;
+  nsIEventListenerManager* elm =
+    GetEventListenerManager(aTarget, getter_AddRefs(sysGroup));
+  if (!elm)
+    return;
+  
+  elm->AddEventListenerByType(mEventListener,
+                              nsDependentAtomString(mParams.mEventSymbol),
+                              NS_EVENT_FLAG_BUBBLE |
+                              NS_PRIV_EVENT_UNTRUSTED_PERMITTED,
+                              sysGroup);
+}
+
+void
+nsSMILTimeValueSpec::UnregisterEventListener(nsIContent* aTarget)
+{
+  if (!aTarget || !mEventListener)
+    return;
+
+  nsCOMPtr<nsIDOMEventGroup> sysGroup;
+  nsIEventListenerManager* elm =
+    GetEventListenerManager(aTarget, getter_AddRefs(sysGroup));
+  if (!elm)
+    return;
+
+  elm->RemoveEventListenerByType(mEventListener,
+                                 nsDependentAtomString(mParams.mEventSymbol),
+                                 NS_EVENT_FLAG_BUBBLE |
+                                 NS_PRIV_EVENT_UNTRUSTED_PERMITTED,
+                                 sysGroup);
+}
+
+nsIEventListenerManager*
+nsSMILTimeValueSpec::GetEventListenerManager(nsIContent* aTarget,
+                                             nsIDOMEventGroup** aSystemGroup)
+{
+  NS_ABORT_IF_FALSE(aTarget, "null target; can't get EventListenerManager");
+  NS_ABORT_IF_FALSE(aSystemGroup && !*aSystemGroup,
+      "Bad out param for system group");
+
+  nsIEventListenerManager* elm = aTarget->GetListenerManager(PR_TRUE);
+  if (!elm)
+    return nsnull;
+
+  aTarget->GetSystemEventGroup(aSystemGroup);
+  if (!*aSystemGroup)
+    return nsnull;
+
+  return elm;
+}
+
+void
+nsSMILTimeValueSpec::HandleEvent(nsIDOMEvent* aEvent)
+{
+  NS_ABORT_IF_FALSE(mEventListener, "Got event without an event listener");
+  NS_ABORT_IF_FALSE(mParams.mType == nsSMILTimeValueSpecParams::EVENT,
+    "Got event for non-event nsSMILTimeValueSpec");
+
+  
+  
+  
+  nsSMILTimeContainer* container = mOwner->GetTimeContainer();
+  if (!container)
+    return;
+
+  nsSMILTime currentTime = container->GetCurrentTime();
+  nsSMILTimeValue newTime(currentTime + mParams.mOffset.GetMillis());
+
+  nsRefPtr<nsSMILInstanceTime> newInstance =
+    new nsSMILInstanceTime(newTime, nsSMILInstanceTime::SOURCE_EVENT);
+  mOwner->AddInstanceTime(newInstance, mIsBegin);
 }
 
 nsSMILTimeValue

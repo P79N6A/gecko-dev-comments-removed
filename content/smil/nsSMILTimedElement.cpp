@@ -186,7 +186,6 @@ nsSMILTimedElement::nsSMILTimedElement()
   mAnimationElement(nsnull),
   mFillMode(FILL_REMOVE),
   mRestartMode(RESTART_ALWAYS),
-  mEndHasEventConditions(PR_FALSE),
   mInstanceSerialIndex(0),
   mClient(nsnull),
   mCurrentInterval(nsnull),
@@ -826,9 +825,6 @@ nsSMILTimedElement::SetEndSpec(const nsAString& aEndSpec,
                                nsIContent* aContextNode,
                                RemovalTestFunction aRemove)
 {
-  
-  
-  
   return SetBeginOrEndSpec(aEndSpec, aContextNode, PR_FALSE ,
                            aRemove);
 }
@@ -1336,17 +1332,6 @@ nsSMILTimedElement::DoPostSeek()
     UpdateCurrentInterval();
   }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   switch (mSeekState)
   {
   case SEEK_FORWARD_FROM_ACTIVE:
@@ -1580,9 +1565,9 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       
       
       
-      PRBool openEndedIntervalOk = mEndHasEventConditions ||
-          mEndSpecs.IsEmpty() ||
-          mEndInstances.IsEmpty();
+      PRBool openEndedIntervalOk = mEndSpecs.IsEmpty() ||
+                                   mEndInstances.IsEmpty() ||
+                                   EndHasEventConditions();
       if (!tempEnd && !openEndedIntervalOk)
         return NS_ERROR_FAILURE; 
 
@@ -1928,8 +1913,6 @@ nsSMILTimedElement::AddInstanceTimeFromCurrentTime(nsSMILTime aCurrentTime,
 
   nsSMILTimeValue timeVal(timeWithOffset);
 
-  
-  
   nsRefPtr<nsSMILInstanceTime> instanceTime =
     new nsSMILInstanceTime(timeVal, nsSMILInstanceTime::SOURCE_DOM);
 
@@ -2104,6 +2087,16 @@ nsSMILTimedElement::GetPreviousInterval() const
   return mOldIntervals.IsEmpty()
     ? nsnull
     : mOldIntervals[mOldIntervals.Length()-1].get();
+}
+
+PRBool
+nsSMILTimedElement::EndHasEventConditions() const
+{
+  for (PRUint32 i = 0; i < mEndSpecs.Length(); ++i) {
+    if (mEndSpecs[i]->IsEventBased())
+      return PR_TRUE;
+  }
+  return PR_FALSE;
 }
 
 
