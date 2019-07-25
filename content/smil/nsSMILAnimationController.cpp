@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsSMILAnimationController.h"
 #include "nsSMILCompositor.h"
 #include "nsSMILCSSProperty.h"
@@ -722,10 +723,10 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   
   
-  
-  
-  nsIAtom* attributeName = aAnimElem->GetTargetAttributeName();
-  if (!attributeName)
+  nsCOMPtr<nsIAtom> attributeName;
+  PRInt32 attributeNamespaceID;
+  if (!aAnimElem->GetTargetAttributeName(&attributeNamespaceID,
+                                         getter_AddRefs(attributeName)))
     
     return PR_FALSE;
 
@@ -735,11 +736,13 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   
   
-  PRBool isCSS;
+  PRBool isCSS = PR_FALSE;
   if (attributeType == eSMILTargetAttrType_auto) {
-    nsCSSProperty prop =
-      nsCSSProps::LookupProperty(nsDependentAtomString(attributeName));
-    isCSS = nsSMILCSSProperty::IsPropertyAnimatable(prop);
+    if (attributeNamespaceID == kNameSpaceID_None) {
+      nsCSSProperty prop =
+        nsCSSProps::LookupProperty(nsDependentAtomString(attributeName));
+      isCSS = nsSMILCSSProperty::IsPropertyAnimatable(prop);
+    }
   } else {
     isCSS = (attributeType == eSMILTargetAttrType_CSS);
   }
@@ -747,6 +750,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   aResult.mElement = targetElem;
   aResult.mAttributeName = attributeName;
+  aResult.mAttributeNamespaceID = attributeNamespaceID;
   aResult.mIsCSS = isCSS;
 
   return PR_TRUE;

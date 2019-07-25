@@ -71,8 +71,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0xdd254504, 0xe273, 0x4923, \
-  { 0x9e, 0xc1, 0xd8, 0x42, 0x1a, 0x66, 0x35, 0xf1 } }
+{ 0x64ef8589, 0xbd19, 0x40f4, \
+  { 0xa9, 0x61, 0x47, 0x89, 0xe0, 0x8d, 0xb0, 0x49 } }
 
 
 
@@ -895,7 +895,7 @@ public:
 
 
 
-  virtual nsISMILAttr* GetAnimatedAttr(nsIAtom* aName) = 0;
+  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName) = 0;
 
    
 
