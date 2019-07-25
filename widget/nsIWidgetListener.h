@@ -41,6 +41,7 @@
 #include "nsIXULWindow.h"
 
 class nsIView;
+class nsIPresShell;
 
 class nsIWidgetListener
 {
@@ -57,6 +58,11 @@ public:
 
 
   virtual nsIView* GetView() { return nullptr; }
+
+  
+
+
+  virtual nsIPresShell* GetPresShell() { return nullptr; }
 
   
 
