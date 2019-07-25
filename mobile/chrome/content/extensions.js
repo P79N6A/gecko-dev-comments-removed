@@ -821,12 +821,11 @@ var ExtensionsView = {
     if (aForceDisplay) {
       
       let toaster = Cc["@mozilla.org/toaster-alerts-service;1"].getService(Ci.nsIAlertsService);
+      let image = "chrome://browser/skin/images/alert-addons-30.png";
       if (this.visible)
-        toaster.showAlertNotification(URI_GENERIC_ICON_XPINSTALL, strings.GetStringFromName("alertAddons"),
-                                      aMessage, false, "", null);
+        toaster.showAlertNotification(image, strings.GetStringFromName("alertAddons"), aMessage, false, "", null);
       else
-        toaster.showAlertNotification(URI_GENERIC_ICON_XPINSTALL, strings.GetStringFromName("alertAddons"),
-                                      aMessage, true, "", observer);
+        toaster.showAlertNotification(image, strings.GetStringFromName("alertAddons"), aMessage, true, "", observer);
     } else {
       
       if (!this.visible) {
