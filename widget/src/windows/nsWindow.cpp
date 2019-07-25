@@ -3168,6 +3168,14 @@ nsWindow::GetLayerManager()
     return nsBaseWidget::GetLayerManager();
   }
 
+  
+
+
+  if (eTransparencyTransparent == mTransparencyMode) {
+    mUseAcceleratedRendering = PR_FALSE;
+    return nsBaseWidget::GetLayerManager();
+  }
+
   if (topWindow->GetAcceleratedRendering() != mUseAcceleratedRendering) {
     mLayerManager = NULL;
     mUseAcceleratedRendering = topWindow->GetAcceleratedRendering();
