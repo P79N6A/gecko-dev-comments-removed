@@ -33,6 +33,23 @@ function test() {
         }
     }
 
+    function checkThrowTODO(fun, type) {
+        var thrown = false;
+        try {
+            fun();
+        } catch (x) {
+            thrown = x;
+        }
+
+        if (!thrown) {
+            print('(TODO) no exception thrown, expected ' + type.name);
+        } else if (!(thrown instanceof type)) {
+            print('(TODO) expected ' + type.name + ', got ' + thrown);
+        } else {
+            print('test unexpectedly passed: expected ' + type.name + ' exception');
+        }
+    }
+
     enterFunc ('test');
     printBugNumber(BUGNUMBER);
     printStatus(summary);
@@ -1541,45 +1558,54 @@ function test() {
     assertEq(view.getUint8(0), 1);
 
     
-    var byteLength = DataView.prototype.byteLength;
-    assertEq(byteLength === undefined || byteLength === 0, true);
-    var byteOffset = DataView.prototype.byteOffset;
-    assertEq(byteOffset === undefined || byteLength === 0, true);
-    var buffer = DataView.prototype.buffer;
-    assertEq(buffer, undefined);
+    assertEq(Object.prototype.toString.apply(Uint8Array(0)), "[object Uint8Array]");
+    assertEq(Object.prototype.toString.apply(Float32Array(0)), "[object Float32Array]");
+    assertEq(Object.prototype.toString.apply(Uint8Array.prototype), "[object Uint8ArrayPrototype]");
+    assertEq(Object.prototype.toString.apply(Float32Array.prototype), "[object Float32ArrayPrototype]");
+    assertEq(Object.prototype.toString.apply(ArrayBuffer()), "[object ArrayBuffer]");
+    assertEq(Object.prototype.toString.apply(DataView(view.buffer)), "[object DataView]");
+    assertEq(Object.prototype.toString.apply(DataView.prototype), "[object DataViewPrototype]");
+
+    
+    checkThrow(function () DataView.prototype.byteLength, TypeError);
+    checkThrow(function () DataView.prototype.byteOffset, TypeError);
+    checkThrow(function () DataView.prototype.buffer, TypeError);
 
     
     var alien = newGlobal('new-compartment');
-
     var alien_data = alien.eval('data = ' + data1.toSource());
     var alien_buffer = alien.eval('buffer = new Uint8Array(data).buffer');
     var alien_view = alien.eval('view = new DataView(buffer, 0, 16)');
 
     
-    function View () {
-    };
-    View.prototype = view1;
-    var o = new View();
-    assertEq(o.getUint8(4), 100);
+    var o = Object.create(view1);
+    checkThrow(function () o.getUint8(4), TypeError); 
+    checkThrow(function () o.buffer, TypeError); 
+    checkThrow(function () o.byteOffset, TypeError);
+    checkThrow(function () o.byteLength, TypeError);
 
     
-    function AlienView () {
-    };
-    AlienView.prototype = alien_view;
-    var av = new AlienView();
-    av.getUint8(4);
-    assertEq(av.getUint8(4), 100);
+    assertEq(alien_view.buffer.byteLength > 0, true);
+    assertEq(alien_view.getUint8(4), 100);
 
     
     
     
     
-    if (false) {
-        
-        function ProtoAlienView () {
-        };
-        var o2 = new ProtoAlienView();
-        assertEq(o2.getUint8(4), 100);
+    
+    
+    
+    
+    var weirdo = Object.create(alien.eval("new Date"));
+    var e = null;
+    try {
+        weirdo.getTime();
+    } catch (exc) {
+        e = exc;
+    }
+    if (!e) {
+        print("==== TODO but PASSED? ====");
+        print("Bug 753996 unexpectedly passed");
     }
 
     
@@ -1587,11 +1613,17 @@ function test() {
     
     
     
+    var av = Object.create(alien_view);
+    checkThrowTODO(function () av.getUint8(4), alien.TypeError);
+    checkThrow(function () av.buffer, alien.TypeError);
+
     
-    function Buffer() {
-    };
-    Buffer.prototype = buffer1;
-    buffer = new Buffer();
+    
+    
+    
+    
+    
+    buffer = Object.create(buffer1);
     checkThrow(function () new DataView(buffer), TypeError);
 
     reportCompare(0, 0, 'done.');
