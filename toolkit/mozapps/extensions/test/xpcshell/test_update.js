@@ -104,28 +104,53 @@ function run_test_1() {
 
     a1.findUpdates({
       onNoCompatibilityUpdateAvailable: function(addon) {
-        do_throw("Should not have seen no compatibility update");
+        do_throw("Should not have seen onNoCompatibilityUpdateAvailable notification");
       },
 
       onUpdateAvailable: function(addon, install) {
         ensure_test_completed();
 
-        do_check_eq(addon, a1);
-        do_check_eq(install.name, addon.name);
-        do_check_eq(install.version, "2.0");
-        do_check_eq(install.state, AddonManager.STATE_AVAILABLE);
-        do_check_eq(install.existingAddon, addon);
-        do_check_eq(install.releaseNotesURI.spec, "http://example.com/updateInfo.xhtml");
+        AddonManager.getAllInstalls(function(aInstalls) {
+          do_check_eq(aInstalls.length, 1);
+          do_check_eq(aInstalls[0], install);
 
-        prepare_test({}, [
-          "onDownloadStarted",
-          "onDownloadEnded",
-        ], check_test_1);
-        install.install();
+          do_check_eq(addon, a1);
+          do_check_eq(install.name, addon.name);
+          do_check_eq(install.version, "2.0");
+          do_check_eq(install.state, AddonManager.STATE_AVAILABLE);
+          do_check_eq(install.existingAddon, addon);
+          do_check_eq(install.releaseNotesURI.spec, "http://example.com/updateInfo.xhtml");
+
+          
+          a1.findUpdates({
+            onNoCompatibilityUpdateAvailable: function(addon) {
+              do_throw("Should not have seen onNoCompatibilityUpdateAvailable notification");
+            },
+
+            onUpdateAvailable: function(newAddon, newInstall) {
+              AddonManager.getAllInstalls(function(aInstalls) {
+                do_check_eq(aInstalls.length, 1);
+                do_check_eq(aInstalls[0], install);
+                do_check_eq(newAddon, addon);
+                do_check_eq(newInstall, install);
+
+                prepare_test({}, [
+                  "onDownloadStarted",
+                  "onDownloadEnded",
+                ], check_test_1);
+                install.install();
+              });
+            },
+
+            onNoUpdateAvailable: function(addon) {
+              do_throw("Should not have seen onNoUpdateAvailable notification");
+            }
+          }, AddonManager.UPDATE_WHEN_USER_REQUESTED);
+        });
       },
 
       onNoUpdateAvailable: function(addon) {
-        do_throw("Should have seen an update");
+        do_throw("Should not have seen onNoUpdateAvailable notification");
       }
     }, AddonManager.UPDATE_WHEN_USER_REQUESTED);
   });
@@ -134,19 +159,39 @@ function run_test_1() {
 function check_test_1(install) {
   ensure_test_completed();
   do_check_eq(install.state, AddonManager.STATE_DOWNLOADED);
-  run_test_2();
+  run_test_2(install);
+  return false;
 }
 
 
-function run_test_2() {
-  prepare_test({
-    "addon1@tests.mozilla.org": [
-      "onInstalling"
-    ]
-  }, [
-    "onInstallStarted",
-    "onInstallEnded",
-  ], check_test_2);
+function run_test_2(install) {
+  
+  install.existingAddon.findUpdates({
+    onNoCompatibilityUpdateAvailable: function(addon) {
+      do_throw("Should not have seen onNoCompatibilityUpdateAvailable notification");
+    },
+
+    onUpdateAvailable: function(addon, install) {
+      do_throw("Should find no available update when one is already downloading");
+    },
+
+    onNoUpdateAvailable: function(addon) {
+      AddonManager.getAllInstalls(function(aInstalls) {
+        do_check_eq(aInstalls.length, 1);
+        do_check_eq(aInstalls[0], install);
+
+        prepare_test({
+          "addon1@tests.mozilla.org": [
+            "onInstalling"
+          ]
+        }, [
+          "onInstallStarted",
+          "onInstallEnded",
+        ], check_test_2);
+        install.install();
+      });
+    }
+  }, AddonManager.UPDATE_WHEN_USER_REQUESTED);
 }
 
 function check_test_2() {
@@ -421,7 +466,7 @@ function run_test_7() {
     }, [
       "onExternalInstall"
     ], check_test_7);
-  
+
     
     
     gInternalManager.notify(null);
@@ -846,7 +891,7 @@ function run_test_14() {
         do_throw("Should not have seen onInstallCancelled event");
       },
     });
-  
+
     
     gInternalManager.notify(null);
   });
