@@ -744,16 +744,24 @@ IDBObjectStore::GetAddInfo(JSContext* aCx,
 {
   nsresult rv;
 
+  
+  
+  if (!JSVAL_IS_VOID(aKeyVal) && !mKeyPath.IsEmpty()) {
+    return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
+  }
+
   JSAutoRequest ar(aCx);
 
   if (mKeyPath.IsEmpty()) {
+    
     rv = GetKeyFromJSVal(aKeyVal, aKey);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
     
+    
     if (JSVAL_IS_PRIMITIVE(aValue)) {
-      return NS_ERROR_DOM_INDEXEDDB_NON_TRANSIENT_ERR;
+      return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
     }
 
     rv = GetKeyFromObject(aCx, JSVAL_TO_OBJECT(aValue), mKeyPath, aKey);
@@ -1025,7 +1033,8 @@ IDBObjectStore::Put(const jsval& aValue,
 }
 
 NS_IMETHODIMP
-IDBObjectStore::Delete(nsIVariant* aKey,
+IDBObjectStore::Delete(const jsval& aKey,
+                       JSContext* aCx,
                        nsIIDBRequest** _retval)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
@@ -1035,7 +1044,7 @@ IDBObjectStore::Delete(nsIVariant* aKey,
   }
 
   Key key;
-  nsresult rv = GetKeyFromVariant(aKey, key);
+  nsresult rv = GetKeyFromJSVal(aKey, key);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1421,8 +1430,6 @@ AddHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   rv = stmt->Execute();
   if (NS_FAILED(rv)) {
     if (mayOverwrite && rv == NS_ERROR_STORAGE_CONSTRAINT) {
-      scoper.Abandon();
-
       stmt = mTransaction->AddStatement(false, true, autoIncrement);
       NS_ENSURE_TRUE(stmt, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
@@ -1431,20 +1438,18 @@ AddHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
       rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("osid"), osid);
       NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
-      if (!autoIncrement) {
-        NS_ASSERTION(!mKey.IsUnset(), "This shouldn't happen!");
+      NS_ASSERTION(!mKey.IsUnset(), "This shouldn't happen!");
 
-        if (mKey.IsInt()) {
-          rv = stmt->BindInt64ByName(keyValue, mKey.IntValue());
-        }
-        else if (mKey.IsString()) {
-          rv = stmt->BindStringByName(keyValue, mKey.StringValue());
-        }
-        else {
-          NS_NOTREACHED("Unknown key type!");
-        }
-        NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+      if (mKey.IsInt()) {
+        rv = stmt->BindInt64ByName(keyValue, mKey.IntValue());
       }
+      else if (mKey.IsString()) {
+        rv = stmt->BindStringByName(keyValue, mKey.StringValue());
+      }
+      else {
+        NS_NOTREACHED("Unknown key type!");
+      }
+      NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
       rv = stmt->BindStringByName(NS_LITERAL_CSTRING("data"), mValue);
       NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
@@ -1978,7 +1983,9 @@ CreateIndexHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 
   
   rv = InsertDataFromObjectStore(aConnection);
-  NS_ENSURE_TRUE(rv, rv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   return NS_OK;
 }
