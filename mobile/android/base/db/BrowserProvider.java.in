@@ -1,42 +1,43 @@
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Android code.
+ *
+ * The Initial Developer of the Original Code is Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2011
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Lucas Rocha <lucasr@mozilla.com>
+ *   Jason Voll <jvoll@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-package org.mozilla.gecko.db;
+#filter substitution
+package @ANDROID_PACKAGE_NAME@.db;
 
 import java.io.File;
 import java.util.HashMap;
@@ -50,6 +51,7 @@ import org.mozilla.gecko.db.BrowserContract.Images;
 import org.mozilla.gecko.db.BrowserContract.Schema;
 import org.mozilla.gecko.db.BrowserContract.SyncColumns;
 import org.mozilla.gecko.db.BrowserContract.URLColumns;
+import org.mozilla.gecko.db.BrowserContract;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -74,10 +76,10 @@ public class BrowserProvider extends ContentProvider {
 
     static final int DATABASE_VERSION = 1;
 
-    
+    // Maximum age of deleted records to be cleaned up (20 days in ms)
     static final long MAX_AGE_OF_DELETED_RECORDS = 86400000 * 20;
 
-    
+    // Number of records marked as deleted to be removed
     static final long DELETED_RECORDS_PURGE_LIMIT = 5;
 
     static final String TABLE_BOOKMARKS = "bookmarks";
@@ -87,20 +89,20 @@ public class BrowserProvider extends ContentProvider {
     static final String VIEW_BOOKMARKS_WITH_IMAGES = "bookmarks_with_images";
     static final String VIEW_HISTORY_WITH_IMAGES = "history_with_images";
 
-    
+    // Bookmark matches
     static final int BOOKMARKS = 100;
     static final int BOOKMARKS_ID = 101;
     static final int BOOKMARKS_FOLDER_ID = 102;
 
-    
+    // History matches
     static final int HISTORY = 200;
     static final int HISTORY_ID = 201;
 
-    
+    // Image matches
     static final int IMAGES = 300;
     static final int IMAGES_ID = 301;
 
-    
+    // Schema matches
     static final int SCHEMA = 400;
 
     static final String DEFAULT_BOOKMARKS_SORT_ORDER = Bookmarks.IS_FOLDER
@@ -137,7 +139,7 @@ public class BrowserProvider extends ContentProvider {
     static {
         HashMap<String, String> map;
 
-        
+        // Bookmarks
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "bookmarks", BOOKMARKS);
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "bookmarks/#", BOOKMARKS_ID);
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "bookmarks/folder/#", BOOKMARKS_FOLDER_ID);
@@ -159,7 +161,7 @@ public class BrowserProvider extends ContentProvider {
         map.put(Bookmarks.GUID, Bookmarks.GUID);
         map.put(Bookmarks.IS_DELETED, Bookmarks.IS_DELETED);
 
-        
+        // History
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "history", HISTORY);
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "history/#", HISTORY_ID);
 
@@ -176,7 +178,7 @@ public class BrowserProvider extends ContentProvider {
         map.put(History.GUID, History.GUID);
         map.put(History.IS_DELETED, History.IS_DELETED);
 
-        
+        // Images
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "images", IMAGES);
 
         map = IMAGES_PROJECTION_MAP;
@@ -190,7 +192,7 @@ public class BrowserProvider extends ContentProvider {
         map.put(Images.GUID, Images.GUID);
         map.put(Images.IS_DELETED, Images.IS_DELETED);
 
-        
+        // Schema
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "schema", SCHEMA);
 
         map = SCHEMA_PROJECTION_MAP;
@@ -215,8 +217,8 @@ public class BrowserProvider extends ContentProvider {
         return bytes;
     }
 
-    
-    
+    // This is available in Android >= 11. Implemented locally to be
+    // compatible with older versions.
     public static String concatenateWhere(String a, String b) {
         if (TextUtils.isEmpty(a)) {
             return b;
@@ -229,8 +231,8 @@ public class BrowserProvider extends ContentProvider {
         return "(" + a + ") AND (" + b + ")";
     }
 
-    
-    
+    // This is available in Android >= 11. Implemented locally to be
+    // compatible with older versions.
     public static String[] appendSelectionArgs(String[] originalValues, String[] newValues) {
         if (originalValues == null || originalValues.length == 0) {
             return newValues;
@@ -345,7 +347,7 @@ public class BrowserProvider extends ContentProvider {
 
             createMobileBookmarksFolder(db);
 
-            
+            // FIXME: Create default bookmarks here
         }
 
         private void createMobileBookmarksFolder(SQLiteDatabase db) {
@@ -366,15 +368,15 @@ public class BrowserProvider extends ContentProvider {
             Log.d(LOGTAG, "Upgrading browser.db: " + db.getPath() + " from " +
                     oldVersion + " to " + newVersion);
 
-            
+            // Do nothing for now
         }
 
         @Override
         public void onOpen(SQLiteDatabase db) {
             Log.d(LOGTAG, "Opening browser.db: " + db.getPath());
 
-            
-            
+            // From Honeycomb on, it's possible to run several db
+            // commands in parallel using multiple connections.
             if (Build.VERSION.SDK_INT >= 11)
                 db.enableWriteAheadLogging();
         }
@@ -383,11 +385,11 @@ public class BrowserProvider extends ContentProvider {
     private DatabaseHelper getDatabaseHelperForProfile(String profile) {
         Log.d(LOGTAG, "Getting database helper for profile: " + profile);
 
-        
-        
-        
+        // Each profile has a separate browser.db database. The target
+        // profile is provided using a URI query argument in each request
+        // to our content provider.
 
-        
+        // Always fallback to default profile if non has been provided
         if (TextUtils.isEmpty(profile)) {
             Log.d(LOGTAG, "No profile provided, using default");
             profile = BrowserContract.DEFAULT_PROFILE;
@@ -410,9 +412,9 @@ public class BrowserProvider extends ContentProvider {
     private String getDatabasePath(String profile) {
         Log.d(LOGTAG, "Getting database path for profile: " + profile);
 
-        
-        
-        
+        // On Android releases older than 2.3, it's not possible to use
+        // SQLiteOpenHelper with a full path. Fallback to using separate
+        // db files per profile in the app directory.
         if (Build.VERSION.SDK_INT <= 8) {
             return "browser-" + profile + ".db";
         }
@@ -452,15 +454,15 @@ public class BrowserProvider extends ContentProvider {
     }
 
     private void cleanupSomeDeletedRecords(Uri fromUri, Uri targetUri, String tableName) {
-        
-        
-        
+        // we cleanup records marked as deleted that are older than a
+        // predefined max age. It's important not be too greedy here and
+        // remove only a few old deleted records at a time.
 
         String profile = fromUri.getQueryParameter(BrowserContract.PARAM_PROFILE);
 
-        
-        
-        
+        // The PARAM_SHOW_DELETED argument is necessary to return the records
+        // that were marked as deleted. We use PARAM_IS_SYNC here to ensure
+        // that we'll be actually deleting records instead of flagging them.
         Uri uriWithArgs = targetUri.buildUpon()
                 .appendQueryParameter(BrowserContract.PARAM_PROFILE, profile)
                 .appendQueryParameter(BrowserContract.PARAM_LIMIT, String.valueOf(DELETED_RECORDS_PURGE_LIMIT))
@@ -575,7 +577,7 @@ public class BrowserProvider extends ContentProvider {
                 selection = concatenateWhere(selection, TABLE_BOOKMARKS + "._id = ?");
                 selectionArgs = appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                
+                // fall through
             case BOOKMARKS: {
                 Log.d(LOGTAG, "Deleting bookmarks: " + uri);
                 deleted = deleteBookmarks(uri, selection, selectionArgs);
@@ -589,7 +591,7 @@ public class BrowserProvider extends ContentProvider {
                 selection = concatenateWhere(selection, TABLE_HISTORY + "._id = ?");
                 selectionArgs = appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                
+                // fall through
             case HISTORY: {
                 Log.d(LOGTAG, "Deleting history: " + uri);
                 deleted = deleteHistory(uri, selection, selectionArgs);
@@ -603,7 +605,7 @@ public class BrowserProvider extends ContentProvider {
                 selection = concatenateWhere(selection, TABLE_IMAGES + "._id = ?");
                 selectionArgs = appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                
+                // fall through
             case IMAGES: {
                 Log.d(LOGTAG, "Deleting images: " + uri);
                 deleted = deleteImages(uri, selection, selectionArgs);
@@ -658,7 +660,7 @@ public class BrowserProvider extends ContentProvider {
                 values.put(Bookmarks.DATE_CREATED, now);
                 values.put(Bookmarks.DATE_MODIFIED, now);
 
-                
+                // Generate GUID for new bookmark. Don't override specified GUIDs.
                 if (!values.containsKey(Bookmarks.GUID)) {
                   values.put(Bookmarks.GUID, generateGuid());
                 }
@@ -691,7 +693,7 @@ public class BrowserProvider extends ContentProvider {
                 values.put(History.DATE_CREATED, now);
                 values.put(History.DATE_MODIFIED, now);
 
-                
+                // Generate GUID for new history entry. Don't override specified GUIDs.
                 if (!values.containsKey(History.GUID)) {
                   values.put(History.GUID, generateGuid());
                 }
@@ -719,7 +721,7 @@ public class BrowserProvider extends ContentProvider {
                 values.put(History.DATE_CREATED, now);
                 values.put(History.DATE_MODIFIED, now);
 
-                
+                // Generate GUID for new history entry
                 values.put(History.GUID, generateGuid());
 
                 String url = values.getAsString(Images.URL);
@@ -780,7 +782,7 @@ public class BrowserProvider extends ContentProvider {
                 selection = concatenateWhere(selection, TABLE_BOOKMARKS + "._id = ?");
                 selectionArgs = appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                
+                // fall through
             case BOOKMARKS: {
                 Log.d(LOGTAG, "Updating bookmark: " + uri);
                 updated = updateBookmarks(uri, values, selection, selectionArgs);
@@ -793,7 +795,7 @@ public class BrowserProvider extends ContentProvider {
                 selection = concatenateWhere(selection, TABLE_HISTORY + "._id = ?");
                 selectionArgs = appendSelectionArgs(selectionArgs,
                         new String[] { Long.toString(ContentUris.parseId(uri)) });
-                
+                // fall through
             case HISTORY: {
                 Log.d(LOGTAG, "Updating history: " + uri);
                 updated = updateHistory(uri, values, selection, selectionArgs);
@@ -995,8 +997,8 @@ public class BrowserProvider extends ContentProvider {
         int updated = 0;
 
         final String[] bookmarksProjection = new String[] {
-                Bookmarks._ID, 
-                Bookmarks.URL, 
+                Bookmarks._ID, // 0
+                Bookmarks.URL, // 1
         };
 
         Log.d(LOGTAG, "Quering bookmarks to update on URI: " + uri);
@@ -1052,8 +1054,8 @@ public class BrowserProvider extends ContentProvider {
         final SQLiteDatabase db = getWritableDatabase(uri);
         int updated = 0;
 
-        final String[] historyProjection = new String[] { History._ID, 
-                History.URL, 
+        final String[] historyProjection = new String[] { History._ID, // 0
+                History.URL, // 1
         };
 
         Cursor cursor = db.query(TABLE_HISTORY, historyProjection, selection,
@@ -1103,13 +1105,13 @@ public class BrowserProvider extends ContentProvider {
     int updateOrInsertImage(Uri uri, ContentValues values, String selection,
             String[] selectionArgs) {
         return updateImage(uri, values, selection, selectionArgs,
-                true );
+                true /* insert if needed */);
     }
 
     int updateExistingImage(Uri uri, ContentValues values, String selection,
             String[] selectionArgs) {
         return updateImage(uri, values, selection, selectionArgs,
-                false );
+                false /* only update, no insert */);
     }
 
     int updateImage(Uri uri, ContentValues values, String selection,
@@ -1122,14 +1124,14 @@ public class BrowserProvider extends ContentProvider {
 
         long now = System.currentTimeMillis();
 
-        
-        
-        
+        // Thumbnails update on every page load. We don't want to flood
+        // sync with meaningless last modified date. Only update modified
+        // date when favicons bits change.
         if (values.containsKey(Images.FAVICON) || values.containsKey(Images.FAVICON_URL))
             values.put(Images.DATE_MODIFIED, now);
 
-        
-        
+        // Restore and update an existing image record marked as
+        // deleted if possible.
         if (insertIfNeeded)
             values.put(Images.IS_DELETED, 0);
 
@@ -1137,7 +1139,7 @@ public class BrowserProvider extends ContentProvider {
         int updated = db.update(TABLE_IMAGES, values, selection, selectionArgs);
 
         if (updated == 0 && insertIfNeeded) {
-            
+            // Generate GUID for new image, if one is not already provided.
             if (!values.containsKey(Images.GUID)) {
               values.put(Images.GUID, generateGuid());
             }
