@@ -182,6 +182,102 @@ function _dump_exception_stack(stack) {
   });
 }
 
+
+
+
+
+
+
+
+
+
+
+_fakeIdleService = {
+  get registrar() {
+    delete this.registrar;
+    return this.registrar =
+      Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
+  },
+  contractID: "@mozilla.org/widget/idleservice;1",
+  get CID() this.registrar.contractIDToCID(this.contractID),
+
+  activate: function FIS_activate()
+  {
+    if (!this.originalFactory) {
+      
+      this.originalFactory =
+        Components.manager.getClassObject(Components.classes[this.contractID],
+                                          Components.interfaces.nsIFactory);
+      
+      this.registrar.unregisterFactory(this.CID, this.originalFactory);
+      
+      this.registrar.registerFactory(this.CID, "Fake Idle Service",
+                                     this.contractID, this.factory
+      );
+    }
+  },
+
+  deactivate: function FIS_deactivate()
+  {
+    if (this.originalFactory) {
+      
+      this.registrar.unregisterFactory(this.CID, this.factory);
+      
+      this.registrar.registerFactory(this.CID, "Idle Service",
+                                     this.contractID, this.originalFactory);
+      delete this.originalFactory;
+    }
+  },
+
+  factory: {
+    
+    createInstance: function (aOuter, aIID)
+    {
+      if (aOuter) {
+        throw Components.results.NS_ERROR_NO_AGGREGATION;
+      }
+      return _fakeIdleService.QueryInterface(aIID);
+    },
+    lockFactory: function (aLock) {
+      throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+    },
+    QueryInterface: function(aIID) {
+      if (aIID.equals(Components.interfaces.nsIFactory) ||
+          aIID.equals(Components.interfaces.nsISupports)) {
+        return this;
+      }
+      throw Components.results.NS_ERROR_NO_INTERFACE;
+    }
+  },
+
+  
+  get idleTime() 0,
+  addIdleObserver: function () {},
+  removeIdleObserver: function () {},
+
+  QueryInterface: function(aIID) {
+    
+    if (aIID.equals(Components.interfaces.nsIFactory)) {
+      return this.factory;
+    }
+    if (aIID.equals(Components.interfaces.nsIIdleService) ||
+        aIID.equals(Components.interfaces.nsISupports)) {
+      return this;
+    }
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  }
+}
+
+
+
+
+
+function do_get_idle() {
+  _fakeIdleService.deactivate();
+  return Components.classes[_fakeIdleService.contractID]
+                   .getService(Components.interfaces.nsIIdleService);
+}
+
 function _execute_test() {
   
   let (ios = Components.classes["@mozilla.org/network/io-service;1"]
@@ -192,6 +288,10 @@ function _execute_test() {
     let curDirURI = ios.newFileURI(do_get_cwd());
     protocolHandler.setSubstitution("test", curDirURI);
   }
+
+  
+  
+  _fakeIdleService.activate();
 
   
   _load_files(_HEAD_FILES);
@@ -229,6 +329,9 @@ function _execute_test() {
   var func;
   while ((func = _cleanupFunctions.pop()))
     func();
+
+  
+  _fakeIdleService.deactivate();
 
   if (!_passed)
     return;
