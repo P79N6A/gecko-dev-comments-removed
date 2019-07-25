@@ -876,6 +876,17 @@ nsMathMLContainerFrame::GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics)
   FinishAndStoreOverflow(aMetrics);
 }
 
+bool
+nsMathMLContainerFrame::UpdateOverflow()
+{
+  
+  PresContext()->PresShell()->FrameNeedsReflow(
+    this, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+
+  
+  return false;
+}
+
 nsresult 
 nsMathMLContainerFrame::ReflowChild(nsIFrame*                aChildFrame,
                                     nsPresContext*           aPresContext,

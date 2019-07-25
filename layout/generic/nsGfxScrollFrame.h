@@ -245,6 +245,9 @@ public:
   bool IsLTR() const;
   bool IsScrollbarOnRight() const;
   bool IsScrollingActive() const { return mScrollingActive || ShouldBuildLayer(); }
+
+  bool UpdateOverflow();
+
   
   
   
@@ -385,7 +388,7 @@ public:
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
   NS_IMETHOD GetPadding(nsMargin& aPadding);
-  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
+  virtual bool IsCollapsed();
   
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -496,6 +499,9 @@ public:
   }
   virtual bool IsScrollingActive() {
     return mInner.IsScrollingActive();
+  }
+  virtual bool UpdateOverflow() {
+    return mInner.UpdateOverflow();
   }
 
   
@@ -731,6 +737,9 @@ public:
   }
   virtual bool IsScrollingActive() {
     return mInner.IsScrollingActive();
+  }
+  virtual bool UpdateOverflow() {
+    return mInner.UpdateOverflow();
   }
 
   

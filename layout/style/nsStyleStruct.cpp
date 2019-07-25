@@ -2243,10 +2243,12 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 
 
     if (!mSpecifiedTransform != !aOther.mSpecifiedTransform ||
-        (mSpecifiedTransform && *mSpecifiedTransform != *aOther.mSpecifiedTransform))
-      NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_NeedReflow,
+        (mSpecifiedTransform &&
+         *mSpecifiedTransform != *aOther.mSpecifiedTransform)) {
+      NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_UpdateOverflow,
                                          nsChangeHint_UpdateTransformLayer));
-    
+    }
+
     for (PRUint8 index = 0; index < 3; ++index)
       if (mTransformOrigin[index] != aOther.mTransformOrigin[index]) {
         NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_NeedReflow,
@@ -2295,8 +2297,10 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 nsChangeHint nsStyleDisplay::MaxDifference()
 {
   
-  return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE | nsChangeHint_UpdateOpacityLayer |
-                      nsChangeHint_UpdateTransformLayer);
+  return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
+                      nsChangeHint_UpdateOpacityLayer |
+                      nsChangeHint_UpdateTransformLayer |
+                      nsChangeHint_UpdateOverflow);
 }
 #endif
 

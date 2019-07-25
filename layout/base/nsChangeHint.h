@@ -91,7 +91,11 @@ enum nsChangeHint {
 
   
   
-  nsChangeHint_ReconstructFrame = 0x400
+  nsChangeHint_ReconstructFrame = 0x400,
+
+  
+  
+  nsChangeHint_UpdateOverflow = 0x800
 };
 
 

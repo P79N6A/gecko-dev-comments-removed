@@ -799,7 +799,7 @@ nsHTMLScrollFrame::GetPadding(nsMargin& aMargin)
 }
 
 bool
-nsHTMLScrollFrame::IsCollapsed(nsBoxLayoutState& aBoxLayoutState)
+nsHTMLScrollFrame::IsCollapsed()
 {
   
   return false;
@@ -3267,6 +3267,27 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
       aBox->InvalidateFrameSubtree();
     }
   }
+}
+
+bool
+nsGfxScrollFrameInner::UpdateOverflow()
+{
+  nsIScrollableFrame* sf = do_QueryFrame(mOuter);
+  ScrollbarStyles ss = sf->GetScrollbarStyles();
+
+  if (ss.mVertical != NS_STYLE_OVERFLOW_HIDDEN ||
+      ss.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN ||
+      GetScrollPosition() != nsPoint()) {
+    
+    
+    
+    mOuter->PresContext()->PresShell()->FrameNeedsReflow(
+      mOuter, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+  }
+
+  
+  
+  return false;
 }
 
 void

@@ -346,6 +346,8 @@ public:
   void DestroyAbsoluteFrames(nsIFrame* aDestructRoot);
   virtual bool CanContinueTextRun() const;
 
+  virtual bool UpdateOverflow();
+
   
   
   

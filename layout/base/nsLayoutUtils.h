@@ -1479,6 +1479,13 @@ public:
 
 
 
+  static void UnionChildOverflow(nsIFrame* aFrame,
+                                 nsOverflowAreas& aOverflowAreas);
+
+  
+
+
+
   static bool IsContainerForFontSizeInflation(const nsIFrame *aFrame);
 
   

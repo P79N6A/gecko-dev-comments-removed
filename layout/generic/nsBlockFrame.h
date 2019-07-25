@@ -384,9 +384,10 @@ protected:
                                 nsHTMLReflowMetrics&     aMetrics,
                                 nscoord*                 aBottomEdgeOfChildren);
 
-  void ComputeOverflowAreas(const nsHTMLReflowState& aReflowState,
-                            nsHTMLReflowMetrics&     aMetrics,
-                            nscoord                  aBottomEdgeOfChildren);
+  void ComputeOverflowAreas(const nsRect&         aBounds,
+                            const nsStyleDisplay* aDisplay,
+                            nscoord               aBottomEdgeOfChildren,
+                            nsOverflowAreas&      aOverflowAreas);
 
   
 
@@ -434,6 +435,8 @@ public:
   void ReparentFloats(nsIFrame* aFirstFrame,
                       nsBlockFrame* aOldParent, bool aFromOverflow,
                       bool aReparentSiblings);
+
+  virtual bool UpdateOverflow();
 
   
 

@@ -204,7 +204,7 @@ nsSprocketLayout::Layout(nsIBox* aBox, nsBoxLayoutState& aState)
 {
   
   
-  if (aBox->IsCollapsed(aState)) {
+  if (aBox->IsCollapsed()) {
     nsIBox* child = aBox->GetChildBox();
     while(child) 
     {
@@ -741,7 +741,7 @@ nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBox
       flex = child->GetFlex(aState);
 
       currentBox->flex = flex;
-      currentBox->collapsed = child->IsCollapsed(aState);
+      currentBox->collapsed = child->IsCollapsed();
     } else {
       flex = start->flex;
       start = start->next;
@@ -773,7 +773,7 @@ nsSprocketLayout::PopulateBoxSizes(nsIBox* aBox, nsBoxLayoutState& aState, nsBox
     nsSize minSize(0,0);
     nsSize maxSize(NS_INTRINSICSIZE,NS_INTRINSICSIZE);
     nscoord ascent = 0;
-    bool collapsed = child->IsCollapsed(aState);
+    bool collapsed = child->IsCollapsed();
 
     if (!collapsed) {
     
@@ -1361,7 +1361,7 @@ nsSprocketLayout::GetPrefSize(nsIBox* aBox, nsBoxLayoutState& aState)
    while (child) 
    {  
       
-      if (!child->IsCollapsed(aState))
+      if (!child->IsCollapsed())
       {
         nsSize pref = child->GetPrefSize(aState);
         AddMargin(child, pref);
@@ -1418,7 +1418,7 @@ nsSprocketLayout::GetMinSize(nsIBox* aBox, nsBoxLayoutState& aState)
    while (child) 
    {  
        
-      if (!child->IsCollapsed(aState))
+      if (!child->IsCollapsed())
       {
         nsSize min = child->GetMinSize(aState);
         nsSize pref(0,0);
@@ -1487,7 +1487,7 @@ nsSprocketLayout::GetMaxSize(nsIBox* aBox, nsBoxLayoutState& aState)
    while (child) 
    {  
       
-      if (!child->IsCollapsed(aState))
+      if (!child->IsCollapsed())
       {
         
         nsSize min = child->GetMinSize(aState);
