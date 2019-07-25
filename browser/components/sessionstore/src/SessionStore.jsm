@@ -2835,6 +2835,108 @@ let SessionStoreInternal = {
 
 
 
+  _setTabsRestoringOrder : function ssi__setTabsRestoringOrder(
+    aTabBrowser, aTabs, aTabData, aSelectedTab) {
+    
+    
+    
+    let pinnedTabs = aTabData.filter(function (aData) aData.pinned).length;
+    let pinnedTabsArray = [];
+    let pinnedTabsDataArray = [];
+    let pinnedSelectedTab = null;
+    if (pinnedTabs && aTabs.length > 1) {
+      for (let t = aTabs.length - 1; t >= 0; t--) {
+        if (aTabData[t].pinned) {
+          pinnedTabsArray.unshift(aTabs.splice(t, 1)[0]);
+          pinnedTabsDataArray.unshift(aTabData.splice(t, 1)[0]);
+          if (aSelectedTab) {
+            if (aSelectedTab > (t + 1))
+              --aSelectedTab;
+            else if (aSelectedTab == (t + 1)) {
+              aSelectedTab = null;
+              pinnedSelectedTab = 1;
+            }
+          } else if (pinnedSelectedTab) 
+            ++pinnedSelectedTab;
+        }
+      }
+    }
+
+    
+    
+    let unhiddenTabs = aTabData.filter(function (aData) !aData.hidden).length;
+    if (unhiddenTabs && aTabs.length > 1) {
+      
+      for (let t = 0, tabsToReorder = aTabs.length - unhiddenTabs; tabsToReorder > 0; ) {
+        if (aTabData[t].hidden) {
+          aTabs = aTabs.concat(aTabs.splice(t, 1));
+          aTabData = aTabData.concat(aTabData.splice(t, 1));
+          if (aSelectedTab && aSelectedTab > t)
+            --aSelectedTab;
+          --tabsToReorder;
+          continue;
+        }
+        ++t;
+      }
+
+      
+      let maxVisibleTabs = Math.ceil(aTabBrowser.tabContainer.mTabstrip.scrollClientSize /
+                                     aTabs[unhiddenTabs - 1].getBoundingClientRect().width);
+
+      
+      if (aSelectedTab && maxVisibleTabs < unhiddenTabs && aSelectedTab > 1) {
+        let firstVisibleTab = 0;
+        if (unhiddenTabs - maxVisibleTabs > aSelectedTab) {
+          
+          firstVisibleTab = aSelectedTab - 1;
+        } else {
+          
+          firstVisibleTab = unhiddenTabs - maxVisibleTabs;
+        }
+        aTabs = aTabs.splice(firstVisibleTab, maxVisibleTabs).concat(aTabs);
+        aTabData = aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
+        aSelectedTab -= firstVisibleTab;
+      }
+    }
+
+    
+    
+    if (pinnedTabsArray) {
+      
+      if (pinnedSelectedTab) {
+        aSelectedTab = pinnedSelectedTab;
+      } else {
+        aSelectedTab += pinnedTabsArray.length;
+      }
+      
+      for (let t = pinnedTabsArray.length - 1; t >= 0; t--) {
+        aTabs.unshift(pinnedTabsArray.splice(t, 1)[0]);
+        aTabData.unshift(pinnedTabsDataArray.splice(t, 1)[0]);
+      }
+    }
+
+    
+    if (aSelectedTab-- && aTabs[aSelectedTab]) {
+      aTabs.unshift(aTabs.splice(aSelectedTab, 1)[0]);
+      aTabData.unshift(aTabData.splice(aSelectedTab, 1)[0]);
+      aTabBrowser.selectedTab = aTabs[0];
+    }
+    
+    return [aTabs, aTabData];
+  },
+  
+  
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2875,48 +2977,9 @@ let SessionStoreInternal = {
       return;
     }
 
-    let unhiddenTabs = aTabData.filter(function (aData) !aData.hidden).length;
-
-    if (unhiddenTabs && aTabs.length > 1) {
-      
-      for (let t = 0, tabsToReorder = aTabs.length - unhiddenTabs; tabsToReorder > 0; ) {
-        if (aTabData[t].hidden) {
-          aTabs = aTabs.concat(aTabs.splice(t, 1));
-          aTabData = aTabData.concat(aTabData.splice(t, 1));
-          if (aSelectTab > t)
-            --aSelectTab;
-          --tabsToReorder;
-          continue;
-        }
-        ++t;
-      }
-
-      
-      let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
-                                     aTabs[unhiddenTabs - 1].getBoundingClientRect().width);
-
-      
-      if (maxVisibleTabs < unhiddenTabs && aSelectTab > 1) {
-        let firstVisibleTab = 0;
-        if (unhiddenTabs - maxVisibleTabs > aSelectTab) {
-          
-          firstVisibleTab = aSelectTab - 1;
-        } else {
-          
-          firstVisibleTab = unhiddenTabs - maxVisibleTabs;
-        }
-        aTabs = aTabs.splice(firstVisibleTab, maxVisibleTabs).concat(aTabs);
-        aTabData = aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
-        aSelectTab -= firstVisibleTab;
-      }
-    }
-
     
-    if (aSelectTab-- && aTabs[aSelectTab]) {
-      aTabs.unshift(aTabs.splice(aSelectTab, 1)[0]);
-      aTabData.unshift(aTabData.splice(aSelectTab, 1)[0]);
-      tabbrowser.selectedTab = aTabs[0];
-    }
+    [aTabs, aTabData] =
+      this._setTabsRestoringOrder(tabbrowser, aTabs, aTabData, aSelectTab);
 
     
     
