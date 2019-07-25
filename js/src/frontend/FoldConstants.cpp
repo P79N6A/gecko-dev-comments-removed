@@ -683,9 +683,7 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
       case PNK_ADDASSIGN:
         JS_ASSERT(pn->isOp(JSOP_ADD));
         
-      case PNK_PLUS:
-        if (pn->isArity(PN_UNARY))
-            goto unary_plusminus;
+      case PNK_ADD:
         if (pn->isArity(PN_LIST)) {
             
 
@@ -767,10 +765,7 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
         
         goto do_binary_op;
 
-      case PNK_MINUS:
-        if (pn->isArity(PN_UNARY))
-            goto unary_plusminus;
-        
+      case PNK_SUB:
       case PNK_STAR:
       case PNK_LSH:
       case PNK_RSH:
@@ -819,7 +814,8 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
       case PNK_VOID:
       case PNK_NOT:
       case PNK_BITNOT:
-      unary_plusminus:
+      case PNK_POS:
+      case PNK_NEG:
         if (pn1->isKind(PNK_NUMBER)) {
             jsdouble d;
 

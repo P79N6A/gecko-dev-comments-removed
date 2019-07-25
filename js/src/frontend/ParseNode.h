@@ -68,8 +68,10 @@ enum ParseNodeKind {
     PNK_BITOR,
     PNK_BITXOR,
     PNK_BITAND,
-    PNK_PLUS,
-    PNK_MINUS,
+    PNK_POS,
+    PNK_NEG,
+    PNK_ADD,
+    PNK_SUB,
     PNK_STAR,
     PNK_DIV,
     PNK_MOD,
@@ -192,6 +194,7 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
 
 
 
@@ -711,8 +714,8 @@ struct ParseNode {
 #define PND_USE2DEF_FLAGS (PND_ASSIGNED | PND_FUNARG | PND_CLOSED)
 
 
-#define PNX_STRCAT      0x01            /* PNK_PLUS list has string term */
-#define PNX_CANTFOLD    0x02            /* PNK_PLUS list has unfoldable term */
+#define PNX_STRCAT      0x01            /* PNK_ADD list has string term */
+#define PNX_CANTFOLD    0x02            /* PNK_ADD list has unfoldable term */
 #define PNX_POPVAR      0x04            /* PNK_VAR last result needs popping */
 #define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_IN node,
                                            which is left kid of PNK_FOR */
