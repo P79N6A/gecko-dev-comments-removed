@@ -5,8 +5,6 @@
 %browserDTD;
 <!ENTITY % baseMenuDTD SYSTEM "chrome:
 %baseMenuDTD;
-<!ENTITY % globalRegionDTD SYSTEM "chrome:
-%globalRegionDTD;
 <!ENTITY % charsetDTD SYSTEM "chrome:
 %charsetDTD;
 <!ENTITY % textcontextDTD SYSTEM "chrome:

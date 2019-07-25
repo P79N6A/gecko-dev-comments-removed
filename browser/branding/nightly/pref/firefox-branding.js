@@ -16,6 +16,7 @@ pref("app.update.url.details", "http://www.mozilla.org/projects/%APP%/");
 
 
 pref("app.releaseNotesURL", "http://www.mozilla.org/projects/%APP%/%VERSION%/releasenotes/");
+pref("app.vendorURL", "http://www.mozilla.org/projects/%APP%/");
 
 
 pref("browser.search.param.yahoo-fr", "");
