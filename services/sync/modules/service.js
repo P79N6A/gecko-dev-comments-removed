@@ -288,6 +288,9 @@ WeaveSvc.prototype = {
     Svc.Obs.notify("weave:service:ready");
 
     
+    this._setBasicLoginStatus();
+
+    
     if (Svc.Prefs.get("autoconnect")) {
       Utils.delay(function() {
         
@@ -612,6 +615,8 @@ WeaveSvc.prototype = {
   },
 
   startOver: function() {
+    
+    Status.login = Weave.LOGIN_FAILED_NO_USERNAME;
     this.logout();
     
     this.resetClient();
@@ -662,6 +667,17 @@ WeaveSvc.prototype = {
     return true;
   },
 
+  _setBasicLoginStatus: function _setBasicLoginStatus() {
+    
+    
+    if (!this.username)
+      Status.login = Weave.LOGIN_FAILED_NO_USERNAME;
+    else if (!(this._mpLocked() || this.password))
+      Status.login = Weave.LOGIN_FAILED_NO_PASSWORD;
+    else if (!(this._mpLocked() || this.passphrase))
+      Status.login = Weave.LOGIN_FAILED_NO_PASSPHRASE;
+  },
+
   persistLogin: function persistLogin() {
     
     try {
@@ -684,17 +700,15 @@ WeaveSvc.prototype = {
       if (passphrase)
         this.passphrase = passphrase;
 
-      if (!this.username) {
-        Status.login = LOGIN_FAILED_NO_USERNAME;
+      this._setBasicLoginStatus();
+      if (!this.username)
         throw "No username set, login failed";
-      }
-      if (!this.password) {
-        Status.login = LOGIN_FAILED_NO_PASSWORD;
+      if (!this.password)
         throw "No password given or found in password manager";
-      }
       this._log.info("Logging in user " + this.username);
 
       if (!this._verifyLogin()) {
+        
         
         throw "Login failed: " + Status.login;
       }
