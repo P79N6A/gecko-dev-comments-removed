@@ -172,7 +172,7 @@ public:
                         nsIDOMNode **aResult)
   {
     return CloneAndAdopt(aNode, PR_TRUE, aDeep, aNewNodeInfoManager, nsnull,
-                         nsnull, aNodesWithProperties, aResult);
+                         nsnull, nsnull, aNodesWithProperties, aResult);
   }
 
   
@@ -194,12 +194,14 @@ public:
 
 
 
+
   static nsresult Adopt(nsINode *aNode, nsNodeInfoManager *aNewNodeInfoManager,
-                        JSContext *aCx, JSObject *aNewScope,
+                        JSContext *aCx, JSObject *aOldScope,
+                        JSObject *aNewScope,
                         nsCOMArray<nsINode> &aNodesWithProperties)
   {
     nsresult rv = CloneAndAdopt(aNode, PR_FALSE, PR_TRUE, aNewNodeInfoManager,
-                                aCx, aNewScope, aNodesWithProperties,
+                                aCx, aOldScope, aNewScope, aNodesWithProperties,
                                 nsnull);
 
     nsMutationGuard::DidMutate();
@@ -244,9 +246,7 @@ public:
 
 
 
-
   static nsresult CloneNodeImpl(nsINode *aNode, PRBool aDeep,
-                                PRBool aCallUserDataHandlers,
                                 nsIDOMNode **aResult);
 
   
@@ -285,9 +285,11 @@ private:
 
 
 
+
   static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
-                                JSContext *aCx, JSObject *aNewScope,
+                                JSContext *aCx, JSObject *aOldScope,
+                                JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
                                 nsIDOMNode **aResult)
   {
@@ -297,7 +299,7 @@ private:
 
     nsCOMPtr<nsINode> clone;
     nsresult rv = CloneAndAdopt(aNode, aClone, aDeep, aNewNodeInfoManager,
-                                aCx, aNewScope, aNodesWithProperties,
+                                aCx, aOldScope, aNewScope, aNodesWithProperties,
                                 nsnull, getter_AddRefs(clone));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -315,7 +317,8 @@ private:
 
   static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
-                                JSContext *aCx, JSObject *aNewScope,
+                                JSContext *aCx, JSObject *aOldScope,
+                                JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
                                 nsINode *aParent, nsINode **aResult);
 };

@@ -1371,13 +1371,18 @@ nsContentUtils::InProlog(nsINode *aNode)
 }
 
 static JSContext *
-GetContextFromDocument(nsIDocument *aDocument)
+GetContextFromDocument(nsIDocument *aDocument, JSObject** aGlobalObject)
 {
   nsIScriptGlobalObject *sgo = aDocument->GetScopeObject();
   if (!sgo) {
     
+
+    *aGlobalObject = nsnull;
+
     return nsnull;
   }
+
+  *aGlobalObject = sgo->GetGlobalJSObject();
 
   nsIScriptContext *scx = sgo->GetContext();
   if (!scx) {
@@ -1391,27 +1396,39 @@ GetContextFromDocument(nsIDocument *aDocument)
 
 
 nsresult
-nsContentUtils::GetContextAndScope(nsIDocument *aOldDocument,
-                                   nsIDocument *aNewDocument, JSContext **aCx,
-                                   JSObject **aNewScope)
+nsContentUtils::GetContextAndScopes(nsIDocument *aOldDocument,
+                                    nsIDocument *aNewDocument, JSContext **aCx,
+                                    JSObject **aOldScope, JSObject **aNewScope)
 {
   *aCx = nsnull;
+  *aOldScope = nsnull;
   *aNewScope = nsnull;
 
-  JSObject *newScope = aNewDocument->GetWrapper();
-  JSObject *global;
-  if (!newScope) {
-    nsIScriptGlobalObject *newSGO = aNewDocument->GetScopeObject();
-    if (!newSGO || !(global = newSGO->GetGlobalJSObject())) {
-      return NS_OK;
-    }
+  JSObject *newScope = nsnull;
+  nsIScriptGlobalObject *newSGO = aNewDocument->GetScopeObject();
+  if (!newSGO || !(newScope = newSGO->GetGlobalJSObject())) {
+    return NS_OK;
   }
 
   NS_ENSURE_TRUE(sXPConnect, NS_ERROR_NOT_INITIALIZED);
 
-  JSContext *cx = aOldDocument ? GetContextFromDocument(aOldDocument) : nsnull;
+  
+  
+  
+  
+  
+  
+  
+  JSObject *oldScope = nsnull;
+  JSContext *cx = GetContextFromDocument(aOldDocument, &oldScope);
+
+  if (!oldScope) {
+    return NS_OK;
+  }
+
   if (!cx) {
-    cx = GetContextFromDocument(aNewDocument);
+    JSObject *dummy;
+    cx = GetContextFromDocument(aNewDocument, &dummy);
 
     if (!cx) {
       
@@ -1433,15 +1450,8 @@ nsContentUtils::GetContextAndScope(nsIDocument *aOldDocument,
     }
   }
 
-  if (!newScope && cx) {
-    jsval v;
-    nsresult rv = WrapNative(cx, global, aNewDocument, aNewDocument, &v);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    newScope = JSVAL_TO_OBJECT(v);
-  }
-
   *aCx = cx;
+  *aOldScope = oldScope;
   *aNewScope = newScope;
 
   return NS_OK;
@@ -6370,8 +6380,8 @@ nsContentUtils::PlatformToDOMLineBreaks(nsString &aString)
   }
 }
 
-static already_AddRefed<LayerManager>
-LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
+already_AddRefed<LayerManager>
+nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
 {
   nsIDocument* doc = aDoc;
   nsIDocument* displayDoc = doc->GetDisplayDocument();
@@ -6405,10 +6415,7 @@ LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
       nsIWidget* widget =
         nsLayoutUtils::GetDisplayRootFrame(rootFrame)->GetNearestWidget();
       if (widget) {
-        nsRefPtr<LayerManager> manager =
-          static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget)->
-            GetLayerManager(aRequirePersistent ? nsIWidget_MOZILLA_2_0_BRANCH::LAYER_MANAGER_PERSISTENT : 
-                                                 nsIWidget_MOZILLA_2_0_BRANCH::LAYER_MANAGER_CURRENT);
+        nsRefPtr<LayerManager> manager = widget->GetLayerManager();
         return manager.forget();
       }
     }
@@ -6416,18 +6423,6 @@ LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
 
   nsRefPtr<LayerManager> manager = new BasicLayerManager();
   return manager.forget();
-}
-
-already_AddRefed<LayerManager>
-nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
-{
-  return LayerManagerForDocumentInternal(aDoc, false);
-}
-
-already_AddRefed<LayerManager>
-nsContentUtils::PersistentLayerManagerForDocument(nsIDocument *aDoc)
-{
-  return LayerManagerForDocumentInternal(aDoc, true);
 }
 
 bool
