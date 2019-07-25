@@ -290,6 +290,22 @@ private:
   
   class AsyncUsageRunnable MOZ_FINAL : public nsIRunnable
   {
+    enum CallbackState {
+      
+      Pending = 0,
+
+      
+      OpenAllowed,
+
+      
+      IO,
+
+      
+      Complete,
+
+      
+      Shortcut
+    };
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIRUNNABLE
@@ -301,6 +317,25 @@ private:
     
     void Cancel();
 
+    void AdvanceState()
+    {
+      switch (mCallbackState) {
+        case Pending:
+          mCallbackState = OpenAllowed;
+          return;
+        case OpenAllowed:
+          mCallbackState = IO;
+          return;
+        case IO:
+          mCallbackState = Complete;
+          return;
+        default:
+          NS_NOTREACHED("Can't advance past Complete!");
+      }
+    }
+
+    nsresult TakeShortcut();
+
     
     
     inline nsresult RunInternal();
@@ -310,10 +345,12 @@ private:
 
     nsCOMPtr<nsIURI> mURI;
     nsCString mOrigin;
+
     nsCOMPtr<nsIIndexedDatabaseUsageCallback> mCallback;
     PRUint64 mUsage;
     PRUint64 mFileUsage;
     PRInt32 mCanceled;
+    CallbackState mCallbackState;
   };
 
   
