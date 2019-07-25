@@ -3422,10 +3422,14 @@ nsPluginHost::HandleBadPlugin(PRLibrary* aLibrary, nsIPluginInstance *aInstance)
 
   
   nsCString pluginname;
-  if (!pluginTag->mName.IsEmpty()) {
-    pluginname = pluginTag->mName;
+  if (pluginTag) {
+    if (!pluginTag->mName.IsEmpty()) {
+      pluginname = pluginTag->mName;
+    } else {
+      pluginname = pluginTag->mFileName;
+    }
   } else {
-    pluginname = pluginTag->mFileName;
+    pluginname.AppendLiteral("???");'
   }
 
   NS_ConvertUTF8toUTF16 msg(pluginname);
