@@ -445,8 +445,8 @@ nsXMLHttpRequest::nsXMLHttpRequest()
     mProgressSinceLastProgressEvent(false),
     mUploadProgress(0), mUploadProgressMax(0),
     mRequestSentTime(0), mTimeoutMilliseconds(0),
-    mErrorLoad(false), mProgressTimerIsActive(false),
-    mProgressEventWasDelayed(false),
+    mErrorLoad(false), mWaitingForOnStopRequest(false),
+    mProgressTimerIsActive(false), mProgressEventWasDelayed(false),
     mIsHtml(false),
     mWarnAboutMultipartHtml(false),
     mWarnAboutSyncHtml(false),
@@ -602,7 +602,8 @@ nsXMLHttpRequest::SetRequestObserver(nsIRequestObserver* aObserver)
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXMLHttpRequest)
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsXMLHttpRequest)
-  if (tmp->IsBlack()) {
+  bool isBlack = tmp->IsBlack();
+  if (isBlack || tmp->mWaitingForOnStopRequest) {
     if (tmp->mListenerManager) {
       tmp->mListenerManager->UnmarkGrayJSListeners();
       NS_UNMARK_LISTENER_WRAPPER(Load)
@@ -613,6 +614,11 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsXMLHttpRequest)
       NS_UNMARK_LISTENER_WRAPPER(Loadend)
       NS_UNMARK_LISTENER_WRAPPER(UploadProgress)
       NS_UNMARK_LISTENER_WRAPPER(Readystatechange)
+    }
+    if (!isBlack) {
+      xpc_UnmarkGrayObject(tmp->PreservingWrapper() ? 
+                           tmp->GetWrapperPreserveColor() :
+                           tmp->GetExpandoObjectPreserveColor());
     }
     return true;
   }
@@ -2140,6 +2146,8 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     return NS_OK;
   }
 
+  mWaitingForOnStopRequest = false;
+
   nsresult rv = NS_OK;
 
   
@@ -2773,6 +2781,9 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     mCORSPreflightChannel = nsnull;
     return rv;
   }
+
+  
+  mWaitingForOnStopRequest = true;
 
   
   if (!(mState & XML_HTTP_REQUEST_ASYNC)) {

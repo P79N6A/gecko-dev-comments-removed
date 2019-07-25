@@ -216,6 +216,7 @@ protected:
   bool mErrorLoadOnRedirect;
   bool mGoingToDispatchAllMessages;
   bool mWithCredentials;
+  bool mWaitingForOnStopRequest;
 
   
   nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
