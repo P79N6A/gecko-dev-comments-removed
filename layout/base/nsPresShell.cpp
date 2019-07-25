@@ -5853,6 +5853,8 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
     return NS_OK;
 
   nscolor bgcolor = NS_ComposeColors(aBackstopColor, mCanvasBackgroundColor);
+  if (NS_GET_A(bgcolor) == 0)
+    return NS_OK;
 
   
   
