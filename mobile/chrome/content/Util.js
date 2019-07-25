@@ -43,8 +43,6 @@
 
 
 
-Cu.import("resource://gre/modules/Geometry.jsm");
-
 let Util = {
   
   dumpf: function dumpf(str) {
