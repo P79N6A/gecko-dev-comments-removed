@@ -391,10 +391,10 @@ nsPlainTextSerializer::AppendElementStart(Element* aElement,
 {
   NS_ENSURE_ARG(aElement);
 
-  mContent = aElement;
+  mElement = aElement;
 
   nsresult rv;
-  PRInt32 id = GetIdForContent(mContent);
+  PRInt32 id = GetIdForContent(mElement);
 
   PRBool isContainer = IsContainer(id);
 
@@ -407,7 +407,7 @@ nsPlainTextSerializer::AppendElementStart(Element* aElement,
     rv = DoAddLeaf(nsnull, id, EmptyString());
   }
 
-  mContent = 0;
+  mElement = nsnull;
   mOutputString = nsnull;
 
   if (id == eHTMLTag_head) {
@@ -423,10 +423,10 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
 {
   NS_ENSURE_ARG(aElement);
 
-  mContent = aElement;
+  mElement = aElement;
 
   nsresult rv;
-  PRInt32 id = GetIdForContent(mContent);
+  PRInt32 id = GetIdForContent(mElement);
 
   PRBool isContainer = IsContainer(id);
 
@@ -437,7 +437,7 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
     rv = DoCloseContainer(id);
   }
 
-  mContent = 0;
+  mElement = nsnull;
   mOutputString = nsnull;
 
   if (id == eHTMLTag_head) {
@@ -1827,8 +1827,8 @@ nsPlainTextSerializer::GetAttributeValue(const nsIParserNode* aNode,
                                          nsIAtom* aName,
                                          nsString& aValueRet)
 {
-  if (mContent) {
-    if (mContent->GetAttr(kNameSpaceID_None, aName, aValueRet)) {
+  if (mElement) {
+    if (mElement->GetAttr(kNameSpaceID_None, aName, aValueRet)) {
       return NS_OK;
     }
   }

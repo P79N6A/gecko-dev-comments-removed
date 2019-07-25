@@ -240,7 +240,7 @@ protected:
 
 
 
-  nsRefPtr<mozilla::dom::Element> mContent;
+  nsRefPtr<mozilla::dom::Element> mElement;
 
   
   nsAutoTArray<PRPackedBool, 8> mHasWrittenCellsForRow;
