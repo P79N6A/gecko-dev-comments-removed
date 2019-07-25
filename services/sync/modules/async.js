@@ -49,7 +49,7 @@ const CB_FAIL = {};
 
 const REASON_ERROR = Ci.mozIStorageStatementCallback.REASON_ERROR;
 
-Cu.import("resource://services-sync/util.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -97,7 +97,7 @@ let Async = {
     let thread = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
 
     
-    while (Utils.checkAppReady() && callback.state == CB_READY) {
+    while (Async.checkAppReady() && callback.state == CB_READY) {
       thread.processNextEvent(true);
     }
 
@@ -112,6 +112,21 @@ let Async = {
 
     
     return callback.value;
+  },
+
+  
+
+
+  checkAppReady: function checkAppReady() {
+    
+    Services.obs.addObserver(function onQuitApplication() {
+      Services.obs.removeObserver(onQuitApplication, "quit-application");
+      Async.checkAppReady = function() {
+        throw Components.Exception("App. Quitting", Cr.NS_ERROR_ABORT);
+      };
+    }, "quit-application", false);
+    
+    return (Async.checkAppReady = function() { return true; })();
   },
 
   
