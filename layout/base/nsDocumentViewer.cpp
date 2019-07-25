@@ -414,6 +414,11 @@ private:
                                    PRBool               aStartAtTop);
 #endif 
 
+  
+  
+  
+  PRBool ShouldAttachToTopLevel();
+
 protected:
   
   nsIPresShell* GetPresShell();
@@ -1392,6 +1397,32 @@ DocumentViewerImpl::Open(nsISupports *aState, nsISHEntry *aSHEntry)
   
 
   PrepareToStartLoad();
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (nsIWidget::UsePuppetWidgets() && mPresContext &&
+      ShouldAttachToTopLevel()) {
+    
+    DetachFromTopLevelWidget();
+
+    nsIViewManager *vm = GetViewManager();
+    NS_ABORT_IF_FALSE(vm, "no view manager");
+    nsIView *v;
+    nsresult rv = vm->GetRootView(v);
+    NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "failed in getting the root view");
+    NS_ABORT_IF_FALSE(v, "no root view");
+    NS_ABORT_IF_FALSE(mParentWidget, "no mParentWidget to set");
+    v->AttachToTopLevelWidget(mParentWidget);
+
+    mAttachedToParent = PR_TRUE;
+  }
+
   return NS_OK;
 }
 
@@ -2242,30 +2273,12 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   if (GetIsPrintPreview())
     return NS_OK;
 
-  
-  
-  
-  
-  
-  
-#ifdef XP_WIN
-  nsCOMPtr<nsIDocShellTreeItem> containerItem = do_QueryReferent(mContainer);
-  if (mParentWidget && containerItem) {
-    PRInt32 docType;
-    nsWindowType winType;
-    containerItem->GetItemType(&docType);
-    mParentWidget->GetWindowType(winType);
-    if ((winType == eWindowType_toplevel ||
-         winType == eWindowType_dialog ||
-         winType == eWindowType_invisible) &&
-        docType == nsIDocShellTreeItem::typeChrome) {
-      
-      DetachFromTopLevelWidget();
-      
-      mAttachedToParent = PR_TRUE;
-    }
+  PRBool shouldAttach = ShouldAttachToTopLevel();
+
+  if (shouldAttach) {
+    
+    DetachFromTopLevelWidget();
   }
-#endif
 
   nsresult rv;
   mViewManager = do_CreateInstance(kViewManagerCID, &rv);
@@ -2304,9 +2317,10 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
       initDataPtr = nsnull;
     }
 
-    if (mAttachedToParent) {
+    if (shouldAttach) {
       
       rv = view->AttachToTopLevelWidget(mParentWidget);
+      mAttachedToParent = PR_TRUE;
     }
     else if (!aContainerView && mParentWidget) {
       rv = view->CreateWidgetForParent(mParentWidget, initDataPtr,
@@ -4028,6 +4042,37 @@ DocumentViewerImpl::SetIsPrintingInDocShellTree(nsIDocShellTreeNode* aParentNode
 
 }
 #endif 
+
+PRBool
+DocumentViewerImpl::ShouldAttachToTopLevel()
+{
+  if (!mParentWidget)
+    return PR_FALSE;
+
+  nsCOMPtr<nsIDocShellTreeItem> containerItem = do_QueryReferent(mContainer);
+  if (!containerItem)
+    return PR_FALSE;
+
+  
+  if (nsIWidget::UsePuppetWidgets())
+    return PR_TRUE;
+
+#ifdef XP_WIN
+  
+  
+  PRInt32 docType;
+  nsWindowType winType;
+  containerItem->GetItemType(&docType);
+  mParentWidget->GetWindowType(winType);
+  if ((winType == eWindowType_toplevel ||
+       winType == eWindowType_dialog ||
+       winType == eWindowType_invisible) &&
+      docType == nsIDocShellTreeItem::typeChrome)
+    return PR_TRUE;
+#endif
+
+  return PR_FALSE;
+}
 
 
 
