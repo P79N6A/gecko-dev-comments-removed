@@ -42,40 +42,6 @@
 
 
 
-function getScrollboxFromElement(elem) {
-  
-  let scrollbox = null;
-  let qinterface = null;
-
-  while (elem.parentNode) {
-    try {
-      if (elem.scrollBoxObject) {
-
-        scrollbox = elem;
-        qinterface = elem.scrollBoxObject;
-        break;
-
-      } else if (elem.boxObject) {
-
-        let qi = (elem._cachedSBO) ? elem._cachedSBO
-                                   : elem.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-        if (qi) {
-          scrollbox = elem;
-          elem._cachedSBO = qinterface = qi;
-          break;
-        }
-
-      }
-    } catch (e) {
-      
-    }
-    elem = elem.parentNode;
-  }
-
-  return [scrollbox, qinterface];
-}
-
-
 
 
 
@@ -92,17 +58,14 @@ function InputHandler() {
   this._modules = [];
 
   
-  this._grabbed = null;
+  this._grabber = null;
+  this._grabDepth = 0;
 
   
   this._ignoreEvents = false;
 
   
   this._suppressNextClick = true;
-
-  
-  window.addEventListener("URLChanged", this, true);
-  window.addEventListener("TabSelect", this, true);
 
   
   window.addEventListener("mouseout", this, true);
@@ -114,38 +77,102 @@ function InputHandler() {
   window.addEventListener("click", this, true);
   window.addEventListener("DOMMouseScroll", this, true);
 
+  
   let browserCanvas = document.getElementById("tile-container");
   browserCanvas.addEventListener("keydown", this, true);
   browserCanvas.addEventListener("keyup", this, true);
 
   let useEarlyMouseMoves = gPrefService.getBoolPref("browser.ui.panning.fixup.mousemove");
 
-  this._modules.push(new ChromeInputModule(this));
+  this._modules.push(new MouseModule(this));
   
-  this._modules.push(new ContentClickingModule(this));
+  
   this._modules.push(new ScrollwheelModule(this, browserCanvas));
 }
 
+
 InputHandler.prototype = {
-  grab: function grab(obj) {
-    
-    
-    if ((obj == null) || (this._grabbed != obj)) {
 
-      
-      this._grabbed = obj;
+  
 
-      
-      for each(mod in this._modules) {
-        if (mod != obj)
-          mod.cancelPending();
-      }
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  grab: function grab(grabber) {
+    if (grabber == null) {
+      this._grabber = null;
+      this._grabDepth = -1;   
     }
+
+    if (!this._grabber || this._grabber == grabber) {
+
+      if (!this._grabber) {
+        
+        let mods = this._modules;
+        for (let i = 0, len = mods.length; i < len; ++i)
+          if (mods[i] != grabber)
+            mods[i].cancelPending();
+      }
+
+      this._grabber = grabber;
+      this._grabDepth++;
+      return true;
+    }
+
+    return false;
   },
 
-  ungrab: function ungrab(obj) {
-    if (this._grabbed == obj)
-      this._grabbed = null;
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  ungrab: function ungrab(grabber, restoreEventInfos) {
+    if (this._grabber == null && grabber == null) {
+      this._grabber = null;
+      this._grabDepth = 1;  
+    }
+
+    if (this._grabber == grabber) {
+      this._grabDepth--;
+      if (this._grabDepth == 0) {
+        this._grabber = null;
+
+        if (restoreEventInfos) {
+          let mods = this._modules;
+          let grabberIndex = 0;
+
+          for (let i = 0, len = mods.length; i < len; ++i) {
+            if (mods[i] == grabber) {
+              grabberIndex = i;
+              break;
+            }
+          }
+
+          for (i = 0, len = restoreEventInfos.length; i < len; ++i)
+            this.passToModules(restoreEventInfos[i], grabberIndex + 1);
+        }
+      }
+    }
   },
 
   suppressNextClick: function suppressNextClick() {
@@ -168,12 +195,6 @@ InputHandler.prototype = {
     if (this._ignoreEvents)
       return;
 
-    
-    if (aEvent.type == "URLChanged" || aEvent.type == "TabSelect") {
-      this.grab(null);
-      return;
-    }
-
     if (this._suppressNextClick && aEvent.type == "click") {
       this._suppressNextClick = false;
       aEvent.stopPropagation();
@@ -181,13 +202,19 @@ InputHandler.prototype = {
       return;
     }
 
-    if (this._grabbed) {
-      this._grabbed.handleEvent(aEvent);
+    this.passToModules(new InputHandler.EventInfo(aEvent));
+  },
+
+  passToModules: function passToModules(evInfo, skipToIndex) {
+    if (this._grabber) {
+      this._grabber.handleEvent(evInfo);
     } else {
-      for each(mod in this._modules) {
-        mod.handleEvent(aEvent);
-        
-        if (this._grabbed)
+      let mods = this._modules;
+      let i = skipToIndex || 0;
+
+      for (len = mods.length; i < len; ++i) {
+        mods[i].handleEvent(evInfo);  
+        if (this._grabbed)            
           break;
       }
     }
@@ -195,14 +222,357 @@ InputHandler.prototype = {
 };
 
 
+InputHandler.EventInfo = function EventInfo(aEvent, timestamp) {
+  this.event = aEvent;
+  this.time = timestamp || Date.now();
+};
+
+
+function MouseModule(owner) {
+  this._owner = owner;
+  this._dragData = new DragData(this, 50, 200);
+
+  this._dragger = this._defaultDragger;
+  this._clicker = null;
+
+  this._recordedEvents = [];
+  this._targetScrollInterface = null;
+
+  this._dragging = false;
+  this._fastPath = false;
+
+  var self = this;
+  this._kinetic = new KineticController( function (dx, dy) { return self._dragBy(dx, dy); } );
+}
+
+
+MouseModule.prototype = {
+  handleEvent: function handleEvent(evInfo) {
+    switch (evInfo.event.type) {
+      case "mousedown":
+        this._onMouseDown(evInfo);
+        break;
+      case "mousemove":
+        this._onMouseMove(evInfo);
+        break;
+      case "mouseup":
+        this._onMouseUp(evInfo);
+        break;
+    }
+  },
+
+  
 
 
 
-function DragData(owner, dragRadius, dragStartTimeoutLength) {
+  cancelPending: function cancelPending() {
+    this._kinetic.end();
+    this._dragData.reset();
+    this._targetScrollInterface = null;
+  },
+
+  _onMouseDown: function _onMouseDown(evInfo) {
+    this._owner.allowClicks();
+
+    
+    
+    let [targetScrollbox, targetScrollInterface]
+      = this.getScrollboxFromElement(evInfo.event.target);
+
+    let targetClicker = this.getClickerFromElement(evInfo.event.target);
+
+    this._targetScrollInterface = targetScrollInterface;
+
+    
+    
+    
+    
+    
+
+    this._dragger = targetScrollbox.customDragger || this._defaultDragger;
+    this._clicker = (targetClicker) ? targetClicker.customClicker : null;
+
+    evInfo.event.stopPropagation();
+    evInfo.event.preventDefault();
+
+    this._owner.grab(this);
+
+    if (targetScrollInterface) {
+      this._kinetic.end();
+      this._doDragStart(evInfo.event.screenX, evInfo.event.screenY);
+    }
+
+    this._recordEvent(evInfo);
+  },
+
+  _onMouseUp: function _onMouseUp(evInfo) {
+    
+    
+
+    evInfo.event.stopPropagation();
+    evInfo.event.preventDefault();
+
+    
+    
+    this._owner.suppressNextClick();
+
+    let [sX, sY] = [evInfo.event.screenX, evInfo.event.screenY];
+
+    let movedOutOfRadius = dragData.isPointOutsideRadius(sX, sY);
+
+    let dragData = this._dragData;
+    if (dragData.dragging)
+      this._doDragStop(sX, sY);
+
+    dragData.reset();
+
+    this._recordedEvents.push(evInfo);
+
+    this._doClick(movedOutOfRadius);
+
+    this._owner.ungrab(this);
+  },
+
+  _onMouseMove: function _onMouseMove(evInfo) {
+    let dragData = this._dragData;
+
+    if (dragData.dragging) {
+      evInfo.event.stopPropagation();
+      evInfo.event.preventDefault();
+      this._doDragMove(evInfo.event.screenX, evInfo.event.screenY);
+    }
+  },
+
+  _recordEvent: function _recordEvent(evInfo) {
+    this._recordedEvents.push(evInfo);
+  },
+
+  _redispatchRecordedEvents: function _redispatchRecordedEvents() {
+    let evQueue = this._recordedEvents;
+
+    this._owner.stopListening();
+
+    while (evQueue.length > 0) {
+      let evInfo = evQueue.shift();
+      this._redispatchChromeMouseEvent(evInfo.event);
+    }
+
+    this._owner.startListening();
+  },
+
+  _redispatchChromeMouseEvent: function _redispatchChromeMouseEvent(aEvent) {
+    if (!(aEvent instanceof MouseEvent)) {
+      Cu.reportError("_redispatchChromeMouseEvent called with a non-mouse event");
+      return;
+    }
+
+    
+    Browser.windowUtils.sendMouseEvent(aEvent.type, aEvent.clientX, aEvent.clientY,
+                                       aEvent.button, aEvent.detail, 0, true);
+  },
+
+  _doDragStart: function _doDragStart(sX, sY) {
+    let dragData = this._dragData;
+
+    dragData.setDragStart(sX, sY);
+    this._kinetic.addData(sX, sY);
+
+    this._dragger.dragStart(this._targetScrollInterface);
+  },
+
+  _doDragStop: function _doDragStop(sX, sY) {
+    let dragData = this._dragData;
+
+    let dx = dragData.sX - sX;
+    let dy = dragData.sY - sY;
+
+    dragData.setDragPosition(sX, sY);
+    this._kinetic.addData(sX, sY);
+
+    this._dragger.dragStop(dx, dy, this._targetScrollInterface);
+
+    this._kinetic.start();
+  },
+
+  _doDragMove: function _doDragMove(sX, sY) {
+    let dragData = this._dragData;
+    let dX = dragData.sX - sX;
+    let dY = dragData.sY - sY;
+    this._kinetic.addData(sX, sY);
+    return this._dragBy(dX, dY);
+  },
+
+  _dragBy: function _dragBy(dX, dY) {
+    let dragData = this._dragData;
+    let sX = dragData.sX - dX;
+    let sY = dragData.sY - dY;
+
+    dragData.setDragPosition(sX, sY);
+
+    return this._dragger.dragMove(dX, dX, this._targetScrollInterface);
+  },
+
+  _doClick: function _doClick(movedOutOfRadius) {
+    if (this._clicker && !movedOutOfRadius) {
+      
+      this._commitAnotherClick();
+    }
+
+    this._redispatchRecordedEvents();
+  },
+
+  _commitAnotherClick: function _commitAnotherClick() {
+    
+    if (this._clickTimeout) {
+      
+      
+      
+      window.clearTimeout(this._clickTimeout);
+      delete this._clickTimeout;
+      this._doDoubleClick();
+    } else {
+      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); }, 400, this);
+    }
+  },
+
+  
+
+
+  _doSingleClick: function _doSingleClick() {
+    let ev = this._recordedEvents[1].event;
+    
+    this._clicker.singleClick(ev.sX, ev.sY);
+  },
+
+  
+
+
+  _doDoubleClick: function _doDoubleClick(sX, sY) {
+    let mouseUp1 = this._recordedEvents[1].event;
+    let mouseUp2 = this._recordedEvents[3].event;
+
+    this._clicker.doubleClick(mouseUp1.sX, mouseUp1.sY, mouseUp2.sX, mouseUp2.sY);
+  },
+
+  _defaultDragger: {
+    dragStart: function dragStart(scroller) {},
+    dragStop : function dragStop(dx, dy, scroller) { return this.dragMove(dx, dy, scroller); },
+    dragMove : function dragMove(dx, dy, scroller) {
+      if (scroller.getPosition) {
+        let oldX = {}, oldY = {};
+        scroller.getPosition(oldX, oldY);
+
+        scroller.scrollBy(dx, dy);
+
+        let newX = {}, newY = {};
+        scroller.getPosition(newX, newY);
+
+        return (newX.value != oldX.value) || (newY.value != oldY.value);
+      } else {
+        scroller.scrollBy(dx, dy);
+        
+        return true;
+      }
+    }
+  },
+
+  
+
+
+
+
+  _createDefaultClicker: function _createDefaultClicker() {
+    let self = this;
+    return {
+      singleClick: function singleClick(sX, sY) {
+        self._redispatchRecordedEvents();
+      },
+
+      doubleClick: function doubleClick(firstX, firstY, secondX, secondY) {
+        self._redispatchRecordedEvents();
+      }
+    };
+  },
+
+  
+  
+
+  
+
+
+
+
+
+
+
+  getScrollboxFromElement: function getScrollboxFromElement(elem) {
+    let scrollbox = null;
+    let qinterface = null;
+
+    while (elem.parentNode) {
+      try {
+
+        if (elem.scrollBoxObject) {
+
+          scrollbox = elem;
+          qinterface = elem.scrollBoxObject;
+          break;
+        } else if (elem.boxObject) {
+
+          let qi = (elem._cachedSBO) ? elem._cachedSBO
+                                     : elem.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+          if (qi) {
+            scrollbox = elem;
+            elem._cachedSBO = qinterface = qi;
+            break;
+          }
+        }
+      } catch (e) { 
+
+ }
+
+      elem = elem.parentNode;
+    }
+    return [scrollbox, qinterface];
+  },
+
+  
+
+
+
+  getClickerFromElement: function getClickerFromElement(elem) {
+    for (; elem; elem = elem.parentNode)
+      if (elem.customClicker)
+        break;
+
+    return (elem) ? elem : null;
+  },
+
+  
+
+
+
+  cloneMouseEvent: function cloneMouseEvent(aEvent) {
+    let clickEvent = document.createEvent("MouseEvent");
+    clickEvent.initMouseEvent(aEvent.type, aEvent.bubbles, aEvent.cancelable,
+                              aEvent.view, aEvent.detail,
+                              aEvent.screenX, aEvent.screenY, aEvent.clientX, aEvent.clientY,
+                              aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKeyArg, aEvent.metaKeyArg,
+                              aEvent.button, aEvent.relatedTarget);
+    return clickEvent;
+  }
+
+};
+
+
+
+
+
+DragData(owner, dragRadius, dragStartTimeoutLength) {
   this._owner = owner;
   this._dragRadius = dragRadius;
   this.reset();
-}
+};
 
 DragData.prototype = {
   reset: function reset() {
@@ -272,199 +642,14 @@ DragData.prototype = {
 
 
 
-function ChromeInputModule(owner) {
-  this._owner = owner;
-  this._dragData = new DragData(this, 50, 200);
-  this._defaultDragger = new ChromeInputModule.DefaultDragger();
-  this._dragger = null;
-  this._targetScrollFunction = null;
-  this._clickEvents = [];
-}
-
-ChromeInputModule.prototype = {
-  handleEvent: function handleEvent(aEvent) {
-    switch (aEvent.type) {
-      case "mousedown":
-        this._onMouseDown(aEvent);
-        break;
-      case "mousemove":
-        this._onMouseMove(aEvent);
-        break;
-      case "mouseup":
-        this._onMouseUp(aEvent);
-        break;
-    }
-  },
-
-  
-
-
-  cancelPending: function cancelPending() {
-    this._dragData.reset();
-    this._targetScrollInterface = null;
-  },
-
-  _onMouseDown: function _onMouseDown(aEvent) {
-    
-    this._owner.allowClicks();
-
-    let dragData = this._dragData;
-
-    let [targetScrollbox, targetScrollInterface] =
-      getScrollboxFromElement(aEvent.target);
-
-    if (!targetScrollbox)
-      return;
-
-    this._dragger = targetScrollbox.customDragger || this._defaultDragger;
-    let tsi = this._targetScrollInterface = targetScrollInterface;
-
-    if (!tsi)
-      return;
-
-    
-    this._owner.grab(this);
-    aEvent.stopPropagation();
-    aEvent.preventDefault();
-
-    this._doDragStart(aEvent.screenX, aEvent.screenY);
-
-    this._onMouseMove(aEvent); 
-
-    
-    let clickEvent = document.createEvent("MouseEvent");
-    clickEvent.initMouseEvent(aEvent.type, aEvent.bubbles, aEvent.cancelable,
-                              aEvent.view, aEvent.detail,
-                              aEvent.screenX, aEvent.screenY, aEvent.clientX, aEvent.clientY,
-                              aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKeyArg, aEvent.metaKeyArg,
-                              aEvent.button, aEvent.relatedTarget);
-    this._clickEvents.push({event: clickEvent, target: aEvent.target, time: Date.now()});
-  },
-
-  _onMouseUp: function _onMouseUp(aEvent) {
-    
-    if (!this._targetScrollInterface)
-      return;
-
-    aEvent.stopPropagation();
-    aEvent.preventDefault();
-
-    let dragData = this._dragData;
-    if (dragData.dragging)
-      this._doDragStop(aEvent.screenX, aEvent.screenY);
-
-    dragData.reset();
-
-    
-    if (!(this._clickEvents.length % 2)) {
-      this._clickEvents = [];
-      this._owner.suppressNextClick();
-    } else {
-      let clickEvent = document.createEvent("MouseEvent");
-      clickEvent.initMouseEvent(aEvent.type, aEvent.bubbles, aEvent.cancelable,
-                                aEvent.view, aEvent.detail,
-                                aEvent.screenX, aEvent.screenY, aEvent.clientX, aEvent.clientY,
-                                aEvent.ctrlKey, aEvent.altKey, aEvent.shiftKeyArg, aEvent.metaKeyArg,
-                                aEvent.button, aEvent.relatedTarget);
-      this._clickEvents.push({event: clickEvent, target: aEvent.target, time: Date.now()});
-
-      this._sendSingleClick();
-      this._owner.suppressNextClick();
-    }
-
-    this._targetScrollInterface = null;
-    this._owner.ungrab(this);
-  },
-
-  _onMouseMove: function _onMouseMove(aEvent) {
-    
-    if (!this._targetScrollInterface)
-      return;
-
-    aEvent.stopPropagation();
-    aEvent.preventDefault();
-
-    if (this._dragData.dragging)
-      this._doDragMove(aEvent.screenX, aEvent.screenY);
-  },
-
-  
-  _sendSingleClick: function _sendSingleClick() {
-    this._owner.grab(this);
-    this._owner.stopListening();
-
-    
-    this._redispatchChromeMouseEvent(this._clickEvents[0].event);
-    this._redispatchChromeMouseEvent(this._clickEvents[1].event);
-
-    this._owner.startListening();
-    this._owner.ungrab(this);
-
-    this._clickEvents = [];
-  },
-
-  _redispatchChromeMouseEvent: function _redispatchChromeMouseEvent(aEvent) {
-    if (!(aEvent instanceof MouseEvent)) {
-      Cu.reportError("_redispatchChromeMouseEvent called with a non-mouse event");
-      return;
-    }
-
-    
-    let cwu = Browser.windowUtils;
-    cwu.sendMouseEvent(aEvent.type, aEvent.clientX, aEvent.clientY,
-                       aEvent.button, aEvent.detail, 0, true);
-  },
-
-  _doDragStart: function _doDragStart(sX, sY) {
-    let dragData = this._dragData;
-
-    dragData.setDragStart(sX, sY);
-
-    this._dragger.dragStart(this._targetScrollInterface);
-  },
-
-  _doDragStop: function _doDragStop(sX, sY) {
-    let dragData = this._dragData;
-
-    let dx = dragData.sX - sX;
-    let dy = dragData.sY - sY;
-
-    dragData.setDragPosition(sX, sY);
-
-    this._dragger.dragStop(dx, dy, this._targetScrollInterface);
-  },
-
-  _doDragMove: function _doDragMove(sX, sY) {
-    let dragData = this._dragData;
-    if (dragData.isPointOutsideRadius(sX, sY))
-      this._clickEvents = [];
-
-    let dx = dragData.sX - sX;
-    let dy = dragData.sY - sY;
-
-    dragData.setDragPosition(sX, sY);
-
-    this._dragger.dragMove(dx, dy, this._targetScrollInterface);
-  }
-};
-
-
-
-ChromeInputModule.DefaultDragger = function DefaultDragger() {};
-ChromeInputModule.DefaultDragger.prototype = {
-  dragStart: function dragStart(scroller) {},
-  dragStop : function dragStop(dx, dy, scroller) { scroller.scrollBy(dx, dy); },
-  dragMove : function dragMove(dx, dy, scroller) { scroller.scrollBy(dx, dy); }
-};
 
 
 
 
 
-
-function KineticData(owner) {
-  this._owner = owner;
-  this._kineticTimer = null;
+function KineticController(aPanBy) {
+  this._panBy = aPanBy;
+  this._timer = null;
 
   try {
     this._updateInterval = gPrefService.getIntPref("browser.ui.kinetic.updateInterval");
@@ -479,15 +664,14 @@ function KineticData(owner) {
     this._decelerationRate = .15;
   };
 
-  this.reset();
+  this._reset();
 }
 
-KineticData.prototype = {
-
-  reset: function reset() {
-    if (this._kineticTimer != null) {
-      this._kineticTimer.cancel();
-      this._kineticTimer = null;
+KineticController.prototype = {
+  _reset: function _reset() {
+    if (this._timer != null) {
+      this._timer.cancel();
+      this._timer = null;
     }
 
     this.momentumBuffer = [];
@@ -496,10 +680,10 @@ KineticData.prototype = {
   },
 
   isActive: function isActive() {
-    return (this._kineticTimer != null);
+    return (this._timer != null);
   },
 
-  _startKineticTimer: function _startKineticTimer() {
+  _startTimer: function _startTimer() {
     let callback = {
       _self: this,
       notify: function kineticTimerCallback(timer) {
@@ -508,16 +692,16 @@ KineticData.prototype = {
         
 
         if (self._speedX == 0 && self._speedY == 0) {
-          self.endKinetic();
+          self.end();
           return;
         }
         let dx = Math.round(self._speedX * self._updateInterval);
         let dy = Math.round(self._speedY * self._updateInterval);
         
 
-        let panned = self._owner._dragBy(dx, dy);
+        let panned = self._panBy(-dx, -dy);
         if (!panned) {
-          self.endKinetic();
+          self.end();
           return;
         }
 
@@ -533,25 +717,26 @@ KineticData.prototype = {
         }
 
         if (self._speedX == 0 && self._speedY == 0)
-          self.endKinetic();
+          self.end();
       }
     };
 
-    this._kineticTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     
-    this._kineticTimer.initWithCallback(callback,
+    this._timer.initWithCallback(callback,
                                         this._updateInterval,
-                                        this._kineticTimer.TYPE_REPEATING_SLACK);
+                                        this._timer.TYPE_REPEATING_SLACK);
   },
 
-
-  startKinetic: function startKinetic(sX, sY) {
+  start: function start() {
     let mb = this.momentumBuffer;
     let mblen = this.momentumBuffer.length;
 
     
-    if (mblen < 2)
+    if (mblen < 2) {
+      this.end();
       return false;
+    }
 
     function ema(currentSpeed, lastSpeed, alpha) {
       return alpha * currentSpeed + (1 - alpha) * lastSpeed;
@@ -571,49 +756,20 @@ KineticData.prototype = {
     }
 
     
-    this._startKineticTimer();
+    this._startTimer();
 
     return true;
   },
 
-  endKinetic: function endKinetic() {
-    if (!this.isActive()) {
-      this.reset();
-      return;
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    this.reset();
+  end: function end() {
+    this._reset();
   },
 
   addData: function addData(sx, sy) {
+    
+    if (this.isActive())
+      this.end();
+
     let mbLength = this.momentumBuffer.length;
     
     let now = Date.now();
@@ -628,12 +784,15 @@ KineticData.prototype = {
   }
 };
 
+
 function ContentPanningModule(owner, browserCanvas, useEarlyMouseMoves) {
   this._owner = owner;
   this._browserCanvas = browserCanvas;
   this._dragData = new DragData(this, 50, 200);
-  this._kineticData = new KineticData(this);
   this._useEarlyMouseMoves = useEarlyMouseMoves;
+
+  var self = this;
+  this._kinetic = new KineticController( function (dx, dy) { return self._dragBy(dx, dy); } );
 }
 
 ContentPanningModule.prototype = {
@@ -661,15 +820,8 @@ ContentPanningModule.prototype = {
 
 
   cancelPending: function cancelPending() {
-    if (this._kineticData.isActive()) {
-      this._kineticData.endKinetic();
-    } else {
-      
-      
-      
-    }
-    let dragData = this._dragData;
-    dragData.reset();
+    this._kinetic.end();
+    this._dragData.reset();
   },
 
   _dragStart: function _dragStart(sX, sY) {
@@ -692,8 +844,7 @@ ContentPanningModule.prototype = {
     [sX, sY] = dragData.lockMouseMove(sX, sY);
 
     
-    if (!this._kineticData.startKinetic(sX, sY))
-      this._kineticData.endKinetic();
+    this._kinetic.start(sX, sY);
 
     dragData.reset();
   },
@@ -718,8 +869,8 @@ ContentPanningModule.prototype = {
   _onMouseDown: function _onMouseDown(aEvent) {
     let dragData = this._dragData;
     
-    if (this._kineticData.isActive()) {
-      this._kineticData.endKinetic();
+    if (this._kinetic.isActive()) {
+      this._kinetic.end();
       this._owner.ungrab(this);
       dragData.reset();
     }
@@ -741,7 +892,7 @@ ContentPanningModule.prototype = {
 
   _onMouseMove: function _onMouseMove(aEvent) {
     
-    if (this._kineticData.isActive())
+    if (this._kinetic.isActive())
       return;
 
     let dragData = this._dragData;
@@ -759,7 +910,7 @@ ContentPanningModule.prototype = {
     
     
     if (this._useEarlyMouseMoves || dragData.dragging)
-      this._kineticData.addData(sX, sY);
+      this._kinetic.addData(sX, sY);
 
     if (dragData.dragging)
       this._dragMove(sX, sY);
@@ -779,28 +930,17 @@ function ContentClickingModule(owner) {
 
 ContentClickingModule.prototype = {
   handleEvent: function handleEvent(aEvent) {
-    
-    if (aEvent.target !== document.getElementById("browser-canvas"))
-      return;
-
     switch (aEvent.type) {
       
       case "mousedown":
         this._events.push({event: aEvent, time: Date.now()});
 
-        
-        if (this._clickTimeout != -1) {
-          
-          
-          
-          window.clearTimeout(this._clickTimeout);
-        }
-        break;
+
       case "mouseup":
         
         if (!(this._events.length % 2)) {
           this._reset();
-          break;
+            break;
         }
 
         this._events.push({event: aEvent, time: Date.now()});
