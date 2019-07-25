@@ -994,7 +994,9 @@ class RegexGenerator : private MacroAssembler {
             parenthesesState.linkAlternativeBacktracks(this);
             if (term.invertOrCapture) {
                 store32(Imm32(-1), Address(output, (term.parentheses.subpatternId << 1) * sizeof(int)));
+#if DEBUG
                 store32(Imm32(-1), Address(output, ((term.parentheses.subpatternId << 1) + 1) * sizeof(int)));
+#endif
             }
 
             if (term.quantityType == QuantifierGreedy)
@@ -1214,20 +1216,25 @@ class RegexGenerator : private MacroAssembler {
         state.resetAlternative();
 
         
-        
-        
-        
-
-        Label firstAlternative(this);
-
-        
         int countCheckedForCurrentAlternative = 0;
         int countToCheckForFirstAlternative = 0;
         bool hasShorterAlternatives = false;
+        bool setRepeatAlternativeLabels = false;
         JumpList notEnoughInputForPreviousAlternative;
+        Label firstAlternative;
+        Label firstAlternativeInputChecked;
 
+        
+        
+        
+        
+        
         if (state.alternativeValid()) {
             PatternAlternative* alternative = state.alternative();
+            if (!alternative->onceThrough()) {
+                firstAlternative = Label(this);
+                setRepeatAlternativeLabels = true;
+            }
             countToCheckForFirstAlternative = alternative->m_minimumSize;
             state.checkedTotal += countToCheckForFirstAlternative;
             if (countToCheckForFirstAlternative)
@@ -1235,15 +1242,17 @@ class RegexGenerator : private MacroAssembler {
             countCheckedForCurrentAlternative = countToCheckForFirstAlternative;
         }
 
-        Label firstAlternativeInputChecked(this);
+        if (setRepeatAlternativeLabels)
+            firstAlternativeInputChecked = Label(this);
 
         while (state.alternativeValid()) {
-            
-            hasShorterAlternatives = hasShorterAlternatives || (countCheckedForCurrentAlternative < countToCheckForFirstAlternative);
-
             PatternAlternative* alternative = state.alternative();
             optimizeAlternative(alternative);
 
+            
+            if (!alternative->onceThrough())
+                hasShorterAlternatives = hasShorterAlternatives || (countCheckedForCurrentAlternative < countToCheckForFirstAlternative);
+            
             for (state.resetTerm(); state.termValid(); state.nextTerm())
                 generateTerm(state);
 
@@ -1270,47 +1279,75 @@ class RegexGenerator : private MacroAssembler {
             
             if (state.alternativeValid()) {
                 PatternAlternative* nextAlternative = state.alternative();
-                int countToCheckForNextAlternative = nextAlternative->m_minimumSize;
-
-                if (countCheckedForCurrentAlternative > countToCheckForNextAlternative) { 
-                    
-                    notEnoughInputForPreviousAlternative.link(this);
-
-                    
-                    notEnoughInputForPreviousAlternative.append(jumpIfNoAvailableInput(countToCheckForNextAlternative - countCheckedForCurrentAlternative));
+                if (!setRepeatAlternativeLabels && !nextAlternative->onceThrough()) {
                     
                     
-                    add32(Imm32(countCheckedForCurrentAlternative - countToCheckForNextAlternative), index);
-
+                    state.jumpToBacktrack(jump(), this);
                     
-                    state.linkAlternativeBacktracks(this);
-                    
-                    
-                    sub32(Imm32(countCheckedForCurrentAlternative - countToCheckForNextAlternative), index);
-                } else if (countCheckedForCurrentAlternative < countToCheckForNextAlternative) { 
-                    
-                    
+                    countToCheckForFirstAlternative = nextAlternative->m_minimumSize;
                     
                     
                     notEnoughInputForPreviousAlternative.link(this);
-                    add32(Imm32(countToCheckForNextAlternative - countCheckedForCurrentAlternative), index);
-                    notEnoughInputForPreviousAlternative.append(jump());
-
                     
                     state.linkAlternativeBacktracks(this);
-                    notEnoughInputForPreviousAlternative.append(jumpIfNoAvailableInput(countToCheckForNextAlternative - countCheckedForCurrentAlternative));
-                } else { 
-                    ASSERT(countCheckedForCurrentAlternative == countToCheckForNextAlternative);
 
                     
+                    if (countCheckedForCurrentAlternative)
+                        sub32(Imm32(countCheckedForCurrentAlternative), index);
                     
+                    firstAlternative = Label(this);
                     
-                    state.linkAlternativeBacktracks(this);
+                    state.checkedTotal = countToCheckForFirstAlternative;
+                    if (countToCheckForFirstAlternative)
+                        notEnoughInputForPreviousAlternative.append(jumpIfNoAvailableInput(countToCheckForFirstAlternative));
+                    
+                    countCheckedForCurrentAlternative = countToCheckForFirstAlternative;
+                    
+                    firstAlternativeInputChecked = Label(this);
+
+                    setRepeatAlternativeLabels = true;
+                } else {
+                    int countToCheckForNextAlternative = nextAlternative->m_minimumSize;
+                    
+                    if (countCheckedForCurrentAlternative > countToCheckForNextAlternative) { 
+                        
+                        notEnoughInputForPreviousAlternative.link(this);
+                        
+                        
+                        notEnoughInputForPreviousAlternative.append(jumpIfNoAvailableInput(countToCheckForNextAlternative - countCheckedForCurrentAlternative));
+                        
+                        
+                        add32(Imm32(countCheckedForCurrentAlternative - countToCheckForNextAlternative), index);
+                        
+                        
+                        state.linkAlternativeBacktracks(this);
+                        
+                        
+                        sub32(Imm32(countCheckedForCurrentAlternative - countToCheckForNextAlternative), index);
+                    } else if (countCheckedForCurrentAlternative < countToCheckForNextAlternative) { 
+                        
+                        
+                        
+                        
+                        notEnoughInputForPreviousAlternative.link(this);
+                        add32(Imm32(countToCheckForNextAlternative - countCheckedForCurrentAlternative), index);
+                        notEnoughInputForPreviousAlternative.append(jump());
+                        
+                        
+                        state.linkAlternativeBacktracks(this);
+                        notEnoughInputForPreviousAlternative.append(jumpIfNoAvailableInput(countToCheckForNextAlternative - countCheckedForCurrentAlternative));
+                    } else { 
+                        ASSERT(countCheckedForCurrentAlternative == countToCheckForNextAlternative);
+                        
+                        
+                        
+                        
+                        state.linkAlternativeBacktracks(this);
+                    }
+                    state.checkedTotal -= countCheckedForCurrentAlternative;
+                    countCheckedForCurrentAlternative = countToCheckForNextAlternative;
+                    state.checkedTotal += countCheckedForCurrentAlternative;
                 }
-
-                state.checkedTotal -= countCheckedForCurrentAlternative;
-                countCheckedForCurrentAlternative = countToCheckForNextAlternative;
-                state.checkedTotal += countCheckedForCurrentAlternative;
             }
         }
         
@@ -1318,75 +1355,83 @@ class RegexGenerator : private MacroAssembler {
 
         state.checkedTotal -= countCheckedForCurrentAlternative;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        int incrementForNextIter = (countToCheckForFirstAlternative - countCheckedForCurrentAlternative) + 1;
-
-        
-        if (incrementForNextIter > 0) 
+        if (!setRepeatAlternativeLabels) {
+            
+            
             state.linkAlternativeBacktracks(this);
-        else if (m_pattern.m_body->m_hasFixedSize && !incrementForNextIter) 
-            state.linkAlternativeBacktracksTo(firstAlternativeInputChecked, this);
-        else { 
-            state.linkAlternativeBacktracks(this);
+            notEnoughInputForPreviousAlternative.link(this);
+        } else {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            int incrementForNextIter = (countToCheckForFirstAlternative - countCheckedForCurrentAlternative) + 1;
 
             
-            if (!m_pattern.m_body->m_hasFixedSize) {
-                move(index, regT0);
-                sub32(Imm32(countCheckedForCurrentAlternative - 1), regT0);
-                store32(regT0, Address(output));
+            if (incrementForNextIter > 0) 
+                state.linkAlternativeBacktracks(this);
+            else if (m_pattern.m_body->m_hasFixedSize && !incrementForNextIter) 
+                state.linkAlternativeBacktracksTo(firstAlternativeInputChecked, this);
+            else { 
+                state.linkAlternativeBacktracks(this);
+
+                
+                if (!m_pattern.m_body->m_hasFixedSize) {
+                    move(index, regT0);
+                    sub32(Imm32(countCheckedForCurrentAlternative - 1), regT0);
+                    store32(regT0, Address(output));
+                }
+
+                
+                if (incrementForNextIter)
+                    add32(Imm32(incrementForNextIter), index);
+                jump().linkTo(firstAlternativeInputChecked, this);
             }
 
+            notEnoughInputForPreviousAlternative.link(this);
             
-            if (incrementForNextIter)
-                add32(Imm32(incrementForNextIter), index);
-            jump().linkTo(firstAlternativeInputChecked, this);
+            if (!m_pattern.m_body->m_hasFixedSize) {
+                if (countCheckedForCurrentAlternative - 1) {
+                    move(index, regT0);
+                    sub32(Imm32(countCheckedForCurrentAlternative - 1), regT0);
+                    store32(regT0, Address(output));
+                } else
+                    store32(index, Address(output));
+            }
+        
+            
+            jumpIfAvailableInput(incrementForNextIter).linkTo(firstAlternativeInputChecked, this);
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (hasShorterAlternatives)
+                jumpIfAvailableInput(-countToCheckForFirstAlternative).linkTo(firstAlternative, this);
+            
+            
+            
         }
-
-        notEnoughInputForPreviousAlternative.link(this);
-        
-        if (!m_pattern.m_body->m_hasFixedSize) {
-            if (countCheckedForCurrentAlternative - 1) {
-                move(index, regT0);
-                sub32(Imm32(countCheckedForCurrentAlternative - 1), regT0);
-                store32(regT0, Address(output));
-            } else
-                store32(index, Address(output));
-        }
-        
-        jumpIfAvailableInput(incrementForNextIter).linkTo(firstAlternativeInputChecked, this);
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (hasShorterAlternatives)
-            jumpIfAvailableInput(-countToCheckForFirstAlternative).linkTo(firstAlternative, this);
-        
-        
-        
 
         if (m_pattern.m_body->m_callFrameSize)
             addPtr(Imm32(m_pattern.m_body->m_callFrameSize * sizeof(void*)), stackPointerRegister);
@@ -1422,6 +1467,9 @@ class RegexGenerator : private MacroAssembler {
         push(ARMRegisters::r4);
         push(ARMRegisters::r5);
         push(ARMRegisters::r6);
+#if WTF_CPU_ARM_TRADITIONAL
+        push(ARMRegisters::r8); 
+#endif
         move(ARMRegisters::r3, output);
 #elif WTF_CPU_MIPS
         
@@ -1439,6 +1487,9 @@ class RegexGenerator : private MacroAssembler {
         pop(X86Registers::ebx);
         pop(X86Registers::ebp);
 #elif WTF_CPU_ARM
+#if WTF_CPU_ARM_TRADITIONAL
+        pop(ARMRegisters::r8); 
+#endif
         pop(ARMRegisters::r6);
         pop(ARMRegisters::r5);
         pop(ARMRegisters::r4);
