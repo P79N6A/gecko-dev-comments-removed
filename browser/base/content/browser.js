@@ -3346,7 +3346,7 @@ const BrowserSearch = {
       var win = getTopWin();
       if (win) {
         
-        win.focus()
+        win.focus();
         win.BrowserSearch.webSearch();
       } else {
         
@@ -3356,7 +3356,7 @@ const BrowserSearch = {
             Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
           }
         }
-        win = window.openDialog("chrome://browser/content/", "_blank",
+        win = window.openDialog(getBrowserURL(), "_blank",
                                 "chrome,all,dialog=no", "about:blank");
         Services.obs.addObserver(observer, "browser-delayed-startup-finished", false); 
       }
