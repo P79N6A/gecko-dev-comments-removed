@@ -58,7 +58,7 @@ class nsICODecoder : public Decoder
 {
 public:
 
-  nsICODecoder();
+  nsICODecoder(RasterImage *aImage, imgIDecoderObserver* aObserver);
   virtual ~nsICODecoder();
 
   

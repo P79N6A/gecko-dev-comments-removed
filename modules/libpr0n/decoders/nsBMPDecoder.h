@@ -59,7 +59,7 @@ class nsBMPDecoder : public Decoder
 {
 public:
 
-    nsBMPDecoder();
+    nsBMPDecoder(RasterImage *aImage, imgIDecoderObserver* aObserver);
     ~nsBMPDecoder();
 
     

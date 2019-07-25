@@ -44,7 +44,7 @@
 namespace mozilla {
 namespace imagelib {
 
-Decoder::Decoder()
+Decoder::Decoder(RasterImage *aImage, imgIDecoderObserver* aObserver)
   : mDecodeFlags(0)
   , mFrameCount(0)
   , mFailCode(NS_OK)
@@ -54,6 +54,12 @@ Decoder::Decoder()
   , mDecodeDone(false)
   , mDataError(false)
 {
+  
+  NS_ABORT_IF_FALSE(aImage, "Can't initialize decoder without an image!");
+
+  
+  mImage = aImage;
+  mObserver = aObserver;
 }
 
 Decoder::~Decoder()
@@ -67,17 +73,10 @@ Decoder::~Decoder()
 
 
 void
-Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
+Decoder::Init()
 {
   
-  NS_ABORT_IF_FALSE(aImage, "Can't initialize decoder without an image!");
-
-  
-  NS_ABORT_IF_FALSE(mImage == nsnull, "Can't re-initialize a decoder!");
-
-  
-  mImage = aImage;
-  mObserver = aObserver;
+  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
   
   if (!IsSizeDecode() && mObserver)
@@ -90,18 +89,11 @@ Decoder::Init(RasterImage* aImage, imgIDecoderObserver* aObserver)
 
 
 
-void 
-Decoder::InitSharedDecoder(RasterImage* aImage, imgIDecoderObserver* aObserver) 
+void
+Decoder::InitSharedDecoder()
 {
   
-  NS_ABORT_IF_FALSE(aImage, "Can't initialize decoder without an image!");
-
-  
-  NS_ABORT_IF_FALSE(mImage == nsnull, "Can't re-initialize a decoder!");
-
-  
-  mImage = aImage;
-  mObserver = aObserver;
+  NS_ABORT_IF_FALSE(!mInitialized, "Can't re-initialize a decoder!");
 
   
   InitInternal();
