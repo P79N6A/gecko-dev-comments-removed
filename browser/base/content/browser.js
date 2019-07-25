@@ -1245,7 +1245,8 @@ var gBrowserInit = {
     gDelayedStartupTimeoutId = null;
 
 #ifdef MOZ_SAFE_BROWSING
-    SafeBrowsing.init();
+    
+    setTimeout(function() { SafeBrowsing.init(); }, 2000);
 #endif
 
     Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
