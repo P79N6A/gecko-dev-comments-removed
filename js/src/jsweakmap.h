@@ -284,37 +284,12 @@ class DefaultMarkPolicy<JSObject *, JSObject *> {
 
 
 
-class CrossCompartmentMarkPolicy {
-  private:
-    JSTracer *tracer;
-    JSCompartment *comp;
 
-    
-    
-    bool isMarked(JSObject *obj) {
-        return (comp && obj->compartment() != comp) || !IsAboutToBeFinalized(tracer->context, obj);
-    }
 
-  public:
-    CrossCompartmentMarkPolicy(JSTracer *t)
-        : tracer(t), comp(t->context->runtime->gcCurrentCompartment) {}
-    bool keyMarked(JSObject *k) { return isMarked(k); }
-    bool valueMarked(JSObject *v) { return isMarked(v); }
 
-    bool markEntryIfLive(JSObject *k, JSObject *v) {
-        if (keyMarked(k) && !valueMarked(v)) {
-            js::gc::MarkObject(tracer, *v, "WeakMap entry value");
-            return true;
-        }
-        return false;
-    }
-    void markEntry(JSObject *k, JSObject *v) {
-        if (!comp || k->compartment() == comp)
-            js::gc::MarkObject(tracer, *k, "WeakMap entry key");
-        if (!comp || v->compartment() == comp)
-            js::gc::MarkObject(tracer, *v, "WeakMap entry value");
-    }
-};
+
+
+typedef DefaultMarkPolicy<JSObject *, JSObject *> CrossCompartmentMarkPolicy;
 
 
 extern Class WeakMapClass;
