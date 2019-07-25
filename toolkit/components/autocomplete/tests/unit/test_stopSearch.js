@@ -121,6 +121,8 @@ let gTests = [
   function(controller) {
     print("handleEndComposition");
     controller.handleEndComposition();
+    
+    controller.handleText();
   },
   function(controller) {
     print("handleEscape");
