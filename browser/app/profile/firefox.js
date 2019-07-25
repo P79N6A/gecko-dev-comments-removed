@@ -57,6 +57,10 @@ pref("browser.hiddenWindowChromeURL", "chrome://browser/content/hiddenWindow.xul
 pref("extensions.logging.enabled", false);
 
 
+pref("extensions.getAddons.maxResults", 15);
+pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%");
+
+
 pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/%APP%/discovery/%VERSION%/%OS%");
 
 
