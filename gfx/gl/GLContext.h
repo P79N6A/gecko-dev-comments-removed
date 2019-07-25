@@ -560,6 +560,8 @@ public:
                 tip = tip->mSharedContext;
             tip->SharedContextDestroyed(this);
             tip->ReportOutstandingNames();
+        } else {
+            ReportOutstandingNames();
         }
 #endif
     }
@@ -592,6 +594,13 @@ public:
     bool MakeCurrent(bool aForce = false) {
 #ifdef DEBUG
         PR_SetThreadPrivate(sCurrentGLContextTLS, this);
+
+        
+        
+        
+        
+        NS_ASSERTION(IsOwningThreadCurrent(),
+                     "MakeCurrent() called on different thread than this context was created on!");
 #endif
         return MakeCurrentImpl(aForce);
     }
