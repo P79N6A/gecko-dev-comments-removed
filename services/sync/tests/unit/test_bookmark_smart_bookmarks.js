@@ -20,10 +20,7 @@ let store = engine._store;
 
 store.wipe();
 
-function makeEngine() {
-  return new BookmarksEngine();
-}
-var syncTesting = new SyncTestingInfrastructure(makeEngine);
+var syncTesting = new SyncTestingInfrastructure();
 
 function newSmartBookmark(parent, uri, position, title, queryID) {
   let id = PlacesUtils.bookmarks.insertBookmark(parent, uri, position, title);
