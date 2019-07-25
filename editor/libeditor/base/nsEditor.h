@@ -565,7 +565,7 @@ public:
   bool IsMozEditorBogusNode(nsIContent *aNode);
 
   
-  nsresult CountEditableChildren(nsIDOMNode *aNode, PRUint32 &outCount);
+  PRUint32 CountEditableChildren(nsINode* aNode);
   
   
   nsINode* GetFirstEditableNode(nsINode* aRoot);
