@@ -904,10 +904,11 @@ PRInt64 nsOggReader::FindEndTime(PRInt64 aEndOffset)
       
       
       
+      endTime = -1;
       break;
     }
 
-    PRInt64 t = codecState ? codecState->Time(granulepos) : -1;
+    PRInt64 t = codecState->Time(granulepos);
     if (t != -1) {
       endTime = t;
     }
