@@ -1384,13 +1384,26 @@ nsMenuFrame::SizeToPopup(nsBoxLayoutState& aState, nsSize& aSize)
       if (!mPopupFrame)
         return PR_FALSE;
       tmpSize = mPopupFrame->GetPrefSize(aState);
-      aSize.width = tmpSize.width;
+
+      
+      
+      
+      
+      
+      
+      nsMargin borderPadding;
+      GetBorderAndPadding(borderPadding);
 
       
       nsIScrollableFrame* scrollFrame = do_QueryFrame(mPopupFrame->GetFirstChild(nsnull));
+      nscoord scrollbarWidth = 0;
       if (scrollFrame) {
-        aSize.width += scrollFrame->GetDesiredScrollbarSizes(&aState).LeftRight();
+        scrollbarWidth =
+          scrollFrame->GetDesiredScrollbarSizes(&aState).LeftRight();
       }
+
+      aSize.width =
+        tmpSize.width + NS_MAX(borderPadding.LeftRight(), scrollbarWidth);
 
       return PR_TRUE;
     }
