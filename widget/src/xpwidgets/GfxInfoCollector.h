@@ -77,6 +77,12 @@ class InfoObject
     mOk = JS_DefineProperty(mCx, mObj, name, STRING_TO_JSVAL(string), NULL, NULL, JSPROP_ENUMERATE);
   }
 
+  void DefineProperty(const char *name, const char *value)
+  { 
+    nsAutoString string = NS_ConvertASCIItoUTF16(value);
+    DefineProperty(name, string); 
+  }
+
   private:
   
   InfoObject(JSContext *aCx) : mCx(aCx), mOk(JS_TRUE)
