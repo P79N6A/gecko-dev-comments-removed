@@ -6,7 +6,7 @@ function run_test() {
   
   
  
-  str = Utils.getErrorString("error.login.reason.password");
+  str = Utils.getErrorString("error.login.reason.account");
   do_check_true(str.match(/unknown/i) == null);
 
   str = Utils.getErrorString("foobar");
