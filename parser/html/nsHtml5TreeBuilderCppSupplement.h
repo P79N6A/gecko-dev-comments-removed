@@ -486,13 +486,24 @@ nsHtml5TreeBuilder::elementPopped(PRInt32 aNamespace, nsIAtom* aName, nsIContent
     return;
   }
   if (aNamespace == kNameSpaceID_SVG) {
-#ifdef MOZ_SVG
-    if (aName == nsHtml5Atoms::svg) {
-      nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
-      NS_ASSERTION(treeOp, "Tree op allocation failed.");
-      treeOp->Init(eTreeOpSvgLoad, aElement);
+#if 0
+    if (aElement->HasAttr(kNameSpaceID_None, nsHtml5Atoms::onload)) {
+      nsEvent event(PR_TRUE, NS_SVG_LOAD);
+      event.eventStructType = NS_SVG_EVENT;
+      event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
+      
+      
+      
+      
+      nsRefPtr<nsPresContext> ctx;
+      nsCOMPtr<nsIPresShell> shell = parser->GetDocument()->GetPrimaryShell();
+      if (shell) {
+        ctx = shell->GetPresContext();
+      }
+      nsEventDispatcher::Dispatch(aElement, ctx, &event);
     }
 #endif
+    
     return;
   }
   
