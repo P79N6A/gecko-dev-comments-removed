@@ -45,10 +45,10 @@
 #include <string.h>
 #include "jstypes.h"
 #include "jsstdint.h"
-#include "jsarena.h" 
+#include "jsarena.h"
 #include "jsbit.h"
-#include "jsutil.h" 
-#include "jshash.h" 
+#include "jsutil.h"
+#include "jshash.h"
 #include "jsdhash.h"
 #include "jsprf.h"
 #include "jsapi.h"

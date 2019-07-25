@@ -49,7 +49,7 @@
 
 
 #include "jsapi.h"
-#include "jshash.h" 
+#include "jshash.h"
 #include "jspubtd.h"
 #include "jsprvtd.h"
 #include "jslock.h"

@@ -45,16 +45,12 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef ANDROID
-# include <fstream>
-# include <string>
-#endif  
 
 #include "jsstdint.h"
 
 #include "jstypes.h"
-#include "jsarena.h" 
-#include "jsutil.h" 
+#include "jsarena.h"
+#include "jsutil.h"
 #include "jsclist.h"
 #include "jsprf.h"
 #include "jsatom.h"
@@ -2191,68 +2187,17 @@ JSContext::purge()
     FreeOldArenas(runtime, &regExpPool);
 }
 
-static bool
-ComputeIsJITBroken()
-{
-#ifndef ANDROID
-    return false;
-#else  
-    if (getenv("JS_IGNORE_JIT_BROKENNESS")) {
-        return false;
-    }
-
-    bool broken = false;
-    std::string line;
-    std::ifstream cpuinfo("/proc/cpuinfo");
-    do {
-        if (0 == line.find("Hardware")) {
-            const char* blacklist[] = {
-                "SGH-T959",     
-                "SGH-I897",     
-                "SCH-I500",     
-                "SPH-D700",     
-                "GT-I9000",     
-                NULL
-            };
-            for (const char** hw = &blacklist[0]; *hw; ++hw) {
-                if (line.npos != line.find(*hw)) {
-                    broken = true;
-                    break;
-                }
-            }
-            break;
-        }
-        std::getline(cpuinfo, line);
-    } while(!cpuinfo.fail() && !cpuinfo.eof());
-    return broken;
-#endif  
-}
-
-static bool
-IsJITBrokenHere()
-{
-    static bool computedIsBroken = false;
-    static bool isBroken = false;
-    if (!computedIsBroken) {
-        isBroken = ComputeIsJITBroken();
-        computedIsBroken = true;
-    }
-    return isBroken;
-}
-
 void
 JSContext::updateJITEnabled()
 {
 #ifdef JS_TRACER
     traceJitEnabled = ((options & JSOPTION_JIT) &&
-                       !IsJITBrokenHere() &&
                        (debugHooks == &js_NullDebugHooks ||
                         (debugHooks == &runtime->globalDebugHooks &&
                          !runtime->debuggerInhibitsJIT())));
 #endif
 #ifdef JS_METHODJIT
-    methodJitEnabled = (options & JSOPTION_METHODJIT) &&
-                       !IsJITBrokenHere()
+    methodJitEnabled = (options & JSOPTION_METHODJIT)
 # if defined JS_CPU_X86 || defined JS_CPU_X64
                        && JSC::MacroAssemblerX86Common::getSSEState() >=
                           JSC::MacroAssemblerX86Common::HasSSE2

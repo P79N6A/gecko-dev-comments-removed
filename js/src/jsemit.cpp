@@ -48,8 +48,8 @@
 #include <string.h>
 #include "jstypes.h"
 #include "jsstdint.h"
-#include "jsarena.h" 
-#include "jsutil.h" 
+#include "jsarena.h"
+#include "jsutil.h"
 #include "jsbit.h"
 #include "jsprf.h"
 #include "jsapi.h"

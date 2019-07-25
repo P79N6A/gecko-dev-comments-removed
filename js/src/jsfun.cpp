@@ -45,7 +45,7 @@
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsbit.h"
-#include "jsutil.h" 
+#include "jsutil.h"
 #include "jsapi.h"
 #include "jsarray.h"
 #include "jsatom.h"
@@ -1145,11 +1145,7 @@ js_PutCallObject(JSContext *cx, JSStackFrame *fp)
 
         JSScript *script = fun->u.i.script;
         memcpy(callobj.dslots, fp->formalArgs(), nargs * sizeof(Value));
-        if (script->usesEval
-#ifdef JS_METHODJIT
-            || script->debugMode
-#endif
-            ) {
+        if (script->usesEval || script->debugMode) {
             CopyValuesToCallObject(callobj, nargs, fp->formalArgs(), nvars, fp->slots());
         } else {
             

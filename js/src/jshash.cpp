@@ -45,8 +45,8 @@
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsbit.h"
-#include "jsutil.h" 
-#include "jshash.h" 
+#include "jsutil.h"
+#include "jshash.h"
 
 
 #define NBUCKETS(ht)    JS_BIT(JS_HASH_BITS - (ht)->shift)

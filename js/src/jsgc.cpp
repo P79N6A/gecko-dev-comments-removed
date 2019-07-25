@@ -53,8 +53,8 @@
 #include <string.h>     
 #include "jstypes.h"
 #include "jsstdint.h"
-#include "jsutil.h" 
-#include "jshash.h" 
+#include "jsutil.h"
+#include "jshash.h"
 #include "jsbit.h"
 #include "jsclist.h"
 #include "jsprf.h"

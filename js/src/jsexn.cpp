@@ -46,7 +46,7 @@
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsbit.h"
-#include "jsutil.h" 
+#include "jsutil.h"
 #include "jsprf.h"
 #include "jsapi.h"
 #include "jscntxt.h"
