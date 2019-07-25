@@ -401,6 +401,62 @@ HUD_SERVICE.prototype =
   setFilterState: function HS_setFilterState(aHUDId, aToggleType, aState)
   {
     this.filterPrefs[aHUDId][aToggleType] = aState;
+    this.adjustVisibilityForMessageType(aHUDId, aToggleType, aState);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  liftNode: function(aNode, aCallback) {
+    let parentNode = aNode.parentNode;
+    let siblingNode = aNode.nextSibling;
+    parentNode.removeChild(aNode);
+    aCallback();
+    parentNode.insertBefore(aNode, siblingNode);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  adjustVisibilityForMessageType:
+  function HS_adjustVisibilityForMessageType(aHUDId, aMessageType, aState)
+  {
+    let displayNode = this.getOutputNodeById(aHUDId);
+    let outputNode = displayNode.querySelector(".hud-output-node");
+    let doc = outputNode.ownerDocument;
+
+    this.liftNode(outputNode, function() {
+      let xpath = ".//*[contains(@class, 'hud-msg-node') and " +
+        "contains(@class, 'hud-" + aMessageType + "')]";
+      let result = doc.evaluate(xpath, outputNode, null,
+        Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+      for (let i = 0; i < result.snapshotLength; i++) {
+        if (aState) {
+          result.snapshotItem(i).classList.remove("hud-filtered-by-type");
+        } else {
+          result.snapshotItem(i).classList.add("hud-filtered-by-type");
+        }
+      }
+    });
   },
 
   
