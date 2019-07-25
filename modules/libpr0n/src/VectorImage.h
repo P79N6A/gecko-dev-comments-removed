@@ -101,9 +101,7 @@ protected:
 private:
   nsWeakPtr                          mObserver;   
   nsRefPtr<SVGDocumentWrapper>       mSVGDocumentWrapper;
-#ifdef MOZ_ENABLE_LIBXUL
   nsRefPtr<SVGRootRenderingObserver> mRenderingObserver;
-#endif 
 
   nsIntRect      mRestrictedRegion;       
                                           

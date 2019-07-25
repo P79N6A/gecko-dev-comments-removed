@@ -60,7 +60,6 @@ using namespace mozilla::dom;
 namespace mozilla {
 namespace imagelib {
 
-#ifdef MOZ_ENABLE_LIBXUL
 
 class SVGRootRenderingObserver : public nsSVGRenderingObserver {
 public:
@@ -124,7 +123,6 @@ protected:
   nsRefPtr<SVGDocumentWrapper> mDocWrapper;
   VectorImage* mVectorImage;   
 };
-#endif 
 
 
 class SVGDrawingCallback : public gfxDrawingCallback {
@@ -669,10 +667,8 @@ VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
   mIsFullyLoaded = PR_TRUE;
   mHaveAnimations = mSVGDocumentWrapper->IsAnimated();
 
-#ifdef MOZ_ENABLE_LIBXUL
   
   mRenderingObserver = new SVGRootRenderingObserver(mSVGDocumentWrapper, this);
-#endif 
 
   
   nsCOMPtr<imgIDecoderObserver> observer = do_QueryReferent(mObserver);
