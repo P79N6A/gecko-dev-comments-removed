@@ -894,7 +894,7 @@ var UIManager = {
             return true;
           }
         });
-        tab.hidden = hidden;
+        tab.hidden = hidden && !tab.pinned;
       });
 
       
