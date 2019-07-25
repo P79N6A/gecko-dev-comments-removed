@@ -163,14 +163,14 @@ public class LayerController {
         setForceRedraw();
 
         notifyLayerClientOfGeometryChange();
-        mPanZoomController.geometryChanged();
+        mPanZoomController.geometryChanged(false);
         mView.requestRender();
     }
 
     public void scrollTo(PointF point) {
         mViewportMetrics.setOrigin(point);
         notifyLayerClientOfGeometryChange();
-        mPanZoomController.geometryChanged();
+        mPanZoomController.geometryChanged(false);
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
@@ -181,7 +181,7 @@ public class LayerController {
         mViewportMetrics.setOrigin(origin);
 
         notifyLayerClientOfGeometryChange();
-        mPanZoomController.geometryChanged();
+        mPanZoomController.geometryChanged(false);
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
@@ -189,7 +189,7 @@ public class LayerController {
     public void setViewport(RectF viewport) {
         mViewportMetrics.setViewport(viewport);
         notifyLayerClientOfGeometryChange();
-        mPanZoomController.geometryChanged();
+        mPanZoomController.geometryChanged(false);
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
@@ -202,7 +202,7 @@ public class LayerController {
 
         
         
-        mPanZoomController.geometryChanged();
+        mPanZoomController.geometryChanged(false);
         mView.requestRender();
     }
 
@@ -211,7 +211,7 @@ public class LayerController {
 
         
         
-        mPanZoomController.geometryChanged();
+        mPanZoomController.geometryChanged(true);
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
