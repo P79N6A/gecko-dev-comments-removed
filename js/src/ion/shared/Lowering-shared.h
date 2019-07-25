@@ -109,6 +109,9 @@ class LIRGeneratorShared : public MInstructionVisitor
     inline LUse useFixedAtStart(MDefinition *mir, Register reg);
     inline LUse useFixedAtStart(MDefinition *mir, FloatRegister reg);
     inline LAllocation useOrConstant(MDefinition *mir);
+    
+    
+    inline LAllocation useAnyOrConstant(MDefinition *mir);
     inline LAllocation useKeepaliveOrConstant(MDefinition *mir);
     inline LAllocation useRegisterOrConstant(MDefinition *mir);
 

@@ -802,7 +802,7 @@ class EDtrOffImm : public EDtrOff
 
 
 
-class EDtrOffReg : EDtrOff
+class EDtrOffReg : public EDtrOff
 {
   public:
     EDtrOffReg(Register rm)
@@ -1004,6 +1004,9 @@ class Operand
         JS_ASSERT(Tag == MEM);
         *r = Register::FromCode(reg);
         *dest = Imm32(offset);
+    }
+    Address toAddress() const {
+        return Address(Register::FromCode(reg), offset);
     }
     int32 disp() const {
         JS_ASSERT(Tag == MEM);

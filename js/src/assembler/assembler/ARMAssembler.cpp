@@ -125,7 +125,7 @@ ARMWord ARMAssembler::getOp2RegScale(RegisterID reg, ARMWord scale)
     }
     shift = 31-lz;
     
-    if ((1<<shift) != scale) {
+    if ((1u<<shift) != scale) {
         return INVALID_IMM;
     }
 

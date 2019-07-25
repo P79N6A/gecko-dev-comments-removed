@@ -114,10 +114,12 @@ MacroAssembler::PushVolatileRegsInMask(RegisterSet set)
         else
             diff += STACK_SLOT_SIZE;
     }
+    
+    
+    size_t new_diff = (diff + 7) & ~7;
+    reserveStack(new_diff);
 
-    reserveStack(diff);
-
-    diff = 0;
+    diff = new_diff - diff;
     for (AnyRegisterIterator iter(set); iter.more(); iter++) {
         AnyRegister reg = *iter;
         if (!reg.volatile_())
@@ -136,6 +138,19 @@ void
 MacroAssembler::PopVolatileRegsInMask(RegisterSet set)
 {
     size_t diff = 0;
+    
+    for (AnyRegisterIterator iter(set); iter.more(); iter++) {
+        AnyRegister reg = *iter;
+        if (!reg.volatile_())
+            continue;
+        if (reg.isFloat())
+            diff += sizeof(double);
+        else
+            diff += STACK_SLOT_SIZE;
+    }
+    size_t new_diff = (diff + 7) & ~7;
+
+    diff = new_diff - diff;
     for (AnyRegisterIterator iter(set); iter.more(); iter++) {
         AnyRegister reg = *iter;
         if (!reg.volatile_())
@@ -148,6 +163,5 @@ MacroAssembler::PopVolatileRegsInMask(RegisterSet set)
             diff += STACK_SLOT_SIZE;
         }
     }
-
-    freeStack(diff);
+    freeStack(new_diff);
 }
