@@ -332,36 +332,6 @@ protected:
 
 
 
-
-
-
-  void NS_FASTCALL PopulateWith(mozilla::dom::Element *aElement,
-                                PRUint32 & aElementsToAppend);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  void PopulateWithStartingAfter(nsINode *aStartRoot,
-                                 nsINode *aStartChild,
-                                 PRUint32 & aElementsToAppend);
-  
-
-
-
-
-
-
-
-
   void PopulateSelf(PRUint32 aNeededLength);
 
   

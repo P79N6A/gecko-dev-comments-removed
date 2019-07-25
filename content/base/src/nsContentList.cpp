@@ -683,10 +683,10 @@ nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
     if (!appendToList) {
       
       
-      for (nsINode::ChildIterator iter(aContainer, aNewIndexInContainer);
-           !iter.IsDone();
-           iter.Next()) {
-        if (MatchSelf(iter)) {
+      for (nsIContent* cur = aContainer->GetChildAt(aNewIndexInContainer);
+           cur;
+           cur = cur->GetNextSibling()) {
+        if (MatchSelf(cur)) {
           
           
           SetDirty();
@@ -711,13 +711,21 @@ nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
 
 
 
-    for (nsINode::ChildIterator iter(aContainer, aNewIndexInContainer);
-         !iter.IsDone();
-         iter.Next()) {
-      PRUint32 limit = PRUint32(-1);
-      nsIContent* newContent = iter;
-      if (newContent->IsElement()) {
-        PopulateWith(newContent->AsElement(), limit);
+    if (mDeep) {
+      for (nsIContent* cur = aContainer->GetChildAt(aNewIndexInContainer);
+         cur;
+         cur = cur->GetNextNode(aContainer)) {
+        if (cur->IsElement() && Match(cur->AsElement())) {
+          mElements.AppendObject(cur);
+        }
+      }
+    } else {
+      for (nsIContent* cur = aContainer->GetChildAt(aNewIndexInContainer);
+           cur;
+           cur = cur->GetNextSibling()) {
+        if (cur->IsElement() && Match(cur->AsElement())) {
+          mElements.AppendObject(cur);
+        }
       }
     }
 
@@ -805,98 +813,15 @@ nsContentList::MatchSelf(nsIContent *aContent)
   if (!mDeep)
     return PR_FALSE;
 
-  for (nsINode::ChildIterator iter(aContent); !iter.IsDone(); iter.Next()) {
-    if (MatchSelf(iter)) {
+  for (nsIContent* cur = aContent->GetFirstChild();
+       cur;
+       cur = cur->GetNextNode(aContent)) {
+    if (cur->IsElement() && Match(cur->AsElement())) {
       return PR_TRUE;
     }
   }
   
   return PR_FALSE;
-}
-
-void
-nsContentList::PopulateWith(Element *aElement, PRUint32& aElementsToAppend)
-{
-  NS_PRECONDITION(mDeep || aElement->GetNodeParent() == mRootNode,
-                  "PopulateWith called on nodes we can't possibly match");
-  NS_PRECONDITION(aElement != mRootNode,
-                  "We should never be trying to match mRootNode");
-
-  if (Match(aElement)) {
-    mElements.AppendObject(aElement);
-    --aElementsToAppend;
-    if (aElementsToAppend == 0)
-      return;
-  }
-
-  
-  if (!mDeep)
-    return;
-
-  for (nsINode::ChildIterator iter(aElement); !iter.IsDone(); iter.Next()) {
-    nsIContent* curContent = iter;
-    if (curContent->IsElement()) {
-      PopulateWith(curContent->AsElement(), aElementsToAppend);
-      if (aElementsToAppend == 0)
-        break;
-    }
-  }
-}
-
-void 
-nsContentList::PopulateWithStartingAfter(nsINode *aStartRoot,
-                                         nsINode *aStartChild,
-                                         PRUint32 & aElementsToAppend)
-{
-  NS_PRECONDITION(mDeep || aStartRoot == mRootNode ||
-                  (aStartRoot->GetNodeParent() == mRootNode &&
-                   aStartChild == nsnull),
-                  "Bogus aStartRoot or aStartChild");
-
-  if (mDeep || aStartRoot == mRootNode) {
-#ifdef DEBUG
-    PRUint32 invariant = aElementsToAppend + mElements.Count();
-#endif
-    PRInt32 i = 0;
-    if (aStartChild) {
-      i = aStartRoot->IndexOf(aStartChild);
-      NS_ASSERTION(i >= 0, "The start child must be a child of the start root!");
-      ++i;  
-    }
-
-    
-    for (nsINode::ChildIterator iter(aStartRoot, i);
-         !iter.IsDone();
-         iter.Next()) {
-      nsIContent* content = iter;
-      if (content->IsElement()) {
-        PopulateWith(content->AsElement(), aElementsToAppend);
-
-        NS_ASSERTION(aElementsToAppend + mElements.Count() == invariant,
-                     "Something is awry in PopulateWith!");
-        if (aElementsToAppend == 0)
-          break;
-      }
-    }
-  }
-
-  if (aElementsToAppend == 0) {
-    return;
-  }
-
-  
-  
-  if (aStartRoot == mRootNode)
-    return;
-  
-  
-  
-  
-  
-  nsINode* parent = aStartRoot->GetNodeParent();
-  
-  if (parent)
-    PopulateWithStartingAfter(parent, aStartRoot, aElementsToAppend);
 }
 
 void 
@@ -920,13 +845,33 @@ nsContentList::PopulateSelf(PRUint32 aNeededLength)
   PRUint32 invariant = elementsToAppend + mElements.Count();
 #endif
 
-  
-  
-  nsINode* startRoot = count == 0 ? mRootNode : mElements[count - 1];
+  if (mDeep) {
+    
+    
+    nsINode* cur = count ? mElements[count - 1] : mRootNode;
+    do {
+      cur = cur->GetNextNode(mRootNode);
+      if (!cur) {
+        break;
+      }
+      if (cur->IsElement() && Match(cur->AsElement())) {
+        mElements.AppendObject(cur->AsElement());
+        --elementsToAppend;
+      }
+    } while (elementsToAppend);
+  } else {
+    nsIContent* cur =
+      count ? mElements[count-1]->GetNextSibling() : mRootNode->GetFirstChild();
+    for ( ; cur && elementsToAppend; cur = cur->GetNextSibling()) {
+      if (cur->IsElement() && Match(cur->AsElement())) {
+        mElements.AppendObject(cur);
+        --elementsToAppend;
+      }
+    }
+  }
 
-  PopulateWithStartingAfter(startRoot, nsnull, elementsToAppend);
   NS_ASSERTION(elementsToAppend + mElements.Count() == invariant,
-               "Something is awry in PopulateWith!");
+               "Something is awry!");
 
   if (elementsToAppend != 0)
     mState = LIST_UP_TO_DATE;
