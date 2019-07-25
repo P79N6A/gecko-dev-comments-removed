@@ -1467,8 +1467,6 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
   
   
   
-  
-  
 
   if (!mDoc || !aNewDocument) {
     return false;
@@ -1480,9 +1478,10 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
   
   NS_ASSERTION(NS_IsAboutBlank(mDoc->GetDocumentURI()),
                "How'd this happen?");
+
   
   
-  
+
   if (mDoc == aNewDocument) {
     return true;
   }
@@ -1495,17 +1494,6 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
     return true;
   }
 
-  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(mDocShell));
-
-  if (treeItem) {
-    int32_t itemType = nsIDocShellTreeItem::typeContent;
-    treeItem->GetItemType(&itemType);
-
-    
-    return itemType == nsIDocShellTreeItem::typeChrome;
-  }
-
-  
   return false;
 }
 
