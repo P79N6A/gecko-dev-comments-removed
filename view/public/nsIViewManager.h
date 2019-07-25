@@ -50,8 +50,8 @@ class nsIDeviceContext;
 class nsIViewObserver;
 
 #define NS_IVIEWMANAGER_IID   \
-  { 0xbbdd429c, 0x6542, 0x477a, \
-    { 0xab, 0x48, 0x6c, 0xd6, 0xcb, 0xb8, 0xdf, 0x98 } }
+  { 0x9e924719, 0x3c4b, 0x435b, \
+    { 0xaf, 0x1e, 0x71, 0x52, 0x04, 0x6d, 0xaa, 0x44 } }
 
 class nsIViewManager : public nsISupports
 {
@@ -388,42 +388,6 @@ public:
 
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll)=0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult WillBitBlit(nsIView* aView, const nsRect& aRect,
-                               nsPoint aScrollAmount) = 0;
-  
-  
-
-
-
-
-
-
-
-  virtual void UpdateViewAfterScroll(nsIView *aView, const nsRegion& aUpdateRegion) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIViewManager, NS_IVIEWMANAGER_IID)

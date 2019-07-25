@@ -511,62 +511,6 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, PRUint32 aUpdateFlags)
   return UpdateView(view, bounds, aUpdateFlags);
 }
 
-nsresult
-nsViewManager::WillBitBlit(nsIView* aView, const nsRect& aRect,
-                           nsPoint aCopyDelta)
-{
-  if (!IsRootVM()) {
-    RootViewManager()->WillBitBlit(aView, aRect, aCopyDelta);
-    return NS_OK;
-  }
-
-  
-  NS_PRECONDITION(aView &&
-                  (aView == mRootView || aView->GetFloating()),
-                  "Must have a display root view");
-
-  ++mScrollCnt;
-  
-  nsView* v = static_cast<nsView*>(aView);
-  if (v->HasNonEmptyDirtyRegion()) {
-    nsRegion* dirty = v->GetDirtyRegion();
-    nsRegion intersection = *dirty;
-    intersection.MoveBy(-aCopyDelta);
-    intersection.And(intersection, aRect);
-    if (!intersection.IsEmpty()) {
-      dirty->Or(*dirty, intersection);
-      
-      dirty->SimplifyOutward(20);
-    }
-  }
-  return NS_OK;
-}
-
-
-void
-nsViewManager::UpdateViewAfterScroll(nsIView *aView,
-                                     const nsRegion& aUpdateRegion)
-{
-  NS_ASSERTION(RootViewManager()->mScrollCnt > 0,
-               "Someone forgot to call WillBitBlit()");
-  
-  
-
-  nsView* view = static_cast<nsView*>(aView);
-  nsView* displayRoot = GetDisplayRootFor(view);
-  nsPoint offset = view->GetOffsetTo(displayRoot);
-  nsRegion update(aUpdateRegion);
-  update.MoveBy(offset);
-
-  nsViewManager* displayRootVM = displayRoot->GetViewManager();
-  displayRootVM->UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
-                                  update, nsnull);
-  
-
-  Composite();
-  --RootViewManager()->mScrollCnt;
-}
-
 static PRBool
 IsWidgetDrawnByPlugin(nsIWidget* aWidget, nsIView* aView)
 {
@@ -815,24 +759,22 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
           
           
           PRBool didResize = PR_FALSE;
-          if (rootVM->mScrollCnt == 0) {
-            for (nsViewManager *vm = this; vm;
-                 vm = vm->mRootView->GetParent()
-                        ? vm->mRootView->GetParent()->GetViewManager()
-                        : nsnull) {
-              if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-                  IsViewVisible(vm->mRootView)) {
-                vm->FlushDelayedResize();
+          for (nsViewManager *vm = this; vm;
+               vm = vm->mRootView->GetParent()
+                      ? vm->mRootView->GetParent()->GetViewManager()
+                      : nsnull) {
+            if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+                IsViewVisible(vm->mRootView)) {
+              vm->FlushDelayedResize();
 
-                
-                vm->UpdateView(vm->mRootView, NS_VMREFRESH_NO_SYNC);
-                didResize = PR_TRUE;
+              
+              vm->UpdateView(vm->mRootView, NS_VMREFRESH_NO_SYNC);
+              didResize = PR_TRUE;
 
-                
-                
-                
-                *aStatus = nsEventStatus_eIgnore;
-              }
+              
+              
+              
+              *aStatus = nsEventStatus_eIgnore;
             }
           }
 
@@ -849,7 +791,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
                 transparentWindow = widget->GetTransparencyMode() == eTransparencyTransparent;
 
             nsView* view = static_cast<nsView*>(aView);
-            if (rootVM->mScrollCnt == 0 && !transparentWindow) {
+            if (!transparentWindow) {
               nsIViewObserver* observer = GetViewObserver();
               if (observer) {
                 
@@ -1590,16 +1532,13 @@ nsViewManager::FlushPendingInvalidates()
   NS_ASSERTION(gViewManagers, "Better have a viewmanagers array!");
 
   
-  if (mScrollCnt == 0) {
-    
-    
-    
-    
-    
-    ++mUpdateBatchCnt;
-    CallWillPaintOnObservers();
-    --mUpdateBatchCnt;
-  }
+  
+  
+  
+  
+  ++mUpdateBatchCnt;
+  CallWillPaintOnObservers();
+  --mUpdateBatchCnt;
   
   if (mHasPendingUpdates) {
     ProcessPendingUpdates(mRootView, PR_TRUE);
