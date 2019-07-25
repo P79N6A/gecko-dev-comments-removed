@@ -1019,9 +1019,23 @@ RunTracer(VMFrame &f)
     loopCounter = NULL;
     hits = 1;
 #endif
-    tpa = MonitorTracePoint(f.cx, inlineCallCount, &blacklist, traceData, traceEpoch,
-                            loopCounter, hits);
-    JS_ASSERT(!TRACE_RECORDER(cx));
+
+    {
+        
+
+
+
+
+
+
+
+        JSFrameRegs regs = f.regs;
+        PreserveRegsGuard regsGuard(cx, regs);
+
+        tpa = MonitorTracePoint(f.cx, inlineCallCount, &blacklist, traceData, traceEpoch,
+                                loopCounter, hits);
+        JS_ASSERT(!TRACE_RECORDER(cx));
+    }
 
 #if JS_MONOIC
     ic.loopCounterStart = *loopCounter;
