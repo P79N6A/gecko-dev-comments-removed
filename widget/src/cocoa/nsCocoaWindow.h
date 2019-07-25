@@ -172,15 +172,15 @@ struct UnifiedGradientInfo {
 {
   TitlebarAndBackgroundColor *mColor;
   float mUnifiedToolbarHeight;
-  BOOL mWaitingForUnifiedToolbarHeight;
+  BOOL mInUnifiedToolbarReset;
   NSColor *mBackgroundColor;
 }
 
 - (void)setTitlebarColor:(NSColor*)aColor forActiveWindow:(BOOL)aActive;
-- (void)setUnifiedToolbarHeight:(float)aToolbarHeight;
+- (void)notifyToolbarAt:(float)aY height:(float)aHeight;
 - (float)unifiedToolbarHeight;
-- (void)beginMaybeResetUnifiedToolbar;
-- (void)endMaybeResetUnifiedToolbar;
+- (float)beginMaybeResetUnifiedToolbar;
+- (void)endMaybeResetUnifiedToolbar:(float)aOldHeight;
 - (float)titlebarHeight;
 - (NSRect)titlebarRect;
 - (void)setTitlebarNeedsDisplayInRect:(NSRect)aRect sync:(BOOL)aSync;

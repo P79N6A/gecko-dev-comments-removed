@@ -46,6 +46,7 @@
 #include "nsColor.h"
 
 struct nsRect;
+struct nsIntRect;
 struct nsIntSize;
 struct nsFont;
 struct nsIntMargin;
@@ -55,6 +56,7 @@ class nsIDeviceContext;
 class nsIFrame;
 class nsIContent;
 class nsIAtom;
+class nsIWidget;
 
 
 
@@ -83,12 +85,44 @@ enum nsTransparencyMode {
 class nsITheme: public nsISupports {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ITHEME_IID)
+
   
+
+
+
+
+
+
+
   NS_IMETHOD DrawWidgetBackground(nsIRenderingContext* aContext,
                                   nsIFrame* aFrame,
                                   PRUint8 aWidgetType,
                                   const nsRect& aRect,
-                                  const nsRect& aDirtyRect)=0;
+                                  const nsRect& aDirtyRect) = 0;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void RegisterWidgetGeometry(nsIWidget* aWindow,
+                                      PRUint8 aWidgetType,
+                                      const nsIntRect& aRect) {}
 
   
 
