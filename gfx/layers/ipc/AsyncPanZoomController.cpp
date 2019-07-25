@@ -31,6 +31,12 @@ static const PRInt32 PAN_REPAINT_INTERVAL = 250;
 
 static const PRInt32 FLING_REPAINT_INTERVAL = 75;
 
+
+
+
+
+static const float MIN_SKATE_SPEED = 0.5f;
+
 AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoContentController,
                                                GestureBehavior aGestures)
   :  mGeckoContentController(aGeckoContentController),
@@ -564,15 +570,8 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   nsIntRect viewport = mFrameMetrics.mViewport;
   viewport.ScaleRoundIn(1 / scale);
 
-  const float SIZE_MULTIPLIER = 2.0f;
   nsIntPoint scrollOffset = mFrameMetrics.mViewportScrollOffset;
-  gfx::Rect contentRect = mFrameMetrics.mCSSContentRect;
-
-  
-  
-  
-  float desiredWidth = viewport.width * SIZE_MULTIPLIER,
-        desiredHeight = viewport.height * SIZE_MULTIPLIER;
+  nsPoint velocity = GetVelocityVector();
 
   
   
@@ -598,32 +597,40 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   
   
   
-  gfx::Rect displayPort(-desiredWidth / 4, -desiredHeight / 4, desiredWidth, desiredHeight);
+  const float STATIONARY_SIZE_MULTIPLIER = 2.0f;
+  const float SKATE_SIZE_MULTIPLIER = 3.0f;
+  gfx::Rect displayPort(0, 0,
+                        viewport.width * STATIONARY_SIZE_MULTIPLIER,
+                        viewport.height * STATIONARY_SIZE_MULTIPLIER);
 
   
   
-  float oldDisplayPortX = displayPort.x, oldDisplayPortY = displayPort.y;
-  if (displayPort.X() + scrollOffset.x < contentRect.X()) {
-    displayPort.x = contentRect.X() - scrollOffset.x;
+  
+  
+  
+  
+  if (fabsf(velocity.x) > MIN_SKATE_SPEED && fabsf(velocity.y) < MIN_SKATE_SPEED) {
+    displayPort.height = viewport.height;
+    displayPort.width = viewport.width * SKATE_SIZE_MULTIPLIER;
+    displayPort.x = velocity.x > 0 ? 0 : viewport.width - displayPort.width;
+  } else if (fabsf(velocity.x) < MIN_SKATE_SPEED && fabsf(velocity.y) > MIN_SKATE_SPEED) {
+    displayPort.width = viewport.width;
+    displayPort.height = viewport.height * SKATE_SIZE_MULTIPLIER;
+    displayPort.y = velocity.y > 0 ? 0 : viewport.height - displayPort.height;
+  } else {
+    displayPort.x = -displayPort.width / 4;
+    displayPort.y = -displayPort.height / 4;
   }
-  if (displayPort.Y() + scrollOffset.y < contentRect.Y()) {
-    displayPort.y = contentRect.Y() - scrollOffset.y;
-  }
 
-  
-  
-  displayPort.width -= displayPort.x - oldDisplayPortX;
-  displayPort.height -= displayPort.y - oldDisplayPortY;
-
+  gfx::Rect shiftedDisplayPort = displayPort;
   
   
   
-  if (displayPort.XMost() + scrollOffset.x > contentRect.XMost()) {
-    displayPort.width = NS_MAX(0.0f, contentRect.XMost() - (displayPort.X() + scrollOffset.x));
-  }
-  if (displayPort.YMost() + scrollOffset.y > contentRect.YMost()) {
-    displayPort.height = NS_MAX(0.0f, contentRect.YMost() - (displayPort.Y() + scrollOffset.y));
-  }
+  
+  
+  shiftedDisplayPort.MoveBy(scrollOffset.x / scale, scrollOffset.y / scale);
+  displayPort = shiftedDisplayPort.Intersect(mFrameMetrics.mCSSContentRect);
+  displayPort.MoveBy(-scrollOffset.x / scale, -scrollOffset.y / scale);
 
   
   
