@@ -1846,9 +1846,11 @@ const CR = 0x0D, LF = 0x0A;
 
 
 
-function findCRLF(array)
+
+
+function findCRLF(array, start)
 {
-  for (var i = array.indexOf(CR); i >= 0; i = array.indexOf(CR, i + 1))
+  for (var i = array.indexOf(CR, start); i >= 0; i = array.indexOf(CR, i + 1))
   {
     if (array[i + 1] == LF)
       return i;
@@ -1865,6 +1867,9 @@ function LineData()
 {
   
   this._data = [];
+
+  
+  this._start = 0;
 }
 LineData.prototype =
 {
@@ -1874,7 +1879,22 @@ LineData.prototype =
 
   appendBytes: function(bytes)
   {
-    Array.prototype.push.apply(this._data, bytes);
+    var count = bytes.length;
+    var quantum = 262144; 
+    if (count < quantum)
+    {
+      Array.prototype.push.apply(this._data, bytes);
+      return;
+    }
+
+    
+    
+    
+    for (var start = 0; start < count; start += quantum)
+    {
+      var slice = bytes.slice(start, Math.min(start + quantum, count));
+      Array.prototype.push.apply(this._data, slice);
+    }
   },
 
   
@@ -1892,23 +1912,31 @@ LineData.prototype =
   readLine: function(out)
   {
     var data = this._data;
-    var length = findCRLF(data);
+    var length = findCRLF(data, this._start);
     if (length < 0)
+    {
+      this._start = data.length;
       return false;
+    }
+
+    
+    this._start = 0;
 
     
     
     
     
     
-    
-    
-    
-    
-    
-    var line = String.fromCharCode.apply(null, data.splice(0, length + 2));
-    out.value = line.substring(0, length);
+    var leading = data.splice(0, length + 2);
+    var quantum = 262144;
+    var line = "";
+    for (var start = 0; start < length; start += quantum)
+    {
+      var slice = leading.slice(start, Math.min(start + quantum, length));
+      line += String.fromCharCode.apply(null, slice);
+    }
 
+    out.value = line;
     return true;
   },
 

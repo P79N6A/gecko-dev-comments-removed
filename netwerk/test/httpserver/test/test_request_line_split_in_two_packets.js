@@ -75,15 +75,22 @@ function veryLongRequestLine(request, response)
 }
 
 var path = "/very-long-request-line?";
-var gibberish = "dfsasdbfjkbnsldkjnewiunfasjkn";
-for (var i = 0; i < 10; i++)
-  gibberish += gibberish;
-str = "GET /very-long-request-line?" + gibberish + " HTTP/1.1\r\n" +
+var reallyLong = "0123456789ABCDEF0123456789ABCDEF"; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+reallyLong = reallyLong + reallyLong + reallyLong + reallyLong; 
+if (reallyLong.length !== 524288)
+  throw new TypeError("generated length not as long as expected");
+str = "GET /very-long-request-line?" + reallyLong + " HTTP/1.1\r\n" +
       "Host: localhost:4444\r\n" +
       "\r\n";
 data = [];
-for (var i = 0; i < str.length; i += 50)
-  data.push(str.substr(i, 50));
+for (var i = 0; i < str.length; i += 16384)
+  data.push(str.substr(i, 16384));
 
 function checkVeryLongRequestLine(data)
 {
@@ -102,7 +109,7 @@ function checkVeryLongRequestLine(data)
     [
      "Method:  GET",
      "Path:    /very-long-request-line",
-     "Query:   " + gibberish,
+     "Query:   " + reallyLong,
      "Version: 1.1",
      "Scheme:  http",
      "Host:    localhost",
