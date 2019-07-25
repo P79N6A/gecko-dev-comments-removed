@@ -1170,6 +1170,18 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
         JS_ASSERT(shape == lastProp);
         removeLastProperty();
+
+        
+
+
+
+
+        size_t fixed = numFixedSlots();
+        if (shape->slot == fixed) {
+            JS_ASSERT_IF(!lastProp->isEmptyShape() && lastProp->hasSlot(),
+                         lastProp->slot == fixed - 1);
+            revertToFixedSlots(cx);
+        }
     }
     updateShape(cx);
 
@@ -1204,6 +1216,14 @@ JSObject::clear(JSContext *cx)
 
     if (inDictionaryMode())
         shape->listp = &lastProp;
+
+    
+
+
+
+
+    if (hasSlotsArray() && JSSLOT_FREE(getClass()) <= numFixedSlots())
+        revertToFixedSlots(cx);
 
     
 

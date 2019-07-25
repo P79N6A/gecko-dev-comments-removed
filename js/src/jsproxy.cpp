@@ -1090,8 +1090,9 @@ NewProxyObject(JSContext *cx, JSProxyHandler *handler, const Value &priv, JSObje
         clasp = &FunctionProxyClass;
     else
         clasp = handler->isOuterWindow() ? &OuterWindowProxyClass : &ObjectProxyClass;
+
     JSObject *obj = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent);
-    if (!obj || (construct && !obj->ensureInstanceReservedSlots(cx, 0)))
+    if (!obj || !obj->ensureInstanceReservedSlots(cx, 0))
         return NULL;
     obj->setSlot(JSSLOT_PROXY_HANDLER, PrivateValue(handler));
     obj->setSlot(JSSLOT_PROXY_PRIVATE, priv);
@@ -1235,8 +1236,8 @@ static JSFunctionSpec static_methods[] = {
 
 extern Class CallableObjectClass;
 
-static const uint32 JSSLOT_CALLABLE_CALL = JSSLOT_PRIVATE;
-static const uint32 JSSLOT_CALLABLE_CONSTRUCT = JSSLOT_PRIVATE + 1;
+static const uint32 JSSLOT_CALLABLE_CALL = 0;
+static const uint32 JSSLOT_CALLABLE_CONSTRUCT = 1;
 
 static JSBool
 callable_Call(JSContext *cx, uintN argc, Value *vp)
@@ -1247,7 +1248,7 @@ callable_Call(JSContext *cx, uintN argc, Value *vp)
 
     JSObject *callable = &JS_CALLEE(cx, vp).toObject();
     JS_ASSERT(callable->getClass() == &CallableObjectClass);
-    const Value &fval = callable->fslots[JSSLOT_CALLABLE_CALL];
+    const Value &fval = callable->getSlot(JSSLOT_CALLABLE_CALL);
     Value rval;
     bool ok = ExternalInvoke(cx, thisobj, fval, argc, JS_ARGV(cx, vp), &rval);
     *vp = rval;
@@ -1263,10 +1264,10 @@ callable_Construct(JSContext *cx, uintN argc, Value *vp)
 
     JSObject *callable = &vp[0].toObject();
     JS_ASSERT(callable->getClass() == &CallableObjectClass);
-    Value fval = callable->fslots[JSSLOT_CALLABLE_CONSTRUCT];
+    Value fval = callable->getSlot(JSSLOT_CALLABLE_CONSTRUCT);
     if (fval.isUndefined()) {
         
-        fval = callable->fslots[JSSLOT_CALLABLE_CALL];
+        fval = callable->getSlot(JSSLOT_CALLABLE_CALL);
         JS_ASSERT(fval.isObject());
 
         
@@ -1288,7 +1289,7 @@ callable_Construct(JSContext *cx, uintN argc, Value *vp)
 
         
         Value rval;
-        if (!ExternalInvoke(cx, newobj, callable->fslots[JSSLOT_CALLABLE_CALL],
+        if (!ExternalInvoke(cx, newobj, callable->getSlot(JSSLOT_CALLABLE_CALL),
                             argc, vp + 2, &rval)) {
             return false;
         }
@@ -1347,14 +1348,18 @@ FixProxy(JSContext *cx, JSObject *proxy, JSBool *bp)
     Class *clasp = proxy->isFunctionProxy() ? &CallableObjectClass : &js_ObjectClass;
 
     
-    JSObject *newborn = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent);
+
+
+
+    gc::FinalizeKind kind = gc::FinalizeKind(proxy->arena()->header()->thingKind);
+    JSObject *newborn = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent, kind);
     if (!newborn)
         return NULL;
     AutoObjectRooter tvr2(cx, newborn);
 
     if (clasp == &CallableObjectClass) {
-        newborn->fslots[JSSLOT_CALLABLE_CALL] = GetCall(proxy);
-        newborn->fslots[JSSLOT_CALLABLE_CONSTRUCT] = GetConstruct(proxy);
+        newborn->setSlot(JSSLOT_CALLABLE_CALL, GetCall(proxy));
+        newborn->setSlot(JSSLOT_CALLABLE_CONSTRUCT, GetConstruct(proxy));
     }
 
     {
@@ -1364,7 +1369,8 @@ FixProxy(JSContext *cx, JSObject *proxy, JSBool *bp)
     }
 
     
-    proxy->swap(newborn);
+    if (!proxy->swap(cx, newborn))
+        return false;
 
     
 

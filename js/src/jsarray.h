@@ -46,8 +46,6 @@
 #include "jspubtd.h"
 #include "jsobj.h"
 
-#define ARRAY_CAPACITY_MIN      7
-
 extern JSBool
 js_StringIsIndex(JSString *str, jsuint *indexp);
 
@@ -138,13 +136,6 @@ js_InitArrayClass(JSContext *cx, JSObject *obj);
 
 extern bool
 js_InitContextBusyArrayTable(JSContext *cx);
-
-
-
-
-
-extern JSObject * JS_FASTCALL
-js_NewArrayWithSlots(JSContext* cx, JSObject* proto, uint32 len);
 
 extern JSObject *
 js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector);

@@ -8,7 +8,8 @@ function f(i) {
     return 1;
 }
 
-var arr = [ false, false, false, false, false, , , , ];
+
+var arr = [ false, false, false, false, false, , , , , , true ];
 
 for (var i = 0; i < 10; ++i) {
     (s = arr[i]) + f(i);
