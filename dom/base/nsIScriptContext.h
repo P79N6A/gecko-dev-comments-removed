@@ -43,6 +43,7 @@
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsIProgrammingLanguage.h"
+#include "jsfriendapi.h"
 #include "jspubtd.h"
 
 class nsIScriptGlobalObject;
@@ -354,7 +355,7 @@ public:
 
 
 
-  virtual void GC() = 0;
+  virtual void GC(js::gcreason::Reason aReason) = 0;
 
   
 

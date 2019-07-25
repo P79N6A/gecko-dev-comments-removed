@@ -108,7 +108,8 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
     
 
 
-    virtual void Collect(bool shrinkingGC = false) = 0;
+
+    virtual void Collect(PRUint32 reason, PRUint32 kind) = 0;
 };
 
 #ifdef DEBUG

@@ -203,7 +203,7 @@ nsMemoryPressureObserver::Observe(nsISupports* aSubject, const char* aTopic,
                                   const PRUnichar* aData)
 {
   if (sGCOnMemoryPressure) {
-    nsJSContext::GarbageCollectNow(true);
+    nsJSContext::GarbageCollectNow(js::gcreason::MEM_PRESSURE, nsGCShrinking);
     nsJSContext::CycleCollectNow();
   }
   return NS_OK;
@@ -1111,7 +1111,7 @@ nsJSContext::DestroyJSContext()
                                   js_options_dot_str, this);
 
   if (mGCOnDestruction) {
-    PokeGC();
+    PokeGC(js::gcreason::NSJSCONTEXT_DESTROY);
   }
         
   
@@ -3220,7 +3220,7 @@ nsJSContext::ScriptExecuted()
 
 
 void
-nsJSContext::GarbageCollectNow(bool shrinkingGC)
+nsJSContext::GarbageCollectNow(js::gcreason::Reason reason, PRUint32 gckind)
 {
   NS_TIME_FUNCTION_MIN(1.0);
   SAMPLE_LABEL("GC", "GarbageCollectNow");
@@ -3238,7 +3238,7 @@ nsJSContext::GarbageCollectNow(bool shrinkingGC)
   sLoadingInProgress = false;
 
   if (nsContentUtils::XPConnect()) {
-    nsContentUtils::XPConnect()->GarbageCollect(shrinkingGC);
+    nsContentUtils::XPConnect()->GarbageCollect(reason, gckind);
   }
 }
 
@@ -3276,7 +3276,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener)
   
   
   if (sCCollectedWaitingForGC > 250) {
-    PokeGC();
+    PokeGC(js::gcreason::CC_WAITING);
   }
 
   PRTime now = PR_Now();
@@ -3315,7 +3315,8 @@ GCTimerFired(nsITimer *aTimer, void *aClosure)
 {
   NS_RELEASE(sGCTimer);
 
-  nsJSContext::GarbageCollectNow();
+  uintptr_t reason = reinterpret_cast<uintptr_t>(aClosure);
+  nsJSContext::GarbageCollectNow(static_cast<js::gcreason::Reason>(reason), nsGCNormal);
 }
 
 void
@@ -3359,12 +3360,12 @@ nsJSContext::LoadEnd()
 
   
   sLoadingInProgress = false;
-  PokeGC();
+  PokeGC(js::gcreason::LOAD_END);
 }
 
 
 void
-nsJSContext::PokeGC()
+nsJSContext::PokeGC(js::gcreason::Reason aReason)
 {
   if (sGCTimer) {
     
@@ -3380,7 +3381,7 @@ nsJSContext::PokeGC()
 
   static bool first = true;
 
-  sGCTimer->InitWithFuncCallback(GCTimerFired, nsnull,
+  sGCTimer->InitWithFuncCallback(GCTimerFired, reinterpret_cast<void *>(aReason),
                                  first
                                  ? NS_FIRST_GC_DELAY
                                  : NS_GC_DELAY,
@@ -3473,9 +3474,9 @@ nsJSContext::KillCCTimer()
 }
 
 void
-nsJSContext::GC()
+nsJSContext::GC(js::gcreason::Reason aReason)
 {
-  PokeGC();
+  PokeGC(aReason);
 }
 
 static void
@@ -3513,7 +3514,7 @@ DOMGCFinishedCallback(JSRuntime *rt, JSCompartment *comp, const char *status)
     
     
     if (comp) {
-      nsJSContext::PokeGC();
+      nsJSContext::PokeGC(js::gcreason::POST_COMPARTMENT);
 
       
       nsJSContext::KillCCTimer();

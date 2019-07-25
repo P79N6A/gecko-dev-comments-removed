@@ -1382,11 +1382,11 @@ MarkContext(JSTracer *trc, JSContext *acx);
 
 
 extern void
-TriggerGC(JSRuntime *rt, js::gcstats::Reason reason);
+TriggerGC(JSRuntime *rt, js::gcreason::Reason reason);
 
 
 extern void
-TriggerCompartmentGC(JSCompartment *comp, js::gcstats::Reason reason);
+TriggerCompartmentGC(JSCompartment *comp, js::gcreason::Reason reason);
 
 extern void
 MaybeGC(JSContext *cx);
@@ -1409,7 +1409,7 @@ typedef enum JSGCInvocationKind {
 
 
 extern void
-js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind, js::gcstats::Reason r);
+js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind, js::gcreason::Reason r);
 
 namespace js {
 
