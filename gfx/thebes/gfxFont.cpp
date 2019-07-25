@@ -1500,23 +1500,24 @@ struct GlyphBufferAzure {
 
                 if (invFontMatrix) {
                     
-	                
-	                
+                    
+                    
 
                     
                     
-                    Matrix *mat;
+                    Matrix *mat = nsnull;
                     if (pat->GetType() == PATTERN_LINEAR_GRADIENT) {
                         mat = &static_cast<LinearGradientPattern*>(pat)->mMatrix;
                     } else if (pat->GetType() == PATTERN_RADIAL_GRADIENT) {
-                        mat = &static_cast<LinearGradientPattern*>(pat)->mMatrix;
+                        mat = &static_cast<RadialGradientPattern*>(pat)->mMatrix;
                     } else if (pat->GetType() == PATTERN_SURFACE) {
-                        mat = &static_cast<LinearGradientPattern*>(pat)->mMatrix;
+                        mat = &static_cast<SurfacePattern*>(pat)->mMatrix;
                     }
 
-                    *mat = (*mat) * (*invFontMatrix);
+                    if (mat) {
+                        *mat = (*mat) * (*invFontMatrix);
+                    }
                 }
-
 
                 aDT->FillGlyphs(aFont, buf, *pat,
                                 DrawOptions(), aOptions);
