@@ -906,7 +906,10 @@ public:
     
     
     
-    void RemoveSkippable();
+    
+    
+    
+    void RemoveSkippable(bool removeChildlessNodes);
 
 #ifdef DEBUG_CC
     void NoteAll(GCGraphBuilder &builder);
@@ -1144,7 +1147,7 @@ struct nsCycleCollector
     void ScanRoots();
     void ScanWeakMaps();
 
-    void ForgetSkippable();
+    void ForgetSkippable(bool removeChildlessNodes);
 
     
     bool CollectWhite(nsICycleCollectorListener *aListener);
@@ -2114,6 +2117,69 @@ GCGraphBuilder::NoteWeakMapping(void *map, void *key, void *val)
     mapping->mVal = valNode;
 }
 
+
+
+class ChildFinder : public nsCycleCollectionTraversalCallback
+{
+public:
+    ChildFinder() : mMayHaveChild(false) {}
+
+    
+    
+    NS_IMETHOD_(void) NoteXPCOMChild(nsISupports *child);
+    NS_IMETHOD_(void) NoteNativeChild(void *child,
+                                      nsCycleCollectionParticipant *helper);
+    NS_IMETHOD_(void) NoteScriptChild(PRUint32 langID, void *child);
+
+    NS_IMETHOD_(void) DescribeRefCountedNode(nsrefcnt refcount,
+                                             size_t objsz,
+                                             const char *objname) {};
+    NS_IMETHOD_(void) DescribeGCedNode(bool ismarked,
+                                       size_t objsz,
+                                       const char *objname) {};
+    NS_IMETHOD_(void) NoteXPCOMRoot(nsISupports *root) {};
+    NS_IMETHOD_(void) NoteRoot(PRUint32 langID, void *root,
+                               nsCycleCollectionParticipant* helper) {};
+    NS_IMETHOD_(void) NoteNextEdgeName(const char* name) {};
+    NS_IMETHOD_(void) NoteWeakMapping(void *map, void *key, void *val) {};
+    bool MayHaveChild() {
+        return mMayHaveChild;
+    };
+private:
+    bool mMayHaveChild;
+};
+
+NS_IMETHODIMP_(void)
+ChildFinder::NoteXPCOMChild(nsISupports *child)
+{
+    if (!child || !(child = canonicalize(child)))
+        return; 
+    nsXPCOMCycleCollectionParticipant *cp;
+    ToParticipant(child, &cp);
+    if (cp && !cp->CanSkip(child, true))
+        mMayHaveChild = true;
+};
+
+NS_IMETHODIMP_(void)
+ChildFinder::NoteNativeChild(void *child,
+                             nsCycleCollectionParticipant *helper)
+{
+    if (child)
+        mMayHaveChild = true;
+};
+
+NS_IMETHODIMP_(void)
+ChildFinder::NoteScriptChild(PRUint32 langID, void *child)
+{
+    if (!child)
+        return;
+    if (langID == nsIProgrammingLanguage::JAVASCRIPT &&
+        !xpc_GCThingIsGrayCCThing(child)) {
+        return;
+    }
+    mMayHaveChild = true;
+};
+
 static bool
 AddPurpleRoot(GCGraphBuilder &builder, nsISupports *root)
 {
@@ -2137,8 +2203,16 @@ AddPurpleRoot(GCGraphBuilder &builder, nsISupports *root)
     return true;
 }
 
+static bool
+MayHaveChild(nsISupports *o, nsXPCOMCycleCollectionParticipant* cp)
+{
+    ChildFinder cf;
+    cp->Traverse(o, cf);
+    return cf.MayHaveChild();
+}
+
 void
-nsPurpleBuffer::RemoveSkippable()
+nsPurpleBuffer::RemoveSkippable(bool removeChildlessNodes)
 {
     
     for (Block *b = &mFirstBlock; b; b = b->mNext) {
@@ -2152,7 +2226,8 @@ nsPurpleBuffer::RemoveSkippable()
                     nsISupports* o = canonicalize(e->mObject);
                     nsXPCOMCycleCollectionParticipant* cp;
                     ToParticipant(o, &cp);
-                    if (!cp->CanSkip(o, false)) {
+                    if (!cp->CanSkip(o, false) &&
+                        (!removeChildlessNodes || MayHaveChild(o, cp))) {
                         continue;
                     }
                     cp->UnmarkPurple(o);
@@ -2197,13 +2272,13 @@ nsCycleCollector::SelectPurple(GCGraphBuilder &builder)
 }
 
 void 
-nsCycleCollector::ForgetSkippable()
+nsCycleCollector::ForgetSkippable(bool removeChildlessNodes)
 {
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
         obs->NotifyObservers(nsnull, "cycle-collector-forget-skippable", nsnull);
     }
-    mPurpleBuf.RemoveSkippable();
+    mPurpleBuf.RemoveSkippable(removeChildlessNodes);
     if (mForgetSkippableCB) {
         mForgetSkippableCB();
     }
@@ -4030,12 +4105,12 @@ nsCycleCollector_setForgetSkippableCallback(CC_ForgetSkippableCallback aCB)
 }
 
 void
-nsCycleCollector_forgetSkippable()
+nsCycleCollector_forgetSkippable(bool aRemoveChildlessNodes)
 {
     if (sCollector) {
         SAMPLE_LABEL("CC", "nsCycleCollector_forgetSkippable");
         TimeLog timeLog;
-        sCollector->ForgetSkippable();
+        sCollector->ForgetSkippable(aRemoveChildlessNodes);
         timeLog.Checkpoint("ForgetSkippable()");
     }
 }
