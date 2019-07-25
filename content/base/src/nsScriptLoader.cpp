@@ -74,6 +74,7 @@
 #include "prlog.h"
 #include "nsIChannelPolicy.h"
 #include "nsChannelPolicy.h"
+#include "nsCRT.h"
 
 #include "mozilla/FunctionTimer.h"
 
@@ -189,13 +190,15 @@ IsScriptEventHandler(nsIScriptElement *aScriptElement)
     return PR_FALSE;
   }
 
-  const nsAString& for_str = nsContentUtils::TrimWhitespace(forAttr);
+  const nsAString& for_str =
+    nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(forAttr);
   if (!for_str.LowerCaseEqualsLiteral("window")) {
     return PR_TRUE;
   }
 
   
-  const nsAString& event_str = nsContentUtils::TrimWhitespace(eventAttr, PR_FALSE);
+  const nsAString& event_str =
+    nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(eventAttr, PR_FALSE);
   if (!StringBeginsWith(event_str, NS_LITERAL_STRING("onload"),
                         nsCaseInsensitiveStringComparator())) {
     

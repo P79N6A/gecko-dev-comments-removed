@@ -1913,6 +1913,7 @@ nsContentUtils::TrimCharsInSet(const char* aSet,
 
 
 
+template<PRBool IsWhitespace(PRUnichar)>
 const nsDependentSubstring
 nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
 {
@@ -1922,7 +1923,7 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
   aStr.EndReading(end);
 
   
-  while (start != end && nsCRT::IsAsciiSpace(*start)) {
+  while (start != end && IsWhitespace(*start)) {
     ++start;
   }
 
@@ -1931,7 +1932,7 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
     while (end != start) {
       --end;
 
-      if (!nsCRT::IsAsciiSpace(*end)) {
+      if (!IsWhitespace(*end)) {
         
         ++end;
 
@@ -1945,6 +1946,16 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
 
   return Substring(start, end);
 }
+
+
+
+
+template
+const nsDependentSubstring
+nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(const nsAString&, PRBool);
+template
+const nsDependentSubstring
+nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(const nsAString&, PRBool);
 
 static inline void KeyAppendSep(nsACString& aKey)
 {
