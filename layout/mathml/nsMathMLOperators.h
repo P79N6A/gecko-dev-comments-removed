@@ -149,11 +149,7 @@ public:
   IsMutableOperator(const nsString& aOperator);
 
   
-  
-  static PRInt32 CountStretchyOperator();
-  static PRInt32 FindStretchyOperator(PRUnichar aOperator);
-  static nsStretchDirection GetStretchyDirectionAt(PRInt32 aIndex);
-  static void DisableStretchyOperatorAt(PRInt32 aIndex);
+  static nsStretchDirection GetStretchyDirection(const nsString& aOperator);
 
   
   
@@ -168,7 +164,6 @@ public:
   static const nsDependentSubstring
   TransformVariantChar(const PRUnichar& aChar, eMATHVARIANT aVariant);
 };
-
 
 
 

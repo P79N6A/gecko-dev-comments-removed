@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsMathMLChar_h___
 #define nsMathMLChar_h___
 
@@ -236,7 +237,6 @@ protected:
 
 private:
   nsRect             mRect;
-  PRInt32            mOperator;
   nsStretchDirection mDirection;
   nsBoundingMetrics  mBoundingMetrics;
   nsStyleContext*    mStyleContext;

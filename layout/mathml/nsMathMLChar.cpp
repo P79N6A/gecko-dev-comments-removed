@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -755,11 +756,6 @@ InitGlobals(nsPresContext* aPresContext)
 {
   NS_ASSERTION(!gInitialized, "Error -- already initialized");
   gInitialized = PR_TRUE;
-  PRUint32 count = nsMathMLOperators::CountStretchyOperator();
-  if (!count) {
-    
-    return NS_OK;
-  }
 
   
   nsresult rv = NS_ERROR_OUT_OF_MEMORY;
@@ -867,25 +863,19 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
   mData = aData;
   
   
-  mOperator = -1;
   mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
   mBoundingMetrics.Clear();
   mGlyphTable = nsnull;
   
   if (gGlyphTableList && (1 == mData.Length())) {
-    mOperator = nsMathMLOperators::FindStretchyOperator(mData[0]);
-    if (mOperator >= 0) {
-      mDirection = nsMathMLOperators::GetStretchyDirectionAt(mOperator);
-      
-      mGlyphTable = gGlyphTableList->GetGlyphTableFor(aPresContext, this);
-      
-      
-      if (!mGlyphTable) { 
-        
-        nsMathMLOperators::DisableStretchyOperatorAt(mOperator);
-        mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
-        mOperator = -1;
-      }
+    mDirection = nsMathMLOperators::GetStretchyDirection(mData);
+    
+    
+    mGlyphTable = gGlyphTableList->GetGlyphTableFor(aPresContext, this);
+    
+    
+    if (!mGlyphTable) { 
+      mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
     }
   }
 }
@@ -1547,11 +1537,7 @@ nsMathMLChar::StretchInternal(nsPresContext*           aPresContext,
   
   
   
-  nsStretchDirection direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  if (mOperator >= 0) {
-    
-    direction = nsMathMLOperators::GetStretchyDirectionAt(mOperator);
-  }
+  nsStretchDirection direction = nsMathMLOperators::GetStretchyDirection(mData);
 
   
   
@@ -1829,7 +1815,6 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   for (i = 0, child = mSibling; child; child = child->mSibling, i++) {
     
     child->mData = mData;
-    child->mOperator = mOperator;
     child->mDirection = mDirection;
     child->mStyleContext = mStyleContext;
     child->mGlyphTable = aGlyphTable; 
