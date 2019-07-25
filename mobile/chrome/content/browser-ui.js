@@ -649,18 +649,6 @@ var BrowserUI = {
     } catch(e) { }
   },
 
-#ifdef WINCE
-  updateDefaultBrowser: function updateDefaultBrowser(aSet) {
-    try {
-      let phone = Cc["@mozilla.org/phone/support;1"].getService(Ci.nsIPhoneSupport);
-      if (aSet)
-        phone.setDefaultBrowser();
-      else
-        phone.restoreDefaultBrowser();
-    } catch(e) { }
-  },
-#endif
-
   handleEscape: function () {
     
     let dialog = this.activeDialog;

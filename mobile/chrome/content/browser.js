@@ -2643,10 +2643,6 @@ Tab.prototype = {
       this._listener = null;
       this._loading = false;
 
-      try { 
-        this._stopResizeAndPaint();
-      } catch(ex) {}
-
       Util.executeSoon(function() {
         document.getElementById("browsers").removeChild(browser);
       });

@@ -468,8 +468,8 @@ Content.prototype = {
 
         this._sendMouseEvent("mousedown", element, x, y);
 
-	
-	
+        
+        
         element.ownerDocument.releaseCapture();
 
         if (element.mozMatchesSelector("*:link,*:visited,*:link *,*:visited *,*[role=button],button,input,option,select,textarea,label")) {
@@ -489,7 +489,7 @@ Content.prototype = {
         } else if (!this._formAssistant.open(element)) {
           this._sendMouseEvent("mouseup", element, x, y);
         }
-	break;
+        break;
       }
 
       case "Browser:MouseCancel":
