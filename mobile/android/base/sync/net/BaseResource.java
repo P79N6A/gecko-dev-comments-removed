@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
 
 import java.io.IOException;
@@ -75,6 +42,8 @@ import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 import ch.boye.httpclientandroidlib.protocol.BasicHttpContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
+import org.mozilla.gecko.sync.Logger;
+
 
 
 
@@ -109,11 +78,11 @@ public class BaseResource implements Resource {
   public BaseResource(URI uri, boolean rewrite) {
     if (rewrite && uri.getHost().equals("localhost")) {
       
-      Log.d(LOG_TAG, "Rewriting " + uri + " to point to " + ANDROID_LOOPBACK_IP + ".");
+      Logger.debug(LOG_TAG, "Rewriting " + uri + " to point to " + ANDROID_LOOPBACK_IP + ".");
       try {
         this.uri = new URI(uri.getScheme(), uri.getUserInfo(), ANDROID_LOOPBACK_IP, uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment());
       } catch (URISyntaxException e) {
-        Log.e(LOG_TAG, "Got error rewriting URI for Android emulator.", e);
+        Logger.error(LOG_TAG, "Got error rewriting URI for Android emulator.", e);
       }
     } else {
       this.uri = uri;
@@ -204,7 +173,7 @@ public class BaseResource implements Resource {
   private void execute() {
     try {
       HttpResponse response = client.execute(request, context);
-      Log.i(LOG_TAG, "Response: " + response.getStatusLine().toString());
+      Logger.debug(LOG_TAG, "Response: " + response.getStatusLine().toString());
       delegate.handleHttpResponse(response);
     } catch (ClientProtocolException e) {
       delegate.handleHttpProtocolException(e);
@@ -221,10 +190,10 @@ public class BaseResource implements Resource {
     try {
       this.prepareClient();
     } catch (KeyManagementException e) {
-      Log.e(LOG_TAG, "Couldn't prepare client.", e);
+      Logger.error(LOG_TAG, "Couldn't prepare client.", e);
       delegate.handleTransportException(e);
     } catch (NoSuchAlgorithmException e) {
-      Log.e(LOG_TAG, "Couldn't prepare client.", e);
+      Logger.error(LOG_TAG, "Couldn't prepare client.", e);
       delegate.handleTransportException(e);
     }
     this.execute();
@@ -232,19 +201,19 @@ public class BaseResource implements Resource {
 
   @Override
   public void get() {
-    Log.i(LOG_TAG, "HTTP GET " + this.uri.toASCIIString());
+    Logger.debug(LOG_TAG, "HTTP GET " + this.uri.toASCIIString());
     this.go(new HttpGet(this.uri));
   }
 
   @Override
   public void delete() {
-    Log.i(LOG_TAG, "HTTP DELETE " + this.uri.toASCIIString());
+    Logger.debug(LOG_TAG, "HTTP DELETE " + this.uri.toASCIIString());
     this.go(new HttpDelete(this.uri));
   }
 
   @Override
   public void post(HttpEntity body) {
-    Log.i(LOG_TAG, "HTTP POST " + this.uri.toASCIIString());
+    Logger.debug(LOG_TAG, "HTTP POST " + this.uri.toASCIIString());
     HttpPost request = new HttpPost(this.uri);
     request.setEntity(body);
     this.go(request);
@@ -252,7 +221,7 @@ public class BaseResource implements Resource {
 
   @Override
   public void put(HttpEntity body) {
-    Log.i(LOG_TAG, "HTTP PUT " + this.uri.toASCIIString());
+    Logger.debug(LOG_TAG, "HTTP PUT " + this.uri.toASCIIString());
     HttpPut request = new HttpPut(this.uri);
     request.setEntity(body);
     this.go(request);
