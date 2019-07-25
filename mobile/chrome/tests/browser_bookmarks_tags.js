@@ -3,7 +3,7 @@
 
 
 
- 
+
 var testURL_01 = "chrome://mochikit/content/browser/mobile/chrome/browser_blank_01.html";
 var testURL_02 = "chrome://mochikit/content/browser/mobile/chrome/browser_blank_02.html";
 
@@ -34,7 +34,7 @@ function runNextTest() {
   else {
     
     try {
-      PlacesUtils.bookmarks.removeFolderChildren(BookmarkList.mobileRoot);
+      PlacesUtils.bookmarks.removeFolderChildren(BookmarkList.panel.mobileRoot);
     }
     finally {
       
@@ -66,19 +66,17 @@ gTests.push({
     ok(bookmarkItem != -1, testURL_02 + " should be added.");
 
     
-    BookmarkList.show();
+    BrowserUI.doCommand("cmd_bookmarks");
 
     
-    let bookmarkItems = document.getElementById("bookmark-items");
-    let bookmark = document.getAnonymousElementByAttribute(bookmarkItems, "uri", testURL_02);
+    let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
     bookmark.startEditing();
 
     waitFor(gCurrentTest.onEditorReady, function() { return bookmark.isEditing == true; });
   },
 
   onEditorReady: function() {
-    let bookmarkItems = document.getElementById("bookmark-items");
-    let bookmark = document.getAnonymousElementByAttribute(bookmarkItems, "uri", testURL_02);
+    let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
     let tagstextbox = document.getAnonymousElementByAttribute(bookmark, "anonid", "tags");
     tagstextbox.value = "tagone, tag two, tag-three, tag4";
 
@@ -88,7 +86,8 @@ gTests.push({
     let tagsarray = PlacesUtils.tagging.getTagsForURI(makeURI(testURL_02), {});
     is(tagsarray.length, 4, "All tags are associated with specified bookmark");
 
-    BookmarkList.close();
+    BrowserUI.activePanel = null;
+
     Browser.closeTab(this._currentTab);
 
     runNextTest();
@@ -102,19 +101,17 @@ gTests.push({
 
   run: function() {
     
-    BookmarkList.show();
+    BrowserUI.doCommand("cmd_bookmarks");
 
     
-    let bookmarkItems = document.getElementById("bookmark-items");
-    let bookmark = document.getAnonymousElementByAttribute(bookmarkItems, "uri", testURL_02);
+    let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
     bookmark.startEditing();
 
     waitFor(gCurrentTest.onEditorReady, function() { return bookmark.isEditing == true; });
   },
 
   onEditorReady: function() {
-    let bookmarkItems = document.getElementById("bookmark-items");
-    let bookmark = document.getAnonymousElementByAttribute(bookmarkItems, "uri", testURL_02);
+    let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
 
     let taggeduri = PlacesUtils.tagging.getURIsForTag("tag-three");
     is(taggeduri[0].spec, testURL_02, "Old tag still associated with bookmark");
@@ -132,7 +129,7 @@ gTests.push({
     let tagsarray = PlacesUtils.tagging.getTagsForURI(makeURI(testURL_02), {});
     is(tagsarray.length, 4, "Bookmark still has same number of tags");
 
-    BookmarkList.close();
+    BrowserUI.activePanel = null;
 
     runNextTest();
   }
@@ -147,19 +144,17 @@ gTests.push({
 
   run: function() {
     
-    BookmarkList.show();
+    BrowserUI.doCommand("cmd_bookmarks");
 
     
-    let bookmarkItems = document.getElementById("bookmark-items");
-    let bookmark = document.getAnonymousElementByAttribute(bookmarkItems, "uri", testURL_02);
+    let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
     bookmark.startEditing();
 
     waitFor(gCurrentTest.onEditorReady, function() { return bookmark.isEditing == true; });
   },
 
   onEditorReady: function() {
-    let bookmarkItems = document.getElementById("bookmark-items");
-    let bookmark = document.getAnonymousElementByAttribute(bookmarkItems, "uri", testURL_02);
+    let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
 
     let tagstextbox = document.getAnonymousElementByAttribute(bookmark, "anonid", "tags");
     tagstextbox.value = "tagone, tag two, tag4";
@@ -172,8 +167,7 @@ gTests.push({
     let tagsarray = PlacesUtils.tagging.getTagsForURI(makeURI(testURL_02), {});
     is(tagsarray.length, 3, "Tag is successfully deleted");
 
-    BookmarkList.close();
-
+    BrowserUI.activePanel = null;
     runNextTest();
   }
 });
