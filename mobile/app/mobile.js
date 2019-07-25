@@ -68,7 +68,7 @@ pref("network.http.max-persistent-connections-per-server", 4);
 pref("network.http.max-persistent-connections-per-proxy", 4);
 
 
-pref("browser.sessionhistory.max_total_viewers", 0);
+pref("browser.sessionhistory.max_total_viewers", 1);
 pref("browser.sessionhistory.max_entries", 50);
 
 
