@@ -395,8 +395,9 @@ NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
   
   PRUint32 result;
   asm (
+    "mov    r3, sp\n"
     "mov    %[stack_space_size], %[param_count_plus_2], lsl #3\n"
-    "tst    sp, #4\n" 
+    "tst    r3, #4\n" 
 
     "add    %[stack_space_size], #(4 * 16)\n" 
     "mov    r3, %[params]\n"
