@@ -2140,10 +2140,15 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
       
       
       readback->SetSink(nsnull);
-      NS_ASSERTION(!mBackgroundSink, "Should have been cleared");
-
       readback->SetSize(nsIntSize(size.width, size.height));
 
+      if (mBackgroundSink) {
+        
+        
+        
+        
+        mBackgroundSink->Destroy();
+      }
       mBackgroundSink =
         new PluginBackgroundSink(this,
                                  readback->AllocateSequenceNumber());
