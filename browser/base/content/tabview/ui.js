@@ -83,6 +83,10 @@ var UIManager = {
 
   
   
+  _eventListeners: {},
+
+  
+  
   
   init: function() {
     try {
@@ -238,6 +242,7 @@ var UIManager = {
     GroupItems.uninit();
     Storage.uninit();
 
+    this._removeTabActionHandlers();
     this._currentTab = null;
     this._pageBounds = null;
     this._reorderTabItemsOnShow = null;
@@ -407,7 +412,7 @@ var UIManager = {
   _addTabActionHandlers: function() {
     var self = this;
 
-    AllTabs.register("close", function(tab) {
+    this._eventListeners.close = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
@@ -438,23 +443,34 @@ var UIManager = {
           }
         }
       }
-    });
+    };
 
-    AllTabs.register("move", function(tab) {
+    this._eventListeners.move = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
       let activeGroupItem = GroupItems.getActiveGroupItem();
       if (activeGroupItem)
         self.setReorderTabItemsOnShow(activeGroupItem);
-    });
+    };
 
-    AllTabs.register("select", function(tab) {
+    this._eventListeners.select = function(tab) {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
       self.onTabSelect(tab);
-    });
+    };
+
+    for (let name in this._eventListeners)
+      AllTabs.register(name, this._eventListeners[name]);
+  },
+
+  
+  
+  
+  _removeTabActionHandlers: function() {
+    for (let name in this._eventListeners)
+      AllTabs.unregister(name, this._eventListeners[name]);
   },
 
   
