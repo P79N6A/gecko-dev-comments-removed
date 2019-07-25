@@ -171,10 +171,7 @@ public:
     }
 
     
-    PRBool InPrivateBrowsingMode()
-    {
-      return mInPrivateBrowsingMode;
-    }
+    PRBool InPrivateBrowsingMode();
 
     
     
@@ -278,9 +275,6 @@ private:
     PRUint8  mRedirectionLimit;
 
     
-    PRBool   mInPrivateBrowsingMode;
-
-    
     
     
     
@@ -289,6 +283,13 @@ private:
     PRUint8  mQoSBits;
 
     PRPackedBool mPipeliningOverSSL;
+
+    
+    enum {
+        PRIVATE_BROWSING_OFF = PR_FALSE,
+        PRIVATE_BROWSING_ON = PR_TRUE,
+        PRIVATE_BROWSING_UNKNOWN = 2
+    } mInPrivateBrowsingMode;
 
     nsCString mAccept;
     nsCString mAcceptLanguages;
