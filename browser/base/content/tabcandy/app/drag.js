@@ -109,10 +109,8 @@ Drag.prototype = {
   
   
   
-  
-  snap: function(stationaryCorner, assumeConstantSize, keepProportional) {
+  snapBounds: function Drag_snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional) {
     var stationaryCorner = stationaryCorner || 'topleft';
-    var bounds = this.item.getBounds();
     var update = false; 
     var updateX = false;
     var updateY = false;
@@ -152,7 +150,30 @@ Drag.prototype = {
     }
 
     if (update)
+      Utils.log('snapBounds', update ? bounds : false);
+    return update ? bounds : false;
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  snap: function Drag_snap(stationaryCorner, assumeConstantSize, keepProportional) {
+    var bounds = this.item.getBounds();
+    bounds = this.snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional);
+    if (bounds) {
       this.item.setBounds(bounds,true);
+      return true;
+    }
+    return false;
   },
   
   
