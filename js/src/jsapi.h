@@ -112,7 +112,7 @@ JSVAL_IS_OBJECT(jsval v)
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_INT(jsval v)
 {
-    return (JSBool)(v & JSVAL_INT);
+    return v & JSVAL_INT;
 }
 
 static JS_ALWAYS_INLINE JSBool
@@ -270,7 +270,7 @@ BOOLEAN_TO_JSVAL(JSBool b)
 
 
 #define JSVAL_TO_PRIVATE(v)     ((void *)((v) & ~JSVAL_INT))
-#define PRIVATE_TO_JSVAL(p)     ((jsval)(ptrdiff_t)(p) | JSVAL_INT)
+#define PRIVATE_TO_JSVAL(p)     ((jsval)(p) | JSVAL_INT)
 
 
 #define JSPROP_ENUMERATE        0x01    /* property is visible to for/in loop */
@@ -284,8 +284,6 @@ BOOLEAN_TO_JSVAL(JSBool b)
                                            object that delegates to a prototype
                                            containing this property */
 #define JSPROP_INDEX            0x80    /* name is actually (jsint) index */
-#define JSPROP_SHORTID          0x100   /* set in JSPropertyDescriptor.attrs
-                                           if getters/setters use a shortid */
 
 
 #define JSFUN_LAMBDA            0x08    /* expressed, not declared, function */
@@ -469,9 +467,6 @@ JS_ValueToSource(JSContext *cx, jsval v);
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
 
-extern JS_PUBLIC_API(JSBool)
-JS_DoubleIsInt32(jsdouble d, jsint *ip);
-
 
 
 
@@ -563,9 +558,6 @@ JS_SuspendRequest(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth);
 
-extern JS_PUBLIC_API(void)
-JS_TransferRequest(JSContext *cx, JSContext *another);
-
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
@@ -629,27 +621,6 @@ class JSAutoSuspendRequest {
     static void *operator new(size_t) CPP_THROW_NEW { return 0; };
     static void operator delete(void *, size_t) { };
 #endif
-};
-
-class JSAutoTransferRequest
-{
-  public:
-    JSAutoTransferRequest(JSContext* cx1, JSContext* cx2)
-        : cx1(cx1), cx2(cx2) {
-        if(cx1 != cx2)
-            JS_TransferRequest(cx1, cx2);
-    }
-    ~JSAutoTransferRequest() {
-        if(cx1 != cx2)
-            JS_TransferRequest(cx2, cx1);
-    }
-  private:
-    JSContext* const cx1;
-    JSContext* const cx2;
-
-    
-    JSAutoTransferRequest(JSAutoTransferRequest &);
-    void operator =(JSAutoTransferRequest&);
 };
 
 JS_BEGIN_EXTERN_C
@@ -824,18 +795,6 @@ JS_GetScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetGlobalForScopeChain(JSContext *cx);
-
-#ifdef JS_HAS_CTYPES
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_InitCTypesClass(JSContext *cx, JSObject *global);
-#endif
 
 
 
@@ -1402,16 +1361,10 @@ JS_GetExternalStringGCType(JSRuntime *rt, JSString *str);
 
 
 
+
+
 extern JS_PUBLIC_API(void)
 JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
-
 
 
 
@@ -1478,7 +1431,7 @@ struct JSExtendedClass {
 #define JSCLASS_NEW_ENUMERATE           (1<<1)  /* has JSNewEnumerateOp hook */
 #define JSCLASS_NEW_RESOLVE             (1<<2)  /* has JSNewResolveOp hook */
 #define JSCLASS_PRIVATE_IS_NSISUPPORTS  (1<<3)  /* private is (nsISupports *) */
-
+#define JSCLASS_SHARE_ALL_PROPERTIES    (1<<4)  /* all properties are SHARED */
 #define JSCLASS_NEW_RESOLVE_GETS_START  (1<<5)  /* JSNewResolveOp gets starting
                                                    object in prototype chain
                                                    passed in via *objp in/out
@@ -1523,10 +1476,10 @@ struct JSExtendedClass {
 
 
 
-#define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 3 + 1))
 
-#define JSRESERVED_GLOBAL_COMPARTMENT (JSProto_LIMIT * 3)
+
+#define JSCLASS_GLOBAL_FLAGS \
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -1543,7 +1496,6 @@ struct JSExtendedClass {
 #define JSCLASS_NO_RESERVED_MEMBERS     0,0,0
 
 struct JSIdArray {
-    void *self;
     jsint length;
     jsid  vector[1];    
 };
@@ -1705,9 +1657,6 @@ extern JS_PUBLIC_API(JSBool)
 JS_GetObjectId(JSContext *cx, JSObject *obj, jsid *idp);
 
 extern JS_PUBLIC_API(JSObject *)
-JS_NewGlobalObject(JSContext *cx, JSClass *clasp);
-
-extern JS_PUBLIC_API(JSObject *)
 JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
 
 
@@ -1749,9 +1698,6 @@ JS_DefineProperty(JSContext *cx, JSObject *obj, const char *name, jsval value,
 extern JS_PUBLIC_API(JSBool)
 JS_DefinePropertyById(JSContext *cx, JSObject *obj, jsid id, jsval value,
                       JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
-
-extern JS_PUBLIC_API(JSBool)
-JS_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id, jsval descriptor, JSBool *bp);
 
 
 
@@ -1835,7 +1781,6 @@ struct JSPropertyDescriptor {
     uintN        attrs;
     JSPropertyOp getter;
     JSPropertyOp setter;
-    uintN        shortid;
     jsval        value;
 };
 
@@ -1847,9 +1792,6 @@ struct JSPropertyDescriptor {
 extern JS_PUBLIC_API(JSBool)
 JS_GetPropertyDescriptorById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                              JSPropertyDescriptor *desc);
-
-extern JS_PUBLIC_API(JSBool)
-JS_GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_GetProperty(JSContext *cx, JSObject *obj, const char *name, jsval *vp);
@@ -2328,6 +2270,10 @@ JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval);
 
 
 typedef enum JSExecPart { JSEXEC_PROLOG, JSEXEC_MAIN } JSExecPart;
+
+extern JS_PUBLIC_API(JSBool)
+JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
+                     JSExecPart part, jsval *rval);
 
 extern JS_PUBLIC_API(JSBool)
 JS_EvaluateScript(JSContext *cx, JSObject *obj,
