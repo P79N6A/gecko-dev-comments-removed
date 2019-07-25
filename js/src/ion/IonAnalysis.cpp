@@ -251,7 +251,7 @@ TypeAnalyzer::canSpecializeAtDef(MInstruction *ins)
 {
     
     
-    return !!ins->snapshot();
+    return ins->snapshot() || ins->isPhi();
 }
 
 
@@ -307,8 +307,8 @@ TypeAnalyzer::specializePhi(MPhi *phi)
 
     MBasicBlock *block = phi->block();
     MUnbox *unbox = MUnbox::New(phi, usedAs);
+    block->insertAfter(*block->begin(), unbox);
     unbox->assignSnapshot(block->entrySnapshot());
-    block->insertBefore(*block->begin(), unbox);
     rewriteUses(phi, unbox);
 
     return true;
@@ -317,6 +317,58 @@ TypeAnalyzer::specializePhi(MPhi *phi)
 bool
 TypeAnalyzer::fixup(MInstruction *ins)
 {
+    if (!ins->uses())
+        return true;
+
+    
+    MIRType usedAs = ins->usedAsType();
+    if (usedAs != MIRType_Value && ins->type() == MIRType_Value && canSpecializeAtDef(ins)) {
+        MUnbox *unbox = MUnbox::New(ins, usedAs);
+        MBasicBlock *block = ins->block();
+        if (ins->isPhi()) {
+            block->insertAfter(*block->begin(), unbox);
+            unbox->assignSnapshot(block->entrySnapshot());
+        } else {
+            block->insertAfter(ins, unbox);
+            unbox->assignSnapshot(ins->snapshot());
+        }
+        rewriteUses(ins, unbox);
+    }
+
+    MUseIterator uses(ins);
+    while (uses.more()) {
+        MInstruction *use = uses->ins();
+        MIRType required = use->requiredInputType(uses->index());
+        MIRType actual = ins->type();
+
+        if (required == actual || required == MIRType_Any) {
+            
+            uses.next();
+            continue;
+        }
+
+        if (required == MIRType_Value) {
+            
+            MBox *box = MBox::New(ins);
+            if (use->isPhi()) {
+                MBasicBlock *pred = use->block()->getPredecessor(uses->index());
+                pred->insertBefore(pred->lastIns(), box);
+            } else {
+                use->block()->insertBefore(use, box);
+            }
+            use->replaceOperand(uses, box);
+        } else if (actual == MIRType_Value) {
+            
+            MUnbox *unbox = MUnbox::New(ins, required);
+            use->block()->insertBefore(use, unbox);
+            unbox->assignSnapshot(use->snapshot());
+            use->replaceOperand(uses, unbox);
+        } else {
+            
+            JS_NOT_REACHED("NYI");
+        }
+    }
+
     return true;
 }
 
@@ -327,6 +379,8 @@ TypeAnalyzer::insertConversions()
         MBasicBlock *block = graph.getBlock(i);
         for (size_t i = 0; i < block->numPhis(); i++) {
             if (!specializePhi(block->getPhi(i)))
+                return false;
+            if (!fixup(block->getPhi(i)))
                 return false;
         }
         for (MInstructionIterator iter = block->begin(); iter != block->end(); iter++) {

@@ -395,15 +395,16 @@ MBasicBlock::addPredecessor(MBasicBlock *pred)
             } else {
                 
                 phi = MPhi::New(i);
-                if (!addPhi(phi) || !phi->addInput(mine))
+                if (!addPhi(phi))
                     return false;
 
-#ifdef DEBUG
                 
                 
-                for (size_t j = 0; j < predecessors_.length(); j++)
+                for (size_t j = 0; j < predecessors_.length(); j++) {
                     JS_ASSERT(predecessors_[j]->getSlot(i) == mine);
-#endif
+                    if (!phi->addInput(mine))
+                        return false;
+                }
 
                 setSlot(i, phi);
                 entrySnapshot()->replaceOperand(i, phi);
