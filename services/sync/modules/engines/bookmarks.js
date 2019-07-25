@@ -190,7 +190,6 @@ BookmarksEngine.prototype = {
   _incomingShareWithdrawn: function BmkEngine__incomingShareStop(user,
                                                                  serverPath,
                                                                  folderName) {
-
     
 
 
@@ -226,10 +225,8 @@ BookmarksEngine.prototype = {
 
 
     
-    dump( "About to call _createOutgoingShare asynchronously.\n" );
     this._createOutgoingShare.async( this, self.cb, selectedFolder, username );
     let serverPath = yield;
-    dump( "Done calling _createOutgoingShare asynchronously.\n" );
     this._updateOutgoingShare.async( this, self.cb, selectedFolder );
     yield;
 
@@ -239,8 +236,6 @@ BookmarksEngine.prototype = {
     let folderName = selectedFolder.getAttribute( "label" );
     ans.setItemAnnotation(folderItemId, OUTGOING_SHARED_ANNO, username, 0,
                             ans.EXPIRE_NEVER);
-    
-    dump( "I set the annotation...\n" );
     
     if ( this._xmppClient ) {
       if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
@@ -256,7 +251,7 @@ BookmarksEngine.prototype = {
 
 
 
-    dump( "Bookmark engine shared " +folderName + " with " + username + "\n" );
+    this._log.info("Shared " + folderName +" with " + username);
     ret = true;
     self.done( true );
   },
@@ -275,7 +270,7 @@ BookmarksEngine.prototype = {
     let self = yield;
     let mounts = this._store.findIncomingShares();
 
-    for (i = 0; i < mounts.length; i++) {
+    for (let i = 0; i < mounts.length; i++) {
       try {
         this._updateIncomingShare.async(this, self.cb, mounts[i]);
         yield;
@@ -287,16 +282,21 @@ BookmarksEngine.prototype = {
   },
 
   updateAllOutgoingShares: function BmkEngine_updateAllOutgoing(onComplete) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    this._updateAllOutgoingShares.async(this, onComplete);
+  },
+  _updateAllOutgoingShares: function BmkEngine__updateAllOutgoing() {
+    let self = yield;
+    let ans = Cc["@mozilla.org/browser/annotation-service;1"].
+      getService(Ci.nsIAnnotationService);
+    let shares = ans.getItemsWithAnnotation(OUTGOING_SHARED_ANNO, {});
+    for ( let i=0; i < shares.length; i++ ) {
+      
+
+
+      this._updateOutgoingShare.async(this, self.cb, shares[i]);
+      yield;
+    }
+    self.done();
   },
 
   _createOutgoingShare: function BmkEngine__createOutgoing(folder, username) {
