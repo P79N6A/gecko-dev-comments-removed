@@ -1264,12 +1264,19 @@ nsHTMLEditRules::WillInsert(nsISelection *aSelection, bool *aCancel)
     }
   }
 
+  if (mDidDeleteSelection &&
+      (mTheAction == nsEditor::kOpInsertText ||
+       mTheAction == nsEditor::kOpInsertIMEText ||
+       mTheAction == nsEditor::kOpInsertBreak ||
+       mTheAction == nsEditor::kOpDeleteSelection)) {
+    res = ReapplyCachedStyles();
+    NS_ENSURE_SUCCESS(res, res);
+  }
   
-  nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
-  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
-    
-  
-  return CreateStyleForInsertText(aSelection, doc);
+  res = ClearCachedStyles();
+  NS_ENSURE_SUCCESS(res, res);
+
+  return NS_OK;
 }    
 
 nsresult
@@ -1316,6 +1323,14 @@ nsHTMLEditRules::WillInsertText(nsEditor::OperationID aAction,
   
   
   *aCancel = false;
+
+  
+  nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
+  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
+
+  
+  res = CreateStyleForInsertText(aSelection, doc);
+  NS_ENSURE_SUCCESS(res, res);
   
   
   res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(selNode), &selOffset);
@@ -1326,10 +1341,6 @@ nsHTMLEditRules::WillInsertText(nsEditor::OperationID aAction,
       !mHTMLEditor->CanContainTag(selNode, nsGkAtoms::textTagName)) {
     return NS_ERROR_FAILURE;
   }
-
-  
-  nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
-  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
     
   if (aAction == nsEditor::kOpInsertIMEText) {
     
@@ -4355,19 +4366,6 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection,
   NS_ENSURE_SUCCESS(res, res);
 
   
-  if (mDidDeleteSelection &&
-      (mTheAction == nsEditor::kOpInsertText ||
-       mTheAction == nsEditor::kOpInsertIMEText ||
-       mTheAction == nsEditor::kOpInsertBreak ||
-       mTheAction == nsEditor::kOpDeleteSelection)) {
-    res = ReapplyCachedStyles();
-    NS_ENSURE_SUCCESS(res, res);
-  }
-  
-  res = ClearCachedStyles();
-  NS_ENSURE_SUCCESS(res, res);
-
-  
   
   
   PRInt32 length = mHTMLEditor->mDefaultStyles.Length();
@@ -4404,82 +4402,9 @@ nsHTMLEditRules::CreateStyleForInsertText(nsISelection *aSelection,
   
   nsAutoPtr<PropItem> item(mHTMLEditor->mTypeInState->TakeClearProperty());
   while (item && node != rootElement) {
-    nsCOMPtr<nsIDOMNode> leftNode, rightNode;
-    res = mHTMLEditor->SplitStyleAbovePoint(address_of(node), &offset,
-                                            item->tag, &item->attr,
-                                            address_of(leftNode),
-                                            address_of(rightNode));
+    res = mHTMLEditor->ClearStyle(address_of(node), &offset,
+                                  item->tag, &item->attr);
     NS_ENSURE_SUCCESS(res, res);
-    bool bIsEmptyNode;
-    if (leftNode) {
-      mHTMLEditor->IsEmptyNode(leftNode, &bIsEmptyNode, false, true);
-      if (bIsEmptyNode) {
-        
-        res = mEditor->DeleteNode(leftNode);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-    }
-    if (rightNode) {
-      nsCOMPtr<nsIDOMNode> secondSplitParent =
-        mHTMLEditor->GetLeftmostChild(rightNode);
-      
-      if (!secondSplitParent) {
-        secondSplitParent = rightNode;
-      }
-      nsCOMPtr<nsIDOMNode> savedBR;
-      if (!mHTMLEditor->IsContainer(secondSplitParent)) {
-        if (nsTextEditUtils::IsBreak(secondSplitParent)) {
-          savedBR = secondSplitParent;
-        }
-
-        secondSplitParent->GetParentNode(getter_AddRefs(tmp));
-        secondSplitParent = tmp;
-      }
-      offset = 0;
-      res = mHTMLEditor->SplitStyleAbovePoint(address_of(secondSplitParent),
-                                              &offset, item->tag,
-                                              &item->attr,
-                                              address_of(leftNode),
-                                              address_of(rightNode));
-      NS_ENSURE_SUCCESS(res, res);
-      
-      NS_ENSURE_TRUE(leftNode, NS_ERROR_FAILURE);
-      nsCOMPtr<nsIDOMNode> newSelParent =
-        mHTMLEditor->GetLeftmostChild(leftNode);
-      if (!newSelParent) {
-        newSelParent = leftNode;
-      }
-      
-      
-      
-      if (savedBR) {
-        res = mEditor->MoveNode(savedBR, newSelParent, 0);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      mHTMLEditor->IsEmptyNode(rightNode, &bIsEmptyNode, false, true);
-      if (bIsEmptyNode) {
-        
-        res = mEditor->DeleteNode(rightNode);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      
-      PRInt32 newSelOffset = 0;
-      {
-        
-        
-        
-        
-        
-        nsAutoTrackDOMPoint tracker(mHTMLEditor->mRangeUpdater,
-                                    address_of(newSelParent), &newSelOffset);
-        res = mHTMLEditor->RemoveStyleInside(leftNode, item->tag,
-                                             &(item->attr));
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      
-      node = newSelParent;
-      offset = newSelOffset;
-    }
     item = mHTMLEditor->mTypeInState->TakeClearProperty();
     weDidSomething = true;
   }
