@@ -39,6 +39,16 @@ const Cu = Components.utils;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+const BrowserStartupServiceFactory = {
+  _instance: null,
+  createInstance: function (outer, iid) {
+    if (outer != null)
+      throw Components.results.NS_ERROR_NO_AGGREGATION;
+    return this._instance || (this._instance = new BrowserStartup());
+  }
+};
+
 function BrowserStartup() {
   this._init();
 }
@@ -121,16 +131,6 @@ BrowserStartup.prototype = {
         this._observerService.removeObserver(this, "places-init-complete");
         break;
     }
-  }
-};
-
-
-const BrowserStartupServiceFactory = {
-  _instance: null,
-  createInstance: function (outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return this._instance || (this._instance = new BrowserGlue());
   }
 };
 
