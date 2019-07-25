@@ -1047,12 +1047,12 @@ struct nsCycleCollector
                      nsICycleCollectorListener *aListener);
 
     
-    PRBool PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes);
+    PRBool PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes,
+                                PRBool aForceGC);
     void CleanupAfterCollection();
 
     
-    PRBool BeginCollection(PRBool aForceGC,
-                           nsICycleCollectorListener *aListener);
+    PRBool BeginCollection(nsICycleCollectorListener *aListener);
     PRBool FinishCollection();
 
     PRUint32 SuspectedCount();
@@ -2499,8 +2499,12 @@ nsCycleCollector::Freed(void *n)
 #endif
 
 PRBool
-nsCycleCollector::PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes)
+nsCycleCollector::PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes,
+                                       PRBool aForceGC)
 {
+    NS_ASSERTION(NS_IsMainThread(),
+                 "PrepareForCollection must be called on the main thread.");
+
 #if defined(DEBUG_CC) && !defined(__MINGW32__)
     if (!mParams.mDoNothing && mParams.mHookMalloc)
         InitMemHook();
@@ -2528,6 +2532,29 @@ nsCycleCollector::PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes)
     mCollectedObjects = 0;
 
     mWhiteNodes = aWhiteNodes;
+
+    
+    
+    
+    
+    
+    if (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]) {
+        nsCycleCollectionJSRuntime* rt =
+            static_cast<nsCycleCollectionJSRuntime*>
+                (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
+        if (rt->NeedCollect() || aForceGC) {
+#ifdef COLLECT_TIME_DEBUG
+            PRTime start = PR_Now();
+#endif
+            
+            
+            
+            rt->Collect();
+#ifdef COLLECT_TIME_DEBUG
+            printf("cc: GC() took %lldms\n", (PR_Now() - start) / PR_USEC_PER_MSEC);
+#endif
+        }
+    }
 
     return PR_TRUE;
 }
@@ -2563,13 +2590,13 @@ nsCycleCollector::Collect(PRUint32 aTryCollections,
 {
     nsAutoTPtrArray<PtrInfo, 4000> whiteNodes;
 
-    if (!PrepareForCollection(&whiteNodes))
+    if (!PrepareForCollection(&whiteNodes, PR_TRUE))
         return 0;
 
     PRUint32 totalCollections = 0;
     while (aTryCollections > totalCollections) {
         
-        if (!(BeginCollection(PR_TRUE, aListener) && FinishCollection()))
+        if (!(BeginCollection(aListener) && FinishCollection()))
             break;
 
         ++totalCollections;
@@ -2581,31 +2608,10 @@ nsCycleCollector::Collect(PRUint32 aTryCollections,
 }
 
 PRBool
-nsCycleCollector::BeginCollection(PRBool aForceGC,
-                                  nsICycleCollectorListener *aListener)
+nsCycleCollector::BeginCollection(nsICycleCollectorListener *aListener)
 {
     if (mParams.mDoNothing)
         return PR_FALSE;
-
-    
-    
-    
-    
-    
-    if (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]) {
-        nsCycleCollectionJSRuntime* rt =
-            static_cast<nsCycleCollectionJSRuntime*>
-                (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
-        if (rt->NeedCollect() || aForceGC) {
-#ifdef COLLECT_TIME_DEBUG
-            PRTime start = PR_Now();
-#endif
-            rt->Collect();
-#ifdef COLLECT_TIME_DEBUG
-            printf("cc: GC() took %lldms\n", (PR_Now() - start) / PR_USEC_PER_MSEC);
-#endif
-        }
-    }
 
     if (aListener && NS_FAILED(aListener->Begin())) {
         aListener = nsnull;
@@ -3358,7 +3364,7 @@ public:
                 return NS_OK;
             }
 
-            mCollected = mCollector->BeginCollection(PR_FALSE, mListener);
+            mCollected = mCollector->BeginCollection(mListener);
 
             mReply.Notify();
         }
@@ -3389,7 +3395,7 @@ public:
             return 0;
 
         nsAutoTPtrArray<PtrInfo, 4000> whiteNodes;
-        if (!mCollector->PrepareForCollection(&whiteNodes))
+        if (!mCollector->PrepareForCollection(&whiteNodes, PR_FALSE))
             return 0;
 
         NS_ASSERTION(!mListener, "Should have cleared this already!");
