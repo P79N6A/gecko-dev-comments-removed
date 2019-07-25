@@ -492,6 +492,12 @@ class FrameState
     
 
 
+
+    inline void giveOwnRegs(FrameEntry *fe);
+
+    
+
+
     uint32 stackDepth() const { return sp - spBase; }
     uint32 frameDepth() const { return stackDepth() + script->nfixed; }
     inline FrameEntry *tosFe() const;
