@@ -179,27 +179,6 @@ struct nsListIter
 
 
 
-struct nsEnumerationData
-{
-  nsEnumerationData(PRInt64 aCurrentTime, PRInt64 aOldestTime)
-   : currentTime(aCurrentTime)
-   , oldestTime(aOldestTime)
-  {
-  }
-
-  
-  PRInt64 currentTime;
-
-  
-  
-  PRInt64 oldestTime;
-
-  
-  nsListIter iter;
-};
-
-
-
 
 
 
@@ -1386,6 +1365,13 @@ nsCookieService::RemoveAll()
     NS_ASSERTION(mDBState == &mDefaultDBState, "not in default DB state");
 
     
+    
+    if (mDefaultDBState.pendingRead) {
+      CancelAsyncRead(PR_TRUE);
+      mDefaultDBState.syncConn = nsnull;
+    }
+
+    
     nsCOMPtr<mozIStorageStatement> stmt;
     nsresult rv = mDefaultDBState.dbConn->CreateStatement(NS_LITERAL_CSTRING(
       "DELETE FROM moz_cookies"), getter_AddRefs(stmt));
@@ -1400,43 +1386,27 @@ nsCookieService::RemoveAll()
   return NS_OK;
 }
 
-
-struct nsGetEnumeratorData
-{
-  nsGetEnumeratorData(nsCOMArray<nsICookie> *aArray, PRInt64 aTime)
-   : array(aArray)
-   , currentTime(aTime) {}
-
-  nsCOMArray<nsICookie> *array;
-  PRInt64 currentTime;
-};
-
 static PLDHashOperator
 COMArrayCallback(nsCookieEntry *aEntry,
                  void          *aArg)
 {
-  nsGetEnumeratorData *data = static_cast<nsGetEnumeratorData *>(aArg);
+  nsCOMArray<nsICookie> *data = static_cast<nsCOMArray<nsICookie> *>(aArg);
 
   const nsCookieEntry::ArrayType &cookies = aEntry->GetCookies();
   for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
-    nsCookie *cookie = cookies[i];
-
-    
-    if (cookie->Expiry() > data->currentTime)
-      data->array->AppendObject(cookie);
+    data->AppendObject(cookies[i]);
   }
+
   return PL_DHASH_NEXT;
 }
 
 NS_IMETHODIMP
 nsCookieService::GetEnumerator(nsISimpleEnumerator **aEnumerator)
 {
-  nsCOMArray<nsICookie> cookieList(mDBState->cookieCount);
-  nsGetEnumeratorData data(&cookieList, PR_Now() / PR_USEC_PER_SEC);
-
   EnsureReadComplete();
 
-  mDBState->hostTable.EnumerateEntries(COMArrayCallback, &data);
+  nsCOMArray<nsICookie> cookieList(mDBState->cookieCount);
+  mDBState->hostTable.EnumerateEntries(COMArrayCallback, &cookieList);
 
   return NS_NewArrayEnumerator(aEnumerator, cookieList);
 }
@@ -2356,14 +2326,16 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
     }
 
     
-    nsEnumerationData data(currentTime, LL_MAXINT);
-    if (CountCookiesFromHostInternal(aBaseDomain, data) >= mMaxCookiesPerHost) {
-      
-      oldCookie = data.iter.Cookie();
-      COOKIE_LOGEVICTED(oldCookie, "Too many cookies for this domain");
-      RemoveCookieFromList(data.iter);
+    nsCookieEntry *entry = mDBState->hostTable.GetEntry(aBaseDomain);
+    if (entry && entry->GetCookies().Length() >= mMaxCookiesPerHost) {
+      nsListIter iter;
+      FindStaleCookie(entry, currentTime, iter);
 
-      NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
+      
+      COOKIE_LOGEVICTED(iter.Cookie(), "Too many cookies for this domain");
+      RemoveCookieFromList(iter);
+
+      NotifyChanged(iter.Cookie(), NS_LITERAL_STRING("deleted").get());
 
     } else if (mDBState->cookieCount >= ADD_TEN_PERCENT(mMaxNumberOfCookies)) {
       PRInt64 maxAge = aCurrentTimeInUsec - mDBState->cookieOldestTime;
@@ -3181,34 +3153,32 @@ nsCookieService::CookieExists(nsICookie2 *aCookie,
 
 
 
-PRUint32
-nsCookieService::CountCookiesFromHostInternal(const nsCString   &aBaseDomain,
-                                              nsEnumerationData &aData)
+void
+nsCookieService::FindStaleCookie(nsCookieEntry *aEntry,
+                                 PRInt64 aCurrentTime,
+                                 nsListIter &aIter)
 {
-  EnsureReadDomain(aBaseDomain);
+  aIter.entry = NULL;
 
-  nsCookieEntry *entry = mDBState->hostTable.GetEntry(aBaseDomain);
-  if (!entry)
-    return 0;
-
-  PRUint32 countFromHost = 0;
-  const nsCookieEntry::ArrayType &cookies = entry->GetCookies();
+  PRInt64 oldestTime;
+  const nsCookieEntry::ArrayType &cookies = aEntry->GetCookies();
   for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
     nsCookie *cookie = cookies[i];
 
     
-    if (cookie->Expiry() > aData.currentTime) {
-      ++countFromHost;
+    if (cookie->Expiry() > aCurrentTime) {
+      aIter.entry = aEntry;
+      aIter.index = i;
+      return;
+    }
 
-      
-      if (aData.oldestTime > cookie->LastAccessed()) {
-        aData.oldestTime = cookie->LastAccessed();
-        aData.iter = nsListIter(entry, i);
-      }
+    
+    if (!aIter.entry || oldestTime > cookie->LastAccessed()) {
+      oldestTime = cookie->LastAccessed();
+      aIter.entry = aEntry;
+      aIter.index = i;
     }
   }
-
-  return countFromHost;
 }
 
 
@@ -3226,9 +3196,11 @@ nsCookieService::CountCookiesFromHost(const nsACString &aHost,
   rv = GetBaseDomainFromHost(host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  EnsureReadDomain(baseDomain);
+
   
-  nsEnumerationData data(PR_Now() / PR_USEC_PER_SEC, LL_MININT);
-  *aCountFromHost = CountCookiesFromHostInternal(baseDomain, data);
+  nsCookieEntry *entry = mDBState->hostTable.GetEntry(baseDomain);
+  *aCountFromHost = entry ? entry->GetCookies().Length() : 0;
   return NS_OK;
 }
 
@@ -3247,22 +3219,16 @@ nsCookieService::GetCookiesFromHost(const nsACString     &aHost,
   rv = GetBaseDomainFromHost(host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMArray<nsICookie> cookieList(mMaxCookiesPerHost);
-  PRInt64 currentTime = PR_Now() / PR_USEC_PER_SEC;
-
   EnsureReadDomain(baseDomain);
 
   nsCookieEntry *entry = mDBState->hostTable.GetEntry(baseDomain);
   if (!entry)
     return NS_NewEmptyEnumerator(aEnumerator);
 
+  nsCOMArray<nsICookie> cookieList(mMaxCookiesPerHost);
   const nsCookieEntry::ArrayType &cookies = entry->GetCookies();
   for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
-    nsCookie *cookie = cookies[i];
-
-    
-    if (cookie->Expiry() > currentTime)
-      cookieList.AppendObject(cookie);
+    cookieList.AppendObject(cookies[i]);
   }
 
   return NS_NewArrayEnumerator(aEnumerator, cookieList);

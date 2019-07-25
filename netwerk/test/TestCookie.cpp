@@ -739,9 +739,9 @@ main(PRInt32 argc, char *argv[])
       
       PR_Sleep(4 * PR_TicksPerSecond());
       
-      rv[14] = NS_SUCCEEDED(cookieMgr2->CountCookiesFromHost(NS_LITERAL_CSTRING("cookiemgr.test"), &hostCookies)) &&
-              hostCookies == 1;
       
+      rv[14] = NS_SUCCEEDED(cookieMgr2->CountCookiesFromHost(NS_LITERAL_CSTRING("cookiemgr.test"), &hostCookies)) &&
+              hostCookies == 2;
       rv[15] = NS_SUCCEEDED(cookieMgr2->CookieExists(expiredCookie, &found)) && found;
       
       rv[16] = NS_SUCCEEDED(cookieMgr->RemoveAll());
