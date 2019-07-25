@@ -66,7 +66,6 @@
 #include "jsdbgapi.h"           
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
-#include "nsJSEnvironment.h"
 
 
 #include "nsIEventListenerManager.h"
@@ -119,7 +118,6 @@
 #include "nsIDOMMessageEvent.h"
 #include "nsIDOMPopupBlockedEvent.h"
 #include "nsIDOMPopStateEvent.h"
-#include "nsIDOMPopStateEvent_MOZILLA_2_BRANCH.h"
 #include "nsIDOMOfflineResourceList.h"
 #include "nsIDOMGeoGeolocation.h"
 #include "nsIDOMDesktopNotification.h"
@@ -183,6 +181,7 @@
 #include "nsIXULAppInfo.h"
 #include "nsNetUtil.h"
 #include "nsFocusManager.h"
+#include "nsIJSON.h"
 #include "nsIXULWindow.h"
 #include "nsEventStateManager.h"
 #ifdef MOZ_XUL
@@ -2492,21 +2491,6 @@ nsGlobalWindow::UpdateParentTarget()
   }
 }
 
-PRBool
-nsGlobalWindow::GetIsTabModalPromptAllowed()
-{
-  PRBool allowTabModal = PR_TRUE;
-  if (mDocShell) {
-    nsCOMPtr<nsIContentViewer> cv;
-    mDocShell->GetContentViewer(getter_AddRefs(cv));
-    nsCOMPtr<nsIContentViewer_MOZILLA_2_0_BRANCH> cv2 = do_QueryInterface(cv);
-    if (cv2)
-      cv2->GetIsTabModalPromptAllowed(&allowTabModal);
-  }
-
-  return allowTabModal;
-}
-
 nsresult
 nsGlobalWindow::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 {
@@ -4647,10 +4631,6 @@ nsGlobalWindow::Alert(const nsAString& aString)
   nsAutoString final;
   nsContentUtils::StripNullChars(*str, final);
 
-  
-  
-  PRBool allowTabModal = GetIsTabModalPromptAllowed();
-
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> promptFac =
     do_GetService("@mozilla.org/prompter;1", &rv);
@@ -4663,7 +4643,7 @@ nsGlobalWindow::Alert(const nsAString& aString)
 
   nsCOMPtr<nsIWritablePropertyBag2> promptBag = do_QueryInterface(prompt);
   if (promptBag)
-    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), allowTabModal);
+    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), PR_TRUE);
 
   if (shouldEnableDisableDialog) {
     PRBool disallowDialog = PR_FALSE;
@@ -4713,10 +4693,6 @@ nsGlobalWindow::Confirm(const nsAString& aString, PRBool* aReturn)
   nsAutoString final;
   nsContentUtils::StripNullChars(aString, final);
 
-  
-  
-  PRBool allowTabModal = GetIsTabModalPromptAllowed();
-
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> promptFac =
     do_GetService("@mozilla.org/prompter;1", &rv);
@@ -4729,7 +4705,7 @@ nsGlobalWindow::Confirm(const nsAString& aString, PRBool* aReturn)
 
   nsCOMPtr<nsIWritablePropertyBag2> promptBag = do_QueryInterface(prompt);
   if (promptBag)
-    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), allowTabModal);
+    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), PR_TRUE);
 
   if (shouldEnableDisableDialog) {
     PRBool disallowDialog = PR_FALSE;
@@ -4782,10 +4758,6 @@ nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
   nsContentUtils::StripNullChars(aMessage, fixedMessage);
   nsContentUtils::StripNullChars(aInitial, fixedInitial);
 
-  
-  
-  PRBool allowTabModal = GetIsTabModalPromptAllowed();
-
   nsresult rv;
   nsCOMPtr<nsIPromptFactory> promptFac =
     do_GetService("@mozilla.org/prompter;1", &rv);
@@ -4798,7 +4770,7 @@ nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
 
   nsCOMPtr<nsIWritablePropertyBag2> promptBag = do_QueryInterface(prompt);
   if (promptBag)
-    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), allowTabModal);
+    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), PR_TRUE);
 
   
   PRUnichar *inoutValue = ToNewUnicode(fixedInitial);
@@ -7698,9 +7670,9 @@ nsGlobalWindow::FireHashchange()
 }
 
 nsresult
-nsGlobalWindow::DispatchSyncPopState(PRBool aIsInitial)
+nsGlobalWindow::DispatchSyncPopState()
 {
-  FORWARD_TO_INNER(DispatchSyncPopState, (aIsInitial), NS_OK);
+  FORWARD_TO_INNER(DispatchSyncPopState, (), NS_OK);
 
   NS_ASSERTION(nsContentUtils::IsSafeToRunScript(),
                "Must be safe to run script here.");
@@ -7717,16 +7689,59 @@ nsGlobalWindow::DispatchSyncPopState(PRBool aIsInitial)
   }
 
   
-  
-  
-  nsCOMPtr<nsIVariant> stateObj;
-  nsCOMPtr<nsIDOMNSDocument_MOZILLA_2_0_BRANCH> doc2 = do_QueryInterface(mDoc);
-  if (!doc2) {
+  if (!mDoc) {
     return NS_OK;
   }
+
+  nsIDocument::ReadyState readyState = mDoc->GetReadyStateEnum();
+  if (readyState != nsIDocument::READYSTATE_COMPLETE) {
+    return NS_OK;
+  }
+
   
-  rv = doc2->GetMozCurrentStateObject(getter_AddRefs(stateObj));
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  nsAString& stateObjJSON = mDoc->GetPendingStateObject();
+
+  nsCOMPtr<nsIVariant> stateObj;
+  
+  if (!stateObjJSON.IsEmpty()) {
+    
+    
+    nsCOMPtr<nsIDocument> document = do_QueryInterface(mDocument);
+    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
+
+    
+    
+    nsIScriptGlobalObject *sgo = document->GetScopeObject();
+    NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
+
+    nsIScriptContext *scx = sgo->GetContext();
+    NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
+
+    JSContext *cx = (JSContext*) scx->GetNativeContext();
+
+    
+    JSAutoRequest ar(cx);
+
+    
+    
+    nsCxPusher cxPusher;
+
+    jsval jsStateObj = JSVAL_NULL;
+
+    
+    nsCOMPtr<nsIJSON> json = do_GetService("@mozilla.org/dom/json;1");
+    NS_ENSURE_TRUE(cxPusher.Push(cx), NS_ERROR_FAILURE);
+    rv = json->DecodeToJSVal(stateObjJSON, cx, &jsStateObj);
+    NS_ENSURE_SUCCESS(rv, rv);
+    cxPusher.Pop();
+
+    nsCOMPtr<nsIXPConnect> xpconnect = do_GetService(nsIXPConnect::GetCID());
+    NS_ENSURE_TRUE(xpconnect, NS_ERROR_FAILURE);
+    rv = xpconnect->JSValToVariant(cx, &jsStateObj, getter_AddRefs(stateObj));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   
   nsIPresShell *shell = mDoc->GetShell();
@@ -7746,12 +7761,10 @@ nsGlobalWindow::DispatchSyncPopState(PRBool aIsInitial)
   NS_ENSURE_TRUE(privateEvent, NS_ERROR_FAILURE);
 
   
-  nsCOMPtr<nsIDOMPopStateEvent_MOZILLA_2_BRANCH> popstateEvent =
-    do_QueryInterface(domEvent);
+  nsCOMPtr<nsIDOMPopStateEvent> popstateEvent = do_QueryInterface(domEvent);
   rv = popstateEvent->InitPopStateEvent(NS_LITERAL_STRING("popstate"),
                                         PR_TRUE, PR_FALSE,
-                                        stateObj,
-                                        aIsInitial);
+                                        stateObj);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = privateEvent->SetTrusted(PR_TRUE);
@@ -7765,7 +7778,7 @@ nsGlobalWindow::DispatchSyncPopState(PRBool aIsInitial)
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool dummy; 
-  return DispatchEvent(domEvent, &dummy);
+  return DispatchEvent(popstateEvent, &dummy);
 }
 
 
