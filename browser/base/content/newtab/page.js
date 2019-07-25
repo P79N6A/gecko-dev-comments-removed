@@ -77,21 +77,21 @@ let gPage = {
 
     this._initialized = true;
 
-    let self = this;
+    gLinks.populateCache(function () {
+      
+      this.updateModifiedFlag();
 
-    
-    this.updateModifiedFlag();
+      
+      gGrid.init(this._gridSelector);
 
-    
-    gGrid.init(this._gridSelector);
+      
+      gDropTargetShim.init();
 
-    
-    gDropTargetShim.init();
-
-    
-    let doc = document.documentElement;
-    doc.addEventListener("dragover", this.onDragOver, false);
-    doc.addEventListener("drop", this.onDrop, false);
+      
+      let doc = document.documentElement;
+      doc.addEventListener("dragover", this.onDragOver, false);
+      doc.addEventListener("drop", this.onDrop, false);
+    }.bind(this));
   },
 
   

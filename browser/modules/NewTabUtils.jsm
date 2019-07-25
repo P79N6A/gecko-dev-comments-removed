@@ -464,7 +464,7 @@ let Links = {
   
 
 
-  _links: [],
+  _links: null,
 
   
 
@@ -474,14 +474,45 @@ let Links = {
   
 
 
+  _populateCallbacks: [],
 
-  populateCache: function Links_populateCache(aCallback) {
-    let self = this;
+  
 
-    this._provider.getLinks(function (aLinks) {
-      self._links = aLinks;
-      aCallback && aCallback();
-    });
+
+
+
+  populateCache: function Links_populateCache(aCallback, aForce) {
+    let callbacks = this._populateCallbacks;
+
+    
+    callbacks.push(aCallback);
+
+    
+    
+    if (callbacks.length > 1)
+      return;
+
+    function executeCallbacks() {
+      while (callbacks.length) {
+        let callback = callbacks.shift();
+        if (callback) {
+          try {
+            callback();
+          } catch (e) {
+            
+          }
+        }
+      }
+    }
+
+    if (this._links && !aForce) {
+      executeCallbacks();
+    } else {
+      this._provider.getLinks(function (aLinks) {
+        this._links = aLinks;
+        executeCallbacks();
+      }.bind(this));
+    }
   },
 
   
@@ -520,20 +551,6 @@ let Links = {
 
 
 let NewTabUtils = {
-  _initialized: false,
-
-  
-
-
-  init: function NewTabUtils_init() {
-    if (!this._initialized) {
-      
-      Links.populateCache();
-
-      this._initialized = true;
-    }
-  },
-
   
 
 

@@ -60,7 +60,7 @@ let gToolbar = {
 
         
         setTimeout(function () gTransformation.fadeNodeIn(node, aCallback));
-      });
+      }, true);
     });
   },
 
