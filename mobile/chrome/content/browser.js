@@ -66,7 +66,7 @@ const kDefaultMetadata = { autoSize: false, allowZoom: true, autoScale: true };
 
 
 window.sizeToContent = function() {
-  Components.utils.reportError("window.sizeToContent is not allowed in this window");
+  Cu.reportError("window.sizeToContent is not allowed in this window");
 }
 
 #ifdef MOZ_CRASH_REPORTER
@@ -492,7 +492,7 @@ var Browser = {
     window.controllers.removeController(BrowserUI);
   },
 
-  getHomePage: function (aOptions) {
+  getHomePage: function getHomePage(aOptions) {
     aOptions = aOptions || { useDefault: false };
 
     let url = "about:home";
@@ -1001,9 +1001,7 @@ var Browser = {
     let zoomRatio = oldZoomLevel / zoomLevel;
 
     
-    
-    
-    let zoomTolerance = (this.selectedTab.isDefaultZoomLevel()) ? .9 : .6666;
+    let zoomTolerance = .95;
     if (zoomRatio >= zoomTolerance)
       return null;
     else
@@ -1079,6 +1077,23 @@ var Browser = {
   },
 
   
+  
+  getScaleRatio: function getScaleRatio() {
+    let prefValue = Services.prefs.getIntPref("browser.viewport.scaleRatio");
+    if (prefValue > 0)
+      return prefValue / 100;
+
+    let dpi = this.windowUtils.displayDPI;
+    if (dpi < 200) 
+      return 1;
+    else if (dpi < 300) 
+      return 1.5;
+
+    
+    return Math.floor(dpi / 150);
+  },
+
+  
 
 
 
@@ -1124,8 +1139,10 @@ var Browser = {
       case "Browser:ZoomToPoint:Return":
         
         let rect = Rect.fromRect(json.rect);
-        if (!this.zoomToPoint(json.x, json.y, rect))
+        if (!this.zoomToPoint(json.x, json.y, rect)) {
+          browser.messageManager.sendAsyncMessage("Browser:ResetZoom", {});
           this.zoomFromPoint(json.x, json.y);
+        }
         break;
 
       case "scroll":
@@ -1295,7 +1312,7 @@ nsBrowserAccess.prototype = {
   QueryInterface: function(aIID) {
     if (aIID.equals(Ci.nsIBrowserDOMWindow) || aIID.equals(Ci.nsISupports))
       return this;
-    throw Components.results.NS_NOINTERFACE;
+    throw Cr.NS_NOINTERFACE;
   },
 
   _getBrowser: function _getBrowser(aURI, aOpener, aWhere, aContext) {
@@ -1608,17 +1625,15 @@ const ContentTouchHandler = {
     return target && ("classList" in target && target.classList.contains("inputHandler"));
   },
 
-  _dispatchMouseEvent: function _dispatchMouseEvent(aName, aX, aY, aModifiers) {
-    let aX = aX || 0;
-    let aY = aY || 0;
+  _dispatchMouseEvent: function _dispatchMouseEvent(aName, aX, aY, aOptions) {
     let browser = getBrowser();
-    let pos = browser.transformClientToBrowser(aX, aY);
-    browser.messageManager.sendAsyncMessage(aName, {
-      x: pos.x,
-      y: pos.y,
-      modifiers: aModifiers || null,
-      messageId: this._messageId
-    });
+    let pos = browser.transformClientToBrowser(aX || 0, aY || 0);
+
+    let json = aOptions || {};
+    json.x = pos.x;
+    json.y = pos.y;
+    json.messageId = this._messageId;
+    browser.messageManager.sendAsyncMessage(aName, json);
   },
 
   tapDown: function tapDown(aX, aY) {
@@ -1648,12 +1663,18 @@ const ContentTouchHandler = {
 
     
     if (!ContextHelper.popupState)
-      this._dispatchMouseEvent("Browser:MouseUp", aX, aY, aModifiers);
+      this._dispatchMouseEvent("Browser:MouseUp", aX, aY, { modifiers: aModifiers });
   },
 
   tapDouble: function tapDouble(aX, aY, aModifiers) {
     this._clearPendingMessages();
-    this._dispatchMouseEvent("Browser:ZoomToPoint", aX, aY);
+
+    let tab = Browser.selectedTab;
+    if (!tab.allowZoom)
+      return;
+
+    let width = window.innerWidth / Browser.getScaleRatio();
+    this._dispatchMouseEvent("Browser:ZoomToPoint", aX, aY, { width: width });
   },
 
   tapLong: function tapLong() {
@@ -1698,7 +1719,7 @@ ContentCustomKeySender.prototype = {
   },
 
   _parseModifiers: function _parseModifiers(aEvent) {
-    const masks = Components.interfaces.nsIDOMNSEvent;
+    const masks = Ci.nsIDOMNSEvent;
     var mval = 0;
     if (aEvent.shiftKey)
       mval |= masks.SHIFT_MASK;
@@ -2275,7 +2296,7 @@ var MemoryObserver = {
   observe: function mo_observe() {
     window.QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
-    Components.utils.forceGC();
+    Cu.forceGC();
   }
 };
 
@@ -2512,7 +2533,7 @@ ProgressController.prototype = {
         aIID.equals(Ci.nsISupports))
       return this;
 
-    throw Components.results.NS_ERROR_NO_INTERFACE;
+    throw Cr.NS_ERROR_NO_INTERFACE;
   },
 
   _networkStart: function _networkStart() {
@@ -2676,7 +2697,7 @@ Tab.prototype = {
   
   updateViewportMetadata: function updateViewportMetadata(aMetadata) {
     if (aMetadata && aMetadata.autoScale) {
-      let scaleRatio = aMetadata.scaleRatio = this.getScaleRatio();
+      let scaleRatio = aMetadata.scaleRatio = Browser.getScaleRatio();
 
       if ("defaultZoom" in aMetadata && aMetadata.defaultZoom > 0)
         aMetadata.defaultZoom *= scaleRatio;
@@ -2733,23 +2754,6 @@ Tab.prototype = {
     }
 
     browser.setWindowSize(viewportW, viewportH);
-  },
-
-  
-  
-  getScaleRatio: function getScaleRatio() {
-    let prefValue = Services.prefs.getIntPref("browser.viewport.scaleRatio");
-    if (prefValue > 0)
-      return prefValue / 100;
-
-    let dpi = Browser.windowUtils.displayDPI;
-    if (dpi < 200) 
-      return 1;
-    else if (dpi < 300) 
-      return 1.5;
-
-    
-    return Math.floor(dpi / 150);
   },
 
   restoreViewportPosition: function restoreViewportPosition(aOldWidth, aNewWidth) {
