@@ -52,7 +52,6 @@
 #include "nsTArray.h"
 #include "nsEvent.h"
 
-struct PRLogModuleInfo;
 class nsChildView;
 struct nsTextRange;
 
@@ -885,18 +884,8 @@ public:
 
   NSArray* GetValidAttributesForMarkedText();
 
-  PRBool HasMarkedText()
-  {
-    return (mMarkedRange.location != NSNotFound) && (mMarkedRange.length != 0);
-  }
-
-  NSRange MarkedRange()
-  {
-    if (!HasMarkedText()) {
-      return NSMakeRange(NSNotFound, 0);
-    }
-    return mMarkedRange;
-  }
+  PRBool HasMarkedText();
+  NSRange MarkedRange();
 
   PRBool IsIMEComposing() { return mIsIMEComposing; }
   PRBool IsIMEOpened();
@@ -920,7 +909,7 @@ public:
   void SetASCIICapableOnly(PRBool aASCIICapableOnly);
 
   static CFArrayRef CreateAllIMEModeList();
-  static void DebugPrintAllIMEModes(PRLogModuleInfo* aLogModuleInfo);
+  static void DebugPrintAllIMEModes();
 
   
   
@@ -1070,7 +1059,7 @@ public:
   static PRBool sLastModifierState;
 
   static CFArrayRef CreateAllKeyboardLayoutList();
-  static void DebugPrintAllKeyboardLayouts(PRLogModuleInfo* aLogModuleInfo);
+  static void DebugPrintAllKeyboardLayouts();
 
   TextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   virtual ~TextInputHandler();
@@ -1107,6 +1096,15 @@ public:
 
 
   void InsertText(NSAttributedString *aAttrString);
+
+  
+
+
+
+
+
+
+  PRBool DoCommandBySelector(const char* aSelector);
 
   
 
