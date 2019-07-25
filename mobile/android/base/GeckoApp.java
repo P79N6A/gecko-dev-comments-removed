@@ -847,8 +847,9 @@ abstract public class GeckoApp
 
                 
                 
-                if (getLayerClient() != null && Tabs.getInstance().isSelectedTab(tab)) {
-                    getLayerClient().setCheckerboardColor(tab.getCheckerboardColor());
+                LayerView layerView = mLayerView;
+                if (layerView != null && Tabs.getInstance().isSelectedTab(tab)) {
+                    layerView.setCheckerboardColor(tab.getCheckerboardColor());
                 }
             } else if (event.equals("DOMTitleChanged")) {
                 final int tabId = message.getInt("tabID");
@@ -992,9 +993,9 @@ abstract public class GeckoApp
                     return;
                 tab.setZoomConstraints(new ZoomConstraints(message));
                 
-                GeckoLayerClient layerClient = getLayerClient();
-                if (layerClient != null && Tabs.getInstance().isSelectedTab(tab)) {
-                    layerClient.setZoomConstraints(tab.getZoomConstraints());
+                LayerView layerView = mLayerView;
+                if (layerView != null && Tabs.getInstance().isSelectedTab(tab)) {
+                    layerView.setZoomConstraints(tab.getZoomConstraints());
                 }
             } else if (event.equals("Tab:HasTouchListener")) {
                 int tabId = message.getInt("tabID");

@@ -518,7 +518,7 @@ public class LayerRenderer {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
-            mBackgroundColor = mView.getLayerClient().getCheckerboardColor();
+            mBackgroundColor = mView.getCheckerboardColor();
 
             
 
@@ -543,7 +543,7 @@ public class LayerRenderer {
             
 
 
-            if (mView.getLayerClient().checkerboardShouldShowChecks()) {
+            if (mView.checkerboardShouldShowChecks()) {
                 
                 Rect rootMask = getMaskForLayer(mView.getLayerClient().getRoot());
                 mCheckerboardLayer.setMask(rootMask);
