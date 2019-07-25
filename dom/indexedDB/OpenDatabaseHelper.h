@@ -91,6 +91,7 @@ protected:
                           jsval* aVal);
   void DispatchSuccessEvent();
   void DispatchErrorEvent();
+  void ReleaseMainThreadObjects();
 
   
   nsresult DoDatabaseWork();

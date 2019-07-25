@@ -75,6 +75,8 @@ protected:
     : mRequest(aRequest)
   { }
 
+  virtual ~HelperBase();
+
   
 
 
@@ -82,6 +84,13 @@ protected:
   nsresult WrapNative(JSContext* aCx,
                       nsISupports* aNative,
                       jsval* aResult);
+
+  
+
+
+
+
+  virtual void ReleaseMainThreadObjects();
 
   nsRefPtr<IDBRequest> mRequest;
 };
