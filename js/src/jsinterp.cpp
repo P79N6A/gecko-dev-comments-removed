@@ -89,6 +89,7 @@
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
 #include "jsopcodeinlines.h"
+#include "jstypedarrayinlines.h"
 
 #include "vm/Stack-inl.h"
 #include "vm/String-inl.h"
@@ -725,6 +726,9 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
     
     savedCallee_ = args_.calleev() = calleev;
     savedThis_ = args_.thisv() = thisv;
+
+    
+    MakeRangeGCSafe(args_.argv(), args_.argc());
 
     do {
         
@@ -2423,11 +2427,12 @@ BEGIN_CASE(JSOP_STOP)
 
         RESTORE_INTERP_VARS();
 
+        JS_ASSERT(*regs.pc == JSOP_TRAP || *regs.pc == JSOP_NEW || *regs.pc == JSOP_CALL ||
+                  *regs.pc == JSOP_FUNCALL || *regs.pc == JSOP_FUNAPPLY);
+
         
         RESET_USE_METHODJIT();
         if (JS_LIKELY(interpReturnOK)) {
-            JS_ASSERT(js_CodeSpec[js_GetOpcode(cx, script, regs.pc)].length
-                      == JSOP_CALL_LENGTH);
             TRACE_0(LeaveFrame);
             TypeScript::Monitor(cx, script, regs.pc, regs.sp[-1]);
 
@@ -2441,6 +2446,9 @@ BEGIN_CASE(JSOP_STOP)
 
             DO_NEXT_OP(len);
         }
+
+        
+        regs.pc += JSOP_CALL_LENGTH;
         goto error;
     } else {
         JS_ASSERT(regs.sp == regs.fp()->base());
@@ -3621,8 +3629,8 @@ BEGIN_CASE(JSOP_LENGTH)
                 }
 
                 if (js_IsTypedArray(obj)) {
-                    TypedArray *tarray = TypedArray::fromJSObject(obj);
-                    rval = NumberValue(tarray->length);
+                    JSObject *tarray = TypedArray::getTypedArray(obj);
+                    rval = Int32Value(TypedArray::getLength(tarray));
                     break;
                 }
             }

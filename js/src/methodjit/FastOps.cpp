@@ -1390,15 +1390,12 @@ mjit::Compiler::jsop_setelem_typed(int atype)
         objReg = frame.copyDataIntoReg(obj);
 
         
-        masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
-
-        
         Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
                                                  objReg, key, Assembler::BelowOrEqual);
         stubcc.linkExit(lengthGuard, Uses(3));
 
         
-        masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+        masm.loadPtr(Address(objReg, TypedArray::dataOffset()), objReg);
     }
 
     
@@ -1892,15 +1889,12 @@ mjit::Compiler::jsop_getelem_typed(int atype)
         objReg = frame.copyDataIntoReg(obj);
 
         
-        masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
-
-        
         Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
                                                  objReg, key, Assembler::BelowOrEqual);
         stubcc.linkExit(lengthGuard, Uses(2));
 
         
-        masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+        masm.loadPtr(Address(objReg, TypedArray::dataOffset()), objReg);
     }
 
     

@@ -66,6 +66,15 @@ JS_NewObjectWithUniqueType(JSContext *cx, JSClass *clasp, JSObject *proto, JSObj
 extern JS_FRIEND_API(uint32)
 JS_ObjectCountDynamicSlots(JSObject *obj);
 
+extern JS_FRIEND_API(size_t)
+JS_GetE4XObjectsCreated(JSContext *cx);
+
+extern JS_FRIEND_API(size_t)
+JS_SetProtoCalled(JSContext *cx);
+
+extern JS_FRIEND_API(size_t)
+JS_GetCustomIteratorCount(JSContext *cx);
+
 
 typedef struct TypeInferenceMemoryStats
 {

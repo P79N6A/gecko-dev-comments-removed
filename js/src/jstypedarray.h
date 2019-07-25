@@ -1,41 +1,41 @@
-/* -*- Mode: c++; c-basic-offset: 4; tab-width: 40; indent-tabs-mode: nil -*- */
-/* vim: set ts=40 sw=4 et tw=99: */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla WebGL impl
- *
- * The Initial Developer of the Original Code is
- *   Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef jstypedarray_h
 #define jstypedarray_h
@@ -47,14 +47,14 @@ typedef struct JSProperty JSProperty;
 
 namespace js {
 
-/*
- * ArrayBuffer
- *
- * This class holds the underlying raw buffer that the TypedArray
- * subclasses access.  It can be created explicitly and passed to a
- * TypedArray subclass, or can be created implicitly by constructing a
- * TypedArray with a size.
- */
+
+
+
+
+
+
+
+
 struct JS_FRIEND_API(ArrayBuffer) {
     static Class slowClass;
     static Class fastClass;
@@ -112,19 +112,19 @@ struct JS_FRIEND_API(ArrayBuffer) {
 
     static inline uint8 * getDataOffset(JSObject *obj);
 
-    /* Reserved slots for array buffer objects. */
+    
     static const uint32 JSSLOT_ARRAY_BYTELENGTH = 0;
     static const uint32 JSSLOT_ARRAY_DATA = 1;
     static const uint32 JSSLOT_ARRAY_RESERVED_SLOTS = 2;
 };
 
-/*
- * TypedArray
- *
- * The non-templated base class for the specific typed implementations.
- * This class holds all the member variables that are used by
- * the subclasses.
- */
+
+
+
+
+
+
+
 
 struct JS_FRIEND_API(TypedArray) {
     enum {
@@ -137,25 +137,35 @@ struct JS_FRIEND_API(TypedArray) {
         TYPE_FLOAT32,
         TYPE_FLOAT64,
 
-        /*
-         * Special type that's a uint8, but assignments are clamped to 0 .. 255.
-         * Treat the raw data type as a uint8.
-         */
+        
+
+
+
         TYPE_UINT8_CLAMPED,
 
         TYPE_MAX
     };
 
-    // and MUST NOT be used to construct new objects.
+    enum {
+        FIELD_LENGTH = 0,
+        FIELD_BYTEOFFSET,
+        FIELD_BYTELENGTH,
+        FIELD_TYPE,
+        FIELD_BUFFER,
+        FIELD_DATA,
+        FIELD_MAX
+    };
+
+    
     static Class fastClasses[TYPE_MAX];
 
-    // These are the slow/original classes, used
-    // fo constructing new objects
+    
+    
     static Class slowClasses[TYPE_MAX];
 
     static JSPropertySpec jsprops[];
 
-    static TypedArray *fromJSObject(JSObject *obj);
+    static JSObject *getTypedArray(JSObject *obj);
 
     static JSBool prop_getBuffer(JSContext *cx, JSObject *obj, jsid id, Value *vp);
     static JSBool prop_getByteOffset(JSContext *cx, JSObject *obj, jsid id, Value *vp);
@@ -165,34 +175,22 @@ struct JS_FRIEND_API(TypedArray) {
     static JSBool obj_lookupProperty(JSContext *cx, JSObject *obj, jsid id,
                                      JSObject **objp, JSProperty **propp);
 
-    static void obj_trace(JSTracer *trc, JSObject *obj);
-
     static JSBool obj_getAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 
     static JSBool obj_setAttributes(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 
-    static int32 lengthOffset() { return offsetof(TypedArray, length); }
-    static int32 dataOffset() { return offsetof(TypedArray, data); }
-    static int32 typeOffset() { return offsetof(TypedArray, type); }
+    static JSUint32 getLength(JSObject *obj);
+    static JSUint32 getByteOffset(JSObject *obj);
+    static JSUint32 getByteLength(JSObject *obj);
+    static JSUint32 getType(JSObject *obj);
+    static JSObject * getBuffer(JSObject *obj);
+    static void * getDataOffset(JSObject *obj);
+
     static void *offsetData(JSObject *obj, uint32 offs);
 
   public:
-    TypedArray() : bufferJS(0) { }
-
-    bool isArrayIndex(JSContext *cx, jsid id, jsuint *ip = NULL);
-    bool valid() { return bufferJS != 0; }
-
-    JSObject *bufferJS;
-    uint32 byteOffset;
-    uint32 byteLength;
-    uint32 length;
-    uint32 type;
-
-    void *data;
-
-    inline int slotWidth() const {
-        return slotWidth(type);
-    }
+    static bool
+    isArrayIndex(JSContext *cx, JSObject *obj, jsid id, jsuint *ip = NULL);
 
     static inline uint32 slotWidth(int atype) {
         switch (atype) {
@@ -214,11 +212,21 @@ struct JS_FRIEND_API(TypedArray) {
             return 0;
         }
     }
+
+    static inline int slotWidth(JSObject *obj) {
+        return slotWidth(getType(obj));
+    }
+
+    static inline int lengthOffset();
+    static inline int dataOffset();
 };
 
-} // namespace js
+extern bool
+IsFastTypedArrayClass(const Class *clasp);
 
-/* Friend API methods */
+} 
+
+
 
 JS_FRIEND_API(JSObject *)
 js_InitTypedArrayClasses(JSContext *cx, JSObject *obj);
@@ -232,28 +240,28 @@ js_IsArrayBuffer(JSObject *obj);
 JS_FRIEND_API(JSObject *)
 js_CreateArrayBuffer(JSContext *cx, jsuint nbytes);
 
-/*
- * Create a new typed array of type atype (one of the TypedArray
- * enumerant values above), with nelements elements.
- */
+
+
+
+
 JS_FRIEND_API(JSObject *)
 js_CreateTypedArray(JSContext *cx, jsint atype, jsuint nelements);
 
-/*
- * Create a new typed array of type atype (one of the TypedArray
- * enumerant values above), and copy in values from the given JSObject,
- * which must either be a typed array or an array-like object.
- */
+
+
+
+
+
 JS_FRIEND_API(JSObject *)
 js_CreateTypedArrayWithArray(JSContext *cx, jsint atype, JSObject *arrayArg);
 
-/*
- * Create a new typed array of type atype (one of the TypedArray
- * enumerant values above), using a given ArrayBuffer for storage.
- * The byteoffset and length values are optional; if -1 is passed, an
- * offset of 0 and enough elements to use up the remainder of the byte
- * array are used as the default values.
- */
+
+
+
+
+
+
+
 JS_FRIEND_API(JSObject *)
 js_CreateTypedArrayWithBuffer(JSContext *cx, jsint atype, JSObject *bufArg,
                               jsint byteoffset, jsint length);
@@ -267,4 +275,22 @@ JS_GetArrayBufferByteLength(JSObject *obj);
 JS_FRIEND_API(uint8 *)
 JS_GetArrayBufferData(JSObject *obj);
 
-#endif /* jstypedarray_h */
+JS_FRIEND_API(JSUint32)
+JS_GetTypedArrayLength(JSObject *obj);
+
+JS_FRIEND_API(JSUint32)
+JS_GetTypedArrayByteOffset(JSObject *obj);
+
+JS_FRIEND_API(JSUint32)
+JS_GetTypedArrayByteLength(JSObject *obj);
+
+JS_FRIEND_API(JSUint32)
+JS_GetTypedArrayType(JSObject *obj);
+
+JS_FRIEND_API(JSObject *)
+JS_GetTypedArrayBuffer(JSObject *obj);
+
+JS_FRIEND_API(void *)
+JS_GetTypedArrayData(JSObject *obj);
+
+#endif 

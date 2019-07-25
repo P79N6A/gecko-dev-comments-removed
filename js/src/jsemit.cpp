@@ -4348,10 +4348,6 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
     let = (pn->pn_op == JSOP_NOP);
     forInVar = (pn->pn_xflags & PNX_FORINVAR) != 0;
-#if JS_HAS_BLOCK_SCOPE
-    bool popScope = (inLetHead || (let && (cg->flags & TCF_IN_FOR_INIT)));
-    JS_ASSERT_IF(popScope, let);
-#endif
 
     off = noteIndex = -1;
     for (pn2 = pn->pn_head; ; pn2 = next) {
@@ -4484,23 +4480,11 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
                     return JS_FALSE;
                 }
 
-#if JS_HAS_BLOCK_SCOPE
-                
-                TempPopScope tps;
-                if (popScope && !tps.popBlock(cx, cg))
-                    return JS_FALSE;
-#endif
-
                 oldflags = cg->flags;
                 cg->flags &= ~TCF_IN_FOR_INIT;
                 if (!js_EmitTree(cx, cg, pn3))
                     return JS_FALSE;
                 cg->flags |= oldflags & TCF_IN_FOR_INIT;
-
-#if JS_HAS_BLOCK_SCOPE
-                if (popScope && !tps.repushBlock(cx, cg))
-                    return JS_FALSE;
-#endif
             }
         }
 
@@ -5414,10 +5398,10 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             if (!EmitAssignment(cx, cg, pn2->pn_kid2, JSOP_NOP, NULL))
                 return false;
             tmp2 = CG_OFFSET(cg);
-            if (pn2->pn_kid1 && !js_NewSrcNote2(cx, cg, SRC_DECL,
-                                                (pn2->pn_kid1->pn_op == JSOP_DEFVAR)
-                                                ? SRC_DECL_VAR
-                                                : SRC_DECL_LET) < 0) {
+            if (pn2->pn_kid1 && js_NewSrcNote2(cx, cg, SRC_DECL,
+                                               (pn2->pn_kid1->pn_op == JSOP_DEFVAR)
+                                               ? SRC_DECL_VAR
+                                               : SRC_DECL_LET) < 0) {
                 return false;
             }
             if (js_Emit1(cx, cg, JSOP_POP) < 0)
@@ -6863,8 +6847,18 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
       }
 
 #if JS_HAS_BLOCK_SCOPE
-      case TOK_LET:
+      case TOK_LET: {
         
+
+
+
+
+
+
+
+
+
+
         if (pn->pn_arity == PN_BINARY) {
             pn2 = pn->pn_right;
             pn = pn->pn_left;
@@ -6873,12 +6867,26 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 
         
+
+
+
+
+
+
+
+
         JS_ASSERT(pn->pn_arity == PN_LIST);
+        TempPopScope tps;
+        bool popScope = pn2 || (cg->flags & TCF_IN_FOR_INIT);
+        if (popScope && !tps.popBlock(cx, cg))
+            return JS_FALSE;
         if (!EmitVariables(cx, cg, pn, pn2 != NULL, &noteIndex))
+            return JS_FALSE;
+        tmp = CG_OFFSET(cg);
+        if (popScope && !tps.repushBlock(cx, cg))
             return JS_FALSE;
 
         
-        tmp = CG_OFFSET(cg);
         if (pn2 && !js_EmitTree(cx, cg, pn2))
             return JS_FALSE;
 
@@ -6888,6 +6896,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             return JS_FALSE;
         }
         break;
+      }
 #endif 
 
 #if JS_HAS_GENERATORS

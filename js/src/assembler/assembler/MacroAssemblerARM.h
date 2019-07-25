@@ -1,33 +1,33 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=79:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Copyright (C) 2008 Apple Inc.
+ * Copyright (C) 2009, 2010 University of Szeged
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef MacroAssemblerARM_h
 #define MacroAssemblerARM_h
@@ -64,14 +64,14 @@ public:
     };
 
     enum DoubleCondition {
-        
+        // These conditions will only evaluate to true if the comparison is ordered - i.e. neither operand is NaN.
         DoubleEqual = ARMAssembler::EQ,
         DoubleNotEqual = ARMAssembler::NE | DoubleConditionBitSpecial,
         DoubleGreaterThan = ARMAssembler::GT,
         DoubleGreaterThanOrEqual = ARMAssembler::GE,
         DoubleLessThan = ARMAssembler::CC,
         DoubleLessThanOrEqual = ARMAssembler::LS,
-        
+        // If either operand is NaN, these conditions always evaluate to true.
         DoubleEqualOrUnordered = ARMAssembler::EQ | DoubleConditionBitSpecial,
         DoubleNotEqualOrUnordered = ARMAssembler::NE,
         DoubleGreaterThanOrUnordered = ARMAssembler::HI,
@@ -251,9 +251,52 @@ public:
         m_assembler.eors_r(dest, dest, ARMRegisters::S1);
     }
 
+    void load8SignExtend(ImplicitAddress address, RegisterID dest)
+    {
+        m_assembler.dataTransferN(true, true, 8, dest, address.base, address.offset);
+    } 
+
+    void load8ZeroExtend(ImplicitAddress address, RegisterID dest)
+    {
+        m_assembler.dataTransferN(true, false, 8, dest, address.base, address.offset);
+    }
+
+    void load8SignExtend(BaseIndex address, RegisterID dest)
+    {
+        m_assembler.baseIndexTransferN(true, true, 8, dest,
+                                       address.base, address.index, address.scale, address.offset);
+    }
+
+    void load8ZeroExtend(BaseIndex address, RegisterID dest)
+    {
+        m_assembler.baseIndexTransferN(true, false, 8, dest,
+                                       address.base, address.index, address.scale, address.offset);
+    }
+
+    /* this is *identical* to the zero extending case*/
     void load8(ImplicitAddress address, RegisterID dest)
     {
-        m_assembler.dataTransfer8(true, dest, address.base, address.offset);
+        load8ZeroExtend(address, dest);
+    }
+   
+    void load16SignExtend(ImplicitAddress address, RegisterID dest)
+    {
+        m_assembler.dataTransferN(true, true, 16, dest, address.base, address.offset);
+    } 
+
+    void load16ZeroExtend(ImplicitAddress address, RegisterID dest)
+    {
+        m_assembler.dataTransferN(true, false, 16, dest, address.base, address.offset);
+    }
+    void load16SignExtend(BaseIndex address, RegisterID dest)
+    {
+        m_assembler.baseIndexTransferN(true, true, 16, dest,
+                                       address.base, address.index, address.scale, address.offset);
+    }
+    void load16ZeroExtend(BaseIndex address, RegisterID dest)
+    {
+        m_assembler.baseIndexTransferN(true, false, 16, dest,
+                                       address.base, address.index, address.scale, address.offset);
     }
 
     void load32(ImplicitAddress address, RegisterID dest)
@@ -364,7 +407,7 @@ public:
         m_assembler.add_r(ARMRegisters::S0, ARMRegisters::S0, address.base);
         m_assembler.moveImm(lo.m_value, ARMRegisters::S1);
         m_assembler.dtr_u(false, ARMRegisters::S1, ARMRegisters::S0, 0);
-        
+        /* TODO: improve this by getting another scratch register. */
         m_assembler.moveImm(hi.m_value, ARMRegisters::S1);
         m_assembler.dtr_u(false, ARMRegisters::S1, ARMRegisters::S0, 4);
         return dataLabel;
@@ -412,6 +455,92 @@ public:
         else
             m_assembler.moveImm(imm.m_value, ARMRegisters::S1);
         m_assembler.dtr_u(false, ARMRegisters::S1, ARMRegisters::S0, 0);
+    }
+
+    void store16(RegisterID src, ImplicitAddress address)
+    {
+        m_assembler.dataTransferN(false, false, 16,  src, address.base, address.offset);
+    }
+    void store16(RegisterID src, BaseIndex address)
+    {
+        m_assembler.baseIndexTransferN(false, false, 16, src, address.base, address.index, static_cast<int>(address.scale), address.offset);
+    }
+
+    void store16(TrustedImm32 imm, BaseIndex address)
+    {
+        if (imm.m_isPointer)
+            JS_ASSERT("What are you trying to do with 16 bits of a pointer?");
+        else
+            move(imm, ARMRegisters::S1);
+        store16(ARMRegisters::S1, address);
+    }
+    void store16(TrustedImm32 imm, ImplicitAddress address)
+    {
+        if (imm.m_isPointer)
+            JS_ASSERT("What are you trying to do with 16 bits of a pointer?");
+        else
+            move(imm, ARMRegisters::S1);
+        store16(ARMRegisters::S1, address);
+    }
+
+    void store16(RegisterID src, void* address)
+    {
+        m_assembler.ldr_un_imm(ARMRegisters::S0, reinterpret_cast<ARMWord>(address));
+        m_assembler.mem_imm_off(false, false, 16, true, src, ARMRegisters::S0, 0);
+    }
+
+    void store16(TrustedImm32 imm, void* address)
+    {
+        m_assembler.ldr_un_imm(ARMRegisters::S0, reinterpret_cast<ARMWord>(address));
+        if (imm.m_isPointer)
+            JS_ASSERT("What are you trying to do with 16 bits of a pointer?");
+        else
+            m_assembler.moveImm(imm.m_value, ARMRegisters::S1);
+        m_assembler.mem_imm_off(false, false, 16, true, ARMRegisters::S1, ARMRegisters::S0, 0);
+    }
+
+    void store8(RegisterID src, ImplicitAddress address)
+    {
+        m_assembler.dataTransferN(false, false, 16,  src, address.base, address.offset);
+    }
+
+    void store8(RegisterID src, BaseIndex address)
+    {
+        m_assembler.baseIndexTransferN(false, false, 8, src, address.base, address.index, static_cast<int>(address.scale), address.offset);
+    }
+
+    void store8(TrustedImm32 imm, BaseIndex address)
+    {
+        if (imm.m_isPointer)
+            JS_ASSERT("What are you trying to do with 8 bits of a pointer?");
+        else
+            move(imm, ARMRegisters::S1);
+        store8(ARMRegisters::S1, address);
+    }
+
+    void store8(TrustedImm32 imm, ImplicitAddress address)
+    {
+        if (imm.m_isPointer)
+            JS_ASSERT("What are you trying to do with 16 bits of a pointer?");
+        else
+            move(imm, ARMRegisters::S1);
+        store8(ARMRegisters::S1, address);
+    }
+
+    void store8(RegisterID src, void* address)
+    {
+        m_assembler.ldr_un_imm(ARMRegisters::S0, reinterpret_cast<ARMWord>(address));
+        m_assembler.mem_imm_off(false, false, 8, true, src, ARMRegisters::S0, 0);
+    }
+
+    void store8(TrustedImm32 imm, void* address)
+    {
+        m_assembler.ldr_un_imm(ARMRegisters::S0, reinterpret_cast<ARMWord>(address));
+        if (imm.m_isPointer)
+            JS_ASSERT("What are you trying to do with 16 bits of a pointer?");
+        else
+            m_assembler.moveImm(imm.m_value, ARMRegisters::S1);
+        m_assembler.mem_imm_off(false, false, 8, true, ARMRegisters::S1, ARMRegisters::S0, 0);
     }
 
     void pop(RegisterID dest)
@@ -492,25 +621,25 @@ public:
             m_assembler.ldr_un_imm(ARMRegisters::S0, right.m_value);
             m_assembler.cmp_r(left, ARMRegisters::S0);
         } else {
-            
-            
-            
-            
+            // This is a rather cute (if not confusing) pattern.
+            // unfortunately, it is not quite conducive to switching from
+            // cmp to cmn, so I'm doing so manually.
+            // m_assembler.cmp_r(left, m_assembler.getImm(right.m_value, ARMRegisters::S0));
 
-            
+            // try to shoehorn the immediate into the compare instruction
             ARMWord arg = m_assembler.getOp2(right.m_value);
             if (arg != m_assembler.INVALID_IMM) {
                 m_assembler.cmp_r(left, arg);
             } else {
-                
-                
+                // if it does not fit, try to shoehorn a negative in, and use a negated compare
+                // p.s. why couldn't arm just include the sign bit in the imm, rather than the inst.
                 arg = m_assembler.getOp2(-right.m_value);
                 if (arg != m_assembler.INVALID_IMM) {
                     m_assembler.cmn_r(left, arg);
                 } else {
-                    
-                    
-                    
+                    // If we get here, we *need* to use a temp register and any way of loading a value
+                    // will enable us to load a negative easily, so there is no reason to switch from
+                    // cmp to cmn.
                     m_assembler.cmp_r(left, m_assembler.getImm(right.m_value, ARMRegisters::S0));
                 }
             }
@@ -518,17 +647,17 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond), useConstantPool));
     }
 
-    
-    
-    
-    
+    // Like branch32, but emit a consistently-structured sequence such that the
+    // number of instructions emitted is constant, regardless of the argument
+    // values. For ARM, this is identical to branch32WithPatch, except that it
+    // does not generate a DataLabel32.
     Jump branch32FixedLength(Condition cond, RegisterID left, TrustedImm32 right)
     {
         m_assembler.ldr_un_imm(ARMRegisters::S1, right.m_value);
         return branch32(cond, left, ARMRegisters::S1, true);
     }
 
-    
+    // As branch32_force32, but allow the value ('right') to be patched.
     Jump branch32WithPatch(Condition cond, RegisterID left, TrustedImm32 right, DataLabel32 &dataLabel)
     {
         ASSERT(left != ARMRegisters::S1);
@@ -546,6 +675,7 @@ public:
 
     Jump branch32(Condition cond, RegisterID left, Address right)
     {
+        /*If the load only takes a single instruction, then we could just do a load into*/
         load32(right, ARMRegisters::S1);
         return branch32(cond, left, ARMRegisters::S1);
     }
@@ -740,8 +870,8 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond)));
     }
 
-    
-    
+    // Encode a NOP using "MOV rX, rX", where 'X' is defined by 'tag', and is
+    // in the range r0-r14.
     void nop(int tag)
     {
         ASSERT((tag >= 0) && (tag <= 14));
@@ -816,20 +946,20 @@ public:
 
     void set8(Condition cond, RegisterID left, RegisterID right, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         set32(cond, left, right, dest);
     }
 
     void set8(Condition cond, Address left, RegisterID right, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         load32(left, ARMRegisters::S1);
         set32(cond, ARMRegisters::S1, right, dest);
     }
 
     void set8(Condition cond, RegisterID left, Imm32 right, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         set32(cond, left, right, dest);
     }
 
@@ -846,7 +976,7 @@ public:
 
     void setTest8(Condition cond, Address address, Imm32 mask, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         setTest32(cond, address, mask, dest);
     }
 
@@ -862,7 +992,7 @@ public:
 
     void lea(BaseIndex address, RegisterID dest)
     {
-        
+        /* This could be better? */
         move(address.index, ARMRegisters::S1);
         if (address.scale != 0)
             lshift32(Imm32(address.scale), ARMRegisters::S1);
@@ -971,7 +1101,7 @@ public:
         return storePtrWithPatch(ImmPtr(0), address);
     }
 
-    
+    // Floating point operators
     bool supportsFloatingPoint() const
     {
         return s_isVFPPresent;
@@ -994,14 +1124,15 @@ public:
 
     void loadDouble(ImplicitAddress address, FPRegisterID dest)
     {
-        
+        // Load a double from base+offset.
         m_assembler.doubleTransfer(true, dest, address.base, address.offset);
     }
 
     void loadDouble(BaseIndex address, FPRegisterID dest)
     {
-        
-        m_assembler.doubleTransfer(true, dest, address.base, address.offset, address.index, address.scale);
+        m_assembler.baseIndexFloatTransfer(true, true, dest,
+                                           address.base, address.index,
+                                           address.scale, address.offset);
     }
 
     DataLabelPtr loadDouble(const void* address, FPRegisterID dest)
@@ -1011,16 +1142,93 @@ public:
         return label;
     }
 
+    void fastLoadDouble(RegisterID lo, RegisterID hi, FPRegisterID fpReg) {
+        m_assembler.vmov64(false, true, lo, hi, fpReg);
+    }
+
+    void loadFloat(ImplicitAddress address, FPRegisterID dest)
+    {
+        // as long as this is a sane mapping, (*2) should just work
+        dest = (FPRegisterID) (dest * 2);
+        ASSERT((address.offset & 0x3) == 0);
+        // address.offset is the offset in bytes, fmem_imm_off is expecting the offset in words.
+        m_assembler.fmem_imm_off(true, false, true, dest, address.base, address.offset >> 2);
+        m_assembler.vcvt(m_assembler.FloatReg32, m_assembler.FloatReg64, (FPRegisterID)(dest*2), dest);
+    }
+    void loadFloat(BaseIndex address, FPRegisterID dest)
+    {
+        m_assembler.baseIndexFloatTransfer(true, false, (FPRegisterID)(dest*2),
+                                           address.base, address.index,
+                                           address.scale, address.offset);
+        m_assembler.vcvt(m_assembler.FloatReg32, m_assembler.FloatReg64, (FPRegisterID)(dest*2), dest);
+    }
+
+    DataLabelPtr loadFloat(const void* address, FPRegisterID dest)
+    {
+        DataLabelPtr label = moveWithPatch(ImmPtr(address), ARMRegisters::S0);
+        m_assembler.fmem_imm_off(true, false, true, (FPRegisterID)(dest*2), ARMRegisters::S0, 0);
+        m_assembler.vcvt(m_assembler.FloatReg32, m_assembler.FloatReg64, (FPRegisterID)(dest*2), dest);
+        return label;
+    }
+ 
     void storeDouble(FPRegisterID src, ImplicitAddress address)
     {
-        
+        // Store a double at base+offset.
         m_assembler.doubleTransfer(false, src, address.base, address.offset);
     }
 
     void storeDouble(FPRegisterID src, BaseIndex address)
     {
-        
-        m_assembler.doubleTransfer(false, src, address.base, address.offset, address.index, address.scale);
+        m_assembler.baseIndexFloatTransfer(false, true, src,
+                                           address.base, address.index,
+                                           address.scale, address.offset);
+    }
+
+    void storeDouble(ImmDouble imm, Address address)
+    {
+        store32(Imm32(imm.u.s.lsb), address);
+        store32(Imm32(imm.u.s.msb), Address(address.base, address.offset + 4));
+    }
+
+    void storeDouble(ImmDouble imm, BaseIndex address)
+    {
+        store32(Imm32(imm.u.s.lsb), address);
+        store32(Imm32(imm.u.s.msb),
+                BaseIndex(address.base, address.index, address.scale, address.offset + 4));
+    }
+    void fastStoreDouble(FPRegisterID fpReg, RegisterID lo, RegisterID hi) {
+        m_assembler.vmov64(true, true, lo, hi, fpReg);
+    }
+
+    void storeFloat(FPRegisterID src, ImplicitAddress address)
+    {
+        m_assembler.fmem_imm_off(false, false, true, src, address.base, address.offset);
+    }
+
+    void storeFloat(FPRegisterID src, BaseIndex address)
+    {
+        m_assembler.baseIndexFloatTransfer(false, false, src,
+                                           address.base, address.index,
+                                           address.scale, address.offset);
+    }
+    void storeFloat(ImmDouble imm, Address address)
+    {
+        union {
+            float f;
+            uint32 u32;
+        } u;
+        u.f = imm.u.d;
+        store32(Imm32(u.u32), address);
+    }
+
+    void storeFloat(ImmDouble imm, BaseIndex address)
+    {
+        union {
+            float f;
+            uint32 u32;
+        } u;
+        u.f = imm.u.d;
+        store32(Imm32(u.u32), address);
     }
 
     void addDouble(FPRegisterID src, FPRegisterID dest)
@@ -1041,7 +1249,7 @@ public:
 
     void divDouble(Address src, FPRegisterID dest)
     {
-        ASSERT_NOT_REACHED(); 
+        ASSERT_NOT_REACHED(); // Untested
         loadDouble(src, ARMRegisters::SD0);
         divDouble(ARMRegisters::SD0, dest);
     }
@@ -1089,20 +1297,31 @@ public:
         m_assembler.fsitod_r(dest, dest);
     }
 
+    void convertUInt32ToDouble(RegisterID src, FPRegisterID dest)
+    {
+        m_assembler.fmsr_r(dest, src);
+        m_assembler.fuitod_r(dest, dest);
+    }
+
     void convertInt32ToDouble(Address src, FPRegisterID dest)
     {
-        
+        // flds does not worth the effort here
         load32(src, ARMRegisters::S1);
         convertInt32ToDouble(ARMRegisters::S1, dest);
     }
 
     void convertInt32ToDouble(AbsoluteAddress src, FPRegisterID dest)
     {
-        ASSERT_NOT_REACHED(); 
-        
+        ASSERT_NOT_REACHED(); // Untested
+        // flds does not worth the effort here
         m_assembler.ldr_un_imm(ARMRegisters::S1, (ARMWord)src.m_ptr);
         m_assembler.dtr_u(true, ARMRegisters::S1, ARMRegisters::S1, 0);
         convertInt32ToDouble(ARMRegisters::S1, dest);
+    }
+
+    void convertDoubleToFloat(FPRegisterID src, FPRegisterID dest)
+    {
+        m_assembler.vcvt(m_assembler.FloatReg64, m_assembler.FloatReg32, src, dest);
     }
 
     Jump branchDouble(DoubleCondition cond, FPRegisterID left, FPRegisterID right)
@@ -1114,35 +1333,35 @@ public:
         return Jump(m_assembler.jmp(static_cast<ARMAssembler::Condition>(cond & ~DoubleConditionMask)));
     }
 
-    
-    
-    
+    // Truncates 'src' to an integer, and places the resulting 'dest'.
+    // If the result is not representable as a 32 bit value, branch.
+    // May also branch for some values that are representable in 32 bits
     Jump branchTruncateDoubleToInt32(FPRegisterID src, RegisterID dest)
     {
         m_assembler.ftosizd_r(ARMRegisters::SD0, src);
-        
-        
-        
+        // If FTOSIZD (VCVT.S32.F64) can't fit the result into a 32-bit
+        // integer, it saturates at INT_MAX or INT_MIN. Testing this is
+        // probably quicker than testing FPSCR for exception.
         m_assembler.fmrs_r(dest, ARMRegisters::SD0);
         m_assembler.cmn_r(dest, ARMAssembler::getOp2(-0x7fffffff));
         m_assembler.cmp_r(dest, ARMAssembler::getOp2(0x80000000), ARMCondition(NonZero));
         return Jump(m_assembler.jmp(ARMCondition(Zero)));
     }
 
-    
-    
-    
-    
+    // Convert 'src' to an integer, and places the resulting 'dest'.
+    // If the result is not representable as a 32 bit value, branch.
+    // May also branch for some values that are representable in 32 bits
+    // (specifically, in this case, 0).
     void branchConvertDoubleToInt32(FPRegisterID src, RegisterID dest, JumpList& failureCases, FPRegisterID fpTemp)
     {
         m_assembler.ftosid_r(ARMRegisters::SD0, src);
         m_assembler.fmrs_r(dest, ARMRegisters::SD0);
 
-        
+        // Convert the integer result back to float & compare to the original value - if not equal or unordered (NaN) then jump.
         m_assembler.fsitod_r(ARMRegisters::SD0, ARMRegisters::SD0);
         failureCases.append(branchDouble(DoubleNotEqualOrUnordered, src, ARMRegisters::SD0));
 
-        
+        // If the result is zero, it might have been -0.0, and 0.0 equals to -0.0
         failureCases.append(branchTest32(Zero, dest));
     }
 
@@ -1244,23 +1463,23 @@ protected:
 #else
     void call32(RegisterID base, int32_t offset)
     {
-        
+        // TODO: Why is SP special?
         if (base == ARMRegisters::sp)
             offset += 4;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        // Branch to the address stored in base+offset, using one of the
+        // following sequences:
+        // ----
+        //  LDR     ip, [base, ±offset]
+        //  BLX     ip
+        // ----
+        //  ADD/SUB ip, base, #(offset & 0xff000)
+        //  LDR     ip, [ip, #(offset & 0xfff)]
+        //  BLX     ip
+        // ----
+        //  LDR     ip, =offset
+        //  LDR     ip, [base, ±ip]
+        //  BLX     ip
 
         if (offset >= 0) {
             if (offset <= 0xfff) {
@@ -1312,6 +1531,6 @@ private:
 
 }
 
-#endif 
+#endif // ENABLE(ASSEMBLER) && CPU(ARM_TRADITIONAL)
 
-#endif 
+#endif // MacroAssemblerARM_h

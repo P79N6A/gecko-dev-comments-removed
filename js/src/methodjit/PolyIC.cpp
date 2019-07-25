@@ -2650,11 +2650,9 @@ GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsi
     Jump claspGuard = masm.testObjClass(Assembler::NotEqual, objReg, obj->getClass());
 
     
-    masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
-
-    
     Jump outOfBounds;
-    Address typedArrayLength(objReg, js::TypedArray::lengthOffset());
+    Address typedArrayLength(objReg, TypedArray::lengthOffset());
+    typedArrayLength = masm.payloadOf(typedArrayLength);
     if (idRemat.isConstant()) {
         JS_ASSERT(idRemat.value().toInt32() == v.toInt32());
         outOfBounds = masm.branch32(Assembler::BelowOrEqual, typedArrayLength, Imm32(v.toInt32()));
@@ -2663,15 +2661,15 @@ GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsi
     }
 
     
-    masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+    masm.loadPrivate(Address(objReg, TypedArray::dataOffset()), objReg);
 
     Int32Key key = idRemat.isConstant()
                  ? Int32Key::FromConstant(v.toInt32())
                  : Int32Key::FromRegister(idRemat.dataReg());
 
-    js::TypedArray *tarray = js::TypedArray::fromJSObject(obj);
+    JSObject *tarray = js::TypedArray::getTypedArray(obj);
     MaybeRegisterID tempReg;
-    masm.loadFromTypedArray(tarray->type, objReg, key, typeReg, objReg, tempReg);
+    masm.loadFromTypedArray(TypedArray::getType(tarray), objReg, key, typeReg, objReg, tempReg);
 
     Jump done = masm.jump();
 
@@ -3003,21 +3001,21 @@ SetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, int32 key)
     Jump claspGuard = masm.testObjClass(Assembler::NotEqual, objReg, obj->getClass());
 
     
-    masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
-
-    
     Jump outOfBounds;
-    Address typedArrayLength(objReg, js::TypedArray::lengthOffset());
+    Address typedArrayLength(objReg, TypedArray::lengthOffset());
+    typedArrayLength = masm.payloadOf(typedArrayLength);
     if (hasConstantKey)
         outOfBounds = masm.branch32(Assembler::BelowOrEqual, typedArrayLength, Imm32(keyValue));
     else
         outOfBounds = masm.branch32(Assembler::BelowOrEqual, typedArrayLength, keyReg);
 
     
-    js::TypedArray *tarray = js::TypedArray::fromJSObject(obj);
-    masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+    JSObject *tarray = js::TypedArray::getTypedArray(obj);
+    int byteOffset = js::TypedArray::getByteOffset(tarray);
+    masm.loadPrivate(Address(objReg, TypedArray::dataOffset()), objReg);
+    masm.addPtr(Imm32(byteOffset), objReg);
 
-    int shift = tarray->slotWidth();
+    int shift = js::TypedArray::slotWidth(obj);
     if (hasConstantKey) {
         Address addr(objReg, keyValue * shift);
         if (!StoreToTypedArray(cx, masm, tarray, addr, vr, volatileMask))
