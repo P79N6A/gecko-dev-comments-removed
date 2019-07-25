@@ -184,6 +184,8 @@ namespace nanojit
     class Noise
     {
         public:
+            virtual ~Noise() {}
+
             
             virtual uint32_t getValue(uint32_t maxValue) = 0;
     };
