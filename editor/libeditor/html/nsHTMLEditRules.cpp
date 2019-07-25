@@ -9250,7 +9250,4 @@ nsHTMLEditRules::DocumentModifiedWorker()
 
   
   CreateBogusNodeIfNeeded(selection);
-
-  
-  mEditor->SyncRealTimeSpell();
 }
