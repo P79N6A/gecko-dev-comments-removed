@@ -53,7 +53,8 @@ static eNormalLineHeightControl sNormalLineHeightControl = eUninitialized;
 nsHTMLReflowState::nsHTMLReflowState(nsPresContext*       aPresContext,
                                      nsIFrame*            aFrame,
                                      nsRenderingContext* aRenderingContext,
-                                     const nsSize&        aAvailableSpace)
+                                     const nsSize&        aAvailableSpace,
+                                     PRUint32             aFlags)
   : nsCSSOffsetState(aFrame, aRenderingContext)
   , mBlockDelta(0)
   , mReflowDepth(0)
@@ -69,6 +70,11 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*       aPresContext,
   memset(&mFlags, 0, sizeof(mFlags));
   mDiscoveredClearance = nsnull;
   mPercentHeightObserver = nsnull;
+
+  if (aFlags & DUMMY_PARENT_REFLOW_STATE) {
+    mFlags.mDummyParentReflowState = true;
+  }
+
   Init(aPresContext);
 }
 
@@ -129,6 +135,7 @@ nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
   mFlags.mAssumingHScrollbar = mFlags.mAssumingVScrollbar = false;
   mFlags.mHasClearance = false;
   mFlags.mIsColumnBalancing = false;
+  mFlags.mDummyParentReflowState = false;
 
   mDiscoveredClearance = nsnull;
   mPercentHeightObserver = (aParentReflowState.mPercentHeightObserver && 
@@ -368,7 +375,13 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
       nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     
     
-    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
+    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this) &&
+                 
+                 
+                 
+                 
+                 !mFlags.mDummyParentReflowState;
+
     if (dirty || (!frame->GetParent() && isHResize)) {
       
       
