@@ -407,6 +407,7 @@ protected:
   nsIntRect mUpdatedRect;
 
   PRPackedBool mGLBufferIsPremultiplied;
+  PRPackedBool mNeedsYFlip;
 };
 
 void
@@ -420,9 +421,11 @@ BasicCanvasLayer::Initialize(const Data& aData)
     mSurface = aData.mSurface;
     NS_ASSERTION(aData.mGLContext == nsnull,
                  "CanvasLayer can't have both surface and GLContext");
+    mNeedsYFlip = PR_FALSE;
   } else if (aData.mGLContext) {
     mGLContext = aData.mGLContext;
     mGLBufferIsPremultiplied = aData.mGLBufferIsPremultiplied;
+    mNeedsYFlip = PR_TRUE;
   } else {
     NS_ERROR("CanvasLayer created without mSurface or mGLContext?");
   }
@@ -485,10 +488,21 @@ BasicCanvasLayer::Paint(gfxContext* aContext)
 {
   nsRefPtr<gfxPattern> pat = new gfxPattern(mSurface);
 
+  gfxRect r(0, 0, mBounds.width, mBounds.height);
+  gfxMatrix m;
+  if (mNeedsYFlip) {
+    m = aContext->CurrentMatrix();
+    aContext->Translate(gfxPoint(0.0, mBounds.height));
+    aContext->Scale(1.0, -1.0);
+  }
+
   aContext->NewPath();
-  aContext->PixelSnappedRectangleAndSetPattern
-    (gfxRect(0, 0, mBounds.width, mBounds.height), pat);
+  aContext->PixelSnappedRectangleAndSetPattern(r, pat);
   aContext->Fill();
+
+  if (mNeedsYFlip) {
+    aContext->SetMatrix(m);
+  }
 
   mUpdatedRect.Empty();
 }

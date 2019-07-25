@@ -73,6 +73,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
     mSurface = aData.mSurface;
     NS_ASSERTION(aData.mGLContext == nsnull,
                  "CanvasLayerOGL can't have both surface and GLContext");
+    mNeedsYFlip = PR_TRUE;
   } else if (aData.mGLContext) {
     
     void *pbuffer = aData.mGLContext->GetNativeData(GLContext::NativePBuffer);
@@ -83,6 +84,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
 
     mGLContext = aData.mGLContext;
     mGLBufferIsPremultiplied = aData.mGLBufferIsPremultiplied;
+    mNeedsYFlip = PR_FALSE;
   } else {
     NS_WARNING("CanvasLayerOGL::Initialize called without surface or GL context!");
     return;
@@ -213,6 +215,10 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination)
   
   
   
+
+  
+  
+
   RGBLayerProgram *program = glManager->GetRGBLayerProgram();
 
   program->Activate();
