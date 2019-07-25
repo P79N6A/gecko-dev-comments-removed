@@ -59,6 +59,9 @@
 #define ARM_ARCH_AT_LEAST(wanted) (_config.arm_arch >= (wanted))
 #define ARM_VFP (_config.arm_vfp)
 #else
+
+
+
 #define ARM_ARCH_AT_LEAST(wanted) \
     ((NJ_COMPILER_ARM_ARCH >= (wanted)) || (_config.arm_arch >= (wanted)))
 #define ARM_VFP ((NJ_COMPILER_ARM_ARCH >= 7) || (_config.arm_vfp))

@@ -91,6 +91,10 @@
 
     #define NJ_COMPILER_ARM_ARCH 5
 
+#elif   defined(__ARM_ARCH_4T__)
+
+    #define NJ_COMPILER_ARM_ARCH 4
+
 
 #elif defined(_MSC_VER) && defined(_M_ARM)
 
@@ -104,7 +108,7 @@
 #else
 
     
-    #define NJ_COMPILER_ARM_ARCH "Unable to determine valid NJ_COMPILER_ARM_ARCH (nanojit only supports ARMv5 or later)"
+    #define NJ_COMPILER_ARM_ARCH "Unable to determine valid NJ_COMPILER_ARM_ARCH (nanojit only supports ARMv4T or later)"
 
 #endif
 

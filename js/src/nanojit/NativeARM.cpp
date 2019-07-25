@@ -95,45 +95,14 @@ Assembler::decOp2Imm(uint32_t enc)
 #endif
 
 
-inline uint32_t
-Assembler::CountLeadingZeroes(uint32_t data)
+static inline uint32_t
+CountLeadingZeroesSlow(uint32_t data)
 {
-    uint32_t    leading_zeroes;
-
-    
-    
-    
-    
-    
-    
-    
-    NanoAssert(ARM_ARCH_AT_LEAST(5));
-
-#if defined(__ARMCC__)
-    
-    leading_zeroes = __clz(data);
-
-#elif defined(__GNUC__) && (NJ_COMPILER_ARM_ARCH >= 5)
-    
-    __asm (
-#if defined(ANDROID) && (NJ_COMPILER_ARM_ARCH < 7)
-    
-    
-        "   .arch armv7-a\n"
-#endif
-        "   clz     %0, %1  \n"
-        :   "=r"    (leading_zeroes)
-        :   "r"     (data)
-    );
-#elif defined(UNDER_CE)
-    
-    leading_zeroes = _CountLeadingZeros(data);
-#else
     
     
     uint32_t    try_shift;
 
-    leading_zeroes = 0;
+    uint32_t    leading_zeroes = 0;
 
     
     
@@ -143,6 +112,43 @@ Assembler::CountLeadingZeroes(uint32_t data)
             leading_zeroes = shift;
         }
     }
+
+    return leading_zeroes;
+}
+
+inline uint32_t
+Assembler::CountLeadingZeroes(uint32_t data)
+{
+    uint32_t    leading_zeroes;
+
+#if defined(__ARMCC__)
+    
+    leading_zeroes = __clz(data);
+#elif defined(__GNUC__)
+    
+    if (ARM_ARCH_AT_LEAST(5)) {
+        __asm (
+#if defined(ANDROID) && (NJ_COMPILER_ARM_ARCH < 7)
+        
+        
+            "   .arch armv7-a\n"
+#elif (NJ_COMPILER_ARM_ARCH < 5)
+        
+        
+            "   .arch armv5t\n"
+#endif
+            "   clz     %0, %1  \n"
+            :   "=r"    (leading_zeroes)
+            :   "r"     (data)
+        );
+    } else {
+        leading_zeroes = CountLeadingZeroesSlow(data);
+    }
+#elif defined(UNDER_CE)
+    
+    leading_zeroes = _CountLeadingZeros(data);
+#else
+    leading_zeroes = CountLeadingZeroesSlow(data);
 #endif
 
     
@@ -570,12 +576,18 @@ Assembler::nFragExit(LIns* guard)
 NIns*
 Assembler::genEpilogue()
 {
-    
-    
-    NanoAssert(ARM_ARCH_AT_LEAST(5));
+    RegisterMask savingMask;
 
-    RegisterMask savingMask = rmask(FP) | rmask(PC);
+    if (ARM_ARCH_AT_LEAST(5)) {
+        
+        savingMask = rmask(FP) | rmask(PC);
 
+    } else {
+        
+        
+        savingMask = rmask(FP) | rmask(LR);
+        BX(LR);
+    }
     POP_mask(savingMask); 
 
     
@@ -906,14 +918,21 @@ Assembler::asm_call(LIns* ins)
         BranchWithLink((NIns*)ci->_address);
     } else {
         
-#ifdef UNDER_CE
-        
-        underrunProtect(8);
-        BLX(IP);
-        MOV(IP, LR);
+        if (ARM_ARCH_AT_LEAST(5)) {
+#ifndef UNDER_CE
+            
+            underrunProtect(8);
+            BLX(IP);
+            MOV(IP, LR);
 #else
-        BLX(LR);
+            BLX(LR);
 #endif
+        } else {
+            underrunProtect(12);
+            BX(IP);
+            MOV(LR, PC);
+            MOV(IP, LR);
+        }
         asm_regarg(ARGTYPE_I, ins->arg(--argc), LR);
     }
 
@@ -1849,7 +1868,7 @@ Assembler::BranchWithLink(NIns* addr)
     
     
     
-    underrunProtect(4+LD32_size);
+    underrunProtect(8+LD32_size);
 
     
     
@@ -1868,29 +1887,30 @@ Assembler::BranchWithLink(NIns* addr)
             
             *(--_nIns) = (NIns)( (COND_AL) | (0xB<<24) | (offs2) );
             asm_output("bl %p", (void*)addr);
-        } else {
+            return;
+        } else if (ARM_ARCH_AT_LEAST(5)) {
             
-
-            
-            
-            
-            NanoAssert(ARM_ARCH_AT_LEAST(5));
-
             
             uint32_t    H = (offs & 0x2) << 23;
 
             
             *(--_nIns) = (NIns)( (0xF << 28) | (0x5<<25) | (H) | (offs2) );
             asm_output("blx %p", (void*)addr);
+            return;
         }
-    } else {
+        
+
+    }
+    if (ARM_ARCH_AT_LEAST(5)) {
         
         
         BLX(IP, false);
-
-        
-        asm_ld_imm(IP, (int32_t)addr, false);
+    } else {
+        BX(IP);
+        MOV(LR, PC);
     }
+    
+    asm_ld_imm(IP, (int32_t)addr, false);
 }
 
 
