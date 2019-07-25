@@ -39,34 +39,6 @@ function readBytesFromInputStream(inputStream, count) {
 
 
 
-
-function createAndUploadKeypair() {
-  let storageURL = Svc.Prefs.get("clusterURL") + Svc.Prefs.get("storageAPI")
-                   + "/" + ID.get("WeaveID").username + "/storage/";
-
-  PubKeys.defaultKeyUri = storageURL + "keys/pubkey";
-  PrivKeys.defaultKeyUri = storageURL + "keys/privkey";
-  let keys = PubKeys.createKeypair(ID.get("WeaveCryptoID"),
-                                   PubKeys.defaultKeyUri,
-                                   PrivKeys.defaultKeyUri);
-  PubKeys.uploadKeypair(keys);
-}
-
-
-
-
-function createAndUploadSymKey(url) {
-  let symkey = Svc.Crypto.generateRandomKey();
-  let pubkey = PubKeys.getDefaultKey();
-  let meta = new CryptoMeta(url);
-  meta.addUnwrappedKey(pubkey, symkey);
-  let res = new Resource(meta.uri);
-  res.put(meta);
-}
-
-
-
-
 function ServerWBO(id, initialPayload) {
   this.id = id;
   if (!initialPayload) {
