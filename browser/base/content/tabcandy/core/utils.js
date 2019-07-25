@@ -257,8 +257,8 @@ window.Rect.prototype = {
 
 
 window.Range = function(min, max) {
-	this.min = min;
-	this.max = max;
+	this.min = min || 0;
+	this.max = max || 0;
 };
 
 
@@ -269,6 +269,16 @@ window.isRange = function(r) {
 };
 
 window.Range.prototype = {  
+	
+	
+	get extent() {
+		return (this.max - this.min);
+	},
+
+	set extent(extent) {
+		this.max = extent - this.min;
+	},
+
   
   
   
@@ -276,7 +286,10 @@ window.Range.prototype = {
   
   
   contains: function(value) {
-    return( value >= this.min && value <= this.max );
+  	if (Utils.isNumber(value))
+			return ( value >= this.min && value <= this.max );
+		else if (isRange(value))
+			return ( value.min >= this.min && value.max <= this.max );
   },
   
   
@@ -285,7 +298,10 @@ window.Range.prototype = {
   
   
   containsWithin: function(value) {
-    return( value > this.min && value < this.max );
+  	if (Utils.isNumber(value))
+			return ( value > this.min && value < this.max );
+		else if (isRange(value))
+			return ( value.min > this.min && value.max < this.max );
   },
   
 };
