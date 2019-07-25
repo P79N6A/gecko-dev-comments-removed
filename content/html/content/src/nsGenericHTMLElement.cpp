@@ -951,6 +951,8 @@ nsGenericHTMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsGenericHTMLElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
+  RemoveFromNameTable();
+
   if (GetContentEditableValue() == eTrue) {
     nsCOMPtr<nsIHTMLDocument> htmlDocument = do_QueryInterface(GetCurrentDoc());
     if (htmlDocument) {
@@ -2527,8 +2529,6 @@ nsGenericHTMLFormElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   
   SaveState();
   
-  RemoveFromNameTable();
-
   if (mForm) {
     
     if (aNullParent) {
