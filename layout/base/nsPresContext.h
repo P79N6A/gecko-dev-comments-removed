@@ -1047,6 +1047,22 @@ protected:
   
   nsIAtom*              mLanguage;      
 
+public:
+  
+  
+
+  
+  
+  
+  nsIFrame*             mCurrentInflationContainer; 
+
+  
+  
+  
+  nscoord               mCurrentInflationContainerWidth;
+
+protected:
+
   nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoader>
                         mImageLoaders[IMAGE_LOAD_TYPE_COUNT];
 
