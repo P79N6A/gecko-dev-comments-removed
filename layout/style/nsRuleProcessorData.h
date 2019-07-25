@@ -172,8 +172,6 @@ public:
     mVisitedHandling = mRuleWalker->VisitedHandling();
   }
   
-  nsEventStates DocumentState();
-
   nsPresContext*    mPresContext;
   mozilla::dom::Element* mElement;       
   nsIContent*       mParentContent; 
