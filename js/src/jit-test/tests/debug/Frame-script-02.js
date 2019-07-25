@@ -1,0 +1,35 @@
+
+
+
+var g = newGlobal('new-compartment');
+var dbg = new Debug(g);
+
+
+
+function ApplyToFrameScript(code, skip, f) {
+    dbg.hooks = {
+        debuggerHandler: function (frame) {
+            while (skip-- > 0)
+                frame = frame.older;
+            assertEq(frame.type, "call");
+            f(frame.script);
+        }
+    };
+    g.eval(code);
+}
+
+var savedScript;
+
+ApplyToFrameScript('(function () { debugger; })();', 0,
+                   function (script) {
+                       assertEq(script instanceof Debug.Script, true);
+                       assertEq(script.live, true);
+                       savedScript = script;
+                   });
+assertEq(savedScript.live, true);
+
+
+
+
+
+

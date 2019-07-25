@@ -77,11 +77,13 @@ class Debug {
     FrameMap frames;
 
     
-    class ObjectMapMarkPolicy: public DefaultMarkPolicy<JSObject *, JSObject *> {
+    
+    
+    
+    class CCWReferentKeyMarkPolicy: public DefaultMarkPolicy<JSObject *, JSObject *> {
         typedef DefaultMarkPolicy<JSObject *, JSObject *> Base;
       public:
-        explicit ObjectMapMarkPolicy(JSTracer *tracer) : Base(tracer) { }
-
+        explicit CCWReferentKeyMarkPolicy(JSTracer *tracer) : Base(tracer) { }
         
         
         
@@ -103,9 +105,29 @@ class Debug {
     
     
     
-    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, ObjectMapMarkPolicy>
+    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CCWReferentKeyMarkPolicy>
         ObjectWeakMap;
     ObjectWeakMap objects;
+
+    
+    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CCWReferentKeyMarkPolicy>
+        ScriptWeakMap;
+
+    
+    
+    
+    ScriptWeakMap heldScripts;
+
+    
+    
+    typedef HashMap<JSScript *, JSObject *, DefaultHasher<JSScript *>, SystemAllocPolicy>
+        ScriptMap;
+
+    
+    
+    
+    
+    ScriptMap evalScripts;
 
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
     void removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
@@ -140,6 +162,7 @@ class Debug {
     inline bool hasAnyLiveHooks() const;
 
     static void slowPathLeaveStackFrame(JSContext *cx);
+    static void slowPathOnDestroyScript(JSScript *script);
 
     typedef bool (Debug::*DebugObservesMethod)() const;
     typedef JSTrapStatus (Debug::*DebugHandleMethod)(JSContext *, Value *) const;
@@ -152,6 +175,17 @@ class Debug {
 
     bool observesThrow() const;
     JSTrapStatus handleThrow(JSContext *cx, Value *vp);
+
+    
+    
+    
+    JSObject *newDebugScript(JSContext *cx, JSScript *script, JSObject *obj);
+
+    
+    JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
+
+    
+    void destroyEvalScript(JSScript *script);
 
   public:
     Debug(JSObject *dbg, JSObject *hooks);
@@ -187,6 +221,7 @@ class Debug {
     static inline void leaveStackFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
     static inline JSTrapStatus onThrow(JSContext *cx, js::Value *vp);
+    static inline void onDestroyScript(JSScript *script);
 
     
 
@@ -230,6 +265,22 @@ class Debug {
     
     
     bool newCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
+
+    
+    
+    
+    JSObject *wrapFunctionScript(JSContext *cx, JSFunction *fun);
+
+    
+    
+    
+    
+    JSObject *wrapJSAPIScript(JSContext *cx, JSObject *scriptObj);
+
+    
+    
+    
+    JSObject *wrapEvalScript(JSContext *cx, JSScript *script);
 
   private:
     
@@ -294,6 +345,13 @@ Debug::onThrow(JSContext *cx, js::Value *vp)
            : dispatchHook(cx, vp,
                           DebugObservesMethod(&Debug::observesThrow),
                           DebugHandleMethod(&Debug::handleThrow));
+}
+
+void
+Debug::onDestroyScript(JSScript *script)
+{
+    if (!script->compartment->getDebuggees().empty())
+        slowPathOnDestroyScript(script);
 }
 
 extern JSBool
