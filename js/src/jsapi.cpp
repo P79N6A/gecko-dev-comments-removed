@@ -1296,9 +1296,9 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
 
         
         
-        JSAutoEnterCompartment ec;
+        AutoCompartment ac(cx, wobj);
         JSObject *tobj = obj;
-        if (!ec.enter(cx, wobj) || !wcompartment->wrap(cx, &tobj))
+        if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
             return NULL;
 
         
@@ -1313,9 +1313,9 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
 
     
     {
-        JSAutoEnterCompartment ac;
+        AutoCompartment ac(cx, wrapper);
         JSObject *tobj = obj;
-        if (!ac.enter(cx, wrapper) || !JS_WrapObject(cx, &tobj))
+        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
             return NULL;
         if (!wrapper->swap(cx, tobj))
             return NULL;
