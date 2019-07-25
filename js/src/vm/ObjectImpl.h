@@ -418,6 +418,19 @@ class ObjectImpl : public gc::Cell
     void markChildren(JSTracer *trc);
 
     
+
+    inline void *&privateRef(uint32_t nfixed) const; 
+
+    inline bool hasPrivate() const;
+    inline void *getPrivate() const;
+    inline void setPrivate(void *data);
+    inline void setPrivateUnbarriered(void *data);
+    inline void initPrivate(void *data);
+
+    
+    inline void *getPrivate(size_t nfixed) const;
+
+    
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
     HeapPtrShape *addressOfShape() { return &shape_; }
 
