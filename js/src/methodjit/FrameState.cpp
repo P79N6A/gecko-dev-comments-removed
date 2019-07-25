@@ -615,13 +615,16 @@ FrameState::storeLocal(uint32 n)
 
 
 
+
+
     FrameEntry *backing = top;
-    uint32 searchPoint = InvalidIndex;
     if (top->isCopy()) {
         backing = top->copyOf();
         JS_ASSERT(backing->trackerIndex() < top->trackerIndex());
 
-        if (indexOfFe(backing) < uint32(spBase - base)) {
+        uint32 backingIndex = indexOfFe(backing);
+        uint32 tol = uint32(spBase - base);
+        if (backingIndex < tol || backingIndex < localIndex(n)) {
             
             if (localFe->trackerIndex() < backing->trackerIndex())
                 swapInTracker(backing, localFe);
@@ -635,10 +638,42 @@ FrameState::storeLocal(uint32 n)
             return;
         }
 
-        searchPoint = backing->trackerIndex();
-    } else if (top->trackerIndex() < localFe->trackerIndex()) {
-        swapInTracker(top, localFe);
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        FrameEntry *tos = tosFe();
+        for (uint32 i = backing->trackerIndex() + 1; i < tracker.nentries; i++) {
+            FrameEntry *fe = tracker[i];
+            if (fe >= tos)
+                continue;
+            if (fe->isCopy() && fe->copyOf() == backing)
+                fe->setCopyOf(localFe);
+        }
     }
+    backing->setNotCopied();
+    
+    
+
+
+
+
+    if (backing->trackerIndex() < localFe->trackerIndex())
+        swapInTracker(backing, localFe);
 
     
 
@@ -662,7 +697,6 @@ FrameState::storeLocal(uint32 n)
     backing->setNotCopied();
     backing->setCopyOf(localFe);
 
-    JS_ASSERT(searchPoint == InvalidIndex);
     JS_ASSERT(top->copyOf() == localFe);
 }
 

@@ -193,6 +193,12 @@ class FrameState
     
 
 
+    inline void enterBlock(uint32 n);
+    inline void leaveBlock(uint32 n);
+
+    
+
+
     void pushLocal(uint32 n);
 
     
