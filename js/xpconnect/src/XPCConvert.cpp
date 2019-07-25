@@ -601,9 +601,11 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
             JSObject* obj;
             const nsID* pid=nsnull;
 
+            
             if (JSVAL_IS_VOID(s) || JSVAL_IS_NULL(s)) {
-                *((const nsID**)d) = nsnull;
-                return true;
+                if (pErr)
+                  *pErr = NS_ERROR_XPC_BAD_CONVERT_JS;
+                return false;
             }
 
             if (!JSVAL_IS_OBJECT(s) ||
