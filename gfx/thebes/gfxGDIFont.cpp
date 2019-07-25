@@ -165,9 +165,11 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
 
     if (!ok) {
         GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
+        PRBool useUniscribeOnly = !fe->IsTrueType() || fe->IsSymbolFont();
 
-        if (UseUniscribe(aTextRun, aString, aRunStart, aRunLength)
-            && !fe->mForceGDI)
+        if (useUniscribeOnly ||
+            (UseUniscribe(aTextRun, aString, aRunStart, aRunLength)
+             && !fe->mForceGDI))
         {
             
             if (!mUniscribeShaper) {
@@ -182,13 +184,15 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
             }
 
             
-            if (!mPlatformShaper) {
-                CreatePlatformShaper();
-            }
+            if (!useUniscribeOnly) {
+                if (!mPlatformShaper) {
+                    CreatePlatformShaper();
+                }
 
-            ok = mPlatformShaper->InitTextRun(aContext, aTextRun, aString,
-                                              aRunStart, aRunLength, 
-                                              aRunScript);
+                ok = mPlatformShaper->InitTextRun(aContext, aTextRun, aString,
+                                                  aRunStart, aRunLength, 
+                                                  aRunScript);
+            }
 
         } else {
             
@@ -334,7 +338,7 @@ gfxGDIFont::Initialize()
         mMetrics->emAscent = ROUND(mMetrics->emHeight * (double)oMetrics.otmAscent / typEmHeight);
         mMetrics->emDescent = mMetrics->emHeight - mMetrics->emAscent;
         if (oMetrics.otmEMSquare > 0) {
-            mFUnitsConvFactor = GetAdjustedSize() / oMetrics.otmEMSquare;
+            mFUnitsConvFactor = float(GetAdjustedSize() / oMetrics.otmEMSquare);
         }
     } else {
         
