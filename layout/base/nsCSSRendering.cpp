@@ -2455,6 +2455,8 @@ PaintBackgroundLayer(nsPresContext* aPresContext,
   
   nsPoint imageTopLeft, anchor;
   if (NS_STYLE_BG_ATTACHMENT_FIXED == aLayer.mAttachment) {
+    aPresContext->SetHasFixedBackgroundFrame();
+
     
     
     

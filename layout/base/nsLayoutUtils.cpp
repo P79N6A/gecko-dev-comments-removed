@@ -683,13 +683,24 @@ nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
                                         nsIFrame* aStopAtAncestor,
                                         nsPoint* aOffset)
 {
-  
-  
-  
-  if (aOffset) {
-    *aOffset = aFrame->GetOffsetTo(aStopAtAncestor);
+  nsPoint offset(0,0);
+  nsIFrame* f = aFrame;
+  while (f != aStopAtAncestor) {
+    NS_ASSERTION(!IsPopup(f), "Should have stopped before popup");
+    nsPoint extraOffset(0,0);
+    nsIFrame* parent = GetCrossDocParentFrame(f, &extraOffset);
+    if (!parent)
+      break;
+    nsIScrollableFrame* sf = do_QueryFrame(parent);
+    if (sf && sf->IsScrollingActive() && sf->GetScrolledFrame() == f)
+      break;
+    offset += f->GetPosition() + extraOffset;
+    f = parent;
   }
-  return aStopAtAncestor;
+  if (aOffset) {
+    *aOffset = offset;
+  }
+  return f;
 }
 
 
@@ -1023,7 +1034,6 @@ nsLayoutUtils::CombineBreakType(PRUint8 aOrigBreakType,
 
 static PRBool gDumpPaintList = PR_FALSE;
 static PRBool gDumpEventList = PR_FALSE;
-static PRBool gDumpRepaintRegionForCopy = PR_FALSE;
 #endif
 
 nsIFrame*
@@ -1335,244 +1345,6 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
 
   
   list.DeleteAll();
-  return NS_OK;
-}
-
-#ifdef DEBUG
-static void
-PrintAddedRegion(const char* aFormat, nsIFrame* aFrame,
-                 const nsRegion& aRegion)
-{
-  if (!gDumpRepaintRegionForCopy)
-    return;
-  fprintf(stderr, aFormat, (void*)aFrame);
-  fprintf(stderr, " : [");
-  nsRegionRectIterator iter(aRegion);
-  PRBool first = PR_TRUE;
-  const nsRect* r;
-  while ((r = iter.Next()) != nsnull) {
-    if (!first) {
-      fprintf(stderr, ",");
-    }
-    fprintf(stderr, "(%d,%d,%d,%d)",
-            r->x, r->y, r->XMost(), r->YMost());
-  }
-  fprintf(stderr, "]\n");
-}
-#endif
-
-static void
-AccumulateItemInRegion(nsRegion* aRegion, const nsRect& aUpdateRect,
-                       const nsRect& aItemRect, const nsRect& aExclude,
-                       nsDisplayItem* aItem)
-{
-  nsRect damageRect;
-  if (damageRect.IntersectRect(aUpdateRect, aItemRect)) {
-    nsRegion r;
-    r.Sub(damageRect, aExclude);
-#ifdef DEBUG
-    PrintAddedRegion("Adding rect for frame %p",
-                     aItem->GetUnderlyingFrame(), r);
-#endif
-    aRegion->Or(*aRegion, r);
-  }
-}
-
-static void
-AddItemsToRegion(nsDisplayListBuilder* aBuilder, nsDisplayList* aList,
-                 const nsRect& aUpdateRect, const nsRect& aClipRect, nsPoint aDelta,
-                 nsRegion* aRegion)
-{
-  for (nsDisplayItem* item = aList->GetBottom(); item; item = item->GetAbove()) {
-    nsDisplayList* sublist = item->GetList();
-    if (sublist) {
-      nsDisplayItem::Type type = item->GetType();
-#ifdef MOZ_SVG
-      if (type == nsDisplayItem::TYPE_SVG_EFFECTS) {
-        nsDisplaySVGEffects* effectsItem = static_cast<nsDisplaySVGEffects*>(item);
-        if (!aBuilder->IsMovingFrame(effectsItem->GetEffectsFrame())) {
-          
-          nsRect r;
-          r.IntersectRect(aClipRect, effectsItem->GetBounds(aBuilder));
- #ifdef DEBUG
-          PrintAddedRegion("Adding region for SVG effects frame %p",
-                           effectsItem->GetEffectsFrame(), nsRegion(r));
- #endif
-          aRegion->Or(*aRegion, r);
-        }
-      } else
-#endif
-      if (type == nsDisplayItem::TYPE_CLIP) {
-        nsDisplayClip* clipItem = static_cast<nsDisplayClip*>(item);
-        nsRect clip = aClipRect;
-        
-        
-        
-        
-        
-        
-        nsIFrame* clipFrame = clipItem->GetClippingFrame();
-        if (!aBuilder->IsMovingFrame(clipFrame) &&
-            nsLayoutUtils::IsProperAncestorFrameCrossDoc(clipFrame, aBuilder->GetRootMovingFrame())) {
-          nscoord appUnitsPerDevPixel = clipFrame->PresContext()->AppUnitsPerDevPixel();
-          
-          
-          
-          nsRect snappedClip =
-            clipItem->GetClipRect().ToNearestPixels(appUnitsPerDevPixel).
-            ToAppUnits(appUnitsPerDevPixel);
-          clip.IntersectRect(clip, snappedClip);
-
-          
-          nsRegion clippedOutSource;
-          clippedOutSource.Sub(aUpdateRect - aDelta, clip);
-          clippedOutSource.MoveBy(aDelta);
- #ifdef DEBUG
-          PrintAddedRegion("Adding region for clipped out source frame %p",
-                           clipFrame, clippedOutSource);
- #endif
-          aRegion->Or(*aRegion, clippedOutSource);
-
-          
-          nsRegion clippedOutDestination;
-          clippedOutDestination.Sub(aUpdateRect, clip);
- #ifdef DEBUG
-          PrintAddedRegion("Adding region for clipped out destination frame %p",
-                           clipFrame, clippedOutDestination);
- #endif
-          aRegion->Or(*aRegion, clippedOutDestination);
-        }
-        AddItemsToRegion(aBuilder, sublist, aUpdateRect, clip, aDelta, aRegion);
-      } else {
-        
-        AddItemsToRegion(aBuilder, sublist, aUpdateRect, aClipRect, aDelta, aRegion);
-      }
-    } else {
-      nsRect r;
-      if (r.IntersectRect(aClipRect, item->GetBounds(aBuilder))) {
-        nsIFrame* f = item->GetUnderlyingFrame();
-        NS_ASSERTION(f, "Must have an underlying frame for leaf item");
-        nsRect exclude;
-        if (aBuilder->IsMovingFrame(f)) {
-          if (item->IsVaryingRelativeToMovingFrame(aBuilder)) {
-            
-            
-            AccumulateItemInRegion(aRegion, aUpdateRect, r, exclude, item);
-          }
-        } else {
-          
-          nscolor color;
-          if (item->IsUniform(aBuilder, &color)) {
-            
-            
-            exclude.IntersectRect(r, r + aDelta);
-          }
-          
-          AccumulateItemInRegion(aRegion, aUpdateRect, r, exclude, item);
-          
-          
-          
-          AccumulateItemInRegion(aRegion, aUpdateRect, r + aDelta,
-                                 exclude, item);
-        }
-      }
-    }
-  }
-}
-
-nsresult
-nsLayoutUtils::ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
-                                           nsIFrame* aMovingFrame,
-                                           nsPoint aDelta,
-                                           const nsRect& aUpdateRect,
-                                           nsRegion* aBlitRegion,
-                                           nsRegion* aRepaintRegion)
-{
-  NS_ASSERTION(aRootFrame != aMovingFrame,
-               "The root frame shouldn't be the one that's moving, that makes no sense");
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE);
-  
-  
-  
-  nsRegion visibleRegionOfMovingContent;
-  builder.SetMovingFrame(aMovingFrame, aDelta, &visibleRegionOfMovingContent);
-  nsDisplayList list;
-
-  builder.EnterPresShell(aRootFrame, aUpdateRect);
-
-  nsresult rv =
-    aRootFrame->BuildDisplayListForStackingContext(&builder, aUpdateRect, &list);
-
-  builder.LeavePresShell(aRootFrame, aUpdateRect);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-#ifdef DEBUG
-  if (gDumpRepaintRegionForCopy) {
-    fprintf(stderr,
-            "Repaint region for copy --- before optimization (area %d,%d,%d,%d, frame %p):\n",
-            aUpdateRect.x, aUpdateRect.y, aUpdateRect.width, aUpdateRect.height,
-            (void*)aMovingFrame);
-    nsFrame::PrintDisplayList(&builder, list);
-  }
-#endif
-
-  
-  
-  nsRegion visibleRegion(aUpdateRect);
-  nsRegion visibleRegionBeforeMove(aUpdateRect);
-  list.ComputeVisibility(&builder, &visibleRegion, &visibleRegionBeforeMove);
-
-#ifdef DEBUG
-  if (gDumpRepaintRegionForCopy) {
-    fprintf(stderr, "Repaint region for copy --- after optimization:\n");
-    nsFrame::PrintDisplayList(&builder, list);
-  }
-#endif
-
-  
-  
-  
-  
-  
-  
-  
-  nsRegion scrolledOutOfView;
-  scrolledOutOfView.Sub(aUpdateRect, aUpdateRect - aDelta);
-  visibleRegionOfMovingContent.Or(visibleRegionOfMovingContent, scrolledOutOfView);
-
-  aRepaintRegion->SetEmpty();
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  AddItemsToRegion(&builder, &list, aUpdateRect, aUpdateRect, aDelta, aRepaintRegion);
-  
-  list.DeleteAll();
-
-  
-  
-  
-  visibleRegionOfMovingContent.And(visibleRegionOfMovingContent, aUpdateRect);
-  aRepaintRegion->And(*aRepaintRegion, visibleRegionOfMovingContent);
-  aBlitRegion->Sub(visibleRegionOfMovingContent, *aRepaintRegion);
   return NS_OK;
 }
 

@@ -213,6 +213,7 @@ public:
   nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState);
   PRBool IsLTR() const;
   PRBool IsScrollbarOnRight() const;
+  PRBool IsScrollingActive() { return mScrollingActive; }
   
   
   
@@ -247,6 +248,7 @@ public:
   
   
   nsPoint mDestination;
+  nsPoint mScrollPosAtLastPaint;
 
   nsPoint mRestorePos;
   nsPoint mLastPos;
@@ -281,6 +283,9 @@ public:
   
   
   PRPackedBool mUpdateScrollbarAttributes:1;
+  
+  
+  PRPackedBool mScrollingActive:1;
 };
 
 
@@ -439,6 +444,9 @@ public:
   NS_IMETHOD PostScrolledAreaEventForCurrentArea() {
     mInner.PostScrolledAreaEvent();
     return NS_OK;
+  }
+  virtual PRBool IsScrollingActive() {
+    return mInner.IsScrollingActive();
   }
 
   
@@ -665,6 +673,9 @@ public:
   NS_IMETHOD PostScrolledAreaEventForCurrentArea() {
     mInner.PostScrolledAreaEvent();
     return NS_OK;
+  }
+  virtual PRBool IsScrollingActive() {
+    return mInner.IsScrollingActive();
   }
 
   

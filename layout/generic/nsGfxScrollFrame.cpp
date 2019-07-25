@@ -191,6 +191,11 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
     if (aForChild == mInner.mScrolledFrame) {
       
       nsRect damage = aDamageRect + nsPoint(aX, aY);
+      
+      
+      
+      
+      damage += GetScrollPosition() - mInner.mScrollPosAtLastPaint;
       nsRect r;
       if (r.IntersectRect(damage, mInner.mScrollPort)) {
         nsHTMLContainerFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
@@ -1041,8 +1046,10 @@ nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
 {
   if (aForChild == mInner.mScrolledFrame) {
     
+    nsRect damage = aDamageRect + nsPoint(aX, aY) +
+      GetScrollPosition() - mInner.mScrollPosAtLastPaint;
     nsRect r;
-    if (r.IntersectRect(aDamageRect + nsPoint(aX, aY), mInner.mScrollPort)) {
+    if (r.IntersectRect(damage, mInner.mScrollPort)) {
       nsBoxFrame::InvalidateInternal(r, 0, 0, aForChild, aFlags);
     }
     return;
@@ -1275,6 +1282,7 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
     mOuter(aOuter),
     mAsyncScroll(nsnull),
     mDestination(0, 0),
+    mScrollPosAtLastPaint(0, 0),
     mRestorePos(-1, -1),
     mLastPos(-1, -1),
     mNeverHasVerticalScrollbar(PR_FALSE),
@@ -1292,7 +1300,8 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
     mVerticalOverflow(PR_FALSE),
     mPostedReflowCallback(PR_FALSE),
     mMayHaveDirtyFixedChildren(PR_FALSE),
-    mUpdateScrollbarAttributes(PR_FALSE)
+    mUpdateScrollbarAttributes(PR_FALSE),
+    mScrollingActive(PR_FALSE)
 {
 }
 
@@ -1489,135 +1498,11 @@ static void AdjustViewsAndWidgets(nsIFrame* aFrame,
   } while (childListName);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-static void
-ConvertBlitRegionToPixelRects(const nsRegion& aBlitRegion,
-                              nscoord aAppUnitsPerPixel,
-                              nsTArray<nsIntRect>* aPixelRects,
-                              nsRegion* aRepaintRegion,
-                              nsRegion* aAppunitsBlitRegion)
-{
-  const nsRect* r;
-
-  aPixelRects->Clear();
-  aAppunitsBlitRegion->SetEmpty();
-  
-  
-  for (nsRegionRectIterator iter(aBlitRegion); (r = iter.Next());) {
-    nsIntRect pixRect = r->ToNearestPixels(aAppUnitsPerPixel);
-    aPixelRects->AppendElement(pixRect);
-    aAppunitsBlitRegion->Or(*aAppunitsBlitRegion,
-                            pixRect.ToAppUnits(aAppUnitsPerPixel));
-  }
-
-  nsRegion repaint;
-  repaint.Sub(aBlitRegion, *aAppunitsBlitRegion);
-  aRepaintRegion->Or(*aRepaintRegion, repaint);
-}
-
-
-
-
-class RightEdgeComparator {
-public:
-  
-  PRBool Equals(const nsIntRect& aA, const nsIntRect& aB) const
-  {
-    return aA.XMost() == aB.XMost();
-  }
-  
-  PRBool LessThan(const nsIntRect& aA, const nsIntRect& aB) const
-  {
-    return aA.XMost() < aB.XMost();
-  }
-};
-
-
-
-
-static nsIntRect
-FlipRect(const nsIntRect& aRect, nsIntPoint aPixDelta)
-{
-  nsIntRect r = aRect;
-  if (aPixDelta.x < 0) {
-    r.x = -r.XMost();
-  }
-  if (aPixDelta.y < 0) {
-    r.y = -r.YMost();
-  }
-  return r;
-}
-
-
-
-
-
-static void
-SortBlitRectsForCopy(nsIntPoint aPixDelta, nsTArray<nsIntRect>* aRects)
-{
-  nsTArray<nsIntRect> rects;
-
-  for (PRUint32 i = 0; i < aRects->Length(); ++i) {
-    nsIntRect* r = &aRects->ElementAt(i);
-    nsIntRect rect =
-      FlipRect(nsIntRect(r->x, r->y, r->width, r->height), aPixDelta);
-    rects.AppendElement(rect);
-  }
-  rects.Sort(RightEdgeComparator());
-
-  aRects->Clear();
-  
-  
-  
-  while (!rects.IsEmpty()) {
-    PRInt32 i = rects.Length() - 1;
-    PRBool overlappedBelow;
-    do {
-      overlappedBelow = PR_FALSE;
-      const nsIntRect& rectI = rects[i];
-      
-      
-      for (PRInt32 j = i - 1; j >= 0; --j) {
-        if (rects[j].XMost() <= rectI.x) {
-          
-          break;
-        }
-        
-        if (rects[j].y >= rectI.y) {
-          
-          
-          i = j;
-          overlappedBelow = PR_TRUE;
-          break;
-        }
-      }
-    } while (overlappedBelow); 
-
-    
-    
-    aRects->AppendElement(FlipRect(rects[i], aPixDelta));
-    rects.RemoveElementAt(i);
-  }
-}
-
 static PRBool
-CanScrollWithBlitting(nsIFrame* aFrame, nsIFrame* aDisplayRoot, nsRect* aClippedScrollPort)
+CanScrollWithBlitting(nsIFrame* aFrame, nsIFrame* aDisplayRoot)
 {
-  nsPoint offset(0, 0);
-  *aClippedScrollPort = nsRect(nsPoint(0, 0), aFrame->GetSize());
-
   for (nsIFrame* f = aFrame; f;
-       f = nsLayoutUtils::GetCrossDocParentFrame(f, &offset)) {
+       f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
     if (f->GetStyleDisplay()->HasTransform()) {
       return PR_FALSE;
     }
@@ -1627,20 +1512,54 @@ CanScrollWithBlitting(nsIFrame* aFrame, nsIFrame* aDisplayRoot, nsRect* aClipped
       return PR_FALSE;
     }
 #endif
-
-    nsIScrollableFrame* sf = do_QueryFrame(f);
-    if (sf) {
-      
-      
-      aClippedScrollPort->IntersectRect(*aClippedScrollPort,
-                                        sf->GetScrollPortRect() - offset);
-    }
-
-    offset += f->GetPosition();
     if (f == aDisplayRoot)
       break;
   }
   return PR_TRUE;
+}
+
+static void
+InvalidateFixedBackgroundFramesFromList(nsDisplayListBuilder* aBuilder,
+                                        const nsDisplayList& aList)
+{
+  for (nsDisplayItem* item = aList.GetBottom(); item; item = item->GetAbove()) {
+    nsDisplayList* sublist = item->GetList();
+    if (sublist) {
+      InvalidateFixedBackgroundFramesFromList(aBuilder, *sublist);
+    } else if (item->IsVaryingRelativeToMovingFrame(aBuilder)) {
+      nsIFrame* f = item->GetUnderlyingFrame();
+      NS_ASSERTION(f, "No underlying frame for varying item?");
+      f->Invalidate(item->GetVisibleRect() - aBuilder->ToReferenceFrame(f));
+    }
+  }
+}
+
+static void
+InvalidateFixedBackgroundFrames(nsIFrame* aRootFrame,
+                                nsIFrame* aMovingFrame,
+                                const nsRect& aUpdateRect)
+{
+  if (!aMovingFrame->PresContext()->MayHaveFixedBackgroundFrames())
+    return;
+
+  NS_ASSERTION(aRootFrame != aMovingFrame,
+               "The root frame shouldn't be the one that's moving, that makes no sense");
+
+  
+  nsDisplayListBuilder builder(aRootFrame, PR_FALSE, PR_TRUE);
+  builder.EnterPresShell(aRootFrame, aUpdateRect);
+  builder.SetMovingFrame(aMovingFrame);
+  nsDisplayList list;
+  nsresult rv =
+    aRootFrame->BuildDisplayListForStackingContext(&builder, aUpdateRect, &list);
+  builder.LeavePresShell(aRootFrame, aUpdateRect);
+  if (NS_FAILED(rv))
+    return;
+
+  nsRegion visibleRegion(aUpdateRect);
+  list.ComputeVisibility(&builder, &visibleRegion, nsnull);
+
+  InvalidateFixedBackgroundFramesFromList(&builder, list);
 }
 
 void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
@@ -1666,90 +1585,26 @@ void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
     rootPresContext->GetPluginGeometryUpdates(mOuter, &configurations);
   }
 
+  
+  
+  if (nearestWidget) {
+    nearestWidget->ConfigureChildren(configurations);
+  }
+  AdjustViewsAndWidgets(mScrolledFrame, PR_FALSE);
+  
+  
+  PRUint32 flags = nsIFrame::INVALIDATE_REASON_SCROLL_REPAINT;
   nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(mOuter);
-  nsRect clippedScrollPort;
-  if (!nearestWidget ||
-      nearestWidget->GetTransparencyMode() == eTransparencyTransparent ||
-      !CanScrollWithBlitting(mOuter, displayRoot, &clippedScrollPort)) {
-    
-    
-    if (nearestWidget) {
-      nearestWidget->ConfigureChildren(configurations);
-    }
-    AdjustViewsAndWidgets(mScrolledFrame, PR_FALSE);
-    
-    
-    mOuter->InvalidateWithFlags(mScrollPort,
-                                nsIFrame::INVALIDATE_REASON_SCROLL_REPAINT);
-  } else {
-    nsRegion blitRegion;
-    nsRegion repaintRegion;
-    nsPresContext* presContext = mOuter->PresContext();
-    nsPoint delta(presContext->DevPixelsToAppUnits(aPixDelta.x),
-                  presContext->DevPixelsToAppUnits(aPixDelta.y));
-    nsPoint offsetToDisplayRoot = mOuter->GetOffsetTo(displayRoot);
-    nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    nsRect scrollPort =
-      (clippedScrollPort + offsetToDisplayRoot).ToNearestPixels(appUnitsPerDevPixel).
-      ToAppUnits(appUnitsPerDevPixel);
-    nsresult rv =
-      nsLayoutUtils::ComputeRepaintRegionForCopy(displayRoot, mScrolledFrame,
-                                                 delta, scrollPort,
-                                                 &blitRegion,
-                                                 &repaintRegion);
-    if (NS_FAILED(rv)) {
-      nearestWidget->ConfigureChildren(configurations);
-      AdjustViewsAndWidgets(mScrolledFrame, PR_FALSE);
-      mOuter->InvalidateWithFlags(mScrollPort,
-                                  nsIFrame::INVALIDATE_REASON_SCROLL_REPAINT);
-      return;
-    }
+  if (CanScrollWithBlitting(mOuter, displayRoot) && mScrollingActive) {
+    flags |= nsIFrame::INVALIDATE_NO_THEBES_LAYERS;
+  }
+  mScrollingActive = PR_TRUE;
+  mOuter->InvalidateWithFlags(mScrollPort, flags);
 
-    blitRegion.MoveBy(nearestWidgetOffset - offsetToDisplayRoot);
-    repaintRegion.MoveBy(nearestWidgetOffset - offsetToDisplayRoot);
-
+  if (flags & nsIFrame::INVALIDATE_NO_THEBES_LAYERS) {
     
-    
-    nsIView* view = displayRoot->GetView();
-    NS_ASSERTION(view, "Display root has no view?");
-    nsIViewManager* vm = view->GetViewManager();
-    vm->WillBitBlit(view, mScrollPort + offsetToDisplayRoot, -delta);
-
-    
-    nsTArray<nsIntRect> blitRects;
-    nsRegion blitRectsRegion;
-    ConvertBlitRegionToPixelRects(blitRegion,
-                                  appUnitsPerDevPixel,
-                                  &blitRects, &repaintRegion,
-                                  &blitRectsRegion);
-    SortBlitRectsForCopy(aPixDelta, &blitRects);
-
-    nearestWidget->Scroll(aPixDelta, blitRects, configurations);
-    AdjustViewsAndWidgets(mScrolledFrame, PR_TRUE);
-    repaintRegion.MoveBy(-nearestWidgetOffset + offsetToDisplayRoot);
-
-    {
-      
-      
-      
-      
-      
-      
-      
-      nsContentUtils::AddScriptBlockerAndPreventAddingRunners();
-      vm->UpdateViewAfterScroll(view, repaintRegion);
-      nsContentUtils::RemoveScriptBlocker();
-      
-      
-    }
-
-    nsIFrame* presContextRootFrame = presContext->FrameManager()->GetRootFrame();
-    if (nearestWidget == presContextRootFrame->GetNearestWidget()) {
-      nsPoint offsetToPresContext = mOuter->GetOffsetTo(presContextRootFrame);
-      blitRectsRegion.MoveBy(-nearestWidgetOffset + offsetToPresContext);
-      repaintRegion.MoveBy(-offsetToDisplayRoot + offsetToPresContext);
-      presContext->NotifyInvalidateForScrolling(blitRectsRegion, repaintRegion);
-    }
+    InvalidateFixedBackgroundFrames(displayRoot, mScrolledFrame,
+                                    mScrolledFrame->GetRect() + mOuter->GetOffsetTo(displayRoot));
   }
 }
 
@@ -1832,6 +1687,10 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 {
   nsresult rv = mOuter->DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aBuilder->IsPaintingToWindow()) {
+    mScrollPosAtLastPaint = GetScrollPosition();
+  }
 
   if (aBuilder->GetIgnoreScrollFrame() == mOuter) {
     

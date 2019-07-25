@@ -294,6 +294,8 @@ public:
 
 
 
+
+
   static nsIFrame* GetActiveScrolledRootFor(nsIFrame* aFrame,
                                             nsIFrame* aStopAtAncestor,
                                             nsPoint* aOffset);
@@ -564,59 +566,6 @@ public:
   static nsresult PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFrame,
                              const nsRegion& aDirtyRegion, nscolor aBackstop,
                              PRUint32 aFlags = 0);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult ComputeRepaintRegionForCopy(nsIFrame* aRootFrame,
-                                              nsIFrame* aMovingFrame,
-                                              nsPoint aDelta,
-                                              const nsRect& aUpdateRect,
-                                              nsRegion* aBlitRegion,
-                                              nsRegion* aRepaintRegion);
 
   
 

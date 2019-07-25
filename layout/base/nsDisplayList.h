@@ -174,11 +174,8 @@ public:
 
 
 
-  void SetMovingFrame(nsIFrame* aMovingFrame, const nsPoint& aMoveDelta,
-                      nsRegion* aSaveVisibleRegionOfMovingContent) {
+  void SetMovingFrame(nsIFrame* aMovingFrame) {
     mMovingFrame = aMovingFrame;
-    mMoveDelta = aMoveDelta;
-    mSaveVisibleRegionOfMovingContent = aSaveVisibleRegionOfMovingContent;
   }
 
   
@@ -189,19 +186,6 @@ public:
 
 
   nsIFrame* GetRootMovingFrame() { return mMovingFrame; }
-  
-
-
-
-  const nsPoint& GetMoveDelta() { return mMoveDelta; }
-  
-
-
-
-
-  void AccumulateVisibleRegionOfMovingContent(const nsRegion& aMovingContent,
-                                              const nsRegion& aVisibleRegionBeforeMove,
-                                              const nsRegion& aVisibleRegionAfterMove);
 
   
 
@@ -262,6 +246,7 @@ public:
 
 
   void SetPaintingToWindow(PRBool aToWindow) { mIsPaintingToWindow = aToWindow; }
+  PRBool IsPaintingToWindow() { return mIsPaintingToWindow; }
   
 
 
@@ -421,9 +406,7 @@ private:
   FrameLayerBuilder              mLayerBuilder;
   nsIFrame*                      mReferenceFrame;
   nsIFrame*                      mMovingFrame;
-  nsRegion*                      mSaveVisibleRegionOfMovingContent;
   nsIFrame*                      mIgnoreScrollFrame;
-  nsPoint                        mMoveDelta; 
   PLArenaPool                    mPool;
   nsCOMPtr<nsISelection>         mBoundingSelection;
   nsAutoTArray<PresShellState,8> mPresShellStates;

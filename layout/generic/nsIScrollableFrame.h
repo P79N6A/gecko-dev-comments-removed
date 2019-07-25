@@ -202,6 +202,13 @@ public:
 
 
   NS_IMETHOD PostScrolledAreaEventForCurrentArea() = 0;
+
+  
+
+
+
+
+  virtual PRBool IsScrollingActive() = 0;
 };
 
 #endif
