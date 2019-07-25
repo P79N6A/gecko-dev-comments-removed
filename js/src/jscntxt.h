@@ -2157,9 +2157,6 @@ public:
     getTypeCallerInitObject(bool isArray);
 
     
-    inline bool isTypeCallerMonitored();
-
-    
     inline bool markTypeCallerUnexpected(js::types::jstype type);
     inline bool markTypeCallerUnexpected(const js::Value &value);
     inline bool markTypeCallerOverflow();

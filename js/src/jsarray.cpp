@@ -1402,13 +1402,38 @@ array_toLocaleString(JSContext *cx, uintN argc, Value *vp)
     return array_toString_sub(cx, obj, JS_TRUE, NULL, vp);
 }
 
+static inline bool
+InitArrayTypes(JSContext *cx, TypeObject *type, const Value *vector, unsigned count)
+{
+    if (cx->typeInferenceEnabled() && !type->unknownProperties) {
+        AutoEnterTypeInference enter(cx);
+
+        TypeSet *types = type->getProperty(cx, JSID_VOID, true);
+        if (!types)
+            return JS_FALSE;
+
+        for (unsigned i = 0; i < count; i++) {
+            if (vector[i].isMagic(JS_ARRAY_HOLE))
+                continue;
+            jstype valtype = GetValueType(cx, vector[i]);
+            types->addType(cx, valtype);
+        }
+
+        return cx->compartment->types.checkPendingRecompiles(cx);
+    }
+    return true;
+}
+
 static JSBool
-InitArrayElements(JSContext *cx, JSObject *obj, jsuint start, jsuint count, Value *vector)
+InitArrayElements(JSContext *cx, JSObject *obj, jsuint start, jsuint count, Value *vector, bool updateTypes)
 {
     JS_ASSERT(count < MAXINDEX);
 
     if (count == 0)
         return JS_TRUE;
+
+    if (updateTypes && !InitArrayTypes(cx, obj->getType(), vector, count))
+        return JS_FALSE;
 
     
 
@@ -1478,6 +1503,9 @@ InitArrayObject(JSContext *cx, JSObject *obj, jsuint length, const Value *vector
         return false;
     if (!vector || !length)
         return true;
+
+    if (!InitArrayTypes(cx, obj->getType(), vector, length))
+        return false;
 
     
     if (!obj->ensureSlots(cx, length))
@@ -2041,7 +2069,7 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
 
 
         tvr.changeLength(newlen);
-        if (!InitArrayElements(cx, obj, 0, newlen, vec))
+        if (!InitArrayElements(cx, obj, 0, newlen, vec, false))
             return false;
     }
 
@@ -2073,7 +2101,7 @@ array_push_slowly(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *
 
     if (!js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
-    if (!InitArrayElements(cx, obj, length, argc, argv))
+    if (!InitArrayElements(cx, obj, length, argc, argv, true))
         return JS_FALSE;
 
     
@@ -2099,6 +2127,9 @@ array_push1_dense(JSContext* cx, JSObject* obj, const Value &v, Value *rval)
             JS_ASSERT(result == JSObject::ED_SPARSE);
             break;
         }
+
+        if (cx->typeInferenceEnabled() && !cx->addTypePropertyId(obj->getType(), JSID_VOID, v))
+            return false;
 
         obj->setDenseArrayLength(length + 1);
         obj->setDenseArrayElement(length, v);
@@ -2174,9 +2205,6 @@ array_push(JSContext *cx, uintN argc, Value *vp)
 {
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
-        return false;
-
-    if (cx->isTypeCallerMonitored() && !cx->markTypeObjectUnknownProperties(obj->getType()))
         return false;
 
     
@@ -2312,9 +2340,6 @@ array_unshift(JSContext *cx, uintN argc, Value *vp)
     if (!js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
 
-    if (cx->isTypeCallerMonitored() && !cx->markTypeObjectUnknownProperties(obj->getType()))
-        return false;
-
     newlen = length;
     if (argc > 0) {
         
@@ -2355,7 +2380,7 @@ array_unshift(JSContext *cx, uintN argc, Value *vp)
         }
 
         
-        if (!InitArrayElements(cx, obj, 0, argc, argv))
+        if (!InitArrayElements(cx, obj, 0, argc, argv, true))
             return JS_FALSE;
 
         newlen += argc;
@@ -2401,9 +2426,6 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
         if (!type || !cx->markTypeCallerUnexpected((jstype) type))
             return false;
     }
-
-    if (cx->isTypeCallerMonitored() && !cx->markTypeObjectUnknownProperties(type))
-        return false;
 
     
     JSObject *obj2 = NewDenseEmptyArray(cx);
@@ -2469,6 +2491,9 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
                     !GetElement(cx, obj, last, &hole, tvr.addr())) {
                     return JS_FALSE;
                 }
+
+                if (!cx->addTypePropertyId(obj2->getType(), JSID_VOID, tvr.value()))
+                    return JS_FALSE;
 
                 
                 if (!hole && !SetArrayElement(cx, obj2, last - begin, tvr.value()))
@@ -2554,7 +2579,7 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    return InitArrayElements(cx, obj, begin, argc, argv) &&
+    return InitArrayElements(cx, obj, begin, argc, argv, true) &&
            js_SetLengthProperty(cx, obj, length);
 }
 
@@ -2571,8 +2596,6 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
     TypeObject *ntype = cx->getTypeCallerInitObject(true);
     if (!ntype)
         return false;
-    if (cx->isTypeCallerMonitored() && !cx->markTypeObjectUnknownProperties(ntype))
-        return false;
 
     
     JSObject *aobj = ToObject(cx, &vp[1]);
@@ -2583,12 +2606,17 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
     jsuint length;
     if (aobj->isDenseArray()) {
         length = aobj->getArrayLength();
+        Value *vector = aobj->getDenseArrayElements();
         jsuint initlen = aobj->getDenseArrayInitializedLength();
-        nobj = NewDenseCopiedArray(cx, initlen, aobj->getDenseArrayElements());
+        nobj = NewDenseCopiedArray(cx, initlen, vector);
         if (!nobj)
             return JS_FALSE;
         nobj->setType(ntype);
         if (!nobj->setArrayLength(cx, length))
+            return JS_FALSE;
+        if (!InitArrayTypes(cx, ntype, vector, length))
+            return JS_FALSE;
+        if (!aobj->isPackedDenseArray() && !nobj->setDenseArrayNotPacked(cx))
             return JS_FALSE;
         vp->setObject(*nobj);
         if (argc == 0)
@@ -2603,9 +2631,6 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
         vp->setObject(*nobj);
         length = 0;
     }
-
-    if (aobj->isDenseArray() && !aobj->isPackedDenseArray() && !nobj->setDenseArrayNotPacked(cx))
-        return false;
 
     AutoValueRooter tvr(cx);
 
@@ -2631,6 +2656,9 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
                         return false;
                     }
 
+                    if (!hole && !cx->addTypePropertyId(ntype, JSID_VOID, tvr.value()))
+                        return false;
+
                     
 
 
@@ -2644,10 +2672,6 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
                 continue;
             }
         }
-
-        
-
-
 
         if (!cx->addTypePropertyId(ntype, JSID_VOID, v))
             return false;
@@ -2726,9 +2750,6 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
             return false;
     }
 
-    if (cx->isTypeCallerMonitored() && !cx->markTypeObjectUnknownProperties(type))
-        return false;
-
     if (obj->isDenseArray() && end <= obj->getDenseArrayCapacity() &&
         !js_PrototypeHasIndexedProperties(cx, obj)) {
         nobj = NewDenseCopiedArray(cx, end - begin, obj->getDenseArrayElements() + begin);
@@ -2754,6 +2775,8 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
             !GetElement(cx, obj, slot, &hole, tvr.addr())) {
             return JS_FALSE;
         }
+        if (!hole && !cx->addTypePropertyId(nobj->getType(), JSID_VOID, tvr.value()))
+            return false;
         if (!hole && !SetArrayElement(cx, nobj, slot - begin, tvr.value()))
             return JS_FALSE;
     }
@@ -2957,15 +2980,6 @@ array_extra(JSContext *cx, ArrayExtraMode mode, uintN argc, Value *vp)
         return JS_TRUE;
 
     Value thisv = (argc > 1 && !REDUCE_MODE(mode)) ? argv[1] : UndefinedValue();
-
-    
-
-
-
-    if (cx->isTypeCallerMonitored() && (mode == MAP || mode == FILTER) &&
-        !cx->markTypeObjectUnknownProperties(newtype)) {
-        return false;
-    }
 
     
 
@@ -3367,12 +3381,12 @@ js_Array(JSContext *cx, uintN argc, Value *vp)
     if (argc == 0) {
         obj = NewDenseEmptyArray(cx);
     } else if (argc > 1) {
+        if (!InitArrayTypes(cx, type, vp + 2, argc))
+            return false;
         obj = NewDenseCopiedArray(cx, argc, vp + 2);
     } else if (!vp[2].isNumber()) {
-        
         if (!cx->addTypeProperty(type, NULL, vp[2]))
             return false;
-
         obj = NewDenseCopiedArray(cx, 1, vp + 2);
     } else {
         jsuint length;
@@ -3385,8 +3399,6 @@ js_Array(JSContext *cx, uintN argc, Value *vp)
         return JS_FALSE;
 
     obj->setType(type);
-    if (cx->isTypeCallerMonitored() && !cx->markTypeObjectUnknownProperties(type))
-        return false;
 
     
     if (obj->getArrayLength() > INT32_MAX && !obj->setArrayLength(cx, obj->getArrayLength()))
