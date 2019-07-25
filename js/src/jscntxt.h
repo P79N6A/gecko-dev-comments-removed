@@ -883,6 +883,7 @@ JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
 
 class FrameRegsIter
 {
+    JSContext         *cx;
     StackSegment      *curseg;
     JSStackFrame      *curfp;
     Value             *cursp;
@@ -2089,6 +2090,9 @@ struct JSContext
 
     
     void restoreSegment();
+
+    
+    inline JSStackFrame *computeNextFrame(JSStackFrame *fp);
 
     
 

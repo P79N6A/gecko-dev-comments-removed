@@ -589,6 +589,12 @@ class FrameState
     
 
 
+
+    void storeTo(FrameEntry *fe, RegisterID dataReg, RegisterID typeReg, RegisterID tempReg);
+
+    
+
+
     void storeLocal(uint32 n, bool popGuaranteed = false, bool typeChange = true);
     void storeTop(FrameEntry *target, bool popGuaranteed = false, bool typeChange = true);
 

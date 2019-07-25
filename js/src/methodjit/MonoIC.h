@@ -145,7 +145,7 @@ struct CallICInfo {
     JSC::CodeLocationJump funJump;
 
     
-    uint32 hotCallOffset   : 16;
+    uint32 hotJumpOffset   : 16;
     uint32 joinPointOffset : 16;
 
     

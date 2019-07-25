@@ -317,7 +317,7 @@ class CallCompiler
         RegisterID t0 = inlFrame.tempRegs.takeAnyReg();
 
         
-        inlFrame.assemble();
+        inlFrame.assemble(ic.funGuard.labelAtOffset(ic.joinPointOffset).executableAddress());
 
         
         Address scriptAddr(ic.funPtrReg, offsetof(JSFunction, u) +
@@ -338,35 +338,25 @@ class CallCompiler
         JSC::MacroAssembler::Call tryCompile =
             masm.stubCall(JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction),
                           script->code, ic.frameDepth);
+        masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
 
         Jump notCompiled = masm.branchTestPtr(Assembler::Zero, Registers::ReturnReg,
                                               Registers::ReturnReg);
 
-        masm.call(Registers::ReturnReg);
-        Jump done = masm.jump();
+        masm.jump(Registers::ReturnReg);
 
         hasCode.linkTo(masm.label(), &masm);
 
         
         masm.move(Imm32(ic.argc), JSParamReg_Argc);
         masm.loadPtr(Address(t0, offsetof(JITScript, arityCheck)), t0);
-        masm.call(t0);
-
-        
-        Jump rejoin = masm.jump();
-
-        
-        notCompiled.linkTo(masm.label(), &masm);
-        masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
-        notCompiled = masm.jump();
+        masm.jump(t0);
 
         JSC::ExecutablePool *ep = poolForSize(masm.size(), CallICInfo::Pool_ScriptStub);
         if (!ep)
             return false;
 
         JSC::LinkBuffer buffer(&masm, ep);
-        buffer.link(rejoin, ic.funGuard.labelAtOffset(ic.joinPointOffset));
-        buffer.link(done, ic.funGuard.labelAtOffset(ic.joinPointOffset));
         buffer.link(notCompiled, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
         buffer.link(tryCompile,
                     JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction)));
@@ -392,8 +382,8 @@ class CallCompiler
         ic.fastGuardedObject = obj;
 
         repatch.repatch(ic.funGuard, obj);
-        repatch.relink(ic.funGuard.callAtOffset(ic.hotCallOffset),
-                       JSC::FunctionPtr(script->ncode));
+        repatch.relink(ic.funGuard.jumpAtOffset(ic.hotJumpOffset),
+                       JSC::CodeLocationLabel(script->ncode));
 
         JaegerSpew(JSpew_PICs, "patched CALL path %p (obj: %p)\n", start, ic.fastGuardedObject);
     }
@@ -486,12 +476,15 @@ class CallCompiler
 
         
         masm.storePtr(ImmPtr(cx->regs->pc),
-                       FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
+                       FrameAddress(offsetof(VMFrame, regs.pc)));
 
         
         uint32 spOffset = sizeof(JSStackFrame) + ic.frameDepth * sizeof(Value);
         masm.addPtr(Imm32(spOffset), JSFrameReg, t0);
-        masm.storePtr(t0, FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, sp)));
+        masm.storePtr(t0, FrameAddress(offsetof(VMFrame, regs.sp)));
+
+        
+        masm.storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
 
         
 #ifdef JS_CPU_X86

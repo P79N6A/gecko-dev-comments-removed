@@ -310,7 +310,10 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 
         
         storePtr(ClobberInCall,
-                 FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, sp)));
+                 FrameAddress(offsetof(VMFrame, regs.sp)));
+
+        
+        storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
     }
 
     void setupVMFrame() {
@@ -332,23 +335,6 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         return MacroAssembler::call(reg);
     }
 
-    void restoreReturnAddress()
-    {
-#ifndef JS_CPU_ARM
-        
-        push(Address(JSFrameReg, JSStackFrame::offsetOfncode()));
-#else
-        
-
-        load32(Address(JSFrameReg, JSStackFrame::offsetOfncode()), JSC::ARMRegisters::lr);
-#endif
-    }
-
-    void saveReturnAddress(RegisterID reg)
-    {
-        storePtr(reg, Address(JSFrameReg, JSStackFrame::offsetOfncode()));
-    }
-
     void finalize(uint8 *ncode) {
         JSC::JITCode jc(ncode, size());
         JSC::CodeBlock cb(jc);
@@ -366,6 +352,13 @@ static const JSC::MacroAssembler::RegisterID JSFrameReg = BaseAssembler::JSFrame
 static const JSC::MacroAssembler::RegisterID JSReturnReg_Type = BaseAssembler::JSReturnReg_Type;
 static const JSC::MacroAssembler::RegisterID JSReturnReg_Data = BaseAssembler::JSReturnReg_Data;
 static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = BaseAssembler::JSParamReg_Argc;
+
+struct FrameFlagsAddress : JSC::MacroAssembler::Address
+{
+    FrameFlagsAddress()
+      : Address(JSFrameReg, JSStackFrame::offsetOfFlags())
+    {}
+};
 
 } 
 } 

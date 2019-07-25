@@ -94,7 +94,19 @@ enum JSFrameFlags
     JSFRAME_HAS_CALL_OBJ       = 0x10000, 
     JSFRAME_HAS_ARGS_OBJ       = 0x20000, 
     JSFRAME_HAS_HOOK_DATA      = 0x40000, 
-    JSFRAME_HAS_ANNOTATION     = 0x80000  
+    JSFRAME_HAS_ANNOTATION     = 0x80000, 
+
+    
+
+
+
+    JSFRAME_HAS_PREVPC         = 0x100000,
+
+    
+
+
+
+    JSFRAME_RVAL_ASSIGNED      = 0x200000
 };
 
 
@@ -116,16 +128,16 @@ struct JSStackFrame
     } args;
     JSObject            *scopeChain_;   
     JSStackFrame        *prev_;         
-    jsbytecode          *savedpc_;      
+    void                *ncode_;        
 
     
     js::Value           rval_;          
+    jsbytecode          *prevpc_;       
     jsbytecode          *imacropc_;     
     void                *hookData_;     
     void                *annotation_;   
 
     
-    void                *ncode_;        
     JSObject            *blockChain_;   
 
 #if JS_BITS_PER_WORD == 32
@@ -195,7 +207,8 @@ struct JSStackFrame
     inline void initCallFrameLatePrologue();
 
     
-    inline void initEvalFrame(JSScript *script, JSStackFrame *prev, uint32 flags);
+    inline void initEvalFrame(JSScript *script, JSStackFrame *prev,
+                              jsbytecode *prevpc, uint32 flags);
     inline void initGlobalFrame(JSScript *script, JSObject &chain, uint32 flags);
 
     
@@ -222,8 +235,26 @@ struct JSStackFrame
         return prev_;
     }
 
-    void repointGeneratorFrameDown(JSStackFrame *prev) {
+    void setPrev(JSStackFrame *prev, jsbytecode *prevpc) {
+        JS_ASSERT(flags_ & JSFRAME_HAS_PREVPC);
         prev_ = prev;
+        if (prev) {
+            prevpc_ = prevpc;
+            JS_ASSERT_IF(!prev->isDummyFrame() && !prev->hasImacropc(),
+                         uint32(prevpc - prev->script()->code) < prev->script()->length);
+        }
+    }
+
+    void setPrev(JSFrameRegs *regs) {
+        JS_ASSERT(flags_ & JSFRAME_HAS_PREVPC);
+        if (regs) {
+            prev_ = regs->fp;
+            prevpc_ = regs->pc;
+            JS_ASSERT_IF(!prev_->isDummyFrame() && !prev_->hasImacropc(),
+                         uint32(prevpc_ - prev_->script()->code) < prev_->script()->length);
+        } else {
+            prev_ = NULL;
+        }
     }
 
     
@@ -249,7 +280,16 @@ struct JSStackFrame
 
 
 
-    jsbytecode *pc(JSContext *cx) const;
+    
+
+
+
+    jsbytecode *pc(JSContext *cx, JSStackFrame *next = NULL);
+
+    jsbytecode *prevpc() {
+        JS_ASSERT((prev_ != NULL) && (flags_ & JSFRAME_HAS_PREVPC));
+        return prevpc_;
+    }
 
     JSScript *script() const {
         JS_ASSERT(isScriptFrame());
@@ -367,7 +407,8 @@ struct JSStackFrame
         return hasArgsObj() ? &argsObj() : NULL;
     }
 
-    void setArgsObj(JSObject &obj);
+    inline void setArgsObj(JSObject &obj);
+    inline void clearArgsObj();
 
     
 
@@ -469,6 +510,7 @@ struct JSStackFrame
     inline JSObject *maybeCallObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
     inline void setScopeChainAndCallObj(JSObject &obj);
+    inline void clearCallObj();
 
     
 
@@ -570,10 +612,19 @@ struct JSStackFrame
         return &rval_;
     }
 
+    void setAssignedReturnValue(const js::Value &v) {
+        flags_ |= JSFRAME_RVAL_ASSIGNED;
+        setReturnValue(v);
+    }
+
     
 
     void *nativeReturnAddress() const {
         return ncode_;
+    }
+
+    void setNativeReturnAddress(void *addr) {
+        ncode_ = addr;
     }
 
     void **addressOfNativeReturnAddress() {
@@ -717,10 +768,6 @@ struct JSStackFrame
         return offsetof(JSStackFrame, prev_);
     }
 
-    static size_t offsetOfSavedpc() {
-        return offsetof(JSStackFrame, savedpc_);
-    }
-
     static size_t offsetOfReturnValue() {
         return offsetof(JSStackFrame, rval_);
     }
@@ -763,9 +810,6 @@ struct JSStackFrame
     void methodjitStaticAsserts();
 
 #ifdef DEBUG
-    
-    static jsbytecode *const sInvalidpc;
-
     
     static JSObject *const sInvalidScopeChain;
 #endif
