@@ -6772,14 +6772,12 @@ var gBookmarkAllTabsHandler = {
     this._updateCommandState();
   },
 
-  _updateCommandState: function BATH__updateCommandState(aTabClose) {
-    var numTabs = gBrowser.tabs.length;
+  _updateCommandState: function BATH__updateCommandState() {
+    let remainingTabs = gBrowser.visibleTabs.filter(function(tab) {
+      return gBrowser._removingTabs.indexOf(tab) == -1;
+    });
 
-    
-    if (aTabClose)
-      numTabs--;
-
-    if (numTabs > 1)
+    if (remainingTabs.length > 1)
       this._command.removeAttribute("disabled");
     else
       this._command.setAttribute("disabled", "true");
@@ -6791,7 +6789,7 @@ var gBookmarkAllTabsHandler = {
 
   
   handleEvent: function(aEvent) {
-    this._updateCommandState(aEvent.type == "TabClose");
+    this._updateCommandState();
   }
 };
 
@@ -7799,7 +7797,7 @@ var TabContextMenu = {
   updateContextMenu: function updateContextMenu(aPopupMenu) {
     this.contextTab = document.popupNode.localName == "tab" ?
                       document.popupNode : gBrowser.selectedTab;
-    var disabled = gBrowser.tabs.length == 1;
+    let disabled = gBrowser.visibleTabs.length == 1;
 
     
     document.getElementById("context_closeTab").disabled =
@@ -7821,7 +7819,7 @@ var TabContextMenu = {
 
     
     
-    var unpinnedTabs = gBrowser.tabs.length - gBrowser._numPinnedTabs;
+    let unpinnedTabs = gBrowser.visibleTabs.length - gBrowser._numPinnedTabs;
     document.getElementById("context_closeOtherTabs").disabled = unpinnedTabs <= 1;
     document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
   }
