@@ -84,7 +84,7 @@
 #include "nsIObserverService.h"
 #include "nsIDocShell.h"        
 #include "nsIBaseWindow.h"
-#include "nsLayoutErrors.h"
+#include "nsError.h"
 #include "nsLayoutUtils.h"
 #include "nsCSSRendering.h"
   
