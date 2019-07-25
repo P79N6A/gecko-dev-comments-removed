@@ -272,6 +272,10 @@ NS_IMETHODIMP nsPNGEncoder::AddImageFrame(const PRUint8* aData,
     return NS_ERROR_INVALID_ARG;
   }
 
+#ifdef PNG_WRITE_FILTER_SUPPORTED
+  png_set_filter(mPNG, PNG_FILTER_TYPE_BASE, PNG_FILTER_VALUE_NONE);
+#endif
+
   
   
   if (aInputFormat == INPUT_FORMAT_HOSTARGB) {
