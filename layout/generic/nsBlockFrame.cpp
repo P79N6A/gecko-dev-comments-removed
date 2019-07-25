@@ -715,9 +715,12 @@ nsBlockFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
       } else {
         if (!curFrame->GetPrevContinuation() &&
             line == curFrame->begin_lines()) {
+          
+          
+          
           const nsStyleCoord &indent = GetStyleText()->mTextIndent;
-          if (indent.GetUnit() == eStyleUnit_Coord)
-            data.currentLine += indent.GetCoordValue();
+          if (indent.ConvertsToLength())
+            data.currentLine += nsRuleNode::ComputeCoordPercentCalc(indent, 0);
         }
         
 
@@ -790,9 +793,12 @@ nsBlockFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
       } else {
         if (!curFrame->GetPrevContinuation() &&
             line == curFrame->begin_lines()) {
+          
+          
+          
           const nsStyleCoord &indent = GetStyleText()->mTextIndent;
-          if (indent.GetUnit() == eStyleUnit_Coord)
-            data.currentLine += indent.GetCoordValue();
+          if (indent.ConvertsToLength())
+            data.currentLine += nsRuleNode::ComputeCoordPercentCalc(indent, 0);
         }
         
 
@@ -5944,19 +5950,17 @@ nsBlockFrame::AdjustForTextIndent(const nsLineBox* aLine,
   if (!GetPrevContinuation() && aLine == begin_lines().get()) {
     
     
-    nscoord indent = 0;
-    const nsStyleText* styleText = GetStyleText();
-    nsStyleUnit unit = styleText->mTextIndent.GetUnit();
-    if (eStyleUnit_Coord == unit) {
-      indent = styleText->mTextIndent.GetCoordValue();
-    } else if (eStyleUnit_Percent == unit) {
+    const nsStyleCoord &textIndent = GetStyleText()->mTextIndent;
+    nscoord pctBasis = 0;
+    if (textIndent.HasPercent()) {
+      
       
       nsIFrame* containingBlock =
         nsHTMLReflowState::GetContainingBlockFor(this);
       NS_ASSERTION(containingBlock, "Must have containing block!");
-      indent = nscoord(styleText->mTextIndent.GetPercentValue() *
-                       containingBlock->GetContentRect().width);
+      pctBasis = containingBlock->GetContentRect().width;
     }
+    nscoord indent = nsRuleNode::ComputeCoordPercentCalc(textIndent, pctBasis);
 
     
     

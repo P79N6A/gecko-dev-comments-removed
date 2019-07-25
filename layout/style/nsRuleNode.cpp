@@ -3592,8 +3592,8 @@ nsRuleNode::ComputeTextData(void* aStartStruct,
 
   
   SetCoord(textData.mTextIndent, text->mTextIndent, parentText->mTextIndent,
-           SETCOORD_LPH | SETCOORD_INITIAL_ZERO, aContext,
-           mPresContext, canStoreInRuleTree);
+           SETCOORD_LPH | SETCOORD_INITIAL_ZERO | SETCOORD_STORE_CALC,
+           aContext, mPresContext, canStoreInRuleTree);
 
   
   SetDiscrete(textData.mTextTransform, text->mTextTransform, canStoreInRuleTree,
@@ -3645,7 +3645,8 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
 
   
   if (!SetCoord(textData.mVerticalAlign, text->mVerticalAlign,
-                parentText->mVerticalAlign, SETCOORD_LPH | SETCOORD_ENUMERATED,
+                parentText->mVerticalAlign,
+                SETCOORD_LPH | SETCOORD_ENUMERATED | SETCOORD_STORE_CALC,
                 aContext, mPresContext, canStoreInRuleTree)) {
     if (eCSSUnit_Initial == textData.mVerticalAlign.GetUnit()) {
       text->mVerticalAlign.SetIntValue(NS_STYLE_VERTICAL_ALIGN_BASELINE,
