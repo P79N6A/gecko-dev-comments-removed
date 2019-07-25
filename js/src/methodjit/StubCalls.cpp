@@ -289,7 +289,7 @@ template void JS_FASTCALL stubs::SetPropNoCache<false>(VMFrame &f, JSAtom *origA
 
 template<JSBool strict>
 void JS_FASTCALL
-stubs::SetGlobalNameDumb(VMFrame &f, JSAtom *atom)
+stubs::SetGlobalNameNoCache(VMFrame &f, JSAtom *atom)
 {
     JSContext *cx = f.cx;
 
@@ -305,8 +305,8 @@ stubs::SetGlobalNameDumb(VMFrame &f, JSAtom *atom)
     f.regs.sp[-2] = f.regs.sp[-1];
 }
 
-template void JS_FASTCALL stubs::SetGlobalNameDumb<true>(VMFrame &f, JSAtom *atom);
-template void JS_FASTCALL stubs::SetGlobalNameDumb<false>(VMFrame &f, JSAtom *atom);
+template void JS_FASTCALL stubs::SetGlobalNameNoCache<true>(VMFrame &f, JSAtom *atom);
+template void JS_FASTCALL stubs::SetGlobalNameNoCache<false>(VMFrame &f, JSAtom *atom);
 
 template<JSBool strict>
 void JS_FASTCALL
@@ -498,8 +498,6 @@ stubs::GetElem(VMFrame &f)
 
   end_getelem:
     f.regs.sp[-2] = *copyFrom;
-    if (regs.sp[-2].isMagic(JS_ARGS_HOLE))
-        *(int *) 0xc0 = 0;
 }
 
 static inline bool
