@@ -1598,7 +1598,7 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
     
     
 
-    if (childFrame && childFrame->GetParent()->Preserves3DChildren()) {
+    if (childFrame && (childFrame->GetParent()->Preserves3DChildren() || childFrame == aFrame)) {
       switch (item->GetType()) {
         case nsDisplayItem::TYPE_TRANSFORM: {
           if (!temp.IsEmpty()) {
