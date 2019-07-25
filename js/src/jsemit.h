@@ -294,6 +294,7 @@ struct JSTreeContext {
     uint32          bodyid;         
     uint32          blockidGen;     
     uint32          parenDepth;     
+
     uint32          yieldCount;     
 
     uint32          argumentsCount; 
