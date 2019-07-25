@@ -30,6 +30,19 @@ XPCOMUtils.defineLazyModuleGetter(this, "CmdCommands",
 
 
 
+
+XPCOMUtils.defineLazyGetter(this, "isLinux", function () {
+  let os = Components.classes["@mozilla.org/xre/app-info;1"]
+           .getService(Components.interfaces.nsIXULRuntime).OS;
+  return os == "Linux";
+});
+
+
+
+
+
+
+
 function DeveloperToolbar(aChromeWindow, aToolbarElement)
 {
   this._chromeWindow = aChromeWindow;
@@ -543,6 +556,18 @@ function DT_resetErrorsCount(aTab)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 function OutputPanel(aChromeDoc, aInput, aLoadCallback)
 {
   this._input = aInput;
@@ -564,10 +589,26 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
 
   
   
-  this._panel = aChromeDoc.createElement("tooltip");
+  this._panel = aChromeDoc.createElement(isLinux ? "tooltip" : "panel");
 
   this._panel.id = "gcli-output";
   this._panel.classList.add("gcli-panel");
+
+  if (isLinux) {
+    this.canHide = false;
+    this._onpopuphiding = this._onpopuphiding.bind(this);
+    this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
+  } else {
+    this._panel.setAttribute("noautofocus", "true");
+    this._panel.setAttribute("noautohide", "true");
+
+    
+    
+    
+    
+    this._panel.setAttribute("height", "1px");
+  }
+
   this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
 
   this._frame = aChromeDoc.createElementNS(NS_XHTML, "iframe");
@@ -582,10 +623,6 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame.addEventListener("load", this._onload, true);
 
   this.loaded = false;
-  this.canHide = false;
-
-  this._onpopuphiding = this._onpopuphiding.bind(this);
-  this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
 }
 
 
@@ -620,7 +657,7 @@ OutputPanel.prototype._onpopuphiding = function OP_onpopuphiding(aEvent)
 {
   
   
-  if (!this.canHide) {
+  if (isLinux && !this.canHide) {
     aEvent.preventDefault();
   }
 };
@@ -637,7 +674,9 @@ OutputPanel.prototype.show = function OP_show()
     this._resize();
   }.bind(this), 0);
 
-  this.canHide = false;
+  if (isLinux) {
+    this.canHide = false;
+  }
 
   this._panel.openPopup(this._input, "before_start", 0, 0, false, false, null);
   this._resize();
@@ -698,7 +737,9 @@ OutputPanel.prototype.update = function OP_update()
 
 OutputPanel.prototype.remove = function OP_remove()
 {
-  this.canHide = true;
+  if (isLinux) {
+    this.canHide = true;
+  }
 
   if (this._panel) {
     this._panel.hidePopup();
@@ -743,10 +784,24 @@ OutputPanel.prototype._visibilityChanged = function OP_visibilityChanged(aEvent)
   if (aEvent.outputVisible === true) {
     
   } else {
-    this.canHide = true;
+    if (isLinux) {
+      this.canHide = true;
+    }
     this._panel.hidePopup();
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -778,10 +833,26 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
 
   
   
-  this._panel = aChromeDoc.createElement("tooltip");
+  this._panel = aChromeDoc.createElement(isLinux ? "tooltip" : "panel");
 
   this._panel.id = "gcli-tooltip";
   this._panel.classList.add("gcli-panel");
+
+  if (isLinux) {
+    this.canHide = false;
+    this._onpopuphiding = this._onpopuphiding.bind(this);
+    this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
+  } else {
+    this._panel.setAttribute("noautofocus", "true");
+    this._panel.setAttribute("noautohide", "true");
+
+    
+    
+    
+    
+    this._panel.setAttribute("height", "1px");
+  }
+
   this._toolbar.parentElement.insertBefore(this._panel, this._toolbar);
 
   this._frame = aChromeDoc.createElementNS(NS_XHTML, "iframe");
@@ -793,10 +864,6 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame.addEventListener("load", this._onload, true);
 
   this.loaded = false;
-  this.canHide = false;
-
-  this._onpopuphiding = this._onpopuphiding.bind(this);
-  this._panel.addEventListener("popuphiding", this._onpopuphiding, true);
 }
 
 
@@ -829,7 +896,7 @@ TooltipPanel.prototype._onpopuphiding = function TP_onpopuphiding(aEvent)
 {
   
   
-  if (!this.canHide) {
+  if (isLinux && !this.canHide) {
     aEvent.preventDefault();
   }
 };
@@ -851,7 +918,9 @@ TooltipPanel.prototype.show = function TP_show(aDimensions)
     this._resize();
   }.bind(this), 0);
 
-  this.canHide = false;
+  if (isLinux) {
+    this.canHide = false;
+  }
 
   this._resize();
   this._panel.openPopup(this._input, "before_start", aDimensions.start * 10, 0, false, false, null);
@@ -896,7 +965,9 @@ TooltipPanel.prototype._resize = function TP_resize()
 
 TooltipPanel.prototype.remove = function TP_remove()
 {
-  this.canHide = true;
+  if (isLinux) {
+    this.canHide = true;
+  }
   this._panel.hidePopup();
 };
 
@@ -934,7 +1005,9 @@ TooltipPanel.prototype._visibilityChanged = function TP_visibilityChanged(aEvent
   if (aEvent.tooltipVisible === true) {
     this.show(aEvent.dimensions);
   } else {
-    this.canHide = true;
+    if (isLinux) {
+      this.canHide = true;
+    }
     this._panel.hidePopup();
   }
 };
