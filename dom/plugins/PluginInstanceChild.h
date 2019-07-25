@@ -103,6 +103,11 @@ protected:
     RecvAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
                        const NPRemoteWindow& aWindow);
 
+    virtual void
+    DoAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
+                     const NPRemoteWindow& aWindow,
+                     bool aIsAsync);
+
     NS_OVERRIDE
     virtual bool
     AnswerPaint(const NPRemoteEvent& event, int16_t* handled)
@@ -494,6 +499,9 @@ private:
 
     
     CancelableTask *mCurrentInvalidateTask;
+
+    
+    CancelableTask *mCurrentAsyncSetWindowTask;
 
     
     
