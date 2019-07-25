@@ -67,6 +67,9 @@ class nsIPrefBranch;
 class nsIObserverService;
 class nsIURI;
 class nsIChannel;
+class DBListenerErrorHandler;
+class mozIStorageStatementCallback;
+class mozIStorageCompletionCallback;
 
 
 class nsCookieEntry : public PLDHashEntryHdr
@@ -221,6 +224,12 @@ class nsCookieService : public nsICookieService
     DBState                      *mDBState;
     DBState                       mDefaultDBState;
     DBState                       mPrivateDBState;
+
+    
+    nsCOMPtr<mozIStorageStatementCallback>  mInsertListener;
+    nsCOMPtr<mozIStorageStatementCallback>  mUpdateListener;
+    nsCOMPtr<mozIStorageStatementCallback>  mRemoveListener;
+    nsCOMPtr<mozIStorageCompletionCallback> mCloseListener;
 
     
     PRUint8                       mCookieBehavior; 
