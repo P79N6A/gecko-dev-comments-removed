@@ -956,7 +956,9 @@ abstract public class GeckoApp
                     mMainHandler.post(new Runnable() {
                         public void run() {
                             
-                            if (!GeckoInputConnection.mIMELandscapeFS)
+                            InputMethodManager imm =
+                                (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                            if (!imm.isFullscreenMode())
                                 mAutoCompletePopup.show(suggestions, rect, zoom);
                         }
                     });
