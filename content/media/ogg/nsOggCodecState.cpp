@@ -355,10 +355,7 @@ nsTheoraState::MaxKeyframeOffset()
   PRInt64 keyframeDiff = (1 << mInfo.keyframe_granule_shift) - 1;
 
   
-  CheckedInt64 d = CheckedInt64(mInfo.fps_denominator) * USECS_PER_S;
-  if (!d.valid())
-    d = 0;
-  frameDuration = d.value() / mInfo.fps_numerator;
+  frameDuration = (mInfo.fps_denominator * USECS_PER_S) / mInfo.fps_numerator;
 
   
   return frameDuration * keyframeDiff;
