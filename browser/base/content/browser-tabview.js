@@ -356,9 +356,7 @@ let TabView = {
             return;
 
           
-          let oldGroupItem = groupItems.getActiveGroupItem();
           window.gBrowser.selectedTab = tabItem.tab;
-          oldGroupItem.closeIfEmpty();
         });
       }
     }, true);

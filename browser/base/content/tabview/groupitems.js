@@ -728,10 +728,9 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  closeIfEmpty: function() {
-    if (!this._children.length && !this.getTitle() &&
-        !GroupItems.getUnclosableGroupItemId() &&
-        !GroupItems._autoclosePaused) {
+  closeIfEmpty: function GroupItem_closeIfEmpty() {
+    if (this.isEmpty() && !UI._closedLastVisibleTab &&
+        !GroupItems.getUnclosableGroupItemId() && !GroupItems._autoclosePaused) {
       this.close();
       return true;
     }
@@ -1110,7 +1109,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       
       
-      if (item.tab._tabViewTabIsRemovedAfterRestore)
+      if (item.isRemovedAfterRestore)
         options.dontClose = true;
 
       let closed = options.dontClose ? false : this.closeIfEmpty();

@@ -523,17 +523,6 @@ let UI = {
 
     Storage.saveVisibilityData(gWindow, "true");
 
-    
-    
-    
-    
-    let activeGroupItem = null;
-    if (!UI.getActiveOrphanTab()) {
-      activeGroupItem = GroupItems.getActiveGroupItem();
-      if (activeGroupItem && activeGroupItem.closeIfEmpty())
-        activeGroupItem = null;
-    }
-
     if (zoomOut && currentTab && currentTab._tabViewTabItem) {
       item = currentTab._tabViewTabItem;
       
