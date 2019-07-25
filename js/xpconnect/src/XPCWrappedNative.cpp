@@ -88,7 +88,7 @@ static PLDHashOperator
 TraverseExpandoObjects(xpc::PtrAndPrincipalHashKey *aKey, JSCompartment *compartment, void *aClosure)
 {
     TraverseExpandoObjectClosure *closure = static_cast<TraverseExpandoObjectClosure*>(aClosure);
-    xpc::CompartmentPrivate *priv = 
+    xpc::CompartmentPrivate *priv =
         (xpc::CompartmentPrivate *)JS_GetCompartmentPrivate(closure->cx, compartment);
 
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(closure->cb, "XPCWrappedNative expando object");
@@ -352,7 +352,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
     nsresult rv;
 
-    NS_ASSERTION(!Scope->GetRuntime()->GetThreadRunningGC(), 
+    NS_ASSERTION(!Scope->GetRuntime()->GetThreadRunningGC(),
                  "XPCWrappedNative::GetNewOrUsed called during GC");
 
     nsISupports *identity = helper.GetCanonical();
@@ -364,7 +364,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     }
 
     XPCLock* mapLock = Scope->GetRuntime()->GetMapLock();
-    
+
     
     
     
@@ -955,7 +955,7 @@ XPCWrappedNative::Destroy()
 
 
 
-void 
+void
 XPCWrappedNative::GatherProtoScriptableCreateInfo(
                         nsIClassInfo* classInfo,
                         XPCNativeScriptableCreateInfo& sciProto)
@@ -1854,11 +1854,11 @@ XPCWrappedNative::LocateTearOff(XPCCallContext& ccx,
         chunk = chunk->mNextChunk)
     {
         XPCWrappedNativeTearOff* tearOff = chunk->mTearOffs;
-        XPCWrappedNativeTearOff* const end = tearOff + 
+        XPCWrappedNativeTearOff* const end = tearOff +
             XPC_WRAPPED_NATIVE_TEAROFFS_PER_CHUNK;
         for(
             tearOff = chunk->mTearOffs;
-            tearOff < end; 
+            tearOff < end;
             tearOff++)
         {
             if(tearOff->GetInterface() == aInterface)
@@ -1889,11 +1889,11 @@ XPCWrappedNative::FindTearOff(XPCCallContext& ccx,
         lastChunk = chunk, chunk = chunk->mNextChunk)
     {
         to = chunk->mTearOffs;
-        XPCWrappedNativeTearOff* const end = chunk->mTearOffs + 
+        XPCWrappedNativeTearOff* const end = chunk->mTearOffs +
             XPC_WRAPPED_NATIVE_TEAROFFS_PER_CHUNK;
         for(
             to = chunk->mTearOffs;
-            to < end; 
+            to < end;
             to++)
         {
             if(to->GetInterface() == aInterface)
@@ -2037,7 +2037,7 @@ XPCWrappedNative::InitTearOff(XPCCallContext& ccx,
                 
                 
                 
-                
+
 #ifdef DEBUG_xpc_hacker
                 {
                     
@@ -2077,7 +2077,7 @@ XPCWrappedNative::InitTearOff(XPCCallContext& ccx,
                 aTearOff->SetInterface(nsnull);
                 return NS_OK;
             }
-            
+
             
             
             
@@ -3819,7 +3819,7 @@ void DEBUG_ReportWrapperThreadSafetyError(XPCCallContext& ccx,
     printf("  JS call stack...\n");
     xpc_DumpJSStack(ccx, JS_TRUE, JS_TRUE, JS_TRUE);
     printf("---------------------------------------------------------------\n");
-    
+
     tls->ClearWrappedNativeThreadsafetyReportDepth();
 }
 

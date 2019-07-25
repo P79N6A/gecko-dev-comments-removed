@@ -59,7 +59,7 @@ xpc_CloneJSFunction(XPCCallContext &ccx, JSObject *funobj, JSObject *parent)
 
     AUTO_MARK_JSVAL(ccx, OBJECT_TO_JSVAL(clone));
 
-    XPCWrappedNativeScope *scope = 
+    XPCWrappedNativeScope *scope =
         XPCWrappedNativeScope::FindInJSObjectScope(ccx, parent);
 
     if (!scope) {
@@ -527,7 +527,7 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx, const nsIID* iid)
         return set;
 
     
-    XPCNativeInterface* temp[] = {iface}; 
+    XPCNativeInterface* temp[] = {iface};
     set = NewInstance(ccx, temp, 1);
     if(!set)
         return nsnull;
@@ -680,7 +680,7 @@ out:
 }
 
 
-void 
+void
 XPCNativeSet::ClearCacheEntryForClassInfo(nsIClassInfo* classInfo)
 {
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();

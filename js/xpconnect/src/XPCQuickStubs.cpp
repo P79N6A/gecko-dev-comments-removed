@@ -560,7 +560,7 @@ ThrowCallFailed(JSContext *cx, nsresult rv,
 {
     
     JS_ASSERT(JSID_IS_VOID(memberId) != !memberName);
-    
+
     
     char* sz;
     const char* format;

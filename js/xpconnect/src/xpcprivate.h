@@ -333,13 +333,13 @@ typedef nsDataHashtable<xpc::PtrAndPrincipalHashKey, JSCompartment *> XPCCompart
 
 typedef mozilla::ReentrantMonitor XPCLock;
 
-static inline void xpc_Wait(XPCLock* lock) 
+static inline void xpc_Wait(XPCLock* lock)
     {
         NS_ASSERTION(lock, "xpc_Wait called with null lock!");
         lock->Wait();
     }
 
-static inline void xpc_NotifyAll(XPCLock* lock) 
+static inline void xpc_NotifyAll(XPCLock* lock)
     {
         NS_ASSERTION(lock, "xpc_NotifyAll called with null lock!");
         lock->NotifyAll();
@@ -543,7 +543,7 @@ public:
     NS_IMETHOD Unroot(void *p);
     NS_IMETHOD Traverse(void *p,
                         nsCycleCollectionTraversalCallback &cb);
-    
+
     
     virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb,
                                           bool explainExpectedLiveGarbage);
@@ -865,26 +865,26 @@ public:
     JSContext* GetJSContext() const {return mJSContext;}
 
     enum LangType {LANG_UNKNOWN, LANG_JS, LANG_NATIVE};
-    
+
     LangType GetCallingLangType() const
         {
             return mCallingLangType;
         }
     LangType SetCallingLangType(LangType lt)
         {
-            LangType tmp = mCallingLangType; 
-            mCallingLangType = lt; 
+            LangType tmp = mCallingLangType;
+            mCallingLangType = lt;
             return tmp;
         }
-    JSBool CallerTypeIsJavaScript() const 
+    JSBool CallerTypeIsJavaScript() const
         {
             return LANG_JS == mCallingLangType;
         }
-    JSBool CallerTypeIsNative() const 
+    JSBool CallerTypeIsNative() const
         {
             return LANG_NATIVE == mCallingLangType;
         }
-    JSBool CallerTypeIsKnown() const 
+    JSBool CallerTypeIsKnown() const
         {
             return LANG_UNKNOWN != mCallingLangType;
         }
@@ -1539,7 +1539,7 @@ public:
     GetPrincipal() const
     {return mScriptObjectPrincipal ?
          mScriptObjectPrincipal->GetPrincipal() : nsnull;}
-    
+
     JSObject*
     GetPrototypeJSFunction() const {return mPrototypeJSFunction;}
 
@@ -2323,7 +2323,7 @@ public:
 
     
     void Mark() const
-        {mSet->Mark(); 
+        {mSet->Mark();
          if(mScriptableInfo) mScriptableInfo->Mark();}
 
 #ifdef DEBUG
@@ -2846,7 +2846,7 @@ private:
 #ifdef XPC_CHECK_WRAPPER_THREADSAFETY
 public:
     
-    PRThread*                    mThread; 
+    PRThread*                    mThread;
 #endif
 };
 
@@ -2913,9 +2913,9 @@ public:
                                             JSObject* aJSObj,
                                             nsISimpleEnumerator** aEnumerate);
 
-    static nsresult GetNamedPropertyAsVariant(XPCCallContext& ccx, 
+    static nsresult GetNamedPropertyAsVariant(XPCCallContext& ccx,
                                               JSObject* aJSObj,
-                                              jsval aName, 
+                                              jsval aName,
                                               nsIVariant** aResult);
 
     virtual ~nsXPCWrappedJSClass();
@@ -3157,7 +3157,7 @@ public:
         if (!mCanonical) {
             mCanonicalStrong = do_QueryInterface(mObject);
             mCanonical = mCanonicalStrong;
-        } 
+        }
         return mCanonical;
     }
 
@@ -3245,7 +3245,7 @@ public:
 
 
 
-    
+
     static JSBool NativeData2JS(XPCCallContext& ccx, jsval* d, const void* s,
                                 const nsXPTType& type, const nsID* iid,
                                 nsresult* pErr)
@@ -3305,7 +3305,7 @@ public:
 
     static JSBool GetNativeInterfaceFromJSObject(XPCCallContext& ccx,
                                                  void** dest, JSObject* src,
-                                                 const nsID* iid, 
+                                                 const nsID* iid,
                                                  nsresult* pErr);
     static JSBool JSObject2NativeInterface(XPCCallContext& ccx,
                                            void** dest, JSObject* src,
@@ -3325,7 +3325,7 @@ public:
 
 
 
-    
+
     static JSBool NativeArray2JS(XPCLazyCallContext& ccx,
                                  jsval* d, const void** s,
                                  const nsXPTType& type, const nsID* iid,
@@ -4040,7 +4040,7 @@ public:
     ~AutoResolveName()
         {
 #ifdef DEBUG
-            jsid old = 
+            jsid old =
 #endif
             mTLS->SetResolveName(mOld);
             NS_ASSERTION(old == mCheck, "Bad Nesting!");
@@ -4070,7 +4070,7 @@ private:
     XPCMarkableJSVal(); 
     jsval  mVal;
     jsval* mValPtr;
-}; 
+};
 
 
 
@@ -4094,14 +4094,14 @@ public:
          mTLS = ccx.GetThreadData();
          Link();}
 
-    void Link() 
+    void Link()
         {if(!mTLS) return;
-         AutoMarkingPtr** list = mTLS->GetAutoRootsAdr(); 
+         AutoMarkingPtr** list = mTLS->GetAutoRootsAdr();
          mNext = *list; *list = this;}
 
-    void Unlink() 
+    void Unlink()
         {if(!mTLS) return;
-         AutoMarkingPtr** cur = mTLS->GetAutoRootsAdr(); 
+         AutoMarkingPtr** cur = mTLS->GetAutoRootsAdr();
          while(*cur != this) {
             NS_ASSERTION(*cur, "This object not in list!");
             cur = &(*cur)->mNext;
@@ -4111,7 +4111,7 @@ public:
         }
 
     AutoMarkingPtr* GetNext() {return mNext;}
-    
+
     virtual void TraceJS(JSTracer* trc) = 0;
     virtual void MarkAfterJSFinalize() = 0;
 
@@ -4163,7 +4163,7 @@ DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativePtr, XPCWrappedNative)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeTearOffPtr, XPCWrappedNativeTearOff)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeProtoPtr, XPCWrappedNativeProto)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingJSVal, XPCMarkableJSVal)
-                                    
+
 #define DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(class_, type_)                    \
 class class_ : public AutoMarkingPtr                                         \
 {                                                                            \
@@ -4218,7 +4218,7 @@ protected:                                                                   \
 
 DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(AutoMarkingNativeInterfacePtrArrayPtr,
                                    XPCNativeInterface)
-    
+
 
 
 
@@ -4303,8 +4303,8 @@ public:
 
 
 
-    
-    static JSBool VariantDataToJS(XPCLazyCallContext& lccx, 
+
+    static JSBool VariantDataToJS(XPCLazyCallContext& lccx,
                                   nsIVariant* variant,
                                   nsresult* pErr, jsval* pJSVal);
 

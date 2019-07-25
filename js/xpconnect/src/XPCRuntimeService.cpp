@@ -70,7 +70,7 @@ NS_IMPL_THREADSAFE_RELEASE(BackstagePass)
 NS_IMETHODIMP
 BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
                           JSContext * cx, JSObject * obj,
-                          jsid id, PRUint32 flags, 
+                          jsid id, PRUint32 flags,
                           JSObject * *objp, bool *_retval)
 {
     JSBool resolved;
@@ -92,7 +92,7 @@ BackstagePass::NewResolve(nsIXPConnectWrappedNative *wrapper,
 
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetInterfaces(PRUint32 *aCount, nsIID * **aArray)
 {
     const PRUint32 count = 2;
@@ -125,8 +125,8 @@ oom:
 }
 
 
-NS_IMETHODIMP 
-BackstagePass::GetHelperForLanguage(PRUint32 language, 
+NS_IMETHODIMP
+BackstagePass::GetHelperForLanguage(PRUint32 language,
                                       nsISupports **retval)
 {
     *retval = nsnull;
@@ -134,7 +134,7 @@ BackstagePass::GetHelperForLanguage(PRUint32 language,
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetContractID(char * *aContractID)
 {
     *aContractID = nsnull;
@@ -142,7 +142,7 @@ BackstagePass::GetContractID(char * *aContractID)
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetClassDescription(char * *aClassDescription)
 {
     static const char classDescription[] = "BackstagePass";
@@ -151,7 +151,7 @@ BackstagePass::GetClassDescription(char * *aClassDescription)
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetClassID(nsCID * *aClassID)
 {
     *aClassID = nsnull;
@@ -159,7 +159,7 @@ BackstagePass::GetClassID(nsCID * *aClassID)
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetImplementationLanguage(
     PRUint32 *aImplementationLanguage)
 {
@@ -168,7 +168,7 @@ BackstagePass::GetImplementationLanguage(
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetFlags(PRUint32 *aFlags)
 {
     *aFlags = nsIClassInfo::THREADSAFE;
@@ -176,7 +176,7 @@ BackstagePass::GetFlags(PRUint32 *aFlags)
 }
 
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 BackstagePass::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
 {
     return NS_ERROR_NOT_AVAILABLE;

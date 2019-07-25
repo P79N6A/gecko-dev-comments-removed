@@ -1558,7 +1558,7 @@ CompartmentStats::CompartmentStats(JSContext *cx, JSCompartment *c)
             
             if(c->isSystemCompartment)
             {
-                if (c->data && 
+                if (c->data &&
                     !((xpc::CompartmentPrivate*)c->data)->location.IsEmpty())
                 {
                     name.AppendLiteral(", ");

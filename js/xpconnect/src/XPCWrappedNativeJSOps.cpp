@@ -136,7 +136,7 @@ XPC_WN_Shared_ToString(JSContext *cx, uintN argc, jsval *vp)
 
         return JS_TRUE;
     }
-    
+
     XPCCallContext ccx(JS_CALLER, cx, obj);
     ccx.SetName(ccx.GetRuntime()->GetStringID(XPCJSRuntime::IDX_TO_STRING));
     ccx.SetArgsAndResultPtr(argc, JS_ARGV(cx, vp), vp);
@@ -724,7 +724,7 @@ TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper)
     
 
     wrapper->TraceJS(trc);
-     
+
     TraceScopeJSObjects(trc, wrapper->GetScope());
 }
 
@@ -880,12 +880,12 @@ js::Class XPC_WN_NoHelper_JSClass = {
     XPC_WN_CannotModifyPropertyStub,   
     JS_PropertyStub,                   
     XPC_WN_OnlyIWrite_SetPropertyStub, 
-   
+
     XPC_WN_Shared_Enumerate,           
     XPC_WN_NoHelper_Resolve,           
     XPC_WN_Shared_Convert,             
     XPC_WN_NoHelper_Finalize,          
-   
+
     
     nsnull,                         
     nsnull,                         
@@ -904,7 +904,7 @@ js::Class XPC_WN_NoHelper_JSClass = {
         nsnull, 
         true,   
     },
-   
+
     
     {
         nsnull, 
@@ -1314,13 +1314,13 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
 
         rv = si->GetCallback()->
             NewEnumerate(wrapper, cx, obj, enum_op, statep, idp, &retval);
-        
+
         if((enum_op == JSENUMERATE_INIT || enum_op == JSENUMERATE_INIT_ALL) &&
            (NS_FAILED(rv) || !retval))
         {
             *statep = JSVAL_NULL;
         }
-        
+
         if(NS_FAILED(rv))
             return Throw(rv, cx);
         return retval;

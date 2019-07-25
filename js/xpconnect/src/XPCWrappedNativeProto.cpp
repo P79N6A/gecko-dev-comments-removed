@@ -79,7 +79,7 @@ XPCWrappedNativeProto::~XPCWrappedNativeProto()
 #ifdef DEBUG
     PR_ATOMIC_DECREMENT(&gDEBUG_LiveProtoCount);
 #endif
-    
+
     
 
     XPCNativeSet::ClearCacheEntryForClassInfo(mClassInfo);
@@ -165,7 +165,7 @@ XPCWrappedNativeProto::JSProtoObjectFinalized(JSContext *cx, JSObject *obj)
     if(IsShared())
     {
         
-        ClassInfo2WrappedNativeProtoMap* map = 
+        ClassInfo2WrappedNativeProtoMap* map =
             GetScope()->GetWrappedNativeProtoMap(ClassIsMainThreadOnly());
         if(map->Find(mClassInfo) == this)
             map->Remove(mClassInfo);
