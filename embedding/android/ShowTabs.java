@@ -74,9 +74,9 @@ public class ShowTabs extends ListActivity {
         addTab.setText("+ add tab");
         addTab.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-		Intent resultIntent = new Intent();
-		resultIntent.putExtra(TYPE, Type.ADD.name());
-		setResult(Activity.RESULT_OK, resultIntent);
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra(TYPE, Type.ADD.name());
+                setResult(Activity.RESULT_OK, resultIntent);
                 finish();
             }
         });
