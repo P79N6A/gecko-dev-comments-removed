@@ -51,6 +51,9 @@ def main(args=None):
   args = args or sys.argv[1:]
 
   
+  print 'Python: %s' % sys.version
+
+  
   source=os.path.abspath(os.path.dirname(__file__))
 
   
@@ -78,12 +81,18 @@ def main(args=None):
   
   env = os.environ.copy()
   env.pop('PYTHONHOME', None)
-  call([sys.executable, 'virtualenv/virtualenv.py', destination], env=env)
+  returncode = call([sys.executable, 'virtualenv/virtualenv.py', destination], env=env)
+  if returncode:
+    print 'Failure to install virtualenv'
+    sys.exit(returncode)
   if sys.platform.startswith('win'):
     pip = os.path.join(destination, 'Scripts', 'pip.exe')
   else:
     pip = os.path.join(destination, 'bin', 'pip')
-  call([pip, 'install'] + PACKAGES, env=env)
+  returncode = call([pip, 'install'] + PACKAGES, env=env)
+  if returncode:
+    print 'Failure to install packages'
+    sys.exit(returncode)
 
 if __name__ == '__main__':
   main()
