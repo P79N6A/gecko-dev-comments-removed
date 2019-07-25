@@ -660,104 +660,202 @@ SweepCompartment(nsCStringHashKey& aKey, JSCompartment *compartment, void *aClos
 JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
 {
     XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
-    if(self)
+    if(!self)
+        return JS_TRUE;
+
+    switch(status)
     {
-        switch(status)
+        case JSGC_BEGIN:
         {
-            case JSGC_BEGIN:
+            if(!NS_IsMainThread())
             {
-                if(!NS_IsMainThread())
-                {
-                    return JS_FALSE;
-                }
-
-                
-                
-                JSContext *iter = nsnull, *acx;
-
-                while((acx = JS_ContextIterator(cx->runtime, &iter))) {
-                    if (!acx->hasRunOption(JSOPTION_UNROOTED_GLOBAL))
-                        JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
-                }
-                break;
+                return JS_FALSE;
             }
-            case JSGC_MARK_END:
-            {
-                NS_ASSERTION(!self->mDoingFinalization, "bad state");
-    
-                
-                { 
-                    XPCAutoLock lock(self->GetMapLock());
-                    NS_ASSERTION(!self->mThreadRunningGC, "bad state");
-                    self->mThreadRunningGC = PR_GetCurrentThread();
-                }
 
-                nsTArray<nsXPCWrappedJS*>* dyingWrappedJSArray =
-                    &self->mWrappedJSToReleaseArray;
+            
+            
+            JSContext *iter = nsnull, *acx;
 
-                {
-                    JSDyingJSObjectData data = {cx, dyingWrappedJSArray};
-
-                    
-                    
-                    
-                    
-                    
-                    
-                    self->mWrappedJSMap->
-                        Enumerate(WrappedJSDyingJSObjectFinder, &data);
-                }
-
-                
-                XPCWrappedNativeScope::FinishedMarkPhaseOfGC(cx, self);
-
-                
-                self->GetCompartmentMap().EnumerateRead(
-                    (XPCCompartmentMap::EnumReadFunction)
-                    SweepCompartment, cx);
-
-                self->mDoingFinalization = JS_TRUE;
-                break;
+            while((acx = JS_ContextIterator(cx->runtime, &iter))) {
+                if (!acx->hasRunOption(JSOPTION_UNROOTED_GLOBAL))
+                    JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
             }
-            case JSGC_FINALIZE_END:
+            break;
+        }
+        case JSGC_MARK_END:
+        {
+            NS_ASSERTION(!self->mDoingFinalization, "bad state");
+
+            
+            { 
+                XPCAutoLock lock(self->GetMapLock());
+                NS_ASSERTION(!self->mThreadRunningGC, "bad state");
+                self->mThreadRunningGC = PR_GetCurrentThread();
+            }
+
+            nsTArray<nsXPCWrappedJS*>* dyingWrappedJSArray =
+                &self->mWrappedJSToReleaseArray;
+
             {
-                NS_ASSERTION(self->mDoingFinalization, "bad state");
-                self->mDoingFinalization = JS_FALSE;
+                JSDyingJSObjectData data = {cx, dyingWrappedJSArray};
 
                 
                 
-                DoDeferredRelease(self->mWrappedJSToReleaseArray);
+                
+                
+                
+                
+                self->mWrappedJSMap->
+                    Enumerate(WrappedJSDyingJSObjectFinder, &data);
+            }
+
+            
+            XPCWrappedNativeScope::FinishedMarkPhaseOfGC(cx, self);
+
+            
+            self->GetCompartmentMap().EnumerateRead(
+                (XPCCompartmentMap::EnumReadFunction)
+                SweepCompartment, cx);
+
+            self->mDoingFinalization = JS_TRUE;
+            break;
+        }
+        case JSGC_FINALIZE_END:
+        {
+            NS_ASSERTION(self->mDoingFinalization, "bad state");
+            self->mDoingFinalization = JS_FALSE;
+
+            
+            
+            DoDeferredRelease(self->mWrappedJSToReleaseArray);
 
 #ifdef XPC_REPORT_NATIVE_INTERFACE_AND_SET_FLUSHING
-                printf("--------------------------------------------------------------\n");
-                int setsBefore = (int) self->mNativeSetMap->Count();
-                int ifacesBefore = (int) self->mIID2NativeInterfaceMap->Count();
+            printf("--------------------------------------------------------------\n");
+            int setsBefore = (int) self->mNativeSetMap->Count();
+            int ifacesBefore = (int) self->mIID2NativeInterfaceMap->Count();
 #endif
 
-                
-                
+            
+            
 
-                
-                XPCWrappedNativeScope::MarkAllWrappedNativesAndProtos();
+            
+            XPCWrappedNativeScope::MarkAllWrappedNativesAndProtos();
 
-                self->mDetachedWrappedNativeProtoMap->
-                    Enumerate(DetachedWrappedNativeProtoMarker, nsnull);
+            self->mDetachedWrappedNativeProtoMap->
+                Enumerate(DetachedWrappedNativeProtoMarker, nsnull);
 
-                DOM_MarkInterfaces();
+            DOM_MarkInterfaces();
 
-                
-                
-                
-                
-                
-                
+            
+            
+            
+            
+            
+            
 
-                
-                
-                if(!self->GetXPConnect()->IsShuttingDown())
+            
+            
+            if(!self->GetXPConnect()->IsShuttingDown())
+            {
+                PRLock* threadLock = XPCPerThreadData::GetLock();
+                if(threadLock)
+                { 
+                    nsAutoLock lock(threadLock);
+
+                    XPCPerThreadData* iterp = nsnull;
+                    XPCPerThreadData* thread;
+
+                    while(nsnull != (thread =
+                                 XPCPerThreadData::IterateThreads(&iterp)))
+                    {
+                        
+                        thread->MarkAutoRootsAfterJSFinalize();
+
+                        XPCCallContext* ccxp = thread->GetCallContext();
+                        while(ccxp)
+                        {
+                            
+                            
+                            
+                            
+                            if(ccxp->CanGetSet())
+                            {
+                                XPCNativeSet* set = ccxp->GetSet();
+                                if(set)
+                                    set->Mark();
+                            }
+                            if(ccxp->CanGetInterface())
+                            {
+                                XPCNativeInterface* iface = ccxp->GetInterface();
+                                if(iface)
+                                    iface->Mark();
+                            }
+                            ccxp = ccxp->GetPrevCallContext();
+                        }
+                    }
+                }
+            }
+
+            
+
+            
+            
+            
+            if(!self->GetXPConnect()->IsShuttingDown())
+            {
+                self->mNativeScriptableSharedMap->
+                    Enumerate(JSClassSweeper, nsnull);
+            }
+
+            self->mClassInfo2NativeSetMap->
+                Enumerate(NativeUnMarkedSetRemover, nsnull);
+
+            self->mNativeSetMap->
+                Enumerate(NativeSetSweeper, nsnull);
+
+            self->mIID2NativeInterfaceMap->
+                Enumerate(NativeInterfaceSweeper, nsnull);
+
+#ifdef DEBUG
+            XPCWrappedNativeScope::ASSERT_NoInterfaceSetsAreMarked();
+#endif
+
+#ifdef XPC_REPORT_NATIVE_INTERFACE_AND_SET_FLUSHING
+            int setsAfter = (int) self->mNativeSetMap->Count();
+            int ifacesAfter = (int) self->mIID2NativeInterfaceMap->Count();
+
+            printf("\n");
+            printf("XPCNativeSets:        before: %d  collected: %d  remaining: %d\n",
+                   setsBefore, setsBefore - setsAfter, setsAfter);
+            printf("XPCNativeInterfaces:  before: %d  collected: %d  remaining: %d\n",
+                   ifacesBefore, ifacesBefore - ifacesAfter, ifacesAfter);
+            printf("--------------------------------------------------------------\n");
+#endif
+
+            
+            XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC(cx);
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+            
+            
+            if(!self->GetXPConnect()->IsShuttingDown())
+            {
+                PRLock* threadLock = XPCPerThreadData::GetLock();
+                if(threadLock)
                 {
-                    PRLock* threadLock = XPCPerThreadData::GetLock();
-                    if(threadLock)
+                    
+                    
                     { 
                         nsAutoLock lock(threadLock);
 
@@ -765,11 +863,8 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                         XPCPerThreadData* thread;
 
                         while(nsnull != (thread =
-                                     XPCPerThreadData::IterateThreads(&iterp)))
+                                 XPCPerThreadData::IterateThreads(&iterp)))
                         {
-                            
-                            thread->MarkAutoRootsAfterJSFinalize();
-
                             XPCCallContext* ccxp = thread->GetCallContext();
                             while(ccxp)
                             {
@@ -777,166 +872,71 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                                 
                                 
                                 
-                                if(ccxp->CanGetSet())
+                                if(ccxp->CanGetTearOff())
                                 {
-                                    XPCNativeSet* set = ccxp->GetSet();
-                                    if(set)
-                                        set->Mark();
-                                }
-                                if(ccxp->CanGetInterface())
-                                {
-                                    XPCNativeInterface* iface = ccxp->GetInterface();
-                                    if(iface)
-                                        iface->Mark();
+                                    XPCWrappedNativeTearOff* to = 
+                                        ccxp->GetTearOff();
+                                    if(to)
+                                        to->Mark();
                                 }
                                 ccxp = ccxp->GetPrevCallContext();
                             }
                         }
                     }
+
+                    
+                    XPCWrappedNativeScope::SweepAllWrappedNativeTearOffs();
                 }
-
-                
-
-                
-                
-                
-                if(!self->GetXPConnect()->IsShuttingDown())
-                {
-                    self->mNativeScriptableSharedMap->
-                        Enumerate(JSClassSweeper, nsnull);
-                }
-
-                self->mClassInfo2NativeSetMap->
-                    Enumerate(NativeUnMarkedSetRemover, nsnull);
-
-                self->mNativeSetMap->
-                    Enumerate(NativeSetSweeper, nsnull);
-
-                self->mIID2NativeInterfaceMap->
-                    Enumerate(NativeInterfaceSweeper, nsnull);
-
-#ifdef DEBUG
-                XPCWrappedNativeScope::ASSERT_NoInterfaceSetsAreMarked();
-#endif
-
-#ifdef XPC_REPORT_NATIVE_INTERFACE_AND_SET_FLUSHING
-                int setsAfter = (int) self->mNativeSetMap->Count();
-                int ifacesAfter = (int) self->mIID2NativeInterfaceMap->Count();
-
-                printf("\n");
-                printf("XPCNativeSets:        before: %d  collected: %d  remaining: %d\n",
-                       setsBefore, setsBefore - setsAfter, setsAfter);
-                printf("XPCNativeInterfaces:  before: %d  collected: %d  remaining: %d\n",
-                       ifacesBefore, ifacesBefore - ifacesAfter, ifacesAfter);
-                printf("--------------------------------------------------------------\n");
-#endif
-
-                
-                XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC(cx);
-
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-
-                
-                
-                if(!self->GetXPConnect()->IsShuttingDown())
-                {
-                    PRLock* threadLock = XPCPerThreadData::GetLock();
-                    if(threadLock)
-                    {
-                        
-                        
-                        { 
-                            nsAutoLock lock(threadLock);
-
-                            XPCPerThreadData* iterp = nsnull;
-                            XPCPerThreadData* thread;
-
-                            while(nsnull != (thread =
-                                     XPCPerThreadData::IterateThreads(&iterp)))
-                            {
-                                XPCCallContext* ccxp = thread->GetCallContext();
-                                while(ccxp)
-                                {
-                                    
-                                    
-                                    
-                                    
-                                    if(ccxp->CanGetTearOff())
-                                    {
-                                        XPCWrappedNativeTearOff* to = 
-                                            ccxp->GetTearOff();
-                                        if(to)
-                                            to->Mark();
-                                    }
-                                    ccxp = ccxp->GetPrevCallContext();
-                                }
-                            }
-                        }
-    
-                        
-                        XPCWrappedNativeScope::SweepAllWrappedNativeTearOffs();
-                    }
-                }
-
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-
-                self->mDyingWrappedNativeProtoMap->
-                    Enumerate(DyingProtoKiller, nsnull);
-
-
-                
-                
-                { 
-                    XPCAutoLock lock(self->GetMapLock());
-                    NS_ASSERTION(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
-                    self->mThreadRunningGC = nsnull;
-                    xpc_NotifyAll(self->GetMapLock());
-                }
-
-                break;
             }
-            case JSGC_END:
-            {
-                
-                
-                
 
-                
-#ifdef XPC_TRACK_DEFERRED_RELEASES
-                printf("XPC - Begin deferred Release of %d nsISupports pointers\n",
-                       self->mNativesToReleaseArray.Length());
-#endif
-                DoDeferredRelease(self->mNativesToReleaseArray);
-#ifdef XPC_TRACK_DEFERRED_RELEASES
-                printf("XPC - End deferred Releases\n");
-#endif
-                break;
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+            self->mDyingWrappedNativeProtoMap->
+                Enumerate(DyingProtoKiller, nsnull);
+
+
+            
+            
+            { 
+                XPCAutoLock lock(self->GetMapLock());
+                NS_ASSERTION(self->mThreadRunningGC == PR_GetCurrentThread(), "bad state");
+                self->mThreadRunningGC = nsnull;
+                xpc_NotifyAll(self->GetMapLock());
             }
-            default:
-                break;
+
+            break;
         }
+        case JSGC_END:
+        {
+            
+            
+            
+
+            
+#ifdef XPC_TRACK_DEFERRED_RELEASES
+            printf("XPC - Begin deferred Release of %d nsISupports pointers\n",
+                   self->mNativesToReleaseArray.Length());
+#endif
+            DoDeferredRelease(self->mNativesToReleaseArray);
+#ifdef XPC_TRACK_DEFERRED_RELEASES
+            printf("XPC - End deferred Releases\n");
+#endif
+            break;
+        }
+        default:
+            break;
     }
 
     nsTArray<JSGCCallback> callbacks(self->extraGCCallbacks);
