@@ -757,7 +757,9 @@ nsCanvasRenderingContext2D::~nsCanvasRenderingContext2D()
 void
 nsCanvasRenderingContext2D::Destroy()
 {
-    if (mValid)
+    
+    
+    if (mValid && !mDocShell)
         gCanvasMemoryUsed -= mWidth * mHeight * 4;
 
     mSurface = nsnull;
