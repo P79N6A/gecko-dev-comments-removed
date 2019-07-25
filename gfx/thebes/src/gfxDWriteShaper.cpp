@@ -42,6 +42,7 @@
 
 #include "gfxDWriteTextAnalysis.h"
 
+#include "nsCRT.h"
 
 #define MAX_RANGE_LENGTH 25000
 
@@ -80,27 +81,39 @@ gfxDWriteShaper::InitTextRun(gfxContext *aContext,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
- 
     PRBool result = PR_TRUE;
-    do {
-        gfxTextRange range(aRunStart, aRunStart + aRunLength);
-        TextAnalysis analysis(
-            aString + range.start, range.Length(),
+    UINT32 rangeOffset = 0;
+    while (rangeOffset < aRunLength) {
+        PRUint32 rangeLen = NS_MIN<PRUint32>(aRunLength - rangeOffset,
+                                             MAX_RANGE_LENGTH);
+        if (rangeOffset + rangeLen < aRunLength) {
+            
+            
+            
+            
+            
+            
+            PRUint32 adjRangeLen = 0;
+            const PRUnichar *rangeStr = aString + aRunStart + rangeOffset;
+            for (PRUint32 i = rangeLen; i > MAX_RANGE_LENGTH / 2; i--) {
+                if (nsCRT::IsAsciiSpace(rangeStr[i])) {
+                    adjRangeLen = i;
+                    break;
+                }
+                if (adjRangeLen == 0 &&
+                    aTextRun->IsClusterStart(aRunStart + rangeOffset + i)) {
+                    adjRangeLen = i;
+                }
+            }
+            if (adjRangeLen != 0) {
+                rangeLen = adjRangeLen;
+            }
+        }
+
+        gfxTextRange range(aRunStart + rangeOffset,
+                           aRunStart + rangeOffset + rangeLen);
+        rangeOffset += rangeLen;
+        TextAnalysis analysis(aString + range.start, range.Length(),
             NULL, 
             readingDirection);
         TextAnalysis::Run *runHead;
@@ -256,7 +269,7 @@ trymoreglyphs:
                     detailedGlyphs.Elements());
             }
         }
-    } while (0);
+    }
 
     return result;
 }
