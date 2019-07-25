@@ -617,8 +617,8 @@ namespace nanojit
 
     inline void Assembler::JMP_indexed(Register x, I32 ss, NIns** addr) {
         underrunProtect(7);
-        IMM32(int32_t(addr));           
-        SIB(ss, REGNUM(x), 5);          
+        IMM32(int32_t(addr));
+        SIB(ss, REGNUM(x), 5);
         MODRM(0, 4, 4);                 
         *(--_nIns) = uint8_t(0xff);     
         asm_output("jmp   *(%s*%d+%p)", gpn(x), 1 << ss, (void*)addr);
@@ -1685,7 +1685,7 @@ namespace nanojit
             
             
             switch (opcode) {
-            case LIR_eqd:   
+            case LIR_eqd:
                 if (ins->oprnd1() == ins->oprnd2()) {
                     SETNP(r);
                 } else {
@@ -2651,7 +2651,7 @@ namespace nanojit
                         
                         underrunProtect(16); 
                         NIns *skip = _nIns;
-                        JE(targ);      
+                        JE(targ);
                         at = _nIns;
                         JP(skip);
                     }
@@ -2671,7 +2671,7 @@ namespace nanojit
         }
 
         if (!at)
-            at = _nIns; 
+            at = _nIns;
         asm_cmpd(cond);
 
         return at;
@@ -2861,6 +2861,20 @@ namespace nanojit
         if (eip - n < codeStart) {
             codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             JMP(eip);
+        }
+    }
+
+    void Assembler::asm_insert_random_nop()
+    {
+        
+        uint32_t r = _noise->getValue(5);
+        switch(r)
+        {
+            case 0: MR(rEAX,rEAX);        break;
+            case 1: MR(rEDI,rEDI);        break;
+            case 2: MR(rECX,rECX);        break;
+            case 3: LEA(rECX,0,rECX);     break;
+            case 4: LEA(rESP,0,rESP);     break;
         }
     }
 

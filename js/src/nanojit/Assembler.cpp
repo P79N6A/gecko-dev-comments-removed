@@ -1402,6 +1402,12 @@ namespace nanojit
         asm_branch(ins->opcode() == LIR_xf, cond, exit);
     }
 
+    
+    
+    static inline uint32_t noiseForNopInsertion(Noise* n) {
+        return n->getValue(1023) + 128;
+    }
+
     void Assembler::gen(LirFilter* reader)
     {
         NanoAssert(_thisfrag->nStaticExits == 0);
@@ -1409,6 +1415,10 @@ namespace nanojit
         InsList pending_lives(alloc);
 
         NanoAssert(!error());
+
+        
+        NIns* priorIns = _nIns;
+        int32_t nopInsertTrigger = hardenNopInsertion(_config) ? noiseForNopInsertion(_noise): 0;
 
         
         
@@ -1472,6 +1482,28 @@ namespace nanojit
             if ((_logc->lcbits & LC_Native) && (_logc->lcbits & LC_RegAlloc))
                 printRegState();
 #endif
+
+            
+            if (hardenNopInsertion(_config))
+            {
+                size_t delta = (uintptr_t)priorIns - (uintptr_t)_nIns; 
+
+                if (codeList) {
+                    codeList = codeList;
+                }
+                
+                if (!codeList || !codeList->isInBlock(priorIns)) {
+                    NanoAssert(delta < VMPI_getVMPageSize()); 
+                    nopInsertTrigger -= delta;
+                    if (nopInsertTrigger < 0)
+                    {
+                        nopInsertTrigger = noiseForNopInsertion(_noise);
+                        asm_insert_random_nop();
+                        PERFM_NVPROF("hardening:nop-insert", 1);
+                    }
+                }
+                priorIns = _nIns;
+            }
 
             LOpcode op = ins->opcode();
             switch (op)
@@ -2033,7 +2065,7 @@ namespace nanojit
                 }
                #endif 
 
-                case LIR_comment: 
+                case LIR_comment:
                     
                     break;
             }
@@ -2048,7 +2080,7 @@ namespace nanojit
             if (_logc->lcbits & LC_AfterDCE) {
                 InsBuf b;
                 LInsPrinter* printer = _thisfrag->lirbuf->printer;
-                if (ins->isop(LIR_comment)) 
+                if (ins->isop(LIR_comment))
                     outputf("%s", printer->formatIns(&b, ins));
                 else
                     outputf("    %s", printer->formatIns(&b, ins));

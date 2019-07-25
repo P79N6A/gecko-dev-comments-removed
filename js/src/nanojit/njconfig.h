@@ -97,6 +97,9 @@ namespace nanojit
 
         
         uint32_t harden_function_alignment:1;
+
+        
+        uint32_t harden_nop_insertion:1;
     };
 }
 

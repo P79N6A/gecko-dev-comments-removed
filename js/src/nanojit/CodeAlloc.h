@@ -88,6 +88,10 @@ namespace nanojit
 
         
         size_t blockSize() const { return uintptr_t(end) - uintptr_t(this); }
+
+    public:
+        
+        bool isInBlock(NIns* n) { return (n >= this->start() && n < this->end); }
     };
 
     
