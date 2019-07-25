@@ -162,10 +162,10 @@ Rect.prototype = {
   
   
   contains: function Rect_contains(rect) {
-    return (rect.left > this.left &&
-            rect.right < this.right &&
-            rect.top > this.top &&
-            rect.bottom < this.bottom);
+    return (rect.left >= this.left &&
+            rect.right <= this.right &&
+            rect.top >= this.top &&
+            rect.bottom <= this.bottom);
   },
 
   
