@@ -587,7 +587,8 @@ Classifier::ApplyTableUpdates(nsTArray<TableUpdate*>* aUpdates,
 #if defined(DEBUG) && defined(PR_LOGGING)
   prefixSet->Dump();
 #endif
-  prefixSet->WriteFile();
+  rv = prefixSet->WriteFile();
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   rv = store->FinishUpdate();
