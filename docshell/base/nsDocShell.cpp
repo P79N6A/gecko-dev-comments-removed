@@ -8281,6 +8281,9 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
         if (doShortCircuitedLoad) {
             
+            nsCOMPtr<nsIURI> oldURI = mCurrentURI;
+
+            
             nscoord cx = 0, cy = 0;
             GetCurScrollPos(ScrollOrientation_X, &cx);
             GetCurScrollPos(ScrollOrientation_Y, &cy);
@@ -8426,8 +8429,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                   window->DispatchSyncPopState();
                 }
 
-                if (doHashchange)
-                  window->DispatchAsyncHashchange();
+                if (doHashchange) {
+                  
+                  
+                  window->DispatchAsyncHashchange(oldURI, aURI);
+                }
             }
 
             return NS_OK;

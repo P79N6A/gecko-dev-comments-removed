@@ -49,6 +49,7 @@
 #include "nsIDOMDocument.h"
 #include "nsCOMPtr.h"
 #include "nsEvent.h"
+#include "nsIURI.h"
 
 #define DOM_WINDOW_DESTROYED_TOPIC "dom-window-destroyed"
 
@@ -537,7 +538,8 @@ public:
 
 
 
-  virtual nsresult DispatchAsyncHashchange() = 0;
+  virtual nsresult DispatchAsyncHashchange(nsIURI *aOldURI,
+                                           nsIURI *aNewURI) = 0;
 
   
 
