@@ -4407,6 +4407,13 @@ inline void EnableUniversalXPConnect(JSContext *cx)
     if (!priv)
         return;
     priv->universalXPConnectEnabled = true;
+
+    
+    
+    mozilla::DebugOnly<bool> rv;
+    rv = js::RecomputeWrappers(cx, js::SingleCompartment(compartment),
+                               js::AllCompartments());
+    MOZ_ASSERT(rv);
 }
 
 }
