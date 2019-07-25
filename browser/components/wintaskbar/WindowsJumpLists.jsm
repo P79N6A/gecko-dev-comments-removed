@@ -37,6 +37,7 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -331,7 +332,7 @@ var WinTaskbarJumpList =
       if ((this._shuttingDown && !task.close) || (!this._shuttingDown && !task.open))
         return;
       var item = this._getHandlerAppItem(task.title, task.description,
-                                         task.args, task.iconIndex);
+                                         task.args, task.iconIndex, null);
       items.appendElement(item, false);
     }, this);
     
@@ -374,7 +375,9 @@ var WinTaskbarJumpList =
         }
 
         let title = aResult.title || aResult.uri;
-        let shortcut = this._getHandlerAppItem(title, title, aResult.uri, 1);
+        let faviconPageUri = Services.io.newURI(aResult.uri, null, null);
+        let shortcut = this._getHandlerAppItem(title, title, aResult.uri, 1, 
+                                               faviconPageUri);
         items.appendElement(shortcut, false);
         this._frequentHashList.push(aResult.uri);
       },
@@ -417,7 +420,9 @@ var WinTaskbarJumpList =
         }
 
         let title = aResult.title || aResult.uri;
-        let shortcut = this._getHandlerAppItem(title, title, aResult.uri, 1);
+        let faviconPageUri = Services.io.newURI(aResult.uri, null, null);
+        let shortcut = this._getHandlerAppItem(title, title, aResult.uri, 1,
+                                               faviconPageUri);
         items.appendElement(shortcut, false);
         count++;
       },
@@ -433,7 +438,9 @@ var WinTaskbarJumpList =
 
 
 
-  _getHandlerAppItem: function WTBJL__getHandlerAppItem(name, description, args, icon) {
+  _getHandlerAppItem: function WTBJL__getHandlerAppItem(name, description, 
+                                                        args, iconIndex, 
+                                                        faviconPageUri) {
     var file = Services.dirsvc.get("XCurProcD", Ci.nsILocalFile);
 
     
@@ -451,7 +458,8 @@ var WinTaskbarJumpList =
     var item = Cc["@mozilla.org/windows-jumplistshortcut;1"].
                createInstance(Ci.nsIJumpListShortcut);
     item.app = handlerApp;
-    item.iconIndex = icon;
+    item.iconIndex = iconIndex;
+    item.faviconPageUri = faviconPageUri;
     return item;
   },
 
