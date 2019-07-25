@@ -2098,7 +2098,9 @@ def _generateCxxUnion(ud):
     
     valueunion = TypeUnion(valuetype.name)
     for c in ud.components:
-        valueunion.addComponent(c.unionType(), c.name)
+        valueunion.addComponent(c);
+    valueunion.addAlignment();
+
     cls.addstmts([ StmtDecl(Decl(valueunion,'')),
                        Whitespace.NL ])
 
