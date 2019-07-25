@@ -1066,4 +1066,11 @@ public class PanZoomController
         bounce(finalMetrics);
         return true;
     }
+
+    
+    public void abortPanning() {
+        checkMainThread();
+        mState = PanZoomState.NOTHING;
+        bounce();
+    }
 }
