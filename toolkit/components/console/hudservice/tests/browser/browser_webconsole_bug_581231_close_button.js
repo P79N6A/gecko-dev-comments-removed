@@ -32,13 +32,15 @@ function testCloseButton() {
 
     
 
-    EventUtils.synthesizeMouse(closeButton, 0, 0, {});
+    closeButton.addEventListener("command", function() {
+      closeButton.removeEventListener("command", arguments.callee, false);
 
-    executeSoon(function (){
       ok(!(hudId in HUDService.hudReferences), "the console is closed when " +
          "the close button is pressed");
       closeButton = null;
       finishTest();
-    });
+    }, false);
+
+    EventUtils.synthesizeMouse(closeButton, 2, 2, {});
   });
 }
