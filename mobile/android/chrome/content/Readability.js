@@ -1408,11 +1408,6 @@ Readability.prototype = {
 
 
   parse: function () {
-    let uri = this._uri;
-    if ((uri.prePath + "/") === uri.spec) {
-      return null;
-    }
-
     
     this._removeScripts(this._doc);
 
