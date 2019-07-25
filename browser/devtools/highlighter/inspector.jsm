@@ -104,6 +104,15 @@ function InspectorUI(aWindow)
   this.toolEvents = {};
   this.store = new InspectorStore();
   this.INSPECTOR_NOTIFICATIONS = INSPECTOR_NOTIFICATIONS;
+
+  
+  let keysbundle = Services.strings.createBundle(
+    "chrome://global/locale/keys.properties");
+  let returnString = keysbundle.GetStringFromName("VK_RETURN");
+  let tooltip = this.strings.formatStringFromName("inspectButton.tooltiptext",
+    [returnString], 1);
+  let button = this.chromeDoc.getElementById("inspector-inspect-toolbutton");
+  button.setAttribute("tooltiptext", tooltip);
 }
 
 InspectorUI.prototype = {
