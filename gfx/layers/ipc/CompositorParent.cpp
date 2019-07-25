@@ -178,7 +178,6 @@ CompositorParent::Composite()
   }
 
 #ifdef MOZ_WIDGET_ANDROID
-  RequestViewTransform();
   TransformShadowTree();
 #endif
 
@@ -260,34 +259,52 @@ CompositorParent::TransformShadowTree()
 #ifdef MOZ_WIDGET_ANDROID
   Layer* layer = GetPrimaryScrollableLayer();
   ShadowLayer* shadow = layer->AsShadowLayer();
-
-  gfx3DMatrix shadowTransform = layer->GetTransform();
-
   ContainerLayer* container = layer->AsContainerLayer();
 
   const FrameMetrics* metrics = &container->GetFrameMetrics();
+  const gfx3DMatrix& rootTransform = mLayerManager->GetRoot()->GetTransform();
   const gfx3DMatrix& currentTransform = layer->GetTransform();
 
+  float rootScaleX = GetXScale(rootTransform);
+  float rootScaleY = GetYScale(rootTransform);
+
+  if (mIsFirstPaint && metrics) {
+    nsIntPoint scrollOffset = metrics->mViewportScrollOffset;
+    mContentSize = metrics->mContentSize;
+    mozilla::AndroidBridge::Bridge()->SetFirstPaintViewport(scrollOffset.x, scrollOffset.y,
+                                                            1/rootScaleX, mContentSize.width,
+                                                            mContentSize.height);
+    mIsFirstPaint = false;
+  } else if (metrics && (metrics->mContentSize != mContentSize)) {
+    mContentSize = metrics->mContentSize;
+    mozilla::AndroidBridge::Bridge()->SetPageSize(1/rootScaleX, mContentSize.width,
+                                                  mContentSize.height);
+  }
+
+  
+  
+  RequestViewTransform();
+
+  
+  
+  
+  
+  
+  
   if (metrics && metrics->IsScrollable()) {
-    float tempScaleDiffX = GetXScale(mLayerManager->GetRoot()->GetTransform()) * mXScale;
-    float tempScaleDiffY = GetYScale(mLayerManager->GetRoot()->GetTransform()) * mYScale;
+    float tempScaleDiffX = rootScaleX * mXScale;
+    float tempScaleDiffY = rootScaleY * mYScale;
 
     nsIntPoint metricsScrollOffset = metrics->mViewportScrollOffset;
 
     nsIntPoint scrollCompensation(
       (mScrollOffset.x / tempScaleDiffX - metricsScrollOffset.x) * mXScale,
       (mScrollOffset.y / tempScaleDiffY - metricsScrollOffset.y) * mYScale);
-    ViewTransform treeTransform(-scrollCompensation, mXScale,
-                              mYScale);
-    shadowTransform = gfx3DMatrix(treeTransform) * currentTransform;
-
-    shadow->SetShadowTransform(shadowTransform);
+    ViewTransform treeTransform(-scrollCompensation, mXScale, mYScale);
+    shadow->SetShadowTransform(gfx3DMatrix(treeTransform) * currentTransform);
   } else {
-    ViewTransform treeTransform(nsIntPoint(0,0), mXScale,
-                              mYScale);
-    shadowTransform = gfx3DMatrix(treeTransform) * currentTransform;
-
-    shadow->SetShadowTransform(shadowTransform);
+    ViewTransform treeTransform(nsIntPoint(0,0), mXScale, mYScale);
+    shadow->SetShadowTransform(gfx3DMatrix(treeTransform) * currentTransform);
   }
 #endif
 }

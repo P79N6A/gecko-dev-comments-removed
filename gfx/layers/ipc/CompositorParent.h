@@ -143,6 +143,7 @@ private:
   float mXScale;
   float mYScale;
   nsIntPoint mScrollOffset;
+  nsIntSize mContentSize;
 
   
   
