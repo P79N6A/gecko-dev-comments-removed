@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
-
 _("Make sure Collection can correctly incrementally parse GET requests");
 Cu.import("resource://weave/base_records/collection.js");
 Cu.import("resource://weave/base_records/wbo.js");

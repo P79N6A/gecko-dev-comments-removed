@@ -319,3 +319,14 @@ function SyncTestingInfrastructure(engineFactory) {
     engine._store.wipe();
   };
 }
+
+
+
+
+
+
+
+
+
+
+let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));

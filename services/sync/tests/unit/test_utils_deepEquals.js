@@ -1,16 +1,5 @@
-
-
-
-
-
-
-
-
-
-let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
-
 _("Make sure Utils.deepEquals correctly finds items that are deeply equal");
-Components.utils.import("resource://weave/util.js");
+Cu.import("resource://weave/util.js");
 
 function run_test() {
   let data = '[NaN, undefined, null, true, false, Infinity, 0, 1, "a", "b", {a: 1}, {a: "a"}, [{a: 1}], [{a: true}], {a: 1, b: 2}, [1, 2], [1, 2, 3]]';

@@ -1,15 +1,4 @@
-
-
-
-
-
-
-
-
-
-let _ = function(some, debug, text, to) print(Array.join(arguments, " "));
-
-Components.utils.import("resource:
+Cu.import("resource://weave/engines/clientData.js");
 
 function run_test() {
   _("Test that serializing client records results in uploadable ascii");
