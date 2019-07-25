@@ -94,9 +94,8 @@ nsBaseAppShell::Init()
 }
 
 
-
 void
-nsBaseAppShell::NativeEventCallback(PRBool aAlwaysBlockNative)
+nsBaseAppShell::NativeEventCallback()
 {
   PRInt32 hasPending = PR_AtomicSet(&mNativeEventPending, 0);
   if (hasPending == 0)
@@ -118,9 +117,7 @@ nsBaseAppShell::NativeEventCallback(PRBool aAlwaysBlockNative)
 
   nsIThread *thread = NS_GetCurrentThread();
   PRBool prevBlockNativeEvent = mBlockNativeEvent;
-  if (aAlwaysBlockNative) {
-    mBlockNativeEvent = PR_TRUE;
-  } else if (mEventloopNestingState == eEventloopOther) {
+  if (mEventloopNestingState == eEventloopOther) {
     if (!NS_HasPendingEvents(thread))
       return;
     

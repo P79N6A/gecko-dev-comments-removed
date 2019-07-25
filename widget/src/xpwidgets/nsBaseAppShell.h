@@ -73,7 +73,7 @@ protected:
   
 
 
-  void NativeEventCallback(PRBool aAlwaysBlockNative = PR_FALSE);
+  void NativeEventCallback();
 
   
 
