@@ -249,6 +249,13 @@ struct PropertyTable {
     uint32 capacity() const { return JS_BIT(JS_DHASH_BITS - hashShift); }
 
     
+    static size_t sizeOfEntries(size_t cap) { return cap * sizeof(Shape *); }
+
+    size_t sizeOf() const {
+        return sizeOfEntries(capacity()) + sizeof(PropertyTable);
+    }
+
+    
     bool needsToGrow() const {
         uint32 size = capacity();
         return entryCount + removedCount >= size - (size >> 2);
@@ -366,16 +373,6 @@ struct Shape : public js::gc::Cell
 
     bool hashify(JSRuntime *rt);
 
-    bool hasTable() const {
-        
-        return numLinearSearches > PropertyTable::MAX_LINEAR_SEARCHES;
-    }
-
-    js::PropertyTable *getTable() const {
-        JS_ASSERT(hasTable());
-        return table;
-    }
-
     void setTable(js::PropertyTable *t) const {
         JS_ASSERT_IF(t && t->freelist != SHAPE_INVALID_SLOT, t->freelist < slotSpan);
         table = t;
@@ -432,6 +429,16 @@ struct Shape : public js::gc::Cell
 
   public:
     static JS_FRIEND_DATA(Shape) sharedNonNative;
+
+    bool hasTable() const {
+        
+        return numLinearSearches > PropertyTable::MAX_LINEAR_SEARCHES;
+    }
+
+    js::PropertyTable *getTable() const {
+        JS_ASSERT(hasTable());
+        return table;
+    }
 
     bool isNative() const { return this != &sharedNonNative; }
 
