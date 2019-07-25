@@ -1,5 +1,6 @@
 var rootDir = getRootDirectory(gTestPath);
 const gTestRoot = rootDir;
+const gHttpTestRoot = rootDir.replace("chrome://mochitests/content/", "http://127.0.0.1:8888/");
 
 var gTestBrowser = null;
 var gNextTest = null;
@@ -356,7 +357,7 @@ function test11d() {
      "There should be a PluginClickToPlay event for each plugin that was " +
      "blocked due to the plugins.click_to_play pref");
 
-  prepareTest(test12a, gTestRoot + "plugin_clickToPlayAllow.html");
+  prepareTest(test12a, gHttpTestRoot + "plugin_clickToPlayAllow.html");
 }
 
 
@@ -381,7 +382,7 @@ function test12b() {
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(objLoadingContent.activated, "Test 12b, Plugin should be activated");
 
-  prepareTest(test12c, gTestRoot + "plugin_clickToPlayAllow.html");
+  prepareTest(test12c, gHttpTestRoot + "plugin_clickToPlayAllow.html");
 }
 
 
