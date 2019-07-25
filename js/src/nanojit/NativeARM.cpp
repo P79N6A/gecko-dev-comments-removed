@@ -43,7 +43,6 @@
 
 #ifdef UNDER_CE
 #include <cmnintrin.h>
-extern "C" bool blx_lr_broken();
 #endif
 
 #if defined(FEATURE_NANOJIT) && defined(NANOJIT_ARM)
@@ -464,11 +463,6 @@ Assembler::asm_eor_imm(Register rd, Register rn, int32_t imm, int stat )
 void
 Assembler::nInit(AvmCore*)
 {
-#ifdef UNDER_CE
-    blx_lr_bug = blx_lr_broken();
-#else
-    blx_lr_bug = 0;
-#endif
     nHints[LIR_calli]  = rmask(retRegs[0]);
     nHints[LIR_hcalli] = rmask(retRegs[1]);
     nHints[LIR_paramp] = PREFER_SPECIAL;
@@ -913,26 +907,17 @@ Assembler::asm_call(LIns* ins)
             outputf("        %p:", _nIns);
         )
 
-        
-        
-        
-        
-        
         BranchWithLink((NIns*)ci->_address);
     } else {
         
+#ifdef UNDER_CE
         
-        
-        
-        
-        if (blx_lr_bug) {
-            
-            underrunProtect(8);
-            BLX(IP);
-            MOV(IP,LR);
-        } else {
-            BLX(LR);
-        }
+        underrunProtect(8);
+        BLX(IP);
+        MOV(IP, LR);
+#else
+        BLX(LR);
+#endif
         asm_regarg(ARGTYPE_I, ins->arg(--argc), LR);
     }
 
@@ -1926,9 +1911,11 @@ Assembler::BLX(Register addr, bool chk )
     NanoAssert(_config.arm_arch >= 5);
 
     NanoAssert(IsGpReg(addr));
+#ifdef UNDER_CE
     
     
-    if (blx_lr_bug) { NanoAssert(addr != LR); }
+    NanoAssert(addr != LR);
+#endif
 
     if (chk) {
         underrunProtect(4);
