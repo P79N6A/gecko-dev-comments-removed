@@ -806,6 +806,7 @@ class nsIWidget : public nsISupports {
 
 
 
+
     NS_IMETHOD GetClientBounds(nsIntRect &aRect) = 0;
 
     
