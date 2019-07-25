@@ -135,7 +135,7 @@ public class GeckoLayerClient implements GeckoEventListener,
         
         
         
-        if (!mFirstPaint && mIgnorePaintsPendingViewportSizeChange && !mUpdateViewportOnEndDraw) {
+        if (!mFirstPaint && mIgnorePaintsPendingViewportSizeChange) {
             return null;
         }
         mFirstPaint = false;
