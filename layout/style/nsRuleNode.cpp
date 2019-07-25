@@ -5726,16 +5726,12 @@ nsRuleNode::ComputeOutlineData(void* aStartStruct,
       if (parentOutline->GetOutlineColor(outlineColor))
         outline->SetOutlineColor(outlineColor);
       else {
-#ifdef GFX_HAS_INVERT
-        outline->SetOutlineInitialColor();
-#else
         
         
         
         
         
         outline->SetOutlineColor(parentContext->GetStyleColor()->mColor);
-#endif
       }
     } else {
       outline->SetOutlineInitialColor();
