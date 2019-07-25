@@ -37,9 +37,14 @@
 
 #include <jni.h>
 
+#ifdef MOZ_MEMORY
+
 #define malloc __wrap_malloc
 #define free __wrap_free
+#endif
+
 #include <stdlib.h>
+
 
 extern "C"
 __attribute__ ((visibility("default")))
