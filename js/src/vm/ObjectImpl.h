@@ -21,6 +21,129 @@ namespace js {
 
 class ObjectImpl;
 
+class AutoPropDescArrayRooter;
+
+static inline PropertyOp
+CastAsPropertyOp(JSObject *object)
+{
+    return JS_DATA_TO_FUNC_PTR(PropertyOp, object);
+}
+
+static inline StrictPropertyOp
+CastAsStrictPropertyOp(JSObject *object)
+{
+    return JS_DATA_TO_FUNC_PTR(StrictPropertyOp, object);
+}
+
+
+
+
+
+struct PropDesc {
+    
+
+
+
+    Value pd;
+
+    Value value, get, set;
+
+    
+    uint8_t attrs;
+
+    
+    bool hasGet : 1;
+    bool hasSet : 1;
+    bool hasValue : 1;
+    bool hasWritable : 1;
+    bool hasEnumerable : 1;
+    bool hasConfigurable : 1;
+
+    friend class AutoPropDescArrayRooter;
+
+    PropDesc();
+
+    
+
+
+
+
+
+
+
+
+
+    bool initialize(JSContext* cx, const Value &v, bool checkAccessors = true);
+
+    
+
+
+
+
+
+
+
+
+    void initFromPropertyDescriptor(const PropertyDescriptor &desc);
+    bool makeObject(JSContext *cx);
+
+    
+    bool isAccessorDescriptor() const {
+        return hasGet || hasSet;
+    }
+
+    
+    bool isDataDescriptor() const {
+        return hasValue || hasWritable;
+    }
+
+    
+    bool isGenericDescriptor() const {
+        return !isAccessorDescriptor() && !isDataDescriptor();
+    }
+
+    bool configurable() const {
+        return (attrs & JSPROP_PERMANENT) == 0;
+    }
+
+    bool enumerable() const {
+        return (attrs & JSPROP_ENUMERATE) != 0;
+    }
+
+    bool writable() const {
+        return (attrs & JSPROP_READONLY) == 0;
+    }
+
+    JSObject* getterObject() const {
+        return get.isUndefined() ? NULL : &get.toObject();
+    }
+    JSObject* setterObject() const {
+        return set.isUndefined() ? NULL : &set.toObject();
+    }
+
+    const Value &getterValue() const {
+        return get;
+    }
+    const Value &setterValue() const {
+        return set;
+    }
+
+    PropertyOp getter() const {
+        return CastAsPropertyOp(getterObject());
+    }
+    StrictPropertyOp setter() const {
+        return CastAsStrictPropertyOp(setterObject());
+    }
+
+    
+
+
+
+
+    inline bool checkGetter(JSContext *cx);
+    inline bool checkSetter(JSContext *cx);
+};
+
 class DenseElementsHeader;
 class SparseElementsHeader;
 class Uint8ElementsHeader;
@@ -129,9 +252,8 @@ class DenseElementsHeader : public ElementsHeader
         return ElementsHeader::length;
     }
 
-    bool defineElement(JSContext *cx, ObjectImpl *obj,
-                       uint32_t index, const Value &value,
-                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+    bool defineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const PropDesc &desc,
+                       bool shouldThrow, bool *succeeded);
 
   private:
     inline bool isDenseElements() const MOZ_DELETE;
@@ -154,9 +276,8 @@ class SparseElementsHeader : public ElementsHeader
         return ElementsHeader::length;
     }
 
-    bool defineElement(JSContext *cx, ObjectImpl *obj,
-                       uint32_t index, const Value &value,
-                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+    bool defineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const PropDesc &desc,
+                       bool shouldThrow, bool *succeeded);
 
   private:
     inline bool isSparseElements() const MOZ_DELETE;
@@ -263,9 +384,8 @@ class TypedElementsHeader : public ElementsHeader
         return ElementsHeader::length;
     }
 
-    bool defineElement(JSContext *cx, ObjectImpl *obj,
-                       uint32_t index, const Value &value,
-                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+    bool defineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const PropDesc &desc,
+                       bool shouldThrow, bool *succeeded);
 
   private:
     TypedElementsHeader(const TypedElementsHeader &other) MOZ_DELETE;
@@ -349,9 +469,8 @@ class Uint8ClampedElementsHeader : public TypedElementsHeader<uint8_clamped>
 class ArrayBufferElementsHeader : public ElementsHeader
 {
   public:
-    bool defineElement(JSContext *cx, ObjectImpl *obj,
-                       uint32_t index, const Value &value,
-                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+    bool defineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const PropDesc &desc,
+                       bool shouldThrow, bool *succeeded);
 
   private:
     inline bool isArrayBufferElements() const MOZ_DELETE;
@@ -909,8 +1028,8 @@ class ObjectImpl : public gc::Cell
 };
 
 extern bool
-DefineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const Value &value,
-              PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+DefineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const PropDesc &desc,
+              bool shouldThrow, bool *succeeded);
 
 } 
 

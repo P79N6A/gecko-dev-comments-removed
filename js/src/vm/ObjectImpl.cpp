@@ -168,9 +168,8 @@ js::ObjectImpl::markChildren(JSTracer *trc)
 }
 
 bool
-js::SparseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
-                                        uint32_t index, const Value &value,
-                                        PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+SparseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj, uint32_t index,
+                                    const PropDesc &desc, bool shouldThrow, bool *succeeded)
 {
     MOZ_ASSERT(this == &obj->elementsHeader());
 
@@ -179,30 +178,55 @@ js::SparseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
 }
 
 bool
-js::DenseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
-                                       uint32_t index, const Value &value,
-                                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+DenseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj, uint32_t index,
+                                   const PropDesc &desc, bool shouldThrow, bool *succeeded)
 {
     MOZ_ASSERT(this == &obj->elementsHeader());
+
+    MOZ_ASSERT_IF(desc.hasGet || desc.hasSet, !desc.hasValue && !desc.hasWritable);
+    MOZ_ASSERT_IF(desc.hasValue || desc.hasWritable, !desc.hasGet && !desc.hasSet);
 
     
 
 
 
-    if (attrs != JSPROP_ENUMERATE ||
-        (attrs & (JSPROP_GETTER | JSPROP_SETTER)) || getter || setter)
+    if (desc.hasGet || desc.hasSet ||
+        (desc.hasEnumerable && !desc.enumerable()) ||
+        (desc.hasConfigurable && !desc.configurable()) ||
+        (desc.hasWritable && !desc.writable()))
     {
         if (!obj->makeElementsSparse(cx))
             return false;
         SparseElementsHeader &elts = obj->elementsHeader().asSparseElements();
-        return elts.defineElement(cx, obj, index, value, getter, setter, attrs);
+        return elts.defineElement(cx, obj, index, desc, shouldThrow, succeeded);
     }
 
     
     uint32_t initLen = initializedLength();
     if (index < initLen) {
-        obj->elements[index].set(obj->asObjectPtr(), index, value);
-        return true;
+        HeapSlot &slot = obj->elements[index];
+        if (!slot.isMagic(JS_ARRAY_HOLE)) {
+            
+
+
+
+            
+        }
+    }
+
+    
+
+
+
+    if (!obj->isExtensible()) {
+        *succeeded = false;
+        if (!shouldThrow)
+            return true;
+        MOZ_ALWAYS_FALSE(js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_OBJECT_NOT_EXTENSIBLE,
+                                                  JSDVG_IGNORE_STACK,
+                                                  ObjectValue(*obj->asObjectPtr()),
+                                                  NULL, NULL, NULL));
+        return false;
     }
 
     
@@ -217,12 +241,13 @@ js::DenseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
         if (!obj->makeElementsSparse(cx))
             return false;
         SparseElementsHeader &elts = obj->elementsHeader().asSparseElements();
-        return elts.defineElement(cx, obj, index, value, getter, setter, attrs);
+        return elts.defineElement(cx, obj, index, desc, shouldThrow, succeeded);
     }
 
     
     MOZ_ASSERT(res == ObjectImpl::Succeeded);
-    obj->elements[index].set(obj->asObjectPtr(), index, value);
+    obj->elements[index].set(obj->asObjectPtr(), index, desc.value);
+    *succeeded = true;
     return true;
 }
 
@@ -239,37 +264,35 @@ ArrayBufferDelegate(JSContext *cx, ObjectImpl *obj)
 
 template <typename T>
 bool
-js::TypedElementsHeader<T>::defineElement(JSContext *cx, ObjectImpl *obj,
-                                       uint32_t index, const Value &value,
-                                       PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+TypedElementsHeader<T>::defineElement(JSContext *cx, ObjectImpl *obj,
+                                      uint32_t index, const PropDesc &desc, bool shouldThrow,
+                                      bool *succeeded)
 {
     
-
-
-
+    *succeeded = false;
     js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_OBJECT_NOT_EXTENSIBLE,
-                             JSDVG_IGNORE_STACK, ObjectValue(*(JSObject*)obj), 
+                             JSDVG_IGNORE_STACK,
+                             ObjectValue(*(JSObject*)obj), 
                              NULL, NULL, NULL);
     return false;
 }
 
 bool
-js::ArrayBufferElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
-                                             uint32_t index, const Value &value,
-                                             PropertyOp getter, StrictPropertyOp setter,
-                                             unsigned attrs)
+ArrayBufferElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
+                                         uint32_t index, const PropDesc &desc, bool shouldThrow,
+                                         bool *succeeded)
 {
     MOZ_ASSERT(this == &obj->elementsHeader());
 
     JSObject *delegate = ArrayBufferDelegate(cx, obj);
     if (!delegate)
         return false;
-    return DefineElement(cx, delegate, index, value, getter, setter, attrs);
+    return DefineElement(cx, delegate, index, desc, shouldThrow, succeeded);
 }
 
 bool
-js::DefineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const Value &value,
-                  PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+js::DefineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const PropDesc &desc,
+                  bool shouldThrow, bool *succeeded)
 {
     NEW_OBJECT_REPRESENTATION_ONLY();
 
@@ -277,41 +300,41 @@ js::DefineElement(JSContext *cx, ObjectImpl *obj, uint32_t index, const Value &v
 
     switch (header.kind()) {
       case DenseElements:
-        return header.asDenseElements().defineElement(cx, obj, index, value, getter, setter,
-                                                      attrs);
+        return header.asDenseElements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                      succeeded);
       case SparseElements:
-        return header.asSparseElements().defineElement(cx, obj, index, value, getter, setter,
-                                                       attrs);
+        return header.asSparseElements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                       succeeded);
       case Uint8Elements:
-        return header.asUint8Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                      attrs);
+        return header.asUint8Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                      succeeded);
       case Int8Elements:
-        return header.asInt8Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                     attrs);
+        return header.asInt8Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                     succeeded);
       case Uint16Elements:
-        return header.asUint16Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                       attrs);
+        return header.asUint16Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                       succeeded);
       case Int16Elements:
-        return header.asInt16Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                      attrs);
+        return header.asInt16Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                      succeeded);
       case Uint32Elements:
-        return header.asUint32Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                       attrs);
+        return header.asUint32Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                       succeeded);
       case Int32Elements:
-        return header.asInt32Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                      attrs);
+        return header.asInt32Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                      succeeded);
       case Uint8ClampedElements:
-        return header.asUint8ClampedElements().defineElement(cx, obj, index, value,
-                                                             getter, setter, attrs);
+        return header.asUint8ClampedElements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                             succeeded);
       case Float32Elements:
-        return header.asFloat32Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                        attrs);
+        return header.asFloat32Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                        succeeded);
       case Float64Elements:
-        return header.asFloat64Elements().defineElement(cx, obj, index, value, getter, setter,
-                                                        attrs);
+        return header.asFloat64Elements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                        succeeded);
       case ArrayBufferElements:
-        return header.asArrayBufferElements().defineElement(cx, obj, index, value, getter, setter,
-                                                            attrs);
+        return header.asArrayBufferElements().defineElement(cx, obj, index, desc, shouldThrow,
+                                                            succeeded);
     }
 
     MOZ_NOT_REACHED("bad elements kind!");

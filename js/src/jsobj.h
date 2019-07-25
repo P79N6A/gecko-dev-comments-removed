@@ -75,18 +75,6 @@ struct NativeIterator;
 
 namespace mjit { class Compiler; }
 
-static inline PropertyOp
-CastAsPropertyOp(JSObject *object)
-{
-    return JS_DATA_TO_FUNC_PTR(PropertyOp, object);
-}
-
-static inline StrictPropertyOp
-CastAsStrictPropertyOp(JSObject *object)
-{
-    return JS_DATA_TO_FUNC_PTR(StrictPropertyOp, object);
-}
-
 inline JSObject *
 CastAsObject(PropertyOp op)
 {
@@ -126,115 +114,6 @@ CastAsObjectJsval(StrictPropertyOp op)
 #define JS_PS_END {0, 0, 0, 0, 0}
 
 
-
-
-
-
-
-struct PropDesc {
-    
-
-
-
-    js::Value pd;
-
-    js::Value value, get, set;
-
-    
-    uint8_t attrs;
-
-    
-    bool hasGet : 1;
-    bool hasSet : 1;
-    bool hasValue : 1;
-    bool hasWritable : 1;
-    bool hasEnumerable : 1;
-    bool hasConfigurable : 1;
-
-    friend class js::AutoPropDescArrayRooter;
-
-    PropDesc();
-
-    
-
-
-
-
-
-
-
-
-
-    bool initialize(JSContext* cx, const js::Value &v, bool checkAccessors=true);
-
-    
-
-
-
-
-
-
-
-
-    void initFromPropertyDescriptor(const PropertyDescriptor &desc);
-    bool makeObject(JSContext *cx);
-
-    
-    bool isAccessorDescriptor() const {
-        return hasGet || hasSet;
-    }
-
-    
-    bool isDataDescriptor() const {
-        return hasValue || hasWritable;
-    }
-
-    
-    bool isGenericDescriptor() const {
-        return !isAccessorDescriptor() && !isDataDescriptor();
-    }
-
-    bool configurable() const {
-        return (attrs & JSPROP_PERMANENT) == 0;
-    }
-
-    bool enumerable() const {
-        return (attrs & JSPROP_ENUMERATE) != 0;
-    }
-
-    bool writable() const {
-        return (attrs & JSPROP_READONLY) == 0;
-    }
-
-    JSObject* getterObject() const {
-        return get.isUndefined() ? NULL : &get.toObject();
-    }
-    JSObject* setterObject() const {
-        return set.isUndefined() ? NULL : &set.toObject();
-    }
-
-    const js::Value &getterValue() const {
-        return get;
-    }
-    const js::Value &setterValue() const {
-        return set;
-    }
-
-    PropertyOp getter() const {
-        return js::CastAsPropertyOp(getterObject());
-    }
-    StrictPropertyOp setter() const {
-        return js::CastAsStrictPropertyOp(setterObject());
-    }
-
-    
-
-
-
-
-    inline bool checkGetter(JSContext *cx);
-    inline bool checkSetter(JSContext *cx);
-};
 
 typedef Vector<PropDesc, 1> PropDescArray;
 
