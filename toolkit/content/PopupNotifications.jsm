@@ -307,7 +307,7 @@ PopupNotifications.prototype = {
     this._remove(notification);
 
     
-    if (this.isPanelOpen && isCurrent)
+    if (isCurrent)
       this._update();
   },
 
