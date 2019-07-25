@@ -39,6 +39,8 @@
 
 
 
+
+
 Storage = {
   GROUP_DATA_IDENTIFIER:  "tabcandy-group",
   GROUPS_DATA_IDENTIFIER: "tabcandy-groups",
@@ -85,12 +87,16 @@ Storage = {
   },
 
   
+  
+  
   init: function() {
     this._sessionStore =
       Components.classes["@mozilla.org/browser/sessionstore;1"]
         .getService(Components.interfaces.nsISessionStore);
   },
 
+  
+  
   
   wipe: function() {
     try {
@@ -116,6 +122,8 @@ Storage = {
   },
   
   
+  
+  
   saveTab: function(tab, data) {
     Utils.assert('tab', tab);
 
@@ -123,6 +131,8 @@ Storage = {
       JSON.stringify(data));
   },
 
+  
+  
   
   getTabData: function(tab) {
     Utils.assert('tab', tab);
@@ -144,6 +154,8 @@ Storage = {
   },
 
   
+  
+  
   saveGroup: function(win, data) {
     var id = data.id;
     var existingData = this.readGroupData(win);
@@ -153,6 +165,8 @@ Storage = {
   },
 
   
+  
+  
   deleteGroup: function(win, id) {
     var existingData = this.readGroupData(win);
     delete existingData[id];
@@ -160,6 +174,8 @@ Storage = {
       JSON.stringify(existingData));
   },
 
+  
+  
   
   readGroupData: function(win) {
     var existingData = {};
@@ -176,14 +192,20 @@ Storage = {
   },
 
   
+  
+  
   saveGroupsData: function(win, data) {
     this.saveData(win, this.GROUPS_DATA_IDENTIFIER, data);
   },
 
   
+  
+  
   readGroupsData: function(win) {
     return this.readData(win, this.GROUPS_DATA_IDENTIFIER);
   },
+  
+  
   
   
   saveUIData: function(win, data) {
@@ -191,20 +213,28 @@ Storage = {
   },
 
   
+  
+  
   readUIData: function(win) {
     return this.readData(win, this.UI_DATA_IDENTIFIER);
   },
 
+  
+  
   
   saveVisibilityData: function(win, data) {
     this.saveData(win, this.VISIBILITY_DATA_IDENTIFIER, data);
   },
 
   
+  
+  
   readVisibilityData: function(win) {
     return this.readData(win, this.VISIBILITY_DATA_IDENTIFIER);
   },
     
+  
+  
   
   saveData: function(win, id, data) {
     try {
@@ -216,6 +246,8 @@ Storage = {
 
   },
 
+  
+  
   
   readData: function(win, id) {
     var existingData = {};
@@ -231,6 +263,7 @@ Storage = {
     return existingData;
   }
 };
+
 
 Storage.init();
 
