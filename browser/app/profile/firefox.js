@@ -83,7 +83,7 @@ pref("extensions.update.autoUpdateDefault", true);
 
 pref("extensions.hotfix.id", "firefox-hotfix@mozilla.org");
 pref("extensions.hotfix.cert.checkAttributes", true);
-pref("extensions.hotfix.certs.1.sha1Fingerprint", "F1:DB:F9:6A:7B:B8:04:FA:48:3C:16:95:C7:2F:17:C6:5B:C2:9F:45");
+pref("extensions.hotfix.certs.1.sha1Fingerprint", "foo");
 
 
 
@@ -872,7 +872,7 @@ pref("browser.zoom.updateBackgroundTabs", true);
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
-pref("app.support.baseURL", "http://support.mozilla.com/1/firefox/%VERSION%/%OS%/%LOCALE%/");
+pref("app.support.baseURL", "http://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
