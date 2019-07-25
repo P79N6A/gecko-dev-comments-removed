@@ -542,6 +542,10 @@ abstract public class GeckoApp
             Log.i("GeckoAppJava", "error doing restart", e);
         }
         finish();
+        
+        try {
+            Thread.currentThread().sleep(1000);
+        } catch (InterruptedException ie) {}
     }
 
     public void handleNotification(String action, String alertName, String alertCookie) {
