@@ -471,6 +471,7 @@ class FrameState
         bool resultHasRhs;  
         bool lhsNeedsRemat; 
         bool rhsNeedsRemat; 
+        bool undoResult;    
     };
 
     

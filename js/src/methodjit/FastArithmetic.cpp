@@ -691,6 +691,19 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
     if (preOverflow.isSet())
         stubcc.linkExitDirect(preOverflow.get(), stubcc.masm.label());
     stubcc.linkExitDirect(overflow.get(), stubcc.masm.label());
+
+    
+    if (regs.undoResult) {
+        JS_ASSERT(op == JSOP_ADD);
+        if (reg.isSet()) {
+            stubcc.masm.neg32(reg.reg());
+            stubcc.masm.add32(reg.reg(), regs.result);
+            stubcc.masm.neg32(reg.reg());
+        } else {
+            stubcc.masm.add32(Imm32(-value), regs.result);
+        }
+    }
+
     frame.rematBinary(lhs, rhs, regs, stubcc.masm);
     stubcc.syncExitAndJump(Uses(2));
 
@@ -714,6 +727,14 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
 
     
     frame.popn(2);
+
+    
+
+
+
+
+    if (regs.undoResult)
+        frame.takeReg(regs.result);
 
     if (type == JSVAL_TYPE_INT32)
         frame.pushTypedPayload(type, regs.result);
