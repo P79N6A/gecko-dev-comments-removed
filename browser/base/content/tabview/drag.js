@@ -256,7 +256,7 @@ Drag.prototype = {
   
   
   
-  drag: function(event, ui) {
+  drag: function(event) {
     this.snap('topleft',true);
 
     if (this.parent && this.parent.expanded) {
