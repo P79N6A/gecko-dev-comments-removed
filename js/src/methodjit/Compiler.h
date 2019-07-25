@@ -572,6 +572,7 @@ class Compiler : public BaseCompiler
     bool canUseApplyTricks();
 
     
+    bool constantFoldBranch(jsbytecode *target, bool taken);
     bool emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused);
     bool iter(uintN flags);
     void iterNext();

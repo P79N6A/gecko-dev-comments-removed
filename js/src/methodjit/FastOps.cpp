@@ -414,8 +414,18 @@ mjit::Compiler::jsop_equality(JSOp op, BoolStub stub, jsbytecode *target, JSOp f
         
         FrameEntry *test = lhsTest ? rhs : lhs;
 
-        if (test->isTypeKnown())
+        if (test->isType(JSVAL_TYPE_NULL) || test->isType(JSVAL_TYPE_UNDEFINED)) {
             return emitStubCmpOp(stub, target, fused);
+        } else if (test->isTypeKnown()) {
+            
+            bool result = GetCompareCondition(op, fused) == Assembler::NotEqual;
+            frame.pop();
+            frame.pop();
+            if (target)
+                return constantFoldBranch(target, result);
+            frame.push(BooleanValue(result));
+            return true;
+        }
 
         
         RegisterID reg = frame.ownRegForType(test);
