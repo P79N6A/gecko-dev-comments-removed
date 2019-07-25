@@ -76,6 +76,8 @@
 
 #include "nsLayoutUtils.h"
 
+using namespace mozilla::dom;
+
 
 
 class nsHTMLImageElement : public nsGenericHTMLElement,
@@ -154,7 +156,7 @@ protected:
 
 nsGenericHTMLElement*
 NS_NewHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo,
-                       PRUint32 aFromParser)
+                       FromParser aFromParser)
 {
   
 

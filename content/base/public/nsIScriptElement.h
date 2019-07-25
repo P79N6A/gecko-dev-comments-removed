@@ -58,7 +58,7 @@ class nsIScriptElement : public nsIScriptLoaderObserver {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTELEMENT_IID)
 
-  nsIScriptElement(PRUint32 aFromParser)
+  nsIScriptElement(mozilla::dom::FromParser aFromParser)
     : mLineNumber(0),
       mAlreadyStarted(PR_FALSE),
       mMalformed(PR_FALSE),
@@ -66,7 +66,7 @@ public:
       mFrozen(PR_FALSE),
       mDefer(PR_FALSE),
       mAsync(PR_FALSE),
-      mParserCreated((PRUint8)aFromParser),
+      mParserCreated(aFromParser),
       mCreatorParser(nsnull)
   {
   }
@@ -122,8 +122,7 @@ public:
   
 
 
-
-  PRUint32 GetParserCreated()
+  mozilla::dom::FromParser GetParserCreated()
   {
     return mParserCreated;
   }
@@ -156,7 +155,7 @@ public:
     mFrozen = PR_FALSE;
     mUri = nsnull;
     mCreatorParser = nsnull;
-    mParserCreated = NS_NOT_FROM_PARSER;
+    mParserCreated = mozilla::dom::NOT_FROM_PARSER;
   }
 
   void SetCreatorParser(nsIParser* aParser)
@@ -234,7 +233,7 @@ protected:
   
 
 
-  PRUint8 mParserCreated;
+  mozilla::dom::FromParser mParserCreated;
 
   
 

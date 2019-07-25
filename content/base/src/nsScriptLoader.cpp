@@ -595,7 +595,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       
       
       
-      if (aElement->GetParserCreated() == NS_FROM_PARSER_NETWORK) {
+      if (aElement->GetParserCreated() == FROM_PARSER_NETWORK) {
         return ProcessRequest(request);
       }
       
@@ -641,14 +641,14 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   request->mURI = mDocument->GetDocumentURI();
   request->mLineNo = aElement->GetScriptLineNumber();
 
-  if (aElement->GetParserCreated() == NS_NOT_FROM_PARSER) {
+  if (aElement->GetParserCreated() == NOT_FROM_PARSER) {
     NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
         "A script-inserted script is inserted without an update batch?");
     nsContentUtils::AddScriptRunner(new nsScriptRequestProcessor(this,
                                                                  request));
     return NS_OK;
   }
-  if (aElement->GetParserCreated() == NS_FROM_PARSER_NETWORK &&
+  if (aElement->GetParserCreated() == FROM_PARSER_NETWORK &&
       !ReadyToExecuteScripts()) {
     NS_ASSERTION(!mParserBlockingRequest,
         "There can be only one parser-blocking script at a time");

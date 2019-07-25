@@ -63,6 +63,8 @@
 #include "nsTArray.h"
 #include "nsCycleCollectionParticipant.h"
 
+using namespace mozilla::dom;
+
 class nsXMLFragmentContentSink : public nsXMLContentSink,
                                  public nsIFragmentContentSink
 {
@@ -117,7 +119,7 @@ protected:
   virtual nsresult CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
                                  nsINodeInfo* aNodeInfo, PRUint32 aLineNumber,
                                  nsIContent** aResult, PRBool* aAppendContent,
-                                 PRUint32 aFromParser);
+                                 mozilla::dom::FromParser aFromParser);
   virtual nsresult CloseElement(nsIContent* aContent);
 
   virtual void MaybeStartLayout(PRBool aIgnorePendingSheets);
@@ -259,14 +261,14 @@ nsresult
 nsXMLFragmentContentSink::CreateElement(const PRUnichar** aAtts, PRUint32 aAttsCount,
                                         nsINodeInfo* aNodeInfo, PRUint32 aLineNumber,
                                         nsIContent** aResult, PRBool* aAppendContent,
-                                        PRUint32 aFromParser)
+                                        FromParser )
 {
   
   
   nsresult rv = nsXMLContentSink::CreateElement(aAtts, aAttsCount,
                                                 aNodeInfo, aLineNumber,
                                                 aResult, aAppendContent,
-                                                PR_FALSE);
+                                                NOT_FROM_PARSER);
 
   
   

@@ -987,10 +987,10 @@ class nsGenericHTMLFrameElement : public nsGenericHTMLElement,
 {
 public:
   nsGenericHTMLFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
-                            PRUint32 aFromParser)
+                            mozilla::dom::FromParser aFromParser)
     : nsGenericHTMLElement(aNodeInfo)
   {
-    mNetworkCreated = aFromParser == NS_FROM_PARSER_NETWORK;
+    mNetworkCreated = aFromParser == mozilla::dom::FROM_PARSER_NETWORK;
   }
   virtual ~nsGenericHTMLFrameElement();
 
@@ -1048,37 +1048,18 @@ protected:
 
 
 
-#define NS_IMPL_NS_NEW_HTML_ELEMENT(_elementName)                            \
-nsGenericHTMLElement*                                                        \
-NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo,   \
-                                  PRUint32 aFromParser)                      \
-{                                                                            \
-  return new nsHTML##_elementName##Element(aNodeInfo);                       \
-}
-
-#define NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(_elementName)               \
-nsGenericHTMLElement*                                                        \
-NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo,   \
-                                  PRUint32 aFromParser)                      \
-{                                                                            \
-  return new nsHTML##_elementName##Element(aNodeInfo, aFromParser);          \
-}
-
-
-
-
 
 
 #define NS_IMPL_STRING_ATTR(_class, _method, _atom)                  \
   NS_IMETHODIMP                                                      \
   _class::Get##_method(nsAString& aValue)                            \
   {                                                                  \
-    return GetAttrHelper(nsGkAtoms::_atom, aValue);                \
+    return GetAttrHelper(nsGkAtoms::_atom, aValue);                  \
   }                                                                  \
   NS_IMETHODIMP                                                      \
   _class::Set##_method(const nsAString& aValue)                      \
   {                                                                  \
-    return SetAttrHelper(nsGkAtoms::_atom, aValue);                \
+    return SetAttrHelper(nsGkAtoms::_atom, aValue);                  \
   }
 
 
@@ -1432,24 +1413,44 @@ NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo,   \
 
 
 
+
 #define NS_DECLARE_NS_NEW_HTML_ELEMENT(_elementName)                       \
 nsGenericHTMLElement*                                                      \
 NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo, \
-                                  PRUint32 aFromParser = 0);
+                                  mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
 
 #define NS_DECLARE_NS_NEW_HTML_ELEMENT_AS_SHARED(_elementName)             \
 inline nsGenericHTMLElement*                                               \
 NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo, \
-                                  PRUint32 aFromParser = 0)                \
+                                  mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER) \
 {                                                                          \
   return NS_NewHTMLSharedElement(aNodeInfo, aFromParser);                  \
 }
 
 
 
+
+#define NS_IMPL_NS_NEW_HTML_ELEMENT(_elementName)                            \
+nsGenericHTMLElement*                                                        \
+NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo,   \
+                                  mozilla::dom::FromParser aFromParser)      \
+{                                                                            \
+  return new nsHTML##_elementName##Element(aNodeInfo);                       \
+}
+
+#define NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(_elementName)               \
+nsGenericHTMLElement*                                                        \
+NS_NewHTML##_elementName##Element(already_AddRefed<nsINodeInfo> aNodeInfo,   \
+                                  mozilla::dom::FromParser aFromParser)      \
+{                                                                            \
+  return new nsHTML##_elementName##Element(aNodeInfo, aFromParser);          \
+}
+
+
+
 nsGenericHTMLElement*
 NS_NewHTMLElement(already_AddRefed<nsINodeInfo> aNodeInfo,
-                  PRUint32 aFromParser = 0);
+                  mozilla::dom::FromParser aFromParser = mozilla::dom::NOT_FROM_PARSER);
 
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Shared)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(SharedList)
