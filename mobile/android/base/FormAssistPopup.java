@@ -179,7 +179,6 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
             mValidationMessageText = (TextView) mValidationMessage.findViewById(R.id.validation_message_text);
         }
 
-        validationMessage = "This is an incredibly long validation message to test the width of the popup.";
         mValidationMessageText.setText(validationMessage);
 
         
