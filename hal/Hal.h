@@ -220,6 +220,19 @@ void NotifyNetworkChange(const hal::NetworkInformation& aNetworkInfo);
 
 
 
+
+void AdjustSystemClock(int32_t aDeltaMilliseconds);
+
+
+
+
+
+
+void SetTimezone(const nsCString& aTimezoneSpec);
+
+
+
+
 void Reboot();
 
 

@@ -26,7 +26,16 @@
 #include <math.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
+#include <sys/syscall.h>
+#include <cutils/properties.h>
 #include "mozilla/dom/network/Constants.h"
+#include <android/log.h>
+
+#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk", args)
+#define NsecPerMsec  1000000
+#define NsecPerSec   1000000000
+
 
 using mozilla::hal::WindowIdentifier;
 
@@ -509,6 +518,52 @@ GetLight(hal::LightType light, hal::LightConfiguration* aConfig)
 
   return true;
 }
+
+
+
+
+
+
+static int
+sys_clock_settime(clockid_t clk_id, const struct timespec *tp)
+{
+  return syscall(__NR_clock_settime, clk_id, tp);
+}
+
+void 
+AdjustSystemClock(int32_t aDeltaMilliseconds)
+{
+  struct timespec now;
+  
+  
+  sched_yield();
+  clock_gettime(CLOCK_REALTIME, &now);
+  now.tv_sec += aDeltaMilliseconds/1000;
+  now.tv_nsec += (aDeltaMilliseconds%1000)*NsecPerMsec;
+  if (now.tv_nsec >= NsecPerSec)
+  {
+    now.tv_sec += 1;
+    now.tv_nsec -= NsecPerSec;
+  }
+
+  if (now.tv_nsec < 0)
+  {
+    now.tv_nsec += NsecPerSec;
+    now.tv_sec -= 1;  
+  }
+  
+  sys_clock_settime(CLOCK_REALTIME, &now);   
+}
+
+void 
+SetTimezone(const nsCString& aTimezoneSpec)
+{ 
+  property_set("persist.sys.timezone", aTimezoneSpec.get());
+  
+  
+  tzset();
+}
+
 
 void
 EnableNetworkNotifications()
