@@ -1525,9 +1525,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   ParameterUpdateFlags stateChange = UpdateObjectParameters();
 
-  
-  
-  if ((!stateChange && !aForceLoad) || (mType == eType_Loading && mChannel)) {
+  if (!stateChange && !aForceLoad) {
     return NS_OK;
   }
 
@@ -1570,6 +1568,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     return NS_OK;
   }
 
+  
   if (stateChange & eParamChannelChanged) {
     
     
@@ -1581,6 +1580,10 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     
     
     CloseChannel();
+  } else if (mType == eType_Loading && mChannel) {
+    
+    
+    return NS_OK;
   } else if (mChannelLoaded && mChannel != aLoadingChannel) {
     
     
