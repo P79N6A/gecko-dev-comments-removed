@@ -6200,7 +6200,7 @@ IsActuallyEditable(nsIContent* aContainer, nsIContent* aChild)
 {
   return (aChild->IsEditable() &&
           (aContainer->IsEditable() ||
-           aChild->HasFlag(NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR)));
+           aChild->MayHaveContentEditableAttr()));
 }
 
 
