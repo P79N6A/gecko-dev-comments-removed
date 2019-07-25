@@ -138,8 +138,7 @@ public:
   {  }
 
   
-  virtual void* GetNativeData(PRUint32 aDataType)
-  { return nsnull; }
+  virtual void* GetNativeData(PRUint32 aDataType);
   NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent)
   { return NS_ERROR_UNEXPECTED; }
 

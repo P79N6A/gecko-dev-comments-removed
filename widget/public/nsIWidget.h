@@ -107,6 +107,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_PLUGIN_PORT 8
 #define NS_NATIVE_SCREEN      9
 #define NS_NATIVE_SHELLWIDGET 10      // Get the shell GtkWidget
+
+
+#define NS_NATIVE_SHAREABLE_WINDOW 11
 #ifdef XP_MACOSX
 #define NS_NATIVE_PLUGIN_PORT_QD    100
 #define NS_NATIVE_PLUGIN_PORT_CG    101
