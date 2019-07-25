@@ -1529,6 +1529,12 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
             f.regs.pc = nextpc;
             break;
 
+          case JSOP_CALLGLOBAL:
+            
+            nextsp[-1].setUndefined();
+            f.regs.pc = nextpc;
+            break;
+
           case JSOP_CALLPROP: {
             
 
