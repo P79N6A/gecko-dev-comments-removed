@@ -43,6 +43,7 @@ import org.mozilla.gecko.gfx.FloatSize;
 import android.content.Context;
 import android.util.Log;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -65,6 +66,9 @@ public class AutoCompletePopup extends ListView {
     private Animation mAnimation; 
 
     private static final String LOGTAG = "AutoCompletePopup";
+
+    private static int sMinWidth = 0;
+    private static final int AUTOCOMPLETE_MIN_WIDTH_IN_DPI = 200;
 
     public AutoCompletePopup(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -128,9 +132,24 @@ public class AutoCompletePopup extends ListView {
         FloatSize viewport = GeckoApp.mAppContext.getLayerController().getViewportSize();
 
         
+        if (sMinWidth == 0) {
+            DisplayMetrics metrics = new DisplayMetrics();
+            GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            sMinWidth = (int) (AUTOCOMPLETE_MIN_WIDTH_IN_DPI * metrics.density);
+        }
+
+        
         
         if ((left + width) < viewport.width) 
-            listWidth = left + width;
+            listWidth = left < 0 ? left + width : width;
+
+        
+        if (listWidth >= 0 && listWidth < sMinWidth) {
+            listWidth = sMinWidth;
+
+            if ((listLeft + listWidth) > viewport.width)
+                listLeft = (int) (viewport.width - listWidth);
+        }
 
         
         
