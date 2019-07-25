@@ -140,10 +140,75 @@ extern "C" void JaegerStubVeneer(void);
 #endif
 
 namespace mjit {
+
+
+
+
+
+struct Trampolines {
+    typedef void (*TrampolinePtr)();
+
+    TrampolinePtr       forceReturn;
+    JSC::ExecutablePool *forceReturnPool;
+
+#if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
+    TrampolinePtr       forceReturnFast;
+    JSC::ExecutablePool *forceReturnFastPool;
+#endif
+};
+
+
+
+
+
+
+
+class JaegerCompartment {
+    JSC::ExecutableAllocator *execAlloc;     
+    Trampolines              trampolines;    
+    VMFrame                  *activeFrame_;  
+
+    void Finish();
+
+  public:
+    bool Initialize();
+
+    ~JaegerCompartment() { Finish(); }
+
+    JSC::ExecutablePool *poolForSize(size_t size) {
+        return execAlloc->poolForSize(size);
+    }
+
+    VMFrame *activeFrame() {
+        return activeFrame_;
+    }
+
+    void pushActiveFrame(VMFrame *f) {
+        f->previous = activeFrame_;
+        activeFrame_ = f;
+    }
+
+    void popActiveFrame() {
+        JS_ASSERT(activeFrame_);
+        activeFrame_ = activeFrame_->previous;
+    }
+
+    Trampolines::TrampolinePtr forceReturnTrampoline() const {
+        return trampolines.forceReturn;
+    }
+
+#if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
+    Trampolines::TrampolinePtr forceReturnFastTrampoline() const {
+        return trampolines.forceReturnFast;
+    }
+#endif
+};
+
 namespace ic {
 # if defined JS_POLYIC
     struct PICInfo;
     struct GetElementIC;
+    struct SetElementIC;
 # endif
 # if defined JS_MONOIC
     struct MICInfo;
@@ -184,6 +249,7 @@ typedef void * (JS_FASTCALL *VoidPtrStubTraceIC)(VMFrame &, js::mjit::ic::TraceI
 #ifdef JS_POLYIC
 typedef void (JS_FASTCALL *VoidStubPIC)(VMFrame &, js::mjit::ic::PICInfo *);
 typedef void (JS_FASTCALL *VoidStubGetElemIC)(VMFrame &, js::mjit::ic::GetElementIC *);
+typedef void (JS_FASTCALL *VoidStubSetElemIC)(VMFrame &f, js::mjit::ic::SetElementIC *);
 #endif
 
 namespace mjit {
@@ -216,6 +282,8 @@ struct JITScript {
     uint32          nPICs;      
     ic::GetElementIC *getElems;
     uint32           nGetElems;
+    ic::SetElementIC *setElems;
+    uint32           nSetElems;
 #endif
     void            *invokeEntry;       
     void            *fastEntry;         
