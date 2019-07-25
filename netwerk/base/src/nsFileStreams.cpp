@@ -508,13 +508,28 @@ nsFileInputStream::Write(IPC::Message *aMsg)
 
 
 
+NS_IMPL_ADDREF_INHERITED(nsPartialFileInputStream, nsFileStreamBase)
+NS_IMPL_RELEASE_INHERITED(nsPartialFileInputStream, nsFileStreamBase)
+
+NS_IMPL_CLASSINFO(nsPartialFileInputStream, NULL, nsIClassInfo::THREADSAFE,
+                  NS_PARTIALLOCALFILEINPUTSTREAM_CID)
 
 
-NS_IMPL_ISUPPORTS_INHERITED3(nsPartialFileInputStream,
-                             nsFileStreamBase,
+
+NS_INTERFACE_MAP_BEGIN(nsPartialFileInputStream)
+    NS_INTERFACE_MAP_ENTRY(nsIInputStream)
+    NS_INTERFACE_MAP_ENTRY(nsIPartialFileInputStream)
+    NS_INTERFACE_MAP_ENTRY(nsILineInputStream)
+    NS_INTERFACE_MAP_ENTRY(nsIIPCSerializable)
+    NS_IMPL_QUERY_CLASSINFO(nsPartialFileInputStream)
+NS_INTERFACE_MAP_END_INHERITING(nsFileStreamBase)
+
+NS_IMPL_CI_INTERFACE_GETTER5(nsPartialFileInputStream,
                              nsIInputStream,
                              nsIPartialFileInputStream,
-                             nsILineInputStream)
+                             nsISeekableStream,
+                             nsILineInputStream,
+                             nsIIPCSerializable)
 
 nsresult
 nsPartialFileInputStream::Create(nsISupports *aOuter, REFNSIID aIID,
@@ -612,6 +627,57 @@ nsPartialFileInputStream::Seek(PRInt32 aWhence, PRInt64 aOffset)
         mPosition = offset - mStart;
     }
     return rv;
+}
+
+bool
+nsPartialFileInputStream::Read(const IPC::Message *aMsg, void **aIter)
+{
+    using IPC::ReadParam;
+
+    
+    PRUint64 start;
+    PRUint64 length;
+    if (!ReadParam(aMsg, aIter, &start) ||
+        !ReadParam(aMsg, aIter, &length))
+        return false;
+
+    
+    if (!nsFileInputStream::Read(aMsg, aIter))
+        return false;
+
+    
+    mStart = start;
+    mLength = length;
+
+    
+    
+    
+    mPosition = 0;
+
+    
+    
+    
+    return NS_SUCCEEDED(nsFileInputStream::Seek(NS_SEEK_SET, start));
+}
+
+void
+nsPartialFileInputStream::Write(IPC::Message *aMsg)
+{
+    using IPC::WriteParam;
+
+    
+    WriteParam(aMsg, mStart);
+    WriteParam(aMsg, mLength);
+
+    
+    
+    
+    if (mPosition) {
+      NS_WARNING("No support for sending a partially-consumed input stream!");
+    }
+
+    
+    nsFileInputStream::Write(aMsg);
 }
 
 
