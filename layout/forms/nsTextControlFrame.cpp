@@ -1370,11 +1370,11 @@ nsTextControlFrame::SetInitialChildList(nsIAtom*        aListName,
   
   if (first) {
     first->AddStateBits(NS_FRAME_REFLOW_ROOT);
-  }
 
-  nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
-  NS_ASSERTION(txtCtrl, "Content not a text control element");
-  txtCtrl->InitializeKeyboardEventListeners();
+    nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
+    NS_ASSERTION(txtCtrl, "Content not a text control element");
+    txtCtrl->InitializeKeyboardEventListeners();
+  }
   return rv;
 }
 
