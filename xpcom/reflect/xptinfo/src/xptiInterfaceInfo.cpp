@@ -619,10 +619,7 @@ xptiInterfaceEntry::HasAncestor(const nsIID * iid, PRBool *_retval)
 nsresult 
 xptiInterfaceEntry::GetInterfaceInfo(xptiInterfaceInfo** info)
 {
-#ifdef DEBUG
-    xptiInterfaceInfoManager::GetSingleton()->GetWorkingSet()->mTableLock.
-        AssertCurrentThreadOwns();
-#endif
+    MonitorAutoEnter lock(xptiInterfaceInfoManager::GetInfoMonitor());
     LOG_INFO_MONITOR_ENTRY;
 
     if(!mInfo)
@@ -647,19 +644,6 @@ xptiInterfaceEntry::LockedInvalidateInterfaceInfo()
         mInfo->Invalidate(); 
         mInfo = nsnull;
     }
-}
-
-PRBool
-xptiInterfaceInfo::BuildParent()
-{
-    mozilla::MutexAutoLock lock(xptiInterfaceInfoManager::GetSingleton()->
-                                    GetWorkingSet()->mTableLock);
-    NS_ASSERTION(mEntry && 
-                 mEntry->IsFullyResolved() && 
-                 !mParent &&
-                 mEntry->Parent(),
-                "bad BuildParent call");
-    return NS_SUCCEEDED(mEntry->Parent()->GetInterfaceInfo(&mParent));
 }
 
 
@@ -695,35 +679,27 @@ xptiInterfaceInfo::Release(void)
     NS_LOG_RELEASE(this, cnt, "xptiInterfaceInfo");
     if(!cnt)
     {
+        MonitorAutoEnter lock(xptiInterfaceInfoManager::GetInfoMonitor());
+        LOG_INFO_MONITOR_ENTRY;
         
         
+        
+        
+        
+        
+        
+        if(entry && !entry->InterfaceInfoEquals(this))
+            return 0;
+
+        
+        
+        if(mRefCnt)
+            return 1;
+        
+        if(mEntry)
         {
-            mozilla::MutexAutoLock lock(xptiInterfaceInfoManager::
-                                            GetSingleton()->GetWorkingSet()->
-                                            mTableLock);
-            LOG_INFO_MONITOR_ENTRY;
-
-            
-            
-            
-            
-            
-            
-            
-            if(entry && !entry->InterfaceInfoEquals(this))
-                return 0;
-
-            
-            
-            
-            if(mRefCnt)
-                return 1;
-
-            if(mEntry)
-            {
-                mEntry->LockedInterfaceInfoDeathNotification();
-                mEntry = nsnull;
-            }
+            mEntry->LockedInterfaceInfoDeathNotification();
+            mEntry = nsnull;
         }
 
         delete this;
