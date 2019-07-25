@@ -56,14 +56,14 @@ template<class T>
 class OperatorDelete
 {
 public:
-  static void destroy(T* ptr) { delete ptr; }
+  static void destroy(T* ptr) { js_delete(ptr); }
 };
 
 template<class T>
 class OperatorArrayDelete
 {
 public:
-  static void destroy(T* ptr) { delete[] ptr; }
+  static void destroy(T* ptr) { js_array_delete(ptr); }
 };
 
 
