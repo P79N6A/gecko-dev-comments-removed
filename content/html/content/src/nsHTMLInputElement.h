@@ -188,6 +188,15 @@ public:
 
   virtual already_AddRefed<nsIRadioGroupContainer> GetRadioGroupContainer();
 
+ 
+
+
+
+
+
+
+  already_AddRefed<nsIDOMHTMLInputElement> GetSelectedRadioButton();
+
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual void UpdateEditableState()
@@ -204,6 +213,7 @@ public:
 
   
   PRBool   IsTooLong();
+  PRBool   IsValueMissing();
   PRBool   IsBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidationMessageType aType);
@@ -212,6 +222,29 @@ protected:
   
   
   using nsGenericHTMLFormElement::IsSingleLineTextControl;
+
+  
+
+
+
+
+  enum ValueModeType
+  {
+    
+    
+    VALUE_MODE_VALUE,
+    
+    
+    VALUE_MODE_DEFAULT,
+    
+    
+    VALUE_MODE_DEFAULT_ON,
+    
+    
+    
+    
+    VALUE_MODE_FILENAME
+  };
 
   
   nsresult SetValueInternal(const nsAString& aValue,
@@ -329,6 +362,30 @@ protected:
 
 
   PRBool NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisitor) const;
+
+  
+
+
+  ValueModeType GetValueMode() const;
+
+  
+
+
+
+
+
+
+  PRBool IsMutable() const;
+
+  
+
+
+  PRBool DoesReadOnlyApply() const;
+
+  
+
+
+  PRBool DoesRequiredApply() const;
 
   void FreeData();
   nsTextEditorState *GetEditorState() const;
