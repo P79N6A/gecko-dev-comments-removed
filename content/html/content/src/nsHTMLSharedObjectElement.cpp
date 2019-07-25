@@ -298,9 +298,11 @@ void
 nsHTMLSharedObjectElement::UnbindFromTree(bool aDeep,
                                           bool aNullParent)
 {
+  RemovedFromDocument();
   nsObjectLoadingContent::UnbindFromTree(aDeep, aNullParent);
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
+
 
 
 nsresult
@@ -308,10 +310,8 @@ nsHTMLSharedObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
                                    nsIAtom *aPrefix, const nsAString &aValue,
                                    bool aNotify)
 {
-  nsresult rv = nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix,
-                                              aValue, aNotify);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  
+  
   
   
   
@@ -321,10 +321,13 @@ nsHTMLSharedObjectElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom *aName,
   
   if (aNotify && IsInDoc() && mIsDoneAddingChildren &&
       aNameSpaceID == kNameSpaceID_None && aName == URIAttrName()) {
-    return LoadObject(aNotify, true);
+    nsCAutoString type;
+    GetTypeAttrValue(type);
+    LoadObject(aValue, aNotify, type, true);
   }
 
-  return NS_OK;
+  return nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
+                                       aNotify);
 }
 
 bool
@@ -465,7 +468,19 @@ nsHTMLSharedObjectElement::GetAttributeMappingFunction() const
 void
 nsHTMLSharedObjectElement::StartObjectLoad(bool aNotify)
 {
-  LoadObject(aNotify);
+  nsCAutoString type;
+  GetTypeAttrValue(type);
+
+  nsAutoString uri;
+  if (!GetAttr(kNameSpaceID_None, URIAttrName(), uri)) {
+    
+    
+    
+    LoadObject(nsnull, aNotify, type);
+  }
+  else {
+    LoadObject(uri, aNotify, type);
+  }
   SetIsNetworkCreated(false);
 }
 
@@ -478,7 +493,7 @@ nsHTMLSharedObjectElement::IntrinsicState() const
 PRUint32
 nsHTMLSharedObjectElement::GetCapabilities() const
 {
-  PRUint32 capabilities = eSupportPlugins | eAllowPluginSkipChannel;
+  PRUint32 capabilities = eSupportPlugins | eOverrideServerType;
   if (mNodeInfo->Equals(nsGkAtoms::embed)) {
     capabilities |= eSupportSVG | eSupportImages;
   }
@@ -489,7 +504,7 @@ nsHTMLSharedObjectElement::GetCapabilities() const
 void
 nsHTMLSharedObjectElement::DestroyContent()
 {
-  nsObjectLoadingContent::DestroyContent();
+  RemovedFromDocument();
   nsGenericHTMLElement::DestroyContent();
 }
 
