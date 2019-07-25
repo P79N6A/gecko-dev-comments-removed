@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x7db4261e, 0xf356, 0x45a1, \
-    { 0xb2, 0xc1, 0xf0, 0x85, 0xea, 0x93, 0xb3, 0xb4 } }
+  { 0xb4fa00ae, 0x913c, 0x42b1, \
+    { 0x93, 0xc8, 0x41, 0x57, 0x1e, 0x3d, 0x94, 0x99 } }
 
 
 
@@ -278,33 +278,66 @@ struct InputContext {
   PRUint32 mIMEEnabled;
 
   
-  enum {
-    FOCUS_REMOVED       = 0x0001,
-    FOCUS_MOVED_UNKNOWN = 0x0002,
-    FOCUS_MOVED_BY_MOVEFOCUS = 0x0004,
-    FOCUS_MOVED_BY_MOUSE = 0x0008,
-    FOCUS_MOVED_BY_KEY = 0x0010,
-    FOCUS_MOVED_TO_MENU = 0x0020,
-    FOCUS_MOVED_FROM_MENU = 0x0040,
-    EDITOR_STATE_MODIFIED = 0x0080,
-    FOCUS_FROM_CONTENT_PROCESS = 0x0100
-  };
-
-  bool FocusMovedByUser() const {
-    return (mReason & FOCUS_MOVED_BY_MOUSE) || (mReason & FOCUS_MOVED_BY_KEY);
-  };
-
-  bool FocusMovedInContentProcess() const {
-    return (mReason & FOCUS_FROM_CONTENT_PROCESS);
-  };
-
-  PRUint32 mReason;
-
-  
   nsString mHTMLInputType;
 
   
   nsString mActionHint;
+
+  InputContext() : mIMEEnabled(IME_ENABLED) {}
+};
+
+struct InputContextAction {
+  
+
+
+
+  enum Cause {
+    
+    
+    CAUSE_UNKNOWN,
+    
+    
+    CAUSE_UNKNOWN_CHROME,
+    
+    CAUSE_KEY,
+    
+    CAUSE_MOUSE
+  };
+  Cause mCause;
+
+  
+
+
+  enum FocusChange {
+    FOCUS_NOT_CHANGED,
+    
+    GOT_FOCUS,
+    
+    LOST_FOCUS,
+    
+    
+    MENU_GOT_PSEUDO_FOCUS,
+    
+    
+    MENU_LOST_PSEUDO_FOCUS
+  };
+  FocusChange mFocusChange;
+
+  bool ContentGotFocusByTrustedCause() const {
+    return (mFocusChange == GOT_FOCUS &&
+            mCause != CAUSE_UNKNOWN);
+  }
+
+  InputContextAction() :
+    mCause(CAUSE_UNKNOWN), mFocusChange(FOCUS_NOT_CHANGED)
+  {
+  }
+
+  InputContextAction(Cause aCause,
+                     FocusChange aFocusChange = FOCUS_NOT_CHANGED) :
+    mCause(aCause), mFocusChange(aFocusChange)
+  {
+  }
 };
 
 } 
@@ -323,6 +356,7 @@ class nsIWidget : public nsISupports {
     typedef LayerManager::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayersChild PLayersChild;
     typedef mozilla::widget::InputContext InputContext;
+    typedef mozilla::widget::InputContextAction InputContextAction;
 
     
     struct ThemeGeometry {
@@ -1314,16 +1348,13 @@ class nsIWidget : public nsISupports {
     
 
 
-
-
-
-    NS_IMETHOD SetInputMode(const InputContext& aContext) = 0;
+    NS_IMETHOD_(void) SetInputContext(const InputContext& aContext,
+                                      const InputContextAction& aAction) = 0;
 
     
 
 
-
-    NS_IMETHOD GetInputMode(InputContext& aContext) = 0;
+    NS_IMETHOD_(InputContext) GetInputContext() = 0;
 
     
 
