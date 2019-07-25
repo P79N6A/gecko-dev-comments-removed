@@ -398,6 +398,14 @@ toolbarbutton.choice-remotetabs {
 }
 
 
+
+
+
+#content-stack > deck > browser {
+  -moz-user-focus: ignore;
+}
+
+
 .panel-header {
   margin: 0;
   padding: 4px 8px 8px 8px;
