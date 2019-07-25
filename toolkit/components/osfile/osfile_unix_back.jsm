@@ -139,11 +139,16 @@
          new Type("string",
                   ctypes.char.ptr);
 
-
        
        
        
 
+       
+
+
+       Types.mode_t = Object.create(
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_MODE_T),
+         {name: {value: "mode_t"}});
 
        
 

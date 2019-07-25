@@ -202,6 +202,19 @@ static dom::ConstantSpec gLibcProperties[] =
 #endif 
   INT_CONSTANT(EXDEV),
 
+  
+  
+  
+  
+  
+  
+  
+
+#if defined(XP_UNIX)
+  
+  {"OSFILE_SIZEOF_MODE_T", INT_TO_JSVAL(sizeof (mode_t)) },
+#endif 
+
   PROP_END
 };
 
