@@ -319,7 +319,6 @@ GenConversionForIntArray(Assembler &masm, js::TypedArray *tarray, const ValueRem
 
 
 
-
 static void
 GenConversionForFloatArray(Assembler &masm, js::TypedArray *tarray, const ValueRemat &vr,
                            FPRegisterID destReg, uint32 saveMask)
@@ -523,15 +522,23 @@ StoreToTypedArray(JSContext *cx, Assembler &masm, js::TypedArray *tarray, T addr
       }
 
       case js::TypedArray::TYPE_FLOAT32:
-      case js::TypedArray::TYPE_FLOAT64:
+      case js::TypedArray::TYPE_FLOAT64: {
+        
+
+
+
+        Registers regs(Registers::TempFPRegs);
+        FPRegisterID temp = regs.takeAnyReg().fpreg();
+
         if (!ConstantFoldForFloatArray(cx, &vr))
             return false;
-        GenConversionForFloatArray(masm, tarray, vr, Registers::FPConversionTemp, saveMask);
+        GenConversionForFloatArray(masm, tarray, vr, temp, saveMask);
         if (vr.isConstant())
             StoreToFloatArray(masm, tarray, ImmDouble(vr.value().toDouble()), address);
         else
-            StoreToFloatArray(masm, tarray, Registers::FPConversionTemp, address);
+            StoreToFloatArray(masm, tarray, temp, address);
         break;
+      }
     }
 
     return true;
