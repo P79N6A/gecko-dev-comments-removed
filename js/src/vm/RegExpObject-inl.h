@@ -137,6 +137,7 @@ RegExpObject::setSticky(bool enabled)
     setSlot(STICKY_FLAG_SLOT, BooleanValue(enabled));
 }
 
+#if ENABLE_YARR_JIT
 
 inline bool
 detail::RegExpCode::isJITRuntimeEnabled(JSContext *cx)
@@ -147,6 +148,7 @@ detail::RegExpCode::isJITRuntimeEnabled(JSContext *cx)
     return true;
 #endif
 }
+#endif
 
 inline bool
 RegExpToShared(JSContext *cx, JSObject &obj, RegExpGuard *g)
