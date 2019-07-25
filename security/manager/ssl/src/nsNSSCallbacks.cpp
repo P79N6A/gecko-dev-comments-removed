@@ -831,6 +831,11 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
 
   nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
 
+  if (infoObject) {
+    
+    infoObject->SetFirstServerHelloReceived();
+  }
+
   
   
   nsSSLIOLayerHelpers::rememberTolerantSite(infoObject);
