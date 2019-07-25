@@ -2791,10 +2791,7 @@ PRBool nsDisplayTransform::UntransformRect(const nsRect &aUntransformedBounds,
   
   result = matrix.Inverse().ProjectRectBounds(result);
 
-  *aOutRect = nsRect(NSFloatPixelsToAppUnits(float(result.x), factor),
-                     NSFloatPixelsToAppUnits(float(result.y), factor),
-                     NSFloatPixelsToAppUnits(float(result.width), factor),
-                     NSFloatPixelsToAppUnits(float(result.height), factor));
+  *aOutRect = nsLayoutUtils::RoundGfxRectToAppRect(result, factor);
 
   return PR_TRUE;
 }
