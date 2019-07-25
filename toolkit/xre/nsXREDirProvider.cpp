@@ -1104,7 +1104,7 @@ nsXREDirProvider::GetUserDataDirectoryHome(nsILocalFile** aFile, PRBool aLocal)
 #elif defined(ANDROID)
   
   
-  const char* homeDir = "/data/data/org.mozilla." MOZ_APP_NAME;
+  const char* homeDir = "/data/data/" ANDROID_PACKAGE_NAME;
 
   rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), PR_TRUE,
                              getter_AddRefs(localDir));
