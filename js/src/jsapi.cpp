@@ -4236,11 +4236,10 @@ js_generic_fast_native_method_dispatcher(JSContext *cx, uintN argc, jsval *vp)
     fs = (JSFunctionSpec *) JSVAL_TO_PRIVATE(fsv);
     JS_ASSERT((~fs->flags & (JSFUN_FAST_NATIVE | JSFUN_GENERIC_NATIVE)) == 0);
 
-    
-
-
-
-
+    if (argc < 1) {
+        js_ReportMissingArg(cx, vp, 0);
+        return JS_FALSE;
+    }
 
     if (JSVAL_IS_PRIMITIVE(vp[2])) {
         
@@ -4266,15 +4265,9 @@ js_generic_fast_native_method_dispatcher(JSContext *cx, uintN argc, jsval *vp)
 
     if (!js_ComputeThis(cx, vp + 2))
         return JS_FALSE;
+
     
-
-
-
-
-    if (argc != 0) {
-        
-        vp[2 + --argc] = JSVAL_VOID;
-    }
+    vp[2 + --argc] = JSVAL_VOID;
 
     native =
 #ifdef JS_TRACER
@@ -4300,11 +4293,10 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
     JS_ASSERT((fs->flags & (JSFUN_FAST_NATIVE | JSFUN_GENERIC_NATIVE)) ==
               JSFUN_GENERIC_NATIVE);
 
-    
-
-
-
-
+    if (argc < 1) {
+        js_ReportMissingArg(cx, argv - 2, 0);
+        return JS_FALSE;
+    }
 
     if (JSVAL_IS_PRIMITIVE(argv[0])) {
         
@@ -4334,14 +4326,7 @@ js_generic_native_method_dispatcher(JSContext *cx, JSObject *obj,
     JS_ASSERT(cx->fp->argv == argv);
 
     
-
-
-
-
-    if (argc != 0) {
-        
-        argv[--argc] = JSVAL_VOID;
-    }
+    argv[--argc] = JSVAL_VOID;
 
     return fs->call(cx, JSVAL_TO_OBJECT(argv[-1]), argc, argv, rval);
 }
