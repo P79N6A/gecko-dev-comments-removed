@@ -278,15 +278,17 @@ nsSVGTextFrame::GetCanvasTM()
 static void
 MarkDirtyBitsOnDescendants(nsIFrame *aFrame)
 {
-  if (aFrame->GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_FIRST_REFLOW)) {
-    
+  
+  
+  
+  if (aFrame->GetStateBits() & (NS_FRAME_FIRST_REFLOW)) {
     
     return;
   }
   nsIFrame* kid = aFrame->GetFirstPrincipalChild();
   while (kid) {
     nsISVGChildFrame* svgkid = do_QueryFrame(kid);
-    if (svgkid && !(kid->GetStateBits() & NS_FRAME_IS_DIRTY)) {
+    if (svgkid) {
       MarkDirtyBitsOnDescendants(kid);
       kid->AddStateBits(NS_FRAME_IS_DIRTY);
     }
