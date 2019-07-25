@@ -192,6 +192,6 @@ nsXULColorPickerAccessible::CacheChildren()
     }
 
     
-    GetDocAccessible()->UnbindFromDocument(child);
+    Document()->UnbindFromDocument(child);
   }
 }

@@ -193,7 +193,7 @@ public:
 
 
   nsDocAccessible* ParentDocument() const
-    { return mParent ? mParent->GetDocAccessible() : nsnull; }
+    { return mParent ? mParent->Document() : nsnull; }
 
   
 

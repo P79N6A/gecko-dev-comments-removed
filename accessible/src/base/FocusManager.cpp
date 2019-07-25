@@ -214,7 +214,7 @@ FocusManager::ActiveItemChanged(nsAccessible* aItem, bool aCheckIfActive)
   
   nsAccessible* target = FocusedAccessible();
   if (target)
-    DispatchFocusEvent(target->GetDocAccessible(), target);
+    DispatchFocusEvent(target->Document(), target);
 }
 
 void
@@ -347,7 +347,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   
   
   
-  nsDocAccessible* targetDocument = target->GetDocAccessible();
+  nsDocAccessible* targetDocument = target->Document();
   nsAccessible* anchorJump = targetDocument->AnchorJump();
   if (anchorJump) {
     if (target == targetDocument) {
