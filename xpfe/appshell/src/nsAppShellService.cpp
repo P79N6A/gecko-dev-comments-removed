@@ -308,9 +308,6 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
   if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_POPUP)
     widgetInitData.mWindowType = eWindowType_popup;
 
-  if (aChromeMask & nsIWebBrowserChrome::CHROME_MAC_SUPPRESS_ANIMATION)
-    widgetInitData.mIsAnimationSuppressed = true;
-
 #ifdef XP_MACOSX
   
   
