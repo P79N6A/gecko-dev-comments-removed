@@ -731,6 +731,13 @@ var BrowserUI = {
     }
 
     
+    let contentHelper = document.getElementById("content-navigator");
+    if (contentHelper.isActive) {
+      contentHelper.hide();
+      return;
+    }
+
+    
     let tab = Browser.selectedTab;
     let browser = tab.browser;
 
