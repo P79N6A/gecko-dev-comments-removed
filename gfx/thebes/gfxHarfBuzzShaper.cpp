@@ -924,10 +924,12 @@ GetRoundOffsetsToPixels(gfxContext *aContext,
         
         
         switch (cairo_scaled_font_get_type(scaled_font)) {
+#if CAIRO_HAS_DWRITE_FONT 
         case CAIRO_FONT_TYPE_DWRITE:
             
             
             return;
+#endif
         case CAIRO_FONT_TYPE_QUARTZ:
             
             if (cairo_surface_get_type(cairo_get_target(cr)) ==
