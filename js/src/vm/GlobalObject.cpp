@@ -55,6 +55,10 @@
 #include "vm/RegExpObject-inl.h"
 #include "vm/RegExpStatics-inl.h"
 
+#ifdef JS_METHODJIT
+#include "methodjit/Retcon.h"
+#endif
+
 using namespace js;
 
 JSObject *
@@ -360,6 +364,21 @@ GlobalObject::clear(JSContext *cx)
 
 
     cx->compartment->newObjectCache.reset();
+
+#ifdef JS_METHODJIT
+    
+
+
+
+
+    for (gc::CellIter i(cx, cx->compartment, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
+        JSScript *script = i.get<JSScript>();
+        if (script->compileAndGo && script->hasJITCode() && script->hasClearedGlobal()) {
+            mjit::Recompiler::clearStackReferences(cx, script);
+            mjit::ReleaseScriptCode(cx, script);
+        }
+    }
+#endif
 }
 
 bool
