@@ -2371,8 +2371,6 @@ SessionStoreService.prototype = {
 
       browser.stop(); 
 
-      tabbrowser.updateIcon(tab);
-
       
       
       let activeIndex = (tabData.index || tabData.entries.length) - 1;
