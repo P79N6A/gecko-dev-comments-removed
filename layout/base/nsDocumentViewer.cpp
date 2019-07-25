@@ -2315,7 +2315,10 @@ DocumentViewerImpl::MakeWindow(const nsSize& aSize, nsIView* aContainerView)
   
   
   
-  if (!isExternalResource && (mParentWidget || !aContainerView)) {
+  
+  
+  if (!mDocument->IsBeingUsedAsImage() && !isExternalResource &&
+      (mParentWidget || !aContainerView)) {
     
     
     
