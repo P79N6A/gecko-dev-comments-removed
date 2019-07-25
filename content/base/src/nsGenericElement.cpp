@@ -3960,25 +3960,24 @@ nsGenericElement::SaveSubtreeState()
 
 static
 bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
-                        bool aIsReplace, nsINode* aRefChild)
+                      bool aIsReplace, nsINode* aRefChild)
 {
-  NS_PRECONDITION(aNewChild, "Must have new child");
-  NS_PRECONDITION(!aIsReplace || aRefChild,
-                  "Must have ref content for replace");
-  NS_PRECONDITION(aParent->IsNodeOfType(nsINode::eDOCUMENT) ||
-                  aParent->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
-                  aParent->IsElement(),
-                  "Nodes that are not documents, document fragments or "
-                  "elements can't be parents!");
+  MOZ_ASSERT(aNewChild, "Must have new child");
+  MOZ_ASSERT_IF(aIsReplace, aRefChild);
+  MOZ_ASSERT(aParent);
+  MOZ_ASSERT(aParent->IsNodeOfType(nsINode::eDOCUMENT) ||
+             aParent->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
+             aParent->IsElement(),
+             "Nodes that are not documents, document fragments or elements "
+             "can't be parents!");
 
   
   
   
   
-  if (aParent &&
-      (aNewChild == aParent ||
-       (aNewChild->GetFirstChild() &&
-        nsContentUtils::ContentIsDescendantOf(aParent, aNewChild)))) {
+  if (aNewChild == aParent ||
+      (aNewChild->GetFirstChild() &&
+       nsContentUtils::ContentIsDescendantOf(aParent, aNewChild))) {
     return false;
   }
 
@@ -3992,7 +3991,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
   case nsIDOMNode::CDATA_SECTION_NODE :
   case nsIDOMNode::ENTITY_REFERENCE_NODE :
     
-    return aParent != nsnull;
+    return aParent->NodeType() != nsIDOMNode::DOCUMENT_NODE;
   case nsIDOMNode::ELEMENT_NODE :
     {
       if (!aParent->IsNodeOfType(nsINode::eDOCUMENT)) {
