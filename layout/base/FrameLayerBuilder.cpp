@@ -934,8 +934,39 @@ GetTranslationForThebesLayer(ThebesLayer* aLayer)
   return nsIntPoint(PRInt32(transform.x0), PRInt32(transform.y0));
 }
 
-static PRBool FuzzyEqual(gfxPoint aV1, gfxPoint aV2) {
-  return fabs(aV2.x - aV1.x) < 0.02 && fabs(aV2.y - aV1.y) < 0.02;
+static const double SUBPIXEL_OFFSET_EPSILON = 0.02;
+
+static PRBool
+SubpixelOffsetFuzzyEqual(gfxPoint aV1, gfxPoint aV2)
+{
+  return fabs(aV2.x - aV1.x) < SUBPIXEL_OFFSET_EPSILON &&
+         fabs(aV2.y - aV1.y) < SUBPIXEL_OFFSET_EPSILON;
+}
+
+
+
+
+
+
+
+
+static PRInt32
+RoundToMatchResidual(double aValue, double aOldResidual)
+{
+  PRInt32 v = NSToIntRoundUp(aValue);
+  double residual = aValue - v;
+  if (aOldResidual < 0) {
+    if (residual > 0 && fabs(residual - 1.0 - aOldResidual) < SUBPIXEL_OFFSET_EPSILON) {
+      
+      return PRInt32(ceil(aValue));
+    }
+  } else if (aOldResidual > 0) {
+    if (residual < 0 && fabs(residual + 1.0 - aOldResidual) < SUBPIXEL_OFFSET_EPSILON) {
+      
+      return PRInt32(floor(aValue));
+    }
+  }
+  return v;
 }
 
 already_AddRefed<ThebesLayer>
@@ -999,7 +1030,10 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   gfxPoint scaledOffset(
       NSAppUnitsToDoublePixels(offset.x, appUnitsPerDevPixel)*mParameters.mXScale,
       NSAppUnitsToDoublePixels(offset.y, appUnitsPerDevPixel)*mParameters.mYScale);
-  nsIntPoint pixOffset(NSToIntRoundUp(scaledOffset.x), NSToIntRoundUp(scaledOffset.y));
+  
+  
+  nsIntPoint pixOffset(RoundToMatchResidual(scaledOffset.x, data->mActiveScrolledRootPosition.x),
+                       RoundToMatchResidual(scaledOffset.y, data->mActiveScrolledRootPosition.y));
   gfxMatrix matrix;
   matrix.Translate(gfxPoint(pixOffset.x, pixOffset.y));
   layer->SetTransform(gfx3DMatrix::From2D(matrix));
@@ -1012,7 +1046,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   
   
   
-  if (!FuzzyEqual(activeScrolledRootTopLeft, data->mActiveScrolledRootPosition)) {
+  if (!SubpixelOffsetFuzzyEqual(activeScrolledRootTopLeft, data->mActiveScrolledRootPosition)) {
     data->mActiveScrolledRootPosition = activeScrolledRootTopLeft;
     nsIntRect invalidate = layer->GetValidRegion().GetBounds();
     layer->InvalidateRegion(invalidate);
