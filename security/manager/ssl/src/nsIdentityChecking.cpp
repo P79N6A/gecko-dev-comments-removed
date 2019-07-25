@@ -1108,9 +1108,8 @@ nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
   }
 
   
-  if (!mHaveCertErrorBits)
+  if (mHaveCertErrorBits)
     return NS_OK;
-
 
   return idinfo->GetIsExtendedValidation(aIsEV);
 }
