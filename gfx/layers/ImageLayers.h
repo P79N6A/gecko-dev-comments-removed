@@ -166,6 +166,12 @@ public:
 
 
 
+  virtual void SetDelayedConversion(PRBool aDelayed) {}
+
+  
+
+
+
 
 
 
@@ -414,6 +420,18 @@ public:
 
 
   virtual void SetData(const Data& aData) = 0;
+
+  
+
+
+
+
+  virtual void SetDelayedConversion(PRBool aDelayed) { }
+
+  
+
+
+  virtual const Data* GetData() { return nsnull; }
 
 protected:
   PlanarYCbCrImage(void* aImplData) : Image(aImplData, PLANAR_YCBCR) {}
