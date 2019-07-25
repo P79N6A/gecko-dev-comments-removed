@@ -583,19 +583,6 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     int oldReportMode;
 #endif
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
     memset(&a, 0, sizeof(struct tm));
 
     a.tm_sec = prtm->tm_sec;
@@ -605,11 +592,33 @@ PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *prtm)
     a.tm_mon = prtm->tm_mon;
     a.tm_wday = prtm->tm_wday;
 
+    
+
+
+
+
 #if defined(HAVE_LOCALTIME_R) && defined(HAVE_TM_ZONE_TM_GMTOFF)
     {
+        
+
+
+
+
+
         struct tm td;
-        time_t bogus = 0;
-        localtime_r(&bogus, &td);
+        memset(&td, 0, sizeof(td));
+        td.tm_sec = prtm->tm_sec;
+        td.tm_min = prtm->tm_min;
+        td.tm_hour = prtm->tm_hour;
+        td.tm_mday = prtm->tm_mday;
+        td.tm_mon = prtm->tm_mon;
+        td.tm_wday = prtm->tm_wday;
+        td.tm_year = prtm->tm_year - 1900;
+        td.tm_yday = prtm->tm_yday;
+        td.tm_isdst = prtm->tm_isdst;
+        time_t t = mktime(&td);
+        localtime_r(&t, &td);
+
         a.tm_gmtoff = td.tm_gmtoff;
         a.tm_zone = td.tm_zone;
     }
