@@ -1124,6 +1124,33 @@ void nsBuiltinDecoderStateMachine::ResetPlayback()
   mAudioCompleted = false;
 }
 
+void nsBuiltinDecoderStateMachine::NotifyDataArrived(const char* aBuffer,
+                                                     PRUint32 aLength,
+                                                     PRUint32 aOffset)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  mReader->NotifyDataArrived(aBuffer, aLength, aOffset);
+
+  
+  
+  
+  
+  
+  nsTimeRanges buffered;
+  if (mDecoder->IsInfinite() &&
+      NS_SUCCEEDED(mDecoder->GetBuffered(&buffered)))
+  {
+    PRUint32 length = 0;
+    buffered.GetLength(&length);
+    if (length) {
+      double end = 0;
+      buffered.End(length - 1, &end);
+      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      mEndTime = NS_MAX<PRInt64>(mEndTime, end * USECS_PER_S);
+    }
+  }
+}
+
 void nsBuiltinDecoderStateMachine::Seek(double aTime)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
@@ -1505,7 +1532,11 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
   
 
   nsCOMPtr<nsIRunnable> stopEvent;
-  if (GetMediaTime() == mEndTime) {
+  bool isLiveStream = mDecoder->GetStream()->GetLength() == -1;
+  if (GetMediaTime() == mEndTime && !isLiveStream) {
+    
+    
+    
     LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %lld) to COMPLETED",
                         mDecoder.get(), seekTime));
     stopEvent = NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::SeekingStoppedAtEnd);

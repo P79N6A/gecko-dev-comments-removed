@@ -113,6 +113,8 @@ nsHttpPipeline::~nsHttpPipeline()
     
     Close(NS_ERROR_ABORT);
 
+    NS_IF_RELEASE(mConnection);
+
     if (mPushBackBuf)
         free(mPushBackBuf);
 }
@@ -125,7 +127,7 @@ nsHttpPipeline::AddTransaction(nsAHttpTransaction *trans)
     NS_ADDREF(trans);
     mRequestQ.AppendElement(trans);
 
-    if (mConnection) {
+    if (mConnection && !mClosed) {
         trans->SetConnection(this);
 
         if (mRequestQ.Length() == 1)
@@ -700,10 +702,6 @@ nsHttpPipeline::Close(nsresult reason)
         mResponseQ.Clear();
     }
 
-    
-    
-    
-    NS_IF_RELEASE(mConnection);
 }
 
 nsresult

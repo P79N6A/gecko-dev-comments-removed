@@ -94,7 +94,6 @@
 #include "gfxImageSurface.h"
 #include "gfxPlatform.h"
 #include "gfxFont.h"
-#include "gfxTextRunCache.h"
 #include "gfxBlur.h"
 #include "gfxUtils.h"
 
@@ -2942,12 +2941,11 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
 
   virtual void SetText(const PRUnichar* text, PRInt32 length, nsBidiDirection direction)
   {
-    mTextRun = gfxTextRunCache::MakeTextRun(text,
-                                            length,
-                                            mFontgrp,
-                                            mThebes,
-                                            mAppUnitsPerDevPixel,
-                                            direction==NSBIDI_RTL ? gfxTextRunFactory::TEXT_IS_RTL : 0);
+    mTextRun = mFontgrp->MakeTextRun(text,
+                                     length,
+                                     mThebes,
+                                     mAppUnitsPerDevPixel,
+                                     direction==NSBIDI_RTL ? gfxTextRunFactory::TEXT_IS_RTL : 0);
   }
 
   virtual nscoord GetWidth()
@@ -3096,7 +3094,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
   }
 
   
-  gfxTextRunCache::AutoTextRun mTextRun;
+  nsAutoPtr<gfxTextRun> mTextRun;
 
   
   nsRefPtr<gfxContext> mThebes;

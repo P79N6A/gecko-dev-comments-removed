@@ -50,12 +50,9 @@ public:
     gfxHarfBuzzShaper(gfxFont *aFont);
     virtual ~gfxHarfBuzzShaper();
 
-    virtual bool InitTextRun(gfxContext *aContext,
-                               gfxTextRun *aTextRun,
-                               const PRUnichar *aString,
-                               PRUint32 aRunStart,
-                               PRUint32 aRunLength,
-                               PRInt32 aRunScript);
+    virtual bool ShapeWord(gfxContext *aContext,
+                           gfxShapedWord *aShapedWord,
+                           const PRUnichar *aText);
 
     
     hb_blob_t * GetFontTable(hb_tag_t aTag) const;
@@ -74,12 +71,9 @@ public:
                              PRUint16 aSecondGlyph) const;
 
 protected:
-    
     nsresult SetGlyphsFromRun(gfxContext *aContext,
-                              gfxTextRun *aTextRun,
-                              hb_buffer_t *aBuffer,
-                              PRUint32 aTextRunOffset,
-                              PRUint32 aRunLength);
+                              gfxShapedWord *aShapedWord,
+                              hb_buffer_t *aBuffer);
 
     
     

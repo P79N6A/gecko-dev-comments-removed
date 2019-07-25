@@ -791,22 +791,19 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     JS_ASSERT_IF(shape->hasSlot() && !(attrs & JSPROP_SHARED), shape->slot() == slot);
 
-    
-
-
-
-
-
-
-
-
-
     if (self->inDictionaryMode()) {
+        
+
+
+
+
+
         bool updateLast = (shape == self->lastProperty());
-        if (!self->generateOwnShape(cx))
+        shape = self->replaceWithNewEquivalentShape(cx, shape);
+        if (!shape)
             return NULL;
-        if (updateLast)
-            shape = self->lastProperty();
+        if (!updateLast && !self->generateOwnShape(cx))
+            return NULL;
 
         
         if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED)) {
@@ -814,7 +811,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
                 return NULL;
         }
 
-        if (shape == self->lastProperty())
+        if (updateLast)
             shape->base()->adoptUnowned(nbase);
         else
             shape->base_ = nbase;
@@ -825,7 +822,6 @@ JSObject::putProperty(JSContext *cx, jsid id,
         shape->shortid_ = int16_t(shortid);
     } else {
         
-
 
 
 
@@ -1062,39 +1058,53 @@ JSObject::rollbackProperties(JSContext *cx, uint32_t slotSpan)
     }
 }
 
-bool
-JSObject::generateOwnShape(JSContext *cx, Shape *newShape)
+Shape *
+JSObject::replaceWithNewEquivalentShape(JSContext *cx, Shape *oldShape, Shape *newShape)
 {
-    RootedVarObject self(cx, this);
+    JS_ASSERT_IF(oldShape != lastProperty(),
+                 inDictionaryMode() &&
+                 nativeLookup(cx, oldShape->maybePropid()) == oldShape);
 
-    if (!inDictionaryMode() && !toDictionaryMode(cx))
-        return false;
+    JSObject *self = this;
+
+    if (!inDictionaryMode()) {
+        RootObject selfRoot(cx, &self);
+        RootShape newRoot(cx, &newShape);
+        if (!toDictionaryMode(cx))
+            return NULL;
+        oldShape = lastProperty();
+    }
 
     if (!newShape) {
+        RootObject selfRoot(cx, &self);
+        RootShape oldRoot(cx, &oldShape);
         newShape = js_NewGCShape(cx);
         if (!newShape)
-            return false;
-        new (newShape) Shape(self->lastProperty()->base()->unowned(), 0);
+            return NULL;
+        new (newShape) Shape(oldShape->base()->unowned(), 0);
     }
 
     PropertyTable &table = self->lastProperty()->table();
-    Shape **spp = self->lastProperty()->isEmptyShape()
+    Shape **spp = oldShape->isEmptyShape()
                   ? NULL
-                  : table.search(self->lastProperty()->maybePropid(), false);
+                  : table.search(oldShape->maybePropid(), false);
 
-    Shape *oldShape = self->lastProperty();
+    
 
-    StackShape nshape(self->lastProperty());
-    newShape->initDictionaryShape(nshape, self->numFixedSlots(), &self->shape_);
+
+
+    StackShape nshape(oldShape);
+    newShape->initDictionaryShape(nshape, self->numFixedSlots(), oldShape->listp);
 
     JS_ASSERT(newShape->parent == oldShape);
     oldShape->removeFromDictionary(self);
 
-    oldShape->handoffTableTo(newShape);
+    if (newShape == lastProperty())
+        oldShape->handoffTableTo(newShape);
 
     if (spp)
         SHAPE_STORE_PRESERVING_COLLISION(spp, newShape);
-    return true;
+    return newShape;
 }
 
 Shape *
