@@ -1526,6 +1526,14 @@ abstract public class GeckoApp
         mAppContext = this;
 
         
+        if (getLastNonConfigurationInstance() != null) {
+            
+            doRestart();
+            System.exit(0);
+            return;
+        }
+
+        
         if (getResources().getBoolean(R.bool.enableStrictMode)) {
             enableStrictMode();
         }
@@ -2136,6 +2144,13 @@ abstract public class GeckoApp
         GeckoNetworkManager.getInstance().start();
         GeckoScreenOrientationListener.getInstance().start();
     }
+
+    @Override
+    public Object onRetainNonConfigurationInstance() {
+        
+        
+        return new Boolean(true);
+    } 
 
     abstract public String getPackageName();
     abstract public String getContentProcessName();
