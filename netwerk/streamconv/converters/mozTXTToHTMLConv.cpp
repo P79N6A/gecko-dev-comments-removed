@@ -292,34 +292,39 @@ mozTXTToHTMLConv::FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLengt
       end = PRUint32(i);
       return end > pos;
     }
-    else
-      return false;
+    return false;
   }
   case freetext:
   case abbreviated:
   {
     PRUint32 i = pos + 1;
     bool isEmail = aInString[pos] == (PRUnichar)'@';
-    bool haveOpeningBracket = false;
+    bool seenOpeningParenthesis = false; 
+    bool seenOpeningSquareBracket = false; 
     for (; PRInt32(i) < aInStringLength; i++)
     {
       
       if (aInString[i] == '>' || aInString[i] == '<' ||
           aInString[i] == '"' || aInString[i] == '`' ||
-          aInString[i] == '}' || aInString[i] == ']' ||
-          aInString[i] == '{' || aInString[i] == '[' ||
+          aInString[i] == '}' || aInString[i] == '{' ||
           aInString[i] == '|' ||
-          (aInString[i] == ')' && !haveOpeningBracket) ||
-          IsSpace(aInString[i])    )
+          (aInString[i] == ')' && !seenOpeningParenthesis) ||
+          (aInString[i] == ']' && !seenOpeningSquareBracket) ||
+          
+          (aInString[i] == '[' && i > 2 &&
+           (aInString[i - 1] != '/' || aInString[i - 2] != '/')) ||
+          IsSpace(aInString[i]))
           break;
       
       
       if (isEmail && (
             aInString[i] == '(' || aInString[i] == '\'' ||
-            !nsCRT::IsAscii(aInString[i])       ))
+            !nsCRT::IsAscii(aInString[i])))
           break;
       if (aInString[i] == '(')
-        haveOpeningBracket = true;
+        seenOpeningParenthesis = true;
+      if (aInString[i] == '[')
+        seenOpeningSquareBracket = true;
     }
     
     
@@ -334,8 +339,7 @@ mozTXTToHTMLConv::FindURLEnd(const PRUnichar * aInString, PRInt32 aInStringLengt
       end = i;
       return true;
     }
-    else
-      return false;
+    return false;
   }
   default:
     return false;
