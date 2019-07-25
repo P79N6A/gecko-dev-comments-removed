@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef GFX_CANVASLAYEROGL_H
 #define GFX_CANVASLAYEROGL_H
@@ -13,6 +13,8 @@
 #include "GLXLibrary.h"
 #include "mozilla/X11Util.h"
 #endif
+
+#include "mozilla/Preferences.h"
 
 namespace mozilla {
 namespace layers {
@@ -33,13 +35,14 @@ public:
 #endif
   { 
       mImplData = static_cast<LayerOGL*>(this);
+      mForceReadback = Preferences::GetBool("webgl.force-layers-readback", false);
   }
   ~CanvasLayerOGL() { Destroy(); }
 
-  // CanvasLayer implementation
+  
   virtual void Initialize(const Data& aData);
 
-  // LayerOGL implementation
+  
   virtual void Destroy();
   virtual Layer* GetLayer() { return this; }
   virtual void RenderLayer(int aPreviousFrameBuffer,
@@ -60,6 +63,7 @@ protected:
   bool mDelayedUpdates;
   bool mGLBufferIsPremultiplied;
   bool mNeedsYFlip;
+  bool mForceReadback;
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
   GLXPixmap mPixmap;
 #endif
@@ -90,9 +94,9 @@ protected:
   }
 };
 
-// NB: eventually we'll have separate shadow canvas2d and shadow
-// canvas3d layers, but currently they look the same from the
-// perspective of the compositor process
+
+
+
 class ShadowCanvasLayerOGL : public ShadowCanvasLayer,
                              public LayerOGL
 {
@@ -102,14 +106,14 @@ public:
   ShadowCanvasLayerOGL(LayerManagerOGL* aManager);
   virtual ~ShadowCanvasLayerOGL();
 
-  // CanvasLayer impl
+  
   virtual void Initialize(const Data& aData);
   virtual void Init(const CanvasSurface& aNewFront, bool needYFlip);
 
-  // This isn't meaningful for shadow canvas.
+  
   virtual void Updated(const nsIntRect&) {}
 
-  // ShadowCanvasLayer impl
+  
   virtual void Swap(const CanvasSurface& aNewFront,
                     bool needYFlip,
                     CanvasSurface* aNewBack);
@@ -118,7 +122,7 @@ public:
 
   virtual void Disconnect();
 
-  // LayerOGL impl
+  
   void Destroy();
   Layer* GetLayer();
   virtual void RenderLayer(int aPreviousFrameBuffer,
@@ -133,6 +137,6 @@ private:
   GLuint mTexture;
 };
 
-} /* layers */
-} /* mozilla */
-#endif /* GFX_IMAGELAYEROGL_H */
+} 
+} 
+#endif 
