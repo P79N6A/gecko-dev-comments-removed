@@ -597,7 +597,7 @@ WebGLContext::InitAndValidateGL()
         return false;
     }
 
-#ifdef ANDROID
+#ifdef MOZ_JAVA_COMPOSITOR
     
     bool forceEnabled = Preferences::GetBool("webgl.force-enabled", false);
     if (!forceEnabled) {
