@@ -50,6 +50,7 @@ var EXPORTED_SYMBOLS = [ "AddonManager", "AddonManagerPrivate" ];
 
 const PROVIDERS = [
   "resource://gre/modules/XPIProvider.jsm",
+  "resource://gre/modules/PluginProvider.jsm",
   "resource://gre/modules/LightweightThemeManager.jsm"
 ];
 
