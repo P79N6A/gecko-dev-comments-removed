@@ -1745,6 +1745,20 @@ var FormHelperUI = {
   _currentCaretRect: null,
   _currentElementRect: null,
 
+  _visibleScreenArea: null,
+  get visibleScreenArea() {
+    let visibleRect = Rect.fromRect(Browser.selectedBrowser.getBoundingClientRect());
+    let visibleScreenArea = visibleRect;
+    if (this._visibleScreenArea) {
+      visibleScreenArea = this._visibleScreenArea.clone();
+      visibleScreenArea.x = visibleRect.x;
+      visibleScreenArea.y = visibleRect.y;
+      visibleScreenArea.width = visibleRect.width;
+      visibleScreenArea.height = visibleRect.height - this._container.getBoundingClientRect().height;
+    }
+    return visibleScreenArea;
+  },
+
   init: function formHelperInit() {
     this._container = document.getElementById("content-navigator");
     this._autofillContainer = document.getElementById("form-helper-autofill");
@@ -1791,14 +1805,9 @@ var FormHelperUI = {
       isAutocomplete: aElement.isAutocomplete,
       list: aElement.choices
     }
+
     this._updateContainer(lastElement, this._currentElement);
-
-    
-    Browser.hideSidebars();
-
-    
-    this._currentElementRect = Rect.fromRect(aElement.rect);
-    this._zoom(this._currentElementRect, Rect.fromRect(aElement.caretRect));
+    this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
   },
 
   hide: function formHelperHide() {
@@ -1840,19 +1849,15 @@ var FormHelperUI = {
         break;
 
       case "FormAssist:Resize":
-        
-        Browser.hideSidebars();
         SelectHelperUI.resize();
         this._zoom(this._currentElementRect, this._currentCaretRect);
         this._container.contentHasChanged();
         break;
 
        case "FormAssist:Update":
-        
-        
-        
-        
-        this._zoom(this._currentElementRect, Rect.fromRect(json.caretRect));
+        Browser.hideSidebars();
+        Browser.hideTitlebar();
+        this._zoom(null, Rect.fromRect(json.caretRect));
         break;
 
       case "DOMWillOpenModalDialog":
@@ -1878,7 +1883,8 @@ var FormHelperUI = {
 
     this._visibleScreenArea = rect;
     BrowserUI.sizeControls(rect.width, rect.height);
-    this._zoom(this._currentElementRect, this._currentCaretRect);
+    if (this.open)
+      this._zoom(this._currentElementRect, this._currentCaretRect);
   },
 
   goToPrevious: function formHelperGoToPrevious() {
@@ -1988,99 +1994,34 @@ var FormHelperUI = {
 
   
   _zoom: function _formHelperZoom(aElementRect, aCaretRect) {
+    let zoomRect = this.visibleScreenArea;
     let browser = getBrowser();
-    if (aElementRect && aCaretRect && this._open) {
+
+    
+    if (aElementRect && Browser.selectedTab.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom")) {
+      this._currentElementRect = aElementRect;
+      
+      let zoomLevel = this._getZoomLevelForRect(aElementRect);
+      zoomLevel = Math.min(Math.max(kBrowserFormZoomLevelMin, zoomLevel), kBrowserFormZoomLevelMax);
+
+      zoomRect = this._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
+      Browser.animatedZoomTo(zoomRect);
+    }
+
+    
+    if (aCaretRect) {
       this._currentCaretRect = aCaretRect;
-
-      let visibleScreenArea = !this._visibleScreenArea.isEmpty() ? this._visibleScreenArea : new Rect(0, 0, window.innerWidth, window.innerHeight);
-
-      
-      let viewAreaHeight = visibleScreenArea.height - this._container.getBoundingClientRect().height;
-      let viewAreaWidth = visibleScreenArea.width;
-      let caretLines = Services.prefs.getIntPref("formhelper.caretLines.portrait");
-      let harmonizeValue = Services.prefs.getIntPref("formhelper.harmonizeValue");
-
-      if (!Util.isPortrait())
-        caretLines = Services.prefs.getIntPref("formhelper.caretLines.landscape");
-
-      
-      
-      
-      let toolbar = document.getElementById("toolbar-main");
-      if (viewAreaHeight - toolbar.boxObject.height <= toolbar.boxObject.height * 2)
-        Browser.hideTitlebar();
-      else
-        viewAreaHeight -= toolbar.boxObject.height;
-
-      
-      
-      let [leftvis, rightvis, leftW, rightW] = Browser.computeSidebarVisibility(0, 0);
-      let marginLeft = leftvis ? leftW : 0;
-      let marginRight = rightvis ? rightW : 0;
-
-      
-      
-      let harmonizedCaretHeight = 0;
-      let harmonizedCaretY = 0;
-
-      
-      
-
-      
-      
-      if (!aCaretRect.isEmpty()) {
-        
-        
-        harmonizedCaretHeight = aCaretRect.height - aCaretRect.height % harmonizeValue;
-        harmonizedCaretY = aCaretRect.y - aCaretRect.y % harmonizeValue;
-      } else {
-        harmonizedCaretHeight = 30; 
-
-        
-        harmonizedCaretY = aElementRect.y;
-        aCaretRect.x = aElementRect.x;
-      }
-
-      let oldZoomLevel = zoomLevel = browser.scale;
-      let enableZoom = Browser.selectedTab.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom");
-      if (enableZoom) {
-        zoomLevel = (viewAreaHeight / caretLines) / harmonizedCaretHeight;
-        zoomLevel = Util.clamp(zoomLevel, kBrowserFormZoomLevelMin, kBrowserFormZoomLevelMax);
-        zoomLevel = Browser.selectedTab.clampZoomLevel(zoomLevel);
-      }
-      viewAreaWidth /= zoomLevel;
-
-      const margin = Services.prefs.getIntPref("formhelper.margin");
-
-      
-      
-      
-      let x = (marginLeft + marginRight + margin + aCaretRect.x - aElementRect.x) < viewAreaWidth
-               ? aElementRect.x - margin - marginLeft
-               : aCaretRect.x - viewAreaWidth + margin + marginRight;
-      
-      let y = harmonizedCaretY - margin;
-      x *= oldZoomLevel;
-      y *= oldZoomLevel;
-
+      let caretRect = aCaretRect.scale(browser.scale, browser.scale);
       let scroll = browser.getPosition();
+      zoomRect.x += scroll.x;
+      zoomRect.y += scroll.y;
 
-      
-      
-      if (enableZoom) {
-        
-        let zoomRatio = zoomLevel / oldZoomLevel;
+      if (zoomRect.contains(caretRect))
+        return;
 
-        let visW = window.innerWidth, visH = window.innerHeight;
-        let newVisW = visW / zoomRatio, newVisH = visH / zoomRatio;
-        let zoomRect = new Rect(x, y, newVisW, newVisH);
-        zoomRect.translateInside(new Rect(0, 0, browser.contentDocumentWidth * oldZoomLevel,
-                                                browser.contentDocumentHeight * oldZoomLevel));
-        Browser.animatedZoomTo(zoomRect);
-      }
-      else { 
-        browser.scrollTo(x, y);
-      }
+      let [deltaX, deltaY] = this._getOffsetForCaret(caretRect, zoomRect);
+      if (deltaX != 0 || deltaY != 0)
+        browser.scrollBy(deltaX, deltaY);
     }
   },
 
@@ -2105,6 +2046,30 @@ var FormHelperUI = {
     getBrowser().scale = restore.scale;
     Browser.contentScrollboxScroller.scrollTo(restore.contentScrollOffset.x, restore.contentScrollOffset.y);
     Browser.pageScrollboxScroller.scrollTo(restore.pageScrollOffset.x, restore.pageScrollOffset.y);
+  },
+
+  _getZoomRectForPoint: function _getZoomRectForPoint(x, y, zoomLevel) {
+    const margin = 30;
+
+    let browser = getBrowser();
+    x = x * browser.scale;
+    y = y * browser.scale;
+
+    let vis = this.visibleScreenArea
+    zoomLevel = Math.min(ZoomManager.MAX, zoomLevel);
+    let oldScale = browser.scale;
+    let zoomRatio = zoomLevel / oldScale;
+    let newVisW = vis.width / zoomRatio, newVisH = vis.height / zoomRatio;
+    let result = new Rect((x - newVisW / 2) - margin / 2, y - newVisH / 2, newVisW + margin, newVisH);
+
+    
+    return result.translateInside(new Rect(0, 0, browser.contentDocumentWidth * oldScale,
+                                                 browser.contentDocumentHeight * oldScale));
+  },
+
+  _getZoomLevelForRect: function _getZoomLevelForRect(aRect) {
+    let zoomLevel = this.visibleScreenArea.width / aRect.width;
+    return Util.clamp(zoomLevel, kBrowserFormZoomLevelMin, kBrowserFormZoomLevelMax);
   },
 
   _getOffsetForCaret: function _formHelperGetOffsetForCaret(aCaretRect, aRect) {
