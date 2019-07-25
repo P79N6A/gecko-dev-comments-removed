@@ -34,6 +34,8 @@
 
 
 
+#ifndef nsGeoLocation_h
+#define nsGeoLocation_h
 
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
@@ -223,3 +225,5 @@ private:
   
   nsRefPtr<nsGeolocationService> mService;
 };
+
+#endif 
