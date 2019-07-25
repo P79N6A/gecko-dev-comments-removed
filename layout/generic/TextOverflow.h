@@ -188,7 +188,7 @@ class TextOverflow {
 
   class Marker {
   public:
-    void Init(const nsStyleTextOverflow& aStyle) {
+    void Init(const nsStyleTextOverflowSide& aStyle) {
       mInitialized = false;
       mWidth = 0;
       mStyle = &aStyle;
@@ -211,7 +211,7 @@ class TextOverflow {
     
     nsString                       mMarkerString;
     
-    const nsStyleTextOverflow*     mStyle;
+    const nsStyleTextOverflowSide* mStyle;
     
     bool                           mHasOverflow;
     

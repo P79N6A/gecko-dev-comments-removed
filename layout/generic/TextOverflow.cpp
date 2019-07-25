@@ -280,8 +280,8 @@ TextOverflow::WillProcessLines(nsDisplayListBuilder*   aBuilder,
   textOverflow->mBlockIsRTL =
     aBlockFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
   const nsStyleTextReset* style = aBlockFrame->GetStyleTextReset();
-  textOverflow->mLeft.Init(style->mTextOverflow);
-  textOverflow->mRight.Init(style->mTextOverflow);
+  textOverflow->mLeft.Init(style->mTextOverflow.mLeft);
+  textOverflow->mRight.Init(style->mTextOverflow.mRight);
   
   
 
@@ -429,11 +429,11 @@ TextOverflow::ExamineLineFrames(nsLineBox*      aLine,
     mRight.mStyle->mType != NS_STYLE_TEXT_OVERFLOW_CLIP && rightOverflow;
   do {
     
-    if (guessLeft || guessRight) {
+    if (guessLeft) {
       mLeft.SetupString(mBlock);
-      mRight.mMarkerString = mLeft.mMarkerString;
-      mRight.mWidth = mLeft.mWidth;
-      mRight.mInitialized = mLeft.mInitialized;
+    }
+    if (guessRight) {
+      mRight.SetupString(mBlock);
     }
     
     
@@ -588,7 +588,8 @@ TextOverflow::CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
   const nsStyleTextReset* style = aBlockFrame->GetStyleTextReset();
   
   
-  if ((style->mTextOverflow.mType == NS_STYLE_TEXT_OVERFLOW_CLIP) ||
+  if ((style->mTextOverflow.mLeft.mType == NS_STYLE_TEXT_OVERFLOW_CLIP &&
+       style->mTextOverflow.mRight.mType == NS_STYLE_TEXT_OVERFLOW_CLIP) ||
       IsHorizontalOverflowVisible(aBlockFrame) ||
       aBuilder->IsForEventDelivery()) {
     return false;
