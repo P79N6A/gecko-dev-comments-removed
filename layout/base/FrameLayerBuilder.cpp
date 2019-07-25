@@ -921,6 +921,13 @@ SuppressComponentAlpha(nsDisplayListBuilder* aBuilder,
   return windowTransparentRegion->Intersects(aComponentAlphaBounds);
 }
 
+static PRBool
+WindowHasTransparency(nsDisplayListBuilder* aBuilder)
+{
+  const nsRegion* windowTransparentRegion = aBuilder->GetFinalTransparentRegion();
+  return windowTransparentRegion && !windowTransparentRegion->IsEmpty();
+}
+
 void
 ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
                                             nsDisplayItem* aItem,
@@ -964,7 +971,12 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
       nsIntRect rect = aClip.ApproximateIntersect(*r).ToNearestPixels(appUnitsPerDevPixel);
       nsIntRegion tmp;
       tmp.Or(mOpaqueRegion, rect);
-      if (tmp.GetNumRects() <= 4) {
+       
+       
+       
+       if (tmp.GetNumRects() <= 4 ||
+           (WindowHasTransparency(aBuilder) &&
+            aItem->GetUnderlyingFrame()->PresContext()->IsChrome())) {
         mOpaqueRegion = tmp;
       }
     }
