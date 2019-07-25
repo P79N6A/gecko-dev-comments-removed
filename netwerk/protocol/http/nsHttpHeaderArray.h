@@ -14,13 +14,40 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 
+namespace mozilla { namespace net {
+
+
+
+
+
+class InfallableCopyCString : public nsCString
+{
+public:
+    InfallableCopyCString() { }
+    InfallableCopyCString(const nsACString & other)
+        : nsCString(other)
+    {
+        if (Length() != other.Length())
+            NS_RUNTIMEABORT("malloc");
+    }
+
+    InfallableCopyCString & operator=(const nsACString & other)
+    {
+        nsCString::operator=(other);
+
+        if (Length() != other.Length())
+            NS_RUNTIMEABORT("malloc");
+
+        return *this;
+    }
+};
+
+} } 
+
 class nsHttpHeaderArray
 {
 public:
-    nsHttpHeaderArray() {}
-   ~nsHttpHeaderArray() { Clear(); }
-
-    const char *PeekHeader(nsHttpAtom header);
+    const char *PeekHeader(nsHttpAtom header) const;
 
     
     nsresult SetHeader(nsHttpAtom header, const nsACString &value,
@@ -30,17 +57,19 @@ public:
     
     nsresult SetHeaderFromNet(nsHttpAtom header, const nsACString &value);
 
-    nsresult GetHeader(nsHttpAtom header, nsACString &value);
+    nsresult GetHeader(nsHttpAtom header, nsACString &value) const;
     void     ClearHeader(nsHttpAtom h);
 
     
-    const char *FindHeaderValue(nsHttpAtom header, const char *value) {
+    const char *FindHeaderValue(nsHttpAtom header, const char *value) const 
+    {
         return nsHttp::FindToken(PeekHeader(header), value,
                                  HTTP_HEADER_VALUE_SEPS);
     }
 
     
-    bool HasHeaderValue(nsHttpAtom header, const char *value) {
+    bool HasHeaderValue(nsHttpAtom header, const char *value) const
+    {
         return FindHeaderValue(header, value) != nsnull;
     }
 
@@ -54,18 +83,17 @@ public:
 
     void Flatten(nsACString &, bool pruneProxyHeaders=false);
 
-    PRUint32 Count() { return mHeaders.Length(); }
+    PRUint32 Count() const { return mHeaders.Length(); }
 
-    const char *PeekHeaderAt(PRUint32 i, nsHttpAtom &header);
+    const char *PeekHeaderAt(PRUint32 i, nsHttpAtom &header) const;
 
     void Clear();
 
+    
     struct nsEntry
     {
-        nsEntry() {}
-
         nsHttpAtom header;
-        nsCString  value;
+        mozilla::net::InfallableCopyCString value;
 
         struct MatchHeader {
           bool Equals(const nsEntry &entry, const nsHttpAtom &header) const {
@@ -75,6 +103,7 @@ public:
     };
 
 private:
+    PRInt32 LookupEntry(nsHttpAtom header, const nsEntry **) const;
     PRInt32 LookupEntry(nsHttpAtom header, nsEntry **);
     void MergeHeader(nsHttpAtom header, nsEntry *entry, const nsACString &value);
 
@@ -89,6 +118,7 @@ private:
     
     bool    IsSuspectDuplicateHeader(nsHttpAtom header);
 
+    
     nsTArray<nsEntry> mHeaders;
 
     friend struct IPC::ParamTraits<nsHttpHeaderArray>;
@@ -98,6 +128,15 @@ private:
 
 
 
+
+inline PRInt32
+nsHttpHeaderArray::LookupEntry(nsHttpAtom header, const nsEntry **entry) const
+{
+    PRUint32 index = mHeaders.IndexOf(header, 0, nsEntry::MatchHeader());
+    if (index != PR_UINT32_MAX)
+        *entry = &mHeaders[index];
+    return index;
+}
 
 inline PRInt32
 nsHttpHeaderArray::LookupEntry(nsHttpAtom header, nsEntry **entry)
