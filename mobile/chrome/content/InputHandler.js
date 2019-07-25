@@ -459,7 +459,7 @@ MouseModule.prototype = {
 
       if (this._dragger) {
         
-        let draggable = this._dragger.isDraggable();
+        let draggable = this._dragger.isDraggable(targetScrollbox, targetScrollInterface);
         dragData.locked = !draggable.x || !draggable.y;
       }
     }
