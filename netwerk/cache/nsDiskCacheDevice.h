@@ -141,6 +141,7 @@ private:
     
     nsDiskCacheMap          mCacheMap;
     bool                    mInitialized;
+    bool                    mClearingDiskCache;
 };
 
 #endif 
