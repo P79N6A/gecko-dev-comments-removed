@@ -43,6 +43,7 @@
 #include "nsIContent.h"
 #include "nsHTMLEditUtils.h"
 #include "nsReadableUtils.h"
+#include "mozilla/dom/Element.h"
 
 
 
@@ -77,7 +78,7 @@ nsHTMLEditor::ShowInlineTableEditingUI(nsIDOMElement * aCell)
   }
 
   
-  nsIDOMElement *bodyElement = GetRoot();
+  nsCOMPtr<nsIDOMElement> bodyElement = do_QueryInterface(GetRoot());
   NS_ENSURE_TRUE(bodyElement, NS_ERROR_NULL_POINTER);
 
   CreateAnonymousElement(NS_LITERAL_STRING("a"), bodyElement,
@@ -130,10 +131,7 @@ nsHTMLEditor::HideInlineTableEditingUI()
   
 
   
-
-  nsIDOMElement *bodyElement = GetRoot();
-
-  nsCOMPtr<nsIContent> bodyContent( do_QueryInterface(bodyElement) );
+  nsCOMPtr<nsIContent> bodyContent = GetRoot();
   NS_ENSURE_TRUE(bodyContent, NS_ERROR_FAILURE);
 
   DeleteRefToAnonymousNode(mAddColumnBeforeButton, bodyContent, ps);
