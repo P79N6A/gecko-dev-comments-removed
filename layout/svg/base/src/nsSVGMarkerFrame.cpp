@@ -175,37 +175,6 @@ nsSVGMarkerFrame::PaintMark(nsSVGRenderState *aContext,
   return NS_OK;
 }
 
-
-nsRect
-nsSVGMarkerFrame::RegionMark(nsSVGPathGeometryFrame *aMarkedFrame,
-                             const nsSVGMark *aMark, float aStrokeWidth)
-{
-  
-  
-  
-  if (mInUse)
-    return nsRect(0,0,0,0);
-
-  AutoMarkerReferencer markerRef(this, aMarkedFrame);
-
-  mStrokeWidth = aStrokeWidth;
-  mX = aMark->x;
-  mY = aMark->y;
-  mAutoAngle = aMark->angle;
-
-  
-  for (nsIFrame* kid = mFrames.FirstChild();
-       kid;
-       kid = kid->GetNextSibling()) {
-    nsISVGChildFrame* child = do_QueryFrame(kid);
-    if (child)
-      child->UpdateCoveredRegion();
-  }
-
-  
-  return nsSVGUtils::GetCoveredRegion(mFrames);
-}
-
 gfxRect
 nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                           PRUint32 aFlags,
