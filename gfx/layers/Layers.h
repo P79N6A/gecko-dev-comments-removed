@@ -728,7 +728,9 @@ public:
   
 
 
-  const nsIntRegion& GetValidRegion() { return mValidRegion; }
+  const nsIntRegion& GetValidRegion() const { return mValidRegion; }
+  float GetXResolution() const { return mXResolution; }
+  float GetYResolution() const { return mYResolution; }
 
   virtual ThebesLayer* AsThebesLayer() { return this; }
 
@@ -736,11 +738,30 @@ public:
 
 protected:
   ThebesLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData) {}
+    : Layer(aManager, aImplData)
+    , mValidRegion()
+    , mXResolution(1.0)
+    , mYResolution(1.0)
+  {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
   nsIntRegion mValidRegion;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  float mXResolution;
+  float mYResolution;
 };
 
 

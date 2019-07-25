@@ -332,6 +332,16 @@ public:
   
 
 
+  void SetResolution(float aXResolution, float aYResolution)
+  {
+    mXResolution = aXResolution;
+    mYResolution = aYResolution;
+    Mutated();
+  }
+
+  
+
+
 
 
 
