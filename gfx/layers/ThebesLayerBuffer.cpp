@@ -222,6 +222,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
                               PRUint32 aFlags)
 {
   PaintState result;
+  result.mDidSelfCopy = PR_FALSE;
   float curXRes = aLayer->GetXResolution();
   float curYRes = aLayer->GetYResolution();
 
@@ -336,6 +337,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
           nsIntRect srcRect(nsIntPoint(0, 0), mBufferRect.Size());
           nsIntPoint dest = mBufferRect.TopLeft() - destBufferRect.TopLeft();
           MovePixels(mBuffer, srcRect, dest, curXRes, curYRes);
+          result.mDidSelfCopy = PR_TRUE;
           
           
           mBufferRect = destBufferRect;

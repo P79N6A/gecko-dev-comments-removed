@@ -112,10 +112,12 @@ public:
 
 
 
+
   struct PaintState {
     nsRefPtr<gfxContext> mContext;
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
+    PRPackedBool mDidSelfCopy;
   };
 
   enum {

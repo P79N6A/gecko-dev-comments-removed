@@ -428,6 +428,7 @@ protected:
               const nsIntRegion& aRegionToDraw,
               const nsIntRegion& aExtendedRegionToDraw,
               const nsIntRegion& aRegionToInvalidate,
+              PRBool aDidSelfCopy,
               LayerManager::DrawThebesLayerCallback aCallback,
               void* aCallbackData)
   {
@@ -608,6 +609,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
       SetAntialiasingFlags(this, state.mContext);
       PaintBuffer(state.mContext,
                   state.mRegionToDraw, extendedDrawRegion, state.mRegionToInvalidate,
+                  state.mDidSelfCopy,
                   aCallback, aCallbackData);
       Mutated();
     } else {
@@ -1800,6 +1802,7 @@ private:
               const nsIntRegion& aRegionToDraw,
               const nsIntRegion& aExtendedRegionToDraw,
               const nsIntRegion& aRegionToInvalidate,
+              PRBool aDidSelfCopy,
               LayerManager::DrawThebesLayerCallback aCallback,
               void* aCallbackData);
 
@@ -1860,18 +1863,24 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
                                         const nsIntRegion& aRegionToDraw,
                                         const nsIntRegion& aExtendedRegionToDraw,
                                         const nsIntRegion& aRegionToInvalidate,
+                                        PRBool aDidSelfCopy,
                                         LayerManager::DrawThebesLayerCallback aCallback,
                                         void* aCallbackData)
 {
   Base::PaintBuffer(aContext,
                     aRegionToDraw, aExtendedRegionToDraw, aRegionToInvalidate,
+                    aDidSelfCopy,
                     aCallback, aCallbackData);
   if (!HasShadow()) {
     return;
   }
 
   nsIntRegion updatedRegion;
-  if (mIsNewBuffer) {
+  if (mIsNewBuffer || aDidSelfCopy) {
+    
+    
+    
+    
     
     
     
