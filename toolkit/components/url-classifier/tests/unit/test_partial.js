@@ -461,7 +461,8 @@ function testWrongTable()
     "tableData" : "test-phish-simple;a:1",
     
     
-    "malwareUrlsExist" : addUrls,
+    
+    "urlsDontExist" : addUrls,
     
     "completerQueried" : [completer, addUrls]
   };
@@ -472,55 +473,12 @@ function testWrongTable()
                  var timer = new Timer(3000, function() {
                      
                      
-                     var newCompleter = installCompleter('test-malware-simple', [[1, addUrls]], []);
-
                      
-                     
-                     
-                     dbservice.setHashCompleter("test-phish-simple",
+                     var newCompleter = installCompleter('test-malware-simple', [[1, addUrls]], []);                     dbservice.setHashCompleter("test-phish-simple",
                                                 newCompleter);
 
-
                      var assertions = {
-                       "malwareUrlsExist" : addUrls,
-                       "completerQueried" : [newCompleter, addUrls]
-                     };
-                     checkAssertions(assertions, runNextTest);
-                   });
-               }, updateError);
-}
-
-function testWrongChunk()
-{
-  var addUrls = [ "foo.com/a" ];
-  var update = buildPhishingUpdate(
-        [
-          { "chunkNum" : 1,
-            "urls" : addUrls
-          }],
-        4);
-  var completer = installCompleter('test-phish-simple',
-                                   [[2, 
-                                     addUrls]], []);
-
-  var assertions = {
-    "tableData" : "test-phish-simple;a:1",
-    "urlsExist" : addUrls,
-    
-    "completerQueried" : [completer, addUrls]
-  };
-
-  doUpdateTest([update], assertions,
-               function() {
-                 
-                 var timer = new Timer(3000, function() {
-                     
-                     
-                     var newCompleter = installCompleter('test-phish-simple', [[2, addUrls]], []);
-
-                     var assertions = {
-                       "urlsExist" : addUrls,
-                       "completerQueried" : [newCompleter, addUrls]
+                       "urlsDontExist" : addUrls
                      };
                      checkAssertions(assertions, runNextTest);
                    });
@@ -818,7 +776,6 @@ function run_test()
       testMixedSizesDifferentDomains,
       testInvalidHashSize,
       testWrongTable,
-      testWrongChunk,
       testCachedResults,
       testCachedResultsWithSub,
       testCachedResultsWithExpire,
@@ -826,7 +783,7 @@ function run_test()
       testStaleList,
       testStaleListEmpty,
       testErrorList,
-      testErrorListIndependent,
+      testErrorListIndependent
   ]);
 }
 
