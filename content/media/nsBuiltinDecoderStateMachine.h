@@ -278,6 +278,9 @@ public:
   
   void TimeoutExpired();
 
+  
+  void SetFragmentEndTime(PRInt64 aEndTime);
+
 protected:
 
   
@@ -510,6 +513,9 @@ protected:
   
   
   PRInt64 mSeekTime;
+
+  
+  PRInt64 mFragmentEndTime;
 
   
   

@@ -297,6 +297,10 @@ public:
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable) = 0;
 
   
+  
+  virtual void SetEndTime(double aTime) = 0;
+
+  
   virtual void Invalidate();
 
   

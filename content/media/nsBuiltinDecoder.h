@@ -282,6 +282,9 @@ public:
   virtual void SetEndTime(PRInt64 aEndTime) = 0;
 
   
+  virtual void SetFragmentEndTime(PRInt64 aEndTime) = 0;
+
+  
   
   virtual PRBool OnDecodeThread() const = 0;
 
@@ -436,6 +439,10 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual PRBool IsSeekable();
 
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
+
+  
+  
+  virtual void SetEndTime(double aTime);
 
   virtual Statistics GetStatistics();
 

@@ -525,6 +525,16 @@ protected:
 
   void Error(PRUint16 aErrorCode);
 
+  
+
+
+  void GetCurrentSpec(nsCString& aString);
+
+  
+
+
+  void ProcessMediaFragmentURI();
+
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
@@ -610,6 +620,16 @@ protected:
   
   
   double mLastCurrentTime;
+
+  
+  
+  
+  double mFragmentStart;
+
+  
+  
+  
+  double mFragmentEnd;
 
   nsRefPtr<gfxASurface> mPrintSurface;
 
