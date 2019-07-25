@@ -51,6 +51,11 @@ bool    pluginSupportsWindowlessMode();
 
 
 
+bool    pluginSupportsAsyncBitmapDrawing();
+
+
+
+
 
 NPError pluginInstanceInit(InstanceData* instanceData);
 
