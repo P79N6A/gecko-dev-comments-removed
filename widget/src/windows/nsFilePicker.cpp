@@ -97,6 +97,75 @@ int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpDa
   return 0;
 }
 
+
+
+static unsigned int CALLBACK FilePickerHook(HWND hwnd, UINT msg,
+                                            WPARAM wParam, LPARAM lParam)
+{
+  switch (msg) {
+    case WM_INITDIALOG:
+      {
+        
+        
+        
+        HWND comboBox = FindWindowEx(GetParent(hwnd), NULL, 
+                                     L"ComboBoxEx32", NULL );
+        if(comboBox)
+          SendMessage(comboBox, CB_LIMITTEXT, 0, 0);
+      }
+      break;
+    case WM_NOTIFY:
+      {
+        LPOFNOTIFYW lpofn = (LPOFNOTIFYW) lParam;
+        
+        
+        if (lpofn->hdr.code == CDN_SELCHANGE) {
+          HWND parentHWND = GetParent(hwnd);
+
+          
+          UINT newBufLength = 0; 
+          int requiredBufLength = CommDlg_OpenSave_GetSpecW(parentHWND, 
+                                                            NULL, 0);
+          if(requiredBufLength >= 0)
+            newBufLength += requiredBufLength;
+          else
+            newBufLength += MAX_PATH;
+
+          
+          
+          
+          
+          requiredBufLength = CommDlg_OpenSave_GetFolderPathW(parentHWND, 
+                                                              NULL, 0);
+          if(requiredBufLength >= 0)
+            newBufLength += requiredBufLength;
+          else
+            newBufLength += MAX_PATH;
+
+          
+          if (newBufLength > lpofn->lpOFN->nMaxFile)
+          {
+            if (lpofn->lpOFN->lpstrFile)
+              delete[] lpofn->lpOFN->lpstrFile;
+
+            
+            
+            
+            newBufLength += FILE_BUFFER_SIZE;
+
+            PRUnichar* filesBuffer = new PRUnichar[newBufLength];
+            ZeroMemory(filesBuffer, newBufLength * sizeof(PRUnichar));
+
+            lpofn->lpOFN->lpstrFile = filesBuffer;
+            lpofn->lpOFN->nMaxFile  = newBufLength;
+          }
+        }
+      }
+      break;
+  }
+  return 0;
+}
+
 NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
 {
   NS_ENSURE_ARG_POINTER(aReturnVal);
@@ -109,7 +178,8 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
   }
 
   PRBool result = PR_FALSE;
-  PRUnichar fileBuffer[FILE_BUFFER_SIZE+1];
+  nsAutoArrayPtr<PRUnichar> fileBuffer(new PRUnichar[FILE_BUFFER_SIZE+1]);
+            
   wcsncpy(fileBuffer,  mDefault.get(), FILE_BUFFER_SIZE);
   fileBuffer[FILE_BUFFER_SIZE] = '\0'; 
 
@@ -229,8 +299,19 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         result = ::GetOpenFileNameW(&ofn);
       }
       else if (mMode == modeOpenMultiple) {
-        ofn.Flags |= OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
+        ofn.Flags |= OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | 
+                     OFN_EXPLORER | OFN_ENABLEHOOK;
+
+        
+        
+        
+        
+        
+        
+        ofn.lpfnHook = FilePickerHook;
+        fileBuffer.forget();
         result = ::GetOpenFileNameW(&ofn);
+        fileBuffer = ofn.lpstrFile;
       }
       else if (mMode == modeSave) {
         ofn.Flags |= OFN_NOREADONLYRETURN;
