@@ -694,7 +694,7 @@ nsPlacesAutoComplete.prototype = {
       this._os.removeObserver(this, kTopicShutdown);
 
       
-      this._prefs.QueryInterface(Ci.nsIPrefBranch2).removeObserver("", this);
+      this._prefs.removeObserver("", this);
       delete this._prefs;
 
       
