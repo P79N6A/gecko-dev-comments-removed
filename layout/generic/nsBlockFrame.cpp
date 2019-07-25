@@ -6736,6 +6736,7 @@ nsBlockFrame::RenumberListsFor(nsPresContext* aPresContext,
 
   
   nsIFrame* kid = nsPlaceholderFrame::GetRealFrameFor(aKid);
+  const nsStyleDisplay* display = kid->GetStyleDisplay();
 
   
   kid = kid->GetContentInsertionFrame();
@@ -6749,7 +6750,6 @@ nsBlockFrame::RenumberListsFor(nsPresContext* aPresContext,
   
   
   
-  const nsStyleDisplay* display = kid->GetStyleDisplay();
   if (NS_STYLE_DISPLAY_LIST_ITEM == display->mDisplay) {
     
     
