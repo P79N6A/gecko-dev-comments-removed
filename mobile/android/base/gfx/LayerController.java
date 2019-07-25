@@ -81,11 +81,8 @@ public class LayerController {
 
 
 
-    private OnTouchListener mOnTouchListener;       
-    private LayerClient mLayerClient;               
-
-    
-    private int mCheckerboardColor;
+    private OnTouchListener mOnTouchListener;   
+    private LayerClient mLayerClient;           
 
     private boolean mForceRedraw;
 
@@ -147,6 +144,7 @@ public class LayerController {
     }
 
     public Bitmap getBackgroundPattern()    { return getDrawable("background"); }
+    public Bitmap getCheckerboardPattern()  { return getDrawable("checkerboard"); }
     public Bitmap getShadowPattern()        { return getDrawable("shadow"); }
 
     public GestureDetector.OnGestureListener getGestureListener()                   { return mPanZoomController; }
@@ -352,17 +350,6 @@ public class LayerController {
         if (mOnTouchListener != null)
             return mOnTouchListener.onTouch(mView, event);
         return false;
-    }
-
-    
-    public int getCheckerboardColor() {
-        return mCheckerboardColor;
-    }
-
-    
-    public void setCheckerboardColor(int newColor) {
-        mCheckerboardColor = newColor;
-        mView.requestRender();
     }
 }
 
