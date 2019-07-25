@@ -44,7 +44,7 @@ ExtensionEngine.prototype = {
   get enabled() null, 
   __proto__: SyncEngine.prototype,
 
-  displayName: "Extensions",
+  _displayName: "Extensions",
   description: "",
   logName: "Extensions",
   name: "extensions",

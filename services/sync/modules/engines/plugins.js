@@ -44,7 +44,7 @@ PluginEngine.prototype = {
   get enabled() null, 
   __proto__: SyncEngine.prototype,
 
-  displayName: "Plugins",
+  _displayName: "Plugins",
   description: "",
   logName: "Plugins",
   name: "plugins",
