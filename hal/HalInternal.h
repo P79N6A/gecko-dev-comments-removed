@@ -64,6 +64,16 @@ void EnableSwitchNotifications(hal::SwitchDevice aDevice);
 
 void DisableSwitchNotifications(hal::SwitchDevice aDevice);
 
+
+
+
+bool EnableAlarm();
+
+
+
+
+void DisableAlarm();
+
 } 
 } 
 
