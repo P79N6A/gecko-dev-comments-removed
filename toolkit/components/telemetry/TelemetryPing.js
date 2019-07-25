@@ -40,7 +40,6 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
 
 
 const PAYLOAD_VERSION = 1;
@@ -224,54 +223,6 @@ TelemetryPing.prototype = {
   
 
 
-
-
-
-
-
-  getMetadata: function getMetadata(reason) {
-    let ai = Services.appinfo;
-    let ret = {
-      reason: reason,
-      OS: ai.OS,
-      appID: ai.ID,
-      appVersion: ai.version,
-      appName: ai.name,
-      appBuildID: ai.appBuildID,
-      platformBuildID: ai.platformBuildID,
-    };
-
-    
-    let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-    let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware"];
-    for each (let field in fields) {
-      let value;
-      try {
-        value = sysInfo.getProperty(field);
-      } catch (e) {
-        continue
-      }
-      if (field == "memsize") {
-        
-        
-        value = Math.round(value / 1024 / 1024)
-      }
-      ret[field] = value
-    }
-
-    let theme = LightweightThemeManager.currentTheme;
-    if (theme)
-      ret.persona = theme.id;
-
-    if (this._addons)
-      ret.addons = this._addons;
-
-    return ret;
-  },
-
-  
-
-
   gatherMemory: function gatherMemory() {
     let mgr;
     try {
@@ -335,11 +286,10 @@ TelemetryPing.prototype = {
     this.gatherMemory();
     let payload = {
       ver: PAYLOAD_VERSION,
-      info: this.getMetadata(reason),
+      info: getMetadata(reason),
       simpleMeasurements: getSimpleMeasurements(),
       histograms: getHistograms()
     };
-
     let isTestPing = (reason == "test-ping");
     
     
@@ -441,9 +391,6 @@ TelemetryPing.prototype = {
     var server = this._server;
 
     switch (aTopic) {
-    case "Add-ons":
-      this._addons = aData;
-      break;
     case "profile-after-change":
       this.setup();
       break;
