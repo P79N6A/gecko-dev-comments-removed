@@ -263,7 +263,6 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
       for each(var child in self._children){
         box = child.getBounds();
         var dist = Math.sqrt( Math.pow((box.top+box.height/2)-dropPos.top,2) + Math.pow((box.left+box.width/2)-dropPos.left,2) );
-
         if( dist <= best.dist ){
           best.item = child;
           best.dist = dist;
@@ -289,6 +288,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     if(oldIndex != -1)
       this._children.splice(oldIndex, 1); 
 
+    
     var index = findInsertionPoint(dropPos);
     this._children.splice( index, 0, item );
 
