@@ -44,23 +44,64 @@
 
 using namespace js;
 using namespace js::ion;
+
+
+
 uint32
 js::ion::RT(Register r)
 {
+    JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 12;
 }
 
 uint32
 js::ion::RN(Register r)
 {
+    JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 16;
 }
 
 uint32
 js::ion::RD(Register r)
 {
+    JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 12;
 }
+
+
+
+
+uint32
+js::ion::maybeRT(Register r)
+{
+    if (r == InvalidReg)
+        return 0;
+
+    JS_ASSERT((r.code() & ~0xf) == 0);
+    return r.code() << 12;
+}
+
+uint32
+js::ion::maybeRN(Register r)
+{
+
+    if (r == InvalidReg)
+        return 0;
+
+    JS_ASSERT((r.code() & ~0xf) == 0);
+    return r.code() << 16;
+}
+
+uint32
+js::ion::maybeRD(Register r)
+{
+    if (r == InvalidReg)
+        return 0;
+
+    JS_ASSERT((r.code() & ~0xf) == 0);
+    return r.code() << 12;
+}
+
 uint32
 js::ion::VD(VFPRegister vr)
 {
@@ -1149,16 +1190,23 @@ Assembler::as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c
         sz = isDouble;
     }
     VFPXferSize xfersz = WordTransfer;
+    uint32 (*encodeVFP)(VFPRegister) = VN;
     if (vt2 != InvalidReg) {
         
         xfersz = DoubleTransfer;
+        encodeVFP = VM;
     }
+
     writeVFPInst(sz, xfersz | f2c | c |
-              RT(vt1) | ((vt2 != InvalidReg) ? RN(vt2) : 0) | VM(vm));
+                 RT(vt1) | maybeRN(vt2) | encodeVFP(vm));
 }
 enum vcvt_destFloatness {
     toInteger = 1 << 18,
     toFloat  = 0 << 18
+};
+enum vcvt_toZero {
+    toZero = 1 << 7,
+    toFPSCR = 0 << 7
 };
 enum vcvt_Signedness {
     toSigned   = 1 << 16,
@@ -1181,12 +1229,13 @@ Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
         if (vm.isSingle()) {
             sz = isSingle;
         }
-        writeVFPInst(sz, c | 0x04B700C0 |
+        writeVFPInst(sz, c | 0x02B700C0 |
                   VM(vm) | VD(vd));
     } else {
         
         vcvt_destFloatness destFloat;
         vcvt_Signedness opSign;
+        vcvt_toZero doToZero = toFPSCR;
         JS_ASSERT(vd.isFloat() || vm.isFloat());
         if (vd.isSingle() || vm.isSingle()) {
             sz = isSingle;
@@ -1205,8 +1254,9 @@ Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
             } else {
                 opSign = toUnsigned;
             }
+            doToZero = toZero;
         }
-        writeVFPInst(sz, 0x02B80040 | VD(vd) | VM(vm) | destFloat | opSign);
+        writeVFPInst(sz, c | 0x02B80040 | VD(vd) | VM(vm) | destFloat | opSign | doToZero);
     }
 
 }
