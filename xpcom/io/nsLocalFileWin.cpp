@@ -966,6 +966,7 @@ nsLocalFile::Create(PRUint32 type, PRUint32 attributes)
     
     PRUnichar* slash = wcschr(path, L'\\');
 
+    nsresult directoryCreateError = NS_OK;
     if (slash)
     {
         
@@ -978,12 +979,20 @@ nsLocalFile::Create(PRUint32 type, PRUint32 attributes)
 
             if (!::CreateDirectoryW(mResolvedPath.get(), NULL)) {
                 rv = ConvertWinError(GetLastError());
+                if (NS_ERROR_FILE_NOT_FOUND == rv &&
+                    NS_ERROR_FILE_ACCESS_DENIED == directoryCreateError) {
+                    
+                    return NS_ERROR_FILE_ACCESS_DENIED;
+                }
                 
                 
                 
-                if (rv != NS_ERROR_FILE_ALREADY_EXISTS &&
-                    rv != NS_ERROR_FILE_ACCESS_DENIED)
+                else if (NS_ERROR_FILE_ALREADY_EXISTS != rv &&
+                         NS_ERROR_FILE_ACCESS_DENIED != rv) {
                     return rv;
+                }
+
+                directoryCreateError = rv;
             }
             *slash = L'\\';
             ++slash;
@@ -1006,14 +1015,26 @@ nsLocalFile::Create(PRUint32 type, PRUint32 attributes)
             PRBool isdir;
             if (NS_SUCCEEDED(IsDirectory(&isdir)) && isdir)
                 rv = NS_ERROR_FILE_ALREADY_EXISTS;
+        } else if (NS_ERROR_FILE_NOT_FOUND == rv && 
+                   NS_ERROR_FILE_ACCESS_DENIED == directoryCreateError) {
+            
+            return NS_ERROR_FILE_ACCESS_DENIED;
         }
         return rv;
     }
 
     if (type == DIRECTORY_TYPE)
     {
-        if (!::CreateDirectoryW(mResolvedPath.get(), NULL))
-            return ConvertWinError(GetLastError());
+        if (!::CreateDirectoryW(mResolvedPath.get(), NULL)) {
+          rv = ConvertWinError(GetLastError());
+          if (NS_ERROR_FILE_NOT_FOUND == rv && 
+              NS_ERROR_FILE_ACCESS_DENIED == directoryCreateError) {
+              
+              return NS_ERROR_FILE_ACCESS_DENIED;
+          } else {
+              return rv;
+          }
+        }
         else
             return NS_OK;
     }
