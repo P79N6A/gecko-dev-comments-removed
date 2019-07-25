@@ -5,6 +5,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef nsHTMLReflowState_h___
 #define nsHTMLReflowState_h___
 
@@ -338,12 +370,6 @@ public:
     PRUint16 mIsColumnBalancing:1;   
   } mFlags;
 
-private:
-
-  mozilla::AutoRestore<nsIFrame*> mRestoreCurrentInflationContainer;
-  mozilla::AutoRestore<nscoord> mRestoreCurrentInflationContainerWidth;
-
-public:
   
   
   

@@ -1133,16 +1133,6 @@ public:
 
   
   
-  
-  nsIFrame*             mCurrentInflationContainer; 
-
-  
-  
-  
-  nscoord               mCurrentInflationContainerWidth;
-
-  
-  
   bool                  mInflationDisabledForShrinkWrap;
 
 protected:

@@ -4,6 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsSVGForeignObjectFrame.h"
 
 
@@ -543,14 +576,6 @@ nsSVGForeignObjectFrame::DoReflow()
     presShell->GetReferenceRenderingContext();
   if (!renderingContext)
     return;
-
-  AutoRestore<nsIFrame*> restoreCurrentInflationContainer(
-    presContext->mCurrentInflationContainer);
-  AutoRestore<nscoord> restoreCurrentInflationContainerWidth(
-    presContext->mCurrentInflationContainerWidth);
-
-  presContext->mCurrentInflationContainer = this;
-  presContext->mCurrentInflationContainerWidth = mRect.width;
 
   mInReflow = true;
 
