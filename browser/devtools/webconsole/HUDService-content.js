@@ -39,7 +39,6 @@ let _alive = true;
 
 let Manager = {
   get window() content,
-  sandbox: null,
   hudId: null,
   _sequence: 0,
   _messageListeners: ["WebConsole:Init", "WebConsole:EnableFeature",
@@ -738,6 +737,7 @@ let JSTerm = {
 
   sandbox: null,
 
+  _sandboxLocation: null,
   _messageHandlers: {},
 
   
@@ -773,8 +773,6 @@ let JSTerm = {
       let handler = this._messageHandlers[name].bind(this);
       Manager.addMessageHandler(name, handler);
     }
-
-    this._createSandbox();
 
     if (aMessage && aMessage.notifyNonNativeConsoleAPI) {
       let consoleObject = WebConsoleUtils.unwrap(this.window).console;
@@ -986,6 +984,7 @@ let JSTerm = {
 
   _createSandbox: function JST__createSandbox()
   {
+    this._sandboxLocation = this.window.location;
     this.sandbox = new Cu.Sandbox(this.window, {
       sandboxPrototype: this.window,
       wantXrays: false,
@@ -1006,6 +1005,12 @@ let JSTerm = {
 
   evalInSandbox: function JST_evalInSandbox(aString)
   {
+    
+    
+    if (this._sandboxLocation !== this.window.location) {
+      this._createSandbox();
+    }
+
     
     if (aString.trim() == "help" || aString.trim() == "?") {
       aString = "help()";
@@ -1048,6 +1053,7 @@ let JSTerm = {
     }
 
     delete this.sandbox;
+    delete this._sandboxLocation;
     delete this._messageHandlers;
     delete this._objectCache;
   },
