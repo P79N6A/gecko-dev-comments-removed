@@ -163,6 +163,8 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
     InitPopupMenuHook();
 #endif 
 #ifdef MOZ_X11
+    
+#ifndef MOZ_PLATFORM_MAEMO
     const char *description = NULL;
     mPluginIface->getvalue(GetNPP(), NPPVpluginDescriptionString,
                            &description);
@@ -172,6 +174,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
           PluginModuleChild::current()->AddQuirk(PluginModuleChild::QUIRK_FLASH_EXPOSE_COORD_TRANSLATION);
         }
     }
+#endif
 #endif
 }
 
