@@ -134,7 +134,7 @@ public:
 
   bool TrimTrailingWhiteSpace();
 
-  void HorizontalAlignFrames(nsRect& aLineBounds, bool aIsLastLine);
+  void HorizontalAlignFrames(nsRect& aLineBounds, bool aAllowJustify);
 
   
 
@@ -567,6 +567,8 @@ protected:
   PLArenaPool mArena; 
 
   PRUint32 mFlags;
+
+  PRUint8 mTextAlign;
 
   nsresult NewPerFrameData(PerFrameData** aResult);
 

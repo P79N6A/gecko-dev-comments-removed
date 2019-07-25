@@ -530,8 +530,8 @@ protected:
                          const nsLineList* aLineList = nsnull);
 
   
-  bool IsLastLine(nsBlockReflowState& aState,
-                  line_iterator aLine);
+  bool ShouldJustifyLine(nsBlockReflowState& aState,
+                           line_iterator aLine);
 
   void DeleteLine(nsBlockReflowState& aState,
                   nsLineList::iterator aLine,

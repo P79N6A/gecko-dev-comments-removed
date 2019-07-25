@@ -4107,15 +4107,16 @@ nsBlockFrame::SplitLine(nsBlockReflowState& aState,
 }
 
 bool
-nsBlockFrame::IsLastLine(nsBlockReflowState& aState,
-                         line_iterator aLine)
+nsBlockFrame::ShouldJustifyLine(nsBlockReflowState& aState,
+                                line_iterator aLine)
 {
   while (++aLine != end_lines()) {
     
     if (0 != aLine->GetChildCount()) {
       
       
-      return aLine->IsBlock();
+      
+      return !aLine->IsBlock();
     }
     
   }
@@ -4130,13 +4131,13 @@ nsBlockFrame::IsLastLine(nsBlockReflowState& aState,
          ++line)
     {
       if (0 != line->GetChildCount())
-        return line->IsBlock();
+        return !line->IsBlock();
     }
     nextInFlow = (nsBlockFrame*) nextInFlow->GetNextInFlow();
   }
 
   
-  return true;
+  return false;
 }
 
 bool
@@ -4221,19 +4222,10 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   
   
   const nsStyleText* styleText = GetStyleText();
-
-  
-
-
-
-
-
-
-  bool isLastLine = ((NS_STYLE_TEXT_ALIGN_AUTO != styleText->mTextAlignLast ||
-                            NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign) &&
-                       (aLineLayout.GetLineEndsInBR() ||
-                        IsLastLine(aState, aLine)));
-  aLineLayout.HorizontalAlignFrames(aLine->mBounds, isLastLine);
+  bool allowJustify = NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign &&
+                        !aLineLayout.GetLineEndsInBR() &&
+                        ShouldJustifyLine(aState, aLine);
+  aLineLayout.HorizontalAlignFrames(aLine->mBounds, allowJustify);
   
   
   
