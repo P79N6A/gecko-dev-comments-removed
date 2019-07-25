@@ -455,18 +455,14 @@ class Assembler : public AssemblerX86Shared
     
     using AssemblerX86Shared::call;
 
-    void call(void *target, Relocation::Kind reloc = Relocation::EXTERNAL) {
-        
-        
-        if (reloc == Relocation::CODE)
-            movq(ImmGCPtr(target), ReturnReg);
-        else
-            movq(ImmWord(target), ReturnReg);
+    void call(void *target) {
+        movq(ImmWord(target), ReturnReg);
         masm.call(ReturnReg.code());
     }
 
     void call(IonCode *target) {
-        call(target->raw(), Relocation::CODE);
+        movq(ImmGCPtr(target), ReturnReg);
+        masm.call(ReturnReg.code());
     }
 
     void cvttsd2sq(const FloatRegister &src, const Register &dest) {
