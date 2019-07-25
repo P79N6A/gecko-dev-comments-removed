@@ -38,7 +38,6 @@
 
 
 
-
 #ifndef nsCaret_h__
 #define nsCaret_h__
 
@@ -297,9 +296,6 @@ protected:
                                               
 
 };
-
-nsresult
-NS_NewCaret(nsCaret** aInstancePtrResult);
 
 
 

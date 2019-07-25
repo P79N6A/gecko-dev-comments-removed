@@ -1850,12 +1850,9 @@ PresShell::Init(nsIDocument* aDocument,
   
 #ifdef SHOW_CARET
   
-  nsresult  err = NS_NewCaret(getter_AddRefs(mCaret));
-  if (NS_SUCCEEDED(err))
-  {
-    mCaret->Init(this);
-    mOriginalCaret = mCaret;
-  }
+  mCaret = new nsCaret();
+  mCaret->Init(this);
+  mOriginalCaret = mCaret;
 
   
 #endif  
