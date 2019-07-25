@@ -802,6 +802,13 @@ LinearScanAllocator::resolveControlFlow()
                 if (!moveBefore(outputOf(predecessor->lastId()), from, to))
                     return false;
             }
+
+            if (vregs[phi].mustSpillAtDefinition() && !to->isSpilled()) {
+                
+                LMoveGroup *moves = successor->getEntryMoveGroup();
+                if (!moves->add(to->getAllocation(), to->reg()->canonicalSpill()))
+                    return false;
+            }
         }
 
         
@@ -869,10 +876,22 @@ LinearScanAllocator::reifyAllocations()
             
             JS_ASSERT(DefinitionCompatibleWith(reg->ins(), reg->def(), *interval->getAllocation()));
             reg->def()->setOutput(*interval->getAllocation());
+
+            if (reg->mustSpillAtDefinition() && !reg->ins()->isPhi() &&
+                (*reg->canonicalSpill() != *interval->getAllocation()))
+            {
+                
+                
+                
+                
+                LMoveGroup *output = getOutputSpillMoveGroup(reg);
+                output->add(interval->getAllocation(), reg->canonicalSpill());
+            }
         }
         else if (interval->start() != inputOf(vregs[interval->start()].block()->firstId()) &&
                  (!reg->canonicalSpill() ||
-                  reg->canonicalSpill() == interval->getAllocation() ||
+                  (reg->canonicalSpill() == interval->getAllocation() &&
+                   !reg->mustSpillAtDefinition()) ||
                   *reg->canonicalSpill() != *interval->getAllocation()))
         {
             
@@ -996,10 +1015,23 @@ LinearScanAllocator::assign(LAllocation allocation)
             }
         }
     } else if (reg && allocation.isMemory()) {
-        if (reg->canonicalSpill())
+        if (reg->canonicalSpill()) {
             JS_ASSERT(allocation == *current->reg()->canonicalSpill());
-        else
+
+            
+            
+            reg->setSpillAtDefinition();
+        } else {
             reg->setCanonicalSpill(current->getAllocation());
+
+            
+            
+            VirtualRegister *other = &vregs[current->start()];
+            uint32 loopDepthAtDef = reg->block()->mir()->loopDepth();
+            uint32 loopDepthAtSpill = other->block()->mir()->loopDepth();
+            if (loopDepthAtSpill > loopDepthAtDef)
+                reg->setSpillAtDefinition();
+        }
     }
 
     active.pushBack(current);
@@ -1204,6 +1236,17 @@ LinearScanAllocator::canCoexist(LiveInterval *a, LiveInterval *b)
     if (aa->isRegister() && ba->isRegister() && aa->toRegister() == ba->toRegister())
         return a->intersect(b) == CodePosition::MIN;
     return true;
+}
+
+LMoveGroup *
+LinearScanAllocator::getOutputSpillMoveGroup(VirtualRegister *vreg)
+{
+    JS_ASSERT(!vreg->ins()->isPhi());
+
+    
+    LMoveGroup *moves = new LMoveGroup;
+    vreg->block()->insertAfter(vreg->ins(), moves);
+    return moves;
 }
 
 LMoveGroup *
