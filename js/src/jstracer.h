@@ -562,7 +562,8 @@ struct TreeFragment : public LinkableFragment
         linkedTrees(alloc),
         sideExits(alloc),
         gcthings(alloc),
-        shapes(alloc)
+        shapes(alloc),
+        visiting(false)
     { }
 
     TreeFragment* first;
@@ -593,6 +594,9 @@ struct TreeFragment : public LinkableFragment
     uintN                   execs;
     
     uintN                   iters;
+
+     
+    bool                    visiting;
 
     inline unsigned nGlobalTypes() {
         return typeMap.length() - nStackTypes;
