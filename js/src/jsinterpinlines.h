@@ -479,7 +479,7 @@ JSStackFrame::callObj() const
     JS_ASSERT(hasCallObj());
     JSObject *pobj = &scopeChain();
     while (JS_UNLIKELY(pobj->getClass() != &js_CallClass)) {
-        JS_ASSERT(js_IsCacheableNonGlobalScope(pobj) || pobj->isWith());
+        JS_ASSERT(js::IsCacheableNonGlobalScope(pobj) || pobj->isWith());
         pobj = pobj->getParent();
     }
     return *pobj;
@@ -527,8 +527,7 @@ struct AutoInterpPreparer  {
 inline void
 PutActivationObjects(JSContext *cx, JSStackFrame *fp)
 {
-    JS_ASSERT(!fp->isYielding());
-    JS_ASSERT(!fp->isEvalFrame() || fp->script()->strictModeCode);
+    JS_ASSERT(fp->isFunctionFrame() && !fp->isEvalFrame());
 
     
     if (fp->hasCallObj()) {
@@ -536,19 +535,6 @@ PutActivationObjects(JSContext *cx, JSStackFrame *fp)
     } else if (fp->hasArgsObj()) {
         js_PutArgsObject(cx, fp);
     }
-}
-
-
-
-
-
-
-inline void
-PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp)
-{
-    JS_ASSERT(!fp->isYielding());
-    if (!fp->isEvalFrame() || fp->script()->strictModeCode)
-        PutActivationObjects(cx, fp);
 }
 
 class InvokeSessionGuard

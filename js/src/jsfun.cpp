@@ -3051,3 +3051,34 @@ js_ReportIsNotFunction(JSContext *cx, const Value *vp, uintN flags)
 
     js_ReportValueError3(cx, error, spindex, *vp, NULL, name, source);
 }
+
+namespace js {
+
+bool
+IsSafeForLazyThisCoercion(JSContext *cx, JSObject *callee)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+    if (callee->isProxy()) {
+        callee = callee->unwrap();
+        if (!callee->isFunction())
+            return true; 
+
+        JSFunction *fun = callee->getFunctionPrivate();
+        if (fun->isInterpreted() && fun->inStrictMode())
+            return true;
+    }
+    return callee->getGlobal() == cx->fp()->scopeChain().getGlobal();
+}
+
+}
