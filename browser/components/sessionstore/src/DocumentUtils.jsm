@@ -73,16 +73,16 @@ let DocumentUtils = {
         
         
         hasDefaultValue = false;
-        value = node.selectedIndex;
+        value = { selectedIndex: node.selectedIndex, value: node.value };
       } else {
         
         
         let options = Array.map(node.options, function(aOpt, aIx) {
           let oSelected = aOpt.selected;
           hasDefaultValue = hasDefaultValue && (oSelected == aOpt.defaultSelected);
-          return oSelected ? aIx : -1;
+          return oSelected ? aOpt.value : -1;
         });
-        value = options.filter(function(aIx) aIx >= 0);
+        value = options.filter(function(aIx) aIx !== -1);
       }
 
       
@@ -179,21 +179,39 @@ let DocumentUtils = {
     } else if (typeof aValue == "number") {
       
       
+      
       if (aNode.selectedIndex == aValue) {
         return;
       }
       
-      try {
+      if (aValue < aNode.options.length) {
         aNode.selectedIndex = aValue;
         eventType = "change";
-      } catch (ex) {  }
+      } 
+    } else if (aValue && aValue.selectedIndex >= 0 && aValue.value) {
+      
+
+      
+      if (aNode.options[aNode.selectedIndex].value == aValue.value) {
+        return;
+      }
+
+      
+      for (let i = 0; i < aNode.options.length; i++) {
+        if (aNode.options[i].value == aValue.value) {
+          aNode.selectedIndex = i;
+          break;
+        }
+      }
+      eventType = "change";
     } else if (aValue && aValue.fileList && aValue.type == "file" &&
       aNode.type == "file") {
       aNode.mozSetFileNameArray(aValue.fileList, aValue.fileList.length);
       eventType = "input";
     } else if (aValue && typeof aValue.indexOf == "function" && aNode.options) {
       Array.forEach(aNode.options, function(opt, index) {
-        opt.selected = aValue.indexOf(index) > -1;
+        
+        opt.selected = aValue.indexOf(opt.value) > -1;
         
         
         if (!opt.defaultSelected) {
