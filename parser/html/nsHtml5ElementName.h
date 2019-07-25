@@ -311,7 +311,6 @@ class nsHtml5ElementName
     static nsHtml5ElementName* ELT_STRONG;
     static nsHtml5ElementName* ELT_SWITCH;
     static nsHtml5ElementName* ELT_SYMBOL;
-    static nsHtml5ElementName* ELT_SPACER;
     static nsHtml5ElementName* ELT_SELECT;
     static nsHtml5ElementName* ELT_SUBSET;
     static nsHtml5ElementName* ELT_SCRIPT;
@@ -711,7 +710,6 @@ nsHtml5ElementName* nsHtml5ElementName::ELT_STRIKE = nsnull;
 nsHtml5ElementName* nsHtml5ElementName::ELT_STRONG = nsnull;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SWITCH = nsnull;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SYMBOL = nsnull;
-nsHtml5ElementName* nsHtml5ElementName::ELT_SPACER = nsnull;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SELECT = nsnull;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SUBSET = nsnull;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SCRIPT = nsnull;
