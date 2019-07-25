@@ -75,12 +75,13 @@ struct RunnableMethodTraits<GeckoChildProcessHost>
 };
 
 GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
-                                             base::WaitableEventWatcher::Delegate* aDelegate)
+                                             ChildPrivileges aPrivileges)
   : ChildProcessHost(RENDER_PROCESS), 
     mProcessType(aProcessType),
+    mPrivileges(aPrivileges),
     mMonitor("mozilla.ipc.GeckChildProcessHost.mMonitor"),
     mProcessState(CREATING_CHANNEL),
-    mDelegate(aDelegate),
+    mDelegate(nullptr),
     mChildProcessHandle(0)
 #if defined(MOZ_WIDGET_COCOA)
   , mChildTask(MACH_PORT_NULL)
@@ -439,9 +440,11 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 
 #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_BSD)
   base::environment_map newEnvVars;
-  base::ChildPrivileges privs = kLowRightsSubprocesses ?
-                                base::UNPRIVILEGED :
-                                base::SAME_PRIVILEGES_AS_PARENT;
+  ChildPrivileges privs = mPrivileges;
+  if (privs == base::PRIVILEGES_DEFAULT) {
+    privs = kLowRightsSubprocesses ?
+            base::PRIVILEGES_UNPRIVILEGED : base::PRIVILEGES_INHERIT;
+  }
   
   
   
