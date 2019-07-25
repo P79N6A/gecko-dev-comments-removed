@@ -1256,18 +1256,17 @@ nsHyperTextAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribute
 
   
   
+  
+  
   if (mContent->Tag() == nsAccessibilityAtoms::nav)
     nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
                            NS_LITERAL_STRING("navigation"));
-  else if (mContent->Tag() == nsAccessibilityAtoms::header) 
-    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
-                           NS_LITERAL_STRING("banner"));
   else if (mContent->Tag() == nsAccessibilityAtoms::footer) 
     nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
                            NS_LITERAL_STRING("contentinfo"));
   else if (mContent->Tag() == nsAccessibilityAtoms::aside) 
     nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
-                           NS_LITERAL_STRING("note"));
+                           NS_LITERAL_STRING("complementary"));
 
   return  NS_OK;
 }
