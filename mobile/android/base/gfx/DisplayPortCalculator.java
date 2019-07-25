@@ -37,6 +37,78 @@ final class DisplayPortCalculator {
     
 
 
+
+
+
+    private static FloatSize reshapeForPage(float width, float height, ImmutableViewportMetrics metrics) {
+        
+        float usableWidth = Math.min(width, metrics.pageSizeWidth);
+        
+        
+        float extraUsableHeight = (float)Math.floor(((width - usableWidth) * height) / usableWidth);
+        float usableHeight = Math.min(height + extraUsableHeight, metrics.pageSizeHeight);
+        if (usableHeight < height && usableWidth == width) {
+            
+            float extraUsableWidth = (float)Math.floor(((height - usableHeight) * width) / usableHeight);
+            usableWidth = Math.min(width + extraUsableWidth, metrics.pageSizeWidth);
+        }
+        return new FloatSize(usableWidth, usableHeight);
+    }
+
+    
+
+
+
+
+    private static RectF expandByDangerZone(RectF rect, float dangerZoneXMultiplier, float dangerZoneYMultiplier, ImmutableViewportMetrics metrics) {
+        
+        float dangerZoneX = metrics.getWidth() * dangerZoneXMultiplier;
+        float dangerZoneY = metrics.getHeight() * dangerZoneYMultiplier;
+        rect = RectUtils.expand(rect, dangerZoneX, dangerZoneY);
+        
+        if (rect.top < 0) rect.top = 0;
+        if (rect.left < 0) rect.left = 0;
+        if (rect.right > metrics.pageSizeWidth) rect.right = metrics.pageSizeWidth;
+        if (rect.bottom > metrics.pageSizeHeight) rect.bottom = metrics.pageSizeHeight;
+        return rect;
+    }
+
+    
+
+
+
+
+
+    private static RectF shiftMarginsForPageBounds(RectF margins, ImmutableViewportMetrics metrics) {
+        
+        
+        
+        float leftOverflow = margins.left - metrics.viewportRectLeft;
+        float rightOverflow = margins.right - (metrics.pageSizeWidth - metrics.viewportRectRight);
+        float topOverflow = margins.top - metrics.viewportRectTop;
+        float bottomOverflow = margins.bottom - (metrics.pageSizeHeight - metrics.viewportRectBottom);
+
+        
+        if (leftOverflow > 0) {
+            margins.left -= leftOverflow;
+            margins.right += leftOverflow;
+        } else if (rightOverflow > 0) {
+            margins.right -= rightOverflow;
+            margins.left += rightOverflow;
+        }
+        if (topOverflow > 0) {
+            margins.top -= topOverflow;
+            margins.bottom += topOverflow;
+        } else if (bottomOverflow > 0) {
+            margins.bottom -= bottomOverflow;
+            margins.top += bottomOverflow;
+        }
+        return margins;
+    }
+
+    
+
+
     private static class NoMarginStrategy implements DisplayPortStrategy {
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             return new DisplayPortMetrics(metrics.viewportRectLeft,
@@ -60,72 +132,47 @@ final class DisplayPortCalculator {
 
 
     private static class FixedMarginStrategy implements DisplayPortStrategy {
-        private static final int DEFAULT_DISPLAY_PORT_MARGIN = 300;
+        
+        
+        private static final float SIZE_MULTIPLIER = 1.5f;
 
         
-
-        private static final int DANGER_ZONE_X = 75;
-        private static final int DANGER_ZONE_Y = 150;
+        
+        private static final float DANGER_ZONE_X_MULTIPLIER = 0.10f;
+        private static final float DANGER_ZONE_Y_MULTIPLIER = 0.20f;
 
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
-            float desiredXMargins = 2 * DEFAULT_DISPLAY_PORT_MARGIN;
-            float desiredYMargins = 2 * DEFAULT_DISPLAY_PORT_MARGIN;
+            float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
+            float displayPortHeight = metrics.getHeight() * SIZE_MULTIPLIER;
 
             
             
             
-
             
-            float xBufferAmount = Math.min(desiredXMargins, metrics.pageSizeWidth - metrics.getWidth());
-            
-            
-            float savedPixels = (desiredXMargins - xBufferAmount) * (metrics.getHeight() + desiredYMargins);
-            float extraYAmount = (float)Math.floor(savedPixels / (metrics.getWidth() + xBufferAmount));
-            float yBufferAmount = Math.min(desiredYMargins + extraYAmount, metrics.pageSizeHeight - metrics.getHeight());
-            
-            if (xBufferAmount == desiredXMargins && yBufferAmount < desiredYMargins) {
-                savedPixels = (desiredYMargins - yBufferAmount) * (metrics.getWidth() + xBufferAmount);
-                float extraXAmount = (float)Math.floor(savedPixels / (metrics.getHeight() + yBufferAmount));
-                xBufferAmount = Math.min(xBufferAmount + extraXAmount, metrics.pageSizeWidth - metrics.getWidth());
-            }
+            FloatSize usableSize = reshapeForPage(displayPortWidth, displayPortHeight, metrics);
+            float horizontalBuffer = usableSize.width - metrics.getWidth();
+            float verticalBuffer = usableSize.height - metrics.getHeight();
 
             
             
             
             
             
-            float leftMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.viewportRectLeft);
-            float rightMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.pageSizeWidth - (metrics.viewportRectLeft + metrics.getWidth()));
-            if (leftMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
-                rightMargin = xBufferAmount - leftMargin;
-            } else if (rightMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
-                leftMargin = xBufferAmount - rightMargin;
-            } else if (!FloatUtils.fuzzyEquals(leftMargin + rightMargin, xBufferAmount)) {
-                float delta = xBufferAmount - leftMargin - rightMargin;
-                leftMargin += delta / 2;
-                rightMargin += delta / 2;
-            }
-
-            float topMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.viewportRectTop);
-            float bottomMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.pageSizeHeight - (metrics.viewportRectTop + metrics.getHeight()));
-            if (topMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
-                bottomMargin = yBufferAmount - topMargin;
-            } else if (bottomMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
-                topMargin = yBufferAmount - bottomMargin;
-            } else if (!FloatUtils.fuzzyEquals(topMargin + bottomMargin, yBufferAmount)) {
-                float delta = yBufferAmount - topMargin - bottomMargin;
-                topMargin += delta / 2;
-                bottomMargin += delta / 2;
-            }
+            RectF margins = new RectF();
+            margins.left = horizontalBuffer / 2.0f;
+            margins.right = horizontalBuffer - margins.left;
+            margins.top = verticalBuffer / 2.0f;
+            margins.bottom = verticalBuffer - margins.top;
+            margins = shiftMarginsForPageBounds(margins, metrics);
 
             
             
             
             
-            return new DisplayPortMetrics(metrics.viewportRectLeft - leftMargin,
-                    metrics.viewportRectTop - topMargin,
-                    metrics.viewportRectRight + rightMargin,
-                    metrics.viewportRectBottom + bottomMargin,
+            return new DisplayPortMetrics(metrics.viewportRectLeft - margins.left,
+                    metrics.viewportRectTop - margins.top,
+                    metrics.viewportRectRight + margins.right,
+                    metrics.viewportRectBottom + margins.bottom,
                     metrics.zoomFactor);
         }
 
@@ -133,13 +180,7 @@ final class DisplayPortCalculator {
             
             
             
-            FloatSize pageSize = metrics.getPageSize();
-            RectF adjustedViewport = RectUtils.expand(metrics.getViewport(), DANGER_ZONE_X, DANGER_ZONE_Y);
-            if (adjustedViewport.top < 0) adjustedViewport.top = 0;
-            if (adjustedViewport.left < 0) adjustedViewport.left = 0;
-            if (adjustedViewport.right > pageSize.width) adjustedViewport.right = pageSize.width;
-            if (adjustedViewport.bottom > pageSize.height) adjustedViewport.bottom = pageSize.height;
-
+            RectF adjustedViewport = expandByDangerZone(metrics.getViewport(), DANGER_ZONE_X_MULTIPLIER, DANGER_ZONE_Y_MULTIPLIER, metrics);
             return !displayPort.contains(adjustedViewport);
         }
     }
@@ -154,61 +195,57 @@ final class DisplayPortCalculator {
 
     private static class VelocityBiasStrategy implements DisplayPortStrategy {
         
-        private static final float SIZE_MULTIPLIER = 0.2f;
+        
+        private static final float SIZE_MULTIPLIER = 1.2f;
         
         private static final float VELOCITY_THRESHOLD = GeckoAppShell.getDpi() / 32f;
 
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
-            
-            float desiredXMargins = metrics.getWidth() * SIZE_MULTIPLIER;
-            float desiredYMargins = metrics.getHeight() * SIZE_MULTIPLIER;
+            float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
+            float displayPortHeight = metrics.getHeight() * SIZE_MULTIPLIER;
 
             
             
             if (Math.abs(velocity.x) > VELOCITY_THRESHOLD && FloatUtils.fuzzyEquals(velocity.y, 0)) {
-                desiredYMargins = 0;
+                displayPortHeight = metrics.getHeight();
             } else if (Math.abs(velocity.y) > VELOCITY_THRESHOLD && FloatUtils.fuzzyEquals(velocity.x, 0)) {
-                desiredXMargins = 0;
+                displayPortWidth = metrics.getWidth();
             }
 
             
             
+            displayPortWidth = Math.min(displayPortWidth, metrics.pageSizeWidth);
+            displayPortHeight = Math.min(displayPortHeight, metrics.pageSizeHeight);
+            float horizontalBuffer = displayPortWidth - metrics.getWidth();
+            float verticalBuffer = displayPortHeight - metrics.getHeight();
 
             
-            float xBufferAmount = Math.min(desiredXMargins, metrics.pageSizeWidth - metrics.getWidth());
-            float yBufferAmount = Math.min(desiredYMargins, metrics.pageSizeHeight - metrics.getHeight());
-
             
             
-            
-            float leftMargin, rightMargin;
+            RectF margins = new RectF();
             if (velocity.x > VELOCITY_THRESHOLD) {
-                rightMargin = Math.min(xBufferAmount, metrics.pageSizeWidth - (metrics.viewportRectLeft + metrics.getWidth()));
-                leftMargin = xBufferAmount - rightMargin;
+                margins.right = horizontalBuffer;
             } else if (velocity.x < -VELOCITY_THRESHOLD) {
-                leftMargin = Math.min(xBufferAmount, metrics.viewportRectLeft);
-                rightMargin = xBufferAmount - leftMargin;
+                margins.left = horizontalBuffer;
             } else {
-                leftMargin = Math.min(xBufferAmount / 2.0f, metrics.viewportRectLeft);
-                rightMargin = xBufferAmount - leftMargin;
+                margins.left = horizontalBuffer / 2.0f;
+                margins.right = horizontalBuffer - margins.left;
             }
-
-            float topMargin, bottomMargin;
             if (velocity.y > VELOCITY_THRESHOLD) {
-                bottomMargin = Math.min(yBufferAmount, metrics.pageSizeHeight - (metrics.viewportRectTop + metrics.getHeight()));
-                topMargin = yBufferAmount - bottomMargin;
+                margins.bottom = verticalBuffer;
             } else if (velocity.y < -VELOCITY_THRESHOLD) {
-                topMargin = Math.min(yBufferAmount, metrics.viewportRectTop);
-                bottomMargin = yBufferAmount - topMargin;
+                margins.top = verticalBuffer;
             } else {
-                topMargin = Math.min(yBufferAmount / 2.0f, metrics.viewportRectTop);
-                bottomMargin = yBufferAmount - topMargin;
+                margins.top = verticalBuffer / 2.0f;
+                margins.bottom = verticalBuffer - margins.top;
             }
+            
+            margins = shiftMarginsForPageBounds(margins, metrics);
 
-            return new DisplayPortMetrics(metrics.viewportRectLeft - leftMargin,
-                    metrics.viewportRectTop - topMargin,
-                    metrics.viewportRectRight + rightMargin,
-                    metrics.viewportRectBottom + bottomMargin,
+            return new DisplayPortMetrics(metrics.viewportRectLeft - margins.left,
+                    metrics.viewportRectTop - margins.top,
+                    metrics.viewportRectRight + margins.right,
+                    metrics.viewportRectBottom + margins.bottom,
                     metrics.zoomFactor);
         }
 
@@ -280,22 +317,26 @@ final class DisplayPortCalculator {
         
         
         private static final float PREDICTION_VELOCITY_MULTIPLIER = 30.0f;
-        private static final float DANGER_ZONE_MULTIPLIER = 0.10f; 
+        private static final float DANGER_ZONE_MULTIPLIER = 0.20f; 
 
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
-            float baseWidth = metrics.getWidth() * SIZE_MULTIPLIER;
-            float baseHeight = metrics.getHeight() * SIZE_MULTIPLIER;
+            float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
+            float displayPortHeight = metrics.getHeight() * SIZE_MULTIPLIER;
 
-            float width = baseWidth;
-            float height = baseHeight;
+            
+            
+            
+            FloatSize reshapedSize = reshapeForPage(displayPortWidth, displayPortHeight, metrics);
+
+            
+            
             if (velocity.length() > VELOCITY_EXPANSION_THRESHOLD) {
-                
-                float velocityFactor = Math.max(Math.abs(velocity.x) / width,
-                                                Math.abs(velocity.y) / height);
+                float velocityFactor = Math.max(Math.abs(velocity.x) / displayPortWidth,
+                                                Math.abs(velocity.y) / displayPortHeight);
                 velocityFactor *= VELOCITY_MULTIPLIER;
 
-                width += (width * velocityFactor);
-                height += (height * velocityFactor);
+                displayPortWidth += (displayPortWidth * velocityFactor);
+                displayPortHeight += (displayPortHeight * velocityFactor);
             }
 
             
@@ -308,48 +349,24 @@ final class DisplayPortCalculator {
             
             
             
-            
-            
-            
-            
-            
-            float usableWidth = Math.min(width, metrics.pageSizeWidth);
-            float extraUsableHeight = ((width - usableWidth) * height) / usableWidth;
-            float usableHeight = Math.min(height + extraUsableHeight, metrics.pageSizeHeight);
-            if (usableHeight < height && usableWidth == width) {
-                float extraUsableWidth = ((height - usableHeight) * width) / usableHeight;
-                usableWidth = Math.min(width + extraUsableWidth, metrics.pageSizeWidth);
-            }
+            FloatSize usableSize = reshapeForPage(displayPortWidth, displayPortHeight, metrics);
+            float horizontalBuffer = usableSize.width - metrics.getWidth();
+            float verticalBuffer = usableSize.height - metrics.getHeight();
 
             
             
             
-
-            float horizontalBuffer = usableWidth - metrics.getWidth();
-            float verticalBuffer = usableHeight - metrics.getHeight();
             
             
-            float leftMargin = splitBufferByVelocity(horizontalBuffer, velocity.x);
-            float rightMargin = horizontalBuffer - leftMargin;
-            float topMargin = splitBufferByVelocity(verticalBuffer, velocity.y);
-            float bottomMargin = verticalBuffer - topMargin;
+            RectF margins = new RectF();
+            margins.left = splitBufferByVelocity(horizontalBuffer, velocity.x);
+            margins.right = horizontalBuffer - margins.left;
+            margins.top = splitBufferByVelocity(verticalBuffer, velocity.y);
+            margins.bottom = verticalBuffer - margins.top;
 
             
             
-            if (metrics.viewportRectLeft - leftMargin < 0) {
-                leftMargin = metrics.viewportRectLeft;
-                rightMargin = horizontalBuffer - leftMargin;
-            } else if (metrics.viewportRectRight + rightMargin > metrics.pageSizeWidth) {
-                rightMargin = metrics.pageSizeWidth - metrics.viewportRectRight;
-                leftMargin = horizontalBuffer - rightMargin;
-            }
-            if (metrics.viewportRectTop - topMargin < 0) {
-                topMargin = metrics.viewportRectTop;
-                bottomMargin = verticalBuffer - topMargin;
-            } else if (metrics.viewportRectBottom + bottomMargin > metrics.pageSizeHeight) {
-                bottomMargin = metrics.pageSizeHeight - metrics.viewportRectBottom;
-                topMargin = verticalBuffer - bottomMargin;
-            }
+            margins = shiftMarginsForPageBounds(margins, metrics);
 
             
             
@@ -361,14 +378,14 @@ final class DisplayPortCalculator {
             
             
             
-            float scaleFactor = Math.min(baseWidth / usableWidth, baseHeight / usableHeight);
+            float scaleFactor = Math.min(reshapedSize.width / usableSize.width, reshapedSize.height / usableSize.height);
             float displayResolution = metrics.zoomFactor * Math.min(1.0f, scaleFactor);
 
             DisplayPortMetrics dpMetrics = new DisplayPortMetrics(
-                metrics.viewportRectLeft - leftMargin,
-                metrics.viewportRectTop - topMargin,
-                metrics.viewportRectRight + rightMargin,
-                metrics.viewportRectBottom + bottomMargin,
+                metrics.viewportRectLeft - margins.left,
+                metrics.viewportRectTop - margins.top,
+                metrics.viewportRectRight + margins.right,
+                metrics.viewportRectBottom + margins.bottom,
                 displayResolution);
             return dpMetrics;
         }
@@ -406,44 +423,27 @@ final class DisplayPortCalculator {
             
             
 
-            float left = metrics.viewportRectLeft;
-            float right = metrics.viewportRectRight;
-            float top = metrics.viewportRectTop;
-            float bottom = metrics.viewportRectBottom;
+            RectF predictedViewport = metrics.getViewport();
 
             
             
             if (velocity.length() > 0) {
                 if (velocity.x < 0) {
-                    left += velocity.x * PREDICTION_VELOCITY_MULTIPLIER;
+                    predictedViewport.left += velocity.x * PREDICTION_VELOCITY_MULTIPLIER;
                 } else if (velocity.x > 0) {
-                    right += velocity.x * PREDICTION_VELOCITY_MULTIPLIER;
+                    predictedViewport.right += velocity.x * PREDICTION_VELOCITY_MULTIPLIER;
                 }
 
                 if (velocity.y < 0) {
-                    top += velocity.y * PREDICTION_VELOCITY_MULTIPLIER;
+                    predictedViewport.top += velocity.y * PREDICTION_VELOCITY_MULTIPLIER;
                 } else if (velocity.y > 0) {
-                    bottom += velocity.y * PREDICTION_VELOCITY_MULTIPLIER;
+                    predictedViewport.bottom += velocity.y * PREDICTION_VELOCITY_MULTIPLIER;
                 }
             }
 
             
             
-            float dangerZoneX = metrics.getWidth() * DANGER_ZONE_MULTIPLIER;
-            float dangerZoneY = metrics.getHeight() * DANGER_ZONE_MULTIPLIER;
-            left -= dangerZoneX;
-            top -= dangerZoneY;
-            right += dangerZoneX;
-            bottom += dangerZoneY;
-
-            
-            
-            if (left < 0) left = 0;
-            if (top < 0) top = 0;
-            if (right > metrics.pageSizeWidth) right = metrics.pageSizeWidth;
-            if (bottom > metrics.pageSizeHeight) bottom = metrics.pageSizeHeight;
-
-            RectF predictedViewport = new RectF(left, top, right, bottom);
+            predictedViewport = expandByDangerZone(predictedViewport, DANGER_ZONE_MULTIPLIER, DANGER_ZONE_MULTIPLIER, metrics);
             return !displayPort.contains(predictedViewport);
         }
     }
