@@ -4758,10 +4758,15 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
        f && !IsContainerForFontSizeInflation(f);
        f = f->GetParent()) {
     nsIContent* content = f->GetContent();
+    nsIAtom* fType = f->GetType();
     
     
     if (!(f->GetParent() && f->GetParent()->GetContent() == content) &&
-        f->GetType() != nsGkAtoms::inlineFrame) {
+        
+        fType != nsGkAtoms::inlineFrame &&
+        
+        
+        fType != nsGkAtoms::formControlFrame) {
       nsStyleCoord stylePosWidth = f->GetStylePosition()->mWidth;
       nsStyleCoord stylePosHeight = f->GetStylePosition()->mHeight;
       if (stylePosWidth.GetUnit() != eStyleUnit_Auto ||
