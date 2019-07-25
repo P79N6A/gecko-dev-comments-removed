@@ -48,7 +48,6 @@
 #include <stdio.h>
 #endif
 
-#include "jsdhash.h"
 #include "jsobj.h"
 #include "jspropertytree.h"
 #include "jstypes.h"
@@ -140,6 +139,7 @@ static const uint32_t SHAPE_MAXIMUM_SLOT = JS_BIT(24) - 2;
 
 
 struct PropertyTable {
+    static const uint32_t HASH_BITS     = tl::BitSize<HashNumber>::result;
     static const uint32_t MIN_ENTRIES   = 7;
     static const uint32_t MIN_SIZE_LOG2 = 4;
     static const uint32_t MIN_SIZE      = JS_BIT(MIN_SIZE_LOG2);
@@ -154,7 +154,7 @@ struct PropertyTable {
     js::Shape       **entries;          
 
     PropertyTable(uint32_t nentries)
-      : hashShift(JS_DHASH_BITS - MIN_SIZE_LOG2),
+      : hashShift(HASH_BITS - MIN_SIZE_LOG2),
         entryCount(nentries),
         removedCount(0),
         freelist(SHAPE_INVALID_SLOT)
@@ -167,7 +167,7 @@ struct PropertyTable {
     }
 
     
-    uint32_t capacity() const { return JS_BIT(JS_DHASH_BITS - hashShift); }
+    uint32_t capacity() const { return JS_BIT(HASH_BITS - hashShift); }
 
     
     static size_t sizeOfEntries(size_t cap) { return cap * sizeof(Shape *); }
@@ -999,7 +999,7 @@ struct StackShape
         slot_ = slot;
     }
 
-    inline JSDHashNumber hash() const;
+    inline HashNumber hash() const;
 };
 
 
