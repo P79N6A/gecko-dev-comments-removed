@@ -498,7 +498,7 @@ js::XDRAtom(XDRState<mode> *xdr, JSAtom **atomp)
 
 
 
-        chars = static_cast<jschar *>(cx->runtime->malloc_(nchars * sizeof(jschar)));
+        chars = cx->runtime->pod_malloc<jschar>(nchars);
         if (!chars)
             return false;
     }

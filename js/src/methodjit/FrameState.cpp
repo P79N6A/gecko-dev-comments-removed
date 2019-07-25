@@ -474,7 +474,7 @@ FrameEntry *
 FrameState::snapshotState()
 {
     
-    FrameEntry *snapshot = (FrameEntry *)js_malloc(nentries * sizeof(FrameEntry));
+    FrameEntry *snapshot = js_pod_malloc<FrameEntry>(nentries);
     if (!snapshot)
         return NULL;
     PodCopy(snapshot, entries, nentries);
