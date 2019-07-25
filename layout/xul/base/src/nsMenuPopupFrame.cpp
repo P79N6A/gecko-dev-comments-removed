@@ -1273,6 +1273,10 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
                               screenRect.YMost(), anchorRect.y, anchorRect.YMost(),
                               margin.top, margin.bottom, offsetForContextMenu, vFlip, &mVFlip);
 
+  
+  screenPoint.x = presContext->RoundAppUnitsToNearestDevPixels(screenPoint.x);
+  screenPoint.y = presContext->RoundAppUnitsToNearestDevPixels(screenPoint.y);
+
   NS_ASSERTION(screenPoint.x >= screenRect.x && screenPoint.y >= screenRect.y &&
                screenPoint.x + mRect.width <= screenRect.XMost() &&
                screenPoint.y + mRect.height <= screenRect.YMost(),
