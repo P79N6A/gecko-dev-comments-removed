@@ -51,14 +51,7 @@
 inline js::RegExpStatics *
 JSContext::regExpStatics()
 {
-    VOUCH_HAVE_STACK();
-    
-
-
-
-
-    JS_ASSERT(hasfp());
-    JSObject *global = fp()->scopeChain().getGlobal();
+    JSObject *global = JS_GetGlobalForScopeChain(this);
     js::RegExpStatics *res = js::RegExpStatics::extractFrom(global);
     return res;
 }
