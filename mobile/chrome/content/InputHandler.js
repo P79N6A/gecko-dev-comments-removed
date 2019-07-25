@@ -77,46 +77,9 @@ const kStateActive = 0x00000001;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function InputHandler(browserViewContainer) {
   
   this._modules = [];
-
-  
-  this._grabber = null;
 
   
   browserViewContainer.addEventListener("keypress", this, false);
@@ -145,56 +108,7 @@ InputHandler.prototype = {
   
 
 
-
-
-
-
-
-
-
-  grab: function grab(grabber) {
-    if (!this._grabber || this._grabber == grabber) {
-      if (!this._grabber) {
-        
-        let mods = this._modules;
-        for (let i = 0, len = mods.length; i < len; ++i)
-          if (mods[i] != grabber)
-            mods[i].cancelPending();
-      }
-      this._grabber = grabber;
-      return true;
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-  ungrab: function ungrab(grabber) {
-    if (this._grabber == grabber) {  
-      this._grabber = null;
-    }
-  },
-
-  
-  cancelPending: function cancelPending() {
-    let mods = this._modules;
-    for (let i = 0, len = mods.length; i < len; ++i)
-      if (mods[i])
-        mods[i].cancelPending();
-  },
-
-  
-
-
   handleEvent: function handleEvent(aEvent) {
-    if (this._ignoreEvents)
-      return;
-
     aEvent.time = Date.now();
     this._passToModules(aEvent);
   },
@@ -204,17 +118,11 @@ InputHandler.prototype = {
 
 
   _passToModules: function _passToModules(aEvent, aSkipToIndex) {
-    if (this._grabber) {
-      this._grabber.handleEvent(aEvent);
-    } else {
-      let mods = this._modules;
-      let i = aSkipToIndex || 0;
+    let mods = this._modules;
+    let i = aSkipToIndex || 0;
 
-      for (let len = mods.length; i < len; ++i) {
-        mods[i].handleEvent(aEvent);  
-        if (this._grabber)            
-          break;
-      }
+    for (let len = mods.length; i < len; ++i) {
+      mods[i].handleEvent(aEvent);
     }
   }
 };
