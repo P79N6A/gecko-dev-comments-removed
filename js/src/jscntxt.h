@@ -491,6 +491,9 @@ struct JSRuntime : js::RuntimeFriendFields
     JSGCMode            gcMode;
 
     
+    bool                gcShouldCleanUpEverything;
+
+    
 
 
 
