@@ -2003,13 +2003,13 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, Repla
     if (JS7_ISDEC(dc)) {
         
         uintN num = JS7_UNDEC(dc);
-        if (num > res->getParenCount())
+        if (num > res->parenCount())
             return false;
 
         jschar *cp = dp + 2;
         if (cp < ep && (dc = *cp, JS7_ISDEC(dc))) {
             uintN tmp = 10 * num + JS7_UNDEC(dc);
-            if (tmp <= res->getParenCount()) {
+            if (tmp <= res->parenCount()) {
                 cp++;
                 num = tmp;
             }
@@ -2017,13 +2017,14 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, Repla
         if (num == 0)
             return false;
 
-        
-        num--;
         *skip = cp - dp;
-        if (num < res->getParenCount())
-            res->getParen(num, out);
-        else
-            *out = js_EmptySubString;
+
+        JS_CRASH_UNLESS(num <= res->parenCount());
+        
+
+
+
+        res->getParen(num, out);
         return true;
     }
 
@@ -2120,7 +2121,7 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 
 
 
-        uintN p = res->getParenCount();
+        uintN p = res->parenCount();
         uintN argc = 1 + p + 2;
 
         InvokeSessionGuard &session = rdata.session;
@@ -2139,8 +2140,8 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
         if (!res->createLastMatch(cx, &session[argi++]))
             return false;
 
-        for (size_t i = 0; i < res->getParenCount(); ++i) {
-            if (!res->createParen(cx, i, &session[argi++]))
+        for (size_t i = 0; i < res->parenCount(); ++i) {
+            if (!res->createParen(cx, i + 1, &session[argi++]))
                 return false;
         }
 
@@ -2758,11 +2759,11 @@ str_split(JSContext *cx, uintN argc, Value *vp)
 
 
         if (re && sep->chars) {
-            for (uintN num = 0; num < res->getParenCount(); num++) {
+            for (uintN num = 0; num < res->parenCount(); num++) {
                 if (limited && len >= limit)
                     break;
                 JSSubString parsub;
-                res->getParen(num, &parsub);
+                res->getParen(num + 1, &parsub);
                 sub = js_NewStringCopyN(cx, parsub.chars, parsub.length);
                 if (!sub || !splits.append(StringValue(sub)))
                     return false;
