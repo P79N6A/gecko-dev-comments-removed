@@ -31,7 +31,9 @@ const MARKETPLACE_URL = PREFS.get("marketplace.url");
 
 
 
-function AitcManager(cb) {
+
+
+function AitcManager(cb, premadeClient) {
   this._client = null;
   this._getTimer = null;
   this._putTimer = null;
@@ -55,6 +57,12 @@ function AitcManager(cb) {
       self._log.error(new Error("AitC manager callback threw " + e));
     }
 
+    
+    if (premadeClient) {
+      self._client = premadeClient;
+      cb(null, true);
+      return;
+    }
     
     self._makeClient(function(err, client) {
       if (!err && client) {

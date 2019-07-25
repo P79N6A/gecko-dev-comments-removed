@@ -15,6 +15,10 @@ Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-crypto/utils.js");
 
+const DEFAULT_INITIAL_BACKOFF = 600000; 
+const DEFAULT_MAX_BACKOFF = 21600000;   
+const DEFAULT_REQUEST_FAILURE_THRESHOLD = 3;
+
 
 
 
@@ -38,6 +42,10 @@ function AitcClient(token, state) {
 
   this._state = state;
   this._backoff = !!state.get("backoff", false);
+  this._backoffTime = 0;
+  this._consecutiveFailures = 0;
+  this._maxFailures = state.get("requestFailureThreshold",
+    DEFAULT_REQUEST_FAILURE_THRESHOLD);
 
   this._timeout = state.get("timeout", 120);
   this._appsLastModified = parseInt(state.get("lastModified", "0"), 10);
@@ -78,7 +86,9 @@ AitcClient.prototype = {
     
     let self = this;
     DOMApplicationRegistry.getManifestFor(app.origin, function gotManifest(m) {
-      app.name = m.name;
+      if (m) {
+        app.name = m.name;
+      }
       self._putApp(self._makeRemoteApp(app), cb);
     });
   },
@@ -252,7 +262,7 @@ AitcClient.prototype = {
       
       
       
-      err = new Error("Backoff in effect, aborting PUT");
+      let err = new Error("Backoff in effect, aborting PUT");
       err.processed = false;
       cb(err, null);
       return;
@@ -333,7 +343,8 @@ AitcClient.prototype = {
 
   _error: function _error(req) {
     this._log.error("Catch-all error for request: " +
-      req.uri.asciiSpec + req.response.status + " with: " + req.response.body);
+      req.uri.asciiSpec + " " + req.response.status + " with: " +
+      req.response.body);
   },
 
   _makeAppURI: function _makeAppURI(origin) {
@@ -365,6 +376,7 @@ AitcClient.prototype = {
   
   _setBackoff: function _setBackoff(req) {
     let backoff = 0;
+    let successfulStatusCodes = [200, 201, 204, 304];
 
     let val;
     if (req.response.headers["Retry-After"]) {
@@ -375,13 +387,31 @@ AitcClient.prototype = {
       val = req.response.headers["X-Backoff"];
       backoff = parseInt(val, 10);
       this._log.warn("X-Backoff header was seen: " + val);
+    } else if (successfulStatusCodes.indexOf(req.response.status) === -1) {
+      
+      this._consecutiveFailures++;
+      if (this._consecutiveFailures === this._maxFailures) {
+        
+        backoff = this._state.get("backoff.initial", DEFAULT_INITIAL_BACKOFF);
+      } else if (this._consecutiveFailures > this._maxFailures) {
+        
+        backoff = Math.min(
+          
+          this._backoffTime * 2,
+          
+          this._state.get("backoff.max", DEFAULT_MAX_BACKOFF)
+        );
+      }
+    } else {
+      
+      this._consecutiveFailures = 0;
     }
     if (backoff) {
       this._backoff = true;
       let time = Date.now();
-      
-      backoff = Math.floor((Math.random() * backoff + backoff) * 1000);
       this._state.set("backoff", "" + (time + backoff));
+      this._backoffTime = backoff;
+      this._log.info("Client setting backoff to: " + backoff + "ms");
     }
   },
 };
