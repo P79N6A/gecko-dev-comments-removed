@@ -534,7 +534,6 @@ var InspectorUI = {
   inspecting: false,
   treeLoaded: false,
   prefEnabledName: "devtools.inspector.enabled",
-  isDirty: false,
 
   
 
@@ -580,7 +579,7 @@ var InspectorUI = {
   get defaultSelection()
   {
     let doc = this.win.document;
-    return doc.documentElement ? doc.documentElement.lastElementChild : null;
+    return doc.documentElement.lastElementChild;
   },
 
   initializeTreePanel: function IUI_initializeTreePanel()
@@ -771,8 +770,6 @@ var InspectorUI = {
 
     this.toolbar.hidden = false;
     this.inspectCmd.setAttribute("checked", true);
-
-    gBrowser.addProgressListener(InspectorProgressListener);
   },
 
   
@@ -826,8 +823,6 @@ var InspectorUI = {
 
     this.closing = true;
     this.toolbar.hidden = true;
-
-    gBrowser.removeProgressListener(InspectorProgressListener);
 
     if (!aKeepStore) {
       InspectorStore.deleteStore(this.winID);
@@ -1495,132 +1490,6 @@ var InspectorStore = {
 
 
 
-
-
-
-
-var InspectorProgressListener = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener]),
-
-  onStateChange:
-  function IPL_onStateChange(aProgress, aRequest, aFlag, aStatus)
-  {
-    
-    if (!InspectorUI.isTreePanelOpen) {
-      gBrowser.removeProgressListener(InspectorProgressListener);
-      return;
-    }
-
-    
-    if (!(aFlag & Ci.nsIWebProgressListener.STATE_START)) {
-      return;
-    }
-
-    
-    
-    if (aProgress.DOMWindow != InspectorUI.win) {
-      return;
-    }
-
-    if (InspectorUI.isDirty) {
-      this.showNotification(aRequest);
-    } else {
-      InspectorUI.closeInspectorUI();
-    }
-  },
-
-  onLocationChange: function() {},
-  onProgressChange: function() {},
-  onStatusChange: function() {},
-  onSecurityChange: function() {},
-
-  
-
-
-
-
-
-
-
-  showNotification: function IPL_showNotification(aRequest)
-  {
-    aRequest.suspend();
-
-    let notificationBox = gBrowser.getNotificationBox(InspectorUI.browser);
-    let notification = notificationBox.
-      getNotificationWithValue("inspector-page-navigation");
-
-    if (notification) {
-      notificationBox.removeNotification(notification, true);
-    }
-
-    let cancelRequest = function onCancelRequest() {
-      if (aRequest) {
-        aRequest.cancel(Cr.NS_BINDING_ABORTED);
-        aRequest.resume(); 
-        aRequest = null;
-      }
-    };
-
-    let buttons = [
-      {
-        id: "inspector.confirmNavigationAway.buttonLeave",
-        label: InspectorUI.strings.
-          GetStringFromName("confirmNavigationAway.buttonLeave"),
-        accessKey: InspectorUI.strings.
-          GetStringFromName("confirmNavigationAway.buttonLeaveAccesskey"),
-        callback: function onButtonLeave() {
-          if (aRequest) {
-            aRequest.resume();
-            aRequest = null;
-            InspectorUI.closeInspectorUI();
-          }
-        },
-      },
-      {
-        id: "inspector.confirmNavigationAway.buttonStay",
-        label: InspectorUI.strings.
-          GetStringFromName("confirmNavigationAway.buttonStay"),
-        accessKey: InspectorUI.strings.
-          GetStringFromName("confirmNavigationAway.buttonStayAccesskey"),
-        callback: cancelRequest
-      },
-    ];
-
-    let message = InspectorUI.strings.
-      GetStringFromName("confirmNavigationAway.message");
-
-    notification = notificationBox.appendNotification(message,
-      "inspector-page-navigation", "chrome://browser/skin/Info.png",
-      notificationBox.PRIORITY_WARNING_HIGH, buttons);
-
-    
-    
-    notification.persistence = -1;
-
-    
-    notification.addEventListener("DOMNodeRemoved",
-      function onNotificationRemoved(aEvent) {
-        if (notification != aEvent.target) {
-          return;
-        }
-
-        notification.removeEventListener(aEvent.type,
-          onNotificationRemoved, false);
-        cancelRequest();
-      }, false);
-  },
-};
-
-
-
-
 XPCOMUtils.defineLazyGetter(InspectorUI, "inspectCmd", function () {
   return document.getElementById("Tools:Inspect");
 });
-
-XPCOMUtils.defineLazyGetter(InspectorUI, "strings", function () {
-  return Services.strings.
-         createBundle("chrome://browser/locale/inspector.properties");
-});
-
