@@ -1007,6 +1007,8 @@ public:
         return PR_FALSE;
     }
 
+    
+    
     virtual PRInt32 GetHintedGlyphWidth(gfxContext *aCtx, PRUint16 aGID) {
         return -1;
     }
