@@ -278,7 +278,7 @@ class JarMaker(object):
     
     
     
-    chromebasepath = '%s' + jarfile
+    chromebasepath = '%s' + os.path.basename(jarfile)
     if self.outputFormat == 'jar':
       chromebasepath = 'jar:' + chromebasepath + '.jar!'
     chromebasepath += '/'
