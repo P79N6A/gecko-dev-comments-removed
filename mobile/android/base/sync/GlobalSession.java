@@ -190,10 +190,7 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
 
     
     stages.put(Stage.syncTabs,                new FennecTabsServerSyncStage());
-
-    
-    
-
+    stages.put(Stage.syncPasswords,           new PasswordsServerSyncStage());
     stages.put(Stage.syncBookmarks,           new AndroidBrowserBookmarksServerSyncStage());
     stages.put(Stage.syncHistory,             new AndroidBrowserHistoryServerSyncStage());
     stages.put(Stage.syncFormHistory,         new FormHistoryServerSyncStage());
