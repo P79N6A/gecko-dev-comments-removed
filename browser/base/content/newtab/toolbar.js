@@ -24,6 +24,16 @@ let gToolbar = {
       let handler = function () self[aType]();
 
       button.addEventListener("click", handler, false);
+
+#ifdef XP_MACOSX
+      
+      
+      
+      
+      button.addEventListener("mousedown", function () {
+        window.focus();
+      }, false);
+#endif
     }, this);
   },
 
