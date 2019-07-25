@@ -25,20 +25,18 @@
 [@AB_CD@]
 @BINPATH@/chrome/@AB_CD@@JAREXT@
 @BINPATH@/chrome/@AB_CD@.manifest
-@BINPATH@/defaults/profile/bookmarks.html
-@BINPATH@/defaults/profile/chrome/*
-@BINPATH@/defaults/profile/localstore.rdf
-@BINPATH@/defaults/profile/mimeTypes.rdf
-@BINPATH@/dictionaries/*
-@BINPATH@/hyphenation/*
 @BINPATH@/@PREF_DIR@/firefox-l10n.js
 @BINPATH@/searchplugins/*
-#ifdef XP_WIN32
-@BINPATH@/uninstall/helper.exe
-#endif
-#ifdef MOZ_UPDATER
+@BINPATH@/defaults/profile/bookmarks.html
+@BINPATH@/defaults/profile/localstore.rdf
+@BINPATH@/defaults/profile/mimeTypes.rdf
+@BINPATH@/defaults/profile/chrome/*
 @BINPATH@/update.locale
 @BINPATH@/updater.ini
+@BINPATH@/dictionaries/*
+@BINPATH@/hyphenation/*
+#ifdef XP_WIN32
+@BINPATH@/uninstall/helper.exe
 #endif
 
 [xpcom]
@@ -69,7 +67,6 @@
 @BINPATH@/@MOZ_CHILD_PROCESS_NAME@
 #endif
 #ifdef XP_WIN32
-#ifdef MOZ_WIN32_REDIST
 #ifndef MOZ_DEBUG
 #if _MSC_VER == 1400
 @BINPATH@/Microsoft.VC80.CRT.manifest
@@ -87,7 +84,6 @@
 #elif _MSC_VER == 1700
 @BINPATH@/msvcp110.dll
 @BINPATH@/msvcr110.dll
-#endif
 #endif
 #endif
 #endif
@@ -203,7 +199,9 @@
 @BINPATH@/components/inspector.xpt
 @BINPATH@/components/intl.xpt
 @BINPATH@/components/jar.xpt
+#ifdef MOZ_JSDEBUGGER
 @BINPATH@/components/jsdservice.xpt
+#endif
 @BINPATH@/components/jsdebugger.xpt
 @BINPATH@/components/jsinspector.xpt
 @BINPATH@/components/layout_base.xpt
@@ -390,10 +388,10 @@
 @BINPATH@/components/RadioInterfaceLayer.js
 @BINPATH@/components/SmsDatabaseService.manifest
 @BINPATH@/components/SmsDatabaseService.js
-@BINPATH@/components/WifiWorker.js
-@BINPATH@/components/WifiWorker.manifest
-@BINPATH@/components/DOMWifiManager.js
-@BINPATH@/components/DOMWifiManager.manifest
+@BINPATH@/components/nsWifiWorker.js
+@BINPATH@/components/nsWifiWorker.manifest
+@BINPATH@/components/nsDOMWifiManager.js
+@BINPATH@/components/nsDOMWifiManager.manifest
 #endif
 @BINPATH@/components/BrowserProfileMigrators.manifest
 @BINPATH@/components/ProfileMigrator.js
@@ -560,12 +558,10 @@ bin/libfreebl_32int64_3.so
 
 ; [Updater]
 ;
-#ifdef MOZ_UPDATER
 #ifdef XP_MACOSX
 @BINPATH@/updater.app/
 #else
 @BINPATH@/updater@BIN_SUFFIX@
-#endif
 #endif
 
 ; [MaintenanceService]

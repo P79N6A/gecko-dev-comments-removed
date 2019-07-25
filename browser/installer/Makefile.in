@@ -48,7 +48,6 @@ include $(topsrcdir)/config/rules.mk
 MOZ_PKG_REMOVALS = $(srcdir)/removed-files.in
 
 MOZ_PKG_MANIFEST_P = $(srcdir)/package-manifest.in
-MOZ_PKG_FATAL_WARNINGS = 1
 
 MOZ_NONLOCALIZED_PKG_LIST = \
 	xpcom \
@@ -91,10 +90,6 @@ DEFINES += -DMOZ_D3DX9_DLL=$(MOZ_D3DX9_DLL)
 DEFINES += -DMOZ_D3DCOMPILER_DLL=$(MOZ_D3DCOMPILER_DLL)
 endif
 
-ifdef WIN32_REDIST_DIR
-DEFINES += -DMOZ_WIN32_REDIST=1
-endif
-
 include $(topsrcdir)/ipc/app/defs.mk
 DEFINES += -DMOZ_CHILD_PROCESS_NAME=$(MOZ_CHILD_PROCESS_NAME)
 
@@ -104,6 +99,10 @@ endif
 
 ifneq (,$(filter WINNT Darwin Android,$(OS_TARGET)))
 DEFINES += -DMOZ_SHARED_MOZGLUE=1
+endif
+
+ifdef MOZ_JSDEBUGGER
+DEFINES += -DMOZ_JSDEBUGGER
 endif
 
 ifdef MOZ_PKG_MANIFEST_P
