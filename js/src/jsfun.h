@@ -462,6 +462,24 @@ CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
     return js_CloneFunctionObject(cx, fun, parent, proto);
 }
 
+inline JSObject *
+CloneFunctionObject(JSContext *cx, JSFunction *fun)
+{
+    
+
+
+
+
+
+
+    JS_ASSERT(fun->getParent() && fun->getProto());
+
+    if (fun->hasSingletonType())
+        return fun;
+
+    return js_CloneFunctionObject(cx, fun, fun->getParent(), fun->getProto());
+}
+
 extern JSObject * JS_FASTCALL
 js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);
 
