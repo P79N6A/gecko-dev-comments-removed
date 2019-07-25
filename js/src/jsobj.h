@@ -143,9 +143,12 @@ struct PropDesc {
 
     PropDesc();
 
-  public:
     
-    bool initialize(JSContext* cx, const js::Value &v);
+    bool initialize(JSContext* cx, const js::Value &v, bool checkAccessors=true);
+
+    
+    void initFromPropertyDescriptor(const PropertyDescriptor &desc);
+    bool makeObject(JSContext *cx);
 
     
     bool isAccessorDescriptor() const {
@@ -194,6 +197,9 @@ struct PropDesc {
     js::StrictPropertyOp setter() const {
         return js::CastAsStrictPropertyOp(setterObject());
     }
+
+    inline bool checkGetter(JSContext *cx);
+    inline bool checkSetter(JSContext *cx);
 };
 
 typedef Vector<PropDesc, 1> PropDescArray;
@@ -1244,6 +1250,7 @@ struct JSObject : js::gc::Cell {
     inline bool isCall() const;
     inline bool isRegExp() const;
     inline bool isScript() const;
+    inline bool isError() const;
     inline bool isXML() const;
     inline bool isXMLId() const;
     inline bool isNamespace() const;
@@ -1629,6 +1636,15 @@ DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &val
 extern bool
 LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                         JSObject **objp, JSProperty **propp);
+
+
+
+
+
+
+extern bool
+DefineProperty(JSContext *cx, JSObject *obj, const jsid &id, const PropDesc &desc, bool throwError,
+               bool *rval);
 
 
 
