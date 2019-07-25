@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsDatabaseService.h"
 
 namespace mozilla {
@@ -98,6 +66,14 @@ SmsDatabaseService::GetNextMessageInList(PRInt32 aListId, PRInt32 aRequestId,
 
 NS_IMETHODIMP
 SmsDatabaseService::ClearMessageList(PRInt32 aListId)
+{
+  NS_ERROR("We should not be here!");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsDatabaseService::MarkMessageRead(PRInt32 aMessageId, bool aValue,
+                                  PRInt32 aRequestId, PRUint64 aProcessId)
 {
   NS_ERROR("We should not be here!");
   return NS_OK;
