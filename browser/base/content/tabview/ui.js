@@ -466,14 +466,9 @@ var UIManager = {
         return;
 
       Utils.timeout(function() { 
-        if (!self._isTabViewVisible()) {
-          var activeGroup = Groups.getActiveGroup();
-          if (activeGroup) {
-            var index = self._reorderTabItemsOnShow.indexOf(activeGroup);
-            if (index == -1)
-              self._reorderTabItemsOnShow.push(activeGroup);
-          }
-        }
+        var activeGroup = Groups.getActiveGroup();
+        if (activeGroup)
+          self.setReorderTabItemsOnShow(activeGroup);
       }, 1);
     });
 
@@ -566,6 +561,20 @@ var UIManager = {
       var index = this._reorderTabsOnHide.indexOf(group);
       if (index == -1)
         this._reorderTabsOnHide.push(group);
+    }
+  },
+
+  
+  
+  
+  
+  
+  
+  setReorderTabItemsOnShow: function(group) {
+    if (!this._isTabViewVisible()) {
+      var index = this._reorderTabItemsOnShow.indexOf(group);
+      if (index == -1)
+        this._reorderTabItemsOnShow.push(group);
     }
   },
 
