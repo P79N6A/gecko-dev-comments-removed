@@ -7,15 +7,21 @@ package org.mozilla.gecko;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.preference.DialogPreference;
 import android.preference.Preference.OnPreferenceChangeListener;
 import android.text.method.ScrollingMovementMethod;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -27,7 +33,16 @@ class FontSizePreference extends DialogPreference {
     private static final int PREVIEW_FONT_SIZE_UNIT = TypedValue.COMPLEX_UNIT_PT;
     private static final int DEFAULT_FONT_INDEX = 2;
 
+    
+    private static final float LINE_SPACING_ADD = 0f; 
+    private static final float LINE_SPACING_MULT = 1.0f;
+
+    private static final float MIN_TEXTVIEW_WIDTH_DIP = 360; 
+    
+    private static final float TEXTVIEW_WIDTH_SCALE_FACTOR = 3;
+
     private final Context mContext;
+    private int mCurrentOrientation;
     private TextView mPreviewFontView;
     private Button mIncreaseFontButton;
     private Button mDecreaseFontButton;
@@ -38,7 +53,9 @@ class FontSizePreference extends DialogPreference {
     private int mSavedFontIndex = DEFAULT_FONT_INDEX;
     
     private int mPreviewFontIndex = mSavedFontIndex;
-    private HashMap<String, Integer> mFontTwipToIndexMap;
+    private final HashMap<String, Integer> mFontTwipToIndexMap;
+
+    private boolean mPreviewFontViewHeightSet;
 
     public FontSizePreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -51,6 +68,7 @@ class FontSizePreference extends DialogPreference {
         for (int i = 0; i < mFontTwipValues.length; ++i) {
             mFontTwipToIndexMap.put(mFontTwipValues[i], i);
         }
+        mCurrentOrientation = res.getConfiguration().orientation;
     }
 
     @Override
@@ -60,6 +78,10 @@ class FontSizePreference extends DialogPreference {
         View dialogView = inflater.inflate(R.layout.font_size_preference, null);
         mPreviewFontView = (TextView) dialogView.findViewById(R.id.preview);
         mPreviewFontView.setMovementMethod(new ScrollingMovementMethod());
+        
+        mPreviewFontView.setIncludeFontPadding(false);
+        
+        mPreviewFontView.setLineSpacing(LINE_SPACING_ADD, LINE_SPACING_MULT);
 
         mDecreaseFontButton = (Button) dialogView.findViewById(R.id.decrease_preview_font_button);
         mIncreaseFontButton = (Button) dialogView.findViewById(R.id.increase_preview_font_button);
@@ -85,6 +107,11 @@ class FontSizePreference extends DialogPreference {
             }
         });
 
+        
+        setPreviewFontViewWidth();
+        setPreviewFontViewHeightListener();
+        setFontSizeToMaximum(); 
+
         builder.setView(dialogView);
     }
 
@@ -103,6 +130,76 @@ class FontSizePreference extends DialogPreference {
             return;
         }
         prefChangeListener.onPreferenceChange(this, twipVal);
+    }
+
+    protected void onConfigurationChanged(Configuration newConfig) {
+        if (mCurrentOrientation != newConfig.orientation) {
+            mCurrentOrientation = newConfig.orientation;
+
+            
+            setPreviewFontViewWidth();
+            mPreviewFontViewHeightSet = false;
+            setFontSizeToMaximum(); 
+        }
+    }
+
+    
+
+
+    private void setFontSizeToMaximum() {
+        updatePreviewFontSize(mFontTwipValues[mFontTwipValues.length - 1]);
+        
+        
+        
+        
+    }
+
+    
+
+
+
+
+
+    private void setPreviewFontViewHeightListener() {
+        mPreviewFontViewHeightSet = false;
+        final ViewTreeObserver vto = mPreviewFontView.getViewTreeObserver(); 
+        vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() { 
+            @Override 
+            public void onGlobalLayout() { 
+                if (!mPreviewFontViewHeightSet) {
+                    mPreviewFontViewHeightSet = true;
+                    final int desiredHeight = (int) (mPreviewFontView.getLineCount() *
+                            mPreviewFontView.getLineHeight() * LINE_SPACING_MULT + LINE_SPACING_ADD +
+                            mPreviewFontView.getPaddingTop() + mPreviewFontView.getPaddingBottom());
+                    mPreviewFontView.setHeight(desiredHeight);
+
+                    
+                    setButtonState(mPreviewFontIndex);
+                    updatePreviewFontSize(mFontTwipValues[mPreviewFontIndex]);
+                }
+            } 
+        }); 
+    }
+
+    
+
+
+
+
+
+
+    private void setPreviewFontViewWidth() {
+        final WindowManager wm = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
+        final DisplayMetrics metrics = new DisplayMetrics();
+        wm.getDefaultDisplay().getMetrics(metrics);
+        final float density = metrics.density;
+
+        final float actualWidthDip = metrics.widthPixels / density;
+        float scaleExtraDip = (actualWidthDip - MIN_TEXTVIEW_WIDTH_DIP) / TEXTVIEW_WIDTH_SCALE_FACTOR;
+        scaleExtraDip = scaleExtraDip >= 0 ? scaleExtraDip : 0;
+        final float desiredWidthDip = MIN_TEXTVIEW_WIDTH_DIP + scaleExtraDip;
+        final int desiredWidthPx = Math.round(desiredWidthDip * density);
+        mPreviewFontView.setWidth(desiredWidthPx);
     }
 
     
@@ -126,7 +223,7 @@ class FontSizePreference extends DialogPreference {
 
     private void updatePreviewFontSize(String twip) {
         mPreviewFontView.setTextSize(PREVIEW_FONT_SIZE_UNIT, convertTwipStrToPT(twip));
-        mPreviewFontView.invalidate();
+        mPreviewFontView.scrollTo(0, 0);
     }
 
     
@@ -135,6 +232,14 @@ class FontSizePreference extends DialogPreference {
     private void resetSavedFontSizeToDefault() {
         mSavedFontIndex = DEFAULT_FONT_INDEX;
         mPreviewFontIndex = mSavedFontIndex;
+    }
+
+    private void setButtonState(int index) {
+        if (index == 0) {
+            mDecreaseFontButton.setEnabled(false);
+        } else if (index == mFontTwipValues.length - 1) {
+            mIncreaseFontButton.setEnabled(false);
+        }
     }
 
     
