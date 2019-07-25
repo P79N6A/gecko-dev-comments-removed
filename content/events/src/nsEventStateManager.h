@@ -57,6 +57,8 @@
 #include "nsFocusManager.h"
 #include "nsIDocument.h"
 #include "nsEventStates.h"
+#include "mozilla/TimeStamp.h"
+#include "nsContentUtils.h"
 
 class nsIPresShell;
 class nsIDocShell;
@@ -80,6 +82,10 @@ class nsEventStateManager : public nsSupportsWeakReference,
 {
   friend class nsMouseWheelTransaction;
 public:
+
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
+
   nsEventStateManager();
   virtual ~nsEventStateManager();
 
@@ -169,19 +175,33 @@ public:
   static void StartHandlingUserInput()
   {
     ++sUserInputEventDepth;
+    if (sUserInputEventDepth == 1) {
+      sHandlingInputStart = TimeStamp::Now();
+    }
   }
 
   static void StopHandlingUserInput()
   {
     --sUserInputEventDepth;
+    if (sUserInputEventDepth == 0) {
+      sHandlingInputStart = TimeStamp();
+    }
   }
 
   static PRBool IsHandlingUserInput()
   {
-    return sUserInputEventDepth > 0;
+    if (sUserInputEventDepth <= 0) {
+      return PR_FALSE;
+    }
+    TimeDuration timeout = nsContentUtils::HandlingUserInputTimeout();
+    return timeout <= TimeDuration(0) ||
+           (TimeStamp::Now() - sHandlingInputStart) <= timeout;
   }
 
   
+
+
+
 
 
 
@@ -507,6 +527,8 @@ private:
 
   PRPackedBool m_haveShutdown;
 
+  
+  static TimeStamp sHandlingInputStart;
 
 public:
   static nsresult UpdateUserActivityTimer(void);

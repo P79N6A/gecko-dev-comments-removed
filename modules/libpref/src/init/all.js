@@ -3351,6 +3351,10 @@ pref("alerts.disableSlidingEffect", false);
 pref("full-screen-api.enabled", false);
 pref("full-screen-api.allow-trusted-requests-only", true);
 pref("full-screen-api.key-input-restricted", true);
+
+
+
+pref("dom.event.handling-user-input-time-limit", 1000);
  
 
 pref("layout.3d-transforms.enabled", false);
