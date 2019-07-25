@@ -124,7 +124,9 @@ class RegExpStatics
         JS_ASSERT(matchPairsInput);
         size_t mpiLen = matchPairsInput->length();
 
+        
         JS_ASSERT(pairIsPresent(0));
+        JS_ASSERT(get(0, 1) >= 0);
 
         
         for (size_t i = 0; i < pairCount(); ++i) {
@@ -135,6 +137,19 @@ class RegExpStatics
             JS_ASSERT(mpiLen >= size_t(limit) && limit >= start && start >= 0);
         }
 #endif
+    }
+
+    bool pairIsPresent(size_t pairNum) const {
+        return getCrash(pairNum, 0) >= 0;
+    }
+
+    
+    size_t getParenLength(size_t parenNum) const {
+        size_t pairNum = parenNum + 1;
+        if (pairCountCrash() <= pairNum)
+            return 0;
+        JS_CRASH_UNLESS(pairIsPresent(pairNum));
+        return getCrash(pairNum, 1) - getCrash(pairNum, 0);
     }
 
     int get(size_t pairNum, bool which) const {
@@ -168,10 +183,6 @@ class RegExpStatics
 
     
 
-    
-
-
-
     bool updateFromMatch(JSContext *cx, JSString *input, int *buf, size_t matchItemCount) {
         aboutToWrite();
         pendingInput = input;
@@ -203,8 +214,6 @@ class RegExpStatics
         matchPairsInput = NULL;
         matchPairs.clear();
     }
-
-    bool pairIsPresent(size_t pairNum) { return get(0, 0) != -1; }
 
     
     void reset(JSString *newInput, bool newMultiline) {
@@ -238,12 +247,15 @@ class RegExpStatics
         return size_t(limit);
     }
 
+    
     bool matched() const {
         JS_ASSERT(pairCount() > 0);
+        JS_ASSERT_IF(get(0, 1) == -1, get(1, 1) == -1);
         return get(0, 1) - get(0, 0) > 0;
     }
 
     size_t getParenCount() const {
+        
         JS_ASSERT(pairCount() > 0);
         return pairCount() - 1;
     }
@@ -253,12 +265,6 @@ class RegExpStatics
             JS_CALL_STRING_TRACER(trc, pendingInput, "res->pendingInput");
         if (matchPairsInput)
             JS_CALL_STRING_TRACER(trc, matchPairsInput, "res->matchPairsInput");
-    }
-
-    size_t getParenLength(size_t parenNum) const {
-        if (pairCountCrash() <= parenNum + 1)
-            return 0;
-        return getCrash(parenNum + 1, 1) - getCrash(parenNum + 1, 0);
     }
 
     
@@ -275,6 +281,7 @@ class RegExpStatics
 
     
 
+    
     void getParen(size_t num, JSSubString *out) const;
     void getLastMatch(JSSubString *out) const;
     void getLastParen(JSSubString *out) const;
