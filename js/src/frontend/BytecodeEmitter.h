@@ -225,14 +225,6 @@ EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
 
 
-JSBool
-PopStatementBCE(JSContext *cx, BytecodeEmitter *bce);
-
-
-
-
-
-
 
 
 
