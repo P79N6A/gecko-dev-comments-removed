@@ -2273,9 +2273,9 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
   do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ASSERTION(thisContent, "must be a content");
 
-  if (!thisContent->IsHTML()) {
+  if (!thisContent->IsHTML() || mContentType.IsEmpty()) {
     
-    LOG(("OBJLC [%p]: Non-HTML content, forcing eFallbackAlternate", this));
+    
     aType = eFallbackAlternate;
   }
 
