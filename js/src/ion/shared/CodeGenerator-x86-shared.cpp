@@ -241,7 +241,30 @@ CodeGeneratorX86Shared::visitMulI(LMulI *ins)
                     return false;
         }
 
-        masm.imull(Imm32(ToInt32(rhs)), ToRegister(lhs));
+        switch (constant) {
+          case -1:
+            masm.negl(ToOperand(lhs));
+            break;
+          case 0:
+            masm.xorl(ToOperand(lhs), ToRegister(lhs));
+            return true; 
+          case 1:
+            
+            return true; 
+          case 2:
+            masm.addl(ToOperand(lhs), ToRegister(lhs));
+            break;
+          default:
+            if (!mul->canOverflow() && constant > 0) {
+                
+                int32 shift = JS_FloorLog2(constant);
+                if ((1 << shift) == constant) {
+                    masm.shll(Imm32(shift), ToRegister(lhs));
+                    return true;
+                }
+            }
+            masm.imull(Imm32(ToInt32(rhs)), ToRegister(lhs));
+        }
 
         
         if (mul->canOverflow() && !bailoutIf(Assembler::Overflow, ins->snapshot()))
