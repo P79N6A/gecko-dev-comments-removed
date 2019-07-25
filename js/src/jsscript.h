@@ -329,46 +329,127 @@ static const uint32_t JS_SCRIPT_COOKIE = 0xc00cee;
 
 struct JSScript : public js::gc::Cell
 {
-    
+  private:
+    static const uint32_t stepFlagMask = 0x80000000U;
+    static const uint32_t stepCountMask = 0x7fffffffU;
+
+  
 
 
 
 
+  
+
+  public:
+    js::Bindings    bindings;   
 
 
+  
 
-
-
-
-    static JSScript *NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
-                               uint32_t nobjects, uint32_t nregexps,
-                               uint32_t ntrynotes, uint32_t nconsts, uint32_t nglobals,
-                               uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
-                               JSVersion version);
-
-    static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
-
-#ifdef JS_CRASH_DIAGNOSTICS
-    
-
-
-
-    uint32_t        cookie1[Cell::CellSize / sizeof(uint32_t)];
-#endif
+  public:
     jsbytecode      *code;      
     uint8_t         *data;      
 
+    const char      *filename;  
+    JSAtom          **atoms;    
+
+    JSPrincipals    *principals;
+    JSPrincipals    *originPrincipals; 
+
+    jschar          *sourceMap; 
+
+    
+
+
+
+
+
+
+
+
+
+
+    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
+
+    uint32_t        *closedSlots; 
+
+    
+    js::ScriptOpcodeCounts pcCounters;
+
+    
+    js::types::TypeScript *types;
+
+#ifdef JS_METHODJIT
+    
+    
+    
+    
+    void *jitArityCheckNormal;
+    void *jitArityCheckCtor;
+
+    js::mjit::JITScript *jitNormal;   
+    js::mjit::JITScript *jitCtor;     
+#endif
+
+  private:
+    js::DebugScript     *debug;
+    js::HeapPtrFunction function_;
+
+    size_t          useCount;   
+
+
+#if JS_BITS_PER_WORD == 32
+    void *padding_;
+#endif
+
+    
+
+  public:
     uint32_t        length;     
+
+    uint32_t        lineno;     
+
+    uint32_t        mainOffset; 
+
+
+    uint32_t        natoms;     
+
+#ifdef DEBUG
+    
+
+
+
+    uint32_t        id_;
+  private:
+    uint32_t        idpad;
+  public:
+#endif
+
+    
+
   private:
     uint16_t        version;    
 
   public:
     uint16_t        nfixed;     
 
+
+    uint16_t        nTypeSets;  
+
+
+    uint16_t        nslots;     
+    uint16_t        staticLevel;
+
+    uint16_t        nClosedArgs;
+    uint16_t        nClosedVars;
+
+    
+
     
 
 
 
+  public:
     uint8_t         objectsOffset;  
 
 
@@ -378,13 +459,9 @@ struct JSScript : public js::gc::Cell
     uint8_t         globalsOffset;  
     uint8_t         constOffset;    
 
-    uint16_t        nTypeSets;      
+    
 
-
-    uint32_t        lineno;     
-
-    uint32_t        mainOffset; 
-
+  public:
     bool            noScriptRval:1; 
 
     bool            savedCallerFun:1; 
@@ -428,7 +505,28 @@ struct JSScript : public js::gc::Cell
     bool            mayNeedArgsObj_:1;
     bool            analyzedArgsUsage_:1;
     bool            needsArgsObj_:1;
+
+    
+
+    
+
+
+
+
+
+
+
+
+
+
   public:
+    static JSScript *NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
+                               uint32_t nobjects, uint32_t nregexps,
+                               uint32_t ntrynotes, uint32_t nconsts, uint32_t nglobals,
+                               uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
+                               JSVersion version);
+    static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
+
     bool mayNeedArgsObj() const { return mayNeedArgsObj_; }
     bool analyzedArgsUsage() const { return analyzedArgsUsage_; }
     bool needsArgsObj() const { JS_ASSERT(analyzedArgsUsage()); return needsArgsObj_; }
@@ -439,51 +537,8 @@ struct JSScript : public js::gc::Cell
         mayNeedArgsObj_ = true;
     }
 
-    uint32_t        natoms;     
-    uint16_t        nslots;     
-    uint16_t        staticLevel;
-
-    uint16_t        nClosedArgs; 
-    uint16_t        nClosedVars; 
-
-    const char      *filename;  
-    JSAtom          **atoms;    
-  private:
-    size_t          useCount;  
-
-
-  public:
-    js::Bindings    bindings;   
-
-    JSPrincipals    *principals;
-    JSPrincipals    *originPrincipals; 
-    jschar          *sourceMap; 
-
     
-
-
-
-
-
-
-
-
-
-
-    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
-
-    
-    JSScript        *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
-
-    uint32_t        *closedSlots; 
-
-    
-    js::ScriptOpcodeCounts pcCounters;
-
-  private:
-    js::DebugScript     *debug;
-    js::HeapPtrFunction function_;
-  public:
+    JSScript *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
 
     
 
@@ -492,34 +547,10 @@ struct JSScript : public js::gc::Cell
     JSFunction *function() const { return function_; }
     void setFunction(JSFunction *fun);
 
-#ifdef JS_CRASH_DIAGNOSTICS
-    
-    uint32_t        cookie2[Cell::CellSize / sizeof(uint32_t)];
-
-    void CheckScript(JSScript *prev);
-#else
-    void CheckScript(JSScript *prev) {}
-#endif 
-
 #ifdef DEBUG
-    
-
-
-
-    uint32_t id_;
-    uint32_t idpad;
     unsigned id();
 #else
     unsigned id() { return 0; }
-#endif
-
-    
-    js::types::TypeScript *types;
-
-#if JS_BITS_PER_WORD == 32
-  private:
-    void *padding_;
-  public:
 #endif
 
     
@@ -565,18 +596,6 @@ struct JSScript : public js::gc::Cell
   public:
 
 #ifdef JS_METHODJIT
-    
-    
-    
-    
-    void *jitArityCheckNormal;
-    void *jitArityCheckCtor;
-
-    js::mjit::JITScript *jitNormal;   
-    js::mjit::JITScript *jitCtor;     
-#endif
-
-#ifdef JS_METHODJIT
     bool hasJITCode() {
         return jitNormal || jitCtor;
     }
@@ -600,7 +619,6 @@ struct JSScript : public js::gc::Cell
 
 
     size_t sizeOfJitScripts(JSMallocSizeOfFun mallocSizeOf);
-
 #endif
 
     
@@ -707,9 +725,6 @@ struct JSScript : public js::gc::Cell
     void copyClosedSlotsTo(JSScript *other);
 
   private:
-    static const uint32_t stepFlagMask = 0x80000000U;
-    static const uint32_t stepCountMask = 0x7fffffffU;
-
     
 
 
@@ -824,20 +839,6 @@ struct ScriptOpcodeCountsPair
     }
 };
 
-#ifdef JS_CRASH_DIAGNOSTICS
-
-void
-CheckScript(JSScript *script, JSScript *prev);
-
-#else
-
-inline void
-CheckScript(JSScript *script, JSScript *prev)
-{
-}
-
-#endif 
-
 } 
 
 
@@ -898,4 +899,4 @@ XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript);
 
 } 
 
-#endif
+#endif 
