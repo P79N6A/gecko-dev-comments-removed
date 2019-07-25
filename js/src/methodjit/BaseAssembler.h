@@ -608,10 +608,8 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
 
         
-        if (pc) {
-            storePtr(ImmPtr(pc),
-                     FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
-        }
+        storePtr(ImmPtr(pc),
+                 FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
     }
 
     
@@ -693,39 +691,6 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         }
 
         return fails;
-    }
-
-    
-    
-    struct AdjustedFrame {
-        AdjustedFrame(uint32 baseOffset)
-         : baseOffset(baseOffset)
-        { }
-
-        uint32 baseOffset;
-
-        JSC::MacroAssembler::Address addrOf(uint32 offset) {
-            return JSC::MacroAssembler::Address(JSFrameReg, baseOffset + offset);
-        }
-    };
-
-    
-    DataLabelPtr emitStaticFrame(bool isNew, uint32 frameDepth, void *returnAddress) {
-        AdjustedFrame newfp(sizeof(JSStackFrame) + frameDepth * sizeof(Value));
-    
-        Address flagsAddr = newfp.addrOf(JSStackFrame::offsetOfFlags());
-        uint32 extraFlags = isNew ? JSFRAME_CONSTRUCTING : 0;
-        store32(Imm32(JSFRAME_FUNCTION | extraFlags), flagsAddr);
-    
-        Address prevAddr = newfp.addrOf(JSStackFrame::offsetOfPrev());
-        storePtr(JSFrameReg, prevAddr);
-    
-        Address ncodeAddr = newfp.addrOf(JSStackFrame::offsetOfncode());
-        DataLabelPtr ptr = storePtrWithPatch(ImmPtr(returnAddress), ncodeAddr);
-    
-        addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(Value)), JSFrameReg);
-
-        return ptr;
     }
 
     void loadObjClass(RegisterID objReg, RegisterID destReg) {

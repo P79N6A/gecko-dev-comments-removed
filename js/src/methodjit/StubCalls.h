@@ -66,9 +66,46 @@ void JS_FASTCALL InitMethod(VMFrame &f, JSAtom *atom);
 void JS_FASTCALL HitStackQuota(VMFrame &f);
 void * JS_FASTCALL FixupArity(VMFrame &f, uint32 argc);
 void * JS_FASTCALL CompileFunction(VMFrame &f, uint32 argc);
+void JS_FASTCALL SlowNew(VMFrame &f, uint32 argc);
+void JS_FASTCALL SlowCall(VMFrame &f, uint32 argc);
+void * JS_FASTCALL UncachedNew(VMFrame &f, uint32 argc);
+void * JS_FASTCALL UncachedCall(VMFrame &f, uint32 argc);
 void JS_FASTCALL Eval(VMFrame &f, uint32 argc);
 void JS_FASTCALL ScriptDebugPrologue(VMFrame &f);
 void JS_FASTCALL ScriptDebugEpilogue(VMFrame &f);
+
+
+
+
+
+
+
+
+
+
+
+
+struct UncachedCallResult {
+    JSObject   *callee;       
+    JSFunction *fun;          
+    void       *codeAddr;     
+    bool       unjittable;    
+
+    void init() {
+        callee = NULL;
+        fun = NULL;
+        codeAddr = NULL;
+        unjittable = false;
+    }        
+};
+
+
+
+
+
+
+void UncachedCallHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr);
+void UncachedNewHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr);
 
 void JS_FASTCALL CreateThis(VMFrame &f, JSObject *proto);
 void JS_FASTCALL Throw(VMFrame &f);

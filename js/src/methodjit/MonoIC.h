@@ -187,96 +187,91 @@ struct EqualityICInfo {
 
 JSBool JS_FASTCALL Equality(VMFrame &f, ic::EqualityICInfo *ic);
 
-struct CallDescription {
-    CallDescription(uint32 argc) : argc(argc), code(NULL)
-    { }
-    JSObject    *callee;
-    JSFunction  *fun;
-    uint32      argc;
-    void        *code;
-    bool        unjittable;     
-};
 
-struct CallIC {
+struct CallICInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
-    typedef JSC::MacroAssembler::Call Call;
 
-    JSC::CodeLocationLabel fastPathStart;
+    enum PoolIndex {
+        Pool_ScriptStub,
+        Pool_ClosureStub,
+        Pool_NativeStub,
+        Total_Pools
+    };
+
+    JSC::ExecutablePool *pools[Total_Pools];
+
+    
+    JSObject *fastGuardedObject;
+    JSObject *fastGuardedNative;
+
+    
+    jsbytecode *pc;
+
+    FrameSize frameSize;
+
+    
+    JSC::CodeLocationDataLabelPtr funGuard;
+
+    
     JSC::CodeLocationLabel slowPathStart;
 
-    jsbytecode  *pc;
-    FrameSize   frameSize;
-
-    uint32      slowCallOffset : 12;        
-    uint32      inlineRejoinOffset : 10;    
-    uint32      completedRejoinOffset : 10; 
-    uint32      inlineJumpOffset : 10;      
-    uint32      inlineCalleeGuard : 10;     
-                                            
-                                            
-    uint32      inlineCallOffset : 10;      
-
-    RegisterID  calleeData : 5;
-    bool hasExtendedInlinePath : 1;
+    
+    JSC::CodeLocationJump funJump;
 
     
-    uint32 rvalOffset;
+    uint32 hotJumpOffset   : 16;
+    uint32 joinPointOffset : 16;
 
     
-    mutable JSC::ExecutablePool *pool;
+    uint32 oolCallOffset   : 16;
 
     
-    
-    mutable JSObject *inlineCallee;
+    uint32 oolJumpOffset   : 16;
 
     
+    uint32 icCallOffset    : 16;
+
     
-    mutable JSObject *guardedNative;
+    uint32 hotPathOffset   : 16;
 
-    bool shouldDisable(JSContext *cx, JITScript *jit, CallDescription &call);
-    void purge(JITScript *jit, Repatcher &repatcher);
-    void disable(Repatcher &repatcher);
-    bool update(JSContext *cx, JITScript *jit, CallDescription &call);
-    JSOp op() const;
-    void reenable(JITScript *jit, Repatcher &repatcher);
-    void purgeInlineGuard(Repatcher &repatcher);
-    void purgeStub(Repatcher &repatcher);
+    
+    uint32 slowJoinOffset  : 16;
 
-    JSC::CodeLocationLabel inlineRejoinLabel() const {
-       return fastPathStart.labelAtOffset(inlineRejoinOffset);
+    RegisterID funObjReg : 5;
+    RegisterID funPtrReg : 5;
+    bool hit : 1;
+    bool hasJsFunCheck : 1;
+
+    inline void reset() {
+        fastGuardedObject = NULL;
+        fastGuardedNative = NULL;
+        hit = false;
+        hasJsFunCheck = false;
+        pools[0] = pools[1] = pools[2] = NULL;
     }
-    void *returnAddress() const {
-        return inlineRejoinLabel().executableAddress();
+
+    inline void releasePools() {
+        releasePool(Pool_ScriptStub);
+        releasePool(Pool_ClosureStub);
+        releasePool(Pool_NativeStub);
     }
-    JSC::CodeLocationLabel completedRejoinLabel() const {
-        return fastPathStart.labelAtOffset(completedRejoinOffset);
-    }
-    JSC::CodeLocationJump inlineJump() const {
-        return fastPathStart.jumpAtOffset(inlineJumpOffset);
-    }
-    JSC::CodeLocationCall slowCall() const {
-        return slowPathStart.callAtOffset(slowCallOffset);
-    }
-    JSC::CodeLocationDataLabelPtr calleePtr() const {
-        JS_ASSERT(hasExtendedInlinePath);
-        return fastPathStart.dataLabelPtrAtOffset(inlineCalleeGuard);
-    }
-    JSC::CodeLocationJump inlineCall() const {
-        JS_ASSERT(hasExtendedInlinePath);
-        return fastPathStart.jumpAtOffset(inlineCallOffset);
+
+    inline void releasePool(PoolIndex index) {
+        if (pools[index]) {
+            pools[index]->release();
+            pools[index] = NULL;
+        }
     }
 };
 
-template <bool UpdateIC> void * JS_FASTCALL New(VMFrame &f, ic::CallIC *ic);
-template <bool DynamicArgc, bool UpdateIC> void * JS_FASTCALL Call(VMFrame &f, ic::CallIC *ic);
-template <bool LazyArgsObj> JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
-void * JS_FASTCALL FailedFunCall(VMFrame &f, ic::CallIC *ic);
-void * JS_FASTCALL FailedFunApply(VMFrame &f, ic::CallIC *ic);
-void * JS_FASTCALL FailedFunApplyLazyArgs(VMFrame &f, ic::CallIC *ic);
+void * JS_FASTCALL New(VMFrame &f, ic::CallICInfo *ic);
+void * JS_FASTCALL Call(VMFrame &f, ic::CallICInfo *ic);
+void JS_FASTCALL NativeNew(VMFrame &f, ic::CallICInfo *ic);
+void JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
+JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
 
 void PurgeMICs(JSContext *cx, JSScript *script);
-void SweepICs(JSContext *cx, JSScript *script);
-void PurgeICs(JSContext *cx, JSScript *script);
+void SweepCallICs(JSContext *cx, JSScript *script, bool purgeAll);
 
 } 
 } 

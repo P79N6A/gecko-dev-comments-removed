@@ -173,6 +173,43 @@ top:
 
 
 
+static void
+InlineReturn(VMFrame &f)
+{
+    JSContext *cx = f.cx;
+    JSStackFrame *fp = f.regs.fp;
+
+    JS_ASSERT(f.fp() != f.entryfp);
+
+    JS_ASSERT(!js_IsActiveWithOrBlock(cx, &fp->scopeChain(), 0));
+
+    Value *newsp = fp->actualArgs() - 1;
+    newsp[-1] = fp->returnValue();
+    cx->stack().popInlineFrame(cx, fp->prev(), newsp);
+}
+
+void JS_FASTCALL
+stubs::SlowCall(VMFrame &f, uint32 argc)
+{
+    Value *vp = f.regs.sp - (argc + 2);
+
+    if (!Invoke(f.cx, InvokeArgsAlreadyOnTheStack(vp, argc), 0))
+        THROW();
+}
+
+void JS_FASTCALL
+stubs::SlowNew(VMFrame &f, uint32 argc)
+{
+    JSContext *cx = f.cx;
+    Value *vp = f.regs.sp - (argc + 2);
+
+    if (!InvokeConstructor(cx, InvokeArgsAlreadyOnTheStack(vp, argc)))
+        THROW();
+}
+
+
+
+
 
 static inline void
 RemovePartialFrame(JSContext *cx, JSStackFrame *fp)
@@ -269,9 +306,6 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     JSScript *script = fun->script();
 
     
-    f.regs.pc = script->code;
-
-    
 
 
 
@@ -289,7 +323,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     
     f.regs.fp = fp;
     f.regs.sp = fp->base();
-    JS_ASSERT(f.regs.pc == script->code);
+    f.regs.pc = script->code;
 
     if (fun->isHeavyweight() && !js::CreateFunCallObject(cx, fp))
         THROWV(NULL);
@@ -308,6 +342,96 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     return NULL;
 }
 
+static inline bool
+UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint32 argc)
+{
+    JSContext *cx = f.cx;
+    Value *vp = f.regs.sp - (argc + 2);
+    JSObject &callee = vp->toObject();
+    JSFunction *newfun = callee.getFunctionPrivate();
+    JSScript *newscript = newfun->script();
+
+    
+    StackSpace &stack = cx->stack();
+    JSStackFrame *newfp = stack.getInlineFrameWithinLimit(cx, f.regs.sp, argc,
+                                                          newfun, newscript, &flags,
+                                                          f.entryfp, &f.stackLimit);
+    if (JS_UNLIKELY(!newfp))
+        return false;
+
+    
+    newfp->initCallFrame(cx, callee, newfun, argc, flags);
+    SetValueRangeToUndefined(newfp->slots(), newscript->nfixed);
+
+    
+    stack.pushInlineFrame(cx, newscript, newfp, &f.regs);
+    JS_ASSERT(newfp == f.regs.fp);
+
+    
+    if (newfun->isHeavyweight() && !js::CreateFunCallObject(cx, newfp))
+        return false;
+
+    
+    if (newscript->getJITStatus(newfp->isConstructing()) == JITScript_None) {
+        CompileStatus status = CanMethodJIT(cx, newscript, newfp, CompileRequest_Interpreter);
+        if (status == Compile_Error) {
+            
+            InlineReturn(f);
+            return false;
+        }
+        if (status == Compile_Abort)
+            *unjittable = true;
+    }
+
+    
+    if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
+        *pret = jit->invokeEntry;
+        return true;
+    }
+
+    
+    bool ok = !!Interpret(cx, cx->fp());
+    InlineReturn(f);
+
+    *pret = NULL;
+    return ok;
+}
+
+void * JS_FASTCALL
+stubs::UncachedNew(VMFrame &f, uint32 argc)
+{
+    UncachedCallResult ucr;
+    UncachedNewHelper(f, argc, &ucr);
+    return ucr.codeAddr;
+}
+
+void
+stubs::UncachedNewHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr)
+{
+    ucr->init();
+
+    JSContext *cx = f.cx;
+    Value *vp = f.regs.sp - (argc + 2);
+
+    
+    if (IsFunctionObject(*vp, &ucr->fun) && ucr->fun->isInterpreted()) {
+        ucr->callee = &vp->toObject();
+        if (!UncachedInlineCall(f, JSFRAME_CONSTRUCTING, &ucr->codeAddr, &ucr->unjittable, argc))
+            THROW();
+    } else {
+        if (!InvokeConstructor(cx, InvokeArgsAlreadyOnTheStack(vp, argc)))
+            THROW();
+    }
+}
+
+void * JS_FASTCALL
+stubs::UncachedCall(VMFrame &f, uint32 argc)
+{
+    UncachedCallResult ucr;
+    UncachedCallHelper(f, argc, &ucr);
+    return ucr.codeAddr;
+}
+
 void JS_FASTCALL
 stubs::Eval(VMFrame &f, uint32 argc)
 {
@@ -324,6 +448,37 @@ stubs::Eval(VMFrame &f, uint32 argc)
         THROW();
 
     f.regs.sp = vp + 1;
+}
+
+void
+stubs::UncachedCallHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr)
+{
+    ucr->init();
+
+    JSContext *cx = f.cx;
+    Value *vp = f.regs.sp - (argc + 2);
+
+    if (IsFunctionObject(*vp, &ucr->callee)) {
+        ucr->callee = &vp->toObject();
+        ucr->fun = GET_FUNCTION_PRIVATE(cx, ucr->callee);
+
+        if (ucr->fun->isInterpreted()) {
+            if (!UncachedInlineCall(f, 0, &ucr->codeAddr, &ucr->unjittable, argc))
+                THROW();
+            return;
+        }
+
+        if (ucr->fun->isNative()) {
+            if (!CallJSNative(cx, ucr->fun->u.n.native, argc, vp))
+                THROW();
+            return;
+        }
+    }
+
+    if (!Invoke(f.cx, InvokeArgsAlreadyOnTheStack(vp, argc), 0))
+        THROW();
+
+    return;
 }
 
 void JS_FASTCALL

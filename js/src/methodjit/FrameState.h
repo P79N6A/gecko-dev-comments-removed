@@ -707,11 +707,6 @@ class FrameState
     
 
 
-    void forgetConstant(FrameEntry *fe);
-
-    
-
-
     inline void dup();
 
     
