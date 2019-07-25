@@ -314,6 +314,11 @@ class nsHtml5Highlighter
     
 
 
+    PRInt32 mLineNumber;
+
+    
+
+
 
     PRInt32 mInlinesOpen;
 
