@@ -1611,10 +1611,7 @@ OpenDatabaseHelper::DoDatabaseWork()
 
   NS_ASSERTION(mOpenDBRequest, "This should never be null!");
 
-  
   nsPIDOMWindow* window = mOpenDBRequest->Owner();
-  NS_ASSERTION(window, "This should never be null");
-
   AutoEnterWindow autoWindow(window);
 
   nsCOMPtr<nsIFile> dbDirectory;
