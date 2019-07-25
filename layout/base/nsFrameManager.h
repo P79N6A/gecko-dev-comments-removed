@@ -202,6 +202,18 @@ public:
   }
 
 private:
+  enum DesiredA11yNotifications {
+    eSkipNotifications,
+    eSendAllNotifications,
+    eNotifyIfShown
+  };
+
+  enum A11yNotificationType {
+    eDontNotify,
+    eNotifyShown,
+    eNotifyHidden
+  };
+
   
   
   
@@ -214,7 +226,9 @@ private:
                           nsStyleChangeList *aChangeList, 
                           nsChangeHint       aMinChange,
                           nsRestyleHint      aRestyleHint,
-                          RestyleTracker&    aRestyleTracker);
+                          RestyleTracker&    aRestyleTracker,
+                          DesiredA11yNotifications aDesiredA11yNotifications,
+                          nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement);
 };
 
 #endif

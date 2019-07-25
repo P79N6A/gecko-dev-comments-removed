@@ -869,13 +869,13 @@ already_AddRefed<nsAccessible>
 nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
                                               nsIPresShell* aPresShell,
                                               nsIWeakReference* aWeakShell,
-                                              PRBool* aIsHidden)
+                                              bool* aIsSubtreeHidden)
 {
   if (!aPresShell || !aWeakShell || !aNode || gIsShutdown)
     return nsnull;
 
-  if (aIsHidden)
-    *aIsHidden = PR_FALSE;
+  if (aIsSubtreeHidden)
+    *aIsSubtreeHidden = false;
 
   
   nsAccessible *cachedAccessible = GetCachedAccessible(aNode, aWeakShell);
@@ -917,9 +917,10 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
   nsWeakFrame weakFrame = content->GetPrimaryFrame();
 
   
-  if (!weakFrame.GetFrame()) {
-    if (aIsHidden)
-      *aIsHidden = PR_TRUE;
+  
+  if (!weakFrame.GetFrame() || !weakFrame->GetStyleVisibility()->IsVisible()) {
+    if (aIsSubtreeHidden && !weakFrame.GetFrame())
+      *aIsSubtreeHidden = true;
 
     return nsnull;
   }
@@ -953,8 +954,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
       f->GetRenderedText(&renderedWhitespace, nsnull, nsnull, 0, 1);
       if (renderedWhitespace.IsEmpty()) {
         
-        if (aIsHidden)
-          *aIsHidden = PR_TRUE;
+        if (aIsSubtreeHidden)
+          *aIsSubtreeHidden = true;
 
         return nsnull;
       }
@@ -982,8 +983,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     nsAutoString name;
     content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::name, name);
     if (!name.IsEmpty()) {
-      if (aIsHidden)
-        *aIsHidden = PR_TRUE;
+      if (aIsSubtreeHidden)
+        *aIsSubtreeHidden = true;
 
       return nsnull;
     }
@@ -1117,8 +1118,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
            f->GetRect().IsEmpty()) {
           
           
-          if (aIsHidden)
-            *aIsHidden = PR_TRUE;
+          if (aIsSubtreeHidden)
+            *aIsSubtreeHidden = true;
 
           return nsnull;
         }

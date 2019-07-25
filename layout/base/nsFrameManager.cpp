@@ -96,6 +96,10 @@
 
 #include "nsFrameManager.h"
 
+#ifdef ACCESSIBILITY
+#include "nsIAccessibilityService.h"
+#endif
+
   #ifdef DEBUG
     
     
@@ -1000,7 +1004,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsStyleChangeList *aChangeList, 
                                       nsChangeHint       aMinChange,
                                       nsRestyleHint      aRestyleHint,
-                                      RestyleTracker&    aRestyleTracker)
+                                      RestyleTracker&    aRestyleTracker,
+                                      DesiredA11yNotifications aDesiredA11yNotifications,
+                                      nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement)
 {
   if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aMinChange)) {
     
@@ -1047,6 +1053,12 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
   
   if (oldContext) {
     oldContext->AddRef();
+
+#ifdef ACCESSIBILITY
+    PRBool wasFrameVisible = mPresShell->IsAccessibilityActive() ?
+      oldContext->GetStyleVisibility()->IsVisible() : PR_FALSE;
+#endif
+
     nsIAtom* const pseudoTag = oldContext->GetPseudo();
     const nsCSSPseudoElements::Type pseudoType = oldContext->GetPseudoType();
     nsIContent* localContent = aFrame->GetContent();
@@ -1100,7 +1112,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       assumeDifferenceHint = ReResolveStyleContext(aPresContext, providerFrame,
                                                    aParentContent, aChangeList,
                                                    aMinChange, aRestyleHint,
-                                                   aRestyleTracker);
+                                                   aRestyleTracker,
+                                                   aDesiredA11yNotifications,
+                                                   aVisibleKidsOfHiddenElement);
 
       
       
@@ -1399,7 +1413,44 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     }
 
     if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+      A11yNotificationType ourA11yNotification = eDontNotify;
+      DesiredA11yNotifications kidsDesiredA11yNotification =
+        aDesiredA11yNotifications;
+#ifdef ACCESSIBILITY
       
+      
+      
+      if (mPresShell->IsAccessibilityActive() && !aFrame->GetPrevContinuation() &&
+          !nsLayoutUtils::FrameIsNonFirstInIBSplit(aFrame)) {
+        if (aDesiredA11yNotifications == eSendAllNotifications) {
+          PRBool isFrameVisible = newContext->GetStyleVisibility()->IsVisible();
+          if (isFrameVisible != wasFrameVisible) {
+            if (isFrameVisible) {
+              
+              
+              
+              kidsDesiredA11yNotification = eSkipNotifications;
+              ourA11yNotification = eNotifyShown;
+            } else {
+              
+              
+              
+              
+              
+              kidsDesiredA11yNotification = eNotifyIfShown;
+              ourA11yNotification = eNotifyHidden;
+            }
+          }
+        } else if (aDesiredA11yNotifications == eNotifyIfShown &&
+                   newContext->GetStyleVisibility()->IsVisible()) {
+          
+          
+          aVisibleKidsOfHiddenElement.AppendElement(aFrame->GetContent());
+          kidsDesiredA11yNotification = eSkipNotifications;
+        }
+      }
+#endif
+
       
       
       
@@ -1442,7 +1493,9 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       NS_SubtractHint(aMinChange,
                                                       nsChangeHint_ReflowFrame),
                                       childRestyleHint,
-                                      aRestyleTracker);
+                                      aRestyleTracker,
+                                      kidsDesiredA11yNotification,
+                                      aVisibleKidsOfHiddenElement);
               } while (outOfFlowFrame = outOfFlowFrame->GetNextContinuation());
 
               
@@ -1450,14 +1503,18 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
               ReResolveStyleContext(aPresContext, child, content,
                                     aChangeList, aMinChange,
                                     childRestyleHint,
-                                    aRestyleTracker);
+                                    aRestyleTracker,
+                                    kidsDesiredA11yNotification,
+                                    aVisibleKidsOfHiddenElement);
             }
             else {  
               if (child != resolvedChild) {
                 ReResolveStyleContext(aPresContext, child, content,
                                       aChangeList, aMinChange,
                                       childRestyleHint,
-                                      aRestyleTracker);
+                                      aRestyleTracker,
+                                      kidsDesiredA11yNotification,
+                                      aVisibleKidsOfHiddenElement);
               } else {
                 NOISY_TRACE_FRAME("child frame already resolved as descendant, skipping",aFrame);
               }
@@ -1469,8 +1526,40 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         childList = aFrame->GetAdditionalChildListName(listIndex++);
       } while (childList);
       
-    }
 
+#ifdef ACCESSIBILITY
+      
+      if (ourA11yNotification == eNotifyShown) {
+        nsCOMPtr<nsIAccessibilityService> accService =
+          do_GetService("@mozilla.org/accessibilityService;1");
+        if (accService) {
+          nsIPresShell* presShell = aFrame->PresContext()->GetPresShell();
+          nsIContent* content = aFrame->GetContent();
+
+          accService->ContentRangeInserted(presShell, content->GetParent(),
+                                           content,
+                                           content->GetNextSibling());
+        }
+      } else if (ourA11yNotification == eNotifyHidden) {
+        nsCOMPtr<nsIAccessibilityService> accService =
+          do_GetService("@mozilla.org/accessibilityService;1");
+        if (accService) {
+          nsIPresShell* presShell = aFrame->PresContext()->GetPresShell();
+          nsIContent* content = aFrame->GetContent();
+          accService->ContentRemoved(presShell, content->GetParent(), content);
+
+          
+          PRUint32 visibleContentCount = aVisibleKidsOfHiddenElement.Length();
+          for (PRUint32 idx = 0; idx < visibleContentCount; idx++) {
+            nsIContent* content = aVisibleKidsOfHiddenElement[idx];
+            accService->ContentRangeInserted(presShell, content->GetParent(),
+                                             content, content->GetNextSibling());
+          }
+          aVisibleKidsOfHiddenElement.Clear();
+        }
+      }
+#endif
+    }
   }
 
   return aMinChange;
@@ -1500,6 +1589,7 @@ nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame,
 
   FramePropertyTable *propTable = GetPresContext()->PropertyTable();
 
+  nsTArray<nsIContent*> visibleKidsOfHiddenElement;
   do {
     
     do {
@@ -1509,7 +1599,9 @@ nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame,
                               aChangeList, topLevelChange,
                               aRestyleDescendants ?
                                 eRestyle_Subtree : eRestyle_Self,
-                              aRestyleTracker);
+                              aRestyleTracker,
+                              eSendAllNotifications,
+                              visibleKidsOfHiddenElement);
       NS_UpdateHint(topLevelChange, frameChange);
 
       if (topLevelChange & nsChangeHint_ReconstructFrame) {

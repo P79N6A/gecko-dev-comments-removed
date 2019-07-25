@@ -111,9 +111,9 @@ public:
   virtual void RemoveNativeRootAccessible(nsAccessible* aRootAccessible);
 
   virtual void ContentRangeInserted(nsIPresShell* aPresShell,
-                                      nsIContent* aContainer,
-                                      nsIContent* aStartChild,
-                                      nsIContent* aEndChild);
+                                    nsIContent* aContainer,
+                                    nsIContent* aStartChild,
+                                    nsIContent* aEndChild);
 
   virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
                               nsIContent* aChild);
@@ -147,7 +147,7 @@ public:
   already_AddRefed<nsAccessible>
     GetOrCreateAccessible(nsINode* aNode, nsIPresShell* aPresShell,
                           nsIWeakReference* aWeakShell,
-                          PRBool* aIsHidden = nsnull);
+                          bool* aIsSubtreeHidden = nsnull);
 
   
 
