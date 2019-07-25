@@ -223,7 +223,7 @@ var PreferencesView = {
     if (value == "custom") {
       
       options.selectedIndex = -1;
-      options.setAttribute("label", Elements.browserBundle.getString("homepage.custom"));
+      options.setAttribute("label", Elements.browserBundle.getString("homepage.custom2"));
     } else {
       
       options.value = value;
@@ -256,7 +256,7 @@ var PreferencesView = {
     if (value == "custom") {
       
       options.selectedIndex = -1;
-      options.setAttribute("label", Elements.browserBundle.getString("homepage.custom"));
+      options.setAttribute("label", Elements.browserBundle.getString("homepage.custom2"));
     }
 
     
