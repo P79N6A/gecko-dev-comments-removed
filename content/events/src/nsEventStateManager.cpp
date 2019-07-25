@@ -2504,7 +2504,8 @@ nsEventStateManager::DispatchLegacyMouseScrollEvents(nsIFrame* aTargetFrame,
   
   
   nsIScrollableFrame* scrollTarget =
-    ComputeScrollTarget(aTargetFrame, aEvent, false);
+    ComputeScrollTarget(aTargetFrame, aEvent,
+                        COMPUTE_LEGACY_MOUSE_SCROLL_EVENT_TARGET);
 
   nsIFrame* scrollFrame = do_QueryFrame(scrollTarget);
   nsPresContext* pc =
@@ -2688,9 +2689,9 @@ nsEventStateManager::SendPixelScrollEvent(nsIFrame* aTargetFrame,
 nsIScrollableFrame*
 nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
                                          widget::WheelEvent* aEvent,
-                                         bool aForDefaultAction)
+                                         ComputeScrollTargetOptions aOptions)
 {
-  if (aForDefaultAction) {
+  if (aOptions & PREFER_MOUSE_WHEEL_TRANSACTION) {
     
     
     
@@ -2717,18 +2718,23 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
     return nullptr;
   }
 
+  bool checkIfScrollableX =
+    aEvent->deltaX && (aOptions & PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_X_AXIS);
+  bool checkIfScrollableY =
+    aEvent->deltaY && (aOptions & PREFER_ACTUAL_SCROLLABLE_TARGET_ALONG_Y_AXIS);
+
   nsIScrollableFrame* frameToScroll = nullptr;
-  for (nsIFrame* scrollFrame = aTargetFrame; scrollFrame;
-       scrollFrame = GetParentFrameToScroll(scrollFrame)) {
+  nsIFrame* scrollFrame =
+    !(aOptions & START_FROM_PARENT) ? aTargetFrame :
+                                      GetParentFrameToScroll(aTargetFrame);
+  for (; scrollFrame; scrollFrame = GetParentFrameToScroll(scrollFrame)) {
     
     frameToScroll = scrollFrame->GetScrollTargetFrame();
     if (!frameToScroll) {
       continue;
     }
 
-    
-    
-    if (!aForDefaultAction) {
+    if (!checkIfScrollableX && !checkIfScrollableY) {
       return frameToScroll;
     }
 
@@ -2736,8 +2742,8 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
     bool hiddenForV = (NS_STYLE_OVERFLOW_HIDDEN == ss.mVertical);
     bool hiddenForH = (NS_STYLE_OVERFLOW_HIDDEN == ss.mHorizontal);
     if ((hiddenForV && hiddenForH) ||
-        (aEvent->deltaY && !aEvent->deltaX && hiddenForV) ||
-        (aEvent->deltaX && !aEvent->deltaY && hiddenForH)) {
+        (checkIfScrollableY && !checkIfScrollableX && hiddenForV) ||
+        (checkIfScrollableX && !checkIfScrollableY && hiddenForH)) {
       continue;
     }
 
@@ -2763,8 +2769,9 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
 
   nsIFrame* newFrame = nsLayoutUtils::GetCrossDocParentFrame(
       aTargetFrame->PresContext()->FrameManager()->GetRootFrame());
-  return newFrame ?
-    ComputeScrollTarget(newFrame, aEvent, aForDefaultAction) : nullptr;
+  aOptions =
+    static_cast<ComputeScrollTargetOptions>(aOptions & ~START_FROM_PARENT);
+  return newFrame ? ComputeScrollTarget(newFrame, aEvent, aOptions) : nullptr;
 }
 
 nsSize
@@ -2908,18 +2915,17 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
       return;
   }
 
-  
-  
-  
-  
-  
-
   nsIntPoint overflow;
   aScrollableFrame->ScrollBy(actualDevPixelScrollAmount,
                              nsIScrollableFrame::DEVICE_PIXELS,
                              mode, &overflow, origin);
 
-  if (isDeltaModePixel) {
+  if (!scrollFrameWeak.IsAlive()) {
+    
+    
+    
+    aEvent->overflowDeltaX = aEvent->overflowDeltaY = 0;
+  } else if (isDeltaModePixel) {
     aEvent->overflowDeltaX = overflow.x;
     aEvent->overflowDeltaY = overflow.y;
   } else {
@@ -2932,18 +2938,29 @@ nsEventStateManager::DoScrollText(nsIScrollableFrame* aScrollableFrame,
   
   
   
-  if (overflowStyle.mHorizontal == NS_STYLE_OVERFLOW_HIDDEN) {
-    aEvent->overflowDeltaX = aEvent->deltaX;
-  }
-  if (overflowStyle.mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
-    aEvent->overflowDeltaY = aEvent->deltaY;
+  
+  
+  
+  if (scrollFrameWeak.IsAlive()) {
+    if (aEvent->deltaX &&
+        overflowStyle.mHorizontal == NS_STYLE_OVERFLOW_HIDDEN &&
+        !ComputeScrollTarget(scrollFrame, aEvent,
+                             COMPUTE_SCROLLABLE_ANCESTOR_ALONG_X_AXIS)) {
+      aEvent->overflowDeltaX = aEvent->deltaX;
+    }
+    if (aEvent->deltaY &&
+        overflowStyle.mVertical == NS_STYLE_OVERFLOW_HIDDEN &&
+        !ComputeScrollTarget(scrollFrame, aEvent,
+                             COMPUTE_SCROLLABLE_ANCESTOR_ALONG_Y_AXIS)) {
+      aEvent->overflowDeltaY = aEvent->deltaY;
+    }
   }
 
   NS_ASSERTION(aEvent->overflowDeltaX == 0 ||
-    (aEvent->overflowDeltaX > 0) == (actualDevPixelScrollAmount.x > 0),
+    (aEvent->overflowDeltaX > 0) == (aEvent->deltaX > 0),
     "The sign of overflowDeltaX is different from the scroll direction");
   NS_ASSERTION(aEvent->overflowDeltaY == 0 ||
-    (aEvent->overflowDeltaY > 0) == (actualDevPixelScrollAmount.y > 0),
+    (aEvent->overflowDeltaY > 0) == (aEvent->deltaY > 0),
     "The sign of overflowDeltaY is different from the scroll direction");
 
   WheelPrefs::GetInstance()->CancelApplyingUserPrefsFromOverflowDelta(aEvent);
@@ -3272,7 +3289,8 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           
           
           nsIScrollableFrame* scrollTarget =
-            ComputeScrollTarget(aTargetFrame, wheelEvent, true);
+            ComputeScrollTarget(aTargetFrame, wheelEvent,
+                                COMPUTE_DEFAULT_ACTION_TARGET);
           wheelEvent->overflowDeltaX = wheelEvent->deltaX;
           wheelEvent->overflowDeltaY = wheelEvent->deltaY;
           WheelPrefs::GetInstance()->
@@ -5171,7 +5189,8 @@ nsEventStateManager::DeltaAccumulator::InitLineOrPageDelta(
     
     
     nsIScrollableFrame* scrollTarget =
-      aESM->ComputeScrollTarget(aTargetFrame, aEvent, false);
+      aESM->ComputeScrollTarget(aTargetFrame, aEvent,
+                                COMPUTE_LEGACY_MOUSE_SCROLL_EVENT_TARGET);
     nsIFrame* frame = do_QueryFrame(scrollTarget);
     nsPresContext* pc =
       frame ? frame->PresContext() : aTargetFrame->PresContext();
