@@ -81,8 +81,12 @@ public abstract class TileLayer extends Layer {
 
     @Override
     protected void finalize() throws Throwable {
-        if (mTextureIDs != null)
-            TextureReaper.get().add(mTextureIDs);
+        try {
+            if (mTextureIDs != null)
+                TextureReaper.get().add(mTextureIDs);
+        } finally {
+            super.finalize();
+        }
     }
 
     public void setPaintMode(PaintMode mode) {
@@ -182,24 +186,6 @@ public abstract class TileLayer extends Layer {
             
             
             throw new RuntimeException("Buffer/image size mismatch in TileLayer!");
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         }
     }
 

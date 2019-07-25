@@ -55,9 +55,8 @@ import java.nio.IntBuffer;
 
 
 public class TextLayer extends SingleTileLayer {
-    private final ByteBuffer mBuffer;
+    private final ByteBuffer mBuffer;   
     private final IntSize mSize;
-    private boolean mFinalized = false;
 
     
 
@@ -68,16 +67,6 @@ public class TextLayer extends SingleTileLayer {
         mBuffer = buffer;
         mSize = size;
         renderText(text);
-    }
-
-    protected void finalize() throws Throwable {
-        try {
-            if (!mFinalized && mBuffer != null)
-                GeckoAppShell.freeDirectBuffer(mBuffer);
-            mFinalized = true;
-        } finally {
-            super.finalize();
-        }
     }
 
     public static TextLayer create(IntSize size, String text) {
