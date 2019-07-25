@@ -6225,16 +6225,21 @@ nsDocument::CreateEventGroup(nsIDOMEventGroup **aInstancePtrResult)
 void
 nsDocument::FlushPendingNotifications(mozFlushType aType)
 {
-  nsCOMPtr<nsIContentSink> sink;
-  if (mParser) {
-    sink = mParser->GetContentSink();
-  } else {
-    sink = do_QueryReferent(mWeakSink);
-  }
-  
-  
-  if (sink && (aType == Flush_Content || IsSafeToFlush())) {
-    sink->FlushPendingNotifications(aType);
+  if (mParser || mWeakSink) {
+    nsCOMPtr<nsIContentSink> sink;
+    if (mParser) {
+      sink = mParser->GetContentSink();
+    } else {
+      sink = do_QueryReferent(mWeakSink);
+      if (!sink) {
+        mWeakSink = nsnull;
+      }
+    }
+    
+    
+    if (sink && (aType == Flush_Content || IsSafeToFlush())) {
+      sink->FlushPendingNotifications(aType);
+    }
   }
 
   
