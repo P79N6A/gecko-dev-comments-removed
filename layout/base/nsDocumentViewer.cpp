@@ -1290,9 +1290,6 @@ DocumentViewerImpl::PageHide(PRBool aIsUnload)
 
   if (aIsUnload) {
     
-    nsJSContext::PokeGC();
-
-    
     NS_ENSURE_STATE(mDocument);
 
     

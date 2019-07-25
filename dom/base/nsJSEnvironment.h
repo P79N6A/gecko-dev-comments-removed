@@ -148,6 +148,8 @@ public:
   virtual PRBool IsContextInitialized();
   virtual void FinalizeContext();
 
+  virtual void GC();
+
   virtual void ScriptEvaluated(PRBool aTerminated);
   virtual nsresult SetTerminationFunction(nsScriptTerminationFunc aFunc,
                                           nsISupports* aRef);
@@ -185,17 +187,37 @@ public:
   static void LoadStart();
   static void LoadEnd();
 
-  static void GarbageCollectNow();
-  static void CycleCollectNow(nsICycleCollectorListener *aListener = nsnull);
+  
+  
+  static void CC(nsICycleCollectorListener *aListener,
+                 PRBool aForceGC = PR_FALSE);
 
-  static void PokeGC();
-  static void KillGCTimer();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static PRBool MaybeCC(PRBool aHigherProbability, PRBool aForceGC = PR_FALSE);
 
-  static void PokeCC();
-  static void MaybePokeCC();
-  static void KillCCTimer();
+  
+  
+  static PRBool IntervalCC(PRBool aForceGC = PR_FALSE);
 
-  virtual void GC();
+  
+  
+  static void CCIfUserInactive();
+
+  static void MaybeCCIfUserInactive();
+
+  static void FireGCTimer(PRBool aLoadInProgress);
 
 protected:
   nsresult InitializeExternalClasses();

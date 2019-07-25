@@ -604,7 +604,6 @@ pref("javascript.options.methodjit.content", true);
 pref("javascript.options.methodjit.chrome",  false);
 pref("javascript.options.jitprofiling.content", true);
 pref("javascript.options.jitprofiling.chrome",  false);
-pref("javascript.options.mem.log", false);
 
 
 
