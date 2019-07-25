@@ -68,6 +68,8 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
                          PRBool forceWriteOnly,
                          PRBool CORSUsed)
 {
+    NS_PRECONDITION(aPrincipal, "Must have a principal here");
+
     
     if (!aCanvasElement) {
         NS_WARNING("DoDrawImageSecurityCheck called without canvas element!");
@@ -82,9 +84,6 @@ DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
         aCanvasElement->SetWriteOnly();
         return;
     }
-
-    if (aPrincipal == nsnull)
-        return;
 
     
     if (CORSUsed)

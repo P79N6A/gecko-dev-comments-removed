@@ -1358,6 +1358,7 @@ public:
     
     gfxIntSize mSize;
     
+
     nsCOMPtr<nsIPrincipal> mPrincipal;
     
     nsCOMPtr<imgIRequest> mImageRequest;

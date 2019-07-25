@@ -3604,9 +3604,7 @@ WebGLContext::DOMElementToImageSurface(nsIDOMElement *imageOrCanvas,
 
     
     
-    
-    
-    if (res.mPrincipal && !res.mCORSUsed) {
+    if (!res.mCORSUsed) {
         PRBool subsumes;
         nsresult rv = HTMLCanvasElement()->NodePrincipal()->Subsumes(res.mPrincipal, &subsumes);
         if (NS_FAILED(rv) || !subsumes) {
