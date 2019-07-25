@@ -254,6 +254,29 @@ function dump_table(aName)
 
 
 
+
+
+
+function page_in_database(aUrl)
+{
+  let stmt = DBConn().createStatement(
+    "SELECT id FROM moz_places_view WHERE url = :url"
+  );
+  stmt.params.url = aUrl;
+  try {
+    if (!stmt.executeStep())
+      return 0;
+    return stmt.getInt64(0);
+  }
+  finally {
+    stmt.finalize();
+  }
+}
+
+
+
+
+
 function remove_all_bookmarks() {
   let PU = PlacesUtils;
   
