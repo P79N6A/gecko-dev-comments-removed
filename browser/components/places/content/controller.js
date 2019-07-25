@@ -1584,19 +1584,21 @@ function goUpdatePlacesCommands() {
 
 function doGetPlacesControllerForCommand(aCommand)
 {
+  
+  
+  let popupNode = document.popupNode;
+  if (popupNode) {
+    let view = PlacesUIUtils.getViewForNode(popupNode);
+    if (view && view._contextMenuShown)
+      return view.controllers.getControllerForCommand(aCommand);
+  }
+
+  
+  
   let controller = top.document.commandDispatcher
                       .getControllerForCommand(aCommand);
   if (controller)
     return controller;
-
-  
-  
-  let element = document.popupNode;
-  if (element) {
-    let view = PlacesUIUtils.getViewForNode(element);
-    if (view && view._contextMenuShown)
-      return view.viewElt.controllers.getControllerForCommand(aCommand);
-  }
 
   return null;
 }
