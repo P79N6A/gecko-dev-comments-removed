@@ -90,7 +90,8 @@ public:
 
 
 
-  static PRBool SelectorListMatches(RuleProcessorData& aData,
+  static PRBool SelectorListMatches(mozilla::dom::Element* aElement,
+                                    RuleProcessorData& aData,
                                     nsCSSSelectorList* aSelectorList);
 
   

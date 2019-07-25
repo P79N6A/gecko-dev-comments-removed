@@ -59,10 +59,45 @@ class nsAttrValue;
 
 
 
-struct RuleProcessorData {
+
+
+
+
+
+
+
+
+struct TreeMatchContext {
+  
+  
+  
+  const PRBool mForStyling;
+
+  
+  
+  PRBool mHaveRelevantLink;
+
+  
+  
+  nsRuleWalker::VisitedHandlingType mVisitedHandling;
+
+  TreeMatchContext(PRBool aForStyling,
+                   nsRuleWalker::VisitedHandlingType aVisitedHandling)
+    : mForStyling(aForStyling)
+    , mHaveRelevantLink(PR_FALSE)
+    , mVisitedHandling(aVisitedHandling)
+  {
+  }
+};
+
+
+
+
+struct RuleProcessorData : public TreeMatchContext {
   RuleProcessorData(nsPresContext* aPresContext,
                     mozilla::dom::Element* aElement, 
                     nsRuleWalker* aRuleWalker,
+                    PRBool aForStyling,
                     nsCompatibility* aCompat = nsnull);
   
   
@@ -74,12 +109,16 @@ struct RuleProcessorData {
                                    nsRuleWalker* aRuleWalker,
                                    nsCompatibility aCompat)
   {
+    
+    
+    
     if (NS_LIKELY(aPresContext)) {
       return new (aPresContext) RuleProcessorData(aPresContext, aElement,
-                                                  aRuleWalker, &aCompat);
+                                                  aRuleWalker, PR_FALSE,
+                                                  &aCompat);
     }
 
-    return new RuleProcessorData(aPresContext, aElement, aRuleWalker,
+    return new RuleProcessorData(aPresContext, aElement, aRuleWalker, PR_FALSE,
                                  &aCompat);
   }
   
@@ -105,6 +144,14 @@ private:
     return ::operator new(sz);
   }
 public:
+  
+  
+  void ResetForVisitedMatching() {
+    mHaveRelevantLink = PR_FALSE;
+    mRuleWalker->ResetForVisitedMatching();
+    mVisitedHandling = mRuleWalker->VisitedHandling();
+  }
+  
   const nsString* GetLang();
   nsEventStates ContentState();
   nsEventStates DocumentState();
@@ -166,8 +213,9 @@ private:
 struct ElementRuleProcessorData : public RuleProcessorData {
   ElementRuleProcessorData(nsPresContext* aPresContext,
                            mozilla::dom::Element* aElement, 
-                           nsRuleWalker* aRuleWalker)
-  : RuleProcessorData(aPresContext, aElement, aRuleWalker)
+                           nsRuleWalker* aRuleWalker,
+                           PRBool aForStyling)
+  : RuleProcessorData(aPresContext, aElement, aRuleWalker, aForStyling)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
     NS_PRECONDITION(aRuleWalker, "null pointer");
@@ -179,7 +227,7 @@ struct PseudoElementRuleProcessorData : public RuleProcessorData {
                                  mozilla::dom::Element* aParentElement,
                                  nsRuleWalker* aRuleWalker,
                                  nsCSSPseudoElements::Type aPseudoType)
-    : RuleProcessorData(aPresContext, aParentElement, aRuleWalker),
+    : RuleProcessorData(aPresContext, aParentElement, aRuleWalker, PR_TRUE),
       mPseudoType(aPseudoType)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
@@ -217,7 +265,7 @@ struct XULTreeRuleProcessorData : public RuleProcessorData {
                            nsRuleWalker* aRuleWalker,
                            nsIAtom* aPseudoTag,
                            nsICSSPseudoComparator* aComparator)
-    : RuleProcessorData(aPresContext, aParentElement, aRuleWalker),
+    : RuleProcessorData(aPresContext, aParentElement, aRuleWalker, PR_TRUE),
       mPseudoTag(aPseudoTag),
       mComparator(aComparator)
   {
@@ -236,7 +284,7 @@ struct StateRuleProcessorData : public RuleProcessorData {
   StateRuleProcessorData(nsPresContext* aPresContext,
                          mozilla::dom::Element* aElement,
                          nsEventStates aStateMask)
-    : RuleProcessorData(aPresContext, aElement, nsnull),
+    : RuleProcessorData(aPresContext, aElement, nsnull, PR_FALSE),
       mStateMask(aStateMask)
   {
     NS_PRECONDITION(aPresContext, "null pointer");
@@ -251,7 +299,7 @@ struct AttributeRuleProcessorData : public RuleProcessorData {
                              nsIAtom* aAttribute,
                              PRInt32 aModType,
                              PRBool aAttrHasChanged)
-    : RuleProcessorData(aPresContext, aElement, nsnull),
+    : RuleProcessorData(aPresContext, aElement, nsnull, PR_FALSE),
       mAttribute(aAttribute),
       mModType(aModType),
       mAttrHasChanged(aAttrHasChanged)
