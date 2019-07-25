@@ -86,6 +86,8 @@ function TabItem(tab, options) {
   this._zoomPrep = false;
   this.sizeExtra = new Point();
   this.keepProportional = true;
+  this._hasBeenDrawn = false;
+  this._reconnected = false;
 
   var self = this;
 
@@ -103,10 +105,6 @@ function TabItem(tab, options) {
 
   
   this._init($div[0]);
-
-  
-  this._hasBeenDrawn = false;
-  let reconnected = TabItems.reconnect(this);
 
   
   
@@ -206,19 +204,15 @@ function TabItem(tab, options) {
     .addClass('expander')
     .appendTo($div);
 
+  this.setResizable(true, options.immediately);
+  this.droppable(true);
   this._updateDebugBounds();
 
   TabItems.register(this);
 
-  if (!this.reconnected)
-    GroupItems.newTab(this, options);
-
   
-  
-  if (!this.reconnected || (reconnected && !reconnected.addedToGroup) ) {
-    this.setResizable(true, options.immediately);
-    this.droppable(true);
-  }
+  if (!TabItems.reconnectingPaused())
+    this._reconnect();
 };
 
 TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
@@ -325,7 +319,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   save: function TabItem_save(saveImageData) {
     try{
-      if (!this.tab || this.tab.parentNode == null || !this.reconnected) 
+      if (!this.tab || this.tab.parentNode == null || !this._reconnected) 
         return;
 
       var data = this.getStorageData(saveImageData);
@@ -336,6 +330,48 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
+  
+  
+  
+  
+  _reconnect: function TabItem__reconnect() {
+    Utils.assertThrow(!this._reconnected, "shouldn't already be reconnected");
+    Utils.assertThrow(this.tab, "should have a xul:tab");
+    
+    let tabData = Storage.getTabData(this.tab);
+    if (tabData && TabItems.storageSanity(tabData)) {
+      if (this.parent)
+        this.parent.remove(this, {immediately: true});
+
+      this.setBounds(tabData.bounds, true);
+
+      if (Utils.isPoint(tabData.userSize))
+        this.userSize = new Point(tabData.userSize);
+
+      if (tabData.groupID) {
+        var groupItem = GroupItems.groupItem(tabData.groupID);
+        if (groupItem) {
+          groupItem.add(this, null, {immediately: true});
+
+          
+          
+          if (this.tab == gBrowser.selectedTab || 
+              (!GroupItems.getActiveGroupItem() && !this.tab.hidden))
+            GroupItems.setActiveGroupItem(this.parent);
+        }
+      }
+
+      if (tabData.imageData)
+        this.showCachedData(tabData);
+    } else {
+      GroupItems.newTab(this, {immediately: true});
+    }
+
+    this._reconnected = true;  
+    this.save();
+    this._sendToSubscribers("reconnected");
+  },
+  
   
   
   
@@ -752,6 +788,7 @@ let TabItems = {
   _eventListeners: [],
   _pauseUpdateForTest: false,
   tempCanvas: null,
+  _reconnectingPaused: false,
 
   
   
@@ -902,10 +939,6 @@ let TabItems = {
       if (tabUrl != tabItem.url) {
         let oldURL = tabItem.url;
         tabItem.url = tabUrl;
-
-        if (!tabItem.reconnected)
-          this.reconnect(tabItem);
-
         tabItem.save();
       }
 
@@ -1062,6 +1095,35 @@ let TabItems = {
   
   
   
+  pauseReconnecting: function TabItems_pauseReconnecting() {
+    Utils.assertThrow(!this._reconnectingPaused, "shouldn't already be paused");
+
+    this._reconnectingPaused = true;
+  },
+  
+  
+  
+  
+  resumeReconnecting: function TabItems_resumeReconnecting() {
+    Utils.assertThrow(this._reconnectingPaused, "should already be paused");
+
+    this._reconnectingPaused = false;
+    this.items.forEach(function(item) {
+      if (!item._reconnected)
+        item._reconnect();
+    });
+  },
+  
+  
+  
+  
+  reconnectingPaused: function TabItems_reconnectingPaused() {
+    return this._reconnectingPaused;
+  },
+  
+  
+  
+  
   register: function TabItems_register(item) {
     Utils.assert(item && item.isAnItem, 'item must be a TabItem');
     Utils.assert(this.items.indexOf(item) == -1, 'only register once per item');
@@ -1110,67 +1172,6 @@ let TabItems = {
     }
 
     return sane;
-  },
-
-  
-  
-  
-  reconnect: function TabItems_reconnect(item) {
-    var found = false;
-
-    try{
-      Utils.assert(item, 'item');
-      Utils.assert(item.tab, 'item.tab');
-
-      if (item.reconnected)
-        return true;
-
-      if (!item.tab)
-        return false;
-
-      let tabData = Storage.getTabData(item.tab);
-      if (tabData && this.storageSanity(tabData)) {
-        if (item.parent)
-          item.parent.remove(item, {immediately: true});
-
-        item.setBounds(tabData.bounds, true);
-
-        if (Utils.isPoint(tabData.userSize))
-          item.userSize = new Point(tabData.userSize);
-
-        if (tabData.groupID) {
-          var groupItem = GroupItems.groupItem(tabData.groupID);
-          if (groupItem) {
-            groupItem.add(item, null, {immediately: true});
-
-            
-            
-            if (item.tab == gBrowser.selectedTab || 
-                (!GroupItems.getActiveGroupItem() && !item.tab.hidden))
-              GroupItems.setActiveGroupItem(item.parent);
-          }
-        }
-
-        if (tabData.imageData)
-          item.showCachedData(tabData);
-
-        item.reconnected = true;
-        found = {addedToGroup: tabData.groupID};
-      } else {
-        
-        
-        
-        item.reconnected = (item.parent != null);
-      }
-      item.save();
-
-      if (item.reconnected)
-        item._sendToSubscribers("reconnected");
-    } catch(e) {
-      Utils.log(e);
-    }
-
-    return found;
   }
 };
 

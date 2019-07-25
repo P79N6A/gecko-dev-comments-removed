@@ -92,7 +92,7 @@ function onTabViewWindowLoaded() {
     };
     let tabItem = groupItem.getChild(0);
     
-    if (tabItem.reconnected) {
+    if (tabItem._reconnected) {
       checkAndFinish();
     } else {
       tabItem.addSubscriber(tabItem, "reconnected", function() {
