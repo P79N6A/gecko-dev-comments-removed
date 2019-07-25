@@ -2190,8 +2190,11 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
         JSCompartment *compartment = *read++;
 
         
-        if ((!compartment->isMarked() && compartment->arenaListsAreEmpty())
-            || gckind == GC_LAST_CONTEXT)
+
+
+
+        if ((!compartment->isMarked() && compartment->arenaListsAreEmpty()) ||
+            gckind == GC_LAST_CONTEXT)
         {
             JS_ASSERT(compartment->freeLists.isEmpty());
             if (callback)
@@ -2356,13 +2359,15 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
     comp->finalizeStringArenaLists(cx);
     TIMESTAMP(sweepStringEnd);
 
-#ifdef DEBUG
     
+
+
+
+
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        JS_ASSERT_IF(*c != comp, (*c)->propertyTree.checkShapesAllUnmarked(cx));
+        (*c)->propertyTree.unmarkShapes(cx);
 
     PropertyTree::dumpShapes(cx);
-#endif
 
     
 
@@ -2721,7 +2726,7 @@ GCUntilDone(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIM
 
 
     SwitchToCompartment(cx, (JSCompartment *)NULL);
-    
+
     JS_ASSERT(!rt->gcCurrentCompartment);
     rt->gcCurrentCompartment = comp;
 
