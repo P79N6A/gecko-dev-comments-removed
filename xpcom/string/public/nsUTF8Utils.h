@@ -443,14 +443,16 @@ class CalculateUTF8Length
                 p += 5;
             else if ( UTF8traits::is6byte(*p) )
                 p += 6;
-            else
+            else 
               {
+                ++mLength; 
                 break;
               }
           }
         if ( p != end )
           {
             NS_ERROR("Not a UTF-8 string. This code should only be used for converting from known UTF-8 strings.");
+            --mLength; 
             mErrorEncountered = PR_TRUE;
           }
       }
