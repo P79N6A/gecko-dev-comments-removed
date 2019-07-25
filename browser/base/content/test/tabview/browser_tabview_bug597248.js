@@ -157,19 +157,36 @@ function onTabViewFrameInitialized() {
 
   let contentWindow = restoredWin.document.getElementById("tab-view").contentWindow;
 
-  let tabItems = contentWindow.TabItems.getItems();
-  tabItems.forEach(function(tabItem) {
-    ok(tabItem.isShowingCachedData(), "Tab item is showing cached data");
-  });
+  let nextStep = function() {
+    
+    
+    if (restoredNewTabOneLoaded && restoredNewTabTwoLoaded) {
+      
+      
+      executeSoon(updateAndCheck);
+    } else
+      frameInitialized = true;
+  }
 
-  
-  
-  if (restoredNewTabOneLoaded && restoredNewTabTwoLoaded) {
+  let tabItems = contentWindow.TabItems.getItems();
+  let count = tabItems.length;
+  tabItems.forEach(function(tabItem) {
     
     
-    executeSoon(updateAndCheck);
-  } else
-    frameInitialized = true;
+    if (tabItem.reconnected) {
+      ok(tabItem.isShowingCachedData(), "Tab item is showing cached data");
+      count--;
+      if (count == 0)
+        nextStep();
+    } else {
+      tabItem.addSubscriber(tabItem, "reconnected", function() {
+        tabItem.removeSubscriber(tabItem, "reconnected");
+        count--;
+        if (count == 0)
+          nextStep();
+      });
+    }
+  });
 }
 
 function updateAndCheck() {
