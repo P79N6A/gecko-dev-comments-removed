@@ -795,18 +795,23 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
 
   nsCOMPtr<nsIURI> uri;
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
-  if (channel)
-  {
+  if (channel) {
     channel->GetURI(getter_AddRefs(uri));
-    if (uri)
-    {
-      bool vs;
-      if (NS_SUCCEEDED(uri->SchemeIs("javascript", &vs)) && vs)
-      {
-        
-        
-        return NS_OK;
-      }
+  }
+
+  nsCOMPtr<imgIRequest> imgRequest(do_QueryInterface(aRequest));
+  if (imgRequest) {
+    NS_ASSERTION(!channel, "How did that happen, exactly?");
+    
+    imgRequest->GetURI(getter_AddRefs(uri));
+  }
+  
+  if (uri) {
+    bool vs;
+    if (NS_SUCCEEDED(uri->SchemeIs("javascript", &vs)) && vs) {
+      
+      
+      return NS_OK;
     }
   }
 
@@ -842,11 +847,7 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
   bool isSubDocumentRelevant = true;
 
   
-  nsCOMPtr<imgIRequest> imgRequest(do_QueryInterface(aRequest));
-  if (imgRequest) {
-    
-    imgRequest->GetURI(getter_AddRefs(uri));
-  } else { 
+  if (!imgRequest) { 
     nsCOMPtr<nsIHttpChannel> httpRequest(do_QueryInterface(aRequest));
     if (!httpRequest) {
       nsCOMPtr<nsIFileChannel> fileRequest(do_QueryInterface(aRequest));
