@@ -76,6 +76,7 @@ struct ObjectStoreInfo
   nsString keyPath;
   bool autoIncrement;
   PRUint32 databaseId;
+  nsTArray<nsString> indexNames;
 
   ObjectStoreInfo()
   : id(0), autoIncrement(false), databaseId(0) { }
