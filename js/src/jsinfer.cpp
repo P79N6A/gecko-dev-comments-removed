@@ -4067,7 +4067,6 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
     }
 
     
-    JS_NOT_REACHED("bad");
     return true;
 }
 
