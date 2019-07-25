@@ -259,7 +259,7 @@ PluginModuleParent::ActorDestroy(ActorDestroyReason why)
     switch (why) {
     case AbnormalShutdown: {
         nsCOMPtr<nsIFile> dump;
-        if (GetMinidump(getter_AddRefs(dump))) {
+        if (TakeMinidump(getter_AddRefs(dump))) {
             WriteExtraDataForMinidump(dump);
             if (NS_SUCCEEDED(dump->GetLeafName(mDumpID))) {
                 mDumpID.Replace(mDumpID.Length() - 4, 4,
@@ -294,6 +294,15 @@ PluginModuleParent::NotifyPluginCrashed()
 {
     
     mPluginCrashedTask = NULL;
+
+    if (!OkToCleanup()) {
+        
+        mPluginCrashedTask = NewRunnableMethod(
+            this, &PluginModuleParent::NotifyPluginCrashed);
+        MessageLoop::current()->PostDelayedTask(
+            FROM_HERE, mPluginCrashedTask, 10);
+        return;
+    }
 
     if (mPlugin)
         mPlugin->PluginCrashed(mDumpID);

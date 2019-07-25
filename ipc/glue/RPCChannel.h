@@ -39,9 +39,12 @@
 #ifndef ipc_glue_RPCChannel_h
 #define ipc_glue_RPCChannel_h 1
 
+#include <stdio.h>
+
 
 #include <queue>
 #include <stack>
+#include <vector>
 
 #include "base/basictypes.h"
 
@@ -140,7 +143,7 @@ public:
 
     
     bool IsOnCxxStack() const {
-        return 0 < mCxxStackFrames;
+        return !mCxxStackFrames.empty();
     }
 
     NS_OVERRIDE
@@ -183,7 +186,7 @@ protected:
 
     NS_OVERRIDE
     virtual bool ShouldDeferNotifyMaybeError() {
-        return 0 < mCxxStackFrames;
+        return IsOnCxxStack();
     }
 
     bool EventOccurred();
@@ -207,25 +210,44 @@ protected:
         Listener()->OnEnteredCxxStack();
     }
 
-    void ExitedCxxStack()
-    {
-        Listener()->OnExitedCxxStack();
-    }
+    void ExitedCxxStack();
+
+    enum Direction { IN_MESSAGE, OUT_MESSAGE };
+    struct RPCFrame {
+        RPCFrame(Direction direction, const Message* msg) :
+            mDirection(direction), mMsg(msg)
+        { }
+
+        void Describe(int32* id, const char** dir, const char** sems,
+                      const char** name)
+            const
+        {
+            *id = mMsg->routing_id();
+            *dir = (IN_MESSAGE == mDirection) ? "in" : "out";
+            *sems = mMsg->is_rpc() ? "rpc" : mMsg->is_sync() ? "sync" : "async";
+            *name = mMsg->name();
+        }
+
+        Direction mDirection;
+        const Message* mMsg;
+    };
 
     class NS_STACK_CLASS CxxStackFrame
     {
     public:
-        CxxStackFrame(RPCChannel& that) : mThat(that) {
-            NS_ABORT_IF_FALSE(0 <= mThat.mCxxStackFrames,
-                              "mismatched CxxStackFrame ctor/dtor");
+
+        CxxStackFrame(RPCChannel& that, Direction direction,
+                      const Message* msg) : mThat(that) {
             mThat.AssertWorkerThread();
 
-            if (0 == mThat.mCxxStackFrames++)
+            if (mThat.mCxxStackFrames.empty())
                 mThat.EnteredCxxStack();
+            mThat.mCxxStackFrames.push_back(RPCFrame(direction, msg));
         }
 
         ~CxxStackFrame() {
-            bool exitingStack = (0 == --mThat.mCxxStackFrames);
+            mThat.mCxxStackFrames.pop_back();
+            bool exitingStack = mThat.mCxxStackFrames.empty();
 
             
             
@@ -254,6 +276,10 @@ protected:
     void DebugAbort(const char* file, int line, const char* cond,
                     const char* why,
                     const char* type="rpc", bool reply=false);
+
+    
+    
+    void DumpRPCStack(FILE* outfile=NULL, const char* const pfx="");
 
     
     
@@ -358,7 +384,7 @@ protected:
     
     
     
-    int mCxxStackFrames;
+    std::vector<RPCFrame> mCxxStackFrames;
     
 private:
 
@@ -411,4 +437,4 @@ private:
 
 } 
 } 
-#endif
+#endif  
