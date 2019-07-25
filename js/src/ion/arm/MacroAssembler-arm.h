@@ -633,11 +633,18 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         
         
         
+        
         ma_ldr(addr, lr);
         ma_cmp(lr, ptr);
         CodeOffsetJump ret(nextOffset().getOffset());
         ma_b(label, cond);
         return ret;
+    }
+    void branchPtr(Condition cond, Address addr, ImmGCPtr ptr, Label *label) {
+        
+        ma_ldr(addr, lr);
+        ma_cmp(lr, ptr);
+        ma_b(label, cond);
     }
 
     void loadUnboxedValue(Address address, AnyRegister dest) {
