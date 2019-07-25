@@ -242,8 +242,13 @@ class LUse : public LAllocation
     static const uint32 REG_MASK = (1 << REG_BITS) - 1;
 
     
-    static const uint32 VREG_BITS = DATA_BITS - (REG_SHIFT + REG_BITS);
-    static const uint32 VREG_SHIFT = REG_SHIFT + REG_BITS;
+    static const uint32 USED_AT_START_BITS = 1;
+    static const uint32 USED_AT_START_SHIFT = REG_SHIFT + REG_BITS;
+    static const uint32 USED_AT_START_MASK = (1 << USED_AT_START_BITS) - 1;
+
+    
+    static const uint32 VREG_BITS = DATA_BITS - (USED_AT_START_SHIFT + USED_AT_START_BITS);
+    static const uint32 VREG_SHIFT = USED_AT_START_SHIFT + USED_AT_START_BITS;
     static const uint32 VREG_MASK = (1 << VREG_BITS) - 1;
 
   public:
@@ -260,36 +265,35 @@ class LUse : public LAllocation
         
         
         
-        KEEPALIVE,
-
-        
-        COPY                
+        KEEPALIVE
     };
 
-    void set(Policy policy, uint32 reg) {
-        setKindAndData(USE, (policy << POLICY_SHIFT) | (reg << REG_SHIFT));
+    void set(Policy policy, uint32 reg, bool usedAtStart) {
+        setKindAndData(USE, (policy << POLICY_SHIFT) |
+                            (reg << REG_SHIFT) |
+                            ((usedAtStart ? 1 : 0) << USED_AT_START_SHIFT));
     }
 
   public:
-    LUse(uint32 vreg, Policy policy) {
-        set(policy, 0);
+    LUse(uint32 vreg, Policy policy, bool usedAtStart = false) {
+        set(policy, 0, usedAtStart);
         setVirtualRegister(vreg);
     }
-    LUse(Policy policy) {
-        set(policy, 0);
+    LUse(Policy policy, bool usedAtStart = false) {
+        set(policy, 0, usedAtStart);
     }
-    LUse(Register reg) {
-        set(FIXED, reg.code());
+    LUse(Register reg, bool usedAtStart = false) {
+        set(FIXED, reg.code(), usedAtStart);
     }
-    LUse(FloatRegister reg) {
-        set(FIXED, reg.code());
+    LUse(FloatRegister reg, bool usedAtStart = false) {
+        set(FIXED, reg.code(), usedAtStart);
     }
     LUse(Register reg, uint32 virtualRegister) {
-        set(FIXED, reg.code());
+        set(FIXED, reg.code(), false);
         setVirtualRegister(virtualRegister);
     }
     LUse(FloatRegister reg, uint32 virtualRegister) {
-        set(FIXED, reg.code());
+        set(FIXED, reg.code(), false);
         setVirtualRegister(virtualRegister);
     }
 
@@ -315,6 +319,9 @@ class LUse : public LAllocation
     }
     bool isFixedRegister() const {
         return policy() == FIXED;
+    }
+    bool usedAtStart() const {
+        return !!((data() >> USED_AT_START_SHIFT) & USED_AT_START_MASK);
     }
 };
 
@@ -527,6 +534,13 @@ class LDefinition
             bits_ &= ~(POLICY_MASK << POLICY_SHIFT);
             bits_ |= PRESET << POLICY_SHIFT;
         }
+    }
+    void setReusedInput(uint32 operand) {
+        output_ = LConstantIndex::FromIndex(operand);
+    }
+    uint32 getReusedInput() const {
+        JS_ASSERT(policy() == LDefinition::MUST_REUSE_INPUT);
+        return output_.toConstantIndex()->index();
     }
 
     static inline Type TypeFrom(MIRType type) {

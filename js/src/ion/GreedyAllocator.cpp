@@ -64,6 +64,14 @@ GreedyAllocator::findDefinitionsInLIR(LInstruction *ins)
 
         vars[def->virtualRegister()].define(def, ins);
     }
+
+    for (size_t i = 0; i < ins->numTemps(); i++) {
+        LDefinition *temp = ins->getTemp(i);
+        JS_ASSERT(temp->virtualRegister() < graph.numVirtualRegisters());
+        JS_ASSERT(temp->policy() != LDefinition::PASSTHROUGH);
+
+        vars[temp->virtualRegister()].define(temp, ins);
+    }
 }
 
 void
@@ -458,98 +466,122 @@ GreedyAllocator::allocateFixedOperand(LAllocation *a, VirtualRegister *vr)
 }
 
 bool
+GreedyAllocator::allocateDefinition(LInstruction *ins, LDefinition *def)
+{
+    VirtualRegister *vr = getVirtualRegister(def);
+
+    LAllocation output;
+    switch (def->policy()) {
+      case LDefinition::PASSTHROUGH:
+        
+        return true;
+
+      case LDefinition::DEFAULT:
+      case LDefinition::MUST_REUSE_INPUT:
+      {
+        AnyRegister reg;
+        
+        if (def->policy() == LDefinition::MUST_REUSE_INPUT &&
+            ins->getOperand(def->getReusedInput())->toUse()->isFixedRegister())
+        {
+            LAllocation *a = ins->getOperand(def->getReusedInput());
+            VirtualRegister *vuse = getVirtualRegister(a->toUse());
+            reg = GetFixedRegister(vuse->def, a->toUse());
+        } else if (vr->hasRegister()) {
+            reg = vr->reg();
+        } else {
+            if (!allocate(vr->type(), DISALLOW, &reg))
+                return false;
+        }
+
+        if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
+            LUse *use = ins->getOperand(def->getReusedInput())->toUse();
+            VirtualRegister *vuse = getVirtualRegister(use);
+            
+            if (vuse->hasRegister() && vuse->reg() == reg) {
+                if (!evict(reg))
+                    return false;
+            }
+
+            
+            if (reg.isFloat())
+                *use = LUse(reg.fpu(), use->virtualRegister());
+            else
+                *use = LUse(reg.gpr(), use->virtualRegister());
+        }
+        output = LAllocation(reg);
+        break;
+      }
+
+      case LDefinition::PRESET:
+      {
+        
+        
+        output = *def->output();
+        break;
+      }
+    }
+
+    if (output.isRegister()) {
+        JS_ASSERT_IF(output.isFloatReg(), disallowed.has(output.toFloatReg()->reg()));
+        JS_ASSERT_IF(output.isGeneralReg(), disallowed.has(output.toGeneralReg()->reg()));
+    }
+
+    
+    def->setOutput(output);
+    return true;
+}
+
+bool
+GreedyAllocator::spillDefinition(LDefinition *def)
+{
+    if (def->policy() == LDefinition::PASSTHROUGH)
+        return true;
+
+    VirtualRegister *vr = getVirtualRegister(def);
+    const LAllocation *output = def->output();
+
+    if (output->isRegister()) {
+        if (vr->hasRegister()) {
+            
+            
+            AnyRegister out = GetAllocatedRegister(output);
+            if (out != vr->reg()) {
+                if (!spill(*output, vr->reg()))
+                    return false;
+            }
+        }
+
+        
+        if (vr->hasStackSlot() && vr->backingStackUsed()) {
+            if (!spill(*output, vr->backingStack()))
+                return false;
+        }
+    } else if (vr->hasRegister()) {
+        
+        
+        JS_ASSERT(!vr->hasStackSlot());
+        JS_ASSERT(vr->hasBackingStack());
+        if (!spill(*output, vr->reg()))
+            return false;
+    }
+
+    return true;
+}
+
+bool
 GreedyAllocator::allocateDefinitions(LInstruction *ins)
 {
     for (size_t i = 0; i < ins->numDefs(); i++) {
         LDefinition *def = ins->getDef(i);
-        VirtualRegister *vr = getVirtualRegister(def);
-
-        LAllocation output;
-        switch (def->policy()) {
-          case LDefinition::PASSTHROUGH:
-            
-            continue;
-
-          case LDefinition::DEFAULT:
-          case LDefinition::MUST_REUSE_INPUT:
-          {
-            AnyRegister reg;
-            
-            if (def->policy() == LDefinition::MUST_REUSE_INPUT &&
-                ins->getOperand(0)->toUse()->isFixedRegister())
-            {
-                LAllocation *a = ins->getOperand(0);
-                VirtualRegister *vuse = getVirtualRegister(a->toUse());
-                reg = GetFixedRegister(vuse->def, a->toUse());
-            } else if (vr->hasRegister()) {
-                reg = vr->reg();
-            } else {
-                if (!allocate(vr->type(), DISALLOW, &reg))
-                    return false;
-            }
-            if (def->policy() == LDefinition::MUST_REUSE_INPUT) {
-                VirtualRegister *vuse = getVirtualRegister(ins->getOperand(0)->toUse());
-                
-                if (vuse->hasRegister() && vuse->reg() == reg) {
-                    if (!evict(reg))
-                        return false;
-                }
-
-                
-                LUse *use = ins->getOperand(0)->toUse();
-                if (reg.isFloat())
-                    *use = LUse(reg.fpu(), use->virtualRegister());
-                else
-                    *use = LUse(reg.gpr(), use->virtualRegister());
-            }
-            output = LAllocation(reg);
-            break;
-          }
-
-          case LDefinition::PRESET:
-          {
-            
-            
-            output = *def->output();
-            break;
-          }
-        }
-
-        if (output.isRegister()) {
-            JS_ASSERT_IF(output.isFloatReg(), disallowed.has(output.toFloatReg()->reg()));
-            JS_ASSERT_IF(output.isGeneralReg(), disallowed.has(output.toGeneralReg()->reg()));
-        }
+        if (!allocateDefinition(ins, def))
+            return false;
 
         
         
         
-        if (output.isRegister()) {
-            if (vr->hasRegister()) {
-                
-                
-                AnyRegister out = GetAllocatedRegister(&output);
-                if (out != vr->reg()) {
-                    if (!spill(output, vr->reg()))
-                        return false;
-                }
-            }
-
-            
-            if (vr->hasStackSlot() && vr->backingStackUsed()) {
-                if (!spill(output, vr->backingStack()))
-                    return false;
-            }
-        } else if (vr->hasRegister()) {
-            
-            
-            JS_ASSERT(!vr->hasStackSlot());
-            JS_ASSERT(vr->hasBackingStack());
-            if (!spill(output, vr->reg()))
-                return false;
-        }
-
-        
-        def->setOutput(output);
+        if (!spillDefinition(def))
+            return false;
     }
 
     return true;
@@ -560,15 +592,10 @@ GreedyAllocator::allocateTemporaries(LInstruction *ins)
 {
     for (size_t i = 0; i < ins->numTemps(); i++) {
         LDefinition *def = ins->getTemp(i);
-        if (def->policy() == LDefinition::PRESET)
-            continue;
-
-        JS_ASSERT(def->policy() == LDefinition::DEFAULT);
-        AnyRegister reg;
-        if (!allocate(def->type(), DISALLOW, &reg))
+        if (!allocateDefinition(ins, def))
             return false;
-        def->setOutput(LAllocation(reg));
     }
+
     return true;
 }
 
@@ -589,16 +616,8 @@ GreedyAllocator::allocateInputs(LInstruction *ins)
         } else if (use->policy() == LUse::REGISTER) {
             if (!allocateRegisterOperand(a, vr))
                 return false;
-        } else if (use->policy() == LUse::COPY) {
-            if (!allocateWritableOperand(a, vr))
-                return false;
         }
     }
-
-    
-    
-    if (!allocateTemporaries(ins))
-        return false;
 
     
     for (size_t i = 0; i < ins->numOperands(); i++) {
@@ -719,6 +738,11 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
 
     
     if (!allocateDefinitions(ins))
+        return false;
+
+    
+    
+    if (!allocateTemporaries(ins))
         return false;
 
     
