@@ -2243,6 +2243,11 @@ struct nsStyleSVG {
   
   nsStyleSVGOpacitySource mFillOpacitySource    : 2;
   nsStyleSVGOpacitySource mStrokeOpacitySource  : 2;
+
+  
+  bool mStrokeDasharrayFromObject   : 1;
+  bool mStrokeDashoffsetFromObject  : 1;
+  bool mStrokeWidthFromObject       : 1;
 };
 
 struct nsStyleSVGReset {

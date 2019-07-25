@@ -9849,7 +9849,8 @@ bool
 CSSParserImpl::ParseDasharray()
 {
   nsCSSValue value;
-  if (ParseVariant(value, VARIANT_INHERIT | VARIANT_NONE, nullptr)) {
+  if (ParseVariant(value, VARIANT_HK | VARIANT_NONE,
+                   nsCSSProps::kStrokeObjectValueKTable)) {
     
     if (!ExpectEndProperty()) {
       return false;
