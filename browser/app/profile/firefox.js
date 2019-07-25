@@ -1074,6 +1074,11 @@ pref("devtools.ruleview.enabled", true);
 pref("devtools.scratchpad.enabled", true);
 
 
+
+
+pref("devtools.scratchpad.recentFilesMax", 10);
+
+
 pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.transitions", true);
 
