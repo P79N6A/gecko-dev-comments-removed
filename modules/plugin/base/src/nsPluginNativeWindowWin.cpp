@@ -171,6 +171,7 @@ public:
 };
 
 static PRBool sInMessageDispatch = PR_FALSE;
+static PRBool sInPreviousMessageDispatch = PR_FALSE;
 static UINT sLastMsg = 0;
 
 static PRBool ProcessFlashMessageDelayed(nsPluginNativeWindowWin * aWin, nsIPluginInstance * aInst,
@@ -314,13 +315,18 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     case WM_SETFOCUS:
     case WM_KILLFOCUS: {
       
+      
       if (win->mPluginType == nsPluginType_Real && msg == sLastMsg)
         return TRUE;
       
       
+      
       WNDPROC prevWndProc = win->GetPrevWindowProc();
-      if (prevWndProc)
+      if (prevWndProc && !sInPreviousMessageDispatch) {
+        sInPreviousMessageDispatch = PR_TRUE;
         ::CallWindowProc(prevWndProc, hWnd, msg, wParam, lParam);
+        sInPreviousMessageDispatch = PR_FALSE;
+      }
       break;
     }
 #endif
