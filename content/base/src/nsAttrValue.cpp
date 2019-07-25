@@ -1164,11 +1164,6 @@ nsAttrValue::ParseColor(const nsAString& aString, nsIDocument* aDocument)
     }
   }
 
-  if (aDocument->GetCompatibilityMode() != eCompatibility_NavQuirks) {
-    return PR_FALSE;
-  }
-
-  
   
   if (NS_LooseHexToRGB(colorStr, &color)) {
     SetColorValue(color, aString);

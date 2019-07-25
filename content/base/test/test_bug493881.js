@@ -10,7 +10,7 @@ var legacyProps = ["fgColor", "bgColor", "linkColor", "vlinkColor", "alinkColor"
 var testColors = ["blue", "silver", "green", "orange", "red"];
 var rgbTestColors = ["rgb(255, 0, 0)", "rgb(192, 192, 192)", "rgb(0, 128, 0)", "rgb(255, 165, 0)", "rgb(255, 0, 0)"];
 var idPropList = [ {id: "plaintext", prop: "color"},
-                   {id: "plaintext", prop: "background-color"},
+                   {id: "body", prop: "background-color"},
                    {id: "nonvisitedlink", prop: "color"},
                    {id: "visitedlink", prop: "color"} ];
 var initialValues = [];
@@ -63,8 +63,8 @@ addLoadEvent( function() {
   for (i = 0; i < idPropList.length; i++) {
     var style = window.getComputedStyle(document.getElementById(idPropList[i].id), null);
     var color = style.getPropertyValue(idPropList[i].prop);
-    is(color, idPropList[i].initialComputedColor, 
-      "element's style changed by setting legacy prop to undefined");
+    is(color, "rgb(0, 239, 14)", 
+      "element's style should get result of parsing undefined as a color");
   }
 
   
