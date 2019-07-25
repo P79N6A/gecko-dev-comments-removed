@@ -808,81 +808,50 @@ static JSBool HandleDataNumber(JSContext *cx, JSONParser *jp);
 static JSBool HandleDataKeyword(JSContext *cx, JSONParser *jp);
 static JSBool PopState(JSContext *cx, JSONParser *jp);
 
-
 static bool
-Walk(JSContext *cx, JSObject *holder, jsid name, const Value &reviver, Value *vp)
+Walk(JSContext *cx, jsid id, JSObject *holder, const Value &reviver, Value *vp)
 {
     JS_CHECK_RECURSION(cx, return false);
 
-    
-    Value val;
-    if (!holder->getProperty(cx, name, &val))
+    if (!holder->getProperty(cx, id, vp))
         return false;
 
-    
-    if (val.isObject()) {
-        JSObject *obj = &val.toObject();
+    JSObject *obj;
 
-        if (obj->isArray()) {
-            
-            jsuint length = obj->getArrayLength();
+    if (vp->isObject() && !(obj = &vp->toObject())->isCallable()) {
+        AutoValueRooter propValue(cx);
 
-            
-            for (jsuint i = 0; i < length; i++) {
-                jsid id;
-                if (!IndexToId(cx, i, &id))
-                    return false;
-
-                
-                Value newElement;
-                if (!Walk(cx, obj, id, reviver, &newElement))
-                    return false;
-
-                
-
-
-
-
-
-
-
-
-
-
-                if (newElement.isUndefined()) {
-                    
-                    JS_ALWAYS_TRUE(array_deleteProperty(cx, obj, id, &newElement, false));
-                } else {
-                    
-                    JS_ALWAYS_TRUE(array_defineProperty(cx, obj, id, &newElement, PropertyStub,
-                                                        StrictPropertyStub, JSPROP_ENUMERATE));
-                }
-            }
-        } else {
-            
-            AutoIdVector keys(cx);
-            if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, &keys))
+        if(obj->isArray()) {
+            jsuint length = 0;
+            if (!js_GetLengthProperty(cx, obj, &length))
                 return false;
 
-            
-            for (size_t i = 0, len = keys.length(); i < len; i++) {
-                
-                Value newElement;
-                jsid id = keys[i];
-                if (!Walk(cx, obj, id, reviver, &newElement))
+            for (jsuint i = 0; i < length; i++) {
+                jsid index;
+                if (!IndexToId(cx, i, &index))
                     return false;
 
-                if (newElement.isUndefined()) {
-                    
-                    if (!js_DeleteProperty(cx, obj, id, &newElement, false))
+                if (!Walk(cx, index, obj, reviver, propValue.addr()))
+                    return false;
+
+                if (!obj->defineProperty(cx, index, propValue.value(), NULL, NULL, JSPROP_ENUMERATE))
+                    return false;
+            }
+        } else {
+            AutoIdVector props(cx);
+            if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, &props))
+                return false;
+
+            for (size_t i = 0, len = props.length(); i < len; i++) {
+                jsid idName = props[i];
+                if (!Walk(cx, idName, obj, reviver, propValue.addr()))
+                    return false;
+                if (propValue.value().isUndefined()) {
+                    if (!js_DeleteProperty(cx, obj, idName, propValue.addr(), false))
                         return false;
                 } else {
-                    
-                    JS_ASSERT(obj->isNative());
-                    if (!js_DefineNativeProperty(cx, obj, id, newElement, PropertyStub,
-                                                 StrictPropertyStub, JSPROP_ENUMERATE, 0, 0,
-                                                 NULL))
-                    {
+                    if (!obj->defineProperty(cx, idName, propValue.value(), NULL, NULL,
+                                             JSPROP_ENUMERATE)) {
                         return false;
                     }
                 }
@@ -891,23 +860,19 @@ Walk(JSContext *cx, JSObject *holder, jsid name, const Value &reviver, Value *vp
     }
 
     
-    JSString *key = IdToString(cx, name);
+    const Value &value = *vp;
+    JSString *key = js_ValueToString(cx, IdToValue(id));
     if (!key)
         return false;
 
-    LeaveTrace(cx);
-    InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, 2, &args))
+    Value vec[2] = { StringValue(key), value };
+    Value reviverResult;
+    if (!JS_CallFunctionValue(cx, holder, Jsvalify(reviver),
+                              2, Jsvalify(vec), Jsvalify(&reviverResult))) {
         return false;
+    }
 
-    args.calleev() = reviver;
-    args.thisv() = ObjectValue(*holder);
-    args[0] = StringValue(key);
-    args[1] = val;
-
-    if (!Invoke(cx, args))
-        return false;
-    *vp = args.rval();
+    *vp = reviverResult;
     return true;
 }
 
@@ -933,7 +898,7 @@ Revive(JSContext *cx, const Value &reviver, Value *vp)
         return false;
     }
 
-    return Walk(cx, obj, ATOM_TO_JSID(cx->runtime->atomState.emptyAtom), reviver, vp);
+    return Walk(cx, ATOM_TO_JSID(cx->runtime->atomState.emptyAtom), obj, reviver, vp);
 }
 
 JSONParser *
