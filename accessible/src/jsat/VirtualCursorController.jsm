@@ -260,28 +260,6 @@ var VirtualCursorController = {
         }
         this[methodName](document, false, rule);
         break;
-      case aEvent.DOM_VK_END:
-        if (this.editableState) {
-          if (target.selectionEnd != target.textLength)
-            
-            
-            return;
-          else
-            target.blur();
-        }
-        this.moveForward(document, true);
-        break;
-      case aEvent.DOM_VK_HOME:
-        if (this.editableState) {
-          if (target.selectionEnd != 0)
-            
-            
-            return;
-          else
-            target.blur();
-        }
-        this.moveBackward(document, true);
-        break;
       case aEvent.DOM_VK_RIGHT:
         if (this.editableState) {
           if (target.selectionEnd != target.textLength)
