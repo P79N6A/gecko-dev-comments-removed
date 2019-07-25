@@ -29,9 +29,11 @@ let promptService = {
   }
 };
 
-Cm.QueryInterface(Ci.nsIComponentRegistrar)
-  .registerFactory(Components.ID(kPromptServiceUUID), "Prompt Service",
-                   kPromptServiceContractID, fakePromptServiceFactory);
+
+
+
+
+
 
 const kCompleteState = Ci.nsIWebProgressListener.STATE_STOP +
                        Ci.nsIWebProgressListener.STATE_IS_NETWORK;
@@ -64,6 +66,8 @@ var gProgressListener = {
 }
 
 function test() {
+  todo(false, "temp. disabled");
+  return; 
   waitForExplicitFinish();
   
   gBrowser.addTabsProgressListener(gProgressListener);
