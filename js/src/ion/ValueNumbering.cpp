@@ -59,13 +59,9 @@ ValueNumberer::lookupValue(MDefinition *ins)
 
     ValueMap::AddPtr p = values.lookupForAdd(ins);
 
-    if (p) {
-        
-        setClass(ins, p->key);
-    } else {
+    if (!p) {
         if (!values.add(p, ins, ins->id()))
             return 0;
-        breakClass(ins);
     }
 
     return p->value;
@@ -82,9 +78,6 @@ ValueNumberer::simplify(MDefinition *def, bool useValueNumbers)
     if (ins == def || !ins->updateForReplacement(def))
         return def;
 
-    
-    if (!ins->valueNumberData())
-        ins->setValueNumberData(new ValueNumberData);
     if (!ins->block()) {
         
         
@@ -177,13 +170,6 @@ ValueNumberer::computeValueNumbers()
 
     if (!values.init())
         return false;
-    
-    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        for (MDefinitionIterator iter(*block); iter; iter++)
-            iter->setValueNumberData(new ValueNumberData);
-        MControlInstruction *jump = block->lastIns();
-        jump->setValueNumberData(new ValueNumberData);
-    }
 
     
     
@@ -420,68 +406,3 @@ ValueNumberer::analyze()
     return computeValueNumbers() && eliminateRedundancies();
 }
 
-uint32
-MDefinition::valueNumber() const
-{
-    JS_ASSERT(block_);
-    if (valueNumber_ == NULL)
-        return 0;
-    return valueNumber_->valueNumber();
-}
-void
-MDefinition::setValueNumber(uint32 vn)
-{
-    valueNumber_->setValueNumber(vn);
-}
-
-void
-ValueNumberer::setClass(MDefinition *def, MDefinition *rep)
-{
-    def->valueNumberData()->setClass(def, rep);
-}
-
-void
-ValueNumberer::breakClass(MDefinition *def)
-{
-    if (def->valueNumber() == def->id()) {
-        IonSpew(IonSpew_GVN, "Breaking congruence with itself: %d", def->id());
-        ValueNumberData *defdata = def->valueNumberData();
-        JS_ASSERT(defdata->classPrev == NULL);
-        
-        if (defdata->classNext == NULL)
-            return;
-
-        
-        MDefinition *newRep = defdata->classNext;
-
-        
-        newRep->valueNumberData()->classPrev = NULL;
-        def->valueNumberData()->classNext = NULL;
-        IonSpew(IonSpew_GVN, "Choosing a new representative: %d", newRep->id());
-
-        
-        for (MDefinition *tmp = newRep; tmp != NULL; tmp = tmp->valueNumberData()->classNext) {
-            
-            if (tmp->isInWorklist())
-                continue;
-            IonSpew(IonSpew_GVN, "Moving to a new congruence class: %d", tmp->id());
-            tmp->setValueNumber(newRep->id());
-            markConsumers(tmp);
-        }
-
-        
-        values.putNew(newRep, newRep->id());
-    } else {
-        
-        
-        ValueNumberData *defdata = def->valueNumberData();
-        if (defdata->classPrev)
-            defdata->classPrev->valueNumberData()->classNext = defdata->classNext;
-        if (defdata->classNext)
-            defdata->classNext->valueNumberData()->classPrev = defdata->classPrev;
-
-        
-        defdata->classPrev = NULL;
-        defdata->classNext = NULL;
-    }
-}
