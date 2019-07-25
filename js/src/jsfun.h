@@ -579,11 +579,20 @@ extern JSBool JS_FASTCALL
 js_PutCallObjectOnTrace(JSContext *cx, JSObject *scopeChain, uint32 nargs,
                         js::Value *argv, uint32 nvars, js::Value *slots);
 
-extern JSBool
-js_GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+namespace js {
 
 extern JSBool
-js_GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+
+extern JSBool
+GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+
+
+
+
+
+extern JSBool
+GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
 SetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
@@ -591,12 +600,7 @@ SetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 extern JSBool
 SetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
-
-
-
-
-extern JSBool
-js_GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+} 
 
 extern JSBool
 js_GetArgsValue(JSContext *cx, JSStackFrame *fp, js::Value *vp);
