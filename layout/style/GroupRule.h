@@ -43,7 +43,7 @@
 #ifndef mozilla_css_GroupRule_h__
 #define mozilla_css_GroupRule_h__
 
-#include "nsCSSRule.h"
+#include "Rule.h"
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 
@@ -57,7 +57,7 @@ class GroupRuleRuleList;
 
 
 
-class GroupRule : public nsCSSRule
+class GroupRule : public Rule
 {
 protected:
   GroupRule();
