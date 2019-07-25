@@ -206,8 +206,17 @@
 
 #ifdef MOZ_MEMORY_WINDOWS
 
+
+
+
+#ifndef WIN32_NEW_STYLE_JEMALLOC
 #include <cruntime.h>
 #include <internal.h>
+#else
+
+#define _CRT_SPINCOUNT 5000
+#define __crtInitCritSecAndSpinCount InitializeCriticalSectionAndSpinCount
+#endif
 #include <io.h>
 #include <windows.h>
 
@@ -5717,14 +5726,16 @@ malloc_shutdown()
 #define	free(a)		moz_free(a)
 #endif
 
-#if defined(MOZ_MEMORY_ANDROID) || defined(WRAP_MALLOC)
+#if defined(MOZ_MEMORY_ANDROID) || defined(WRAP_MALLOC) || defined(WIN32_NEW_STYLE_JEMALLOC)
 inline void sys_free(void* ptr) {return free(ptr);}
 #define	malloc(a)	je_malloc(a)
 #define	valloc(a)	je_valloc(a)
 #define	calloc(a, b)	je_calloc(a, b)
 #define	realloc(a, b)	je_realloc(a, b)
 #define	free(a)		je_free(a)
+#define memalign(a, b) je_memalign(a, b)
 #define posix_memalign(a, b, c)  je_posix_memalign(a, b, c)
+#define malloc_usable_size(a) je_malloc_usable_size(a)
 
 char    *je_strndup(const char *src, size_t len) {
   char* dst = (char*)je_malloc(len + 1);
@@ -6458,4 +6469,60 @@ void *(*__memalign_hook)(size_t alignment, size_t size) = MEMALIGN;
 
 
 #  error "Interposing malloc is unsafe on this system without libc malloc hooks."
+#endif
+
+#ifdef WIN32_NEW_STYLE_JEMALLOC
+
+
+
+
+
+
+BOOL APIENTRY DllMain(HINSTANCE hModule, 
+                      DWORD reason, 
+                      LPVOID lpReserved)
+{
+  switch (reason) {
+    case DLL_PROCESS_ATTACH:
+      
+
+      DisableThreadLibraryCalls(hModule);
+      
+      malloc_init_hard();
+      break;
+    
+    case DLL_PROCESS_DETACH:
+      break;
+
+  }
+
+  return TRUE;
+}
+
+
+
+
+
+
+void
+je_dumb_free_thunk(void *ptr)
+{
+  return; 
+}
+
+#include <wchar.h>
+
+
+
+
+
+wchar_t *je_wcsdup(const wchar_t *src)
+{
+  size_t len = wcslen(src);
+  wchar_t* dst = (wchar_t*)je_malloc((len + 1) * sizeof(wchar_t));
+  if(dst)
+    wcsncpy(dst, src, len + 1);
+  return dst;
+}
+
 #endif
