@@ -234,15 +234,8 @@ public:
     void RegisterLocation(NSLocationType aType, nsILocalFile* aLocation,
                           bool aChromeOnly);
 
-    
-    
-    
-    void RegisterDirectory(NSLocationType aType, nsILocalFile* aDirectory,
-                           nsCOMArray<nsILocalFile>& aManifests,
-                           bool aChromeOnly);
-    void RegisterFile(NSLocationType aType, nsILocalFile* aFile,
-                      nsCOMArray<nsILocalFile>& aManifests,
-                      bool aChromeOnly);
+    void GetManifestsInDirectory(nsILocalFile* aDirectory,
+                                 nsCOMArray<nsILocalFile>& aManifests);
 
     void RegisterManifestFile(NSLocationType aType, nsILocalFile* aFile,
                               bool aChromeOnly);
