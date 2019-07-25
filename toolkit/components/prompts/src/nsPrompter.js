@@ -202,18 +202,6 @@ let PromptUtils = {
         return [buttonLabels[0], buttonLabels[1], buttonLabels[2], defaultButtonNum, isDelayEnabled];
     },
 
-    
-    fireEvent : function (domWin, eventType) {
-        
-        
-        
-        
-        
-        let event = domWin.document.createEvent("Events");
-        event.initEvent(eventType, true, true);
-        return !domWin.dispatchEvent(event);
-    },
-
     getAuthInfo : function (authInfo) {
         let username, password;
 
@@ -383,11 +371,10 @@ ModalPrompter.prototype = {
             domWin = Services.ww.activeWindow;
 
         
-        
-        
 
-        let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIDOMWindowUtils);
+        
+        
+        
 
         Services.ww.openWindow(domWin, uri, "_blank", "centerscreen,chrome,modal,titlebar", args);
     },

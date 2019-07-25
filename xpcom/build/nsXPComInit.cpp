@@ -508,7 +508,8 @@ NS_InitXPCOM2(nsIServiceManager* *result,
     NS_TIME_FUNCTION_MARK("Next: interface info manager init");
 
     
-    xptiInterfaceInfoManager::GetSingleton();
+    
+    (void) xptiInterfaceInfoManager::GetSingleton();
 
     NS_TIME_FUNCTION_MARK("Next: register category providers");
 
