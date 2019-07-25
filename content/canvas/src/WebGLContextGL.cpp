@@ -127,21 +127,6 @@ WebGLContext::Present()
 
 
 NS_IMETHODIMP
-WebGLContext::SizeInBytes(WebGLenum type, PRInt32 *retval)
-{
-    if (type == LOCAL_GL_FLOAT) *retval = sizeof(float);
-    if (type == LOCAL_GL_SHORT) *retval = sizeof(short);
-    if (type == LOCAL_GL_UNSIGNED_SHORT) *retval = sizeof(unsigned short);
-    if (type == LOCAL_GL_BYTE) *retval = 1;
-    if (type == LOCAL_GL_UNSIGNED_BYTE) *retval = 1;
-    if (type == LOCAL_GL_INT) *retval = sizeof(int);
-    if (type == LOCAL_GL_UNSIGNED_INT) *retval = sizeof(unsigned int);
-    if (type == LOCAL_GL_DOUBLE) *retval = sizeof(double);
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 WebGLContext::ActiveTexture(WebGLenum texture)
 {
     if (texture < LOCAL_GL_TEXTURE0 || texture >= LOCAL_GL_TEXTURE0+mBound2DTextures.Length())
