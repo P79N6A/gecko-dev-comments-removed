@@ -173,6 +173,11 @@ public:
     
 
 
+    static PRInt32 FormatStrideForWidth(gfxImageFormat format, PRInt32 width);
+
+    
+
+
 
     virtual PRInt32 GetDefaultContextFlags() const { return 0; }
 
