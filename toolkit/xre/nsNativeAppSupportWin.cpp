@@ -340,11 +340,12 @@ nsNativeAppSupportWin::CheckConsole() {
         
         if (_fileno(stdout) == -1 || _get_osfhandle(fileno(stdout)) == -1)
             freopen("CONOUT$", "w", stdout);
+        
+        
         if (_fileno(stderr) == -1 || _get_osfhandle(fileno(stderr)) == -1)
-            freopen("CONERR$", "w", stderr);
+            freopen("CONOUT$", "w", stderr);
         if (_fileno(stdin) == -1 || _get_osfhandle(fileno(stdin)) == -1)
             freopen("CONIN$", "r", stdin);
-        return;
     }
 
     for ( int i = 1; i < gArgc; i++ ) {
