@@ -195,6 +195,8 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nsnull;
 
   nsRefPtr<ImageContainer> container = element->GetImageContainer();
+  if (!container)
+    return nsnull;
   
   
   
