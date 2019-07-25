@@ -558,8 +558,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
             for (Layer layer : mExtraLayers)
                 mUpdated &= layer.update(mPageContext); 
-
-            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
         }
 
         
@@ -603,6 +601,8 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         
         public void drawBackground() {
+            GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
+
             
             mBackgroundColor = mView.getController().getCheckerboardColor();
 
@@ -637,9 +637,8 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 
 
 
-                setScissorRect();
+                setScissorRect(); 
                 mCheckerboardLayer.draw(mPageContext);
-                GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
             }
         }
 
