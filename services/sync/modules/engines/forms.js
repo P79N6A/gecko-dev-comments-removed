@@ -72,7 +72,7 @@ FormEngine.prototype = {
     this._store.clearFormCache();
     
     
-    this._delete.older = this.lastSync - 2592000;
+    this._delete.older = this.lastSync - 2592000; 
     SyncEngine.prototype._syncFinish.call(this);
   },
 

@@ -86,7 +86,7 @@ HistoryEngine.prototype = {
 
   _syncFinish: function HistEngine__syncFinish(error) {
     
-    this._delete.older = this.lastSync - 604800;
+    this._delete.older = this.lastSync - 604800; 
     SyncEngine.prototype._syncFinish.call(this);
   },
 
