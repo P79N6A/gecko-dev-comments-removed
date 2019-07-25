@@ -478,7 +478,6 @@ var Trenches = {
   preferTop: true,
   preferLeft: true,
 
-  activeTrenches: {},
   trenches: [],
 
   
@@ -606,14 +605,8 @@ var Trenches = {
   
   
   snap: function Trenches_snap(rect,stationaryCorner,assumeConstantSize,keepProportional) {
-    var aT = this.activeTrenches;
-
     
     Trenches.hideGuides();
-
-    
-    if (iQ(".acceptsDrop").length)
-      return;
 
     var updated = false;
     var updatedX = false;
@@ -623,7 +616,7 @@ var Trenches = {
 
     for (var i in this.trenches) {
       var t = this.trenches[i];
-      if (!t.active)
+      if (!t.active || t.parentItem.isDropTarget)
         continue;
       
       var newRect = t.rectOverlaps(rect,stationaryCorner,assumeConstantSize,keepProportional);

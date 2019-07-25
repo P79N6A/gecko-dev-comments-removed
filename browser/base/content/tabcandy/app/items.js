@@ -556,7 +556,8 @@ window.Item.prototype = {
     Trenches.defaultRadius = 2 * defaultRadius; 
 
     var event = {startPosition:{}}; 
-    var FauxDragInfo = new Drag(this,event);
+    var FauxDragInfo = new Drag(this,event,false,true);
+    
     FauxDragInfo.snap('none',false);
     FauxDragInfo.stop();
 

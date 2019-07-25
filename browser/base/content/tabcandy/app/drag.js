@@ -59,7 +59,8 @@ var drag = {
 
 
 
-var Drag = function(item, event, isResizing) {
+
+var Drag = function(item, event, isResizing, isFauxDrag) {
   try {
     Utils.assert('must be an item, or at least a faux item',
                  item && (item.isAnItem || item.isAFauxItem));
@@ -82,15 +83,17 @@ var Drag = function(item, event, isResizing) {
 
     Trenches.activateOthersTrenches(this.el);
 
-    
-    if (this.item.isAGroup) {
-      var tab = Page.getActiveTab();
-      if (!tab || tab.parent != this.item) {
-        if (this.item._children.length)
-          Page.setActiveTab(this.item._children[0]);
+    if (!isFauxDrag) {
+      
+      if (this.item.isAGroup) {
+        var tab = Page.getActiveTab();
+        if (!tab || tab.parent != this.item) {
+          if (this.item._children.length)
+            Page.setActiveTab(this.item._children[0]);
+        }
+      } else if (this.item.isATabItem) {
+        Page.setActiveTab(this.item);
       }
-    } else if (this.item.isATabItem) {
-      Page.setActiveTab(this.item);
     }
   } catch(e) {
     Utils.log(e);
@@ -109,7 +112,8 @@ Drag.prototype = {
   
   
   
-  snapBounds: function Drag_snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional) {
+  
+  snapBounds: function Drag_snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional, checkItemStatus) {
     var stationaryCorner = stationaryCorner || 'topleft';
     var update = false; 
     var updateX = false;
@@ -120,8 +124,11 @@ Drag.prototype = {
     
     if ( 
          !Keys.meta
-         
-         && !(this.item.isATabItem && this.item.overlapsWithOtherItems()) ) {
+         && ( !checkItemStatus 
+              
+              || ( !( this.item.isATabItem && this.item.overlapsWithOtherItems() )
+                 && !iQ(".acceptsDrop").length ) )
+        ) {
       newRect = Trenches.snap(bounds,stationaryCorner,assumeConstantSize,keepProportional);
       if (newRect) { 
         update = true;
@@ -166,7 +173,7 @@ Drag.prototype = {
   
   snap: function Drag_snap(stationaryCorner, assumeConstantSize, keepProportional) {
     var bounds = this.item.getBounds();
-    bounds = this.snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional);
+    bounds = this.snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional, true);
     if (bounds) {
       this.item.setBounds(bounds,true);
       return true;
