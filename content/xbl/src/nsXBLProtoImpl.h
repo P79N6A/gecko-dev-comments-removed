@@ -131,8 +131,8 @@ public:
   nsCString mClassName; 
 
 protected:
-  void* mClassObject;   
-                        
+  JSObject* mClassObject; 
+                          
 
   nsXBLProtoImplMember* mMembers; 
 
