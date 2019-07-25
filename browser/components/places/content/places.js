@@ -366,17 +366,22 @@ var PlacesOrganizer = {
   
 
 
-  importBookmarks: function PO_import() {
-    
-    var features = "modal,centerscreen,chrome,resizable=no";
 
-    
-    
-    window.fromFile = false;
-    openDialog("chrome://browser/content/migration/migration.xul",
-               "migration", features, "bookmarks");
-    if (window.fromFile)
-      this.importFromFile();
+  browserImport: function PO_browserImport() {
+#ifdef XP_MACOSX
+    var wm = Cc["@mozilla.org/appshell/window-mediator;1"].
+             .getService(Ci.nsIWindowMediator);
+    var win = wm.getMostRecentWindow("Browser:MigrationWizard");
+    if (win)
+      win.focus();
+    else {
+      window.openDialog("chrome://browser/content/migration/migration.xul",
+                        "migration", "centerscreen,chrome,resizable=no");
+    }
+#else
+    window.openDialog("chrome://browser/content/migration/migration.xul",
+                      "migration", "modal,centerscreen,chrome,resizable=no");
+#endif
   },
 
   
