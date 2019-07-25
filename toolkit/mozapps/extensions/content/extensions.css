@@ -35,6 +35,13 @@
 
 
 
+@namespace xhtml "http://www.w3.org/1999/xhtml";
+
+
+xhtml|link {
+  display: none;
+}
+
 #categories {
   -moz-binding: url("chrome://mozapps/content/extensions/extensions.xml#categories-list");
 }
