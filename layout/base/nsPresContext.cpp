@@ -898,18 +898,27 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
     mRefreshDriver = mDocument->GetDisplayDocument()->GetShell()->
       GetPresContext()->RefreshDriver();
   } else {
+    nsIDocument* parent = mDocument->GetParentDocument();
     
-    nsCOMPtr<nsISupports> ourContainer = mDocument->GetContainer();
-    nsCOMPtr<nsIDocShellTreeItem> ourItem = do_QueryInterface(ourContainer);
-    if (ourItem) {
-      nsCOMPtr<nsIDocShellTreeItem> parentItem;
-      ourItem->GetSameTypeParent(getter_AddRefs(parentItem));
-      nsCOMPtr<nsIDocShell> parentDocShell = do_QueryInterface(parentItem);
-      if (parentDocShell) {
-        nsCOMPtr<nsIPresShell> parentPresShell;
-        parentDocShell->GetPresShell(getter_AddRefs(parentPresShell));
-        if (parentPresShell) {
-          mRefreshDriver = parentPresShell->GetPresContext()->RefreshDriver();
+    
+    
+    
+    NS_ASSERTION(!parent || mDocument->IsStaticDocument() || parent->GetShell(),
+                 "How did we end up with a presshell if our parent doesn't "
+                 "have one?");
+    if (parent && parent->GetShell()) {
+      NS_ASSERTION(parent->GetShell()->GetPresContext(),
+                   "How did we get a presshell?");
+
+      
+      nsCOMPtr<nsISupports> ourContainer = mDocument->GetContainer();
+
+      nsCOMPtr<nsIDocShellTreeItem> ourItem = do_QueryInterface(ourContainer);
+      if (ourItem) {
+        nsCOMPtr<nsIDocShellTreeItem> parentItem;
+        ourItem->GetSameTypeParent(getter_AddRefs(parentItem));
+        if (parentItem) {
+          mRefreshDriver = parent->GetShell()->GetPresContext()->RefreshDriver();
         }
       }
     }
