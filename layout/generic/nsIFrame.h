@@ -146,22 +146,20 @@ typedef PRUint64 nsFrameState;
 
 #define NS_FRAME_STATE_BIT(n_) (nsFrameState(1) << (n_))
 
-enum {
-  NS_FRAME_IN_REFLOW =                          NS_FRAME_STATE_BIT(0),
+#define NS_FRAME_IN_REFLOW                          NS_FRAME_STATE_BIT(0)
 
-  
-  NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO =    NS_FRAME_STATE_BIT(0),
 
-  
-  
-  
-  NS_FRAME_FIRST_REFLOW =                       NS_FRAME_STATE_BIT(1),
+#define NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO    NS_FRAME_STATE_BIT(0)
 
-  
-  
-  
-  NS_FRAME_IS_FLUID_CONTINUATION =              NS_FRAME_STATE_BIT(2),
 
+
+
+#define NS_FRAME_FIRST_REFLOW                       NS_FRAME_STATE_BIT(1)
+
+
+
+
+#define NS_FRAME_IS_FLUID_CONTINUATION              NS_FRAME_STATE_BIT(2)
 
 
 
@@ -171,105 +169,105 @@ enum {
 
 
 
-  
-  
-  
-  NS_FRAME_EXTERNAL_REFERENCE =                 NS_FRAME_STATE_BIT(4),
 
-  
-  
-  
-  
-  NS_FRAME_CONTAINS_RELATIVE_HEIGHT =           NS_FRAME_STATE_BIT(5),
 
-  
-  NS_FRAME_GENERATED_CONTENT =                  NS_FRAME_STATE_BIT(6),
 
-  
-  
-  
-  
-  
-  NS_FRAME_IS_OVERFLOW_CONTAINER =              NS_FRAME_STATE_BIT(7),
 
-  
-  
-  NS_FRAME_OUT_OF_FLOW =                        NS_FRAME_STATE_BIT(8),
+#define NS_FRAME_EXTERNAL_REFERENCE                 NS_FRAME_STATE_BIT(4)
 
-  
-  NS_FRAME_SELECTED_CONTENT =                   NS_FRAME_STATE_BIT(9),
 
-  
-  
-  
-  
-  
-  
-  NS_FRAME_IS_DIRTY =                           NS_FRAME_STATE_BIT(10),
 
-  
-  
-  
-  NS_FRAME_TOO_DEEP_IN_FRAME_TREE =             NS_FRAME_STATE_BIT(11),
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  NS_FRAME_HAS_DIRTY_CHILDREN =                 NS_FRAME_STATE_BIT(12),
 
-  
-  NS_FRAME_HAS_VIEW =                           NS_FRAME_STATE_BIT(13),
+#define  NS_FRAME_CONTAINS_RELATIVE_HEIGHT          NS_FRAME_STATE_BIT(5)
 
-  
-  NS_FRAME_INDEPENDENT_SELECTION =              NS_FRAME_STATE_BIT(14),
 
-  
-  
-  
-  
-  
-  NS_FRAME_IS_SPECIAL =                         NS_FRAME_STATE_BIT(15),
+#define NS_FRAME_GENERATED_CONTENT                  NS_FRAME_STATE_BIT(6)
 
-  
-  
-  
-  
-  
-  
-  NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS =
-                                                NS_FRAME_STATE_BIT(16),
+
+
+
+
+
+#define NS_FRAME_IS_OVERFLOW_CONTAINER              NS_FRAME_STATE_BIT(7)
+
+
+
+#define NS_FRAME_OUT_OF_FLOW                        NS_FRAME_STATE_BIT(8)
+
+
+#define NS_FRAME_SELECTED_CONTENT                   NS_FRAME_STATE_BIT(9)
+
+
+
+
+
+
+
+#define NS_FRAME_IS_DIRTY                           NS_FRAME_STATE_BIT(10)
+
+
+
+
+#define NS_FRAME_TOO_DEEP_IN_FRAME_TREE             NS_FRAME_STATE_BIT(11)
+
+
+
+
+
+
+
+
+
+
+
+#define NS_FRAME_HAS_DIRTY_CHILDREN                 NS_FRAME_STATE_BIT(12)
+
+
+#define NS_FRAME_HAS_VIEW                           NS_FRAME_STATE_BIT(13)
+
+
+#define NS_FRAME_INDEPENDENT_SELECTION              NS_FRAME_STATE_BIT(14)
+
+
+
+
+
+
+#define NS_FRAME_IS_SPECIAL                         NS_FRAME_STATE_BIT(15)
+
+
+
+
+
+
+
+#define  NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS \
+                                                    NS_FRAME_STATE_BIT(16)
 
 #ifdef IBMBIDI
-  
-  
-  NS_FRAME_IS_BIDI =                            NS_FRAME_STATE_BIT(17),
+
+
+#define NS_FRAME_IS_BIDI                            NS_FRAME_STATE_BIT(17)
 #endif
 
-  
-  NS_FRAME_HAS_CHILD_WITH_VIEW =                NS_FRAME_STATE_BIT(18),
 
-  
-  
-  NS_FRAME_REFLOW_ROOT =                        NS_FRAME_STATE_BIT(19),
+#define NS_FRAME_HAS_CHILD_WITH_VIEW                NS_FRAME_STATE_BIT(18)
 
-  
-  NS_FRAME_IMPL_RESERVED =                      nsFrameState(0xFFF00000),
 
-  
-  
-  NS_FRAME_RESERVED =                           ~NS_FRAME_IMPL_RESERVED,
 
-  
-  NS_STATE_IS_HORIZONTAL =                      NS_FRAME_STATE_BIT(22),
-  NS_STATE_IS_DIRECTION_NORMAL =                NS_FRAME_STATE_BIT(31)
-};
+#define NS_FRAME_REFLOW_ROOT                        NS_FRAME_STATE_BIT(19)
+
+
+#define NS_FRAME_IMPL_RESERVED                      nsFrameState(0xFFF00000)
+
+
+
+#define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
+
+
+#define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
+#define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
 
 #define NS_SUBTREE_DIRTY(_frame)  \
