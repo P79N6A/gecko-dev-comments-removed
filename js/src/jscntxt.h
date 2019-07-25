@@ -964,7 +964,7 @@ struct JSThreadData {
     unsigned            iterationCounter;
 
     
-    uint32                  maxCodeCacheBytes;
+    uint32              maxCodeCacheBytes;
 #endif
 
     
