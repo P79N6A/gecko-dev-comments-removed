@@ -2856,14 +2856,15 @@ nsGenericElement::GetAttributeNS(const nsAString& aNamespaceURI,
 
   if (nsid == kNameSpaceID_Unknown) {
     
-
-    aReturn.Truncate();
-
+    SetDOMStringToNull(aReturn);
     return NS_OK;
   }
 
   nsCOMPtr<nsIAtom> name = do_GetAtom(aLocalName);
-  GetAttr(nsid, name, aReturn);
+  bool hasAttr = GetAttr(nsid, name, aReturn);
+  if (!hasAttr) {
+    SetDOMStringToNull(aReturn);
+  }
 
   return NS_OK;
 }
