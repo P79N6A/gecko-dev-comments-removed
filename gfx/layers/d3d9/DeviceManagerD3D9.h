@@ -49,6 +49,7 @@ namespace layers {
 
 class DeviceManagerD3D9;
 class ThebesLayerD3D9;
+class Nv3DVUtils;
 
 
 
@@ -136,6 +137,11 @@ public:
 
   
 
+ 
+  Nv3DVUtils *GetNv3DVUtils()  { return mNv3DVUtils; } 
+
+  
+
 
 
   nsTArray<ThebesLayerD3D9*> mThebesLayers;
@@ -191,6 +197,9 @@ private:
 
   
   bool mHasDynamicTextures;
+
+   
+  nsAutoPtr<Nv3DVUtils> mNv3DVUtils; 
 
   
 

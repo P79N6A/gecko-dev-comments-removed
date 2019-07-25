@@ -130,6 +130,16 @@ public:
   IDirect3DDevice9 *device() const { return mDeviceManager->device(); }
   DeviceManagerD3D9 *deviceManager() const { return mDeviceManager; }
 
+  
+
+ 
+  Nv3DVUtils *GetNv3DVUtils()  { return mDeviceManager ? mDeviceManager->GetNv3DVUtils() : NULL; } 
+
+  
+
+ 
+  PRBool Is3DEnabled() { return mIs3DEnabled; } 
+
   static void OnDeviceManagerDestroy(DeviceManagerD3D9 *aDeviceManager) {
     if(aDeviceManager == mDeviceManager)
       mDeviceManager = nsnull;
@@ -155,6 +165,9 @@ private:
 
   
   CallbackInfo mCurrentCallbackInfo;
+
+   
+  PRBool mIs3DEnabled; 
 
   
 

@@ -42,6 +42,8 @@
 #include "ImageLayerD3D9.h"
 #include "ColorLayerD3D9.h"
 #include "CanvasLayerD3D9.h"
+#include "nsIServiceManager.h"
+#include "nsIPrefService.h"
 
 namespace mozilla {
 namespace layers {
@@ -49,6 +51,7 @@ namespace layers {
 DeviceManagerD3D9 *LayerManagerD3D9::mDeviceManager = nsnull;
 
 LayerManagerD3D9::LayerManagerD3D9(nsIWidget *aWidget)
+  : mIs3DEnabled(PR_FALSE)
 {
     mWidget = aWidget;
     mCurrentCallbackInfo.Callback = NULL;
@@ -70,6 +73,10 @@ LayerManagerD3D9::~LayerManagerD3D9()
 PRBool
 LayerManagerD3D9::Initialize()
 {
+   
+  nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID); 
+  prefs->GetBoolPref("gfx.3d_video.enabled", &mIs3DEnabled); 
+
   if (!mDeviceManager) {
     mDeviceManager = new DeviceManagerD3D9;
 
