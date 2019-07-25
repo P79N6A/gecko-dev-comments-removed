@@ -1122,14 +1122,7 @@ InspectorUI.prototype = {
   deleteNode: function IUI_deleteNode()
   {
     let selection = this.selection;
-
-    let root = selection.ownerDocument.documentElement;
-    if (selection === root) {
-      
-      return;
-    }
-
-    let parent = selection.parentNode;
+    let parent = this.selection.parentNode;
 
     
     if (this.treePanel.isOpen())
@@ -1157,11 +1150,6 @@ InspectorUI.prototype = {
 
   inspectNode: function IUI_inspectNode(aNode, aScroll)
   {
-    if (aNode.ownerDocument === this.chromeDoc) {
-      
-      
-      return;
-    }
     this.select(aNode, true, true);
     this.highlighter.highlight(aNode, aScroll);
   },

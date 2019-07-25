@@ -977,7 +977,7 @@ let gGestureSupport = {
 };
 
 var gBrowserInit = {
-  BrowserStartup: function() {
+  onLoad: function() {
     var uriToLoad = null;
 
     
@@ -1149,7 +1149,7 @@ var gBrowserInit = {
 
     retrieveToolbarIconsizesFromTheme();
 
-    gDelayedStartupTimeoutId = setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
+    gDelayedStartupTimeoutId = setTimeout(this._delayedStartup.bind(this), 0, isLoadingBlank, mustLoadSidebar);
     gStartupRan = true;
   },
 
@@ -1247,7 +1247,7 @@ var gBrowserInit = {
     gGestureSupport.init(true);
   },
 
-  delayedStartup: function(isLoadingBlank, mustLoadSidebar) {
+  _delayedStartup: function(isLoadingBlank, mustLoadSidebar) {
     let tmp = {};
     Cu.import("resource:///modules/TelemetryTimestamps.jsm", tmp);
     let TelemetryTimestamps = tmp.TelemetryTimestamps;
@@ -1290,7 +1290,7 @@ var gBrowserInit = {
     gNavToolbox.customizeChange = BrowserToolboxCustomizeChange;
 
     
-    initializeSanitizer();
+    this._initializeSanitizer();
 
     
     gBrowser.tabContainer.updateVisibility();
@@ -1557,7 +1557,7 @@ var gBrowserInit = {
     TelemetryTimestamps.add("delayedStartupFinished");
   },
 
-  BrowserShutdown: function() {
+  onUnload: function() {
     
     
     
@@ -1707,7 +1707,7 @@ var gBrowserInit = {
       }
     }
 
-    gDelayedStartupTimeoutId = setTimeout(nonBrowserWindowDelayedStartup, 0);
+    gDelayedStartupTimeoutId = setTimeout(this.nonBrowserWindowDelayedStartup.bind(this), 0);
   },
 
   nonBrowserWindowDelayedStartup: function() {
@@ -1717,7 +1717,7 @@ var gBrowserInit = {
     BrowserOffline.init();
 
     
-    initializeSanitizer();
+    this._initializeSanitizer();
 
     
     gPrivateBrowsingUI.init();
@@ -1744,7 +1744,7 @@ var gBrowserInit = {
   },
 #endif
 
-  initializeSanitizer: function() {
+  _initializeSanitizer: function() {
     const kDidSanitizeDomain = "privacy.sanitize.didShutdownSanitize";
     if (gPrefService.prefHasUserValue(kDidSanitizeDomain)) {
       gPrefService.clearUserPref(kDidSanitizeDomain);
@@ -1792,9 +1792,9 @@ var gBrowserInit = {
 }
 
 
-var BrowserStartup        = gBrowserInit.BrowserStartup.bind(gBrowserInit);
+var BrowserStartup        = gBrowserInit.onLoad.bind(gBrowserInit);
 var prepareForStartup     = gBrowserInit.prepareForStartup.bind(gBrowserInit);
-var BrowserShutdown       = gBrowserInit.BrowserShutdown.bind(gBrowserInit);
+var BrowserShutdown       = gBrowserInit.onUnload.bind(gBrowserInit);
 #ifdef XP_MACOSX
 var nonBrowserWindowStartup        = gBrowserInit.nonBrowserWindowStartup.bind(gBrowserInit);
 var nonBrowserWindowDelayedStartup = gBrowserInit.nonBrowserWindowDelayedStartup.bind(gBrowserInit);
