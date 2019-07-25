@@ -120,6 +120,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsIImageLoadingContent.h"
 #include "mozilla/Preferences.h"
+#include "nsVersionComparator.h"
 
 #if defined(XP_WIN)
 #include "nsIWindowMediator.h"
@@ -1212,9 +1213,14 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
 
   
   
+  mInstances.AppendElement(instance.get());
+
+  
+  
   
   nsresult rv = instance->Initialize(plugin.get(), aOwner, mimetype);
   if (NS_FAILED(rv)) {
+    mInstances.RemoveElement(instance.get());
     aOwner->SetInstance(nsnull);
     return rv;
   }
@@ -1224,8 +1230,6 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
   if (pluginTag->mUnloadTimer) {
     pluginTag->mUnloadTimer->Cancel();
   }
-
-  mInstances.AppendElement(instance.get());
 
 #ifdef PLUGIN_LOGGING
   nsCAutoString urlSpec2;
@@ -1486,6 +1490,25 @@ nsPluginHost::GetPluginTags(PRUint32* aPluginCount, nsIPluginTag*** aResults)
 }
 
 nsPluginTag*
+nsPluginHost::FindPreferredPlugin(const InfallibleTArray<nsPluginTag*>& matches)
+{
+  
+
+  if (matches.IsEmpty()) {
+    return nsnull;
+  }
+
+  nsPluginTag *preferredPlugin = matches[0];
+  for (unsigned int i = 1; i < matches.Length(); i++) {
+    if (mozilla::Version(matches[i]->mVersion.get()) > preferredPlugin->mVersion.get()) {
+      preferredPlugin = matches[i];
+    }
+  }
+
+  return preferredPlugin;
+}
+
+nsPluginTag*
 nsPluginHost::FindPluginForType(const char* aMimeType,
                                 bool aCheckEnabled)
 {
@@ -1495,20 +1518,23 @@ nsPluginHost::FindPluginForType(const char* aMimeType,
 
   LoadPlugins();
 
+  InfallibleTArray<nsPluginTag*> matchingPlugins;
+
   nsPluginTag *plugin = mPlugins;
   while (plugin) {
     if (!aCheckEnabled || plugin->IsEnabled()) {
       PRInt32 mimeCount = plugin->mMimeTypes.Length();
       for (PRInt32 i = 0; i < mimeCount; i++) {
         if (0 == PL_strcasecmp(plugin->mMimeTypes[i].get(), aMimeType)) {
-          return plugin;
+          matchingPlugins.AppendElement(plugin);
+          break;
         }
       }
     }
     plugin = plugin->mNext;
   }
 
-  return nsnull;
+  return FindPreferredPlugin(matchingPlugins);
 }
 
 nsPluginTag*
@@ -1521,6 +1547,8 @@ nsPluginHost::FindPluginEnabledForExtension(const char* aExtension,
 
   LoadPlugins();
 
+  InfallibleTArray<nsPluginTag*> matchingPlugins;
+
   nsPluginTag *plugin = mPlugins;
   while (plugin) {
     if (plugin->IsEnabled()) {
@@ -1528,15 +1556,29 @@ nsPluginHost::FindPluginEnabledForExtension(const char* aExtension,
       for (PRInt32 i = 0; i < variants; i++) {
         
         if (0 == CompareExtensions(plugin->mExtensions[i].get(), aExtension)) {
-          aMimeType = plugin->mMimeTypes[i].get();
-          return plugin;
+          matchingPlugins.AppendElement(plugin);
+          break;
         }
       }
     }
     plugin = plugin->mNext;
   }
 
-  return nsnull;
+  nsPluginTag *preferredPlugin = FindPreferredPlugin(matchingPlugins);
+  if (!preferredPlugin) {
+    return nsnull;
+  }
+
+  PRInt32 variants = preferredPlugin->mExtensions.Length();
+  for (PRInt32 i = 0; i < variants; i++) {
+    
+    if (0 == CompareExtensions(preferredPlugin->mExtensions[i].get(), aExtension)) {
+      aMimeType = preferredPlugin->mMimeTypes[i].get();
+      break;
+    }
+  }
+
+  return preferredPlugin;
 }
 
 static nsresult CreateNPAPIPlugin(nsPluginTag *aPluginTag,
@@ -1842,37 +1884,6 @@ nsPluginHost::IsLiveTag(nsIPluginTag* aPluginTag)
   return false;
 }
 
-nsPluginTag * nsPluginHost::HaveSamePlugin(nsPluginTag * aPluginTag)
-{
-  for (nsPluginTag* tag = mPlugins; tag; tag = tag->mNext) {
-    if (tag->Equals(aPluginTag))
-      return tag;
-  }
-  return nsnull;
-}
-
-bool nsPluginHost::IsDuplicatePlugin(nsPluginTag * aPluginTag)
-{
-  nsPluginTag * tag = HaveSamePlugin(aPluginTag);
-  if (tag) {
-    
-
-    
-    
-    
-    if (!tag->mFileName.Equals(aPluginTag->mFileName))
-      return true;
-
-    
-    
-    if (!tag->mFullPath.Equals(aPluginTag->mFullPath))
-      return true;
-  }
-
-  
-  return false;
-}
-
 typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
 
 nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
@@ -1945,8 +1956,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     
     NS_ConvertUTF16toUTF8 filePath(utf16FilePath);
     nsRefPtr<nsPluginTag> pluginTag;
-    RemoveCachedPluginsInfo(filePath.get(),
-                            getter_AddRefs(pluginTag));
+    RemoveCachedPluginsInfo(filePath.get(), getter_AddRefs(pluginTag));
 
     bool enabled = true;
     bool seenBefore = false;
@@ -1960,23 +1970,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
 
         
         *aPluginsChanged = true;
-      }
-      else {
-        
-        
-        if (IsDuplicatePlugin(pluginTag)) {
-          if (!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED)) {
-            
-            *aPluginsChanged = true;
-          }
-          pluginTag->Mark(NS_PLUGIN_FLAG_UNWANTED);
-          pluginTag->mNext = mCachedPlugins;
-          mCachedPlugins = pluginTag;
-        } else if (pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED)) {
-          pluginTag->UnMark(NS_PLUGIN_FLAG_UNWANTED);
-          
-          *aPluginsChanged = true;
-        }
       }
 
       
@@ -2067,77 +2060,53 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       
       
       
-      NS_ASSERTION(!pluginTag->HasFlag(NS_PLUGIN_FLAG_UNWANTED),
-                   "Brand-new tags should not be unwanted");
-      if (IsDuplicatePlugin(pluginTag)) {
-        pluginTag->Mark(NS_PLUGIN_FLAG_UNWANTED);
-        pluginTag->mNext = mCachedPlugins;
-        mCachedPlugins = pluginTag;
-      }
-
-      
-      
-      
       if (UnloadPluginsASAP()) {
         pluginTag->TryUnloadPlugin(false);
       }
     }
 
     
-    
-    bool bAddIt = true;
-    
-    if (HaveSamePlugin(pluginTag)) {
+    if (!seenBefore) {
       
-      
-      
-      bAddIt = false;
+      *aPluginsChanged = true;
     }
 
     
-    if (bAddIt) {
-      if (!seenBefore) {
-        
-        *aPluginsChanged = true;
-      }
+    
+    if (!aCreatePluginList) {
+      return NS_OK;
+    }
 
-      
-      
-      if (!aCreatePluginList) {
-        return NS_OK;
-      }
+    pluginTag->SetHost(this);
 
-      pluginTag->SetHost(this);
-
-      
-      
-      
-      if (mPlugins) {
-        nsPluginTag *prev = nsnull;
-        nsPluginTag *next = mPlugins;
-        while (next) {
-          if (pluginTag->mLastModifiedTime >= next->mLastModifiedTime) {
-            pluginTag->mNext = next;
-            if (prev) {
-              prev->mNext = pluginTag;
-            } else {
-              mPlugins = pluginTag;
-            }
-            break;
-          }
-          prev = next;
-          next = prev->mNext;
-          if (!next) {
+    
+    
+    
+    if (mPlugins) {
+      nsPluginTag *prev = nsnull;
+      nsPluginTag *next = mPlugins;
+      while (next) {
+        if (pluginTag->mLastModifiedTime >= next->mLastModifiedTime) {
+          pluginTag->mNext = next;
+          if (prev) {
             prev->mNext = pluginTag;
+          } else {
+            mPlugins = pluginTag;
           }
+          break;
         }
-      } else {
-        mPlugins = pluginTag;
+        prev = next;
+        next = prev->mNext;
+        if (!next) {
+          prev->mNext = pluginTag;
+        }
       }
+    } else {
+      mPlugins = pluginTag;
+    }
 
-      if (pluginTag->IsEnabled()) {
-        pluginTag->RegisterWithCategoryManager(mOverrideInternalTypes);
-      }
+    if (pluginTag->IsEnabled()) {
+      pluginTag->RegisterWithCategoryManager(mOverrideInternalTypes);
     }
   }
 
@@ -2330,21 +2299,11 @@ nsresult nsPluginHost::FindPlugins(bool aCreatePluginList, bool * aPluginsChange
   
   
   
-  if (!*aPluginsChanged) {
-    
-    
-    PRUint32 cachecount = 0;
-    for (nsPluginTag * cachetag = mCachedPlugins; cachetag; cachetag = cachetag->mNext) {
-      if (!cachetag->HasFlag(NS_PLUGIN_FLAG_UNWANTED))
-        cachecount++;
-    }
-    
-    
-    
-    if (cachecount > 0)
-      *aPluginsChanged = true;
-  }
   
+  if (!*aPluginsChanged && mCachedPlugins) {
+    *aPluginsChanged = true;
+  }
+
   
   nsRefPtr<nsInvalidPluginTag> invalidPlugins = mInvalidPlugins;
   while (invalidPlugins) {
@@ -2475,61 +2434,55 @@ nsPluginHost::WritePluginInfo()
   
   PR_fprintf(fd, "\n[PLUGINS]\n");
 
-  nsPluginTag *taglist[] = {mPlugins, mCachedPlugins};
-  for (int i=0; i<(int)(sizeof(taglist)/sizeof(nsPluginTag *)); i++) {
-    for (nsPluginTag *tag = taglist[i]; tag; tag=tag->mNext) {
-      
-      if ((taglist[i] == mCachedPlugins) && !tag->HasFlag(NS_PLUGIN_FLAG_UNWANTED))
-        continue;
-      
-      
-      
-      PR_fprintf(fd, "%s%c%c\n%s%c%c\n%s%c%c\n",
-        (tag->mFileName.get()),
+  for (nsPluginTag *tag = mPlugins; tag; tag = tag->mNext) {
+    
+    
+    
+    PR_fprintf(fd, "%s%c%c\n%s%c%c\n%s%c%c\n",
+      (tag->mFileName.get()),
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      PLUGIN_REGISTRY_END_OF_LINE_MARKER,
+      (tag->mFullPath.get()),
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      PLUGIN_REGISTRY_END_OF_LINE_MARKER,
+      (tag->mVersion.get()),
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      PLUGIN_REGISTRY_END_OF_LINE_MARKER);
+
+    
+    PR_fprintf(fd, "%lld%c%d%c%lu%c%c\n",
+      tag->mLastModifiedTime,
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      false, 
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      tag->Flags(),
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      PLUGIN_REGISTRY_END_OF_LINE_MARKER);
+
+    
+    PR_fprintf(fd, "%s%c%c\n%s%c%c\n%d\n",
+      (tag->mDescription.get()),
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      PLUGIN_REGISTRY_END_OF_LINE_MARKER,
+      (tag->mName.get()),
+      PLUGIN_REGISTRY_FIELD_DELIMITER,
+      PLUGIN_REGISTRY_END_OF_LINE_MARKER,
+      tag->mMimeTypes.Length());
+
+    
+    for (PRUint32 i = 0; i < tag->mMimeTypes.Length(); i++) {
+      PR_fprintf(fd, "%d%c%s%c%s%c%s%c%c\n",
+        i,PLUGIN_REGISTRY_FIELD_DELIMITER,
+        (tag->mMimeTypes[i].get()),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
-        PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        (tag->mFullPath.get()),
+        (tag->mMimeDescriptions[i].get()),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
-        PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        (tag->mVersion.get()),
+        (tag->mExtensions[i].get()),
         PLUGIN_REGISTRY_FIELD_DELIMITER,
         PLUGIN_REGISTRY_END_OF_LINE_MARKER);
-
-      
-      PR_fprintf(fd, "%lld%c%d%c%lu%c%c\n",
-        tag->mLastModifiedTime,
-        PLUGIN_REGISTRY_FIELD_DELIMITER,
-        false, 
-        PLUGIN_REGISTRY_FIELD_DELIMITER,
-        tag->Flags(),
-        PLUGIN_REGISTRY_FIELD_DELIMITER,
-        PLUGIN_REGISTRY_END_OF_LINE_MARKER);
-
-      
-      PR_fprintf(fd, "%s%c%c\n%s%c%c\n%d\n",
-        (tag->mDescription.get()),
-        PLUGIN_REGISTRY_FIELD_DELIMITER,
-        PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        (tag->mName.get()),
-        PLUGIN_REGISTRY_FIELD_DELIMITER,
-        PLUGIN_REGISTRY_END_OF_LINE_MARKER,
-        tag->mMimeTypes.Length());
-
-      
-      for (PRUint32 i = 0; i < tag->mMimeTypes.Length(); i++) {
-        PR_fprintf(fd, "%d%c%s%c%s%c%s%c%c\n",
-          i,PLUGIN_REGISTRY_FIELD_DELIMITER,
-          (tag->mMimeTypes[i].get()),
-          PLUGIN_REGISTRY_FIELD_DELIMITER,
-          (tag->mMimeDescriptions[i].get()),
-          PLUGIN_REGISTRY_FIELD_DELIMITER,
-          (tag->mExtensions[i].get()),
-          PLUGIN_REGISTRY_FIELD_DELIMITER,
-          PLUGIN_REGISTRY_END_OF_LINE_MARKER);
-      }
     }
   }
-  
+
   PR_fprintf(fd, "\n[INVALID]\n");
   
   nsRefPtr<nsInvalidPluginTag> invalidPlugins = mInvalidPlugins;

@@ -212,6 +212,9 @@ private:
   nsresult
   NewEmbeddedPluginStream(nsIURI* aURL, nsObjectLoadingContent *aContent, nsNPAPIPluginInstance* aInstance);
 
+  nsPluginTag*
+  FindPreferredPlugin(const InfallibleTArray<nsPluginTag*>& matches);
+
   
   
   nsPluginTag*
@@ -253,13 +256,6 @@ private:
 
   
   bool IsLiveTag(nsIPluginTag* tag);
-
-  
-  nsPluginTag* HaveSamePlugin(nsPluginTag * aPluginTag);
-
-  
-  
-  bool IsDuplicatePlugin(nsPluginTag * aPluginTag);
 
   nsresult EnsurePrivateDirServiceProvider();
 
