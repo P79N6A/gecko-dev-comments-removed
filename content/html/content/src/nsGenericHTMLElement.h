@@ -877,6 +877,19 @@ public:
   
 
 
+
+
+
+
+  void ForgetFieldSet(nsIContent* aFieldset) {
+    if (mFieldSet == aFieldset) {
+      mFieldSet = nsnull;
+    }
+  }
+
+  
+
+
   PRBool CanBeDisabled() const;
 
 protected:

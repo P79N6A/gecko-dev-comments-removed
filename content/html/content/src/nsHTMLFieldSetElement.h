@@ -41,6 +41,7 @@
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIConstraintValidation.h"
+#include "nsTPtrArray.h"
 
 
 class nsHTMLFieldSetElement : public nsGenericHTMLFormElement,
@@ -87,6 +88,14 @@ public:
 
   const nsIContent* GetFirstLegend() const { return mFirstLegend; }
 
+  void AddElement(nsGenericHTMLFormElement* aElement) {
+    mDependentElements.AppendElement(aElement);
+  }
+
+  void RemoveElement(nsGenericHTMLFormElement* aElement) {
+    mDependentElements.RemoveElement(aElement);
+  }
+
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLFieldSetElement,
                                            nsGenericHTMLFormElement)
 private:
@@ -103,6 +112,9 @@ private:
 
   
   nsRefPtr<nsContentList> mElements;
+
+  
+  nsTPtrArray<nsGenericHTMLFormElement> mDependentElements;
 
   nsIContent* mFirstLegend;
 };
