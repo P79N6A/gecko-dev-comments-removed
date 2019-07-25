@@ -585,6 +585,7 @@ class JSShortString : public JSInlineString
                           offsetof(JSShortString, d.inlineStorage)) / sizeof(jschar));
     }
 
+  protected: 
     jschar inlineStorageExtension[INLINE_EXTENSION_CHARS];
 
   public:
