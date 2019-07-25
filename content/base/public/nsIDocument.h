@@ -214,8 +214,12 @@ public:
 
 
   virtual void NotifyPossibleTitleChange(PRBool aBoundTitleElement) = 0;
+
   
-  
+
+
+
+
 
 
   nsIURI* GetDocumentURI() const
@@ -224,6 +228,20 @@ public:
   }
 
   
+
+
+
+
+
+
+
+  nsIURI* GetOriginalURI() const
+  {
+    return mOriginalURI;
+  }
+
+  
+
 
 
   virtual void SetDocumentURI(nsIURI* aURI) = 0;
@@ -1548,6 +1566,7 @@ protected:
   }
 
   nsCOMPtr<nsIURI> mDocumentURI;
+  nsCOMPtr<nsIURI> mOriginalURI;
   nsCOMPtr<nsIURI> mDocumentBaseURI;
 
   nsWeakPtr mDocumentLoadGroup;

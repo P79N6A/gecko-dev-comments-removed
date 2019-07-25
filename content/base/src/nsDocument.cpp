@@ -2128,6 +2128,9 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   
   mDOMStyleSheets = nsnull;
 
+  
+  mOriginalURI = nsnull;
+
   SetDocumentURI(aURI);
   
   
@@ -2509,6 +2512,11 @@ nsDocument::SetDocumentURI(nsIURI* aURI)
   else {
     equalBases = !oldBase && !newBase;
   }
+
+  
+  
+  if (!mOriginalURI)
+    mOriginalURI = mDocumentURI;
 
   
   

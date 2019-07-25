@@ -71,6 +71,7 @@
 #include "nsReadableUtils.h"
 #include "nsITextToSubURI.h"
 #include "nsContentUtils.h"
+#include "nsJSUtils.h"
 
 static nsresult
 GetContextFromStack(nsIJSContextStack *aStack, JSContext **aContext)
@@ -171,30 +172,53 @@ nsLocation::GetDocShell()
   return docshell;
 }
 
+
+static already_AddRefed<nsIDocument>
+GetFrameDocument(JSContext *cx, JSStackFrame *fp)
+{
+  if (!cx || !fp)
+    return nsnull;
+
+  JSObject* scope = JS_GetFrameScopeChain(cx, fp);
+  if (!scope)
+    return nsnull;
+
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(cx, scope))
+     return nsnull;
+
+  nsCOMPtr<nsIDOMWindow> window =
+    do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, scope));
+  if (!window)
+    return nsnull;
+
+  
+  nsCOMPtr<nsIDOMDocument> domDoc;
+  window->GetDocument(getter_AddRefs(domDoc));
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+  return doc.forget();
+}
+
 nsresult
 nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 {
   *aLoadInfo = nsnull;
 
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mDocShell));
-  if (!docShell) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
+  NS_ENSURE_TRUE(docShell, NS_ERROR_NOT_AVAILABLE);
 
-  nsresult result;
+  nsresult rv;
   
   nsCOMPtr<nsIJSContextStack>
-    stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1", &result));
-
-  if (NS_FAILED(result))
-    return NS_ERROR_FAILURE;
+    stack(do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   JSContext *cx;
 
-  if (NS_FAILED(GetContextFromStack(stack, &cx)))
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_SUCCESS(GetContextFromStack(stack, &cx), NS_ERROR_FAILURE);
 
   nsCOMPtr<nsISupports> owner;
+  nsCOMPtr<nsIURI> sourceURI;
 
   if (cx) {
     
@@ -205,22 +229,48 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 
     
     nsCOMPtr<nsIScriptSecurityManager>
-      secMan(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &result));
-
-    if (NS_FAILED(result))
-      return NS_ERROR_FAILURE;
+      secMan(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
-    result = secMan->CheckLoadURIFromScript(cx, aURI);
-
-    if (NS_FAILED(result))
-      return result;
+    rv = secMan->CheckLoadURIFromScript(cx, aURI);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
-    nsCOMPtr<nsIPrincipal> principal;
-    if (NS_FAILED(secMan->GetSubjectPrincipal(getter_AddRefs(principal))) ||
-        !principal)
-      return NS_ERROR_FAILURE;
+    
+    JSStackFrame *fp;
+    nsIPrincipal* principal = secMan->GetCxSubjectPrincipalAndFrame(cx, &fp);
+    NS_ENSURE_TRUE(principal, NS_ERROR_FAILURE);
+
+    nsCOMPtr<nsIURI> principalURI;
+    principal->GetURI(getter_AddRefs(principalURI));
+
+    
+    
+    
+    
+    
+    
+
+    nsCOMPtr<nsIDocument> frameDoc = GetFrameDocument(cx, fp);
+    nsCOMPtr<nsIURI> docOriginalURI, docCurrentURI;
+    if (frameDoc) {
+      docOriginalURI = frameDoc->GetOriginalURI();
+      docCurrentURI = frameDoc->GetDocumentURI();
+    }
+
+    PRBool urisEqual = PR_FALSE;
+    if (docOriginalURI && docCurrentURI && principalURI) {
+      principalURI->Equals(docOriginalURI, &urisEqual);
+    }
+
+    if (urisEqual) {
+      sourceURI = docCurrentURI;
+    }
+    else {
+      sourceURI = principalURI;
+    }
+
     owner = do_QueryInterface(principal);
   }
 
@@ -231,12 +281,9 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
 
   loadInfo->SetOwner(owner);
 
-  
-  
-  nsCOMPtr<nsIURI> sourceURI;
-  result = GetURI(getter_AddRefs(sourceURI));
-  if (NS_SUCCEEDED(result))
+  if (sourceURI) {
     loadInfo->SetReferrer(sourceURI);
+  }
 
   loadInfo.swap(*aLoadInfo);
 
