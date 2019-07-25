@@ -1535,11 +1535,15 @@ UpdateThreadFunc(void *param)
 {
   
 
+  int rv;
   NS_tchar dataFile[MAXPATHLEN];
   NS_tsnprintf(dataFile, sizeof(dataFile)/sizeof(dataFile[0]),
                NS_T("%s/update.mar"), gSourcePath);
 
-  int rv = gArchiveReader.Open(dataFile);
+  rv = gArchiveReader.Open(dataFile);
+  if (rv == OK) {
+    rv = gArchiveReader.VerifySignature();
+  }
   if (rv == OK) {
     rv = DoUpdate();
     gArchiveReader.Close();
