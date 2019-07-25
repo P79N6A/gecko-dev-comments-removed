@@ -262,13 +262,6 @@ window.Groups = {
 function scaleTab( el, factor ){  
   var $el = $(el);
 
-  
-  
-  
-  if( $("canvas", el)[0] != null ){
-    $("canvas", el).data('link').animate({height:$el.height()*factor}, 250);
-  }
-
   $el.animate({
     width: $el.width()*factor,
     height: $el.height()*factor,
