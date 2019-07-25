@@ -107,25 +107,10 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_AddOrRemoveTransform = 0x4000,
+  nsChangeHint_AddOrRemoveTransform = 0x4000
 
   
-
-
-
-
-
-
-
-
-  nsChangeHint_NonInherited_Hints =
-    nsChangeHint_UpdateTransformLayer |
-    nsChangeHint_UpdateEffects |
-    nsChangeHint_UpdateOpacityLayer |
-    nsChangeHint_UpdateOverflow |
-    nsChangeHint_ChildrenOnlyTransform |
-    nsChangeHint_RecomputePosition |
-    nsChangeHint_AddOrRemoveTransform
+  
 };
 
 
@@ -162,6 +147,40 @@ inline bool NS_UpdateHint(nsChangeHint& aDest, nsChangeHint aSrc) {
 
 inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
   return (aSubset & aSuperSet) == aSubset;
+}
+
+
+
+
+
+
+
+
+inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint) {
+  nsChangeHint result = nsChangeHint(aChangeHint & (
+    nsChangeHint_UpdateTransformLayer |
+    nsChangeHint_UpdateEffects |
+    nsChangeHint_UpdateOpacityLayer |
+    nsChangeHint_UpdateOverflow |
+    nsChangeHint_ChildrenOnlyTransform |
+    nsChangeHint_RecomputePosition |
+    nsChangeHint_AddOrRemoveTransform));
+
+  if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aChangeHint) &&
+      NS_IsHintSubset(nsChangeHint_NeedReflow, aChangeHint)) {
+    
+    
+    NS_UpdateHint(result, nsChangeHint_NeedReflow);
+  }
+
+  if (!NS_IsHintSubset(nsChangeHint_ClearDescendantIntrinsics, aChangeHint) &&
+      NS_IsHintSubset(nsChangeHint_ClearAncestorIntrinsics, aChangeHint)) {
+    
+    
+    NS_UpdateHint(result, nsChangeHint_ClearAncestorIntrinsics);
+  }
+
+  return result;
 }
 
 

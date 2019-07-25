@@ -1011,28 +1011,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
                                       TreeMatchContext &aTreeMatchContext)
 {
-  if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aMinChange)) {
-    
-    
-    
-    
-    
-    aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_ReflowFrame);
-  } else if (!NS_IsHintSubset(nsChangeHint_ClearDescendantIntrinsics,
-                              aMinChange)) {
-    
-    
-    
-    
-    
-    aMinChange =
-      NS_SubtractHint(aMinChange, nsChangeHint_ClearAncestorIntrinsics);
-  }
-
   
   
   
-  aMinChange = NS_SubtractHint(aMinChange, nsChangeHint_NonInherited_Hints);
+  aMinChange = NS_SubtractHint(aMinChange, NS_HintsNotHandledForDescendantsIn(aMinChange));
 
   
   
