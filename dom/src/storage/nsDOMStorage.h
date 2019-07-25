@@ -129,7 +129,6 @@ public:
   static nsresult Initialize();
   static nsDOMStorageManager* GetInstance();
   static void Shutdown();
-  static void ShutdownDB();
 
   
 

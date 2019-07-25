@@ -54,8 +54,6 @@
 #include "mozIStorageFunction.h"
 #include "nsNetUtil.h"
 
-using namespace mozilla;
-
 
 
 #define TEMP_TABLE_MAX_AGE (10) // seconds
@@ -447,28 +445,6 @@ nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
-}
-
-void
-nsDOMStoragePersistentDB::Close()
-{
-  
-  mCopyToTempTableStatement = nsnull;
-  mCopyBackToDiskStatement = nsnull;
-  mDeleteTemporaryTableStatement = nsnull;
-  mGetAllKeysStatement = nsnull;
-  mGetKeyValueStatement = nsnull;
-  mInsertKeyStatement = nsnull;
-  mSetSecureStatement = nsnull;
-  mRemoveKeyStatement = nsnull;
-  mRemoveOwnerStatement = nsnull;
-  mRemoveStorageStatement = nsnull;
-  mRemoveAllStatement = nsnull;
-  mGetOfflineExcludedUsageStatement = nsnull;
-  mGetFullUsageStatement = nsnull;
-
-  DebugOnly<nsresult> rv = mConnection->Close();
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
 nsresult
