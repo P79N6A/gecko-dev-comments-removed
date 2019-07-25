@@ -77,6 +77,9 @@ class SamplerThread : public Thread {
     TickSample sample_obj;
     TickSample* sample = &sample_obj;
 
+    
+    sample->timestamp = mozilla::TimeStamp::Now();
+
     static const DWORD kSuspendFailed = static_cast<DWORD>(-1);
     if (SuspendThread(profiled_thread) == kSuspendFailed)
       return;
