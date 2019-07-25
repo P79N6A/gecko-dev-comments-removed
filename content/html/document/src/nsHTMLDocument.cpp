@@ -2677,11 +2677,9 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 {
   *aResult = nsnull;
 
-  nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
-
   
   
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(name);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aName);
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   if (entry->IsInvalidName()) {
@@ -2705,7 +2703,14 @@ nsHTMLDocument::ResolveName(const nsAString& aName,
 
     Element* root = GetRootElement();
     if (root && !aName.IsEmpty()) {
-      FindNamedItems(name, root, entry);
+      
+      
+      
+      nsCOMPtr<nsIAtom> name(do_GetAtom(aName));
+
+      if (name) {
+        FindNamedItems(name, root, entry);
+      }
     }
   }
 
@@ -2810,7 +2815,8 @@ nsHTMLDocument::PrePopulateIdentifierMap()
     nsCOMPtr<nsIAtom> atom(do_GetAtom(names[i]));
     NS_ENSURE_TRUE(atom, NS_ERROR_OUT_OF_MEMORY);
   
-    nsIdentifierMapEntry* entry = mIdentifierMap.PutEntry(atom);
+    nsIdentifierMapEntry* entry =
+      mIdentifierMap.PutEntry(nsDependentAtomString(atom));
     NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
     entry->SetInvalidName();
@@ -3135,8 +3141,7 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult
 {
   *aResult = nsnull;
 
-  nsCOMPtr<nsIAtom> id = do_GetAtom(aID);
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(id);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
 
   Element* root = GetRootElement();
@@ -3146,6 +3151,8 @@ nsHTMLDocument::GetDocumentAllResult(const nsAString& aID, nsISupports** aResult
 
   nsRefPtr<nsContentList> docAllList = entry->GetDocAllList();
   if (!docAllList) {
+    nsCOMPtr<nsIAtom> id = do_GetAtom(aID);
+
     docAllList = new nsContentList(root, DocAllResultMatch,
                                    nsnull, nsnull, PR_TRUE, id);
     NS_ENSURE_TRUE(docAllList, NS_ERROR_OUT_OF_MEMORY);
