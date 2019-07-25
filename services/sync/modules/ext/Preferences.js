@@ -70,14 +70,12 @@ Preferences.prototype = {
 
 
   get: function(prefName, defaultValue) {
-    
-    
-    if (typeof prefName == "object" && prefName.constructor.name == Array.name)
+    if (isArray(prefName))
       return prefName.map(function(v) this.get(v), this);
 
     switch (this._prefSvc.getPrefType(prefName)) {
       case Ci.nsIPrefBranch.PREF_STRING:
-        return this._prefSvc.getCharPref(prefName);
+        return this._prefSvc.getComplexValue(prefName, Ci.nsISupportsString).data;
 
       case Ci.nsIPrefBranch.PREF_INT:
         return this._prefSvc.getIntPref(prefName);
@@ -92,26 +90,55 @@ Preferences.prototype = {
   },
 
   set: function(prefName, prefValue) {
-    
-    
-    if (typeof prefName == "object" && prefName.constructor.name == Object.name)
+    if (isObject(prefName)) {
       for (let [name, value] in Iterator(prefName))
         this.set(name, value);
-    else {
-      switch (typeof prefValue) {
-        case "number":
-          this._prefSvc.setIntPref(prefName, prefValue);
-          break;
+      return;
+    }
 
-        case "boolean":
-          this._prefSvc.setBoolPref(prefName, prefValue);
-          break;
+    switch (typeof prefValue) {
+      case "number":
+        this._prefSvc.setIntPref(prefName, prefValue);
+        if (prefValue % 1 != 0)
+          Cu.reportError("WARNING: setting " + prefName + " pref to non-integer number " +
+                         prefValue + " converts it to integer number " + this.get(prefName) +
+                         "; to retain precision, store non-integer numbers as strings");
+        break;
 
-        case "string":
-        default:
-          this._prefSvc.setCharPref(prefName, prefValue);
-          break;
+      case "boolean":
+        this._prefSvc.setBoolPref(prefName, prefValue);
+        break;
+
+      case "string":
+      default: {
+        let string = Cc["@mozilla.org/supports-string;1"].
+                     createInstance(Ci.nsISupportsString);
+        string.data = prefValue;
+        this._prefSvc.setComplexValue(prefName, Ci.nsISupportsString, string);
+        break;
       }
+    }
+  },
+
+  reset: function(prefName) {
+    if (isArray(prefName)) {
+      prefName.map(function(v) this.reset(v), this);
+      return;
+    }
+
+    try {
+      this._prefSvc.clearUserPref(prefName);
+    }
+    catch(ex) {
+      
+      
+      
+      
+      
+      
+      
+      if (ex.result != Cr.NS_ERROR_UNEXPECTED)
+        throw ex;
     }
   },
 
@@ -137,16 +164,18 @@ Preferences.prototype = {
     this._prefSvc.unlockPref(prefName);
   },
 
-  reset: function(prefName) {
-    try {
-      this._prefSvc.clearUserPref(prefName);
-    } catch (e) {}
-  },
-
   resetBranch: function(prefBranch) {
     try {
       this._prefSvc.resetBranch(prefBranch);
-    } catch (e) {}
+    }
+    catch(ex) {
+      
+      
+      if (ex.result == Cr.NS_ERROR_NOT_IMPLEMENTED)
+        this.reset(this._prefSvc.getChildList(prefBranch, []));
+      else
+        throw ex;
+    }
   }
 
 };
@@ -155,3 +184,15 @@ Preferences.prototype = {
 
 
 Preferences.__proto__ = Preferences.prototype;
+
+function isArray(val) {
+  
+  
+  return (typeof val == "object" && val.constructor.name == Array.name);
+}
+
+function isObject(val) {
+  
+  
+  return (typeof val == "object" && val.constructor.name == Object.name);
+}
