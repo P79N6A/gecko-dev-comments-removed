@@ -317,3 +317,8 @@ pref("dom.max_script_run_time", 20);
 
 
 pref("browser.console.showInPanel", false);
+
+
+pref("browser.ui.kinetic.updateInterval", 33);
+pref("browser.ui.kinetic.ema.alphaValue", 8);
+pref("browser.ui.kinetic.decelerationRate", 15);
