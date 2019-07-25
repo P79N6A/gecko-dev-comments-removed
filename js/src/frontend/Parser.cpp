@@ -4416,7 +4416,7 @@ BEGIN_EXPR_PARSER(relExpr1)
 
     ParseNode *pn = shiftExpr1i();
     while (pn &&
-           (tokenStream.isCurrentTokenType(TOK_RELOP) ||
+           (tokenStream.isCurrentTokenRelational() ||
             
 
 
