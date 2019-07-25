@@ -1688,6 +1688,23 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+  static already_AddRefed<mozilla::layers::LayerManager>
+  PersistentLayerManagerForDocument(nsIDocument *aDoc);
+
+  
+
+
+
+
+
   static PRBool IsFocusedContent(const nsIContent *aContent);
 
   
@@ -1715,7 +1732,6 @@ public:
   static bool AllowXULXBLForPrincipal(nsIPrincipal* aPrincipal);
 
 private:
-
   static PRBool InitializeEventTable();
 
   static nsresult EnsureStringBundle(PropertiesFile aFile);
