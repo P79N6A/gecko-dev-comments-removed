@@ -3972,16 +3972,16 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
           
           sel->CollapseToStart();
         }
-      }  
 
-      if (selectAnchor && xpointerResult) {
-        
-        PRUint32 count, i;
-        xpointerResult->GetLength(&count);
-        for (i = 1; i < count; i++) { 
-          nsCOMPtr<nsIDOMRange> range;
-          xpointerResult->Item(i, getter_AddRefs(range));
-          sel->AddRange(range);
+        if (selectAnchor && xpointerResult) {
+          
+          PRUint32 count, i;
+          xpointerResult->GetLength(&count);
+          for (i = 1; i < count; i++) { 
+            nsCOMPtr<nsIDOMRange> range;
+            xpointerResult->Item(i, getter_AddRefs(range));
+            sel->AddRange(range);
+          }
         }
       }
       
