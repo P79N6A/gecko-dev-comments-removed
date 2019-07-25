@@ -136,6 +136,8 @@ using namespace mozilla::places;
 
 #define DATABASE_MAX_WAL_SIZE_IN_KIBIBYTES 512
 
+#define BYTES_PER_MEBIBYTE 1048576
+
 
 
 #define DATABASE_SCHEMA_VERSION 11
@@ -737,15 +739,11 @@ nsNavHistory::SetJournalMode(enum JournalMode aJournalMode)
 nsresult
 nsNavHistory::InitDB()
 {
-  
-  PRInt32 currentSchemaVersion = 0;
-  nsresult rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
-  NS_ENSURE_SUCCESS(rv, rv);
   {
     
     
     nsCOMPtr<mozIStorageStatement> statement;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
+    nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
                                   getter_AddRefs(statement));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -759,8 +757,7 @@ nsNavHistory::InitDB()
   }
 
   
-  
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "PRAGMA temp_store = MEMORY"));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -815,26 +812,28 @@ nsNavHistory::InitDB()
   }
 
   
-  
-  mozStorageTransaction transaction(mDBConn, PR_FALSE);
-
-  
-  mDBConn->SetGrowthIncrement(10 * 1024 * 1024, EmptyCString());
-
-  bool databaseInitialized = (currentSchemaVersion > 0);
-  if (!databaseInitialized) {
-    
-    
-    rv = UpdateSchemaVersion();
-    NS_ENSURE_SUCCESS(rv, rv);
-    currentSchemaVersion = DATABASE_SCHEMA_VERSION;
-  }
+  (void)mDBConn->SetGrowthIncrement(10 * BYTES_PER_MEBIBYTE, EmptyCString());
 
   
   rv = InitFunctions();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (DATABASE_SCHEMA_VERSION != currentSchemaVersion) {
+  
+  PRInt32 currentSchemaVersion;
+  rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
+  NS_ENSURE_SUCCESS(rv, rv);
+  bool databaseInitialized = currentSchemaVersion > 0;
+
+  if (databaseInitialized && currentSchemaVersion == DATABASE_SCHEMA_VERSION) {
+    
+    return NS_OK;
+  }
+
+  
+  
+  mozStorageTransaction transaction(mDBConn, PR_FALSE);
+
+  if (databaseInitialized) {
     
     
     
@@ -845,56 +844,36 @@ nsNavHistory::InitDB()
     
     
     
-    
-    
-    
+
     if (currentSchemaVersion < DATABASE_SCHEMA_VERSION) {
-      
       mDatabaseStatus = DATABASE_STATUS_UPGRADED;
 
       
-      if (currentSchemaVersion < 3) {
-        rv = MigrateV3Up(mDBConn);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
 
-      
-      if (currentSchemaVersion < 5) {
-        rv = ForceMigrateBookmarksDB(mDBConn);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      
-      if (currentSchemaVersion < 6) {
-        rv = MigrateV6Up(mDBConn);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      
       if (currentSchemaVersion < 7) {
         rv = MigrateV7Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
-      
       if (currentSchemaVersion < 8) {
         rv = MigrateV8Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
+
       if (currentSchemaVersion < 9) {
         rv = MigrateV9Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
-      
       if (currentSchemaVersion < 10) {
         rv = MigrateV10Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
       
+
       if (currentSchemaVersion < 11) {
         rv = MigrateV11Up(mDBConn);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -902,75 +881,40 @@ nsNavHistory::InitDB()
 
       
 
-    } else {
       
-
-      
-      
-
-      
-
-      
-      
-      if (currentSchemaVersion > 2 && currentSchemaVersion < 6) {
-        
-        rv = ForceMigrateBookmarksDB(mDBConn);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
     }
-
-    
-    rv = UpdateSchemaVersion();
-    NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  if (!databaseInitialized) {
+  else {
     
     rv = mDBConn->ExecuteSimpleSQL(CREATE_MOZ_PLACES);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_URL);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_FAVICON);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_REVHOST);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_VISITCOUNT);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_FRECENCY);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_LASTVISITDATE);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_GUID);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
     rv = mDBConn->ExecuteSimpleSQL(CREATE_MOZ_HISTORYVISITS);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HISTORYVISITS_PLACEDATE);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HISTORYVISITS_FROMVISIT);
     NS_ENSURE_SUCCESS(rv, rv);
-
     rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HISTORYVISITS_VISITDATE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
     rv = mDBConn->ExecuteSimpleSQL(CREATE_MOZ_INPUTHISTORY);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    
     
     
     rv = nsNavBookmarks::InitTables(mDBConn);
@@ -981,8 +925,14 @@ nsNavHistory::InitDB()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  
+  rv = UpdateSchemaVersion();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  ForceWALCheckpoint(mDBConn);
 
   
   
@@ -1491,202 +1441,6 @@ nsNavHistory::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   ));
 
   return nsnull;
-}
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::ForceMigrateBookmarksDB(mozIStorageConnection* aDBConn) 
-{
-  
-  nsresult rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP TABLE IF EXISTS moz_bookmarks"));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP TABLE IF EXISTS moz_bookmarks_folders"));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP TABLE IF EXISTS moz_bookmarks_roots"));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP TABLE IF EXISTS moz_keywords"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = nsNavBookmarks::InitTables(aDBConn);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  mDatabaseStatus = DATABASE_STATUS_CREATE;
-
-  return NS_OK;
-}
-
-
-nsresult
-nsNavHistory::MigrateV3Up(mozIStorageConnection* aDBConn) 
-{
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT type from moz_annos"),
-    getter_AddRefs(statement));
-  if (NS_SUCCEEDED(rv))
-    return NS_OK;
-
-  
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "ALTER TABLE moz_annos ADD type INTEGER DEFAULT 0"));
-  if (NS_FAILED(rv)) {
-    
-    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP TABLE IF EXISTS moz_annos"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = nsAnnotationService::InitTables(mDBConn);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
-}
-
-
-nsresult
-nsNavHistory::MigrateV6Up(mozIStorageConnection* aDBConn) 
-{
-  mozStorageTransaction transaction(aDBConn, PR_FALSE);
-
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT a.dateAdded, a.lastModified FROM moz_annos a"), 
-    getter_AddRefs(statement));
-  if (NS_FAILED(rv)) {
-    
-    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_annos ADD dateAdded INTEGER DEFAULT 0"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_annos ADD lastModified INTEGER DEFAULT 0"));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT b.dateAdded, b.lastModified FROM moz_items_annos b"), 
-    getter_AddRefs(statement));
-  if (NS_FAILED(rv)) {
-    
-    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_items_annos ADD dateAdded INTEGER DEFAULT 0"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_items_annos ADD lastModified INTEGER DEFAULT 0"));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  
-  
-  
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP INDEX IF EXISTS moz_favicons_url"));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = aDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "DROP INDEX IF EXISTS moz_anno_attributes_nameindex"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement2;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT user_title FROM moz_places"),
-    getter_AddRefs(statement2));
-  if (NS_SUCCEEDED(rv)) {
-    
-    
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_places_urlindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_places_titleindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_places_faviconindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_places_hostindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_places_visitcount"));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP INDEX IF EXISTS moz_places_frecencyindex"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = RemoveDuplicateURIs();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "ALTER TABLE moz_places RENAME TO moz_places_backup"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "CREATE TABLE moz_places ("
-          "id INTEGER PRIMARY KEY, "
-          "url LONGVARCHAR, "
-          "title LONGVARCHAR, "
-          "rev_host LONGVARCHAR, "
-          "visit_count INTEGER DEFAULT 0, "
-          "hidden INTEGER DEFAULT 0 NOT NULL, "
-          "typed INTEGER DEFAULT 0 NOT NULL, "
-          "favicon_id INTEGER, "
-          "frecency INTEGER DEFAULT -1 NOT NULL)"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_URL);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_FAVICON);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_REVHOST);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_VISITCOUNT);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mDBConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_PLACES_FRECENCY);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "INSERT INTO moz_places (" MOZ_PLACES_COLUMNS ")"
-        "SELECT " MOZ_PLACES_COLUMNS " FROM moz_places_backup"));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "DROP TABLE moz_places_backup"));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  return transaction.Commit();
 }
 
 
@@ -7104,125 +6858,6 @@ nsNavHistory::AddPageWithVisits(nsIURI *aURI,
     }
   }
 
-  return NS_OK;
-}
-
-nsresult
-nsNavHistory::RemoveDuplicateURIs()
-{
-  
-  mozStorageTransaction transaction(mDBConn, PR_FALSE);
-
-  
-  
-  
-  nsCOMPtr<mozIStorageStatement> selectStatement;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "SELECT "
-        "(SELECT h.id FROM moz_places h WHERE h.url = url "
-         "ORDER BY h.visit_count DESC LIMIT 1), "
-        "url, SUM(visit_count) "
-      "FROM moz_places "
-      "GROUP BY url HAVING( COUNT(url) > 1)"),
-    getter_AddRefs(selectStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<mozIStorageStatement> updateStatement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_historyvisits "
-      "SET place_id = ?1 "
-      "WHERE place_id IN "
-        "(SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
-    getter_AddRefs(updateStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<mozIStorageStatement> bookmarkStatement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_bookmarks "
-      "SET fk = ?1 "
-      "WHERE fk IN "
-        "(SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
-    getter_AddRefs(bookmarkStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<mozIStorageStatement> annoStatement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_annos "
-      "SET place_id = ?1 "
-      "WHERE place_id IN "
-        "(SELECT id FROM moz_places WHERE id <> ?1 AND url = ?2)"),
-    getter_AddRefs(annoStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  nsCOMPtr<mozIStorageStatement> deleteStatement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_places WHERE url = ?1 AND id <> ?2"),
-    getter_AddRefs(deleteStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<mozIStorageStatement> countStatement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_places SET visit_count = ?1 WHERE id = ?2"),
-    getter_AddRefs(countStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRBool hasMore;
-  while (NS_SUCCEEDED(selectStatement->ExecuteStep(&hasMore)) && hasMore) {
-    PRUint64 id = selectStatement->AsInt64(0);
-    nsCAutoString url;
-    rv = selectStatement->GetUTF8String(1, url);
-    NS_ENSURE_SUCCESS(rv, rv);
-    PRUint64 visit_count = selectStatement->AsInt64(2);
-
-    
-    rv = updateStatement->BindInt64ByIndex(0, id);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = URIBinder::Bind(updateStatement, 1, url);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = updateStatement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = bookmarkStatement->BindInt64ByIndex(0, id);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = URIBinder::Bind(bookmarkStatement, 1, url);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = bookmarkStatement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = annoStatement->BindInt64ByIndex(0, id);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = URIBinder::Bind(annoStatement, 1, url);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = annoStatement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    
-    rv = URIBinder::Bind(deleteStatement, 0, url);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = deleteStatement->BindInt64ByIndex(1, id);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = deleteStatement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    rv = countStatement->BindInt64ByIndex(0, visit_count);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = countStatement->BindInt64ByIndex(1, id);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = countStatement->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  rv = transaction.Commit();
-  NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
 

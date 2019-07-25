@@ -388,11 +388,6 @@ public:
                              PRTime aLastVisitDate);
 
   
-  
-  
-  nsresult RemoveDuplicateURIs();
-
-  
   nsresult UpdateSchemaVersion();
 
   
@@ -719,9 +714,6 @@ protected:
   nsresult InitFunctions();
   nsresult InitTriggers();
   nsresult CheckAndUpdateGUIDs();
-  nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
-  nsresult MigrateV3Up(mozIStorageConnection *aDBConn);
-  nsresult MigrateV6Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV7Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV8Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV9Up(mozIStorageConnection *aDBConn);
