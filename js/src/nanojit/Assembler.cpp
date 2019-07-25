@@ -757,6 +757,36 @@ namespace nanojit
         
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    void Assembler::getBaseIndexScale(LIns* addp, LIns** base, LIns** index, int* scale)
+    {
+        NanoAssert(addp->isop(LIR_addp));
+
+        *base = addp->oprnd1();
+        LIns* rhs = addp->oprnd2();
+        int k;
+
+        if (rhs->opcode() == LIR_lshp && rhs->oprnd2()->isImmI() &&
+            (k = rhs->oprnd2()->immI(), (1 <= k && k <= 3)))
+        {
+            *index = rhs->oprnd1();
+            *scale = k;
+        } else {
+            *index = rhs;
+            *scale = 0;
+        }
+    }
     void Assembler::patch(GuardRecord *lr)
     {
         if (!lr->jmp) 
