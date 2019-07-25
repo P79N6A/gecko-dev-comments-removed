@@ -1453,6 +1453,11 @@ ValidateCurrentNode(nsRange* aRange, RangeSubtreeIterator& aIter)
 {
   bool before, after;
   nsCOMPtr<nsIDOMNode> domNode = aIter.GetCurrentNode();
+  if (!domNode) {
+    
+    
+    return true;
+  }
   nsCOMPtr<nsINode> node = do_QueryInterface(domNode);
   MOZ_ASSERT(node);
 
