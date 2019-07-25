@@ -34,7 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['SyncCore', 'HistorySyncCore',
+const EXPORTED_SYMBOLS = ['SyncCore',
                           'PasswordSyncCore', 'FormSyncCore',
                           'TabSyncCore'];
 
@@ -312,27 +312,6 @@ SyncCore.prototype = {
     return this._reconcile.async(this, onComplete, listA, listB);
   }
 };
-
-function HistorySyncCore() {
-  this._init();
-}
-HistorySyncCore.prototype = {
-  _logName: "HistSync",
-
-  _itemExists: function HSC__itemExists(GUID) {
-    
-    return false;
-  },
-
-  _commandLike: function HSC_commandLike(a, b) {
-    
-    
-    
-    
-    return false;
-  }
-};
-HistorySyncCore.prototype.__proto__ = new SyncCore();
 
 function PasswordSyncCore() {
   this._init();
