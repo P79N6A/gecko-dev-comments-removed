@@ -56,6 +56,7 @@
 
 
 
+
 function InfoItem(bounds, options) {
   try {
     Utils.assertThrow(Utils.isRect(bounds), 'bounds');
@@ -105,11 +106,8 @@ function InfoItem(bounds, options) {
       this.draggable();
 
     
-    this.snap();
-
-    
     if (!options.dontPush)
-      this.pushAway();
+      this.snap(options.immediately);
 
     this._inited = true;
     this.save();

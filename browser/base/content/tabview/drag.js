@@ -272,7 +272,10 @@ Drag.prototype = {
   
   
   
-  stop: function Drag_stop() {
+  
+  
+  
+  stop: function Drag_stop(immediately) {
     Trenches.hideGuides();
     this.item.isDragging = false;
 
@@ -288,7 +291,7 @@ Drag.prototype = {
       this.item.setZ(drag.zIndex);
       drag.zIndex++;
 
-      this.item.pushAway();
+      this.item.pushAway(immediately);
     }
 
     Trenches.disactivate();

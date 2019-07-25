@@ -63,6 +63,8 @@
 
 
 
+
+
 function GroupItem(listOfEls, options) {
   if (typeof options == 'undefined')
     options = {};
@@ -110,6 +112,7 @@ function GroupItem(listOfEls, options) {
   }
 
   var $container = options.container;
+  let immediately = options.immediately || $container ? true : false;
   if (!$container) {
     $container = iQ('<div>')
       .addClass('groupItem')
@@ -164,21 +167,26 @@ function GroupItem(listOfEls, options) {
   this.$titleShield = iQ('.title-shield', this.$titlebar);
   this.setTitle(options.title || this.defaultName);
 
-  var titleUnfocus = function() {
+  var titleUnfocus = function(immediately) {
     self.$titleShield.show();
     if (!self.getTitle()) {
       self.$title
         .addClass("defaultName")
         .val(self.defaultName);
     } else {
-      self.$title
-        .css({"background":"none"})
-        .animate({
-          "padding-left": "1px"
-        }, {
-          duration: 200,
-          easing: "tabviewBounce"
-        });
+      self.$title.css({"background":"none"});
+      if (immediately) {
+        self.$title.css({
+            "padding-left": "1px"
+          });
+      } else {
+        self.$title.animate({
+            "padding-left": "1px"
+          }, {
+            duration: 200,
+            easing: "tabviewBounce"
+          });
+      }
     }
   };
 
@@ -221,7 +229,7 @@ function GroupItem(listOfEls, options) {
     .keydown(handleKeyDown)
     .keyup(handleKeyUp);
 
-  titleUnfocus();
+  titleUnfocus(immediately);
 
   if (this.locked.title)
     this.$title.addClass('name-locked');
@@ -284,20 +292,20 @@ function GroupItem(listOfEls, options) {
   this._addHandlers($container);
 
   if (!this.locked.bounds)
-    this.setResizable(true);
+    this.setResizable(true, immediately);
 
   GroupItems.register(this);
 
   
-  var immediately = $container ? true : false;
   this.setBounds(rectToBe, immediately);
-  this.snap();
+  if (options.dontPush) {
+    this.setZ(drag.zIndex);
+    drag.zIndex++; 
+  } else
+    
+    this.snap(immediately);
   if ($container)
     this.setBounds(rectToBe, immediately);
-
-  
-  if (!options.dontPush)
-    this.pushAway();
 
   this._inited = true;
   this.save();
@@ -702,6 +710,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
   add: function GroupItem_add(a, dropPos, options) {
     try {
       var item;
@@ -788,7 +797,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         item.setParent(this);
 
         if (typeof item.setResizable == 'function')
-          item.setResizable(false);
+          item.setResizable(false, options.immediately);
 
         
         if (iQ(item.container).hasClass("focus"))
@@ -801,9 +810,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           GroupItems.setActiveGroupItem(this);
       }
 
-      if (!options.dontArrange) {
-        this.arrange();
-      }
+      if (!options.dontArrange)
+        this.arrange({animate: !options.immediately});
 
       this._sendToSubscribers("childAdded",{ groupItemId: this.id, item: item });
 
@@ -813,6 +821,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
   },
 
+  
   
   
   
@@ -858,12 +867,12 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       item.removeSubscriber(this, "close");
 
       if (typeof item.setResizable == 'function')
-        item.setResizable(true);
+        item.setResizable(true, options.immediately);
 
       if (!this._children.length && !this.locked.close && !this.getTitle() && !options.dontClose) {
         this.close();
       } else if (!options.dontArrange) {
-        this.arrange();
+        this.arrange({animate: !options.immediately});
       }
 
       this._sendToSubscribers("childRemoved",{ groupItemId: this.id, item: item });
@@ -992,14 +1001,14 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       var bb = this.getContentBounds();
       var count = this._children.length;
       if (!this.shouldStack(count)) {
+        if (!options)
+          options = {};
+
         var animate;
-        if (!options || typeof options.animate == 'undefined')
+        if (typeof options.animate == 'undefined')
           animate = true;
         else
           animate = options.animate;
-
-        if (typeof options == 'undefined')
-          options = {};
 
         this._children.forEach(function(child) {
             child.removeClass("stacked")
@@ -1363,15 +1372,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setResizable: function GroupItem_setResizable(value) {
+  setResizable: function GroupItem_setResizable(value, immediately) {
     this.resizeOptions.minWidth = 90;
     this.resizeOptions.minHeight = 90;
 
     if (value) {
-      this.$resizer.fadeIn();
+      immediately ? this.$resizer.show() : this.$resizer.fadeIn();
       this.resizable(true);
     } else {
-      this.$resizer.fadeOut();
+      immediately ? this.$resizer.hide() : this.$resizer.fadeOut();
       this.resizable(false);
     }
   },
@@ -1386,39 +1395,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     
-    let newItem = newTab.tabItem;
-
-    var self = this;
-    iQ(newItem.container).css({opacity: 0});
-    let $anim = iQ("<div>")
-      .addClass("newTabAnimatee")
-      .css({
-        top: newItem.bounds.top + 5,
-        left: newItem.bounds.left + 5,
-        width: newItem.bounds.width - 10,
-        height: newItem.bounds.height - 10,
-        zIndex: 999,
-        opacity: 0
-      })
-      .appendTo("body")
-      .animate({opacity: 1}, {
-        duration: 500,
-        complete: function() {
-          $anim.animate({
-            top: 0,
-            left: 0,
-            width: window.innerWidth,
-            height: window.innerHeight
-          }, {
-            duration: 270,
-            complete: function() {
-              iQ(newItem.container).css({opacity: 1});
-              newItem.zoomIn(!url);
-              $anim.remove();
-            }
-          });
-        }
-      });
+    newTab.tabItem.zoomIn(!url);
   },
 
   
@@ -1543,6 +1520,7 @@ let GroupItems = {
 
   
   
+  
   _handleAttrModified: function GroupItems__handleAttrModified(xulTab) {
     if (xulTab.ownerDocument.defaultView != gWindow || !xulTab.pinned)
       return;
@@ -1562,7 +1540,8 @@ let GroupItems = {
 
   
   
-  handleTabPin: function GroupItems_handleTabPin(xulTab) {
+  
+  addAppTab: function GroupItems_addAppTab(xulTab) {
     this.groupItems.forEach(function(groupItem) {
       groupItem.addAppTab(xulTab);
     });
@@ -1570,7 +1549,8 @@ let GroupItems = {
 
   
   
-  handleTabUnpin: function GroupItems_handleTabUnpin(xulTab) {
+  
+  removeAppTab: function GroupItems_removeAppTab(xulTab) {
     this.groupItems.forEach(function(groupItem) {
       groupItem.removeAppTab(xulTab);
     });
@@ -1653,7 +1633,8 @@ let GroupItems = {
           var groupItem = groupItemData[id];
           if (this.groupItemStorageSanity(groupItem)) {
             var options = {
-              dontPush: true
+              dontPush: true,
+              immediately: true
             };
 
             new GroupItem([], Utils.extend({}, groupItem, options));
@@ -1775,7 +1756,7 @@ let GroupItems = {
   
   
   
-  newTab: function GroupItems_newTab(tabItem) {
+  newTab: function GroupItems_newTab(tabItem, options) {
     let activeGroupItem = this.getActiveGroupItem();
 
     
@@ -1789,7 +1770,7 @@ let GroupItems = {
     
 
     if (activeGroupItem) {
-      activeGroupItem.add(tabItem);
+      activeGroupItem.add(tabItem, null, options);
       return;
     }
 
@@ -1969,6 +1950,13 @@ let GroupItems = {
       if (groupItems.length > 0) {
         groupItems.some(function(groupItem) {
           if (!groupItem.hidden) {
+            
+            let activeTab = groupItem.getActiveTab();
+            if (activeTab) {
+              tabItem = activeTab;
+              return true;
+            }
+            
             var child = groupItem.getChild(0);
             if (child) {
               tabItem = child;
@@ -1990,6 +1978,13 @@ let GroupItems = {
       var firstGroupItems = groupItems.slice(currentIndex + 1);
       firstGroupItems.some(function(groupItem) {
         if (!groupItem.hidden) {
+          
+          let activeTab = groupItem.getActiveTab();
+          if (activeTab) {
+            tabItem = activeTab;
+            return true;
+          }
+          
           var child = groupItem.getChild(0);
           if (child) {
             tabItem = child;
@@ -2007,6 +2002,13 @@ let GroupItems = {
         var secondGroupItems = groupItems.slice(0, currentIndex);
         secondGroupItems.some(function(groupItem) {
           if (!groupItem.hidden) {
+            
+            let activeTab = groupItem.getActiveTab();
+            if (activeTab) {
+              tabItem = activeTab;
+              return true;
+            }
+            
             var child = groupItem.getChild(0);
             if (child) {
               tabItem = child;
