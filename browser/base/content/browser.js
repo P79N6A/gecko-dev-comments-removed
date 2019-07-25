@@ -3913,14 +3913,36 @@ var FullScreen = {
   },
 
   enterDomFullScreen : function(event) {
-    
-    
-    
-    
-    
-    if (!document.mozFullScreen || event.target.ownerDocument != document) {
+    if (!document.mozFullScreen) {
       return;
     }
+
+    
+    
+    
+    
+    
+    let targetDoc = event.target.ownerDocument ? event.target.ownerDocument : event.target;
+    if (targetDoc != document) {
+      
+      
+      
+      
+      
+      if (targetDoc.defaultView.top != gBrowser.contentWindow) {
+        document.mozCancelFullScreen();
+      }
+      return;
+    }
+
+    let focusManger = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+    if (focusManger.activeWindow != window) {
+      
+      
+      document.mozCancelFullScreen();
+      return;
+    }
+
     this.showWarning(true);
 
     
