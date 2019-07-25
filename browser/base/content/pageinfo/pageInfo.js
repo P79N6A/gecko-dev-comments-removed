@@ -284,9 +284,6 @@ function onLoadPageInfo()
   gStrings.notSet = gBundle.getString("notset");
   gStrings.mediaImg = gBundle.getString("mediaImg");
   gStrings.mediaBGImg = gBundle.getString("mediaBGImg");
-  gStrings.mediaBorderImg = gBundle.getString("mediaBorderImg");
-  gStrings.mediaListImg = gBundle.getString("mediaListImg");
-  gStrings.mediaCursor = gBundle.getString("mediaCursor");
   gStrings.mediaObject = gBundle.getString("mediaObject");
   gStrings.mediaEmbed = gBundle.getString("mediaEmbed");
   gStrings.mediaLink = gBundle.getString("mediaLink");
@@ -618,33 +615,11 @@ function grabAll(elem)
 {
   
   var computedStyle = elem.ownerDocument.defaultView.getComputedStyle(elem, "");
-
   if (computedStyle) {
-    var addImgFunc = function (label, val) {
-      if (val.primitiveType == CSSPrimitiveValue.CSS_URI) {
-        addImage(val.getStringValue(), label, gStrings.notSet, elem, true);
-      }
-      else if (val.primitiveType == CSSPrimitiveValue.CSS_STRING) {
-        
-        
-        var strVal = val.getStringValue();
-        if (strVal.search(/^.*url\(\"?/) > -1) {
-          url = strVal.replace(/^.*url\(\"?/,"").replace(/\"?\).*$/,"");
-          addImage(url, label, gStrings.notSet, elem, true);
-        }
-      }
-      else if (val.cssValueType == CSSValue.CSS_VALUE_LIST) {
-        
-        for (var i = 0; i < val.length; i++)
-          addImgFunc(label, val.item(i));
-      }
-    };
-
-    addImgFunc(gStrings.mediaBGImg, computedStyle.getPropertyCSSValue("background-image"));
-    addImgFunc(gStrings.mediaBorderImg, computedStyle.getPropertyCSSValue("-moz-border-image"));
-    
-    addImgFunc(gStrings.mediaListImg, computedStyle.getPropertyCSSValue("list-style-image"));
-    addImgFunc(gStrings.mediaCursor, computedStyle.getPropertyCSSValue("cursor"));
+    Array.forEach(computedStyle.getPropertyCSSValue("background-image"), function (url) {
+      if (url.primitiveType == CSSPrimitiveValue.CSS_URI)
+        addImage(url.getStringValue(), gStrings.mediaBGImg, gStrings.notSet, elem, true);
+    });
   }
 
   
