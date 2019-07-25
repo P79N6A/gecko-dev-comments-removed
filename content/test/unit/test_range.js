@@ -35,15 +35,11 @@
 
 
 const C_i = Components.interfaces;
-const C_r = Components.results;
 
 const UNORDERED_TYPE = C_i.nsIDOMXPathResult.ANY_UNORDERED_NODE_TYPE;
 
-const INVALID_STATE_ERR = 0x8053000b;     
-const INDEX_SIZE_ERR = 0x80530001;        
-const INVALID_NODE_TYPE_ERR = 0x805c0002; 
-const NOT_OBJECT_ERR = 0x805303eb;        
-const SECURITY_ERR = 0x80530012;          
+
+Components.classesByID["{9eb760f0-4380-11d2-b328-00805f8a3859}"].getService(C_i.nsISupports);
 
 
 
@@ -402,27 +398,24 @@ function run_miscellaneous_tests() {
     try {
       baseRange.setStart(null, 0);
       do_throw("Should have thrown NOT_OBJECT_ERR!");
-    } catch (e if (e instanceof C_i.nsIException &&
-                   e.result == NOT_OBJECT_ERR)) {
-      
+    } catch (e) {
+      do_check_eq(e.name, "NS_ERROR_DOM_NOT_OBJECT_ERR");
     }
 
     
     try {
       baseRange.setStart({}, 0);
-      do_throw("Should have thrown SECURITY_ERR!");
-    } catch (e if (e instanceof C_i.nsIException &&
-                   e.result == SECURITY_ERR)) {
-      
+      do_throw("Should have thrown SecurityError!");
+    } catch (e) {
+      do_check_eq(e.name, "SecurityError");
     }
 
     
     try {
       baseRange.setStart(startContainer, -1);
-      do_throw("Should have thrown INVALID_STATE_ERR!");
-    } catch (e if (e instanceof C_i.nsIException &&
-                   e.result == INDEX_SIZE_ERR)) {
-      
+      do_throw("Should have thrown IndexSizeError!");
+    } catch (e) {
+      do_check_eq(e.name, "IndexSizeError");
     }
   
     
@@ -431,10 +424,9 @@ function run_miscellaneous_tests() {
                       startContainer.childNodes.length + 1;
     try {
       baseRange.setStart(startContainer, newOffset);
-      do_throw("Should have thrown INVALID_STATE_ERR!");
-    } catch (e if (e instanceof C_i.nsIException &&
-                   e.result == INDEX_SIZE_ERR)) {
-      
+      do_throw("Should have thrown IndexSizeError!");
+    } catch (e) {
+      do_check_eq(e.name, "IndexSizeError");
     }
   
     newOffset--;
