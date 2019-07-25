@@ -217,24 +217,14 @@ int main(int argc, char* argv[])
   
   
   
-  enum PreloadReason { PRELOAD_NONE, PRELOAD_SERVICE, PRELOAD_IOCOUNT };
+  enum PreloadReason { PRELOAD_NONE, PRELOAD_SERVICE };
   PreloadReason preloadReason = PRELOAD_NONE;
 
-  
-  
-  
-  
-  
-  
-  
-  
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
 
   if (IsPrefetchDisabledViaService()) {
     preloadReason = PRELOAD_SERVICE;
-  } else if ((gotCounters && !ioCounters.ReadOperationCount)) {
-    preloadReason = PRELOAD_IOCOUNT;
   }
 
   if (preloadReason != PRELOAD_NONE)
