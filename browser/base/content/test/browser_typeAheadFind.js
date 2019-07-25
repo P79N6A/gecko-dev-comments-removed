@@ -2,29 +2,59 @@
 
 
 
-let testWindow = null;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function test() {
   waitForExplicitFinish();
-  testWindow = OpenBrowserWindow();
-  testWindow.addEventListener("load", function() {
-    testWindow.removeEventListener("load", arguments.callee, true);
+  ok(!gFindBarInitialized, "find bar is not yet initialized");
+
+  let tab = gBrowser.addTab();
+  gBrowser.selectedTab = tab;
+  tab.linkedBrowser.addEventListener("load", function(aEvent) {
+    tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+
     ok(true, "Load listener called");
-    executeSoon(function() {
-      ok(!testWindow.gFindBarInitialized, "find bar is not yet initialized");
-      testWindow.gBrowser.selectedBrowser.addEventListener("pageshow", function () {
-        ok(true, "Pageshow listener called");
-        testWindow.gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
-        waitForFocus(onFocus, testWindow.content);
-      }, true);
-      testWindow.content.location = "data:text/html,<h1>A Page</h1>";
-    });
-  }, false);
+    waitForFocus(onFocus, content);
+  }, true);
+
+  content.location = "data:text/html,<h1>A Page</h1>";
 }
 
 function onFocus() {
   EventUtils.synthesizeKey("/", {});
-  ok(testWindow.gFindBarInitialized, "find bar is now initialized");
-  testWindow.gFindBar.close();
-  testWindow.close();
+  ok(gFindBarInitialized, "find bar is now initialized");
+  gFindBar.close();
+  gBrowser.removeCurrentTab();
   finish();
 }
