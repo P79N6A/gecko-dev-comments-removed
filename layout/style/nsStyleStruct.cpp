@@ -284,6 +284,8 @@ nsStyleMargin::Destroy(nsPresContext* aContext) {
 
 void nsStyleMargin::RecalcData()
 {
+  
+  
   if (IsFixedData(mMargin, PR_FALSE)) {
     NS_FOR_CSS_SIDES(side) {
       mCachedMargin.side(side) = CalcCoord(mMargin.Get(side), nsnull, 0);
@@ -347,6 +349,8 @@ nsStylePadding::Destroy(nsPresContext* aContext) {
 
 void nsStylePadding::RecalcData()
 {
+  
+  
   if (IsFixedData(mPadding, PR_FALSE)) {
     NS_FOR_CSS_SIDES(side) {
       mCachedPadding.side(side) = CalcCoord(mPadding.Get(side), nsnull, 0);

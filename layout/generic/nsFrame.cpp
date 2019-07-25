@@ -128,6 +128,7 @@
 #endif
 
 #include "gfxContext.h"
+#include "CSSCalc.h"
 
 using namespace mozilla;
 
@@ -3023,22 +3024,103 @@ nsIFrame::InlinePrefWidthData::ForceBreak(nsIRenderingContext *aRenderingContext
   skipWhitespace = PR_TRUE;
 }
 
+
+
+
+
+
+
+
+
+
+
+struct LengthPercentPairWithMinMaxCalcOps : public css::StyleCoordInputCalcOps
+{
+  struct result_type {
+    nscoord mLength;
+    float mPercent;
+
+    result_type(nscoord aLength, float aPercent)
+      : mLength(aLength), mPercent(aPercent) {}
+  };
+
+  result_type ComputeLeafValue(const nsStyleCoord& aValue)
+  {
+    if (aValue.GetUnit() == eStyleUnit_Percent) {
+      return result_type(0, aValue.GetPercentValue());
+    }
+    return result_type(aValue.GetCoordValue(), 0.0f);
+  }
+
+  result_type
+  MergeAdditive(nsCSSUnit aCalcFunction,
+                result_type aValue1, result_type aValue2)
+  {
+    if (aCalcFunction == eCSSUnit_Calc_Plus) {
+      return result_type(NSCoordSaturatingAdd(aValue1.mLength,
+                                              aValue2.mLength),
+                         aValue1.mPercent + aValue2.mPercent);
+    }
+    if (aCalcFunction == eCSSUnit_Calc_Minus) {
+      return result_type(NSCoordSaturatingSubtract(aValue1.mLength,
+                                                   aValue2.mLength, 0),
+                         aValue1.mPercent - aValue2.mPercent);
+    }
+    if (aCalcFunction == eCSSUnit_Calc_Minimum) {
+      
+      
+      return result_type(NS_MIN(aValue1.mLength, aValue2.mLength),
+                         NS_MIN(aValue1.mPercent, aValue2.mPercent));
+    }
+    NS_ABORT_IF_FALSE(aCalcFunction == eCSSUnit_Calc_Maximum,
+                      "unexpected unit");
+    
+    
+    return result_type(NS_MAX(aValue1.mLength, aValue2.mLength),
+                       NS_MAX(aValue1.mPercent, aValue2.mPercent));
+  }
+
+  result_type
+  MergeMultiplicativeL(nsCSSUnit aCalcFunction,
+                       float aValue1, result_type aValue2)
+  {
+    NS_ABORT_IF_FALSE(aCalcFunction == eCSSUnit_Calc_Times_L,
+                      "unexpected unit");
+    return result_type(NSCoordSaturatingMultiply(aValue2.mLength, aValue1),
+                       aValue1 * aValue2.mPercent);
+  }
+
+  result_type
+  MergeMultiplicativeR(nsCSSUnit aCalcFunction,
+                       result_type aValue1, float aValue2)
+  {
+    NS_ABORT_IF_FALSE(aCalcFunction == eCSSUnit_Calc_Times_R ||
+                      aCalcFunction == eCSSUnit_Calc_Divided,
+                      "unexpected unit");
+    if (aCalcFunction == eCSSUnit_Calc_Divided) {
+      aValue2 = 1.0f / aValue2;
+    }
+    return result_type(NSCoordSaturatingMultiply(aValue1.mLength, aValue2),
+                       aValue1.mPercent * aValue2);
+  }
+
+};
+
 static void
 AddCoord(const nsStyleCoord& aStyle,
          nsIRenderingContext* aRenderingContext,
          nsIFrame* aFrame,
          nscoord* aCoord, float* aPercent)
 {
-  switch (aStyle.GetUnit()) {
-    case eStyleUnit_Coord:
-      *aCoord += aStyle.GetCoordValue();
-      break;
-    case eStyleUnit_Percent:
-      *aPercent += aStyle.GetPercentValue();
-      break;
-    default:
-      break;
+  if (!aStyle.IsCoordPercentCalcUnit()) {
+    return;
   }
+
+  LengthPercentPairWithMinMaxCalcOps ops;
+  LengthPercentPairWithMinMaxCalcOps::result_type pair =
+    css::ComputeCalc(aStyle, ops);
+  *aCoord += pair.mLength;
+  *aPercent += pair.mPercent;
 }
 
  nsIFrame::IntrinsicWidthOffsetData
@@ -3046,6 +3128,10 @@ nsFrame::IntrinsicWidthOffsets(nsIRenderingContext* aRenderingContext)
 {
   IntrinsicWidthOffsetData result;
 
+  
+  
+  
+  
   const nsStyleMargin *styleMargin = GetStyleMargin();
   AddCoord(styleMargin->mMargin.GetLeft(), aRenderingContext, this,
            &result.hMargin, &result.hPctMargin);
