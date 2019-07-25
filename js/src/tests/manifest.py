@@ -151,11 +151,6 @@ def parse(filename, xul_tester, reldir = ''):
                 elif parts[pos] == 'slow':
                     slow = True
                     pos += 1
-                elif parts[pos] == 'silentfail':
-                    
-                    if xul_tester.test("xulRuntime.OS == 'Darwin'"):
-                        expect = enable = False
-                    pos += 1
                 else:
                     print 'warning: invalid manifest line element "%s"'%parts[pos]
                     pos += 1
