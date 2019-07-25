@@ -467,8 +467,23 @@ protected:
 
 
 
+  nsIContent* GetNextTabbablePanel(nsIDocument* aDocument, nsIFrame* aCurrentPopup, bool aForward);
 
-  nsIContent* GetNextTabbableDocument(bool aForward);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsIContent* GetNextTabbableDocument(nsIContent* aStartContent, bool aForward);
 
   
 
