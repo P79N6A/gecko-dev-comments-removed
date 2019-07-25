@@ -43,6 +43,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Cu = Components.utils;
 const Ci = Components.interfaces;
@@ -1926,6 +1927,7 @@ HTMLBreadcrumbs.prototype = {
     }
     this.menu.appendChild(fragment);
     this.menu.openPopup(aButton, "before_start", 0, 0, true, false);
+    aButton.setAttribute("siblings-menu-open", "true");
   },
 
   
@@ -1936,7 +1938,7 @@ HTMLBreadcrumbs.prototype = {
 
   handleEvent: function BC_handleEvent(aEvent)
   {
-    if (aEvent.type == "mousedown") {
+    if (aEvent.type == "mousedown" && aEvent.button == 0) {
       
 
       let timer;
@@ -1948,7 +1950,6 @@ HTMLBreadcrumbs.prototype = {
         let target = aEvent.originalTarget;
         if (target.tagName == "button") {
           target.onBreadcrumbsHold();
-          target.setAttribute("siblings-menu-open", "true");
         }
       }
 
