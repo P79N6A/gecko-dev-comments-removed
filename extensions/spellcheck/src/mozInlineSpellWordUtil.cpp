@@ -31,8 +31,7 @@ using namespace mozilla;
 
 inline bool IsIgnorableCharacter(PRUnichar ch)
 {
-  return (ch == 0x200D || 
-          ch == 0xAD ||   
+  return (ch == 0xAD ||   
           ch == 0x1806);  
 }
 
@@ -353,7 +352,6 @@ IsDOMWordSeparator(PRUnichar ch)
        ch == 0x2002 ||  
        ch == 0x2003 ||  
        ch == 0x2009 ||  
-       ch == 0x200C ||  
        ch == 0x3000))   
     return true;
 
@@ -771,7 +769,9 @@ WordSplitState::ClassifyCharacter(PRInt32 aIndex, bool aRecurse) const
   nsIUGenCategory::nsUGenCategory
     charCategory = mozilla::unicode::GetGenCategory(mDOMWordText[aIndex]);
   if (charCategory == nsIUGenCategory::kLetter ||
-      IsIgnorableCharacter(mDOMWordText[aIndex]))
+      IsIgnorableCharacter(mDOMWordText[aIndex]) ||
+      mDOMWordText[aIndex] == 0x200C  ||
+      mDOMWordText[aIndex] == 0x200D )
     return CHAR_CLASS_WORD;
 
   
