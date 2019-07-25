@@ -43,9 +43,6 @@ var Feedback = {
   init: function(aEvent) {
     
     window.addEventListener("UIReadyDelayed", function(aEvent) {
-      let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
-      document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
-
       
       messageManager.loadFrameScript("chrome://feedback/content/content.js", true);
 
@@ -82,12 +79,6 @@ var Feedback = {
       newTab.browser.messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
       newTab.browser.messageManager.sendAsyncMessage("Feedback:InitPage", { referrer: currentURL, device: Feedback._device, manufacturer: Feedback._manufacturer });
     });
-  },
-
-  openReadme: function() {
-    let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
-    let url = formatter.formatURLPref("app.releaseNotesURL");
-    BrowserUI.newTab(url, Browser.selectedTab);
   },
 
   updateRestart: function updateRestart() {
