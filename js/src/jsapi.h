@@ -1787,29 +1787,19 @@ typedef enum JSGCParamKey {
     JSGC_STACKPOOL_LIFESPAN = 2,
 
     
-
-
-
-
-
-
-
-    JSGC_TRIGGER_FACTOR = 3,
+    JSGC_BYTES = 3,
 
     
-    JSGC_BYTES = 4,
+    JSGC_NUMBER = 4,
 
     
-    JSGC_NUMBER = 5,
+    JSGC_MAX_CODE_CACHE_BYTES = 5,
 
     
-    JSGC_MAX_CODE_CACHE_BYTES = 6,
+    JSGC_MODE = 6,
 
     
-    JSGC_MODE = 7,
-
-    
-    JSGC_UNUSED_CHUNKS = 8
+    JSGC_UNUSED_CHUNKS = 7
 } JSGCParamKey;
 
 typedef enum JSGCMode {
