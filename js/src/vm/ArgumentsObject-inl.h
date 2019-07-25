@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=78:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #ifndef ArgumentsObject_inl_h___
 #define ArgumentsObject_inl_h___
@@ -71,8 +71,13 @@ ArgumentsObject::element(uint32_t i) const
 {
     JS_ASSERT(!isElementDeleted(i));
     const Value &v = data()->args[i];
-    if (v.isMagic(JS_FORWARD_TO_CALL_OBJECT))
-        return getFixedSlot(MAYBE_CALL_SLOT).toObject().asCall().formal(i);
+    if (v.isMagic(JS_FORWARD_TO_CALL_OBJECT)) {
+        CallObject &callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().asCall();
+        for (AliasedFormalIter fi(callobj.callee().script()); ; fi++) {
+            if (fi.frameIndex() == i)
+                return callobj.aliasedVar(fi);
+        }
+    }
     return v;
 }
 
@@ -81,10 +86,16 @@ ArgumentsObject::setElement(uint32_t i, const Value &v)
 {
     JS_ASSERT(!isElementDeleted(i));
     HeapValue &lhs = data()->args[i];
-    if (lhs.isMagic(JS_FORWARD_TO_CALL_OBJECT))
-        getFixedSlot(MAYBE_CALL_SLOT).toObject().asCall().setFormal(i, v);
-    else
-        lhs = v;
+    if (lhs.isMagic(JS_FORWARD_TO_CALL_OBJECT)) {
+        CallObject &callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().asCall();
+        for (AliasedFormalIter fi(callobj.callee().script()); ; fi++) {
+            if (fi.frameIndex() == i) {
+                callobj.setAliasedVar(fi, v);
+                return;
+            }
+        }
+    }
+    lhs = v;
 }
 
 inline bool
@@ -149,6 +160,6 @@ NormalArgumentsObject::clearCallee()
     data()->callee.set(compartment(), MagicValue(JS_OVERWRITTEN_CALLEE));
 }
 
-} /* namespace js */
+} 
 
-#endif /* ArgumentsObject_inl_h___ */
+#endif 

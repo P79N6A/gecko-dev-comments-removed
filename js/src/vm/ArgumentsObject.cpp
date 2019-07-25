@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=99:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "jsgc.h"
 #include "jsinfer.h"
@@ -57,7 +57,7 @@ ArgumentsObject::create(JSContext *cx, StackFrame *fp)
     data->callee.init(ObjectValue(fp->callee()));
     data->script = fp->script();
 
-    /* Copy [0, numArgs) into data->slots. */
+    
     HeapValue *dst = data->args, *dstEnd = data->args + numArgs;
     for (Value *src = fp->formals(), *end = src + numFormals; src != end; ++src, ++dst)
         dst->init(*src);
@@ -79,22 +79,15 @@ ArgumentsObject::create(JSContext *cx, StackFrame *fp)
     obj->initFixedSlot(INITIAL_LENGTH_SLOT, Int32Value(numActuals << PACKED_BITS_COUNT));
     obj->initFixedSlot(DATA_SLOT, PrivateValue(data));
 
-    /*
-     * If it exists and the arguments object aliases formals, the call object
-     * is the canonical location for formals.
-     */
+    
+
+
+
     JSScript *script = fp->script();
     if (fp->fun()->isHeavyweight() && script->argsObjAliasesFormals()) {
         obj->initFixedSlot(MAYBE_CALL_SLOT, ObjectValue(fp->callObj()));
-
-        /* Flag each slot that canonically lives in the callObj. */
-        if (script->bindingsAccessedDynamically) {
-            for (unsigned i = 0; i < numFormals; ++i)
-                data->args[i] = MagicValue(JS_FORWARD_TO_CALL_OBJECT);
-        } else {
-            for (unsigned i = 0; i < script->numClosedArgs(); ++i)
-                data->args[script->getClosedArg(i)] = MagicValue(JS_FORWARD_TO_CALL_OBJECT);
-        }
+        for (AliasedFormalIter fi(script); fi; fi++)
+            data->args[fi.frameIndex()] = MagicValue(JS_FORWARD_TO_CALL_OBJECT);
     }
 
     ArgumentsObject &argsobj = obj->asArguments();
@@ -145,10 +138,10 @@ ArgGetter(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue vp)
 
     NormalArgumentsObject &argsobj = obj->asNormalArguments();
     if (JSID_IS_INT(id)) {
-        /*
-         * arg can exceed the number of arguments if a script changed the
-         * prototype to point to another Arguments object with a bigger argc.
-         */
+        
+
+
+
         unsigned arg = unsigned(JSID_TO_INT(id));
         if (arg < argsobj.initialLength() && !argsobj.isElementDeleted(arg))
             vp.set(argsobj.element(arg));
@@ -188,14 +181,14 @@ ArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, MutableHa
                   JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom));
     }
 
-    /*
-     * For simplicity we use delete/define to replace the property with one
-     * backed by the default Object getter and setter. Note that we rely on
-     * args_delProperty to clear the corresponding reserved slot so the GC can
-     * collect its value. Note also that we must define the property instead
-     * of setting it in case the user has changed the prototype to an object
-     * that has a setter for this id.
-     */
+    
+
+
+
+
+
+
+
     RootedValue value(cx);
     return baseops::DeleteGeneric(cx, obj, id, &value, false) &&
            baseops::DefineGeneric(cx, obj, id, vp, NULL, NULL, JSPROP_ENUMERATE);
@@ -241,10 +234,10 @@ args_enumerate(JSContext *cx, HandleObject obj)
     Rooted<NormalArgumentsObject*> argsobj(cx, &obj->asNormalArguments());
     RootedId id(cx);
 
-    /*
-     * Trigger reflection in args_resolve using a series of js_LookupProperty
-     * calls.
-     */
+    
+
+
+
     int argc = int(argsobj->initialLength());
     for (int i = -2; i != argc; i++) {
         id = (i == -2)
@@ -270,10 +263,10 @@ StrictArgGetter(JSContext *cx, HandleObject obj, HandleId id, MutableHandleValue
     StrictArgumentsObject &argsobj = obj->asStrictArguments();
 
     if (JSID_IS_INT(id)) {
-        /*
-         * arg can exceed the number of arguments if a script changed the
-         * prototype to point to another Arguments object with a bigger argc.
-         */
+        
+
+
+
         unsigned arg = unsigned(JSID_TO_INT(id));
         if (arg < argsobj.initialLength() && !argsobj.isElementDeleted(arg))
             vp.set(argsobj.element(arg));
@@ -303,12 +296,12 @@ StrictArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
         JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom));
     }
 
-    /*
-     * For simplicity we use delete/set to replace the property with one
-     * backed by the default Object getter and setter. Note that we rely on
-     * args_delProperty to clear the corresponding reserved slot so the GC can
-     * collect its value.
-     */
+    
+
+
+
+
+
     RootedValue value(cx);
     return baseops::DeleteGeneric(cx, argsobj, id, &value, strict) &&
            baseops::SetPropertyHelper(cx, argsobj, argsobj, id, 0, vp, strict);
@@ -359,25 +352,25 @@ strictargs_enumerate(JSContext *cx, HandleObject obj)
 {
     Rooted<StrictArgumentsObject*> argsobj(cx, &obj->asStrictArguments());
 
-    /*
-     * Trigger reflection in strictargs_resolve using a series of
-     * js_LookupProperty calls.
-     */
+    
+
+
+
     RootedObject pobj(cx);
     RootedShape prop(cx);
     RootedId id(cx);
 
-    // length
+    
     id = NameToId(cx->runtime->atomState.lengthAtom);
     if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
         return false;
 
-    // callee
+    
     id = NameToId(cx->runtime->atomState.calleeAtom);
     if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
         return false;
 
-    // caller
+    
     id = NameToId(cx->runtime->atomState.callerAtom);
     if (!baseops::LookupProperty(cx, argsobj, id, &pobj, &prop))
         return false;
@@ -407,69 +400,69 @@ ArgumentsObject::trace(JSTracer *trc, JSObject *obj)
     MarkScriptUnbarriered(trc, &data->script, "script");
 }
 
-/*
- * The classes below collaborate to lazily reflect and synchronize actual
- * argument values, argument count, and callee function object stored in a
- * StackFrame with their corresponding property values in the frame's
- * arguments object.
- */
+
+
+
+
+
+
 Class js::NormalArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         
     args_delProperty,
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     args_enumerate,
     reinterpret_cast<JSResolveOp>(args_resolve),
     JS_ConvertStub,
     ArgumentsObject::finalize,
-    NULL,                    /* checkAccess */
-    NULL,                    /* call        */
-    NULL,                    /* construct   */
-    NULL,                    /* hasInstance */
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
     ArgumentsObject::trace,
     {
-        NULL,       /* equality    */
-        NULL,       /* outerObject */
-        NULL,       /* innerObject */
-        NULL,       /* iteratorObject  */
-        NULL,       /* unused      */
-        false,      /* isWrappedNative */
+        NULL,       
+        NULL,       
+        NULL,       
+        NULL,       
+        NULL,       
+        false,      
     }
 };
 
-/*
- * Strict mode arguments is significantly less magical than non-strict mode
- * arguments, so it is represented by a different class while sharing some
- * functionality.
- */
+
+
+
+
+
 Class js::StrictArgumentsObjectClass = {
     "Arguments",
     JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         
     args_delProperty,
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     strictargs_enumerate,
     reinterpret_cast<JSResolveOp>(strictargs_resolve),
     JS_ConvertStub,
     ArgumentsObject::finalize,
-    NULL,                    /* checkAccess */
-    NULL,                    /* call        */
-    NULL,                    /* construct   */
-    NULL,                    /* hasInstance */
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
     ArgumentsObject::trace,
     {
-        NULL,       /* equality    */
-        NULL,       /* outerObject */
-        NULL,       /* innerObject */
-        NULL,       /* iteratorObject  */
-        NULL,       /* unused      */
-        false,      /* isWrappedNative */
+        NULL,       
+        NULL,       
+        NULL,       
+        NULL,       
+        NULL,       
+        false,      
     }
 };

@@ -195,12 +195,8 @@ class CallObject : public ScopeObject
     inline JSFunction &callee() const;
 
     
-    inline const Value &formal(unsigned i) const;
-    inline void setFormal(unsigned i, const Value &v);
-
-    
-    inline const Value &var(unsigned i) const;
-    inline void setVar(unsigned i, const Value &v);
+    inline const Value &aliasedVar(AliasedFormalIter fi);
+    inline void setAliasedVar(AliasedFormalIter fi, const Value &v);
 };
 
 class DeclEnvObject : public ScopeObject

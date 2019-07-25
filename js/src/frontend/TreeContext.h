@@ -313,7 +313,7 @@ struct TreeContext {
 
 
 
-    bool generateBindings(JSContext *cx, Bindings *bindings) const;
+    bool generateFunctionBindings(JSContext *cx, Bindings *bindings) const;
 
   public:
     ParseNode       *yieldNode;     
@@ -361,11 +361,6 @@ struct TreeContext {
     
     
     bool            inDeclDestructuring:1;
-
-  private:
-    
-    bool            hasDuplicateArgument_:1;
-  public:
 
     inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
     inline ~TreeContext();

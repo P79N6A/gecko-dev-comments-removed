@@ -101,6 +101,11 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         return NULL;
 
     
+    
+    if (!script->bindings.init(cx, 0, 0, NULL))
+        return NULL;
+
+    
     JSObject *globalScope = scopeChain && scopeChain == &scopeChain->global() ? (JSObject*) scopeChain : NULL;
     JS_ASSERT_IF(globalScope, globalScope->isNative());
     JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
@@ -309,7 +314,7 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     if (!script)
         return false;
 
-    if (!funtc.generateBindings(cx, &script->bindings))
+    if (!funtc.generateFunctionBindings(cx, &script->bindings))
         return false;
 
     BytecodeEmitter funbce( NULL, &parser, &funsc, script,  NULL,
