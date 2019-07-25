@@ -790,16 +790,6 @@ CastToJSFreeOp(FreeOp *fop)
 extern JS_FRIEND_API(const jschar*)
 GetErrorTypeNameFromNumber(JSContext* cx, const unsigned errorNumber);
 
-
-typedef enum NukedGlobalHandling {
-    NukeForGlobalObject,
-    DontNukeForGlobalObject
-} NukedGlobalHandling;
-
-extern JS_FRIEND_API(JSBool)
-NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
-                                            NukedGlobalHandling nukeGlobal);
-
 } 
 
 #endif
@@ -1072,6 +1062,14 @@ JS_GetTypedArrayByteOffset(JSObject *obj, JSContext *cx);
 
 extern JS_FRIEND_API(uint32_t)
 JS_GetTypedArrayByteLength(JSObject *obj, JSContext *cx);
+
+
+
+
+
+
+extern JS_FRIEND_API(JSBool)
+JS_IsArrayBufferViewObject(JSObject *obj, JSContext *cx);
 
 
 
