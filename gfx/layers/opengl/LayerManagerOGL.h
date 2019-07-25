@@ -182,7 +182,8 @@ public:
     mGLContext->MakeCurrent(aForce);
   }
 
-  ShaderProgramOGL* GetBasicLayerProgram(bool aOpaque, bool aIsRGB)
+  ShaderProgramOGL* GetBasicLayerProgram(bool aOpaque, bool aIsRGB,
+                                         MaskType aMask = MaskNone)
   {
     gl::ShaderProgramType format = gl::BGRALayerProgramType;
     if (aIsRGB) {
@@ -196,17 +197,25 @@ public:
         format = gl::BGRXLayerProgramType;
       }
     }
-    return GetProgram(format);
+    return GetProgram(format, aMask);
   }
 
-  ShaderProgramOGL* GetProgram(gl::ShaderProgramType aType) {
-    NS_ASSERTION(aType >= 0 && aType < gl::NumProgramTypes,
+  ShaderProgramOGL* GetProgram(gl::ShaderProgramType aType,
+                               Layer* aMaskLayer) {
+    if (aMaskLayer)
+      return GetProgram(aType, Mask2d);
+    return GetProgram(aType, MaskNone);
+  }
+
+  ShaderProgramOGL* GetProgram(gl::ShaderProgramType aType,
+                               MaskType aMask = MaskNone) {
+    NS_ASSERTION(ProgramProfileOGL::ProgramExists(aType, aMask),
                  "Invalid program type.");
-    return mPrograms[aType];
+    return mPrograms[aType].mVariations[aMask];
   }
 
-  ShaderProgramOGL* GetFBOLayerProgram() {
-    return static_cast<ShaderProgramOGL*>(mPrograms[GetFBOLayerProgramType()]);
+  ShaderProgramOGL* GetFBOLayerProgram(MaskType aMask = MaskNone) {
+    return GetProgram(GetFBOLayerProgramType(), aMask);
   }
 
   gl::ShaderProgramType GetFBOLayerProgramType() {
@@ -384,15 +393,16 @@ private:
 
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
 
-  static ProgramType sLayerProgramTypes[];
-
   
   GLuint mBackBufferFBO;
   GLuint mBackBufferTexture;
   nsIntSize mBackBufferSize;
 
   
-  nsTArray<ShaderProgramOGL*> mPrograms;
+  struct ShaderProgramVariations {
+    ShaderProgramOGL* mVariations[NumMaskTypes];
+  };
+  nsTArray<ShaderProgramVariations> mPrograms;
 
   
   GLenum mFBOTextureTarget;
@@ -449,7 +459,8 @@ private:
 
 
 
-  bool InitAndAddProgram(gl::ShaderProgramType aType);
+
+  bool InitAndAddPrograms(gl::ShaderProgramType aType);
 
   
 
