@@ -851,8 +851,17 @@ function OnDocumentLoad(event)
             .getInterface(CI.nsIDOMWindowUtils);
 
         function FlushRendering() {
+            function flushWindow(win) {
+                try {
+                    win.document.documentElement.getBoundingClientRect();
+                } catch (e) {}
+                for (var i = 0; i < win.frames.length; ++i) {
+                    flushWindow(win.frames[i]);
+                }
+            }
+                
             
-            contentRootElement.getBoundingClientRect();
+            flushWindow(contentRootElement.ownerDocument.defaultView);
             
             utils.processUpdates();
         }
