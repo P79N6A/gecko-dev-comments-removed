@@ -240,7 +240,7 @@ nsAsyncStreamCopier::AsyncCopy(nsIRequestObserver *observer, nsISupports *ctx)
         if (NS_FAILED(rv))
             Cancel(rv);
     }
-    
+
     
     
     NS_ADDREF_THIS();
