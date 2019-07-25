@@ -208,53 +208,35 @@ nsContainerFrame::RemoveFrame(ChildListID aListID,
     }
   }
 
-  if (aOldFrame) {
-    
-    
-    
-    
-    bool generateReflowCommand = true;
+  
+  
+  
+  bool generateReflowCommand = true;
 #ifdef IBMBIDI
-    if (kNoReflowPrincipalList == aListID) {
-      generateReflowCommand = false;
-    }
+  if (kNoReflowPrincipalList == aListID) {
+    generateReflowCommand = false;
+  }
 #endif
-    nsContainerFrame* parent = static_cast<nsContainerFrame*>(aOldFrame->GetParent());
-    while (aOldFrame) {
-      
-      
-      
-      nsIFrame* oldFrameNextContinuation = aOldFrame->GetNextContinuation();
-      
-      
-      
-      
-      if (parent == this) {
-        if (!parent->mFrames.DestroyFrameIfPresent(aOldFrame)) {
-          
-          
-          StealFrame(PresContext(), aOldFrame, true);
-          aOldFrame->Destroy();
-        }
-      } else {
-        
-        
-        parent->RemoveFrame(kPrincipalList, aOldFrame);
-        break;
-      }
-      aOldFrame = oldFrameNextContinuation;
-      if (aOldFrame) {
-        parent = static_cast<nsContainerFrame*>(aOldFrame->GetParent());
-      }
-    }
-
-    if (generateReflowCommand) {
-      PresContext()->PresShell()->
-        FrameNeedsReflow(this, nsIPresShell::eTreeChange,
+  nsPresContext* pc = PresContext();
+  nsContainerFrame* lastParent = nsnull;
+  while (aOldFrame) {
+    
+    
+    
+    
+    nsIFrame* oldFrameNextContinuation = aOldFrame->GetNextContinuation();
+    nsContainerFrame* parent =
+      static_cast<nsContainerFrame*>(aOldFrame->GetParent());
+    parent->StealFrame(pc, aOldFrame, true);
+    aOldFrame->Destroy();
+    aOldFrame = oldFrameNextContinuation;
+    if (parent != lastParent && generateReflowCommand) {
+      pc->PresShell()->
+        FrameNeedsReflow(parent, nsIPresShell::eTreeChange,
                          NS_FRAME_HAS_DIRTY_CHILDREN);
+      lastParent = parent;
     }
   }
-
   return NS_OK;
 }
 
