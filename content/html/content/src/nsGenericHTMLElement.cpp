@@ -302,10 +302,7 @@ nsGenericHTMLElement::CopyInnerTo(nsGenericElement* aDst) const
       
       
       
-      nsCOMPtr<nsICSSRule> ruleClone;
-      rv = value->GetCSSStyleRuleValue()->Clone(*getter_AddRefs(ruleClone));
-      NS_ENSURE_SUCCESS(rv, rv);
-
+      nsCOMPtr<nsICSSRule> ruleClone = value->GetCSSStyleRuleValue()->Clone();
       nsCOMPtr<nsICSSStyleRule> styleRule = do_QueryInterface(ruleClone);
       NS_ENSURE_TRUE(styleRule, NS_ERROR_UNEXPECTED);
 
