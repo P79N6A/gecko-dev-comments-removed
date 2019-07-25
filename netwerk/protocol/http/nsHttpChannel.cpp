@@ -141,6 +141,76 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
         vetoHook->OnRedirectResult(succeeded);
 }
 
+class HttpCacheQuery : public nsICacheListener
+{
+public:
+    HttpCacheQuery(nsHttpChannel * channel,
+                   const nsACString & cacheKey,
+                   bool usingSSL,
+                   bool loadedFromApplicationCache)
+        
+        : mChannel(channel)
+        , mURI(channel->mURI)
+        , mLoadFlags(channel->mLoadFlags)
+        , mCacheForOfflineUse(channel->mCacheForOfflineUse)
+        , mFallbackChannel(channel->mFallbackChannel)
+        , mCacheKey(cacheKey)
+        , mUsingSSL(usingSSL)
+        , mLoadedFromApplicationCache(loadedFromApplicationCache)
+        
+        , mCacheAccess(0)
+        , mStatus(NS_ERROR_NOT_INITIALIZED)
+        
+        , mRequestHead(channel->mRequestHead)
+        , mRedirectedCachekeys(channel->mRedirectedCachekeys.forget())
+        
+        , mCachedContentIsValid(false)
+        , mCachedContentIsPartial(false)
+        , mCustomConditionalRequest(false)
+        , mDidReval(false)
+    {
+        MOZ_ASSERT(NS_IsMainThread());
+    }
+
+private:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICACHELISTENER
+
+    nsresult CheckCache();
+    bool ResponseWouldVary() const;
+    bool MustValidateBasedOnQueryUrl() const;
+    nsresult SetupByteRangeRequest(PRUint32 partialLen);
+    nsresult StartBufferingCachedEntity();
+
+    nsCOMPtr<nsICacheListener> mChannel;
+    const nsCOMPtr<nsIURI> mURI;
+    const PRUint32 mLoadFlags;
+    const bool mCacheForOfflineUse;
+    const bool mFallbackChannel;
+    const InfallableCopyCString mCacheKey;
+    const bool mUsingSSL;
+    const bool mLoadedFromApplicationCache;
+
+    
+    nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
+    nsCacheAccessMode mCacheAccess;
+    nsresult mStatus;
+
+    
+    friend class nsHttpChannel;
+     nsHttpRequestHead mRequestHead;
+     nsAutoPtr<nsTArray<nsCString> > mRedirectedCachekeys;
+     AutoClose<nsIAsyncInputStream> mCacheAsyncInputStream;
+     nsAutoPtr<nsHttpResponseHead> mCachedResponseHead;
+     nsCOMPtr<nsISupports> mCachedSecurityInfo;
+     bool mCachedContentIsValid;
+     bool mCachedContentIsPartial;
+     bool mCustomConditionalRequest;
+     bool mDidReval;
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(HttpCacheQuery, nsICacheListener)
+
 
 
 
@@ -270,7 +340,7 @@ nsHttpChannel::Connect()
     }
 
     
-    rv = OpenCacheEntry();
+    rv = OpenCacheEntry(usingSSL);
 
     
     if (mOnCacheEntryAvailableCallback) {
@@ -312,19 +382,12 @@ nsHttpChannel::ContinueConnect()
     
     if (mCacheEntry) {
         
-        
-        
-        nsresult rv = CheckCache();
-        if (NS_FAILED(rv))
-            NS_WARNING("cache check failed");
-
-        
         if (mCachedContentIsValid) {
             nsRunnableMethod<nsHttpChannel> *event = nsnull;
             if (!mCachedContentIsPartial) {
                 AsyncCall(&nsHttpChannel::AsyncOnExamineCachedResponse, &event);
             }
-            rv = ReadFromCache(true);
+            nsresult rv = ReadFromCache(true);
             if (NS_FAILED(rv) && event) {
                 event->Revoke();
             }
@@ -1676,7 +1739,7 @@ nsHttpChannel::ResolveProxy()
 }
 
 bool
-nsHttpChannel::ResponseWouldVary()
+HttpCacheQuery::ResponseWouldVary() const
 {
     nsresult rv;
     nsCAutoString buf, metaKey;
@@ -1688,9 +1751,9 @@ nsHttpChannel::ResponseWouldVary()
         char *val = buf.BeginWriting(); 
         char *token = nsCRT::strtok(val, NS_HTTP_HEADER_SEPS, &val);
         while (token) {
-            LOG(("nsHttpChannel::ResponseWouldVary [this=%x] " \
+            LOG(("HttpCacheQuery::ResponseWouldVary [channel=%p] " \
                  "processing %s\n",
-                 this, token));
+                 mChannel.get(), token));
             
             
             
@@ -1714,8 +1777,9 @@ nsHttpChannel::ResponseWouldVary()
             
             nsXPIDLCString lastVal;
             mCacheEntry->GetMetaDataElement(metaKey.get(), getter_Copies(lastVal));
-            LOG(("nsHttpChannel::ResponseWouldVary [this=%x] " \
-                    "stored value = %c%s%c\n", this, '"', lastVal.get(), '"'));
+            LOG(("HttpCacheQuery::ResponseWouldVary [channel=%p] "
+                     "stored value = \"%s\"\n",
+                 mChannel.get(), lastVal.get()));
 
             
             nsHttpAtom atom = nsHttp::ResolveAtom(token);
@@ -1737,9 +1801,9 @@ nsHttpChannel::ResponseWouldVary()
                         return true;
                     newVal = hash.get();
 
-                    LOG(("nsHttpChannel::ResponseWouldVary [this=%x] " \
+                    LOG(("HttpCacheQuery::ResponseWouldVary [this=%p] " \
                             "set-cookie value hashed to %s\n",
-                         this, newVal));
+                         mChannel.get(), newVal));
                 }
 
                 if (strcmp(newVal, lastVal))
@@ -1882,7 +1946,7 @@ nsHttpChannel::EnsureAssocReq()
 
 
 nsresult
-nsHttpChannel::SetupByteRangeRequest(PRUint32 partialLen)
+HttpCacheQuery::SetupByteRangeRequest(PRUint32 partialLen)
 {
     
     
@@ -2224,7 +2288,7 @@ IsSubRangeRequest(nsHttpRequestHead &aRequestHead)
 }
 
 nsresult
-nsHttpChannel::OpenCacheEntry()
+nsHttpChannel::OpenCacheEntry(bool usingSSL)
 {
     nsresult rv;
 
@@ -2301,6 +2365,8 @@ nsHttpChannel::OpenCacheEntry()
         nsCAutoString appCacheClientID;
         mApplicationCache->GetClientID(appCacheClientID);
 
+        mCacheQuery = new HttpCacheQuery(this, cacheKey, usingSSL, true);
+
         nsCOMPtr<nsICacheService> serv =
             do_GetService(NS_CACHESERVICE_CONTRACTID, &rv);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -2321,19 +2387,20 @@ nsHttpChannel::OpenCacheEntry()
         rv = session->AsyncOpenCacheEntry(
             cacheKey,
             nsICache::ACCESS_READ,
-            this,
+            mCacheQuery,
             mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
 
         if (NS_SUCCEEDED(rv))
             return NS_OK;
 
+        mCacheQuery = nsnull;
         mOnCacheEntryAvailableCallback = nsnull;
 
         
         return OnOfflineCacheEntryAvailable(nsnull, nsICache::ACCESS_NONE, rv);
     }
 
-    return OpenNormalCacheEntry();
+    return OpenNormalCacheEntry(usingSSL);
 }
 
 nsresult
@@ -2351,6 +2418,8 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
         mCacheAccess = aAccess;
     }
 
+    
+    
     if (aEntryStatus == NS_ERROR_CACHE_WAIT_FOR_VALIDATION) {
         LOG(("bypassing local cache since it is busy\n"));
         
@@ -2398,12 +2467,14 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
         }
     }
 
-    return OpenNormalCacheEntry();
+    bool usingSSL = false;
+    (void) mURI->SchemeIs("https", &usingSSL);
+    return OpenNormalCacheEntry(usingSSL);
 }
 
 
 nsresult
-nsHttpChannel::OpenNormalCacheEntry()
+nsHttpChannel::OpenNormalCacheEntry(bool usingSSL)
 {
     NS_ASSERTION(!mCacheEntry, "We have already mCacheEntry");
 
@@ -2411,6 +2482,8 @@ nsHttpChannel::OpenNormalCacheEntry()
 
     nsCAutoString cacheKey;
     GenerateCacheKey(mPostID, cacheKey);
+
+    mCacheQuery = new HttpCacheQuery(this, cacheKey, usingSSL, false);
 
     nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
 
@@ -2431,12 +2504,13 @@ nsHttpChannel::OpenNormalCacheEntry()
     rv = session->AsyncOpenCacheEntry(
         cacheKey,
         accessRequested,
-        this,
+        mCacheQuery,
         mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY);
 
     if (NS_SUCCEEDED(rv))
         return NS_OK;
 
+    mCacheQuery = nsnull;
     mOnCacheEntryAvailableCallback = nsnull;
 
     return rv;
@@ -2647,12 +2721,39 @@ nsHttpChannel::UpdateExpirationTime()
     return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpCacheQuery::OnCacheEntryDoomed(nsresult)
+{
+    return NS_ERROR_UNEXPECTED;
+}
 
+NS_IMETHODIMP
+HttpCacheQuery::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
+                                      nsCacheAccessMode access,
+                                      nsresult status)
 
+{
+    LOG(("HttpCacheQuery::OnCacheEntryAvailable [channel=%p entry=%p "
+         "access=%x status=%x]\n", mChannel.get(), entry, access, status));
 
+    mCacheEntry = entry;
+    mCacheAccess = access;
+    mStatus = status;
+
+    nsresult rv = CheckCache();
+    if (NS_FAILED(rv))
+        NS_WARNING("cache check failed");
+
+    
+    nsCOMPtr<nsICacheListener> channel = mChannel.forget();
+    mCacheEntry = nsnull;
+
+    rv = channel->OnCacheEntryAvailable(entry, access, status);
+    return rv;
+}
 
 nsresult
-nsHttpChannel::CheckCache()
+HttpCacheQuery::CheckCache()
 {
     nsresult rv = NS_OK;
 
@@ -2660,8 +2761,8 @@ nsHttpChannel::CheckCache()
     rv = mURI->SchemeIs("https", &usingSSL);
     NS_ENSURE_SUCCESS(rv,rv);
 
-    LOG(("nsHTTPChannel::CheckCache enter [this=%p entry=%p access=%d]",
-        this, mCacheEntry.get(), mCacheAccess));
+    LOG(("HttpCacheQuery::CheckCache enter [channel=%p entry=%p access=%d]",
+        mChannel.get(), mCacheEntry.get(), mCacheAccess));
     
     
     mCachedContentIsValid = false;
@@ -2719,9 +2820,9 @@ nsHttpChannel::CheckCache()
     if (!mCacheForOfflineUse &&
         (mLoadedFromApplicationCache ||
          (mCacheAccess == nsICache::ACCESS_READ &&
-          !(mLoadFlags & INHIBIT_CACHING)) ||
+          !(mLoadFlags & nsIRequest::INHIBIT_CACHING)) ||
          mFallbackChannel)) {
-        rv = StartBufferingCachedEntity(usingSSL);
+        rv = StartBufferingCachedEntity();
         if (NS_SUCCEEDED(rv)) {
             mCachedContentIsValid = true;
             
@@ -2770,7 +2871,7 @@ nsHttpChannel::CheckCache()
                     rv = SetupByteRangeRequest(size);
                     mCachedContentIsPartial = NS_SUCCEEDED(rv);
                     if (mCachedContentIsPartial) {
-                        rv = StartBufferingCachedEntity(usingSSL);
+                        rv = StartBufferingCachedEntity();
                     } else {
                         
                         mRequestHead.ClearHeader(nsHttp::Range);
@@ -2792,24 +2893,24 @@ nsHttpChannel::CheckCache()
         doValidation = true;
     }
     
-    else if (mLoadFlags & LOAD_FROM_CACHE) {
+    else if (mLoadFlags & nsIRequest::LOAD_FROM_CACHE) {
         LOG(("NOT validating based on LOAD_FROM_CACHE load flag\n"));
         doValidation = false;
     }
     
     
-    else if (mLoadFlags & VALIDATE_ALWAYS) {
+    else if (mLoadFlags & nsIRequest::VALIDATE_ALWAYS) {
         LOG(("Validating based on VALIDATE_ALWAYS load flag\n"));
         doValidation = true;
     }
     
     
-    else if (mLoadFlags & VALIDATE_NEVER) {
+    else if (mLoadFlags & nsIRequest::VALIDATE_NEVER) {
         LOG(("VALIDATE_NEVER set\n"));
         
         
         if (mCachedResponseHead->NoStore() ||
-           (mCachedResponseHead->NoCache() && mConnectionInfo->UsingSSL())) {
+           (mCachedResponseHead->NoCache() && mUsingSSL)) {
             LOG(("Validating based on (no-store || (no-cache && ssl)) logic\n"));
             doValidation = true;
         }
@@ -2840,7 +2941,7 @@ nsHttpChannel::CheckCache()
             doValidation = false;
         else if (mCachedResponseHead->MustValidateIfExpired())
             doValidation = true;
-        else if (mLoadFlags & VALIDATE_ONCE_PER_SESSION) {
+        else if (mLoadFlags & nsIRequest::VALIDATE_ONCE_PER_SESSION) {
             
             
             
@@ -2899,20 +3000,17 @@ nsHttpChannel::CheckCache()
     
     
     if (!doValidation && isCachedRedirect) {
-        nsCAutoString cacheKey;
-        GenerateCacheKey(mPostID, cacheKey);
-
         if (!mRedirectedCachekeys)
             mRedirectedCachekeys = new nsTArray<nsCString>();
-        else if (mRedirectedCachekeys->Contains(cacheKey))
+        else if (mRedirectedCachekeys->Contains(mCacheKey))
             doValidation = true;
 
         LOG(("Redirection-chain %s key %s\n",
-             doValidation ? "contains" : "does not contain", cacheKey.get()));
+             doValidation ? "contains" : "does not contain", mCacheKey.get()));
 
         
         if (!doValidation)
-            mRedirectedCachekeys->AppendElement(cacheKey);
+            mRedirectedCachekeys->AppendElement(mCacheKey);
     }
 
     mCachedContentIsValid = !doValidation;
@@ -2957,7 +3055,7 @@ nsHttpChannel::CheckCache()
     
     
     if (mCachedContentIsValid || mDidReval) {
-        rv = StartBufferingCachedEntity(usingSSL);
+        rv = StartBufferingCachedEntity();
         if (NS_FAILED(rv)) {
             
             
@@ -2982,7 +3080,7 @@ nsHttpChannel::CheckCache()
 }
 
 bool
-nsHttpChannel::MustValidateBasedOnQueryUrl()
+HttpCacheQuery::MustValidateBasedOnQueryUrl() const
 {
     
     
@@ -3046,9 +3144,9 @@ nsHttpChannel::ShouldUpdateOfflineCacheEntry()
 }
 
 nsresult
-nsHttpChannel::StartBufferingCachedEntity(bool usingSSL)
+HttpCacheQuery::StartBufferingCachedEntity()
 {
-    if (usingSSL) {
+    if (mUsingSSL) {
         nsresult rv = mCacheEntry->GetSecurityInfo(
                                       getter_AddRefs(mCachedSecurityInfo));
         if (NS_FAILED(rv)) {
@@ -3077,7 +3175,8 @@ nsHttpChannel::StartBufferingCachedEntity(bool usingSSL)
         return NS_OK;
     }
 
-    if ((mLoadFlags & LOAD_ONLY_IF_MODIFIED) && !mCachedContentIsPartial) {
+    if ((mLoadFlags & nsICachingChannel::LOAD_ONLY_IF_MODIFIED) &&
+        !mCachedContentIsPartial) {
         
         
         if (!mCacheForOfflineUse) {
@@ -5153,10 +5252,25 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
                                      nsCacheAccessMode access,
                                      nsresult status)
 {
+    MOZ_ASSERT(NS_IsMainThread());
+
     nsresult rv;
 
     LOG(("nsHttpChannel::OnCacheEntryAvailable [this=%p entry=%p "
          "access=%x status=%x]\n", this, entry, access, status));
+
+    if (mCacheQuery) {
+        mRequestHead = mCacheQuery->mRequestHead;
+        mRedirectedCachekeys = mCacheQuery->mRedirectedCachekeys.forget();
+        mCacheAsyncInputStream.takeOver(mCacheQuery->mCacheAsyncInputStream);
+        mCachedResponseHead = mCacheQuery->mCachedResponseHead.forget();
+        mCachedSecurityInfo = mCacheQuery->mCachedSecurityInfo.forget();
+        mCachedContentIsValid = mCacheQuery->mCachedContentIsValid;
+        mCachedContentIsPartial = mCacheQuery->mCachedContentIsPartial;
+        mCustomConditionalRequest = mCacheQuery->mCustomConditionalRequest;
+        mDidReval = mCacheQuery->mDidReval;
+        mCacheQuery = nsnull;
+    }
 
     
     
@@ -5164,6 +5278,7 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
         return NS_OK;
 
     rv = OnCacheEntryAvailableInternal(entry, access, status);
+
     if (NS_FAILED(rv)) {
         CloseCacheEntry(true);
         AsyncAbort(rv);
