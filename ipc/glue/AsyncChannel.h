@@ -104,6 +104,10 @@ public:
     void Close();
 
     
+    
+    void CloseWithError();
+
+    
     virtual bool Send(Message* msg);
 
     

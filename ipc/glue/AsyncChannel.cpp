@@ -482,6 +482,8 @@ AsyncChannel::OnNotifyMaybeChannelError()
     AssertWorkerThread();
     mMonitor->AssertNotCurrentThreadOwns();
 
+    mChannelErrorTask = NULL;
+
     
     
     
@@ -744,12 +746,26 @@ AsyncChannel::OnChannelErrorFromLink()
 }
 
 void
+AsyncChannel::CloseWithError()
+{
+    AssertWorkerThread();
+
+    MonitorAutoLock lock(*mMonitor);
+    if (ChannelConnected != mChannelState) {
+        return;
+    }
+    SynchronouslyClose();
+    mChannelState = ChannelError;
+    PostErrorNotifyTask();
+}
+
+void
 AsyncChannel::PostErrorNotifyTask()
 {
-    AssertLinkThread();
     mMonitor->AssertCurrentThreadOwns();
 
-    NS_ASSERTION(!mChannelErrorTask, "OnChannelError called twice?");
+    if (mChannelErrorTask)
+        return;
 
     
     mChannelErrorTask =
