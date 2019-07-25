@@ -1376,7 +1376,7 @@ private:
 
   const FrameConstructionData*
     FindDisplayData(const nsStyleDisplay* aDisplay, Element* aElement,
-                    nsStyleContext* aStyleContext);
+                    nsIFrame* aParentFrame, nsStyleContext* aStyleContext);
 
   
 

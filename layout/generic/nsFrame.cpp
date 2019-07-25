@@ -445,7 +445,7 @@ IsFontSizeInflationContainer(nsIFrame* aFrame,
   }
 
   nsIContent *content = aFrame->GetContent();
-  bool isInline = (aStyleDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE ||
+  bool isInline = (aFrame->GetDisplay() == NS_STYLE_DISPLAY_INLINE ||
                    (aFrame->IsFloating() &&
                     aFrame->GetType() == nsGkAtoms::letterFrame) ||
                    
@@ -3473,7 +3473,7 @@ nsIFrame::ContentOffsets OffsetsForSingleFrame(nsIFrame* aFrame, nsPoint aPoint)
   
   nsRect rect(nsPoint(0, 0), aFrame->GetSize());
 
-  bool isBlock = (aFrame->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_INLINE);
+  bool isBlock = aFrame->GetDisplay() != NS_STYLE_DISPLAY_INLINE;
   bool isRtl = (aFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL);
   if ((isBlock && rect.y < aPoint.y) ||
       (!isBlock && ((isRtl  && rect.x + rect.width / 2 > aPoint.x) || 

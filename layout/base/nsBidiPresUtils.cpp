@@ -20,6 +20,7 @@
 #include "nsFirstLetterFrame.h"
 #include "nsUnicodeProperties.h"
 #include "nsTextFrame.h"
+#include "nsStyleStructInlines.h"
 
 #undef NOISY_BIDI
 #undef REALLY_NOISY_BIDI
@@ -1092,7 +1093,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
         
         aBpd->AppendUnichar(content->IsHTML(nsGkAtoms::wbr) ?
                             kZWSP : kObjectSubstitute);
-        if (!frame->GetStyleContext()->GetStyleDisplay()->IsInlineOutside()) {
+        if (!frame->IsInlineOutside()) {
           
           ResolveParagraphWithinBlock(aBlockFrame, aBpd);
         }

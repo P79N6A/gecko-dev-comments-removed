@@ -663,7 +663,7 @@ nsHTMLReflowState::InitFrameType(nsIAtom* aFrameType)
     }
   }
   else {
-    switch (disp->mDisplay) {
+    switch (GetDisplay()) {
     case NS_STYLE_DISPLAY_BLOCK:
     case NS_STYLE_DISPLAY_LIST_ITEM:
     case NS_STYLE_DISPLAY_TABLE:
@@ -1088,7 +1088,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
 
       
       
-      if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
+      if (mStyleDisplay->IsOriginalDisplayInlineOutsideStyle()) {
         
         
         aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
@@ -1140,7 +1140,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   if (NS_STYLE_DIRECTION_LTR == blockVis->mDirection) {
     
     
-    if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
+    if (mStyleDisplay->IsOriginalDisplayInlineOutsideStyle()) {
       
       aHypotheticalBox.mLeft = placeholderOffset.x;
     } else {
@@ -1167,7 +1167,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
 
   } else {
     
-    if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
+    if (mStyleDisplay->IsOriginalDisplayInlineOutsideStyle()) {
       aHypotheticalBox.mRight = placeholderOffset.x;
     } else {
       aHypotheticalBox.mRight = aBlockLeftContentEdge + aBlockContentWidth;

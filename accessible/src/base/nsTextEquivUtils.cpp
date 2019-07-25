@@ -11,6 +11,7 @@
 #include "AccIterator.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
+#include "nsStyleStructInlines.h"
 
 #include "nsIDOMXULLabeledControlEl.h"
 
@@ -126,7 +127,7 @@ nsTextEquivUtils::AppendTextEquivFromTextContent(nsIContent *aContent,
         
         
         const nsStyleDisplay* display = frame->GetStyleDisplay();
-        if (display->IsBlockOutside() ||
+        if (display->IsBlockOutsideStyle() ||
             display->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL) {
           isHTMLBlock = true;
           if (!aString->IsEmpty()) {
