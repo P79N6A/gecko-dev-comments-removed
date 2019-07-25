@@ -991,9 +991,27 @@ IonBuilder::processBreak(JSOp op, jssrcnote *sn)
         }
     }
 
+    if (!found) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        abort("could not find the target of a break");
+        return ControlStatus_Error;
+    }
+
     
     
-    JS_ASSERT(found);
     CFGState &state = *found;
 
     state.loop.breaks = new DeferredEdge(current, state.loop.breaks);
