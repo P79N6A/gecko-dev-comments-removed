@@ -3917,8 +3917,21 @@ var FullScreen = {
       enterFS = !enterFS;
 
     
-    this.showXULChrome("toolbar", !enterFS);
+    
     document.getElementById("View:FullScreen").setAttribute("checked", enterFS);
+
+    
+    
+    
+    
+    if (enterFS && this.useLionFullScreen) {
+      if (document.mozFullScreen)
+        this.showXULChrome("toolbar", false);
+      return;
+    }
+
+    
+    this.showXULChrome("toolbar", !enterFS);
 
     if (enterFS) {
       
@@ -4026,7 +4039,8 @@ var FullScreen = {
     gBrowser.tabContainer.addEventListener("TabSelect", this.exitDomFullScreen);
 
     
-    if (gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
+    if (!this.useLionFullScreen &&
+        gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
       window.addEventListener("deactivate", this);
     }
 
@@ -4062,7 +4076,9 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      window.removeEventListener("deactivate", this);
+      if (this.useLionFullScreen) {
+        window.removeEventListener("deactivate", this);
+      }
     }
   },
 
@@ -4412,6 +4428,18 @@ var FullScreen = {
       controls[i].hidden = aShow;
   }
 };
+XPCOMUtils.defineLazyGetter(FullScreen, "useLionFullScreen", function() {
+  
+  
+  
+  
+#ifdef XP_MACOSX
+  return /^11\./.test(Services.sysinfo.getProperty("version")) &&
+         document.documentElement.getAttribute("fullscreenbutton") == "true";
+#else
+  return false;
+#endif
+});
 
 
 
