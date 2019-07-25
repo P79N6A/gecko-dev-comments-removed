@@ -1263,10 +1263,13 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
         
         RenderVideoFrame(videoData);
       }
-      mDecoder->GetMonitor().NotifyAll();
       frameDuration = videoData->mEndTime - videoData->mTime;
       videoData = nsnull;
     }
+
+    
+    
+    mDecoder->GetMonitor().NotifyAll();
 
     
     
