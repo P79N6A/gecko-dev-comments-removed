@@ -57,15 +57,31 @@ class SubdocumentScrollHelper implements GeckoEventListener {
     private final PanZoomController mPanZoomController;
     private final Handler mUiHandler;
 
+    
+
+    private final PointF mPendingDisplacement;
+
+    
     private boolean mOverridePanning;
+
+    
+
+
     private boolean mOverrideScrollAck;
+
+    
+
     private boolean mOverrideScrollPending;
+
+    
+
     private boolean mScrollSucceeded;
 
     SubdocumentScrollHelper(PanZoomController controller) {
         mPanZoomController = controller;
         
         mUiHandler = new Handler();
+        mPendingDisplacement = new PointF();
 
         GeckoAppShell.registerGeckoEventListener(MESSAGE_PANNING_OVERRIDE, this);
         GeckoAppShell.registerGeckoEventListener(MESSAGE_CANCEL_OVERRIDE, this);
@@ -79,11 +95,10 @@ class SubdocumentScrollHelper implements GeckoEventListener {
 
         if (! mOverrideScrollAck) {
             mOverrideScrollPending = true;
+            mPendingDisplacement.x += displacement.x;
+            mPendingDisplacement.y += displacement.y;
             return true;
         }
-
-        mOverrideScrollAck = false;
-        mOverrideScrollPending = false;
 
         JSONObject json = new JSONObject();
         try {
@@ -93,6 +108,13 @@ class SubdocumentScrollHelper implements GeckoEventListener {
             Log.e(LOGTAG, "Error forming subwindow scroll message: ", e);
         }
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent(MESSAGE_SCROLL, json.toString()));
+
+        mOverrideScrollAck = false;
+        mOverrideScrollPending = false;
+        
+        
+        mPendingDisplacement.x = 0;
+        mPendingDisplacement.y = 0;
 
         return true;
     }
@@ -128,7 +150,7 @@ class SubdocumentScrollHelper implements GeckoEventListener {
                         mOverrideScrollAck = true;
                         mScrollSucceeded = message.getBoolean("scrolled");
                         if (mOverridePanning && mOverrideScrollPending) {
-                            scrollBy(mPanZoomController.getDisplacement());
+                            scrollBy(mPendingDisplacement);
                         }
                     }
                 } catch (Exception e) {
