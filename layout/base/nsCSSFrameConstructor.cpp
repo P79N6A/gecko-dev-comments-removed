@@ -2594,6 +2594,14 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
 
 
 
+
+
+
+
+
+
+
+
   
 
 
@@ -2662,7 +2670,21 @@ nsCSSFrameConstructor::SetUpDocElementContainingBlock(nsIContent* aDocElement)
   }
 
   
-  bool isScrollable = isPaginated ? presContext->HasPaginatedScrolling() : !isXUL;
+  bool isScrollable = !isXUL;
+
+#ifndef MOZ_WIDGET_ANDROID
+  
+  
+  if (isHTML) {
+    nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
+    if (htmlDoc && htmlDoc->GetIsFrameset())
+      isScrollable = false;
+  }
+#endif
+
+  if (isPaginated) {
+    isScrollable = presContext->HasPaginatedScrolling();
+  }
 
   
   

@@ -1964,10 +1964,6 @@ public:
 
 
 
-
-
-
-
   gfx3DMatrix GetTransformMatrix(nsIFrame* aStopAtAncestor,
                                  nsIFrame **aOutAncestor);
 

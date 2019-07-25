@@ -2964,25 +2964,26 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
                       nsAutoLineIterator& aLines,
                       PRInt32& aCurLine)
 {
-  nsIFrame* frame = aFrame;
-  nsRect frameBounds = nsRect(nsPoint(0, 0), aFrame->GetSize());
+  nsRect frameBounds = aFrame->GetRect() +
+    aFrame->GetParent()->GetOffsetTo(aContainerFrame);
 
   
   
   
   if (frameBounds.height == 0 || aUseWholeLineHeightForInlines) {
+    nsIAtom* frameType = NULL;
     nsIFrame *prevFrame = aFrame;
     nsIFrame *f = aFrame;
 
-    while (f && f->IsFrameOfType(nsIFrame::eLineParticipant) &&
-           !f->IsTransformed() && !f->GetStyleDisplay()->IsPositioned()) {
+    while (f &&
+           (frameType = f->GetType()) == nsGkAtoms::inlineFrame) {
       prevFrame = f;
       f = prevFrame->GetParent();
     }
 
     if (f != aFrame &&
         f &&
-        f->GetType() == nsGkAtoms::blockFrame) {
+        frameType == nsGkAtoms::blockFrame) {
       
       if (f != aPrevBlock) {
         aLines = f->GetLineIterator();
@@ -3000,8 +3001,7 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
 
           if (NS_SUCCEEDED(aLines->GetLine(index, &trash1, &trash2,
                                            lineBounds, &trash3))) {
-            frameBounds += frame->GetOffsetTo(f);
-            frame = f;
+            lineBounds += f->GetOffsetTo(aContainerFrame);
             if (lineBounds.y < frameBounds.y) {
               frameBounds.height = frameBounds.YMost() - lineBounds.y;
               frameBounds.y = lineBounds.y;
@@ -3012,17 +3012,14 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
     }
   }
 
-  nsRect transformedBounds = nsLayoutUtils::TransformFrameRectToAncestor(frame,
-    frameBounds, aContainerFrame);
-
   if (aHaveRect) {
     
     
     
-    aRect.UnionRectEdges(aRect, transformedBounds);
+    aRect.UnionRectEdges(aRect, frameBounds);
   } else {
     aHaveRect = true;
-    aRect = transformedBounds;
+    aRect = frameBounds;
   }
 }
 
@@ -3318,14 +3315,8 @@ PresShell::ScrollFrameRectIntoView(nsIFrame*                aFrame,
         break;
       }
     }
-    nsIFrame* parent;
-    if (container->IsTransformed()) {
-      container->GetTransformMatrix(nsnull, &parent);
-      rect = nsLayoutUtils::TransformFrameRectToAncestor(container, rect, parent);
-    } else {
-      rect += container->GetPosition();
-      parent = container->GetParent();
-    }
+    rect += container->GetPosition();
+    nsIFrame* parent = container->GetParent();
     if (!parent && !(aFlags & nsIPresShell::SCROLL_NO_PARENT_FRAMES)) {
       nsPoint extraOffset(0,0);
       parent = nsLayoutUtils::GetCrossDocParentFrame(container, &extraOffset);
