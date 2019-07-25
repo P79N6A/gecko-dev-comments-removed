@@ -55,13 +55,28 @@ function test() {
 function onTabViewLoadedAndShown() {
   window.removeEventListener("tabviewshown", onTabViewLoadedAndShown, false);
   
-  ok(TabView.isVisible(), "Tab View is visible. Count: " + tabViewShownCount);
-  tabViewShownCount++;
   
   
-  window.addEventListener("tabviewshown", onTabViewShown, false);
-  window.addEventListener("tabviewhidden", onTabViewHidden, false);
-  TabView.toggle();
+  
+  
+  
+  
+  let deck = document.getElementById("tab-view-deck");
+  function waitForSwitch() {
+    if (deck.selectedIndex == 1) {
+      ok(TabView.isVisible(), "Tab View is visible. Count: " + tabViewShownCount);
+      tabViewShownCount++;
+      
+      
+      window.addEventListener("tabviewshown", onTabViewShown, false);
+      window.addEventListener("tabviewhidden", onTabViewHidden, false);
+      TabView.toggle();
+    } else {
+      setTimeout(waitForSwitch, 10);
+    }
+  }
+  
+  setTimeout(waitForSwitch, 1);
 }
 
 
