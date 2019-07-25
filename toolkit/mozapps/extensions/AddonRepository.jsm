@@ -1290,10 +1290,10 @@ var AddonDatabase = {
   
   databaseOk: true,
   
-  statementCache: {},
+  asyncStatementsCache: {},
 
   
-  statements: {
+  queries: {
     getAllAddons: "SELECT internal_id, id, type, name, version, " +
                   "creator, creatorURL, description, fullDescription, " +
                   "developerComments, eula, iconURL, homepageURL, supportURL, " +
@@ -1445,9 +1445,9 @@ var AddonDatabase = {
 
     this.initialized = false;
 
-    for each (let stmt in this.statementCache)
+    for each (let stmt in this.asyncStatementsCache)
       stmt.finalize();
-    this.statementCache = {};
+    this.asyncStatementsCache = {};
 
     if (this.connection.transactionInProgress) {
       ERROR("Outstanding transaction, rolling back.");
@@ -1492,13 +1492,14 @@ var AddonDatabase = {
 
 
 
-  getStatement: function AD_getStatement(aKey) {
-    if (aKey in this.statementCache)
-      return this.statementCache[aKey];
 
-    let sql = this.statements[aKey];
+  getAsyncStatement: function AD_getAsyncStatement(aKey) {
+    if (aKey in this.asyncStatementsCache)
+      return this.asyncStatementsCache[aKey];
+
+    let sql = this.queries[aKey];
     try {
-      return this.statementCache[aKey] = this.connection.createStatement(sql);
+      return this.asyncStatementsCache[aKey] = this.connection.createAsyncStatement(sql);
     } catch (e) {
       ERROR("Error creating statement " + aKey + " (" + sql + ")");
       throw e;
@@ -1518,7 +1519,7 @@ var AddonDatabase = {
 
     
     function getAllAddons() {
-      self.getStatement("getAllAddons").executeAsync({
+      self.getAsyncStatement("getAllAddons").executeAsync({
         handleResult: function(aResults) {
           let row = null;
           while (row = aResults.getNextRow()) {
@@ -1543,7 +1544,7 @@ var AddonDatabase = {
 
     
     function getAllDevelopers() {
-      self.getStatement("getAllDevelopers").executeAsync({
+      self.getAsyncStatement("getAllDevelopers").executeAsync({
         handleResult: function(aResults) {
           let row = null;
           while (row = aResults.getNextRow()) {
@@ -1577,7 +1578,7 @@ var AddonDatabase = {
 
     
     function getAllScreenshots() {
-      self.getStatement("getAllScreenshots").executeAsync({
+      self.getAsyncStatement("getAllScreenshots").executeAsync({
         handleResult: function(aResults) {
           let row = null;
           while (row = aResults.getNextRow()) {
@@ -1628,7 +1629,7 @@ var AddonDatabase = {
     let self = this;
 
     
-    let stmts = [this.getStatement("emptyAddon")];
+    let stmts = [this.getAsyncStatement("emptyAddon")];
 
     this.connection.executeAsync(stmts, stmts.length, {
       handleResult: function() {},
@@ -1694,7 +1695,7 @@ var AddonDatabase = {
         if (!aArray || aArray.length == 0)
           return;
 
-        let stmt = self.getStatement(aStatementKey);
+        let stmt = self.getAsyncStatement(aStatementKey);
         let params = stmt.newBindingParamsArray();
         aArray.forEach(function(aElement, aIndex) {
           aAddParams(params, internal_id, aElement, aIndex);
@@ -1761,7 +1762,7 @@ var AddonDatabase = {
 
 
   _makeAddonStatement: function AD__makeAddonStatement(aAddon) {
-    let stmt = this.getStatement("insertAddon");
+    let stmt = this.getAsyncStatement("insertAddon");
     let params = stmt.params;
 
     PROP_SINGLE.forEach(function(aProperty) {
