@@ -652,10 +652,6 @@ protected:
   
   bool          mParsingCompoundProperty : 1;
 
-  
-  
-  bool          mFoundUnresolvablePrefix : 1;
-
 #ifdef DEBUG
   bool mScannerInited : 1;
 #endif
@@ -740,8 +736,7 @@ CSSParserImpl::CSSParserImpl()
     mNavQuirkMode(false),
     mUnsafeRulesEnabled(false),
     mHTMLMediaMode(false),
-    mParsingCompoundProperty(false),
-    mFoundUnresolvablePrefix(false)
+    mParsingCompoundProperty(false)
 #ifdef DEBUG
     , mScannerInited(false)
 #endif
@@ -1193,12 +1188,7 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
 
   AssertInitialState();
 
-  
-  
-  mFoundUnresolvablePrefix = false;
-
   bool success = ParseSelectorList(*aSelectorList, PRUnichar(0));
-  bool prefixErr = mFoundUnresolvablePrefix;
 
   
   
@@ -1217,8 +1207,6 @@ CSSParserImpl::ParseSelectorString(const nsSubstring& aSelectorString,
   }
 
   NS_ASSERTION(!*aSelectorList, "Shouldn't have list!");
-  if (prefixErr)
-    return NS_ERROR_DOM_NAMESPACE_ERR;
 
   return NS_ERROR_DOM_SYNTAX_ERR;
 }
@@ -9250,7 +9238,6 @@ CSSParserImpl::GetNamespaceIdForPrefix(const nsString& aPrefix)
       aPrefix.get()
     };
     REPORT_UNEXPECTED_P(PEUnknownNamespacePrefix, params);
-    mFoundUnresolvablePrefix = true;
   }
 
   return nameSpaceID;
