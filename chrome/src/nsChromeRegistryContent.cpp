@@ -1,0 +1,267 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "RegistryMessageUtils.h"
+#include "nsChromeRegistry.h"
+#include "nsChromeRegistryContent.h"
+#include "nsString.h"
+#include "nsNetUtil.h"
+#include "nsResProtocolHandler.h"
+
+nsChromeRegistryContent::nsChromeRegistryContent()
+{
+  mPackagesHash.Init();
+}
+
+void
+nsChromeRegistryContent::RegisterRemoteChrome(
+    const nsTArray<ChromePackage>& aPackages,
+    const nsTArray<ResourceMapping>& aResources,
+    const nsTArray<OverrideMapping>& aOverrides)
+{
+  for (PRUint32 i = aPackages.Length(); i > 0; ) {
+    --i;
+    RegisterPackage(aPackages[i]);
+  }
+
+  for (PRUint32 i = aResources.Length(); i > 0; ) {
+    --i;
+    RegisterResource(aResources[i]);
+  }
+
+  for (PRUint32 i = aOverrides.Length(); i > 0; ) {
+    --i;
+    RegisterOverride(aOverrides[i]);
+  }
+}
+
+void
+nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
+{
+  nsCOMPtr<nsIIOService> io (do_GetIOService());
+  if (!io)
+    return;
+
+  nsCOMPtr<nsIURI> content, locale, skin;
+
+  if (aPackage.contentBaseURI.spec.Length()) {
+    nsresult rv = NS_NewURI(getter_AddRefs(content),
+                            aPackage.contentBaseURI.spec,
+                            aPackage.contentBaseURI.charset.get(),
+                            nsnull, io);
+    if (NS_FAILED(rv))
+      return;
+  }
+  if (aPackage.localeBaseURI.spec.Length()) {
+    nsresult rv = NS_NewURI(getter_AddRefs(locale),
+                            aPackage.localeBaseURI.spec,
+                            aPackage.localeBaseURI.charset.get(),
+                            nsnull, io);
+    if (NS_FAILED(rv))
+      return;
+  }
+  if (aPackage.skinBaseURI.spec.Length()) {
+    nsCOMPtr<nsIURI> skinBaseURI;
+    nsresult rv = NS_NewURI(getter_AddRefs(skin),
+                            aPackage.skinBaseURI.spec,
+                            aPackage.skinBaseURI.charset.get(),
+                            nsnull, io);
+    if (NS_FAILED(rv))
+      return;
+  }
+
+  PackageEntry* entry = new PackageEntry;
+  entry->flags = aPackage.flags;
+  entry->contentBaseURI = content;
+  entry->localeBaseURI = locale;
+  entry->skinBaseURI = skin;
+
+  nsresult rv = mPackagesHash.Put(aPackage.package, entry);
+  if (NS_FAILED(rv))
+    return;
+}
+
+void
+nsChromeRegistryContent::RegisterResource(const ResourceMapping& aResource)
+{
+  nsCOMPtr<nsIIOService> io (do_GetIOService());
+  if (!io)
+    return;
+
+  nsCOMPtr<nsIProtocolHandler> ph;
+  nsresult rv = io->GetProtocolHandler("resource", getter_AddRefs(ph));
+  if (NS_FAILED(rv))
+    return;
+  
+  nsCOMPtr<nsIResProtocolHandler> rph (do_QueryInterface(ph));
+  if (!rph)
+    return;
+
+  nsCOMPtr<nsIURI> resolvedURI;
+  if (aResource.resolvedURI.spec.Length()) {
+    nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI),
+                            aResource.resolvedURI.spec,
+                            aResource.resolvedURI.charset.get(),
+                            nsnull, io);                 
+    if (NS_FAILED(rv))
+      return;
+  }
+
+  rv = rph->SetSubstitution(aResource.resource, resolvedURI);
+  if (NS_FAILED(rv))
+    return;
+}
+
+void
+nsChromeRegistryContent::RegisterOverride(const OverrideMapping& aOverride)
+{
+  nsCOMPtr<nsIIOService> io (do_GetIOService());
+  if (!io)
+    return;
+
+  nsCOMPtr<nsIURI> chromeURI, overrideURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(chromeURI),
+                          aOverride.originalURI.spec,
+                          aOverride.originalURI.charset.get(),
+                          nsnull, io);
+  if (NS_FAILED(rv))
+    return;
+
+  rv = NS_NewURI(getter_AddRefs(overrideURI), aOverride.overrideURI.spec,
+                 aOverride.overrideURI.charset.get(), nsnull, io);
+  if (NS_FAILED(rv))
+    return;
+  
+  mOverrideTable.Put(chromeURI, overrideURI);
+}
+
+nsresult
+nsChromeRegistryContent::GetBaseURIFromPackage(const nsCString& aPackage,
+                                               const nsCString& aProvider,
+                                               const nsCString& aPath,
+                                               nsIURI* *aResult)
+{
+  PackageEntry* entry;
+  if (!mPackagesHash.Get(aPackage, &entry)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aResult = nsnull;
+  if (aProvider.EqualsLiteral("locale")) {
+    *aResult = entry->localeBaseURI;
+  }
+  else if (aProvider.EqualsLiteral("skin")) {
+    *aResult = entry->skinBaseURI;
+  }
+  else if (aProvider.EqualsLiteral("content")) {
+    *aResult = entry->contentBaseURI;
+  }
+  return NS_OK;
+}
+
+nsresult
+nsChromeRegistryContent::GetFlagsFromPackage(const nsCString& aPackage,
+                                             PRUint32* aFlags)
+{
+  PackageEntry* entry;
+  if (!mPackagesHash.Get(aPackage, &entry)) {
+    return NS_ERROR_FAILURE;
+  }
+  *aFlags = entry->flags;
+  return NS_OK;
+}
+
+
+
+#define CONTENT_NOT_IMPLEMENTED() \
+  NS_NOTREACHED("Content should not be calling this"); \
+  return NS_ERROR_NOT_IMPLEMENTED;
+
+NS_IMETHODIMP
+nsChromeRegistryContent::GetLocalesForPackage(const nsACString& aPackage,
+                                              nsIUTF8StringEnumerator* *aResult)
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+
+NS_IMETHODIMP
+nsChromeRegistryContent::CheckForOSAccessibility()
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+
+NS_IMETHODIMP
+nsChromeRegistryContent::CheckForNewChrome()
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+
+NS_IMETHODIMP
+nsChromeRegistryContent::IsLocaleRTL(const nsACString& package,
+                                     PRBool *aResult)
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+
+NS_IMETHODIMP
+nsChromeRegistryContent::GetSelectedLocale(const nsACString& aPackage,
+                                           nsACString& aLocale)
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+  
+NS_IMETHODIMP
+nsChromeRegistryContent::Observe(nsISupports* aSubject, const char* aTopic,
+                                 const PRUnichar* aData)
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+
+NS_IMETHODIMP
+nsChromeRegistryContent::GetStyleOverlays(nsIURI *aChromeURL,
+                                          nsISimpleEnumerator **aResult)
+{
+  CONTENT_NOT_IMPLEMENTED();
+}
+
+NS_IMETHODIMP
+nsChromeRegistryContent::GetXULOverlays(nsIURI *aChromeURL,
+                                        nsISimpleEnumerator **aResult)
+{
+  CONTENT_NOT_IMPLEMENTED();
+}

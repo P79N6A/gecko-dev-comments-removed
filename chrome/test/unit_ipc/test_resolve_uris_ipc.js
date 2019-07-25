@@ -1,0 +1,9 @@
+
+
+
+
+function run_test() {
+  load("../unit/test_resolve_uris.js");
+  do_run_test();
+  run_test_in_child("../unit/test_resolve_uris.js");
+}
