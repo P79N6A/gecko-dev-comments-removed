@@ -1404,7 +1404,12 @@ LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
 #elif defined(XP_MACOSX)
   LaunchChild(argc, argv);
 #elif defined(XP_WIN)
-  WinLaunchChild(argv[0], argc, argv, NULL);
+  
+  
+  WCHAR *usingService = _wgetenv(L"MOZ_USING_SERVICE");
+  if (!usingService) {
+    WinLaunchChild(argv[0], argc, argv, NULL);
+  }
 #else
 # warning "Need implementaton of LaunchCallbackApp"
 #endif
@@ -1672,11 +1677,12 @@ int NS_main(int argc, NS_tchar **argv)
   const int callbackIndex = 5;
 
 #if defined(XP_WIN)
+  WCHAR *usingService = _wgetenv(L"MOZ_USING_SERVICE");
   
   
   HANDLE updateLockFileHandle;
   NS_tchar elevatedLockFilePath[MAXPATHLEN];
-  if (argc > callbackIndex) {
+  if (argc > callbackIndex && !usingService) {
     NS_tchar updateLockFilePath[MAXPATHLEN];
     NS_tsnprintf(updateLockFilePath,
                  sizeof(updateLockFilePath)/sizeof(updateLockFilePath[0]),
@@ -2009,7 +2015,6 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      WCHAR *usingService = _wgetenv(L"MOZ_USING_SERVICE");
       if (!usingService) {
         if (!LaunchWinPostProcess(argv[2], gSourcePath, false, NULL)) {
           LOG(("NS_main: The post update process could not be launched.\n"));

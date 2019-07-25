@@ -95,7 +95,7 @@ StartUpdateProcess(LPCWSTR updaterPath,
   si.lpDesktop = L"winsta0\\Default";
   PROCESS_INFORMATION pi = {0};
 
-  LOG(("Starting update process as the service in session 0."));
+  LOG(("Starting update process as the service in session 0.\n"));
 
   
   

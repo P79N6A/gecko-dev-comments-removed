@@ -423,7 +423,9 @@ WinLaunchServiceCommand(LPCWSTR exePath, int argc, LPWSTR* argv)
   
   
   
-  LPWSTR commandLineBuffer = MakeCommandLine(min(argc, 4), argv);
+  
+  
+  LPWSTR commandLineBuffer = MakeCommandLine(argc, argv);
   if (!commandLineBuffer) {
     return FALSE;
   }
