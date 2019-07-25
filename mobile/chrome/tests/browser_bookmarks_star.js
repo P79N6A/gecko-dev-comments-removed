@@ -74,13 +74,7 @@ gTests.push({
   },
 
   onPopupGone: function() {
-    
-    is(document.getElementById("bookmark-popup").hidden, true, "Bookmark popup should be auto-hidden");
-
-    
-    let starbutton = document.getElementById("tool-star");
-    starbutton.click();
-
+    is(document.getElementById("bookmark-popup").hidden, false, "Bookmark popup should not be auto-hidden");
     waitFor(gCurrentTest.onPopupReady2, function() { return document.getElementById("bookmark-popup").hidden == false; });
   },
 
