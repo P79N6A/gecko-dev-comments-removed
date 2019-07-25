@@ -1358,6 +1358,15 @@ public:
   virtual void ResetScrolledToRefAlready() = 0;
   virtual void SetChangeScrollPosWhenScrollingToRef(PRBool aValue) = 0;
 
+  
+
+
+
+
+
+  virtual mozilla::dom::Element* GetElementById(const nsAString& aElementId,
+                                                nsresult* aResult) = 0;
+
 protected:
   ~nsIDocument()
   {
