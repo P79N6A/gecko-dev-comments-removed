@@ -971,7 +971,11 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
     ch = Read();
     if (ch < 0) break;
     if (ch == CSS_ESCAPE) {
-      ParseAndAppendEscape(ident, PR_FALSE);
+      if (!ParseAndAppendEscape(ident, PR_FALSE)) {
+        ok = PR_FALSE;
+        Pushback(ch);
+        break;
+      }
     } else if (IsWhitespace(ch)) {
       
       EatWhiteSpace();
@@ -1002,13 +1006,16 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
 }
 
 
-void
+
+
+
+
+PRBool
 nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, PRBool aInString)
 {
   PRInt32 ch = Peek();
   if (ch < 0) {
-    aOutput.Append(CSS_ESCAPE);
-    return;
+    return PR_FALSE;
   }
   if (IsHexDigit(ch)) {
     PRInt32 rv = 0;
@@ -1054,7 +1061,7 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, PRBool aInString)
       if (IsWhitespace(ch))
         Pushback(ch);
     }
-    return;
+    return PR_TRUE;
   } 
   
   
@@ -1063,6 +1070,8 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, PRBool aInString)
   if ((ch > 0) && (ch != '\n')) {
     aOutput.Append(ch);
   }
+
+  return PR_TRUE;
 }
 
 
@@ -1080,7 +1089,9 @@ PRBool
 nsCSSScanner::GatherIdent(PRInt32 aChar, nsString& aIdent)
 {
   if (aChar == CSS_ESCAPE) {
-    ParseAndAppendEscape(aIdent, PR_FALSE);
+    if (!ParseAndAppendEscape(aIdent, PR_FALSE)) {
+      return PR_FALSE;
+    }
   }
   else if (0 < aChar) {
     aIdent.Append(aChar);
@@ -1107,7 +1118,10 @@ nsCSSScanner::GatherIdent(PRInt32 aChar, nsString& aIdent)
     aChar = Read();
     if (aChar < 0) break;
     if (aChar == CSS_ESCAPE) {
-      ParseAndAppendEscape(aIdent, PR_FALSE);
+      if (!ParseAndAppendEscape(aIdent, PR_FALSE)) {
+        Pushback(aChar);
+        break;
+      }
     } else if (IsIdent(aChar)) {
       aIdent.Append(PRUnichar(aChar));
     } else {
@@ -1381,7 +1395,21 @@ nsCSSScanner::ParseString(PRInt32 aStop, nsCSSToken& aToken)
       break;
     }
     if (ch == CSS_ESCAPE) {
-      ParseAndAppendEscape(aToken.mIdent, PR_TRUE);
+      if (!ParseAndAppendEscape(aToken.mIdent, PR_TRUE)) {
+        aToken.mType = eCSSToken_Bad_String;
+        Pushback(ch);
+#ifdef CSS_REPORT_PARSE_ERRORS
+        
+        
+        
+        
+        
+        
+        
+        ReportUnexpectedToken(aToken, "SEUnterminatedString");
+#endif
+        break;
+      }
     } else {
       aToken.mIdent.Append(ch);
     }
