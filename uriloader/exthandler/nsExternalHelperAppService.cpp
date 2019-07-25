@@ -715,6 +715,9 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     if (channel)
       ExtractDisposition(channel, disp);
 
+    nsCOMPtr<nsIURI> referrer;
+    rv = NS_GetReferrerFromChannel(channel, getter_AddRefs(referrer));
+
     
     
     
@@ -723,7 +726,8 @@ NS_IMETHODIMP nsExternalHelperAppService::DoContent(const nsACString& aMimeConte
     pc = child->SendPExternalHelperAppConstructor(IPC::URI(uri),
                                                   nsCString(aMimeContentType),
                                                   disp,
-                                                  aForceSave, contentLength);
+                                                  aForceSave, contentLength,
+                                                  IPC::URI(referrer));
     ExternalHelperAppChild *childListener = static_cast<ExternalHelperAppChild *>(pc);
 
     NS_ADDREF(*aStreamListener = childListener);
