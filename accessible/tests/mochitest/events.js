@@ -331,7 +331,7 @@ function eventQueue(aEventType)
     var idx = 0;
     for (; idx < this.mEventSeq.length; idx++) {
       if (!this.isEventUnexpected(idx) && (invoker.wasCaught[idx] == true) &&
-          this.compareEvents(idx, aEvent)) {
+          this.isAlreadyCaught(idx, aEvent)) {
 
         var msg = "Doubled event { event type: " +
           this.getEventTypeAsString(idx) + ", target: " +
@@ -541,6 +541,15 @@ function eventQueue(aEventType)
     var target2 = (aEvent instanceof nsIDOMEvent) ?
       aEvent.originalTarget : aEvent.DOMNode;
     return target1 == target2;
+  }
+
+  this.isAlreadyCaught = function eventQueue_isAlreadyCaught(aIdx, aEvent)
+  {
+    
+    
+    
+    return this.compareEvents(aIdx, aEvent) &&
+      !(aEvent instanceof nsIAccessibleTextChangeEvent);
   }
 
   this.checkEvent = function eventQueue_checkEvent(aIdx, aEvent)
