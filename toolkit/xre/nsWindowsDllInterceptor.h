@@ -200,23 +200,9 @@ protected:
         unsigned char b = origBytes[nBytes+1];
         if (((b & 0xc0) == 0xc0) ||
             (((b & 0xc0) == 0x00) &&
-             ((b & 0x07) != 0x04) && ((b & 0x07) != 0x05)))
+             ((b & 0x38) != 0x20) && ((b & 0x38) != 0x28)))
         {
-          
           nBytes += 2;
-        } else if (((b & 0xc0) == 0x40) && ((b & 0x38) != 0x20)) {
-          
-          nBytes += 3;
-        } else {
-          
-          return 0;
-        }
-      } else if (origBytes[nBytes] == 0x83) {
-        
-        unsigned char b = origBytes[nBytes+1];
-        if ((b & 0xc0) == 0xc0) {
-          
-          nBytes += 3;
         } else {
           
           return 0;
@@ -271,7 +257,7 @@ protected:
         } else {
           return 0;
         }
-      } else if ((origBytes[nBytes] & 0xfb) == 0x48) {
+      } else if (origBytes[nBytes] == 0x48) {
         
         nBytes++;
 
@@ -286,7 +272,7 @@ protected:
                   (origBytes[nBytes+1] & 0xf8) == 0x60) {
           
           nBytes += 5;
-        } else if ((origBytes[nBytes] & 0xfd) == 0x89) {
+        } else if (origBytes[nBytes] == 0x89) {
           
           if ((origBytes[nBytes+1] & 0xc0) == 0x40) {
             if ((origBytes[nBytes+1] & 0x7) == 0x04) {
@@ -296,9 +282,21 @@ protected:
               
               nBytes += 3;
             }
-          } else if (((origBytes[nBytes+1] & 0xc0) == 0xc0) ||
-                     (((origBytes[nBytes+1] & 0xc0) == 0x00) &&
-                      ((origBytes[nBytes+1] & 0x07) != 0x04) && ((origBytes[nBytes+1] & 0x07) != 0x05))) {
+          } else {
+            
+            return 0;
+          }
+        } else if (origBytes[nBytes] == 0x8b) {
+          
+          if ((origBytes[nBytes+1] & 0xc0) == 0x40) {
+            if ((origBytes[nBytes+1] & 0x7) == 0x04) {
+              
+              nBytes += 4;
+            } else {
+              
+              nBytes += 3;
+            }
+          } else if ((origBytes[nBytes+1] & 0xc0) == 0xc0) {
             
             nBytes += 2;
           } else {
