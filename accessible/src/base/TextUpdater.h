@@ -110,9 +110,8 @@ private:
   
 
 
-  void UpdateTextNFireEvent(const nsAString& aNewText,
-                            const nsAString& aChangeText, PRUint32 aAddlOffset,
-                            PRBool aIsInserted);
+
+  const static PRUint32 kMaxStrLen = 1 << 6;
 
 private:
   nsDocAccessible* mDocument;
