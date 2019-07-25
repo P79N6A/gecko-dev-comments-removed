@@ -87,11 +87,16 @@ public class PanZoomController
     private static final float PAN_THRESHOLD = 4.0f;
     
     private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
+    
+    
+    private static final float MAX_EVENT_ACCELERATION = 0.012f;
 
     private Timer mFlingTimer;
     private Axis mX, mY;
     
     private PointF mLastZoomFocus;
+    
+    private long mLastEventTime;
 
     private enum PanZoomState {
         NOTHING,        
@@ -145,8 +150,13 @@ public class PanZoomController
         case FLING:
         case NOTHING:
             mState = PanZoomState.TOUCHING;
-            mX.firstTouchPos = mX.touchPos = event.getX(0);
-            mY.firstTouchPos = mY.touchPos = event.getY(0);
+            mX.setFlingState(Axis.FlingStates.STOPPED);
+            mY.setFlingState(Axis.FlingStates.STOPPED);
+            mX.velocity = mY.velocity = 0.0f;
+            mX.locked = mY.locked = false;
+            mX.lastTouchPos = mX.firstTouchPos = mX.touchPos = event.getX(0);
+            mY.lastTouchPos = mY.firstTouchPos = mY.touchPos = event.getY(0);
+            mLastEventTime = event.getEventTime();
             return false;
         case TOUCHING:
         case PANNING:
@@ -246,33 +256,77 @@ public class PanZoomController
         return (float)Math.sqrt(dx * dx + dy * dy);
     }
 
-    private void track(MotionEvent event) {
-        float x = event.getX(0);
-        float y = event.getY(0);
+    private float clampByFactor(float oldValue, float newValue, float factor) {
+        float maxChange = Math.abs(oldValue * factor);
+        return Math.min(oldValue + maxChange, Math.max(oldValue - maxChange, newValue));
+    }
 
+    private void track(float x, float y, float lastX, float lastY, float timeDelta) {
         if (mState == PanZoomState.PANNING_LOCKED) {
             
             double angle = Math.atan2(y - mY.firstTouchPos, x - mX.firstTouchPos); 
             angle = Math.abs(angle); 
             if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
                 
-                y = mY.firstTouchPos;
+                mX.locked = false;
+                mY.locked = true;
             } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
                 
-                x = mX.firstTouchPos;
+                mX.locked = true;
+                mY.locked = false;
             } else {
                 
                 mState = PanZoomState.PANNING;
+                mX.locked = mY.locked = false;
                 angle = Math.abs(angle - (Math.PI / 2));  
                 Log.i(LOGTAG, "Breaking axis lock at " + (angle * 180.0 / Math.PI) + " degrees");
             }
         }
 
-        float zoomFactor = 1.0f;
-        mX.velocity = (mX.touchPos - x) / zoomFactor;
-        mY.velocity = (mY.touchPos - y) / zoomFactor;
-        mX.touchPos = x;
-        mY.touchPos = y;
+        float newVelocityX = ((lastX - x) / timeDelta) * (1000.0f/60.0f);
+        float newVelocityY = ((lastY - y) / timeDelta) * (1000.0f/60.0f);
+        float maxChange = MAX_EVENT_ACCELERATION * timeDelta;
+
+        
+        
+        
+        if (Math.abs(mX.velocity) < 1.0f ||
+            (((mX.velocity > 0) != (newVelocityX > 0)) &&
+             !FloatUtils.fuzzyEquals(newVelocityX, 0.0f)))
+            mX.velocity = newVelocityX;
+        else
+            mX.velocity = clampByFactor(mX.velocity, newVelocityX, maxChange);
+        if (Math.abs(mY.velocity) < 1.0f ||
+            (((mY.velocity > 0) != (newVelocityY > 0)) &&
+             !FloatUtils.fuzzyEquals(newVelocityY, 0.0f)))
+            mY.velocity = newVelocityY;
+        else
+            mY.velocity = clampByFactor(mY.velocity, newVelocityY, maxChange);
+    }
+
+    private void track(MotionEvent event) {
+        mX.lastTouchPos = mX.touchPos;
+        mY.lastTouchPos = mY.touchPos;
+
+        for (int i = 0; i < event.getHistorySize(); i++) {
+            float x = event.getHistoricalX(0, i);
+            float y = event.getHistoricalY(0, i);
+            long time = event.getHistoricalEventTime(i);
+
+            float timeDelta = (float)(time - mLastEventTime);
+            mLastEventTime = time;
+
+            track(x, y, mX.touchPos, mY.touchPos, timeDelta);
+            mX.touchPos = x; mY.touchPos = y;
+        }
+
+        float timeDelta = (float)(event.getEventTime() - mLastEventTime);
+        mLastEventTime = event.getEventTime();
+
+        track(event.getX(0), event.getY(0), mX.touchPos, mY.touchPos, timeDelta);
+
+        mX.touchPos = event.getX(0);
+        mY.touchPos = event.getY(0);
 
         if (stopped()) {
             if (mState == PanZoomState.PANNING) {
@@ -402,7 +456,9 @@ public class PanZoomController
 
         public float firstTouchPos;             
         public float touchPos;                  
+        public float lastTouchPos;              
         public float velocity;                  
+        public boolean locked;                  
 
         private FlingStates mFlingState;        
         private EaseOutAnimation mSnapAnim;     
@@ -414,6 +470,10 @@ public class PanZoomController
         private float mPageLength;
 
         public FlingStates getFlingState() { return mFlingState; }
+
+        public void setFlingState(FlingStates aFlingState) {
+            mFlingState = aFlingState;
+        }
 
         public void setViewportLength(float viewportLength) { mViewportLength = viewportLength; }
         public void setScreenLength(int screenLength) { mScreenLength = screenLength; }
@@ -535,7 +595,15 @@ public class PanZoomController
         }
 
         
-        public void displace() { viewportPos += velocity; }
+        public void displace() {
+            if (locked)
+                return;
+
+            if (mFlingState == FlingStates.SCROLLING)
+                viewportPos += velocity;
+            else
+                viewportPos += lastTouchPos - touchPos;
+        }
     }
 
     private static class EaseOutAnimation {
