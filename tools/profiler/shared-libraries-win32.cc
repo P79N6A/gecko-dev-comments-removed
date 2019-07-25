@@ -88,7 +88,24 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf()
       nsID pdbSig;
       uint32_t pdbAge;
       char *pdbName = NULL;
-      if (GetPdbInfo((uintptr_t)module.modBaseAddr, pdbSig, pdbAge, &pdbName)) {
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      HMODULE handleLock = LoadLibraryEx(module.szExePath, NULL, LOAD_LIBRARY_AS_DATAFILE);
+      MEMORY_BASIC_INFORMATION vmemInfo = {0};
+      if (handleLock &&
+          sizeof(vmemInfo) == VirtualQuery(module.modBaseAddr, &vmemInfo, sizeof(vmemInfo)) &&
+          vmemInfo.State == MEM_COMMIT &&
+          GetPdbInfo((uintptr_t)module.modBaseAddr, pdbSig, pdbAge, &pdbName)) {
         SharedLibrary shlib((uintptr_t)module.modBaseAddr,
                             (uintptr_t)module.modBaseAddr+module.modBaseSize,
                             0, 
@@ -98,6 +115,7 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf()
                             module.szModule);
         sharedLibraryInfo.AddSharedLibrary(shlib);
       }
+      FreeLibrary(handleLock); 
     } while (Module32Next(snap, &module));
   }
 
