@@ -837,7 +837,8 @@ void nsBaseWidget::CreateCompositor()
     AsyncChannel *parentChannel = mCompositorParent->GetIPCChannel();
     AsyncChannel::Side childSide = mozilla::ipc::AsyncChannel::Child;
     mCompositorChild->Open(parentChannel, childMessageLoop, childSide);
-    PLayersChild* shadowManager = mCompositorChild->SendPLayersConstructor(                                                LayerManager::LAYERS_OPENGL);
+    PLayersChild* shadowManager =
+      mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL);
 
     if (shadowManager) {
       ShadowLayerForwarder* lf = lm->AsShadowForwarder();
