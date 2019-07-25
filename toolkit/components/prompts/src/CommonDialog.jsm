@@ -180,24 +180,21 @@ CommonDialog.prototype = {
 
 
         
-        
+        let b = (this.args.defaultButtonNum || 0)
+        let button = this.ui["button" + b];
+
+        if (xulDialog)
+            xulDialog.defaultButton = ['accept', 'cancel', 'extra1', 'extra2'][b];
+        else
+            button.setAttribute("default", "true");
+
         
         if (!this.hasInputField) {
-            
-            let b = 0;
-            if (this.args.defaultButtonNum)
-                b = this.args.defaultButtonNum;
-            let button = this.ui["button" + b];
-            if (xulDialog) {
-                xulDialog.defaultButton = ['accept', 'cancel', 'extra1', 'extra2'][b];
-                let isOSX = ("nsILocalFileMac" in Components.interfaces);
-                if (!isOSX)
-                    button.focus();
-            } else {
-                button.setAttribute("default", "true");
+            let isOSX = ("nsILocalFileMac" in Components.interfaces);
+            if (isOSX)
+                this.ui.infoBody.focus();
+            else
                 button.focus();
-            }
-
         } else {
             if (this.args.promptType == "promptPassword")
                 this.ui.password1Textbox.select();
