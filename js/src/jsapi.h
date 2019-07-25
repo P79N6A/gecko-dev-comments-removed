@@ -54,6 +54,10 @@
 
 #include "js/Utility.h"
 
+#ifdef __cplusplus
+#include "mozilla/Attributes.h"
+#endif
+
 
 
 
@@ -215,7 +219,7 @@ inline Anchor<T>::~Anchor()
 
 
 
-inline void PoisonPtr(jsuword *v)
+inline void PoisonPtr(uintptr_t *v)
 {
 #if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
     uint8_t *ptr = (uint8_t *) v + 3;
@@ -227,7 +231,7 @@ template <typename T>
 inline bool IsPoisonedPtr(T *v)
 {
 #if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
-    uint32_t mask = jsuword(v) & 0xff000000;
+    uint32_t mask = uintptr_t(v) & 0xff000000;
     return mask == uint32_t(JS_FREE_PATTERN << 24);
 #else
     return false;
@@ -786,6 +790,249 @@ inline Anchor<Value>::~Anchor()
 
 #endif
 
+#if defined JS_THREADSAFE && defined DEBUG
+
+class JS_PUBLIC_API(AutoCheckRequestDepth)
+{
+    JSContext *cx;
+  public:
+    AutoCheckRequestDepth(JSContext *cx);
+    ~AutoCheckRequestDepth();
+};
+
+# define CHECK_REQUEST(cx) \
+    JS::AutoCheckRequestDepth _autoCheckRequestDepth(cx)
+
+#else
+
+# define CHECK_REQUEST(cx) \
+    ((void) 0)
+
+#endif
+
+extern void
+MarkRuntime(JSTracer *trc);
+
+
+class JS_PUBLIC_API(AutoGCRooter) {
+  public:
+    AutoGCRooter(JSContext *cx, ptrdiff_t tag);
+    ~AutoGCRooter();
+
+    
+    inline void trace(JSTracer *trc);
+    void traceAll(JSTracer *trc);
+
+  protected:
+    AutoGCRooter * const down;
+
+    
+
+
+
+
+
+
+    ptrdiff_t tag;
+
+    JSContext * const context;
+
+    enum {
+        JSVAL =        -1, 
+        VALARRAY =     -2, 
+        PARSER =       -3, 
+        SHAPEVECTOR =  -4, 
+        ENUMERATOR =   -5, 
+        IDARRAY =      -6, 
+        DESCRIPTORS =  -7, 
+        NAMESPACES =   -8, 
+        XML =          -9, 
+        OBJECT =      -10, 
+        ID =          -11, 
+        VALVECTOR =   -12, 
+        DESCRIPTOR =  -13, 
+        STRING =      -14, 
+        IDVECTOR =    -15, 
+        OBJVECTOR =   -16, 
+        IONMASM =     -17  
+    };
+
+  private:
+    
+    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
+    void operator=(AutoGCRooter &ida) MOZ_DELETE;
+};
+
+class AutoValueRooter : private AutoGCRooter
+{
+  public:
+    explicit AutoValueRooter(JSContext *cx
+                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, JSVAL), val(NullValue())
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    AutoValueRooter(JSContext *cx, const Value &v
+                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, JSVAL), val(v)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    
+
+
+
+
+
+    void set(Value v) {
+        JS_ASSERT(tag == JSVAL);
+        val = v;
+    }
+
+    const Value &value() const {
+        JS_ASSERT(tag == JSVAL);
+        return val;
+    }
+
+    Value *addr() {
+        JS_ASSERT(tag == JSVAL);
+        return &val;
+    }
+
+    const Value &jsval_value() const {
+        JS_ASSERT(tag == JSVAL);
+        return val;
+    }
+
+    Value *jsval_addr() {
+        JS_ASSERT(tag == JSVAL);
+        return &val;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    friend void MarkRuntime(JSTracer *trc);
+
+  private:
+    Value val;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoObjectRooter : private AutoGCRooter {
+  public:
+    AutoObjectRooter(JSContext *cx, JSObject *obj = NULL
+                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, OBJECT), obj(obj)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    void setObject(JSObject *obj) {
+        this->obj = obj;
+    }
+
+    JSObject * object() const {
+        return obj;
+    }
+
+    JSObject ** addr() {
+        return &obj;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    friend void MarkRuntime(JSTracer *trc);
+
+  private:
+    JSObject *obj;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoStringRooter : private AutoGCRooter {
+  public:
+    AutoStringRooter(JSContext *cx, JSString *str = NULL
+                     JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, STRING), str(str)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    void setString(JSString *str) {
+        this->str = str;
+    }
+
+    JSString * string() const {
+        return str;
+    }
+
+    JSString ** addr() {
+        return &str;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+  private:
+    JSString *str;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoArrayRooter : private AutoGCRooter {
+  public:
+    AutoArrayRooter(JSContext *cx, size_t len, Value *vec
+                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, len), array(vec)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_ASSERT(tag >= 0);
+    }
+
+    void changeLength(size_t newLength) {
+        tag = ptrdiff_t(newLength);
+        JS_ASSERT(tag >= 0);
+    }
+
+    void changeArray(Value *newArray, size_t newLength) {
+        changeLength(newLength);
+        array = newArray;
+    }
+
+    Value *array;
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+  private:
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+
+class AutoEnumStateRooter : private AutoGCRooter
+{
+  public:
+    AutoEnumStateRooter(JSContext *cx, JSObject *obj
+                        JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, ENUMERATOR), obj(obj), stateValue()
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+        JS_ASSERT(obj);
+    }
+
+    ~AutoEnumStateRooter();
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+    const Value &state() const { return stateValue; }
+    Value *addr() { return &stateValue; }
+
+  protected:
+    void trace(JSTracer *trc);
+
+    JSObject * const obj;
+
+  private:
+    Value stateValue;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 }  
 
 
@@ -811,7 +1058,7 @@ IMPL_TO_JSVAL(jsval_layout l)
     return v;
 }
 
-#else  
+#else
 
 
 
@@ -833,7 +1080,7 @@ IMPL_TO_JSVAL(jsval_layout l)
     return l;
 }
 
-#endif  
+#endif
 
 JS_STATIC_ASSERT(sizeof(jsval_layout) == sizeof(jsval));
 
@@ -1637,6 +1884,40 @@ JSVAL_IS_UNIVERSAL(jsval v)
     return !JSVAL_IS_GCTHING(v);
 }
 
+#ifdef __cplusplus
+
+namespace JS {
+
+class AutoIdRooter : private AutoGCRooter
+{
+  public:
+    explicit AutoIdRooter(JSContext *cx, jsid id = INT_TO_JSID(0)
+                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, ID), id_(id)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    jsid id() {
+        return id_;
+    }
+
+    jsid * addr() {
+        return &id_;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    friend void MarkRuntime(JSTracer *trc);
+
+  private:
+    jsid id_;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+} 
+
+#endif
+
 
 
 
@@ -2084,6 +2365,12 @@ JS_GetContextPrivate(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
 JS_SetContextPrivate(JSContext *cx, void *data);
+
+extern JS_PUBLIC_API(void *)
+JS_GetSecondContextPrivate(JSContext *cx);
+
+extern JS_PUBLIC_API(void)
+JS_SetSecondContextPrivate(JSContext *cx, void *data);
 
 extern JS_PUBLIC_API(JSRuntime *)
 JS_GetRuntime(JSContext *cx);
@@ -3085,7 +3372,7 @@ JS_GetExternalStringClosure(JSContext *cx, JSString *str);
 
 
 extern JS_PUBLIC_API(void)
-JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
+JS_SetThreadStackLimit(JSContext *cx, uintptr_t limitAddr);
 
 
 
@@ -3212,6 +3499,57 @@ JS_IdArrayGet(JSContext *cx, JSIdArray *ida, jsint index);
 
 extern JS_PUBLIC_API(void)
 JS_DestroyIdArray(JSContext *cx, JSIdArray *ida);
+
+#ifdef __cplusplus
+
+namespace JS {
+
+class AutoIdArray : private AutoGCRooter {
+  public:
+    AutoIdArray(JSContext *cx, JSIdArray *ida JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, IDARRAY), idArray(ida)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    ~AutoIdArray() {
+        if (idArray)
+            JS_DestroyIdArray(context, idArray);
+    }
+    bool operator!() {
+        return !idArray;
+    }
+    jsid operator[](size_t i) const {
+        JS_ASSERT(idArray);
+        JS_ASSERT(i < length());
+        return JS_IdArrayGet(context, idArray, i);
+    }
+    size_t length() const {
+        return JS_IdArrayLength(context, idArray);
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+
+    JSIdArray *steal() {
+        JSIdArray *copy = idArray;
+        idArray = NULL;
+        return copy;
+    }
+
+  protected:
+    inline void trace(JSTracer *trc);
+
+  private:
+    JSIdArray *idArray;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+    
+    AutoIdArray(AutoIdArray &ida) MOZ_DELETE;
+    void operator=(AutoIdArray &ida) MOZ_DELETE;
+};
+
+} 
+
+#endif 
 
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToId(JSContext *cx, jsval v, jsid *idp);
@@ -4922,6 +5260,8 @@ JS_ThrowReportedError(JSContext *cx, const char *message,
 extern JS_PUBLIC_API(JSBool)
 JS_ThrowStopIteration(JSContext *cx);
 
+extern JS_PUBLIC_API(intptr_t)
+JS_GetCurrentThread();
 
 
 
@@ -4931,13 +5271,14 @@ JS_ThrowStopIteration(JSContext *cx);
 
 
 
-extern JS_PUBLIC_API(jsword)
+
+extern JS_PUBLIC_API(intptr_t)
 JS_GetContextThread(JSContext *cx);
 
-extern JS_PUBLIC_API(jsword)
+extern JS_PUBLIC_API(intptr_t)
 JS_SetContextThread(JSContext *cx);
 
-extern JS_PUBLIC_API(jsword)
+extern JS_PUBLIC_API(intptr_t)
 JS_ClearContextThread(JSContext *cx);
 
 

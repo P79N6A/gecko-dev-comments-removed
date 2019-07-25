@@ -3237,12 +3237,24 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
 {
     nsRefPtr<gfxFont>    selectedFont;
 
-    
-    
-    if (gfxFontUtils::IsJoinControl(aCh) || gfxFontUtils::IsJoinCauser(aPrevCh)) {
-        if (aPrevMatchedFont && aPrevMatchedFont->HasCharacter(aCh)) {
+    if (aPrevMatchedFont) {
+        
+        
+        
+        PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aCh);
+        if (category == HB_CATEGORY_CONTROL) {
             selectedFont = aPrevMatchedFont;
             return selectedFont.forget();
+        }
+
+        
+        
+        if (gfxFontUtils::IsJoinControl(aCh) ||
+            gfxFontUtils::IsJoinCauser(aPrevCh)) {
+            if (aPrevMatchedFont->HasCharacter(aCh)) {
+                selectedFont = aPrevMatchedFont;
+                return selectedFont.forget();
+            }
         }
     }
 

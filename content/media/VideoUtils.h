@@ -51,19 +51,6 @@
 
 
 
-
-
-
-
-
-
-
-#define PR_INT64_MAX (~((PRInt64)(1) << 63))
-#define PR_INT64_MIN (-PR_INT64_MAX - 1)
-#define PR_UINT64_MAX (~(PRUint64)(0))
-
-
-
 namespace mozilla {
 
 

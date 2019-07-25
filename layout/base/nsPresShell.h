@@ -74,7 +74,7 @@
 #include "nsContentUtils.h"
 #include "nsRefreshDriver.h"
 
-class nsIRange;
+class nsRange;
 class nsIDragService;
 class nsCSSStyleSheet;
 
@@ -548,7 +548,7 @@ protected:
   
   nsRect ClipListToRange(nsDisplayListBuilder *aBuilder,
                          nsDisplayList* aList,
-                         nsIRange* aRange);
+                         nsRange* aRange);
 
   
   

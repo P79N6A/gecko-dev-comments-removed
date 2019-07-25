@@ -60,12 +60,11 @@
 #include "nsISelectionPrivate.h"
 #include "nsISelectionController.h"
 #include "nsIDOMRange.h"
-#include "nsIDOMNSRange.h"
 #include "nsIRangeUtils.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIEnumerator.h"
 #include "nsIDOMNamedNodeMap.h"
-#include "nsIRange.h"
+#include "nsRange.h"
 
 #include "nsEditorUtils.h"
 #include "nsWSRunObject.h"
@@ -253,8 +252,7 @@ nsHTMLEditRules::Init(nsPlaintextEditor *aEditor)
   mReturnInEmptyLIKillsList = !returnInEmptyLIKillsList.EqualsLiteral("false");
 
   
-  mUtilRange = do_CreateInstance("@mozilla.org/content/range;1");
-  NS_ENSURE_TRUE(mUtilRange, NS_ERROR_NULL_POINTER);
+  mUtilRange = new nsRange();
    
   
   nsCOMPtr<nsIDOMElement> rootElem = do_QueryInterface(mHTMLEditor->GetRoot());
@@ -264,8 +262,7 @@ nsHTMLEditRules::Init(nsPlaintextEditor *aEditor)
     nsAutoLockRulesSniffing lockIt((nsTextEditRules*)this);
     if (!mDocChangeRange)
     {
-      mDocChangeRange = do_CreateInstance("@mozilla.org/content/range;1");
-      NS_ENSURE_TRUE(mDocChangeRange, NS_ERROR_NULL_POINTER);
+      mDocChangeRange = new nsRange();
     }
     mDocChangeRange->SelectNode(rootElem);
     res = AdjustSpecialBreaks();
@@ -301,7 +298,7 @@ nsHTMLEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     
     
     
-    nsCOMPtr<nsISelection>selection;
+    nsCOMPtr<nsISelection> selection;
     nsresult res = mHTMLEditor->GetSelection(getter_AddRefs(selection));
     NS_ENSURE_SUCCESS(res, res);
   
@@ -329,14 +326,12 @@ nsHTMLEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     if(mDocChangeRange)
     {
       
-      nsCOMPtr<nsIRange> range = do_QueryInterface(mDocChangeRange);
-      range->Reset(); 
+      mDocChangeRange->Reset(); 
     }
     if(mUtilRange)
     {
       
-      nsCOMPtr<nsIRange> range = do_QueryInterface(mUtilRange);
-      range->Reset(); 
+      mUtilRange->Reset(); 
     }
 
     
@@ -595,7 +590,7 @@ nsHTMLEditRules::WillDoAction(nsISelection *aSelection,
       return NS_OK;
     }
 
-    nsCOMPtr<nsIRange> range = do_QueryInterface(domRange);
+    nsRange* range = static_cast<nsRange*>(domRange.get());
     nsCOMPtr<nsIDOMNode> ancestor =
       do_QueryInterface(range->GetCommonAncestor());
     if (!mHTMLEditor->IsModifiableNode(ancestor))
@@ -1489,8 +1484,7 @@ nsHTMLEditRules::WillInsertText(PRInt32          aAction,
     
     if (!mDocChangeRange)
     {
-      mDocChangeRange = do_CreateInstance("@mozilla.org/content/range;1");
-      NS_ENSURE_TRUE(mDocChangeRange, NS_ERROR_NULL_POINTER);
+      mDocChangeRange = new nsRange();
     }
     res = mDocChangeRange->SetStart(selNode, selOffset);
     NS_ENSURE_SUCCESS(res, res);
@@ -5256,8 +5250,7 @@ nsHTMLEditRules::ExpandSelectionForDeletion(nsISelection *aSelection)
     bool nodeBefore=false, nodeAfter=false;
     
     
-    nsCOMPtr<nsIDOMRange> range = do_CreateInstance("@mozilla.org/content/range;1");
-    NS_ENSURE_TRUE(range, NS_ERROR_NULL_POINTER);
+    nsRefPtr<nsRange> range = new nsRange();
     res = range->SetStart(selStartNode, selStartOffset);
     NS_ENSURE_SUCCESS(res, res);
     res = range->SetEnd(selEndNode, selEndOffset);
@@ -5897,7 +5890,9 @@ nsHTMLEditRules::GetNodesForOperation(nsCOMArray<nsIDOMRange>& inArrayOfRanges,
     {
       nsRangeStore *item = rangeItemArray.Elements() + i;
       mHTMLEditor->mRangeUpdater.DropRangeItem(item);
-      nsresult res2 = item->GetRange(address_of(opRange));
+      nsRefPtr<nsRange> range;
+      nsresult res2 = item->GetRange(getter_AddRefs(range));
+      opRange = range;
       if (NS_FAILED(res2) && NS_SUCCEEDED(res)) {
         
         
@@ -6415,7 +6410,7 @@ nsHTMLEditRules::GetNodesFromPoint(DOMPoint point,
   point.GetPoint(node, offset);
   
   
-  nsCOMPtr<nsIDOMRange> range = do_CreateInstance("@mozilla.org/content/range;1");
+  nsRefPtr<nsRange> range = new nsRange();
   res = range->SetStart(node, offset);
   NS_ENSURE_SUCCESS(res, res);
   
@@ -7635,7 +7630,7 @@ nsHTMLEditRules::PinSelectionToNewBlock(nsISelection *aSelection)
   temp = selNode;
   
   
-  nsCOMPtr<nsIDOMRange> range = do_CreateInstance("@mozilla.org/content/range;1");
+  nsRefPtr<nsRange> range = new nsRange();
   res = range->SetStart(selNode, selOffset);
   NS_ENSURE_SUCCESS(res, res);
   res = range->SetEnd(selNode, selOffset);
@@ -8431,8 +8426,9 @@ nsHTMLEditRules::UpdateDocChangeRange(nsIDOMRange *aRange)
   if (!mDocChangeRange)
   {
     
-    res = aRange->CloneRange(getter_AddRefs(mDocChangeRange));
-    return res;
+    nsCOMPtr<nsIDOMRange> range;
+    res = aRange->CloneRange(getter_AddRefs(range));
+    mDocChangeRange = static_cast<nsRange*>(range.get());
   }
   else
   {
@@ -9281,8 +9277,10 @@ nsHTMLEditRules::DocumentModifiedWorker()
 
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(mHTMLEditor);
   nsCOMPtr<nsISelection> selection;
-  nsresult res = mHTMLEditor->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(res, );
+  nsresult rv = mHTMLEditor->GetSelection(getter_AddRefs(selection));
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
   
   

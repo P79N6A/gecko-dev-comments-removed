@@ -46,7 +46,8 @@
 #include "mozilla/Mutex.h"
 
 #include "nsCOMPtr.h"
-#include "nsHashtable.h"
+#include "nsInterfaceHashtable.h"
+#include "nsHashKeys.h"
 
 #include "nsIConsoleService.h"
 
@@ -59,12 +60,20 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICONSOLESERVICE
 
+    void SetIsDelivering() {
+        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(!mDeliveringMessage);
+        mDeliveringMessage = true;
+    }
+
+    void SetDoneDelivering() {
+        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(mDeliveringMessage);
+        mDeliveringMessage = false;
+    }
+
 private:
     ~nsConsoleService();
-
-    
-    nsresult GetProxyForListener(nsIConsoleListener* aListener,
-                                 nsIConsoleListener** aProxy);
 
     
     nsIConsoleMessage **mMessages;
@@ -79,11 +88,12 @@ private:
     bool mFull;
 
     
-    nsSupportsHashtable mListeners;
+    
+    
+    bool mDeliveringMessage;
 
     
-    
-    bool mListening;
+    nsInterfaceHashtable<nsISupportsHashKey, nsIConsoleListener> mListeners;
 
     
     mozilla::Mutex mLock;

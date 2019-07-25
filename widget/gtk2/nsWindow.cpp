@@ -109,19 +109,11 @@
 #include "nsIPropertyBag2.h"
 
 #ifdef ACCESSIBILITY
-#include "nsIAccessibilityService.h"
+#include "nsAccessibilityService.h"
 #include "nsIAccessibleDocument.h"
-#include "prenv.h"
-#include "stdlib.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
-
-static bool sAccessibilityChecked = false;
-
-bool nsWindow::sAccessibilityEnabled = false;
-static const char sAccEnv [] = "GNOME_ACCESSIBILITY";
-static const char sGconfAccessibilityKey[] = "/desktop/gnome/interface/accessibility";
 #endif
 
 
@@ -1091,9 +1083,8 @@ nsWindow::Show(bool aState)
     }
 
 #ifdef ACCESSIBILITY
-    if (aState && sAccessibilityEnabled) {
+    if (aState && a11y::ShouldA11yBeEnabled())
         CreateRootAccessible();
-    }
 #endif
 
     NativeShow(aState);
@@ -1830,8 +1821,11 @@ nsWindow::SetIcon(const nsAString& aIconSpec)
     nsCOMPtr<nsILocalFile> iconFile;
     nsCAutoString path;
 
-    bool foundIcon = gtk_icon_theme_has_icon(gtk_icon_theme_get_default(),
-                                             iconName.get());
+    gint *iconSizes =
+        gtk_icon_theme_get_icon_sizes(gtk_icon_theme_get_default(),
+                                      iconName.get());
+    bool foundIcon = (iconSizes[0] != 0);
+    g_free(iconSizes);
 
     if (!foundIcon) {
         
@@ -3856,6 +3850,11 @@ nsWindow::Create(nsIWidget        *aParent,
 
     NS_ASSERTION(!mWindowGroup, "already have window group (leaking it)");
 
+#ifdef ACCESSIBILITY
+    
+    a11y::PreInit();
+#endif
+
     
     nsGTKToolkit::GetToolkit();
 
@@ -4248,31 +4247,6 @@ nsWindow::Create(nsIWidget        *aParent,
     
     if (!mIsTopLevel)
         Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, false);
-
-#ifdef ACCESSIBILITY
-    nsresult rv;
-    if (!sAccessibilityChecked) {
-        sAccessibilityChecked = true;
-
-        
-        const char *envValue = PR_GetEnv(sAccEnv);
-        if (envValue) {
-            sAccessibilityEnabled = atoi(envValue) != 0;
-            LOG(("Accessibility Env %s=%s\n", sAccEnv, envValue));
-        } else {
-            
-            nsCOMPtr<nsIGConfService> gconf =
-                do_GetService(NS_GCONFSERVICE_CONTRACTID, &rv); 
-            if (NS_SUCCEEDED(rv) && gconf) {
-
-                
-                
-                gconf->GetBool(NS_LITERAL_CSTRING(sGconfAccessibilityKey),
-                               &sAccessibilityEnabled);
-            }
-        }
-    }
-#endif
 
     return NS_OK;
 }
@@ -6437,7 +6411,7 @@ nsWindow::DispatchAccessibleEvent()
 void
 nsWindow::DispatchEventToRootAccessible(PRUint32 aEventType)
 {
-    if (!sAccessibilityEnabled) {
+    if (!a11y::ShouldA11yBeEnabled()) {
         return;
     }
 

@@ -621,7 +621,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 
     
     
-    jsuword *limitAddr = &threadData->ionStackLimit;
+    uintptr_t *limitAddr = &threadData->ionStackLimit;
     masm.loadPtr(ImmWord(limitAddr), limitReg);
 
     CheckOverRecursedFailure *ool = new CheckOverRecursedFailure(lir);

@@ -1,40 +1,40 @@
-/* -*- Mode: c++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 4; -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- *   Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2009-2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsAppShell.h"
 #include "nsWindow.h"
@@ -54,6 +54,10 @@
 #include <android/log.h>
 #include <pthread.h>
 #include <wchar.h>
+
+#ifdef MOZ_ANDROID_HISTORY
+#include "nsAndroidHistory.h"
+#endif
 
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
@@ -159,8 +163,8 @@ nsAppShell::Observe(nsISupports* aSubject,
                     const PRUnichar* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown")) {
-        // We need to ensure no observers stick around after XPCOM shuts down
-        // or we'll see crashes, as the app shell outlives XPConnect.
+        
+        
         mObserversHash.Clear();
         return nsBaseAppShell::Observe(aSubject, aTopic, aData);
     } else if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) && aData && (
@@ -199,7 +203,7 @@ nsAppShell::ScheduleNativeEventCallback()
 {
     EVLOG("nsAppShell::ScheduleNativeEventCallback pth: %p thread: %p main: %d", (void*) pthread_self(), (void*) NS_GetCurrentThread(), NS_IsMainThread());
 
-    // this is valid to be called from any thread, so do so.
+    
     PostEvent(new AndroidGeckoEvent(AndroidGeckoEvent::NATIVE_POKE));
 }
 
@@ -215,7 +219,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
         curEvent = PopNextEvent();
         if (!curEvent && mayWait) {
-            // hmm, should we really hardcode this 10s?
+            
 #if defined(DEBUG_ANDROID_EVENTS)
             PRTime t0, t1;
             EVLOG("nsAppShell: waiting on mQueueCond");
@@ -235,7 +239,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     if (!curEvent)
         return false;
 
-    // Combine subsequent events of the same type
+    
 
     nextEvent = PeekNextEvent();
 
@@ -244,8 +248,8 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         int nextType = nextEvent->Type();
 
         while (nextType == AndroidGeckoEvent::VIEWPORT && mNumViewports > 1) {
-            // Skip this viewport change, as there's another one later and
-            // processing this one will only cause more unnecessary work
+            
+            
             PopNextEvent();
             delete nextEvent;
             nextEvent = PeekNextEvent();
@@ -255,14 +259,14 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         while (nextType == AndroidGeckoEvent::DRAW && mLastDrawEvent &&
                mNumDraws > 1)
         {
-            // skip this draw, since there's a later one already in the queue.. this will let us
-            // deal with sequences that look like:
-            //   MOVE DRAW MOVE DRAW MOVE DRAW
-            // and end up with just
-            //   MOVE DRAW
-            // when we process all the events.
+            
+            
+            
+            
+            
+            
 
-            // Combine the next draw event's rect with the last one in the queue
+            
             const nsIntRect& nextRect = nextEvent->Rect();
             const nsIntRect& lastRect = mLastDrawEvent->Rect();
             int combinedArea = (lastRect.width * lastRect.height) +
@@ -271,16 +275,16 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             nsIntRect combinedRect = lastRect.Union(nextRect);
             mLastDrawEvent->Init(AndroidGeckoEvent::DRAW, combinedRect);
 
-            // XXX We may want to consider using regions instead of rectangles.
-            //     Print an error if we're upload a lot more than we would
-            //     if we handled this as two separate events.
+            
+            
+            
             int boundsArea = combinedRect.width * combinedRect.height;
             if (boundsArea > combinedArea * 8)
                 ALOG("nsAppShell::ProcessNextNativeEvent: "
                      "Area of bounds greatly exceeds combined area: %d > %d",
                      boundsArea, combinedArea);
 
-            // Remove the next draw event
+            
             PopNextEvent();
             delete nextEvent;
 
@@ -292,12 +296,12 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             nextType = nextEvent->Type();
         }
 
-        // If the next type of event isn't the same as the current type,
-        // we don't coalesce.
+        
+        
         if (nextType != curType)
             break;
 
-        // Can only coalesce motion move events, for motion events
+        
         if (curType != AndroidGeckoEvent::MOTION_EVENT)
             break;
 
@@ -376,9 +380,9 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     case AndroidGeckoEvent::ACTIVITY_PAUSING: {
-        // We really want to send a notification like profile-before-change,
-        // but profile-before-change ends up shutting some things down instead
-        // of flushing data
+        
+        
+        
         nsIPrefService* prefs = Preferences::GetService();
         if (prefs) {
             prefs->SavePrefFile(nsnull);
@@ -437,11 +441,18 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     case AndroidGeckoEvent::SIZE_CHANGED: {
-        // store the last resize event to dispatch it to new windows with a FORCED_RESIZE event
+        
         if (curEvent != gLastSizeChange) {
             gLastSizeChange = new AndroidGeckoEvent(curEvent);
         }
         nsWindow::OnGlobalAndroidEvent(curEvent);
+        break;
+    }
+
+    case AndroidGeckoEvent::VISITED: {
+#ifdef MOZ_ANDROID_HISTORY
+        nsAndroidHistory::NotifyURIVisited(nsString(curEvent->Characters()));
+#endif
         break;
     }
 
@@ -498,8 +509,8 @@ nsAppShell::PostEvent(AndroidGeckoEvent *ae)
     {
         MutexAutoLock lock(mQueueLock);
         if (ae->Type() == AndroidGeckoEvent::SURFACE_DESTROYED) {
-            // Give priority to this event, and discard any pending
-            // SURFACE_CREATED events.
+            
+            
             mEventQueue.InsertElementAt(0, ae);
             AndroidGeckoEvent *event;
             for (int i = mEventQueue.Length()-1; i >=1; i--) {
@@ -535,9 +546,9 @@ nsAppShell::AddObserver(const nsAString &aObserverKey, nsIObserver *aObserver)
     return mObserversHash.Put(aObserverKey, aObserver) ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
-/**
- * The XPCOM event that will call the observer on the main thread.
- */
+
+
+
 class ObserverCaller : public nsRunnable {
 public:
     ObserverCaller(nsIObserver *aObserver, const char *aTopic, const PRUnichar *aData) :
@@ -573,10 +584,10 @@ nsAppShell::CallObserver(const nsAString &aObserverKey, const nsAString &aTopic,
     const nsPromiseFlatString& sData = PromiseFlatString(aData);
 
     if (NS_IsMainThread()) {
-        // This branch will unlikely be hit, have it just in case
+        
         observer->Observe(nsnull, sTopic.get(), sData.get());
     } else {
-        // Java is not running on main thread, so we have to use NS_DispatchToMainThread
+        
         nsCOMPtr<nsIRunnable> observerCaller = new ObserverCaller(observer, sTopic.get(), sData.get());
         nsresult rv = NS_DispatchToMainThread(observerCaller);
         ALOG("NS_DispatchToMainThread result: %d", rv);
@@ -590,7 +601,7 @@ nsAppShell::RemoveObserver(const nsAString &aObserverKey)
     mObserversHash.Remove(aObserverKey);
 }
 
-// NotifyObservers support.  NotifyObservers only works on main thread.
+
 
 class NotifyObserversCaller : public nsRunnable {
 public:
@@ -618,13 +629,13 @@ nsAppShell::NotifyObservers(nsISupports *aSupports,
                             const char *aTopic,
                             const PRUnichar *aData)
 {
-    // This isn't main thread, so post this to main thread
+    
     nsCOMPtr<nsIRunnable> caller =
         new NotifyObserversCaller(aSupports, aTopic, aData);
     NS_DispatchToMainThread(caller);
 }
 
-// Used by IPC code
+
 namespace mozilla {
 
 bool ProcessNextEvent()

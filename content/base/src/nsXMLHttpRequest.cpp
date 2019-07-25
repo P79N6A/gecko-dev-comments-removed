@@ -1460,12 +1460,22 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
   }
 
   
+  nsCOMPtr<nsIURI> channelURI;
+  bool dataScheme = false;
+  if (NS_SUCCEEDED(NS_GetFinalChannelURI(aChannel,
+                                         getter_AddRefs(channelURI))) &&
+      NS_SUCCEEDED(channelURI->SchemeIs("data", &dataScheme)) &&
+      dataScheme) {
+    return NS_OK;
+  }
+
+  
   mState |= XML_HTTP_REQUEST_USE_XSITE_AC;
 
   
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
   NS_ENSURE_TRUE(httpChannel, NS_ERROR_DOM_BAD_URI);
-    
+
   nsCAutoString method;
   httpChannel->GetRequestMethod(method);
   if (!mCORSUnsafeHeaders.IsEmpty() ||
@@ -2587,7 +2597,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     
     
     listener = new nsCORSListenerProxy(listener, mPrincipal, mChannel,
-                                       withCredentials, &rv);
+                                       withCredentials, true, &rv);
     NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
     NS_ENSURE_SUCCESS(rv, rv);
   }

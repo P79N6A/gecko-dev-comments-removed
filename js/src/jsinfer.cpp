@@ -5029,7 +5029,7 @@ static inline bool
 IsAboutToBeFinalized(JSContext *cx, TypeObjectKey *key)
 {
     
-    return !reinterpret_cast<const gc::Cell *>((jsuword) key & ~1)->isMarked();
+    return !reinterpret_cast<const gc::Cell *>(uintptr_t(key) & ~1)->isMarked();
 }
 
 void

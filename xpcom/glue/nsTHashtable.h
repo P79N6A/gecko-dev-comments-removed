@@ -285,6 +285,21 @@ public:
     return 0;
   }
 
+#ifdef DEBUG
+  
+
+
+
+
+
+  void MarkImmutable()
+  {
+    NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
+
+    PL_DHashMarkTableImmutable(&mTable);
+  }
+#endif
+
 protected:
   PLDHashTable mTable;
 

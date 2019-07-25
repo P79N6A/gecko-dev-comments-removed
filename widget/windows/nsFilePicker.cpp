@@ -619,11 +619,12 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir)
   
   dialog->SetTitle(mTitle.get());
   if (!aInitialDir.IsEmpty() &&
-      nsToolkit::VistaCreateItemFromParsingNameInit()) {
+      WinUtils::VistaCreateItemFromParsingNameInit()) {
     nsRefPtr<IShellItem> folder;
-    if (SUCCEEDED(nsToolkit::createItemFromParsingName(aInitialDir.get(), NULL,
-                                                       IID_IShellItem,
-                                                       getter_AddRefs(folder)))) {
+    if (SUCCEEDED(
+          WinUtils::SHCreateItemFromParsingName(aInitialDir.get(), NULL,
+                                                IID_IShellItem,
+                                                getter_AddRefs(folder)))) {
       dialog->SetFolder(folder);
     }
   }
@@ -944,11 +945,12 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
 
   
   if (!aInitialDir.IsEmpty() &&
-      nsToolkit::VistaCreateItemFromParsingNameInit()) {
+      WinUtils::VistaCreateItemFromParsingNameInit()) {
     nsRefPtr<IShellItem> folder;
-    if (SUCCEEDED(nsToolkit::createItemFromParsingName(aInitialDir.get(), NULL,
-                                                       IID_IShellItem,
-                                                       getter_AddRefs(folder)))) {
+    if (SUCCEEDED(
+          WinUtils::SHCreateItemFromParsingName(aInitialDir.get(), NULL,
+                                                IID_IShellItem,
+                                                getter_AddRefs(folder)))) {
       dialog->SetFolder(folder);
     }
   }

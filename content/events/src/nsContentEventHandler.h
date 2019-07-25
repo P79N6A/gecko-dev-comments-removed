@@ -44,7 +44,7 @@
 #include "nsCOMPtr.h"
 
 #include "nsISelection.h"
-#include "nsIRange.h"
+#include "nsRange.h"
 #include "nsIContent.h"
 #include "nsIDOMTreeWalker.h"
 
@@ -93,7 +93,7 @@ protected:
   nsPresContext* mPresContext;
   nsCOMPtr<nsIPresShell> mPresShell;
   nsCOMPtr<nsISelection> mSelection;
-  nsCOMPtr<nsIRange> mFirstSelectedRange;
+  nsRefPtr<nsRange> mFirstSelectedRange;
   nsCOMPtr<nsIContent> mRootContent;
 
   nsresult Init(nsQueryContentEvent* aEvent);
@@ -112,19 +112,19 @@ public:
                                            PRInt32 aNodeOffset,
                                            PRUint32* aOffset);
   static nsresult GetFlatTextOffsetOfRange(nsIContent* aRootContent,
-                                           nsIRange* aRange,
+                                           nsRange* aRange,
                                            PRUint32* aOffset);
 protected:
   
   
   
-  nsresult SetRangeFromFlatTextOffset(nsIRange* aRange,
+  nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
                                       PRUint32 aNativeOffset,
                                       PRUint32 aNativeLength,
                                       bool aExpandToClusterBoundaries);
   
   
-  nsresult GetStartFrameAndOffset(nsIRange* aRange,
+  nsresult GetStartFrameAndOffset(nsRange* aRange,
                                   nsIFrame** aFrame,
                                   PRInt32* aOffsetInFrame);
   
