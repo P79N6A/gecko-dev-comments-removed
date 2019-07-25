@@ -217,6 +217,16 @@ SessionStoreService.prototype = {
   
   _initialized: false,
 
+  
+  
+  
+  
+  
+  
+  
+  
+  _resume_session_once_on_shutdown: null,
+
 
 
   get canRestoreLastSession() {
@@ -443,6 +453,15 @@ SessionStoreService.prototype = {
         this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
         this._clearingOnShutdown = false;
       }
+      else if (this._resume_session_once_on_shutdown != null) {
+        
+        
+        
+        
+        
+        this._prefBranch.setBoolPref("sessionstore.resume_session_once",
+                                     this._resume_session_once_on_shutdown);
+      }
       this._loadState = STATE_QUITTING; 
       this._uninit();
       break;
@@ -550,6 +569,12 @@ SessionStoreService.prototype = {
         break;
       case "sessionstore.resume_from_crash":
         this._resume_from_crash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
+        
+        if (this._resume_session_once_on_shutdown != null) {
+          this._prefBranch.setBoolPref("sessionstore.resume_session_once",
+                                       this._resume_session_once_on_shutdown);
+          this._resume_session_once_on_shutdown = null;
+        }
         
         
         if (!this._resume_from_crash)
@@ -1337,18 +1362,13 @@ SessionStoreService.prototype = {
 
 
 
-
-
-  _saveWindowHistory: function sss_saveWindowHistory(aWindow, aPinnedOnly) {
+  _saveWindowHistory: function sss_saveWindowHistory(aWindow) {
     var tabbrowser = aWindow.gBrowser;
     var tabs = tabbrowser.tabs;
     var tabsData = this._windows[aWindow.__SSi].tabs = [];
     
-    for (var i = 0; i < tabs.length; i++) {
-      if (aPinnedOnly && !tabs[i].pinned)
-        break;
+    for (var i = 0; i < tabs.length; i++)
       tabsData.push(this._collectTabData(tabs[i]));
-    }
     
     this._windows[aWindow.__SSi].selected = tabbrowser.mTabBox.selectedIndex + 1;
   },
@@ -2011,7 +2031,7 @@ SessionStoreService.prototype = {
         if (!this._isWindowLoaded(aWindow)) 
           return;
         if (aUpdateAll || this._dirtyWindows[aWindow.__SSi] || aWindow == activeWindow) {
-          this._collectWindowData(aWindow, aPinnedOnly);
+          this._collectWindowData(aWindow);
         }
         else { 
           this._updateWindowFeatures(aWindow);
@@ -2063,8 +2083,15 @@ SessionStoreService.prototype = {
 #endif
 
     if (aPinnedOnly) {
+      
+      total = JSON.parse(this._toJSONString(total));
       total = total.filter(function (win) {
         win.tabs = win.tabs.filter(function (tab) tab.pinned);
+        
+        win._closedTabs = [];
+        
+        if (win.selected > win.tabs.length)
+          win.selected = 1;
         return win.tabs.length > 0;
       });
       if (total.length == 0)
@@ -2078,7 +2105,8 @@ SessionStoreService.prototype = {
     }
     ix = windows.indexOf(this.activeWindowSSiCache);
     
-    if (ix != -1 && total[ix].sizemode == "minimized")
+    
+    if (ix != -1 && total[ix] && total[ix].sizemode == "minimized")
       ix = -1;
 
     return { windows: total, selectedWindow: ix + 1, _closedWindows: lastClosedWindowsCopy };
@@ -2104,12 +2132,12 @@ SessionStoreService.prototype = {
     return { windows: total };
   },
 
-  _collectWindowData: function sss_collectWindowData(aWindow, aPinnedOnly) {
+  _collectWindowData: function sss_collectWindowData(aWindow) {
     if (!this._isWindowLoaded(aWindow))
       return;
     
     
-    this._saveWindowHistory(aWindow, aPinnedOnly);
+    this._saveWindowHistory(aWindow);
     this._updateTextAndScrollData(aWindow);
     this._updateCookieHosts(aWindow);
     this._updateWindowFeatures(aWindow);
@@ -3016,8 +3044,18 @@ SessionStoreService.prototype = {
     if (!oState)
       return;
 
-    if (pinnedOnly)
-      this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
+    if (pinnedOnly) {
+      
+      
+      
+      if (this._resume_session_once_on_shutdown == null) {
+        this._resume_session_once_on_shutdown =
+          this._prefBranch.getBoolPref("sessionstore.resume_session_once");
+        this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
+        
+        Services.prefs.savePrefFile(null);
+      }
+    }
 
     oState.session = {
       state: this._loadState == STATE_RUNNING ? STATE_RUNNING_STR : STATE_STOPPED_STR,
