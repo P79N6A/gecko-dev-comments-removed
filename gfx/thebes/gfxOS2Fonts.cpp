@@ -349,9 +349,7 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         
         
         
-        
-        PRInt8 weight, offset;
-        GetStyle()->ComputeWeightAndOffset(&weight, &offset);
+        PRInt8 weight = GetStyle()->ComputeWeight();
         
         
         
@@ -361,8 +359,6 @@ cairo_font_face_t *gfxOS2Font::CairoFontFace()
         while (i < nFcWeight && fcWeight[i] < fcW) {
             i++;
         }
-        
-        i += offset;
         if (i < 0) {
             i = 0;
         } else if (i >= nFcWeight) {

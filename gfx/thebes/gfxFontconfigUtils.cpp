@@ -189,33 +189,11 @@ GuessFcWeight(const gfxFontStyle& aFontStyle)
 
 
 
-    PRInt8 weight;
-    PRInt8 offset;
-    aFontStyle.ComputeWeightAndOffset(&weight, &offset);
+    PRInt8 weight = aFontStyle.ComputeWeight();
 
     
     NS_ASSERTION(weight >= 0 && weight <= 10,
                  "base weight out of range");
-
-    
-    
-    
-
-    
-    static const int lighterGuess[11] =
-        { 0, 0, 1, 1, 2, 3, 4, 4, 6, 7, 8 };
-    
-    static const int bolderGuess[11] =
-        { 2, 3, 4, 6, 7, 7, 8, 9, 10, 10, 10 };
-
-    while (offset < 0) {
-        weight = lighterGuess[weight];
-        offset++;
-    }
-    while (offset > 0) {
-        weight = bolderGuess[weight];
-        offset--;
-    }
 
     return gfxFontconfigUtils::FcWeightForBaseWeight(weight);
 }

@@ -90,8 +90,6 @@ gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
             
             mNeedsOblique = PR_TRUE;
     }
-    PRInt8 baseWeight, weightDistance;
-    GetStyle()->ComputeWeightAndOffset(&baseWeight, &weightDistance);
     if (aNeedsBold) {
         sims |= DWRITE_FONT_SIMULATIONS_BOLD;
     }

@@ -138,10 +138,6 @@ struct THEBES_API gfxFontStyle {
     PRPackedBool familyNameQuirks : 1;
 
     
-    
-    
-    
-    
     PRUint16 weight;
 
     
@@ -191,8 +187,7 @@ struct THEBES_API gfxFontStyle {
             nsISupportsHashKey::HashKey(language);
     }
 
-    void ComputeWeightAndOffset(PRInt8 *outBaseWeight,
-                                PRInt8 *outOffset) const;
+    PRInt8 ComputeWeight() const;
 
     PRBool Equals(const gfxFontStyle& other) const {
         return (size == other.size) &&

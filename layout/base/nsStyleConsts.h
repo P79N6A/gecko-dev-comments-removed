@@ -422,8 +422,9 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 
 #define NS_STYLE_FONT_WEIGHT_NORMAL             NS_FONT_WEIGHT_NORMAL
 #define NS_STYLE_FONT_WEIGHT_BOLD               NS_FONT_WEIGHT_BOLD
-#define NS_STYLE_FONT_WEIGHT_BOLDER             NS_FONT_WEIGHT_BOLDER
-#define NS_STYLE_FONT_WEIGHT_LIGHTER            NS_FONT_WEIGHT_LIGHTER
+
+#define NS_STYLE_FONT_WEIGHT_BOLDER             (-1)
+#define NS_STYLE_FONT_WEIGHT_LIGHTER            (-2)
 
 
 #define NS_STYLE_FONT_SIZE_XXSMALL              0
