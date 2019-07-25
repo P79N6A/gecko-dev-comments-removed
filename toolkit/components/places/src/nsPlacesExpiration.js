@@ -684,11 +684,15 @@ nsPlacesExpiration.prototype = {
   _isIdleObserver: false,
   set expireOnIdle(aObserveIdle) {
     if (aObserveIdle != this._isIdleObserver) {
-      if (aObserveIdle && !this._shuttingDown) {
+      
+      
+      
+      if (aObserveIdle && !this._shuttingDown &&
+          this._debugLimit === undefined) {
         this._idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
         this._isIdleObserver = true;
       }
-      else {
+      else if (this._isIdleObserver) {
         this._idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
         this._isIdleObserver = false;
       }
