@@ -123,7 +123,6 @@ var UIManager = {
       
       if (data.tabViewVisible) {
         this._stopZoomPreparation = true;
-
         this.showTabView();
 
         

@@ -1227,12 +1227,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
               duration: 270,
               complete: function() {
                 iQ(tab.container).css({opacity: 1});
-                gBrowser.selectedTab = newTab;
-                
-
-
-
-                gWindow.gURLBar.focus();
+                newTab.tabItem.zoomIn(!url);
                 $anim.remove();
                 
                 

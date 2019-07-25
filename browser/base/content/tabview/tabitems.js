@@ -523,7 +523,9 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  zoomIn: function() {
+  
+  
+  zoomIn: function(isNewBlankTab) {
     var self = this;
     var $tabEl = iQ(this.container);
     var childHitResult = { shouldZoom: true };
@@ -569,6 +571,9 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           GroupItems.setActiveOrphanTab(self);
         }
         GroupItems.updateTabBar();
+
+        if (isNewBlankTab)
+          gWindow.gURLBar.focus();
 
         if (childHitResult.callback)
           childHitResult.callback();
