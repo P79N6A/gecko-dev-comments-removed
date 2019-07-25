@@ -1715,10 +1715,6 @@ JSBool js_StopPerf()
         waitpid(perfPid, NULL, 0);
     }
 
-    
-
-
-
     perfPid = 0;
     return true;
 }
