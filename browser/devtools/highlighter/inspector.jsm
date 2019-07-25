@@ -42,6 +42,7 @@
 
 
 
+const Cc = Components.classes;
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -738,6 +739,46 @@ InspectorUI.prototype = {
     }
   },
 
+  
+
+
+
+  copyInnerHTML: function IUI_copyInnerHTML()
+  {
+    let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
+                    getService(Ci.nsIClipboardHelper);
+    clipboard.copyString(this.selection.innerHTML);
+  },
+
+  
+
+
+
+  copyOuterHTML: function IUI_copyOuterHTML()
+  {
+    let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
+                    getService(Ci.nsIClipboardHelper);
+    clipboard.copyString(this.selection.outerHTML);
+  },
+
+  
+
+
+  deleteNode: function IUI_deleteNode()
+  {
+    let selection = this.selection;
+    let parent = this.selection.parentNode;
+
+    
+    this.treePanel.deleteChildBox(selection);
+
+    
+    parent.removeChild(selection);
+    this.breadcrumbs.invalidateHierarchy();
+
+    
+    this.inspectNode(parent);
+  },
 
   
   
