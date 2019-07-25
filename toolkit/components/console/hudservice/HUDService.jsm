@@ -63,10 +63,6 @@ XPCOMUtils.defineLazyServiceGetter(this, "sss",
                                    "@mozilla.org/content/style-sheet-service;1",
                                    "nsIStyleSheetService");
 
-XPCOMUtils.defineLazyServiceGetter(this, "mimeService",
-                                   "@mozilla.org/mime;1",
-                                   "nsIMIMEService");
-
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
   var obj = {};
   Cu.import("resource://gre/modules/NetUtil.jsm", obj);
@@ -536,76 +532,6 @@ var NetworkHelper =
       aCallback(NetworkHelper.readAndConvertFromStream(aInputStream,
                                                        contentCharset));
     });
-  },
-
-  
-  
-  mimeCategoryMap: {
-    "text/plain": "txt",
-    "text/html": "html",
-    "text/xml": "xml",
-    "text/xsl": "txt",
-    "text/xul": "txt",
-    "text/css": "css",
-    "text/sgml": "txt",
-    "text/rtf": "txt",
-    "text/x-setext": "txt",
-    "text/richtext": "txt",
-    "text/javascript": "js",
-    "text/jscript": "txt",
-    "text/tab-separated-values": "txt",
-    "text/rdf": "txt",
-    "text/xif": "txt",
-    "text/ecmascript": "js",
-    "text/vnd.curl": "txt",
-    "text/x-json": "json",
-    "text/x-js": "txt",
-    "text/js": "txt",
-    "text/vbscript": "txt",
-    "view-source": "txt",
-    "view-fragment": "txt",
-    "application/xml": "xml",
-    "application/xhtml+xml": "xml",
-    "application/atom+xml": "xml",
-    "application/rss+xml": "xml",
-    "application/vnd.mozilla.maybe.feed": "xml",
-    "application/vnd.mozilla.xul+xml": "xml",
-    "application/javascript": "js",
-    "application/x-javascript": "js",
-    "application/x-httpd-php": "txt",
-    "application/rdf+xml": "xml",
-    "application/ecmascript": "js",
-    "application/http-index-format": "txt",
-    "application/json": "json",
-    "application/x-js": "txt",
-    "multipart/mixed": "txt",
-    "multipart/x-mixed-replace": "txt",
-    "image/svg+xml": "svg",
-    "application/octet-stream": "bin",
-    "image/jpeg": "image",
-    "image/jpg": "image",
-    "image/gif": "image",
-    "image/png": "image",
-    "image/bmp": "image",
-    "application/x-shockwave-flash": "flash",
-    "video/x-flv": "flash",
-    "audio/mpeg3": "media",
-    "audio/x-mpeg-3": "media",
-    "video/mpeg": "media",
-    "video/x-mpeg": "media",
-    "audio/ogg": "media",
-    "application/ogg": "media",
-    "application/x-ogg": "media",
-    "application/x-midi": "media",
-    "audio/midi": "media",
-    "audio/x-mid": "media",
-    "audio/x-midi": "media",
-    "music/crescendo": "media",
-    "audio/wav": "media",
-    "audio/x-wav": "media",
-    "text/json": "json",
-    "application/x-json": "json",
-    "application/json-rpc": "json"
   }
 }
 
@@ -761,73 +687,20 @@ NetworkPanel.prototype =
 
 
 
-
-
-
-  get _contentType()
-  {
-    let response = this.httpActivity.response;
-    let contentTypeValue = null;
-
-    if (response.header && response.header["Content-Type"]) {
-      let types = response.header["Content-Type"].split(/,|;/);
-      for (let i = 0; i < types.length; i++) {
-        let type = NetworkHelper.mimeCategoryMap[types[i]];
-        if (type) {
-          return types[i];
-        }
-      }
-    }
-
-    
-    let uri = NetUtil.newURI(this.httpActivity.url);
-    let mimeType = null;
-    if ((uri instanceof Ci.nsIURL) && uri.fileExtension) {
-      try {
-        mimeType = mimeService.getTypeFromExtension(uri.fileExtension);
-      } catch(e) {
-        
-        Cu.reportError(e);
-      }
-    }
-    return mimeType;
-  },
-
-  
-
-
-
-
   get _responseIsImage()
   {
-    return NetworkHelper.mimeCategoryMap[this._contentType] == "image";
-  },
-
-  
-
-
-
-
-  get _isResponseBodyTextData()
-  {
-    let contentType = this._contentType;
-    if (contentType.indexOf("text/") == 0) {
+    let response = this.httpActivity.response;
+    if (!response || !response.header || !response.header["Content-Type"]) {
+      let request = this.httpActivity.request;
+      if (request.header["Accept"] &&
+          request.header["Accept"].indexOf("image/") != -1) {
         return true;
       }
-
-    switch (NetworkHelper.mimeCategoryMap[contentType]) {
-      case "txt":
-      case "js":
-      case "json":
-      case "css":
-      case "html":
-      case "svg":
-      case "xml":
-        return true;
-
-      default:
+      else {
         return false;
       }
+    }
+    return response.header["Content-Type"].indexOf("image/") != -1;
   },
 
   
@@ -1115,26 +988,6 @@ NetworkPanel.prototype =
 
 
 
-  _displayResponseBodyUnknownType: function NP_displayResponseBodyUnknownType()
-  {
-    let timing = this.httpActivity.timing;
-
-    this._displayNode("responseBodyUnknownType");
-    let deltaDuration =
-      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseBodyUnknownTypeInfo",
-      this._format("durationMS", [deltaDuration]));
-
-    this._appendTextNode("responseBodyUnknownTypeContent",
-      this._format("responseBodyUnableToDisplay.content", [this._contentType]));
-  },
-
-  
-
-
-
-
-
   _displayNoResponseBody: function NP_displayNoResponseBody()
   {
     let timing = this.httpActivity.timing;
@@ -1211,10 +1064,6 @@ NetworkPanel.prototype =
         if (timing.TRANSACTION_CLOSE && response.isDone) {
           if (this._responseIsImage) {
             this._displayResponseImage();
-            this._callIsDone();
-          }
-          else if (!this._isResponseBodyTextData) {
-            this._displayResponseBodyUnknownType();
             this._callIsDone();
           }
           else if (response.body) {
@@ -2117,45 +1966,6 @@ HUD_SERVICE.prototype =
 
 
 
-
-  getConsoleOutputNode: function HS_getConsoleOutputNode(aId)
-  {
-    let displayNode = this.getHeadsUpDisplay(aHUDId);
-    return displayNode.querySelectorAll(".hud-output-node")[0];
-  },
-
-  
-
-
-
-
-
-
-  logWarningAboutReplacedAPI:
-  function HS_logWarningAboutReplacedAPI(aHUDId)
-  {
-    let domId = "hud-log-node-" + this.sequenceId();
-    let outputNode = this.getConsoleOutputNode(aHUDId);
-
-    let msgFormat = {
-      logLevel: "error",
-      activityObject: {},
-      hudId: aHUDId,
-      origin: "console-listener",
-      domId: domId,
-      message: this.getStr("ConsoleAPIDisabled"),
-    };
-
-    let messageObject =
-    this.messageFactory(msgFormat, "error", outputNode, msgFormat.activityObject);
-    this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
-  },
-
-  
-
-
-
-
   reportConsoleServiceMessage:
   function HS_reportConsoleServiceMessage(aConsoleMessage)
   {
@@ -2894,24 +2704,6 @@ HUD_SERVICE.prototype =
     }
     
     this.setOnErrorHandler(aContentWindow);
-
-    
-    this.createController(xulWindow);
-  },
-
-  
-
-
-
-
-
-
-  createController: function HUD_createController(aWindow)
-  {
-    if (aWindow.commandController == null) {
-      aWindow.commandController = new CommandController(aWindow);
-      aWindow.controllers.insertControllerAt(0, aWindow.commandController);
-    }
   }
 };
 
@@ -3314,15 +3106,6 @@ HeadsUpDisplay.prototype = {
     copyItem.setAttribute("key", "key_copy");
     copyItem.setAttribute("command", "cmd_copy");
     menuPopup.appendChild(copyItem);
-
-    let selectAllItem = this.makeXULNode("menuitem");
-    selectAllItem.setAttribute("label", this.getStr("selectAllCmd.label"));
-    selectAllItem.setAttribute("accesskey",
-                               this.getStr("selectAllCmd.accesskey"));
-    selectAllItem.setAttribute("hudId", this.hudId);
-    selectAllItem.setAttribute("buttonType", "selectAll");
-    selectAllItem.setAttribute("oncommand", "HUDConsoleUI.command(this);");
-    menuPopup.appendChild(selectAllItem);
 
     menuPopup.appendChild(this.makeXULNode("menuseparator"));
 
@@ -4710,13 +4493,8 @@ LogMessage.prototype = {
 
     this.messageNode.appendChild(messageTxtNode);
 
-    var classes = ["hud-msg-node", "hud-" + this.level];
-
-    if (this.activityObject.category == "CSS Parser") {
-      classes.push("hud-cssparser");
-    }
-
-    this.messageNode.setAttribute("class", classes.join(" "));
+    var klass = "hud-msg-node hud-" + this.level;
+    this.messageNode.setAttribute("class", klass);
 
     var self = this;
 
@@ -4922,16 +4700,8 @@ HeadsUpDisplayUICommands = {
   command: function UIC_command(aButton) {
     var filter = aButton.getAttribute("buttonType");
     var hudId = aButton.getAttribute("hudId");
-    switch (filter) {
-      case "clear":
+    if (filter == "clear") {
       HUDService.clearDisplay(hudId);
-        break;
-      case "selectAll":
-        let outputNode = HUDService.getOutputNodeById(hudId);
-        let chromeWindow = outputNode.ownerDocument.defaultView;
-        let commandController = chromeWindow.commandController;
-        commandController.selectAll(outputNode);
-        break;
     }
   },
 
@@ -5233,67 +5003,6 @@ HUDWindowObserver = {
 
 
   initialConsoleCreated: false,
-};
-
-
-
-
-
-
-
-
-
-function CommandController(aWindow) {
-  this.window = aWindow;
-}
-
-CommandController.prototype = {
-  
-
-
-
-
-
-
-  _getFocusedOutputNode: function CommandController_getFocusedOutputNode()
-  {
-    let anchorNode = this.window.getSelection().anchorNode;
-    while (!(anchorNode.nodeType === anchorNode.ELEMENT_NODE &&
-             anchorNode.classList.contains("hud-output-node"))) {
-      anchorNode = anchorNode.parentNode;
-    }
-    return anchorNode;
-  },
-
-  
-
-
-
-
-
-
-  selectAll: function CommandController_selectAll(aOutputNode)
-  {
-    let selection = this.window.getSelection();
-    selection.removeAllRanges();
-    selection.selectAllChildren(aOutputNode);
-  },
-
-  supportsCommand: function CommandController_supportsCommand(aCommand)
-  {
-    return aCommand === "cmd_selectAll" &&
-           this._getFocusedOutputNode() != null;
-  },
-
-  isCommandEnabled: function CommandController_isCommandEnabled(aCommand)
-  {
-    return aCommand === "cmd_selectAll";
-  },
-
-  doCommand: function CommandController_doCommand(aCommand)
-  {
-    this.selectAll(this._getFocusedOutputNode());
-  }
 };
 
 
