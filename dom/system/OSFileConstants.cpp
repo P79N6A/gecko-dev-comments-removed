@@ -5,6 +5,8 @@
 #include "fcntl.h"
 #include "errno.h"
 
+#include "prsystem.h"
+
 #if defined(XP_UNIX)
 #include "unistd.h"
 #endif 
@@ -23,6 +25,8 @@
 
 
 
+#include "nsThreadUtils.h"
+#include "nsDirectoryServiceUtils.h"
 #include "nsIXULRuntime.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsServiceManagerUtils.h"
@@ -35,7 +39,64 @@
 
 
 
+
 namespace mozilla {
+
+
+
+namespace {
+
+
+
+bool gInitialized = false;
+
+
+
+
+nsString* gLibDirectory;
+}
+
+
+
+
+
+nsresult InitOSFileConstants()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (gInitialized) {
+    return NS_ERROR_ALREADY_INITIALIZED;
+  }
+
+  gInitialized = true;
+
+  
+  nsCOMPtr<nsIFile> xpcomLib;
+  nsresult rv = NS_GetSpecialDirectory("XpcomLib", getter_AddRefs(xpcomLib));
+  if (NS_FAILED(rv) || !xpcomLib) {
+    return rv;
+  }
+
+  nsCOMPtr<nsIFile> libDir;
+  rv = xpcomLib->GetParent(getter_AddRefs(libDir));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  gLibDirectory = new nsString();
+  return libDir->GetPath(*gLibDirectory);
+}
+
+nsresult CleanupOSFileConstants()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!gInitialized) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  delete gLibDirectory;
+  return NS_OK;
+}
+
 
 
 
@@ -321,6 +382,8 @@ JSObject *GetOrCreateObjectProperty(JSContext *cx, JSObject *aObject,
 
 bool DefineOSFileConstants(JSContext *cx, JSObject *global)
 {
+  MOZ_ASSERT(gInitialized);
+
   JSObject *objOS;
   if (!(objOS = GetOrCreateObjectProperty(cx, global, "OS"))) {
     return false;
@@ -329,6 +392,9 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
   if (!(objConstants = GetOrCreateObjectProperty(cx, objOS, "Constants"))) {
     return false;
   }
+
+  
+
   JSObject *objLibc;
   if (!(objLibc = GetOrCreateObjectProperty(cx, objConstants, "libc"))) {
     return false;
@@ -336,7 +402,10 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
   if (!dom::DefineConstants(cx, objLibc, gLibcProperties)) {
     return false;
   }
+
 #if defined(XP_WIN)
+  
+
   JSObject *objWin;
   if (!(objWin = GetOrCreateObjectProperty(cx, objConstants, "Win"))) {
     return false;
@@ -345,6 +414,9 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
     return false;
   }
 #endif 
+
+  
+
   JSObject *objSys;
   if (!(objSys = GetOrCreateObjectProperty(cx, objConstants, "Sys"))) {
     return false;
@@ -353,7 +425,7 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
   nsCOMPtr<nsIXULRuntime> runtime = do_GetService(XULRUNTIME_SERVICE_CONTRACTID);
   if (runtime) {
     nsCAutoString os;
-    nsresult rv = runtime->GetOS(os);
+    DebugOnly<nsresult> rv = runtime->GetOS(os);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     JSString* strVersion = JS_NewStringCopyZ(cx, os.get());
@@ -363,6 +435,30 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
 
     jsval valVersion = STRING_TO_JSVAL(strVersion);
     if (!JS_SetProperty(cx, objSys, "Name", &valVersion)) {
+      return false;
+    }
+  }
+
+  
+  {
+    nsAutoString xulPath(*gLibDirectory);
+
+    xulPath.Append(PR_GetDirectorySeparator());
+
+#if defined(XP_MACOSX)
+    
+    xulPath.Append(NS_LITERAL_STRING("XUL"));
+#else
+    
+    
+    xulPath.Append(NS_LITERAL_STRING(DLL_PREFIX));
+    xulPath.Append(NS_LITERAL_STRING("xul"));
+    xulPath.Append(NS_LITERAL_STRING(DLL_SUFFIX));
+#endif 
+
+    JSString* strPathToLibXUL = JS_NewUCStringCopyZ(cx, xulPath.get());
+    jsval valXul = STRING_TO_JSVAL(strPathToLibXUL);
+    if (!JS_SetProperty(cx, objSys, "libxulpath", &valXul)) {
       return false;
     }
   }

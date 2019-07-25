@@ -15,6 +15,26 @@ namespace mozilla {
 
 
 
+
+
+nsresult InitOSFileConstants();
+
+
+
+
+
+
+
+
+
+nsresult CleanupOSFileConstants();
+
+
+
+
+
+
+
 bool DefineOSFileConstants(JSContext *cx, JSObject *global);
 
 }
