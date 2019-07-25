@@ -22,6 +22,7 @@
 
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 #ifdef __cplusplus
 
@@ -47,6 +48,7 @@ extern "C" {
 
 #define ES_WINDOW_MULTISAMPLE   8
 
+#define ES_WINDOW_POST_SUB_BUFFER_SUPPORTED 16
 
 
 
@@ -91,12 +93,20 @@ typedef struct
 
 
 
+extern PFNEGLPOSTSUBBUFFERNVPROC eglPostSubBufferNV;
+
+
+
+
+
+
 
 
 
 
 
 void ESUTIL_API esInitContext ( ESContext *esContext );
+
 
 
 
