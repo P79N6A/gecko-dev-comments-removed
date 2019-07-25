@@ -392,7 +392,8 @@ public:
   
   
   PRBool IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
-                            nsHTMLReflowMetrics& aMetrics);
+                            nsHTMLReflowMetrics& aMetrics,
+                            nsReflowStatus& aStatus);
 
   
   
