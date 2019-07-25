@@ -204,12 +204,23 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
         continue;
       }
 
-      double timePortion =
-        (aRefreshTime - pt.mStartTime).ToSeconds() / pt.mDuration.ToSeconds();
-      if (timePortion < 0.0)
-        timePortion = 0.0; 
-      if (timePortion > 1.0)
-        timePortion = 1.0; 
+      double duration = pt.mDuration.ToSeconds();
+      NS_ABORT_IF_FALSE(duration >= 0.0, "negative duration forbidden");
+      double timePortion;
+      if (duration == 0.0) {
+        if (aRefreshTime >= pt.mStartTime) {
+          timePortion = 0.0;
+        } else {
+          timePortion = 1.0;
+        }
+      } else {
+        timePortion = (aRefreshTime - pt.mStartTime).ToSeconds() /
+                      pt.mDuration.ToSeconds();
+        if (timePortion < 0.0)
+          timePortion = 0.0; 
+        if (timePortion > 1.0)
+          timePortion = 1.0; 
+      }
 
       double valuePortion =
         pt.mTimingFunction.GetSplineValue(timePortion);
@@ -636,6 +647,10 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   pt.mProperty = aProperty;
   float delay = aTransition.GetDelay();
   float duration = aTransition.GetDuration();
+  if (duration < 0.0) {
+    
+    duration = 0.0;
+  }
   if (durationFraction != 1.0) {
     
     
