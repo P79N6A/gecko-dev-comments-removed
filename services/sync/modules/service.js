@@ -989,7 +989,7 @@ WeaveSvc.prototype = {
     meta.payload.storageVersion = WEAVE_VERSION;
     meta.payload.syncID = Clients.syncID;
     let res = new Resource(meta.uri);
-    yield res.put(self.cb, meta.serialize());
+    res.put(meta.serialize());
   },
 
   
@@ -1007,7 +1007,7 @@ WeaveSvc.prototype = {
       
       let userURL = this.clusterURL + this.username + "/";
       let res = new Resource(userURL);
-      yield res.get(self.cb);
+      res.get();
 
       
       let allCollections = JSON.parse(res.data);
@@ -1017,7 +1017,7 @@ WeaveSvc.prototype = {
           if (engines && engines.indexOf(name) == -1)
             continue;
 
-          yield new Resource(userURL + name).delete(self.cb);
+          new Resource(userURL + name).delete();
         }
         catch(ex) {
           this._log.debug("Exception on wipe of '" + name + "': " + Utils.exceptionStr(ex));
