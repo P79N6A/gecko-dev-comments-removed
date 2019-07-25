@@ -38,6 +38,7 @@
 
 
 
+
 #endif
 
 const INSPECTOR_INVISIBLE_ELEMENTS = {
@@ -320,6 +321,29 @@ PanelHighlighter.prototype = {
       InspectorUI.inspectNode(element);
     }
   },
+
+  
+
+
+
+
+
+
+  handlePixelScroll: function PanelHighlighter_handlePixelScroll(aEvent) {
+    if (!InspectorUI.inspecting) {
+      return;
+    }
+    let browserRect = this.browser.getBoundingClientRect();
+    let element = InspectorUI.elementFromPoint(this.win.document,
+      aEvent.clientX - browserRect.left, aEvent.clientY - browserRect.top);
+    let win = element.ownerDocument.defaultView;
+
+    if (aEvent.axis == aEvent.HORIZONTAL_AXIS) {
+      win.scrollBy(aEvent.detail, 0);
+    } else {
+      win.scrollBy(0, aEvent.detail);
+    }
+  }
 };
 
 
