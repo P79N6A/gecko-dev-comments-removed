@@ -476,7 +476,11 @@ TestDataStructuresChild::RecvStart()
     Test15();
     Test16();
     Test17();
-    Test18();
+    if (OtherProcess() != 0) {
+        
+        
+        Test18();
+    }
 
     for (uint32 i = 0; i < nactors; ++i)
         if (!PTestDataStructuresSubChild::Send__delete__(mKids[i]))

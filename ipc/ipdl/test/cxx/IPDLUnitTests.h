@@ -54,6 +54,7 @@
 
 #define MOZ_IPDL_TESTFAIL_LABEL "TEST-UNEXPECTED-FAIL"
 #define MOZ_IPDL_TESTPASS_LABEL "TEST-PASS"
+#define MOZ_IPDL_TESTINFO_LABEL "TEST-INFO"
 
 
 namespace mozilla {
@@ -116,10 +117,7 @@ void IPDLUnitTestChildInit(IPC::Channel* transport,
                            base::ProcessHandle parent,
                            MessageLoop* worker);
 
-inline void QuitChild()
-{
-  XRE_ShutdownChildProcess();
-}
+void QuitChild();
 
 } 
 } 

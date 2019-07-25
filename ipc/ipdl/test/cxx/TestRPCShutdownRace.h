@@ -17,6 +17,10 @@ public:
     TestRPCShutdownRaceParent();
     virtual ~TestRPCShutdownRaceParent();
 
+    static bool RunTestInProcesses() { return true; }
+    
+    static bool RunTestInThreads() { return false; }
+
     void Main();
 
     NS_OVERRIDE

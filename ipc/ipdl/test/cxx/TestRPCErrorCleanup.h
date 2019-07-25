@@ -17,6 +17,10 @@ public:
     TestRPCErrorCleanupParent();
     virtual ~TestRPCErrorCleanupParent();
 
+    static bool RunTestInProcesses() { return true; }
+    
+    static bool RunTestInThreads() { return false; }
+
     void Main();
 
 protected:    
