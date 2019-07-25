@@ -4174,15 +4174,17 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
             detached = true;
         }
 
-        
+
+        if (!detached) {
+            
 
 
 
-        if (!detached &&
-            (nesting->parent->analysis()->addsScopeObjects() ||
-             JSOp(*nesting->parent->code) == JSOP_GENERATOR)) {
-            DetachNestingParent(script);
-            detached = true;
+            if (nesting->parent->analysis()->addsScopeObjects() || 
+                JSOp(*nesting->parent->code) == JSOP_GENERATOR)
+            {
+                DetachNestingParent(script);
+            }
         }
     }
 
