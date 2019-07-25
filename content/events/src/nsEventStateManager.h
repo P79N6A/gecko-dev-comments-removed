@@ -328,7 +328,7 @@ protected:
 
 
 
-    void ApplyUserPrefsToDelta(nsMouseScrollEvent* aEvent);
+    void ApplyUserPrefsToDelta(mozilla::widget::WheelEvent* aEvent);
 
     
 
@@ -341,7 +341,7 @@ protected:
       ACTION_ZOOM,
       ACTION_LAST = ACTION_ZOOM
     };
-    Action GetActionFor(nsMouseScrollEvent* aMouseEvent);
+    Action GetActionFor(nsMouseScrollEvent* aEvent);
 
   private:
     WheelPrefs();
@@ -415,7 +415,7 @@ protected:
 
 
   nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
-                                          nsMouseScrollEvent* aMouseEvent,
+                                          mozilla::widget::WheelEvent* aEvent,
                                           bool aForDefaultAction);
 
   
@@ -430,22 +430,16 @@ protected:
 
 
 
-
-
   nsSize GetScrollAmount(nsPresContext* aPresContext,
-                         nsMouseScrollEvent* aEvent,
-                         nsIFrame* aTargetFrame,
+                         mozilla::widget::WheelEvent* aEvent,
                          nsIScrollableFrame* aScrollableFrame);
 
   
 
 
+  void DoScrollText(nsIScrollableFrame* aScrollableFrame,
+                    mozilla::widget::WheelEvent* aEvent);
 
-  nsresult DoScrollText(nsIFrame* aTargetFrame,
-                        nsMouseScrollEvent* aMouseEvent,
-                        nsIScrollableFrame::ScrollUnit aScrollQuantity,
-                        bool aAllowScrollSpeedOverride,
-                        nsIAtom *aOrigin = nullptr);
   void DoScrollHistory(PRInt32 direction);
   void DoScrollZoom(nsIFrame *aTargetFrame, PRInt32 adjustment);
   nsresult GetMarkupDocumentViewer(nsIMarkupDocumentViewer** aMv);
@@ -657,10 +651,6 @@ public:
   static nsresult UpdateUserActivityTimer(void);
   
   nsCOMArray<nsIContent> mAccessKeys;
-
-  
-  bool mLastLineScrollConsumedX;
-  bool mLastLineScrollConsumedY;
 
   static PRInt32 sUserInputEventDepth;
   
