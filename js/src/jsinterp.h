@@ -68,6 +68,7 @@ enum JSFrameFlags {
     JSFRAME_GENERATOR          =  0x80, 
     JSFRAME_BAILING            = 0x100, 
     JSFRAME_RECORDING          = 0x200, 
+    JSFRAME_BAILED_AT_RETURN   = 0x400, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };

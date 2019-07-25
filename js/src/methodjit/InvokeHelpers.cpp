@@ -855,7 +855,7 @@ RunTracer(VMFrame &f)
     
     if (JSOp op = FrameIsFinished(cx)) {
         
-        if (op == JSOP_RETURN)
+        if (op == JSOP_RETURN && !(entryFrame->flags & JSFRAME_BAILED_AT_RETURN))
             entryFrame->rval = f.regs.sp[-1];
 
         
