@@ -76,6 +76,14 @@ public:
     
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption);
 
+    virtual PRBool ProvidesHintedWidths() const { return PR_TRUE; }
+
+    
+    virtual PRInt32 GetHintedGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
+
+protected:
+    virtual void CreatePlatformShaper();
+
     
     virtual PRBool InitTextRun(gfxContext *aContext,
                                gfxTextRun *aTextRun,
@@ -84,14 +92,6 @@ public:
                                PRUint32 aRunLength,
                                PRInt32 aRunScript,
                                PRBool aPreferPlatformShaping = PR_FALSE);
-
-    virtual PRBool ProvidesHintedWidths() const { return PR_TRUE; }
-
-    
-    virtual PRInt32 GetHintedGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
-
-protected:
-    virtual void CreatePlatformShaper();
 
     void Initialize(); 
 

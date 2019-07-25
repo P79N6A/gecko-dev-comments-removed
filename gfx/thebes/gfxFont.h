@@ -1189,15 +1189,12 @@ public:
     
     
     
-    
-    
-    virtual PRBool InitTextRun(gfxContext *aContext,
+    PRBool SplitAndInitTextRun(gfxContext *aContext,
                                gfxTextRun *aTextRun,
                                const PRUnichar *aString,
                                PRUint32 aRunStart,
                                PRUint32 aRunLength,
-                               PRInt32 aRunScript,
-                               PRBool aPreferPlatformShaping = PR_FALSE);
+                               PRInt32 aRunScript);
 
 protected:
     nsRefPtr<gfxFontEntry> mFontEntry;
@@ -1248,6 +1245,19 @@ protected:
     
     
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, PRBool aIsBadUnderlineFont);
+
+    
+    
+    
+    
+    
+    virtual PRBool InitTextRun(gfxContext *aContext,
+                               gfxTextRun *aTextRun,
+                               const PRUnichar *aString,
+                               PRUint32 aRunStart,
+                               PRUint32 aRunLength,
+                               PRInt32 aRunScript,
+                               PRBool aPreferPlatformShaping = PR_FALSE);
 };
 
 
@@ -2240,13 +2250,14 @@ protected:
                      PRUint32 aLength);
 
     
-    void InitTextRun(gfxContext *aContext,
-                     gfxTextRun *aTextRun,
-                     const PRUnichar *aString,
-                     PRUint32 aTotalLength,
-                     PRUint32 aScriptRunStart,
-                     PRUint32 aScriptRunEnd,
-                     PRInt32 aRunScript);
+    
+    void InitScriptRun(gfxContext *aContext,
+                       gfxTextRun *aTextRun,
+                       const PRUnichar *aString,
+                       PRUint32 aTotalLength,
+                       PRUint32 aScriptRunStart,
+                       PRUint32 aScriptRunEnd,
+                       PRInt32 aRunScript);
 
     
 
