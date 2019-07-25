@@ -165,6 +165,16 @@ public:
 
 
 
+  void DestroyedThebesBuffer(ShadowableLayer* aThebes);
+  void DestroyedImageBuffer(ShadowableLayer* aImage);
+  void DestroyedCanvasBuffer(ShadowableLayer* aCanvas);
+
+
+  
+
+
+
+
   void Mutated(ShadowableLayer* aMutant);
 
   void SetRoot(ShadowableLayer* aRoot);
@@ -343,6 +353,13 @@ public:
        const nsIntRect& aBufferRect,
        const nsIntPoint& aRotation) = 0;
 
+  
+
+
+
+
+  virtual void DestroyFrontBuffer() = 0;
+
   MOZ_LAYER_DECL_NAME("ShadowThebesLayer", TYPE_SHADOW)
 
 protected:
@@ -363,6 +380,13 @@ public:
 
   virtual already_AddRefed<gfxSharedImageSurface>
   Swap(gfxSharedImageSurface* aNewFront) = 0;
+
+  
+
+
+
+
+  virtual void DestroyFrontBuffer() = 0;
 
   MOZ_LAYER_DECL_NAME("ShadowCanvasLayer", TYPE_SHADOW)
 
@@ -391,6 +415,13 @@ public:
 
   virtual already_AddRefed<gfxSharedImageSurface>
   Swap(gfxSharedImageSurface* newFront) = 0;
+
+  
+
+
+
+
+  virtual void DestroyFrontBuffer() = 0;
 
   MOZ_LAYER_DECL_NAME("ShadowImageLayer", TYPE_SHADOW)
 

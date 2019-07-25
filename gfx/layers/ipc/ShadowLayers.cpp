@@ -188,6 +188,24 @@ ShadowLayerForwarder::CreatedCanvasBuffer(ShadowableLayer* aCanvas,
 }
 
 void
+ShadowLayerForwarder::DestroyedThebesBuffer(ShadowableLayer* aThebes)
+{
+  mTxn->AddEdit(OpDestroyThebesFrontBuffer(NULL, Shadow(aThebes)));
+}
+
+void
+ShadowLayerForwarder::DestroyedImageBuffer(ShadowableLayer* aImage)
+{
+  mTxn->AddEdit(OpDestroyImageFrontBuffer(NULL, Shadow(aImage)));
+}
+
+void
+ShadowLayerForwarder::DestroyedCanvasBuffer(ShadowableLayer* aCanvas)
+{
+  mTxn->AddEdit(OpDestroyCanvasFrontBuffer(NULL, Shadow(aCanvas)));
+}
+
+void
 ShadowLayerForwarder::Mutated(ShadowableLayer* aMutant)
 {
   mTxn->AddMutant(aMutant);
@@ -271,7 +289,7 @@ ShadowLayerForwarder::EndTransaction(nsTArray<EditReply>* aReplies)
     CommonLayerAttributes& common = attrs.common();
     common.visibleRegion() = mutant->GetVisibleRegion();
     common.transform() = mutant->GetTransform();
-    common.contentFlags() = mutant->GetContentFlags();
+    common.isOpaqueContent() = mutant->IsOpaqueContent();
     common.opacity() = mutant->GetOpacity();
     common.useClipRect() = !!mutant->GetClipRect();
     common.clipRect() = (common.useClipRect() ?
