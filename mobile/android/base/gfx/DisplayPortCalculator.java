@@ -218,12 +218,15 @@ final class DisplayPortCalculator {
 
 
 
+
     private static class VelocityBiasStrategy implements DisplayPortStrategy {
         
         
-        private static final float SIZE_MULTIPLIER = 1.2f;
+        private static final float SIZE_MULTIPLIER = 1.5f;
         
         private static final float VELOCITY_THRESHOLD = GeckoAppShell.getDpi() / 32f;
+        
+        private static final float REVERSE_BUFFER = 0.2f;
 
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
             float displayPortWidth = metrics.getWidth() * SIZE_MULTIPLIER;
@@ -249,21 +252,23 @@ final class DisplayPortCalculator {
             
             RectF margins = new RectF();
             if (velocity.x > VELOCITY_THRESHOLD) {
-                margins.right = horizontalBuffer;
+                margins.left = horizontalBuffer * REVERSE_BUFFER;
             } else if (velocity.x < -VELOCITY_THRESHOLD) {
-                margins.left = horizontalBuffer;
+                margins.left = horizontalBuffer * (1.0f - REVERSE_BUFFER);
             } else {
                 margins.left = horizontalBuffer / 2.0f;
-                margins.right = horizontalBuffer - margins.left;
             }
+            margins.right = horizontalBuffer - margins.left;
+
             if (velocity.y > VELOCITY_THRESHOLD) {
-                margins.bottom = verticalBuffer;
+                margins.top = verticalBuffer * REVERSE_BUFFER;
             } else if (velocity.y < -VELOCITY_THRESHOLD) {
-                margins.top = verticalBuffer;
+                margins.top = verticalBuffer * (1.0f - REVERSE_BUFFER);
             } else {
                 margins.top = verticalBuffer / 2.0f;
-                margins.bottom = verticalBuffer - margins.top;
             }
+            margins.bottom = verticalBuffer - margins.top;
+
             
             margins = shiftMarginsForPageBounds(margins, metrics);
 
