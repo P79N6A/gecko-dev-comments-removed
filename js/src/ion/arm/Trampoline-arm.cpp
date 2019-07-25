@@ -39,6 +39,7 @@
 
 
 
+#include "ion/IonSpewer.h"
 #include "jscompartment.h"
 #include "assembler/assembler/MacroAssembler.h"
 #include "ion/IonCompartment.h"
@@ -229,13 +230,90 @@ IonCompartment::generateReturnError(JSContext *cx)
     Linker linker(masm);
     return linker.newCode(cx);
 }
+static void
+generateBailoutTail(MacroAssembler &masm)
+{
+    masm.linkExitFrame();
 
+    Label interpret;
+    Label exception;
+
+    
+    
+    
+    
+    
+
+    masm.ma_cmp(r0, Imm32(BAILOUT_RETURN_FATAL_ERROR));
+    masm.ma_b(&interpret, Assembler::LessThan);
+    masm.ma_b(&exception, Assembler::Equal);
+
+    
+    masm.setupAlignedABICall(1);
+    masm.setABIArg(0, r0);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
+
+    masm.ma_cmp(r0, Imm32(0));
+    masm.ma_b(&exception, Assembler::Equal);
+
+    masm.bind(&interpret);
+    
+    masm.as_sub(sp, sp, Imm8(sizeof(Value)));
+
+    
+    masm.setupAlignedABICall(1);
+    masm.setABIArg(0, sp);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+
+    
+    
+    masm.as_extdtr(IsLoad, 64, true, PostIndex,
+                   JSReturnReg_Data, EDtrAddr(sp, EDtrOffImm(8)));
+
+    
+    masm.as_cmp(r0, Imm8(0));
+    masm.ma_b(&exception, Assembler::Zero);
+    masm.as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
+    masm.bind(&exception);
+    masm.handleException();
+
+}
 IonCode *
 IonCompartment::generateInvalidator(JSContext *cx)
 {
+    
+
     MacroAssembler masm(cx);
-    JS_ASSERT(false); 
-    return NULL;
+    masm.startDataTransferM(IsStore, sp, DB, WriteBack);
+    
+    
+    for (uint32 i = 0; i < Registers::Total; i++)
+        masm.transferReg(Register::FromCode(i));
+    masm.finishDataTransfer();
+
+    masm.startFloatTransferM(IsStore, sp, DB, WriteBack);
+    for (uint32 i = 0; i < FloatRegisters::Total; i++)
+        masm.transferFloatReg(FloatRegister::FromCode(i));
+    masm.finishFloatTransfer();
+
+    masm.ma_mov(sp, r0);
+    masm.reserveStack(sizeof(size_t));
+    masm.mov(sp, r1);
+    masm.setupAlignedABICall(3);
+    masm.setABIArg(0, r0);
+    masm.setABIArg(1, r1);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
+
+    const uint32 BailoutDataSize = sizeof(double) * FloatRegisters::Total +
+                                   sizeof(void *) * Registers::Total;
+
+    masm.ma_add(sp, r0, sp);
+    masm.ma_add(sp, Imm32(BailoutDataSize), sp);
+    generateBailoutTail(masm);
+    Linker linker(masm);
+    IonCode *code = linker.newCode(cx);
+    IonSpew(IonSpew_Invalidate, "   invalidation thunk created at %p", (void *) code->raw());
+    return code;
 }
 
 IonCode *
@@ -397,64 +475,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
                           + bailoutFrameSize) 
                     , sp);
     }
-
-    masm.linkExitFrame();
-
-    Label interpret;
-    Label exception;
-
-    
-    
-    
-    
-    
-
-    masm.ma_cmp(r0, Imm32(BAILOUT_RETURN_FATAL_ERROR));
-    masm.ma_b(&interpret, Assembler::LessThan);
-    masm.ma_b(&exception, Assembler::Equal);
-
-    
-    masm.setupAlignedABICall(1);
-    masm.setABIArg(0, r0);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
-
-    masm.ma_cmp(r0, Imm32(0));
-    masm.ma_b(&exception, Assembler::Equal);
-
-    masm.bind(&interpret);
-    
-    masm.as_sub(sp, sp, Imm8(sizeof(Value)));
-
-    
-    masm.setupAlignedABICall(1);
-    masm.setABIArg(0, sp);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
-
-    
-    
-    masm.as_extdtr(IsLoad, 64, true, PostIndex,
-                   JSReturnReg_Data, EDtrAddr(sp, EDtrOffImm(8)));
-
-    
-    masm.as_cmp(r0, Imm8(0));
-    masm.ma_b(&exception, Assembler::Zero);
-    masm.as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
-    masm.bind(&exception);
-    masm.handleException();
-#if 0
-    
-    masm.as_mov(r0, O2Reg(sp));
-    masm.setupAlignedABICall(1);
-    masm.setABIArg(0,r0);
-    void *func = JS_FUNC_TO_DATA_PTR(void *, ion::HandleException);
-    masm.callWithABI(func);
-
-    
-    masm.as_add(sp, sp, O2Reg(r0));
-    
-    
-    masm.as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
-#endif
+    generateBailoutTail(masm);
 }
 
 IonCode *
