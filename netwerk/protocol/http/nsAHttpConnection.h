@@ -129,6 +129,11 @@ public:
 
     
     
+    
+    virtual bool IsProxyConnectInProgress() = 0;
+
+    
+    
     virtual bool LastTransactionExpectedNoContent() = 0;
     virtual void   SetLastTransactionExpectedNoContent(bool) = 0;
 
@@ -154,6 +159,7 @@ public:
     bool IsPersistent(); \
     bool IsReused(); \
     nsresult PushBack(const char *, PRUint32); \
+    bool IsProxyConnectInProgress(); \
     bool LastTransactionExpectedNoContent(); \
     void   SetLastTransactionExpectedNoContent(bool); \
     nsHttpConnection *TakeHttpConnection(); \

@@ -352,26 +352,38 @@ nsHttpConnectionMgr::GetSocketThreadTarget(nsIEventTarget **target)
 void
 nsHttpConnectionMgr::AddTransactionToPipeline(nsHttpPipeline *pipeline)
 {
+    
+
+
+
+   
     LOG(("nsHttpConnectionMgr::AddTransactionToPipeline [pipeline=%x]\n", pipeline));
 
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+    PRUint16 avail = pipeline->PipelineDepthAvailable();
 
     nsRefPtr<nsHttpConnectionInfo> ci;
     pipeline->GetConnectionInfo(getter_AddRefs(ci));
-    if (ci) {
+    if (ci && avail && ci->SupportsPipelining()) {
         nsConnectionEntry *ent = mCT.Get(ci->HashKey());
         if (ent) {
             
             PRInt32 i, count = ent->mPendingQ.Length();
-            for (i=0; i<count; ++i) {
+            for (i = 0; i < count; ) {
                 nsHttpTransaction *trans = ent->mPendingQ[i];
                 if (trans->Caps() & NS_HTTP_ALLOW_PIPELINING) {
                     pipeline->AddTransaction(trans);
 
                     
                     ent->mPendingQ.RemoveElementAt(i);
+                    --count;
+
                     NS_RELEASE(trans);
-                    break;
+                    if (--avail == 0)
+                        break;
+                }
+                else {
+                    ++i;
                 }
             }
         }
@@ -956,6 +968,69 @@ nsHttpConnectionMgr::ProcessPendingQForEntry(nsConnectionEntry *ent)
     return false;
 }
 
+bool
+nsHttpConnectionMgr::ProcessPipelinePendingQForEntry(nsConnectionEntry *ent)
+{
+    LOG(("nsHttpConnectionMgr::ProcessPipelinePendingQForEntry [ci=%s]\n",
+         ent->mConnInfo->HashKey().get()));
+
+    NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+
+    if (mMaxPipelinedRequests < 2)
+        return false;
+
+    PRUint32 activeCount = ent->mActiveConns.Length();
+    PRUint32 originalPendingCount = ent->mPendingQ.Length();
+    PRUint32 pendingCount = originalPendingCount;
+    PRUint32 pendingIndex = 0;
+
+    for (PRUint32 activeIndex = 0;
+         (activeIndex < activeCount) && (pendingIndex < pendingCount);
+         ++activeIndex) {
+        nsHttpConnection *conn = ent->mActiveConns[activeIndex];
+
+        if (!conn->SupportsPipelining())
+            continue;
+
+        nsAHttpTransaction *activeTrans = conn->Transaction();
+        if (!activeTrans)
+            continue;
+
+        nsresult rv = NS_OK;
+        PRUint16 avail = activeTrans->PipelineDepthAvailable();
+
+        while (NS_SUCCEEDED(rv) && avail && (pendingIndex < pendingCount)) {
+            nsHttpTransaction *trans = ent->mPendingQ[pendingIndex];
+            if (trans->Caps() & NS_HTTP_ALLOW_PIPELINING) {
+                rv = activeTrans->AddTransaction(trans);
+                if (NS_SUCCEEDED(rv)) {
+                    
+                    ent->mPendingQ.RemoveElementAt(pendingIndex);
+
+                    
+                    --pendingCount;
+                    --avail;
+                    NS_RELEASE(trans);
+                }
+            }
+            else
+                
+                ++pendingIndex;
+        }
+    }
+    return originalPendingCount != pendingCount;
+}
+
+bool
+nsHttpConnectionMgr::ProcessPipelinePendingQForCI(nsHttpConnectionInfo *ci)
+{
+    NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+    
+    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+
+    return ent && ProcessPipelinePendingQForEntry(ent);
+}
+
 
 
 
@@ -1230,12 +1305,13 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
 
     nsHttpPipeline *pipeline = nsnull;
     nsAHttpTransaction *trans = aTrans;
+   
+    
 
-    if (conn->SupportsPipelining() && (caps & NS_HTTP_ALLOW_PIPELINING)) {
-        LOG(("  looking to build pipeline...\n"));
-        if (BuildPipeline(ent, trans, &pipeline))
-            trans = pipeline;
-    }
+
+
+    if (BuildPipeline(ent, trans, &pipeline))
+        trans = pipeline;
 
     
     trans->SetConnection(handle);
@@ -1268,40 +1344,48 @@ nsHttpConnectionMgr::BuildPipeline(nsConnectionEntry *ent,
                                    nsAHttpTransaction *firstTrans,
                                    nsHttpPipeline **result)
 {
+    NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+
     if (mMaxPipelinedRequests < 2)
         return false;
 
-    nsHttpPipeline *pipeline = nsnull;
-    nsHttpTransaction *trans;
+    
 
-    PRUint32 i = 0, numAdded = 0;
-    while (i < ent->mPendingQ.Length()) {
-        trans = ent->mPendingQ[i];
-        if (trans->Caps() & NS_HTTP_ALLOW_PIPELINING) {
-            if (numAdded == 0) {
-                pipeline = new nsHttpPipeline;
-                if (!pipeline)
-                    return false;
-                pipeline->AddTransaction(firstTrans);
-                numAdded = 1;
+
+    nsHttpPipeline *pipeline = new nsHttpPipeline(mMaxPipelinedRequests);
+
+    
+
+   
+    PRUint16 numAdded = 1;
+    pipeline->AddTransaction(firstTrans);
+
+    if (ent->mConnInfo->SupportsPipelining() &&
+        firstTrans->Caps() & NS_HTTP_ALLOW_PIPELINING) {
+        PRUint32 i = 0;
+        nsHttpTransaction *trans;
+
+        while (i < ent->mPendingQ.Length()) {
+            trans = ent->mPendingQ[i];
+            if (trans->Caps() & NS_HTTP_ALLOW_PIPELINING) {
+                pipeline->AddTransaction(trans);
+
+                
+                ent->mPendingQ.RemoveElementAt(i);
+                NS_RELEASE(trans);
+
+                if (++numAdded == mMaxPipelinedRequests)
+                    break;
             }
-            pipeline->AddTransaction(trans);
-
-            
-            ent->mPendingQ.RemoveElementAt(i);
-            NS_RELEASE(trans);
-
-            if (++numAdded == mMaxPipelinedRequests)
-                break;
+            else {
+                ++i; 
+            }
         }
-        else
-            ++i; 
     }
 
-    if (numAdded == 0)
-        return false;
-
-    LOG(("  pipelined %u transactions\n", numAdded));
+    if (numAdded > 1)
+        LOG(("  pipelined %u transactions\n", numAdded));
+ 
     NS_ADDREF(*result = pipeline);
     return true;
 }
@@ -1375,6 +1459,11 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
         
         InsertTransactionSorted(ent->mPendingQ, trans);
         NS_ADDREF(trans);
+
+        
+
+
+        ProcessPipelinePendingQForEntry(ent);
         rv = NS_OK;
     }
     else {
@@ -2295,6 +2384,12 @@ nsHttpConnectionMgr::nsConnectionHandle::TakeHttpConnection()
     nsHttpConnection *conn = mConn;
     mConn = nsnull;
     return conn;
+}
+
+bool
+nsHttpConnectionMgr::nsConnectionHandle::IsProxyConnectInProgress()
+{
+    return mConn->IsProxyConnectInProgress();
 }
 
 bool
