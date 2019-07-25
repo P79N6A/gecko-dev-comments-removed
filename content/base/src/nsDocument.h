@@ -1083,6 +1083,13 @@ protected:
   
   static nsWeakPtr sFullScreenDoc;
 
+  
+  
+  
+  
+  
+  static nsWeakPtr sFullScreenRootDoc;
+
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;
   nsRefPtr<nsDOMStyleSheetSetList> mStyleSheetSetList;

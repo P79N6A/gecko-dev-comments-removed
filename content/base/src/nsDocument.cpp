@@ -214,7 +214,12 @@ using namespace mozilla::dom;
 
 typedef nsTArray<Link*> LinkArray;
 
+
 nsWeakPtr nsDocument::sFullScreenDoc = nsnull;
+
+
+
+nsWeakPtr nsDocument::sFullScreenRootDoc = nsnull;
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gDocumentLeakPRLog;
@@ -7301,6 +7306,21 @@ NotifyPageHide(nsIDocument* aDocument, void* aData)
   return true;
 }
 
+static bool
+SetFullScreenState(nsIDocument* aDoc, Element* aElement, bool aIsFullScreen);
+
+static void
+SetWindowFullScreen(nsIDocument* aDoc, bool aValue);
+
+static bool
+ResetFullScreen(nsIDocument* aDocument, void* aData) {
+  if (aDocument->IsFullScreenDoc()) {
+    ::SetFullScreenState(aDocument, nsnull, false);
+    aDocument->EnumerateSubDocuments(ResetFullScreen, nsnull);
+  }
+  return true;
+}
+
 void
 nsDocument::OnPageHide(bool aPersisted,
                        nsIDOMEventTarget* aDispatchStartTarget)
@@ -7352,6 +7372,29 @@ nsDocument::OnPageHide(bool aPersisted,
   
   EnumerateExternalResources(NotifyPageHide, &aPersisted);
   EnumerateFreezableElements(NotifyActivityChanged, nsnull);
+
+  if (IsFullScreenDoc()) {
+    
+    
+    
+    
+    
+
+    
+    
+    
+    ::SetFullScreenState(this, nsnull, false);
+
+    
+    
+    
+    nsCOMPtr<nsIDocument> fullScreenRoot(do_QueryReferent(sFullScreenRootDoc));
+    if (fullScreenRoot) {
+      fullScreenRoot->EnumerateSubDocuments(ResetFullScreen, nsnull);
+      SetWindowFullScreen(fullScreenRoot, false);
+      sFullScreenRootDoc = nsnull;
+    }
+  }
 }
 
 void
@@ -8456,6 +8499,7 @@ nsDocument::CancelFullScreen()
     doc = doc->GetParentDocument();
   }
   sFullScreenDoc = nsnull;
+  sFullScreenRootDoc = nsnull;
 
   
   SetWindowFullScreen(this, false);
@@ -8500,6 +8544,19 @@ GetCommonAncestor(nsIDocument* aDoc1, nsIDocument* aDoc2)
   return parent;
 }
 
+
+static nsIDocument*
+GetRootDocument(nsIDocument* aDoc)
+{
+  if (!aDoc)
+    return nsnull;
+  nsIDocument* doc = aDoc;
+  while (doc->GetParentDocument()) {
+    doc = doc->GetParentDocument();
+  }
+  return doc;
+}
+
 void
 nsDocument::RequestFullScreen(Element* aElement)
 {
@@ -8537,6 +8594,10 @@ nsDocument::RequestFullScreen(Element* aElement)
     
     SetWindowFullScreen(fullScreenDoc, false);
   }
+
+  
+  
+  sFullScreenRootDoc = do_GetWeakReference(GetRootDocument(this));
 
   
   
