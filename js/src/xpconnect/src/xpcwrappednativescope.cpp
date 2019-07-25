@@ -1031,8 +1031,12 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
             principalEqual = PR_TRUE;
     }
 
+    PRBool native = IS_WRAPPER_CLASS(obj->getClass());
+    XPCWrappedNative *wrapper = (native && IS_WN_WRAPPER_OBJECT(obj))
+                                ? (XPCWrappedNative *) xpc_GetJSPrivate(obj)
+                                : nsnull;
     if(wn)
-        *wn = nsnull;
+        *wn = wrapper;
 
     
     
@@ -1053,25 +1057,19 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
             XPCCrossOriginWrapper::ClassNeedsXOW(obj->getClass()->name);
 
         
-        JSObject *obj2;
-        XPCWrappedNative *wrapper =
-            XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
         if(principalEqual || obj->isSystem())
         {
             if(hint & XPCNW)
-                return (wrapper || obj2) ? hint : NONE;
+                return native ? hint : NONE;
             return wantsXOW ? SJOW : NONE;
         }
 
         
         
 
-        if(!wrapper && !obj2)
+        if(!native)
             hint = SJOW;
-
-        if(wn)
-            *wn = wrapper;
-        if(hint == UNKNOWN)
+        else if(hint == UNKNOWN)
             hint = XPCNW_IMPLICIT;
 
         NS_ASSERTION(hint <= SJOW, "returning the wrong wrapper for chrome code");
@@ -1080,12 +1078,6 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
 
     
     
-
-    JSObject *obj2;
-    XPCWrappedNative *wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
-    if(wn)
-        *wn = wrapper;
 
     nsIPrincipal *otherprincipal = other->GetPrincipal();
     XPCWrapper::GetSecurityManager()->IsSystemPrincipal(otherprincipal, &system);
@@ -1107,7 +1099,7 @@ XPCWrappedNativeScope::GetWrapperFor(JSContext *cx, JSObject *obj,
 
     
     
-    if(!wrapper && !obj2)
+    if(!native)
     {
 #if 0
         
