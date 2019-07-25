@@ -260,21 +260,11 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url,
     nsCAutoString uriStr;
     nsCAutoString scheme;
 
-    JSStackFrame* frame = nsnull;
     JSScript* script = nsnull;
 
     
-    do
-    {
-        frame = JS_FrameIterator(cx, &frame);
-
-        if (frame)
-            script = JS_GetFrameScript(cx, frame);
-    } while (frame && !script);
-
-    if (!script) {
+    if (!JS_DescribeScriptedCaller(cx, &script, nsnull)) {
         
-
         return NS_ERROR_FAILURE;
     }
 

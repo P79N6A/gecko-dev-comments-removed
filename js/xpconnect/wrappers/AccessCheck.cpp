@@ -364,18 +364,15 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
         return false;
     }
 
+    JSScript *script = nsnull;
     if (!fp) {
-        if (!JS_FrameIterator(cx, &fp)) {
+        if (!JS_DescribeScriptedCaller(cx, &script, nsnull)) {
             
             
             return true;
         }
-
-        
-        
-        fp = NULL;
-    } else if (!JS_IsScriptFrame(cx, fp)) {
-        fp = NULL;
+    } else if (JS_IsScriptFrame(cx, fp)) {
+        script = JS_GetFrameScript(cx, fp);
     }
 
     bool privileged;
@@ -388,8 +385,8 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
     
     static const char prefix[] = "chrome://global/";
     const char *filename;
-    if (fp &&
-        (filename = JS_GetScriptFilename(cx, JS_GetFrameScript(cx, fp))) &&
+    if (script &&
+        (filename = JS_GetScriptFilename(cx, script)) &&
         !strncmp(filename, prefix, ArrayLength(prefix) - 1)) {
         return true;
     }
