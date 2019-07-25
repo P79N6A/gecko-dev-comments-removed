@@ -39,6 +39,7 @@
 #define nsMacUtilsImpl_h___
 
 #include "nsIMacUtils.h"
+#include "nsString.h"
 
 class nsMacUtilsImpl : public nsIMacUtils
 {
@@ -50,6 +51,12 @@ public:
 
 private:
   ~nsMacUtilsImpl() {}
+
+  nsresult GetArchString(nsAString& archString);
+
+  
+  
+  nsString mBinaryArchs;
 };
 
 

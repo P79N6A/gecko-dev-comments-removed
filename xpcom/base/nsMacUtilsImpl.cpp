@@ -38,91 +38,108 @@
 #include "nsMacUtilsImpl.h"
 
 #include <CoreFoundation/CoreFoundation.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/sysctl.h>
-#include <mach-o/fat.h>
 
 NS_IMPL_ISUPPORTS1(nsMacUtilsImpl, nsIMacUtils)
 
-
-
-
-NS_IMETHODIMP nsMacUtilsImpl::GetIsUniversalBinary(PRBool *aIsUniversalBinary)
+nsresult nsMacUtilsImpl::GetArchString(nsAString& archString)
 {
-  static PRBool sInitialized = PR_FALSE,
-                sIsUniversalBinary = PR_FALSE;
-
-  if (sInitialized) {
-    *aIsUniversalBinary = sIsUniversalBinary;
+  if (!mBinaryArchs.IsEmpty()) {
+    archString.Assign(mBinaryArchs);
     return NS_OK;
   }
 
+  archString.Truncate();
+
   PRBool foundPPC = PR_FALSE,
-         foundX86 = PR_FALSE;
-  CFURLRef executableURL = nsnull;
-  int fd = -1;
+         foundX86 = PR_FALSE,
+         foundPPC64 = PR_FALSE,
+         foundX86_64 = PR_FALSE;
 
-  CFBundleRef mainBundle;
-  if (!(mainBundle = ::CFBundleGetMainBundle()))
-    goto done;
-
-  if (!(executableURL = ::CFBundleCopyExecutableURL(mainBundle)))
-    goto done;
-
-  char executablePath[PATH_MAX];
-  if (!::CFURLGetFileSystemRepresentation(executableURL, PR_TRUE,
-                                          (UInt8*) executablePath,
-                                          sizeof(executablePath)))
-    goto done;
-
-  if ((fd = open(executablePath, O_RDONLY)) == -1)
-    goto done;
-
-  struct fat_header fatHeader;
-  if (read(fd, &fatHeader, sizeof(fatHeader)) != sizeof(fatHeader))
-    goto done;
-
-  
-  fatHeader.magic = CFSwapInt32BigToHost(fatHeader.magic);
-  fatHeader.nfat_arch = CFSwapInt32BigToHost(fatHeader.nfat_arch);
-
-  
-  if (fatHeader.magic != FAT_MAGIC)
-    goto done;
-
-  
-  
-  for (PRUint32 i = 0 ; i < fatHeader.nfat_arch ; i++) {
-    struct fat_arch fatArch;
-    if (read(fd, &fatArch, sizeof(fatArch)) != sizeof(fatArch))
-      goto done;
-
-    
-    fatArch.cputype = CFSwapInt32BigToHost(fatArch.cputype);
-
-    
-    
-    
-    if (fatArch.cputype == CPU_TYPE_POWERPC)
-      foundPPC = PR_TRUE;
-    else if (fatArch.cputype == CPU_TYPE_I386)
-      foundX86 = PR_TRUE;
+  CFBundleRef mainBundle = ::CFBundleGetMainBundle();
+  if (!mainBundle) {
+    return NS_ERROR_FAILURE;
   }
 
-  if (foundPPC && foundX86)
-    sIsUniversalBinary = PR_TRUE;
+  CFArrayRef archList = ::CFBundleCopyExecutableArchitectures(mainBundle);
+  if (!archList) {
+    return NS_ERROR_FAILURE;
+  }
 
-done:
-  if (fd != -1)
-    close(fd);
-  if (executableURL)
-    ::CFRelease(executableURL);
+  CFIndex archCount = ::CFArrayGetCount(archList);
+  for (CFIndex i = 0; i < archCount; i++) {
+    CFNumberRef arch = static_cast<CFNumberRef>(::CFArrayGetValueAtIndex(archList, i));
 
-  *aIsUniversalBinary = sIsUniversalBinary;
-  sInitialized = PR_TRUE;
+    int archInt = 0;
+    if (!::CFNumberGetValue(arch, kCFNumberIntType, &archInt)) {
+      ::CFRelease(archList);
+      return NS_ERROR_FAILURE;
+    }
+
+    if (archInt == kCFBundleExecutableArchitecturePPC)
+      foundPPC = PR_TRUE;
+    else if (archInt == kCFBundleExecutableArchitectureI386)
+      foundX86 = PR_TRUE;
+    else if (archInt == kCFBundleExecutableArchitecturePPC64)
+      foundPPC64 = PR_TRUE;
+    else if (archInt == kCFBundleExecutableArchitectureX86_64)
+      foundX86_64 = PR_TRUE;
+  }
+
+  ::CFRelease(archList);
+
+  
+  
+  if (foundPPC) {
+    mBinaryArchs.Append(NS_LITERAL_STRING("ppc"));
+  }
+
+  if (foundX86) {
+    if (!mBinaryArchs.IsEmpty()) {
+      mBinaryArchs.Append(NS_LITERAL_STRING("-"));
+    }
+    mBinaryArchs.Append(NS_LITERAL_STRING("i386"));
+  }
+
+  if (foundPPC64) {
+    if (!mBinaryArchs.IsEmpty()) {
+      mBinaryArchs.Append(NS_LITERAL_STRING("-"));
+    }
+    mBinaryArchs.Append(NS_LITERAL_STRING("ppc64"));
+  }
+
+  if (foundX86_64) {
+    if (!mBinaryArchs.IsEmpty()) {
+      mBinaryArchs.Append(NS_LITERAL_STRING("-"));
+    }
+    mBinaryArchs.Append(NS_LITERAL_STRING("x86_64"));
+  }
+
+  archString.Assign(mBinaryArchs);
+
+  return (archString.IsEmpty() ? NS_ERROR_FAILURE : NS_OK);
+}
+
+NS_IMETHODIMP nsMacUtilsImpl::GetIsUniversalBinary(PRBool *aIsUniversalBinary)
+{
+  NS_ENSURE_ARG_POINTER(aIsUniversalBinary);
+  *aIsUniversalBinary = PR_FALSE;
+
+  nsAutoString archString;
+  nsresult rv = GetArchString(archString);
+  if (NS_FAILED(rv))
+    return rv;
+
+  
+  
+  *aIsUniversalBinary = (archString.Find("-") > -1);
 
   return NS_OK;
+}
+
+NS_IMETHODIMP nsMacUtilsImpl::GetArchitecturesInBinary(nsAString& archString)
+{
+  return GetArchString(archString);
 }
 
 
