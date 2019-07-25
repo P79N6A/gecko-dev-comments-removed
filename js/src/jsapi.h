@@ -1062,7 +1062,8 @@ class JS_PUBLIC_API(AutoGCRooter) {
         BINDINGS =    -23, 
         GETTERSETTER =-24, 
         REGEXPSTATICS=-25, 
-        HASHABLEVALUE=-26
+        NAMEVECTOR =  -26, 
+        HASHABLEVALUE=-27
     };
 
   private:
@@ -1254,6 +1255,8 @@ class AutoVectorRooter : protected AutoGCRooter
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
+
+    typedef T ElementType;
 
     size_t length() const { return vector.length(); }
     bool empty() const { return vector.empty(); }

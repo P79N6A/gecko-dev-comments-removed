@@ -363,10 +363,10 @@ class AtomDecls
     }
 
     
-    inline Definition *lookupFirst(JSAtom *atom);
+    inline Definition *lookupFirst(JSAtom *atom) const;
 
     
-    inline DefinitionList::Range lookupMulti(JSAtom *atom);
+    inline DefinitionList::Range lookupMulti(JSAtom *atom) const;
 
     
     inline bool addUnique(JSAtom *atom, Definition *defn);
@@ -394,7 +394,7 @@ class AtomDecls
         }
     }
 
-    AtomDefnListMap::Range all() {
+    AtomDefnListMap::Range all() const {
         JS_ASSERT(map);
         return map->all();
     }

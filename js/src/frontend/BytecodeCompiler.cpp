@@ -176,7 +176,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         if (!FoldConstants(cx, pn, &parser))
             return NULL;
 
-        if (!AnalyzeFunctions(&parser, callerFrame))
+        if (!AnalyzeFunctions(&parser))
             return NULL;
         tc.functionList = NULL;
 
@@ -215,8 +215,6 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
                 return NULL;
             }
         }
-        
-        JS_ASSERT(!sc.bindings.hasBinding(cx, arguments));
     }
 
     
@@ -238,7 +236,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
 bool
 frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions options,
-                              Bindings *bindings, const jschar *chars, size_t length)
+                              const AutoNameVector &formals, const jschar *chars, size_t length)
 {
     if (!CheckLength(cx, length))
         return NULL;
@@ -262,23 +260,11 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     JS_ASSERT(fun);
     SharedContext funsc(cx,  NULL, fun,  NULL,
                         StrictModeFromContext(cx));
-    funsc.bindings.transfer(bindings);
-    fun->setArgCount(funsc.bindings.numArgs());
+    fun->setArgCount(formals.length());
 
     unsigned staticLevel = 0;
     TreeContext funtc(&parser, &funsc, staticLevel,  0);
     if (!funtc.init())
-        return false;
-
-    Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), false, options,
-                                                  staticLevel, ss, 0, length));
-    if (!script)
-        return false;
-
-    StackFrame *nullCallerFrame = NULL;
-    BytecodeEmitter funbce( NULL, &parser, &funsc, script, nullCallerFrame,
-                            false, options.lineno);
-    if (!funbce.init())
         return false;
 
     
@@ -296,22 +282,9 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     argsbody->makeEmpty();
     fn->pn_body = argsbody;
 
-    unsigned nargs = fun->nargs;
-    if (nargs) {
-        
-
-
-
-        BindingVector names(cx);
-        if (!GetOrderedBindings(cx, funsc.bindings, &names))
+    for (unsigned i = 0; i < formals.length(); i++) {
+        if (!DefineArg(&parser, fn, formals[i]))
             return false;
-
-        RootedPropertyName name(cx);
-        for (unsigned i = 0; i < nargs; i++) {
-            name = names[i].maybeName;
-            if (!DefineArg(fn, name, i, &parser))
-                return false;
-        }
     }
 
     
@@ -331,7 +304,20 @@ frontend::CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions 
     if (!FoldConstants(cx, pn, &parser))
         return false;
 
-    if (!AnalyzeFunctions(&parser, nullCallerFrame))
+    Rooted<JSScript*> script(cx, JSScript::Create(cx, NullPtr(), false, options,
+                                                  staticLevel, ss, 0, length));
+    if (!script)
+        return false;
+
+    if (!funtc.generateBindings(cx, &script->bindings))
+        return false;
+
+    BytecodeEmitter funbce( NULL, &parser, &funsc, script,  NULL,
+                            false, options.lineno);
+    if (!funbce.init())
+        return false;
+
+    if (!AnalyzeFunctions(&parser))
         return false;
 
     if (fn->pn_body) {

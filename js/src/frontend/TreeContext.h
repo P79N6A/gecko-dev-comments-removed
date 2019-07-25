@@ -16,7 +16,7 @@
 #include "jspubtd.h"
 
 #include "frontend/ParseMaps.h"
-
+#include "frontend/ParseNode.h"
 #include "vm/ScopeObject.h"
 
 namespace js {
@@ -53,9 +53,6 @@ class ContextFlags {
     
     
     bool            bindingsAccessedDynamically:1;
-
-    
-    bool            funIsHeavyweight:1;
 
     
     bool            funIsGenerator:1;
@@ -111,7 +108,6 @@ class ContextFlags {
     ContextFlags(JSContext *cx)
      :  hasExplicitUseStrict(false),
         bindingsAccessedDynamically(false),
-        funIsHeavyweight(false),
         funIsGenerator(false),
         funMightAliasLocals(false),
         funHasExtensibleScope(false),
@@ -139,10 +135,6 @@ struct SharedContext {
     const RootedObject scopeChain_; 
 
   public:
-    Bindings        bindings;       
-
-    Bindings::AutoRooter bindingsRoot; 
-
     ContextFlags    cxFlags;
 
 
@@ -179,22 +171,20 @@ struct SharedContext {
 
     bool hasExplicitUseStrict()        const {         return cxFlags.hasExplicitUseStrict; }
     bool bindingsAccessedDynamically() const {         return cxFlags.bindingsAccessedDynamically; }
-    bool funIsHeavyweight()            const { INFUNC; return cxFlags.funIsHeavyweight; }
     bool funIsGenerator()              const { INFUNC; return cxFlags.funIsGenerator; }
     bool funMightAliasLocals()         const {         return cxFlags.funMightAliasLocals; }
     bool funHasExtensibleScope()       const {         return cxFlags.funHasExtensibleScope; }
     bool funArgumentsHasLocalBinding() const { INFUNC; return cxFlags.funArgumentsHasLocalBinding; }
     bool funDefinitelyNeedsArgsObj()   const { INFUNC; return cxFlags.funDefinitelyNeedsArgsObj; }
 
-    void setExplicitUseStrict()             {         cxFlags.hasExplicitUseStrict        = true; }
-    void setBindingsAccessedDynamically()   {         cxFlags.bindingsAccessedDynamically = true; }
-    void setFunIsHeavyweight()              {         cxFlags.funIsHeavyweight            = true; }
-    void setFunIsGenerator()                { INFUNC; cxFlags.funIsGenerator              = true; }
-    void setFunMightAliasLocals()           {         cxFlags.funMightAliasLocals         = true; }
-    void setFunHasExtensibleScope()         {         cxFlags.funHasExtensibleScope       = true; }
-    void setFunArgumentsHasLocalBinding()   { INFUNC; cxFlags.funArgumentsHasLocalBinding = true; }
-    void setFunDefinitelyNeedsArgsObj()     { JS_ASSERT(cxFlags.funArgumentsHasLocalBinding);
-                                              INFUNC; cxFlags.funDefinitelyNeedsArgsObj   = true; }
+    void setExplicitUseStrict()               {         cxFlags.hasExplicitUseStrict        = true; }
+    void setBindingsAccessedDynamically()     {         cxFlags.bindingsAccessedDynamically = true; }
+    void setFunIsGenerator()                  { INFUNC; cxFlags.funIsGenerator              = true; }
+    void setFunMightAliasLocals()             {         cxFlags.funMightAliasLocals         = true; }
+    void setFunHasExtensibleScope()           {         cxFlags.funHasExtensibleScope       = true; }
+    void setFunArgumentsHasLocalBinding()     { INFUNC; cxFlags.funArgumentsHasLocalBinding = true; }
+    void setFunDefinitelyNeedsArgsObj()       { JS_ASSERT(cxFlags.funArgumentsHasLocalBinding);
+                                                INFUNC; cxFlags.funDefinitelyNeedsArgsObj   = true; }
 
 #undef INFUNC
 
@@ -212,6 +202,8 @@ struct SharedContext {
 typedef HashSet<JSAtom *> FuncStmtSet;
 struct Parser;
 struct StmtInfoTC;
+
+typedef Vector<Definition *, 16> DeclVector;
 
 
 
@@ -243,7 +235,87 @@ struct TreeContext {
 
     ParseNode       *blockNode;     
 
-    AtomDecls       decls;          
+  private:
+    AtomDecls       decls_;         
+    DeclVector      args_;          
+    DeclVector      vars_;          
+
+  public:
+    const AtomDecls &decls() const {
+        return decls_;
+    }
+
+    uint32_t numArgs() const {
+        JS_ASSERT(sc->inFunction());
+        return args_.length();
+    }
+
+    uint32_t numVars() const {
+        JS_ASSERT(sc->inFunction());
+        return vars_.length();
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool define(JSContext *cx, PropertyName *name, ParseNode *pn, Definition::Kind);
+
+    
+
+
+
+
+
+
+
+    void popLetDecl(JSAtom *atom);
+
+    
+    void prepareToAddDuplicateArg(Definition *prevDecl);
+
+    
+    void updateDecl(JSAtom *atom, ParseNode *newDecl);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool generateBindings(JSContext *cx, Bindings *bindings) const;
+
+  public:
     ParseNode       *yieldNode;     
 
 
@@ -290,7 +362,10 @@ struct TreeContext {
     
     bool            inDeclDestructuring:1;
 
-    void trace(JSTracer *trc);
+  private:
+    
+    bool            hasDuplicateArgument_:1;
+  public:
 
     inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
     inline ~TreeContext();
@@ -411,6 +486,42 @@ struct StmtInfoTC : public StmtInfoBase {
     bool            isFunctionBodyBlock;
 
     StmtInfoTC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
+};
+
+struct FunctionBox : public ObjectBox
+{
+    ParseNode       *node;
+    FunctionBox     *siblings;
+    FunctionBox     *kids;
+    FunctionBox     *parent;
+    Bindings        bindings;               
+    size_t          bufStart;
+    size_t          bufEnd;
+    uint16_t        level;
+    uint16_t        ndefaults;
+    StrictMode::StrictModeState strictModeState;
+    bool            inLoop:1;               
+    bool            inWith:1;               
+
+    bool            inGenexpLambda:1;       
+
+    ContextFlags    cxFlags;
+
+    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc,
+                StrictMode::StrictModeState sms);
+
+    bool funIsGenerator()        const { return cxFlags.funIsGenerator; }
+    bool funHasExtensibleScope() const { return cxFlags.funHasExtensibleScope; }
+
+    JSFunction *function() const { return (JSFunction *) object; }
+
+    
+
+
+
+    bool inAnyDynamicScope() const;
+
+    void recursivelySetStrictMode(StrictMode::StrictModeState strictness);
 };
 
 bool

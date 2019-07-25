@@ -87,7 +87,7 @@ enum BindingKind { ARGUMENT, VARIABLE, CONSTANT };
 
 struct Binding
 {
-    PropertyName *maybeName;  
+    PropertyName *name;
     BindingKind kind;
 };
 
@@ -166,7 +166,7 @@ class Bindings
 
 
 
-    inline void transfer(Bindings *bindings);
+    inline void transferFrom(Bindings *bindings);
 
     uint16_t numArgs() const { return nargs; }
     uint16_t numVars() const { return nvars; }
@@ -189,6 +189,10 @@ class Bindings
 
 
     Shape *callObjectShape(JSContext *cx) const;
+
+    
+    typedef Vector<uint32_t, 32> SlotVector;
+    bool extractClosedArgsAndVars(JSContext *cx, SlotVector *args, SlotVector *vars);
 
     
     inline bool extensibleParents();
@@ -214,25 +218,7 @@ class Bindings
 
 
 
-    bool add(JSContext *cx, HandleAtom name, BindingKind kind);
-
-    
-    bool addVariable(JSContext *cx, HandleAtom name) {
-        return add(cx, name, VARIABLE);
-    }
-    bool addConstant(JSContext *cx, HandleAtom name) {
-        return add(cx, name, CONSTANT);
-    }
-    bool addArgument(JSContext *cx, HandleAtom name, uint16_t *slotp) {
-        JS_ASSERT(name != NULL); 
-        *slotp = nargs;
-        return add(cx, name, ARGUMENT);
-    }
-    bool addDestructuring(JSContext *cx, uint16_t *slotp) {
-        *slotp = nargs;
-        Rooted<JSAtom*> atom(cx, NULL);
-        return add(cx, atom, ARGUMENT);
-    }
+    bool add(JSContext *cx, HandleAtom name, BindingKind kind, bool aliased);
 
     void noteDup() { hasDup_ = true; }
     bool hasDup() const { return hasDup_; }

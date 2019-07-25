@@ -20,9 +20,8 @@ struct Parser;
 
 
 
-
 bool
-AnalyzeFunctions(Parser *parser, StackFrame *callerFrame);
+AnalyzeFunctions(Parser *parser);
 
 } 
 } 

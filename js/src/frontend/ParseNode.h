@@ -14,10 +14,11 @@
 
 #include "frontend/ParseMaps.h"
 #include "frontend/TokenStream.h"
-#include "frontend/TreeContext.h"
 
 namespace js {
 namespace frontend {
+
+struct TreeContext;
 
 
 
@@ -161,7 +162,6 @@ enum ParseNodeKind {
     PNK_FORIN,
     PNK_FORHEAD,
     PNK_ARGSBODY,
-    PNK_UPVARS,
     PNK_SPREAD,
 
     
@@ -210,11 +210,6 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
-
-
-
-
-
 
 
 
@@ -701,7 +696,7 @@ struct ParseNode {
     newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right,
                       Parser *parser);
 
-    inline PropertyName *atom() const;
+    inline PropertyName *name() const;
 
     
 
@@ -827,13 +822,8 @@ struct ParseNode {
     bool isGeneratorExpr() const {
         if (getKind() == PNK_LP) {
             ParseNode *callee = this->pn_head;
-            if (callee->getKind() == PNK_FUNCTION) {
-                ParseNode *body = (callee->pn_body->getKind() == PNK_UPVARS)
-                                  ? callee->pn_body->pn_tree
-                                  : callee->pn_body;
-                if (body->getKind() == PNK_LEXICALSCOPE)
-                    return true;
-            }
+            if (callee->getKind() == PNK_FUNCTION && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
+                return true;
         }
         return false;
     }
@@ -841,9 +831,7 @@ struct ParseNode {
     ParseNode *generatorExpr() const {
         JS_ASSERT(isGeneratorExpr());
         ParseNode *callee = this->pn_head;
-        ParseNode *body = callee->pn_body->getKind() == PNK_UPVARS
-                          ? callee->pn_body->pn_tree
-                          : callee->pn_body;
+        ParseNode *body = callee->pn_body;
         JS_ASSERT(body->getKind() == PNK_LEXICALSCOPE);
         return body->pn_expr;
     }
@@ -1454,45 +1442,6 @@ struct ObjectBox {
     bool                isFunctionBox;
 
     ObjectBox(ObjectBox *traceLink, JSObject *obj);
-};
-
-struct FunctionBox : public ObjectBox
-{
-    ParseNode       *node;
-    FunctionBox     *siblings;
-    FunctionBox     *kids;
-    FunctionBox     *parent;
-    Bindings        bindings;               
-    size_t          bufStart;
-    size_t          bufEnd;
-    uint16_t        level;
-    uint16_t        ndefaults;
-    StrictMode::StrictModeState strictModeState;
-    bool            inLoop:1;               
-    bool            inWith:1;               
-
-    bool            inGenexpLambda:1;       
-
-    ContextFlags    cxFlags;
-
-    FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseNode *fn, TreeContext *tc,
-                StrictMode::StrictModeState sms);
-
-    bool funIsHeavyweight()      const { return cxFlags.funIsHeavyweight; }
-    bool funIsGenerator()        const { return cxFlags.funIsGenerator; }
-    bool funHasExtensibleScope() const { return cxFlags.funHasExtensibleScope; }
-
-    void setFunIsHeavyweight()         { cxFlags.funIsHeavyweight = true; }
-
-    JSFunction *function() const { return (JSFunction *) object; }
-
-    
-
-
-
-    bool inAnyDynamicScope() const;
-
-    void recursivelySetStrictMode(StrictMode::StrictModeState strictness);
 };
 
 } 
