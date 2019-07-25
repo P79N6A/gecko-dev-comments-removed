@@ -1438,7 +1438,7 @@ TokenStream::getTokenInternal()
 
 
         if ((flags & TSF_OPERAND) &&
-            (VersionHasXML(version) || peekChar() != '!')) {
+            (VersionShouldParseXML(version) || peekChar() != '!')) {
             
             if (matchChar('!')) {
                 tokenbuf.clear();
