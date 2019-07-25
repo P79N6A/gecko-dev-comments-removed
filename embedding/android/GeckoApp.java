@@ -393,14 +393,17 @@ abstract public class GeckoApp
         
         
 
+
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_STOPPING));
         super.onStop();
+        GeckoAppShell.putChildInBackground();
     }
 
     @Override
     public void onRestart()
     {
         Log.i("GeckoApp", "restart");
+        GeckoAppShell.putChildInForeground();
         super.onRestart();
     }
 
