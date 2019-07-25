@@ -690,4 +690,7 @@ pref("reader.color_scheme", "light");
 pref("reader.has_used_toolbar", false);
 
 
+pref("media.plugins.enabled", false);
+
+
 pref("dom.event.touch.coalescing.enabled", true);
