@@ -204,7 +204,7 @@ nsCoreUtils::GetAccessKeyFor(nsIContent *aContent)
   
   
   
-  if (!aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::accesskey))
+  if (!aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::accesskey))
     return 0;
 
   nsCOMPtr<nsIDocument> doc = aContent->GetOwnerDoc();
@@ -577,9 +577,9 @@ nsCoreUtils::IsXLink(nsIContent *aContent)
   if (!aContent)
     return PR_FALSE;
 
-  return aContent->AttrValueIs(kNameSpaceID_XLink, nsAccessibilityAtoms::type,
-                               nsAccessibilityAtoms::simple, eCaseMatters) &&
-         aContent->HasAttr(kNameSpaceID_XLink, nsAccessibilityAtoms::href);
+  return aContent->AttrValueIs(kNameSpaceID_XLink, nsGkAtoms::type,
+                               nsGkAtoms::simple, eCaseMatters) &&
+    aContent->HasAttr(kNameSpaceID_XLink, nsGkAtoms::href);
 }
 
 void
@@ -590,8 +590,7 @@ nsCoreUtils::GetLanguageFor(nsIContent *aContent, nsIContent *aRootContent,
 
   nsIContent *walkUp = aContent;
   while (walkUp && walkUp != aRootContent &&
-         !walkUp->GetAttr(kNameSpaceID_None,
-                          nsAccessibilityAtoms::lang, aLanguage))
+         !walkUp->GetAttr(kNameSpaceID_None, nsGkAtoms::lang, aLanguage))
     walkUp = walkUp->GetParent();
 }
 
@@ -638,7 +637,7 @@ nsCoreUtils::GetTreeBoxObject(nsIContent *aContent)
   
   nsIContent* currentContent = aContent;
   while (currentContent) {
-    if (currentContent->NodeInfo()->Equals(nsAccessibilityAtoms::tree,
+    if (currentContent->NodeInfo()->Equals(nsGkAtoms::tree,
                                            kNameSpaceID_XUL)) {
       
       nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(currentContent));
@@ -766,8 +765,8 @@ nsCoreUtils::IsColumnHidden(nsITreeColumn *aColumn)
   nsCOMPtr<nsIDOMElement> element;
   aColumn->GetElement(getter_AddRefs(element));
   nsCOMPtr<nsIContent> content = do_QueryInterface(element);
-  return content->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::hidden,
-                              nsAccessibilityAtoms::_true, eCaseMatters);
+  return content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::hidden,
+                              nsGkAtoms::_true, eCaseMatters);
 }
 
 bool

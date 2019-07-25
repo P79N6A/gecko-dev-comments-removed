@@ -77,7 +77,7 @@ nsHTMLLinkAccessible::NativeState()
 
   states  &= ~states::READONLY;
 
-  if (mContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::name)) {
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::name)) {
     
     
     
