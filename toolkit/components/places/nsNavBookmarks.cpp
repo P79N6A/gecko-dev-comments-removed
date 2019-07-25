@@ -60,32 +60,37 @@
 #include "Helpers.h"
 
 #include "mozilla/FunctionTimer.h"
+#include "mozilla/Util.h"
 
 #define BOOKMARKS_TO_KEYWORDS_INITIAL_CACHE_SIZE 64
 
-const PRInt32 nsNavBookmarks::kFindBookmarksIndex_ID = 0;
-const PRInt32 nsNavBookmarks::kFindBookmarksIndex_Type = 1;
-const PRInt32 nsNavBookmarks::kFindBookmarksIndex_PlaceID = 2;
-const PRInt32 nsNavBookmarks::kFindBookmarksIndex_Parent = 3;
-const PRInt32 nsNavBookmarks::kFindBookmarksIndex_Position = 4;
-const PRInt32 nsNavBookmarks::kFindBookmarksIndex_Title = 5;
+const PRInt32 nsNavBookmarks::kFindURIBookmarksIndex_Id = 0;
+const PRInt32 nsNavBookmarks::kFindURIBookmarksIndex_Guid = 1;
+const PRInt32 nsNavBookmarks::kFindURIBookmarksIndex_ParentId = 2;
+const PRInt32 nsNavBookmarks::kFindURIBookmarksIndex_LastModified = 3;
+const PRInt32 nsNavBookmarks::kFindURIBookmarksIndex_ParentGuid = 4;
+const PRInt32 nsNavBookmarks::kFindURIBookmarksIndex_GrandParentId = 5;
 
 
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_Position = 14;
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_Type = 15;
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_PlaceID = 16;
 const PRInt32 nsNavBookmarks::kGetChildrenIndex_ServiceContractId = 17;
+const PRInt32 nsNavBookmarks::kGetChildrenIndex_Guid = 18;
 
-const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_ID = 0;
-const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_URI = 1;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Id = 0;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Url = 1;
 const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Title = 2;
 const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Position = 3;
-const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_PlaceID = 4;
-const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Parent = 5;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_PlaceId = 4;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_ParentId = 5;
 const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Type = 6;
 const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_ServiceContractId = 7;
 const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_DateAdded = 8;
 const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_LastModified = 9;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_Guid = 10;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_ParentGuid = 11;
+const PRInt32 nsNavBookmarks::kGetItemPropertiesIndex_GrandParentId = 12;
 
 using namespace mozilla::places;
 
@@ -136,7 +141,8 @@ public:
     nsCOMPtr<mozIStorageStatement> stmt =
       mBookmarksSvc->GetStatementById(DB_GET_BOOKMARKS_FOR_URI);
     if (stmt) {
-      (void)URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), mData.uri);
+      (void)URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"),
+                            mData.bookmark.url);
       nsCOMPtr<mozIStoragePendingStatement> pendingStmt;
       (void)stmt->ExecuteAsync(this, getter_AddRefs(pendingStmt));
     }
@@ -148,15 +154,25 @@ public:
     while (NS_SUCCEEDED(aResultSet->GetNextRow(getter_AddRefs(row))) && row) {
       
       PRInt64 grandParentId, tagsFolderId;
-      nsresult rv = row->GetInt64(1, &grandParentId);
+      nsresult rv = row->GetInt64(5, &grandParentId);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = mBookmarksSvc->GetTagsFolder(&tagsFolderId);
       NS_ENSURE_SUCCESS(rv, rv);
       if (grandParentId == tagsFolderId) {
         continue;
       }
-      rv = row->GetInt64(0, &mData.itemId);
+
+      mData.bookmark.grandParentId = grandParentId;
+      rv = row->GetInt64(0, &mData.bookmark.id);
       NS_ENSURE_SUCCESS(rv, rv);
+      rv = row->GetUTF8String(1, mData.bookmark.guid);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = row->GetInt64(2, &mData.bookmark.parentId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      
+      rv = row->GetUTF8String(4, mData.bookmark.parentGuid);
+      NS_ENSURE_SUCCESS(rv, rv);
+
       if (mCallback) {
         ((*mBookmarksSvc).*mCallback)(mData);
       }
@@ -311,7 +327,7 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   
   
   RETURN_IF_STMT(mDBFindURIBookmarks, NS_LITERAL_CSTRING(
-    "SELECT b.id, t.parent "
+    "SELECT b.id, b.guid, b.parent, b.lastModified, t.guid, t.parent "
     "FROM moz_bookmarks b "
     "JOIN moz_bookmarks t on t.id = b.parent "
     "WHERE b.fk = (SELECT id FROM moz_places WHERE url = :page_url) "
@@ -325,7 +341,8 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   RETURN_IF_STMT(mDBGetChildren, NS_LITERAL_CSTRING(
     "SELECT h.id, h.url, IFNULL(b.title, h.title), h.rev_host, h.visit_count, "
            "h.last_visit_date, f.url, null, b.id, b.dateAdded, b.lastModified, "
-           "b.parent, null, h.frecency, b.position, b.type, b.fk, b.folder_type "
+           "b.parent, null, h.frecency, b.position, b.type, b.fk, "
+           "b.folder_type, b.guid "
     "FROM moz_bookmarks b "
     "LEFT JOIN moz_places h ON b.fk = h.id "
     "LEFT JOIN moz_favicons f ON h.favicon_id = f.id "
@@ -333,10 +350,14 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
     "ORDER BY b.position ASC"));
 
   
-  RETURN_IF_STMT(mDBFolderCount, NS_LITERAL_CSTRING(
-    "SELECT COUNT(*), "
-    "(SELECT id FROM moz_bookmarks WHERE id = :parent) "
-    "FROM moz_bookmarks WHERE parent = :parent"));
+  
+  
+  RETURN_IF_STMT(mDBFolderInfo, NS_LITERAL_CSTRING(
+    "SELECT count(*), "
+            "(SELECT guid FROM moz_bookmarks WHERE id = :parent), "
+            "(SELECT parent FROM moz_bookmarks WHERE id = :parent) "
+    "FROM moz_bookmarks "
+    "WHERE parent = :parent"));
 
   RETURN_IF_STMT(mDBGetChildAt, NS_LITERAL_CSTRING(
     "SELECT id, fk, type FROM moz_bookmarks "
@@ -346,8 +367,10 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
   
   RETURN_IF_STMT(mDBGetItemProperties, NS_LITERAL_CSTRING(
     "SELECT b.id, h.url, b.title, b.position, b.fk, b.parent, b.type, "
-           "b.folder_type, b.dateAdded, b.lastModified "
+           "b.folder_type, b.dateAdded, b.lastModified, b.guid, "
+           "t.guid, t.parent "
     "FROM moz_bookmarks b "
+    "LEFT JOIN moz_bookmarks t ON t.id = b.parent "
     "LEFT JOIN moz_places h ON h.id = b.fk "
     "WHERE b.id = :item_id"));
 
@@ -388,7 +411,7 @@ nsNavBookmarks::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
       ") "));
 
   RETURN_IF_STMT(mDBGetLastBookmarkID, NS_LITERAL_CSTRING(
-    "SELECT id "
+    "SELECT id, guid "
     "FROM moz_bookmarks "
     "ORDER BY ROWID DESC "
     "LIMIT 1"));
@@ -501,7 +524,7 @@ nsNavBookmarks::FinalizeStatements() {
   mozIStorageStatement* stmts[] = {
     mDBGetChildren,
     mDBFindURIBookmarks,
-    mDBFolderCount,
+    mDBFolderInfo,
     mDBGetChildAt,
     mDBGetItemProperties,
     mDBGetItemIdForGUID,
@@ -779,8 +802,7 @@ nsNavBookmarks::GetUnfiledBookmarksFolder(PRInt64* aRoot)
 
 
 nsresult
-nsNavBookmarks::InsertBookmarkInDB(PRInt64 aItemId,
-                                   PRInt64 aPlaceId,
+nsNavBookmarks::InsertBookmarkInDB(PRInt64 aPlaceId,
                                    enum ItemType aItemType,
                                    PRInt64 aParentId,
                                    PRInt32 aIndex,
@@ -788,19 +810,24 @@ nsNavBookmarks::InsertBookmarkInDB(PRInt64 aItemId,
                                    PRTime aDateAdded,
                                    PRTime aLastModified,
                                    const nsAString& aServiceContractId,
-                                   PRInt64* _newItemId)
+                                   PRInt64* _itemId,
+                                   nsACString& _guid)
 {
-  NS_ASSERTION(_newItemId, "Null pointer passed to InsertBookmarkInDB!");
+  
+  MOZ_ASSERT(_itemId && (*_itemId == -1 || *_itemId > 0));
+  
+  MOZ_ASSERT(aPlaceId && (aPlaceId == -1 || aPlaceId > 0));
 
   DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBInsertBookmark);
+
   nsresult rv;
-  if (aItemId && aItemId != -1)
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  if (*_itemId != -1)
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), *_itemId);
   else
     rv = stmt->BindNullByName(NS_LITERAL_CSTRING("item_id"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aPlaceId && aPlaceId != -1)
+  if (aPlaceId != -1)
     rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), aPlaceId);
   else
     rv = stmt->BindNullByName(NS_LITERAL_CSTRING("page_id"));
@@ -844,26 +871,27 @@ nsNavBookmarks::InsertBookmarkInDB(PRInt64 aItemId,
   rv = stmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!aItemId || aItemId == -1) {
+  if (*_itemId == -1) {
     
     DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(lastInsertIdStmt, mDBGetLastBookmarkID);
     PRBool hasResult;
     rv = lastInsertIdStmt->ExecuteStep(&hasResult);
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(hasResult, NS_ERROR_UNEXPECTED);
-    rv = lastInsertIdStmt->GetInt64(0, _newItemId);
+    rv = lastInsertIdStmt->GetInt64(0, _itemId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = lastInsertIdStmt->GetUTF8String(1, _guid);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  else {
-    *_newItemId = aItemId;
-  }
 
-  
-  
-  
-  rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           aParentId, aDateAdded);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (aParentId > 0) {
+    
+    
+    
+    rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
+                             aParentId, aDateAdded);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
@@ -878,24 +906,22 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
 {
   NS_ENSURE_ARG(aURI);
   NS_ENSURE_ARG_POINTER(aNewBookmarkId);
-
-  
-  if (aIndex < nsINavBookmarksService::DEFAULT_INDEX)
-    return NS_ERROR_INVALID_ARG;
+  NS_ENSURE_ARG_MIN(aIndex, nsINavBookmarksService::DEFAULT_INDEX);
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
+  PRInt64 placeId;
   nsNavHistory* history = nsNavHistory::GetHistoryService();
   NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-
   
-  PRInt64 childID;
-  nsresult rv = history->GetUrlIdFor(aURI, &childID, PR_TRUE);
+  nsresult rv = history->GetUrlIdFor(aURI, &placeId, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRInt32 index;
-  PRInt32 folderCount;
-  rv = FolderCount(aFolder, &folderCount);
+  
+  PRInt32 index, folderCount;
+  PRInt64 grandParentId;
+  nsCAutoString folderGuid;
+  rv = FetchFolderInfo(aFolder, &folderCount, folderGuid, &grandParentId);
   NS_ENSURE_SUCCESS(rv, rv);
   if (aIndex == nsINavBookmarksService::DEFAULT_INDEX ||
       aIndex >= folderCount) {
@@ -903,30 +929,21 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
   }
   else {
     index = aIndex;
+    
     rv = AdjustIndices(aFolder, index, PR_INT32_MAX, 1);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = InsertBookmarkInDB(-1, childID, BOOKMARK, aFolder, index,
-                          aTitle, PR_Now(), nsnull, EmptyString(),
-                          aNewBookmarkId);
+  *aNewBookmarkId = -1;
+  PRTime dateAdded = PR_Now();
+  nsCAutoString guid;
+  rv = InsertBookmarkInDB(placeId, BOOKMARK, aFolder, index,
+                          aTitle, dateAdded, nsnull, EmptyString(),
+                          aNewBookmarkId, guid);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  
-  
-  
-  
-  
-
-  nsCAutoString url;
-  rv = aURI->GetSpec(url);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = history->UpdateFrecency(childID);
+  rv = history->UpdateFrecency(placeId);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
@@ -939,35 +956,35 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
                    OnItemAdded(*aNewBookmarkId, aFolder, index, TYPE_BOOKMARK,
-                               aURI));
+                               aURI, aTitle, dateAdded, guid, folderGuid));
 
   
   
   
-  PRInt64 grandParentId;
-  rv = GetFolderIdForItem(aFolder, &grandParentId);
-  NS_ENSURE_SUCCESS(rv, rv);
   if (grandParentId == mTagsRoot) {
     
-    nsTArray<PRInt64> bookmarks;
-    rv = GetBookmarkIdsForURITArray(aURI, bookmarks, true);
+    nsTArray<BookmarkData> bookmarks;
+    rv = GetBookmarksForURI(aURI, bookmarks);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (bookmarks.Length()) {
-      for (PRUint32 i = 0; i < bookmarks.Length(); i++) {
-        
-        if (bookmarks[i] == *aNewBookmarkId) {
-          continue;
-        }
+    for (PRUint32 i = 0; i < bookmarks.Length(); ++i) {
+      
+      MOZ_ASSERT(bookmarks[i].id != *aNewBookmarkId);
 
-        NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                         nsINavBookmarkObserver,
-                         OnItemChanged(bookmarks[i], NS_LITERAL_CSTRING("tags"),
-                                       PR_FALSE, EmptyCString(), 0,
-                                       TYPE_BOOKMARK));
-      }
+      NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                       nsINavBookmarkObserver,
+                       OnItemChanged(bookmarks[i].id,
+                                     NS_LITERAL_CSTRING("tags"),
+                                     PR_FALSE,
+                                     EmptyCString(),
+                                     bookmarks[i].lastModified,
+                                     TYPE_BOOKMARK,
+                                     bookmarks[i].parentId,
+                                     bookmarks[i].guid,
+                                     bookmarks[i].parentGuid));
     }
   }
+
   return NS_OK;
 }
 
@@ -975,73 +992,59 @@ nsNavBookmarks::InsertBookmark(PRInt64 aFolder,
 NS_IMETHODIMP
 nsNavBookmarks::RemoveItem(PRInt64 aItemId)
 {
-  NS_ENSURE_TRUE(aItemId != mRoot, NS_ERROR_INVALID_ARG);
+  NS_ENSURE_ARG(aItemId != mRoot);
 
-  nsresult rv;
-  PRInt32 childIndex;
-  PRInt64 placeId, folderId;
-  PRInt32 itemType;
-  nsCAutoString buffer;
-  nsCAutoString spec;
-
-  { 
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetItemProperties);
-    rv = getInfoStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = getInfoStmt->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!hasResult)
-      return NS_ERROR_INVALID_ARG; 
-
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Position, &childIndex);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_PlaceID, &placeId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_Parent, &folderId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Type, &itemType);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (itemType == TYPE_BOOKMARK) {
-      rv = getInfoStmt->GetUTF8String(kGetItemPropertiesIndex_URI, spec);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-
-  if (itemType == TYPE_FOLDER) {
-    rv = RemoveFolder(aItemId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return NS_OK;
-  }
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnBeforeItemRemoved(aItemId, itemType));
+                   OnBeforeItemRemoved(bookmark.id,
+                                       bookmark.type,
+                                       bookmark.parentId,
+                                       bookmark.guid,
+                                       bookmark.parentGuid));
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
   nsAnnotationService* annosvc = nsAnnotationService::GetAnnotationService();
   NS_ENSURE_TRUE(annosvc, NS_ERROR_OUT_OF_MEMORY);
-  rv = annosvc->RemoveItemAnnotations(aItemId);
+  rv = annosvc->RemoveItemAnnotations(bookmark.id);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  {
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBRemoveItem);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->Execute();
+  if (bookmark.type == TYPE_FOLDER) {
+    
+    if (!bookmark.serviceCID.IsEmpty()) {
+      nsCOMPtr<nsIDynamicContainer> svc =
+        do_GetService(bookmark.serviceCID.get());
+      if (svc) {
+        (void)svc->OnContainerRemoving(bookmark.id);
+      }
+    }
+
+    
+    rv = RemoveFolderChildren(bookmark.id);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if (childIndex != -1) {
-    rv = AdjustIndices(folderId, childIndex + 1, PR_INT32_MAX, -1);
+  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBRemoveItem);
+  rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), bookmark.id);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (bookmark.position != DEFAULT_INDEX) {
+    rv = AdjustIndices(bookmark.parentId,
+                       bookmark.position + 1, PR_INT32_MAX, -1);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  bookmark.lastModified = PR_Now();
   rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           folderId, PR_Now());
+                           bookmark.parentId, bookmark.lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
@@ -1051,48 +1054,52 @@ nsNavBookmarks::RemoveItem(PRInt64 aItemId)
     ForceWALCheckpoint(mDBConn);
   }
 
-  if (itemType == TYPE_BOOKMARK) {
+  nsCOMPtr<nsIURI> uri;
+  if (bookmark.type == TYPE_BOOKMARK) {
     nsNavHistory* history = nsNavHistory::GetHistoryService();
     NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-    rv = history->UpdateFrecency(placeId);
+    rv = history->UpdateFrecency(bookmark.placeId);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = UpdateKeywordsHashForRemovedBookmark(aItemId);
     NS_ENSURE_SUCCESS(rv, rv);
-  }
 
-  bool isTagEntry = false;
-  if (itemType == TYPE_BOOKMARK) {
     
-    
-    
-    PRInt64 grandParentId;
-    rv = GetFolderIdForItem(folderId, &grandParentId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    isTagEntry = grandParentId == mTagsRoot;
+    (void)NS_NewURI(getter_AddRefs(uri), bookmark.url);
   }
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemRemoved(aItemId, folderId, childIndex, itemType));
+                   OnItemRemoved(bookmark.id,
+                                 bookmark.parentId,
+                                 bookmark.position,
+                                 bookmark.type,
+                                 uri,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
 
-  if (isTagEntry) {
+  if (bookmark.type == TYPE_BOOKMARK && bookmark.grandParentId == mTagsRoot &&
+      uri) {
     
     
-    nsCOMPtr<nsIURI> uri;
-    rv = NS_NewURI(getter_AddRefs(uri), spec);
-    NS_ENSURE_SUCCESS(rv, rv);
-    nsTArray<PRInt64> bookmarks;
-    rv = GetBookmarkIdsForURITArray(uri, bookmarks, true);
+    nsTArray<BookmarkData> bookmarks;
+    rv = GetBookmarksForURI(uri, bookmarks);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    for (PRUint32 i = 0; i < bookmarks.Length(); i++) {
+    for (PRUint32 i = 0; i < bookmarks.Length(); ++i) {
       NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                        nsINavBookmarkObserver,
-                       OnItemChanged(bookmarks[i],
-                                     NS_LITERAL_CSTRING("tags"), PR_FALSE,
-                                     EmptyCString(), 0, TYPE_BOOKMARK));
+                       OnItemChanged(bookmarks[i].id,
+                                     NS_LITERAL_CSTRING("tags"),
+                                     PR_FALSE,
+                                     EmptyCString(),
+                                     bookmarks[i].lastModified,
+                                     TYPE_BOOKMARK,
+                                     bookmarks[i].parentId,
+                                     bookmarks[i].guid,
+                                     bookmarks[i].parentGuid));
     }
+
   }
 
   return NS_OK;
@@ -1177,35 +1184,41 @@ nsNavBookmarks::SetFolderReadonly(PRInt64 aFolder, PRBool aReadOnly)
 nsresult
 nsNavBookmarks::CreateContainerWithID(PRInt64 aItemId,
                                       PRInt64 aParent,
-                                      const nsACString& aName,
+                                      const nsACString& aTitle,
                                       const nsAString& aContractId,
                                       PRBool aIsBookmarkFolder,
                                       PRInt32* aIndex,
                                       PRInt64* aNewFolder)
 {
+  NS_ENSURE_ARG_MIN(*aIndex, nsINavBookmarksService::DEFAULT_INDEX);
+
   
-  if (*aIndex < -1)
-    return NS_ERROR_INVALID_ARG;
+  PRInt32 index, folderCount;
+  PRInt64 grandParentId;
+  nsCAutoString folderGuid;
+  nsresult rv = FetchFolderInfo(aParent, &folderCount, folderGuid, &grandParentId);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
-  PRInt32 index;
-  PRInt32 folderCount;
-  nsresult rv = FolderCount(aParent, &folderCount);
-  NS_ENSURE_SUCCESS(rv, rv);
   if (*aIndex == nsINavBookmarksService::DEFAULT_INDEX ||
       *aIndex >= folderCount) {
     index = folderCount;
   } else {
     index = *aIndex;
+    
     rv = AdjustIndices(aParent, index, PR_INT32_MAX, 1);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  *aNewFolder = aItemId;
+  PRTime dateAdded = PR_Now();
+  nsCAutoString guid;
   ItemType containerType = aIsBookmarkFolder ? FOLDER
                                              : DYNAMIC_CONTAINER;
-  rv = InsertBookmarkInDB(aItemId, nsnull, containerType, aParent, index,
-                          aName, PR_Now(), nsnull, aContractId, aNewFolder);
+  rv = InsertBookmarkInDB(-1, containerType, aParent, index,
+                          aTitle, dateAdded, nsnull, aContractId, aNewFolder,
+                          guid);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
@@ -1218,7 +1231,7 @@ nsNavBookmarks::CreateContainerWithID(PRInt64 aItemId,
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
                    OnItemAdded(*aNewFolder, aParent, index, containerType,
-                               nsnull));
+                               nsnull, aTitle, dateAdded, guid, folderGuid));
 
   *aIndex = index;
   return NS_OK;
@@ -1231,32 +1244,37 @@ nsNavBookmarks::InsertSeparator(PRInt64 aParent,
                                 PRInt64* aNewItemId)
 {
   NS_ENSURE_ARG_MIN(aParent, 1);
-  
-  NS_ENSURE_ARG_MIN(aIndex, -1);
+  NS_ENSURE_ARG_MIN(aIndex, nsINavBookmarksService::DEFAULT_INDEX);
   NS_ENSURE_ARG_POINTER(aNewItemId);
+
+  
+  PRInt32 index, folderCount;
+  PRInt64 grandParentId;
+  nsCAutoString folderGuid;
+  nsresult rv = FetchFolderInfo(aParent, &folderCount, folderGuid, &grandParentId);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
-  PRInt32 index;
-  PRInt32 folderCount;
-  nsresult rv = FolderCount(aParent, &folderCount);
-  NS_ENSURE_SUCCESS(rv, rv);
   if (aIndex == nsINavBookmarksService::DEFAULT_INDEX ||
       aIndex >= folderCount) {
     index = folderCount;
   }
   else {
     index = aIndex;
+    
     rv = AdjustIndices(aParent, index, PR_INT32_MAX, 1);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
+  *aNewItemId = -1;
   
   nsCString voidString;
   voidString.SetIsVoid(PR_TRUE);
-  rv = InsertBookmarkInDB(-1, nsnull, SEPARATOR, aParent, index,
-                          voidString, PR_Now(), nsnull, EmptyString(),
-                          aNewItemId);
+  nsCAutoString guid;
+  PRTime dateAdded = PR_Now();
+  rv = InsertBookmarkInDB(-1, SEPARATOR, aParent, index, voidString, dateAdded,
+                          nsnull, EmptyString(), aNewItemId, guid);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
@@ -1265,7 +1283,7 @@ nsNavBookmarks::InsertSeparator(PRInt64 aParent,
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
                    OnItemAdded(*aNewItemId, aParent, index, TYPE_SEPARATOR,
-                               nsnull));
+                               nsnull, voidString, dateAdded, guid, folderGuid));
 
   return NS_OK;
 }
@@ -1327,127 +1345,6 @@ nsNavBookmarks::GetIdForItemAt(PRInt64 aFolder,
   return NS_OK;
 }
 
-
-nsresult 
-nsNavBookmarks::GetParentAndIndexOfFolder(PRInt64 aFolderId,
-                                          PRInt64* _aParent,
-                                          PRInt32* _aIndex)
-{
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aFolderId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(hasResult, NS_ERROR_INVALID_ARG);
-
-  rv = stmt->GetInt64(kGetItemPropertiesIndex_Parent, _aParent);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->GetInt32(kGetItemPropertiesIndex_Position, _aIndex);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-
-nsresult
-nsNavBookmarks::RemoveFolder(PRInt64 aFolderId)
-{
-  NS_ENSURE_TRUE(aFolderId != mRoot, NS_ERROR_INVALID_ARG);
-
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavBookmarkObserver,
-                   OnBeforeItemRemoved(aFolderId, TYPE_FOLDER));
-
-  mozStorageTransaction transaction(mDBConn, PR_FALSE);
-
-  nsresult rv;
-  PRInt64 parent;
-  PRInt32 index, type;
-  nsCAutoString folderType;
-  {
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetItemProperties);
-    rv = getInfoStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aFolderId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = getInfoStmt->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!hasResult) {
-      return NS_ERROR_INVALID_ARG; 
-    }
-
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Type, &type);
-    NS_ENSURE_SUCCESS(rv, rv);
-     rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_Parent, &parent);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Position, &index);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetUTF8String(kGetItemPropertiesIndex_ServiceContractId,
-                                    folderType);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
-  NS_ENSURE_TRUE(type == TYPE_FOLDER, NS_ERROR_INVALID_ARG);
-
-  
-  nsAnnotationService* annosvc = nsAnnotationService::GetAnnotationService();
-  NS_ENSURE_TRUE(annosvc, NS_ERROR_OUT_OF_MEMORY);
-  rv = annosvc->RemoveItemAnnotations(aFolderId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (folderType.Length() > 0) {
-    
-    nsCOMPtr<nsIDynamicContainer> bmcServ = do_GetService(folderType.get());
-    if (bmcServ) {
-      rv = bmcServ->OnContainerRemoving(aFolderId);
-      NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                       "Remove folder container notification failed.");
-    }
-  }
-
-  
-  rv = RemoveFolderChildren(aFolderId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  {
-    
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBRemoveItem);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aFolderId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->Execute();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  rv = AdjustIndices(parent, index + 1, PR_INT32_MAX, -1);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           parent, PR_Now());
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = transaction.Commit();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!mBatching) {
-    ForceWALCheckpoint(mDBConn);
-  }
-
-  if (aFolderId == mToolbarRoot) {
-    mToolbarRoot = 0;
-  }
-
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavBookmarkObserver,
-                   OnItemRemoved(aFolderId, parent, index, TYPE_FOLDER));
-
-  return NS_OK;
-}
-
-
 NS_IMPL_ISUPPORTS1(nsNavBookmarks::RemoveFolderTransaction, nsITransaction)
 
 NS_IMETHODIMP
@@ -1471,8 +1368,9 @@ nsNavBookmarks::GetRemoveFolderTransaction(PRInt64 aFolderId, nsITransaction** a
 
 nsresult
 nsNavBookmarks::GetDescendantChildren(PRInt64 aFolderId,
+                                      const nsACString& aFolderGuid,
                                       PRInt64 aGrandParentId,
-                                      nsTArray<folderChildrenInfo>& aFolderChildrenArray) {
+                                      nsTArray<BookmarkData>& aFolderChildrenArray) {
   
   PRUint32 startIndex = aFolderChildrenArray.Length();
   nsresult rv;
@@ -1484,32 +1382,34 @@ nsNavBookmarks::GetDescendantChildren(PRInt64 aFolderId,
 
     PRBool hasMore;
     while (NS_SUCCEEDED(stmt->ExecuteStep(&hasMore)) && hasMore) {
-      folderChildrenInfo child;
-      rv = stmt->GetInt64(nsNavHistory::kGetInfoIndex_ItemId, &child.itemId);
+      BookmarkData child;
+      rv = stmt->GetInt64(nsNavHistory::kGetInfoIndex_ItemId, &child.id);
       NS_ENSURE_SUCCESS(rv, rv);
       child.parentId = aFolderId;
       child.grandParentId = aGrandParentId;
-      PRInt32 itemType;
-      rv = stmt->GetInt32(kGetChildrenIndex_Type, &itemType);
-      child.itemType = (PRUint16)itemType;
+      child.parentGuid = aFolderGuid;
+      rv = stmt->GetInt32(kGetChildrenIndex_Type, &child.type);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = stmt->GetInt64(kGetChildrenIndex_PlaceID, &child.placeId);
       NS_ENSURE_SUCCESS(rv, rv);
-      rv = stmt->GetInt32(kGetChildrenIndex_Position, &child.index);
+      rv = stmt->GetInt32(kGetChildrenIndex_Position, &child.position);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->GetUTF8String(kGetChildrenIndex_Guid, child.guid);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      if (child.itemType == TYPE_BOOKMARK) {
-        nsCAutoString URIString;
-        rv = stmt->GetUTF8String(nsNavHistory::kGetInfoIndex_URL, URIString);
+      if (child.type == TYPE_BOOKMARK) {
+        rv = stmt->GetUTF8String(nsNavHistory::kGetInfoIndex_URL, child.url);
         NS_ENSURE_SUCCESS(rv, rv);
-        child.url = URIString;
       }
-      else if (child.itemType == TYPE_FOLDER) {
-        nsCAutoString folderType;
-        rv = stmt->GetUTF8String(kGetChildrenIndex_ServiceContractId,
-                                 folderType);
+      else if (child.type == TYPE_FOLDER) {
+        PRBool isNull;
+        rv = stmt->GetIsNull(kGetChildrenIndex_ServiceContractId, &isNull);
         NS_ENSURE_SUCCESS(rv, rv);
-        child.folderType = folderType;
+        if (!isNull) {
+          rv = stmt->GetUTF8String(kGetChildrenIndex_ServiceContractId,
+                                   child.serviceCID);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
       }
       
       aFolderChildrenArray.AppendElement(child);
@@ -1520,9 +1420,10 @@ nsNavBookmarks::GetDescendantChildren(PRInt64 aFolderId,
   
   
   PRUint32 childCount = aFolderChildrenArray.Length();
-  for (PRUint32 i = startIndex; i < childCount; i++) {
-    if (aFolderChildrenArray[i].itemType == TYPE_FOLDER) {
-      GetDescendantChildren(aFolderChildrenArray[i].itemId,
+  for (PRUint32 i = startIndex; i < childCount; ++i) {
+    if (aFolderChildrenArray[i].type == TYPE_FOLDER) {
+      GetDescendantChildren(aFolderChildrenArray[i].id,
+                            aFolderChildrenArray[i].guid,
                             aFolderId,
                             aFolderChildrenArray);
     }
@@ -1537,61 +1438,43 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolderId)
 {
   NS_ENSURE_ARG_MIN(aFolderId, 1);
 
-  nsresult rv;
-  PRInt32 itemType;
-  PRInt64 grandParentId;
-  {
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetItemProperties);
-    rv = getInfoStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aFolderId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    PRBool folderExists;
-    if (NS_FAILED(getInfoStmt->ExecuteStep(&folderExists)) || !folderExists)
-      return NS_ERROR_INVALID_ARG;
-
-    
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Type, &itemType);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (itemType != TYPE_FOLDER)
-      return NS_ERROR_INVALID_ARG;
-
-    
-    
-    
-    rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_Parent, &grandParentId);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  BookmarkData folder;
+  nsresult rv = FetchItemInfo(aFolderId, folder);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_ARG(folder.type == TYPE_FOLDER);
 
   
-  nsTArray<folderChildrenInfo> folderChildrenArray;
-  rv = GetDescendantChildren(aFolderId, grandParentId, folderChildrenArray);
+  nsTArray<BookmarkData> folderChildrenArray;
+  rv = GetDescendantChildren(folder.id, folder.guid, folder.parentId,
+                             folderChildrenArray);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCString foldersToRemove;
-  for (PRUint32 i = 0; i < folderChildrenArray.Length(); i++) {
-    folderChildrenInfo child = folderChildrenArray[i];
+  for (PRUint32 i = 0; i < folderChildrenArray.Length(); ++i) {
+    BookmarkData& child = folderChildrenArray[i];
 
     
     NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                      nsINavBookmarkObserver,
-                     OnBeforeItemRemoved(child.itemId, child.itemType));
+                     OnBeforeItemRemoved(child.id,
+                                         child.type,
+                                         child.parentId,
+                                         child.guid,
+                                         child.parentGuid));
 
-    if (child.itemType == TYPE_FOLDER) {
+    if (child.type == TYPE_FOLDER) {
       foldersToRemove.AppendLiteral(",");
-      foldersToRemove.AppendInt(child.itemId);
+      foldersToRemove.AppendInt(child.id);
 
       
       
       
-      if (child.folderType.Length() > 0) {
-        nsCOMPtr<nsIDynamicContainer> bmcServ =
-          do_GetService(child.folderType.get());
-        if (bmcServ) {
-          rv = bmcServ->OnContainerRemoving(child.itemId);
-          if (NS_FAILED(rv))
-            NS_WARNING("Remove folder container notification failed.");
+      if (!child.serviceCID.IsEmpty()) {
+        nsCOMPtr<nsIDynamicContainer> svc =
+          do_GetService(child.serviceCID.get());
+        if (svc) {
+          (void)svc->OnContainerRemoving(child.id);
         }
       }
     }
@@ -1608,7 +1491,7 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolderId)
       NS_LITERAL_CSTRING(")"),
     getter_AddRefs(deleteStatement));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = deleteStatement->BindInt64ByName(NS_LITERAL_CSTRING("parent"), aFolderId);
+  rv = deleteStatement->BindInt64ByName(NS_LITERAL_CSTRING("parent"), folder.id);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = deleteStatement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1625,19 +1508,18 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolderId)
 
   
   rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           aFolderId, PR_Now());
+                           folder.id, PR_Now());
   NS_ENSURE_SUCCESS(rv, rv);
 
   for (PRUint32 i = 0; i < folderChildrenArray.Length(); i++) {
-    folderChildrenInfo child = folderChildrenArray[i];
-    if (child.itemType == TYPE_BOOKMARK) {
-      PRInt64 placeId = child.placeId;
+    BookmarkData& child = folderChildrenArray[i];
+    if (child.type == TYPE_BOOKMARK) {
       nsNavHistory* history = nsNavHistory::GetHistoryService();
       NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-      rv = history->UpdateFrecency(placeId);
+      rv = history->UpdateFrecency(child.placeId);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = UpdateKeywordsHashForRemovedBookmark(child.itemId);
+      rv = UpdateKeywordsHashForRemovedBookmark(child.id);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
@@ -1650,37 +1532,45 @@ nsNavBookmarks::RemoveFolderChildren(PRInt64 aFolderId)
   }
 
   
-  for (PRInt32 i = folderChildrenArray.Length() - 1; i >= 0 ; i--) {
-    folderChildrenInfo child = folderChildrenArray[i];
+  for (PRInt32 i = folderChildrenArray.Length() - 1; i >= 0; --i) {
+    BookmarkData& child = folderChildrenArray[i];
+    nsCOMPtr<nsIURI> uri;
+    if (child.type == TYPE_BOOKMARK) {
+      
+      (void)NS_NewURI(getter_AddRefs(uri), child.url);
+    }
 
     NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                      nsINavBookmarkObserver,
-                     OnItemRemoved(child.itemId, child.parentId, child.index,
-                                   child.itemType));
+                     OnItemRemoved(child.id,
+                                   child.parentId,
+                                   child.position,
+                                   child.type,
+                                   uri,
+                                   child.guid,
+                                   child.parentGuid));
 
-    if (child.itemType == TYPE_BOOKMARK) {
+    if (child.type == TYPE_BOOKMARK && child.grandParentId == mTagsRoot &&
+        uri) {
       
       
       
+      nsTArray<BookmarkData> bookmarks;
+      rv = GetBookmarksForURI(uri, bookmarks);
+      NS_ENSURE_SUCCESS(rv, rv);
 
-      if (child.grandParentId == mTagsRoot) {
-        nsCOMPtr<nsIURI> uri;
-        rv = NS_NewURI(getter_AddRefs(uri), child.url);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsTArray<PRInt64> bookmarks;
-        rv = GetBookmarkIdsForURITArray(uri, bookmarks, true);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        if (bookmarks.Length()) {
-          for (PRUint32 i = 0; i < bookmarks.Length(); i++) {
-            NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                             nsINavBookmarkObserver,
-                             OnItemChanged(bookmarks[i],
-                                           NS_LITERAL_CSTRING("tags"), PR_FALSE,
-                                           EmptyCString(), 0, TYPE_BOOKMARK));
-          }
-        }
+      for (PRUint32 i = 0; i < bookmarks.Length(); ++i) {
+        NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                         nsINavBookmarkObserver,
+                         OnItemChanged(bookmarks[i].id,
+                                       NS_LITERAL_CSTRING("tags"),
+                                       PR_FALSE,
+                                       EmptyCString(),
+                                       bookmarks[i].lastModified,
+                                       TYPE_BOOKMARK,
+                                       bookmarks[i].parentId,
+                                       bookmarks[i].guid,
+                                       bookmarks[i].parentGuid));
       }
     }
   }
@@ -1702,85 +1592,48 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
-  
-  nsresult rv;
-  PRInt64 oldParent;
-  PRInt32 oldIndex;
-  PRInt32 itemType;
-  nsCAutoString folderType;
-  {
-    DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetItemProperties);
-    rv = getInfoStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = getInfoStmt->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!hasResult) {
-      return NS_ERROR_INVALID_ARG; 
-    }
-
-    rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_Parent, &oldParent);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Position, &oldIndex);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Type, &itemType);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (itemType == TYPE_FOLDER) {
-      rv = getInfoStmt->GetUTF8String(kGetItemPropertiesIndex_ServiceContractId,
-                                      folderType);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (oldParent == aNewParent && oldIndex == aIndex)
+  if (bookmark.parentId == aNewParent && bookmark.position == aIndex)
     return NS_OK;
 
   
-  if (itemType == TYPE_FOLDER) {
+  
+  if (bookmark.type == TYPE_FOLDER) {
     PRInt64 ancestorId = aNewParent;
 
     while (ancestorId) {
-      if (ancestorId == aItemId) {
+      if (ancestorId == bookmark.id) {
         return NS_ERROR_INVALID_ARG;
       }
-
-      DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(getInfoStmt, mDBGetItemProperties);
-      rv = getInfoStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"),
-                                        ancestorId);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      PRBool hasResult;
-      rv = getInfoStmt->ExecuteStep(&hasResult);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (hasResult) {
-        rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_Parent, &ancestorId);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-      else {
+      rv = GetFolderIdForItem(ancestorId, &ancestorId);
+      if (NS_FAILED(rv)) {
         break;
       }
     }
   }
 
   
-  PRInt32 newIndex;
-  PRInt32 folderCount;
-  rv = FolderCount(aNewParent, &folderCount);
+  PRInt32 newIndex, folderCount;
+  PRInt64 grandParentId;
+  nsCAutoString newParentGuid;
+  rv = FetchFolderInfo(aNewParent, &folderCount, newParentGuid, &grandParentId);
   NS_ENSURE_SUCCESS(rv, rv);
   if (aIndex == nsINavBookmarksService::DEFAULT_INDEX ||
       aIndex >= folderCount) {
     newIndex = folderCount;
     
     
-    if (oldParent == aNewParent) {
+    if (bookmark.parentId == aNewParent) {
       --newIndex;
     }
   } else {
     newIndex = aIndex;
 
-    if (oldParent == aNewParent && newIndex > oldIndex) {
+    if (bookmark.parentId == aNewParent && newIndex > bookmark.position) {
       
       
       
@@ -1791,7 +1644,7 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
   
   
   
-  if (aNewParent == oldParent && newIndex == oldIndex) {
+  if (aNewParent == bookmark.parentId && newIndex == bookmark.position) {
     
     return NS_OK;
   }
@@ -1799,22 +1652,22 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
   
   
   
-  if (oldParent == aNewParent) {
+  if (bookmark.parentId == aNewParent) {
     
     
     
-    if (oldIndex > newIndex) {
-      rv = AdjustIndices(oldParent, newIndex, oldIndex - 1, 1);
+    if (bookmark.position > newIndex) {
+      rv = AdjustIndices(bookmark.parentId, newIndex, bookmark.position - 1, 1);
     }
     else {
-      rv = AdjustIndices(oldParent, oldIndex + 1, newIndex, -1);
+      rv = AdjustIndices(bookmark.parentId, bookmark.position + 1, newIndex, -1);
     }
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
     
     
-    rv = AdjustIndices(oldParent, oldIndex + 1, PR_INT32_MAX, -1);
+    rv = AdjustIndices(bookmark.parentId, bookmark.position + 1, PR_INT32_MAX, -1);
     NS_ENSURE_SUCCESS(rv, rv);
     
     rv = AdjustIndices(aNewParent, newIndex, PR_INT32_MAX, 1);
@@ -1828,7 +1681,7 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
     NS_ENSURE_SUCCESS(rv, rv);
     rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("item_index"), newIndex);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+    rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), bookmark.id);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = stmt->Execute();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1836,7 +1689,7 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
 
   PRTime now = PR_Now();
   rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           oldParent, now);
+                           bookmark.parentId, now);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
                            aNewParent, now);
@@ -1847,21 +1700,95 @@ nsNavBookmarks::MoveItem(PRInt64 aItemId, PRInt64 aNewParent, PRInt32 aIndex)
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemMoved(aItemId, oldParent, oldIndex, aNewParent,
-                               newIndex, itemType));
+                   OnItemMoved(bookmark.id,
+                               bookmark.parentId,
+                               bookmark.position,
+                               aNewParent,
+                               newIndex,
+                               bookmark.type,
+                               bookmark.guid,
+                               bookmark.parentGuid,
+                               newParentGuid));
 
   
-  if (!folderType.IsEmpty()) {
-    nsCOMPtr<nsIDynamicContainer> container =
-      do_GetService(folderType.get(), &rv);
-    if (NS_SUCCEEDED(rv)) {
-      rv = container->OnContainerMoved(aItemId, aNewParent, newIndex);
-      NS_ENSURE_SUCCESS(rv, rv);
+  if (!bookmark.serviceCID.IsEmpty()) {
+    nsCOMPtr<nsIDynamicContainer> svc =
+      do_GetService(bookmark.serviceCID.get());
+    if (svc) {
+      (void)svc->OnContainerMoved(bookmark.id, aNewParent, newIndex);
     }
   }
   return NS_OK;
 }
 
+nsresult
+nsNavBookmarks::FetchItemInfo(PRInt64 aItemId,
+                              BookmarkData& _bookmark)
+{
+  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
+  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool hasResult;
+  rv = stmt->ExecuteStep(&hasResult);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(hasResult, NS_ERROR_INVALID_ARG);
+
+  _bookmark.id = aItemId;
+  rv = stmt->GetUTF8String(kGetItemPropertiesIndex_Url, _bookmark.url);
+  NS_ENSURE_SUCCESS(rv, rv);
+  PRBool isNull;
+  rv = stmt->GetIsNull(kGetItemPropertiesIndex_Title, &isNull);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (isNull) {
+    _bookmark.title.SetIsVoid(PR_TRUE);
+  }
+  else {
+    rv = stmt->GetUTF8String(kGetItemPropertiesIndex_Title, _bookmark.title);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  rv = stmt->GetInt32(kGetItemPropertiesIndex_Position, &_bookmark.position);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->GetInt64(kGetItemPropertiesIndex_PlaceId, &_bookmark.placeId);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->GetInt64(kGetItemPropertiesIndex_ParentId, &_bookmark.parentId);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->GetInt32(kGetItemPropertiesIndex_Type, &_bookmark.type);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->GetIsNull(7, &isNull);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (isNull) {
+    _bookmark.serviceCID.SetIsVoid(PR_TRUE);
+  }
+  else {
+    rv = stmt->GetUTF8String(kGetItemPropertiesIndex_ServiceContractId,
+                             _bookmark.serviceCID);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  rv = stmt->GetInt64(kGetItemPropertiesIndex_DateAdded, &_bookmark.dateAdded);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->GetInt64(kGetItemPropertiesIndex_LastModified,
+                      &_bookmark.lastModified);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->GetUTF8String(kGetItemPropertiesIndex_Guid, _bookmark.guid);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  rv = stmt->GetIsNull(kGetItemPropertiesIndex_ParentGuid, &isNull);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!isNull) {
+    rv = stmt->GetUTF8String(kGetItemPropertiesIndex_ParentGuid,
+                             _bookmark.parentGuid);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->GetInt64(kGetItemPropertiesIndex_GrandParentId,
+                        &_bookmark.grandParentId);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+  else {
+    _bookmark.grandParentId = -1;
+  }
+
+  return NS_OK;
+}
 
 nsresult
 nsNavBookmarks::SetItemDateInternal(mozIStorageStatement* aStatement,
@@ -1889,22 +1816,29 @@ nsNavBookmarks::SetItemDateInternal(mozIStorageStatement* aStatement,
 NS_IMETHODIMP
 nsNavBookmarks::SetItemDateAdded(PRInt64 aItemId, PRTime aDateAdded)
 {
-  
-  PRUint16 itemType;
-  nsresult rv = GetItemType(aItemId, &itemType);
+  NS_ENSURE_ARG_MIN(aItemId, 1);
+
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
+  bookmark.dateAdded = aDateAdded;
 
   rv = SetItemDateInternal(GetStatement(mDBSetItemDateAdded),
-                           aItemId, aDateAdded);
+                           bookmark.id, bookmark.dateAdded);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemChanged(aItemId, NS_LITERAL_CSTRING("dateAdded"),
+                   OnItemChanged(bookmark.id,
+                                 NS_LITERAL_CSTRING("dateAdded"),
                                  PR_FALSE,
-                                 nsPrintfCString(16, "%lld", aDateAdded),
-                                 aDateAdded, itemType));
+                                 nsPrintfCString(16, "%lld", bookmark.dateAdded),
+                                 bookmark.dateAdded,
+                                 bookmark.type,
+                                 bookmark.parentId,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
   return NS_OK;
 }
 
@@ -1915,18 +1849,11 @@ nsNavBookmarks::GetItemDateAdded(PRInt64 aItemId, PRTime* _dateAdded)
   NS_ENSURE_ARG_MIN(aItemId, 1);
   NS_ENSURE_ARG_POINTER(_dateAdded);
 
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(hasResult, NS_ERROR_INVALID_ARG); 
-
-  rv = stmt->GetInt64(kGetItemPropertiesIndex_DateAdded, _dateAdded);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  *_dateAdded = bookmark.dateAdded;
   return NS_OK;
 }
 
@@ -1934,44 +1861,44 @@ nsNavBookmarks::GetItemDateAdded(PRInt64 aItemId, PRTime* _dateAdded)
 NS_IMETHODIMP
 nsNavBookmarks::SetItemLastModified(PRInt64 aItemId, PRTime aLastModified)
 {
-  
-  PRUint16 itemType;
-  nsresult rv = GetItemType(aItemId, &itemType);
+  NS_ENSURE_ARG_MIN(aItemId, 1);
+
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
+  bookmark.lastModified = aLastModified;
 
   rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           aItemId, aLastModified);
+                           bookmark.id, bookmark.lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemChanged(aItemId, NS_LITERAL_CSTRING("lastModified"),
+                   OnItemChanged(bookmark.id,
+                                 NS_LITERAL_CSTRING("lastModified"),
                                  PR_FALSE,
-                                 nsPrintfCString(16, "%lld", aLastModified),
-                                 aLastModified, itemType));
+                                 nsPrintfCString(16, "%lld", bookmark.lastModified),
+                                 bookmark.lastModified,
+                                 bookmark.type,
+                                 bookmark.parentId,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
   return NS_OK;
 }
 
 
 NS_IMETHODIMP
-nsNavBookmarks::GetItemLastModified(PRInt64 aItemId, PRTime* aLastModified)
+nsNavBookmarks::GetItemLastModified(PRInt64 aItemId, PRTime* _lastModified)
 {
   NS_ENSURE_ARG_MIN(aItemId, 1);
-  NS_ENSURE_ARG_POINTER(aLastModified);
+  NS_ENSURE_ARG_POINTER(_lastModified);
 
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!hasResult)
-    return NS_ERROR_INVALID_ARG; 
-
-  rv = stmt->GetInt64(kGetItemPropertiesIndex_LastModified, aLastModified);
-  NS_ENSURE_SUCCESS(rv, rv);
+  *_lastModified = bookmark.lastModified;
   return NS_OK;
 }
 
@@ -2070,22 +1997,27 @@ nsNavBookmarks::GetItemIdForGUID(const nsAString& aGUID, PRInt64* aItemId)
 NS_IMETHODIMP
 nsNavBookmarks::SetItemTitle(PRInt64 aItemId, const nsACString& aTitle)
 {
-  
-  PRUint16 itemType;
-  nsresult rv = GetItemType(aItemId, &itemType);
+  NS_ENSURE_ARG_MIN(aItemId, 1);
+
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
   DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(statement, mDBSetItemTitle);
   
-  if (aTitle.IsVoid())
+  if (aTitle.IsVoid()) {
     rv = statement->BindNullByName(NS_LITERAL_CSTRING("item_title"));
-  else
-    rv = statement->BindUTF8StringByName(NS_LITERAL_CSTRING("item_title"), aTitle);
+  }
+  else {
+    rv = statement->BindUTF8StringByName(NS_LITERAL_CSTRING("item_title"),
+                                         aTitle);
+  }
   NS_ENSURE_SUCCESS(rv, rv);
-  PRTime lastModified = PR_Now();
-  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("date"), lastModified);
+  bookmark.lastModified = PR_Now();
+  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("date"),
+                                  bookmark.lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), bookmark.id);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = statement->Execute();
@@ -2093,62 +2025,46 @@ nsNavBookmarks::SetItemTitle(PRInt64 aItemId, const nsACString& aTitle)
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemChanged(aItemId, NS_LITERAL_CSTRING("title"), PR_FALSE,
-                                 aTitle, lastModified, itemType));
+                   OnItemChanged(bookmark.id,
+                                 NS_LITERAL_CSTRING("title"),
+                                 PR_FALSE,
+                                 aTitle,
+                                 bookmark.lastModified,
+                                 bookmark.type,
+                                 bookmark.parentId,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
   return NS_OK;
 }
 
 
 NS_IMETHODIMP
-nsNavBookmarks::GetItemTitle(PRInt64 aItemId, nsACString& aTitle)
+nsNavBookmarks::GetItemTitle(PRInt64 aItemId,
+                             nsACString& _title)
 {
   NS_ENSURE_ARG_MIN(aItemId, 1);
 
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!hasResult)
-    return NS_ERROR_INVALID_ARG; 
-
-  rv = stmt->GetUTF8String(kGetItemPropertiesIndex_Title, aTitle);
-  NS_ENSURE_SUCCESS(rv, rv);
+  _title = bookmark.title;
   return NS_OK;
 }
 
 
 NS_IMETHODIMP
-nsNavBookmarks::GetBookmarkURI(PRInt64 aItemId, nsIURI** aURI)
+nsNavBookmarks::GetBookmarkURI(PRInt64 aItemId,
+                               nsIURI** _URI)
 {
   NS_ENSURE_ARG_MIN(aItemId, 1);
-  NS_ENSURE_ARG_POINTER(aURI);
+  NS_ENSURE_ARG_POINTER(_URI);
 
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!hasResult)
-    return NS_ERROR_INVALID_ARG; 
-
-  PRInt32 type;
-  rv = stmt->GetInt32(kGetItemPropertiesIndex_Type, &type);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  NS_ENSURE_TRUE(type == TYPE_BOOKMARK, NS_ERROR_INVALID_ARG);
-
-  nsCAutoString spec;
-  rv = stmt->GetUTF8String(kGetItemPropertiesIndex_URI, spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = NS_NewURI(aURI, spec);
+  rv = NS_NewURI(_URI, bookmark.url);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -2161,91 +2077,61 @@ nsNavBookmarks::GetItemType(PRInt64 aItemId, PRUint16* _type)
   NS_ENSURE_ARG_MIN(aItemId, 1);
   NS_ENSURE_ARG_POINTER(_type);
 
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!hasResult) {
-    return NS_ERROR_INVALID_ARG; 
-  }
-
-  PRInt32 itemType;
-  rv = stmt->GetInt32(kGetItemPropertiesIndex_Type, &itemType);
-  NS_ENSURE_SUCCESS(rv, rv);
-  *_type = itemType;
-
+  *_type = static_cast<PRUint16>(bookmark.type);
   return NS_OK;
 }
 
 
 nsresult
-nsNavBookmarks::GetFolderType(PRInt64 aFolder, nsACString& aType)
+nsNavBookmarks::GetFolderType(PRInt64 aItemId,
+                              nsACString& _type)
 {
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aFolder);
+  NS_ENSURE_ARG_MIN(aItemId, 1);
+
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!hasResult) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  return stmt->GetUTF8String(kGetItemPropertiesIndex_ServiceContractId, aType);
+  _type = bookmark.serviceCID;
+  return NS_OK;
 }
 
 
 nsresult
-nsNavBookmarks::ResultNodeForContainer(PRInt64 aID,
+nsNavBookmarks::ResultNodeForContainer(PRInt64 aItemId,
                                        nsNavHistoryQueryOptions* aOptions,
                                        nsNavHistoryResultNode** aNode)
 {
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aID);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(hasResult, NS_ERROR_INVALID_ARG);
-
-  nsCAutoString title;
-  rv = stmt->GetUTF8String(kGetItemPropertiesIndex_Title, title);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRInt32 itemType;
-  rv = stmt->GetInt32(kGetItemPropertiesIndex_Type, &itemType);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (itemType == TYPE_DYNAMIC_CONTAINER) {
-    
-    nsCAutoString contractId;
-    rv = stmt->GetUTF8String(kGetItemPropertiesIndex_ServiceContractId,
-                             contractId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    *aNode = new nsNavHistoryContainerResultNode(EmptyCString(), title,
+  if (bookmark.type == TYPE_DYNAMIC_CONTAINER) {
+    *aNode = new nsNavHistoryContainerResultNode(EmptyCString(),
+                                                 bookmark.title,
                                                  EmptyCString(),
                                                  nsINavHistoryResultNode::RESULT_TYPE_DYNAMIC_CONTAINER,
-                                                 PR_TRUE, contractId, aOptions);
-    (*aNode)->mItemId = aID;
+                                                 PR_TRUE,
+                                                 bookmark.serviceCID,
+                                                 aOptions);
+    (*aNode)->mItemId = bookmark.id;
   }
-  else { 
-    *aNode = new nsNavHistoryFolderResultNode(title, aOptions, aID, EmptyCString());
+  else if (bookmark.type == TYPE_FOLDER) { 
+    *aNode = new nsNavHistoryFolderResultNode(bookmark.title,
+                                              aOptions,
+                                              bookmark.id,
+                                              EmptyCString());
   }
-  if (!*aNode)
-    return NS_ERROR_OUT_OF_MEMORY;
+  else {
+    return NS_ERROR_INVALID_ARG;
+  }
 
-  rv = stmt->GetInt64(kGetItemPropertiesIndex_DateAdded,
-                      &(*aNode)->mDateAdded);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->GetInt64(kGetItemPropertiesIndex_LastModified,
-                      &(*aNode)->mLastModified);
-  NS_ENSURE_SUCCESS(rv, rv);
+  (*aNode)->mDateAdded = bookmark.dateAdded;
+  (*aNode)->mLastModified = bookmark.lastModified;
 
   NS_ADDREF(*aNode);
   return NS_OK;
@@ -2388,10 +2274,15 @@ nsNavBookmarks::QueryFolderChildrenAsync(
 
 
 nsresult
-nsNavBookmarks::FolderCount(PRInt64 aFolderId, PRInt32* _folderCount)
+nsNavBookmarks::FetchFolderInfo(PRInt64 aFolderId,
+                                PRInt32* _folderCount,
+                                nsACString& _guid,
+                                PRInt64* _parentId)
 {
   *_folderCount = 0;
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBFolderCount);
+  *_parentId = -1;
+
+  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBFolderInfo);
   nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("parent"), aFolderId);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2401,13 +2292,20 @@ nsNavBookmarks::FolderCount(PRInt64 aFolderId, PRInt32* _folderCount)
   NS_ENSURE_TRUE(hasResult, NS_ERROR_UNEXPECTED);
 
   
-  PRInt64 confirmFolderId;
-  rv = stmt->GetInt64(1, &confirmFolderId);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(confirmFolderId == aFolderId, NS_ERROR_INVALID_ARG);
+  
+  PRBool isNull;
+  rv = stmt->GetIsNull(2, &isNull);
+  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && (!isNull || aFolderId == 0),
+                 NS_ERROR_INVALID_ARG);
 
   rv = stmt->GetInt32(0, _folderCount);
   NS_ENSURE_SUCCESS(rv, rv);
+  if (!isNull) {
+    rv = stmt->GetUTF8String(1, _guid);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->GetInt64(2, _parentId);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   return NS_OK;
 }
@@ -2475,33 +2373,30 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI* aNewURI)
   NS_ENSURE_ARG_MIN(aBookmarkId, 1);
   NS_ENSURE_ARG(aNewURI);
 
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aBookmarkId, bookmark);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_ARG(bookmark.type == TYPE_BOOKMARK);
+
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
+  
+  PRInt64 newPlaceId;
   nsNavHistory* history = nsNavHistory::GetHistoryService();
   NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-
-  PRInt64 placeId;
-  nsresult rv = history->GetUrlIdFor(aNewURI, &placeId, PR_TRUE);
+  rv = history->GetUrlIdFor(aNewURI, &newPlaceId, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!placeId)
+  if (!newPlaceId)
     return NS_ERROR_INVALID_ARG;
 
-  
-  
-  nsCOMPtr<nsIURI> oldURI;
-  PRInt64 oldPlaceId;
-  rv = GetBookmarkURI(aBookmarkId, getter_AddRefs(oldURI));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = history->GetUrlIdFor(oldURI, &oldPlaceId, PR_FALSE);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(statement, mDBChangeBookmarkURI);
-  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), placeId);
+  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), newPlaceId);
   NS_ENSURE_SUCCESS(rv, rv);
-  PRTime lastModified = PR_Now();
-  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("date"), lastModified);
+  bookmark.lastModified = PR_Now();
+  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("date"),
+                                  bookmark.lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aBookmarkId);
+  rv = statement->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), bookmark.id);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = statement->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2509,50 +2404,47 @@ nsNavBookmarks::ChangeBookmarkURI(PRInt64 aBookmarkId, nsIURI* aNewURI)
   rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = history->UpdateFrecency(placeId);
+  rv = history->UpdateFrecency(newPlaceId);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  rv = history->UpdateFrecency(oldPlaceId);
+  rv = history->UpdateFrecency(bookmark.placeId);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCAutoString spec;
   rv = aNewURI->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemChanged(aBookmarkId, NS_LITERAL_CSTRING("uri"),
-                                 PR_FALSE, spec, lastModified, TYPE_BOOKMARK));
-
+                   OnItemChanged(bookmark.id,
+                                 NS_LITERAL_CSTRING("uri"),
+                                 PR_FALSE,
+                                 spec,
+                                 bookmark.lastModified,
+                                 bookmark.type,
+                                 bookmark.parentId,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
   return NS_OK;
 }
 
 
 NS_IMETHODIMP
-nsNavBookmarks::GetFolderIdForItem(PRInt64 aItemId, PRInt64* aFolderId)
+nsNavBookmarks::GetFolderIdForItem(PRInt64 aItemId, PRInt64* _parentId)
 {
   NS_ENSURE_ARG_MIN(aItemId, 1);
-  NS_ENSURE_ARG_POINTER(aFolderId);
+  NS_ENSURE_ARG_POINTER(_parentId);
 
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!hasResult)
-    return NS_ERROR_INVALID_ARG; 
-
-  rv = stmt->GetInt64(kGetItemPropertiesIndex_Parent, aFolderId);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  NS_ENSURE_TRUE(aItemId != *aFolderId, NS_ERROR_UNEXPECTED);
+  NS_ENSURE_TRUE(bookmark.id != bookmark.parentId, NS_ERROR_UNEXPECTED);
+
+  *_parentId = bookmark.parentId;
   return NS_OK;
 }
 
@@ -2573,14 +2465,15 @@ nsNavBookmarks::GetBookmarkIdsForURITArray(nsIURI* aURI,
     if (aSkipTags) {
       
       PRInt64 grandParentId;
-      nsresult rv = stmt->GetInt64(1, &grandParentId);
+      nsresult rv = stmt->GetInt64(kFindURIBookmarksIndex_GrandParentId,
+                                   &grandParentId);
       NS_ENSURE_SUCCESS(rv, rv);
       if (grandParentId == mTagsRoot) {
         continue;
       }
     }
     PRInt64 bookmarkId;
-    rv = stmt->GetInt64(kFindBookmarksIndex_ID, &bookmarkId);
+    rv = stmt->GetInt64(kFindURIBookmarksIndex_Id, &bookmarkId);
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_TRUE(aResult.AppendElement(bookmarkId), NS_ERROR_OUT_OF_MEMORY);
   }
@@ -2589,6 +2482,48 @@ nsNavBookmarks::GetBookmarkIdsForURITArray(nsIURI* aURI,
   return NS_OK;
 }
 
+nsresult
+nsNavBookmarks::GetBookmarksForURI(nsIURI* aURI,
+                                   nsTArray<BookmarkData>& aBookmarks)
+{
+  NS_ENSURE_ARG(aURI);
+
+  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBFindURIBookmarks);
+  nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool more;
+  nsAutoString tags;
+  while (NS_SUCCEEDED((rv = stmt->ExecuteStep(&more))) && more) {
+    
+    PRInt64 grandParentId;
+    nsresult rv = stmt->GetInt64(kFindURIBookmarksIndex_GrandParentId,
+                                 &grandParentId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (grandParentId == mTagsRoot) {
+      continue;
+    }
+
+    BookmarkData bookmark;
+    bookmark.grandParentId = grandParentId;
+    rv = stmt->GetInt64(kFindURIBookmarksIndex_Id, &bookmark.id);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->GetUTF8String(kFindURIBookmarksIndex_Guid, bookmark.guid);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->GetInt64(kFindURIBookmarksIndex_ParentId, &bookmark.parentId);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->GetInt64(kFindURIBookmarksIndex_LastModified,
+                        &bookmark.lastModified);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = stmt->GetUTF8String(kFindURIBookmarksIndex_ParentGuid,
+                             bookmark.parentGuid);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    NS_ENSURE_TRUE(aBookmarks.AppendElement(bookmark), NS_ERROR_OUT_OF_MEMORY);
+  }
+
+  return NS_OK;
+}
 
 NS_IMETHODIMP
 nsNavBookmarks::GetBookmarkIdsForURI(nsIURI* aURI, PRUint32* aCount,
@@ -2616,8 +2551,8 @@ nsNavBookmarks::GetBookmarkIdsForURI(nsIURI* aURI, PRUint32* aCount,
     for (PRUint32 i = 0; i < bookmarks.Length(); i ++)
       (*aBookmarks)[i] = bookmarks[i];
   }
-  *aCount = bookmarks.Length();
 
+  *aCount = bookmarks.Length();
   return NS_OK;
 }
 
@@ -2628,20 +2563,15 @@ nsNavBookmarks::GetItemIndex(PRInt64 aItemId, PRInt32* _index)
   NS_ENSURE_ARG_MIN(aItemId, 1);
   NS_ENSURE_ARG_POINTER(_index);
 
-  *_index = -1;
-
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-  NS_ENSURE_SUCCESS(rv, rv);
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!hasResult)
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
+  
+  if (NS_FAILED(rv)) {
+    *_index = -1;
     return NS_OK;
+  }
 
-  rv = stmt->GetInt32(kGetItemPropertiesIndex_Position, _index);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  *_index = bookmark.position;
   return NS_OK;
 }
 
@@ -2652,37 +2582,19 @@ nsNavBookmarks::SetItemIndex(PRInt64 aItemId, PRInt32 aNewIndex)
   NS_ENSURE_ARG_MIN(aItemId, 1);
   NS_ENSURE_ARG_MIN(aNewIndex, 0);
 
-  nsresult rv;
-  PRInt32 oldIndex = 0;
-  PRInt64 parent = 0;
-  PRInt32 itemType;
-
-  {
-    mozIStorageStatement* getInfoStmt(mDBGetItemProperties);
-    NS_ENSURE_STATE(getInfoStmt);
-    mozStorageStatementScoper scoper(getInfoStmt);
-    rv = getInfoStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = getInfoStmt->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!hasResult)
-      return NS_OK;
-
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Position, &oldIndex);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt32(kGetItemPropertiesIndex_Type, &itemType);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = getInfoStmt->GetInt64(kGetItemPropertiesIndex_Parent, &parent);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   PRInt32 folderCount;
-  rv = FolderCount(parent, &folderCount);
+  PRInt64 grandParentId;
+  nsCAutoString folderGuid;
+  rv = FetchFolderInfo(bookmark.parentId, &folderCount, folderGuid, &grandParentId);
   NS_ENSURE_SUCCESS(rv, rv);
   NS_ENSURE_TRUE(aNewIndex < folderCount, NS_ERROR_INVALID_ARG);
+  
+  MOZ_ASSERT(bookmark.parentGuid == folderGuid);
 
   DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBSetItemIndex);
   rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
@@ -2695,8 +2607,15 @@ nsNavBookmarks::SetItemIndex(PRInt64 aItemId, PRInt32 aNewIndex)
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemMoved(aItemId, parent, oldIndex, parent, aNewIndex,
-                               itemType));
+                   OnItemMoved(bookmark.id,
+                               bookmark.parentId,
+                               bookmark.position,
+                               bookmark.parentId,
+                               aNewIndex,
+                               bookmark.type,
+                               bookmark.guid,
+                               bookmark.parentGuid,
+                               bookmark.parentGuid));
 
   return NS_OK;
 }
@@ -2721,7 +2640,12 @@ nsNavBookmarks::SetKeywordForBookmark(PRInt64 aBookmarkId,
 {
   NS_ENSURE_ARG_MIN(aBookmarkId, 1);
 
-  nsresult rv = EnsureKeywordsHash();
+  
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aBookmarkId, bookmark);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = EnsureKeywordsHash();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2730,7 +2654,7 @@ nsNavBookmarks::SetKeywordForBookmark(PRInt64 aBookmarkId,
 
   
   nsAutoString oldKeyword;
-  rv = GetKeywordForBookmark(aBookmarkId, oldKeyword);
+  rv = GetKeywordForBookmark(bookmark.id, oldKeyword);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2750,7 +2674,7 @@ nsNavBookmarks::SetKeywordForBookmark(PRInt64 aBookmarkId,
 
   if (keyword.IsEmpty()) {
     
-    mBookmarkToKeywordHash.Remove(aBookmarkId);
+    mBookmarkToKeywordHash.Remove(bookmark.id);
     rv = updateBookmarkStmt->BindNullByName(NS_LITERAL_CSTRING("keyword"));
   }
    else {
@@ -2769,17 +2693,17 @@ nsNavBookmarks::SetKeywordForBookmark(PRInt64 aBookmarkId,
 
     
     if (!oldKeyword.IsEmpty())
-      mBookmarkToKeywordHash.Remove(aBookmarkId);
-    mBookmarkToKeywordHash.Put(aBookmarkId, keyword);
+      mBookmarkToKeywordHash.Remove(bookmark.id);
+    mBookmarkToKeywordHash.Put(bookmark.id, keyword);
     rv = updateBookmarkStmt->BindStringByName(NS_LITERAL_CSTRING("keyword"), keyword);
   }
   NS_ENSURE_SUCCESS(rv, rv);
-  PRTime lastModified = PR_Now();
+  bookmark.lastModified = PR_Now();
   rv = updateBookmarkStmt->BindInt64ByName(NS_LITERAL_CSTRING("date"),
-                                           lastModified);
+                                           bookmark.lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = updateBookmarkStmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"),
-                                           aBookmarkId);
+                                           bookmark.id);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = updateBookmarkStmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2789,9 +2713,15 @@ nsNavBookmarks::SetKeywordForBookmark(PRInt64 aBookmarkId,
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemChanged(aBookmarkId, NS_LITERAL_CSTRING("keyword"),
-                                 PR_FALSE, NS_ConvertUTF16toUTF8(keyword),
-                                 lastModified, TYPE_BOOKMARK));
+                   OnItemChanged(bookmark.id,
+                                 NS_LITERAL_CSTRING("keyword"),
+                                 PR_FALSE,
+                                 NS_ConvertUTF16toUTF8(keyword),
+                                 bookmark.lastModified,
+                                 bookmark.type,
+                                 bookmark.parentId,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
 
   return NS_OK;
 }
@@ -2943,17 +2873,36 @@ nsNavBookmarks::RemoveObserver(nsINavBookmarkObserver* aObserver)
 void
 nsNavBookmarks::NotifyItemVisited(const ItemVisitData& aData)
 {
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavBookmarkObserver,
-                   OnItemVisited(aData.itemId, aData.visitId, aData.time));
+  nsCOMPtr<nsIURI> uri;
+  (void)NS_NewURI(getter_AddRefs(uri), aData.bookmark.url);
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavBookmarkObserver,
+                   OnItemVisited(aData.bookmark.id,
+                                 aData.visitId,
+                                 aData.time,
+                                 aData.transitionType,
+                                 uri,
+                                 aData.bookmark.parentId,
+                                 aData.bookmark.guid,
+                                 aData.bookmark.parentGuid));
 }
 
 void
 nsNavBookmarks::NotifyItemChanged(const ItemChangeData& aData)
 {
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers, nsINavBookmarkObserver,
-                   OnItemChanged(aData.itemId, aData.property,
-                                 aData.isAnnotation, aData.newValue,
-                                 aData.lastModified, aData.itemType));
+  
+  MOZ_ASSERT(!aData.bookmark.guid.IsEmpty());
+  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
+                   nsINavBookmarkObserver,
+                   OnItemChanged(aData.bookmark.id,
+                                 aData.property,
+                                 aData.isAnnotation,
+                                 aData.newValue,
+                                 aData.bookmark.lastModified,
+                                 aData.bookmark.type,
+                                 aData.bookmark.parentId,
+                                 aData.bookmark.guid,
+                                 aData.bookmark.parentGuid));
 }
 
 
@@ -2989,9 +2938,11 @@ nsNavBookmarks::OnVisit(nsIURI* aURI, PRInt64 aVisitId, PRTime aTime,
 {
   
   ItemVisitData visitData;
-  visitData.uri = aURI;
+  nsresult rv = aURI->GetSpec(visitData.bookmark.url);
+  NS_ENSURE_SUCCESS(rv, rv);
   visitData.visitId = aVisitId;
   visitData.time = aTime;
+  visitData.transitionType = aTransitionType;
 
   nsRefPtr< AsyncGetBookmarksForURI<ItemVisitMethod, ItemVisitData> > notifier =
     new AsyncGetBookmarksForURI<ItemVisitMethod, ItemVisitData>(this, &nsNavBookmarks::NotifyItemVisited, visitData);
@@ -3046,32 +2997,32 @@ nsNavBookmarks::OnPageChanged(nsIURI* aURI, PRUint32 aWhat,
   nsresult rv;
   if (aWhat == nsINavHistoryObserver::ATTRIBUTE_FAVICON) {
     ItemChangeData changeData;
-    changeData.uri = aURI;
+    rv = aURI->GetSpec(changeData.bookmark.url);
+    NS_ENSURE_SUCCESS(rv, rv);
     changeData.property = NS_LITERAL_CSTRING("favicon");
     changeData.isAnnotation = PR_FALSE;
     changeData.newValue = NS_ConvertUTF16toUTF8(aValue);
-    changeData.lastModified = 0;
-    changeData.itemType = TYPE_BOOKMARK;
+    changeData.bookmark.lastModified = 0;
+    changeData.bookmark.type = TYPE_BOOKMARK;
 
     
     PRBool isPlaceURI;
     rv = aURI->SchemeIs("place", &isPlaceURI);
     NS_ENSURE_SUCCESS(rv, rv);
     if (isPlaceURI) {
-      nsCAutoString spec;
-      rv = aURI->GetSpec(spec);
-      NS_ENSURE_SUCCESS(rv, rv);
-
       nsNavHistory* history = nsNavHistory::GetHistoryService();
       NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
   
       nsCOMArray<nsNavHistoryQuery> queries;
       nsCOMPtr<nsNavHistoryQueryOptions> options;
-      rv = history->QueryStringToQueryArray(spec, &queries, getter_AddRefs(options));
+      rv = history->QueryStringToQueryArray(changeData.bookmark.url,
+                                            &queries, getter_AddRefs(options));
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (queries.Count() == 1 && queries[0]->Folders().Length() == 1) {
-        changeData.itemId = queries[0]->Folders()[0];
+        
+        rv = FetchItemInfo(queries[0]->Folders()[0], changeData.bookmark);
+        NS_ENSURE_SUCCESS(rv, rv);        
         NotifyItemChanged(changeData);
       }
     }
@@ -3092,11 +3043,12 @@ nsNavBookmarks::OnDeleteVisits(nsIURI* aURI, PRTime aVisitTime)
   if (!aVisitTime) {
     
     ItemChangeData changeData;
-    changeData.uri = aURI;
+    nsresult rv = aURI->GetSpec(changeData.bookmark.url);
+    NS_ENSURE_SUCCESS(rv, rv);
     changeData.property = NS_LITERAL_CSTRING("cleartime");
     changeData.isAnnotation = PR_FALSE;
-    changeData.lastModified = 0;
-    changeData.itemType = TYPE_BOOKMARK;
+    changeData.bookmark.lastModified = 0;
+    changeData.bookmark.type = TYPE_BOOKMARK;
 
     nsRefPtr< AsyncGetBookmarksForURI<ItemChangeMethod, ItemChangeData> > notifier =
       new AsyncGetBookmarksForURI<ItemChangeMethod, ItemChangeData>(this, &nsNavBookmarks::NotifyItemChanged, changeData);
@@ -3118,21 +3070,26 @@ nsNavBookmarks::OnPageAnnotationSet(nsIURI* aPage, const nsACString& aName)
 NS_IMETHODIMP
 nsNavBookmarks::OnItemAnnotationSet(PRInt64 aItemId, const nsACString& aName)
 {
-  
-  PRUint16 itemType;
-  nsresult rv = GetItemType(aItemId, &itemType);
+  BookmarkData bookmark;
+  nsresult rv = FetchItemInfo(aItemId, bookmark);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRTime lastModified = PR_Now();
+  bookmark.lastModified = PR_Now();
   rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           aItemId, lastModified);
+                           bookmark.id, bookmark.lastModified);
   NS_ENSURE_SUCCESS(rv, rv);
 
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavBookmarkObserver,
-                   OnItemChanged(aItemId, aName, PR_TRUE, EmptyCString(),
-                                 lastModified, itemType));
-
+                   OnItemChanged(bookmark.id,
+                                 aName,
+                                 PR_TRUE,
+                                 EmptyCString(),
+                                 bookmark.lastModified,
+                                 bookmark.type,
+                                 bookmark.parentId,
+                                 bookmark.guid,
+                                 bookmark.parentGuid));
   return NS_OK;
 }
 
@@ -3148,33 +3105,8 @@ NS_IMETHODIMP
 nsNavBookmarks::OnItemAnnotationRemoved(PRInt64 aItemId, const nsACString& aName)
 {
   
-  PRUint16 itemType;
-  nsresult rv = GetItemType(aItemId, &itemType);
+  
+  nsresult rv = OnItemAnnotationSet(aItemId, aName);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  PRTime lastModified = PR_Now();
-  rv = SetItemDateInternal(GetStatement(mDBSetItemLastModified),
-                           aItemId, lastModified);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
-                   nsINavBookmarkObserver,
-                   OnItemChanged(aItemId, aName, PR_TRUE, EmptyCString(),
-                                 lastModified, itemType));
-
   return NS_OK;
-}
-
-
-PRBool
-nsNavBookmarks::ItemExists(PRInt64 aItemId) {
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetItemProperties);
-  nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("item_id"), aItemId);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  PRBool hasResult;
-  rv = stmt->ExecuteStep(&hasResult);
-  NS_ENSURE_SUCCESS(rv, PR_FALSE);
-
-  return hasResult;
 }
