@@ -2134,6 +2134,8 @@ public:
 
   const gfx3DMatrix& GetTransform(float aFactor);
 
+  float GetHitDepthAtPoint(const nsPoint& aPoint);
+
   
 
 
