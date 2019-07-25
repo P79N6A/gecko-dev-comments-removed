@@ -898,13 +898,12 @@ nsCSSSelectorList::Clone(PRBool aDeep) const
 
 namespace mozilla {
 namespace css {
-class StyleRule;
-}
-}
 
-class CSSImportantRule : public nsIStyleRule {
+class StyleRule;
+
+class ImportantRule : public nsIStyleRule {
 public:
-  CSSImportantRule(css::Declaration *aDeclaration);
+  ImportantRule(Declaration *aDeclaration);
 
   NS_DECL_ISUPPORTS
 
@@ -915,36 +914,36 @@ public:
 #endif
 
 protected:
-  virtual ~CSSImportantRule(void);
+  virtual ~ImportantRule();
 
   
   
   
-  css::Declaration* mDeclaration;
+  Declaration* mDeclaration;
 
   friend class css::StyleRule;
 };
 
-CSSImportantRule::CSSImportantRule(css::Declaration* aDeclaration)
+ImportantRule::ImportantRule(Declaration* aDeclaration)
   : mDeclaration(aDeclaration)
 {
 }
 
-CSSImportantRule::~CSSImportantRule(void)
+ImportantRule::~ImportantRule()
 {
 }
 
-NS_IMPL_ISUPPORTS1(CSSImportantRule, nsIStyleRule)
+NS_IMPL_ISUPPORTS1(ImportantRule, nsIStyleRule)
 
  void
-CSSImportantRule::MapRuleInfoInto(nsRuleData* aRuleData)
+ImportantRule::MapRuleInfoInto(nsRuleData* aRuleData)
 {
   mDeclaration->MapImportantRuleInfoInto(aRuleData);
 }
 
 #ifdef DEBUG
  void
-CSSImportantRule::List(FILE* out, PRInt32 aIndent) const
+ImportantRule::List(FILE* out, PRInt32 aIndent) const
 {
   
   for (PRInt32 index = aIndent; --index >= 0; ) fputs("  ", out);
@@ -953,6 +952,9 @@ CSSImportantRule::List(FILE* out, PRInt32 aIndent) const
           static_cast<void*>(mDeclaration));
 }
 #endif
+
+} 
+} 
 
 
 
@@ -1357,7 +1359,7 @@ private:
 protected:
   nsCSSSelectorList*      mSelector; 
   Declaration*            mDeclaration;
-  CSSImportantRule*       mImportantRule; 
+  ImportantRule*          mImportantRule; 
   DOMCSSStyleRule*        mDOMRule;
   
   PRUint32                mLineNumber : 31;
@@ -1473,7 +1475,7 @@ StyleRule::RuleMatched()
     mWasMatched = PR_TRUE;
     mDeclaration->SetImmutable();
     if (mDeclaration->HasImportantData()) {
-      NS_ADDREF(mImportantRule = new CSSImportantRule(mDeclaration));
+      NS_ADDREF(mImportantRule = new ImportantRule(mDeclaration));
     }
   }
 }
