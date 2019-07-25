@@ -122,44 +122,10 @@ struct JSStackFrame
 
     void                *ncode;         
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  public:
     JSObject        *scopeChain;
     JSObject        *blockChain;
+  public:
 
     uint32          flags;          
 
@@ -230,6 +196,89 @@ struct JSStackFrame
 
     static size_t offsetArgsObj() {
         return offsetof(JSStackFrame, argsobj);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    bool hasScopeChain() const {
+        return scopeChain != NULL;
+    }
+
+    JSObject* getScopeChain() const {
+        JS_ASSERT(hasScopeChain());
+        return scopeChain;
+    }
+
+    JSObject* maybeScopeChain() const {
+        return scopeChain;
+    }
+
+    void setScopeChain(JSObject *obj) {
+        scopeChain = obj;
+    }
+
+    JSObject** addressScopeChain() {
+        return &scopeChain;
+    }
+
+    static size_t offsetScopeChain() {
+        return offsetof(JSStackFrame, scopeChain);
+    }
+
+    
+
+    bool hasBlockChain() const {
+        return blockChain != NULL;
+    }
+
+    JSObject* getBlockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return blockChain;
+    }
+
+    JSObject* maybeBlockChain() const {
+        return blockChain;
+    }
+
+    void setBlockChain(JSObject *obj) {
+        blockChain = obj;
     }
 
     

@@ -387,7 +387,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    JSObject *global = cx->fp ? cx->fp->scopeChain->getGlobal() : cx->globalObject;
+    JSObject *global = cx->fp ? cx->fp->getScopeChain()->getGlobal() : cx->globalObject;
     wrapper->setParent(global);
     return true;
 }
@@ -515,7 +515,7 @@ SetupFakeFrame(JSContext *cx, ExecuteFrameGuard &frame, JSFrameRegs &regs, JSObj
     JSStackFrame *fp = frame.getFrame();
     PodZero(fp);  
     fp->argv = vp + 2;
-    fp->scopeChain = obj->getGlobal();
+    fp->setScopeChain(obj->getGlobal());
     fp->flags = JSFRAME_DUMMY;
 
     regs.pc = NULL;
