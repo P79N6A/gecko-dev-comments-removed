@@ -161,6 +161,8 @@ public class GeckoAppShell
 
     private static Handler sGeckoHandler;
 
+    private static boolean sDisableScreenshot = false;
+
     
 
     
@@ -2234,7 +2236,15 @@ public class GeckoAppShell
         return Math.max(Math.min(max, val), min);
     }
 
+    
+    public static void disableScreenshot() {
+        sDisableScreenshot = true;
+    }
+
     public static void screenshotWholePage(Tab tab) {
+        if (sDisableScreenshot) {
+            return;
+        }
         if (GeckoApp.mAppContext.isApplicationInBackground())
             return;
 
