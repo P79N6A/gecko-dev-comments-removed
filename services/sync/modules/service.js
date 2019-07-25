@@ -526,9 +526,12 @@ WeaveSvc.prototype = {
             this.status.setLoginStatus(LOGIN_SUCCEEDED);
             return true;
           case 401:
+          case 404:
+            
             if (this._updateCluster())
               return this._verifyLogin();
 
+            
             this.status.setLoginStatus(LOGIN_FAILED_LOGIN_REJECTED);
             this._log.debug("verifyLogin failed: login failed")
             return false;
