@@ -2403,7 +2403,7 @@ Assembler::asm_arith(LInsp ins)
     
     if (rhs->isImmI() && op != LIR_muli && op != LIR_mulxovi)
     {
-        if ((op == LIR_addi || op == LIR_addxovi) && lhs->isop(LIR_alloci)) {
+        if ((op == LIR_addi || op == LIR_addxovi) && lhs->isop(LIR_allocp)) {
             
             
             Register    rs = deprecated_prepResultReg(ins, allow);
