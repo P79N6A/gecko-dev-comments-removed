@@ -87,6 +87,8 @@ public:
   void PostOverflowEvent();
   void Destroy();
 
+  PRBool ShouldBuildLayer() const;
+
   nsresult BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                             const nsRect&           aDirtyRect,
                             const nsDisplayListSet& aLists);
@@ -237,7 +239,7 @@ public:
   nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState);
   PRBool IsLTR() const;
   PRBool IsScrollbarOnRight() const;
-  PRBool IsScrollingActive() const { return mScrollingActive; }
+  PRBool IsScrollingActive() const { return mScrollingActive || ShouldBuildLayer(); }
   
   
   
@@ -320,6 +322,12 @@ public:
   PRPackedBool mScrollbarsCanOverlapContent:1;
   
   PRPackedBool mCollapsedResizer:1;
+
+#ifdef MOZ_IPC
+  
+  
+  PRPackedBool mShouldBuildLayer:1;
+#endif
 };
 
 

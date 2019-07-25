@@ -195,7 +195,17 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
       nsRect damage = aDamageRect + nsPoint(aX, aY);
       
       nsRect parentDamage;
-      parentDamage.IntersectRect(damage, mInner.mScrollPort);
+      
+      
+      
+      nsRect displayport;
+      PRBool usingDisplayport = nsLayoutUtils::GetDisplayPort(GetContent(),
+                                                              &displayport);
+      if (usingDisplayport) {
+        parentDamage.IntersectRect(damage, displayport);
+      } else {
+        parentDamage.IntersectRect(damage, mInner.mScrollPort);
+      }
 
       if (IsScrollingActive()) {
         
@@ -1104,7 +1114,17 @@ nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
     nsRect damage = aDamageRect + nsPoint(aX, aY);
     
     nsRect parentDamage;
-    parentDamage.IntersectRect(damage, mInner.mScrollPort);
+    
+    
+    
+    nsRect displayport;
+    PRBool usingDisplayport = nsLayoutUtils::GetDisplayPort(GetContent(),
+                                                            &displayport);
+    if (usingDisplayport) {
+      parentDamage.IntersectRect(damage, displayport);
+    } else {
+      parentDamage.IntersectRect(damage, mInner.mScrollPort);
+    }
 
     if (IsScrollingActive()) {
       
@@ -1354,33 +1374,36 @@ static ScrollFrameActivityTracker *gScrollFrameActivityTracker = nsnull;
 
 nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
                                              PRBool aIsRoot)
-  : mHScrollbarBox(nsnull),
-    mVScrollbarBox(nsnull),
-    mScrolledFrame(nsnull),
-    mScrollCornerBox(nsnull),
-    mResizerBox(nsnull),
-    mOuter(aOuter),
-    mAsyncScroll(nsnull),
-    mDestination(0, 0),
-    mScrollPosAtLastPaint(0, 0),
-    mRestorePos(-1, -1),
-    mLastPos(-1, -1),
-    mNeverHasVerticalScrollbar(PR_FALSE),
-    mNeverHasHorizontalScrollbar(PR_FALSE),
-    mHasVerticalScrollbar(PR_FALSE), 
-    mHasHorizontalScrollbar(PR_FALSE),
-    mFrameIsUpdatingScrollbar(PR_FALSE),
-    mDidHistoryRestore(PR_FALSE),
-    mIsRoot(aIsRoot),
-    mSupppressScrollbarUpdate(PR_FALSE),
-    mSkippedScrollbarLayout(PR_FALSE),
-    mHadNonInitialReflow(PR_FALSE),
-    mHorizontalOverflow(PR_FALSE),
-    mVerticalOverflow(PR_FALSE),
-    mPostedReflowCallback(PR_FALSE),
-    mMayHaveDirtyFixedChildren(PR_FALSE),
-    mUpdateScrollbarAttributes(PR_FALSE),
-    mCollapsedResizer(PR_FALSE)
+  : mHScrollbarBox(nsnull)
+  , mVScrollbarBox(nsnull)
+  , mScrolledFrame(nsnull)
+  , mScrollCornerBox(nsnull)
+  , mResizerBox(nsnull)
+  , mOuter(aOuter)
+  , mAsyncScroll(nsnull)
+  , mDestination(0, 0)
+  , mScrollPosAtLastPaint(0, 0)
+  , mRestorePos(-1, -1)
+  , mLastPos(-1, -1)
+  , mNeverHasVerticalScrollbar(PR_FALSE)
+  , mNeverHasHorizontalScrollbar(PR_FALSE)
+  , mHasVerticalScrollbar(PR_FALSE)
+  , mHasHorizontalScrollbar(PR_FALSE)
+  , mFrameIsUpdatingScrollbar(PR_FALSE)
+  , mDidHistoryRestore(PR_FALSE)
+  , mIsRoot(aIsRoot)
+  , mSupppressScrollbarUpdate(PR_FALSE)
+  , mSkippedScrollbarLayout(PR_FALSE)
+  , mHadNonInitialReflow(PR_FALSE)
+  , mHorizontalOverflow(PR_FALSE)
+  , mVerticalOverflow(PR_FALSE)
+  , mPostedReflowCallback(PR_FALSE)
+  , mMayHaveDirtyFixedChildren(PR_FALSE)
+  , mUpdateScrollbarAttributes(PR_FALSE)
+  , mCollapsedResizer(PR_FALSE)
+#ifdef MOZ_IPC
+  , mShouldBuildLayer(PR_FALSE)
+#endif
 {
   
   PRBool canOverlap;
@@ -1694,7 +1717,13 @@ void nsGfxScrollFrameInner::ScrollVisual()
   if (canScrollWithBlitting) {
     MarkActive();
   }
-  mOuter->InvalidateWithFlags(mScrollPort, flags);
+
+  nsRect invalidateRect, displayport;
+  invalidateRect =
+    (nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayport)) ?
+    displayport : mScrollPort;
+
+  mOuter->InvalidateWithFlags(invalidateRect, flags);
 
   if (flags & nsIFrame::INVALIDATE_NO_THEBES_LAYERS) {
     nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(mOuter);
@@ -1819,6 +1848,16 @@ nsGfxScrollFrameInner::AppendScrollPartsTo(nsDisplayListBuilder*          aBuild
   return rv;
 }
 
+PRBool
+nsGfxScrollFrameInner::ShouldBuildLayer() const
+{
+#ifdef MOZ_IPC
+  return mShouldBuildLayer;
+#else
+  return PR_FALSE;
+#endif
+}
+
 nsresult
 nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                         const nsRect&           aDirtyRect,
@@ -1863,10 +1902,6 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                         scrollParts, createLayersForScrollbars);
   }
 
-  nsIPresShell* presShell = mOuter->PresContext()->GetPresShell();
-  nsRect scrollPort = (mIsRoot && presShell->UsingDisplayPort()) ?
-                      (presShell->GetDisplayPort()) : mScrollPort;
-
   
   
   
@@ -1876,18 +1911,62 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  dirtyRect.IntersectRect(aDirtyRect, scrollPort);
+  dirtyRect.IntersectRect(aDirtyRect, mScrollPort);
+
+  
+  nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &dirtyRect);
 
   nsDisplayListCollection set;
-  rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
+
+  nsPresContext* presContext = mOuter->PresContext();
+
+#ifdef MOZ_IPC
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+  nsRect scrollRange = GetScrollRange();
+  ScrollbarStyles styles = GetScrollbarStylesFromFrame();
+  mShouldBuildLayer =
+     (XRE_GetProcessType() == GeckoProcessType_Content &&
+     (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN ||
+      styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN) &&
+     (scrollRange.width >= NSIntPixelsToAppUnits(20, appUnitsPerDevPixel) ||
+      scrollRange.height >= NSIntPixelsToAppUnits(20, appUnitsPerDevPixel))) &&
+     (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
+
+  if (ShouldBuildLayer()) {
+    
+    
+
+    nsDisplayList list;
+    rv = mScrolledFrame->BuildDisplayListForStackingContext(
+      aBuilder, dirtyRect + mOuter->GetOffsetTo(mScrolledFrame), &list);
+
+    nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollLayer(
+      aBuilder, &list, mScrolledFrame, mOuter);
+    set.Content()->AppendNewToTop(layerItem);
+  } else
+#endif
+  {
+    rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
   nsRect clip;
-  clip = scrollPort + aBuilder->ToReferenceFrame(mOuter);
+  clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
 
   nscoord radii[8];
   
   
   mOuter->GetPaddingBoxBorderRadii(radii);
+
   
   
   
@@ -1959,6 +2038,11 @@ nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
                        result.mHorizontal);
       HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_Y,
                        result.mVertical);
+      
+      
+      
+      
+      return result;
     }
   } else {
     const nsStyleDisplay *disp = mOuter->GetStyleDisplay();
@@ -1966,11 +2050,6 @@ nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
     result.mVertical = disp->mOverflowY;
   }
 
-  NS_ASSERTION(result.mHorizontal != NS_STYLE_OVERFLOW_VISIBLE &&
-               result.mHorizontal != NS_STYLE_OVERFLOW_CLIP &&
-               result.mVertical != NS_STYLE_OVERFLOW_VISIBLE &&
-               result.mVertical != NS_STYLE_OVERFLOW_CLIP,
-               "scrollbars should not have been created");
   return result;
 }
 
