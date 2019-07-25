@@ -319,6 +319,9 @@ public:
         
         
         QUIRK_SILVERLIGHT_FOCUS_CHECK_PARENT            = 1 << 8,
+        
+        
+        QUIRK_ALLOW_OFFLINE_RENDERER                    = 1 << 9,
     };
 
     int GetQuirks() { return mQuirks; }
