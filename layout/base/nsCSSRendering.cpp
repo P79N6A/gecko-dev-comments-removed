@@ -628,9 +628,8 @@ nsCSSRendering::PaintBorderWithStyleBorder(nsPresContext* aPresContext,
     return;
   }
 
-  nsSize frameSize = aForFrame->GetSize();
-  GetBorderRadiusTwips(aStyleBorder.mBorderRadius, frameSize.width,
-                       frameSize.height, twipsRadii);
+  GetBorderRadiusTwips(aStyleBorder.mBorderRadius, aForFrame->GetSize().width,
+                       twipsRadii);
 
   
   if (aSkipSides & SIDE_BIT_TOP) border.top = 0;
@@ -751,7 +750,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
 
   
   GetBorderRadiusTwips(ourOutline->mOutlineRadius, aBorderArea.width,
-                       aBorderArea.height, twipsRadii);
+                       twipsRadii);
 
   
   
@@ -1140,8 +1139,7 @@ nsCSSRendering::DidPaint()
 
 PRBool
 nsCSSRendering::GetBorderRadiusTwips(const nsStyleCorners& aBorderRadius,
-                                     const nscoord aFrameWidth,
-                                     const nscoord aFrameHeight,
+                                     const nscoord& aFrameWidth,
                                      nscoord aRadii[8])
 {
   PRBool result = PR_FALSE;
@@ -1149,11 +1147,10 @@ nsCSSRendering::GetBorderRadiusTwips(const nsStyleCorners& aBorderRadius,
   
   NS_FOR_CSS_HALF_CORNERS(i) {
     const nsStyleCoord c = aBorderRadius.Get(i);
-    nscoord axis = NS_HALF_CORNER_IS_X(i) ? aFrameWidth : aFrameHeight;
 
     switch (c.GetUnit()) {
       case eStyleUnit_Percent:
-        aRadii[i] = (nscoord)(c.GetPercentValue() * axis);
+        aRadii[i] = (nscoord)(c.GetPercentValue() * aFrameWidth);
         break;
 
       case eStyleUnit_Coord:
@@ -1188,9 +1185,7 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
   
   nscoord twipsRadii[8];
   PRBool hasBorderRadius = GetBorderRadiusTwips(styleBorder->mBorderRadius,
-                                                aFrameArea.width,
-                                                aFrameArea.height,
-                                                twipsRadii);
+                                                aFrameArea.width, twipsRadii);
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
   gfxCornerSizes borderRadii;
@@ -1317,9 +1312,7 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
   
   nscoord twipsRadii[8];
   PRBool hasBorderRadius = GetBorderRadiusTwips(styleBorder->mBorderRadius,
-                                                aFrameArea.width,
-                                                aFrameArea.height,
-                                                twipsRadii);
+                                                aFrameArea.width, twipsRadii);
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
   nsRect paddingRect = aFrameArea;
@@ -2210,10 +2203,9 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   PRBool haveRoundedCorners;
   {
     nscoord radii[8];
-    nsSize frameSize = aForFrame->GetSize();
     haveRoundedCorners =
-      GetBorderRadiusTwips(aBorder.mBorderRadius, frameSize.width,
-                           frameSize.height, radii);
+      GetBorderRadiusTwips(aBorder.mBorderRadius, aForFrame->GetSize().width,
+                           radii);
     if (haveRoundedCorners)
       ComputePixelRadii(radii, aBorderArea, aForFrame->GetSkipSides(),
                         appUnitsPerPixel, &bgRadii);

@@ -79,8 +79,7 @@ struct nsCSSRendering {
 
 
   static PRBool GetBorderRadiusTwips(const nsStyleCorners& aBorderRadius,
-                                     const nscoord aFrameWidth,
-                                     const nscoord aFrameHeight,
+                                     const nscoord& aFrameWidth,
                                      nscoord aRadii[8]);
 
   
