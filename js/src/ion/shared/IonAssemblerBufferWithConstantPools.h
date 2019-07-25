@@ -46,7 +46,6 @@
 
 namespace js {
 namespace ion {
-
 typedef SegmentedVector<BufferOffset, 512> LoadOffsets;
 
 struct Pool {
@@ -54,7 +53,11 @@ struct Pool {
     const int immSize;
     const int instSize;
     const int bias;
+
+  private:
     const int alignment;
+
+  public:
     const bool isBackref;
     const bool canDedup;
     Pool *other;
@@ -81,7 +84,7 @@ struct Pool {
           bias(bias_), alignment(alignment_),
           isBackref(isBackref_), canDedup(canDedup_), other(other_),
           poolData(static_cast<uint8 *>(malloc(8*immSize))), numEntries(0),
-          buffSize(8), limitingUser(), limitingUsee(INT_MAX)
+          buffSize(8), limitingUser(), limitingUsee(INT_MIN)
     {
     }
     static const int garbage=0xa5a5a5a5;
@@ -116,22 +119,32 @@ struct Pool {
     
     
     
+    
+    
+    
+    
+    
     bool checkFullBackref(int poolOffset, int codeOffset) {
-        if (signed(limitingUser.getOffset() + bias - codeOffset + poolOffset + (numEntries - limitingUsee) * immSize) >= maxOffset) {
+        if (!limitingUser.assigned())
+            return false;
+        if (signed(limitingUser.getOffset() + bias - codeOffset + poolOffset + (numEntries - limitingUsee) * immSize) >= maxOffset)
             return true;
-        }
         return false;
     }
 
     
     
     
+
     bool checkFull(int poolOffset) {
         
         
         
         JS_ASSERT(!isBackref);
-
+        
+        if (!limitingUser.assigned()) {
+            return false;
+        }
         
         
         if (poolOffset + limitingUsee * immSize - (limitingUser.getOffset() + bias) >= maxOffset) {
@@ -183,8 +196,14 @@ struct Pool {
             return ptr;
         return (ptr + alignment-1) & ~(alignment-1);
     }
+    uint32 forceAlign(uint32 ptr) {
+        return (ptr + alignment-1) & ~(alignment-1);
+    }
     bool isAligned(uint32 ptr) {
         return ptr == align(ptr);
+    }
+    int getAlignment() {
+        return alignment;
     }
 };
 
@@ -385,7 +404,7 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
             return INT_MIN;
         
         
-        int codeOffset = this->bufferSize + instSize - perforation.getOffset();
+        int codeOffset = this->size() + instSize - perforation.getOffset();
         int poolOffset = footerSize;
         Pool *cur, *tmp;
         
@@ -395,20 +414,22 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         for (cur = &pools[numPoolKinds-1]; cur >= pools; cur--) {
             
             tmp = cur->other;
-            if (p == tmp) {
-                p->updateLimiter(this->nextOffset());
-            }
+            if (p == cur)
+                tmp->updateLimiter(this->nextOffset());
+
             if (tmp->checkFullBackref(poolOffset, codeOffset)) {
                 
                 
                 this->finishPool();
                 return this->insertEntryForwards(instSize, inst, p, data);
             }
-            poolOffset += tmp->immSize * tmp->numEntries + tmp->alignment;
+            
+            
+            poolOffset += tmp->immSize * tmp->numEntries + tmp->getAlignment();
             if (p == tmp) {
                 poolOffset += tmp->immSize;
             }
-            poolOffset += tmp->immSize * tmp->numEntries + tmp->alignment;
+            poolOffset += tmp->immSize * tmp->numEntries + tmp->getAlignment();
         }
         return p->numEntries + p->other->insertEntry(data, this->nextOffset());
     }
@@ -421,11 +442,11 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
     
     int insertEntryForwards(uint32 instSize, uint8 *inst, Pool *p, uint8 *data) {
         
-        uint32 nextOffset = this->bufferSize + instSize;
+        uint32 nextOffset = this->size() + instSize;
         uint32 poolOffset = nextOffset;
         Pool *tmp;
         
-        if (true)
+        if (!perforatedNode)
             poolOffset += guardSize;
         
         
@@ -434,9 +455,15 @@ struct AssemblerBufferWithConstantPool : public AssemblerBuffer<SliceSize, Inst>
         
         for (tmp = pools; tmp < &pools[numPoolKinds]; tmp++) {
             
-            JS_ASSERT((tmp->alignment & (tmp->alignment - 1)) == 0);
-            poolOffset += tmp->alignment - 1;
-            poolOffset &= ~(tmp->alignment - 1);
+            JS_ASSERT((tmp->getAlignment() & (tmp->getAlignment() - 1)) == 0);
+            
+            
+            
+            if (p == tmp)
+                poolOffset = tmp->forceAlign(poolOffset);
+            else
+                poolOffset = tmp->align(poolOffset);
+
             
             
             if (p == tmp) {
