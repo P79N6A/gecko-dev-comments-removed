@@ -145,6 +145,38 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+  
+
+
+  void CreatedThebesBuffer(ShadowableLayer* aThebes,
+                           const nsIntRegion& aFrontValidRegion,
+                           const nsIntRect& aBufferRect,
+                           const SurfaceDescriptor& aInitialFrontBuffer);
+
+  
+
+
+
+
+
+
+
+  void DestroyedThebesBuffer(ShadowableLayer* aThebes,
+                             const SurfaceDescriptor& aBackBufferToDestroy);
+
+  
+
+
+
+
   void Mutated(ShadowableLayer* aMutant);
 
   void SetRoot(ShadowableLayer* aRoot);
@@ -474,6 +506,15 @@ class ShadowThebesLayer : public ShadowLayer,
                           public ThebesLayer
 {
 public:
+  
+
+
+
+
+
+  virtual void SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
+                              const nsIntRegion& aValidRegion) = 0;
+
   virtual void InvalidateRegion(const nsIntRegion& aRegion)
   {
     NS_RUNTIMEABORT("ShadowThebesLayers can't fill invalidated regions");
@@ -497,7 +538,7 @@ public:
 
   virtual void
   Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
-       OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
+       ThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion) = 0;
 
   
