@@ -675,10 +675,13 @@ Parser::functionBody(FunctionBodyType type)
 
 
 
+
+
             if (!BindLocalVariable(context, tc, dn, VARIABLE))
                 return NULL;
             dn->setOp(JSOP_GETLOCAL);
             dn->pn_dflags &= ~PND_PLACEHOLDER;
+            dn->pn_dflags |= PND_IMPLICITARGUMENTS;
 
             
             tc->lexdeps->remove(arguments);
@@ -4904,11 +4907,16 @@ class CompExprTransplanter {
     bool            genexp;
     unsigned        adjust;
     unsigned        funcLevel;
+    HashSet<Definition *> visitedImplicitArguments;
 
   public:
     CompExprTransplanter(ParseNode *pn, Parser *parser, bool ge, unsigned adj)
-      : root(pn), parser(parser), genexp(ge), adjust(adj), funcLevel(0)
-    {
+      : root(pn), parser(parser), genexp(ge), adjust(adj), funcLevel(0),
+        visitedImplicitArguments(parser->context)
+    {}
+
+    bool init() {
+        return visitedImplicitArguments.init();
     }
 
     bool transplant(ParseNode *pn);
@@ -5183,6 +5191,21 @@ CompExprTransplanter::transplant(ParseNode *pn)
                     tc->parent->lexdeps->remove(atom);
                     if (!tc->lexdeps->put(atom, dn))
                         return false;
+                } else if (dn->isImplicitArguments()) {
+                    
+
+
+
+
+
+
+                    if (genexp && !visitedImplicitArguments.has(dn)) {
+                        if (!BumpStaticLevel(dn, tc))
+                            return false;
+                        AdjustBlockId(dn, adjust, tc);
+                        if (!visitedImplicitArguments.put(dn))
+                            return false;
+                    }
                 }
             }
         }
@@ -5265,6 +5288,9 @@ Parser::comprehensionTail(ParseNode *kid, unsigned blockid, bool isGenexp,
     pnp = &pn->pn_expr;
 
     CompExprTransplanter transplanter(kid, this, kind == PNK_SEMI, adjust);
+    if (!transplanter.init())
+        return NULL;
+
     transplanter.transplant(kid);
 
     JS_ASSERT(tc->blockChain && tc->blockChain == pn->pn_objbox->object);
