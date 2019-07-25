@@ -900,11 +900,10 @@ LayerManagerOGL::Render()
 
     
     
-    
-    float coords[] = { left, bottom,
-                       right, bottom,
-                       left, top,
-                       right, top };
+    float coords[] = { left, 1 - top,
+                       right, 1 - top,
+                       left, 1 - bottom,
+                       right, 1 - bottom };
 
     mGLContext->fVertexAttribPointer(vcattr,
                                      2, LOCAL_GL_FLOAT,
