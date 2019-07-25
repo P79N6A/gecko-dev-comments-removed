@@ -148,13 +148,31 @@ TabStore.prototype = {
     record.clientName = Clients.localName;
 
     
-    record.tabs = this.getAllTabs(true).sort(function(a, b) {
+    let tabs = this.getAllTabs(true).sort(function(a, b) {
       return b.lastUsed - a.lastUsed;
-    }).slice(0, 25);
-    record.tabs.forEach(function(tab) {
+    });
+
+    
+    
+    let size = JSON.stringify(tabs).length;
+    let origLength = tabs.length;
+    const MAX_TAB_SIZE = 20000;
+    if (size > MAX_TAB_SIZE) {
+      
+      let cutoff = Math.ceil(tabs.length * MAX_TAB_SIZE / size);
+      tabs = tabs.slice(0, cutoff + 1);
+
+      
+      while (JSON.stringify(tabs).length > MAX_TAB_SIZE)
+        tabs.pop();
+    }
+
+    this._log.trace("Created tabs " + tabs.length + " of " + origLength);
+    tabs.forEach(function(tab) {
       this._log.trace("Wrapping tab: " + JSON.stringify(tab));
     }, this);
 
+    record.tabs = tabs;
     return record;
   },
 
