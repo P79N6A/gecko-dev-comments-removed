@@ -933,6 +933,8 @@ struct JSContext
     uintN               runOptions;            
 
   public:
+    int32               reportGranularity;  
+
     
     JSLocaleCallbacks   *localeCallbacks;
 

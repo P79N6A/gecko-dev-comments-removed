@@ -420,6 +420,8 @@ mjit::Compiler::pushActiveFrame(JSScript *script, uint32 argc)
     if (a)
         newa->parentPC = PC;
     newa->script = script;
+    newa->mainCodeStart = masm.size();
+    newa->stubCodeStart = stubcc.size();
 
     if (outer) {
         newa->inlineIndex = uint32(inlineFrames.length());
@@ -429,6 +431,8 @@ mjit::Compiler::pushActiveFrame(JSScript *script, uint32 argc)
         outer = newa;
     }
     JS_ASSERT(ssa.getFrame(newa->inlineIndex).script == script);
+
+    newa->inlinePCOffset = ssa.frameLength(newa->inlineIndex);
 
     ScriptAnalysis *newAnalysis = script->analysis();
 
@@ -860,7 +864,7 @@ mjit::Compiler::generatePrologue()
 
     recompileCheckHelper();
 
-    if (outerScript->pcCounters) {
+    if (outerScript->pcCounters || Probes::wantNativeAddressInfo(cx)) {
         size_t length = ssa.frameLength(ssa.numFrames() - 1);
         pcLengths = (PCLengthEntry *) cx->calloc_(sizeof(pcLengths[0]) * length);
         if (!pcLengths)
@@ -1426,35 +1430,89 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     JSC::ExecutableAllocator::makeExecutable(result, masm.size() + stubcc.size());
     JSC::ExecutableAllocator::cacheFlush(result, masm.size() + stubcc.size());
 
+    Probes::registerMJITCode(cx, jit, script, script->hasFunction ? script->function() : NULL,
+                             (mjit::Compiler_ActiveFrame**) inlineFrames.begin(),
+                             result, masm.size(),
+                             result + masm.size(), stubcc.size());
+
     *jitp = jit;
 
     return Compile_Okay;
 }
 
 class SrcNoteLineScanner {
+    
     ptrdiff_t offset;
+
+    
     jssrcnote *sn;
 
+    
+    uint32 lineno;
+
+    
+
+
+
+
+    bool lineHeader;
+
 public:
-    SrcNoteLineScanner(jssrcnote *sn) : offset(SN_DELTA(sn)), sn(sn) {}
-
-    bool firstOpInLine(ptrdiff_t relpc) {
-        while ((offset < relpc) && !SN_IS_TERMINATOR(sn)) {
-            sn = SN_NEXT(sn);
-            offset += SN_DELTA(sn);
-        }
-
-        while ((offset == relpc) && !SN_IS_TERMINATOR(sn)) {
-            JSSrcNoteType type = (JSSrcNoteType) SN_TYPE(sn);
-            if (type == SRC_SETLINE || type == SRC_NEWLINE)
-                return true;
-
-            sn = SN_NEXT(sn);
-            offset += SN_DELTA(sn);
-        }
-
-        return false;
+    SrcNoteLineScanner(jssrcnote *sn, uint32 lineno)
+        : offset(0), sn(sn), lineno(lineno)
+    {
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    void advanceTo(ptrdiff_t relpc) {
+        
+        
+        JS_ASSERT_IF(offset > 0, relpc > offset);
+
+        
+        JS_ASSERT_IF(offset > 0, SN_IS_TERMINATOR(sn) || SN_DELTA(sn) > 0);
+
+        
+        lineHeader = (offset == 0);
+
+        if (SN_IS_TERMINATOR(sn))
+            return;
+
+        ptrdiff_t nextOffset;
+        while ((nextOffset = offset + SN_DELTA(sn)) <= relpc && !SN_IS_TERMINATOR(sn)) {
+            offset = nextOffset;
+            JSSrcNoteType type = (JSSrcNoteType) SN_TYPE(sn);
+            if (type == SRC_SETLINE || type == SRC_NEWLINE) {
+                if (type == SRC_SETLINE)
+                    lineno = js_GetSrcNoteOffset(sn, 0);
+                else
+                    lineno++;
+
+                if (offset == relpc)
+                    lineHeader = true;
+            }
+
+            sn = SN_NEXT(sn);
+        }
+    }
+
+    bool isLineHeader() const {
+        return lineHeader;
+    }
+
+    uint32 getLine() const { return lineno; }
 };
 
 #ifdef DEBUG
@@ -1492,7 +1550,7 @@ CompileStatus
 mjit::Compiler::generateMethod()
 {
     mjit::AutoScriptRetrapper trapper(cx, script);
-    SrcNoteLineScanner scanner(script->notes());
+    SrcNoteLineScanner scanner(script->notes(), script->lineno);
 
     
     bool fallthrough = true;
@@ -1509,8 +1567,6 @@ mjit::Compiler::generateMethod()
             op = JSOp(*PC);
             trap |= stubs::JSTRAP_TRAP;
         }
-        if (script->stepModeEnabled() && scanner.firstOpInLine(PC - script->code))
-            trap |= stubs::JSTRAP_SINGLESTEP;
 
         Bytecode *opinfo = analysis->maybeCode(PC);
 
@@ -1522,6 +1578,13 @@ mjit::Compiler::generateMethod()
             else
                 PC += js_GetVariableBytecodeLength(PC);
             continue;
+        }
+
+        scanner.advanceTo(PC - script->code);
+        if (script->stepModeEnabled() &&
+            (scanner.isLineHeader() || opinfo->jumpTarget))
+        {
+            trap |= stubs::JSTRAP_SINGLESTEP;
         }
 
         frame.setPC(PC);
@@ -1568,7 +1631,7 @@ mjit::Compiler::generateMethod()
                     Label start = masm.label();
                     if (!frame.syncForBranch(PC, Uses(0)))
                         return Compile_Error;
-                    if (script->pcCounters) {
+                    if (pcLengths) {
                         
                         size_t length = masm.size() - masm.distanceOf(start);
                         uint32 offset = ssa.frameLength(a->inlineIndex) + lastPC - script->code;
@@ -2800,15 +2863,17 @@ mjit::Compiler::generateMethod()
             }
         }
 
-        if (script->pcCounters) {
+        if (script->pcCounters || pcLengths) {
             size_t length = masm.size() - masm.distanceOf(codeStart);
             if (countersUpdated || length != 0) {
-                if (!countersUpdated)
+                if (!countersUpdated && script->pcCounters)
                     updatePCCounters(lastPC, &codeStart, &countersUpdated);
 
-                
-                uint32 offset = ssa.frameLength(a->inlineIndex) + lastPC - script->code;
-                pcLengths[offset].codeLength += length;
+                if (pcLengths) {
+                    
+                    uint32 offset = ssa.frameLength(a->inlineIndex) + lastPC - script->code;
+                    pcLengths[offset].codeLength += length;
+                }
             }
         }
 
@@ -6721,7 +6786,7 @@ mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow, bool *tramp
                     return false;
                 if (trampoline)
                     *trampoline = true;
-                if (script->pcCounters) {
+                if (pcLengths) {
                     
 
 

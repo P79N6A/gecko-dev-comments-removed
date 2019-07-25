@@ -390,6 +390,7 @@ class Compiler : public BaseCompiler
 
 
 
+public:
     struct ActiveFrame {
         ActiveFrame *parent;
         jsbytecode *parentPC;
@@ -404,6 +405,11 @@ class Compiler : public BaseCompiler
 
         
         VarType *varTypes;
+
+        
+        size_t mainCodeStart;
+        size_t stubCodeStart;
+        size_t inlinePCOffset;
 
         
         bool needReturnValue;          
@@ -423,6 +429,8 @@ class Compiler : public BaseCompiler
         ActiveFrame(JSContext *cx);
         ~ActiveFrame();
     };
+
+private:
     ActiveFrame *a;
     ActiveFrame *outer;
 
