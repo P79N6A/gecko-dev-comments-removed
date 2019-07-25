@@ -812,8 +812,10 @@ var PlacesUIUtils = {
     }
 
     var loadInBackground = where == "tabshifted" ? true : false;
-    var replaceCurrentTab = where == "tab" ? false : true;
-    browserWindow.gBrowser.loadTabs(urls, loadInBackground, replaceCurrentTab);
+    
+    
+    
+    browserWindow.gBrowser.loadTabs(urls, loadInBackground, false);
   },
 
   
