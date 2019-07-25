@@ -1481,6 +1481,26 @@ nsLineLayout::VerticalAlignLine()
   PlaceTopBottomFrames(psd, -mTopEdge, lineHeight);
 
   
+  
+  
+  
+  
+  if (rootPFD.mFrame->GetStyleContext()->HasTextDecorationLines()) {
+    for (const PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
+      const nsIFrame *const f = pfd->mFrame;
+      const nsStyleCoord& vAlign =
+          f->GetStyleContext()->GetStyleTextReset()->mVerticalAlign;
+
+      if (vAlign.GetUnit() != eStyleUnit_Enumerated ||
+          vAlign.GetIntValue() != NS_STYLE_VERTICAL_ALIGN_BASELINE) {
+        const nscoord offset = baselineY - (pfd->mBounds.y);
+        f->Properties().Set(nsIFrame::LineBaselineOffset(),
+                            NS_INT32_TO_PTR(offset));
+      }
+    }
+  }
+
+  
   mLineBox->mBounds.x = psd->mLeftEdge;
   mLineBox->mBounds.y = mTopEdge;
   mLineBox->mBounds.width = psd->mX - psd->mLeftEdge;
@@ -2599,7 +2619,12 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflo
     } else {
       r = pfd->mOverflowAreas;
       if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
-        if (pfd->GetFlag(PFD_RECOMPUTEOVERFLOW)) {
+        
+        
+        
+        
+        if (pfd->GetFlag(PFD_RECOMPUTEOVERFLOW) ||
+            frame->GetStyleContext()->HasTextDecorationLines()) {
           nsTextFrame* f = static_cast<nsTextFrame*>(frame);
           r = f->RecomputeOverflow();
         }

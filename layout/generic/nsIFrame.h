@@ -896,6 +896,8 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(ScrollLayerCount, nsnull)
 
+  NS_DECLARE_FRAME_PROPERTY(LineBaselineOffset, nsnull)
+
   
 
 

@@ -4260,11 +4260,10 @@ FillClippedRect(gfxContext* aCtx, nsPresContext* aPresContext,
   aCtx->Fill();
 }
 
-nsTextFrame::TextDecorations
-nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
+void
+nsTextFrame::GetTextDecorations(nsPresContext* aPresContext,
+                                nsTextFrame::TextDecorations& aDecorations)
 {
-  TextDecorations decorations;
-
   
   
   
@@ -4273,7 +4272,7 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
   
   const nsCompatibility compatMode = aPresContext->CompatibilityMode();
   if (compatMode != eCompatibility_NavQuirks)
-    return decorations;
+    return;
 
   PRBool useOverride = PR_FALSE;
   nscolor overrideColor;
@@ -4281,20 +4280,25 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
   
   
   
-  PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_LINE_LINES_MASK;
+  
+  
+  nscoord frameTopOffset = mAscent,
+          baselineOffset = 0;
 
-  PRBool isChild; 
-  for (nsIFrame* f = this; decorMask && f;
-       NS_SUCCEEDED(f->GetParentStyleContextFrame(aPresContext, &f, &isChild))
-         || (f = nsnull)) {
-    nsStyleContext* context = f->GetStyleContext();
+  bool nearestBlockFound = false;
+
+  for (nsIFrame* f = this, *fParent; f; f = fParent) {
+    nsStyleContext *const context = f->GetStyleContext();
     if (!context->HasTextDecorationLines()) {
       break;
     }
-    const nsStyleTextReset* styleText = context->GetStyleTextReset();
-    if (!useOverride && 
-        (NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL &
-           styleText->mTextDecorationLine)) {
+
+    const nsStyleTextReset *const styleText = context->GetStyleTextReset();
+    const PRUint8 textDecorations = styleText->mTextDecorationLine;
+
+    if (!useOverride &&
+        (NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL & textDecorations))
+    {
       
       
       useOverride = PR_TRUE;
@@ -4302,38 +4306,51 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
                                  eCSSProperty_text_decoration_color);
     }
 
-    
-    PRUint8 useDecorations = decorMask & styleText->mTextDecorationLine;
-    if (useDecorations) {
-      nscolor color = context->GetVisitedDependentColor(
-                                 eCSSProperty_text_decoration_color);
+    fParent = nsLayoutUtils::GetParentOrPlaceholderFor(
+                aPresContext->FrameManager(), f);
+    const bool firstBlock = !nearestBlockFound &&
+                            nsLayoutUtils::GetAsBlock(fParent);
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE & useDecorations) {
-        decorations.mUnderColor = useOverride ? overrideColor : color;
-        decorations.mUnderStyle = styleText->GetDecorationStyle();
-        decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE;
-        decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE;
+    
+    
+    
+    
+    
+    
+    if (firstBlock &&
+        (styleText->mVerticalAlign.GetUnit() != eStyleUnit_Enumerated ||
+         styleText->mVerticalAlign.GetIntValue() !=
+           NS_STYLE_VERTICAL_ALIGN_BASELINE)) {
+      baselineOffset = frameTopOffset -
+        NS_PTR_TO_INT32(f->Properties().Get(nsIFrame::LineBaselineOffset()));
+    }
+    else if (!nearestBlockFound) {
+      baselineOffset = frameTopOffset - f->GetBaseline();
+    }
+
+    nearestBlockFound = nearestBlockFound || firstBlock;
+    frameTopOffset += f->GetRect().Y() - f->GetRelativeOffset().y;
+
+    const PRUint8 style = styleText->GetDecorationStyle();
+    
+    if (textDecorations && style != NS_STYLE_TEXT_DECORATION_STYLE_NONE) {
+      const nscolor color = useOverride ? overrideColor
+        : context->GetVisitedDependentColor(eCSSProperty_text_decoration_color);
+
+      if (textDecorations & NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE) {
+        aDecorations.mUnderlines.AppendElement(
+          nsTextFrame::LineDecoration(f, baselineOffset, color,
+                                      style));
       }
-      if (NS_STYLE_TEXT_DECORATION_LINE_OVERLINE & useDecorations) {
-        decorations.mOverColor = useOverride ? overrideColor : color;
-        decorations.mOverStyle = styleText->GetDecorationStyle();
-        decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_OVERLINE;
-        decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_LINE_OVERLINE;
+      if (textDecorations & NS_STYLE_TEXT_DECORATION_LINE_OVERLINE) {
+        aDecorations.mOverlines.AppendElement(
+          nsTextFrame::LineDecoration(f, baselineOffset, color,
+                                      style));
       }
-      if (NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH & useDecorations) {
-        decorations.mStrikeColor = useOverride ? overrideColor : color;
-        decorations.mStrikeStyle = styleText->GetDecorationStyle();
-        decorMask &= ~NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH;
-        decorations.mDecorations |= NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH;
+      if (textDecorations & NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH) {
+        aDecorations.mStrikes.AppendElement(
+          nsTextFrame::LineDecoration(f, baselineOffset, color,
+                                      style));
       }
     }
 
@@ -4358,14 +4375,13 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext)
       }
     }
   }
-
-  return decorations;
 }
 
 void
-nsTextFrame::UnionTextDecorationOverflow(nsPresContext* aPresContext,
-                                         PropertyProvider& aProvider,
-                                         nsRect* aVisualOverflowRect)
+nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
+                                     PropertyProvider& aProvider,
+                                     nsRect* aVisualOverflowRect,
+                                     bool aIncludeTextDecorations)
 {
   
   nsRect shadowRect =
@@ -4381,10 +4397,75 @@ nsTextFrame::UnionTextDecorationOverflow(nsPresContext* aPresContext,
     nsRect fontRect(0, mAscent - fontAscent, GetSize().width, fontHeight);
     aVisualOverflowRect->UnionRect(*aVisualOverflowRect, fontRect);
   }
+  if (aIncludeTextDecorations) {
+    
+    
+    
+    
+    TextDecorations textDecs;
+    GetTextDecorations(aPresContext, textDecs);
+    if (textDecs.HasDecorationLines()) {
+      const nscoord width = GetSize().width;
+      const gfxFloat appUnitsPerDevUnit = aPresContext->AppUnitsPerDevPixel(),
+                     gfxWidth = width / appUnitsPerDevUnit,
+                     ascent = gfxFloat(mAscent) / appUnitsPerDevUnit;
+      nscoord top(nscoord_MAX), bottom(nscoord_MIN);
+      
+      
+      for (PRUint32 i = 0; i < textDecs.mUnderlines.Length(); ++i) {
+        const LineDecoration& dec = textDecs.mUnderlines[i];
 
+        const gfxFont::Metrics metrics =
+          GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+        const nsRect decorationRect =
+          nsCSSRendering::GetTextDecorationRect(aPresContext,
+            gfxSize(gfxWidth, metrics.underlineSize),
+            ascent, metrics.underlineOffset,
+            NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE, dec.mStyle) +
+          nsPoint(0, -dec.mBaselineOffset);
+
+        top = NS_MIN(decorationRect.y, top);
+        bottom = NS_MAX(decorationRect.YMost(), bottom);
+      }
+      for (PRUint32 i = 0; i < textDecs.mOverlines.Length(); ++i) {
+        const LineDecoration& dec = textDecs.mOverlines[i];
+
+        const gfxFont::Metrics metrics =
+          GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+        const nsRect decorationRect =
+          nsCSSRendering::GetTextDecorationRect(aPresContext,
+            gfxSize(gfxWidth, metrics.underlineSize),
+            ascent, metrics.maxAscent,
+            NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, dec.mStyle) +
+          nsPoint(0, -dec.mBaselineOffset);
+
+        top = NS_MIN(decorationRect.y, top);
+        bottom = NS_MAX(decorationRect.YMost(), bottom);
+      }
+      for (PRUint32 i = 0; i < textDecs.mStrikes.Length(); ++i) {
+        const LineDecoration& dec = textDecs.mStrikes[i];
+
+        const gfxFont::Metrics metrics =
+          GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+        const nsRect decorationRect =
+          nsCSSRendering::GetTextDecorationRect(aPresContext,
+            gfxSize(gfxWidth, metrics.strikeoutSize),
+            ascent, metrics.strikeoutOffset,
+            NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH, dec.mStyle) +
+          nsPoint(0, -dec.mBaselineOffset);
+        top = NS_MIN(decorationRect.y, top);
+        bottom = NS_MAX(decorationRect.YMost(), bottom);
+      }
+
+      aVisualOverflowRect->UnionRect(*aVisualOverflowRect,
+                                     nsRect(0, top, width, bottom - top));
+    }
+  }
   
   
-  nsRect decorationRect;
   if (!(GetStateBits() & NS_FRAME_SELECTED_CONTENT) ||
       !CombineSelectionUnderlineRect(aPresContext, *aVisualOverflowRect))
     return;
@@ -4401,52 +4482,67 @@ nsTextFrame::PaintTextDecorations(
                const nsCharClipDisplayItem::ClipEdges& aClipEdges,
                const nscolor* aOverrideColor)
 {
-  TextDecorations decorations =
-    GetTextDecorations(aTextPaintStyle.PresContext());
-  if (!decorations.HasDecorationlines())
+  TextDecorations decorations;
+  GetTextDecorations(aTextPaintStyle.PresContext(), decorations);
+
+  if (!decorations.HasDecorationLines())
     return;
 
   
   if (aProvider.GetFontGroup()->ShouldSkipDrawing())
     return;
 
-  gfxFont* firstFont = aProvider.GetFontGroup()->GetFontAt(0);
-  if (!firstFont)
-    return; 
-  const gfxFont::Metrics& fontMetrics = firstFont->GetMetrics();
-  gfxFloat app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
+  const gfxFloat app = aTextPaintStyle.PresContext()->AppUnitsPerDevPixel();
 
   
   nscoord x = NSToCoordRound(aFramePt.x);
   nscoord width = GetRect().width;
   aClipEdges.Intersect(&x, &width);
-  gfxPoint pt(x / app, (aTextBaselinePt.y - mAscent) / app);
+  gfxPoint pt(x / app, 0);
   gfxSize size(width / app, 0);
-  gfxFloat ascent = gfxFloat(mAscent) / app;
+  const gfxFloat ascent = gfxFloat(mAscent) / app;
+  const nscoord baseline = aTextBaselinePt.y - mAscent;
 
   nscolor lineColor;
-  if (decorations.HasOverline()) {
-    lineColor = aOverrideColor ? *aOverrideColor : decorations.mOverColor;
-    size.height = fontMetrics.underlineSize;
-    nsCSSRendering::PaintDecorationLine(
-      aCtx, lineColor, pt, size, ascent, fontMetrics.maxAscent,
-      NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, decorations.mOverStyle);
+  for (PRUint32 i = decorations.mUnderlines.Length(); i-- > 0; ) {
+    const LineDecoration& dec = decorations.mUnderlines[i];
+    gfxFontGroup* fontGroup = GetFontGroupForFrame(dec.mFrame);
+    const gfxFont::Metrics metrics = GetFirstFontMetrics(fontGroup);
+
+    size.height = metrics.underlineSize;
+    pt.y = (baseline - dec.mBaselineOffset) / app;
+
+    lineColor = aOverrideColor ? *aOverrideColor : dec.mColor;
+    nsCSSRendering::PaintDecorationLine(aCtx, lineColor, pt, size, ascent,
+      fontGroup->GetUnderlineOffset(), NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE,
+      dec.mStyle);
   }
-  if (decorations.HasUnderline()) {
-    lineColor = aOverrideColor ? *aOverrideColor : decorations.mUnderColor;
-    size.height = fontMetrics.underlineSize;
-    gfxFloat offset = aProvider.GetFontGroup()->GetUnderlineOffset();
-    nsCSSRendering::PaintDecorationLine(
-      aCtx, lineColor, pt, size, ascent, offset,
-      NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE, decorations.mUnderStyle);
+  for (PRUint32 i = decorations.mOverlines.Length(); i-- > 0; ) {
+    const LineDecoration& dec = decorations.mOverlines[i];
+
+    const gfxFont::Metrics metrics =
+      GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+    size.height = metrics.underlineSize;
+    pt.y = (baseline - dec.mBaselineOffset) / app;
+
+    lineColor = aOverrideColor ? *aOverrideColor : dec.mColor;
+    nsCSSRendering::PaintDecorationLine(aCtx, lineColor, pt, size, ascent,
+      metrics.maxAscent, NS_STYLE_TEXT_DECORATION_LINE_OVERLINE, dec.mStyle);
   }
-  if (decorations.HasStrikeout()) {
-    lineColor = aOverrideColor ? *aOverrideColor : decorations.mStrikeColor;
-    size.height = fontMetrics.strikeoutSize;
-    gfxFloat offset = fontMetrics.strikeoutOffset;
-    nsCSSRendering::PaintDecorationLine(
-      aCtx, lineColor, pt, size, ascent, offset,
-      NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH, decorations.mStrikeStyle);
+  for (PRUint32 i = decorations.mStrikes.Length(); i-- > 0; ) {
+    const LineDecoration& dec = decorations.mStrikes[i];
+
+    const gfxFont::Metrics metrics =
+      GetFirstFontMetrics(GetFontGroupForFrame(dec.mFrame));
+
+    size.height = metrics.strikeoutSize;
+    pt.y = (baseline - dec.mBaselineOffset) / app;
+
+    lineColor = aOverrideColor ? *aOverrideColor : dec.mColor;
+    nsCSSRendering::PaintDecorationLine(aCtx, lineColor, pt, size, ascent,
+      metrics.strikeoutOffset, NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH,
+      dec.mStyle);
   }
 }
 
@@ -7094,7 +7190,11 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   aMetrics.SetOverflowAreasToDesiredBounds();
   aMetrics.VisualOverflow().UnionRect(aMetrics.VisualOverflow(), boundingBox);
 
-  UnionTextDecorationOverflow(presContext, provider, &aMetrics.VisualOverflow());
+  
+  
+  
+  UnionAdditionalOverflow(presContext, provider, &aMetrics.VisualOverflow(),
+                          false);
 
   
   
@@ -7348,15 +7448,11 @@ nsTextFrame::RecomputeOverflow()
                           ComputeTransformedLength(provider),
                           gfxFont::LOOSE_INK_EXTENTS, nsnull,
                           &provider);
-
   nsRect &vis = result.VisualOverflow();
   vis.UnionRect(vis, RoundOut(textMetrics.mBoundingBox) + nsPoint(0, mAscent));
-
-  UnionTextDecorationOverflow(PresContext(), provider, &vis);
-
+  UnionAdditionalOverflow(PresContext(), provider, &vis, true);
   return result;
 }
-
 static PRUnichar TransformChar(const nsStyleText* aStyle, gfxTextRun* aTextRun,
                                PRUint32 aSkippedOffset, PRUnichar aChar)
 {
