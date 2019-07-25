@@ -165,5 +165,6 @@ static const NSString* AXRoles [] = {
   NSAccessibilityUnknownRole,                   
   NSAccessibilityGroupRole,                     
   NSAccessibilityGroupRole,                     
+  NSAccessibilityGroupRole,                     
   @"ROLE_LAST_ENTRY"                            
 };
