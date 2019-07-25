@@ -181,9 +181,20 @@ function test() {
   }
 
   function runNextTest() {
+    
+    for (let tabCount = gBrowser.tabContainer.childNodes.length;
+         tabCount > 1; tabCount--) {
+      gBrowser.selectedTab = gBrowser.tabContainer.childNodes[tabCount - 1];
+      gBrowser.removeCurrentTab();
+    }
+
     if (tests.length == 0)
       finish();
     else {
+      
+      gBrowser.selectedTab = gBrowser.addTab();
+
+      
       currentTest = tests.shift();
       testPlacesPanel(function() {
         changeSidebarDirection("ltr");
