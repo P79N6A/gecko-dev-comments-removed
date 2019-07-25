@@ -4052,7 +4052,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
 
   
   
-  nsAdoptingCString wmodeType = Preferences::GetCString("plugins.force.wmode");
+  nsAdoptingCString wmodeType = nsContentUtils::GetCharPref("plugins.force.wmode");
   if (!wmodeType.IsEmpty()) {
     mNumCachedAttrs++;
   }
