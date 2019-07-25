@@ -97,7 +97,6 @@ public:
   NS_DECL_NSIDOMNODELIST
 
   
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
   
   PRUint32 Length() const { 
@@ -294,17 +293,11 @@ public:
 
   
   virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex);
   virtual PRInt32 IndexOf(nsIContent* aContent);
   virtual nsINode* GetParentObject()
   {
     return mRootNode;
   }
-
-  
-  
-  virtual nsISupports* GetNamedItem(const nsAString& aName,
-                                    nsWrapperCache** aCache);
 
   
   NS_HIDDEN_(PRUint32) Length(bool aDoFlush);

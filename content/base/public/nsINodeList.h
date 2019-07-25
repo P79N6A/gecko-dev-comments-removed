@@ -46,9 +46,8 @@ class nsIContent;
 
 
 #define NS_INODELIST_IID \
-{ 0xe683725e, 0xe75a, 0x4d62, \
- { 0x88, 0x5e, 0x5d, 0xd3, 0x1c, 0x27, 0x4b, 0xcc } }
-
+{ 0xe60b773e, 0x5d20, 0x43f6, \
+ { 0xb0, 0x8c, 0xfd, 0x65, 0x26, 0xce, 0xe0, 0x7a } }
 
 
 
@@ -58,11 +57,6 @@ class nsINodeList : public nsIDOMNodeList,
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODELIST_IID)
-
-  
-
-
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex) = 0;
 
   
 

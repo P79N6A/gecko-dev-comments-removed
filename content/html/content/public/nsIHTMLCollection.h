@@ -46,9 +46,8 @@ class nsWrapperCache;
 
 
 #define NS_IHTMLCOLLECTION_IID \
-{ 0x3fe47ab6, 0xb60f, 0x49aa, \
- { 0xb5, 0x93, 0xcc, 0xf8, 0xbe, 0xd0, 0x83, 0x19 } }
-
+{ 0xdea91ad6, 0x57d1, 0x4e7a, \
+ { 0xb5, 0x5a, 0xdb, 0xfc, 0x36, 0x7b, 0xc8, 0x22 } }
 
 
 
@@ -57,17 +56,6 @@ class nsIHTMLCollection : public nsIDOMHTMLCollection
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IHTMLCOLLECTION_IID)
-
-  
-
-
-  virtual nsIContent* GetNodeAt(PRUint32 aIndex) = 0;
-
-  
-
-
-  virtual nsISupports* GetNamedItem(const nsAString& aName,
-                                    nsWrapperCache** aCache) = 0;
 
   
 
