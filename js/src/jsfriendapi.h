@@ -1224,6 +1224,7 @@ JS_GetArrayBufferByteLength(JSObject *obj, JSContext *cx);
 
 
 
+
 extern JS_FRIEND_API(uint8_t *)
 JS_GetArrayBufferData(JSObject *obj, JSContext *cx);
 
