@@ -42,6 +42,8 @@
 #ifndef jsion_coderef_h__
 #define jsion_coderef_h__
 
+#include "jscell.h"
+
 namespace JSC {
     class ExecutablePool;
 }
@@ -92,10 +94,7 @@ struct IonScript
     void trace(JSTracer *trc, JSScript *script);
 
   public:
-    static void Trace(JSTracer *trc, JSScript *script) {
-        if (script->ion && script->ion != ION_DISABLED_SCRIPT)
-            script->ion->trace(trc, script);
-    }
+    static void Trace(JSTracer *trc, JSScript *script);
     static void Destroy(JSContext *cx, JSScript *script);
 };
 
