@@ -47,6 +47,7 @@
 #include "nsIXPConnect.h"
 #include "jsapi.h"
 #include "nsJSUtils.h"
+#include "nsMathUtils.h"
 
 #include "nsFrameManager.h"
 #include "nsDisplayList.h"
@@ -196,30 +197,15 @@ nsHTMLCanvasElement::ParseAttribute(PRInt32 aNamespaceID,
 
 
 NS_IMETHODIMP
-nsHTMLCanvasElement::ToDataURL(const nsAString& aType, const nsAString& aParams,
+nsHTMLCanvasElement::ToDataURL(const nsAString& aType, nsIVariant* aParams,
                                PRUint8 optional_argc, nsAString& aDataURL)
 {
   
-  
-  if ((mWriteOnly || optional_argc >= 2) &&
-      !nsContentUtils::IsCallerTrustedForRead()) {
+  if (mWriteOnly && !nsContentUtils::IsCallerTrustedForRead()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   return ToDataURLImpl(aType, aParams, aDataURL);
-}
-
-
-
-
-
-
-NS_IMETHODIMP
-nsHTMLCanvasElement::ToDataURLAs(const nsAString& aMimeType,
-                                 const nsAString& aEncoderOptions,
-                                 nsAString& aDataURL)
-{
-  return ToDataURLImpl(aMimeType, aEncoderOptions, aDataURL);
 }
 
 nsresult
@@ -323,7 +309,7 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
 
 nsresult
 nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
-                                   const nsAString& aEncoderOptions,
+                                   nsIVariant* aEncoderOptions,
                                    nsAString& aDataURL)
 {
   bool fallbackToPNG = false;
@@ -337,11 +323,30 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
   nsAutoString type;
   nsContentUtils::ASCIIToLower(aMimeType, type);
 
+  nsAutoString params;
+
+  
+  if (type.EqualsLiteral("image/jpeg")) {
+    PRUint16 vartype;
+
+    if (aEncoderOptions &&
+        NS_SUCCEEDED(aEncoderOptions->GetDataType(&vartype)) &&
+        vartype <= nsIDataType::VTYPE_DOUBLE) {
+
+      double quality;
+      
+      if (NS_SUCCEEDED(aEncoderOptions->GetAsDouble(&quality)) &&
+          quality >= 0.0 && quality <= 1.0) {
+        params.AppendLiteral("quality=");
+        params.AppendInt(NS_lround(quality * 100.0));
+      }
+    }
+  }
+
   PRUint32 imgSize = 0;
   char* imgData;
 
-  nsresult rv = ExtractData(type, aEncoderOptions, imgData,
-                            imgSize, fallbackToPNG);
+  nsresult rv = ExtractData(type, params, imgData, imgSize, fallbackToPNG);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
