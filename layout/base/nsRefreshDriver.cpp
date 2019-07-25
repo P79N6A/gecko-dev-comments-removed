@@ -60,23 +60,31 @@ using mozilla::TimeStamp;
 
 
 
-static PRInt32
-GetRefreshTimerInterval(bool aThrottled)
+PRInt32
+nsRefreshDriver::GetRefreshTimerInterval() const
 {
   const char* prefName =
-    aThrottled ? "layout.throttled_frame_rate" : "layout.frame_rate";
+    mThrottled ? "layout.throttled_frame_rate" : "layout.frame_rate";
   PRInt32 rate = nsContentUtils::GetIntPref(prefName, -1);
   if (rate <= 0) {
     
-    rate = aThrottled ? DEFAULT_THROTTLED_FRAME_RATE : DEFAULT_FRAME_RATE;
+    rate = mThrottled ? DEFAULT_THROTTLED_FRAME_RATE : DEFAULT_FRAME_RATE;
   }
   NS_ASSERTION(rate > 0, "Must have positive rate here");
-  return NSToIntRound(1000.0/rate);
+  PRInt32 interval = NSToIntRound(1000.0/rate);
+  if (mThrottled) {
+    interval = NS_MAX(interval, mLastTimerInterval * 2);
+  }
+  mLastTimerInterval = interval;
+  return interval;
 }
 
-static PRInt32
-GetRefreshTimerType()
+PRInt32
+nsRefreshDriver::GetRefreshTimerType() const
 {
+  if (mThrottled) {
+    return nsITimer::TYPE_ONE_SHOT;
+  }
   PRBool precise =
     nsContentUtils::GetBoolPref("layout.frame_rate.precise", PR_FALSE);
   return precise ? (PRInt32)nsITimer::TYPE_REPEATING_PRECISE
@@ -150,7 +158,7 @@ nsRefreshDriver::EnsureTimerStarted()
   }
 
   nsresult rv = mTimer->InitWithCallback(this,
-                                         GetRefreshTimerInterval(mThrottled),
+                                         GetRefreshTimerInterval(),
                                          GetRefreshTimerType());
   if (NS_FAILED(rv)) {
     mTimer = nsnull;
@@ -330,6 +338,16 @@ nsRefreshDriver::Notify(nsITimer * )
     }
   }
 
+  if (mThrottled) {
+    
+    
+    
+    
+    
+    StopTimer();
+    EnsureTimerStarted();
+  }
+
   return NS_OK;
 }
 
@@ -360,8 +378,8 @@ nsRefreshDriver::SetThrottled(bool aThrottled)
     if (mTimer) {
       
       
-      
-      mTimer->SetDelay(GetRefreshTimerInterval(mThrottled));
+      StopTimer();
+      EnsureTimerStarted();
     }
   }
 }

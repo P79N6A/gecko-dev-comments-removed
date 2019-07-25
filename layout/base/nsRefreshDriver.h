@@ -218,6 +218,9 @@ private:
   
   void DoRefresh();
 
+  PRInt32 GetRefreshTimerInterval() const;
+  PRInt32 GetRefreshTimerType() const;
+
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
   PRInt64 mMostRecentRefreshEpochTime;   
@@ -237,6 +240,10 @@ private:
   nsTArray<nsIDocument*> mBeforePaintTargets;
   
   nsTArray<nsIDocument*> mAnimationFrameListenerDocs;
+
+  
+  
+  mutable PRInt32 mLastTimerInterval;
 };
 
 #endif 
