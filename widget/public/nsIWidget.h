@@ -137,6 +137,13 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 
+#define NS_SUCCESS_IME_NO_UPDATES \
+    NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_WIDGET, 1)
+
+
+
+
+
 enum nsCursor {   
                 eCursor_standard, 
                   
@@ -1227,6 +1234,9 @@ class nsIWidget : public nsISupports {
     NS_IMETHOD GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState) = 0;
 
     
+
+
+
 
 
 
