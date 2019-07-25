@@ -70,7 +70,8 @@ MarionetteComponent.prototype = {
       try {
         Cu.import('resource:///modules/devtools/dbg-server.jsm');
         DebuggerServer.addActors('chrome://marionette/content/marionette-actors.js');
-        DebuggerServer.initTransport();
+        
+        DebuggerServer.initTransport(function () { return true; });
         DebuggerServer.openListener(port, true);
       }
       catch(e) {
