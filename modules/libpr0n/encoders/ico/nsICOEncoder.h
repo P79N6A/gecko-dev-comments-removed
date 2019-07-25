@@ -68,6 +68,18 @@ public:
 
   nsICOEncoder();
   ~nsICOEncoder();
+  
+  
+  PRUint32 GetRealWidth() const
+  {
+    return mICODirEntry.mWidth == 0 ? 256 : mICODirEntry.mWidth; 
+  }
+
+  
+  PRUint32 GetRealHeight() const
+  {
+    return mICODirEntry.mHeight == 0 ? 256 : mICODirEntry.mHeight; 
+  }
 
 protected:
   nsresult ParseOptions(const nsAString& aOptions, PRUint32* bpp, 
@@ -92,6 +104,8 @@ protected:
   
   nsCOMPtr<imgIEncoder> mContainedEncoder;
 
+  
+  
   
   mozilla::imagelib::IconFileHeader mICOFileHeader;
   mozilla::imagelib::IconDirEntry mICODirEntry;

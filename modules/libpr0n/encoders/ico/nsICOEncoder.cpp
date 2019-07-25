@@ -178,8 +178,8 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
                                          aStride, aInputFormat, params);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    PRUint32 andMaskSize = ((mICODirEntry.mWidth + 31) / 32) * 4 * 
-                           mICODirEntry.mHeight; 
+    PRUint32 andMaskSize = ((GetRealWidth() + 31) / 32) * 4 * 
+                           GetRealHeight(); 
 
     PRUint32 imageBufferSize;
     mContainedEncoder->GetImageBufferSize(&imageBufferSize);
@@ -204,15 +204,15 @@ nsICOEncoder::AddImageFrame(const PRUint8* aData,
     memcpy(mImageBufferCurr, imageBuffer + BFH_LENGTH, 
            imageBufferSize - BFH_LENGTH);
     
-    PRUint32 fixedHeight = mICODirEntry.mHeight * 2;
+    PRUint32 fixedHeight = GetRealHeight() * 2;
     fixedHeight = NATIVE32_TO_LITTLE(fixedHeight);
     
     memcpy(mImageBufferCurr + 8, &fixedHeight, sizeof(fixedHeight));
     mImageBufferCurr += imageBufferSize - BFH_LENGTH;
 
     
-    PRUint32 rowSize = ((mICODirEntry.mWidth + 31) / 32) * 4; 
-    PRInt32 currentLine = mICODirEntry.mHeight;
+    PRUint32 rowSize = ((GetRealWidth() + 31) / 32) * 4; 
+    PRInt32 currentLine = GetRealHeight();
     
     
     while (currentLine > 0) {
@@ -250,7 +250,7 @@ NS_IMETHODIMP nsICOEncoder::StartImageEncode(PRUint32 aWidth,
   }
 
   
-  if (aWidth > 255 || aHeight > 255) {
+  if (aWidth > 256 || aHeight > 256) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -263,7 +263,9 @@ NS_IMETHODIMP nsICOEncoder::StartImageEncode(PRUint32 aWidth,
   mUsePNG = usePNG;
 
   InitFileHeader();
-  InitInfoHeader(bpp, (PRUint8)aWidth, (PRUint8)aHeight); 
+  
+  InitInfoHeader(bpp, aWidth == 256 ? 0 : (PRUint8)aWidth, 
+                 aHeight == 256 ? 0 : (PRUint8)aHeight);
 
   return NS_OK;
 }
