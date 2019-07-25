@@ -7023,6 +7023,14 @@ nsGlobalWindow::SetChromeEventHandler(nsPIDOMEventTarget* aChromeEventHandler)
   }
 }
 
+static PRBool IsLink(nsIContent* aContent)
+{
+  nsCOMPtr<nsIDOMHTMLAnchorElement> anchor = do_QueryInterface(aContent);
+  return (anchor || (aContent &&
+                     aContent->AttrValueIs(kNameSpaceID_XLink, nsGkAtoms::type,
+                                           nsGkAtoms::simple, eCaseMatters)));
+}
+
 void
 nsGlobalWindow::SetFocusedNode(nsIContent* aNode,
                                PRUint32 aFocusMethod,
@@ -7043,17 +7051,18 @@ nsGlobalWindow::SetFocusedNode(nsIContent* aNode,
   if (mFocusedNode) {
     
     
-    
-    
-    
-    if (mFocusMethod == nsIFocusManager::FLAG_BYKEY) {
+    if (mFocusMethod & nsIFocusManager::FLAG_BYKEY) {
       mFocusByKeyOccurred = PR_TRUE;
-    } else if (aFocusMethod & nsIFocusManager::FLAG_SHOWRING
-#ifdef MOZ_WIDGET_GTK2
-             || mFocusedNode->IsXUL()
+    } else if (
+      
+      
+      
+      
+#ifndef XP_WIN
+      !(mFocusMethod & nsIFocusManager::FLAG_BYMOUSE) || !IsLink(aNode) ||
 #endif
-            ) {
-      mShowFocusRingForContent = PR_TRUE;
+      aFocusMethod & nsIFocusManager::FLAG_SHOWRING) {
+        mShowFocusRingForContent = PR_TRUE;
     }
   }
 
@@ -9205,10 +9214,7 @@ nsGlobalWindow::RestoreWindowState(nsISupports *aState)
   
   
   nsIContent* focusedNode = inner->GetFocusedNode();
-  nsCOMPtr<nsIDOMHTMLAnchorElement> anchor = do_QueryInterface(focusedNode);
-  if (anchor || (focusedNode &&
-                 focusedNode->AttrValueIs(kNameSpaceID_XLink, nsGkAtoms::type,
-                                          nsGkAtoms::simple, eCaseMatters))) {
+  if (IsLink(focusedNode)) {
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
       nsCOMPtr<nsIDOMElement> focusedElement(do_QueryInterface(focusedNode));
