@@ -151,6 +151,11 @@ struct nsXREAppData
 
 
   const char *profile;
+
+  
+
+
+  PRIntervalTime startupTimestamp;
 };
 
 
@@ -373,27 +378,6 @@ enum NSLocationType
 XRE_API(nsresult,
         XRE_AddManifestLocation, (NSLocationType aType,
                                   nsILocalFile* aLocation))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-XRE_API(nsresult,
-        XRE_AddJarManifestLocation, (NSLocationType aType,
-                                     nsILocalFile* aLocation))
 
 
 
