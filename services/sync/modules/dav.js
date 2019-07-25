@@ -415,21 +415,27 @@ DAVCollection.prototype = {
       return;
     }
 
-    
-    
-    
-    
-    if (DAVLocks['default'])
-      delete DAVLocks['default'];
+    try {
+      let resp = yield this.UNLOCK("lock", self.cb);
 
-    let resp = yield this.UNLOCK("lock", self.cb);
+      if (Utils.checkStatus(resp.status)) {
+        this._log.trace("Lock released");
+        self.done(true);
+      } else {
+        this._log.trace("Failed to release lock");
+        self.done(false);
+      }
 
-    if (Utils.checkStatus(resp.status)) {
-      this._log.trace("Lock released");
-      self.done(true);
-    } else {
-      this._log.trace("Failed to release lock");
-      self.done(false);
+    } catch (e) {
+      throw e;
+
+    } finally {
+      
+      
+      
+      
+      if (DAVLocks['default'])
+        delete DAVLocks['default'];
     }
   },
 
