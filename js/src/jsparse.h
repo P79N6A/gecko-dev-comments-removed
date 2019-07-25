@@ -306,21 +306,33 @@ struct GlobalScope {
     { }
 
     struct GlobalDef {
-        JSAtom *atom;
-        JSFunctionBox *funbox;
+        JSAtom        *atom;        
+        JSFunctionBox *funbox;      
+                                    
+        uint32        knownSlot;    
 
         GlobalDef() { }
-        GlobalDef(JSAtom *atom) : atom(atom), funbox(NULL)
+        GlobalDef(uint32 knownSlot)
+          : atom(NULL), knownSlot(knownSlot)
         { }
         GlobalDef(JSAtom *atom, JSFunctionBox *box) :
           atom(atom), funbox(box)
         { }
     };
 
-    JSObject *globalObj;
+    JSObject        *globalObj;
     JSCodeGenerator *cg;
+
+    
+
+
+
+
+
+
+
     Vector<GlobalDef, 16, ContextAllocPolicy> defs;
-    uint32 globalFreeSlot;
+    JSAtomList      names;
 };
 
 } 
@@ -1169,6 +1181,10 @@ struct Compiler
                   FILE *file, const char *filename, uintN lineno,
                   JSString *source = NULL,
                   uintN staticLevel = 0);
+
+  private:
+    static bool
+    defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script);
 };
 
 } 
