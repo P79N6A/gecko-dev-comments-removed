@@ -82,29 +82,6 @@ BumpChunk::canAlloc(size_t n)
     return bumped <= limit && bumped > headerBase();
 }
 
-bool
-BumpChunk::canAllocUnaligned(size_t n)
-{
-    char *bumped = bump + n;
-    return bumped <= limit && bumped > headerBase();
-}
-
-void *
-BumpChunk::tryAllocUnaligned(size_t n)
-{
-    char *oldBump = bump;
-    char *newBump = bump + n;
-    if (newBump > limit)
-        return NULL;
-
-    if (JS_UNLIKELY(newBump < oldBump))
-        return NULL;
-
-    JS_ASSERT(canAllocUnaligned(n)); 
-    setBump(newBump);
-    return oldBump;
-}
-
 } 
 } 
 
@@ -194,38 +171,4 @@ LifoAlloc::getOrCreateChunk(size_t n)
         latest = newChunk;
     }
     return newChunk;
-}
-
-void *
-LifoAlloc::allocUnaligned(size_t n)
-{
-    void *result;
-    if (latest && (result = latest->tryAllocUnaligned(n)))
-        return result;
-
-    return alloc(n);
-}
-
-void *
-LifoAlloc::reallocUnaligned(void *origPtr, size_t origSize, size_t incr)
-{
-    JS_ASSERT(first && latest);
-
-    
-
-
-
-
-
-    if (latest
-        && origPtr == (char *) latest->mark() - origSize
-        && latest->canAllocUnaligned(incr)) {
-        JS_ALWAYS_TRUE(allocUnaligned(incr));
-        return origPtr;
-    }
-
-    
-    size_t newSize = origSize + incr;
-    void *newPtr = allocUnaligned(newSize);
-    return newPtr ? js_memcpy(newPtr, origPtr, origSize) : NULL;
 }
