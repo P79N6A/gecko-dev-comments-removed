@@ -11,6 +11,9 @@ let gCurrentTab;
 
 let gEvents = [];
 function dumpEvents(aEvent) {
+  if (aEvent.target != gCurrentTab.browser.parentNode)
+    return;
+
   gEvents.push(aEvent.type);
 }
 
@@ -93,7 +96,12 @@ function test() {
   messageManager.addMessageListener("pageshow", function() {
   if (gCurrentTab.browser.currentURI.spec == testURL) {
     messageManager.removeMessageListener("pageshow", arguments.callee);
-    runNextTest();
+    
+    
+    gCurrentTab.__defineGetter__("allowZoom", function() {
+      return true;
+    });
+    setTimeout(runNextTest, 0);
   }});
 }
 
