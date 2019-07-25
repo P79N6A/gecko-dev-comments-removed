@@ -442,7 +442,7 @@ public final class AttributeName
     
 
 
-    @SuppressWarnings("unused") private void destructor() {
+    @SuppressWarnings("unused") @Virtual private void destructor() {
         Portability.deleteArray(local);
     }
 

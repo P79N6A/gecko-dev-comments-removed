@@ -167,7 +167,7 @@ public final class ElementName
         
     }
     
-    @SuppressWarnings("unused") private void destructor() {
+    @SuppressWarnings("unused") @Virtual private void destructor() {
     }
 
     @Virtual public ElementName cloneElementName(Interner interner) {
