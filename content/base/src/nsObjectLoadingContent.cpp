@@ -2281,19 +2281,36 @@ nsObjectLoadingContent::LoadFallback(FallbackType aType, bool aNotify) {
     aType = eFallbackAlternate;
   }
 
+  
+  
+  
+  bool hasAlternateContent = false;
+  bool hasPluginUrl = false;
   if (thisContent->Tag() == nsGkAtoms::object &&
       (aType == eFallbackUnsupported ||
        aType == eFallbackDisabled ||
        aType == eFallbackBlocklisted))
   {
-    
     for (nsIContent* child = thisContent->GetFirstChild();
-         child; child = child->GetNextSibling()) {
-      if (!child->IsHTML(nsGkAtoms::param) &&
-          nsStyleUtil::IsSignificantChild(child, true, false)) {
-        aType = eFallbackAlternate;
-        break;
+         child; child = child->GetNextSibling())
+    {
+      if (child->IsHTML(nsGkAtoms::param)) {
+        if (child->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
+          NS_LITERAL_STRING("pluginurl"), eIgnoreCase)) {
+          hasPluginUrl = true;
+        }
+      } else if (nsStyleUtil::IsSignificantChild(child, true, false)) {
+        hasAlternateContent = true;
       }
+    }
+
+    
+    
+    
+    if (hasAlternateContent && !hasPluginUrl) {
+      LOG(("OBJLC [%p]: Unsupported/disabled/blocked plugin has alternate "
+      "content, showing instead of custom handler", this));
+      aType = eFallbackAlternate;
     }
   }
 

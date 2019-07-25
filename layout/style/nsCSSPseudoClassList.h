@@ -76,6 +76,8 @@ CSS_PSEUDO_CLASS(nthLastChild, ":nth-last-child")
 CSS_PSEUDO_CLASS(nthOfType, ":nth-of-type")
 CSS_PSEUDO_CLASS(nthLastOfType, ":nth-last-of-type")
 
+CSS_PSEUDO_CLASS(mozHasHandlerRef, ":-moz-has-handlerref")
+
 
 CSS_PSEUDO_CLASS(mozIsHTML, ":-moz-is-html")
 
