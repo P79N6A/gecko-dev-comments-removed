@@ -1230,7 +1230,22 @@ public:
   typedef typename base_type::Header Header;
   typedef typename base_type::elem_type elem_type;
 
+protected:
   nsAutoArrayBase() {
+    Init();
+  }
+
+  
+  
+  
+  
+  nsAutoArrayBase(const TArrayBase &aOther) {
+    Init();
+    AppendElements(aOther);
+  }
+
+private:
+  void Init() {
     *base_type::PtrToHdr() = reinterpret_cast<Header*>(&mAutoBuf);
     base_type::Hdr()->mLength = 0;
     base_type::Hdr()->mCapacity = N;
@@ -1241,7 +1256,6 @@ public:
                  "GetAutoArrayBuffer needs to be fixed");
   }
 
-protected:
   union {
     char mAutoBuf[sizeof(Header) + N * sizeof(elem_type)];
     PRUint64 dummy;
