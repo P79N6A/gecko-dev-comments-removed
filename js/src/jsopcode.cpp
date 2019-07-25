@@ -756,12 +756,7 @@ QuoteString(Sprinter *sp, JSString *str, uint32 quote)
                  ? Sprint(sp, "%c", (char)c) >= 0
                  : Sprint(sp, "\\%c", e[1]) >= 0;
         } else {
-            
-
-
-
-
-            ok = Sprint(sp, (qc && !(c >> 8)) ? "\\x%02X" : "\\u%04X", c) >= 0;
+            ok = Sprint(sp, (c >> 8) ? "\\u%04X" : "\\x%02X", c) >= 0;
         }
         if (!ok)
             return NULL;
