@@ -145,7 +145,7 @@ nsrefcnt nsJAR::Release(void)
     mRefCnt = 1;  
      
      
-    NS_DELETEXPCOM(this); 
+    delete this;
     return 0; 
   }
   else if (1 == count && mCache) {

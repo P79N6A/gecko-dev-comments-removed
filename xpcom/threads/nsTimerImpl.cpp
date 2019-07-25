@@ -91,7 +91,7 @@ NS_IMETHODIMP_(nsrefcnt) nsTimerImpl::Release(void)
 
     
     
-    NS_DELETEXPCOM(this);
+    delete this;
     return 0;
   }
 
