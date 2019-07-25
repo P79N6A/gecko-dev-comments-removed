@@ -833,6 +833,37 @@ let Utils = {
   
 
 
+  generatePassphrase: function() {
+    let rng = Cc["@mozilla.org/security/random-generator;1"]
+                .createInstance(Ci.nsIRandomGenerator);
+    let bytes = rng.generateRandomBytes(20);
+    return [String.fromCharCode(97 + Math.floor(byte * 26 / 256))
+            for each (byte in bytes)].join("");
+  },
+
+  
+
+
+  hyphenatePassphrase: function(passphrase) {
+    return passphrase.slice(0, 5) + '-'
+         + passphrase.slice(5, 10) + '-'
+         + passphrase.slice(10, 15) + '-'
+         + passphrase.slice(15, 20);
+  },
+
+  
+
+
+  normalizePassphrase: function(pp) {
+    if (pp.length == 23 && pp[5] == '-' && pp[11] == '-' && pp[17] == '-')
+      return pp.slice(0, 5) + pp.slice(6, 11)
+           + pp.slice(12, 17) + pp.slice(18, 23);
+    return pp;
+  },
+
+  
+
+
   arraySub: function arraySub(minuend, subtrahend) {
     return minuend.filter(function(i) subtrahend.indexOf(i) == -1);
   },
