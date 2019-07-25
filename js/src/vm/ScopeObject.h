@@ -160,6 +160,9 @@ class CallObject : public ScopeObject
 
     
     bool containsVarOrArg(PropertyName *name, Value *vp, JSContext *cx);
+
+    
+    void copyUnaliasedValues(StackFrame *fp);
 };
 
 class DeclEnvObject : public ScopeObject
@@ -218,7 +221,8 @@ class BlockObject : public NestedScopeObject
 
   protected:
     
-    inline HeapSlot &slotValue(unsigned i);
+    inline const Value &slotValue(unsigned i);
+    inline void setSlotValue(unsigned i, const Value &v);
 };
 
 class StaticBlockObject : public BlockObject
@@ -275,10 +279,14 @@ class ClonedBlockObject : public BlockObject
     void put(StackFrame *fp);
 
     
-    const Value &closedSlot(unsigned i);
+    const Value &var(unsigned i);
+    void setVar(unsigned i, const Value &v);
 
     
     bool containsVar(PropertyName *name, Value *vp, JSContext *cx);
+
+    
+    void copyUnaliasedValues(StackFrame *fp);
 };
 
 template<XDRMode mode>
