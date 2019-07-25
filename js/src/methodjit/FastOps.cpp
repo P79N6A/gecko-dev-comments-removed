@@ -280,6 +280,10 @@ mjit::Compiler::jsop_bitop(JSOp op)
     }
 
     
+    if (rhs->isConstant() && rhs->getValue().isDouble())
+        rhs->convertConstantDoubleToInt32(cx);
+
+    
     if ((lhs->isNotType(JSVAL_TYPE_INT32) && lhs->isNotType(JSVAL_TYPE_DOUBLE)) ||
         (rhs->isNotType(JSVAL_TYPE_INT32) && rhs->isNotType(JSVAL_TYPE_DOUBLE)) ||
         (op == JSOP_URSH && rhs->isConstant() && rhs->getValue().toInt32() % 32 == 0)) {
