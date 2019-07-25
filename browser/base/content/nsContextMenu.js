@@ -125,7 +125,7 @@ nsContextMenu.prototype = {
         } catch (ex) {}
       }
       
-      else if (/^(?:\w+\.)+\D\S*$/.test(linkText)) {
+      else if (/^(?:[a-z\d-]+\.)+[a-z]+$/i.test(linkText)) {
         
         
         
