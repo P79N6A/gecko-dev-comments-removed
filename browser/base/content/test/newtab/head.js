@@ -132,9 +132,7 @@ function addNewTabPageTab() {
       cells = cw.gGrid.cells;
 
       
-      NewTabUtils.links.populateCache(function () {
-        executeSoon(TestRunner.next);
-      });
+      NewTabUtils.links.populateCache(TestRunner.next);
     } else {
       TestRunner.next();
     }
