@@ -377,6 +377,12 @@ nsApplicationAccessible::InvalidateChildren()
   
 }
 
+KeyBinding
+nsApplicationAccessible::AccessKey() const
+{
+  return KeyBinding();
+}
+
 
 
 

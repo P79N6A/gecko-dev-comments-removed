@@ -129,6 +129,9 @@ public:
 
   virtual void InvalidateChildren();
 
+  
+  virtual KeyBinding AccessKey() const;
+
 protected:
 
   
