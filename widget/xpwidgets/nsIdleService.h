@@ -128,10 +128,17 @@ public:
   NS_IMETHOD RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
   NS_IMETHOD GetIdleTime(PRUint32* idleTime);
 
-  void ResetIdleTimeOut();
+  
+
+
+
+
+
+
+  void ResetIdleTimeOut(PRUint32 idleDeltaInMS = 0);
 
 protected:
-  ~nsIdleService();
+  virtual ~nsIdleService();
 
   
 
@@ -158,14 +165,6 @@ protected:
 
   virtual bool UsePollMode();
 
-  
-
-
-
-
-
-  void CheckAwayState(bool aNewObserver);
-
 private:
   
 
@@ -174,13 +173,13 @@ private:
 
 
 
-  void StartTimer(PRUint32 aDelay);
+
+  void SetTimerExpiryIfBefore(PRTime aNextTimeoutInPR);
 
   
 
 
-
-  void StopTimer();
+  PRTime mCurrentlySetToTimeoutAtInPR;
 
   
 
@@ -201,30 +200,7 @@ private:
   
 
 
-
-
-
-  PRUint32 mLastIdleReset;
-
-  
-
-
-
-
-
-
-  PRUint32 mLastHandledActivity;
-
-  
-
-
-  static void IdleTimerCallback(nsITimer* aTimer, void* aClosure);
-
-  
-
-
-
-  bool mPolledIdleTimeIsValid;
+  bool mAnyObserverIdle;
 
   
 
@@ -234,27 +210,31 @@ private:
 
 
 
+  PRUint32 mDeltaToNextIdleSwitchInS;
 
-  bool TryNotifyBackState(PRUint32 aIdleTime);
+  
+
+
+  PRTime mLastUserInteractionInPR;
+
+
+  
+
+
+
+  void ReconfigureTimer(void);
 
   
 
 
 
 
-
-
-
-
-  bool TryNotifyIdleState(PRUint32 aIdleTime);
+  static void StaticIdleTimerCallback(nsITimer* aTimer, void* aClosure);
 
   
 
 
-
-
-
-  void RescheduleIdleTimer(PRUint32 aIdleTime);
+  void IdleTimerCallback(void);
 };
 
 #endif 
