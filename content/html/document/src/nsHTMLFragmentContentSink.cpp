@@ -1006,7 +1006,10 @@ nsHTMLParanoidFragmentSink::AddAttributes(const nsIParserNode& aNode,
       nsContentUtils::TrimCharsInSet(kWhitespace, aNode.GetValueAt(i));
 
     
-    if (IsAttrURI(keyAtom)) {
+    
+    
+    if (IsAttrURI(keyAtom) &&
+        !(nodeType == eHTMLTag_img && keyAtom == nsGkAtoms::src)) {
       if (!baseURI) {
         baseURI = aContent->GetBaseURI();
       }
