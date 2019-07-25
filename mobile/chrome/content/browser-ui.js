@@ -97,10 +97,11 @@ var BrowserUI = {
     
     
 
-    let aWindow = e.target.top;
-    for (let i = 0; i <= Browser._tabs.length; i++) {
-      if (Browser._tabs[i].browser.contentWindow == aWindow) {
+    let window = e.target.top;
+    for (let i = 0; i < Browser._tabs.length; i++) {
+      if (Browser._tabs[i].browser.contentWindow == window) {
         Browser.selectedTab = Browser._tabs[i];
+        break;
       }
     }
   },
