@@ -125,6 +125,12 @@ public:
 
 
 
+  gfx3DMatrix& ProjectTo2D();
+
+  
+
+
+
   bool IsIdentity() const;
 
   
