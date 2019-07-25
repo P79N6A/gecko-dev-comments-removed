@@ -2070,7 +2070,7 @@ function getNotificationBox(aWindow) {
   return Browser.getNotificationBox();
 }
 
-function importDialog(src, arguments) {
+function importDialog(parent, src, arguments) {
   
   let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
   xhr.open("GET", src, false);
@@ -2078,6 +2078,7 @@ function importDialog(src, arguments) {
   xhr.send(null);
   if (!xhr.responseXML)
     return null;
+  
   let doc = xhr.responseXML.documentElement;
  
   var dialog  = null;
@@ -2087,12 +2088,19 @@ function importDialog(src, arguments) {
   let parent = selectContainer.parentNode;
   
   
+  let event = document.createEvent("Events");
+  event.initEvent("DOMWillOpenModalDialog", true, false);
+  let dispatcher = parent || getBrowser();
+  dispatcher.dispatchEvent(event);
+
+  
   let back = document.createElement("box");
   back.setAttribute("class", "modal-block");
   dialog = back.appendChild(document.importNode(doc, true));
   parent.insertBefore(back, selectContainer);
   
   dialog.arguments = arguments;
+  dialog.parent = parent;
   return dialog;
 }
 
