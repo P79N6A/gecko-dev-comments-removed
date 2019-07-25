@@ -118,11 +118,6 @@ const CAPABILITIES = [
 ];
 
 
-
-const INTERNAL_KEYS = ["_tabStillLoading", "_hosts", "_formDataSaved",
-                       "_shouldRestore", "_host", "_scheme"];
-
-
 const TAB_EVENTS = ["TabOpen", "TabClose", "TabSelect", "TabShow", "TabHide",
                     "TabPinned", "TabUnpinned"];
 
@@ -4084,18 +4079,7 @@ SessionStoreService.prototype = {
 
 
   _toJSONString: function sss_toJSONString(aJSObject) {
-    
-    
-    let internalKeys = INTERNAL_KEYS;
-    if (this._loadState == STATE_QUITTING) {
-      internalKeys = internalKeys.slice();
-      internalKeys.push("__lastSessionWindowID");
-    }
-    function exclude(key, value) {
-      
-      return internalKeys.indexOf(key) == -1 ? value : undefined;
-    }
-    return JSON.stringify(aJSObject, exclude);
+    return JSON.stringify(aJSObject);
   },
 
   _sendRestoreCompletedNotifications: function sss_sendRestoreCompletedNotifications() {
