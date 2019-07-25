@@ -617,19 +617,7 @@ NS_IMETHODIMP
 nsEditor::DoTransaction(nsITransaction* aTxn)
 {
   if (mPlaceHolderBatch && !mPlaceHolderTxn) {
-    
-    
-
-    
-    nsRefPtr<EditTxn> editTxn = new PlaceholderTxn();
-
-    
-    
-    nsCOMPtr<nsIAbsorbingTransaction> plcTxn;
-    editTxn->QueryInterface(NS_GET_IID(nsIAbsorbingTransaction),
-                            getter_AddRefs(plcTxn));
-    
-    
+    nsCOMPtr<nsIAbsorbingTransaction> plcTxn = new PlaceholderTxn();
 
     
     mPlaceHolderTxn = do_GetWeakReference(plcTxn);
@@ -637,7 +625,6 @@ nsEditor::DoTransaction(nsITransaction* aTxn)
     
     mSelState = nsnull;
 
-    
     
     nsCOMPtr<nsITransaction> theTxn = do_QueryInterface(plcTxn);
     
