@@ -443,7 +443,7 @@ var loginManager = {
     },
 
 
-     
+    
 
 
     
@@ -708,7 +708,8 @@ var loginManager = {
     _observer : {
         _pwmgr : null,
 
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIFormSubmitObserver,
+        QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver,
+                                                Ci.nsIFormSubmitObserver,
                                                 Ci.nsISupportsWeakReference]),
 
 
@@ -732,6 +733,11 @@ var loginManager = {
 
             return true; 
         },
+
+        observe : function (aSubject, aTopic, aData) {
+          this._pwmgr._debug    = Services.prefs.getBoolPref("signon.debug");
+          this._pwmgr._remember = Services.prefs.getBoolPref("signon.rememberSignons");
+        }
     },
 
 
