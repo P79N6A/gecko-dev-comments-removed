@@ -328,8 +328,11 @@ MouseModule.prototype = {
       if (dragData.isPan()) {
         
         this._kinetic.addData(sX - dragData.prevPanX, sY - dragData.prevPanY);
-        this._dragBy(this.dX, this.dY);
-        
+        if (!this._waitingForPaint) {
+          this._dragBy(this.dX, this.dY);
+          this.dX = 0;
+          this.dY = 0;
+        }
 
         
         if (!oldIsPan && dragData.isPan()) {
@@ -391,16 +394,11 @@ MouseModule.prototype = {
 
 
   _dragBy: function _dragBy(dX, dY, aIsKinetic) {
-    let dragged = true;
-    if (!this._waitingForPaint || aIsKinetic) {
-      let dragData = this._dragData;
-      dragged = this._dragger.dragMove(dX, dY, this._targetScrollInterface, aIsKinetic);
-      if (dragged && !this._waitingForPaint) {
-        this._waitingForPaint = true;
-        mozRequestAnimationFrame(this);
-      }
-      this.dX = 0;
-      this.dY = 0;
+    let dragData = this._dragData;
+    let dragged = this._dragger.dragMove(dX, dY, this._targetScrollInterface, aIsKinetic);
+    if (dragged && !this._waitingForPaint) {
+      this._waitingForPaint = true;
+      mozRequestAnimationFrame(this);
     }
     return dragged;
   },
