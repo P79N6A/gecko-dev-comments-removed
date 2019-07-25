@@ -165,11 +165,6 @@ protected:
   nsDocAccessible* mDoc;
 
   
-
-
-  static void NotifyA11yInitOrShutdown(bool aIsInit);
-
-  
   static nsIStringBundle* gStringBundle;
 
   static bool gIsFormFillEnabled;
