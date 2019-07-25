@@ -234,7 +234,7 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         
         boolean spacedOut = space > -1 && (space < colon || space < dot);
 
-        return spacedOut || (dot == -1);
+        return spacedOut || (dot == -1 && colon == -1);
     }
 
     private void updateGoButton(String text) {
