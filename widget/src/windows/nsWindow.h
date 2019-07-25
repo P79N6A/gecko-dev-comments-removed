@@ -287,7 +287,7 @@ protected:
   nsWindow*               GetParentWindow(PRBool aIncludeOwner);
   virtual void            SubclassWindow(BOOL bState);
   PRBool                  CanTakeFocus();
-  PRBool                  UpdateNonClientMargins();
+  PRBool                  UpdateNonClientMargins(PRInt32 aSizeMode = -1, PRBool aRefreshWindow = PR_TRUE);
 #if !defined(WINCE)
   static void             InitTrackPointHack();
 #endif
@@ -444,6 +444,7 @@ protected:
   PRPackedBool          mIsInMouseCapture;
   PRPackedBool          mUnicodeWidget;
   PRPackedBool          mPainting;
+  PRPackedBool          mExitToNonClientArea;
   PRUint32              mBlurSuppressLevel;
   nsContentType         mContentType;
   DWORD_PTR             mOldStyle;
@@ -455,6 +456,7 @@ protected:
   nsPopupType           mPopupType;
   PRPackedBool          mDisplayPanFeedback;
   PRPackedBool          mHideChrome;
+  nsSizeMode            mOldSizeMode;
   WindowHook            mWindowHook;
   static PRUint32       sInstanceCount;
   static TriStateBool   sCanQuit;
@@ -483,7 +485,8 @@ protected:
   
   PRPackedBool          mCompositorFlag;
   
-  PRInt32               mResizeMargin;
+  PRInt32               mHorResizeMargin;
+  PRInt32               mVertResizeMargin;
   
   PRInt32               mCaptionHeight;
 

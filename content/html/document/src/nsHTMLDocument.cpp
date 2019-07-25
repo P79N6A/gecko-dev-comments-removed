@@ -341,7 +341,7 @@ nsHTMLDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   
   
   
-  mContentType = "text/html";
+  SetContentTypeInternal(nsDependentCString("text/html"));
 }
 
 nsStyleSet::sheetType
@@ -1237,7 +1237,7 @@ nsHTMLDocument::SetCompatibilityMode(nsCompatibility aMode)
 
   mCompatMode = aMode;
   CSSLoader()->SetCompatibilityMode(mCompatMode);
-  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
+  nsCOMPtr<nsIPresShell> shell = GetShell();
   if (shell) {
     nsPresContext *pc = shell->GetPresContext();
     if (pc) {
@@ -1582,16 +1582,8 @@ nsHTMLDocument::GetBody(nsresult *aResult)
 
   
   
-  nsRefPtr<nsContentList> nodeList;
-
-  if (IsHTML()) {
-    nodeList = nsDocument::GetElementsByTagName(NS_LITERAL_STRING("frameset"));
-  } else {
-    nodeList =
-      nsDocument::GetElementsByTagNameNS(NS_LITERAL_STRING("http://www.w3.org/1999/xhtml"),
-                             NS_LITERAL_STRING("frameset"));
-  }
-
+  nsRefPtr<nsContentList> nodeList =
+    NS_GetContentList(this, nsGkAtoms::frameset, kNameSpaceID_XHTML);
   if (!nodeList) {
     *aResult = NS_ERROR_OUT_OF_MEMORY;
 
@@ -2025,7 +2017,7 @@ nsHTMLDocument::OpenCommon(const nsACString& aContentType, PRBool aReplace)
   }
 
   
-  mContentType = aContentType;
+  SetContentTypeInternal(aContentType);
 
   mWriteState = eDocumentOpened;
 
@@ -2124,7 +2116,7 @@ nsHTMLDocument::Close()
 
     ++mWriteLevel;
     rv = mParser->Parse(EmptyString(), mParser->GetRootContextKey(),
-                        mContentType, PR_TRUE);
+                        GetContentTypeInternal(), PR_TRUE);
     --mWriteLevel;
 
     
@@ -2148,7 +2140,7 @@ nsHTMLDocument::Close()
     
     
     
-    if (GetPrimaryShell()) {
+    if (GetShell()) {
       FlushPendingNotifications(Flush_Layout);
     }
 
@@ -2224,11 +2216,11 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
   
   if (aNewlineTerminate) {
     rv = mParser->Parse(aText + new_line,
-                        key, mContentType,
+                        key, GetContentTypeInternal(),
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   } else {
     rv = mParser->Parse(aText,
-                        key, mContentType,
+                        key, GetContentTypeInternal(),
                         (mWriteState == eNotWriting || (mWriteLevel > 1)));
   }
 

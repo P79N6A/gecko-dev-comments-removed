@@ -473,7 +473,7 @@ nsresult nsChromeRegistry::RefreshWindow(nsIDOMWindowInternal* aWindow)
     return NS_OK;
 
   
-  nsCOMPtr<nsIPresShell> shell = document->GetPrimaryShell();
+  nsCOMPtr<nsIPresShell> shell = document->GetShell();
   if (shell) {
     
     nsCOMArray<nsIStyleSheet> agentSheets;
