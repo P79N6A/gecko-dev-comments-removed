@@ -327,8 +327,8 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
 
         
         
-        while (NS_SUCCEEDED(curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem)) &&
-                            parentDocShellItem)) {
+        while (NS_SUCCEEDED(curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem))) &&
+               parentDocShellItem) {
             PRBool system = PR_FALSE;
             topDoc = do_GetInterface(parentDocShellItem);
             if (topDoc) {
