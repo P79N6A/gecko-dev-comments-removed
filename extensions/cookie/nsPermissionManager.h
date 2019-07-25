@@ -18,6 +18,7 @@
 #include "nsPermission.h"
 #include "nsHashKeys.h"
 #include "nsAutoPtr.h"
+#include "nsCOMArray.h"
 
 class nsIPermission;
 class nsIIDNService;
@@ -190,6 +191,14 @@ public:
                        NotifyOperationType aNotifyOperation,
                        DBOperationType aDBOperation);
 
+  
+
+
+
+
+
+  static void AppUninstallObserverInit();
+
 private:
   int32_t GetTypeIndex(const char *aTypeString,
                        bool        aAdd);
@@ -237,6 +246,28 @@ private:
                        uint32_t              aAppId,
                        bool                  aIsInBrowserElement);
 
+  
+
+
+
+
+  struct GetPermissionsForAppStruct {
+    uint32_t                  appId;
+    nsCOMArray<nsIPermission> permissions;
+
+    GetPermissionsForAppStruct() MOZ_DELETE;
+    GetPermissionsForAppStruct(uint32_t aAppId)
+      : appId(aAppId)
+    {}
+  };
+
+  
+
+
+
+
+  static PLDHashOperator GetPermissionsForApp(nsPermissionManager::PermissionHashKey* entry, void* arg);
+
   nsCOMPtr<nsIObserverService> mObserverService;
   nsCOMPtr<nsIIDNService>      mIDNService;
 
@@ -264,4 +295,4 @@ private:
 #define NS_PERMISSIONMANAGER_CID \
 { 0x4f6b5e00, 0xc36, 0x11d5, { 0xa5, 0x35, 0x0, 0x10, 0xa4, 0x1, 0xeb, 0x10 } }
 
-#endif 
+#endif
