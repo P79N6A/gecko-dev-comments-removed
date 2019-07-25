@@ -428,6 +428,11 @@
 #include "nsIDOMGeoPositionError.h"
 
 
+#ifdef MOZ_MEDIA_NAVIGATOR
+#include "nsIDOMNavigatorUserMedia.h"
+#endif
+
+
 #include "mozilla/dom/workers/Workers.h"
 
 #include "nsDOMFile.h"
@@ -2455,6 +2460,9 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMMozNavigatorBattery,
                                         battery::BatteryManager::HasSupport())
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozNavigatorSms)
+#ifdef MOZ_MEDIA_NAVIGATOR
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorUserMedia)
+#endif
 #ifdef MOZ_B2G_RIL
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorTelephony)
 #endif
