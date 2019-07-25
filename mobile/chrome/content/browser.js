@@ -477,6 +477,7 @@ var Browser = {
 
     let browsers = document.getElementById("browsers");
     browsers.addEventListener("command", this._handleContentCommand, false);
+    browsers.addEventListener("MozApplicationManifest", OfflineApps, false);
     browsers.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
 
     
@@ -1979,7 +1980,7 @@ const gXPInstallObserver = {
                                                              [brandShortName, host]);
             buttons = [{
               label: browserBundle.getString("xpinstallDisabledButton"),
-              accessKey: browserBundle.getString("xpinstallDisabledButton.accesskey"),
+              accessKey: null,
               popup: null,
               callback: function editPrefs() {
                 gPrefService.setBoolPref("xpinstall.enabled", true);
@@ -1995,7 +1996,7 @@ const gXPInstallObserver = {
 
           buttons = [{
             label: browserBundle.getString("xpinstallPromptAllowButton"),
-            accessKey: browserBundle.getString("xpinstallPromptAllowButton.accesskey"),
+            accessKey: null,
             popup: null,
             callback: function() {
               
@@ -2310,6 +2311,103 @@ ProgressController.prototype = {
   }
 };
 
+var OfflineApps = {
+  get _pm() {
+    delete this._pm;
+    return this._pm = Cc["@mozilla.org/permissionmanager;1"].getService(Ci.nsIPermissionManager);
+  },
+
+  get _bundle() {
+    delete this._bundle;
+    return this._bundle = document.getElementById("bundle_browser");
+  },
+
+  offlineAppRequested: function(aDocument) {
+    if (!gPrefService.getBoolPref("browser.offline-apps.notify"))
+      return;
+
+    let currentURI = aDocument.documentURIObject;
+
+    
+    if (this._pm.testExactPermission(currentURI, "offline-app") != Ci.nsIPermissionManager.UNKNOWN_ACTION)
+      return;
+
+    try {
+      if (gPrefService.getBoolPref("offline-apps.allow_by_default")) {
+        
+        return;
+      }
+    } catch(e) {
+      
+    }
+
+    let host = currentURI.asciiHost;
+    let notificationID = "offline-app-requested-" + host;
+    let notificationBox = Browser.getNotificationBox();
+
+    let notification = notificationBox.getNotificationWithValue(notificationID);
+    if (notification) {
+      notification.documents.push(aDocument);
+    } else {
+      let buttons = [{
+        label: this._bundle.getString("offlineApps.allow"),
+        accessKey: null,
+        callback: function() {
+          for (let i = 0; i < notification.documents.length; i++)
+            OfflineApps.allowSite(notification.documents[i]);
+        }
+      },{
+        label: this._bundle.getString("offlineApps.never"),
+        accessKey: null,
+        callback: function() {
+          for (let i = 0; i < notification.documents.length; i++)
+            OfflineApps.disallowSite(notification.documents[i]);
+        }
+      },{
+        label: this._bundle.getString("offlineApps.notNow"),
+        accessKey: null,
+        callback: function() {  }
+      }];
+
+      const priority = notificationBox.PRIORITY_INFO_LOW;
+      let message = this._bundle.getFormattedString("offlineApps.available", [host]);
+      notification = notificationBox.appendNotification(message, notificationID,
+                                                        "", priority, buttons);
+      notification.documents = [aDocument];
+    }
+  },
+
+  allowSite: function(aDocument) {
+    this._pm.add(aDocument.documentURIObject, "offline-app", Ci.nsIPermissionManager.ALLOW_ACTION);
+
+    
+    
+    this._startFetching(aDocument);
+  },
+
+  disallowSite: function(aDocument) {
+    this._pm.add(aDocument.documentURIObject, "offline-app", Ci.nsIPermissionManager.DENY_ACTION);
+  },
+
+  _startFetching: function(aDocument) {
+    if (!aDocument.documentElement)
+      return;
+
+    let manifest = aDocument.documentElement.getAttribute("manifest");
+    if (!manifest)
+      return;
+
+    let manifestURI = gIOService.newURI(manifest, aDocument.characterSet, aDocument.documentURIObject);
+
+    let updateService = Cc["@mozilla.org/offlinecacheupdate-service;1"].getService(Ci.nsIOfflineCacheUpdateService);
+    updateService.scheduleUpdate(manifestURI, aDocument.documentURIObject);
+  },
+
+  handleEvent: function(aEvent) {
+    if (aEvent.type == "MozApplicationManifest")
+      this.offlineAppRequested(aEvent.originalTarget.defaultView.document);
+  }
+};
 
 function Tab() {
   this._id = null;
