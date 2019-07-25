@@ -191,13 +191,6 @@ public:
 
 
 
-
-  nsIntPoint GetScreenPosition() const;
-  
-  
-
-
-
   nsViewVisibility GetVisibility() const { return mVis; }
 
   
