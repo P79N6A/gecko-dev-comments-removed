@@ -1406,6 +1406,12 @@ nsCSSBorderRenderer::DrawBorders()
 
   PRBool allBordersSameWidth = AllBordersSameWidth();
 
+  if (allBordersSameWidth && mBorderWidths[0] == 0.0) {
+    
+    
+    return;
+  }
+
   PRBool allBordersSolid;
   bool noCornerOutsideCenter = true;
 
