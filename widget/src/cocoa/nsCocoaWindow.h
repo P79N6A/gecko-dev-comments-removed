@@ -281,11 +281,6 @@ public:
     
     virtual PRBool DragEvent(unsigned int aMessage, Point aMouseGlobal, UInt16 aKeyModifiers);
 
-    
-    PRBool IsResizing () const { return mIsResizing; }
-    void StartResizing () { mIsResizing = PR_TRUE; }
-    void StopResizing () { mIsResizing = PR_FALSE; }
-
     PRBool HasModalDescendents() { return mNumModalDescendents > 0; }
     NSWindow *GetCocoaWindow() { return mWindow; }
 
@@ -338,7 +333,6 @@ protected:
   PRInt32              mShadowStyle;
   NSUInteger           mWindowFilter;
 
-  PRPackedBool         mIsResizing;     
   PRPackedBool         mWindowMadeHere; 
   PRPackedBool         mSheetNeedsShow; 
                                         
