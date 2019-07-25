@@ -649,7 +649,7 @@ js_SweepScriptFilenames(JSRuntime *rt);
 extern JS_FRIEND_API(void)
 js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 
-extern JS_FRIEND_API(void)
+extern void
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
 
@@ -659,12 +659,17 @@ js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 extern void
 js_DestroyScript(JSContext *cx, JSScript *script);
 
+extern void
+js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
+
+
+
 
 
 
 
 extern void
-js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
+js_DestroyCachedScript(JSContext *cx, JSScript *script);
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);

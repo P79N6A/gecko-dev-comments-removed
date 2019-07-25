@@ -1249,8 +1249,22 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
 
     JSScript *script = NULL;
     JSScript **bucket = EvalCacheHash(cx, linearStr);
-    if (evalType == DIRECT_EVAL && caller->isFunctionFrame() && !caller->isEvalFrame())
+    if (evalType == DIRECT_EVAL && caller->isFunctionFrame() && !caller->isEvalFrame()) {
         script = EvalCacheLookup(cx, linearStr, caller, staticLevel, principals, scopeobj, bucket);
+
+        
+
+
+
+
+
+
+
+        if (script) {
+            js_CallNewScriptHook(cx, script, NULL);
+            MUST_FLOW_THROUGH("destroy");
+        }
+    }
 
     
 
@@ -1279,6 +1293,9 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
     JSBool ok = js_CheckPrincipalsAccess(cx, scopeobj, principals,
                                          cx->runtime->atomState.evalAtom) &&
                 Execute(cx, scopeobj, script, callerFrame, JSFRAME_EVAL, vp);
+
+    MUST_FLOW_LABEL(destroy);
+    js_CallDestroyScriptHook(cx, script);
 
     script->u.nextToGC = *bucket;
     *bucket = script;
@@ -4448,6 +4465,40 @@ JSObject::freeSlot(JSContext *cx, uint32 slot)
     }
     vref.setUndefined();
     return false;
+}
+
+JS_FRIEND_API(void)
+js_UnbrandAndClearSlots(JSContext *cx, JSObject *obj)
+{
+    JS_ASSERT(obj->isNative());
+    JS_ASSERT(obj->isGlobal());
+
+    
+    obj->unbrand(cx);
+
+    
+
+
+
+
+    for (int key = JSProto_Null; key < JSRESERVED_GLOBAL_THIS; key++)
+        JS_SetReservedSlot(cx, obj, key, JSVAL_VOID);
+
+    
+
+
+    ClearValueRange(obj->slots + JSCLASS_RESERVED_SLOTS(obj->clasp),
+                    obj->capacity - JSCLASS_RESERVED_SLOTS(obj->clasp),
+                    obj->clasp == &js_ArrayClass);
+
+    
+
+
+
+
+
+    if (obj->hasPropertyTable())
+        obj->lastProperty()->getTable()->freelist = SHAPE_INVALID_SLOT;
 }
 
 
