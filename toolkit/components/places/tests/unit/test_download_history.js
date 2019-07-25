@@ -7,24 +7,31 @@
 
 
 
-var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
-              getService(Ci.nsINavHistoryService);
-let bh = histsvc.QueryInterface(Ci.nsIBrowserHistory);
-var os = Cc["@mozilla.org/observer-service;1"].
-         getService(Ci.nsIObserverService);
-var prefs = Cc["@mozilla.org/preferences-service;1"].
-            getService(Ci.nsIPrefBranch);
-var dh = Cc["@mozilla.org/browser/download-history;1"].
-         getService(Ci.nsIDownloadHistory);
 
-do_check_true(dh instanceof Ci.nsINavHistoryService);
+const downloadHistory = Cc["@mozilla.org/browser/download-history;1"]
+                        .getService(Ci.nsIDownloadHistory);
+
+const TEST_URI = NetUtil.newURI("http://google.com/");
+const REFERRER_URI = NetUtil.newURI("http://yahoo.com");
 
 const NS_LINK_VISITED_EVENT_TOPIC = "link-visited";
 const ENABLE_HISTORY_PREF = "places.history.enabled";
 const PB_KEEP_SESSION_PREF = "browser.privatebrowsing.keep_current_session";
 
-var testURI = uri("http://google.com/");
-var referrerURI = uri("http://yahoo.com");
+
+
+
+const visitedObserver = {
+  topicReceived: false,
+  observe: function VO_observe(aSubject, aTopic, aData)
+  {
+    this.topicReceived = true;
+  }
+};
+Services.obs.addObserver(visitedObserver, NS_LINK_VISITED_EVENT_TOPIC, false);
+do_register_cleanup(function() {
+  Services.obs.removeObserver(visitedObserver, NS_LINK_VISITED_EVENT_TOPIC);
+});
 
 
 
@@ -34,31 +41,70 @@ var referrerURI = uri("http://yahoo.com");
 
 
 
-function uri_in_db(aURI, aExpected) {
-  var options = histsvc.getNewQueryOptions();
+function uri_in_db(aURI, aExpected)
+{
+  let options = PlacesUtils.history.getNewQueryOptions();
   options.maxResults = 1;
-  options.resultType = options.RESULTS_AS_URI;
   options.includeHidden = true;
-  var query = histsvc.getNewQuery();
+
+  let query = PlacesUtils.history.getNewQuery();
   query.uri = aURI;
-  var result = histsvc.executeQuery(query, options);
-  var root = result.root;
+
+  let root = PlacesUtils.history.executeQuery(query, options).root;
   root.containerOpen = true;
-  var cc = root.childCount;
+
+  do_check_eq(root.childCount, aExpected ? 1 : 0);
+
+  
   root.containerOpen = false;
-  var checker = aExpected ? do_check_true : do_check_false;
-  checker(cc == 1);
 }
 
-function test_dh() {
-  dh.addDownload(testURI, referrerURI, Date.now() * 1000);
 
-  do_check_true(observer.topicReceived);
-  uri_in_db(testURI, true);
-  uri_in_db(referrerURI, true);
+
+
+function cleanup_and_run_next_test()
+{
+  visitedObserver.topicReceived = false;
+  waitForClearHistory(run_next_test);
 }
 
-function test_dh_privateBrowsing() {
+
+
+
+function run_test()
+{
+  run_next_test();
+}
+
+add_test(function test_dh_is_from_places()
+{
+  
+  do_check_true(downloadHistory instanceof Ci.nsINavHistoryService);
+
+  run_next_test();
+});
+
+add_test(function test_dh_addDownload()
+{
+  
+  uri_in_db(TEST_URI, false);
+  uri_in_db(REFERRER_URI, false);
+
+  downloadHistory.addDownload(TEST_URI, REFERRER_URI, Date.now() * 1000);
+
+  do_check_true(visitedObserver.topicReceived);
+  uri_in_db(TEST_URI, true);
+  uri_in_db(REFERRER_URI, true);
+
+  cleanup_and_run_next_test();
+});
+
+add_test(function test_dh_privateBrowsing()
+{
+  
+  uri_in_db(TEST_URI, false);
+  uri_in_db(REFERRER_URI, false);
+
   var pb = null;
   try {
     
@@ -66,82 +112,49 @@ function test_dh_privateBrowsing() {
           getService(Ci.nsIPrivateBrowsingService);
   } catch (ex) {
     
+    run_next_test();
     return;
   }
-  prefs.setBoolPref(PB_KEEP_SESSION_PREF, true);
+  Services.prefs.setBoolPref(PB_KEEP_SESSION_PREF, true);
   pb.privateBrowsingEnabled = true;
 
-  dh.addDownload(testURI, referrerURI, Date.now() * 1000);
+  downloadHistory.addDownload(TEST_URI, REFERRER_URI, Date.now() * 1000);
 
-  do_check_false(observer.topicReceived);
-  uri_in_db(testURI, false);
-  uri_in_db(referrerURI, false);
+  do_check_false(visitedObserver.topicReceived);
+  uri_in_db(TEST_URI, false);
+  uri_in_db(REFERRER_URI, false);
 
-  
   pb.privateBrowsingEnabled = false;
-}
+  cleanup_and_run_next_test();
+});
 
-function test_dh_disabledHistory() {
-  
-  prefs.setBoolPref(ENABLE_HISTORY_PREF, false);
-
-  dh.addDownload(testURI, referrerURI, Date.now() * 1000);
-
-  do_check_false(observer.topicReceived);
-  uri_in_db(testURI, false);
-  uri_in_db(referrerURI, false);
-
-  
-  prefs.setBoolPref(ENABLE_HISTORY_PREF, true);
-}
-
-var tests = [
-  test_dh,
-  test_dh_privateBrowsing,
-  test_dh_disabledHistory,
-];
-
-var observer = {
-  topicReceived: false,
-  observe: function tlvo_observe(aSubject, aTopic, aData)
-  {
-    if (NS_LINK_VISITED_EVENT_TOPIC == aTopic) {
-      this.topicReceived = true;
-    }
-  }
-};
-os.addObserver(observer, NS_LINK_VISITED_EVENT_TOPIC, false);
-
-
-function run_test() {
-  while (tests.length) {
-    
-    uri_in_db(testURI, false);
-    uri_in_db(referrerURI, false);
-
-    (tests.shift())();
-
-    
-    bh.removeAllPages();
-    observer.topicReceived = false;
-  }
-
-  os.removeObserver(observer, NS_LINK_VISITED_EVENT_TOPIC);
-
-  
-  test_dh_details();
-}
-
-
-
-
-
-
-function test_dh_details()
+add_test(function test_dh_disabledHistory()
 {
-  do_test_pending();
+  
+  uri_in_db(TEST_URI, false);
+  uri_in_db(REFERRER_URI, false);
 
-  const SOURCE_URI = uri("http://example.com/test_download_history_details");
+  
+  Services.prefs.setBoolPref(ENABLE_HISTORY_PREF, false);
+
+  downloadHistory.addDownload(TEST_URI, REFERRER_URI, Date.now() * 1000);
+
+  do_check_false(visitedObserver.topicReceived);
+  uri_in_db(TEST_URI, false);
+  uri_in_db(REFERRER_URI, false);
+
+  Services.prefs.setBoolPref(ENABLE_HISTORY_PREF, true);
+  cleanup_and_run_next_test();
+});
+
+
+
+
+
+add_test(function test_dh_details()
+{
+  const REMOTE_URI = NetUtil.newURI("http://localhost/");
+  const SOURCE_URI = NetUtil.newURI("http://example.com/test_dh_details");
   const DEST_FILE_NAME = "dest.txt";
 
   
@@ -157,9 +170,7 @@ function test_dh_details()
       PlacesUtils.annotations.removeObserver(annoObserver);
       PlacesUtils.history.removeObserver(historyObserver);
 
-      
-      bh.removeAllPages();
-      do_test_finished();
+      cleanup_and_run_next_test();
     }
   };
 
@@ -210,10 +221,10 @@ function test_dh_details()
   PlacesUtils.history.addObserver(historyObserver, false);
 
   
-  dh.addDownload(SOURCE_URI, null, Date.now() * 1000);
-  dh.addDownload(SOURCE_URI, null, Date.now() * 1000, null);
-  dh.addDownload(SOURCE_URI, null, Date.now() * 1000, uri("http://localhost/"));
+  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000);
+  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, null);
+  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, REMOTE_URI);
 
   
-  dh.addDownload(SOURCE_URI, null, Date.now() * 1000, destFileUri);
-}
+  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, destFileUri);
+});
