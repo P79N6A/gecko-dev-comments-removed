@@ -4,6 +4,7 @@
 
 
 
+#include "nsDOMError.h"
 #include "nsDOMStringMap.h"
 
 #include "nsDOMClassInfoID.h"

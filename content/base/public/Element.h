@@ -7,13 +7,15 @@
 #ifndef mozilla_dom_Element_h__
 #define mozilla_dom_Element_h__
 
-#include "mozilla/dom/FragmentOrElement.h"
-#include "nsEventStates.h"
+#include "mozilla/dom/FragmentOrElement.h" 
+#include "nsChangeHint.h"                  
+#include "nsEventStates.h"                 
 
 class nsEventStateManager;
-class nsGlobalWindow;
 class nsFocusManager;
+class nsGlobalWindow;
 class nsICSSDeclaration;
+class nsISMILAttr;
 
 
 enum {

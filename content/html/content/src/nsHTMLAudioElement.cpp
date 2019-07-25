@@ -3,6 +3,7 @@
 
 
 
+#include "nsDOMError.h"
 #include "nsIDOMHTMLAudioElement.h"
 #include "nsHTMLAudioElement.h"
 #include "nsGenericHTMLElement.h"

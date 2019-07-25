@@ -4,6 +4,7 @@
 
 
 #include "SVGMotionSMILAnimationFunction.h"
+#include "nsISMILAnimationElement.h"
 #include "nsSMILParserUtils.h"
 #include "nsSVGAngle.h"
 #include "SVGMotionSMILType.h"

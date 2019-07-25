@@ -10,24 +10,22 @@
 #ifndef nsNodeInfoManager_h___
 #define nsNodeInfoManager_h___
 
-#include "nsCOMPtr.h" 
-#include "plhash.h"
-#include "nsCycleCollectionParticipant.h"
-#include "mozilla/Attributes.h"
+#include "mozilla/Attributes.h"           
+#include "nsCOMPtr.h"                     
+#include "nsCycleCollectionParticipant.h" 
+#include "plhash.h"                       
 
+class nsAString;
+class nsBindingManager;
 class nsIAtom;
 class nsIDocument;
-class nsINodeInfo;
-class nsNodeInfo;
-class nsIPrincipal;
-class nsIURI;
-class nsDocument;
 class nsIDOMDocumentType;
-class nsIDOMDocument;
-class nsAString;
-class nsIDOMNamedNodeMap;
-class nsXULPrototypeDocument;
-class nsBindingManager;
+class nsINodeInfo;
+class nsIPrincipal;
+class nsNodeInfo;
+struct PLHashEntry;
+struct PLHashTable;
+template<class T> struct already_AddRefed;
 
 class nsNodeInfoManager MOZ_FINAL : public nsISupports
 {
