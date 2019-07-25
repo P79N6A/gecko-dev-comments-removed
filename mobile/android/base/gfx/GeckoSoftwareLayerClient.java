@@ -35,6 +35,7 @@
 
 
 
+
 package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.gfx.CairoImage;
@@ -43,7 +44,6 @@ import org.mozilla.gecko.gfx.LayerClient;
 import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.LayerRenderer;
 import org.mozilla.gecko.gfx.SingleTileLayer;
-import org.mozilla.gecko.ui.ViewportController;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
@@ -52,6 +52,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -66,14 +67,21 @@ import java.util.TimerTask;
 
 
 public class GeckoSoftwareLayerClient extends LayerClient {
+    private static final String LOGTAG = "GeckoSoftwareLayerClient";
+
     private Context mContext;
     private int mWidth, mHeight, mFormat;
+    private IntSize mScreenSize, mViewportSize;
     private ByteBuffer mBuffer;
     private final SingleTileLayer mTileLayer;
-    private ViewportController mViewportController;
 
     
-    private RectF mGeckoVisibleRect;
+    private ViewportMetrics mGeckoViewport;
+
+    
+
+
+    private boolean mNewContent;
 
     private CairoImage mCairoImage;
 
@@ -81,19 +89,15 @@ public class GeckoSoftwareLayerClient extends LayerClient {
     private long mLastViewportChangeTime;
     private Timer mViewportRedrawTimer;
 
-    
-    private static final int PAGE_WIDTH = 980;      
-    private static final int PAGE_HEIGHT = 1500;
-
     public GeckoSoftwareLayerClient(Context context) {
         mContext = context;
-
-        mViewportController = new ViewportController(new IntSize(PAGE_WIDTH, PAGE_HEIGHT),
-                                                     new RectF(0, 0, 1, 1));
 
         mWidth = LayerController.TILE_WIDTH;
         mHeight = LayerController.TILE_HEIGHT;
         mFormat = CairoImage.FORMAT_RGB16_565;
+
+        mScreenSize = new IntSize(1, 1);
+        mNewContent = true;
 
         mBuffer = ByteBuffer.allocateDirect(mWidth * mHeight * 2);
 
@@ -113,9 +117,13 @@ public class GeckoSoftwareLayerClient extends LayerClient {
 
     
     @Override
-    public void init() {
-        getLayerController().setRoot(mTileLayer);
-        render();
+    public void setLayerController(LayerController layerController) {
+        super.setLayerController(layerController);
+
+        layerController.setRoot(mTileLayer);
+        if (mGeckoViewport != null)
+            layerController.setViewportMetrics(mGeckoViewport);
+        geometryChanged();
     }
 
     public void beginDrawing() {
@@ -131,13 +139,22 @@ public class GeckoSoftwareLayerClient extends LayerClient {
             LayerController controller = getLayerController();
             if (controller == null)
                 return;
-            controller.notifyViewOfGeometryChange();
 
             try {
                 JSONObject metadataObject = new JSONObject(metadata);
-                float originX = (float)metadataObject.getDouble("x");
-                float originY = (float)metadataObject.getDouble("y");
-                mTileLayer.setOrigin(new PointF(originX, originY));
+                mGeckoViewport = new ViewportMetrics(metadataObject);
+
+                mTileLayer.setOrigin(mGeckoViewport.getDisplayportOrigin());
+
+                if (controller != null) {
+                    if (mNewContent) {
+                        mNewContent = false;
+                        controller.setViewportMetrics(mGeckoViewport);
+                    } else {
+                        controller.setPageSize(mGeckoViewport.getPageSize());
+                    }
+
+                }
             } catch (JSONException e) {
                 throw new RuntimeException(e);
             }
@@ -147,6 +164,10 @@ public class GeckoSoftwareLayerClient extends LayerClient {
         } finally {
             mTileLayer.endTransaction();
         }
+    }
+
+    public void geckoLoadedNewContent() {
+        mNewContent = true;
     }
 
     
@@ -162,20 +183,24 @@ public class GeckoSoftwareLayerClient extends LayerClient {
         
     }
 
-    
-    public void setPageSize(IntSize pageSize) {
-        mViewportController.setPageSize(pageSize);
-        getLayerController().setPageSize(pageSize);
-    }
-
     @Override
     public void geometryChanged() {
-        mViewportController.setVisibleRect(getTransformedVisibleRect());
+        
+        DisplayMetrics metrics = new DisplayMetrics();
+        GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        if (metrics.widthPixels != mScreenSize.width ||
+            metrics.heightPixels != mScreenSize.height) {
+            mScreenSize = new IntSize(metrics.widthPixels, metrics.heightPixels);
+            Log.i(LOGTAG, "Screen-size changed to " + mScreenSize);
+            GeckoEvent event = new GeckoEvent(GeckoEvent.SIZE_CHANGED,
+                                              LayerController.TILE_WIDTH, LayerController.TILE_HEIGHT,
+                                              metrics.widthPixels, metrics.heightPixels);
+            GeckoAppShell.sendEventToGecko(event);
+        }
+
         render();
     }
-
-    @Override
-    public IntSize getPageSize() { return mViewportController.getPageSize(); }
 
     @Override
     public void render() {
@@ -211,24 +236,14 @@ public class GeckoSoftwareLayerClient extends LayerClient {
     }
 
     private void adjustViewport() {
-        LayerController layerController = getLayerController();
-        RectF visibleRect = layerController.getVisibleRect();
-        RectF tileRect = mViewportController.widenRect(visibleRect);
-        tileRect = mViewportController.clampRect(tileRect);
+        ViewportMetrics viewportMetrics = getLayerController().getViewportMetrics();
+        Point viewportOffset = viewportMetrics.getOptimumViewportOffset();
+        viewportMetrics.setViewportOffset(viewportOffset);
 
-        int x = (int)Math.round(tileRect.left), y = (int)Math.round(tileRect.top);
-        GeckoEvent event = new GeckoEvent("Viewport:Change", "{\"x\": " + x +
-                                          ", \"y\": " + y + "}");
+        GeckoEvent event = new GeckoEvent("Viewport:Change", viewportMetrics.toJSON());
         GeckoAppShell.sendEventToGecko(event);
 
         mLastViewportChangeTime = System.currentTimeMillis();
-    }
-
-    
-    private RectF getTransformedVisibleRect() {
-        LayerController layerController = getLayerController();
-        return mViewportController.transformVisibleRect(layerController.getVisibleRect(),
-                                                        layerController.getPageSize());
     }
 }
 
