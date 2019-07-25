@@ -1901,12 +1901,6 @@ public:
 
 
 
-  virtual bool AreAncestorViewsVisible() const;
-
-  
-
-
-
 
 
 
