@@ -155,11 +155,7 @@ public final class GeckoProfile {
     }
 
     public File getFilesDir() {
-        if (isOnInternalStorage()) {
-            return mContext.getFilesDir();
-        } else {
-            return mContext.getExternalFilesDir(null);
-        }
+        return mContext.getFilesDir();
     }
 
     private boolean isOnInternalStorage() {
@@ -186,16 +182,10 @@ public final class GeckoProfile {
         
         moveProfilesFrom(new File("/data/data/" + mContext.getPackageName()));
 
-        if (isOnInternalStorage()) {
-            if (Build.VERSION.SDK_INT >= 8) {
-                
-                
-                moveProfilesFrom(mContext.getExternalFilesDir(null));
-            }
-        } else {
+        if (Build.VERSION.SDK_INT >= 8) {
             
             
-            moveProfilesFrom(mContext.getFilesDir());
+            moveProfilesFrom(mContext.getExternalFilesDir(null));
         }
     }
 
@@ -209,7 +199,6 @@ public final class GeckoProfile {
         }
 
         
-
         File currentMozDir;
         try {
             currentMozDir = ensureMozillaDirectory();
