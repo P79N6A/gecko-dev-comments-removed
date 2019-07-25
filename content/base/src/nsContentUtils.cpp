@@ -2140,9 +2140,15 @@ nsContentUtils::GenerateStateKey(nsIContent* aContent,
     
     
     
-    
-    KeyAppendString(NS_LITERAL_CSTRING("o"), aKey);
-    
+    if (aContent->IsElement()) {
+      KeyAppendString(nsDependentAtomString(aContent->Tag()), aKey);
+    }
+    else {
+      
+      
+      KeyAppendString(NS_LITERAL_CSTRING("o"), aKey);
+    }
+
     
     
     
