@@ -570,10 +570,9 @@ public class PasswordsRepositorySession extends
     return null;
   }
 
-  
-  
   private static final String WHERE_RECORD_DATA =
     Passwords.HOSTNAME        + " = ? AND " +
+    Passwords.HTTP_REALM      + " = ? AND " +
     Passwords.FORM_SUBMIT_URL + " = ? AND " +
     Passwords.USERNAME_FIELD  + " = ? AND " +
     Passwords.PASSWORD_FIELD  + " = ?";
@@ -585,12 +584,10 @@ public class PasswordsRepositorySession extends
     
     final String[] whereArgs = new String[] {
       record.hostname,
+      record.httpRealm,
       record.formSubmitURL,
       record.usernameField,
       record.passwordField
-
-      
-      
     };
 
     try {
@@ -688,17 +685,13 @@ public class PasswordsRepositorySession extends
     ContentValues cv = new ContentValues();
     cv.put(BrowserContract.Passwords.GUID,            rec.guid);
     cv.put(BrowserContract.Passwords.HOSTNAME,        rec.hostname);
-    
-    
-    
+    cv.put(BrowserContract.Passwords.HTTP_REALM,      rec.httpRealm);
     cv.put(BrowserContract.Passwords.FORM_SUBMIT_URL, rec.formSubmitURL);
     cv.put(BrowserContract.Passwords.USERNAME_FIELD,  rec.usernameField);
     cv.put(BrowserContract.Passwords.PASSWORD_FIELD,  rec.passwordField);
 
     
-    
-    
-    
+    cv.put(BrowserContract.Passwords.ENC_TYPE,           rec.encType);
     cv.put(BrowserContract.Passwords.ENCRYPTED_USERNAME, rec.encryptedUsername);
     cv.put(BrowserContract.Passwords.ENCRYPTED_PASSWORD, rec.encryptedPassword);
 
