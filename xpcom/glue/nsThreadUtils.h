@@ -46,6 +46,7 @@
 #include "nsIRunnable.h"
 #include "nsStringGlue.h"
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 
 
 
@@ -435,8 +436,10 @@ public:
   }
 
   const nsRevocableEventPtr& operator=(T *event) {
-    Revoke();
-    mEvent = event;
+    if (mEvent != event) {
+      Revoke();
+      mEvent = event;
+    }
     return *this;
   }
 
@@ -462,7 +465,7 @@ private:
   nsRevocableEventPtr(const nsRevocableEventPtr&);
   nsRevocableEventPtr& operator=(const nsRevocableEventPtr&);
 
-  T *mEvent;
+  nsRefPtr<T> mEvent;
 };
 
 #endif  
