@@ -1036,7 +1036,7 @@ pref("devtools.inspector.highlighterShowVeil", true);
 pref("devtools.inspector.highlighterShowInfobar", true);
 
 
-pref("devtools.layoutview.enabled", false);
+pref("devtools.layoutview.enabled", true);
 pref("devtools.layoutview.open", false);
 
 
