@@ -219,6 +219,8 @@ class nsIMemoryMultiReporterCallback;
 
 namespace xpc {
 
+bool DeferredRelease(nsISupports *obj);
+
 
 bool Base64Encode(JSContext *cx, JS::Value val, JS::Value *out);
 bool Base64Decode(JSContext *cx, JS::Value val, JS::Value *out);
