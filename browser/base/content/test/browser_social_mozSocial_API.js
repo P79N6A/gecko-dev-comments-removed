@@ -54,6 +54,7 @@ var tests = {
             ok(true, "panel hidden");
             next();
           }
+          break;
         case "got-sidebar-message":
           
           ok(true, "got sidebar message");
