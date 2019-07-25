@@ -969,7 +969,9 @@ public:
 
   
   
-  bool SetFullScreenState(Element* aElement, bool aIsFullScreen);
+  
+  
+  bool SetFullScreenElement(Element* aElement);
  
   
   
