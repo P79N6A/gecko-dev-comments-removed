@@ -239,7 +239,8 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
       }
     }
   }
-  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(TextReset)) {
+  if (aData->mSIDs & NS_STYLE_INHERIT_BIT(TextReset) &&
+      aData->mPresContext->CompatibilityMode() == eCompatibility_NavQuirks) {
     
     
     
