@@ -110,10 +110,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
-
 #define NS_IWIDGET_IID \
-{ 0xb7ec5f61, 0x57df, 0x4355, \
-  { 0x81, 0xf3, 0x41, 0xce, 0xd5, 0x2e, 0x80, 0x26 } }
+{ 0x34b6123e, 0x78d7, 0x4275, \
+  { 0xa2, 0xbf, 0x07, 0xd4, 0xbf, 0x3a, 0x34, 0x45 } }
 
 
 
@@ -565,7 +564,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetClientOffset(nsIntPoint &aPt) = 0;
+    virtual nsIntPoint GetClientOffset() = 0;
 
     
 
@@ -836,6 +835,13 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIntPoint WidgetToScreenOffset() = 0;
+
+    
+
+
+
+
+    virtual nsIntSize ClientToWindowSize(const nsIntSize& aClientSize) = 0;
 
     
 

@@ -265,6 +265,11 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
             menuPopupFrame->GetWidget(getter_AddRefs(widget));
             if (widget)
               widget->GetScreenBounds(oldRect);
+
+            
+            nsIntPoint clientOffset = widget->GetClientOffset();
+            rect.x -= clientOffset.x; 
+            rect.y -= clientOffset.y; 
           }
 
           
