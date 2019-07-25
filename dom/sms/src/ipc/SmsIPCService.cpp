@@ -48,7 +48,7 @@ namespace sms {
 
 PSmsChild* SmsIPCService::sSmsChild = nsnull;
 
-NS_IMPL_ISUPPORTS1(SmsIPCService, nsISmsService)
+NS_IMPL_ISUPPORTS2(SmsIPCService, nsISmsService, nsISmsDatabaseService)
 
  PSmsChild*
 SmsIPCService::GetSmsChild()
