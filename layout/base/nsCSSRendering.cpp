@@ -458,16 +458,6 @@ MakeBevelColor(mozilla::css::Side whichSide, PRUint8 style,
 
 
 
-static gfxRect
-RectToGfxRect(const nsRect& rect, nscoord twipsPerPixel)
-{
-  return gfxRect(gfxFloat(rect.x) / twipsPerPixel,
-                 gfxFloat(rect.y) / twipsPerPixel,
-                 gfxFloat(rect.width) / twipsPerPixel,
-                 gfxFloat(rect.height) / twipsPerPixel);
-}
-
-
 
 
 
@@ -597,7 +587,7 @@ nsCSSRendering::PaintBorderWithStyleBorder(nsPresContext* aPresContext,
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
   
-  gfxRect oRect(RectToGfxRect(outerRect, twipsPerPixel));
+  gfxRect oRect(nsLayoutUtils::RectToGfxRect(outerRect, twipsPerPixel));
 
   
   gfxFloat borderWidths[4] = { gfxFloat(border.top / twipsPerPixel),
@@ -749,7 +739,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
   
-  gfxRect oRect(RectToGfxRect(outerRect, twipsPerPixel));
+  gfxRect oRect(nsLayoutUtils::RectToGfxRect(outerRect, twipsPerPixel));
 
   
   nsMargin outlineMargin(width, width, width, width);
@@ -807,7 +797,7 @@ nsCSSRendering::PaintFocus(nsPresContext* aPresContext,
   nscoord oneCSSPixel = nsPresContext::CSSPixelsToAppUnits(1);
   nscoord oneDevPixel = aPresContext->DevPixelsToAppUnits(1);
 
-  gfxRect focusRect(RectToGfxRect(aFocusRect, oneDevPixel));
+  gfxRect focusRect(nsLayoutUtils::RectToGfxRect(aFocusRect, oneDevPixel));
 
   gfxCornerSizes focusRadii;
   {
@@ -1122,7 +1112,7 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
 
   nsRect frameRect =
     nativeTheme ? aForFrame->GetOverflowRectRelativeToSelf() + aFrameArea.TopLeft() : aFrameArea;
-  gfxRect frameGfxRect = RectToGfxRect(frameRect, twipsPerPixel);
+  gfxRect frameGfxRect(nsLayoutUtils::RectToGfxRect(frameRect, twipsPerPixel));
   frameGfxRect.Round();
 
   
@@ -1138,7 +1128,7 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     useSkipGfxRect = !aForFrame->IsLeaf();
     nsRect paddingRect =
       aForFrame->GetPaddingRect() - aForFrame->GetPosition() + aFrameArea.TopLeft();
-    skipGfxRect = RectToGfxRect(paddingRect, twipsPerPixel);
+    skipGfxRect = nsLayoutUtils::RectToGfxRect(paddingRect, twipsPerPixel);
   } else if (hasBorderRadius) {
     skipGfxRect.Inset(
         PR_MAX(borderRadii[C_TL].height, borderRadii[C_TR].height), 0,
@@ -1166,8 +1156,10 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     nscoord blurRadius = shadowItem->mRadius;
     shadowRectPlusBlur.Inflate(blurRadius, blurRadius);
 
-    gfxRect shadowGfxRect = RectToGfxRect(shadowRect, twipsPerPixel);
-    gfxRect shadowGfxRectPlusBlur = RectToGfxRect(shadowRectPlusBlur, twipsPerPixel);
+    gfxRect shadowGfxRect =
+      nsLayoutUtils::RectToGfxRect(shadowRect, twipsPerPixel);
+    gfxRect shadowGfxRectPlusBlur =
+      nsLayoutUtils::RectToGfxRect(shadowRectPlusBlur, twipsPerPixel);
     shadowGfxRect.Round();
     shadowGfxRectPlusBlur.RoundOut();
 
@@ -1366,7 +1358,7 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
     
     nsRect skipRect = shadowClipRect;
     skipRect.Deflate(blurRadius, blurRadius);
-    gfxRect skipGfxRect = RectToGfxRect(skipRect, twipsPerPixel);
+    gfxRect skipGfxRect = nsLayoutUtils::RectToGfxRect(skipRect, twipsPerPixel);
     if (hasBorderRadius) {
       skipGfxRect.Inset(PR_MAX(clipRectRadii[C_TL].height, clipRectRadii[C_TR].height), 0,
                         PR_MAX(clipRectRadii[C_BL].height, clipRectRadii[C_BR].height), 0);
@@ -1394,7 +1386,8 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
     
     
     
-    gfxRect shadowGfxRect = RectToGfxRect(paddingRect, twipsPerPixel);
+    gfxRect shadowGfxRect =
+      nsLayoutUtils::RectToGfxRect(paddingRect, twipsPerPixel);
     shadowGfxRect.Round();
     renderContext->NewPath();
     if (hasBorderRadius)
@@ -1407,9 +1400,11 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
 
     
     
-    gfxRect shadowPaintGfxRect = RectToGfxRect(shadowPaintRect, twipsPerPixel);
+    gfxRect shadowPaintGfxRect =
+      nsLayoutUtils::RectToGfxRect(shadowPaintRect, twipsPerPixel);
     shadowPaintGfxRect.RoundOut();
-    gfxRect shadowClipGfxRect = RectToGfxRect(shadowClipRect, twipsPerPixel);
+    gfxRect shadowClipGfxRect =
+      nsLayoutUtils::RectToGfxRect(shadowClipRect, twipsPerPixel);
     shadowClipGfxRect.Round();
     shadowContext->NewPath();
     shadowContext->Rectangle(shadowPaintGfxRect);
@@ -1521,7 +1516,7 @@ SetupDirtyRects(const nsRect& aBGClipArea, const nsRect& aCallerDirtyRect,
   aDirtyRect->IntersectRect(aBGClipArea, aCallerDirtyRect);
 
   
-  *aDirtyRectGfx = RectToGfxRect(*aDirtyRect, aAppUnitsPerPixel);
+  *aDirtyRectGfx = nsLayoutUtils::RectToGfxRect(*aDirtyRect, aAppUnitsPerPixel);
   NS_WARN_IF_FALSE(aDirtyRect->IsEmpty() || !aDirtyRectGfx->IsEmpty(),
                    "converted dirty rect should not be empty");
   NS_ABORT_IF_FALSE(!aDirtyRect->IsEmpty() || aDirtyRectGfx->IsEmpty(),
@@ -1581,7 +1576,8 @@ SetupBackgroundClip(gfxContext *aCtx, PRUint8 aBackgroundClip,
   
 
   if (aHaveRoundedCorners) {
-    gfxRect bgAreaGfx(RectToGfxRect(*aBGClipArea, aAppUnitsPerPixel));
+    gfxRect bgAreaGfx =
+      nsLayoutUtils::RectToGfxRect(*aBGClipArea, aAppUnitsPerPixel);
     bgAreaGfx.Round();
     bgAreaGfx.Condition();
 
@@ -1856,7 +1852,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
 
   gfxContext *ctx = aRenderingContext.ThebesContext();
   nscoord appUnitsPerPixel = aPresContext->AppUnitsPerDevPixel();
-  gfxRect oneCellArea = RectToGfxRect(aOneCellArea, appUnitsPerPixel);
+  gfxRect oneCellArea =
+    nsLayoutUtils::RectToGfxRect(aOneCellArea, appUnitsPerPixel);
 
   
   gfxPoint lineStart, lineEnd;
@@ -2085,7 +2082,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   if (!dirty.IntersectRect(aDirtyRect, aFillArea))
     return;
 
-  gfxRect areaToFill = RectToGfxRect(aFillArea, appUnitsPerPixel);
+  gfxRect areaToFill =
+    nsLayoutUtils::RectToGfxRect(aFillArea, appUnitsPerPixel);
   gfxMatrix ctm = ctx->CurrentMatrix();
 
   
@@ -2097,8 +2095,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   for (nscoord y = yStart; y < yEnd; y += aOneCellArea.height) {
     for (nscoord x = xStart; x < xEnd; x += aOneCellArea.width) {
       
-      gfxRect tileRect =
-        RectToGfxRect(nsRect(x, y, aOneCellArea.width, aOneCellArea.height),
+      gfxRect tileRect = nsLayoutUtils::RectToGfxRect(
+                      nsRect(x, y, aOneCellArea.width, aOneCellArea.height),
                       appUnitsPerPixel);
       
       
@@ -3842,9 +3840,10 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
   }
 
   
-  gfxRect rect = RectToGfxRect(aRect, aAppUnitsPerDevPixel);
+  gfxRect rect = nsLayoutUtils::RectToGfxRect(aRect, aAppUnitsPerDevPixel);
 
-  gfxRect dirtyRect = RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
+  gfxRect dirtyRect =
+    nsLayoutUtils::RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
   dirtyRect.RoundOut();
 
   
