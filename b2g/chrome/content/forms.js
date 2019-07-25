@@ -61,6 +61,7 @@ let FormAssistant = {
           content.setTimeout(function showIMEForSelect() {
             sendAsyncMessage("Forms:Input", getJSON(evt.target));
           });
+          this.previousTarget = evt.target;
         } else if (evt.target instanceof HTMLOptionElement &&
                    evt.target.parentNode instanceof HTMLSelectElement) {
           content.setTimeout(function showIMEForSelect() {
@@ -181,9 +182,21 @@ function getJSON(element) {
 
   
   
+  
   let attributeType = element.getAttribute("type") || "";
-  if (attributeType && attributeType.toLowerCase() === "number")
-    type = "number";
+
+  if (attributeType) {
+    var typeLowerCase = attributeType.toLowerCase(); 
+    switch (typeLowerCase) {
+      case "number":
+      case "date":
+      case "time":
+      case "datetime":
+      case "datetime-local":
+        type = typeLowerCase;
+        break;
+    }
+  }
 
   return {
     "type": type.toLowerCase(),
