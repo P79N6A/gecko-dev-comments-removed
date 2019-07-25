@@ -49,8 +49,8 @@ class nsTextControlFrame;
 
 
 #define NS_ITEXTCONTROLELEMENT_IID    \
-{ 0x66545dde, 0x3f4a, 0x49fd,    \
-  { 0x82, 0x73, 0x69, 0x7e, 0xab, 0x54, 0x06, 0x0a } }
+{ 0x2e758eee, 0xd023, 0x4fd1,    \
+  { 0x97, 0x93, 0xae, 0xeb, 0xbb, 0xf3, 0xa8, 0x3f } }
 
 
 
@@ -218,6 +218,14 @@ public:
 
   static PRBool
   GetWrapPropertyEnum(nsIContent* aContent, nsHTMLTextWrap& aWrapProp);
+
+  
+
+
+
+
+
+  NS_IMETHOD_(PRBool) HasCachedSelection() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsITextControlElement,

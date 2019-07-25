@@ -435,6 +435,13 @@ nsTextControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   
   PRBool initEagerly = !IsSingleLineTextControl();
   if (!initEagerly) {
+    
+    
+    nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
+    NS_ASSERTION(txtCtrl, "Content not a text control element");
+    initEagerly = txtCtrl->HasCachedSelection();
+  }
+  if (!initEagerly) {
     nsCOMPtr<nsIDOMNSHTMLElement> element = do_QueryInterface(txtCtrl);
     if (element) {
       

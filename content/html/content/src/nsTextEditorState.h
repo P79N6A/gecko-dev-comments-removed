@@ -41,6 +41,7 @@
 
 #include "nsAutoPtr.h"
 #include "nsITextControlElement.h"
+#include "nsITextControlFrame.h"
 #include "nsCycleCollectionParticipant.h"
 
 class nsTextInputListener;
@@ -51,7 +52,11 @@ class nsISelectionController;
 class nsFrameSelection;
 class nsIEditor;
 class nsITextControlElement;
-struct SelectionState;
+
+
+
+
+
 
 
 
@@ -214,6 +219,24 @@ public:
 
   void HideSelectionIfBlurred();
 
+  struct SelectionProperties {
+    SelectionProperties() : mStart(0), mEnd(0),
+      mDirection(nsITextControlFrame::eForward) {}
+    bool IsDefault() const {
+      return mStart == 0 && mEnd == 0 &&
+             mDirection == nsITextControlFrame::eForward;
+    }
+    PRInt32 mStart, mEnd;
+    nsITextControlFrame::SelectionDirection mDirection;
+  };
+
+  PRBool IsSelectionCached() const { return mSelectionCached; }
+  SelectionProperties& GetSelectionProperties() {
+    return mSelectionProperties;
+  }
+  void WillInitEagerly() { mSelectionRestoreEagerInit = PR_TRUE; }
+  PRBool HasNeverInitializedBefore() const { return !mEverInited; }
+
 private:
   friend class RestoreSelectionState;
 
@@ -259,7 +282,6 @@ private:
 
   nsITextControlElement* const mTextCtrlElement;
   nsRefPtr<nsTextInputSelectionImpl> mSelCon;
-  nsAutoPtr<SelectionState> mSelState;
   RestoreSelectionState* mRestoringSelection;
   nsCOMPtr<nsIEditor> mEditor;
   nsCOMPtr<nsIContent> mRootNode;
@@ -269,9 +291,13 @@ private:
   nsAutoPtr<nsCString> mValue;
   nsRefPtr<nsAnonDivObserver> mMutationObserver;
   mutable nsString mCachedValue; 
+  PRPackedBool mEverInited; 
   PRPackedBool mEditorInitialized;
   PRPackedBool mInitializing; 
   PRPackedBool mValueTransferInProgress; 
+  PRPackedBool mSelectionCached; 
+  mutable PRPackedBool mSelectionRestoreEagerInit; 
+  SelectionProperties mSelectionProperties;
 };
 
 #endif
