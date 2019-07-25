@@ -300,8 +300,6 @@ PRBool          nsWindow::sDefaultTrackPointHack  = PR_FALSE;
 
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
 
-PRBool          nsWindow::sUseElantechGestureHacks = PR_FALSE;
-
 
 bool            nsWindow::sAllowD3D9              = false;
 
@@ -472,7 +470,7 @@ nsWindow::nsWindow() : nsBaseWidget()
 #endif
 
 #if !defined(WINCE)
-    InitInputWorkaroundPrefDefaults();
+    InitInputHackDefaults();
 #endif
 
     
@@ -4654,24 +4652,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mAssumeWheelIsZoomUntil) {
-    DWORD msgTime = ::GetMessageTime();
-    if (mAssumeWheelIsZoomUntil >= 0x80000000 && msgTime < 0x8000000 ||
-        mAssumeWheelIsZoomUntil < msgTime) {
-      mAssumeWheelIsZoomUntil = 0;
-    }
-  }
-
-  
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return PR_TRUE;
 
@@ -5045,7 +5025,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_KEYUP:
     {
       MSG nativeMsg = InitMSG(msg, wParam, lParam);
-      nativeMsg.time = ::GetMessageTime();
       result = ProcessKeyUpMessage(nativeMsg, nsnull);
       DispatchPendingEvents();
     }
@@ -6725,18 +6704,8 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
   ::ReplyMessage(isVertical ? 0 : TRUE);
 #endif
 
-  
-  
-  
-  PRBool isControl;
-  if (mAssumeWheelIsZoomUntil && ::GetMessageTime() < mAssumeWheelIsZoomUntil) {
-    isControl = PR_TRUE;
-  } else {
-    isControl = IS_VK_DOWN(NS_VK_CONTROL);
-  }
-
   scrollEvent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollEvent.isControl = isControl;
+  scrollEvent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
   scrollEvent.isMeta    = PR_FALSE;
   scrollEvent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
   InitEvent(scrollEvent);
@@ -6784,37 +6753,6 @@ PRBool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
           GetScanCode(sRedirectedKeyDown.lParam) == GetScanCode(aMsg.lParam));
 }
 
-void
-nsWindow::PerformElantechSwipeGestureHack(UINT& aVirtualKeyCode,
-                                          nsModifierKeyState& aModKeyState)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if ((aVirtualKeyCode == VK_NEXT || aVirtualKeyCode == VK_PRIOR) &&
-      (IS_VK_DOWN(0xFF) || IS_VK_DOWN(0xCC))) {
-    aModKeyState.mIsAltDown = true;
-    aVirtualKeyCode = aVirtualKeyCode == VK_NEXT ? VK_RIGHT : VK_LEFT;
-  }
-}
-
 
 
 
@@ -6834,10 +6772,6 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
 #ifndef WINCE
   gKbdLayout.OnKeyDown(virtualKeyCode);
 #endif
-
-  if (sUseElantechGestureHacks) {
-    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
-  }
 
   
   
@@ -7188,29 +7122,6 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
                           PRBool *aEventDispatched)
 {
   UINT virtualKeyCode = aMsg.wParam;
-
-  if (sUseElantechGestureHacks) {
-    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (virtualKeyCode == VK_CONTROL && aMsg.time == 10) {
-      mAssumeWheelIsZoomUntil = ::GetTickCount();
-    }
-  }
 
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
          ("nsWindow::OnKeyUp VK=%d\n", virtualKeyCode));
@@ -7651,125 +7562,6 @@ HWND nsWindow::FindOurProcessWindow(HWND aHWND)
   return nsnull;
 }
 
-static PRBool PointInWindow(HWND aHWND, const POINT& aPoint)
-{
-  RECT bounds;
-  if (!::GetWindowRect(aHWND, &bounds)) {
-    return PR_FALSE;
-  }
-
-  if (aPoint.x < bounds.left
-      || aPoint.x >= bounds.right
-      || aPoint.y < bounds.top
-      || aPoint.y >= bounds.bottom) {
-    return PR_FALSE;
-  }
-
-  return PR_TRUE;
-}
-
-static HWND FindTopmostWindowAtPoint(HWND aHWND, const POINT& aPoint)
-{
-  if (!::IsWindowVisible(aHWND) || !PointInWindow(aHWND, aPoint)) {
-    return 0;
-  }
-
-  HWND childWnd = ::GetTopWindow(aHWND);
-  while (childWnd) {
-    HWND topmostWnd = FindTopmostWindowAtPoint(childWnd, aPoint);
-    if (topmostWnd) {
-      return topmostWnd;
-    }
-    childWnd = ::GetNextWindow(childWnd, GW_HWNDNEXT);
-  }
-
-  return aHWND;
-}
-
-struct FindOurWindowAtPointInfo
-{
-  POINT mInPoint;
-  HWND mOutHWND;
-};
-
-
-BOOL CALLBACK nsWindow::FindOurWindowAtPointCallback(HWND aHWND, LPARAM aLPARAM)
-{
-  if (!nsWindow::IsOurProcessWindow(aHWND)) {
-    
-    return TRUE;
-  }
-
-  
-  
-  
-  
-  FindOurWindowAtPointInfo* info = reinterpret_cast<FindOurWindowAtPointInfo*>(aLPARAM);
-  HWND childWnd = FindTopmostWindowAtPoint(aHWND, info->mInPoint);
-  if (!childWnd) {
-    
-    return TRUE;
-  }
-
-  
-  info->mOutHWND = childWnd;
-  return FALSE;
-}
-
-
-HWND nsWindow::FindOurWindowAtPoint(const POINT& aPoint)
-{
-  FindOurWindowAtPointInfo info;
-  info.mInPoint = aPoint;
-  info.mOutHWND = 0;
-
-  
-  EnumWindows(FindOurWindowAtPointCallback, reinterpret_cast<LPARAM>(&info));
-  return info.mOutHWND;
-}
-
-typedef DWORD (*GetProcessImageFileNameProc)(HANDLE, LPTSTR, DWORD);
-
-
-
-
-
-static PRBool IsElantechHelperWindow(HWND aHWND)
-{
-  static HMODULE hPSAPI = ::LoadLibrary(L"psapi.dll");
-  static GetProcessImageFileNameProc pGetProcessImageFileName =
-    reinterpret_cast<GetProcessImageFileNameProc>(::GetProcAddress(hPSAPI, "GetProcessImageFileNameW"));
-
-  if (!pGetProcessImageFileName) {
-    return PR_FALSE;
-  }
-
-  const PRUnichar* filenameSuffix = L"\\etdctrl.exe";
-  const int filenameSuffixLength = 12;
-
-  DWORD pid;
-  ::GetWindowThreadProcessId(aHWND, &pid);
-
-  PRBool result = PR_FALSE;
-
-  HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-  if (hProcess) {
-    PRUnichar path[256];
-    if (pGetProcessImageFileName(hProcess, path, sizeof path)) {
-      path[255] = 0;
-      int pathLength = lstrlen(path);
-      if (pathLength >= filenameSuffixLength) {
-        if (lstrcmpi(path + pathLength - filenameSuffixLength, filenameSuffix) == 0) {
-          result = PR_TRUE;
-        }
-      }
-    }
-    ::CloseHandle(hProcess);
-  }
-
-  return result;
-}
-
 
 
 
@@ -7823,14 +7615,6 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
   
   
   
-
-  if (sUseElantechGestureHacks && IsElantechHelperWindow(destWnd)) {
-    
-    
-    
-    
-    destWnd = FindOurWindowAtPoint(point);
-  }
 
   if (!destWnd) {
     
@@ -9037,28 +8821,13 @@ void nsWindow::GetMainWindowClass(nsAString& aClass)
   aClass.AssignASCII(sDefaultMainWindowClass);
 }
 
-
-
-
-
-
-
-
-
-
-
-PRBool nsWindow::GetInputWorkaroundPref(const char* aPrefName,
-                                        PRBool aValueIfAutomatic)
+PRBool nsWindow::UseTrackPointHack()
 {
-  if (!aPrefName) {
-    return aValueIfAutomatic;
-  }
-
   nsresult rv;
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
   if (NS_SUCCEEDED(rv) && prefs) {
     PRInt32 lHackValue;
-    rv = prefs->GetIntPref(aPrefName, &lHackValue);
+    rv = prefs->GetIntPref("ui.trackpoint_hack.enabled", &lHackValue);
     if (NS_SUCCEEDED(rv)) {
       switch (lHackValue) {
         case 0: 
@@ -9070,18 +8839,12 @@ PRBool nsWindow::GetInputWorkaroundPref(const char* aPrefName,
       }
     }
   }
-  return aValueIfAutomatic;
-}
-
-PRBool nsWindow::UseTrackPointHack()
-{
-  return GetInputWorkaroundPref("ui.trackpoint_hack.enabled",
-                                sDefaultTrackPointHack);
+  return sDefaultTrackPointHack;
 }
 
 #if !defined(WINCE)
 static PRBool
-HasRegistryKey(HKEY aRoot, PRUnichar* aName)
+HasRegistryKey(HKEY aRoot, LPCWSTR aName)
 {
   HKEY key;
   LONG result = ::RegOpenKeyExW(aRoot, aName, 0, KEY_READ, &key);
@@ -9091,91 +8854,28 @@ HasRegistryKey(HKEY aRoot, PRUnichar* aName)
   return PR_TRUE;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-static PRBool
-GetRegistryKey(HKEY aRoot, PRUnichar* aKeyName, PRUnichar* aValueName, PRUnichar* aBuffer, DWORD aBufferLength)
-{
-  if (!aKeyName) {
-    return PR_FALSE;
-  }
-
-  HKEY key;
-  LONG result = ::RegOpenKeyExW(aRoot, aKeyName, NULL, KEY_READ, &key);
-  if (result != ERROR_SUCCESS)
-    return PR_FALSE;
-  DWORD type;
-  result = ::RegQueryValueExW(key, aValueName, NULL, &type, (BYTE*) aBuffer, &aBufferLength);
-  ::RegCloseKey(key);
-  if (result != ERROR_SUCCESS || type != REG_SZ)
-    return PR_FALSE;
-  if (aBuffer)
-    aBuffer[aBufferLength - 1] = 0;
-  return PR_TRUE;
-}
-
 static PRBool
 IsObsoleteSynapticsDriver()
 {
-  PRUnichar buf[40];
-  PRBool foundKey = GetRegistryKey(HKEY_LOCAL_MACHINE,
-                                   L"Software\\Synaptics\\SynTP\\Install",
-                                   L"DriverVersion",
-                                   buf,
-                                   sizeof buf);
-  if (!foundKey)
+  HKEY key;
+  LONG result = ::RegOpenKeyExW(HKEY_LOCAL_MACHINE,
+      L"Software\\Synaptics\\SynTP\\Install", 0, KEY_READ, &key);
+  if (result != ERROR_SUCCESS)
     return PR_FALSE;
+  DWORD type;
+  PRUnichar buf[40];
+  DWORD buflen = sizeof(buf);
+  result = ::RegQueryValueExW(key, L"DriverVersion", NULL, &type, (BYTE*)buf, &buflen);
+  ::RegCloseKey(key);
+  if (result != ERROR_SUCCESS || type != REG_SZ)
+    return PR_FALSE;
+  buf[NS_ARRAY_LENGTH(buf) - 1] = 0;
 
   int majorVersion = wcstol(buf, NULL, 10);
   return majorVersion < 15;
 }
 
-static PRBool
-IsObsoleteElantechDriver()
-{
-  PRUnichar buf[40];
-  
-  PRBool foundKey = GetRegistryKey(HKEY_CURRENT_USER,
-                                   L"Software\\Elantech\\MainOption",
-                                   L"DriverVersion",
-                                   buf,
-                                   sizeof buf);
-  if (!foundKey)
-    foundKey = GetRegistryKey(HKEY_CURRENT_USER,
-                              L"Software\\Elantech",
-                              L"DriverVersion",
-                              buf,
-                              sizeof buf);
-
-  if (!foundKey)
-    return PR_FALSE;
-
-  
-  
-  for (PRUnichar* p = buf; *p; p++) {
-    if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
-      int majorVersion = wcstol(p, NULL, 10);
-      
-      if (majorVersion == 7 || majorVersion == 8)
-        return PR_TRUE;
-    }
-  }
-
-  return PR_FALSE;
-}
-
-void nsWindow::InitInputWorkaroundPrefDefaults()
+void nsWindow::InitInputHackDefaults()
 {
   if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\TrackPoint")) {
     sDefaultTrackPointHack = PR_TRUE;
@@ -9188,10 +8888,6 @@ void nsWindow::InitInputWorkaroundPrefDefaults()
               IsObsoleteSynapticsDriver()) {
     sDefaultTrackPointHack = PR_TRUE;
   }
-
-  sUseElantechGestureHacks =
-    GetInputWorkaroundPref("ui.elantech_gesture_hacks.enabled",
-                           IsObsoleteElantechDriver());
 }
 #endif 
 
