@@ -4992,6 +4992,10 @@ CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
 
 
 
+
+
+
+
 bool
 CSSParserImpl::ParseLinearGradient(nsCSSValue& aValue, bool aIsRepeating,
                                    bool aIsLegacy)
@@ -5088,19 +5092,88 @@ CSSParserImpl::ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
 {
   nsRefPtr<nsCSSValueGradient> cssGradient
     = new nsCSSValueGradient(true, aIsRepeating);
-  cssGradient->mIsLegacySyntax = true;
 
   
+  bool haveShape =
+    ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                 nsCSSProps::kRadialGradientShapeKTable);
+
+  bool haveSize = ParseVariant(cssGradient->GetRadialSize(), VARIANT_KEYWORD,
+                               aIsLegacy ?
+                               nsCSSProps::kRadialGradientLegacySizeKTable :
+                               nsCSSProps::kRadialGradientSizeKTable);
+  if (haveSize) {
+    if (!haveShape) {
+      
+      haveShape = ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                               nsCSSProps::kRadialGradientShapeKTable);
+    }
+  } else if (!aIsLegacy) {
+    
+    haveSize =
+      ParseNonNegativeVariant(cssGradient->GetRadiusX(), VARIANT_LP, nsnull);
+    if (haveSize) {
+      
+      bool haveYSize =
+        ParseNonNegativeVariant(cssGradient->GetRadiusY(), VARIANT_LP, nsnull);
+      if (!haveShape) {
+        nsCSSValue shapeValue;
+        haveShape = ParseVariant(shapeValue, VARIANT_KEYWORD,
+                                 nsCSSProps::kRadialGradientShapeKTable);
+      }
+      PRInt32 shape =
+        cssGradient->GetRadialShape().GetUnit() == eCSSUnit_Enumerated ?
+        cssGradient->GetRadialShape().GetIntValue() : -1;
+      if (haveYSize
+            ? shape == NS_STYLE_GRADIENT_SHAPE_CIRCULAR
+            : cssGradient->GetRadiusX().GetUnit() == eCSSUnit_Percent ||
+              shape == NS_STYLE_GRADIENT_SHAPE_ELLIPTICAL) {
+        SkipUntil(')');
+        return false;
+      }
+      cssGradient->mIsExplicitSize = true;
+    }
+  }
+
+  if ((haveShape || haveSize) && ExpectSymbol(',', true)) {
+    
+    return ParseGradientColorStops(cssGradient, aValue);
+  }
+
   if (!GetToken(true)) {
     return false;
   }
+
+  if (!aIsLegacy) {
+    if (mToken.mType == eCSSToken_Ident &&
+        mToken.mIdent.LowerCaseEqualsLiteral("at")) {
+      
+      if (!ParseBoxPositionValues(cssGradient->mBgPos, false) ||
+          !ExpectSymbol(',', true)) {
+        SkipUntil(')');
+        return false;
+      }
+
+      return ParseGradientColorStops(cssGradient, aValue);
+    }
+
+    
+    UngetToken();
+    return ParseGradientColorStops(cssGradient, aValue);
+  }
+  MOZ_ASSERT(!cssGradient->mIsExplicitSize);
 
   nsCSSTokenType ty = mToken.mType;
   nsString id = mToken.mIdent;
   UngetToken();
 
   
-  bool haveGradientLine = IsLegacyGradientLine(ty, id);
+  bool haveGradientLine = false;
+  
+  
+  if (!haveShape && !haveSize) {
+      haveGradientLine = IsLegacyGradientLine(ty, id);
+  }
   if (haveGradientLine) {
     bool haveAngle =
       ParseVariant(cssGradient->mAngle, VARIANT_ANGLE, nsnull);
@@ -5123,22 +5196,29 @@ CSSParserImpl::ParseRadialGradient(nsCSSValue& aValue, bool aIsRepeating,
         return false;
       }
     }
+
+    if (cssGradient->mAngle.GetUnit() != eCSSUnit_None) {
+      cssGradient->mIsLegacySyntax = true;
+    }
   }
 
   
-  bool haveShape =
-    ParseVariant(cssGradient->mRadialShape, VARIANT_KEYWORD,
-                 nsCSSProps::kRadialGradientShapeKTable);
-  bool haveSize =
-    ParseVariant(cssGradient->mRadialSize, VARIANT_KEYWORD,
-                 nsCSSProps::kRadialGradientSizeKTable);
-
-  
-  if (!haveShape) {
+  if (!haveShape && !haveSize) {
     haveShape =
-      ParseVariant(cssGradient->mRadialShape, VARIANT_KEYWORD,
+      ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
                    nsCSSProps::kRadialGradientShapeKTable);
+    haveSize =
+      ParseVariant(cssGradient->GetRadialSize(), VARIANT_KEYWORD,
+                   nsCSSProps::kRadialGradientLegacySizeKTable);
+
+    
+    if (!haveShape) {
+      haveShape =
+        ParseVariant(cssGradient->GetRadialShape(), VARIANT_KEYWORD,
+                     nsCSSProps::kRadialGradientShapeKTable);
+    }
   }
+
   if ((haveShape || haveSize) && !ExpectSymbol(',', true)) {
     SkipUntil(')');
     return false;
