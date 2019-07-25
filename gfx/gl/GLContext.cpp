@@ -1333,6 +1333,11 @@ GLContext::ChooseGLFormats(ContextFormat& aCF, ColorByteOrder aByteOrder)
         fGetIntegerv(LOCAL_GL_MAX_SAMPLES, (GLint*)&maxSamples);
     samples = NS_MIN(samples, maxSamples);
 
+    
+    if (WorkAroundDriverBugs() && samples == 1) {
+        samples = 0;
+    }
+
     formats.samples = samples;
     aCF.samples = samples;
 
