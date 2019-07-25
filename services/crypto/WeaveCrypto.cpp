@@ -396,6 +396,12 @@ WeaveCrypto::GenerateKeypair(const nsACString& aPassphrase,
   SECKEYPublicKey  *pubKey  = nsnull;
   PK11SlotInfo     *slot    = nsnull;
   PK11RSAGenParams rsaParams;
+  
+  
+  
+  PK11AttrFlags attrFlags = (PK11_ATTR_SESSION |
+                             PK11_ATTR_PUBLIC |
+                             PK11_ATTR_SENSITIVE);
 
 
   rsaParams.keySizeInBits = mKeypairBits; 
@@ -409,16 +415,10 @@ WeaveCrypto::GenerateKeypair(const nsACString& aPassphrase,
   }
 
   
-  
-  
-  
-  
-  privKey = PK11_GenerateKeyPair(slot,
+  privKey = PK11_GenerateKeyPairWithFlags(slot,
                                 CKM_RSA_PKCS_KEY_PAIR_GEN,
                                 &rsaParams, &pubKey,
-                                PR_FALSE, 
-                                PR_TRUE,  
-                                nsnull);  
+                                attrFlags, nsnull);
 
   if (!privKey) {
     NS_WARNING("PK11_GenerateKeyPair failed");
