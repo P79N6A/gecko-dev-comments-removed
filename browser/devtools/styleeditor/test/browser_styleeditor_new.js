@@ -34,6 +34,17 @@ let gAddedCount = 0;
 let gNewEditor;       
 let gUpdateCount = 0; 
 let gCommitCount = 0; 
+let gTransitionEndCount = 0;
+
+function finishOnTransitionEndAndCommit() {
+  if (gCommitCount && gTransitionEndCount) {
+    is(gUpdateCount, 1, "received one Update event");
+    is(gCommitCount, 1, "received one Commit event");
+    is(gTransitionEndCount, 1, "received one transitionend event");
+
+    finish();
+  }
+}
 
 function testEditorAdded(aChrome, aEditor)
 {
@@ -86,6 +97,16 @@ function testEditorAdded(aChrome, aEditor)
         is(aEditor.sourceEditor.getText(), TESTCASE_CSS_SOURCE + "}",
            "rule bracket has been auto-closed");
 
+        
+        content.addEventListener("transitionend", function () {
+          gTransitionEndCount++;
+
+          let computedStyle = content.getComputedStyle(content.document.body, null);
+          is(computedStyle.backgroundColor, "rgb(255, 0, 0)",
+             "content's background color has been updated to red");
+
+          executeSoon(finishOnTransitionEndAndCommit);
+        }, false);
       }, gChromeWindow) ;
     },
 
@@ -109,22 +130,13 @@ function testEditorAdded(aChrome, aEditor)
       is(parseInt(ruleCount), 1,
          "new editor shows 1 rule after modification");
 
-      let computedStyle = content.getComputedStyle(content.document.body, null);
-      is(computedStyle.backgroundColor, "rgb(255, 0, 0)",
-         "content's background color has been updated to red");
-
       ok(!content.document.documentElement.classList.contains(TRANSITION_CLASS),
          "StyleEditor's transition class has been removed from content");
 
-      executeSoon(function () {
-        is(gUpdateCount, 1, "received only one Update event (throttle)");
-        is(gCommitCount, 1, "received only one Commit event (throttle)");
+      aEditor.removeActionListener(listener);
+      gNewEditor = null;
 
-        aEditor.removeActionListener(listener);
-
-        gNewEditor = null;
-        finish();
-      });
+      executeSoon(finishOnTransitionEndAndCommit);
     }
   };
 
