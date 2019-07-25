@@ -238,9 +238,11 @@ JSBool TypeError(JSContext* cx, const char* expected, jsval actual);
 
 
 
+
 enum ABICode {
   ABI_DEFAULT,
   ABI_STDCALL,
+  ABI_WINAPI,
   INVALID_ABI
 };
 
