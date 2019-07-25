@@ -255,6 +255,25 @@ public:
 
 
 
+  size_t SizeOfIncludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
+                             nsMallocSizeOfFun mallocSizeOf, void *userArg = nsnull)
+  {
+    return mallocSizeOf(this) + this->SizeOfExcludingThis(sizeOfEntryExcludingThis,
+                                                          mallocSizeOf, userArg);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
   size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
                              nsMallocSizeOfFun mallocSizeOf, void *userArg = nsnull) const
   {
