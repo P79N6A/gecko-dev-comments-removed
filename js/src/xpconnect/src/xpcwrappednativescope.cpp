@@ -415,17 +415,22 @@ WrappedNativeSuspecter(JSDHashTable *table, JSDHashEntryHdr *hdr,
     {
         NS_ASSERTION(NS_IsMainThread(), 
                      "Suspecting wrapped natives from non-main thread");
-        NS_ASSERTION(!JS_IsAboutToBeFinalized(closure->cx, wrapper->GetFlatJSObject()),
+
+        
+        
+        JSObject* obj = wrapper->GetFlatJSObject();
+        if(!xpc::ParticipatesInCycleCollection(closure->cx, obj))
+            return JS_DHASH_NEXT;
+
+        NS_ASSERTION(!JS_IsAboutToBeFinalized(closure->cx, obj),
                      "WrappedNativeSuspecter attempting to touch dead object");
 
         
         
-        if(!(closure->cb.WantAllTraces()) &&
-           !nsXPConnect::IsGray(wrapper->GetFlatJSObject()))
+        if(!(closure->cb.WantAllTraces()) && !nsXPConnect::IsGray(obj))
             return JS_DHASH_NEXT;
 
-        closure->cb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT,
-                             wrapper->GetFlatJSObject(),
+        closure->cb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT, obj,
                              nsXPConnect::GetXPConnect());
     }
 
