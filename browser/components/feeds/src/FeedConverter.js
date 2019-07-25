@@ -315,6 +315,13 @@ FeedConverter.prototype = {
     
     try {
       var httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
+      
+      
+      if (!httpChannel.requestSucceeded) {
+        
+        request.cancel(0x804b0002); 
+        return;
+      }
       var noSniff = httpChannel.getResponseHeader("X-Moz-Is-Feed");
     }
     catch (ex) {
