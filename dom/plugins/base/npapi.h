@@ -229,6 +229,33 @@ typedef enum {
 } NPFocusDirection;
 
 
+
+
+
+typedef enum {
+  
+  NPImageFormatBGRA32     = 0x1,
+  
+  NPImageFormatBGRX32     = 0x2 
+} NPImageFormat;
+ 
+typedef struct _NPAsyncSurface
+{
+  uint32_t version;
+  NPSize size;
+  NPImageFormat format;
+  union {
+    struct {
+      uint32_t stride;
+      void *data;
+    } bitmap;
+#if defined(XP_WIN)
+    HANDLE sharedHandle;
+#endif
+  };
+} NPAsyncSurface;
+
+
 #define kNPEventNotHandled 0
 #define kNPEventHandled 1
 
@@ -273,17 +300,26 @@ typedef struct
 
 #endif 
 
-#if defined(XP_MACOSX)
 typedef enum {
 #ifndef NP_NO_QUICKDRAW
   NPDrawingModelQuickDraw = 0,
 #endif
+#if defined(XP_MACOSX)
   NPDrawingModelCoreGraphics = 1,
   NPDrawingModelOpenGL = 2,
   NPDrawingModelCoreAnimation = 3,
-  NPDrawingModelInvalidatingCoreAnimation = 4
+  NPDrawingModelInvalidatingCoreAnimation = 4,
+#endif
+  NPDrawingModelSyncWin = 5,
+  NPDrawingModelSyncX = 6,
+  NPDrawingModelAsyncBitmapSurface = 7
+#if defined(XP_WIN)
+  , NPDrawingModelAsyncWindowsDXGISurface = 8,
+  NPDrawingModelAsyncWindowsDX9ExSurface = 9
+#endif
 } NPDrawingModel;
 
+#if defined(XP_MACOSX)
 typedef enum {
 #ifndef NP_NO_CARBON
   NPEventModelCarbon = 0,
@@ -370,9 +406,9 @@ typedef enum {
 
   NPPVpluginUsesDOMForCursorBool = 22
 
-#if defined(XP_MACOSX)
   
   , NPPVpluginDrawingModel = 1000
+#if defined(XP_MACOSX)
   
   , NPPVpluginEventModel = 1001
   
@@ -415,9 +451,9 @@ typedef enum {
 
   NPNVdocumentOrigin = 22
 
-#if defined(XP_MACOSX)
   
   , NPNVpluginDrawingModel = 1000
+#if defined(XP_MACOSX)
 #ifndef NP_NO_QUICKDRAW
   , NPNVsupportsQuickDrawBool = 2000
 #endif
@@ -425,6 +461,15 @@ typedef enum {
   , NPNVsupportsOpenGLBool = 2002
   , NPNVsupportsCoreAnimationBool = 2003
   , NPNVsupportsInvalidatingCoreAnimationBool = 2004
+#endif
+  , NPNVsupportsSyncDrawingBool = 2005
+  , NPNVsupportsAsyncBitmapSurfaceBool = 2006
+#if defined(XP_WIN)
+  , NPNVsupportsAsyncWindowsDXGISurfaceBool = 2007
+  , NPNVsupportsAsyncWindowsDX9ExSurfaceBool = 2008
+#endif
+
+#if defined(XP_MACOSX)
 #ifndef NP_NO_CARBON
   , NPNVsupportsCarbonBool = 3000 
 #endif
@@ -820,6 +865,7 @@ void    NP_LOADDS NPP_LostFocus(NPP instance);
 void    NP_LOADDS NPP_URLRedirectNotify(NPP instance, const char* url, int32_t status, void* notifyData);
 NPError NP_LOADDS NPP_ClearSiteData(const char* site, uint64_t flags, uint64_t maxAge);
 char**  NP_LOADDS NPP_GetSitesWithData(void);
+void    NP_LOADDS NPP_DidComposite(NPP instance);
 
 
 void        NP_LOADDS NPN_Version(int* plugin_major, int* plugin_minor,
@@ -882,6 +928,11 @@ NPBool      NP_LOADDS NPN_ConvertPoint(NPP instance, double sourceX, double sour
 NPBool      NP_LOADDS NPN_HandleEvent(NPP instance, void *event, NPBool handled);
 NPBool      NP_LOADDS NPN_UnfocusInstance(NPP instance, NPFocusDirection direction);
 void        NP_LOADDS NPN_URLRedirectResponse(NPP instance, void* notifyData, NPBool allow);
+NPError     NP_LOADDS NPN_InitAsyncSurface(NPP instance, NPSize *size,
+                                           NPImageFormat format, void *initData,
+                                           NPAsyncSurface *surface);
+NPError     NP_LOADDS NPN_FinalizeAsyncSurface(NPP instance, NPAsyncSurface *surface);
+void        NP_LOADDS NPN_SetCurrentAsyncSurface(NPP instance, NPAsyncSurface *surface, NPRect *changed);
 
 #ifdef __cplusplus
 }  
