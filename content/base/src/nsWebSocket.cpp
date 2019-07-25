@@ -375,7 +375,6 @@ nsWebSocketEstablishedConnection::Close()
   nsRefPtr<nsWebSocketEstablishedConnection> kungfuDeathGrip = this;
 
   if (mOwner->mReadyState == nsIMozWebSocket::CONNECTING) {
-    mOwner->SetReadyState(nsIMozWebSocket::CLOSING);
     mOwner->SetReadyState(nsIMozWebSocket::CLOSED);
     Disconnect();
     return NS_OK;
@@ -765,9 +764,12 @@ nsWebSocket::EstablishConnection()
     new nsWebSocketEstablishedConnection();
 
   rv = conn->Init(this);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   mConnection = conn;
+  if (NS_FAILED(rv)) {
+    Close();
+    mConnection = nsnull;
+    return rv;
+  }
 
   return NS_OK;
 }
