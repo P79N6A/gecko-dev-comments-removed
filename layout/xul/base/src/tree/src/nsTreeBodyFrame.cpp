@@ -2157,9 +2157,11 @@ nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, bool aUseContex
       
       nsCOMPtr<imgIDecoderObserver> obs;
       imgReq->GetDecoderObserver(getter_AddRefs(obs));
-      nsCOMPtr<nsITreeImageListener> listener(do_QueryInterface(obs));
-      if (listener)
-        listener->AddCell(aRowIndex, aCol);
+
+      if (obs) {
+        static_cast<nsTreeImageListener*> (obs.get())->AddCell(aRowIndex, aCol);
+      }
+
       return NS_OK;
     }
   }
