@@ -46,6 +46,12 @@ from tempfile import mkdtemp, gettempdir
 
 from automationutils import *
 
+""" Control-C handling """
+gotSIGINT = False
+def markGotSIGINT(signum, stackFrame):
+  global gotSIGINT 
+  gotSIGINT = True
+
 class XPCShellTests(object):
 
   log = logging.getLogger()
@@ -185,7 +191,7 @@ class XPCShellTests(object):
       Determine the value of the stdout and stderr for the test.
       Return value is a list (pStdout, pStderr).
     """
-    if self.interactive or self.verbose:
+    if self.interactive:
       pStdout = None
       pStderr = None
     else:
@@ -382,7 +388,7 @@ class XPCShellTests(object):
 
   def runTests(self, xpcshell, xrePath=None, symbolsPath=None,
                manifest=None, testdirs=[], testPath=None,
-               interactive=False, verbose=False, logfiles=True,
+               interactive=False, verbose=False, keepGoing=False, logfiles=True,
                thisChunk=1, totalChunks=1, debugger=None,
                debuggerArgs=None, debuggerInteractive=False,
                profileName=None):
@@ -409,6 +415,8 @@ class XPCShellTests(object):
       directory if running only a subset of tests
     """
 
+    global gotSIGINT 
+
     self.xpcshell = xpcshell
     self.xrePath = xrePath
     self.symbolsPath = symbolsPath
@@ -417,6 +425,7 @@ class XPCShellTests(object):
     self.testPath = testPath
     self.interactive = interactive
     self.verbose = verbose
+    self.keepGoing = keepGoing
     self.logfiles = logfiles
     self.totalChunks = totalChunks
     self.thisChunk = thisChunk
@@ -468,7 +477,11 @@ class XPCShellTests(object):
                       stdout=pStdout, stderr=pStderr, env=self.env, cwd=testdir)
 
           
+          
+          signal.signal(signal.SIGINT, markGotSIGINT)
+          
           stdout, stderr = self.communicate(proc)
+          signal.signal(signal.SIGINT, signal.SIG_DFL)
 
           if interactive:
             
@@ -484,6 +497,8 @@ class XPCShellTests(object):
             failCount += 1
           else:
             print "TEST-PASS | %s | test passed" % test
+            if verbose:
+              print """>>>>>>>\n%s\n<<<<<<<""" % stdout
             passCount += 1
 
           checkForCrashes(testdir, self.symbolsPath, testName=test)
@@ -503,7 +518,12 @@ class XPCShellTests(object):
           
           if self.profileDir and not self.interactive and not self.singleFile:
             self.removeDir(self.profileDir)
-
+        if gotSIGINT:
+          print "TEST-UNEXPECTED-FAIL | Received SIGINT (control-C) during test execution"
+          if (keepGoing):
+            gotSIGINT = False
+          else:
+            break
     if passCount == 0 and failCount == 0:
       print "TEST-UNEXPECTED-FAIL | runxpcshelltests.py | No tests run. Did you pass an invalid --test-path?"
       failCount = 1
@@ -512,6 +532,10 @@ class XPCShellTests(object):
 INFO | Passed: %d
 INFO | Failed: %d""" % (passCount, failCount)
 
+    if gotSIGINT and not keepGoing:
+      print "TEST-UNEXPECTED-FAIL | Received SIGINT (control-C), so stopped run. " \
+            "(Use --keep-going to keep running tests after killing one with SIGINT)"
+      return False
     return failCount == 0
 
 class XPCShellOptions(OptionParser):
@@ -526,6 +550,9 @@ class XPCShellOptions(OptionParser):
     self.add_option("--verbose",
                     action="store_true", dest="verbose", default=False,
                     help="always print stdout and stderr from tests")
+    self.add_option("--keep-going",
+                    action="store_true", dest="keepGoing", default=False,
+                    help="continue running tests after test killed with control-C (SIGINT)")
     self.add_option("--logfiles",
                     action="store_true", dest="logfiles", default=True,
                     help="create log files (default, only used to override --no-logfiles)")
