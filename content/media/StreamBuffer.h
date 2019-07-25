@@ -92,6 +92,7 @@ public:
 
 
 
+
   class Track {
   public:
     Track(TrackID aID, TrackRate aRate, TrackTicks aStart, MediaSegment* aSegment)
@@ -161,7 +162,13 @@ public:
     void ForgetUpTo(TrackTicks aTime)
     {
       mSegment->ForgetUpTo(aTime);
+#ifdef DEBUG
+      mForgottenUpTo = NS_MAX<TrackTicks>(mForgottenUpTo, aTime);
+#endif
     }
+#ifdef DEBUG
+    TrackTicks GetForgottenUpTo() { return mForgottenUpTo; }
+#endif
 
   protected:
     friend class StreamBuffer;
@@ -176,6 +183,7 @@ public:
     TrackID mID;
     
     bool mEnded;
+    DebugOnly<TrackTicks> mForgottenUpTo;
   };
 
   class CompareTracksByID {
@@ -244,6 +252,7 @@ public:
       ++mIndex;
       FindMatch();
     }
+    Track* get() { return mBuffer->ElementAt(mIndex); }
     Track& operator*() { return *mBuffer->ElementAt(mIndex); }
     Track* operator->() { return mBuffer->ElementAt(mIndex); }
   private:
@@ -270,6 +279,13 @@ public:
 
 
   void ForgetUpTo(StreamTime aTime);
+  
+
+
+  StreamTime GetForgottenDuration()
+  {
+    return mForgottenTime;
+  }
 
 protected:
   

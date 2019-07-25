@@ -59,15 +59,6 @@ const GraphTime GRAPH_TIME_MAX = MEDIA_TIME_MAX;
 
 
 
-
-
-
-
-
-
-
-
-
 class MediaStreamGraph;
 
 
@@ -149,6 +140,7 @@ public:
 
 
 
+
   virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
                                         TrackRate aTrackRate,
                                         TrackTicks aTrackOffset,
@@ -158,6 +150,8 @@ public:
 
 class MediaStreamGraphImpl;
 class SourceMediaStream;
+class ProcessedMediaStream;
+class MediaInputPort;
 
 
 
@@ -250,6 +244,7 @@ public:
 
 
   MediaStreamGraphImpl* GraphImpl();
+  MediaStreamGraph* Graph();
 
   
   
@@ -294,8 +289,10 @@ public:
   }
 
   friend class MediaStreamGraphImpl;
+  friend class MediaInputPort;
 
   virtual SourceMediaStream* AsSourceStream() { return nullptr; }
+  virtual ProcessedMediaStream* AsProcessedStream() { return nullptr; }
 
   
   void Init();
@@ -330,10 +327,19 @@ public:
   {
     mListeners.RemoveElement(aListener);
   }
-
-#ifdef DEBUG
+  void AddConsumer(MediaInputPort* aPort)
+  {
+    mConsumers.AppendElement(aPort);
+  }
+  void RemoveConsumer(MediaInputPort* aPort)
+  {
+    mConsumers.RemoveElement(aPort);
+  }
   const StreamBuffer& GetStreamBuffer() { return mBuffer; }
-#endif
+  GraphTime GetStreamBufferStartTime() { return mBufferStartTime; }
+  StreamTime GraphTimeToStreamTime(GraphTime aTime);
+  bool IsFinishedOnGraphThread() { return mFinished; }
+  void FinishOnGraphThread();
 
 protected:
   virtual void AdvanceTimeVaryingValuesToCurrentTime(GraphTime aCurrentTime, GraphTime aBlockedTime)
@@ -385,6 +391,9 @@ protected:
   TimeVarying<GraphTime,PRInt64> mGraphUpdateIndices;
 
   
+  nsTArray<MediaInputPort*> mConsumers;
+
+  
 
 
 
@@ -408,6 +417,22 @@ protected:
   
   
   TrackID mFirstActiveTracks[MediaSegment::TYPE_COUNT];
+
+  
+  bool mHasBeenOrdered;
+  bool mIsOnOrderingStack;
+  
+  
+  
+  bool mIsConsumed;
+  
+  bool mKnowIsConsumed;
+  
+  
+  
+  bool mInBlockingSet;
+  
+  bool mBlockInThisPhase;
 
   
   nsDOMMediaStream* mWrapper;
@@ -492,7 +517,6 @@ public:
 
   
 
-  friend class MediaStreamGraph;
   friend class MediaStreamGraphImpl;
 
   struct ThreadAndRunnable {
@@ -550,6 +574,159 @@ protected:
   bool mPullEnabled;
   bool mUpdateFinished;
   bool mDestroyed;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class MediaInputPort {
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaInputPort)
+
+  
+
+
+
+
+  enum {
+    
+    
+    FLAG_BLOCK_INPUT = 0x01,
+    
+    
+    FLAG_BLOCK_OUTPUT = 0x02
+  };
+  
+  MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
+                 PRUint32 aFlags)
+    : mSource(aSource)
+    , mDest(aDest)
+    , mFlags(aFlags)
+  {
+    MOZ_COUNT_CTOR(MediaInputPort);
+  }
+  ~MediaInputPort()
+  {
+    MOZ_COUNT_DTOR(MediaInputPort);
+  }
+
+  
+  
+  void Init();
+  
+  void Disconnect();
+
+  
+  
+
+
+
+  void Destroy();
+
+  
+  MediaStream* GetSource() { return mSource; }
+  ProcessedMediaStream* GetDestination() { return mDest; }
+
+  
+  struct InputInterval {
+    GraphTime mStart;
+    GraphTime mEnd;
+    bool mInputIsBlocked;
+  };
+  
+  
+  InputInterval GetNextInputInterval(GraphTime aTime);
+
+protected:
+  friend class MediaStreamGraphImpl;
+  friend class MediaStream;
+  friend class ProcessedMediaStream;
+  
+  MediaStream* mSource;
+  ProcessedMediaStream* mDest;
+  PRUint32 mFlags;
+};
+
+
+
+
+
+
+class ProcessedMediaStream : public MediaStream {
+public:
+  ProcessedMediaStream(nsDOMMediaStream* aWrapper)
+    : MediaStream(aWrapper), mAutofinish(false), mInCycle(false)
+  {}
+
+  
+  
+
+
+
+  MediaInputPort* AllocateInputPort(MediaStream* aStream, PRUint32 aFlags = 0);
+  
+
+
+  void Finish();
+  
+
+
+
+
+  void SetAutofinish(bool aAutofinish);
+
+  virtual ProcessedMediaStream* AsProcessedStream() { return this; }
+
+  friend class MediaStreamGraphImpl;
+
+  
+  virtual void AddInput(MediaInputPort* aPort)
+  {
+    mInputs.AppendElement(aPort);
+  }
+  virtual void RemoveInput(MediaInputPort* aPort)
+  {
+    mInputs.RemoveElement(aPort);
+  }
+  bool HasInputPort(MediaInputPort* aPort)
+  {
+    return mInputs.Contains(aPort);
+  }
+  virtual void DestroyImpl();
+  
+
+
+
+
+
+
+
+  virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo) = 0;
+  void SetAutofinishImpl(bool aAutofinish) { mAutofinish = aAutofinish; }
+
+protected:
+  
+
+  
+  nsTArray<MediaInputPort*> mInputs;
+  bool mAutofinish;
+  
+  
+  bool mInCycle;
 };
 
 
