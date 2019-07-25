@@ -1,6 +1,19 @@
 
-var g = newGlobal('new-compartment');
-g.libdir = libdir;
-g.eval("load(libdir + 'asserts.js');");
-g.parent = this;
-g.eval("assertThrowsInstanceOf(function () { new Debug(parent); }, Error);");
+
+
+var canEnable = true;
+if (typeof setDebugMode === 'function') {
+    try {
+	setDebugMode(true);
+    } catch (exc) {
+	canEnable = false;
+    }
+}
+
+if (!canEnable) {
+    var g = newGlobal('new-compartment');
+    g.libdir = libdir;
+    g.eval("load(libdir + 'asserts.js');");
+    g.parent = this;
+    g.eval("assertThrowsInstanceOf(function () { new Debug(parent); }, Error);");
+}
