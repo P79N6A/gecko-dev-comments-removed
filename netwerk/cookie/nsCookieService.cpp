@@ -1017,7 +1017,7 @@ nsCookieService::TryInitDB(bool aRecreateDB)
   
   
   mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "PRAGMA journal_mode = WAL"));
+    MOZ_STORAGE_UNIQUIFY_QUERY_STR "PRAGMA journal_mode = WAL"));
   mDefaultDBState->dbConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
     "PRAGMA wal_autocheckpoint = 16"));
 

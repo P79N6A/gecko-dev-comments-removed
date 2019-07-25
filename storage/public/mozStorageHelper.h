@@ -192,4 +192,9 @@ protected:
   nsCOMPtr<mozIStorageStatement> mStatement;
 };
 
+
+
+
+#define MOZ_STORAGE_UNIQUIFY_QUERY_STR "/* " __FILE__ " */ "
+
 #endif 
