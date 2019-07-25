@@ -1039,8 +1039,12 @@ pref("devtools.inspector.enabled", false);
 
 
 
-pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
+pref("devtools.hud.height", 0);
+
+
+
+pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
 
 pref("prompts.tab_modal.enabled", true);
