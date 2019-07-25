@@ -106,7 +106,7 @@ public:
     
     
 
-    bool     SupportsPipelining() { return mSupportsPipelining && IsKeepAlive(); }
+    bool     SupportsPipelining();
     bool     IsKeepAlive() { return mUsingSpdy ||
                                     (mKeepAliveMask && mKeepAlive); }
     bool     CanReuse();   
@@ -249,6 +249,11 @@ private:
     
     
     PRUint32                        mHttp1xTransactionCount;
+
+    
+    
+    
+    PRUint32                        mRemainingConnectionUses;
 
     nsAHttpTransaction::Classifier  mClassification;
 
