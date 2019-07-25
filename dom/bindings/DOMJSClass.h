@@ -12,13 +12,13 @@
 #include "mozilla/dom/PrototypeList.h" 
 
 
+
 #define DOM_OBJECT_SLOT 0
 
 
 
 
-#define DOM_GLOBAL_OBJECT_SLOT (JSCLASS_GLOBAL_SLOT_COUNT + 1)
-#define DOM_PROTOTYPE_SLOT (JSCLASS_GLOBAL_SLOT_COUNT + 2)
+#define DOM_PROTOTYPE_SLOT (JSCLASS_GLOBAL_SLOT_COUNT + 1)
 
 
 #define JSCLASS_IS_DOMJSCLASS JSCLASS_USERBIT1
@@ -63,9 +63,6 @@ struct DOMJSClass
   
   
   const bool mDOMObjectIsISupports;
-
-  
-  const size_t mNativeSlot;
 
   const NativePropertyHooks* mNativeHooks;
 
