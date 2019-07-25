@@ -387,6 +387,10 @@ WeaveSvc.prototype = {
         break;
       case "weave:service:sync:error":
         this._handleSyncError();
+        if (Status.sync == CREDENTIALS_CHANGED) {
+          this.logout();
+          Utils.delay(function() this.login(), 0, this);
+        }
         break;
       case "weave:service:sync:finish":
         this._scheduleNextSync();
@@ -557,29 +561,6 @@ WeaveSvc.prototype = {
       }
     }))(),
 
-  changePassphrase: function WeaveSvc_changePassphrase(newphrase)
-    this._catch(this._notify("changepph", "", function() {
-      let pubkey = PubKeys.getDefaultKey();
-      let privkey = PrivKeys.get(pubkey.privateKeyUri);
-
-      
-
-
-      let newkey = Svc.Crypto.rewrapPrivateKey(privkey.payload.keyData,
-          this.passphrase, privkey.payload.salt,
-          privkey.payload.iv, newphrase);
-      privkey.payload.keyData = newkey;
-
-      let resp = new Resource(privkey.uri).put(privkey);
-      if (!resp.success)
-        throw resp;
-
-      
-      this.passphrase = newphrase;
-      this.persistLogin();
-      return true;
-    }))(),
-
   changePassword: function WeaveSvc_changePassword(newpass)
     this._notify("changepwd", "", function() {
       let url = this.userAPI + this.username + "/password";
@@ -602,28 +583,20 @@ WeaveSvc.prototype = {
       return true;
     })(),
 
-  resetPassphrase: function WeaveSvc_resetPassphrase(newphrase)
-    this._catch(this._notify("resetpph", "", function() {
-      
-      this.prepCommand("logout", []);
-      let clientsBackup = Clients._store.clients;
-
+  changePassphrase: function WeaveSvc_changePassphrase(newphrase)
+    this._catch(this._notify("changepph", "", function() {
       
       this.wipeServer();
       PubKeys.clearCache();
       PrivKeys.clearCache();
 
-      
-      Clients._store.clients = clientsBackup;
-      let username = this.username;
-      let password = this.password;
       this.logout();
 
       
       this.passphrase = newphrase;
 
       
-      this.login(username, password, newphrase);
+      this.login();
       this.sync(true);
       return true;
     }))(),
@@ -892,6 +865,13 @@ WeaveSvc.prototype = {
       
       
       Sync.sleep(15000);
+      
+      
+      if (!this._verifyLogin()) {
+        Status.sync = CREDENTIALS_CHANGED;
+        this._log.info("Credentials have changed, aborting sync and forcing re-login.");
+        return false;
+      }
     }
 
     let needKeys = true;
