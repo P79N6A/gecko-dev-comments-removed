@@ -75,23 +75,21 @@ public:
   
   
 public:
-  static nsNodeInfo *Create();
+  
+
+
+  static nsNodeInfo *Create(nsIAtom *aName, nsIAtom *aPrefix,
+                            PRInt32 aNamespaceID,
+                            nsNodeInfoManager *aOwnerManager);
 private:
-  nsNodeInfo();
+  nsNodeInfo(); 
+  nsNodeInfo(const nsNodeInfo& aOther); 
+  nsNodeInfo(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
+             nsNodeInfoManager *aOwnerManager);
 protected:
   virtual ~nsNodeInfo();
 
 public:
-  
-
-
-
-
-
-
-  nsresult Init(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
-                nsNodeInfoManager *aOwnerManager);
-
   
 
 
