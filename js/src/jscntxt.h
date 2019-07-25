@@ -221,10 +221,6 @@ struct TracerState
     uintN          nativeVpLen;
     js::Value*     nativeVp;
 
-    
-    
-    JSFrameRegs    bailedSlowNativeRegs;
-
     TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~TracerState();
