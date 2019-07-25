@@ -132,7 +132,7 @@ protected:
     kWasDynamicEndpoint = 8
   };
   uint8_t       mFlags;   
-  bool          mVisited; 
+  mutable bool  mVisited; 
 
   
   
