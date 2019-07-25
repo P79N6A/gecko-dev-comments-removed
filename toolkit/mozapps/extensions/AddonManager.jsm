@@ -809,6 +809,8 @@ var AddonManager = {
   ERROR_INCORRECT_HASH: -2,
   
   ERROR_CORRUPT_FILE: -3,
+  
+  ERROR_FILE_ACCESS: -4,
 
   
   
