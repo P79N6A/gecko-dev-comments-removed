@@ -659,7 +659,6 @@ var ApplicationFactory = {
 
 
 
-
 function Application() {
   this.initToolkitHelpers();
   this._bookmarks = null;
