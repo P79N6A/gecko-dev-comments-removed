@@ -42,6 +42,7 @@
 #include "nsIInputStream.h"
 #include "nsIDocShell.h"
 #include "gfxPattern.h"
+#include "mozilla/RefPtr.h"
 
 #define NS_ICANVASRENDERINGCONTEXTINTERNAL_IID \
 { 0xffb42d3c, 0x8281, 0x44c8, \
@@ -60,6 +61,9 @@ class LayerManager;
 }
 namespace ipc {
 class Shmem;
+}
+namespace gfx {
+class SourceSurface;
 }
 }
 
@@ -96,6 +100,11 @@ public:
   
   
   NS_IMETHOD GetThebesSurface(gfxASurface **surface) = 0;
+  
+  
+  
+  
+  virtual mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetSurfaceSnapshot() = 0;
 
   
   
