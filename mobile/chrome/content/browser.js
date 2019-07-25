@@ -495,11 +495,16 @@ var Browser = {
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
     
-    var whereURI = "about:blank";
-    try {
-      
-      whereURI = gPrefService.getCharPref("browser.startup.homepage");
-    } catch (e) {}
+    let whereURI = "about:blank";
+    switch (Util.needHomepageOverride()) {
+      case "new profile":
+        whereURI = "about:firstrun";
+        break;
+      case "new version":
+      case "none":
+        whereURI = "about:blank";
+        break;
+    }
 
     
     
@@ -530,6 +535,8 @@ var Browser = {
     }
 
     this.addTab(whereURI, true);
+    if (whereURI == "about:blank")
+      BrowserUI.showAutoComplete();
 
     
     if (gPrefService.getBoolPref("browser.console.showInPanel")){
