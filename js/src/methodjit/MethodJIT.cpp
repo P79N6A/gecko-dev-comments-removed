@@ -948,3 +948,30 @@ mjit::GetCallTargetCount(JSScript *script, jsbytecode *pc)
     return 1;
 }
 #endif
+
+jsbytecode *
+JITScript::nativeToPC(void *returnAddress) const
+{
+    size_t low = 0;
+    size_t high = nCallICs;
+    while (high > low + 1) {
+        
+        size_t mid = (high + low) / 2;
+        void *entry = callICs[mid].funGuard.executableAddress();
+
+        
+
+
+
+        if (entry >= returnAddress)
+            high = mid;
+        else
+            low = mid;
+    }
+
+    js::mjit::ic::CallICInfo &ic = callICs[low];
+
+    JS_ASSERT((uint8*)ic.funGuard.executableAddress() + ic.joinPointOffset == returnAddress);
+    return ic.pc;
+}
+
