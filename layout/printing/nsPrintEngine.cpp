@@ -1829,13 +1829,11 @@ nsPrintEngine::ReflowDocList(nsPrintObject* aPO, PRBool aSetPixelScale)
 
   
   if (aPO->mParent && aPO->mParent->mPresShell) {
-    nsIFrame * frame = aPO->mContent->GetPrimaryFrame();
-    if (frame) {
-      if (!frame->GetStyleVisibility()->IsVisible()) {
-        aPO->mDontPrint = PR_TRUE;
-        aPO->mInvisible = PR_TRUE;
-        return NS_OK;
-      }
+    nsIFrame* frame = aPO->mContent ? aPO->mContent->GetPrimaryFrame() : nsnull;
+    if (!frame || !frame->GetStyleVisibility()->IsVisible()) {
+      aPO->mDontPrint = PR_TRUE;
+      aPO->mInvisible = PR_TRUE;
+      return NS_OK;
     }
   }
 
@@ -1885,7 +1883,7 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   nsIView* parentView = nsnull;
 
   if (aPO->mParent && aPO->mParent->IsPrintable()) {
-    nsIFrame* frame = aPO->mContent->GetPrimaryFrame();
+    nsIFrame* frame = aPO->mContent ? aPO->mContent->GetPrimaryFrame() : nsnull;
     
     
     if (!frame) {
