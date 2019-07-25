@@ -44,6 +44,12 @@ typedef Handle<ParallelArrayObject *> HandleParallelArrayObject;
 
 
 
+
+
+
+
+
+
 class ParallelArrayObject : public JSObject {
   public:
     typedef Vector<uint32_t, 4> IndexVector;
@@ -138,12 +144,7 @@ class ParallelArrayObject : public JSObject {
     inline uint32_t bufferOffset();
     inline uint32_t outermostDimension();
     inline bool isOneDimensional();
-    inline bool inOutermostDimensionRange(uint32_t index);
-    inline bool inOutermostDimensionRange(JSContext *cx, HandleId id);
     inline bool getDimensions(JSContext *cx, IndexVector &dims);
-
-    
-    bool getElementFromOnlyDimension(JSContext *cx, uint32_t index, MutableHandleValue vp);
 
     
     bool getParallelArrayElement(JSContext *cx, IndexInfo &iv, MutableHandleValue vp);
@@ -151,9 +152,25 @@ class ParallelArrayObject : public JSObject {
     
     
     
+    
+    
+    
+    
+    
+    bool getParallelArrayElement(JSContext *cx, uint32_t index, IndexInfo *maybeIV,
+                                 MutableHandleValue vp);
+
+    
+    
+    
     bool getParallelArrayElement(JSContext *cx, uint32_t index, MutableHandleValue vp);
 
     bool toStringBuffer(JSContext *cx, bool useLocale, StringBuffer &sb);
+
+    
+    
+    static bool enumerate(JSContext *cx, HandleObject obj, unsigned flags,
+                          AutoIdVector *props);
 
   private:
     enum {
@@ -387,8 +404,6 @@ class ParallelArrayObject : public JSObject {
                                 MutableHandleValue rval, JSBool strict);
     static JSBool deleteSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid,
                                 MutableHandleValue rval, JSBool strict);
-    static JSBool enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
-                            Value *statep, jsid *idp);
 };
 
 } 
