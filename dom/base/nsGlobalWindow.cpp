@@ -6532,7 +6532,6 @@ nsGlobalWindow::ForceClose()
 nsresult
 nsGlobalWindow::FinalClose()
 {
-  nsresult rv;
   
   mIsClosed = true;
 
@@ -6549,16 +6548,8 @@ nsGlobalWindow::FinalClose()
     nsIScriptContext *currentCX = nsJSUtils::GetDynamicScriptContext(cx);
 
     if (currentCX && currentCX == GetContextInternal()) {
-      
-      
-      
-      
-      rv = currentCX->SetTerminationFunction(CloseWindow,
-                                             static_cast<nsIDOMWindow *>
-                                                        (this));
-      if (NS_SUCCEEDED(rv)) {
-        mHavePendingClose = true;
-      }
+      currentCX->SetTerminationFunction(CloseWindow, this);
+      mHavePendingClose = true;
       return NS_OK;
     }
   }
@@ -6567,20 +6558,14 @@ nsGlobalWindow::FinalClose()
   
   
   
-  
-  rv = NS_ERROR_FAILURE;
-  if (!nsContentUtils::IsCallerChrome()) {
-    rv = nsCloseEvent::PostCloseEvent(this);
-  }
-  
-  if (NS_FAILED(rv)) {
+  if (nsContentUtils::IsCallerChrome() ||
+      NS_FAILED(nsCloseEvent::PostCloseEvent(this))) {
     ReallyCloseWindow();
-    rv = NS_OK;
   } else {
     mHavePendingClose = true;
   }
-  
-  return rv;
+
+  return NS_OK;
 }
 
 
@@ -8867,8 +8852,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
         if (mContext == GetScriptContextFromJSContext(aJSCallerContext)) {
           mBlockScriptedClosingFlag = true;
           mContext->SetTerminationFunction(CloseBlockScriptTerminationFunc,
-                                           static_cast<nsPIDOMWindow*>
-                                                      (this));
+                                           this);
         }
       }
 
