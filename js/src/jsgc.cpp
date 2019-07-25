@@ -1027,6 +1027,7 @@ JSRuntime::setGCTriggerFactor(uint32 factor)
     for (JSCompartment **c = compartments.begin(); c != compartments.end(); ++c) {
         (*c)->setGCLastBytes(gcLastBytes);
     }
+    atomsCompartment->setGCLastBytes(gcLastBytes);
 }
 
 void
@@ -1633,7 +1634,7 @@ MarkContext(JSTracer *trc, JSContext *acx)
     MarkValue(trc, acx->iterValue, "iterValue");
 
     if (acx->compartment)
-        acx->compartment->mark(trc);
+        acx->compartment->marked = true;
 }
 
 JS_REQUIRES_STACK void
@@ -1722,8 +1723,6 @@ MarkRuntime(JSTracer *trc)
     while (JSContext *acx = js_ContextIterator(rt, JS_TRUE, &iter))
         MarkContext(trc, acx);
 
-    rt->atomsCompartment->mark(trc);
-
 #ifdef JS_TRACER
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
         (*c)->traceMonitor.mark(trc);
@@ -1731,6 +1730,19 @@ MarkRuntime(JSTracer *trc)
 
     for (ThreadDataIter i(rt); !i.empty(); i.popFront())
         i.threadData()->mark(trc);
+
+    if (rt->emptyArgumentsShape)
+        rt->emptyArgumentsShape->trace(trc);
+    if (rt->emptyBlockShape)
+        rt->emptyBlockShape->trace(trc);
+    if (rt->emptyCallShape)
+        rt->emptyCallShape->trace(trc);
+    if (rt->emptyDeclEnvShape)
+        rt->emptyDeclEnvShape->trace(trc);
+    if (rt->emptyEnumeratorShape)
+        rt->emptyEnumeratorShape->trace(trc);
+    if (rt->emptyWithShape)
+        rt->emptyWithShape->trace(trc);
 
     
 
@@ -2235,7 +2247,7 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
 #endif
         ) {
         rt->gcRegenShapes = true;
-        rt->shapeGen = 0;
+        rt->shapeGen = Shape::LAST_RESERVED_SHAPE;
         rt->protoHazardShape = 0;
     }
 
@@ -2275,9 +2287,7 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
          r.front()->clearMarkBitmap();
 
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        (*c)->markCrossCompartment(&gcmarker);
-
-    comp->mark(&gcmarker);
+        (*c)->mark(&gcmarker);
 
     MarkRuntime(&gcmarker);
 
@@ -2348,13 +2358,11 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
     comp->finalizeStringArenaLists(cx);
     TIMESTAMP(sweepStringEnd);
 
-#ifdef DEBUG
     
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        JS_ASSERT_IF(*c != comp, (*c)->propertyTree.checkShapesAllUnmarked(cx));
 
-    PropertyTree::dumpShapes(cx);
-#endif
+
+
+    js::PropertyTree::unmarkShapes(cx);
 
     
 
@@ -2461,19 +2469,13 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
 
     TIMESTAMP(sweepStringEnd);
 
+    SweepCompartments(cx, gckind);
+
     
 
 
 
-
-
-
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        (*c)->propertyTree.sweepShapes(cx);
-
-    PropertyTree::dumpShapes(cx);
-
-    SweepCompartments(cx, gckind);
+    js::PropertyTree::sweepShapes(cx);
 
     
 
@@ -2700,12 +2702,6 @@ GCUntilDone(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIM
 
     AutoGCSession gcsession(cx);
 
-    
-
-
-
-    SwitchToCompartment(cx, (JSCompartment *)NULL);
-    
     JS_ASSERT(!rt->gcCurrentCompartment);
     rt->gcCurrentCompartment = comp;
 
