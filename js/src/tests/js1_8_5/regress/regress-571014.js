@@ -8,7 +8,12 @@ assertEq(o.byteLength, 1);
 
 o = {};
 o.__proto__ = new Int32Array(1);
-assertEq(o.buffer.byteLength, 4); 
+try {
+    o.buffer.byteLength;
+} catch (ex) {
+    
+    assertEq(ex instanceof TypeError, true);
+}
 
 F = function () {};
 F.prototype = new Int32Array(1);
