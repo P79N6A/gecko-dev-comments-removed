@@ -917,6 +917,16 @@ public:
                     nsSize aMargin, nsSize aBorder, nsSize aPadding);
 
   
+
+
+
+
+
+  static nsSize ComputeAutoSizeWithIntrinsicDimensions(nscoord minWidth, nscoord minHeight,
+                                                       nscoord maxWidth, nscoord maxHeight,
+                                                       nscoord tentWidth, nscoord tentHeight);
+
+  
   static nscoord PrefWidthFromInline(nsIFrame* aFrame,
                                      nsRenderingContext* aRenderingContext);
 
