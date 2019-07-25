@@ -40,8 +40,8 @@
 #include "nsSVGContainerFrame.h"
 
 class nsISVGGlyphFragmentNode;
-class nsISVGGlyphFragmentLeaf;
 class nsSVGTextFrame;
+class nsSVGGlyphFrame;
 
 class nsSVGTextContainerFrame : public nsSVGDisplayContainerFrame
 {
@@ -121,10 +121,10 @@ private:
   
 
 
-  static nsISVGGlyphFragmentLeaf *
-  GetGlyphFragmentAtCharNum(nsISVGGlyphFragmentNode* node,
-                            PRUint32 charnum,
-                            PRUint32 *offset);
+  static nsSVGGlyphFrame *
+  GetGlyphFrameAtCharNum(nsISVGGlyphFragmentNode* node,
+                         PRUint32 charnum,
+                         PRUint32 *offset);
 
   
 
