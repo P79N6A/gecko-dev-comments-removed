@@ -41,6 +41,7 @@
 
 
 
+
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -1248,8 +1249,12 @@ InspectorUI.prototype = {
         break;
       case "keypress":
         switch (event.keyCode) {
-          case this.chromeWin.KeyEvent.DOM_VK_RETURN:
           case this.chromeWin.KeyEvent.DOM_VK_ESCAPE:
+            this.closeInspectorUI(false);
+            event.preventDefault();
+            event.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_RETURN:
             this.toggleInspection();
             event.preventDefault();
             event.stopPropagation();
