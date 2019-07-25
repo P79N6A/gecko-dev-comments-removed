@@ -107,7 +107,8 @@ int moz_pango_units_from_double(double d) {
 
 static PangoLanguage *GuessPangoLanguage(nsIAtom *aLanguage);
 
-static cairo_scaled_font_t *CreateScaledFont(FcPattern *aPattern);
+static cairo_scaled_font_t *
+CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace);
 static PRBool CanTakeFastPath(PRUint32 aFlags);
 static void SetMissingGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8,
                              PRUint32 aUTF8Length, PRUint32 *aUTF16Offset);
@@ -157,6 +158,36 @@ FindFunctionSymbol(const char *name)
 
     return result;
 }
+
+static cairo_user_data_key_t sFontEntryKey;
+
+
+
+
+
+
+
+
+
+
+
+class gfxSystemFcFontEntry : public gfxFontEntry {
+public:
+    gfxSystemFcFontEntry(cairo_font_face_t *aFontFace, const nsAString& aName)
+        : gfxFontEntry(aName), mFontFace(aFontFace)
+    {
+        cairo_font_face_reference(mFontFace);
+        cairo_font_face_set_user_data(mFontFace, &sFontEntryKey, this, NULL);
+    }
+
+    ~gfxSystemFcFontEntry()
+    {
+        cairo_font_face_set_user_data(mFontFace, &sFontEntryKey, NULL, NULL);
+        cairo_font_face_destroy(mFontFace);
+    }
+private:
+    cairo_font_face_t *mFontFace;
+};
 
 
 
@@ -275,6 +306,11 @@ gfxFcFontEntry::AdjustPatternToCSS(FcPattern *aPattern)
 
 
 
+
+
+
+
+
 class gfxLocalFcFontEntry : public gfxFcFontEntry {
 public:
     gfxLocalFcFontEntry(const gfxProxyFontEntry &aProxyEntry,
@@ -297,6 +333,9 @@ public:
         mIsLocalUserFont = PR_TRUE;
     }
 };
+
+
+
 
 
 
@@ -2072,6 +2111,13 @@ GetPixelSize(FcPattern *aPattern)
     return 0.0;
 }
 
+static void ReleaseDownloadedFontEntry(void *data)
+{
+    gfxDownloadedFcFontEntry *downloadedFontEntry =
+        static_cast<gfxDownloadedFcFontEntry*>(data);
+    NS_RELEASE(downloadedFontEntry);
+}
+
 
 
 
@@ -2091,8 +2137,55 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
 {
     nsAutoRef<FcPattern> renderPattern
         (FcFontRenderPrepare(NULL, aRequestedPattern, aFontPattern));
+    cairo_font_face_t *face =
+        cairo_ft_font_face_create_for_pattern(renderPattern);
 
-    cairo_scaled_font_t *cairoFont = CreateScaledFont(renderPattern);
+    
+    nsRefPtr<gfxFontEntry> fe = static_cast<gfxFontEntry*>
+        (cairo_font_face_get_user_data(face, &sFontEntryKey));
+    if (!fe) {
+        fe = GetDownloadedFontEntry(aFontPattern);
+        if (fe && cairo_font_face_status(face) == CAIRO_STATUS_SUCCESS) {
+            
+            if (CAIRO_STATUS_SUCCESS ==
+                cairo_font_face_set_user_data(face, &sFontEntryKey, fe,
+                                              ReleaseDownloadedFontEntry)) {
+                
+                
+                NS_ADDREF(fe);
+            } else {
+                
+                cairo_font_face_destroy(face);
+                face = cairo_ft_font_face_create_for_pattern(aRequestedPattern);
+                fe = static_cast<gfxFontEntry*>
+                    (cairo_font_face_get_user_data(face, &sFontEntryKey));
+            }
+        }
+        if (!fe) {
+            
+            nsAutoString name;
+            FcChar8 *fc_file;
+            if (FcPatternGetString(renderPattern,
+                                   FC_FILE, 0, &fc_file) == FcResultMatch) {
+                int index;
+                if (FcPatternGetInteger(renderPattern,
+                                        FC_INDEX, 0, &index) != FcResultMatch) {
+                    
+                    index = 0;
+                }
+
+                AppendUTF8toUTF16(gfxFontconfigUtils::ToCString(fc_file), name);
+                if (index != 0) {
+                    name.AppendLiteral("/");
+                    name.AppendInt(index);
+                }
+            }
+
+            fe = new gfxSystemFcFontEntry(face, name);
+        }
+    }
+
+    cairo_scaled_font_t *cairoFont = CreateScaledFont(renderPattern, face);
 
     nsRefPtr<gfxFcFont> font = static_cast<gfxFcFont*>
         (cairo_scaled_font_get_user_data(cairoFont, &sGfxFontKey));
@@ -2116,37 +2209,6 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
                                NS_LITERAL_STRING(""),
                                NS_LITERAL_STRING("")); 
 
-        nsRefPtr<gfxFontEntry> fe;
-        FcChar8 *fc_file;
-        if (FcPatternGetString(renderPattern,
-                               FC_FILE, 0, &fc_file) == FcResultMatch) {
-            int index;
-            if (FcPatternGetInteger(renderPattern,
-                                    FC_INDEX, 0, &index) != FcResultMatch) {
-                
-                NS_NOTREACHED("No index in pattern for font face from file");
-                index = 0;
-            }
-
-            
-            nsAutoString name;
-            AppendUTF8toUTF16(gfxFontconfigUtils::ToCString(fc_file), name);
-            if (index != 0) {
-                name.AppendLiteral("/");
-                name.AppendInt(index);
-            }
-
-            fe = new gfxFontEntry(name);
-        } else {
-            fe = GetDownloadedFontEntry(renderPattern);
-            if (!fe) {
-                
-                
-                NS_NOTREACHED("Fonts without a file is not a web font!?");
-                fe = new gfxFontEntry(nsString());
-            }
-        }
-
         
         
         
@@ -2158,6 +2220,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
     }
 
     cairo_scaled_font_destroy(cairoFont);
+    cairo_font_face_destroy(face);
     return font.forget();
 }
 
@@ -2251,41 +2314,10 @@ CanTakeFastPath(PRUint32 aFlags)
 }
 #endif
 
-static void ReleaseDownloadedFontEntry(void *data)
-{
-    gfxDownloadedFcFontEntry *downloadedFontEntry =
-        static_cast<gfxDownloadedFcFontEntry*>(data);
-    NS_RELEASE(downloadedFontEntry);
-}
-
 
 static cairo_scaled_font_t *
-CreateScaledFont(FcPattern *aPattern)
+CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace)
 {
-    cairo_font_face_t *face = cairo_ft_font_face_create_for_pattern(aPattern);
-
-    
-    
-    gfxDownloadedFcFontEntry *downloadedFontEntry =
-        GetDownloadedFontEntry(aPattern);
-    if (downloadedFontEntry &&
-        cairo_font_face_status(face) == CAIRO_STATUS_SUCCESS) {
-        static cairo_user_data_key_t sFontEntryKey;
-
-        
-        void *currentEntry =
-            cairo_font_face_get_user_data(face, &sFontEntryKey);
-        if (!currentEntry) {
-            NS_ADDREF(downloadedFontEntry);
-            cairo_font_face_set_user_data(face, &sFontEntryKey,
-                                          downloadedFontEntry,
-                                          ReleaseDownloadedFontEntry);
-        } else {
-            NS_ASSERTION(currentEntry == downloadedFontEntry,
-                         "Unexpected cairo font face!");
-        }
-    }
-
     double size = GetPixelSize(aPattern);
         
     cairo_matrix_t fontMatrix;
@@ -2450,11 +2482,10 @@ CreateScaledFont(FcPattern *aPattern)
     cairo_font_options_set_antialias(fontOptions, antialias);
 
     cairo_scaled_font_t *scaledFont =
-        cairo_scaled_font_create(face, &fontMatrix, &identityMatrix,
+        cairo_scaled_font_create(aFace, &fontMatrix, &identityMatrix,
                                  fontOptions);
 
     cairo_font_options_destroy(fontOptions);
-    cairo_font_face_destroy(face);
 
     NS_ASSERTION(cairo_scaled_font_status(scaledFont) == CAIRO_STATUS_SUCCESS,
                  "Failed to create scaled font");
