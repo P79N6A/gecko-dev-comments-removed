@@ -353,6 +353,9 @@ SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 
 
 
+
+
+
 typedef SECStatus (PR_CALLBACK *SSLAuthCertificate)(void *arg, PRFileDesc *fd, 
                                                     PRBool checkSig,
                                                     PRBool isServer);
@@ -818,8 +821,14 @@ extern const char *NSSSSL_GetVersion(void);
 
 
 
+
+
+
+
+
+
 SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
-						 PRErrorCode status);
+						 PRErrorCode error);
 SEC_END_PROTOS
 
 #endif 

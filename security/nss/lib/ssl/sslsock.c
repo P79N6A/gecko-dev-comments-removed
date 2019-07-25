@@ -1964,8 +1964,23 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 
 
 	if (ss->lastWriteBlocked && ss->pendingBuf.len != 0) {
+	    
+
+
+
+
+
 	    new_flags &= (PR_POLL_WRITE | PR_POLL_EXCEPT);
 	} else {
+	    
+
+
+
+
+
+
+
+
 	    new_flags = 0;
 	}
     }
