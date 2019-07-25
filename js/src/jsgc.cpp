@@ -2400,36 +2400,32 @@ DecommitFreePages(JSContext *cx)
 
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront()) {
         Chunk *chunk = r.front();
-        while (chunk) {
-            ArenaHeader *aheader = static_cast<ArenaHeader*>(chunk->info.freeArenasHead);
+        ArenaHeader *aheader = chunk->info.freeArenasHead;
 
+        
+
+
+
+
+        chunk->info.freeArenasHead = NULL;
+
+        while (aheader) {
             
+            ArenaHeader *next = aheader->next;
 
-
-
-
-            chunk->info.freeArenasHead = NULL;
-
-            while (aheader) {
-                
-                ArenaHeader *next = aheader->next;
-
-                bool success = DecommitMemory(aheader, ArenaSize);
-                if (!success) {
-                    aheader->next = chunk->info.freeArenasHead;
-                    chunk->info.freeArenasHead = aheader;
-                    continue;
-                }
-
-                size_t arenaOffset = Chunk::arenaIndex(reinterpret_cast<uintptr_t>(aheader));
-                chunk->decommittedArenas.set(arenaOffset);
-                --chunk->info.numArenasFreeCommitted;
-                --rt->gcNumFreeArenas;
-
-                aheader = next;
+            bool success = DecommitMemory(aheader, ArenaSize);
+            if (!success) {
+                aheader->next = chunk->info.freeArenasHead;
+                chunk->info.freeArenasHead = aheader;
+                continue;
             }
 
-            chunk = chunk->info.next;
+            size_t arenaIndex = Chunk::arenaIndex(aheader->arenaAddress());
+            chunk->decommittedArenas.set(arenaIndex);
+            --chunk->info.numArenasFreeCommitted;
+            --rt->gcNumFreeArenas;
+
+            aheader = next;
         }
     }
 }
