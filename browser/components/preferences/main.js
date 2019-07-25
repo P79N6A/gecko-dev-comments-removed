@@ -439,14 +439,6 @@ var gMainPane = {
   
 
 
-  showAddonsMgr: function ()
-  {
-    openUILinkIn("about:addons", "window");
-  },
-
-  
-
-
 
   updateBrowserStartupLastSession: function()
   {
