@@ -50,7 +50,7 @@
 #define NS_SYSTEMPRINCIPAL_CONTRACTID "@mozilla.org/systemprincipal;1"
 
 
-class nsSystemPrincipal : public nsIPrincipal
+class nsSystemPrincipal : public nsJSPrincipals
 {
 public:
     
@@ -59,14 +59,17 @@ public:
     NS_DECL_NSIPRINCIPAL
     NS_DECL_NSISERIALIZABLE
 
-    nsresult Init(JSPrincipals **jsprin);
-
     nsSystemPrincipal();
+
+    virtual void GetScriptLocation(nsACString &aStr) MOZ_OVERRIDE;
+
+#ifdef DEBUG
+    virtual void dumpImpl() MOZ_OVERRIDE;
+#endif 
 
 protected:
     virtual ~nsSystemPrincipal(void);
 
-    nsJSPrincipals mJSPrincipals;
     
     NS_DECL_OWNINGTHREAD
 };

@@ -509,11 +509,8 @@ struct JSRuntime : js::RuntimeFriendFields
 
     uint32_t            debuggerMutations;
 
-    
-
-
-
-    JSSecurityCallbacks *securityCallbacks;
+    const JSSecurityCallbacks *securityCallbacks;
+    JSDestroyPrincipalsOp destroyPrincipals;
 
     
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
@@ -1012,9 +1009,6 @@ struct JSContext : js::ContextFriendFields
 #endif
 
 #endif 
-
-    
-    JSSecurityCallbacks *securityCallbacks;
 
     
     unsigned               resolveFlags;

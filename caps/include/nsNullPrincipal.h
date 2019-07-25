@@ -59,7 +59,7 @@ class nsIURI;
 
 #define NS_NULLPRINCIPAL_SCHEME "moz-nullprincipal"
 
-class nsNullPrincipal : public nsIPrincipal
+class nsNullPrincipal : public nsJSPrincipals
 {
 public:
   nsNullPrincipal();
@@ -76,10 +76,15 @@ public:
 
   nsresult Init();
 
-protected:
+  virtual void GetScriptLocation(nsACString &aStr) MOZ_OVERRIDE;
+
+#ifdef DEBUG
+  virtual void dumpImpl() MOZ_OVERRIDE;
+#endif 
+
+ protected:
   virtual ~nsNullPrincipal();
 
-  nsJSPrincipals mJSPrincipals;
   nsCOMPtr<nsIURI> mURI;
 };
 

@@ -50,46 +50,44 @@
 #include "nsMemory.h"
 #include "nsStringBuffer.h"
 
-static JSBool
-nsJSPrincipalsSubsume(JSPrincipals *jsprin, JSPrincipals *other)
-{
-    nsJSPrincipals *nsjsprin = static_cast<nsJSPrincipals *>(jsprin);
-    nsJSPrincipals *nsother  = static_cast<nsJSPrincipals *>(other);
 
+#include "mozilla/dom/workers/Workers.h"
+
+ JSBool
+nsJSPrincipals::Subsume(JSPrincipals *jsprin, JSPrincipals *other)
+{
     bool result;
-    nsresult rv = nsjsprin->nsIPrincipalPtr->Subsumes(nsother->nsIPrincipalPtr,
-                                                      &result);
+    nsresult rv = nsJSPrincipals::get(jsprin)->Subsumes(nsJSPrincipals::get(other), &result);
     return NS_SUCCEEDED(rv) && result;
 }
 
-static void
-nsDestroyJSPrincipals(JSContext *cx, struct JSPrincipals *jsprin)
+ void
+nsJSPrincipals::Destroy(JSPrincipals *jsprin)
 {
-    nsJSPrincipals *nsjsprin = static_cast<nsJSPrincipals *>(jsprin);
+    
+    
+    
+
+    nsJSPrincipals *nsjsprin = nsJSPrincipals::get(jsprin);
 
     
     
 
-    
-    
-    
 #ifdef NS_BUILD_REFCNT_LOGGING
     
     
     
     nsjsprin->refcount++;
-    nsjsprin->nsIPrincipalPtr->AddRef();
+    nsjsprin->AddRef();
     nsjsprin->refcount--;
 #else
     nsjsprin->refcount++;
 #endif
-    nsjsprin->nsIPrincipalPtr->Release();
-    
-    
+    nsjsprin->Release();
 }
 
-static JSBool
-nsTranscodeJSPrincipals(JSXDRState *xdr, JSPrincipals **jsprinp)
+ JSBool
+nsJSPrincipals::Transcode(JSXDRState *xdr, JSPrincipals **jsprinp)
 {
     nsresult rv;
 
@@ -107,12 +105,7 @@ nsTranscodeJSPrincipals(JSXDRState *xdr, JSPrincipals **jsprinp)
             if (NS_SUCCEEDED(rv)) {
                 ::JS_XDRMemResetData(xdr);
 
-                
-                
-                nsJSPrincipals *nsjsprin =
-                    static_cast<nsJSPrincipals*>(*jsprinp);
-
-                rv = stream->WriteObject(nsjsprin->nsIPrincipalPtr, true);
+                rv = stream->WriteObject(nsJSPrincipals::get(*jsprinp), true);
             }
         }
     } else {
@@ -141,7 +134,8 @@ nsTranscodeJSPrincipals(JSXDRState *xdr, JSPrincipals **jsprinp)
                     nsMemory::Free(olddata);
                     ::JS_XDRMemSetData(xdr, data, size);
 
-                    prin->GetJSPrincipals(xdr->cx, jsprinp);
+                    *jsprinp = nsJSPrincipals::get(prin);
+                    JS_HoldPrincipals(*jsprinp);
                 }
             }
         }
@@ -156,69 +150,22 @@ nsTranscodeJSPrincipals(JSXDRState *xdr, JSPrincipals **jsprinp)
     return JS_TRUE;
 }
 
-nsresult
-nsJSPrincipals::Startup()
+#ifdef DEBUG
+
+
+JS_EXPORT_API(void)
+JSPrincipals::dump()
 {
-    nsCOMPtr<nsIJSRuntimeService> rtsvc = nsXPConnect::GetXPConnect();
-    if (!rtsvc)
-        return NS_ERROR_FAILURE;
-
-    JSRuntime *rt;
-    rtsvc->GetRuntime(&rt);
-    NS_ASSERTION(rt != nsnull, "no JSRuntime?!");
-
-    JSSecurityCallbacks *callbacks = JS_GetRuntimeSecurityCallbacks(rt);
-    NS_ASSERTION(callbacks, "Need a callbacks struct by now!");
-
-    NS_ASSERTION(!callbacks->principalsTranscoder,
-                 "oops, JS_SetPrincipalsTranscoder wars!");
-
-    callbacks->principalsTranscoder = nsTranscodeJSPrincipals;
-    return NS_OK;
-}
-
-nsJSPrincipals::nsJSPrincipals()
-{
-    codebase = nsnull;
-    refcount = 0;
-    destroy = nsDestroyJSPrincipals;
-    subsume = nsJSPrincipalsSubsume;
-    nsIPrincipalPtr = nsnull;
-}
-
-nsresult
-nsJSPrincipals::Init(nsIPrincipal *aPrincipal, const nsCString& aCodebase)
-{
-    if (nsIPrincipalPtr) {
-        NS_ERROR("Init called twice!");
-        return NS_ERROR_UNEXPECTED;
-    }
-
-    nsIPrincipalPtr = aPrincipal;
-    nsStringBuffer* buf = nsStringBuffer::FromString(aCodebase);
-    char* data;
-    if (buf) {
-        buf->AddRef();
-        data = static_cast<char*>(buf->Data());
+    if (debugToken == nsJSPrincipals::DEBUG_TOKEN) {
+        static_cast<nsJSPrincipals *>(this)->dumpImpl();
+    } else if (debugToken == mozilla::dom::workers::kJSPrincipalsDebugToken) {
+        fprintf(stderr, "Web Worker principal singleton (%p)\n", this);
     } else {
-        PRUint32 len = aCodebase.Length();
-        buf = nsStringBuffer::Alloc(len + 1); 
-        if (!buf) {
-            return NS_ERROR_OUT_OF_MEMORY;
-        }
-        data = static_cast<char*>(buf->Data());
-        memcpy(data, aCodebase.get(), len);
-        data[len] = '\0';
-    }
-    
-    codebase = data;
-
-    return NS_OK;
-}
-
-nsJSPrincipals::~nsJSPrincipals()
-{
-    if (codebase) {
-        nsStringBuffer::FromData(codebase)->Release();
+        fprintf(stderr,
+                "!!! JSPrincipals (%p) is not nsJSPrincipals instance - bad token: "
+                "actual=0x%x expected=0x%x\n",
+                this, unsigned(debugToken), unsigned(nsJSPrincipals::DEBUG_TOKEN));
     }
 }
+
+#endif 
