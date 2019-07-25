@@ -59,7 +59,7 @@ public:
 
     virtual ~gfxGDIFont();
 
-    HFONT GetHFONT() const { return mFont; }
+    HFONT GetHFONT() { if (!mMetrics) Initialize(); return mFont; }
 
     gfxFloat GetAdjustedSize() const { return mAdjustedSize; }
 
@@ -95,6 +95,10 @@ protected:
     void Initialize(); 
 
     void FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize);
+
+    
+    
+    nsAutoPtr<gfxFontShaper>   mUniscribeShaper;
 
     HFONT                 mFont;
     cairo_font_face_t    *mFontFace;

@@ -271,6 +271,10 @@ public:
         return mUnicodeRanges.test(range);
     }
 
+    virtual PRBool SkipDuringSystemFallback() { 
+        return !HasCmapTable(); 
+    }
+
     virtual PRBool TestCharacterMap(PRUint32 aCh);
 
     
