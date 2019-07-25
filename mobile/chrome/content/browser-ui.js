@@ -298,7 +298,7 @@ var BrowserUI = {
       this._activePanel.close();
 
     
-    let isReadOnly = !(aPanel == AllPagesList && Util.isPortrait() && (willShowPanel || !this._edit.readOnly));
+    let isReadOnly = (aPanel != AllPagesList || this._isKeyboardFullscreen() || (!willShowPanel && this._edit.readOnly));
     this._edit.readOnly = isReadOnly;
     if (isReadOnly)
       this._edit.blur();
@@ -353,6 +353,24 @@ var BrowserUI = {
       return;
     this._popup = null;
     this._dispatchPopupChanged(false);
+  },
+
+  
+  _isKeyboardFullscreen: function _isKeyboardFullscreen() {
+#ifdef ANDROID
+    if (!Util.isPortrait()) {
+      switch (Services.prefs.getIntPref("widget.ime.android.landscape_fullscreen")) {
+        case 1:
+          return true;
+        case -1: {
+          let threshold = Services.prefs.getIntPref("widget.ime.android.fullscreen_threshold");
+          let dpi = Util.getWindowUtils(window).displayDPI;
+          return (window.innerHeight * 100 < threshold * dpi);
+        }
+      }
+    }
+#endif
+    return false;
   },
 
   _dispatchPopupChanged: function _dispatchPopupChanged(aVisible) {
