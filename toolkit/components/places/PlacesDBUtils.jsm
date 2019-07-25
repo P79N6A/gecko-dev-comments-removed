@@ -37,6 +37,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -303,6 +304,27 @@ let PlacesDBUtils = {
     let cleanupStatements = [];
 
     
+    
+    
+    
+    let deleteObsoleteAnnos = DBConn.createAsyncStatement(
+      "DELETE FROM moz_annos "                      +
+      "WHERE anno_attribute_id IN ( "               +
+      "  SELECT id FROM moz_anno_attributes "       +
+      "  WHERE name BETWEEN 'weave/' AND 'weave0' " +
+      ")");
+    cleanupStatements.push(deleteObsoleteAnnos);
+
+    
+    let deleteObsoleteItemsAnnos = DBConn.createAsyncStatement(
+      "DELETE FROM moz_items_annos "                +
+      "WHERE anno_attribute_id IN ( "               +
+      "  SELECT id FROM moz_anno_attributes "       +
+      "  WHERE name = 'sync/children' "             +
+      "     OR name BETWEEN 'weave/' AND 'weave0' " +
+      ")");
+    cleanupStatements.push(deleteObsoleteItemsAnnos);
+
     
     let deleteUnusedAnnoAttributes = DBConn.createAsyncStatement(
       "DELETE FROM moz_anno_attributes WHERE id IN ( " +
