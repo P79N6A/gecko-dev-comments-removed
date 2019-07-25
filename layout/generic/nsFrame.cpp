@@ -844,6 +844,19 @@ nsIFrame::OutsetBorderRadii(nscoord aRadii[8], const nsMargin &aOffsets)
  PRBool
 nsIFrame::GetBorderRadii(nscoord aRadii[8]) const
 {
+  if (IsThemed()) {
+    
+    
+    
+    
+    
+    
+    
+    NS_FOR_CSS_HALF_CORNERS(corner) {
+      aRadii[corner] = 0;
+    }
+    return PR_FALSE;
+  }
   nsSize size = GetSize();
   return ComputeBorderRadii(GetStyleBorder()->mBorderRadius, size, size,
                             GetSkipSides(), aRadii);
