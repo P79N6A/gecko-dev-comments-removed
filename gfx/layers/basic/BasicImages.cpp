@@ -146,7 +146,9 @@ BasicPlanarYCbCrImage::SetData(const Data& aData)
 
   
   
-  PRBool prescale = mScaleHint.width > 0 && mScaleHint.height > 0;
+  
+  PRBool prescale = mScaleHint.width > 0 && mScaleHint.height > 0 &&
+                    aData.mPicX == 0 && aData.mPicY == 0;
   if (format == gfxASurface::ImageFormatRGB16_565) {
     if (have_ycbcr_to_rgb565()) {
       
