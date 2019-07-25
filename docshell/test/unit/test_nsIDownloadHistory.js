@@ -91,6 +91,9 @@ function run_test()
     return;
   }
 
+  
+  do_get_profile();
+
   Services.prefs.setBoolPref("places.history.enabled", true);
 
   for (var i = 0; i < tests.length; i++)
