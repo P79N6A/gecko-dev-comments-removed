@@ -75,7 +75,11 @@ using namespace js::gc;
 using namespace js::types;
 
 
-static const uint8 ARRAYBUFFER_RESERVED_SLOTS = 16;
+
+
+
+
+static const uint8 ARRAYBUFFER_RESERVED_SLOTS = JSObject::MAX_FIXED_SLOTS - 1;
 
 static bool
 ValueIsLength(JSContext *cx, const Value &v, jsuint *len)
@@ -765,7 +769,7 @@ TypedArray::lengthOffset()
  int
 TypedArray::dataOffset()
 {
-    return offsetof(JSObject, privateData);
+    return JSObject::getPrivateDataOffset(NUM_FIXED_SLOTS);
 }
 
 
@@ -1297,6 +1301,8 @@ class TypedArrayTemplate
         if (!empty)
             return false;
         obj->setLastPropertyInfallible(empty);
+
+        JS_ASSERT(obj->numFixedSlots() == NUM_FIXED_SLOTS);
 
         
         obj->flags |= JSObject::NOT_EXTENSIBLE;

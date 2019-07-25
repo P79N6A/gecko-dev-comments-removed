@@ -436,10 +436,13 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
       case ACCSET_OBJ_PRIVATE:
         
         
-        ok = (op == LIR_ldi || op == LIR_ldp ||
-              op == LIR_sti || op == LIR_stp) &&
-             disp == offsetof(JSObject, privateData) &&
-             couldBeObjectOrString(base);
+        ok = false;
+        
+
+
+
+
+
         break;
 
       case ACCSET_OBJ_CAPACITY:
@@ -497,9 +500,12 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
       case ACCSET_ITER:
         
         
-        ok = (op == LIR_ldp || op == LIR_stp) &&
-             dispWithin(NativeIterator) &&
-             match(base, LIR_ldp, ACCSET_OBJ_PRIVATE, offsetof(JSObject, privateData));
+        ok = false;
+        
+
+
+
+
         break;
 
       case ACCSET_ITER_PROPS:
