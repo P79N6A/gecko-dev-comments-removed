@@ -161,6 +161,30 @@ SourceEditor.EVENTS = {
 
 
   BLUR: "Blur",
+
+  
+
+
+
+
+
+  MOUSE_MOVE: "MouseMove",
+
+  
+
+
+
+
+
+  MOUSE_OVER: "MouseOver",
+
+  
+
+
+
+
+
+  MOUSE_OUT: "MouseOut",
 };
 
 
