@@ -611,7 +611,21 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         this.close();
     }
     
-    UI.setActiveTab( UI.getClosestTab(closeCenter) );
+    let closestTabItem = UI.getClosestTab(closeCenter);
+    UI.setActiveTab(closestTabItem);
+
+    
+    if (closestTabItem) {
+      if (closestTabItem.parent) {
+        GroupItems.setActiveGroupItem(closestTabItem.parent);
+      } else {
+        GroupItems.setActiveOrphanTab(closestTabItem);
+        GroupItems.setActiveGroupItem(null);
+      }
+    } else {
+      GroupItems.setActiveGroupItem(null);
+      GroupItems.setActiveOrphanTab(null);
+    }
   },
 
   
@@ -1831,41 +1845,47 @@ let GroupItems = {
 
     let orphanTabItem = this.getActiveOrphanTab();
     if (!orphanTabItem) {
-      let otherTab;
+      let targetGroupItem;
       
       gBrowser.visibleTabs.some(function(tab) {
         if (!tab.pinned && tab != tabItem.tab) {
-          otherTab = tab;
+          if (tab.tabItem) {
+            if (!tab.tabItem.parent) {
+              
+              
+              orphanTabItem = tab.tabItem;
+            } else if (!tab.tabItem.parent.hidden) {
+              
+              
+              targetGroupItem = tab.tabItem.parent;
+            }
+          }
           return true;
         }
         return false;
       });
 
-      if (otherTab && otherTab.tabItem) {
-        
-        
-        if (otherTab.tabItem.parent) {
-          let groupItem = otherTab.tabItem.parent;
-          groupItem.add(tabItem);
-          this.setActiveGroupItem(groupItem);
-          return;
-        }
-        
-        
-        orphanTabItem = otherTab.tabItem;
-      }
-
+      let visibleGroupItems;
       if (!orphanTabItem) {
-        
-        if (this.groupItems.length > 0) {
-          let groupItem = this.groupItems[0];
-          groupItem.add(tabItem);
-          this.setActiveGroupItem(groupItem);
+        if (targetGroupItem) {
+          
+          targetGroupItem.add(tabItem);
+          this.setActiveGroupItem(targetGroupItem);
           return;
+        } else {
+          
+          visibleGroupItems = this.groupItems.filter(function(groupItem) {
+            return (!groupItem.hidden);
+          });
+          if (visibleGroupItems.length > 0) {
+            visibleGroupItems[0].add(tabItem);
+            this.setActiveGroupItem(visibleGroupItems[0]);
+            return;
+          }
         }
-        
-        
         let orphanedTabs = this.getOrphanedTabs();
+        
+        
         if (orphanedTabs.length > 0)
           orphanTabItem = orphanedTabs[0];
       }
@@ -1873,7 +1893,7 @@ let GroupItems = {
 
     
     let tabItems;
-    let newGroupItemBounds; 
+    let newGroupItemBounds;
     
     
     if (orphanTabItem && orphanTabItem.tab != tabItem.tab) {
@@ -1886,8 +1906,7 @@ let GroupItems = {
     }
 
     newGroupItemBounds.inset(-40,-40);
-    let newGroupItem = 
-      new GroupItem(tabItems, { bounds: newGroupItemBounds });
+    let newGroupItem = new GroupItem(tabItems, { bounds: newGroupItemBounds });
     newGroupItem.snap();
     this.setActiveGroupItem(newGroupItem);
   },
