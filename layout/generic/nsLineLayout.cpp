@@ -402,7 +402,8 @@ nsresult
 nsLineLayout::BeginSpan(nsIFrame* aFrame,
                         const nsHTMLReflowState* aSpanReflowState,
                         nscoord aLeftEdge,
-                        nscoord aRightEdge)
+                        nscoord aRightEdge,
+                        nscoord* aBaseline)
 {
   NS_ASSERTION(aRightEdge != NS_UNCONSTRAINEDSIZE,
                "should no longer be using unconstrained sizes");
@@ -427,6 +428,7 @@ nsLineLayout::BeginSpan(nsIFrame* aFrame,
     psd->mLeftEdge = aLeftEdge;
     psd->mX = aLeftEdge;
     psd->mRightEdge = aRightEdge;
+    psd->mBaseline = aBaseline;
 
     psd->mNoWrap =
       !aSpanReflowState->frame->GetStyleText()->WhiteSpaceCanWrap();
@@ -1763,7 +1765,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
     
     
     
-    baselineY = spanFramePFD->mAscent;
+    *psd->mBaseline = baselineY = spanFramePFD->mAscent;
 
 
 #ifdef NOISY_VERTICAL_ALIGN
@@ -2140,6 +2142,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
       spanFramePFD->mAscent -= minY; 
       spanFramePFD->mBounds.height -= minY; 
       psd->mTopLeading += minY;
+      *psd->mBaseline -= minY;
 
       pfd = psd->mFirstFrame;
       while (nsnull != pfd) {

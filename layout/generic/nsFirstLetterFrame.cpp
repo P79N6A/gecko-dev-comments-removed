@@ -226,6 +226,10 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 
     ll.EndLineReflow();
     ll.SetInFirstLetter(PR_FALSE);
+
+    
+    
+    mBaseline = aMetrics.ascent;
   }
   else {
     
@@ -234,7 +238,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 
     ll->SetInFirstLetter(
       mStyleContext->GetPseudo() == nsCSSPseudoElements::firstLetter);
-    ll->BeginSpan(this, &aReflowState, bp.left, availSize.width);
+    ll->BeginSpan(this, &aReflowState, bp.left, availSize.width, &mBaseline);
     ll->ReflowFrame(kid, aReflowStatus, &aMetrics, pushedFrame);
     ll->EndSpan(this);
     ll->SetInFirstLetter(PR_FALSE);
@@ -248,7 +252,6 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   aMetrics.width += lr;
   aMetrics.height += tb;
   aMetrics.ascent += bp.top;
-  mBaseline = aMetrics.ascent;
 
   
   
