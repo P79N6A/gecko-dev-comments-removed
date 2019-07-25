@@ -215,7 +215,6 @@ private:
                                  PRUint8 caps, nsHttpConnection *);
     PRBool   BuildPipeline(nsConnectionEntry *, nsAHttpTransaction *, nsHttpPipeline **);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
-    nsresult EnsureSocketThreadTargetIfOnline();
 
     
     typedef void (nsHttpConnectionMgr:: *nsConnEventHandler)(PRInt32, void *);
