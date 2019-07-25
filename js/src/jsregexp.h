@@ -73,7 +73,7 @@ class RegExpStatics
     void copyTo(RegExpStatics &dst) {
         dst.matchPairs.clear();
         
-        JS_ALWAYS_TRUE(dst.matchPairs.append(matchPairs));
+        dst.matchPairs.infallibleAppend(matchPairs);
         dst.matchPairsInput = matchPairsInput;
         dst.pendingInput = pendingInput;
         dst.flags = flags;
