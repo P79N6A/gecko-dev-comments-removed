@@ -289,6 +289,13 @@ struct JSFunction : public JSObject
 
     inline JSAtom *methodAtom() const;
     inline void setMethodAtom(JSAtom *atom);
+
+    
+
+
+
+    inline JSFunction *toFunction() MOZ_DELETE;
+    inline const JSFunction *toFunction() const MOZ_DELETE;
 };
 
 inline JSFunction *

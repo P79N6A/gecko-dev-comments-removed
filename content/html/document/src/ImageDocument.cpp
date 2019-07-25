@@ -1,42 +1,42 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Morten Nilsen <morten@nilsen.com>
- *   Christian Biesinger <cbiesinger@web.de>
- *   Jan Varga <varga@ku.sk>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "MediaDocument.h"
 #include "nsRect.h"
@@ -79,7 +79,7 @@
 
 #define AUTOMATIC_IMAGE_RESIZING_PREF "browser.enable_automatic_image_resizing"
 #define CLICK_IMAGE_RESIZING_PREF "browser.enable_click_image_resizing"
-//XXX A hack needed for Firefox's site specific zoom.
+
 #define SITE_SPECIFIC_ZOOM "browser.zoom.siteSpecific"
 
 namespace mozilla {
@@ -93,7 +93,7 @@ public:
   ImageListener(ImageDocument* aDocument);
   virtual ~ImageListener();
 
-  /* nsIRequestObserver */
+  
   NS_IMETHOD OnStartRequest(nsIRequest* request, nsISupports *ctxt);
 };
 
@@ -125,11 +125,11 @@ public:
 
   NS_DECL_NSIIMAGEDOCUMENT
 
-  // imgIDecoderObserver (override nsStubImageDecoderObserver)
+  
   NS_IMETHOD OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage);
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult aStatus, const PRUnichar *aStatusArg);
 
-  // nsIDOMEventListener
+  
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ImageDocument, MediaDocument)
@@ -166,14 +166,14 @@ protected:
   bool                          mResizeImageByDefault;
   bool                          mClickResizingEnabled;
   bool                          mImageIsOverflowing;
-  // mImageIsResized is true if the image is currently resized
+  
   bool                          mImageIsResized;
-  // mShouldResize is true if the image should be resized when it doesn't fit
-  // mImageIsResized cannot be true when this is false, but mImageIsResized
-  // can be false when this is true
+  
+  
+  
   bool                          mShouldResize;
   bool                          mFirstResize;
-  // mObservingImageLoader is true while the observer is set.
+  
   bool                          mObservingImageLoader;
 
   float                         mOriginalZoomLevel;
@@ -203,7 +203,7 @@ ImageListener::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
     do_QueryInterface(imgDoc->GetScriptGlobalObject());
   NS_ENSURE_TRUE(domWindow, NS_ERROR_UNEXPECTED);
 
-  // Do a ShouldProcess check to see whether to keep loading the image.
+  
   nsCOMPtr<nsIURI> channelURI;
   channel->GetURI(getter_AddRefs(channelURI));
 
@@ -245,8 +245,8 @@ ImageListener::OnStartRequest(nsIRequest* request, nsISupports *ctxt)
 ImageDocument::ImageDocument()
   : mOriginalZoomLevel(1.0)
 {
-  // NOTE! nsDocument::operator new() zeroes out all members, so don't
-  // bother initializing members to 0.
+  
+  
 }
 
 ImageDocument::~ImageDocument()
@@ -324,17 +324,17 @@ void
 ImageDocument::Destroy()
 {
   if (mImageContent) {
-    // Remove our event listener from the image content.
+    
     nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(mImageContent);
     target->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
 
-    // Break reference cycle with mImageContent, if we have one
+    
     if (mObservingImageLoader) {
       nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mImageContent);
       if (imageLoader) {
-        // Push a null JSContext on the stack so that code that
-        // nsImageLoadingContent doesn't think it's being called by JS.  See
-        // Bug 631241
+        
+        
+        
         nsCxPusher pusher;
         pusher.PushNull();
         imageLoader->RemoveObserver(this);
@@ -350,8 +350,8 @@ ImageDocument::Destroy()
 void
 ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
 {
-  // If the script global object is changing, we need to unhook our event
-  // listeners on the window.
+  
+  
   nsCOMPtr<nsIDOMEventTarget> target;
   if (mScriptGlobalObject &&
       aScriptGlobalObject != mScriptGlobalObject) {
@@ -361,13 +361,13 @@ ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
                                 false);
   }
 
-  // Set the script global object on the superclass before doing
-  // anything that might require it....
+  
+  
   MediaDocument::SetScriptGlobalObject(aScriptGlobalObject);
 
   if (aScriptGlobalObject) {
     if (!GetRootElement()) {
-      // Create synthetic document
+      
 #ifdef DEBUG
       nsresult rv =
 #endif
@@ -381,6 +381,10 @@ ImageDocument::SetScriptGlobalObject(nsIScriptGlobalObject* aScriptGlobalObject)
     target = do_QueryInterface(aScriptGlobalObject);
     target->AddEventListener(NS_LITERAL_STRING("resize"), this, false);
     target->AddEventListener(NS_LITERAL_STRING("keypress"), this, false);
+
+    if (!nsContentUtils::IsChildOfSameType(this)) {
+      LinkStylesheet(NS_LITERAL_STRING("resource://gre/res/TopLevelImageDocument.css"));
+    }
   }
 }
 
@@ -440,14 +444,14 @@ ImageDocument::ShrinkToFit()
     return NS_OK;
   }
 
-  // Keep image content alive while changing the attributes.
+  
   nsCOMPtr<nsIContent> imageContent = mImageContent;
   nsCOMPtr<nsIDOMHTMLImageElement> image = do_QueryInterface(mImageContent);
   image->SetWidth(NS_MAX(1, NSToCoordFloor(GetRatio() * mImageWidth)));
   image->SetHeight(NS_MAX(1, NSToCoordFloor(GetRatio() * mImageHeight)));
   
-  // The view might have been scrolled when zooming in, scroll back to the
-  // origin now that we're showing a shrunk-to-window version.
+  
+  
   (void) ScrollImageTo(0, 0, false);
 
   imageContent->SetAttr(kNameSpaceID_None, nsGkAtoms::style,
@@ -497,7 +501,7 @@ ImageDocument::RestoreImage()
   if (!mImageContent) {
     return NS_OK;
   }
-  // Keep image content alive while changing the attributes.
+  
   nsCOMPtr<nsIContent> imageContent = mImageContent;
   imageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::width, true);
   imageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::height, true);
@@ -560,7 +564,7 @@ ImageDocument::OnStopDecode(imgIRequest *aRequest,
     imageLoader->RemoveObserver(this);
   }
 
-  // mImageContent can be null if the document is already destroyed
+  
   if (NS_FAILED(aStatus) && mStringBundle && mImageContent) {
     nsCAutoString src;
     mDocumentURI->GetSpec(src);
@@ -617,7 +621,7 @@ ImageDocument::HandleEvent(nsIDOMEvent* aEvent)
     keyEvent->GetCtrlKey(&ctrlKey);
     keyEvent->GetMetaKey(&metaKey);
     keyEvent->GetAltKey(&altKey);
-    // plus key
+    
     if (charCode == 0x2B && !ctrlKey && !metaKey && !altKey) {
       mShouldResize = false;
       if (mImageIsResized) {
@@ -625,7 +629,7 @@ ImageDocument::HandleEvent(nsIDOMEvent* aEvent)
         RestoreImage();
       }
     }
-    // minus key
+    
     else if (charCode == 0x2D && !ctrlKey && !metaKey && !altKey) {
       mShouldResize = true;
       if (mImageIsOverflowing) {
@@ -641,16 +645,16 @@ ImageDocument::HandleEvent(nsIDOMEvent* aEvent)
 nsresult
 ImageDocument::CreateSyntheticDocument()
 {
-  // Synthesize an html document that refers to the image
+  
   nsresult rv = MediaDocument::CreateSyntheticDocument();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // We must declare the image as a block element. If we stay as
-  // an inline element, our parent LineBox will be inline too and
-  // ignore the available height during reflow.
-  // This is bad during printing, it means tall image frames won't know
-  // the size of the paper and cannot break into continuations along
-  // multiple pages.
+  
+  
+  
+  
+  
+  
   Element* head = GetHeadElement();
   NS_ENSURE_TRUE(head, NS_ERROR_FAILURE);
 
@@ -665,11 +669,9 @@ ImageDocument::CreateSyntheticDocument()
 
     styleContent->SetTextContent(NS_LITERAL_STRING("img { display: block; }"));
     head->AppendChildTo(styleContent, false);
-  } else {
-    LinkStylesheet(NS_LITERAL_STRING("resource://gre/res/TopLevelImageDocument.css"));
   }
 
-  // Add the image element
+  
   Element* body = GetBodyElement();
   if (!body) {
     NS_WARNING("no body on image document!");
@@ -691,14 +693,14 @@ ImageDocument::CreateSyntheticDocument()
   nsCAutoString src;
   mDocumentURI->GetSpec(src);
 
-  // Push a null JSContext on the stack so that code that runs within
-  // the below code doesn't think it's being called by JS. See bug
-  // 604262.
+  
+  
+  
   nsCxPusher pusher;
   pusher.PushNull();
 
   NS_ConvertUTF8toUTF16 srcString(src);
-  // Make sure not to start the image load from here...
+  
   imageLoader->SetLoadingEnabled(false);
   mImageContent->SetAttr(kNameSpaceID_None, nsGkAtoms::src, srcString, false);
   mImageContent->SetAttr(kNameSpaceID_None, nsGkAtoms::alt, srcString, false);
@@ -712,10 +714,10 @@ ImageDocument::CreateSyntheticDocument()
 nsresult
 ImageDocument::CheckOverflowing(bool changeState)
 {
-  /* Create a scope so that the style context gets destroyed before we might
-   * call RebuildStyleData.  Also, holding onto pointers to the
-   * presentatation through style resolution is potentially dangerous.
-   */
+  
+
+
+
   {
     nsIPresShell *shell = GetShell();
     if (!shell) {
@@ -786,13 +788,13 @@ ImageDocument::UpdateTitleAndCharset()
     nsXPIDLCString::const_iterator iter = end;
     if (FindInReadable(NS_LITERAL_CSTRING("IMAGE/"), start, iter) && 
         iter != end) {
-      // strip out "X-" if any
+      
       if (*iter == 'X') {
         ++iter;
         if (iter != end && *iter == '-') {
           ++iter;
           if (iter == end) {
-            // looks like "IMAGE/X-" is the type??  Bail out of here.
+            
             mimeType.BeginReading(iter);
           }
         } else {
@@ -862,8 +864,8 @@ ImageDocument::GetZoomLevel()
   return zoomLevel;
 }
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 DOMCI_DATA(ImageDocument, mozilla::dom::ImageDocument)
 

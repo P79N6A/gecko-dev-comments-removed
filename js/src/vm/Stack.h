@@ -886,7 +886,7 @@ class StackFrame
 
 
 
-    inline void markFunctionEpilogueDone();
+    inline void updateEpilogueFlags();
 
     inline bool maintainNestingState() const;
 

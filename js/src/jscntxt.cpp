@@ -798,7 +798,7 @@ js_ReportOutOfMemory(JSContext *cx)
 
     
     AutoUnlockAtomsCompartmentWhenLocked unlockAtomsCompartment(cx);
-    
+
     JSErrorReport report;
     JSErrorReporter onError = cx->errorReporter;
 
@@ -1261,13 +1261,6 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
     return NULL;
 }
 
-bool
-checkOutOfMemory(JSRuntime *rt)
-{
-    AutoLockGC lock(rt);
-    return rt->gcBytes > rt->gcMaxBytes;
-}
-
 JSBool
 js_InvokeOperationCallback(JSContext *cx)
 {
@@ -1289,33 +1282,8 @@ js_InvokeOperationCallback(JSContext *cx)
 #endif
     JS_UNLOCK_GC(rt);
 
-    if (rt->gcIsNeeded) {
+    if (rt->gcIsNeeded)
         js_GC(cx, rt->gcTriggerCompartment, GC_NORMAL, rt->gcTriggerReason);
-
-        
-
-
-
-        if (checkOutOfMemory(rt)) {
-#ifdef JS_THREADSAFE
-            
-
-
-
-            {
-                AutoLockGC lock(rt);
-                rt->gcHelperThread.waitBackgroundSweepEnd();
-            }
-            if (checkOutOfMemory(rt)) {
-                js_ReportOutOfMemory(cx);
-                return false;
-            }
-#else
-            js_ReportOutOfMemory(cx);
-            return false;
-#endif
-        }
-    }
 
 #ifdef JS_THREADSAFE
     

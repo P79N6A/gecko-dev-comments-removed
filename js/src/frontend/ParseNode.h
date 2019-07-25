@@ -502,6 +502,7 @@ struct ParseNode {
                         pn_used   : 1,  
                         pn_defn   : 1;  
 
+    ParseNode(const ParseNode &other) MOZ_DELETE;
     void operator=(const ParseNode &other) MOZ_DELETE;
 
   public:

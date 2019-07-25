@@ -2969,9 +2969,6 @@ typedef enum JSGCParamKey {
     JSGC_MAX_MALLOC_BYTES   = 1,
 
     
-    JSGC_STACKPOOL_LIFESPAN = 2,
-
-    
     JSGC_BYTES = 3,
 
     
@@ -3730,10 +3727,6 @@ JS_SetReservedSlot(JSContext *cx, JSObject *obj, uint32_t index, jsval v);
 
 struct JSPrincipals {
     char *codebase;
-
-    
-    void * (* getPrincipalArray)(JSContext *cx, JSPrincipals *);
-    JSBool (* globalPrivilegesEnabled)(JSContext *cx, JSPrincipals *);
 
     
     jsrefcount refcount;

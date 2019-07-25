@@ -2792,12 +2792,10 @@ BEGIN_CASE(JSOP_DELELEM)
     JSObject *obj;
     FETCH_OBJECT(cx, -2, obj);
 
-    
-    jsid id;
-    FETCH_ELEMENT_ID(obj, -1, id);
+    const Value &propval = regs.sp[-1];
+    Value &rval = regs.sp[-2];
 
-    
-    if (!obj->deleteGeneric(cx, id, &regs.sp[-2], script->strictModeCode))
+    if (!obj->deleteByValue(cx, propval, &rval, script->strictModeCode))
         goto error;
 
     regs.sp--;

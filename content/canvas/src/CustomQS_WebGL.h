@@ -1,44 +1,44 @@
-/* -*- Mode: c++; c-basic-offset: 4; tab-width: 40; indent-tabs-mode: nil; -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- *   Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com> (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * Intended to be #included in dom_quickstubs.cpp via qsconf!
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "jstypedarray.h"
 
@@ -75,12 +75,12 @@ helper_isFloat32Array(JSObject *obj) {
     return js::GetObjectClass(obj) == &js::TypedArray::fastClasses[js::TypedArray::TYPE_FLOAT32];
 }
 
-/*
- * BufferData takes:
- *    BufferData (int, int, int)
- *    BufferData_buf (int, js::ArrayBuffer *, int)
- *    BufferData_array (int, js::TypedArray *, int)
- */
+
+
+
+
+
+
 static JSBool
 nsIDOMWebGLRenderingContext_BufferData(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -149,11 +149,11 @@ nsIDOMWebGLRenderingContext_BufferData(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
-/*
- * BufferSubData takes:
- *    BufferSubData (int, int, js::ArrayBuffer *)
- *    BufferSubData_array (int, int, js::TypedArray *)
- */
+
+
+
+
+
 static JSBool
 nsIDOMWebGLRenderingContext_BufferSubData(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -222,10 +222,10 @@ nsIDOMWebGLRenderingContext_BufferSubData(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
-/*
- * ReadPixels takes:
- *    ReadPixels(int, int, int, int, uint, uint, ArrayBufferView)
- */
+
+
+
+
 static JSBool
 nsIDOMWebGLRenderingContext_ReadPixels(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -247,7 +247,7 @@ nsIDOMWebGLRenderingContext_ReadPixels(JSContext *cx, uintN argc, jsval *vp)
 
     jsval *argv = JS_ARGV(cx, vp);
 
-    // arguments common to all cases
+    
     GET_INT32_ARG(argv0, 0);
     GET_INT32_ARG(argv1, 1);
     GET_INT32_ARG(argv2, 2);
@@ -280,12 +280,12 @@ nsIDOMWebGLRenderingContext_ReadPixels(JSContext *cx, uintN argc, jsval *vp)
 }
 
 
-/*
- * TexImage2D takes:
- *    TexImage2D(uint, int, uint, int, int, int, uint, uint, ArrayBufferView)
- *    TexImage2D(uint, int, uint, uint, uint, nsIDOMElement)
- *    TexImage2D(uint, int, uint, uint, uint, ImageData)
- */
+
+
+
+
+
+
 static JSBool
 nsIDOMWebGLRenderingContext_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -307,14 +307,14 @@ nsIDOMWebGLRenderingContext_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
 
     jsval *argv = JS_ARGV(cx, vp);
 
-    // arguments common to all cases
+    
     GET_UINT32_ARG(argv0, 0);
     GET_INT32_ARG(argv1, 1);
 
     if (argc > 5 &&
         !JSVAL_IS_PRIMITIVE(argv[5]))
     {
-        // implement the variants taking a DOMElement as argv[5]
+        
         GET_UINT32_ARG(argv2, 2);
         GET_UINT32_ARG(argv3, 3);
         GET_UINT32_ARG(argv4, 4);
@@ -326,15 +326,15 @@ nsIDOMWebGLRenderingContext_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
 
         rv = self->TexImage2D_dom(argv0, argv1, argv2, argv3, argv4, elt);
 
-        // NS_ERROR_DOM_SECURITY_ERR indicates we tried to load a cross-domain element, so
-        // bail out immediately, don't try to interprete as ImageData
+        
+        
         if (rv == NS_ERROR_DOM_SECURITY_ERR) {
             xpc_qsThrowBadArg(cx, rv, vp, 5);
             return JS_FALSE;
         }
 
         if (NS_FAILED(rv)) {
-            // failed to interprete argv[5] as a DOMElement, now try to interprete it as ImageData
+            
             JSObject *argv5 = JSVAL_TO_OBJECT(argv[5]);
 
             jsval js_width, js_height, js_data;
@@ -365,9 +365,9 @@ nsIDOMWebGLRenderingContext_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
                                             argv3, argv4, js::TypedArray::getTypedArray(obj_data));
         }
     } else if (argc > 8 &&
-               JSVAL_IS_OBJECT(argv[8])) // here, we allow null !
+               JSVAL_IS_OBJECT(argv[8])) 
     {
-        // implement the variants taking a buffer/array as argv[8]
+        
         GET_UINT32_ARG(argv2, 2);
         GET_INT32_ARG(argv3, 3);
         GET_INT32_ARG(argv4, 4);
@@ -377,7 +377,7 @@ nsIDOMWebGLRenderingContext_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
 
         JSObject *argv8 = JSVAL_TO_OBJECT(argv[8]);
 
-        // then try to grab either a js::TypedArray, or null
+        
         if (argv8 == nsnull) {
             rv = self->TexImage2D_array(argv0, argv1, argv2, argv3,
                                         argv4, argv5, argv6, argv7,
@@ -402,11 +402,11 @@ nsIDOMWebGLRenderingContext_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
-/* TexSubImage2D takes:
- *    TexSubImage2D(uint, int, int, int, int, int, uint, uint, ArrayBufferView)
- *    TexSubImage2D(uint, int, int, int, uint, uint, nsIDOMElement)
- *    TexSubImage2D(uint, int, int, int, uint, uint, ImageData)
- */
+
+
+
+
+
 static JSBool
 nsIDOMWebGLRenderingContext_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
 {
@@ -428,7 +428,7 @@ nsIDOMWebGLRenderingContext_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
 
     jsval *argv = JS_ARGV(cx, vp);
 
-    // arguments common to all cases
+    
     GET_UINT32_ARG(argv0, 0);
     GET_INT32_ARG(argv1, 1);
     GET_INT32_ARG(argv2, 2);
@@ -437,7 +437,7 @@ nsIDOMWebGLRenderingContext_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
     if (argc > 6 &&
         !JSVAL_IS_PRIMITIVE(argv[6]))
     {
-        // implement the variants taking a DOMElement as argv[6]
+        
         GET_UINT32_ARG(argv4, 4);
         GET_UINT32_ARG(argv5, 5);
 
@@ -448,15 +448,15 @@ nsIDOMWebGLRenderingContext_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
 
         rv = self->TexSubImage2D_dom(argv0, argv1, argv2, argv3, argv4, argv5, elt);
         
-        // NS_ERROR_DOM_SECURITY_ERR indicates we tried to load a cross-domain element, so
-        // bail out immediately, don't try to interprete as ImageData
+        
+        
         if (rv == NS_ERROR_DOM_SECURITY_ERR) {
             xpc_qsThrowBadArg(cx, rv, vp, 6);
             return JS_FALSE;
         }
 
         if (NS_FAILED(rv)) {
-            // failed to interprete argv[6] as a DOMElement, now try to interprete it as ImageData
+            
             JSObject *argv6 = JSVAL_TO_OBJECT(argv[6]);
             jsval js_width, js_height, js_data;
             JS_GetProperty(cx, argv6, "width", &js_width);
@@ -489,14 +489,14 @@ nsIDOMWebGLRenderingContext_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
     } else if (argc > 8 &&
                !JSVAL_IS_PRIMITIVE(argv[8]))
     {
-        // implement the variants taking a buffer/array as argv[8]
+        
         GET_INT32_ARG(argv4, 4);
         GET_INT32_ARG(argv5, 5);
         GET_UINT32_ARG(argv6, 6);
         GET_UINT32_ARG(argv7, 7);
 
         JSObject *argv8 = JSVAL_TO_OBJECT(argv[8]);
-        // try to grab a js::TypedArray
+        
         if (js_IsTypedArray(argv8)) {
             rv = self->TexSubImage2D_array(argv0, argv1, argv2, argv3,
                                            argv4, argv5, argv6, argv7,
@@ -517,7 +517,7 @@ nsIDOMWebGLRenderingContext_TexSubImage2D(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
-/* NOTE: There is a TN version of this below, update it as well */
+
 static inline JSBool
 helper_nsIDOMWebGLRenderingContext_Uniform_x_iv(JSContext *cx, uintN argc, jsval *vp, int nElements)
 {
@@ -563,7 +563,7 @@ helper_nsIDOMWebGLRenderingContext_Uniform_x_iv(JSContext *cx, uintN argc, jsval
     }  else if (JS_IsArrayObject(cx, arg1)) {
         JSObject *nobj = js_CreateTypedArrayWithArray(cx, js::TypedArray::TYPE_INT32, arg1);
         if (!nobj) {
-            // XXX this will likely return a strange error message if it goes wrong
+            
             return JS_FALSE;
         }
 
@@ -591,7 +591,7 @@ helper_nsIDOMWebGLRenderingContext_Uniform_x_iv(JSContext *cx, uintN argc, jsval
     return JS_TRUE;
 }
 
-/* NOTE: There is a TN version of this below, update it as well */
+
 static inline JSBool
 helper_nsIDOMWebGLRenderingContext_Uniform_x_fv(JSContext *cx, uintN argc, jsval *vp, int nElements)
 {
@@ -637,7 +637,7 @@ helper_nsIDOMWebGLRenderingContext_Uniform_x_fv(JSContext *cx, uintN argc, jsval
     }  else if (JS_IsArrayObject(cx, arg1)) {
         JSObject *nobj = js_CreateTypedArrayWithArray(cx, js::TypedArray::TYPE_FLOAT32, arg1);
         if (!nobj) {
-            // XXX this will likely return a strange error message if it goes wrong
+            
             return JS_FALSE;
         }
 
@@ -665,7 +665,7 @@ helper_nsIDOMWebGLRenderingContext_Uniform_x_fv(JSContext *cx, uintN argc, jsval
     return JS_TRUE;
 }
 
-/* NOTE: There is a TN version of this below, update it as well */
+
 static inline JSBool
 helper_nsIDOMWebGLRenderingContext_UniformMatrix_x_fv(JSContext *cx, uintN argc, jsval *vp, int nElements)
 {
@@ -713,7 +713,7 @@ helper_nsIDOMWebGLRenderingContext_UniformMatrix_x_fv(JSContext *cx, uintN argc,
     }  else if (JS_IsArrayObject(cx, arg2)) {
         JSObject *nobj = js_CreateTypedArrayWithArray(cx, js::TypedArray::TYPE_FLOAT32, arg2);
         if (!nobj) {
-            // XXX this will likely return a strange error message if it goes wrong
+            
             return JS_FALSE;
         }
 
@@ -778,7 +778,7 @@ helper_nsIDOMWebGLRenderingContext_VertexAttrib_x_fv(JSContext *cx, uintN argc, 
     }  else if (JS_IsArrayObject(cx, arg1)) {
         JSObject *nobj = js_CreateTypedArrayWithArray(cx, js::TypedArray::TYPE_FLOAT32, arg1);
         if (!nobj) {
-            // XXX this will likely return a strange error message if it goes wrong
+            
             return JS_FALSE;
         }
 
