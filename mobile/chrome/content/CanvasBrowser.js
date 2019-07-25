@@ -399,18 +399,24 @@ CanvasBrowser.prototype = {
   zoomToElement: function(aElement) {
     const margin = 15;
 
-    
-    let [canvasW, ] = this.canvasDimensions;
-
     let elRect = this._getPagePosition(aElement);
-    let zoomLevel = canvasW / (elRect.width + (2 * margin));
+    let elWidth = elRect.width;
+    let visibleViewportWidth = this._pageToScreen(this._visibleBounds.width);
+    
 
+    let zoomLevel = visibleViewportWidth / (elWidth + (2 * margin));
     ws.beginUpdateBatch();
 
-    this.zoomLevel = Math.min(zoomLevel, 10);
+    this.zoomLevel = zoomLevel;
+    
+    
+
+
+
+    let xpadding = Math.max(margin, visibleViewportWidth - this._pageToScreen(elWidth));
 
     
-    ws.panTo(Math.floor(Math.max(this._pageToScreen(elRect.x) - margin, 0)),
+    ws.panTo(Math.floor(Math.max(this._pageToScreen(elRect.x) - xpadding, 0)),
              Math.floor(Math.max(this._pageToScreen(elRect.y) - margin, 0)));
 
     ws.endUpdateBatch();
