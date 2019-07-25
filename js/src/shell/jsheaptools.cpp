@@ -87,7 +87,8 @@ class HeapReverser : public JSTracer {
     class Node {
       public:
         Node() { }
-        Node(uint32 kind) : kind(kind), incoming(), marked(false) { }
+        Node(JSGCTraceKind kind)
+          : kind(kind), incoming(), marked(false) { }
 
         
 
@@ -103,7 +104,7 @@ class HeapReverser : public JSTracer {
         }
 
         
-        uint32 kind;
+        JSGCTraceKind kind;
 
         
 
@@ -199,9 +200,9 @@ class HeapReverser : public JSTracer {
 
     
     struct Child {
-        Child(void *cell, uint32 kind) : cell(cell), kind(kind) { }
+        Child(void *cell, JSGCTraceKind kind) : cell(cell), kind(kind) { }
         void *cell;
-        uint32 kind;
+        JSGCTraceKind kind;
     };
 
     
@@ -214,7 +215,7 @@ class HeapReverser : public JSTracer {
     void *parent;
 
     
-    bool traverseEdge(void *cell, uint32 kind);
+    bool traverseEdge(void *cell, JSGCTraceKind kind);
 
     
 
@@ -225,14 +226,14 @@ class HeapReverser : public JSTracer {
     bool traversalStatus;
 
     
-    static void traverseEdgeWithThis(JSTracer *tracer, void *cell, uint32 kind) {
+    static void traverseEdgeWithThis(JSTracer *tracer, void *cell, JSGCTraceKind kind) {
         HeapReverser *reverser = static_cast<HeapReverser *>(tracer);
         reverser->traversalStatus = reverser->traverseEdge(cell, kind);
     }
 };
 
 bool
-HeapReverser::traverseEdge(void *cell, uint32 kind) {
+HeapReverser::traverseEdge(void *cell, JSGCTraceKind kind) {
     
     char *edgeDescription = getEdgeDescription();
     if (!edgeDescription)

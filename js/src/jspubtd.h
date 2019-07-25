@@ -363,21 +363,6 @@ typedef void
 
 
 
-
-
-
-
-
-
-
-
-typedef void
-(* JSTraceCallback)(JSTracer *trc, void *thing, uint32 kind);
-
-
-
-
-
 typedef void
 (* JSTraceNamePrinter)(JSTracer *trc, char *buf, size_t bufsize);
 

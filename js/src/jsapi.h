@@ -1639,14 +1639,29 @@ JSVAL_TO_TRACEABLE(jsval v)
     return JSVAL_TO_GCTHING(v);
 }
 
-static JS_ALWAYS_INLINE uint32
+static JS_ALWAYS_INLINE JSGCTraceKind
 JSVAL_TRACE_KIND(jsval v)
 {
     jsval_layout l;
     JS_ASSERT(JSVAL_IS_GCTHING(v));
     l.asBits = JSVAL_BITS(v);
-    return JSVAL_TRACE_KIND_IMPL(l);
+    return (JSGCTraceKind) JSVAL_TRACE_KIND_IMPL(l);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef void
+(* JSTraceCallback)(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 struct JSTracer {
     JSContext           *context;
@@ -1663,7 +1678,7 @@ struct JSTracer {
 
 
 extern JS_PUBLIC_API(void)
-JS_CallTracer(JSTracer *trc, void *thing, uint32 kind);
+JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 
 
@@ -1756,7 +1771,7 @@ JS_CallTracer(JSTracer *trc, void *thing, uint32 kind);
     JS_END_MACRO
 
 extern JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind);
+JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 extern JS_PUBLIC_API(void)
 JS_TraceRuntime(JSTracer *trc);
@@ -1765,7 +1780,7 @@ JS_TraceRuntime(JSTracer *trc);
 
 extern JS_PUBLIC_API(void)
 JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
-                       void *thing, uint32 kind, JSBool includeDetails);
+                       void *thing, JSGCTraceKind kind, JSBool includeDetails);
 
 
 
@@ -1783,7 +1798,7 @@ JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, uint32 startKind,
+JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, JSGCTraceKind kind,
             void *thingToFind, size_t maxDepth, void *thingToIgnore);
 
 #endif
