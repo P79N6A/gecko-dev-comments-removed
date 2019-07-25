@@ -133,6 +133,19 @@ function getFaviconAsImage(iconurl, callback) {
 }
 
 
+function snapRectAtScale(r, scale) {
+  let x = Math.floor(r.x * scale);
+  let y = Math.floor(r.y * scale);
+  let width = Math.ceil((r.x + r.width) * scale) - x;
+  let height = Math.ceil((r.y + r.height) * scale) - y;
+
+  r.x = x / scale;
+  r.y = y / scale;
+  r.width = width / scale;
+  r.height = height / scale;
+}
+
+
 
 
 
@@ -172,6 +185,13 @@ function PreviewController(win, tab) {
       dirtyRegion.init();
       return dirtyRegion;
     });
+
+  XPCOMUtils.defineLazyGetter(this, "winutils",
+    function () {
+      let win = tab.linkedBrowser.contentWindow;
+      return win.QueryInterface(Ci.nsIInterfaceRequestor)
+                .getInterface(Ci.nsIDOMWindowUtils);
+  });
 }
 
 PreviewController.prototype = {
@@ -214,6 +234,12 @@ PreviewController.prototype = {
     this.canvasPreview.height = 0;
   },
 
+  get zoom() {
+    
+    
+    return this.winutils.screenPixelsPerCSSPixel;
+  },
+
   
   
   updateCanvasPreview: function () {
@@ -223,23 +249,30 @@ PreviewController.prototype = {
     if (bx.width != this.canvasPreview.width ||
         bx.height != this.canvasPreview.height) {
       
-      this.onTabPaint({left:0, top:0, width:bx.width, height:bx.height});
+      this.onTabPaint({left:0, top:0, right:win.innerWidth, bottom:win.innerHeight});
       this.canvasPreview.width = bx.width;
       this.canvasPreview.height = bx.height;
     }
 
     
     let ctx = this.canvasPreview.getContext("2d");
+    let scale = this.zoom;
+
     let flags = this.canvasPreviewFlags;
     
     
-    this.dirtyRegion.intersectRect(0, 0, bx.width, bx.height);
+    this.dirtyRegion.intersectRect(0, 0, win.innerWidth, win.innerHeight);
     this.dirtyRects.forEach(function (r) {
+      
+      
+      snapRectAtScale(r, scale);
       let x = r.x;
       let y = r.y;
       let width = r.width;
       let height = r.height;
+
       ctx.save();
+      ctx.scale(scale, scale);
       ctx.translate(x, y);
       ctx.drawWindow(win, x, y, width, height, "white", flags);
       ctx.restore();
@@ -252,16 +285,11 @@ PreviewController.prototype = {
   },
 
   onTabPaint: function (rect) {
-    
-    if (!rect.width || !rect.height)
-      return;
-
-    let r = { x: Math.floor(rect.left),
-              y: Math.floor(rect.top),
-              width: Math.ceil(rect.width),
-              height: Math.ceil(rect.height)
-            };
-    this.dirtyRegion.unionRect(r.x, r.y, r.width, r.height);
+    let x = Math.floor(rect.left),
+        y = Math.floor(rect.top),
+        width = Math.ceil(rect.right) - x,
+        height = Math.ceil(rect.bottom) - y;
+    this.dirtyRegion.unionRect(x, y, width, height);
   },
 
   updateTitleAndTooltip: function () {
