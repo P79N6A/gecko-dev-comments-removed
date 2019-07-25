@@ -47,6 +47,8 @@ class nsNavigator;
 class nsIDocShell;
 class nsIPluginHost;
 
+
+
 class nsPluginArray : public nsIDOMPluginArray
 {
 public:
@@ -85,7 +87,8 @@ private:
   PRBool AllowPlugins();
 
 public:
-  void SetDocShell(nsIDocShell* aDocShell);
+  void SetDocShell(nsIDocShell *aDocShell);
+  void Invalidate();
 
 protected:
   nsNavigator* mNavigator;

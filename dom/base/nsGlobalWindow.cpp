@@ -9786,6 +9786,10 @@ nsNavigator::nsNavigator(nsIDocShell *aDocShell)
 
 nsNavigator::~nsNavigator()
 {
+  if (mMimeTypes)
+    mMimeTypes->Invalidate();
+  if (mPlugins)
+    mPlugins->Invalidate();
 }
 
 
@@ -10210,8 +10214,15 @@ nsNavigator::LoadingNewDocument()
   
   
   
-  mMimeTypes = nsnull;
-  mPlugins = nsnull;
+  if (mMimeTypes) {
+    mMimeTypes->Invalidate();
+    mMimeTypes = nsnull;
+  }
+
+  if (mPlugins) {
+    mPlugins->Invalidate();
+    mPlugins = nsnull;
+  }
 
   if (mGeolocation)
   {

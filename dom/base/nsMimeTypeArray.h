@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef nsMimeTypeArray_h___
 #define nsMimeTypeArray_h___
 
@@ -45,6 +46,8 @@
 #include "nsCOMArray.h"
 
 class nsIDOMNavigator;
+
+
 
 class nsMimeTypeArray : public nsIDOMMimeTypeArray
 {
@@ -75,6 +78,13 @@ public:
 #endif
 
     return static_cast<nsMimeTypeArray*>(aSupports);
+  }
+
+  void Invalidate()
+  {
+    
+    mNavigator = nsnull;
+    Clear();
   }
 
 private:

@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsMimeTypeArray.h"
 #include "nsContentUtils.h"
 #include "nsIScriptGlobalObject.h"
@@ -226,6 +227,10 @@ nsresult nsMimeTypeArray::GetMimeTypes()
 {
   NS_PRECONDITION(!mInited && mPluginMimeTypeCount==0,
                       "already initialized");
+
+  if (!mNavigator) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   nsIDOMPluginArray* pluginArray = nsnull;
   nsresult rv = mNavigator->GetPlugins(&pluginArray);
