@@ -944,8 +944,8 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
       break;
     } else if (IsWhitespace(ch)) {
       
-        EatWhiteSpace();
-        if (LookAhead(')')) {
+      EatWhiteSpace();
+      if (LookAhead(')')) {
         Pushback(')');  
         
         break;
