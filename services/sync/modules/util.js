@@ -202,21 +202,35 @@ let Utils = {
     return ret;
   },
 
+  
+  
+  
+  formatFrame: function Utils_formatFrame(frame) {
+    let tmp = "<file:unknown>";
+    if (frame.filename)
+      tmp = frame.filename.replace(/^file:\/\/.*\/([^\/]+.js)$/, "module:$1");
+    else if (frame.fileName)
+      tmp = frame.fileName.replace(/^file:\/\/.*\/([^\/]+.js)$/, "module:$1");
+    if (frame.lineNumber)
+      tmp += ":" + frame.lineNumber;
+    if (frame.name)
+      tmp += " :: " + frame.name;
+    return tmp;
+  },
+
   exceptionStr: function Weave_exceptionStr(e) {
     let message = e.message ? e.message : e;
     let location = "";
 
-    if (e.location)
-      
+    if (e.location) 
       location = e.location;
-    else if (e.fileName && e.lineNumber)
-      
-      location = "file '" + e.fileName + "', line " + e.lineNumber;
+    else if (e.fileName && e.lineNumber) 
+      location = Utils.formatFrame(e);
 
     if (location)
       location = " (" + location + ")";
     return message + location;
-  },
+ },
 
   stackTraceFromFrame: function Weave_stackTraceFromFrame(frame, formatter) {
     if (!formatter)
@@ -233,28 +247,14 @@ let Utils = {
   },
 
   stackTrace: function Weave_stackTrace(e, formatter) {
-    let output = "";
-    if (e.location) {
-      
-      output += this.stackTraceFromFrame(e.location, formatter);
-    } else if (e.stack)
-      
-
-      
-      
-      
-      
-      output += e.stack;
+    if (e.asyncStack) 
+      return e.asyncStack;
+    else if (e.location) 
+      return this.stackTraceFromFrame(e.location, formatter);
+    else if (e.stack) 
+      return e.stack;
     else
-      
-      output += "No traceback available.\n";
-
-    if (e.asyncStack) {
-      output += "This exception was raised by an asynchronous coroutine.\n";
-      output += "Initial async stack trace:\n" + e.asyncStack;
-    }
-
-    return output;
+      return "No traceback available";
   },
 
   checkStatus: function Weave_checkStatus(code, msg, ranges) {

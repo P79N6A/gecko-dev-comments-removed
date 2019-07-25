@@ -230,12 +230,7 @@ WeaveSvc.prototype = {
 
   _initialLoginAndSync: function Weave__initialLoginAndSync() {
     let self = yield;
-
-    
-    
-    
-
-    yield this.login(self.cb);
+    yield this.login(self.cb); 
     yield this.sync(self.cb);
   },
 
@@ -280,7 +275,7 @@ WeaveSvc.prototype = {
         this._log.info("Skipping scheduled sync; local operation in progress")
       } else {
         this._log.info("Running scheduled sync");
-        this._notify("sync-as-needed", this._lock(this._syncAsNeeded)).async(this);
+        this._notify("sync", this._lock(this._syncAsNeeded)).async(this);
       }
     }
   },
