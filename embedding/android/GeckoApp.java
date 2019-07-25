@@ -34,7 +34,6 @@
 
 
 
-
 package org.mozilla.gecko;
 
 import java.io.*;
@@ -97,6 +96,7 @@ abstract public class GeckoApp
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
+        Log.i("GeckoApp", "create");
         super.onCreate(savedInstanceState);
 
         mAppContext = this;
@@ -190,6 +190,7 @@ abstract public class GeckoApp
     @Override
     public void onStop()
     {
+        Log.i("GeckoApp", "stop");
         
         
         
@@ -207,8 +208,23 @@ abstract public class GeckoApp
     }
 
     @Override
+    public void onRestart()
+    {
+        Log.i("GeckoApp", "restart");
+        super.onRestart();
+    }
+
+    @Override
+    public void onStart()
+    {
+        Log.i("GeckoApp", "start");
+        super.onStart();
+    }
+
+    @Override
     public void onDestroy()
     {
+        Log.i("GeckoApp", "destroy");
         
         
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_STOPPING));
@@ -219,6 +235,7 @@ abstract public class GeckoApp
     @Override
     public void onConfigurationChanged(android.content.res.Configuration newConfig)
     {
+        Log.i("GeckoApp", "configuration changed");
         
         super.onConfigurationChanged(newConfig);
     }
@@ -226,6 +243,7 @@ abstract public class GeckoApp
     @Override
     public void onLowMemory()
     {
+        Log.i("GeckoApp", "low memory");
         
         super.onLowMemory();
     }
