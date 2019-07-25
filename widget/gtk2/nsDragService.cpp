@@ -137,7 +137,8 @@ invisibleSourceDragDataGet(GtkWidget        *aWidget,
                            gpointer          aData);
 
 nsDragService::nsDragService()
-    : mTaskSource(0)
+    : mScheduledTask(eDragTaskNone)
+    , mTaskSource(0)
 {
     
     
