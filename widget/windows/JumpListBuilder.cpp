@@ -24,6 +24,8 @@
 #include "nsThreadUtils.h"
 #include "mozilla/LazyIdleThread.h"
 
+#include "WinUtils.h"
+
 
 #define DEFAULT_THREAD_TIMEOUT_MS 30000
 
@@ -41,10 +43,6 @@ bool JumpListBuilder::sBuildingList = false;
 const char kPrefTaskbarEnabled[] = "browser.taskbar.lists.enabled";
 
 NS_IMPL_ISUPPORTS2(JumpListBuilder, nsIJumpListBuilder, nsIObserver)
-NS_IMPL_ISUPPORTS1(AsyncFaviconDataReady, nsIFaviconDataCallback)
-NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncWriteIconToDisk, nsIRunnable)
-NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncDeleteIconFromDisk, nsIRunnable)
-NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncDeleteAllFaviconsFromDisk, nsIRunnable)
 
 JumpListBuilder::JumpListBuilder() :
   mMaxItems(0),
@@ -182,7 +180,7 @@ nsresult JumpListBuilder::RemoveIconCacheForItems(nsIMutableArray *items)
           NS_ENSURE_SUCCESS(rv, rv);
 
           nsCOMPtr<nsIRunnable> event 
-            = new AsyncDeleteIconFromDisk(NS_ConvertUTF8toUTF16(spec));
+            = new mozilla::widget::AsyncDeleteIconFromDisk(NS_ConvertUTF8toUTF16(spec));
           mIOThread->Dispatch(event, NS_DISPATCH_NORMAL);
 
           
@@ -207,7 +205,8 @@ nsresult JumpListBuilder::RemoveIconCacheForAllItems()
   nsresult rv = NS_GetSpecialDirectory("ProfLDS", 
                                        getter_AddRefs(jumpListCacheDir));
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = jumpListCacheDir->AppendNative(nsDependentCString(JumpListItem::kJumpListCacheDir));
+  rv = jumpListCacheDir->AppendNative(nsDependentCString(
+                         mozilla::widget::FaviconHelper::kJumpListCacheDir));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsISimpleEnumerator> entries;
   rv = jumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
@@ -509,233 +508,13 @@ NS_IMETHODIMP JumpListBuilder::Observe(nsISupports* aSubject,
     bool enabled = Preferences::GetBool(kPrefTaskbarEnabled, true);
     if (!enabled) {
       
-      nsCOMPtr<nsIRunnable> event = new AsyncDeleteAllFaviconsFromDisk();
+      nsCOMPtr<nsIRunnable> event = 
+        new mozilla::widget::AsyncDeleteAllFaviconsFromDisk();
       mIOThread->Dispatch(event, NS_DISPATCH_NORMAL);
     }
   }
   return NS_OK;
 }
-
-
-AsyncFaviconDataReady::AsyncFaviconDataReady(nsIURI *aNewURI, 
-                                             nsCOMPtr<nsIThread> &aIOThread) 
-                      : mNewURI(aNewURI), 
-                        mIOThread(aIOThread)
-{
-}
-
-NS_IMETHODIMP
-AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
-                                  PRUint32 aDataLen,
-                                  const PRUint8 *aData, 
-                                  const nsACString &aMimeType)
-{
-  if (!aDataLen || !aData) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIFile> icoFile;
-  nsresult rv = JumpListShortcut::GetOutputIconPath(mNewURI, icoFile);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsAutoString path;
-  rv = icoFile->GetPath(path);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  const fallible_t fallible = fallible_t();
-  PRUint8 *data = new (fallible) PRUint8[aDataLen];
-  if (!data) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-  memcpy(data, aData, aDataLen);
-
-  
-  nsCOMPtr<nsIRunnable> event = new AsyncWriteIconToDisk(path, aMimeType, 
-                                                         data, 
-                                                         aDataLen);
-  mIOThread->Dispatch(event, NS_DISPATCH_NORMAL);
-
-  return NS_OK;
-}
-
-
-AsyncWriteIconToDisk::AsyncWriteIconToDisk(const nsAString &aIconPath,
-                                           const nsACString &aMimeTypeOfInputData,
-                                           PRUint8 *aBuffer, 
-                                           PRUint32 aBufferLength)
-                     : mIconPath(aIconPath),
-                       mMimeTypeOfInputData(aMimeTypeOfInputData),
-                       mBuffer(aBuffer),
-                       mBufferLength(aBufferLength)
-
-{
-}
-
-NS_IMETHODIMP AsyncWriteIconToDisk::Run()
-{
-  NS_PRECONDITION(!NS_IsMainThread(), "Should not be called on the main thread.");
-
-  
-  nsCOMPtr<nsIInputStream> stream;
-  nsresult rv = NS_NewByteInputStream(getter_AddRefs(stream),
-                                      reinterpret_cast<const char*>(mBuffer.get()), 
-                                      mBufferLength,
-                                      NS_ASSIGNMENT_DEPEND);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  nsCOMPtr<imgIContainer> container;
-  nsCOMPtr<imgITools> imgtool = do_CreateInstance("@mozilla.org/image/tools;1");
-  rv = imgtool->DecodeImageData(stream, mMimeTypeOfInputData, 
-                                getter_AddRefs(container));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  
-  PRInt32 systemIconWidth = GetSystemMetrics(SM_CXSMICON);
-  PRInt32 systemIconHeight = GetSystemMetrics(SM_CYSMICON);
-  if (systemIconWidth == 0 || systemIconHeight == 0) {
-    systemIconWidth = 16;
-    systemIconHeight = 16;
-  }
-  
-  mMimeTypeOfInputData.AssignLiteral("image/vnd.microsoft.icon");
-  nsCOMPtr<nsIInputStream> iconStream;
-  rv = imgtool->EncodeScaledImage(container, mMimeTypeOfInputData,
-                                  systemIconWidth,
-                                  systemIconHeight,
-                                  EmptyString(),
-                                  getter_AddRefs(iconStream));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIFile> icoFile
-    = do_CreateInstance("@mozilla.org/file/local;1");
-  NS_ENSURE_TRUE(icoFile, NS_ERROR_FAILURE);
-  rv = icoFile->InitWithPath(mIconPath);
-
-  
-  nsCOMPtr<nsIOutputStream> outputStream;
-  rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), icoFile);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRUint32 bufSize;
-  rv = iconStream->Available(&bufSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  nsCOMPtr<nsIOutputStream> bufferedOutputStream;
-  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedOutputStream),
-                                  outputStream, bufSize);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  PRUint32 wrote;
-  rv = bufferedOutputStream->WriteFrom(iconStream, bufSize, &wrote);
-  NS_ASSERTION(bufSize == wrote, "Icon wrote size should be equal to requested write size");
-
-  
-  bufferedOutputStream->Close();
-  outputStream->Close();
-  return rv;
-}
-
-AsyncWriteIconToDisk::~AsyncWriteIconToDisk()
-{
-}
-
-AsyncDeleteIconFromDisk::AsyncDeleteIconFromDisk(const nsAString &aIconPath)
-                        : mIconPath(aIconPath)
-{
-}
-
-NS_IMETHODIMP AsyncDeleteIconFromDisk::Run()
-{
-  
-  nsCOMPtr<nsIFile> icoFile = do_CreateInstance("@mozilla.org/file/local;1");
-  NS_ENSURE_TRUE(icoFile, NS_ERROR_FAILURE);
-  nsresult rv = icoFile->InitWithPath(mIconPath);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  bool exists;
-  rv = icoFile->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (StringTail(mIconPath, 4).LowerCaseEqualsASCII(".ico")) {
-    
-    bool exists;
-    if (NS_FAILED(icoFile->Exists(&exists)) || !exists)
-      return NS_ERROR_FAILURE;
-
-    
-    icoFile->Remove(false);
-  }
-
-  return NS_OK;
-}
-
-AsyncDeleteIconFromDisk::~AsyncDeleteIconFromDisk()
-{
-}
-
-AsyncDeleteAllFaviconsFromDisk::AsyncDeleteAllFaviconsFromDisk()
-{
-}
-
-NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
-{
-  
-  nsCOMPtr<nsIFile> jumpListCacheDir;
-  nsresult rv = NS_GetSpecialDirectory("ProfLDS", 
-    getter_AddRefs(jumpListCacheDir));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = jumpListCacheDir->AppendNative(nsDependentCString(JumpListItem::kJumpListCacheDir));
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsISimpleEnumerator> entries;
-  rv = jumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  do {
-    bool hasMore = false;
-    if (NS_FAILED(entries->HasMoreElements(&hasMore)) || !hasMore)
-      break;
-
-    nsCOMPtr<nsISupports> supp;
-    if (NS_FAILED(entries->GetNext(getter_AddRefs(supp))))
-      break;
-
-    nsCOMPtr<nsIFile> currFile(do_QueryInterface(supp));
-    nsAutoString path;
-    if (NS_FAILED(currFile->GetPath(path)))
-      continue;
-
-    PRInt32 len = path.Length();
-    if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
-      
-      bool exists;
-      if (NS_FAILED(currFile->Exists(&exists)) || !exists)
-        continue;
-
-      
-      currFile->Remove(false);
-    }
-  } while(true);
-
-  return NS_OK;
-}
-
-AsyncDeleteAllFaviconsFromDisk::~AsyncDeleteAllFaviconsFromDisk()
-{
-}
-
 
 } 
 } 

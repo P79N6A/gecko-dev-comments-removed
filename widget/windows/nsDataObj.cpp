@@ -30,7 +30,13 @@
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
 
+#include "WinUtils.h"
+#include "mozilla/LazyIdleThread.h"
+
+
 using namespace mozilla;
+
+#define DEFAULT_THREAD_TIMEOUT_MS 30000
 
 NS_IMPL_ISUPPORTS1(nsDataObj::CStream, nsIStreamListener)
 
@@ -345,6 +351,9 @@ nsDataObj::nsDataObj(nsIURI * uri)
   : m_cRef(0), mTransferable(nsnull),
     mIsAsyncMode(FALSE), mIsInOperation(FALSE)
 {
+  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, 
+                                 NS_LITERAL_CSTRING("nsDataObj"),
+                                 LazyIdleThread::ManualShutdown);
   m_enumFE = new CEnumFormatEtc();
   m_enumFE->AddRef();
 
@@ -1088,10 +1097,27 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
   
   nsCAutoString asciiUrl;
   LossyCopyUTF16toASCII(url, asciiUrl);
-    
-  static const char* shortcutFormatStr = "[InternetShortcut]\r\nURL=%s\r\n";
-  static const int formatLen = strlen(shortcutFormatStr) - 2; 
-  const int totalLen = formatLen + asciiUrl.Length(); 
+
+  nsCOMPtr<nsIFile> icoFile;
+  nsCOMPtr<nsIURI> aUri;
+  NS_NewURI(getter_AddRefs(aUri), url);
+
+  nsAutoString aUriHash;
+
+  mozilla::widget::FaviconHelper::ObtainCachedIconFile(aUri, aUriHash, mIOThread, true);
+
+  nsresult rv = mozilla::widget::FaviconHelper::GetOutputIconPath(aUri, icoFile, true);
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCString path;
+  rv = icoFile->GetNativePath(path);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  static char* shortcutFormatStr = "[InternetShortcut]\r\nURL=%s\r\n" 
+                                   "IDList=\r\nHotKey=0\r\nIconFile=%s\r\n" 
+                                   "IconIndex=0\r\n";
+  static const int formatLen = strlen(shortcutFormatStr) - 2*2; 
+  const int totalLen = formatLen + asciiUrl.Length() 
+                       + path.Length(); 
 
   
   HGLOBAL hGlobalMemory = ::GlobalAlloc(GMEM_SHARE, totalLen);
@@ -1108,7 +1134,7 @@ nsDataObj :: GetFileContentsInternetShortcut ( FORMATETC& aFE, STGMEDIUM& aSTG )
   
   
   
-  _snprintf( contents, totalLen, shortcutFormatStr, asciiUrl.get() );
+  _snprintf( contents, totalLen, shortcutFormatStr, asciiUrl.get(), path.get() );
     
   ::GlobalUnlock(hGlobalMemory);
   aSTG.hGlobal = hGlobalMemory;

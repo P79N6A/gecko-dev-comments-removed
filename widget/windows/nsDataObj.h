@@ -19,6 +19,8 @@
 #include "nsCOMArray.h"
 #include "nsITimer.h"
 
+class nsIThread;
+
 
 
 
@@ -85,6 +87,10 @@ class nsITransferable;
 class nsDataObj : public IDataObject,
                   public IAsyncOperation
 {
+
+protected:
+  nsCOMPtr<nsIThread> mIOThread;
+
   public: 
     nsDataObj(nsIURI *uri = nsnull);
     virtual ~nsDataObj();

@@ -11,8 +11,32 @@
 #include "nsIDOMMouseEvent.h"
 #include "mozilla/Preferences.h"
 
+#include "nsString.h"
+#include "nsDirectoryServiceUtils.h"
+#include "imgIContainer.h"
+#include "imgITools.h"
+#include "nsStringStream.h"
+#include "nsNetUtil.h"
+#include "mozIAsyncFavicons.h"
+ 
+#include "nsIIconURI.h"
+#include "nsIDownloader.h"
+#include "nsINetUtil.h"
+#include "nsIChannel.h"
+#include "nsIObserver.h"
+
 namespace mozilla {
 namespace widget {
+
+  NS_IMPL_ISUPPORTS1(myDownloadObserver, nsIDownloadObserver)
+  NS_IMPL_ISUPPORTS1(AsyncFaviconDataReady, nsIFaviconDataCallback)
+  NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncWriteIconToDisk, nsIRunnable)
+  NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncDeleteIconFromDisk, nsIRunnable)
+  NS_IMPL_THREADSAFE_ISUPPORTS1(AsyncDeleteAllFaviconsFromDisk, nsIRunnable)
+
+
+  const char FaviconHelper::kJumpListCacheDir[] = "jumpListCache";
+  const char FaviconHelper::kShortcutCacheDir[] = "shortcutCache";
 
 
 WinUtils::SHCreateItemFromParsingNamePtr WinUtils::sCreateItemFromParsingName = nsnull;
@@ -366,6 +390,471 @@ WinUtils::SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
     return E_FAIL;
   return sCreateItemFromParsingName(pszPath, pbc, riid, ppv);
 }
+
+
+
+
+
+
+
+AsyncFaviconDataReady::AsyncFaviconDataReady(nsIURI *aNewURI, 
+                                             nsCOMPtr<nsIThread> &aIOThread, 
+                                             const bool aURLShortcut):
+  mNewURI(aNewURI),
+  mIOThread(aIOThread),
+  mURLShortcut(aURLShortcut)
+{
+}
+
+NS_IMETHODIMP
+myDownloadObserver::OnDownloadComplete(nsIDownloader *downloader, 
+                                     nsIRequest *request, 
+                                     nsISupports *ctxt, 
+                                     nsresult status, 
+                                     nsIFile *result)
+{
+  return NS_OK;
+}
+
+
+nsresult AsyncFaviconDataReady::OnFaviconDataNotAvailable(void)
+{
+  if (!mURLShortcut) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIFile> icoFile;
+  nsresult rv = FaviconHelper::GetOutputIconPath(mNewURI, icoFile, mURLShortcut);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> mozIconURI;
+  rv = NS_NewURI(getter_AddRefs(mozIconURI), "moz-icon://.html?size=32");
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+ 
+  nsCOMPtr<nsIChannel> channel;
+  rv = NS_NewChannel(getter_AddRefs(channel), mozIconURI);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<myDownloadObserver> downloadObserver = new myDownloadObserver;
+  nsCOMPtr<nsIStreamListener> listener;
+  rv = NS_NewDownloader(getter_AddRefs(listener), downloadObserver, icoFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  channel->AsyncOpen(listener, NULL);
+  return NS_OK;
+}
+
+
+
+NS_IMETHODIMP
+AsyncFaviconDataReady::OnComplete(nsIURI *aFaviconURI,
+                                  PRUint32 aDataLen,
+                                  const PRUint8 *aData, 
+                                  const nsACString &aMimeType)
+{
+  if (!aDataLen || !aData) {
+    if (mURLShortcut) {
+      OnFaviconDataNotAvailable();
+    }
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIFile> icoFile;
+  nsresult rv = FaviconHelper::GetOutputIconPath(mNewURI, icoFile, mURLShortcut);
+
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsAutoString path;
+  rv = icoFile->GetPath(path);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  const fallible_t fallible = fallible_t();
+  PRUint8 *data = new (fallible) PRUint8[aDataLen];
+  if (!data) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  memcpy(data, aData, aDataLen);
+
+  
+  nsCOMPtr<nsIRunnable> event = new AsyncWriteIconToDisk(path, aMimeType, 
+                                                         data, 
+                                                         aDataLen,
+                                                         mURLShortcut);
+  mIOThread->Dispatch(event, NS_DISPATCH_NORMAL);
+
+  return NS_OK;
+}
+
+
+AsyncWriteIconToDisk::AsyncWriteIconToDisk(const nsAString &aIconPath,
+                                           const nsACString &aMimeTypeOfInputData,
+                                           PRUint8 *aBuffer, 
+                                           PRUint32 aBufferLength,
+                                           const bool aURLShortcut): 
+  mIconPath(aIconPath),
+  mMimeTypeOfInputData(aMimeTypeOfInputData),
+  mBuffer(aBuffer),
+  mBufferLength(aBufferLength),
+  mURLShortcut(aURLShortcut)
+
+{
+}
+
+NS_IMETHODIMP AsyncWriteIconToDisk::Run()
+{
+  NS_PRECONDITION(!NS_IsMainThread(), "Should not be called on the main thread.");
+
+  
+  nsCOMPtr<nsIInputStream> stream;
+  nsresult rv = 
+    NS_NewByteInputStream(getter_AddRefs(stream),
+                          reinterpret_cast<const char*>(mBuffer.get()),
+                          mBufferLength,
+                          NS_ASSIGNMENT_DEPEND);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<imgIContainer> container;
+  nsCOMPtr<imgITools> imgtool = do_CreateInstance("@mozilla.org/image/tools;1");
+  rv = imgtool->DecodeImageData(stream, mMimeTypeOfInputData, 
+                                getter_AddRefs(container));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIInputStream> iconStream;
+  if (!mURLShortcut) {
+    PRInt32 systemIconWidth = GetSystemMetrics(SM_CXSMICON);
+    PRInt32 systemIconHeight = GetSystemMetrics(SM_CYSMICON);
+    if ((systemIconWidth == 0 || systemIconHeight == 0)) {
+      systemIconWidth = 16;
+      systemIconHeight = 16;
+    }
+    
+    mMimeTypeOfInputData.AssignLiteral("image/vnd.microsoft.icon");
+    rv = imgtool->EncodeScaledImage(container, mMimeTypeOfInputData,
+                                    systemIconWidth,
+                                    systemIconHeight,
+                                    EmptyString(),
+                                    getter_AddRefs(iconStream));
+    } else {
+    mMimeTypeOfInputData.AssignLiteral("image/vnd.microsoft.icon");
+    rv = imgtool->EncodeImage(container, 
+                              mMimeTypeOfInputData,
+                              NS_LITERAL_STRING("format=bmp;bpp=32"),
+                              getter_AddRefs(iconStream));
+  }
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIFile> icoFile
+    = do_CreateInstance("@mozilla.org/file/local;1");
+  NS_ENSURE_TRUE(icoFile, NS_ERROR_FAILURE);
+  rv = icoFile->InitWithPath(mIconPath);
+
+  
+  nsCOMPtr<nsIOutputStream> outputStream;
+  rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), icoFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRUint32 bufSize;
+  rv = iconStream->Available(&bufSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nsCOMPtr<nsIOutputStream> bufferedOutputStream;
+  rv = NS_NewBufferedOutputStream(getter_AddRefs(bufferedOutputStream),
+                                  outputStream, bufSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  PRUint32 wrote;
+  rv = bufferedOutputStream->WriteFrom(iconStream, bufSize, &wrote);
+  NS_ASSERTION(bufSize == wrote, 
+              "Icon wrote size should be equal to requested write size");
+
+  
+  bufferedOutputStream->Close();
+  outputStream->Close();
+  if (mURLShortcut) {
+    SendMessage(HWND_BROADCAST, WM_SETTINGCHANGE, SPI_SETNONCLIENTMETRICS, 0);
+  }
+  return rv;
+}
+
+AsyncWriteIconToDisk::~AsyncWriteIconToDisk()
+{
+}
+
+AsyncDeleteIconFromDisk::AsyncDeleteIconFromDisk(const nsAString &aIconPath)
+  : mIconPath(aIconPath)
+{
+}
+
+NS_IMETHODIMP AsyncDeleteIconFromDisk::Run()
+{
+  
+  nsCOMPtr<nsIFile> icoFile = do_CreateInstance("@mozilla.org/file/local;1");
+  NS_ENSURE_TRUE(icoFile, NS_ERROR_FAILURE);
+  nsresult rv = icoFile->InitWithPath(mIconPath);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  bool exists;
+  rv = icoFile->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (StringTail(mIconPath, 4).LowerCaseEqualsASCII(".ico")) {
+    
+    bool exists;
+    if (NS_FAILED(icoFile->Exists(&exists)) || !exists)
+      return NS_ERROR_FAILURE;
+
+    
+    icoFile->Remove(false);
+  }
+
+  return NS_OK;
+}
+
+AsyncDeleteIconFromDisk::~AsyncDeleteIconFromDisk()
+{
+}
+
+AsyncDeleteAllFaviconsFromDisk::AsyncDeleteAllFaviconsFromDisk()
+{
+}
+
+NS_IMETHODIMP AsyncDeleteAllFaviconsFromDisk::Run()
+{
+  
+  nsCOMPtr<nsIFile> jumpListCacheDir;
+  nsresult rv = NS_GetSpecialDirectory("ProfLDS", 
+    getter_AddRefs(jumpListCacheDir));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = jumpListCacheDir->AppendNative(
+      nsDependentCString(FaviconHelper::kJumpListCacheDir));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsISimpleEnumerator> entries;
+  rv = jumpListCacheDir->GetDirectoryEntries(getter_AddRefs(entries));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  do {
+    bool hasMore = false;
+    if (NS_FAILED(entries->HasMoreElements(&hasMore)) || !hasMore)
+      break;
+
+    nsCOMPtr<nsISupports> supp;
+    if (NS_FAILED(entries->GetNext(getter_AddRefs(supp))))
+      break;
+
+    nsCOMPtr<nsIFile> currFile(do_QueryInterface(supp));
+    nsAutoString path;
+    if (NS_FAILED(currFile->GetPath(path)))
+      continue;
+
+    PRInt32 len = path.Length();
+    if (StringTail(path, 4).LowerCaseEqualsASCII(".ico")) {
+      
+      bool exists;
+      if (NS_FAILED(currFile->Exists(&exists)) || !exists)
+        continue;
+
+      
+      currFile->Remove(false);
+    }
+  } while(true);
+
+  return NS_OK;
+}
+
+AsyncDeleteAllFaviconsFromDisk::~AsyncDeleteAllFaviconsFromDisk()
+{
+}
+
+
+
+
+
+
+
+
+
+
+
+
+nsresult FaviconHelper::ObtainCachedIconFile(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                             nsString &aICOFilePath,
+                                             nsCOMPtr<nsIThread> &aIOThread,
+                                             bool aURLShortcut)
+{
+  
+  nsCOMPtr<nsIFile> icoFile;
+  nsresult rv = GetOutputIconPath(aFaviconPageURI, icoFile, aURLShortcut);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  bool exists;
+  rv = icoFile->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (exists) {
+
+    
+    PRInt64 fileModTime = LL_ZERO;
+    rv = icoFile->GetLastModifiedTime(&fileModTime);
+    fileModTime /= PR_MSEC_PER_SEC;
+    PRInt32 icoReCacheSecondsTimeout = GetICOCacheSecondsTimeout();
+    PRInt64 nowTime = PR_Now() / PRInt64(PR_USEC_PER_SEC);
+
+    
+    
+    
+    if (NS_FAILED(rv) ||
+        (nowTime - fileModTime) > icoReCacheSecondsTimeout) {
+        CacheIconFileFromFaviconURIAsync(aFaviconPageURI, icoFile, aIOThread, aURLShortcut);
+        return NS_ERROR_NOT_AVAILABLE;
+    }
+  } else {
+
+    
+    
+    CacheIconFileFromFaviconURIAsync(aFaviconPageURI, icoFile, aIOThread, aURLShortcut);
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  rv = icoFile->GetPath(aICOFilePath);
+  return rv;
+}
+
+nsresult FaviconHelper::HashURI(nsCOMPtr<nsICryptoHash> &aCryptoHash, 
+                                nsIURI *aUri, 
+                                nsACString& aUriHash)
+{
+  if (!aUri)
+    return NS_ERROR_INVALID_ARG;
+
+  nsCAutoString spec;
+  nsresult rv = aUri->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!aCryptoHash) {
+    aCryptoHash = do_CreateInstance(NS_CRYPTO_HASH_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  rv = aCryptoHash->Init(nsICryptoHash::MD5);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aCryptoHash->Update(reinterpret_cast<const PRUint8*>(spec.BeginReading()), 
+                           spec.Length());
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = aCryptoHash->Finish(true, aUriHash);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+
+
+
+
+
+nsresult FaviconHelper::GetOutputIconPath(nsCOMPtr<nsIURI> aFaviconPageURI,
+  nsCOMPtr<nsIFile> &aICOFile,
+  bool aURLShortcut)
+{
+  
+  nsCAutoString inputURIHash;
+  nsCOMPtr<nsICryptoHash> cryptoHash;
+  nsresult rv = HashURI(cryptoHash, aFaviconPageURI,
+                        inputURIHash);
+  NS_ENSURE_SUCCESS(rv, rv);
+  char* cur = inputURIHash.BeginWriting();
+  char* end = inputURIHash.EndWriting();
+  for (; cur < end; ++cur) {
+    if ('/' == *cur) {
+      *cur = '_';
+    }
+  }
+
+  
+  rv = NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(aICOFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!aURLShortcut)
+    rv = aICOFile->AppendNative(nsDependentCString(kJumpListCacheDir));
+  else
+    rv = aICOFile->AppendNative(nsDependentCString(kShortcutCacheDir));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = aICOFile->Create(nsIFile::DIRECTORY_TYPE, 0777);
+  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
+    return rv;
+  }
+
+  
+  inputURIHash.Append(".ico");
+  rv = aICOFile->AppendNative(inputURIHash);
+
+  return rv;
+}
+
+
+
+nsresult 
+  FaviconHelper::CacheIconFileFromFaviconURIAsync(nsCOMPtr<nsIURI> aFaviconPageURI,
+                                                  nsCOMPtr<nsIFile> aICOFile,
+                                                  nsCOMPtr<nsIThread> &aIOThread,
+                                                  bool aURLShortcut)
+{
+  
+  nsCOMPtr<mozIAsyncFavicons> favIconSvc(
+    do_GetService("@mozilla.org/browser/favicon-service;1"));
+  NS_ENSURE_TRUE(favIconSvc, NS_ERROR_FAILURE);
+
+  nsCOMPtr<nsIFaviconDataCallback> callback = 
+    new mozilla::widget::AsyncFaviconDataReady(aFaviconPageURI, 
+                                               aIOThread, 
+                                               aURLShortcut);
+
+  favIconSvc->GetFaviconDataForPage(aFaviconPageURI, callback);
+  return NS_OK;
+}
+
+
+PRInt32 FaviconHelper::GetICOCacheSecondsTimeout() {
+
+  
+  
+  
+  
+  
+  const PRInt32 kSecondsPerDay = 86400;
+  static bool alreadyObtained = false;
+  static PRInt32 icoReCacheSecondsTimeout = kSecondsPerDay;
+  if (alreadyObtained) {
+    return icoReCacheSecondsTimeout;
+  }
+
+  
+  const char PREF_ICOTIMEOUT[]  = "browser.taskbar.lists.icoTimeoutInSeconds";
+  icoReCacheSecondsTimeout = Preferences::GetInt(PREF_ICOTIMEOUT, 
+                                                 kSecondsPerDay);
+  alreadyObtained = true;
+  return icoReCacheSecondsTimeout;
+}
+
+
+
 
 
 bool
