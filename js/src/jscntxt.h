@@ -246,10 +246,6 @@ class StackSegment
     bool                saved;
 
     
-    JSObject            *savedLastNativeCalleeScope_;
-    void                *savedLastNativeCalleeScopePtr_;
-
-    
 #if JS_BITS_PER_WORD == 32
     void                *padding;
 #endif
@@ -264,8 +260,7 @@ class StackSegment
     StackSegment()
       : cx(NULL), previousInContext(NULL), previousInMemory(NULL),
         initialFrame(NULL), suspendedRegs(NON_NULL_SUSPENDED_REGS),
-        initialVarObj(NULL), saved(false), savedLastNativeCalleeScope_(NULL),
-         savedLastNativeCalleeScopePtr_(NULL)
+        initialVarObj(NULL), saved(false)
     {
         JS_ASSERT(!inContext());
     }
@@ -353,9 +348,19 @@ class StackSegment
 
     
 
-    void save(JSFrameRegs *regs, JSObject *lastNativeCalleeScope, void *lastNativeCalleeScopePtr);
+    void save(JSFrameRegs *regs) {
+        JS_ASSERT(!isSuspended());
+        suspend(regs);
+        saved = true;
+        JS_ASSERT(isSaved());
+    }
 
-    void restore();
+    void restore() {
+        JS_ASSERT(isSaved());
+        saved = false;
+        resume();
+        JS_ASSERT(!isSuspended());
+    }
 
     
 
@@ -409,21 +414,6 @@ class StackSegment
     JSObject &getInitialVarObj() const {
         JS_ASSERT(inContext() && initialVarObj);
         return *initialVarObj;
-    }
-
-    bool hasLastNativeCalleeScope() const {
-        JS_ASSERT(inContext());
-        return savedLastNativeCalleeScope_ != NULL;
-    }
-
-    JSObject *lastNativeCalleeScope() const {
-        JS_ASSERT(inContext());
-        return savedLastNativeCalleeScope_;
-    }
-
-    void *lastNativeCalleeScopePtr() const {
-        JS_ASSERT(inContext());
-        return savedLastNativeCalleeScopePtr_;
     }
 
 #ifdef DEBUG
@@ -633,6 +623,8 @@ class StackSpace
     inline void popInvokeArgs(const InvokeArgsGuard &args);
     inline void popInvokeFrame(const InvokeFrameGuard &ag);
 
+    inline Value *firstUnused() const;
+
     inline bool isCurrentAndActive(JSContext *cx) const;
     friend class AllFramesIter;
     StackSegment *getCurrentSegment() const { return currentSegment; }
@@ -641,11 +633,6 @@ class StackSpace
     
     JS_FRIEND_API(bool) bumpCommit(Value *from, ptrdiff_t nvals) const;
 #endif
-
-    
-    inline js::Value *firstUnused() const;
-  public:
-    inline void *constFirstUnused() const;
 
   public:
     static const size_t CAPACITY_VALS   = 512 * 1024;
@@ -1697,32 +1684,6 @@ struct JSContext
         return !!regs;
     }
 
-    
-
-
-
-
-
-
-
-    JSObject *lastNativeCalleeScope;
-
-    
-
-
-
-    void *lastNativeCalleeScopePtr;
-
-    
-
-
-
-
-
-    inline JSObject *getGlobalFromScopeChain();
-
-    void reportInactive();
-
   public:
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *, JSStackFrame *, uintN, JSInterpMode);
@@ -1807,7 +1768,7 @@ struct JSContext
         return currentSegment;
     }
 
-    inline js::RegExpStatics *getRegExpStatics();
+    inline js::RegExpStatics *regExpStatics();
 
     
     void pushSegmentAndFrame(js::StackSegment *newseg, JSFrameRegs &regs);

@@ -196,7 +196,7 @@ struct JSStackFrame
                               uint32 nactual, uint32 flags);
 
     
-    inline void resetInvokeCallFrame(JSContext *cx);
+    inline void resetInvokeCallFrame();
 
     
     inline void initCallFrameCallerHalf(JSContext *cx, uint32 flags, void *ncode);
@@ -802,6 +802,9 @@ GetBlockChain(JSContext *cx, JSStackFrame *fp);
 
 extern JSObject *
 GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+
+extern JSObject *
+GetScopeChain(JSContext *cx);
 
 
 
