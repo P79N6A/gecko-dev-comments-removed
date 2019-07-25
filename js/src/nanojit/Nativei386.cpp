@@ -2059,13 +2059,14 @@ namespace nanojit
 
         Register rf = findRegFor(iffalse, allow & ~rmask(rr));
 
-        
-        Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
-
         if (ins->isop(LIR_cmovd)) {
             NIns* target = _nIns;
             asm_nongp_copy(rr, rf);
             asm_branch(false, condval, target);
+
+            
+            Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
+
             if (rr != rt)
                 asm_nongp_copy(rr, rt);
             freeResourcesOf(ins);
@@ -2075,6 +2076,9 @@ namespace nanojit
             }
             return;
         }
+
+        
+        Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
 
         NanoAssert(ins->isop(LIR_cmovi));
 
