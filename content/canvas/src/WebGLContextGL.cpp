@@ -1903,15 +1903,7 @@ WebGLContext::GenerateMipmap(WebGLenum target)
     tex->SetGeneratedMipmap();
 
     MakeContextCurrent();
-    
-    
-    
-    
-    
-    
-    gl->fTexParameteri(target, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_NEAREST_MIPMAP_NEAREST);
     gl->fGenerateMipmap(target);
-    gl->fTexParameteri(target, LOCAL_GL_TEXTURE_MIN_FILTER, tex->MinFilter());
     return NS_OK;
 }
 
