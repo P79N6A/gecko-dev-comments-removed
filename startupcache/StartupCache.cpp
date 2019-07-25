@@ -63,7 +63,9 @@
 #include "nsWeakReference.h"
 #include "nsZipArchive.h"
 #include "mozilla/FunctionTimer.h"
-
+#include "mozilla/Omnijar.h"
+#include "prenv.h"
+ 
 #ifdef IS_BIG_ENDIAN
 #define SC_ENDIAN "big"
 #else
@@ -142,26 +144,35 @@ StartupCache::Init()
   mWriteObjectMap.Init();
 #endif
 
-  nsCOMPtr<nsIFile> file;
-  rv = NS_GetSpecialDirectory("ProfLDS",
-                              getter_AddRefs(file));
-  if (NS_FAILED(rv)) {
+  
+  
+  char *env = PR_GetEnv("MOZ_STARTUP_CACHE");
+  if (env) {
+    rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), PR_FALSE, getter_AddRefs(mFile));
+  } else {
+    nsCOMPtr<nsIFile> file;
+    rv = NS_GetSpecialDirectory("ProfLDS",
+                                getter_AddRefs(file));
+    if (NS_FAILED(rv)) {
+      
+      return rv;
+    }
+
+    rv = file->AppendNative(NS_LITERAL_CSTRING("startupCache"));
+    NS_ENSURE_SUCCESS(rv, rv);
+
     
-    return rv;
+    rv = file->Create(nsIFile::DIRECTORY_TYPE, 0777);
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS)
+      return rv;
+
+    rv = file->AppendNative(NS_LITERAL_CSTRING(sStartupCacheName));
+
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    mFile = do_QueryInterface(file);
   }
 
-  rv = file->AppendNative(NS_LITERAL_CSTRING("startupCache"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = file->Create(nsIFile::DIRECTORY_TYPE, 0777);
-  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS)
-    return rv;
-
-  rv = file->AppendNative(NS_LITERAL_CSTRING(sStartupCacheName));
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  mFile = do_QueryInterface(file);
   NS_ENSURE_TRUE(mFile, NS_ERROR_UNEXPECTED);
 
   mObserverService = do_GetService("@mozilla.org/observer-service;1");
@@ -231,6 +242,15 @@ StartupCache::GetBuffer(const char* id, char** outbuf, PRUint32* length)
     } 
   }
 
+  if (mozilla::OmnijarReader()) {
+    
+    nsZipItemPtr<char> zipItem(mozilla::OmnijarReader(), id);
+    if (zipItem) {
+      *outbuf = zipItem.Forget();
+      *length = zipItem.Length();
+      return NS_OK;
+    } 
+  }
   return NS_ERROR_NOT_AVAILABLE;
 }
 
