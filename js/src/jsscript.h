@@ -653,7 +653,22 @@ struct JSScript : public js::gc::Cell
     inline js::GlobalObject &global() const;
 
     
-    JSObject *enclosingStaticScope() const { return enclosingScope_; }
+    JSObject *enclosingStaticScope() const {
+        JS_ASSERT(enclosingScriptsCompiledSuccessfully());
+        return enclosingScope_;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    bool enclosingScriptsCompiledSuccessfully() const;
 
   private:
     bool makeTypes(JSContext *cx);

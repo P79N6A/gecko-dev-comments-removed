@@ -1860,6 +1860,30 @@ JSScript::numNotes()
     return sn - notes_ + 1;    
 }
 
+bool
+JSScript::enclosingScriptsCompiledSuccessfully() const
+{
+    
+
+
+
+
+
+
+    JSObject *enclosing = enclosingScope_;
+    while (enclosing) {
+        if (enclosing->isFunction()) {
+            JSFunction *fun = enclosing->toFunction();
+            if (!fun->script())
+                return false;
+            enclosing = fun->script()->enclosingScope_;
+        } else {
+            enclosing = enclosing->asStaticBlock().enclosingStaticScope();
+        }
+    }
+    return true;
+}
+
 JS_FRIEND_API(void)
 js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun)
 {
