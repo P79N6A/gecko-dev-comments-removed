@@ -20,6 +20,10 @@ class nsDOMMediaStream;
 
 namespace mozilla {
 
+#ifdef PR_LOGGING
+extern PRLogModuleInfo* gMediaStreamGraphLog;
+#endif
+
 
 
 
@@ -743,6 +747,21 @@ public:
 
 
   SourceMediaStream* CreateInputStream(nsDOMMediaStream* aWrapper);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ProcessedMediaStream* CreateTrackUnionStream(nsDOMMediaStream* aWrapper);
   
 
 
