@@ -33,7 +33,14 @@ public:
   
   NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
 
+  
+  
+  
+  NS_IMETHOD_(nsrefcnt) AddRef() = 0;
+  NS_IMETHOD_(nsrefcnt) Release() = 0;
+
   NS_DECL_NSICSSDECLARATION
+  using nsICSSDeclaration::GetLength;
 
   
   
@@ -50,12 +57,44 @@ public:
   NS_IMETHOD SetProperty(const nsAString & propertyName,
                          const nsAString & value, const nsAString & priority);
   NS_IMETHOD GetLength(uint32_t *aLength);
-  NS_IMETHOD Item(uint32_t index, nsAString & _retval);
   NS_IMETHOD GetParentRule(nsIDOMCSSRule * *aParentRule) = 0;
 
   
   
   NS_DECL_NSIDOMCSS2PROPERTIES
+
+  
+#define CSS_PROP_DOMPROP_PREFIXED(prop_) Moz ## prop_
+#define CSS_PROP(name_, id_, method_, flags_, pref_, parsevariant_,          \
+                 kwtable_, stylestruct_, stylestructoffset_, animtype_)      \
+  void                                                                       \
+  Get##method_(nsAString& aValue, mozilla::ErrorResult& rv)                  \
+  {                                                                          \
+    rv = GetPropertyValue(eCSSProperty_##id_, aValue);                       \
+  }                                                                          \
+                                                                             \
+  void                                                                       \
+  Set##method_(const nsAString& aValue, mozilla::ErrorResult& rv)            \
+  {                                                                          \
+    rv = SetPropertyValue(eCSSProperty_##id_, aValue);                       \
+  }
+
+#define CSS_PROP_LIST_EXCLUDE_INTERNAL
+#define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)  \
+  CSS_PROP(name_, id_, method_, flags_, pref_, X, X, X, X, X)
+#include "nsCSSPropList.h"
+
+#define CSS_PROP_ALIAS(aliasname_, propid_, aliasmethod_, pref_)  \
+  CSS_PROP(X, propid_, aliasmethod_, X, pref_, X, X, X, X, X)
+#include "nsCSSPropAliasList.h"
+#undef CSS_PROP_ALIAS
+
+#undef CSS_PROP_SHORTHAND
+#undef CSS_PROP_LIST_EXCLUDE_INTERNAL
+#undef CSS_PROP
+#undef CSS_PROP_DOMPROP_PREFIXED
+
+  virtual void IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aPropName);
 
 protected:
   
