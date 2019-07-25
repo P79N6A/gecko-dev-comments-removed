@@ -197,10 +197,6 @@ var gSyncSetup = {
     }
   },
 
-  onPassphraseKeyUp: function (event) {
-    this.checkFields();
-  },
-
   
   checkFields: function () {
     this.wizard.canAdvance = this.readyToAdvance();
