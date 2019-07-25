@@ -1532,10 +1532,10 @@ ContentPermissionPrompt.prototype = {
 
     
     if (requestingURI.schemeIs("file")) {
-      message = browserBundle.formatStringFromName("geolocation.fileWantsToKnow",
+      message = browserBundle.formatStringFromName("geolocation.shareWithFile",
                                                    [requestingURI.path], 1);
     } else {
-      message = browserBundle.formatStringFromName("geolocation.siteWantsToKnow",
+      message = browserBundle.formatStringFromName("geolocation.shareWithSite",
                                                    [requestingURI.host], 1);
 
       
