@@ -105,6 +105,16 @@ function needHomepageOverride() {
   return "none";
 }
 
+function getHomePage() {
+  let url = "about:home";
+  try {
+    url = Services.prefs.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
+  } catch (e) { }
+
+  return url;
+}
+
+
 function BrowserCLH() { }
 
 BrowserCLH.prototype = {
@@ -172,7 +182,8 @@ BrowserCLH.prototype = {
     try {
       win = Services.wm.getMostRecentWindow("navigator:browser");
       if (!win) {
-        let defaultURL;
+        
+        let defaultURL = getHomePage();
 
         
         if (needHomepageOverride() == "new profile")
@@ -195,6 +206,8 @@ BrowserCLH.prototype = {
 
     
     
+    if (uris.length == 0)
+      return;
 
     
     while (!win.browserDOMWindow)
@@ -202,8 +215,7 @@ BrowserCLH.prototype = {
 
     
     for (let i = 0; i < uris.length; i++)
-      win.browserDOMWindow.openURI(uris[i], null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB,
-                                   Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
+      win.browserDOMWindow.openURI(uris[i], null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
   },
 
   

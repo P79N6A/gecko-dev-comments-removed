@@ -366,8 +366,10 @@ var Browser = {
     
     Util.forceOnline();
 
-    let homeURL = this.getHomePage();
-    let commandURL;
+    
+    
+    
+    let commandURL = null;
     if (window.arguments && window.arguments[0])
       commandURL = window.arguments[0];
 
@@ -375,10 +377,12 @@ var Browser = {
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
     if (ss.shouldRestore()) {
       ss.restoreLastSession();
-      if (commandURL)
+
+      
+      if (commandURL && commandURL != this.getHomePage())
         this.addTab(commandURL, true);
     } else {
-      this.addTab(commandURL || homeURL, true);
+      this.addTab(commandURL || this.getHomePage(), true);
     }
 
     
