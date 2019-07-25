@@ -410,6 +410,7 @@
 #endif
 
 
+
 #if defined(__FreeBSD__) || defined(__DragonFly__)
 #define WTF_OS_FREEBSD 1
 #endif
@@ -420,7 +421,7 @@
 #endif
 
 
-#ifdef __linux__
+#ifdef __linux__ && !defined(ANDROID)
 #define WTF_OS_LINUX 1
 #endif
 

@@ -71,6 +71,7 @@
 #include "nsXPCOMCIDInternal.h"
 #include "pratom.h"
 #include "prthread.h"
+#include "mozilla/Preferences.h"
 
 
 #include "nsDOMWorker.h"
@@ -1564,8 +1565,7 @@ nsDOMThreadService::RegisterPrefCallbacks()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   for (PRUint32 index = 0; index < NS_ARRAY_LENGTH(sPrefsToWatch); index++) {
-    nsContentUtils::RegisterPrefCallback(sPrefsToWatch[index], PrefCallback,
-                                         nsnull);
+    Preferences::RegisterCallback(PrefCallback, sPrefsToWatch[index]);
     PrefCallback(sPrefsToWatch[index], nsnull);
   }
 }
@@ -1575,8 +1575,7 @@ nsDOMThreadService::UnregisterPrefCallbacks()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   for (PRUint32 index = 0; index < NS_ARRAY_LENGTH(sPrefsToWatch); index++) {
-    nsContentUtils::UnregisterPrefCallback(sPrefsToWatch[index], PrefCallback,
-                                           nsnull);
+    Preferences::UnregisterCallback(PrefCallback, sPrefsToWatch[index]);
   }
 }
 
@@ -1591,7 +1590,7 @@ nsDOMThreadService::PrefCallback(const char* aPrefName,
     
     
     PRUint32 timeoutMS =
-      nsContentUtils::GetIntPref(aPrefName, gWorkerCloseHandlerTimeoutMS);
+      Preferences::GetUint(aPrefName, gWorkerCloseHandlerTimeoutMS);
 
     
     
