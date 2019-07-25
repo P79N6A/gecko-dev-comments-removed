@@ -412,12 +412,26 @@ struct JS_FRIEND_API(JSCompartment) {
     js::WrapperMap               crossCompartmentWrappers;
 
 #ifdef JS_METHODJIT
-    js::mjit::JaegerCompartment  *jaegerCompartment;
+  private:
+    
+    js::mjit::JaegerCompartment  *jaegerCompartment_;
     
 
 
 
 
+
+  public:
+    bool hasJaegerCompartment() {
+        return !!jaegerCompartment_;
+    }
+
+    js::mjit::JaegerCompartment *jaegerCompartment() const {
+        JS_ASSERT(jaegerCompartment_);
+        return jaegerCompartment_;
+    }
+
+    bool ensureJaegerCompartmentExists(JSContext *cx);
 
     size_t getMjitCodeSize() const;
 #endif

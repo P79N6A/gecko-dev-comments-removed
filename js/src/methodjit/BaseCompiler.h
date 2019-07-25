@@ -147,7 +147,7 @@ class LinkerHelper : public JSC::LinkBuffer
         
         
         JSScript *script = cx->fp()->script();
-        JSC::ExecutableAllocator *allocator = script->compartment->jaegerCompartment->execAlloc();
+        JSC::ExecutableAllocator *allocator = script->compartment->jaegerCompartment()->execAlloc();
         JSC::ExecutablePool *pool;
         m_code = executableAllocAndCopy(masm, allocator, &pool);
         if (!m_code) {
