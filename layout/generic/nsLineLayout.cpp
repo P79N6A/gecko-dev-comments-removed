@@ -113,7 +113,6 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
 
   
   mStyleText = aOuterReflowState->frame->GetStyleText();
-  mTextAlign = mStyleText->mTextAlign;
   mLineNumber = 0;
   mFlags = 0; 
   mTotalPlacedFrames = 0;
@@ -2493,8 +2492,12 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
 
 void
 nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
-                                    bool aAllowJustify)
+                                    bool aIsLastLine)
 {
+  
+
+
+
   PerSpanData* psd = mRootSpan;
   NS_WARN_IF_FALSE(psd->mRightEdge != NS_UNCONSTRAINEDSIZE,
                    "have unconstrained width; this should only result from "
@@ -2510,26 +2513,41 @@ nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
   nscoord dx = 0;
 
   if (remainingWidth > 0) {
-    switch (mTextAlign) {
+    PRUint8 textAlign = mStyleText->mTextAlign;
+
+    
+
+
+
+
+
+
+    if (aIsLastLine) {
+      if (mStyleText->mTextAlignLast == NS_STYLE_TEXT_ALIGN_AUTO) {
+        if (textAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY) {
+          textAlign = NS_STYLE_TEXT_ALIGN_DEFAULT;
+        }
+      } else {
+        textAlign = mStyleText->mTextAlignLast;
+      }
+    }
+
+    switch (textAlign) {
       case NS_STYLE_TEXT_ALIGN_JUSTIFY:
-        
-        
-        if (aAllowJustify) {
-          PRInt32 numSpaces;
-          PRInt32 numLetters;
+        PRInt32 numSpaces;
+        PRInt32 numLetters;
             
-          ComputeJustificationWeights(psd, &numSpaces, &numLetters);
+        ComputeJustificationWeights(psd, &numSpaces, &numLetters);
 
-          if (numSpaces > 0) {
-            FrameJustificationState state =
-              { numSpaces, numLetters, remainingWidth, 0, 0, 0, 0, 0 };
+        if (numSpaces > 0) {
+          FrameJustificationState state =
+            { numSpaces, numLetters, remainingWidth, 0, 0, 0, 0, 0 };
 
-            
-            
-            aLineBounds.width += ApplyFrameJustification(psd, &state);
-            remainingWidth = availWidth - aLineBounds.width;
-            break;
-          }
+          
+          
+          aLineBounds.width += ApplyFrameJustification(psd, &state);
+          remainingWidth = availWidth - aLineBounds.width;
+          break;
         }
         
         
