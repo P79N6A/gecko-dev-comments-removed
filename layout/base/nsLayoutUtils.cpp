@@ -3117,8 +3117,9 @@ nsLayoutUtils::DrawPixelSnapped(nsIRenderingContext* aRenderingContext,
  nsresult
 nsLayoutUtils::DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
                                        imgIContainer*       aImage,
+                                       GraphicsFilter       aGraphicsFilter,
                                        const nsPoint&       aDest,
-                                       const nsRect&        aDirty,
+                                       const nsRect*        aDirty,
                                        PRUint32             aImageFlags,
                                        const nsRect*        aSourceArea)
 {
@@ -3144,8 +3145,9 @@ nsLayoutUtils::DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
   
   
   fill.IntersectRect(fill, dest);
-  return DrawImageInternal(aRenderingContext, aImage, gfxPattern::FILTER_NEAREST,
-                           dest, fill, aDest, aDirty, imageSize, aImageFlags);
+  return DrawImageInternal(aRenderingContext, aImage, aGraphicsFilter,
+                           dest, fill, aDest, aDirty ? *aDirty : dest,
+                           imageSize, aImageFlags);
 }
 
  nsresult

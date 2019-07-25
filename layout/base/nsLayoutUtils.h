@@ -1003,10 +1003,12 @@ public:
 
 
 
+
   static nsresult DrawSingleUnscaledImage(nsIRenderingContext* aRenderingContext,
                                           imgIContainer*       aImage,
+                                          GraphicsFilter       aGraphicsFilter,
                                           const nsPoint&       aDest,
-                                          const nsRect&        aDirty,
+                                          const nsRect*        aDirty,
                                           PRUint32             aImageFlags,
                                           const nsRect*        aSourceArea = nsnull);
 
