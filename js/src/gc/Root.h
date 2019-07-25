@@ -105,6 +105,7 @@ struct RootMethods { };
 
 
 
+
 template <typename T>
 class Handle
 {
@@ -119,6 +120,9 @@ class Handle
 
 
 
+
+
+
     static Handle fromMarkedLocation(const T *p) {
         Handle h;
         h.ptr = p;
@@ -126,6 +130,9 @@ class Handle
     }
 
     
+
+
+
     template <typename S> inline Handle(const Root<S> &root);
     template <typename S> inline Handle(const RootedVar<S> &root);
 
