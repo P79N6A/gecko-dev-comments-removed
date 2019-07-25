@@ -7081,6 +7081,11 @@ nsDocShell::RestoreFromHistory()
         mContentViewer->Close(mSavingOldViewer ? mOSHE.get() : nsnull);
         viewer->SetPreviousViewer(mContentViewer);
     }
+    if (mOSHE && (!mContentViewer || !mSavingOldViewer)) {
+        
+        
+        mOSHE->SyncPresentationState();
+    }
 
     
     mContentViewer = nsnull;
@@ -7698,9 +7703,14 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
 
         mContentViewer->Close(mSavingOldViewer ? mOSHE.get() : nsnull);
         aNewViewer->SetPreviousViewer(mContentViewer);
-
-        mContentViewer = nsnull;
     }
+    if (mOSHE && (!mContentViewer || !mSavingOldViewer)) {
+        
+        
+        mOSHE->SyncPresentationState();
+    }
+
+    mContentViewer = nsnull;
 
     
     
