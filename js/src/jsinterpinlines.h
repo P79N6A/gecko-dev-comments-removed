@@ -124,13 +124,30 @@ InvokeSessionGuard::invoke(JSContext *cx)
     
     args_.calleeHasBeenReset();
 
-#ifdef JS_METHODJIT
-    void *code;
-    if (!optimized() || !(code = script_->getJIT(false )->invokeEntry))
-#else
     if (!optimized())
-#endif
         return Invoke(cx, args_);
+
+    
+
+
+
+    for (unsigned i = 0; i < Min(argc(), nformals_); i++)
+        script_->types.setArgument(cx, i, (*this)[i]);
+
+#ifdef JS_METHODJIT
+    mjit::JITScript *jit = script_->getJIT(false );
+    if (!jit) {
+        
+        mjit::CompileStatus status = mjit::TryCompile(cx, ifg_.fp());
+        if (status == mjit::Compile_Error)
+            return false;
+        JS_ASSERT(status == mjit::Compile_Okay);
+        jit = script_->getJIT(false);
+    }
+    void *code;
+    if (!(code = jit->invokeEntry))
+        return Invoke(cx, args_);
+#endif
 
     
     StackFrame *fp = ifg_.fp();
@@ -142,7 +159,7 @@ InvokeSessionGuard::invoke(JSContext *cx)
         args_.setActive();  
         Probes::enterJSFun(cx, fp->fun(), script_);
 #ifdef JS_METHODJIT
-        ok = mjit::EnterMethodJIT(cx, fp, code, stackLimit_);
+        ok = mjit::EnterMethodJIT(cx, fp, code, stackLimit_,  false);
         cx->regs().pc = stop_;
 #else
         cx->regs().pc = script_->code;
@@ -235,6 +252,19 @@ GetPrimitiveThis(JSContext *cx, Value *vp, T *v)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 inline bool
 ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
 {
@@ -243,11 +273,25 @@ ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp
     if (!funval.isObject())
         return true;
 
-    if (obj->isGlobal())
-        return true;
+    if (!obj->isGlobal()) {
+        if (IsCacheableNonGlobalScope(obj))
+            return true;
+    } else {
+        JSObject *callee = &funval.toObject();
 
-    if (IsCacheableNonGlobalScope(obj))
-        return true;
+        if (callee->isProxy()) {
+            callee = callee->unwrap();
+            if (!callee->isFunction())
+                return true; 
+        }
+        if (callee->isFunction()) {
+            JSFunction *fun = callee->getFunctionPrivate();
+            if (fun->isInterpreted() && fun->inStrictMode())
+                return true;
+        }
+        if (callee->getGlobal() == cx->fp()->scopeChain().getGlobal())
+            return true;;
+    }
 
     obj = obj->thisObject(cx);
     if (!obj)
@@ -315,19 +359,19 @@ ValuePropertyBearer(JSContext *cx, const Value &v, int spindex)
 }
 
 inline bool
-ScriptPrologue(JSContext *cx, StackFrame *fp)
+ScriptPrologue(JSContext *cx, StackFrame *fp, bool newType)
 {
     JS_ASSERT_IF(fp->isNonEvalFunctionFrame() && fp->fun()->isHeavyweight(), fp->hasCallObj());
 
     if (fp->isConstructing()) {
-        JSObject *obj = js_CreateThisForFunction(cx, &fp->callee());
+        JSObject *obj = js_CreateThisForFunction(cx, &fp->callee(), newType);
         if (!obj)
             return false;
         fp->functionThis().setObject(*obj);
     }
 
     Probes::enterJSFun(cx, fp->maybeFun(), fp->script());
-    if (cx->compartment->debugMode())
+    if (cx->compartment->debugMode)
         ScriptDebugPrologue(cx, fp);
 
     return true;
@@ -337,7 +381,7 @@ inline bool
 ScriptEpilogue(JSContext *cx, StackFrame *fp, bool ok)
 {
     Probes::exitJSFun(cx, fp->maybeFun(), fp->script());
-    if (cx->compartment->debugMode())
+    if (cx->compartment->debugMode)
         ok = ScriptDebugEpilogue(cx, fp, ok);
 
     
@@ -353,11 +397,11 @@ ScriptEpilogue(JSContext *cx, StackFrame *fp, bool ok)
 }
 
 inline bool
-ScriptPrologueOrGeneratorResume(JSContext *cx, StackFrame *fp)
+ScriptPrologueOrGeneratorResume(JSContext *cx, StackFrame *fp, bool newType)
 {
     if (!fp->isGeneratorFrame())
-        return ScriptPrologue(cx, fp);
-    if (cx->compartment->debugMode())
+        return ScriptPrologue(cx, fp, newType);
+    if (cx->compartment->debugMode)
         ScriptDebugPrologue(cx, fp);
     return true;
 }
@@ -367,11 +411,11 @@ ScriptEpilogueOrGeneratorYield(JSContext *cx, StackFrame *fp, bool ok)
 {
     if (!fp->isYielding())
         return ScriptEpilogue(cx, fp, ok);
-    if (cx->compartment->debugMode())
+    if (cx->compartment->debugMode)
         return ScriptDebugEpilogue(cx, fp, ok);
     return ok;
 }
 
 }  
 
-#endif
+#endif 

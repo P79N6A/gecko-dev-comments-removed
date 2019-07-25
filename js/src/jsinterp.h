@@ -144,13 +144,24 @@ BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 inline bool
 ComputeThis(JSContext *cx, StackFrame *fp);
 
+enum MaybeConstruct {
+    NO_CONSTRUCT = INITIAL_NONE,
+    CONSTRUCT = INITIAL_CONSTRUCT
+};
+
+
+
+
 
 
 
 
 
 extern bool
-InvokeKernel(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
+Invoke(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
+
+
+
 
 
 
@@ -160,27 +171,10 @@ inline bool
 Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONSTRUCT)
 {
     args.setActive();
-    bool ok = InvokeKernel(cx, args, construct);
+    bool ok = Invoke(cx, ImplicitCast<CallArgs>(args), construct);
     args.setInactive();
     return ok;
 }
-
-
-
-
-
-
-extern bool
-Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *argv,
-       Value *rval);
-
-
-
-
-
-extern bool
-InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, uintN argc, Value *argv,
-                     Value *rval);
 
 
 
@@ -212,31 +206,37 @@ class InvokeSessionGuard;
 
 
 
-extern JS_REQUIRES_STACK bool
-InvokeConstructorKernel(JSContext *cx, const CallArgs &args);
-
-
-inline bool
-InvokeConstructor(JSContext *cx, InvokeArgsGuard &args)
-{
-    args.setActive();
-    bool ok = InvokeConstructorKernel(cx, ImplicitCast<CallArgs>(args));
-    args.setInactive();
-    return ok;
-}
-
 
 extern bool
-InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Value *rval);
+ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
+               uintN argc, Value *argv, Value *rval);
+
+extern bool
+ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
+                 JSAccessMode mode, uintN argc, Value *argv, Value *rval);
 
 
 
 
+
+
+
+
+
+extern JS_REQUIRES_STACK bool
+InvokeConstructor(JSContext *cx, const CallArgs &args);
 
 extern JS_REQUIRES_STACK bool
 InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                uintN argc, Value *argv, Value *rval);
 
+extern bool
+ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
+                          Value *rval);
+
+extern bool
+ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
+
 
 
 
@@ -244,12 +244,8 @@ InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fv
 
 
 extern bool
-ExecuteKernel(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
-              ExecuteType type, StackFrame *evalInFrame, Value *result);
-
-
-extern bool
-Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
+Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
+        ExecuteType type, StackFrame *evalInFrame, Value *result);
 
 
 enum InterpMode
@@ -257,7 +253,9 @@ enum InterpMode
     JSINTERP_NORMAL    = 0, 
     JSINTERP_RECORD    = 1, 
     JSINTERP_SAFEPOINT = 2, 
-    JSINTERP_PROFILE   = 3  
+    JSINTERP_PROFILE   = 3, 
+    JSINTERP_REJOIN    = 4, 
+    JSINTERP_SKIP_TRAP = 5  
 };
 
 
@@ -305,53 +303,6 @@ GetUpvar(JSContext *cx, uintN level, UpvarCookie cookie);
 
 extern StackFrame *
 FindUpvarFrame(JSContext *cx, uintN targetLevel);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class InterpreterFrames {
-  public:
-    class InterruptEnablerBase {
-      public:
-        virtual void enableInterrupts() const = 0;
-    };
-
-    InterpreterFrames(JSContext *cx, FrameRegs *regs, const InterruptEnablerBase &enabler);
-    ~InterpreterFrames();
-
-    
-    void enableInterruptsIfRunning(JSScript *script) {
-        if (script == regs->fp()->script())
-            enabler.enableInterrupts();
-    }
-
-    InterpreterFrames *older;
-
-  private:
-    JSContext *context;
-    FrameRegs *regs;
-    const InterruptEnablerBase &enabler;
-};
 
 } 
 

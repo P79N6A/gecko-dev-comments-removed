@@ -101,6 +101,19 @@
 #define JSFUN_KINDMASK      0xc000  /* encode interp vs. native and closure
                                        optimization level -- see above */
 
+#define FUN_OBJECT(fun)      (static_cast<JSObject *>(fun))
+#define FUN_KIND(fun)        ((fun)->flags & JSFUN_KINDMASK)
+#define FUN_SET_KIND(fun,k)  ((fun)->flags = ((fun)->flags & ~JSFUN_KINDMASK) | (k))
+#define FUN_INTERPRETED(fun) (FUN_KIND(fun) >= JSFUN_INTERPRETED)
+#define FUN_FLAT_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_FLAT_CLOSURE)
+#define FUN_NULL_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_NULL_CLOSURE)
+#define FUN_SCRIPT(fun)      (FUN_INTERPRETED(fun) ? (fun)->script() : NULL)
+#define FUN_CLASP(fun)       (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
+                              fun->u.n.clasp)
+#define FUN_TRCINFO(fun)     (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
+                              JS_ASSERT((fun)->flags & JSFUN_TRCINFO),        \
+                              fun->u.n.trcinfo)
+
 struct JSFunction : public JSObject_Slots2
 {
     
@@ -132,25 +145,17 @@ struct JSFunction : public JSObject_Slots2
     } u;
     JSAtom          *atom;        
 
-    bool optimizedClosure()  const { return kind() > JSFUN_INTERPRETED; }
-    bool isInterpreted()     const { return kind() >= JSFUN_INTERPRETED; }
-    bool isNative()          const { return !isInterpreted(); }
+    bool optimizedClosure()  const { return FUN_KIND(this) > JSFUN_INTERPRETED; }
+    bool needsWrapper()      const { return FUN_NULL_CLOSURE(this) && u.i.skipmin != 0; }
+    bool isInterpreted()     const { return FUN_INTERPRETED(this); }
+    bool isNative()          const { return !FUN_INTERPRETED(this); }
     bool isConstructor()     const { return flags & JSFUN_CONSTRUCTOR; }
     bool isHeavyweight()     const { return JSFUN_HEAVYWEIGHT_TEST(flags); }
-    bool isNullClosure()     const { return kind() == JSFUN_NULL_CLOSURE; }
-    bool isFlatClosure()     const { return kind() == JSFUN_FLAT_CLOSURE; }
+    bool isFlatClosure()     const { return FUN_KIND(this) == JSFUN_FLAT_CLOSURE; }
     bool isFunctionPrototype() const { return flags & JSFUN_PROTOTYPE; }
     bool isInterpretedConstructor() const { return isInterpreted() && !isFunctionPrototype(); }
-
-    uint16 kind()            const { return flags & JSFUN_KINDMASK; }
-    void setKind(uint16 k) {
-        JS_ASSERT(!(k & ~JSFUN_KINDMASK));
-        flags = (flags & ~JSFUN_KINDMASK) | k;
-    }
-
     
     inline bool inStrictMode() const;
-
     void setArgCount(uint16 nargs) {
         JS_ASSERT(this->nargs == 0);
         this->nargs = nargs;
@@ -186,7 +191,11 @@ struct JSFunction : public JSObject_Slots2
     };
 
   public:
-    inline void setJoinable();
+    void setJoinable() {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        getSlotRef(METHOD_ATOM_SLOT).setNull();
+        flags |= JSFUN_JOINABLE;
+    }
 
     
 
@@ -199,15 +208,14 @@ struct JSFunction : public JSObject_Slots2
                : NULL;
     }
 
-    inline void setMethodAtom(JSAtom *atom);
+    void setMethodAtom(JSAtom *atom) {
+        JS_ASSERT(joinable());
+        getSlotRef(METHOD_ATOM_SLOT).setString(atom);
+    }
 
     JSScript *script() const {
         JS_ASSERT(isInterpreted());
         return u.i.script;
-    }
-
-    JSScript * maybeScript() const {
-        return isInterpreted() ? script() : NULL;
     }
 
     js::Native native() const {
@@ -227,23 +235,6 @@ struct JSFunction : public JSObject_Slots2
 
     
     static const uint32 CLASS_RESERVED_SLOTS = JSObject::FUN_CLASS_RESERVED_SLOTS;
-
-
-    js::Class *getConstructorClass() const {
-        JS_ASSERT(isNative());
-        return u.n.clasp;
-    }
-
-    void setConstructorClass(js::Class *clasp) {
-        JS_ASSERT(isNative());
-        u.n.clasp = clasp;
-    }
-
-    JSNativeTraceInfo *getTraceInfo() const {
-        JS_ASSERT(isNative());
-        JS_ASSERT(flags & JSFUN_TRCINFO);
-        return u.n.trcinfo;
-    }
 };
 
 
@@ -285,6 +276,12 @@ JSObject::getFunctionPrivate() const
 }
 
 namespace js {
+
+
+
+
+#define VALUE_IS_FUNCTION(cx, v)                                              \
+    (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isFunction())
 
 static JS_ALWAYS_INLINE bool
 IsFunctionObject(const js::Value &v)
@@ -364,6 +361,14 @@ SameTraceType(const Value &lhs, const Value &rhs)
            (lhs.isPrimitive() ||
             lhs.toObject().isFunction() == rhs.toObject().isFunction());
 }
+
+
+
+
+
+#define GET_FUNCTION_PRIVATE(cx, funobj)                                      \
+    (JS_ASSERT((funobj)->isFunction()),                                       \
+     (JSFunction *) (funobj)->getPrivate())
 
 
 
@@ -461,12 +466,28 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
                        JSObject *proto);
 
 inline JSObject *
-CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent)
+CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
+                    bool ignoreSingletonClone = false)
 {
     JS_ASSERT(parent);
     JSObject *proto;
     if (!js_GetClassPrototype(cx, parent, JSProto_Function, &proto))
         return NULL;
+
+    
+
+
+
+
+
+
+    if (ignoreSingletonClone && fun->getType()->singleton) {
+        JS_ASSERT(fun->getProto() == proto);
+        JS_ASSERT(fun->getType()->singleton == fun);
+        fun->setParent(parent);
+        return fun;
+    }
+
     return js_CloneFunctionObject(cx, fun, parent, proto);
 }
 
@@ -476,6 +497,9 @@ js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);
 extern JSObject *
 js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen);
 
+extern JS_REQUIRES_STACK JSObject *
+js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun);
+
 extern JSFunction *
 js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, js::Native native,
                   uintN nargs, uintN flags);
@@ -483,7 +507,7 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, js::Native native,
 
 
 
-#define JSV2F_CONSTRUCT         CONSTRUCT
+#define JSV2F_CONSTRUCT         INITIAL_CONSTRUCT
 #define JSV2F_SEARCH_STACK      0x10000
 
 extern JSFunction *
@@ -521,6 +545,13 @@ GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
 GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+
+
+
+
+
+extern JSBool
+GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
 GetCallUpvar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
@@ -560,6 +591,25 @@ js_PutArgsObject(js::StackFrame *fp);
 
 inline bool
 js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->atom; }
+
+
+
+
+
+
+
+
+
+
+
+const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(19) - 1024;
+
+
+
+
+
+JS_STATIC_ASSERT(JS_ARGS_LENGTH_MAX <= JS_BIT(30));
+JS_STATIC_ASSERT(((JS_ARGS_LENGTH_MAX << 1) | 1) <= JSVAL_INT_MAX);
 
 extern JSBool
 js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp);
