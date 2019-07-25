@@ -117,12 +117,6 @@ private:
   nsWeakFrame mFrame;
 };
 
-static void
-InsertViewsInReverseOrder(nsIView* aSibling, nsIView* aParent);
-
-static void
-EndSwapDocShellsForViews(nsIView* aView);
-
 NS_IMETHODIMP
 nsSubDocumentFrame::Init(nsIContent*     aContent,
                          nsIFrame*       aParent,
@@ -151,28 +145,6 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     NS_ENSURE_SUCCESS(rv, rv);
   }
   EnsureInnerView();
-
-  
-  
-  
-  
-  nsRefPtr<nsFrameLoader> frameloader = FrameLoader();
-  if (frameloader) {
-    nsCOMPtr<nsIDocument> oldContainerDoc;
-    nsIView* detachedViews =
-      frameloader->GetDetachedSubdocView(getter_AddRefs(oldContainerDoc));
-    if (detachedViews) {
-      if (oldContainerDoc == aContent->OwnerDoc()) {
-        
-        ::InsertViewsInReverseOrder(detachedViews, mInnerView);
-        ::EndSwapDocShellsForViews(mInnerView->GetFirstChild());
-      } else {
-        
-        frameloader->Hide();
-      }
-    }
-    frameloader->SetDetachedSubdocView(nullptr, nullptr);
-  }
 
   
   
@@ -786,49 +758,6 @@ NS_NewSubDocumentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSubDocumentFrame)
 
-class nsHideViewer : public nsRunnable {
-public:
-  nsHideViewer(nsIContent* aFrameElement,
-               nsFrameLoader* aFrameLoader,
-               nsIPresShell* aPresShell,
-               bool aHideViewerIfFrameless)
-    : mFrameElement(aFrameElement),
-      mFrameLoader(aFrameLoader),
-      mPresShell(aPresShell),
-      mHideViewerIfFrameless(aHideViewerIfFrameless)
-  {
-    NS_ASSERTION(mFrameElement, "Must have a frame element");
-    NS_ASSERTION(mFrameLoader, "Must have a frame loader");
-    NS_ASSERTION(mPresShell, "Must have a presshell");
-  }
-
-  NS_IMETHOD Run()
-  {
-    
-    
-    
-    if (!mPresShell->IsDestroying()) {
-      mPresShell->FlushPendingNotifications(Flush_Frames);
-    }
-    nsIFrame* frame = mFrameElement->GetPrimaryFrame();
-    if (!frame && mHideViewerIfFrameless) {
-      
-      
-      mFrameLoader->SetDetachedSubdocView(nullptr, nullptr);
-      mFrameLoader->Hide();
-   }
-    return NS_OK;
-  }
-private:
-  nsCOMPtr<nsIContent> mFrameElement;
-  nsRefPtr<nsFrameLoader> mFrameLoader;
-  nsCOMPtr<nsIPresShell> mPresShell;
-  bool mHideViewerIfFrameless;
-};
-
-static nsIView*
-BeginSwapDocShellsForViews(nsIView* aSibling);
-
 void
 nsSubDocumentFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
@@ -836,25 +765,17 @@ nsSubDocumentFrame::DestroyFrom(nsIFrame* aDestructRoot)
     PresContext()->PresShell()->CancelReflowCallback(this);
     mPostedReflowCallback = false;
   }
-
   
-  
-  
-  nsFrameLoader* frameloader = FrameLoader();
-  if (frameloader) {
-    nsIView* detachedViews = ::BeginSwapDocShellsForViews(mInnerView->GetFirstChild());
-    frameloader->SetDetachedSubdocView(detachedViews, mContent->OwnerDoc());
-
-    
-    
-    nsContentUtils::AddScriptRunner(
-      new nsHideViewer(mContent,
-                       mFrameLoader,
-                       PresContext()->PresShell(),
-                       (mDidCreateDoc || mCallingShow)));
-  }
+  HideViewer();
 
   nsLeafFrame::DestroyFrom(aDestructRoot);
+}
+
+void
+nsSubDocumentFrame::HideViewer()
+{
+  if (mFrameLoader && (mDidCreateDoc || mCallingShow))
+    mFrameLoader->Hide();
 }
 
 nsIntSize
