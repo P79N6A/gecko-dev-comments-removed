@@ -636,6 +636,8 @@ WeaveSvc.prototype = {
     
     Svc.Prefs.resetBranch("");
     
+    Svc.Prefs.set("lastversion", WEAVE_VERSION);
+    
     Svc.Login.findLogins({}, PWDMGR_HOST, "", "").map(function(login) {
       Svc.Login.removeLogin(login);
     });
