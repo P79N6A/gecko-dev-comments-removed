@@ -1156,9 +1156,10 @@ abstract public class GeckoApp
                     return;
                 }
 
-                if (false) {
-                    checkAndLaunchUpdate();
-                }
+                
+                long startTime = new Date().getTime();
+                checkAndLaunchUpdate();
+                Log.w(LOGTAG, "checking for an update took " + (new Date().getTime() - startTime) + "ms");
             }
         }, 50);
     }
