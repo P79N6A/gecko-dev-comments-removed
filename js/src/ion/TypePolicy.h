@@ -79,7 +79,7 @@ class TypePolicy
     virtual bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special) = 0;
 };
 
-class BoxInputPolicy : public TypePolicy
+class BoxInputsPolicy : public TypePolicy
 {
   public:
     virtual bool respecialize(MInstruction *def);
@@ -87,7 +87,22 @@ class BoxInputPolicy : public TypePolicy
     virtual bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special);
 };
 
-class BinaryArithPolicy : public BoxInputPolicy
+class BinaryArithPolicy : public BoxInputsPolicy
+{
+  protected:
+    
+    
+    
+    
+    MIRType specialization_;
+
+  public:
+    bool respecialize(MInstruction *def);
+    bool adjustInputs(MInstruction *def);
+    bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special);
+};
+
+class BitwisePolicy : public BoxInputsPolicy
 {
   protected:
     

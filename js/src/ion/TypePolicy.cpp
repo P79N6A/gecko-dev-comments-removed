@@ -47,6 +47,32 @@ using namespace js;
 using namespace js::ion;
 
 bool
+BoxInputsPolicy::respecialize(MInstruction *ins)
+{
+    return false;
+}
+
+bool
+BoxInputsPolicy::adjustInputs(MInstruction *ins)
+{
+    for (size_t i = 0; i < ins->numOperands(); i++) {
+        MDefinition *in = ins->getOperand(i);
+        if (in->type() == MIRType_Value)
+            return true;
+        MBox *box = MBox::New(in);
+        ins->block()->insertBefore(ins, box);
+        ins->replaceOperand(i, box);
+    }
+    return true;
+}
+
+bool
+BoxInputsPolicy::useSpecializedInput(MInstruction *ins, size_t index, MInstruction *special)
+{
+    return false;
+}
+
+bool
 BinaryArithPolicy::respecialize(MInstruction *ins)
 {
     
@@ -68,36 +94,12 @@ BinaryArithPolicy::respecialize(MInstruction *ins)
 }
 
 bool
-BoxInputPolicy::respecialize(MInstruction *ins)
-{
-    return false;
-}
-
-bool
-BoxInputPolicy::adjustInputs(MInstruction *ins)
-{
-    for (size_t i = 0; i < ins->numOperands(); i++) {
-        MDefinition *in = ins->getOperand(i);
-        if (in->type() == MIRType_Value)
-            return true;
-        MBox *box = MBox::New(in);
-        ins->block()->insertBefore(ins, box);
-        ins->replaceOperand(i, box);
-    }
-    return true;
-}
-
-bool
-BoxInputPolicy::useSpecializedInput(MInstruction *ins, size_t index, MInstruction *special)
-{
-    return false;
-}
-
-bool
 BinaryArithPolicy::adjustInputs(MInstruction *ins)
 {
     if (specialization_ == MIRType_None)
-        return BoxInputPolicy::adjustInputs(ins);
+        return BoxInputsPolicy::adjustInputs(ins);
+
+    JS_ASSERT(ins->type() == MIRType_Double || ins->type() == MIRType_Int32);
 
     for (size_t i = 0; i < 2; i++) {
         MDefinition *in = ins->getOperand(0);
@@ -107,8 +109,10 @@ BinaryArithPolicy::adjustInputs(MInstruction *ins)
         MInstruction *replace;
         if (in->type() == MIRType_Value && specialization_ != MIRType_Any)
             replace = MUnbox::New(in, ins->type());
+        else if (ins->type() == MIRType_Double)
+            replace = MToDouble::New(in);
         else
-            replace = MConvertPrim::New(in, ins->type());
+            replace = MToInt32::New(in);
 
         ins->block()->insertBefore(ins, replace);
         ins->replaceOperand(i, replace);
@@ -119,6 +123,47 @@ BinaryArithPolicy::adjustInputs(MInstruction *ins)
 
 bool
 BinaryArithPolicy::useSpecializedInput(MInstruction *ins, size_t index, MInstruction *special)
+{
+    
+    
+    JS_ASSERT(ins->type() == special->type());
+    return true;
+}
+
+bool
+BitwisePolicy::respecialize(MInstruction *ins)
+{
+    
+    return false;
+}
+
+bool
+BitwisePolicy::adjustInputs(MInstruction *ins)
+{
+    if (specialization_ == MIRType_None)
+        return BoxInputsPolicy::adjustInputs(ins);
+
+    
+    for (size_t i = 0; i < ins->numOperands(); i++) {
+        MDefinition *in = ins->getOperand(i);
+        if (in->type() == ins->type())
+            continue;
+
+        MInstruction *replace;
+        if (in->type() == MIRType_Value && specialization_ != MIRType_Any)
+            replace = MUnbox::New(in, MIRType_Int32);
+        else
+            replace = MTruncateToInt32::New(in);
+
+        ins->block()->insertBefore(ins, replace);
+        ins->replaceOperand(i, replace);
+    }
+
+    return true;
+}
+
+bool
+BitwisePolicy::useSpecializedInput(MInstruction *ins, size_t index, MInstruction *special)
 {
     
     
