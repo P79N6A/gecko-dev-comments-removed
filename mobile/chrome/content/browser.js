@@ -170,7 +170,7 @@ function onDebugKeyPress(ev) {
 
   const a = 65;   
   const b = 66;   
-  const c = 67;   
+  const c = 67;
   const d = 68;  
   const e = 69;
   const f = 70;  
@@ -264,11 +264,6 @@ function onDebugKeyPress(ev) {
     break;
   case l:
     bv._tileManager.restartLazyCrawl(bv._tileManager._criticalRect);
-
-    break;
-  case c:
-    let cap = parseInt(window.prompt('new capacity'));
-    bv._tileManager._tileCache.setCapacity(cap);
 
     break;
   case b:
@@ -1418,8 +1413,6 @@ Browser.MainDragger.prototype = {
     let elem = this.draggedFrame;
     let doffset = new Point(dx, dy);
     let render = false;
-
-    this.bv.onBeforeVisibleMove(dx, dy);
 
     
     let panOffset = this._panControlsAwayOffset(doffset);
