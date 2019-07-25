@@ -104,6 +104,9 @@ struct nsIntPoint;
 struct nsIntRect;
 class nsRefreshDriver;
 class nsARefreshObserver;
+#ifdef ACCESSIBILITY
+class nsAccessibilityService;
+#endif
 
 typedef short SelectionType;
 typedef PRUint64 nsFrameState;
@@ -853,6 +856,13 @@ public:
 
   static PRBool gIsAccessibilityActive;
   static PRBool IsAccessibilityActive() { return gIsAccessibilityActive; }
+
+#ifdef ACCESSIBILITY
+  
+
+
+  static nsAccessibilityService* AccService();
+#endif
 
   
 
