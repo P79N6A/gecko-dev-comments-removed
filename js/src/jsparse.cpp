@@ -3640,28 +3640,100 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
     return true;
 }
 
-
-
-
-
-
-
-
 static bool
-BindGvar(JSParseNode *pn, JSTreeContext *tc)
+BindTopLevelVar(JSContext *cx, BindData *data, JSAtomListElement *ale, JSParseNode *pn,
+                JSAtom *varname, JSTreeContext *tc)
 {
     JS_ASSERT(pn->pn_op == JSOP_NAME);
     JS_ASSERT(!tc->inFunction());
 
-    if (!tc->compiling() || tc->parser->callerFrame)
+    
+    if (!tc->compiling())
         return true;
 
-    JSCodeGenerator *cg = tc->asCodeGenerator();
+    
+
+
+
+    if (tc->parser->callerFrame) {
+        
+
+
+
+
+
+        if (!tc->inStrictMode())
+            return true;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        return true;
+    }
 
     if (pn->pn_dflags & PND_CONST)
         return true;
 
-    return DefineGlobal(pn, cg, pn->pn_atom);
+    
+
+
+
+
+    return DefineGlobal(pn, tc->asCodeGenerator(), pn->pn_atom);
+}
+
+static bool
+BindFunctionLocal(JSContext *cx, BindData *data, JSAtomListElement *ale, JSParseNode *pn,
+                  JSAtom *name, JSTreeContext *tc)
+{
+    JS_ASSERT(tc->inFunction());
+
+    if (name == cx->runtime->atomState.argumentsAtom) {
+        pn->pn_op = JSOP_ARGUMENTS;
+        pn->pn_dflags |= PND_BOUND;
+        return true;
+    }
+
+    BindingKind kind = tc->bindings.lookup(cx, name, NULL);
+    if (kind == NONE) {
+        
+
+
+
+
+
+
+        kind = (data->op == JSOP_DEFCONST) ? CONSTANT : VARIABLE;
+
+        uintN index = tc->bindings.countVars();
+        if (!BindLocalVariable(cx, tc, name, kind, false))
+            return false;
+        pn->pn_op = JSOP_GETLOCAL;
+        pn->pn_cookie.set(tc->staticLevel, index);
+        pn->pn_dflags |= PND_BOUND;
+        return true;
+    }
+
+    if (kind == ARGUMENT) {
+        JS_ASSERT(tc->inFunction());
+        JS_ASSERT(ale && ALE_DEFN(ale)->kind() == JSDefinition::ARG);
+    } else {
+        JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
+    }
+
+    return true;
 }
 
 static JSBool
@@ -3815,44 +3887,10 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
     if (data->op == JSOP_DEFCONST)
         pn->pn_dflags |= PND_CONST;
 
-    if (!tc->inFunction())
-        return BindGvar(pn, tc);
+    if (tc->inFunction())
+        return BindFunctionLocal(cx, data, ale, pn, atom, tc);
 
-    if (atom == cx->runtime->atomState.argumentsAtom) {
-        pn->pn_op = JSOP_ARGUMENTS;
-        pn->pn_dflags |= PND_BOUND;
-        return JS_TRUE;
-    }
-
-    BindingKind kind = tc->bindings.lookup(cx, atom, NULL);
-    if (kind == NONE) {
-        
-
-
-
-
-
-
-
-        kind = (data->op == JSOP_DEFCONST) ? CONSTANT : VARIABLE;
-
-        uintN index = tc->bindings.countVars();
-        if (!BindLocalVariable(cx, tc, atom, kind, false))
-            return JS_FALSE;
-        pn->pn_op = JSOP_GETLOCAL;
-        pn->pn_cookie.set(tc->staticLevel, index);
-        pn->pn_dflags |= PND_BOUND;
-        return JS_TRUE;
-    }
-
-    if (kind == ARGUMENT) {
-        
-        JS_ASSERT(ale && ALE_DEFN(ale)->kind() == JSDefinition::ARG);
-    } else {
-        
-        JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
-    }
-    return JS_TRUE;
+    return BindTopLevelVar(cx, data, ale, pn, atom, tc);
 }
 
 static bool
