@@ -2289,7 +2289,7 @@ IonBuilder::jsop_notearg()
 }
 
 bool
-IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder)
+IonBuilder::jsop_call_inline(JSFunction *callee, uint32 argc, IonBuilder &inlineBuilder)
 {
 #ifdef DEBUG
     uint32 origStackDepth = current->stackDepth();
@@ -2297,6 +2297,11 @@ IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder)
 
     
     MBasicBlock *top = current;
+
+    
+    
+    MConstant *constFun = MConstant::New(ObjectValue(*callee));
+    current->add(constFun);
 
     
     
@@ -2313,6 +2318,12 @@ IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder)
     
     if (!discardCallArgs(argc, argv, top))
         return false;
+
+    
+    
+    inlineResumePoint->replaceOperand(argc + 1, constFun);
+    current->pop();
+    current->push(constFun);
 
     MDefinition *thisDefn = argv[0];
 
@@ -2442,13 +2453,13 @@ IonBuilder::inlineScriptedCall(JSFunction *target, uint32 argc)
             return false;
         IonBuilder inlineBuilder(cx, NULL, temp(), graph(), &oracle,
                                  *info, inliningDepth + 1, loopDepth_);
-        return jsop_call_inline(argc, inlineBuilder);
+        return jsop_call_inline(target, argc, inlineBuilder);
     }
 
     DummyOracle oracle;
     IonBuilder inlineBuilder(cx, NULL, temp(), graph(), &oracle,
                              *info, inliningDepth + 1, loopDepth_);
-    return jsop_call_inline(argc, inlineBuilder);
+    return jsop_call_inline(target, argc, inlineBuilder);
 }
 
 MDefinition *
