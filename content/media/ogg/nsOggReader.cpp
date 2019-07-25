@@ -41,6 +41,10 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 static const PRUint32 SEEK_FUZZ_USECS = 500000;
 
+
+
+static const PRInt64 SEEK_OPUS_PREROLL = 80 * USECS_PER_MS;
+
 enum PageSyncResult {
   PAGE_SYNC_ERROR = 1,
   PAGE_SYNC_END_OF_RANGE= 2,
@@ -1021,51 +1025,57 @@ nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(PRInt64 aTa
 }
 
 nsresult nsOggReader::SeekInBufferedRange(PRInt64 aTarget,
+                                          PRInt64 aAdjustedTarget,
                                           PRInt64 aStartTime,
                                           PRInt64 aEndTime,
                                           const nsTArray<SeekRange>& aRanges,
                                           const SeekRange& aRange)
 {
   LOG(PR_LOG_DEBUG, ("%p Seeking in buffered data to %lld using bisection search", mDecoder, aTarget));
-
-  
-  
-  nsresult res = SeekBisection(aTarget, aRange, 0);
-  if (NS_FAILED(res) || !HasVideo()) {
-    return res;
-  }
-
-  
-  
-  bool eof;
-  do {
-    bool skip = false;
-    eof = !DecodeVideoFrame(skip, 0);
-    {
-      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      if (mDecoder->GetDecodeState() == nsBuiltinDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
-        return NS_ERROR_FAILURE;
-      }
+  nsresult res = NS_OK;
+  if (HasVideo() || aAdjustedTarget >= aTarget) {
+    
+    
+    nsresult res = SeekBisection(aTarget, aRange, 0);
+    if (NS_FAILED(res) || !HasVideo()) {
+      return res;
     }
-  } while (!eof &&
-           mVideoQueue.GetSize() == 0);
 
-  VideoData* video = mVideoQueue.PeekFront();
-  if (video && !video->mKeyframe) {
     
     
-    NS_ASSERTION(video->mTimecode != -1, "Must have a granulepos");
-    int shift = mTheoraState->mInfo.keyframe_granule_shift;
-    PRInt64 keyframeGranulepos = (video->mTimecode >> shift) << shift;
-    PRInt64 keyframeTime = mTheoraState->StartTime(keyframeGranulepos);
-    SEEK_LOG(PR_LOG_DEBUG, ("Keyframe for %lld is at %lld, seeking back to it",
-                            video->mTime, keyframeTime));
+    bool eof;
+    do {
+      bool skip = false;
+      eof = !DecodeVideoFrame(skip, 0);
+      {
+        ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+        if (mDecoder->GetDecodeState() == nsBuiltinDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
+          return NS_ERROR_FAILURE;
+        }
+      }
+    } while (!eof &&
+             mVideoQueue.GetSize() == 0);
+
+    VideoData* video = mVideoQueue.PeekFront();
+    if (video && !video->mKeyframe) {
+      
+      
+      NS_ASSERTION(video->mTimecode != -1, "Must have a granulepos");
+      int shift = mTheoraState->mInfo.keyframe_granule_shift;
+      PRInt64 keyframeGranulepos = (video->mTimecode >> shift) << shift;
+      PRInt64 keyframeTime = mTheoraState->StartTime(keyframeGranulepos);
+      SEEK_LOG(PR_LOG_DEBUG, ("Keyframe for %lld is at %lld, seeking back to it",
+                              video->mTime, keyframeTime));
+      aAdjustedTarget = NS_MIN(aAdjustedTarget, keyframeTime);
+    }
+  }
+  if (aAdjustedTarget < aTarget) {
     SeekRange k = SelectSeekRange(aRanges,
-                                  keyframeTime,
+                                  aAdjustedTarget,
                                   aStartTime,
                                   aEndTime,
                                   false);
-    res = SeekBisection(keyframeTime, k, SEEK_FUZZ_USECS);
+    res = SeekBisection(aAdjustedTarget, k, SEEK_FUZZ_USECS);
   }
   return res;
 }
@@ -1093,6 +1103,10 @@ nsresult nsOggReader::SeekInUnbuffered(PRInt64 aTarget,
   if (HasVideo() && mTheoraState) {
     keyframeOffsetMs = mTheoraState->MaxKeyframeOffset();
   }
+  
+  if (HasAudio() && mOpusState) {
+    keyframeOffsetMs = NS_MAX(keyframeOffsetMs, SEEK_OPUS_PREROLL);
+  }
   PRInt64 seekTarget = NS_MAX(aStartTime, aTarget - keyframeOffsetMs);
   
   
@@ -1110,8 +1124,12 @@ nsresult nsOggReader::Seek(PRInt64 aTarget,
   nsresult res;
   MediaResource* resource = mDecoder->GetResource();
   NS_ENSURE_TRUE(resource != nsnull, NS_ERROR_FAILURE);
+  PRInt64 adjustedTarget = aTarget;
+  if (HasAudio() && mOpusState){
+    adjustedTarget = NS_MAX(aStartTime, aTarget - SEEK_OPUS_PREROLL);
+  }
 
-  if (aTarget == aStartTime) {
+  if (adjustedTarget == aStartTime) {
     
     
     res = resource->Seek(nsISeekableStream::NS_SEEK_SET, 0);
@@ -1127,7 +1145,10 @@ nsresult nsOggReader::Seek(PRInt64 aTarget,
       mDecoder->UpdatePlaybackPosition(aStartTime);
     }
   } else {
-    IndexedSeekResult sres = SeekToKeyframeUsingIndex(aTarget);
+    
+    
+    
+    IndexedSeekResult sres = SeekToKeyframeUsingIndex(adjustedTarget);
     NS_ENSURE_TRUE(sres != SEEK_FATAL_ERROR, NS_ERROR_FAILURE);
     if (sres == SEEK_INDEX_FAIL) {
       
@@ -1143,7 +1164,7 @@ nsresult nsOggReader::Seek(PRInt64 aTarget,
       if (!r.IsNull()) {
         
         
-        res = SeekInBufferedRange(aTarget, aStartTime, aEndTime, ranges, r);
+        res = SeekInBufferedRange(aTarget, adjustedTarget, aStartTime, aEndTime, ranges, r);
         NS_ENSURE_SUCCESS(res,res);
       } else {
         
