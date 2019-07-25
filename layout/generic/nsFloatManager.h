@@ -100,8 +100,7 @@ public:
 
 
 
-  static nsresult StoreRegionFor(nsIFrame* aFloat,
-                                 nsRect&   aRegion);
+  static void StoreRegionFor(nsIFrame* aFloat, nsRect& aRegion);
 
   
   

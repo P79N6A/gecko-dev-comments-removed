@@ -882,8 +882,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   mFloatManager->AddFloat(aFloat, region);
   NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "bad float placement");
   
-  rv = nsFloatManager::StoreRegionFor(aFloat, region);
-  NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "float region storage failed");
+  nsFloatManager::StoreRegionFor(aFloat, region);
 
   
   
