@@ -1661,6 +1661,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (Utils.isLeftClick(e) &&
           self.$closeButton[0] != target &&
           self.$titlebar[0] != target &&
+          self.$expander[0] != target &&
           !self.$titlebar.contains(target) &&
           !self.$appTabTray.contains(target)) {
         lastMouseDownTarget = target;
