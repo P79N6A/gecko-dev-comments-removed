@@ -1867,7 +1867,7 @@ Engine.prototype = {
           
           valueStart = quoteStart + "\"".length;
           
-          let valueEnd = lLine.indexOf("\"", valueStart);
+          var valueEnd = lLine.indexOf("\"", valueStart);
           
           if (valueEnd == -1)
             valueEnd = aLine.length;
