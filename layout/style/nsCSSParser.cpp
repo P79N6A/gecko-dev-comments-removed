@@ -1323,10 +1323,13 @@ CSSParserImpl::GetURLInParens(nsString& aURL)
 
   aURL = mToken.mIdent;
 
-  if ((eCSSToken_String != mToken.mType && eCSSToken_URL != mToken.mType) ||
-      !ExpectSymbol(')', PR_TRUE)) {
+  if (eCSSToken_URL != mToken.mType) {
     
     
+    
+    
+    NS_ABORT_IF_FALSE(mToken.mType == eCSSToken_Bad_URL,
+                      "unexpected token type");
     SkipUntil(')');
     return PR_FALSE;
   }

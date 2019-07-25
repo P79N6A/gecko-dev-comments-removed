@@ -212,6 +212,7 @@ protected:
   PRInt32 Read();
   PRInt32 Peek();
   PRBool LookAhead(PRUnichar aChar);
+  PRBool LookAheadOrEOF(PRUnichar aChar); 
   void EatWhiteSpace();
   
   void ParseAndAppendEscape(nsString& aOutput);
