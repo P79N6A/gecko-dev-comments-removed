@@ -504,7 +504,7 @@ placeitem .button-text {
 }
 
 #autocomplete_navbuttons {
-  margin: 2.2mm; 
+  padding: 2.2mm; 
   min-height: 14.4mm; 
 }
 
