@@ -388,8 +388,12 @@ anp_audio_isStopped(ANPAudioTrack* s)
 uint32_t
 anp_audio_trackLatency(ANPAudioTrack* s) {
   
-  NOT_IMPLEMENTED();
-  return 1;
+  
+  
+  
+  
+  
+  return 100; 
 }
 
 void InitAudioTrackInterfaceV0(ANPAudioTrackInterfaceV0 *i) {
