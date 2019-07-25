@@ -142,11 +142,7 @@ obj_getProto(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     
     uintN attrs;
     id = ATOM_TO_JSID(cx->runtime->atomState.protoAtom);
-
-    
-    JSBool ok = CheckAccess(cx, obj, id, JSACC_PROTO, vp, &attrs);
-    JS_ASSERT(ok);
-    return ok;
+    return CheckAccess(cx, obj, id, JSACC_PROTO, vp, &attrs);
 }
 
 static JSBool
@@ -167,13 +163,10 @@ obj_setProto(JSContext *cx, JSObject *obj, jsid id, Value *vp)
             return JS_FALSE;
     }
 
-    
     uintN attrs;
     id = ATOM_TO_JSID(cx->runtime->atomState.protoAtom);
-    if (!CheckAccess(cx, obj, id, JSAccessMode(JSACC_PROTO|JSACC_WRITE), vp, &attrs)) {
-        JS_NOT_REACHED("setProto access check failed");
+    if (!CheckAccess(cx, obj, id, JSAccessMode(JSACC_PROTO|JSACC_WRITE), vp, &attrs))
         return JS_FALSE;
-    }
 
     return SetProto(cx, obj, pobj, JS_TRUE);
 }
@@ -1305,36 +1298,30 @@ obj_watch(JSContext *cx, uintN argc, Value *vp)
 {
     if (argc <= 1) {
         js_ReportMissingArg(cx, *vp, 1);
-        return false;
+        return JS_FALSE;
     }
 
     JSObject *callable = js_ValueToCallableObject(cx, &vp[3], 0);
     if (!callable)
-        return false;
+        return JS_FALSE;
 
     
     jsid propid;
     if (!ValueToId(cx, vp[2], &propid))
-        return false;
+        return JS_FALSE;
 
     JSObject *obj = ComputeThisFromVp(cx, vp);
-    if (!obj)
-        return false;
-
-    
     Value tmp;
     uintN attrs;
-    if (!CheckAccess(cx, obj, propid, JSACC_WATCH, &tmp, &attrs)) {
-        JS_NOT_REACHED("watchpoint access check failed");
-        return false;
-    }
+    if (!obj || !CheckAccess(cx, obj, propid, JSACC_WATCH, &tmp, &attrs))
+        return JS_FALSE;
 
     vp->setUndefined();
 
     if (attrs & JSPROP_READONLY)
-        return true;
+        return JS_TRUE;
     if (obj->isDenseArray() && !obj->makeDenseArraySlow(cx))
-        return false;
+        return JS_FALSE;
     return JS_SetWatchPoint(cx, obj, propid, obj_watch_handler, callable);
 }
 
@@ -1543,14 +1530,14 @@ js_obj_defineGetter(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ComputeThisFromVp(cx, vp);
     if (!obj || !CheckRedeclaration(cx, obj, id, JSPROP_GETTER, NULL, NULL))
         return JS_FALSE;
-
     
+
+
+
     Value junk;
     uintN attrs;
-    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &junk, &attrs)) {
-        JS_NOT_REACHED("defineGetter access check failed");
+    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &junk, &attrs))
         return JS_FALSE;
-    }
     vp->setUndefined();
     return obj->defineProperty(cx, id, UndefinedValue(), getter, PropertyStub,
                                JSPROP_ENUMERATE | JSPROP_GETTER | JSPROP_SHARED);
@@ -1573,14 +1560,14 @@ js_obj_defineSetter(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ComputeThisFromVp(cx, vp);
     if (!obj || !CheckRedeclaration(cx, obj, id, JSPROP_SETTER, NULL, NULL))
         return JS_FALSE;
-
     
+
+
+
     Value junk;
     uintN attrs;
-    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &junk, &attrs)) {
-        JS_NOT_REACHED("defineSetter access check failed");
+    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &junk, &attrs))
         return JS_FALSE;
-    }
     vp->setUndefined();
     return obj->defineProperty(cx, id, UndefinedValue(), PropertyStub, setter,
                                JSPROP_ENUMERATE | JSPROP_SETTER | JSPROP_SHARED);
@@ -1652,13 +1639,9 @@ obj_getPrototypeOf(JSContext *cx, uintN argc, Value *vp)
     }
 
     JSObject *obj = &vp[2].toObject();
-
-    
     uintN attrs;
-    JSBool ok = CheckAccess(cx, obj, ATOM_TO_JSID(cx->runtime->atomState.protoAtom),
-                            JSACC_PROTO, vp, &attrs);
-    JS_ASSERT(ok);
-    return ok;
+    return CheckAccess(cx, obj, ATOM_TO_JSID(cx->runtime->atomState.protoAtom),
+                       JSACC_PROTO, vp, &attrs);
 }
 
 extern JSBool
@@ -2007,12 +1990,13 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
         JS_ASSERT(desc.isAccessorDescriptor());
 
         
+
+
+
         Value dummy;
         uintN dummyAttrs;
-        if (!CheckAccess(cx, obj, desc.id, JSACC_WATCH, &dummy, &dummyAttrs)) {
-            JS_NOT_REACHED("defineProperty access check failed");
+        if (!CheckAccess(cx, obj, desc.id, JSACC_WATCH, &dummy, &dummyAttrs))
             return JS_FALSE;
-        }
 
         Value tmp = UndefinedValue();
         return js_DefineProperty(cx, obj, desc.id, &tmp,
@@ -2200,11 +2184,13 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
         JS_ASSERT(desc.isAccessorDescriptor());
 
         
+
+
+
         Value dummy;
         if (!CheckAccess(cx, obj2, desc.id, JSACC_WATCH, &dummy, &attrs)) {
-            JS_NOT_REACHED("defineProperty access check failed");
-            obj2->dropProperty(cx, current);
-            return JS_FALSE;
+             obj2->dropProperty(cx, current);
+             return JS_FALSE;
         }
 
         JS_ASSERT_IF(sprop->isMethod(), !(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
@@ -5592,6 +5578,39 @@ js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
     return FindClassPrototype(cx, scope, protoKey, protop, clasp);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSBool
+CheckCtorGetAccess(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+{
+    JSAtom *atom = cx->runtime->atomState.constructorAtom;
+    JS_ASSERT(id == ATOM_TO_JSID(atom));
+    uintN attrs;
+    return CheckAccess(cx, obj, ATOM_TO_JSID(atom), JSACC_READ, vp, &attrs);
+}
+
+static JSBool
+CheckCtorSetAccess(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+{
+    JSAtom *atom = cx->runtime->atomState.constructorAtom;
+    JS_ASSERT(id == ATOM_TO_JSID(atom));
+    uintN attrs;
+    return CheckAccess(cx, obj, ATOM_TO_JSID(atom), JSACC_WRITE, vp, &attrs);
+}
+
 JSBool
 js_SetClassPrototype(JSContext *cx, JSObject *ctor, JSObject *proto, uintN attrs)
 {
@@ -5611,7 +5630,7 @@ js_SetClassPrototype(JSContext *cx, JSObject *ctor, JSObject *proto, uintN attrs
 
 
     return proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
-                                 ObjectOrNullValue(ctor), PropertyStub, PropertyStub, 0);
+                                 ObjectOrNullValue(ctor), CheckCtorGetAccess, CheckCtorSetAccess, 0);
 }
 
 JSBool
