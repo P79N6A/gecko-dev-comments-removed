@@ -96,7 +96,9 @@ public abstract class TileLayer extends Layer {
 
     @Override
     protected void onDraw(GL10 gl) {
-        if (mImage == null)
+        
+        
+        if (mImage == null || mTextureIDs == null)
             return;
 
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
