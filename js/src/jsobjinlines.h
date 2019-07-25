@@ -810,8 +810,6 @@ JSObject::init(JSContext *cx, js::Class *aclasp, JSObject *proto, JSObject *pare
 
 
 
-
-    map = NULL;
     objShape = JSObjectMap::INVALID_SHAPE;
 #endif
 

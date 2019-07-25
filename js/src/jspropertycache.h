@@ -270,6 +270,9 @@ class PropertyCache
 
     void purge(JSContext *cx);
     void purgeForScript(JSContext *cx, JSScript *script);
+
+    
+    void restore(PropertyCacheEntry *entry);
 };
 
 } 

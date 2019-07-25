@@ -584,8 +584,10 @@ struct JSWatchPoint {
 
 
 
+
+
 static JSBool
-DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag)
+DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag, bool sweeping)
 {
     bool ok = true;
     JSRuntime *rt = cx->runtime;
@@ -597,12 +599,6 @@ DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag)
     }
 
     
-
-
-
-    SwitchToCompartment sc(cx, wp->object);
-
-    
     ++rt->debuggerMutations;
     JS_REMOVE_LINK(&wp->links);
     DBG_UNLOCK(rt);
@@ -611,15 +607,17 @@ DropWatchPointAndUnlock(JSContext *cx, JSWatchPoint *wp, uintN flag)
 
 
 
-    const Shape *shape = wp->shape;
-    const Shape *wprop = wp->object->nativeLookup(shape->id);
-    if (wprop &&
-        wprop->hasSetterValue() == shape->hasSetterValue() &&
-        IsWatchedProperty(cx, wprop)) {
-        shape = wp->object->changeProperty(cx, wprop, 0, wprop->attributes(),
-                                           wprop->getter(), wp->setter);
-        if (!shape)
-            ok = false;
+    if (!sweeping) {
+        const Shape *shape = wp->shape;
+        const Shape *wprop = wp->object->nativeLookup(shape->id);
+        if (wprop &&
+            wprop->hasSetterValue() == shape->hasSetterValue() &&
+            IsWatchedProperty(cx, wprop)) {
+            shape = wp->object->changeProperty(cx, wprop, 0, wprop->attributes(),
+                                               wprop->getter(), wp->setter);
+            if (!shape)
+                ok = false;
+        }
     }
 
     cx->free(wp);
@@ -685,7 +683,7 @@ js_SweepWatchPoints(JSContext *cx)
             sample = rt->debuggerMutations;
 
             
-            DropWatchPointAndUnlock(cx, wp, JSWP_LIVE);
+            DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, true);
             DBG_LOCK(rt);
             if (rt->debuggerMutations != sample + 1)
                 next = (JSWatchPoint *)rt->watchPointList.next;
@@ -844,7 +842,7 @@ js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 
         out:
             DBG_LOCK(rt);
-            return DropWatchPointAndUnlock(cx, wp, JSWP_HELD) && ok;
+            return DropWatchPointAndUnlock(cx, wp, JSWP_HELD, false) && ok;
         }
     }
     DBG_UNLOCK(rt);
@@ -1130,7 +1128,7 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
             
             JS_INIT_CLIST(&wp->links);
             DBG_LOCK(rt);
-            DropWatchPointAndUnlock(cx, wp, JSWP_LIVE);
+            DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false);
             return false;
         }
 
@@ -1176,7 +1174,7 @@ JS_ClearWatchPoint(JSContext *cx, JSObject *obj, jsid id,
                 *handlerp = wp->handler;
             if (closurep)
                 *closurep = wp->closure;
-            return DropWatchPointAndUnlock(cx, wp, JSWP_LIVE);
+            return DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false);
         }
     }
     DBG_UNLOCK(rt);
@@ -1204,7 +1202,7 @@ JS_ClearWatchPointsForObject(JSContext *cx, JSObject *obj)
         next = (JSWatchPoint *)wp->links.next;
         if (wp->object == obj) {
             sample = rt->debuggerMutations;
-            if (!DropWatchPointAndUnlock(cx, wp, JSWP_LIVE))
+            if (!DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false))
                 return JS_FALSE;
             DBG_LOCK(rt);
             if (rt->debuggerMutations != sample + 1)
@@ -1227,9 +1225,11 @@ JS_ClearAllWatchPoints(JSContext *cx)
     for (wp = (JSWatchPoint *)rt->watchPointList.next;
          &wp->links != &rt->watchPointList;
          wp = next) {
+        SwitchToCompartment sc(cx, wp->object);
+
         next = (JSWatchPoint *)wp->links.next;
         sample = rt->debuggerMutations;
-        if (!DropWatchPointAndUnlock(cx, wp, JSWP_LIVE))
+        if (!DropWatchPointAndUnlock(cx, wp, JSWP_LIVE, false))
             return JS_FALSE;
         DBG_LOCK(rt);
         if (rt->debuggerMutations != sample + 1)
