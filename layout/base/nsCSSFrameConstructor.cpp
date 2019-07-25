@@ -3534,7 +3534,15 @@ const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindCanvasData(Element* aElement,
                                       nsStyleContext* aStyleContext)
 {
-  if (!aElement->OwnerDoc()->IsScriptEnabled()) {
+  
+  
+  
+  
+  nsIDocument* doc = aElement->OwnerDoc();
+  if (doc->IsStaticDocument()) {
+    doc = doc->GetOriginalDocument();
+  }
+  if (!doc->IsScriptEnabled()) {
     return nsnull;
   }
 
