@@ -1257,6 +1257,8 @@ nsSocketTransport::RecoverFromError()
     if (mState != STATE_RESOLVING && mState != STATE_CONNECTING)
         return false;
 
+    nsresult rv;
+
     
     NS_ASSERTION(!mFDconnected, "socket should not be connected");
 
@@ -1270,6 +1272,15 @@ nsSocketTransport::RecoverFromError()
 
     bool tryAgain = false;
 
+    if (mConnectionFlags & DISABLE_IPV6 &&
+        mCondition == NS_ERROR_UNKNOWN_HOST &&
+        mState == STATE_RESOLVING &&
+        !mProxyTransparentResolvesHost) {
+        SOCKET_LOG(("  trying lookup again with both ipv4/ipv6 enabled\n"));
+        mConnectionFlags &= ~DISABLE_IPV6;
+        tryAgain = true;
+    }
+
     
     if (mState == STATE_CONNECTING && mDNSRecord) {
         mDNSRecord->ReportUnusable(SocketPort());
@@ -1277,6 +1288,16 @@ nsSocketTransport::RecoverFromError()
         nsresult rv = mDNSRecord->GetNextAddr(SocketPort(), &mNetAddr);
         if (NS_SUCCEEDED(rv)) {
             SOCKET_LOG(("  trying again with next ip address\n"));
+            tryAgain = true;
+        }
+        else if (mConnectionFlags & DISABLE_IPV6) {
+            
+            
+            
+            SOCKET_LOG(("  failed to connect all ipv4 hosts,"
+                        " trying lookup/connect again with both ipv4/ipv6\n"));
+            mState = STATE_CLOSED;
+            mConnectionFlags &= ~DISABLE_IPV6;
             tryAgain = true;
         }
     }
@@ -1296,7 +1317,6 @@ nsSocketTransport::RecoverFromError()
 
     
     if (tryAgain) {
-        nsresult rv;
         PRUint32 msg;
 
         if (mState == STATE_CONNECTING) {
