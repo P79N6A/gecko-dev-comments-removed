@@ -809,18 +809,8 @@ class CallCompiler : public BaseCompiler
             THROWV(true);
 
         
-
-
-
-
-
-        if (ic.fastGuardedNative ||
-            ic.hasJsFunCheck ||
-            !f.regs.fp->script()->compileAndGo ||
-            obj->getGlobal() != f.regs.fp->scopeChain().getGlobal())
-        {
+        if (ic.fastGuardedNative || ic.hasJsFunCheck)
             return true;
-        }
 
         
         if (!ic.hit) {
