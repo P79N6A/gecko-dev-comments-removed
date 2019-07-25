@@ -3,8 +3,8 @@
 
 
 
-#ifndef _nsBaseWidgetAccessible_H_
-#define _nsBaseWidgetAccessible_H_
+#ifndef mozilla_a11y_BaseAccessibles_h__
+#define mozilla_a11y_BaseAccessibles_h__
 
 #include "AccessibleWrap.h"
 #include "HyperTextAccessibleWrap.h"
@@ -16,14 +16,17 @@
 
 
 
+namespace mozilla {
+namespace a11y {
 
 
 
-class nsLeafAccessible : public AccessibleWrap
+
+class LeafAccessible : public AccessibleWrap
 {
 public:
 
-  nsLeafAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  LeafAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -44,12 +47,12 @@ protected:
 
 
 
-class nsLinkableAccessible : public AccessibleWrap
+class LinkableAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Jump = 0 };
 
-  nsLinkableAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  LinkableAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -87,21 +90,24 @@ protected:
 
 
 
- 
-class nsEnumRoleAccessible : public AccessibleWrap
+
+class EnumRoleAccessible : public AccessibleWrap
 {
 public:
-  nsEnumRoleAccessible(nsIContent* aContent, DocAccessible* aDoc,
-                       mozilla::a11y::role aRole);
-  virtual ~nsEnumRoleAccessible() { }
+  EnumRoleAccessible(nsIContent* aContent, DocAccessible* aDoc, 
+                     a11y::role aRole);
+  virtual ~EnumRoleAccessible() { }
 
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
 
 protected:
-  mozilla::a11y::role mRole;
+  a11y::role mRole;
 };
 
-#endif  
+} 
+} 
+
+#endif

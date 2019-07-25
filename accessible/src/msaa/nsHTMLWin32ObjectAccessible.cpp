@@ -65,8 +65,8 @@ nsHTMLWin32ObjectOwnerAccessible::CacheChildren()
 
 
 
-nsHTMLWin32ObjectAccessible::nsHTMLWin32ObjectAccessible(void* aHwnd):
-nsLeafAccessible(nsnull, nsnull)
+nsHTMLWin32ObjectAccessible::nsHTMLWin32ObjectAccessible(void* aHwnd) :
+  LeafAccessible(nsnull, nsnull)
 {
   
   

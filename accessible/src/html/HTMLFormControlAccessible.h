@@ -20,7 +20,7 @@ typedef ProgressMeterAccessible<1> HTMLProgressMeterAccessible;
 
 
 
-class HTMLCheckboxAccessible : public nsLeafAccessible
+class HTMLCheckboxAccessible : public LeafAccessible
 {
 
 public:

@@ -5,9 +5,8 @@
 #ifndef __nsXULListboxAccessible_h__
 #define __nsXULListboxAccessible_h__
 
-#include "nsCOMPtr.h"
+#include "BaseAccessibles.h"
 #include "nsXULMenuAccessible.h"
-#include "nsBaseWidgetAccessible.h"
 #include "nsIAccessibleTable.h"
 #include "TableAccessible.h"
 #include "xpcAccessibleTable.h"
@@ -33,7 +32,7 @@ public:
 
 
 
-class nsXULColumnItemAccessible : public nsLeafAccessible
+class nsXULColumnItemAccessible : public mozilla::a11y::LeafAccessible
 {
 public:
   nsXULColumnItemAccessible(nsIContent* aContent, DocAccessible* aDoc);

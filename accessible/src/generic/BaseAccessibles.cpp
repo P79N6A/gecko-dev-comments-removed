@@ -3,7 +3,7 @@
 
 
 
-#include "nsBaseWidgetAccessible.h"
+#include "BaseAccessibles.h"
 
 #include "Accessible-inl.h"
 #include "HyperTextAccessibleWrap.h"
@@ -25,20 +25,20 @@ using namespace mozilla::a11y;
 
 
 
-nsLeafAccessible::
-  nsLeafAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+LeafAccessible::
+  LeafAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsLeafAccessible, Accessible)
+NS_IMPL_ISUPPORTS_INHERITED0(LeafAccessible, Accessible)
 
 
 
 
 Accessible*
-nsLeafAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
-                               EWhichChildAtPoint aWhichChild)
+LeafAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
+                             EWhichChildAtPoint aWhichChild)
 {
   
   return this;
@@ -48,7 +48,7 @@ nsLeafAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
 
 
 void
-nsLeafAccessible::CacheChildren()
+LeafAccessible::CacheChildren()
 {
   
 }
@@ -58,8 +58,8 @@ nsLeafAccessible::CacheChildren()
 
 
 
-nsLinkableAccessible::
-  nsLinkableAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+LinkableAccessible::
+  LinkableAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc),
   mActionAcc(nsnull),
   mIsLink(false),
@@ -67,19 +67,19 @@ nsLinkableAccessible::
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsLinkableAccessible, AccessibleWrap)
+NS_IMPL_ISUPPORTS_INHERITED0(LinkableAccessible, AccessibleWrap)
 
 
 
 
 NS_IMETHODIMP
-nsLinkableAccessible::TakeFocus()
+LinkableAccessible::TakeFocus()
 {
   return mActionAcc ? mActionAcc->TakeFocus() : AccessibleWrap::TakeFocus();
 }
 
 PRUint64
-nsLinkableAccessible::NativeLinkState() const
+LinkableAccessible::NativeLinkState() const
 {
   if (mIsLink)
     return states::LINKED | (mActionAcc->LinkState() & states::TRAVERSED);
@@ -88,7 +88,7 @@ nsLinkableAccessible::NativeLinkState() const
 }
 
 void
-nsLinkableAccessible::Value(nsString& aValue)
+LinkableAccessible::Value(nsString& aValue)
 {
   aValue.Truncate();
 
@@ -102,18 +102,18 @@ nsLinkableAccessible::Value(nsString& aValue)
 
 
 PRUint8
-nsLinkableAccessible::ActionCount()
+LinkableAccessible::ActionCount()
 {
   return (mIsOnclick || mIsLink) ? 1 : 0;
 }
 
 NS_IMETHODIMP
-nsLinkableAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+LinkableAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   aName.Truncate();
 
   
-  if (aIndex == eAction_Jump) {   
+  if (aIndex == eAction_Jump) {
     if (mIsLink) {
       aName.AssignLiteral("jump");
       return NS_OK;
@@ -128,7 +128,7 @@ nsLinkableAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 }
 
 NS_IMETHODIMP
-nsLinkableAccessible::DoAction(PRUint8 aIndex)
+LinkableAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Jump)
     return NS_ERROR_INVALID_ARG;
@@ -138,7 +138,7 @@ nsLinkableAccessible::DoAction(PRUint8 aIndex)
 }
 
 KeyBinding
-nsLinkableAccessible::AccessKey() const
+LinkableAccessible::AccessKey() const
 {
   return mActionAcc ?
     mActionAcc->AccessKey() : Accessible::AccessKey();
@@ -148,7 +148,7 @@ nsLinkableAccessible::AccessKey() const
 
 
 void
-nsLinkableAccessible::Shutdown()
+LinkableAccessible::Shutdown()
 {
   mIsLink = false;
   mIsOnclick = false;
@@ -160,7 +160,7 @@ nsLinkableAccessible::Shutdown()
 
 
 already_AddRefed<nsIURI>
-nsLinkableAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
+LinkableAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 {
   if (mIsLink) {
     NS_ASSERTION(mActionAcc->IsLink(),
@@ -177,8 +177,8 @@ nsLinkableAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 
 
 void
-nsLinkableAccessible::BindToParent(Accessible* aParent,
-                                   PRUint32 aIndexInParent)
+LinkableAccessible::BindToParent(Accessible* aParent,
+                                 PRUint32 aIndexInParent)
 {
   AccessibleWrap::BindToParent(aParent, aIndexInParent);
 
@@ -212,7 +212,7 @@ nsLinkableAccessible::BindToParent(Accessible* aParent,
 }
 
 void
-nsLinkableAccessible::UnbindFromParent()
+LinkableAccessible::UnbindFromParent()
 {
   mActionAcc = nsnull;
   mIsLink = false;
@@ -225,17 +225,16 @@ nsLinkableAccessible::UnbindFromParent()
 
 
 
-nsEnumRoleAccessible::
-  nsEnumRoleAccessible(nsIContent* aNode, DocAccessible* aDoc,
-                       roles::Role aRole) :
+EnumRoleAccessible::
+  EnumRoleAccessible(nsIContent* aNode, DocAccessible* aDoc, roles::Role aRole) :
   AccessibleWrap(aNode, aDoc), mRole(aRole)
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsEnumRoleAccessible, Accessible)
+NS_IMPL_ISUPPORTS_INHERITED0(EnumRoleAccessible, Accessible)
 
 role
-nsEnumRoleAccessible::NativeRole()
+EnumRoleAccessible::NativeRole()
 {
   return mRole;
 }
