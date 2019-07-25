@@ -4305,10 +4305,10 @@ NotifyAncestors(nsIDocument* aDocument, nsIContent* aStartNode,
                 nsIContent* aStopBefore, nsEventStates aState)
 {
   while (aStartNode && aStartNode != aStopBefore) {
-    aDocument->ContentStatesChanged(aStartNode, nsnull, aState);
+    aDocument->ContentStateChanged(aStartNode, aState);
     nsCOMPtr<nsIContent> labelTarget = GetLabelTarget(aStartNode);
     if (labelTarget) {
-      aDocument->ContentStatesChanged(labelTarget, nsnull, aState);
+      aDocument->ContentStateChanged(labelTarget, aState);
     }
     aStartNode = aStartNode->GetParent();
   }
@@ -4467,20 +4467,19 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
       NotifyAncestors(doc1, oldHover, commonHoverAncestor, NS_EVENT_STATE_HOVER);
 
       if (notifyContent[0]) {
-        doc1->ContentStatesChanged(notifyContent[0], notifyContent[1],
-                                   simpleStates);
+        doc1->ContentStateChanged(notifyContent[0], simpleStates);
+        if (notifyContent[1]) {
+          doc1->ContentStateChanged(notifyContent[1], simpleStates);
+        }
         if (notifyContent[2]) {
           
-          
-          
-          
-          
-          doc1->ContentStatesChanged(notifyContent[2], notifyContent[3],
-                                     simpleStates);
+          doc1->ContentStateChanged(notifyContent[2], simpleStates);
+          if (notifyContent[3]) {
+            doc1->ContentStateChanged(notifyContent[3], simpleStates);
+          }
           if (notifyContent[4]) {
             
-            doc1->ContentStatesChanged(notifyContent[4], nsnull,
-                                       simpleStates);
+            doc1->ContentStateChanged(notifyContent[4], simpleStates);
           }
         }
       }
@@ -4488,11 +4487,16 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
 
       if (doc2) {
         doc2->BeginUpdate(UPDATE_CONTENT_STATE);
-        doc2->ContentStatesChanged(notifyContent[1], notifyContent[2],
-                                   simpleStates);
+        doc2->ContentStateChanged(notifyContent[1], simpleStates);
+        if (notifyContent[2]) {
+          doc2->ContentStateChanged(notifyContent[2], simpleStates);
+        }
         if (notifyContent[3]) {
-          doc1->ContentStatesChanged(notifyContent[3], notifyContent[4],
-                                     simpleStates);
+          
+          doc1->ContentStateChanged(notifyContent[3], simpleStates);
+          if (notifyContent[4]) {
+            doc1->ContentStateChanged(notifyContent[4], simpleStates);
+          }
         }
         doc2->EndUpdate(UPDATE_CONTENT_STATE);
       }

@@ -235,9 +235,8 @@ public:
   nsresult CharacterDataChanged(nsIContent* aContent,
                                 CharacterDataChangeInfo* aInfo);
 
-  nsresult ContentStatesChanged(nsIContent*   aContent1,
-                                nsIContent*   aContent2,
-                                nsEventStates aStateMask);
+  nsresult ContentStateChanged(nsIContent*   aContent,
+                               nsEventStates aStateMask);
 
   
   nsresult GenerateChildFrames(nsIFrame* aFrame);
@@ -414,9 +413,6 @@ private:
                               nsIFrame*      aPrevPageFrame,
                               nsIFrame*&     aPageFrame,
                               nsIFrame*&     aCanvasFrame);
-
-  void DoContentStateChanged(Element* aElement,
-                             nsEventStates aStateMask);
 
   
   

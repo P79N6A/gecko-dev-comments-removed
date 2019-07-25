@@ -42,6 +42,7 @@
 #include "nsIAtom.h"
 #include "nsIContentViewer.h"
 #include "mozilla/css/StyleRule.h"
+#include "nsCSSStruct.h"
 #include "nsIDocument.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIDOMHTMLBodyElement.h"
@@ -2623,7 +2624,7 @@ nsGenericHTMLFormElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       
       if (doc && aNotify) {
         MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-        doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
+        doc->ContentStateChanged(this, NS_EVENT_STATE_DEFAULT);
       }
     }
 
@@ -2681,7 +2682,7 @@ nsGenericHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       
       if (doc && aNotify) {
         MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-        doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
+        doc->ContentStateChanged(this, NS_EVENT_STATE_DEFAULT);
       }
     }
 
@@ -2997,7 +2998,7 @@ nsGenericHTMLFormElement::FieldSetDisabledChanged(nsEventStates aStates, PRBool 
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
     MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-    doc->ContentStatesChanged(this, nsnull, aStates);
+    doc->ContentStateChanged(this, aStates);
   }
 }
 
@@ -3495,9 +3496,9 @@ MakeContentDescendantsEditable(nsIContent *aContent, nsIDocument *aDocument)
   aContent->UpdateEditableState();
 
   if (aDocument && stateBefore != aContent->IntrinsicState()) {
-    aDocument->ContentStatesChanged(aContent, nsnull,
-                                    NS_EVENT_STATE_MOZ_READONLY |
-                                    NS_EVENT_STATE_MOZ_READWRITE);
+    aDocument->ContentStateChanged(aContent,
+                                   NS_EVENT_STATE_MOZ_READONLY |
+                                   NS_EVENT_STATE_MOZ_READWRITE);
   }
 
   PRUint32 i, n = aContent->GetChildCount();
