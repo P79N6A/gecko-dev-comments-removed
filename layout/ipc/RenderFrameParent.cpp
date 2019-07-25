@@ -89,8 +89,9 @@ SetTransformFor(ContainerLayer* aContainer, nsIFrame* aContainedFrame,
   
   
   nsIntPoint scrollCompensation =
-    (aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel) -
-     aMetrics.mViewportScrollOffset);
+    (aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel));
+  scrollCompensation.x -= aMetrics.mViewportScrollOffset.x * aConfig.mXScale;
+  scrollCompensation.y -= aMetrics.mViewportScrollOffset.y * aConfig.mYScale;
   translation -= scrollCompensation;
 
   gfxMatrix transform;
