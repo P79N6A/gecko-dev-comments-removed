@@ -146,6 +146,9 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
     JSObject *wrapperObj = JSWrapper::New(cx, obj, wrappedProto, parent, wrapper);
     if (!wrapperObj || !xrayHolder)
         return wrapperObj;
+
+    
+    
     wrapperObj->setProxyExtra(js::ObjectValue(*xrayHolder));
     xrayHolder->setSlot(XrayUtils::JSSLOT_PROXY_OBJ, js::ObjectValue(*wrapperObj));
     return wrapperObj;
