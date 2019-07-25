@@ -1152,35 +1152,6 @@ function BrowserStartup() {
   gStartupRan = true;
 }
 
-function HandleAppCommandEvent(evt) {
-  evt.stopPropagation();
-  switch (evt.command) {
-  case "Back":
-    BrowserBack();
-    break;
-  case "Forward":
-    BrowserForward();
-    break;
-  case "Reload":
-    BrowserReloadSkipCache();
-    break;
-  case "Stop":
-    BrowserStop();
-    break;
-  case "Search":
-    BrowserSearch.webSearch();
-    break;
-  case "Bookmarks":
-    toggleSidebar('viewBookmarksSidebar');
-    break;
-  case "Home":
-    BrowserHome();
-    break;
-  default:
-    break;
-  }
-}
-
 function prepareForStartup() {
   gBrowser.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver, false);
 
@@ -1816,6 +1787,35 @@ function initializeSanitizer()
     }
 
     gPrefService.setBoolPref("privacy.sanitize.migrateFx3Prefs", true);
+  }
+}
+
+function HandleAppCommandEvent(evt) {
+  evt.stopPropagation();
+  switch (evt.command) {
+  case "Back":
+    BrowserBack();
+    break;
+  case "Forward":
+    BrowserForward();
+    break;
+  case "Reload":
+    BrowserReloadSkipCache();
+    break;
+  case "Stop":
+    BrowserStop();
+    break;
+  case "Search":
+    BrowserSearch.webSearch();
+    break;
+  case "Bookmarks":
+    toggleSidebar('viewBookmarksSidebar');
+    break;
+  case "Home":
+    BrowserHome();
+    break;
+  default:
+    break;
   }
 }
 
@@ -4522,7 +4522,7 @@ nsBrowserAccess.prototype = {
       case Ci.nsIBrowserDOMWindow.OPEN_NEWWINDOW :
         
         
-        var url = aURI ? aURI.spec : "about:blank";
+        var url = aURI ? aURI.spec : BROWSER_NEW_TAB_URL;
         
         
         newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url, null, null, null);
@@ -4555,7 +4555,7 @@ nsBrowserAccess.prototype = {
         let loadInBackground = gPrefService.getBoolPref("browser.tabs.loadDivertedInBackground");
         let referrer = aOpener ? makeURI(aOpener.location.href) : null;
 
-        let tab = win.gBrowser.loadOneTab(aURI ? aURI.spec : "about:blank", {
+        let tab = win.gBrowser.loadOneTab(aURI ? aURI.spec : BROWSER_NEW_TAB_URL, {
                                           referrerURI: referrer,
                                           fromExternal: isExternal,
                                           inBackground: loadInBackground});
