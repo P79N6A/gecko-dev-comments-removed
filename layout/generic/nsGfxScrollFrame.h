@@ -758,6 +758,23 @@ protected:
   nsXULScrollFrame(nsIPresShell* aShell, nsStyleContext* aContext, PRBool aIsRoot);
   virtual PRIntn GetSkipSides() const;
 
+  void ClampAndSetBounds(nsBoxLayoutState& aState, 
+                         nsRect& aRect,
+                         nsPoint aScrollPosition,
+                         PRBool aRemoveOverflowAreas = PR_FALSE) {
+    
+
+
+
+
+
+    if (!mInner.IsLTR()) {
+      aRect.x = PresContext()->RoundAppUnitsToNearestDevPixels(
+         mInner.mScrollPort.XMost() - aScrollPosition.x - aRect.width);
+    }
+    mInner.mScrolledFrame->SetBounds(aState, aRect, aRemoveOverflowAreas);
+  }
+
 private:
   friend class nsGfxScrollFrameInner;
   nsGfxScrollFrameInner mInner;
