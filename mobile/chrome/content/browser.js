@@ -336,7 +336,7 @@ var Browser = {
   pageScrollboxScroller: null,
   styles: {},
 
-  startup: function() {
+  startup: function startup() {
     var self = this;
 
     let needOverride = Util.needHomepageOverride();
@@ -488,14 +488,14 @@ var Browser = {
     Util.forceOnline();
 
     
-    let whereURI = "about:blank";
+    let whereURI = this.getHomePage();
     switch (needOverride) {
       case "new profile":
         whereURI = "about:firstrun";
         break;
       case "new version":
       case "none":
-        whereURI = "about:blank";
+        whereURI = this.getHomePage();
         break;
     }
 
@@ -566,7 +566,32 @@ var Browser = {
     window.dispatchEvent(event);
   },
 
-  shutdown: function() {
+  closing: function closing() {
+    
+    
+
+    
+    let lastBrowser = true;
+    let e = gWindowMediator.getEnumerator("navigator:browser");
+    while (e.hasMoreElements() && lastBrowser) {
+      let win = e.getNext();
+      if (win != window && win.toolbar.visible)
+        lastBrowser = false;
+    }
+    if (!lastBrowser)
+      return true;
+
+    
+    let closingCanceled = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
+    gObserverService.notifyObservers(closingCanceled, "browser-lastwindow-close-requested", null);
+    if (closingCanceled.data)
+      return false;
+  
+    gObserverService.notifyObservers(null, "browser-lastwindow-close-granted", null);
+    return true;
+  },
+
+  shutdown: function shutdown() {
     this._browserView.uninit();
     BrowserUI.uninit();
     this._pluginObserver.stop();
@@ -582,6 +607,15 @@ var Browser = {
   },
 
   initNewProfile: function initNewProfile() {
+  },
+  
+  getHomePage: function () {
+    let url = "about:home";
+    try {
+      url = gPrefService.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
+    } catch (e) { }
+
+    return url;
   },
 
   get browsers() {
@@ -634,6 +668,10 @@ var Browser = {
 
   get selectedBrowser() {
     return this._selectedTab.browser;
+  },
+
+  get tabs() {
+    return this._tabs;
   },
 
   getTabForDocument: function(aDocument) {
