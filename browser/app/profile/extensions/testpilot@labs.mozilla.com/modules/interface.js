@@ -94,17 +94,6 @@ var TestPilotUIBuilder = {
       } catch (e) {
       }
     }
-
-    
-
-
-    if (this.isBetaChannel() && this.appVersionIsFinal()) {
-      window.document.getElementById("feedback-menu-happy-button").setAttribute("hidden", "true");
-      window.document.getElementById("feedback-menu-sad-button").setAttribute("hidden", "true");
-    } else {
-      window.document.getElementById("feedback-menu-broken-button").setAttribute("hidden", "true");
-      window.document.getElementById("feedback-menu-idea-button").setAttribute("hidden", "true");
-    }
   },
 
   isBetaChannel: function() {
