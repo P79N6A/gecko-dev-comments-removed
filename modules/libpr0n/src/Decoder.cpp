@@ -37,6 +37,8 @@
 
 
 #include "Decoder.h"
+#include "nsIServiceManager.h"
+#include "nsIConsoleService.h"
 
 namespace mozilla {
 namespace imagelib {
@@ -113,6 +115,14 @@ Decoder::Finish()
   
   
   if (!IsSizeDecode() && !mDecodeDone) {
+
+    
+    nsCOMPtr<nsIConsoleService> aConsoleService = do_GetService("@mozilla.org/consoleservice;1");
+    if (aConsoleService && !IsDecoderError()) {
+      nsAutoString msg(NS_LITERAL_STRING("Image corrupt or truncated: ") +
+                       NS_ConvertASCIItoUTF16(mImage->GetURIString()));
+      aConsoleService->LogStringMessage(msg.get());
+    }
 
     
     bool salvage = !IsDecoderError() && mImage->GetNumFrames();
@@ -252,8 +262,6 @@ void
 Decoder::PostDataError()
 {
   mDataError = true;
-
-  
 }
 
 void
