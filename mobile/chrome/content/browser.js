@@ -717,7 +717,12 @@ var Browser = {
 
     let nextTab = this._selectedTab;
     if (nextTab == aTab) {
-      nextTab = aTab.owner || this.getTabAtIndex(tabIndex + 1) || this.getTabAtIndex(tabIndex - 1);
+      nextTab = this.getTabAtIndex(tabIndex + 1) || this.getTabAtIndex(tabIndex - 1);
+
+      
+      if (aTab.owner && nextTab.owner != aTab.owner)
+        nextTab = aTab.owner;
+
       if (!nextTab)
         return null;
     }

@@ -880,6 +880,8 @@ var BrowserUI = {
     if (browser.canGoBack) {
       browser.goBack();
     } else if (tab.owner) {
+      
+      Browser.selectedTab = tab.owner;
       this.closeTab(tab);
     }
 #ifdef ANDROID
