@@ -416,10 +416,7 @@ var BrowserApp = {
       link: {
         label: learnMoreLabel,
         url: learnMoreUrl
-      },
-      
-      
-      persistence: 1
+      }
     };
     NativeWindow.doorhanger.show(message, "telemetry-optin", buttons, this.selectedTab.id, options);
   },
@@ -1140,6 +1137,8 @@ var NativeWindow = {
     _contextId: 0, 
 
     init: function() {
+      this.imageContext = this.SelectorContext("img");
+
       Services.obs.addObserver(this, "Gesture:LongPress", false);
 
       
@@ -1184,17 +1183,18 @@ var NativeWindow = {
                });
 
       this.add(Strings.browser.GetStringFromName("contextmenu.saveImage"),
-               this.imageSaveableContext,
+               this.imageContext,
                function(aTarget) {
                  let imageCache = Cc["@mozilla.org/image/cache;1"].getService(Ci.imgICache);
                  let props = imageCache.findEntryProperties(aTarget.currentURI, aTarget.ownerDocument.characterSet);
-                 let contentDisposition = "";
-                 let type = "";
+                 var contentDisposition = "";
+                 var type = "";
                  try {
                     String(props.get("content-disposition", Ci.nsISupportsCString));
                     String(props.get("type", Ci.nsISupportsCString));
                  } catch(ex) { }
-                 ContentAreaUtils.internalSave(aTarget.currentURI.spec, null, null, contentDisposition, type, false, "SaveImageTitle", null, aTarget.ownerDocument.documentURIObject, true, null);
+                 var browser = BrowserApp.getBrowserForDocument(aTarget.ownerDocument);
+                 ContentAreaUtils.internalSave(aTarget.currentURI.spec, null, null, contentDisposition, type, false, "SaveImageTitle", null, browser.documentURI, true, null);
                });
     },
 
@@ -1279,16 +1279,6 @@ var NativeWindow = {
       matches: function textContext(aElement) {
         return ((aElement instanceof Ci.nsIDOMHTMLInputElement && aElement.mozIsTextField(false))
                 || aElement instanceof Ci.nsIDOMHTMLTextAreaElement);
-      }
-    },
-
-    imageSaveableContext: {
-      matches: function imageSaveableContextMatches(aElement) {
-        if (aElement instanceof Ci.nsIImageLoadingContent && aElement.currentURI) {
-          
-          let request = aElement.getRequest(Ci.nsIImageLoadingContent.CURRENT_REQUEST);
-          return (request && (request.imageStatus & request.STATUS_SIZE_AVAILABLE));
-        }
       }
     },
 
@@ -1608,7 +1598,6 @@ Tab.prototype = {
     this.browser.addEventListener("scroll", this, true);
     this.browser.addEventListener("MozScrolledAreaChanged", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
-    this.browser.addEventListener("pageshow", this, true);
 
     Services.obs.addObserver(this, "before-first-paint", false);
 
@@ -2001,6 +1990,9 @@ Tab.prototype = {
           gecko: {
             type: "DOMContentLoaded",
             tabID: this.id,
+            windowID: 0,
+            uri: this.browser.currentURI.spec,
+            title: this.browser.contentTitle,
             bgColor: backgroundColor
           }
         });
@@ -2163,19 +2155,6 @@ Tab.prototype = {
         }, true);
         break;
       }
-
-      case "pageshow": {
-        
-        if (aEvent.originalTarget.defaultView != this.browser.contentWindow)
-          return;
-
-        sendMessageToJava({
-          gecko: {
-            type: "Content:PageShow",
-            tabID: this.id
-          }
-        });
-      }
     }
   },
 
@@ -2229,8 +2208,6 @@ Tab.prototype = {
     if (contentWin != contentWin.top)
         return;
 
-    this._hostChanged = true;
-
     let browser = BrowserApp.getBrowserForWindow(contentWin);
     let uri = browser.currentURI.spec;
     let documentURI = "";
@@ -2267,29 +2244,26 @@ Tab.prototype = {
     }
   },
 
-  
-  _state: null,
-  _hostChanged: false, 
-
   onSecurityChange: function(aWebProgress, aRequest, aState) {
-    
-    if (this._state == aState && !this._hostChanged)
-      return;
-
-    this._state = aState;
-    this._hostChanged = false;
-
-    let identity = IdentityHandler.checkIdentity(aState, this.browser);
+    let mode = "unknown";
+    if (aState & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+      mode = "identified";
+    else if (aState & Ci.nsIWebProgressListener.STATE_SECURE_HIGH)
+      mode = "verified";
+    else if (aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN)
+      mode = "mixed";
+    else
+      mode = "unknown";
 
     let message = {
       gecko: {
         type: "Content:SecurityChange",
         tabID: this.id,
-        identity: identity
+        mode: mode
       }
     };
 
-    sendMessageToJava(message);
+     sendMessageToJava(message);
   },
 
   onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
@@ -2542,44 +2516,13 @@ Tab.prototype = {
 var BrowserEventHandler = {
   init: function init() {
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
+    Services.obs.addObserver(this, "Gesture:ShowPress", false);
     Services.obs.addObserver(this, "Gesture:CancelTouch", false);
     Services.obs.addObserver(this, "Gesture:DoubleTap", false);
     Services.obs.addObserver(this, "Gesture:Scroll", false);
     Services.obs.addObserver(this, "dom-touch-listener-added", false);
 
     BrowserApp.deck.addEventListener("DOMUpdatePageReport", PopupBlockerObserver.onUpdatePageReport, false);
-    BrowserApp.deck.addEventListener("touchstart", this, false);
-  },
-
-  handleEvent: function(aEvent) {
-    if (!BrowserApp.isBrowserContentDocumentDisplayed() || aEvent.touches.length > 1 || aEvent.defaultPrevented)
-      return;
-
-    let closest = aEvent.target;
-
-    if (closest) {
-      
-      
-      this._scrollableElement = this._findScrollableElement(closest, true);
-      this._firstScrollEvent = true;
-
-      if (this._scrollableElement != null) {
-        
-        let doc = BrowserApp.selectedBrowser.contentDocument;
-        if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
-          sendMessageToJava({ gecko: { type: "Panning:Override" } });
-      }
-    }
-
-    if (!ElementTouchHelper.isElementClickable(closest))
-      closest = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow,
-                                                    aEvent.changedTouches[0].screenX,
-                                                    aEvent.changedTouches[0].screenY);
-    if (!closest)
-      closest = aEvent.target;
-
-    if (closest)
-      this._doTapHighlight(closest);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -2614,19 +2557,12 @@ var BrowserEventHandler = {
       
       
       let data = JSON.parse(aData);
-
-      
-      
-      
-      data.x = Math.round(data.x);
-      data.y = Math.round(data.y);
-
       if (this._firstScrollEvent) {
         while (this._scrollableElement != null && !this._elementCanScroll(this._scrollableElement, data.x, data.y))
           this._scrollableElement = this._findScrollableElement(this._scrollableElement, false);
 
         let doc = BrowserApp.selectedBrowser.contentDocument;
-        if (this._scrollableElement == null || this._scrollableElement == doc.body || this._scrollableElement == doc.documentElement) {
+        if (this._scrollableElement == doc.body || this._scrollableElement == doc.documentElement) {
           sendMessageToJava({ gecko: { type: "Panning:CancelOverride" } });
           return;
         }
@@ -2643,12 +2579,32 @@ var BrowserEventHandler = {
       }
     } else if (aTopic == "Gesture:CancelTouch") {
       this._cancelTapHighlight();
+    } else if (aTopic == "Gesture:ShowPress") {
+      let data = JSON.parse(aData);
+      let closest = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow, data.x, data.y);
+      if (!closest)
+        closest = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, data.x, data.y);
+      if (closest) {
+        this._doTapHighlight(closest);
+
+        
+        
+        this._scrollableElement = this._findScrollableElement(closest, true);
+        this._firstScrollEvent = true;
+
+        if (this._scrollableElement != null) {
+          
+          let doc = BrowserApp.selectedBrowser.contentDocument;
+          if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
+            sendMessageToJava({ gecko: { type: "Panning:Override" } });
+        }
+      }
     } else if (aTopic == "Gesture:SingleTap") {
       let element = this._highlightElement;
       if (element && !SelectHelper.handleClick(element)) {
         try {
           let data = JSON.parse(aData);
-
+  
           this._sendMouseEvent("mousemove", element, data.x, data.y);
           this._sendMouseEvent("mousedown", element, data.x, data.y);
           this._sendMouseEvent("mouseup",   element, data.x, data.y);
@@ -2863,11 +2819,24 @@ var BrowserEventHandler = {
   },
 
   _elementCanScroll: function(elem, x, y) {
-    let scrollX = (x < 0 && elem.scrollLeft > 0)
-               || (x > 0 && elem.scrollLeft < (elem.scrollWidth - elem.clientWidth));
+    let scrollX = true;
+    let scrollY = true;
 
-    let scrollY = (y < 0 && elem.scrollTop > 0)
-               || (y > 0 && elem.scrollTop < (elem.scrollHeight - elem.clientHeight));
+    if (x < 0) {
+      if (elem.scrollLeft <= 0) {
+        scrollX = false;
+      }
+    } else if (elem.scrollLeft >= (elem.scrollWidth - elem.clientWidth)) {
+      scrollX = false;
+    }
+
+    if (y < 0) {
+      if (elem.scrollTop <= 0) {
+        scrollY = false;
+      }
+    } else if (elem.scrollTop >= (elem.scrollHeight - elem.clientHeight)) {
+      scrollY = false;
+    }
 
     return scrollX || scrollY;
   }
@@ -3411,11 +3380,6 @@ var XPInstallObserver = {
         break;
       case "addon-install-blocked":
         let installInfo = aSubject.QueryInterface(Ci.amIWebInstallInfo);
-        let win = installInfo.originatingWindow;
-        let tab = BrowserApp.getTabForWindow(win.top);
-        if (!tab)
-          return;
-
         let host = installInfo.originatingURI.host;
 
         let brandShortName = Strings.brand.GetStringFromName("brandShortName");
@@ -3455,7 +3419,7 @@ var XPInstallObserver = {
             }
           }];
         }
-        NativeWindow.doorhanger.show(message, aTopic, buttons, tab.id);
+        NativeWindow.doorhanger.show(message, aTopic, buttons);
         break;
     }
   },
@@ -3619,10 +3583,13 @@ var ViewportHandler = {
     if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
       return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
 
+    let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
+    if (handheldFriendly == "true")
+      return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
+
     if (aWindow.document instanceof XULDocument)
       return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
-
-    let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 
     
     
@@ -3641,15 +3608,6 @@ var ViewportHandler = {
 
     let allowZoomStr = windowUtils.getDocumentMetadata("viewport-user-scalable");
     let allowZoom = !/^(0|no|false)$/.test(allowZoomStr); 
-
-
-    if (scale == NaN && minScale == NaN && maxScale == NaN && allowZoomStr == "" && widthStr == "" && heightStr == "") {
-	
-	let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
-
-	if (handheldFriendly == "true")
-	    return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
-    }
 
     scale = this.clamp(scale, kViewportMinScale, kViewportMaxScale);
     minScale = this.clamp(minScale, kViewportMinScale, kViewportMaxScale);
@@ -4634,159 +4592,6 @@ var CharacterEncoding = {
     let docCharset = browser.docShell.QueryInterface(Ci.nsIDocCharset);
     docCharset.charset = aEncoding;
     browser.reload(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
-  }
-};
-
-var IdentityHandler = {
-  
-  IDENTITY_MODE_IDENTIFIED       : "identified", 
-  IDENTITY_MODE_DOMAIN_VERIFIED  : "verified",   
-  IDENTITY_MODE_UNKNOWN          : "unknown",  
-
-  
-  _lastStatus : null,
-  _lastLocation : null,
-
-  
-
-
-
-  getIdentityData : function() {
-    let result = {};
-    let status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
-    let cert = status.serverCert;
-
-    
-    result.subjectOrg = cert.organization;
-
-    
-    if (cert.subjectName) {
-      result.subjectNameFields = {};
-      cert.subjectName.split(",").forEach(function(v) {
-        let field = v.split("=");
-        this[field[0]] = field[1];
-      }, result.subjectNameFields);
-
-      
-      result.city = result.subjectNameFields.L;
-      result.state = result.subjectNameFields.ST;
-      result.country = result.subjectNameFields.C;
-    }
-
-    
-    result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
-    result.cert = cert;
-
-    return result;
-  },
-
-  getIdentityMode: function getIdentityMode(aState) {
-    if (aState & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
-      return this.IDENTITY_MODE_IDENTIFIED;
-
-    if (aState & Ci.nsIWebProgressListener.STATE_SECURE_HIGH)
-      return this.IDENTITY_MODE_DOMAIN_VERIFIED;
-
-    return this.IDENTITY_MODE_UNKNOWN;
-  },
-
-  
-
-
-
-  checkIdentity: function checkIdentity(aState, aBrowser) {
-    this._lastStatus = aBrowser.securityUI
-                               .QueryInterface(Components.interfaces.nsISSLStatusProvider)
-                               .SSLStatus;
-
-    
-    
-    
-    let locationObj = {};
-    try {
-      let location = aBrowser.contentWindow.location;
-      locationObj.host = location.host;
-      locationObj.hostname = location.hostname;
-      locationObj.port = location.port;
-    } catch (ex) {
-      
-      
-      
-    }
-    this._lastLocation = locationObj;
-
-    let mode = this.getIdentityMode(aState);
-    let result = { mode: mode };
-
-    
-    if (mode == this.IDENTITY_MODE_UNKNOWN)
-      return result;
-
-    
-    result.encrypted = Strings.browser.GetStringFromName("identity.encrypted2");
-    result.host = this.getEffectiveHost();
-
-    let iData = this.getIdentityData();
-    result.verifier = Strings.browser.formatStringFromName("identity.identified.verifier", [iData.caOrg], 1);
-
-    
-    if (mode == this.IDENTITY_MODE_IDENTIFIED) {
-      result.owner = iData.subjectOrg;
-
-      
-      let supplemental = "";
-      if (iData.city)
-        supplemental += iData.city + "\n";
-      if (iData.state && iData.country)
-        supplemental += Strings.browser.formatStringFromName("identity.identified.state_and_country", [iData.state, iData.country], 2);
-      else if (iData.state) 
-        supplemental += iData.state;
-      else if (iData.country) 
-        supplemental += iData.country;
-      result.supplemental = supplemental;
-
-      return result;
-    }
-    
-    
-    result.owner = Strings.browser.GetStringFromName("identity.ownerUnknown2");
-
-    
-    if (!this._overrideService)
-      this._overrideService = Cc["@mozilla.org/security/certoverride;1"].getService(Ci.nsICertOverrideService);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    if (this._lastLocation.hostname &&
-        this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
-                                                  (this._lastLocation.port || 443),
-                                                  iData.cert, {}, {}))
-      result.verifier = Strings.browser.GetStringFromName("identity.identified.verified_by_you");
-
-    return result;
-  },
-
-  
-
-
-  getEffectiveHost: function getEffectiveHost() {
-    if (!this._IDNService)
-      this._IDNService = Cc["@mozilla.org/network/idn-service;1"]
-                         .getService(Ci.nsIIDNService);
-    try {
-      let baseDomain = Services.eTLD.getBaseDomainFromHost(this._lastLocation.hostname);
-      return this._IDNService.convertToDisplayIDN(baseDomain, {});
-    } catch (e) {
-      
-      
-      return this._lastLocation.hostname;
-    }
   }
 };
 
