@@ -221,6 +221,12 @@ public:
 
   const PRUint8* GetData(nsZipItem* aItem);
 
+  
+
+
+
+  PRInt64 SizeOfMapping();
+
 private:
   
 
@@ -381,6 +387,8 @@ public:
 
   NS_METHOD_(nsrefcnt) AddRef(void);
   NS_METHOD_(nsrefcnt) Release(void);
+
+  PRInt64 SizeOfMapping();
 
 protected:
   const PRUint8 * mFileData; 
