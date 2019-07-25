@@ -440,6 +440,11 @@ MouseModule.prototype = {
 
     this._dragData.reset();
     this._targetScrollInterface = null;
+
+    if (this._clickTimeout)
+      window.clearTimeout(this._clickTimeout);
+
+    this._cleanClickBuffer();
   },
 
   
@@ -574,9 +579,15 @@ MouseModule.prototype = {
 
 
 
-  _clearDownUpEvents: function _clearDownUpEvents() {
-    this._downUpEvents.splice(0);
-    this._downUpDispatchedIndex = 0;
+
+
+
+  _clearDownUpEvents: function _clearDownUpEvents(howMany) {
+    if (howMany === undefined)
+      howMany = this._downUpEvents.length;
+
+    this._downUpEvents.splice(0, howMany);
+    this._downUpDispatchedIndex = Math.max(this._downUpDispatchedIndex - howMany, 0);
   },
 
   
@@ -695,7 +706,7 @@ MouseModule.prototype = {
            + " :: " + this._downUpEvents[i].event.detail + '\n');
 
     let ev = this._downUpEvents[1].event;
-    this._cleanClickBuffer();
+    this._cleanClickBuffer(2);
     this._clicker.singleClick(ev.clientX, ev.clientY);
   },
 
@@ -712,7 +723,7 @@ MouseModule.prototype = {
 
     let mouseUp1 = this._downUpEvents[1].event;
     let mouseUp2 = this._downUpEvents[3].event;
-    this._cleanClickBuffer();
+    this._cleanClickBuffer(4);
     this._clicker.doubleClick(mouseUp1.clientX, mouseUp1.clientY,
                               mouseUp2.clientX, mouseUp2.clientY);
   },
@@ -722,9 +733,12 @@ MouseModule.prototype = {
 
 
 
-  _cleanClickBuffer: function _cleanClickBuffer() {
+
+
+
+  _cleanClickBuffer: function _cleanClickBuffer(howMany) {
     delete this._clickTimeout;
-    this._clearDownUpEvents();
+    this._clearDownUpEvents(howMany);
   },
 
   
