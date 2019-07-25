@@ -35,6 +35,11 @@
 
 
 
+#ifdef MOZ_LOGGING
+#define FORCE_PR_LOG
+#endif
+#include "prlog.h"
+
 #include "gfxPlatform.h"
 
 #if defined(XP_WIN)
@@ -110,6 +115,15 @@ static const char *CMForceSRGBPrefName = "gfx.color_management.force_srgb";
 
 static void ShutdownCMS();
 static void MigratePrefs();
+
+
+
+#ifdef PR_LOGGING
+static PRLogModuleInfo *sFontlistLog = nsnull;
+static PRLogModuleInfo *sFontInitLog = nsnull;
+static PRLogModuleInfo *sTextrunLog = nsnull;
+static PRLogModuleInfo *sTextrunuiLog = nsnull;
+#endif
 
 
 
@@ -228,6 +242,14 @@ gfxPlatform::Init()
     NS_ASSERTION(!gPlatform, "Already started???");
 
     gfxAtoms::RegisterAtoms();
+
+#ifdef PR_LOGGING
+    sFontlistLog = PR_NewLogModule("fontlist");;
+    sFontInitLog = PR_NewLogModule("fontinit");;
+    sTextrunLog = PR_NewLogModule("textrun");;
+    sTextrunuiLog = PR_NewLogModule("textrunui");;
+#endif
+
 
     
 
@@ -1245,4 +1267,32 @@ gfxPlatform::FontsPrefsChanged(nsIPrefBranch *aPrefBranch, const char *aPref)
         gfxTextRunWordCache::Flush();
         gfxFontCache::GetCache()->AgeAllGenerations();
     }
+}
+
+
+PRLogModuleInfo*
+gfxPlatform::GetLog(eGfxLog aWhichLog)
+{
+#ifdef PR_LOGGING
+    switch (aWhichLog) {
+    case eGfxLog_fontlist:
+        return sFontlistLog;
+        break;
+    case eGfxLog_fontinit:
+        return sFontInitLog;
+        break;
+    case eGfxLog_textrun:
+        return sTextrunLog;
+        break;
+    case eGfxLog_textrunui:
+        return sTextrunuiLog;
+        break;
+    default:
+        break;
+    }
+
+    return nsnull;
+#else
+    return nsnull;
+#endif
 }

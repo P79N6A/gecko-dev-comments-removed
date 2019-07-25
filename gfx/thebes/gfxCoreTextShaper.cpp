@@ -63,14 +63,6 @@
 #include "nsUnicodeRange.h"
 
 
-
-
-#ifdef DUMP_TEXT_RUNS
-static PRLogModuleInfo *gCoreTextTextRunLog = PR_NewLogModule("coreTextTextRun");
-#endif
-
-
-
 CTFontDescriptorRef gfxCoreTextShaper::sDefaultFeaturesDescriptor = NULL;
 CTFontDescriptorRef gfxCoreTextShaper::sDisableLigaturesDescriptor = NULL;
 
