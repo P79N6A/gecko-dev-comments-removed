@@ -298,6 +298,7 @@ nscoord nsStyleUtil::FindNextLargerFontSize(nscoord aFontSize, PRInt32 aBasePoin
   PRInt32 indexMin;
   PRInt32 indexMax;
   float relativePosition;
+  nscoord adjustment;
   nscoord largerSize;
   nscoord indexFontSize = aFontSize; 
   nscoord smallestIndexFontSize;
@@ -331,7 +332,7 @@ nscoord nsStyleUtil::FindNextLargerFontSize(nscoord aFontSize, PRInt32 aBasePoin
         largerIndexFontSize = CalcFontPointSize(index+1, aBasePointSize, aScalingFactor, aPresContext, aFontSizeType);
       } else if (indexFontSize == largestIndexFontSize) {
         smallerIndexFontSize = CalcFontPointSize(index-1, aBasePointSize, aScalingFactor, aPresContext, aFontSizeType);
-        largerIndexFontSize = NSToCoordRound(float(largestIndexFontSize) * 1.5);
+        largerIndexFontSize = NSCoordSaturatingMultiply(largestIndexFontSize, 1.5);
       } else {
         smallerIndexFontSize = CalcFontPointSize(index-1, aBasePointSize, aScalingFactor, aPresContext, aFontSizeType);
         largerIndexFontSize = CalcFontPointSize(index+1, aBasePointSize, aScalingFactor, aPresContext, aFontSizeType);
@@ -339,14 +340,15 @@ nscoord nsStyleUtil::FindNextLargerFontSize(nscoord aFontSize, PRInt32 aBasePoin
       
       relativePosition = float(aFontSize - smallerIndexFontSize) / float(indexFontSize - smallerIndexFontSize);
       
-      largerSize = indexFontSize + NSToCoordRound(relativePosition * (largerIndexFontSize - indexFontSize));      
+      adjustment = NSCoordSaturatingNonnegativeMultiply(largerIndexFontSize - indexFontSize, relativePosition);
+      largerSize = NSCoordSaturatingAdd(indexFontSize, adjustment);
     }
     else {  
-      largerSize = NSToCoordRound(float(aFontSize) * 1.5);
+      largerSize = NSCoordSaturatingMultiply(aFontSize, 1.5);
     }
   }
   else { 
-    largerSize = aFontSize + onePx; 
+    largerSize = NSCoordSaturatingAdd(aFontSize, onePx);
   }
   return largerSize;
 }
