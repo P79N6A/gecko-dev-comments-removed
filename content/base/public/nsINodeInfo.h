@@ -117,8 +117,8 @@ public:
 
 
 
-  void GetQualifiedName(nsAString& aQualifiedName) const {
-    aQualifiedName = mQualifiedName;
+  const nsString& QualifiedName() const {
+    return mQualifiedName;
   }
 
   
@@ -126,8 +126,8 @@ public:
 
 
 
-  void GetQualifiedNameCorrectedCase(nsAString& aQualifiedName) const {
-    aQualifiedName = mQualifiedNameCorrectedCase;
+  const nsString& QualifiedNameCorrectedCase() const {
+    return mQualifiedNameCorrectedCase;
   }
 
   
