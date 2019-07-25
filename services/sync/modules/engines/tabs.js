@@ -92,8 +92,6 @@ TabStore.prototype = {
   _remoteClients: {},
 
   _TabStore_init: function TabStore__init() {
-    
-    dump("Initializing TabStore!!\n");
     this._init();
     this._readFromFile();
   },
@@ -317,7 +315,7 @@ TabTracker.prototype = {
   },
 
   observe: function TabTracker_observe(aSubject, aTopic, aData) {
-    dump("TabTracker spotted window open/close...\n");
+    this._log.trace("Spotted window open/close");
     let window = aSubject.QueryInterface(Ci.nsIDOMWindow);
     
     
