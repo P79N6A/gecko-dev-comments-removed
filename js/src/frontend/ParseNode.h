@@ -75,8 +75,10 @@ enum ParseNodeKind {
     PNK_STAR,
     PNK_DIV,
     PNK_MOD,
-    PNK_INC,
-    PNK_DEC,
+    PNK_PREINCREMENT,
+    PNK_POSTINCREMENT,
+    PNK_PREDECREMENT,
+    PNK_POSTDECREMENT,
     PNK_DOT,
     PNK_LB,
     PNK_RB,
@@ -197,6 +199,8 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
+
 
 
 
