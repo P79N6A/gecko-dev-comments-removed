@@ -1026,6 +1026,10 @@ let RIL = {
 
     
 
+    if (!options.retryCount) {
+      options.retryCount = 0;
+    }
+
     if (options.segmentMaxSeq > 1) {
       if (!options.segmentSeq) {
         
@@ -1573,6 +1577,7 @@ let RIL = {
 
     if ((status >>> 5) != 0x00) {
       
+      
       return PDU_FCS_OK;
     }
 
@@ -1954,7 +1959,24 @@ RIL[REQUEST_RADIO_POWER] = null;
 RIL[REQUEST_DTMF] = null;
 RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
   if (options.rilRequestError) {
-    
+    switch (options.rilRequestError) {
+      case ERROR_SMS_SEND_FAIL_RETRY:
+        if (options.retryCount < SMS_RETRY_MAX) {
+          options.retryCount++;
+          
+          this.sendSMS(options);
+          break;
+        }
+
+        
+      default:
+        this.sendDOMMessage({
+          type: "sms-send-failed",
+          envelopeId: options.envelopeId,
+          error: options.rilRequestError,
+        });
+        break;
+    }
     return;
   }
 
@@ -2211,8 +2233,13 @@ RIL[REQUEST_DEVICE_IDENTITY] = null;
 RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
 RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
   if (options.rilRequestError) {
-    
-    
+    if (options.body) {
+      this.sendDOMMessage({
+        type: "sms-send-failed",
+        envelopeId: options.envelopeId,
+        error: options.rilRequestError,
+      });
+    }
     return;
   }
 
