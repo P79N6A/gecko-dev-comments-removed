@@ -419,7 +419,7 @@ abstract public class BrowserApp extends GeckoApp
     private void loadFavicon(final Tab tab) {
         maybeCancelFaviconLoad(tab);
 
-        long id = mFavicons.loadFavicon(tab.getURL(), tab.getFaviconURL(),
+        long id = getFavicons().loadFavicon(tab.getURL(), tab.getFaviconURL(),
                         new Favicons.OnFaviconLoadedListener() {
 
             public void onFaviconLoaded(String pageUrl, Drawable favicon) {
@@ -457,7 +457,7 @@ abstract public class BrowserApp extends GeckoApp
             return;
 
         
-        mFavicons.cancelFaviconLoad(faviconLoadId);
+        getFavicons().cancelFaviconLoad(faviconLoadId);
 
         
         tab.setFaviconLoadId(Favicons.NOT_LOADING);
