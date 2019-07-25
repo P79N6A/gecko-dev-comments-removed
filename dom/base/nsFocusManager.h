@@ -527,6 +527,8 @@ private:
   
   nsCOMPtr<nsIDocument> mMouseDownEventHandlingDocument;
 
+  static bool sTestMode;
+
   
   static nsFocusManager* sInstance;
 };

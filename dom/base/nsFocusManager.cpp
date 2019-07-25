@@ -161,11 +161,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 nsFocusManager* nsFocusManager::sInstance = nsnull;
 bool nsFocusManager::sMouseFocusesFormControl = false;
+bool nsFocusManager::sTestMode = false;
 
 static const char* kObservedPrefs[] = {
   "accessibility.browsewithcaret",
   "accessibility.tabfocus_applies_to_xul",
   "accessibility.mouse_focuses_formcontrol",
+  "focusmanager.testmode",
   NULL
 };
 
@@ -197,6 +199,8 @@ nsFocusManager::Init()
 
   sMouseFocusesFormControl =
     Preferences::GetBool("accessibility.mouse_focuses_formcontrol", false);
+
+  sTestMode = Preferences::GetBool("focusmanager.testmode", false);
 
   Preferences::AddWeakObservers(fm, kObservedPrefs);
 
@@ -234,6 +238,9 @@ nsFocusManager::Observe(nsISupports *aSubject,
       sMouseFocusesFormControl =
         Preferences::GetBool("accessibility.mouse_focuses_formcontrol",
                              false);
+    }
+    else if (data.EqualsLiteral("focusmanager.testmode")) {
+      sTestMode = Preferences::GetBool("focusmanager.testmode", false);
     }
   } else if (!nsCRT::strcmp(aTopic, "xpcom-shutdown")) {
     mActiveWindow = nsnull;
@@ -1064,7 +1071,7 @@ nsFocusManager::NotifyFocusStateChange(nsIContent* aContent,
 void
 nsFocusManager::EnsureCurrentWidgetFocused()
 {
-  if (!mFocusedWindow)
+  if (!mFocusedWindow || sTestMode)
     return;
 
   
@@ -1570,7 +1577,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     if (mActiveWindow) {
       nsIFrame* contentFrame = content->GetPrimaryFrame();
       nsIObjectFrame* objectFrame = do_QueryFrame(contentFrame);
-      if (aAdjustWidgets && objectFrame) {
+      if (aAdjustWidgets && objectFrame && !sTestMode) {
         
         
         nsIViewManager* vm = presShell->GetViewManager();
@@ -1744,7 +1751,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     if (objectFrame)
       objectFrameWidget = objectFrame->GetWidget();
   }
-  if (aAdjustWidgets && !objectFrameWidget) {
+  if (aAdjustWidgets && !objectFrameWidget && !sTestMode) {
     nsIViewManager* vm = presShell->GetViewManager();
     if (vm) {
       nsCOMPtr<nsIWidget> widget;
@@ -1791,7 +1798,7 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
       
       
       if (presShell->GetDocument() == aContent->GetDocument()) {
-        if (aAdjustWidgets && objectFrameWidget)
+        if (aAdjustWidgets && objectFrameWidget && !sTestMode)
           objectFrameWidget->SetFocus(false);
 
         
@@ -1833,7 +1840,8 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
     
     
     if (aAdjustWidgets && objectFrameWidget &&
-        mFocusedWindow == aWindow && mFocusedContent == nsnull) {
+        mFocusedWindow == aWindow && mFocusedContent == nsnull &&
+        !sTestMode) {
       nsIViewManager* vm = presShell->GetViewManager();
       if (vm) {
         nsCOMPtr<nsIWidget> widget;
@@ -1964,6 +1972,15 @@ nsFocusManager::RaiseWindow(nsPIDOMWindow* aWindow)
   
   if (!aWindow || aWindow == mActiveWindow || aWindow == mWindowBeingLowered)
     return;
+
+  if (sTestMode) {
+    
+    
+    if (mActiveWindow)
+      WindowLowered(mActiveWindow);
+    WindowRaised(aWindow);
+    return;
+  }
 
 #if defined(XP_WIN) || defined(XP_OS2)
   
