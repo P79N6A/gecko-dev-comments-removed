@@ -830,6 +830,7 @@ protected:
     WebGLFastArray<WebGLShader*> mShaders;
     WebGLFastArray<WebGLRenderbuffer*> mRenderbuffers;
     WebGLFastArray<WebGLFramebuffer*> mFramebuffers;
+    WebGLFastArray<WebGLUniformLocation*> mUniformLocations;
 
     
     PRUint32 mPixelStorePackAlignment, mPixelStoreUnpackAlignment, mPixelStoreColorspaceConversion;
@@ -878,6 +879,7 @@ public:
     friend class WebGLProgram;
     friend class WebGLBuffer;
     friend class WebGLShader;
+    friend class WebGLUniformLocation;
 };
 
 
@@ -1644,8 +1646,6 @@ public:
         , mUniformCount(0)
         , mAttribCount(0)
     {
-
-        mMapUniformLocations.Init();
         mContext->MakeContextCurrent();
         mGLName = mContext->gl->fCreateProgram();
         mMonotonicHandle = mContext->mPrograms.AppendElement(this);
@@ -1659,7 +1659,6 @@ public:
         DetachShaders();
         mContext->MakeContextCurrent();
         mContext->gl->fDeleteProgram(mGLName);
-        mMapUniformLocations.EnumerateRead(NotifyUniformLocationOfProgramDeletion, nsnull);
         mContext->mPrograms.RemoveElement(mMonotonicHandle);
     }
 
@@ -1720,11 +1719,8 @@ public:
         if (!(mGeneration+1).valid())
             return false; 
         ++mGeneration;
-        mMapUniformLocations.Clear();
         return true;
     }
-
-    already_AddRefed<WebGLUniformLocation> GetUniformLocationObject(GLint glLocation);
 
     
     bool UpdateInfo(gl::GLContext *gl);
@@ -1749,20 +1745,12 @@ protected:
 
     
 
-    
-    
-    nsRefPtrHashtable<nsUint32HashKey, WebGLUniformLocation> mMapUniformLocations;
-
     GLint mUniformMaxNameLength;
     GLint mAttribMaxNameLength;
     GLint mUniformCount;
     GLint mAttribCount;
     std::vector<bool> mAttribsInUse;
     WebGLMonotonicHandle mMonotonicHandle;
-
-private:
-    static PLDHashOperator
-    NotifyUniformLocationOfProgramDeletion(const PRUint32& aKey, WebGLUniformLocation *aValue, void *);
 };
 
 class WebGLRenderbuffer
@@ -2255,6 +2243,7 @@ protected:
 class WebGLUniformLocation
     : public nsIWebGLUniformLocation
     , public WebGLContextBoundObject
+    , public WebGLRefCountedObject<WebGLUniformLocation>
 {
 public:
     WebGLUniformLocation(WebGLContext *context, WebGLProgram *program, GLint location)
@@ -2262,10 +2251,18 @@ public:
         , mProgram(program)
         , mProgramGeneration(program->Generation())
         , mLocation(location)
-    { }
+    {
+        mMonotonicHandle = mContext->mUniformLocations.AppendElement(this);
+    }
 
-    
-    bool IsDeleted() { return false; }
+    ~WebGLUniformLocation() {
+        DeleteOnce();
+    }
+
+    void Delete() {
+        mProgram = nsnull;
+        mContext->mUniformLocations.RemoveElement(mMonotonicHandle);
+    }
 
     WebGLProgram *Program() const { return mProgram; }
     GLint Location() const { return mLocation; }
@@ -2274,10 +2271,13 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLUNIFORMLOCATION
 protected:
-    WebGLProgram *mProgram;
+    
+    
+    nsRefPtr<WebGLProgram> mProgram;
+
     PRUint32 mProgramGeneration;
     GLint mLocation;
-
+    WebGLMonotonicHandle mMonotonicHandle;
     friend class WebGLProgram;
 };
 
@@ -2299,14 +2299,6 @@ protected:
     WebGLenum mType;
     nsString mName;
 };
-
-inline PLDHashOperator
-WebGLProgram::NotifyUniformLocationOfProgramDeletion(const PRUint32& aKey, WebGLUniformLocation *aValue, void *)
-{
-    aValue->mProgram = nsnull;
-    return PL_DHASH_NEXT;
-}
-
 
 class WebGLExtension
     : public nsIWebGLExtension
