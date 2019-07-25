@@ -1277,8 +1277,15 @@ JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
             repatcher.relink(oolJump, icCall);
         }
 
-        repatcher.relink(ic.funJump, ic.slowPathStart);
-        ic.hit = false;
+        
+
+
+
+
+        if (purgeAll || !(ic.fastGuardedObject || ic.fastGuardedNative)) {
+            repatcher.relink(ic.funJump, ic.slowPathStart);
+            ic.hit = false;
+        }
     }
 
     if (purgeAll) {
