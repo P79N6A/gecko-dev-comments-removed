@@ -1254,6 +1254,10 @@ public:
         return -1;
     }
 
+    
+    virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
+      GetGlyphRenderingOptions() { return nsnull; }
+
     gfxFloat SynthesizeSpaceWidth(PRUint32 aCh);
 
     
