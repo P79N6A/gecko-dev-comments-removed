@@ -86,10 +86,6 @@ public:
 
   
   
-  void      SetOpion(){}
-
-  
-  
   bool GotEnoughData() {return mTotalChars > ENOUGH_DATA_THRESHOLD;}
 
 protected:
