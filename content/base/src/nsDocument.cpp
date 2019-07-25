@@ -8572,19 +8572,6 @@ GetCommonAncestor(nsIDocument* aDoc1, nsIDocument* aDoc2)
   return parent;
 }
 
-
-static nsIDocument*
-GetRootDocument(nsIDocument* aDoc)
-{
-  if (!aDoc)
-    return nsnull;
-  nsIDocument* doc = aDoc;
-  while (doc->GetParentDocument()) {
-    doc = doc->GetParentDocument();
-  }
-  return doc;
-}
-
 class nsCallRequestFullScreen : public nsRunnable
 {
 public:
@@ -8660,7 +8647,7 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
 
   
   
-  sFullScreenRootDoc = do_GetWeakReference(GetRootDocument(this));
+  sFullScreenRootDoc = do_GetWeakReference(nsContentUtils::GetRootDocument(this));
 
   
   
