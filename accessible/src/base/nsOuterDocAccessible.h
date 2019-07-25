@@ -40,7 +40,7 @@
 #define _nsOuterDocAccessible_H_
 
 #include "nsAccessibleWrap.h"
-#include "nsIAccessible.h"
+
 
 
 
@@ -52,13 +52,11 @@
 
 class nsOuterDocAccessible : public nsAccessibleWrap
 {
-  
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
 public:
   nsOuterDocAccessible(nsIDOMNode* aNode, 
                        nsIWeakReference* aShell);
+
+  NS_DECL_ISUPPORTS_INHERITED
 
   
   NS_IMETHOD GetNumActions(PRUint8 *aNumActions);
@@ -67,12 +65,19 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
+  virtual nsresult Shutdown();
+
+  
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual nsresult GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    PRBool aDeepestChild,
                                    nsIAccessible **aChild);
+
+  virtual void InvalidateChildren();
+  virtual PRBool AppendChild(nsAccessible *aAccessible);
+  virtual PRBool RemoveChild(nsAccessible *aAccessible);
 
 protected:
   

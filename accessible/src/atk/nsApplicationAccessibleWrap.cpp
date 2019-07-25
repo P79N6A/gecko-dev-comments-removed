@@ -437,7 +437,7 @@ mai_util_remove_key_event_listener (guint remove_listener)
 AtkObject *
 mai_util_get_root(void)
 {
-    if (nsAccessibilityService::gIsShutdown) {
+    if (nsAccessibilityService::IsShutdown()) {
         
         
         if (gail_get_root)

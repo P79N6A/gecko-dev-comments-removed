@@ -218,6 +218,16 @@ public:
   virtual void InvalidateChildren();
 
   
+
+
+
+
+
+
+  virtual PRBool AppendChild(nsAccessible *aAccessible) { return PR_FALSE; }
+  virtual PRBool RemoveChild(nsAccessible *aAccessible) { return PR_FALSE; }
+
+  
   
 
   

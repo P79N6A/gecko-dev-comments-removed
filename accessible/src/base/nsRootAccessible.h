@@ -89,9 +89,6 @@ public:
   virtual nsAccessible* GetParent();
 
   
-  virtual void FireDocLoadEvents(PRUint32 aEventType);
-
-  
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)
 
   
@@ -129,8 +126,6 @@ protected:
     nsresult HandleEventWithTarget(nsIDOMEvent* aEvent,
                                    nsIDOMNode* aTargetNode);
     static void GetTargetNode(nsIDOMEvent *aEvent, nsIDOMNode **aTargetNode);
-    void TryFireEarlyLoadEvent(nsIDOMNode *aDocNode);
-    void GetChromeEventHandler(nsIDOMEventTarget **aChromeTarget);
 
     
 

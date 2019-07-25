@@ -228,23 +228,6 @@ nsRootAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
-void
-nsRootAccessible::GetChromeEventHandler(nsIDOMEventTarget **aChromeTarget)
-{
-  nsCOMPtr<nsIDOMWindow> domWin;
-  GetWindow(getter_AddRefs(domWin));
-  nsCOMPtr<nsPIDOMWindow> privateDOMWindow(do_QueryInterface(domWin));
-  nsCOMPtr<nsPIDOMEventTarget> chromeEventHandler;
-  if (privateDOMWindow) {
-    chromeEventHandler = privateDOMWindow->GetChromeEventHandler();
-  }
-
-  nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(chromeEventHandler));
-
-  *aChromeTarget = target;
-  NS_IF_ADDREF(*aChromeTarget);
-}
-
 const char* const docEvents[] = {
 #ifdef DEBUG
   
@@ -275,8 +258,7 @@ const char* const docEvents[] = {
   "DOMMenuInactive",
   "DOMMenuItemActive",
   "DOMMenuBarActive",
-  "DOMMenuBarInactive",
-  "DOMContentLoaded"
+  "DOMMenuBarInactive"
 };
 
 nsresult nsRootAccessible::AddEventListeners()
@@ -295,12 +277,6 @@ nsresult nsRootAccessible::AddEventListeners()
                                                this, PR_TRUE, PR_TRUE, 1);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-  }
-
-  nsCOMPtr<nsIDOMEventTarget> target;
-  GetChromeEventHandler(getter_AddRefs(target));
-  if (target) {
-    target->AddEventListener(NS_LITERAL_STRING("pagehide"), this, PR_TRUE);
   }
 
   if (!mCaretAccessible) {
@@ -322,11 +298,6 @@ nsresult nsRootAccessible::RemoveEventListeners()
     }
   }
 
-  GetChromeEventHandler(getter_AddRefs(target));
-  if (target) {
-    target->RemoveEventListener(NS_LITERAL_STRING("pagehide"), this, PR_TRUE);
-  }
-
   
   
   nsDocAccessible::RemoveEventListeners();
@@ -343,50 +314,6 @@ nsCaretAccessible*
 nsRootAccessible::GetCaretAccessible()
 {
   return mCaretAccessible;
-}
-
-void nsRootAccessible::TryFireEarlyLoadEvent(nsIDOMNode *aDocNode)
-{
-  
-  
-  
-
-  
-  
-  
-
-  
-
-  nsCOMPtr<nsIDocShellTreeItem> treeItem =
-    nsCoreUtils::GetDocShellTreeItemFor(aDocNode);
-  NS_ASSERTION(treeItem, "No docshelltreeitem for aDocNode");
-  if (!treeItem) {
-    return;
-  }
-  PRInt32 itemType;
-  treeItem->GetItemType(&itemType);
-  if (itemType != nsIDocShellTreeItem::typeContent) {
-    return;
-  }
-
-  
-  
-  nsCOMPtr<nsIDocShellTreeNode> treeNode(do_QueryInterface(treeItem));
-  if (treeNode) {
-    PRInt32 subDocuments;
-    treeNode->GetChildCount(&subDocuments);
-    if (subDocuments) {
-      return;
-    }
-  }
-  nsCOMPtr<nsIDocShellTreeItem> rootContentTreeItem;
-  treeItem->GetSameTypeRootTreeItem(getter_AddRefs(rootContentTreeItem));
-  NS_ASSERTION(rootContentTreeItem, "No root content tree item");
-  if (rootContentTreeItem == treeItem) {
-    
-    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_INTERNAL_LOAD,
-                               aDocNode);
-  }
 }
 
 PRBool
@@ -612,33 +539,8 @@ nsresult nsRootAccessible::HandleEventWithTarget(nsIDOMEvent* aEvent,
   nsIAccessibilityService *accService = GetAccService();
   NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
-  if (eventType.EqualsLiteral("pagehide")) {
-    
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIDocument> doc(do_QueryInterface(aTargetNode));
-    nsCOMPtr<nsIAccessibleDocument> accDoc = GetDocAccessibleFor(doc);
-    if (accDoc) {
-      nsRefPtr<nsAccessNode> docAccNode = do_QueryObject(accDoc);
-      docAccNode->Shutdown();
-    }
-
-    return NS_OK;
-  }
-
   nsIPresShell *eventShell = nsCoreUtils::GetPresShellFor(aTargetNode);
   if (!eventShell) {
-    return NS_OK;
-  }
-
-  if (eventType.EqualsLiteral("DOMContentLoaded")) {
-    
-    
-    
-    TryFireEarlyLoadEvent(aTargetNode);
     return NS_OK;
   }
 
@@ -967,29 +869,25 @@ nsRootAccessible::GetContentDocShell(nsIDocShellTreeItem *aStart)
   PRInt32 itemType;
   aStart->GetItemType(&itemType);
   if (itemType == nsIDocShellTreeItem::typeContent) {
-    nsCOMPtr<nsIAccessibleDocument> accDoc =
-      GetDocAccessibleFor(aStart, PR_TRUE);
+    nsDocAccessible *accDoc = nsAccUtils::GetDocAccessibleFor(aStart);
 
     
     
     if (!accDoc)
       return nsnull;
 
-    nsCOMPtr<nsIAccessible> accessible = do_QueryInterface(accDoc);
-
     
     
     
-    while (accessible) {
-      if (nsAccUtils::State(accessible) & nsIAccessibleStates::STATE_INVISIBLE)
+    nsAccessible *parent = accDoc->GetParent();
+    while (parent) {
+      if (nsAccUtils::State(parent) & nsIAccessibleStates::STATE_INVISIBLE)
         return nsnull;
 
-      nsCOMPtr<nsIAccessible> ancestor;
-      accessible->GetParent(getter_AddRefs(ancestor));
-      if (ancestor == this) {
+      if (parent == this)
         break; 
-      }
-      accessible.swap(ancestor);
+
+      parent = parent->GetParent();
     }
 
     NS_ADDREF(aStart);
@@ -1030,11 +928,8 @@ nsRootAccessible::GetRelationByType(PRUint32 aRelationType,
   nsCOMPtr<nsIDocShellTreeItem> contentTreeItem = GetContentDocShell(treeItem);
   
   if (contentTreeItem) {
-    nsCOMPtr<nsIAccessibleDocument> accDoc =
-      GetDocAccessibleFor(contentTreeItem, PR_TRUE);
-
-    nsCOMPtr<nsIAccessible> acc(do_QueryInterface(accDoc));
-    return nsRelUtils::AddTarget(aRelationType, aRelation, acc);
+    nsDocAccessible *accDoc = nsAccUtils::GetDocAccessibleFor(contentTreeItem);
+    return nsRelUtils::AddTarget(aRelationType, aRelation, accDoc);
   }
 
   return NS_OK;
@@ -1049,31 +944,6 @@ nsRootAccessible::GetParent()
   
   
   return mParent;
-}
-
-
-
-
-void
-nsRootAccessible::FireDocLoadEvents(PRUint32 aEventType)
-{
-  if (IsDefunct())
-    return;
-
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem =
-    nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
-  NS_ASSERTION(docShellTreeItem, "No doc shell tree item for document");
-  if (!docShellTreeItem)
-    return;
-
-  PRInt32 contentType;
-  docShellTreeItem->GetItemType(&contentType);
-  if (contentType == nsIDocShellTreeItem::typeContent)
-    nsDocAccessibleWrap::FireDocLoadEvents(aEventType); 
-
-  
-  mIsContentLoaded = (aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE ||
-                      aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED);
 }
 
 

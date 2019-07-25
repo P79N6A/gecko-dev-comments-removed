@@ -39,9 +39,10 @@
 #ifndef _nsDocAccessible_H_
 #define _nsDocAccessible_H_
 
+#include "nsIAccessibleDocument.h"
+
 #include "nsHyperTextAccessibleWrap.h"
 #include "nsEventShell.h"
-#include "nsIAccessibleDocument.h"
 
 #include "nsIDocument.h"
 #include "nsIDocumentObserver.h"
@@ -112,10 +113,32 @@ public:
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
   virtual nsAccessible* GetParent();
 
+#ifdef DEBUG_ACCDOCMGR
+  virtual nsresult HandleAccEvent(nsAccEvent *aAccEvent);
+#endif
+
   
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
   
+
+  nsIDocument *GetDOMDocument() const { return mDocument; }
+
+  
+
+
+  PRBool IsContentLoaded() const
+  {
+    return mDocument && mDocument->IsVisible() &&
+      (mDocument->IsShowing() || mIsLoaded);
+  }
+
+  
+
+
+
+
+  void MarkAsLoaded() { mIsLoaded = PR_TRUE; }
 
   
 
@@ -183,20 +206,9 @@ public:
 
 
 
-
-  virtual void FireDocLoadEvents(PRUint32 aEventType);
-
-  
-
-
-
   void ProcessPendingEvent(nsAccEvent* aEvent);
 
 protected:
-  
-
-
-  void ShutdownChildDocuments(nsIDocShellTreeItem *aStart);
 
     virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
     virtual nsresult AddEventListeners();
@@ -204,12 +216,15 @@ protected:
     void AddScrollListener();
     void RemoveScrollListener();
 
-    
+  
 
 
 
 
-    void InvalidateChildrenInSubtree(nsIDOMNode *aStartNode);
+
+
+  void InvalidateChildrenInSubtree(nsIDOMNode *aStartNode);
+
     void RefreshNodes(nsIDOMNode *aStartNode);
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
 
@@ -300,12 +315,15 @@ protected:
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;
     PRUint16 mScrollPositionChangedTicks; 
-    PRPackedBool mIsContentLoaded;
-    PRPackedBool mIsLoadCompleteFired;
 
 protected:
 
   nsRefPtr<nsAccEventQueue> mEventQueue;
+
+  
+
+
+  PRPackedBool mIsLoaded;
 
     static PRUint32 gLastFocusedAccessiblesState;
     static nsIAtom *gLastFocusedFrameType;

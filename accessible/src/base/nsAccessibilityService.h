@@ -42,13 +42,10 @@
 #include "nsIAccessibilityService.h"
 
 #include "a11yGeneric.h"
-#include "nsCoreUtils.h"
+#include "nsAccDocManager.h"
 
 #include "nsCOMArray.h"
 #include "nsIObserver.h"
-#include "nsIWebProgress.h"
-#include "nsIWebProgressListener.h"
-#include "nsWeakReference.h"
 
 class nsAccessNode;
 class nsAccessible;
@@ -61,19 +58,16 @@ class nsIPresShell;
 class nsIContent;
 struct nsRoleMapEntry;
 
-class nsAccessibilityService : public nsIAccessibilityService,
-                               public nsIObserver,
-                               public nsIWebProgressListener,
-                               public nsSupportsWeakReference
+class nsAccessibilityService : public nsAccDocManager,
+                               public nsIAccessibilityService,
+                               public nsIObserver
 {
 public:
-  nsAccessibilityService();
   virtual ~nsAccessibilityService();
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIACCESSIBLERETRIEVAL
   NS_DECL_NSIOBSERVER
-  NS_DECL_NSIWEBPROGRESSLISTENER
 
   
   virtual nsAccessible* GetAccessibleInShell(nsIDOMNode *aNode,
@@ -157,7 +151,7 @@ public:
   
 
 
-  static PRBool gIsShutdown;
+  static PRBool IsShutdown() { return gIsShutdown; }
 
   
 
@@ -206,7 +200,37 @@ public:
   nsAccessNode* GetCachedAccessNode(nsIDOMNode *aNode,
                                     nsIWeakReference *aShell);
 
+  
+
+
+
+
+
+
+
+
+
+  PRBool InitAccessible(nsAccessible *aAccessible,
+                        nsRoleMapEntry *aRoleMapEntry);
+
 private:
+  
+  
+  nsAccessibilityService();
+  nsAccessibilityService(const nsAccessibilityService&);
+  nsAccessibilityService& operator =(const nsAccessibilityService&);
+
+private:
+  
+
+
+  PRBool Init();
+
+  
+
+
+  void Shutdown();
+
   
 
 
@@ -222,19 +246,6 @@ private:
   
 
 
-
-
-
-
-
-
-
-  PRBool InitAccessible(nsAccessible *aAccessible,
-                        nsRoleMapEntry *aRoleMapEntry);
-
-  
-
-
   already_AddRefed<nsAccessible>
     GetAreaAccessible(nsIFrame *aImageFrame, nsIDOMNode *aAreaNode,
                       nsIWeakReference *aWeakShell);
@@ -245,12 +256,6 @@ private:
 
   already_AddRefed<nsAccessible>
     CreateAccessibleByType(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);
-
-  
-
-
-  already_AddRefed<nsAccessible>
-    CreateDocOrRootAccessible(nsIPresShell *aShell, nsIDocument *aDocument);
 
   
 
@@ -273,8 +278,16 @@ private:
   already_AddRefed<nsAccessible>
     CreateAccessibleForXULTree(nsIDOMNode *aNode, nsIWeakReference *aWeakShell);
 #endif
+
   
+
+
   static nsAccessibilityService *gAccessibilityService;
+
+  
+
+
+  static PRBool gIsShutdown;
 
   
 
@@ -285,24 +298,9 @@ private:
 
   PRBool HasUniversalAriaProperty(nsIContent *aContent);
 
-  
-
-
-
-
-
-
-
-
-  void ProcessDocLoadEvent(nsIWebProgress *aWebProgress, PRUint32 aEventType);
-
   friend nsAccessibilityService* GetAccService();
 
-  friend nsresult  NS_GetAccessibilityService(nsIAccessibilityService** aResult);
-
-  
-  NS_DECL_RUNNABLEMETHOD_ARG2(nsAccessibilityService, ProcessDocLoadEvent,
-                              nsCOMPtr<nsIWebProgress>, PRUint32)
+  friend nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 };
 
 
@@ -488,7 +486,6 @@ static const char kEventTypeNames[][40] = {
   "scrolling end",                           
   "minimize start",                          
   "minimize end",                            
-  "document load start",                     
   "document load complete",                  
   "document reload",                         
   "document load stopped",                   
@@ -536,8 +533,7 @@ static const char kEventTypeNames[][40] = {
   "hypertext changed",                       
   "hypertext links count changed",           
   "object attribute changed",                
-  "page changed",                            
-  "internal load"                            
+  "page changed"                             
 };
 
 
@@ -564,5 +560,5 @@ static const char kRelationTypeNames[][20] = {
   "default button"       
 };
 
-#endif
+#endif 
 

@@ -87,7 +87,6 @@ static const PRUint32 gWinEventMap[] = {
   EVENT_SYSTEM_SCROLLINGEND,                         
   kEVENT_WIN_UNKNOWN,                                
   kEVENT_WIN_UNKNOWN,                                
-  kEVENT_WIN_UNKNOWN,                                
   IA2_EVENT_DOCUMENT_LOAD_COMPLETE,                  
   IA2_EVENT_DOCUMENT_RELOAD,                         
   IA2_EVENT_DOCUMENT_LOAD_STOPPED,                   
@@ -136,7 +135,6 @@ static const PRUint32 gWinEventMap[] = {
   IA2_EVENT_HYPERTEXT_NLINKS_CHANGED,                
   IA2_EVENT_OBJECT_ATTRIBUTE_CHANGED,                
   IA2_EVENT_PAGE_CHANGED,                            
-  kEVENT_WIN_UNKNOWN,                                
   kEVENT_LAST_ENTRY                                  
 };
 

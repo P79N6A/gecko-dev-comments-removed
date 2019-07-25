@@ -2,6 +2,8 @@
 
 
 const EVENT_DOCUMENT_LOAD_COMPLETE = nsIAccessibleEvent.EVENT_DOCUMENT_LOAD_COMPLETE;
+const EVENT_DOCUMENT_RELOAD = nsIAccessibleEvent.EVENT_DOCUMENT_RELOAD;
+const EVENT_DOCUMENT_LOAD_STOPPED = nsIAccessibleEvent.EVENT_DOCUMENT_LOAD_STOPPED;
 const EVENT_HIDE = nsIAccessibleEvent.EVENT_HIDE;
 const EVENT_FOCUS = nsIAccessibleEvent.EVENT_FOCUS;
 const EVENT_NAME_CHANGE = nsIAccessibleEvent.EVENT_NAME_CHANGE;
@@ -103,6 +105,9 @@ const INVOKER_ACTION_FAILED = 1;
 
 
 const DO_NOT_FINISH_TEST = 1;
+
+
+
 
 
 
@@ -508,12 +513,38 @@ function eventQueue(aEventType)
     var currType = this.getEventType(aExpectedEventIdx);
     var currTarget = this.getEventTarget(aExpectedEventIdx);
 
-    var info = "EQ: " + (aMatch ? "matched" : "expected") + " event, type: ";
+    var containerTagName = document instanceof nsIDOMHTMLDocument ?
+      "div" : "description";
+    var inlineTagName = document instanceof nsIDOMHTMLDocument ?
+      "span" : "description";
+
+    var container = document.createElement(containerTagName);
+    container.setAttribute("style", "padding-left: 10px;");
+
+    var text1 = document.createTextNode("EQ: ");
+    container.appendChild(text1);
+
+    var styledNode = document.createElement(inlineTagName);
+    if (aMatch) {
+      styledNode.setAttribute("style", "color: blue;");
+      styledNode.textContent = "matched";
+
+      
+      dump("\n*****\nEQ matched: " + eventTypeToString(currType) + "\n*****\n");
+    } else {
+      styledNode.textContent = "expected";
+    }
+    container.appendChild(styledNode);
+
+    var info = " event, type: ";
     info += (typeof currType == "string") ?
       currType : eventTypeToString(currType);
     info += ". Target: " + prettyName(currTarget);
 
-    dumpInfoToDOM(info);
+    var text1 = document.createTextNode(info);
+    container.appendChild(text1);
+
+    dumpInfoToDOM(container);
   }
 
   this.mDefEventType = aEventType;
@@ -787,10 +818,30 @@ function synthSelectAll(aNodeOrID, aChecker, aEventType)
 
 
 
-function invokerChecker(aEventType, aTarget)
+function invokerChecker(aEventType, aTargetOrFunc, aTargetFuncArg)
 {
   this.type = aEventType;
-  this.target = aTarget;
+
+  this.__defineGetter__("target", invokerChecker_targetGetter);
+  this.__defineSetter__("target", invokerChecker_targetSetter);
+
+  
+  function invokerChecker_targetGetter()
+  {
+    if (typeof this.mTarget == "function")
+      return this.mTarget.call(null, this.mTargetFuncArg);
+
+    return this.mTarget;
+  }
+
+  function invokerChecker_targetSetter(aValue)
+  {
+    this.mTarget = aValue;
+    return this.mTarget;
+  }
+
+  this.mTarget = aTargetOrFunc;
+  this.mTargetFuncArg = aTargetFuncArg;
 }
 
 
@@ -830,7 +881,10 @@ var gA11yEventObserver =
     }
     var listenersArray = gA11yEventListeners[event.eventType];
 
+    var eventFromDumpArea = false;
     if (gA11yEventDumpID) { 
+      eventFromDumpArea = true;
+
       var target = event.DOMNode;
       var dumpElm = document.getElementById(gA11yEventDumpID);
 
@@ -846,11 +900,13 @@ var gA11yEventObserver =
         if (listenersArray)
           info += ". Listeners count: " + listenersArray.length;
 
+        eventFromDumpArea = false;
         dumpInfoToDOM(info);
       }
     }
 
-    if (!listenersArray)
+    
+    if (!listenersArray || eventFromDumpArea)
       return;
 
     for (var index = 0; index < listenersArray.length; index++)
@@ -914,18 +970,22 @@ function dumpInfoToDOM(aInfo, aDumpNode)
   var dumpID = gA11yEventDumpID ? gA11yEventDumpID : aDumpNode;
   if (!dumpID)
     return;
-
+  
   var dumpElm = document.getElementById(dumpID);
   if (!dumpElm) {
     ok(false, "No dump element '" + dumpID + "' within the document!");
     return;
   }
-
+  
   var containerTagName = document instanceof nsIDOMHTMLDocument ?
     "div" : "description";
-  var container = document.createElement(containerTagName);
 
-  container.textContent = aInfo;
+  var container = document.createElement(containerTagName);
+  if (aInfo instanceof nsIDOMNode)
+    container.appendChild(aInfo);
+  else
+    container.textContent = aInfo;
+
   dumpElm.appendChild(container);
 }
 

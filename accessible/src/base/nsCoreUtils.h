@@ -230,6 +230,26 @@ public:
   
 
 
+  static PRBool IsDocumentBusy(nsIDocument *aDocument);
+
+  
+
+
+  static PRBool IsRootDocument(nsIDocument *aDocument);
+
+  
+
+
+  static PRBool IsContentDocument(nsIDocument *aDocument);
+
+  
+
+
+  static PRBool IsErrorPage(nsIDocument *aDocument);
+
+  
+
+
   static nsIFrame* GetFrameFor(nsIDOMElement *aElm);
 
   

@@ -40,7 +40,6 @@
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
-#include "nsCoreUtils.h"
 #include "nsRootAccessible.h"
 #include "nsTextEquivUtils.h"
 
@@ -86,10 +85,10 @@ nsIAtom *nsDocAccessible::gLastFocusedFrameType = nsnull;
 
 
 
-nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell):
+nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode,
+                                 nsIWeakReference *aShell) :
   nsHyperTextAccessibleWrap(aDOMNode, aShell), mWnd(nsnull),
-  mScrollPositionChangedTicks(0), mIsContentLoaded(PR_FALSE),
-  mIsLoadCompleteFired(PR_FALSE)
+  mIsLoaded(PR_FALSE), mScrollPositionChangedTicks(0)
 {
   
   mAccessNodeCache.Init(kDefaultCacheSize);
@@ -98,37 +97,24 @@ nsDocAccessible::nsDocAccessible(nsIDOMNode *aDOMNode, nsIWeakReference* aShell)
   if (!mDOMNode)
     return;
 
-  
-  
-  
-  
-
   nsCOMPtr<nsIPresShell> shell(do_QueryReferent(mWeakShell));
-  if (shell) {
-    
-    mDocument = shell->GetDocument();
-    
-    
-    nsIViewManager* vm = shell->GetViewManager();
-    if (vm) {
-      nsCOMPtr<nsIWidget> widget;
-      vm->GetRootWidget(getter_AddRefs(widget));
-      if (widget) {
-        mWnd = widget->GetNativeData(NS_NATIVE_WINDOW);
-      }
+
+  
+  mDocument = shell->GetDocument();
+
+  
+  nsIViewManager* vm = shell->GetViewManager();
+  if (vm) {
+    nsCOMPtr<nsIWidget> widget;
+    vm->GetRootWidget(getter_AddRefs(widget));
+    if (widget) {
+      mWnd = widget->GetNativeData(NS_NATIVE_WINDOW);
     }
   }
 
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem =
-    nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
-  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(docShellTreeItem);
-  if (docShell) {
-    PRUint32 busyFlags;
-    docShell->GetBusyFlags(&busyFlags);
-    if (busyFlags == nsIDocShell::BUSY_FLAGS_NONE) {
-      mIsContentLoaded = PR_TRUE;                                               
-    }
-  }
+  
+  
+  AddScrollListener();
 }
 
 nsDocAccessible::~nsDocAccessible()
@@ -293,7 +279,7 @@ nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
     }
   }
 
-  if (!mIsContentLoaded) {
+  if (nsCoreUtils::IsDocumentBusy(mDocument)) {
     *aState |= nsIAccessibleStates::STATE_BUSY;
     if (aExtraState) {
       *aExtraState |= nsIAccessibleStates::EXT_STATE_STALE;
@@ -593,18 +579,11 @@ nsresult
 nsDocAccessible::Init()
 {
   
-  if (!gGlobalDocAccessibleCache.Put(static_cast<void*>(mDocument), this))
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  
   mEventQueue = new nsAccEventQueue(this);
   if (!mEventQueue)
     return NS_ERROR_OUT_OF_MEMORY;
 
   AddEventListeners();
-
-  
-  GetParent();
 
   
   
@@ -624,16 +603,19 @@ nsDocAccessible::Shutdown()
     return NS_OK;  
   }
 
+  NS_LOG_ACCDOCDESTROY_FOR("document shutdown", mDocument, this)
+
   if (mEventQueue) {
     mEventQueue->Shutdown();
     mEventQueue = nsnull;
   }
 
-  nsCOMPtr<nsIDocShellTreeItem> treeItem =
-    nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
-  ShutdownChildDocuments(treeItem);
-
   RemoveEventListeners();
+
+  if (mParent) {
+    NS_LOG_ACCDOCDESTROY_FOR("remove document from outer doc", mDocument, this);
+    mParent->RemoveChild(this);
+  }
 
   mWeakShell = nsnull;  
 
@@ -643,38 +625,7 @@ nsDocAccessible::Shutdown()
   mDocument = nsnull;
 
   nsHyperTextAccessibleWrap::Shutdown();
-
-  
-  
-  
-  if (!nsAccessibilityService::gIsShutdown)
-    gGlobalDocAccessibleCache.Remove(static_cast<void*>(kungFuDeathGripDoc));
-
   return NS_OK;
-}
-
-
-void nsDocAccessible::ShutdownChildDocuments(nsIDocShellTreeItem *aStart)
-{
-  nsCOMPtr<nsIDocShellTreeNode> treeNode(do_QueryInterface(aStart));
-  if (treeNode) {
-    PRInt32 subDocuments;
-    treeNode->GetChildCount(&subDocuments);
-    for (PRInt32 count = 0; count < subDocuments; count ++) {
-      nsCOMPtr<nsIDocShellTreeItem> treeItemChild;
-      treeNode->GetChildAt(count, getter_AddRefs(treeItemChild));
-      NS_ASSERTION(treeItemChild, "No tree item when there should be");
-      if (!treeItemChild) {
-        continue;
-      }
-      nsCOMPtr<nsIAccessibleDocument> docAccessible =
-        GetDocAccessibleFor(treeItemChild);
-      if (docAccessible) {
-        nsRefPtr<nsAccessNode> docAccNode = do_QueryObject(docAccessible);
-        docAccNode->Shutdown();
-      }
-    }
-  }
 }
 
 nsIFrame*
@@ -770,9 +721,7 @@ nsresult nsDocAccessible::AddEventListeners()
   nsCOMPtr<nsIDocShellTreeItem> rootTreeItem;
   docShellTreeItem->GetRootTreeItem(getter_AddRefs(rootTreeItem));
   if (rootTreeItem) {
-    nsCOMPtr<nsIAccessibleDocument> rootAccDoc =
-      GetDocAccessibleFor(rootTreeItem, PR_TRUE); 
-    nsRefPtr<nsRootAccessible> rootAccessible = GetRootAccessible(); 
+    nsRefPtr<nsRootAccessible> rootAccessible = GetRootAccessible();
     NS_ENSURE_TRUE(rootAccessible, NS_ERROR_FAILURE);
     nsRefPtr<nsCaretAccessible> caretAccessible = rootAccessible->GetCaretAccessible();
     if (caretAccessible) {
@@ -832,79 +781,6 @@ nsresult nsDocAccessible::RemoveEventListeners()
   return NS_OK;
 }
 
-
-void
-nsDocAccessible::FireDocLoadEvents(PRUint32 aEventType)
-{
-  if (IsDefunct())
-    return;
-
-  PRBool isFinished = 
-             (aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE ||
-              aEventType == nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_STOPPED);
-
-  mIsContentLoaded = isFinished;
-  if (isFinished) {
-    if (mIsLoadCompleteFired)
-      return;
-
-    mIsLoadCompleteFired = PR_TRUE;
-  }
-
-  nsCOMPtr<nsIDocShellTreeItem> treeItem =
-    nsCoreUtils::GetDocShellTreeItemFor(mDOMNode);
-  if (!treeItem)
-    return;
-
-  nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
-  treeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-
-  if (isFinished) {
-    
-    AddScrollListener();
-    nsRefPtr<nsAccessible> acc(GetParent());
-    if (acc) {
-      
-      acc->InvalidateChildren();
-    }
-
-    if (sameTypeRoot != treeItem) {
-      
-      
-      InvalidateCacheSubtree(nsnull,
-                             nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
-    }
-    
-    if (gLastFocusedNode) {
-      nsCOMPtr<nsIDocShellTreeItem> focusedTreeItem =
-        nsCoreUtils::GetDocShellTreeItemFor(gLastFocusedNode);
-      if (focusedTreeItem) {
-        nsCOMPtr<nsIDocShellTreeItem> sameTypeRootOfFocus;
-        focusedTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRootOfFocus));
-        if (sameTypeRoot == sameTypeRootOfFocus) {
-          nsRefPtr<nsAccEvent> accEvent =
-            new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY, PR_FALSE, PR_FALSE);
-          nsEventShell::FireEvent(accEvent);
-        }
-      }
-    }
-  }
-
-  if (sameTypeRoot == treeItem) {
-    
-    if (!isFinished) {
-      
-      
-      nsRefPtr<nsAccEvent> accEvent =
-        new nsAccStateChangeEvent(this, nsIAccessibleStates::STATE_BUSY,
-                                  PR_FALSE, PR_TRUE);
-      nsEventShell::FireEvent(accEvent);
-    }
-
-    nsEventShell::FireEvent(aEventType, this);
-  }
-}
-
 void nsDocAccessible::ScrollTimerCallback(nsITimer *aTimer, void *aClosure)
 {
   nsDocAccessible *docAcc = reinterpret_cast<nsDocAccessible*>(aClosure);
@@ -936,6 +812,7 @@ void nsDocAccessible::AddScrollListener()
   nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollableExternal();
   if (sf) {
     sf->AddScrollPositionListener(this);
+    NS_LOG_ACCDOCCREATE_TEXT("add scroll listener")
   }
 }
 
@@ -1057,11 +934,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     return;
   }
 
-  PRUint32 busyFlags;
-  docShell->GetBusyFlags(&busyFlags);
-  if (busyFlags) {
+  if (!IsContentLoaded())
     return; 
-  }
 
   nsCOMPtr<nsIPresShell> shell = GetPresShell();
   if (!shell) {
@@ -1314,7 +1188,7 @@ void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
                                       nsIContent* aFirstNewContent,
                                       PRInt32 )
 {
-  if ((!mIsContentLoaded || !mDocument) && mAccessNodeCache.Count() <= 1) {
+  if (!IsContentLoaded() && mAccessNodeCache.Count() <= 1) {
     
     InvalidateChildren();
     return;
@@ -1398,35 +1272,22 @@ nsDocAccessible::ParentChainChanged(nsIContent *aContent)
 nsAccessible*
 nsDocAccessible::GetParent()
 {
-  if (IsDefunct())
-    return nsnull;
-
-  if (mParent)
-    return mParent;
-
-  nsIDocument* parentDoc = mDocument->GetParentDocument();
-  if (!parentDoc)
-    return nsnull;
-
-  nsIContent* ownerContent = parentDoc->FindContentForSubDocument(mDocument);
-  nsCOMPtr<nsIDOMNode> ownerNode(do_QueryInterface(ownerContent));
-  if (ownerNode) {
-    nsCOMPtr<nsIAccessibilityService> accService = GetAccService();
-    if (accService) {
-      
-      
-      
-      
-      
-      nsCOMPtr<nsIAccessible> parent;
-      accService->GetAccessibleFor(ownerNode, getter_AddRefs(parent));
-      mParent = do_QueryObject(parent);
-    }
-  }
-
-  NS_ASSERTION(mParent, "No parent for not root document accessible!");
-  return mParent;
+  return IsDefunct() ? nsnull : mParent.get();
 }
+
+#ifdef DEBUG_ACCDOCMGR
+nsresult
+nsDocAccessible::HandleAccEvent(nsAccEvent *aAccEvent)
+{
+  NS_LOG_ACCDOCLOAD_HANDLEEVENT(aAccEvent)
+
+  return nsHyperTextAccessible::HandleAccEvent(aAccEvent);
+
+}
+#endif
+
+
+
 
 
 
@@ -1450,9 +1311,8 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
                                             CharacterDataChangeInfo* aInfo,
                                             PRBool aIsInserted)
 {
-  if (!mIsContentLoaded || !mDocument) {
+  if (!IsContentLoaded())
     return;
-  }
 
   nsCOMPtr<nsIDOMNode> node(do_QueryInterface(aContent));
   if (!node)
@@ -1602,6 +1462,7 @@ nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(nsAccEvent *aEvent)
 {
   NS_ENSURE_ARG(aEvent);
+  NS_LOG_ACCDOCLOAD_FIREEVENT(aEvent)
 
   if (mEventQueue)
     mEventQueue->Push(aEvent);
@@ -1697,14 +1558,7 @@ nsDocAccessible::ProcessPendingEvent(nsAccEvent *aEvent)
   }
 
   if (accessible) {
-    if (eventType == nsIAccessibleEvent::EVENT_INTERNAL_LOAD) {
-      nsRefPtr<nsDocAccessible> docAcc = do_QueryObject(accessible);
-      NS_ASSERTION(docAcc, "No doc accessible for doc load event");
-
-      if (docAcc)
-        docAcc->FireDocLoadEvents(nsIAccessibleEvent::EVENT_DOCUMENT_LOAD_COMPLETE);
-    }
-    else if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
+    if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
       nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryObject(accessible);
       PRInt32 caretOffset;
       if (accessibleText && NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
@@ -1899,7 +1753,7 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
   NS_ENSURE_TRUE(presShell,);
   
-  if (!mIsContentLoaded) {
+  if (!IsContentLoaded()) {
     
     if (mAccessNodeCache.Count() <= 1) {
       
