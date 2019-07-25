@@ -187,11 +187,6 @@ public:
   void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
-  
-  static PRBool AppendStorageToString(nsCSSProperty aProperty,
-                                      const void* aStorage,
-                                      nsAString& aResult);
-
 private:
   
   Declaration& operator=(const Declaration& aCopy);
