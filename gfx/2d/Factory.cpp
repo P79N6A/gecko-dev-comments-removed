@@ -95,7 +95,8 @@ HasCPUIDBit(unsigned int level, CPUIDRegister reg, unsigned int bit)
 #define HAVE_CPU_DETECTION
 #else
 
-#if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_AMD64))
+#if defined(_MSC_VER) && _MSC_VER >= 1600 && (defined(_M_IX86) || defined(_M_AMD64))
+
 
 #include <intrin.h>
 
@@ -172,11 +173,13 @@ ID3D10Device1 *Factory::mD3D10Device;
 bool
 Factory::HasSSE2()
 {
-#if defined(HAVE_CPU_DETECTION)
-  return HasCPUIDBit(1u, edx, (1u<<26));
-#elif defined(XP_MACOSX)
+#if defined(__SSE2__) || defined(_M_X64) || \
+    (defined(_M_IX86_FP) && _M_IX86_FP >= 2)
+  
   
   return true;
+#elif defined(HAVE_CPU_DETECTION)
+  return HasCPUIDBit(1u, edx, (1u<<26));
 #else
   return false;
 #endif
