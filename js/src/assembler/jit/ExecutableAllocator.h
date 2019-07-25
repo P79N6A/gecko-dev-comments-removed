@@ -87,6 +87,7 @@ namespace JSC {
   
   class ExecutablePool {
 
+    JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
     friend class ExecutableAllocator;
 private:
     struct Allocation {
@@ -122,16 +123,10 @@ public:
         JS_ASSERT(m_refCount != 0);
         
         
-        if (--m_refCount == 0)
-            js_delete(this);
+        if (--m_refCount == 0) {
+            js::UnwantedForeground::delete_(this);
+        }
     }
-
-    ExecutablePool(ExecutableAllocator* allocator, Allocation a)
-      : m_allocator(allocator), m_freePtr(a.pages), m_end(m_freePtr + a.size), m_allocation(a),
-        m_refCount(1), m_mjitCodeMethod(0), m_mjitCodeRegexp(0), m_destroy(false), m_gcNumber(0)
-    { }
-
-    ~ExecutablePool();
 
 private:
     
@@ -142,6 +137,13 @@ private:
         JS_ASSERT(m_refCount);
         ++m_refCount;
     }
+
+    ExecutablePool(ExecutableAllocator* allocator, Allocation a)
+      : m_allocator(allocator), m_freePtr(a.pages), m_end(m_freePtr + a.size), m_allocation(a),
+        m_refCount(1), m_mjitCodeMethod(0), m_mjitCodeRegexp(0), m_destroy(false), m_gcNumber(0)
+    { }
+
+    ~ExecutablePool();
 
     void* alloc(size_t n, CodeKind kind)
     {
@@ -163,23 +165,13 @@ private:
     }
 };
 
-enum AllocationBehavior
-{
-    AllocationCanRandomize,
-    AllocationDeterministic
-};
-
 class ExecutableAllocator {
     typedef void (*DestroyCallback)(void* addr, size_t size);
     enum ProtectionSetting { Writable, Executable };
     DestroyCallback destroyCallback;
 
-    void initSeed();
-
 public:
-    explicit ExecutableAllocator(AllocationBehavior allocBehavior)
-      : destroyCallback(NULL),
-        allocBehavior(allocBehavior)
+    ExecutableAllocator() : destroyCallback(NULL)
     {
         if (!pageSize) {
             pageSize = determinePageSize();
@@ -193,10 +185,6 @@ public:
 
             largeAllocSize = pageSize * 16;
         }
-
-#if WTF_OS_WINDOWS
-        initSeed();
-#endif
 
         JS_ASSERT(m_smallPools.empty());
     }
@@ -239,7 +227,6 @@ public:
         if (destroyCallback)
             destroyCallback(pool->m_allocation.pages, pool->m_allocation.size);
         systemRelease(pool->m_allocation);
-        JS_ASSERT(m_pools.initialized());
         m_pools.remove(m_pools.lookup(pool));   
     }
 
@@ -249,16 +236,9 @@ public:
         this->destroyCallback = destroyCallback;
     }
 
-    void setRandomize(bool enabled) {
-        allocBehavior = enabled ? AllocationCanRandomize : AllocationDeterministic;
-    }
-
 private:
     static size_t pageSize;
     static size_t largeAllocSize;
-#if WTF_OS_WINDOWS
-    static int64_t rngSeed;
-#endif
 
     static const size_t OVERSIZE_ALLOCATION = size_t(-1);
 
@@ -281,9 +261,8 @@ private:
     }
 
     
-    ExecutablePool::Allocation systemAlloc(size_t n);
+    static ExecutablePool::Allocation systemAlloc(size_t n);
     static void systemRelease(const ExecutablePool::Allocation& alloc);
-    void *computeRandomAllocationAddress();
 
     ExecutablePool* createPool(size_t n)
     {
@@ -302,7 +281,7 @@ private:
         if (!a.pages)
             return NULL;
 
-        ExecutablePool *pool = js_new<ExecutablePool>(this, a);
+        ExecutablePool *pool = js::OffTheBooks::new_<ExecutablePool>(this, a);
         if (!pool) {
             systemRelease(a);
             return NULL;
@@ -466,6 +445,8 @@ public:
     {
         sync_instruction_memory((caddr_t)code, size);
     }
+#else
+    #error "The cacheFlush support is missing on this platform."
 #endif
 
 private:
@@ -485,7 +466,6 @@ private:
     typedef js::HashSet<ExecutablePool *, js::DefaultHasher<ExecutablePool *>, js::SystemAllocPolicy>
             ExecPoolHashSet;
     ExecPoolHashSet m_pools;    
-    AllocationBehavior allocBehavior;
 
     static size_t determinePageSize();
 };
@@ -495,3 +475,4 @@ private:
 #endif 
 
 #endif 
+
