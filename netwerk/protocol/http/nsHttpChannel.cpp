@@ -986,7 +986,7 @@ nsHttpChannel::CallOnStartRequest()
 }
 
 nsresult
-nsHttpChannel::ProcessFailedProxyConnect(PRUint32 httpStatus)
+nsHttpChannel::ProcessFailedSSLConnect(PRUint32 httpStatus)
 {
     
     
@@ -999,8 +999,8 @@ nsHttpChannel::ProcessFailedProxyConnect(PRUint32 httpStatus)
     
     
 
-    NS_ABORT_IF_FALSE(mConnectionInfo->UsingConnect(),
-                      "proxy connect failed but not using CONNECT?");
+    NS_ABORT_IF_FALSE(mConnectionInfo->UsingSSL(),
+                      "SSL connect failed but not using SSL?");
     nsresult rv;
     switch (httpStatus) 
     {
@@ -1051,11 +1051,19 @@ nsHttpChannel::ProcessFailedProxyConnect(PRUint32 httpStatus)
         rv = NS_ERROR_PROXY_CONNECTION_REFUSED; 
         break;
     }
-    LOG(("Cancelling failed proxy CONNECT [this=%p httpStatus=%u]\n",
+    LOG(("Cancelling failed SSL proxy connection [this=%p httpStatus=%u]\n",
          this, httpStatus)); 
     Cancel(rv);
     CallOnStartRequest();
     return rv;
+}
+
+bool
+nsHttpChannel::ShouldSSLProxyResponseContinue(PRUint32 httpStatus)
+{
+    
+    
+    return (httpStatus == 407);
 }
 
 
@@ -1155,10 +1163,9 @@ nsHttpChannel::ProcessResponse()
     LOG(("nsHttpChannel::ProcessResponse [this=%p httpStatus=%u]\n",
         this, httpStatus));
 
-    if (mTransaction->ProxyConnectFailed()) {
-        
-        if (httpStatus != 407)
-            return ProcessFailedProxyConnect(httpStatus);
+    if (mTransaction->SSLConnectFailed()) {
+        if (!ShouldSSLProxyResponseContinue(httpStatus))
+            return ProcessFailedSSLConnect(httpStatus);
         
         
     } else {
@@ -1263,7 +1270,8 @@ nsHttpChannel::ProcessResponse()
     case 401:
     case 407:
         rv = mAuthProvider->ProcessAuthentication(
-            httpStatus, mTransaction->ProxyConnectFailed());
+            httpStatus, mConnectionInfo->UsingSSL() &&
+                        mTransaction->SSLConnectFailed());
         if (rv == NS_ERROR_IN_PROGRESS)  {
             
             
@@ -1278,8 +1286,8 @@ nsHttpChannel::ProcessResponse()
         }
         else if (NS_FAILED(rv)) {
             LOG(("ProcessAuthentication failed [rv=%x]\n", rv));
-           if (mTransaction->ProxyConnectFailed())
-               return ProcessFailedProxyConnect(httpStatus);
+            if (mTransaction->SSLConnectFailed())
+                return ProcessFailedSSLConnect(httpStatus);
             if (!mAuthRetryPending)
                 mAuthProvider->CheckForSuperfluousAuth();
             rv = ProcessNormal();
@@ -1350,8 +1358,8 @@ nsHttpChannel::ContinueProcessResponse(nsresult rv)
     }
 
     LOG(("ContinueProcessResponse got failure result [rv=%x]\n", rv));
-    if (mTransaction->ProxyConnectFailed()) {
-        return ProcessFailedProxyConnect(mRedirectType);
+    if (mTransaction->SSLConnectFailed()) {
+        return ProcessFailedSSLConnect(mRedirectType);
     }
     return ProcessNormal();
 }

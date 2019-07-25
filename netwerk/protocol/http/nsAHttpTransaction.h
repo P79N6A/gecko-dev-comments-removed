@@ -64,7 +64,7 @@ public:
     virtual void Close(nsresult reason) = 0;
 
     
-    virtual void SetProxyConnectFailed() = 0;
+    virtual void SetSSLConnectFailed() = 0;
     
     
     virtual nsHttpRequestHead *RequestHead() = 0;
@@ -149,7 +149,7 @@ public:
     nsresult ReadSegments(nsAHttpSegmentReader *, PRUint32, PRUint32 *); \
     nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *); \
     void     Close(nsresult reason);                                    \
-    void     SetProxyConnectFailed();                                   \
+    void     SetSSLConnectFailed();                                     \
     nsHttpRequestHead *RequestHead();                                   \
     PRUint32 Http1xTransactionCount();                                  \
     nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions); \
