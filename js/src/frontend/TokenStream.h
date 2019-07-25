@@ -131,7 +131,6 @@ enum TokenKind {
     TOK_XMLPI,                     
     TOK_AT,                        
     TOK_DBLCOLON,                  
-    TOK_ANYNAME,                   
     TOK_DBLDOT,                    
     TOK_FILTER,                    
     TOK_XMLELEM,                   
@@ -199,12 +198,6 @@ inline bool
 TokenKindIsEquality(TokenKind tt)
 {
     return TOK_EQUALITY_START <= tt && tt <= TOK_EQUALITY_LAST;
-}
-
-inline bool
-TokenKindIsXML(TokenKind tt)
-{
-    return tt == TOK_AT || tt == TOK_DBLCOLON || tt == TOK_ANYNAME;
 }
 
 inline bool
