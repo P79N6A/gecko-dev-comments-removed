@@ -1673,6 +1673,8 @@ abstract public class GeckoApp
             return;
         }
 
+        GeckoAppShell.onFullScreenPluginHidden(view);
+
         mFullScreenPluginContainer.removeView(mFullScreenPluginView);
 
         
@@ -2918,8 +2920,7 @@ abstract public class GeckoApp
         }
 
         if (mFullScreenPluginView != null) {
-            GeckoAppShell.onFullScreenPluginHidden(mFullScreenPluginView);
-            removeFullScreenPluginView(mFullScreenPluginView);
+            removePluginView(mFullScreenPluginView, true);
             return;
         }
 
@@ -3128,6 +3129,10 @@ abstract public class GeckoApp
         } else {
             GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Load", args.toString()));
         }
+    }
+
+    public void loadUrl(String url) {
+        loadRequest(url, AwesomeBar.Target.CURRENT_TAB, null, false);
     }
 
     public void loadUrl(String url, AwesomeBar.Target target) {
