@@ -1107,7 +1107,6 @@ JSObject::removeProperty(JSContext *cx, jsid id)
         JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
     }
 
-
     
     if (shape != lastProp && !inDictionaryMode()) {
         if (!toDictionaryMode(cx))
@@ -1172,12 +1171,15 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
 
 
- 
+
                 if (table->freelist != SHAPE_INVALID_SLOT) {
                     lastProp->slotSpan = shape->slotSpan;
+
                     
-                    
-                    if (hadSlot && !addedToFreelist) {
+
+
+
+                    if (hadSlot && !addedToFreelist && JSSLOT_FREE(clasp) <= shape->slot) {
                         getSlotRef(shape->slot).setPrivateUint32(table->freelist);
                         table->freelist = shape->slot;
                     }
