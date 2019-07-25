@@ -122,6 +122,11 @@ gfxPattern::GetMatrix() const
 Pattern*
 gfxPattern::GetPattern(DrawTarget *aTarget, Matrix *aPatternTransform)
 {
+  if (mGfxPattern) {
+    mGfxPattern->~Pattern();
+    mGfxPattern = nsnull;
+  }
+
   if (!mPattern) {
     mGfxPattern = new (mSurfacePattern.addr())
       SurfacePattern(mSourceSurface, EXTEND_CLAMP, mTransform);
