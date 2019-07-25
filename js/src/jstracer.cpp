@@ -13437,7 +13437,7 @@ TraceRecorder::record_JSOP_APPLY()
 
 
 
-    if (argc > 0 && !vp[2].isObject())
+    if (argc > 0 && !vp[2].isObjectOrNull())
         return record_JSOP_CALL();
 
     
