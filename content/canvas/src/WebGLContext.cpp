@@ -297,9 +297,6 @@ WebGLContext::GetCanvas(nsIDOMHTMLCanvasElement **canvas)
 NS_IMETHODIMP
 WebGLContext::SetCanvasElement(nsHTMLCanvasElement* aParentCanvas)
 {
-    if (aParentCanvas && !SafeToCreateCanvas3DContext(aParentCanvas))
-        return NS_ERROR_FAILURE;
-
     mCanvasElement = aParentCanvas;
 
     return NS_OK;
@@ -364,6 +361,8 @@ WebGLContext::SetContextOptions(nsIPropertyBag *aOptions)
 NS_IMETHODIMP
 WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 {
+    
+  
     if (mCanvasElement) {
         HTMLCanvasElement()->InvalidateCanvas();
     }
@@ -389,7 +388,36 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         return NS_OK;
     }
 
+    
+
     ScopedGfxFeatureReporter reporter("WebGL");
+
+    
+    
+    DestroyResourcesAndContext();
+
+    
+    nsCOMPtr<nsIPrefBranch> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE(prefService != nsnull, NS_ERROR_FAILURE);
+
+    PRBool forceOSMesa = PR_FALSE;
+    PRBool preferEGL = PR_FALSE;
+    PRBool preferOpenGL = PR_FALSE;
+    PRBool forceEnabled = PR_FALSE;
+    PRBool disabled = PR_FALSE;
+    PRBool verbose = PR_FALSE;
+
+    prefService->GetBoolPref("webgl.force_osmesa", &forceOSMesa);
+    prefService->GetBoolPref("webgl.prefer-egl", &preferEGL);
+    prefService->GetBoolPref("webgl.prefer-native-gl", &preferOpenGL);
+    prefService->GetBoolPref("webgl.force-enabled", &forceEnabled);
+    prefService->GetBoolPref("webgl.disabled", &disabled);
+    prefService->GetBoolPref("webgl.verbose", &verbose);
+
+    if (disabled)
+        return NS_ERROR_FAILURE;
+
+    mVerbose = verbose;
 
     
     
@@ -401,10 +429,6 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     
     if (!(mGeneration+1).valid())
         return NS_ERROR_FAILURE; 
-
-    
-    
-    DestroyResourcesAndContext();
 
     gl::ContextFormat format(gl::ContextFormat::BasicRGBA32);
     if (mOptions.depth) {
@@ -428,22 +452,6 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         format.minAlpha = 0;
     }
 
-    nsCOMPtr<nsIPrefBranch> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    NS_ENSURE_TRUE(prefService != nsnull, NS_ERROR_FAILURE);
-
-    PRBool verbose = PR_FALSE;
-    prefService->GetBoolPref("webgl.verbose", &verbose);
-    mVerbose = verbose;
-
-    
-    PRBool forceOSMesa = PR_FALSE;
-    PRBool preferEGL = PR_FALSE;
-    PRBool preferOpenGL = PR_FALSE;
-    PRBool forceEnabled = PR_FALSE;
-    prefService->GetBoolPref("webgl.force_osmesa", &forceOSMesa);
-    prefService->GetBoolPref("webgl.prefer-egl", &preferEGL);
-    prefService->GetBoolPref("webgl.prefer-native-gl", &preferOpenGL);
-    prefService->GetBoolPref("webgl.force-enabled", &forceEnabled);
     if (PR_GetEnv("MOZ_WEBGL_PREFER_EGL")) {
         preferEGL = PR_TRUE;
     }
