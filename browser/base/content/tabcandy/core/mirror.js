@@ -36,8 +36,15 @@ TabCanvas.prototype = {
     
     
     
-    
+
     tab.contentWindow.addEventListener("MozAfterPaint", paintIt, false);
+
+
+
+
+
+
+    
     $(window).unload(function(){
       tab.contentWindow.removeEventListener("MozAfterPaint", paintIt, false);
     })
@@ -79,10 +86,18 @@ TabCanvas.prototype = {
   },
   
   onPaint: function(evt){
+
+
+
+
     this.paint(evt);    
   },
   
   animate: function(options, duration){
+
+
+
+
     var self = this;
     if( duration == null ) duration = 0;
         
