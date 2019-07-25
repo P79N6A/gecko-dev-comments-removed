@@ -233,12 +233,6 @@ public:
 
 
 
-  virtual bool IsWidgetLayerManager() { return true; }
-
-  
-
-
-
 
 
   virtual void BeginTransaction() = 0;
