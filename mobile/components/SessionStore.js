@@ -634,7 +634,7 @@ SessionStore.prototype = {
     return this._shouldRestore;
   },
 
-  restoreLastSession: function ss_restoreLastSession() {
+  restoreLastSession: function ss_restoreLastSession(aBringToFront) {
     
     let dirService = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
     let session = dirService.get("ProfD", Ci.nsILocalFile);
@@ -690,7 +690,7 @@ SessionStore.prototype = {
           
           
           
-          let bringToFront = (i + 1 <= selected);
+          let bringToFront = (i + 1 <= selected) && aBringToFront;
           let tab = window.Browser.addTab(tabData.entries[0].url, bringToFront, null, params);
     
           

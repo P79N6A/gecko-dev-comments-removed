@@ -339,24 +339,26 @@ var Browser = {
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
     if (ss.shouldRestore()) {
+      let bringFront = false;
       
-      
-      
-      let dummy = this.addTab("about:blank");
-      let dummyCleanup = {
-        observe: function() {
-          Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
-          dummy.chromeTab.ignoreUndo = true;
-          Browser.closeTab(dummy, { forceClose: true });
-        }
-      };
-      Services.obs.addObserver(dummyCleanup, "sessionstore-windows-restored", false);
-
-      ss.restoreLastSession();
-
-      
-      if (commandURL && commandURL != this.getHomePage())
+      if (commandURL && commandURL != this.getHomePage()) {
         this.addTab(commandURL, true);
+      } else {
+        bringFront = true;
+        
+        
+        
+        let dummy = this.addTab("about:blank");
+        let dummyCleanup = {
+          observe: function() {
+            Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
+            dummy.chromeTab.ignoreUndo = true;
+            Browser.closeTab(dummy, { forceClose: true });
+          }
+        };
+        Services.obs.addObserver(dummyCleanup, "sessionstore-windows-restored", false);
+      }
+      ss.restoreLastSession(bringFront);
     } else {
       this.addTab(commandURL || this.getHomePage(), true);
     }
