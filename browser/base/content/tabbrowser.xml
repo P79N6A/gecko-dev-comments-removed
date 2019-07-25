@@ -536,8 +536,7 @@
                 if (!this.mBlank) {
                   if (!(aStateFlags & nsIWebProgressListener.STATE_RESTORING)) {
                     this.mTab.setAttribute("busy", "true");
-                    if (!(this.mBrowser.docShell.loadType & Ci.nsIDocShell.LOAD_CMD_RELOAD))
-                      this.mTabBrowser.setTabTitleLoading(this.mTab);
+                    this.mTabBrowser.setTabTitleLoading(this.mTab);
                   }
 
                   if (this.mTab.selected)
@@ -1266,6 +1265,12 @@
                 else {
                   t._animStartTime = Date.now();
                   t.setAttribute("fadein", "true");
+
+                  // This call to adjustTabstrip is redundant but needed so that
+                  // when opening a second tab, the first tab's close buttons
+                  // appears immediately rather than when the transition ends.
+                  if (tabContainer.childNodes.length == 2)
+                    tabContainer.adjustTabstrip();
                 }
               }, 0, this.tabContainer);
             }
@@ -3566,10 +3571,8 @@
 
         // these offsets are only used in dragend, but we need to free them here
         // as well
-        if (draggedTab) {
-          delete draggedTab._dragOffsetX;
-          delete draggedTab._dragOffsetY;
-        }
+        delete draggedTab._dragOffsetX;
+        delete draggedTab._dragOffsetY;
       ]]></handler>
 
       <handler event="dragend"><![CDATA[
