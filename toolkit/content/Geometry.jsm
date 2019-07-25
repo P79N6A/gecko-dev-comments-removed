@@ -168,6 +168,26 @@ let Util = {
   },
 
   
+  getAllDocuments: function getAllDocuments(doc, resultSoFar) {
+    resultSoFar = resultSoFar || [doc];
+    if (!doc.defaultView)
+      return resultSoFar;
+    let frames = doc.defaultView.frames;
+    if (!frames)
+      return resultSoFar;
+
+    let i;
+    let currentDoc;
+    for (i = 0; i < frames.length; i++) {
+      currentDoc = frames[i].document;
+      resultSoFar.push(currentDoc);
+      this.getAllDocuments(currentDoc, resultSoFar);
+    }
+
+    return resultSoFar;
+  },
+
+  
   
   forceOnline: function forceOnline() {
 #ifdef MOZ_PLATFORM_HILDON
