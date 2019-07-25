@@ -395,6 +395,34 @@ SetContextOptions(JSContext *cx)
     JS_SetOperationCallback(cx, ShellOperationCallback);
 }
 
+
+
+
+
+
+static void
+SkipUTF8BOM(FILE* file)
+{
+    if (!js_CStringsAreUTF8)
+        return;
+
+    int ch1 = fgetc(file);
+    int ch2 = fgetc(file);
+    int ch3 = fgetc(file);
+
+    
+    if (ch1 == 0xEF && ch2 == 0xBB && ch3 == 0xBF)
+        return;
+
+    
+    if (ch3 != EOF)
+        ungetc(ch3, file);
+    if (ch2 != EOF)
+        ungetc(ch2, file);
+    if (ch1 != EOF)
+        ungetc(ch1, file);
+}
+
 static void
 Process(JSContext *cx, JSObject *obj, const char *filename, bool forceTTY)
 {
@@ -427,6 +455,8 @@ Process(JSContext *cx, JSObject *obj, const char *filename, bool forceTTY)
 
     if (!forceTTY && !isatty(fileno(file)))
     {
+        SkipUTF8BOM(file);
+
         
 
 
@@ -1864,6 +1894,8 @@ SrcNotes(JSContext *cx, JSScript *script, Sprinter *sp)
             break;
           }
           case SRC_SWITCH:
+            if (js_GetOpcode(cx, script, script->code + offset) == JSOP_GOTO)
+                break;
             Sprint(sp, " length %u", uintN(js_GetSrcNoteOffset(sn, 0)));
             caseOff = (uintN) js_GetSrcNoteOffset(sn, 1);
             if (caseOff)
