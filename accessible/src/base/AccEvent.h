@@ -82,6 +82,9 @@ public:
     
     eCoalesceOfSameType,
 
+    
+    eCoalesceSelectionChange,
+
      
      
      eRemoveDupes,
@@ -125,6 +128,7 @@ public:
     eHideEvent,
     eShowEvent,
     eCaretMoveEvent,
+    eSelectionChangeEvent,
     eTableChangeEvent
   };
 
@@ -327,10 +331,37 @@ private:
 
 
 
-class AccSelectionChangeEvent : public AccEvent
+class AccSelChangeEvent : public AccEvent
 {
 public:
+  enum SelChangeType {
+    eSelectionAdd,
+    eSelectionRemove
+  };
 
+  AccSelChangeEvent(nsAccessible* aWidget, nsAccessible* aItem,
+                    SelChangeType aSelChangeType);
+
+  virtual ~AccSelChangeEvent() { }
+
+  
+  static const EventGroup kEventGroup = eSelectionChangeEvent;
+  virtual unsigned int GetEventGroups() const
+  {
+    return AccEvent::GetEventGroups() | (1U << eSelectionChangeEvent);
+  }
+
+  
+  nsAccessible* Widget() const { return mWidget; }
+
+private:
+  nsRefPtr<nsAccessible> mWidget;
+  nsRefPtr<nsAccessible> mItem;
+  SelChangeType mSelChangeType;
+  PRUint32 mPreceedingCount;
+  AccSelChangeEvent* mPackedEvent;
+
+  friend class NotificationController;
 };
 
 

@@ -130,8 +130,6 @@ public:
   
   virtual nsAccessible* ContainerWidget() const;
 
-  static void SelectionChangedIfOption(nsIContent *aPossibleOption);
-
 protected:
   
   virtual nsIFrame* GetBoundsFrame();
@@ -219,7 +217,7 @@ protected:
   
 
 
-  nsAccessible* SelectedOption(bool aIgnoreIfCollapsed = false) const;
+  nsAccessible* SelectedOption() const;
 
 private:
   nsRefPtr<nsHTMLComboboxListAccessible> mListAccessible;
@@ -246,6 +244,10 @@ public:
   
   virtual PRUint64 NativeState();
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
+
+  
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
 };
 
 #endif

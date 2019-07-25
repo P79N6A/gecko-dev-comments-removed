@@ -53,6 +53,10 @@ using namespace mozilla::a11y;
 
 
 
+const unsigned int kSelChangeCountToPack = 5;
+
+
+
 
 
 NotificationController::NotificationController(nsDocAccessible* aDocument,
@@ -491,6 +495,26 @@ NotificationController::CoalesceEvents()
       }
     } break; 
 
+    case AccEvent::eCoalesceSelectionChange:
+    {
+      AccSelChangeEvent* tailSelChangeEvent = downcast_accEvent(tailEvent);
+      PRInt32 index = tail - 1;
+      for (; index >= 0; index--) {
+        AccEvent* thisEvent = mEvents[index];
+        if (thisEvent->mEventRule == tailEvent->mEventRule) {
+          AccSelChangeEvent* thisSelChangeEvent =
+            downcast_accEvent(thisEvent);
+
+          
+          if (tailSelChangeEvent->mWidget == thisSelChangeEvent->mWidget) {
+            CoalesceSelChangeEvents(tailSelChangeEvent, thisSelChangeEvent, index);
+            return;
+          }
+        }
+      }
+
+    } break; 
+
     default:
       break; 
   } 
@@ -509,6 +533,86 @@ NotificationController::ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
       accEvent->mEventRule = aEventRule;
     }
   }
+}
+
+void
+NotificationController::CoalesceSelChangeEvents(AccSelChangeEvent* aTailEvent,
+                                                AccSelChangeEvent* aThisEvent,
+                                                PRInt32 aThisIndex)
+{
+  aTailEvent->mPreceedingCount = aThisEvent->mPreceedingCount + 1;
+
+  
+  
+  if (aTailEvent->mPreceedingCount >= kSelChangeCountToPack) {
+    aTailEvent->mEventType = nsIAccessibleEvent::EVENT_SELECTION_WITHIN;
+    aTailEvent->mAccessible = aTailEvent->mWidget;
+    aThisEvent->mEventRule = AccEvent::eDoNotEmit;
+
+    
+    
+    if (aThisEvent->mEventType != nsIAccessibleEvent::EVENT_SELECTION_WITHIN) {
+      for (PRInt32 jdx = aThisIndex - 1; jdx >= 0; jdx--) {
+        AccEvent* prevEvent = mEvents[jdx];
+        if (prevEvent->mEventRule == aTailEvent->mEventRule) {
+          AccSelChangeEvent* prevSelChangeEvent =
+            downcast_accEvent(prevEvent);
+          if (prevSelChangeEvent->mWidget == aTailEvent->mWidget)
+            prevSelChangeEvent->mEventRule = AccEvent::eDoNotEmit;
+        }
+      }
+    }
+    return;
+  }
+
+  
+  
+  if (aTailEvent->mPreceedingCount == 1 &&
+      aTailEvent->mItem != aThisEvent->mItem) {
+    if (aTailEvent->mSelChangeType == AccSelChangeEvent::eSelectionAdd &&
+        aThisEvent->mSelChangeType == AccSelChangeEvent::eSelectionRemove) {
+      aThisEvent->mEventRule = AccEvent::eDoNotEmit;
+      aTailEvent->mEventType = nsIAccessibleEvent::EVENT_SELECTION;
+      aTailEvent->mPackedEvent = aThisEvent;
+      return;
+    }
+
+    if (aThisEvent->mSelChangeType == AccSelChangeEvent::eSelectionAdd &&
+        aTailEvent->mSelChangeType == AccSelChangeEvent::eSelectionRemove) {
+      aTailEvent->mEventRule = AccEvent::eDoNotEmit;
+      aThisEvent->mEventType = nsIAccessibleEvent::EVENT_SELECTION;
+      aThisEvent->mPackedEvent = aThisEvent;
+      return;
+    }
+  }
+
+  
+  
+  if (aThisEvent->mEventType == nsIAccessibleEvent::EVENT_SELECTION) {
+    if (aThisEvent->mPackedEvent) {
+      aThisEvent->mPackedEvent->mEventType =
+        aThisEvent->mPackedEvent->mSelChangeType == AccSelChangeEvent::eSelectionAdd ?
+          nsIAccessibleEvent::EVENT_SELECTION_ADD :
+          nsIAccessibleEvent::EVENT_SELECTION_REMOVE;
+
+      aThisEvent->mPackedEvent->mEventRule =
+        AccEvent::eCoalesceSelectionChange;
+
+      aThisEvent->mPackedEvent = nsnull;
+    }
+
+    aThisEvent->mEventType =
+      aThisEvent->mSelChangeType == AccSelChangeEvent::eSelectionAdd ?
+        nsIAccessibleEvent::EVENT_SELECTION_ADD :
+        nsIAccessibleEvent::EVENT_SELECTION_REMOVE;
+
+    return;
+  }
+
+  
+  
+  if (aTailEvent->mEventType == nsIAccessibleEvent::EVENT_SELECTION)
+    aTailEvent->mEventType = nsIAccessibleEvent::EVENT_SELECTION_ADD;
 }
 
 void

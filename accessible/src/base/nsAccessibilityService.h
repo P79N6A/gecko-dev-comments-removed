@@ -473,7 +473,7 @@ static const char kEventTypeNames[][40] = {
   "document attributes changed",             
   "document content changed",                
   "property changed",                        
-  "selection changed",                       
+  "page changed",                           
   "text attribute changed",                  
   "text caret moved",                        
   "text changed",                            
@@ -514,7 +514,6 @@ static const char kEventTypeNames[][40] = {
   "hypertext changed",                       
   "hypertext links count changed",           
   "object attribute changed",                
-  "page changed"                             
 };
 
 
