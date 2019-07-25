@@ -434,6 +434,8 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
     static CLIPFORMAT fileDescriptorFlavorA = ::RegisterClipboardFormat( CFSTR_FILEDESCRIPTORA ); 
     static CLIPFORMAT fileDescriptorFlavorW = ::RegisterClipboardFormat( CFSTR_FILEDESCRIPTORW ); 
     static CLIPFORMAT fileFlavor = ::RegisterClipboardFormat( CFSTR_FILECONTENTS ); 
+    static CLIPFORMAT preferredDropEffect = ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+
     switch (stm.tymed) {
      case TYMED_HGLOBAL: 
         {
@@ -537,9 +539,17 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                     
                     
                     *aLen = allocLen;
+                  } else if (fe.cfFormat == preferredDropEffect) {
+                    
+                    
+                    
+                    NS_ASSERTION(allocLen == sizeof(DWORD),
+                      "CFSTR_PREFERREDDROPEFFECT should return a DWORD");
+                    *aLen = allocLen;
+                  } else {
+                    *aLen = nsCRT::strlen(reinterpret_cast<PRUnichar*>(*aData)) * 
+                            sizeof(PRUnichar);
                   }
-                  else
-                    *aLen = nsCRT::strlen(reinterpret_cast<PRUnichar*>(*aData)) * sizeof(PRUnichar);
                   result = NS_OK;
                 }
               }

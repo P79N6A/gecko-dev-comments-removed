@@ -62,7 +62,8 @@ static POINTL gDragLastPoint;
 
 nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
   : m_cRef(0), 
-    mEffectsAllowed(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK), 
+    mEffectsAllowed(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK),
+    mEffectsPreferred(DROPEFFECT_NONE),
     mTookOwnRef(PR_FALSE), mWindow(aWnd), mDropTargetHelper(nsnull)
 {
   mHWnd = (HWND)mWindow->GetNativeData(NS_NATIVE_WINDOW);
@@ -133,38 +134,46 @@ nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect,
   if (NS_SUCCEEDED(mWindow->IsEnabled(&isEnabled)) && !isEnabled) {
     *pdwEffect = DROPEFFECT_NONE;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
+    return;
   }
+
   
   
-  else if (!mMovePreferred && (grfKeyState & MK_CONTROL) && 
-      (grfKeyState & MK_SHIFT) && (mEffectsAllowed & DROPEFFECT_LINK)) {
-    *pdwEffect = DROPEFFECT_LINK;
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
+  DWORD desiredEffect = DROPEFFECT_NONE;
+  if ((grfKeyState & MK_CONTROL) && (grfKeyState & MK_SHIFT)) {
+    desiredEffect = DROPEFFECT_LINK;
+  } else if (grfKeyState & MK_SHIFT) {
+    desiredEffect = DROPEFFECT_MOVE;
+  } else if (grfKeyState & MK_CONTROL) {
+    desiredEffect = DROPEFFECT_COPY;
   }
+
   
-  else if ((mEffectsAllowed & DROPEFFECT_MOVE) && 
-           (mMovePreferred || (grfKeyState & MK_SHIFT))) {
+  if (!(desiredEffect &= mEffectsAllowed)) {
+    
+    
+    desiredEffect = mEffectsPreferred & mEffectsAllowed;
+    if (!desiredEffect) {
+      
+      desiredEffect = mEffectsAllowed;
+    }
+  }
+
+  
+  
+  if (desiredEffect & DROPEFFECT_MOVE) {
     *pdwEffect = DROPEFFECT_MOVE;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
-  }
-  
-  else if ((mEffectsAllowed & DROPEFFECT_COPY) && (grfKeyState & MK_CONTROL)) {
+  } else if (desiredEffect & DROPEFFECT_COPY) {
     *pdwEffect = DROPEFFECT_COPY;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
-  }
-  
-  else if (mEffectsAllowed & DROPEFFECT_MOVE) {
-    *pdwEffect = DROPEFFECT_MOVE;
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
-  }
-  else if (mEffectsAllowed & DROPEFFECT_COPY) {
-    *pdwEffect = DROPEFFECT_COPY;
-    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
-  }
-  else if (mEffectsAllowed & DROPEFFECT_LINK) {
+  } else if (desiredEffect & DROPEFFECT_LINK) {
     *pdwEffect = DROPEFFECT_LINK;
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
-  }
+  } else {
+    *pdwEffect = DROPEFFECT_NONE;
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_NONE;
+  } 
 }
 
 inline
@@ -275,15 +284,11 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   nsresult loadResult = nsClipboard::GetNativeDataOffClipboard(
       pIDataSource, 0, ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), nsnull, &tempOutData, &tempDataLen);
   if (NS_SUCCEEDED(loadResult) && tempOutData) {
-    NS_ASSERTION(tempDataLen == 2, "Expected word size");
-    WORD preferredEffect = *((WORD*)tempOutData);
-
-    
-    mMovePreferred = (preferredEffect & DROPEFFECT_MOVE) != 0;
-
+    mEffectsPreferred = *((DWORD*)tempOutData);
     nsMemory::Free(tempOutData);
   } else {
-    mMovePreferred = PR_FALSE;
+    
+    mEffectsPreferred = DROPEFFECT_NONE;
   }
 
   
