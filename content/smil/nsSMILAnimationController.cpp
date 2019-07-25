@@ -259,6 +259,27 @@ nsSMILAnimationController::Unlink()
 
 
 void
+nsSMILAnimationController::NotifyRefreshDriverCreated(
+    nsRefreshDriver* aRefreshDriver)
+{
+  if (!mPauseState && !mDeferredStartSampling) {
+    StartSampling(aRefreshDriver);
+  }
+}
+
+void
+nsSMILAnimationController::NotifyRefreshDriverDestroying(
+    nsRefreshDriver* aRefreshDriver)
+{
+  if (!mPauseState && !mDeferredStartSampling) {
+    StopSampling(aRefreshDriver);
+  }
+}
+
+
+
+
+void
 nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
 {
   NS_ASSERTION(mPauseState == 0, "Starting sampling but controller is paused");

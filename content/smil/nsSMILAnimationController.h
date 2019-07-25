@@ -112,9 +112,8 @@ public:
   void Unlink();
 
   
-  
-  void StartSampling(nsRefreshDriver* aRefreshDriver);
-  void StopSampling(nsRefreshDriver* aRefreshDriver);
+  void NotifyRefreshDriverCreated(nsRefreshDriver* aRefreshDriver);
+  void NotifyRefreshDriverDestroying(nsRefreshDriver* aRefreshDriver);
 
   
   PRBool HasRegisteredAnimations()
@@ -153,6 +152,10 @@ protected:
   
   PR_STATIC_CALLBACK(PLDHashOperator) CompositorTableEntryTraverse(
       nsSMILCompositor* aCompositor, void* aArg);
+
+  
+  void StartSampling(nsRefreshDriver* aRefreshDriver);
+  void StopSampling(nsRefreshDriver* aRefreshDriver);
 
   
   virtual void DoSample();
