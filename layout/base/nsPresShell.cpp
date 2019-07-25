@@ -6098,30 +6098,25 @@ PresShell::HandleEvent(nsIView         *aView,
     NS_IS_MOUSE_EVENT(aEvent) ? GetCapturingContent() : nsnull;
 
   nsCOMPtr<nsIDocument> retargetEventDoc;
-  
   if (!sDontRetargetEvents) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (NS_IsEventTargetedAtFocusedWindow(aEvent)) {
-      nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-      if (!fm)
-         return NS_ERROR_FAILURE;
- 
-      nsCOMPtr<nsIDOMWindow> window;
-      fm->GetFocusedWindow(getter_AddRefs(window));
-
+      nsCOMPtr<nsPIDOMWindow> window = GetFocusedDOMWindowInOurWindow();
       
       
-      nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(window);
-
-      if (!piWindow) {
-        
-        
-        piWindow = GetFocusedDOMWindowInOurWindow();
+      if (!window) {
+        return NS_OK;
       }
 
-      if (!piWindow)
-        return NS_OK;
-
-      retargetEventDoc = do_QueryInterface(piWindow->GetExtantDocument());
+      retargetEventDoc = do_QueryInterface(window->GetExtantDocument());
       if (!retargetEventDoc)
         return NS_OK;
     } else if (capturingContent) {
@@ -6368,26 +6363,14 @@ PresShell::HandleEvent(nsIView         *aView,
     PushCurrentEventInfo(nsnull, nsnull);
 
     
-    if (NS_IS_KEY_EVENT(aEvent) || NS_IS_IME_RELATED_EVENT(aEvent) ||
-        NS_IS_CONTEXT_MENU_KEY(aEvent) || NS_IS_PLUGIN_EVENT(aEvent)) {
-      nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-      if (!fm)
-        return NS_ERROR_FAILURE;
-
-      nsCOMPtr<nsIDOMElement> element;
-      fm->GetFocusedElement(getter_AddRefs(element));
-      mCurrentEventContent = do_QueryInterface(element);
-
-      
-      
-      
-      if (!mCurrentEventContent &&
-          NS_TargetUnfocusedEventToLastFocusedContent(aEvent)) {
-        nsPIDOMWindow *win = mDocument->GetWindow();
-        nsCOMPtr<nsPIDOMWindow> focusedWindow;
-        mCurrentEventContent =
-          nsFocusManager::GetFocusedDescendant(win, PR_TRUE, getter_AddRefs(focusedWindow));
-      }
+    if (NS_IsEventTargetedAtFocusedContent(aEvent)) {
+      NS_ASSERTION(mDocument, "mDocument is null");
+      nsCOMPtr<nsPIDOMWindow> window =
+        do_QueryInterface(mDocument->GetWindow());
+      nsCOMPtr<nsPIDOMWindow> focusedWindow;
+      mCurrentEventContent =
+        nsFocusManager::GetFocusedDescendant(window, PR_FALSE,
+                                             getter_AddRefs(focusedWindow));
 
       
       
