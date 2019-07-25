@@ -1218,6 +1218,23 @@ pref("layout.css.devPixelsPerPx", "1.0");
 pref("layout.scrollbar.side", 0);
 
 
+
+
+pref("layout.frame_rate", -1);
+
+
+
+
+
+
+
+
+
+
+
+pref("layout.frame_rate.precise", false);
+
+
 pref("capability.policy.default.SOAPCall.invokeVerifySourceHeader", "allAccess");
 
 
@@ -3124,7 +3141,7 @@ pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
 
 
 
-pref("image.mem.discardable", false);
+pref("image.mem.discardable", true);
 
 
 
