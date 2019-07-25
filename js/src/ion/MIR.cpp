@@ -907,11 +907,11 @@ MNot::foldsTo(bool useValueNumbers)
     }
 
     
-    if (specialization_ == MIRType_Object)
+    if (operand()->type() == MIRType_Object)
         return MConstant::New(BooleanValue(false));
 
     
-    if (specialization_ == MIRType_Undefined || specialization_ == MIRType_Null)
+    if (operand()->type() == MIRType_Undefined || operand()->type() == MIRType_Null)
         return MConstant::New(BooleanValue(true));
 
     return this;
