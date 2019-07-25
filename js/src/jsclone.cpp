@@ -402,6 +402,15 @@ JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v)
 {
     JS_ASSERT(v.isObject());
     RootedObject obj(w->context(), &v.toObject());
+
+    
+    
+    if (obj->isWrapper()) {
+        JSObject *unwrapped = UnwrapObjectChecked(w->context(), obj);
+        if (!unwrapped)
+            return false;
+        obj = unwrapped;
+    }
     return w->writeTypedArray(obj);
 }
 
