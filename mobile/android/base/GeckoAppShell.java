@@ -161,6 +161,14 @@ public class GeckoAppShell
             public void uncaughtException(Thread thread, Throwable e) {
                 Log.e(LOGTAG, ">>> REPORTING UNCAUGHT EXCEPTION FROM THREAD "
                               + thread.getId() + " (\"" + thread.getName() + "\")", e);
+
+                
+                
+                Throwable cause;
+                while ((cause = e.getCause()) != null) {
+                    e = cause;
+                }
+
                 reportJavaCrash(getStackTraceString(e));
             }
         });
