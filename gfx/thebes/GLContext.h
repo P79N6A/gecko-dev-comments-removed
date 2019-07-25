@@ -645,7 +645,8 @@ public:
 
 
 
-    void ReadPixelsIntoImageSurface(GLint aX, GLint aY, GLsizei aWidth, GLsizei aHeight,
+    void THEBES_API ReadPixelsIntoImageSurface(GLint aX, GLint aY,
+                                    GLsizei aWidth, GLsizei aHeight,
                                     gfxImageSurface *aDest);
 
     
