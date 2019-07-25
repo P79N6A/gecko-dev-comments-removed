@@ -39,6 +39,11 @@
 
 
 #include "xpcprivate.h"
+
+#include "mozilla/mozalloc_undef_macro_wrappers.h"
+
+#include "jscntxt.h"
+#include "jsobj.h"
 #include "jsobjinlines.h"
 
 #ifdef TAB
