@@ -392,12 +392,13 @@ public:
 
   nsIScriptContext *GetScriptContextInternal(PRUint32 aLangID)
   {
-    NS_ASSERTION(NS_STID_VALID(aLangID), "Invalid language");
+    NS_ASSERTION(aLangID == nsIProgrammingLanguage::JAVASCRIPT,
+                 "We don't support this language ID");
     if (mOuterWindow) {
-      return GetOuterWindowInternal()->mScriptContexts[NS_STID_INDEX(aLangID)];
+      return GetOuterWindowInternal()->mContext;
     }
 
-    return mScriptContexts[NS_STID_INDEX(aLangID)];
+    return mContext;
   }
 
   nsGlobalWindow *GetOuterWindowInternal()
@@ -781,8 +782,6 @@ protected:
   nsString                      mStatus;
   nsString                      mDefaultStatus;
   
-  nsCOMPtr<nsIScriptContext>    mScriptContexts[NS_STID_ARRAY_UBOUND];
-  void *                        mScriptGlobals[NS_STID_ARRAY_UBOUND];
   nsGlobalWindowObserver*       mObserver;
 
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
@@ -790,7 +789,7 @@ protected:
   nsCOMPtr<nsIDOMStorage>      mLocalStorage;
   nsCOMPtr<nsIDOMStorage>      mSessionStorage;
 
-  nsCOMPtr<nsISupports>         mInnerWindowHolders[NS_STID_ARRAY_UBOUND];
+  nsCOMPtr<nsIXPConnectJSObjectHolder> mInnerWindowHolder;
   nsCOMPtr<nsIPrincipal> mOpenerScriptPrincipal; 
                                                  
 
