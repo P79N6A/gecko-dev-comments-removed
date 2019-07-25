@@ -158,6 +158,7 @@ const LEVELS = {
   info: SEVERITY_INFO,
   log: SEVERITY_LOG,
   trace: SEVERITY_LOG,
+  dir: SEVERITY_LOG
 };
 
 
@@ -1235,6 +1236,10 @@ function pruneConsoleOutputIfNecessary(aHUDId, aCategory)
       }
       delete hudRef.cssNodes[desc + location];
     }
+    else if (messageNodes[i].classList.contains("webconsole-msg-inspector")) {
+      hudRef.pruneConsoleDirNode(messageNodes[i]);
+      continue;
+    }
     messageNodes[i].parentNode.removeChild(messageNodes[i]);
   }
 
@@ -1969,6 +1974,13 @@ HUD_SERVICE.prototype =
         clipboardText = clipboardText.trimRight();
         break;
 
+      case "dir":
+        body = unwrap(args[0]);
+        clipboardText = body.toString();
+        sourceURL = aMessage.filename;
+        sourceLine = aMessage.lineNumber;
+        break;
+
       default:
         Cu.reportError("Unknown Console API log level: " + level);
         return;
@@ -1980,7 +1992,8 @@ HUD_SERVICE.prototype =
                                               body,
                                               sourceURL,
                                               sourceLine,
-                                              clipboardText);
+                                              clipboardText,
+                                              level);
 
     
     
@@ -2014,6 +2027,14 @@ HUD_SERVICE.prototype =
     }
 
     ConsoleUtils.outputMessageNode(node, aHUDId);
+
+    if (level == "dir") {
+      
+      
+      
+      let tree = node.querySelector("tree");
+      tree.view = node.propertyTreeView;
+    }
   },
 
   
@@ -3792,6 +3813,24 @@ HeadsUpDisplay.prototype = {
 
 
 
+
+
+  pruneConsoleDirNode: function HUD_pruneConsoleDirNode(aMessageNode)
+  {
+    aMessageNode.parentNode.removeChild(aMessageNode);
+    let tree = aMessageNode.querySelector("tree");
+    tree.parentNode.removeChild(tree);
+    aMessageNode.propertyTreeView = null;
+    tree.view = null;
+    tree = null;
+  },
+
+  
+
+
+
+
+
   createHUD: function HUD_createHUD()
   {
     if (!this.HUDBox) {
@@ -4794,8 +4833,15 @@ JSTerm.prototype = {
     let hud = HUDService.getHudReferenceById(this.hudId);
     hud.cssNodes = {};
 
-    while (hud.outputNode.firstChild) {
-      hud.outputNode.removeChild(hud.outputNode.firstChild);
+    let node = hud.outputNode;
+    while (node.firstChild) {
+      if (node.firstChild.classList &&
+          node.firstChild.classList.contains("webconsole-msg-inspector")) {
+        hud.pruneConsoleDirNode(node.firstChild);
+      }
+      else {
+        hud.outputNode.removeChild(node.firstChild);
+      }
     }
 
     hud.HUDBox.lastTimestamp = 0;
@@ -5404,10 +5450,12 @@ ConsoleUtils = {
 
 
 
+
+
   createMessageNode:
   function ConsoleUtils_createMessageNode(aDocument, aCategory, aSeverity,
                                           aBody, aSourceURL, aSourceLine,
-                                          aClipboardText) {
+                                          aClipboardText, aLevel) {
     if (aBody instanceof Ci.nsIDOMNode && aClipboardText == null) {
       throw new Error("HUDService.createMessageNode(): DOM node supplied " +
                       "without any clipboard text");
@@ -5437,10 +5485,13 @@ ConsoleUtils = {
 
     
     
+    let body = aBody;
+    
+    
     aClipboardText = aClipboardText ||
                      (aBody + (aSourceURL ? " @ " + aSourceURL : "") +
                               (aSourceLine ? ":" + aSourceLine : ""));
-    aBody = aBody instanceof Ci.nsIDOMNode ?
+    aBody = aBody instanceof Ci.nsIDOMNode && !(aLevel == "dir") ?
             aBody : aDocument.createTextNode(aBody);
 
     bodyNode.appendChild(aBody);
@@ -5475,12 +5526,47 @@ ConsoleUtils = {
     node.timestamp = timestamp;
     ConsoleUtils.setMessageType(node, aCategory, aSeverity);
 
-    node.appendChild(timestampNode);  
-    node.appendChild(iconContainer);  
-    node.appendChild(bodyNode);       
-    node.appendChild(repeatContainer);  
+    node.appendChild(timestampNode);
+    node.appendChild(iconContainer);
+    
+    if (aLevel == "dir") {
+      
+      
+      let bodyContainer = aDocument.createElement("vbox");
+      bodyContainer.setAttribute("flex", "1");
+      bodyContainer.appendChild(bodyNode);
+      
+      let tree = createElement(aDocument, "tree", {
+        flex: 1,
+        hidecolumnpicker: "true"
+      });
+
+      let treecols = aDocument.createElement("treecols");
+      let treecol = createElement(aDocument, "treecol", {
+        primary: "true",
+        flex: 1,
+        hideheader: "true",
+        ignoreincolumnpicker: "true"
+      });
+      treecols.appendChild(treecol);
+      tree.appendChild(treecols);
+
+      tree.appendChild(aDocument.createElement("treechildren"));
+
+      bodyContainer.appendChild(tree);
+      node.appendChild(bodyContainer);
+      node.classList.add("webconsole-msg-inspector");
+      
+      let treeView = node.propertyTreeView = new PropertyTreeView();
+      treeView.data = body;
+      tree.setAttribute("rows", treeView.rowCount);
+    }
+    else {
+      node.appendChild(bodyNode);
+    }
+    node.appendChild(repeatContainer);
     if (locationNode) {
-      node.appendChild(locationNode); 
+      node.appendChild(locationNode);
     }
 
     node.setAttribute("id", "console-msg-" + HUDService.sequenceId());
@@ -5683,7 +5769,7 @@ ConsoleUtils = {
     let lastMessage = aOutput.lastChild;
 
     
-    if (lastMessage &&
+    if (lastMessage && !aNode.classList.contains("webconsole-msg-inspector") &&
         aNode.childNodes[2].textContent ==
         lastMessage.childNodes[2].textContent) {
       this.mergeFilteredMessageNode(lastMessage, aNode);
@@ -5717,7 +5803,7 @@ ConsoleUtils = {
         (aNode.classList.contains("webconsole-msg-console") ||
          aNode.classList.contains("webconsole-msg-exception") ||
          aNode.classList.contains("webconsole-msg-error"))) {
-      isRepeated = this.filterRepeatedConsole(aNode, outputNode, aHUDId);
+      isRepeated = this.filterRepeatedConsole(aNode, outputNode);
     }
 
     if (!isRepeated) {
