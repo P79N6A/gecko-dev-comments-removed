@@ -1721,7 +1721,7 @@ public:
   PRBool RePush(nsPIDOMEventTarget *aCurrentTarget);
   
   
-  PRBool Push(JSContext *cx);
+  PRBool Push(JSContext *cx, PRBool aRequiresScriptContext = PR_TRUE);
   
   PRBool PushNull();
 
