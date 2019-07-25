@@ -2197,14 +2197,7 @@ function openLocationCallback()
 
 function BrowserOpenTab()
 {
-  if (!gBrowser) {
-    
-    window.openDialog("chrome://browser/content/", "_blank",
-                      "chrome,all,dialog=no", "about:blank");
-    return;
-  }
-  gBrowser.loadOneTab("about:blank", {inBackground: false});
-  focusAndSelectUrlBar();
+  openUILinkIn("about:blank", "tab");
 }
 
 
