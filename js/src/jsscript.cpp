@@ -429,7 +429,7 @@ XDRScriptConst(JSXDRState *xdr, HeapValue *vp)
     }
     return true;
 }
- 
+
 static const char *
 SaveScriptFilename(JSContext *cx, const char *filename);
 
@@ -823,8 +823,8 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
         } while (tn != tnfirst);
     }
 
-    if (nconsts) { 
-        HeapValue *vector = script->consts()->vector; 
+    if (nconsts) {
+        HeapValue *vector = script->consts()->vector;
         for (i = 0; i != nconsts; ++i) {
             if (!XDRScriptConst(xdr, &vector[i]))
                 return false;
@@ -923,7 +923,19 @@ SaveScriptFilename(JSContext *cx, const char *filename)
         }
     }
 
-    return (*p)->filename;
+    ScriptFilenameEntry *sfe = *p;
+#ifdef JSGC_INCREMENTAL
+    
+
+
+
+
+
+    if (comp->needsBarrier() && !sfe->marked)
+        sfe->marked = true;
+#endif
+
+    return sfe->filename;
 }
 
 } 
