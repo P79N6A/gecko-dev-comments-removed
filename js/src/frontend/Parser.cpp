@@ -266,7 +266,8 @@ Parser::parse(JSObject *chain)
 
 
 
-    SharedContext globalsc(context, chain,  NULL,  NULL);
+    SharedContext globalsc(context, chain,  NULL,  NULL,
+                            0);
     TreeContext globaltc(this, &globalsc);
     if (!globaltc.init())
         return NULL;
@@ -1085,7 +1086,6 @@ EnterFunction(SharedContext *outersc, SharedContext *funsc)
     funsc->blockidGen = outersc->blockidGen;
     if (!GenerateBlockId(funsc, funsc->bodyid))
         return false;
-    funsc->staticLevel = outersc->staticLevel + 1;
 
     return true;
 }
@@ -1578,7 +1578,8 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
         return NULL;
 
     
-    SharedContext funsc(context,  NULL, fun, funbox);
+    SharedContext funsc(context,  NULL, fun, funbox,
+                        outertc->sc->staticLevel + 1);
     TreeContext funtc(this, &funsc);
     if (!funtc.init())
         return NULL;
@@ -5496,7 +5497,8 @@ Parser::generatorExpr(ParseNode *kid)
         if (!funbox)
             return NULL;
 
-        SharedContext gensc(context,  NULL, fun, funbox);
+        SharedContext gensc(context,  NULL, fun, funbox,
+                            outertc->sc->staticLevel + 1);
         TreeContext gentc(this, &gensc);
         if (!gentc.init())
             return NULL;
@@ -6473,7 +6475,8 @@ Parser::parseXMLText(JSObject *chain, bool allowList)
 
 
 
-    SharedContext xmlsc(context, chain,  NULL,  NULL);
+    SharedContext xmlsc(context, chain,  NULL,  NULL,
+                         0);
     TreeContext xmltc(this, &xmlsc);
     if (!xmltc.init())
         return NULL;

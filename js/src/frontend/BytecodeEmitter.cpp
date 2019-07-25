@@ -4848,21 +4848,18 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     {
         FunctionBox *funbox = pn->pn_funbox;
-        SharedContext sc(cx,  NULL, fun, funbox);
+        SharedContext sc(cx,  NULL, fun, funbox, bce->sc->staticLevel + 1);
+        sc.cxFlags = funbox->cxFlags;
+        if (bce->sc->funMightAliasLocals())
+            sc.setFunMightAliasLocals();  
+        sc.bindings.transfer(cx, &funbox->bindings);
+
         BytecodeEmitter bce2(bce->parser, &sc, pn->pn_pos.begin.lineno,
                               false,  false);
         if (!bce2.init())
             return false;
-
-        sc.cxFlags = funbox->cxFlags;
-        if (bce->sc->funMightAliasLocals())
-            sc.setFunMightAliasLocals();  
-
-        sc.bindings.transfer(cx, &funbox->bindings);
         bce2.parent = bce;
         bce2.globalScope = bce->globalScope;
-
-        sc.staticLevel = bce->sc->staticLevel + 1;
 
         
         if (!EmitFunctionScript(cx, &bce2, pn->pn_body))
