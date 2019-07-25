@@ -9682,6 +9682,12 @@ nsDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
     mAttrStyleSheet->DOMSizeOfIncludingThis(aWindowSizes->mMallocSizeOf) :
     0;
 
+  aWindowSizes->mDOMOther +=
+    mStyledLinks.SizeOfExcludingThis(NULL, aWindowSizes->mMallocSizeOf);
+
+  aWindowSizes->mDOMOther +=
+    mIdentifierMap.SizeOfExcludingThis(NULL, aWindowSizes->mMallocSizeOf);
+
   
   
   
