@@ -822,8 +822,23 @@ Debug::removeDebuggee(JSContext *cx, uintN argc, Value *vp)
     if (!referent)
         return false;
     GlobalObject *global = referent->getGlobal();
-    if (dbg->debuggees.has(global))
+    if (dbg->debuggees.has(global)) {
+        
+        
+        
+        
+        JSCompartment *debuggeeCompartment = global->compartment();
+        JS_ASSERT(debuggeeCompartment->debugMode());
+        if (global->getDebuggers()->length() == 1 &&
+            debuggeeCompartment->getDebuggees().count() == 1 &&
+            debuggeeCompartment->haveScriptsOnStack(cx))
+        {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE, "disable");
+            return false;
+        }
+
         dbg->removeDebuggeeGlobal(cx, global, NULL, NULL);
+    }
     vp->setUndefined();
     return true;
 }
@@ -958,6 +973,12 @@ Debug::addDebuggeeGlobal(JSContext *cx, GlobalObject *obj)
                     return false;
             }
         }
+    }
+
+    
+    if (!debuggeeCompartment->debugMode() && debuggeeCompartment->haveScriptsOnStack(cx)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE, "enable");
+        return false;
     }
 
     
