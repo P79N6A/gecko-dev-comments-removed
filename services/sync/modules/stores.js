@@ -62,6 +62,9 @@ Store.prototype = {
   _logName: "Store",
   _yieldDuringApply: true,
 
+  
+  _lookup: null,
+
   __json: null,
   get _json() {
     if (!this.__json)
@@ -103,9 +106,27 @@ Store.prototype = {
   },
 
   
-  wrap: function Store_wrap() {},
-  wipe: function Store_wipe() {},
-  resetGUIDs: function Store_resetGUIDs() {}
+  _itemExists: function Store__itemExists(GUID) {
+    if (GUID in this._lookup)
+      return true;
+    else
+      return false;
+  },
+  
+  
+  
+  
+  wrap: function Store_wrap() {
+    throw "wrap needs to be subclassed";
+  },
+  
+  wipe: function Store_wipe() {
+    throw "wipe needs to be subclassed";
+  },
+  
+  resetGUIDs: function Store_resetGUIDs() {
+    throw "resetGUIDs needs to be subclassed";
+  }
 };
 
 function SnapshotStore(name) {
