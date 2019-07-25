@@ -666,6 +666,18 @@ nsAttrAndChildArray::Clear()
     
     
     child->UnbindFromTree(PR_FALSE); 
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    child->mPreviousSibling = child->mNextSibling = nsnull;
     NS_RELEASE(child);
   }
 
