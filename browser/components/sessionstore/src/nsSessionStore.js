@@ -198,10 +198,8 @@ SessionStoreService.prototype = {
   
   _clearingOnShutdown: false,
 
-#ifndef XP_MACOSX
   
   _restoreLastWindow: false,
-#endif
 
 
 
@@ -290,10 +288,8 @@ SessionStoreService.prototype = {
       catch (ex) { debug("The session file is invalid: " + ex); }
     }
 
-    
-    if (!this._resume_from_crash)
-      this._clearDisk();
-    else { 
+    if (this._resume_from_crash) {
+      
       try {
         if (this._sessionFileBackup.exists())
           this._sessionFileBackup.remove(false);
@@ -318,12 +314,14 @@ SessionStoreService.prototype = {
 
 
   _uninit: function sss_uninit() {
-    if (this._doResumeSession()) { 
-      this.saveState(true);
-    }
-    else { 
+    
+    this.saveState(true);
+
+    if (!this._doResumeSession()) {
+      
       this._clearDisk();
     }
+
     
     if (this._saveTimer) {
       this._saveTimer.cancel();
@@ -359,7 +357,6 @@ SessionStoreService.prototype = {
       
       this._loadState = STATE_QUITTING;
       break;
-#ifndef XP_MACOSX
     case "browser-lastwindow-close-granted":
       
       
@@ -367,7 +364,6 @@ SessionStoreService.prototype = {
       
       this._restoreLastWindow = true;
       break;
-#endif
     case "quit-application":
       if (aData == "restart") {
         this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
@@ -481,10 +477,9 @@ SessionStoreService.prototype = {
         this._resume_from_crash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
         
         
-        if (this._resume_from_crash)
-          this.saveState(true);
-        else if (this._loadState == STATE_RUNNING)
+        if (!this._resume_from_crash)
           this._clearDisk();
+        this.saveState(true);
         break;
       }
       break;
@@ -611,7 +606,8 @@ SessionStoreService.prototype = {
         
         this._initialState._firstTabs = true;
         this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
-        this.restoreWindow(aWindow, this._initialState, this._isCmdLineEmpty(aWindow));
+        this.restoreWindow(aWindow, this._initialState,
+                           this._isCmdLineEmpty(aWindow, this._initialState));
         delete this._initialState;
         
         
@@ -631,15 +627,13 @@ SessionStoreService.prototype = {
       let followUp = this._statesToRestore[aWindow.__SS_restoreID].windows.length == 1;
       this.restoreWindow(aWindow, this._statesToRestore[aWindow.__SS_restoreID], true, followUp);
     }
-#ifndef XP_MACOSX
     else if (this._restoreLastWindow && aWindow.toolbar.visible &&
-             this._closedWindows.length && this._doResumeSession() &&
+             this._closedWindows.length &&
              !this._inPrivateBrowsing) {
-
       
       
       let state = null;
-      this._closedWindows = this._closedWindows.filter(function(aWinState) {
+      let newClosedWindows = this._closedWindows.filter(function(aWinState) {
         if (!state && !aWinState.isPopup) {
           state = aWinState;
           return false;
@@ -648,9 +642,16 @@ SessionStoreService.prototype = {
       });
       if (state) {
         delete state.hidden;
-        state = { windows: [state] };
-        this._restoreCount = 1;
-        this.restoreWindow(aWindow, state, this._isCmdLineEmpty(aWindow));
+#ifndef XP_MACOSX
+        if (!this._doResumeSession())
+#endif
+          state.tabs = state.tabs.filter(function (tab) tab.pinned);
+        if (state.tabs.length > 0) {
+          this._closedWindows = newClosedWindows;
+          this._restoreCount = 1;
+          state = { windows: [state] };
+          this.restoreWindow(aWindow, state, this._isCmdLineEmpty(aWindow, state));
+        }
       }
       
       this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
@@ -661,7 +662,6 @@ SessionStoreService.prototype = {
       
       this._restoreLastWindow = false;
     }
-#endif
 
     var tabbrowser = aWindow.gBrowser;
     
@@ -1756,7 +1756,9 @@ SessionStoreService.prototype = {
 
 
 
-  _getCurrentState: function sss_getCurrentState(aUpdateAll) {
+
+
+  _getCurrentState: function sss_getCurrentState(aUpdateAll, aPinnedOnly) {
     this._handleClosedWindows();
 
     var activeWindow = this._getMostRecentBrowserWindow();
@@ -1812,6 +1814,17 @@ SessionStoreService.prototype = {
       } while (total[0].isPopup)
     }
 #endif
+
+    if (aPinnedOnly) {
+      total = total.filter(function (win) {
+        win.tabs = win.tabs.filter(function (tab) tab.pinned);
+        return win.tabs.length > 0;
+      });
+      if (total.length == 0)
+        return null;
+
+      lastClosedWindowsCopy = [];
+    }
 
     if (activeWindow) {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
@@ -2561,8 +2574,7 @@ SessionStoreService.prototype = {
       this._dirtyWindows[aWindow.__SSi] = true;
     }
 
-    if (!this._saveTimer && this._resume_from_crash &&
-        !this._inPrivateBrowsing) {
+    if (!this._saveTimer && !this._inPrivateBrowsing) {
       
       var minimalDelay = this._lastSaveTime + this._interval - Date.now();
       
@@ -2585,14 +2597,22 @@ SessionStoreService.prototype = {
 
   saveState: function sss_saveState(aUpdateAll) {
     
-    if (!this._resume_from_crash && this._loadState == STATE_RUNNING)
-      return;
-
-    
     if (this._inPrivateBrowsing)
       return;
 
-    var oState = this._getCurrentState(aUpdateAll);
+    var pinnedOnly = false;
+    if (this._loadState == STATE_QUITTING && !this._doResumeSession() ||
+        
+        this._loadState == STATE_RUNNING && !this._resume_from_crash)
+      pinnedOnly = true;
+
+    var oState = this._getCurrentState(aUpdateAll, pinnedOnly);
+    if (!oState)
+      return;
+
+    if (pinnedOnly)
+      this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
+
     oState.session = {
       state: this._loadState == STATE_RUNNING ? STATE_RUNNING_STR : STATE_STOPPED_STR,
       lastUpdate: Date.now()
@@ -2756,12 +2776,19 @@ SessionStoreService.prototype = {
 
 
 
-  _isCmdLineEmpty: function sss_isCmdLineEmpty(aWindow) {
-    var defaultArgs = Cc["@mozilla.org/browser/clh;1"].
-                      getService(Ci.nsIBrowserHandler).defaultArgs;
-    if (aWindow.arguments && aWindow.arguments[0] &&
-        aWindow.arguments[0] == defaultArgs)
-      aWindow.arguments[0] = null;
+  _isCmdLineEmpty: function sss_isCmdLineEmpty(aWindow, aState) {
+    var pinnedOnly = aState.windows &&
+                     aState.windows.every(function (win)
+                       win.tabs.every(function (tab) tab.pinned));
+
+    if (!pinnedOnly) {
+      let defaultArgs = Cc["@mozilla.org/browser/clh;1"].
+                        getService(Ci.nsIBrowserHandler).defaultArgs;
+      if (aWindow.arguments &&
+          aWindow.arguments[0] &&
+          aWindow.arguments[0] == defaultArgs)
+        aWindow.arguments[0] = null;
+    }
 
     return !aWindow.arguments || !aWindow.arguments[0];
   },
