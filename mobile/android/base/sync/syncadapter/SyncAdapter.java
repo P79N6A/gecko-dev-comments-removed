@@ -244,6 +244,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
     }
 
     
+    
+    Logger.refreshLogLevels();
+
+    
     Log.i(LOG_TAG, "Got onPerformSync. Extras bundle is " + extras);
     Log.i(LOG_TAG, "Account name: " + account.name);
 
