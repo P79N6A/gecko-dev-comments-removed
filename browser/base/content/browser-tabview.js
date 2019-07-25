@@ -436,6 +436,11 @@ let TabView = {
     this.sessionRestoreEnabledOnce = true;
 
     
-    Services.prefs.setIntPref(this.PREF_STARTUP_PAGE, 3);
+    if (Services.prefs.getIntPref(this.PREF_STARTUP_PAGE) != 3) {
+      Services.prefs.setIntPref(this.PREF_STARTUP_PAGE, 3);
+
+      
+      this._window.UI.notifySessionRestoreEnabled();
+    }
   }
 };
