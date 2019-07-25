@@ -4,6 +4,7 @@
 
 
 
+
 var gManagerWindow;
 var gProvider;
 
@@ -54,6 +55,20 @@ function end_test() {
   });
 }
 
+function set_order(aSortBy, aAscending) {
+  var list = gManagerWindow.document.getElementById("addon-list");
+  var elements = [];
+  var node = list.firstChild;
+  while (node) {
+    elements.push(node);
+    node = node.nextSibling;
+  }
+  gManagerWindow.sortElements(elements, aSortBy, aAscending);
+  elements.forEach(function(aElement) {
+    list.appendChild(aElement);
+  });
+}
+
 function check_order(aExpectedOrder) {
   var order = [];
   var list = gManagerWindow.document.getElementById("addon-list");
@@ -83,9 +98,7 @@ add_test(function() {
 
 
 add_test(function() {
-  var sorters = gManagerWindow.document.getElementById("list-sorters");
-  var nameSorter = gManagerWindow.document.getAnonymousElementByAttribute(sorters, "anonid", "date-btn");
-  EventUtils.synthesizeMouseAtCenter(nameSorter, { }, gManagerWindow);
+  set_order("updateDate", false);
 
   check_order([
     "test5@tests.mozilla.org",
@@ -95,14 +108,22 @@ add_test(function() {
     "test4@tests.mozilla.org"
   ]);
 
+  set_order("updateDate", true);
+
+  check_order([
+    "test4@tests.mozilla.org",
+    "test2@tests.mozilla.org",
+    "test1@tests.mozilla.org",
+    "test3@tests.mozilla.org",
+    "test5@tests.mozilla.org"
+  ]);
+
   run_next_test();
 });
 
 
 add_test(function() {
-  var sorters = gManagerWindow.document.getElementById("list-sorters");
-  var nameSorter = gManagerWindow.document.getAnonymousElementByAttribute(sorters, "anonid", "name-btn");
-  EventUtils.synthesizeMouseAtCenter(nameSorter, { }, gManagerWindow);
+  set_order("name", true);
 
   check_order([
     "test2@tests.mozilla.org",
@@ -110,6 +131,16 @@ add_test(function() {
     "test3@tests.mozilla.org",
     "test5@tests.mozilla.org",
     "test1@tests.mozilla.org"
+  ]);
+
+  set_order("name", false);
+
+  check_order([
+    "test1@tests.mozilla.org",
+    "test5@tests.mozilla.org",
+    "test3@tests.mozilla.org",
+    "test4@tests.mozilla.org",
+    "test2@tests.mozilla.org"
   ]);
 
   run_next_test();
