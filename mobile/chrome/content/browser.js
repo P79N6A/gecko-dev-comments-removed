@@ -1835,14 +1835,10 @@ IdentityHandler.prototype = {
 
     
     FindHelperUI.updateFindInPage();
-
-    
     BrowserSearch.updatePageSearchEngines();
-
-    
     PageActions.updatePagePermissions();
-
     PageActions.updatePageSaveAs();
+    PageActions.updateShare();
   },
 
   show: function ih_show() {
