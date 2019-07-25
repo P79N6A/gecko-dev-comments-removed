@@ -10450,9 +10450,9 @@ nsDocShell::SetHistoryEntry(nsCOMPtr<nsISHEntry> *aPtr, nsISHEntry *aEntry)
         
         nsCOMPtr<nsISHEntry> oldRootEntry = GetRootSHEntry(*aPtr);
         if (oldRootEntry) {
-            nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-            GetSameTypeParent(getter_AddRefs(parentAsItem));
-            nsCOMPtr<nsIDocShell> rootShell = do_QueryInterface(parentAsItem);
+            nsCOMPtr<nsIDocShellTreeItem> rootAsItem;
+            GetSameTypeRootTreeItem(getter_AddRefs(rootAsItem));
+            nsCOMPtr<nsIDocShell> rootShell = do_QueryInterface(rootAsItem);
             if (rootShell) { 
                 SwapEntriesData data = { this, newRootEntry };
                 nsIDocShell *rootIDocShell =
