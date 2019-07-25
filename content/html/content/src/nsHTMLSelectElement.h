@@ -492,6 +492,10 @@ protected:
 
   PRPackedBool    mMutating;
   
+
+
+  PRPackedBool    mInhibitStateRestoration;
+  
   PRUint32  mNonOptionChildren;
   
   PRUint32  mOptGroupCount;

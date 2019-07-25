@@ -76,6 +76,7 @@
 #include "nsDOMError.h"
 #include "mozAutoDocUpdate.h"
 #include "nsISupportsPrimitives.h"
+#include "nsContentCreatorFunctions.h"
 
 #include "nsTextEditorState.h"
 
@@ -205,6 +206,8 @@ protected:
 
   PRPackedBool             mDoneAddingChildren;
   
+  PRPackedBool             mInhibitStateRestoration;
+  
   PRPackedBool             mDisabledChanged;
   
   nsRefPtr<nsTextEditorState> mState;
@@ -249,6 +252,7 @@ nsHTMLTextAreaElement::nsHTMLTextAreaElement(nsINodeInfo *aNodeInfo,
     mValueChanged(PR_FALSE),
     mHandlingSelect(PR_FALSE),
     mDoneAddingChildren(!aFromParser),
+    mInhibitStateRestoration(!!(aFromParser & NS_FROM_PARSER_FRAGMENT)),
     mDisabledChanged(PR_FALSE),
     mState(new nsTextEditorState(this))
 {
@@ -676,8 +680,9 @@ nsHTMLTextAreaElement::DoneAddingChildren(PRBool aHaveNotified)
       
       Reset();
     }
-
-    RestoreFormControlState(this, this);
+    if (!mInhibitStateRestoration) {
+      RestoreFormControlState(this, this);
+    }
   }
 
   mDoneAddingChildren = PR_TRUE;
