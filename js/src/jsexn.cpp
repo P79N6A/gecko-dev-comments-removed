@@ -1012,7 +1012,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
     for (intN i = JSEXN_ERR; i != JSEXN_LIMIT; i++) {
         
         JSObject *proto =
-            NewObject(cx, &js_ErrorClass, (i != JSEXN_ERR) ? error_proto : obj_proto, obj);
+            NewNonFunction<WithProto::Class>(cx, &js_ErrorClass, (i != JSEXN_ERR) ? error_proto : obj_proto, obj);
         if (!proto)
             return NULL;
         if (i == JSEXN_ERR) {
