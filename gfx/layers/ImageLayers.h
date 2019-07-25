@@ -302,6 +302,23 @@ struct RemoteImageData {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class THEBES_API ImageContainer {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 public:
