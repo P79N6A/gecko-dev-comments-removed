@@ -129,6 +129,47 @@ let Utils = {
 
 
 
+
+
+
+
+  deferGetSet: function Utils_deferGetSet(obj, defer, prop) {
+    if (Utils.isArray(prop))
+      return prop.map(function(prop) Utils.deferGetSet(obj, defer, prop));
+
+    
+    let parts = defer.split(".");
+    let deref = function(base) Utils.deref(base, parts);
+
+    let prot = obj.prototype;
+
+    
+    if (!prot.__lookupGetter__(prop))
+      prot.__defineGetter__(prop, function() deref(this)[prop]);
+
+    
+    if (!prot.__lookupSetter__(prop))
+      prot.__defineSetter__(prop, function(val) deref(this)[prop] = val);
+  },
+
+  
+
+
+
+
+
+
+
+  deref: function Utils_deref(base, props) props.reduce(function(curr, prop)
+    curr[prop], base),
+
+  
+
+
+
+
+
+
   isArray: function Utils_isArray(val) val != null && typeof val == "object" &&
     val.constructor.name == "Array",
 
