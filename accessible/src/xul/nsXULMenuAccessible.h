@@ -40,7 +40,6 @@
 #define _nsXULMenuAccessible_H_
 
 #include "nsAccessibleWrap.h"
-#include "nsIAccessibleSelectable.h"
 #include "nsIDOMXULSelectCntrlEl.h"
 
 
@@ -49,18 +48,24 @@
 class nsXULSelectableAccessible : public nsAccessibleWrap
 {
 public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIACCESSIBLESELECTABLE
-
   nsXULSelectableAccessible(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsXULSelectableAccessible() {}
 
   
   virtual void Shutdown();
 
-protected:
-  nsresult ChangeSelection(PRInt32 aIndex, PRUint8 aMethod, PRBool *aSelState);
+  
+  virtual bool IsSelect();
+  virtual already_AddRefed<nsIArray> SelectedItems();
+  virtual PRUint32 SelectedItemCount();
+  virtual nsAccessible* GetSelectedItem(PRUint32 aIndex);
+  virtual bool IsItemSelected(PRUint32 aIndex);
+  virtual bool AddItemToSelection(PRUint32 aIndex);
+  virtual bool RemoveItemFromSelection(PRUint32 aIndex);
+  virtual bool SelectAll();
+  virtual bool UnselectAll();
 
+protected:
   
   
   nsCOMPtr<nsIDOMXULSelectControlElement> mSelectControl;

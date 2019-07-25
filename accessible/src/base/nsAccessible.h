@@ -370,6 +370,55 @@ public:
 
   virtual already_AddRefed<nsIURI> GetAnchorURI(PRUint32 aAnchorIndex);
 
+  
+  
+
+  
+
+
+
+  virtual bool IsSelect();
+
+  
+
+
+  virtual already_AddRefed<nsIArray> SelectedItems();
+
+  
+
+
+  virtual PRUint32 SelectedItemCount();
+
+  
+
+
+  virtual nsAccessible* GetSelectedItem(PRUint32 aIndex);
+
+  
+
+
+  virtual bool IsItemSelected(PRUint32 aIndex);
+
+  
+
+
+  virtual bool AddItemToSelection(PRUint32 aIndex);
+
+  
+
+
+  virtual bool RemoveItemFromSelection(PRUint32 aIndex);
+
+  
+
+
+  virtual bool SelectAll();
+
+  
+
+
+  virtual bool UnselectAll();
+
 protected:
 
   

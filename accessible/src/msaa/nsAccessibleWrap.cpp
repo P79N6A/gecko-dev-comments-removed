@@ -44,7 +44,6 @@
 #include "nsRelUtils.h"
 
 #include "nsIAccessibleDocument.h"
-#include "nsIAccessibleSelectable.h"
 #include "nsIAccessibleEvent.h"
 #include "nsIAccessibleWin32Object.h"
 
@@ -717,17 +716,12 @@ __try {
   VariantInit(pvarChildren);
   pvarChildren->vt = VT_EMPTY;
 
-  nsCOMPtr<nsIAccessibleSelectable> 
-    select(do_QueryInterface(static_cast<nsIAccessible*>(this)));
-
-  if (select) {  
-    
-    nsCOMPtr<nsIArray> selectedOptions;
-    
-    select->GetSelectedChildren(getter_AddRefs(selectedOptions));
-    if (selectedOptions) { 
+  if (IsSelect()) {
+    nsCOMPtr<nsIArray> selectedItems = SelectedItems();
+    if (selectedItems) {
       
-      nsRefPtr<AccessibleEnumerator> pEnum = new AccessibleEnumerator(selectedOptions);
+      nsRefPtr<AccessibleEnumerator> pEnum =
+        new AccessibleEnumerator(selectedItems);
 
       
       if (!pEnum)

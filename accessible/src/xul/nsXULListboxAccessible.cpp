@@ -879,7 +879,6 @@ nsXULListitemAccessible::
                                       eCaseMatters);
 }
 
-
 NS_IMPL_ISUPPORTS_INHERITED0(nsXULListitemAccessible, nsAccessible)
 
 nsAccessible *
