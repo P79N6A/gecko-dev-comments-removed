@@ -687,11 +687,6 @@ IDBCursor::Update(const jsval& aValue,
 
   if (mObjectStore->HasValidKeyPath()) {
     
-    if (JSVAL_IS_PRIMITIVE(aValue)) {
-      return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
-    }
-
-    
     const KeyPath& keyPath = mObjectStore->GetKeyPath();
     Key key;
 
