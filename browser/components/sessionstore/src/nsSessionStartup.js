@@ -91,6 +91,7 @@ SessionStartup.prototype = {
   
   _iniString: null,
   _sessionType: Ci.nsISessionStartup.NO_SESSION,
+  _restoredTimestamp: 0,
 
 
 
@@ -101,7 +102,7 @@ SessionStartup.prototype = {
     
     let pbs = Cc["@mozilla.org/privatebrowsing;1"].
               getService(Ci.nsIPrivateBrowsingService);
-    if (pbs.autoStarted || pbs.lastChangedByCommandLine)
+    if (pbs.autoStarted)
       return;
 
     let prefBranch = Cc["@mozilla.org/preferences-service;1"].
@@ -152,21 +153,15 @@ SessionStartup.prototype = {
       this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
     else if (!lastSessionCrashed && doResumeSession)
       this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
-    else if (initialState)
-      this._sessionType = Ci.nsISessionStartup.DEFER_SESSION;
     else
       this._iniString = null; 
 
-    if (this.doRestore()) {
-      
+    Services.obs.addObserver(this, "sessionstore-browser-state-restored", true);
+    Services.obs.addObserver(this, "sessionstore-windows-restored", true);
 
+    if (this._sessionType != Ci.nsISessionStartup.NO_SESSION) {
       
-      
-      if (!initialState.windows ||
-          !initialState.windows.every(function (win)
-             win.tabs.every(function (tab) tab.pinned)))
-        Services.obs.addObserver(this, "domwindowopened", true);
-
+      Services.obs.addObserver(this, "domwindowopened", true);
       Services.obs.addObserver(this, "browser:purge-session-history", true);
     }
   },
@@ -197,6 +192,12 @@ SessionStartup.prototype = {
         self._onWindowOpened(window);
         window.removeEventListener("load", arguments.callee, false);
       }, false);
+      break;
+    case "sessionstore-browser-state-restored":
+    case "sessionstore-windows-restored":
+      this._restoredTimestamp = new Date() * 1000;
+      Services.obs.removeObserver(this, "sessionstore-browser-state-restored");
+      Services.obs.removeObserver(this, "sessionstore-windows-restored");
       break;
     case "browser:purge-session-history":
       
@@ -237,12 +238,7 @@ SessionStartup.prototype = {
         aWindow.arguments[0] == defaultArgs)
       aWindow.arguments[0] = null;
 
-    try {
-      Services.obs.removeObserver(this, "domwindowopened");
-    } catch (e) {
-      
-      
-    }
+    Services.obs.removeObserver(this, "domwindowopened");
   },
 
 
@@ -259,8 +255,7 @@ SessionStartup.prototype = {
 
 
   doRestore: function sss_doRestore() {
-    return this._sessionType == Ci.nsISessionStartup.RECOVER_SESSION ||
-           this._sessionType == Ci.nsISessionStartup.RESUME_SESSION;
+    return this._sessionType != Ci.nsISessionStartup.NO_SESSION;
   },
 
   
@@ -268,6 +263,10 @@ SessionStartup.prototype = {
 
   get sessionType() {
     return this._sessionType;
+  },
+
+  get restoredTimestamp() {
+    return this._restoredTimestamp;
   },
 
 
