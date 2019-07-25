@@ -27,7 +27,7 @@ class Profile(object):
                  addon_manifests=None,  
                  preferences=None, 
                  locations=None, 
-                 proxy=False, 
+                 proxy=None, 
                  restore=True 
                  ):
 
