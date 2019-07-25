@@ -40,7 +40,7 @@ const EXPORTED_SYMBOLS = ["WEAVE_VERSION", "STORAGE_VERSION",
 			  'MODE_CREATE', 'MODE_APPEND', 'MODE_TRUNCATE',
 			  'PERMS_FILE', 'PERMS_PASSFILE', 'PERMS_DIRECTORY',
 			  'ONE_BYTE', 'ONE_KILOBYTE', 'ONE_MEGABYTE',
-                          'CONNECTION_TIMEOUT', 'KEEP_DELTAS',
+                          'CONNECTION_TIMEOUT', 'MAX_UPLOAD_RECORDS',
                           'WEAVE_STATUS_OK', 'WEAVE_STATUS_FAILED',
                           'WEAVE_STATUS_PARTIAL', 'SERVER_LOW_QUOTA',
                           'SERVER_DOWNTIME', 'SERVER_UNREACHABLE',
@@ -79,7 +79,10 @@ const ONE_MEGABYTE = 1024 * ONE_KILOBYTE;
 
 const CONNECTION_TIMEOUT = 30000;
 
-const KEEP_DELTAS = 25;
+
+
+
+const MAX_UPLOAD_RECORDS = 100;
 
 
 const WEAVE_STATUS_OK = "Sync succeeded.";
