@@ -55,9 +55,6 @@
 #include "nsIServiceManager.h"
 #include "nsCharTraits.h"
 #include "nsUTF8Utils.h"
-#include "mozilla/HashFunctions.h"
-
-using namespace mozilla;
 
 
 
@@ -200,108 +197,6 @@ PRUnichar* nsCRT::strndup(const PRUnichar* str, PRUint32 len)
   memcpy(rslt, str, len * sizeof(PRUnichar));
   rslt[len] = 0;
   return rslt;
-}
-
-  
-
-
-
-
-
-
-
-
-
-PRUint32 nsCRT::HashCode(const char* str, PRUint32* resultingStrLen)
-{
-  PRUint32 h = 0;
-  const char* s = str;
-
-  if (!str) return h;
-
-  unsigned char c;
-  while ( (c = *s++) ) {
-    h = AddToHash(h, c);
-  }
-
-  if ( resultingStrLen )
-    *resultingStrLen = (s-str)-1;
-
-  return h;
-}
-
-PRUint32 nsCRT::HashCode(const char* start, PRUint32 length)
-{
-  PRUint32 h = 0;
-  const char* s = start;
-  const char* end = start + length;
-
-  unsigned char c;
-  while ( s < end ) {
-    c = *s++;
-    h = AddToHash(h, c);
-  }
-
-  return h;
-}
-
-PRUint32 nsCRT::HashCode(const PRUnichar* str, PRUint32* resultingStrLen)
-{
-  PRUint32 h = 0;
-  const PRUnichar* s = str;
-
-  if (!str) return h;
-
-  PRUnichar c;
-  while ( (c = *s++) )
-    h = AddToHash(h, c);
-
-  if ( resultingStrLen )
-    *resultingStrLen = (s-str)-1;
-
-  return h;
-}
-
-PRUint32 nsCRT::HashCode(const PRUnichar* start, PRUint32 length)
-{
-  PRUint32 h = 0;
-  const PRUnichar* s = start;
-  const PRUnichar* end = start + length;
-
-  PRUnichar c;
-  while ( s < end ) {
-    c = *s++;
-    h = AddToHash(h, c);
-  }
-
-  return h;
-}
-
-PRUint32 nsCRT::HashCodeAsUTF16(const char* start, PRUint32 length,
-                                bool* err)
-{
-  PRUint32 h = 0;
-  const char* s = start;
-  const char* end = start + length;
-
-  *err = false;
-
-  while ( s < end )
-    {
-      PRUint32 ucs4 = UTF8CharEnumerator::NextChar(&s, end, err);
-      if (*err) {
-	return 0;
-      }
-
-      if (ucs4 < PLANE1_BASE) {
-        h = AddToHash(h, ucs4);
-      }
-      else {
-        h = AddToHash(h, H_SURROGATE(ucs4), L_SURROGATE(ucs4));
-      }
-    }
-
-  return h;
 }
 
 
