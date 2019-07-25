@@ -1759,7 +1759,7 @@ nsCacheService::ProcessRequest(nsCacheRequest *           request,
 
     if (request->mListener) {  
     
-        if (NS_FAILED(rv) && calledFromOpenCacheEntry)
+        if (NS_FAILED(rv) && calledFromOpenCacheEntry && request->IsBlocking())
             return rv;  
             
         
