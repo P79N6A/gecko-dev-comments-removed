@@ -76,8 +76,6 @@
 #include "jstracer.h"
 #include "jslibmath.h"
 #include "jsvector.h"
-#include "methodjit/MethodJIT.h"
-#include "methodjit/Logging.h"
 
 #include "jsatominlines.h"
 #include "jscntxtinlines.h"
@@ -323,7 +321,7 @@ Class js_NoSuchMethodClass = {
 
 
 
-JSBool
+JS_STATIC_INTERPRET JSBool
 js_OnUnknownMethod(JSContext *cx, Value *vp)
 {
     JS_ASSERT(!vp[1].isPrimitive());
@@ -399,53 +397,6 @@ const uint32 PrimitiveValue::Masks[PrimitiveValue::THISP_ARRAY_SIZE] = {
     JSVAL_MASK32_BOOLEAN | FAKE_NUMBER_MASK,                       
     JSVAL_MASK32_BOOLEAN | FAKE_NUMBER_MASK | JSVAL_MASK32_STRING  
 };
-
-struct AutoInterpPreparer 
-{
-    JSContext *cx;
-    JSScript *script;
-
-    AutoInterpPreparer(JSContext *cx, JSScript *script)
-      : cx(cx), script(script)
-    {
-        if (script->staticLevel < JS_DISPLAY_SIZE) {
-            JSStackFrame **disp = &cx->display[script->staticLevel];
-            cx->fp->displaySave = *disp;
-            *disp = cx->fp;
-        }
-        cx->interpLevel++;
-    }
-
-    ~AutoInterpPreparer()
-    {
-        if (script->staticLevel < JS_DISPLAY_SIZE)
-            cx->display[script->staticLevel] = cx->fp->displaySave;
-        --cx->interpLevel;
-    }
-};
-
-JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain)
-{
-    JS_ASSERT(script);
-
-#ifdef JS_METHODJIT_SPEW
-    JMCheckLogging();
-#endif
-
-    AutoInterpPreparer prepareInterp(cx, script);
-
-#ifdef JS_METHODJIT
-    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, fun, scopeChain);
-    if (status == mjit::Compile_Error)
-        return JS_FALSE;
-
-    if (status == mjit::Compile_Okay)
-        return mjit::JaegerShot(cx);
-#endif
-
-    return Interpret(cx);
-}
 
 
 
@@ -676,7 +627,7 @@ Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
 #endif
     } else {
         JS_ASSERT(script);
-        ok = RunScript(cx, script, fun, fp->scopeChain);
+        ok = Interpret(cx);
     }
 
     DTrace::exitJSFun(cx, fp, fun, fp->rval);
@@ -863,7 +814,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
     if (JSInterpreterHook hook = cx->debugHooks->executeHook)
         hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->executeHookData);
 
-    JSBool ok = RunScript(cx, script, fp->fun, fp->scopeChain);
+    JSBool ok = Interpret(cx);
     if (result)
         *result = fp->rval;
 
@@ -1253,7 +1204,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
 
 
-JS_REQUIRES_STACK JSBool
+JS_STATIC_INTERPRET JS_REQUIRES_STACK JSBool
 js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
 {
     JSObject *obj;
@@ -1371,7 +1322,7 @@ js_TraceOpcode(JSContext *cx)
         if (ndefs != 0 &&
             ndefs < regs->sp - fp->slots()) {
             for (n = -ndefs; n < 0; n++) {
-                char *bytes = js_DecompileValueGenerator(cx, n, regs->sp[n], NULL);
+                char *bytes = DecompileValueGenerator(cx, n, regs->sp[n], NULL);
                 if (bytes) {
                     fprintf(tracefp, "%s %s",
                             (n == -ndefs) ? "  output:" : ",",
@@ -1406,7 +1357,7 @@ js_TraceOpcode(JSContext *cx)
     nuses = js_GetStackUses(&js_CodeSpec[op], op, regs->pc);
     if (nuses != 0) {
         for (n = -nuses; n < 0; n++) {
-            char *bytes = js_DecompileValueGenerator(cx, n, regs->sp[n], NULL);
+            char *bytes = DecompileValueGenerator(cx, n, regs->sp[n], NULL);
             if (bytes) {
                 fprintf(tracefp, "%s %s",
                         (n == -nuses) ? "  inputs:" : ",",
@@ -2293,6 +2244,13 @@ Interpret(JSContext *cx)
     if (currentVersion != originalVersion)
         js_SetVersion(cx, currentVersion);
 
+    
+    if (script->staticLevel < JS_DISPLAY_SIZE) {
+        JSStackFrame **disp = &cx->display[script->staticLevel];
+        fp->displaySave = *disp;
+        *disp = fp;
+    }
+
 #define CHECK_INTERRUPT_HANDLER()                                             \
     JS_BEGIN_MACRO                                                            \
         if (cx->debugHooks->interruptHook)                                    \
@@ -2619,6 +2577,8 @@ Interpret(JSContext *cx)
     JS_ASSERT_IF(!fp->isGenerator(), !js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
 
     
+    if (script->staticLevel < JS_DISPLAY_SIZE)
+        cx->display[script->staticLevel] = fp->displaySave;
     if (cx->version == currentVersion && currentVersion != originalVersion)
         js_SetVersion(cx, originalVersion);
     --cx->interpLevel;

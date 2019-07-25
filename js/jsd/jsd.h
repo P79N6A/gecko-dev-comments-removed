@@ -1045,6 +1045,9 @@ extern void
 jsd_DestroyObjects(JSDContext* jsdc);
 
 extern void
+jsd_ObjectHook(JSContext *cx, JSObject *obj, JSBool isNew, void *closure);
+
+extern void
 jsd_Constructing(JSDContext* jsdc, JSContext *cx, JSObject *obj,
                  JSStackFrame *fp);
 

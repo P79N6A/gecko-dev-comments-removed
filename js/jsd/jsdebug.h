@@ -244,8 +244,7 @@ JSD_ClearAllProfileData(JSDContext* jsdc);
 
 
 
-#define JSD_DISABLE_OBJECT_TRACE_RETIRED 0x40
-
+#define JSD_DISABLE_OBJECT_TRACE  0x40
 
 extern JSD_PUBLIC_API(void)
 JSD_SetContextFlags (JSDContext* jsdc, uint32 flags);
