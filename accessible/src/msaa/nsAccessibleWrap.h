@@ -67,12 +67,12 @@ class nsAccessibleWrap : public nsAccessible,
                          public ia2AccessibleComponent,
                          public CAccessibleHyperlink,
                          public CAccessibleValue,
-                         public IAccessible2,
-                         public IEnumVARIANT
+                         public IAccessible2
 {
 public: 
-  nsAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc);
-  virtual ~nsAccessibleWrap();
+  nsAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc) :
+    nsAccessible(aContent, aDoc) { }
+  virtual ~nsAccessibleWrap() { }
 
     
     NS_DECL_ISUPPORTS_INHERITED
@@ -235,25 +235,6 @@ public:
     virtual  HRESULT STDMETHODCALLTYPE get_attributes(
          BSTR *attributes);
 
-  public: 
-    
-    
-    
-
-    virtual  HRESULT STDMETHODCALLTYPE Next( 
-         ULONG celt,
-         VARIANT __RPC_FAR *rgVar,
-         ULONG __RPC_FAR *pCeltFetched);
-  
-    virtual HRESULT STDMETHODCALLTYPE Skip( 
-         ULONG celt);
-  
-    virtual HRESULT STDMETHODCALLTYPE Reset( void);
-  
-    virtual HRESULT STDMETHODCALLTYPE Clone( 
-         IEnumVARIANT __RPC_FAR *__RPC_FAR *ppEnum);
-
-        
   
   virtual HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT *pctinfo);
 
@@ -300,20 +281,8 @@ public:
 
   static IDispatch *NativeAccessible(nsIAccessible *aXPAccessible);
 
-  
-
-
-
-
-  void UnattachIEnumVariant();
-
 protected:
   virtual nsresult FirePlatformEvent(AccEvent* aEvent);
-
-  
-  
-  
-  PRInt32 mEnumVARIANTPosition;
 
   
 
