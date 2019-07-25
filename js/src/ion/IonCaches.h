@@ -44,7 +44,7 @@
 
 #include "IonCode.h"
 #include "TypeOracle.h"
-#include "IonRegisters.h"
+#include "Registers.h"
 
 struct JSFunction;
 struct JSScript;
