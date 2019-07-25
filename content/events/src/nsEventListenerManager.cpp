@@ -250,6 +250,10 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
     
     nsPIDOMWindow* window = GetInnerWindowForTarget();
     if (window) {
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(window->GetExtantDocument());
+      if (doc) {
+        doc->WarnOnceAbout(nsIDocument::eMutationEvent);
+      }
       
       
       window->SetMutationListeners((aType == NS_MUTATION_SUBTREEMODIFIED) ?
