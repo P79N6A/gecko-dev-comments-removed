@@ -4299,6 +4299,12 @@ var FullScreen = {
       
       this.warningBox.addEventListener("transitionend", this);
       this.warningBox.removeAttribute("hidden");
+    } else {
+      if (this.warningFadeOutTimeout) {
+        clearTimeout(this.warningFadeOutTimeout);
+        this.warningFadeOutTimeout = null;
+      }
+      this.warningBox.removeAttribute("fade-warning-out");
     }
 
     
@@ -4308,9 +4314,10 @@ var FullScreen = {
     
     
     let authUI = document.getElementById("full-screen-approval-pane");
-    if (isApproved)
+    if (isApproved) {
       authUI.setAttribute("hidden", "true");
-    else {
+      this.warningBox.removeAttribute("obscure-browser");
+    } else {
       
       this.warningBox.setAttribute("obscure-browser", "true");
       authUI.removeAttribute("hidden");
