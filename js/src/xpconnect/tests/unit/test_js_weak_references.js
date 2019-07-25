@@ -54,7 +54,13 @@ function run_test()
   do_check_true(weak.get().str == 'foo');
 
   
-  obj = null;
+  
+  
+  
+  obj = { num: 6, str: 'foo2' };
+  var weak2 = Components.utils.getWeakReference(obj);
+  do_check_true(weak2.get() === obj);
+
   Components.utils.forceGC();
 
   

@@ -783,13 +783,12 @@ JS_BeginRequest(JSContext *cx)
 #endif
 }
 
-JS_PUBLIC_API(void)
-JS_EndRequest(JSContext *cx)
-{
 #ifdef JS_THREADSAFE
+static void
+StopRequest(JSContext *cx)
+{
     JSRuntime *rt;
 
-    CHECK_REQUEST(cx);
     JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
     JS_ASSERT(cx->requestDepth > 0);
     JS_ASSERT(cx->outstandingRequests > 0);
@@ -816,6 +815,21 @@ JS_EndRequest(JSContext *cx)
     }
     cx->requestDepth--;
     cx->outstandingRequests--;
+}
+#endif
+
+JS_PUBLIC_API(void)
+JS_EndRequest(JSContext *cx)
+{
+#ifdef JS_THREADSAFE
+    
+
+
+
+
+    JS_ASSERT_IF(cx->requestDepth == 1 && cx->outstandingRequests == 1,
+                 cx->checkRequestDepth == 0);
+    StopRequest(cx);
 #endif
 }
 
@@ -835,11 +849,16 @@ JS_SuspendRequest(JSContext *cx)
 {
 #ifdef JS_THREADSAFE
     jsrefcount saveDepth = cx->requestDepth;
+    if (saveDepth == 0)
+        return 0;
 
-    while (cx->requestDepth) {
+    do {
         cx->outstandingRequests++;  
-        JS_EndRequest(cx);
-    }
+        StopRequest(cx);
+    } while (cx->requestDepth);
+
+    JS_THREAD_DATA(cx)->conservativeGC.enable();
+
     return saveDepth;
 #else
     return 0;
@@ -850,11 +869,16 @@ JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
 {
 #ifdef JS_THREADSAFE
-    JS_ASSERT(!cx->requestDepth);
-    while (--saveDepth >= 0) {
+    if (saveDepth == 0)
+        return;
+
+    JS_THREAD_DATA(cx)->conservativeGC.disable();
+
+    JS_ASSERT(cx->outstandingRequests != 0);
+    do {
         JS_BeginRequest(cx);
         cx->outstandingRequests--;  
-    }
+    } while (--saveDepth != 0);
 #endif
 }
 

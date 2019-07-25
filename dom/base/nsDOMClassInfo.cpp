@@ -6441,34 +6441,31 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   JSBool ok;
   jsval exn;
   {
-    JSAutoSuspendRequest asr(my_cx != cx ? cx : nsnull);
-    {
-      JSAutoRequest ar(my_cx);
+    JSAutoTransferRequest transfer(cx, my_cx);
 
-      JSObject *realObj;
-      wrapper->GetJSObject(&realObj);
-
+    JSObject *realObj;
+    wrapper->GetJSObject(&realObj);
+    
+    
+    
+    ok = obj == realObj ?
+         ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
+         JS_TRUE;
+    
+    if (!ok) {
       
       
-      ok = obj == realObj ?
-           ::JS_ResolveStandardClass(my_cx, obj, id, &did_resolve) :
-           JS_TRUE;
-
-      if (!ok) {
-        
-        
-
-        if (!JS_GetPendingException(my_cx, &exn)) {
-          return NS_ERROR_UNEXPECTED;
-        }
-
-        
-        
-        
-        
-
-        JS_ClearPendingException(my_cx);
+      
+      if (!JS_GetPendingException(my_cx, &exn)) {
+        return NS_ERROR_UNEXPECTED;
       }
+      
+      
+      
+      
+      
+      
+      JS_ClearPendingException(my_cx);
     }
   }
 
