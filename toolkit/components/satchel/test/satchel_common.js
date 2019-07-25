@@ -35,6 +35,11 @@
 
 
  
+netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
 
 
 
@@ -112,3 +117,60 @@ function cleanUpFormHist() {
   formhist.removeAllEntries();
 }
 cleanUpFormHist();
+
+
+var checkObserver = {
+  verifyStack: [],
+  callback: null,
+
+  waitForChecks: function(callback) {
+    if (this.verifyStack.length == 0)
+      callback();
+    else
+      this.callback = callback;
+  },
+
+  observe: function(subject, topic, data) {
+    netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+
+    if (data != "addEntry" && data != "modifyEntry")
+      return;
+    ok(this.verifyStack.length > 0, "checking if saved form data was expected");
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var expected = this.verifyStack.shift();
+    ok(fh.entryExists(expected.name, expected.value), expected.message);
+
+    if (this.verifyStack.length == 0) {
+      var callback = this.callback;
+      this.callback = null;
+      callback();
+    }
+  }
+};
+
+function checkForSave(name, value, message) {
+  checkObserver.verifyStack.push({ name : name, value: value, message: message });
+}
+
+
+function getFormSubmitButton(formNum) {
+  var form = $("form" + formNum); 
+  ok(form != null, "getting form " + formNum);
+
+  
+  
+  var button = form.firstChild;
+  while (button && button.type != "submit") { button = button.nextSibling; }
+  ok(button != null, "getting form submit button");
+
+  return button;
+}

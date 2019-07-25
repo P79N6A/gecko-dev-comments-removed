@@ -8734,12 +8734,21 @@ TraceRecorder::tableswitch()
     }
 
     
-    if ((high + 1 - low) > MAX_TABLE_SWITCH)
+
+
+
+
+    int count = high + 1 - low;
+    if (count == 0)
+        return ARECORD_CONTINUE;
+
+    
+    if (count > MAX_TABLE_SWITCH)
         return InjectStatus(switchop());
 
     
     SwitchInfo* si = new (traceAlloc()) SwitchInfo();
-    si->count = high + 1 - low;
+    si->count = count;
     si->table = 0;
     si->index = (uint32) -1;
     LIns* diff = lir->ins2(LIR_subi, v_ins, lir->insImmI(low));
@@ -10348,7 +10357,7 @@ IsTraceableRecursion(JSContext *cx)
         return false;
     if (*fp->script->code != JSOP_TRACE)
         return false;
-    return true;
+    return !fp->fun->isHeavyweight();
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
