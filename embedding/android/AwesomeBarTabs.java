@@ -155,7 +155,11 @@ public class AwesomeBarTabs extends TabHost {
 
             return resolver.query(Browser.BOOKMARKS_URI,
                                   null,
-                                  Browser.BookmarkColumns.BOOKMARK + " = 1",
+                                  
+                                  
+                                  
+                                  
+                                  Browser.BookmarkColumns.BOOKMARK + " = 1 AND LENGTH(" + Browser.BookmarkColumns.URL + ") > 0",
                                   null,
                                   Browser.BookmarkColumns.TITLE);
         }
@@ -199,7 +203,9 @@ public class AwesomeBarTabs extends TabHost {
 
             return resolver.query(Browser.BOOKMARKS_URI,
                                   null,
-                                  null,
+                                  
+                                  
+                                  Browser.BookmarkColumns.DATE + " > 0",
                                   null,
                                   Browser.BookmarkColumns.DATE + " DESC");
         }
@@ -429,7 +435,11 @@ public class AwesomeBarTabs extends TabHost {
                 ContentResolver resolver = mContext.getContentResolver();
 
                 return resolver.query(Browser.BOOKMARKS_URI,
-                                      null, Browser.BookmarkColumns.URL + " LIKE ? OR title LIKE ?", 
+                                      null,
+                                      
+                                      
+                                      "(" + Browser.BookmarkColumns.URL + " LIKE ? OR " + Browser.BookmarkColumns.TITLE + " LIKE ?)"
+                                        + " AND LENGTH(" + Browser.BookmarkColumns.URL + ") > 0", 
                                       new String[] {"%" + constraint.toString() + "%", "%" + constraint.toString() + "%",},
                                       
                                       
