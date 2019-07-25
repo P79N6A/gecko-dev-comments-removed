@@ -1988,3 +1988,12 @@ panel[dimmed="true"] {
   box-shadow: 0 0 0 1px black;
   outline-color: white;
 }
+
+
+
+
+#inspector-horizontal-splitter {
+  background: none !important;
+  -moz-appearance: none;
+  cursor: n-resize;
+}
