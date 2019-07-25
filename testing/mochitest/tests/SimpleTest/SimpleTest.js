@@ -254,6 +254,16 @@ SimpleTest.isnot = function (a, b, name) {
 
 
 
+
+SimpleTest.ise = function (a, b, name) {
+    var pass = (a === b);
+    var diag = pass ? repr(a) + " should strictly equal " + repr(b)
+                    : "got " + repr(a) + ", strictly expected " + repr(b)
+    SimpleTest.ok(pass, name, diag);
+};
+
+
+
 SimpleTest.todo = function(condition, name, diag) {
     var test = {'result': !!condition, 'name': name, 'diag': diag, todo: true};
     SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
@@ -961,6 +971,7 @@ SimpleTest.isa = function (object, clas) {
 var ok = SimpleTest.ok;
 var is = SimpleTest.is;
 var isnot = SimpleTest.isnot;
+var ise = SimpleTest.ise;
 var todo = SimpleTest.todo;
 var todo_is = SimpleTest.todo_is;
 var todo_isnot = SimpleTest.todo_isnot;
