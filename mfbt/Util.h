@@ -79,6 +79,59 @@ MOZ_END_EXTERN_C
 
 #endif  
 
+
+
+
+
+
+
+#ifndef MOZ_INLINE
+# if defined __cplusplus
+#  define MOZ_INLINE          inline
+# elif defined _MSC_VER
+#  define MOZ_INLINE          __inline
+# elif defined __GNUC__
+#  define MOZ_INLINE          __inline__
+# else
+#  define MOZ_INLINE          inline
+# endif
+#endif
+
+
+
+
+
+
+
+
+#ifndef MOZ_ALWAYS_INLINE
+# if defined DEBUG
+#  define MOZ_ALWAYS_INLINE   MOZ_INLINE
+# elif defined _MSC_VER
+#  define MOZ_ALWAYS_INLINE   __forceinline
+# elif defined __GNUC__
+#  define MOZ_ALWAYS_INLINE   __attribute__((always_inline)) MOZ_INLINE
+# else
+#  define MOZ_ALWAYS_INLINE   MOZ_INLINE
+# endif
+#endif
+
+
+
+
+
+
+
+#ifndef MOZ_NEVER_INLINE
+# if defined _MSC_VER
+#  define MOZ_NEVER_INLINE __declspec(noinline)
+# elif defined __GNUC__
+#  define MOZ_NEVER_INLINE __attribute__((noinline))
+# else
+#  define MOZ_NEVER_INLINE
+# endif
+#endif
+
 #ifdef __cplusplus
 
 namespace mozilla {
@@ -249,6 +302,20 @@ class Maybe
             destroy();
     }
 };
+
+
+
+
+
+
+
+template <class T>
+MOZ_ALWAYS_INLINE size_t
+PointerRangeSize(T* begin, T* end)
+{
+    MOZ_ASSERT(end >= begin);
+    return (size_t(end) - size_t(begin)) / sizeof(T);
+}
 
 } 
 
