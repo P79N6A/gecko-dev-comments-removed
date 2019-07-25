@@ -9360,12 +9360,6 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
                           handler->GetScriptVersion(), nsnull,
                           &is_undefined);
     } else {
-      
-      
-      TimeDuration lateness = now - timeout->mWhen;
-
-      handler->SetLateness(lateness.ToMilliseconds());
-
       nsCOMPtr<nsIVariant> dummy;
       nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
       scx->CallEventHandler(me, FastGetGlobalJSObject(),
