@@ -2145,7 +2145,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
       DidDoReflow(true);
     }
 
-    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+    batch.EndUpdateViewBatch();
   }
 
   rootFrame = FrameManager()->GetRootFrame();
@@ -2974,7 +2974,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
   --mChangeNestCount;
   
-  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+  batch.EndUpdateViewBatch();
   return rv;
 }
 
@@ -4095,13 +4095,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       }
     }
 
-    PRUint32 updateFlags = NS_VMREFRESH_NO_SYNC;
-    if (aType >= Flush_Display) {
-      
-      
-      updateFlags = NS_VMREFRESH_IMMEDIATE;
-    }
-    batch.EndUpdateViewBatch(updateFlags);
+    batch.EndUpdateViewBatch();
   }
 }
 
@@ -7377,7 +7371,7 @@ PresShell::DoVerifyReflow()
     
     
     nsIView* rootView = mViewManager->GetRootView();
-    mViewManager->UpdateView(rootView, NS_VMREFRESH_IMMEDIATE);
+    mViewManager->UpdateView(rootView);
 
     FlushPendingNotifications(Flush_Layout);
     mInVerifyReflow = true;
@@ -7597,7 +7591,7 @@ PresShell::Observe(nsISupports* aSubject,
           --mChangeNestCount;
         }
       }
-      batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
+      batch.EndUpdateViewBatch();
     }
     return NS_OK;
   }
