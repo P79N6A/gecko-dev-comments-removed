@@ -48,12 +48,8 @@ window.onload = function() {
   
   var sessionData = document.getElementById("sessionData");
   if (!sessionData.value) {
-    var ss = Cc["@mozilla.org/browser/sessionstartup;1"].getService(Ci.nsISessionStartup);
-    sessionData.value = ss.state;
-    if (!sessionData.value) {
-      document.getElementById("errorTryAgain").disabled = true;
-      return;
-    }
+    document.getElementById("errorTryAgain").disabled = true;
+    return;
   }
 
   
