@@ -89,6 +89,9 @@ class JaegerCompartment;
 class WeakMapBase;
 class InterpreterFrames;
 
+class ScriptOpcodeCounts;
+struct ScriptOpcodeCountsPair;
+
 
 
 
@@ -342,7 +345,8 @@ typedef void
 
 namespace js {
 
-typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
+typedef Vector<JSCompartment *, 0, SystemAllocPolicy> CompartmentVector;
+typedef Vector<ScriptOpcodeCountsPair, 0, SystemAllocPolicy> ScriptOpcodeCountsVector;
 
 }
 
@@ -530,6 +534,9 @@ struct JSRuntime
     void                *gcGrayRootsData;
 
     
+    js::ScriptOpcodeCountsVector *scriptPCCounters;
+
+    
     js::Value           NaNValue;
     js::Value           negativeInfinityValue;
     js::Value           positiveInfinityValue;
@@ -544,6 +551,9 @@ struct JSRuntime
 
     
     bool                debugMode;
+
+    
+    bool                profilingScripts;
 
     
     JSBool              hadOutOfMemory;

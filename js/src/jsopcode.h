@@ -677,6 +677,11 @@ class OpcodeCounts
         JS_ASSERT(which < capacity);
         return counts[which];
     }
+
+    
+    operator void*() const {
+        return counts;
+    }
 };
 
 } 
