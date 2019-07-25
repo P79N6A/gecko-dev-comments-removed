@@ -48,10 +48,29 @@ function saveMockCache() {
   info("mock path: " + mockCachePath);
   let mockCacheURI = getResolvedURI(mockCachePath);
   info("mock URI: " + mockCacheURI.spec);
-  let mockCacheFile = getChromeDir(mockCacheURI);
-  info("mock file: " + mockCacheFile.path);
-  mockCacheFile.append("mock_autocomplete.json");
-  mockCacheFile.copyToFollowingLinks(gProfileDir, "autocomplete.json");
+  if (mockCacheURI instanceof Ci.nsIJARURI) {
+    
+    info("jar file: " + mockCacheURI.JARFile.spec);
+    let zReader = Cc["@mozilla.org/libjar/zip-reader;1"].createInstance(Ci.nsIZipReader);
+    let fileHandler = Cc["@mozilla.org/network/protocol;1?name=file"].getService(Ci.nsIFileProtocolHandler);
+    let fileName = fileHandler.getFileFromURLSpec(mockCacheURI.JARFile.spec);
+    zReader.open(fileName);
+
+    let extract = mockCacheURI.JARFile.spec.split("!")[1];
+    extract = extract.substring(1, extract.lastIndexOf("/") + 1);
+    extract += "mock_autocomplete.json";
+    info("extract path: " + extract);
+    let target = gProfileDir.clone();
+    target.append("autocomplete.json");
+    info("target path: " + target.path);
+    zReader.extract(extract, target);
+  } else {
+    
+    let mockCacheFile = getChromeDir(mockCacheURI);
+    info("mock file: " + mockCacheFile.path);
+    mockCacheFile.append("mock_autocomplete.json");
+    mockCacheFile.copyToFollowingLinks(gProfileDir, "autocomplete.json");
+  }
 
   
   Services.obs.addObserver(function (aSubject, aTopic, aData) {
