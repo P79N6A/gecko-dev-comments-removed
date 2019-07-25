@@ -482,6 +482,7 @@ struct nsStyleBackground {
     
     
     
+    
     PRBool RenderingMightDependOnFrameSize() const;
 
     

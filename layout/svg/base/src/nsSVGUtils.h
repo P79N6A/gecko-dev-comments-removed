@@ -600,6 +600,16 @@ public:
 
   static float GetNumberListValue(nsIDOMSVGNumberList *aList, PRUint32 aIndex);
 
+  
+
+
+
+
+
+
+
+  static PRBool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
+
 private:
   
   static gfxASurface *gThebesComputationalSurface;
