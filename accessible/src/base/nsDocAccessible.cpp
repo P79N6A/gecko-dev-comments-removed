@@ -1138,22 +1138,19 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   }
 
   
-  
-  if (aAttribute == nsGkAtoms::aria_grabbed ||
-      aAttribute == nsGkAtoms::aria_dropeffect ||
-      aAttribute == nsGkAtoms::aria_hidden ||
-      aAttribute == nsGkAtoms::aria_sort) {
-    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED,
-                               aContent);
-  }
-
-  
   if (aAttribute == nsGkAtoms::aria_expanded) {
     nsRefPtr<AccEvent> event =
       new AccStateChangeEvent(aContent, states::EXPANDED);
     FireDelayedAccessibleEvent(event);
     return;
   }
+
+  
+  
+  PRUint8 attrFlags = nsAccUtils::GetAttributeCharacteristics(aAttribute);
+  if (!(attrFlags & ATTR_BYPASSOBJ))
+    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED,
+                               aContent);
 
   if (!aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::role)) {
     
