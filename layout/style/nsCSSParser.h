@@ -113,12 +113,18 @@ public:
 
 
 
-  nsresult Parse(nsIUnicharInputStream* aInput,
-                 nsIURI*                aSheetURL,
-                 nsIURI*                aBaseURI,
-                 nsIPrincipal*          aSheetPrincipal,
-                 PRUint32               aLineNumber,
-                 PRBool                 aAllowUnsafeRules);
+  nsresult ParseSheet(nsIUnicharInputStream& aInput,
+                      nsIURI*                aSheetURL,
+                      nsIURI*                aBaseURI,
+                      nsIPrincipal*          aSheetPrincipal,
+                      PRUint32               aLineNumber,
+                      PRBool                 aAllowUnsafeRules);
+  nsresult ParseSheet(const nsAString& aInput,
+                      nsIURI*          aSheetURL,
+                      nsIURI*          aBaseURI,
+                      nsIPrincipal*    aSheetPrincipal,
+                      PRUint32         aLineNumber,
+                      PRBool           aAllowUnsafeRules);
 
   
   
