@@ -1123,10 +1123,8 @@ nsGenericHTMLElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                                                 aValue, aNotify);
 }
 
-nsresult
-nsGenericHTMLElement::GetEventListenerManagerForAttr(nsEventListenerManager** aManager,
-                                                     nsISupports** aTarget,
-                                                     PRBool* aDefer)
+nsEventListenerManager*
+nsGenericHTMLElement::GetEventListenerManagerForAttr(PRBool* aDefer)
 {
   
   if (mNodeInfo->Equals(nsGkAtoms::body) ||
@@ -1139,36 +1137,23 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsEventListenerManager** aM
     
     
     nsIDocument *document = GetOwnerDoc();
-    nsresult rv = NS_OK;
 
     
     
     
     
+    *aDefer = PR_FALSE;
     if (document &&
         (win = document->GetInnerWindow()) && win->IsInnerWindow()) {
       nsCOMPtr<nsIDOMEventTarget> piTarget(do_QueryInterface(win));
-      NS_ENSURE_TRUE(piTarget, NS_ERROR_FAILURE);
 
-      *aManager = piTarget->GetListenerManager(PR_TRUE);
-
-      if (*aManager) {
-        NS_ADDREF(*aTarget = win);
-        NS_ADDREF(*aManager);
-      }
-      *aDefer = PR_FALSE;
-    } else {
-      *aManager = nsnull;
-      *aTarget = nsnull;
-      *aDefer = PR_FALSE;
+      return piTarget->GetListenerManager(PR_TRUE);
     }
 
-    return rv;
+    return nsnull;
   }
 
-  return nsGenericHTMLElementBase::GetEventListenerManagerForAttr(aManager,
-                                                                  aTarget,
-                                                                  aDefer);
+  return nsGenericHTMLElementBase::GetEventListenerManagerForAttr(aDefer);
 }
 
 nsresult

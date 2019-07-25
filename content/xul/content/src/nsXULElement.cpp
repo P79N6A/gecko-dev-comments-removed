@@ -512,17 +512,15 @@ nsXULElement::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
     return NS_OK;
 }
 
-nsresult
-nsXULElement::GetEventListenerManagerForAttr(nsEventListenerManager** aManager,
-                                             nsISupports** aTarget,
-                                             PRBool* aDefer)
+nsEventListenerManager*
+nsXULElement::GetEventListenerManagerForAttr(PRBool* aDefer)
 {
     
     
     
     nsIDocument* doc = GetOwnerDoc();
     if (!doc)
-        return NS_ERROR_UNEXPECTED; 
+        return nsnull; 
 
     nsPIDOMWindow *window;
     Element *root = doc->GetRootElement();
@@ -530,20 +528,12 @@ nsXULElement::GetEventListenerManagerForAttr(nsEventListenerManager** aManager,
         (window = doc->GetInnerWindow()) && window->IsInnerWindow()) {
 
         nsCOMPtr<nsIDOMEventTarget> piTarget = do_QueryInterface(window);
-        if (!piTarget)
-            return NS_ERROR_UNEXPECTED;
 
         *aDefer = PR_FALSE;
-        *aManager = piTarget->GetListenerManager(PR_TRUE);
-        NS_ENSURE_STATE(*aManager);
-        NS_ADDREF(*aManager);
-        NS_ADDREF(*aTarget = window);
-        return NS_OK;
+        return piTarget->GetListenerManager(PR_TRUE);
     }
 
-    return nsStyledElement::GetEventListenerManagerForAttr(aManager,
-                                                           aTarget,
-                                                           aDefer);
+    return nsStyledElement::GetEventListenerManagerForAttr(aDefer);
 }
 
 

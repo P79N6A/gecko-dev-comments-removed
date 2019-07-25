@@ -784,10 +784,8 @@ protected:
 
 
 
-  virtual nsresult
-    GetEventListenerManagerForAttr(nsEventListenerManager** aManager,
-                                   nsISupports** aTarget,
-                                   PRBool* aDefer);
+  virtual nsEventListenerManager*
+    GetEventListenerManagerForAttr(PRBool* aDefer);
 
   
 
