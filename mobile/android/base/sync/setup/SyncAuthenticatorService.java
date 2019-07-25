@@ -9,6 +9,7 @@ import java.security.NoSuchAlgorithmException;
 
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.Utils;
+import org.mozilla.gecko.sync.config.AccountPickler;
 import org.mozilla.gecko.sync.setup.activities.SetupSyncActivity;
 
 import android.accounts.AbstractAccountAuthenticator;
@@ -159,6 +160,36 @@ public class SyncAuthenticatorService extends Service {
         throws NetworkErrorException {
       Logger.debug(LOG_TAG, "updateCredentials()");
       return null;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public Bundle getAccountRemovalAllowed(AccountAuthenticatorResponse response, Account account) throws NetworkErrorException {
+      Bundle result = super.getAccountRemovalAllowed(response, account);
+
+      if (result != null &&
+          result.containsKey(AccountManager.KEY_BOOLEAN_RESULT) &&
+          !result.containsKey(AccountManager.KEY_INTENT)) {
+        final boolean removalAllowed = result.getBoolean(AccountManager.KEY_BOOLEAN_RESULT);
+
+        if (removalAllowed) {
+          Logger.info(LOG_TAG, "Account named " + account.name + " being removed; " +
+              "deleting saved pickle file '" + Constants.ACCOUNT_PICKLE_FILENAME + "'.");
+          AccountPickler.deletePickle(mContext, Constants.ACCOUNT_PICKLE_FILENAME);
+        }
+      }
+
+      return result;
     }
   }
 }

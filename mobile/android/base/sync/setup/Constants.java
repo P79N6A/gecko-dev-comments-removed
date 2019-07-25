@@ -23,6 +23,13 @@ public class Constants {
 
 
 
+  public static final String ACCOUNT_PICKLE_FILENAME = "sync.account.json";
+
+  
+
+
+
+
 
 
   public static final String EXTRAS_KEY_STAGES_TO_SYNC = "sync";
@@ -73,6 +80,11 @@ public class Constants {
   public static final String JSON_KEY_PASSWORD   = "password";
   public static final String JSON_KEY_SYNCKEY    = "synckey";
   public static final String JSON_KEY_SERVER     = "serverURL";
+  public static final String JSON_KEY_CLUSTER    = "clusterURL";
+  public static final String JSON_KEY_CLIENT_NAME = "clientName";
+  public static final String JSON_KEY_CLIENT_GUID = "clientGUID";
+  public static final String JSON_KEY_SYNC_AUTOMATICALLY = "syncAutomatically";
+  public static final String JSON_KEY_TIMESTAMP  = "timestamp";
 
   public static final String CRYPTO_KEY_GR1 = "gr1";
   public static final String CRYPTO_KEY_GR2 = "gr2";

@@ -21,12 +21,15 @@ import org.mozilla.gecko.sync.SyncConfigurationException;
 import org.mozilla.gecko.sync.SyncException;
 import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
+import org.mozilla.gecko.sync.config.AccountPickler;
+import org.mozilla.gecko.sync.crypto.CryptoException;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.delegates.ClientsDataDelegate;
 import org.mozilla.gecko.sync.delegates.GlobalSessionCallback;
 import org.mozilla.gecko.sync.net.ConnectionMonitorThread;
 import org.mozilla.gecko.sync.setup.Constants;
 import org.mozilla.gecko.sync.setup.SyncAccounts;
+import org.mozilla.gecko.sync.setup.SyncAccounts.SyncAccountParameters;
 import org.mozilla.gecko.sync.stage.GlobalSyncStage.Stage;
 
 import android.accounts.Account;
@@ -341,13 +344,11 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
             return;
           }
 
-          KeyBundle keyBundle = new KeyBundle(username, syncKey);
-
           
           
           String prefsPath = Utils.getPrefsPath(username, serverURL);
           self.performSync(account, extras, authority, provider, syncResult,
-              username, password, prefsPath, serverURL, keyBundle);
+              username, password, prefsPath, serverURL, syncKey);
         } catch (Exception e) {
           self.handleException(e, syncResult);
           return;
@@ -414,21 +415,46 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
 
 
+
   protected void performSync(Account account, Bundle extras, String authority,
                              ContentProviderClient provider,
                              SyncResult syncResult,
                              String username, String password,
                              String prefsPath,
-                             String serverURL, KeyBundle keyBundle)
+                             String serverURL,
+                             String syncKey)
                                  throws NoSuchAlgorithmException,
                                         SyncConfigurationException,
                                         IllegalArgumentException,
                                         AlreadySyncingException,
                                         IOException, ParseException,
-                                        NonObjectJSONException {
+                                        NonObjectJSONException, CryptoException {
     Logger.trace(LOG_TAG, "Performing sync.");
 
     
+
+
+
+    try {
+      
+      final SyncAccountParameters params = new SyncAccountParameters(mContext, mAccountManager,
+        account.name, 
+        syncKey,
+        password,
+        serverURL,
+        null, 
+        getClientName(),
+        getAccountGUID());
+
+        final boolean syncAutomatically = ContentResolver.getSyncAutomatically(account, authority);
+
+        AccountPickler.pickle(mContext, Constants.ACCOUNT_PICKLE_FILENAME, params, syncAutomatically);
+    } catch (IllegalArgumentException e) {
+      
+    }
+
+    
+    final KeyBundle keyBundle = new KeyBundle(username, syncKey);
     GlobalSession globalSession = new GlobalSession(SyncConfiguration.DEFAULT_USER_API,
                                                     serverURL, username, password, prefsPath,
                                                     keyBundle, this, this.mContext, extras, this);

@@ -4,10 +4,14 @@
 
 package org.mozilla.gecko.sync.setup;
 
+import java.io.File;
+
 import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.SyncConfiguration;
 import org.mozilla.gecko.sync.Utils;
+import org.mozilla.gecko.sync.config.AccountPickler;
 import org.mozilla.gecko.sync.repositories.android.RepoUtils;
 import org.mozilla.gecko.sync.syncadapter.SyncAdapter;
 
@@ -42,8 +46,24 @@ public class SyncAccounts {
 
 
 
+
+
   public static boolean syncAccountsExist(Context c) {
-    return AccountManager.get(c).getAccountsByType(Constants.ACCOUNTTYPE_SYNC).length > 0;
+    final boolean accountsExist = AccountManager.get(c).getAccountsByType(Constants.ACCOUNTTYPE_SYNC).length > 0;
+    if (accountsExist) {
+      return true;
+    }
+
+    final File file = c.getFileStreamPath(Constants.ACCOUNT_PICKLE_FILENAME);
+    if (!file.exists()) {
+      return false;
+    }
+
+    
+    
+    
+    final Account account = AccountPickler.unpickle(c, Constants.ACCOUNT_PICKLE_FILENAME);
+    return (account != null);
   }
 
   
@@ -134,6 +154,29 @@ public class SyncAccounts {
         String username, String syncKey, String password, String serverURL) {
       this(context, accountManager, username, syncKey, password, serverURL, null, null, null);
     }
+
+    public SyncAccountParameters(final Context context, final AccountManager accountManager, final ExtendedJSONObject o) {
+      this(context, accountManager,
+          o.getString(Constants.JSON_KEY_ACCOUNT),
+          o.getString(Constants.JSON_KEY_SYNCKEY),
+          o.getString(Constants.JSON_KEY_PASSWORD),
+          o.getString(Constants.JSON_KEY_SERVER),
+          o.getString(Constants.JSON_KEY_CLUSTER),
+          o.getString(Constants.JSON_KEY_CLIENT_NAME),
+          o.getString(Constants.JSON_KEY_CLIENT_GUID));
+    }
+
+    public ExtendedJSONObject asJSON() {
+      final ExtendedJSONObject o = new ExtendedJSONObject();
+      o.put(Constants.JSON_KEY_ACCOUNT, username);
+      o.put(Constants.JSON_KEY_PASSWORD, password);
+      o.put(Constants.JSON_KEY_SERVER, serverURL);
+      o.put(Constants.JSON_KEY_SYNCKEY, syncKey);
+      o.put(Constants.JSON_KEY_CLUSTER, clusterURL);
+      o.put(Constants.JSON_KEY_CLIENT_NAME, clientName);
+      o.put(Constants.JSON_KEY_CLIENT_GUID, clientGuid);
+      return o;
+    }
   }
 
   
@@ -145,11 +188,21 @@ public class SyncAccounts {
 
 
   public static class CreateSyncAccountTask extends AsyncTask<SyncAccountParameters, Void, Account> {
+    protected final boolean syncAutomatically;
+
+    public CreateSyncAccountTask() {
+      this(true);
+    }
+
+    public CreateSyncAccountTask(final boolean syncAutomically) {
+      this.syncAutomatically = syncAutomically;
+    }
+
     @Override
     protected Account doInBackground(SyncAccountParameters... params) {
       SyncAccountParameters syncAccount = params[0];
       try {
-        return createSyncAccount(syncAccount);
+        return createSyncAccount(syncAccount, syncAutomatically);
       } catch (Exception e) {
         Log.e(Logger.GLOBAL_LOG_TAG, "Unable to create account.", e);
         return null;
@@ -167,7 +220,57 @@ public class SyncAccounts {
 
 
 
+
   public static Account createSyncAccount(SyncAccountParameters syncAccount) {
+    return createSyncAccount(syncAccount, true, true);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public static Account createSyncAccount(SyncAccountParameters syncAccount,
+      boolean syncAutomatically) {
+    return createSyncAccount(syncAccount, syncAutomatically, true);
+  }
+
+  public static Account createSyncAccountPreservingExistingPreferences(SyncAccountParameters syncAccount,
+      boolean syncAutomatically) {
+    return createSyncAccount(syncAccount, syncAutomatically, false);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  protected static Account createSyncAccount(SyncAccountParameters syncAccount,
+      boolean syncAutomatically, boolean clearPreferences) {
     final Context context = syncAccount.context;
     final AccountManager accountManager = (syncAccount.accountManager == null) ?
           AccountManager.get(syncAccount.context) : syncAccount.accountManager;
@@ -212,7 +315,10 @@ public class SyncAccounts {
     }
     Logger.debug(LOG_TAG, "Account " + account + " added successfully.");
 
-    setSyncAutomatically(account);
+    setSyncAutomatically(account, syncAutomatically);
+    setIsSyncable(account, syncAutomatically);
+    Logger.debug(LOG_TAG, "Set account to sync automatically? " + syncAutomatically + ".");
+
     setClientRecord(context, accountManager, account, syncAccount.clientName, syncAccount.clientGuid);
 
     
@@ -221,12 +327,17 @@ public class SyncAccounts {
 
     
     
-    Logger.info(LOG_TAG, "Clearing global prefs.");
-    SyncAdapter.purgeGlobalPrefs(context);
+    if (clearPreferences) {
+      Logger.info(LOG_TAG, "Clearing global prefs.");
+      SyncAdapter.purgeGlobalPrefs(context);
+    }
 
     try {
-      Logger.info(LOG_TAG, "Clearing preferences path " + Utils.getPrefsPath(username, serverURL) + " for this account.");
-      SharedPreferences.Editor editor = Utils.getSharedPreferences(context, username, serverURL).edit().clear();
+      SharedPreferences.Editor editor = Utils.getSharedPreferences(context, username, serverURL).edit();
+      if (clearPreferences) {
+        Logger.info(LOG_TAG, "Clearing preferences path " + Utils.getPrefsPath(username, serverURL) + " for this account.");
+        editor.clear();
+      }
       if (syncAccount.clusterURL != null) {
         editor.putString(SyncConfiguration.PREF_CLUSTER_URL, syncAccount.clusterURL);
       }
@@ -251,11 +362,6 @@ public class SyncAccounts {
     Logger.debug(LOG_TAG, "Setting authority " + authority + " to " +
                           (syncAutomatically ? "" : "not ") + "sync automatically.");
     ContentResolver.setSyncAutomatically(account, authority, syncAutomatically);
-  }
-
-  public static void setSyncAutomatically(Account account) {
-    setSyncAutomatically(account, true);
-    setIsSyncable(account, true);
   }
 
   public static Intent openSyncSettings(Context context) {
