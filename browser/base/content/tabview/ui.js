@@ -1002,7 +1002,7 @@ let UI = {
     };
     item.setBounds(new Rect(startPos.y, startPos.x, 0, 0));
 
-    var dragOutInfo = new Drag(item, e, true); 
+    var dragOutInfo = new Drag(item, e);
 
     function updateSize(e) {
       var box = new Rect();

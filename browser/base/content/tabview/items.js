@@ -223,7 +223,7 @@ Item.prototype = {
       start: function(e,ui) {
         if (this.isAGroupItem)
           GroupItems.setActiveGroupItem(this);
-        resize.info = new Drag(this, e, true); 
+        resize.info = new Drag(this, e);
       },
       resize: function(e,ui) {
         resize.info.snap(UI.rtl ? 'topright' : 'topleft', false, self.keepProportional);
@@ -568,9 +568,9 @@ Item.prototype = {
     Trenches.defaultRadius = 2 * defaultRadius; 
 
     var event = {startPosition:{}}; 
-    var FauxDragInfo = new Drag(this,event,false,true);
+    var FauxDragInfo = new Drag(this, event, true);
     
-    FauxDragInfo.snap('none',false);
+    FauxDragInfo.snap('none', false);
     FauxDragInfo.stop(immediately);
 
     Trenches.defaultRadius = defaultRadius;

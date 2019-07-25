@@ -68,12 +68,10 @@ var resize = {
 
 
 
-
-function Drag(item, event, isResizing, isFauxDrag) {
+function Drag(item, event, isFauxDrag) {
   Utils.assert(item && (item.isAnItem || item.isAFauxItem), 
       'must be an item, or at least a faux item');
 
-  this.isResizing = isResizing || false;
   this.item = item;
   this.el = item.container;
   this.$el = iQ(this.el);
