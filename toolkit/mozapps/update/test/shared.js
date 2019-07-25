@@ -12,6 +12,7 @@ const AUS_Cr = Components.results;
 const AUS_Cu = Components.utils;
 
 const PREF_APP_UPDATE_AUTO                = "app.update.auto";
+const PREF_APP_UPDATE_BACKGROUND          = "app.update.stage.enabled";
 const PREF_APP_UPDATE_BACKGROUNDERRORS    = "app.update.backgroundErrors";
 const PREF_APP_UPDATE_BACKGROUNDMAXERRORS = "app.update.backgroundMaxErrors";
 const PREF_APP_UPDATE_CERTS_BRANCH        = "app.update.certs.";
@@ -160,13 +161,24 @@ function setUpdateURLOverride(aURL) {
 
 
 
+function getUpdatesXMLFile(aIsActiveUpdate) {
+  var file = getUpdatesRootDir();
+  file.append(aIsActiveUpdate ? FILE_UPDATE_ACTIVE : FILE_UPDATES_DB);
+  return file;
+}
+
+
+
+
+
+
+
+
 
 
 
 function writeUpdatesToXMLFile(aContent, aIsActiveUpdate) {
-  var file = getCurrentProcessDir();
-  file.append(aIsActiveUpdate ? FILE_UPDATE_ACTIVE : FILE_UPDATES_DB);
-  writeFile(file, aContent);
+  writeFile(getUpdatesXMLFile(aIsActiveUpdate), aContent);
 }
 
 
@@ -205,8 +217,22 @@ function writeVersionFile(aVersion) {
 
 
 
+function getUpdatesRootDir() {
+  try {
+    return Services.dirsvc.get(XRE_UPDATE_ROOT_DIR, AUS_Ci.nsIFile);
+  } catch (e) {
+    
+    return getCurrentProcessDir();
+  }
+}
+
+
+
+
+
+
 function getUpdatesDir() {
-  var dir = getCurrentProcessDir();
+  var dir = getUpdatesRootDir();
   dir.append("updates");
   return dir;
 }
@@ -337,9 +363,7 @@ function getFileExtension(aFile) {
 
 
 function removeUpdateDirsAndFiles() {
-  var appDir = getCurrentProcessDir();
-  var file = appDir.clone();
-  file.append(FILE_UPDATE_ACTIVE);
+  var file = getUpdatesXMLFile(true);
   try {
     if (file.exists())
       file.remove(false);
@@ -349,8 +373,7 @@ function removeUpdateDirsAndFiles() {
          "\nException: " + e + "\n");
   }
 
-  file = appDir.clone();
-  file.append(FILE_UPDATES_DB);
+  file = getUpdatesXMLFile(false);
   try {
     if (file.exists())
       file.remove(false);
@@ -361,8 +384,7 @@ function removeUpdateDirsAndFiles() {
   }
 
   
-  var updatesDir = appDir.clone();
-  updatesDir.append("updates");
+  var updatesDir = getUpdatesDir();
   try {
     cleanUpdatesDir(updatesDir);
   }

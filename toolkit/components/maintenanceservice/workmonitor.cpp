@@ -88,6 +88,34 @@ IsStatusApplying(LPCWSTR updateDirPath, BOOL &isApplying)
 
 
 
+static BOOL
+GetInstallationDir(int argcTmp, LPWSTR *argvTmp, WCHAR aResultDir[MAX_PATH])
+{
+  if (argcTmp < 2) {
+    return FALSE;
+  }
+  wcscpy(aResultDir, argvTmp[2]);
+  WCHAR* backSlash = wcsrchr(aResultDir, L'\\');
+  
+  if (backSlash && (backSlash[1] == L'\0')) {
+    *backSlash = L'\0';
+  }
+  
+  bool backgroundUpdate = (argcTmp == 4 && !wcscmp(argvTmp[3], L"-1"));
+  bool replaceRequest = (argcTmp >= 4 && wcsstr(argvTmp[3], L"/replace"));
+  if (backgroundUpdate || replaceRequest) {
+    return PathRemoveFileSpecW(aResultDir);
+  }
+  return TRUE;
+}
+
+
+
+
+
+
+
+
 
 
 BOOL
@@ -256,6 +284,16 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
     return FALSE;
   }
 
+  WCHAR installDir[MAX_PATH] = {L'\0'};
+  if (!GetInstallationDir(argc, argv, installDir)) {
+    LOG(("Could not get the installation directory"));
+    if (!WriteStatusFailure(argv[1],
+                            SERVICE_INSTALLDIR_ERROR)) {
+      LOG(("Could not write update.status for GetInstallationDir failure.\n"));
+    }
+    return FALSE;
+  }
+
   
   
   
@@ -287,8 +325,8 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   
   
-  WCHAR installDirUpdater[MAX_PATH + 1];
-  wcsncpy(installDirUpdater, argv[2], MAX_PATH);
+  WCHAR installDirUpdater[MAX_PATH + 1] = {L'\0'};
+  wcsncpy(installDirUpdater, installDir, MAX_PATH);
   if (!PathAppendSafe(installDirUpdater, L"updater.exe")) {
     LOG(("Install directory updater could not be determined.\n"));
     result = FALSE;
@@ -356,7 +394,7 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   BOOL updaterSignProblem = FALSE;
 #ifndef DISABLE_UPDATER_AUTHENTICODE_CHECK
-  updaterSignProblem = !DoesBinaryMatchAllowedCertificates(argv[2],
+  updaterSignProblem = !DoesBinaryMatchAllowedCertificates(installDir,
                                                            argv[0]);
 #endif
 

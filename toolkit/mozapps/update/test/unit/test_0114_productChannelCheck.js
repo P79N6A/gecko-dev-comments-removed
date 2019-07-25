@@ -27,7 +27,10 @@ function run_test() {
   logTestInfo("testing updater binary process exitValue for failure when " +
               "applying a wrong product and channel MAR file");
   
-  do_check_eq(exitValue, 0);
+  
+  
+  
+  do_check_eq(exitValue, USE_EXECV ? 0 : 1);
   let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
 
   

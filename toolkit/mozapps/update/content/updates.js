@@ -15,6 +15,7 @@ const CoR = Components.results;
 
 const XMLNS_XUL               = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
+const PREF_APP_UPDATE_BACKGROUND         = "app.update.stage.enabled";
 const PREF_APP_UPDATE_BACKGROUNDERRORS   = "app.update.backgroundErrors";
 const PREF_APP_UPDATE_BILLBOARD_TEST_URL = "app.update.billboard.test_url";
 const PREF_APP_UPDATE_CERT_ERRORS        = "app.update.cert.errors";
@@ -35,6 +36,8 @@ const STATE_DOWNLOADING       = "downloading";
 const STATE_PENDING           = "pending";
 const STATE_PENDING_SVC       = "pending-service";
 const STATE_APPLYING          = "applying";
+const STATE_APPLIED           = "applied";
+const STATE_APPLIED_SVC       = "applied-service";
 const STATE_SUCCEEDED         = "succeeded";
 const STATE_DOWNLOAD_FAILED   = "download-failed";
 const STATE_FAILED            = "failed";
@@ -410,6 +413,8 @@ var gUpdates = {
           switch (state) {
           case STATE_PENDING:
           case STATE_PENDING_SVC:
+          case STATE_APPLIED:
+          case STATE_APPLIED_SVC:
             this.sourceEvent = SRCEVT_BACKGROUND;
             aCallback("finishedBackground");
             return;
@@ -1216,6 +1221,11 @@ var gDownloadingPage = {
   
 
 
+  _updateApplyingObserver: false,
+
+  
+
+
   onPageShow: function() {
     this._downloadStatus = document.getElementById("downloadStatus");
     this._downloadProgress = document.getElementById("downloadProgress");
@@ -1260,7 +1270,7 @@ var gDownloadingPage = {
         
         
         
-        this.removeDownloadListener();
+        this.cleanUp();
         gUpdates.wiz.goTo("errors");
         return;
       }
@@ -1350,10 +1360,28 @@ var gDownloadingPage = {
   
 
 
-  removeDownloadListener: function() {
+  _setUpdateApplying: function() {
+    this._downloadProgress.mode = "undetermined";
+    this._pauseButton.hidden = true;
+    let applyingStatus = gUpdates.getAUSString("applyingUpdate");
+    this._setStatus(applyingStatus);
+
+    Services.obs.addObserver(this, "update-staged", false);
+    this._updateApplyingObserver = true;
+  },
+
+  
+
+
+  cleanUp: function() {
     var aus = CoC["@mozilla.org/updates/update-service;1"].
               getService(CoI.nsIApplicationUpdateService);
     aus.removeDownloadListener(this);
+
+    if (this._updateApplyingObserver) {
+      Services.obs.removeObserver(this, "update-staged");
+      this._updateApplyingObserver = false;
+    }
   },
 
   
@@ -1384,7 +1412,7 @@ var gDownloadingPage = {
     if (this._hiding)
       return;
 
-    this.removeDownloadListener();
+    this.cleanUp();
   },
 
   
@@ -1398,7 +1426,7 @@ var gDownloadingPage = {
     
     
     
-    this.removeDownloadListener();
+    this.cleanUp();
 
     var aus = CoC["@mozilla.org/updates/update-service;1"].
               getService(CoI.nsIApplicationUpdateService);
@@ -1532,7 +1560,7 @@ var gDownloadingPage = {
           (u.isCompleteUpdate || u.patchCount != 2)) {
         
         
-        this.removeDownloadListener();
+        this.cleanUp();
         gUpdates.wiz.goTo("errors");
         break;
       }
@@ -1551,15 +1579,36 @@ var gDownloadingPage = {
       break;
     case CoR.NS_OK:
       LOG("gDownloadingPage", "onStopRequest - patch verification succeeded");
-      this.removeDownloadListener();
-      gUpdates.wiz.goTo("finished");
+      
+      
+      if (getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false)) {
+        this._setUpdateApplying();
+      } else {
+        this.cleanUp();
+        gUpdates.wiz.goTo("finished");
+      }
       break;
     default:
       LOG("gDownloadingPage", "onStopRequest - transfer failed");
       
-      this.removeDownloadListener();
+      this.cleanUp();
       gUpdates.wiz.goTo("errors");
       break;
+    }
+  },
+
+  
+
+
+  observe: function(aSubject, aTopic, aData) {
+    if (aTopic == "update-staged") {
+      this.cleanUp();
+      if (aData == STATE_APPLIED ||
+          aData == STATE_APPLIED_SVC) {
+        gUpdates.wiz.goTo("finished");
+      } else {
+        gUpdates.wiz.goTo("errors");
+      }
     }
   },
 
@@ -1569,6 +1618,7 @@ var gDownloadingPage = {
   QueryInterface: function(iid) {
     if (!iid.equals(CoI.nsIRequestObserver) &&
         !iid.equals(CoI.nsIProgressEventSink) &&
+        !iid.equals(CoI.nsIObserver) &&
         !iid.equals(CoI.nsISupports))
       throw CoR.NS_ERROR_NO_INTERFACE;
     return this;
