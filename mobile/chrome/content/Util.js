@@ -161,29 +161,15 @@ let Util = {
     return (!appInfo || appInfo.getService(Ci.nsIXULRuntime).processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT);
   },
 
-  isTablet: function isTablet(options) {
-    let forceUpdate = options && 'forceUpdate' in options && options.forceUpdate;
-
-    if ('_isTablet' in this && !forceUpdate)
-      return this._isTablet;
-
-    let tabletPref = Services.prefs.getIntPref("browser.ui.layout.tablet");
-
-    
-    
-    if (tabletPref == 0)
-      return this._isTablet = false;
-    else if (tabletPref == 1)
-      return this._isTablet = true;
-
+  isTablet: function isTablet() {
     let dpi = this.displayDPI;
     if (dpi <= 96)
-      return this._isTablet = (window.innerWidth > 1024);
+      return (window.innerWidth > 1024);
 
     
     let tablet_panel_minwidth = 124;
     let dpmm = 25.4 * window.innerWidth / dpi;
-    return this._isTablet = (dpmm >= tablet_panel_minwidth);
+    return (dpmm >= tablet_panel_minwidth);
   },
 
   isPortrait: function isPortrait() {
