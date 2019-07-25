@@ -2567,6 +2567,13 @@ var BrowserEventHandler = {
       
       
       let data = JSON.parse(aData);
+
+      
+      
+      
+      data.x = Math.round(data.x);
+      data.y = Math.round(data.y);
+
       if (this._firstScrollEvent) {
         while (this._scrollableElement != null && !this._elementCanScroll(this._scrollableElement, data.x, data.y))
           this._scrollableElement = this._findScrollableElement(this._scrollableElement, false);
@@ -2829,24 +2836,11 @@ var BrowserEventHandler = {
   },
 
   _elementCanScroll: function(elem, x, y) {
-    let scrollX = true;
-    let scrollY = true;
+    let scrollX = (x < 0 && elem.scrollLeft > 0)
+               || (x > 0 && elem.scrollLeft < (elem.scrollWidth - elem.clientWidth));
 
-    if (x < 0) {
-      if (elem.scrollLeft <= 0) {
-        scrollX = false;
-      }
-    } else if (elem.scrollLeft >= (elem.scrollWidth - elem.clientWidth)) {
-      scrollX = false;
-    }
-
-    if (y < 0) {
-      if (elem.scrollTop <= 0) {
-        scrollY = false;
-      }
-    } else if (elem.scrollTop >= (elem.scrollHeight - elem.clientHeight)) {
-      scrollY = false;
-    }
+    let scrollY = (y < 0 && elem.scrollTop > 0)
+               || (y > 0 && elem.scrollTop < (elem.scrollHeight - elem.clientHeight));
 
     return scrollX || scrollY;
   }
