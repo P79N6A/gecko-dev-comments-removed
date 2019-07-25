@@ -321,7 +321,9 @@ let TabView = {
   
   moveToGroupPopupShowing: function TabView_moveToGroupPopupShowing(event) {
     
-    if ((gBrowser.tabs.length - gBrowser.visibleTabs.length) > 0)
+    
+    let numHiddenTabs = gBrowser.tabs.length - gBrowser.visibleTabs.length;
+    if (this._window || numHiddenTabs > 0)
       this.updateContextMenu(TabContextMenu.contextTab, event.target);
   },
 
