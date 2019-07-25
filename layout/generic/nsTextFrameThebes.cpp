@@ -608,61 +608,20 @@ PRInt32 nsTextFrame::GetContentEnd() const {
   return next ? next->GetContentOffset() : mContent->GetText()->GetLength();
 }
 
-struct FlowLengthProperty {
-  PRInt32 mStartOffset;
-  
-  
-  PRInt32 mEndFlowOffset;
-
-  static void Destroy(void* aObject, nsIAtom* aPropertyName,
-                      void* aPropertyValue, void* aData)
-  {
-    delete static_cast<FlowLengthProperty*>(aPropertyValue);
-  }
-};
-
 PRInt32 nsTextFrame::GetInFlowContentLength() {
-  if (!(mState & NS_FRAME_IS_BIDI)) {
-    return mContent->TextLength() - mContentOffset;
-  }
-
+#ifdef IBMBIDI
   nsTextFrame* nextBidi = nsnull;
-  PRInt32      start = -1, end, endFlow;
-  FlowLengthProperty* flowLength =
-    static_cast<FlowLengthProperty*>(mContent->GetProperty(nsGkAtoms::flowlength));
+  PRInt32      start = -1, end;
 
-  if (flowLength && flowLength->mStartOffset <= mContentOffset &&
-      flowLength->mEndFlowOffset > mContentOffset) {
-#ifdef DEBUG
-    GetOffsets(start, end);
-    NS_ASSERTION(flowLength->mEndFlowOffset >= end,
-                 "frame crosses fixed continuation boundary");
-#endif
-    return flowLength->mEndFlowOffset - mContentOffset;
-  }
-
-  nextBidi = static_cast<nsTextFrame*>(GetLastInFlow()->GetNextContinuation());
-  if (nextBidi) {
-    nextBidi->GetOffsets(start, end);
-    endFlow = start;
-  } else {
-    endFlow = mContent->TextLength();
-  }
-
-  if (!flowLength) {
-    flowLength = new FlowLengthProperty;
-    if (NS_FAILED(mContent->SetProperty(nsGkAtoms::flowlength, flowLength,
-                                        FlowLengthProperty::Destroy))) {
-      delete flowLength;
-      flowLength = nsnull;
+  if (mState & NS_FRAME_IS_BIDI) {
+    nextBidi = static_cast<nsTextFrame*>(GetLastInFlow()->GetNextContinuation());
+    if (nextBidi) {
+      nextBidi->GetOffsets(start, end);
+      return start - mContentOffset;
     }
   }
-  if (flowLength) {
-    flowLength->mStartOffset = mContentOffset;
-    flowLength->mEndFlowOffset = endFlow;
-  }
-
-  return endFlow - mContentOffset;
+#endif 
+  return mContent->TextLength() - mContentOffset;
 }
 
 
@@ -1186,7 +1145,6 @@ BuildTextRuns(gfxContext* aContext, nsTextFrame* aForFrame,
   }
 
   nsPresContext* presContext = aLineContainer->PresContext();
-  nsStyleContext* sc = aForFrame->GetStyleContext();
   BuildTextRunsScanner scanner(presContext, aContext, aLineContainer);
 
   nsBlockFrame* block = nsLayoutUtils::GetAsBlock(aLineContainer);
@@ -3694,9 +3652,6 @@ nsTextFrame::Init(nsIContent*      aContent,
   
   
   aContent->DeleteProperty(nsGkAtoms::newline);
-  if (PresContext()->BidiEnabled()) {
-    aContent->DeleteProperty(nsGkAtoms::flowlength);
-  }
 
   
   aContent->UnsetFlags(NS_CREATE_FRAME_IF_NON_WHITESPACE);
@@ -4088,9 +4043,6 @@ NS_IMETHODIMP
 nsTextFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
   mContent->DeleteProperty(nsGkAtoms::newline);
-  if (PresContext()->BidiEnabled()) {
-    mContent->DeleteProperty(nsGkAtoms::flowlength);
-  }
 
   
   
@@ -7516,7 +7468,6 @@ void
 nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
 {
   AddStateBits(NS_FRAME_IS_BIDI);
-  mContent->DeleteProperty(nsGkAtoms::flowlength);
 
   
 
