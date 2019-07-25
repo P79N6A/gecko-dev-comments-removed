@@ -862,7 +862,7 @@ const nsHTMLElement gHTMLElements[] = {
               &gRootTags,&gRootTags,
      0,0,0,0,
               kFlowEntity, kNone, kNone,
-           kNonContainer,kDefaultPropRange,
+           0,kDefaultPropRange,
                 0,0,
   },
   {
