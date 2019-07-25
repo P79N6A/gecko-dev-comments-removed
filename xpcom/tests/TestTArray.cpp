@@ -865,6 +865,42 @@ static bool test_swap() {
   return true;
 }
 
+static bool test_fallible()
+{
+  
+  
+  
+  
+  
+  if (sizeof(void*) > 4) {
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  const int numArrays = 9;
+  FallibleTArray<char> arrays[numArrays];
+  for (PRUint32 i = 0; i < numArrays; i++) {
+    bool success = arrays[i].SetCapacity(512 * 1024 * 1024);
+    if (!success) {
+      
+      if (i < 2) {
+        printf("test_fallible: Got OOM on iteration %d.  Too early!\n", i);
+        return false;
+      }
+      return true;
+    }
+  }
+
+  
+  printf("test_fallible: Didn't OOM or crash?  nsTArray::SetCapacity "
+         "must be lying.\n");
+  return false;
+}
+
 
 
 typedef bool (*TestFunc)();
@@ -889,6 +925,7 @@ static const struct Test {
   DECL_TEST(test_indexof),
   DECL_TEST(test_heap),
   DECL_TEST(test_swap),
+  DECL_TEST(test_fallible),
   { nsnull, nsnull }
 };
 
