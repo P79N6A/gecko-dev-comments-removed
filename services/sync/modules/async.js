@@ -75,25 +75,31 @@ let gCurrentId = 0;
 let gCurrentCbId = 0;
 let gOutstandingGenerators = new NamableTracker();
 
-function AsyncException(initFrame, message) {
-  this.message = message;
-  this._traceback = initFrame;
+
+
+
+
+
+
+function AsyncException(asyncStack, exceptionToWrap) {
+  this._exceptionToWrap = exceptionToWrap;
+  this._asyncStack = asyncStack;
+
+  
+  
+  
+  this.__proto__ = {
+    get asyncStack() {
+      return this._asyncStack;
+    },
+
+    addAsyncFrame: function AsyncException_addAsyncFrame(frame) {
+      this._asyncStack += ((this._asyncStack? "\n" : "") +
+                           formatAsyncFrame(frame));
+    }
+  };
+  this.__proto__.__proto__ = this._exceptionToWrap;
 }
-AsyncException.prototype = {
-  get message() { return this._message; },
-  set message(value) { this._message = value; },
-
-  get traceback() { return this._traceback; },
-  set traceback(value) { this._traceback = value; },
-
-  addFrame: function AsyncException_addFrame(frame) {
-    this.traceback += (this.traceback? "\n" : "") + formatFrame(frame);
-  },
-
-  toString: function AsyncException_toString() {
-    return this.message;
-  }
-};
 
 function Generator(thisArg, method, onComplete, args) {
   this._outstandingCbs = 0;
@@ -123,7 +129,7 @@ Generator.prototype = {
     let cbId = gCurrentCbId++;
     this._outstandingCbs++;
     this._log.trace(this.name + ": cb-" + cbId + " generated at:\n" +
-                    formatFrame(caller));
+                    formatAsyncFrame(caller));
     let self = this;
     let cb = function(data) {
       self._log.trace(self.name + ": cb-" + cbId + " called.");
@@ -161,8 +167,9 @@ Generator.prototype = {
     this._onComplete = value;
   },
 
-  get traceback() {
-    return "unknown (async) :: " + this.name + "\n" + traceAsyncFrame(this._initFrame);
+  get asyncStack() {
+    return ("unknown (async) :: " + this.name + "\n" +
+            traceAsyncFrame(this._initFrame));
   },
 
   _handleException: function AsyncGen__handleException(e) {
@@ -177,17 +184,17 @@ Generator.prototype = {
         if (e instanceof AsyncException) {
           
           
-          if (e.traceback.indexOf(formatFrame(this._initFrame)) == -1)
-            e.addFrame(this._initFrame);
+          if (e.asyncStack.indexOf(formatAsyncFrame(this._initFrame)) == -1)
+            e.addAsyncFrame(this._initFrame);
         } else {
-          e = new AsyncException(this.traceback, e);
+          e = new AsyncException(this.asyncStack, e);
         }
 
       this._exception = e;
 
     } else {
       this._log.error("Exception: " + Utils.exceptionStr(e));
-      this._log.debug("Stack trace:\n" + (e.traceback? e.traceback : this.traceback));
+      this._log.debug("Stack trace:\n" + Utils.stackTrace(e));
     }
 
     
@@ -264,7 +271,7 @@ Generator.prototype = {
     if (!this._generator) {
       this._log.error("Async method '" + this.name + "' is missing a 'yield' call " +
                       "(or called done() after being finalized)");
-      this._log.trace("Initial stack trace:\n" + this.traceback);
+      this._log.trace("Initial async stack trace:\n" + this.asyncStack);
     } else {
       this._generator.close();
     }
@@ -282,20 +289,18 @@ Generator.prototype = {
         this._log.error("Exception caught from onComplete handler of " +
                         this.name + " generator");
         this._log.error("Exception: " + Utils.exceptionStr(e));
-        this._log.trace("Current stack trace:\n" + traceAsyncFrame(Components.stack));
-        this._log.trace("Initial stack trace:\n" + this.traceback);
+        this._log.trace("Current stack trace:\n" + Utils.stackTrace(e));
+        this._log.trace("Initial async stack trace:\n" + this.asyncStack);
       }
     }
     gOutstandingGenerators.remove(this);
   }
 };
 
-function formatFrame(frame) {
+function formatAsyncFrame(frame) {
   
   
-  let tmp = "<file:unknown>";
-  if (frame.filename)
-    tmp = frame.filename.replace(/^file:\/\/.*\/([^\/]+.js)$/, "module:$1");
+  let tmp = frame.filename.replace(/^file:\/\/.*\/([^\/]+.js)$/, "module:$1");
   tmp += ":" + frame.lineNumber + " :: " + frame.name;
   return tmp;
 }
@@ -311,7 +316,7 @@ function traceAsyncFrame(frame, str) {
 
   if (frame.caller)
     str = traceAsyncFrame(frame.caller, str);
-  str = formatFrame(frame) + (str? "\n" : "") + str;
+  str = formatAsyncFrame(frame) + (str? "\n" : "") + str;
 
   return str;
 }
@@ -352,8 +357,4 @@ Async = {
     args.unshift(thisArg, this);
     Async.run.apply(Async, args);
   },
-
-  exceptionStr: function Async_exceptionStr(gen, ex) {
-    return "Exception caught in " + gen.name + ": " + Utils.exceptionStr(ex);
-  }
 };
