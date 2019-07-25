@@ -422,12 +422,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         }
         else {
             LOG(("SSL proxy CONNECT failed!\n"));
-            
-            
-            
-            nsHttpTransaction *trans =
-                    static_cast<nsHttpTransaction *>(mTransaction.get());
-            trans->SetSSLConnectFailed();
+            mTransaction->SetSSLConnectFailed();
         }
     }
 
@@ -727,19 +722,14 @@ nsHttpConnection::SetupSSLProxyConnect()
     
     request.SetHeader(nsHttp::Proxy_Connection, NS_LITERAL_CSTRING("keep-alive"));
 
-    
-    
-    nsHttpTransaction *trans =
-        static_cast<nsHttpTransaction *>(mTransaction.get());
-    
-    val = trans->RequestHead()->PeekHeader(nsHttp::Host);
+    val = mTransaction->RequestHead()->PeekHeader(nsHttp::Host);
     if (val) {
         
         
         request.SetHeader(nsHttp::Host, nsDependentCString(val));
     }
 
-    val = trans->RequestHead()->PeekHeader(nsHttp::Proxy_Authorization);
+    val = mTransaction->RequestHead()->PeekHeader(nsHttp::Proxy_Authorization);
     if (val) {
         
         

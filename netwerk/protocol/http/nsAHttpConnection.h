@@ -44,6 +44,7 @@ class nsAHttpTransaction;
 class nsHttpRequestHead;
 class nsHttpResponseHead;
 class nsHttpConnectionInfo;
+class nsHttpConnection;
 
 
 
@@ -110,6 +111,10 @@ public:
     
     virtual PRBool LastTransactionExpectedNoContent() = 0;
     virtual void   SetLastTransactionExpectedNoContent(PRBool) = 0;
+
+    
+    
+    virtual nsHttpConnection *TakeHttpConnection() = 0;
 };
 
 #define NS_DECL_NSAHTTPCONNECTION \
@@ -123,6 +128,7 @@ public:
     PRBool IsReused(); \
     nsresult PushBack(const char *, PRUint32); \
     PRBool LastTransactionExpectedNoContent(); \
-    void   SetLastTransactionExpectedNoContent(PRBool);
+    void   SetLastTransactionExpectedNoContent(PRBool); \
+    nsHttpConnection *TakeHttpConnection();
 
 #endif 

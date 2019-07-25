@@ -876,22 +876,18 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
         mCT.Put(&key, ent);
     }
 
-    nsHttpConnection *conn;
+    
+    
+    
+    
 
-    
-    
-    
-    nsConnectionHandle *handle = (nsConnectionHandle *) trans->Connection();
-    if (handle) {
+    nsAHttpConnection *wrappedConnection = trans->Connection();
+    nsHttpConnection  *conn;
+    conn = wrappedConnection ? wrappedConnection->TakeHttpConnection() : nsnull;
+
+    if (conn) {
         NS_ASSERTION(caps & NS_HTTP_STICKY_CONNECTION, "unexpected caps");
-        NS_ASSERTION(handle->mConn, "no connection");
 
-        
-        
-        conn = handle->mConn;
-        handle->mConn = nsnull;
-
-        
         trans->SetConnection(nsnull);
     }
     else
@@ -1511,6 +1507,19 @@ nsHttpConnectionMgr::nsHalfOpenSocket::GetInterface(const nsIID &iid,
             return callbacks->GetInterface(iid, result);
     }
     return NS_ERROR_NO_INTERFACE;
+}
+
+
+nsHttpConnection *
+nsHttpConnectionMgr::nsConnectionHandle::TakeHttpConnection()
+{
+    
+    
+
+    NS_ASSERTION(mConn, "no connection");
+    nsHttpConnection *conn = mConn;
+    mConn = nsnull;
+    return conn;
 }
 
 PRBool

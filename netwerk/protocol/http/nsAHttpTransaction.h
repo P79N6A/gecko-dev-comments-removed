@@ -45,6 +45,7 @@ class nsAHttpSegmentReader;
 class nsAHttpSegmentWriter;
 class nsIInterfaceRequestor;
 class nsIEventTarget;
+class nsHttpRequestHead;
 
 
 
@@ -86,6 +87,12 @@ public:
 
     
     virtual void Close(nsresult reason) = 0;
+
+    
+    virtual void SetSSLConnectFailed() = 0;
+    
+    
+    virtual nsHttpRequestHead *RequestHead() = 0;
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -98,7 +105,9 @@ public:
     PRUint32 Available(); \
     nsresult ReadSegments(nsAHttpSegmentReader *, PRUint32, PRUint32 *); \
     nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *); \
-    void     Close(nsresult reason);
+    void     Close(nsresult reason);                                    \
+    void     SetSSLConnectFailed();                                     \
+    nsHttpRequestHead *RequestHead();
 
 
 
