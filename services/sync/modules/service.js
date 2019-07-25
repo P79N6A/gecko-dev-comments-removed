@@ -943,6 +943,9 @@ WeaveSvc.prototype = {
       this.persistLogin();
 
       
+      this.resetClient();
+
+      
       this.login();
       this.sync(true);
       return true;
@@ -953,14 +956,13 @@ WeaveSvc.prototype = {
     Status.login = LOGIN_FAILED_NO_USERNAME;
     this.logout();
     
+    
     this.resetClient();
+    
     
     this._ignorePrefObserver = true;
     Svc.Prefs.resetBranch("");
     this._ignorePrefObserver = false;
-    
-    
-    CollectionKeys.clear();
     
     Svc.Prefs.set("lastversion", WEAVE_VERSION);
     
@@ -1981,6 +1983,9 @@ WeaveSvc.prototype = {
       
       for each (let engine in engines)
         engine.resetClient();
+      
+      
+      CollectionKeys.clear();
     }))(),
 
   
