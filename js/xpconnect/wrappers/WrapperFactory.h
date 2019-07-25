@@ -51,7 +51,13 @@ class WrapperFactory {
            IS_XRAY_WRAPPER_FLAG    = WAIVE_XRAY_WRAPPER_FLAG << 1,
            SCRIPT_ACCESS_ONLY_FLAG = IS_XRAY_WRAPPER_FLAG << 1,
            PARTIALLY_TRANSPARENT   = SCRIPT_ACCESS_ONLY_FLAG << 1,
-           SOW_FLAG                = PARTIALLY_TRANSPARENT << 1 };
+           SOW_FLAG                = PARTIALLY_TRANSPARENT << 1,
+
+           
+           
+           
+           
+           SHADOWING_FORBIDDEN     = SOW_FLAG << 1 };
 
     
     static bool HasWrapperFlag(JSObject *wrapper, unsigned flag) {
@@ -70,6 +76,10 @@ class WrapperFactory {
 
     static bool HasWaiveXrayFlag(JSObject *wrapper) {
         return HasWrapperFlag(wrapper, WAIVE_XRAY_WRAPPER_FLAG);
+    }
+
+    static bool IsShadowingForbidden(JSObject *wrapper) {
+        return HasWrapperFlag(wrapper, SHADOWING_FORBIDDEN);
     }
 
     static JSObject *WaiveXray(JSContext *cx, JSObject *obj);
