@@ -34,6 +34,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['Weave'];
 
 const Cc = Components.classes;
@@ -130,8 +131,6 @@ function WeaveSvc() {
     this._log.info("Weave Sync disabled");
     return;
   }
-
-  this._setSchedule(this.schedule);
 }
 WeaveSvc.prototype = {
 
@@ -139,6 +138,7 @@ WeaveSvc.prototype = {
   _lock: Wrap.lock,
   _localLock: Wrap.localLock,
   _osPrefix: "weave:service:",
+  _loggedIn: false,
 
   __os: null,
   get _os() {
@@ -464,11 +464,14 @@ WeaveSvc.prototype = {
 
     this._loggedIn = true;
 
+    this._setSchedule(this.schedule);
+
     self.done(true);
   },
 
   logout: function WeaveSync_logout() {
     this._log.info("Logging out");
+    this._disableSchedule();
     this._loggedIn = false;
     ID.get('WeaveID').setTempPassword(null); 
     ID.get('WeaveCryptoID').setTempPassword(null); 
