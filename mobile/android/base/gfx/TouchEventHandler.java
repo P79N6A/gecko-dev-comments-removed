@@ -145,6 +145,11 @@ public final class TouchEventHandler implements Tabs.OnTabsChangedListener {
         if (isDownEvent(event)) {
             
             mHoldInQueue = mWaitForTouchListeners;
+
+            
+            
+            
+            mDispatchEvents = true;
             if (mHoldInQueue) {
                 
                 
