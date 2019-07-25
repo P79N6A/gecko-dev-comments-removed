@@ -36,11 +36,13 @@
 
 
 
-#ifndef _nsOuterDocAccessible_H_
-#define _nsOuterDocAccessible_H_
+#ifndef MOZILLA_A11Y_OUTERDOCACCESSIBLE_H_
+#define MOZILLA_A11Y_OUTERDOCACCESSIBLE_H_
 
 #include "nsAccessibleWrap.h"
 
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -50,10 +52,12 @@
 
 
 
-class nsOuterDocAccessible : public nsAccessibleWrap
+
+class OuterDocAccessible : public nsAccessibleWrap
 {
 public:
-  nsOuterDocAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  OuterDocAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  virtual ~OuterDocAccessible();
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -82,5 +86,8 @@ protected:
   
   virtual void CacheChildren();
 };
+
+} 
+} 
 
 #endif  
