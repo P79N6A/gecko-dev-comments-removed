@@ -129,9 +129,7 @@ nsDeque::~nsDeque() {
 
 
 void nsDeque::SetDeallocator(nsDequeFunctor* aDeallocator){
-  if (mDeallocator) {
-    delete mDeallocator;
-  }
+  delete mDeallocator;
   mDeallocator=aDeallocator;
 }
 

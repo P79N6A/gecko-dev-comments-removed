@@ -71,8 +71,7 @@ nsXULControllers::DeleteControllers()
   for (PRUint32 i = 0; i < count; i++)
   {
     nsXULControllerData* controllerData = mControllers.ElementAt(i);
-    if (controllerData)
-      delete controllerData;    
+    delete controllerData;    
   }
   
   mControllers.Clear();
