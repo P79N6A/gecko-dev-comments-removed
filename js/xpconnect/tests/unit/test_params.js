@@ -54,24 +54,23 @@ function test_component(contractid) {
   var o = Cc[contractid].createInstance(Ci["nsIXPCTestParams"]);
 
   
+  var standardComparator = function(a,b) {return a == b;};
+  var fuzzComparator = function(a,b) {return Math.abs(a - b) < 0.1;};
+
+  
   
   
   
   
   function doTest(name, val1, val2, comparator) {
+    if (!comparator)
+      comparator = standardComparator;
     var a = val1;
     var b = {value: val2};
     var rv = o[name].call(o, a, b);
-    if (comparator) {
-      do_check_true(comparator(rv, val2));
-      do_check_true(comparator(val1, b.value));
-    }
-    else {
-      do_check_eq(rv, val2);
-      do_check_eq(val1, b.value);
-    }
+    do_check_true(comparator(rv, val2));
+    do_check_true(comparator(val1, b.value));
   };
-  var fuzzComparator = function(a,b) {return Math.abs(a - b) < 0.1;};
 
   
   
