@@ -54,10 +54,12 @@ class gfxContext;
 namespace mozilla {
 namespace layers {
 class CompositorChild;
+class CompositorParent;
 }
 }
 
 using mozilla::layers::CompositorChild;
+using mozilla::layers::CompositorParent;
 
 
 
@@ -277,6 +279,7 @@ protected:
   nsRefPtr<LayerManager> mLayerManager;
   nsRefPtr<LayerManager> mBasicLayerManager;
   nsRefPtr<CompositorChild> mCompositor;
+  nsRefPtr<CompositorParent> mCompositorParent;
   nscolor           mBackground;
   nscolor           mForeground;
   nsCursor          mCursor;
