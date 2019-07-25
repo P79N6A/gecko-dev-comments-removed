@@ -1439,7 +1439,7 @@ function prepareForStartup() {
   }
 
   
-  gBrowser.addProgressListener(window.XULBrowserWindow, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+  gBrowser.addProgressListener(window.XULBrowserWindow);
   gBrowser.addTabsProgressListener(window.TabsProgressListener);
 
   
