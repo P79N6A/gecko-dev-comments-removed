@@ -428,6 +428,14 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     if (!newType) {
         if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
             *pret = jit->invokeEntry;
+
+            
+
+
+
+
+            f.regs.sp = (Value *) f.regs.fp;
+            f.regs.fp = f.regs.fp->prev();
             return true;
         }
     }
