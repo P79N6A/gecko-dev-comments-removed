@@ -644,7 +644,7 @@ var Browser = {
     
     if (device == "Nokia N8xx") {
       gPrefService.setBoolPref("plugins.enabled", false);
-      this.setPluginState(true);
+      this.setPluginState(false);
     }
 #endif
     
