@@ -808,10 +808,14 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
   
   
+  
+  
   hideExpandControl: function(){
     this.$expander.hide();
   },
 
+  
+  
   
   showExpandControl: function(){
     var childBB = this.getChild(0).getBounds();
