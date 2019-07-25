@@ -209,6 +209,7 @@ class DeviceManagerSUT(DeviceManager):
         found = False
         loopguard = 0
         data = ""
+        commandFailed = False
 
         while (found == False and (loopguard < recvGuard)):
           temp = ''
@@ -232,10 +233,12 @@ class DeviceManagerSUT(DeviceManager):
 
           
           
-          errorMatch = self.agentErrorRE.match(data)
-          if errorMatch:
-            raise AgentError("Agent Error processing command '%s'; err='%s'" %
-                             (cmd['cmd'], errorMatch.group(1)), fatal=True)
+          if not commandFailed:
+            errorMatch = self.agentErrorRE.match(data)
+            if errorMatch:
+              
+              
+              commandFailed = True
 
           for line in data.splitlines():
             if promptre.match(line):
@@ -253,6 +256,10 @@ class DeviceManagerSUT(DeviceManager):
           
           if (temp == ''):
             loopguard += 1
+
+        if commandFailed:
+          raise AgentError("Agent Error processing command '%s'; err='%s'" %
+                           (cmd['cmd'], errorMatch.group(1)), fatal=True)
 
         
         outputfile.write(data)
