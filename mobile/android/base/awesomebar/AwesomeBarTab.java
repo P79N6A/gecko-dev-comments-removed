@@ -112,7 +112,7 @@ abstract public class AwesomeBarTab {
         
         if (TextUtils.isEmpty(title)) {
             int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
-            title = cursor.getString(urlIndex);
+            title = StringUtils.prettyURL(cursor.getString(urlIndex));
         }
 
         titleView.setText(title);
@@ -122,7 +122,7 @@ abstract public class AwesomeBarTab {
         int urlIndex = cursor.getColumnIndexOrThrow(URLColumns.URL);
         String url = cursor.getString(urlIndex);
 
-        urlView.setText(url);
+        urlView.setText(StringUtils.prettyURL(url));
     }
 
     protected boolean hideSoftInput(View view) {
