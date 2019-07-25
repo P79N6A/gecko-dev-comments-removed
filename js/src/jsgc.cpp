@@ -253,6 +253,15 @@ checkArenaListsForThing(JSCompartment *comp, void *thing) {
 
     return false;
 }
+
+bool
+checkArenaListAllUnmarked(JSCompartment *comp) {
+    for (unsigned i = 0; i < FINALIZE_LIMIT; i++) {
+        if (comp->arenas[i].markedThingsInArenaList())
+            return false;
+    }
+    return true;
+}
 #endif
 
 } 
@@ -323,8 +332,9 @@ Chunk::allocateArena(JSCompartment *comp, unsigned thingKind)
 
     JSRuntime *rt = info.runtime;
     rt->gcBytes += sizeof(Arena<T>);
-    if (rt->gcBytes >= rt->gcTriggerBytes)
-        TriggerGC(rt);
+    comp->gcBytes += sizeof(Arena<T>);
+    if (comp->gcBytes >= comp->gcTriggerBytes)
+        TriggerCompartmentGC(comp);
     METER(rt->gcStats.nallarenas++);
     return arena;
 }
@@ -334,12 +344,15 @@ void
 Chunk::releaseArena(Arena<T> *arena)
 {
     JSRuntime *rt = info.runtime;
+    JSCompartment *comp = arena->header()->compartment;
     METER(rt->gcStats.afree++);
     JS_ASSERT(rt->gcStats.nallarenas != 0);
     METER(rt->gcStats.nallarenas--);
     JS_ASSERT(rt->gcBytes >= sizeof(Arena<T>));
+    JS_ASSERT(comp->gcBytes >= sizeof(Arena<T>));
 
     rt->gcBytes -= sizeof(Arena<T>);
+    comp->gcBytes -= sizeof(Arena<T>);
     info.emptyArenaLists.insert((Arena<Cell> *)arena);
     arena->header()->isUsed = false;
     ++info.numFree;
@@ -476,9 +489,16 @@ AllocateArena(JSContext *cx, unsigned thingKind)
 }
 
 JS_FRIEND_API(bool)
-IsAboutToBeFinalized(void *thing)
+IsAboutToBeFinalized(JSContext *cx, void *thing)
 {
     if (JSString::isStatic(thing))
+        return false;
+    JS_ASSERT(cx);
+
+    JSCompartment *thingCompartment = reinterpret_cast<Cell *>(thing)->compartment();
+    JSRuntime *rt = cx->runtime;
+
+    if (rt->gcCurrentCompartment != NULL && rt->gcCurrentCompartment != thingCompartment)
         return false;
 
     return !reinterpret_cast<Cell *>(thing)->isMarked();
@@ -540,6 +560,8 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
     rt->gcTriggerFactor = uint32(100.0f * GC_HEAP_GROWTH_FACTOR);
 
+    rt->defaultCompartment->setGCLastBytes(8192);
+    
     
 
 
@@ -1001,6 +1023,11 @@ JSRuntime::setGCTriggerFactor(uint32 factor)
 
     gcTriggerFactor = factor;
     setGCLastBytes(gcLastBytes);
+
+    for (JSCompartment **c = compartments.begin(); c != compartments.end(); ++c) {
+        (*c)->setGCLastBytes(gcLastBytes);
+    }
+    defaultCompartment->setGCLastBytes(gcLastBytes);
 }
 
 void
@@ -1014,6 +1041,19 @@ JSRuntime::setGCLastBytes(size_t lastBytes)
                      GC_HEAP_GROWTH_FACTOR;
     float maxtriger = Max(trigger1, trigger2);
     gcTriggerBytes = (float(gcMaxBytes) < maxtriger) ? gcMaxBytes : size_t(maxtriger);
+}
+
+void
+JSCompartment::setGCLastBytes(size_t lastBytes)
+{
+    gcLastBytes = lastBytes;
+
+    
+    float trigger1 = float(lastBytes) * float(rt->gcTriggerFactor) / 100.0f;
+    float trigger2 = float(Max(lastBytes, GC_ARENA_ALLOCATION_TRIGGER)) *
+                     GC_HEAP_GROWTH_FACTOR;
+    float maxtriger = Max(trigger1, trigger2);
+    gcTriggerBytes = (float(rt->gcMaxBytes) < maxtriger) ? rt->gcMaxBytes : size_t(maxtriger);
 }
 
 void
@@ -1055,7 +1095,7 @@ NeedLastDitchGC(JSContext *cx)
     if (rt->gcZeal >= 1)
         return true;
 #endif
-    return !!rt->gcIsNeeded;
+    return rt->gcIsNeeded;
 }
 
 
@@ -1074,7 +1114,7 @@ RunLastDitchGC(JSContext *cx)
 #endif
     
     AutoKeepAtoms keep(rt);
-    js_GC(cx, GC_NORMAL);
+    js_GC(cx, rt->gcTriggerCompartment, GC_NORMAL);
 
     return rt->gcBytes < rt->gcMaxBytes;
 }
@@ -1615,7 +1655,7 @@ MarkRuntime(JSTracer *trc)
 
 
     JSContext *iter;
-#if 1
+#if 0
     iter = NULL;
     while (JSContext *acx = js_ContextIterator(rt, JS_TRUE, &iter)) {
         for (AutoGCRooter *gcr = acx->autoGCRooters; gcr; gcr = gcr->down) {
@@ -1736,7 +1776,71 @@ TriggerGC(JSRuntime *rt)
 
 
     rt->gcIsNeeded = true;
+    rt->gcTriggerCompartment = NULL;
     TriggerAllOperationCallbacks(rt);
+}
+
+void
+TriggerCompartmentGC(JSCompartment *comp)
+{
+    JSRuntime *rt = comp->rt;
+    JS_ASSERT(!rt->gcRunning);
+
+#ifdef JS_GC_ZEAL
+    if (rt->gcZeal >= 1) {
+        TriggerGC(rt);
+        return;
+    }
+#endif
+
+    if (comp == rt->defaultCompartment) {
+        
+        TriggerGC(rt);
+        return;
+    }
+    
+    if (rt->gcIsNeeded) {
+        
+        if (rt->gcTriggerCompartment != comp)
+            rt->gcTriggerCompartment = NULL;
+        return;
+    }
+
+    if (rt->gcBytes > 8192 && rt->gcBytes >= 3 * (rt->gcTriggerBytes / 2)) {
+        
+        TriggerGC(rt);
+        return;
+    }
+
+    
+
+
+
+    rt->gcIsNeeded = true;
+    rt->gcTriggerCompartment = comp;
+    TriggerAllOperationCallbacks(comp->rt);
+}
+
+void
+MaybeGC(JSContext *cx)
+{
+    JSRuntime *rt = cx->runtime;
+
+#ifdef JS_GC_ZEAL
+    if (rt->gcZeal > 0) {
+        js_GC(cx, NULL, GC_NORMAL);
+        return;
+    }
+#endif
+
+    JSCompartment *comp = cx->compartment;
+    if (rt->gcIsNeeded) {
+        js_GC(cx, comp == rt->gcTriggerCompartment ? comp : NULL, GC_NORMAL);
+        return;
+    }
+
+    if (comp->gcBytes > 8192 && comp->gcBytes >= 3 * (comp->gcTriggerBytes / 4))
+        js_GC(cx, comp, GC_NORMAL);
 }
 
 } 
@@ -1900,6 +2004,29 @@ FinalizeArenaList(JSCompartment *comp, JSContext *cx, unsigned thingKind)
     }
     arenaList->cursor = arenaList->head;
     METER(UpdateCompartmentStats(comp, thingKind, nlivearenas, nkilledarenas, nthings));
+}
+
+void
+JSCompartment::finalizeObjectArenaLists(JSContext *cx)
+{
+    FinalizeArenaList<JSObject>(this, cx, FINALIZE_OBJECT0);
+    FinalizeArenaList<JSObject_Slots2>(this, cx, FINALIZE_OBJECT2);
+    FinalizeArenaList<JSObject_Slots4>(this, cx, FINALIZE_OBJECT4);
+    FinalizeArenaList<JSObject_Slots8>(this, cx, FINALIZE_OBJECT8);
+    FinalizeArenaList<JSObject_Slots12>(this, cx, FINALIZE_OBJECT12);
+    FinalizeArenaList<JSObject_Slots16>(this, cx, FINALIZE_OBJECT16);
+    FinalizeArenaList<JSFunction>(this, cx, FINALIZE_FUNCTION);
+#if JS_HAS_XML_SUPPORT
+    FinalizeArenaList<JSXML>(this, cx, FINALIZE_XML);
+#endif
+}
+
+void
+JSCompartment::finalizeStringArenaLists(JSContext *cx)
+{
+    FinalizeArenaList<JSShortString>(this, cx, FINALIZE_SHORT_STRING);
+    FinalizeArenaList<JSString>(this, cx, FINALIZE_STRING);
+    FinalizeArenaList<JSExternalString>(this, cx, FINALIZE_EXTERNAL_STRING);
 }
 
 #ifdef JS_THREADSAFE
@@ -2091,7 +2218,8 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
     JSRuntime *rt = cx->runtime;
 
     
-    rt->gcIsNeeded = JS_FALSE;
+    rt->gcIsNeeded = false;
+    rt->gcTriggerCompartment = NULL;
 
     
     rt->resetGCMallocBytes();
@@ -2117,8 +2245,13 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
         rt->shapeGen = Shape::LAST_RESERVED_SHAPE;
         rt->protoHazardShape = 0;
     }
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        (*c)->purge(cx);
+
+    if (rt->gcCurrentCompartment) {
+        rt->gcCurrentCompartment->purge(cx);
+    } else {
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+            (*c)->purge(cx);
+    }
 
     js_PurgeThreads(cx);
     {
@@ -2126,6 +2259,116 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
         while (JSContext *acx = js_ContextIterator(rt, JS_TRUE, &iter))
             acx->purge();
     }
+}
+
+static void
+MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIMER_PARAM)
+{
+    JSRuntime *rt = cx->runtime;
+    rt->gcNumber++;
+    JS_ASSERT(!rt->gcRegenShapes);
+    JS_ASSERT(gckind != GC_LAST_CONTEXT);
+
+    
+
+
+    GCMarker gcmarker(cx);
+    JS_ASSERT(IS_GC_MARKING_TRACER(&gcmarker));
+    JS_ASSERT(gcmarker.getMarkColor() == BLACK);
+    rt->gcMarkingTracer = &gcmarker;
+    gcmarker.stackLimit = cx->stackLimit;
+
+    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
+         r.front()->clearMarkBitmap();
+
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+        (*c)->mark(&gcmarker);
+
+    MarkRuntime(&gcmarker);
+
+    
+
+
+
+    gcmarker.markDelayedChildren();
+
+    rt->gcMarkingTracer = NULL;
+
+    if (rt->gcCallback)
+        (void) rt->gcCallback(cx, JSGC_MARK_END);
+
+#ifdef JS_THREADSAFE
+    
+
+
+
+    if(!cx->gcBackgroundFree) {
+        
+        rt->gcHelperThread.waitBackgroundSweepEnd(rt);
+        cx->gcBackgroundFree = &rt->gcHelperThread;
+    }
+#endif
+#ifdef DEBUG
+    
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+        JS_ASSERT_IF(*c != comp, checkArenaListAllUnmarked(*c));
+#endif
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TIMESTAMP(startSweep);
+    js_SweepAtomState(cx);
+
+    
+    js_SweepWatchPoints(cx);
+
+#ifdef DEBUG
+    
+    rt->liveObjectPropsPreSweep = rt->liveObjectProps;
+#endif
+
+    
+
+
+
+
+
+
+    comp->finalizeObjectArenaLists(cx);
+    TIMESTAMP(sweepObjectEnd);
+
+    comp->finalizeStringArenaLists(cx);
+    TIMESTAMP(sweepStringEnd);
+
+    comp->sweep(cx, 0);
+
+    
+
+
+
+    js::PropertyTree::unmarkShapes(cx);
+
+    
+
+
+
+    ExpireGCChunks(rt);
+    TIMESTAMP(sweepDestroyEnd);
+
+    if (rt->gcCallback)
+        (void) rt->gcCallback(cx, JSGC_FINALIZE_END);
 }
 
 
@@ -2211,25 +2454,13 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
 
 
 
-    for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++) {
-        FinalizeArenaList<JSObject>(*comp, cx, FINALIZE_OBJECT0);
-        FinalizeArenaList<JSObject_Slots2>(*comp, cx, FINALIZE_OBJECT2);
-        FinalizeArenaList<JSObject_Slots4>(*comp, cx, FINALIZE_OBJECT4);
-        FinalizeArenaList<JSObject_Slots8>(*comp, cx, FINALIZE_OBJECT8);
-        FinalizeArenaList<JSObject_Slots12>(*comp, cx, FINALIZE_OBJECT12);
-        FinalizeArenaList<JSObject_Slots16>(*comp, cx, FINALIZE_OBJECT16);
-        FinalizeArenaList<JSFunction>(*comp, cx, FINALIZE_FUNCTION);
-#if JS_HAS_XML_SUPPORT
-        FinalizeArenaList<JSXML>(*comp, cx, FINALIZE_XML);
-#endif
-    }
+    for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++)
+        (*comp)->finalizeObjectArenaLists(cx);
+
     TIMESTAMP(sweepObjectEnd);
 
-    for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++) {
-        FinalizeArenaList<JSShortString>(*comp, cx, FINALIZE_SHORT_STRING);
-        FinalizeArenaList<JSString>(*comp, cx, FINALIZE_STRING);
-        FinalizeArenaList<JSExternalString>(*comp, cx, FINALIZE_EXTERNAL_STRING);
-    }
+    for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++)
+        (*comp)->finalizeStringArenaLists(cx);
 
     TIMESTAMP(sweepStringEnd);
 
@@ -2444,7 +2675,7 @@ AutoGCSession::~AutoGCSession()
 
 
 static void
-GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
+GCUntilDone(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIMER_PARAM)
 {
     if (JS_ON_TRACE(cx))
         return;
@@ -2466,6 +2697,9 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 
     AutoGCSession gcsession(cx);
 
+    JS_ASSERT(!rt->gcCurrentCompartment);
+    rt->gcCurrentCompartment = comp;
+
     METER(rt->gcStats.poke++);
 
     bool firstRun = true;
@@ -2482,7 +2716,11 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
             TIMESTAMP(startMark);
             firstRun = false;
         }
-        MarkAndSweep(cx, gckind  GCTIMER_ARG);
+
+        if (comp)
+            MarkAndSweepCompartment(cx, comp, gckind  GCTIMER_ARG);
+        else
+            MarkAndSweep(cx, gckind  GCTIMER_ARG);
 
         
         
@@ -2499,10 +2737,16 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
     rt->gcMarkAndSweep = false;
     rt->gcRegenShapes = false;
     rt->setGCLastBytes(rt->gcBytes);
+    rt->gcCurrentCompartment = NULL;
+
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+        (*c)->setGCLastBytes((*c)->gcBytes);
+        (*c)->marked = false;
+    }
 }
 
 void
-js_GC(JSContext *cx, JSGCInvocationKind gckind)
+js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
 {
     JSRuntime *rt = cx->runtime;
 
@@ -2547,7 +2791,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
             
             AutoLockGC lock(rt);
 
-            GCUntilDone(cx, gckind  GCTIMER_ARG);
+            GCUntilDone(cx, comp, gckind  GCTIMER_ARG);
         }
 
         
@@ -2620,6 +2864,8 @@ NewCompartment(JSContext *cx, JSPrincipals *principals)
         compartment->principals = principals;
         JSPRINCIPALS_HOLD(cx, principals);
     }
+
+    compartment->setGCLastBytes(8192);
 
     {
         AutoLockGC lock(rt);

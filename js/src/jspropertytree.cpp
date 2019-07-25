@@ -895,3 +895,22 @@ js::PropertyTree::sweepShapes(JSContext *cx)
     }
 #endif 
 }
+
+void
+js::PropertyTree::unmarkShapes(JSContext *cx)
+{
+    JSArena **ap = &JS_PROPERTY_TREE(cx).arenaPool.first.next;
+    while (JSArena *a = *ap) {
+        Shape *limit = (Shape *) a->avail;
+
+        for (Shape *shape = (Shape *) a->base; shape < limit; shape++) {
+            
+            if (JSID_IS_VOID(shape->id))
+                continue;
+
+            if (shape->marked())
+                shape->clearMark();
+        }
+        ap = &a->next;
+    }
+}
