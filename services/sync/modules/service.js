@@ -1700,13 +1700,25 @@ WeaveSvc.prototype = {
 
 
 
-  wipeServer: function WeaveSvc_wipeServer(collections)
+
+
+
+
+
+
+
+
+
+
+  wipeServer: function wipeServer(collections, includeKeyPairs)
     this._notify("wipe-server", "", function() {
       if (!collections) {
         collections = [];
         let info = new Resource(this.infoURL).get();
-        for (let name in info.obj)
-          collections.push(name);
+        for (let name in info.obj) {
+          if (includeKeyPairs || (name != "keys"))
+            collections.push(name);
+        }
       }
       for each (let name in collections) {
         let url = this.storageURL + name;
