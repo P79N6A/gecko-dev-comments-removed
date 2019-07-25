@@ -196,6 +196,12 @@ NS_DECLARE_FRAME_PROPERTY(FontSizeInflationProperty, nsnull)
 
 
 
+#define TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA NS_FRAME_STATE_BIT(60)
+
+
+
+
+
 
 
 #define TEXT_STYLE_MATCHES_PREV_CONTINUATION NS_FRAME_STATE_BIT(62)
@@ -386,7 +392,8 @@ DestroyUserData(void* aUserData)
 
 static bool
 ClearAllTextRunReferences(nsTextFrame* aFrame, gfxTextRun* aTextRun,
-                          nsTextFrame* aStartContinuation)
+                          nsTextFrame* aStartContinuation,
+                          nsFrameState aWhichTextRunState)
 {
   NS_PRECONDITION(aFrame, "");
   NS_PRECONDITION(!aStartContinuation ||
@@ -397,7 +404,7 @@ ClearAllTextRunReferences(nsTextFrame* aFrame, gfxTextRun* aTextRun,
                   "wrong aStartContinuation for this text run");
 
   if (!aStartContinuation || aStartContinuation == aFrame) {
-    aFrame->RemoveStateBits(TEXT_IN_TEXTRUN_USER_DATA);
+    aFrame->RemoveStateBits(aWhichTextRunState);
   } else {
     do {
       NS_ASSERTION(aFrame->GetType() == nsGkAtoms::textFrame, "Bad frame");
@@ -433,13 +440,18 @@ UnhookTextRunFromFrames(gfxTextRun* aTextRun, nsTextFrame* aStartContinuation)
     return;
 
   if (aTextRun->GetFlags() & nsTextFrameUtils::TEXT_IS_SIMPLE_FLOW) {
-    nsIFrame* userDataFrame = static_cast<nsIFrame*>(aTextRun->GetUserData());
+    nsTextFrame* userDataFrame = static_cast<nsTextFrame*>(
+      static_cast<nsIFrame*>(aTextRun->GetUserData()));
+    nsFrameState whichTextRunState =
+      userDataFrame->GetTextRun(nsTextFrame::eInflated) == aTextRun
+        ? TEXT_IN_TEXTRUN_USER_DATA
+        : TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA;
     DebugOnly<bool> found =
-      ClearAllTextRunReferences(static_cast<nsTextFrame*>(userDataFrame),
-                                aTextRun, aStartContinuation);
+      ClearAllTextRunReferences(userDataFrame, aTextRun,
+                                aStartContinuation, whichTextRunState);
     NS_ASSERTION(!aStartContinuation || found,
                  "aStartContinuation wasn't found in simple flow text run");
-    if (!(userDataFrame->GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA)) {
+    if (!(userDataFrame->GetStateBits() & whichTextRunState)) {
       aTextRun->SetUserData(nsnull);
     }
   } else {
@@ -448,11 +460,15 @@ UnhookTextRunFromFrames(gfxTextRun* aTextRun, nsTextFrame* aStartContinuation)
     PRInt32 destroyFromIndex = aStartContinuation ? -1 : 0;
     for (PRUint32 i = 0; i < userData->mMappedFlowCount; ++i) {
       nsTextFrame* userDataFrame = userData->mMappedFlows[i].mStartFrame;
+      nsFrameState whichTextRunState =
+        userDataFrame->GetTextRun(nsTextFrame::eInflated) == aTextRun
+          ? TEXT_IN_TEXTRUN_USER_DATA
+          : TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA;
       bool found =
         ClearAllTextRunReferences(userDataFrame, aTextRun,
-                                  aStartContinuation);
+                                  aStartContinuation, whichTextRunState);
       if (found) {
-        if (userDataFrame->GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA) {
+        if (userDataFrame->GetStateBits() & whichTextRunState) {
           destroyFromIndex = i + 1;
         }
         else {
@@ -2344,7 +2360,11 @@ BuildTextRunsScanner::AssignTextRun(gfxTextRun* aTextRun, float aInflation)
     }
     
     
-    startFrame->AddStateBits(TEXT_IN_TEXTRUN_USER_DATA);
+    nsFrameState whichTextRunState =
+      startFrame->GetTextRun(nsTextFrame::eInflated) == aTextRun
+        ? TEXT_IN_TEXTRUN_USER_DATA
+        : TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA;
+    startFrame->AddStateBits(whichTextRunState);
   }
 }
 
@@ -3963,6 +3983,7 @@ nsContinuingTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   
   if ((GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA) ||
+      (GetStateBits() & TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA) ||
       (!mPrevContinuation &&
        !(GetStateBits() & TEXT_STYLE_MATCHES_PREV_CONTINUATION)) ||
       (mPrevContinuation &&
