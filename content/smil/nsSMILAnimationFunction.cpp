@@ -84,16 +84,17 @@ nsAttrValue::EnumTable nsSMILAnimationFunction::sCalcModeTable[] = {
 
 
 nsSMILAnimationFunction::nsSMILAnimationFunction()
-  : mIsActive(PR_FALSE),
-    mIsFrozen(PR_FALSE),
-    mSampleTime(-1),
+  : mSampleTime(-1),
     mRepeatIteration(0),
+    mBeginTime(LL_MININT),
+    mAnimationElement(nsnull),
+    mErrorFlags(0),
+    mIsActive(PR_FALSE),
+    mIsFrozen(PR_FALSE),
     mLastValue(PR_FALSE),
     mHasChanged(PR_TRUE),
     mValueNeedsReparsingEverySample(PR_FALSE),
-    mBeginTime(LL_MININT),
-    mAnimationElement(nsnull),
-    mErrorFlags(0)
+    mPrevSampleWasSingleValueAnimation(PR_FALSE)
 {
 }
 
@@ -176,11 +177,17 @@ nsSMILAnimationFunction::SampleAt(nsSMILTime aSampleTime,
                                   const nsSMILTimeValue& aSimpleDuration,
                                   PRUint32 aRepeatIteration)
 {
-  if (mHasChanged || mLastValue || mSampleTime != aSampleTime ||
-      mSimpleDuration != aSimpleDuration ||
-      mRepeatIteration != aRepeatIteration) {
-    mHasChanged = PR_TRUE;
-  }
+  
+  
+  mHasChanged |= mLastValue;
+
+  
+  mHasChanged |=
+    (mSampleTime != aSampleTime || mSimpleDuration != aSimpleDuration) &&
+    !IsValueFixedForSimpleDuration();
+
+  
+  mHasChanged |= (mRepeatIteration != aRepeatIteration) && GetAccumulate();
 
   mSampleTime       = aSampleTime;
   mSimpleDuration   = aSimpleDuration;
@@ -223,6 +230,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
                                        nsSMILValue& aResult)
 {
   mHasChanged = PR_FALSE;
+  mPrevSampleWasSingleValueAnimation = PR_FALSE;
 
   
   if (!IsActiveOrFrozen() || mErrorFlags != 0)
@@ -260,6 +268,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
 
     
     result = values[0];
+    mPrevSampleWasSingleValueAnimation = PR_TRUE;
 
   } else if (mLastValue) {
 
@@ -918,6 +927,13 @@ nsSMILAnimationFunction::CheckKeySplines(PRUint32 aNumValues)
   }
 
   SetKeySplinesErrorFlag(PR_FALSE);
+}
+
+PRBool
+nsSMILAnimationFunction::IsValueFixedForSimpleDuration() const
+{
+  return mSimpleDuration.IsIndefinite() ||
+    (!mHasChanged && mPrevSampleWasSingleValueAnimation);
 }
 
 

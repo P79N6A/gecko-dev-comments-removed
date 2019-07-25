@@ -344,6 +344,10 @@ protected:
            !HasAttr(nsGkAtoms::from);
   }
 
+  
+  
+  virtual PRBool IsValueFixedForSimpleDuration() const;
+
   inline PRBool IsAdditive() const {
     
 
@@ -409,9 +413,6 @@ protected:
   nsTArray<double>              mKeyTimes;
   nsTArray<nsSMILKeySpline>     mKeySplines;
 
-  PRPackedBool                  mIsActive;
-  PRPackedBool                  mIsFrozen;
-
   
   
   
@@ -420,9 +421,6 @@ protected:
   nsSMILTime                    mSampleTime; 
   nsSMILTimeValue               mSimpleDuration;
   PRUint32                      mRepeatIteration;
-  PRPackedBool                  mLastValue;
-  PRPackedBool                  mHasChanged;
-  PRPackedBool                  mValueNeedsReparsingEverySample;
 
   nsSMILTime                    mBeginTime; 
 
@@ -466,6 +464,14 @@ protected:
   
   
   nsSMILWeakTargetIdentifier    mLastTarget;
+
+  
+  PRPackedBool                  mIsActive:1;
+  PRPackedBool                  mIsFrozen:1;
+  PRPackedBool                  mLastValue:1;
+  PRPackedBool                  mHasChanged:1;
+  PRPackedBool                  mValueNeedsReparsingEverySample:1;
+  PRPackedBool                  mPrevSampleWasSingleValueAnimation:1;
 };
 
 #endif 
