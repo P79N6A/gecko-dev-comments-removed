@@ -1467,15 +1467,8 @@ pref("dom.max_script_run_time", 10);
 
 
 
-#ifdef XP_MACOSX
+
 pref("hangmonitor.timeout", 0);
-#else
-#ifndef DEBUG
-pref("hangmonitor.timeout", 30);
-#else
-pref("hangmonitor.timeout", 0);
-#endif
-#endif
 
 #ifndef DEBUG
 
