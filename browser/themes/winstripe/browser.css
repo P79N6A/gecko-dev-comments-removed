@@ -1923,10 +1923,6 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("chrome://browser/skin/tabbrowser/loading.png");
 }
 
-#tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-tab[pinned] {
-  min-height: 16px; 
-}
-
 .tab-throbber[pinned],
 .tab-icon-image[pinned] {
   -moz-margin-start: 5px;
@@ -3118,6 +3114,10 @@ html|*#gcli-output-frame {
               0 0 0 1px hsla(210,40%,83%,.1);
 }
 
+.gclitoolbar-input-node {
+  background-color: green !important;
+}
+
 .gclitoolbar-complete-node {
   padding-left: 21px;
   background-color: transparent;
@@ -3168,7 +3168,8 @@ html|*#gcli-output-frame {
 
 
 .browserContainer[responsivemode] {
-  background: #222 url("chrome://browser/skin/devtools/responsive-background.png");
+  background: #2a3643 url("chrome://browser/skin/devtools/responsive-background.png");
+  box-shadow: 0 0 7px black inset;
   padding: 0 20px 20px 20px;
 }
 
