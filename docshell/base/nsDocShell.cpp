@@ -7308,11 +7308,28 @@ nsDocShell::RestoreFromHistory()
     }
 
     
+    
+    newRootView = rootViewSibling = rootViewParent = nsnull;
+    newVM = nsnull;
+
+    
     nsDocShell::FinishRestore();
 
     
-    if (shell)
+    if (shell) {
         shell->Thaw();
+
+        newVM = shell->GetViewManager();
+        if (newVM) {
+            
+            
+            
+            newVM->GetRootView(newRootView);
+            if (newRootView) {
+                newVM->UpdateView(newRootView, NS_VMREFRESH_NO_SYNC);
+            }
+        }
+    }
 
     return privWin->FireDelayedDOMEvents();
 }
