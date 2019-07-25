@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+
+  <link rel='stylesheet' type='text/css' href='style.css'>
+  <script>
+    function onLoadHandler()
+    {
+      var e = document.getElementById('s');
+      e.setCustomValidity('foo');
+      e.removeAttribute('disabled');
+      document.documentElement.className='';
+    }
+  </script>
+  <body onload="onLoadHandler();">
+    <select class='invalid' id='s' disabled></select>
+  </body>
+</html>
