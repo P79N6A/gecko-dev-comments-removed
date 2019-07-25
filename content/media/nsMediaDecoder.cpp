@@ -69,7 +69,7 @@
 
 
 
-#define CAN_PLAY_THROUGH_MARGIN 20
+#define CAN_PLAY_THROUGH_MARGIN 10
 
 nsMediaDecoder::nsMediaDecoder() :
   mElement(0),
@@ -296,11 +296,6 @@ void nsMediaDecoder::UnpinForSeek()
   stream->Unpin();
 }
 
-
-
-
-static const PRInt32 gDownloadSizeSafetyMargin = 1000000;
-
 PRBool nsMediaDecoder::CanPlayThrough()
 {
   Statistics stats = GetStatistics();
@@ -309,9 +304,8 @@ PRBool nsMediaDecoder::CanPlayThrough()
   }
   PRInt64 bytesToDownload = stats.mTotalBytes - stats.mDownloadPosition;
   PRInt64 bytesToPlayback = stats.mTotalBytes - stats.mPlaybackPosition;
-  double timeToDownload =
-    (bytesToDownload + gDownloadSizeSafetyMargin)/stats.mDownloadRate;
-  double timeToPlay = bytesToPlayback/stats.mPlaybackRate;
+  double timeToDownload = bytesToDownload / stats.mDownloadRate;
+  double timeToPlay = bytesToPlayback / stats.mPlaybackRate;
 
   if (timeToDownload > timeToPlay) {
     
