@@ -157,18 +157,16 @@ SessionStartup.prototype = {
     else
       this._iniString = null; 
 
-    if (this.doRestore()) {
-      
+    
+    
+    
+    if (this.doRestore() &&
+        (!initialState.windows ||
+        !initialState.windows.every(function (win)
+           win.tabs.every(function (tab) tab.pinned))))
+      Services.obs.addObserver(this, "domwindowopened", true);
 
-      
-      
-      if (!initialState.windows ||
-          !initialState.windows.every(function (win)
-             win.tabs.every(function (tab) tab.pinned)))
-        Services.obs.addObserver(this, "domwindowopened", true);
-
-      Services.obs.addObserver(this, "sessionstore-windows-restored", true);
-    }
+    Services.obs.addObserver(this, "sessionstore-windows-restored", true);
   },
 
   
@@ -201,17 +199,8 @@ SessionStartup.prototype = {
     case "sessionstore-windows-restored":
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
       
-      
-      
-      
-      Services.obs.addObserver(this, "browser:purge-session-history", true);
-      break;
-    case "browser:purge-session-history":
-      
       this._iniString = null;
       this._sessionType = Ci.nsISessionStartup.NO_SESSION;
-      
-      Services.obs.removeObserver(this, "browser:purge-session-history");
       break;
     }
   },
