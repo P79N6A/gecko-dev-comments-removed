@@ -66,6 +66,7 @@
 #include "mozilla/dom/Element.h"
 
 using namespace mozilla::dom;
+namespace css = mozilla::css;
 
 NS_IMPL_ISUPPORTS1(nsEmptyStyleRule, nsIStyleRule)
 
@@ -633,7 +634,11 @@ nsStyleSet::AddImportantRules(nsRuleNode* aCurrLevelNode,
        node = node->GetParent()) {
     
     
-    nsIStyleRule* impRule = node->GetRule()->GetImportantRule();
+    NS_ASSERTION(nsRefPtr<css::StyleRule>(do_QueryObject(node->GetRule())),
+                 "Unexpected non-CSS rule");
+
+    nsIStyleRule* impRule =
+      static_cast<css::StyleRule*>(node->GetRule())->GetImportantRule();
     if (impRule)
       importantRules.AppendElement(impRule);
   }
@@ -656,10 +661,10 @@ nsStyleSet::AssertNoImportantRules(nsRuleNode* aCurrLevelNode,
 
   for (nsRuleNode *node = aCurrLevelNode; node != aLastPrevLevelNode;
        node = node->GetParent()) {
-    nsIStyleRule* rule = node->GetRule();
-    if (rule) {
-      NS_ASSERTION(!rule->GetImportantRule(), "Unexpected important rule");
-    }
+    nsRefPtr<css::StyleRule> rule(do_QueryObject(node->GetRule()));
+    NS_ASSERTION(rule, "Unexpected non-CSS rule");
+
+    NS_ASSERTION(!rule->GetImportantRule(), "Unexpected important rule");
   }
 }
 
@@ -673,7 +678,7 @@ nsStyleSet::AssertNoCSSRules(nsRuleNode* aCurrLevelNode,
   for (nsRuleNode *node = aCurrLevelNode; node != aLastPrevLevelNode;
        node = node->GetParent()) {
     nsIStyleRule *rule = node->GetRule();
-    nsRefPtr<mozilla::css::StyleRule> cssRule(do_QueryObject(rule));
+    nsRefPtr<css::StyleRule> cssRule(do_QueryObject(rule));
     NS_ASSERTION(!cssRule || !cssRule->Selector(), "Unexpected CSS rule");
   }
 }
@@ -775,7 +780,6 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
 #ifdef DEBUG
   AssertNoCSSRules(lastPresHintRN, lastUserRN);
-  AssertNoImportantRules(lastPresHintRN, lastUserRN); 
 #endif
 
   if (haveImportantUserRules) {
@@ -809,7 +813,6 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   (*aCollectorFunc)(mRuleProcessors[eTransitionSheet], aData);
 #ifdef DEBUG
   AssertNoCSSRules(aRuleWalker->CurrentNode(), lastImportantRN);
-  AssertNoImportantRules(aRuleWalker->CurrentNode(), lastImportantRN);
 #endif
 
 }
