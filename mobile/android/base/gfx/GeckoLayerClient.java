@@ -353,7 +353,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         if (!mLayerRendererInitialized) {
             mLayerRenderer.checkMonitoringEnabled();
-            mLayerRenderer.createProgram();
+            mLayerRenderer.createDefaultProgram();
             mLayerRendererInitialized = true;
         }
 
@@ -365,12 +365,12 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     
     public void activateProgram() {
-        mLayerRenderer.activateProgram();
+        mLayerRenderer.activateDefaultProgram();
     }
 
     
     public void deactivateProgram() {
-        mLayerRenderer.deactivateProgram();
+        mLayerRenderer.deactivateDefaultProgram();
     }
 
     

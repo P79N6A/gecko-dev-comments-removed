@@ -126,7 +126,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     
     
     
-    private static final float[] TEXTURE_MATRIX = {
+    public static final float[] DEFAULT_TEXTURE_MATRIX = {
         2.0f, 0.0f, 0.0f, 0.0f,
         0.0f, 2.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 2.0f, 0.0f,
@@ -137,7 +137,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     
     
-    private static final String VERTEX_SHADER =
+    public static final String DEFAULT_VERTEX_SHADER =
         "uniform mat4 uTMatrix;\n" +
         "attribute vec4 vPosition;\n" +
         "attribute vec2 aTexCoord;\n" +
@@ -150,7 +150,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     
     
     
-    private static final String FRAGMENT_SHADER =
+    public static final String DEFAULT_FRAGMENT_SHADER =
         "precision mediump float;\n" +
         "varying vec2 vTexCoord;\n" +
         "uniform sampler2D sTexture;\n" +
@@ -188,13 +188,13 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         checkMonitoringEnabled();
-        createProgram();
-        activateProgram();
+        createDefaultProgram();
+        activateDefaultProgram();
     }
 
-    public void createProgram() {
-        int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, VERTEX_SHADER);
-        int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+    public void createDefaultProgram() {
+        int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, DEFAULT_VERTEX_SHADER);
+        int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, DEFAULT_FRAGMENT_SHADER);
 
         mProgram = GLES20.glCreateProgram();
         GLES20.glAttachShader(mProgram, vertexShader);   
@@ -213,12 +213,12 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     }
 
     
-    public void activateProgram() {
+    public void activateDefaultProgram() {
         
         GLES20.glUseProgram(mProgram);
 
         
-        GLES20.glUniformMatrix4fv(mTMatrixHandle, 1, false, TEXTURE_MATRIX, 0);
+        GLES20.glUniformMatrix4fv(mTMatrixHandle, 1, false, DEFAULT_TEXTURE_MATRIX, 0);
 
         Log.e(LOGTAG, "### Position handle is " + mPositionHandle + ", texture handle is " +
               mTextureHandle + ", last error is " + GLES20.glGetError());
@@ -237,7 +237,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     
     
-    public void deactivateProgram() {
+    public void deactivateDefaultProgram() {
         GLES20.glDisableVertexAttribArray(mTextureHandle);
         GLES20.glDisableVertexAttribArray(mPositionHandle);
         GLES20.glUseProgram(0);
@@ -445,7 +445,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
 
 
-    private int loadShader(int type, String shaderCode) {
+    public static int loadShader(int type, String shaderCode) {
         int shader = GLES20.glCreateShader(type);
         GLES20.glShaderSource(shader, shaderCode);
         GLES20.glCompileShader(shader);
