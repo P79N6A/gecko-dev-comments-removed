@@ -54,9 +54,7 @@
 #include "nsHashKeys.h"
 #include "nsTHashtable.h"
 #include "mozIStorageStatement.h"
-#include "mozIStoragePendingStatement.h"
 #include "mozIStorageConnection.h"
-#include "mozIStorageRow.h"
 
 class nsICookiePermission;
 class nsIEffectiveTLDService;
@@ -65,10 +63,9 @@ class nsIPrefBranch;
 class nsIObserverService;
 class nsIURI;
 class nsIChannel;
-class mozIStorageService;
+class DBListenerErrorHandler;
 class mozIStorageStatementCallback;
 class mozIStorageCompletionCallback;
-class ReadCookieDBListener;
 
 struct nsCookieAttributes;
 struct nsListIter;
@@ -139,13 +136,6 @@ class nsCookieEntry : public PLDHashEntryHdr
 };
 
 
-struct CookieDomainTuple
-{
-  nsCString baseDomain;
-  nsRefPtr<nsCookie> cookie;
-};
-
-
 
 struct DBState
 {
@@ -158,22 +148,6 @@ struct DBState
   nsCOMPtr<mozIStorageStatement>  stmtInsert;
   nsCOMPtr<mozIStorageStatement>  stmtDelete;
   nsCOMPtr<mozIStorageStatement>  stmtUpdate;
-
-  
-  
-  nsCOMPtr<mozIStorageConnection>       syncConn;
-  nsCOMPtr<mozIStorageStatement>        stmtReadDomain;
-  nsCOMPtr<mozIStoragePendingStatement> pendingRead;
-  
-  
-  ReadCookieDBListener*                 readListener;
-  
-  
-  nsTArray<CookieDomainTuple>           hostArray;
-  
-  
-  
-  nsTHashtable<nsCStringHashKey>        readSet;
 };
 
 
@@ -219,12 +193,6 @@ class nsCookieService : public nsICookieService
     nsresult                      CreateTable();
     void                          CloseDB();
     nsresult                      Read();
-    template<class T> nsCookie*   GetCookieFromRow(T &aRow);
-    void                          AsyncReadComplete();
-    void                          CancelAsyncRead(PRBool aPurgeReadSet);
-    mozIStorageConnection*        GetSyncDBConn();
-    void                          EnsureReadDomain(const nsCString &aBaseDomain);
-    void                          EnsureReadComplete();
     nsresult                      NormalizeHost(nsCString &aHost);
     nsresult                      GetBaseDomain(nsIURI *aHostURI, nsCString &aBaseDomain, PRBool &aRequireHostMatch);
     nsresult                      GetBaseDomainFromHost(const nsACString &aHost, nsCString &aBaseDomain);
@@ -233,7 +201,7 @@ class nsCookieService : public nsICookieService
     PRBool                        SetCookieInternal(nsIURI *aHostURI, const nsCString& aBaseDomain, PRBool aRequireHostMatch, CookieStatus aStatus, nsDependentCString &aCookieHeader, PRInt64 aServerTime, PRBool aFromHttp);
     void                          AddInternal(const nsCString& aBaseDomain, nsCookie *aCookie, PRInt64 aCurrentTimeInUsec, nsIURI *aHostURI, const char *aCookieHeader, PRBool aFromHttp);
     void                          RemoveCookieFromList(const nsListIter &aIter, mozIStorageBindingParamsArray *aParamsArray = NULL);
-    void                          AddCookieToList(const nsCString& aBaseDomain, nsCookie *aCookie, mozIStorageBindingParamsArray *aParamsArray, PRBool aWriteToDB = PR_TRUE);
+    PRBool                        AddCookieToList(const nsCString& aBaseDomain, nsCookie *aCookie, mozIStorageBindingParamsArray *aParamsArray, PRBool aWriteToDB = PR_TRUE);
     void                          UpdateCookieInList(nsCookie *aCookie, PRInt64 aLastAccessed, mozIStorageBindingParamsArray *aParamsArray);
     static PRBool                 GetTokenValue(nsASingleFragmentCString::const_char_iterator &aIter, nsASingleFragmentCString::const_char_iterator &aEndIter, nsDependentCSubstring &aTokenString, nsDependentCSubstring &aTokenValue, PRBool &aEqualsFound);
     static PRBool                 ParseAttributes(nsDependentCString &aCookieHeader, nsCookieAttributes &aCookie);
@@ -256,7 +224,6 @@ class nsCookieService : public nsICookieService
     nsCOMPtr<nsICookiePermission>    mPermissionService;
     nsCOMPtr<nsIEffectiveTLDService> mTLDService;
     nsCOMPtr<nsIIDNService>          mIDNService;
-    nsCOMPtr<mozIStorageService>     mStorageService;
 
     
     
@@ -282,7 +249,6 @@ class nsCookieService : public nsICookieService
 
     
     friend PLDHashOperator purgeCookiesCallback(nsCookieEntry *aEntry, void *aArg);
-    friend class ReadCookieDBListener;
 
     static nsCookieService*       GetSingleton();
 #ifdef MOZ_IPC
