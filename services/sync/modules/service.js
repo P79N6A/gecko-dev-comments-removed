@@ -102,7 +102,7 @@ Utils.lazy(Weave, 'Service', WeaveSvc);
 
 
 
-function WeaveSvc() {
+function WeaveSvc(engines) {
   this._startupFinished = false;
   this._initLogs();
   this._log.info("Weave Sync Service Initializing");
@@ -116,13 +116,19 @@ function WeaveSvc() {
   ID.setAlias('WeaveID', 'DAV:default');
   ID.setAlias('WeaveCryptoID', 'Engine:PBE:default');
 
+  if (typeof engines == "undefined")
+    engines = [
+      new BookmarksEngine(),
+      new HistoryEngine(),
+      new CookieEngine(),
+      new PasswordEngine(),
+      new FormEngine(),
+      new TabEngine()
+    ];
+
   
-  Engines.register(new BookmarksEngine());
-  Engines.register(new HistoryEngine());
-  Engines.register(new CookieEngine());
-  Engines.register(new PasswordEngine());
-  Engines.register(new FormEngine());
-  Engines.register(new TabEngine());
+  for (let i = 0; i < engines.length; i++)
+    Engines.register(engines[i]);
 
   
   Utils.prefs.addObserver("", this, false);
@@ -446,6 +452,8 @@ WeaveSvc.prototype = {
     let success = yield;
     if (!success) {
       try {
+        
+        
         this._checkUserDir.async(this, self.cb);
         yield;
       } catch (e) {  }
