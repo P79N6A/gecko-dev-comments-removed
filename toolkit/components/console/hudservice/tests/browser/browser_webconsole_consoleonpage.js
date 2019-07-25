@@ -32,7 +32,6 @@ function testOpenWebConsole()
 }
 
 function testConsoleOnPage(console) {
-  
   isnot(console, undefined, "Console object defined on page");
   is(console.foo, "bar", "Custom console is not overwritten");
 }
@@ -47,41 +46,5 @@ function testOwnConsole()
   
   
   ok(hud.jsterm.console, "JSTerm console is defined");
-  ok(hud.jsterm.console === hud._console, "JSTerm console is same as HUD console");
-
-  let iframe =
-    browser.contentWindow.document.querySelector("iframe");
-
-  function consoleTester()
-  {
-    testIFrameConsole(iframe);
-  }
-
-  iframe.contentWindow.
-    addEventListener("load", consoleTester ,false);
-
-  iframe.contentWindow.document.location = "http://example.com/";
-
-  function testIFrameConsole(iFrame)
-  {
-    iFrame.contentWindow.removeEventListener("load", consoleTester, true);
-
-    
-    let consoleIFrame = iFrame.wrappedJSObject.contentWindow.console;
-    
-    
-    
-
-    
-    HUDService.deactivateHUDForContext(tab);
-
-    executeSoon(function () {
-      consoleIFrame = iFrame.contentWindow.console;
-      is(consoleIFrame, undefined, "Console object was removed from iFrame");
-      testConsoleOnPage(browser.contentWindow.wrappedJSObject.console);
-      finishTest();
-  });
-}
-
-  browser.contentWindow.wrappedJSObject.loadIFrame();
+  finishTest();
 }
