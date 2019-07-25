@@ -182,7 +182,7 @@ function onDebugKeyPress(ev) {
   const l = 76;  
   const m = 77;  
   const n = 78;
-  const o = 79;
+  const o = 79;  
   const p = 80;  
   const q = 81;
   const r = 82;  
@@ -300,6 +300,12 @@ function onDebugKeyPress(ev) {
     Util.dumpLn("renderMode:", bv._renderMode);
     Util.dumpLn("batchOps:",bv._batchOps.length);
     bv.resumeRendering();
+    break;
+  case o:
+    if (Util.isPortrait())
+      window.top.resizeTo(800,480);
+    else
+      window.top.resizeTo(480,800);
     break;
   case p:
     let tc = bv._tileManager._tileCache;
