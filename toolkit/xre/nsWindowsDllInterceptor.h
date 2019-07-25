@@ -109,7 +109,7 @@ public:
   }
 
   bool AddHook(const char *pname,
-         void *hookDest,
+         intptr_t hookDest,
          void **origFunc)
   {
     if (!mModule)
@@ -142,7 +142,7 @@ protected:
   int mCurHooks;
 
   byteptr_t CreateTrampoline(void *origFunction,
-           void *dest)
+           intptr_t dest)
   {
     byteptr_t tramp = FindTrampolineSpace();
     if (!tramp)
@@ -346,13 +346,13 @@ protected:
 #if defined(_M_IX86)
     
     origBytes[0] = 0xE9; 
-    *((intptr_t*)(origBytes+1)) = (intptr_t)dest - (intptr_t)(origBytes+5); 
+    *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
 #elif defined(_M_X64)
     
     origBytes[0] = 0x49;
     origBytes[1] = 0xbb;
 
-    *((intptr_t*)(origBytes+2)) = (intptr_t)dest;
+    *((intptr_t*)(origBytes+2)) = dest;
 
     
     origBytes[10] = 0x41;
