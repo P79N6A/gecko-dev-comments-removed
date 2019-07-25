@@ -70,9 +70,9 @@ function test() {
       testNewWindow(function() {
         
         
-        gPrivateBrowsingUI.privateWindow = true;
+        setPrivateWindow(window, true);
         is(gPrivateBrowsingUI.privateWindow, true, "gPrivateBrowsingUI should accept the correct per-window private browsing status");
-        gPrivateBrowsingUI.privateWindow = false;
+        setPrivateWindow(window, false);
         is(gPrivateBrowsingUI.privateWindow, false, "gPrivateBrowsingUI should accept the correct per-window private browsing status");
 
         
