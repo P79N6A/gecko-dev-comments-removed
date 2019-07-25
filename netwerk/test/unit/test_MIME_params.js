@@ -251,6 +251,21 @@ var tests = [
   
   ["attachment; filename = foo-A.html", 
    "attachment", "foo-A.html"],   
+
+  
+  
+
+  
+  ["attachment; filename*=UTF-8'foo-%41.html", 
+   "attachment", Cr.NS_ERROR_INVALID_ARG],
+
+  
+  ["attachment; filename*=foo-%41.html", 
+   "attachment", Cr.NS_ERROR_INVALID_ARG],
+
+  
+  ["attachment; filename*=UTF-8'foo-%41.html; filename=bar.html", 
+   "attachment", "bar.html"],
 ];
 
 function do_tests(whichRFC)
