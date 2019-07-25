@@ -640,6 +640,14 @@ public:
                            void *aData);
   static void MarkUserDataHandler(void* aObject, nsIAtom* aKey, void* aChild,
                                   void* aData);
+
+  
+
+
+
+
+  static void ParseCORSValue(const nsAString& aValue, nsAttrValue& aResult);
+  
 protected:
   
 

@@ -159,6 +159,8 @@
 #include "nsLayoutStatics.h"
 #include "mozilla/Telemetry.h"
 
+#include "mozilla/CORSMode.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -2854,15 +2856,14 @@ nsGenericElement::GetAttributeNS(const nsAString& aNamespaceURI,
 
   if (nsid == kNameSpaceID_Unknown) {
     
-    SetDOMStringToNull(aReturn);
+
+    aReturn.Truncate();
+
     return NS_OK;
   }
 
   nsCOMPtr<nsIAtom> name = do_GetAtom(aLocalName);
-  bool hasAttr = GetAttr(nsid, name, aReturn);
-  if (!hasAttr) {
-    SetDOMStringToNull(aReturn);
-  }
+  GetAttr(nsid, name, aReturn);
 
   return NS_OK;
 }
@@ -6234,6 +6235,26 @@ nsGenericElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
   return Element::SizeOfExcludingThis(aMallocSizeOf) +
          mAttrsAndChildren.SizeOfExcludingThis(aMallocSizeOf);
+}
+
+static const nsAttrValue::EnumTable kCORSAttributeTable[] = {
+  
+  
+  { "anonymous",       CORS_ANONYMOUS       },
+  { "use-credentials", CORS_USE_CREDENTIALS },
+  { 0 }
+};
+
+ void
+nsGenericElement::ParseCORSValue(const nsAString& aValue,
+                                 nsAttrValue& aResult)
+{
+  DebugOnly<bool> success =
+    aResult.ParseEnumValue(aValue, kCORSAttributeTable, false,
+                           
+                           
+                           &kCORSAttributeTable[0]);
+  MOZ_ASSERT(success);
 }
 
 #define EVENT(name_, id_, type_, struct_)                                    \
