@@ -161,7 +161,14 @@ SessionStartup.prototype = {
 
     if (this._sessionType != Ci.nsISessionStartup.NO_SESSION) {
       
-      Services.obs.addObserver(this, "domwindowopened", true);
+
+      
+      
+      if (!initialState.windows ||
+          !initialState.windows.every(function (win)
+             win.tabs.every(function (tab) tab.pinned)))
+        Services.obs.addObserver(this, "domwindowopened", true);
+
       Services.obs.addObserver(this, "browser:purge-session-history", true);
     }
   },
