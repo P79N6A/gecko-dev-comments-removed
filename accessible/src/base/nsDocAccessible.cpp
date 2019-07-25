@@ -966,11 +966,21 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
                                   PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                   PRInt32 aModType)
 {
-  AttributeChangedImpl(aElement, aNameSpaceID, aAttribute);
-
-  nsAccessible* accessible = GetCachedAccessible(aElement);
-  if (!accessible)
+  
+  
+  if (UpdateAccessibleOnAttrChange(aElement, aAttribute))
     return;
+
+  
+  
+  
+  nsAccessible* accessible = GetCachedAccessible(aElement);
+  if (!accessible && (mContent != aElement))
+    return;
+
+  
+  
+  AttributeChangedImpl(aElement, aNameSpaceID, aAttribute);
 
   
   
@@ -1060,29 +1070,6 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     }
   }
 
-  if (aAttribute == nsAccessibilityAtoms::role) {
-    if (mContent == aContent) {
-      
-      
-      SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aContent));
-    }
-    else {
-      
-      
-      
-      RecreateAccessible(aContent);
-    }
-  }
-
-  if (aAttribute == nsAccessibilityAtoms::href ||
-      aAttribute == nsAccessibilityAtoms::onclick) {
-    
-    
-    
-    RecreateAccessible(aContent);
-    return;
-  }
-  
   if (aAttribute == nsAccessibilityAtoms::alt ||
       aAttribute == nsAccessibilityAtoms::title ||
       aAttribute == nsAccessibilityAtoms::aria_label ||
@@ -1245,15 +1232,6 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
             eCaseMatters)))) {
     FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
                                aContent);
-    return;
-  }
-
-  if (aAttribute == nsAccessibilityAtoms::aria_multiselectable &&
-      aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) {
-    
-    
-    
-    RecreateAccessible(aContent);
     return;
   }
 }
@@ -1743,6 +1721,46 @@ nsDocAccessible::RemoveDependentIDsFor(nsAccessible* aRelProvider,
     if (aRelAttr)
       break;
   }
+}
+
+bool
+nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
+                                              nsIAtom* aAttribute)
+{
+  if (aAttribute == nsAccessibilityAtoms::role) {
+    
+    
+    if (mContent == aElement) {
+      SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aElement));
+      return true;
+    }
+
+    
+    
+    
+    RecreateAccessible(aElement);
+    return true;
+  }
+
+  if (aAttribute == nsAccessibilityAtoms::href ||
+      aAttribute == nsAccessibilityAtoms::onclick) {
+    
+    
+    
+    RecreateAccessible(aElement);
+    return true;
+  }
+
+  if (aAttribute == nsAccessibilityAtoms::aria_multiselectable &&
+      aElement->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::role)) {
+    
+    
+    
+    RecreateAccessible(aElement);
+    return true;
+  }
+
+  return false;
 }
 
 void

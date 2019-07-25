@@ -319,7 +319,15 @@ protected:
   void RemoveDependentIDsFor(nsAccessible* aRelProvider,
                              nsIAtom* aRelAttr = nsnull);
 
-    static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
+  
+
+
+
+
+
+
+  bool UpdateAccessibleOnAttrChange(mozilla::dom::Element* aElement,
+                                    nsIAtom* aAttribute);
 
     
 
@@ -386,6 +394,14 @@ protected:
 
 
   void ShutdownChildrenInSubtree(nsAccessible *aAccessible);
+
+  
+
+
+
+
+
+  static void ScrollTimerCallback(nsITimer* aTimer, void* aClosure);
 
   
 
