@@ -1158,6 +1158,7 @@ define('gcli/util', ['require', 'exports', 'module' ], function(require, exports
 
 
 
+
 exports.createEvent = function(name) {
   var handlers = [];
 
@@ -1238,9 +1239,9 @@ dom.createElement = function(doc, tag, ns) {
 
 
 
-dom.clearElement = function(el) {
-  while (el.hasChildNodes()) {
-    el.removeChild(el.firstChild);
+dom.clearElement = function(elem) {
+  while (elem.hasChildNodes()) {
+    elem.removeChild(elem.firstChild);
   }
 };
 
@@ -1248,25 +1249,25 @@ if (this.document && !this.document.documentElement.classList) {
   
 
 
-  dom.hasCssClass = function(el, name) {
-    var classes = el.className.split(/\s+/g);
+  dom.hasCssClass = function(elem, name) {
+    var classes = elem.className.split(/\s+/g);
     return classes.indexOf(name) !== -1;
   };
 
   
 
 
-  dom.addCssClass = function(el, name) {
-    if (!dom.hasCssClass(el, name)) {
-      el.className += ' ' + name;
+  dom.addCssClass = function(elem, name) {
+    if (!dom.hasCssClass(elem, name)) {
+      elem.className += ' ' + name;
     }
   };
 
   
 
 
-  dom.removeCssClass = function(el, name) {
-    var classes = el.className.split(/\s+/g);
+  dom.removeCssClass = function(elem, name) {
+    var classes = elem.className.split(/\s+/g);
     while (true) {
       var index = classes.indexOf(name);
       if (index == -1) {
@@ -1274,15 +1275,15 @@ if (this.document && !this.document.documentElement.classList) {
       }
       classes.splice(index, 1);
     }
-    el.className = classes.join(' ');
+    elem.className = classes.join(' ');
   };
 
   
 
 
 
-  dom.toggleCssClass = function(el, name) {
-    var classes = el.className.split(/\s+/g), add = true;
+  dom.toggleCssClass = function(elem, name) {
+    var classes = elem.className.split(/\s+/g), add = true;
     while (true) {
       var index = classes.indexOf(name);
       if (index == -1) {
@@ -1295,28 +1296,29 @@ if (this.document && !this.document.documentElement.classList) {
       classes.push(name);
     }
 
-    el.className = classes.join(' ');
+    elem.className = classes.join(' ');
     return add;
   };
-} else {
+}
+else {
   
 
 
 
-  dom.hasCssClass = function(el, name) {
-    return el.classList.contains(name);
+  dom.hasCssClass = function(elem, name) {
+    return elem.classList.contains(name);
   };
 
-  dom.addCssClass = function(el, name) {
-    el.classList.add(name);
+  dom.addCssClass = function(elem, name) {
+    elem.classList.add(name);
   };
 
-  dom.removeCssClass = function(el, name) {
-    el.classList.remove(name);
+  dom.removeCssClass = function(elem, name) {
+    elem.classList.remove(name);
   };
 
-  dom.toggleCssClass = function(el, name) {
-    return el.classList.toggle(name);
+  dom.toggleCssClass = function(elem, name) {
+    return elem.classList.toggle(name);
   };
 }
 
@@ -1327,7 +1329,8 @@ if (this.document && !this.document.documentElement.classList) {
 dom.setCssClass = function(node, className, include) {
   if (include) {
     dom.addCssClass(node, className);
-  } else {
+  }
+  else {
     dom.removeCssClass(node, className);
   }
 };
@@ -1368,20 +1371,20 @@ dom.computedStyle = function(element, style) {
 
 
 
-dom.setInnerHtml = function(el, html) {
-  if (!this.document || el.namespaceURI === NS_XHTML) {
+dom.setInnerHtml = function(elem, html) {
+  if (!this.document || elem.namespaceURI === NS_XHTML) {
     try {
-      dom.clearElement(el);
-      var range = el.ownerDocument.createRange();
+      dom.clearElement(elem);
+      var range = elem.ownerDocument.createRange();
       html = '<div xmlns="' + NS_XHTML + '">' + html + '</div>';
-      el.appendChild(range.createContextualFragment(html));
+      elem.appendChild(range.createContextualFragment(html));
     }
     catch (ex) {
-      el.innerHTML = html;
+      elem.innerHTML = html;
     }
   }
   else {
-    el.innerHTML = html;
+    elem.innerHTML = html;
   }
 };
 
@@ -1392,7 +1395,7 @@ dom.getSelectionStart = function(textarea) {
   try {
     return textarea.selectionStart || 0;
   }
-  catch (e) {
+  catch (ex) {
     return 0;
   }
 };
@@ -1410,7 +1413,8 @@ dom.setSelectionStart = function(textarea, start) {
 dom.getSelectionEnd = function(textarea) {
   try {
     return textarea.selectionEnd || 0;
-  } catch (e) {
+  }
+  catch (ex) {
     return 0;
   }
 };
@@ -1474,12 +1478,12 @@ event.stopEvent = function(e) {
 
 
 
-event.stopPropagation = function(e) {
-  if (e.stopPropagation) {
-    e.stopPropagation();
+event.stopPropagation = function(ev) {
+  if (ev.stopPropagation) {
+    ev.stopPropagation();
   }
   else {
-    e.cancelBubble = true;
+    ev.cancelBubble = true;
   }
 };
 
@@ -3674,7 +3678,7 @@ NodeType.prototype.stringify = function(value) {
 NodeType.prototype.parse = function(arg) {
   if (arg.text === '') {
     return new Conversion(null, arg, Status.INCOMPLETE,
-        l10n.lookup('nodeParseNone'));
+            l10n.lookup('nodeParseNone'));
   }
 
   var nodes;
@@ -3682,8 +3686,8 @@ NodeType.prototype.parse = function(arg) {
     nodes = doc.querySelectorAll(arg.text);
   }
   catch (ex) {
-    console.error(ex);
-    return new Conversion(null, arg, Status.ERROR, l10n.lookup('nodeParseSyntax'));
+    return new Conversion(null, arg, Status.ERROR,
+            l10n.lookup('nodeParseSyntax'));
   }
 
   if (nodes.length === 0) {
