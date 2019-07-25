@@ -467,6 +467,7 @@ Connection::Connection(Service *aService,
 , mStorageService(aService)
 {
   mFunctions.Init();
+  mStorageService->registerConnection(this);
 }
 
 Connection::~Connection()
@@ -485,11 +486,34 @@ Connection::~Connection()
   }
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(
+NS_IMPL_THREADSAFE_ADDREF(Connection)
+NS_IMPL_THREADSAFE_QUERY_INTERFACE2(
   Connection,
   mozIStorageConnection,
   nsIInterfaceRequestor
 )
+
+
+
+NS_IMETHODIMP_(nsrefcnt) Connection::Release(void)
+{
+  NS_PRECONDITION(0 != mRefCnt, "dup release");
+  nsrefcnt count = NS_AtomicDecrementRefcnt(mRefCnt);
+  NS_LOG_RELEASE(this, count, "Connection");
+  if (1 == count) {
+    
+    
+    
+    mStorageService->unregisterConnection(this);
+  } else if (0 == count) {
+    mRefCnt = 1; 
+    
+    
+    delete (this);
+    return 0;
+  }
+  return count;
+}
 
 nsIEventTarget *
 Connection::getAsyncExecutionTarget()

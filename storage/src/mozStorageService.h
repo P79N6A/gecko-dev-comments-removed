@@ -47,6 +47,7 @@
 #include "nsICollation.h"
 #include "nsIFile.h"
 #include "nsIObserver.h"
+#include "nsTArray.h"
 #include "mozilla/Mutex.h"
 
 #include "mozIStorageService.h"
@@ -58,6 +59,7 @@ struct sqlite3_vfs;
 namespace mozilla {
 namespace storage {
 
+class Connection;
 class Service : public mozIStorageService
               , public nsIObserver
               , public mozIStorageServiceQuotaManagement
@@ -103,6 +105,39 @@ public:
 
   static PRInt32 getSynchronousPref();
 
+  
+
+
+
+
+
+
+
+
+  void registerConnection(Connection *aConnection);
+
+  
+
+
+
+
+
+
+
+  void unregisterConnection(Connection *aConnection);
+
+  
+
+
+
+
+
+
+
+
+
+  void getConnections(nsTArray<nsRefPtr<Connection> >& aConnections);
+
 private:
   Service();
   virtual ~Service();
@@ -115,6 +150,17 @@ private:
   Mutex mMutex;
   
   sqlite3_vfs *mSqliteVFS;
+
+  
+
+
+  Mutex mRegistrationMutex;
+
+  
+
+
+
+  nsTArray<nsRefPtr<Connection> > mConnections;
 
   
 
