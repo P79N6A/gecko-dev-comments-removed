@@ -1457,8 +1457,10 @@ IonBuilder::assertValidLoopHeadOp(jsbytecode *pc)
     JS_ASSERT(JSOp(*pc) == JSOP_LOOPHEAD);
 
     
+    
     CFGState &state = cfgStack_.back();
-    JS_ASSERT(GetNextPc(state.loop.entry->pc()) == pc);
+    JS_ASSERT_IF((JSOp)*(state.loop.entry->pc()) == JSOP_GOTO,
+        GetNextPc(state.loop.entry->pc()) == pc);
 
     
     jssrcnote *sn = info().getNote(cx, pc);
