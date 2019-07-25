@@ -406,50 +406,31 @@ SyncEngine.prototype = {
   },
 
   
-  _fetchIncoming: function SyncEngine__fetchIncoming() {
+  _processIncoming: function SyncEngine__processIncoming() {
     let self = yield;
 
-    this._log.debug("Downloading server changes");
+    this._log.debug("Downloading & applying server changes");
 
     let newitems = new Collection(this.engineURL);
     newitems.modified = this.lastSync;
     newitems.full = true;
+    newitems.sort = "depthindex";
     yield newitems.get(self.cb);
 
+    this._lastSyncTmp = 0;
     let item;
     while ((item = yield newitems.iter.next(self.cb))) {
-      this.incoming.push(item);
+      yield item.decrypt(self.cb, ID.get('WeaveCryptoID').password);
+      if (yield this._reconcile.async(this, self.cb, item))
+        yield this._applyIncoming.async(this, self.cb, item);
+      else
+        this._log.debug("Skipping reconciled incoming item");
     }
-  },
+    if (this.lastSync < this._lastSyncTmp)
+        this.lastSync = this._lastSyncTmp;
 
-  
-  
-  _processIncoming: function SyncEngine__processIncoming() {
-    let self = yield;
-
-    this._log.debug("Decrypting and sorting incoming changes");
-
-    for each (let inc in this.incoming) {
-      yield inc.decrypt(self.cb, ID.get('WeaveCryptoID').password);
-      this._recDepth(inc); 
-    }
-    this.incoming.sort(function(a, b) {
-      if ((typeof(a.depth) == "number" && typeof(b.depth) == "undefined") ||
-          (typeof(a.depth) == "number" && b.depth == null) ||
-          (a.depth > b.depth))
-        return 1;
-      if ((typeof(a.depth) == "undefined" && typeof(b.depth) == "number") ||
-          (a.depth == null && typeof(b.depth) == "number") ||
-          (a.depth < b.depth))
-        return -1;
-      if (a.cleartext && b.cleartext) {
-        if (a.cleartext.index > b.cleartext.index)
-          return 1;
-        if (a.cleartext.index < b.cleartext.index)
-          return -1;
-      }
-      return 0;
-    });
+    
+    this._outgoing = this.outgoing.filter(function(n) n);
   },
 
   
@@ -464,78 +445,65 @@ SyncEngine.prototype = {
   
   
   
-  _reconcile: function SyncEngine__reconcile() {
+  _reconcile: function SyncEngine__reconcile(item) {
     let self = yield;
+    let ret = true;
 
-    this._log.debug("Reconciling server/client changes");
-
-    this._log.debug(this.incoming.length + " items coming in, " +
-                    this.outgoing.length + " items going out");
+    this._log.debug("Reconciling incoming item");
 
     
     let conflicts = [];
-    for (let i = 0; i < this.incoming.length; i++) {
-      for (let o = 0; o < this.outgoing.length; o++) {
-        if (this.incoming[i].id == this.outgoing[o].id) {
-          
-          
-          if (!Utils.deepEquals(this.incoming[i].cleartext,
-                                this.outgoing[o].cleartext))
-            conflicts.push({in: this.incoming[i], out: this.outgoing[o]});
-          else
-            delete this.outgoing[o];
-          delete this.incoming[i];
-          break;
-        }
+    for (let o = 0; o < this.outgoing.length; o++) {
+      if (!this.outgoing[o])
+        continue; 
+      if (item.id == this.outgoing[o].id) {
+        
+        
+        if (!Utils.deepEquals(item.cleartext, this.outgoing[o].cleartext))
+          conflicts.push({in: item, out: this.outgoing[o]});
+        else
+          delete this.outgoing[o];
+
+        self.done(false);
+        return;
       }
-      this._outgoing = this.outgoing.filter(function(n) n); 
     }
-    this._incoming = this.incoming.filter(function(n) n); 
     if (conflicts.length)
       this._log.debug("Conflicts found.  Conflicting server changes discarded");
 
     
-    for (let i = 0; i < this.incoming.length; i++) {
-      for (let o = 0; o < this.outgoing.length; o++) {
-        if (this._recordLike(this.incoming[i], this.outgoing[o])) {
-          
-          yield this._changeRecordRefs.async(this, self.cb,
-                                             this.outgoing[o].id,
-                                             this.incoming[i].id);
-          
-          this._store.changeItemID(this.outgoing[o].id,
-                                   this.incoming[i].id);
-          delete this.incoming[i];
-          delete this.outgoing[o];
-          break;
-        }
-      }
-      this._outgoing = this.outgoing.filter(function(n) n); 
-    }
-    this._incoming = this.incoming.filter(function(n) n); 
+    for (let o = 0; o < this.outgoing.length; o++) {
+      if (!this.outgoing[o])
+        continue; 
 
-    this._log.debug("Reconciliation complete");
-    this._log.debug(this.incoming.length + " items coming in, " +
-                    this.outgoing.length + " items going out");
+      if (this._recordLike(item, this.outgoing[o])) {
+        
+        yield this._changeRecordRefs.async(this, self.cb,
+                                           this.outgoing[o].id,
+                                           item.id);
+        
+        this._store.changeItemID(this.outgoing[o].id,
+                                 item.id);
+        delete this.outgoing[o];
+        self.done(false);
+        return;
+      }
+    }
+    self.done(true);
   },
 
   
-  _applyIncoming: function SyncEngine__applyIncoming() {
+  _applyIncoming: function SyncEngine__applyIncoming(item) {
     let self = yield;
-    if (this.incoming.length) {
-      this._log.debug("Applying server changes");
-      let inc;
-      while ((inc = this.incoming.shift())) {
-        this._log.trace("Incoming record: " + this._json.encode(inc.cleartext));
-        try {
-          yield this._store.applyIncoming(self.cb, inc);
-          if (inc.modified > this.lastSync)
-            this.lastSync = inc.modified;
-        } catch (e) {
-          this._log.warn("Error while applying incoming record: " +
-                         (e.message? e.message : e));
-        }
-      }
+    this._log.debug("Applying incoming record");
+    this._log.trace("Incoming record: " + this._json.encode(item.cleartext));
+    try {
+      yield this._store.applyIncoming(self.cb, item);
+      if (item.modified > this._lastSyncTmp)
+        this._lastSyncTmp = item.modified;
+    } catch (e) {
+      this._log.warn("Error while applying incoming record: " +
+                     (e.message? e.message : e));
     }
   },
 
@@ -575,14 +543,11 @@ SyncEngine.prototype = {
 
       
       yield this._generateOutgoing.async(this, self.cb);
-      yield this._fetchIncoming.async(this, self.cb);
 
       
       yield this._processIncoming.async(this, self.cb);
-      yield this._reconcile.async(this, self.cb);
 
       
-      yield this._applyIncoming.async(this, self.cb);
       yield this._uploadOutgoing.async(this, self.cb);
 
       yield this._syncFinish.async(this, self.cb);
