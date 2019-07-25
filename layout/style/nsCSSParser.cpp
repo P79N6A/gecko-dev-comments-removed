@@ -87,6 +87,7 @@
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "prlog.h"
+#include "CSSCalc.h"
 
 
 #define VARIANT_KEYWORD         0x000001  // K
@@ -114,6 +115,7 @@
 #define VARIANT_IMAGE_RECT    0x01000000  // eCSSUnit_Function
 
 #define VARIANT_ZERO_ANGLE    0x02000000  // unitless zero for angles
+#define VARIANT_CALC          0x04000000  // eCSSUnit_Calc
 
 
 #define VARIANT_AL   (VARIANT_AUTO | VARIANT_LENGTH)
@@ -479,6 +481,18 @@ protected:
                                     PRInt32 aSourceType);
   PRBool ParseBorderStyle();
   PRBool ParseBorderWidth();
+
+  PRBool ParseCalc(nsCSSValue &aValue, PRInt32 aVariantMask);
+  PRBool ParseCalcAdditiveExpression(nsCSSValue& aValue,
+                                     PRInt32& aVariantMask);
+  PRBool ParseCalcMultiplicativeExpression(nsCSSValue& aValue,
+                                           PRInt32& aVariantMask,
+                                           PRBool *aHadFinalWS);
+  PRBool ParseCalcTerm(nsCSSValue& aValue, PRInt32& aVariantMask);
+  PRBool ParseCalcMinMax(nsCSSValue& aValue, nsCSSUnit aUnit,
+                         PRInt32& aVariantMask);
+  PRBool RequireWhitespace();
+
   
   PRBool ParseRect(nsCSSRect& aRect,
                    nsCSSProperty aPropID);
@@ -4388,6 +4402,10 @@ CSSParserImpl::TranslateDimension(nsCSSValue& aValue,
   return PR_FALSE;
 }
 
+
+
+
+
 #define VARIANT_ALL_NONNUMERIC \
   VARIANT_KEYWORD | \
   VARIANT_COLOR | \
@@ -4403,7 +4421,12 @@ CSSParserImpl::TranslateDimension(nsCSSValue& aValue,
   VARIANT_SYSFONT | \
   VARIANT_GRADIENT | \
   VARIANT_CUBIC_BEZIER | \
-  VARIANT_ALL
+  VARIANT_ALL | \
+  VARIANT_CALC
+
+
+
+
 
 PRBool
 CSSParserImpl::ParseNonNegativeVariant(nsCSSValue& aValue,
@@ -4442,6 +4465,10 @@ CSSParserImpl::ParseNonNegativeVariant(nsCSSValue& aValue,
   }
   return PR_FALSE;
 }
+
+
+
+
 
 PRBool
 CSSParserImpl::ParsePositiveNonZeroVariant(nsCSSValue& aValue,
@@ -4662,6 +4689,14 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
      if (tk->mIdent.LowerCaseEqualsLiteral("cubic-bezier")) {
       return ParseTransitionTimingFunctionValues(aValue);
     }
+  }
+  if ((aVariantMask & VARIANT_CALC) &&
+      (eCSSToken_Function == tk->mType) &&
+      (tk->mIdent.LowerCaseEqualsLiteral("-moz-calc") ||
+       tk->mIdent.LowerCaseEqualsLiteral("-moz-min") ||
+       tk->mIdent.LowerCaseEqualsLiteral("-moz-max"))) {
+    
+    return ParseCalc(aValue, aVariantMask & VARIANT_LP);
   }
 
   UngetToken();
@@ -7150,6 +7185,359 @@ CSSParserImpl::ParseBorderColors(nsCSSValueList** aResult,
   
   delete list;
   return PR_FALSE;
+}
+
+
+
+PRBool
+CSSParserImpl::ParseCalc(nsCSSValue &aValue, PRInt32 aVariantMask)
+{
+  
+  
+  
+  
+  NS_ASSERTION(!(aVariantMask & VARIANT_NUMBER), "unexpected variant mask");
+  NS_ABORT_IF_FALSE(aVariantMask != 0, "unexpected variant mask");
+
+  nsCSSUnit unit;
+  if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-min")) {
+    unit = eCSSUnit_Calc_Minimum;
+  } else if (mToken.mIdent.LowerCaseEqualsLiteral("-moz-max")) {
+    unit = eCSSUnit_Calc_Maximum;
+  } else {
+    NS_ASSERTION(mToken.mIdent.LowerCaseEqualsLiteral("-moz-calc"),
+                 "unexpected function");
+    unit = eCSSUnit_Calc;
+  }
+
+  if (unit != eCSSUnit_Calc) {
+    return ParseCalcMinMax(aValue, unit, aVariantMask);
+  }
+
+  
+  do {
+    
+    nsRefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(1);
+    if (!arr) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      break;
+    }
+
+    if (!ParseCalcAdditiveExpression(arr->Item(0), aVariantMask))
+      break;
+
+    if (!ExpectSymbol(')', PR_TRUE))
+      break;
+
+    aValue.SetArrayValue(arr, eCSSUnit_Calc);
+    return PR_TRUE;
+  } while (PR_FALSE);
+
+  SkipUntil(')');
+  return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+CSSParserImpl::ParseCalcAdditiveExpression(nsCSSValue& aValue,
+                                           PRInt32& aVariantMask)
+{
+  NS_ABORT_IF_FALSE(aVariantMask != 0, "unexpected variant mask");
+  nsCSSValue *storage = &aValue;
+  for (;;) {
+    PRBool haveWS;
+    if (!ParseCalcMultiplicativeExpression(*storage, aVariantMask, &haveWS))
+      return PR_FALSE;
+
+    if (!haveWS || !GetToken(PR_FALSE))
+      return PR_TRUE;
+    nsCSSUnit unit;
+    if (mToken.IsSymbol('+')) {
+      unit = eCSSUnit_Calc_Plus;
+    } else if (mToken.IsSymbol('-')) {
+      unit = eCSSUnit_Calc_Minus;
+    } else {
+      UngetToken();
+      return PR_TRUE;
+    }
+    if (!RequireWhitespace())
+      return PR_FALSE;
+
+    nsRefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(2);
+    if (!arr) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      return PR_FALSE;
+    }
+    arr->Item(0) = aValue;
+    storage = &arr->Item(1);
+    aValue.SetArrayValue(arr, unit);
+  }
+}
+
+struct ReduceNumberCalcOps : public mozilla::css::BasicFloatCalcOps
+{
+  struct ComputeData {};
+
+  static result_type ComputeLeafValue(const nsCSSValue& aValue,
+                                      const ComputeData& aClosure)
+  {
+    NS_ABORT_IF_FALSE(aValue.GetUnit() == eCSSUnit_Number, "unexpected unit");
+    return aValue.GetFloatValue();
+  }
+
+  static float ComputeNumber(const nsCSSValue& aValue)
+  {
+    return mozilla::css::ComputeCalc<ReduceNumberCalcOps>(
+             aValue, ReduceNumberCalcOps::ComputeData());
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PRBool
+CSSParserImpl::ParseCalcMultiplicativeExpression(nsCSSValue& aValue,
+                                                 PRInt32& aVariantMask,
+                                                 PRBool *aHadFinalWS)
+{
+  NS_ABORT_IF_FALSE(aVariantMask != 0, "unexpected variant mask");
+  PRBool gotValue = PR_FALSE; 
+  PRBool afterDivision = PR_FALSE;
+
+  nsCSSValue *storage = &aValue;
+  for (;;) {
+    PRInt32 variantMask;
+    if (afterDivision || gotValue) {
+      variantMask = VARIANT_NUMBER;
+    } else {
+      variantMask = aVariantMask | VARIANT_NUMBER;
+    }
+    if (!ParseCalcTerm(*storage, variantMask))
+      return PR_FALSE;
+    NS_ABORT_IF_FALSE(variantMask != 0,
+                      "ParseCalcTerm did not set variantMask appropriately");
+    NS_ABORT_IF_FALSE(!(variantMask & VARIANT_NUMBER) ||
+                      !(variantMask & ~PRInt32(VARIANT_NUMBER)),
+                      "ParseCalcTerm did not set variantMask appropriately");
+
+    if (variantMask & VARIANT_NUMBER) {
+      
+      
+      float number = mozilla::css::ComputeCalc<ReduceNumberCalcOps>(
+                       *storage, ReduceNumberCalcOps::ComputeData());
+      if (number == 0.0 && afterDivision)
+        return PR_FALSE;
+      storage->SetFloatValue(number, eCSSUnit_Number);
+    } else {
+      gotValue = PR_TRUE;
+
+      if (storage != &aValue) {
+        
+        
+        NS_ABORT_IF_FALSE(storage == &aValue.GetArrayValue()->Item(1),
+                          "unexpected relationship to current storage");
+        nsCSSValue &leftValue = aValue.GetArrayValue()->Item(0);
+        float number = mozilla::css::ComputeCalc<ReduceNumberCalcOps>(
+                         leftValue, ReduceNumberCalcOps::ComputeData());
+        leftValue.SetFloatValue(number, eCSSUnit_Number);
+      }
+    }
+
+    PRBool hadWS = RequireWhitespace();
+    if (!GetToken(PR_FALSE)) {
+      *aHadFinalWS = hadWS;
+      break;
+    }
+    nsCSSUnit unit;
+    if (mToken.IsSymbol('*')) {
+      unit = gotValue ? eCSSUnit_Calc_Times_R : eCSSUnit_Calc_Times_L;
+      afterDivision = PR_FALSE;
+    } else if (mToken.IsSymbol('/')) {
+      unit = eCSSUnit_Calc_Divided;
+      afterDivision = PR_TRUE;
+    } else {
+      UngetToken();
+      *aHadFinalWS = hadWS;
+      break;
+    }
+
+    nsRefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(2);
+    if (!arr) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      return PR_FALSE;
+    }
+    arr->Item(0) = aValue;
+    storage = &arr->Item(1);
+    aValue.SetArrayValue(arr, unit);
+  }
+
+  
+  
+  if (aVariantMask & VARIANT_NUMBER) {
+    if (gotValue) {
+      aVariantMask &= ~PRInt32(VARIANT_NUMBER);
+    } else {
+      aVariantMask = VARIANT_NUMBER;
+    }
+  } else {
+    if (!gotValue) {
+      
+      return PR_FALSE;
+    }
+  }
+
+  return PR_TRUE;
+}
+
+
+
+
+
+
+
+
+
+PRBool
+CSSParserImpl::ParseCalcTerm(nsCSSValue& aValue, PRInt32& aVariantMask)
+{
+  NS_ABORT_IF_FALSE(aVariantMask != 0, "unexpected variant mask");
+  if (!GetToken(PR_TRUE))
+    return PR_FALSE;
+  
+  if (mToken.IsSymbol('(')) {
+    if (!ParseCalcAdditiveExpression(aValue, aVariantMask) ||
+        !ExpectSymbol(')', PR_TRUE)) {
+      SkipUntil(')');
+      return PR_FALSE;
+    }
+    return PR_TRUE;
+  }
+  
+  if (mToken.mType == eCSSToken_Function &&
+      (mToken.mIdent.LowerCaseEqualsLiteral("min") ||
+       mToken.mIdent.LowerCaseEqualsLiteral("max"))) {
+    nsCSSUnit unit = mToken.mIdent.LowerCaseEqualsLiteral("min")
+                       ? eCSSUnit_Calc_Minimum : eCSSUnit_Calc_Maximum;
+    return ParseCalcMinMax(aValue, unit, aVariantMask);
+  }
+  
+  UngetToken();
+  if (!ParseVariant(aValue, aVariantMask, nsnull)) {
+    return PR_FALSE;
+  }
+  
+  
+  if (aVariantMask & VARIANT_NUMBER) {
+    if (aValue.GetUnit() == eCSSUnit_Number) {
+      aVariantMask = VARIANT_NUMBER;
+    } else {
+      aVariantMask &= ~PRInt32(VARIANT_NUMBER);
+    }
+  }
+  return PR_TRUE;
+}
+
+
+
+PRBool
+CSSParserImpl::ParseCalcMinMax(nsCSSValue& aValue, nsCSSUnit aUnit,
+                               PRInt32& aVariantMask)
+{
+  NS_ABORT_IF_FALSE(aVariantMask != 0, "unexpected variant mask");
+  NS_ASSERTION(aUnit == eCSSUnit_Calc_Minimum ||
+               aUnit == eCSSUnit_Calc_Maximum,
+               "unexpected unit");
+  NS_ASSERTION(mToken.mType == eCSSToken_Function, "unexpected current token");
+  NS_ASSERTION(aUnit != eCSSUnit_Calc_Minimum ||
+               mToken.mIdent.LowerCaseEqualsLiteral("min") ||
+               mToken.mIdent.LowerCaseEqualsLiteral("-moz-min"),
+               "unexpected current token");
+  NS_ASSERTION(aUnit != eCSSUnit_Calc_Maximum ||
+               mToken.mIdent.LowerCaseEqualsLiteral("max") ||
+               mToken.mIdent.LowerCaseEqualsLiteral("-moz-max"),
+               "unexpected current token");
+
+  nsAutoTArray<nsCSSValue, 4> values;
+  for (;;) {
+    nsCSSValue *v = values.AppendElement();
+    if (!v) {
+      mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+      return PR_FALSE;
+    }
+
+    if (!ParseCalcAdditiveExpression(*v, aVariantMask))
+      return PR_FALSE;
+
+    NS_ABORT_IF_FALSE(!(aVariantMask & VARIANT_NUMBER) ||
+                      !(aVariantMask & ~PRInt32(VARIANT_NUMBER)),
+                      "parsing additive expr did not adjust variant mask");
+    NS_ABORT_IF_FALSE(aVariantMask != 0, "unexpected variant mask");
+
+    if (ExpectSymbol(',', PR_TRUE))
+      continue;
+
+    if (ExpectSymbol(')', PR_TRUE))
+      break;
+
+    SkipUntil(')');
+    return PR_FALSE;
+  }
+
+  
+  
+  NS_ABORT_IF_FALSE(values.Length() > 0, "unexpected length");
+
+  nsRefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(values.Length());
+  if (!arr) {
+    mScanner.SetLowLevelError(NS_ERROR_OUT_OF_MEMORY);
+    return PR_FALSE;
+  }
+  for (PRUint32 i = 0, i_end = values.Length(); i < i_end; ++i) {
+    arr->Item(i) = values[i];
+  }
+
+  aValue.SetArrayValue(arr, aUnit);
+  return PR_TRUE;
+}
+
+
+
+PRBool
+CSSParserImpl::RequireWhitespace()
+{
+  if (!GetToken(PR_FALSE))
+    return PR_FALSE;
+  if (mToken.mType != eCSSToken_WhiteSpace) {
+    UngetToken();
+    return PR_FALSE;
+  }
+  
+  if (GetToken(PR_TRUE)) {
+    UngetToken();
+  }
+  return PR_TRUE;
 }
 
 PRBool
