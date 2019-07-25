@@ -166,14 +166,6 @@ public:
     NS_OVERRIDE
     virtual void OnChannelError();
 
-    
-
-
-
-
-
-    void FlushPendingRPCQueue();
-
 #ifdef OS_WIN
     void ProcessNativeEventsInRPCCall();
 
@@ -196,15 +188,10 @@ protected:
 
     bool EventOccurred() const;
 
-    bool MaybeProcessDeferredIncall();
+    void MaybeProcessDeferredIncall();
     void EnqueuePendingMessages();
 
-    
-
-
-
-    bool OnMaybeDequeueOne();
-
+    void OnMaybeDequeueOne();
     void Incall(const Message& call, size_t stackDepth);
     void DispatchIncall(const Message& call);
 

@@ -2978,14 +2978,9 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             onstack.addstmt(StmtReturn(ExprCall(
                 ExprSelect(p.channelVar(), '.', p.onCxxStackVar().name))))
 
-            
-            processincoming = MethodDefn(
-                MethodDecl('FlushPendingRPCQueue', ret=Type.VOID))
-            processincoming.addstmt(StmtExpr(ExprCall(ExprSelect(_actorChannel(ExprVar.THIS), '.', 'FlushPendingRPCQueue'))))
-
             self.cls.addstmts([ onentered, onexited,
                                 onenteredcall, onexitedcall,
-                                onstack, processincoming, Whitespace.NL ])
+                                onstack, Whitespace.NL ])
 
         
         onclose = MethodDefn(MethodDecl('OnChannelClose'))
