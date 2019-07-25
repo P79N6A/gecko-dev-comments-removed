@@ -41,7 +41,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     private DisplayPortMetrics mReturnDisplayPort;
 
     private boolean mRecordDrawTimes;
-    private DrawTimingQueue mDrawTimingQueue;
+    private final DrawTimingQueue mDrawTimingQueue;
 
     private VirtualLayer mRootLayer;
 
@@ -54,13 +54,11 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
 
     private ImmutableViewportMetrics mFrameMetrics;
 
-    private String mLastCheckerboardColor;
-
     
     private DrawListener mDrawListener;
 
     
-    private ViewTransform mCurrentViewTransform;
+    private final ViewTransform mCurrentViewTransform;
 
     
     private volatile boolean mCompositorCreated;
