@@ -49,7 +49,6 @@
 #include "nsIBrowserDOMWindow.h"
 #include "nsIComponentManager.h"
 #include "nsIContent.h"
-#include "nsIContentUtils.h"
 #include "mozilla/dom/Element.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
@@ -157,6 +156,7 @@
 #include "nsPICommandUpdater.h"
 #include "nsIDOMHTMLAnchorElement.h"
 #include "nsIWebBrowserChrome2.h"
+#include "nsITabChild.h"
 
 
 #include "nsIEditingSession.h"
@@ -370,8 +370,8 @@ ForEachPing(nsIContent *content, ForEachPingCallback callback, void *closure)
   if (!content->IsHTML())
     return;
   nsIAtom *nameAtom = content->Tag();
-  if (!nameAtom->Equals(NS_LITERAL_STRING("a")) &&
-      !nameAtom->Equals(NS_LITERAL_STRING("area")))
+  if (!nameAtom->EqualsUTF8(NS_LITERAL_CSTRING("a")) &&
+      !nameAtom->EqualsUTF8(NS_LITERAL_CSTRING("area")))
     return;
 
   nsCOMPtr<nsIAtom> pingAtom = do_GetAtom("ping");
@@ -978,8 +978,17 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
       if (NS_SUCCEEDED(rv) && treeOwner)
         return treeOwner->QueryInterface(aIID, aSink);
     }
+    else if (aIID.Equals(NS_GET_IID(nsITabChild))) {
+      nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+      nsresult rv = GetTreeOwner(getter_AddRefs(treeOwner));
+      if (NS_SUCCEEDED(rv) && treeOwner) {
+        nsCOMPtr<nsIInterfaceRequestor> ir = do_QueryInterface(treeOwner);
+        if (ir)
+          return ir->GetInterface(aIID, aSink);
+      }
+    }
     else {
-        return nsDocLoader::GetInterface(aIID, aSink);
+      return nsDocLoader::GetInterface(aIID, aSink);
     }
 
     NS_IF_ADDREF(((nsISupports *) * aSink));
@@ -6188,11 +6197,17 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
   
   mFiredUnloadEvent = PR_FALSE;
 
-  nsCOMPtr<nsIContentUtils> cutils = do_GetService("@mozilla.org/content/contentutils;1");
-  if (!cutils)
-      return NS_ERROR_FAILURE;
+  
+  nsCOMPtr<nsICategoryManager> catMan(do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
+  if (!catMan)
+    return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDocumentLoaderFactory> docFactory = cutils->FindInternalContentViewer("text/html");
+  nsXPIDLCString contractId;
+  rv = catMan->GetCategoryEntry("Gecko-Content-Viewers", "text/html", getter_Copies(contractId));
+  if (NS_FAILED(rv))
+    return rv;
+
+  nsCOMPtr<nsIDocumentLoaderFactory> docFactory(do_GetService(contractId));
   if (docFactory) {
     
     docFactory->CreateBlankDocument(mLoadGroup, aPrincipal,
@@ -7172,13 +7187,19 @@ nsDocShell::NewContentViewerObj(const char *aContentType,
 {
     nsCOMPtr<nsIChannel> aOpenedChannel = do_QueryInterface(request);
 
-    nsCOMPtr<nsIContentUtils> cutils = do_GetService("@mozilla.org/content/contentutils;1");
-    if (!cutils) {
-        return NS_ERROR_FAILURE;
-    }
+    nsresult rv;
+    nsCOMPtr<nsICategoryManager> catMan(do_GetService(NS_CATEGORYMANAGER_CONTRACTID, &rv));
+    if (NS_FAILED(rv))
+      return rv;
+    
+    nsXPIDLCString contractId;
+    rv = catMan->GetCategoryEntry("Gecko-Content-Viewers", aContentType, getter_Copies(contractId));
 
-    nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory =
-        cutils->FindInternalContentViewer(aContentType);
+    
+    nsCOMPtr<nsIDocumentLoaderFactory> docLoaderFactory;
+    if (NS_SUCCEEDED(rv))
+        docLoaderFactory = do_GetService(contractId.get());
+
     if (!docLoaderFactory) {
         return NS_ERROR_FAILURE;
     }
@@ -11166,97 +11187,3 @@ nsDocShell::GetPrintPreview(nsIWebBrowserPrint** aPrintPreview)
 #ifdef DEBUG
 unsigned long nsDocShell::gNumberOfDocShells = 0;
 #endif
-
-NS_IMETHODIMP
-nsDocShell::GetCanExecuteScripts(PRBool *aResult)
-{
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = PR_FALSE; 
-
-  nsCOMPtr<nsIDocShell> docshell = this;
-  nsCOMPtr<nsIDocShellTreeItem> globalObjTreeItem =
-      do_QueryInterface(docshell);
-
-  if (globalObjTreeItem)
-  {
-      nsCOMPtr<nsIDocShellTreeItem> treeItem(globalObjTreeItem);
-      nsCOMPtr<nsIDocShellTreeItem> parentItem;
-      PRBool firstPass = PR_TRUE;
-      PRBool lookForParents = PR_FALSE;
-
-      
-      do
-      {
-          nsresult rv = docshell->GetAllowJavascript(aResult);
-          if (NS_FAILED(rv)) return rv;
-          if (!*aResult) {
-              nsDocShell* realDocshell = static_cast<nsDocShell*>(docshell.get());
-              if (realDocshell->mContentViewer) {
-                  nsIDocument* doc = realDocshell->mContentViewer->GetDocument();
-                  if (doc && doc->HasFlag(NODE_IS_EDITABLE) &&
-                      realDocshell->mEditorData) {
-                      nsCOMPtr<nsIEditingSession> editSession;
-                      realDocshell->mEditorData->GetEditingSession(getter_AddRefs(editSession));
-                      PRBool jsDisabled = PR_FALSE;
-                      if (editSession &&
-                          NS_SUCCEEDED(rv = editSession->GetJsAndPluginsDisabled(&jsDisabled))) {
-                          if (firstPass) {
-                              if (jsDisabled) {
-                                  
-                                  
-                                  return NS_OK;
-                              }
-                              
-                              
-                              
-                              
-                              *aResult = PR_TRUE;
-                              break;
-                          } else if (lookForParents && jsDisabled) {
-                              
-                              
-                              *aResult = PR_TRUE;
-                              break;
-                          }
-                          
-                          
-                          
-                          *aResult = PR_TRUE;
-                          return NS_OK;
-                      }
-                      NS_WARNING("The editing session does not work?");
-                      return NS_FAILED(rv) ? rv : NS_ERROR_FAILURE;
-                  }
-                  if (firstPass) {
-                      
-                      
-                      
-                      lookForParents = PR_TRUE;
-                  } else {
-                      
-                      
-                      
-                      return NS_OK;
-                  }
-              }
-          } else if (lookForParents) {
-              
-              
-              
-              return NS_OK;
-          }
-          firstPass = PR_FALSE;
-
-          treeItem->GetParent(getter_AddRefs(parentItem));
-          treeItem.swap(parentItem);
-          docshell = do_QueryInterface(treeItem);
-#ifdef DEBUG
-          if (treeItem && !docshell) {
-            NS_ERROR("cannot get a docshell from a treeItem!");
-          }
-#endif 
-      } while (treeItem && docshell);
-  }
-
-  return NS_OK;
-}

@@ -56,9 +56,9 @@ NeckoParent::~NeckoParent()
 }
 
 PHttpChannelParent* 
-NeckoParent::AllocPHttpChannel()
+NeckoParent::AllocPHttpChannel(PIFrameEmbeddingParent* iframeEmbedding)
 {
-  HttpChannelParent *p = new HttpChannelParent();
+  HttpChannelParent *p = new HttpChannelParent(iframeEmbedding);
   p->AddRef();
   return p;
 }
