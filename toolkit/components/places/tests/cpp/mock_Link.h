@@ -57,6 +57,12 @@ public:
   , mHandler(aHandlerFunction)
   , mRunNextTest(aRunNextTest)
   {
+    
+    
+    
+    
+    
+    mDeathGrip = this;
   }
 
   virtual void SetLinkState(nsLinkState aState)
@@ -65,17 +71,20 @@ public:
     mHandler(aState);
 
     
+    mDeathGrip = 0;
+  }
+
+  ~mock_Link() {
+    
     if (mRunNextTest) {
       run_next_test();
     }
-
-    
-    NS_RELEASE_THIS();
   }
 
 private:
   void (*mHandler)(nsLinkState);
   bool mRunNextTest;
+  nsRefPtr<Link> mDeathGrip;
 };
 
 NS_IMPL_ISUPPORTS1(
