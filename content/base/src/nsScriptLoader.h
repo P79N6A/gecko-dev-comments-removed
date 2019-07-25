@@ -60,7 +60,6 @@ class nsScriptLoadRequest;
 
 class nsScriptLoader : public nsIStreamLoaderObserver
 {
-  friend class nsScriptRequestProcessor;
 public:
   nsScriptLoader(nsIDocument* aDocument);
   virtual ~nsScriptLoader();
@@ -225,7 +224,7 @@ public:
 
   PRUint32 HasPendingOrCurrentScripts()
   {
-    return mCurrentScript || mParserBlockingRequest;
+    return mCurrentScript || GetFirstPendingRequest();
   }
 
   
@@ -238,7 +237,7 @@ public:
   virtual void PreloadURI(nsIURI *aURI, const nsAString &aCharset,
                           const nsAString &aType);
 
-private:
+protected:
   
 
 
@@ -295,11 +294,13 @@ private:
                                 PRUint32 aStringLen,
                                 const PRUint8* aString);
 
+  
+  nsScriptLoadRequest* GetFirstPendingRequest();
+
   nsIDocument* mDocument;                   
   nsCOMArray<nsIScriptLoaderObserver> mObservers;
+  nsCOMArray<nsScriptLoadRequest> mRequests;
   nsCOMArray<nsScriptLoadRequest> mAsyncRequests;
-  nsCOMArray<nsScriptLoadRequest> mDeferRequests;
-  nsCOMPtr<nsScriptLoadRequest> mParserBlockingRequest;
 
   
   struct PreloadInfo {
@@ -325,7 +326,7 @@ private:
   PRUint32 mBlockerCount;
   PRPackedBool mEnabled;
   PRPackedBool mDeferEnabled;
-  PRPackedBool mDocumentParsingDone;
+  PRPackedBool mUnblockOnloadWhenDoneProcessing;
 };
 
 #endif 
