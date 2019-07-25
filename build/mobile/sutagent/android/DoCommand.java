@@ -60,7 +60,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.Timer;
 import java.util.zip.Adler32;
 import java.util.zip.CheckedInputStream;
@@ -95,6 +97,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Debug;
 import android.os.Environment;
 import android.os.StatFs;
 import android.os.SystemClock;
@@ -113,9 +116,9 @@ public class DoCommand {
 	ContextWrapper	contextWrapper = null;
 	
 	String	currentDir = "/";
-	String	sErrorPrefix = "##AGENT-ERROR## ";
+	String	sErrorPrefix = "##AGENT-WARNING## ";
 	
-	private final String prgVersion = "SUTAgentAndroid Version 0.80";
+	private final String prgVersion = "SUTAgentAndroid Version 0.85";
 	
 	public enum Command
 		{
@@ -128,6 +131,7 @@ public class DoCommand {
 		OS ("os"),
 		ID ("id"),
 		UPTIME ("uptime"),
+		SETTIME ("settime"),
 		SYSTIME ("systime"),
 		SCREEN ("screen"),
 		MEMORY ("memory"),
@@ -215,8 +219,16 @@ public class DoCommand {
 				strReturn = prgVersion;
 				break;
 				
+			case CLOK:
+				strReturn = GetClok();
+				break;
+				
 			case UPDT:
 				strReturn = StartUpdateOMatic(Argv[1], Argv[2]);
+				break;
+			
+			case SETTIME:
+				strReturn = SetSystemTime(Argv[1], Argv[2], cmdOut);
 				break;
 			
 			case CWD:
@@ -244,7 +256,7 @@ public class DoCommand {
 				if (Argc == 2)
 					strReturn = GetAppRoot(Argv[1]);
 				else
-					strReturn = sErrorPrefix + "Wrong number of arguments for cd command!";
+					strReturn = sErrorPrefix + "Wrong number of arguments for getapproot command!";
 				break;
 				
 			case TESTROOT:
@@ -1929,6 +1941,84 @@ public class DoCommand {
 		return (sRet);
 		}
 	
+	public String SetSystemTime(String sDate, String sTime, OutputStream out)
+		{
+
+		String sRet = "";
+		
+
+
+
+		
+		
+		
+		
+		
+		if (((sDate != null) && (sTime != null)) && 
+			(sDate.contains("/") || sDate.contains(".")) &&
+			(sTime.contains(":")))
+			{
+			int year = Integer.parseInt(sDate.substring(0,4));
+			int month = Integer.parseInt(sDate.substring(5,7));
+			int day = Integer.parseInt(sDate.substring(8,10));
+			
+			int hour = Integer.parseInt(sTime.substring(0,2));
+			int mins = Integer.parseInt(sTime.substring(3,5));
+			int secs = Integer.parseInt(sTime.substring(6,8));
+
+			Calendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT"));
+			cal.set(year, month - 1, day, hour, mins, secs);
+			long lMillisecs = cal.getTime().getTime();
+			
+
+			String sM = Long.toString(lMillisecs);
+
+			String sTest = cal.getTime().toGMTString();
+			String sMillis = sM.substring(0, sM.length() - 3) + "." + sM.substring(sM.length() - 3);
+			String [] theArgs = new String [3];
+		
+			theArgs[0] = "su";
+			theArgs[1] = "-c";
+			theArgs[2] = "date -u " + sMillis;
+		
+			try 
+				{
+				pProc = Runtime.getRuntime().exec(theArgs);
+				RedirOutputThread outThrd = new RedirOutputThread(pProc, null);
+				outThrd.start();
+				outThrd.join(10000);
+				sRet = GetSystemTime();
+				}
+			catch (IOException e) 
+				{
+				sRet = e.getMessage();
+				e.printStackTrace();
+				} 
+			catch (InterruptedException e)
+				{
+				
+				e.printStackTrace();
+				}
+			}
+		else
+			{
+			sRet = "Invalid argument(s)";
+			}
+
+		return (sRet);
+		}
+
+	public String GetClok()
+		{
+		long lMillisecs = System.currentTimeMillis();
+		String sRet = "";
+		
+		if (lMillisecs > 0)
+			sRet = Long.toString(lMillisecs);
+		
+		return(sRet);
+		}
+	
 	public String GetUptime()
 		{
 		String sRet = "";
@@ -2140,6 +2230,9 @@ public class DoCommand {
 	
 		try 
 			{
+			
+			((ASMozStub)this.contextWrapper).SendToDataChannel("Rebooting ...");
+			
 			pProc = Runtime.getRuntime().exec(theArgs);
 			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
 			outThrd.start();
@@ -2551,6 +2644,9 @@ public class DoCommand {
 			"rebt                     - reboot device\n" +
 			"inst /path/filename.apk  - install the referenced apk file\n" +
 			"uninst packagename       - uninstall the referenced package\n" +
+			"updt pkgname pkgfile     - unpdate the referenced package\n" +
+			"clok                     - the current device time expressed as the number of millisecs since epoch\n" +
+			"settime date time        - sets the device date and time (YYYY/MM/DD HH:MM:SS)\n" +
 			"rebt                     - reboot device\n" +
 			"quit                     - disconnect SUTAgent\n" +
 			"exit                     - close SUTAgent\n" +
