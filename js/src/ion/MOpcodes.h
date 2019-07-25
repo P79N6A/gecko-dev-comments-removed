@@ -105,6 +105,7 @@ namespace ion {
     _(CallGetProperty)                                                      \
     _(CallGetName)                                                          \
     _(CallGetNameTypeOf)                                                    \
+    _(GenericSetProperty)                                                   \
     _(StringLength)
 
 

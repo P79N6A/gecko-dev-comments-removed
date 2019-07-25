@@ -303,6 +303,57 @@ class TypedOrValueRegister
     }
 };
 
+
+class ConstantOrRegister
+{
+    
+    bool constant_;
+
+    
+    union U {
+        AlignedStorage2<Value> constant;
+        AlignedStorage2<TypedOrValueRegister> reg;
+    } data;
+
+    Value &dataValue() {
+        JS_ASSERT(constant());
+        return *data.constant.addr();
+    }
+    TypedOrValueRegister &dataReg() {
+        JS_ASSERT(!constant());
+        return *data.reg.addr();
+    }
+
+  public:
+
+    ConstantOrRegister()
+    {}
+
+    ConstantOrRegister(Value value)
+      : constant_(true)
+    {
+        dataValue() = value;
+    }
+
+    ConstantOrRegister(TypedOrValueRegister reg)
+      : constant_(false)
+    {
+        dataReg() = reg;
+    }
+
+    bool constant() {
+        return constant_;
+    }
+
+    Value value() {
+        return dataValue();
+    }
+
+    TypedOrValueRegister reg() {
+        return dataReg();
+    }
+};
+
 template <typename T>
 class TypedRegisterSet
 {
