@@ -299,9 +299,7 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
       
       nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
       if (SVGFrame) {
-        SVGFrame->NotifySVGChanged(
-                          nsISVGChildFrame::DO_NOT_NOTIFY_RENDERING_OBSERVERS |
-                          nsISVGChildFrame::TRANSFORM_CHANGED);
+        SVGFrame->NotifySVGChanged(nsISVGChildFrame::TRANSFORM_CHANGED);
       }
       nsSVGUtils::PaintFrameWithEffects(&context, nsnull, kid);
     }

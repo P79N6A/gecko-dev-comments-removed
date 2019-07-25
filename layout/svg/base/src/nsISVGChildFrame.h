@@ -87,10 +87,9 @@ public:
   
   
   enum SVGChangedFlags {
-    DO_NOT_NOTIFY_RENDERING_OBSERVERS = 0x01,
-    TRANSFORM_CHANGED     = 0x02,
-    COORD_CONTEXT_CHANGED = 0x04,
-    FULL_ZOOM_CHANGED     = 0x08
+    TRANSFORM_CHANGED     = 0x01,
+    COORD_CONTEXT_CHANGED = 0x02,
+    FULL_ZOOM_CHANGED     = 0x04
   };
   
 
