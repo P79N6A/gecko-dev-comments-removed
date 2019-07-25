@@ -275,37 +275,32 @@ TokenStream::fillUserbuf()
     
     
     
-    
-    
-    
-    
-    
 
     jschar *buf = userbuf.base;
     int n = LINE_LIMIT - 1;     
     JS_ASSERT(n > 0);
     int i;
-    for (i = 0; i < n; i++) {
+    i = 0;
+    while (true) {
         int c = fast_getc(file);
         if (c == EOF)
             break;
         buf[i] = (jschar) (unsigned char) c;
-        if (c == '\n') {
-            i++;
-            break;
-        }
-        if (c == '\r') { 
-            i++;
-            
-            c = fast_getc(file);
-            if (c == EOF)
-                break;
-            buf[i] = (jschar) (unsigned char) c;
-            if (c == '\n') {
-                i++;
-                break;
+        i++;
+
+        if (i == n) {
+            if (buf[i - 1] == '\r') {
+                
+                c = fast_getc(file);
+                if (c == EOF)
+                    break;
+                if (c == '\n') {
+                    buf[i] = (jschar) (unsigned char) c;
+                    i++;
+                    break;
+                }
+                ungetc(c, file);    
             }
-            ungetc(c, file);    
             break;
         }
     }
