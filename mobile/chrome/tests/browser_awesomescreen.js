@@ -13,6 +13,7 @@ function test() {
   
   
   waitForExplicitFinish();
+  requestLongerTimeout(2);
 
   
   setTimeout(runNextTest, 200);
