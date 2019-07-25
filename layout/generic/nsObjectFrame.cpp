@@ -2066,9 +2066,6 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   
   gfxMatrix transform;
-  
-  r.pos.x += (r.Width() - size.width) / 2;
-  r.pos.y += (r.Height() - size.height) / 2;
   transform.Translate(r.pos);
 
   layer->SetTransform(gfx3DMatrix::From2D(transform));
