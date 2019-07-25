@@ -472,7 +472,6 @@ nsSelectionIterator::IsDone()
 
 
 nsFrameSelection::nsFrameSelection()
-  : mDelayedMouseEvent(false, 0, nsnull, nsMouseEvent::eReal)
 {
   PRInt32 i;
   for (i = 0;i<nsISelectionController::NUM_SELECTIONTYPES;i++){
@@ -510,9 +509,14 @@ nsFrameSelection::nsFrameSelection()
   }
 
   mDisplaySelection = nsISelectionController::SELECTION_OFF;
+  mSelectionChangeReason = nsISelectionListener::NO_REASON;
 
   mDelayedMouseEventValid = false;
-  mSelectionChangeReason = nsISelectionListener::NO_REASON;
+  
+  
+  
+  mDelayedMouseEventIsShift = false;
+  mDelayedMouseEventClickCount = 0;
 }
 
 
@@ -3118,25 +3122,13 @@ nsFrameSelection::DeleteFromDocument()
 void
 nsFrameSelection::SetDelayedCaretData(nsMouseEvent *aMouseEvent)
 {
-  if (aMouseEvent)
-  {
+  if (aMouseEvent) {
     mDelayedMouseEventValid = true;
-    mDelayedMouseEvent      = *aMouseEvent;
-
-    
-    mDelayedMouseEvent.widget = nsnull;
-  }
-  else
+    mDelayedMouseEventIsShift = aMouseEvent->IsShift();
+    mDelayedMouseEventClickCount = aMouseEvent->clickCount;
+  } else {
     mDelayedMouseEventValid = false;
-}
-
-nsMouseEvent*
-nsFrameSelection::GetDelayedCaretData()
-{
-  if (mDelayedMouseEventValid)
-    return &mDelayedMouseEvent;
-  
-  return nsnull;
+  }
 }
 
 void
