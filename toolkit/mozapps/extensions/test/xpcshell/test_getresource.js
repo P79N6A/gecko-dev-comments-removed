@@ -3,7 +3,7 @@
 
 
 
-const ADDON_SIZE = 635 + 15 + 26;
+const ADDON_SIZE = 672 + 15 + 26;
 
 
 
@@ -67,6 +67,13 @@ function run_test() {
         do_check_eq(a1.size, ADDON_SIZE);
 
         a1.uninstall();
+
+        try {
+          
+          do_check_false(a1.hasResource("icon.png"));
+        } catch (e) {
+          do_check_true(false);
+        }
 
         restartManager();
 
