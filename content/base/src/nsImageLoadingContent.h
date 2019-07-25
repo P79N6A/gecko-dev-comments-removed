@@ -230,6 +230,13 @@ private:
 
 
 
+  nsresult FireEvent(const nsAString& aEventType);
+protected:
+  
+
+
+
+
 
 
 
@@ -237,13 +244,6 @@ private:
   nsresult StringToURI(const nsAString& aSpec, nsIDocument* aDocument,
                        nsIURI** aURI);
 
-  
-
-
-
-
-  nsresult FireEvent(const nsAString& aEventType);
-protected:
   void CreateStaticImageClone(nsImageLoadingContent* aDest) const;
 
   
