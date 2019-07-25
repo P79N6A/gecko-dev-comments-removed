@@ -3091,6 +3091,11 @@ ValidateIncrementalMarking(JSContext *cx)
     }
 
     
+    WeakMapVector weakmaps;
+    if (!WeakMapBase::saveWeakMapList(rt, weakmaps))
+        return;
+
+    
 
 
 
@@ -3098,6 +3103,9 @@ ValidateIncrementalMarking(JSContext *cx)
     
     js::gc::State state = rt->gcIncrementalState;
     rt->gcIncrementalState = NO_INCREMENTAL;
+
+    
+    WeakMapBase::resetWeakMapList(rt);
 
     JS_ASSERT(gcmarker->isDrained());
     gcmarker->reset();
@@ -3145,6 +3153,10 @@ ValidateIncrementalMarking(JSContext *cx)
 
         memcpy(bitmap->bitmap, incBitmap.bitmap, sizeof(incBitmap.bitmap));
     }
+
+    
+    WeakMapBase::resetWeakMapList(rt);
+    WeakMapBase::restoreWeakMapList(rt, weakmaps);
 
     rt->gcIncrementalState = state;
 }

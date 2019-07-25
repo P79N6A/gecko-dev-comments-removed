@@ -109,6 +109,8 @@ template <class Key, class Value> class DefaultTracePolicy;
 
 static WeakMapBase * const WeakMapNotInList = reinterpret_cast<WeakMapBase *>(1);
 
+typedef Vector<WeakMapBase *, 0, SystemAllocPolicy> WeakMapVector;
+
 
 
 class WeakMapBase {
@@ -160,6 +162,10 @@ class WeakMapBase {
 
     
     static void resetWeakMapList(JSRuntime *rt);
+
+    
+    static bool saveWeakMapList(JSRuntime *rt, WeakMapVector &vector);
+    static void restoreWeakMapList(JSRuntime *rt, WeakMapVector &vector);
 
   protected:
     
