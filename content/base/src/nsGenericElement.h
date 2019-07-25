@@ -49,7 +49,6 @@
 #include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMDocumentFragment.h"
-#include "nsIDOM3EventTarget.h"
 #include "nsIDOMNSElement.h"
 #include "nsILinkHandler.h"
 #include "nsContentUtils.h"
@@ -200,66 +199,6 @@ private:
 };
 
 #define NS_EVENT_TEAROFF_CACHE_SIZE 4
-
-
-
-
-
-
-
-
-
-
-class nsDOMEventRTTearoff : public nsIDOM3EventTarget
-{
-private:
-  
-  
-  
-  
-  
-
-  nsDOMEventRTTearoff(nsINode *aNode);
-
-  static nsDOMEventRTTearoff *mCachedEventTearoff[NS_EVENT_TEAROFF_CACHE_SIZE];
-  static PRUint32 mCachedEventTearoffCount;
-
-  
-
-
-
-
-  void LastRelease();
-
-public:
-  virtual ~nsDOMEventRTTearoff();
-
-  
-
-
-
-  static nsDOMEventRTTearoff *Create(nsINode *aNode);
-
-  
-
-
-  static void Shutdown();
-
-  
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-
-  
-  NS_DECL_NSIDOM3EVENTTARGET
-
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsDOMEventRTTearoff)
-
-private:
-  
-
-
-
-  nsCOMPtr<nsINode> mNode;
-};
 
 
 
