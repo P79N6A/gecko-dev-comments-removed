@@ -2809,6 +2809,9 @@ pref("gfx.color_management.mode", 0);
 pref("mozilla.widget.render-mode", -1);
 
 
+pref("mozilla.widget.accelerated-layers", true);
+
+
 pref("geo.enabled", true);
 
 
