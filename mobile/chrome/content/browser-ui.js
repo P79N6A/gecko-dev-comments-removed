@@ -537,10 +537,6 @@ var BrowserUI = {
     this.goToURI(list.selectedItem.value);
   },
 
-  showHistory : function() {
-    
-  },
-
   showBookmarks : function () {
     BookmarkList.show();
   },
@@ -549,6 +545,8 @@ var BrowserUI = {
     aURI = aURI || "about:blank";
     let tab = Browser.addTab(aURI, true);
 
+    this.hidePanel();
+    
     if (aURI == "about:blank") {
       this.showToolbar(true);
       this.showAutoComplete();
