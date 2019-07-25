@@ -10,6 +10,10 @@ import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoEventResponder;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.ZoomConstraints;
+import org.mozilla.gecko.ui.PanZoomController;
+import org.mozilla.gecko.ui.PanZoomTarget;
+import org.mozilla.gecko.ui.SimpleScaleGestureDetector;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -17,20 +21,22 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.View;
+import android.view.GestureDetector;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener {
+public class GeckoLayerClient
+        implements GeckoEventResponder, LayerView.Listener, PanZoomTarget
+{
     private static final String LOGTAG = "GeckoLayerClient";
 
-    private LayerController mLayerController;
     private LayerRenderer mLayerRenderer;
     private boolean mLayerRendererInitialized;
 
@@ -63,6 +69,33 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     
     private volatile boolean mCompositorCreated;
 
+    private boolean mForceRedraw;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    private volatile ImmutableViewportMetrics mViewportMetrics;
+
+    private ZoomConstraints mZoomConstraints;
+
+    private boolean mGeckoIsReady;
+
+    
+    private int mCheckerboardColor;
+    private boolean mCheckerboardShouldShowChecks;
+
+    private final PanZoomController mPanZoomController;
+    private LayerView mView;
+
     public GeckoLayerClient(Context context) {
         
         
@@ -75,16 +108,28 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
 
         mCompositorCreated = false;
+
+        mForceRedraw = true;
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        mViewportMetrics = new ImmutableViewportMetrics(new ViewportMetrics(displayMetrics));
+        mZoomConstraints = new ZoomConstraints(false);
+        mCheckerboardColor = Color.WHITE;
+        mCheckerboardShouldShowChecks = true;
+
+        mPanZoomController = new PanZoomController(this);
+    }
+
+    public void setView(LayerView v) {
+        mView = v;
+        mView.connect(this);
     }
 
     
-    void setLayerController(LayerController layerController) {
-        LayerView view = layerController.getView();
+    public void notifyGeckoReady() {
+        mGeckoIsReady = true;
 
-        mLayerController = layerController;
-
-        mRootLayer = new VirtualLayer(new IntSize(view.getWidth(), view.getHeight()));
-        mLayerRenderer = new LayerRenderer(view);
+        mRootLayer = new VirtualLayer(new IntSize(mView.getWidth(), mView.getHeight()));
+        mLayerRenderer = new LayerRenderer(mView);
 
         GeckoAppShell.registerGeckoEventListener("Viewport:Update", this);
         GeckoAppShell.registerGeckoEventListener("Viewport:PageSize", this);
@@ -92,9 +137,8 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         GeckoAppShell.registerGeckoEventListener("Checkerboard:Toggle", this);
         GeckoAppShell.registerGeckoEventListener("Preferences:Data", this);
 
-        view.setListener(this);
-        view.setLayerRenderer(mLayerRenderer);
-        layerController.setRoot(mRootLayer);
+        mView.setListener(this);
+        mView.setLayerRenderer(mLayerRenderer);
 
         sendResizeEventIfNecessary(true);
 
@@ -105,6 +149,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     }
 
     public void destroy() {
+        mPanZoomController.destroy();
         GeckoAppShell.unregisterGeckoEventListener("Viewport:Update", this);
         GeckoAppShell.unregisterGeckoEventListener("Viewport:PageSize", this);
         GeckoAppShell.unregisterGeckoEventListener("Viewport:CalculateDisplayPort", this);
@@ -112,17 +157,76 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         GeckoAppShell.unregisterGeckoEventListener("Preferences:Data", this);
     }
 
-    DisplayPortMetrics getDisplayPort() {
-        return mDisplayPort;
+    
+
+
+
+    public boolean getRedrawHint() {
+        if (mForceRedraw) {
+            mForceRedraw = false;
+            return true;
+        }
+
+        if (!mPanZoomController.getRedrawHint()) {
+            return false;
+        }
+
+        return DisplayPortCalculator.aboutToCheckerboard(mViewportMetrics,
+                mPanZoomController.getVelocityVector(), mDisplayPort);
+    }
+
+    public Layer getRoot() {
+        return mGeckoIsReady ? mRootLayer : null;
+    }
+
+    public LayerView getView() {
+        return mView;
+    }
+
+    public FloatSize getViewportSize() {
+        return mViewportMetrics.getSize();
+    }
+
+    
+
+
+
+
+
+
+
+    public void setViewportSize(FloatSize size) {
+        ViewportMetrics viewportMetrics = new ViewportMetrics(mViewportMetrics);
+        viewportMetrics.setSize(size);
+        mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
+
+        if (mGeckoIsReady) {
+            viewportSizeChanged();
+        }
+    }
+
+    public PanZoomController getPanZoomController() {
+        return mPanZoomController;
+    }
+
+    public GestureDetector.OnGestureListener getGestureListener() {
+        return mPanZoomController;
+    }
+
+    public SimpleScaleGestureDetector.SimpleScaleGestureListener getScaleGestureListener() {
+        return mPanZoomController;
+    }
+
+    public GestureDetector.OnDoubleTapListener getDoubleTapListener() {
+        return mPanZoomController;
     }
 
     
     private void sendResizeEventIfNecessary(boolean force) {
         DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
-        View view = mLayerController.getView();
 
         IntSize newScreenSize = new IntSize(metrics.widthPixels, metrics.heightPixels);
-        IntSize newWindowSize = new IntSize(view.getWidth(), view.getHeight());
+        IntSize newWindowSize = new IntSize(mView.getWidth(), mView.getHeight());
 
         boolean screenSizeChanged = !mScreenSize.equals(newScreenSize);
         boolean windowSizeChanged = !mWindowSize.equals(newWindowSize);
@@ -163,15 +267,37 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         GeckoAppShell.viewSizeChanged();
     }
 
+    
+    private void setPageRect(RectF rect, RectF cssRect) {
+        
+        
+        
+        if (mViewportMetrics.getCssPageRect().equals(cssRect))
+            return;
+
+        ViewportMetrics viewportMetrics = new ViewportMetrics(mViewportMetrics);
+        viewportMetrics.setPageRect(rect, cssRect);
+        mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
+
+        
+        
+
+        post(new Runnable() {
+            public void run() {
+                mPanZoomController.pageRectUpdated();
+                mView.requestRender();
+            }
+        });
+    }
+
     void adjustViewport(DisplayPortMetrics displayPort) {
-        ImmutableViewportMetrics metrics = mLayerController.getViewportMetrics();
+        ImmutableViewportMetrics metrics = getViewportMetrics();
 
         ViewportMetrics clampedMetrics = new ViewportMetrics(metrics);
         clampedMetrics.setViewport(clampedMetrics.getClampedViewport());
 
         if (displayPort == null) {
-            displayPort = DisplayPortCalculator.calculate(metrics,
-                    mLayerController.getPanZoomController().getVelocityVector());
+            displayPort = DisplayPortCalculator.calculate(metrics, mPanZoomController.getVelocityVector());
         }
 
         mDisplayPort = displayPort;
@@ -182,6 +308,17 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         }
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(clampedMetrics, displayPort));
+    }
+
+    
+    private void abortPanZoomAnimation() {
+        if (mPanZoomController != null) {
+            post(new Runnable() {
+                public void run() {
+                    mPanZoomController.abortAnimation();
+                }
+            });
+        }
     }
 
     
@@ -197,9 +334,9 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     
     private void handleViewportMessage(JSONObject message, ViewportMessageType type) throws JSONException {
         ViewportMetrics messageMetrics = new ViewportMetrics(message);
-        synchronized (mLayerController) {
+        synchronized (this) {
             final ViewportMetrics newMetrics;
-            ImmutableViewportMetrics oldMetrics = mLayerController.getViewportMetrics();
+            ImmutableViewportMetrics oldMetrics = getViewportMetrics();
 
             switch (type) {
             default:
@@ -207,7 +344,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
                 newMetrics = messageMetrics;
                 
                 newMetrics.setSize(oldMetrics.getSize());
-                mLayerController.abortPanZoomAnimation();
+                abortPanZoomAnimation();
                 break;
             case PAGE_SIZE:
                 
@@ -219,13 +356,13 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
                 break;
             }
 
-            mLayerController.post(new Runnable() {
+            post(new Runnable() {
                 public void run() {
                     mGeckoViewport = newMetrics;
                 }
             });
-            mLayerController.setViewportMetrics(newMetrics);
-            mDisplayPort = DisplayPortCalculator.calculate(mLayerController.getViewportMetrics(), null);
+            setViewportMetrics(newMetrics);
+            mDisplayPort = DisplayPortCalculator.calculate(getViewportMetrics(), null);
         }
         mReturnDisplayPort = mDisplayPort;
     }
@@ -242,7 +379,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
                 mReturnDisplayPort = DisplayPortCalculator.calculate(newMetrics, null);
             } else if ("Checkerboard:Toggle".equals(event)) {
                 boolean showChecks = message.getBoolean("value");
-                mLayerController.setCheckerboardShowChecks(showChecks);
+                setCheckerboardShowChecks(showChecks);
                 Log.i(LOGTAG, "Showing checks: " + showChecks);
             } else if ("Preferences:Data".equals(event)) {
                 JSONArray jsonPrefs = message.getJSONArray("preferences");
@@ -286,13 +423,6 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         }
     }
 
-    void geometryChanged() {
-        
-        sendResizeEventIfNecessary(false);
-        if (mLayerController.getRedrawHint())
-            adjustViewport(null);
-    }
-
     
 
 
@@ -305,6 +435,28 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         return mGeckoViewport;
     }
 
+    public boolean checkerboardShouldShowChecks() {
+        return mCheckerboardShouldShowChecks;
+    }
+
+    public int getCheckerboardColor() {
+        return mCheckerboardColor;
+    }
+
+    public void setCheckerboardShowChecks(boolean showChecks) {
+        mCheckerboardShouldShowChecks = showChecks;
+        mView.requestRender();
+    }
+
+    public void setCheckerboardColor(int newColor) {
+        mCheckerboardColor = newColor;
+        mView.requestRender();
+    }
+
+    public void setZoomConstraints(ZoomConstraints constraints) {
+        mZoomConstraints = constraints;
+    }
+
     
 
 
@@ -315,8 +467,8 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     public void setFirstPaintViewport(float offsetX, float offsetY, float zoom,
             float pageLeft, float pageTop, float pageRight, float pageBottom,
             float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
-        synchronized (mLayerController) {
-            final ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
+        synchronized (this) {
+            final ViewportMetrics currentMetrics = new ViewportMetrics(getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
             currentMetrics.setPageRect(new RectF(pageLeft, pageTop, pageRight, pageBottom),
@@ -325,16 +477,16 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
             
             
             
-            mLayerController.post(new Runnable() {
+            post(new Runnable() {
                 public void run() {
                     mGeckoViewport = currentMetrics;
                 }
             });
-            mLayerController.setViewportMetrics(currentMetrics);
+            setViewportMetrics(currentMetrics);
 
             Tab tab = Tabs.getInstance().getSelectedTab();
-            mLayerController.setCheckerboardColor(tab.getCheckerboardColor());
-            mLayerController.setZoomConstraints(tab.getZoomConstraints());
+            setCheckerboardColor(tab.getCheckerboardColor());
+            setZoomConstraints(tab.getZoomConstraints());
 
             
             
@@ -343,12 +495,12 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
             
             
             
-            mLayerController.abortPanZoomAnimation();
-            mLayerController.getView().setPaintState(LayerView.PAINT_BEFORE_FIRST);
+            abortPanZoomAnimation();
+            mView.setPaintState(LayerView.PAINT_BEFORE_FIRST);
         }
         DisplayPortCalculator.resetPageState();
         mDrawTimingQueue.reset();
-        mLayerController.getView().getRenderer().resetCheckerboard();
+        mView.getRenderer().resetCheckerboard();
         GeckoAppShell.screenshotWholePage(Tabs.getInstance().getSelectedTab());
     }
 
@@ -359,10 +511,10 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
 
 
     public void setPageRect(float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
-        synchronized (mLayerController) {
+        synchronized (this) {
             RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
-            float ourZoom = mLayerController.getViewportMetrics().zoomFactor;
-            mLayerController.setPageRect(RectUtils.scale(cssPageRect, ourZoom), cssPageRect);
+            float ourZoom = getViewportMetrics().zoomFactor;
+            setPageRect(RectUtils.scale(cssPageRect, ourZoom), cssPageRect);
             
             
             
@@ -386,8 +538,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         
         
         
-        
-        mFrameMetrics = mLayerController.getViewportMetrics();
+        mFrameMetrics = getViewportMetrics();
 
         mCurrentViewTransform.x = mFrameMetrics.viewportRectLeft;
         mCurrentViewTransform.y = mFrameMetrics.viewportRectTop;
@@ -438,6 +589,14 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
         mLayerRenderer.deactivateDefaultProgram();
     }
 
+    void geometryChanged() {
+        
+        sendResizeEventIfNecessary(false);
+        if (getRedrawHint()) {
+            adjustViewport(null);
+        }
+    }
+
     
     public void renderRequested() {
         GeckoAppShell.scheduleComposite();
@@ -472,7 +631,7 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
 
     
     public void surfaceChanged(int width, int height) {
-        mLayerController.setViewportSize(new FloatSize(width, height));
+        setViewportSize(new FloatSize(width, height));
 
         
         
@@ -484,6 +643,89 @@ public class GeckoLayerClient implements GeckoEventResponder, LayerView.Listener
     
     public void compositorCreated() {
         mCompositorCreated = true;
+    }
+
+    
+    public ImmutableViewportMetrics getViewportMetrics() {
+        return mViewportMetrics;
+    }
+
+    
+    public ZoomConstraints getZoomConstraints() {
+        return mZoomConstraints;
+    }
+
+    
+    public void setAnimationTarget(ViewportMetrics viewport) {
+        if (mGeckoIsReady) {
+            
+            
+            
+            
+            ImmutableViewportMetrics metrics = new ImmutableViewportMetrics(viewport);
+            DisplayPortMetrics displayPort = DisplayPortCalculator.calculate(metrics, null);
+            adjustViewport(displayPort);
+        }
+    }
+
+    
+
+
+    public void setViewportMetrics(ViewportMetrics viewport) {
+        mViewportMetrics = new ImmutableViewportMetrics(viewport);
+        mView.requestRender();
+        if (mGeckoIsReady) {
+            geometryChanged();
+        }
+    }
+
+    
+    public void setForceRedraw() {
+        mForceRedraw = true;
+        if (mGeckoIsReady) {
+            geometryChanged();
+        }
+    }
+
+    
+    public boolean post(Runnable action) {
+        return mView.post(action);
+    }
+
+    
+    public Object getLock() {
+        return this;
+    }
+
+    
+
+
+
+
+
+
+    public PointF convertViewPointToLayerPoint(PointF viewPoint) {
+        if (!mGeckoIsReady) {
+            return null;
+        }
+
+        ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
+        PointF origin = viewportMetrics.getOrigin();
+        float zoom = viewportMetrics.zoomFactor;
+        ViewportMetrics geckoViewport = getGeckoViewportMetrics();
+        PointF geckoOrigin = geckoViewport.getOrigin();
+        float geckoZoom = geckoViewport.getZoomFactor();
+
+        
+        
+        
+        
+        
+        PointF layerPoint = new PointF(
+                ((viewPoint.x + origin.x) / zoom) - (geckoOrigin.x / geckoZoom),
+                ((viewPoint.y + origin.y) / zoom) - (geckoOrigin.y / geckoZoom));
+
+        return layerPoint;
     }
 
     

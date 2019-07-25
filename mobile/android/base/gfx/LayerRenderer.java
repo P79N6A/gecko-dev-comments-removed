@@ -445,7 +445,7 @@ public class LayerRenderer {
 
             mUpdated = true;
 
-            Layer rootLayer = mView.getController().getRoot();
+            Layer rootLayer = mView.getLayerClient().getRoot();
 
             if (!mPageContext.fuzzyEquals(mLastPageContext)) {
                 
@@ -518,7 +518,7 @@ public class LayerRenderer {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
-            mBackgroundColor = mView.getController().getCheckerboardColor();
+            mBackgroundColor = mView.getLayerClient().getCheckerboardColor();
 
             
 
@@ -543,9 +543,9 @@ public class LayerRenderer {
             
 
 
-            if (mView.getController().checkerboardShouldShowChecks()) {
+            if (mView.getLayerClient().checkerboardShouldShowChecks()) {
                 
-                Rect rootMask = getMaskForLayer(mView.getController().getRoot());
+                Rect rootMask = getMaskForLayer(mView.getLayerClient().getRoot());
                 mCheckerboardLayer.setMask(rootMask);
 
                 
@@ -558,7 +558,7 @@ public class LayerRenderer {
 
         
         void drawRootLayer() {
-            Layer rootLayer = mView.getController().getRoot();
+            Layer rootLayer = mView.getLayerClient().getRoot();
             if (rootLayer == null) {
                 return;
             }
@@ -590,7 +590,7 @@ public class LayerRenderer {
                 mHorizScrollLayer.draw(mPageContext);
 
             
-            Layer rootLayer = mView.getController().getRoot();
+            Layer rootLayer = mView.getLayerClient().getRoot();
             if ((rootLayer != null) &&
                 (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
                 
