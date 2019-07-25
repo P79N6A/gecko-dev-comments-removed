@@ -2925,19 +2925,22 @@ nsLocalFile::IsSymlink(bool *_retval)
     NS_ENSURE_ARG(_retval);
 
     
-    if (!IsShortcutPath(mWorkingPath))
-    {
+    if (!IsShortcutPath(mWorkingPath)) {
         *_retval = false;
         return NS_OK;
     }
 
     
     nsresult rv = ResolveAndStat();
-    if (NS_FAILED(rv))
+    if (NS_FAILED(rv)) {
         return rv;
+    }
 
     
-    *_retval = (mFileInfo64.type == PR_FILE_FILE);
+    
+    
+    
+    *_retval = true;
     return NS_OK;
 }
 
