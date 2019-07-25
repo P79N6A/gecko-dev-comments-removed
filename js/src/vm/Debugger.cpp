@@ -921,6 +921,11 @@ Debugger::markKeysInCompartment(JSTracer *tracer, const ObjectWeakMap &map)
     JSCompartment *comp = tracer->context->runtime->gcCurrentCompartment;
     JS_ASSERT(comp);
 
+    
+
+
+
+
     typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, RuntimeAllocPolicy> Map;
     const Map &storage = map;
     for (Map::Range r = storage.all(); !r.empty(); r.popFront()) {
