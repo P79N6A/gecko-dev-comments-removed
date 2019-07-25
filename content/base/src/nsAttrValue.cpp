@@ -1253,7 +1253,11 @@ nsAttrValue::SetMiscAtomOrString(const nsAString* aValue)
     
     
     
-    NS_ASSERTION(len || Type() == eCSSStyleRule, "Empty string?");
+    
+    
+    
+    NS_ASSERTION(len || Type() == eCSSStyleRule || Type() == eEnum,
+                 "Empty string?");
     MiscContainer* cont = GetMiscContainer();
     if (len <= NS_ATTRVALUE_MAX_STRINGLENGTH_ATOM) {
       nsIAtom* atom = NS_NewAtom(*aValue);
