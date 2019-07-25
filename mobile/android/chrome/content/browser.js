@@ -341,6 +341,14 @@ var BrowserApp = {
         type: "Gecko:Ready"
       }
     });
+
+    
+    sendMessageToJava({
+      gecko: {
+        "type": "Checkerboard:Toggle",
+        "value": Services.prefs.getBoolPref("gfx.show_checkerboard_pattern")
+      }
+    });
   },
 
   _showTelemetryPrompt: function _showTelemetryPrompt() {

@@ -56,12 +56,13 @@ public class CheckerboardImage extends CairoImage {
 
     private ByteBuffer mBuffer;
     private int mMainColor;
+    private boolean mShowChecks;
 
     
     public CheckerboardImage() {
         int bpp = CairoUtils.bitsPerPixelForCairoFormat(FORMAT);
         mBuffer = GeckoAppShell.allocateDirectBuffer(SIZE * SIZE * bpp / 8);
-        setColor(Color.WHITE);
+        update(true, Color.WHITE);
     }
 
     
@@ -70,14 +71,35 @@ public class CheckerboardImage extends CairoImage {
     }
 
     
-    public void setColor(int color) {
-        if (mMainColor == color) {
+    public boolean getShowChecks() {
+        return mShowChecks;
+    }
+
+    
+
+
+    public void update(boolean showChecks, int color) {
+        mMainColor = color;
+        mShowChecks = showChecks;
+
+        short mainColor16 = convertTo16Bit(mMainColor);
+
+        mBuffer.rewind();
+        ShortBuffer shortBuffer = mBuffer.asShortBuffer();
+
+        if (!mShowChecks) {
+            short color16 = convertTo16Bit(mMainColor);
+            short[] fillBuffer = new short[SIZE];
+            Arrays.fill(fillBuffer, color16);
+
+            for (int i = 0; i < SIZE; i++) {
+                shortBuffer.put(fillBuffer);
+            }
+
             return;
         }
 
-        mMainColor = color;
-        int tintColor = tint(mMainColor);
-        short mainColor16 = convertTo16Bit(mMainColor), tintColor16 = convertTo16Bit(tintColor);
+        short tintColor16 = convertTo16Bit(tint(mMainColor));
 
         short[] mainPattern = new short[SIZE / 2], tintPattern = new short[SIZE / 2];
         Arrays.fill(mainPattern, mainColor16);
@@ -91,8 +113,6 @@ public class CheckerboardImage extends CairoImage {
         
         
 
-        mBuffer.rewind();
-        ShortBuffer shortBuffer = mBuffer.asShortBuffer();
         for (int i = 0; i < SIZE / 2; i++) {
             shortBuffer.put(mainPattern);
             shortBuffer.put(tintPattern);
