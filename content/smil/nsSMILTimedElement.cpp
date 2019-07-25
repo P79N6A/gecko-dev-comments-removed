@@ -501,9 +501,19 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
   if (GetTimeContainer()->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN))
     return;
 
-  NS_ABORT_IF_FALSE(mElementState != STATE_STARTUP || aEndOnly,
-      "Got a regular sample during startup state, expected an end sample"
-      " instead");
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mElementState == STATE_STARTUP && !aEndOnly)
+    return;
 
   PRBool finishedSeek = PR_FALSE;
   if (GetTimeContainer()->IsSeeking() && mSeekState == SEEK_NOT_SEEKING) {
