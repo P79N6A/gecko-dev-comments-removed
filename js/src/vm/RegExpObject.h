@@ -153,6 +153,77 @@ ResetRegExpObject(JSContext *cx, AlreadyIncRefed<RegExpPrivate> rep);
 
 
 
+#if ENABLE_YARR_JIT && !defined(JS_METHODJIT)
+# error "YARR JIT without method JIT is an unsupported configuration."
+#endif
+
+
+class RegExpPrivateCode
+{
+#if ENABLE_YARR_JIT
+    typedef JSC::Yarr::BytecodePattern BytecodePattern;
+    typedef JSC::Yarr::ErrorCode ErrorCode;
+    typedef JSC::Yarr::JSGlobalData JSGlobalData;
+    typedef JSC::Yarr::YarrCodeBlock YarrCodeBlock;
+    typedef JSC::Yarr::YarrPattern YarrPattern;
+
+    
+    YarrCodeBlock   codeBlock;
+    BytecodePattern *byteCode;
+#else
+    JSRegExp        *compiled;
+#endif
+
+  public:
+    RegExpPrivateCode()
+      :
+#if ENABLE_YARR_JIT
+        codeBlock(),
+        byteCode(NULL)
+#else
+        compiled(NULL)
+#endif
+    { }
+
+    ~RegExpPrivateCode() {
+#if ENABLE_YARR_JIT
+        codeBlock.release();
+        if (byteCode)
+            Foreground::delete_<BytecodePattern>(byteCode);
+#else
+        if (compiled)
+            jsRegExpFree(compiled);
+#endif
+    }
+
+#if ENABLE_YARR_JIT
+    static inline bool isJITRuntimeEnabled(JSContext *cx);
+    void reportYarrError(JSContext *cx, TokenStream *ts, JSC::Yarr::ErrorCode error);
+#else
+    void reportPCREError(JSContext *cx, int error);
+#endif
+
+    inline bool compile(JSContext *cx, JSLinearString &pattern, TokenStream *ts, uintN *parenCount,
+                        RegExpFlag flags);
+
+    enum ExecuteResult { Error, Success, Success_NotFound };
+
+    inline ExecuteResult execute(JSContext *cx, const jschar *chars, size_t start, size_t length,
+                                 int *output, size_t outputCount);
+
+    static size_t getOutputSize(size_t pairCount) {
+#if ENABLE_YARR_JIT
+        return pairCount * 2;
+#else
+        return pairCount * 3; 
+#endif
+    }
+};
+
+
+
+
+
 
 
 
@@ -165,58 +236,23 @@ ResetRegExpObject(JSContext *cx, AlreadyIncRefed<RegExpPrivate> rep);
 
 class RegExpPrivate
 {
-#if ENABLE_YARR_JIT
-    
-    JSC::Yarr::YarrCodeBlock    codeBlock;
-    JSC::Yarr::BytecodePattern  *byteCode;
-#else
-    JSRegExp                    *compiled;
-#endif
+    RegExpPrivateCode   code;
+    JSLinearString      *source;
+    size_t              refCount;
+    uintN               parenCount;
+    RegExpFlag          flags;
 
-    JSLinearString              *source;
-    size_t                      refCount;
-    unsigned                    parenCount; 
-    RegExpFlag                  flags;
-#ifdef DEBUG
   public:
-    JSCompartment               *compartment;
+    DebugOnly<JSCompartment *> compartment;
 
   private:
-#endif
-
     RegExpPrivate(JSLinearString *source, RegExpFlag flags, JSCompartment *compartment)
-      :
-#if ENABLE_YARR_JIT
-        codeBlock(),
-        byteCode(NULL),
-#else
-        compiled(NULL),
-#endif
-        source(source), refCount(1), parenCount(0), flags(flags)
-#ifdef DEBUG
-        , compartment(compartment)
-#endif
+      : source(source), refCount(1), parenCount(0), flags(flags), compartment(compartment)
     { }
 
     JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
 
-    ~RegExpPrivate() {
-#if ENABLE_YARR_JIT
-        codeBlock.release();
-        if (byteCode)
-            Foreground::delete_<JSC::Yarr::BytecodePattern>(byteCode);
-#else
-        if (compiled)
-            jsRegExpFree(compiled);
-#endif
-    }
-
-    bool compileHelper(JSContext *cx, JSLinearString &pattern, TokenStream *ts);
     bool compile(JSContext *cx, TokenStream *ts);
-#if !ENABLE_YARR_JIT
-    void reportPCREError(JSContext *cx, int error);
-#endif
-    void reportYarrError(JSContext *cx, TokenStream *ts, JSC::Yarr::ErrorCode error);
     static inline void checkMatchPairs(JSString *input, int *buf, size_t matchItemCount);
     static JSObject *createResult(JSContext *cx, JSString *input, int *buf, size_t matchItemCount);
     bool executeInternal(JSContext *cx, RegExpStatics *res, JSString *input,
