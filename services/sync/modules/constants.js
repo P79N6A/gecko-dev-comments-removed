@@ -82,8 +82,14 @@ MULTI_DESKTOP_SYNC:                    60 * 60 * 1000,
 MULTI_MOBILE_SYNC:                     5 * 60 * 1000, 
 PARTIAL_DATA_SYNC:                     60 * 1000, 
 
+NO_SYNC_NODE_INTERVAL:                 10 * 60 * 1000, 
+
 MAX_ERROR_COUNT_BEFORE_BACKOFF:        3,
 MAX_IGNORE_ERROR_COUNT:                5,
+
+
+MINIMUM_BACKOFF_INTERVAL:              15 * 60 * 1000,      
+MAXIMUM_BACKOFF_INTERVAL:              8 * 60 * 60 * 1000,  
 
 
 

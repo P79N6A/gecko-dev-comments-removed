@@ -38,6 +38,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ["Service", "Weave"];
 
 const Cc = Components.classes;
@@ -66,6 +67,7 @@ Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/status.js");
+Cu.import("resource://services-sync/policies.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/main.js");
 
@@ -181,24 +183,6 @@ WeaveSvc.prototype = {
   },
 
   get isLoggedIn() { return this._loggedIn; },
-
-  
-  get nextSync() Svc.Prefs.get("nextSync", 0) * 1000,
-  set nextSync(value) Svc.Prefs.set("nextSync", Math.floor(value / 1000)),
-
-  get syncInterval() {
-    
-    if (Status.partial && Clients.clientType != "mobile")
-      return PARTIAL_DATA_SYNC;
-    return Svc.Prefs.get("syncInterval", MULTI_MOBILE_SYNC);
-  },
-  set syncInterval(value) Svc.Prefs.set("syncInterval", value),
-
-  get syncThreshold() Svc.Prefs.get("syncThreshold", SINGLE_USER_THRESHOLD),
-  set syncThreshold(value) Svc.Prefs.set("syncThreshold", value),
-
-  get globalScore() Svc.Prefs.get("globalScore", 0),
-  set globalScore(value) Svc.Prefs.set("globalScore", value),
 
   get numClients() Svc.Prefs.get("numClients", 0),
   set numClients(value) Svc.Prefs.set("numClients", value),
@@ -393,15 +377,14 @@ WeaveSvc.prototype = {
     }
 
     Svc.Obs.add("weave:service:setup-complete", this);
-    Svc.Obs.add("network:offline-status-changed", this);
     Svc.Obs.add("weave:service:sync:finish", this);
     Svc.Obs.add("weave:service:login:error", this);
     Svc.Obs.add("weave:service:sync:error", this);
-    Svc.Obs.add("weave:service:backoff:interval", this);
-    Svc.Obs.add("weave:engine:score:updated", this);
     Svc.Obs.add("weave:engine:sync:apply-failed", this);
     Svc.Obs.add("weave:resource:status:401", this);
     Svc.Prefs.observe("engine.", this);
+
+    SyncScheduler.init();
 
     if (!this.enabled)
       this._log.info("Weave Sync disabled");
@@ -546,11 +529,6 @@ WeaveSvc.prototype = {
         if (status != STATUS_DISABLED && status != CLIENT_NOT_CONFIGURED)
             Svc.Obs.notify("weave:engine:start-tracking");
         break;
-      case "network:offline-status-changed":
-        
-        this._log.trace("Network offline status change: " + data);
-        this._checkSyncStatus();
-        break;
       case "weave:service:login:error":
         if (Status.login == LOGIN_FAILED_NETWORK_ERROR &&
             !Services.io.offline) {
@@ -560,7 +538,6 @@ WeaveSvc.prototype = {
         }
         break;
       case "weave:service:sync:error":
-        this._handleSyncError();
         switch (Status.sync) {
           case LOGIN_FAILED_NETWORK_ERROR:
             if (!Services.io.offline) {
@@ -577,18 +554,7 @@ WeaveSvc.prototype = {
         break;
       case "weave:service:sync:finish":
         this._resetFileLog(Svc.Prefs.get("log.appender.file.logOnSuccess"));
-        this._scheduleNextSync();
-        this._syncErrors = 0;
         this._ignorableErrorCount = 0;
-        break;
-      case "weave:service:backoff:interval":
-        let interval = (data + Math.random() * data * 0.25) * 1000; 
-        Status.backoffInterval = interval;
-        Status.minimumNextSync = Date.now() + data;
-        break;
-      case "weave:engine:score:updated":
-        Utils.namedTimer(this._calculateScore, SCORE_UPDATE_DELAY, this,
-                         "_scoreTimer");
         break;
       case "weave:engine:sync:apply-failed":
         
@@ -608,18 +574,6 @@ WeaveSvc.prototype = {
         this._handleEngineStatusChanged(engine);
         break;
     }
-  },
-
-  _calculateScore: function WeaveSvc_calculateScoreAndDoStuff() {
-    var engines = Engines.getEnabled();
-    for (let i = 0;i < engines.length;i++) {
-      this._log.trace(engines[i].name + ": score: " + engines[i].score);
-      this.globalScore += engines[i].score;
-      engines[i]._tracker.resetScore();
-    }
-
-    this._log.trace("Global score updated: " + this.globalScore);
-    this._checkSyncStatus();
   },
 
   _handleEngineStatusChanged: function handleEngineDisabled(engine) {
@@ -1102,7 +1056,7 @@ WeaveSvc.prototype = {
       if (this._autoTimer)
         this._autoTimer.clear();
 
-      this._checkSyncStatus();
+      SyncScheduler.checkSyncStatus();
       Svc.Prefs.set("autoconnect", true);
 
       return;
@@ -1121,7 +1075,7 @@ WeaveSvc.prototype = {
     }
 
     
-    let interval = this._calculateBackoff(++attempts, 60 * 1000);
+    let interval = Utils.calculateBackoff(++attempts, 60 * 1000);
     this._log.debug("Autoconnect failed: " + (reason || Status.login) +
       "; retry in " + Math.ceil(interval / 1000) + " sec.");
     Utils.namedTimer(this._autoConnect, interval, this, "_autoTimer");
@@ -1165,11 +1119,6 @@ WeaveSvc.prototype = {
       this._log.info("Logging in user " + this.username);
 
       if (!this.verifyLogin()) {
-        if (Status.login == MASTER_PASSWORD_LOCKED) {
-          
-          this._log.debug("Login failed: " + Status.login);
-          return false;
-        }
         
         throw "Login failed: " + Status.login;
       }
@@ -1179,8 +1128,6 @@ WeaveSvc.prototype = {
         this._autoTimer.clear();
 
       this._loggedIn = true;
-      
-      this._checkSyncStatus();
       Svc.Prefs.set("autoconnect", true);
 
       return true;
@@ -1194,8 +1141,6 @@ WeaveSvc.prototype = {
     this._log.info("Logging out");
     this._loggedIn = false;
 
-    
-    this._checkSyncStatus();
     Svc.Prefs.set("autoconnect", false);
 
     Svc.Obs.notify("weave:service:logout:finish");
@@ -1465,139 +1410,10 @@ WeaveSvc.prototype = {
     return reason;
   },
 
-  
-
-
-  _clearSyncTriggers: function _clearSyncTriggers() {
-    this._log.debug("Clearing sync triggers.");
-
-    
-    if (this._syncTimer)
-      this._syncTimer.clear();
-  },
-
-  
-
-
-  _checkSyncStatus: function WeaveSvc__checkSyncStatus() {
-    
-    
-    let ignore = [kSyncBackoffNotMet];
-
-    
-    
-    if (Utils.mpLocked()) {
-      ignore.push(kSyncNotLoggedIn);
-      ignore.push(kSyncMasterPasswordLocked);
-    }
-
-    let skip = this._checkSync(ignore);
-    this._log.trace("_checkSync returned \"" + skip + "\".");
-    if (skip) {
-      this._clearSyncTriggers();
-      return;
-    }
-
-    
-    let wait;
-    if (this.globalScore > this.syncThreshold) {
-      this._log.debug("Global Score threshold hit, triggering sync.");
-      wait = 0;
-    }
-    this._scheduleNextSync(wait);
-  },
-
-  
-
-
-
-
-  syncIfMPUnlocked: function syncIfMPUnlocked() {
-    
-    if (Status.login == MASTER_PASSWORD_LOCKED &&
-        Utils.mpLocked()) {
-      this._log.debug("Not initiating sync: Login status is " + Status.login);
-
-      
-      this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
-      return;
-    }
-
-    Utils.nextTick(this.sync, this);
-  },
-
-  
-
-
-  _scheduleNextSync: function WeaveSvc__scheduleNextSync(interval) {
-    
-    if (interval == null) {
-      
-      if (this.nextSync != 0)
-        interval = this.nextSync - Date.now();
-      
-      else
-        interval = Math.max(this.syncInterval, Status.backoffInterval);
-    }
-
-    
-    if (interval <= 0) {
-      this.syncIfMPUnlocked();
-      return;
-    }
-
-    this._log.trace("Next sync in " + Math.ceil(interval / 1000) + " sec.");
-    Utils.namedTimer(this.syncIfMPUnlocked, interval, this, "_syncTimer");
-
-    
-    this.nextSync = Date.now() + interval;
-  },
-
-  
-
-
-
-  _scheduleAtInterval: function _scheduleAtInterval(minimumInterval) {
-    const MINIMUM_BACKOFF_INTERVAL = 15 * 60 * 1000;     
-    let interval = this._calculateBackoff(this._syncErrors, MINIMUM_BACKOFF_INTERVAL);
-    if (minimumInterval)
-      interval = Math.max(minimumInterval, interval);
-
-    let d = new Date(Date.now() + interval);
-    this._log.config("Starting backoff, next sync at:" + d.toString());
-
-    this._scheduleNextSync(interval);
-  },
-
-  _syncErrors: 0,
-  
-
-
-  _handleSyncError: function WeaveSvc__handleSyncError() {
-    this._syncErrors++;
-
-    
-    
-    if (!Status.enforceBackoff) {
-      if (this._syncErrors < MAX_ERROR_COUNT_BEFORE_BACKOFF) {
-        this._scheduleNextSync();
-        return;
-      }
-      Status.enforceBackoff = true;
-    }
-
-    this._scheduleAtInterval();
-  },
-
   _ignorableErrorCount: 0,
   shouldIgnoreError: function shouldIgnoreError() {
     return ([Status.login, Status.sync].indexOf(LOGIN_FAILED_NETWORK_ERROR) != -1
             && this._ignorableErrorCount < MAX_IGNORE_ERROR_COUNT);
-  },
-
-  _skipScheduledRetry: function _skipScheduledRetry() {
-    return [LOGIN_FAILED_INVALID_PASSPHRASE,
-            LOGIN_FAILED_LOGIN_REJECTED].indexOf(Status.login) == -1;
   },
 
   sync: function sync() {
@@ -1609,13 +1425,6 @@ WeaveSvc.prototype = {
         this._log.debug("In sync: should login.");
         if (!this.login()) {
           this._log.debug("Not syncing: login returned false.");
-          this._clearSyncTriggers();    
-
-          
-          
-          if (!this._skipScheduledRetry())
-            this._scheduleAtInterval(MASTER_PASSWORD_LOCKED_RETRY_INTERVAL);
-
           return;
         }
       }
@@ -1654,17 +1463,8 @@ WeaveSvc.prototype = {
     
     if (this.clusterURL == "" && !this._setCluster()) {
       Status.sync = NO_SYNC_NODE_FOUND;
-      this._scheduleNextSync(10 * 60 * 1000);
       return;
     }
-
-    
-    this._clearSyncTriggers();
-    this.nextSync = 0;
-
-    
-    
-    Status.resetBackoff();
 
     
     let infoURL = this.infoURL;
@@ -1677,7 +1477,6 @@ WeaveSvc.prototype = {
 
     
     let info = this._fetchInfo(infoURL);
-    this.globalScore = 0;
 
     
     for each (let engine in [Clients].concat(Engines.getAll()))
@@ -1730,7 +1529,6 @@ WeaveSvc.prototype = {
     }
 
     
-    this._updateClientMode();
     this._updateEnabledEngines();
 
     try {
@@ -1775,27 +1573,6 @@ WeaveSvc.prototype = {
     }
   }))(),
 
-  
-
-
-  _updateClientMode: function _updateClientMode() {
-    
-    let {numClients, hasMobile} = Clients.stats;
-    if (this.numClients == numClients)
-      return;
-
-    this._log.debug("Client count: " + this.numClients + " -> " + numClients);
-    this.numClients = numClients;
-
-    if (numClients == 1) {
-      this.syncInterval = SINGLE_USER_SYNC;
-      this.syncThreshold = SINGLE_USER_THRESHOLD;
-    }
-    else {
-      this.syncInterval = hasMobile ? MULTI_MOBILE_SYNC : MULTI_DESKTOP_SYNC;
-      this.syncThreshold = MULTI_DEVICE_THRESHOLD;
-    }
-  },
 
   _updateEnabledEngines: function _updateEnabledEngines() {
     this._log.info("Updating enabled engines: " + this.numClients + " clients.");
@@ -2016,18 +1793,6 @@ WeaveSvc.prototype = {
         Status.sync = LOGIN_FAILED_NETWORK_ERROR;
         break;
     }
-  },
-  
-
-
-
-
-  _calculateBackoff: function WeaveSvc__calculateBackoff(attempts, base_interval) {
-    const MAXIMUM_BACKOFF_INTERVAL = 8 * 60 * 60 * 1000; 
-    let backoffInterval = attempts *
-                          (Math.floor(Math.random() * base_interval) +
-                           base_interval);
-    return Math.max(Math.min(backoffInterval, MAXIMUM_BACKOFF_INTERVAL), Status.backoffInterval);
   },
 
   
