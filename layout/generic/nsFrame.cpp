@@ -6439,17 +6439,13 @@ nsFrame::CreateAccessible()
 NS_DECLARE_FRAME_PROPERTY(OverflowAreasProperty,
                           nsIFrame::DestroyOverflowAreas)
 
-bool
+void
 nsIFrame::ClearOverflowRects()
 {
-  if (mOverflow.mType == NS_FRAME_OVERFLOW_NONE) {
-    return false;
-  }
   if (mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) {
     Properties().Delete(OverflowAreasProperty());
   }
   mOverflow.mType = NS_FRAME_OVERFLOW_NONE;
-  return true;
 }
 
 
@@ -6477,18 +6473,17 @@ nsIFrame::GetOverflowAreasProperty()
 
 
 
-bool
+void
 nsIFrame::SetOverflowAreas(const nsOverflowAreas& aOverflowAreas)
 {
   if (mOverflow.mType == NS_FRAME_OVERFLOW_LARGE) {
     nsOverflowAreas *overflow =
       static_cast<nsOverflowAreas*>(Properties().Get(OverflowAreasProperty()));
-    bool changed = *overflow != aOverflowAreas;
     *overflow = aOverflowAreas;
 
     
     
-    return changed;
+    return;
   }
 
   const nsRect& vis = aOverflowAreas.VisualOverflow();
@@ -6510,7 +6505,6 @@ nsIFrame::SetOverflowAreas(const nsOverflowAreas& aOverflowAreas)
       
       
       (l | t | r | b) != 0) {
-    VisualDeltas oldDeltas = mOverflow.mVisualDeltas;
     
     
     
@@ -6519,18 +6513,12 @@ nsIFrame::SetOverflowAreas(const nsOverflowAreas& aOverflowAreas)
     mOverflow.mVisualDeltas.mTop    = t;
     mOverflow.mVisualDeltas.mRight  = r;
     mOverflow.mVisualDeltas.mBottom = b;
-    
-    return oldDeltas != mOverflow.mVisualDeltas;
   } else {
-    bool changed = !aOverflowAreas.ScrollableOverflow().IsEqualEdges(nsRect(nsPoint(0, 0), GetSize())) ||
-      !aOverflowAreas.VisualOverflow().IsEqualEdges(GetVisualOverflowFromDeltas());
-
     
     mOverflow.mType = NS_FRAME_OVERFLOW_LARGE;
     nsOverflowAreas* overflow = GetOverflowAreasProperty();
     NS_ASSERTION(overflow, "should have created areas");
     *overflow = aOverflowAreas;
-    return changed;
   }
 }
 
@@ -6541,7 +6529,7 @@ IsInlineFrame(nsIFrame *aFrame)
   return type == nsGkAtoms::inlineFrame;
 }
 
-bool
+void 
 nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                                  nsSize aNewSize)
 {
@@ -6650,11 +6638,11 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
 
   bool visualOverflowChanged =
     !GetVisualOverflowRect().IsEqualInterior(aOverflowAreas.VisualOverflow());
-  bool anyOverflowChanged;
+
   if (aOverflowAreas != nsOverflowAreas(bounds, bounds)) {
-    anyOverflowChanged = SetOverflowAreas(aOverflowAreas);
+    SetOverflowAreas(aOverflowAreas);
   } else {
-    anyOverflowChanged = ClearOverflowRects();
+    ClearOverflowRects();
   }
 
   if (visualOverflowChanged) {
@@ -6699,8 +6687,6 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                       nsDisplayItem::TYPE_TRANSFORM);
     }
   }
-
-  return anyOverflowChanged;
 }
 
 

@@ -644,7 +644,9 @@ void nsBuiltinDecoder::NotifySuspendedStatusChanged()
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   if (!mStream)
     return;
-  if (mStream->IsSuspendedByCache() && mElement) {
+  bool suspended = mStream->IsSuspendedByCache();
+  printf("*** nsBuiltinDecoder::NotifySuspendedStatusChanged(%p), suspended=%d\n", this, suspended);
+  if (suspended && mElement) {
     
     
     mElement->NotifyAutoplayDataReady();

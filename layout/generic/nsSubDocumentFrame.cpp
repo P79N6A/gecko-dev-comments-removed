@@ -411,21 +411,18 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       childItems.AppendToTop(layerItem);
     }
 
-    if (ShouldClipSubdocument()) {
-      nsDisplayClip* item =
+    nsDisplayList list;
+    
+    rv = list.AppendNewToTop(
         new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
-                                     subdocBoundsInParentUnits);
-      
-      childItems.AppendToTop(item);
-    }
+                                     subdocBoundsInParentUnits));
 
     if (mIsInline) {
-      WrapReplacedContentForBorderRadius(aBuilder, &childItems, aLists);
+      WrapReplacedContentForBorderRadius(aBuilder, &list, aLists);
     } else {
-      aLists.Content()->AppendToTop(&childItems);
+      aLists.Content()->AppendToTop(&list);
     }
   }
-
   
   childItems.DeleteAll();
 
@@ -618,14 +615,6 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
     nsIViewManager* vm = mInnerView->GetViewManager();
     vm->MoveViewTo(mInnerView, offset.x, offset.y);
     vm->ResizeView(mInnerView, nsRect(nsPoint(0, 0), innerSize), true);
-  }
-
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  if (!ShouldClipSubdocument()) {
-    nsIFrame* subdocRootFrame = GetSubdocumentRootFrame();
-    if (subdocRootFrame) {
-      aDesiredSize.mOverflowAreas.UnionWith(subdocRootFrame->GetOverflowAreas() + offset);
-    }
   }
 
   
