@@ -130,9 +130,13 @@ Trench.prototype = {
   setPosition: function Trench_setPos(position, range, minRange) {
     this.position = position;
     
+    var page = Items.getPageBounds( true );
+    
     
     if (isRange(range)) {
       this.range = range;
+    } else {
+      this.range = new Range( 0, (this.xory == 'x' ? page.height : page.width) );
     }
     
     
@@ -142,7 +146,7 @@ Trench.prototype = {
     
     if ( this.xory == "x" ) 
       this.rect = new Rect ( this.position - this.radius, this.range.min, 2 * this.radius, this.range.extent );
-    else
+    else 
       this.rect = new Rect ( this.range.min, this.position - this.radius, this.range.extent, 2 * this.radius );
       
     this.show(); 
