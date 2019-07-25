@@ -790,8 +790,15 @@ HttpChannelChild::Resume()
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
   SendResume();
   mSuspendCount--;
-  if (!mSuspendCount)
+  if (!mSuspendCount) {
+    
+    
+    
+    
+    if (mQueuePhase == PHASE_UNQUEUED)
+      mQueuePhase = PHASE_FINISHED_QUEUEING;
     FlushEventQueue();
+  }
   return NS_OK;
 }
 
