@@ -62,7 +62,9 @@
 #include "nsHTMLEditUtils.h"
 #include "nsLayoutErrors.h"
 
+#include "mozilla/dom/Element.h"
 
+using namespace mozilla;
 
 
 
@@ -3441,31 +3443,28 @@ nsHTMLEditor::AllCellsInColumnSelected(nsIDOMElement *aTable, PRInt32 aColIndex,
 bool 
 nsHTMLEditor::IsEmptyCell(nsIDOMElement *aCell)
 {
-  nsCOMPtr<nsIDOMNode> cellChild;
+  nsCOMPtr<dom::Element> cell = do_QueryInterface(aCell);
 
   
-  nsresult res = aCell->GetFirstChild(getter_AddRefs(cellChild));
-  NS_ENSURE_SUCCESS(res, false);
-
-  if (cellChild)
-  {
-    nsCOMPtr<nsIDOMNode> nextChild;
-    res = cellChild->GetNextSibling(getter_AddRefs(nextChild));
-    NS_ENSURE_SUCCESS(res, false);
-    if (!nextChild)
-    {
-      
-      
-      bool isEmpty = nsTextEditUtils::IsBreak(cellChild);
-      
-      if (!isEmpty)
-      {
-        res = IsEmptyNode(cellChild, &isEmpty, false, false);
-        NS_ENSURE_SUCCESS(res, false);
-      }
-
-      return isEmpty;
-    }
+  nsCOMPtr<nsINode> cellChild = cell->GetFirstChild();
+  if (!cellChild) {
+    return false;
   }
-  return false;
+
+  nsCOMPtr<nsINode> nextChild = cellChild->GetNextSibling();
+  if (nextChild) {
+    return false;
+  }
+
+  
+  
+  if (cellChild->IsElement() && cellChild->AsElement()->IsHTML(nsGkAtoms::br)) {
+    return true;
+  }
+
+  bool isEmpty;
+  
+  nsresult rv = IsEmptyNode(cellChild, &isEmpty, false, false);
+  NS_ENSURE_SUCCESS(rv, false);
+  return isEmpty;
 }
