@@ -579,8 +579,15 @@ var BrowserUI = {
         this.closeTab();
         break;
       case "cmd_sanitize":
+      {
+        
+        let button = document.getElementById("prefs-clear-data");
+        button.disabled = true;
+        setTimeout(function() { button.disabled = false; }, 5000);
+
         Sanitizer.sanitize();
         break;
+      }
       case "cmd_panel":
       {
         let panelUI = document.getElementById("panel-container");
