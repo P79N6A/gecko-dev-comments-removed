@@ -138,11 +138,12 @@ function testOutputStreams() {
   }
 
   
-  var f = writeToFile({},"UTF-8", true);
+  
+  var f = writeToFile({},"UTF-8", true).clone();
   do_check_eq(f.fileSize, 5);
-  var f = writeToFile({},"UTF-16LE", true);
+  var f = writeToFile({},"UTF-16LE", true).clone();
   do_check_eq(f.fileSize, 6);
-  var f = writeToFile({},"UTF-16BE", true);
+  var f = writeToFile({},"UTF-16BE", true).clone();
   do_check_eq(f.fileSize, 6);
   
   outputDir.remove(true);
@@ -163,7 +164,6 @@ function run_test() {
   testStringEncode();
   throwingToJSON();
   
-  
-  
+  testOutputStreams();
   
 }
