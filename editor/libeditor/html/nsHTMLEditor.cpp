@@ -516,6 +516,136 @@ nsHTMLEditor::BeginningOfDocument()
   return selection->Collapse(selNode, selOffset);
 }
 
+nsresult
+nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
+{
+  
+  
+
+  if (IsReadonly() || IsDisabled()) {
+    
+    
+    return nsEditor::HandleKeyPressEvent(aKeyEvent);
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDOMEventTarget> target;
+  nsresult rv = aKeyEvent->GetTarget(getter_AddRefs(target));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(target);
+  if (!IsModifiableNode(targetNode)) {
+    return NS_OK;
+  }
+
+  nsKeyEvent* nativeKeyEvent = GetNativeKeyEvent(aKeyEvent);
+  NS_ENSURE_TRUE(nativeKeyEvent, NS_ERROR_UNEXPECTED);
+  NS_ASSERTION(nativeKeyEvent->message == NS_KEY_PRESS,
+               "HandleKeyPressEvent gets non-keypress event");
+
+  switch (nativeKeyEvent->keyCode) {
+    case nsIDOMKeyEvent::DOM_VK_META:
+    case nsIDOMKeyEvent::DOM_VK_SHIFT:
+    case nsIDOMKeyEvent::DOM_VK_CONTROL:
+    case nsIDOMKeyEvent::DOM_VK_ALT:
+    case nsIDOMKeyEvent::DOM_VK_BACK_SPACE:
+    case nsIDOMKeyEvent::DOM_VK_DELETE:
+      
+      
+      return nsEditor::HandleKeyPressEvent(aKeyEvent);
+    case nsIDOMKeyEvent::DOM_VK_ESCAPE:
+      
+      
+      aKeyEvent->PreventDefault();
+      
+      return nsPlaintextEditor::HandleKeyPressEvent(aKeyEvent);
+    case nsIDOMKeyEvent::DOM_VK_TAB: {
+      if (IsPlaintextEditor()) {
+        
+        
+        return nsPlaintextEditor::HandleKeyPressEvent(aKeyEvent);
+      }
+
+      if (IsTabbable()) {
+        return NS_OK; 
+      }
+
+      if (nativeKeyEvent->isControl || nativeKeyEvent->isAlt ||
+          nativeKeyEvent->isMeta) {
+        return NS_OK;
+      }
+
+      nsCOMPtr<nsISelection> selection;
+      nsresult rv = GetSelection(getter_AddRefs(selection));
+      NS_ENSURE_SUCCESS(rv, rv);
+      PRInt32 offset;
+      nsCOMPtr<nsIDOMNode> node, blockParent;
+      rv = GetStartNodeAndOffset(selection, address_of(node), &offset);
+      NS_ENSURE_SUCCESS(rv, rv);
+      NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
+
+      PRBool isBlock = PR_FALSE;
+      NodeIsBlock(node, &isBlock);
+      if (isBlock) {
+        blockParent = node;
+      } else {
+        blockParent = GetBlockNodeParent(node);
+      }
+
+      if (!blockParent) {
+        break;
+      }
+
+      PRBool handled = PR_FALSE;
+      if (nsHTMLEditUtils::IsTableElement(blockParent)) {
+        rv = TabInTable(nativeKeyEvent->isShift, &handled);
+        if (handled) {
+          ScrollSelectionIntoView(PR_FALSE);
+        }
+      } else if (nsHTMLEditUtils::IsListItem(blockParent)) {
+        rv = Indent(nativeKeyEvent->isShift ?
+                      NS_LITERAL_STRING("outdent") :
+                      NS_LITERAL_STRING("indent"));
+        handled = PR_TRUE;
+      }
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (handled) {
+        return aKeyEvent->PreventDefault(); 
+      }
+      if (nativeKeyEvent->isShift) {
+        return NS_OK; 
+      }
+      aKeyEvent->PreventDefault();
+      return TypedText(NS_LITERAL_STRING("\t"), eTypedText);
+    }
+    case nsIDOMKeyEvent::DOM_VK_RETURN:
+    case nsIDOMKeyEvent::DOM_VK_ENTER:
+      if (nativeKeyEvent->isControl || nativeKeyEvent->isAlt ||
+          nativeKeyEvent->isMeta) {
+        return NS_OK;
+      }
+      aKeyEvent->PreventDefault(); 
+      if (nativeKeyEvent->isShift && !IsPlaintextEditor()) {
+        
+        return TypedText(EmptyString(), eTypedBR);
+      }
+      
+      return TypedText(EmptyString(), eTypedBreak);
+  }
+
+  
+  
+  if (nativeKeyEvent->charCode == 0 || nativeKeyEvent->isControl ||
+      nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+    
+    return NS_OK;
+  }
+  aKeyEvent->PreventDefault();
+  nsAutoString str(nativeKeyEvent->charCode);
+  return TypedText(str, eTypedText);
+}
+
 
 
 
@@ -1192,103 +1322,6 @@ nsHTMLEditor::UpdateBaseURL()
     return doc->SetBaseURI(doc->GetDocumentURI());
   }
   return NS_OK;
-}
-
-NS_IMETHODIMP nsHTMLEditor::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent)
-{
-  PRUint32 keyCode, character;
-  PRBool   isShift, ctrlKey, altKey, metaKey;
-  nsresult res;
-
-  if (!aKeyEvent) return NS_ERROR_NULL_POINTER;
-
-  if (NS_SUCCEEDED(aKeyEvent->GetKeyCode(&keyCode)) && 
-      NS_SUCCEEDED(aKeyEvent->GetShiftKey(&isShift)) &&
-      NS_SUCCEEDED(aKeyEvent->GetCtrlKey(&ctrlKey)) &&
-      NS_SUCCEEDED(aKeyEvent->GetAltKey(&altKey)) &&
-      NS_SUCCEEDED(aKeyEvent->GetMetaKey(&metaKey)))
-  {
-    
-    
-    
-    if (keyCode == nsIDOMKeyEvent::DOM_VK_TAB) character = '\t';
-    else aKeyEvent->GetCharCode(&character);
-    
-    if (keyCode == nsIDOMKeyEvent::DOM_VK_TAB)
-    {
-      if (!IsPlaintextEditor()) {
-        nsCOMPtr<nsISelection>selection;
-        res = GetSelection(getter_AddRefs(selection));
-        if (NS_FAILED(res)) return res;
-        PRInt32 offset;
-        nsCOMPtr<nsIDOMNode> node, blockParent;
-        res = GetStartNodeAndOffset(selection, address_of(node), &offset);
-        if (NS_FAILED(res)) return res;
-        if (!node) return NS_ERROR_FAILURE;
-
-        PRBool isBlock = PR_FALSE;
-        NodeIsBlock(node, &isBlock);
-        if (isBlock) blockParent = node;
-        else blockParent = GetBlockNodeParent(node);
-        
-        if (blockParent)
-        {
-          PRBool bHandled = PR_FALSE;
-          
-          if (nsHTMLEditUtils::IsTableElement(blockParent))
-          {
-            res = TabInTable(isShift, &bHandled);
-            if (bHandled)
-              ScrollSelectionIntoView(PR_FALSE);
-          }
-          else if (nsHTMLEditUtils::IsListItem(blockParent))
-          {
-            nsAutoString indentstr;
-            if (isShift) indentstr.AssignLiteral("outdent");
-            else         indentstr.AssignLiteral("indent");
-            res = Indent(indentstr);
-            bHandled = PR_TRUE;
-          }
-          if (NS_FAILED(res)) return res;
-          if (bHandled)
-            return aKeyEvent->PreventDefault(); 
-        }
-      }
-      if (isShift)
-        return NS_OK; 
-    }
-    else if (keyCode == nsIDOMKeyEvent::DOM_VK_RETURN
-             || keyCode == nsIDOMKeyEvent::DOM_VK_ENTER)
-    {
-      aKeyEvent->PreventDefault();
-      nsString empty;
-      if (isShift && !IsPlaintextEditor())
-      {
-        return TypedText(empty, eTypedBR);  
-      }
-      else 
-      {
-        return TypedText(empty, eTypedBreak);  
-      }
-    }
-    else if (keyCode == nsIDOMKeyEvent::DOM_VK_ESCAPE)
-    {
-      aKeyEvent->PreventDefault();
-      
-      nsString empty;
-      return TypedText(empty, eTypedText);
-    }
-    
-    
-    
-    if (character && !altKey && !ctrlKey && !metaKey)
-    {
-      aKeyEvent->PreventDefault();
-      nsAutoString key(character);
-      return TypedText(key, eTypedText);
-    }
-  }
-  return NS_ERROR_FAILURE;
 }
 
 

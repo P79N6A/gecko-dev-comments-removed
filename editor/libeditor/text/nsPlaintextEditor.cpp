@@ -354,48 +354,83 @@ PRBool nsPlaintextEditor::IsModifiable()
   return !IsReadonly();
 }
 
+nsresult
+nsPlaintextEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
+{
+  
+  
+  
+  
+  
+  
+
+  if (IsReadonly() || IsDisabled()) {
+    
+    return nsEditor::HandleKeyPressEvent(aKeyEvent);
+  }
+
+  nsKeyEvent* nativeKeyEvent = GetNativeKeyEvent(aKeyEvent);
+  NS_ENSURE_TRUE(nativeKeyEvent, NS_ERROR_UNEXPECTED);
+  NS_ASSERTION(nativeKeyEvent->message == NS_KEY_PRESS,
+               "HandleKeyPressEvent gets non-keypress event");
+
+  switch (nativeKeyEvent->keyCode) {
+    case nsIDOMKeyEvent::DOM_VK_META:
+    case nsIDOMKeyEvent::DOM_VK_SHIFT:
+    case nsIDOMKeyEvent::DOM_VK_CONTROL:
+    case nsIDOMKeyEvent::DOM_VK_ALT:
+    case nsIDOMKeyEvent::DOM_VK_BACK_SPACE:
+    case nsIDOMKeyEvent::DOM_VK_DELETE:
+      
+      return nsEditor::HandleKeyPressEvent(aKeyEvent);
+    case nsIDOMKeyEvent::DOM_VK_TAB: {
+      if (IsTabbable()) {
+        return NS_OK; 
+      }
+
+      if (nativeKeyEvent->isShift || nativeKeyEvent->isControl ||
+          nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+        return NS_OK;
+      }
+
+      
+      aKeyEvent->PreventDefault();
+      return TypedText(NS_LITERAL_STRING("\t"), eTypedText);
+    }
+    case nsIDOMKeyEvent::DOM_VK_RETURN:
+    case nsIDOMKeyEvent::DOM_VK_ENTER:
+      if (IsSingleLineEditor() || nativeKeyEvent->isControl ||
+          nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+        return NS_OK;
+      }
+      aKeyEvent->PreventDefault();
+      return TypedText(EmptyString(), eTypedBreak);
+    case nsIDOMKeyEvent::DOM_VK_ESCAPE:
+      
+      
+      
+      
+      
+      return TypedText(EmptyString(), eTypedText);
+  }
+
+  
+  
+  if (nativeKeyEvent->charCode == 0 || nativeKeyEvent->isControl ||
+      nativeKeyEvent->isAlt || nativeKeyEvent->isMeta) {
+    
+    return NS_OK;
+  }
+  aKeyEvent->PreventDefault();
+  nsAutoString str(nativeKeyEvent->charCode);
+  return TypedText(str, eTypedText);
+}
 
 #ifdef XP_MAC
 #pragma mark -
 #pragma mark  nsIHTMLEditor methods 
 #pragma mark -
 #endif
-
-NS_IMETHODIMP nsPlaintextEditor::HandleKeyPress(nsIDOMKeyEvent* aKeyEvent)
-{
-  PRUint32 keyCode, character;
-  PRBool   ctrlKey, altKey, metaKey;
-
-  if (!aKeyEvent) return NS_ERROR_NULL_POINTER;
-
-  if (NS_SUCCEEDED(aKeyEvent->GetKeyCode(&keyCode)) && 
-      NS_SUCCEEDED(aKeyEvent->GetCtrlKey(&ctrlKey)) &&
-      NS_SUCCEEDED(aKeyEvent->GetAltKey(&altKey)) &&
-      NS_SUCCEEDED(aKeyEvent->GetMetaKey(&metaKey)))
-  {
-    aKeyEvent->GetCharCode(&character);
-    if (keyCode == nsIDOMKeyEvent::DOM_VK_RETURN
-     || keyCode == nsIDOMKeyEvent::DOM_VK_ENTER)
-    {
-      nsString empty;
-      return TypedText(empty, eTypedBreak);
-    }
-    else if (keyCode == nsIDOMKeyEvent::DOM_VK_ESCAPE)
-    {
-      
-      nsString empty;
-      return TypedText(empty, eTypedText);
-    }
-    
-    if (character && !altKey && !ctrlKey && !metaKey)
-    {
-      aKeyEvent->PreventDefault();
-      nsAutoString key(character);
-      return TypedText(key, eTypedText);
-    }
-  }
-  return NS_ERROR_FAILURE;
-}
 
 
 
