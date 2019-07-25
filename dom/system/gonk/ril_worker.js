@@ -638,6 +638,11 @@ let RIL = {
 
 
     this.aid = null;
+  
+    
+
+
+    this.appType = null,
 
     this.networkSelectionMode = null;
 
@@ -1421,6 +1426,32 @@ let RIL = {
 
 
 
+  getICCContacts: function getICCContacts(options) {
+    let type = options.type;
+    switch (type) {
+      case "ADN":
+        switch (this.appType) {
+          case CARD_APPTYPE_SIM:
+            options.fileId = ICC_EF_ADN;
+            this.getADN(options);
+            break;
+          case CARD_APPTYPE_USIM:
+            this.getPBR(options);
+            break;
+        }
+        break;
+      case "FDN":
+        this.getFDN(options);
+        break;
+    }
+  },
+
+  
+
+
+
+
+
   getPBR: function getPBR(options) {
     function callback(options) {
       let bufLen = Buf.readUint32();
@@ -2194,6 +2225,7 @@ let RIL = {
     }
     
     this.aid = app.aid;
+    this.appType = app.app_type;
 
     let newCardState;
     switch (app.app_state) {
