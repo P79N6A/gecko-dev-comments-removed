@@ -46,6 +46,7 @@ class nsSVGOuterSVGFrame;
 class nsSVGPathGeometryFrame;
 class nsSVGSVGElement;
 class nsTextFrame;
+class gfxTextObjectPaint;
 
 struct nsStyleSVG;
 struct nsStyleSVGPaint;
@@ -681,14 +682,24 @@ public:
   
 
 
-
-  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext);
+  static bool SetupObjectPaint(gfxContext *aContext,
+                               gfxTextObjectPaint *aObjectPaint,
+                               const nsStyleSVGPaint& aPaint,
+                               float aOpacity);
 
   
 
 
 
-  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext);
+  static bool SetupCairoFillPaint(nsIFrame* aFrame, gfxContext* aContext,
+                                  gfxTextObjectPaint *aObjectPaint = nullptr);
+
+  
+
+
+
+  static bool SetupCairoStrokePaint(nsIFrame* aFrame, gfxContext* aContext,
+                                    gfxTextObjectPaint *aObjectPaint = nullptr);
 
   
 

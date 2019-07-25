@@ -48,6 +48,7 @@
 #include "nsIDocument.h"
 #include "gfxPattern.h"
 #include "gfxFont.h"
+#include "mozilla/gfx/UserData.h"
 
 
 
@@ -64,7 +65,8 @@ public:
 
     bool HasSVGGlyph(uint32_t aGlyphId);
 
-    bool RenderGlyph(gfxContext *aContext, uint32_t aGlyphId, DrawMode aDrawMode);
+    bool RenderGlyph(gfxContext *aContext, uint32_t aGlyphId, DrawMode aDrawMode,
+                     gfxTextObjectPaint *aObjectPaint);
 
     bool Init(const gfxFontEntry *aFont,
               const FallibleTArray<uint8_t> &aCmapTable);
@@ -92,6 +94,69 @@ private:
     nsCOMPtr<nsIPresShell> mPresShell;
 
     nsBaseHashtable<nsUint32HashKey, Element*, Element*> mGlyphIdMap;
+};
+
+
+
+
+
+class gfxTextObjectPaint
+{
+protected:
+    gfxTextObjectPaint() { }
+
+public:
+    static mozilla::gfx::UserDataKey sUserDataKey;
+
+    
+
+
+
+
+
+
+    virtual already_AddRefed<gfxPattern> GetFillPattern(float aOpacity = 1.0f) = 0;
+    virtual already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity = 1.0f) = 0;
+
+    virtual ~gfxTextObjectPaint() { }
+};
+
+
+
+
+
+class SimpleTextObjectPaint : public gfxTextObjectPaint
+{
+public:
+    SimpleTextObjectPaint(gfxPattern *aFillPattern, gfxPattern *aStrokePattern) :
+        mFillPattern(aFillPattern), mStrokePattern(aStrokePattern),
+        mFillMatrix(aFillPattern ? aFillPattern->GetMatrix() : gfxMatrix()),
+        mStrokeMatrix(aStrokePattern ? aStrokePattern->GetMatrix() : gfxMatrix())
+    {
+    }
+
+    already_AddRefed<gfxPattern> GetFillPattern(float aOpacity) {
+        if (mFillPattern) {
+            mFillPattern->SetMatrix(mFillMatrix);
+        }
+        nsRefPtr<gfxPattern> fillPattern = mFillPattern;
+        return fillPattern.forget();
+    }
+
+    already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity) {
+        if (mStrokePattern) {
+            mStrokePattern->SetMatrix(mStrokeMatrix);
+        }
+        nsRefPtr<gfxPattern> strokePattern = mStrokePattern;
+        return strokePattern.forget();
+    }
+
+private:
+    nsRefPtr<gfxPattern> mFillPattern;
+    nsRefPtr<gfxPattern> mStrokePattern;
+
+    gfxMatrix mFillMatrix;
+    gfxMatrix mStrokeMatrix;
 };
 
 #endif
