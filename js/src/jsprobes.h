@@ -197,14 +197,14 @@ bool releaseMemory(JSContext *cx, void *address, size_t nbytes);
 
 
 
-bool GCStart(JSCompartment *compartment);
-bool GCEnd(JSCompartment *compartment);
+bool GCStart(bool isFull);
+bool GCEnd(bool isFull);
 
-bool GCStartMarkPhase(JSCompartment *compartment);
-bool GCEndMarkPhase(JSCompartment *compartment);
+bool GCStartMarkPhase();
+bool GCEndMarkPhase();
 
-bool GCStartSweepPhase(JSCompartment *compartment);
-bool GCEndSweepPhase(JSCompartment *compartment);
+bool GCStartSweepPhase();
+bool GCEndSweepPhase();
 
 
 
