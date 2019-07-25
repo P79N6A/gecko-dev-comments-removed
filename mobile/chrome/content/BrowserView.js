@@ -168,8 +168,7 @@ BrowserView.Util = {
   },
 
   pageZoomLevel: function pageZoomLevel(visibleRect, browserW, browserH) {
-    let zl = BrowserView.Util.clampZoomLevel(visibleRect.width / browserW);
-    return BrowserView.Util.adjustZoomLevel(zl, kBrowserViewZoomLevelPageFitAdjust);
+    return BrowserView.Util.clampZoomLevel(visibleRect.width / browserW);
   },
 
   createBrowserViewportState: function createBrowserViewportState() {
@@ -589,7 +588,7 @@ BrowserView.prototype = {
       return false;
 
     let isDefault = (bvs.zoomLevel == bvs.defaultZoomLevel);
-    bvs.defaultZoomLevel = this.getZoomForPage();
+    bvs.defaultZoomLevel = this.getDefaultZoomLevel();
     if (isDefault)
       this.setZoomLevel(bvs.defaultZoomLevel);
     return isDefault;
@@ -602,15 +601,7 @@ BrowserView.prototype = {
     return bvs.zoomLevel == bvs.defaultZoomLevel;
   },
 
-  zoomToPage: function zoomToPage() {
-    let bvs = this._browserViewportState;
-    if (bvs) {
-      this.setZoomLevel(this.getZoomForPage());
-      bvs.defaultZoomLevel = bvs.zoomLevel;  
-    }
-  },
-
-  getZoomForPage: function getZoomForPage() {
+  getDefaultZoomLevel: function getDefaultZoomLevel() {
     let browser = this._browser;
     if (!browser)
       return 0;
@@ -621,6 +612,11 @@ BrowserView.prototype = {
     else if (metaData.reason == "viewport" && metaData.scale > 0)
       return metaData.scale;
 
+    let zl = this.getPageZoomLevel();
+    return BrowserView.Util.adjustZoomLevel(zl, kBrowserViewZoomLevelPageFitAdjust);
+  },
+
+  getPageZoomLevel: function getPageZoomLevel() {
     let bvs = this._browserViewportState;  
     let w = this.viewportToBrowser(bvs.viewportRect.right);
     let h = this.viewportToBrowser(bvs.viewportRect.bottom);
