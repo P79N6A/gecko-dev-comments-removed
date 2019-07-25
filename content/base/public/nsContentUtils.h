@@ -216,7 +216,8 @@ public:
 
 
 
-  static nsresult ReparentContentWrappersInScope(nsIScriptGlobalObject *aOldScope,
+  static nsresult ReparentContentWrappersInScope(JSContext *cx,
+                                                 nsIScriptGlobalObject *aOldScope,
                                                  nsIScriptGlobalObject *aNewScope);
 
   static PRBool   IsCallerChrome();

@@ -1336,42 +1336,10 @@ nsContentUtils::GetContextAndScope(nsIDocument *aOldDocument,
 }
 
 nsresult
-nsContentUtils::ReparentContentWrappersInScope(nsIScriptGlobalObject *aOldScope,
+nsContentUtils::ReparentContentWrappersInScope(JSContext *cx,
+                                               nsIScriptGlobalObject *aOldScope,
                                                nsIScriptGlobalObject *aNewScope)
 {
-  JSContext *cx = nsnull;
-
-  
-  nsIScriptContext *context = aOldScope->GetContext();
-  if (context) {
-    cx = static_cast<JSContext *>(context->GetNativeContext());
-  }
-
-  if (!cx) {
-    context = aNewScope->GetContext();
-    if (context) {
-      cx = static_cast<JSContext *>(context->GetNativeContext());
-    }
-
-    if (!cx) {
-      sThreadJSContextStack->Peek(&cx);
-
-      if (!cx) {
-        sThreadJSContextStack->GetSafeJSContext(&cx);
-
-        if (!cx) {
-          
-          NS_WARNING("No context reachable in ReparentContentWrappers()!");
-
-          return NS_ERROR_NOT_AVAILABLE;
-        }
-      }
-    }
-  }
-
-  
-  
-
   JSObject *oldScopeObj = aOldScope->GetGlobalJSObject();
   JSObject *newScopeObj = aNewScope->GetGlobalJSObject();
 
