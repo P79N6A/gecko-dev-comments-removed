@@ -131,15 +131,43 @@ HistoryStore.prototype = {
     return guid;
   },
 
-  GUIDForUri: function GUIDForUri(uri, create) {
-    try {
+  get _guidStm() {
+    let base =
+      "SELECT a.content AS guid " +
+      "FROM moz_annos a " +
+      "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id ";
+    let stm;
+    if (this._haveTempTables) {
       
-      return Utils.anno(uri, GUID_ANNO);
-    } catch (ex) {
+      stm = this._getStmt(base +
+        "JOIN ( " +
+          "SELECT id FROM moz_places_temp WHERE url = :page_url " +
+          "UNION " +
+          "SELECT id FROM moz_places WHERE url = :page_url " +
+        ") AS h ON h.id = a.place_id " +
+        "WHERE n.name = :anno_name");
+    } else {
       
-      if (create)
-        return this.setGUID(uri);
+      stm = this._getStmt(base +
+        "JOIN moz_places h ON h.id = a.place_id " +
+        "WHERE n.name = :anno_name AND h.url = :page_url");
     }
+    stm.params.anno_name = GUID_ANNO;
+    return stm;
+  },
+
+  GUIDForUri: function GUIDForUri(uri, create) {
+    let stm = this._guidStm;
+    stm.params.page_url = uri.spec ? uri.spec : uri;
+
+    
+    let result = Utils.queryAsync(stm, ["guid"])[0];
+    if (result)
+      return result.guid;
+
+    
+    if (create)
+      return this.setGUID(uri);
   },
 
   get _visitStm() {
