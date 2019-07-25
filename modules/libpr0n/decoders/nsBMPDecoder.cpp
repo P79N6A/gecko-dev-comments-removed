@@ -212,11 +212,6 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 
             
             mColors = new colorTable[256];
-            if (!mColors) {
-                PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
-                return;
-            }
-
             memset(mColors, 0, 256 * sizeof(colorTable));
         }
         else if (mBIH.compression != BI_BITFIELDS && mBIH.bpp == 16) {
@@ -233,7 +228,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
                                      (PRUint8**)&mImageData, &imageLength);
         } else {
             
-            mRow = (PRUint8*)malloc((mBIH.width * mBIH.bpp)/8 + 4);
+            mRow = (PRUint8*)moz_malloc((mBIH.width * mBIH.bpp)/8 + 4);
             
             
             
