@@ -93,17 +93,6 @@ public:
 
 
 
-  virtual PRUint32 GetCurrentFrameIndex() = 0;
-
-  
-
-
-  virtual PRUint32 GetNumFrames() = 0;
-
-  
-
-
-
   virtual PRUint32 GetDataSize() = 0;
 
   
