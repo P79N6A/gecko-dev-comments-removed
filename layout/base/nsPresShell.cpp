@@ -6344,17 +6344,30 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       switch (aEvent->message) {
       case NS_KEY_PRESS:
       case NS_KEY_DOWN:
-      case NS_KEY_UP:
+      case NS_KEY_UP: {
         if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent) &&
-            aEvent->message == NS_KEY_DOWN) {
+            aEvent->message == NS_KEY_UP) {
           
           
           NS_DispatchToCurrentThread(
             NS_NewRunnableMethod(mCurrentEventContent->OwnerDoc(),
                                  &nsIDocument::CancelFullScreen));
         }
+        nsIDocument *doc = mCurrentEventContent ?
+                           mCurrentEventContent->OwnerDoc() : nsnull;
+        if (doc &&
+            doc->IsFullScreenDoc() &&
+            static_cast<const nsKeyEvent*>(aEvent)->keyCode == NS_VK_ESCAPE) {
+          
+          
+          
+          
+          aEvent->flags |= (NS_EVENT_FLAG_NO_DEFAULT |
+                            NS_EVENT_FLAG_ONLY_CHROME_DISPATCH);
+        }
         
         
+      }
       case NS_MOUSE_BUTTON_DOWN:
       case NS_MOUSE_BUTTON_UP:
         isHandlingUserInput = true;
