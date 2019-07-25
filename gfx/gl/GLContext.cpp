@@ -392,7 +392,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 "Intel",
                 "NVIDIA",
                 "ATI",
-                "Qualcomm"
+                "Qualcomm",
+                "Imagination"
         };
         mVendor = VendorOther;
         for (int i = 0; i < VendorOther; ++i) {
@@ -404,7 +405,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
         glRendererString = (const char *)fGetString(LOCAL_GL_RENDERER);
         const char *rendererMatchStrings[RendererOther] = {
-                "Adreno 200"
+                "Adreno 200",
+                "PowerVR SGX 540"
         };
         mRenderer = RendererOther;
         for (int i = 0; i < RendererOther; ++i) {
@@ -612,6 +614,27 @@ GLContext::CanUploadSubTextures()
     
 
     return !(Renderer() == RendererAdreno200);
+}
+
+bool
+GLContext::WantsSmallTiles()
+{
+#ifdef MOZ_WIDGET_ANDROID
+    
+    
+    if (!CanUploadSubTextures())
+        return true;
+
+    
+    if (Renderer() == RendererSGX540)
+        return false;
+
+    
+    
+    return false;
+#else
+    return false;
+#endif
 }
 
 
@@ -866,7 +889,7 @@ TiledTextureImage::TiledTextureImage(GLContext* aGL,
     , mUseNearestFilter(aUseNearestFilter)
     , mTextureState(Created)
 {
-    mTileSize = 256;
+    mTileSize = mGL->WantsSmallTiles() ? 256 : mGL->GetMaxTextureSize();
     if (aSize != nsIntSize(0,0)) {
         Resize(aSize);
     }
