@@ -123,7 +123,14 @@ public:
 
 
 
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope) {
+
+
+
+
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap)
+  {
+    *triedToWrap = false;
     return nsnull;
   }
 

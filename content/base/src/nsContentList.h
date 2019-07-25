@@ -129,7 +129,8 @@ public:
 
   virtual PRInt32 IndexOf(nsIContent *aContent, bool aDoFlush);
 
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope) = 0;
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap) = 0;
 
 protected:
   nsCOMArray<nsIContent> mElements;
@@ -152,7 +153,8 @@ public:
   {
     return mRoot;
   }
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope);
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap);
 
 private:
   
@@ -284,7 +286,8 @@ public:
   virtual ~nsContentList();
 
   
-  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope);
+  virtual JSObject* WrapObject(JSContext *cx, XPCWrappedNativeScope *scope,
+                               bool *triedToWrap);
 
   
   NS_DECL_NSIDOMHTMLCOLLECTION

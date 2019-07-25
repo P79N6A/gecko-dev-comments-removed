@@ -600,6 +600,10 @@ pref("dom.min_timeout_value", 4);
 pref("dom.min_background_timeout_value", 1000);
 
 
+
+pref("dom.new_bindings", false);
+
+
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
 #endif
