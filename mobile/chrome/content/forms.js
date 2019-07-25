@@ -176,12 +176,6 @@ FormAssistant.prototype = {
       case "Content:SetWindowSize":
         
         
-        
-        if (this._open)
-          return;
-
-        
-        
         sendAsyncMessage("FormAssist:Show", this._getJSON());
         break;
 
@@ -225,6 +219,7 @@ FormAssistant.prototype = {
       case "FormAssist:Closed":
         currentElement.blur();
         this._currentIndex = null;
+        this._open = false;
         break;
     }
   },
