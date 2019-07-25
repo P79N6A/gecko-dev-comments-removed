@@ -2646,9 +2646,14 @@ imgDecodeWorker::Run()
   }
 
   
-  image->mInDecoder = PR_TRUE;
-  image->mDecoder->FlushInvalidations();
-  image->mInDecoder = PR_FALSE;
+  
+  
+  
+  if (!image->mHasBeenDecoded) {
+    image->mInDecoder = PR_TRUE;
+    image->mDecoder->FlushInvalidations();
+    image->mInDecoder = PR_FALSE;
+  }
 
   
   if (image->IsDecodeFinished()) {
