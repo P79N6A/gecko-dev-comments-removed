@@ -1821,9 +1821,14 @@ function getFunctionName(aFunction) {
   if (aFunction.name) {
     name = aFunction.name;
   } else {
+    
+    
     let desc = aFunction.getOwnPropertyDescriptor("displayName");
     if (desc && desc.value && typeof desc.value == "string") {
       name = desc.value;
+    } else if ("displayName" in aFunction) {
+      
+      name = aFunction.displayName;
     }
   }
   return name;
