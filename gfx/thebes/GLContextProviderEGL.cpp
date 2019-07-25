@@ -378,7 +378,7 @@ public:
         
         
         
-        PRBool hasKHRImage;
+        PRBool hasKHRImage = PR_FALSE;
         if (strstr(extensions, "EGL_KHR_image ") ||
             (strlen(extensions) >= strlen("EGL_KHR_image") &&
              strcmp(extensions+(strlen(extensions)-strlen("EGL_KHR_image")), "EGL_KHR_image")))
