@@ -50,6 +50,7 @@
 #include "nsINode.h"
 #include "nsPIDOMWindow.h"
 #include "nsDOMPopStateEvent.h"
+#include "nsFrameLoader.h"
 
 #define NS_TARGET_CHAIN_FORCE_CONTENT_DISPATCH  (1 << 0)
 #define NS_TARGET_CHAIN_WANTS_WILL_HANDLE_EVENT (1 << 1)
@@ -500,11 +501,22 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     if (!nsContentUtils::IsChromeDoc(doc)) {
       nsPIDOMWindow* win = doc ? doc->GetInnerWindow() : nsnull;
       
-      NS_ENSURE_TRUE(win && win->GetChromeEventHandler(), NS_OK);
+      nsPIDOMEventTarget* piTarget = win ? win->GetChromeEventHandler() : nsnull;
+      NS_ENSURE_TRUE(piTarget, NS_OK);
+
+      nsCOMPtr<nsIFrameLoaderOwner> flo = do_QueryInterface(piTarget);
+      if (flo) {
+        nsRefPtr<nsFrameLoader> fl = flo->GetFrameLoader();
+        if (fl) {
+          nsPIDOMEventTarget* t = fl->GetTabChildGlobalAsEventTarget();
+          piTarget = t ? t : piTarget;
+        }
+      }
+      
       
       aEvent->target = target;
       
-      target = do_QueryInterface(win->GetChromeEventHandler());
+      target = piTarget;
     }
   }
 
