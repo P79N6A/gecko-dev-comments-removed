@@ -160,12 +160,12 @@ class FrameState
     
 
 
-    inline void pushSyncedType(JSValueTag tag);
+    inline void pushSyncedType(JSValueType type);
 
     
 
 
-    inline void pushSynced(JSValueTag tag, RegisterID reg);
+    inline void pushSynced(JSValueType type, RegisterID reg);
 
     
 
@@ -180,7 +180,7 @@ class FrameState
     
 
 
-    inline void pushTypedPayload(JSValueTag tag, RegisterID payload);
+    inline void pushTypedPayload(JSValueType type, RegisterID payload);
 
     
 
@@ -196,7 +196,7 @@ class FrameState
 
 
 
-    inline void pushUntypedPayload(JSValueTag tag, RegisterID payload,
+    inline void pushUntypedPayload(JSValueType type, RegisterID payload,
                                    bool popGuaranteed = false,
                                    bool fastTyped = false);
 
@@ -416,7 +416,7 @@ class FrameState
     
 
 
-    inline void learnType(FrameEntry *fe, JSValueTag tag);
+    inline void learnType(FrameEntry *fe, JSValueType type);
 
     
 
