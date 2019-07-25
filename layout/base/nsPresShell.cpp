@@ -3835,7 +3835,7 @@ PresShell::UnsuppressPainting()
   
   
   
-  if (mDirtyRoots.Length() > 0)
+  if (!mDirtyRoots.IsEmpty())
     mShouldUnsuppressPainting = true;
   else
     UnsuppressAndInvalidate();
@@ -7385,7 +7385,7 @@ PresShell::DoVerifyReflow()
              ok ? "ok" : "failed");
     }
 
-    if (0 != mDirtyRoots.Length()) {
+    if (!mDirtyRoots.IsEmpty()) {
       printf("XXX yikes! reflow commands queued during verify-reflow\n");
     }
   }
@@ -7395,10 +7395,15 @@ PresShell::DoVerifyReflow()
 bool
 PresShell::ProcessReflowCommands(bool aInterruptible)
 {
+  if (mDirtyRoots.IsEmpty() && !mShouldUnsuppressPainting) {
+    
+    return true;
+  }
+
   NS_TIME_FUNCTION_WITH_DOCURL;
   mozilla::TimeStamp timerStart = mozilla::TimeStamp::Now();
   bool interrupted = false;
-  if (0 != mDirtyRoots.Length()) {
+  if (!mDirtyRoots.IsEmpty()) {
 
 #ifdef DEBUG
     if (VERIFY_REFLOW_DUMP_COMMANDS & gVerifyReflowFlags) {
@@ -7434,10 +7439,10 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
 
         
         
-      } while (!interrupted && mDirtyRoots.Length() &&
+      } while (!interrupted && !mDirtyRoots.IsEmpty() &&
                (!aInterruptible || PR_IntervalNow() < deadline));
 
-      interrupted = mDirtyRoots.Length() != 0;
+      interrupted = !mDirtyRoots.IsEmpty();
     }
 
     
@@ -7460,13 +7465,13 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
       
       
       
-      if (mDirtyRoots.Length())
+      if (!mDirtyRoots.IsEmpty())
         MaybeScheduleReflow();
     }
   }
 
   if (!mIsDestroying && mShouldUnsuppressPainting &&
-      mDirtyRoots.Length() == 0) {
+      mDirtyRoots.IsEmpty()) {
     
     
     
