@@ -441,6 +441,12 @@ protected:
 
 
 
+  PRBool mKeepRequestAlive;
+
+  
+
+
+
   nsIRequest*  mRequest;
 };
 

@@ -1243,6 +1243,7 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 , mContentLength(-1)
 , mProgress(0)
 , mDataBuffer(nsnull)
+, mKeepRequestAlive(PR_FALSE)
 , mRequest(nsnull)
 {
 
@@ -1744,6 +1745,7 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     
     
     mReceivedDispositionInfo = PR_FALSE; 
+    mKeepRequestAlive = PR_TRUE;
 
     
     mDialog = do_CreateInstance( NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv );
@@ -1994,7 +1996,10 @@ NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISuppor
                                                   nsresult aStatus)
 {
   mStopRequestIssued = PR_TRUE;
-  mRequest = nsnull;
+
+  if (!mKeepRequestAlive)
+    mRequest = nsnull;
+
   
   if (!mCanceled && NS_FAILED(aStatus))
   {
@@ -2134,6 +2139,8 @@ nsresult nsExternalAppHandler::CreateProgressListener()
   
   
   SetWebProgressListener(tr);
+
+  mRequest = nsnull;
 
   return rv;
 }
@@ -2468,6 +2475,9 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
   
   
   mDialog = nsnull;
+
+  mRequest = nsnull;
+
   
   if (mOutStream)
   {
