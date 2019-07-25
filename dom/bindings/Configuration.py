@@ -161,6 +161,8 @@ class Descriptor(DescriptorProvider):
         self.notflattened = desc.get('notflattened', False)
         self.register = desc.get('register', True)
 
+        self.hasXPConnectImpls = desc.get('hasXPConnectImpls', False)
+
         
         
         self.concrete = desc.get('concrete', not self.interface.isExternal())
