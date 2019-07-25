@@ -392,7 +392,6 @@ nsWindow::nsWindow()
     mNeedsShow        = PR_FALSE;
     mEnabled          = PR_TRUE;
     mCreated          = PR_FALSE;
-    mPlaced           = PR_FALSE;
 
     mContainer           = nsnull;
     mGdkWindow           = nsnull;
@@ -1156,7 +1155,6 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
     mBounds.SizeTo(GetSafeWindowSize(nsIntSize(aWidth, aHeight)));
 
     mNeedsMove = PR_TRUE;
-    mPlaced = PR_TRUE;
 
     if (!mCreated)
         return NS_OK;
@@ -1241,8 +1239,6 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
         SetSizeMode(nsSizeMode_Normal);
     }
 
-    mPlaced = PR_TRUE;
-
     
     
     
@@ -1257,6 +1253,8 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
 
     if (!mCreated)
         return NS_OK;
+
+    mNeedsMove = PR_FALSE;
 
     if (mIsTopLevel) {
         gtk_window_move(GTK_WINDOW(mShell), aX, aY);
@@ -2311,7 +2309,6 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
     
     nsIntPoint pnt(aEvent->x, aEvent->y);
     if (mIsTopLevel) {
-        mPlaced = PR_TRUE;
         
         mBounds.MoveTo(WidgetToScreenOffset());
         pnt = mBounds.TopLeft();
@@ -3781,7 +3778,9 @@ nsWindow::Create(nsIWidget        *aParent,
         
         
         
-        mNeedsMove = PR_TRUE;
+        
+        
+        mNeedsResize = PR_TRUE;
     }
 
     
@@ -4311,13 +4310,7 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
     ResizeTransparencyBitmap(aWidth, aHeight);
 
     if (mIsTopLevel) {
-        
-        
-        
-        
-        if (mPlaced)
-            gtk_window_move(GTK_WINDOW(mShell), aX, aY);
-
+        gtk_window_move(GTK_WINDOW(mShell), aX, aY);
         gtk_window_resize(GTK_WINDOW(mShell), aWidth, aHeight);
     }
     else if (mContainer) {

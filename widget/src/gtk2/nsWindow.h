@@ -373,9 +373,6 @@ protected:
     PRPackedBool        mEnabled;
     
     PRPackedBool        mCreated;
-    
-    
-    PRPackedBool        mPlaced;
 
 private:
     void               DestroyChildWindows();
