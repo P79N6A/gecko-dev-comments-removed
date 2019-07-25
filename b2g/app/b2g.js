@@ -390,3 +390,6 @@ pref("layers.acceleration.force-enabled", true);
 
 pref("dom.screenEnabledProperty.enabled", true);
 pref("dom.screenBrightnessProperty.enabled", true);
+
+
+pref("b2g.ignoreXFrameOptions", true);

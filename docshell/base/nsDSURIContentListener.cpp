@@ -48,6 +48,11 @@
 #include "nsIHttpChannel.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsNetError.h"
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
+
+static bool sIgnoreXFrameOptions = false;
 
 
 
@@ -57,6 +62,17 @@ nsDSURIContentListener::nsDSURIContentListener(nsDocShell* aDocShell)
     : mDocShell(aDocShell), 
       mParentContentListener(nsnull)
 {
+  static bool initializedPrefCache = false;
+
+  
+  if (NS_UNLIKELY(!initializedPrefCache)) {
+    
+    nsIPrefBranch2 *root = Preferences::GetRootBranch();
+    root->LockPref("b2g.ignoreXFrameOptions");
+
+    Preferences::AddBoolVarCache(&sIgnoreXFrameOptions, "b2g.ignoreXFrameOptions");
+    initializedPrefCache = true;
+  }
 }
 
 nsDSURIContentListener::~nsDSURIContentListener()
@@ -120,6 +136,7 @@ nsDSURIContentListener::DoContent(const char* aContentType,
     NS_ENSURE_ARG_POINTER(aContentHandler);
     NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
+    
     
     
     if (!CheckFrameOptions(request)) {
@@ -287,6 +304,11 @@ nsDSURIContentListener::SetParentContentListener(nsIURIContentListener*
 
 bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
 {
+    
+    if (sIgnoreXFrameOptions) {
+        return true;
+    }
+
     nsCAutoString xfoHeaderValue;
 
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
