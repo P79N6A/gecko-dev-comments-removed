@@ -427,7 +427,7 @@ protected:
     PRPackedBool mOptionsFrozen;
 
     WebGLuint mActiveTexture;
-    WebGLenum mSynthesizedGLError;
+    WebGLenum mWebGLError;
 
     
     PRBool mShaderValidation;
