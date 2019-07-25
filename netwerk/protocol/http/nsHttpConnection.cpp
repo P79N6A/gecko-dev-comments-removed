@@ -257,17 +257,31 @@ nsHttpConnection::SupportsPipelining(nsHttpResponseHead *responseHead)
         return PR_FALSE; 
 
     
-    static const char *bad_servers[] = {
-        "Microsoft-IIS/4.",
-        "Microsoft-IIS/5.",
-        "Netscape-Enterprise/3.",
-        nsnull
-    };
+    
+    
 
-    for (const char **server = bad_servers; *server; ++server) {
-        if (PL_strcasestr(val, *server) != nsnull) {
-            LOG(("looks like this server does not support pipelining"));
-            return PR_FALSE;
+    static const char *bad_servers[26][5] = {
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { "EFAServer/", nsnull },                                       
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { nsnull }, { nsnull }, { nsnull },                             
+        { "Microsoft-IIS/4.", "Microsoft-IIS/5.", nsnull },             
+        { "Netscape-Enterprise/3.", "Netscape-Enterprise/4.", 
+          "Netscape-Enterprise/5.", "Netscape-Enterprise/6.", nsnull }, 
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { nsnull }, { nsnull }, { nsnull }, { nsnull },                 
+        { "WebLogic 3.", "WebLogic 4.","WebLogic 5.", "WebLogic 6.", nsnull }, 
+        { nsnull }, { nsnull }, { nsnull }                              
+    };  
+
+    int index = val[0] - 'A'; 
+    if ((index >= 0) && (index <= 25))
+    {
+        for (int i = 0; bad_servers[index][i] != nsnull; i++) {
+            if (!PL_strncmp (val, bad_servers[index][i], strlen (bad_servers[index][i]))) {
+                LOG(("looks like this server does not support pipelining"));
+                return PR_FALSE;
+            }
         }
     }
 
