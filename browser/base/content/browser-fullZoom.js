@@ -262,7 +262,9 @@ var FullZoom = {
       var self = this;
       Services.contentPrefs.getPref(aURI, this.name, function (aResult) {
         
-        if (aURI.equals(browser.currentURI)) {
+        
+        
+        if (browser.currentURI && aURI.equals(browser.currentURI)) {
           self._applyPrefToSetting(aResult, browser);
         }
       });
