@@ -252,6 +252,9 @@ WeaveSvc.prototype = {
         let enum = Svc.WinMediator.getEnumerator("navigator:browser");
         while (enum.hasMoreElements())
           wait += enum.getNext().gBrowser.mTabs.length;
+        break;
+      case FENNEC_ID:
+        wait = 10;
     }
 
     
