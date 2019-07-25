@@ -152,7 +152,7 @@ function run_test() {
   }
 
   
-  var updatesDir = do_get_file("0112_complete_mar", true);
+  var updatesDir = do_get_file("0112_mar", true);
   try {
     
     
@@ -211,6 +211,13 @@ function run_test() {
     else {
       do_check_false(testFile.exists());
     }
+  }
+
+  dump("Testing: patch files should not be left behind\n");
+  var entries = updatesDir.QueryInterface(AUS_Ci.nsIFile).directoryEntries;
+  while (entries.hasMoreElements()) {
+    var entry = entries.getNext().QueryInterface(AUS_Ci.nsIFile);
+    do_check_neq(getFileExtension(entry), "patch");
   }
 
   cleanUp();

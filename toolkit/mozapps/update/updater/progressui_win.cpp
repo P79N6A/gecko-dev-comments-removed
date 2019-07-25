@@ -340,7 +340,7 @@ ShowProgressUI()
 
   Sleep(500);
 
-  if (sQuit || sProgress > 50.0f)
+  if (sQuit || sProgress > 60.0f)
     return 0;
 
   

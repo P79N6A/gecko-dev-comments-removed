@@ -593,6 +593,17 @@ function getString(aName) {
 
 
 
+function getFileExtension(aFile) {
+  return Services.io.newFileURI(aFile).QueryInterface(AUS_Ci.nsIURL).
+         fileExtension;
+}
+
+
+
+
+
+
+
 function removeUpdateDirsAndFiles() {
   var appDir = getCurrentProcessDir();
   var file = appDir.clone();
