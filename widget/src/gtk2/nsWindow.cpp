@@ -2378,17 +2378,16 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
     LOG(("configure event [%p] %d %d %d %d\n", (void *)this,
          aEvent->x, aEvent->y, aEvent->width, aEvent->height));
 
-    
-    
-    
-    
-    
-    if (mBounds.x == aEvent->x &&
-        mBounds.y == aEvent->y)
-        return FALSE;
+    nsIntRect screenBounds;
+    GetScreenBounds(screenBounds);
 
     if (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog) {
-        check_for_rollup(aEvent->window, 0, 0, false, true);
+        
+        
+        if (mBounds.x != screenBounds.x ||
+            mBounds.y != screenBounds.y) {
+            check_for_rollup(aEvent->window, 0, 0, false, true);
+        }
     }
 
     
@@ -2416,11 +2415,7 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
         return FALSE;
     }
 
-    
-    
-    
-    
-    mBounds.MoveTo(WidgetToScreenOffset());
+    mBounds.MoveTo(screenBounds.TopLeft());
 
     nsGUIEvent event(true, NS_MOVE, this);
 
