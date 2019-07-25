@@ -1576,7 +1576,7 @@ morkParser::ParseMore(
     
 
     mork_pos here;
-    nsresult rv = mParser_Stream->Tell(ev, &here);
+    mParser_Stream->Tell(ev, &here);
 
     if ( outDone )
       *outDone = mParser_IsDone;
