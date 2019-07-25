@@ -517,6 +517,22 @@ ChunkPool::expire(JSRuntime *rt, bool releaseAll)
     return freeList;
 }
 
+static void
+FreeChunkList(Chunk *chunkListHead)
+{
+    while (Chunk *chunk = chunkListHead) {
+        JS_ASSERT(!chunk->info.numArenasFreeCommitted);
+        chunkListHead = chunk->info.next;
+        FreeChunk(chunk);
+    }
+}
+
+void
+ChunkPool::expireAndFree(JSRuntime *rt, bool releaseAll)
+{
+    FreeChunkList(expire(rt, releaseAll));
+}
+
 JS_FRIEND_API(int64_t)
 ChunkPool::countCleanDecommittedArenas(JSRuntime *rt)
 {
@@ -551,16 +567,6 @@ Chunk::release(JSRuntime *rt, Chunk *chunk)
     JS_ASSERT(chunk);
     chunk->prepareToBeFreed(rt);
     FreeChunk(chunk);
-}
-
-static void
-FreeChunkList(Chunk *chunkListHead)
-{
-    while (Chunk *chunk = chunkListHead) {
-        JS_ASSERT(!chunk->info.numArenasFreeCommitted);
-        chunkListHead = chunk->info.next;
-        FreeChunk(chunk);
-    }
 }
 
 inline void
@@ -1211,7 +1217,7 @@ js_FinishGC(JSRuntime *rt)
 
 
 
-    FreeChunkList(rt->gcChunkPool.expire(rt, true));
+    rt->gcChunkPool.expireAndFree(rt, true);
 
 #ifdef DEBUG
     if (!rt->gcRootsHash.empty())
@@ -1670,12 +1676,6 @@ RunLastDitchGC(JSContext *cx)
 #endif
 }
 
-inline bool
-IsGCAllowed(JSContext *cx)
-{
-    return !JS_THREAD_DATA(cx)->waiveGCQuota;
-}
-
  void *
 ArenaLists::refillFreeList(JSContext *cx, AllocKind thingKind)
 {
@@ -1687,7 +1687,7 @@ ArenaLists::refillFreeList(JSContext *cx, AllocKind thingKind)
 
     bool runGC = !!rt->gcIsNeeded;
     for (;;) {
-        if (JS_UNLIKELY(runGC) && IsGCAllowed(cx)) {
+        if (JS_UNLIKELY(runGC)) {
             RunLastDitchGC(cx);
 
             
@@ -1711,11 +1711,8 @@ ArenaLists::refillFreeList(JSContext *cx, AllocKind thingKind)
 
 
 
-        if (runGC || !IsGCAllowed(cx)) {
-            AutoLockGC lock(rt);
-            TriggerGC(rt, gcstats::REFILL);
+        if (runGC)
             break;
-        }
         runGC = true;
     }
 
@@ -3022,12 +3019,10 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
         js_PurgeThreads_PostGlobalSweep(cx);
 
 #ifdef JS_THREADSAFE
-    if (gckind != GC_LAST_CONTEXT && rt->state != JSRTS_LANDING) {
+    if (cx->gcBackgroundFree) {
         JS_ASSERT(cx->gcBackgroundFree == &rt->gcHelperThread);
         cx->gcBackgroundFree = NULL;
         rt->gcHelperThread.startBackgroundSweep(gckind == GC_SHRINK);
-    } else {
-        JS_ASSERT(!cx->gcBackgroundFree);
     }
 #endif
 
@@ -3308,19 +3303,17 @@ void
 RunDebugGC(JSContext *cx)
 {
 #ifdef JS_GC_ZEAL
-    if (IsGCAllowed(cx)) {
-        JSRuntime *rt = cx->runtime;
+    JSRuntime *rt = cx->runtime;
 
-        
-
+    
 
 
-        rt->gcTriggerCompartment = rt->gcDebugCompartmentGC ? cx->compartment : NULL;
-        if (rt->gcTriggerCompartment == rt->atomsCompartment)
-            rt->gcTriggerCompartment = NULL;
 
-        RunLastDitchGC(cx);
-    }
+    rt->gcTriggerCompartment = rt->gcDebugCompartmentGC ? cx->compartment : NULL;
+    if (rt->gcTriggerCompartment == rt->atomsCompartment)
+        rt->gcTriggerCompartment = NULL;
+    
+    RunLastDitchGC(cx);
 #endif
 }
 
