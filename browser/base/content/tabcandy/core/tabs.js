@@ -371,6 +371,7 @@ function Tabs() {
   tabsMixIns.add({name: "onFocus"});
   tabsMixIns.add({name: "onClose"});
   tabsMixIns.add({name: "onOpen"});
+  tabsMixIns.add({name: "onLoad"}); 
 
   tabs.__proto__ = trackedTabs.values;
 
