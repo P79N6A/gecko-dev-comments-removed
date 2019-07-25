@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
 
 import java.io.IOException;
@@ -200,7 +166,7 @@ public class SyncResponse {
 
 
 
-  public int totalBackoffInMilliseconds() {
+  public long totalBackoffInMilliseconds() {
     int retryAfterInSeconds = -1;
     try {
       retryAfterInSeconds = retryAfterInSeconds();
@@ -213,7 +179,7 @@ public class SyncResponse {
     } catch (NumberFormatException e) {
     }
 
-    int totalBackoff = Math.max(retryAfterInSeconds, weaveBackoffInSeconds);
+    long totalBackoff = (long) Math.max(retryAfterInSeconds, weaveBackoffInSeconds);
     if (totalBackoff < 0) {
       return -1;
     } else {
