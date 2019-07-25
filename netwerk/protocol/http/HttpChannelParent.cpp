@@ -450,6 +450,15 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   }
 
   nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
+
+  
+  
+  PRNetAddr selfAddr = httpChan->GetSelfAddr();
+  PRNetAddr peerAddr = httpChan->GetPeerAddr();
+  if (selfAddr.raw.family != peerAddr.raw.family) {
+    NS_RUNTIMEABORT("Parent: socket has multiple address families!");
+  }
+
   if (mIPCClosed || 
       !SendOnStartRequest(responseHead ? *responseHead : nsHttpResponseHead(), 
                           !!responseHead,
@@ -457,7 +466,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
                           isFromCache,
                           mCacheDescriptor ? true : false,
                           expirationTime, cachedCharset, secInfoSerialization,
-                          httpChan->GetSelfAddr(), httpChan->GetPeerAddr())) 
+                          selfAddr, peerAddr))
   {
     return NS_ERROR_UNEXPECTED; 
   }
