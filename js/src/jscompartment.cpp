@@ -40,88 +40,27 @@
 
 #include "jscntxt.h"
 #include "jscompartment.h"
-#include "jsdbg.h"
 #include "jsgc.h"
-#include "jsgcmark.h"
 #include "jsiter.h"
-#include "jsmath.h"
 #include "jsproxy.h"
 #include "jsscope.h"
-#include "jstracer.h"
-#include "jswrapper.h"
-#include "assembler/wtf/Platform.h"
-#include "yarr/BumpPointerAllocator.h"
-#include "methodjit/MethodJIT.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
 
 #include "jsgcinlines.h"
-#include "jsscopeinlines.h"
-
-#if ENABLE_YARR_JIT
-#include "assembler/jit/ExecutableAllocator.h"
-#endif
 
 using namespace js;
 using namespace js::gc;
 
 JSCompartment::JSCompartment(JSRuntime *rt)
-  : rt(rt),
-    principals(NULL),
-    gcBytes(0),
-    gcTriggerBytes(0),
-    gcLastBytes(0),
-    hold(false),
-#ifdef JS_TRACER
-    traceMonitor_(NULL),
-#endif
-    data(NULL),
-    active(false),
-    hasDebugModeCodeToDrop(false),
-#ifdef JS_METHODJIT
-    jaegerCompartment_(NULL),
-#endif
-#if ENABLE_YARR_JIT
-    regExpAllocator(NULL),
-#endif
-    propertyTree(thisForCtor()),
-    emptyArgumentsShape(NULL),
-    emptyBlockShape(NULL),
-    emptyCallShape(NULL),
-    emptyDeclEnvShape(NULL),
-    emptyEnumeratorShape(NULL),
-    emptyWithShape(NULL),
-    initialRegExpShape(NULL),
-    initialStringShape(NULL),
-    debugModeBits(rt->debugMode * DebugFromC),
-    mathCache(NULL),
-    breakpointSites(rt)
+  : rt(rt), principals(NULL), data(NULL), marked(false), debugMode(false),
+    anynameObject(NULL), functionNamespaceObject(NULL)
 {
     JS_INIT_CLIST(&scripts);
-
-    PodArrayZero(scriptsToGC);
 }
 
 JSCompartment::~JSCompartment()
 {
-#if ENABLE_YARR_JIT
-    Foreground::delete_(regExpAllocator);
-#endif
-
-#ifdef JS_METHODJIT
-    Foreground::delete_(jaegerCompartment_);
-#endif
-
-#ifdef JS_TRACER
-    Foreground::delete_(traceMonitor_);
-#endif
-
-    Foreground::delete_(mathCache);
-
-#ifdef DEBUG
-    for (size_t i = 0; i != JS_ARRAY_LENGTH(scriptsToGC); ++i)
-        JS_ASSERT(!scriptsToGC[i]);
-#endif
 }
 
 bool
@@ -130,44 +69,16 @@ JSCompartment::init()
     chunk = NULL;
     for (unsigned i = 0; i < FINALIZE_LIMIT; i++)
         arenas[i].init();
-    freeLists.init();
-    if (!crossCompartmentWrappers.init())
-        return false;
-
-    regExpAllocator = rt->new_<WTF::BumpPointerAllocator>();
-    if (!regExpAllocator)
-        return false;
-
-    if (!backEdgeTable.init())
-        return false;
-
-    return debuggees.init() && breakpointSites.init();
-}
-
-#ifdef JS_METHODJIT
-bool
-JSCompartment::ensureJaegerCompartmentExists(JSContext *cx)
-{
-    if (jaegerCompartment_)
-        return true;
-
-    mjit::JaegerCompartment *jc = cx->new_<mjit::JaegerCompartment>();
-    if (!jc)
-        return false;
-    if (!jc->Initialize()) {
-        cx->delete_(jc);
-        return false;
-    }
-    jaegerCompartment_ = jc;
-    return true;
-}
-
-size_t
-JSCompartment::getMjitCodeSize() const
-{
-    return jaegerCompartment_ ? jaegerCompartment_->execAlloc()->getCodeSize() : 0;
-}
+    for (unsigned i = 0; i < FINALIZE_LIMIT; i++)
+        freeLists.finalizables[i] = NULL;
+#ifdef JS_GCMETER
+    memset(&compartmentStats, 0, sizeof(JSGCArenaStats) * FINALIZE_LIMIT);
 #endif
+#ifdef JS_TYPE_INFERENCE
+    types.init();
+#endif
+    return crossCompartmentWrappers.init();
+}
 
 bool
 JSCompartment::arenaListsAreEmpty()
@@ -177,13 +88,6 @@ JSCompartment::arenaListsAreEmpty()
            return false;
   }
   return true;
-}
-
-static bool
-IsCrossCompartmentWrapper(JSObject *wrapper)
-{
-    return wrapper->isWrapper() &&
-           !!(JSWrapper::wrapperHandler(wrapper)->flags() & JSWrapper::CROSS_COMPARTMENT);
 }
 
 bool
@@ -203,16 +107,16 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         JSString *str = vp->toString();
 
         
-        if (str->isStaticAtom())
+        if (JSString::isStatic(str))
             return true;
 
         
-        if (str->compartment() == this)
+        if (str->asCell()->compartment() == this)
             return true;
 
         
-        if (str->isAtom()) {
-            JS_ASSERT(str->compartment() == cx->runtime->atomsCompartment);
+        if (str->isAtomized()) {
+            JS_ASSERT(str->asCell()->compartment() == cx->runtime->defaultCompartment);
             return true;
         }
     }
@@ -254,21 +158,17 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
             if (obj->getCompartment() == this)
                 return true;
 
-            if (cx->runtime->preWrapObjectCallback) {
+            if (cx->runtime->preWrapObjectCallback)
                 obj = cx->runtime->preWrapObjectCallback(cx, global, obj, flags);
-                if (!obj)
-                    return false;
-            }
+            if (!obj)
+                return false;
 
             vp->setObject(*obj);
             if (obj->getCompartment() == this)
                 return true;
         } else {
-            if (cx->runtime->preWrapObjectCallback) {
+            if (cx->runtime->preWrapObjectCallback)
                 obj = cx->runtime->preWrapObjectCallback(cx, global, obj, flags);
-                if (!obj)
-                    return false;
-            }
 
             JS_ASSERT(!obj->isWrapper() || obj->getClass()->ext.innerObject);
             vp->setObject(*obj);
@@ -286,26 +186,15 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     
     if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(*vp)) {
         *vp = p->value;
-        if (vp->isObject()) {
-            JSObject *obj = &vp->toObject();
-            JS_ASSERT(IsCrossCompartmentWrapper(obj));
-            if (obj->getParent() != global) {
-                do {
-                    obj->setParent(global);
-                    obj = obj->getProto();
-                } while (obj && IsCrossCompartmentWrapper(obj));
-            }
-        }
+        if (vp->isObject())
+            vp->toObject().setParent(global);
         return true;
     }
 
     if (vp->isString()) {
         Value orig = *vp;
         JSString *str = vp->toString();
-        const jschar *chars = str->getChars(cx);
-        if (!chars)
-            return false;
-        JSString *wrapped = js_NewStringCopyN(cx, chars, str->length());
+        JSString *wrapped = js_NewStringCopyN(cx, str->chars(), str->length());
         if (!wrapped)
             return false;
         vp->setString(wrapped);
@@ -391,16 +280,6 @@ JSCompartment::wrap(JSContext *cx, PropertyOp *propp)
 }
 
 bool
-JSCompartment::wrap(JSContext *cx, StrictPropertyOp *propp)
-{
-    Value v = CastAsObjectJsval(*propp);
-    if (!wrap(cx, &v))
-        return false;
-    *propp = CastAsStrictPropertyOp(v.toObjectOrNull());
-    return true;
-}
-
-bool
 JSCompartment::wrap(JSContext *cx, PropertyDescriptor *desc)
 {
     return wrap(cx, &desc->obj) &&
@@ -421,147 +300,52 @@ JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
     return true;
 }
 
-#if defined JS_METHODJIT && defined JS_MONOIC
-
-
-
-
-static inline bool
-ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
-                    uint32 releaseInterval, uint32 &counter)
+bool
+JSCompartment::wrapException(JSContext *cx)
 {
-    JSC::ExecutablePool *pool = jit->code.m_executablePool;
-    if (pool->m_gcNumber != cx->runtime->gcNumber) {
-        
+    JS_ASSERT(cx->compartment == this);
 
-
-
-
-        pool->m_destroy = false;
-        pool->m_gcNumber = cx->runtime->gcNumber;
-        if (--counter == 0) {
-            pool->m_destroy = true;
-            counter = releaseInterval;
+    if (cx->throwing) {
+        AutoValueRooter tvr(cx, cx->exception);
+        cx->throwing = false;
+        cx->exception.setNull();
+        if (wrap(cx, tvr.addr())) {
+            cx->throwing = true;
+            cx->exception = tvr.value();
         }
+        return false;
     }
-    return pool->m_destroy;
-}
-#endif
-
-
-
-
-
-
-void
-JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
-{
-    JS_ASSERT(trc->context->runtime->gcCurrentCompartment);
-
-    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront())
-        MarkValue(trc, e.front().key, "cross-compartment wrapper");
+    return true;
 }
 
 void
-JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
+JSCompartment::sweep(JSContext *cx)
 {
     chunk = NULL;
-
     
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        JS_ASSERT_IF(IsAboutToBeFinalized(cx, e.front().key.toGCThing()) &&
-                     !IsAboutToBeFinalized(cx, e.front().value.toGCThing()),
+        JS_ASSERT_IF(IsAboutToBeFinalized(e.front().key.toGCThing()) &&
+                     !IsAboutToBeFinalized(e.front().value.toGCThing()),
                      e.front().key.isString());
-        if (IsAboutToBeFinalized(cx, e.front().key.toGCThing()) ||
-            IsAboutToBeFinalized(cx, e.front().value.toGCThing())) {
+        if (IsAboutToBeFinalized(e.front().key.toGCThing()) ||
+            IsAboutToBeFinalized(e.front().value.toGCThing())) {
             e.removeFront();
         }
     }
 
-    
-    if (emptyArgumentsShape && IsAboutToBeFinalized(cx, emptyArgumentsShape))
-        emptyArgumentsShape = NULL;
-    if (emptyBlockShape && IsAboutToBeFinalized(cx, emptyBlockShape))
-        emptyBlockShape = NULL;
-    if (emptyCallShape && IsAboutToBeFinalized(cx, emptyCallShape))
-        emptyCallShape = NULL;
-    if (emptyDeclEnvShape && IsAboutToBeFinalized(cx, emptyDeclEnvShape))
-        emptyDeclEnvShape = NULL;
-    if (emptyEnumeratorShape && IsAboutToBeFinalized(cx, emptyEnumeratorShape))
-        emptyEnumeratorShape = NULL;
-    if (emptyWithShape && IsAboutToBeFinalized(cx, emptyWithShape))
-        emptyWithShape = NULL;
-
-    if (initialRegExpShape && IsAboutToBeFinalized(cx, initialRegExpShape))
-        initialRegExpShape = NULL;
-    if (initialStringShape && IsAboutToBeFinalized(cx, initialStringShape))
-        initialStringShape = NULL;
-
-    sweepBreakpoints(cx);
-
-#ifdef JS_TRACER
-    if (hasTraceMonitor())
-        traceMonitor()->sweep(cx);
-#endif
-
 #if defined JS_METHODJIT && defined JS_MONOIC
-
-    
-
-
-
-
-
-
-    uint32 counter = 1;
-    bool discardScripts = !active && (releaseInterval != 0 || hasDebugModeCodeToDrop);
-    if (discardScripts)
-        hasDebugModeCodeToDrop = false;
-
     for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
         JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        if (script->hasJITCode()) {
-            mjit::ic::SweepCallICs(cx, script, discardScripts);
-            if (discardScripts) {
-                if (script->jitNormal &&
-                    ScriptPoolDestroyed(cx, script->jitNormal, releaseInterval, counter)) {
-                    mjit::ReleaseScriptCode(cx, script);
-                    continue;
-                }
-                if (script->jitCtor &&
-                    ScriptPoolDestroyed(cx, script->jitCtor, releaseInterval, counter)) {
-                    mjit::ReleaseScriptCode(cx, script);
-                }
-            }
-        }
+        if (script->hasJITCode())
+            mjit::ic::SweepCallICs(script);
     }
-
-#endif 
-
-    active = false;
+#endif
 }
 
 void
 JSCompartment::purge(JSContext *cx)
 {
     freeLists.purge();
-    dtoaCache.purge();
-
-    
-    js_DestroyScriptsToGC(cx, this);
-
-    nativeIterCache.purge();
-    toSourceCache.destroyIfConstructed();
-
-#ifdef JS_TRACER
-    
-
-
-
-    if (cx->runtime->gcRegenShapes)
-        if (hasTraceMonitor())
-            traceMonitor()->needFlush = JS_TRUE;
-#endif
 
 #ifdef JS_METHODJIT
     for (JSScript *script = (JSScript *)scripts.next;
@@ -582,273 +366,4 @@ JSCompartment::purge(JSContext *cx)
         }
     }
 #endif
-}
-
-MathCache *
-JSCompartment::allocMathCache(JSContext *cx)
-{
-    JS_ASSERT(!mathCache);
-    mathCache = cx->new_<MathCache>();
-    if (!mathCache)
-        js_ReportOutOfMemory(cx);
-    return mathCache;
-}
-
-#ifdef JS_TRACER
-TraceMonitor *
-JSCompartment::allocAndInitTraceMonitor(JSContext *cx)
-{
-    JS_ASSERT(!traceMonitor_);
-    traceMonitor_ = cx->new_<TraceMonitor>();
-    if (!traceMonitor_)
-        return NULL;
-    if (!traceMonitor_->init(cx->runtime)) {
-        Foreground::delete_(traceMonitor_);
-        return NULL;
-    }
-    return traceMonitor_;
-}
-#endif
-
-size_t
-JSCompartment::backEdgeCount(jsbytecode *pc) const
-{
-    if (BackEdgeMap::Ptr p = backEdgeTable.lookup(pc))
-        return p->value;
-
-    return 0;
-}
-
-size_t
-JSCompartment::incBackEdgeCount(jsbytecode *pc)
-{
-    if (BackEdgeMap::Ptr p = backEdgeTable.lookupWithDefault(pc, 0))
-        return ++p->value;
-    return 1;  
-}
-
-bool
-JSCompartment::isAboutToBeCollected(JSGCInvocationKind gckind)
-{
-    return !hold && (arenaListsAreEmpty() || gckind == GC_LAST_CONTEXT);
-}
-
-bool
-JSCompartment::hasScriptsOnStack(JSContext *cx)
-{
-    for (AllFramesIter i(cx->stack.space()); !i.done(); ++i) {
-        JSScript *script = i.fp()->maybeScript();
-        if (script && script->compartment == this)
-            return true;
-    }
-    return false;
-}
-
-bool
-JSCompartment::setDebugModeFromC(JSContext *cx, bool b)
-{
-    bool enabledBefore = debugMode();
-    bool enabledAfter = (debugModeBits & ~uintN(DebugFromC)) || b;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool onStack = false;
-    if (enabledBefore != enabledAfter) {
-        onStack = hasScriptsOnStack(cx);
-        if (b && onStack) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
-            return false;
-        }
-    }
-
-    debugModeBits = (debugModeBits & ~uintN(DebugFromC)) | (b * DebugFromC);
-    JS_ASSERT(debugMode() == enabledAfter);
-    if (enabledBefore != enabledAfter && !onStack)
-        updateForDebugMode(cx);
-    return true;
-}
-
-void
-JSCompartment::updateForDebugMode(JSContext *cx)
-{
-#ifdef JS_METHODJIT
-    bool enabled = debugMode();
-
-    if (enabled) {
-        JS_ASSERT(!hasScriptsOnStack(cx));
-    } else if (hasScriptsOnStack(cx)) {
-        hasDebugModeCodeToDrop = true;
-        return;
-    }
-
-    
-    
-    for (JSScript *script = (JSScript *) scripts.next;
-         &script->links != &scripts;
-         script = (JSScript *) script->links.next)
-    {
-        if (script->debugMode != enabled) {
-            mjit::ReleaseScriptCode(cx, script);
-            script->debugMode = enabled;
-        }
-    }
-    hasDebugModeCodeToDrop = false;
-#endif
-}
-
-bool
-JSCompartment::addDebuggee(JSContext *cx, js::GlobalObject *global)
-{
-    bool wasEnabled = debugMode();
-    if (!debuggees.put(global)) {
-        js_ReportOutOfMemory(cx);
-        return false;
-    }
-    debugModeBits |= DebugFromJS;
-    if (!wasEnabled)
-        updateForDebugMode(cx);
-    return true;
-}
-
-void
-JSCompartment::removeDebuggee(JSContext *cx,
-                              js::GlobalObject *global,
-                              js::GlobalObjectSet::Enum *debuggeesEnum)
-{
-    bool wasEnabled = debugMode();
-    JS_ASSERT(debuggees.has(global));
-    if (debuggeesEnum)
-        debuggeesEnum->removeFront();
-    else
-        debuggees.remove(global);
-
-    if (debuggees.empty()) {
-        debugModeBits &= ~DebugFromJS;
-        if (wasEnabled && !debugMode())
-            updateForDebugMode(cx);
-    }
-}
-
-BreakpointSite *
-JSCompartment::getBreakpointSite(jsbytecode *pc)
-{
-    BreakpointSiteMap::Ptr p = breakpointSites.lookup(pc);
-    return p ? p->value : NULL;
-}
-
-BreakpointSite *
-JSCompartment::getOrCreateBreakpointSite(JSContext *cx, JSScript *script, jsbytecode *pc, JSObject *scriptObject)
-{
-    JS_ASSERT(script->code <= pc);
-    JS_ASSERT(pc < script->code + script->length);
-    BreakpointSiteMap::AddPtr p = breakpointSites.lookupForAdd(pc);
-    if (!p) {
-        BreakpointSite *site = cx->runtime->new_<BreakpointSite>(script, pc);
-        if (!site || !breakpointSites.add(p, pc, site)) {
-            js_ReportOutOfMemory(cx);
-            return NULL;
-        }
-    }
-
-    BreakpointSite *site = p->value;
-    JS_ASSERT_IF(scriptObject, scriptObject->isScript() || scriptObject->isFunction());
-    JS_ASSERT_IF(scriptObject && scriptObject->isFunction(),
-                 scriptObject->getFunctionPrivate()->script() == script);
-    JS_ASSERT_IF(scriptObject && scriptObject->isScript(), scriptObject->getScript() == script);
-    if (site->scriptObject)
-        JS_ASSERT_IF(scriptObject, site->scriptObject == scriptObject);
-    else
-        site->scriptObject = scriptObject;
-
-    return site;
-}
-
-void
-JSCompartment::clearBreakpointsIn(JSContext *cx, js::Debugger *dbg, JSScript *script,
-                                  JSObject *handler)
-{
-    JS_ASSERT_IF(script, script->compartment == this);
-
-    for (BreakpointSiteMap::Enum e(breakpointSites); !e.empty(); e.popFront()) {
-        BreakpointSite *site = e.front().value;
-        if (!script || site->script == script) {
-            Breakpoint *next;
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = next) {
-                next = bp->nextInSite();
-                if ((!dbg || bp->debugger == dbg) && (!handler || bp->getHandler() == handler))
-                    bp->destroy(cx, &e);
-            }
-        }
-    }
-}
-
-void
-JSCompartment::clearTraps(JSContext *cx, JSScript *script)
-{
-    for (BreakpointSiteMap::Enum e(breakpointSites); !e.empty(); e.popFront()) {
-        BreakpointSite *site = e.front().value;
-        if (!script || site->script == script)
-            site->clearTrap(cx, &e);
-    }
-}
-
-bool
-JSCompartment::markBreakpointsIteratively(JSTracer *trc)
-{
-    bool markedAny = false;
-    for (BreakpointSiteMap::Range r = breakpointSites.all(); !r.empty(); r.popFront()) {
-        BreakpointSite *site = r.front().value;
-
-        
-        
-        if (site->trapHandler && (!site->scriptObject || site->scriptObject->isMarked())) {
-            if (site->trapClosure.isObject() && !site->trapClosure.toObject().isMarked())
-                markedAny = true;
-            MarkValue(trc, site->trapClosure, "trap closure");
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        if (!site->scriptObject || site->scriptObject->isMarked()) {
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
-                if (bp->debugger->toJSObject()->isMarked() &&
-                    bp->handler &&
-                    !bp->handler->isMarked())
-                {
-                    MarkObject(trc, *bp->handler, "breakpoint handler");
-                    markedAny = true;
-                }
-            }
-        }
-    }
-    return markedAny;
-}
-
-void
-JSCompartment::sweepBreakpoints(JSContext *cx)
-{
-    for (BreakpointSiteMap::Enum e(breakpointSites); !e.empty(); e.popFront()) {
-        BreakpointSite *site = e.front().value;
-        if (site->scriptObject) {
-            bool scriptGone = IsAboutToBeFinalized(cx, site->scriptObject);
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
-                if (scriptGone || IsAboutToBeFinalized(cx, bp->debugger->toJSObject()))
-                    bp->destroy(cx, &e);
-            }
-        }
-    }
 }

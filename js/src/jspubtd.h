@@ -156,17 +156,18 @@ typedef struct JSPropertyDescriptor JSPropertyDescriptor;
 typedef struct JSPropertySpec    JSPropertySpec;
 typedef struct JSObjectMap       JSObjectMap;
 typedef struct JSRuntime         JSRuntime;
+typedef struct JSScript          JSScript;
 typedef struct JSStackFrame      JSStackFrame;
 typedef struct JSXDRState        JSXDRState;
 typedef struct JSExceptionState  JSExceptionState;
 typedef struct JSLocaleCallbacks JSLocaleCallbacks;
 typedef struct JSSecurityCallbacks JSSecurityCallbacks;
+typedef struct JSONParser        JSONParser;
 typedef struct JSCompartment     JSCompartment;
 typedef struct JSCrossCompartmentCall JSCrossCompartmentCall;
 typedef struct JSStructuredCloneWriter JSStructuredCloneWriter;
 typedef struct JSStructuredCloneReader JSStructuredCloneReader;
 typedef struct JSStructuredCloneCallbacks JSStructuredCloneCallbacks;
-typedef struct JSPropertyName    JSPropertyName;
 
 #ifdef __cplusplus
 typedef class JSWrapper          JSWrapper;
@@ -184,16 +185,6 @@ typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
 
 typedef JSBool
 (* JSPropertyOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
-
-
-
-
-
-
-
-
-typedef JSBool
-(* JSStrictPropertyOp)(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 
 
 
@@ -344,6 +335,19 @@ typedef JSBool
 
 
 
+typedef uint32
+(* JSMarkOp)(JSContext *cx, JSObject *obj, void *arg);
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -358,6 +362,18 @@ typedef JSBool
 
 typedef void
 (* JSTraceOp)(JSTracer *trc, JSObject *obj);
+
+#if defined __GNUC__ && __GNUC__ >= 4 && !defined __cplusplus
+# define JS_CLASS_TRACE(method)                                               \
+    (__builtin_types_compatible_p(JSTraceOp, __typeof(&(method)))             \
+     ? (JSMarkOp)(method)                                                     \
+     : js_WrongTypeForClassTracer)
+
+extern JSMarkOp js_WrongTypeForClassTracer;
+
+#else
+# define JS_CLASS_TRACE(method) ((JSMarkOp)(method))
+#endif
 
 
 
@@ -392,6 +408,19 @@ typedef JSBool
 
 typedef JSBool
 (* JSNative)(JSContext *cx, uintN argc, jsval *vp);
+
+
+
+
+
+
+typedef struct JSTypeFunction JSTypeFunction;
+typedef struct JSTypeObject JSTypeObject;
+typedef struct JSTypeCallsite JSTypeCallsite;
+
+
+typedef void
+(* JSTypeHandler)(JSContext *cx, JSTypeFunction *fun, JSTypeCallsite *callsite);
 
 
 
@@ -440,6 +469,12 @@ typedef void
 
 typedef JSBool
 (* JSOperationCallback)(JSContext *cx);
+
+
+
+
+typedef JSBool
+(* JSBranchCallback)(JSContext *cx, JSScript *script);
 
 typedef void
 (* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
@@ -496,7 +531,7 @@ typedef JSBool
                     jsval *rval);
 
 typedef JSBool
-(* JSLocaleToUnicode)(JSContext *cx, const char *src, jsval *rval);
+(* JSLocaleToUnicode)(JSContext *cx, char *src, jsval *rval);
 
 
 
@@ -549,6 +584,7 @@ typedef JSObject *
 (* JSPreWrapCallback)(JSContext *cx, JSObject *scope, JSObject *obj, uintN flags);
 
 typedef enum {
+    JSCOMPARTMENT_NEW, 
     JSCOMPARTMENT_DESTROY
 } JSCompartmentOp;
 
@@ -563,9 +599,8 @@ typedef JSBool
 
 
 
-
 typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
-                                           uint32 tag, uint32 data, void *closure);
+                                           uint32 tag, uint32 data);
 
 
 
@@ -578,8 +613,7 @@ typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReade
 
 
 
-typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
-                                         JSObject *obj, void *closure);
+typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w, JSObject *obj);
 
 
 

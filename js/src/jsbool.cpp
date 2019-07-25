@@ -47,6 +47,7 @@
 #include "jsatom.h"
 #include "jsbool.h"
 #include "jscntxt.h"
+#include "jsinfer.h"
 #include "jsversion.h"
 #include "jslock.h"
 #include "jsnum.h"
@@ -54,20 +55,21 @@
 #include "jsstr.h"
 #include "jsvector.h"
 
+#include "jsinferinlines.h"
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
-#include "jsstrinlines.h"
 
 using namespace js;
+using namespace js::types;
 
 Class js_BooleanClass = {
     "Boolean",
     JSCLASS_HAS_RESERVED_SLOTS(1) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Boolean),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
+    PropertyStub,   
     EnumerateStub,
     ResolveStub,
     ConvertStub
@@ -101,7 +103,7 @@ bool_toString(JSContext *cx, uintN argc, Value *vp)
         return false;
 
     JSAtom *atom = cx->runtime->atomState.booleanAtoms[b ? 1 : 0];
-    JSString *str = atom;
+    JSString *str = ATOM_TO_STRING(atom);
     if (!str)
         return JS_FALSE;
     vp->setString(str);
@@ -121,10 +123,11 @@ bool_valueOf(JSContext *cx, uintN argc, Value *vp)
 
 static JSFunctionSpec boolean_methods[] = {
 #if JS_HAS_TOSOURCE
-    JS_FN(js_toSource_str,  bool_toSource,  0, 0),
+    JS_FN_TYPE(js_toSource_str,  bool_toSource,  0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerString),
 #endif
-    JS_FN(js_toString_str,  bool_toString,  0, 0),
-    JS_FN(js_valueOf_str,   bool_valueOf,   0, 0),
+    JS_FN_TYPE(js_toString_str,  bool_toString,  0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerString),
+    JS_FN_TYPE(js_valueOf_str,   bool_valueOf,   0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerBool),
+    JS_FN_TYPE(js_toJSON_str,    bool_valueOf,   0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerBool),
     JS_FS_END
 };
 
@@ -135,7 +138,8 @@ Boolean(JSContext *cx, uintN argc, Value *vp)
     bool b = argc != 0 ? js_ValueToBoolean(argv[0]) : false;
 
     if (IsConstructing(vp)) {
-        JSObject *obj = NewBuiltinClassInstance(cx, &js_BooleanClass);
+        TypeObject *objType = cx->getFixedTypeObject(TYPE_OBJECT_NEW_BOOLEAN);
+        JSObject *obj = NewBuiltinClassInstance(cx, &js_BooleanClass, objType);
         if (!obj)
             return false;
         obj->setPrimitiveThis(BooleanValue(b));
@@ -146,13 +150,24 @@ Boolean(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
+static void type_NewBoolean(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *jssite)
+{
+#ifdef JS_TYPE_INFERENCE
+    TypeCallsite *site = Valueify(jssite);
+    if (site->isNew) {
+        TypeObject *object = cx->getFixedTypeObject(TYPE_OBJECT_NEW_BOOLEAN);
+        site->returnTypes->addType(cx, (jstype) object);
+    } else {
+        JS_TypeHandlerBool(cx, jsfun, jssite);
+    }
+#endif
+}
+
 JSObject *
 js_InitBooleanClass(JSContext *cx, JSObject *obj)
 {
-    JSObject *proto;
-
-    proto = js_InitClass(cx, obj, NULL, &js_BooleanClass, Boolean, 1,
-                         NULL, boolean_methods, NULL, NULL);
+    JSObject *proto = js_InitClass(cx, obj, NULL, &js_BooleanClass, Boolean, 1, type_NewBoolean,
+                                   NULL, boolean_methods, NULL, NULL);
     if (!proto)
         return NULL;
     proto->setPrimitiveThis(BooleanValue(false));
@@ -162,14 +177,14 @@ js_InitBooleanClass(JSContext *cx, JSObject *obj)
 JSString *
 js_BooleanToString(JSContext *cx, JSBool b)
 {
-    return cx->runtime->atomState.booleanAtoms[b ? 1 : 0];
+    return ATOM_TO_STRING(cx->runtime->atomState.booleanAtoms[b ? 1 : 0]);
 }
 
 
-bool
-js::BooleanToStringBuffer(JSContext *cx, JSBool b, StringBuffer &sb)
+JSBool
+js_BooleanToCharBuffer(JSContext *cx, JSBool b, JSCharBuffer &cb)
 {
-    return b ? sb.append("true") : sb.append("false");
+    return b ? js_AppendLiteral(cb, "true") : js_AppendLiteral(cb, "false");
 }
 
 JSBool

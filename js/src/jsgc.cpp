@@ -2076,7 +2076,6 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
         if (compartment->marked) {
             compartment->marked = false;
             *write++ = compartment;
-            
             compartment->sweep(cx);
         } else {
             JS_ASSERT(compartment->freeLists.isEmpty());
@@ -2534,6 +2533,14 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
+#ifdef JS_TYPE_INFERENCE
+    
+
+
+
+    return;
+#endif
+
     JSRuntime *rt = cx->runtime;
 
     

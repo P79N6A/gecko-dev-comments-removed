@@ -49,59 +49,49 @@ PROGRAM         = jsapi-tests$(BIN_SUFFIX)
 CPPSRCS = \
   tests.cpp \
   selfTest.cpp \
-  testArgumentsObject.cpp \
-  testBug604087.cpp \
-  testChromeBuffer.cpp \
   testClassGetter.cpp \
   testCloneScript.cpp \
   testConservativeGC.cpp \
   testContexts.cpp \
-  testCustomIterator.cpp \
   testDebugger.cpp \
   testDeepFreeze.cpp \
   testDefineGetterSetterNonEnumerable.cpp \
   testDefineProperty.cpp \
   testExtendedEq.cpp \
-  testExternalStrings.cpp \
   testFuncCallback.cpp \
-  testFunctionProperties.cpp \
   testGCChunkAlloc.cpp \
   testGetPropertyDefault.cpp \
-  testIndexToString.cpp \
   testIntString.cpp \
-  testIntern.cpp \
+  testIsAboutToBeFinalized.cpp \
   testLookup.cpp \
-  testLooselyEqual.cpp \
   testNewObject.cpp \
   testOps.cpp \
-  testParseJSON.cpp \
   testPropCache.cpp \
-  testRegExp.cpp \
-  testResolveRecursion.cpp \
   testSameValue.cpp \
-  testScriptInfo.cpp \
   testScriptObject.cpp \
-  testSetProperty.cpp \
-  testStringBuffer.cpp \
+  testSetPropertyWithNativeGetterStubSetter.cpp \
+  testBug604087.cpp \
+  testThreads.cpp \
   testTrap.cpp \
   testUTF8.cpp \
-  testVersion.cpp \
   testXDR.cpp \
   $(NULL)
 
-# Disabled: an entirely unrelated test seems to cause this to fail.  Moreover,
-# given the test's dependence on interactions between the compiler, the GC, and
-# conservative stack scanning, the fix isn't obvious: more investigation
-# needed.
-#CPPSRCS += \
-#  testRegExpInstanceProperties.cpp \
-#  $(NULL)
-
 DEFINES         += -DEXPORT_JS_API
 
-LIBS      = $(DEPTH)/$(LIB_PREFIX)js_static.$(LIB_SUFFIX) $(NSPR_LIBS)
+LIBS      = $(NSPR_LIBS) $(DEPTH)/$(LIB_PREFIX)js_static.$(LIB_SUFFIX)
+
+ifdef JS_TYPE_INFERENCE
+LIBS += -lz
+endif
 
 LOCAL_INCLUDES += -I$(topsrcdir) -I..
+
+ifdef _MSC_VER
+ifdef WINCE
+WIN32_EXE_LDFLAGS += -ENTRY:mainACRTStartup
+endif
+endif
 
 include $(topsrcdir)/config/rules.mk
 

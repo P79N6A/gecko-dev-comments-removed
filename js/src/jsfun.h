@@ -46,7 +46,6 @@
 #include "jspubtd.h"
 #include "jsobj.h"
 #include "jsatom.h"
-#include "jsscript.h"
 #include "jsstr.h"
 #include "jsopcode.h"
 
@@ -96,7 +95,7 @@
                                        JSFunctionSpec::call points to a
                                        JSNativeTraceInfo. */
 #define JSFUN_INTERPRETED   0x4000  /* use u.i if kind >= this value else u.n */
-#define JSFUN_FLAT_CLOSURE  0x8000  /* flat (aka "display") closure */
+#define JSFUN_FLAT_CLOSURE  0x8000  /* flag (aka "display") closure */
 #define JSFUN_NULL_CLOSURE  0xc000  /* null closure entrains no scope chain */
 #define JSFUN_KINDMASK      0xc000  /* encode interp vs. native and closure
                                        optimization level -- see above */
@@ -107,12 +106,35 @@
 #define FUN_INTERPRETED(fun) (FUN_KIND(fun) >= JSFUN_INTERPRETED)
 #define FUN_FLAT_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_FLAT_CLOSURE)
 #define FUN_NULL_CLOSURE(fun)(FUN_KIND(fun) == JSFUN_NULL_CLOSURE)
-#define FUN_SCRIPT(fun)      (FUN_INTERPRETED(fun) ? (fun)->script() : NULL)
+#define FUN_SCRIPT(fun)      (FUN_INTERPRETED(fun) ? (fun)->u.i.script : NULL)
 #define FUN_CLASP(fun)       (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
                               fun->u.n.clasp)
 #define FUN_TRCINFO(fun)     (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
                               JS_ASSERT((fun)->flags & JSFUN_TRCINFO),        \
                               fun->u.n.trcinfo)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum JSLocalKind {
+    JSLOCAL_NONE,
+    JSLOCAL_ARG,
+    JSLOCAL_VAR,
+    JSLOCAL_CONST,
+    JSLOCAL_UPVAR
+};
 
 struct JSFunction : public JSObject_Slots2
 {
@@ -129,7 +151,9 @@ struct JSFunction : public JSObject_Slots2
             JSNativeTraceInfo *trcinfo;
         } n;
         struct Scripted {
-            JSScript    *script;  
+            uint16      nvars;    
+            uint16      nupvars;  
+
             uint16       skipmin; 
 
 
@@ -139,35 +163,98 @@ struct JSFunction : public JSObject_Slots2
 
 
 
+            JSScript    *script;  
             js::Shape   *names;   
         } i;
-        void            *nativeOrScript;
     } u;
     JSAtom          *atom;        
 
     bool optimizedClosure()  const { return FUN_KIND(this) > JSFUN_INTERPRETED; }
+    bool needsWrapper()      const { return FUN_NULL_CLOSURE(this) && u.i.skipmin != 0; }
     bool isInterpreted()     const { return FUN_INTERPRETED(this); }
     bool isNative()          const { return !FUN_INTERPRETED(this); }
     bool isConstructor()     const { return flags & JSFUN_CONSTRUCTOR; }
     bool isHeavyweight()     const { return JSFUN_HEAVYWEIGHT_TEST(flags); }
-    bool isFlatClosure()     const { return FUN_KIND(this) == JSFUN_FLAT_CLOSURE; }
+
     bool isFunctionPrototype() const { return flags & JSFUN_PROTOTYPE; }
-    bool isInterpretedConstructor() const { return isInterpreted() && !isFunctionPrototype(); }
-    
+
     inline bool inStrictMode() const;
-    void setArgCount(uint16 nargs) {
-        JS_ASSERT(this->nargs == 0);
-        this->nargs = nargs;
+
+    bool acceptsPrimitiveThis() const { return flags & JSFUN_PRIMITIVE_THIS; }
+
+    uintN countVars() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return u.i.nvars;
     }
 
     
     enum { MAX_ARGS_AND_VARS = 2 * ((1U << 16) - 1) };
 
+    uintN countArgsAndVars() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return nargs + u.i.nvars;
+    }
+
+    uintN countLocalNames() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return countArgsAndVars() + u.i.nupvars;
+    }
+
+    bool hasLocalNames() const {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        return countLocalNames() != 0;
+    }
+
+    int sharpSlotBase(JSContext *cx);
+
+    uint32 countUpvarSlots() const;
+
+    const js::Shape *lastArg() const;
+    const js::Shape *lastVar() const;
+    const js::Shape *lastUpvar() const { return u.i.names; }
+
+    bool addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind);
+
+    
+
+
+
+
+
+    JSLocalKind lookupLocal(JSContext *cx, JSAtom *atom, uintN *indexp);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    jsuword *getLocalNameArray(JSContext *cx, struct JSArenaPool *pool);
+
+    void freezeLocalNames(JSContext *cx);
+
+    
+
+
+
+    JSAtom *findDuplicateFormal() const;
+
 #define JS_LOCAL_NAME_TO_ATOM(nameWord)  ((JSAtom *) ((nameWord) & ~(jsuword) 1))
 #define JS_LOCAL_NAME_IS_CONST(nameWord) ((((nameWord) & (jsuword) 1)) != 0)
 
     bool mightEscape() const {
-        return isInterpreted() && (isFlatClosure() || !script()->bindings.hasUpvars());
+        return FUN_INTERPRETED(this) && (FUN_FLAT_CLOSURE(this) || u.i.nupvars == 0);
     }
 
     bool joinable() const {
@@ -190,7 +277,11 @@ struct JSFunction : public JSObject_Slots2
     };
 
   public:
-    inline void setJoinable();
+    void setJoinable() {
+        JS_ASSERT(FUN_INTERPRETED(this));
+        getSlotRef(METHOD_ATOM_SLOT).setNull();
+        flags |= JSFUN_JOINABLE;
+    }
 
     
 
@@ -199,30 +290,22 @@ struct JSFunction : public JSObject_Slots2
 
     JSAtom *methodAtom() const {
         return (joinable() && getSlot(METHOD_ATOM_SLOT).isString())
-               ? &getSlot(METHOD_ATOM_SLOT).toString()->asAtom()
+               ? STRING_TO_ATOM(getSlot(METHOD_ATOM_SLOT).toString())
                : NULL;
     }
 
-    inline void setMethodAtom(JSAtom *atom);
+    void setMethodAtom(JSAtom *atom) {
+        JS_ASSERT(joinable());
+        getSlotRef(METHOD_ATOM_SLOT).setString(ATOM_TO_STRING(atom));
+    }
+
+    js::Native maybeNative() const {
+        return isInterpreted() ? NULL : u.n.native;
+    }
 
     JSScript *script() const {
         JS_ASSERT(isInterpreted());
         return u.i.script;
-    }
-
-    js::Native native() const {
-        JS_ASSERT(isNative());
-        return u.n.native;
-    }
-
-    js::Native maybeNative() const {
-        return isInterpreted() ? NULL : native();
-    }
-
-    static uintN offsetOfNativeOrScript() {
-        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, i.script));
-        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, nativeOrScript));
-        return offsetof(JSFunction, u.nativeOrScript);
     }
 
     
@@ -236,17 +319,64 @@ struct JSFunction : public JSObject_Slots2
 
 #ifdef JS_TRACER
 
-# define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
-    JS_FN(name, JS_DATA_TO_FUNC_PTR(Native, trcinfo), nargs,                  \
-          (flags) | JSFUN_STUB_GSOPS | JSFUN_TRCINFO)
+# define JS_TN(name,fastcall,nargs,flags,trcinfo,handler)                     \
+    JS_FN_TYPE(name, JS_DATA_TO_FUNC_PTR(Native, trcinfo), nargs,             \
+               (flags) | JSFUN_STUB_GSOPS | JSFUN_TRCINFO, handler)
 #else
-# define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
-    JS_FN(name, fastcall, nargs, flags)
+# define JS_TN(name,fastcall,nargs,flags,trcinfo,handler)                     \
+    JS_FN_TYPE(name, fastcall, nargs, flags, handler)
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern js::Class js_ArgumentsClass;
+
+namespace js {
+
+extern Class StrictArgumentsClass;
+
+struct ArgumentsData {
+    js::Value   callee;
+    js::Value   slots[1];
+};
+
+}
+
+inline bool
+JSObject::isNormalArguments() const
+{
+    return getClass() == &js_ArgumentsClass;
+}
+
+inline bool
+JSObject::isStrictArguments() const
+{
+    return getClass() == &js::StrictArgumentsClass;
+}
+
+inline bool
+JSObject::isArguments() const
+{
+    return isNormalArguments() || isStrictArguments();
+}
+
+#define JS_ARGUMENTS_OBJECT_ON_TRACE ((void *)0xa126)
 
 extern JS_PUBLIC_DATA(js::Class) js_CallClass;
 extern JS_PUBLIC_DATA(js::Class) js_FunctionClass;
-extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
+extern js::Class js_DeclEnvClass;
 
 inline bool
 JSObject::isCall() const
@@ -288,70 +418,13 @@ IsFunctionObject(const js::Value &v, JSObject **funobj)
 }
 
 static JS_ALWAYS_INLINE bool
-IsFunctionObject(const js::Value &v, JSObject **funobj, JSFunction **fun)
-{
-    bool b = IsFunctionObject(v, funobj);
-    if (b)
-        *fun = (*funobj)->getFunctionPrivate();
-    return b;
-}
-
-static JS_ALWAYS_INLINE bool
 IsFunctionObject(const js::Value &v, JSFunction **fun)
 {
     JSObject *funobj;
-    return IsFunctionObject(v, &funobj, fun);
-}
-
-static JS_ALWAYS_INLINE bool
-IsNativeFunction(const js::Value &v)
-{
-    JSFunction *fun;
-    return IsFunctionObject(v, &fun) && fun->isNative();
-}
-
-static JS_ALWAYS_INLINE bool
-IsNativeFunction(const js::Value &v, JSFunction **fun)
-{
-    return IsFunctionObject(v, fun) && (*fun)->isNative();
-}
-
-static JS_ALWAYS_INLINE bool
-IsNativeFunction(const js::Value &v, Native native)
-{
-    JSFunction *fun;
-    return IsFunctionObject(v, &fun) && fun->maybeNative() == native;
-}
-
-
-
-
-
-
-
-
-
-static JS_ALWAYS_INLINE bool
-ClassMethodIsNative(JSContext *cx, JSObject *obj, Class *clasp, jsid methodid, Native native)
-{
-    JS_ASSERT(obj->getClass() == clasp);
-
-    Value v;
-    if (!HasDataProperty(obj, methodid, &v)) {
-        JSObject *proto = obj->getProto();
-        if (!proto || proto->getClass() != clasp || !HasDataProperty(proto, methodid, &v))
-            return false;
-    }
-
-    return js::IsNativeFunction(v, native);
-}
-
-extern JS_ALWAYS_INLINE bool
-SameTraceType(const Value &lhs, const Value &rhs)
-{
-    return SameType(lhs, rhs) &&
-           (lhs.isPrimitive() ||
-            lhs.toObject().isFunction() == rhs.toObject().isFunction());
+    bool b = IsFunctionObject(v, &funobj);
+    if (b)
+        *fun = funobj->getFunctionPrivate();
+    return b;
 }
 
 
@@ -409,32 +482,6 @@ IsConstructing_PossiblyWithGivenThisObject(const Value *vp, JSObject **ctorThis)
     return isCtor;
 }
 
-inline const char *
-GetFunctionNameBytes(JSContext *cx, JSFunction *fun, JSAutoByteString *bytes)
-{
-    if (fun->atom)
-        return bytes->encode(cx, fun->atom);
-    return js_anonymous_str;
-}
-
-extern bool
-IsBuiltinFunctionConstructor(JSFunction *fun);
-
-
-
-
-
-
-
-
-
-
-
-
-
-const Shape *
-LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj);
-
 } 
 
 extern JSString *
@@ -442,13 +489,17 @@ fun_toStringHelper(JSContext *cx, JSObject *obj, uintN indent);
 
 extern JSFunction *
 js_NewFunction(JSContext *cx, JSObject *funobj, js::Native native, uintN nargs,
-               uintN flags, JSObject *parent, JSAtom *atom);
+               uintN flags, JSObject *parent, JSAtom *atom,
+               JSTypeHandler handler, const char *fullName);
 
 extern JSObject *
 js_InitFunctionClass(JSContext *cx, JSObject *obj);
 
 extern JSObject *
 js_InitArgumentsClass(JSContext *cx, JSObject *obj);
+
+extern void
+js_TraceFunction(JSTracer *trc, JSFunction *fun);
 
 extern void
 js_FinalizeFunction(JSContext *cx, JSFunction *fun);
@@ -470,17 +521,22 @@ CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent)
 extern JSObject * JS_FASTCALL
 js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);
 
-extern JSObject *
+extern JS_REQUIRES_STACK JSObject *
 js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen);
 
+extern JS_REQUIRES_STACK JSObject *
+js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun);
+
 extern JSFunction *
-js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, js::Native native,
-                  uintN nargs, uintN flags);
+js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, js::Native native,
+                  uintN nargs, uintN flags, JSTypeHandler handler, const char *fullName);
 
 
 
 
-#define JSV2F_CONSTRUCT         CONSTRUCT
+
+
+#define JSV2F_CONSTRUCT         JSINVOKE_CONSTRUCT
 #define JSV2F_SEARCH_STACK      0x10000
 
 extern JSFunction *
@@ -495,49 +551,43 @@ js_ValueToCallableObject(JSContext *cx, js::Value *vp, uintN flags);
 extern void
 js_ReportIsNotFunction(JSContext *cx, const js::Value *vp, uintN flags);
 
+extern JSObject *
+js_GetCallObject(JSContext *cx, JSStackFrame *fp);
+
 extern JSObject * JS_FASTCALL
 js_CreateCallObjectOnTrace(JSContext *cx, JSFunction *fun, JSObject *callee, JSObject *scopeChain);
 
 extern void
-js_PutCallObject(js::StackFrame *fp);
+js_PutCallObject(JSContext *cx, JSStackFrame *fp);
 
 extern JSBool JS_FASTCALL
-js_PutCallObjectOnTrace(JSObject *scopeChain, uint32 nargs, js::Value *argv,
-                        uint32 nvars, js::Value *slots);
-
-namespace js {
-
-JSObject *
-CreateFunCallObject(JSContext *cx, StackFrame *fp);
-
-JSObject *
-CreateEvalCallObject(JSContext *cx, StackFrame *fp);
+js_PutCallObjectOnTrace(JSContext *cx, JSObject *scopeChain, uint32 nargs,
+                        js::Value *argv, uint32 nvars, js::Value *slots);
 
 extern JSBool
-GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+js_GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+js_GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-GetCallUpvar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+SetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-SetCallArg(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
+SetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+
+
+
+
 
 extern JSBool
-SetCallVar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
+js_GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-SetCallUpvar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
-
-} 
+js_GetArgsValue(JSContext *cx, JSStackFrame *fp, js::Value *vp);
 
 extern JSBool
-js_GetArgsValue(JSContext *cx, js::StackFrame *fp, js::Value *vp);
-
-extern JSBool
-js_GetArgsProperty(JSContext *cx, js::StackFrame *fp, jsid id, js::Value *vp);
+js_GetArgsProperty(JSContext *cx, JSStackFrame *fp, jsid id, js::Value *vp);
 
 
 
@@ -550,13 +600,32 @@ js_GetArgsProperty(JSContext *cx, js::StackFrame *fp, jsid id, js::Value *vp);
 
 
 extern JSObject *
-js_GetArgsObject(JSContext *cx, js::StackFrame *fp);
+js_GetArgsObject(JSContext *cx, JSStackFrame *fp);
 
 extern void
-js_PutArgsObject(js::StackFrame *fp);
+js_PutArgsObject(JSContext *cx, JSStackFrame *fp);
 
 inline bool
 js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->atom; }
+
+
+
+
+
+
+
+
+
+
+
+const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(19) - 1024;
+
+
+
+
+
+JS_STATIC_ASSERT(JS_ARGS_LENGTH_MAX <= JS_BIT(30));
+JS_STATIC_ASSERT(((JS_ARGS_LENGTH_MAX << 1) | 1) <= JSVAL_INT_MAX);
 
 extern JSBool
 js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp);

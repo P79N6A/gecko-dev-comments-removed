@@ -47,6 +47,7 @@
 #include "jsprvtd.h"
 #include "jsdbgapi.h"
 #include "jsclist.h"
+#include "jsinfer.h"
 
 
 
@@ -179,11 +180,8 @@ enum JITScriptStatus {
 };
 
 namespace js {
-namespace mjit {
-
-struct JITScript;
-
-}
+namespace mjit { struct JITScript; }
+namespace analyze { class Script; }
 }
 #endif
 
@@ -285,6 +283,42 @@ struct JSScript {
     uint32          *closedSlots; 
 
   public:
+
+    
+    js::analyze::Script *analysis;
+
+    
+    js::analyze::Script *analyze(JSContext *cx);
+
+    
+    js::analyze::Script *makeAnalysis(JSContext *cx);
+
+    
+    void typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value *sp);
+
+    
+    inline void setTypeNesting(JSScript *parent, const jsbytecode *pc);
+
+    
+    inline js::types::TypeObject *
+    getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
+
+    
+
+
+
+    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, unsigned index,
+                                  js::types::jstype type, bool force);
+    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, unsigned index,
+                                  const js::Value &rval, bool force);
+
+    
+    inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,
+                                  JSObject *obj, jsid id, const js::Value &rval);
+
+    
+    inline void typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
+
 #ifdef JS_METHODJIT
     
     

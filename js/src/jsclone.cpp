@@ -42,35 +42,25 @@
 #include "jstypedarray.h"
 
 #include "jsregexpinlines.h"
-#include "jstypedarrayinlines.h"
 
 using namespace js;
-
-JS_FRIEND_API(uint64_t)
-js_GetSCOffset(JSStructuredCloneWriter* writer)
-{
-  JS_ASSERT(writer);
-  return writer->output().count() * sizeof(uint64_t);
-}
 
 namespace js
 {
 
 bool
-WriteStructuredClone(JSContext *cx, const Value &v, uint64 **bufp, size_t *nbytesp,
-                     const JSStructuredCloneCallbacks *cb, void *cbClosure)
+WriteStructuredClone(JSContext *cx, const Value &v, uint64 **bufp, size_t *nbytesp)
 {
     SCOutput out(cx);
-    JSStructuredCloneWriter w(out, cb, cbClosure);
+    JSStructuredCloneWriter w(out);
     return w.init() && w.write(v) && out.extractBuffer(bufp, nbytesp);
 }
 
 bool
-ReadStructuredClone(JSContext *cx, const uint64_t *data, size_t nbytes, Value *vp,
-                    const JSStructuredCloneCallbacks *cb, void *cbClosure)
+ReadStructuredClone(JSContext *cx, const uint64_t *data, size_t nbytes, Value *vp)
 {
     SCInput in(cx, data, nbytes);
-    JSStructuredCloneReader r(in, cb, cbClosure);
+    JSStructuredCloneReader r(in);
     return r.read(vp);
 }
 
@@ -89,10 +79,6 @@ enum StructuredDataType {
     SCTAG_ARRAY_OBJECT,
     SCTAG_OBJECT_OBJECT,
     SCTAG_ARRAY_BUFFER_OBJECT,
-    SCTAG_BOOLEAN_OBJECT,
-    SCTAG_STRING_OBJECT,
-    SCTAG_NUMBER_OBJECT,
-    SCTAG_BACK_REFERENCE_OBJECT,
     SCTAG_TYPED_ARRAY_MIN = 0xFFFF0100,
     SCTAG_TYPED_ARRAY_MAX = SCTAG_TYPED_ARRAY_MIN + TypedArray::TYPE_MAX - 1,
     SCTAG_END_OF_BUILTIN_TYPES
@@ -182,16 +168,6 @@ SCInput::readPair(uint32_t *tagp, uint32_t *datap)
     return ok;
 }
 
-
-
-
-
-static JS_NEVER_INLINE double
-CanonicalizeNan(double d)
-{
-    return JS_CANONICALIZE_NAN(d);
-}
-
 bool
 SCInput::readDouble(jsdouble *p)
 {
@@ -201,7 +177,7 @@ SCInput::readDouble(jsdouble *p)
     } pun;
     if (!read(&pun.u))
         return false;
-    *p = CanonicalizeNan(pun.d);
+    *p = JS_CANONICALIZE_NAN(pun.d);
     return true;
 }
 
@@ -225,7 +201,7 @@ SCInput::readArray(T *p, size_t nelems)
         const T *q = (const T *) point;
         const T *qend = q + nelems;
         while (q != qend)
-            *p++ = ::SwapBytes(*q++);
+            *p++ = SwapBytes(*q++);
     }
     point += nwords;
     return true;
@@ -301,10 +277,17 @@ ReinterpretPairAsDouble(uint32_t tag, uint32_t data)
     return ReinterpretUInt64AsDouble(PairToUInt64(tag, data));
 }
 
+static inline bool
+IsNonCanonicalizedNaN(jsdouble d)
+{
+    return ReinterpretDoubleAsUInt64(d) != ReinterpretDoubleAsUInt64(JS_CANONICALIZE_NAN(d));
+}
+
 bool
 SCOutput::writeDouble(jsdouble d)
 {
-    return write(ReinterpretDoubleAsUInt64(CanonicalizeNan(d)));
+    JS_ASSERT(!IsNonCanonicalizedNaN(d));
+    return write(ReinterpretDoubleAsUInt64(d));
 }
 
 template <class T>
@@ -334,7 +317,7 @@ SCOutput::writeArray(const T *p, size_t nelems)
     } else {
         const T *pend = p + nelems;
         while (p != pend)
-            *q++ = ::SwapBytes(*p++);
+            *q++ = SwapBytes(*p++);
     }
     return true;
 }
@@ -362,13 +345,12 @@ SCOutput::extractBuffer(uint64_t **datap, size_t *sizep)
 JS_STATIC_ASSERT(JSString::MAX_LENGTH < UINT32_MAX);
 
 bool
-JSStructuredCloneWriter::writeString(uint32_t tag, JSString *str)
+JSStructuredCloneWriter::writeString(JSString *str)
 {
-    size_t length = str->length();
-    const jschar *chars = str->getChars(context());
-    if (!chars)
-        return false;
-    return out.writePair(tag, uint32_t(length)) && out.writeChars(chars, length);
+    const jschar *chars;
+    size_t length;
+    str->getCharsAndLength(chars, length);
+    return out.writePair(SCTAG_STRING, uint32_t(length)) && out.writeChars(chars, length);
 }
 
 bool
@@ -377,7 +359,7 @@ JSStructuredCloneWriter::writeId(jsid id)
     if (JSID_IS_INT(id))
         return out.writePair(SCTAG_INDEX, uint32_t(JSID_TO_INT(id)));
     JS_ASSERT(JSID_IS_STRING(id));
-    return writeString(SCTAG_STRING, JSID_TO_STRING(id));
+    return writeString(JSID_TO_STRING(id));
 }
 
 inline void
@@ -399,6 +381,7 @@ JSStructuredCloneWriter::checkStack()
     else
         JS_ASSERT(total <= ids.length());
 
+    JS_ASSERT(memory.count() == objs.length());
     size_t j = objs.length();
     for (size_t i = 0; i < limit; i++)
         JS_ASSERT(memory.has(&objs[--j].toObject()));
@@ -438,24 +421,24 @@ TagToArrayType(uint32_t tag)
 bool
 JSStructuredCloneWriter::writeTypedArray(JSObject *obj)
 {
-    JSObject *arr = TypedArray::getTypedArray(obj);
-    if (!out.writePair(ArrayTypeToTag(TypedArray::getType(arr)), TypedArray::getLength(arr)))
+    TypedArray *arr = TypedArray::fromJSObject(obj);
+    if (!out.writePair(ArrayTypeToTag(arr->type), arr->length))
         return false;
 
-    switch (TypedArray::getType(arr)) {
+    switch (arr->type) {
     case TypedArray::TYPE_INT8:
     case TypedArray::TYPE_UINT8:
     case TypedArray::TYPE_UINT8_CLAMPED:
-        return out.writeArray((const uint8_t *) TypedArray::getDataOffset(arr), TypedArray::getLength(arr));
+        return out.writeArray((const uint8_t *) arr->data, arr->length);
     case TypedArray::TYPE_INT16:
     case TypedArray::TYPE_UINT16:
-        return out.writeArray((const uint16_t *) TypedArray::getDataOffset(arr), TypedArray::getLength(arr));
+        return out.writeArray((const uint16_t *) arr->data, arr->length);
     case TypedArray::TYPE_INT32:
     case TypedArray::TYPE_UINT32:
     case TypedArray::TYPE_FLOAT32:
-        return out.writeArray((const uint32_t *) TypedArray::getDataOffset(arr), TypedArray::getLength(arr));
+        return out.writeArray((const uint32_t *) arr->data, arr->length);
     case TypedArray::TYPE_FLOAT64:
-        return out.writeArray((const uint64_t *) TypedArray::getDataOffset(arr), TypedArray::getLength(arr));
+        return out.writeArray((const uint64_t *) arr->data, arr->length);
     default:
         JS_NOT_REACHED("unknown TypedArray type");
         return false;
@@ -465,9 +448,9 @@ JSStructuredCloneWriter::writeTypedArray(JSObject *obj)
 bool
 JSStructuredCloneWriter::writeArrayBuffer(JSObject *obj)
 {
-    obj = ArrayBuffer::getArrayBuffer(obj);
-    return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, ArrayBuffer::getByteLength(obj)) &&
-           out.writeBytes(ArrayBuffer::getDataOffset(obj), ArrayBuffer::getByteLength(obj));
+    ArrayBuffer *abuf = ArrayBuffer::fromJSObject(obj);
+    return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, abuf->byteLength) &&
+           out.writeBytes(abuf->data, abuf->byteLength);
 }
 
 bool
@@ -476,17 +459,18 @@ JSStructuredCloneWriter::startObject(JSObject *obj)
     JS_ASSERT(obj->isArray() || obj->isObject());
 
     
-    CloneMemory::AddPtr p = memory.lookupForAdd(obj);
-    if (p)
-        return out.writePair(SCTAG_BACK_REFERENCE_OBJECT, p->value);
-    if (!memory.add(p, obj, memory.count()))
-        return false;
-
-    if (memory.count() == UINT32_MAX) {
-        JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
-                             JSMSG_NEED_DIET, "object graph to serialize");
+    HashSet<JSObject *>::AddPtr p = memory.lookupForAdd(obj);
+    if (p) {
+        JSContext *cx = context();
+        const JSStructuredCloneCallbacks *cb = cx->runtime->structuredCloneCallbacks;
+        if (cb)
+            cb->reportError(cx, JS_SCERR_RECURSION);
+        else
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_SC_RECURSION);
         return false;
     }
+    if (!memory.add(p, obj))
+        return false;
 
     
 
@@ -512,7 +496,7 @@ bool
 JSStructuredCloneWriter::startWrite(const js::Value &v)
 {
     if (v.isString()) {
-        return writeString(SCTAG_STRING, v.toString());
+        return writeString(v.toString());
     } else if (v.isNumber()) {
         return out.writeDouble(v.toNumber());
     } else if (v.isBoolean()) {
@@ -526,7 +510,7 @@ JSStructuredCloneWriter::startWrite(const js::Value &v)
         if (obj->isRegExp()) {
             RegExp *re = RegExp::extractFrom(obj);
             return out.writePair(SCTAG_REGEXP_OBJECT, re->getFlags()) &&
-                   writeString(SCTAG_STRING, re->getSource());
+                   writeString(re->getSource());
         } else if (obj->isDate()) {
             jsdouble d = js_DateGetMsecSinceEpoch(context(), obj);
             return out.writePair(SCTAG_DATE_OBJECT, 0) && out.writeDouble(d);
@@ -534,19 +518,13 @@ JSStructuredCloneWriter::startWrite(const js::Value &v)
             return startObject(obj);
         } else if (js_IsTypedArray(obj)) {
             return writeTypedArray(obj);
-        } else if (js_IsArrayBuffer(obj)) {
+        } else if (js_IsArrayBuffer(obj) && ArrayBuffer::fromJSObject(obj)) {
             return writeArrayBuffer(obj);
-        } else if (obj->isBoolean()) {
-            return out.writePair(SCTAG_BOOLEAN_OBJECT, obj->getPrimitiveThis().toBoolean());
-        } else if (obj->isNumber()) {
-            return out.writePair(SCTAG_NUMBER_OBJECT, 0) &&
-                   out.writeDouble(obj->getPrimitiveThis().toNumber());
-        } else if (obj->isString()) {
-            return writeString(SCTAG_STRING_OBJECT, obj->getPrimitiveThis().toString());
         }
 
-        if (callbacks && callbacks->write)
-            return callbacks->write(context(), this, obj, closure);
+        const JSStructuredCloneCallbacks *cb = context()->runtime->structuredCloneCallbacks;
+        if (cb)
+            return cb->write(context(), this, obj);
         
     }
 
@@ -582,33 +560,16 @@ JSStructuredCloneWriter::write(const Value &v)
 
                 if (prop) {
                     Value val;
-                    if (!writeId(id) ||
-                        !obj->getProperty(context(), id, &val) ||
-                        !startWrite(val))
+                    if (!writeId(id) || !obj->getProperty(context(), id, &val) || !startWrite(val))
                         return false;
                 }
             }
         } else {
             out.writePair(SCTAG_NULL, 0);
+            memory.remove(obj);
             objs.popBack();
             counts.popBack();
         }
-    }
-
-    memory.clear();
-
-    return true;
-}
-
-bool
-JSStructuredCloneReader::checkDouble(jsdouble d)
-{
-    jsval_layout l;
-    l.asDouble = d;
-    if (!JSVAL_IS_DOUBLE(JSVAL_FROM_LAYOUT(l))) {
-        JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
-                             JSMSG_SC_BAD_SERIALIZED_DATA, "unrecognized NaN");
-        return false;
     }
     return true;
 }
@@ -618,18 +579,13 @@ class Chars {
     jschar *p;
   public:
     Chars() : p(NULL) {}
-    ~Chars() { if (p) cx->free_(p); }
+    ~Chars() { if (p) cx->free(p); }
 
     bool allocate(JSContext *cx, size_t len) {
         JS_ASSERT(!p);
-        
-        p = (jschar *) cx->malloc_((len + 1) * sizeof(jschar));
+        p = (jschar *) cx->malloc(len * sizeof(jschar));
         this->cx = cx;
-        if (p) {
-            p[len] = jschar(0);
-            return true;
-        }
-        return false;
+        return p != NULL;
     }
     jschar *get() { return p; }
     void forget() { p = NULL; }
@@ -661,23 +617,23 @@ JSStructuredCloneReader::readTypedArray(uint32_t tag, uint32_t nelems, Value *vp
         return false;
     vp->setObject(*obj);
 
-    JSObject *arr = TypedArray::getTypedArray(obj);
-    JS_ASSERT(TypedArray::getLength(arr) == nelems);
-    JS_ASSERT(TypedArray::getType(arr) == atype);
+    TypedArray *arr = TypedArray::fromJSObject(obj);
+    JS_ASSERT(arr->length == nelems);
+    JS_ASSERT(arr->type == atype);
     switch (atype) {
       case TypedArray::TYPE_INT8:
       case TypedArray::TYPE_UINT8:
       case TypedArray::TYPE_UINT8_CLAMPED:
-        return in.readArray((uint8_t *) TypedArray::getDataOffset(arr), nelems);
+        return in.readArray((uint8_t *) arr->data, nelems);
       case TypedArray::TYPE_INT16:
       case TypedArray::TYPE_UINT16:
-        return in.readArray((uint16_t *) TypedArray::getDataOffset(arr), nelems);
+        return in.readArray((uint16_t *) arr->data, nelems);
       case TypedArray::TYPE_INT32:
       case TypedArray::TYPE_UINT32:
       case TypedArray::TYPE_FLOAT32:
-        return in.readArray((uint32_t *) TypedArray::getDataOffset(arr), nelems);
+        return in.readArray((uint32_t *) arr->data, nelems);
       case TypedArray::TYPE_FLOAT64:
-        return in.readArray((uint64_t *) TypedArray::getDataOffset(arr), nelems);
+        return in.readArray((uint64_t *) arr->data, nelems);
       default:
         JS_NOT_REACHED("unknown TypedArray type");
         return false;
@@ -691,8 +647,9 @@ JSStructuredCloneReader::readArrayBuffer(uint32_t nbytes, Value *vp)
     if (!obj)
         return false;
     vp->setObject(*obj);
-    JS_ASSERT(ArrayBuffer::getByteLength(obj) == nbytes);
-    return in.readArray(ArrayBuffer::getDataOffset(obj), nbytes);
+    ArrayBuffer *abuf = ArrayBuffer::fromJSObject(obj);
+    JS_ASSERT(abuf->byteLength == nbytes);
+    return in.readArray((uint8_t *) abuf->data, nbytes);
 }
 
 bool
@@ -712,42 +669,21 @@ JSStructuredCloneReader::startRead(Value *vp)
         break;
 
       case SCTAG_BOOLEAN:
-      case SCTAG_BOOLEAN_OBJECT:
         vp->setBoolean(!!data);
-        if (tag == SCTAG_BOOLEAN_OBJECT && !js_PrimitiveToObject(context(), vp))
-            return false;
         break;
 
-      case SCTAG_STRING:
-      case SCTAG_STRING_OBJECT: {
+      case SCTAG_STRING: {
         JSString *str = readString(data);
         if (!str)
             return false;
         vp->setString(str);
-        if (tag == SCTAG_STRING_OBJECT && !js_PrimitiveToObject(context(), vp))
-            return false;
-        break;
-      }
-
-      case SCTAG_NUMBER_OBJECT: {
-        jsdouble d;
-        if (!in.readDouble(&d) || !checkDouble(d))
-            return false;
-        vp->setDouble(d);
-        if (!js_PrimitiveToObject(context(), vp))
-            return false;
         break;
       }
 
       case SCTAG_DATE_OBJECT: {
         jsdouble d;
-        if (!in.readDouble(&d) || !checkDouble(d))
+        if (!in.readDouble(&d))
             return false;
-        if (d == d && d != TIMECLIP(d)) {
-            JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL, JSMSG_SC_BAD_SERIALIZED_DATA,
-                                 "date");
-            return false;
-        }
         JSObject *obj = js_NewDateObjectMsec(context(), d);
         if (!obj)
             return false;
@@ -767,36 +703,31 @@ JSStructuredCloneReader::startRead(Value *vp)
         JSString *str = readString(nchars);
         if (!str)
             return false;
-        size_t length = str->length();
-        const jschar *chars = str->getChars(context());
-        if (!chars)
-            return false;
-        JSObject *obj = RegExp::createObjectNoStatics(context(), chars, length, data, NULL);
+        const jschar *chars;
+        size_t length;
+        str->getCharsAndLength(chars, length);
+        JSObject *obj = RegExp::createObjectNoStatics(context(), chars, length, data);
         if (!obj)
             return false;
         vp->setObject(*obj);
         break;
       }
 
-      case SCTAG_ARRAY_OBJECT:
-      case SCTAG_OBJECT_OBJECT: {
-        JSObject *obj = (tag == SCTAG_ARRAY_OBJECT)
-                        ? NewDenseEmptyArray(context())
-                        : NewBuiltinClassInstance(context(), &js_ObjectClass);
-        if (!obj || !objs.append(ObjectValue(*obj)) ||
-            !allObjs.append(ObjectValue(*obj)))
+      case SCTAG_ARRAY_OBJECT: {
+        types::TypeObject *objType = context()->getFixedTypeObject(types::TYPE_OBJECT_CLONE_ARRAY);
+        JSObject *obj = js_NewArrayObject(context(), 0, NULL, objType);
+        if (!obj || !objs.append(ObjectValue(*obj)))
             return false;
         vp->setObject(*obj);
         break;
       }
 
-      case SCTAG_BACK_REFERENCE_OBJECT: {
-        if (data >= allObjs.length()) {
-            JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
-                                 JSMSG_SC_BAD_SERIALIZED_DATA,
-                                 "invalid input");
-        }
-        *vp = allObjs[data];
+      case SCTAG_OBJECT_OBJECT: {
+        types::TypeObject *objType = context()->getFixedTypeObject(types::TYPE_OBJECT_CLONE_OBJECT);
+        JSObject *obj = NewBuiltinClassInstance(context(), &js_ObjectClass, objType);
+        if (!obj || !objs.append(ObjectValue(*obj)))
+            return false;
+        vp->setObject(*obj);
         break;
       }
 
@@ -806,8 +737,11 @@ JSStructuredCloneReader::startRead(Value *vp)
       default: {
         if (tag <= SCTAG_FLOAT_MAX) {
             jsdouble d = ReinterpretPairAsDouble(tag, data);
-            if (!checkDouble(d))
+            if (IsNonCanonicalizedNaN(d)) {
+                JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
+                                     JSMSG_SC_BAD_SERIALIZED_DATA, "unrecognized NaN");
                 return false;
+            }
             vp->setNumber(d);
             break;
         }
@@ -815,12 +749,13 @@ JSStructuredCloneReader::startRead(Value *vp)
         if (SCTAG_TYPED_ARRAY_MIN <= tag && tag <= SCTAG_TYPED_ARRAY_MAX)
             return readTypedArray(tag, data, vp);
 
-        if (!callbacks || !callbacks->read) {
+        const JSStructuredCloneCallbacks *cb = context()->runtime->structuredCloneCallbacks;
+        if (!cb) {
             JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL, JSMSG_SC_BAD_SERIALIZED_DATA,
                                  "unsupported type");
             return false;
         }
-        JSObject *obj = callbacks->read(context(), this, tag, data, closure);
+        JSObject *obj = cb->read(context(), this, tag, data);
         if (!obj)
             return false;
         vp->setObject(*obj);
@@ -844,7 +779,7 @@ JSStructuredCloneReader::readId(jsid *idp)
         JSString *str = readString(data);
         if (!str)
             return false;
-        JSAtom *atom = js_AtomizeString(context(), str);
+        JSAtom *atom = js_AtomizeString(context(), str, 0);
         if (!atom)
             return false;
         *idp = ATOM_TO_JSID(atom);
@@ -879,8 +814,5 @@ JSStructuredCloneReader::read(Value *vp)
                 return false;
         }
     }
-
-    allObjs.clear();
-
     return true;
 }
