@@ -576,9 +576,6 @@ public:
 
   virtual void DisableDeviceSensor(PRUint32 aType) = 0;
 
-  virtual void EnableTimeChangeNotifications() = 0;
-  virtual void DisableTimeChangeNotifications() = 0;
-
   
 
 
