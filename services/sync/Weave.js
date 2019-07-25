@@ -61,8 +61,10 @@ AboutWeaveLog.prototype = {
 
     
     
-    
-    channel.owner = null;
+    let ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+                .getService(Ci.nsIScriptSecurityManager);
+    let principal = ssm.getSimpleCodebasePrincipal(uri);
+    channel.owner = principal;
     return channel;
   }
 };
