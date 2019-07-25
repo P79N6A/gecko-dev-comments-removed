@@ -224,6 +224,9 @@ FrameState::assertValidRegisterState() const
         if (fe >= tos)
             continue;
 
+        JS_ASSERT(i == fe->trackerIndex());
+        JS_ASSERT_IF(fe->isCopy(),
+                     fe->trackerIndex() > fe->copyOf()->trackerIndex());
         JS_ASSERT_IF(fe->isCopy(), !fe->type.inRegister() && !fe->data.inRegister());
 
         if (fe->isCopy())
@@ -481,11 +484,17 @@ FrameState::pushLocal(uint32 n)
             fe->type.invalidate();
         fe->data.invalidate();
         if (localFe->isCopy()) {
-            fe->setCopyOf(localFe->copyOf());
+            localFe = localFe->copyOf();
+            fe->setCopyOf(localFe);
         } else {
             fe->setCopyOf(localFe);
             localFe->setCopied();
         }
+
+        
+        JS_ASSERT(localFe->isCopied());
+        if (fe->trackerIndex() < localFe->trackerIndex())
+            swapInTracker(fe, localFe);
     }
 }
 
@@ -578,7 +587,8 @@ FrameState::storeLocal(uint32 n)
 
     
     if (top->isConstant()) {
-        localFe->clear();
+        localFe->setCopyOf(NULL);
+        localFe->setNotCopied();
         localFe->setConstant(Jsvalify(top->getValue()));
         return;
     }
@@ -591,37 +601,31 @@ FrameState::storeLocal(uint32 n)
 
 
 
-    uint32 searchPoint = InvalidIndex;
+
+
     FrameEntry *backing = top;
+    uint32 searchPoint = InvalidIndex;
     if (top->isCopy()) {
         backing = top->copyOf();
+        JS_ASSERT(backing->trackerIndex() < top->trackerIndex());
 
-        FrameEntry *tos = tosFe();
-        for (uint32 i = 0; i < tracker.nentries; i++) {
-            FrameEntry *fe = tracker[i];
-            if (fe >= tos)
-                continue;
-
+        if (indexOfFe(backing) < uint32(spBase - base)) {
             
-            if (fe == localFe) {
-                searchPoint = i;
-                break;
-            }
-
-            
-            if (fe == backing) {
-                localFe->clear();
-                localFe->setCopyOf(backing);
-                if (backing->isTypeKnown())
-                    localFe->setTypeTag(backing->getTypeTag());
-                else
-                    localFe->type.invalidate();
-                localFe->data.invalidate();
-                return;
-            }
+            if (localFe->trackerIndex() < backing->trackerIndex())
+                swapInTracker(backing, localFe);
+            localFe->setNotCopied();
+            localFe->setCopyOf(backing);
+            if (backing->isTypeKnown())
+                localFe->setTypeTag(backing->getTypeTag());
+            else
+                localFe->type.invalidate();
+            localFe->data.invalidate();
+            return;
         }
 
-        JS_ASSERT(searchPoint != InvalidIndex);
+        searchPoint = backing->trackerIndex();
+    } else if (top->trackerIndex() < localFe->trackerIndex()) {
+        swapInTracker(top, localFe);
     }
 
     
@@ -643,36 +647,10 @@ FrameState::storeLocal(uint32 n)
     if (!backing->isTypeKnown())
         backing->type.invalidate();
     backing->data.invalidate();
-    backing->clear();
+    backing->setNotCopied();
     backing->setCopyOf(localFe);
 
-    
-
-
-
-    JS_ASSERT_IF(searchPoint == InvalidIndex, !top->isCopied());
-    JS_ASSERT_IF(searchPoint == InvalidIndex, backing == top);
-
-    if (searchPoint != InvalidIndex) {
-        
-
-
-
-        JS_ASSERT(backing != top);
-
-        
-
-
-
-        FrameEntry *tos = tosFe();
-        for (uint32 i = searchPoint + 1; i < tracker.nentries; i++) {
-            FrameEntry *fe = tracker[i];
-            if (fe >= tos)
-                continue;
-            if (fe->isCopy() && fe->copyOf() == backing)
-                fe->setCopyOf(localFe);
-        }
-    }
+    JS_ASSERT(searchPoint == InvalidIndex);
     JS_ASSERT(top->copyOf() == localFe);
 }
 
