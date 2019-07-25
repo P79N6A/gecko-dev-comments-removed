@@ -508,7 +508,8 @@ var WebappsHelper = {
 
 function startDebugger() {
   if (!DebuggerServer.initialized) {
-    DebuggerServer.init();
+    
+    DebuggerServer.init(function () { return true; });
     DebuggerServer.addActors('chrome://browser/content/dbg-browser-actors.js');
   }
 
