@@ -78,8 +78,6 @@ class ColorLayer;
 class ImageContainer;
 class CanvasLayer;
 class ShadowLayer;
-class ReadbackLayer;
-class ReadbackProcessor;
 class SpecificLayerAttributes;
 
 
@@ -396,11 +394,6 @@ public:
 
 
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer() = 0;
-  
-
-
-
-  virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nsnull; }
 
   
 
@@ -510,15 +503,13 @@ class THEBES_API Layer {
   NS_INLINE_DECL_REFCOUNTING(Layer)  
 
 public:
-  
   enum LayerType {
-    TYPE_CANVAS,
-    TYPE_COLOR,
+    TYPE_THEBES,
     TYPE_CONTAINER,
     TYPE_IMAGE,
-    TYPE_READBACK,
-    TYPE_SHADOW,
-    TYPE_THEBES
+    TYPE_COLOR,
+    TYPE_CANVAS,
+    TYPE_SHADOW
   };
 
   virtual ~Layer() {}
@@ -937,16 +928,12 @@ public:
     mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
   }
 
-  bool UsedForReadback() { return mUsedForReadback; }
-  void SetUsedForReadback(bool aUsed) { mUsedForReadback = aUsed; }
-
 protected:
   ThebesLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData)
     , mValidRegion()
     , mXResolution(1.0)
     , mYResolution(1.0)
-    , mUsedForReadback(false)
   {
     mContentFlags = 0; 
   }
@@ -969,11 +956,6 @@ protected:
   
   float mXResolution;
   float mYResolution;
-  
-
-
-
-  bool mUsedForReadback;
 };
 
 
@@ -1043,18 +1025,12 @@ public:
   PRBool SupportsComponentAlphaChildren() { return mSupportsComponentAlphaChildren; }
 
 protected:
-  friend class ReadbackProcessor;
-
-  void DidInsertChild(Layer* aLayer);
-  void DidRemoveChild(Layer* aLayer);
-
   ContainerLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData),
       mFirstChild(nsnull),
       mLastChild(nsnull),
       mUseIntermediateSurface(PR_FALSE),
-      mSupportsComponentAlphaChildren(PR_FALSE),
-      mMayHaveReadbackChild(PR_FALSE)
+      mSupportsComponentAlphaChildren(PR_FALSE)
   {
     mContentFlags = 0; 
   }
@@ -1077,7 +1053,6 @@ protected:
   FrameMetrics mFrameMetrics;
   PRPackedBool mUseIntermediateSurface;
   PRPackedBool mSupportsComponentAlphaChildren;
-  PRPackedBool mMayHaveReadbackChild;
 };
 
 

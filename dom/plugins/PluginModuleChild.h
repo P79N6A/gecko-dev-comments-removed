@@ -246,6 +246,9 @@ public:
         
         
         QUIRK_FLASH_HOOK_GETWINDOWINFO                  = 1 << 5,
+        
+        
+        QUIRK_FLASH_MASK_CLEARTYPE_SETTINGS             = 1 << 6,
     };
 
     int GetQuirks() { return mQuirks; }
@@ -258,7 +261,6 @@ public:
 private:
     void InitQuirksModes(const nsCString& aMimeType);
     bool InitGraphics();
-    void DeinitGraphics();
 #if defined(MOZ_WIDGET_GTK2)
     static gboolean DetectNestedEventLoop(gpointer data);
     static gboolean ProcessBrowserEvents(gpointer data);

@@ -51,15 +51,13 @@ public:
   ThebesLayerD3D10(LayerManagerD3D10 *aManager);
   virtual ~ThebesLayerD3D10();
 
-  void Validate(ReadbackProcessor *aReadback);
-
   
   void InvalidateRegion(const nsIntRegion& aRegion);
 
   
   virtual Layer* GetLayer();
   virtual void RenderLayer();
-  virtual void Validate() { Validate(nsnull); }
+  virtual void Validate();
   virtual void LayerManagerDestroyed();
 
 private:

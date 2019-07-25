@@ -277,27 +277,8 @@ public:
 
     nsresult AsyncSetWindow(NPWindow* window);
     nsresult GetSurface(gfxASurface** aSurface);
-    nsresult SetBackgroundUnknown();
-    nsresult BeginUpdateBackground(const nsIntRect& aRect,
-                                   gfxContext** aCtx);
-    nsresult EndUpdateBackground(gfxContext* aCtx,
-                                 const nsIntRect& aRect);
 
 private:
-    
-    
-    bool CreateBackground(const nsIntSize& aSize);
-    void DestroyBackground();
-    SurfaceDescriptor BackgroundDescriptor() ;
-
-    NS_OVERRIDE
-    virtual PPluginBackgroundDestroyerParent*
-    AllocPPluginBackgroundDestroyer();
-
-    NS_OVERRIDE
-    virtual bool
-    DeallocPPluginBackgroundDestroyer(PPluginBackgroundDestroyerParent* aActor);
-
     
     enum PluginQuirks {
         
@@ -354,19 +335,6 @@ private:
 
     
     nsRefPtr<gfxASurface>    mFrontSurface;
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    nsRefPtr<gfxASurface>    mBackground;
-    
-    
-    bool                     mNewBackground;
 };
 
 

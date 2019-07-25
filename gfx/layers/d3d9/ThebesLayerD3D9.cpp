@@ -41,7 +41,6 @@
 #include "gfxWindowsPlatform.h"
 #include "gfxTeeSurface.h"
 #include "gfxUtils.h"
-#include "ReadbackProcessor.h"
 
 namespace mozilla {
 namespace layers {
@@ -202,7 +201,7 @@ ThebesLayerD3D9::RenderVisibleRegion()
 }
 
 void
-ThebesLayerD3D9::RenderThebesLayer(ReadbackProcessor* aReadback)
+ThebesLayerD3D9::RenderLayer()
 {
   if (mVisibleRegion.IsEmpty()) {
     return;
@@ -220,30 +219,22 @@ ThebesLayerD3D9::RenderThebesLayer(ReadbackProcessor* aReadback)
     return;
   }
 
-  nsTArray<ReadbackProcessor::Update> readbackUpdates;
-  nsIntRegion readbackRegion;
-  if (aReadback && UsedForReadback()) {
-    aReadback->GetThebesLayerUpdates(this, &readbackUpdates, &readbackRegion);
-  }
-
-  
-  
-  
-  
-  
-  nsIntRegion drawRegion;
-  drawRegion.Sub(mVisibleRegion, mValidRegion);
-  drawRegion.Or(drawRegion, readbackRegion);
-  
-
-  if (!drawRegion.IsEmpty()) {
+  if (!mValidRegion.IsEqual(mVisibleRegion)) {
     LayerManagerD3D9::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
     if (!cbInfo.Callback) {
       NS_ERROR("D3D9 should never need to update ThebesLayers in an empty transaction");
       return;
     }
 
-    DrawRegion(drawRegion, mode, readbackUpdates);
+    
+
+
+
+
+
+    nsIntRegion region;
+    region.Sub(mVisibleRegion, mValidRegion);
+    DrawRegion(region, mode);
 
     mValidRegion = mVisibleRegion;
   }
@@ -416,8 +407,7 @@ FillSurface(gfxASurface* aSurface, const nsIntRegion& aRegion,
 }
 
 void
-ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
-                            const nsTArray<ReadbackProcessor::Update>& aReadbackUpdates)
+ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode)
 {
   HRESULT hr;
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
@@ -489,22 +479,6 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
   aRegion.ExtendForScaling(xres, yres);
   LayerManagerD3D9::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
   cbInfo.Callback(this, context, aRegion, nsIntRegion(), cbInfo.CallbackData);
-
-  for (PRUint32 i = 0; i < aReadbackUpdates.Length(); ++i) {
-    NS_ASSERTION(aMode == SURFACE_OPAQUE,
-                 "Transparent surfaces should not be used for readback");
-    const ReadbackProcessor::Update& update = aReadbackUpdates[i];
-    nsIntPoint offset = update.mLayer->GetBackgroundLayerOffset();
-    nsRefPtr<gfxContext> ctx =
-        update.mLayer->GetSink()->BeginUpdate(update.mUpdateRect + offset,
-                                              update.mSequenceCounter);
-    if (ctx) {
-      ctx->Translate(gfxPoint(offset.x, offset.y));
-      ctx->SetSource(destinationSurface, gfxPoint(bounds.x, bounds.y));
-      ctx->Paint();
-      update.mLayer->GetSink()->EndUpdate(ctx, update.mUpdateRect + offset);
-    }
-  }
 
   nsAutoTArray<IDirect3DTexture9*,2> srcTextures;
   nsAutoTArray<IDirect3DTexture9*,2> destTextures;

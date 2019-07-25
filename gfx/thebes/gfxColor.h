@@ -243,10 +243,6 @@ struct THEBES_API gfxRGBA {
     {
         return r == other.r && g == other.g && b == other.b && a == other.a;
     }
-    bool operator!=(const gfxRGBA& other) const
-    {
-        return !(*this == other);
-    }
 
     
 
