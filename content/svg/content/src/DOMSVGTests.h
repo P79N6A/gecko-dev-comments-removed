@@ -59,6 +59,8 @@ public:
   friend class mozilla::DOMSVGStringList;
   typedef mozilla::SVGStringList SVGStringList;
 
+  DOMSVGTests();
+
   
 
 
@@ -106,27 +108,17 @@ public:
   
 
 
-  void GetValue(PRUint8 aAttrEnum, nsAString& aValue) const;
-
-  
-
-
   void UnsetAttr(const nsIAtom* aAttribute);
 
-  void DidChangeStringList(PRUint8 aAttrEnum);
+  nsIAtom* GetAttrName(PRUint8 aAttrEnum) const;
+  void GetAttrValue(PRUint8 aAttrEnum, nsAttrValue &aValue) const;
 
   void MaybeInvalidate();
 
 private:
-
-  struct StringListInfo {
-    nsIAtom** mName;
-    bool      mIsCommaSeparated;
-  };
-
   enum { FEATURES, EXTENSIONS, LANGUAGE };
   SVGStringList mStringListAttributes[3];
-  static StringListInfo sStringListInfo[3];
+  static nsIAtom** sStringListNames[3];
 };
 
-#endif 
+#endif

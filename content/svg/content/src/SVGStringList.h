@@ -54,10 +54,13 @@ class SVGStringList
 
 public:
 
-  SVGStringList() : mIsSet(false) {}
+  SVGStringList() : mIsSet(false), mIsCommaSeparated(false) {}
   ~SVGStringList(){}
 
-  nsresult SetValue(const nsAString& aValue, bool aIsCommaSeparated);
+  void SetIsCommaSeparated(bool aIsCommaSeparated) {
+    mIsCommaSeparated = aIsCommaSeparated;
+  }
+  nsresult SetValue(const nsAString& aValue);
 
   void Clear() {
     mStrings.Clear();
@@ -65,7 +68,7 @@ public:
   }
 
   
-  void GetValue(nsAString& aValue, bool aIsCommaSeparated) const;
+  void GetValue(nsAString& aValue) const;
 
   bool IsEmpty() const {
     return mStrings.IsEmpty();
@@ -91,7 +94,6 @@ public:
     mStrings.Compact();
   }
 
-  
   
   
   bool IsExplicitlySet() const
@@ -168,6 +170,7 @@ protected:
 
   nsTArray<nsString> mStrings;
   bool mIsSet;
+  bool mIsCommaSeparated;
 };
 
 } 

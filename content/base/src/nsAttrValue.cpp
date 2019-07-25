@@ -453,6 +453,18 @@ nsAttrValue::SetTo(const mozilla::SVGAnimatedPreserveAspectRatio& aValue,
 }
 
 void
+nsAttrValue::SetTo(const mozilla::SVGStringList& aValue,
+                   const nsAString* aSerialized)
+{
+  
+  
+  if (aSerialized && aSerialized->IsEmpty()) {
+    aSerialized = nsnull;
+  }
+  SetSVGType(eSVGStringList, &aValue, aSerialized);
+}
+
+void
 nsAttrValue::SetTo(const mozilla::SVGTransformList& aValue,
                    const nsAString* aSerialized)
 {
@@ -614,6 +626,12 @@ nsAttrValue::ToString(nsAString& aResult) const
     case eSVGPreserveAspectRatio:
     {
       SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGPreserveAspectRatio,
+                                    aResult);
+      break;
+    }
+    case eSVGStringList:
+    {
+      SVGAttrValueWrapper::ToString(GetMiscContainer()->mSVGStringList,
                                     aResult);
       break;
     }
