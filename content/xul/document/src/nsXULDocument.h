@@ -396,7 +396,7 @@ protected:
 
 
 
-    nsresult ExecuteScript(nsIScriptContext *aContext, void* aScriptObject);
+    nsresult ExecuteScript(nsIScriptContext *aContext, JSScript* aScriptObject);
 
     
 
