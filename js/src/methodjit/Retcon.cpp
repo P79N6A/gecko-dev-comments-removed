@@ -123,8 +123,8 @@ Recompiler::recompile()
     Vector<PatchableAddress> normalPatches(cx);
     Vector<PatchableAddress> ctorPatches(cx);
 
-    JSStackFrame *firstCtorFrame = NULL;
-    JSStackFrame *firstNormalFrame = NULL;
+    StackFrame *firstCtorFrame = NULL;
+    StackFrame *firstNormalFrame = NULL;
 
     
     
@@ -133,8 +133,8 @@ Recompiler::recompile()
          f = f->previous) {
 
         
-        JSStackFrame *end = f->entryfp->prev();
-        for (JSStackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
+        StackFrame *end = f->entryfp->prev();
+        for (StackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
             
             
             if (!firstCtorFrame && fp->script() == script && fp->isConstructing())
@@ -198,7 +198,7 @@ Recompiler::saveTraps(JITScript *jit, Vector<CallSite> *sites)
 }
 
 bool
-Recompiler::recompile(JSStackFrame *fp, Vector<PatchableAddress> &patches,
+Recompiler::recompile(StackFrame *fp, Vector<PatchableAddress> &patches,
                       Vector<CallSite> &sites)
 {
     

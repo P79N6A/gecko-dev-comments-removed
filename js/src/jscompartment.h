@@ -136,6 +136,10 @@ struct TracerState
 
 struct TraceNativeStorage
 {
+    
+    static const size_t MAX_NATIVE_STACK_SLOTS  = 4096;
+    static const size_t MAX_CALL_STACK_ENTRIES  = 500;
+
     double stack_global_buf[MAX_NATIVE_STACK_SLOTS + GLOBAL_SLOTS_BUFFER_SIZE];
     FrameInfo *callstack_buf[MAX_CALL_STACK_ENTRIES];
 

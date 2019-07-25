@@ -96,7 +96,7 @@ struct StateRemat {
     bool inRegister() const { return offset_ >= 0 &&
                                      offset_ <= int32(JSC::MacroAssembler::TotalRegisters); }
     bool inMemory() const {
-        return offset_ >= int32(sizeof(JSStackFrame)) ||
+        return offset_ >= int32(sizeof(StackFrame)) ||
                offset_ < 0;
     }
 

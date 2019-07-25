@@ -738,7 +738,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 extern uintN
-js_FramePCToLineNumber(JSContext *cx, JSStackFrame *fp);
+js_FramePCToLineNumber(JSContext *cx, js::StackFrame *fp);
 
 extern uintN
 js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc);

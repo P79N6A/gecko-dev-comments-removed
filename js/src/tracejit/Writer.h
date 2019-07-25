@@ -427,6 +427,10 @@ class Writer
     #define ldpConstContextField(fieldname) \
         name(w.ldpContextFieldHelper(cx_ins, offsetof(JSContext, fieldname), LOAD_CONST), \
              #fieldname)
+    nj::LIns *ldpContextRegs(nj::LIns *cx) const {
+        int32 offset = offsetof(JSContext, stack) + ContextStack::offsetOfRegs();
+        return name(ldpContextFieldHelper(cx, offset, nj::LOAD_NORMAL),"regs");
+    }
 
     nj::LIns *stContextField(nj::LIns *value, nj::LIns *cx, int32 offset) const {
         return lir->insStore(value, cx, offset, ACCSET_CX);
@@ -457,11 +461,11 @@ class Writer
     }
 
     nj::LIns *ldpFrameFp(nj::LIns *regs) const {
-        return lir->insLoad(nj::LIR_ldp, regs, offsetof(JSFrameRegs, fp), ACCSET_FRAMEREGS);
+        return lir->insLoad(nj::LIR_ldp, regs, FrameRegs::offsetOfFp, ACCSET_FRAMEREGS);
     }
 
     nj::LIns *ldpStackFrameScopeChain(nj::LIns *frame) const {
-        return lir->insLoad(nj::LIR_ldp, frame, JSStackFrame::offsetOfScopeChain(),
+        return lir->insLoad(nj::LIR_ldp, frame, StackFrame::offsetOfScopeChain(),
                             ACCSET_STACKFRAME);
     }
 

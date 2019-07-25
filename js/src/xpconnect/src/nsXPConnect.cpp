@@ -398,13 +398,14 @@ nsXPConnect::Collect()
     
     
     
-    JS_ASSERT(cx->thread->data.requestDepth >= 1);
-    JS_ASSERT(!cx->thread->data.conservativeGC.requestThreshold);
-    if(cx->thread->data.requestDepth == 1)
-        cx->thread->data.conservativeGC.requestThreshold = 1;
+    js::ThreadData &threadData = cx->thread()->data;
+    JS_ASSERT(threadData.requestDepth >= 1);
+    JS_ASSERT(!threadData.conservativeGC.requestThreshold);
+    if(threadData.requestDepth == 1)
+        threadData.conservativeGC.requestThreshold = 1;
     JS_GC(cx);
-    if(cx->thread->data.requestDepth == 1)
-        cx->thread->data.conservativeGC.requestThreshold = 0;
+    if(threadData.requestDepth == 1)
+        threadData.conservativeGC.requestThreshold = 0;
 }
 
 NS_IMETHODIMP
@@ -2612,7 +2613,7 @@ nsXPConnect::Push(JSContext * cx)
              bool runningJS = false;
              for (PRUint32 i = 0; i < stack->Length(); ++i) {
                  JSContext *cx = (*stack)[i].cx;
-                 if (cx && cx->getCurrentSegment()) {
+                 if (cx && !cx->stack.empty()) {
                      runningJS = true;
                      break;
                  }
