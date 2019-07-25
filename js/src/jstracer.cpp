@@ -8152,7 +8152,8 @@ JS_DEFINE_CALLINFO_4(extern, UINT32, GetClosureArg, CONTEXT, OBJECT, CVIPTR, DOU
 
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::scopeChainProp(JSObject* chainHead, Value*& vp, LIns*& ins, NameResult& nr)
+TraceRecorder::scopeChainProp(JSObject* chainHead, Value*& vp, LIns*& ins, NameResult& nr,
+                              JSObject** scopeObjp)
 {
     JS_ASSERT(chainHead == &cx->fp()->scopeChain());
     JS_ASSERT(chainHead != globalObj);
@@ -8172,6 +8173,9 @@ TraceRecorder::scopeChainProp(JSObject* chainHead, Value*& vp, LIns*& ins, NameR
 
     if (!prop)
         RETURN_STOP_A("failed to find name in non-global scope chain");
+
+    if (scopeObjp)
+        *scopeObjp = obj;
 
     if (obj == globalObj) {
         
@@ -13513,30 +13517,66 @@ TraceRecorder::record_JSOP_SETELEM()
     return setElem(-3, -2, -1);
 }
 
+static JSBool FASTCALL
+CheckSameGlobal(JSObject *obj, JSObject *globalObj)
+{
+    return obj->getGlobal() == globalObj;
+}
+JS_DEFINE_CALLINFO_2(static, BOOL, CheckSameGlobal, OBJECT, OBJECT, 0, ACCSET_STORE_ANY)
+
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_CALLNAME()
 {
-    JSObject* obj = &cx->fp()->scopeChain();
-    if (obj != globalObj) {
+    JSObject* scopeObj = &cx->fp()->scopeChain();
+    LIns *funobj_ins;
+    JSObject *funobj;
+    if (scopeObj != globalObj) {
         Value* vp;
-        LIns* ins;
         NameResult nr;
-        CHECK_STATUS_A(scopeChainProp(obj, vp, ins, nr));
-        stack(0, ins);
-        stack(1, w.immiUndefined());
-        return ARECORD_CONTINUE;
+        CHECK_STATUS_A(scopeChainProp(scopeObj, vp, funobj_ins, nr, &scopeObj));
+        if (!nr.tracked)
+            vp = &nr.v;
+        if (!vp->isObject())
+            RETURN_STOP_A("callee is not an object");
+        funobj = &vp->toObject();
+        if (!funobj->isFunction())
+            RETURN_STOP_A("callee is not a function");
+    } else {
+        LIns* obj_ins = w.immpObjGC(globalObj);
+        JSObject* obj2;
+        PCVal pcval;
+
+        CHECK_STATUS_A(test_property_cache(scopeObj, obj_ins, obj2, pcval));
+
+        if (pcval.isNull() || !pcval.isFunObj())
+            RETURN_STOP_A("callee is not a function");
+
+        funobj = &pcval.toFunObj();
+        funobj_ins = w.immpObjGC(funobj);
     }
 
-    LIns* obj_ins = w.immpObjGC(globalObj);
-    JSObject* obj2;
-    PCVal pcval;
+    
+    
+    
+    
+    
+    if (scopeObj == globalObj) {
+        JSFunction *fun = funobj->getFunctionPrivate();
+        if (!fun->isInterpreted() || !fun->inStrictMode()) {
+            if (funobj->getGlobal() != globalObj)
+                RETURN_STOP_A("callee crosses globals");
 
-    CHECK_STATUS_A(test_property_cache(obj, obj_ins, obj2, pcval));
+            
+            
+            
+            if (!funobj_ins->isImmP() && !tree->script->compileAndGo) {
+                LIns* args[] = { w.immpObjGC(globalObj), funobj_ins };
+                guard(false, w.eqi0(w.call(&CheckSameGlobal_ci, args)), MISMATCH_EXIT);
+            }
+        }
+    }
 
-    if (pcval.isNull() || !pcval.isFunObj())
-        RETURN_STOP_A("callee is not an object");
-
-    stack(0, w.immpObjGC(&pcval.toFunObj()));
+    stack(0, funobj_ins);
     stack(1, w.immiUndefined());
     return ARECORD_CONTINUE;
 }
