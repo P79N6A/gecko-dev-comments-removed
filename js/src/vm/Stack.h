@@ -389,7 +389,7 @@ class StackFrame
     
     void initJitFrameCallerHalf(JSContext *cx, StackFrame::Flags flags, void *ncode);
     void initJitFrameEarlyPrologue(JSFunction *fun, uint32 nactual);
-    void initJitFrameLatePrologue();
+    bool initJitFrameLatePrologue(JSContext *cx, Value **limit);
 
     
     void initExecuteFrame(JSScript *script, StackFrame *prev, FrameRegs *regs,

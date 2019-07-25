@@ -173,10 +173,22 @@ StackFrame::initJitFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
 
 
 
-inline void
-StackFrame::initJitFrameLatePrologue()
+inline bool
+StackFrame::initJitFrameLatePrologue(JSContext *cx, Value **limit)
 {
+    uintN nvals = script()->nslots + VALUES_PER_STACK_FRAME;
+    Value *required = (Value *)this + nvals;
+    if (required >= *limit) {
+        ContextStack &stack = cx->stack;
+        if (!stack.space().tryBumpLimit(NULL, slots(), nvals, limit)) {
+            stack.popFrameAfterOverflow();
+            js_ReportOverRecursed(cx);
+            return false;
+        }
+    }
+
     SetValueRangeToUndefined(slots(), script()->nfixed);
+    return true;
 }
 
 inline Value &
