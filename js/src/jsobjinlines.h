@@ -52,6 +52,7 @@
 #include "jsproxy.h"
 #include "jsscope.h"
 #include "jsstaticcheck.h"
+#include "jstypedarray.h"
 #include "jsxml.h"
 
 
@@ -793,10 +794,6 @@ JSObject::init(JSContext *cx, js::Class *aclasp, JSObject *proto, JSObject *pare
 inline void
 JSObject::finish(JSContext *cx)
 {
-#ifdef DEBUG
-    if (isNative())
-        JS_LOCK_RUNTIME_VOID(cx->runtime, cx->runtime->liveObjectProps -= propertyCount());
-#endif
     if (hasSlotsArray())
         freeSlotsArray(cx);
     if (emptyShapes)
@@ -981,6 +978,22 @@ InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* pro
     return false;
 }
 
+static inline bool
+CanBeFinalizedInBackground(gc::FinalizeKind kind, Class *clasp)
+{
+    JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
+    
+
+
+
+
+
+
+    if (kind % 2 == 0 && (!clasp->finalize || clasp->flags & JSCLASS_CONCURRENT_FINALIZER))
+        return true;
+    return false;
+}
+
 
 
 
@@ -993,10 +1006,15 @@ NewNativeClassInstance(JSContext *cx, Class *clasp, JSObject *proto,
 {
     JS_ASSERT(proto);
     JS_ASSERT(parent);
+    JS_ASSERT(kind <= gc::FINALIZE_OBJECT_LAST);
 
     
 
 
+
+
+    if (CanBeFinalizedInBackground(kind, clasp))
+        kind = (gc::FinalizeKind)(kind + 1);
 
     JSObject* obj = js_NewGCObject(cx, kind);
 
@@ -1152,6 +1170,10 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent,
 
 
 
+
+
+    if (!isFunction && CanBeFinalizedInBackground(kind, clasp))
+        kind = (gc::FinalizeKind)(kind + 1);
 
     JSObject* obj = isFunction ? js_NewGCFunction(cx) : js_NewGCObject(cx, kind);
     if (!obj)

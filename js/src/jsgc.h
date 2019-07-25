@@ -79,12 +79,18 @@ namespace gc {
 
 enum FinalizeKind {
     FINALIZE_OBJECT0,
+    FINALIZE_OBJECT0_BACKGROUND,
     FINALIZE_OBJECT2,
+    FINALIZE_OBJECT2_BACKGROUND,
     FINALIZE_OBJECT4,
+    FINALIZE_OBJECT4_BACKGROUND,
     FINALIZE_OBJECT8,
+    FINALIZE_OBJECT8_BACKGROUND,
     FINALIZE_OBJECT12,
+    FINALIZE_OBJECT12_BACKGROUND,
     FINALIZE_OBJECT16,
-    FINALIZE_OBJECT_LAST = FINALIZE_OBJECT16,
+    FINALIZE_OBJECT16_BACKGROUND,
+    FINALIZE_OBJECT_LAST = FINALIZE_OBJECT16_BACKGROUND,
     FINALIZE_FUNCTION,
     FINALIZE_SHAPE,
 #if JS_HAS_XML_SUPPORT
@@ -96,7 +102,7 @@ enum FinalizeKind {
     FINALIZE_LIMIT
 };
 
-const uintN JS_FINALIZE_OBJECT_LIMIT = 6;
+const uintN JS_FINALIZE_OBJECT_LIMIT = 12;
 
 
 struct ArenaHeader {
@@ -190,7 +196,10 @@ struct Arena {
 #endif
 
     void init(JSCompartment *compartment, unsigned thingKind);
+    bool finalize(JSContext *cx);
 };
+
+void FinalizeArena(Arena<FreeCell> *a);
 
 
 
@@ -350,6 +359,9 @@ struct ChunkInfo {
     EmptyArenaLists emptyArenaLists;
     size_t          age;
     size_t          numFree;
+#ifdef JS_THREADSAFE
+    PRLock          *chunkLock;
+#endif
 };
 
 
@@ -367,14 +379,14 @@ struct Chunk {
     ChunkInfo       info;
 
     void clearMarkBitmap();
-    void init(JSRuntime *rt);
+    bool init(JSRuntime *rt);
 
     bool unused();
     bool hasAvailableArenas();
     bool withinArenasRange(Cell *cell);
 
     template <typename T>
-    Arena<T> *allocateArena(JSCompartment *comp, unsigned thingKind);
+    Arena<T> *allocateArena(JSContext *cx, unsigned thingKind);
 
     template <typename T>
     void releaseArena(Arena<T> *a);
@@ -540,6 +552,12 @@ GetFinalizableTraceKind(size_t thingKind)
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
+        JSTRACE_OBJECT,     
+        JSTRACE_OBJECT,     
+        JSTRACE_OBJECT,     
+        JSTRACE_OBJECT,     
+        JSTRACE_OBJECT,     
+        JSTRACE_OBJECT,     
         JSTRACE_SHAPE,      
 #if JS_HAS_XML_SUPPORT      
         JSTRACE_XML,
@@ -571,13 +589,16 @@ checkArenaListsForThing(JSCompartment *comp, jsuword thing);
 struct ArenaList {
     Arena<FreeCell>       *head;          
     Arena<FreeCell>       *cursor;        
+    volatile bool         hasToBeFinalized;
 
     inline void init() {
         head = NULL;
         cursor = NULL;
+        hasToBeFinalized = false;
     }
 
-    inline Arena<FreeCell> *getNextWithFreeList() {
+    inline Arena<FreeCell> *getNextWithFreeList(JSContext *cx) {
+        JS_ASSERT(!hasToBeFinalized);
         Arena<FreeCell> *a;
         while (cursor != NULL) {
             ArenaHeader *aheader = cursor->header();
@@ -863,6 +884,9 @@ js_WaitForGC(JSRuntime *rt);
 extern void
 js_DestroyScriptsToGC(JSContext *cx, JSCompartment *comp);
 
+extern void
+FinalizeArenaList(JSContext *cx, js::gc::ArenaList *arenaList, js::gc::Arena<js::gc::FreeCell> *head);
+
 namespace js {
 
 #ifdef JS_THREADSAFE
@@ -881,23 +905,39 @@ class GCHelperThread {
     static const size_t FREE_ARRAY_SIZE = size_t(1) << 16;
     static const size_t FREE_ARRAY_LENGTH = FREE_ARRAY_SIZE / sizeof(void *);
 
+    JSContext         *cx;
     PRThread*         thread;
     PRCondVar*        wakeup;
     PRCondVar*        sweepingDone;
     bool              shutdown;
-    bool              sweeping;
 
     Vector<void **, 16, js::SystemAllocPolicy> freeVector;
     void            **freeCursor;
     void            **freeCursorEnd;
+    Vector<void **, 16, js::SystemAllocPolicy> finalizeVector;
+    void            **finalizeCursor;
+    void            **finalizeCursorEnd;
 
     JS_FRIEND_API(void)
     replenishAndFreeLater(void *ptr);
+
+    void replenishAndFinalizeLater(js::gc::ArenaList *list);
 
     static void freeElementsAndArray(void **array, void **end) {
         JS_ASSERT(array <= end);
         for (void **p = array; p != end; ++p)
             js::Foreground::free_(*p);
+        js::Foreground::free_(array);
+    }
+
+    void finalizeElementsAndArray(void **array, void **end) {
+        JS_ASSERT(array <= end);
+        for (void **p = array; p != end; p += 2) {
+            js::gc::ArenaList *list = (js::gc::ArenaList *)*p;
+            js::gc::Arena<js::gc::FreeCell> *head = (js::gc::Arena<js::gc::FreeCell> *)*(p+1);
+            
+            FinalizeArenaList(cx, list, head);
+        }
         js::Foreground::free_(array);
     }
 
@@ -912,10 +952,13 @@ class GCHelperThread {
         wakeup(NULL),
         sweepingDone(NULL),
         shutdown(false),
-        sweeping(false),
         freeCursor(NULL),
-        freeCursorEnd(NULL) { }
+        freeCursorEnd(NULL),
+        finalizeCursor(NULL),
+        finalizeCursorEnd(NULL),
+        sweeping(false) { }
 
+    volatile bool     sweeping;
     bool init(JSRuntime *rt);
     void finish(JSRuntime *rt);
 
@@ -932,6 +975,23 @@ class GCHelperThread {
         else
             replenishAndFreeLater(ptr);
     }
+
+    void finalizeLater(js::gc::ArenaList *list) {
+        JS_ASSERT(!list->hasToBeFinalized);
+        if (!list->head)
+            return;
+
+        list->hasToBeFinalized = true;
+        JS_ASSERT(!sweeping);
+        if (finalizeCursor + 1 < finalizeCursorEnd) {
+            *finalizeCursor++ = list;
+            *finalizeCursor++ = list->head;
+        } else {
+            replenishAndFinalizeLater(list);
+        }
+    }
+
+    void setContext(JSContext *context) { cx = context; }
 };
 
 #endif 
