@@ -4424,12 +4424,12 @@ nsGlobalWindow::SetFullScreen(bool aFullScreen)
   if (widget)
     widget->MakeFullScreen(aFullScreen);
 
-  if (!mFullScreen && mDocument) {
+  if (!mFullScreen) {
     
     
     
     
-    mDocument->MozCancelFullScreen();
+    nsIDocument::ExitFullScreen(false);
   }
 
   return NS_OK;
