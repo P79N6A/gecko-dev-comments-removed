@@ -15598,13 +15598,18 @@ TraceRecorder::record_JSOP_SETLOCALPOP()
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_IFPRIMTOP()
+TraceRecorder::record_JSOP_IFCANTCALLTOP()
 {
+    Value &top = stackval(-1);
+
     
     
+    if (top.isPrimitive() || top.toObject().isFunction())
+        return ARECORD_CONTINUE;
+
     
     
-    return ARECORD_CONTINUE;
+    return ARECORD_STOP;
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus

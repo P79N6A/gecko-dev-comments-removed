@@ -464,7 +464,7 @@ Script::analyze(JSContext *cx, JSScript *script)
           
           case JSOP_GOSUB:
           case JSOP_GOSUBX:
-          case JSOP_IFPRIMTOP:
+          case JSOP_IFCANTCALLTOP:
           case JSOP_FILTER:
           case JSOP_ENDFILTER:
           case JSOP_TABLESWITCHX:
