@@ -143,6 +143,10 @@ let DOMApplicationRegistry = {
   },
 
   receiveMessage: function(aMessage) {
+    
+    
+    Services.prefs.setBoolPref("dom.mozApps.used", true);
+
     let msg = aMessage.json;
 
     switch (aMessage.name) {
