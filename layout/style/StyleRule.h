@@ -80,19 +80,16 @@ private:
 
 struct nsPseudoClassList {
 public:
-  nsPseudoClassList(nsIAtom* aAtom, nsCSSPseudoClasses::Type aType);
-  nsPseudoClassList(nsIAtom* aAtom, nsCSSPseudoClasses::Type aType,
-                    const PRUnichar *aString);
-  nsPseudoClassList(nsIAtom* aAtom, nsCSSPseudoClasses::Type aType,
-                    const PRInt32 *aIntPair);
-  nsPseudoClassList(nsIAtom* aAtom, nsCSSPseudoClasses::Type aType,
+  nsPseudoClassList(nsCSSPseudoClasses::Type aType);
+  nsPseudoClassList(nsCSSPseudoClasses::Type aType, const PRUnichar *aString);
+  nsPseudoClassList(nsCSSPseudoClasses::Type aType, const PRInt32 *aIntPair);
+  nsPseudoClassList(nsCSSPseudoClasses::Type aType,
                     nsCSSSelectorList *aSelectorList );
   ~nsPseudoClassList(void);
 
   
   nsPseudoClassList* Clone() const { return Clone(PR_TRUE); }
 
-  nsCOMPtr<nsIAtom> mAtom;
   union {
     
     
