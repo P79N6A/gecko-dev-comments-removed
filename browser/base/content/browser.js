@@ -3985,7 +3985,7 @@ var FullScreen = {
           
           els[i].setAttribute("saved-context",
                               els[i].getAttribute("context"));
-          if (els[i].id == "nav-bar")
+          if (els[i].id == "nav-bar" || els[i].id == "TabsToolbar")
             els[i].setAttribute("context", "autohide-context");
           else
             els[i].removeAttribute("context");
