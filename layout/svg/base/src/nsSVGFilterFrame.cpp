@@ -135,7 +135,6 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   
   gfxRect filterRegion = nsSVGUtils::GetRelativeRect(filterUnits,
     filter->mLengthAttributes, bbox, aTarget);
-  filterRegion.RoundOut();
 
   if (filterRegion.Width() <= 0 || filterRegion.Height() <= 0) {
     
@@ -149,13 +148,19 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   
 
   gfxIntSize filterRes;
-  if (filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES].IsExplicitlySet()) {
-    PRInt32 filterResX =
-      filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES].GetAnimValue(nsSVGIntegerPair::eFirst);
-    PRInt32 filterResY =
-      filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES].GetAnimValue(nsSVGIntegerPair::eSecond);
-    
+  const nsSVGIntegerPair& filterResAttrs =
+    filter->mIntegerPairAttributes[nsSVGFilterElement::FILTERRES];
+  if (filterResAttrs.IsExplicitlySet()) {
+    PRInt32 filterResX = filterResAttrs.GetAnimValue(nsSVGIntegerPair::eFirst);
+    PRInt32 filterResY = filterResAttrs.GetAnimValue(nsSVGIntegerPair::eSecond);
+    if (filterResX <= 0 || filterResY <= 0) {
+      
+      return;
+    }
 
+    filterRegion.Scale(filterResX, filterResY);
+    filterRegion.RoundOut();
+    filterRegion.Scale(1.0 / filterResX, 1.0 / filterResY);
     
     
     PRBool overflow;
@@ -168,16 +173,15 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
     
     
     float scale = nsSVGUtils::MaxExpansion(userToDeviceSpace);
+
+    filterRegion.Scale(scale);
+    filterRegion.RoundOut();
     
     
     PRBool overflow;
-    filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.Size() * scale,
+    filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.Size(),
                                                  &overflow);
-  }
-
-  if (filterRes.width <= 0 || filterRes.height <= 0) {
-    
-    return;
+    filterRegion.Scale(1.0 / scale);
   }
 
   
