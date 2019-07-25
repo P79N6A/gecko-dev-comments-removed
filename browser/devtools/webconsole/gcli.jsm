@@ -3149,6 +3149,14 @@ exports.setGlobalObject = function(obj) {
 
 
 
+
+exports.getGlobalObject = function() {
+  return globalObject;
+};
+
+
+
+
 exports.unsetGlobalObject = function() {
   globalObject = undefined;
 };
@@ -3172,12 +3180,15 @@ JavascriptType.prototype.stringify = function(value) {
   return value;
 };
 
+
+
+
+
+JavascriptType.MAX_COMPLETION_MATCHES = 10;
+
 JavascriptType.prototype.parse = function(arg) {
   var typed = arg.text;
   var scope = globalObject;
-
-  
-  
 
   
   
@@ -3210,18 +3221,24 @@ JavascriptType.prototype.parse = function(arg) {
                 l10n.lookup('jstypeParseScope'));
       }
 
+      if (prop === '') {
+        return new Conversion(typed, arg, Status.INCOMPLETE, '');
+      }
+
       
       
-      
-      
-      
-      
+      if (this._isSafeProperty(scope, prop)) {
+        return new Conversion(typed, arg);
+      }
 
       try {
         scope = scope[prop];
       }
       catch (ex) {
-        return new Conversion(typed, arg, Status.ERROR, '' + ex);
+        
+        
+        
+        return new Conversion(typed, arg, Status.INCOMPLETE, '');
       }
     }
   }
@@ -3255,79 +3272,148 @@ JavascriptType.prototype.parse = function(arg) {
   var matchLen = matchProp.length;
   var prefix = matchLen === 0 ? typed : typed.slice(0, -matchLen);
   var status = Status.INCOMPLETE;
-  var message;
-  var matches = [];
+  var message = '';
 
-  for (var prop in scope) {
-    if (prop.indexOf(matchProp) === 0) {
-      var value;
-      try {
-        value = scope[prop];
-      }
-      catch (ex) {
-        break;
-      }
-      var description;
-      var incomplete = true;
-      if (typeof value === 'function') {
-        description = '(function)';
-      }
-      if (typeof value === 'boolean' || typeof value === 'number') {
-        description = '= ' + value;
-        incomplete = false;
-      }
-      else if (typeof value === 'string') {
-        if (value.length > 40) {
-          value = value.substring(0, 37) + '...';
+  
+  
+  var matches = {};
+
+  
+  
+  
+  
+  var distUpPrototypeChain = 0;
+  var root = scope;
+  try {
+    while (root != null &&
+        Object.keys(matches).length < JavascriptType.MAX_COMPLETION_MATCHES) {
+
+      Object.keys(root).forEach(function(property) {
+        
+        
+        
+        if (property.indexOf(matchProp) === 0 && !(property in matches)) {
+          matches[property] = {
+            prop: property,
+            distUpPrototypeChain: distUpPrototypeChain
+          };
         }
-        description = '= \'' + value + '\'';
-        incomplete = false;
-      }
-      else {
-        description = '(' + typeof value + ')';
-      }
-      matches.push({
-        name: prefix + prop,
-        value: {
-          name: prefix + prop,
-          description: description
-        },
-        incomplete: incomplete
       });
+
+      distUpPrototypeChain++;
+      root = Object.getPrototypeOf(root);
     }
-    if (prop === matchProp) {
-      status = Status.VALID;
-      message = '';
-    }
+  }
+  catch (ex) {
+    return new Conversion(typed, arg, Status.INCOMPLETE, '');
   }
 
   
-  if (status !== Status.VALID) {
+  
+  matches = Object.keys(matches).map(function(property) {
+    if (property === matchProp) {
+      status = Status.VALID;
+    }
+    return matches[property];
+  });
+
+  
+  
+  
+  
+  matches.sort(function(m1, m2) {
+    if (m1.distUpPrototypeChain !== m2.distUpPrototypeChain) {
+      return m1.distUpPrototypeChain - m2.distUpPrototypeChain;
+    }
+    
+    return isVendorPrefixed(m1.prop) ?
+      (isVendorPrefixed(m2.prop) ? m1.prop.localeCompare(m2.prop) : 1) :
+      (isVendorPrefixed(m2.prop) ? -1 : m1.prop.localeCompare(m2.prop));
+  });
+
+  
+  
+  
+  
+  if (matches.length > JavascriptType.MAX_COMPLETION_MATCHES) {
+    matches = matches.slice(0, JavascriptType.MAX_COMPLETION_MATCHES - 1);
+  }
+
+  
+  
+  
+  
+  
+  var predictions = matches.map(function(match) {
+    var description;
+    var incomplete = true;
+
+    if (this._isSafeProperty(scope, match.prop)) {
+      description = '(property getter)';
+    }
+    else {
+      try {
+        var value = scope[match.prop];
+
+        if (typeof value === 'function') {
+          description = '(function)';
+        }
+        else if (typeof value === 'boolean' || typeof value === 'number') {
+          description = '= ' + value;
+          incomplete = false;
+        }
+        else if (typeof value === 'string') {
+          if (value.length > 40) {
+            value = value.substring(0, 37) + 'â€¦';
+          }
+          description = '= \'' + value + '\'';
+          incomplete = false;
+        }
+        else {
+          description = '(' + typeof value + ')';
+        }
+      }
+      catch (ex) {
+        description = '(' + l10n.lookup('jstypeParseError') + ')';
+      }
+    }
+
+    return {
+      name: prefix + match.prop,
+      value: {
+        name: prefix + match.prop,
+        description: description
+      },
+      description: description,
+      incomplete: incomplete
+    };
+  }, this);
+
+  if (predictions.length === 0) {
+    status = Status.ERROR;
     message = l10n.lookupFormat('jstypeParseMissing', [ matchProp ]);
   }
 
   
-  if (matches.length === 1 && status === Status.VALID) {
-    matches = undefined;
-  }
-  else {
-    
-    
-    matches.sort(function(p1, p2) {
-      return p1.name.localeCompare(p2.name);
-    });
+  if (predictions.length === 1 && status === Status.VALID) {
+    predictions = undefined;
   }
 
-  
-  
-  
-  
-  if (matches && matches.length > 10) {
-    matches = matches.slice(0, 9);
-  }
-
-  return new Conversion(typed, arg, status, message, matches);
+  return new Conversion(typed, arg, status, message, predictions);
 };
+
+
+
+
+
+function isVendorPrefixed(name) {
+  return name.indexOf('moz') === 0 ||
+         name.indexOf('webkit') === 0 ||
+         name.indexOf('ms') === 0;
+}
+
+
+
 
 var ParseState = {
   NORMAL: 0,
@@ -3464,6 +3550,52 @@ JavascriptType.prototype._isIteratorOrGenerator = function(obj) {
   }
 
   return false;
+};
+
+
+
+
+
+
+
+
+JavascriptType.prototype._isSafeProperty = function(scope, prop) {
+  if (typeof scope !== 'object') {
+    return false;
+  }
+
+  
+  
+  var propDesc;
+  while (scope) {
+    try {
+      propDesc = Object.getOwnPropertyDescriptor(scope, prop);
+      if (propDesc) {
+        break;
+      }
+    }
+    catch (ex) {
+      
+      if (ex.name === 'NS_ERROR_XPC_BAD_CONVERT_JS' ||
+          ex.name === 'NS_ERROR_XPC_BAD_OP_ON_WN_PROTO') {
+        return false;
+      }
+      return true;
+    }
+    scope = Object.getPrototypeOf(scope);
+  }
+
+  if (!propDesc) {
+    return false;
+  }
+
+  if (!propDesc.get) {
+    return false;
+  }
+
+  
+  
+  return typeof propDesc.get !== 'function' || 'prototype' in propDesc.get;
 };
 
 JavascriptType.prototype.name = 'javascript';
@@ -6455,9 +6587,7 @@ JavascriptField.prototype.setConversion = function(conversion) {
   }, this);
 
   this.menu.show(items);
-  if (conversion.getStatus() === Status.ERROR) {
-    this.setMessage(conversion.message);
-  }
+  this.setMessage(conversion.message);
 };
 
 JavascriptField.prototype.onItemClick = function(ev) {
@@ -6840,11 +6970,10 @@ CommandMenu.prototype.onItemClick = function(ev) {
 CommandMenu.prototype.onCommandChange = function(ev) {
   var command = this.requisition.commandAssignment.getValue();
   if (!command || !command.exec) {
-    var error;
+    var error = this.requisition.commandAssignment.getMessage();
     var predictions = this.requisition.commandAssignment.getPredictions();
 
     if (predictions.length === 0) {
-      error = this.requisition.commandAssignment.getMessage();
       var commandType = this.requisition.commandAssignment.param.type;
       var conversion = commandType.parse(new Argument());
       predictions = conversion.getPredictions();
