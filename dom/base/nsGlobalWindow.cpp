@@ -5888,11 +5888,25 @@ PostMessageEvent::Run()
                     "should have been passed an outer window!");
 
   
+  JSContext* cx = nsnull;
   nsIScriptContext* scriptContext = mTargetWindow->GetContext();
-  NS_ENSURE_TRUE(scriptContext, NS_ERROR_FAILURE);
+  if (scriptContext) {
+    cx = (JSContext*)scriptContext->GetNativeContext();
+  }
 
-  JSContext* cx = (JSContext*)scriptContext->GetNativeContext();
-  NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
+  if (!cx) {
+    
+    
+    nsIThreadJSContextStack* cxStack = nsContentUtils::ThreadJSContextStack();
+    if (cxStack) {
+      cxStack->GetSafeJSContext(&cx);
+    }
+
+    if (!cx) {
+      NS_WARNING("Cannot find a JSContext!  Leaking PostMessage buffer.");
+      return NS_ERROR_FAILURE;
+    }
+  }
 
   
   
