@@ -566,6 +566,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     
     
+    masm.breakpoint();
     masm.ma_sub(pc, Imm32(128), temp);
     masm.ma_add(Imm32(sizeof(IonExitFrameLayout) + f.explicitArgs * sizeof(void *)), sp);
     masm.ma_push(temp);

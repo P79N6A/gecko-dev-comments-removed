@@ -129,6 +129,13 @@ class CodeGeneratorShared : public LInstructionVisitor
         int32 offset = masm.framePushed() -
                        (graph.localSlotCount() * STACK_SLOT_SIZE) -
                        (slot * sizeof(Value));
+        
+        
+        
+        
+        
+
+        offset &= ~7;
         JS_ASSERT(offset >= 0);
         return offset;
     }

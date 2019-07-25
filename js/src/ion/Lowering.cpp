@@ -143,6 +143,7 @@ LIRGenerator::visitCall(MCall *call)
     
     LCallGeneric *ins = new LCallGeneric(useRegister(call->getFunction()),
                                          argslot, temp(LDefinition::POINTER),
+                                         temp(LDefinition::POINTER),
                                          temp(LDefinition::POINTER));
     if (!defineReturn(ins, call))
         return false;

@@ -362,7 +362,7 @@ class MacroAssemblerARM : public Assembler
     void ma_call(void *dest);
     void breakpoint();
     Condition compareDoubles(JSOp compare, FloatRegister lhs, FloatRegister rhs);
-
+    void checkStackAlignment();
     
     
     
