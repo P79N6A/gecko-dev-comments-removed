@@ -532,8 +532,8 @@ let Buf = {
     this.outgoingIndex = PARCEL_SIZE_SIZE;
   },
 
-  simpleRequest: function simpleRequest(type) {
-    this.newParcel(type);
+  simpleRequest: function simpleRequest(type, options) {
+    this.newParcel(type, options);
     this.sendParcel();
   }
 };
@@ -849,8 +849,11 @@ let RIL = {
   
 
 
-  getSMSCAddress: function getSMSCAddress() {
-    Buf.simpleRequest(REQUEST_GET_SMSC_ADDRESS);
+
+
+
+  getSMSCAddress: function getSMSCAddress(pendingSMS) {
+    Buf.simpleRequest(REQUEST_GET_SMSC_ADDRESS, pendingSMS);
   },
 
   
@@ -1225,9 +1228,9 @@ RIL[REQUEST_CDMA_WRITE_SMS_TO_RUIM] = null;
 RIL[REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
 RIL[REQUEST_DEVICE_IDENTITY] = null;
 RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
-RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS() {
+RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
   let smsc = Buf.readString();
-  Phone.onGetSMSCAddress(smsc);
+  Phone.onGetSMSCAddress(smsc, options);
 };
 RIL[REQUEST_SET_SMSC_ADDRESS] = function REQUEST_SET_SMSC_ADDRESS() {
   Phone.onSetSMSCAddress();
@@ -1777,8 +1780,17 @@ let Phone = {
   onStopTone: function onStopTone() {
   },
 
-  onGetSMSCAddress: function onGetSMSCAddress(smsc) {
+  onGetSMSCAddress: function onGetSMSCAddress(smsc, options) {
+    
+    
     this.SMSC = smsc;
+    
+    
+    
+    
+    if (smsc && options.body) {
+      this.sendSMS(options);
+    }
   },
 
   onSetSMSCAddress: function onSetSMSCAddress() {
@@ -2055,10 +2067,7 @@ let Phone = {
     if (!this.SMSC) {
       
       
-      
-      if (DEBUG) {
-        debug("Cannot send the SMS. Need to get the SMSC address first.");
-      }
+      RIL.getSMSCAddress(options);
       return;
     }
     
