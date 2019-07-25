@@ -3076,7 +3076,6 @@ public class Tokenizer implements Locator {
                         continue;
                     }
 
-                    
                     if (candidate == -1) {
                         
                         
@@ -3151,11 +3150,15 @@ public class Tokenizer implements Locator {
 
 
                         @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
+                        if (
                         
-                        if ((val[0] & 0xFC00) == 0xD800) {
-                            emitOrAppendTwo(val, returnState);
-                        } else {
+                        val.length == 1
+                        
+                        
+                        ) {
                             emitOrAppendOne(val, returnState);
+                        } else {
+                            emitOrAppendTwo(val, returnState);
                         }
                         
                         if (strBufMark < strBufLen) {
@@ -6350,11 +6353,15 @@ public class Tokenizer implements Locator {
 
 
                         @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
+                        if (
                         
-                        if ((val[0] & 0xFC00) == 0xD800) {
-                            emitOrAppendTwo(val, returnState);
-                        } else {
+                        val.length == 1
+                        
+                        
+                        ) {
                             emitOrAppendOne(val, returnState);
+                        } else {
+                            emitOrAppendTwo(val, returnState);
                         }
                         
                         if (strBufMark < strBufLen) {
