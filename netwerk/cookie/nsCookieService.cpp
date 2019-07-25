@@ -3024,14 +3024,11 @@ nsCookieService::GetBaseDomainFromHost(const nsACString &aHost,
     return NS_ERROR_INVALID_ARG;
 
   
-  nsDependentCString host(aHost);
-  PRBool domain = !host.IsEmpty() && host.First() == '.';
-  if (domain)
-    host.Rebind(host.BeginReading() + 1, host.EndReading());
+  PRBool domain = !aHost.IsEmpty() && aHost.First() == '.';
 
   
   
-  nsresult rv = mTLDService->GetBaseDomainFromHost(host, 0, aBaseDomain);
+  nsresult rv = mTLDService->GetBaseDomainFromHost(Substring(aHost, domain), 0, aBaseDomain);
   if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
       rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
     
@@ -3041,7 +3038,7 @@ nsCookieService::GetBaseDomainFromHost(const nsACString &aHost,
     if (domain)
       return NS_ERROR_INVALID_ARG;
 
-    aBaseDomain = host;
+    aBaseDomain = aHost;
     return NS_OK;
   }
   return rv;
