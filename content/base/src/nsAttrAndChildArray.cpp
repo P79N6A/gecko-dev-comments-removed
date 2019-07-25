@@ -847,3 +847,21 @@ nsAttrAndChildArray::SetChildAtPos(void** aPos, nsIContent* aChild,
     next->mPreviousSibling = aChild;
   }
 }
+
+PRInt64
+nsAttrAndChildArray::SizeOf() const
+{
+  PRInt64 size = sizeof(*this);
+
+  if (mImpl) {
+    
+
+    
+    
+    
+    size += mImpl->mBufferSize * sizeof(*(mImpl->mBuffer)) + NS_IMPL_EXTRA_SIZE;
+  }
+
+  return size;
+}
+

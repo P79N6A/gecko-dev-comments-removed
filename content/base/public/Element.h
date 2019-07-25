@@ -42,6 +42,7 @@
 
 #include "nsIContent.h"
 #include "nsEventStates.h"
+#include "nsDOMMemoryReporter.h"
 
 class nsEventStateManager;
 class nsGlobalWindow;
@@ -96,6 +97,8 @@ public:
     mState(NS_EVENT_STATE_MOZ_READONLY)
   {}
 #endif 
+
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(Element, nsIContent)
 
   
 
