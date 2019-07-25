@@ -112,7 +112,7 @@ class nsTSubstring_CharT
     public:
 
         
-      NS_COM NS_CONSTRUCTOR_FASTCALL ~nsTSubstring_CharT();
+      ~nsTSubstring_CharT() { Finalize(); }
 
         
 
@@ -558,7 +558,13 @@ class nsTSubstring_CharT
 
 
 
-      NS_COM nsTSubstring_CharT(const substring_tuple_type& tuple);
+      nsTSubstring_CharT(const substring_tuple_type& tuple)
+        : mData(nsnull),
+          mLength(0),
+          mFlags(F_NONE)
+        {
+          Assign(tuple);
+        }
 
         
 
@@ -566,11 +572,18 @@ class nsTSubstring_CharT
 
 
 
-#ifdef XP_OS2 
-       nsTSubstring_CharT( char_type *data, size_type length, PRUint32 flags ) NS_COM;
-#else
+        
+#if defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING)
+#define XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
        NS_COM nsTSubstring_CharT( char_type *data, size_type length, PRUint32 flags );
-#endif
+#else
+#undef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE
+       nsTSubstring_CharT( char_type *data, size_type length, PRUint32 flags )
+         : mData(data),
+           mLength(length),
+           mFlags(flags) {}
+#endif 
+
     protected:
 
       friend class nsTObsoleteAStringThunk_CharT;
@@ -584,22 +597,29 @@ class nsTSubstring_CharT
       PRUint32    mFlags;
 
         
-      NS_COM nsTSubstring_CharT();
+      nsTSubstring_CharT()
+        : mData(char_traits::sEmptyBuffer),
+          mLength(0),
+          mFlags(F_TERMINATED) {}
 
         
       explicit
-      NS_COM nsTSubstring_CharT( PRUint32 flags );
+      nsTSubstring_CharT( PRUint32 flags )
+        : mFlags(flags) {}
 
         
         
-      NS_COM nsTSubstring_CharT( const self_type& str );
+      nsTSubstring_CharT( const self_type& str )
+        : mData(str.mData),
+          mLength(str.mLength),
+          mFlags(str.mFlags & (F_TERMINATED | F_VOIDED)) {}
 
         
 
 
 
 
-      void NS_FASTCALL Finalize();
+      void NS_COM NS_FASTCALL Finalize();
 
         
 
