@@ -120,6 +120,7 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
         sendResizeEventIfNecessary();
     }
 
+    
     public Rect beginDrawing(int width, int height, int tileWidth, int tileHeight,
                              String metadata, boolean hasDirectTexture) {
         Log.e(LOGTAG, "### beginDrawing " + width + " " + height + " " + tileWidth + " " +
@@ -197,6 +198,7 @@ public abstract class GeckoLayerClient implements GeckoEventListener {
     }
 
     
+
 
 
 
