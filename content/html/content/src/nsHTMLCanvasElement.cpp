@@ -313,9 +313,35 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
     }
   }
 
+  
+  
+  
+  PRBool usingCustomParseOptions = PR_FALSE;
+  if (params.Length() == 0) {
+    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
+    nsAutoString paramString;
+    if (NS_SUCCEEDED(aEncoderOptions->GetAsAString(paramString)) && 
+        StringBeginsWith(paramString, mozParseOptions)) {
+      nsDependentSubstring parseOptions = Substring(paramString, 
+                                                    mozParseOptions.Length(), 
+                                                    paramString.Length() - 
+                                                    mozParseOptions.Length());
+      params.Append(parseOptions);
+      usingCustomParseOptions = PR_TRUE;
+    }
+  }
+
   nsCOMPtr<nsIInputStream> stream;
   nsresult rv = ExtractData(type, params, getter_AddRefs(stream),
                             fallbackToPNG);
+
+  
+  
+  if (rv == NS_ERROR_INVALID_ARG && usingCustomParseOptions) {
+    fallbackToPNG = false;
+    rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
+  }
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   
