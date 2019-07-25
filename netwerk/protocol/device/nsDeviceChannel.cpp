@@ -39,6 +39,11 @@
 #include "nsComponentManagerUtils.h"
 #include "nsDeviceChannel.h"
 #include "nsDeviceCaptureProvider.h"
+#include "mozilla/Preferences.h"
+
+#ifdef ANDROID
+#include "AndroidCaptureProvider.h"
+#endif
 
 
 
@@ -110,10 +115,10 @@ nsDeviceChannel::OpenContentStream(PRBool aAsync,
   uri->GetSpec(spec);
 
   nsCAutoString type;
-  
-  
+
   nsRefPtr<nsDeviceCaptureProvider> capture;
   nsCaptureParams captureParams;
+  captureParams.camera = 0;
   if (kNotFound != spec.Find(NS_LITERAL_CSTRING("type=image/png"),
                              PR_TRUE,
                              0,
@@ -135,6 +140,9 @@ nsDeviceChannel::OpenContentStream(PRBool aAsync,
     if (!captureParams.height)
       captureParams.height = 480;
     captureParams.bpp = 32;
+#ifdef ANDROID
+    capture = GetAndroidCaptureProvider();
+#endif
   } else if (kNotFound != spec.Find(NS_LITERAL_CSTRING("type=video/x-raw-yuv"),
                                     PR_TRUE,
                                     0,
@@ -143,10 +151,24 @@ nsDeviceChannel::OpenContentStream(PRBool aAsync,
     SetContentType(type);
     captureParams.captureAudio = PR_FALSE;
     captureParams.captureVideo = PR_TRUE;
-    captureParams.width = 640;
-    captureParams.height = 480;
+    nsCAutoString buffer;
+    extractAttributeValue(spec.get(), "width=", buffer);
+    nsresult err;
+    captureParams.width = buffer.ToInteger(&err);
+    if (!captureParams.width)
+      captureParams.width = 640;
+    extractAttributeValue(spec.get(), "height=", buffer);
+    captureParams.height = buffer.ToInteger(&err);
+    if (!captureParams.height)
+      captureParams.height = 480;
     captureParams.bpp = 32;
-    captureParams.frameLimit = 6000;
+    captureParams.timeLimit = 0;
+    captureParams.frameLimit = 60000;
+#ifdef ANDROID
+    
+    if (mozilla::Preferences::GetBool("device.camera.enabled", PR_FALSE) == PR_TRUE)
+      capture = GetAndroidCaptureProvider();
+#endif
   } else {
     return NS_ERROR_NOT_IMPLEMENTED;
   }

@@ -137,7 +137,7 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
 
-  nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader);
+  nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDecoder, nsBuiltinDecoderReader* aReader, PRPackedBool aRealTime = PR_FALSE);
   ~nsBuiltinDecoderStateMachine();
 
   
@@ -623,6 +623,12 @@ protected:
   
   
   PRPackedBool mDecodeThreadWaiting;
+
+  
+  PRPackedBool mRealTime;
+  
+  PRUint32 mBufferingWait;
+  PRInt64  mLowDataThresholdUsecs;
 
 private:
   
