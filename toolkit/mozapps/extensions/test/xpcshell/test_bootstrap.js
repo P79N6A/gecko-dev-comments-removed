@@ -1073,7 +1073,7 @@ function run_test_23() {
       do_check_eq(install.addon.operationsRequiringRestart &
                   AddonManager.OP_NEEDS_RESTART_INSTALL, 0);
       do_check_not_in_crash_annotation("bootstrap1@tests.mozilla.org", "1.0");
-  
+
       let addon = install.addon;
       prepare_test({
         "bootstrap1@tests.mozilla.org": [
@@ -1166,6 +1166,152 @@ function run_test_24() {
     do_check_eq(getInstalledVersion2(), -1);
     do_check_eq(getActiveVersion2(), 1);
 
-    do_test_finished();
+    run_test_25();
+  });
+}
+
+
+
+function run_test_25() {
+  installAllFiles([do_get_addon("test_bootstrap1_1")], function() {
+    do_check_eq(getInstalledVersion(), 1);
+    do_check_eq(getActiveVersion(), 1);
+
+    installAllFiles([do_get_addon("test_bootstrap1_4")], function() {
+      
+      do_check_eq(getInstalledVersion(), 1);
+      do_check_eq(getActiveVersion(), 1);
+
+      AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+        do_check_neq(b1, null);
+        do_check_eq(b1.version, "1.0");
+        do_check_true(b1.isActive);
+        do_check_true(hasFlag(b1.pendingOperations, AddonManager.PENDING_UPGRADE));
+
+        restartManager();
+
+        do_check_eq(getInstalledVersion(), 0);
+        do_check_eq(getUninstallReason(), ADDON_UPGRADE);
+        do_check_eq(getActiveVersion(), 0);
+
+        AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+          do_check_neq(b1, null);
+          do_check_eq(b1.version, "4.0");
+          do_check_true(b1.isActive);
+          do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+
+          run_test_26();
+        });
+      });
+    });
+  });
+}
+
+
+
+function run_test_26() {
+  installAllFiles([do_get_addon("test_bootstrap1_1")], function() {
+    
+    do_check_eq(getInstalledVersion(), 0);
+    do_check_eq(getActiveVersion(), 0);
+
+    AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+      do_check_neq(b1, null);
+      do_check_eq(b1.version, "4.0");
+      do_check_true(b1.isActive);
+      do_check_true(hasFlag(b1.pendingOperations, AddonManager.PENDING_UPGRADE));
+
+      restartManager();
+
+      do_check_eq(getInstalledVersion(), 1);
+      do_check_eq(getInstallReason(), ADDON_DOWNGRADE);
+      do_check_eq(getActiveVersion(), 1);
+
+      AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+        do_check_neq(b1, null);
+        do_check_eq(b1.version, "1.0");
+        do_check_true(b1.isActive);
+        do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+
+        run_test_27();
+      });
+    });
+  });
+}
+
+
+
+function run_test_27() {
+  AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+    do_check_neq(b1, null);
+    b1.userDisabled = true;
+    do_check_eq(b1.version, "1.0");
+    do_check_false(b1.isActive);
+    do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+    do_check_eq(getInstalledVersion(), 1);
+    do_check_eq(getActiveVersion(), 0);
+
+    installAllFiles([do_get_addon("test_bootstrap1_4")], function() {
+      
+      do_check_eq(getInstalledVersion(), 0);
+      do_check_eq(getUninstallReason(), ADDON_UPGRADE);
+      do_check_eq(getActiveVersion(), 0);
+
+      AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+        do_check_neq(b1, null);
+        do_check_eq(b1.version, "4.0");
+        do_check_false(b1.isActive);
+        do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+
+        restartManager();
+
+        do_check_eq(getInstalledVersion(), 0);
+        do_check_eq(getActiveVersion(), 0);
+
+        AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+          do_check_neq(b1, null);
+          do_check_eq(b1.version, "4.0");
+          do_check_false(b1.isActive);
+          do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+
+          run_test_28();
+        });
+      });
+    });
+  });
+}
+
+
+
+function run_test_28() {
+  installAllFiles([do_get_addon("test_bootstrap1_1")], function() {
+    
+    do_check_eq(getInstalledVersion(), 1);
+    do_check_eq(getInstallReason(), ADDON_DOWNGRADE);
+    do_check_eq(getActiveVersion(), 0);
+
+    AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+      do_check_neq(b1, null);
+      do_check_eq(b1.version, "1.0");
+      do_check_false(b1.isActive);
+      do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+
+      restartManager();
+
+      do_check_eq(getInstalledVersion(), 1);
+      do_check_eq(getActiveVersion(), 0);
+
+      AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+        do_check_neq(b1, null);
+        b1.userDisabled = false;
+        do_check_eq(b1.version, "1.0");
+        do_check_true(b1.isActive);
+        do_check_eq(b1.pendingOperations, AddonManager.PENDING_NONE);
+        do_check_eq(getInstalledVersion(), 1);
+        do_check_eq(getActiveVersion(), 1);
+
+        do_test_finished();
+      });
+    });
   });
 }
