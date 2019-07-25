@@ -497,7 +497,7 @@ IsAboutToBeFinalized(JSContext *cx, void *thing)
 
     JSCompartment *thingCompartment = reinterpret_cast<Cell *>(thing)->compartment();
     JSRuntime *rt = cx->runtime;
-
+    JS_ASSERT(rt == thingCompartment->rt);
     if (rt->gcCurrentCompartment != NULL && rt->gcCurrentCompartment != thingCompartment)
         return false;
 
@@ -2156,17 +2156,9 @@ GCHelperThread::doSweep()
 #endif 
 
 static void
-SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
+SweepCrossCompartmentWrappers(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-    JSCompartmentCallback callback = rt->compartmentCallback;
-    JSCompartment **read = rt->compartments.begin();
-    JSCompartment **end = rt->compartments.end();
-    JSCompartment **write = read;
-
-    
-    rt->defaultCompartment->marked = true;
-
     
 
 
@@ -2183,13 +2175,30 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
         }
     }
 
+    
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+        (*c)->sweep(cx, releaseInterval);
+    }
+    
+}
+
+static void
+SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
+{
+    JSRuntime *rt = cx->runtime;
+    JSCompartmentCallback callback = rt->compartmentCallback;
+    JSCompartment **read = rt->compartments.begin();
+    JSCompartment **end = rt->compartments.end();
+    JSCompartment **write = read;
+
+    
+    rt->defaultCompartment->marked = true;
+
     while (read < end) {
         JSCompartment *compartment = (*read++);
         if (compartment->marked) {
             compartment->marked = false;
             *write++ = compartment;
-            
-            compartment->sweep(cx, releaseInterval);
         } else {
             JS_ASSERT(compartment->freeLists.isEmpty());
             if (compartment->arenaListsAreEmpty() || gckind == GC_LAST_CONTEXT) {
@@ -2201,7 +2210,6 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
             } else {
                 compartment->marked = false;
                 *write++ = compartment;
-                compartment->sweep(cx, releaseInterval);
             }
         }
     }
@@ -2346,13 +2354,13 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
 
 
 
+    comp->sweep(cx, 0);
+
     comp->finalizeObjectArenaLists(cx);
     TIMESTAMP(sweepObjectEnd);
 
     comp->finalizeStringArenaLists(cx);
     TIMESTAMP(sweepStringEnd);
-
-    comp->sweep(cx, 0);
 
     
 
@@ -2446,6 +2454,8 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
     
     rt->liveObjectPropsPreSweep = rt->liveObjectProps;
 #endif
+
+    SweepCrossCompartmentWrappers(cx);
 
     
 
