@@ -6,7 +6,8 @@
 
 
 
-const MAX_INSTALL_TIME = 10000;
+
+const MAX_TIME_DIFFERENCE = 3000;
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
@@ -139,6 +140,12 @@ function check_test_1() {
       }
 
       
+      let updateDate = Date.now();
+      let extURI = pendingAddons[0].getResourceURI("");
+      let ext = extURI.QueryInterface(AM_Ci.nsIFileURL).file;
+      setExtensionModifiedTime(ext, updateDate);
+
+      
       do_check_false(hasFlag(pendingAddons[0].permissions, AddonManager.PERM_CAN_ENABLE));
       do_check_false(hasFlag(pendingAddons[0].permissions, AddonManager.PERM_CAN_DISABLE));
 
@@ -159,14 +166,13 @@ function check_test_1() {
 
           do_check_eq(a1.sourceURI.spec,
                       Services.io.newFileURI(do_get_addon("test_install1")).spec);
-          
-          let difference = Date.now() - a1.installDate.getTime();
-          if (difference > MAX_INSTALL_TIME)
-            do_throw("Add-on was installed " + difference + "ms ago");
-          if (difference < 0)
-            do_throw("Add-on was installed " + difference + "ms in the future");
+          let difference = a1.installDate.getTime() - updateDate;
+          if (Math.abs(difference) > MAX_TIME_DIFFERENCE)
+            do_throw("Add-on install time was out by " + difference + "ms");
 
-          do_check_eq(a1.installDate.getTime(), a1.updateDate.getTime());
+          difference = a1.updateDate.getTime() - updateDate;
+          if (Math.abs(difference) > MAX_TIME_DIFFERENCE)
+            do_throw("Add-on update time was out by " + difference + "ms");
 
           do_check_true(a1.hasResource("install.rdf"));
           do_check_false(a1.hasResource("foo.bar"));
@@ -249,7 +255,13 @@ function run_test_3(install) {
   install.install();
 }
 
-function check_test_3() {
+function check_test_3(aInstall) {
+  
+  let updateDate = Date.now();
+  let extURI = aInstall.addon.getResourceURI("");
+  let ext = extURI.QueryInterface(AM_Ci.nsIFileURL).file;
+  setExtensionModifiedTime(ext, updateDate);
+
   ensure_test_completed();
   AddonManager.getAddonByID("addon2@tests.mozilla.org", function(olda2) {
     do_check_eq(olda2, null);
@@ -269,14 +281,14 @@ function check_test_3() {
         do_check_eq(a2.sourceURI.spec,
                     "http://localhost:4444/addons/test_install2_1.xpi");
 
-        
-        let difference = Date.now() - a2.installDate.getTime();
-        if (difference > MAX_INSTALL_TIME)
-          do_throw("Add-on was installed " + difference + "ms ago");
-        if (difference < 0)
-          do_throw("Add-on was installed " + difference + "ms in the future");
+        let difference = a2.installDate.getTime() - updateDate;
+        if (Math.abs(difference) > MAX_TIME_DIFFERENCE)
+          do_throw("Add-on install time was out by " + difference + "ms");
 
-        do_check_eq(a2.installDate.getTime(), a2.updateDate.getTime());
+        difference = a2.updateDate.getTime() - updateDate;
+        if (Math.abs(difference) > MAX_TIME_DIFFERENCE)
+          do_throw("Add-on update time was out by " + difference + "ms");
+
         gInstallDate = a2.installDate.getTime();
 
         run_test_4();
