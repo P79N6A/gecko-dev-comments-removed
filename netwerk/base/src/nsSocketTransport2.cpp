@@ -1612,6 +1612,12 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
     
     
     
+
+    
+    
+    
+    
+    nsCOMPtr<nsITransportEventSink> ourEventSink;
     {
         nsAutoLock lock(mLock);
         if (mFD) {
@@ -1627,7 +1633,7 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
         
         if (NS_FAILED(mCondition)) {
             mCallbacks = nsnull;
-            mEventSink = nsnull;
+            mEventSink.swap(ourEventSink);
         }
     }
 }
