@@ -104,6 +104,7 @@ class ArgumentsObject : public ::JSObject
     static const uint32 LENGTH_OVERRIDDEN_BIT = 0x1;
     static const uint32 PACKED_BITS_COUNT = 1;
 
+#ifdef JS_TRACER
     
     friend ::nanojit::LIns*
     tjit::Writer::getArgsLength(::nanojit::LIns*) const;
@@ -112,16 +113,19 @@ class ArgumentsObject : public ::JSObject
 
 
 
-    friend class TraceRecorder;
-#ifdef JS_POLYIC
-    friend class ::GetPropCompiler;
+    friend class ::nanojit::ValidateWriter;
 #endif
 
     
 
 
 
-    friend class ::nanojit::ValidateWriter;
+#ifdef JS_TRACER
+    friend class TraceRecorder;
+#endif
+#ifdef JS_POLYIC
+    friend class ::GetPropCompiler;
+#endif
 
     void setInitialLength(uint32 length);
 
