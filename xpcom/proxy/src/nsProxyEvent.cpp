@@ -475,6 +475,9 @@ nsProxyObject::LockedFind(REFNSIID aIID, void **aResult)
     
     for (peo = mFirst; peo; peo = peo->mNext) {
         if (peo->GetClass()->GetProxiedIID().Equals(aIID)) {
+            
+            peo->LockedAddRef();
+
             {
                 
                 
@@ -483,7 +486,6 @@ nsProxyObject::LockedFind(REFNSIID aIID, void **aResult)
                 delete newpeo;
             }
             *aResult = static_cast<nsISupports*>(peo->mXPTCStub);
-            peo->LockedAddRef();
             return NS_OK;
         }
     }
