@@ -96,17 +96,18 @@ BookmarksEngine.prototype = {
     this.__proto__.__proto__._init.call( this, pbeId );
     if ( Utils.prefs.getBoolPref( "xmpp.enabled" ) ) {
       dump( "Starting XMPP client for bookmark engine..." );
+      
       this._startXmppClient();
       
     }
-  }
+  },
 
   _startXmppClient: function BmkEngine__startXmppClient() {
     
 
     
-    let serverUrl = Utils.prefs.getStringPref( "xmpp.server.url" );
-    let realm = Utils.prefs.getStringPref( "xmpp.server.realm" );
+    let serverUrl = Utils.prefs.getCharPref( "xmpp.server.url" );
+    let realm = Utils.prefs.getCharPref( "xmpp.server.realm" );
     
     
     
@@ -114,9 +115,8 @@ BookmarksEngine.prototype = {
     
     
     
-    
-    let clientName = Utils.prefs.getStringPref( "xmpp.client.name" );
-    let clientPassword = Utils.prefs.getStringPref( "xmpp.client.password" );
+    let clientName = Utils.prefs.getCharPref( "xmpp.client.name" );
+    let clientPassword = Utils.prefs.getCharPref( "xmpp.client.password" );
 
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
     let auth = new PlainAuthenticator(); 
@@ -302,7 +302,9 @@ BookmarksEngine.prototype = {
     this._log.debug("All done sharing!");
 
     
-    
+    let api = new Sharing.Api( DAV );
+    api.shareWithUsers( directory, [username], self.cb );
+    let result = yield;
 
     self.done(true);
   },
