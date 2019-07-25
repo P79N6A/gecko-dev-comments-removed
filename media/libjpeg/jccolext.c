@@ -112,3 +112,35 @@ rgb_gray_convert_internal (j_compress_ptr cinfo,
     }
   }
 }
+
+
+
+
+
+
+
+INLINE
+LOCAL(void)
+rgb_rgb_convert_internal (j_compress_ptr cinfo,
+                          JSAMPARRAY input_buf, JSAMPIMAGE output_buf,
+                          JDIMENSION output_row, int num_rows)
+{
+  register JSAMPROW inptr;
+  register JSAMPROW outptr0, outptr1, outptr2;
+  register JDIMENSION col;
+  JDIMENSION num_cols = cinfo->image_width;
+
+  while (--num_rows >= 0) {
+    inptr = *input_buf++;
+    outptr0 = output_buf[0][output_row];
+    outptr1 = output_buf[1][output_row];
+    outptr2 = output_buf[2][output_row];
+    output_row++;
+    for (col = 0; col < num_cols; col++) {
+      outptr0[col] = GETJSAMPLE(inptr[RGB_RED]);
+      outptr1[col] = GETJSAMPLE(inptr[RGB_GREEN]);
+      outptr2[col] = GETJSAMPLE(inptr[RGB_BLUE]);
+      inptr += RGB_PIXELSIZE;
+    }
+  }
+}
