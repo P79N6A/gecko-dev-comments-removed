@@ -652,11 +652,13 @@ struct pixman_indexed
 #define PIXMAN_TYPE_YUY2	6
 #define PIXMAN_TYPE_YV12	7
 #define PIXMAN_TYPE_BGRA	8
+#define PIXMAN_TYPE_RGBA	9
 
 #define PIXMAN_FORMAT_COLOR(f)				\
 	(PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_ARGB ||	\
 	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_ABGR ||	\
-	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_BGRA)
+	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_BGRA ||	\
+	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_RGBA)
 
 
 typedef enum {
@@ -666,6 +668,8 @@ typedef enum {
     PIXMAN_x8b8g8r8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_ABGR,0,8,8,8),
     PIXMAN_b8g8r8a8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_BGRA,8,8,8,8),
     PIXMAN_b8g8r8x8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_BGRA,0,8,8,8),
+    PIXMAN_r8g8b8a8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_RGBA,8,8,8,8),
+    PIXMAN_r8g8b8x8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_RGBA,0,8,8,8),
     PIXMAN_x14r6g6b6 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_ARGB,0,6,6,6),
     PIXMAN_x2r10g10b10 = PIXMAN_FORMAT(32,PIXMAN_TYPE_ARGB,0,10,10,10),
     PIXMAN_a2r10g10b10 = PIXMAN_FORMAT(32,PIXMAN_TYPE_ARGB,2,10,10,10),
@@ -855,7 +859,13 @@ void          pixman_image_composite32        (pixman_op_t        op,
 
 
 
-void          pixman_disable_out_of_bounds_workaround (void);
+
+
+
+
+
+
+void pixman_disable_out_of_bounds_workaround (void);
 
 
 
@@ -864,6 +874,7 @@ typedef struct pixman_edge pixman_edge_t;
 typedef struct pixman_trapezoid pixman_trapezoid_t;
 typedef struct pixman_trap pixman_trap_t;
 typedef struct pixman_span_fix pixman_span_fix_t;
+typedef struct pixman_triangle pixman_triangle_t;
 
 
 
@@ -891,6 +902,10 @@ struct pixman_trapezoid
     pixman_line_fixed_t	left, right;
 };
 
+struct pixman_triangle
+{
+    pixman_point_fixed_t p1, p2, p3;
+};
 
 
 #define pixman_trapezoid_valid(t)				   \
@@ -946,6 +961,31 @@ void           pixman_rasterize_trapezoid  (pixman_image_t            *image,
 					    const pixman_trapezoid_t  *trap,
 					    int                        x_off,
 					    int                        y_off);
+void          pixman_composite_trapezoids (pixman_op_t		       op,
+					   pixman_image_t *	       src,
+					   pixman_image_t *	       dst,
+					   pixman_format_code_t	       mask_format,
+					   int			       x_src,
+					   int			       y_src,
+					   int			       x_dst,
+					   int			       y_dst,
+					   int			       n_traps,
+					   const pixman_trapezoid_t *  traps);
+void          pixman_composite_triangles (pixman_op_t		       op,
+					  pixman_image_t *	       src,
+					  pixman_image_t *	       dst,
+					  pixman_format_code_t	       mask_format,
+					  int			       x_src,
+					  int			       y_src,
+					  int			       x_dst,
+					  int			       y_dst,
+					  int			       n_tris,
+					  const pixman_triangle_t *    tris);
+void	      pixman_add_triangles       (pixman_image_t              *image,
+					  int32_t	               x_off,
+					  int32_t	               y_off,
+					  int	                       n_tris,
+					  const pixman_triangle_t     *tris);
 
 PIXMAN_END_DECLS
 
