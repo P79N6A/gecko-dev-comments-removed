@@ -2538,8 +2538,8 @@ PluginInstanceChild::UpdateWindowAttributes(bool aForceSetWindow)
     HDC dc = NULL;
 
     if (curSurface) {
-        if (!SharedDIBSurface::IsSharedDIBSurface(curSurface))
-            NS_RUNTIMEABORT("Expected SharedDIBSurface!");
+        NS_ASSERTION(SharedDIBSurface::IsSharedDIBSurface(curSurface),
+                     "Expected (SharedDIB) image surface.");
 
         SharedDIBSurface* dibsurf = static_cast<SharedDIBSurface*>(curSurface.get());
         dc = dibsurf->GetHDC();
@@ -2760,100 +2760,46 @@ void
 PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
                                                   gfxASurface* aSurface)
 {
-    NS_ABORT_IF_FALSE(aSurface->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA,
-                      "Refusing to pointlessly recover alpha");
-
-    nsIntRect rect(aRect);
     
+    bool needImageSurface = true;
+    nsRefPtr<gfxImageSurface> blackImage;
+    gfxIntSize clipSize(aRect.width, aRect.height);
+    gfxPoint deviceOffset(-aRect.x, -aRect.y);
     
-    
-    bool useSurfaceSubimageForBlack = false;
-    if (gfxASurface::SurfaceTypeImage == aSurface->GetType()) {
-        gfxImageSurface* surfaceAsImage =
-            static_cast<gfxImageSurface*>(aSurface);
-        useSurfaceSubimageForBlack =
-            (surfaceAsImage->Format() == gfxASurface::ImageFormatARGB32);
-        
-        
-        
-        
-        if (useSurfaceSubimageForBlack) {
-            rect =
-                gfxAlphaRecovery::AlignRectForSubimageRecovery(aRect,
-                                                               surfaceAsImage);
+    if (aSurface->GetType() == gfxASurface::SurfaceTypeImage) {
+        gfxImageSurface *surface = static_cast<gfxImageSurface*>(aSurface);
+        if (surface->Format() == gfxASurface::ImageFormatARGB32) {
+            needImageSurface = false;
+            blackImage = surface->GetSubimage(GfxFromNsRect(aRect));
         }
     }
-
-    nsRefPtr<gfxImageSurface> whiteImage;
-    nsRefPtr<gfxImageSurface> blackImage;
-    gfxRect targetRect(rect.x, rect.y, rect.width, rect.height);
-    gfxIntSize targetSize(rect.width, rect.height);
-    gfxPoint deviceOffset = -targetRect.pos;
-
     
-    whiteImage = new gfxImageSurface(targetSize, gfxASurface::ImageFormatRGB24);
-
-#ifdef XP_WIN
-    
-    
-    
-    if (!SharedDIBSurface::IsSharedDIBSurface(aSurface))
-        NS_RUNTIMEABORT("Expected SharedDIBSurface!");
-
-    
-    
-    PaintRectToSurface(rect, aSurface, gfxRGBA(1.0, 1.0, 1.0));
-    {
-        gfxRect copyRect(gfxPoint(0, 0), targetRect.size);
-        nsRefPtr<gfxContext> ctx = new gfxContext(whiteImage);
-        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-        ctx->SetSource(aSurface, deviceOffset);
-        ctx->Rectangle(copyRect);
-        ctx->Fill();
-    }
-
-    
-    
-    PaintRectToSurface(rect, aSurface, gfxRGBA(0.0, 0.0, 0.0));
-
-    
-    
-    gfxImageSurface *image = static_cast<gfxImageSurface*>(aSurface);
-    blackImage = image->GetSubimage(targetRect);
-
-#else
-    
-    whiteImage->SetDeviceOffset(deviceOffset);
-    PaintRectToSurface(rect, whiteImage, gfxRGBA(1.0, 1.0, 1.0));
-
-    if (useSurfaceSubimageForBlack) {
-        gfxImageSurface *surface = static_cast<gfxImageSurface*>(aSurface);
-        blackImage = surface->GetSubimage(targetRect);
-    } else {
-        blackImage = new gfxImageSurface(targetSize,
-                                         gfxASurface::ImageFormatARGB32);
+    if (needImageSurface) {
+        blackImage = new gfxImageSurface(clipSize, gfxASurface::ImageFormatARGB32);
     }
 
     
     blackImage->SetDeviceOffset(deviceOffset);
-    PaintRectToSurface(rect, blackImage, gfxRGBA(0.0, 0.0, 0.0));
-#endif
-
-    NS_ABORT_IF_FALSE(whiteImage && blackImage, "Didn't paint enough!");
+    PaintRectToSurface(aRect, blackImage, gfxRGBA(0.0, 0.0, 0.0));
 
     
+    nsRefPtr<gfxImageSurface> whiteImage =
+        new gfxImageSurface(clipSize, gfxASurface::ImageFormatRGB24);
+
+    whiteImage->SetDeviceOffset(deviceOffset);
+    PaintRectToSurface(aRect, whiteImage, gfxRGBA(1.0, 1.0, 1.0));
+
     
-    if (!gfxAlphaRecovery::RecoverAlpha(blackImage, whiteImage)) {
+    gfxRect rect(aRect.x, aRect.y, aRect.width, aRect.height);
+    if (!gfxAlphaRecovery::RecoverAlpha(blackImage, whiteImage, nsnull)) {
         return;
     }
 
-    
-    
-    if (!useSurfaceSubimageForBlack) {
+    if (needImageSurface) {
         nsRefPtr<gfxContext> ctx = new gfxContext(aSurface);
         ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
         ctx->SetSource(blackImage);
-        ctx->Rectangle(targetRect);
+        ctx->Rectangle(GfxFromNsRect(aRect));
         ctx->Fill();
     }
 }

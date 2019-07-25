@@ -37,7 +37,6 @@
 
 #include "prmem.h"
 
-#include "gfxAlphaRecovery.h"
 #include "gfxImageSurface.h"
 
 #include "cairo.h"
@@ -97,24 +96,6 @@ gfxImageSurface::InitWithData(unsigned char *aData, const gfxIntSize& aSize,
     Init(surface);
 }
 
-static void*
-TryAllocAlignedBytes(size_t aSize)
-{
-    
-#if defined(HAVE_POSIX_MEMALIGN) || defined(HAVE_JEMALLOC_POSIX_MEMALIGN)
-    void* ptr;
-    
-    
-    return moz_posix_memalign(&ptr,
-                              1 << gfxAlphaRecovery::GoodAlignmentLog2(),
-                              aSize) ?
-             nsnull : ptr;
-#else
-    
-    return moz_malloc(aSize);
-#endif
-}
-
 gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) :
     mSize(size), mOwnsData(PR_FALSE), mData(nsnull), mFormat(format)
 {
@@ -127,8 +108,7 @@ gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) 
     if (mSize.height * mStride > 0) {
 
         
-        
-        mData = (unsigned char *) TryAllocAlignedBytes(mSize.height * mStride);
+        mData = (unsigned char *) moz_malloc(mSize.height * mStride);
         if (!mData)
             return;
         memset(mData, 0, mSize.height * mStride);

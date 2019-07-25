@@ -41,7 +41,6 @@
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 #include "mozilla/SSE.h"
-#include "nsRect.h"
 
 class THEBES_API gfxAlphaRecovery {
 public:
@@ -51,16 +50,6 @@ public:
         gfxFloat alpha;
         gfxFloat r, g, b;
     };
-
-    
-
-
-
-
-
-
-
-    static PRUint32 GoodAlignmentLog2() { return 4;  }
 
     
 
@@ -79,24 +68,6 @@ public:
 
     static PRBool RecoverAlphaSSE2 (gfxImageSurface *blackSurface,
                                     const gfxImageSurface *whiteSurface);
-
-    
-
-
-
-
-
-
-
-
-
-
-    static nsIntRect AlignRectForSubimageRecovery(const nsIntRect& aRect,
-                                                  gfxImageSurface* aSurface);
-#else
-    static nsIntRect AlignRectForSubimageRecovery(const nsIntRect& aRect,
-                                                  gfxImageSurface*)
-    { return aRect; }
 #endif
 
     
