@@ -196,6 +196,23 @@ assertDecl("function foo() { return 42 }",
 
 
 
+assertDecl("function f(a) { function a() { } }",
+           funDecl(ident("f"), [ident("a")], blockStmt([funDecl(ident("a"), [], blockStmt([]))])));
+assertDecl("function f(a,b,c) { function b() { } }",
+           funDecl(ident("f"), [ident("a"),ident("b"),ident("c")], blockStmt([funDecl(ident("b"), [], blockStmt([]))])));
+assertDecl("function f(a,[x,y]) { function a() { } }",
+           funDecl(ident("f"),
+                   [ident("a"), arrPatt([ident("x"), ident("y")])],
+                   blockStmt([funDecl(ident("a"), [], blockStmt([]))])));
+
+
+
+
+
+
+
+
+
 
 assertExpr("true", lit(true));
 assertExpr("false", lit(false));
