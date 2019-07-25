@@ -23,10 +23,10 @@ function testmath(funcname, args, expected) {
     
     
     
-    var mapfunc = eval("function(a) {\n"
+    var mapfunc = eval("(function(a) {\n"
                        + "   for (var i = 0; i < a.length; i++)\n"
                        + "       a[i] = " + funcname + "(" + actuals +");\n"
-                       + " }\n");
+                       + " })\n");
 
     
     

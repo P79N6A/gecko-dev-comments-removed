@@ -1,5 +1,5 @@
 
-function() { (e)
+function f() { (e)
 } (x = Proxy.createFunction((function(x) {
   return {
     get: function(r, b) {

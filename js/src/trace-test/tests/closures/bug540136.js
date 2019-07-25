@@ -1,7 +1,7 @@
 
 
 (eval("\
- function () {\
+ (function () {\
    for (var[x] = function(){} in \
      (function m(a) {\
        if (a < 1) {\
@@ -13,5 +13,5 @@
      (eval(\"\"))\
    )\
    ([])\
- }\
+ })\
 "))()
