@@ -1192,9 +1192,12 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
   if (aState->mBuilder->NeedToForceTransparentSurfaceForItem(aItem)) {
     mForceTransparentSurface = true;
   }
-
-  nscolor uniformColor;
-  bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
+  if (aState->mParameters.mDisableSubpixelAntialiasingInDescendants) {
+    
+    
+    
+    aItem->DisableComponentAlpha();
+  }
 
   
 
@@ -1205,6 +1208,23 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
   } else {
     mImage = nsnull;
   }
+
+  if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aDrawRect) &&
+      mVisibleRegion.Contains(aVisibleRect)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    NS_ASSERTION(mDrawRegion.Contains(aDrawRect), "Draw region not covered");
+    return;
+  }
+
+  nscolor uniformColor;
+  bool isUniform = aItem->IsUniform(aState->mBuilder, &uniformColor);
 
   
   
@@ -1266,13 +1286,8 @@ ContainerState::ThebesLayerData::Accumulate(ContainerState* aState,
       }
     }
   }
-  if (aState->mParameters.mDisableSubpixelAntialiasingInDescendants) {
-    
-    
-    
-    
-    aItem->DisableComponentAlpha();
-  } else {
+
+  if (!aState->mParameters.mDisableSubpixelAntialiasingInDescendants) {
     nsRect componentAlpha = aItem->GetComponentAlphaBounds(aState->mBuilder);
     if (!componentAlpha.IsEmpty()) {
       nsIntRect componentAlphaRect =
