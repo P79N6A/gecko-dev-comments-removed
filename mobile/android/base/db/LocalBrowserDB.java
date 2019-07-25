@@ -138,8 +138,11 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         
         
         
-        final String sortOrder = History.VISITS + " * MAX(1, (" +
-                History.DATE_LAST_VISITED + " - " + System.currentTimeMillis() + ") / 86400000 + 120) DESC";
+        
+        
+        
+        final String age = "(" + History.DATE_LAST_VISITED + " - " + System.currentTimeMillis() + ") / 86400000";
+        final String sortOrder = History.VISITS + " * MAX(1, 100 * 225 / (" + age + "*" + age + " + 225)) DESC";
 
         Cursor c = cr.query(historyUriWithLimit(limit),
                             projection,
