@@ -121,7 +121,6 @@ SvcInstall(SvcInstallAction action)
   }
 
   
-  BOOL serviceAlreadyExists = FALSE;
   nsAutoServiceHandle schService(OpenServiceW(schSCManager, 
                                               SVC_NAME, 
                                               SERVICE_ALL_ACCESS));
@@ -133,7 +132,15 @@ SvcInstall(SvcInstallAction action)
   }
   
   if (schService) {
-    serviceAlreadyExists = TRUE;
+    
+    
+    
+    
+    if (!SetUserAccessServiceDACL(schService)) {
+      LOG(("Could not reset security ACE on service handle. It might not be "
+           "possible to start the service. This error should never "
+           "happen.  (%d)\n", GetLastError()));
+    }
 
     
     DWORD bytesNeeded;
@@ -202,8 +209,10 @@ SvcInstall(SvcInstallAction action)
       
       if (!CopyFileW(newServiceBinaryPath, 
                      serviceConfig.lpBinaryPathName, FALSE)) {
-        LOG(("WARNING: Could not overwrite old service binary file."
-             " (%d)\n", GetLastError()));
+        LOG(("Could not overwrite old service binary file. "
+             "This should never happen, but if it does the next upgrade will "
+             "fix it, the service is not a critical component that needs to be "
+             "installed for upgrades to work. (%d)\n", GetLastError()));
 
         
         
@@ -272,44 +281,42 @@ SvcInstall(SvcInstallAction action)
              newServiceBinaryPath));
       }
       
-      
-      wcsncpy(newServiceBinaryPath, serviceConfig.lpBinaryPathName, MAX_PATH);
       return result;
-    } else {
-      
-      
-      
-      MoveFileExW(newServiceBinaryPath, NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
-      
-      return TRUE; 
     }
-  } else if (UpgradeSvc == action) {
+
+    
+    
+    
+    MoveFileExW(newServiceBinaryPath, NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+    
+    
+    return TRUE; 
+  }
+  
+  
+  if (UpgradeSvc == action) {
     
     return TRUE;
   }
 
-  if (!serviceAlreadyExists) {
-    
-    schService.own(CreateServiceW(schSCManager, SVC_NAME, SVC_DISPLAY_NAME,
-                                  SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
-                                  SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
-                                  newServiceBinaryPath, NULL, NULL, NULL, 
-                                  NULL, NULL));
-    if (!schService) {
-      LOG(("Could not create Windows service. "
-           "This error should never happen since a service install "
-           "should only be called when elevated. (%d)\n", GetLastError()));
-      return FALSE;
-    } 
-  }
+  
+  schService.own(CreateServiceW(schSCManager, SVC_NAME, SVC_DISPLAY_NAME,
+                                SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
+                                SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
+                                newServiceBinaryPath, NULL, NULL, NULL, 
+                                NULL, NULL));
+  if (!schService) {
+    LOG(("Could not create Windows service. "
+         "This error should never happen since a service install "
+         "should only be called when elevated. (%d)\n", GetLastError()));
+    return FALSE;
+  } 
 
-  if (schService) {
-    if (!SetUserAccessServiceDACL(schService)) {
-      LOG(("Could not set security ACE on service handle, the service will not"
-           "be able to be started from unelevated processes. "
-           "This error should never happen.  (%d)\n", 
-           GetLastError()));
-    }
+  if (!SetUserAccessServiceDACL(schService)) {
+    LOG(("Could not set security ACE on service handle, the service will not "
+         "be able to be started from unelevated processes. "
+         "This error should never happen.  (%d)\n", 
+         GetLastError()));
   }
 
   return TRUE;
