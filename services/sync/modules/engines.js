@@ -362,12 +362,9 @@ SyncEngine.prototype = {
       meta.generateIV();
       meta.addUnwrappedKey(pubkey, symkey);
       let res = new Resource(meta.uri);
-      let resp = res.put(meta.serialize());
-      if (!resp.success) {
-        this._log.debug("Metarecord upload fail:" + resp);
-        resp.failureCode = ENGINE_METARECORD_UPLOAD_FAIL;
+      let resp = res.put(meta);
+      if (!resp.success)
         throw resp;
-      }
 
       
       CryptoMetas.set(meta.uri, meta);
@@ -434,10 +431,8 @@ SyncEngine.prototype = {
     
     if (this.lastModified > this.lastSync) {
       let resp = newitems.get();
-      if (!resp.success) {
-        resp.failureCode = ENGINE_DOWNLOAD_FAIL;
+      if (!resp.success)
         throw resp;
-      }
     }
 
     
@@ -470,11 +465,8 @@ SyncEngine.prototype = {
 
       
       let resp = newitems.get();
-      if (!resp.success) {
-        resp.failureCode = ENGINE_DOWNLOAD_FAIL;
+      if (!resp.success)
         throw resp;
-      }
-        
     }
 
     if (this.lastSync < this.lastModified)
@@ -600,11 +592,8 @@ SyncEngine.prototype = {
       let doUpload = Utils.bind2(this, function(desc) {
         this._log.info("Uploading " + desc + " of " + outnum + " records");
         let resp = up.post();
-        if (!resp.success) {
-          this._log.debug("Uploading records failed: " + resp);
-          resp.failureCode = ENGINE_UPLOAD_FAIL;
+        if (!resp.success)
           throw resp;
-        }
 
         
         let modified = resp.headers["X-Weave-Timestamp"];
