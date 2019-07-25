@@ -1034,6 +1034,8 @@ nsDiskCacheDevice::SetCapacity(PRUint32  capacity)
         
         EvictDiskCacheEntries(mCacheCapacity);
     }
+    
+    mCacheMap.NotifyCapacityChange(capacity);
 }
 
 
