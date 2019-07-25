@@ -1434,7 +1434,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       let options = {dropPos: dropPos,
                      addTab: self._dropSpaceActive && drag.info.item.parent != self,
                      oldDropIndex: oldDropIndex};
-      newDropIndex = self.arrange(options);
+      let newDropIndex = self.arrange(options);
       
       if (newDropIndex !== oldDropIndex) {
         dropIndex = newDropIndex;

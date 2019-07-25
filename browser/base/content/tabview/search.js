@@ -224,7 +224,7 @@ TabMatcher.prototype = {
         
         
         
-        tvWindow = win.TabView.getContentWindow();
+        let tvWindow = win.TabView.getContentWindow();
         if (tvWindow)
           allTabs = allTabs.concat( tvWindow.TabItems.getItems() );
         else
