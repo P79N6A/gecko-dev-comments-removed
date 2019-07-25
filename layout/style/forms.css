@@ -666,6 +666,41 @@ progress {
   background-color: #0064b4; 
 }
 
+meter {
+  
+
+
+  display: inline-block;
+  vertical-align: -0.2em;
+
+  
+  border: 2px solid;
+  
+  -moz-border-top-colors: ThreeDShadow #e6e6e6;
+  -moz-border-right-colors: ThreeDHighlight #e6e6e6;
+  -moz-border-bottom-colors: ThreeDHighlight #e6e6e6;
+  -moz-border-left-colors: ThreeDShadow #e6e6e6;
+  background-color: #e6e6e6;
+}
+
+::-moz-meter-bar {
+  display: inline-block ! important;
+  float: none ! important;
+  position: static ! important;
+  overflow: visible ! important;
+  
+
+
+
+  height: 100%;
+  width: 100%;
+
+  
+
+
+  background-color: #2eff46;
+}
+
 %ifdef XP_OS2
 input {
   font: medium serif; font-family: inherit
