@@ -103,6 +103,9 @@ class Element;
 #define NS_STATE_SVG_CLIPPATH_CHILD              NS_FRAME_STATE_BIT(23)
 
 
+#define NS_STATE_SVG_REDRAW_SUSPENDED            NS_FRAME_STATE_BIT(24)
+
+
 
 
 #ifdef IS_BIG_ENDIAN
@@ -329,7 +332,8 @@ public:
   
 
 
-  static void UpdateGraphic(nsISVGChildFrame *aSVGFrame);
+
+  static void UpdateGraphic(nsIFrame *aFrame);
 
   
 
@@ -423,6 +427,19 @@ public:
 
   static void
   NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
+
+  
+
+
+  static void
+  NotifyRedrawSuspended(nsIFrame *aFrame);
+
+  
+
+
+
+  static void
+  NotifyRedrawUnsuspended(nsIFrame *aFrame);
 
   
 

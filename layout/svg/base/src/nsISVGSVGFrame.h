@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __NS_ISVGSVGFRAME_H__
 #define __NS_ISVGSVGFRAME_H__
 
@@ -13,14 +46,9 @@ class nsISVGSVGFrame
 public:
   NS_DECL_QUERYFRAME_TARGET(nsISVGSVGFrame)
 
-  
-
-
-
-
-
-
-  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags)=0; 
+  virtual void SuspendRedraw()=0;        
+  virtual void UnsuspendRedraw()=0;      
+  virtual void NotifyViewportChange()=0; 
 };
 
 #endif 

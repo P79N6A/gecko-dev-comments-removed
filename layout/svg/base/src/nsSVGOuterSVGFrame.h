@@ -125,20 +125,9 @@ public:
                                PRInt32         aModType);
 
   
-
-  void InvalidateCoveredRegion(nsIFrame *aFrame);
-  
-  
-  
-  
-  bool UpdateAndInvalidateCoveredRegion(nsIFrame *aFrame);
-
-  bool IsRedrawSuspended();
-
-  
-  NS_IMETHOD SuspendRedraw();
-  NS_IMETHOD UnsuspendRedraw();
-  NS_IMETHOD NotifyViewportChange();
+  virtual void SuspendRedraw();
+  virtual void UnsuspendRedraw();
+  virtual void NotifyViewportChange();
 
   
   virtual gfxMatrix GetCanvasTM();
@@ -169,9 +158,9 @@ protected:
   
   nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
 
-  PRUint32 mRedrawSuspendCount;
   nsAutoPtr<gfxMatrix> mCanvasTM;
 
+  PRUint32 mRedrawSuspendCount;
   float mFullZoom;
 
   bool mViewportInitialized;
