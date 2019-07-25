@@ -10709,13 +10709,15 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   nsIContent* const content = aItem.mContent;
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
-  nsIFrame *newFrame;
-
   bool positioned =
     NS_STYLE_DISPLAY_INLINE == aDisplay->mDisplay &&
     (NS_STYLE_POSITION_RELATIVE == aDisplay->mPosition ||
      aDisplay->HasTransform());
-  newFrame = NS_NewInlineFrame(mPresShell, styleContext);
+
+  nsIFrame* newFrame = NS_NewInlineFrame(mPresShell, styleContext);
+  if (!newFrame) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   
   InitAndRestoreFrame(aState, content, aParentFrame, nsnull, newFrame);
@@ -10736,6 +10738,10 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
                                             childItems);
   if (NS_FAILED(rv)) {
     
+    
+    
+    newFrame->SetInitialChildList(kPrincipalList, childItems);
+    newFrame->Destroy();
     return rv;
   }
 
