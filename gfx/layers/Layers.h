@@ -54,6 +54,7 @@ class ImageContainer;
 class CanvasLayer;
 class ReadbackLayer;
 class ReadbackProcessor;
+class RefLayer;
 class ShadowLayer;
 class ShadowableLayer;
 class ShadowLayerForwarder;
@@ -364,6 +365,12 @@ public:
 
 
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer() { return nsnull; }
+  
+
+
+
+  virtual already_AddRefed<RefLayer> CreateRefLayer() { return nsnull; }
+
 
   
 
@@ -541,6 +548,7 @@ public:
     TYPE_CONTAINER,
     TYPE_IMAGE,
     TYPE_READBACK,
+    TYPE_REF,
     TYPE_SHADOW,
     TYPE_THEBES
   };
@@ -817,6 +825,12 @@ public:
 
 
   virtual ContainerLayer* AsContainerLayer() { return nsnull; }
+
+   
+
+
+
+  virtual RefLayer* AsRefLayer() { return nsnull; }
 
   
 
@@ -1368,6 +1382,96 @@ protected:
 
 
   bool mDirty;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API RefLayer : public ContainerLayer {
+  friend class LayerManager;
+
+private:
+  virtual void InsertAfter(Layer* aChild, Layer* aAfter)
+  { MOZ_NOT_REACHED("no"); }
+
+  virtual void RemoveChild(Layer* aChild)
+  { MOZ_NOT_REACHED("no"); }
+
+  using ContainerLayer::SetFrameMetrics;
+
+public:
+  
+
+
+
+  void SetReferentId(uint64_t aId)
+  {
+    MOZ_ASSERT(aId != 0);
+    mId = aId;
+  }
+  
+
+
+
+
+  void ConnectReferentLayer(Layer* aLayer)
+  {
+    MOZ_ASSERT(!mFirstChild && !mLastChild);
+    MOZ_ASSERT(!aLayer->GetParent());
+
+    mFirstChild = mLastChild = aLayer;
+    aLayer->SetParent(this);
+  }
+
+  
+
+
+
+  void DetachReferentLayer(Layer* aLayer)
+  {
+    MOZ_ASSERT(aLayer == mFirstChild && mFirstChild == mLastChild);
+    MOZ_ASSERT(aLayer->GetParent() == this);
+
+    mFirstChild = mLastChild = nsnull;
+    aLayer->SetParent(nsnull);
+  }
+
+  
+  virtual RefLayer* AsRefLayer() { return this; }
+
+  virtual int64_t GetReferentId() { return mId; }
+
+  
+
+
+  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs);
+
+  MOZ_LAYER_DECL_NAME("RefLayer", TYPE_REF)
+
+protected:
+  RefLayer(LayerManager* aManager, void* aImplData)
+    : ContainerLayer(aManager, aImplData) , mId(0)
+  {}
+
+  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+
+  Layer* mTempReferent;
+  
+  uint64_t mId;
 };
 
 #ifdef MOZ_DUMP_PAINTING
