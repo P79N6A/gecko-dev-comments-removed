@@ -1759,6 +1759,15 @@ namespace js {
 extern void
 ReportUsageError(JSContext *cx, HandleObject callee, const char *msg);
 
+
+
+
+
+
+
+extern bool
+PrintError(JSContext *cx, FILE *file, const char *message, JSErrorReport *report,
+           bool reportWarnings);
 } 
 
 extern void
