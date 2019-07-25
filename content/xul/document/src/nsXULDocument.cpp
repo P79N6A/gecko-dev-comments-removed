@@ -3401,6 +3401,9 @@ nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, PRBool* aBlock)
     }
 
     
+    aScriptProto->UnlinkJSObjects();
+
+    
     
     NS_ASSERTION(!mCurrentScriptProto,
                  "still loading a script when starting another load?");
