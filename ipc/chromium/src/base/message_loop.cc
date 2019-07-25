@@ -315,7 +315,6 @@ void MessageLoop::RunTask(Task* task) {
   
   nestable_tasks_allowed_ = false;
 
-  HistogramEvent(kTaskRunEvent);
   task->Run();
   delete task;
 
@@ -506,36 +505,6 @@ bool MessageLoop::PendingTask::operator<(const PendingTask& other) const {
   
   return (sequence_num - other.sequence_num) > 0;
 }
-
-
-
-
-
-
-void MessageLoop::EnableHistogrammer(bool enable) {
-}
-
-void MessageLoop::StartHistogrammer() {
-}
-
-void MessageLoop::HistogramEvent(int event) {
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define VALUE_TO_NUMBER_AND_NAME(name) {name, #name},
 
 
 

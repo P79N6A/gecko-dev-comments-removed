@@ -70,8 +70,6 @@ class MessageLoop : public base::MessagePump::Delegate {
   friend class mozilla::ipc::DoWorkRunnable;
 
 public:
-  static void EnableHistogrammer(bool enable_histogrammer);
-
   
   
   
@@ -370,15 +368,6 @@ public:
   virtual bool DoWork();
   virtual bool DoDelayedWork(base::Time* next_delayed_work_time);
   virtual bool DoIdleWork();
-
-  
-  
-  void StartHistogrammer();
-
-  
-  
-  
-  void HistogramEvent(int event);
 
   Type type_;
 

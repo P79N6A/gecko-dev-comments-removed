@@ -45,7 +45,6 @@
 #include <string>
 #include <vector>
 
-#define BASE_API
 #include "testing/gtest/include/gtest/gtest_prod.h"
 #include "base/time.h"
 #include "base/lock.h"
@@ -260,7 +259,7 @@ class CustomHistogram;
 class Histogram;
 class LinearHistogram;
 
-class BASE_API Histogram {
+class Histogram {
  public:
   typedef int Sample;  
   typedef int Count;  
@@ -319,7 +318,7 @@ class BASE_API Histogram {
   
   
 
-  class BASE_API SampleSet {
+  class SampleSet {
    public:
     explicit SampleSet();
     ~SampleSet();
@@ -578,7 +577,7 @@ class BASE_API Histogram {
 
 
 
-class BASE_API LinearHistogram : public Histogram {
+class LinearHistogram : public Histogram {
  public:
   virtual ~LinearHistogram();
 
@@ -634,7 +633,7 @@ class BASE_API LinearHistogram : public Histogram {
 
 
 
-class BASE_API BooleanHistogram : public LinearHistogram {
+class BooleanHistogram : public LinearHistogram {
  public:
   static Histogram* FactoryGet(const std::string& name, Flags flags);
 
@@ -651,7 +650,7 @@ class BASE_API BooleanHistogram : public LinearHistogram {
 
 
 
-class BASE_API CustomHistogram : public Histogram {
+class CustomHistogram : public Histogram {
  public:
 
   static Histogram* FactoryGet(const std::string& name,
@@ -677,7 +676,7 @@ class BASE_API CustomHistogram : public Histogram {
 
 
 
-class BASE_API StatisticsRecorder {
+class StatisticsRecorder {
  public:
   typedef std::vector<Histogram*> Histograms;
 
