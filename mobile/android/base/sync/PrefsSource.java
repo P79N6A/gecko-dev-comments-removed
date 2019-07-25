@@ -2,42 +2,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync;
 
-import android.content.Context;
 import android.content.SharedPreferences;
 
 
@@ -51,8 +17,6 @@ import android.content.SharedPreferences;
 
 
 public interface PrefsSource {
-  public Context getContext();
-
   
 
 

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync;
 
 import java.io.IOException;
@@ -57,16 +24,12 @@ public class InfoCollections implements SyncStorageRequestDelegate {
   protected String credentials;
 
   
-  protected SyncStorageResponse response;
-  private ExtendedJSONObject    record;
-
-  
   
   
   private HashMap<String, Long> timestamps;
 
   public HashMap<String, Long> getTimestamps() {
-    if (!this.wasSuccessful()) {
+    if (this.timestamps == null) {
       throw new IllegalStateException("No record fetched.");
     }
     return this.timestamps;
@@ -76,9 +39,31 @@ public class InfoCollections implements SyncStorageRequestDelegate {
     return this.getTimestamps().get(collection);
   }
 
-  public boolean wasSuccessful() {
-    return this.response.wasSuccessful() &&
-           this.timestamps != null;
+  
+
+
+
+
+
+
+
+  public boolean updateNeeded(String collection, long lastModified) {
+    Logger.trace(LOG_TAG, "Testing " + collection + " for updateNeeded. Local last modified is " + lastModified + ".");
+
+    
+    if (lastModified <= 0) {
+      return true;
+    }
+
+    
+    
+    Long serverLastModified = getTimestamp(collection);
+    if (serverLastModified == null) {
+      return true;
+    }
+
+    
+    return (serverLastModified.longValue() > lastModified);
   }
 
   
@@ -90,7 +75,7 @@ public class InfoCollections implements SyncStorageRequestDelegate {
   }
 
   public void fetch(InfoCollectionsDelegate callback) {
-    if (this.response == null) {
+    if (this.timestamps == null) {
       this.callback = callback;
       this.doFetch();
       return;
@@ -118,29 +103,12 @@ public class InfoCollections implements SyncStorageRequestDelegate {
     }
   }
 
-  public SyncStorageResponse getResponse() {
-    return this.response;
-  }
-
-  protected ExtendedJSONObject ensureRecord() {
-    if (record == null) {
-      record = new ExtendedJSONObject();
-    }
-    return record;
-  }
-
-  protected void setRecord(ExtendedJSONObject record) {
-    this.record = record;
-  }
-
   @SuppressWarnings("unchecked")
-  private void unpack(SyncStorageResponse response) throws IllegalStateException, IOException, ParseException, NonObjectJSONException {
-    this.response = response;
-    this.setRecord(response.jsonObjectBody());
-    Log.i(LOG_TAG, "info/collections is " + this.record.toJSONString());
+  public void setFromRecord(ExtendedJSONObject record) throws IllegalStateException, IOException, ParseException, NonObjectJSONException {
+    Log.i(LOG_TAG, "info/collections is " + record.toJSONString());
     HashMap<String, Long> map = new HashMap<String, Long>();
 
-    Set<Entry<String, Object>> entrySet = this.record.object.entrySet();
+    Set<Entry<String, Object>> entrySet = record.object.entrySet();
     for (Entry<String, Object> entry : entrySet) {
       
       
@@ -175,7 +143,7 @@ public class InfoCollections implements SyncStorageRequestDelegate {
   public void handleRequestSuccess(SyncStorageResponse response) {
     if (response.wasSuccessful()) {
       try {
-        this.unpack(response);
+        this.setFromRecord(response.jsonObjectBody());
         this.callback.handleSuccess(this);
         this.callback = null;
       } catch (Exception e) {

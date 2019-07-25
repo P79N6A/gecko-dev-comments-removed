@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync;
 
 import java.io.IOException;
@@ -48,8 +15,6 @@ import org.mozilla.apache.commons.codec.binary.Base64;
 import org.mozilla.gecko.sync.crypto.CryptoException;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 
-import android.util.Log;
-
 public class CollectionKeys {
   private static final String LOG_TAG = "CollectionKeys";
   private KeyBundle                  defaultKeyBundle     = null;
@@ -61,7 +26,7 @@ public class CollectionKeys {
       return ck.asCryptoRecord();
     } catch (NoCollectionKeysSetException e) {
       
-      Log.e(LOG_TAG, "generateCollectionKeys returned a value with no default key. Unpossible.", e);
+      Logger.error(LOG_TAG, "generateCollectionKeys returned a value with no default key.", e);
       throw new IllegalStateException("CollectionKeys should not have null default key.");
     }
   }
@@ -138,38 +103,22 @@ public class CollectionKeys {
     return record;
   }
 
-  public static CollectionKeys fromCryptoRecord(CryptoRecord keys, KeyBundle syncKeyBundle) throws CryptoException, IOException, ParseException, NonObjectJSONException {
-    if (syncKeyBundle != null) {
-      keys.keyBundle = syncKeyBundle;
-      keys.decrypt();
-    }
-    ExtendedJSONObject cleartext = keys.payload;
-    KeyBundle defaultKey = arrayToKeyBundle((JSONArray) cleartext.get("default"));
-
-    ExtendedJSONObject collections = cleartext.getObject("collections");
-    HashMap<String, KeyBundle> collectionKeys = new HashMap<String, KeyBundle>();
-    for (Entry<String, Object> pair : collections.entryIterable()) {
-      KeyBundle bundle = arrayToKeyBundle((JSONArray) pair.getValue());
-      collectionKeys.put(pair.getKey(), bundle);
-    }
-
-    CollectionKeys ck = new CollectionKeys();
-    ck.collectionKeyBundles = collectionKeys;
-    ck.defaultKeyBundle     = defaultKey;
-    return ck;
-  }
-
   
 
 
 
+
+
+
+
+
+
   public void setKeyPairsFromWBO(CryptoRecord keys, KeyBundle syncKeyBundle)
-                                                                            throws CryptoException,
-                                                                            IOException,
-                                                                            ParseException,
-                                                                            NonObjectJSONException {
-    keys.keyBundle = syncKeyBundle;
-    keys.decrypt();
+      throws CryptoException, IOException, ParseException, NonObjectJSONException {
+    if (syncKeyBundle != null) {
+      keys.keyBundle = syncKeyBundle;
+      keys.decrypt();
+    }
     ExtendedJSONObject cleartext = keys.payload;
     KeyBundle defaultKey = arrayToKeyBundle((JSONArray) cleartext.get("default"));
 

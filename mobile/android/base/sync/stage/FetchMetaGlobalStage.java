@@ -2,49 +2,19 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.stage;
 
-import java.net.URISyntaxException;
-
 import org.mozilla.gecko.sync.GlobalSession;
+import org.mozilla.gecko.sync.InfoCollections;
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.MetaGlobal;
+import org.mozilla.gecko.sync.PersistedMetaGlobal;
 import org.mozilla.gecko.sync.delegates.MetaGlobalDelegate;
 import org.mozilla.gecko.sync.net.SyncStorageResponse;
 
 public class FetchMetaGlobalStage implements GlobalSyncStage {
+  private static final String LOG_TAG = "FetchMetaGlobalStage";
+  private static final String META_COLLECTION = "meta";
 
   public class StageMetaGlobalDelegate implements MetaGlobalDelegate {
 
@@ -55,6 +25,12 @@ public class FetchMetaGlobalStage implements GlobalSyncStage {
 
     @Override
     public void handleSuccess(MetaGlobal global, SyncStorageResponse response) {
+      Logger.trace(LOG_TAG, "Persisting fetched meta/global and last modified.");
+      PersistedMetaGlobal pmg = session.config.persistedMetaGlobal();
+      pmg.persistMetaGlobal(global);
+      
+      pmg.persistLastModified(response.normalizedWeaveTimestamp());
+
       session.processMetaGlobal(global);
     }
 
@@ -72,21 +48,32 @@ public class FetchMetaGlobalStage implements GlobalSyncStage {
     public void handleMissing(MetaGlobal global, SyncStorageResponse response) {
       session.processMissingMetaGlobal(global);
     }
-
-    @Override
-    public MetaGlobalDelegate deferred() {
-      
-      return this;
-    }
   }
 
   @Override
   public void execute(GlobalSession session) throws NoSuchStageException {
-    try {
-      session.fetchMetaGlobal(new StageMetaGlobalDelegate(session));
-    } catch (URISyntaxException e) {
-      session.abort(e, "Invalid URI.");
+    InfoCollections infoCollections = session.config.infoCollections;
+    if (infoCollections == null) {
+      session.abort(null, "No info/collections set in FetchMetaGlobalStage.");
+      return;
     }
-  }
 
+    long lastModified = session.config.persistedMetaGlobal().lastModified();
+    if (!infoCollections.updateNeeded(META_COLLECTION, lastModified)) {
+      
+      Logger.info(LOG_TAG, "Trying to use persisted meta/global for this session.");
+      MetaGlobal global = session.config.persistedMetaGlobal().metaGlobal();
+      if (global != null) {
+        Logger.info(LOG_TAG, "Using persisted meta/global for this session.");
+        session.processMetaGlobal(global); 
+        return;
+      }
+      Logger.info(LOG_TAG, "Failed to use persisted meta/global for this session.");
+    }
+
+    
+    Logger.info(LOG_TAG, "Fetching fresh meta/global for this session.");
+    MetaGlobal global = new MetaGlobal(session.config.metaURL(), session.credentials());
+    global.fetch(new StageMetaGlobalDelegate(session));
+  }
 }
