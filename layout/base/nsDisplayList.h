@@ -881,9 +881,13 @@ public:
 
 
 
+
+
+
   enum {
     PAINT_DEFAULT = 0,
-    PAINT_USE_WIDGET_LAYERS = 0x01
+    PAINT_USE_WIDGET_LAYERS = 0x01,
+    PAINT_FLUSH_LAYERS = 0x02
   };
   void PaintRoot(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx,
                  PRUint32 aFlags) const;

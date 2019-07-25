@@ -947,7 +947,7 @@ public:
   virtual nsresult AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                 nsDisplayList& aList,
                                                 nsIFrame* aFrame,
-                                                nsRect* aBounds,
+                                                const nsRect& aBounds,
                                                 nscolor aBackstopColor,
                                                 PRBool aForceDraw);
 
@@ -5214,60 +5214,6 @@ PresShell::ComputeRepaintRegionForCopy(nsIView*      aRootView,
       aDelta, aUpdateRect, aBlitRegion, aRepaintRegion);
 }
 
-
-
-
-
-
-
-
-static inline PRBool
-PrepareContext(const nsRect& aRect, nscolor aBackgroundColor,
-               gfxContext* aThebesContext, nsRegion *aFillRegion = nsnull)
-{
-  NS_TIME_FUNCTION_MIN(1.0);
-
-  gfxRect r(0, 0,
-            nsPresContext::AppUnitsToFloatCSSPixels(aRect.width),
-            nsPresContext::AppUnitsToFloatCSSPixels(aRect.height));
-  aThebesContext->Save();
-
-  aThebesContext->NewPath();
-#ifdef MOZ_GFX_OPTIMIZE_MOBILE
-  aThebesContext->Rectangle(r, PR_TRUE);
-#else
-  aThebesContext->Rectangle(r);
-#endif
-  aThebesContext->Clip();
-
-  
-  
-  
-  PRBool needsGroup = PR_TRUE;
-  if (aThebesContext->CurrentOperator() == gfxContext::OPERATOR_OVER &&
-      NS_GET_A(aBackgroundColor) == 0xff)
-    needsGroup = PR_FALSE;
-
-  if (needsGroup) {
-    aThebesContext->PushGroup(NS_GET_A(aBackgroundColor) == 0xff ?
-                              gfxASurface::CONTENT_COLOR :
-                              gfxASurface::CONTENT_COLOR_ALPHA);
-
-    aThebesContext->Save();
-  }
-
-  
-  if (NS_GET_A(aBackgroundColor) > 0 &&
-      !(aFillRegion && aFillRegion->IsEmpty())) {
-    aThebesContext->SetColor(gfxRGBA(aBackgroundColor));
-    aThebesContext->SetOperator(gfxContext::OPERATOR_SOURCE);
-    aThebesContext->Paint();
-  }
-
-  aThebesContext->SetOperator(gfxContext::OPERATOR_OVER);
-  return needsGroup;
-}
-
 nsresult
 PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
                           nscolor aBackgroundColor,
@@ -5278,87 +5224,84 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
   NS_ENSURE_TRUE(!(aFlags & RENDER_IS_UNTRUSTED), NS_ERROR_NOT_IMPLEMENTED);
 
   
-  
-  
-  
+  gfxRect r(0, 0,
+            nsPresContext::AppUnitsToFloatCSSPixels(aRect.width),
+            nsPresContext::AppUnitsToFloatCSSPixels(aRect.height));
+  aThebesContext->NewPath();
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+  aThebesContext->Rectangle(r, PR_TRUE);
+#else
+  aThebesContext->Rectangle(r);
+#endif
 
-  PRBool needsGroup = PR_TRUE;
-  PRBool didPrepareContext = PR_FALSE;
   nsIFrame* rootFrame = FrameManager()->GetRootFrame();
-  if (rootFrame) {
-    nsDisplayListBuilder builder(rootFrame, PR_FALSE,
-        (aFlags & RENDER_CARET) != 0);
-    nsDisplayList list;
-
-    nsRect canvasArea(
-      builder.ToReferenceFrame(rootFrame), rootFrame->GetSize());
-
-    nsRect rect(aRect);
-    nsIFrame* rootScrollFrame = GetRootScrollFrame();
-    if ((aFlags & RENDER_IGNORE_VIEWPORT_SCROLLING) && rootScrollFrame) {
-      nsIScrollableFrame* rootScrollableFrame =
-        GetRootScrollFrameAsScrollable();
-      nsPoint pos = rootScrollableFrame->GetScrollPosition();
-      rect.MoveBy(-pos);
-      builder.SetIgnoreScrollFrame(rootScrollFrame);
-
-      nsCanvasFrame* canvasFrame =
-        do_QueryFrame(rootScrollableFrame->GetScrolledFrame());
-      if (canvasFrame) {
-        canvasArea =
-          canvasFrame->CanvasArea() + builder.ToReferenceFrame(canvasFrame);
-      }
-    }
-
-    builder.SetBackgroundOnly(PR_FALSE);
-    builder.SetSyncDecodeImages(PR_TRUE);
-    builder.EnterPresShell(rootFrame, rect);
-
+  if (!rootFrame) {
     
-    nsresult rv =
-      rootFrame->PresContext()->PresShell()->AddCanvasBackgroundColorItem(
-        builder, list, rootFrame, &canvasArea);
+    aThebesContext->SetColor(gfxRGBA(aBackgroundColor));
+    aThebesContext->Fill();
+    return NS_OK;
+  }
 
-    if (NS_SUCCEEDED(rv)) {
-      rv = rootFrame->BuildDisplayListForStackingContext(&builder, rect, &list);
-    }
+  gfxContextAutoSaveRestore save(aThebesContext);
 
-    builder.LeavePresShell(rootFrame, rect);
+  gfxContext::GraphicsOperator oldOperator = aThebesContext->CurrentOperator();
+  if (oldOperator == gfxContext::OPERATOR_OVER) {
+    
+    
+    aThebesContext->Clip();
+  }
 
-    if (NS_SUCCEEDED(rv)) {
-      nsRegion region(rect);
-      list.ComputeVisibility(&builder, &region, nsnull);
+  
+  
+  
+  
+  
+  
+  
+  PRBool needsGroup = NS_GET_A(aBackgroundColor) < 0xff ||
+    oldOperator != gfxContext::OPERATOR_OVER;
 
-      didPrepareContext = PR_TRUE;
-      needsGroup = PrepareContext(aRect, aBackgroundColor, aThebesContext, &region);
+  if (needsGroup) {
+    aThebesContext->PushGroup(NS_GET_A(aBackgroundColor) == 0xff ?
+                              gfxASurface::CONTENT_COLOR :
+                              gfxASurface::CONTENT_COLOR_ALPHA);
+    aThebesContext->Save();
 
+    if (oldOperator != gfxContext::OPERATOR_OVER) {
       
-      aThebesContext->Save();
-      aThebesContext->Translate(gfxPoint(-nsPresContext::AppUnitsToFloatCSSPixels(rect.x),
-                                         -nsPresContext::AppUnitsToFloatCSSPixels(rect.y)));
-
-      nsIDeviceContext* devCtx = mPresContext->DeviceContext();
-      gfxFloat scale = gfxFloat(devCtx->AppUnitsPerDevPixel())/nsPresContext::AppUnitsPerCSSPixel();
-      aThebesContext->Scale(scale, scale);
       
-      nsCOMPtr<nsIRenderingContext> rc;
-      devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
-      rc->Init(devCtx, aThebesContext);
-
-      PRUint32 flags = nsDisplayList::PAINT_DEFAULT;
-      if (aFlags & RENDER_USE_WIDGET_LAYERS) {
-        flags |= nsDisplayList::PAINT_USE_WIDGET_LAYERS;
-      }
-      list.PaintRoot(&builder, rc, flags);
       
-      list.DeleteAll();
-
-      aThebesContext->Restore();
+      
+      
+      aThebesContext->Clip();
+      aThebesContext->SetOperator(gfxContext::OPERATOR_OVER);
     }
   }
 
-  if (!didPrepareContext)
-    needsGroup = PrepareContext(aRect, aBackgroundColor, aThebesContext, nsnull);
+  aThebesContext->Translate(gfxPoint(-nsPresContext::AppUnitsToFloatCSSPixels(aRect.x),
+                                     -nsPresContext::AppUnitsToFloatCSSPixels(aRect.y)));
+
+  nsIDeviceContext* devCtx = mPresContext->DeviceContext();
+  gfxFloat scale = gfxFloat(devCtx->AppUnitsPerDevPixel())/nsPresContext::AppUnitsPerCSSPixel();
+  aThebesContext->Scale(scale, scale);
+  
+  nsCOMPtr<nsIRenderingContext> rc;
+  devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
+  rc->Init(devCtx, aThebesContext);
+
+  PRUint32 flags = nsLayoutUtils::PAINT_SYNC_DECODE_IMAGES |
+    nsLayoutUtils::PAINT_IGNORE_SUPPRESSION;
+  if (aFlags & RENDER_USE_WIDGET_LAYERS) {
+    flags |= nsLayoutUtils::PAINT_WIDGET_LAYERS;
+  }
+  if (!(aFlags & RENDER_CARET)) {
+    flags |= nsLayoutUtils::PAINT_HIDE_CARET;
+  }
+  if (aFlags & RENDER_IGNORE_VIEWPORT_SCROLLING) {
+    flags |= nsLayoutUtils::PAINT_IGNORE_VIEWPORT_SCROLLING;
+  }
+  nsLayoutUtils::PaintFrame(rc, rootFrame, nsRegion(aRect),
+                            aBackgroundColor, flags);
 
   
   if (needsGroup) {
@@ -5366,8 +5309,6 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
     aThebesContext->PopGroupToSource();
     aThebesContext->Paint();
   }
-
-  aThebesContext->Restore();
 
   return NS_OK;
 }
@@ -5775,7 +5716,7 @@ PresShell::RenderSelection(nsISelection* aSelection,
 nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                  nsDisplayList&        aList,
                                                  nsIFrame*             aFrame,
-                                                 nsRect*               aBounds,
+                                                 const nsRect&         aBounds,
                                                  nscolor               aBackstopColor,
                                                  PRBool                aForceDraw)
 {
@@ -5789,12 +5730,8 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
     return NS_OK;
 
   nscolor bgcolor = NS_ComposeColors(aBackstopColor, mCanvasBackgroundColor);
-  nsRect bounds = aBounds == nsnull ?
-    nsRect(aBuilder.ToReferenceFrame(aFrame), aFrame->GetSize()) : *aBounds;
-  return aList.AppendNewToBottom(new (&aBuilder) nsDisplaySolidColor(
-           aFrame,
-           bounds,
-           bgcolor));
+  return aList.AppendNewToBottom(
+      new (&aBuilder) nsDisplaySolidColor(aFrame, aBounds, bgcolor));
 }
 
 void PresShell::UpdateCanvasBackground()

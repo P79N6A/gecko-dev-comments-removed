@@ -133,8 +133,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-  { 0x6b32e1ca, 0xb295, 0x406d, \
-    { 0xb2, 0x8b, 0x73, 0xda, 0xc3, 0x66, 0xc2, 0xa7 } }
+  { 0x318f7b6c, 0x56be, 0x4256, \
+    { 0xa3, 0x09, 0xff, 0xdc, 0xde, 0x04, 0x63, 0xf6 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -934,11 +934,10 @@ public:
 
 
 
-
   virtual nsresult AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                 nsDisplayList& aList,
                                                 nsIFrame* aFrame,
-                                                nsRect* aBounds = nsnull,
+                                                const nsRect& aBounds,
                                                 nscolor aBackstopColor = NS_RGBA(0,0,0,0),
                                                 PRBool aForceDraw = PR_FALSE) = 0;
 

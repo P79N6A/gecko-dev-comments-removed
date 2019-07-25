@@ -3675,7 +3675,7 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
         renderDocFlags |= nsIPresShell::RENDER_USE_WIDGET_LAYERS;
     }
 
-    presShell->RenderDocument(r, renderDocFlags, bgColor, mThebes);
+    rv = presShell->RenderDocument(r, renderDocFlags, bgColor, mThebes);
 
     
     mThebes->SetColor(gfxRGBA(1,1,1,1));
