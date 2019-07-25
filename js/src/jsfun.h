@@ -131,7 +131,7 @@ struct JSFunction : public JSObject
     uint16          nargs;        
 
     uint16          flags;        
-    union {
+    union U {
         struct {
             uint16      extra;    
             uint16      spare;    
@@ -140,7 +140,7 @@ struct JSFunction : public JSObject
 
             JSNativeTraceInfo *trcinfo;
         } n;
-        struct {
+        struct Scripted {
             uint16      nvars;    
             uint16      nupvars;  
 
