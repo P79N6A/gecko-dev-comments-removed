@@ -190,6 +190,11 @@ let StoragePolicy = {
   
   
   canStoreThumbnailForTab: function StoragePolicy_canStoreThumbnailForTab(tab) {
+    
+    if (gPrivateBrowsing.privateBrowsingEnabled &&
+        UI._privateBrowsing.transitionMode != "enter")
+      return false;
+
     return (this._deniedBrowsers.indexOf(tab.linkedBrowser) == -1);
   },
 
