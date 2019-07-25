@@ -19,14 +19,15 @@ function test() {
   ok(provider.workerAPI, "provider has a workerAPI");
   is(provider.workerAPI.initialized, false, "workerAPI is not yet initialized");
 
-  let port = provider.getWorkerPort();
+  let port = provider.port;
   ok(port, "should be able to get a port from the provider");
 
   port.onmessage = function onMessage(event) {
     let {topic, data} = event.data;
     if (topic == "test-initialization-complete") {
       is(provider.workerAPI.initialized, true, "workerAPI is now initialized");
-      provider.terminate();
+      
+      provider.enabled = false;
       finish();
     }
   }

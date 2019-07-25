@@ -19,7 +19,8 @@ const EXPORTED_SYMBOLS = ["SocialProvider"];
 
 
 
-function SocialProvider(input) {
+
+function SocialProvider(input, enabled) {
   if (!input.name)
     throw new Error("SocialProvider must be passed a name");
   if (!input.origin)
@@ -29,16 +30,53 @@ function SocialProvider(input) {
   this.workerURL = input.workerURL;
   this.origin = input.origin;
 
-  let workerAPIPort = this.getWorkerPort();
-  if (workerAPIPort)
-    this.workerAPI = new WorkerAPI(workerAPIPort);
+  
+  this._enabled = !(enabled == false);
+  if (this._enabled)
+    this._activate();
 }
 
 SocialProvider.prototype = {
   
+  
+  _enabled: true,
+  get enabled() {
+    return this._enabled;
+  },
+  set enabled(val) {
+    let enable = !!val;
+    if (enable == this._enabled)
+      return;
 
+    this._enabled = enable;
 
-  terminate: function terminate() {
+    if (enable) {
+      this._activate();
+    } else {
+      this._terminate();
+    }
+  },
+
+  
+  
+  port: null,
+
+  
+  
+  workerAPI: null,
+
+  
+  _activate: function _activate() {
+    
+    
+    let workerAPIPort = this._getWorkerPort();
+    if (workerAPIPort)
+      this.workerAPI = new WorkerAPI(workerAPIPort);
+
+    this.port = this._getWorkerPort();
+  },
+
+  _terminate: function _terminate() {
     if (this.workerURL) {
       try {
         getFrameWorkerHandle(this.workerURL, null).terminate();
@@ -46,6 +84,8 @@ SocialProvider.prototype = {
         Cu.reportError("SocialProvider FrameWorker termination failed: " + e);
       }
     }
+    this.port = null;
+    this.workerAPI = null;
   },
 
   
@@ -56,8 +96,8 @@ SocialProvider.prototype = {
 
 
 
-  getWorkerPort: function getWorkerPort(window) {
-    if (!this.workerURL)
+  _getWorkerPort: function _getWorkerPort(window) {
+    if (!this.workerURL || !this.enabled)
       return null;
     try {
       return getFrameWorkerHandle(this.workerURL, window).port;
