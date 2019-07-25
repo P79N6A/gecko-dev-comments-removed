@@ -1271,6 +1271,9 @@ WeaveSvc.prototype = {
       for each (let engine in engines)
         if (engine._testDecrypt())
           engine.wipeClient();
+
+      
+      this.persistLogin();
     }))(),
 
   
