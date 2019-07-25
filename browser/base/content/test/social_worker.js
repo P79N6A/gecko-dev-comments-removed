@@ -39,14 +39,8 @@ onconnect = function(e) {
         if (testPort && event.data.result == "ok")
           testPort.postMessage({topic:"got-panel-message"});
         break;
-      case "test-chatbox-open":
-        sidebarPort.postMessage({topic:"test-chatbox-open"});
-        break;
-      case "chatbox-message":
-        testPort.postMessage({topic:"got-chatbox-message", result: event.data.result});
-        break;
-      case "chatbox-visibility":
-        testPort.postMessage({topic:"got-chatbox-visibility", result: event.data.result});
+      case "status-panel-visibility":
+        testPort.postMessage({topic:"got-social-panel-visibility", result: event.data.result });
         break;
       case "social.initialize":
         
@@ -58,16 +52,10 @@ onconnect = function(e) {
         let icon = {
           name: "testIcon",
           iconURL: "chrome://branding/content/icon48.png",
-          contentPanel: "https://example.com/browser/browser/base/content/test/social_panel.html",
+          contentPanel: "http://example.com/browser/browser/base/content/test/social_panel.html",
           counter: 1
         };
         port.postMessage({topic: "social.ambient-notification", data: icon});
-        break;
-      case "test-isVisible":
-        sidebarPort.postMessage({topic: "test-isVisible"});
-        break;
-      case "test-isVisible-response":
-        testPort.postMessage({topic: "got-isVisible-response", result: event.data.result});
         break;
     }
   }

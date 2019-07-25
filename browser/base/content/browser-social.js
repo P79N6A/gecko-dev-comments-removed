@@ -33,18 +33,10 @@ let SocialUI = {
   observe: function SocialUI_observe(subject, topic, data) {
     switch (topic) {
       case "social:pref-changed":
-        
-        
-        try {
-          this.updateToggleCommand();
-          SocialShareButton.updateButtonHiddenState();
-          SocialToolbar.updateButtonHiddenState();
-          SocialSidebar.updateSidebar();
-          SocialChatBar.update();
-        } catch (e) {
-          Components.utils.reportError(e);
-          throw e;
-        }
+        this.updateToggleCommand();
+        SocialShareButton.updateButtonHiddenState();
+        SocialToolbar.updateButtonHiddenState();
+        SocialSidebar.updateSidebar();
         break;
       case "social:ambient-notification-changed":
         SocialToolbar.updateButton();
@@ -155,27 +147,6 @@ let SocialUI = {
   undoActivation: function SocialUI_undoActivation() {
     Social.active = false;
     this.notificationPanel.hidePopup();
-  }
-}
-
-let SocialChatBar = {
-  get chatbar() {
-    return document.getElementById("pinnedchats");
-  },
-  
-  get canShow() {
-    let docElem = document.documentElement;
-    let chromeless = docElem.getAttribute("disablechrome") ||
-                     docElem.getAttribute("chromehidden").indexOf("extrachrome") >= 0;
-    return Social.uiVisible && !chromeless;
-  },
-  newChat: function(aProvider, aURL, aCallback) {
-    if (this.canShow)
-      this.chatbar.newChat(aProvider, aURL, aCallback);
-  },
-  update: function() {
-    if (!this.canShow)
-      this.chatbar.removeAll();
   }
 }
 
@@ -291,7 +262,7 @@ var SocialToolbar = {
     removeItem.setAttribute("accesskey", accesskey);
 
     let statusAreaPopup = document.getElementById("social-statusarea-popup");
-    statusAreaPopup.addEventListener("popupshowing", function(e) {
+    statusAreaPopup.addEventListener("popupshown", function(e) {
       this.button.setAttribute("open", "true");
     }.bind(this));
     statusAreaPopup.addEventListener("popuphidden", function(e) {
@@ -308,7 +279,7 @@ var SocialToolbar = {
 
   updateButtonHiddenState: function SocialToolbar_updateButtonHiddenState() {
     this.button.hidden = !Social.uiVisible;
-    if (!Social.provider || !Social.provider.profile || !Social.provider.profile.userName) {
+    if (!Social.provider.profile || !Social.provider.profile.userName) {
       ["social-notification-box",
        "social-status-iconbox"].forEach(function removeChildren(parentId) {
         let parent = document.getElementById(parentId);
@@ -439,12 +410,34 @@ var SocialToolbar = {
 
     sizePanelToContent();
 
+    function dispatchPanelEvent(name) {
+      let evt = notifBrowser.contentDocument.createEvent("CustomEvent");
+      evt.initCustomEvent(name, true, true, {});
+      notifBrowser.contentDocument.documentElement.dispatchEvent(evt);
+    }
+
     panel.addEventListener("popuphiding", function onpopuphiding() {
       panel.removeEventListener("popuphiding", onpopuphiding);
       SocialToolbar.button.removeAttribute("open");
+      dispatchPanelEvent("socialFrameHide");
     });
 
-    this.button.setAttribute("open", "true");
+    panel.addEventListener("popupshown", function onpopupshown() {
+      panel.removeEventListener("popupshown", onpopupshown);
+      SocialToolbar.button.setAttribute("open", "true");
+      if (notifBrowser.contentDocument.readyState == "complete") {
+        dispatchPanelEvent("socialFrameShow");
+      } else {
+        
+        notifBrowser.addEventListener("load", function panelBrowserOnload(e) {
+          notifBrowser.removeEventListener("load", panelBrowserOnload, true);
+          setTimeout(function() {
+            dispatchPanelEvent("socialFrameShow");
+          }, 0);
+        }, true);
+      }
+    });
+
     panel.openPopup(iconImage, "bottomcenter topleft", 0, 0, false, false);
   }
 }
@@ -497,9 +490,8 @@ var SocialSidebar = {
     command.setAttribute("checked", !hideSidebar);
 
     let sbrowser = document.getElementById("social-sidebar-browser");
-    sbrowser.docShell.isActive = !hideSidebar;
     if (hideSidebar) {
-      this.dispatchEvent("sidebarhide");
+      this.dispatchEvent("socialFrameHide");
       
       if (!this.canShow) {
         sbrowser.removeAttribute("origin");
@@ -514,11 +506,11 @@ var SocialSidebar = {
           sbrowser.removeEventListener("load", sidebarOnShow);
           
           setTimeout(function () {
-            SocialSidebar.dispatchEvent("sidebarshow");
+            SocialSidebar.dispatchEvent("socialFrameShow");
           }, 0);
         });
       } else {
-        this.dispatchEvent("sidebarshow");
+        this.dispatchEvent("socialFrameShow");
       }
     }
   }
