@@ -43,8 +43,15 @@
   
   
   
-# include <windef.h>
-# include <winbase.h>
+  
+  
+  
+  
+extern "C" {
+__declspec(dllimport) void * __stdcall TlsGetValue(unsigned long);
+__declspec(dllimport) int __stdcall TlsSetValue(unsigned long, void *);
+__declspec(dllimport) unsigned long __stdcall TlsAlloc();
+};
 #else
 # include <pthread.h>
 # include <signal.h>
@@ -62,7 +69,7 @@ namespace tls {
 
 #if defined(XP_WIN)
 
-typedef DWORD key;
+typedef unsigned long key;
 
 template <typename T>
 static T* get(key mykey) {
@@ -76,7 +83,7 @@ static bool set(key mykey, const T* value) {
 
 static inline bool create(key* mykey) {
   key newkey = TlsAlloc();
-  if (newkey == TLS_OUT_OF_INDEXES) {
+  if (newkey == (unsigned long)0xFFFFFFFF ) {
     return false;
   }
   *mykey = newkey;
