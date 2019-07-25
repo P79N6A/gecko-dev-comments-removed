@@ -72,13 +72,15 @@ function CssHtmlTree(aStyleWin, aCssLogic, aPanel)
   
   this.root = this.styleDocument.getElementById("root");
   this.templateRoot = this.styleDocument.getElementById("templateRoot");
+  this.propertyContainer = this.styleDocument.getElementById("propertyContainer");
+  this.templateProperty = this.styleDocument.getElementById("templateProperty");
   this.panel = aPanel;
 
   
   this.viewedElement = null;
   this.viewedDocument = null;
 
-  this.createStyleGroupViews();
+  this.createStyleViews();
 }
 
 
@@ -105,9 +107,15 @@ CssHtmlTree.l10n = function CssHtmlTree_l10n(aName)
 
 
 
-CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate, aDestination, aData)
+
+
+
+CssHtmlTree.processTemplate = function CssHtmlTree_processTemplate(aTemplate,
+                                  aDestination, aData, aPreserveDestination)
 {
-  aDestination.innerHTML = "";
+  if (!aPreserveDestination) {
+    aDestination.innerHTML = "";
+  }
 
   
   
@@ -146,12 +154,11 @@ CssHtmlTree.prototype = {
 
   highlight: function CssHtmlTree_highlight(aElement)
   {
-    this.viewedElement = aElement;
+    if (this.viewedElement == aElement) {
+      return;
+    }
 
-    
-    
-    let close = !aElement;
-    this.styleGroups.forEach(function(group) group.reset(close));
+    this.viewedElement = aElement;
 
     if (this.viewedElement) {
       this.viewedDocument = this.viewedElement.ownerDocument;
@@ -160,6 +167,31 @@ CssHtmlTree.prototype = {
       this.viewedDocument = null;
       this.root.innerHTML = "";
     }
+
+    this.propertyContainer.innerHTML = "";
+
+    
+    
+    
+    let i = 0;
+    let batchSize = 25;
+    let max = CssHtmlTree.propertyNames.length - 1;
+    function displayProperties() {
+      if (this.viewedElement == aElement && this.panel.isOpen()) {
+        
+        for (let step = i + batchSize; i < step && i <= max; i++) {
+          let propView = new PropertyView(this, CssHtmlTree.propertyNames[i]);
+          CssHtmlTree.processTemplate(
+              this.templateProperty, this.propertyContainer, propView, true);
+        }
+        if (i < max) {
+          
+          
+          this.win.setTimeout(displayProperties.bind(this), 0);
+        }
+      }
+    }
+    this.win.setTimeout(displayProperties.bind(this), 0);
   },
 
   
@@ -171,10 +203,13 @@ CssHtmlTree.prototype = {
   pathClick: function CssHtmlTree_pathClick(aEvent)
   {
     aEvent.preventDefault();
-    if (aEvent.target && aEvent.target.pathElement) {
+    if (aEvent.target && this.viewedElement != aEvent.target.pathElement) {
+      this.propertyContainer.innerHTML = "";
       if (this.win.InspectorUI.selection) {
         if (aEvent.target.pathElement != this.win.InspectorUI.selection) {
-          this.win.InspectorUI.inspectNode(aEvent.target.pathElement);
+          let elt = aEvent.target.pathElement;
+          this.win.InspectorUI.inspectNode(elt);
+          this.panel.selectNode(elt);
         }
       } else {
         this.panel.selectNode(aEvent.target.pathElement);
@@ -197,367 +232,30 @@ CssHtmlTree.prototype = {
   
 
 
-  _getPropertiesByGroup: function CssHtmlTree_getPropertiesByGroup()
+  createStyleViews: function CssHtmlTree_createStyleViews()
   {
-    return {
-      text: [
-        "color",                    
-        "color-interpolation",      
-        "color-interpolation-filters", 
-        "direction",                
-        "fill",                     
-        "fill-opacity",             
-        "fill-rule",                
-        "filter",                   
-        "flood-color",              
-        "flood-opacity",            
-        "font-family",              
-        "font-size",                
-        "font-size-adjust",         
-        "font-stretch",             
-        "font-style",               
-        "font-variant",             
-        "font-weight",              
-        "ime-mode",                 
-        "letter-spacing",           
-        "lighting-color",           
-        "line-height",              
-        "opacity",                  
-        "quotes",                   
-        "stop-color",               
-        "stop-opacity",             
-        "stroke-opacity",           
-        "text-align",               
-        "text-anchor",              
-        "text-decoration",          
-        "text-indent",              
-        "text-overflow",            
-        "text-rendering",           
-        "text-shadow",              
-        "text-transform",           
-        "vertical-align",           
-        "white-space",              
-        "word-spacing",             
-        "word-wrap",                
-        "-moz-column-count",        
-        "-moz-column-gap",          
-        "-moz-column-rule-color",   
-        "-moz-column-rule-style",   
-        "-moz-column-rule-width",   
-        "-moz-column-width",        
-        "-moz-font-feature-settings",  
-        "-moz-font-language-override", 
-        "-moz-hyphens",                
-        "-moz-text-decoration-color",  
-        "-moz-text-decoration-style",  
-        "-moz-text-decoration-line",   
-        "-moz-text-blink",          
-        "-moz-tab-size",            
-      ],
-      list: [
-        "list-style-image",         
-        "list-style-position",      
-        "list-style-type",          
-        "marker-end",               
-        "marker-mid",               
-        "marker-offset",            
-        "marker-start",             
-      ],
-      background: [
-        "background-attachment",    
-        "background-clip",          
-        "background-color",         
-        "background-image",         
-        "background-origin",        
-        "background-position",      
-        "background-repeat",        
-        "background-size",          
-        "-moz-appearance",          
-        "-moz-background-inline-policy", 
-      ],
-      dims: [
-        "width",                    
-        "height",                   
-        "max-width",                
-        "max-height",               
-        "min-width",                
-        "min-height",               
-        "margin-top",               
-        "margin-right",             
-        "margin-bottom",            
-        "margin-left",              
-        "padding-top",              
-        "padding-right",            
-        "padding-bottom",           
-        "padding-left",             
-        "clip",                     
-        "clip-path",                
-        "clip-rule",                
-        "resize",                   
-        "stroke-width",             
-        "-moz-box-flex",            
-        "-moz-box-sizing",          
-      ],
-      pos: [
-        "top",                      
-        "right",                    
-        "bottom",                   
-        "left",                     
-        "display",                  
-        "float",                    
-        "clear",                    
-        "position",                 
-        "visibility",               
-        "overflow",                 
-        "overflow-x",               
-        "overflow-y",               
-        "z-index",                  
-        "dominant-baseline",        
-        "page-break-after",         
-        "page-break-before",        
-        "stroke-dashoffset",        
-        "unicode-bidi",             
-        "-moz-box-align",           
-        "-moz-box-direction",       
-        "-moz-box-ordinal-group",   
-        "-moz-box-orient",          
-        "-moz-box-pack",            
-        "-moz-float-edge",          
-        "-moz-orient",              
-        "-moz-stack-sizing",        
-      ],
-      border: [
-        "border-top-width",         
-        "border-right-width",       
-        "border-bottom-width",      
-        "border-left-width",        
-        "border-top-color",         
-        "border-right-color",       
-        "border-bottom-color",      
-        "border-left-color",        
-        "border-top-style",         
-        "border-right-style",       
-        "border-bottom-style",      
-        "border-left-style",        
-        "border-collapse",          
-        "border-spacing",           
-        "outline-offset",           
-        "outline-style",            
-        "outline-color",            
-        "outline-width",            
-        "border-top-left-radius",       
-        "border-top-right-radius",      
-        "border-bottom-right-radius",   
-        "border-bottom-left-radius",    
-        "-moz-border-bottom-colors",    
-        "-moz-border-image",            
-        "-moz-border-left-colors",      
-        "-moz-border-right-colors",     
-        "-moz-border-top-colors",       
-        "-moz-outline-radius-topleft",      
-        "-moz-outline-radius-topright",     
-        "-moz-outline-radius-bottomright",  
-        "-moz-outline-radius-bottomleft",   
-      ],
-      other: [
-        "box-shadow",               
-        "caption-side",             
-        "content",                  
-        "counter-increment",        
-        "counter-reset",            
-        "cursor",                   
-        "empty-cells",              
-        "image-rendering",          
-        "mask",                     
-        "pointer-events",           
-        "shape-rendering",          
-        "stroke",                   
-        "stroke-dasharray",         
-        "stroke-linecap",           
-        "stroke-linejoin",          
-        "stroke-miterlimit",        
-        "table-layout",             
-        "-moz-animation-delay",     
-        "-moz-animation-direction", 
-        "-moz-animation-duration",  
-        "-moz-animation-fill-mode", 
-        "-moz-animation-iteration-count", 
-        "-moz-animation-name",            
-        "-moz-animation-play-state",      
-        "-moz-animation-timing-function", 
-        "-moz-backface-visibility",       
-        "-moz-binding",                   
-        "-moz-force-broken-image-icon",   
-        "-moz-image-region",        
-        "-moz-perspective",         
-        "-moz-perspective-origin",  
-        "-moz-transform",           
-        "-moz-transform-origin",    
-        "-moz-transition-delay",    
-        "-moz-transition-duration", 
-        "-moz-transition-property", 
-        "-moz-transition-timing-function", 
-        "-moz-user-focus",          
-        "-moz-user-input",          
-        "-moz-user-modify",         
-        "-moz-user-select",         
-        "-moz-window-shadow",       
-      ],
-    };
-  },
-
-  
-
-
-  createStyleGroupViews: function CssHtmlTree_createStyleGroupViews()
-  {
-    if (!CssHtmlTree.propertiesByGroup) {
-      let pbg = CssHtmlTree.propertiesByGroup = this._getPropertiesByGroup();
-
-      
-      let mergedArray = Array.concat(
-          pbg.text,
-          pbg.list,
-          pbg.background,
-          pbg.dims,
-          pbg.pos,
-          pbg.border,
-          pbg.other
-      );
-
-      
-      
-      
-      let styles = this.styleWin.contentWindow.getComputedStyle(this.styleDocument.body);
-      CssHtmlTree.supportedPropertyLookup = {};
-      for (let i = 0, numStyles = styles.length; i < numStyles; i++) {
-        let prop = styles.item(i);
-        CssHtmlTree.supportedPropertyLookup[prop] = true;
-
-        if (mergedArray.indexOf(prop) == -1) {
-          pbg.other.push(prop);
-        }
-      }
-
-      this.propertiesByGroup = CssHtmlTree.propertiesByGroup;
-    }
-
-    let pbg = CssHtmlTree.propertiesByGroup;
-
-    
-    this.styleGroups = [
-      new StyleGroupView(this, "Text_Fonts_and_Color", pbg.text),
-      new StyleGroupView(this, "Lists", pbg.list),
-      new StyleGroupView(this, "Background", pbg.background),
-      new StyleGroupView(this, "Dimensions", pbg.dims),
-      new StyleGroupView(this, "Positioning_and_Page_Flow", pbg.pos),
-      new StyleGroupView(this, "Borders", pbg.border),
-      new StyleGroupView(this, "Effects_and_Other", pbg.other),
-    ];
-  },
-};
-
-
-
-
-
-
-
-
-
-
-
-function StyleGroupView(aTree, aId, aPropertyNames)
-{
-  this.tree = aTree;
-  this.id = aId;
-  this.getRTLAttr = CssHtmlTree.getRTLAttr;
-  this.localName = CssHtmlTree.l10n("group." + this.id);
-
-  this.propertyViews = [];
-  aPropertyNames.forEach(function(aPropertyName) {
-    if (this.isPropertySupported(aPropertyName)) {
-      this.propertyViews.push(new PropertyView(this.tree, this, aPropertyName));
-    }
-  }, this);
-
-  this.populated = false;
-
-  this.templateProperties = this.tree.styleDocument.getElementById("templateProperties");
-
-  
-  this.element = null;
-  
-  this.properties = null;
-}
-
-StyleGroupView.prototype = {
-  
-
-
-  click: function StyleGroupView_click()
-  {
-    
-    if (this.element.hasAttribute("open")) {
-      this.element.removeAttribute("open");
+    if (CssHtmlTree.propertyNames) {
       return;
     }
 
-    if (!this.populated) {
-      CssHtmlTree.processTemplate(this.templateProperties, this.properties, this);
-      this.populated = true;
-    }
+    CssHtmlTree.propertyNames = [];
 
-    this.element.setAttribute("open", "");
-  },
-
-  
-
-
-  close: function StyleGroupView_close()
-  {
-    if (this.element) {
-      this.element.removeAttribute("open");
-    }
-  },
-
-  
-
-
-
-
-  reset: function StyleGroupView_reset(aClosePanel)
-  {
-    this.close();
-    this.populated = false;
-    for (let i = 0, numViews = this.propertyViews.length; i < numViews; i++) {
-      this.propertyViews[i].reset();
-    }
-
-    if (this.properties) {
-      if (aClosePanel) {
-        if (this.element) {
-          this.element.removeChild(this.properties);
-        }
-
-        this.properties = null;
+    
+    
+    let styles = this.styleWin.contentWindow.getComputedStyle(this.styleDocument.body);
+    let mozProps = [];
+    for (let i = 0, numStyles = styles.length; i < numStyles; i++) {
+      let prop = styles.item(i);
+      if (prop.charAt(0) == "-") {
+        mozProps.push(prop);
       } else {
-        while (this.properties.hasChildNodes()) {
-          this.properties.removeChild(this.properties.firstChild);
-        }
+        CssHtmlTree.propertyNames.push(prop);
       }
     }
-  },
 
-  
-
-
-
-
-
-
-  isPropertySupported: function(aProperty) {
-    return aProperty && aProperty in CssHtmlTree.supportedPropertyLookup;
+    CssHtmlTree.propertyNames.sort();
+    CssHtmlTree.propertyNames.push.apply(CssHtmlTree.propertyNames,
+      mozProps.sort());
   },
 };
 
@@ -569,12 +267,9 @@ StyleGroupView.prototype = {
 
 
 
-
-
-function PropertyView(aTree, aGroup, aName)
+function PropertyView(aTree, aName)
 {
   this.tree = aTree;
-  this.group = aGroup;
   this.name = aName;
   this.getRTLAttr = CssHtmlTree.getRTLAttr;
 
@@ -583,7 +278,7 @@ function PropertyView(aTree, aGroup, aName)
 
   this.link = "https://developer.mozilla.org/en/CSS/" + aName;
 
-  this.templateRules = this.tree.styleDocument.getElementById("templateRules");
+  this.templateRules = aTree.styleDocument.getElementById("templateRules");
 
   
   this.element = null;
@@ -608,7 +303,6 @@ PropertyView.prototype = {
       return;
     }
 
-    
     if (this.element.hasAttribute("open")) {
       this.element.removeAttribute("open");
       return;
@@ -661,15 +355,19 @@ PropertyView.prototype = {
 
     if (matchedRuleCount > 0) {
       aElement.classList.add("rule-count");
+      aElement.firstElementChild.className = "expander";
 
       let str = CssHtmlTree.l10n("property.numberOfRules");
-      result = PluralForm.get(matchedRuleCount, str).replace("#1", matchedRuleCount);
+      result = PluralForm.get(matchedRuleCount, str)
+          .replace("#1", matchedRuleCount);
     } else if (this.showUnmatchedLink) {
       aElement.classList.add("rule-unmatched");
+      aElement.firstElementChild.className = "expander";
 
       let unmatchedRuleCount = this.propertyInfo.unmatchedRuleCount;
       let str = CssHtmlTree.l10n("property.numberOfUnmatchedRules");
-      result = PluralForm.get(unmatchedRuleCount, str).replace("#1", unmatchedRuleCount);
+      result = PluralForm.get(unmatchedRuleCount, str)
+          .replace("#1", unmatchedRuleCount);
     }
     return result;
   },
@@ -770,6 +468,7 @@ SelectorView.CLASS_NAMES = [
 
 SelectorView.prototype = {
   
+
 
 
 
