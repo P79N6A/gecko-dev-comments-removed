@@ -97,7 +97,6 @@ class WebGLUniformLocation;
 class WebGLExtension;
 class WebGLVertexAttribData;
 
-template<int PreallocatedOwnersCapacity> class WebGLZeroingObject;
 class WebGLContextBoundObject;
 
 enum FakeBlackStatus { DoNotNeedFakeBlack, DoNeedFakeBlack, DontKnowIfNeedFakeBlack };
@@ -364,141 +363,6 @@ private:
 
 protected:
     T *mRawPtr;
-};
-
-class WebGLObjectBaseRefPtr
-{
-protected:
-    template<int PreallocatedOwnersCapacity>
-    friend class WebGLZeroingObject;
-
-    WebGLObjectBaseRefPtr()
-        : mRawPtr(0)
-    {
-    }
-
-    WebGLObjectBaseRefPtr(nsISupports *rawPtr)
-        : mRawPtr(rawPtr)
-    {
-    }
-
-    void Zero() {
-        if (mRawPtr) {
-            
-            
-            mRawPtr->Release();
-            mRawPtr = 0;
-        }
-    }
-
-protected:
-    nsISupports *mRawPtr;
-};
-
-template <class T>
-class WebGLObjectRefPtr
-    : public WebGLObjectBaseRefPtr
-{
-public:
-    typedef T element_type;
-
-    WebGLObjectRefPtr()
-    { }
-
-    WebGLObjectRefPtr(const WebGLObjectRefPtr<T>& aSmartPtr)
-        : WebGLObjectBaseRefPtr(aSmartPtr.mRawPtr)
-    {
-        if (mRawPtr) {
-            RawPtr()->AddRef();
-            RawPtr()->AddRefOwner(this);
-        }
-    }
-
-    WebGLObjectRefPtr(T *aRawPtr)
-        : WebGLObjectBaseRefPtr(aRawPtr)
-    {
-        if (mRawPtr) {
-            RawPtr()->AddRef();
-            RawPtr()->AddRefOwner(this);
-        }
-    }
-
-    WebGLObjectRefPtr(const already_AddRefed<T>& aSmartPtr)
-        : WebGLObjectBaseRefPtr(aSmartPtr.mRawPtr)
-          
-    {
-        if (mRawPtr) {
-            RawPtr()->AddRef();
-            RawPtr()->AddRefOwner(this);
-        }
-    }
-
-    ~WebGLObjectRefPtr() {
-        if (mRawPtr) {
-            RawPtr()->RemoveRefOwner(this);
-            RawPtr()->Release();
-        }
-    }
-
-    WebGLObjectRefPtr<T>&
-    operator=(const WebGLObjectRefPtr<T>& rhs)
-    {
-        assign_with_AddRef(static_cast<T*>(rhs.mRawPtr));
-        return *this;
-    }
-
-    WebGLObjectRefPtr<T>&
-    operator=(T* rhs)
-    {
-        assign_with_AddRef(rhs);
-        return *this;
-    }
-
-    WebGLObjectRefPtr<T>&
-    operator=(const already_AddRefed<T>& rhs)
-    {
-        assign_assuming_AddRef(static_cast<T*>(rhs.mRawPtr));
-        return *this;
-    }
-
-    T* get() const {
-        return const_cast<T*>(static_cast<T*>(mRawPtr));
-    }
-
-    operator T*() const {
-        return get();
-    }
-
-    T* operator->() const {
-        NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL WebGLObjectRefPtr with operator->()!");
-        return get();
-    }
-
-    T& operator*() const {
-        NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL WebGLObjectRefPtr with operator*()!");
-        return *get();
-    }
-
-private:
-    T* RawPtr() { return static_cast<T*>(mRawPtr); }
-
-    void assign_with_AddRef(T* rawPtr) {
-        if (rawPtr) {
-            rawPtr->AddRef();
-            rawPtr->AddRefOwner(this);
-        }
-
-        assign_assuming_AddRef(rawPtr);
-    }
-
-    void assign_assuming_AddRef(T* newPtr) {
-        T* oldPtr = RawPtr();
-        mRawPtr = newPtr;
-        if (oldPtr) {
-            oldPtr->RemoveRefOwner(this);
-            oldPtr->Release();
-        }
-    }
 };
 
 struct WebGLContextOptions {
@@ -942,46 +806,6 @@ public:
     friend class WebGLProgram;
     friend class WebGLBuffer;
     friend class WebGLShader;
-};
-
-
-
-
-
-
-
-
-
-
-template<int PreallocatedOwnersCapacity>
-class WebGLZeroingObject
-{
-public:
-    WebGLZeroingObject()
-    { }
-
-    void AddRefOwner(WebGLObjectBaseRefPtr *owner) {
-        mRefOwners.AppendElement(owner);
-    }
-
-    void RemoveRefOwner(WebGLObjectBaseRefPtr *owner) {
-        mRefOwners.RemoveElement(owner);
-    }
-
-    void ZeroOwners() {
-        WebGLObjectBaseRefPtr **owners = mRefOwners.Elements();
-        
-        for (PRUint32 i = 0; i < mRefOwners.Length(); i++) {
-            owners[i]->Zero();
-        }
-
-        mRefOwners.Clear();
-    }
-
-protected:
-    nsAutoTArray<WebGLObjectBaseRefPtr *, PreallocatedOwnersCapacity> mRefOwners;
-    friend class WebGLShader;
-    friend class WebGLBuffer;
 };
 
 
