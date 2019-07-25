@@ -216,7 +216,7 @@ pref("gfx.font_rendering.harfbuzz.scripts", 71);
 pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
 
-pref("gfx.font_rendering.harfbuzz.scripts", 3);
+pref("gfx.font_rendering.harfbuzz.scripts", 7);
 #endif
 #endif
 
@@ -297,8 +297,6 @@ pref("toolkit.autocomplete.richBoundaryCutoff", 200);
 
 pref("toolkit.scrollbox.smoothScroll", true);
 pref("toolkit.scrollbox.scrollIncrement", 20);
-
-pref("toolkit.scrollbox.verticalScrollDistance", 3);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
 
