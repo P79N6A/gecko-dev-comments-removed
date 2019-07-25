@@ -811,16 +811,36 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
         return false;
 
 #ifdef MOZ_WIDGET_GTK2
-    if (aWindow.type == NPWindowTypeWindow
-        && gtk_check_version(2,18,7) != NULL) { 
-        GdkWindow* socket_window = gdk_window_lookup(aWindow.window);
-        if (socket_window) {
+    if (gtk_check_version(2,18,7) != NULL) { 
+        if (aWindow.type == NPWindowTypeWindow) {
+            GdkWindow* socket_window = gdk_window_lookup(aWindow.window);
+            if (socket_window) {
+                
+                
+                
+                g_object_set_data(G_OBJECT(socket_window),
+                                  "moz-existed-before-set-window",
+                                  GUINT_TO_POINTER(1));
+            }
+        }
+
+        if (aWindow.visualID != None
+            && gtk_check_version(2, 12, 10) != NULL) { 
             
             
             
-            g_object_set_data(G_OBJECT(socket_window),
-                              "moz-existed-before-set-window",
-                              GUINT_TO_POINTER(1));
+            GdkVisual *gdkvisual = gdkx_visual_get(aWindow.visualID);
+            GdkColormap *gdkcolor =
+                gdk_x11_colormap_foreign_new(gdkvisual, aWindow.colormap);
+
+            if (g_object_get_data(G_OBJECT(gdkcolor), "moz-have-extra-ref")) {
+                
+                g_object_unref(gdkcolor);
+            } else {
+                
+                g_object_set_data(G_OBJECT(gdkcolor),
+                                  "moz-have-extra-ref", GUINT_TO_POINTER(1));
+            }
         }
     }
 #endif
