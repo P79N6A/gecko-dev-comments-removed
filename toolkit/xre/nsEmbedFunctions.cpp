@@ -371,15 +371,19 @@ XRE_InitChildProcess(int aArgc,
   
   
   
-  if (0 != strcmp("-", crashReporterArg)
-      && !XRE_SetRemoteExceptionHandler(crashReporterArg))
-    return 1;
+  if (0 != strcmp("-", crashReporterArg) && 
+      !XRE_SetRemoteExceptionHandler(crashReporterArg)) {
+    
+    NS_WARNING("Could not setup crash reporting\n");
+  }
 #  elif defined(OS_LINUX)
   
   
-  if (0 != strcmp("false", crashReporterArg)
-      && !XRE_SetRemoteExceptionHandler(NULL))
-    return 1;
+  if (0 != strcmp("false", crashReporterArg) && 
+      !XRE_SetRemoteExceptionHandler(NULL)) {
+    
+    NS_WARNING("Could not setup crash reporting\n");
+  }
 #  else
 #    error "OOP crash reporting unsupported on this platform"
 #  endif   
