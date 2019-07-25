@@ -525,7 +525,6 @@ protected:
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
   const nsSMILInterval* GetPreviousInterval() const;
   PRBool            HasPlayed() const { return !mOldIntervals.IsEmpty(); }
-  PRBool            HaveResolvedEndTimes() const;
   PRBool            EndHasEventConditions() const;
 
   
