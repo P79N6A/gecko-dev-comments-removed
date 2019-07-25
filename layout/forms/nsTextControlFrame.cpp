@@ -498,14 +498,8 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                     nsSize aMargin, nsSize aBorder,
                                     nsSize aPadding, bool aShrinkWrap)
 {
-  float inflation;
-  if (nsLayoutUtils::IsContainerForFontSizeInflation(this)) {
-    
-    
-    inflation = 1.0f;
-  } else {
-    inflation = nsLayoutUtils::FontSizeInflationFor(this, aCBSize.width);
-  }
+  float inflation =
+    nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
   nsSize autoSize;
   nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
   if (NS_FAILED(rv)) {
@@ -612,24 +606,8 @@ nsTextControlFrame::GetBoxAscent(nsBoxLayoutState& aState)
   
   
 
-  float inflation;
-  if (nsLayoutUtils::IsContainerForFontSizeInflation(this)) {
-    inflation =
-      nsLayoutUtils::FontSizeInflationFor(this, GetContentRect().width);
-  } else {
-    const nsHTMLReflowState *outerReflowState = aState.OuterReflowState();
-    NS_ASSERTION(outerReflowState || !mParent || mParent->IsBoxFrame() ||
-                 !(mParent->GetStateBits() & NS_FRAME_IN_REFLOW),
-                 "when a text control is reflowed by one of its ancestors "
-                 "and its parent is non-XUL, we should have the outer "
-                 "reflow state in the box layout state");
-    if (outerReflowState && outerReflowState->frame == this) {
-      inflation = nsLayoutUtils::FontSizeInflationFor(*outerReflowState);
-    } else {
-      inflation = nsLayoutUtils::FontSizeInflationInner(this,
-                    nsLayoutUtils::InflationMinFontSizeFor(mParent));
-    }
-  }
+  float inflation =
+    nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
 
   
   nsRect clientRect;

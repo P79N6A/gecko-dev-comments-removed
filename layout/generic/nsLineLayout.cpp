@@ -120,7 +120,8 @@ nsLineLayout::nsLineLayout(nsPresContext* aPresContext,
   mTrimmableWidth = 0;
 
   mInflationMinFontSize =
-    nsLayoutUtils::InflationMinFontSizeFor(*aOuterReflowState);
+    nsLayoutUtils::InflationMinFontSizeFor(aOuterReflowState->frame,
+                                           nsLayoutUtils::eInReflow);
 
   
   

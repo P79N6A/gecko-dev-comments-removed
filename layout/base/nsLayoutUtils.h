@@ -1522,10 +1522,9 @@ public:
 
 
 
-  static float FontSizeInflationFor(const nsHTMLReflowState &aReflowState);
-  static float FontSizeInflationFor(const nsIFrame *aFrame);
+  enum WidthDetermination { eNotInReflow, eInReflow };
   static float FontSizeInflationFor(const nsIFrame *aFrame,
-                                    nscoord aInflationContainerWidth);
+                                    WidthDetermination aWidthDetermination);
 
   
 
@@ -1540,11 +1539,9 @@ public:
 
 
 
-  static nscoord InflationMinFontSizeFor(const nsHTMLReflowState
-                                                 &aReflowState);
-  static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame);
   static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame,
-                                         nscoord aInflationContainerWidth);
+                                         WidthDetermination
+                                           aWidthDetermination);
 
   
 

@@ -248,7 +248,7 @@ public:
 
 
 
-  nscoord CalcHeightOfARow(const nsHTMLReflowState& aReflowState);
+  nscoord CalcHeightOfARow();
 
   
 
