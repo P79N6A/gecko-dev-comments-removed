@@ -214,9 +214,6 @@ private:
   nsZipItem*        CreateZipItem();
   nsresult          BuildFileList();
   nsresult          BuildSynthetics();
-
-  nsresult  CopyItemToDisk(nsZipItem* item, PRFileDesc* outFD);
-  nsresult  InflateItem(nsZipItem* item, PRFileDesc* outFD);
 };
 
 class nsZipHandle {
@@ -263,6 +260,88 @@ private:
   
   nsZipFind& operator=(const nsZipFind& rhs);
   nsZipFind(const nsZipFind& rhs);
+};
+
+
+
+
+class nsZipCursor {
+public:
+  
+
+
+
+
+
+
+
+
+
+  nsZipCursor(nsZipItem *aItem, nsZipArchive *aZip, PRUint8* aBuf = NULL, PRUint32 aBufSize = 0, bool doCRC = false);
+
+  ~nsZipCursor();
+
+  
+
+
+
+
+
+
+  PRUint8* Read(PRUint32 *aBytesRead);
+
+private:
+  nsZipItem *mItem; 
+  PRUint8  *mBuf; 
+  PRUint32  mBufSize; 
+  z_stream  mZs;
+  PRUint32 mCRC;
+  bool mDoCRC;
+};
+
+
+
+
+
+
+
+class nsZipItemPtr_base {
+public:
+  
+
+
+
+
+
+
+  nsZipItemPtr_base(nsZipArchive *aZip, const char *aEntryName, bool doCRC);
+
+  PRUint32 Length() const {
+    return mReadlen;
+  }
+
+protected:
+  nsRefPtr<nsZipHandle> mZipHandle;
+  nsAutoArrayPtr<PRUint8> mAutoBuf;
+  PRUint8 *mReturnBuf;
+  PRUint32 mReadlen;
+};
+
+template <class T>
+class nsZipItemPtr : public nsZipItemPtr_base {
+public:
+  nsZipItemPtr(nsZipArchive *aZip, const char *aEntryName, bool doCRC = false) : nsZipItemPtr_base(aZip, aEntryName, doCRC) { }
+  
+
+
+
+  const T* Buffer() const {
+    return (const T*)mReturnBuf;
+  }
+
+  operator const T*() const {
+    return Buffer();
+  }
 };
 
 nsresult gZlibInit(z_stream *zs);
