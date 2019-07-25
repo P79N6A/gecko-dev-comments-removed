@@ -1204,10 +1204,6 @@ struct JSCompartment {
     void sweep(JSContext *cx);
 };
 
-struct JSGCTracer : public JSTracer {
-    uint32 color;
-};
-
 struct JSRuntime {
     
     JSCompartment       *defaultCompartment;
@@ -1251,7 +1247,7 @@ struct JSRuntime {
     size_t              gcMaxMallocBytes;
     uint32              gcEmptyArenaPoolLifespan;
     uint32              gcNumber;
-    JSGCTracer          *gcMarkingTracer;
+    JSTracer            *gcMarkingTracer;
     uint32              gcTriggerFactor;
     size_t              gcTriggerBytes;
     volatile JSBool     gcIsNeeded;
@@ -1715,6 +1711,9 @@ struct JSContext
 
 
     JSPackedBool        generatingError;
+
+    
+    JSPackedBool        insideGCMarkCallback;
 
     
     JSPackedBool        throwing;           
