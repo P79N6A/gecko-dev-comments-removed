@@ -462,15 +462,12 @@ PickChunk(JSContext *cx)
     if (chunk && chunk->hasAvailableArenas())
         return chunk;
 
-    JSRuntime *rt = cx->runtime;
-    bool systemGCChunks = cx->compartment->systemGCChunks;
-
     
 
 
 
-    GCChunkSet::Range r(systemGCChunks ? rt->gcSystemChunkSet.all() : rt->gcChunkSet.all());
-    for (; !r.empty(); r.popFront()) {
+    JSRuntime *rt = cx->runtime;
+    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront()) {
         chunk = r.front();
         if (chunk->hasAvailableArenas()) {
             cx->compartment->chunk = chunk;
@@ -479,39 +476,18 @@ PickChunk(JSContext *cx)
     }
 
     chunk = AllocateGCChunk(rt);
-    if (!chunk) {
-        
-        GCChunkSet::Enum e(systemGCChunks ? rt->gcChunkSet : rt->gcSystemChunkSet);
-        for (; !e.empty(); e.popFront()) {
-            if (e.front()->info.numFree == ArenasPerChunk) {
-                chunk = e.front();
-                e.removeFront();
-                break;
-            }
-        }
-
-        if (!chunk)
-            return NULL;
-    }
+    if (!chunk)
+        return NULL;
 
     
 
 
 
-    GCChunkSet::AddPtr p = systemGCChunks ?
-                           rt->gcSystemChunkSet.lookupForAdd(chunk) :
-                           rt->gcChunkSet.lookupForAdd(chunk);
+    GCChunkSet::AddPtr p = rt->gcChunkSet.lookupForAdd(chunk);
     JS_ASSERT(!p);
-    if (systemGCChunks) {
-        if (!rt->gcSystemChunkSet.add(p, chunk)) {
-            ReleaseGCChunk(rt, chunk);
-            return NULL;
-        }
-    } else {
-        if (!rt->gcChunkSet.add(p, chunk)) {
-            ReleaseGCChunk(rt, chunk);
-            return NULL;
-        }
+    if (!rt->gcChunkSet.add(p, chunk)) {
+        ReleaseGCChunk(rt, chunk);
+        return NULL;
     }
 
     chunk->init(rt);
@@ -530,18 +506,6 @@ ExpireGCChunks(JSRuntime *rt, JSGCInvocationKind gckind)
 
     rt->gcChunksWaitingToExpire = 0;
     for (GCChunkSet::Enum e(rt->gcChunkSet); !e.empty(); e.popFront()) {
-        Chunk *chunk = e.front();
-        JS_ASSERT(chunk->info.runtime == rt);
-        if (chunk->unused()) {
-            if (gckind == GC_SHRINK || chunk->info.age++ > MaxAge) {
-                e.removeFront();
-                ReleaseGCChunk(rt, chunk);
-                continue;
-            }
-            rt->gcChunksWaitingToExpire++;
-        }
-    }
-    for (GCChunkSet::Enum e(rt->gcSystemChunkSet); !e.empty(); e.popFront()) {
         Chunk *chunk = e.front();
         JS_ASSERT(chunk->info.runtime == rt);
         if (chunk->unused()) {
@@ -595,9 +559,6 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
 
     if (!rt->gcChunkSet.init(16))
-        return false;
-
-    if (!rt->gcSystemChunkSet.init(16))
         return false;
 
     if (!rt->gcRootsHash.init(256))
@@ -739,8 +700,7 @@ MarkIfGCThingWord(JSTracer *trc, jsuword w)
 
     Chunk *chunk = Chunk::fromAddress(addr);
 
-    if (!trc->context->runtime->gcChunkSet.has(chunk) && 
-        !trc->context->runtime->gcSystemChunkSet.has(chunk))
+    if (!trc->context->runtime->gcChunkSet.has(chunk))
         return CGCT_NOTCHUNK;
 
     
@@ -949,10 +909,7 @@ js_FinishGC(JSRuntime *rt)
 
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
         ReleaseGCChunk(rt, r.front());
-    for (GCChunkSet::Range r(rt->gcSystemChunkSet.all()); !r.empty(); r.popFront())
-        ReleaseGCChunk(rt, r.front());
     rt->gcChunkSet.clear();
-    rt->gcSystemChunkSet.clear();
 
 #ifdef JS_THREADSAFE
     rt->gcHelperThread.finish(rt);
@@ -1845,10 +1802,10 @@ MarkRuntime(JSTracer *trc)
             (*c)->traceMonitor()->mark(trc);
 #endif
 
-    for (ThreadDataIter i(rt); !i.empty(); i.popFront())
-        i.threadData()->mark(trc);
-
-    
+     for (ThreadDataIter i(rt); !i.empty(); i.popFront())
+         i.threadData()->mark(trc);
+ 
+     
 
 
 
@@ -2273,10 +2230,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
     rt->gcMarkingTracer = &gcmarker;
 
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
-        r.front()->bitmap.clear();
-
-    for (GCChunkSet::Range r(rt->gcSystemChunkSet.all()); !r.empty(); r.popFront())
-        r.front()->bitmap.clear();
+         r.front()->bitmap.clear();
 
     if (comp) {
         for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
@@ -2775,14 +2729,40 @@ TraceRuntime(JSTracer *trc)
     MarkRuntime(trc);
 }
 
-void
-IterateCompartmentsArenasCells(JSContext *cx, void *data,
-                               IterateCompartmentCallback compartmentCallback, 
-                               IterateArenaCallback arenaCallback,
-                               IterateCellCallback cellCallback)
+static void
+IterateCompartmentCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
+                        void *data, IterateCallback callback)
 {
-    CHECK_REQUEST(cx);
+    for (unsigned thingKind = 0; thingKind < FINALIZE_LIMIT; thingKind++) {
+        size_t traceKind = GetFinalizableTraceKind(thingKind);
+        if (traceKindMask && !TraceKindInMask(traceKind, traceKindMask))
+            continue;
 
+        size_t thingSize = GCThingSizeMap[thingKind];
+        ArenaHeader *aheader = comp->arenas[thingKind].getHead();
+        for (; aheader; aheader = aheader->next) {
+            Arena *a = aheader->getArena();
+            FreeSpan firstSpan(aheader->getFirstFreeSpan());
+            FreeSpan *span = &firstSpan;
+            for (uintptr_t thing = a->thingsStart(thingSize);; thing += thingSize) {
+                JS_ASSERT(thing <= a->thingsEnd());
+                if (thing == span->start) {
+                    if (!span->hasNext())
+                        break;
+                    thing = span->end;
+                    span = span->nextSpan();
+                } else {
+                    (*callback)(cx, data, traceKind, reinterpret_cast<void *>(thing));
+                }
+            }
+        }
+    }
+}
+
+void
+IterateCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
+             void *data, IterateCallback callback)
+{
     LeaveTrace(cx);
 
     JSRuntime *rt = cx->runtime;
@@ -2796,35 +2776,11 @@ IterateCompartmentsArenasCells(JSContext *cx, void *data,
     AutoUnlockGC unlock(rt);
 
     AutoCopyFreeListToArenas copy(rt);
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
-        JSCompartment *compartment = *c;
-        (*compartmentCallback)(cx, data, compartment);
-
-        for (unsigned thingKind = 0; thingKind < FINALIZE_LIMIT; thingKind++) {
-            size_t traceKind = GetFinalizableTraceKind(thingKind);
-            size_t thingSize = GCThingSizeMap[thingKind];
-            ArenaHeader *aheader = compartment->arenas[thingKind].getHead();
-
-            for (; aheader; aheader = aheader->next) {
-                Arena *arena = aheader->getArena();
-                (*arenaCallback)(cx, data, arena, traceKind, thingSize);
-                FreeSpan firstSpan(aheader->getFirstFreeSpan());
-                FreeSpan *span = &firstSpan;
-
-                for (uintptr_t thing = arena->thingsStart(thingSize); ; thing += thingSize) {
-                    JS_ASSERT(thing <= arena->thingsEnd());
-                    if (thing == span->start) {
-                        if (!span->hasNext())
-                            break;
-                        thing = span->end;
-                        span = span->nextSpan();
-                    } else {
-                        (*cellCallback)(cx, data, reinterpret_cast<void *>(thing), traceKind,
-                                        thingSize);
-                    }
-                }
-            }
-        }
+    if (comp) {
+        IterateCompartmentCells(cx, comp, traceKindMask, data, callback);
+    } else {
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
+            IterateCompartmentCells(cx, *c, traceKindMask, data, callback);
     }
 }
 
@@ -2836,7 +2792,6 @@ NewCompartment(JSContext *cx, JSPrincipals *principals)
     JSRuntime *rt = cx->runtime;
     JSCompartment *compartment = cx->new_<JSCompartment>(rt);
     if (compartment && compartment->init()) {
-        compartment->systemGCChunks = principals && !strcmp(principals->codebase, "[System Principal]");
         if (principals) {
             compartment->principals = principals;
             JSPRINCIPALS_HOLD(cx, principals);
