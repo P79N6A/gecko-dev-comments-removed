@@ -281,7 +281,7 @@
          declareFFI("ReadFile", ctypes.winapi_abi,
                      Types.zero_or_nothing,
                        Types.HANDLE,
-                     Types.char.out_ptr,
+                     Types.voidptr_t,
                      Types.DWORD,
                     Types.DWORD.out_ptr,
                     Types.void_t.inout_ptr 
@@ -315,7 +315,7 @@
          declareFFI("WriteFile", ctypes.winapi_abi,
                      Types.zero_or_nothing,
                        Types.HANDLE,
-                     Types.char.in_ptr,
+                     Types.voidptr_t,
                      Types.DWORD,
                     Types.DWORD.out_ptr,
                     Types.void_t.inout_ptr 
