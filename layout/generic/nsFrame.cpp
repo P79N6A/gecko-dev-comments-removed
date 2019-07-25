@@ -2725,15 +2725,14 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   if (aAmountBack == eSelectWord) {
     
     
-    nsPeekOffsetStruct pos;
-    pos.SetData(eSelectCharacter,
-                eDirNext,
-                aStartPos,
-                0,
-                aJumpLines,
-                true,  
-                false,
-                false);
+    nsPeekOffsetStruct pos(eSelectCharacter,
+                           eDirNext,
+                           aStartPos,
+                           0,
+                           aJumpLines,
+                           true,  
+                           false,
+                           false);
     rv = PeekOffset(&pos);
     if (NS_SUCCEEDED(rv)) {
       baseFrame = pos.mResultFrame;
@@ -2742,28 +2741,26 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   }
 
   
-  nsPeekOffsetStruct startpos;
-  startpos.SetData(aAmountBack,
-                   eDirPrevious,
-                   baseOffset, 
-                   0,
-                   aJumpLines,
-                   true,  
-                   false,
-                   false);
+  nsPeekOffsetStruct startpos(aAmountBack,
+                              eDirPrevious,
+                              baseOffset,
+                              0,
+                              aJumpLines,
+                              true,  
+                              false,
+                              false);
   rv = baseFrame->PeekOffset(&startpos);
   if (NS_FAILED(rv))
     return rv;
 
-  nsPeekOffsetStruct endpos;
-  endpos.SetData(aAmountForward,
-                 eDirNext,
-                 aStartPos, 
-                 0,
-                 aJumpLines,
-                 true,  
-                 false,
-                 false);
+  nsPeekOffsetStruct endpos(aAmountForward,
+                            eDirNext,
+                            aStartPos,
+                            0,
+                            aJumpLines,
+                            true,  
+                            false,
+                            false);
   rv = PeekOffset(&endpos);
   if (NS_FAILED(rv))
     return rv;
@@ -5784,15 +5781,15 @@ nsFrame::GetNextPrevLineFromeBlockFrame(nsPresContext* aPresContext,
   return NS_OK;
 }
 
-nsPeekOffsetStruct nsIFrame::GetExtremeCaretPosition(bool aStart)
+nsIFrame::CaretPosition
+nsIFrame::GetExtremeCaretPosition(bool aStart)
 {
-  nsPeekOffsetStruct result;
+  CaretPosition result;
 
   FrameTarget targetFrame = DrillDownToSelectionFrame(this, !aStart);
   FrameContentRange range = GetRangeForFrame(targetFrame.frame);
   result.mResultContent = range.content;
   result.mContentOffset = aStart ? range.start : range.end;
-  result.mAttachForward = (result.mContentOffset == range.start);
   return result;
 }
 

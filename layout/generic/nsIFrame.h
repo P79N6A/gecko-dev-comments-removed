@@ -2707,6 +2707,15 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   
   
 
+  struct CaretPosition {
+    CaretPosition() :
+      mContentOffset(0)
+    {}
+
+    nsCOMPtr<nsIContent> mResultContent;
+    PRInt32              mContentOffset;
+  };
+
   
 
 
@@ -2717,8 +2726,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
 
 
 
-
-  nsPeekOffsetStruct GetExtremeCaretPosition(bool aStart);
+  CaretPosition GetExtremeCaretPosition(bool aStart);
 
   
 

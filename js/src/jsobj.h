@@ -668,17 +668,6 @@ struct JSObject : public js::ObjectImpl
     inline js::GlobalObject &global() const;
 
     
-
-    inline bool hasPrivate() const;
-    inline void *getPrivate() const;
-    inline void setPrivate(void *data);
-    inline void setPrivateUnbarriered(void *data);
-    inline void initPrivate(void *data);
-
-    
-    inline void *getPrivate(size_t nfixed) const;
-
-    
     inline JSPrincipals *principals(JSContext *cx);
 
     
@@ -703,8 +692,6 @@ struct JSObject : public js::ObjectImpl
     bool isSealedOrFrozen(JSContext *cx, ImmutabilityType it, bool *resultp);
 
     static inline unsigned getSealedOrFrozenAttributes(unsigned attrs, ImmutabilityType it);
-
-    inline void *&privateRef(uint32_t nfixed) const;
 
   public:
     bool preventExtensions(JSContext *cx, js::AutoIdVector *props);
@@ -1352,7 +1339,7 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType);
 
 
 extern JSObject *
-js_CreateThis(JSContext *cx, JSObject *callee);
+js_CreateThis(JSContext *cx, js::Class *clasp, JSObject *callee);
 
 extern jsid
 js_CheckForStringIndex(jsid id);

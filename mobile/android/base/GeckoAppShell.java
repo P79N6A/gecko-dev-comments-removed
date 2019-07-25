@@ -694,7 +694,8 @@ public class GeckoAppShell
     }
 
     public static void returnIMEQueryResult(String result, int selectionStart, int selectionLength) {
-        mInputConnection.returnIMEQueryResult(result, selectionStart, selectionLength);
+        
+        
     }
 
     static void onXreExit() {

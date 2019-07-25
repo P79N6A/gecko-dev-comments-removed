@@ -439,7 +439,19 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         mViewportStack.AppendElement(nsIntRect(v[0], v[1], v[2], v[3]));
 
         fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &mMaxTextureSize);
+        fGetIntegerv(LOCAL_GL_MAX_CUBE_MAP_TEXTURE_SIZE, &mMaxCubeMapTextureSize);
         fGetIntegerv(LOCAL_GL_MAX_RENDERBUFFER_SIZE, &mMaxRenderbufferSize);
+
+#ifdef XP_MACOSX
+        if (mVendor == VendorIntel) {
+            
+            mMaxTextureSize        = NS_MIN(mMaxTextureSize,        4096);
+            mMaxCubeMapTextureSize = NS_MIN(mMaxCubeMapTextureSize, 512);
+            
+            mMaxRenderbufferSize   = NS_MIN(mMaxRenderbufferSize,   4096);
+        }
+#endif
+
         mMaxTextureImageSize = mMaxTextureSize;
 
         UpdateActualFormat();

@@ -169,7 +169,6 @@ nsTextControlFrame::nsTextControlFrame(nsIPresShell* aShell, nsStyleContext* aCo
   : nsStackFrame(aShell, aContext)
   , mUseEditor(false)
   , mIsProcessing(false)
-  , mNotifyOnInput(true)
   , mFireChangeEventState(false)
 #ifdef DEBUG
   , mInEditorInitialization(false)
@@ -1382,23 +1381,6 @@ nsTextControlFrame::GetMaxLength(PRInt32* aSize)
   return false;
 }
 
-
-void
-nsTextControlFrame::FireOnInput(bool aTrusted)
-{
-  if (!mNotifyOnInput)
-    return; 
-  
-  
-  nsEventStatus status = nsEventStatus_eIgnore;
-  nsUIEvent event(aTrusted, NS_FORM_INPUT, 0);
-
-  
-  
-  nsCOMPtr<nsIPresShell> shell = PresContext()->PresShell();
-  shell->HandleEventWithTarget(&event, nsnull, mContent, &status);
-}
-
 nsresult
 nsTextControlFrame::InitFocusedValue()
 {
@@ -1618,4 +1600,3 @@ nsTextControlFrame::RestoreState(nsPresState* aState)
   Properties().Set(ContentScrollPos(), new nsPoint(aState->GetScrollState()));
   return NS_OK;
 }
-

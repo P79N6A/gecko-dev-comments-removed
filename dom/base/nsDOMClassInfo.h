@@ -497,6 +497,32 @@ public:
 
 
 
+class WebGLExtensionSH : public nsDOMGenericSH
+{
+protected:
+  WebGLExtensionSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
+  {
+  }
+
+  virtual ~WebGLExtensionSH()
+  {
+  }
+
+public:
+  NS_IMETHOD PreCreate(nsISupports *nativeObj, JSContext *cx,
+                       JSObject *globalObj, JSObject **parentObj);
+  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                         JSObject *obj, jsid id, jsval *vp, bool *_retval);
+  virtual void PreserveWrapper(nsISupports *aNative);
+
+  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
+  {
+    return new WebGLExtensionSH(aData);
+  }
+};
+
+
+
 
 
 class nsNodeSH : public nsDOMGenericSH

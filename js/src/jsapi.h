@@ -629,8 +629,9 @@ class Value
 #endif
     }
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__sparc)
   
+
 
 
 
@@ -5373,7 +5374,7 @@ JS_IsConstructing(JSContext *cx, const jsval *vp)
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_NewObjectForConstructor(JSContext *cx, const jsval *vp);
+JS_NewObjectForConstructor(JSContext *cx, JSClass *clasp, const jsval *vp);
 
 
 

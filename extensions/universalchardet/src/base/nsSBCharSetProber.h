@@ -71,7 +71,6 @@ public:
   virtual nsProbingState GetState(void) {return mState;}
   virtual void      Reset(void);
   virtual float     GetConfidence(void);
-  virtual void      SetOpion() {}
   
   
   

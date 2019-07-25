@@ -802,7 +802,7 @@ class CallCompiler : public BaseCompiler
 
         RecompilationMonitor monitor(cx);
 
-        if (!CallJSNative(cx, fun->u.n.native, args))
+        if (!CallJSNative(cx, fun->native(), args))
             THROWV(true);
 
         types::TypeScript::Monitor(f.cx, f.script(), f.pc(), args.rval());
@@ -905,7 +905,7 @@ class CallCompiler : public BaseCompiler
             masm.storeArg(1, argcReg.reg());
         masm.storeArg(0, cxReg);
 
-        js::Native native = fun->u.n.native;
+        js::Native native = fun->native();
 
         
 
@@ -1093,7 +1093,7 @@ ic::SplatApplyArgs(VMFrame &f)
     }
 
     Value *vp = f.regs.sp - 4;
-    JS_ASSERT(JS_CALLEE(cx, vp).toObject().toFunction()->u.n.native == js_fun_apply);
+    JS_ASSERT(JS_CALLEE(cx, vp).toObject().toFunction()->native() == js_fun_apply);
 
     
 

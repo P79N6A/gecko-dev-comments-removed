@@ -875,14 +875,6 @@ nsTextInputListener::EditAction()
     mTxtCtrlElement->OnValueChanged(true);
   }
 
-  
-  bool trusted = false;
-  editor->GetLastKeypressEventTrusted(&trusted);
-  frame->FireOnInput(trusted);
-
-  
-  
-
   return NS_OK;
 }
 
@@ -1775,7 +1767,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput)
     
     if (!currentValue.Equals(aValue))
     {
-      nsTextControlFrame::ValueSetter valueSetter(mBoundFrame,
+      nsTextControlFrame::ValueSetter valueSetter(mBoundFrame, mEditor,
                                                   mBoundFrame->mFocusedValue.Equals(currentValue));
 
       
