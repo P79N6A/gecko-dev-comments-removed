@@ -4893,6 +4893,12 @@ extern JS_PUBLIC_API(void)
 JS_ScheduleGC(JSContext *cx, uint32 count, JSBool compartment);
 #endif
 
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_IndexToId(JSContext *cx, uint32 index, jsid *id);
+
 JS_END_EXTERN_C
 
 #endif 
