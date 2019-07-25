@@ -727,8 +727,9 @@ ContentClickingModule.prototype = {
         
         if (this._clickTimeout != -1) {
           
+          
+          
           window.clearTimeout(this._clickTimeout);
-          this.clickTimeout = -1;
         }
         break;
       case "mouseup":
@@ -745,7 +746,7 @@ ContentClickingModule.prototype = {
         }
         else {
           window.clearTimeout(this._clickTimeout);
-          this.clickTimeout = -1;
+          this._clickTimeout = -1;
           this._sendDoubleClick();
         }
         break;
