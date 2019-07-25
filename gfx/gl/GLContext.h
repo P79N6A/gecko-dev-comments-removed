@@ -540,7 +540,13 @@ class GLContextTLSStorage
         GLContext *mCurrentGLContext;
 
         NS_INLINE_DECL_REFCOUNTING(Storage)
+
         Storage() : mCurrentGLContext(nsnull) {}
+
+        ~Storage() {
+            
+            tls::set<Storage>(sTLSKey, nsnull);
+        }
     };
 
     nsRefPtr<Storage> mStorage;
