@@ -1195,7 +1195,8 @@ nsContentUtils::CanCallerAccess(nsIDOMNode *aNode)
   
   
   nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
+  nsresult rv = sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   if (!subjectPrincipal) {
     
@@ -1217,7 +1218,8 @@ nsContentUtils::CanCallerAccess(nsPIDOMWindow* aWindow)
   
   
   nsCOMPtr<nsIPrincipal> subjectPrincipal;
-  sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
+  nsresult rv = sSecurityManager->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
+  NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   if (!subjectPrincipal) {
     
