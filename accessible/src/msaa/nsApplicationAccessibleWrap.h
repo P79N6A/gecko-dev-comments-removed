@@ -53,6 +53,9 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
+  NS_IMETHOD GetAttributes(nsIPersistentProperties** aAttributes);
+
+  
   STDMETHODIMP QueryInterface(REFIID, void**);
 
   
