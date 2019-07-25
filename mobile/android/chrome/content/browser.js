@@ -1699,7 +1699,7 @@ Tab.prototype = {
         
         var backgroundColor = null;
         try {
-          let browser = this.selectedBrowser;
+          let browser = BrowserApp.selectedBrowser;
           if (browser) {
             let { contentDocument, contentWindow } = browser;
             let computedStyle = contentWindow.getComputedStyle(contentDocument.body);
