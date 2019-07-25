@@ -95,9 +95,10 @@ UnwrapDOMObject(JSObject* obj, const js::Class* clasp)
 
 
 
-template <prototypes::ID PrototypeID, class T>
+
+template <prototypes::ID PrototypeID, class T, typename U>
 inline nsresult
-UnwrapObject(JSContext* cx, JSObject* obj, T** value)
+UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   
   JSClass* clasp = js::GetObjectJSClass(obj);
@@ -128,7 +129,7 @@ UnwrapObject(JSContext* cx, JSObject* obj, T** value)
   DOMJSClass* domClass = DOMJSClass::FromJSClass(clasp);
   if (domClass->mInterfaceChain[PrototypeTraits<PrototypeID>::Depth] ==
       PrototypeID) {
-    *value = UnwrapDOMObject<T>(obj, clasp);
+    value = UnwrapDOMObject<T>(obj, clasp);
     return NS_OK;
   }
 
@@ -188,9 +189,10 @@ IsPlatformObject(JSContext* cx, JSObject* obj)
     JS_IsArrayBufferObject(obj, cx);
 }
 
-template <class T>
+
+template <class T, typename U>
 inline nsresult
-UnwrapObject(JSContext* cx, JSObject* obj, T* *value)
+UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   return UnwrapObject<static_cast<prototypes::ID>(
            PrototypeIDMap<T>::PrototypeID)>(cx, obj, value);
