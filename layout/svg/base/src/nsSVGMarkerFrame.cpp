@@ -203,13 +203,14 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   mY = aMark->y;
   mAutoAngle = aMark->angle;
 
-  gfxRect bbox;
-
   gfxMatrix markerTM =
     content->GetMarkerTransform(mStrokeWidth, mX, mY, mAutoAngle);
   gfxMatrix viewBoxTM = content->GetViewBoxTransform();
 
   gfxMatrix tm = viewBoxTM * markerTM * aToBBoxUserspace;
+
+  gfxRect bbox;
+  bool firstChild = true;
 
   for (nsIFrame* kid = mFrames.FirstChild();
        kid;
@@ -219,7 +220,17 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       
       
       
-      bbox.UnionRect(bbox, child->GetBBoxContribution(tm, aFlags));
+
+      
+      
+      
+      gfxRect childBBox = child->GetBBoxContribution(tm, aFlags);
+      if (firstChild) {
+        bbox = childBBox;
+        firstChild = false;
+        continue;
+      }
+      bbox = bbox.UnionEdges(childBBox);
     }
   }
 
