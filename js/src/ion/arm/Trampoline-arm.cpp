@@ -350,7 +350,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     
     
     JS_ASSERT(ArgumentsRectifierReg == r8);
-    
+
     
     masm.ma_ldr(DTRAddr(sp, DtrOffImm(IonJSFrameLayout::offsetOfCalleeToken())), r1);
     masm.ma_ldrh(EDtrAddr(r1, EDtrOffImm(offsetof(JSFunction, nargs))), r6);
