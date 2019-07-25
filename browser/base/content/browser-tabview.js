@@ -263,12 +263,6 @@ let TabView = {
   },
 
   
-  enableSearch: function TabView_enableSearch(event) {
-    if (this._window)
-      this._window.UI.enableSearch(event);
-  },
-
-  
   
   
   _setBrowserKeyHandlers: function TabView__setBrowserKeyHandlers() {

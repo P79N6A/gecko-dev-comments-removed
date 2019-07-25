@@ -343,8 +343,7 @@ SearchEventHandlerClass.prototype = {
   
   
   init: function () {
-    var self = this;
-    iQ("#searchbox")[0].focus(); 
+    let self = this;
     iQ("#search").hide();
     iQ("#searchshade").hide().click(function(event) {
       if ( event.target.id != "searchbox")
@@ -389,6 +388,13 @@ SearchEventHandlerClass.prototype = {
     
     if (event.target.nodeName == "INPUT")
       return;
+
+    
+    
+    if (event.keyCode == KeyEvent.DOM_VK_SLASH) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
 
     this.switchToInMode();
     this.initiatedBy = "keydown";
@@ -526,7 +532,7 @@ function createSearchTabMacher() {
   return new TabMatcher(iQ("#searchbox").val());
 }
 
-function hideSearch(event){
+function hideSearch(event) {
   iQ("#searchbox").val("");
   iQ("#searchshade").hide();
   iQ("#search").hide();
@@ -540,7 +546,12 @@ function hideSearch(event){
   performSearch();
   SearchEventHandler.switchToBeforeMode();
 
-  if (event){
+  if (event) {
+    
+    
+    
+    if (event.type == "keydown")
+      UI.ignoreKeypressForSearch = true;
     event.preventDefault();
     event.stopPropagation();
   }

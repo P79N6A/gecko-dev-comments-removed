@@ -34,7 +34,7 @@ function testOne(contentWindow) {
     testTwo(contentWindow); 
   });
   
-  document.getElementById("cmd_find").doCommand();
+  EventUtils.synthesizeKey("f", { accelKey: true });
 }
 
 function testTwo(contentWindow) {
