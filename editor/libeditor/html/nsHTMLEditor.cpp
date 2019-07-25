@@ -415,6 +415,11 @@ nsHTMLEditor::FindSelectionRoot(nsINode *aNode)
   }
 
   if (!content->HasFlag(NODE_IS_EDITABLE)) {
+    
+    
+    if (content->IntrinsicState().HasState(NS_EVENT_STATE_MOZ_READWRITE)) {
+      return content.forget();
+    }
     return nsnull;
   }
 
