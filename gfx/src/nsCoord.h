@@ -59,7 +59,6 @@
 
 
 
-
 inline float NS_IEEEPositiveInfinity() {
   union { PRUint32 mPRUint32; float mFloat; } pun;
   pun.mPRUint32 = 0x7F800000;
