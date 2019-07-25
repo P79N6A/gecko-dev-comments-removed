@@ -713,7 +713,9 @@ public:
 
 
 
-  virtual PRBool HasText() { return PR_FALSE; }
+
+
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) { return nsRect(); }
 
   
 
@@ -1190,13 +1192,12 @@ public:
   }
   NS_DISPLAY_DECL_NAME(mName, mType)
 
-  virtual PRBool HasText() {
-    if (mType == nsDisplayItem::TYPE_HEADER_FOOTER) {
-      return PR_TRUE;
-    } else {
-      return PR_FALSE;
-    }
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder) {
+    if (mType == nsDisplayItem::TYPE_HEADER_FOOTER)
+      return GetBounds(aBuilder);
+    return nsRect();
   }
+
 protected:
   PaintCallback mPaint;
 #ifdef DEBUG
@@ -1555,7 +1556,7 @@ public:
   }
   NS_DISPLAY_DECL_NAME("WrapList", TYPE_WRAP_LIST)
 
-  virtual PRBool HasText();
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder);
                                     
   virtual nsDisplayList* GetList() { return &mList; }
   
@@ -1843,7 +1844,12 @@ public:
 
   NS_DISPLAY_DECL_NAME("nsDisplayTransform", TYPE_TRANSFORM);
 
-  virtual PRBool HasText() { return mStoredList.HasText(); }
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
+  {
+    if (mStoredList.GetComponentAlphaBounds(aBuilder).IsEmpty())
+      return nsRect();
+    return GetBounds(aBuilder);
+  }
 
 #ifdef NS_DEBUG
   nsDisplayWrapList* GetStoredList() { return &mStoredList; }

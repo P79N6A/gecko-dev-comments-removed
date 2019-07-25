@@ -84,10 +84,6 @@
 #define CROP_START  "start"
 #define CROP_END    "end"
 
-
-
-#define NS_STATE_NEED_LAYOUT NS_STATE_BOX_CHILD_RESERVED
-
 class nsAccessKeyInfo
 {
 public:
@@ -120,7 +116,6 @@ nsTextBoxFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                  nsIAtom*        aAttribute,
                                  PRInt32         aModType)
 {
-    mState |= NS_STATE_NEED_LAYOUT;
     PRBool aResize;
     PRBool aRedraw;
 
@@ -147,7 +142,6 @@ nsTextBoxFrame::nsTextBoxFrame(nsIPresShell* aShell, nsStyleContext* aContext):
   nsLeafBoxFrame(aShell, aContext), mAccessKeyInfo(nsnull), mCropType(CropRight),
   mNeedsReflowCallback(PR_FALSE)
 {
-    mState |= NS_STATE_NEED_LAYOUT;
     MarkIntrinsicWidthsDirty();
 }
 
@@ -164,7 +158,6 @@ nsTextBoxFrame::Init(nsIContent*      aContent,
 {
     nsTextBoxFrameSuper::Init(aContent, aParent, aPrevInFlow);
 
-    mState |= NS_STATE_NEED_LAYOUT;
     PRBool aResize;
     PRBool aRedraw;
     UpdateAttributes(nsnull, aResize, aRedraw); 
@@ -349,7 +342,7 @@ public:
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   NS_DISPLAY_DECL_NAME("XULTextBox", TYPE_XUL_TEXT_BOX)
 
-  virtual PRBool HasText() { return PR_TRUE; }
+  virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder);
 
   virtual void DisableComponentAlpha() { mDisableSubpixelAA = PR_TRUE; }
 
@@ -369,6 +362,13 @@ nsDisplayXULTextBox::Paint(nsDisplayListBuilder* aBuilder,
 nsRect
 nsDisplayXULTextBox::GetBounds(nsDisplayListBuilder* aBuilder) {
   return mFrame->GetVisualOverflowRect() + ToReferenceFrame();
+}
+
+nsRect
+nsDisplayXULTextBox::GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder)
+{
+  return static_cast<nsTextBoxFrame*>(mFrame)->GetComponentAlphaBounds() +
+      ToReferenceFrame();
 }
 
 NS_IMETHODIMP
@@ -394,7 +394,7 @@ nsTextBoxFrame::PaintTitle(nsIRenderingContext& aRenderingContext,
     if (mTitle.IsEmpty())
         return;
 
-    nsRect textRect(CalcTextRect(aRenderingContext, aPt));
+    nsRect textRect = mTextDrawRect + aPt;
 
     
     const nsStyleText* textStyle = GetStyleText();
@@ -626,25 +626,6 @@ void nsTextBoxFrame::PaintOneShadow(gfxContext*      aCtx,
 }
 
 void
-nsTextBoxFrame::LayoutTitle(nsPresContext*      aPresContext,
-                            nsIRenderingContext& aRenderingContext,
-                            const nsRect&        aRect)
-{
-    
-    if ((mState & NS_STATE_NEED_LAYOUT)) {
-
-        
-        CalculateTitleForWidth(aPresContext, aRenderingContext, aRect.width);
-
-        
-        UpdateAccessIndex();
-
-        
-        mState &= ~NS_STATE_NEED_LAYOUT;
-    }
-}
-
-void
 nsTextBoxFrame::CalculateUnderline(nsIRenderingContext& aRenderingContext)
 {
     if (mAccessKeyInfo && mAccessKeyInfo->mAccesskeyIndex != kNotFound) {
@@ -665,28 +646,28 @@ nsTextBoxFrame::CalculateUnderline(nsIRenderingContext& aRenderingContext)
     }
 }
 
-void
+nscoord
 nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
                                        nsIRenderingContext& aRenderingContext,
                                        nscoord              aWidth)
 {
     if (mTitle.IsEmpty())
-        return;
+        return 0;
 
     nsLayoutUtils::SetFontFromStyle(&aRenderingContext, GetStyleContext());
 
     
-    mTitleWidth = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
-                                                mTitle.get(), mTitle.Length());
+    nscoord titleWidth = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
+                                                       mTitle.get(), mTitle.Length());
 
-    if (mTitleWidth <= aWidth) {
+    if (titleWidth <= aWidth) {
         mCroppedTitle = mTitle;
 #ifdef IBMBIDI
         if (HasRTLChars(mTitle)) {
             mState |= NS_FRAME_IS_BIDI;
         }
 #endif 
-        return;  
+        return titleWidth;  
     }
 
     const nsDependentString& kEllipsis = nsContentUtils::GetLocalizedEllipsis();
@@ -696,19 +677,18 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
     
     
     aRenderingContext.SetTextRunRTL(PR_FALSE);
-    aRenderingContext.GetWidth(kEllipsis, mTitleWidth);
+    aRenderingContext.GetWidth(kEllipsis, titleWidth);
 
-    if (mTitleWidth > aWidth) {
+    if (titleWidth > aWidth) {
         mCroppedTitle.SetLength(0);
-        mTitleWidth = 0;
-        return;
+        return 0;
     }
 
     
-    if (mTitleWidth == aWidth)
-        return;
+    if (titleWidth == aWidth)
+        return titleWidth;
 
-    aWidth -= mTitleWidth;
+    aWidth -= titleWidth;
 
     
     
@@ -738,7 +718,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
             }
 
             if (i == 0)
-                return;
+                return titleWidth;
 
             
             nsAutoString title( mTitle );
@@ -768,7 +748,7 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
             }
 
             if (i == length-1)
-                return;
+                return titleWidth;
 
             nsAutoString copy;
             mTitle.Right(copy, length-1-i);
@@ -838,8 +818,8 @@ nsTextBoxFrame::CalculateTitleForWidth(nsPresContext*      aPresContext,
         break;
     }
 
-    mTitleWidth = nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
-                                                mCroppedTitle.get(), mCroppedTitle.Length());
+    return nsLayoutUtils::GetStringWidth(this, &aRenderingContext,
+                                         mCroppedTitle.get(), mCroppedTitle.Length());
 }
 
 #define OLD_ELLIPSIS NS_LITERAL_STRING("...")
@@ -960,9 +940,9 @@ nsTextBoxFrame::DoLayout(nsBoxLayoutState& aBoxLayoutState)
         mNeedsReflowCallback = PR_FALSE;
     }
 
-    mState |= NS_STATE_NEED_LAYOUT;
-
     nsresult rv = nsLeafBoxFrame::DoLayout(aBoxLayoutState);
+
+    CalcDrawRect(*aBoxLayoutState.GetRenderingContext());
 
     const nsStyleText* textStyle = GetStyleText();
     if (textStyle->mTextShadow) {
@@ -971,12 +951,19 @@ nsTextBoxFrame::DoLayout(nsBoxLayoutState& aBoxLayoutState)
       
       
       nsPoint origin(0,0);
-      nsRect textRect = CalcTextRect(*aBoxLayoutState.GetRenderingContext(), origin);
       nsRect &vis = overflow.VisualOverflow();
-      vis.UnionRect(vis, nsLayoutUtils::GetTextShadowRectsUnion(textRect, this));
+      vis.UnionRect(vis, nsLayoutUtils::GetTextShadowRectsUnion(mTextDrawRect, this));
       FinishAndStoreOverflow(overflow, GetSize());
     }
+
     return rv;
+}
+
+nsRect
+nsTextBoxFrame::GetComponentAlphaBounds()
+{
+  return nsLayoutUtils::GetTextShadowRectsUnion(mTextDrawRect, this,
+                                                nsLayoutUtils::EXCLUDE_BLUR_SHADOWS);
 }
 
 PRBool
@@ -1022,20 +1009,25 @@ nsTextBoxFrame::CalcTextSize(nsBoxLayoutState& aBoxLayoutState)
     }
 }
 
-nsRect
-nsTextBoxFrame::CalcTextRect(nsIRenderingContext &aRenderingContext, const nsPoint &aTextOrigin)
+void
+nsTextBoxFrame::CalcDrawRect(nsIRenderingContext &aRenderingContext)
 {
-    nsRect textRect(aTextOrigin, GetSize());
+    nsRect textRect(nsPoint(0, 0), GetSize());
     nsMargin borderPadding;
     GetBorderAndPadding(borderPadding);
     textRect.Deflate(borderPadding);
+
     
     nsPresContext* presContext = PresContext();
-    LayoutTitle(presContext, aRenderingContext, textRect);
+    
+    nscoord titleWidth =
+        CalculateTitleForWidth(presContext, aRenderingContext, textRect.width);
+    
+    UpdateAccessIndex();
 
     
     nscoord outerWidth = textRect.width;
-    textRect.width = mTitleWidth;
+    textRect.width = titleWidth;
 
     
     const nsStyleVisibility* vis = GetStyleVisibility();
@@ -1050,7 +1042,8 @@ nsTextBoxFrame::CalcTextRect(nsIRenderingContext &aRenderingContext, const nsPoi
               vis->mDirection == NS_STYLE_DIRECTION_LTR)) {
       textRect.x += (outerWidth - textRect.width);
     }
-    return textRect;
+
+    mTextDrawRect = textRect;
 }
 
 

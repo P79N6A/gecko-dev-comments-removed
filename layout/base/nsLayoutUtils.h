@@ -660,13 +660,17 @@ public:
 
   static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo);
 
+  enum {
+    EXCLUDE_BLUR_SHADOWS = 0x01
+  };
   
 
 
 
 
   static nsRect GetTextShadowRectsUnion(const nsRect& aTextAndDecorationsRect,
-                                        nsIFrame* aFrame);
+                                        nsIFrame* aFrame,
+                                        PRUint32 aFlags = 0);
 
   
 
