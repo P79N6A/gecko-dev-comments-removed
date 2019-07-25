@@ -161,23 +161,24 @@ UnmapPages(void *addr, size_t size)
 static void *
 MapPages(void *addr, size_t size)
 {
-    vm_address_t p;
+    void *p;
     int flags;
     if (addr) {
-        p = (vm_address_t) addr;
+        p = addr;
         flags = 0;
     } else {
         flags = VM_FLAGS_ANYWHERE;
     }
 
     kern_return_t err = vm_allocate((vm_map_t) mach_task_self(),
-                                    &p, (vm_size_t) size, flags);
+                                    (vm_address_t *) &p,
+                                    (vm_size_t) size, flags);
     if (err != KERN_SUCCESS)
         return NULL;
 
     JS_ASSERT(p);
-    JS_ASSERT_IF(addr, p == (vm_address_t) addr);
-    return (void *) p;
+    JS_ASSERT_IF(addr, p == addr);
+    return p;
 }
 
 static void
@@ -202,13 +203,9 @@ MapAlignedPages(size_t size, size_t alignment)
 
 
 
-#ifdef SOLARIS
+	
     void *p = mmap((caddr_t) alignment, size, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON, -1, 0);
-#else
-    void *p = mmap((void *) alignment, size, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON, -1, 0);
-#endif
+                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON | MAP_32BIT, -1, 0);
     if (p == MAP_FAILED)
         return NULL;
     return p;
@@ -223,7 +220,8 @@ MapPages(void *addr, size_t size)
 
 
 
-    void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON,
+	
+    void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_32BIT,
                    -1, 0);
     if (p == MAP_FAILED)
         return NULL;
@@ -240,18 +238,12 @@ MapPages(void *addr, size_t size)
 static void
 UnmapPages(void *addr, size_t size)
 {
-#ifdef SOLARIS
     JS_ALWAYS_TRUE(munmap((caddr_t) addr, size) == 0);
-#else
-    JS_ALWAYS_TRUE(munmap(addr, size) == 0);
-#endif
 }
 
 #endif
 
 namespace js {
-
-GCChunkAllocator defaultGCChunkAllocator;
 
 inline void *
 FindChunkStart(void *p)
@@ -261,7 +253,7 @@ FindChunkStart(void *p)
     return reinterpret_cast<void *>(addr);
 }
 
-JS_FRIEND_API(void *)
+void *
 AllocGCChunk()
 {
     void *p;
@@ -308,7 +300,7 @@ AllocGCChunk()
     return p;
 }
 
-JS_FRIEND_API(void)
+void
 FreeGCChunk(void *p)
 {
     JS_ASSERT(p);
