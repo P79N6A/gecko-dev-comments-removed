@@ -438,7 +438,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   nsChangeHint maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
       nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer |
-      nsChangeHint_UpdateOverflow);
+      NS_STYLE_HINT_UPDATE_OVERFLOW);
   DO_STRUCT_DIFFERENCE(Display);
 
   
@@ -447,7 +447,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(Visibility);
 
   maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-      nsChangeHint_UpdateOverflow | nsChangeHint_UpdateCursor);
+      NS_STYLE_HINT_UPDATE_OVERFLOW | nsChangeHint_UpdateCursor);
   DO_STRUCT_DIFFERENCE(XUL);
   DO_STRUCT_DIFFERENCE(Column);
   DO_STRUCT_DIFFERENCE(Content);
@@ -465,7 +465,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(SVGReset);
   DO_STRUCT_DIFFERENCE(SVG);
 
-  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_UpdateOverflow);
+  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | NS_STYLE_HINT_UPDATE_OVERFLOW);
   DO_STRUCT_DIFFERENCE(Border);
       
   
@@ -485,7 +485,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(TextReset);
 
   
-  maxHint = nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateOverflow);
+  maxHint = NS_STYLE_HINT_UPDATE_OVERFLOW;
   DO_STRUCT_DIFFERENCE(Outline);
 
   
