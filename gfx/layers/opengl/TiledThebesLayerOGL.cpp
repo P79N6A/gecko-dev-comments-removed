@@ -136,6 +136,12 @@ TiledThebesLayerOGL::ProcessUploadQueue()
   mValidRegion = mVideoMemoryTiledBuffer.GetValidRegion();
 
   mMainMemoryTiledBuffer.ReadUnlock();
+  
+  
+  
+  
+  
+  mMainMemoryTiledBuffer = BasicTiledLayerBuffer();
   mRegionToUpload = nsIntRegion();
 
 }
