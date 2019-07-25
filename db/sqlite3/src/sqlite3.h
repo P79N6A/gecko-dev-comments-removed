@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.3"
-#define SQLITE_VERSION_NUMBER 3007003
-#define SQLITE_SOURCE_ID      "2010-10-08 02:34:02 2677848087c9c090efb17c1893e77d6136a9111d"
+#define SQLITE_VERSION        "3.7.4"
+#define SQLITE_VERSION_NUMBER 3007004
+#define SQLITE_SOURCE_ID      "2010-12-07 20:14:09 a586a4deeb25330037a49df295b36aaf624d0f45"
 
 
 
@@ -543,6 +543,18 @@ SQLITE_API int sqlite3_exec(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #define SQLITE_SYNC_NORMAL        0x00002
 #define SQLITE_SYNC_FULL          0x00003
 #define SQLITE_SYNC_DATAONLY      0x00010
@@ -710,6 +722,8 @@ struct sqlite3_io_methods {
 #define SQLITE_LAST_ERRNO             4
 #define SQLITE_FCNTL_SIZE_HINT        5
 #define SQLITE_FCNTL_CHUNK_SIZE       6
+#define SQLITE_FCNTL_FILE_POINTER     7
+
 
 
 
@@ -2645,6 +2659,20 @@ SQLITE_API const char *sqlite3_sql(sqlite3_stmt *pStmt);
 
 
 
+SQLITE_API int sqlite3_stmt_readonly(sqlite3_stmt *pStmt);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2685,6 +2713,9 @@ typedef struct Mem sqlite3_value;
 
 
 typedef struct sqlite3_context sqlite3_context;
+
+
+
 
 
 
@@ -3399,6 +3430,9 @@ SQLITE_API int sqlite3_reset(sqlite3_stmt *pStmt);
 
 
 
+
+
+
 SQLITE_API int sqlite3_create_function(
   sqlite3 *db,
   const char *zFunctionName,
@@ -3772,6 +3806,15 @@ SQLITE_API void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(
 SQLITE_API void sqlite3_result_text16be(sqlite3_context*, const void*, int,void(*)(void*));
 SQLITE_API void sqlite3_result_value(sqlite3_context*, sqlite3_value*);
 SQLITE_API void sqlite3_result_zeroblob(sqlite3_context*, int n);
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4599,6 +4642,8 @@ struct sqlite3_index_info {
 
 
 
+
+
 SQLITE_API int sqlite3_create_module(
   sqlite3 *db,               
   const char *zName,         
@@ -4777,6 +4822,30 @@ SQLITE_API int sqlite3_blob_open(
   int flags,
   sqlite3_blob **ppBlob
 );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API SQLITE_EXPERIMENTAL int sqlite3_blob_reopen(sqlite3_blob *, sqlite3_int64);
 
 
 
@@ -5178,6 +5247,12 @@ SQLITE_API int sqlite3_mutex_notheld(sqlite3_mutex*);
 
 
 SQLITE_API sqlite3_mutex *sqlite3_db_mutex(sqlite3*);
+
+
+
+
+
+
 
 
 
