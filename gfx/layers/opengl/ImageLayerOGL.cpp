@@ -40,6 +40,7 @@
 
 #include "ImageLayerOGL.h"
 #include "gfxImageSurface.h"
+#include "gfxUtils.h"
 #include "yuv_convert.h"
 #include "GLContextProvider.h"
 #if defined(MOZ_WIDGET_GTK2) && !defined(MOZ_PLATFORM_MAEMO)
@@ -47,6 +48,7 @@
 # include "mozilla/X11Util.h"
 #endif
 
+using namespace mozilla::gfx;
 using namespace mozilla::gl;
 
 namespace mozilla {
@@ -214,28 +216,19 @@ void
 ImageLayerOGL::RenderLayer(int,
                            const nsIntPoint& aOffset)
 {
-  nsRefPtr<ImageContainer> container = GetContainer();
-
-  if (!container)
+  if (!GetContainer())
     return;
 
   mOGLManager->MakeCurrent();
 
-  AutoLockImage autoLock(container);
-
-  Image *image = autoLock.GetImage();
+  nsRefPtr<Image> image = GetContainer()->GetCurrentImage();
   if (!image) {
     return;
   }
 
-  NS_ASSERTION(image->GetFormat() != Image::REMOTE_IMAGE_BITMAP,
-    "Remote images aren't handled yet in OGL layers!");
-  NS_ASSERTION(mScaleMode == SCALE_NONE,
-    "Scale modes other than none not handled yet in OGL layers!");
-
   if (image->GetFormat() == Image::PLANAR_YCBCR) {
     PlanarYCbCrImage *yuvImage =
-      static_cast<PlanarYCbCrImage*>(image);
+      static_cast<PlanarYCbCrImage*>(image.get());
 
     if (!yuvImage->mBufferSize) {
       return;
@@ -285,7 +278,7 @@ ImageLayerOGL::RenderLayer(int,
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
   } else if (image->GetFormat() == Image::CAIRO_SURFACE) {
     CairoImage *cairoImage =
-      static_cast<CairoImage*>(image);
+      static_cast<CairoImage*>(image.get());
 
     if (!cairoImage->mSurface) {
       return;
@@ -342,8 +335,9 @@ ImageLayerOGL::RenderLayer(int,
 
     bool tileIsWholeImage = (mTileSourceRect == nsIntRect(0, 0, iwidth, iheight)) 
                             || !mUseTileSourceRect;
-    bool imageIsPowerOfTwo = ((iwidth  & (iwidth - 1)) == 0 &&
-                              (iheight & (iheight - 1)) == 0);
+    bool imageIsPowerOfTwo = IsPowerOfTwo(iwidth) &&
+                             IsPowerOfTwo(iheight);
+
     bool canDoNPOT = (
           gl()->IsExtensionSupported(GLContext::ARB_texture_non_power_of_two) ||
           gl()->IsExtensionSupported(GLContext::OES_texture_npot));
@@ -433,18 +427,16 @@ ImageLayerOGL::RenderLayer(int,
 #ifdef XP_MACOSX
   } else if (image->GetFormat() == Image::MAC_IO_SURFACE) {
      MacIOSurfaceImage *ioImage =
-       static_cast<MacIOSurfaceImage*>(image);
+       static_cast<MacIOSurfaceImage*>(image.get());
 
      if (!mOGLManager->GetThebesLayerCallback()) {
        
        
        
        ioImage->Update(GetContainer());
-       image = nsnull;
-       autoLock.Refresh();
-       image = autoLock.GetImage();
+       image = GetContainer()->GetCurrentImage();
        gl()->MakeCurrent();
-       ioImage = static_cast<MacIOSurfaceImage*>(image);
+       ioImage = static_cast<MacIOSurfaceImage*>(image.get());
      }
 
      if (!ioImage) {
@@ -787,11 +779,26 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
     mTexImage->SetFilter(mFilter);
     mTexImage->BeginTileIteration();
-    do {
-      TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
-      colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
-      mOGLManager->BindAndDrawQuad(colorProgram);
-    } while (mTexImage->NextTile());
+
+    if (gl()->CanUploadNonPowerOfTwo()) {
+      do {
+        TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
+        colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
+        mOGLManager->BindAndDrawQuad(colorProgram);
+      } while (mTexImage->NextTile());
+    } else {
+      do {
+        TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
+        colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
+        
+        
+        mOGLManager->BindAndDrawQuadWithTextureRect(colorProgram,
+                                                    nsIntRect(0, 0, mTexImage->GetTileRect().width,
+                                                                    mTexImage->GetTileRect().height),
+                                                    mTexImage->GetTileRect().Size());
+      } while (mTexImage->NextTile());
+    }
+
   } else {
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mYUVTexture[0].GetTextureID());
