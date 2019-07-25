@@ -192,6 +192,13 @@ public:
     NS_IMETHOD         HideWindowChrome(bool aShouldHide);
 
     
+
+
+
+
+    static guint32     GetCurrentEventTime();
+
+    
     
     gint               ConvertBorderStyles(nsBorderStyle aStyle);
 
@@ -275,7 +282,7 @@ private:
     nsIntSize          GetSafeWindowSize(nsIntSize aSize);
 
     void               EnsureGrabs  (void);
-    void               GrabPointer  (void);
+    void               GrabPointer  (guint32 aTime);
     void               ReleaseGrabs (void);
 
 public:

@@ -327,13 +327,11 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     
     
     
-    
-    
     GdkEvent event;
     memset(&event, 0, sizeof(GdkEvent));
     event.type = GDK_BUTTON_PRESS;
     event.button.window = mHiddenWidget->window;
-    event.button.time = nsWindow::sLastButtonPressTime;
+    event.button.time = nsWindow::GetCurrentEventTime();
 
     
     GdkDragContext *context = gtk_drag_begin(mHiddenWidget,
