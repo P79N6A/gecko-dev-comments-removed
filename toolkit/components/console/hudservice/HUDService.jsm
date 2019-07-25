@@ -1187,6 +1187,7 @@ NetworkPanel.prototype =
 
 
 
+
 function pruneConsoleOutputIfNecessary(aConsoleNode)
 {
   
@@ -1209,7 +1210,10 @@ function pruneConsoleOutputIfNecessary(aConsoleNode)
   for (let i = 0; i < removeNodes; i++) {
     if (messageNodes[i].classList.contains("webconsole-msg-cssparser")) {
       let desc = messageNodes[i].childNodes[2].textContent;
-      let location = messageNodes[i].childNodes[4].getAttribute("title");
+      let location = "";
+      if (messageNodes[i].childNodes[4]) {
+        location = messageNodes[i].childNodes[4].getAttribute("title");
+      }
       delete hudRef.cssNodes[desc + location];
     }
     messageNodes[i].parentNode.removeChild(messageNodes[i]);
@@ -1864,16 +1868,15 @@ HUD_SERVICE.prototype =
   getHudReferenceForOutputNode: function HS_getHudReferenceForOutputNode(aNode)
   {
     let node = aNode;
-    while (!node.classList.contains("hudbox-animated")) {
-      if (node.parent) {
-        node = node.parent;
-      }
-      else {
+    
+    while (!node.id && !node.classList.contains("hud-box")) {
+      if (node.parentNode) {
+        node = node.parentNode;
+      } else {
         return null;
       }
     }
-    let id = node.id;
-    return id in this.hudReferences ? this.hudReferences[id] : null;
+    return this.getHudReferenceById(node.id);
   },
 
   
@@ -5309,9 +5312,9 @@ ConsoleUtils = {
 
 
 
+
   outputMessageNode: function ConsoleUtils_outputMessageNode(aNode, aHUDId) {
     ConsoleUtils.filterMessageNode(aNode, aHUDId);
-
     let outputNode = HUDService.hudReferences[aHUDId].outputNode;
 
     let scrolledToBottom = ConsoleUtils.isOutputScrolledToBottom(outputNode);

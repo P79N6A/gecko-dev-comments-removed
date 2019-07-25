@@ -1,0 +1,74 @@
+
+
+
+
+
+
+
+
+
+
+const TEST_URI = "data:text/html,<p>test for bug 642108.";
+const LOG_LIMIT = 20;
+const CATEGORY_CSS = 1;
+const SEVERITY_WARNING = 1;
+
+function test() {
+  addTab(TEST_URI);
+  browser.addEventListener("DOMContentLoaded", testCSSPruning, false);
+}
+
+function populateConsoleRepeats(aHudRef) {
+  let hud = aHudRef.HUDBox;
+
+  for (i = 0; i < 5; i++) {
+    let node = ConsoleUtils.createMessageNode(hud.ownerDocument,
+                                              CATEGORY_CSS,
+                                              SEVERITY_WARNING,
+                                              "css log x");
+    ConsoleUtils.outputMessageNode(node, aHudRef.hudId);
+  }
+}
+
+
+function populateConsole(aHudRef) {
+  let hud = aHudRef.HUDBox;
+
+  for (i = 0; i < LOG_LIMIT + 5; i++) {
+    let node = ConsoleUtils.createMessageNode(hud.ownerDocument,
+                                              CATEGORY_CSS,
+                                              SEVERITY_WARNING,
+                                              "css log " + i);
+    ConsoleUtils.outputMessageNode(node, aHudRef.hudId);
+  }
+}
+
+function testCSSPruning() {
+  let prefBranch = Services.prefs.getBranch("devtools.hud.");
+  prefBranch.setIntPref("loglimit", LOG_LIMIT);
+
+  browser.removeEventListener("DOMContentLoaded",testCSSPruning, false);
+
+  openConsole();
+  let hudId = HUDService.getHudIdByWindow(content);
+  let hudRef = HUDService.getHudReferenceById(hudId);
+
+  populateConsoleRepeats(hudRef);
+  ok(hudRef.cssNodes["css log x"], "repeated nodes in cssNodes");
+
+  populateConsole(hudRef);
+
+  is(countMessageNodes(), LOG_LIMIT, "number of nodes is LOG_LIMIT");
+  ok(!hudRef.cssNodes["css log x"], "repeated nodes pruned from cssNodes");
+
+  prefBranch.clearUserPref("loglimit");
+  prefBranch = null;
+
+  finishTest();
+}
+
+function countMessageNodes() {
+  let hudId = HUDService.getHudIdByWindow(content);
+  let hudBox = HUDService.getHeadsUpDisplay(hudId);
+  return hudBox.querySelectorAll(".hud-msg-node").length;
+}
