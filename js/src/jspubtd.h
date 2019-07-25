@@ -115,11 +115,7 @@ typedef enum JSProtoKey {
 
 typedef enum JSAccessMode {
     JSACC_PROTO  = 0,           
-
-                                
-
-
-
+    JSACC_PARENT = 1,           
 
                                 
 

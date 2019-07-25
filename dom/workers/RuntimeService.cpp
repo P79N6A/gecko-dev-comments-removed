@@ -372,7 +372,7 @@ ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsign
   AssertIsOnMainThread();
 
   
-  if (aFlags & JSRESOLVE_ASSIGNING) {
+  if (aFlags & (JSRESOLVE_ASSIGNING | JSRESOLVE_DECLARING)) {
     *aObjp = nsnull;
     return true;
   }
