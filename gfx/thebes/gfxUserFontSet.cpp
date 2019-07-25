@@ -193,6 +193,8 @@ gfxUserFontSet::FindFontEntry(const nsAString& aName,
     
     LoadStatus status;
 
+    
+    
     status = LoadNext(proxyEntry);
 
     
@@ -202,8 +204,11 @@ gfxUserFontSet::FindFontEntry(const nsAString& aName,
     }
 
     
-    aWaitForUserFont =
+    
+    aWaitForUserFont = (status != STATUS_END_OF_LIST) &&
         (proxyEntry->mLoadingState < gfxProxyFontEntry::LOADING_SLOWLY);
+
+    
     return nsnull;
 }
 
