@@ -35,10 +35,9 @@
 
 
 
-#include "nsIDOMHTMLLegendElement.h"
+#include "nsHTMLLegendElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"
-#include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsIForm.h"
@@ -48,68 +47,6 @@
 #include "nsPIDOMWindow.h"
 #include "nsFocusManager.h"
 #include "nsIFrame.h"
-
-class nsHTMLLegendElement : public nsGenericHTMLElement,
-                            public nsIDOMHTMLLegendElement
-{
-public:
-  nsHTMLLegendElement(nsINodeInfo *aNodeInfo);
-  virtual ~nsHTMLLegendElement();
-
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
-
-  
-  NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLElement::)
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLElement::)
-
-  
-  NS_DECL_NSIDOMHTMLLEGENDELEMENT
-
-  
-  NS_IMETHODIMP Focus();
-
-  virtual void PerformAccesskey(PRBool aKeyCausesActivation,
-                                PRBool aIsTrustedEvent);
-
-  
-  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                              nsIContent* aBindingParent,
-                              PRBool aCompileEventHandlers);
-  virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
-                              PRBool aNullParent = PR_TRUE);
-  virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
-                                nsIAtom* aAttribute,
-                                const nsAString& aValue,
-                                nsAttrValue& aResult);
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              PRInt32 aModType) const;
-  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                   const nsAString& aValue, PRBool aNotify)
-  {
-    return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
-  }
-  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                           nsIAtom* aPrefix, const nsAString& aValue,
-                           PRBool aNotify);
-  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
-                             PRBool aNotify);
-
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-
-protected:
-  
-
-
-
-  nsIContent* GetFieldSet();
-};
-
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Legend)
 
@@ -147,11 +84,9 @@ NS_IMPL_ELEMENT_CLONE(nsHTMLLegendElement)
 NS_IMETHODIMP
 nsHTMLLegendElement::GetForm(nsIDOMHTMLFormElement** aForm)
 {
-  *aForm = nsnull;
+  Element *form = GetFormElement();
 
-  nsCOMPtr<nsIFormControl> fieldsetControl = do_QueryInterface(GetFieldSet());
-
-  return fieldsetControl ? fieldsetControl->GetForm(aForm) : NS_OK;
+  return form ? CallQueryInterface(form, aForm) : NS_OK;
 }
 
 
