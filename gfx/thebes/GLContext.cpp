@@ -393,6 +393,10 @@ GLContext::InitWithPrefix(const char *prefix, PRBool trygl)
         mDebugMode |= DebugAbortOnError;
 #endif
 
+    
+    if (!mInitialized)
+      mSymbols.Zero();
+
     return mInitialized;
 }
 
