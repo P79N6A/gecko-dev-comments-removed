@@ -43,18 +43,10 @@
 
 #include "nsIAtom.h"
 
-
-
-class nsICSSPseudoClass : public nsIAtom {};
-
 class nsCSSPseudoClasses {
 public:
 
   static void AddRefAtoms();
-
-#define CSS_PSEUDO_CLASS(_name, _value) static nsICSSPseudoClass* _name;
-#include "nsCSSPseudoClassList.h"
-#undef CSS_PSEUDO_CLASS
 
   enum Type {
 #define CSS_PSEUDO_CLASS(_name, _value) \
