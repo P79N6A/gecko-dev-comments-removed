@@ -879,7 +879,7 @@ let TabItems = {
 
       
       let iconUrl = tab.image;
-      if (iconUrl == null)
+      if (!iconUrl)
         iconUrl = Utils.defaultFaviconURL;
 
       if (iconUrl != tabItem.favImgEl.src)
