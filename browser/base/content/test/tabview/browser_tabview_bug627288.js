@@ -79,15 +79,12 @@ function test() {
 
 function whenTabAttrModified(tab, callback) {
   let onModified = function (event) {
-    if (tab === event.target) {
-      container.removeEventListener('TabAttrModified', onModified, false);
-      
-      
-      
-      executeSoon(callback);
-    }
+    tab.removeEventListener(event.type, onModified, false);
+    
+    
+    
+    executeSoon(callback);
   }
 
-  let container = gBrowser.tabContainer;
-  container.addEventListener('TabAttrModified', onModified, false);
+  tab.addEventListener("TabAttrModified", onModified, false);
 }
