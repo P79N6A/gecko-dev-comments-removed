@@ -309,12 +309,12 @@ TypeInferenceOracle::propertyWriteCanSpecialize(JSScript *script, jsbytecode *pc
 }
 
 bool
-TypeInferenceOracle::propertyWriteNeedsBarrier(JSScript *script, jsbytecode *pc, jsid id)
+TypeInferenceOracle::elementWriteNeedsBarrier(JSScript *script, jsbytecode *pc)
 {
     
     
     types::TypeSet *types = script->analysis()->poppedTypes(pc, 2);
-    return types->propertyNeedsBarrier(cx, id);
+    return types->propertyNeedsBarrier(cx, JSID_VOID);
 }
 
 TypeSet *

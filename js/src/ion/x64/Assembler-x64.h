@@ -117,6 +117,8 @@ static const Register OsrFrameReg = r10;
 static const Register OsrFrameReg = ArgReg5;
 #endif
 
+static const Register PreBarrierReg = rdx;
+
 
 
 static const uint32 StackAlignment = 16;

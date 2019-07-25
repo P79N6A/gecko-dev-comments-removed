@@ -205,6 +205,11 @@ class MacroAssemblerX86Shared : public Assembler
         movl(src, Operand(dest));
     }
 
+    template <typename T>
+    void computeEffectiveAddress(const T &address, Register dest) {
+        lea(Operand(address), dest);
+    }
+
     
     
     uint32 buildFakeExitFrame(const Register &scratch) {
@@ -252,7 +257,6 @@ class MacroAssemblerX86Shared : public Assembler
     CodeOffsetLabel labelForPatch() {
         return CodeOffsetLabel(size());
     }
-
 };
 
 } 

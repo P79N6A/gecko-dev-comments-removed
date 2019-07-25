@@ -89,6 +89,9 @@ class IonCompartment
     ReadBarriered<IonCode> invalidator_;
 
     
+    ReadBarriered<IonCode> preBarrier_;
+
+    
     VMWrapperMap *functionWrappers_;
 
   private:
@@ -99,6 +102,7 @@ class IonCompartment
     IonCode *generateBailoutTable(JSContext *cx, uint32 frameClass);
     IonCode *generateBailoutHandler(JSContext *cx);
     IonCode *generateInvalidator(JSContext *cx);
+    IonCode *generatePreBarrier(JSContext *cx);
 
   public:
     IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
@@ -165,6 +169,15 @@ class IonCompartment
                 return NULL;
         }
         return osrPrologue_.get()->as<DoOsrIonCode>();
+    }
+
+    IonCode *preBarrier(JSContext *cx) {
+        if (!preBarrier_) {
+            preBarrier_ = generatePreBarrier(cx);
+            if (!preBarrier_)
+                return NULL;
+        }
+        return preBarrier_;
     }
 };
 
