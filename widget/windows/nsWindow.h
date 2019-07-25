@@ -41,6 +41,8 @@
 
 #include "nsIDOMMouseEvent.h"
 
+#include "nsIIdleServiceInternal.h"
+
 
 
 
@@ -514,7 +516,7 @@ protected:
   
   PRInt32               mCaptionHeight;
 
-  nsCOMPtr<nsIdleService> mIdleService;
+  nsCOMPtr<nsIIdleServiceInternal> mIdleService;
 
   
   

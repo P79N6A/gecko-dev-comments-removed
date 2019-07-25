@@ -145,6 +145,25 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     
+  
+    
+    
+    
+    
+    template<class Item>
+    elem_type *InsertElementAt(index_type aIndex, const Item& aItem) {
+      elem_type* item = mArray.InsertElementAt(aIndex, aItem);
+      AdjustIterators(aIndex, 1);
+      return item;
+    }
+
+    
+    
+    elem_type* InsertElementAt(index_type aIndex) {
+      elem_type* item = mArray.InsertElementAt(aIndex);
+      AdjustIterators(aIndex, 1);
+      return item;
+    }
 
     
     
@@ -152,7 +171,13 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     template<class Item>
     bool PrependElementUnlessExists(const Item& item) {
-      return Contains(item) || mArray.InsertElementAt(0, item) != nsnull;
+      if (Contains(item)) {
+        return true;
+      }
+      
+      bool inserted = mArray.InsertElementAt(0, item) != nsnull;
+      AdjustIterators(0, 1);
+      return inserted;
     }
 
     

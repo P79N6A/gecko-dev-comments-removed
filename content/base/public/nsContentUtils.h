@@ -1833,6 +1833,11 @@ public:
   
 
 
+  static bool IsIdleObserverAPIEnabled() { return sIsIdleObserverAPIEnabled; }
+  
+  
+
+
 
 
 
@@ -2024,6 +2029,19 @@ public:
 
 
 
+  static nsresult IsUserIdle(PRUint32 aRequestedIdleTimeInMS, bool* aUserIsIdle);
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2139,6 +2157,7 @@ private:
   static bool sIsFullScreenApiEnabled;
   static bool sTrustedFullScreenOnly;
   static PRUint32 sHandlingInputTimeout;
+  static bool sIsIdleObserverAPIEnabled;
 
   static nsHtml5StringParser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;

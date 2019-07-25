@@ -3546,6 +3546,9 @@ pref("full-screen-api.exit-on-deactivate", true);
 pref("full-screen-api.pointer-lock.enabled", true);
 
 
+pref("dom.idle-observers-api.enabled", true);
+
+
 
 pref("dom.event.handling-user-input-time-limit", 1000);
  

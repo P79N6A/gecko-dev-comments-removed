@@ -8,7 +8,7 @@
 #ifndef nsIdleService_h__
 #define nsIdleService_h__
 
-#include "nsIIdleService.h"
+#include "nsIIdleServiceInternal.h"
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 #include "nsTArray.h"
@@ -91,26 +91,17 @@ private:
   bool mShutdownInProgress;
 };
 
-class nsIdleService : public nsIIdleService
+class nsIdleService : public nsIIdleServiceInternal
 {
 public:
-  nsIdleService();
-
-  
-  NS_IMETHOD AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
-  NS_IMETHOD RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTime);
-  NS_IMETHOD GetIdleTime(PRUint32* idleTime);
-
-  
-
-
-
-
-
-
-  void ResetIdleTimeOut(PRUint32 idleDeltaInMS = 0);
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIIDLESERVICE
+  NS_DECL_NSIIDLESERVICEINTERNAL
 
 protected:
+  static already_AddRefed<nsIdleService> GetInstance();
+
+  nsIdleService();
   virtual ~nsIdleService();
 
   
