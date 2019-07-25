@@ -131,6 +131,11 @@ ComputeDescendantWidth(const nsHTMLReflowState& aAncestorReflowState,
     frames.AppendElement(f);
   }
 
+  
+  
+  
+  
+
   PRUint32 len = frames.Length();
   nsHTMLReflowState *reflowStates = static_cast<nsHTMLReflowState*>
                                 (moz_xmalloc(sizeof(nsHTMLReflowState) * len));
@@ -194,8 +199,7 @@ nsFontInflationData::UpdateWidth(const nsHTMLReflowState &aReflowState)
 
   
   
-  nsIPresShell* presShell = bfc->PresContext()->PresShell();
-  PRUint32 lineThreshold = presShell->FontSizeInflationLineThreshold();
+  PRUint32 lineThreshold = nsLayoutUtils::FontSizeInflationLineThreshold();
   nscoord newTextThreshold = (newNCAWidth * lineThreshold) / 100;
 
   if (mTextThreshold <= mTextAmount && mTextAmount < newTextThreshold) {
