@@ -211,6 +211,8 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
   nsresult rv = NS_OK;
   
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+
   if (mFrames.NotEmpty()) {
     
     
@@ -235,6 +237,7 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     } else {
       kidHeight = mFrames.FirstChild()->GetSize().height;
     }
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mFrames.FirstChild());
   }
 
   NS_ASSERTION(aReflowState.availableWidth != NS_UNCONSTRAINEDSIZE,
@@ -247,11 +250,6 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.height = aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE
                           ? aReflowState.ComputedHeight()
                           : kidHeight;
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-
-  if (mFrames.NotEmpty()) {
-    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, mFrames.FirstChild());
-  }
 
   
   

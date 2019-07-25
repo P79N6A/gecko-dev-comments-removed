@@ -105,16 +105,16 @@
 
 #include "nsIDOMChromeWindow.h"
 #include "nsInProcessTabChildGlobal.h"
+#include "mozilla/AutoRestore.h"
+#include "mozilla/unused.h"
 
 #include "Layers.h"
 
 #include "ContentParent.h"
 #include "TabParent.h"
-#include "mozilla/GuardObjects.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/unused.h"
-#include "mozilla/dom/Element.h"
 #include "mozilla/layout/RenderFrameParent.h"
+#include "mozilla/dom/Element.h"
+#include "mozilla/Preferences.h"
 
 #include "jsapi.h"
 
@@ -143,12 +143,16 @@ public:
   nsRefPtr<nsIDocShell> mDocShell;
 };
 
-static void InvalidateFrame(nsIFrame* aFrame, PRUint32 aFlags)
+static void InvalidateFrame(nsIFrame* aFrame)
 {
   if (!aFrame)
     return;
   nsRect rect = nsRect(nsPoint(0, 0), aFrame->GetRect().Size());
-  aFrame->InvalidateWithFlags(rect, aFlags);
+  
+  
+  
+  
+  aFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
 }
 
 NS_IMPL_ISUPPORTS1(nsContentView, nsIContentView)
@@ -187,11 +191,7 @@ nsContentView::Update(const ViewConfig& aConfig)
 
   
   
-  
-  
-  
-  
-  InvalidateFrame(mFrameLoader->GetPrimaryFrameOfOwningContent(), nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
+  InvalidateFrame(mFrameLoader->GetPrimaryFrameOfOwningContent());
   return NS_OK;
 }
 
@@ -1383,7 +1383,7 @@ nsFrameLoader::MaybeCreateDocShell()
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (doc->IsResourceDoc() || !doc->IsActive()) {
+  if (doc->GetDisplayDocument() || !doc->IsActive()) {
     
     
     return NS_ERROR_NOT_AVAILABLE;
@@ -1695,11 +1695,7 @@ nsFrameLoader::SetRenderMode(PRUint32 aRenderMode)
   }
 
   mRenderMode = aRenderMode;
-  
-  
-  
-  
-  InvalidateFrame(GetPrimaryFrameOfOwningContent(), nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
+  InvalidateFrame(GetPrimaryFrameOfOwningContent());
   return NS_OK;
 }
 
@@ -1730,7 +1726,7 @@ nsFrameLoader::SetClipSubdocument(bool aClip)
   mClipSubdocument = aClip;
   nsIFrame* frame = GetPrimaryFrameOfOwningContent();
   if (frame) {
-    InvalidateFrame(frame, 0);
+    InvalidateFrame(frame);
     frame->PresContext()->PresShell()->
       FrameNeedsReflow(frame, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
     nsSubDocumentFrame* subdocFrame = do_QueryFrame(frame);
