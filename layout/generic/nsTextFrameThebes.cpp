@@ -4842,7 +4842,7 @@ nsTextFrame::PaintOneShadow(PRUint32 aOffset, PRUint32 aLength,
 
 
 
-void
+bool
 nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
     const gfxPoint& aFramePt,
     const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
@@ -4854,7 +4854,7 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
   
   nsAutoTArray<SelectionDetails*,BIG_TEXT_NODE_SIZE> prevailingSelectionsBuffer;
   if (!prevailingSelectionsBuffer.AppendElements(aContentLength))
-    return;
+    return false;
   SelectionDetails** prevailingSelections = prevailingSelectionsBuffer.Elements();
 
   SelectionType allTypes = 0;
@@ -4890,6 +4890,17 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
     sdptr = sdptr->mNext;
   }
   *aAllTypes = allTypes;
+
+  if (!allTypes) {
+    
+    if (aContentLength == aProvider.GetOriginalLength()) {
+      
+      
+      
+      RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
+    }
+    return false;
+  }
 
   const gfxFloat startXOffset = aTextBaselinePt.x - aFramePt.x;
   gfxFloat xOffset, hyphenWidth;
@@ -4938,6 +4949,7 @@ nsTextFrame::PaintTextWithSelectionColors(gfxContext* aCtx,
     }
     iterator.UpdateWithAdvance(advance);
   }
+  return true;
 }
 
 void
@@ -5008,7 +5020,7 @@ nsTextFrame::PaintTextSelectionDecorations(gfxContext* aCtx,
   }
 }
 
-PRBool
+bool
 nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
     const gfxPoint& aFramePt,
     const gfxPoint& aTextBaselinePt, const gfxRect& aDirtyRect,
@@ -5017,13 +5029,23 @@ nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
     const nsCharClipDisplayItem::ClipEdges& aClipEdges)
 {
   SelectionDetails* details = GetSelectionDetails();
-  if (!details)
-    return PR_FALSE;
+  if (!details) {
+    if (aContentLength == aProvider.GetOriginalLength()) {
+      
+      
+      
+      RemoveStateBits(NS_FRAME_SELECTED_CONTENT);
+    }
+    return false;
+  }
 
   SelectionType allTypes;
-  PaintTextWithSelectionColors(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
-                               aProvider, aContentOffset, aContentLength,
-                               aTextPaintStyle, details, &allTypes);
+  if (!PaintTextWithSelectionColors(aCtx, aFramePt, aTextBaselinePt, aDirtyRect,
+                                    aProvider, aContentOffset, aContentLength,
+                                    aTextPaintStyle, details, &allTypes)) {
+    DestroySelectionDetails(details);
+    return false;
+  }
   PaintTextDecorations(aCtx, aDirtyRect, aFramePt, aTextBaselinePt,
                        aTextPaintStyle, aProvider, aClipEdges);
   PRInt32 i;
@@ -5045,7 +5067,7 @@ nsTextFrame::PaintTextWithSelection(gfxContext* aCtx,
   }
 
   DestroySelectionDetails(details);
-  return PR_TRUE;
+  return true;
 }
 
 nscolor

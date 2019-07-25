@@ -312,19 +312,21 @@ public:
   
   
   
-  PRBool PaintTextWithSelection(gfxContext* aCtx,
-                                const gfxPoint& aFramePt,
-                                const gfxPoint& aTextBaselinePt,
-                                const gfxRect& aDirtyRect,
-                                PropertyProvider& aProvider,
-                                PRUint32 aContentOffset,
-                                PRUint32 aContentLength,
-                                nsTextPaintStyle& aTextPaintStyle,
-                                const nsCharClipDisplayItem::ClipEdges& aClipEdges);
+  bool PaintTextWithSelection(gfxContext* aCtx,
+                              const gfxPoint& aFramePt,
+                              const gfxPoint& aTextBaselinePt,
+                              const gfxRect& aDirtyRect,
+                              PropertyProvider& aProvider,
+                              PRUint32 aContentOffset,
+                              PRUint32 aContentLength,
+                              nsTextPaintStyle& aTextPaintStyle,
+                              const nsCharClipDisplayItem::ClipEdges& aClipEdges);
   
   
   
-  void PaintTextWithSelectionColors(gfxContext* aCtx,
+  
+  
+  bool PaintTextWithSelectionColors(gfxContext* aCtx,
                                     const gfxPoint& aFramePt,
                                     const gfxPoint& aTextBaselinePt,
                                     const gfxRect& aDirtyRect,
