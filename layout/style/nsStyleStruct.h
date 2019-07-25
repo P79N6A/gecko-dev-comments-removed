@@ -744,7 +744,8 @@ struct nsStyleBorder {
 
   nsChangeHint CalcDifference(const nsStyleBorder& aOther) const;
   static nsChangeHint MaxDifference() {
-    return NS_STYLE_HINT_REFLOW;
+    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
+                          nsChangeHint_BorderStyleNoneChange);
   }
   
   
@@ -772,7 +773,7 @@ struct nsStyleBorder {
   
   
   
-  bool HasVisibleStyle(mozilla::css::Side aSide)
+  bool HasVisibleStyle(mozilla::css::Side aSide) const
   {
     return IsVisibleBorderStyle(GetBorderStyle(aSide));
   }

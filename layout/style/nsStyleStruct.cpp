@@ -485,6 +485,10 @@ nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
 {
   nsChangeHint shadowDifference =
     CalcShadowDifference(mBoxShadow, aOther.mBoxShadow);
+  NS_ABORT_IF_FALSE(shadowDifference == unsigned(NS_STYLE_HINT_REFLOW) ||
+                    shadowDifference == unsigned(NS_STYLE_HINT_VISUAL) ||
+                    shadowDifference == unsigned(NS_STYLE_HINT_NONE),
+                    "should do more with shadowDifference");
 
   
   
@@ -496,6 +500,18 @@ nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
       mBorderImageOutset != aOther.mBorderImageOutset ||
       (shadowDifference & nsChangeHint_ReflowFrame))
     return NS_STYLE_HINT_REFLOW;
+
+  NS_FOR_CSS_SIDES(ix) {
+    
+    
+    
+    
+    
+    if (HasVisibleStyle(ix) != aOther.HasVisibleStyle(ix)) {
+      return NS_CombineHint(NS_STYLE_HINT_VISUAL,
+                            nsChangeHint_BorderStyleNoneChange);
+    }
+  }
 
   
   

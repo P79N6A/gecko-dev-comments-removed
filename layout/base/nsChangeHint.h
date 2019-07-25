@@ -107,7 +107,15 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_AddOrRemoveTransform = 0x4000
+  nsChangeHint_AddOrRemoveTransform = 0x4000,
+
+  
+
+
+
+
+
+  nsChangeHint_BorderStyleNoneChange = 0x8000
 
   
   
@@ -164,7 +172,8 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
     nsChangeHint_UpdateOverflow |
     nsChangeHint_ChildrenOnlyTransform |
     nsChangeHint_RecomputePosition |
-    nsChangeHint_AddOrRemoveTransform));
+    nsChangeHint_AddOrRemoveTransform |
+    nsChangeHint_BorderStyleNoneChange));
 
   if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aChangeHint) &&
       NS_IsHintSubset(nsChangeHint_NeedReflow, aChangeHint)) {
