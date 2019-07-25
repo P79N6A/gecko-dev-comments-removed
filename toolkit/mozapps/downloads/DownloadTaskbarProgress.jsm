@@ -223,6 +223,7 @@ var DownloadTaskbarProgressUpdater =
 
 
 
+
   _updateTaskbar: function DTPU_updateTaskbar()
   {
     if (!this._activeTaskbarProgress) {
@@ -232,7 +233,8 @@ var DownloadTaskbarProgressUpdater =
     
     
     if (this._activeWindowIsDownloadWindow ||
-        (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL)) {
+        (this._taskbarState == Ci.nsITaskbarProgress.STATE_NORMAL ||
+         this._taskbarState == Ci.nsITaskbarProgress.STATE_INDETERMINATE)) {
       this._activeTaskbarProgress.setProgressState(this._taskbarState,
                                                    this._totalTransferred,
                                                    this._totalSize);
