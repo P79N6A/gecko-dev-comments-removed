@@ -738,6 +738,10 @@ function triggerSecondaryCommand(popup, index) {
   ok(notifications.length > 0, "at least one notification displayed");
   let notification = notifications[0];
 
+  
+  
+  document.getAnonymousNodes(popup)[0].style.transition = "none";
+
   notification.button.focus();
 
   popup.addEventListener("popupshown", function () {
