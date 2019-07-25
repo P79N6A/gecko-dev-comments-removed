@@ -66,9 +66,6 @@ class nsAccessibleWrap : public nsAccessible
     virtual ~nsAccessibleWrap();
     
     
-    virtual bool Init ();
-    
-    
     NS_IMETHOD GetNativeInterface (void **aOutAccessible);
     
     
@@ -93,9 +90,9 @@ class nsAccessibleWrap : public nsAccessible
     void GetUnignoredChildren(nsTArray<nsRefPtr<nsAccessibleWrap> > &aChildrenArray);
     virtual already_AddRefed<nsIAccessible> GetUnignoredParent();
     
-  protected:
+protected:
 
-    virtual nsresult FirePlatformEvent(AccEvent* aEvent);
+  virtual nsresult FirePlatformEvent(AccEvent* aEvent);
 
   
 
@@ -106,10 +103,30 @@ class nsAccessibleWrap : public nsAccessible
 
 
 #if defined(__OBJC__)
+  mozAccessible* GetNativeObject();
+#else
+  id GetNativeObject();
+#endif
+
+private:
+
+  
+
+
+
+#if defined(__OBJC__)
+  
   mozAccessible* mNativeObject;
 #else
-  id mNativeObject;  
+  id mNativeObject;
 #endif
+
+  
+
+
+
+
+  bool mNativeInited;  
 };
 
 
