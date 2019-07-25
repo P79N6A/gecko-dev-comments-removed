@@ -2007,6 +2007,32 @@ function getNotificationBox(aWindow) {
   return Browser.getNotificationBox();
 }
 
+function importDialog(src, arguments) {
+  
+  let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance();
+  xhr.open("GET", src, false);
+  xhr.overrideMimeType("text/xml");
+  xhr.send(null);
+  if (!xhr.responseXML)
+    return null;
+  let doc = xhr.responseXML.documentElement;
+ 
+  var dialog  = null;
+  
+  
+  let selectContainer = document.getElementById("select-container");
+  let parent = selectContainer.parentNode;
+  
+  
+  let back = document.createElement("box");
+  back.setAttribute("class", "modal-block");
+  dialog = back.appendChild(document.importNode(doc, true));
+  parent.insertBefore(back, selectContainer);
+  
+  dialog.arguments = arguments;
+  return dialog;
+}
+
 function showDownloadsManager(aWindowContext, aID, aReason) {
   BrowserUI.show(UIMODE_PANEL);
   BrowserUI.switchPane("downloads-container");
