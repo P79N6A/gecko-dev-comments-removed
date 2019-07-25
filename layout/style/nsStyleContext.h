@@ -146,6 +146,12 @@ public:
     { return !!(mBits & NS_STYLE_RELEVANT_LINK_VISITED); }
 
   
+  PRBool IsLinkContext() const {
+    return
+      GetStyleIfVisited() && GetStyleIfVisited()->GetParent() == GetParent();
+  }
+
+  
   
   PRBool IsStyleIfVisited() const
     { return !!(mBits & NS_STYLE_IS_STYLE_IF_VISITED); }
@@ -169,7 +175,7 @@ public:
   
   
   
-  nsStyleContext* GetStyleIfVisited()
+  nsStyleContext* GetStyleIfVisited() const
     { return mStyleIfVisited; }
 
   

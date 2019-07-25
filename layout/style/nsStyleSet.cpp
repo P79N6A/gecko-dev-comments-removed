@@ -424,10 +424,6 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
                        
                        
                        nsRuleNode* aVisitedRuleNode,
-                       
-                       
-                       
-                       
                        PRBool aIsLink,
                        PRBool aIsVisitedLink,
                        nsIAtom* aPseudoTag,
@@ -854,9 +850,8 @@ nsStyleSet::ResolveStyleByAddingRules(nsStyleContext* aBaseContext,
   }
 
   return GetContext(aBaseContext->GetParent(), ruleNode, visitedRuleNode,
-                    
-                    
-                    PR_TRUE, aBaseContext->RelevantLinkVisited(),
+                    aBaseContext->IsLinkContext(),
+                    aBaseContext->RelevantLinkVisited(),
                     aBaseContext->GetPseudo(),
                     aBaseContext->GetPseudoType());
 }
@@ -1153,14 +1148,22 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   nsRuleNode* ruleNode = aStyleContext->GetRuleNode();
   nsRuleNode* visitedRuleNode = nsnull;
   nsStyleContext* visitedContext = aStyleContext->GetStyleIfVisited();
+  
+  
+  
+  
   if (visitedContext) {
      visitedRuleNode = visitedContext->GetRuleNode();
+     if (visitedRuleNode == ruleNode) {
+       
+       
+       visitedRuleNode = nsnull;
+     }
   }
 
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
-                    
-                    
-                    PR_TRUE, aStyleContext->RelevantLinkVisited(),
+                    aStyleContext->IsLinkContext(),
+                    aStyleContext->RelevantLinkVisited(),
                     pseudoTag, pseudoType);
 }
 
