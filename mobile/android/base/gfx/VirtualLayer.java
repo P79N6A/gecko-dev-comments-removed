@@ -50,7 +50,7 @@ public class VirtualLayer extends Layer {
         
     }
 
-    void setPositionAndResolution(Rect newPosition, float newResolution) {
+    void setPositionAndResolution(int left, int top, int right, int bottom, float newResolution) {
         
         
         
@@ -65,19 +65,7 @@ public class VirtualLayer extends Layer {
         
         
         
-        
-        
-        
-        mPosition = newPosition;
+        mPosition.set(left, top, right, bottom);
         mResolution = newResolution;
-    }
-
-    @Override
-    public void setDisplayPort(Rect displayPort) {
-        
-        
-        
-        
-        mDisplayPort = displayPort;
     }
 }

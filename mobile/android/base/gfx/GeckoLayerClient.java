@@ -80,12 +80,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    private Rect mGeckoDisplayPort;
-
-    
-
-
-
     private ImmutableViewportMetrics mFrameMetrics;
 
     private String mLastCheckerboardColor;
@@ -102,7 +96,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mScreenSize = new IntSize(0, 0);
         mWindowSize = new IntSize(0, 0);
         mDisplayPort = new RectF();
-        mGeckoDisplayPort = new Rect();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
     }
 
@@ -124,27 +117,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
         layerController.setRoot(mRootLayer);
 
         sendResizeEventIfNecessary(true);
-    }
-
-    
-    public boolean beginDrawing(int width, int height, String metadata) {
-        try {
-            JSONObject viewportObject = new JSONObject(metadata);
-            mGeckoViewport = new ViewportMetrics(viewportObject);
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
-            return false;
-        }
-
-        return true;
-    }
-
-    
-    public void endDrawing() {
-        synchronized (mLayerController) {
-            RectF position = mGeckoViewport.getViewport();
-            mRootLayer.setPositionAndResolution(RectUtils.round(position), mGeckoViewport.getZoomFactor());
-        }
     }
 
     RectF getDisplayPort() {
@@ -267,17 +239,23 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         mDisplayPort = calculateDisplayPort(mLayerController.getViewportMetrics());
         GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(viewportMetrics, mDisplayPort));
+        mGeckoViewport = viewportMetrics;
     }
 
     
     public void handleMessage(String event, JSONObject message) {
         try {
             if ("Viewport:Update".equals(event)) {
-                ViewportMetrics newMetrics = new ViewportMetrics(message);
+                final ViewportMetrics newMetrics = new ViewportMetrics(message);
                 synchronized (mLayerController) {
                     
                     ImmutableViewportMetrics oldMetrics = mLayerController.getViewportMetrics();
                     newMetrics.setSize(oldMetrics.getSize());
+                    mLayerController.post(new Runnable() {
+                        public void run() {
+                            mGeckoViewport = newMetrics;
+                        }
+                    });
                     mLayerController.setViewportMetrics(newMetrics);
                     mLayerController.abortPanZoomAnimation();
                     mDisplayPort = calculateDisplayPort(mLayerController.getViewportMetrics());
@@ -324,11 +302,16 @@ public class GeckoLayerClient implements GeckoEventResponder,
             adjustViewport();
     }
 
+    
+
+
+
+
+
+
+
     public ViewportMetrics getGeckoViewportMetrics() {
-        
-        if (mGeckoViewport != null)
-            return new ViewportMetrics(mGeckoViewport);
-        return null;
+        return mGeckoViewport;
     }
 
     
@@ -401,8 +384,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mCurrentViewTransform.y = mFrameMetrics.viewportRectTop;
         mCurrentViewTransform.scale = mFrameMetrics.zoomFactor;
 
-        mGeckoDisplayPort.set(x, y, x + width, y + height);
-        mRootLayer.setDisplayPort(mGeckoDisplayPort);
+        mRootLayer.setPositionAndResolution(x, y, x + width, y + height, resolution);
 
         if (layersUpdated && mDrawListener != null) {
             

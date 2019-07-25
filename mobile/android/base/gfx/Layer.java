@@ -52,11 +52,9 @@ public abstract class Layer {
     private boolean mInTransaction;
     private Rect mNewPosition;
     private float mNewResolution;
-    private Rect mNewDisplayPort;
 
     protected Rect mPosition;
     protected float mResolution;
-    protected Rect mDisplayPort;
 
     public Layer() {
         this(null);
@@ -105,19 +103,9 @@ public abstract class Layer {
 
 
 
-    protected RectF getDisplayPortBounds(RenderContext context) {
-        if (mDisplayPort != null)
-            return RectUtils.scale(new RectF(mDisplayPort), context.zoomFactor / mResolution);
-        return getBounds(context);
-    }
-
-    
-
-
-
 
     public Region getValidRegion(RenderContext context) {
-        return new Region(RectUtils.round(getDisplayPortBounds(context)));
+        return new Region(RectUtils.round(getBounds(context)));
     }
 
     
@@ -181,31 +169,11 @@ public abstract class Layer {
 
 
 
-    public Rect getDisplayPort() {
-        return mDisplayPort;
-    }
-
-    
-    public void setDisplayPort(Rect newDisplayPort) {
-        if (!mInTransaction)
-            throw new RuntimeException("setDisplayPort() is only valid inside a transaction");
-        mNewDisplayPort = newDisplayPort;
-    }
-
-    
-
-
-
-
 
     protected boolean performUpdates(RenderContext context) {
         if (mNewPosition != null) {
             mPosition = mNewPosition;
             mNewPosition = null;
-        }
-        if (mNewDisplayPort != null) {
-            mDisplayPort = mNewDisplayPort;
-            mNewDisplayPort = null;
         }
         if (mNewResolution != 0.0f) {
             mResolution = mNewResolution;

@@ -357,14 +357,12 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
 
     public PointF convertViewPointToLayerPoint(PointF viewPoint) {
-        if (mRootLayer == null)
-            return null;
-
         ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
         PointF origin = viewportMetrics.getOrigin();
         float zoom = viewportMetrics.zoomFactor;
-        Rect rootPosition = mRootLayer.getPosition();
-        float rootScale = mRootLayer.getResolution();
+        ViewportMetrics geckoViewport = mLayerClient.getGeckoViewportMetrics();
+        PointF geckoOrigin = geckoViewport.getOrigin();
+        float geckoZoom = geckoViewport.getZoomFactor();
 
         
         
@@ -372,8 +370,8 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         
         
         PointF layerPoint = new PointF(
-                ((viewPoint.x + origin.x) / zoom) - (rootPosition.left / rootScale),
-                ((viewPoint.y + origin.y) / zoom) - (rootPosition.top / rootScale));
+                ((viewPoint.x + origin.x) / zoom) - (geckoOrigin.x / geckoZoom),
+                ((viewPoint.y + origin.y) / zoom) - (geckoOrigin.y / geckoZoom));
 
         return layerPoint;
     }
