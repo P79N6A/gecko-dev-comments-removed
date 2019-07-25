@@ -5,10 +5,13 @@
 
 package org.mozilla.gecko.ui;
 
-import java.util.Map;
-import android.util.Log;
-import org.json.JSONArray;
 import org.mozilla.gecko.FloatUtils;
+
+import org.json.JSONArray;
+
+import android.util.Log;
+
+import java.util.Map;
 
 
 
