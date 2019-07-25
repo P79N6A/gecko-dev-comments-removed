@@ -151,7 +151,7 @@ RenderFrameParent::ShadowLayersUpdated()
     
     
     
-    NS_WARNING("RenderFrameParent just received a layer update, but our <browser> doesn't have an nsIFrame so we can't invalidate for the update");
+    
     return;
   }
 
@@ -254,10 +254,7 @@ RenderFrameParent::AllocPLayers()
   }    
 
   BasicShadowLayerManager* bslm = static_cast<BasicShadowLayerManager*>(lm);
-  ShadowLayersParent* slp = new ShadowLayersParent(bslm);
-  bslm->SetForwarder(nsnull);   
-  bslm->SetForwarder(slp);
-  return slp;
+  return new ShadowLayersParent(bslm);
 }
 
 bool
