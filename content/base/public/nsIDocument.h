@@ -1331,6 +1331,10 @@ public:
 
   PRUint32 EventHandlingSuppressed() const { return mEventsSuppressed; }
 
+  bool IsEventHandlingEnabled() {
+    return !EventHandlingSuppressed() && mScriptGlobalObject;
+  }
+
   
 
 

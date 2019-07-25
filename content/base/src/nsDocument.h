@@ -865,7 +865,10 @@ public:
 
   virtual void UnsuppressEventHandlingAndFireEvents(PRBool aFireEvents);
   
-  void DecreaseEventSuppression() { --mEventsSuppressed; }
+  void DecreaseEventSuppression() {
+    --mEventsSuppressed;
+    MaybeRescheduleAnimationFrameNotifications();
+  }
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsDocument,
                                                          nsIDocument)
@@ -1150,7 +1153,8 @@ private:
   
   void RevokeAnimationFrameNotifications();
   
-  void RescheduleAnimationFrameNotifications();
+  
+  void MaybeRescheduleAnimationFrameNotifications();
 
   
   nsDocument(const nsDocument& aOther);
