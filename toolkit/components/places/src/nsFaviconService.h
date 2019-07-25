@@ -222,6 +222,14 @@ private:
   friend class FaviconLoadListener;
 
   bool mShuttingDown;
+
+  
+  
+  nsresult GetDefaultFaviconData(nsCString& byteStr);
+
+  
+  
+  nsCString mDefaultFaviconData;
 };
 
 #define FAVICON_ANNOTATION_NAME "favicon"
