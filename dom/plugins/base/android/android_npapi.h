@@ -698,6 +698,28 @@ struct ANPWindowInterfaceV1 : ANPWindowInterfaceV0 {
     ANPRectI (*visibleRect)(NPP instance);
 };
 
+enum ANPScreenOrientations {
+    
+
+    kDefault_ANPScreenOrientation        = 0,
+    
+
+
+    kFixedLandscape_ANPScreenOrientation = 1,
+    
+
+
+    kFixedPortrait_ANPScreenOrientation  = 2,
+    
+
+
+    kLandscape_ANPScreenOrientation      = 3,
+    
+
+
+    kPortrait_ANPScreenOrientation       = 4
+};
+
 typedef int32_t ANPScreenOrientation;
 
 struct ANPWindowInterfaceV2 : ANPWindowInterfaceV1 {
