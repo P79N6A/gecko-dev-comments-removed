@@ -925,7 +925,8 @@ ion::FindNaturalLoops(MIRGraph &graph)
 
                 
                 
-                JS_ASSERT(header->id() < pred->id() && pred->id() < block->id());
+                JS_ASSERT_IF(pred != graph.osrBlock(),
+                             header->id() < pred->id() && pred->id() < block->id());
 
                 
                 
