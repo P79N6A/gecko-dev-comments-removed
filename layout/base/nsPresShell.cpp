@@ -1413,11 +1413,8 @@ PresShell::SetPrefNoScriptRule()
   
   
   nsIDocument* doc = mDocument;
-  if (mPresContext->Type() == nsPresContext::eContext_PrintPreview ||
-      mPresContext->Type() == nsPresContext::eContext_Print) {
-    while (doc->GetOriginalDocument()) {
-      doc = doc->GetOriginalDocument();
-    }
+  if (doc->IsStaticDocument()) {
+    doc = doc->GetOriginalDocument();
   }
 
   bool scriptEnabled = doc->IsScriptEnabled();

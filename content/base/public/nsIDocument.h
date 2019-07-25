@@ -1421,7 +1421,11 @@ public:
 
 
 
-  nsIDocument* GetOriginalDocument() { return mOriginalDocument; }
+  nsIDocument* GetOriginalDocument()
+  {
+    MOZ_ASSERT(!mOriginalDocument || !mOriginalDocument->GetOriginalDocument());
+    return mOriginalDocument;
+  }
 
   
 
