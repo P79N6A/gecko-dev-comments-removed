@@ -46,7 +46,7 @@ pref("browser.homescreenURL", "file:///data/local/homescreen.html,file:///system
 #endif
 
 
-pref("dom.telephony.app.phone.url", "http://localhost:7777/apps/dialer/dialer.html");
+pref("dom.telephony.app.phone.url", "http://localhost:7777/data/local/apps/dialer/dialer.html");
 
 
 pref("browser.viewport.scaleRatio", -1);
