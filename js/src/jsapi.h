@@ -3180,7 +3180,7 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
 
 
-    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 13];
+    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 12];
 
   protected:
     js::AutoCompartment *getAutoCompartment() {

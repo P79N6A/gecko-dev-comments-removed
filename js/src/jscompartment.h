@@ -21,9 +21,6 @@
 namespace js {
 
 
-extern Class dummy_class;
-
-
 
 
 
@@ -530,7 +527,6 @@ class AutoCompartment
   public:
     JSContext * const context;
     JSCompartment * const origin;
-    JSObject * const target;
     JSCompartment * const destination;
   private:
     Maybe<DummyFrameGuard> frame;
