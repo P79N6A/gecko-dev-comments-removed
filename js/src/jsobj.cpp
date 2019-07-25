@@ -1181,7 +1181,15 @@ EvalKernel(JSContext *cx, const CallArgs &call, EvalType evalType, StackFrame *c
 
 
 
-    if (length > 2 && chars[0] == '(' && chars[length - 1] == ')') {
+
+
+
+
+
+    if (length > 2 &&
+        chars[0] == '(' && chars[length - 1] == ')' &&
+        (!caller || !caller->script()->strictModeCode))
+    {
         JSONParser parser(cx, chars + 1, length - 2, JSONParser::StrictJSON, JSONParser::NoError);
         Value tmp;
         if (!parser.parse(&tmp))
