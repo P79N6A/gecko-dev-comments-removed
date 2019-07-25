@@ -98,6 +98,9 @@ public:
   virtual nsSMILTimeContainer* GetTimeContainer();
 
 protected:
+  
+  PRBool IsEventName(nsIAtom* aName);
+
   void UpdateHrefTarget(nsIContent* aNodeForContext,
                         const nsAString& aHrefStr);
 

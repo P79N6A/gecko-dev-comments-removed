@@ -43,8 +43,12 @@
 #include "nsSMILParserUtils.h"
 #include "nsSMILTimeContainer.h"
 #include "nsGkAtoms.h"
+#include "nsGUIEvent.h"
+#include "nsEventDispatcher.h"
 #include "nsReadableUtils.h"
 #include "nsMathUtils.h"
+#include "nsThreadUtils.h"
+#include "nsIPresShell.h"
 #include "prdtoa.h"
 #include "plstr.h"
 #include "prtime.h"
@@ -88,6 +92,43 @@ nsSMILTimedElement::InstanceTimeComparator::LessThan(
 
   PRInt8 cmp = aElem1->Time().CompareTo(aElem2->Time());
   return cmp == 0 ? aElem1->Serial() < aElem2->Serial() : cmp < 0;
+}
+
+
+
+
+namespace
+{
+  class AsyncTimeEventRunner : public nsRunnable
+  {
+  protected:
+    nsRefPtr<nsIContent> mTarget;
+    PRUint32             mMsg;
+    PRInt32              mDetail;
+
+  public:
+    AsyncTimeEventRunner(nsIContent* aTarget, PRUint32 aMsg, PRInt32 aDetail)
+      : mTarget(aTarget), mMsg(aMsg), mDetail(aDetail)
+    {
+    }
+
+    NS_IMETHOD Run()
+    {
+      nsUIEvent event(PR_TRUE, mMsg, mDetail);
+      event.eventStructType = NS_SMIL_TIME_EVENT;
+
+      nsPresContext* context = nsnull;
+      nsIDocument* doc = mTarget->GetCurrentDoc();
+      if (doc) {
+        nsCOMPtr<nsIPresShell> shell = doc->GetShell();
+        if (shell) {
+          context = shell->GetPresContext();
+        }
+      }
+
+      return nsEventDispatcher::Dispatch(mTarget, context, &event);
+    }
+  };
 }
 
 
@@ -150,6 +191,7 @@ nsSMILTimedElement::nsSMILTimedElement()
   mInstanceSerialIndex(0),
   mClient(nsnull),
   mCurrentInterval(nsnull),
+  mCurrentRepeatIteration(0),
   mPrevRegisteredMilestone(sMaxMilestone),
   mElementState(STATE_STARTUP),
   mSeekState(SEEK_NOT_SEEKING)
@@ -506,13 +548,14 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
         if (mCurrentInterval->Begin()->Time() <= sampleTime) {
           mElementState = STATE_ACTIVE;
           mCurrentInterval->FixBegin();
-          if (HasPlayed()) {
-            Reset(); 
-          }
           if (mClient) {
             mClient->Activate(mCurrentInterval->Begin()->Time().GetMillis());
           }
+          if (mSeekState == SEEK_NOT_SEEKING) {
+            FireTimeEventAsync(NS_SMIL_BEGIN, 0);
+          }
           if (HasPlayed()) {
+            Reset(); 
             
             
             
@@ -541,6 +584,10 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
             mClient->Inactivate(mFillMode == FILL_FREEZE);
           }
           mCurrentInterval->FixEnd();
+          if (mSeekState == SEEK_NOT_SEEKING) {
+            FireTimeEventAsync(NS_SMIL_END, 0);
+          }
+          mCurrentRepeatIteration = 0;
           mOldIntervals.AppendElement(mCurrentInterval.forget());
           
           SampleFillValue();
@@ -556,6 +603,19 @@ nsSMILTimedElement::DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly)
                        "Sample time should not precede current interval");
           nsSMILTime activeTime = aContainerTime - beginTime;
           SampleSimpleTime(activeTime);
+          
+          
+          
+          
+          
+          PRUint32 prevRepeatIteration = mCurrentRepeatIteration;
+          if (ActiveTimeToSimpleTime(activeTime, mCurrentRepeatIteration)==0 &&
+              mCurrentRepeatIteration != prevRepeatIteration &&
+              mCurrentRepeatIteration &&
+              mSeekState == SEEK_NOT_SEEKING) {
+            FireTimeEventAsync(NS_SMIL_REPEAT,
+                          static_cast<PRInt32>(mCurrentRepeatIteration));
+          }
         }
       }
       break;
@@ -607,6 +667,7 @@ nsSMILTimedElement::Rewind()
   
   
   mElementState = STATE_STARTUP;
+  mCurrentRepeatIteration = 0;
 
   
   
@@ -1239,13 +1300,6 @@ void
 nsSMILTimedElement::DoPostSeek()
 {
   
-  
-  
-  
-  
-  
-
-  
   if (mSeekState == SEEK_BACKWARD_FROM_INACTIVE ||
       mSeekState == SEEK_BACKWARD_FROM_ACTIVE) {
     
@@ -1264,6 +1318,34 @@ nsSMILTimedElement::DoPostSeek()
     
     Reset();
     UpdateCurrentInterval();
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  switch (mSeekState)
+  {
+  case SEEK_FORWARD_FROM_ACTIVE:
+  case SEEK_BACKWARD_FROM_ACTIVE:
+    if (mElementState != STATE_ACTIVE) {
+      FireTimeEventAsync(NS_SMIL_END, 0);
+    }
+    break;
+
+  case SEEK_FORWARD_FROM_INACTIVE:
+  case SEEK_BACKWARD_FROM_INACTIVE:
+    if (mElementState == STATE_ACTIVE) {
+      FireTimeEventAsync(NS_SMIL_BEGIN, 0);
+    }
+    break;
   }
 
   mSeekState = SEEK_NOT_SEEKING;
@@ -1873,10 +1955,6 @@ nsSMILTimedElement::GetNextMilestone(nsSMILMilestone& aNextMilestone) const
   
   
   
-  
-  
-  
-  
 
   switch (mElementState)
   {
@@ -1897,11 +1975,16 @@ nsSMILTimedElement::GetNextMilestone(nsSMILMilestone& aNextMilestone) const
   case STATE_ACTIVE:
     {
       
-      
+      nsSMILTimeValue nextRepeat;
+      if (mSeekState == SEEK_NOT_SEEKING && mSimpleDur.IsResolved()) {
+        nextRepeat.SetMillis(mCurrentInterval->Begin()->Time().GetMillis() +
+            (mCurrentRepeatIteration + 1) * mSimpleDur.GetMillis());
+      }
+      nsSMILTimeValue nextMilestone =
+        NS_MIN(mCurrentInterval->End()->Time(), nextRepeat);
 
       
-      nsSMILInstanceTime* earlyEnd =
-        CheckForEarlyEnd(mCurrentInterval->End()->Time());
+      nsSMILInstanceTime* earlyEnd = CheckForEarlyEnd(nextMilestone);
       if (earlyEnd) {
         aNextMilestone.mIsEnd = PR_TRUE;
         aNextMilestone.mTime = earlyEnd->Time().GetMillis();
@@ -1909,9 +1992,9 @@ nsSMILTimedElement::GetNextMilestone(nsSMILMilestone& aNextMilestone) const
       }
 
       
-      if (mCurrentInterval->End()->Time().IsResolved()) {
-        aNextMilestone.mIsEnd = PR_TRUE;
-        aNextMilestone.mTime = mCurrentInterval->End()->Time().GetMillis();
+      if (nextMilestone.IsResolved()) {
+        aNextMilestone.mIsEnd = nextMilestone != nextRepeat;
+        aNextMilestone.mTime = nextMilestone.GetMillis();
         return PR_TRUE;
       }
 
@@ -1956,6 +2039,17 @@ nsSMILTimedElement::NotifyChangedInterval()
   }
 
   mCurrentInterval->NotifyChanged(container);
+}
+
+void
+nsSMILTimedElement::FireTimeEventAsync(PRUint32 aMsg, PRInt32 aDetail)
+{
+  if (!mAnimationElement)
+    return;
+
+  nsCOMPtr<nsIRunnable> event =
+    new AsyncTimeEventRunner(&mAnimationElement->Content(), aMsg, aDetail);
+  NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 
 const nsSMILInstanceTime*
