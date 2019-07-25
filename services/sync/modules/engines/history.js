@@ -81,34 +81,10 @@ HistoryEngine.prototype = {
   _storeObj: HistoryStore,
   _trackerObj: HistoryTracker,
 
-  _sync: Utils.batchSync("History", SyncEngine),
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  _reconcile: function HistEngine__reconcile(item) {
-    
-    
-    if (item.id in this._tracker.changedIDs) {
-      if (this._isEqual(item))
-        this._tracker.removeChangedID(item.id);
-      return false;
-    }
-
-    
-    if (item.deleted)
-      return false;
-
-    
-    return true;
+  _sync: function HistoryEngine__sync() {
+    Svc.History.runInBatchMode({
+      runBatched: Utils.bind2(this, SyncEngine.prototype._sync)
+    }, null);
   },
 
   _syncFinish: function HistEngine__syncFinish(error) {
@@ -120,6 +96,10 @@ HistoryEngine.prototype = {
     coll.older = this.lastSync - 604800; 
     coll.full = 0;
     coll.delete();
+  },
+
+  _findDupe: function _findDupe(item) {
+    return GUIDForUri(item.histUri);
   }
 };
 
@@ -256,18 +236,15 @@ HistoryStore.prototype = {
     if (this.urlExists(uri))
       curvisits = this._getVisits(record.histUri);
 
-    
-    for each (let {date, type} in record.visits)
-      if (curvisits.every(function(cur) cur.date != date))
-        Svc.History.addVisit(uri, date, null, type, type == 5 || type == 6, 0);
-
+    let visit;
+    while ((visit = record.visits.pop())) {
+      if (curvisits.filter(function(i) i.date == visit.date).length)
+        continue;
+      this._log.debug("     visit " + visit.date);
+      this._hsvc.addVisit(uri, visit.date, null, visit.type,
+                          (visit.type == 5 || visit.type == 6), 0);
+    }
     this._hsvc.setPageTitle(uri, record.title);
-
-    
-    let localId = GUIDForUri(record.histUri);
-    if (localId != record.id)
-      this.changeItemID(localId, record.id);
-
   },
 
   itemExists: function HistStore_itemExists(id) {

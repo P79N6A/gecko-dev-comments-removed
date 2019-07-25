@@ -183,78 +183,7 @@ Engine.prototype = {
   sync: function Engine_sync() {
     if (!this._sync)
       throw "engine does not implement _sync method";
-
-    let times = {};
-    let wrapped = {};
-    
-    for (let _name in this) {
-      let name = _name;
-
-      
-      if (name.search(/^_(.+Obj|notify)$/) == 0)
-        continue;
-
-      
-      if (typeof this[name] == "function") {
-        times[name] = [];
-        wrapped[name] = this[name];
-
-        
-        this[name] = function() {
-          let start = Date.now();
-          try {
-            return wrapped[name].apply(this, arguments);
-          }
-          finally {
-            times[name].push(Date.now() - start);
-          }
-        };
-      }
-    }
-
-    try {
-      this._notify("sync", this.name, this._sync)();
-    }
-    finally {
-      
-      for (let [name, func] in Iterator(wrapped))
-        this[name] = func;
-
-      let stats = {};
-      for (let [name, time] in Iterator(times)) {
-        
-        let num = time.length;
-        if (num == 0)
-          continue;
-
-        
-        let stat = {
-          num: num,
-          sum: 0
-        };
-        time.forEach(function(val) {
-          if (val < stat.min || stat.min == null)
-            stat.min = val;
-          if (val > stat.max || stat.max == null)
-            stat.max = val;
-          stat.sum += val;
-        });
-
-        stat.avg = Number((stat.sum / num).toFixed(2));
-        stats[name] = stat;
-      }
-
-      stats.toString = function() {
-        let sums = [];
-        for (let [name, stat] in Iterator(this))
-          if (stat.sum != null)
-            sums.push(name.replace(/^_/, "") + " " + stat.sum);
-
-        return "Total (ms): " + sums.sort().join(", ");
-      };
-
-      this._log.info(stats);
-    }
+    this._notify("sync", this.name, this._sync)();
   },
 
   wipeServer: function Engine_wipeServer() {
@@ -296,18 +225,16 @@ SyncEngine.prototype = {
       return null;
     if (url[url.length-1] != '/')
       url += '/';
-    url += "0.5/";
+    url += "0.3/user/";
     return url;
   },
 
   get engineURL() {
-    return this.baseURL + ID.get('WeaveID').username +
-      '/storage/' + this.name + '/';
+    return this.baseURL + ID.get('WeaveID').username + '/' + this.name + '/';
   },
 
   get cryptoMetaURL() {
-    return this.baseURL + ID.get('WeaveID').username +
-      '/storage/crypto/' + this.name;
+    return this.baseURL + ID.get('WeaveID').username + '/crypto/' + this.name;
   },
 
   get lastSync() {
@@ -332,19 +259,6 @@ SyncEngine.prototype = {
 
   
   
-  
-  
-  _recordLike: function SyncEngine__recordLike(a, b) {
-    if (a.parentid != b.parentid)
-      return false;
-    
-    if (a.deleted || b.deleted)
-      return false;
-    return Utils.deepEquals(a.cleartext, b.cleartext);
-  },
-
-  
-  
   _syncStartup: function SyncEngine__syncStartup() {
     this._log.debug("Ensuring server crypto records are there");
 
@@ -356,9 +270,7 @@ SyncEngine.prototype = {
       meta.generateIV();
       meta.addUnwrappedKey(pubkey, symkey);
       let res = new Resource(meta.uri);
-      let resp = res.put(meta);
-      if (!resp.success)
-        throw resp;
+      res.put(meta.serialize());
 
       
       CryptoMetas.set(meta.uri, meta);
@@ -380,12 +292,6 @@ SyncEngine.prototype = {
 
   
   _processIncoming: function SyncEngine__processIncoming() {
-    
-    if (this.lastModified <= this.lastSync) {
-      this._log.debug("Nothing new from the server to process");
-      return;
-    }
-
     this._log.debug("Downloading & applying server changes");
 
     
@@ -422,9 +328,7 @@ SyncEngine.prototype = {
       Sync.sleep(0);
     });
 
-    let resp = newitems.get();
-    if (!resp.success)
-      throw resp;
+    newitems.get();
 
     if (this.lastSync < this._lastSyncTmp)
         this.lastSync = this._lastSyncTmp;
@@ -442,11 +346,9 @@ SyncEngine.prototype = {
 
 
 
-  _findLikeId: function SyncEngine__findLikeId(item) {
+
+  _findDupe: function _findDupe(item) {
     
-    for (let id in this._tracker.changedIDs)
-      if (this._recordLike(item, this._createRecord(id)))
-        return id;
   },
 
   _isEqual: function SyncEngine__isEqual(item) {
@@ -478,9 +380,6 @@ SyncEngine.prototype = {
   
   
   _reconcile: function SyncEngine__reconcile(item) {
-    if (this._log.level <= Log4Moz.Level.Trace)
-      this._log.trace("Incoming: " + item);
-
     
     
     this._log.trace("Reconcile step 1");
@@ -503,24 +402,26 @@ SyncEngine.prototype = {
 
     
     this._log.trace("Reconcile step 3");
-    let likeId = this._findLikeId(item);
-    if (likeId) {
+    let dupeId = this._findDupe(item);
+    if (dupeId) {
       
-      this._store.changeItemID(likeId, item.id);
+      this._store.changeItemID(dupeId, item.id);
 
       
-      this._tracker.removeChangedID(likeId);
+      this._tracker.removeChangedID(dupeId);
       this._tracker.removeChangedID(item.id);
 
       this._store.cache.clear(); 
-      return false;
     }
 
+    
     return true;
   },
 
   
   _applyIncoming: function SyncEngine__applyIncoming(item) {
+    if (this._log.level <= Log4Moz.Level.Trace)
+      this._log.trace("Incoming: " + item);
     try {
       this._tracker.ignoreAll = true;
       this._store.applyIncoming(item);
@@ -536,9 +437,8 @@ SyncEngine.prototype = {
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
     let outnum = [i for (i in this._tracker.changedIDs)].length;
+    this._log.debug("Preparing " + outnum + " outgoing records");
     if (outnum) {
-      this._log.debug("Preparing " + outnum + " outgoing records");
-
       
       let up = new Collection(this.engineURL);
       let count = 0;
@@ -546,15 +446,9 @@ SyncEngine.prototype = {
       
       let doUpload = Utils.bind2(this, function(desc) {
         this._log.info("Uploading " + desc + " of " + outnum + " records");
-        let resp = up.post();
-        if (!resp.success)
-          throw resp;
-
-        
-        let modified = resp.headers["X-Weave-Timestamp"];
-        if (modified > this.lastSync)
-          this.lastSync = modified;
-
+        up.post();
+        if (up.data.modified > this.lastSync)
+          this.lastSync = up.data.modified;
         up.clearRecords();
       });
 
@@ -567,7 +461,7 @@ SyncEngine.prototype = {
           this._log.trace("Outgoing: " + out);
 
         out.encrypt(ID.get("WeaveCryptoID"));
-        up.pushData(out);
+        up.pushData(JSON.parse(out.serialize())); 
 
         
         if ((++count % MAX_UPLOAD_RECORDS) == 0)

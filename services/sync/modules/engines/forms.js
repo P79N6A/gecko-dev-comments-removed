@@ -78,13 +78,12 @@ FormEngine.prototype = {
     coll.full = 0;
     coll.delete();
   },
-  
-  _recordLike: function SyncEngine__recordLike(a, b) {
-    if (a.deleted || b.deleted)
-      return false;
-    if (a.name == b.name && a.value == b.value)
-      return true;
-    return false;
+
+  _findDupe: function _findDupe(item) {
+    
+    for (let [guid, {name, value}] in Iterator(this._store._formItems))
+      if (name == item.name && value == item.value)
+        return guid;
   }
 };
 
@@ -191,7 +190,7 @@ FormStore.prototype = {
   },
 
   remove: function FormStore_remove(record) {
-    this._log.trace("Removing form record: " + record.id);
+    this._log.debug("Removing form record: " + record.id);
     
     if (record.id in this._formItems) {
       let item = this._formItems[record.id];
@@ -199,7 +198,7 @@ FormStore.prototype = {
       return;
     }
     
-    this._log.trace("Invalid GUID found, ignoring remove request.");
+    this._log.warn("Invalid GUID found, ignoring remove request.");
   },
 
   update: function FormStore_update(record) {
