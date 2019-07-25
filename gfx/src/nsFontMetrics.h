@@ -53,12 +53,6 @@ class nsRenderingContext;
 class nsString;
 class nsThebesDeviceContext;
 struct nsBoundingMetrics;
-struct nsTextDimensions;
-
-
-
-
-typedef void* nsFontHandle;
 
 
 
@@ -95,107 +89,115 @@ public:
     nsresult Init(const nsFont& aFont, nsIAtom* aLanguage,
                   nsIDeviceContext *aContext,
                   gfxUserFontSet *aUserFontSet = nsnull);
+
     
 
 
 
     nsresult Destroy();
+
     
 
 
     nsresult GetXHeight(nscoord& aResult);
+
     
 
 
 
 
     nsresult GetSuperscriptOffset(nscoord& aResult);
+
     
 
 
 
 
     nsresult GetSubscriptOffset(nscoord& aResult);
+
     
 
 
 
 
     nsresult GetStrikeout(nscoord& aOffset, nscoord& aSize);
+
     
 
 
 
 
     nsresult GetUnderline(nscoord& aOffset, nscoord& aSize);
+
     
 
-
-
-
-
-
-    nsresult GetHeight(nscoord &aHeight);
-    
 
 
 
     nsresult GetInternalLeading(nscoord &aLeading);
+
     
 
 
 
 
     nsresult GetExternalLeading(nscoord &aLeading);
+
     
 
 
 
     nsresult GetEmHeight(nscoord &aHeight);
+
     
 
 
     nsresult GetEmAscent(nscoord &aAscent);
+
     
 
 
     nsresult GetEmDescent(nscoord &aDescent);
+
     
 
 
 
     nsresult GetMaxHeight(nscoord &aHeight);
+
     
 
 
 
     nsresult GetMaxAscent(nscoord &aAscent);
+
     
 
 
 
     nsresult GetMaxDescent(nscoord &aDescent);
+
     
 
 
     nsresult GetMaxAdvance(nscoord &aAdvance);
+
     
 
 
 
     const nsFont &Font() { return mFont; }
+
     
 
 
     nsresult GetLanguage(nsIAtom** aLanguage);
-    
 
-
-    nsresult GetFontHandle(nsFontHandle &aHandle);
     
 
 
     nsresult GetAveCharWidth(nscoord& aAveCharWidth);
+
     
 
 
@@ -213,54 +215,16 @@ public:
                       nsRenderingContext *aContext);
 
     
-    nsresult GetTextDimensions(const PRUnichar* aString,
-                               PRUint32 aLength,
-                               nsTextDimensions& aDimensions,
-                               PRInt32* aFontID);
-    nsresult GetTextDimensions(const char*         aString,
-                               PRInt32             aLength,
-                               PRInt32             aAvailWidth,
-                               PRInt32*            aBreaks,
-                               PRInt32             aNumBreaks,
-                               nsTextDimensions&   aDimensions,
-                               PRInt32&            aNumCharsFit,
-                               nsTextDimensions&   aLastWordDimensions,
-                               PRInt32*            aFontID);
-    nsresult GetTextDimensions(const PRUnichar*    aString,
-                               PRInt32             aLength,
-                               PRInt32             aAvailWidth,
-                               PRInt32*            aBreaks,
-                               PRInt32             aNumBreaks,
-                               nsTextDimensions&   aDimensions,
-                               PRInt32&            aNumCharsFit,
-                               nsTextDimensions&   aLastWordDimensions,
-                               PRInt32*            aFontID);
-
-    
     nsresult DrawString(const char *aString, PRUint32 aLength,
                         nscoord aX, nscoord aY,
                         const nscoord* aSpacing,
                         nsRenderingContext *aContext);
     nsresult DrawString(const PRUnichar* aString, PRUint32 aLength,
                         nscoord aX, nscoord aY,
-                        PRInt32 aFontID,
-                        const nscoord* aSpacing,
-                        nsRenderingContext *aContext)
-    {
-        NS_ASSERTION(!aSpacing, "Spacing not supported here");
-        return DrawString(aString, aLength, aX, aY, aContext, aContext);
-    }
-    nsresult DrawString(const PRUnichar* aString, PRUint32 aLength,
-                        nscoord aX, nscoord aY,
                         nsRenderingContext *aContext,
                         nsRenderingContext *aTextRunConstructionContext);
 
 #ifdef MOZ_MATHML
-    
-    
-    nsresult GetBoundingMetrics(const char *aString, PRUint32 aLength,
-                                nsRenderingContext *aContext,
-                                nsBoundingMetrics &aBoundingMetrics);
     nsresult GetBoundingMetrics(const PRUnichar *aString,
                                 PRUint32 aLength,
                                 nsRenderingContext *aContext,
@@ -268,17 +232,14 @@ public:
 #endif 
 
     
-    nsresult SetRightToLeftText(PRBool aIsRTL);
-    PRBool GetRightToLeftText();
+    void SetRightToLeftText(PRBool aIsRTL) { mIsRightToLeft = aIsRTL; }
+    PRBool GetRightToLeftText() { return mIsRightToLeft; }
+
     void SetTextRunRTL(PRBool aIsRTL) { mTextRunRTL = aIsRTL; }
+    PRBool GetRightToLeftTextRunMode() { return mTextRunRTL; }
 
     gfxFontGroup* GetThebesFontGroup() { return mFontGroup; }
-
-    gfxUserFontSet* GetUserFontSet();
-
-    PRBool GetRightToLeftTextRunMode() {
-        return mTextRunRTL;
-    }
+    gfxUserFontSet* GetUserFontSet() { return mFontGroup->GetUserFontSet(); }
 
     PRInt32 AppUnitsPerDevPixel() { return mP2A; }
 

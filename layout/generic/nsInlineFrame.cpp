@@ -657,7 +657,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
     
     
     fm->GetMaxAscent(aMetrics.ascent);
-    fm->GetHeight(aMetrics.height);
+    fm->GetMaxHeight(aMetrics.height);
   } else {
     NS_WARNING("Cannot get font metrics - defaulting sizes to 0");
     aMetrics.ascent = aMetrics.height = 0;

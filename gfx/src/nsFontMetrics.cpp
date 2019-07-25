@@ -85,7 +85,6 @@ nsFontMetrics::~nsFontMetrics()
     if (mDeviceContext)
         mDeviceContext->FontMetricsDeleted(this);
     delete mFontStyle;
-    
 }
 
 nsresult
@@ -193,14 +192,6 @@ static gfxFloat ComputeMaxAscent(const gfxFont::Metrics& aMetrics)
 }
 
 nsresult
-nsFontMetrics::GetHeight(nscoord &aHeight)
-{
-    aHeight = CEIL_TO_TWIPS(ComputeMaxAscent(GetMetrics())) +
-        CEIL_TO_TWIPS(ComputeMaxDescent(GetMetrics(), mFontGroup));
-    return NS_OK;
-}
-
-nsresult
 nsFontMetrics::GetInternalLeading(nscoord &aLeading)
 {
     aLeading = ROUND_TO_TWIPS(GetMetrics().internalLeading);
@@ -270,12 +261,6 @@ nsFontMetrics::GetLanguage(nsIAtom** aLanguage)
     *aLanguage = mLanguage;
     NS_IF_ADDREF(*aLanguage);
     return NS_OK;
-}
-
-nsresult
-nsFontMetrics::GetFontHandle(nsFontHandle &aHandle)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 nsresult
@@ -367,43 +352,6 @@ nsFontMetrics::GetWidth(const PRUnichar* aString, PRUint32 aLength,
 
 
 nsresult
-nsFontMetrics::GetTextDimensions(const PRUnichar* aString,
-                                 PRUint32 aLength,
-                                 nsTextDimensions& aDimensions,
-                                 PRInt32* aFontID)
-{
-    return NS_OK;
-}
-
-nsresult
-nsFontMetrics::GetTextDimensions(const char*         aString,
-                                 PRInt32             aLength,
-                                 PRInt32             aAvailWidth,
-                                 PRInt32*            aBreaks,
-                                 PRInt32             aNumBreaks,
-                                 nsTextDimensions&   aDimensions,
-                                 PRInt32&            aNumCharsFit,
-                                 nsTextDimensions&   aLastWordDimensions,
-                                 PRInt32*            aFontID)
-{
-    return NS_OK;
-}
-nsresult
-nsFontMetrics::GetTextDimensions(const PRUnichar*    aString,
-                                 PRInt32             aLength,
-                                 PRInt32             aAvailWidth,
-                                 PRInt32*            aBreaks,
-                                 PRInt32             aNumBreaks,
-                                 nsTextDimensions&   aDimensions,
-                                 PRInt32&            aNumCharsFit,
-                                 nsTextDimensions&   aLastWordDimensions,
-                                 PRInt32*            aFontID)
-{
-    return NS_OK;
-}
-
-
-nsresult
 nsFontMetrics::DrawString(const char *aString, PRUint32 aLength,
                           nscoord aX, nscoord aY,
                           const nscoord* aSpacing,
@@ -449,47 +397,6 @@ nsFontMetrics::DrawString(const PRUnichar* aString, PRUint32 aLength,
 }
 
 #ifdef MOZ_MATHML
-
-static void
-GetTextRunBoundingMetrics(gfxTextRun *aTextRun,
-                          PRUint32 aStart, PRUint32 aLength,
-                          nsRenderingContext *aContext,
-                          nsBoundingMetrics &aBoundingMetrics)
-{
-    StubPropertyProvider provider;
-    gfxTextRun::Metrics theMetrics =
-        aTextRun->MeasureText(aStart, aLength,
-                              gfxFont::TIGHT_HINTED_OUTLINE_EXTENTS,
-                              aContext->ThebesContext(), &provider);
-    
-    
-
-    aBoundingMetrics.leftBearing = NSToCoordFloor(theMetrics.mBoundingBox.X());
-    aBoundingMetrics.rightBearing = NSToCoordCeil(theMetrics.mBoundingBox.XMost());
-    aBoundingMetrics.width = NSToCoordRound(theMetrics.mAdvanceWidth);
-    aBoundingMetrics.ascent = NSToCoordCeil(- theMetrics.mBoundingBox.Y());
-    aBoundingMetrics.descent = NSToCoordCeil(theMetrics.mBoundingBox.YMost());
-}
-
-nsresult
-nsFontMetrics::GetBoundingMetrics(const char *aString, PRUint32 aLength,
-                                  nsRenderingContext *aContext,
-                                  nsBoundingMetrics &aBoundingMetrics)
-{
-    if (aLength == 0) {
-        aBoundingMetrics = nsBoundingMetrics();
-        return NS_OK;
-    }
-
-    AutoTextRun textRun(this, aContext, aString, aLength);
-    if (!textRun.get())
-        return NS_ERROR_FAILURE;
-
-    GetTextRunBoundingMetrics(textRun.get(), 0, aLength, aContext,
-                              aBoundingMetrics);
-    return NS_OK;
-}
-
 nsresult
 nsFontMetrics::GetBoundingMetrics(const PRUnichar *aString, PRUint32 aLength,
                                   nsRenderingContext *aContext,
@@ -504,30 +411,21 @@ nsFontMetrics::GetBoundingMetrics(const PRUnichar *aString, PRUint32 aLength,
     if (!textRun.get())
         return NS_ERROR_FAILURE;
 
-    GetTextRunBoundingMetrics(textRun.get(), 0, aLength, aContext,
-                              aBoundingMetrics);
+    
+    
+    StubPropertyProvider provider;
+    gfxTextRun::Metrics theMetrics =
+        textRun->MeasureText(0, aLength,
+                             gfxFont::TIGHT_HINTED_OUTLINE_EXTENTS,
+                             aContext->ThebesContext(), &provider);
+
+    aBoundingMetrics.leftBearing = NSToCoordFloor(theMetrics.mBoundingBox.X());
+    aBoundingMetrics.rightBearing
+        = NSToCoordCeil(theMetrics.mBoundingBox.XMost());
+    aBoundingMetrics.width = NSToCoordRound(theMetrics.mAdvanceWidth);
+    aBoundingMetrics.ascent = NSToCoordCeil(- theMetrics.mBoundingBox.Y());
+    aBoundingMetrics.descent = NSToCoordCeil(theMetrics.mBoundingBox.YMost());
+
     return NS_OK;
 }
-
 #endif 
-
-
-nsresult
-nsFontMetrics::SetRightToLeftText(PRBool aIsRTL)
-{
-    mIsRightToLeft = aIsRTL;
-    return NS_OK;
-}
-
-
-PRBool
-nsFontMetrics::GetRightToLeftText()
-{
-    return mIsRightToLeft;
-}
-
-gfxUserFontSet*
-nsFontMetrics::GetUserFontSet()
-{
-    return mFontGroup->GetUserFontSet();
-}

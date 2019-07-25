@@ -979,7 +979,7 @@ nsImageFrame::DisplayAltText(nsPresContext*      aPresContext,
   nscoord maxAscent, maxDescent, height;
   fm->GetMaxAscent(maxAscent);
   fm->GetMaxDescent(maxDescent);
-  fm->GetHeight(height);
+  fm->GetMaxHeight(height);
 
   
   
@@ -1124,7 +1124,6 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
     
     
     if (!iconUsed) {
-      nscolor oldColor;
       nscoord iconXPos = (vis->mDirection ==   NS_STYLE_DIRECTION_RTL) ?
                          inner.XMost() - size : inner.x;
       nscoord twoPX = nsPresContext::CSSPixelsToAppUnits(2);
