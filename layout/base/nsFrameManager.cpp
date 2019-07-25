@@ -1312,7 +1312,11 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       }
     }
 
-    if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+    
+    
+    
+    if (!(aMinChange & nsChangeHint_ReconstructFrame) &&
+        childRestyleHint) {
       
       
       if (!pseudoTag && localContent && localContent->IsElement() &&
@@ -1337,7 +1341,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     }
 
     
-    if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+    
+    
+    if (!(aMinChange & nsChangeHint_ReconstructFrame) &&
+        childRestyleHint) {
       
       
       if (!pseudoTag && localContent && localContent->IsElement() &&

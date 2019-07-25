@@ -2124,6 +2124,18 @@ nsStyleContent::nsStyleContent(const nsStyleContent& aSource)
 
 nsChangeHint nsStyleContent::CalcDifference(const nsStyleContent& aOther) const
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
   if (mContentCount != aOther.mContentCount ||
       mIncrementCount != aOther.mIncrementCount || 
       mResetCount != aOther.mResetCount) {
