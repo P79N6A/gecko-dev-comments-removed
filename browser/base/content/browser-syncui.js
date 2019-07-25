@@ -225,7 +225,7 @@ let gSyncUI = {
     Weave.Notifications.removeAll();
 
     
-    if (this._needsSetup() || Weave.Service.shouldIgnoreError()) {
+    if (this._needsSetup() || Weave.ErrorHandler.shouldIgnoreError()) {
       this.updateUI();
       return;
     }
@@ -352,7 +352,7 @@ let gSyncUI = {
 
       
       
-      if (Weave.Service.shouldIgnoreError()) {
+      if (Weave.ErrorHandler.shouldIgnoreError()) {
         this.updateUI();
         return;
       }
