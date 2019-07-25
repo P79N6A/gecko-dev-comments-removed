@@ -890,6 +890,9 @@ nsAppStartup::TrackStartupCrashBegin(bool *aIsSafeModeNecessary)
   if (PR_Now() / PR_USEC_PER_SEC <= lastSuccessfulStartup)
     return NS_ERROR_FAILURE;
 
+  
+  Telemetry::Accumulate(Telemetry::STARTUP_CRASH_DETECTED, true);
+
   if (inSafeMode) {
     GetAutomaticSafeModeNecessary(aIsSafeModeNecessary);
     return NS_OK;
