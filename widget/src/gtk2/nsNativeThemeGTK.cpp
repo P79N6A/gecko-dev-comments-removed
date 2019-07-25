@@ -748,22 +748,20 @@ nsNativeThemeGTK::DrawWidgetBackground(nsIRenderingContext* aContext,
   
   
   nsIntRect widgetRect(0, 0, NS_lround(rect.Width()), NS_lround(rect.Height()));
+  nsIntRect overflowRect(widgetRect);
+  nsIntMargin extraSize;
+  if (GetExtraSizeForWidget(aWidgetType, state.isDefault, &extraSize)) {
+    overflowRect.Inflate(extraSize);
+  }
 
   
   nsIntRect drawingRect(PRInt32(dirtyRect.X()),
                         PRInt32(dirtyRect.Y()),
                         PRInt32(dirtyRect.Width()),
                         PRInt32(dirtyRect.Height()));
-  if (!drawingRect.IntersectRect(widgetRect, drawingRect))
+  if (widgetRect.IsEmpty()
+      || !drawingRect.IntersectRect(overflowRect, drawingRect))
     return NS_OK;
-
-  nsIntMargin extraSize;
-  
-  
-  
-  if (GetExtraSizeForWidget(aWidgetType, state.isDefault, &extraSize)) {
-    drawingRect.Inflate(extraSize);
-  }
 
   
 
