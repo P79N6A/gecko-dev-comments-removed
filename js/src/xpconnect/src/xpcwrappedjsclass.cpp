@@ -1509,8 +1509,6 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     
     
     
-    JSObject *scopeobj;
-    scopeobj = JS_GetGlobalForScopeChain(ccx);
     for(i = 0; i < argc; i++)
     {
         const nsXPTParamInfo& param = info->params[i];
@@ -1571,7 +1569,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                 if(!XPCConvert::NativeArray2JS(lccx, &val,
                                                (const void**)&pv->val,
                                                datum_type, &param_iid,
-                                               array_count, scopeobj, nsnull))
+                                               array_count, obj, nsnull))
                     goto pre_call_clean_up;
             }
             else if(isSizedString)
@@ -1585,7 +1583,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
             else
             {
                 if(!XPCConvert::NativeData2JS(ccx, &val, &pv->val, type,
-                                              &param_iid, scopeobj, nsnull))
+                                              &param_iid, obj, nsnull))
                     goto pre_call_clean_up;
             }
         }
@@ -1593,7 +1591,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
         if(param.IsOut() || param.IsDipper())
         {
             
-            JSObject* out_obj = NewOutObject(cx, scopeobj);
+            JSObject* out_obj = NewOutObject(cx, obj);
             if(!out_obj)
             {
                 retval = NS_ERROR_OUT_OF_MEMORY;
