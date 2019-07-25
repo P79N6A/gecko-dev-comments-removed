@@ -510,7 +510,9 @@ NS_IMETHODIMP nsImageBoxFrame::OnStartContainer(imgIRequest *request,
   NS_ENSURE_ARG_POINTER(image);
 
   
-  image->StartAnimation();
+  
+  
+  request->IncrementAnimationConsumers();
 
   nscoord w, h;
   image->GetWidth(&w);

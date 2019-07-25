@@ -311,7 +311,21 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBoo
 {
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequest::RemoveProxy", "proxy", proxy);
 
+  NS_ABORT_IF_FALSE(!mImage || HaveProxyWithObserver(nsnull) ||
+                    mImage->GetAnimationConsumers() == 0,
+    "How can we have an image with animation consumers, but no observer?");
+
+  
+  
+  
+  proxy->ClearAnimationConsumers();
+
   mObservers.RemoveElement(proxy);
+
+  
+  NS_ABORT_IF_FALSE(!mImage || HaveProxyWithObserver(nsnull) ||
+                    mImage->GetAnimationConsumers() == 0,
+    "How can we have an image with animation consumers, but no observer?");
 
   
   
@@ -320,12 +334,6 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus, PRBoo
 
   imgStatusTracker& statusTracker = GetStatusTracker();
   statusTracker.EmulateRequestFinished(proxy, aStatus, !aNotify);
-
-  if (mImage && !HaveProxyWithObserver(nsnull)) {
-    LOG_MSG(gImgLog, "imgRequest::RemoveProxy", "stopping animation");
-
-    mImage->StopAnimation();
-  }
 
   if (mObservers.IsEmpty()) {
     
@@ -393,11 +401,6 @@ void imgRequest::Cancel(nsresult aStatus)
   
 
   LOG_SCOPE(gImgLog, "imgRequest::Cancel");
-
-  LOG_MSG(gImgLog, "imgRequest::Cancel", "stopping animation");
-  if (mImage) {
-    mImage->StopAnimation();
-  }
 
   imgStatusTracker& statusTracker = GetStatusTracker();
   statusTracker.RecordCancel();

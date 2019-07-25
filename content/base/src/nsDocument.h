@@ -1144,6 +1144,9 @@ protected:
   
   PRPackedBool mLockingImages:1;
 
+  
+  PRPackedBool mAnimatingImages:1;
+
   PRUint8 mXMLDeclarationBits;
 
   PRUint8 mDefaultElementType;
@@ -1250,6 +1253,12 @@ private:
 protected:
   PRBool mWillReparent;
 #endif
+
+protected:
+  
+  
+  
+  void SetImagesNeedAnimating(PRBool aAnimating);
 };
 
 #define NS_DOCUMENT_INTERFACE_TABLE_BEGIN(_class)                             \

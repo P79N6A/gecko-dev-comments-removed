@@ -127,6 +127,12 @@ public:
   
   void SetImage(mozilla::imagelib::Image* aImage);
 
+  
+  
+  
+  
+  void ClearAnimationConsumers();
+
 protected:
   friend class imgStatusTracker;
   friend class imgStatusNotifyRunnable;
@@ -220,6 +226,7 @@ private:
 
   nsLoadFlags mLoadFlags;
   PRUint32    mLockCount;
+  PRUint32    mAnimationConsumers;
   PRPackedBool mCanceled;
   PRPackedBool mIsInLoadGroup;
   PRPackedBool mListenerIsStrongRef;

@@ -159,6 +159,9 @@ public:
   RasterImage(imgStatusTracker* aStatusTracker = nsnull);
   virtual ~RasterImage();
 
+  virtual nsresult StartAnimation();
+  virtual nsresult StopAnimation();
+
   
   virtual PRUint16 GetType() { return imgIContainer::TYPE_RASTER; }
 
@@ -326,16 +329,13 @@ private:
     
     
     PRPackedBool               doneDecoding;
-    
-    PRPackedBool               animating;
 
     Anim() :
       firstFrameRefreshArea(),
       currentDecodingFrameIndex(0),
       currentAnimationFrameIndex(0),
       lastCompositedFrameIndex(-1),
-      doneDecoding(PR_FALSE),
-      animating(PR_FALSE)
+      doneDecoding(PR_FALSE)
     {
       ;
     }
@@ -491,6 +491,10 @@ private:
   PRPackedBool               mError:1;  
 
   
+  
+  PRPackedBool               mAnimationFinished:1;
+
+  
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode);
@@ -513,6 +517,8 @@ private:
   PRBool DiscardingActive();
   PRBool StoringSourceData();
 
+protected:
+  PRBool ShouldAnimate();
 };
 
 

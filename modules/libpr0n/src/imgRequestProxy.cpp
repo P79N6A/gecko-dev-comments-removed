@@ -68,6 +68,7 @@ imgRequestProxy::imgRequestProxy() :
   mListener(nsnull),
   mLoadFlags(nsIRequest::LOAD_NORMAL),
   mLockCount(0),
+  mAnimationConsumers(0),
   mCanceled(PR_FALSE),
   mIsInLoadGroup(PR_FALSE),
   mListenerIsStrongRef(PR_FALSE),
@@ -88,6 +89,8 @@ imgRequestProxy::~imgRequestProxy()
   
   while (mLockCount)
     UnlockImage();
+
+  ClearAnimationConsumers();
 
   
   
@@ -118,6 +121,8 @@ nsresult imgRequestProxy::Init(imgRequest* request, nsILoadGroup* aLoadGroup, Im
   NS_PRECONDITION(!mOwner && !mListener, "imgRequestProxy is already initialized");
 
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequestProxy::Init", "request", request);
+
+  NS_ABORT_IF_FALSE(mAnimationConsumers == 0, "Cannot have animation before Init");
 
   mOwner = request;
   mListener = aObserver;
@@ -150,12 +155,20 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
     UnlockImage();
 
   
+  PRUint32 oldAnimationConsumers = mAnimationConsumers;
+  ClearAnimationConsumers();
+
+  
   
   mImage = aNewOwner->mImage;
 
   
   for (PRUint32 i = 0; i < oldLockCount; i++)
     LockImage();
+
+  
+  for (PRUint32 i = 0; i < oldAnimationConsumers; i++)
+    IncrementAnimationConsumers();
 
   if (mCanceled)
     return NS_OK;
@@ -332,6 +345,54 @@ imgRequestProxy::UnlockImage()
   if (mImage)
     return mImage->UnlockImage();
   return NS_OK;
+}
+
+NS_IMETHODIMP
+imgRequestProxy::IncrementAnimationConsumers()
+{
+  
+  if (!HasObserver())
+    return NS_OK;
+
+  mAnimationConsumers++;
+  if (mImage)
+    mImage->IncrementAnimationConsumers();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+imgRequestProxy::DecrementAnimationConsumers()
+{
+  if (!HasObserver()) {
+    NS_ABORT_IF_FALSE(mAnimationConsumers == 0,
+                      "How can we have animation consumers without an observer?");
+
+    
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  
+  
+  if (mAnimationConsumers > 0) {
+    mAnimationConsumers--;
+    if (mImage)
+      mImage->DecrementAnimationConsumers();
+  }
+  return NS_OK;
+}
+
+void
+imgRequestProxy::ClearAnimationConsumers()
+{
+  NS_ABORT_IF_FALSE(HasObserver() || mAnimationConsumers == 0,
+                    "How can we have animation consumers without an observer?");
+
+  while (mAnimationConsumers > 0)
+    DecrementAnimationConsumers();
 }
 
 
@@ -691,6 +752,10 @@ void imgRequestProxy::OnStopRequest(PRBool lastPart)
 
 void imgRequestProxy::NullOutListener()
 {
+  
+  if (mListener)
+    ClearAnimationConsumers();
+
   if (mListenerIsStrongRef) {
     
     nsCOMPtr<imgIDecoderObserver> obs;
@@ -783,6 +848,10 @@ imgRequestProxy::SetImage(Image* aImage)
   
   for (PRUint32 i = 0; i < mLockCount; ++i)
     mImage->LockImage();
+
+  
+  for (PRUint32 i = 0; i < mAnimationConsumers; i++)
+    mImage->IncrementAnimationConsumers();
 }
 
 imgStatusTracker&

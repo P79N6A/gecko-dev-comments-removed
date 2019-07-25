@@ -1527,6 +1527,7 @@ nsDOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
 
 nsDocument::nsDocument(const char* aContentType)
   : nsIDocument()
+  , mAnimatingImages(PR_TRUE)
 {
   SetContentTypeInternal(nsDependentCString(aContentType));
   
@@ -7379,6 +7380,11 @@ nsDocument::OnPageShow(PRBool aPersisted,
     mAnimationController->OnPageShow();
   }
 #endif
+
+  if (aPersisted) {
+    SetImagesNeedAnimating(PR_TRUE);
+  }
+
   nsCOMPtr<nsPIDOMEventTarget> target =
     aDispatchStartTarget ? do_QueryInterface(aDispatchStartTarget) :
                            do_QueryInterface(GetWindow());
@@ -7429,6 +7435,10 @@ nsDocument::OnPageHide(PRBool aPersisted,
   }
 #endif
   
+  if (aPersisted) {
+    SetImagesNeedAnimating(PR_FALSE);
+  }
+
   
   nsCOMPtr<nsPIDOMEventTarget> target =
     aDispatchStartTarget ? do_QueryInterface(aDispatchStartTarget) :
@@ -8093,7 +8103,14 @@ nsDocument::AddImage(imgIRequest* aImage)
   if ((oldCount == 0) && mLockingImages) {
     nsresult rv = aImage->LockImage();
     NS_ENSURE_SUCCESS(rv, rv);
-    return aImage->RequestDecode();
+    rv = aImage->RequestDecode();
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  
+  if (oldCount == 0 && mAnimatingImages) {
+    return aImage->IncrementAnimationConsumers();
   }
 
   return NS_OK;
@@ -8125,6 +8142,11 @@ nsDocument::RemoveImage(imgIRequest* aImage)
   
   if ((count == 0) && mLockingImages)
     return aImage->UnlockImage();
+
+  
+  
+  if (count == 0 && mAnimatingImages)
+    return aImage->DecrementAnimationConsumers();
 
   return NS_OK;
 }
@@ -8163,4 +8185,36 @@ nsDocument::SetImageLockingState(PRBool aLocked)
   mLockingImages = aLocked;
 
   return NS_OK;
+}
+
+PLDHashOperator IncrementAnimationEnumerator(imgIRequest* aKey,
+                                             PRUint32 aData,
+                                             void*    userArg)
+{
+  aKey->IncrementAnimationConsumers();
+  return PL_DHASH_NEXT;
+}
+
+PLDHashOperator DecrementAnimationEnumerator(imgIRequest* aKey,
+                                             PRUint32 aData,
+                                             void*    userArg)
+{
+  aKey->DecrementAnimationConsumers();
+  return PL_DHASH_NEXT;
+}
+
+void
+nsDocument::SetImagesNeedAnimating(PRBool aAnimating)
+{
+  
+  if (mAnimatingImages == aAnimating)
+    return;
+
+  
+  mImageTracker.EnumerateRead(aAnimating ? IncrementAnimationEnumerator
+                                         : DecrementAnimationEnumerator,
+                              nsnull);
+
+  
+  mAnimatingImages = aAnimating;
 }

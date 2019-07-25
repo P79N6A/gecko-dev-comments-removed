@@ -39,6 +39,7 @@
 
 #include "nsTreeImageListener.h"
 #include "nsITreeBoxObject.h"
+#include "imgIRequest.h"
 #include "imgIContainer.h"
 
 NS_IMPL_ISUPPORTS3(nsTreeImageListener, imgIDecoderObserver, imgIContainerObserver, nsITreeImageListener)
@@ -59,7 +60,9 @@ NS_IMETHODIMP nsTreeImageListener::OnStartContainer(imgIRequest *aRequest,
                                                     imgIContainer *aImage)
 {
   
-  aImage->StartAnimation();                                                     
+  
+  
+  aRequest->IncrementAnimationConsumers();
   return NS_OK;
 }
 

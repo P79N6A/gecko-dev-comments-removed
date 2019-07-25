@@ -106,12 +106,35 @@ public:
   };
   static eDecoderType GetDecoderType(const char *aMimeType);
 
+  void IncrementAnimationConsumers();
+  void DecrementAnimationConsumers();
+#ifdef DEBUG
+  PRUint32 GetAnimationConsumers() { return mAnimationConsumers; }
+#endif
+
 protected:
   Image(imgStatusTracker* aStatusTracker);
 
   
+
+
+
+  virtual void EvaluateAnimation();
+
+  virtual nsresult StartAnimation() = 0;
+  virtual nsresult StopAnimation() = 0;
+
+  
   nsAutoPtr<imgStatusTracker> mStatusTracker;
+  PRUint32                    mAnimationConsumers;
   PRPackedBool                mInitialized;   
+  PRPackedBool                mAnimating;
+
+  
+
+
+
+  virtual PRBool ShouldAnimate() { return mAnimationConsumers > 0; }
 };
 
 } 

@@ -1469,8 +1469,9 @@ NS_IMETHODIMP nsBulletFrame::OnStartContainer(imgIRequest *aRequest,
   
   aImage->SetAnimationMode(presContext->ImageAnimationMode());
   
-  aImage->StartAnimation();
-
+  
+  
+  aRequest->IncrementAnimationConsumers();
   
   return NS_OK;
 }
