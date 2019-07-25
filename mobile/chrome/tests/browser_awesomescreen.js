@@ -284,7 +284,10 @@ gTests.push({
     BrowserUI.closeTab(this._currentTab);
 
     BrowserUI.activePanel = null;
-    runNextTest();
+
+    
+    
+    waitFor(runNextTest, function() { return Browser.tabs.length == 1 });
   }
 });
 
@@ -421,8 +424,7 @@ gTests.push({
     
     
     waitForAndContinue(function() {
-      todo(false, "Unexpected fail!!");
-      
+      gCurrentTest._checkState();
       runNextTest();
     }, isHiddenHeader, Date.now() + 500);
   }
