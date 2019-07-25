@@ -112,8 +112,9 @@ SessionStartup.prototype = {
                      getService(Ci.nsIProperties);
     let sessionFile = dirService.get("ProfD", Ci.nsILocalFile);
     sessionFile.append("sessionstore.js");
-    
-    let doResumeSession = prefBranch.getBoolPref("sessionstore.resume_session_once") ||
+
+    let doResumeSessionOnce = prefBranch.getBoolPref("sessionstore.resume_session_once");
+    let doResumeSession = doResumeSessionOnce ||
                           prefBranch.getIntPref("startup.page") == 3;
 
     
@@ -137,6 +138,10 @@ SessionStartup.prototype = {
         var s = new Cu.Sandbox("about:blank");
         this._initialState = Cu.evalInSandbox("(" + iniString + ")", s);
       }
+
+      
+      if (!doResumeSessionOnce)
+        delete this._initialState.lastSessionState;
     }
     catch (ex) { debug("The session file is invalid: " + ex); }
 

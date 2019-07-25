@@ -236,6 +236,9 @@ SessionStoreService.prototype = {
   _restoreHiddenTabs: null,
 
   
+  
+  
+  
   _lastSessionState: null,
 
   
@@ -331,6 +334,10 @@ SessionStoreService.prototype = {
             this._lastSessionState = remainingState;
         }
         else {
+          
+          
+          this._lastSessionState = this._initialState.lastSessionState;
+
           let lastSessionCrashed =
             this._initialState.session && this._initialState.session.state &&
             this._initialState.session.state == STATE_RUNNING_STR;
@@ -488,6 +495,12 @@ SessionStoreService.prototype = {
         this._prefBranch.setBoolPref("sessionstore.resume_session_once",
                                      this._resume_session_once_on_shutdown);
       }
+
+      if (aData != "restart") {
+        
+        this._lastSessionState = null;
+      }
+
       this._loadState = STATE_QUITTING; 
       this._uninit();
       break;
@@ -3484,6 +3497,10 @@ SessionStoreService.prototype = {
     };
     if (this._recentCrashes)
       oState.session.recentCrashes = this._recentCrashes;
+
+    
+    if (this._lastSessionState)
+      oState.lastSessionState = this._lastSessionState;
 
     this._saveStateObject(oState);
   },
