@@ -399,13 +399,6 @@ typedef PRUint32 nsrefcnt;
   
 #if defined(_MSC_VER) && (_MSC_VER>=1100)
   #define HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX
-
-  #define HAVE_CPP_EXPLICIT
-  #define HAVE_CPP_TYPENAME
-  #define HAVE_CPP_ACCESS_CHANGING_USING
-
-  #define HAVE_CPP_NAMESPACE_STD
-  #define HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL
   #define HAVE_CPP_2BYTE_WCHAR_T
 #endif
 
@@ -420,19 +413,6 @@ typedef PRUint32 nsrefcnt;
   #else
     typedef PRUint16 PRUnichar;
   #endif
-#endif
-
-  
-
-
-
-
-#ifndef HAVE_CPP_EXPLICIT
-  #define explicit
-#endif
-
-#ifndef HAVE_CPP_TYPENAME
-  #define typename
 #endif
 
 #ifdef HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX
