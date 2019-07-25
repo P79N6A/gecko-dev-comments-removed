@@ -289,14 +289,22 @@ ion::HandleException(IonFramePrefix *top)
     IonCompartment *ioncompartment = cx->compartment->ionCompartment();
 
     
-    JS_ASSERT(top->isEntryFrame());
+    
+    IonFramePrefix *entry = top;
+    uint32 stack_adjust = 0;
+    while (!entry->isEntryFrame()) {
+        stack_adjust += sizeof(IonFramePrefix) + entry->prevFrameDepth();
+        entry = entry->prev();
+    }
 
     
     
     if (BailoutClosure *closure = ioncompartment->activation()->maybeTakeBailout())
         cx->delete_(closure);
 
-    top->setReturnAddress(ioncompartment->returnError()->raw());
-    return 0;
+    uint8 *returnAddress = ioncompartment->returnError()->raw();
+    entry->setReturnAddress(returnAddress);
+
+    return stack_adjust;
 }
 

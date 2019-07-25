@@ -69,6 +69,8 @@ namespace ion {
 
 
 
+
+
 class IonFramePrefix : protected IonFrameData
 {
   public:
@@ -94,7 +96,8 @@ class IonFramePrefix : protected IonFrameData
     }
     IonFramePrefix *prev() const {
         JS_ASSERT(!isEntryFrame());
-        return (IonFramePrefix *)((uint8 *)this - prevFrameDepth());
+        return (IonFramePrefix *)((uint8 *)this +
+                sizeof(IonFramePrefix) + prevFrameDepth());
     }
     void *calleeToken() const {
         return calleeToken_;
