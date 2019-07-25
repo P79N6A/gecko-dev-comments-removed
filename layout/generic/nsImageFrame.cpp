@@ -101,6 +101,7 @@
 #include "ImageLayers.h"
 
 #include "mozilla/Preferences.h"
+#include "mozilla/Util.h" 
 
 using namespace mozilla;
 
@@ -773,7 +774,7 @@ nsImageFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
   
   
-  nscoord result;
+  DebugOnly<nscoord> result;
   DISPLAY_MIN_WIDTH(this, result);
   nsPresContext *presContext = PresContext();
   EnsureIntrinsicSizeAndRatio(presContext);
@@ -786,7 +787,7 @@ nsImageFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
   
   
-  nscoord result;
+  DebugOnly<nscoord> result;
   DISPLAY_PREF_WIDTH(this, result);
   nsPresContext *presContext = PresContext();
   EnsureIntrinsicSizeAndRatio(presContext);
