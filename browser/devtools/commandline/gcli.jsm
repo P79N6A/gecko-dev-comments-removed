@@ -606,7 +606,6 @@ exports.lookupFormat = function(key, swaps) {
 
 
 define('gcli/types', ['require', 'exports', 'module' , 'gcli/argument'], function(require, exports, module) {
-var types = exports;
 
 
 var Argument = require('gcli/argument').Argument;
@@ -669,7 +668,9 @@ var Status = {
     return combined;
   }
 };
-types.Status = Status;
+
+exports.Status = Status;
+
 
 
 
@@ -717,8 +718,6 @@ function Conversion(value, arg, status, message, predictions) {
   this.message = message;
   this.predictions = predictions;
 }
-
-types.Conversion = Conversion;
 
 
 
@@ -859,6 +858,15 @@ Conversion.prototype.constrainPredictionIndex = function(index) {
 
 
 
+Conversion.maxPredictions = 11;
+
+exports.Conversion = Conversion;
+
+
+
+
+
+
 
 
 
@@ -929,7 +937,7 @@ ArrayConversion.prototype.toString = function() {
   }, this).join(', ') + ' ]';
 };
 
-types.ArrayConversion = ArrayConversion;
+exports.ArrayConversion = ArrayConversion;
 
 
 
@@ -1013,7 +1021,7 @@ Type.prototype.getType = function() {
   return this;
 };
 
-types.Type = Type;
+exports.Type = Type;
 
 
 
@@ -1021,7 +1029,7 @@ types.Type = Type;
 
 var registeredTypes = {};
 
-types.getTypeNames = function() {
+exports.getTypeNames = function() {
   return Object.keys(registeredTypes);
 };
 
@@ -1034,7 +1042,7 @@ types.getTypeNames = function() {
 
 
 
-types.registerType = function(type) {
+exports.registerType = function(type) {
   if (typeof type === 'object') {
     if (type instanceof Type) {
       if (!type.name) {
@@ -1057,7 +1065,7 @@ types.registerType = function(type) {
   }
 };
 
-types.registerTypes = function registerTypes(newTypes) {
+exports.registerTypes = function registerTypes(newTypes) {
   Object.keys(newTypes).forEach(function(name) {
     var type = newTypes[name];
     type.name = name;
@@ -1068,14 +1076,14 @@ types.registerTypes = function registerTypes(newTypes) {
 
 
 
-types.deregisterType = function(type) {
+exports.deregisterType = function(type) {
   delete registeredTypes[type.name];
 };
 
 
 
 
-types.getType = function(typeSpec) {
+exports.getType = function(typeSpec) {
   var type;
   if (typeof typeSpec === 'string') {
     type = registeredTypes[typeSpec];
@@ -1685,8 +1693,6 @@ function SelectionType(typeSpec) {
 
 SelectionType.prototype = Object.create(Type.prototype);
 
-SelectionType.prototype.maxPredictions = 10;
-
 SelectionType.prototype.stringify = function(value) {
   if (value == null) {
     return '';
@@ -1767,11 +1773,12 @@ SelectionType.prototype._findPredictions = function(arg) {
   var predictions = [];
   var lookup = this.getLookup();
   var i, option;
+  var maxPredictions = Conversion.maxPredictions;
 
   
   
   if (arg.suffix.length > 0) {
-    for (i = 0; i < lookup.length && predictions.length < this.maxPredictions; i++) {
+    for (i = 0; i < lookup.length && predictions.length < maxPredictions; i++) {
       option = lookup[i];
       if (option.name === arg.text) {
         this._addToPredictions(predictions, option, arg);
@@ -1782,7 +1789,7 @@ SelectionType.prototype._findPredictions = function(arg) {
   }
 
   
-  for (i = 0; i < lookup.length && predictions.length < this.maxPredictions; i++) {
+  for (i = 0; i < lookup.length && predictions.length < maxPredictions; i++) {
     option = lookup[i];
     if (option.name.indexOf(arg.text) === 0) {
       this._addToPredictions(predictions, option, arg);
@@ -1790,8 +1797,8 @@ SelectionType.prototype._findPredictions = function(arg) {
   }
 
   
-  if (predictions.length < (this.maxPredictions / 2)) {
-    for (i = 0; i < lookup.length && predictions.length < this.maxPredictions; i++) {
+  if (predictions.length < (maxPredictions / 2)) {
+    for (i = 0; i < lookup.length && predictions.length < maxPredictions; i++) {
       option = lookup[i];
       if (option.name.indexOf(arg.text) !== -1) {
         if (predictions.indexOf(option) === -1) {
@@ -7863,12 +7870,14 @@ JavascriptField.DEFAULT_VALUE = '__JavascriptField.DEFAULT_VALUE';
 
 
 
-define('gcli/ui/fields/menu', ['require', 'exports', 'module' , 'gcli/util', 'gcli/argument', 'gcli/canon', 'gcli/ui/domtemplate', 'text!gcli/ui/fields/menu.css', 'text!gcli/ui/fields/menu.html'], function(require, exports, module) {
+define('gcli/ui/fields/menu', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/argument', 'gcli/types', 'gcli/canon', 'gcli/ui/domtemplate', 'text!gcli/ui/fields/menu.css', 'text!gcli/ui/fields/menu.html'], function(require, exports, module) {
 
 
 var util = require('gcli/util');
+var l10n = require('gcli/l10n');
 
 var Argument = require('gcli/argument').Argument;
+var Conversion = require('gcli/types').Conversion;
 var canon = require('gcli/canon');
 
 var domtemplate = require('gcli/ui/domtemplate');
@@ -7921,6 +7930,11 @@ function Menu(options) {
 
 
 
+Menu.prototype.l10n = l10n.propertyLookup;
+
+
+
+
 Menu.prototype.destroy = function() {
   delete this.element;
   delete this.template;
@@ -7961,6 +7975,11 @@ Menu.prototype.show = function(items, match) {
   if (this.items.length === 0) {
     this.element.style.display = 'none';
     return;
+  }
+
+  if (this.items.length >= Conversion.maxPredictions) {
+    this.items.splice(-1);
+    this.items.hasMore = true;
   }
 
   var options = this.template.cloneNode(true);
@@ -8063,13 +8082,16 @@ exports.Menu = Menu;
 define("text!gcli/ui/fields/menu.css", [], "");
 
 define("text!gcli/ui/fields/menu.html", [], "\n" +
-  "<table class=\"gcli-menu-template\" aria-live=\"polite\">\n" +
-  "  <tr class=\"gcli-menu-option\" foreach=\"item in ${items}\"\n" +
-  "      onclick=\"${onItemClickInternal}\" title=\"${item.manual}\">\n" +
-  "    <td class=\"gcli-menu-name\">${item.name}</td>\n" +
-  "    <td class=\"gcli-menu-desc\">${item.description}</td>\n" +
-  "  </tr>\n" +
-  "</table>\n" +
+  "<div>\n" +
+  "  <table class=\"gcli-menu-template\" aria-live=\"polite\">\n" +
+  "    <tr class=\"gcli-menu-option\" foreach=\"item in ${items}\"\n" +
+  "        onclick=\"${onItemClickInternal}\" title=\"${item.manual}\">\n" +
+  "      <td class=\"gcli-menu-name\">${item.name}</td>\n" +
+  "      <td class=\"gcli-menu-desc\">${item.description}</td>\n" +
+  "    </tr>\n" +
+  "  </table>\n" +
+  "  <div class=\"gcli-menu-more\" if=\"${items.hasMore}\">${l10n.fieldMenuMore}</div>\n" +
+  "</div>\n" +
   "");
 
 
