@@ -542,7 +542,8 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
                              nscoord             aAvailableWidth,
                              nsReflowStatus&     aReflowStatus)
 {
-  NS_PRECONDITION(!aLineLayout || mBlock->end_lines() != mCurrentLine, "null ptr");
+  NS_PRECONDITION(aLineLayout, "must have line layout");
+  NS_PRECONDITION(mBlock->end_lines() != mCurrentLine, "null ptr");
   NS_PRECONDITION(aFloat->GetStateBits() & NS_FRAME_OUT_OF_FLOW,
                   "aFloat must be an out-of-flow frame");
 
@@ -570,11 +571,10 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
   
   
   nsRect floatAvailableSpace = GetFloatAvailableSpace().mRect;
-  if (!aLineLayout ||
-      (mBelowCurrentLineFloats.IsEmpty() &&
-       (aLineLayout->LineIsEmpty() ||
-        mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat)
-        <= aAvailableWidth))) {
+  if (mBelowCurrentLineFloats.IsEmpty() &&
+      (aLineLayout->LineIsEmpty() ||
+       mBlock->ComputeFloatWidth(*this, floatAvailableSpace, aFloat)
+       <= aAvailableWidth)) {
     nsFloatManager::SavedState floatManagerState;
     mFloatManager->PushState(&floatManagerState);
 
@@ -586,11 +586,9 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
       nsRect availSpace(nsPoint(floatAvailSpace.mRect.x + BorderPadding().left,
                                 mY),
                         floatAvailSpace.mRect.Size());
-      if (aLineLayout) {
-        aLineLayout->UpdateBand(availSpace, aFloat);
-        
-        mCurrentLineFloats.Append(mFloatCacheFreeList.Alloc(aFloat));
-      }
+      aLineLayout->UpdateBand(availSpace, aFloat);
+      
+      mCurrentLineFloats.Append(mFloatCacheFreeList.Alloc(aFloat));
     }
     else {
       if (placed) {
