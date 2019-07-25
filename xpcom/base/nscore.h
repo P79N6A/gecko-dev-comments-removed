@@ -340,6 +340,7 @@
 
 
 
+
 #if defined(NS_TRACE_MALLOC) || defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_VALGRIND)
 #define NS_FREE_PERMANENT_DATA
 #endif
