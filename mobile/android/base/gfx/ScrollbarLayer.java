@@ -209,198 +209,194 @@ public class ScrollbarLayer extends TileLayer {
         if (!initialized())
             return;
 
-        try {
-            GLES20.glEnable(GLES20.GL_BLEND);
-            GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 
-            Rect rect = RectUtils.round(mVertical
-                                        ? getVerticalRect(context)
-                                        : getHorizontalRect(context));
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, getTextureID());
+        Rect rect = RectUtils.round(mVertical
+                ? getVerticalRect(context)
+                : getHorizontalRect(context));
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, getTextureID());
 
-            float viewWidth = context.viewport.width();
-            float viewHeight = context.viewport.height();
+        float viewWidth = context.viewport.width();
+        float viewHeight = context.viewport.height();
 
-            float top = viewHeight - rect.top;
-            float bot = viewHeight - rect.bottom;
+        float top = viewHeight - rect.top;
+        float bot = viewHeight - rect.bottom;
 
+        
+        float[] bodyCoords = {
             
-            float[] bodyCoords = {
+            rect.left/viewWidth, bot/viewHeight, 0,
+            BODY_TEX_COORDS[0], BODY_TEX_COORDS[1],
+
+            rect.left/viewWidth, (bot+rect.height())/viewHeight, 0,
+            BODY_TEX_COORDS[2], BODY_TEX_COORDS[3],
+
+            (rect.left+rect.width())/viewWidth, bot/viewHeight, 0,
+            BODY_TEX_COORDS[4], BODY_TEX_COORDS[5],
+
+            (rect.left+rect.width())/viewWidth, (bot+rect.height())/viewHeight, 0,
+            BODY_TEX_COORDS[6], BODY_TEX_COORDS[7]
+        };
+
+        
+        FloatBuffer coordBuffer = context.coordBuffer;
+        int positionHandle = context.positionHandle;
+        int textureHandle = context.textureHandle;
+
+        
+        
+        coordBuffer.position(0);
+        coordBuffer.put(bodyCoords);
+
+        
+        coordBuffer.position(0);
+        GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                coordBuffer);
+
+        
+        coordBuffer.position(3);
+        GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                coordBuffer);
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+        
+        coordBuffer.position(0);
+
+        if (mVertical) {
+            
+            float[] topCap = {
                 
-                rect.left/viewWidth, bot/viewHeight, 0,
-                BODY_TEX_COORDS[0], BODY_TEX_COORDS[1],
+                rect.left/viewWidth, top/viewHeight, 0,
+                TOP_CAP_TEX_COORDS[0], TOP_CAP_TEX_COORDS[1],
 
-                rect.left/viewWidth, (bot+rect.height())/viewHeight, 0,
-                BODY_TEX_COORDS[2], BODY_TEX_COORDS[3],
+                rect.left/viewWidth, (top+CAP_RADIUS)/viewHeight, 0,
+                TOP_CAP_TEX_COORDS[2], TOP_CAP_TEX_COORDS[3],
 
-                (rect.left+rect.width())/viewWidth, bot/viewHeight, 0,
-                BODY_TEX_COORDS[4], BODY_TEX_COORDS[5],
+                (rect.left+BAR_SIZE)/viewWidth, top/viewHeight, 0,
+                TOP_CAP_TEX_COORDS[4], TOP_CAP_TEX_COORDS[5],
 
-                (rect.left+rect.width())/viewWidth, (bot+rect.height())/viewHeight, 0,
-                BODY_TEX_COORDS[6], BODY_TEX_COORDS[7]
+                (rect.left+BAR_SIZE)/viewWidth, (top+CAP_RADIUS)/viewHeight, 0,
+                TOP_CAP_TEX_COORDS[6], TOP_CAP_TEX_COORDS[7]
             };
 
-            
-            FloatBuffer coordBuffer = context.coordBuffer;
-            int positionHandle = context.positionHandle;
-            int textureHandle = context.textureHandle;
-
-            
-            
-            coordBuffer.position(0);
-            coordBuffer.put(bodyCoords);
+            coordBuffer.put(topCap);
 
             
             coordBuffer.position(0);
             GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
-                                         coordBuffer);
+                    coordBuffer);
 
+            
             
             coordBuffer.position(3);
             GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
-                                         coordBuffer);
+                    coordBuffer);
 
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
 
             
+            
             coordBuffer.position(0);
 
-            if (mVertical) {
+            
+            float[] botCap = {
                 
-                float[] topCap = {
-                    
-                    rect.left/viewWidth, top/viewHeight, 0,
-                    TOP_CAP_TEX_COORDS[0], TOP_CAP_TEX_COORDS[1],
+                rect.left/viewWidth, (bot-CAP_RADIUS)/viewHeight, 0,
+                BOT_CAP_TEX_COORDS[0], BOT_CAP_TEX_COORDS[1],
 
-                    rect.left/viewWidth, (top+CAP_RADIUS)/viewHeight, 0,
-                    TOP_CAP_TEX_COORDS[2], TOP_CAP_TEX_COORDS[3],
+                rect.left/viewWidth, (bot)/viewHeight, 0,
+                BOT_CAP_TEX_COORDS[2], BOT_CAP_TEX_COORDS[3],
 
-                    (rect.left+BAR_SIZE)/viewWidth, top/viewHeight, 0,
-                    TOP_CAP_TEX_COORDS[4], TOP_CAP_TEX_COORDS[5],
+                (rect.left+BAR_SIZE)/viewWidth, (bot-CAP_RADIUS)/viewHeight, 0,
+                BOT_CAP_TEX_COORDS[4], BOT_CAP_TEX_COORDS[5],
 
-                    (rect.left+BAR_SIZE)/viewWidth, (top+CAP_RADIUS)/viewHeight, 0,
-                    TOP_CAP_TEX_COORDS[6], TOP_CAP_TEX_COORDS[7]
-                };
+                (rect.left+BAR_SIZE)/viewWidth, (bot)/viewHeight, 0,
+                BOT_CAP_TEX_COORDS[6], BOT_CAP_TEX_COORDS[7]
+            };
 
-                coordBuffer.put(topCap);
+            coordBuffer.put(botCap);
 
+            
+            coordBuffer.position(0);
+            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                    coordBuffer);
+
+            
+            
+            coordBuffer.position(3);
+            GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                    coordBuffer);
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+            
+            
+            coordBuffer.position(0);
+        } else {
+            
+            float[] leftCap = {
                 
-                coordBuffer.position(0);
-                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
+                (rect.left-CAP_RADIUS)/viewWidth, bot/viewHeight, 0,
+                LEFT_CAP_TEX_COORDS[0], LEFT_CAP_TEX_COORDS[1],
+                (rect.left-CAP_RADIUS)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                LEFT_CAP_TEX_COORDS[2], LEFT_CAP_TEX_COORDS[3],
+                (rect.left)/viewWidth, bot/viewHeight, 0, LEFT_CAP_TEX_COORDS[4],
+                LEFT_CAP_TEX_COORDS[5],
+                (rect.left)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                LEFT_CAP_TEX_COORDS[6], LEFT_CAP_TEX_COORDS[7]
+            };
 
+            coordBuffer.put(leftCap);
+
+            
+            coordBuffer.position(0);
+            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                    coordBuffer);
+
+            
+            
+            coordBuffer.position(3);
+            GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                    coordBuffer);
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+            
+            
+            coordBuffer.position(0);
+
+            
+            float[] rightCap = {
                 
-                
-                coordBuffer.position(3);
-                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
+                rect.right/viewWidth, (bot)/viewHeight, 0,
+                RIGHT_CAP_TEX_COORDS[0], RIGHT_CAP_TEX_COORDS[1],
 
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+                rect.right/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                RIGHT_CAP_TEX_COORDS[2], RIGHT_CAP_TEX_COORDS[3],
 
-                
-                
-                coordBuffer.position(0);
+                (rect.right+CAP_RADIUS)/viewWidth, (bot)/viewHeight, 0,
+                RIGHT_CAP_TEX_COORDS[4], RIGHT_CAP_TEX_COORDS[5],
 
-                
-                float[] botCap = {
-                    
-                    rect.left/viewWidth, (bot-CAP_RADIUS)/viewHeight, 0,
-                    BOT_CAP_TEX_COORDS[0], BOT_CAP_TEX_COORDS[1],
+                (rect.right+CAP_RADIUS)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                RIGHT_CAP_TEX_COORDS[6], RIGHT_CAP_TEX_COORDS[7]
+            };
 
-                    rect.left/viewWidth, (bot)/viewHeight, 0,
-                    BOT_CAP_TEX_COORDS[2], BOT_CAP_TEX_COORDS[3],
+            coordBuffer.put(rightCap);
 
-                    (rect.left+BAR_SIZE)/viewWidth, (bot-CAP_RADIUS)/viewHeight, 0,
-                    BOT_CAP_TEX_COORDS[4], BOT_CAP_TEX_COORDS[5],
+            
+            coordBuffer.position(0);
+            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                    coordBuffer);
 
-                    (rect.left+BAR_SIZE)/viewWidth, (bot)/viewHeight, 0,
-                    BOT_CAP_TEX_COORDS[6], BOT_CAP_TEX_COORDS[7]
-                };
+            
+            
+            coordBuffer.position(3);
+            GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                    coordBuffer);
 
-                coordBuffer.put(botCap);
-
-                
-                coordBuffer.position(0);
-                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
-
-                
-                
-                coordBuffer.position(3);
-                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
-
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-
-                
-                
-                coordBuffer.position(0);
-            } else {
-                
-                float[] leftCap = {
-                    
-                    (rect.left-CAP_RADIUS)/viewWidth, bot/viewHeight, 0,
-                        LEFT_CAP_TEX_COORDS[0], LEFT_CAP_TEX_COORDS[1],
-                    (rect.left-CAP_RADIUS)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
-                        LEFT_CAP_TEX_COORDS[2], LEFT_CAP_TEX_COORDS[3],
-                    (rect.left)/viewWidth, bot/viewHeight, 0, LEFT_CAP_TEX_COORDS[4],
-                        LEFT_CAP_TEX_COORDS[5],
-                    (rect.left)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
-                        LEFT_CAP_TEX_COORDS[6], LEFT_CAP_TEX_COORDS[7]
-                };
-
-                coordBuffer.put(leftCap);
-
-                
-                coordBuffer.position(0);
-                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
-
-                
-                
-                coordBuffer.position(3);
-                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
-
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-
-                
-                
-                coordBuffer.position(0);
-
-                
-                float[] rightCap = {
-                    
-                    rect.right/viewWidth, (bot)/viewHeight, 0,
-                    RIGHT_CAP_TEX_COORDS[0], RIGHT_CAP_TEX_COORDS[1],
-
-                    rect.right/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
-                    RIGHT_CAP_TEX_COORDS[2], RIGHT_CAP_TEX_COORDS[3],
-
-                    (rect.right+CAP_RADIUS)/viewWidth, (bot)/viewHeight, 0,
-                    RIGHT_CAP_TEX_COORDS[4], RIGHT_CAP_TEX_COORDS[5],
-
-                    (rect.right+CAP_RADIUS)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
-                    RIGHT_CAP_TEX_COORDS[6], RIGHT_CAP_TEX_COORDS[7]
-                };
-
-                coordBuffer.put(rightCap);
-
-                
-                coordBuffer.position(0);
-                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
-
-                
-                
-                coordBuffer.position(3);
-                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
-                                             coordBuffer);
-
-                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-            }
-        } finally {
-            GLES20.glDisable(GLES20.GL_BLEND);
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         }
     }
 
