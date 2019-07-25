@@ -152,9 +152,6 @@ public:
 
     size_t available() const { return (m_pools.length() > 1) ? 0 : m_end - m_freePtr; }
 
-    
-    ExecutablePool *next;
-
 private:
     static Allocation systemAlloc(size_t n);
     static void systemRelease(const Allocation& alloc);
