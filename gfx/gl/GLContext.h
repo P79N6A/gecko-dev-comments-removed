@@ -1464,6 +1464,7 @@ public:
                                                RectTriangles& aRects,
                                                bool aFlipY = false);
 
+
     
 
 
@@ -1527,21 +1528,55 @@ public:
     
     
     
-    template<size_t setlen>
+    template<size_t Size>
     struct ExtensionBitset {
         ExtensionBitset() {
-            for (size_t i = 0; i < setlen; ++i)
-                values[i] = false;
+            for (size_t i = 0; i < Size; ++i)
+                extensions[i] = false;
+        }
+
+        void Load(const char* extStr, const char** extList, bool verbose = false) {
+            char* exts = strdup(extStr);
+
+            if (verbose)
+                printf_stderr("Extensions: %s\n", exts);
+
+            char* cur = exts;
+            bool done = false;
+            while (!done) {
+                char* space = strchr(cur, ' ');
+                if (space) {
+                    *space = '\0';
+                } else {
+                    done = true;
+                }
+
+                for (int i = 0; extList[i]; ++i) {
+                    if (strcmp(cur, extList[i]) == 0) {
+                        if (verbose)
+                            printf_stderr("Found extension %s\n", cur);
+                        extensions[i] = 1;
+                    }
+                }
+
+                cur = space + 1;
+            }
+
+            free(exts);
         }
 
         bool& operator[](size_t index) {
-            NS_ASSERTION(index < setlen, "out of range");
-            return values[index];
+            MOZ_ASSERT(index < Size, "out of range");
+            return extensions[index];
         }
 
-        bool values[setlen];
+        bool extensions[Size];
     };
 
+protected:
+    ExtensionBitset<Extensions_Max> mAvailableExtensions;
+
+public:
     
 
 
@@ -1683,8 +1718,6 @@ protected:
     GLuint mOffscreenColorRB;
     GLuint mOffscreenDepthRB;
     GLuint mOffscreenStencilRB;
-
-    ExtensionBitset<Extensions_Max> mAvailableExtensions;
 
     
     
