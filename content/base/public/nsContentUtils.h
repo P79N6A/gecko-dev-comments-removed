@@ -235,6 +235,8 @@ public:
 
   static bool     IsCallerTrustedForCapability(const char* aCapability);
 
+  static bool     IsImageSrcSetDisabled();
+
   
 
 
