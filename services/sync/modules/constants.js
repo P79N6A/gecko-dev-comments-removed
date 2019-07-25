@@ -47,12 +47,13 @@ WEAVE_ID:                              "@weave_id@",
 STORAGE_VERSION:                       @storage_version@,
 
 DEFAULT_SERVER:                        "@server_url@",
-UPDATED_URL:                           "https:
+UPDATED_DEV_URL:                       "https:
+UPDATED_REL_URL:                       "http:
 
 PREFS_BRANCH:                          "extensions.weave.",
 
 
-PWDMGR_HOST:                           "chrome://weave",
+PWDMGR_HOST:                           "chrome:
 
 
 SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
