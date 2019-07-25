@@ -80,7 +80,12 @@ using namespace mozilla::xpconnect::memory;
 #define WORKER_RUNTIME_HEAPSIZE 32 * 1024 * 1024
 
 
-#define WORKER_CONTEXT_NATIVE_STACK_LIMIT sizeof(size_t) * 32 * 1024
+
+#define WORKER_STACK_SIZE 256 * sizeof(size_t) * 1024
+
+
+
+#define WORKER_CONTEXT_NATIVE_STACK_LIMIT 128 * sizeof(size_t) * 1024
 
 
 #define MAX_WORKERS_PER_DOMAIN 10
@@ -791,7 +796,8 @@ RuntimeService::ScheduleWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   }
 
   if (!thread) {
-    if (NS_FAILED(NS_NewThread(getter_AddRefs(thread), nsnull))) {
+    if (NS_FAILED(NS_NewThread(getter_AddRefs(thread), nsnull,
+                               WORKER_STACK_SIZE))) {
       UnregisterWorker(aCx, aWorkerPrivate);
       JS_ReportError(aCx, "Could not create new thread!");
       return false;
