@@ -5,6 +5,8 @@
 #ifndef mozilla_dom_ScreenOrientation_h
 #define mozilla_dom_ScreenOrientation_h
 
+#include "IPC/IPCMessageUtils.h"
+
 namespace mozilla {
 namespace dom {
 
@@ -20,24 +22,6 @@ enum ScreenOrientation {
   eScreenOrientation_LandscapeSecondary = 8,  
   eScreenOrientation_Landscape          = 12, 
   eScreenOrientation_EndGuard
-};
-
-
-
-
-
-
-class ScreenOrientationWrapper {
-public:
-  ScreenOrientationWrapper()
-    : orientation(eScreenOrientation_None)
-  {}
-
-  ScreenOrientationWrapper(ScreenOrientation aOrientation)
-    : orientation(aOrientation)
-  {}
-
-  ScreenOrientation orientation;
 };
 
 } 

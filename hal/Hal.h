@@ -40,13 +40,9 @@ namespace mozilla {
 template <class T>
 class Observer;
 
-namespace dom {
-class ScreenOrientationWrapper;
-}
-
 namespace hal {
 
-typedef Observer<dom::ScreenOrientationWrapper> ScreenOrientationObserver;
+typedef Observer<ScreenConfiguration> ScreenConfigurationObserver;
 
 class WindowIdentifier;
 
@@ -315,24 +311,24 @@ void NotifyWakeLockChange(const hal::WakeLockInformation& aWakeLockInfo);
 
 
 
-void RegisterScreenOrientationObserver(hal::ScreenOrientationObserver* aScreenOrientationObserver);
+void RegisterScreenConfigurationObserver(hal::ScreenConfigurationObserver* aScreenConfigurationObserver);
 
 
 
 
 
-void UnregisterScreenOrientationObserver(hal::ScreenOrientationObserver* aScreenOrientationObserver);
+void UnregisterScreenConfigurationObserver(hal::ScreenConfigurationObserver* aScreenConfigurationObserver);
 
 
 
 
-void GetCurrentScreenOrientation(dom::ScreenOrientation* aScreenOrientation);
+void GetCurrentScreenConfiguration(hal::ScreenConfiguration* aScreenConfiguration);
 
 
 
 
 
-void NotifyScreenOrientationChange(const dom::ScreenOrientation& aScreenOrientation);
+void NotifyScreenConfigurationChange(const hal::ScreenConfiguration& aScreenConfiguration);
 
 
 

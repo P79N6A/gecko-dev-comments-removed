@@ -80,12 +80,12 @@ void DisableNetworkNotifications();
 
 
 
-void EnableScreenOrientationNotifications();
+void EnableScreenConfigurationNotifications();
 
 
 
 
-void DisableScreenOrientationNotifications();
+void DisableScreenConfigurationNotifications();
 
 
 

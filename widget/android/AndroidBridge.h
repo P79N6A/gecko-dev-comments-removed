@@ -85,7 +85,6 @@ class NetworkInformation;
 } 
 
 namespace dom {
-class ScreenOrientationWrapper;
 namespace sms {
 struct SmsFilterData;
 } 
@@ -383,10 +382,10 @@ public:
     
     
     
-    void GetScreenOrientation(dom::ScreenOrientationWrapper& aOrientation);
+    uint32_t GetScreenOrientation();
     void EnableScreenOrientationNotifications();
     void DisableScreenOrientationNotifications();
-    void LockScreenOrientation(const dom::ScreenOrientationWrapper& aOrientation);
+    void LockScreenOrientation(uint32_t aOrientation);
     void UnlockScreenOrientation();
 
     void PumpMessageLoop();
