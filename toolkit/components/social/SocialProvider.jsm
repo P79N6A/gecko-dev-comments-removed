@@ -21,8 +21,6 @@ const EXPORTED_SYMBOLS = ["SocialProvider"];
 function SocialProvider(input) {
   if (!input.name)
     throw new Error("SocialProvider must be passed a name");
-  if (!input.workerURL)
-    throw new Error("SocialProvider must be passed a workerURL");
   if (!input.origin)
     throw new Error("SocialProvider must be passed an origin");
 
@@ -36,10 +34,12 @@ SocialProvider.prototype = {
 
 
   terminate: function shutdown() {
-    try {
-      getFrameWorkerHandle(this.workerURL, null).terminate();
-    } catch (e) {
-      Cu.reportError("SocialProvider termination failed: " + e);
+    if (this.workerURL) {
+      try {
+        getFrameWorkerHandle(this.workerURL, null).terminate();
+      } catch (e) {
+        Cu.reportError("SocialProvider FrameWorker termination failed: " + e);
+      }
     }
   },
 
@@ -49,7 +49,11 @@ SocialProvider.prototype = {
 
 
 
+
+
   getWorkerPort: function getWorkerPort(window) {
+    if (!this.workerURL)
+      return null;
     return getFrameWorkerHandle(this.workerURL, window).port;
   }
 }
