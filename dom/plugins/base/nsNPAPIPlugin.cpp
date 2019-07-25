@@ -2020,15 +2020,22 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
       nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *) npp->ndata;
       bool windowless = false;
       inst->IsWindowless(&windowless);
-      NPBool needXEmbed = false;
+      
+      
+      
+      
+      
+      
+      
+      int needsXEmbed = 0;
       if (!windowless) {
-        res = inst->GetValueFromPlugin(NPPVpluginNeedsXEmbed, &needXEmbed);
+        res = inst->GetValueFromPlugin(NPPVpluginNeedsXEmbed, &needsXEmbed);
         
         if (NS_FAILED(res)) {
-          needXEmbed = false;
+          needsXEmbed = 0;
         }
       }
-      if (windowless || needXEmbed) {
+      if (windowless || needsXEmbed) {
         (*(Display **)result) = mozilla::DefaultXDisplay();
         return NPERR_NO_ERROR;
       }

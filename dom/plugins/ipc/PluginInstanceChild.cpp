@@ -629,7 +629,7 @@ PluginInstanceChild::AnswerNPP_GetValue_NPPVpluginNeedsXEmbed(
     
     
     
-    PRUint32 needsXEmbed = 0;
+    int needsXEmbed = 0;
     if (!mPluginIface->getvalue) {
         *rv = NPERR_GENERIC_ERROR;
     }
