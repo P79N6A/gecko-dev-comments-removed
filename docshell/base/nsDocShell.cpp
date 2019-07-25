@@ -785,7 +785,8 @@ nsDocShell::nsDocShell():
   
   ++gNumberOfDocShells;
   if (!PR_GetEnv("MOZ_QUIET")) {
-      printf("++DOCSHELL %p == %ld\n", (void*) this, gNumberOfDocShells);
+      printf("++DOCSHELL %p == %ld [id = %ld]\n", (void*) this,
+             gNumberOfDocShells, mHistoryID);
   }
 #endif
 }
@@ -813,7 +814,8 @@ nsDocShell::~nsDocShell()
     
     --gNumberOfDocShells;
     if (!PR_GetEnv("MOZ_QUIET")) {
-        printf("--DOCSHELL %p == %ld\n", (void*) this, gNumberOfDocShells);
+        printf("--DOCSHELL %p == %ld [id = %ld]\n", (void*) this,
+               gNumberOfDocShells, mHistoryID);
     }
 #endif
 }
