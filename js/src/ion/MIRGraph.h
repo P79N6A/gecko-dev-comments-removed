@@ -118,6 +118,10 @@ class MBasicBlock : public TempObject
     
     bool setVariable(uint32 slot);
 
+    bool hasHeader() const {
+        return instructions_.begin() != instructions_.end();
+    }
+
   public:
     
     
@@ -127,11 +131,6 @@ class MBasicBlock : public TempObject
     
     static MBasicBlock *New(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
     static MBasicBlock *NewLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
-
-    
-    
-    
-    bool initHeader();
 
     void setId(uint32 id) {
         id_ = id;
@@ -180,6 +179,8 @@ class MBasicBlock : public TempObject
 
     void insertBefore(MInstruction *at, MInstruction *ins);
     void insertAfter(MInstruction *at, MInstruction *ins);
+    void remove(MInstruction *ins);
+    MInstructionIterator removeAt(MInstructionIterator &iter);
 
     
     
@@ -199,13 +200,6 @@ class MBasicBlock : public TempObject
     }
     MControlInstruction *lastIns() const {
         return lastIns_;
-    }
-    size_t numEntrySlots() const {
-        return headerSlots_;
-    }
-    MInstruction *getEntrySlot(size_t i) const {
-        JS_ASSERT(i < numEntrySlots());
-        return header_[i];
     }
     size_t numPhis() const {
         return phis_.length();
@@ -238,6 +232,17 @@ class MBasicBlock : public TempObject
     
     MInstruction *getSlot(uint32 index);
 
+    MSnapshot *entrySnapshot() const {
+        return instructions_.begin()->toSnapshot();
+    }
+    size_t numEntrySlots() const {
+        return entrySnapshot()->numOperands();
+    }
+    MInstruction *getEntrySlot(size_t i) const {
+        JS_ASSERT(i < numEntrySlots());
+        return entrySnapshot()->getInput(i);
+    }
+
   private:
     MIRGenerator *gen_;
     InlineList<MInstruction> instructions_;
@@ -248,12 +253,6 @@ class MBasicBlock : public TempObject
     MControlInstruction *lastIns_;
     jsbytecode *pc_;
     uint32 id_;
-
-    
-    
-    
-    MInstruction **header_;
-    uint32 headerSlots_;
 
     
     

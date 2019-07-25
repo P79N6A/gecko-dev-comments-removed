@@ -71,9 +71,34 @@ class LoweringPhase : public MInstructionVisitor
 bool
 LoweringPhase::lowerInstruction(MInstruction *ins)
 {
-#if 0
     MInstruction *narrowed = NULL;
     MIRType usedAs = ins->usedAsType();
+
+#if 0
+    if (usedAs == ins->type()) {
+        narrowed = ins;
+    } else if (usedAs != MIRType_Value && ins->type() == MIRType_Value) {
+        
+        
+        
+        
+        if (ins->specializeTo(usedAs)) {
+            narrowed = ins;
+        } else if (ins->idempotent() && ins->snapshot()) {
+            narrowed = MUnbox::New(ins, usedAs);
+            if (ins->isPhi()) {
+                
+                
+                
+                ins->block()->insertAfter(*ins->block()->begin(), narrowed);
+                narrowed->assignSnapshot(block->entrySnapshot());
+            } else {
+                ins->block()->insertAfter(ins, narrowed);
+                narrowed->assignSnapshot(ins->snapshot());
+            }
+        }
+    }
+
     if (usedAs != MIRType_Value && usedAs != ins->type()) {
         
         
