@@ -987,7 +987,7 @@ nsDiskCacheDevice::OpenDiskCache()
     if (exists) {
         
         nsDiskCache::CorruptCacheInfo corruptInfo;
-        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
+        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo, true);
 
         if (NS_SUCCEEDED(rv)) {
             Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT_DETAILS,
@@ -1017,7 +1017,7 @@ nsDiskCacheDevice::OpenDiskCache()
     
         
         nsDiskCache::CorruptCacheInfo corruptInfo;
-        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo);
+        rv = mCacheMap.Open(mCacheDirectory, &corruptInfo, false);
         if (NS_FAILED(rv))
             return rv;
     }

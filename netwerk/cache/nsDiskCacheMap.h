@@ -81,7 +81,7 @@ struct nsDiskCacheEntry;
 
 
 
-#define kRevalidateCacheTimeout 5000
+#define kRevalidateCacheTimeout 3000
 #define kRevalidateCacheTimeoutTolerance 10
 #define kRevalidateCacheErrorTimeout 1000
 
@@ -408,7 +408,8 @@ public:
 
 
     nsresult  Open( nsIFile *  cacheDirectory,
-                    nsDiskCache::CorruptCacheInfo *  corruptInfo);
+                    nsDiskCache::CorruptCacheInfo *  corruptInfo,
+                    bool reportCacheCleanTelemetryData);
     nsresult  Close(bool flush);
     nsresult  Trim();
 
@@ -539,7 +540,8 @@ private:
 
     
     nsresult InitCacheClean(nsIFile *  cacheDirectory,
-                            nsDiskCache::CorruptCacheInfo *  corruptInfo);
+                            nsDiskCache::CorruptCacheInfo *  corruptInfo,
+                            bool reportCacheCleanTelemetryData);
     
     nsresult WriteCacheClean(bool clean);
     
