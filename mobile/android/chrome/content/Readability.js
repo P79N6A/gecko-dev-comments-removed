@@ -329,18 +329,27 @@ Readability.prototype = {
     node.readability.contentScore += this._getClassWeight(node);
   },
 
-  _grabArticle: function () {
+  _grabArticle: function (callback) {
     let gen = this._grabArticleGenerator();
     let iterate = function () {
       for (let i = this.GEN_ITERATIONS; i--;) {
-        let result = gen.next();
+        let result;
+        try {
+          
+          
+          result = gen.next();
+        } catch (e) {
+          dump("Caught exception while grabbing article, aborting");
+          result = null;
+        }
         if (result !== undefined) {
-          return result;
+          callback(result);
+          return;
         }
       }
-      return iterate();
+      setTimeout(iterate, 0);
     }.bind(this);
-    return iterate();
+    iterate();
   },
 
   
@@ -1055,6 +1064,9 @@ Readability.prototype = {
           this._flags = 0x1 | 0x2 | 0x4;
 
           let nextPageLink = this._findNextPageLink(page);
+          
+          
+          
           let content = this._grabArticle(page);
 
           if (!content) {
@@ -1282,10 +1294,12 @@ Readability.prototype = {
 
 
 
-  parse: function() {
+  parse: function (callback) {
     let uri = this._uri;
-    if ((uri.prePath + "/") === uri.spec)
-      return null;
+    if ((uri.prePath + "/") === uri.spec) {
+      callback(null);
+      return;
+    }
 
     
     this._removeScripts(this._doc);
@@ -1303,36 +1317,42 @@ Readability.prototype = {
     this._prepDocument();
 
     let articleTitle = this._getArticleTitle();
-    let articleContent = this._grabArticle();
+    this._grabArticle(function (articleContent) {
+      if (!articleContent) {
+        callback(null);
+        return;
+      }
 
-    if (!articleContent)
-      return null;
+      
+      
+      
+      if (this._flagIsActive(this.FLAG_READABILITY_CHECK)) {
+        callback({});
+        return;
+      }
 
-    
-    
-    
-    if (this._flagIsActive(this.FLAG_READABILITY_CHECK))
-      return {};
+      this._postProcessContent(articleContent);
 
-    this._postProcessContent(articleContent);
+      
+      
+      
+      
+      
+      
+      
 
-    
-    
-    
-    
-    
-    
-    
-
-    return { title: this._getInnerText(articleTitle),
-             content: articleContent.innerHTML };
+      callback({ title: this._getInnerText(articleTitle),
+                 content: articleContent.innerHTML });
+    }.bind(this));
   },
 
-  check: function() {
+  check: function (callback) {
     
     
     this._flags = this.FLAG_READABILITY_CHECK;
 
-    return (this.parse() != null);
+    this.parse(function (result) {
+      callback(result != null);
+    });
   }
 };
