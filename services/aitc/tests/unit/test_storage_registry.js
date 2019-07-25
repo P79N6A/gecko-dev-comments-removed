@@ -105,7 +105,7 @@ add_test(function test_storage_install() {
 
 add_test(function test_storage_uninstall() {
   
-  fakeApp1.deleted = true;
+  fakeApp1.hidden = true;
   AitcStorage.processApps([fakeApp2], function() {
     
     do_check_eq(DOMApplicationRegistry._appId(fakeApp1.origin), null);
