@@ -63,6 +63,64 @@ function isUsableDirectory(aDirectory)
 
 
 
+function nsUnkownContentTypeDialogProgressListener(aHelperAppDialog) {
+  this.helperAppDlg = aHelperAppDialog;
+}
+
+nsUnkownContentTypeDialogProgressListener.prototype = {
+  
+  
+  onStatusChange: function( aWebProgress, aRequest, aStatus, aMessage ) {
+    if ( aStatus != Components.results.NS_OK ) {
+      
+      var prompter = Components.classes[ "@mozilla.org/embedcomp/prompt-service;1" ]
+                               .getService( Components.interfaces.nsIPromptService );
+      
+      
+      prompter.alert( this.dialog, this.helperAppDlg.mTitle, aMessage );
+      
+      this.helperAppDlg.onCancel();
+      if ( this.helperAppDlg.mDialog ) {
+        this.helperAppDlg.mDialog.close();
+      }
+    }
+  },
+
+  
+  onProgressChange: function( aWebProgress,
+                              aRequest,
+                              aCurSelfProgress,
+                              aMaxSelfProgress,
+                              aCurTotalProgress,
+                              aMaxTotalProgress ) {
+  },
+
+  onProgressChange64: function( aWebProgress,
+                                aRequest,
+                                aCurSelfProgress,
+                                aMaxSelfProgress,
+                                aCurTotalProgress,
+                                aMaxTotalProgress ) {
+  },
+
+
+
+  onStateChange: function( aWebProgress, aRequest, aStateFlags, aStatus ) {
+  },
+
+  onLocationChange: function( aWebProgress, aRequest, aLocation ) {
+  },
+
+  onSecurityChange: function( aWebProgress, aRequest, state ) {
+  },
+
+  onRefreshAttempted: function( aWebProgress, aURI, aDelay, aSameURI ) {
+    return true;
+  }
+};
+
+
+
 
 
 
@@ -154,8 +212,8 @@ nsUnknownContentTypeDialog.prototype = {
     this.getSpecialFolderKey = this.mDialog.getSpecialFolderKey;
 
     
-    this.progressListener.helperAppDlg = this;
-    this.mLauncher.setWebProgressListener(this.progressListener);
+    var progressListener = new nsUnkownContentTypeDialogProgressListener(this);
+    this.mLauncher.setWebProgressListener(progressListener);
   },
 
   
@@ -341,63 +399,6 @@ nsUnknownContentTypeDialog.prototype = {
   },
 
   
-
-  
-  
-  progressListener: {
-    
-    helperAppDlg: null,
-
-    
-    
-    onStatusChange: function( aWebProgress, aRequest, aStatus, aMessage ) {
-      if ( aStatus != Components.results.NS_OK ) {
-        
-        var prompter = Components.classes[ "@mozilla.org/embedcomp/prompt-service;1" ]
-                                 .getService( Components.interfaces.nsIPromptService );
-        
-        prompter.alert( this.dialog, this.helperAppDlg.mTitle, aMessage );
-
-        
-        this.helperAppDlg.onCancel();
-        if ( this.helperAppDlg.mDialog ) {
-          this.helperAppDlg.mDialog.close();
-        }
-      }
-    },
-
-    
-    onProgressChange: function( aWebProgress,
-                                aRequest,
-                                aCurSelfProgress,
-                                aMaxSelfProgress,
-                                aCurTotalProgress,
-                                aMaxTotalProgress ) {
-    },
-
-    onProgressChange64: function( aWebProgress,
-                                  aRequest,
-                                  aCurSelfProgress,
-                                  aMaxSelfProgress,
-                                  aCurTotalProgress,
-                                  aMaxTotalProgress ) {
-    },
-
-
-
-    onStateChange: function( aWebProgress, aRequest, aStateFlags, aStatus ) {
-    },
-
-    onLocationChange: function( aWebProgress, aRequest, aLocation ) {
-    },
-
-    onSecurityChange: function( aWebProgress, aRequest, state ) {
-    },
-
-    onRefreshAttempted: function( aWebProgress, aURI, aDelay, aSameURI ) {
-      return true;
-    }
-  },
 
   
   initDialog : function() {
