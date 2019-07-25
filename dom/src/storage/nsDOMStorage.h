@@ -64,6 +64,7 @@
 #include "mozilla/TimeStamp.h"
 
 #define NS_DOMSTORAGE_FLUSH_TIMER_OBSERVER "domstorage-flush-timer"
+#define NS_DOMSTORAGE_CUTOFF_OBSERVER "domstorage-cutoff"
 
 #ifdef MOZ_STORAGE
 #include "nsDOMStorageDBWrapper.h"
@@ -242,7 +243,7 @@ public:
     return static_cast<nsDOMStorage*>(static_cast<nsIDOMStorageObsolete*>(aSupports));
   }
 
-  nsresult RegisterObservers();
+  nsresult RegisterObservers(bool persistent);
   nsresult MaybeCommitTemporaryTable(bool force);
 
   bool WasTemporaryTableLoaded();
@@ -464,6 +465,16 @@ public:
     mValue.Truncate();
   }
 
+  void SetInsertTimeToNow()
+  {
+    mInsertTime = PR_Now();
+  }
+
+  bool ShouldBeCutOff(PRInt64 since)
+  {
+    return mInsertTime > since;
+  }
+
 protected:
 
   
@@ -474,6 +485,9 @@ protected:
 
   
   nsString mValue;
+
+  
+  PRInt64 mInsertTime;
 
   
   

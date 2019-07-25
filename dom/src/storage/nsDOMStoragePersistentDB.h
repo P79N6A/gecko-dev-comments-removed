@@ -131,6 +131,14 @@ public:
   
 
 
+
+
+  nsresult
+  RemoveTimeRange(PRInt64 aSince);
+
+  
+
+
   nsresult
   RemoveAll();
 
@@ -176,6 +184,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mRemoveKeyStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveOwnerStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveStorageStatement;
+  nsCOMPtr<mozIStorageStatement> mRemoveTimeRangeStatement;
   nsCOMPtr<mozIStorageStatement> mRemoveAllStatement;
   nsCOMPtr<mozIStorageStatement> mGetOfflineExcludedUsageStatement;
   nsCOMPtr<mozIStorageStatement> mGetFullUsageStatement;
