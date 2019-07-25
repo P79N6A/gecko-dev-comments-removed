@@ -418,14 +418,6 @@ nsXPConnect::GarbageCollect()
     return NS_OK;
 }
 
-
-
-inline bool
-AddToCCKind(JSGCTraceKind kind)
-{
-    return kind == JSTRACE_OBJECT || kind == JSTRACE_XML || kind == JSTRACE_SCRIPT;
-}
-
 #ifdef DEBUG_CC
 struct NoteJSRootTracer : public JSTracer
 {

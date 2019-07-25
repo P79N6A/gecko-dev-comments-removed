@@ -455,6 +455,14 @@ private:
 
 
 
+
+
+inline bool
+AddToCCKind(JSGCTraceKind kind)
+{
+    return kind == JSTRACE_OBJECT || kind == JSTRACE_XML || kind == JSTRACE_SCRIPT;
+}
+
 const bool OBJ_IS_GLOBAL = true;
 const bool OBJ_IS_NOT_GLOBAL = false;
 
