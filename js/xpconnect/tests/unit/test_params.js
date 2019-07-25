@@ -125,6 +125,10 @@ function test_component(contractid) {
   doTest("testJsval", {aprop: 12, bprop: "str"}, 4.22);
 
   
+  function makeA() { return Cc["@mozilla.org/js/xpc/test/js/InterfaceA;1"].createInstance(Ci['nsIXPCTestInterfaceA']); };
+  function makeB() { return Cc["@mozilla.org/js/xpc/test/js/InterfaceB;1"].createInstance(Ci['nsIXPCTestInterfaceB']); };
+
+  
   doIsTest("testShortArray", [2, 4, 6], 3, [1, 3, 5, 7], 4, arrayComparator);
   doIsTest("testLongLongArray", [-10000000000], 1, [1, 3, 1234511234551], 3, arrayComparator);
   doIsTest("testStringArray", ["mary", "hat", "hey", "lid", "tell", "lam"], 6,
