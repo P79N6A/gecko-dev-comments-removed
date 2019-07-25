@@ -1033,17 +1033,6 @@ typedef struct {
 } CipherPref;
 
 static CipherPref CipherPrefs[] = {
-
- {"security.ssl2.rc4_128", SSL_EN_RC4_128_WITH_MD5}, 
- {"security.ssl2.rc2_128", SSL_EN_RC2_128_CBC_WITH_MD5}, 
- {"security.ssl2.des_ede3_192", SSL_EN_DES_192_EDE3_CBC_WITH_MD5}, 
- {"security.ssl2.des_64", SSL_EN_DES_64_CBC_WITH_MD5}, 
- {"security.ssl2.rc4_40", SSL_EN_RC4_128_EXPORT40_WITH_MD5}, 
- {"security.ssl2.rc2_40", SSL_EN_RC2_128_CBC_EXPORT40_WITH_MD5}, 
- 
- {"security.ssl3.fortezza_fortezza_sha", SSL_FORTEZZA_DMS_WITH_FORTEZZA_CBC_SHA},
- {"security.ssl3.fortezza_rc4_sha", SSL_FORTEZZA_DMS_WITH_RC4_128_SHA},
- {"security.ssl3.fortezza_null_sha", SSL_FORTEZZA_DMS_WITH_NULL_SHA},
  
  {"security.ssl3.rsa_rc4_128_md5", SSL_RSA_WITH_RC4_128_MD5}, 
  {"security.ssl3.rsa_rc4_128_sha", SSL_RSA_WITH_RC4_128_SHA}, 
@@ -1811,10 +1800,9 @@ nsNSSComponent::InitializeNSS(PRBool showWarningBox)
       nsCOMPtr<nsIPrefBranch2> pbi = do_QueryInterface(mPrefBranch);
       pbi->AddObserver("security.", this, PR_FALSE);
 
+      SSL_OptionSetDefault(SSL_ENABLE_SSL2, PR_FALSE);
+      SSL_OptionSetDefault(SSL_V2_COMPATIBLE_HELLO, PR_FALSE);
       PRBool enabled;
-      mPrefBranch->GetBoolPref("security.enable_ssl2", &enabled);
-      SSL_OptionSetDefault(SSL_ENABLE_SSL2, enabled);
-      SSL_OptionSetDefault(SSL_V2_COMPATIBLE_HELLO, enabled);
       mPrefBranch->GetBoolPref("security.enable_ssl3", &enabled);
       SSL_OptionSetDefault(SSL_ENABLE_SSL3, enabled);
       mPrefBranch->GetBoolPref("security.enable_tls", &enabled);
@@ -2336,12 +2324,7 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
     PRBool enabled;
     NS_ConvertUTF16toUTF8  prefName(someData);
 
-    if (prefName.Equals("security.enable_ssl2")) {
-      mPrefBranch->GetBoolPref("security.enable_ssl2", &enabled);
-      SSL_OptionSetDefault(SSL_ENABLE_SSL2, enabled);
-      SSL_OptionSetDefault(SSL_V2_COMPATIBLE_HELLO, enabled);
-      clearSessionCache = PR_TRUE;
-    } else if (prefName.Equals("security.enable_ssl3")) {
+    if (prefName.Equals("security.enable_ssl3")) {
       mPrefBranch->GetBoolPref("security.enable_ssl3", &enabled);
       SSL_OptionSetDefault(SSL_ENABLE_SSL3, enabled);
       clearSessionCache = PR_TRUE;

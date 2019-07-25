@@ -1919,13 +1919,6 @@ ProcessSubjectPublicKeyInfo(CERTSubjectPublicKeyInfo *spki,
                                                     params, 3, text);
         break;
       }
-      case dhKey:
-      case dsaKey:
-      case fortezzaKey:
-      case keaKey:
-         
-         break;
-      case nullKey:
       default:
          
          break;
