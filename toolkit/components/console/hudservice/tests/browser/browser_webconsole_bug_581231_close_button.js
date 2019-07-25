@@ -27,7 +27,7 @@ function testCloseButton() {
 
   HUDService.disableAnimation(hudId);
   executeSoon(function() {
-    let closeButton = hudBox.querySelector(".jsterm-close-button");
+    let closeButton = hudBox.querySelector(".webconsole-close-button");
     ok(closeButton != null, "we have the close button");
 
     
