@@ -1668,14 +1668,15 @@ DAVCollection.prototype = {
    
       this._authProvider._authFailed = false;
 
-      let request = this._makeRequest("GET", "", cont, headers);
+      
+      
+      let request = this._makeRequest("GET", "createAcct.php", cont, headers);
       request.send(null);
       let event = yield;
 
       if (this._authProvider._authFailed || event.target.status >= 400)
         return;
   
-      
       let branch = Cc["@mozilla.org/preferences-service;1"].
         getService(Ci.nsIPrefBranch);
       this._currentUser = branch.getCharPref("browser.places.sync.username");
@@ -1683,7 +1684,7 @@ DAVCollection.prototype = {
       
       let path = this._currentUser.split("@");
       this._currentUserPath = path[0];
-      this._baseURL = this._baseURL + this._currentUserPath + "/";
+      this._baseURL = this._baseURL + "user/" + this._currentUserPath + "/";
       this._loggedIn = true;
 
     } finally {
