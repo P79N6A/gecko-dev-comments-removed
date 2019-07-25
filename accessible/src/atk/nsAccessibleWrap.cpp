@@ -450,10 +450,9 @@ nsAccessibleWrap::CreateMaiInterfaces(void)
         interfacesBits |= 1 << MAI_INTERFACE_IMAGE;
     }
 
-    
-    if (IsHyperLink()) {
-       interfacesBits |= 1 << MAI_INTERFACE_HYPERLINK_IMPL;
-    }
+  
+  if (IsLink())
+    interfacesBits |= 1 << MAI_INTERFACE_HYPERLINK_IMPL;
 
     if (!nsAccUtils::MustPrune(this)) {  
       

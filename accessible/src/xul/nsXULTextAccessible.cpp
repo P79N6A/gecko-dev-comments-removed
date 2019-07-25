@@ -225,7 +225,7 @@ nsXULLinkAccessible::DoAction(PRUint8 aIndex)
 
 
 bool
-nsXULLinkAccessible::IsHyperLink()
+nsXULLinkAccessible::IsLink()
 {
   
   return true;
@@ -239,7 +239,7 @@ nsXULLinkAccessible::StartOffset()
   
   
   
-  if (nsAccessible::IsHyperLink())
+  if (nsAccessible::IsLink())
     return nsAccessible::StartOffset();
   return IndexInParent();
 }
@@ -247,7 +247,7 @@ nsXULLinkAccessible::StartOffset()
 PRUint32
 nsXULLinkAccessible::EndOffset()
 {
-  if (nsAccessible::IsHyperLink())
+  if (nsAccessible::IsLink())
     return nsAccessible::EndOffset();
   return IndexInParent() + 1;
 }

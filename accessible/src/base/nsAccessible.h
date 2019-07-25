@@ -407,7 +407,7 @@ public:
   
 
 
-  virtual bool IsHyperLink();
+  virtual bool IsLink();
 
   
 
@@ -424,7 +424,7 @@ public:
 
   inline bool IsLinkValid()
   {
-    NS_PRECONDITION(IsHyperLink(), "IsLinkValid is called on not hyper link!");
+    NS_PRECONDITION(IsLink(), "IsLinkValid is called on not hyper link!");
 
     
     
@@ -438,7 +438,7 @@ public:
 
   inline bool IsLinkSelected()
   {
-    NS_PRECONDITION(IsHyperlink(),
+    NS_PRECONDITION(IsLink(),
                     "IsLinkSelected() called on something that is not a hyper link!");
     return gLastFocusedNode == GetNode();
   }

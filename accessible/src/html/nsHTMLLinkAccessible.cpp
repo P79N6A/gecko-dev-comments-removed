@@ -166,7 +166,7 @@ nsHTMLLinkAccessible::DoAction(PRUint8 aIndex)
 
 
 bool
-nsHTMLLinkAccessible::IsHyperLink()
+nsHTMLLinkAccessible::IsLink()
 {
   
   return true;

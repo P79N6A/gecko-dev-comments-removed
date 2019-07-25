@@ -97,7 +97,7 @@ public:
   virtual PRUint64 NativeState();
 
   
-  virtual bool IsHyperLink();
+  virtual bool IsLink();
   virtual PRUint32 StartOffset();
   virtual PRUint32 EndOffset();
   virtual already_AddRefed<nsIURI> AnchorURIAt(PRUint32 aAnchorIndex);
