@@ -74,7 +74,7 @@ function testCompletion() {
   
   input.value = "document.getElem";
   input.setSelectionRange(16, 16);
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY);
+  jsterm.complete(jsterm.COMPLETE_FORWARD);
   is(input.value, "document.getElem", "'document.getElem' completion");
   is(jsterm.completeNode.value, "                entById", "'document.getElem' completion");
 
