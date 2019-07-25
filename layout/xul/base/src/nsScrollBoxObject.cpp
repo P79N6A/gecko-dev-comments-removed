@@ -91,9 +91,12 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollTo(PRInt32 x, PRInt32 y)
   if (!sf)
     return NS_ERROR_FAILURE;
 
-  sf->ScrollTo(nsPoint(nsPresContext::CSSPixelsToAppUnits(x),
-                       nsPresContext::CSSPixelsToAppUnits(y)),
-               nsIScrollableFrame::INSTANT);
+  nsPoint pt(nsPresContext::CSSPixelsToAppUnits(x),
+             nsPresContext::CSSPixelsToAppUnits(y));
+  nscoord halfPixel = nsPresContext::CSSPixelsToAppUnits(0.5f);
+  
+  nsRect range(pt.x - halfPixel, pt.y - halfPixel, halfPixel*2 - 1, halfPixel*2 - 1);
+  sf->ScrollTo(pt, nsIScrollableFrame::INSTANT, &range);
   return NS_OK;
 }
 
@@ -225,16 +228,29 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
       }
    }
 
-   if (horiz)
+   nscoord csspixel = nsPresContext::CSSPixelsToAppUnits(1);
+   if (horiz) {
        
        
        
        
-       sf->ScrollTo(nsPoint(isLTR ? rect.x : rect.x + rect.width - frameWidth,
-                            cp.y),
-                    nsIScrollableFrame::INSTANT);
-   else
-       sf->ScrollTo(nsPoint(cp.x, rect.y), nsIScrollableFrame::INSTANT);
+
+       nsPoint pt(isLTR ? rect.x : rect.x + rect.width - frameWidth,
+                  cp.y);
+
+       
+       
+       
+       nsRect range(pt.x, pt.y, csspixel, 0);
+       if (isLTR) {
+         range.x -= csspixel;
+       }
+       sf->ScrollTo(pt, nsIScrollableFrame::INSTANT, &range);
+   } else {
+       
+       nsRect range(cp.x, rect.y - csspixel, 0, csspixel);
+       sf->ScrollTo(nsPoint(cp.x, rect.y), nsIScrollableFrame::INSTANT, &range);
+   }
 
    return NS_OK;
 }
@@ -247,7 +263,9 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(PRInt32 line)
      return NS_ERROR_FAILURE;
   
   nscoord y = sf->GetLineScrollAmount().height * line;
-  sf->ScrollTo(nsPoint(0, y), nsIScrollableFrame::INSTANT);
+  nsRect range(0, y - nsPresContext::CSSPixelsToAppUnits(1),
+               0, nsPresContext::CSSPixelsToAppUnits(1));
+  sf->ScrollTo(nsPoint(0, y), nsIScrollableFrame::INSTANT, &range);
   return NS_OK;
 }
 
