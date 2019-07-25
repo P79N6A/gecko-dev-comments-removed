@@ -95,17 +95,6 @@ PromptService.prototype = {
 
   
   getPrompt: function getPrompt(domWin, iid) {
-    
-    
-    if (iid.equals(Ci.nsIAuthPrompt2) || iid.equals(Ci.nsIAuthPrompt)) {
-      try {
-        let pwmgr = Cc["@mozilla.org/passwordmanager/authpromptfactory;1"].
-          getService(Ci.nsIPromptFactory);
-        return pwmgr.getPrompt(domWin, iid);
-      } catch (e) {
-        Cu.reportError("nsPrompter: Delegation to password manager failed: " + e);
-      }
-    }
 
     let doc = this.getDocument();
     if (!doc && !this.inContentProcess) {
@@ -488,6 +477,8 @@ Prompt.prototype = {
       aTitle, aText, aUsername, aPassword, aCheckMsg, aCheckState) {
     var params = new Object();
     params.result = false;
+    
+      
     params.checkbox = aCheckState;
     params.user = aUsername;
     params.password = aPassword;
@@ -541,7 +532,7 @@ Prompt.prototype = {
 
   nsIAuthPrompt_promptUsernameAndPassword : function (title, text, passwordRealm, savePassword, user, pass) {
     
-    return this.nsIPrompt_promptUsernameAndPassword(title, text, user, pass, null, {});
+    return this.nsIPrompt_promptUsernameAndPassword(title, text, user, pass, null, {value: false});
   },
 
   nsIAuthPrompt_promptPassword : function (title, text, passwordRealm, savePassword, pass) {
@@ -551,9 +542,9 @@ Prompt.prototype = {
 
   
   
-  promptAuth: function promptAuth(aChannel, aLevel, aAuthInfo, aCheckMsg, aCheckState) {
+  promptAuth: function promptAuth(aChannel, aLevel, aAuthInfo) {
     let res = false;
-    
+
     let defaultUser = aAuthInfo.username;
     if ((aAuthInfo.flags & aAuthInfo.NEED_DOMAIN) && (aAuthInfo.domain.length > 0))
       defaultUser = aAuthInfo.domain + "\\" + defaultUser;
@@ -563,11 +554,12 @@ Prompt.prototype = {
     
     let message = PromptUtils.makeDialogText(aChannel, aAuthInfo);
     let title = PromptUtils.getLocaleString("PromptUsernameAndPassword2");
+    let checkMsg = PromptUtils.getLocaleString("rememberButtonText", "passwdmgr");
     
     if (aAuthInfo.flags & aAuthInfo.ONLY_PASSWORD)
-      res = this.promptPassword(title, message, password, aCheckMsg, aCheckState);
+      res = this.promptPassword(title, message, password, checkMsg, {});
     else
-      res = this.promptUsernameAndPassword(title, message, username, password, aCheckMsg, aCheckState);
+      res = this.promptUsernameAndPassword(title, message, username, password, checkMsg, {});
     
     if (res) {
       aAuthInfo.username = username.value;
@@ -577,15 +569,18 @@ Prompt.prototype = {
     return res;
   },
   
-  asyncPromptAuth: function asyncPromptAuth(aChannel, aCallback, aContext, aLevel, aAuthInfo, aCheckMsg, aCheckState) {
+  asyncPromptAuth: function asyncPromptAuth(aChannel, aCallback, aContext, aLevel, aAuthInfo) {
     
     throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   }
 };
 
 let PromptUtils = {
-  getLocaleString: function getLocaleString(key) {
-    return this.bundle.GetStringFromName(key);
+  getLocaleString: function getLocaleString(aKey, aService) {
+    if(aService && aService == "passwdmgr")
+      return this.passwdBundle.GetStringFromName(aKey);
+
+    return this.bundle.GetStringFromName(aKey);
   },
   
   
@@ -645,6 +640,10 @@ let PromptUtils = {
     return res;
   }
 };
+
+XPCOMUtils.defineLazyGetter(PromptUtils, "passwdBundle", function () {
+  return Services.strings.createBundle("chrome://passwordmgr/locale/passwordmgr.properties");
+});
 
 XPCOMUtils.defineLazyGetter(PromptUtils, "bundle", function () {
   return Services.strings.createBundle("chrome://global/locale/commonDialogs.properties");

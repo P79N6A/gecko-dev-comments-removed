@@ -161,10 +161,10 @@ LoginManager.prototype = {
 
     receiveMessage: function (message) {
         
-        function getPrompter(aWindow) {
+        function getPrompter(aBrowser) {
             var prompterSvc = Cc["@mozilla.org/login-manager/prompter;1"].
                               createInstance(Ci.nsILoginManagerPrompter);
-            prompterSvc.init(aWindow);
+            prompterSvc.init(aBrowser);
             return prompterSvc;
         }
 
@@ -202,9 +202,7 @@ LoginManager.prototype = {
                     return {};
                 }
 
-                
-                
-                var win = message.target.contentWindow || null;
+                var browser = message.target;
 
                 var formLogin = new this._nsLoginInfo();
 
@@ -228,7 +226,7 @@ LoginManager.prototype = {
                         return {};
                     }
 
-                    var prompter = getPrompter(win);
+                    var prompter = getPrompter(browser);
 
                     if (logins.length == 1) {
                         var oldLogin = logins[0];
@@ -279,7 +277,7 @@ LoginManager.prototype = {
                         
                         if (existingLogin.password != formLogin.password) {
                             this.log("...passwords differ, prompting to change.");
-                            prompter = getPrompter(win);
+                            prompter = getPrompter(browser);
                             prompter.promptToChangePassword(existingLogin, formLogin);
                         } else {
                             
@@ -295,7 +293,7 @@ LoginManager.prototype = {
 
 
                     
-                    prompter = getPrompter(win);
+                    prompter = getPrompter(browser);
                     prompter.promptToSavePassword(formLogin);
                 }
                 return {};
