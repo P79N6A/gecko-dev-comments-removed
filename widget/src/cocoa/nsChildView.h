@@ -174,6 +174,15 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
 
 
+
+
+
+
+
+
+
+
+#if !defined(MAC_OS_X_VERSION_10_7) || MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
 #ifdef __LP64__
 enum {
   NSEventPhaseNone        = 0,
@@ -209,6 +218,7 @@ typedef NSInteger NSEventGestureAxis;
                                max:(CGFloat)maxDampenThreshold
                       usingHandler:(void (^)(CGFloat gestureAmount, NSEventPhase phase, BOOL isComplete, BOOL *stop))trackingHandler;
 @end
+#endif 
 #endif 
 
 @interface ChildView : NSView<
