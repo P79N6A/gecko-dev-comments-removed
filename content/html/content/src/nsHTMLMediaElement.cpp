@@ -1274,7 +1274,7 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(double aCurrentTime)
   LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) starting seek", this, aCurrentTime));
   nsresult rv = mDecoder->Seek(clampedTime);
   
-  mCurrentPlayRangeStart = clampedTime;
+  mCurrentPlayRangeStart = mDecoder->GetCurrentTime();
 
   
   AddRemoveSelfReference();
