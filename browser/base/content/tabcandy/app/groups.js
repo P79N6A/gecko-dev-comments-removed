@@ -1068,7 +1068,7 @@ DragInfo.prototype = {
   
   drag: function(event, ui) {
     if(this.item.isAGroup) {
-      ui = this.snap(event,ui);      
+      
       var bb = this.item.getBounds();
       bb.left = ui.position.left;
       bb.top = ui.position.top;
