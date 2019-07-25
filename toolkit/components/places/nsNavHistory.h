@@ -270,7 +270,12 @@ public:
   
 
 
-  nsresult FixInvalidFrecenciesForExcludedPlaces();
+
+
+
+
+
+  nsresult invalidateFrecencies(const nsCString& aPlaceIdsQueryString);
 
   
 
@@ -728,7 +733,6 @@ protected:
   nsresult MigrateV11Up(mozIStorageConnection *aDBConn);
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
-  nsresult PreparePlacesForVisitsDelete(const nsCString& aPlaceIdsQueryString);
   nsresult CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString);
 
   nsresult AddURIInternal(nsIURI* aURI, PRTime aTime, PRBool aRedirect,

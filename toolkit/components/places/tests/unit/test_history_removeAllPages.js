@@ -77,10 +77,11 @@ let historyObserver = {
     
     do_check_eq(0, PlacesUtils.bhistory.count);
 
-    let expirationObserver = {
-      observe: function (aSubject, aTopic, aData) {
-        Services.obs.removeObserver(this, aTopic, false);
+    Services.obs.addObserver(function observeExpiration(aSubject, aTopic, aData)
+    {
+      Services.obs.removeObserver(observeExpiration, aTopic, false);
 
+      waitForAsyncUpdates(function () {
         
         
         
@@ -154,11 +155,8 @@ let historyObserver = {
         stmt.finalize();
 
         do_test_finished();
-      }
-    }
-    Services.obs.addObserver(expirationObserver,
-                             PlacesUtils.TOPIC_EXPIRATION_FINISHED,
-                             false);
+      });
+    }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
   },
 
   QueryInterface: XPCOMUtils.generateQI([

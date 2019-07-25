@@ -1452,8 +1452,7 @@ nsNavHistory::MigrateV7Up(mozIStorageConnection* aDBConn)
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    
-    rv = FixInvalidFrecenciesForExcludedPlaces();
+    rv = invalidateFrecencies(EmptyCString());
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -2487,35 +2486,41 @@ nsNavHistory::GetHasHistoryEntries(PRBool* aHasEntries)
 
 
 nsresult
-nsNavHistory::FixInvalidFrecenciesForExcludedPlaces()
+nsNavHistory::invalidateFrecencies(const nsCString& aPlaceIdsQueryString)
 {
   
   
-  
-  nsCOMPtr<mozIStorageStatement> dbUpdateStatement;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-      "UPDATE moz_places "
-      "SET frecency = 0 WHERE id IN ("
-        "SELECT h.id FROM moz_places h "
-        "WHERE h.url >= 'place:' AND h.url < 'place;' "
-        "UNION ALL "
-        
-        "SELECT b.fk FROM moz_bookmarks b "
-        "JOIN moz_places h ON b.fk = h.id AND visit_count = 0 AND frecency < 0 "
-        "JOIN moz_bookmarks bp ON bp.id = b.parent "
-        "JOIN moz_items_annos a ON a.item_id = bp.id "
-        "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id "
-        "WHERE n.name = :anno_name "
-      ")"),
-    getter_AddRefs(dbUpdateStatement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = dbUpdateStatement->BindUTF8StringByName(
-    NS_LITERAL_CSTRING("anno_name"), NS_LITERAL_CSTRING(LMANNO_FEEDURI)
+  nsCAutoString invalideFrecenciesSQLFragment(
+    "UPDATE moz_places SET frecency = (CASE "
+      "WHEN url BETWEEN 'place:' AND 'place;' "
+      "THEN 0 "
+      "WHEN id IN (SELECT b.fk FROM moz_bookmarks b "
+                  "JOIN moz_bookmarks bp ON bp.id = b.parent "
+                  "JOIN moz_items_annos a ON a.item_id = bp.id "
+                  "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id "
+                  "WHERE b.fk = moz_places.id AND visit_count = 0 "
+                    "AND n.name = :anno_name) "
+      "THEN 0 "
+      "ELSE -1 "
+      "END) "
   );
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = dbUpdateStatement->Execute();
+  if (!aPlaceIdsQueryString.IsEmpty()) {
+    invalideFrecenciesSQLFragment.AppendLiteral("WHERE id IN(");
+    invalideFrecenciesSQLFragment.Append(aPlaceIdsQueryString);
+    invalideFrecenciesSQLFragment.AppendLiteral(")");
+  }
+
+  nsCOMPtr<mozIStorageStatement> stmt =
+    GetStatementByStoragePool(invalideFrecenciesSQLFragment);
+  NS_ENSURE_STATE(stmt);
+  nsresult rv = stmt->BindUTF8StringByName(
+     NS_LITERAL_CSTRING("anno_name"), NS_LITERAL_CSTRING(LMANNO_FEEDURI)
+   );
+   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = stmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -4141,11 +4146,8 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
-  nsresult rv = PreparePlacesForVisitsDelete(aPlaceIdsQueryString);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DELETE FROM moz_historyvisits WHERE place_id IN (") +
         aPlaceIdsQueryString +
         NS_LITERAL_CSTRING(")"));
@@ -4158,48 +4160,6 @@ nsNavHistory::RemovePagesInternal(const nsCString& aPlaceIdsQueryString)
   mHasHistoryEntries = -1;
 
   return transaction.Commit();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsNavHistory::PreparePlacesForVisitsDelete(const nsCString& aPlaceIdsQueryString)
-{
-  
-  if (aPlaceIdsQueryString.IsEmpty())
-    return NS_OK;
-
-  
-  
-  
-  
-  
-  
-  
-  nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "UPDATE moz_places "
-      "SET frecency = -(visit_count + 1) "
-      "WHERE id IN ( "
-        "SELECT h.id " 
-        "FROM moz_places h "
-        "WHERE h.id IN ( ") + aPlaceIdsQueryString + NS_LITERAL_CSTRING(") "
-          "AND ( "
-            "EXISTS (SELECT b.id FROM moz_bookmarks b WHERE b.fk =h.id) "
-            "OR EXISTS (SELECT a.id FROM moz_annos a WHERE a.place_id = h.id) "
-          ") "        
-      ")"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
 }
 
 
@@ -4281,9 +4241,7 @@ nsNavHistory::CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString)
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  
-  rv = FixInvalidFrecenciesForExcludedPlaces();
+  rv = invalidateFrecencies(aPlaceIdsQueryString);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -4570,9 +4528,6 @@ nsNavHistory::RemoveVisitsByTimeframe(PRTime aBeginTime, PRTime aEndTime)
 
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
-  rv = PreparePlacesForVisitsDelete(deletePlaceIdsQueryString);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   nsCOMPtr<mozIStorageStatement> deleteVisitsStmt;
   rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
@@ -4612,32 +4567,8 @@ nsNavHistory::RemoveAllPages()
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
-  mozStorageTransaction transaction(mDBConn, PR_FALSE);
-
-  
-  
-  
-  
-  
   nsresult rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "UPDATE moz_places SET frecency = -(visit_count + 1) "
-    "WHERE id IN(SELECT b.fk FROM moz_bookmarks b WHERE b.fk NOTNULL)"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "DELETE FROM moz_historyvisits"));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  
-  rv = FixInvalidFrecenciesForExcludedPlaces();
-  if (NS_FAILED(rv))
-    NS_WARNING("failed to fix invalid frecencies");
-
-  rv = transaction.Commit();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -4649,6 +4580,11 @@ nsNavHistory::RemoveAllPages()
   
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavHistoryObserver, OnClearHistory());
+
+  
+  
+  rv = invalidateFrecencies(EmptyCString());
+  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "failed to fix invalid frecencies");
 
   return NS_OK;
 }
