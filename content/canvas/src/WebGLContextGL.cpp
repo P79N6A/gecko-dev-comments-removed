@@ -162,6 +162,12 @@ WebGLContext::AttachShader(nsIWebGLProgram *pobj, nsIWebGLShader *shobj)
         !GetConcreteObjectAndGLName("attachShader: shader", shobj, &shader, &shadername))
         return NS_OK;
 
+    
+    
+    
+    if (program->HasAttachedShaderOfType(shader->ShaderType()))
+        return ErrorInvalidOperation("AttachShader: only one of each type of shader may be attached to a program");
+
     if (!program->AttachShader(shader))
         return ErrorInvalidOperation("AttachShader: shader is already attached");
 
