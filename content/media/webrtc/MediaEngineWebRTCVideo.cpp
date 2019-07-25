@@ -48,7 +48,7 @@ MediaEngineWebRTCVideoSource::DeliverFrame(
   }
 
   
-  ImageFormat format = ImageFormat::PLANAR_YCBCR;
+  ImageFormat format = PLANAR_YCBCR;
   nsRefPtr<layers::Image> image = mImageContainer->CreateImage(&format, 1);
 
   layers::PlanarYCbCrImage* videoImage = static_cast<layers::PlanarYCbCrImage*>(image.get());

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/layers/PLayersParent.h"
 #include "BasicLayersImpl.h"
@@ -55,7 +55,7 @@ protected:
     return static_cast<BasicLayerManager*>(mManager);
   }
 
-  // only paints the image if aContext is non-null
+  
   already_AddRefed<gfxPattern>
   GetAndPaintCurrentImage(gfxContext* aContext,
                           float aOpacity,
@@ -108,8 +108,8 @@ BasicImageLayer::GetAndPaintCurrentImage(gfxContext* aContext,
     size = mScaleToSize;
   }
 
-  // The visible region can extend outside the image, so just draw
-  // within the image bounds.
+  
+  
   if (aContext) {
     AutoSetOperator setOperator(aContext, GetOperator());
     PaintContext(pat,
@@ -122,20 +122,20 @@ BasicImageLayer::GetAndPaintCurrentImage(gfxContext* aContext,
   return pat.forget();
 }
 
-/*static*/ void
+ void
 BasicImageLayer::PaintContext(gfxPattern* aPattern,
                               const nsIntRegion& aVisible,
                               float aOpacity,
                               gfxContext* aContext,
                               Layer* aMaskLayer)
 {
-  // Set PAD mode so that when the video is being scaled, we do not sample
-  // outside the bounds of the video image.
+  
+  
   gfxPattern::GraphicsExtend extend = gfxPattern::EXTEND_PAD;
 
 #ifdef MOZ_X11
-  // PAD is slow with cairo and old X11 servers, so prefer speed over
-  // correctness and use NONE.
+  
+  
   if (aContext->IsCairo()) {
     nsRefPtr<gfxASurface> target = aContext->CurrentSurface();
     if (target->GetType() == gfxASurface::SurfaceTypeXlib &&
@@ -146,14 +146,14 @@ BasicImageLayer::PaintContext(gfxPattern* aPattern,
 #endif
 
   aContext->NewPath();
-  // No need to snap here; our transform has already taken care of it.
-  // XXX true for arbitrary regions?  Don't care yet though
+  
+  
   gfxUtils::PathFromRegion(aContext, aVisible);
   aPattern->SetExtend(extend);
   aContext->SetPattern(aPattern);
   FillWithMask(aContext, aOpacity, aMaskLayer);
 
-  // Reset extend mode for callers that need to reuse the pattern
+  
   aPattern->SetExtend(extend);
 }
 
@@ -238,8 +238,8 @@ private:
     return static_cast<BasicShadowLayerManager*>(mManager);
   }
 
-  // For YUV Images these are the 3 planes (Y, Cb and Cr),
-  // for RGB images only mBackSurface is used.
+  
+  
   SurfaceDescriptor mBackBuffer;
   bool mBufferIsOpaque;
   SurfaceDescriptor mBackBufferY;
@@ -281,7 +281,7 @@ BasicShadowableImageLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
       ->Paint(aContext, nullptr);
   }
 
-  if (image->GetFormat() == ImageFormat::SHARED_TEXTURE &&
+  if (image->GetFormat() == SHARED_TEXTURE &&
       BasicManager()->GetParentBackendType() == mozilla::layers::LAYERS_OPENGL) {
     SharedTextureImage *sharedImage = static_cast<SharedTextureImage*>(image);
     const SharedTextureImage::Data *data = sharedImage->GetData();
@@ -292,7 +292,7 @@ BasicShadowableImageLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
     return;
   }
 
-  if (image->GetFormat() == ImageFormat::PLANAR_YCBCR && BasicManager()->IsCompositingCheap()) {
+  if (image->GetFormat() == PLANAR_YCBCR && BasicManager()->IsCompositingCheap()) {
     PlanarYCbCrImage *YCbCrImage = static_cast<PlanarYCbCrImage*>(image);
     const PlanarYCbCrImage::Data *data = YCbCrImage->GetData();
     NS_ASSERTION(data, "Must be able to retrieve yuv data from image!");
@@ -302,7 +302,7 @@ BasicShadowableImageLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
       mSize = data->mYSize;
       mCbCrSize = data->mCbCrSize;
 
-      // We either allocate all three planes or none.
+      
       if (!BasicManager()->AllocBufferWithCaps(mSize,
                                                gfxASurface::CONTENT_ALPHA,
                                                MAP_AS_IMAGE_SURFACE,
@@ -434,7 +434,7 @@ BasicShadowImageLayer::Swap(const SharedImage& aNewFront,
                             SharedImage* aNewBack)
 {
   AutoOpenSurface autoSurface(OPEN_READ_ONLY, aNewFront);
-  // Destroy mFrontBuffer if size different or image type is different
+  
   bool surfaceConfigChanged = autoSurface.Size() != mSize;
   if (IsSurfaceDescriptorValid(mFrontBuffer)) {
     AutoOpenSurface autoFront(OPEN_READ_ONLY, mFrontBuffer);
@@ -446,7 +446,7 @@ BasicShadowImageLayer::Swap(const SharedImage& aNewFront,
     mSize = autoSurface.Size();
   }
 
-  // If mFrontBuffer
+  
   if (IsSurfaceDescriptorValid(mFrontBuffer)) {
     *aNewBack = mFrontBuffer;
   } else {
@@ -466,8 +466,8 @@ BasicShadowImageLayer::Paint(gfxContext* aContext, Layer* aMaskLayer)
   nsRefPtr<gfxPattern> pat = new gfxPattern(autoSurface.Get());
   pat->SetFilter(mFilter);
 
-  // The visible region can extend outside the image, so just draw
-  // within the image bounds.
+  
+  
   AutoSetOperator setOperator(aContext, GetOperator());
   BasicImageLayer::PaintContext(pat,
                                 nsIntRegion(nsIntRect(0, 0, mSize.width, mSize.height)),

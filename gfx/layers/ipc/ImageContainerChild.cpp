@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 
 #include "ImageContainerChild.h"
@@ -15,26 +15,26 @@
 namespace mozilla {
 namespace layers {
 
-/*
- * - POOL_MAX_SHARED_IMAGES is the maximum number number of shared images to
- * store in the ImageContainerChild's pool.
- *
- * - MAX_ACTIVE_SHARED_IMAGES is the maximum number of active shared images.
- * the number of active shared images for a given ImageContainerChild is equal
- * to the number of shared images allocated minus the number of shared images
- * dealocated by this ImageContainerChild. What can happen is that the compositor
- * hangs for a moment, while the ImageBridgeChild keep sending images. In such a 
- * scenario the compositor is not sending back shared images so the 
- * ImageContinerChild allocates new ones, and if the compositor hangs for too 
- * long, we can run out of shared memory. MAX_ACTIVE_SHARED_IMAGES is there to
- * throttle that. So when the child side wants to allocate a new shared image 
- * but is already at its maximum of active shared images, it just discards the
- * image (which is therefore not allocated and not sent to the compositor).
- * (see ImageToSharedImage)
- *
- * The values for the two constants are arbitrary and should be tweaked if it 
- * happens that we run into shared memory problems.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static const unsigned int POOL_MAX_SHARED_IMAGES = 5;
 static const unsigned int MAX_ACTIVE_SHARED_IMAGES = 10;
 
@@ -43,8 +43,8 @@ ImageContainerChild::ImageContainerChild()
   mStop(false), mDispatchedDestroy(false) 
 {
   MOZ_COUNT_CTOR(ImageContainerChild);
-  // the Release corresponding to this AddRef is in 
-  // ImageBridgeChild::DeallocPImageContainer
+  
+  
   AddRef();
 }
 
@@ -82,7 +82,7 @@ void ImageContainerChild::StopChildAndParent()
   }
   mStop = true;    
 
-  SendStop(); // IPC message
+  SendStop(); 
   DispatchDestroy();
 }
 
@@ -99,7 +99,7 @@ void ImageContainerChild::StopChild()
 bool ImageContainerChild::RecvReturnImage(const SharedImage& aImage)
 {
   SharedImage* img = new SharedImage(aImage);
-  // Remove oldest image from the queue.
+  
   if (mImageQueue.Length() > 0) {
     mImageQueue.RemoveElementAt(0);
   }
@@ -121,7 +121,7 @@ void ImageContainerChild::DestroySharedImage(const SharedImage& aImage)
 
 bool ImageContainerChild::CopyDataIntoSharedImage(Image* src, SharedImage* dest)
 {
-  if ((src->GetFormat() == ImageFormat::PLANAR_YCBCR) && 
+  if ((src->GetFormat() == PLANAR_YCBCR) && 
       (dest->type() == SharedImage::TYUVImage)) {
     PlanarYCbCrImage *YCbCrImage = static_cast<PlanarYCbCrImage*>(src);
     const PlanarYCbCrImage::Data *data = YCbCrImage->GetData();
@@ -151,7 +151,7 @@ bool ImageContainerChild::CopyDataIntoSharedImage(Image* src, SharedImage* dest)
 
     return true;
   }
-  return false; // TODO: support more image formats
+  return false; 
 }
 
 SharedImage* ImageContainerChild::CreateSharedImageFromData(Image* image)
@@ -161,7 +161,7 @@ SharedImage* ImageContainerChild::CreateSharedImageFromData(Image* image)
   
   ++mActiveImageCount;
 
-  if (image->GetFormat() == ImageFormat::PLANAR_YCBCR ) {
+  if (image->GetFormat() == PLANAR_YCBCR ) {
     PlanarYCbCrImage *YCbCrImage = static_cast<PlanarYCbCrImage*>(image);
     const PlanarYCbCrImage::Data *data = YCbCrImage->GetData();
     NS_ASSERTION(data, "Must be able to retrieve yuv data from image!");
@@ -202,7 +202,7 @@ SharedImage* ImageContainerChild::CreateSharedImageFromData(Image* image)
                       "SharedImage type not set correctly");
     return result;
 #ifdef MOZ_WIDGET_GONK
-  } else if (image->GetFormat() == ImageFormat::GONK_IO_SURFACE) {
+  } else if (image->GetFormat() == GONK_IO_SURFACE) {
     GonkIOSurfaceImage* gonkImage = static_cast<GonkIOSurfaceImage*>(image);
     SharedImage* result = new SharedImage(gonkImage->GetSurfaceDescriptor());
     return result;
@@ -228,15 +228,15 @@ bool ImageContainerChild::AddSharedImageToPool(SharedImage* img)
     mSharedImagePool.AppendElement(img);
     return true;
   }
-  return false; // TODO accept more image formats in the pool
+  return false; 
 }
 
 static bool
 SharedImageCompatibleWith(SharedImage* aSharedImage, Image* aImage)
 {
-  // TODO accept more image formats
+  
   switch (aImage->GetFormat()) {
-  case ImageFormat::PLANAR_YCBCR: {
+  case PLANAR_YCBCR: {
     if (aSharedImage->type() != SharedImage::TYUVImage) {
       return false;
     }
@@ -266,14 +266,14 @@ SharedImage*
 ImageContainerChild::GetSharedImageFor(Image* aImage)
 {
   while (mSharedImagePool.Length() > 0) {
-    // i.e., img = mPool.pop()
+    
     nsAutoPtr<SharedImage> img(mSharedImagePool.LastElement());
     mSharedImagePool.RemoveElementAt(mSharedImagePool.Length() - 1);
 
     if (SharedImageCompatibleWith(img, aImage)) {
       return img.forget();
     }
-    // The cached image is stale, throw it out.
+    
     DeallocSharedImageData(this, *img);
   }
   
@@ -317,8 +317,8 @@ SharedImage* ImageContainerChild::ImageToSharedImage(Image* aImage)
     return nullptr;
   }
   if (mActiveImageCount > (int)MAX_ACTIVE_SHARED_IMAGES) {
-    // Too many active shared images, perhaps the compositor is hanging.
-    // Skipping current image
+    
+    
     return nullptr;
   }
 
@@ -330,8 +330,8 @@ SharedImage* ImageContainerChild::ImageToSharedImage(Image* aImage)
   } else {
     img = CreateSharedImageFromData(aImage);
   }
-  // Keep a reference to the image we sent to compositor to maintain a
-  // correct reference count.
+  
+  
   mImageQueue.AppendElement(aImage);
   return img;
 }
@@ -356,8 +356,8 @@ void ImageContainerChild::SendImageAsync(ImageContainer* aContainer,
     return;
   }
 
-  // Sending images and (potentially) allocating shmems must be done 
-  // on the ImageBridgeChild thread.
+  
+  
   Task *t = new ImageBridgeCopyAndSendTask(this, aContainer, aImage);   
   GetMessageLoop()->PostTask(FROM_HERE, t);
 }
@@ -371,9 +371,9 @@ void ImageContainerChild::DestroyNow()
 
   ClearSharedImagePool();
 
-  // will decrease the refcount and, in most cases, delete the ImageContainerChild
+  
   Send__delete__(this);
-  Release(); // corresponds to the AddRef in DispatchDestroy
+  Release(); 
 }
 
 void ImageContainerChild::DispatchDestroy()
@@ -384,11 +384,11 @@ void ImageContainerChild::DispatchDestroy()
     return;
   }
   mDispatchedDestroy = true;
-  AddRef(); // corresponds to the Release in DestroyNow
+  AddRef(); 
   GetMessageLoop()->PostTask(FROM_HERE, 
                     NewRunnableMethod(this, &ImageContainerChild::DestroyNow));
 }
 
-} // namespace
-} // namespace
+} 
+} 
 
