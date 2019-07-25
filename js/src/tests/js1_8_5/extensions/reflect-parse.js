@@ -1048,6 +1048,12 @@ if (!thrown)
     throw new Error("builder exception not propagated");
 
 
+try {
+    Reflect.parse("({foo})");
+    throw new Error("object literal missing property RHS didn't throw");
+} catch (e if e instanceof SyntaxError) { }
+
+
 
 
 
