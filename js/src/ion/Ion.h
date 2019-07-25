@@ -88,6 +88,14 @@ struct IonOptions
     { }
 };
 
+#define ION_DISABLED_SCRIPT ((IonScript *)0x1)
+
+enum MethodStatus
+{
+    Method_CantCompile,
+    Method_Compiled
+};
+
 
 
 
@@ -101,6 +109,8 @@ class IonContext
     TempAllocator *temp;
 };
 
+extern IonOptions js_IonOptions;
+
 
 bool InitializeIon();
 
@@ -108,9 +118,13 @@ bool InitializeIon();
 IonContext *GetIonContext();
 bool SetIonContext(IonContext *ctx);
 
-bool Go(JSContext *cx, JSScript *script, js::StackFrame *fp);
+MethodStatus Compile(JSContext *cx, JSScript *script, js::StackFrame *fp);
+bool FireMahLaser(JSContext *cx);
 
-extern IonOptions js_IonOptions;
+static inline bool IsEnabled()
+{
+    return js_IonOptions.enabled;
+}
 
 }
 }
