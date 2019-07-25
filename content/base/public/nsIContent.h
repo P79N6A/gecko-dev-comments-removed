@@ -800,7 +800,7 @@ public:
 
 
   nsIAtom* GetID() const {
-    if (HasFlag(NODE_HAS_ID)) {
+    if (HasID()) {
       return DoGetID();
     }
     return nsnull;

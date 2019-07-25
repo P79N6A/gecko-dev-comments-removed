@@ -279,7 +279,7 @@ nsXULElement::Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
 
         element->mPrototype = aPrototype;
         if (aPrototype->mHasIdAttribute) {
-            element->SetFlags(NODE_HAS_ID);
+            element->SetHasID();
         }
         if (aPrototype->mHasClassAttribute) {
             element->SetFlags(NODE_MAY_HAVE_CLASS);
@@ -1408,7 +1408,7 @@ nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, PRBool aNotify)
     
 
     if (isId) {
-        UnsetFlags(NODE_HAS_ID);
+        ClearHasID();
     }
 
     if (aNameSpaceID == kNameSpaceID_None) {
@@ -1778,7 +1778,7 @@ nsXULElement::GetBuilder(nsIXULTemplateBuilder** aBuilder)
 nsIAtom*
 nsXULElement::DoGetID() const
 {
-    NS_ASSERTION(HasFlag(NODE_HAS_ID), "Unexpected call");
+    NS_ASSERTION(HasID(), "Unexpected call");
     const nsAttrValue* attr =
         FindLocalOrProtoAttr(kNameSpaceID_None, nsGkAtoms::id);
 

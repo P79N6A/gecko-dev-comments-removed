@@ -117,10 +117,7 @@ enum {
 
   NODE_IS_EDITABLE =             0x00000100U,
 
-  
-  
-  
-  NODE_HAS_ID =                  0x00000200U,
+  UNUSED3 =                      0x00000200U,
   
   
   NODE_MAY_HAVE_CLASS =          0x00000400U,
@@ -1147,6 +1144,11 @@ private:
     ParentIsContent,
     
     NodeIsElement,
+    
+    
+    
+    ElementHasID,
+    
     BooleanFlagCount
   };
 
@@ -1175,6 +1177,7 @@ public:
     { return GetBoolFlag(NodeHasRenderingObservers); }
   void SetHasRenderingObservers(bool aValue)
     { SetBoolFlag(NodeHasRenderingObservers, aValue); }
+  bool HasID() const { return GetBoolFlag(ElementHasID); }
 
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
@@ -1182,9 +1185,10 @@ protected:
   void ClearInDocument() { ClearBoolFlag(IsInDocument); }
   void SetIsElement() { SetBoolFlag(NodeIsElement); }
   void ClearIsElement() { ClearBoolFlag(NodeIsElement); }
+  void SetHasID() { SetBoolFlag(ElementHasID); }
+  void ClearHasID() { ClearBoolFlag(ElementHasID); }
 
 public:
-
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
 protected:

@@ -77,7 +77,7 @@ nsStyledElement::GetIDAttributeName() const
 nsIAtom*
 nsStyledElement::DoGetID() const
 {
-  NS_ASSERTION(HasFlag(NODE_HAS_ID), "Unexpected call");
+  NS_ASSERTION(HasID(), "Unexpected call");
 
   
   
@@ -115,11 +115,11 @@ nsStyledElement::ParseAttribute(PRInt32 aNamespaceID, nsIAtom* aAttribute,
       
       RemoveFromIdTable();
       if (aValue.IsEmpty()) {
-        UnsetFlags(NODE_HAS_ID);
+        ClearHasID();
         return PR_FALSE;
       }
       aResult.ParseAtom(aValue);
-      SetFlags(NODE_HAS_ID);
+      SetHasID();
       AddToIdTable(aResult.GetAtomValue());
       return PR_TRUE;
     }
@@ -151,7 +151,7 @@ nsStyledElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aAttribute,
     
     
     
-    UnsetFlags(NODE_HAS_ID);
+    ClearHasID();
   }
 
   return nsGenericElement::AfterSetAttr(aNamespaceID, aAttribute, aValue,
@@ -222,7 +222,7 @@ nsStyledElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                 aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDocument && HasFlag(NODE_HAS_ID) && !GetBindingParent()) {
+  if (aDocument && HasID() && !GetBindingParent()) {
     aDocument->AddToIdTable(this, DoGetID());
   }
 
