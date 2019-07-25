@@ -192,7 +192,7 @@ protected:
   bool              mHaltRangeHint;  
   
   
-  bool              mContextAlreadySerialized;
+  bool              mDisableContextSerialize;
   bool              mIsCopying;  
   bool              mNodeIsContainer;
   nsStringBuffer*   mCachedBuffer;
@@ -240,7 +240,7 @@ void nsDocumentEncoder::Initialize(bool aClearCachedSerializer)
   mStartRootIndex = 0;
   mEndRootIndex = 0;
   mHaltRangeHint = false;
-  mContextAlreadySerialized = false;
+  mDisableContextSerialize = false;
   mNodeIsContainer = false;
   if (aClearCachedSerializer) {
     mSerializer = nsnull;
@@ -922,7 +922,7 @@ nsresult
 nsDocumentEncoder::SerializeRangeContextStart(const nsTArray<nsINode*>& aAncestorArray,
                                               nsAString& aString)
 {
-  if (mContextAlreadySerialized) {
+  if (mDisableContextSerialize) {
     return NS_OK;
   }
   PRInt32 i = aAncestorArray.Length(), j;
@@ -953,7 +953,7 @@ nsresult
 nsDocumentEncoder::SerializeRangeContextEnd(const nsTArray<nsINode*>& aAncestorArray,
                                             nsAString& aString)
 {
-  if (mContextAlreadySerialized) {
+  if (mDisableContextSerialize) {
     return NS_OK;
   }
   PRInt32 i = 0, j;
@@ -1129,7 +1129,7 @@ nsDocumentEncoder::EncodeToString(nsAString& aOutputString)
             rv = SerializeRangeContextStart(mCommonAncestors, output);
             NS_ENSURE_SUCCESS(rv, rv);
             
-            mContextAlreadySerialized = true;
+            mDisableContextSerialize = true;
           }
 
           rv = SerializeNodeStart(n, 0, -1, output);
@@ -1139,10 +1139,9 @@ nsDocumentEncoder::EncodeToString(nsAString& aOutputString)
           
           mCommonAncestors.Clear();
           nsContentUtils::GetAncestors(p->GetNodeParent(), mCommonAncestors);
+          mDisableContextSerialize = false;
           rv = SerializeRangeContextEnd(mCommonAncestors, output);
           NS_ENSURE_SUCCESS(rv, rv);
-          
-          mContextAlreadySerialized = false;
           prevNode = nsnull;
         }
       }
@@ -1158,13 +1157,13 @@ nsDocumentEncoder::EncodeToString(nsAString& aOutputString)
       NS_ENSURE_SUCCESS(rv, rv);
       mCommonAncestors.Clear();
       nsContentUtils::GetAncestors(p->GetNodeParent(), mCommonAncestors);
+      mDisableContextSerialize = false; 
       rv = SerializeRangeContextEnd(mCommonAncestors, output);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
-    
-    mContextAlreadySerialized = false; 
+    mDisableContextSerialize = false; 
 
     mSelection = nsnull;
   } else if (mRange) {
