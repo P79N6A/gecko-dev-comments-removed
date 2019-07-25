@@ -14,6 +14,13 @@
 
 
 
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
+
+
+
 class nsDOMMediaStream : public nsIDOMMediaStream
 {
   typedef mozilla::MediaStream MediaStream;
