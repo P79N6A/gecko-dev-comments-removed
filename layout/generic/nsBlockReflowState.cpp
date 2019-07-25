@@ -243,7 +243,7 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
   aResult.y = mY;
   aResult.height = GetFlag(BRS_UNCONSTRAINEDHEIGHT)
     ? NS_UNCONSTRAINEDSIZE
-    : NS_MAX(0, mReflowState.availableHeight - mY);
+    : mReflowState.availableHeight - mY;
   
   
   
