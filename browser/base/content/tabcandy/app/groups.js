@@ -2,37 +2,28 @@
 (function(){
 
 
+
+
+
 var numCmp = function(a,b){ return a-b; }
+
+
+
 
 
 function min(list){ return list.slice().sort(numCmp)[0]; }
 
 
+
+
+
 function max(list){ return list.slice().sort(numCmp).reverse()[0]; }
 
 
-function isEventOverElement(event, el){
-  var hit = {nodeName: null};
-  var isOver = false;
-  
-  var hiddenEls = [];
-  while(hit.nodeName != "BODY" && hit.nodeName != "HTML"){
-    hit = document.elementFromPoint(event.clientX, event.clientY);
-    if( hit == el ){
-      isOver = true;
-      break;
-    }
-    iQ(hit).hide();
-    hiddenEls.push(hit);
-  }
-  
-  var hidden;
-  [iQ(hidden).show() for([,hidden] in Iterator(hiddenEls))];
-  return isOver;
-}
 
 
-function dropAcceptFunction(el) { 
+
+function dropAcceptFunction(el) {
   var $el = iQ(el);
   if($el.hasClass('tab')) {
     var item = Items.item($el);
@@ -43,6 +34,23 @@ function dropAcceptFunction(el) {
           
   return false;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -274,8 +282,12 @@ window.Group = function(listOfEls, options) {
 
 window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
+  
+  
   defaultName: "name this group...",
 
+  
+  
   
   
   
@@ -286,9 +298,13 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
+  
+  
   getActiveTab: function(tab){
     return this._activeTab;
   },
+  
+  
   
   
   getStorageData: function() {
@@ -307,6 +323,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
 
   
+  
+  
   save: function() {
     if (!this._inited) 
       return;
@@ -317,8 +335,10 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   },
   
   
+  
+  
+  
   isNewTabsGroup: function() {
-    
     return (this.locked.bounds && this.locked.title && this.locked.close);
   },
   
