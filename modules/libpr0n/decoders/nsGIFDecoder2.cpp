@@ -135,10 +135,11 @@ void
 nsGIFDecoder2::FinishInternal()
 {
   
-  if (!IsSizeDecode() && !IsError()) {
+  if (!IsSizeDecode() && !IsError() && mGIFOpen) {
     if (mCurrentFrame == mGIFStruct.images_decoded)
       EndImageFrame();
-    EndGIF( PR_TRUE);
+    PostDecodeDone();
+    mGIFOpen = PR_FALSE;
   }
 
   mImage->SetLoopCount(mGIFStruct.loop_count);
@@ -190,24 +191,6 @@ void nsGIFDecoder2::BeginGIF()
   
   if (IsSizeDecode())
     return;
-}
-
-
-void nsGIFDecoder2::EndGIF(PRBool aSuccess)
-{
-  if (!mGIFOpen)
-    return;
-
-  if (aSuccess)
-    mImage->DecodingComplete();
-
-  if (mObserver) {
-    mObserver->OnStopContainer(nsnull, mImage);
-    mObserver->OnStopDecode(nsnull, aSuccess ? NS_OK : NS_ERROR_FAILURE,
-                            nsnull);
-  }
-
-  mGIFOpen = PR_FALSE;
 }
 
 
@@ -1067,18 +1050,17 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
       break;
 
     case gif_done:
-      EndGIF( PR_TRUE);
+      PostDecodeDone();
+      mGIFOpen = PR_FALSE;
       goto done;
 
     case gif_error:
       PostDataError();
-      EndGIF( PR_FALSE);
       return;
 
     
     case gif_oom:
       PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
-      EndGIF( PR_FALSE);
       return;
 
     
@@ -1090,7 +1072,6 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
   
   if (mGIFStruct.state == gif_error) {
       PostDataError();
-      EndGIF( PR_FALSE);
       return;
   }
   

@@ -56,23 +56,13 @@ nsIconDecoder::nsIconDecoder() :
   mPixBytesRead(0),
   mPixBytesTotal(0),
   mImageData(nsnull),
-  mState(iconStateStart),
-  mNotifiedDone(PR_FALSE)
+  mState(iconStateStart)
 {
   
 }
 
 nsIconDecoder::~nsIconDecoder()
 { }
-
-void
-nsIconDecoder::FinishInternal()
-{
-  
-  
-  if (!IsSizeDecode() && !mNotifiedDone)
-    NotifyDone( PR_FALSE);
-}
 
 void
 nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
@@ -154,7 +144,8 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 
         
         if (mPixBytesRead == mPixBytesTotal) {
-          NotifyDone( PR_TRUE);
+          PostFrameStop();
+          PostDecodeDone();
           mState = iconStateFinished;
         }
         break;
@@ -167,26 +158,6 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         break;
     }
   }
-}
-
-void
-nsIconDecoder::NotifyDone(PRBool aSuccess)
-{
-  
-  NS_ABORT_IF_FALSE(!mNotifiedDone, "Calling NotifyDone twice");
-
-  
-  PostFrameStop();
-  if (aSuccess)
-    mImage->DecodingComplete();
-  if (mObserver) {
-    mObserver->OnStopContainer(nsnull, mImage);
-    mObserver->OnStopDecode(nsnull, aSuccess ? NS_OK : NS_ERROR_FAILURE,
-                            nsnull);
-  }
-
-  
-  mNotifiedDone = PR_TRUE;
 }
 
 } 

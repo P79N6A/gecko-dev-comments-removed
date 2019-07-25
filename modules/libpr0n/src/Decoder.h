@@ -154,6 +154,13 @@ protected:
   void PostInvalidation(nsIntRect& aRect);
 
   
+  
+  
+  
+  
+  void PostDecodeDone();
+
+  
   void PostDataError();
   void PostDecoderError(nsresult aFailCode);
 
@@ -174,6 +181,7 @@ protected:
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;
+  bool mDecodeDone;
   bool mDataError;
 };
 
