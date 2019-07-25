@@ -36,6 +36,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -199,7 +200,6 @@ DebuggerView.Stackframes = {
 
     
     if (!frame) {
-      dump("The frame list item wasn't found in the stackframes container.");
       return;
     }
 
@@ -356,7 +356,6 @@ DebuggerView.Properties = {
 
     
     if (!element) {
-      dump("The debugger scope container wasn't created properly: " + aId);
       return null;
     }
 
@@ -398,7 +397,6 @@ DebuggerView.Properties = {
 
     
     if (!element) {
-      dump("The debugger variable container wasn't created properly: " + aId);
       return null;
     }
 
@@ -466,7 +464,6 @@ DebuggerView.Properties = {
 
     
     if (!info) {
-      dump("Could not set the grip for the corresponding variable: " + aVar.id);
       return null;
     }
 
@@ -569,7 +566,6 @@ DebuggerView.Properties = {
 
     
     if (!element) {
-      dump("The debugger property container wasn't created properly.");
       return null;
     }
 
@@ -710,11 +706,9 @@ DebuggerView.Properties = {
   _createPropertyElement: function DVP__createPropertyElement(aName, aId, aClass, aParent) {
     
     if (document.getElementById(aId)) {
-      dump("Duplicating a property element id is not allowed.");
       return null;
     }
     if (!aParent) {
-      dump("A property element must have a valid parent node specified.");
       return null;
     }
 
@@ -1126,6 +1120,15 @@ DebuggerView.Scripts = {
       }
     }
   },
+
+   
+
+
+
+   get selected() {
+    return this._scripts.selectedItem ?
+           this._scripts.selectedItem.value : null;
+   },
 
   
 
