@@ -123,7 +123,7 @@ struct IonOptions
         lsra(true),
         inlining(true),
         usesBeforeCompile(40),
-        usesBeforeInlining(10000)
+        usesBeforeInlining(10240)
     { }
 };
 

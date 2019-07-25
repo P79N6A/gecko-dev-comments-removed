@@ -685,8 +685,10 @@ Imm8::encodeTwoImms(uint32 imm)
             JS_ASSERT( ((no_n1 >> (32 - imm2shift)) | (no_n1 << imm2shift)) ==
                        imm2);
         }
-        return TwoImm8mData(datastore::Imm8mData(imm1,imm1shift),
-                            datastore::Imm8mData(imm2, imm2shift));
+        JS_ASSERT((imm1shift & 0x1) == 0);
+        JS_ASSERT((imm2shift & 0x1) == 0);
+        return TwoImm8mData(datastore::Imm8mData(imm1, imm1shift >> 1),
+                            datastore::Imm8mData(imm2, imm2shift >> 1));
     } else {
         
         
@@ -725,15 +727,18 @@ Imm8::encodeTwoImms(uint32 imm)
         
         int imm2shift =  mid + 8;
         imm2 = ((imm >> (32 - imm2shift)) | (imm << imm2shift)) & 0xff;
-        return TwoImm8mData(datastore::Imm8mData(imm1,imm1shift),
-                            datastore::Imm8mData(imm2, imm2shift));
+        JS_ASSERT((imm1shift & 0x1) == 0);
+        JS_ASSERT((imm2shift & 0x1) == 0);
+        return TwoImm8mData(datastore::Imm8mData(imm1, imm1shift >> 1),
+                            datastore::Imm8mData(imm2, imm2shift >> 1));
     }
 }
 
 ALUOp
-ion::ALUNeg(ALUOp op, Imm32 *imm)
+ion::ALUNeg(ALUOp op, Register dest, Imm32 *imm, Register *negDest)
 {
     
+    *negDest = dest;
     switch (op) {
       case op_mov:
         *imm = Imm32(~imm->value);
@@ -759,6 +764,11 @@ ion::ALUNeg(ALUOp op, Imm32 *imm)
       case op_cmn:
         *imm = Imm32(-imm->value);
         return op_cmp;
+      case op_tst:
+        JS_ASSERT(dest == InvalidReg);
+        *imm = Imm32(~imm->value);
+        *negDest = ScratchRegister;
+        return op_bic;
         
       default:
         break;
@@ -771,6 +781,21 @@ ion::can_dbl(ALUOp op)
 {
     
     
+    
+    
+    
+    
+    
+    switch (op) {
+      case op_bic:
+      case op_add:
+      case op_sub:
+      case op_eor:
+      case op_orr:
+        return true;
+      default:
+        break;
+    }
     return false;
 }
 
@@ -792,6 +817,14 @@ ion::condsAreSafe(ALUOp op) {
     
     
     
+    switch(op) {
+      case op_bic:
+      case op_orr:
+      case op_eor:
+        return true;
+      default:
+        break;
+    }
     return false;
 }
 
