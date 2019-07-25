@@ -4,7 +4,7 @@
 
 
 
-#ifdef MOZ_WIDGET_GTK
+#ifdef MOZ_WIDGET_GTK2
 #include <glib.h>
 #elif XP_MACOSX
 #include "PluginInterposeOSX.h"
@@ -964,7 +964,7 @@ PluginModuleParent::AnswerProcessSomeEvents()
     return true;
 }
 
-#elif !defined(MOZ_WIDGET_GTK)
+#elif !defined(MOZ_WIDGET_GTK2)
 bool
 PluginModuleParent::AnswerProcessSomeEvents()
 {

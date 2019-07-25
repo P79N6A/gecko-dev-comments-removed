@@ -36,7 +36,7 @@ extern const PRUnichar* kOOPPPluginFocusEventId;
 UINT gOOPPPluginFocusEvent =
     RegisterWindowMessage(kOOPPPluginFocusEventId);
 extern const PRUnichar* kFlashFullscreenClass;
-#elif defined(MOZ_WIDGET_GTK)
+#elif defined(MOZ_WIDGET_GTK2)
 #include <gdk/gdk.h>
 #elif defined(XP_MACOSX)
 #include <ApplicationServices/ApplicationServices.h>
@@ -1268,7 +1268,7 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         
         Display *dpy = DefaultXDisplay();
-#  ifdef MOZ_WIDGET_GTK
+#  ifdef MOZ_WIDGET_GTK2
         
         
         gdk_pointer_ungrab(npevent->xbutton.time);
