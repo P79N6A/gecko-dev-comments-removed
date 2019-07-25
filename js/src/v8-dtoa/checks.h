@@ -62,7 +62,7 @@ static inline void CheckHelper(const char* file,
 
 
 
-#define CHECK(condition) CheckHelper(__FILE__, __LINE__, #condition, condition)
+#define CHECK(condition) ::CheckHelper(__FILE__, __LINE__, #condition, condition)
 
 
 
