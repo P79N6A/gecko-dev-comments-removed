@@ -2816,147 +2816,147 @@ CallMethodHelper::ConvertIndependentParams(JSBool* foundDependentParam)
 JSBool
 CallMethodHelper::ConvertIndependentParam(uint8 i)
 {
-        JSBool useAllocator = JS_FALSE;
-        const nsXPTParamInfo& paramInfo = mMethodInfo->GetParam(i);
-        const nsXPTType& type = paramInfo.GetType();
-        uint8 type_tag = type.TagPart();
-        nsXPTCVariant* dp = GetDispatchParam(i);
-        dp->type = type;
+    JSBool useAllocator = JS_FALSE;
+    const nsXPTParamInfo& paramInfo = mMethodInfo->GetParam(i);
+    const nsXPTType& type = paramInfo.GetType();
+    uint8 type_tag = type.TagPart();
+    nsXPTCVariant* dp = GetDispatchParam(i);
+    dp->type = type;
 
-        if(type_tag == nsXPTType::T_INTERFACE)
+    if(type_tag == nsXPTType::T_INTERFACE)
+    {
+        dp->SetValIsInterface();
+    }
+
+    jsval src;
+
+    if (!GetOutParamSource(i, &src))
+        return JS_FALSE;
+
+    if(paramInfo.IsOut())
+    {
+        dp->SetPtrIsData();
+        dp->ptr = &dp->val;
+
+        if (type_tag == nsXPTType::T_JSVAL)
         {
-            dp->SetValIsInterface();
+            JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(uint64));
+            jsval *rootp = (jsval *)&dp->val.u64;
+            dp->ptr = rootp;
+            *rootp = JSVAL_VOID;
+            if (!JS_AddValueRoot(mCallContext, rootp))
+                return JS_FALSE;
+            dp->SetValIsJSRoot();
         }
 
-        jsval src;
-
-        if (!GetOutParamSource(i, &src))
-            return JS_FALSE;
-
-        if(paramInfo.IsOut())
+        if(type.IsPointer() &&
+           type_tag != nsXPTType::T_INTERFACE &&
+           !paramInfo.IsShared())
         {
-            dp->SetPtrIsData();
-            dp->ptr = &dp->val;
+            useAllocator = JS_TRUE;
+            dp->SetValIsAllocated();
+        }
 
-            if (type_tag == nsXPTType::T_JSVAL)
+        if(!paramInfo.IsIn())
+            return JS_TRUE;
+    }
+    else
+    {
+        if(type.IsPointer())
+        {
+            switch(type_tag)
             {
-                JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(uint64));
-                jsval *rootp = (jsval *)&dp->val.u64;
-                dp->ptr = rootp;
-                *rootp = JSVAL_VOID;
-                if (!JS_AddValueRoot(mCallContext, rootp))
-                    return JS_FALSE;
-                dp->SetValIsJSRoot();
-            }
-
-            if(type.IsPointer() &&
-               type_tag != nsXPTType::T_INTERFACE &&
-               !paramInfo.IsShared())
-            {
-                useAllocator = JS_TRUE;
+            case nsXPTType::T_IID:
                 dp->SetValIsAllocated();
-            }
+                useAllocator = JS_TRUE;
+                break;
+            case nsXPTType::T_CHAR_STR:
+                dp->SetValIsAllocated();
+                useAllocator = JS_TRUE;
+                break;
+            case nsXPTType::T_ASTRING:
+                
 
-            if(!paramInfo.IsIn())
-                return JS_TRUE;
-        }
-        else
-        {
-            if(type.IsPointer())
-            {
-                switch(type_tag)
+            case nsXPTType::T_DOMSTRING:
+                if(paramInfo.IsDipper())
                 {
-                case nsXPTType::T_IID:
-                    dp->SetValIsAllocated();
-                    useAllocator = JS_TRUE;
-                    break;
-                case nsXPTType::T_CHAR_STR:
-                    dp->SetValIsAllocated();
-                    useAllocator = JS_TRUE;
-                    break;
-                case nsXPTType::T_ASTRING:
+                    
+                    
                     
 
-                case nsXPTType::T_DOMSTRING:
-                    if(paramInfo.IsDipper())
-                    {
-                        
-                        
-                        
-
-                        dp->SetValIsDOMString();
-                        if(!(dp->val.p = new nsAutoString()))
-                        {
-                            JS_ReportOutOfMemory(mCallContext);
-                            return JS_FALSE;
-                        }
-                        return JS_TRUE;
-                    }
-                    
-
-                    
-                    
-                    
                     dp->SetValIsDOMString();
-                    useAllocator = JS_TRUE;
-                    break;
-
-                case nsXPTType::T_UTF8STRING:
-                    
-                case nsXPTType::T_CSTRING:
-                    dp->SetValIsCString();
-                    if(paramInfo.IsDipper())
+                    if(!(dp->val.p = new nsAutoString()))
                     {
-                        
-                        if(!(dp->val.p = new nsCString()))
-                        {
-                            JS_ReportOutOfMemory(mCallContext);
-                            return JS_FALSE;
-                        }
-                        return JS_TRUE;
+                        JS_ReportOutOfMemory(mCallContext);
+                        return JS_FALSE;
                     }
-                    
-                    
-                    useAllocator = JS_TRUE;
-                    break;
+                    return JS_TRUE;
                 }
-            }
-            else {
-                if(type_tag == nsXPTType::T_JSVAL) {
-                    dp->SetValIsAllocated();
-                    useAllocator = JS_TRUE;
+                
+
+                
+                
+                
+                dp->SetValIsDOMString();
+                useAllocator = JS_TRUE;
+                break;
+
+            case nsXPTType::T_UTF8STRING:
+                
+            case nsXPTType::T_CSTRING:
+                dp->SetValIsCString();
+                if(paramInfo.IsDipper())
+                {
+                    
+                    if(!(dp->val.p = new nsCString()))
+                    {
+                        JS_ReportOutOfMemory(mCallContext);
+                        return JS_FALSE;
+                    }
+                    return JS_TRUE;
                 }
+                
+                
+                useAllocator = JS_TRUE;
+                break;
             }
-
-            
-            
-            
-            NS_ASSERTION(i < mArgc || paramInfo.IsOptional(),
-                         "Expected either enough arguments or an optional argument");
-            if(i < mArgc)
-                src = mArgv[i];
-            else if(type_tag == nsXPTType::T_JSVAL)
-                src = JSVAL_VOID;
-            else
-                src = JSVAL_NULL;
+        }
+        else {
+            if(type_tag == nsXPTType::T_JSVAL) {
+                dp->SetValIsAllocated();
+                useAllocator = JS_TRUE;
+            }
         }
 
-        nsID param_iid;
-        if(type_tag == nsXPTType::T_INTERFACE &&
-           NS_FAILED(mIFaceInfo->GetIIDForParamNoAlloc(mVTableIndex, &paramInfo,
-                                                       &param_iid)))
-        {
-            ThrowBadParam(NS_ERROR_XPC_CANT_GET_PARAM_IFACE_INFO, i, mCallContext);
-            return JS_FALSE;
-        }
+        
+        
+        
+        NS_ASSERTION(i < mArgc || paramInfo.IsOptional(),
+                     "Expected either enough arguments or an optional argument");
+        if(i < mArgc)
+            src = mArgv[i];
+        else if(type_tag == nsXPTType::T_JSVAL)
+            src = JSVAL_VOID;
+        else
+            src = JSVAL_NULL;
+    }
 
-        uintN err;
-        if(!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type,
-                                      useAllocator, &param_iid, &err))
-        {
-            ThrowBadParam(err, i, mCallContext);
-            return JS_FALSE;
-        }
+    nsID param_iid;
+    if(type_tag == nsXPTType::T_INTERFACE &&
+       NS_FAILED(mIFaceInfo->GetIIDForParamNoAlloc(mVTableIndex, &paramInfo,
+                                                   &param_iid)))
+    {
+        ThrowBadParam(NS_ERROR_XPC_CANT_GET_PARAM_IFACE_INFO, i, mCallContext);
+        return JS_FALSE;
+    }
+
+    uintN err;
+    if(!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type,
+                                  useAllocator, &param_iid, &err))
+    {
+        ThrowBadParam(err, i, mCallContext);
+        return JS_FALSE;
+    }
 
     return JS_TRUE;
 }
