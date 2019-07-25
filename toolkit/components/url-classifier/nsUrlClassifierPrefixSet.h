@@ -66,11 +66,15 @@ public:
   
   
   
-  NS_IMETHOD Probe(PRUint32 aPrefix, PRBool* aReady, PRBool* aFound);
+  NS_IMETHOD Probe(PRUint32 aPrefix, PRUint32 aKey, PRBool* aReady, PRBool* aFound);
+  
+  
   NS_IMETHOD EstimateSize(PRUint32* aSize);
   NS_IMETHOD IsEmpty(PRBool * aEmpty);
-  NS_IMETHOD LoadFromFile(nsIFile * aFile);
-  NS_IMETHOD StoreToFile(nsIFile * aFile);
+  NS_IMETHOD LoadFromFile(nsIFile* aFile);
+  NS_IMETHOD StoreToFile(nsIFile* aFile);
+  
+  NS_IMETHOD GetKey(PRUint32* aKey);
 
   NS_DECL_ISUPPORTS
 
@@ -85,10 +89,13 @@ protected:
   PRUint32 BinSearch(PRUint32 start, PRUint32 end, PRUint32 target);
   nsresult LoadFromFd(mozilla::AutoFDClose & fileFd);
   nsresult StoreToFd(mozilla::AutoFDClose & fileFd);
+  nsresult InitKey();
 
   
   
   PRBool mHasPrefixes;
+  
+  PRUint32 mRandomKey;
   
   nsTArray<PRUint32> mIndexPrefixes;
   
