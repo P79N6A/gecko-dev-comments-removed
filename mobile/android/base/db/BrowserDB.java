@@ -84,8 +84,7 @@ public class BrowserDB {
 
     static {
         
-        
-        sDb = new AndroidBrowserDB();
+        sDb = new LocalBrowserDB(BrowserContract.DEFAULT_PROFILE);
     }
 
     public static Cursor filter(ContentResolver cr, CharSequence constraint, int limit, CharSequence urlFilter) {
