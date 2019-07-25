@@ -49,6 +49,11 @@
 }
 
 
+.fullscreenButton {
+  display: none;
+}
+
+
 .scrubberStack {
   width: 100%;
   min-height: 32px;
