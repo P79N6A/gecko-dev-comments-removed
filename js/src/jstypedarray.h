@@ -57,8 +57,8 @@ namespace js {
 
 
 
-struct ArrayBuffer {
-    static Class slowClass;
+struct ArrayBufferObject : public JSObject {
+    static Class protoClass;
     static JSPropertySpec jsprops[];
     static JSFunctionSpec jsfuncs[];
 
@@ -68,16 +68,10 @@ struct ArrayBuffer {
 
     static JSBool class_constructor(JSContext *cx, unsigned argc, Value *vp);
 
-    static JSObject *create(JSContext *cx, int32_t nbytes, uint8_t *contents = NULL);
+    static JSObject *create(JSContext *cx, uint32_t nbytes, uint8_t *contents = NULL);
 
-    static JSObject *createSlice(JSContext *cx, JSObject *arrayBuffer,
+    static JSObject *createSlice(JSContext *cx, ArrayBufferObject &arrayBuffer,
                                  uint32_t begin, uint32_t end);
-
-    ArrayBuffer()
-    {
-    }
-
-    ~ArrayBuffer();
 
     static void
     obj_trace(JSTracer *trc, JSObject *obj);
@@ -167,6 +161,19 @@ struct ArrayBuffer {
 
     static JSObject *
     getArrayBuffer(JSObject *obj);
+
+    bool
+    allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents = NULL);
+
+    inline uint32_t byteLength() const;
+
+    inline uint8_t * dataPointer() const;
+
+   
+
+
+
+    inline bool hasData() const;
 };
 
 
@@ -213,7 +220,7 @@ struct TypedArray {
 
     
     
-    static Class slowClasses[TYPE_MAX];
+    static Class protoClasses[TYPE_MAX];
 
     static JSPropertySpec jsprops[];
 
@@ -247,7 +254,7 @@ struct TypedArray {
     static uint32_t getByteOffset(JSObject *obj);
     static uint32_t getByteLength(JSObject *obj);
     static uint32_t getType(JSObject *obj);
-    static JSObject * getBuffer(JSObject *obj);
+    static ArrayBufferObject * getBuffer(JSObject *obj);
     static void * getDataOffset(JSObject *obj);
 
   public:

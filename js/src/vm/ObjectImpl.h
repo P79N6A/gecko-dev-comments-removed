@@ -570,10 +570,12 @@ ElementsHeader::asArrayBufferElements()
 
 
 
+class ArrayBufferObject;
 class ObjectElements
 {
     friend struct ::JSObject;
     friend class ObjectImpl;
+    friend struct js::ArrayBufferObject;
 
     
     uint32_t capacity;
