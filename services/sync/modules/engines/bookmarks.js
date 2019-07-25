@@ -55,6 +55,14 @@ Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/type_records/bookmark.js");
 
+function archiveBookmarks() {
+  
+  try {
+    PlacesUtils.archiveBookmarksFile(null, true);
+  }
+  catch(ex) {}
+}
+
 
 let kSpecialIds = {};
 [["menu", "bookmarksMenuFolder"],
@@ -125,6 +133,10 @@ BookmarksEngine.prototype = {
 
   _syncStartup: function _syncStart() {
     SyncEngine.prototype._syncStartup.call(this);
+
+    
+    if (this.lastSync == 0)
+      archiveBookmarks();
 
     
     this.__defineGetter__("_lazyMap", function() {
@@ -937,9 +949,7 @@ BookmarksStore.prototype = {
 
   wipe: function BStore_wipe() {
     
-    try {
-      PlacesUtils.archiveBookmarksFile(null, true);
-    } catch(e) {}
+    archiveBookmarks();
 
     for (let [guid, id] in Iterator(kSpecialIds))
       if (guid != "places")
