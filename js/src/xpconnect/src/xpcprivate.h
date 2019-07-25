@@ -4406,6 +4406,8 @@ GetRTStringByIndex(JSContext *cx, uintN index);
 
 
 
+
+
 inline JSObject*
 xpc_NewSystemInheritingJSObject(JSContext *cx, JSClass *clasp, JSObject *proto,
                                 bool uniqueType, JSObject *parent);
