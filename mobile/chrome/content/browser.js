@@ -477,9 +477,6 @@ var Browser = {
     notifications.addEventListener("AlertClose", notificationHandler, false);
 
     
-    container.addEventListener("contextmenu", ContextHelper, false);
-
-    
     ih = new InputHandler(container);
 
     BrowserUI.init();
@@ -1555,10 +1552,11 @@ function ContentCustomClicker(browserView) {
 }
 
 ContentCustomClicker.prototype = {
-  _dispatchMouseEvent: function _dispatchMouseEvent(aName, aX, aY) {
+  _dispatchMouseEvent: function _dispatchMouseEvent(aName, aX, aY, aModifiers) {
+    let aModifiers = aModifiers || null;
     let browser = this._browserView.getBrowser();
     let [x, y] = Browser.transformClientToBrowser(aX, aY);
-    browser.messageManager.sendAsyncMessage(aName, { x: x, y: y });
+    browser.messageManager.sendAsyncMessage(aName, { x: x, y: y, modifiers: aModifiers });
   },
 
   mouseDown: function mouseDown(aX, aY) {
@@ -1576,24 +1574,24 @@ ContentCustomClicker.prototype = {
 
   panBegin: function panBegin() {
     TapHighlightHelper.hide();
+
     let browser = this._browserView.getBrowser();
     browser.messageManager.sendAsyncMessage("Browser:MouseCancel", {});
   },
 
   singleClick: function singleClick(aX, aY, aModifiers) {
     TapHighlightHelper.hide();
-    this._dispatchMouseEvent("Browser:MouseUp", aX, aY);
+
     
-    
-    
-    
-    
-    
-    
+    if (ContextHelper.popupState)
+      this._dispatchMouseEvent("Browser:MouseCancel", {});
+    else
+      this._dispatchMouseEvent("Browser:MouseUp", aX, aY, aModifiers);
   },
 
   doubleClick: function doubleClick(aX1, aY1, aX2, aY2) {
     TapHighlightHelper.hide();
+
     let browser = this._browserView.getBrowser();
     browser.messageManager.sendAsyncMessage("Browser:MouseCancel", {});
 
