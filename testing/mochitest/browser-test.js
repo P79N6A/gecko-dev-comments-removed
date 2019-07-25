@@ -214,7 +214,14 @@ Tester.prototype = {
       if (this.done) {
         
         
-        Cu.schedulePreciseGC(this.finish.bind(this));
+        Cu.schedulePreciseGC((function () {
+          let winutils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDOMWindowUtils);
+          winutils.garbageCollect();
+          winutils.garbageCollect();
+          winutils.garbageCollect();
+          this.finish();
+        }).bind(this));
         return;
       }
 
