@@ -197,6 +197,9 @@ public:
   NS_IMETHOD              OnIMETextChange(PRUint32 aStart, PRUint32 aOldEnd, PRUint32 aNewEnd);
   NS_IMETHOD              OnIMESelectionChange(void);
 #endif 
+  NS_IMETHOD              GetNonClientMargins(nsIntMargin &margins);
+  NS_IMETHOD              SetNonClientMargins(nsIntMargin &margins);
+  void                    SetDrawsInTitlebar(PRBool aState);
 
   
 
@@ -284,6 +287,7 @@ protected:
   nsWindow*               GetParentWindow(PRBool aIncludeOwner);
   virtual void            SubclassWindow(BOOL bState);
   PRBool                  CanTakeFocus();
+  PRBool                  UpdateNonClientMargins();
 #if !defined(WINCE)
   static void             InitTrackPointHack();
 #endif
@@ -319,6 +323,7 @@ protected:
                                                  PRBool& aResult,
                                                  LRESULT* aRetValue,
                                                  PRBool& aQuitProcessing);
+  PRInt32                 ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my);
 
   
 
@@ -449,6 +454,7 @@ protected:
   HKL                   mLastKeyboardLayout;
   nsPopupType           mPopupType;
   PRPackedBool          mDisplayPanFeedback;
+  PRPackedBool          mHideChrome;
   WindowHook            mWindowHook;
   static PRUint32       sInstanceCount;
   static TriStateBool   sCanQuit;
@@ -466,6 +472,20 @@ protected:
 #ifdef MOZ_IPC
   static PRUint32       sOOPPPluginFocusEvent;
 #endif
+
+  
+  
+  nsIntMargin           mNonClientOffset;
+  
+  nsIntMargin           mNonClientMargins;
+  
+  PRPackedBool          mCustomNonClient;
+  
+  PRPackedBool          mCompositorFlag;
+  
+  PRInt32               mResizeMargin;
+  
+  PRInt32               mCaptionHeight;
 
   nsCOMPtr<nsIdleService> mIdleService;
 

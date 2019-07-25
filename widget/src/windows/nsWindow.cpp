@@ -141,6 +141,7 @@
 #include "nsIFontMetrics.h"
 #include "nsIFontEnumerator.h"
 #include "nsIDeviceContext.h"
+#include "nsILookAndFeel.h"
 #include "nsGUIEvent.h"
 #include "nsFont.h"
 #include "nsRect.h"
@@ -370,10 +371,13 @@ nsWindow::nsWindow() : nsBaseWidget()
   mIsInMouseCapture     = PR_FALSE;
   mIsTopWidgetWindow    = PR_FALSE;
   mUnicodeWidget        = PR_TRUE;
+  mDisplayPanFeedback   = PR_FALSE;
+  mCustomNonClient      = PR_FALSE;
+  mCompositorFlag       = PR_FALSE;
+  mHideChrome           = PR_FALSE;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
   mPopupType            = ePopupTypeAny;
-  mDisplayPanFeedback   = PR_FALSE;
   mLastPoint.x          = 0;
   mLastPoint.y          = 0;
   mLastSize.width       = 0;
@@ -1843,6 +1847,166 @@ NS_METHOD nsWindow::GetClientOffset(nsIntPoint &aPt)
   return NS_OK;  
 }
 
+void
+nsWindow::SetDrawsInTitlebar(PRBool aState)
+{
+  nsWindow * window = GetTopLevelWindow(PR_TRUE);
+  if (window && window != this) {
+    return window->SetDrawsInTitlebar(aState);
+  }
+
+  if (aState) {
+     
+    nsIntMargin margins(-1, 0, -1, -1);
+    SetNonClientMargins(margins);
+  }
+  else {
+    nsIntMargin margins(-1, -1, -1, -1);
+    SetNonClientMargins(margins);
+  }
+}
+
+NS_IMETHODIMP
+nsWindow::GetNonClientMargins(nsIntMargin &margins)
+{
+  nsWindow * window = GetTopLevelWindow(PR_TRUE);
+  if (window && window != this) {
+    return window->GetNonClientMargins(margins);
+  }
+
+  if (mCustomNonClient) {
+    margins = mNonClientMargins;
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsILookAndFeel> lookAndFeel =
+    do_GetService("@mozilla.org/widget/lookandfeel;1");
+  if (!lookAndFeel) {
+    NS_WARNING("We need nsILookAndFeel for GetNonClientMargins!");
+    return NS_ERROR_FAILURE;
+  }
+
+  PRInt32 val;
+  lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowTitleHeight, val);
+  margins.top = val;
+  lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowBorderHeight, val);
+  margins.top += val;
+  margins.bottom = val;
+  lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowBorderWidth, val); 
+  margins.left = margins.right = val;
+
+  return NS_OK;
+}
+
+PRBool
+nsWindow::UpdateNonClientMargins()
+{
+  if (!mCustomNonClient)
+    return PR_FALSE;
+
+  
+  mCompositorFlag = PR_TRUE;
+  if(!nsUXThemeData::CheckForCompositor()) {
+    mCompositorFlag = PR_FALSE;
+    return PR_FALSE;
+  }
+
+  mNonClientOffset.top = mNonClientOffset.bottom =
+    mNonClientOffset.left = mNonClientOffset.right = 0;
+
+  nsCOMPtr<nsILookAndFeel> lookAndFeel =
+    do_GetService("@mozilla.org/widget/lookandfeel;1");
+  if (!lookAndFeel) {
+    NS_WARNING("We need nsILookAndFeel for UpdateNonClientMargins!");
+    return PR_FALSE;
+  }
+
+  
+  lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowBorderWidth, mResizeMargin);
+  lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowTitleHeight, mCaptionHeight);
+  mCaptionHeight += mResizeMargin;
+
+  
+  
+  
+  if (!mNonClientMargins.top)
+    mNonClientOffset.top = mCaptionHeight;
+  else if (mNonClientMargins.top > 0)
+    mNonClientOffset.top = mCaptionHeight - mNonClientMargins.top;
+
+  if (!mNonClientMargins.left)
+    mNonClientOffset.left = mResizeMargin;
+  else if (mNonClientMargins.left > 0)
+    mNonClientOffset.left = mResizeMargin - mNonClientMargins.left;
+
+  if (!mNonClientMargins.right)
+    mNonClientOffset.right = mResizeMargin;
+  else if (mNonClientMargins.right > 0)
+    mNonClientOffset.right = mResizeMargin - mNonClientMargins.right;
+
+  PRInt32 val;
+  lookAndFeel->GetMetric(nsILookAndFeel::eMetric_WindowBorderHeight, val);
+  if (!mNonClientMargins.bottom)
+    mNonClientOffset.bottom = val;
+  else if (mNonClientMargins.bottom > 0)
+    mNonClientOffset.bottom = val - mNonClientMargins.bottom;
+
+  NS_ASSERTION(mNonClientOffset.top >= 0, "non-client top margin is negative!");
+  NS_ASSERTION(mNonClientOffset.left >= 0, "non-client left margin is negative!");
+  NS_ASSERTION(mNonClientOffset.right >= 0, "non-client right margin is negative!");
+  NS_ASSERTION(mNonClientOffset.bottom >= 0, "non-client bottom margin is negative!");
+
+  if (mNonClientOffset.top < 0)
+    mNonClientOffset.top = 0;
+  if (mNonClientOffset.left < 0)
+    mNonClientOffset.left = 0;
+  if (mNonClientOffset.right < 0)
+    mNonClientOffset.right = 0;
+  if (mNonClientOffset.bottom < 0)
+    mNonClientOffset.bottom = 0;
+
+  SetWindowPos(mWnd, 0, 0, 0, 0, 0,
+               SWP_FRAMECHANGED|SWP_NOACTIVATE|SWP_NOMOVE|
+               SWP_NOOWNERZORDER|SWP_NOSIZE|SWP_NOZORDER);
+  UpdateWindow(mWnd);
+
+  return PR_TRUE;
+}
+
+NS_IMETHODIMP
+nsWindow::SetNonClientMargins(nsIntMargin &margins)
+{
+  if (!mIsTopWidgetWindow ||
+      mBorderStyle & eBorderStyle_none ||
+      mHideChrome)
+    return NS_ERROR_INVALID_ARG;
+
+  
+  if (margins.top == -1 && margins.left == -1 &&
+      margins.right == -1 && margins.bottom == -1) {
+    mCustomNonClient = PR_FALSE;
+    mNonClientMargins = margins;
+    SetWindowPos(mWnd, 0, 0, 0, 0, 0,
+                 SWP_FRAMECHANGED|SWP_NOACTIVATE|SWP_NOMOVE|
+                 SWP_NOOWNERZORDER|SWP_NOSIZE|SWP_NOZORDER);
+    UpdateWindow(mWnd);
+    return NS_OK;
+  }
+
+  if (margins.top < -1 || margins.bottom < -1 ||
+      margins.left < -1 || margins.right < -1)
+    return NS_ERROR_INVALID_ARG;
+
+  mNonClientMargins = margins;
+  mCustomNonClient = PR_TRUE;
+  if (!UpdateNonClientMargins()) {
+    NS_WARNING("UpdateNonClientMargins failed!");
+    return PR_FALSE;
+  }
+
+  return NS_OK;
+}
+
 
 
 
@@ -2145,11 +2309,16 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
   opaqueRegion.Or(opaqueRegion, childWindowRegion);
   
   opaqueRegion.And(opaqueRegion, clientBounds);
+ 
   MARGINS margins = { 0, 0, 0, 0 };
   DWORD_PTR dwStyle = ::GetWindowLongPtrW(hWnd, GWL_STYLE);
+
   
-  if (opaqueRegion.IsEmpty() || !(dwStyle & WS_CAPTION)) {
-    margins.cxLeftWidth = -1;
+  
+  if (opaqueRegion.IsEmpty() || mHideChrome) {
+    
+    margins.cxLeftWidth = margins.cxRightWidth = 
+      margins.cyTopHeight = margins.cyBottomHeight = -1;
   } else {
     
     nsIntRect largest = opaqueRegion.GetLargestRectangle();
@@ -2158,6 +2327,8 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
     margins.cyTopHeight = largest.y;
     margins.cyBottomHeight = clientBounds.height - largest.YMost();
   }
+
+  
   if (memcmp(&mGlassMargins, &margins, sizeof mGlassMargins)) {
     mGlassMargins = margins;
     UpdateGlass();
@@ -2165,13 +2336,21 @@ void nsWindow::UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
 #endif 
 }
 
-void nsWindow::UpdateGlass() {
+void nsWindow::UpdateGlass()
+{
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   HWND hWnd = GetTopLevelHWND(mWnd, PR_TRUE);
+
+  
+  
+  
+  
   DWMNCRENDERINGPOLICY policy = DWMNCRP_USEWINDOWSTYLE;
-  if(eTransparencyGlass == mTransparencyMode) {
+  if (mTransparencyMode == eTransparencyGlass) {
     policy = DWMNCRP_ENABLED;
   }
+
+  
   if(nsUXThemeData::CheckForCompositor()) {
     nsUXThemeData::dwmExtendFrameIntoClientAreaPtr(hWnd, &mGlassMargins);
     nsUXThemeData::dwmSetWindowAttributePtr(hWnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof policy);
@@ -2198,11 +2377,13 @@ NS_IMETHODIMP nsWindow::HideWindowChrome(PRBool aShouldHide)
   }
 
   DWORD_PTR style, exStyle;
+  mHideChrome = aShouldHide;
   if (aShouldHide) {
     DWORD_PTR tempStyle = ::GetWindowLongPtrW(hwnd, GWL_STYLE);
     DWORD_PTR tempExStyle = ::GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
 
-    style = tempStyle & ~(WS_CAPTION | WS_THICKFRAME);
+    style = tempStyle & ~(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU |
+                          WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
     exStyle = tempExStyle & ~(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE |
                               WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
 
@@ -2210,10 +2391,17 @@ NS_IMETHODIMP nsWindow::HideWindowChrome(PRBool aShouldHide)
     mOldExStyle = tempExStyle;
   }
   else {
-    if (!mOldStyle || !mOldExStyle) {
+    if (!mOldStyle)
       mOldStyle = ::GetWindowLongPtrW(hwnd, GWL_STYLE);
+    if (!mOldExStyle)
       mOldExStyle = ::GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-    }
+
+    if (mIsVisible)
+      mOldStyle |= WS_VISIBLE;
+    if (mSizeMode == nsSizeMode_Maximized)
+      mOldStyle |= WS_MAXIMIZE;
+    else if (mSizeMode == nsSizeMode_Minimized)
+      mOldStyle |= WS_MINIMIZE;
 
     style = mOldStyle;
     exStyle = mOldExStyle;
@@ -4186,6 +4374,16 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
   static PRBool getWheelInfo = PR_TRUE;
 
+  
+  LRESULT dwmHitResult;
+  if (mCustomNonClient &&
+      mCompositorFlag &&
+      nsUXThemeData::CheckForCompositor() &&
+      nsUXThemeData::dwmDwmDefWindowProcPtr(mWnd, msg, wParam, lParam, &dwmHitResult)) {
+    *aRetValue = dwmHitResult;
+    return PR_TRUE;
+  }
+
   switch (msg) {
 #ifndef WINCE
     
@@ -4270,6 +4468,9 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_XP_THEMECHANGED:
     {
+      
+      UpdateNonClientMargins();
+
       DispatchStandardEvent(NS_THEMECHANGED);
 
       
@@ -4308,6 +4509,62 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       } 
     }
     break;
+
+    case WM_NCCALCSIZE:
+    {
+      
+      
+      
+      
+      
+      if (mCustomNonClient && mCompositorFlag) {
+        if (!wParam) {
+          result = PR_TRUE;
+          *aRetValue = 0;
+          break;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        NCCALCSIZE_PARAMS *pncsp = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+        LRESULT res = CallWindowProcW(GetPrevWindowProc(), mWnd, msg, wParam, lParam);
+        pncsp->rgrc[0].top      -= mNonClientOffset.top;
+        pncsp->rgrc[0].left     -= mNonClientOffset.left;
+        pncsp->rgrc[0].right    += mNonClientOffset.right;
+        pncsp->rgrc[0].bottom   += mNonClientOffset.bottom;
+
+        result = PR_TRUE;
+        *aRetValue = res;
+      }
+      break;
+    }
+
+    case WM_NCHITTEST:
+    {
+      
+
+
+
+
+
+
+
+      if (!mCustomNonClient || !mCompositorFlag)
+        break;
+
+      *aRetValue =
+        ClientMarginHitTestPoint(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+      result = PR_TRUE;
+      break;
+    }
 
 #ifndef WINCE
     case WM_POWERBROADCAST:
@@ -4813,6 +5070,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #ifndef WINCE
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   case WM_DWMCOMPOSITIONCHANGED:
+    UpdateNonClientMargins();
     BroadcastMsg(mWnd, WM_DWMCOMPOSITIONCHANGED);
     DispatchStandardEvent(NS_THEMECHANGED);
     UpdateGlass();
@@ -5092,6 +5350,71 @@ void nsWindow::GlobalMsgWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 
 
 
+
+
+PRInt32
+nsWindow::ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my)
+{
+  
+  RECT winRect;
+  GetWindowRect(mWnd, &winRect);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  PRInt32 testResult = HTCLIENT;
+
+  PRBool top    = PR_FALSE;
+  PRBool bottom = PR_FALSE;
+  PRBool left   = PR_FALSE;
+  PRBool right  = PR_FALSE;
+
+  if (my >= winRect.top && my <=
+      (winRect.top + (mCaptionHeight - mNonClientOffset.top)))
+    top = PR_TRUE;
+  else if (my <= winRect.bottom && my >= (winRect.bottom - mResizeMargin))
+    bottom = PR_TRUE;
+
+  if (mx >= winRect.left && mx <= (winRect.left + mResizeMargin))
+    left = PR_TRUE;
+  else if (mx <= winRect.right && mx >= (winRect.right - mResizeMargin))
+    right = PR_TRUE;
+
+  if (top) {
+    testResult = HTTOP;
+    if (left)
+      testResult = HTTOPLEFT;
+    else if (right)
+      testResult = HTTOPRIGHT;
+  } else if (bottom) {
+    testResult = HTBOTTOM;
+    if (left)
+      testResult = HTBOTTOMLEFT;
+    else if (right)
+      testResult = HTBOTTOMRIGHT;
+  } else {
+    if (left)
+      testResult = HTLEFT;
+    if (right)
+      testResult = HTRIGHT;
+  }
+
+  if (testResult == HTCLIENT && 
+      my > (winRect.top + mResizeMargin) &&
+      my <= (winRect.top + mCaptionHeight) &&
+      my <= (winRect.top + (mCaptionHeight - mNonClientOffset.top)))
+    testResult = HTCAPTION;
+
+  return testResult;
+}
 
 
 #ifndef WINCE
@@ -7027,34 +7350,21 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode)
     return;
   }
 
-  LONG_PTR style = 0, exStyle = 0;
   switch(aMode) {
     case eTransparencyTransparent:
+    {
+      LONG_PTR exStyle = topWindow->WindowStyle();
       exStyle |= WS_EX_LAYERED;
+      ::SetWindowLongPtrW(hWnd, GWL_EXSTYLE, exStyle);
+    }
     case eTransparencyOpaque:
     case eTransparencyGlass:
       topWindow->mTransparencyMode = aMode;
       break;
   }
 
-  style |= topWindow->WindowStyle();
-  exStyle |= topWindow->WindowExStyle();
-
-  if (aMode == eTransparencyTransparent) {
-    style &= ~(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
-    exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-  }
-
-  if (topWindow->mIsVisible)
-    style |= WS_VISIBLE;
-  if (topWindow->mSizeMode == nsSizeMode_Maximized)
-    style |= WS_MAXIMIZE;
-  else if (topWindow->mSizeMode == nsSizeMode_Minimized)
-    style |= WS_MINIMIZE;
-
-  VERIFY_WINDOW_STYLE(style);
-  ::SetWindowLongPtrW(hWnd, GWL_STYLE, style);
-  ::SetWindowLongPtrW(hWnd, GWL_EXSTYLE, exStyle);
+  
+  topWindow->HideWindowChrome(aMode == eTransparencyTransparent);
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   if (mTransparencyMode == eTransparencyGlass)
