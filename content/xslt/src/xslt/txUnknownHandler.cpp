@@ -43,7 +43,8 @@
 #include "txAtoms.h"
 
 txUnknownHandler::txUnknownHandler(txExecutionState* aEs)
-    : mEs(aEs)
+    : mEs(aEs),
+      mFlushed(PR_FALSE)
 {
     MOZ_COUNT_CTOR_INHERITED(txUnknownHandler, txBufferingHandler);
 }
@@ -54,91 +55,144 @@ txUnknownHandler::~txUnknownHandler()
 }
 
 nsresult
+txUnknownHandler::attribute(nsIAtom* aPrefix, nsIAtom* aLocalName,
+                            nsIAtom* aLowercaseLocalName, PRInt32 aNsID,
+                            const nsString& aValue)
+{
+    return mFlushed ?
+           mEs->mResultHandler->attribute(aPrefix, aLocalName,
+                                          aLowercaseLocalName, aNsID, aValue) :
+           txBufferingHandler::attribute(aPrefix, aLocalName,
+                                         aLowercaseLocalName, aNsID, aValue);
+}
+
+nsresult
+txUnknownHandler::attribute(nsIAtom* aPrefix, const nsSubstring& aLocalName,
+                            const PRInt32 aNsID, const nsString& aValue)
+{
+    return mFlushed ?
+           mEs->mResultHandler->attribute(aPrefix, aLocalName, aNsID, aValue) :
+           txBufferingHandler::attribute(aPrefix, aLocalName, aNsID, aValue);
+}
+
+nsresult
+txUnknownHandler::characters(const nsSubstring& aData, PRBool aDOE)
+{
+    return mFlushed ?
+           mEs->mResultHandler->characters(aData, aDOE) :
+           txBufferingHandler::characters(aData, aDOE);
+}
+
+nsresult
+txUnknownHandler::comment(const nsString& aData)
+{
+    return mFlushed ?
+           mEs->mResultHandler->comment(aData) :
+           txBufferingHandler::comment(aData);
+}
+
+nsresult
 txUnknownHandler::endDocument(nsresult aResult)
 {
-    if (NS_FAILED(aResult)) {
-        return NS_OK;
+    if (!mFlushed) {
+        if (NS_FAILED(aResult)) {
+            return NS_OK;
+        }
+
+        
+        
+        
+
+        
+        
+        NS_ASSERTION(mEs->mResultHandler == this,
+                     "We're leaking mEs->mResultHandler.");
+
+        nsresult rv = createHandlerAndFlush(PR_FALSE, EmptyString(),
+                                            kNameSpaceID_None);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    
-    
-    
+    return mEs->mResultHandler->endDocument(aResult);
+}
 
-    
-    
-    
-    NS_ASSERTION(mEs->mResultHandler == this,
-                 "We're leaking mEs->mResultHandler and are going to crash.");
+nsresult
+txUnknownHandler::endElement()
+{
+    return mFlushed ?
+           mEs->mResultHandler->endElement() :
+           txBufferingHandler::endElement();
+}
 
-    nsresult rv = createHandlerAndFlush(PR_FALSE, EmptyString(),
-                                        kNameSpaceID_None);
-    NS_ENSURE_SUCCESS(rv, rv);
+nsresult
+txUnknownHandler::processingInstruction(const nsString& aTarget,
+                                        const nsString& aData)
+{
+    return mFlushed ?
+           mEs->mResultHandler->processingInstruction(aTarget, aData) :
+           txBufferingHandler::processingInstruction(aTarget, aData);
+}
 
-    rv = mEs->mResultHandler->endDocument(aResult);
-
-    delete this;
-
-    return rv;
+nsresult
+txUnknownHandler::startDocument()
+{
+    return mFlushed ?
+           mEs->mResultHandler->startDocument() :
+           txBufferingHandler::startDocument();
 }
 
 nsresult
 txUnknownHandler::startElement(nsIAtom* aPrefix, nsIAtom* aLocalName,
                                nsIAtom* aLowercaseLocalName, PRInt32 aNsID)
 {
-    
-    
-    
-    NS_ASSERTION(mEs->mResultHandler == this,
-                 "We're leaking mEs->mResultHandler.");
-
-    nsCOMPtr<nsIAtom> owner;
-    if (!aLowercaseLocalName) {
-        owner = TX_ToLowerCaseAtom(aLocalName);
-        NS_ENSURE_TRUE(owner, NS_ERROR_OUT_OF_MEMORY);
+    if (!mFlushed) {
         
-        aLowercaseLocalName = owner;
+        
+        NS_ASSERTION(mEs->mResultHandler == this,
+                     "We're leaking mEs->mResultHandler.");
+
+        nsCOMPtr<nsIAtom> owner;
+        if (!aLowercaseLocalName) {
+            owner = TX_ToLowerCaseAtom(aLocalName);
+            NS_ENSURE_TRUE(owner, NS_ERROR_OUT_OF_MEMORY);
+
+            aLowercaseLocalName = owner;
+        }
+
+        PRBool htmlRoot = aNsID == kNameSpaceID_None && !aPrefix &&
+                          aLowercaseLocalName == txHTMLAtoms::html;
+
+        
+        
+        
+        nsresult rv = createHandlerAndFlush(htmlRoot,
+                                            nsDependentAtomString(aLocalName),
+                                            aNsID);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    PRBool htmlRoot = aNsID == kNameSpaceID_None && !aPrefix &&
-                      aLowercaseLocalName == txHTMLAtoms::html;
-
-    
-    
-    
-    nsresult rv = createHandlerAndFlush(htmlRoot,
-                                        nsDependentAtomString(aLocalName),
-                                        aNsID);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = mEs->mResultHandler->startElement(aPrefix, aLocalName,
-                                           aLowercaseLocalName, aNsID);
-
-    delete this;
-
-    return rv;
+    return mEs->mResultHandler->startElement(aPrefix, aLocalName,
+                                             aLowercaseLocalName, aNsID);
 }
 
 nsresult
 txUnknownHandler::startElement(nsIAtom* aPrefix, const nsSubstring& aLocalName,
                                const PRInt32 aNsID)
 {
-    
-    
-    
-    NS_ASSERTION(mEs->mResultHandler == this,
-                 "We're leaking mEs->mResultHandler.");
+    if (!mFlushed) {
+        
+        
+        NS_ASSERTION(mEs->mResultHandler == this,
+                     "We're leaking mEs->mResultHandler.");
 
-    PRBool htmlRoot = aNsID == kNameSpaceID_None && !aPrefix &&
-                      aLocalName.Equals(NS_LITERAL_STRING("html"),
-                                        txCaseInsensitiveStringComparator());
-    nsresult rv = createHandlerAndFlush(htmlRoot, aLocalName, aNsID);
-    NS_ENSURE_SUCCESS(rv, rv);
+        PRBool htmlRoot = aNsID == kNameSpaceID_None && !aPrefix &&
+                          aLocalName.Equals(NS_LITERAL_STRING("html"),
+                                            txCaseInsensitiveStringComparator());
+        nsresult rv = createHandlerAndFlush(htmlRoot, aLocalName, aNsID);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
 
-    rv = mEs->mResultHandler->startElement(aPrefix, aLocalName, aNsID);
-
-    delete this;
-
-    return rv;
+    return mEs->mResultHandler->startElement(aPrefix, aLocalName, aNsID);
 }
 
 nsresult txUnknownHandler::createHandlerAndFlush(PRBool aHTMLRoot,
@@ -159,11 +213,18 @@ nsresult txUnknownHandler::createHandlerAndFlush(PRBool aHTMLRoot,
                                                                 getter_Transfers(handler));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mBuffer->flushToHandler(handler);
-    NS_ENSURE_SUCCESS(rv, rv);
-
     mEs->mOutputHandler = handler;
     mEs->mResultHandler = handler.forget();
+    
+    
+    
+    mEs->mObsoleteHandler = this;
 
-    return NS_OK;
+    mFlushed = PR_TRUE;
+
+    
+    
+    
+    nsAutoPtr<txResultBuffer> buffer(mBuffer);
+    return buffer->flushToHandler(mEs->mResultHandler);
 }
