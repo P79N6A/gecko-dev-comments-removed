@@ -387,8 +387,16 @@ private:
 
 
 
+
+
+
+
+
+
+
   nsresult GetBookmarkIdsForURITArray(nsIURI* aURI,
-                                      nsTArray<PRInt64>& aResult);
+                                      nsTArray<PRInt64>& aResult,
+                                      bool aSkipTags);
 
   PRInt64 RecursiveFindRedirectedBookmark(PRInt64 aPlaceId);
 

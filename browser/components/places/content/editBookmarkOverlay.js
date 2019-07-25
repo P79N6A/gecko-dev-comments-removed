@@ -803,6 +803,12 @@ var gEditItemOverlay = {
     if (tagsSelectorRow.collapsed)
       return;
 
+    
+    let firstIndex = tagsSelector.getIndexOfFirstVisibleRow();
+    let selectedIndex = tagsSelector.selectedIndex;
+    let selectedTag = selectedIndex >= 0 ? tagsSelector.selectedItem.label
+                                         : null;
+
     while (tagsSelector.hasChildNodes())
       tagsSelector.removeChild(tagsSelector.lastChild);
 
@@ -815,8 +821,22 @@ var gEditItemOverlay = {
       elt.setAttribute("label", tag);
       if (tagsInField.indexOf(tag) != -1)
         elt.setAttribute("checked", "true");
-
       tagsSelector.appendChild(elt);
+      if (selectedTag === tag)
+        selectedIndex = tagsSelector.getIndexOfItem(elt);
+    }
+
+    
+    
+    
+    firstIndex =
+      Math.min(firstIndex,
+               tagsSelector.itemCount - tagsSelector.getNumberOfVisibleRows());
+    tagsSelector.scrollToIndex(firstIndex);
+    if (selectedIndex >= 0 && tagsSelector.itemCount > 0) {
+      selectedIndex = Math.min(selectedIndex, tagsSelector.itemCount - 1);
+      tagsSelector.selectedIndex = selectedIndex;
+      tagsSelector.ensureIndexIsVisible(selectedIndex);
     }
   },
 
