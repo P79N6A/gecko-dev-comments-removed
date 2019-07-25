@@ -259,7 +259,7 @@ LoopState::flushLoop(StubCompiler &stubcc)
 
                 if (call.entry) {
                     masm.fallibleVMCall(true, JS_FUNC_TO_DATA_PTR(void *, stubs::InvariantFailure),
-                                        pc, NULL, 0);
+                                        pc, NULL, NULL, 0);
                 } else {
                     
                     masm.infallibleVMCall(JS_FUNC_TO_DATA_PTR(void *, stubs::InvariantFailure), -1);

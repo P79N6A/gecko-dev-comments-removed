@@ -563,6 +563,7 @@ struct PCLengthEntry {
 struct NativeCallStub {
     
     jsbytecode *pc;
+    CallSite *inlined;
 
     
     JSC::ExecutablePool *pool;
@@ -664,6 +665,7 @@ struct JITScript {
     }
 
     void nukeScriptDependentICs();
+    void purgeGetterPICs();
 
     
     size_t scriptDataSize(JSUsableSizeFun usf);

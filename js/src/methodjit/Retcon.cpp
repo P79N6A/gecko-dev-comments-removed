@@ -134,12 +134,9 @@ Recompiler::patchCall(JITScript *jit, StackFrame *fp, void **location)
 
 void
 Recompiler::patchNative(JSCompartment *compartment, JITScript *jit, StackFrame *fp,
-                        jsbytecode *pc, RejoinState rejoin)
+                        jsbytecode *pc, CallSite *inlined, RejoinState rejoin)
 {
     
-
-
-
 
 
 
@@ -160,7 +157,7 @@ Recompiler::patchNative(JSCompartment *compartment, JITScript *jit, StackFrame *
 
     for (unsigned i = 0; i < jit->nativeCallStubs.length(); i++) {
         NativeCallStub &stub = jit->nativeCallStubs[i];
-        if (stub.pc != pc)
+        if (stub.pc != pc || stub.inlined != inlined)
             continue;
 
         found = true;
@@ -194,6 +191,19 @@ Recompiler::patchNative(JSCompartment *compartment, JITScript *jit, StackFrame *
     }
 
     JS_ASSERT(found);
+
+    if (inlined) {
+        
+
+
+
+
+
+        jit->purgeGetterPICs();
+        ic::CallICInfo *callICs_ = jit->callICs();
+        for (uint32 i = 0; i < jit->nCallICs; i++)
+            callICs_[i].purge();
+    }
 }
 
 void
@@ -205,6 +215,7 @@ Recompiler::patchFrame(JSCompartment *compartment, VMFrame *f, JSScript *script)
 
 
 
+    JS_ASSERT(!f->regs.inlined());
     StackFrame *fp = f->fp();
     void **addr = f->returnAddressLocation();
     RejoinState rejoin = (RejoinState) f->stubRejoin;
@@ -213,7 +224,7 @@ Recompiler::patchFrame(JSCompartment *compartment, VMFrame *f, JSScript *script)
         rejoin == REJOIN_NATIVE_GETTER) {
         
         if (fp->script() == script) {
-            patchNative(compartment, fp->jit(), fp, f->regs.pc, rejoin);
+            patchNative(compartment, fp->jit(), fp, f->regs.pc, NULL, rejoin);
             f->stubRejoin = REJOIN_NATIVE_PATCHED;
         }
     } else if (rejoin == REJOIN_NATIVE_PATCHED) {
@@ -302,14 +313,20 @@ Recompiler::expandInlineFrames(JSCompartment *compartment,
 
     
     if (f->stubRejoin && f->fp() == fp) {
-        
-        JS_ASSERT(f->stubRejoin != REJOIN_NATIVE &&
-                  f->stubRejoin != REJOIN_NATIVE_LOWERED &&
-                  f->stubRejoin != REJOIN_NATIVE_GETTER &&
-                  f->stubRejoin != REJOIN_NATIVE_PATCHED);
-        innerfp->setRejoin(StubRejoin((RejoinState) f->stubRejoin));
-        *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
-        f->stubRejoin = 0;
+        RejoinState rejoin = (RejoinState) f->stubRejoin;
+        JS_ASSERT(rejoin != REJOIN_NATIVE_PATCHED);
+        if (rejoin == REJOIN_NATIVE ||
+            rejoin == REJOIN_NATIVE_LOWERED ||
+            rejoin == REJOIN_NATIVE_GETTER) {
+            
+            patchNative(compartment, fp->jit(), innerfp, innerpc, inlined, rejoin);
+            f->stubRejoin = REJOIN_NATIVE_PATCHED;
+        } else {
+            
+            innerfp->setRejoin(StubRejoin(rejoin));
+            *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+            f->stubRejoin = 0;
+        }
     }
     if (CallsiteMatches(codeStart, *inlined, *frameAddr)) {
         
@@ -508,12 +525,7 @@ Recompiler::cleanup(JITScript *jit)
         JS_STATIC_ASSERT(offsetof(ic::CallICInfo, links) == 0);
         ic::CallICInfo *ic = (ic::CallICInfo *) jit->callers.next;
 
-        uint8 *start = (uint8 *)ic->funGuard.executableAddress();
-        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
-
-        repatch.repatch(ic->funGuard, NULL);
-        repatch.relink(ic->funJump, ic->slowPathStart);
-        ic->purgeGuardedObject();
+        ic->purge();
     }
 }
 
