@@ -6055,10 +6055,15 @@ nsHTMLEditRules::GetListActionNodes(nsCOMArray<nsIDOMNode> &outArrayOfNodes,
     
     if (outArrayOfNodes.Count()) return NS_OK;
   }
-  
-  
-  res = GetNodesFromSelection(selection, kMakeList, outArrayOfNodes, aDontTouchContent);
-  NS_ENSURE_SUCCESS(res, res);                                 
+
+  {
+    
+    nsAutoTxnsConserveSelection dontSpazMySelection(mHTMLEditor);
+
+    
+    res = GetNodesFromSelection(selection, kMakeList, outArrayOfNodes, aDontTouchContent);
+    NS_ENSURE_SUCCESS(res, res);
+  }
                
   
   PRInt32 listCount = outArrayOfNodes.Count();
