@@ -791,6 +791,20 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
         return branch32(cond, extent, key.reg());
     }
 
+    Jump guardElementNotHole(RegisterID elements, const Int32Key &key) {
+        Jump jmp;
+
+        if (key.isConstant()) {
+            Address slot(elements, key.index() * sizeof(Value));
+            jmp = guardNotHole(slot);
+        } else {
+            BaseIndex slot(elements, key.reg(), JSVAL_SCALE);
+            jmp = guardNotHole(slot);
+        }
+
+        return jmp;
+    }
+
     
     FastArrayLoadFails fastArrayLoad(RegisterID objReg, const Int32Key &key,
                                      RegisterID typeReg, RegisterID dataReg) {
