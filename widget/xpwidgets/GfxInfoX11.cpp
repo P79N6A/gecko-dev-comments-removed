@@ -94,6 +94,7 @@ GfxInfo::GetData()
     glxtest_pipe = 0;
 
     
+    
     if (bytesread < 0)
         bytesread = 0;
 
@@ -111,10 +112,15 @@ GfxInfo::GetData()
         wait_for_glxtest_process = false;
         if (waitpid(glxtest_pid, &glxtest_status, 0) == -1) {
             waitpid_errno = errno;
-            if (waitpid_errno == EINTR)
+            if (waitpid_errno == EINTR) {
                 wait_for_glxtest_process = true;
-            else
-                waiting_for_glxtest_process_failed = true;
+            } else {
+                
+                
+                
+                
+                waiting_for_glxtest_process_failed = (waitpid_errno != ECHILD);
+            }
         }
     }
 

@@ -234,21 +234,15 @@ static void glxtest()
   
   
   
-  
-  XSync(dpy, False);
-  
-  
-  write(write_end_of_the_pipe, buf, length);
-
-  
-  
-  
   glXMakeCurrent(dpy, None, NULL); 
   glXDestroyContext(dpy, context);
   glXDestroyPixmap(dpy, glxpixmap);
   XFreePixmap(dpy, pixmap);
   XCloseDisplay(dpy);
   dlclose(libgl);
+
+  
+  write(write_end_of_the_pipe, buf, length);
 }
 
 
