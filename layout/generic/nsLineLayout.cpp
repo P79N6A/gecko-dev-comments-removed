@@ -957,7 +957,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
   
   
   
-  pfd->mCombinedArea = metrics.mOverflowArea;
+  pfd->mOverflowAreas = metrics.mOverflowAreas;
 
   pfd->mBounds.width = metrics.width;
   pfd->mBounds.height = metrics.height;
@@ -1364,7 +1364,7 @@ nsLineLayout::AddBulletFrame(nsIFrame* aFrame,
 
     
     pfd->mBounds = aFrame->GetRect();
-    pfd->mCombinedArea = aMetrics.mOverflowArea;
+    pfd->mOverflowAreas = aMetrics.mOverflowAreas;
   }
   return rv;
 }
@@ -2511,15 +2511,15 @@ nsLineLayout::HorizontalAlignFrames(nsRect& aLineBounds,
 }
 
 void
-nsLineLayout::RelativePositionFrames(nsRect& aCombinedArea)
+nsLineLayout::RelativePositionFrames(nsOverflowAreas& aOverflowAreas)
 {
-  RelativePositionFrames(mRootSpan, aCombinedArea);
+  RelativePositionFrames(mRootSpan, aOverflowAreas);
 }
 
 void
-nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
+nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflowAreas)
 {
-  nsRect combinedAreaResult;
+  nsOverflowAreas overflowAreas;
   if (nsnull != psd->mFrame) {
     
     
@@ -2533,6 +2533,9 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
     
     nsRect adjustedBounds(nsPoint(0, 0), psd->mFrame->mFrame->GetSize());
 
+    overflowAreas.ScrollableOverflow().UnionRect(
+      psd->mFrame->mOverflowAreas.ScrollableOverflow(), adjustedBounds);
+
     
     if (mPresContext->CompatibilityMode() != eCompatibility_NavQuirks) {
       nsRect shadowRect = nsLayoutUtils::GetTextShadowRectsUnion(adjustedBounds,
@@ -2540,19 +2543,24 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
       adjustedBounds.UnionRect(adjustedBounds, shadowRect);
     }
 
-    combinedAreaResult.UnionRect(psd->mFrame->mCombinedArea, adjustedBounds);
+    
+    overflowAreas.VisualOverflow().UnionRect(
+      psd->mFrame->mOverflowAreas.VisualOverflow(), adjustedBounds);
   }
   else {
     
     
     
     
-    combinedAreaResult.x = psd->mLeftEdge;
+    overflowAreas.VisualOverflow().x = psd->mLeftEdge;
     
     
-    combinedAreaResult.width = psd->mX - combinedAreaResult.x;
-    combinedAreaResult.y = mTopEdge;
-    combinedAreaResult.height = mFinalLineHeight;
+    overflowAreas.VisualOverflow().width =
+      psd->mX - overflowAreas.VisualOverflow().x;
+    overflowAreas.VisualOverflow().y = mTopEdge;
+    overflowAreas.VisualOverflow().height = mFinalLineHeight;
+
+    overflowAreas.ScrollableOverflow() = overflowAreas.VisualOverflow();
   }
 
   for (PerFrameData* pfd = psd->mFirstFrame; pfd; pfd = pfd->mNext) {
@@ -2573,27 +2581,26 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
     
     if (frame->HasView())
       nsContainerFrame::SyncFrameViewAfterReflow(mPresContext, frame,
-                                                 frame->GetView(),
-                                                 &pfd->mCombinedArea, 
-                                                 NS_FRAME_NO_SIZE_VIEW);
+        frame->GetView(), pfd->mOverflowAreas.VisualOverflow(),
+        NS_FRAME_NO_SIZE_VIEW);
 
     
     
     
     
-    nsRect r;
+    nsOverflowAreas r;
     if (pfd->mSpan) {
       
       
       RelativePositionFrames(pfd->mSpan, r);
     } else {
-      r = pfd->mCombinedArea;
+      r = pfd->mOverflowAreas;
       if (pfd->GetFlag(PFD_ISTEXTFRAME)) {
         if (pfd->GetFlag(PFD_RECOMPUTEOVERFLOW)) {
           nsTextFrame* f = static_cast<nsTextFrame*>(frame);
           r = f->RecomputeOverflowRect();
         }
-        frame->FinishAndStoreOverflow(&r, frame->GetSize());
+        frame->FinishAndStoreOverflow(r, frame->GetSize());
       }
 
       
@@ -2611,10 +2618,11 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
     
     if (frame->HasView())
       nsContainerFrame::SyncFrameViewAfterReflow(mPresContext, frame,
-                                                 frame->GetView(), &r,
+                                                 frame->GetView(),
+                                                 r.VisualOverflow(),
                                                  NS_FRAME_NO_MOVE_VIEW);
 
-    combinedAreaResult.UnionRect(combinedAreaResult, r + origin);
+    overflowAreas.UnionWith(r + origin);
   }
 
   
@@ -2622,7 +2630,7 @@ nsLineLayout::RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea)
   if (psd->mFrame) {
     PerFrameData* spanPFD = psd->mFrame;
     nsIFrame* frame = spanPFD->mFrame;
-    frame->FinishAndStoreOverflow(&combinedAreaResult, frame->GetSize());
+    frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
   }
-  aCombinedArea = combinedAreaResult;
+  aOverflowAreas = overflowAreas;
 }

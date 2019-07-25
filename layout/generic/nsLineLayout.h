@@ -139,7 +139,7 @@ public:
 
 
 
-  void RelativePositionFrames(nsRect& aCombinedArea);
+  void RelativePositionFrames(nsOverflowAreas& aOverflowAreas);
 
   
 
@@ -425,7 +425,7 @@ protected:
     
     nscoord mAscent;
     nsRect mBounds;
-    nsRect mCombinedArea;
+    nsOverflowAreas mOverflowAreas;
 
     
     nsMargin mMargin;
@@ -595,7 +595,7 @@ protected:
                             nscoord aDistanceFromTop,
                             nscoord aLineHeight);
 
-  void RelativePositionFrames(PerSpanData* psd, nsRect& aCombinedArea);
+  void RelativePositionFrames(PerSpanData* psd, nsOverflowAreas& aOverflowAreas);
 
   PRBool TrimTrailingWhiteSpaceIn(PerSpanData* psd, nscoord* aDeltaWidth);
 

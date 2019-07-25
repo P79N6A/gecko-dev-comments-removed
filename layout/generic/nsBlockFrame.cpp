@@ -4188,9 +4188,9 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
 
   
   
-  nsRect combinedArea;
-  aLineLayout.RelativePositionFrames(combinedArea);  
-  aLine->SetCombinedArea(combinedArea);
+  nsOverflowAreas overflowAreas;
+  aLineLayout.RelativePositionFrames(overflowAreas);
+  aLine->SetOverflowAreas(overflowAreas);
   if (addedBullet) {
     aLineLayout.RemoveBulletFrame(mBullet);
   }
