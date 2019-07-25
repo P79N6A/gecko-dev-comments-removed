@@ -216,7 +216,8 @@ public:
 
   void EndConstruction();
 
-  void EndTransaction();
+  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
+                              void* aCallbackData);
 
   void SetRoot(Layer* aLayer);
   
@@ -293,7 +294,8 @@ private:
   
 
 
-  void Render();
+  void Render(DrawThebesLayerCallback aCallback,
+              void* aCallbackData);
   
 
 
@@ -316,6 +318,8 @@ private:
 class LayerOGL
 {
 public:
+  typedef LayerManager::DrawThebesLayerCallback DrawThebesLayerCallback;
+
   LayerOGL(LayerManagerOGL *aManager);
 
   enum LayerType {
@@ -336,7 +340,8 @@ public:
 
   virtual Layer* GetLayer() = 0;
 
-  virtual void RenderLayer(int aPreviousFrameBuffer) = 0;
+  virtual void RenderLayer(int aPreviousFrameBuffer, DrawThebesLayerCallback aCallback,
+                           void* aCallbackData) = 0;
 
   typedef mozilla::gl::GLContext GLContext;
 

@@ -59,15 +59,13 @@ public:
   
   void InvalidateRegion(const nsIntRegion& aRegion);
 
-  gfxContext *BeginDrawing(nsIntRegion* aRegionToDraw);
-
-  void EndDrawing();
-
   
   LayerType GetType();
   Layer* GetLayer();
   virtual PRBool IsEmpty();
-  virtual void RenderLayer(int aPreviousFrameBuffer);
+  virtual void RenderLayer(int aPreviousFrameBuffer,
+                           DrawThebesLayerCallback aCallback,
+                           void* aCallbackData);
 
   
   const nsIntRect &GetVisibleRect();
@@ -83,16 +81,6 @@ private:
 
 
   nsIntRect mInvalidatedRect;
-  
-
-
-
-  nsRefPtr<gfxASurface> mDestinationSurface;
-
-  
-
-
-  nsRefPtr<gfxContext> mContext;
 
   
 
