@@ -4267,8 +4267,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
 
   
   
-  
-  if (aState.mY > 0 &&
+  if (mLines.front() != aLine &&
       newY > aState.mBottomEdge &&
       aState.mBottomEdge != NS_UNCONSTRAINEDSIZE) {
     
