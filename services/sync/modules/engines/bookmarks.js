@@ -531,10 +531,7 @@ BookmarksEngine.prototype = {
     
 
 
-    
-    
-    
-    
+
 
 
 
@@ -542,60 +539,37 @@ BookmarksEngine.prototype = {
 
     let self = yield;
     let user = mountData.userid;
-    let prefix = DAV.defaultPrefix;
-    let serverURL = Utils.prefs.getCharPref("serverURL");
-    let snap = new SnapshotStore();
-
-    this._log.debug("Syncing shared folder from user " + user);
-
-    try {
-      DAV.defaultPrefix = "user/" + user + "/";
-
-      this._getSymKey.async(this, self.cb);
-      yield;
-
-      this._log.trace("Getting status file for " + user);
-      DAV.GET(this.statusFile, self.cb);
-      let resp = yield;
-      Utils.ensureStatus(resp.status, "Could not download status file.");
-      let status = this._json.decode(resp.responseText);
-
-      this._log.trace("Downloading server snapshot for " + user);
-      DAV.GET(this.snapshotFile, self.cb);
-      resp = yield;
-      Utils.ensureStatus(resp.status, "Could not download snapshot.");
-      Crypto.PBEdecrypt.async(Crypto, self.cb, resp.responseText,
-    			        this._engineId, status.snapEncryption);
-      let data = yield;
-      snap.data = this._json.decode(data);
-
-      this._log.trace("Downloading server deltas for " + user);
-      DAV.GET(this.deltasFile, self.cb);
-      resp = yield;
-      Utils.ensureStatus(resp.status, "Could not download deltas.");
-      Crypto.PBEdecrypt.async(Crypto, self.cb, resp.responseText,
-    			        this._engineId, status.deltasEncryption);
-      data = yield;
-      deltas = this._json.decode(data);
-    }
-    catch (e) { throw e; }
-    finally { DAV.defaultPrefix = prefix; }
+    let myUserName = ID.get('WeaveID').username;
+    
+    
+    let serverPath = this._annoSvc.getItemAnnotation(mountData.node,
+                                                     SERVER_PATH_ANNO);
+    
+    
+    let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
+    keyringFile.get(self.cb);
+    let keyring = yield;
+    let symKey = keyring[ myUserName ];
 
     
-    for (var i = 0; i < deltas.length; i++) {
-      snap.applyCommands.async(snap, self.cb, deltas[i]);
-      yield;
-    }
+    let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
+    bmkFile.get(self.cb);
+    let cyphertext = yield;
+    Crypto.PBEdecrypt.async( Crypto, self.cb, cyphertext, {password:symKey} );
+    let json = yield;
+    
 
     
-    for (let guid in snap.data) {
-      if (snap.data[guid].type != "bookmark")
-        delete snap.data[guid];
+    for (let guid in json) {
+      if (json[guid].type != "bookmark")
+        delete json[guid];
       else
-        snap.data[guid].parentGUID = mountData.rootGUID;
+        json[guid].parentGUID = mountData.rootGUID;
     }
 
-    this._log.trace("Got bookmarks fror " + user + ", comparing with local copy");
+    
+
+    this._log.trace("Got bookmarks from " + user + ", comparing with local copy");
     this._core.detectUpdates(self.cb, mountData.snapshot, snap.data);
     let diff = yield;
 
@@ -1079,7 +1053,7 @@ BookmarksStore.prototype = {
       throw "Trying to wrap a non-folder mounted share";
 
     let GUID = this._bms.getItemGUID(node.itemId);
-    let ret = {rootGUID: GUID, userid: id, snapshot: {}};
+    let ret = {rootGUID: GUID, userid: id, snapshot: {}, folderNode: node};
 
     node.QueryInterface(Ci.nsINavHistoryQueryResultNode);
     node.containerOpen = true;
