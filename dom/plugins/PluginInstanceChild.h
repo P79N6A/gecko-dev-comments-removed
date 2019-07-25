@@ -210,7 +210,8 @@ public:
 
     void AsyncCall(PluginThreadCallback aFunc, void* aUserData);
 
-    int GetQuirks() { return mQuirks; }
+private:
+    friend class PluginModuleChild;
 
     
     enum PluginQuirks {
@@ -226,12 +227,7 @@ public:
         
         
         QUIRK_FLASH_THROTTLE_WMUSER_EVENTS              = 1 << 2,
-        
-        QUIRK_FLASH_HOOK_SETLONGPTR                     = 1 << 3,
     };
-
-private:
-    friend class PluginModuleChild;
 
     void InitQuirksModes(const nsCString& aMimeType);
 
@@ -251,10 +247,6 @@ private:
     void InitPopupMenuHook();
     void SetupFlashMsgThrottle();
     void UnhookWinlessFlashThrottle();
-    void HookSetWindowLongPtr();
-    static inline PRBool SetWindowLongHookCheck(HWND hWnd,
-                                                int nIndex,
-                                                LONG_PTR newLong);
     void FlashThrottleMessage(HWND, UINT, WPARAM, LPARAM, bool);
     static LRESULT CALLBACK DummyWindowProc(HWND hWnd,
                                             UINT message,
@@ -277,22 +269,6 @@ private:
                                                       UINT message,
                                                       WPARAM wParam,
                                                       LPARAM lParam);
-#ifdef _WIN64
-    static LONG_PTR WINAPI SetWindowLongPtrAHook(HWND hWnd,
-                                                 int nIndex,
-                                                 LONG_PTR newLong);
-    static LONG_PTR WINAPI SetWindowLongPtrWHook(HWND hWnd,
-                                                 int nIndex,
-                                                 LONG_PTR newLong);
-                      
-#else
-    static LONG WINAPI SetWindowLongAHook(HWND hWnd,
-                                          int nIndex,
-                                          LONG newLong);
-    static LONG WINAPI SetWindowLongWHook(HWND hWnd,
-                                          int nIndex,
-                                          LONG newLong);
-#endif
 
     class FlashThrottleAsyncMsg : public ChildAsyncCall
     {
@@ -416,11 +392,12 @@ private:
     
     
     
-    PRBool ShowPluginFrame(void);
+    bool ShowPluginFrame(void);
 
     
     void AsyncShowPluginFrame(void);
 
+    
     
     
 
@@ -442,18 +419,18 @@ private:
 
     
     
-    void UpdateWindowAttributes(PRBool aForceSetWindow = PR_FALSE);
+    void UpdateWindowAttributes(bool aForceSetWindow = false);
 
     
     
-    PRBool CreateOptSurface(void);
+    bool CreateOptSurface(void);
 
     
     
-    PRBool MaybeCreatePlatformHelperSurface(void);
+    bool MaybeCreatePlatformHelperSurface(void);
 
     
-    PRBool EnsureCurrentBuffer(void);
+    bool EnsureCurrentBuffer(void);
 
     
     
@@ -461,31 +438,36 @@ private:
 
     
     
-    PRPackedBool          mLayersRendering;
+    bool mLayersRendering;
+
     
     nsRefPtr<gfxASurface> mCurrentSurface;
+
     
     
     nsRefPtr<gfxASurface> mBackSurface;
+
     
-    nsIntRect             mAccumulatedInvalidRect;
-    
-    
-    
-    PRPackedBool          mIsTransparent;
-    
-    gfxSurfaceType        mSurfaceType;
+    nsIntRect mAccumulatedInvalidRect;
 
     
     
-    PRPackedBool          mPendingForcePaint;
+    
+    bool mIsTransparent;
 
     
-    CancelableTask       *mCurrentInvalidateTask;
+    gfxSurfaceType mSurfaceType;
 
     
     
-    PRPackedBool          mPendingPluginCall;
+    bool mPendingForcePaint;
+
+    
+    CancelableTask *mCurrentInvalidateTask;
+
+    
+    
+    bool mPendingPluginCall;
 
     
     
@@ -496,17 +478,17 @@ private:
     
     
     
-    PRPackedBool          mDoAlphaExtraction;
+    bool mDoAlphaExtraction;
 
     
     
-    nsIntRect             mSurfaceDifferenceRect;
+    nsIntRect mSurfaceDifferenceRect;
 
 #ifdef MOZ_X11
     
-    PRPackedBool          mFlash10Quirks;
+    bool                  mFlash10Quirks;
 #endif
-#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
+#if (MOZ_PLATFORM_MAEMO == 5)
     
     
     PRPackedBool          mMaemoImageRendering;
