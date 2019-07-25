@@ -2868,10 +2868,14 @@ var ViewableAreaObserver = {
     Browser.styles["viewable-width"].width = newWidth + "px";
     Browser.styles["viewable-width"].maxWidth = newWidth + "px";
 
+    let startup = !oldHeight && !oldWidth;
     for (let i = Browser.tabs.length - 1; i >= 0; i--) {
       let tab = Browser.tabs[i];
       tab.updateViewportSize();
-      tab.updateDefaultZoomLevel();
+      
+      
+      if (!startup)
+        tab.updateDefaultZoomLevel();
 
       
       
