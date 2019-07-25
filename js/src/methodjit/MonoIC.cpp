@@ -1121,8 +1121,7 @@ ic::SplatApplyArgs(VMFrame &f)
                     THROWV(false);
 
                 
-                JS_ASSERT(length <= JS_ARGS_LENGTH_MAX);
-                n = length;
+                n = Min(length, JS_ARGS_LENGTH_MAX);
 
                 if (!BumpStack(f, n))
                     THROWV(false);
