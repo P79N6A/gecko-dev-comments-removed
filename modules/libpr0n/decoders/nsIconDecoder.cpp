@@ -99,6 +99,12 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 
         
         PostSize(mWidth, mHeight);
+        if (HasError()) {
+          
+          
+          mState = iconStateFinished;
+          return;
+        }
 
         
         if (IsSizeDecode()) {

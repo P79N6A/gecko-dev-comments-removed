@@ -121,6 +121,7 @@ public:
   bool HasDataError() { return mDataError; };
   bool HasDecoderError() { return NS_FAILED(mFailCode); };
   nsresult GetDecoderError() { return mFailCode; };
+  void PostResizeError() { PostDataError(); }
 
   
   

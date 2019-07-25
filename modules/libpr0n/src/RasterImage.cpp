@@ -924,6 +924,11 @@ RasterImage::SetSize(PRInt32 aWidth, PRInt32 aHeight)
     else
       NS_WARNING("Multipart channel sent an image of a different size");
 
+    
+    
+    if (mDecoder)
+      mDecoder->PostResizeError();
+
     DoError();
     return NS_ERROR_UNEXPECTED;
   }
@@ -1239,6 +1244,7 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
     
     
     
+    nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
     mInDecoder = PR_TRUE;
     mDecoder->FlushInvalidations();
     mInDecoder = PR_FALSE;
@@ -2208,14 +2214,16 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   bool wasSizeDecode = mDecoder->IsSizeDecode();
 
   
+  
+  
+  nsRefPtr<Decoder> decoder = mDecoder;
+  mDecoder = nsnull;
+
   mInDecoder = PR_TRUE;
-  mDecoder->Finish();
+  decoder->Finish();
   mInDecoder = PR_FALSE;
 
-  
-  
-  nsresult decoderStatus = mDecoder->GetDecoderError();
-  mDecoder = nsnull;
+  nsresult decoderStatus = decoder->GetDecoderError();
   if (NS_FAILED(decoderStatus)) {
     DoError();
     return decoderStatus;
@@ -2260,6 +2268,7 @@ RasterImage::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
   }
 
   
+  nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
   mInDecoder = PR_TRUE;
   mDecoder->Write(aBuffer, aCount);
   mInDecoder = PR_FALSE;
@@ -2271,6 +2280,9 @@ RasterImage::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
     curframe->UnlockImageData();
   }
 
+  if (!mDecoder)
+    return NS_ERROR_FAILURE;
+    
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
   
@@ -2418,18 +2430,19 @@ RasterImage::SyncDecode()
   
   
   
+  nsRefPtr<Decoder> kungFuDeathGrip = mDecoder;
   mInDecoder = PR_TRUE;
   mDecoder->FlushInvalidations();
   mInDecoder = PR_FALSE;
 
   
-  if (IsDecodeFinished()) {
+  if (mDecoder && IsDecodeFinished()) {
     rv = ShutdownDecoder(eShutdownIntent_Done);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
   
-  return NS_OK;
+  return mError ? NS_ERROR_FAILURE : NS_OK;
 }
 
 
@@ -2660,6 +2673,8 @@ imgDecodeWorker::Run()
   if (!image->mDecoder)
     return NS_OK;
 
+  nsRefPtr<Decoder> decoderKungFuDeathGrip = image->mDecoder;
+
   
   
   
@@ -2700,7 +2715,7 @@ imgDecodeWorker::Run()
   }
 
   
-  if (image->IsDecodeFinished()) {
+  if (image->mDecoder && image->IsDecodeFinished()) {
     rv = image->ShutdownDecoder(RasterImage::eShutdownIntent_Done);
     if (NS_FAILED(rv)) {
       image->DoError();
