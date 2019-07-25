@@ -779,6 +779,8 @@ class FrameState
 
     inline Jump testObject(Assembler::Condition cond, FrameEntry *fe);
 
+    inline Jump testGCThing(FrameEntry *fe);
+
     
 
 
@@ -961,6 +963,8 @@ class FrameState
 
 
     inline Address loadNameAddress(const analyze::ScriptAnalysis::NameAccess &access);
+    inline Address loadNameAddress(const analyze::ScriptAnalysis::NameAccess &access,
+                                   RegisterID reg);
 
   private:
     inline AnyRegisterID allocAndLoadReg(FrameEntry *fe, bool fp, RematInfo::RematType type);

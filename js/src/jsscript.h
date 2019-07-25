@@ -49,6 +49,8 @@
 #include "jsclist.h"
 #include "jsinfer.h"
 
+#include "gc/Barrier.h"
+
 
 
 
@@ -132,7 +134,7 @@ typedef struct JSTryNoteArray {
 } JSTryNoteArray;
 
 typedef struct JSObjectArray {
-    JSObject        **vector;   
+    js::HeapPtrObject *vector;  
     uint32          length;     
 } JSObjectArray;
 
@@ -142,7 +144,7 @@ typedef struct JSUpvarArray {
 } JSUpvarArray;
 
 typedef struct JSConstArray {
-    js::Value       *vector;    
+    js::HeapValue   *vector;    
     uint32          length;
 } JSConstArray;
 
@@ -168,17 +170,15 @@ enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
 
 
 class Bindings {
-    js::Shape *lastBinding;
+    HeapPtr<Shape> lastBinding;
     uint16 nargs;
     uint16 nvars;
     uint16 nupvars;
     bool hasExtensibleParents;
 
   public:
-    inline Bindings(JSContext *cx)
-        : lastBinding(NULL), nargs(0), nvars(0), nupvars(0), hasExtensibleParents(false)
-    {
-    }
+    inline Bindings(JSContext *cx);
+    inline ~Bindings();
 
     
 
@@ -556,8 +556,7 @@ struct JSScript : public js::gc::Cell {
     JSPrincipals    *principals;
     jschar          *sourceMap; 
 
-    union {
-        
+    
 
 
 
@@ -568,11 +567,10 @@ struct JSScript : public js::gc::Cell {
 
 
 
-        js::GlobalObject    *globalObject;
+    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
 
-        
-        JSScript            *evalHashLink;
-    } u;
+    
+    JSScript        *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
 
     uint32          *closedSlots; 
 
@@ -634,7 +632,7 @@ struct JSScript : public js::gc::Cell {
 
     
     js::GlobalObject *getGlobalObjectOrNull() const {
-        return isCachedEval ? NULL : u.globalObject;
+        return isCachedEval ? NULL : globalObject.get();
     }
 
   private:
@@ -818,6 +816,9 @@ struct JSScript : public js::gc::Cell {
 #endif
 
     void finalize(JSContext *cx);
+
+    static inline void writeBarrierPre(JSScript *script);
+    static inline void writeBarrierPost(JSScript *script, void *addr);
 };
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);

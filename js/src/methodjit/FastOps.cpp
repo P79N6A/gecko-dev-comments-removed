@@ -1102,6 +1102,8 @@ mjit::Compiler::jsop_setelem_dense()
     bool hoisted = loop && id->isType(JSVAL_TYPE_INT32) &&
         loop->hoistArrayLengthCheck(DENSE_ARRAY, objv, indexv);
 
+    MaybeJump initlenExit;
+
     if (hoisted) {
         FrameEntry *slotsFe = loop->invariantArraySlots(objv);
         slotsReg = frame.tempRegForData(slotsFe);
@@ -1129,13 +1131,13 @@ mjit::Compiler::jsop_setelem_dense()
         
         Label syncTarget = stubcc.syncExitAndJump(Uses(3));
 
-        Jump initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+        Jump initlenGuard = masm.guardArrayExtent(JSObject::offsetOfInitializedLength(),
                                                   objReg, key, Assembler::BelowOrEqual);
         stubcc.linkExitDirect(initlenGuard, stubcc.masm.label());
 
         
         
-        Jump exactlenGuard = stubcc.masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+        Jump exactlenGuard = stubcc.masm.guardArrayExtent(JSObject::offsetOfInitializedLength(),
                                                           objReg, key, Assembler::NotEqual);
         exactlenGuard.linkTo(syncTarget, &stubcc.masm);
 
@@ -1149,7 +1151,7 @@ mjit::Compiler::jsop_setelem_dense()
         stubcc.masm.bumpKey(key, 1);
 
         
-        stubcc.masm.storeKey(key, Address(objReg, offsetof(JSObject, initializedLength)));
+        stubcc.masm.storeKey(key, Address(objReg, JSObject::offsetOfInitializedLength()));
 
         
         Jump lengthGuard = stubcc.masm.guardArrayExtent(offsetof(JSObject, privateData),
@@ -1160,13 +1162,40 @@ mjit::Compiler::jsop_setelem_dense()
         
         stubcc.masm.bumpKey(key, -1);
 
-        
-        Jump initlenExit = stubcc.masm.jump();
-        stubcc.crossJump(initlenExit, masm.label());
+        stubcc.masm.loadPtr(Address(objReg, offsetof(JSObject, slots)), objReg);
+
+        initlenExit = stubcc.masm.jump();
 
         masm.loadPtr(Address(objReg, offsetof(JSObject, slots)), objReg);
         slotsReg = objReg;
     }
+
+#ifdef JSGC_INCREMENTAL_MJ
+    
+
+
+
+
+
+    types::TypeSet *types = frame.extra(obj).types;
+    if (cx->compartment->needsBarrier() && (!types || types->propertyNeedsBarrier(cx, JSID_VOID))) {
+        Label barrierStart = stubcc.masm.label();
+        frame.sync(stubcc.masm, Uses(3));
+        stubcc.linkExitDirect(masm.jump(), barrierStart);
+        stubcc.masm.storePtr(slotsReg, FrameAddress(offsetof(VMFrame, scratch)));
+        if (key.isConstant())
+            stubcc.masm.lea(Address(slotsReg, key.index() * sizeof(Value)), Registers::ArgReg1);
+        else
+            stubcc.masm.lea(BaseIndex(slotsReg, key.reg(), masm.JSVAL_SCALE), Registers::ArgReg1);
+        OOL_STUBCALL(stubs::WriteBarrier, REJOIN_NONE);
+        stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
+        stubcc.rejoin(Changes(0));
+    }
+#endif
+
+    
+    if (initlenExit.isSet())
+        stubcc.crossJump(initlenExit.get(), masm.label());
 
     
     
@@ -1501,6 +1530,14 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
         return true;
     }
 
+#ifdef JSGC_INCREMENTAL_MJ
+    
+    if (cx->compartment->needsBarrier()) {
+        jsop_setelem_slow();
+        return true;
+    }
+#endif
+
     SetElementICInfo ic = SetElementICInfo(JSOp(*PC));
 
     
@@ -1588,7 +1625,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     stubcc.linkExitDirect(ic.claspGuard, ic.slowPathStart);
 
     
-    Jump initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+    Jump initlenGuard = masm.guardArrayExtent(JSObject::offsetOfInitializedLength(),
                                               ic.objReg, ic.key, Assembler::BelowOrEqual);
     stubcc.linkExitDirect(initlenGuard, ic.slowPathStart);
 
@@ -1746,7 +1783,7 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     
     MaybeJump initlenGuard;
     if (!hoisted) {
-        initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+        initlenGuard = masm.guardArrayExtent(JSObject::offsetOfInitializedLength(),
                                              baseReg, key, Assembler::BelowOrEqual);
     }
 
@@ -2678,7 +2715,7 @@ mjit::Compiler::jsop_initelem()
 
     if (cx->typeInferenceEnabled()) {
         
-        masm.store32(Imm32(idx + 1), Address(objReg, offsetof(JSObject, initializedLength)));
+        masm.store32(Imm32(idx + 1), Address(objReg, JSObject::offsetOfInitializedLength()));
     }
 
     

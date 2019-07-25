@@ -48,6 +48,7 @@
 #include "jsprvtd.h"
 
 #include "ds/LifoAlloc.h"
+#include "gc/Barrier.h"
 #include "js/HashTable.h"
 
 namespace js {
@@ -508,6 +509,15 @@ class TypeSet
 
     inline void clearObjects();
 
+    
+
+
+
+    bool needsBarrier(JSContext *cx);
+
+    
+    bool propertyNeedsBarrier(JSContext *cx, jsid id);
+
   private:
     uint32 baseObjectCount() const {
         return (flags & TYPE_FLAG_OBJECT_COUNT_MASK) >> TYPE_FLAG_OBJECT_COUNT_SHIFT;
@@ -621,18 +631,13 @@ struct TypeBarrier
 struct Property
 {
     
-    jsid id;
+    HeapId id;
 
     
     TypeSet types;
 
-    Property(jsid id)
-        : id(id)
-    {}
-
-    Property(const Property &o)
-        : id(o.id), types(o.types)
-    {}
+    inline Property(jsid id);
+    inline Property(const Property &o);
 
     static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
     static jsid getKey(Property *p) { return p->id; }
@@ -650,7 +655,7 @@ struct Property
 
 struct TypeNewScript
 {
-    JSFunction *fun;
+    HeapPtrFunction fun;
 
     
     gc::AllocKind allocKind;
@@ -659,7 +664,7 @@ struct TypeNewScript
 
 
 
-    const Shape *shape;
+    HeapPtr<const Shape> shape;
 
     
 
@@ -682,6 +687,9 @@ struct TypeNewScript
         {}
     };
     Initializer *initializerList;
+
+    static inline void writeBarrierPre(TypeNewScript *newScript);
+    static inline void writeBarrierPost(TypeNewScript *newScript, void *addr);
 };
 
 
@@ -714,17 +722,17 @@ struct TypeNewScript
 struct TypeObject : gc::Cell
 {
     
-    JSObject *proto;
+    HeapPtrObject proto;
 
     
 
 
 
 
-    JSObject *singleton;
+    HeapPtrObject singleton;
 
     
-    js::EmptyShape **emptyShapes;
+    HeapPtr<EmptyShape> *emptyShapes;
 
     
     TypeObjectFlags flags;
@@ -734,7 +742,7 @@ struct TypeObject : gc::Cell
 
 
 
-    TypeNewScript *newScript;
+    HeapPtr<TypeNewScript> newScript;
 
     
 
@@ -783,7 +791,7 @@ struct TypeObject : gc::Cell
     Property **propertySet;
 
     
-    JSFunction *interpretedFunction;
+    HeapPtrFunction interpretedFunction;
 
     inline TypeObject(JSObject *proto, bool isFunction, bool unknown);
 
@@ -867,6 +875,9 @@ struct TypeObject : gc::Cell
 
 
     void finalize(JSContext *cx) {}
+
+    static inline void writeBarrierPre(TypeObject *type);
+    static inline void writeBarrierPost(TypeObject *type, void *addr);
 
   private:
     inline uint32 basePropertyCount() const;
@@ -984,8 +995,8 @@ struct TypeScriptNesting
 
 
 
-    Value *argArray;
-    Value *varArray;
+    const Value *argArray;
+    const Value *varArray;
 
     
     uint32 activeFrames;
@@ -1010,7 +1021,7 @@ class TypeScript
     analyze::ScriptAnalysis *analysis;
 
     
-    JSFunction *function;
+    HeapPtrFunction function;
 
     
 
@@ -1020,7 +1031,7 @@ class TypeScript
     static const size_t GLOBAL_MISSING_SCOPE = 0x1;
 
     
-    js::GlobalObject *global;
+    HeapPtr<GlobalObject> global;
 
   public:
 
@@ -1030,12 +1041,10 @@ class TypeScript
     
     TypeResult *dynamicList;
 
-    TypeScript(JSFunction *fun) {
-        this->function = fun;
-        this->global = (js::GlobalObject *) GLOBAL_MISSING_SCOPE;
-    }
+    inline TypeScript(JSFunction *fun);
+    inline ~TypeScript();
 
-    bool hasScope() { return size_t(global) != GLOBAL_MISSING_SCOPE; }
+    bool hasScope() { return size_t(global.get()) != GLOBAL_MISSING_SCOPE; }
 
     
     TypeSet *typeArray() { return (TypeSet *) (jsuword(this) + sizeof(TypeScript)); }

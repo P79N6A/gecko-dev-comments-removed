@@ -649,14 +649,13 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
 
 
         jsuint oldcap = obj->getDenseArrayCapacity();
+        jsuint oldinit = obj->getDenseArrayInitializedLength();
+        if (oldinit > newlen)
+            obj->setDenseArrayInitializedLength(newlen);
         if (oldcap > newlen)
             obj->shrinkDenseArrayElements(cx, newlen);
-        jsuint oldinit = obj->getDenseArrayInitializedLength();
-        if (oldinit > newlen) {
-            obj->setDenseArrayInitializedLength(newlen);
-            if (!cx->typeInferenceEnabled())
-                obj->backfillDenseArrayHoles(cx);
-        }
+        if (oldinit > newlen && !cx->typeInferenceEnabled())
+            obj->backfillDenseArrayHoles(cx);
     } else if (oldlen - newlen < (1 << 24)) {
         do {
             --oldlen;
@@ -1340,8 +1339,11 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
     
     gc::AllocKind kind = getAllocKind();
-    if (!InitScopeForObject(cx, this, &SlowArrayClass, getProto()->getNewType(cx), kind))
+    js::EmptyShape *empty = InitScopeForObject(cx, this, &SlowArrayClass,
+                                               getProto()->getNewType(cx), kind);
+    if (!empty)
         return false;
+    setMap(empty);
 
     backfillDenseArrayHoles(cx);
 
@@ -1367,10 +1369,10 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
 
-    AutoValueArray autoArray(cx, slots, arrayInitialized);
+    AutoValueArray autoArray(cx, Valueify(slots), arrayInitialized);
 
     
-    initializedLength = 0;
+    initializedLength() = 0;
     JS_ASSERT(newType == NULL);
 
     
@@ -1380,7 +1382,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     if (!AddLengthProperty(cx, this)) {
         setMap(oldMap);
         capacity = arrayCapacity;
-        initializedLength = arrayInitialized;
+        initializedLength() = arrayInitialized;
         clasp = &ArrayClass;
         return false;
     }
@@ -1403,7 +1405,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
         if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
             capacity = arrayCapacity;
-            initializedLength = arrayInitialized;
+            initializedLength() = arrayInitialized;
             clasp = &ArrayClass;
             return false;
         }
@@ -2497,7 +2499,7 @@ NewbornArrayPushImpl(JSContext *cx, JSObject *obj, const Value &v)
     if (cx->typeInferenceEnabled())
         obj->setDenseArrayInitializedLength(length + 1);
     obj->setDenseArrayLength(length + 1);
-    obj->setDenseArrayElementWithType(cx, length, v);
+    obj->initDenseArrayElementWithType(cx, length, v);
     return true;
 }
 
@@ -2894,14 +2896,14 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
             obj->moveDenseArrayElements(targetIndex, sourceIndex, len - sourceIndex);
 
             
-            obj->shrinkDenseArrayElements(cx, finalLength);
-
-            
 
 
 
             if (cx->typeInferenceEnabled())
                 obj->setDenseArrayInitializedLength(finalLength);
+
+            
+            obj->shrinkDenseArrayElements(cx, finalLength);
 
             
             if (!js_SuppressDeletedElements(cx, obj, finalLength, len))
@@ -3019,10 +3021,12 @@ mjit::stubs::ArrayConcatTwoArrays(VMFrame &f)
     if (!result->ensureSlots(f.cx, len))
         THROW();
 
-    result->copyDenseArrayElements(0, obj1->getDenseArrayElements(), initlen1);
-    result->copyDenseArrayElements(initlen1, obj2->getDenseArrayElements(), initlen2);
-
+    JS_ASSERT(!result->getDenseArrayInitializedLength());
     result->setDenseArrayInitializedLength(len);
+
+    result->initDenseArrayElements(0, obj1->getDenseArrayElements(), initlen1);
+    result->initDenseArrayElements(initlen1, obj2->getDenseArrayElements(), initlen2);
+
     result->setDenseArrayLength(len);
 }
 #endif 
@@ -3920,7 +3924,7 @@ NewDenseCopiedArray(JSContext *cx, uint32 length, const Value *vp, JSObject *pro
         obj->setDenseArrayInitializedLength(vp ? length : 0);
 
     if (vp)
-        obj->copyDenseArrayElements(0, vp, length);
+        obj->initDenseArrayElements(0, vp, length);
 
     return obj;
 }

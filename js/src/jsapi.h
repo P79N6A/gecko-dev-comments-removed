@@ -2698,6 +2698,7 @@ typedef void
 (* JSTraceCallback)(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 struct JSTracer {
+    JSRuntime           *runtime;
     JSContext           *context;
     JSTraceCallback     callback;
     JSTraceNamePrinter  debugPrinter;
@@ -2798,6 +2799,7 @@ JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
 # define JS_TRACER_INIT(trc, cx_, callback_)                                  \
     JS_BEGIN_MACRO                                                            \
+        (trc)->runtime = (cx_)->runtime;                                      \
         (trc)->context = (cx_);                                               \
         (trc)->callback = (callback_);                                        \
         (trc)->debugPrinter = NULL;                                           \
@@ -2840,6 +2842,88 @@ extern JS_PUBLIC_API(JSBool)
 JS_DumpHeap(JSContext *cx, FILE *fp, void* startThing, JSGCTraceKind kind,
             void *thingToFind, size_t maxDepth, void *thingToIgnore);
 
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_RegisterReference(void **ref);
+
+extern JS_PUBLIC_API(void)
+JS_ModifyReference(void **ref, void *newval);
+
+extern JS_PUBLIC_API(void)
+JS_UnregisterReference(void **ref);
+
+
+extern JS_PUBLIC_API(void)
+JS_RegisterValue(jsval *val);
+
+extern JS_PUBLIC_API(void)
+JS_ModifyValue(jsval *val, jsval newval);
+
+extern JS_PUBLIC_API(void)
+JS_UnregisterValue(jsval *val);
+
+extern JS_PUBLIC_API(JSTracer *)
+JS_GetIncrementalGCTracer(JSRuntime *rt);
+
+#ifdef __cplusplus
+JS_END_EXTERN_C
+
+namespace JS {
+
+class HeapPtrObject
+{
+    JSObject *value;
+
+  public:
+    HeapPtrObject() : value(NULL) { JS_RegisterReference((void **) &value); }
+
+    HeapPtrObject(JSObject *obj) : value(obj) { JS_RegisterReference((void **) &value); }
+
+    ~HeapPtrObject() { JS_UnregisterReference((void **) &value); }
+
+    void init(JSObject *obj) { value = obj; }
+
+    JSObject *get() const { return value; }
+
+    HeapPtrObject &operator=(JSObject *obj) {
+        JS_ModifyReference((void **) &value, obj);
+        return *this;
+    }
+
+    JSObject &operator*() const { return *value; }
+    JSObject *operator->() const { return value; }
+    operator JSObject *() const { return value; }
+};
+
+} 
+
+JS_BEGIN_EXTERN_C
 #endif
 
 
@@ -3115,10 +3199,11 @@ struct JSClass {
 #define JSCLASS_NO_INTERNAL_MEMBERS     0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define JSCLASS_NO_OPTIONAL_MEMBERS     0,0,0,0,0,0,0,JSCLASS_NO_INTERNAL_MEMBERS
 
-struct JSIdArray {
-    jsint length;
-    jsid  vector[1];    
-};
+extern JS_PUBLIC_API(jsint)
+JS_IdArrayLength(JSContext *cx, JSIdArray *ida);
+
+extern JS_PUBLIC_API(jsid)
+JS_IdArrayGet(JSContext *cx, JSIdArray *ida, jsint index);
 
 extern JS_PUBLIC_API(void)
 JS_DestroyIdArray(JSContext *cx, JSIdArray *ida);

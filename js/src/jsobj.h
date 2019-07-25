@@ -59,6 +59,7 @@
 #include "jslock.h"
 #include "jscell.h"
 
+#include "gc/Barrier.h"
 #include "vm/String.h"
 
 namespace nanojit { class ValidateWriter; }
@@ -427,7 +428,7 @@ struct JSObject : js::gc::Cell {
 
 
 
-    js::Shape           *lastProp;
+    js::HeapPtrShape    lastProp;
 
   private:
     js::Class           *clasp;
@@ -488,25 +489,25 @@ struct JSObject : js::gc::Cell {
         NSLOTS_LIMIT    = JS_BIT(NSLOTS_BITS)
     };
 
-    uint32      flags;                      
-    uint32      objShape;                   
+    uint32            flags;                
+    uint32            objShape;             
 
-    union {
-        
-        js::types::TypeObject *newType;
+    
 
-        
-        jsuword initializedLength;
-    };
+
+
+    js::HeapPtr<js::types::TypeObject, jsuword> newType;
+
+    jsuword &initializedLength() { return *newType.unsafeGetUnioned(); }
 
     JS_FRIEND_API(size_t) sizeOfSlotsArray(JSUsableSizeFun usf);
 
-    JSObject    *parent;                    
-    void        *privateData;               
-    jsuword     capacity;                   
+    js::HeapPtrObject parent;               
+    void              *privateData;         
+    jsuword           capacity;             
 
   private:
-    js::Value   *slots;                     
+    js::HeapValue     *slots;               
 
 
 
@@ -515,13 +516,12 @@ struct JSObject : js::gc::Cell {
 
 
 
-    js::types::TypeObject *type_;
+    js::HeapPtr<js::types::TypeObject> type_;
 
     
     void makeLazyType(JSContext *cx);
 
   public:
-
     inline bool isNative() const;
     inline bool isNewborn() const;
 
@@ -537,7 +537,6 @@ struct JSObject : js::gc::Cell {
         return &getClass()->ops;
     }
 
-    inline void trace(JSTracer *trc);
     inline void scanSlots(js::GCMarker *gcmarker);
 
     uint32 shape() const {
@@ -617,6 +616,7 @@ struct JSObject : js::gc::Cell {
 
     bool hasOwnShape() const    { return !!(flags & OWN_SHAPE); }
 
+    inline void initMap(js::Shape *amap);
     inline void setMap(js::Shape *amap);
 
     inline void setSharedNonNativeMap();
@@ -730,13 +730,14 @@ struct JSObject : js::gc::Cell {
     static inline size_t getFixedSlotOffset(size_t slot);
     static inline size_t offsetOfCapacity() { return offsetof(JSObject, capacity); }
     static inline size_t offsetOfSlots() { return offsetof(JSObject, slots); }
+    static inline size_t offsetOfInitializedLength() { return offsetof(JSObject, newType); }
 
     
 
 
 
-    inline const js::Value *getRawSlots();
-    inline const js::Value *getRawSlot(size_t slot, const js::Value *slots);
+    inline const js::HeapValue *getRawSlots();
+    inline const js::HeapValue *getRawSlot(size_t slot, const js::HeapValue *slots);
 
     
     inline bool isFixedSlot(size_t slot);
@@ -753,7 +754,7 @@ struct JSObject : js::gc::Cell {
     inline size_t numDynamicSlots(size_t capacity) const;
 
   private:
-    inline js::Value* fixedSlots() const;
+    inline js::HeapValue *fixedSlots() const;
 
   protected:
     inline bool hasContiguousSlots(size_t start, size_t count) const;
@@ -776,13 +777,21 @@ struct JSObject : js::gc::Cell {
 
 
 
+    inline void prepareSlotRangeForOverwrite(size_t start, size_t end);
+
+    
+
+
+
     void clearSlotRange(size_t start, size_t length);
 
     
 
 
 
-    void copySlotRange(size_t start, const js::Value *vector, size_t length);
+
+
+    void copySlotRange(size_t start, const js::Value *vector, size_t length, bool valid);
 
     
 
@@ -817,12 +826,13 @@ struct JSObject : js::gc::Cell {
 
     void rollbackProperties(JSContext *cx, uint32 slotSpan);
 
-    js::Value *getSlotAddress(uintN slot) {
+    js::HeapValue *getSlotAddress(uintN slot) {
         
 
 
 
 
+        JS_ASSERT(!isDenseArray());
         JS_ASSERT(slot <= capacity);
         size_t fixed = numFixedSlots();
         if (slot < fixed)
@@ -830,12 +840,12 @@ struct JSObject : js::gc::Cell {
         return slots + (slot - fixed);
     }
 
-    js::Value &getSlotRef(uintN slot) {
+    js::HeapValue &getSlotRef(uintN slot) {
         JS_ASSERT(slot < capacity);
         return *getSlotAddress(slot);
     }
 
-    inline js::Value &nativeGetSlotRef(uintN slot);
+    inline js::HeapValue &nativeGetSlotRef(uintN slot);
 
     const js::Value &getSlot(uintN slot) const {
         JS_ASSERT(slot < capacity);
@@ -847,22 +857,22 @@ struct JSObject : js::gc::Cell {
 
     inline const js::Value &nativeGetSlot(uintN slot) const;
 
-    void setSlot(uintN slot, const js::Value &value) {
-        JS_ASSERT(slot < capacity);
-        getSlotRef(slot) = value;
-    }
+    inline void setSlot(uintN slot, const js::Value &value);
+    inline void initSlot(uintN slot, const js::Value &value);
+    inline void initSlotUnchecked(uintN slot, const js::Value &value);
 
     inline void nativeSetSlot(uintN slot, const js::Value &value);
     inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
 
     inline js::Value getReservedSlot(uintN index) const;
+    inline js::HeapValue &getReservedSlotRef(uintN index);
 
     
     inline void setReservedSlot(uintN index, const js::Value &v);
 
     
 
-    js::Value &getFixedSlotRef(uintN slot) {
+    js::HeapValue &getFixedSlotRef(uintN slot) {
         JS_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
@@ -872,10 +882,8 @@ struct JSObject : js::gc::Cell {
         return fixedSlots()[slot];
     }
 
-    void setFixedSlot(uintN slot, const js::Value &value) {
-        JS_ASSERT(slot < numFixedSlots());
-        fixedSlots()[slot] = value;
-    }
+    inline void setFixedSlot(uintN slot, const js::Value &value);
+    inline void initFixedSlot(uintN slot, const js::Value &value);
 
     
     inline void updateShape(JSContext *cx);
@@ -912,7 +920,7 @@ struct JSObject : js::gc::Cell {
         return type_;
     }
 
-    js::types::TypeObject *typeFromGC() const {
+    const js::HeapPtr<js::types::TypeObject> &typeFromGC() const {
         
         return type_;
     }
@@ -921,13 +929,14 @@ struct JSObject : js::gc::Cell {
 
     inline void clearType();
     inline void setType(js::types::TypeObject *newType);
+    inline void initType(js::types::TypeObject *newType);
 
     inline js::types::TypeObject *getNewType(JSContext *cx, JSFunction *fun = NULL,
                                              bool markUnknown = false);
   private:
     void makeNewType(JSContext *cx, JSFunction *fun, bool markUnknown);
-  public:
 
+  public:
     
     bool splicePrototype(JSContext *cx, JSObject *proto);
 
@@ -945,18 +954,9 @@ struct JSObject : js::gc::Cell {
         return parent;
     }
 
-    void clearParent() {
-        parent = NULL;
-    }
-
-    void setParent(JSObject *newParent) {
-#ifdef DEBUG
-        for (JSObject *obj = newParent; obj; obj = obj->getParent())
-            JS_ASSERT(obj != this);
-#endif
-        setDelegateNullSafe(newParent);
-        parent = newParent;
-    }
+    inline void clearParent();
+    inline void setParent(JSObject *newParent);
+    inline void initParent(JSObject *newParent);
 
     JS_FRIEND_API(js::GlobalObject *) getGlobal() const;
 
@@ -971,10 +971,8 @@ struct JSObject : js::gc::Cell {
         return privateData;
     }
 
-    void setPrivate(void *data) {
-        JS_ASSERT(getClass()->flags & JSCLASS_HAS_PRIVATE);
-        privateData = data;
-    }
+    inline void initPrivate(void *data);
+    inline void setPrivate(void *data);
 
     
     inline JSPrincipals *principals(JSContext *cx);
@@ -1043,11 +1041,14 @@ struct JSObject : js::gc::Cell {
     inline void setDenseArrayInitializedLength(uint32 length);
     inline void ensureDenseArrayInitializedLength(JSContext *cx, uintN index, uintN extra);
     inline void backfillDenseArrayHoles(JSContext *cx);
-    inline const js::Value* getDenseArrayElements();
+    inline js::HeapValueArray getDenseArrayElements();
     inline const js::Value &getDenseArrayElement(uintN idx);
     inline void setDenseArrayElement(uintN idx, const js::Value &val);
+    inline void initDenseArrayElement(uintN idx, const js::Value &val);
     inline void setDenseArrayElementWithType(JSContext *cx, uintN idx, const js::Value &val);
+    inline void initDenseArrayElementWithType(JSContext *cx, uintN idx, const js::Value &val);
     inline void copyDenseArrayElements(uintN dstStart, const js::Value *src, uintN count);
+    inline void initDenseArrayElements(uintN dstStart, const js::Value *src, uintN count);
     inline void moveDenseArrayElements(uintN dstStart, uintN srcStart, uintN count);
     inline void shrinkDenseArrayElements(JSContext *cx, uintN cap);
     inline bool denseArrayHasInlineSlots() const;
@@ -1156,11 +1157,11 @@ struct JSObject : js::gc::Cell {
 
     inline JSFunction *getFunctionPrivate() const;
 
-    inline js::Value *getFlatClosureUpvars() const;
+    inline js::FlatClosureData *getFlatClosureData() const;
     inline js::Value getFlatClosureUpvar(uint32 i) const;
     inline const js::Value &getFlatClosureUpvar(uint32 i);
     inline void setFlatClosureUpvar(uint32 i, const js::Value &v);
-    inline void setFlatClosureUpvars(js::Value *upvars);
+    inline void setFlatClosureData(js::FlatClosureData *data);
 
     
     inline void finalizeUpvarsIfFlatClosure();
@@ -1240,12 +1241,7 @@ struct JSObject : js::gc::Cell {
     inline bool isCallable();
 
     
-    void earlyInit(jsuword capacity) {
-        this->capacity = capacity;
-
-        
-        lastProp = NULL;
-    }
+    inline void earlyInit(jsuword capacity);
 
     
     void init(JSContext *cx, js::Class *aclasp, js::types::TypeObject *type,
@@ -1503,6 +1499,11 @@ struct JSObject : js::gc::Cell {
     
 
     static size_t offsetOfClassPointer() { return offsetof(JSObject, clasp); }
+
+    static inline void writeBarrierPre(JSObject *obj);
+    static inline void writeBarrierPost(JSObject *obj, void *addr);
+    inline void privateWriteBarrierPre(void **oldval);
+    inline void privateWriteBarrierPost(void **oldval);
 };
 
 
@@ -1522,9 +1523,10 @@ operator!=(const JSObject &lhs, const JSObject &rhs)
     return &lhs != &rhs;
 }
 
-inline js::Value*
-JSObject::fixedSlots() const {
-    return (js::Value*) (jsuword(this) + sizeof(JSObject));
+inline js::HeapValue*
+JSObject::fixedSlots() const
+{
+    return (js::HeapValue *) (jsuword(this) + sizeof(JSObject));
 }
 
 inline size_t

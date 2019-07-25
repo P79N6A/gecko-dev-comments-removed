@@ -92,13 +92,13 @@ struct ArgumentsData
 
 
 
-    js::Value   callee;
+    HeapValue   callee;
 
     
 
 
 
-    js::Value   slots[1];
+    HeapValue   slots[1];
 };
 
 
@@ -183,9 +183,9 @@ class ArgumentsObject : public ::JSObject
     friend struct mjit::ic::GetElementIC;
 #endif
 
-    void setInitialLength(uint32 length);
+    void initInitialLength(uint32 length);
 
-    void setCalleeAndData(JSObject &callee, ArgumentsData *data);
+    void initData(ArgumentsData *data);
 
   public:
     

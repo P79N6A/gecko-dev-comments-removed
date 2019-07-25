@@ -330,7 +330,7 @@ struct Shape : public js::gc::Cell
 
     inline void freeTable(JSContext *cx);
 
-    jsid                propid;
+    HeapId              propid;
 
   protected:
     union {
@@ -358,26 +358,27 @@ struct Shape : public js::gc::Cell
     int16               shortid;        
 
   protected:
-    mutable js::Shape   *parent;        
+    mutable HeapPtrShape parent;        
     
     union {
         mutable js::KidsPointer kids;   
 
-        mutable js::Shape **listp;      
+        mutable HeapPtrShape *listp;    
 
 
 
     };
 
-    static inline js::Shape **search(JSContext *cx, js::Shape **startp, jsid id,
+    static inline js::Shape **search(JSContext *cx, HeapPtr<Shape> *startp, jsid id,
                                      bool adding = false);
-    static js::Shape *newDictionaryShape(JSContext *cx, const js::Shape &child, js::Shape **listp);
-    static js::Shape *newDictionaryList(JSContext *cx, js::Shape **listp);
+    static js::Shape *newDictionaryShape(JSContext *cx, const js::Shape &child,
+                                         HeapPtr<Shape> *listp);
+    static js::Shape *newDictionaryList(JSContext *cx, HeapPtr<Shape> *listp);
 
     inline void removeFromDictionary(JSObject *obj) const;
-    inline void insertIntoDictionary(js::Shape **dictp);
+    inline void insertIntoDictionary(HeapPtr<Shape> *dictp);
 
-    js::Shape *getChild(JSContext *cx, const js::Shape &child, js::Shape **listp);
+    js::Shape *getChild(JSContext *cx, const js::Shape &child, HeapPtr<Shape> *listp);
 
     bool hashify(JSContext *cx);
 
@@ -574,6 +575,8 @@ struct Shape : public js::gc::Cell
         return hasSetterValue() && setterObj ? js::ObjectValue(*setterObj) : js::UndefinedValue();
     }
 
+    void update(js::PropertyOp getter, js::StrictPropertyOp setter, uint8 attrs);
+
     inline JSDHashNumber hash() const;
     inline bool matches(const js::Shape *p) const;
     inline bool matchesParamsAfterId(PropertyOp agetter, StrictPropertyOp asetter,
@@ -647,6 +650,16 @@ struct Shape : public js::gc::Cell
 
     void finalize(JSContext *cx);
     void removeChild(js::Shape *child);
+
+    inline static void writeBarrierPre(const js::Shape *shape);
+    inline static void writeBarrierPost(const js::Shape *shape, void *addr);
+
+    
+
+
+
+
+    inline static void readBarrier(const js::Shape *shape);
 };
 
 struct EmptyShape : public js::Shape
@@ -662,18 +675,10 @@ struct EmptyShape : public js::Shape
         return new (eprop) EmptyShape(cx->compartment, clasp);
     }
 
-    static EmptyShape *ensure(JSContext *cx, js::Class *clasp, EmptyShape **shapep) {
-        EmptyShape *shape = *shapep;
-        if (!shape) {
-            if (!(shape = create(cx, clasp)))
-                return NULL;
-            return *shapep = shape;
-        }
-        return shape;
-    }
+    static inline EmptyShape *ensure(JSContext *cx, js::Class *clasp,
+                                     ReadBarriered<EmptyShape> *shapep);
 
     static inline EmptyShape *getEmptyArgumentsShape(JSContext *cx);
-
     static inline EmptyShape *getEmptyBlockShape(JSContext *cx);
     static inline EmptyShape *getEmptyCallShape(JSContext *cx);
     static inline EmptyShape *getEmptyDeclEnvShape(JSContext *cx);
@@ -730,7 +735,7 @@ namespace js {
 
 
 JS_ALWAYS_INLINE js::Shape **
-Shape::search(JSContext *cx, js::Shape **startp, jsid id, bool adding)
+Shape::search(JSContext *cx, HeapPtr<js::Shape> *startp, jsid id, bool adding)
 {
     js::Shape *start = *startp;
     if (start->hasTable())
@@ -757,12 +762,12 @@ Shape::search(JSContext *cx, js::Shape **startp, jsid id, bool adding)
 
 
 
-    js::Shape **spp;
+    HeapPtr<js::Shape> *spp;
     for (spp = startp; js::Shape *shape = *spp; spp = &shape->parent) {
-        if (shape->propid == id)
-            return spp;
+        if (shape->propid.get() == id)
+            return spp->unsafeGet();
     }
-    return spp;
+    return spp->unsafeGet();
 }
 
 } 

@@ -1062,14 +1062,14 @@ class TraceRecorder
     Tracker                         nativeFrameTracker;
 
     
-    const Value*                    global_slots;
+    const HeapValue*                global_slots;
 
     
     unsigned                        callDepth;
 
     
     JSAtom**                        atoms;
-    Value*                          consts;
+    HeapValue*                      consts;
 
     
     nanojit::LIns*                  strictModeCode_ins;
@@ -1185,7 +1185,9 @@ class TraceRecorder
 
     bool isVoidPtrGlobal(const void* p) const;
     bool isGlobal(const Value* p) const;
+    bool isGlobal(const HeapValue* p) const;
     ptrdiff_t nativeGlobalSlot(const Value *p) const;
+    ptrdiff_t nativeGlobalSlot(const HeapValue *p) const;
     ptrdiff_t nativeGlobalOffset(const Value* p) const;
     JS_REQUIRES_STACK ptrdiff_t nativeStackOffsetImpl(const void* p) const;
     JS_REQUIRES_STACK ptrdiff_t nativeStackOffset(const Value* p) const;
@@ -1228,6 +1230,7 @@ class TraceRecorder
     nanojit::LIns* getFromTracker(const Value* p);
     JS_REQUIRES_STACK nanojit::LIns* getImpl(const void* p);
     JS_REQUIRES_STACK nanojit::LIns* get(const Value* p);
+    JS_REQUIRES_STACK nanojit::LIns* get(const HeapValue* p);
     JS_REQUIRES_STACK nanojit::LIns* getFrameObjPtr(void* p);
     JS_REQUIRES_STACK nanojit::LIns* attemptImport(const Value* p);
     JS_REQUIRES_STACK nanojit::LIns* addr(Value* p);
@@ -1528,7 +1531,7 @@ class TraceRecorder
 
     JS_REQUIRES_STACK jsatomid getFullIndex(ptrdiff_t pcoff = 0);
 
-    JS_REQUIRES_STACK JSValueType determineSlotType(Value* vp);
+    JS_REQUIRES_STACK JSValueType determineSlotType(const Value* vp);
 
     JS_REQUIRES_STACK RecordingStatus setUpwardTrackedVar(Value* stackVp, const Value& v,
                                                           nanojit::LIns* v_ins);
@@ -1616,7 +1619,7 @@ class TraceRecorder
 
 
 
-            const Value *vp = globalObj->getRawSlot(slot, globalObj->getRawSlots());
+            const HeapValue *vp = globalObj->getRawSlot(slot, globalObj->getRawSlots());
 
             
             if (tracker.has(vp))

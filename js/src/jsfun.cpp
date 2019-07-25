@@ -151,32 +151,35 @@ ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee)
         cx->malloc_(offsetof(ArgumentsData, slots) + argc * sizeof(Value));
     if (!data)
         return NULL;
-    SetValueRangeToUndefined(data->slots, argc);
+
+    data->callee.init(ObjectValue(callee));
+    InitValueRange(data->slots, argc, false);
 
     
     obj->init(cx, callee.getFunctionPrivate()->inStrictMode()
               ? &StrictArgumentsObjectClass
               : &NormalArgumentsObjectClass,
               type, proto->getParent(), NULL, false);
-    obj->setMap(emptyArgumentsShape);
+    obj->initMap(emptyArgumentsShape);
 
     ArgumentsObject *argsobj = obj->asArguments();
 
     JS_ASSERT(UINT32_MAX > (uint64(argc) << PACKED_BITS_COUNT));
-    argsobj->setInitialLength(argc);
-
-    argsobj->setCalleeAndData(callee, data);
+    argsobj->initInitialLength(argc);
+    argsobj->initData(data);
 
     return argsobj;
 }
 
 struct STATIC_SKIP_INFERENCE PutArg
 {
-    PutArg(Value *dst) : dst(dst) {}
-    Value *dst;
+    PutArg(JSCompartment *comp, HeapValue *dst) : dst(dst), compartment(comp) {}
+    HeapValue *dst;
+    JSCompartment *compartment;
     bool operator()(uintN, Value *src) {
+        JS_ASSERT(dst->isMagic(JS_ARGS_HOLE) || dst->isUndefined());
         if (!dst->isMagic(JS_ARGS_HOLE))
-            *dst = *src;
+            dst->set(compartment, *src);
         ++dst;
         return true;
     }
@@ -220,7 +223,7 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
 
 
     if (argsobj->isStrictArguments())
-        fp->forEachCanonicalActualArg(PutArg(argsobj->data()->slots));
+        fp->forEachCanonicalActualArg(PutArg(cx->compartment, argsobj->data()->slots));
     else
         argsobj->setStackFrame(fp);
 
@@ -234,7 +237,8 @@ js_PutArgsObject(StackFrame *fp)
     ArgumentsObject &argsobj = fp->argsObj();
     if (argsobj.isNormalArguments()) {
         JS_ASSERT(argsobj.maybeStackFrame() == fp);
-        fp->forEachCanonicalActualArg(PutArg(argsobj.data()->slots));
+        JSCompartment *comp = fp->scopeChain().compartment();
+        fp->forEachCanonicalActualArg(PutArg(comp, argsobj.data()->slots));
         argsobj.setStackFrame(NULL);
     } else {
         JS_ASSERT(!argsobj.maybeStackFrame());
@@ -282,10 +286,11 @@ js_PutArgumentsOnTrace(JSContext *cx, JSObject *obj, Value *argv)
 
 
     Value *srcend = argv + argsobj->initialLength();
-    Value *dst = argsobj->data()->slots;
+    HeapValue *dst = argsobj->data()->slots;
+    JSCompartment *comp = cx->compartment;
     for (Value *src = argv; src < srcend; ++src, ++dst) {
         if (!dst->isMagic(JS_ARGS_HOLE))
-            *dst = *src;
+            dst->set(comp, *src);
     }
 
     argsobj->clearOnTrace();
@@ -601,10 +606,8 @@ MaybeMarkGenerator(JSTracer *trc, JSObject *obj)
 {
 #if JS_HAS_GENERATORS
     StackFrame *fp = (StackFrame *) obj->getPrivate();
-    if (fp && fp->isFloatingGenerator()) {
-        JSObject *genobj = js_FloatingFrameToGenerator(fp)->obj;
-        MarkObject(trc, *genobj, "generator object");
-    }
+    if (fp && fp->isFloatingGenerator())
+        MarkObject(trc, js_FloatingFrameToGenerator(fp)->obj, "generator object");
 #endif
 }
 
@@ -618,8 +621,7 @@ args_trace(JSTracer *trc, JSObject *obj)
     }
 
     ArgumentsData *data = argsobj->data();
-    if (data->callee.isObject())
-        MarkObject(trc, data->callee.toObject(), js_callee_str);
+    MarkValue(trc, data->callee, js_callee_str);
     MarkValueRange(trc, argsobj->initialLength(), data->slots, js_arguments_str);
 
     MaybeMarkGenerator(trc, argsobj);
@@ -707,7 +709,7 @@ NewDeclEnvObject(JSContext *cx, StackFrame *fp)
     if (!emptyDeclEnvShape)
         return NULL;
     envobj->init(cx, &DeclEnvClass, &emptyTypeObject, &fp->scopeChain(), fp, false);
-    envobj->setMap(emptyDeclEnvShape);
+    envobj->initMap(emptyDeclEnvShape);
 
     return envobj;
 }
@@ -786,7 +788,7 @@ js_PutCallObject(StackFrame *fp)
     
     if (fp->hasArgsObj()) {
         if (!fp->hasOverriddenArgs())
-            callobj.setArguments(ObjectValue(fp->argsObj()));
+            callobj.initArguments(ObjectValue(fp->argsObj()));
         js_PutArgsObject(fp);
     }
 
@@ -825,16 +827,19 @@ js_PutCallObject(StackFrame *fp)
 
 
 
+
+
+
                 uint32 nclosed = script->nClosedArgs;
                 for (uint32 i = 0; i < nclosed; i++) {
                     uint32 e = script->getClosedArg(i);
-                    callobj.setArg(e, fp->formalArg(e));
+                    callobj.initArgUnchecked(e, fp->formalArg(e));
                 }
 
                 nclosed = script->nClosedVars;
                 for (uint32 i = 0; i < nclosed; i++) {
                     uint32 e = script->getClosedVar(i);
-                    callobj.setVar(e, fp->slots()[e]);
+                    callobj.initVarUnchecked(e, fp->slots()[e]);
                 }
             }
 
@@ -1593,18 +1598,23 @@ fun_trace(JSTracer *trc, JSObject *obj)
 
     if (fun != obj) {
         
-        MarkObject(trc, *fun, "private");
+
+
+
+
+
+        MarkObjectUnbarriered(trc, fun, "private");
 
         
         if (fun->isFlatClosure() && fun->script()->bindings.hasUpvars()) {
             MarkValueRange(trc, fun->script()->bindings.countUpvars(),
-                           obj->getFlatClosureUpvars(), "upvars");
+                           obj->getFlatClosureData()->upvars, "upvars");
         }
         return;
     }
 
     if (fun->atom)
-        MarkString(trc, fun->atom, "atom");
+        MarkAtom(trc, fun->atom, "atom");
 
     if (fun->isInterpreted() && fun->script())
         MarkScript(trc, fun->script(), "script");
@@ -1849,7 +1859,7 @@ JSObject::initBoundFunction(JSContext *cx, const Value &thisArg,
             return false;
 
         JS_ASSERT(numSlots() >= argslen + FUN_CLASS_RESERVED_SLOTS);
-        copySlotRange(FUN_CLASS_RESERVED_SLOTS, args, argslen);
+        copySlotRange(FUN_CLASS_RESERVED_SLOTS, args, argslen, false);
     }
     return true;
 }
@@ -2278,7 +2288,7 @@ js_NewFunction(JSContext *cx, JSObject *funobj, Native native, uintN nargs,
         JS_ASSERT(!native);
         JS_ASSERT(nargs == 0);
         fun->u.i.skipmin = 0;
-        fun->u.i.script_ = NULL;
+        fun->script().init(NULL);
     } else {
         fun->u.n.clasp = NULL;
         if (flags & JSFUN_TRCINFO) {
@@ -2328,7 +2338,7 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
         if (fun->getProto() == proto && !fun->hasSingletonType())
-            clone->setType(fun->type());
+            clone->initType(fun->type());
 
         clone->setPrivate(fun);
     } else {
@@ -2352,11 +2362,11 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
             JS_ASSERT(script->compartment() == fun->compartment());
             JS_ASSERT(script->compartment() != cx->compartment);
 
-            cfun->u.i.script_ = NULL;
+            cfun->script().init(NULL);
             JSScript *cscript = js_CloneScript(cx, script);
             if (!cscript)
                 return NULL;
-            cscript->u.globalObject = cfun->getGlobal();
+            cscript->globalObject = cfun->getGlobal();
             cfun->setScript(cscript);
             if (!cscript->typeSetFunction(cx, cfun))
                 return NULL;
@@ -2395,11 +2405,11 @@ js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain)
     if (nslots == 0)
         return closure;
 
-    Value *upvars = (Value *) cx->malloc_(nslots * sizeof(Value));
-    if (!upvars)
+    FlatClosureData *data = (FlatClosureData *) cx->malloc_(nslots * sizeof(HeapValue));
+    if (!data)
         return NULL;
 
-    closure->setFlatClosureUpvars(upvars);
+    closure->setFlatClosureData(data);
     return closure;
 }
 
@@ -2425,12 +2435,12 @@ js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen)
     if (!closure || !fun->script()->bindings.hasUpvars())
         return closure;
 
-    Value *upvars = closure->getFlatClosureUpvars();
+    FlatClosureData *data = closure->getFlatClosureData();
     uintN level = fun->script()->staticLevel;
     JSUpvarArray *uva = fun->script()->upvars();
 
     for (uint32 i = 0, n = uva->length; i < n; i++)
-        upvars[i] = GetUpvar(cx, level, uva->vector[i]);
+        data->upvars[i].init(GetUpvar(cx, level, uva->vector[i]));
 
     return closure;
 }
