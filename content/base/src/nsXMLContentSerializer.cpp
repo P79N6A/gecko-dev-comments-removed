@@ -1359,19 +1359,7 @@ nsXMLContentSerializer::AppendToStringConvertLF(const nsAString& aStr,
   }
 
   if (mDoRaw) {
-    nsDependentString str(aStr);
-    PRInt32 lastNewlineOffset = str.RFindChar('\n');
     AppendToString(aStr, aOutputStr);
-
-    if (lastNewlineOffset != kNotFound) {
-      
-      
-      
-      
-      mColPos = aStr.Length() - lastNewlineOffset;
-    }
-
-    mIsIndentationAddedOnCurrentLine = (mColPos != 0);
   }
   else {
     
