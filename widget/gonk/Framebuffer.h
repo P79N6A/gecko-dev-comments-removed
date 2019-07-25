@@ -69,6 +69,8 @@ bool Open(nsIntSize* aScreenSize);
 
 void Close();
 
+bool GetSize(nsIntSize *aScreenSize);
+
 
 gfxASurface* BackBuffer();
 
