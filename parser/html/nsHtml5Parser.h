@@ -137,7 +137,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD GetStreamListener(nsIStreamListener** aListener);
+    virtual nsIStreamListener* GetStreamListener();
 
     
 
