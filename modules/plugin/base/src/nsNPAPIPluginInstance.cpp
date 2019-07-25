@@ -204,10 +204,30 @@ nsNPAPIPluginStreamListener::nsNPAPIPluginStreamListener(nsNPAPIPluginInstance* 
     mResponseHeaderBuf(nsnull)
 {
   memset(&mNPStream, 0, sizeof(mNPStream));
+
+  NS_IF_ADDREF(mInst);
 }
 
-nsNPAPIPluginStreamListener::~nsNPAPIPluginStreamListener()
+nsNPAPIPluginStreamListener::~nsNPAPIPluginStreamListener(void)
 {
+  
+  nsNPAPIPluginInstance *inst = mInst;
+  if (inst) {
+    nsInstanceStream * prev = nsnull;
+    for (nsInstanceStream *is = inst->mStreams; is != nsnull; is = is->mNext) {
+      if (is->mPluginStreamListener == this) {
+        if (!prev)
+          inst->mStreams = is->mNext;
+        else
+          prev->mNext = is->mNext;
+
+        delete is;
+        break;
+      }
+      prev = is;
+    }
+  }
+
   
   
   
@@ -220,6 +240,8 @@ nsNPAPIPluginStreamListener::~nsNPAPIPluginStreamListener()
     mStreamBuffer=nsnull;
   }
 
+  NS_IF_RELEASE(inst);
+
   if (mNotifyURL)
     PL_strfree(mNotifyURL);
 
@@ -229,12 +251,9 @@ nsNPAPIPluginStreamListener::~nsNPAPIPluginStreamListener()
 
 nsresult nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
 {
-  
-  
-
   nsresult rv = NS_ERROR_FAILURE;
 
-  if (mStreamCleanedUp || !mInst)
+  if (mStreamCleanedUp)
     return NS_OK;
 
   mStreamCleanedUp = PR_TRUE;
@@ -246,10 +265,8 @@ nsresult nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
   if (NP_SEEK == mStreamType)
     NS_RELEASE_THIS();
 
-  if (!mInst->CanFireNotifications()) {
-    mInst = nsnull;
+  if (!mInst || !mInst->CanFireNotifications())
     return rv;
-  }
 
   mStreamInfo = NULL;
 
@@ -257,13 +274,12 @@ nsresult nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
 
   const NPPluginFuncs *callbacks = nsnull;
   mInst->GetCallbacks(&callbacks);
-  if (!callbacks) {
-    mInst = nsnull;
+  if (!callbacks)
     return rv;
-  }
 
   NPP npp;
   mInst->GetNPP(&npp);
+
   if (mStreamStarted && callbacks->destroystream) {
     NPPAutoPusher nppPusher(npp);
 
@@ -285,8 +301,6 @@ nsresult nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
   
   CallURLNotify(reason);
 
-  mInst = nsnull;
-
   return rv;
 }
 
@@ -305,6 +319,7 @@ void nsNPAPIPluginStreamListener::CallURLNotify(NPReason reason)
     return;
   
   if (callbacks->urlnotify) {
+
     NPP npp;
     mInst->GetNPP(&npp);
 
@@ -458,11 +473,8 @@ nsNPAPIPluginStreamListener::StopDataPump()
 PRBool
 nsNPAPIPluginStreamListener::PluginInitJSLoadInProgress()
 {
-  if (!mInst)
-    return PR_FALSE;
-
-  for (unsigned int i = 0; i < mInst->mStreams.Length(); i++) {
-    if (mInst->mStreams[i]->mIsPluginInitJSStream) {
+  for (nsInstanceStream *is = mInst->mStreams; is; is = is->mNext) {
+    if (is->mPluginStreamListener->mIsPluginInitJSStream) {
       return PR_TRUE;
     }
   }
@@ -861,6 +873,16 @@ nsNPAPIPluginStreamListener::NewResponseHeader(const char* headerName,
   return NS_OK;
 }
 
+nsInstanceStream::nsInstanceStream()
+{
+  mNext = nsnull;
+  mPluginStreamListener = nsnull;
+}
+
+nsInstanceStream::~nsInstanceStream()
+{
+}
+
 NS_IMPL_ISUPPORTS1(nsNPAPIPluginInstance, nsIPluginInstance)
 
 nsNPAPIPluginInstance::nsNPAPIPluginInstance(NPPluginFuncs* callbacks,
@@ -896,9 +918,16 @@ nsNPAPIPluginInstance::nsNPAPIPluginInstance(NPPluginFuncs* callbacks,
   PLUGIN_LOG(PLUGIN_LOG_BASIC, ("nsNPAPIPluginInstance ctor: this=%p\n",this));
 }
 
-nsNPAPIPluginInstance::~nsNPAPIPluginInstance()
+nsNPAPIPluginInstance::~nsNPAPIPluginInstance(void)
 {
   PLUGIN_LOG(PLUGIN_LOG_BASIC, ("nsNPAPIPluginInstance dtor: this=%p\n",this));
+
+  
+  for (nsInstanceStream *is = mStreams; is != nsnull;) {
+    nsInstanceStream * next = is->mNext;
+    delete is;
+    is = next;
+  }
 
   if (mMIMEType) {
     PR_Free((void *)mMIMEType);
@@ -975,10 +1004,19 @@ NS_IMETHODIMP nsNPAPIPluginInstance::Stop()
   OnPluginDestroy(&mNPP);
 
   
-  for (unsigned int i = 0; i < mStreams.Length(); i++) {
-    mStreams[i]->CleanUpStream(NPRES_USER_BREAK);
+  for (nsInstanceStream *is = mStreams; is != nsnull;) {
+    nsRefPtr<nsNPAPIPluginStreamListener> listener = is->mPluginStreamListener;
+
+    nsInstanceStream *next = is->mNext;
+    delete is;
+    is = next;
+    mStreams = is;
+
+    
+    
+    if (listener)
+      listener->CleanUpStream(NPRES_USER_BREAK);
   }
-  mStreams.Clear();
 
   NPError error = NPERR_GENERIC_ERROR;
   if (mCallbacks->destroy) {
@@ -1258,10 +1296,23 @@ nsresult nsNPAPIPluginInstance::NewNotifyStream(nsIPluginStreamListener** listen
   nsNPAPIPluginStreamListener* stream = new nsNPAPIPluginStreamListener(this, notifyData, aURL);
   NS_ENSURE_TRUE(stream, NS_ERROR_OUT_OF_MEMORY);
 
-  mStreams.AppendElement(stream);
+  
+  nsInstanceStream * is = new nsInstanceStream();
+  NS_ENSURE_TRUE(is, NS_ERROR_OUT_OF_MEMORY);
+
+  is->mNext = mStreams;
+  is->mPluginStreamListener = stream;
+  mStreams = is;
   stream->SetCallNotify(aCallNotify); 
 
-  return stream->QueryInterface(kIPluginStreamListenerIID, (void**)listener);
+  NS_ADDREF(stream); 
+    
+  nsresult res = stream->QueryInterface(kIPluginStreamListenerIID, (void**)listener);
+
+  
+  NS_RELEASE(stream);
+
+  return res;
 }
 
 NS_IMETHODIMP nsNPAPIPluginInstance::Print(NPPrint* platformPrint)
