@@ -6656,10 +6656,6 @@ void
 mjit::Compiler::jsop_toid()
 {
     
-
-
-
-
     FrameEntry *top = frame.peek(-1);
 
     if (top->isType(JSVAL_TYPE_INT32))
