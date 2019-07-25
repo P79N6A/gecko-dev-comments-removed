@@ -701,14 +701,10 @@ var InspectorUI = {
       if (parentNode.defaultView) {
         return parentNode.defaultView.frameElement;
       }
-      if (this.embeddedBrowserParents) {
-        let skipParent = this.embeddedBrowserParents[node];
-        
-        if (skipParent)
-          return skipParent;
-      } else 
-        return null;
-    } else if (!parentNode.localName) {
+      
+      return null;
+    }
+    if (!parentNode.localName) {
       return null;
     }
     return parentNode;
@@ -722,11 +718,7 @@ var InspectorUI = {
     if (node.contentDocument) {
       
       if (index == 0) {
-        if (!this.embeddedBrowserParents)
-          this.embeddedBrowserParents = {};
-        let skipChild = node.contentDocument.documentElement;
-        this.embeddedBrowserParents[skipChild] = node;
-        return skipChild;  
+        return node.contentDocument.documentElement;  
       }
       return null;
     }
@@ -736,11 +728,7 @@ var InspectorUI = {
       if (svgDocument) {
         
         if (index == 0) {
-          if (!this.embeddedBrowserParents)
-            this.embeddedBrowserParents = {};
-          let skipChild = svgDocument.documentElement;
-          this.embeddedBrowserParents[skipChild] = node;
-          return skipChild;  
+          return svgDocument.documentElement;  
         }
         return null;
       }
