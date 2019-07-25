@@ -585,27 +585,9 @@ const gPopupBlockerObserver = {
 
   dontShowMessage: function ()
   {
-#if 0 
-    
     var showMessage = gPrefService.getBoolPref("privacy.popups.showBrowserMessage");
-    var firstTime = gPrefService.getBoolPref("privacy.popups.firstTime");
-
-    
-    
-    
-    if (showMessage && firstTime)
-      this._displayPageReportFirstTime();
-
     gPrefService.setBoolPref("privacy.popups.showBrowserMessage", !showMessage);
-#endif
-
     gBrowser.getNotificationBox().removeCurrentNotification();
-  },
-
-  _displayPageReportFirstTime: function ()
-  {
-    window.openDialog("chrome://browser/content/pageReportFirstTime.xul", "_blank",
-                      "dependent");
   }
 };
 
@@ -657,45 +639,39 @@ const gXPInstallObserver = {
     };
 
     switch (aTopic) {
-    case "addon-install-blocked":
-      var enabled = true;
-      try {
-        enabled = gPrefService.getBoolPref("xpinstall.enabled");
-      }
-      catch (e) {
-      }
+    case "addon-install-disabled":
+      notificationID = "xpinstall-disabled"
 
-      if (!enabled) {
-        notificationID = "xpinstall-disabled"
-
-        if (gPrefService.prefIsLocked("xpinstall.enabled")) {
-          messageString = gNavigatorBundle.getString("xpinstallDisabledMessageLocked");
-          buttons = [];
-        }
-        else {
-          messageString = gNavigatorBundle.getString("xpinstallDisabledMessage");
-
-          action = {
-            label: gNavigatorBundle.getString("xpinstallDisabledButton"),
-            accessKey: gNavigatorBundle.getString("xpinstallDisabledButton.accesskey"),
-            callback: function editPrefs() {
-              gPrefService.setBoolPref("xpinstall.enabled", true);
-            }
-          };
-        }
+      if (gPrefService.prefIsLocked("xpinstall.enabled")) {
+        messageString = gNavigatorBundle.getString("xpinstallDisabledMessageLocked");
+        buttons = [];
       }
       else {
-        messageString = gNavigatorBundle.getFormattedString("xpinstallPromptWarning",
-                          [brandShortName, installInfo.originatingURI.host]);
+        messageString = gNavigatorBundle.getString("xpinstallDisabledMessage");
 
         action = {
-          label: gNavigatorBundle.getString("xpinstallPromptAllowButton"),
-          accessKey: gNavigatorBundle.getString("xpinstallPromptAllowButton.accesskey"),
-          callback: function() {
-            installInfo.install();
+          label: gNavigatorBundle.getString("xpinstallDisabledButton"),
+          accessKey: gNavigatorBundle.getString("xpinstallDisabledButton.accesskey"),
+          callback: function editPrefs() {
+            gPrefService.setBoolPref("xpinstall.enabled", true);
           }
         };
       }
+
+      PopupNotifications.show(browser, notificationID, messageString, anchorID,
+                              action, null, options);
+      break;
+    case "addon-install-blocked":
+      messageString = gNavigatorBundle.getFormattedString("xpinstallPromptWarning",
+                        [brandShortName, installInfo.originatingURI.host]);
+
+      action = {
+        label: gNavigatorBundle.getString("xpinstallPromptAllowButton"),
+        accessKey: gNavigatorBundle.getString("xpinstallPromptAllowButton.accesskey"),
+        callback: function() {
+          installInfo.install();
+        }
+      };
 
       PopupNotifications.show(browser, notificationID, messageString, anchorID,
                               action, null, options);
@@ -1252,6 +1228,9 @@ function BrowserStartup() {
 
   BookmarksMenuButton.init();
 
+  
+  gPrivateBrowsingUI.init();
+
   setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
 }
 
@@ -1369,6 +1348,7 @@ function prepareForStartup() {
 
 function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
+  Services.obs.addObserver(gXPInstallObserver, "addon-install-disabled", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-blocked", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
@@ -1475,7 +1455,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   let NP = {};
-  Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+  Cu.import("resource:
   NP.trackBrowserWindow(window);
 
   
@@ -1525,7 +1505,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
     if (Win7Features) {
       let tempScope = {};
-      Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
+      Cu.import("resource:
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
@@ -1537,9 +1517,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   placesContext.addEventListener("popupshowing", updateEditUIVisibility, false);
   placesContext.addEventListener("popuphiding", updateEditUIVisibility, false);
 #endif
-
-  
-  gPrivateBrowsingUI.init();
 
   gBrowser.mPanelContainer.addEventListener("InstallBrowserTheme", LightWeightThemeWebInstaller, false, true);
   gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
@@ -1618,6 +1595,7 @@ function BrowserShutdown()
   }
 
   Services.obs.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-disabled");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
@@ -2791,11 +2769,11 @@ function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
   
-  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" ||
+  if (tipElement.namespaceURI == "http:
       !tipElement.ownerDocument)
     return retVal;
 
-  const XLinkNS = "http://www.w3.org/1999/xlink";
+  const XLinkNS = "http:
 
 
   var titleText = null;
@@ -2909,7 +2887,7 @@ var homeButtonObserver = {
       browserDragAndDrop.dragOver(aEvent, "droponhomebutton");
       aEvent.dropEffect = "link";
     },
-  onDragLeave: function (aEvent)
+  onDragExit: function (aEvent)
     {
       XULWindowBrowser.setStatusText("");
     }
@@ -2952,7 +2930,7 @@ var bookmarksButtonObserver = {
     aEvent.dropEffect = "link";
   },
 
-  onDragLeave: function (aEvent)
+  onDragExit: function (aEvent)
   {
     XULWindowBrowser.setStatusText("");
   }
@@ -2964,7 +2942,7 @@ var newTabButtonObserver = {
     browserDragAndDrop.dragOver(aEvent, "droponnewtabbutton");
   },
 
-  onDragLeave: function (aEvent)
+  onDragExit: function (aEvent)
   {
     XULWindowBrowser.setStatusText("");
   },
@@ -2986,7 +2964,7 @@ var newWindowButtonObserver = {
   {
     browserDragAndDrop.dragOver(aEvent, "droponnewwindowbutton");
   },
-  onDragLeave: function (aEvent)
+  onDragExit: function (aEvent)
   {
     XULWindowBrowser.setStatusText("");
   },
@@ -3013,7 +2991,7 @@ var DownloadsButtonDNDObserver = {
       aEvent.preventDefault();
   },
 
-  onDragLeave: function (aEvent)
+  onDragExit: function (aEvent)
   {
     XULWindowBrowser.setStatusText("");
   },
@@ -3923,6 +3901,7 @@ var XULBrowserWindow = {
   startTime: 0,
   statusText: "",
   isBusy: false,
+  inContentWhitelist: ["about:addons"],
 
   QueryInterface: function (aIID) {
     if (aIID.equals(Ci.nsIWebProgressListener) ||
@@ -3999,18 +3978,29 @@ var XULBrowserWindow = {
     if (originalTarget != "" || !isAppTab)
       return originalTarget;
 
-    let docURI = linkNode.ownerDocument.documentURIObject;
+    
+    
+    let linkHost;
+    let docHost;
     try {
-      let docURIDomain = Services.eTLD.getBaseDomain(docURI, 0);
-      let linkURIDomain = Services.eTLD.getBaseDomain(linkURI, 0);
-      
-      
-      if (docURIDomain != linkURIDomain)
-        return "_blank";
+      linkHost = linkURI.host;
+      docHost = linkNode.ownerDocument.documentURIObject.host;
     } catch(e) {
       
+      
+      return originalTarget;
     }
-    return originalTarget;
+
+    if (docHost == linkHost)
+      return originalTarget;
+
+    
+    let [longHost, shortHost] =
+      linkHost.length > docHost.length ? [linkHost, docHost] : [docHost, linkHost];
+    if (longHost == "www." + shortHost)
+      return originalTarget;
+
+    return "_blank";
   },
 
   onLinkIconAvailable: function (aIconURL) {
@@ -4149,6 +4139,16 @@ var XULBrowserWindow = {
         }
       }
     }
+
+    
+    var disableChrome = this.inContentWhitelist.some(function(aSpec) {
+      return aSpec == location;
+    });
+
+    if (disableChrome)
+      document.documentElement.setAttribute("disablechrome", "true");
+    else
+      document.documentElement.removeAttribute("disablechrome");
 
     
     
@@ -4327,6 +4327,8 @@ var XULBrowserWindow = {
     var location = gBrowser.contentWindow.location;
     var locationObj = {};
     try {
+      
+      locationObj.protocol = location == "about:blank" ? "http:" : location.protocol;
       locationObj.host = location.host;
       locationObj.hostname = location.hostname;
       locationObj.port = location.port;
@@ -5448,6 +5450,8 @@ function setStyleDisabled(disabled) {
 
 
 var BrowserOffline = {
+  _inited: false,
+
   
   
   init: function ()
@@ -5458,13 +5462,14 @@ var BrowserOffline = {
     Services.obs.addObserver(this, "network:offline-status-changed", false);
 
     this._updateOfflineUI(Services.io.offline);
+
+    this._inited = true;
   },
 
   uninit: function ()
   {
-    try {
+    if (this._inited) {
       Services.obs.removeObserver(this, "network:offline-status-changed");
-    } catch (ex) {
     }
   },
 
@@ -6792,6 +6797,7 @@ function undoCloseTab(aIndex) {
   var ss = Cc["@mozilla.org/browser/sessionstore;1"].
            getService(Ci.nsISessionStore);
   if (ss.getClosedTabCount(window) > (aIndex || 0)) {
+    TabView.prepareUndoCloseTab();
     tab = ss.undoCloseTab(window, aIndex || 0);
 
     if (blankTabToRemove)
@@ -6892,10 +6898,12 @@ var gIdentityHandler = {
   IDENTITY_MODE_DOMAIN_VERIFIED  : "verifiedDomain",   
   IDENTITY_MODE_UNKNOWN          : "unknownIdentity",  
   IDENTITY_MODE_MIXED_CONTENT    : "unknownIdentity mixedContent",  
+  IDENTITY_MODE_CHROMEUI         : "chromeUI",         
 
   
   _lastStatus : null,
   _lastLocation : null,
+  _mode : "unknownIdentity",
 
   
   get _encryptionLabel () {
@@ -7035,7 +7043,9 @@ var gIdentityHandler = {
     this._lastLocation = location;
 
     let nsIWebProgressListener = Ci.nsIWebProgressListener;
-    if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+    if (location.protocol == "chrome:" || location.protocol == "about:")
+      this.setMode(this.IDENTITY_MODE_CHROMEUI);
+    else if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
     else if (state & nsIWebProgressListener.STATE_SECURE_HIGH)
       this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
@@ -7084,6 +7094,8 @@ var gIdentityHandler = {
     
     if (this._identityPopup.state == "open")
       this.setPopupMessages(newMode);
+
+    this._mode = newMode;
   },
 
   
@@ -7149,6 +7161,12 @@ var gIdentityHandler = {
       
       icon_labels_dir = /^[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/.test(icon_label) ?
                         "rtl" : "ltr";
+    }
+    else if (newMode == this.IDENTITY_MODE_CHROMEUI) {
+      icon_label = "";
+      tooltip = "";
+      icon_country_label = "";
+      icon_labels_dir = "ltr";
     }
     else {
       tooltip = gNavigatorBundle.getString("identity.unknown.tooltip");
@@ -7244,6 +7262,9 @@ var gIdentityHandler = {
     
     gURLBar.handleRevert();
 
+    if (this._mode == this.IDENTITY_MODE_CHROMEUI)
+      return;
+
     
     
     this._identityPopup.hidden = false;
@@ -7257,7 +7278,7 @@ var gIdentityHandler = {
 
     
     
-    var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_end' : 'after_start';
+    var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'bottomcenter topright' : 'bottomcenter topleft';
 
     
     this._identityBox.setAttribute("open", "true");
@@ -7284,7 +7305,7 @@ var gIdentityHandler = {
     dt.setData("text/uri-list", value);
     dt.setData("text/plain", value);
     dt.setData("text/html", htmlString);
-    dt.setDragImage(event.currentTarget, 0, 0);
+    dt.addElement(event.currentTarget);
   }
 };
 
@@ -7444,6 +7465,7 @@ let gPrivateBrowsingUI = {
   _privateBrowsingService: null,
   _searchBarValue: null,
   _findBarValue: null,
+  _inited: false,
 
   init: function PBUI_init() {
     Services.obs.addObserver(this, "private-browsing", false);
@@ -7454,9 +7476,14 @@ let gPrivateBrowsingUI = {
 
     if (this.privateBrowsingEnabled)
       this.onEnterPrivateBrowsing(true);
+
+    this._inited = true;
   },
 
   uninit: function PBUI_unint() {
+    if (!this._inited)
+      return;
+
     Services.obs.removeObserver(this, "private-browsing");
     Services.obs.removeObserver(this, "private-browsing-transition-complete");
   },
@@ -7482,11 +7509,8 @@ let gPrivateBrowsingUI = {
     }
     else if (aTopic == "private-browsing-transition-complete") {
       if (this._disableUIOnToggle) {
-        
-        setTimeout(function() {
-          document.getElementById("Tools:PrivateBrowsing")
-                  .removeAttribute("disabled");
-        }, 0);
+        document.getElementById("Tools:PrivateBrowsing")
+                .removeAttribute("disabled");
       }
     }
   },
