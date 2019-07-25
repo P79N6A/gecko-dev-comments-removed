@@ -80,16 +80,6 @@ JS_ALWAYS_INLINE bool
 JSString::validateLength(JSContext *cx, size_t length)
 {
     if (JS_UNLIKELY(length > JSString::MAX_LENGTH)) {
-        if (JS_ON_TRACE(cx)) {
-            
-
-
-
-            if (!js::CanLeaveTrace(cx))
-                return NULL;
-
-            js::LeaveTrace(cx);
-        }
         js_ReportAllocationOverflow(cx);
         return false;
     }

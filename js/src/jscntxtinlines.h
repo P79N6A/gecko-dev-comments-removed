@@ -373,38 +373,10 @@ CallSetter(JSContext *cx, JSObject *obj, jsid id, StrictPropertyOp op, uintN att
     return CallJSPropertyOpSetter(cx, op, obj, id, strict, vp);
 }
 
-#ifdef JS_TRACER
-
-
-
-
-
-
-
-JS_FORCES_STACK JS_FRIEND_API(void)
-DeepBail(JSContext *cx);
-#endif
-
-static JS_INLINE void
-LeaveTraceIfGlobalObject(JSContext *cx, JSObject *obj)
-{
-    if (obj->isGlobal())
-        LeaveTrace(cx);
-}
-
-static JS_INLINE void
-LeaveTraceIfArgumentsObject(JSContext *cx, JSObject *obj)
-{
-    if (obj->isArguments())
-        LeaveTrace(cx);
-}
-
 static inline JSAtom **
 FrameAtomBase(JSContext *cx, js::StackFrame *fp)
 {
-    return fp->hasImacropc()
-           ? cx->runtime->atomState.commonAtomsStart()
-           : fp->script()->atoms;
+    return fp->script()->atoms;
 }
 
 }  
@@ -520,13 +492,9 @@ JSContext::ensureParseMapPool()
 
 
 
-
-
 static JS_FORCES_STACK JS_INLINE js::StackFrame *
 js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
 {
-    js::LeaveTrace(cx);
-
 #ifdef JS_METHODJIT
     if (expand)
         js::mjit::ExpandInlineFrames(cx->compartment);

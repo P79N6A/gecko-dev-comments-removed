@@ -70,18 +70,6 @@
 #pragma warning(disable:4355) /* Silence warning about "this" used in base member initializer list */
 #endif
 
-
-namespace nanojit {
-
-class Assembler;
-class CodeAlloc;
-class Fragment;
-template<typename K> struct DefaultHash;
-template<typename K, typename V, typename H> class HashMap;
-template<typename T> class Seq;
-
-}  
-
 JS_BEGIN_EXTERN_C
 struct DtoaState;
 JS_END_EXTERN_C
@@ -94,35 +82,12 @@ struct JSSharpObjectMap {
 
 namespace js {
 
-
-static const size_t MONITOR_N_GLOBAL_STATES = 4;
-static const size_t FRAGMENT_TABLE_SIZE = 512;
-static const size_t MAX_GLOBAL_SLOTS = 4096;
-static const size_t GLOBAL_SLOTS_BUFFER_SIZE = MAX_GLOBAL_SLOTS + 1;
-
-
-class VMAllocator;
-class FrameInfoCache;
-struct FrameInfo;
-struct VMSideExit;
-struct TreeFragment;
-struct TracerState;
-template<typename T> class Queue;
-typedef Queue<uint16> SlotList;
-class TypeMap;
-class LoopProfile;
-class InterpreterFrames;
-
-#if defined(JS_JIT_SPEW) || defined(DEBUG)
-struct FragPI;
-typedef nanojit::HashMap<uint32, FragPI, nanojit::DefaultHash<uint32> > FragStatsMap;
-#endif
-
 namespace mjit {
 class JaegerCompartment;
 }
 
 class WeakMapBase;
+class InterpreterFrames;
 
 
 
@@ -165,25 +130,6 @@ struct ThreadData {
 #ifdef JS_THREADSAFE
     
     unsigned            requestDepth;
-#endif
-
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-
-    JSCompartment       *onTraceCompartment;
-    JSCompartment       *recordingCompartment;
-    JSCompartment       *profilingCompartment;
-
-    
-    uint32              maxCodeCacheBytes;
-
-    static const uint32 DEFAULT_JIT_CACHE_SIZE = 16 * 1024 * 1024;
 #endif
 
     
@@ -599,14 +545,6 @@ struct JSRuntime
 
     
     JSBool              hadOutOfMemory;
-
-#ifdef JS_TRACER
-    
-    bool debuggerInhibitsJIT() const {
-        return (globalDebugHooks.interruptHook ||
-                globalDebugHooks.callHook);
-    }
-#endif
 
     
 
@@ -1158,23 +1096,8 @@ struct JSContext
     
     js::Value           iterValue;
 
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-
-
-
-    bool                 traceJitEnabled;
-#endif
-
 #ifdef JS_METHODJIT
     bool                 methodJitEnabled;
-    bool                 profilingEnabled;
 
     inline js::mjit::JaegerCompartment *jaegerCompartment();
 #endif
@@ -1421,15 +1344,7 @@ class AutoGCRooter {
 
     
     inline void trace(JSTracer *trc);
-
-#ifdef __GNUC__
-# pragma GCC visibility push(default)
-#endif
-    friend JS_FRIEND_API(void) MarkContext(JSTracer *trc, JSContext *acx);
-    friend void MarkRuntime(JSTracer *trc);
-#ifdef __GNUC__
-# pragma GCC visibility pop
-#endif
+    void traceAll(JSTracer *trc);
 
   protected:
     AutoGCRooter * const down;
@@ -2163,16 +2078,7 @@ js_GetCurrentBytecodePC(JSContext* cx);
 extern JSScript *
 js_GetCurrentScript(JSContext* cx);
 
-extern bool
-js_CurrentPCIsInImacro(JSContext *cx);
-
 namespace js {
-
-extern JS_FORCES_STACK JS_FRIEND_API(void)
-LeaveTrace(JSContext *cx);
-
-extern bool
-CanLeaveTrace(JSContext *cx);
 
 #ifdef JS_METHODJIT
 namespace mjit {

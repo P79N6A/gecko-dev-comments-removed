@@ -62,8 +62,6 @@
 #include "gc/Barrier.h"
 #include "vm/String.h"
 
-namespace nanojit { class ValidateWriter; }
-
 namespace js {
 
 class AutoPropDescArrayRooter;
@@ -457,15 +455,6 @@ extern HeapValue *emptyObjectElements;
 
 struct JSObject : js::gc::Cell
 {
-    
-
-
-
-
-
-    friend class js::TraceRecorder;
-    friend class nanojit::ValidateWriter;
-
   private:
     friend struct js::Shape;
 

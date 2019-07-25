@@ -165,31 +165,6 @@ GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
 }
 
 
-
-
-typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
-                               int *result);
-
-enum JSMergeSortElemType {
-    JS_SORTING_VALUES,
-    JS_SORTING_GENERIC
-};
-
-
-
-
-
-
-
-
-
-
-
-extern bool
-js_MergeSort(void *vec, size_t nel, size_t elsize, JSComparator cmp,
-             void *arg, void *tmp, JSMergeSortElemType elemType);
-
-
 namespace js {
 
 extern JSBool

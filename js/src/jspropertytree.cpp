@@ -350,11 +350,11 @@ js::PropertyTree::dumpShapes(JSContext *cx)
     JSRuntime *rt = cx->runtime;
     fprintf(dumpfp, "rt->gcNumber = %lu", (unsigned long)rt->gcNumber);
 
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
-        if (rt->gcCurrentCompartment != NULL && rt->gcCurrentCompartment != *c)
+    for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        if (rt->gcCurrentCompartment != NULL && rt->gcCurrentCompartment != c)
             continue;
 
-        fprintf(dumpfp, "*** Compartment %p ***\n", (void *)*c);
+        fprintf(dumpfp, "*** Compartment %p ***\n", (void *)c.get());
 
         
 

@@ -210,6 +210,30 @@ GetCompartmentShapeTableSize(JSCompartment *c, JSUsableSizeFun usf);
 extern JS_FRIEND_API(bool)
 CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname);
 
+struct WeakMapTracer;
+
+
+
+
+
+
+
+typedef void
+(* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m,
+                         void *k, JSGCTraceKind kkind,
+                         void *v, JSGCTraceKind vkind);
+
+struct WeakMapTracer {
+    JSContext            *context;
+    WeakMapTraceCallback callback;
+
+    WeakMapTracer(JSContext *cx, WeakMapTraceCallback cb) 
+        : context(cx), callback(cb) {}
+};
+
+extern JS_FRIEND_API(void)
+TraceWeakMaps(WeakMapTracer *trc);
+
 
 
 
@@ -402,10 +426,7 @@ StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
 #define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
 
-
-#define JSFUN_TRCINFO     0x2000
-
 } 
 #endif
 
-#endif
+#endif 

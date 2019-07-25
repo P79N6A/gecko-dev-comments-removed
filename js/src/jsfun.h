@@ -304,21 +304,6 @@ JSObject::toFunction() const
     return static_cast<const JSFunction *>(this);
 }
 
-
-
-
-
-
-#ifdef JS_TRACER
-
-# define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
-    JS_FN(name, JS_DATA_TO_FUNC_PTR(Native, trcinfo), nargs,                  \
-          (flags) | JSFUN_STUB_GSOPS | JSFUN_TRCINFO)
-#else
-# define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
-    JS_FN(name, fastcall, nargs, flags)
-#endif
-
 extern JSString *
 fun_toStringHelper(JSContext *cx, JSObject *obj, uintN indent);
 
