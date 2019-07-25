@@ -210,7 +210,9 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
                   nsnull,                             
                   &widgetInitData);                   
   mWindow->GetClientBounds(r);
-  mWindow->SetBackgroundColor(NS_RGB(192,192,192));
+  
+  
+  mWindow->SetBackgroundColor(NS_RGB(255,255,255));
 
   
   mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
