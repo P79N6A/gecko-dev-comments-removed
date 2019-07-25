@@ -256,7 +256,7 @@ SyncCore.prototype = {
 	    skip = true;
 	    return false; 
           }
-  
+
           
           if (b.action == "create" && this._itemExists(b.GUID)) {
             this._log.error("Remote command has GUID that already exists " +
