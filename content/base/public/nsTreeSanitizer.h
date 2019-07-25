@@ -138,9 +138,10 @@ class NS_STACK_CLASS nsTreeSanitizer {
 
 
 
-    void SanitizeURL(mozilla::dom::Element* aElement,
-                     PRInt32 aNamespace,
-                     nsIAtom* aLocalName);
+
+    PRBool SanitizeURL(mozilla::dom::Element* aElement,
+                       PRInt32 aNamespace,
+                       nsIAtom* aLocalName);
 
     
 

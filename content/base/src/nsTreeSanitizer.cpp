@@ -1227,7 +1227,12 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
         continue;
       }
       if (IsURL(aURLs, attrLocal)) {
-        SanitizeURL(aElement, attrNs, attrLocal);
+        if (SanitizeURL(aElement, attrNs, attrLocal)) {
+          
+          
+          --ac;
+          i = ac; 
+        }
         continue;
       }
       if (aAllowed->GetEntry(attrLocal) &&
@@ -1252,7 +1257,12 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
       
     } else if (kNameSpaceID_XML == attrNs) {
       if (nsGkAtoms::base == attrLocal) {
-        SanitizeURL(aElement, attrNs, attrLocal);
+        if (SanitizeURL(aElement, attrNs, attrLocal)) {
+          
+          
+          --ac;
+          i = ac; 
+        }
         continue;
       }
       if (nsGkAtoms::lang == attrLocal || nsGkAtoms::space == attrLocal) {
@@ -1261,7 +1271,12 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
       
     } else if (aAllowXLink && kNameSpaceID_XLink == attrNs) {
       if (nsGkAtoms::href == attrLocal) {
-        SanitizeURL(aElement, attrNs, attrLocal);
+        if (SanitizeURL(aElement, attrNs, attrLocal)) {
+          
+          
+          --ac;
+          i = ac; 
+        }
         continue;
       }
       if (nsGkAtoms::type == attrLocal || nsGkAtoms::title == attrLocal
@@ -1288,7 +1303,7 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
   }
 }
 
-void
+PRBool
 nsTreeSanitizer::SanitizeURL(mozilla::dom::Element* aElement,
                              PRInt32 aNamespace,
                              nsIAtom* aLocalName)
@@ -1312,7 +1327,9 @@ nsTreeSanitizer::SanitizeURL(mozilla::dom::Element* aElement,
   }
   if (NS_FAILED(rv)) {
     aElement->UnsetAttr(aNamespace, aLocalName, PR_FALSE);
+    return PR_TRUE;
   }
+  return PR_FALSE;
 }
 
 void
