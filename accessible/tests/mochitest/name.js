@@ -18,8 +18,7 @@ function testName(aAccOrElmOrID, aName, aMsg)
 
 
 
-var gNameRulesFileURL =
-  "chrome://mochikit/content/a11y/accessible/namerules.xml";
+var gNameRulesFileURL = "namerules.xml";
 
 var gRuleDoc = null;
 
