@@ -291,11 +291,6 @@ typedef JSIntn JSBool;
 
 
 
-#define JS_NEITHER (JSIntn)2
-
-
-
-
 
 
 
