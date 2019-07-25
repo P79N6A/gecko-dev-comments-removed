@@ -58,7 +58,6 @@
 
 #include "jsbool.h"
 #include "jscntxt.h"
-#include "GlobalObject.h"
 #include "jsnum.h"
 #include "jsscriptinlines.h"
 #include "jsstr.h"
