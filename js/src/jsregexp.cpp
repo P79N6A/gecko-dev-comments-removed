@@ -4765,7 +4765,7 @@ MatchRegExp(REGlobalData *gData, REMatchState *x)
     NativeRegExp native;
 
     
-    if (REGEX_JIT_ENABLED(gData->cx) &&
+    if (TRACING_ENABLED(gData->cx) &&
         !(gData->regexp->flags & JSREG_NOCOMPILE) &&
         (native = GetNativeRegExp(gData->cx, gData->regexp))) {
 
@@ -4985,7 +4985,7 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
             ok = JS_FALSE;
             goto out;
         }
-        rval->setNonFunObj(*obj);
+        rval->setObject(*obj);
 
 #define DEFVAL(valinit, id) {                                                 \
     Value tmp = valinit;                                                      \
@@ -5569,7 +5569,7 @@ created:
     JS_UNLOCK_OBJ(cx, obj);
     if (oldre)
         js_DestroyRegExp(cx, oldre);
-    rval->setNonFunObj(*obj);
+    rval->setObject(*obj);
     return JS_TRUE;
 }
 
@@ -5710,7 +5710,7 @@ RegExp(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
 
 
 
-        rval->setNonFunObj(*obj);
+        rval->setObject(*obj);
     }
     return regexp_compile_sub(cx, obj, argc, argv, rval);
 }
