@@ -131,7 +131,8 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
 
 
-            obj->setDelegate();
+            if (!obj->isDelegate())
+                return JS_NO_PROP_CACHE_FILL;
         }
     }
 

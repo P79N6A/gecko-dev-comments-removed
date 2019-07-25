@@ -64,7 +64,6 @@ CallObject::create(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObje
     
     if (!obj->initCall(cx, bindings, &scopeChain))
         return NULL;
-    obj->makeVarObj();
 
 #ifdef DEBUG
     for (Shape::Range r = obj->lastProperty(); !r.empty(); r.popFront()) {

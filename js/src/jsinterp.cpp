@@ -809,8 +809,10 @@ js::Execute(JSContext *cx, JSScript *script, JSObject &scopeChainArg, Value *rva
     JS_ASSERT(!scopeChain->getOps()->defineProperty);
 
     
-    if (!cx->hasRunOption(JSOPTION_VAROBJFIX))
-        scopeChain->makeVarObj();
+    if (!cx->hasRunOption(JSOPTION_VAROBJFIX)) {
+        if (!scopeChain->setVarObj(cx))
+            return false;
+    }
 
     
     JSObject *thisObj = scopeChain->thisObject(cx);
@@ -930,7 +932,6 @@ js::LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *re
         if (lval.isObject()) {
             JSObject *l = &lval.toObject();
             JSObject *r = &rval.toObject();
-            l->assertSpecialEqualitySynced();
 
             if (JSEqualityOp eq = l->getClass()->ext.equality) {
                 return eq(cx, l, &rval, result);

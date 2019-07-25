@@ -1895,19 +1895,24 @@ JSObject::initBoundFunction(JSContext *cx, const Value &thisArg,
 {
     JS_ASSERT(isFunction());
 
-    flags |= JSObject::BOUND_FUNCTION;
     setSlot(JSSLOT_BOUND_FUNCTION_THIS, thisArg);
     setSlot(JSSLOT_BOUND_FUNCTION_ARGS_COUNT, PrivateUint32Value(argslen));
-    if (argslen != 0) {
-        
-        if (!toDictionaryMode(cx))
-            return false;
-        JS_ASSERT(slotSpan() == JSSLOT_FREE(&FunctionClass));
-        if (!setSlotSpan(cx, slotSpan() + argslen))
-            return false;
 
-        copySlotRange(FUN_CLASS_RESERVED_SLOTS, args, argslen);
-    }
+    
+
+
+
+    if (!toDictionaryMode(cx))
+        return false;
+
+    lastProperty()->base()->setObjectFlag(BaseShape::BOUND_FUNCTION);
+
+    JS_ASSERT(slotSpan() == JSSLOT_FREE(&FunctionClass));
+    if (!setSlotSpan(cx, slotSpan() + argslen))
+        return false;
+
+    copySlotRange(FUN_CLASS_RESERVED_SLOTS, args, argslen);
+
     return true;
 }
 
@@ -2513,57 +2518,12 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, Native native,
         sop = NULL;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool wasDelegate = obj->isDelegate();
-
     fun = js_NewFunction(cx, NULL, native, nargs,
                          attrs & (JSFUN_FLAGS_MASK | JSFUN_TRCINFO),
                          obj,
                          JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : NULL);
     if (!fun)
         return NULL;
-
-    if (!wasDelegate && obj->isDelegate())
-        obj->clearDelegate();
 
     if (!obj->defineProperty(cx, id, ObjectValue(*fun), gop, sop, attrs & ~JSFUN_FLAGS_MASK))
         return NULL;

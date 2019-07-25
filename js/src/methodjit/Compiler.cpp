@@ -6309,14 +6309,17 @@ mjit::Compiler::jsop_instanceof()
     RegisterID tmp = frame.allocReg();
     RegisterID obj = frame.tempRegForData(rhs);
 
-    Jump notFunction = masm.testFunction(Assembler::NotEqual, obj, tmp);
+    masm.loadBaseShape(obj, tmp);
+    Jump notFunction = masm.branchPtr(Assembler::NotEqual,
+                                      Address(tmp, BaseShape::offsetOfClass()),
+                                      ImmPtr(&FunctionClass));
+
     stubcc.linkExit(notFunction, Uses(2));
 
-    frame.freeReg(tmp);
-
     
-    Jump isBound = masm.branchTest32(Assembler::NonZero, Address(obj, offsetof(JSObject, flags)),
-                                     Imm32(JSObject::BOUND_FUNCTION));
+    Jump isBound = masm.branchTest32(Assembler::NonZero,
+                                     Address(tmp, BaseShape::offsetOfFlags()),
+                                     Imm32(BaseShape::BOUND_FUNCTION));
     {
         stubcc.linkExit(isBound, Uses(2));
         stubcc.leave();
@@ -6324,6 +6327,7 @@ mjit::Compiler::jsop_instanceof()
         firstSlow = stubcc.masm.jump();
     }
 
+    frame.freeReg(tmp);
 
     
     frame.dup();

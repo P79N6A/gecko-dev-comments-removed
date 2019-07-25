@@ -522,16 +522,6 @@ struct JSObject : js::gc::Cell
     inline bool nativeContains(JSContext *cx, const js::Shape &shape);
 
     enum {
-        DELEGATE                  =       0x01,
-        SYSTEM                    =       0x02,
-        NOT_EXTENSIBLE            =       0x04,
-        GENERIC                   =       0x10,
-        INDEXED                   =       0x40,
-        BOUND_FUNCTION            =      0x400,
-        HAS_EQUALITY              =      0x800,
-        VAROBJ                    =     0x1000,
-        WATCHED                   =     0x2000,
-        ITERATED                  =     0x8000,
         SINGLETON_TYPE            =    0x10000,
         LAZY_TYPE                 =    0x20000,
 
@@ -571,49 +561,38 @@ struct JSObject : js::gc::Cell
 
 
 
-    bool isDelegate() const     { return !!(flags & DELEGATE); }
-    void setDelegate()          { flags |= DELEGATE; }
-    void clearDelegate()        { flags &= ~DELEGATE; }
+    inline bool isDelegate() const;
+    inline bool setDelegate(JSContext *cx);
 
-    bool isBoundFunction() const { return !!(flags & BOUND_FUNCTION); }
-
-    static void setDelegateNullSafe(JSObject *obj) {
-        if (obj)
-            obj->setDelegate();
-    }
+    inline bool isBoundFunction() const;
 
     
 
 
 
 
-    bool isSystem() const       { return !!(flags & SYSTEM); }
-    void setSystem()            { flags |= SYSTEM; }
+    inline bool isSystem() const;
+    inline bool setSystem(JSContext *cx);
 
-    bool generic()              { return !!(flags & GENERIC); }
-    void setGeneric()           { flags |= GENERIC; }
+    inline bool hasSpecialEquality() const;
 
-    bool hasSpecialEquality() const { return !!(flags & HAS_EQUALITY); }
-    inline void assertSpecialEqualitySynced() const;
+    inline bool watched() const;
+    inline bool setWatched(JSContext *cx);
 
     
-    inline void syncSpecialEquality();
+    inline bool isVarObj() const;
+    inline bool setVarObj(JSContext *cx);
 
-    bool watched() const { return !!(flags & WATCHED); }
-
-    bool setWatched(JSContext *cx) {
-        if (!watched()) {
-            flags |= WATCHED;
-            return generateOwnShape(cx);
-        }
-        return true;
-    }
-
-   
-   inline bool isVarObj() const { return flags & VAROBJ; }
-   inline void makeVarObj() { flags |= VAROBJ; }
   private:
     bool generateOwnShape(JSContext *cx, js::Shape *newShape = NULL);
+
+    enum GenerateShape {
+        GENERATE_NONE,
+        GENERATE_SHAPE
+    };
+
+    bool setFlag(JSContext *cx,  uint32 flag,
+                 GenerateShape generateShape = GENERATE_NONE);
 
   public:
     inline bool nativeEmpty() const;
@@ -627,11 +606,6 @@ struct JSObject : js::gc::Cell
     bool protoShapeChange(JSContext *cx);
     bool shadowingShapeChange(JSContext *cx, const js::Shape &shape);
 
-    bool extensibleShapeChange(JSContext *cx) {
-        
-        return generateOwnShape(cx);
-    }
-
     
 
 
@@ -642,8 +616,8 @@ struct JSObject : js::gc::Cell
     
     inline bool canHaveMethodBarrier() const;
 
-    bool isIndexed() const          { return !!(flags & INDEXED); }
-    void setIndexed()               { flags |= INDEXED; }
+    inline bool isIndexed() const;
+    inline bool setIndexed(JSContext *cx);
 
     
 
@@ -809,7 +783,7 @@ struct JSObject : js::gc::Cell
     }
 
     
-    inline void updateFlags(const js::Shape *shape, bool isDefinitelyAtom = false);
+    inline bool updateFlags(JSContext *cx, jsid id, bool isDefinitelyAtom = false);
 
     
     inline bool extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom = false);
@@ -854,6 +828,8 @@ struct JSObject : js::gc::Cell
 #ifdef DEBUG
     bool hasNewType(js::types::TypeObject *newType);
 #endif
+
+    inline bool setIteratedSingleton(JSContext *cx);
 
     
     bool splicePrototype(JSContext *cx, JSObject *proto);
@@ -925,7 +901,7 @@ struct JSObject : js::gc::Cell
     inline void *&privateAddress(uint32 nfixed) const;
 
   public:
-    bool isExtensible() const { return !(flags & NOT_EXTENSIBLE); }
+    inline bool isExtensible() const;
     bool preventExtensions(JSContext *cx, js::AutoIdVector *props);
 
     
@@ -1703,23 +1679,6 @@ js_CreateThis(JSContext *cx, JSObject *callee);
 
 extern jsid
 js_CheckForStringIndex(jsid id);
-
-
-
-
-
-
-
-extern bool
-js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id);
-
-inline bool
-js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
-{
-    if (obj->isDelegate())
-        return js_PurgeScopeChainHelper(cx, obj, id);
-    return true;
-}
 
 
 
