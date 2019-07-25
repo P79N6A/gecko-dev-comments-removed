@@ -1080,20 +1080,6 @@ class ValueArray {
     ValueArray(js::Value *v, size_t c) : array(v), length(c) {}
 };
 
-
-extern bool
-js_EnterSharpObject(JSContext *cx, js::HandleObject obj, JSIdArray **idap, bool *alreadySeen, bool *isSharp);
-
-extern void
-js_LeaveSharpObject(JSContext *cx, JSIdArray **idap);
-
-
-
-
-
-extern void
-js_TraceSharpMap(JSTracer *trc, JSSharpObjectMap *map);
-
 extern JSBool
 js_HasOwnPropertyHelper(JSContext *cx, js::LookupGenericOp lookup, js::HandleObject obj,
                         js::HandleId id, js::MutableHandleValue rval);

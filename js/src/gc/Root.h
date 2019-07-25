@@ -236,6 +236,7 @@ typedef MutableHandle<Value>        MutableHandleValue;
 
 
 typedef JSObject *                  RawObject;
+typedef JSString *                  RawString;
 
 
 
