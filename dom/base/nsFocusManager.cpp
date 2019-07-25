@@ -927,8 +927,7 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
   
   
 
-  nsIContent* oldFocusedContent = mFocusedContent;
-  mFocusedContent = nsnull;
+  nsCOMPtr<nsIContent> oldFocusedContent = mFocusedContent.forget();
 
   if (oldFocusedContent && oldFocusedContent->IsInDoc()) {
     NotifyFocusStateChange(oldFocusedContent,
