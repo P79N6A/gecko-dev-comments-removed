@@ -11321,19 +11321,14 @@ nsCSSFrameConstructor::ReframeContainingBlock(nsIFrame* aFrame)
 }
 
 void
-nsCSSFrameConstructor::RestyleForAppend(nsIContent* aContainer,
-                                        PRInt32 aNewIndexInContainer)
+nsCSSFrameConstructor::RestyleForAppend(Element* aContainer,
+                                        nsIContent* aFirstNewContent)
 {
   NS_ASSERTION(aContainer, "must have container for append");
 #ifdef DEBUG
   {
-    for (PRInt32 index = aNewIndexInContainer;; ++index) {
-      nsIContent *content = aContainer->GetChildAt(index);
-      if (!content) {
-        NS_ASSERTION(index != aNewIndexInContainer, "yikes, nothing appended");
-        break;
-      }
-      NS_ASSERTION(!content->IsRootOfAnonymousSubtree(),
+    for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
+      NS_ASSERTION(!cur->IsRootOfAnonymousSubtree(),
                    "anonymous nodes should not be in child lists");
     }
   }
@@ -11353,13 +11348,14 @@ nsCSSFrameConstructor::RestyleForAppend(nsIContent* aContainer,
   if (selectorFlags & NODE_HAS_EMPTY_SELECTOR) {
     
     PRBool wasEmpty = PR_TRUE; 
-    for (PRInt32 index = 0; index < aNewIndexInContainer; ++index) {
+    for (nsIContent* cur = aContainer->GetFirstChild();
+         cur != aFirstNewContent;
+         cur = cur->GetNextSibling()) {
       
       
       
       
-      if (nsStyleUtil::IsSignificantChild(aContainer->GetChildAt(index),
-                                          PR_TRUE, PR_FALSE)) {
+      if (nsStyleUtil::IsSignificantChild(cur, PR_TRUE, PR_FALSE)) {
         wasEmpty = PR_FALSE;
         break;
       }
@@ -11372,10 +11368,11 @@ nsCSSFrameConstructor::RestyleForAppend(nsIContent* aContainer,
   }
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {
     
-    for (PRInt32 index = aNewIndexInContainer - 1; index >= 0; --index) {
-      nsIContent *content = aContainer->GetChildAt(index);
-      if (content->IsElement()) {
-        PostRestyleEvent(content, eRestyle_Self, NS_STYLE_HINT_NONE);
+    for (nsIContent* cur = aFirstNewContent->GetPreviousSibling();
+         cur;
+         cur = cur->GetPreviousSibling()) {
+      if (cur->IsElement()) {
+        PostRestyleEvent(cur->AsElement(), eRestyle_Self, NS_STYLE_HINT_NONE);
         break;
       }
     }
@@ -11389,7 +11386,7 @@ nsCSSFrameConstructor::RestyleForAppend(nsIContent* aContainer,
 
 
 void
-nsCSSFrameConstructor::RestyleForInsertOrChange(nsIContent* aContainer,
+nsCSSFrameConstructor::RestyleForInsertOrChange(Element* aContainer,
                                                 nsIContent* aChild)
 {
   NS_ASSERTION(!aChild->IsRootOfAnonymousSubtree(),
@@ -11409,10 +11406,9 @@ nsCSSFrameConstructor::RestyleForInsertOrChange(nsIContent* aContainer,
   if (selectorFlags & NODE_HAS_EMPTY_SELECTOR) {
     
     PRBool wasEmpty = PR_TRUE; 
-    for (PRInt32 index = 0; ; ++index) {
-      nsIContent *child = aContainer->GetChildAt(index);
-      if (!child) 
-        break;
+    for (nsIContent* child = aContainer->GetFirstChild();
+         child;
+         child = child->GetNextSibling()) {
       if (child == aChild)
         continue;
       
@@ -11434,33 +11430,34 @@ nsCSSFrameConstructor::RestyleForInsertOrChange(nsIContent* aContainer,
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {
     
     PRBool passedChild = PR_FALSE;
-    for (PRInt32 index = 0; ; ++index) {
-      nsIContent *content = aContainer->GetChildAt(index);
-      if (!content)
-        break; 
+    for (nsIContent* content = aContainer->GetFirstChild();
+         content;
+         content = content->GetNextSibling()) {
       if (content == aChild) {
         passedChild = PR_TRUE;
         continue;
       }
       if (content->IsElement()) {
         if (passedChild) {
-          PostRestyleEvent(content, eRestyle_Self, NS_STYLE_HINT_NONE);
+          PostRestyleEvent(content->AsElement(), eRestyle_Self,
+                           NS_STYLE_HINT_NONE);
         }
         break;
       }
     }
     
     passedChild = PR_FALSE;
-    for (PRInt32 index = aContainer->GetChildCount() - 1;
-         index >= 0; --index) {
-      nsIContent *content = aContainer->GetChildAt(index);
+    for (nsIContent* content = aContainer->GetLastChild();
+         content;
+         content = content->GetPreviousSibling()) {
       if (content == aChild) {
         passedChild = PR_TRUE;
         continue;
       }
       if (content->IsElement()) {
         if (passedChild) {
-          PostRestyleEvent(content, eRestyle_Self, NS_STYLE_HINT_NONE);
+          PostRestyleEvent(content->AsElement(), eRestyle_Self,
+                           NS_STYLE_HINT_NONE);
         }
         break;
       }
@@ -11469,9 +11466,9 @@ nsCSSFrameConstructor::RestyleForInsertOrChange(nsIContent* aContainer,
 }
 
 void
-nsCSSFrameConstructor::RestyleForRemove(nsIContent* aContainer,
+nsCSSFrameConstructor::RestyleForRemove(Element* aContainer,
                                         nsIContent* aOldChild,
-                                        PRInt32 aIndexInContainer)
+                                        nsIContent* aFollowingSibling)
 {
   NS_ASSERTION(!aOldChild->IsRootOfAnonymousSubtree(),
                "anonymous nodes should not be in child lists");
@@ -11490,10 +11487,9 @@ nsCSSFrameConstructor::RestyleForRemove(nsIContent* aContainer,
   if (selectorFlags & NODE_HAS_EMPTY_SELECTOR) {
     
     PRBool isEmpty = PR_TRUE; 
-    for (PRInt32 index = 0; ; ++index) {
-      nsIContent *child = aContainer->GetChildAt(index);
-      if (!child) 
-        break;
+    for (nsIContent* child = aContainer->GetFirstChild();
+         child;
+         child = child->GetNextSibling()) {
       
       
       
@@ -11512,26 +11508,35 @@ nsCSSFrameConstructor::RestyleForRemove(nsIContent* aContainer,
 
   if (selectorFlags & NODE_HAS_EDGE_CHILD_SELECTOR) {
     
-    for (PRInt32 index = 0; ; ++index) {
-      nsIContent *content = aContainer->GetChildAt(index);
-      if (!content)
-        break; 
+    PRBool reachedFollowingSibling = PR_FALSE;
+    for (nsIContent* content = aContainer->GetFirstChild();
+         content;
+         content = content->GetNextSibling()) {
+      if (content == aFollowingSibling) {
+        reachedFollowingSibling = PR_TRUE;
+        
+      }
       if (content->IsElement()) {
-        if (index >= aIndexInContainer) {
-          PostRestyleEvent(content, eRestyle_Self, NS_STYLE_HINT_NONE);
+        if (reachedFollowingSibling) {
+          PostRestyleEvent(content->AsElement(), eRestyle_Self,
+                           NS_STYLE_HINT_NONE);
         }
         break;
       }
     }
     
-    for (PRInt32 index = aContainer->GetChildCount() - 1;
-         index >= 0; --index) {
-      nsIContent *content = aContainer->GetChildAt(index);
+    reachedFollowingSibling = (aFollowingSibling == nsnull);
+    for (nsIContent* content = aContainer->GetLastChild();
+         content;
+         content = content->GetPreviousSibling()) {
       if (content->IsElement()) {
-        if (index < aIndexInContainer) {
-          PostRestyleEvent(content, eRestyle_Self, NS_STYLE_HINT_NONE);
+        if (reachedFollowingSibling) {
+          PostRestyleEvent(content->AsElement(), eRestyle_Self, NS_STYLE_HINT_NONE);
         }
         break;
+      }
+      if (content == aFollowingSibling) {
+        reachedFollowingSibling = PR_TRUE;
       }
     }
   }

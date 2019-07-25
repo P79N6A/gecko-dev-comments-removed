@@ -315,18 +315,20 @@ public:
   
   
   
-  void RestyleForInsertOrChange(nsIContent* aContainer,
+  void RestyleForInsertOrChange(mozilla::dom::Element* aContainer,
                                 nsIContent* aChild);
   
   
   
   
-  void RestyleForRemove(nsIContent* aContainer, nsIContent* aOldChild,
-                        PRInt32 aIndexInContainer);
+  
+  void RestyleForRemove(mozilla::dom::Element* aContainer,
+                        nsIContent* aOldChild,
+                        nsIContent* aFollowingSibling);
   
   
-  void RestyleForAppend(nsIContent* aContainer,
-                        PRInt32 aNewIndexInContainer);
+  void RestyleForAppend(mozilla::dom::Element* aContainer,
+                        nsIContent* aFirstNewContent);
 
   
   
