@@ -179,7 +179,7 @@ FormAssistant.prototype = {
       case "Content:SetWindowSize":
         
         
-        sendAsyncMessage("FormAssist:Show", this._getJSON());
+        sendAsyncMessage("FormAssist:Resize", this._getJSON());
         break;
 
       case "FormAssist:ChoiceSelect": {
