@@ -34,6 +34,9 @@
 
 
 
+#ifndef NS_SVGPOLYELEMENT_H_
+#define NS_SVGPOLYELEMENT_H_
+
 #include "nsSVGPathGeometryElement.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMSVGPoint.h"
@@ -72,3 +75,4 @@ protected:
 
 };
 
+#endif 
