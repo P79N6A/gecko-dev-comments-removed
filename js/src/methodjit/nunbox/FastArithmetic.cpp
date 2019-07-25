@@ -553,7 +553,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
     stubcc.rejoin(1);
 }
 
-static const uint64 DoubleNegMask = 0x8000000000000000LLU;
+static const uint64 DoubleNegMask = 0x8000000000000000ULL;
 
 void
 mjit::Compiler::jsop_neg()
@@ -573,8 +573,9 @@ mjit::Compiler::jsop_neg()
     
 
 
+
     MaybeRegisterID feTypeReg;
-    if (!fe->isTypeKnown() && !frame.shouldAvoidTypeRemat(fe)) {
+    if (!frame.shouldAvoidTypeRemat(fe)) {
         
         feTypeReg.setReg(frame.tempRegForType(fe));
 
