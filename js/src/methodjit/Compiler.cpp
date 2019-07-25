@@ -3850,21 +3850,23 @@ mjit::Compiler::jsop_this()
 
 
 
-    JSValueType type = knownThisType(); 
-    FrameEntry *thisFe = frame.peek(-1);
-    if (!thisFe->isTypeKnown()) {
-        if (fun && !script->strictModeCode && type != JSVAL_TYPE_OBJECT) {
-            Jump notObj = frame.testObject(Assembler::NotEqual, thisFe);
-            stubcc.linkExit(notObj, Uses(1));
-            stubcc.leave();
-            OOL_STUBCALL(stubs::This);
-            stubcc.rejoin(Changes(1));
-        }
+    if (fun && !script->strictModeCode) {
+        FrameEntry *thisFe = frame.peek(-1);
+        if (!thisFe->isTypeKnown()) {
+            JSValueType type = knownThisType();
+            if (type != JSVAL_TYPE_OBJECT) {
+                Jump notObj = frame.testObject(Assembler::NotEqual, thisFe);
+                stubcc.linkExit(notObj, Uses(1));
+                stubcc.leave();
+                OOL_STUBCALL(stubs::This);
+                stubcc.rejoin(Changes(1));
+            }
 
-        
-        frame.pop();
-        frame.learnThisIsObject();
-        frame.pushThis();
+            
+            frame.pop();
+            frame.learnThisIsObject();
+            frame.pushThis();
+        }
 
         JS_ASSERT(thisFe->isType(JSVAL_TYPE_OBJECT));
     }
