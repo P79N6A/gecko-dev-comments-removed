@@ -147,6 +147,9 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSVGFILTERPRIMITIVESTANDARDATTRIBUTES
 
+  
+  NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* aAttribute) const;
+
   virtual nsSVGString& GetResultImageName() = 0;
   
   
