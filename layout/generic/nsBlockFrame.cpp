@@ -1550,22 +1550,33 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine, const nsLineList* aLineList)
   return NS_OK;
 }
 
+
+
+
+
+bool static inline IsAlignedLeft(const PRUint8 aAlignment,
+                                 const PRUint8 aDirection,
+                                 const PRUint8 aUnicodeBidi)
+{
+  return (NS_STYLE_TEXT_ALIGN_LEFT == aAlignment ||
+          ((NS_STYLE_TEXT_ALIGN_DEFAULT == aAlignment &&
+            NS_STYLE_DIRECTION_LTR == aDirection) ||
+           (NS_STYLE_TEXT_ALIGN_END == aAlignment &&
+            NS_STYLE_DIRECTION_RTL == aDirection)) &&
+          !(NS_STYLE_UNICODE_BIDI_PLAINTEXT & aUnicodeBidi));
+}
+
 nsresult
 nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
 {
   const nsStyleText* styleText = GetStyleText();
+  const nsStyleTextReset* styleTextReset = GetStyleTextReset();
   
   bool tryAndSkipLines =
       
-      (NS_STYLE_TEXT_ALIGN_LEFT == styleText->mTextAlign ||
-       (NS_STYLE_TEXT_ALIGN_DEFAULT == styleText->mTextAlign &&
-        NS_STYLE_DIRECTION_LTR ==
-          aState.mReflowState.mStyleVisibility->mDirection &&
-        !(NS_STYLE_UNICODE_BIDI_PLAINTEXT &
-          GetStyleTextReset()->mUnicodeBidi)) ||
-       (NS_STYLE_TEXT_ALIGN_END == styleText->mTextAlign &&
-        NS_STYLE_DIRECTION_RTL ==
-          aState.mReflowState.mStyleVisibility->mDirection)) &&
+    IsAlignedLeft(styleText->mTextAlign, 
+                  aState.mReflowState.mStyleVisibility->mDirection,
+                  styleTextReset->mUnicodeBidi) &&
       
       
       !GetStylePadding()->mPadding.GetLeft().HasPercent();
@@ -1600,16 +1611,23 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
     }
 #endif
 
+    
+    bool skipLastLine = NS_STYLE_TEXT_ALIGN_AUTO == styleText->mTextAlignLast ||
+      IsAlignedLeft(styleText->mTextAlignLast,
+                    aState.mReflowState.mStyleVisibility->mDirection,
+                    styleTextReset->mUnicodeBidi);
+
     for (line_iterator line = begin_lines(), line_end = end_lines();
          line != line_end;
          ++line)
     {
       
       
+      bool isLastLine = line == mLines.back() && !GetNextInFlow();
       if (line->IsBlock() ||
           line->HasFloats() ||
-          ((line != mLines.back() || GetNextInFlow()) 
-           && !line->HasBreakAfter()) ||
+          (!isLastLine && !line->HasBreakAfter()) ||
+          ((isLastLine || !line->IsLineWrapped()) && !skipLastLine) ||
           line->ResizeReflowOptimizationDisabled() ||
           line->IsImpactedByFloat() ||
           (line->mBounds.XMost() > newAvailWidth)) {
@@ -1625,13 +1643,14 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
 #ifdef DEBUG
       if (gNoisyReflow && !line->IsDirty()) {
         IndentBy(stdout, gNoiseIndent + 1);
-        printf("skipped: line=%p next=%p %s %s%s%s breakTypeBefore/After=%d/%d xmost=%d\n",
+        printf("skipped: line=%p next=%p %s %s%s%s%s breakTypeBefore/After=%d/%d xmost=%d\n",
            static_cast<void*>(line.get()),
            static_cast<void*>((line.next() != end_lines() ? line.next().get() : nsnull)),
            line->IsBlock() ? "block" : "inline",
            line->HasBreakAfter() ? "has-break-after " : "",
            line->HasFloats() ? "has-floats " : "",
            line->IsImpactedByFloat() ? "impacted " : "",
+           skipLastLine ? "last-line-left-aligned " : "",
            line->GetBreakTypeBefore(), line->GetBreakTypeAfter(),
            line->mBounds.XMost());
       }
