@@ -4208,9 +4208,6 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     nodeToInsertBefore = nodeToInsertBefore->GetNextSibling();
   }
 
-  mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
-  nsAutoMutationBatch mb;
-
   
   nsCOMPtr<nsINode> oldParent = newContent->GetNodeParent();
   if (oldParent) {
@@ -4221,14 +4218,64 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
     }
 
-    nsAutoMutationBatch mb(oldParent, true, true);
-    oldParent->RemoveChildAt(removeIndex, true);
-    if (nsAutoMutationBatch::GetCurrentBatch() == &mb) {
-      mb.RemovalDone();
-      mb.SetPrevSibling(oldParent->GetChildAt(removeIndex - 1));
-      mb.SetNextSibling(oldParent->GetChildAt(removeIndex));
+    
+    nsCOMPtr<nsINode> kungFuDeathGrip = nodeToInsertBefore;
+
+    
+    nsMutationGuard guard;
+
+    
+    
+    {
+      mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
+      nsAutoMutationBatch mb(oldParent, true, true);
+      oldParent->RemoveChildAt(removeIndex, true);
+      if (nsAutoMutationBatch::GetCurrentBatch() == &mb) {
+        mb.RemovalDone();
+        mb.SetPrevSibling(oldParent->GetChildAt(removeIndex - 1));
+        mb.SetNextSibling(oldParent->GetChildAt(removeIndex));
+      }
+    }
+
+    
+    if (guard.Mutated(1)) {
+      
+      
+      
+      
+      if (nodeToInsertBefore && nodeToInsertBefore->GetParent() != this) {
+        return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+      }
+
+      
+      if (newContent->GetParent()) {
+        return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+      }
+
+      
+      if (aNewChild == aRefChild) {
+        
+        
+        if (!IsAllowedAsChild(newContent, this, false, nodeToInsertBefore)) {
+          return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+        }
+      } else {
+        if ((aRefChild && aRefChild->GetParent() != this) ||
+            !IsAllowedAsChild(newContent, this, aReplace, aRefChild)) {
+          return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
+        }
+        
+        if (aReplace) {
+          nodeToInsertBefore = aRefChild->GetNextSibling();
+        } else {
+          nodeToInsertBefore = aRefChild;
+        }
+      }
     }
   }
+
+  mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
+  nsAutoMutationBatch mb;
 
   
   
