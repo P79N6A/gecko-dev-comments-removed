@@ -158,11 +158,13 @@ var gVersionInfoPage = {
 
     
     AddonManager.getAllAddons(function(aAddons) {
-      gUpdateWizard.addons = aAddons;
+      gUpdateWizard.addons = aAddons.filter(function(a) {
+        return a.type != "plugin";
+      });
 
-      gVersionInfoPage._totalCount = aAddons.length;
+      gVersionInfoPage._totalCount = gUpdateWizard.addons.length;
 
-      aAddons.forEach(function(aAddon) {
+      gUpdateWizard.addons.forEach(function(aAddon) {
         aAddon.findUpdates(gVersionInfoPage, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
       }, this);
     });
