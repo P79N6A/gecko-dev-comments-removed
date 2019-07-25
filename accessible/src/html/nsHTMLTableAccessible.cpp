@@ -1522,29 +1522,16 @@ nsHTMLTableAccessible::IsProbablyForLayout(bool *aIsProbablyForLayout)
   }
 
   
-  nsAutoString styledWidth;
-  GetComputedStyleValue(EmptyString(), NS_LITERAL_STRING("width"), styledWidth);
-  if (styledWidth.EqualsLiteral("100%")) {
-    RETURN_LAYOUT_ANSWER(true, "<=4 columns and 100% width");
-  }
-  if (styledWidth.Find(NS_LITERAL_STRING("px"))) { 
-    nsIFrame *tableFrame = GetFrame();
-    NS_ENSURE_TRUE(tableFrame , NS_ERROR_FAILURE);
-    nsSize tableSize  = tableFrame->GetSize();
-
-    nsDocAccessible* docAccessible = Document();
-    NS_ENSURE_TRUE(docAccessible, NS_ERROR_FAILURE);
-    nsIFrame *docFrame = docAccessible->GetFrame();
-    NS_ENSURE_TRUE(docFrame , NS_ERROR_FAILURE);
-
-    nsSize docSize = docFrame->GetSize();
-    if (docSize.width > 0) {
-      PRInt32 percentageOfDocWidth = (100 * tableSize.width) / docSize.width;
-      if (percentageOfDocWidth > 95) {
-        
-        
-        RETURN_LAYOUT_ANSWER(true, "<=4 columns, width hardcoded in pixels and 95% of document width");
-      }
+  nsIFrame* documentFrame = Document()->GetFrame();
+  nsSize documentSize = documentFrame->GetSize();
+  if (documentSize.width > 0) {
+    nsSize tableSize = GetFrame()->GetSize();
+    PRInt32 percentageOfDocWidth = (100 * tableSize.width) / documentSize.width;
+    if (percentageOfDocWidth > 95) {
+      
+      
+      RETURN_LAYOUT_ANSWER(true,
+                           "<= 4 columns, table width is 95% of document width");
     }
   }
 
