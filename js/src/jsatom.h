@@ -457,6 +457,8 @@ struct JSAtomState
 
     JSAtom              *WeakMapAtom;
 
+    JSAtom              *byteLengthAtom;
+
     
     struct {
         JSAtom          *XMLListAtom;
