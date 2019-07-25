@@ -540,22 +540,25 @@ WeaveSvc.prototype = {
   },
 
   _verifyLogin: function _verifyLogin()
-    this._catch(this._notify("verify-login", "", function() {
+    this._notify("verify-login", "", function() {
       
       if (this.clusterURL == "")
         this._setCluster();
 
-      let res = new Resource(this.infoURL);
       try {
-        let test = res.get();
+        let test = new Resource(this.infoURL).get();
         switch (test.status) {
           case 200:
+            
             if (!this._verifyPassphrase()) {
               this.status.setLoginStatus(LOGIN_FAILED_INVALID_PASSPHRASE);
               return false;
             }
+
+            
             this.status.setLoginStatus(LOGIN_SUCCEEDED);
             return true;
+
           case 401:
           case 404:
             
@@ -564,19 +567,22 @@ WeaveSvc.prototype = {
 
             
             this.status.setLoginStatus(LOGIN_FAILED_LOGIN_REJECTED);
-            this._log.debug("verifyLogin failed: login failed")
             return false;
+
           default:
-            this._checkServerError(test.status);
-            throw "unexpected HTTP response: " + test.status;
+            
+            this._checkServerError(test);
+            this.status.setLoginStatus(LOGIN_FAILED_SERVER_ERROR);
+            return false;
         }
-      } catch (e) {
-        
-        this._log.debug("verifyLogin failed: " + e)
-        this.status.setLoginStatus(LOGIN_FAILED_NETWORK_ERROR);
-        throw e;
       }
-    }))(),
+      catch (ex) {
+        
+        this._log.debug("verifyLogin failed: " + Utils.exceptionStr(ex));
+        this.status.setLoginStatus(LOGIN_FAILED_NETWORK_ERROR);
+        return false;
+      }
+    })(),
 
   _verifyPassphrase: function _verifyPassphrase()
     this._catch(this._notify("verify-passphrase", "", function() {
