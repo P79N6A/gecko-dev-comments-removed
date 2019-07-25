@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
- * May 28, 2008.
- *
- * The Initial Developer of the Original Code is
- *   Brendan Eich <brendan@mozilla.org>
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #if !defined jsjaeger_h__ && defined JS_METHODJIT
 #define jsjaeger_h__
@@ -57,13 +57,11 @@ namespace js {
 
 struct VMFrame
 {
-    /* This must be the first entry on CPUs which push return addresses. */
-    void *scriptedReturn;
-
     union Arguments {
         struct {
             void *ptr;
             void *ptr2;
+            void *ptr3;
         } x;
     } u;
 
@@ -137,17 +135,17 @@ struct VMFrame
     bool slowEnsureSpace(uint32 nslots);
 
     inline bool ensureSpace(uint32 nmissing, uint32 nslots) {
-        /* Fast check - if it's below the limit, it's safe to just get a frame. */
+        
         if (JS_LIKELY(regs.sp + VALUES_PER_STACK_FRAME + nmissing + nslots < stackLimit))
             return true;
 
-        /* Slower check that might have to commit memory or throw an error. */
+        
         return slowEnsureSpace(nmissing + nslots);
     }
 };
 
 #ifdef JS_CPU_ARM
-// WARNING: Do not call this function directly from C(++) code because it is not ABI-compliant.
+
 extern "C" void JaegerStubVeneer(void);
 #endif
 
@@ -173,8 +171,11 @@ typedef void (JS_FASTCALL *VoidStubPC)(VMFrame &, jsbytecode *);
 
 namespace mjit {
 
-JSBool
-JaegerShot(JSContext *cx);
+
+JSBool JaegerShot(JSContext *cx);
+
+
+JSBool JaegerShotAtSafePoint(JSContext *cx, void *safePoint);
 
 enum CompileStatus
 {
@@ -215,16 +216,16 @@ union CallSite
     uint32     nCallSites;
 };
 
-} /* namespace mjit */
+} 
 
-} /* namespace js */
+} 
 
 #ifdef _MSC_VER
 extern "C" void *JaegerThrowpoline(js::VMFrame *vmFrame);
 #else
 extern "C" void JaegerThrowpoline();
 #endif
-extern "C" void JaegerFromTracer();
+extern "C" void InjectJaegerReturn();
 
-#endif /* jsjaeger_h__ */
+#endif 
 
