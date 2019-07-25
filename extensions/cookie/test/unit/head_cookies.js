@@ -64,10 +64,9 @@ function do_finish_generator_test(generator)
   });
 }
 
-function _observer(generator, service, topic) {
+function _observer(generator, topic) {
   Services.obs.addObserver(this, topic, false);
 
-  this.service = service;
   this.generator = generator;
   this.topic = topic;
 }
@@ -83,7 +82,6 @@ _observer.prototype = {
       do_run_generator(this.generator);
 
     this.generator = null;
-    this.service = null;
     this.topic = null;
   }
 }
@@ -92,10 +90,10 @@ _observer.prototype = {
 
 function do_close_profile(generator, cleanse) {
   
-  let service = Services.cookies.QueryInterface(Ci.nsIObserver);
-  let obs = new _observer(generator, service, "cookie-db-closed");
+  let obs = new _observer(generator, "cookie-db-closed");
 
   
+  let service = Services.cookies.QueryInterface(Ci.nsIObserver);
   service.observe(null, "profile-before-change", cleanse ? cleanse : "");
 }
 
@@ -103,10 +101,10 @@ function do_close_profile(generator, cleanse) {
 
 function do_load_profile(generator) {
   
-  let service = Services.cookies.QueryInterface(Ci.nsIObserver);
-  let obs = new _observer(generator, service, "cookie-db-read");
+  let obs = new _observer(generator, "cookie-db-read");
 
   
+  let service = Services.cookies.QueryInterface(Ci.nsIObserver);
   service.observe(null, "profile-do-change", "");
 }
 
@@ -178,11 +176,10 @@ function Cookie(name,
 
 
 
-function CookieDatabaseConnection(profile, schema)
+function CookieDatabaseConnection(file, schema)
 {
   
   
-  let file = do_get_cookie_file(profile);
   let exists = file.exists();
 
   this.db = Services.storage.openDatabase(file);

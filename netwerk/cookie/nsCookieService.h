@@ -152,12 +152,19 @@ struct CookieDomainTuple
 
 struct DBState
 {
-  DBState() : cookieCount(0), cookieOldestTime(LL_MAXINT)
+  DBState() : cookieCount(0), cookieOldestTime(LL_MAXINT), corruptFlag(OK)
   {
     hostTable.Init();
   }
 
   NS_INLINE_DECL_REFCOUNTING(DBState)
+
+  
+  enum CorruptFlag {
+    OK,                   
+    CLOSING_FOR_REBUILD,  
+    REBUILDING            
+  };
 
   nsTHashtable<nsCookieEntry>     hostTable;
   PRUint32                        cookieCount;
@@ -167,6 +174,7 @@ struct DBState
   nsCOMPtr<mozIStorageAsyncStatement> stmtInsert;
   nsCOMPtr<mozIStorageAsyncStatement> stmtDelete;
   nsCOMPtr<mozIStorageAsyncStatement> stmtUpdate;
+  CorruptFlag                     corruptFlag;
 
   
   
@@ -242,6 +250,9 @@ class nsCookieService : public nsICookieService
     nsresult                      CreateTable();
     void                          CloseDBStates();
     void                          CloseDefaultDBConnection();
+    void                          HandleDBClosed(DBState* aDBState);
+    void                          HandleCorruptDB(DBState* aDBState);
+    void                          RebuildCorruptDB(DBState* aDBState);
     OpenDBResult                  Read();
     template<class T> nsCookie*   GetCookieFromRow(T &aRow);
     void                          AsyncReadComplete();
@@ -303,7 +314,9 @@ class nsCookieService : public nsICookieService
 
     
     friend PLDHashOperator purgeCookiesCallback(nsCookieEntry *aEntry, void *aArg);
+    friend class DBListenerErrorHandler;
     friend class ReadCookieDBListener;
+    friend class CloseCookieDBListener;
 
     static nsCookieService*       GetSingleton();
 #ifdef MOZ_IPC
