@@ -54,6 +54,8 @@
 #ifndef nsIPresShell_h___
 #define nsIPresShell_h___
 
+#include "nsTHashtable.h"
+#include "nsHashKeys.h"
 #include "nsISupports.h"
 #include "nsQueryFrame.h"
 #include "nsCoord.h"
@@ -997,6 +999,12 @@ public:
   PRUint64 GetPaintCount() { return mPaintCount; }
   void IncrementPaintCount() { ++mPaintCount; }
 
+  
+
+
+  static void InitializeStatics();
+  static void ReleaseStatics();
+
 protected:
   
   
@@ -1049,6 +1057,10 @@ protected:
 
   
   nscolor                   mCanvasBackgroundColor;
+
+  
+  typedef nsPtrHashKey<nsIPresShell> PresShellPtrKey;
+  static nsTHashtable<PresShellPtrKey> *sLiveShells;
 };
 
 

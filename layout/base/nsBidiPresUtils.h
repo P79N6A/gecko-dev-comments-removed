@@ -313,6 +313,12 @@ public:
                        PRInt32                aPosResolveCount,
                        nscoord*               aWidth);
 
+  
+
+
+
+  PRUint32 EstimateMemoryUsed();
+
 private:
   nsresult ProcessTextForRenderingContext(const PRUnichar*       aText,
                                           PRInt32                aLength,
