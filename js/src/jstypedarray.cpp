@@ -1423,8 +1423,14 @@ class TypedArrayTemplate
     Getter(JSContext *cx, unsigned argc, Value *vp)
     {
         CallArgs args = CallArgsFromVp(argc, vp);
+        
+        
+#if defined(__GNUC__) && __GNUC_MINOR__ <= 2
+        return CallNonGenericMethod(cx, IsThisClass, GetterImpl<ValueGetter>, args);
+#else
         return CallNonGenericMethod<ThisTypeArray::IsThisClass,
                                     ThisTypeArray::GetterImpl<ValueGetter> >(cx, args);
+#endif
     }
 
     
