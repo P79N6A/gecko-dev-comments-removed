@@ -20,34 +20,8 @@ let histograms = {
   PLACES_DATABASE_SIZE_PER_PAGE_B: function (val) do_check_true(val > 0),
   PLACES_EXPIRATION_STEPS_TO_CLEAN: function (val) do_check_true(val > 1),
   
+  PLACES_IDLE_FRECENCY_DECAY_TIME_MS: function (val) do_check_true(val > 0),
 }
-
-
-
-
-XPCOMUtils.defineLazyGetter(Services, "telemetry", function () {
-  return {
-    getHistogramById: function FT_getHistogramById(id) {
-      if (id in histograms) {
-        return {
-          add: function FH_add(val) {
-            do_log_info("Testing probe " + id);
-            histograms[id](val);
-            delete histograms[id];
-            if (Object.keys(histograms).length == 0)
-              do_test_finished();
-          }
-        };
-      }
-
-      return {
-        add: function FH_add(val) {
-          do_log_info("Unknown probe " + id);
-        }
-      };
-    },
-  };
-});
 
 function run_test() {
   do_test_pending();
@@ -76,7 +50,7 @@ function run_test() {
 function continue_test() {
   
   for (let i = 0; i < 2; i++) {
-    PlacesUtils.history.addVisit(NetUtil.newURI("http:
+    PlacesUtils.history.addVisit(NetUtil.newURI("http://" +  i + ".moz.org/"),
                                  Date.now(), null,
                                  PlacesUtils.history.TRANSITION_TYPED, false, 0);
   }
@@ -120,4 +94,19 @@ function continue_test() {
 
 
 
+
+  
+  PlacesUtils.history.QueryInterface(Ci.nsIObserver)
+                     .observe(null, "idle-daily", null);
+
+  waitForAsyncUpdates(check_telemetry);
+}
+
+function check_telemetry() {
+  for (let histogramId in histograms) {
+    do_log_info("checking histogram " + histogramId);
+    let validate = histograms[histogramId];
+    validate(Services.telemetry.getHistogramById(histogramId).snapshot().sum);
+  }
+  do_test_finished();
 }
