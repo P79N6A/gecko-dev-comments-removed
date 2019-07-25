@@ -235,7 +235,7 @@ void
 nsContentSink::InitializeStatics()
 {
   nsContentUtils::AddBoolPrefVarCache("content.notify.ontimer",
-                                      &sNotifyOnTimer);
+                                      &sNotifyOnTimer, PR_TRUE);
   
   nsContentUtils::AddIntPrefVarCache("content.notify.backoffcount",
                                      &sBackoffCount, -1);
