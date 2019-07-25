@@ -80,11 +80,8 @@ typedef struct JSFrameRegs {
 
 
 
-
-
 struct JSStackFrame
 {
-    JSFrameRegs         *regs;
     jsbytecode          *imacpc;        
     JSObject            *callobj;       
     jsval               argsobj;        
@@ -100,6 +97,10 @@ struct JSStackFrame
     
     JSStackFrame        *down;          
 
+    jsbytecode          *savedPC;       
+#ifdef DEBUG
+    static jsbytecode *const sInvalidPC;
+#endif
 
     
 
@@ -148,11 +149,8 @@ struct JSStackFrame
 
 
     
-    JSFrameRegs     callerRegs;     
     void            *hookData;      
     JSVersion       callerVersion;  
-
-    inline void assertValidStackDepth(uintN depth);
 
     void putActivationObjects(JSContext *cx) {
         
@@ -166,6 +164,9 @@ struct JSStackFrame
             js_PutArgsObject(cx, this);
         }
     }
+
+    
+    jsbytecode *pc(JSContext *cx) const;
 
     jsval *argEnd() const {
         return (jsval *)this;
@@ -215,31 +216,11 @@ static const size_t ValuesPerStackFrame = sizeof(JSStackFrame) / sizeof(jsval);
 
 }
 
-#ifdef __cplusplus
-static JS_INLINE uintN
-FramePCOffset(JSStackFrame* fp)
-{
-    return uintN((fp->imacpc ? fp->imacpc : fp->regs->pc) - fp->script->code);
-}
-#endif
-
 static JS_INLINE jsval *
 StackBase(JSStackFrame *fp)
 {
     return fp->slots() + fp->script->nfixed;
 }
-
-#ifdef DEBUG
-void
-JSStackFrame::assertValidStackDepth(uintN depth)
-{
-    JS_ASSERT(0 <= regs->sp - StackBase(this));
-    JS_ASSERT(depth <= uintptr_t(regs->sp - StackBase(this)));
-}
-#else
-void
-JSStackFrame::assertValidStackDepth(uintN ){}
-#endif
 
 static JS_INLINE uintN
 GlobalVarCount(JSStackFrame *fp)
@@ -429,8 +410,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
 
 
 extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
-               JSBool normalUnwind);
+js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
 
 extern JSBool
 js_OnUnknownMethod(JSContext *cx, jsval *vp);

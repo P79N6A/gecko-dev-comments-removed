@@ -200,6 +200,10 @@ struct InterpState
     uintN          nativeVpLen;
     jsval*         nativeVp;
 
+    
+    
+    JSFrameRegs    bailedSlowNativeRegs;
+
     InterpState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~InterpState();
@@ -266,6 +270,7 @@ struct GlobalState {
 
 
 
+
 class CallStack
 {
     
@@ -282,6 +287,9 @@ class CallStack
 
     
     JSStackFrame        *suspendedFrame;
+
+    
+    JSFrameRegs         *suspendedRegs;
 
     
     bool                saved;
@@ -355,9 +363,10 @@ class CallStack
 
     
 
-    void suspend(JSStackFrame *fp) {
+    void suspend(JSStackFrame *fp, JSFrameRegs *regs) {
         JS_ASSERT(fp && isActive() && contains(fp));
         suspendedFrame = fp;
+        suspendedRegs = regs;
     }
 
     void resume() {
@@ -367,9 +376,9 @@ class CallStack
 
     
 
-    void save(JSStackFrame *fp) {
+    void save(JSStackFrame *fp, JSFrameRegs *regs) {
         JS_ASSERT(!saved);
-        suspend(fp);
+        suspend(fp, regs);
         saved = true;
     }
 
@@ -405,6 +414,16 @@ class CallStack
     JSStackFrame *getSuspendedFrame() const {
         JS_ASSERT(isSuspended());
         return suspendedFrame;
+    }
+
+    JSFrameRegs *getSuspendedRegs() const {
+        JS_ASSERT(isSuspended());
+        return suspendedRegs;
+    }
+
+    jsval *getSuspendedSP() const {
+        JS_ASSERT(isSuspended());
+        return suspendedRegs->sp;
     }
 
     
@@ -655,7 +674,7 @@ class StackSpace
 
     JS_REQUIRES_STACK
     void pushInvokeFrame(JSContext *cx, const InvokeArgsGuard &ag,
-                         InvokeFrameGuard &fg);
+                         InvokeFrameGuard &fg, JSFrameRegs &regs);
 
     
 
@@ -668,7 +687,7 @@ class StackSpace
                          ExecuteFrameGuard &fg) const;
     JS_REQUIRES_STACK
     void pushExecuteFrame(JSContext *cx, ExecuteFrameGuard &fg,
-                          JSObject *initialVarObj);
+                          JSFrameRegs &regs, JSObject *initialVarObj);
 
     
 
@@ -679,7 +698,8 @@ class StackSpace
                                         uintN nmissing, uintN nslots) const;
 
     JS_REQUIRES_STACK
-    inline void pushInlineFrame(JSContext *cx, JSStackFrame *fp, JSStackFrame *newfp);
+    void pushInlineFrame(JSContext *cx, JSStackFrame *fp, jsbytecode *pc,
+                         JSStackFrame *newfp);
 
     JS_REQUIRES_STACK
     inline void popInlineFrame(JSContext *cx, JSStackFrame *up, JSStackFrame *down);
@@ -692,7 +712,8 @@ class StackSpace
     void getSynthesizedSlowNativeFrame(JSContext *cx, CallStack *&cs, JSStackFrame *&fp);
 
     JS_REQUIRES_STACK
-    void pushSynthesizedSlowNativeFrame(JSContext *cx, CallStack *cs, JSStackFrame *fp);
+    void pushSynthesizedSlowNativeFrame(JSContext *cx, CallStack *cs, JSStackFrame *fp,
+                                        JSFrameRegs &regs);
 
     JS_REQUIRES_STACK
     void popSynthesizedSlowNativeFrame(JSContext *cx);
@@ -700,6 +721,34 @@ class StackSpace
     
     JS_REQUIRES_STACK
     JS_FRIEND_API(bool) pushInvokeArgsFriendAPI(JSContext *, uintN, InvokeArgsGuard &);
+};
+
+
+
+
+
+
+
+
+
+
+
+class FrameRegsIter
+{
+    CallStack         *curcs;
+    JSStackFrame      *curfp;
+    jsval             *cursp;
+    jsbytecode        *curpc;
+
+  public:
+    JS_REQUIRES_STACK FrameRegsIter(JSContext *cx);
+
+    bool done() const { return curfp == NULL; }
+    FrameRegsIter &operator++();
+
+    JSStackFrame *fp() const { return curfp; }
+    jsval *sp() const { return cursp; }
+    jsbytecode *pc() const { return curpc; }
 };
 
 
@@ -1622,12 +1671,24 @@ struct JSContext
     JS_REQUIRES_STACK
     JSStackFrame        *fp;
 
+    
+
+
+
+    JS_REQUIRES_STACK
+    JSFrameRegs         *regs;
+
   private:
     friend class js::StackSpace;
+    friend JSBool js_Interpret(JSContext *);
 
     
     void setCurrentFrame(JSStackFrame *fp) {
         this->fp = fp;
+    }
+
+    void setCurrentRegs(JSFrameRegs *regs) {
+        this->regs = regs;
     }
   public:
 
@@ -1707,7 +1768,8 @@ struct JSContext
     }
 
     
-    void pushCallStackAndFrame(js::CallStack *newcs, JSStackFrame *newfp);
+    void pushCallStackAndFrame(js::CallStack *newcs, JSStackFrame *newfp,
+                               JSFrameRegs &regs);
 
     
     void popCallStackAndFrame();
@@ -1722,7 +1784,7 @@ struct JSContext
 
 
 
-    js::CallStack *containingCallStack(JSStackFrame *target);
+    js::CallStack *containingCallStack(const JSStackFrame *target);
 
 #ifdef JS_THREADSAFE
     JSThread            *thread;
@@ -1970,6 +2032,15 @@ struct JSContext
         return JS_THREAD_DATA(this)->stackSpace;
     }
 
+#ifdef DEBUG
+    void assertValidStackDepth(uintN depth) {
+        JS_ASSERT(0 <= regs->sp - StackBase(fp));
+        JS_ASSERT(depth <= uintptr_t(regs->sp - StackBase(fp)));
+    }
+#else
+    void assertValidStackDepth(uintN ) {}
+#endif
+
 private:
 
     
@@ -1995,11 +2066,24 @@ JSStackFrame::varobj(JSContext *cx) const
     return fun ? callobj : cx->activeCallStack()->getInitialVarObj();
 }
 
+JS_ALWAYS_INLINE jsbytecode *
+JSStackFrame::pc(JSContext *cx) const
+{
+    JS_ASSERT(cx->containingCallStack(this) != NULL);
+    return cx->fp == this ? cx->regs->pc : savedPC;
+}
+
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread ? (cx)->thread->id : 0)
 #endif
 
 #ifdef __cplusplus
+
+static inline uintN
+FramePCOffset(JSContext *cx, JSStackFrame* fp)
+{
+    return uintN((fp->imacpc ? fp->imacpc : fp->pc(cx)) - fp->script->code);
+}
 
 static inline JSAtom **
 FrameAtomBase(JSContext *cx, JSStackFrame *fp)

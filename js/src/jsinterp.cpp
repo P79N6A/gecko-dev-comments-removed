@@ -98,6 +98,10 @@ using namespace js;
 
 #if !JS_LONE_INTERPRET ^ defined jsinvoke_cpp___
 
+#ifdef DEBUG
+jsbytecode *const JSStackFrame::sInvalidPC = (jsbytecode *)0xbeef;
+#endif
+
 JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 {
@@ -562,6 +566,7 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
 
 
 
+    JSFrameRegs regs;
     InvokeFrameGuard frame;
     if (!cx->stack().getInvokeFrame(cx, args, nmissing, nslots, frame))
         return false;
@@ -586,13 +591,21 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
     fp->annotation = NULL;
     fp->scopeChain = NULL;
     fp->blockChain = NULL;
-    fp->regs = NULL;
     fp->imacpc = NULL;
     fp->flags = flags;
     fp->displaySave = NULL;
 
     
-    cx->stack().pushInvokeFrame(cx, args, frame);
+    if (script) {
+        regs.pc = script->code;
+        regs.sp = fp->slots() + script->nfixed;
+    } else {
+        regs.pc = NULL;
+        regs.sp = fp->slots();
+    }
+
+    
+    cx->stack().pushInvokeFrame(cx, args, frame, regs);
 
     
     if (native) {
@@ -751,6 +764,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 
+    JSFrameRegs regs;
     ExecuteFrameGuard frame;
     if (!cx->stack().getExecuteFrame(cx, down, 0, script->nslots, frame))
         return false;
@@ -829,11 +843,14 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
     fp->script = script;
     fp->imacpc = NULL;
     fp->rval = JSVAL_VOID;
-    fp->regs = NULL;
     fp->blockChain = NULL;
 
     
-    cx->stack().pushExecuteFrame(cx, frame, initialVarObj);
+    regs.pc = script->code;
+    regs.sp = StackBase(fp);
+
+    
+    cx->stack().pushExecuteFrame(cx, frame, regs, initialVarObj);
 
     void *hookData = NULL;
     if (JSInterpreterHook hook = cx->debugHooks->executeHook)
@@ -1138,7 +1155,7 @@ js_EnterWith(JSContext *cx, jsint stackIndex)
     JSObject *obj, *parent, *withobj;
 
     fp = cx->fp;
-    sp = fp->regs->sp;
+    sp = cx->regs->sp;
     JS_ASSERT(stackIndex < 0);
     JS_ASSERT(StackBase(fp) <= sp + stackIndex);
 
@@ -1199,16 +1216,16 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
 
 
-JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
-               JSBool normalUnwind)
+JS_STATIC_INTERPRET JS_REQUIRES_STACK JSBool
+js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
 {
     JSObject *obj;
     JSClass *clasp;
 
     JS_ASSERT(stackDepth >= 0);
-    JS_ASSERT(StackBase(fp) + stackDepth <= fp->regs->sp);
+    JS_ASSERT(StackBase(cx->fp) + stackDepth <= cx->regs->sp);
 
+    JSStackFrame *fp = cx->fp;
     for (obj = fp->blockChain; obj; obj = obj->getParent()) {
         JS_ASSERT(obj->getClass() == &js_BlockClass);
         if (OBJ_BLOCK_DEPTH(cx, obj) < stackDepth)
@@ -1229,7 +1246,7 @@ js_UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
         }
     }
 
-    fp->regs->sp = StackBase(fp) + stackDepth;
+    cx->regs->sp = StackBase(fp) + stackDepth;
     return normalUnwind;
 }
 
@@ -1298,7 +1315,7 @@ js_TraceOpcode(JSContext *cx)
     tracefp = (FILE *) cx->tracefp;
     JS_ASSERT(tracefp);
     fp = cx->fp;
-    regs = fp->regs;
+    regs = cx->regs;
 
     
 
@@ -1992,7 +2009,7 @@ js_Interpret(JSContext *cx)
     uintN inlineCallCount;
     JSAtom **atoms;
     JSVersion currentVersion, originalVersion;
-    JSFrameRegs regs;
+    JSFrameRegs regs, *prevContextRegs;
     JSObject *obj, *obj2, *parent;
     JSBool ok, cond;
     jsint len;
@@ -2200,7 +2217,7 @@ js_Interpret(JSContext *cx)
         script = fp->script;                                                  \
         atoms = FrameAtomBase(cx, fp);                                        \
         currentVersion = (JSVersion) script->version;                         \
-        JS_ASSERT(fp->regs == &regs);                                         \
+        JS_ASSERT(cx->regs == &regs);                                         \
         if (cx->throwing)                                                     \
             goto error;                                                       \
     JS_END_MACRO
@@ -2296,21 +2313,18 @@ js_Interpret(JSContext *cx)
 
     CHECK_INTERRUPT_HANDLER();
 
-#if !JS_HAS_GENERATORS
-    JS_ASSERT(!fp->regs);
-#else
     
-    if (JS_LIKELY(!fp->regs)) {
-#endif
-        ASSERT_NOT_THROWING(cx);
-        regs.pc = script->code;
-        regs.sp = StackBase(fp);
-        fp->regs = &regs;
+
+
+
+    JS_ASSERT(cx->regs);
+    prevContextRegs = cx->regs;
+    regs = *cx->regs;
+    cx->setCurrentRegs(&regs);
+
 #if JS_HAS_GENERATORS
-    } else {
-        JS_ASSERT(fp->regs == &cx->generatorFor(fp)->savedRegs);
-        regs = *fp->regs;
-        fp->regs = &regs;
+    if (JS_UNLIKELY(fp->isGenerator())) {
+        JS_ASSERT(prevContextRegs == &cx->generatorFor(fp)->savedRegs);
         JS_ASSERT((size_t) (regs.pc - script->code) <= script->length);
         JS_ASSERT((size_t) (regs.sp - StackBase(fp)) <= StackDepth(script));
 
@@ -2328,13 +2342,10 @@ js_Interpret(JSContext *cx)
             goto error;
         }
     }
-#endif 
+#endif
 
 #ifdef JS_TRACER
     
-
-
-
     if (TRACE_RECORDER(cx))
         AbortRecording(cx, "attempt to reenter interpreter while recording");
 #endif
@@ -2399,6 +2410,7 @@ js_Interpret(JSContext *cx)
 #endif 
 
   error:
+    JS_ASSERT(cx->regs == &regs);
 #ifdef JS_TRACER
     if (fp->imacpc && cx->throwing) {
         
@@ -2507,8 +2519,8 @@ js_Interpret(JSContext *cx)
 
             regs.pc = (script)->main + tn->start + tn->length;
 
-            ok = js_UnwindScope(cx, fp, tn->stackDepth, JS_TRUE);
-            JS_ASSERT(fp->regs->sp == StackBase(fp) + tn->stackDepth);
+            ok = js_UnwindScope(cx, tn->stackDepth, JS_TRUE);
+            JS_ASSERT(regs.sp == StackBase(fp) + tn->stackDepth);
             if (!ok) {
                 
 
@@ -2589,7 +2601,7 @@ js_Interpret(JSContext *cx)
 
 
 
-    ok &= js_UnwindScope(cx, fp, 0, ok || cx->throwing);
+    ok &= js_UnwindScope(cx, 0, ok || cx->throwing);
     JS_ASSERT(regs.sp == StackBase(fp));
 
 #ifdef DEBUG
@@ -2612,21 +2624,17 @@ js_Interpret(JSContext *cx)
 
 
     JS_ASSERT(inlineCallCount == 0);
-    JS_ASSERT(fp->regs == &regs);
+    JS_ASSERT(cx->regs == &regs);
+    *prevContextRegs = regs;
+    cx->setCurrentRegs(prevContextRegs);
+
 #ifdef JS_TRACER
     if (TRACE_RECORDER(cx))
         AbortRecording(cx, "recording out of js_Interpret");
 #endif
-#if JS_HAS_GENERATORS
-    if (JS_UNLIKELY(fp->isGenerator())) {
-        cx->generatorFor(fp)->savedRegs = regs;
-    } else
-#endif 
-    {
-        JS_ASSERT(!fp->blockChain);
-        JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
-    }
-    fp->regs = NULL;
+
+    JS_ASSERT_IF(!fp->isGenerator(), !fp->blockChain);
+    JS_ASSERT_IF(!fp->isGenerator(), !js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
 
     
     if (script->staticLevel < JS_DISPLAY_SIZE)

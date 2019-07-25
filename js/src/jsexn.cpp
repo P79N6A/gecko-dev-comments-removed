@@ -63,8 +63,6 @@
 #include "jsscript.h"
 #include "jsstaticcheck.h"
 
-#include "jsobjinlines.h"
-
 using namespace js;
 
 
@@ -704,7 +702,7 @@ Exception(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
                                                     rval)) {
             return JS_FALSE;
         }
-        obj = NewObject(cx, &js_ErrorClass, JSVAL_TO_OBJECT(*rval), NULL);
+        obj = js_NewObject(cx, &js_ErrorClass, JSVAL_TO_OBJECT(*rval), NULL);
         if (!obj)
             return JS_FALSE;
         *rval = OBJECT_TO_JSVAL(obj);
@@ -1003,9 +1001,9 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
         JSFunction *fun;
 
         
-        proto = NewObject(cx, &js_ErrorClass,
-                          (i != JSEXN_ERR) ? error_proto : obj_proto,
-                          obj);
+        proto = js_NewObject(cx, &js_ErrorClass,
+                             (i != JSEXN_ERR) ? error_proto : obj_proto,
+                             obj);
         if (!proto)
             return NULL;
         if (i == JSEXN_ERR) {
@@ -1159,7 +1157,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
         goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);
 
-    errObject = NewObject(cx, &js_ErrorClass, errProto, NULL);
+    errObject = js_NewObject(cx, &js_ErrorClass, errProto, NULL);
     if (!errObject) {
         ok = JS_FALSE;
         goto out;
@@ -1271,11 +1269,6 @@ js_ReportUncaughtException(JSContext *cx)
         PodZero(&report);
         report.filename = filename;
         report.lineno = (uintN) lineno;
-        if (JSVAL_IS_STRING(roots[2])) {
-            report.ucmessage = js_GetStringChars(cx, JSVAL_TO_STRING(roots[2]));
-            if (!report.ucmessage)
-                return false;
-        }
     }
 
     if (!reportp) {
