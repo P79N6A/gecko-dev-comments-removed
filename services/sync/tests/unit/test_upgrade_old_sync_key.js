@@ -1,4 +1,8 @@
+
+
+
 Cu.import("resource://services-sync/constants.js");
+Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/main.js");
 var btoa = Cu.import("resource://services-sync/util.js").btoa;
 
@@ -21,11 +25,12 @@ function run_test() {
   do_check_eq(normalized, "abcdeabcdeabcdeabcde");
 
   
+  Identity.account = "johndoe";
   Weave.Service.syncID = "1234567890";
-  Weave.Service.passphrase = normalized;     
-  do_check_false(Utils.isPassphrase(Weave.Service.passphrase));
+  Identity.syncKey = normalized; 
+  do_check_false(Utils.isPassphrase(Identity.syncKey));
   Weave.Service.upgradeSyncKey(Weave.Service.syncID);
-  let upgraded = Weave.Service.passphrase;
+  let upgraded = Identity.syncKey;
   _("Upgraded: " + upgraded);
   do_check_true(Utils.isPassphrase(upgraded));
 
