@@ -58,6 +58,8 @@ using namespace mozilla;
 
 #define NS_MAX_XBL_BINDING_RECURSION 20
 
+nsXBLService* nsXBLService::gInstance = nsnull;
+
 static bool
 IsAncestorBinding(nsIDocument* aDocument,
                   nsIURI* aChildBindingURI,
@@ -127,8 +129,7 @@ public:
 
     
     bool ready = false;
-    gXBLService->BindingReady(mBoundElement, mBindingURI, &ready);
-
+    nsXBLService::GetInstance()->BindingReady(mBoundElement, mBindingURI, &ready);
     if (!ready)
       return;
 
@@ -156,26 +157,11 @@ public:
     }
   }
 
-  static nsIXBLService* gXBLService;
-  static int gRefCnt;
-
 protected:
   nsXBLBindingRequest(nsIURI* aURI, nsIContent* aBoundElement)
     : mBindingURI(aURI),
       mBoundElement(aBoundElement)
   {
-    gRefCnt++;
-    if (gRefCnt == 1) {
-      CallGetService("@mozilla.org/xbl;1", &gXBLService);
-    }
-  }
-
-  ~nsXBLBindingRequest()
-  {
-    gRefCnt--;
-    if (gRefCnt == 0) {
-      NS_IF_RELEASE(gXBLService);
-    }
   }
 
 private:
@@ -193,9 +179,6 @@ static const PRInt32 kNumBuckets = sizeof(kBucketSizes)/sizeof(size_t);
 static const PRInt32 kNumElements = 64;
 static const PRInt32 kInitialSize = sizeof(nsXBLBindingRequest) * kNumElements;
 
-nsIXBLService* nsXBLBindingRequest::gXBLService = nsnull;
-int nsXBLBindingRequest::gRefCnt = 0;
-
 
 
 
@@ -207,8 +190,7 @@ public:
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
 
-  nsXBLStreamListener(nsXBLService* aXBLService,
-                      nsIDocument* aBoundDocument,
+  nsXBLStreamListener(nsIDocument* aBoundDocument,
                       nsIXMLContentSink* aSink,
                       nsIDocument* aBindingDocument);
   ~nsXBLStreamListener();
@@ -217,8 +199,6 @@ public:
   bool HasRequest(nsIURI* aURI, nsIContent* aBoundElement);
 
 private:
-  nsXBLService* mXBLService; 
-
   nsCOMPtr<nsIStreamListener> mInner;
   nsAutoTArray<nsXBLBindingRequest*, 8> mBindingRequests;
   
@@ -233,14 +213,12 @@ NS_IMPL_ISUPPORTS3(nsXBLStreamListener,
                    nsIRequestObserver,
                    nsIDOMEventListener)
 
-nsXBLStreamListener::nsXBLStreamListener(nsXBLService* aXBLService,
-                                         nsIDocument* aBoundDocument,
+nsXBLStreamListener::nsXBLStreamListener(nsIDocument* aBoundDocument,
                                          nsIXMLContentSink* aSink,
                                          nsIDocument* aBindingDocument)
 : mSink(aSink), mBindingDocument(aBindingDocument)
 {
   
-  mXBLService = aXBLService;
   mBoundDocument = do_GetWeakReference(aBoundDocument);
 }
 
@@ -248,7 +226,7 @@ nsXBLStreamListener::~nsXBLStreamListener()
 {
   for (PRUint32 i = 0; i < mBindingRequests.Length(); i++) {
     nsXBLBindingRequest* req = mBindingRequests.ElementAt(i);
-    nsXBLBindingRequest::Destroy(mXBLService->mPool, req);
+    nsXBLBindingRequest::Destroy(nsXBLService::GetInstance()->mPool, req);
   }
 }
 
@@ -412,7 +390,6 @@ nsXBLStreamListener::HandleEvent(nsIDOMEvent* aEvent)
 
 
 
-PRUint32 nsXBLService::gRefCnt = 0;
 bool nsXBLService::gAllowDataURIs = false;
 
 nsHashtable* nsXBLService::gClassTable = nsnull;
@@ -422,38 +399,45 @@ PRUint32 nsXBLService::gClassLRUListLength = 0;
 PRUint32 nsXBLService::gClassLRUListQuota = 64;
 
 
-NS_IMPL_ISUPPORTS3(nsXBLService, nsIXBLService, nsIObserver, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS2(nsXBLService, nsIObserver, nsISupportsWeakReference)
+
+void
+nsXBLService::Init()
+{
+  gInstance = new nsXBLService();
+  NS_ADDREF(gInstance);
+
+  
+  
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os)
+    os->AddObserver(gInstance, "memory-pressure", true);
+}
 
 
 nsXBLService::nsXBLService(void)
 {
   mPool.Init("XBL Binding Requests", kBucketSizes, kNumBuckets, kInitialSize);
 
-  gRefCnt++;
-  if (gRefCnt == 1) {
-    gClassTable = new nsHashtable();
-  }
+  gClassTable = new nsHashtable();
 
   Preferences::AddBoolVarCache(&gAllowDataURIs, "layout.debug.enable_data_xbl");
 }
 
 nsXBLService::~nsXBLService(void)
 {
-  gRefCnt--;
-  if (gRefCnt == 0) {
-    
-    FlushMemory();
+  
+  FlushMemory();
 
-    
-    
-    
-    gClassLRUListLength = gClassLRUListQuota = 0;
+  
+  
+  
+  gClassLRUListLength = gClassLRUListQuota = 0;
 
-    
-    
-    delete gClassTable;
-    gClassTable = nsnull;
-  }
+  
+  
+  delete gClassTable;
+  gClassTable = nsnull;
 }
 
 
@@ -471,7 +455,7 @@ nsXBLService::IsChromeOrResourceURI(nsIURI* aURI)
 
 
 
-NS_IMETHODIMP
+nsresult
 nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
                            nsIPrincipal* aOriginPrincipal, bool aAugmentFlag,
                            nsXBLBinding** aBinding, bool* aResolveStyle) 
@@ -610,16 +594,6 @@ nsXBLService::FlushStyleBindings(nsIContent* aContent)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXBLService::ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID,
-                         nsIAtom** aResult)
-{
-  nsIDocument* document = aContent->OwnerDoc();
-  *aResult = document->BindingManager()->ResolveTag(aContent, aNameSpaceID);
-  NS_IF_ADDREF(*aResult);
-
-  return NS_OK;
-}
 
 
 
@@ -627,9 +601,7 @@ nsXBLService::ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID,
 
 
 
-
-
-NS_IMETHODIMP
+nsresult
 nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 {
   
@@ -686,7 +658,7 @@ nsXBLService::AttachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 
 
 
-NS_IMETHODIMP
+nsresult
 nsXBLService::DetachGlobalKeyHandler(nsIDOMEventTarget* aTarget)
 {
   nsCOMPtr<nsIDOMEventTarget> piTarget = aTarget;
@@ -749,9 +721,10 @@ nsXBLService::FlushMemory()
 
 
 
-NS_IMETHODIMP nsXBLService::BindingReady(nsIContent* aBoundElement, 
-                                         nsIURI* aURI, 
-                                         bool* aIsReady)
+nsresult
+nsXBLService::BindingReady(nsIContent* aBoundElement,
+                           nsIURI* aURI, 
+                           bool* aIsReady)
 {
   
   return GetBinding(aBoundElement, aURI, true, nsnull, aIsReady, nsnull);
@@ -921,7 +894,7 @@ IsSystemOrChromeURLPrincipal(nsIPrincipal* aPrincipal)
   return NS_SUCCEEDED(uri->SchemeIs("chrome", &isChrome)) && isChrome;
 }
 
-NS_IMETHODIMP
+nsresult
 nsXBLService::LoadBindingDocumentInfo(nsIContent* aBoundElement,
                                       nsIDocument* aBoundDocument,
                                       nsIURI* aBindingURI,
@@ -1130,7 +1103,7 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   if (!aForceSyncLoad) {
     
     nsXBLStreamListener* xblListener =
-      new nsXBLStreamListener(this, aBoundDocument, xblSink, doc);
+      new nsXBLStreamListener(aBoundDocument, xblSink, doc);
     NS_ENSURE_TRUE(xblListener,NS_ERROR_OUT_OF_MEMORY);
 
     
@@ -1179,28 +1152,6 @@ nsXBLService::FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoun
   NS_ENSURE_SUCCESS(rv, rv);
 
   doc.swap(*aResult);
-
-  return NS_OK;
-}
-
-
-
-nsresult NS_NewXBLService(nsIXBLService** aResult);
-
-nsresult
-NS_NewXBLService(nsIXBLService** aResult)
-{
-  nsXBLService* result = new nsXBLService;
-  if (! result)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult = result);
-
-  
-  
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  if (os)
-    os->AddObserver(result, "memory-pressure", true);
 
   return NS_OK;
 }

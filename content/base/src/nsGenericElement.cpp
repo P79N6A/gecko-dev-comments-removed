@@ -65,7 +65,6 @@
 
 #include "nsBindingManager.h"
 #include "nsXBLBinding.h"
-#include "nsIXBLService.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIBoxObject.h"
 #include "nsClientRect.h"
@@ -5162,13 +5161,7 @@ nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID,
       }
       bool valueMatches = aValue.EqualsAsStrings(*info.mValue);
       if (valueMatches && aPrefix == info.mName->GetPrefix()) {
-        if (OwnerDoc()->MayHaveDOMMutationObservers()) {
-          
-          
-          *aHasListeners = false;
-        } else {
-          return true;
-        }
+        return !OwnerDoc()->MayHaveDOMMutationObservers();
       }
       modification = true;
     }
