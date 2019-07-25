@@ -2463,7 +2463,7 @@ Downloader.prototype = {
 
     
     
-    var useComplete = false;
+    var useComplete = getDesiredChannel() ? true : false;
     if (selectedPatch) {
       LOG("Downloader:_selectPatch - found existing patch with state: " +
           state);
