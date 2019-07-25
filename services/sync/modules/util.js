@@ -149,24 +149,37 @@ let Utils = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   notify: function Utils_notify(prefix) {
-    return function NotifyMaker(name, subject, func) {
+    return function NotifyMaker(name, data, func) {
       let thisArg = this;
-      let notify = function(state) {
+      let notify = function(state, subject) {
         let mesg = prefix + name + ":" + state;
         thisArg._log.trace("Event: " + mesg);
-        Observers.notify(mesg, subject);
+        Observers.notify(mesg, subject, data);
       };
 
       return function WrappedNotify() {
         try {
-          notify("start");
+          notify("start", null);
           let ret = func.call(thisArg);
-          notify("finish");
+          notify("finish", ret);
           return ret;
         }
         catch(ex) {
-          notify("error");
+          notify("error", ex);
           throw ex;
         }
       };
