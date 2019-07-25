@@ -517,11 +517,11 @@ protected:
     PRPackedBool mIPC;
 
     
+    PRPackedBool mIsBackSurfaceReadable;
+    
     
     
     nsRefPtr<gfxASurface> mBackSurface;
-    
-    PRPackedBool mIsBackSurfaceReadable;
 #endif
 
     
