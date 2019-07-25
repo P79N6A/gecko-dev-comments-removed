@@ -58,10 +58,6 @@
 #include "nsIResumableChannel.h"
 #include "nsIProxiedChannel.h"
 #include "nsITraceableChannel.h"
-#include "mozilla/Mutex.h"
-
-class nsIRunnable;
-class Callback;
 
 namespace mozilla {
 namespace net {
@@ -147,28 +143,6 @@ private:
   
   enum HttpChannelChildState mState;
   bool mIPCOpen;
-
-  
-  
-  nsTArray<nsAutoPtr<Callback> > mBufferedCallbacks;
-  bool mShouldBuffer;
-
-  bool BufferOrDispatch(Callback* callback);
-
-  
-  
-  
-  bool OnDataAvailable(const nsCString& data, 
-                       const PRUint32& offset,
-                       const PRUint32& count);
-  bool OnStopRequest(const nsresult& statusCode);
-  bool OnProgress(const PRUint64& progress, const PRUint64& progressMax);
-  bool OnStatus(const nsresult& status, const nsString& statusArg);
-
-  friend class StopRequestEvent;
-  friend class DataAvailableEvent;
-  friend class ProgressEvent;
-  friend class StatusEvent;
 };
 
 } 
