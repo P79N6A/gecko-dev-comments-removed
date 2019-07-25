@@ -3083,11 +3083,6 @@ BEGIN_CASE(JSOP_LENGTH)
             }
         }
 
-        
-
-
-
-
         JSObject *obj;
         VALUE_TO_OBJECT(cx, vp, obj);
         JSObject *aobj = js_GetProtoIfDenseArray(obj);
