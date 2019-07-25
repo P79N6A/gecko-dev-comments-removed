@@ -1808,6 +1808,8 @@ MatchOrInsertSemicolon(JSContext *cx, TokenStream *ts)
     if (tt == TOK_ERROR)
         return JS_FALSE;
     if (tt != TOK_EOF && tt != TOK_EOL && tt != TOK_SEMI && tt != TOK_RC) {
+        
+        ts->getToken(TSF_OPERAND);
         ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR, JSMSG_SEMI_BEFORE_STMNT);
         return JS_FALSE;
     }
@@ -4567,6 +4569,19 @@ Parser::letBlock(JSBool statement)
     MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_LET);
 
     if (statement && !tokenStream.matchToken(TOK_LC, TSF_OPERAND)) {
+        
+
+
+
+
+
+
+
+        if (!ReportStrictModeError(context, &tokenStream, tc, pnlet,
+                                   JSMSG_STRICT_CODE_LET_EXPR_STMT)) {
+            return NULL;
+        }
+
         
 
 
