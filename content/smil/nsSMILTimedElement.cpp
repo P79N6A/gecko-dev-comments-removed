@@ -1690,8 +1690,9 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       
       
       
+      
       PRBool openEndedIntervalOk = mEndSpecs.IsEmpty() ||
-                                   mEndInstances.IsEmpty() ||
+                                   !HaveResolvedEndTimes() ||
                                    EndHasEventConditions();
       if (!tempEnd && !openEndedIntervalOk)
         return PR_FALSE; 
@@ -2246,6 +2247,17 @@ nsSMILTimedElement::GetPreviousInterval() const
   return mOldIntervals.IsEmpty()
     ? nsnull
     : mOldIntervals[mOldIntervals.Length()-1].get();
+}
+
+PRBool
+nsSMILTimedElement::HaveResolvedEndTimes() const
+{
+  if (mEndInstances.IsEmpty())
+    return PR_FALSE;
+
+  
+  
+  return mEndInstances[0]->Time().IsResolved();
 }
 
 PRBool
