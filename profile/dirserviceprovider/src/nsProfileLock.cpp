@@ -579,7 +579,7 @@ nsresult nsProfileLock::Lock(nsIFile* aProfileDir,
                                   0, 
                                   nsnull,
                                   CREATE_ALWAYS,
-                                  0,
+                                  nsnull,
                                   nsnull);
     if (mLockFileHandle == INVALID_HANDLE_VALUE) {
         
