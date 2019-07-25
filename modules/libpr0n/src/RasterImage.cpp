@@ -2182,19 +2182,17 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   bool wasSizeDecode = mDecoder->IsSizeDecode();
 
   
-  nsresult rv = NS_OK;
-  if (aIntent != eShutdownIntent_Error) {
-    mInDecoder = PR_TRUE;
-    rv = mDecoder->Finish();
-    mInDecoder = PR_FALSE;
-  }
+  mInDecoder = PR_TRUE;
+  mDecoder->Finish();
+  mInDecoder = PR_FALSE;
 
   
   
+  nsresult decoderStatus = mDecoder->GetDecoderError();
   mDecoder = nsnull;
-  if (NS_FAILED(rv)) {
+  if (NS_FAILED(decoderStatus)) {
     DoError();
-    return rv;
+    return decoderStatus;
   }
 
   
@@ -2564,7 +2562,6 @@ RasterImage::IsDecodeFinished()
 }
 
 
-
 void
 RasterImage::DoError()
 {
@@ -2573,19 +2570,8 @@ RasterImage::DoError()
     return;
 
   
-  if (mDecoder) {
-
-    
-    nsCOMPtr<imgIDecoderObserver> observer = do_QueryReferent(mObserver);
-    if (observer) {
-      observer->OnStopContainer(nsnull, this);
-      observer->OnStopDecode(nsnull, NS_ERROR_FAILURE, nsnull);
-    }
-
-    
-    
-    (void) ShutdownDecoder(eShutdownIntent_Error);
-  }
+  if (mDecoder)
+    ShutdownDecoder(eShutdownIntent_Error);
 
   
   mError = PR_TRUE;

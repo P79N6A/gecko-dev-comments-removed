@@ -89,6 +89,14 @@ nsresult
 Decoder::Write(const char* aBuffer, PRUint32 aCount)
 {
   
+  NS_ABORT_IF_FALSE(!IsDecoderError(),
+                    "Not allowed to make more decoder calls after error!");
+
+  
+  if (IsDataError())
+    return NS_OK;
+
+  
   WriteInternal(aBuffer, aCount);
   return IsError() ? NS_ERROR_FAILURE : NS_OK;
 }
@@ -97,20 +105,28 @@ nsresult
 Decoder::Finish()
 {
   
-  FinishInternal();
+  if (!IsError())
+    FinishInternal();
 
   
-  if (mInFrame)
+  if (mInFrame && !IsDecoderError())
     PostFrameStop();
 
-  if (IsError())
-    return NS_ERROR_FAILURE;
-
+  
   
   if (!IsSizeDecode() && !mDecodeDone) {
+
+    
+    bool salvage = !IsDecoderError() && mImage->GetNumFrames();
+
+    
+    if (salvage)
+      mImage->DecodingComplete();
+
+    
     if (mObserver) {
       mObserver->OnStopContainer(nsnull, mImage);
-      mObserver->OnStopDecode(nsnull, NS_ERROR_FAILURE, nsnull);
+      mObserver->OnStopDecode(nsnull, salvage ? NS_OK : NS_ERROR_FAILURE, nsnull);
     }
   }
 
@@ -120,6 +136,9 @@ Decoder::Finish()
 void
 Decoder::FlushInvalidations()
 {
+  NS_ABORT_IF_FALSE(!IsDecoderError(),
+                    "Not allowed to make more decoder calls after error!");
+
   
   if (mInvalidRect.IsEmpty())
     return;
