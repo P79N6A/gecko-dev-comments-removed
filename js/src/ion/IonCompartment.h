@@ -79,8 +79,13 @@ class IonCompartment
     
     IonCode *returnError_;
 
+    
+    
+    IonCode *argumentsRectifier_;
+
     IonCode *generateEnterJIT(JSContext *cx);
     IonCode *generateReturnError(JSContext *cx);
+    IonCode *generateArgumentsRectifier(JSContext *cx);
     IonCode *generateBailoutTable(JSContext *cx, uint32 frameClass);
     IonCode *generateBailoutHandler(JSContext *cx);
 
@@ -108,6 +113,16 @@ class IonCompartment
 
     
     IonCode *getBailoutTable(const FrameSizeClass &frameClass);
+
+    
+    IonCode *getArgumentsRectifier(JSContext *cx) {
+        if (!argumentsRectifier_) {
+            argumentsRectifier_ = generateArgumentsRectifier(cx);
+            if (!argumentsRectifier_)
+                return NULL;
+        }
+        return argumentsRectifier_;
+    }
 
     EnterIonCode enterJIT(JSContext *cx) {
         if (!enterJIT_) {

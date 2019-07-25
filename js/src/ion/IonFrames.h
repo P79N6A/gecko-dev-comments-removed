@@ -63,15 +63,14 @@ namespace ion {
 
 
 
-class IonFrameData
+struct IonFrameData
 {
-  protected:
     void *returnAddress_;
     uintptr_t sizeDescriptor_;
     void *calleeToken_;
 };
 
-class IonFramePrefix : public IonFrameData
+class IonFramePrefix : protected IonFrameData
 {
   public:
     

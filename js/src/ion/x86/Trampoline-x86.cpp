@@ -196,6 +196,92 @@ IonCompartment::generateReturnError(JSContext *cx)
     return linker.newCode(cx);
 }
 
+IonCode *
+IonCompartment::generateArgumentsRectifier(JSContext *cx)
+{
+    MacroAssembler masm(cx);
+
+    
+    
+    JS_ASSERT(ArgumentsRectifierReg == esi);
+
+    
+    masm.movl(Operand(esp, offsetof(IonFrameData, calleeToken_)), eax);
+    masm.load16(Operand(eax, offsetof(JSFunction, nargs)), ecx);
+    masm.subl(esi, ecx);
+
+    masm.moveValue(UndefinedValue(), ebx, edi);
+
+    masm.movl(esp, ebp); 
+
+    
+    {
+        Label undefLoopTop;
+        masm.bind(&undefLoopTop);
+
+        masm.push(ebx); 
+        masm.push(edi); 
+        masm.subl(Imm32(1), ecx);
+
+        masm.testl(ecx, ecx);
+        masm.j(Assembler::NonZero, &undefLoopTop);
+    }
+
+    
+    masm.movl(esi, edi);
+    masm.shll(Imm32(3), edi); 
+
+    masm.movl(ebp, ecx);
+    masm.addl(Imm32(sizeof(IonFrameData)), ecx);
+    masm.addl(edi, ecx);
+
+    
+    {
+        Label copyLoopTop, initialSkip;
+
+        masm.jump(&initialSkip);
+
+        masm.bind(&copyLoopTop);
+        masm.subl(Imm32(sizeof(Value)), ecx);
+        masm.subl(Imm32(1), esi);
+        masm.bind(&initialSkip);
+
+        masm.mov(Operand(ecx, sizeof(Value)/2), edx);
+        masm.push(edx);
+        masm.mov(Operand(ecx, 0x0), edx);
+        masm.push(edx);
+
+        masm.testl(esi, esi);
+        masm.j(Assembler::NonZero, &copyLoopTop);
+    }
+
+    masm.subl(esp, ebp);
+    masm.shll(Imm32(1), ebp); 
+
+    
+    masm.push(eax); 
+    masm.push(ebp); 
+
+    
+    
+    masm.movl(Operand(eax, offsetof(JSFunction, u.i.script)), eax);
+    masm.movl(Operand(eax, offsetof(JSScript, ion)), eax);
+    masm.movl(Operand(eax, offsetof(IonScript, method_)), eax);
+    masm.movl(Operand(eax, IonCode::OffsetOfCode()), eax);
+    masm.call(eax);
+
+    
+    masm.pop(ebx);            
+    masm.shrl(Imm32(1), ebx); 
+    masm.pop(edi);            
+    masm.addl(ebx, esp);      
+
+    masm.ret();
+
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
 static void
 GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
 {

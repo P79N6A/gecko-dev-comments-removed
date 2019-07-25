@@ -732,13 +732,6 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     uint32 size_descriptor = stack_size << 1;
 
     
-    
-    masm.load16(Operand(tokreg, offsetof(JSFunction, nargs)), nargsreg);
-    masm.cmpl(nargsreg, Imm32(call->nargs()));
-    if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
-        return false;
-
-    
     if (unused_stack)
         masm.addPtr(Imm32(unused_stack), StackPointer);
 
@@ -747,9 +740,34 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     masm.push(Imm32(size_descriptor));
 
     
-    masm.movePtr(Operand(objreg, offsetof(IonScript, method_)), objreg);
-    masm.movePtr(Operand(objreg, IonCode::OffsetOfCode()), objreg);
-    masm.call(objreg);
+    {
+        Label thunk, rejoin;
+
+        
+        IonCompartment *ion = gen->ionCompartment();
+        IonCode *argumentsRectifier = ion->getArgumentsRectifier(gen->cx);
+        if (!argumentsRectifier)
+            return false;
+
+        
+        masm.load16(Operand(tokreg, offsetof(JSFunction, nargs)), nargsreg);
+        masm.cmpl(nargsreg, Imm32(call->nargs()));
+        masm.j(Assembler::Above, &thunk);
+
+        
+        masm.movePtr(Operand(objreg, offsetof(IonScript, method_)), objreg);
+        masm.movePtr(Operand(objreg, IonCode::OffsetOfCode()), objreg);
+        masm.call(objreg);
+        masm.jump(&rejoin);
+
+        
+        masm.bind(&thunk);
+        masm.mov(Imm32(call->nargs()), ArgumentsRectifierReg);
+        masm.movePtr(ImmWord(argumentsRectifier->raw()), ecx); 
+        masm.call(ecx);
+
+        masm.bind(&rejoin);
+    }
 
     
     int prefix_garbage = 2 * sizeof(void *);
