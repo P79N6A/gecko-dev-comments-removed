@@ -82,6 +82,11 @@ self.onmessage = function TWP_onMessage(event)
     let v3b = [v3f[0], v3f[1], v3f[2] - thickness];
 
     
+    if (!v0f[0] && !v1f[0] && !v2f[0] && !v3f[0]) {
+      continue;
+    }
+
+    
     if (self.intersect(v0f, v1f, v2f, ray, hit) || 
         self.intersect(v0f, v2f, v3f, ray, hit) || 
         self.intersect(v0b, v1b, v1f, ray, hit) || 
