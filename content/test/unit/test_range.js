@@ -43,7 +43,7 @@ const INVALID_STATE_ERR = 0x8053000b;
 const INDEX_SIZE_ERR = 0x80530001;        
 const INVALID_NODE_TYPE_ERR = 0x805c0002; 
 const NOT_OBJECT_ERR = 0x805303eb;        
-const SECURITY_ERR = 0x80530012;          
+const SECURITY_ERR = 0x805303e8;          
 
 
 
