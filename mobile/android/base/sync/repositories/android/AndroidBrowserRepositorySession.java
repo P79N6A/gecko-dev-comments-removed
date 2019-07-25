@@ -57,7 +57,21 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
   public static final String LOG_TAG = "BrowserRepoSession";
 
   protected AndroidBrowserRepositoryDataAccessor dbHelper;
-  private HashMap<String, String> recordToGuid;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  protected HashMap<Integer, String> recordToGuid;
 
   public AndroidBrowserRepositorySession(Repository repository) {
     super(repository);
@@ -155,6 +169,13 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     recordToGuid = null;
     super.finish(delegate);
   }
+
+  
+
+
+
+
+
 
   protected abstract String buildRecordString(Record record);
 
@@ -626,26 +647,40 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     }
 
     Logger.debug(LOG_TAG, "Searching with record string " + recordString);
-    String guid = getRecordToGuidMap().get(recordString);
+    String guid = getGuidForString(recordString);
     if (guid == null) {
       Logger.debug(LOG_TAG, "findExistingRecord failed to find one for " + record.guid);
       return null;
     }
 
-    Logger.debug(LOG_TAG, "Found one. Returning computed record.");
-    return retrieveByGUIDDuringStore(guid);
+    
+    
+    
+    Logger.debug(LOG_TAG, "Found one. Checking stored record.");
+    Record stored = retrieveByGUIDDuringStore(guid);
+    String storedRecordString = buildRecordString(record);
+    if (recordString.equals(storedRecordString)) {
+      Logger.debug(LOG_TAG, "Existing record matches incoming record.  Returning existing record.");
+      return stored;
+    }
+
+    
+    
+    
+    Logger.debug(LOG_TAG, "Existing record does not match incoming record.  Trying to find record by record string.");
+    return findByRecordString(recordString);
   }
 
-  public HashMap<String, String> getRecordToGuidMap() throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+  protected String getGuidForString(String recordString) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
     if (recordToGuid == null) {
       createRecordToGuidMap();
     }
-    return recordToGuid;
+    return recordToGuid.get(new Integer(recordString.hashCode()));
   }
 
-  private void createRecordToGuidMap() throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+  protected void createRecordToGuidMap() throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
     Logger.info(LOG_TAG, "BEGIN: creating record -> GUID map.");
-    recordToGuid = new HashMap<String, String>();
+    recordToGuid = new HashMap<Integer, String>();
 
     
     
@@ -660,7 +695,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
         if (record != null) {
           final String recordString = buildRecordString(record);
           if (recordString != null) {
-            recordToGuid.put(recordString, record.guid);
+            recordToGuid.put(new Integer(recordString.hashCode()), record.guid);
           }
         }
         cur.moveToNext();
@@ -671,6 +706,45 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     Logger.info(LOG_TAG, "END: creating record -> GUID map.");
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  protected Record findByRecordString(String recordString) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+    Cursor cur = dbHelper.fetchAll();
+    try {
+      if (!cur.moveToFirst()) {
+        return null;
+      }
+      while (!cur.isAfterLast()) {
+        Record record = retrieveDuringStore(cur);
+        if (record != null) {
+          final String storedRecordString = buildRecordString(record);
+          if (recordString.equals(storedRecordString)) {
+            return record;
+          }
+        }
+        cur.moveToNext();
+      }
+      return null;
+    } finally {
+      cur.close();
+    }
+  }
+
   public void putRecordToGuidMap(String recordString, String guid) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
     if (recordString == null) {
       return;
@@ -679,7 +753,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     if (recordToGuid == null) {
       createRecordToGuidMap();
     }
-    recordToGuid.put(recordString, guid);
+    recordToGuid.put(new Integer(recordString.hashCode()), guid);
   }
 
   protected abstract Record prepareRecord(Record record);
