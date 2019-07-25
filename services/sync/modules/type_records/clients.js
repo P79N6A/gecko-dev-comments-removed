@@ -60,6 +60,10 @@ ClientRecord.prototype = {
   },
 
   
+  
+  get cleartext() this.serialize(),
+
+  
   encrypt: function ClientRec_encrypt(onComplete) {
     let fn = function ClientRec__encrypt() {let self = yield;};
     fn.async(this, onComplete);
