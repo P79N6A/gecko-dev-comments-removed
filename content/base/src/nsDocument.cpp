@@ -1099,8 +1099,18 @@ nsExternalResourceMap::PendingLoad::StartLoad(nsIURI* aURI,
                               nsIScriptSecurityManager::STANDARD);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = requestingPrincipal->CheckMayLoad(aURI, PR_TRUE);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  
+  bool doesInheritSecurityContext;
+  rv =
+    NS_URIChainHasFlags(aURI,
+                        nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
+                        &doesInheritSecurityContext);
+  if (NS_FAILED(rv) || !doesInheritSecurityContext) {
+    rv = requestingPrincipal->CheckMayLoad(aURI, PR_TRUE);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
   rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_OTHER,
@@ -1437,7 +1447,7 @@ nsDOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
   return nsContentUtils::CreateDocument(aNamespaceURI, aQualifiedName, aDoctype,
                                         mDocumentURI, mBaseURI,
                                         mOwner->NodePrincipal(),
-                                        scriptHandlingObject, false, aReturn);
+                                        scriptHandlingObject, aReturn);
 }
 
 NS_IMETHODIMP
@@ -1469,7 +1479,7 @@ nsDOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
   rv = nsContentUtils::CreateDocument(EmptyString(), EmptyString(),
                                       doctype, mDocumentURI, mBaseURI,
                                       mOwner->NodePrincipal(),
-                                      scriptHandlingObject, false,
+                                      scriptHandlingObject,
                                       getter_AddRefs(document));
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(document);
