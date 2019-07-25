@@ -790,7 +790,7 @@ public:
   bool
   GreatestIndexLtEq(const Item& item,
                     const Comparator& comp,
-                    index_type* idx NS_OUTPARAM) const {
+                    index_type* idx) const {
     
     
     

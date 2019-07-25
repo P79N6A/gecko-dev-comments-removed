@@ -308,7 +308,7 @@ public:
 
 
   NS_IMETHOD IsOptionDisabled(PRInt32 aIndex,
-                              bool *aIsDisabled NS_OUTPARAM);
+                              bool *aIsDisabled);
 
   
 
@@ -333,7 +333,7 @@ public:
                                        bool aClearAll,
                                        bool aSetDisabled,
                                        bool aNotify,
-                                       bool* aChangedSomething NS_OUTPARAM);
+                                       bool* aChangedSomething);
 
   
 
@@ -346,7 +346,7 @@ public:
   NS_IMETHOD GetOptionIndex(nsIDOMHTMLOptionElement* aOption,
                             PRInt32 aStartIndex,
                             bool aForward,
-                            PRInt32* aIndex NS_OUTPARAM);
+                            PRInt32* aIndex);
 
   
 

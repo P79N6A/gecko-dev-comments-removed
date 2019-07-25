@@ -33,7 +33,7 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
+  bool Get(KeyType aKey, UserDataType* pData) const;
 
   
 
@@ -70,7 +70,7 @@ public:
 
 
 
-  bool Get(KeyType aKey, UserDataType* pData NS_OUTPARAM) const;
+  bool Get(KeyType aKey, UserDataType* pData) const;
 
   
   

@@ -740,7 +740,7 @@ class nsCOMPtr MOZ_FINAL
 
       template <typename I>
       void
-      forget( I** rhs NS_OUTPARAM )
+      forget( I** rhs )
           
           
           
@@ -1046,7 +1046,7 @@ class nsCOMPtr<nsISupports>
         }
 
       void
-      forget( nsISupports** rhs NS_OUTPARAM )
+      forget( nsISupports** rhs )
           
           
           

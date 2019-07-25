@@ -78,7 +78,7 @@ void OOPInit();
 
 
 bool TakeMinidumpForChild(PRUint32 childPid,
-                          nsIFile** dump NS_OUTPARAM,
+                          nsIFile** dump,
                           PRUint32* aSequence = NULL);
 
 #if defined(XP_WIN)
@@ -109,9 +109,9 @@ ThreadId CurrentThreadId();
 
 bool CreatePairedMinidumps(ProcessHandle childPid,
                            ThreadId childBlamedThread,
-                           nsAString* pairGUID NS_OUTPARAM,
-                           nsIFile** childDump NS_OUTPARAM,
-                           nsIFile** parentDump NS_OUTPARAM);
+                           nsAString* pairGUID,
+                           nsIFile** childDump,
+                           nsIFile** parentDump);
 
 #  if defined(XP_WIN32) || defined(XP_MACOSX)
 
