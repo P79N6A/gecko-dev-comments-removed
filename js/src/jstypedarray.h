@@ -57,7 +57,7 @@ namespace js {
 
 
 
-struct JS_FRIEND_API(ArrayBuffer) {
+struct ArrayBuffer {
     static Class slowClass;
     static JSPropertySpec jsprops[];
     static JSFunctionSpec jsfuncs[];
@@ -177,7 +177,7 @@ struct JS_FRIEND_API(ArrayBuffer) {
 
 
 
-struct JS_FRIEND_API(TypedArray) {
+struct TypedArray {
     enum {
         TYPE_INT8 = 0,
         TYPE_UINT8,
@@ -283,79 +283,15 @@ struct JS_FRIEND_API(TypedArray) {
     static int dataOffset();
 };
 
-extern bool
-IsFastTypedArrayClass(const Class *clasp);
-
-extern bool
-IsSlowTypedArrayClass(const Class *clasp);
-
-extern bool
+bool
 IsFastOrSlowTypedArray(JSObject *obj);
 
+bool
+IsFastOrSlowTypedArrayClass(const Class *clasp);
+
+bool
+IsFastTypedArrayClass(const Class *clasp);
+
 } 
-
-
-
-JS_FRIEND_API(JSBool)
-js_IsTypedArray(JSObject *obj);
-
-JS_FRIEND_API(JSBool)
-js_IsArrayBuffer(JSObject *obj);
-
-JS_FRIEND_API(JSObject *)
-js_CreateArrayBuffer(JSContext *cx, uint32_t nbytes);
-
-
-
-
-
-JS_FRIEND_API(JSObject *)
-js_CreateTypedArray(JSContext *cx, int atype, uint32_t nelements);
-
-
-
-
-
-
-JS_FRIEND_API(JSObject *)
-js_CreateTypedArrayWithArray(JSContext *cx, int atype, JSObject *arrayArg);
-
-
-
-
-
-
-
-
-JS_FRIEND_API(JSObject *)
-js_CreateTypedArrayWithBuffer(JSContext *cx, int atype, JSObject *bufArg,
-                              int byteoffset, int length);
-
-JS_FRIEND_API(JSBool)
-JS_IsArrayBufferObject(JSObject *obj);
-
-JS_FRIEND_API(JSObject *)
-JS_NewArrayBuffer(JSContext *cx, uint32_t nbytes);
-
-JS_FRIEND_API(uint32_t)
-JS_GetArrayBufferByteLength(JSObject *obj);
-
-JS_FRIEND_API(uint8_t *)
-JS_GetArrayBufferData(JSObject *obj);
-
-JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayLength(JSObject *obj);
-
-JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteOffset(JSObject *obj);
-
-JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayByteLength(JSObject *obj);
-
-JS_FRIEND_API(uint32_t)
-JS_GetTypedArrayType(JSObject *obj);
-
-JS_FRIEND_API(void *)
-JS_GetTypedArrayData(JSObject *obj);
 
 #endif 

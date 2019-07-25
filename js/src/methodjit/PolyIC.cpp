@@ -2398,7 +2398,7 @@ GetElementIC::update(VMFrame &f, JSObject *obj, const Value &v, jsid id, Value *
 
 
 
-    if (!f.cx->typeInferenceEnabled() && js_IsTypedArray(obj))
+    if (!f.cx->typeInferenceEnabled() && obj->isTypedArray())
         return attachTypedArray(f, obj, v, id, vp);
 #endif
 
@@ -2720,7 +2720,7 @@ SetElementIC::update(VMFrame &f, const Value &objval, const Value &idval)
 
 #if defined JS_METHODJIT_TYPED_ARRAY
     
-    if (!f.cx->typeInferenceEnabled() && js_IsTypedArray(obj))
+    if (!f.cx->typeInferenceEnabled() && obj->isTypedArray())
         return attachTypedArray(f, obj, key);
 #endif
 
