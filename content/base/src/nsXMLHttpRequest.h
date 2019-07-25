@@ -189,6 +189,11 @@ public:
   }
 
   
+  
+  
+  void MaybeDispatchProgressEvents(PRBool aFinalProgress);
+
+  
   nsresult Init();
 
   void SetRequestObserver(nsIRequestObserver* aObserver);
@@ -313,7 +318,9 @@ protected:
   nsRefPtr<nsXMLHttpRequestUpload> mUpload;
   PRUint64 mUploadTransferred;
   PRUint64 mUploadTotal;
+  PRPackedBool mUploadLengthComputable;
   PRPackedBool mUploadComplete;
+  PRPackedBool mProgressSinceLastProgressEvent;
   PRUint64 mUploadProgress; 
   PRUint64 mUploadProgressMax; 
 
@@ -323,6 +330,7 @@ protected:
   PRPackedBool mProgressEventWasDelayed;
   PRPackedBool mLoadLengthComputable;
   PRUint64 mLoadTotal; 
+  PRUint64 mLoadTransferred;
   nsCOMPtr<nsITimer> mProgressNotifier;
 
   PRPackedBool mFirstStartRequestSeen;
@@ -332,6 +340,8 @@ protected:
   
   jsval mResultJSON;
   JSObject* mResultArrayBuffer;
+
+  void ResetResponse();
 
   struct RequestHeader
   {
