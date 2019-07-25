@@ -199,7 +199,6 @@ struct PICInfo {
         GET,
         CALL,
         SET,
-        SETMETHOD,
         NAME,
         BIND,
         GETELEM
@@ -251,9 +250,6 @@ struct PICInfo {
     
     uint32 callReturn;
 
-    inline bool isSet() {
-        return kind == SET || kind == SETMETHOD;
-    }
     inline bool isGet() {
         return kind == GET || kind == CALL || kind == GETELEM;
     }
