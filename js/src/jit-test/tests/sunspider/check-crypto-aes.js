@@ -176,7 +176,8 @@ function AESEncryptCtr(plaintext, password, nBits) {
   
   var blockSize = 16;  
   var counterBlock = new Array(blockSize);  
-  var nonce = (new Date()).getTime();  
+  var nonce = (new Date("2000-01-01")).getTime();  
+                                                   
 
   
   for (var i=0; i<4; i++) counterBlock[i] = (nonce >>> i*8) & 0xff;
