@@ -453,19 +453,17 @@ var UIManager = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      self.tabOnFocus(tab);
+      self.onTabSelect(tab);
     });
   },
 
   
   
   
-  tabOnFocus: function(tab) {
-    var self = this;
-    var focusTab = tab;
-    var currentTab = this._currentTab;
+  onTabSelect: function(tab) {
+    let currentTab = this._currentTab;
+    this._currentTab = tab;
 
-    this._currentTab = focusTab;
     
     if (this._isTabViewVisible() &&
         (this._closedLastVisibleTab || this._closedSelectedTabInTabView)) {
@@ -473,50 +471,33 @@ var UIManager = {
       this._closedSelectedTabInTabView = false;
       return;
     }
+    
+    this._closedLastVisibleTab = false;
+    this._closedSelectedTabInTabView = false;
 
     
     
     if (this._isTabViewVisible())
       this.hideTabView();
 
-    
-    this._closedLastVisibleTab = false;
-    this._closedSelectedTabInTabView = false;
-
-    
-    if (focusTab != self._currentTab)
-      return;
-
+    let oldItem = null;
     let newItem = null;
-    if (focusTab && focusTab.tabItem) {
-      newItem = focusTab.tabItem;
-      if (newItem.parent)
-        GroupItems.setActiveGroupItem(newItem.parent);
-      else {
-        GroupItems.setActiveGroupItem(null);
-        GroupItems.setActiveOrphanTab(newItem);
-      }
-      GroupItems.updateTabBar();
+    
+    if (currentTab && currentTab.tabItem)
+      oldItem = currentTab.tabItem;
+    if (tab && tab.tabItem) {
+      newItem = tab.tabItem;
+      GroupItems.updateActiveGroupItemAndTabBar(newItem);
     }
 
     
-    let oldItem = null;
-    if (currentTab && currentTab.tabItem)
-      oldItem = currentTab.tabItem;
-
     if (newItem != oldItem) {
       if (oldItem)
         oldItem.setZoomPrep(false);
-
-      
-      
-      let visibleTabCount = gBrowser.visibleTabs.length;
-      if (visibleTabCount > 0 && newItem && !self._isTabViewVisible())
+      if (newItem)
         newItem.setZoomPrep(true);
-    }
-    
-    else if (oldItem)
-      oldItem.setZoomPrep(!self._isTabViewVisible());
+    } else if (oldItem)
+      oldItem.setZoomPrep(true);
   },
 
   

@@ -525,27 +525,14 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         TabItems.resumePainting();
         
         if (gBrowser.selectedTab == tab)
-          UI.tabOnFocus(tab);
+          UI.onTabSelect(tab);
         else
           gBrowser.selectedTab = tab;
 
         $tabEl
           .css(orig.css())
           .removeClass("front");
-
         
-        
-        if (self.parent) {
-          var gID = self.parent.id;
-          var groupItem = GroupItems.groupItem(gID);
-          GroupItems.setActiveGroupItem(groupItem);
-          groupItem.setActiveTab(self);
-        } else {
-          GroupItems.setActiveGroupItem(null);
-          GroupItems.setActiveOrphanTab(self);
-        }
-        GroupItems.updateTabBar();
-
         if (isNewBlankTab)
           gWindow.gURLBar.focus();
 

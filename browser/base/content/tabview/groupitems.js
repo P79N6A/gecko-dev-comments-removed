@@ -1607,11 +1607,9 @@ window.GroupItems = {
   
   
   
-  updateTabBar: function() {
+  _updateTabBar: function() {
     if (!window.UI)
       return; 
-
-
 
     if (!this._activeGroupItem && !this._activeOrphanTab) {
       Utils.assert(false, "There must be something to show in the tab bar!");
@@ -1621,6 +1619,21 @@ window.GroupItems = {
     let tabItems = this._activeGroupItem == null ?
       [this._activeOrphanTab] : this._activeGroupItem._children;
     gBrowser.showOnlyTheseTabs(tabItems.map(function(item) item.tab));
+  },
+
+  
+  
+  
+  updateActiveGroupItemAndTabBar: function(tabItem) {
+    if (tabItem.parent) {
+      let groupItem = tabItem.parent;
+      this.setActiveGroupItem(groupItem);
+      groupItem.setActiveTab(tabItem);
+    } else {
+      this.setActiveGroupItem(null);
+      this.setActiveOrphanTab(tabItem);
+    }
+    this._updateTabBar();
   },
 
   
@@ -1749,7 +1762,7 @@ window.GroupItems = {
     }
 
     if (shouldUpdateTabBar)
-      this.updateTabBar();
+      this._updateTabBar();
     else if (shouldShowTabView) {
       tab.tabItem.setZoomPrep(false);
       UI.showTabView();
