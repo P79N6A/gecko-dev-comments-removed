@@ -60,8 +60,6 @@ abstract public class GeckoApp
     public static GeckoSurfaceView surfaceView;
     public static GeckoApp mAppContext;
 
-    public static boolean useSoftwareDrawing;
-
     void launch()
     {
         
@@ -120,8 +118,6 @@ abstract public class GeckoApp
         setContentView(mainLayout,
                        new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
                                                   ViewGroup.LayoutParams.FILL_PARENT));
-
-        useSoftwareDrawing = true; 
 
         if (!GeckoAppShell.sGeckoRunning) {
             

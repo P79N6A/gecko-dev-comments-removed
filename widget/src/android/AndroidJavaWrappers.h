@@ -163,13 +163,13 @@ public:
 
     enum {
         DRAW_ERROR = 0,
-        DRAW_GLES_2 = 1,
-        DRAW_SOFTWARE = 2
+        DRAW_GLES_2 = 1
     };
 
     int BeginDrawing();
-    unsigned char *GetSoftwareDrawBuffer(int *cap);
+    jobject GetSoftwareDrawBuffer();
     void EndDrawing();
+    void Draw2D(jobject buffer);
 
     
     
@@ -179,6 +179,7 @@ protected:
     static jclass jGeckoSurfaceViewClass;
     static jmethodID jBeginDrawingMethod;
     static jmethodID jEndDrawingMethod;
+    static jmethodID jDraw2DMethod;
     static jmethodID jGetSoftwareDrawBufferMethod;
     static jmethodID jGetHolderMethod;
 };
