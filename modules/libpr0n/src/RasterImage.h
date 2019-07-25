@@ -503,6 +503,10 @@ private:
   nsRefPtr<imgDecodeWorker>      mWorker;
   PRUint32                       mBytesDecoded;
 
+  
+  
+  PRInt32                        mDecodeCount;
+
 #ifdef DEBUG
   PRUint32                       mFramesNotified;
 #endif
