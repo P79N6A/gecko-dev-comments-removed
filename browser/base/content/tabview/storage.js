@@ -41,20 +41,20 @@
 
 
 
+
 Storage = {
-  GROUP_DATA_IDENTIFIER:  "tabview-group",
+  GROUP_DATA_IDENTIFIER: "tabview-group",
   GROUPS_DATA_IDENTIFIER: "tabview-groups",
-  TAB_DATA_IDENTIFIER:    "tabview-tab",
-  UI_DATA_IDENTIFIER:    "tabview-ui",
-  VISIBILITY_DATA_IDENTIFIER:    "tabview-visibility",
+  TAB_DATA_IDENTIFIER: "tabview-tab",
+  UI_DATA_IDENTIFIER: "tabview-ui",
 
   
   
   
   init: function() {
     this._sessionStore =
-      Components.classes["@mozilla.org/browser/sessionstore;1"]
-        .getService(Components.interfaces.nsISessionStore);
+      Cc["@mozilla.org/browser/sessionstore;1"].
+        getService(Ci.nsISessionStore);
   },
 
   
@@ -101,7 +101,6 @@ Storage = {
 
     var existingData = null;
     try {
-
       var tabData = this._sessionStore.getTabValue(tab, this.TAB_DATA_IDENTIFIER);
       if (tabData != "") {
         existingData = JSON.parse(tabData);
@@ -110,7 +109,6 @@ Storage = {
       
       Utils.log(e);
     }
-
 
     return existingData;
   },
@@ -142,7 +140,6 @@ Storage = {
   readGroupItemData: function(win) {
     var existingData = {};
     try {
-
       existingData = JSON.parse(
         this._sessionStore.getWindowValue(win, this.GROUP_DATA_IDENTIFIER)
       );
@@ -190,8 +187,6 @@ Storage = {
     } catch (e) {
       Utils.log("Error in saveData: "+e);
     }
-
-
   },
 
   
@@ -206,7 +201,6 @@ Storage = {
     } catch (e) {
       Utils.log("Error in readData: "+e);
     }
-
 
     return existingData;
   }

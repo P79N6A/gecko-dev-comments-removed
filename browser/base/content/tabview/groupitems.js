@@ -62,6 +62,7 @@
 
 
 
+
 window.GroupItem = function GroupItem(listOfEls, options) {
   try {
   if (typeof options == 'undefined')
