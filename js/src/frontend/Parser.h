@@ -38,7 +38,6 @@ struct Parser : private AutoGCRooter
     StrictModeGetter    strictModeGetter; 
     TokenStream         tokenStream;
     void                *tempPoolMark;  
-    StackFrame          *const callerFrame;  
     ParseNodeAllocator  allocator;
     ObjectBox           *traceListHead; 
 
@@ -57,7 +56,7 @@ struct Parser : private AutoGCRooter
   public:
     Parser(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
            const jschar *chars, size_t length, const char *fn, unsigned ln, JSVersion version,
-           StackFrame *cfp, bool foldConstants, bool compileAndGo);
+           bool foldConstants, bool compileAndGo);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
@@ -140,8 +139,6 @@ struct Parser : private AutoGCRooter
 
     enum FunctionBodyType { StatementListBody, ExpressionBody };
     ParseNode *functionBody(FunctionBodyType type);
-
-    bool checkForArgumentsAndRest();
 
   private:
     

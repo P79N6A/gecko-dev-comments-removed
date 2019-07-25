@@ -92,6 +92,8 @@ struct BytecodeEmitter
 
     Parser          *parser;        
 
+    StackFrame      *const callerFrame;  
+
     OwnedAtomIndexMapPtr atomIndices; 
     unsigned        firstLine;      
 
@@ -127,7 +129,8 @@ struct BytecodeEmitter
 
     bool            inForInit:1;        
 
-    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script, unsigned lineno);
+    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script,
+                    StackFrame *callerFrame, unsigned lineno);
     bool init();
 
     
