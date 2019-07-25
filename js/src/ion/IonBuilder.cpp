@@ -3587,7 +3587,7 @@ IonBuilder::jsop_getprop(JSAtom *atom)
     }
 
     if (unary.ival == MIRType_Object) {
-        MGetPropertyCache *load = MGetPropertyCache::New(obj, atom, script, pc);
+        MGetPropertyCache *load = MGetPropertyCache::New(obj, atom);
         if (!barrier) {
             
             
