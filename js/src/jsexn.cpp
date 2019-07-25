@@ -473,6 +473,15 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         atom = cx->runtime->atomState.messageAtom;
         if (str == ATOM_TO_STRING(atom)) {
             prop = js_message_str;
+
+            
+
+
+
+
+            if (!priv->message)
+                return true;
+
             v = STRING_TO_JSVAL(priv->message);
             goto define;
         }
@@ -495,7 +504,7 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         if (str == ATOM_TO_STRING(atom)) {
             stack = StackTraceToString(cx, priv);
             if (!stack)
-                return JS_FALSE;
+                return false;
 
             
             priv->stackDepth = 0;
@@ -504,13 +513,13 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
             goto define;
         }
     }
-    return JS_TRUE;
+    return true;
 
   define:
     if (!JS_DefineProperty(cx, obj, prop, v, NULL, NULL, JSPROP_ENUMERATE))
-        return JS_FALSE;
+        return false;
     *objp = obj;
-    return JS_TRUE;
+    return true;
 }
 
 JSErrorReport *
@@ -735,13 +744,13 @@ Exception(JSContext *cx, uintN argc, Value *vp)
 
     
     Value *argv = vp + 2;
-    if (argc != 0) {
+    if (argc != 0 && !argv[0].isUndefined()) {
         message = js_ValueToString(cx, argv[0]);
         if (!message)
             return JS_FALSE;
         argv[0].setString(message);
     } else {
-        message = cx->runtime->emptyString;
+        message = NULL;
     }
 
     
@@ -1053,7 +1062,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
         
         JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_DECLARING);
         if (!js_DefineNativeProperty(cx, proto, nameId, StringValue(atom),
-                                     PropertyStub, StrictPropertyStub, 
+                                     PropertyStub, StrictPropertyStub,
                                      JSPROP_ENUMERATE, 0, 0, NULL) ||
             !js_DefineNativeProperty(cx, proto, messageId, empty,
                                      PropertyStub, StrictPropertyStub,
