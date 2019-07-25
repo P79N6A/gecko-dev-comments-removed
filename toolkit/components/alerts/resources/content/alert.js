@@ -68,25 +68,33 @@ function onAlertLoad()
   gOpenTime           = Services.prefs.getIntPref("alerts.totalOpenTime");
   gDisableSlideEffect = Services.prefs.getBoolPref("alerts.disableSlidingEffect");
 
+  var alertBox = document.getElementById("alertBox");
   
   
   
   
   if (gOrigin & NS_ALERT_HORIZONTAL)
   {
-    if (gOrigin & NS_ALERT_LEFT)
+    if (gOrigin & NS_ALERT_LEFT) {
       document.documentElement.pack = "end";
+      alertBox.setAttribute("origin", "left");
+    } else {
+      alertBox.setAttribute("origin", "right");
+    }
 
     
     document.documentElement.orient = "horizontal";
   }
   else
   {
-    if (gOrigin & NS_ALERT_TOP)
+    if (gOrigin & NS_ALERT_TOP) {
       document.documentElement.pack = "end";
+      alertBox.setAttribute("origin", "top");
+    } else {
+      alertBox.setAttribute("origin", "bottom");
+    }
   }
 
-  var alertBox = document.getElementById("alertBox");
   alertBox.orient = (gOrigin & NS_ALERT_HORIZONTAL) ? "vertical" : "horizontal";
 
   sizeToContent();
