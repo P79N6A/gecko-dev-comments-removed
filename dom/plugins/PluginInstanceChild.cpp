@@ -104,6 +104,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
     , mCachedWinlessPluginHWND(0)
     , mWinlessPopupSurrogateHWND(0)
     , mWinlessThrottleOldWndProc(0)
+    , mWinlessHiddenMsgHWND(0)
 #endif 
     , mAsyncCallMutex("PluginInstanceChild::mAsyncCallMutex")
 #if defined(OS_MACOSX)  
@@ -1477,6 +1478,30 @@ PluginInstanceChild::SharedSurfacePaint(NPEvent& evcopy)
 
 
 
+
+void
+PluginInstanceChild::UnhookWinlessFlashThrottle()
+{
+  
+  if (!mWinlessThrottleOldWndProc)
+      return;
+
+  WNDPROC tmpProc = mWinlessThrottleOldWndProc;
+  mWinlessThrottleOldWndProc = nsnull;
+
+  NS_ASSERTION(mWinlessHiddenMsgHWND,
+               "Missing mWinlessHiddenMsgHWND w/subclass set??");
+
+  
+  SetWindowLongPtr(mWinlessHiddenMsgHWND, GWLP_WNDPROC,
+                   reinterpret_cast<LONG>(tmpProc));
+
+  
+  RemoveProp(mWinlessHiddenMsgHWND, kPluginInstanceChildProperty);
+  mWinlessHiddenMsgHWND = nsnull;
+}
+
+
 LRESULT CALLBACK
 PluginInstanceChild::WinlessHiddenFlashWndProc(HWND hWnd,
                                                UINT message,
@@ -1500,13 +1525,10 @@ PluginInstanceChild::WinlessHiddenFlashWndProc(HWND hWnd,
      }
 
     
-    if (message == WM_NCDESTROY) {
+    if (message == WM_CLOSE || message == WM_NCDESTROY) {
         WNDPROC tmpProc = self->mWinlessThrottleOldWndProc;
-        self->mWinlessThrottleOldWndProc = nsnull;
-        SetWindowLongPtr(hWnd, GWLP_WNDPROC,
-                         reinterpret_cast<LONG>(tmpProc));
+        self->UnhookWinlessFlashThrottle();
         LRESULT res = CallWindowProc(tmpProc, hWnd, message, wParam, lParam);
-        RemoveProp(hWnd, kPluginInstanceChildProperty);
         return res;
     }
 
@@ -1541,6 +1563,7 @@ PluginInstanceChild::EnumThreadWindowsCallback(HWND hWnd,
                 return FALSE;
             }
             
+            self->mWinlessHiddenMsgHWND = hWnd;
             self->mWinlessThrottleOldWndProc =
                 reinterpret_cast<WNDPROC>(SetWindowLongPtr(hWnd, GWLP_WNDPROC,
                 reinterpret_cast<LONG>(WinlessHiddenFlashWndProc)));
@@ -2007,6 +2030,7 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
 #if defined(OS_WIN)
     SharedSurfaceRelease();
     DestroyWinlessPopupSurrogate();
+    UnhookWinlessFlashThrottle();
 #endif
 
     return true;
