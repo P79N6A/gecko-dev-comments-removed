@@ -58,7 +58,7 @@ namespace mozilla {
 static const uint32_t GoldenRatioU32 = 0x9E3779B9U;
 
 inline uint32_t
-RotateLeft32(uint32_t value, uint8_t bits)
+RotateBitsLeft32(uint32_t value, uint8_t bits)
 {
   MOZ_ASSERT(bits < 32);
   return (value << bits) | (value >> (32 - bits));
@@ -108,7 +108,7 @@ AddU32ToHash(uint32_t hash, uint32_t value)
 
 
 
-  return GoldenRatioU32 * (RotateLeft32(hash, 5) ^ value);
+  return GoldenRatioU32 * (RotateBitsLeft32(hash, 5) ^ value);
 }
 
 
