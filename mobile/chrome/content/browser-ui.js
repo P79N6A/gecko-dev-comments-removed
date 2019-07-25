@@ -1283,10 +1283,11 @@ var FormHelper = {
   },
 
   handleEvent: function formHelperHandleEvent(aEvent) {
-    let currentElement = this.getCurrentElement();
-    if (aEvent.type != "keypress")
+    let isChromeFocused = gFocusManager.getFocusedElementForWindow(window, false, {}) == gFocusManager.focusedElement;
+    if (isChromeFocused || aEvent.type != "keypress")
       return;
 
+    let currentElement = this.getCurrentElement();
     let keyCode = aEvent.keyCode || aEvent.charCode;
     switch (keyCode) {
       case aEvent.DOM_VK_DOWN:
@@ -1328,6 +1329,9 @@ var FormHelper = {
   },
 
   canShowUIFor: function(aElement) {
+    if (!aElement)
+      return false;
+
     
     
     
