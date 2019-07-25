@@ -194,13 +194,6 @@ class nsCSSScanner {
   
   void Pushback(PRUnichar aChar);
 
-  
-  
-  nsresult GetLowLevelError();
-
-  
-  void SetLowLevelError(nsresult aErrorCode);
-  
 protected:
   PRInt32 Read();
   PRInt32 Peek();
@@ -226,7 +219,6 @@ protected:
   PRInt32 mPushbackCount;
   PRInt32 mPushbackSize;
   PRUnichar mLocalPushback[4];
-  nsresult mLowLevelError;
 
   PRUint32 mLineNumber;
   

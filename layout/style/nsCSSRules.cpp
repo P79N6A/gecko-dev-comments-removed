@@ -1851,7 +1851,7 @@ nsCSSKeyframeRule::SetKeyText(const nsAString& aKeyText)
 {
   nsCSSParser parser;
 
-  nsTArray<float> newSelectors;
+  InfallibleTArray<float> newSelectors;
   
   if (parser.ParseKeyframeSelectorString(aKeyText, nsnull, 0, newSelectors)) {
     newSelectors.SwapElements(mKeys);
@@ -2033,7 +2033,7 @@ nsCSSKeyframesRule::FindRuleIndexForKey(const nsAString& aKey)
 {
   nsCSSParser parser;
 
-  nsTArray<float> keys;
+  InfallibleTArray<float> keys;
   
   if (parser.ParseKeyframeSelectorString(aKey, nsnull, 0, keys)) {
     

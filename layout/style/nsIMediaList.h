@@ -110,7 +110,7 @@ private:
   };
   struct FeatureEntry {
     const nsMediaFeature *mFeature;
-    nsTArray<ExpressionEntry> mExpressions;
+    InfallibleTArray<ExpressionEntry> mExpressions;
   };
   nsCOMPtr<nsIAtom> mMedium;
   nsTArray<FeatureEntry> mFeatureCache;
@@ -192,13 +192,9 @@ public:
                  nsMediaQueryResultCacheKey* aKey);
 
   nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
-  nsresult AppendQuery(nsAutoPtr<nsMediaQuery>& aQuery) {
+  void AppendQuery(nsAutoPtr<nsMediaQuery>& aQuery) {
     
-    if (!mArray.AppendElement(aQuery.get())) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    aQuery.forget();
-    return NS_OK;
+    mArray.AppendElement(aQuery.forget());
   }
 
   nsresult Clone(nsMediaList** aResult);
@@ -213,7 +209,7 @@ protected:
   nsresult Delete(const nsAString & aOldMedium);
   nsresult Append(const nsAString & aOldMedium);
 
-  nsTArray<nsAutoPtr<nsMediaQuery> > mArray;
+  InfallibleTArray<nsAutoPtr<nsMediaQuery> > mArray;
   
   
   
