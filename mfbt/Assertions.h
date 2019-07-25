@@ -9,27 +9,11 @@
 #define mozilla_Assertions_h_
 
 #include "mozilla/Attributes.h"
+#include "mozilla/Types.h"
 
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef WIN32
-   
-
-
-
-
-
-#  ifdef __cplusplus
-   extern "C" {
-#  endif
-   __declspec(dllimport) int __stdcall
-   TerminateProcess(void* hProcess, unsigned int uExitCode);
-   __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
-#  ifdef __cplusplus
-   }
-#  endif
-#else
+#ifndef WIN32
 #  include <signal.h>
 #endif
 #ifdef ANDROID
@@ -139,27 +123,19 @@ extern "C" {
 
 
 
-
-
-
-
-
-
-
-
 #  ifdef __cplusplus
 #    define MOZ_CRASH() \
        do { \
          __debugbreak(); \
          *((volatile int*) NULL) = 123; \
-         ::TerminateProcess(::GetCurrentProcess(), 3); \
+         ::exit(3); \
        } while (0)
 #  else
 #    define MOZ_CRASH() \
        do { \
          __debugbreak(); \
          *((volatile int*) NULL) = 123; \
-         TerminateProcess(GetCurrentProcess(), 3); \
+         exit(3); \
        } while (0)
 #  endif
 #else

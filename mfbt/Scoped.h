@@ -52,8 +52,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/GuardObjects.h"
 
-namespace mozilla {
-
 
 
 
@@ -161,9 +159,9 @@ class Scoped
 
 #define SCOPED_TEMPLATE(name, Traits)                          \
 template<typename Type>                                        \
-struct name : public mozilla::Scoped<Traits<Type> >            \
+struct name : public Scoped<Traits<Type> >                     \
 {                                                              \
-    typedef mozilla::Scoped<Traits<Type> > Super;              \
+    typedef Scoped<Traits<Type> > Super;                       \
     typedef typename Super::Resource Resource;                 \
     name& operator=(Resource ptr) {                            \
       Super::operator=(ptr);                                   \
@@ -222,7 +220,5 @@ struct ScopedDeleteArrayTraits : public ScopedFreePtrTraits<T>
     static void release(T* ptr) { delete [] ptr; }
 };
 SCOPED_TEMPLATE(ScopedDeleteArray, ScopedDeleteArrayTraits)
-
-} 
 
 #endif 
