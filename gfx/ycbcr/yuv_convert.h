@@ -41,8 +41,6 @@ enum ScaleFilter {
   FILTER_BILINEAR = 3     
 };
 
-NS_GFX_(YUVType) TypeFromSize(int ywidth, int yheight, int cbcrwidth, int cbcrheight);
-
 
 
 NS_GFX_(void) ConvertYCbCrToRGB32(const uint8* yplane,
