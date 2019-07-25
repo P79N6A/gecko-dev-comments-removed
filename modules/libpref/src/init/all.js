@@ -418,10 +418,6 @@ pref("capability.policy.default.Location.hash.set", "allAccess");
 pref("capability.policy.default.Location.href.set", "allAccess");
 pref("capability.policy.default.Location.replace.get", "allAccess");
 
-pref("capability.policy.default.Navigator.preference", "allAccess");
-pref("capability.policy.default.Navigator.preferenceinternal.get", "UniversalPreferencesRead");
-pref("capability.policy.default.Navigator.preferenceinternal.set", "UniversalPreferencesWrite");
-
 pref("capability.policy.default.Window.blur.get", "allAccess");
 pref("capability.policy.default.Window.close.get", "allAccess");
 pref("capability.policy.default.Window.closed.get", "allAccess");
@@ -790,6 +786,13 @@ pref("network.http.connection-retry-timeout", 250);
 
 
 pref("network.http.fast-fallback-to-IPv4", true);
+
+
+pref("network.http.spdy.enabled", false);
+pref("network.http.spdy.chunk-size", 4096);
+pref("network.http.spdy.timeout", 180);
+pref("network.http.spdy.coalesce-hostnames", true);
+pref("network.http.spdy.use-alternate-protocol", true);
 
 
 
@@ -2711,7 +2714,6 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
-pref("font.allow_double_byte_special_chars", true);
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
@@ -2977,7 +2979,6 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
-pref("font.allow_double_byte_special_chars", true);
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
@@ -3400,3 +3401,9 @@ pref("dom.sms.whitelist", "");
 
 
 pref("browser.dom.window.dump.enabled", false);
+
+
+pref("profiler.enabled", false);
+pref("profiler.interval", 10);
+pref("profiler.entries", 100000);
+
