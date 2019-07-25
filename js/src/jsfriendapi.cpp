@@ -305,6 +305,12 @@ js::SetFunctionNativeReserved(JSObject *fun, size_t which, const Value &val)
     fun->toFunction()->setExtendedSlot(which, val);
 }
 
+void
+js::SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback)
+{
+    rt->preserveWrapperCallback = callback;
+}
+
 
 
 
