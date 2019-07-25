@@ -1625,6 +1625,12 @@ mjit::Compiler::generateMethod()
 
 
             if (canUseApplyTricks()) {
+                
+
+
+
+                interruptCheckHelper();
+
                 applyTricks = LazyArgsObj;
                 pushSyncedEntry(0);
             } else if (cx->typeInferenceEnabled() && !script->strictModeCode &&
@@ -3357,14 +3363,19 @@ mjit::Compiler::canUseApplyTricks()
 bool
 mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize &callFrameSize)
 {
-    
-    interruptCheckHelper();
-
     int32 speculatedArgc;
     if (applyTricks == LazyArgsObj) {
         frame.pop();
         speculatedArgc = 1;
     } else {
+        
+
+
+
+
+
+        interruptCheckHelper();
+
         speculatedArgc = callImmArgc;
     }
 
@@ -4164,7 +4175,7 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
     
     if (atom == cx->runtime->atomState.lengthAtom &&
         top->isType(JSVAL_TYPE_STRING) &&
-        !hasTypeBarriers(PC)) {
+        (!cx->typeInferenceEnabled() || knownPushedType(0) == JSVAL_TYPE_INT32)) {
         if (top->isConstant()) {
             JSString *str = top->getValue().toString();
             Value v;

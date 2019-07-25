@@ -866,11 +866,6 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj)
     }
 
     
-
-
-
-
-
     TypeObject *type = proto->getNewType(cx);
     if (!type)
         return NULL;
