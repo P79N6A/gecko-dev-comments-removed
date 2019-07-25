@@ -1289,6 +1289,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
 
 
 
+
     Jump getNewObject(JSContext *cx, RegisterID result, JSObject *templateObject)
     {
         gc::AllocKind allocKind = templateObject->getAllocKind();

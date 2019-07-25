@@ -70,13 +70,6 @@ public:
     static void
     clearStackReferences(FreeOp *fop, JSScript *script);
 
-    
-    
-    static void
-    clearStackReferencesAndChunk(FreeOp *fop, JSScript *script,
-                                 JITScript *jit, size_t chunkIndex,
-                                 bool resetUses = true);
-
     static void
     expandInlineFrames(JSCompartment *compartment, StackFrame *fp, mjit::CallSite *inlined,
                        StackFrame *next, VMFrame *f);

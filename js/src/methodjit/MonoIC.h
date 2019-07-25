@@ -139,24 +139,17 @@ struct SetGlobalNameIC : public GlobalNameIC
     JSC::CodeLocationLabel  slowPathStart;
 
     
-    JSC::JITCode            extraStub;
-
-    
     int32_t inlineShapeJump : 10;   
-    int32_t extraShapeGuard : 6;    
     bool objConst : 1;          
     RegisterID objReg   : 5;    
     RegisterID shapeReg : 5;    
-    bool hasExtraStub : 1;      
 
     int32_t fastRejoinOffset : 16;  
-    int32_t extraStoreOffset : 16;  
 
     
     ValueRemat vr;              
 
     void patchInlineShapeGuard(Repatcher &repatcher, const Shape *shape);
-    void patchExtraShapeGuard(Repatcher &repatcher, const Shape *shape);
 };
 
 void JS_FASTCALL GetGlobalName(VMFrame &f, ic::GetGlobalNameIC *ic);
@@ -238,19 +231,6 @@ struct CallICInfo {
     bool hasJsFunCheck : 1;
     bool typeMonitored : 1;
 
-    inline void reset() {
-        fastGuardedObject = NULL;
-        fastGuardedNative = NULL;
-        hit = false;
-        hasJsFunCheck = false;
-        PodArrayZero(pools);
-    }
-
-    inline void releasePools() {
-        releasePool(Pool_ScriptStub);
-        releasePool(Pool_ClosureStub);
-    }
-
     inline void releasePool(PoolIndex index) {
         if (pools[index]) {
             pools[index]->release();
@@ -264,6 +244,25 @@ struct CallICInfo {
         hasJsFunCheck = false;
         fastGuardedObject = NULL;
         JS_REMOVE_LINK(&links);
+    }
+
+    inline void reset(Repatcher &repatcher) {
+        if (fastGuardedObject) {
+            repatcher.repatch(funGuard, NULL);
+            repatcher.relink(funJump, slowPathStart);
+            purgeGuardedObject();
+        }
+        if (fastGuardedNative) {
+            repatcher.relink(funJump, slowPathStart);
+            fastGuardedNative = NULL;
+        }
+        if (pools[Pool_ScriptStub]) {
+            JSC::CodeLocationJump oolJump = slowPathStart.jumpAtOffset(oolJumpOffset);
+            JSC::CodeLocationLabel icCall = slowPathStart.labelAtOffset(icCallOffset);
+            repatcher.relink(oolJump, icCall);
+            releasePool(Pool_ScriptStub);
+        }
+        hit = false;
     }
 };
 

@@ -188,6 +188,9 @@ class RegExpCode
 
 
 
+
+
+
 class RegExpShared
 {
     friend class RegExpCompartment;
@@ -218,6 +221,8 @@ class RegExpShared
     
 
     size_t getParenCount() const        { return parenCount; }
+    void incRef()                       { activeUseCount++; }
+    void decRef()                       { JS_ASSERT(activeUseCount > 0); activeUseCount--; }
 
     
     size_t pairCount() const            { return parenCount + 1; }
@@ -241,22 +246,21 @@ class RegExpGuard
   public:
     RegExpGuard() : re_(NULL) {}
     RegExpGuard(RegExpShared &re) : re_(&re) {
-        re_->activeUseCount++;
+        re_->incRef();
     }
     void init(RegExpShared &re) {
         JS_ASSERT(!re_);
         re_ = &re;
-        re_->activeUseCount++;
+        re_->incRef();
     }
     ~RegExpGuard() {
-        if (re_) {
-            JS_ASSERT(re_->activeUseCount > 0);
-            re_->activeUseCount--;
-        }
+        if (re_)
+            re_->decRef();
     }
     bool initialized() const { return !!re_; }
-    RegExpShared *operator->() { JS_ASSERT(initialized()); return re_; }
-    RegExpShared &operator*() { JS_ASSERT(initialized()); return *re_; }
+    RegExpShared *re() const { JS_ASSERT(initialized()); return re_; }
+    RegExpShared *operator->() { return re(); }
+    RegExpShared &operator*() { return *re(); }
 };
 
 class RegExpCompartment

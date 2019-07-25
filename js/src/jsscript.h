@@ -456,8 +456,10 @@ struct JSScript : public js::gc::Cell
 
   public:
 #ifdef JS_METHODJIT
-    JITScriptHandle jitHandleNormal; 
-    JITScriptHandle jitHandleCtor;   
+    JITScriptHandle jitHandleNormal;          
+    JITScriptHandle jitHandleNormalBarriered; 
+    JITScriptHandle jitHandleCtor;            
+    JITScriptHandle jitHandleCtorBarriered;   
 #endif
 
   private:
@@ -681,20 +683,28 @@ struct JSScript : public js::gc::Cell
     
     friend class js::mjit::CallCompiler;
 
-    static size_t jitHandleOffset(bool constructing) {
-        return constructing ? offsetof(JSScript, jitHandleCtor)
-                            : offsetof(JSScript, jitHandleNormal);
+    static size_t jitHandleOffset(bool constructing, bool barriers) {
+        return constructing
+            ? (barriers ? offsetof(JSScript, jitHandleCtorBarriered) : offsetof(JSScript, jitHandleCtor))
+            : (barriers ? offsetof(JSScript, jitHandleNormalBarriered) : offsetof(JSScript, jitHandleNormal));
     }
 
   public:
-    bool hasJITCode()   { return jitHandleNormal.isValid() || jitHandleCtor.isValid(); }
-
-    JITScriptHandle *jitHandle(bool constructing) {
-        return constructing ? &jitHandleCtor : &jitHandleNormal;
+    bool hasJITCode() {
+        return jitHandleNormal.isValid()
+            || jitHandleNormalBarriered.isValid()
+            || jitHandleCtor.isValid()
+            || jitHandleCtorBarriered.isValid();
     }
 
-    js::mjit::JITScript *getJIT(bool constructing) {
-        JITScriptHandle *jith = jitHandle(constructing);
+    JITScriptHandle *jitHandle(bool constructing, bool barriers) {
+        return constructing
+               ? (barriers ? &jitHandleCtorBarriered : &jitHandleCtor)
+               : (barriers ? &jitHandleNormalBarriered : &jitHandleNormal);
+    }
+
+    js::mjit::JITScript *getJIT(bool constructing, bool barriers) {
+        JITScriptHandle *jith = jitHandle(constructing, barriers);
         return jith->isValid() ? jith->getValid() : NULL;
     }
 
