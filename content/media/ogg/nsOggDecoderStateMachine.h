@@ -45,10 +45,6 @@ class nsOggDecoderStateMachine : public nsBuiltinDecoderStateMachine
 {
 public:
   nsOggDecoderStateMachine(nsBuiltinDecoder* aDecoder);
-
-  
-  
-  virtual void LoadMetadata();
 };
 
 #endif

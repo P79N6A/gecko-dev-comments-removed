@@ -71,13 +71,6 @@ public:
   virtual PRBool DecodeVideoFrame(PRBool &aKeyframeSkip,
                                   PRInt64 aTimeThreshold);
 
-  virtual VideoData* FindStartTime(PRInt64 aOffset,
-                                   PRInt64& aOutStartTime);
-
-  
-  
-  virtual PRInt64 FindEndTime(PRInt64 aEndOffset);
-
   virtual PRBool HasAudio()
   {
     mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -179,15 +172,23 @@ private:
 
   
   
+  PRInt64 RangeEndTime(PRInt64 aEndOffset);
+
   
   
   
   
   
-  PRInt64 FindEndTime(PRInt64 aStartOffset,
-                      PRInt64 aEndOffset,
-                      PRBool aCachedDataOnly,
-                      ogg_sync_state* aState);
+  
+  
+  PRInt64 RangeEndTime(PRInt64 aStartOffset,
+                       PRInt64 aEndOffset,
+                       PRBool aCachedDataOnly);
+
+  
+  
+  
+  PRInt64 RangeStartTime(PRInt64 aOffset);
 
   
   

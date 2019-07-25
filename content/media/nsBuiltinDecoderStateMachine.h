@@ -158,6 +158,7 @@ public:
   virtual void Shutdown();
   virtual PRInt64 GetDuration();
   virtual void SetDuration(PRInt64 aDuration);
+  void SetEndTime(PRInt64 aEndTime);
   virtual PRBool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
@@ -247,6 +248,11 @@ public:
     return mEndTime;
   }
 
+  PRBool GetSeekable() {
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+    return mSeekable;
+  }
+
   
   
   virtual void SetFrameBufferLength(PRUint32 aLength);
@@ -302,11 +308,6 @@ protected:
   
   
   VideoData* FindStartTime();
-
-  
-  
-  
-  void FindEndTime();
 
   
   

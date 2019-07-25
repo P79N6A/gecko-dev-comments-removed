@@ -446,12 +446,7 @@ public:
   
   
   
-  virtual VideoData* FindStartTime(PRInt64 aOffset,
-                                   PRInt64& aOutStartTime);
-
-  
-  
-  virtual PRInt64 FindEndTime(PRInt64 aEndOffset);
+  VideoData* FindStartTime(PRInt64& aOutStartTime);
 
   
   

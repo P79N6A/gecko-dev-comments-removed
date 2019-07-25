@@ -262,6 +262,11 @@ public:
 
   
   
+  
+  virtual void SetEndTime(PRInt64 aEndTime) = 0;
+
+  
+  
   virtual PRBool OnDecodeThread() const = 0;
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus() = 0;
@@ -286,7 +291,13 @@ public:
 
   
   
+  
   virtual void SetSeekable(PRBool aSeekable) = 0;
+
+  
+  
+  
+  virtual PRBool GetSeekable() = 0;
 
   
   
