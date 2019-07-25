@@ -3,6 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var EXPORTED_SYMBOLS = ["PlacesUIUtils"];
 
 var Ci = Components.interfaces;
@@ -13,16 +50,13 @@ var Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
-                                  "resource://gre/modules/PluralForm.jsm");
-
 XPCOMUtils.defineLazyGetter(this, "PlacesUtils", function() {
   Cu.import("resource://gre/modules/PlacesUtils.jsm");
   return PlacesUtils;
 });
 
 var PlacesUIUtils = {
-  ORGANIZER_LEFTPANE_VERSION: 7,
+  ORGANIZER_LEFTPANE_VERSION: 6,
   ORGANIZER_FOLDER_ANNO: "PlacesOrganizer/OrganizerFolder",
   ORGANIZER_QUERY_ANNO: "PlacesOrganizer/OrganizerQuery",
 
@@ -43,31 +77,6 @@ var PlacesUIUtils = {
 
   getFormattedString: function PUIU_getFormattedString(key, params) {
     return bundle.formatStringFromName(key, params, params.length);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  getPluralString: function PUIU_getPluralString(aKey, aNumber, aParams) {
-    let str = PluralForm.get(aNumber, bundle.GetStringFromName(aKey));
-
-    
-    return str.replace(/\#(\d+)/g, function (matchedId, matchedNumber) {
-      let param = aParams[parseInt(matchedNumber, 10) - 1];
-      return param !== undefined ? param : matchedId;
-    });
   },
 
   getString: function PUIU_getString(key) {
@@ -323,6 +332,238 @@ var PlacesUIUtils = {
     return null;
   },
 
+  _reportDeprecatedAddBookmarkMethod:
+  function PUIU__reportDeprecatedAddBookmarkMethod() {
+    
+    let oldFuncName = arguments.callee.caller.name.slice(5);
+    Cu.reportError(oldFuncName + " is deprecated and will be removed in a " +
+                   "future release. Use showBookmarkDialog instead.");
+  },
+
+  
+
+
+  showAddBookmarkUI: function PUIU_showAddBookmarkUI(
+    aURI, aTitle, aDescription, aDefaultInsertionPoint, aShowPicker,
+    aLoadInSidebar, aKeyword, aPostData, aCharSet) {
+    this._reportDeprecatedAddBookmarkMethod();
+
+    var info = {
+      action: "add",
+      type: "bookmark"
+    };
+
+    if (aURI)
+      info.uri = aURI;
+
+    
+    if (typeof(aTitle) == "string")
+      info.title = aTitle;
+
+    if (aDescription)
+      info.description = aDescription;
+
+    if (aDefaultInsertionPoint) {
+      info.defaultInsertionPoint = aDefaultInsertionPoint;
+      if (!aShowPicker)
+        info.hiddenRows = ["folderPicker"];
+    }
+
+    if (aLoadInSidebar)
+      info.loadBookmarkInSidebar = true;
+
+    if (typeof(aKeyword) == "string") {
+      info.keyword = aKeyword;
+      if (typeof(aPostData) == "string")
+        info.postData = aPostData;
+      if (typeof(aCharSet) == "string")
+        info.charSet = aCharSet;
+    }
+
+    return this.showBookmarkDialog(info);
+  },
+
+  
+
+
+  showMinimalAddBookmarkUI:
+  function PUIU_showMinimalAddBookmarkUI(
+    aURI, aTitle, aDescription, aDefaultInsertionPoint, aShowPicker,
+    aLoadInSidebar, aKeyword, aPostData, aCharSet) {
+    this._reportDeprecatedAddBookmarkMethod();
+
+    var info = {
+      action: "add",
+      type: "bookmark",
+      hiddenRows: ["description"]
+    };
+    if (aURI)
+      info.uri = aURI;
+
+    
+    if (typeof(aTitle) == "string")
+      info.title = aTitle;
+
+    if (aDescription)
+      info.description = aDescription;
+
+    if (aDefaultInsertionPoint) {
+      info.defaultInsertionPoint = aDefaultInsertionPoint;
+      if (!aShowPicker)
+        info.hiddenRows.push("folderPicker");
+    }
+
+    if (aLoadInSidebar)
+      info.loadBookmarkInSidebar = true;
+    else
+      info.hiddenRows = info.hiddenRows.concat(["location", "loadInSidebar"]);
+
+    if (typeof(aKeyword) == "string") {
+      info.keyword = aKeyword;
+      
+      info.hiddenRows.push("tags");
+      
+      if (typeof(aPostData) == "string")
+        info.postData = aPostData;
+      if (typeof(aCharSet) == "string")
+        info.charSet = aCharSet;
+    }
+    else
+      info.hiddenRows.push("keyword");
+
+    return this.showBookmarkDialog(info, undefined, true);
+  },
+
+  
+
+
+  showAddLivemarkUI: function PUIU_showAddLivemarkURI(aFeedURI,
+                                                      aSiteURI,
+                                                      aTitle,
+                                                      aDescription,
+                                                      aDefaultInsertionPoint,
+                                                      aShowPicker) {
+    this._reportDeprecatedAddBookmarkMethod();
+
+    var info = {
+      action: "add",
+      type: "livemark"
+    };
+
+    if (aFeedURI)
+      info.feedURI = aFeedURI;
+    if (aSiteURI)
+      info.siteURI = aSiteURI;
+
+    
+    if (typeof(aTitle) == "string")
+      info.title = aTitle;
+
+    if (aDescription)
+      info.description = aDescription;
+
+    if (aDefaultInsertionPoint) {
+      info.defaultInsertionPoint = aDefaultInsertionPoint;
+      if (!aShowPicker)
+        info.hiddenRows = ["folderPicker"];
+    }
+    return this.showBookmarkDialog(info);
+  },
+
+  
+
+
+  showMinimalAddLivemarkUI:
+  function PUIU_showMinimalAddLivemarkURI(
+    aFeedURI, aSiteURI, aTitle, aDescription, aDefaultInsertionPoint,
+    aShowPicker) {
+
+    this._reportDeprecatedAddBookmarkMethod();
+
+    var info = {
+      action: "add",
+      type: "livemark",
+      hiddenRows: ["feedLocation", "siteLocation", "description"]
+    };
+
+    if (aFeedURI)
+      info.feedURI = aFeedURI;
+    if (aSiteURI)
+      info.siteURI = aSiteURI;
+
+    
+    if (typeof(aTitle) == "string")
+      info.title = aTitle;
+
+    if (aDescription)
+      info.description = aDescription;
+
+    if (aDefaultInsertionPoint) {
+      info.defaultInsertionPoint = aDefaultInsertionPoint;
+      if (!aShowPicker)
+        info.hiddenRows.push("folderPicker");
+    }
+    return this.showBookmarkDialog(info, undefined, true);
+  },
+
+  
+
+
+  showMinimalAddMultiBookmarkUI: function PUIU_showAddMultiBookmarkUI(aURIList) {
+    this._reportDeprecatedAddBookmarkMethod();
+
+    if (aURIList.length == 0)
+      throw("showAddMultiBookmarkUI expects a list of nsIURI objects");
+    var info = {
+      action: "add",
+      type: "folder",
+      hiddenRows: ["description"],
+      URIList: aURIList
+    };
+    return this.showBookmarkDialog(info, undefined, true);
+  },
+
+  
+
+
+  showItemProperties: function PUIU_showItemProperties(aItemId, aType, aReadOnly) {
+    this._reportDeprecatedAddBookmarkMethod();
+
+    var info = {
+      action: "edit",
+      type: aType,
+      itemId: aItemId,
+      readOnly: aReadOnly
+    };
+    return this.showBookmarkDialog(info);
+  },
+
+  
+
+
+  showAddFolderUI:
+  function PUIU_showAddFolderUI(aTitle, aDefaultInsertionPoint, aShowPicker) {
+    this._reportDeprecatedAddBookmarkMethod();
+
+    var info = {
+      action: "add",
+      type: "folder",
+      hiddenRows: []
+    };
+
+    
+    if (typeof(aTitle) == "string")
+      info.title = aTitle;
+
+    if (aDefaultInsertionPoint) {
+      info.defaultInsertionPoint = aDefaultInsertionPoint;
+      if (!aShowPicker)
+        info.hiddenRows.push("folderPicker");
+    }
+    return this.showBookmarkDialog(info);
+  },
+
+
   
 
 
@@ -339,22 +580,21 @@ var PlacesUIUtils = {
 
 
   showBookmarkDialog:
-  function PUIU_showBookmarkDialog(aInfo, aParentWindow, aResizable) {
+  function PUIU_showBookmarkDialog(aInfo, aParentWindow, aMinimalUI) {
+    if (!aParentWindow) {
+      aParentWindow = this._getWindow(null);
+    }
+
     
     
-    
-    
-    let hasFolderPicker = !("hiddenRows" in aInfo) ||
-                          aInfo.hiddenRows.indexOf("folderPicker") == -1;
-    let resizable = aResizable !== undefined ? aResizable : hasFolderPicker;
-    
-    
-    let dialogURL = resizable ?
+    let minimalUI = "hiddenRows" in aInfo &&
+                    aInfo.hiddenRows.indexOf("folderPicker") != -1;
+    let dialogURL = aMinimalUI ?
                     "chrome://browser/content/places/bookmarkProperties2.xul" :
                     "chrome://browser/content/places/bookmarkProperties.xul";
 
     let features =
-      "centerscreen,chrome,modal,resizable=" + (resizable ? "yes" : "no");
+      "centerscreen,chrome,modal,resizable=" + (aMinimalUI ? "yes" : "no");
 
     aParentWindow.openDialog(dialogURL, "",  features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
@@ -578,9 +818,44 @@ var PlacesUIUtils = {
     browserWindow.gBrowser.loadTabs(urls, loadInBackground, false);
   },
 
+  
+
+
+
+  _getWindow: function PUIU__getWindow(aView) {
+    if (aView) {
+      
+      if (aView instanceof Components.interfaces.nsIDOMNode)
+        return aView.ownerDocument.defaultView;
+
+      return Cu.getGlobalForObject(aView);
+    }
+
+    let caller = arguments.callee.caller;
+
+    
+    if (aView === null) {
+      Components.utils.reportError("The api has changed. A window should be " +
+                                   "passed to " + caller.name + ".  Not " +
+                                   "passing a window will throw in a future " +
+                                   "release.");
+    }
+    else {
+      Components.utils.reportError("The api has changed. A places view " +
+                                   "should be passed to " + caller.name + ". " +
+                                   "Not passing a view will throw in a future " +
+                                   "release.");
+    }
+
+    
+    
+    let topBrowserWin = this._getTopBrowserWin();
+    return topBrowserWin ? topBrowserWin : focusManager.focusedWindow;
+  },
+
   openContainerNodeInTabs:
   function PUIU_openContainerInTabs(aNode, aEvent, aView) {
-    let window = aView.ownerWindow;
+    let window = this._getWindow(aView);
 
     let urlsToOpen = PlacesUtils.getURLsForContainerNode(aNode);
     if (!this._confirmOpenInTabs(urlsToOpen.length, window))
@@ -590,7 +865,7 @@ var PlacesUIUtils = {
   },
 
   openURINodesInTabs: function PUIU_openURINodesInTabs(aNodes, aEvent, aView) {
-    let window = aView.ownerWindow;
+    let window = this._getWindow(aView);
 
     let urlsToOpen = [];
     for (var i=0; i < aNodes.length; i++) {
@@ -615,7 +890,7 @@ var PlacesUIUtils = {
 
   openNodeWithEvent:
   function PUIU_openNodeWithEvent(aNode, aEvent, aView) {
-    let window = aView.ownerWindow;
+    let window = this._getWindow(aView);
     this._openNodeIn(aNode, window.whereToOpenLink(aEvent), window);
   },
 
@@ -625,7 +900,7 @@ var PlacesUIUtils = {
 
 
   openNodeIn: function PUIU_openNodeIn(aNode, aWhere, aView) {
-    let window = aView.ownerWindow;
+    let window = this._getWindow(aView);
     this._openNodeIn(aNode, aWhere, window);
   },
 
@@ -651,9 +926,7 @@ var PlacesUIUtils = {
           }
         }
       }
-      aWindow.openUILinkIn(aNode.uri, aWhere, {
-        inBackground: Services.prefs.getBoolPref("browser.tabs.loadBookmarksInBackground")
-      });
+      aWindow.openUILinkIn(aNode.uri, aWhere);
     }
   },
 
@@ -671,7 +944,7 @@ var PlacesUIUtils = {
     return aUrlString.substr(0, aUrlString.indexOf(":"));
   },
 
-  getBestTitle: function PUIU_getBestTitle(aNode, aDoNotCutTitle) {
+  getBestTitle: function PUIU_getBestTitle(aNode) {
     var title;
     if (!aNode.title && PlacesUtils.uriTypes.indexOf(aNode.type) != -1) {
       
@@ -681,13 +954,9 @@ var PlacesUIUtils = {
         var host = uri.host;
         var fileName = uri.QueryInterface(Ci.nsIURL).fileName;
         
-        if (aDoNotCutTitle) {
-          title = host + uri.path;
-        } else {
-          title = host + (fileName ?
-                           (host ? "/" + this.ellipsis + "/" : "") + fileName :
-                           uri.path);
-        }
+        title = host + (fileName ?
+                        (host ? "/" + this.ellipsis + "/" : "") + fileName :
+                        uri.path);
       }
       catch (e) {
         
@@ -719,7 +988,6 @@ var PlacesUIUtils = {
     let queries = {
       "PlacesRoot": { title: "" },
       "History": { title: this.getString("OrganizerQueryHistory") },
-      "Downloads": { title: this.getString("OrganizerQueryDownloads") },
       "Tags": { title: this.getString("OrganizerQueryTags") },
       "AllBookmarks": { title: this.getString("OrganizerQueryAllBookmarks") },
       "BookmarksToolbar":
@@ -736,7 +1004,7 @@ var PlacesUIUtils = {
           concreteId: PlacesUtils.unfiledBookmarksFolderId },
     };
     
-    const EXPECTED_QUERY_COUNT = 7;
+    const EXPECTED_QUERY_COUNT = 6;
 
     
     function safeRemoveItem(aItemId) {
@@ -910,11 +1178,6 @@ var PlacesUIUtils = {
                           Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING);
 
         
-        this.create_query("Downloads", leftPaneRoot,
-                          "place:transition=" +
-                          Ci.nsINavHistoryService.TRANSITION_DOWNLOAD +
-                          "&sort=" +
-                          Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING);
 
         
         this.create_query("Tags", leftPaneRoot,
