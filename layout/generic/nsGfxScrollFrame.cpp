@@ -156,94 +156,6 @@ nsHTMLScrollFrame::GetType() const
   return nsGkAtoms::scrollFrame; 
 }
 
-void
-nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
-                                      nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                      PRUint32 aFlags)
-{
-  if (aForChild) {
-    if (aForChild == mInner.mScrolledFrame) {
-      nsRect damage = aDamageRect + nsPoint(aX, aY);
-      
-      nsRect parentDamage;
-      if (mInner.IsIgnoringViewportClipping()) {
-        parentDamage = damage;
-      } else {
-        
-        
-        
-        nsRect displayport;
-        bool usingDisplayport = nsLayoutUtils::GetDisplayPort(GetContent(),
-                                                                &displayport);
-        if (usingDisplayport) {
-          parentDamage.IntersectRect(damage, displayport);
-        } else {
-          parentDamage.IntersectRect(damage, mInner.mScrollPort);
-        }
-      }
-
-      if (IsScrollingActive()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        nsRect thebesLayerDamage = damage + GetScrollPosition() - mInner.mScrollPosAtLastPaint;
-        if (parentDamage.IsEqualInterior(thebesLayerDamage)) {
-          
-          nsContainerFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
-        } else {
-          
-          if (!(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
-            nsContainerFrame::InvalidateInternal(thebesLayerDamage, 0, 0, aForChild,
-                                                 aFlags | INVALIDATE_ONLY_THEBES_LAYERS);
-          }
-          if (!(aFlags & INVALIDATE_ONLY_THEBES_LAYERS) && !parentDamage.IsEmpty()) {
-            nsContainerFrame::InvalidateInternal(parentDamage, 0, 0, aForChild,
-                                                 aFlags | INVALIDATE_NO_THEBES_LAYERS);
-          }
-        }
-      } else {
-        if (!parentDamage.IsEmpty()) {
-          nsContainerFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
-        }
-      }
-
-      if (mInner.mIsRoot && !parentDamage.IsEqualInterior(damage)) {
-        
-        
-        
-        
-        
-        
-        
-        PresContext()->NotifyInvalidation(damage, aFlags);
-      }
-      return;
-    } else if (aForChild == mInner.mHScrollbarBox) {
-      if (!mInner.mHasHorizontalScrollbar) {
-        
-        
-        
-        return;
-      }
-    } else if (aForChild == mInner.mVScrollbarBox) {
-      if (!mInner.mHasVerticalScrollbar) {
-        
-        
-        
-        return;
-      }
-    }
-  }
- 
-  nsContainerFrame::InvalidateInternal(aDamageRect, aX, aY, aForChild, aFlags);
-}
-
 
 
 
@@ -909,8 +821,6 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
       state.mContentsOverflowAreas + mInner.mScrolledFrame->GetPosition());
   }
 
-  CheckInvalidateSizeChange(aDesiredSize);
-
   FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   if (!InInitialReflow() && !mInner.mHadNonInitialReflow) {
@@ -1091,63 +1001,6 @@ nsIAtom*
 nsXULScrollFrame::GetType() const
 {
   return nsGkAtoms::scrollFrame; 
-}
-
-void
-nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
-                                     nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                     PRUint32 aFlags)
-{
-  if (aForChild == mInner.mScrolledFrame) {
-    nsRect damage = aDamageRect + nsPoint(aX, aY);
-    
-    nsRect parentDamage;
-    
-    
-    
-    nsRect displayport;
-    bool usingDisplayport = nsLayoutUtils::GetDisplayPort(GetContent(),
-                                                            &displayport);
-    if (usingDisplayport) {
-      parentDamage.IntersectRect(damage, displayport);
-    } else {
-      parentDamage.IntersectRect(damage, mInner.mScrollPort);
-    }
-
-    if (IsScrollingActive()) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      nsRect thebesLayerDamage = damage + GetScrollPosition() - mInner.mScrollPosAtLastPaint;
-      if (parentDamage.IsEqualInterior(thebesLayerDamage)) {
-        
-        nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
-      } else {
-        
-        if (!(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
-          nsBoxFrame::InvalidateInternal(thebesLayerDamage, 0, 0, aForChild,
-                                         aFlags | INVALIDATE_ONLY_THEBES_LAYERS);
-        }
-        if (!(aFlags & INVALIDATE_ONLY_THEBES_LAYERS) && !parentDamage.IsEmpty()) {
-          nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild,
-                                         aFlags | INVALIDATE_NO_THEBES_LAYERS);
-        }
-      }
-    } else {
-      if (!parentDamage.IsEmpty()) {
-        nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
-      }
-    }
-    return;
-  }
-  
-  nsBoxFrame::InvalidateInternal(aDamageRect, aX, aY, aForChild, aFlags);
 }
 
 nscoord
@@ -1820,7 +1673,7 @@ InvalidateFixedBackgroundFramesFromList(nsDisplayListBuilder* aBuilder,
         item->IsVaryingRelativeToMovingFrame(aBuilder, aMovingFrame)) {
       if (FrameLayerBuilder::NeedToInvalidateFixedDisplayItem(aBuilder, item)) {
         
-        f->Invalidate(item->GetVisibleRect() - item->ToReferenceFrame());
+        f->InvalidateFrame();
       }
     }
   }
@@ -1918,34 +1771,23 @@ void nsGfxScrollFrameInner::ScrollVisual(nsPoint aOldScrolledFramePos)
   AdjustViews(mScrolledFrame);
   
   
-  PRUint32 flags = nsIFrame::INVALIDATE_REASON_SCROLL_REPAINT;
+  bool invalidate = false;
   bool canScrollWithBlitting = CanScrollWithBlitting(mOuter);
   mOuter->RemoveStateBits(NS_SCROLLFRAME_INVALIDATE_CONTENTS_ON_SCROLL);
   if (IsScrollingActive()) {
     if (!canScrollWithBlitting) {
       MarkInactive();
     } else {
-      flags |= nsIFrame::INVALIDATE_NO_THEBES_LAYERS;
+      invalidate = true;
     }
   }
   if (canScrollWithBlitting) {
     MarkActive();
   }
 
-  nsRect invalidateRect, displayport;
-  if (IsIgnoringViewportClipping()) {
-    nsRect visualOverflow = mScrolledFrame->GetVisualOverflowRect();
-    invalidateRect.UnionRect(visualOverflow + mScrolledFrame->GetPosition(),
-            visualOverflow + aOldScrolledFramePos);
-  } else {
-    invalidateRect =
-      (nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayport)) ?
-      displayport : mScrollPort;
-  }
+  mOuter->SchedulePaint();
 
-  mOuter->InvalidateWithFlags(invalidateRect, flags);
-
-  if (flags & nsIFrame::INVALIDATE_NO_THEBES_LAYERS) {
+  if (invalidate) {
     nsIFrame* displayRoot = nsLayoutUtils::GetDisplayRootFrame(mOuter);
     nsRect update =
       GetScrollPortRect() + mOuter->GetOffsetToCrossDoc(displayRoot);
@@ -3144,28 +2986,6 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState,
     ClampAndSetBounds(aState, childRect, aScrollPosition, true);
   }
 
-  nsRect finalRect = mInner.mScrolledFrame->GetRect();
-  nsRect finalVisOverflow = mInner.mScrolledFrame->GetVisualOverflowRect();
-  
-  
-  
-  if (originalRect.TopLeft() != finalRect.TopLeft() ||
-      originalVisOverflow.TopLeft() != finalVisOverflow.TopLeft())
-  {
-    
-    
-    mInner.mScrolledFrame->Invalidate(
-      originalVisOverflow + originalRect.TopLeft() - finalRect.TopLeft());
-    mInner.mScrolledFrame->Invalidate(finalVisOverflow);
-  } else if (!originalVisOverflow.IsEqualInterior(finalVisOverflow)) {
-    
-    
-    mInner.mScrolledFrame->CheckInvalidateSizeChange(
-      originalRect, originalVisOverflow, finalRect.Size());
-    mInner.mScrolledFrame->InvalidateRectDifference(
-      originalVisOverflow, finalVisOverflow);
-  }
-
   aState.SetLayoutFlags(oldflags);
 
 }
@@ -3576,40 +3396,6 @@ nsGfxScrollFrameInner::ReflowCallbackCanceled()
   mPostedReflowCallback = false;
 }
 
-static void LayoutAndInvalidate(nsBoxLayoutState& aState,
-                                nsIFrame* aBox, const nsRect& aRect,
-                                bool aScrollbarIsBeingHidden)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  bool rectChanged = !aBox->GetRect().IsEqualInterior(aRect);
-  if (rectChanged) {
-    if (aScrollbarIsBeingHidden) {
-      aBox->GetParent()->Invalidate(aBox->GetVisualOverflowRect() +
-                                    aBox->GetPosition());
-    } else {
-      aBox->InvalidateFrameSubtree();
-    }
-  }
-  nsBoxFrame::LayoutChildAt(aState, aBox, aRect);
-  if (rectChanged) {
-    if (aScrollbarIsBeingHidden) {
-      aBox->GetParent()->Invalidate(aBox->GetVisualOverflowRect() +
-                                    aBox->GetPosition());
-    } else {
-      aBox->InvalidateFrameSubtree();
-    }
-  }
-}
-
 bool
 nsGfxScrollFrameInner::UpdateOverflow()
 {
@@ -3704,7 +3490,7 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
     }
 
     if (mScrollCornerBox) {
-      LayoutAndInvalidate(aState, mScrollCornerBox, r, false);
+      nsBoxFrame::LayoutChildAt(aState, mScrollCornerBox, r);
     }
 
     if (hasResizer) {
@@ -3727,11 +3513,11 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
           r.y = aContentArea.YMost() - r.height;
       }
 
-      LayoutAndInvalidate(aState, mResizerBox, r, false);
+      nsBoxFrame::LayoutChildAt(aState, mResizerBox, r);
     }
     else if (mResizerBox) {
       
-      LayoutAndInvalidate(aState, mResizerBox, nsRect(), false);
+      nsBoxFrame::LayoutChildAt(aState, mResizerBox, nsRect());
     }
   }
 
@@ -3745,7 +3531,7 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
     mVScrollbarBox->GetMargin(margin);
     vRect.Deflate(margin);
     AdjustScrollbarRectForResizer(mOuter, presContext, vRect, hasResizer, true);
-    LayoutAndInvalidate(aState, mVScrollbarBox, vRect, !mHasVerticalScrollbar);
+    nsBoxFrame::LayoutChildAt(aState, mVScrollbarBox, vRect);
   }
 
   if (mHScrollbarBox) {
@@ -3757,7 +3543,7 @@ nsGfxScrollFrameInner::LayoutScrollbars(nsBoxLayoutState& aState,
     mHScrollbarBox->GetMargin(margin);
     hRect.Deflate(margin);
     AdjustScrollbarRectForResizer(mOuter, presContext, hRect, hasResizer, false);
-    LayoutAndInvalidate(aState, mHScrollbarBox, hRect, !mHasHorizontalScrollbar);
+    nsBoxFrame::LayoutChildAt(aState, mHScrollbarBox, hRect);
   }
 
   

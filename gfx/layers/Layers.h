@@ -912,6 +912,29 @@ public:
 
   static bool IsLogEnabled() { return LayerManager::IsLogEnabled(); }
 
+  
+
+
+
+  const nsIntRect& GetInvalidRect() { return mInvalidRect; }
+
+  
+
+
+  void SetInvalidRectToVisibleRegion() { mInvalidRect = GetVisibleRegion().GetBounds(); }
+
+  
+
+
+  void AddInvalidRect(const nsIntRect& aRect) { mInvalidRect = mInvalidRect.Union(aRect); }
+
+  
+
+
+
+  void ClearInvalidRect() { mInvalidRect.SetEmpty(); }
+
+
 #ifdef DEBUG
   void SetDebugColorIndex(PRUint32 aIndex) { mDebugColorIndex = aIndex; }
   PRUint32 GetDebugColorIndex() { return mDebugColorIndex; }
@@ -976,6 +999,7 @@ protected:
   float mOpacity;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
+  nsIntRect mInvalidRect;
   PRUint32 mContentFlags;
   bool mUseClipRect;
   bool mUseTileSourceRect;
@@ -1298,7 +1322,7 @@ public:
 
 
 
-  void Updated() { mDirty = true; }
+  void Updated() { mDirty = true; SetInvalidRectToVisibleRegion(); }
 
   
 

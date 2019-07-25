@@ -157,10 +157,6 @@ public:
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
 
-  virtual void InvalidateInternal(const nsRect& aDamageRect,
-                                  nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  PRUint32 aFlags);
-
   
   
   bool IsNoAutoHide() const;

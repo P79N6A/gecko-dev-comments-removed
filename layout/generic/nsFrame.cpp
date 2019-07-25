@@ -86,6 +86,7 @@
 #include "nsChangeHint.h"
 #include "nsDeckFrame.h"
 #include "nsTableFrame.h"
+#include "nsSubDocumentFrame.h"
 
 #include "gfxContext.h"
 #include "nsRenderingContext.h"
@@ -490,7 +491,8 @@ nsFrame::Init(nsIContent*      aContent,
 
     
     mState |= state & (NS_FRAME_INDEPENDENT_SELECTION |
-                       NS_FRAME_GENERATED_CONTENT);
+                       NS_FRAME_GENERATED_CONTENT |
+                       NS_FRAME_IN_POPUP);
   }
   const nsStyleDisplay *disp = GetStyleDisplay();
   if (disp->HasTransform()) {
@@ -1205,6 +1207,23 @@ nsFrame::GetChildLists(nsTArray<ChildList>* aLists) const
     nsFrameList absoluteList = GetAbsoluteContainingBlock()->GetChildList();
     absoluteList.AppendIfNonempty(aLists, GetAbsoluteListID());
   }
+}
+
+void
+nsIFrame::GetCrossDocChildLists(nsTArray<ChildList>* aLists)
+{
+  nsSubDocumentFrame* subdocumentFrame = do_QueryFrame(this);
+  if (subdocumentFrame) {
+    
+    nsIFrame* root = subdocumentFrame->GetSubdocumentRootFrame();
+    if (root) {
+      aLists->AppendElement(nsIFrame::ChildList(
+        nsFrameList(root, nsLayoutUtils::GetLastSibling(root)),
+        nsIFrame::kPrincipalList));
+    }
+  }
+
+  GetChildLists(aLists);
 }
 
 static nsIFrame*
@@ -4411,46 +4430,6 @@ nsIFrame::IsLeaf() const
   return true;
 }
 
-Layer*
-nsIFrame::InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey)
-{
-  NS_ASSERTION(aDisplayItemKey > 0, "Need a key");
-
-  Layer* layer = FrameLayerBuilder::GetDedicatedLayer(this, aDisplayItemKey);
-  if (!layer) {
-    Invalidate(aDamageRect);
-    return nsnull;
-  }
-
-  PRUint32 flags = INVALIDATE_NO_THEBES_LAYERS;
-  if (aDisplayItemKey == nsDisplayItem::TYPE_VIDEO ||
-      aDisplayItemKey == nsDisplayItem::TYPE_PLUGIN ||
-      aDisplayItemKey == nsDisplayItem::TYPE_CANVAS) {
-    flags |= INVALIDATE_NO_UPDATE_LAYER_TREE;
-  }
-
-  InvalidateWithFlags(aDamageRect, flags);
-  return layer;
-}
-
-void
-nsIFrame::InvalidateTransformLayer()
-{
-  NS_ASSERTION(mParent, "How can a viewport frame have a transform?");
-
-  bool hasLayer =
-      FrameLayerBuilder::GetDedicatedLayer(this, nsDisplayItem::TYPE_TRANSFORM) != nsnull;
-  
-  
-  
-  
-  
-  
-  mParent->InvalidateInternal(GetVisualOverflowRect() + GetPosition(),
-                              0, 0, this,
-                              hasLayer ? INVALIDATE_NO_THEBES_LAYERS : 0);
-}
-
 class LayerActivity {
 public:
   LayerActivity(nsIFrame* aFrame) : mFrame(aFrame), mChangeHint(nsChangeHint(0)) {}
@@ -4547,135 +4526,6 @@ nsFrame::ShutdownLayerActivityTimer()
   gLayerActivityTracker = nsnull;
 }
 
-void
-nsIFrame::InvalidateWithFlags(const nsRect& aDamageRect, PRUint32 aFlags)
-{
-  if (aDamageRect.IsEmpty()) {
-    return;
-  }
-
-  
-  
-  nsIPresShell *shell = PresContext()->GetPresShell();
-  if (shell) {
-    if (shell->IsPaintingSuppressed())
-      return;
-  }
-
-  InvalidateInternal(aDamageRect, 0, 0, nsnull, aFlags);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-void
-nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
-                                        nscoord aY, PRUint32 aFlags)
-{
-  if (aDamageRect.IsEmpty()) {
-    return;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  bool rectIsTransformed = (aFlags & INVALIDATE_ALREADY_TRANSFORMED);
-  if (!Preserves3D()) {
-    
-    
-    
-    
-    aFlags &= ~INVALIDATE_ALREADY_TRANSFORMED;
-  }
-
-  if ((mState & NS_FRAME_HAS_CONTAINER_LAYER) &&
-      !(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
-    
-    
-    
-    
-    
-    
-    
-    FrameLayerBuilder::InvalidateThebesLayerContents(this,
-        aDamageRect + nsPoint(aX, aY));
-    
-    aFlags |= INVALIDATE_NO_THEBES_LAYERS;
-    if (aFlags & INVALIDATE_ONLY_THEBES_LAYERS) {
-      return;
-    }
-  }
-  if (IsTransformed() && !rectIsTransformed) {
-    nsRect newDamageRect = nsDisplayTransform::TransformRectOut
-                             (aDamageRect, this, nsPoint(-aX, -aY));
-    if (!(GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
-      newDamageRect.UnionRect(newDamageRect, aDamageRect);
-    }
-
-    
-    
-    
-    if (Preserves3D()) {
-      aFlags |= INVALIDATE_ALREADY_TRANSFORMED;
-    }
-
-    GetParent()->
-      InvalidateInternal(newDamageRect, aX + mRect.x, aY + mRect.y, this,
-                         aFlags);
-  }
-  else 
-    GetParent()->
-      InvalidateInternal(aDamageRect, aX + mRect.x, aY + mRect.y, this, aFlags);
-}
-
-void
-nsIFrame::InvalidateInternal(const nsRect& aDamageRect, nscoord aX, nscoord aY,
-                             nsIFrame* aForChild, PRUint32 aFlags)
-{
-  nsSVGEffects::InvalidateDirectRenderingObservers(this);
-  if (nsSVGIntegrationUtils::UsingEffectsForFrame(this)) {
-    nsRect r = nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(this,
-            aDamageRect + nsPoint(aX, aY));
-    
-
-
-
-    InvalidateInternalAfterResize(r, 0, 0, aFlags);
-    return;
-  }
-  
-  InvalidateInternalAfterResize(aDamageRect, aX, aY, aFlags);
-}
-
 gfx3DMatrix
 nsIFrame::GetTransformMatrix(nsIFrame* aStopAtAncestor,
                              nsIFrame** aOutAncestor)
@@ -4744,62 +4594,103 @@ nsIFrame::GetTransformMatrix(nsIFrame* aStopAtAncestor,
 }
 
 void
-nsIFrame::InvalidateRectDifference(const nsRect& aR1, const nsRect& aR2)
+nsIFrame::InvalidateFrameSubtree(PRUint32 aFlags)
 {
-  nsRect sizeHStrip, sizeVStrip;
-  nsLayoutUtils::GetRectDifferenceStrips(aR1, aR2, &sizeHStrip, &sizeVStrip);
-  Invalidate(sizeVStrip);
-  Invalidate(sizeHStrip);
+  InvalidateFrame(aFlags);
+  
+  nsAutoTArray<nsIFrame::ChildList,4> childListArray;
+  GetCrossDocChildLists(&childListArray);
+
+  nsIFrame::ChildListArrayIterator lists(childListArray);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      childFrames.get()->
+        InvalidateFrameSubtree(aFlags | INVALIDATE_DONT_SCHEDULE_PAINT);
+    }
+  }
 }
 
 void
-nsIFrame::InvalidateFrameSubtree()
+nsIFrame::ClearInvalidationStateBits()
 {
-  Invalidate(GetVisualOverflowRectRelativeToSelf());
-  FrameLayerBuilder::InvalidateThebesLayersInSubtree(this);
-}
+  if (HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
+    nsAutoTArray<nsIFrame::ChildList,4> childListArray;
+    GetCrossDocChildLists(&childListArray);
 
-void
-nsIFrame::InvalidateOverflowRect()
-{
-  Invalidate(GetVisualOverflowRectRelativeToSelf());
-}
-
-NS_DECLARE_FRAME_PROPERTY(DeferInvalidatesProperty, nsIFrame::DestroyRegion)
-
-void
-nsIFrame::InvalidateRoot(const nsRect& aDamageRect, PRUint32 aFlags)
-{
-  NS_ASSERTION(nsLayoutUtils::GetDisplayRootFrame(this) == this,
-               "Can only call this on display roots");
-
-  if ((mState & NS_FRAME_HAS_CONTAINER_LAYER) &&
-      !(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
-    FrameLayerBuilder::InvalidateThebesLayerContents(this, aDamageRect);
-    if (aFlags & INVALIDATE_ONLY_THEBES_LAYERS) {
-      return;
+    nsIFrame::ChildListArrayIterator lists(childListArray);
+    for (; !lists.IsDone(); lists.Next()) {
+      nsFrameList::Enumerator childFrames(lists.CurrentList());
+      for (; !childFrames.AtEnd(); childFrames.Next()) {
+        childFrames.get()->ClearInvalidationStateBits();
+      }
     }
   }
 
-  nsRect rect = aDamageRect;
-  nsRegion* excludeRegion = static_cast<nsRegion*>
-    (Properties().Get(DeferInvalidatesProperty()));
-  if (excludeRegion && (aFlags & INVALIDATE_EXCLUDE_CURRENT_PAINT)) {
-    nsRegion r;
-    r.Sub(rect, *excludeRegion);
-    if (r.IsEmpty())
-      return;
-    rect = r.GetBounds();
-  }
-
-  if (!(aFlags & INVALIDATE_NO_UPDATE_LAYER_TREE)) {
-    AddStateBits(NS_FRAME_UPDATE_LAYER_TREE);
-  }
-
-  nsIView* view = GetView();
-  NS_ASSERTION(view, "This can only be called on frames with views");
-  view->GetViewManager()->InvalidateViewNoSuppression(view, rect);
+  RemoveStateBits(NS_FRAME_NEEDS_PAINT | NS_FRAME_DESCENDANT_NEEDS_PAINT);
 }
+
+void
+nsIFrame::InvalidateFrame(PRUint32 aFlags)
+{
+  AddStateBits(NS_FRAME_NEEDS_PAINT);
+  nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(this);
+  while (parent && !parent->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT)) {
+    parent->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
+    parent = nsLayoutUtils::GetCrossDocParentFrame(parent);
+  }
+  if (!(aFlags & INVALIDATE_DONT_SCHEDULE_PAINT)) {
+    SchedulePaint();
+  }
+}
+  
+bool 
+nsIFrame::IsInvalid() 
+{
+  return HasAnyStateBits(NS_FRAME_NEEDS_PAINT);
+}
+
+void
+nsIFrame::SchedulePaint()
+{
+  nsPresContext *pres = PresContext()->GetRootPresContext();
+  if (HasAnyStateBits(NS_FRAME_IN_POPUP) || !pres) {
+    nsIFrame *displayRoot = nsLayoutUtils::GetDisplayRootFrame(this);
+    NS_ASSERTION(displayRoot, "Need a display root to schedule a paint!");
+    if (!displayRoot) {
+      return;
+    }
+    pres = displayRoot->PresContext();
+  }
+  pres->PresShell()->ScheduleViewManagerFlush();
+}
+
+Layer*
+nsIFrame::InvalidateLayer(PRUint32 aDisplayItemKey, const nsIntRect* aDamageRect)
+{
+  NS_ASSERTION(aDisplayItemKey > 0, "Need a key");
+
+  Layer* layer = FrameLayerBuilder::GetDedicatedLayer(this, aDisplayItemKey);
+  if (aDamageRect && aDamageRect->IsEmpty()) {
+    return layer;
+  }
+
+  if (!layer) {
+    InvalidateFrame();
+    return nsnull;
+  }
+
+  if (aDamageRect) {
+    layer->AddInvalidRect(*aDamageRect);
+  } else {
+    layer->SetInvalidRectToVisibleRegion();
+  }
+
+  SchedulePaint();
+  return layer;
+}
+
+NS_DECLARE_FRAME_PROPERTY(DeferInvalidatesProperty, nsIFrame::DestroyRegion)
 
 void
 nsIFrame::BeginDeferringInvalidatesForDisplayRoot(const nsRegion& aExcludeRegion)
@@ -5045,107 +4936,6 @@ nsFrame::UpdateOverflow()
   }
 
   return false;
-}
-
-void
-nsFrame::CheckInvalidateSizeChange(nsHTMLReflowMetrics& aNewDesiredSize)
-{
-  nsIFrame::CheckInvalidateSizeChange(mRect, GetVisualOverflowRect(),
-      nsSize(aNewDesiredSize.width, aNewDesiredSize.height));
-}
-
-static void
-InvalidateRectForFrameSizeChange(nsIFrame* aFrame, const nsRect& aRect)
-{
-  nsStyleContext *bgSC;
-  if (!nsCSSRendering::FindBackground(aFrame->PresContext(), aFrame, &bgSC)) {
-    nsIFrame* rootFrame =
-      aFrame->PresContext()->PresShell()->FrameManager()->GetRootFrame();
-    rootFrame->Invalidate(nsRect(nsPoint(0, 0), rootFrame->GetSize()));
-  }
-
-  aFrame->Invalidate(aRect);
-}
-
-void
-nsIFrame::CheckInvalidateSizeChange(const nsRect& aOldRect,
-                                    const nsRect& aOldVisualOverflowRect,
-                                    const nsSize& aNewDesiredSize)
-{
-  if (aNewDesiredSize == aOldRect.Size())
-    return;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-
-  
-  bool anyOutlineOrEffects;
-  nsRect r = ComputeOutlineAndEffectsRect(this, &anyOutlineOrEffects,
-                                          aOldVisualOverflowRect,
-                                          aNewDesiredSize,
-                                          false);
-  if (anyOutlineOrEffects) {
-    r.UnionRect(aOldVisualOverflowRect, r);
-    InvalidateRectForFrameSizeChange(this, r);
-    return;
-  }
-
-  
-  
-  const nsStyleBorder* border = GetStyleBorder();
-  NS_FOR_CSS_SIDES(side) {
-    if (border->GetComputedBorderWidth(side) != 0) {
-      if ((side == NS_SIDE_LEFT || side == NS_SIDE_TOP) &&
-          !nsLayoutUtils::HasNonZeroCornerOnSide(border->mBorderRadius, side) &&
-          !border->GetBorderImage() &&
-          border->GetBorderStyle(side) == NS_STYLE_BORDER_STYLE_SOLID) {
-        
-        
-        
-        
-        
-        continue;
-      }
-      InvalidateRectForFrameSizeChange(this, nsRect(0, 0, aOldRect.width, aOldRect.height));
-      return;
-    }
-  }
-
-  const nsStyleBackground *bg = GetStyleBackground();
-  if (!bg->IsTransparent()) {
-    
-    
-    NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
-      const nsStyleBackground::Layer &layer = bg->mLayers[i];
-      if (layer.RenderingMightDependOnFrameSize()) {
-        InvalidateRectForFrameSizeChange(this, nsRect(0, 0, aOldRect.width, aOldRect.height));
-        return;
-      }
-    }
-
-    
-    
-    
-    
-    
-    if (nsLayoutUtils::HasNonZeroCorner(border->mBorderRadius)) {
-      InvalidateRectForFrameSizeChange(this, nsRect(0, 0, aOldRect.width, aOldRect.height));
-      return;
-    }
-  }
 }
 
 
@@ -6883,7 +6673,7 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       
       
       
-      Invalidate(aOverflowAreas.VisualOverflow());
+      InvalidateFrame();
     } else if (hasClipPropClip || didHaveClipPropClip) {
       
       
@@ -6891,30 +6681,8 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       
       
       
-      Invalidate(aOverflowAreas.VisualOverflow());
+      InvalidateFrame();
     }
-  }
-  
-  
-  if (anyOverflowChanged && hasTransform &&
-      !(GetStateBits() & NS_FRAME_SVG_LAYOUT)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    InvalidateLayer(aOverflowAreas.VisualOverflow(),
-                    nsDisplayItem::TYPE_TRANSFORM);
   }
 
   return anyOverflowChanged;
@@ -7393,10 +7161,7 @@ nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
       return NS_OK;
 
     
-    nsRect oldRect = GetRect();
-
-    
-    nsRect rect(oldRect);
+    nsRect rect = GetRect();
 
     nsMargin bp(0,0,0,0);
     GetBorderAndPadding(bp);
@@ -7417,15 +7182,6 @@ nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
     rv = BoxReflow(aState, presContext, desiredSize, rendContext,
                    rect.x, rect.y,
                    metrics->mBlockPrefSize.width, NS_UNCONSTRAINEDSIZE);
-
-    nsRect newRect = GetRect();
-
-    
-    if (oldRect.width != newRect.width || oldRect.height != newRect.height) {
-      newRect.x = 0;
-      newRect.y = 0;
-      Redraw(aState, &newRect);
-    }
 
     metrics->mBlockMinSize.height = 0;
     
@@ -7943,6 +7699,55 @@ nsFrame::BoxMetrics() const
   return metrics;
 }
 
+
+
+
+
+static void
+AddInPopupStateBitToDescendants(nsIFrame* aFrame)
+{
+  aFrame->AddStateBits(NS_FRAME_IN_POPUP);
+
+  nsAutoTArray<nsIFrame::ChildList,4> childListArray;
+  aFrame->GetCrossDocChildLists(&childListArray);
+
+  nsIFrame::ChildListArrayIterator lists(childListArray);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      AddInPopupStateBitToDescendants(childFrames.get());
+    }
+  }
+}
+
+
+
+
+
+
+static void
+RemoveInPopupStateBitFromDescendants(nsIFrame* aFrame)
+{
+  if (!aFrame->HasAnyStateBits(NS_FRAME_IN_POPUP) ||
+      aFrame->GetType() == nsGkAtoms::listControlFrame ||
+      aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
+    return;
+  }
+
+  aFrame->RemoveStateBits(NS_FRAME_IN_POPUP);
+
+  nsAutoTArray<nsIFrame::ChildList,4> childListArray;
+  aFrame->GetCrossDocChildLists(&childListArray);
+
+  nsIFrame::ChildListArrayIterator lists(childListArray);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      RemoveInPopupStateBitFromDescendants(childFrames.get());
+    }
+  }
+}
+
 void
 nsFrame::SetParent(nsIFrame* aParent)
 {
@@ -7961,13 +7766,19 @@ nsFrame::SetParent(nsIFrame* aParent)
       f->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
     }
   }
-
-  if (GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT) {
+  
+  if (HasInvalidFrameInSubtree()) {
     for (nsIFrame* f = aParent;
-         f && !(f->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT);
+         f && !f->HasAnyStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
          f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-      f->AddStateBits(NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT);
+      f->AddStateBits(NS_FRAME_DESCENDANT_NEEDS_PAINT);
     }
+  }
+
+  if (aParent->HasAnyStateBits(NS_FRAME_IN_POPUP)) {
+    AddInPopupStateBitToDescendants(this);
+  } else {
+    RemoveInPopupStateBitFromDescendants(this);
   }
 }
 

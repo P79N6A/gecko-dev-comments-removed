@@ -981,9 +981,7 @@ nsImageMap::HandleEvent(nsIDOMEvent* aEvent)
           area->HasFocus(focus);
           
           if (mImageFrame) {
-            nsRect dmgRect;
-            area->GetRect(mImageFrame, dmgRect);
-            mImageFrame->Invalidate(dmgRect);
+            mImageFrame->InvalidateFrame();
           }
           break;
         }

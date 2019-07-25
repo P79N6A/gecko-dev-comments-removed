@@ -155,6 +155,9 @@ public:
   void RevokeViewManagerFlush() {
     mViewManagerFlushIsPending = false;
   }
+  bool ViewManagerFlushIsPending() {
+    return mViewManagerFlushIsPending;
+  }
 
   
 
