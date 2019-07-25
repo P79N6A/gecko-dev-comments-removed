@@ -95,26 +95,6 @@ class Debug {
     bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
     static void slowPathLeaveStackFrame(JSContext *cx);
 
-    
-    
-    
-    
-    
-    
-    bool wrapDebuggeeValue(JSContext *cx, Value *vp);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
-
     inline bool observesDebuggerStatement() const;
     static JSTrapStatus dispatchDebuggerStatement(JSContext *cx, Value *vp);
     JSTrapStatus handleDebuggerStatement(JSContext *cx, Value *vp);
@@ -150,6 +130,27 @@ class Debug {
 
     static inline void leaveStackFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
+
+    
+    
+    
+    
+    
+    
+    bool wrapDebuggeeValue(JSContext *cx, Value *vp);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
+
 };
 
 bool
