@@ -59,7 +59,7 @@ namespace JS {
 
 
 
-template <typename T> class RootedVar;
+template <typename T> class Rooted;
 
 template <typename T>
 struct RootMethods { };
@@ -96,7 +96,7 @@ class Handle
 
 
 
-    template <typename S> inline Handle(const RootedVar<S> &root);
+    template <typename S> inline Handle(const Rooted<S> &root);
 
     const T *address() const { return ptr; }
     T value() const { return *ptr; }
@@ -140,7 +140,7 @@ struct RootMethods<T *>
 
 
 template <typename T>
-class RootedVar
+class Rooted
 {
     void init(JSContext *cx_, T initial)
     {
@@ -148,7 +148,7 @@ class RootedVar
         ContextFriendFields *cx = ContextFriendFields::get(cx_);
 
         ThingRootKind kind = RootMethods<T>::kind();
-        this->stack = reinterpret_cast<RootedVar<T>**>(&cx->thingGCRooters[kind]);
+        this->stack = reinterpret_cast<Rooted<T>**>(&cx->thingGCRooters[kind]);
         this->prev = *stack;
         *stack = this;
 
@@ -159,8 +159,8 @@ class RootedVar
     }
 
   public:
-    RootedVar(JSContext *cx) { init(cx, RootMethods<T>::initial()); }
-    RootedVar(JSContext *cx, T initial) { init(cx, initial); }
+    Rooted(JSContext *cx) { init(cx, RootMethods<T>::initial()); }
+    Rooted(JSContext *cx, T initial) { init(cx, initial); }
 
     
 
@@ -171,7 +171,7 @@ class RootedVar
 
     operator Handle<T> () const { return Handle<T>(*this); }
 
-    ~RootedVar()
+    ~Rooted()
     {
 #ifdef JSGC_ROOT_ANALYSIS
         JS_ASSERT(*stack == this);
@@ -180,7 +180,7 @@ class RootedVar
     }
 
 #ifdef JSGC_ROOT_ANALYSIS
-    RootedVar<T> *previous() { return prev; }
+    Rooted<T> *previous() { return prev; }
 #endif
 
     operator T () const { return ptr; }
@@ -197,7 +197,7 @@ class RootedVar
         return ptr;
     }
 
-    T & operator =(const RootedVar &value)
+    T & operator =(const Rooted &value)
     {
         ptr = value;
         return ptr;
@@ -206,27 +206,27 @@ class RootedVar
   private:
 
 #ifdef JSGC_ROOT_ANALYSIS
-    RootedVar<T> **stack, *prev;
+    Rooted<T> **stack, *prev;
 #endif
     T ptr;
 
-    RootedVar() MOZ_DELETE;
-    RootedVar(const RootedVar &) MOZ_DELETE;
+    Rooted() MOZ_DELETE;
+    Rooted(const Rooted &) MOZ_DELETE;
 };
 
 template<typename T> template <typename S>
 inline
-Handle<T>::Handle(const RootedVar<S> &root)
+Handle<T>::Handle(const Rooted<S> &root)
 {
     testAssign<S>();
     ptr = reinterpret_cast<const T *>(root.address());
 }
 
-typedef RootedVar<JSObject*>    RootedVarObject;
-typedef RootedVar<JSFunction*>  RootedVarFunction;
-typedef RootedVar<JSString*>    RootedVarString;
-typedef RootedVar<jsid>         RootedVarId;
-typedef RootedVar<Value>        RootedVarValue;
+typedef Rooted<JSObject*>    RootedObject;
+typedef Rooted<JSFunction*>  RootedFunction;
+typedef Rooted<JSString*>    RootedString;
+typedef Rooted<jsid>         RootedId;
+typedef Rooted<Value>        RootedValue;
 
 
 

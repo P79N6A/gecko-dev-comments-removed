@@ -139,15 +139,15 @@ struct SharedContext {
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
-    RootedVar<StaticBlockObject *> blockChain;
+    Rooted<StaticBlockObject *> blockChain;
                                     
 
 
 
   private:
-    RootedVarFunction fun_;         
+    RootedFunction  fun_;           
 
-    RootedVarObject   scopeChain_;  
+    RootedObject    scopeChain_;    
 
   public:
     unsigned        staticLevel;    
@@ -360,8 +360,8 @@ struct StmtInfo {
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
-    RootedVarAtom   label;          
-    RootedVar<StaticBlockObject *> blockObj; 
+    RootedAtom      label;          
+    Rooted<StaticBlockObject *> blockObj; 
     StmtInfo        *down;          
     StmtInfo        *downScope;     
 

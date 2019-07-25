@@ -146,7 +146,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedVarObject global(cx);
+    RootedObject global(cx);
     if (cx->hasfp()) {
         global = &cx->fp()->global();
     } else {
@@ -184,19 +184,19 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 #ifdef DEBUG
         {
-            JSObject *outer = GetOuterObject(cx, RootedVarObject(cx, obj));
+            JSObject *outer = GetOuterObject(cx, RootedObject(cx, obj));
             JS_ASSERT(outer && outer == obj);
         }
 #endif
     }
 
-    RootedVarValue key(cx, *vp);
+    RootedValue key(cx, *vp);
 
     
     if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(key)) {
         *vp = p->value;
         if (vp->isObject()) {
-            RootedVarObject obj(cx, &vp->toObject());
+            RootedObject obj(cx, &vp->toObject());
             JS_ASSERT(obj->isCrossCompartmentWrapper());
             if (global->getClass() != &dummy_class && obj->getParent() != global) {
                 do {
@@ -210,7 +210,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     }
 
     if (vp->isString()) {
-        RootedVarValue orig(cx, *vp);
+        RootedValue orig(cx, *vp);
         JSString *str = vp->toString();
         const jschar *chars = str->getChars(cx);
         if (!chars)
@@ -222,7 +222,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         return crossCompartmentWrappers.put(orig, *vp);
     }
 
-    RootedVarObject obj(cx, &vp->toObject());
+    RootedObject obj(cx, &vp->toObject());
 
     
 
@@ -234,7 +234,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedVarObject proto(cx, obj->getProto());
+    RootedObject proto(cx, obj->getProto());
     if (!wrap(cx, proto.address()))
         return false;
 
@@ -243,7 +243,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    RootedVarObject wrapper(cx, cx->runtime->wrapObjectCallback(cx, obj, proto, global, flags));
+    RootedObject wrapper(cx, cx->runtime->wrapObjectCallback(cx, obj, proto, global, flags));
     if (!wrapper)
         return false;
 
@@ -263,7 +263,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 bool
 JSCompartment::wrap(JSContext *cx, JSString **strp)
 {
-    RootedVarValue value(cx, StringValue(*strp));
+    RootedValue value(cx, StringValue(*strp));
     if (!wrap(cx, value.address()))
         return false;
     *strp = value.reference().toString();
@@ -273,7 +273,7 @@ JSCompartment::wrap(JSContext *cx, JSString **strp)
 bool
 JSCompartment::wrap(JSContext *cx, HeapPtrString *strp)
 {
-    RootedVarValue value(cx, StringValue(*strp));
+    RootedValue value(cx, StringValue(*strp));
     if (!wrap(cx, value.address()))
         return false;
     *strp = value.reference().toString();
@@ -285,7 +285,7 @@ JSCompartment::wrap(JSContext *cx, JSObject **objp)
 {
     if (!*objp)
         return true;
-    RootedVarValue value(cx, ObjectValue(**objp));
+    RootedValue value(cx, ObjectValue(**objp));
     if (!wrap(cx, value.address()))
         return false;
     *objp = &value.reference().toObject();
@@ -297,7 +297,7 @@ JSCompartment::wrapId(JSContext *cx, jsid *idp)
 {
     if (JSID_IS_INT(*idp))
         return true;
-    RootedVarValue value(cx, IdToValue(*idp));
+    RootedValue value(cx, IdToValue(*idp));
     if (!wrap(cx, value.address()))
         return false;
     return ValueToId(cx, value.reference(), idp);

@@ -3,19 +3,25 @@
 
 
 
+
 #ifndef jscompartment_h___
 #define jscompartment_h___
 
 #include "mozilla/Attributes.h"
 
+#include "jsclist.h"
 #include "jscntxt.h"
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsobj.h"
 #include "jsscope.h"
-
 #include "vm/GlobalObject.h"
 #include "vm/RegExpObject.h"
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4251) /* Silence warning about JS_FRIEND_API and data members. */
+#endif
 
 namespace js {
 
@@ -374,6 +380,10 @@ JSContext::setCompartment(JSCompartment *compartment)
     this->inferenceEnabled = compartment ? compartment->types.inferenceEnabled : false;
 }
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 namespace js {
 
 class PreserveCompartment {
@@ -464,7 +474,7 @@ class AutoCompartment
 class ErrorCopier
 {
     AutoCompartment &ac;
-    RootedVarObject scope;
+    RootedObject scope;
 
   public:
     ErrorCopier(AutoCompartment &ac, JSObject *scope) : ac(ac), scope(ac.context, scope) {

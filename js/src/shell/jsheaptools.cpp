@@ -343,7 +343,7 @@ class ReferenceFinder {
     const HeapReverser &reverser;
 
     
-    RootedVarObject result;
+    RootedObject result;
 
     
     class Path {
@@ -483,7 +483,7 @@ ReferenceFinder::Path::computeName(JSContext *cx)
 bool
 ReferenceFinder::addReferrer(jsval referrer_, Path *path)
 {
-    RootedVar<jsval> referrer(context, referrer_);
+    Rooted<jsval> referrer(context, referrer_);
 
     if (!context->compartment->wrap(context, referrer.address()))
         return NULL;
@@ -507,7 +507,7 @@ ReferenceFinder::addReferrer(jsval referrer_, Path *path)
     }
 
     
-    RootedVarObject array(context, &v.toObject());
+    RootedObject array(context, &v.toObject());
     JS_ASSERT(JS_IsArrayObject(context, array));
 
     
@@ -552,7 +552,7 @@ FindReferences(JSContext *cx, unsigned argc, jsval *vp)
 
     
     ReferenceFinder finder(cx, reverser);
-    JSObject *references = finder.findReferences(RootedVarObject(cx, &target.toObject()));
+    JSObject *references = finder.findReferences(RootedObject(cx, &target.toObject()));
     if (!references)
         return false;
 

@@ -372,7 +372,7 @@ class Compiler : public BaseCompiler
     
     analyze::CrossScriptSSA ssa;
 
-    RootedVar<GlobalObject*> globalObj;
+    Rooted<GlobalObject*> globalObj;
     const HeapSlot *globalSlots;  
 
     Assembler masm;

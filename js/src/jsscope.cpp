@@ -77,7 +77,7 @@ Shape::makeOwnBaseShape(JSContext *cx)
     JS_ASSERT(!base()->isOwned());
     assertSameCompartment(cx, compartment());
 
-    RootedVarShape self(cx, this);
+    RootedShape self(cx, this);
 
     BaseShape *nbase = js_NewGCBaseShape(cx);
     if (!nbase)
@@ -116,7 +116,7 @@ Shape::hashify(JSContext *cx)
 {
     JS_ASSERT(!hasTable());
 
-    RootedVarShape self(cx, this);
+    RootedShape self(cx, this);
 
     if (!ensureOwnBaseShape(cx))
         return false;
@@ -312,7 +312,7 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
  Shape *
 Shape::replaceLastProperty(JSContext *cx, const StackBaseShape &base, JSObject *proto, Shape *shape_)
 {
-    RootedVarShape shape(cx, shape_);
+    RootedShape shape(cx, shape_);
 
     JS_ASSERT(!shape->inDictionary());
 
@@ -365,7 +365,7 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, StackShape &child)
 
     Shape *shape;
 
-    RootedVarObject self(cx, this);
+    RootedObject self(cx, this);
 
     if (inDictionaryMode()) {
         JS_ASSERT(parent == lastProperty());
@@ -401,7 +401,7 @@ JSObject::toDictionaryMode(JSContext *cx)
 
     uint32_t span = slotSpan();
 
-    RootedVarObject self(cx, this);
+    RootedObject self(cx, this);
 
     
 
@@ -409,10 +409,10 @@ JSObject::toDictionaryMode(JSContext *cx)
 
 
 
-    RootedVarShape root(cx);
-    RootedVarShape dictionaryShape(cx);
+    RootedShape root(cx);
+    RootedShape dictionaryShape(cx);
 
-    RootedVarShape shape(cx);
+    RootedShape shape(cx);
     shape = lastProperty();
 
     while (shape) {
@@ -488,7 +488,7 @@ JSObject::addProperty(JSContext *cx, jsid id,
 
     NormalizeGetterAndSetter(cx, this, id, attrs, flags, getter, setter);
 
-    RootedVarObject self(cx, this);
+    RootedObject self(cx, this);
 
     Shape **spp = NULL;
     if (inDictionaryMode())
@@ -507,8 +507,8 @@ JSObject::addPropertyInternal(JSContext *cx, jsid id_,
 {
     JS_ASSERT_IF(!allowDictionary, !inDictionaryMode());
 
-    RootedVarId id(cx, id_);
-    RootedVarObject self(cx, this);
+    RootedId id(cx, id_);
+    RootedObject self(cx, this);
 
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
 
@@ -613,17 +613,17 @@ JSObject::putProperty(JSContext *cx, jsid id_,
                       uint32_t slot, unsigned attrs,
                       unsigned flags, int shortid)
 {
-    RootedVarId id(cx, id_);
+    RootedId id(cx, id_);
     JS_ASSERT(!JSID_IS_VOID(id));
 
     NormalizeGetterAndSetter(cx, this, id, attrs, flags, getter, setter);
 
-    RootedVarObject self(cx, this);
+    RootedObject self(cx, this);
     AutoRooterGetterSetter gsRoot(cx, attrs, &getter, &setter);
 
     
     Shape **spp;
-    RootedVarShape shape(cx, Shape::search(cx, lastProperty(), id, &spp, true));
+    RootedShape shape(cx, Shape::search(cx, lastProperty(), id, &spp, true));
     if (!shape) {
         
 
@@ -653,7 +653,7 @@ JSObject::putProperty(JSContext *cx, jsid id_,
     if (!(attrs & JSPROP_SHARED) && slot == SHAPE_INVALID_SLOT && hadSlot)
         slot = oldSlot;
 
-    RootedVar<UnownedBaseShape*> nbase(cx);
+    Rooted<UnownedBaseShape*> nbase(cx);
     {
         uint32_t index;
         bool indexed = js_IdIsIndex(id, &index);
@@ -801,10 +801,10 @@ JSObject::changeProperty(JSContext *cx, Shape *shape, unsigned attrs, unsigned m
 bool
 JSObject::removeProperty(JSContext *cx, jsid id_)
 {
-    RootedVarId id(cx, id_);
-    RootedVarObject self(cx, this);
+    RootedId id(cx, id_);
+    RootedObject self(cx, this);
 
-    RootedVarShape shape(cx);
+    RootedShape shape(cx);
 
     Shape **spp;
     shape = Shape::search(cx, lastProperty(), id, &spp);
@@ -829,7 +829,7 @@ JSObject::removeProperty(JSContext *cx, jsid id_)
 
 
 
-    RootedVarShape spare(cx);
+    RootedShape spare(cx);
     if (self->inDictionaryMode()) {
         spare = js_NewGCShape(cx);
         if (!spare)
@@ -842,7 +842,7 @@ JSObject::removeProperty(JSContext *cx, jsid id_)
 
 
 
-            RootedVarShape previous(cx, self->lastProperty()->parent);
+            RootedShape previous(cx, self->lastProperty()->parent);
             StackBaseShape base(self->lastProperty()->base());
             base.updateGetterSetter(previous->attrs, previous->getter(), previous->setter());
             BaseShape *nbase = BaseShape::getUnowned(cx, base);
@@ -961,8 +961,8 @@ JSObject::replaceWithNewEquivalentShape(JSContext *cx, Shape *oldShape, Shape *n
     JSObject *self = this;
 
     if (!inDictionaryMode()) {
-        RootedVarObject selfRoot(cx, self);
-        RootedVarShape newRoot(cx, newShape);
+        RootedObject selfRoot(cx, self);
+        RootedShape newRoot(cx, newShape);
         if (!toDictionaryMode(cx))
             return NULL;
         oldShape = self->lastProperty();
@@ -971,8 +971,8 @@ JSObject::replaceWithNewEquivalentShape(JSContext *cx, Shape *oldShape, Shape *n
     }
 
     if (!newShape) {
-        RootedVarObject selfRoot(cx, self);
-        RootedVarShape oldRoot(cx, oldShape);
+        RootedObject selfRoot(cx, self);
+        RootedShape oldRoot(cx, oldShape);
         newShape = js_NewGCShape(cx);
         if (!newShape)
             return NULL;
@@ -1013,7 +1013,7 @@ JSObject::shadowingShapeChange(JSContext *cx, const Shape &shape)
 bool
 JSObject::clearParent(JSContext *cx)
 {
-    return setParent(cx, RootedVarObject(cx, this), RootedVarObject(cx));
+    return setParent(cx, RootedObject(cx, this), RootedObject(cx));
 }
 
  bool
@@ -1058,7 +1058,7 @@ JSObject::preventExtensions(JSContext *cx)
 {
     JS_ASSERT(isExtensible());
 
-    RootedVarObject self(cx, this);
+    RootedObject self(cx, this);
 
     
 
@@ -1082,7 +1082,7 @@ JSObject::setFlag(JSContext *cx,  uint32_t flag_, GenerateShape generateShape)
     if (lastProperty()->getObjectFlags() & flag)
         return true;
 
-    RootedVarObject self(cx, this);
+    RootedObject self(cx, this);
 
     if (inDictionaryMode()) {
         if (generateShape == GENERATE_SHAPE && !generateOwnShape(cx))
@@ -1214,7 +1214,7 @@ Bindings::setExtensibleParents(JSContext *cx)
 bool
 Bindings::setParent(JSContext *cx, JSObject *obj_)
 {
-    RootedVarObject obj(cx, obj_);
+    RootedObject obj(cx, obj_);
 
     
 
@@ -1290,10 +1290,10 @@ EmptyShape::getInitialShape(JSContext *cx, Class *clasp, JSObject *proto, JSObje
     if (p)
         return p->shape;
 
-    RootedVarObject protoRoot(cx, lookup.proto);
-    RootedVarObject parentRoot(cx, lookup.parent);
+    RootedObject protoRoot(cx, lookup.proto);
+    RootedObject parentRoot(cx, lookup.parent);
 
-    RootedVar<UnownedBaseShape*> nbase(cx);
+    Rooted<UnownedBaseShape*> nbase(cx);
 
     StackBaseShape base(clasp, parent, objectFlags);
     nbase = BaseShape::getUnowned(cx, base);
