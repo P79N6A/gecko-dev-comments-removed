@@ -1054,7 +1054,8 @@ SuppressDeletedPropertyHelper(JSContext *cx, JSObject *obj, StringPredicate pred
 
 
 
-                        ni->props_end->HeapPtr<JSFlatString>::~HeapPtr();
+
+                        *ni->props_end = NULL;
                     }
 
                     
