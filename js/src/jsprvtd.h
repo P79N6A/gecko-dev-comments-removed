@@ -243,6 +243,14 @@ typedef HashMap<JSAtom *,
                 RuntimeAllocPolicy>
     RegExpPrivateCache;
 
+
+
+
+
+
+
+typedef JSObject Env;
+
 typedef JSNative             Native;
 typedef JSPropertyOp         PropertyOp;
 typedef JSStrictPropertyOp   StrictPropertyOp;

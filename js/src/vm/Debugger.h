@@ -72,6 +72,7 @@ class Debugger {
     enum {
         JSSLOT_DEBUG_PROTO_START,
         JSSLOT_DEBUG_FRAME_PROTO = JSSLOT_DEBUG_PROTO_START,
+        JSSLOT_DEBUG_ENV_PROTO,
         JSSLOT_DEBUG_OBJECT_PROTO,
         JSSLOT_DEBUG_SCRIPT_PROTO,
         JSSLOT_DEBUG_PROTO_STOP,
@@ -106,12 +107,15 @@ class Debugger {
     FrameMap frames;
 
     
+    typedef WeakMap<HeapPtrScript, HeapPtrObject> ScriptWeakMap;
+    ScriptWeakMap scripts;
+
+    
     typedef WeakMap<HeapPtrObject, HeapPtrObject> ObjectWeakMap;
     ObjectWeakMap objects;
 
     
-    typedef WeakMap<HeapPtrScript, HeapPtrObject> ScriptWeakMap;
-    ScriptWeakMap scripts;
+    ObjectWeakMap environments;
 
     bool addDebuggeeGlobal(JSContext *cx, GlobalObject *obj);
     void removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
@@ -271,6 +275,13 @@ class Debugger {
     inline bool observesNewScript() const;
     inline bool observesGlobal(GlobalObject *global) const;
     inline bool observesFrame(StackFrame *fp) const;
+
+    
+
+
+
+
+    bool wrapEnvironment(JSContext *cx, Env *env, Value *vp);
 
     
 
@@ -518,8 +529,8 @@ Debugger::onNewScript(JSContext *cx, JSScript *script, GlobalObject *compileAndG
 }
 
 extern JSBool
-EvaluateInScope(JSContext *cx, JSObject *scobj, StackFrame *fp, const jschar *chars,
-                uintN length, const char *filename, uintN lineno, Value *rval);
+EvaluateInEnv(JSContext *cx, Env *env, StackFrame *fp, const jschar *chars,
+              uintN length, const char *filename, uintN lineno, Value *rval);
 
 }
 
