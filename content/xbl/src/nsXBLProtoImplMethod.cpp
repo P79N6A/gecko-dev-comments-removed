@@ -151,7 +151,7 @@ nsXBLProtoImplMethod::InstallMember(nsIScriptContext* aContext,
     JSAutoRequest ar(cx);
     JSAutoEnterCompartment ac;
 
-    if (!ac.enter(cx, mJSMethodObject)) {
+    if (!ac.enter(cx, globalObject)) {
       return NS_ERROR_UNEXPECTED;
     }
 
@@ -312,6 +312,10 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
   JSObject* thisObject = JSVAL_TO_OBJECT(v);
 
   JSAutoRequest ar(cx);
+  JSAutoEnterCompartment ac;
+
+  if (!ac.enter(cx, thisObject))
+    return NS_ERROR_UNEXPECTED;
 
   
   
