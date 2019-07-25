@@ -98,9 +98,17 @@ void fail(const char* msg, ...)
 
 
 
-void passed(const char* test)
+void passed(const char* msg, ...)
 {
-  printf("TEST-PASS | %s\n", test);
+  va_list ap;
+
+  printf("TEST-PASS | ");
+
+  va_start(ap, msg);
+  vprintf(msg, ap);
+  va_end(ap);
+
+  putchar('\n');
 }
 
 
