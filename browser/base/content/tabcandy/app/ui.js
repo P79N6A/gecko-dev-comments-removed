@@ -943,61 +943,61 @@ UIClass.prototype = {
             break;
 #endif
       }
+      if (handled)
+        return;
 
-      if (!handled) {
-        var charCode = event.charCode;
+      var charCode = event.charCode;
 #ifdef XP_MACOSX
-        
-        
-        if (charCode == 160) { 
+      
+      
+      if (!event.ctrlKey && !event.metaKey && !event.shiftKey &&
+          charCode == 160) { 
 #else
-        if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
-            !event.altKey && charCode == 32) {
+      if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
+          !event.altKey && charCode == 32) {
 #endif
-          event.stopPropagation();
-          event.preventDefault();
-          Page.hideChrome();
-          Page.showTabCandy();
-          return;
-        }
+        event.stopPropagation();
+        event.preventDefault();
+        Page.hideChrome();
+        Page.showTabCandy();
+        return;
+      }
 
 #ifdef XP_UNIX
 #ifndef XP_MACOSX
-        if (event.altKey && !event.metaKey && !event.shiftKey &&
-            !event.ctrlKey) {
+      if (event.altKey && !event.metaKey && !event.shiftKey && !event.ctrlKey) {
 #else
-        if (event.metaKey && !event.altKey && !event.shiftKey &&
-            !event.ctrlKey) {
+      if (event.metaKey && !event.altKey && !event.shiftKey && !event.ctrlKey) {
 #endif
 #else
-        if (event.ctrlKey && !event.altKey && !event.shiftKey &&
-            !event.metaKey) {
+      if (event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey) {
 #endif
-          
-          
-          
-          
-          
-          
-          
-          if (48 < charCode && charCode < 58) {
-            event.stopPropagation();
-            event.preventDefault();
-            self.advanceSelectedTab(false, (charCode - 48));
-          }
-#ifdef XP_MACOSX
-          
-          else if (charCode == 91 || charCode == 93) {
-              event.stopPropagation();
-              event.preventDefault();
-              var reverse =
-                (window.getComputedStyle(tabbox, "").direction ==
-                  "ltr" ? true : false);
-              self.advanceSelectedTab(charCode == 91 ? reverse : !reverse);
-          }
-#endif
+        
+        
+        
+        
+        
+        
+        
+        if (48 < charCode && charCode < 58) {
+          event.stopPropagation();
+          event.preventDefault();
+          self.advanceSelectedTab(false, (charCode - 48));
+          return;
         }
       }
+#ifdef XP_MACOSX
+      
+      if (event.metaKey && !event.altKey && !event.ctrlKey &&
+          (charCode == 123 || charCode == 125)) {
+        event.stopPropagation();
+        event.preventDefault();
+        var reverse =
+          (window.getComputedStyle(tabbox, "").direction ==
+            "ltr" ? true : false);
+        self.advanceSelectedTab(charCode == 123 ? reverse : !reverse);
+      }
+#endif
     }, true);
   },
 
