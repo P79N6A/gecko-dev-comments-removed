@@ -1264,6 +1264,16 @@ History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
     return NS_OK;
   }
 
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    mozilla::dom::ContentChild * cpc = 
+      mozilla::dom::ContentChild::GetSingleton();
+    NS_ASSERTION(cpc, "Content Protocol is NULL!");
+    (void)cpc->SendSetURITitle(IPC::URI(aURI), nsDependentString(aTitle));
+    return NS_OK;
+  } 
+#endif 
+
   nsNavHistory* history = nsNavHistory::GetHistoryService();
 
   

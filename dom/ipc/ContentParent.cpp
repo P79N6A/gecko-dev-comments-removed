@@ -455,6 +455,17 @@ ContentParent::RecvVisitURI(const IPC::URI& uri,
 }
 
 
+bool
+ContentParent::RecvSetURITitle(const IPC::URI& uri,
+                                      const nsString& title)
+{
+    nsCOMPtr<nsIURI> ourURI = uri;
+    IHistory *history = nsContentUtils::GetHistory(); 
+    history->SetURITitle(ourURI, title);
+    return true;
+}
+
+
 NS_IMETHODIMP
 ContentParent::OnDispatchedEvent(nsIThreadInternal *thread)
 {
