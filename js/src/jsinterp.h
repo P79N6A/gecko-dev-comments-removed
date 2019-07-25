@@ -86,6 +86,8 @@ struct JSStackFrame
   private:
     JSObject            *callobj;       
     JSObject            *argsobj;       
+    JSObject            *scopeChain;    
+    JSObject            *blockChain;    
 
   public:
     jsbytecode          *imacpc;        
@@ -104,45 +106,6 @@ struct JSStackFrame
 #ifdef DEBUG
     static jsbytecode *const sInvalidPC;
 #endif
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    JSObject        *scopeChain;
-    JSObject        *blockChain;
 
     uint32          flags;          
 
@@ -215,6 +178,89 @@ struct JSStackFrame
 
     static size_t offsetArgsObj() {
         return offsetof(JSStackFrame, argsobj);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+    bool hasScopeChain() const {
+        return scopeChain != NULL;
+    }
+
+    JSObject* getScopeChain() const {
+        JS_ASSERT(hasScopeChain());
+        return scopeChain;
+    }
+
+    JSObject* maybeScopeChain() const {
+        return scopeChain;
+    }
+
+    void setScopeChain(JSObject *obj) {
+        scopeChain = obj;
+    }
+
+    JSObject** addressScopeChain() {
+        return &scopeChain;
+    }
+
+    static size_t offsetScopeChain() {
+        return offsetof(JSStackFrame, scopeChain);
+    }
+
+    
+
+    bool hasBlockChain() const {
+        return blockChain != NULL;
+    }
+
+    JSObject* getBlockChain() const {
+        JS_ASSERT(hasBlockChain());
+        return blockChain;
+    }
+
+    JSObject* maybeBlockChain() const {
+        return blockChain;
+    }
+
+    void setBlockChain(JSObject *obj) {
+        blockChain = obj;
     }
 
     
