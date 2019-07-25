@@ -361,17 +361,12 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs, nsIAtom* aFrameType)
 void
 nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType)
 {
-  bool isHResize = frame->GetSize().width !=
-                     mComputedWidth + mComputedBorderPadding.LeftRight();
-
   if ((frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) &&
       nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     
     
     bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
-    if (dirty || (!frame->GetParent() && isHResize)) {
-      
-      
+    if (dirty) {
       
       
       
@@ -445,7 +440,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
   }
 
   mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
-                    isHResize;
+                    frame->GetSize().width !=
+                      mComputedWidth + mComputedBorderPadding.LeftRight();
 
   
   
