@@ -1510,7 +1510,17 @@ Parser::setFunctionKinds(FunctionBox *funbox, uint32 *tcflags)
 
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
             
-        } else if (funbox->inAnyDynamicScope()) {
+        } else if (callerFrame || funbox->inAnyDynamicScope()) {
+            
+
+
+
+
+
+
+
+
+
             JS_ASSERT(!fun->isNullClosure());
         } else {
             bool hasUpvars = false;
