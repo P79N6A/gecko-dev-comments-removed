@@ -52,6 +52,8 @@
 
 namespace js {
     namespace workers {
+        class ThreadPool;
+
         class WorkerHooks {
         public:
             virtual JSObject *newGlobalObject(JSContext *cx) = 0;
@@ -66,14 +68,14 @@ namespace js {
 
 
 
-        JSBool init(JSContext *cx, WorkerHooks *hooks, JSObject *global, JSObject **rootp);
+        ThreadPool *init(JSContext *cx, WorkerHooks *hooks, JSObject *global, JSObject **rootp);
 
         
 
 
 
 
-        void terminateAll(JSContext *cx, JSObject *workersobj);
+        void terminateAll(JSRuntime *rt, ThreadPool *tp);
 
 	
 
@@ -82,7 +84,7 @@ namespace js {
 
 
 
-	void finish(JSContext *cx, JSObject *workersobj);
+	void finish(JSContext *cx, ThreadPool *tp);
     }
 }
 
