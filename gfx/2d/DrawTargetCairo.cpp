@@ -118,7 +118,7 @@ GetCairoSurfaceSize(cairo_surface_t* surface, IntSize& size)
       
       size.width = CGBitmapContextGetWidth(cgc);
       size.height = CGBitmapContextGetWidth(cgc);
-      return size.width != 0;
+      return true;
     }
 #endif
 
