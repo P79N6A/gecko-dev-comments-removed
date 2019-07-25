@@ -422,13 +422,11 @@ function updateAboutMemory()
   }
 
   
-  
   appendButton(UpDesc, updateAboutMemory, "Update", "updateButton");
-  appendButton(GCDesc, doGlobalGC,        "GC",     "doGCButton");
-  appendButton(CCDesc, doCC,              "CC",     "doCCButton");
+  appendButton(GCDesc, doGlobalGC,        "GC");
+  appendButton(CCDesc, doCC,              "CC");
   appendButton(MPDesc, function() { minimizeMemoryUsage3x(updateAboutMemory); },
-                                          "Minimize memory usage",
-                                                    "minMemUseButton");
+                                          "Minimize memory usage");
 
   let div1 = appendElement(body, "div");
   if (gVerbose) {
