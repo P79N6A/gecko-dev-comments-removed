@@ -15,12 +15,11 @@
 #
 # The Initial Developer of the Original Code is
 # the Mozilla Foundation <http://www.mozilla.org/>.
-# Portions created by the Initial Developer are Copyright (C) 2007
+# Portions created by the Initial Developer are Copyright (C) 2008
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
-#   Mark Finkle <mfinkle@mozilla.com>
-#   Nino D'Aversa <ninodaversa@gmail.com>
+#   Brad Lassey <blassey@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -36,40 +35,20 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH      = ../..
+DEPTH      = ../../..
 topsrcdir  = @top_srcdir@
 srcdir     = @srcdir@
 VPATH      = @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MODULE = browsercomps
-XPIDL_MODULE = browsercompsbase
+MODULE = protocols
 
-EXTRA_PP_COMPONENTS = \
-        AboutRedirector.js \
-        DirectoryProvider.js\
-        Sidebar.js \
-        SessionStore.js \
-        $(NULL)
+EXTRA_COMPONENTS = nsTelProtocolHandler.manifest
+EXTRA_PP_COMPONENTS = nsTelProtocolHandler.js
 
-EXTRA_COMPONENTS = \
-        MobileComponents.manifest \
-        BrowserStartup.js \
-        GeolocationPrompt.js \
-        AlertsService.js \
-        XPIDialogService.js \
-        DownloadManagerUI.js \
-        HelperAppDialog.js \
-        PromptService.js \
-        BrowserCLH.js \
-        ContentDispatchChooser.js \
-        AutoCompleteCache.js \
-        AddonUpdateService.js \
-	$(NULL)
-
-DIRS = protocols \
-        phone \
-        $(NULL)
+ifdef WINCE
+DEFINES += -DWINCE=$(WINCE)
+endif 
 
 include $(topsrcdir)/config/rules.mk
