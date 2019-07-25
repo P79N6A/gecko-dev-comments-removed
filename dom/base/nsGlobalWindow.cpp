@@ -4458,6 +4458,12 @@ nsGlobalWindow::GetNearestWidget()
 NS_IMETHODIMP
 nsGlobalWindow::SetFullScreen(bool aFullScreen)
 {
+  return SetFullScreenInternal(aFullScreen, true);
+}
+
+nsresult
+nsGlobalWindow::SetFullScreenInternal(bool aFullScreen, bool aRequireTrust)
+{
   FORWARD_TO_OUTER(SetFullScreen, (aFullScreen), NS_ERROR_NOT_INITIALIZED);
 
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
@@ -4466,9 +4472,8 @@ nsGlobalWindow::SetFullScreen(bool aFullScreen)
   GetFullScreen(&rootWinFullScreen);
   
   
-  if ((aFullScreen == rootWinFullScreen || 
-      !nsContentUtils::IsCallerTrustedForWrite()) &&
-      !nsContentUtils::IsFullScreenApiEnabled()) {
+  if (aFullScreen == rootWinFullScreen || 
+      (aRequireTrust && !nsContentUtils::IsCallerTrustedForWrite())) {
     return NS_OK;
   }
 
@@ -4478,11 +4483,11 @@ nsGlobalWindow::SetFullScreen(bool aFullScreen)
   nsCOMPtr<nsIDocShellTreeItem> treeItem = do_QueryInterface(mDocShell);
   nsCOMPtr<nsIDocShellTreeItem> rootItem;
   treeItem->GetRootTreeItem(getter_AddRefs(rootItem));
-  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(rootItem);
+  nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(rootItem);
   if (!window)
     return NS_ERROR_FAILURE;
   if (rootItem != treeItem)
-    return window->SetFullScreen(aFullScreen);
+    return window->SetFullScreenInternal(aFullScreen, aRequireTrust);
 
   
   
