@@ -51,6 +51,17 @@
 
 NS_IMPL_ISUPPORTS1(nsDataDocumentContentPolicy, nsIContentPolicy)
 
+
+
+
+static bool
+HasFlags(nsIURI* aURI, PRUint32 aURIFlags)
+{
+  bool hasFlags;
+  nsresult rv = NS_URIChainHasFlags(aURI, aURIFlags, &hasFlags);
+  return NS_SUCCEEDED(rv) && hasFlags;
+}
+
 NS_IMETHODIMP
 nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
                                         nsIURI *aContentLocation,
@@ -89,19 +100,24 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
   if (doc->IsBeingUsedAsImage()) {
     
     
-    bool hasFlags;
-    nsresult rv = NS_URIChainHasFlags(aContentLocation,
-                                      nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
-                                      &hasFlags);
-    if (NS_FAILED(rv) || !hasFlags) {
-      
+    
+    
+    
+    
+    if (!HasFlags(aContentLocation,
+                  nsIProtocolHandler::URI_IS_LOCAL_RESOURCE) ||
+        (!HasFlags(aContentLocation,
+                   nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT) &&
+         !HasFlags(aContentLocation,
+                   nsIProtocolHandler::URI_LOADABLE_BY_SUBSUMERS))) {
       *aDecision = nsIContentPolicy::REJECT_TYPE;
 
       
       if (node) {
         nsIPrincipal* requestingPrincipal = node->NodePrincipal();
         nsRefPtr<nsIURI> principalURI;
-        rv = requestingPrincipal->GetURI(getter_AddRefs(principalURI));
+        nsresult rv =
+          requestingPrincipal->GetURI(getter_AddRefs(principalURI));
         if (NS_SUCCEEDED(rv) && principalURI) {
           nsScriptSecurityManager::ReportError(
             nsnull, NS_LITERAL_STRING("CheckSameOriginError"), principalURI,
@@ -112,8 +128,8 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
                doc->GetDocumentURI()) {
       
       bool isRecursiveLoad;
-      rv = aContentLocation->EqualsExceptRef(doc->GetDocumentURI(),
-                                             &isRecursiveLoad);
+      nsresult rv = aContentLocation->EqualsExceptRef(doc->GetDocumentURI(),
+                                                      &isRecursiveLoad);
       if (NS_FAILED(rv) || isRecursiveLoad) {
         NS_WARNING("Refusing to recursively load image");
         *aDecision = nsIContentPolicy::REJECT_TYPE;
