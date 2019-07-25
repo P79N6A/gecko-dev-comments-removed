@@ -143,8 +143,6 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
         JSObject *obj2;
         JSAtom *atom;
         if (cache->testForSet(cx, f.regs.pc, obj, &entry, &obj2, &atom)) {
-            JS_ASSERT(obj->isExtensible());
-
             
 
 
@@ -184,6 +182,8 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
                     break;
                 }
             } else {
+                JS_ASSERT(obj->isExtensible());
+
                 if (obj->nativeEmpty()) {
                     
 

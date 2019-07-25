@@ -4287,8 +4287,6 @@ BEGIN_CASE(JSOP_SETMETHOD)
         JSObject *obj2;
         JSAtom *atom;
         if (cache->testForSet(cx, regs.pc, obj, &entry, &obj2, &atom)) {
-            JS_ASSERT(obj->isExtensible());
-
             
 
 
@@ -4328,6 +4326,8 @@ BEGIN_CASE(JSOP_SETMETHOD)
                     break;
                 }
             } else {
+                JS_ASSERT(obj->isExtensible());
+
                 if (obj->nativeEmpty()) {
                     
 
