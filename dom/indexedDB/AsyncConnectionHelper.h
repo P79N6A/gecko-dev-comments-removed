@@ -42,6 +42,7 @@
 
 
 #include "IndexedDatabase.h"
+#include "IDBDatabaseRequest.h"
 
 #include "mozIStorageConnection.h"
 #include "nsIDOMEventTarget.h"
@@ -85,11 +86,18 @@ public:
   nsresult Dispatch(nsIThread* aDatabaseThread);
 
 protected:
-  AsyncConnectionHelper(const nsACString& aASCIIOrigin,
-                        nsCOMPtr<mozIStorageConnection>& aConnection,
+  AsyncConnectionHelper(IDBDatabaseRequest* aDatabase,
                         nsIDOMEventTarget* aTarget);
 
   virtual ~AsyncConnectionHelper();
+
+  
+
+
+
+
+
+  virtual nsresult Init();
 
   
 
@@ -121,16 +129,10 @@ protected:
 
   virtual void GetSuccessResult(nsIWritableVariant* aVariant);
 
-  
-
-
-  nsresult EnsureConnection();
-
 protected:
-  nsCOMPtr<mozIStorageConnection>& mConnection;
+  nsRefPtr<IDBDatabaseRequest> mDatabase;
 
 private:
-  nsCString mASCIIOrigin;
   nsCOMPtr<nsIDOMEventTarget> mTarget;
 
 #ifdef DEBUG
