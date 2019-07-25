@@ -278,6 +278,15 @@ RilClient::OnFileCanReadWithoutBlocking(int fd)
             mIncoming = new RilRawData();
             ssize_t ret = read(fd, mIncoming->mData, RilRawData::MAX_DATA_SIZE);
             if (ret <= 0) {
+                if (ret == -1) {
+                    if (errno == EINTR) {
+                        continue; 
+                    }
+                    else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                        return; 
+                    }
+                    
+                }
                 LOG("Cannot read from network, error %d\n", ret);
                 
                 
