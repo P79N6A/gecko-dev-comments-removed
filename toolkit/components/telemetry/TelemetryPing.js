@@ -191,8 +191,7 @@ function getMetadata(reason) {
 
 
 function getSimpleMeasurements() {
-  let si = Cc["@mozilla.org/toolkit/app-startup;1"].
-           getService(Ci.nsIAppStartup).getStartupInfo();
+  let si = Services.startup.getStartupInfo();
 
   var ret = {
     
@@ -206,6 +205,7 @@ function getSimpleMeasurements() {
       ret[field] = si[field] - si.process
     }
   }
+  ret.startupInterrupted = new Number(Services.startup.interrupted);
 
   ret.js = Cc["@mozilla.org/js/xpc/XPConnect;1"]
            .getService(Ci.nsIJSEngineTelemetryStats)
