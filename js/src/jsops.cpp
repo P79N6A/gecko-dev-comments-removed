@@ -2318,6 +2318,7 @@ BEGIN_CASE(JSOP_APPLY)
             }
 #endif
 
+#ifdef JS_METHODJIT
             
 
 
@@ -2334,6 +2335,7 @@ BEGIN_CASE(JSOP_APPLY)
                     goto inline_return;
                 }
             }
+#endif
 
             
             op = (JSOp) *regs.pc;
