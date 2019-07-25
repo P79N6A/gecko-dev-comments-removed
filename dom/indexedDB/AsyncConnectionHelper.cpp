@@ -224,8 +224,7 @@ AsyncConnectionHelper::Run()
 {
   if (NS_IsMainThread()) {
     if (mTransaction &&
-        mTransaction->IsAborted() &&
-        NS_SUCCEEDED(mResultCode)) {
+        mTransaction->IsAborted()) {
       
       
       mResultCode = NS_ERROR_DOM_INDEXEDDB_ABORT_ERR;
