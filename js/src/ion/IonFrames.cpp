@@ -392,3 +392,60 @@ ion::MarkIonActivations(ThreadData *td, JSTracer *trc)
         MarkIonActivation(trc, activations.top());
 }
 
+static inline jsbytecode *
+GetNextPc(jsbytecode *pc)
+{
+    return pc + js_CodeSpec[JSOp(*pc)].length;
+}
+
+void
+ion::GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
+{
+    JS_ASSERT(cx->fp()->runningInIon());
+    FrameRecovery fr = FrameRecovery::FromFrameIterator(
+        IonFrameIterator(JS_THREAD_DATA(cx)->ionTop));
+
+    
+    
+    
+    SnapshotIterator si(fr);
+
+    
+    JSFunction *fun = fr.callee();
+    JSScript *script = fr.script();
+    jsbytecode *pc = script->code + si.pcOffset();
+
+    
+    while (si.moreFrames()) {
+        JS_ASSERT(JSOp(*pc) == JSOP_CALL);
+
+        
+        int callerArgc = GET_ARGC(pc);
+        uint32 funSlot = (si.slots() - 1) - callerArgc - 1;
+
+        
+        while (funSlot--) {
+            JS_ASSERT(si.more());
+            si.skip(si.readSlot());
+        }
+        Value funValue = si.read();
+        while (si.more())
+            si.skip(si.readSlot());
+
+        
+        fun = funValue.toObject().toFunction();
+        script = fun->script();
+        si.readFrame();
+        pc = script->code + si.pcOffset();
+    }
+
+    
+    
+    do {
+        pc--;
+    } while (!script->analysis()->maybeCode(pc));
+
+    
+    *scriptRes = script;
+    *pcRes = pc;
+}

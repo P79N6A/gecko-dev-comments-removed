@@ -1094,6 +1094,11 @@ class TypeScript
     static inline void MonitorString(JSContext *cx, JSScript *script, jsbytecode *pc);
     static inline void MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc);
 
+    static inline void GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc);
+    static inline void MonitorOverflow(JSContext *cx);
+    static inline void MonitorString(JSContext *cx);
+    static inline void MonitorUnknown(JSContext *cx);
+
     
 
 
