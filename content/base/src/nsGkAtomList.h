@@ -1716,6 +1716,9 @@ GK_ATOM(ondeviceorientation, "ondeviceorientation")
 GK_ATOM(ondeviceproximity, "ondeviceproximity")
 
 
+GK_ATOM(ondevicelight, "ondevicelight")
+
+
 
 
 
