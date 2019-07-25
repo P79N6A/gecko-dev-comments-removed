@@ -137,6 +137,27 @@ function DBConn() {
 
 
 
+ 
+function readInputStreamData(aStream) {
+  let bistream = Cc["@mozilla.org/binaryinputstream;1"].
+                 createInstance(Ci.nsIBinaryInputStream);
+  try {
+    bistream.setInputStream(aStream);
+    let expectedData = [];
+    let avail;
+    while (avail = bistream.available()) {
+      expectedData = expectedData.concat(bistream.readByteArray(avail));
+    }
+    return expectedData;
+  } finally {
+    bistream.close();
+  }
+}
+
+
+
+
+
 
 
 
@@ -145,18 +166,13 @@ function readFileData(aFile) {
                     createInstance(Ci.nsIFileInputStream);
   
   inputStream.init(aFile, 0x01, -1, null);
-  let size = inputStream.available();
 
   
-  let bis = Cc["@mozilla.org/binaryinputstream;1"].
-            createInstance(Ci.nsIBinaryInputStream);
-  bis.setInputStream(inputStream);
-
-  let bytes = bis.readByteArray(size);
-
-  if (size != bytes.length)
-      throw "Didn't read expected number of bytes";
-
+  let size  = inputStream.available();
+  let bytes = readInputStreamData(inputStream);
+  if (size != bytes.length) {
+    throw "Didn't read expected number of bytes";
+  }
   return bytes;
 }
 
@@ -601,12 +617,8 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
   let scope = aScope || this;
   let args = aArguments || [];
   let db = DBConn();
-  let begin = db.createAsyncStatement("BEGIN EXCLUSIVE");
-  begin.executeAsync();
-  begin.finalize();
-
-  let commit = db.createAsyncStatement("COMMIT");
-  commit.executeAsync({
+  db.createAsyncStatement("BEGIN EXCLUSIVE").executeAsync();
+  db.createAsyncStatement("COMMIT").executeAsync({
     handleResult: function() {},
     handleError: function() {},
     handleCompletion: function(aReason)
@@ -614,7 +626,6 @@ function waitForAsyncUpdates(aCallback, aScope, aArguments)
       aCallback.apply(scope, args);
     }
   });
-  commit.finalize();
 }
 
 
