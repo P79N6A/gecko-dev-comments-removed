@@ -62,6 +62,8 @@
 namespace mozilla {
 namespace net {
 
+class ChildChannelEvent;
+
 
 enum HttpChannelChildState {
   HCC_NEW,
@@ -143,7 +145,70 @@ private:
   
   enum HttpChannelChildState mState;
   bool mIPCOpen;
+
+  
+  
+  
+  
+  
+  void BeginEventQueueing();
+  void FlushEventQueue();
+  void EnqueueEvent(ChildChannelEvent* callback);
+  bool ShouldEnqueue();
+
+  nsTArray<nsAutoPtr<ChildChannelEvent> > mEventQueue;
+  enum {
+    PHASE_UNQUEUED,
+    PHASE_QUEUEING,
+    PHASE_FLUSHING
+  } mQueuePhase;
+
+  void OnStartRequest(const nsHttpResponseHead& responseHead,
+                          const PRBool& useResponseHead,
+                          const PRBool& isFromCache,
+                          const PRBool& cacheEntryAvailable,
+                          const PRUint32& cacheExpirationTime,
+                          const nsCString& cachedCharset);
+  void OnDataAvailable(const nsCString& data, 
+                       const PRUint32& offset,
+                       const PRUint32& count);
+  void OnStopRequest(const nsresult& statusCode);
+  void OnProgress(const PRUint64& progress, const PRUint64& progressMax);
+  void OnStatus(const nsresult& status, const nsString& statusArg);
+
+  friend class AutoEventEnqueuer;
+  friend class StartRequestEvent;
+  friend class StopRequestEvent;
+  friend class DataAvailableEvent;
+  friend class ProgressEvent;
+  friend class StatusEvent;
 };
+
+
+
+
+
+inline void
+HttpChannelChild::BeginEventQueueing()
+{
+  if (mQueuePhase == PHASE_FLUSHING)
+    return;
+  
+  mQueuePhase = PHASE_QUEUEING;
+}
+
+inline bool
+HttpChannelChild::ShouldEnqueue()
+{
+  return mQueuePhase != PHASE_UNQUEUED;
+}
+
+inline void
+HttpChannelChild::EnqueueEvent(ChildChannelEvent* callback)
+{
+  mEventQueue.AppendElement(callback);
+}
+
 
 } 
 } 
