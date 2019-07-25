@@ -486,13 +486,8 @@ function BuildConditionSandbox(aURL) {
     } catch (e) {
       sandbox.d2d = false;
     }
-
-    var info = gfxInfo.getInfo();
-    sandbox.azureQuartz = info.AzureCanvasBackend == "quartz";
-    sandbox.azureSkia = info.AzureCanvasBackend == "skia";
-    
-    sandbox.contentSameGfxBackendAsCanvas = info.AzureContentBackend == info.AzureCanvasBackend
-                                            || (info.AzureContentBackend == "none" && info.AzureCanvasBackend == "cairo");
+    sandbox.azureQuartz = gfxInfo.getInfo().AzureBackend == "quartz";
+    sandbox.azureSkia = gfxInfo.getInfo().AzureBackend == "skia";
 
     sandbox.layersGPUAccelerated =
       gWindowUtils.layerManagerType != "Basic";
