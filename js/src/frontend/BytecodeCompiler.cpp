@@ -113,11 +113,11 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         return NULL;
 
     Rooted<JSScript*> script(cx);
-    script = JSScript::Create(cx);
+    script = JSScript::Create(cx, noScriptRval);
     if (!script)
         return NULL;
 
-    BytecodeEmitter bce(&parser, &sc, script, lineno, noScriptRval, needScriptGlobal);
+    BytecodeEmitter bce(&parser, &sc, script, lineno, needScriptGlobal);
     if (!bce.init())
         return NULL;
 
@@ -280,12 +280,11 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
         return false;
 
     Rooted<JSScript*> script(cx);
-    script = JSScript::Create(cx);
+    script = JSScript::Create(cx,  false);
     if (!script)
         return false;
 
-    BytecodeEmitter funbce(&parser, &funsc, script, lineno,
-                            false,  false);
+    BytecodeEmitter funbce(&parser, &funsc, script, lineno,  false);
     if (!funbce.init())
         return false;
 

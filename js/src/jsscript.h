@@ -565,7 +565,7 @@ struct JSScript : public js::gc::Cell
     
 
   public:
-    static JSScript *Create(JSContext *cx);
+    static JSScript *Create(JSContext *cx, bool noScriptRval);
 
     
     
