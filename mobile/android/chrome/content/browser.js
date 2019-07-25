@@ -4590,10 +4590,6 @@ var XPInstallObserver = {
 
 const kViewportMinScale  = 0;
 const kViewportMaxScale  = 10;
-const kViewportMinWidth  = 200;
-const kViewportMaxWidth  = 10000;
-const kViewportMinHeight = 223;
-const kViewportMaxHeight = 10000;
 
 var ViewportHandler = {
   
@@ -4661,52 +4657,18 @@ var ViewportHandler = {
 
   getViewportMetadata: function getViewportMetadata(aWindow) {
     let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-
-    
-    
-    
-
-    
-    
-    let scale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
-    let minScale = parseFloat(windowUtils.getDocumentMetadata("viewport-minimum-scale"));
-    let maxScale = parseFloat(windowUtils.getDocumentMetadata("viewport-maximum-scale"));
-
-    let widthStr = windowUtils.getDocumentMetadata("viewport-width");
-    let heightStr = windowUtils.getDocumentMetadata("viewport-height");
-    let width = this.clamp(parseInt(widthStr), kViewportMinWidth, kViewportMaxWidth);
-    let height = this.clamp(parseInt(heightStr), kViewportMinHeight, kViewportMaxHeight);
-
-    let allowZoomStr = windowUtils.getDocumentMetadata("viewport-user-scalable");
-    let allowZoom = !/^(0|no|false)$/.test(allowZoomStr); 
-
-    if (isNaN(scale) && isNaN(minScale) && isNaN(maxScale) && allowZoomStr == "" && widthStr == "" && heightStr == "") {
-      
-      let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
-      if (handheldFriendly == "true")
-        return { defaultZoom: 1, autoSize: true, allowZoom: true };
-
-      let doctype = aWindow.document.doctype;
-      if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
-        return { defaultZoom: 1, autoSize: true, allowZoom: true };
-    }
-
-    scale = this.clamp(scale, kViewportMinScale, kViewportMaxScale);
-    minScale = this.clamp(minScale, kViewportMinScale, kViewportMaxScale);
-    maxScale = this.clamp(maxScale, minScale, kViewportMaxScale);
-
-    
-    let autoSize = (widthStr == "device-width" ||
-                    (!widthStr && (heightStr == "device-height" || scale == 1.0)));
-
+    let defaultZoom = {}, allowZoom = {}, minZoom = {}, maxZoom = {},
+        width = {}, height = {}, autoSize = {};
+    windowUtils.getViewportInfo(gScreenWidth, gScreenHeight, defaultZoom, allowZoom,
+                                minZoom, maxZoom, width, height, autoSize);
     return {
-      defaultZoom: scale,
-      minZoom: minScale,
-      maxZoom: maxScale,
-      width: width,
-      height: height,
-      autoSize: autoSize,
-      allowZoom: allowZoom
+      defaultZoom: defaultZoom.value,
+      minZoom: minZoom.value,
+      maxZoom: maxZoom.value,
+      width: width.value,
+      height: height.value,
+      autoSize: autoSize.value,
+      allowZoom: allowZoom.value
     };
   },
 
