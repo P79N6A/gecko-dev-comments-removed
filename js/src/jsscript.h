@@ -988,7 +988,7 @@ struct ScriptSource
         unsigned char *compressed;
     } data;
     uint32_t length_;
-    uint32_t compressedLength;
+    uint32_t compressedLength_;
     bool marked:1;
     bool onRuntime_:1;
     bool argumentsNotIncluded_:1;
@@ -1023,7 +1023,7 @@ struct ScriptSource
     static bool performXDR(XDRState<mode> *xdr, ScriptSource **ss);
 
   private:
-    bool compressed() { return !!compressedLength; }
+    bool compressed() { return compressedLength_ != 0; }
     void considerCompressing(JSRuntime *rt, const jschar *src, bool ownSource = false);
 };
 
