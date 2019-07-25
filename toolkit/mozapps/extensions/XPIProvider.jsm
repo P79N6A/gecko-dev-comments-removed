@@ -1388,7 +1388,10 @@ var XPIProvider = {
 
       
       if (aMigrateData) {
-        newAddon.userDisabled = aMigrateData.userDisabled;
+        
+        
+        if (newAddon.type != "theme")
+          newAddon.userDisabled = aMigrateData.userDisabled;
         if ("installDate" in aMigrateData)
           newAddon.installDate = aMigrateData.installDate;
         if ("targetApplications" in aMigrateData)
