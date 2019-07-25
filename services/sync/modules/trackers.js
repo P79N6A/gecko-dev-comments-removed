@@ -114,7 +114,7 @@ Function.prototype.async = Async.sugar;
     onEndUpdateBatch: function BMT_onEndUpdateBatch() {
 
     },
-    onItemVisited: function BMT_onItemChanged() {
+    onItemVisited: function BMT_onItemVisited() {
 
     },
     
