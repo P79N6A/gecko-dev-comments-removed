@@ -880,8 +880,9 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
     if (!TTLoadEmbeddedFontPtr || !TTDeleteEmbeddedFontPtr)
         return nsnull;
 
-    PRBool isCFF = gfxFontUtils::IsCffFont(aFontData);
-        
+    PRBool hasVertical;
+    PRBool isCFF = gfxFontUtils::IsCffFont(aFontData, hasVertical);
+
     nsresult rv;
     HANDLE fontRef = nsnull;
     PRBool isEmbedded = PR_FALSE;
@@ -957,7 +958,9 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
             return nsnull;
 
         
-        if (fontRef && numFonts != 1) {
+        
+        
+        if (fontRef && numFonts != 1 + !!hasVertical) {
             RemoveFontMemResourceEx(fontRef);
             return nsnull;
         }

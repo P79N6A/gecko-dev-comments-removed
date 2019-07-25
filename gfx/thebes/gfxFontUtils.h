@@ -696,7 +696,7 @@ public:
     
     
     static PRBool
-    IsCffFont(const PRUint8* aFontData);
+    IsCffFont(const PRUint8* aFontData, PRBool& hasVertical);
 
 #endif
 
