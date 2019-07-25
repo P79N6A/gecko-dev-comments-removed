@@ -51,7 +51,7 @@
 #ifdef XP_WIN
 #include "mozilla/gfx/SharedDIBSurface.h"
 #include "nsCrashOnException.h"
-
+extern const PRUnichar* kFlashFullscreenClass;
 using mozilla::gfx::SharedDIBSurface;
 #endif
 #include "gfxSharedImageSurface.h"
@@ -1213,7 +1213,9 @@ PluginInstanceChild::PluginWindowProcInternal(HWND hWnd,
         return 0;
     }
 
-    NS_ASSERTION(self->mPluginWndProc != PluginWindowProc, "Self-referential windowproc happened inside our hook proc. Infinite recursion will happen soon.");
+    NS_ASSERTION(self->mPluginWndProc != PluginWindowProc,
+      "Self-referential windowproc happened inside our hook proc. "
+      "Infinite recursion will happen soon.");
 
     LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
                                  lParam);
@@ -1222,16 +1224,16 @@ PluginInstanceChild::PluginWindowProcInternal(HWND hWnd,
     
     
     
-    
-    switch (message) {
-      case WM_LBUTTONDOWN:
-      case WM_MBUTTONDOWN:
-      case WM_RBUTTONDOWN:
-      case WM_LBUTTONUP:
-      case WM_MBUTTONUP:
-      case WM_RBUTTONUP:
-      ReleaseCapture();
-      break;
+    if (message == WM_LBUTTONDOWN &&
+        self->GetQuirks() & PluginModuleChild::QUIRK_FLASH_FIXUP_MOUSE_CAPTURE) {
+      PRUnichar szClass[26];
+      HWND hwnd = GetForegroundWindow();
+      if (hwnd && GetClassNameW(hwnd, szClass,
+                                sizeof(szClass)/sizeof(PRUnichar)) &&
+          !wcscmp(szClass, kFlashFullscreenClass)) {
+        ReleaseCapture();
+        SetFocus(hwnd);
+      }
     }
 
     if (message == WM_CLOSE)
