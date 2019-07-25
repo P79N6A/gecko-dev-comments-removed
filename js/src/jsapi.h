@@ -4259,6 +4259,17 @@ JS_CompileUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                        const char *filename, uintN lineno,
                                        JSVersion version);
 
+
+
+
+extern JS_PUBLIC_API(JSScript *)
+JS_CompileUCScriptForPrincipalsVersionOrigin(JSContext *cx, JSObject *obj,
+                                             JSPrincipals *principals,
+                                             JSPrincipals *originPrincipals,
+                                             const jschar *chars, size_t length,
+                                             const char *filename, uintN lineno,
+                                             JSVersion version);
+
 extern JS_PUBLIC_API(JSScript *)
 JS_CompileUTF8File(JSContext *cx, JSObject *obj, const char *filename);
 
@@ -4416,6 +4427,7 @@ JS_EvaluateUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                         const jschar *chars, uintN length,
                                         const char *filename, uintN lineno,
                                         jsval *rval, JSVersion version);
+
 
 
 

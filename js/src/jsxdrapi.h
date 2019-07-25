@@ -105,28 +105,14 @@ typedef struct JSXDROps {
     void        (*finalize)(JSXDRState *);
 } JSXDROps;
 
-struct JSXDRState;
-
-namespace js {
-
-class XDRScriptState {
-public:
-    XDRScriptState(JSXDRState *x);
-    ~XDRScriptState();
-
-    JSXDRState      *xdr;
-    const char      *filename;
-    bool             filenameSaved;
-};
-
-} 
-
 struct JSXDRState {
     JSXDRMode   mode;
     JSXDROps    *ops;
     JSContext   *cx;
     void        *userdata;
-    js::XDRScriptState *state;
+    const char  *sharedFilename;
+    JSPrincipals *principals;
+    JSPrincipals *originPrincipals;
 };
 
 extern JS_PUBLIC_API(void)
@@ -164,9 +150,6 @@ JS_XDRBytes(JSXDRState *xdr, char *bytes, uint32_t len);
 
 extern JS_PUBLIC_API(JSBool)
 JS_XDRCString(JSXDRState *xdr, char **sp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_XDRCStringOrNull(JSXDRState *xdr, char **sp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_XDRString(JSXDRState *xdr, JSString **strp);
@@ -209,7 +192,9 @@ JS_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 107)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 108)
+
+JS_END_EXTERN_C
 
 
 
@@ -217,6 +202,14 @@ JS_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 extern JSBool
 js_XDRAtom(JSXDRState *xdr, JSAtom **atomp);
 
-JS_END_EXTERN_C
+
+
+
+
+
+
+
+extern void
+js_XDRSetPrincipals(JSXDRState *xdr, JSPrincipals *principals, JSPrincipals *originPrincipals);
 
 #endif 
