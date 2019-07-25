@@ -251,6 +251,12 @@ public:
 
 
 
+    virtual void MarkValid() {}
+
+    
+
+
+
 
     virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0)) = 0;
 
@@ -391,6 +397,8 @@ public:
     
     virtual already_AddRefed<gfxASurface>
       GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
+
+    virtual void MarkValid() { mTextureState = Valid; }
 
     
     
