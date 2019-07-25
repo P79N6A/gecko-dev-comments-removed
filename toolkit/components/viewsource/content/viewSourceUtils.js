@@ -119,10 +119,28 @@ var gViewSourceUtils = {
           webBrowserPersist.progressListener = this.viewSourceProgressListener;
           webBrowserPersist.saveURI(uri, null, null, null, null, file);
 
-          
-          Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
-                    .getService(Components.interfaces.nsPIExternalAppLauncher)
-                    .deleteTemporaryFileOnExit(file);
+          let fromPrivateWindow = false;
+          if (aDocument) {
+            try {
+              fromPrivateWindow =
+                aDocument.defaultView
+                         .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                         .getInterface(Components.interfaces.nsIWebNavigation)
+                         .QueryInterface(Components.interfaces.nsILoadContext)
+                         .usePrivateBrowsing;
+            } catch (e) {
+            }
+          }
+
+          let helperService = Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
+                                        .getService(Components.interfaces.nsPIExternalAppLauncher);
+          if (fromPrivateWindow) {
+            
+            helperService.deleteTemporaryPrivateFileWhenPossible(file);
+          } else {
+            
+            helperService.deleteTemporaryFileOnExit(file);
+          }
         } else {
           
           
@@ -264,10 +282,22 @@ var gViewSourceUtils = {
           coStream.close();
           foStream.close();
 
-          
-          Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
-                    .getService(Components.interfaces.nsPIExternalAppLauncher)
-                    .deleteTemporaryFileOnExit(this.file);
+          let fromPrivateWindow =
+            this.data.doc.defaultView
+                         .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                         .getInterface(Components.interfaces.nsIWebNavigation)
+                         .QueryInterface(Components.interfaces.nsILoadContext)
+                         .usePrivateBrowsing;
+
+          let helperService = Components.classes["@mozilla.org/uriloader/external-helper-app-service;1"]
+                              .getService(Components.interfaces.nsPIExternalAppLauncher);
+          if (fromPrivateWindow) {
+            
+            helperService.deleteTemporaryPrivateFileWhenPossible(this.file);
+          } else {
+            
+            helperService.deleteTemporaryFileOnExit(this.file);
+          }
         }
 
         var editorArgs = gViewSourceUtils.buildEditorArgs(this.file.path,
