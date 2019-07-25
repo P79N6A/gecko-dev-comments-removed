@@ -77,7 +77,6 @@
 #include "jsapi.h"              
 #include "jsdbgapi.h"           
 #include "jsfriendapi.h"        
-#include "jswrapper.h"
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsJSEnvironment.h"
@@ -800,21 +799,6 @@ nsPIDOMWindow::~nsPIDOMWindow() {}
 
 
 
-class nsOuterWindowProxy : public js::Wrapper
-{
-public:
-  nsOuterWindowProxy() : js::Wrapper(0) {}
-
-  virtual bool isOuterWindow() {
-    return true;
-  }
-  JSString *obj_toString(JSContext *cx, JSObject *wrapper);
-  void finalize(JSContext *cx, JSObject *proxy);
-
-  static nsOuterWindowProxy singleton;
-};
-
-
 JSString *
 nsOuterWindowProxy::obj_toString(JSContext *cx, JSObject *proxy)
 {
@@ -838,8 +822,8 @@ nsOuterWindowProxy::finalize(JSContext *cx, JSObject *proxy)
 nsOuterWindowProxy
 nsOuterWindowProxy::singleton;
 
-static JSObject*
-NewOuterWindowProxy(JSContext *cx, JSObject *parent)
+JSObject *
+NS_NewOuterWindowProxy(JSContext *cx, JSObject *parent)
 {
   JSAutoEnterCompartment ac;
   if (!ac.enter(cx, parent)) {
@@ -936,7 +920,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     Freeze();
 
     mObserver = nsnull;
-    SetIsDOMBinding();
+    SetIsProxy();
   }
 
   
@@ -1588,10 +1572,8 @@ nsGlobalWindow::UnmarkGrayTimers()
 
 
 nsresult
-nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptContext)
+nsGlobalWindow::SetScriptContext(nsIScriptContext *aScriptContext)
 {
-  NS_ASSERTION(lang_id == nsIProgrammingLanguage::JAVASCRIPT,
-               "We don't support this language ID");
   NS_ASSERTION(IsOuterWindow(), "Uh, SetScriptContext() called on inner window!");
 
   NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
@@ -1617,11 +1599,9 @@ nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptCont
 }
 
 nsresult
-nsGlobalWindow::EnsureScriptEnvironment(PRUint32 aLangID)
+nsGlobalWindow::EnsureScriptEnvironment()
 {
-  NS_ASSERTION(aLangID == nsIProgrammingLanguage::JAVASCRIPT,
-               "We don't support this language ID");
-  FORWARD_TO_OUTER(EnsureScriptEnvironment, (aLangID), NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_OUTER(EnsureScriptEnvironment, (), NS_ERROR_NOT_INITIALIZED);
 
   if (mJSObject)
       return NS_OK;
@@ -1630,20 +1610,18 @@ nsGlobalWindow::EnsureScriptEnvironment(PRUint32 aLangID)
                "mJSObject is null, but we have an inner window?");
 
   nsCOMPtr<nsIScriptRuntime> scriptRuntime;
-  nsresult rv = NS_GetScriptRuntimeByID(aLangID, getter_AddRefs(scriptRuntime));
+  nsresult rv = NS_GetScriptRuntimeByID(nsIProgrammingLanguage::JAVASCRIPT,
+                                        getter_AddRefs(scriptRuntime));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIScriptContext> context = scriptRuntime->CreateContext();
-  return SetScriptContext(aLangID, context);
+  return SetScriptContext(context);
 }
 
 nsIScriptContext *
-nsGlobalWindow::GetScriptContext(PRUint32 lang)
+nsGlobalWindow::GetScriptContext()
 {
-  NS_ASSERTION(lang == nsIProgrammingLanguage::JAVASCRIPT,
-               "We don't support this language ID");
-
-  FORWARD_TO_OUTER(GetScriptContext, (lang), nsnull);
+  FORWARD_TO_OUTER(GetScriptContext, (), nsnull);
   return mContext;
 }
 
@@ -1653,7 +1631,7 @@ nsGlobalWindow::GetContext()
   FORWARD_TO_OUTER(GetContext, (), nsnull);
 
   
-  NS_ASSERTION(mContext == GetScriptContext(nsIProgrammingLanguage::JAVASCRIPT),
+  NS_ASSERTION(mContext == GetScriptContext(),
                "GetContext confused?");
   return mContext;
 }
@@ -1899,46 +1877,6 @@ ReparentWaiverWrappers(JSDHashTable *table, JSDHashEntryHdr *hdr,
 }
 
 nsresult
-nsGlobalWindow::CreateOuterObject(nsGlobalWindow* aNewInner)
-{
-  mContext->SetGlobalObject(this);
-
-  JSContext* cx = mContext->GetNativeContext();
-
-  if (IsChromeWindow()) {
-    
-    
-    
-    
-    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_XML);
-  }
-
-  JSObject* outer = NewOuterWindowProxy(cx, aNewInner->FastGetGlobalJSObject());
-  if (!outer) {
-    return NS_ERROR_FAILURE;
-  }
-
-  js::SetProxyExtra(outer, 0,
-    js::PrivateValue(static_cast<nsIScriptGlobalObject*>(this)));
-
-  return SetOuterObject(cx, outer);
-}
-
-nsresult
-nsGlobalWindow::SetOuterObject(JSContext* aCx, JSObject* aOuterObject)
-{
-  
-  
-  JS_SetGlobalObject(aCx, aOuterObject);
-
-  
-  JSObject* inner = JS_GetParent(aOuterObject);
-  JS_SetPrototype(aCx, aOuterObject, JS_GetPrototype(inner));
-
-  return NS_OK;
-}
-
-nsresult
 nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
                                nsISupports* aState,
                                bool aForceReuseInnerWindow)
@@ -2153,13 +2091,14 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     mInnerWindow = newInnerWindow;
 
     if (!mJSObject) {
-      CreateOuterObject(newInnerWindow);
+      mContext->CreateOuterObject(this, newInnerWindow);
       mContext->DidInitializeContext();
 
       mJSObject = mContext->GetNativeGlobal();
       SetWrapper(mJSObject);
     } else {
-      JSObject *outerObject = NewOuterWindowProxy(cx, newInnerWindow->mJSObject);
+      JSObject *outerObject =
+        NS_NewOuterWindowProxy(cx, newInnerWindow->mJSObject);
       if (!outerObject) {
         NS_ERROR("out of memory");
         return NS_ERROR_FAILURE;
@@ -2188,7 +2127,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
         JS_SetParent(cx, mJSObject, newInnerWindow->mJSObject);
 
-        SetOuterObject(cx, mJSObject);
+        mContext->SetOuterObject(mJSObject);
 
         JSCompartment *compartment = js::GetObjectCompartment(mJSObject);
         xpc::CompartmentPrivate *priv =
@@ -2261,21 +2200,10 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
     
     
-#ifdef DEBUG
-    JSObject* newInnerJSObject = newInnerWindow->FastGetGlobalJSObject();
-#endif
-
-    
-    
-    
-    
-    JS_SetGlobalObject(cx, mJSObject);
-    NS_ASSERTION(JS_GetPrototype(mJSObject) ==
-                 JS_GetPrototype(newInnerJSObject),
-                 "outer and inner globals should have the same prototype");
+    mContext->ConnectToInner(newInnerWindow, mJSObject);
 
     nsCOMPtr<nsIContent> frame = do_QueryInterface(GetFrameElementInternal());
-    if (frame) {
+    if (frame && frame->OwnerDoc()) {
       nsPIDOMWindow* parentWindow = frame->OwnerDoc()->GetWindow();
       if (parentWindow && parentWindow->TimeoutSuspendCount()) {
         SuspendTimeouts(parentWindow->TimeoutSuspendCount());

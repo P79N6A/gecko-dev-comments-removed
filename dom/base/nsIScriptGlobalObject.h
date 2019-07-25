@@ -122,16 +122,16 @@ public:
 
 
 
-  virtual nsresult EnsureScriptEnvironment(PRUint32 aLangID) = 0;
+  virtual nsresult EnsureScriptEnvironment() = 0;
   
 
 
-  virtual nsIScriptContext *GetScriptContext(PRUint32 lang) = 0;
+  virtual nsIScriptContext *GetScriptContext() = 0;
   
   virtual JSObject* GetGlobalJSObject() = 0;
 
   virtual nsIScriptContext *GetContext() {
-        return GetScriptContext(nsIProgrammingLanguage::JAVASCRIPT);
+        return GetScriptContext();
   }
 
   
@@ -139,7 +139,7 @@ public:
 
 
 
-  virtual nsresult SetScriptContext(PRUint32 lang, nsIScriptContext *aContext) = 0;
+  virtual nsresult SetScriptContext(nsIScriptContext *aContext) = 0;
 
   
 

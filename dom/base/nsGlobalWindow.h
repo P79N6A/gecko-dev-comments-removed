@@ -102,6 +102,7 @@
 
 
 #include "jsapi.h"
+#include "jswrapper.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
@@ -234,6 +235,26 @@ private:
 
 
 
+class nsOuterWindowProxy : public js::Wrapper
+{
+public:
+  nsOuterWindowProxy() : js::Wrapper((unsigned)0) {}
+
+  virtual bool isOuterWindow() {
+    return true;
+  }
+  JSString *obj_toString(JSContext *cx, JSObject *wrapper);
+  void finalize(JSContext *cx, JSObject *proxy);
+
+  static nsOuterWindowProxy singleton;
+};
+
+JSObject *NS_NewOuterWindowProxy(JSContext *cx, JSObject *parent);
+
+
+
+
+
 
 
 
@@ -296,13 +317,13 @@ public:
     return mJSObject;
   }
 
-  virtual nsresult EnsureScriptEnvironment(PRUint32 aLangID);
+  virtual nsresult EnsureScriptEnvironment();
 
-  virtual nsIScriptContext *GetScriptContext(PRUint32 lang);
+  virtual nsIScriptContext *GetScriptContext();
 
   
   
-  virtual nsresult SetScriptContext(PRUint32 lang, nsIScriptContext *aContext);
+  virtual nsresult SetScriptContext(nsIScriptContext *aContext);
   
   virtual void OnFinalize(JSObject* aObject);
   virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts);
@@ -821,9 +842,6 @@ protected:
   bool GetIsTabModalPromptAllowed();
 
   inline PRInt32 DOMMinTimeoutValue() const;
-
-  nsresult CreateOuterObject(nsGlobalWindow* aNewInner);
-  nsresult SetOuterObject(JSContext* aCx, JSObject* aOuterObject);
 
   
   

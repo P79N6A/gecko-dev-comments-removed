@@ -417,8 +417,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     return false;
   }
   
-  nsIScriptContext *context = globalObject->GetScriptContext(
-                                        nsIProgrammingLanguage::JAVASCRIPT);
+  nsIScriptContext *context = globalObject->GetScriptContext();
 
   
   
@@ -890,14 +889,14 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   PRUint32 stid = scriptContent ? scriptContent->GetScriptTypeID() :
                                   nsIProgrammingLanguage::JAVASCRIPT;
   
-  rv = globalObject->EnsureScriptEnvironment(stid);
+  rv = globalObject->EnsureScriptEnvironment();
   if (NS_FAILED(rv))
     return rv;
 
   
   
   
-  nsCOMPtr<nsIScriptContext> context = globalObject->GetScriptContext(stid);
+  nsCOMPtr<nsIScriptContext> context = globalObject->GetScriptContext();
   if (!context) {
     return NS_ERROR_FAILURE;
   }

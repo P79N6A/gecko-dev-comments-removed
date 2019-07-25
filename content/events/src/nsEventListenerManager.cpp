@@ -532,12 +532,12 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
 
   
   
-  if (NS_FAILED(global->EnsureScriptEnvironment(aLanguage))) {
+  if (NS_FAILED(global->EnsureScriptEnvironment())) {
     NS_WARNING("Failed to setup script environment for this language");
     
   }
 
-  nsIScriptContext* context = global->GetScriptContext(aLanguage);
+  nsIScriptContext* context = global->GetScriptContext();
   NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
 
   JSObject* scope = global->GetGlobalJSObject();
