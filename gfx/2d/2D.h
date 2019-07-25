@@ -730,6 +730,15 @@ public:
   
 
 
+  virtual TemporaryRef<DrawTarget>
+    CreateShadowDrawTarget(const IntSize &aSize, SurfaceFormat aFormat) const
+  {
+    return CreateSimilarDrawTarget(aSize, aFormat);
+  }
+
+  
+
+
 
 
 
