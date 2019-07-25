@@ -1731,9 +1731,10 @@ nsEditor::MoveNode(nsIDOMNode *aNode, nsIDOMNode *aParent, PRInt32 aOffset)
   }
 
   
-  res = DeleteNode(aNode);
+  nsCOMPtr<nsIDOMNode> node = aNode;
+  res = DeleteNode(node);
   NS_ENSURE_SUCCESS(res, res);
-  return InsertNode(aNode, aParent, aOffset);
+  return InsertNode(node, aParent, aOffset);
 }
 
 
