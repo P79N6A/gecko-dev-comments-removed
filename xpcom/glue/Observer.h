@@ -81,12 +81,8 @@ public:
     mObservers.AppendElement(aObserver);
   }
 
-  
-
-
-
-  bool RemoveObserver(Observer<T>* aObserver) {
-    return mObservers.RemoveElement(aObserver);
+  void RemoveObserver(Observer<T>* aObserver) {
+    mObservers.RemoveElement(aObserver);
   }
 
   PRUint32 Length() {

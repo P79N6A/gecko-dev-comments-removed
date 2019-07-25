@@ -85,7 +85,6 @@ class NetworkInformation;
 } 
 
 namespace dom {
-class ScreenOrientationWrapper;
 namespace sms {
 struct SmsFilterData;
 } 
@@ -241,8 +240,7 @@ public:
 
     int GetDPI();
 
-    void ShowFilePickerForExtensions(nsAString& aFilePath, const nsAString& aExtensions);
-    void ShowFilePickerForMimeType(nsAString& aFilePath, const nsAString& aMimeType);
+    void ShowFilePicker(nsAString& aFilePath, nsAString& aFilters);
 
     void PerformHapticFeedback(bool aIsLongPress);
 
@@ -417,14 +415,6 @@ public:
     void ShowSurface(jobject surface, const gfxRect& aRect, bool aInverted, bool aBlend);
     void HideSurface(jobject surface);
 
-    
-    
-    
-    
-    void GetScreenOrientation(dom::ScreenOrientationWrapper& aOrientation);
-    void EnableScreenOrientationNotifications();
-    void DisableScreenOrientationNotifications();
-
 protected:
     static AndroidBridge *sBridge;
 
@@ -479,8 +469,7 @@ protected:
     jmethodID jGetClipboardText;
     jmethodID jSetClipboardText;
     jmethodID jShowAlertNotification;
-    jmethodID jShowFilePickerForExtensions;
-    jmethodID jShowFilePickerForMimeType;
+    jmethodID jShowFilePicker;
     jmethodID jAlertsProgressListener_OnProgress;
     jmethodID jAlertsProgressListener_OnCancel;
     jmethodID jGetDpi;
@@ -527,10 +516,6 @@ protected:
     jmethodID jGetCurrentNetworkInformation;
     jmethodID jEnableNetworkNotifications;
     jmethodID jDisableNetworkNotifications;
-
-    jmethodID jGetScreenOrientation;
-    jmethodID jEnableScreenOrientationNotifications;
-    jmethodID jDisableScreenOrientationNotifications;
 
     
     jclass jEGLSurfaceImplClass;

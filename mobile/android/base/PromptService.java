@@ -39,8 +39,6 @@ package org.mozilla.gecko;
 
 import android.util.Log;
 import java.lang.String;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.TimeUnit;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -48,10 +46,7 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnMultiChoiceClickListener;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.text.InputType;
 import android.text.method.PasswordTransformationMethod;
 import android.util.TypedValue;
@@ -79,40 +74,15 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
     private PromptInput[] mInputs;
     private AlertDialog mDialog = null;
     private static LayoutInflater mInflater;
-
-    private final static int GROUP_PADDING_SIZE = 32; 
-    private static int mGroupPaddingSize = 0; 
-
-    private final static int LEFT_RIGHT_TEXT_WITH_ICON_PADDING = 10; 
-    private static int mLeftRightTextWithIconPadding = 0; 
-
-    private final static int TOP_BOTTOM_TEXT_WITH_ICON_PADDING = 8; 
-    private static int mTopBottomTextWithIconPadding = 0; 
-
-    private final static int ICON_TEXT_PADDING = 10; 
-    private static int mIconTextPadding = 0; 
-
-    private final static int ICON_SIZE = 72; 
-    private static int mIconSize = 0; 
+    private final static int PADDING_SIZE = 32; 
+    private static int mPaddingSize = 0; 
 
     PromptService() {
         mInflater = LayoutInflater.from(GeckoApp.mAppContext);
         Resources res = GeckoApp.mAppContext.getResources();
-        mGroupPaddingSize = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                                                           GROUP_PADDING_SIZE,
-                                                           res.getDisplayMetrics());
-        mLeftRightTextWithIconPadding = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                                                                       LEFT_RIGHT_TEXT_WITH_ICON_PADDING,
-                                                                       res.getDisplayMetrics());
-        mTopBottomTextWithIconPadding = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                                                                       TOP_BOTTOM_TEXT_WITH_ICON_PADDING,
-                                                                       res.getDisplayMetrics());
-        mIconTextPadding = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                                                          ICON_TEXT_PADDING,
-                                                          res.getDisplayMetrics());
-        mIconSize = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                                                   ICON_SIZE,
-                                                   res.getDisplayMetrics());
+        mPaddingSize = (int)TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                                                      PADDING_SIZE,
+                                                      res.getDisplayMetrics());
     }
 
     private class PromptButton {
@@ -214,8 +184,8 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
             builder.setMessage(aText);
         }
 
-        int length = mInputs == null ? 0 : mInputs.length;
-        if (aMenuList != null && aMenuList.length > 0) {
+        int length = mInputs.length;
+        if (aMenuList.length > 0) {
             int resourceId = android.R.layout.select_dialog_item;
             if (mSelected != null && mSelected.length > 0) {
                 if (aMultipleSelection) {
@@ -260,7 +230,7 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
             builder.setView((View)linearLayout);
         }
 
-        length = aButtons == null ? 0 : aButtons.length;
+        length = aButtons.length;
         if (length > 0) {
             builder.setPositiveButton(aButtons[0].label, this);
         }
@@ -329,24 +299,12 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
         finishDialog(ret.toString());
     }
 
-    static SynchronousQueue<String> mPromptQueue = new SynchronousQueue<String>();
-
-    static public String waitForReturn() throws InterruptedException {
-        String value;
-
-        while (null == (value = mPromptQueue.poll(1, TimeUnit.MILLISECONDS))) {
-            GeckoAppShell.processNextNativeEvent();
-        }
-
-        return value;
-    }
-
     public void finishDialog(String aReturn) {
         mInputs = null;
         mDialog = null;
         mSelected = null;
         try {
-            mPromptQueue.put(aReturn);
+            GeckoAppShell.sPromptQueue.put(aReturn);
         } catch(Exception ex) { }
     }
 
@@ -438,26 +396,18 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
         return list;
     }
 
-    static public class PromptListItem {
+    private class PromptListItem {
         public String label = "";
         public boolean isGroup = false;
         public boolean inGroup = false;
         public boolean disabled = false;
         public int id = 0;
-
-        
-        public Drawable icon = null;
-
         PromptListItem(JSONObject aObject) {
             try { label = aObject.getString("label"); } catch(Exception ex) { }
             try { isGroup = aObject.getBoolean("isGroup"); } catch(Exception ex) { }
             try { inGroup = aObject.getBoolean("inGroup"); } catch(Exception ex) { }
             try { disabled = aObject.getBoolean("disabled"); } catch(Exception ex) { }
             try { id = aObject.getInt("id"); } catch(Exception ex) { }
-        }
-
-        public PromptListItem(String aLabel) {
-            label = aLabel;
         }
     }
 
@@ -505,34 +455,15 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
                         }
 
                         if (item.inGroup) {
-                            ct.setPadding(mGroupPaddingSize, 0, 0, 0);
+                            ct.setPadding(mPaddingSize, 0, 0, 0);
                         }
 
                     }
                 } catch (Exception ex) { }
             }
-
             TextView t1 = (TextView) row.findViewById(android.R.id.text1);
             if (t1 != null) {
                 t1.setText(item.label);
-                if (item.icon != null) {
-                    Resources res = GeckoApp.mAppContext.getResources();
-
-                    
-                    t1.setPadding(item. inGroup ? mLeftRightTextWithIconPadding + mGroupPaddingSize : mLeftRightTextWithIconPadding,
-                                  mTopBottomTextWithIconPadding,
-                                  mLeftRightTextWithIconPadding, mTopBottomTextWithIconPadding);
-
-                    
-                    t1.setCompoundDrawablePadding(mIconTextPadding);
-
-                    
-                    
-                    Bitmap bitmap = ((BitmapDrawable) item.icon).getBitmap();
-                    Drawable d = new BitmapDrawable(Bitmap.createScaledBitmap(bitmap, mIconSize, mIconSize, true));
-
-                    t1.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
-                }
             }
 
             return row;
