@@ -122,6 +122,7 @@ static const size_t MAX_NATIVE_STACK_SLOTS = 4096;
 static const size_t MAX_CALL_STACK_ENTRIES = 500;
 static const size_t MAX_GLOBAL_SLOTS = 4096;
 static const size_t GLOBAL_SLOTS_BUFFER_SIZE = MAX_GLOBAL_SLOTS + 1;
+static const size_t MAX_SLOW_NATIVE_EXTRA_SLOTS = 16;
 
 
 class VMAllocator;
@@ -241,12 +242,44 @@ struct GlobalState {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class CallStack
 {
-#ifdef DEBUG
     
     JSContext           *cx;
-#endif
+
+    
+    CallStack           *previousInContext;
+
+    
+    CallStack           *previousInThread;
+
+    
+    JSStackFrame        *initialFrame;
 
     
     JSStackFrame        *suspendedFrame;
@@ -255,78 +288,448 @@ class CallStack
     bool                saved;
 
     
-    CallStack           *previous;
+    jsval               *initialArgEnd;
 
     
     JSObject            *initialVarObj;
 
-    
-    JSStackFrame        *initialFrame;
-
   public:
-    CallStack(JSContext *cx)
-      :
-#ifdef DEBUG
-        cx(cx),
-#endif
-        suspendedFrame(NULL), saved(false), previous(NULL),
-        initialVarObj(NULL), initialFrame(NULL)
+    CallStack()
+      : cx(NULL), previousInContext(NULL), previousInThread(NULL),
+        initialFrame(NULL), suspendedFrame(NULL), saved(false),
+        initialArgEnd(NULL), initialVarObj(NULL)
     {}
 
-#ifdef DEBUG
-    bool contains(JSStackFrame *fp);
-#endif
+    
 
-    void suspend(JSStackFrame *fp) {
-        JS_ASSERT(fp && !isSuspended() && contains(fp));
-        suspendedFrame = fp;
+    jsval *previousCallStackEnd() const {
+        return (jsval *)this;
     }
 
-    void resume() {
-        JS_ASSERT(suspendedFrame);
-        suspendedFrame = NULL;
+    jsval *getInitialArgBegin() const {
+        return (jsval *)(this + 1);
     }
 
-    JSStackFrame *getSuspendedFrame() const {
-        JS_ASSERT(suspendedFrame);
+    
+
+
+
+
+
+
+
+
+
+
+    bool inContext() const {
+        JS_ASSERT(!!cx == !!initialFrame);
+        JS_ASSERT_IF(!initialFrame, !suspendedFrame && !saved);
+        return cx;
+    }
+
+    bool isActive() const {
+        JS_ASSERT_IF(suspendedFrame, inContext());
+        return initialFrame && !suspendedFrame;
+    }
+
+    bool isSuspended() const {
+        JS_ASSERT_IF(!suspendedFrame, !saved);
+        JS_ASSERT_IF(suspendedFrame, inContext());
         return suspendedFrame;
     }
 
-    bool isSuspended() const { return !!suspendedFrame; }
-
-    void setPrevious(CallStack *cs) { previous = cs; }
-    CallStack *getPrevious() const  { return previous; }
-
-    void setInitialVarObj(JSObject *o) { initialVarObj = o; }
-    JSObject *getInitialVarObj() const { return initialVarObj; }
-
-    void setInitialFrame(JSStackFrame *f) { initialFrame = f; }
-    JSStackFrame *getInitialFrame() const { return initialFrame; }
-
     
-
-
-
-
-
-
-
-
-    void save(JSStackFrame *fp) {
-        suspend(fp);
-        saved = true;
-    }
-
-    void restore() {
-        saved = false;
-        resume();
-    }
-
     bool isSaved() const {
         JS_ASSERT_IF(saved, isSuspended());
         return saved;
     }
+
+    
+
+    void joinContext(JSContext *cx, JSStackFrame *f) {
+        JS_ASSERT(!inContext());
+        this->cx = cx;
+        initialFrame = f;
+        JS_ASSERT(isActive());
+    }
+
+    void leaveContext() {
+        JS_ASSERT(isActive());
+        this->cx = NULL;
+        initialFrame = NULL;
+        JS_ASSERT(!inContext());
+    }
+
+    JSContext *maybeContext() const {
+        return cx;
+    }
+
+    
+
+    void suspend(JSStackFrame *fp) {
+        JS_ASSERT(isActive());
+        JS_ASSERT(fp && contains(fp));
+        suspendedFrame = fp;
+        JS_ASSERT(isSuspended());
+    }
+
+    void resume() {
+        JS_ASSERT(isSuspended());
+        suspendedFrame = NULL;
+        JS_ASSERT(isActive());
+    }
+
+    
+
+    void save(JSStackFrame *fp) {
+        JS_ASSERT(!isSaved());
+        suspend(fp);
+        saved = true;
+        JS_ASSERT(isSaved());
+    }
+
+    void restore() {
+        JS_ASSERT(isSaved());
+        saved = false;
+        resume();
+        JS_ASSERT(!isSaved());
+    }
+
+    
+
+    void setInitialArgEnd(jsval *v) {
+        JS_ASSERT(!inContext() && !initialArgEnd);
+        initialArgEnd = v;
+    }
+
+    jsval *getInitialArgEnd() const {
+        JS_ASSERT(!inContext() && initialArgEnd);
+        return initialArgEnd;
+    }
+
+    
+
+    JSStackFrame *getInitialFrame() const {
+        JS_ASSERT(inContext());
+        return initialFrame;
+    }
+
+    inline JSStackFrame *getCurrentFrame() const;
+
+    
+
+    JSStackFrame *getSuspendedFrame() const {
+        JS_ASSERT(isSuspended());
+        return suspendedFrame;
+    }
+
+    
+
+    void setPreviousInContext(CallStack *cs) {
+        previousInContext = cs;
+    }
+
+    CallStack *getPreviousInContext() const  {
+        return previousInContext;
+    }
+
+    void setPreviousInThread(CallStack *cs) {
+        previousInThread = cs;
+    }
+
+    CallStack *getPreviousInThread() const  {
+        return previousInThread;
+    }
+
+    void setInitialVarObj(JSObject *obj) {
+        JS_ASSERT(inContext());
+        initialVarObj = obj;
+    }
+
+    JSObject *getInitialVarObj() const {
+        JS_ASSERT(inContext());
+        return initialVarObj;
+    }
+
+#ifdef DEBUG
+    JS_REQUIRES_STACK bool contains(const JSStackFrame *fp) const;
+#endif
+
 };
+
+static const size_t VALUES_PER_CALL_STACK = sizeof(CallStack) / sizeof(jsval);
+JS_STATIC_ASSERT(sizeof(CallStack) % sizeof(jsval) == 0);
+
+
+
+
+
+
+class InvokeArgsGuard
+{
+    friend class StackSpace;
+    JSContext       *cx;
+    CallStack       *cs;  
+    jsval           *vp;
+    uintN           argc;
+  public:
+    inline InvokeArgsGuard();
+    inline InvokeArgsGuard(jsval *vp, uintN argc);
+    inline ~InvokeArgsGuard();
+    jsval *getvp() const { return vp; }
+    uintN getArgc() const { JS_ASSERT(vp != NULL); return argc; }
+};
+
+
+class InvokeFrameGuard
+{
+    friend class StackSpace;
+    JSContext       *cx;  
+    CallStack       *cs;
+    JSStackFrame    *fp;
+  public:
+    InvokeFrameGuard();
+    JS_REQUIRES_STACK ~InvokeFrameGuard();
+    JSStackFrame *getFrame() const { return fp; }
+};
+
+
+class ExecuteFrameGuard
+{
+    friend class StackSpace;
+    JSContext       *cx;  
+    CallStack       *cs;
+    jsval           *vp;
+    JSStackFrame    *fp;
+    JSStackFrame    *down;
+  public:
+    ExecuteFrameGuard();
+    JS_REQUIRES_STACK ~ExecuteFrameGuard();
+    jsval *getvp() const { return vp; }
+    JSStackFrame *getFrame() const { return fp; }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class StackSpace
+{
+    jsval *base;
+#ifdef XP_WIN
+    mutable jsval *commitEnd;
+#endif
+    jsval *end;
+    CallStack *currentCallStack;
+
+    
+    friend class InvokeArgsGuard;
+    JS_REQUIRES_STACK inline void popInvokeArgs(JSContext *cx, jsval *vp);
+    friend class InvokeFrameGuard;
+    JS_REQUIRES_STACK void popInvokeFrame(JSContext *cx, CallStack *maybecs);
+    friend class ExecuteFrameGuard;
+    JS_REQUIRES_STACK void popExecuteFrame(JSContext *cx);
+
+    
+    JS_REQUIRES_STACK
+    inline jsval *firstUnused() const;
+
+    inline void assertIsCurrent(JSContext *cx) const;
+#ifdef DEBUG
+    CallStack *getCurrentCallStack() const { return currentCallStack; }
+#endif
+
+    
+
+
+
+    inline bool ensureSpace(JSContext *maybecx, jsval *from, ptrdiff_t nvals) const;
+
+#ifdef XP_WIN
+    
+    JS_FRIEND_API(bool) bumpCommit(jsval *from, ptrdiff_t nvals) const;
+#endif
+
+  public:
+    static const size_t CAPACITY_VALS   = 512 * 1024;
+    static const size_t CAPACITY_BYTES  = CAPACITY_VALS * sizeof(jsval);
+    static const size_t COMMIT_VALS     = 16 * 1024;
+    static const size_t COMMIT_BYTES    = COMMIT_VALS * sizeof(jsval);
+
+    
+    bool init();
+    void finish();
+
+#ifdef DEBUG
+    template <class T>
+    bool contains(T *t) const {
+        char *v = (char *)t;
+        JS_ASSERT(size_t(-1) - uintptr_t(t) >= sizeof(T));
+        return v >= (char *)base && v + sizeof(T) <= (char *)end;
+    }
+#endif
+
+    
+
+
+
+
+
+    inline bool ensureEnoughSpaceToEnterTrace();
+
+    
+    static const ptrdiff_t MAX_TRACE_SPACE_VALS =
+      MAX_NATIVE_STACK_SLOTS + MAX_CALL_STACK_ENTRIES * VALUES_PER_STACK_FRAME +
+      (VALUES_PER_CALL_STACK + VALUES_PER_STACK_FRAME );
+
+    
+    JS_REQUIRES_STACK void mark(JSTracer *trc);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+    JS_REQUIRES_STACK
+    bool pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard &ag);
+
+    
+    bool getInvokeFrame(JSContext *cx, const InvokeArgsGuard &ag,
+                        uintN nmissing, uintN nfixed,
+                        InvokeFrameGuard &fg) const;
+
+    JS_REQUIRES_STACK
+    void pushInvokeFrame(JSContext *cx, const InvokeArgsGuard &ag,
+                         InvokeFrameGuard &fg);
+
+    
+
+
+
+
+    JS_REQUIRES_STACK
+    bool getExecuteFrame(JSContext *cx, JSStackFrame *down,
+                         uintN vplen, uintN nfixed,
+                         ExecuteFrameGuard &fg) const;
+    JS_REQUIRES_STACK
+    void pushExecuteFrame(JSContext *cx, ExecuteFrameGuard &fg,
+                          JSObject *initialVarObj);
+
+    
+
+
+
+    JS_REQUIRES_STACK
+    inline JSStackFrame *getInlineFrame(JSContext *cx, jsval *sp,
+                                        uintN nmissing, uintN nfixed) const;
+
+    JS_REQUIRES_STACK
+    inline void pushInlineFrame(JSContext *cx, JSStackFrame *fp, JSStackFrame *newfp);
+
+    JS_REQUIRES_STACK
+    inline void popInlineFrame(JSContext *cx, JSStackFrame *up, JSStackFrame *down);
+
+    
+
+
+
+    JS_REQUIRES_STACK
+    void getSynthesizedSlowNativeFrame(JSContext *cx, CallStack *&cs, JSStackFrame *&fp);
+
+    JS_REQUIRES_STACK
+    void pushSynthesizedSlowNativeFrame(JSContext *cx, CallStack *cs, JSStackFrame *fp);
+
+    JS_REQUIRES_STACK
+    void popSynthesizedSlowNativeFrame(JSContext *cx);
+
+    
+    JS_REQUIRES_STACK
+    JS_FRIEND_API(bool) pushInvokeArgsFriendAPI(JSContext *, uintN, InvokeArgsGuard &);
+};
+
+JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
 
 
 typedef HashMap<jsbytecode*,
@@ -525,6 +928,9 @@ const uint32 JSLRS_NULL_MARK = uint32(-1);
 
 struct JSThreadData {
     JSGCFreeLists       gcFreeLists;
+
+    
+    js::StackSpace      stackSpace;
 
     
 
@@ -1128,13 +1534,6 @@ struct JSArgumentFormatMap {
 };
 #endif
 
-struct JSStackHeader {
-    uintN               nslots;
-    JSStackHeader       *down;
-};
-
-#define JS_STACK_SEGMENT(sh)    ((jsval *)(sh) + 2)
-
 
 
 
@@ -1181,8 +1580,7 @@ struct JSRegExpStatics {
 
 struct JSContext
 {
-    explicit JSContext(JSRuntime *rt) :
-      runtime(rt), regExpStatics(this), busyArrays(this) {}
+    explicit JSContext(JSRuntime *rt);
 
     
 
@@ -1250,15 +1648,21 @@ struct JSContext
     size_t              scriptStackQuota;
 
     
-    JSRuntime * const   runtime;
+    JSRuntime *const    runtime;
 
     
     JS_REQUIRES_STACK
-    JSArenaPool         stackPool;
-
-    JS_REQUIRES_STACK
     JSStackFrame        *fp;
 
+  private:
+    friend class js::StackSpace;
+
+    
+    void setCurrentFrame(JSStackFrame *fp) {
+        this->fp = fp;
+    }
+
+  public:
     
     JSArenaPool         tempPool;
 
@@ -1299,58 +1703,51 @@ struct JSContext
     void                *data2;
 
   private:
-#ifdef __GNUC__
-# pragma GCC visibility push(default)
-#endif
-    friend void js_TraceContext(JSTracer *, JSContext *);
-#ifdef __GNUC__
-# pragma GCC visibility pop
-#endif
-
     
     js::CallStack       *currentCallStack;
 
   public:
+    void assertCallStacksInSync() const {
+#ifdef DEBUG
+        if (fp) {
+            JS_ASSERT(currentCallStack->isActive());
+            if (js::CallStack *prev = currentCallStack->getPreviousInContext())
+                JS_ASSERT(!prev->isActive());
+        } else {
+            JS_ASSERT_IF(currentCallStack, !currentCallStack->isActive());
+        }
+#endif
+    }
+
+    
+    bool hasActiveCallStack() const {
+        assertCallStacksInSync();
+        return fp;
+    }
+
     
     js::CallStack *activeCallStack() const {
-        JS_ASSERT(currentCallStack && !currentCallStack->isSaved());
+        JS_ASSERT(hasActiveCallStack());
         return currentCallStack;
     }
 
     
-    void pushCallStack(js::CallStack *newcs) {
-        if (fp)
-            currentCallStack->suspend(fp);
-        else
-            JS_ASSERT_IF(currentCallStack, currentCallStack->isSaved());
-        newcs->setPrevious(currentCallStack);
-        currentCallStack = newcs;
-        JS_ASSERT(!newcs->isSuspended() && !newcs->isSaved());
+    js::CallStack *getCurrentCallStack() const {
+        assertCallStacksInSync();
+        return currentCallStack;
     }
 
     
-    void popCallStack() {
-        JS_ASSERT(!currentCallStack->isSuspended() && !currentCallStack->isSaved());
-        currentCallStack = currentCallStack->getPrevious();
-        if (currentCallStack && !currentCallStack->isSaved()) {
-            JS_ASSERT(fp);
-            currentCallStack->resume();
-        }
-    }
+    void pushCallStackAndFrame(js::CallStack *newcs, JSStackFrame *newfp);
 
     
-    void saveActiveCallStack() {
-        JS_ASSERT(fp && currentCallStack && !currentCallStack->isSuspended());
-        currentCallStack->save(fp);
-        fp = NULL;
-    }
+    void popCallStackAndFrame();
 
     
-    void restoreCallStack() {
-        JS_ASSERT(!fp && currentCallStack && currentCallStack->isSuspended());
-        fp = currentCallStack->getSuspendedFrame();
-        currentCallStack->restore();
-    }
+    void saveActiveCallStack();
+
+    
+    void restoreCallStack();
 
     
 
@@ -1370,9 +1767,6 @@ struct JSContext
 #define CX_FROM_THREAD_LINKS(tl) \
     ((JSContext *)((char *)(tl) - offsetof(JSContext, threadLinks)))
 #endif
-
-    
-    JSStackHeader       *stackHeaders;
 
     
     js::AutoGCRooter   *autoGCRooters;
@@ -1428,6 +1822,33 @@ struct JSContext
     }
 
     JSClassProtoCache    classProtoCache;
+
+  private:
+    
+
+
+
+
+
+    js::Vector<JSGenerator *, 2, js::SystemAllocPolicy> genStack;
+
+  public:
+    
+    JSGenerator *generatorFor(JSStackFrame *fp) const;
+
+    
+    bool ensureGeneratorStackSpace() {
+        return genStack.reserve(genStack.length() + 1);
+    }
+
+    bool enterGenerator(JSGenerator *gen) {
+        return genStack.append(gen);
+    }
+
+    void leaveGenerator(JSGenerator *gen) {
+        JS_ASSERT(genStack.back() == gen);
+        genStack.popBack();
+    }
 
 #ifdef JS_THREADSAFE
     
@@ -1560,6 +1981,10 @@ struct JSContext
 
     void purge();
 
+    js::StackSpace &stack() const {
+        return JS_THREAD_DATA(this)->stackSpace;
+    }
+
 private:
 
     
@@ -1572,18 +1997,52 @@ private:
 };
 
 JS_ALWAYS_INLINE JSObject *
-JSStackFrame::varobj(js::CallStack *cs)
+JSStackFrame::varobj(js::CallStack *cs) const
 {
     JS_ASSERT(cs->contains(this));
     return fun ? callobj : cs->getInitialVarObj();
 }
 
 JS_ALWAYS_INLINE JSObject *
-JSStackFrame::varobj(JSContext *cx)
+JSStackFrame::varobj(JSContext *cx) const
 {
     JS_ASSERT(cx->activeCallStack()->contains(this));
     return fun ? callobj : cx->activeCallStack()->getInitialVarObj();
 }
+
+
+
+
+
+namespace js {
+
+JS_ALWAYS_INLINE void
+StackSpace::popInvokeArgs(JSContext *cx, jsval *vp)
+{
+    JS_ASSERT(!currentCallStack->inContext());
+    currentCallStack = currentCallStack->getPreviousInThread();
+}
+
+JS_ALWAYS_INLINE
+InvokeArgsGuard::InvokeArgsGuard()
+  : cx(NULL), cs(NULL), vp(NULL)
+{}
+
+JS_ALWAYS_INLINE
+InvokeArgsGuard::InvokeArgsGuard(jsval *vp, uintN argc)
+  : cx(NULL), cs(NULL), vp(vp), argc(argc)
+{}
+
+JS_ALWAYS_INLINE
+InvokeArgsGuard::~InvokeArgsGuard()
+{
+    if (!cs)
+        return;
+    JS_ASSERT(cs == cx->stack().getCurrentCallStack());
+    cx->stack().popInvokeArgs(cx, vp);
+}
+
+} 
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread ? (cx)->thread->id : 0)
@@ -2248,7 +2707,7 @@ js_ReportOutOfMemory(JSContext *cx);
 
 
 
-extern void
+void
 js_ReportOutOfScriptQuota(JSContext *cx);
 
 extern void

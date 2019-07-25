@@ -245,7 +245,7 @@ TraceRecorder::upRecursion()
 
 
 
-    fi->spdist = cx->fp->down->regs->sp - cx->fp->down->slots;
+    fi->spdist = cx->fp->down->regs->sp - cx->fp->down->slots();
     JS_ASSERT(cx->fp->argc == cx->fp->down->argc);
     fi->set_argc(uint16(cx->fp->argc), false);
     fi->callerHeight = downPostSlots;
@@ -599,12 +599,11 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
               &fp->scopeChainVal,
               &info);
     
-    LIns* slots_ins = addName(lir->insLoad(LIR_ldp, fp_ins, offsetof(JSStackFrame, slots),
-                                           ACC_OTHER),
+    LIns* slots_ins = addName(lir->ins2(LIR_piadd, fp_ins, INS_CONSTWORD(sizeof(JSStackFrame))),
                               "slots");
     for (unsigned i = 0; i < fp->script->nfixed; i++)
         slurpSlot(lir->insLoad(LIR_ldp, slots_ins, i * sizeof(jsval), ACC_OTHER),
-                  &fp->slots[i],
+                  &fp->slots()[i],
                   &info);
     
     unsigned nfixed = fp->script->nfixed;

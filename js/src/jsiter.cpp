@@ -728,16 +728,14 @@ generator_trace(JSTracer *trc, JSObject *obj)
 
 
 
+    if (gen->state == JSGEN_RUNNING || gen->state == JSGEN_CLOSING)
+        return;
 
-    JS_ASSERT_IF(gen->state != JSGEN_RUNNING && gen->state != JSGEN_CLOSING,
-                 !gen->frame.down);
-
-    
-
-
-
-
-    js_TraceStackFrame(trc, &gen->frame);
+    JSStackFrame *fp = gen->getFloatingFrame();
+    JS_ASSERT(gen->getLiveFrame() == fp);
+    TraceValues(trc, gen->floatingStack, fp->argEnd(), "generator slots");
+    js_TraceStackFrame(trc, fp);
+    TraceValues(trc, fp->slots(), gen->savedRegs.sp, "generator slots");
 }
 
 JSExtendedClass js_GeneratorClass = {
@@ -767,85 +765,81 @@ JSExtendedClass js_GeneratorClass = {
 JS_REQUIRES_STACK JSObject *
 js_NewGenerator(JSContext *cx)
 {
-    JSObject *obj;
-    uintN argc, nargs, nslots;
-    JSGenerator *gen;
-    jsval *slots;
-
-    obj = NewObject(cx, &js_GeneratorClass.base, NULL, NULL);
+    JSObject *obj = NewObject(cx, &js_GeneratorClass.base, NULL, NULL);
     if (!obj)
         return NULL;
 
     
     JSStackFrame *fp = cx->fp;
-    argc = fp->argc;
-    nargs = JS_MAX(argc, fp->fun->nargs);
-    nslots = 2 + nargs + fp->script->nslots;
+    uintN argc = fp->argc;
+    uintN nargs = JS_MAX(argc, fp->fun->nargs);
+    uintN vplen = 2 + nargs;
 
     
-    gen = (JSGenerator *)
-        cx->malloc(sizeof(JSGenerator) + (nslots - 1) * sizeof(jsval));
+    uintN nbytes = sizeof(JSGenerator) +
+                   (-1 + 
+                    vplen +
+                    VALUES_PER_STACK_FRAME +
+                    fp->script->nslots) * sizeof(jsval);
+
+    JSGenerator *gen = (JSGenerator *) cx->malloc(nbytes);
     if (!gen)
         return NULL;
 
-    gen->obj = obj;
+    
+    jsval *vp = gen->floatingStack;
+    JSStackFrame *newfp = reinterpret_cast<JSStackFrame *>(vp + vplen);
+    jsval *slots = newfp->slots();
 
     
-    gen->frame.callobj = fp->callobj;
-    if (fp->callobj) {
-        fp->callobj->setPrivate(&gen->frame);
+    gen->obj = obj;
+    gen->state = JSGEN_NEWBORN;
+    gen->savedRegs.pc = fp->regs->pc;
+    JS_ASSERT(fp->regs->sp == fp->slots() + fp->script->nfixed);
+    gen->savedRegs.sp = slots + fp->script->nfixed;
+    gen->vplen = vplen;
+    gen->liveFrame = newfp;
+
+    
+    newfp->regs = &gen->savedRegs;
+    newfp->imacpc = NULL;
+    newfp->callobj = fp->callobj;
+    if (fp->callobj) {      
+        fp->callobj->setPrivate(newfp);
         fp->callobj = NULL;
     }
-    gen->frame.argsobj = fp->argsobj;
-    if (fp->argsobj) {
-        JSVAL_TO_OBJECT(fp->argsobj)->setPrivate(&gen->frame);
+    newfp->argsobj = fp->argsobj;
+    if (fp->argsobj) {      
+        JSVAL_TO_OBJECT(fp->argsobj)->setPrivate(newfp);
         fp->argsobj = NULL;
     }
-
-    
-    gen->frame.thisv = fp->thisv;
-
-    
-    gen->frame.script = fp->script;
-    gen->frame.fun = fp->fun;
-
-    
-    slots = gen->slots;
-    gen->arena.next = NULL;
-    gen->arena.base = (jsuword) slots;
-    gen->arena.limit = gen->arena.avail = (jsuword) (slots + nslots);
-
-    
-    gen->frame.rval = fp->rval;
-    memcpy(slots, fp->argv - 2, (2 + nargs) * sizeof(jsval));
-    gen->frame.argc = fp->argc;
-    gen->frame.argv = slots + 2;
-    slots += 2 + nargs;
-    memcpy(slots, fp->slots, fp->script->nfixed * sizeof(jsval));
-
-    
-    gen->frame.down = NULL;
-    gen->frame.annotation = NULL;
-    gen->frame.scopeChain = fp->scopeChain;
-
-    gen->frame.imacpc = NULL;
-    gen->frame.slots = slots;
-    JS_ASSERT(StackBase(fp) == fp->regs->sp);
-    gen->savedRegs.sp = slots + fp->script->nfixed;
-    gen->savedRegs.pc = fp->regs->pc;
-    gen->frame.regs = &gen->savedRegs;
-
-    gen->frame.flags = (fp->flags & ~JSFRAME_ROOTED_ARGV) | JSFRAME_GENERATOR;
-
-    
+    newfp->script = fp->script;
+    newfp->fun = fp->fun;
+    newfp->thisv = fp->thisv;
+    newfp->argc = fp->argc;
+    newfp->argv = vp + 2;
+    newfp->rval = fp->rval;
+    newfp->annotation = NULL;
+    newfp->scopeChain = fp->scopeChain;
     JS_ASSERT(!fp->blockChain);
-    gen->frame.blockChain = NULL;
+    newfp->blockChain = NULL;
+    newfp->flags = fp->flags | JSFRAME_GENERATOR | JSFRAME_FLOATING_GENERATOR;
 
     
-    gen->state = JSGEN_NEWBORN;
+    memcpy(vp, fp->argv - 2, vplen * sizeof(jsval));
+    memcpy(slots, fp->slots(), fp->script->nfixed * sizeof(jsval));
 
     obj->setPrivate(gen);
     return obj;
+}
+
+JSGenerator *
+js_FloatingFrameToGenerator(JSStackFrame *fp)
+{
+    JS_ASSERT(fp->isGenerator() && fp->isFloatingGenerator());
+    char *floatingStackp = (char *)(fp->argv - 2);
+    char *p = floatingStackp - offsetof(JSGenerator, floatingStack);
+    return reinterpret_cast<JSGenerator *>(p);
 }
 
 typedef enum JSGeneratorOp {
@@ -863,16 +857,16 @@ static JS_REQUIRES_STACK JSBool
 SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
                 JSGenerator *gen, jsval arg)
 {
-    JSStackFrame *fp;
-    JSArena *arena;
-    JSBool ok;
-
     if (gen->state == JSGEN_RUNNING || gen->state == JSGEN_CLOSING) {
         js_ReportValueError(cx, JSMSG_NESTING_GENERATOR,
                             JSDVG_SEARCH_STACK, OBJECT_TO_JSVAL(obj),
-                            JS_GetFunctionId(gen->frame.fun));
+                            JS_GetFunctionId(gen->getFloatingFrame()->fun));
         return JS_FALSE;
     }
+
+    
+    if (!cx->ensureGeneratorStackSpace())
+        return JS_FALSE;
 
     JS_ASSERT(gen->state ==  JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
     switch (op) {
@@ -900,40 +894,94 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         break;
     }
 
-    
-    arena = cx->stackPool.current;
-    JS_ASSERT(!arena->next);
-    JS_ASSERT(!gen->arena.next);
-    JS_ASSERT(cx->stackPool.current != &gen->arena);
-    cx->stackPool.current = arena->next = &gen->arena;
+    JSStackFrame *genfp = gen->getFloatingFrame();
+    JSBool ok;
+    {
+        jsval *genVp = gen->floatingStack;
+        uintN vplen = gen->vplen;
+        uintN nfixed = genfp->script->nslots;
 
-    
-    fp = js_GetTopStackFrame(cx);
-    cx->fp = &gen->frame;
-    gen->frame.down = fp;
-    ok = js_Interpret(cx);
-    cx->fp = fp;
-    gen->frame.down = NULL;
+        
 
-    
-    JS_ASSERT(!gen->arena.next);
-    JS_ASSERT(arena->next == &gen->arena);
-    JS_ASSERT(cx->stackPool.current == &gen->arena);
-    cx->stackPool.current = arena;
-    arena->next = NULL;
 
-    if (gen->frame.flags & JSFRAME_YIELDING) {
+
+        ExecuteFrameGuard frame;
+        if (!cx->stack().getExecuteFrame(cx, cx->fp, vplen, nfixed, frame)) {
+            gen->state = JSGEN_CLOSED;
+            return JS_FALSE;
+        }
+
+        jsval *vp = frame.getvp();
+        JSStackFrame *fp = frame.getFrame();
+
+        
+
+
+
+        uintN usedBefore = gen->savedRegs.sp - genVp;
+        memcpy(vp, genVp, usedBefore * sizeof(jsval));
+        fp->flags &= ~JSFRAME_FLOATING_GENERATOR;
+        fp->argv = vp + 2;
+        fp->regs = &gen->savedRegs;
+        gen->savedRegs.sp = fp->slots() + (gen->savedRegs.sp - genfp->slots());
+        JS_ASSERT(uintN(gen->savedRegs.sp - fp->slots()) <= fp->script->nslots);
+
+#ifdef DEBUG
+        JSObject *callobjBefore = fp->callobj;
+        jsval argsobjBefore = fp->argsobj;
+#endif
+
+        
+
+
+
+
+
+        if (genfp->callobj)
+            fp->callobj->setPrivate(fp);
+        if (genfp->argsobj)
+            JSVAL_TO_OBJECT(fp->argsobj)->setPrivate(fp);
+        gen->liveFrame = fp;
+        (void)cx->enterGenerator(gen); 
+
+        
+        cx->stack().pushExecuteFrame(cx, frame, NULL);
+
+        ok = js_Interpret(cx);
+
+        
+        cx->leaveGenerator(gen);
+        gen->liveFrame = genfp;
+        if (fp->argsobj)
+            JSVAL_TO_OBJECT(fp->argsobj)->setPrivate(genfp);
+        if (fp->callobj)
+            fp->callobj->setPrivate(genfp);
+
+        JS_ASSERT_IF(argsobjBefore, argsobjBefore == fp->argsobj);
+        JS_ASSERT_IF(callobjBefore, callobjBefore == fp->callobj);
+
+        
+        JS_ASSERT(uintN(gen->savedRegs.sp - fp->slots()) <= fp->script->nslots);
+        uintN usedAfter = gen->savedRegs.sp - vp;
+        memcpy(genVp, vp, usedAfter * sizeof(jsval));
+        genfp->flags |= JSFRAME_FLOATING_GENERATOR;
+        genfp->argv = genVp + 2;
+        gen->savedRegs.sp = genfp->slots() + (gen->savedRegs.sp - fp->slots());
+        JS_ASSERT(uintN(gen->savedRegs.sp - genfp->slots()) <= genfp->script->nslots);
+    }
+
+    if (gen->getFloatingFrame()->flags & JSFRAME_YIELDING) {
         
         JS_ASSERT(ok);
         JS_ASSERT(!cx->throwing);
         JS_ASSERT(gen->state == JSGEN_RUNNING);
         JS_ASSERT(op != JSGENOP_CLOSE);
-        gen->frame.flags &= ~JSFRAME_YIELDING;
+        genfp->flags &= ~JSFRAME_YIELDING;
         gen->state = JSGEN_OPEN;
         return JS_TRUE;
     }
 
-    gen->frame.rval = JSVAL_VOID;
+    genfp->rval = JSVAL_VOID;
     gen->state = JSGEN_CLOSED;
     if (ok) {
         
@@ -1026,7 +1074,7 @@ generator_op(JSContext *cx, JSGeneratorOp op, jsval *vp, uintN argc)
           : JSVAL_VOID;
     if (!SendToGenerator(cx, op, obj, gen, arg))
         return JS_FALSE;
-    *vp = gen->frame.rval;
+    *vp = gen->getFloatingFrame()->rval;
     return JS_TRUE;
 }
 
