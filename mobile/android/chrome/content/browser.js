@@ -1223,7 +1223,13 @@ Tab.prototype = {
     this.browser.removeEventListener("scroll", this, true);
     this.browser.removeEventListener("PluginClickToPlay", this, true);
     this.browser.removeEventListener("pagehide", this, true);
+
+    
+    
+    let selectedPanel = BrowserApp.deck.selectedPanel;
     BrowserApp.deck.removeChild(this.vbox);
+    BrowserApp.deck.selectedPanel = selectedPanel;
+
     Services.obs.removeObserver(this, "http-on-modify-request", false);
     this.browser = null;
     this.vbox = null;
