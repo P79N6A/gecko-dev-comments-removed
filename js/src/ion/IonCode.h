@@ -72,9 +72,7 @@ class IonCode : public gc::Cell
     uint32 dataSize_;               
     uint32 jumpRelocTableBytes_;    
     uint32 dataRelocTableBytes_;    
-#if defined(JS_NUNBOX32)
     uint32 padding_;                
-#endif
 
     IonCode()
       : code_(NULL),
