@@ -1021,19 +1021,24 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
         return;
     }
 
-    
-    TypeFunction *function = NULL;
-    if (TypeIsObject(type)) {
-        TypeObject *object = (TypeObject*) type;
-        if (object->isFunction && !object->unknownProperties) {
-            function = (TypeFunction*) object;
-        } else {
-            
-            cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
-        }
-    }
-    if (!function)
+    if (!TypeIsObject(type))
         return;
+
+    
+    TypeObject *object = (TypeObject*) type;
+    if (object->unknownProperties) {
+        
+        cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
+        return;
+    }
+    if (!object->isFunction) {
+        
+
+
+
+        return;
+    }
+    TypeFunction *function = object->asFunction();
 
     if (!function->script) {
         JS_ASSERT(function->handler);
