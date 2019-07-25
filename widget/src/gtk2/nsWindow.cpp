@@ -5647,7 +5647,15 @@ get_gtk_cursor(nsCursor aCursor)
 
     
     
-    if (newType != 0xff) {
+    
+    
+    if (newType != 0xFF && GtkCursors[newType].hash) {
+        gdkcursor = gdk_cursor_new_from_name(gdk_display_get_default(),
+                                             GtkCursors[newType].hash);
+    }
+
+    
+    if (newType != 0xff && !gdkcursor) {
         GdkPixbuf * cursor_pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, 32, 32);
         if (!cursor_pixbuf)
             return NULL;
