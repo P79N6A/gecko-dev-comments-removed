@@ -73,6 +73,11 @@ __defineGetter__("PluralForm", function() {
   return PluralForm;
 });
 
+__defineGetter__("gDecimalSymbol", function() {
+  delete this.gDecimalSymbol;
+  return this.gDecimalSymbol = Number(5.4).toLocaleString().match(/\D/);
+});
+
 const kDownloadProperties =
   "chrome://mozapps/locale/downloads/downloads.properties";
 
@@ -224,7 +229,7 @@ let DownloadUtils = {
 
     
     let transfer;
-    if (total < 0)
+    if (aMaxBytes < 0)
       transfer = gStr.transferNoTotal;
     else if (progressUnits == totalUnits)
       transfer = gStr.transferSameUnits;
@@ -401,6 +406,8 @@ let DownloadUtils = {
     
     aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) ? 1 : 0);
 
+    if (gDecimalSymbol != ".")
+      aBytes = aBytes.replace(".", gDecimalSymbol);
     return [aBytes, gStr.units[unitIndex]];
   },
 
