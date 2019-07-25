@@ -103,7 +103,7 @@ class ScopeObject : public JSObject
 
 
 
-    inline js::StackFrame *maybeStackFrame() const;
+    inline StackFrame *maybeStackFrame() const;
     inline void setStackFrame(StackFrame *frame);
 
     
@@ -115,11 +115,14 @@ class CallObject : public ScopeObject
     static const uint32_t CALLEE_SLOT = 1;
     static const uint32_t ARGUMENTS_SLOT = 2;
 
+    static CallObject *
+    create(JSContext *cx, JSScript *script, JSObject &enclosing, JSObject *callee);
+
   public:
     static const uint32_t RESERVED_SLOTS = 3;
 
-    static CallObject *
-    create(JSContext *cx, JSScript *script, JSObject &enclosing, JSObject *callee);
+    static CallObject *createForFunction(JSContext *cx, StackFrame *fp);
+    static CallObject *createForStrictEval(JSContext *cx, StackFrame *fp);
 
     
     inline bool isForEval() const;
@@ -138,28 +141,37 @@ class CallObject : public ScopeObject
 
 
 
-    inline const js::Value &arguments() const;
-    inline void setArguments(const js::Value &v);
+    inline const Value &arguments() const;
+    inline void setArguments(const Value &v);
 
     
-    inline const js::Value &arg(uintN i) const;
-    inline void setArg(uintN i, const js::Value &v);
-    inline void initArgUnchecked(uintN i, const js::Value &v);
+    inline const Value &arg(uintN i) const;
+    inline void setArg(uintN i, const Value &v);
+    inline void initArgUnchecked(uintN i, const Value &v);
 
     
-    inline const js::Value &var(uintN i) const;
-    inline void setVar(uintN i, const js::Value &v);
-    inline void initVarUnchecked(uintN i, const js::Value &v);
+    inline const Value &var(uintN i) const;
+    inline void setVar(uintN i, const Value &v);
+    inline void initVarUnchecked(uintN i, const Value &v);
 
     
 
 
 
 
-    inline js::HeapSlotArray argArray();
-    inline js::HeapSlotArray varArray();
+    inline HeapSlotArray argArray();
+    inline HeapSlotArray varArray();
 
     inline void copyValues(uintN nargs, Value *argv, uintN nvars, Value *slots);
+
+    static JSBool getArgumentsOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+    static JSBool setArgumentsOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);
+    static JSBool getArgOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+    static JSBool getVarOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+    static JSBool getUpvarOp(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+    static JSBool setArgOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);
+    static JSBool setVarOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);
+    static JSBool setUpvarOp(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);
 };
 
 class DeclEnvObject : public ScopeObject
@@ -220,7 +232,7 @@ class BlockObject : public NestedScopeObject
 class StaticBlockObject : public BlockObject
 {
     
-    js::StackFrame *maybeStackFrame() const;
+    StackFrame *maybeStackFrame() const;
     void setStackFrame(StackFrame *frame);
 
   public:
@@ -239,7 +251,7 @@ class StaticBlockObject : public BlockObject
     Definition *maybeDefinitionParseNode(unsigned i);
     void poisonDefinitionParseNode(unsigned i);
 
-    const js::Shape *addVar(JSContext *cx, jsid id, intN index, bool *redeclared);
+    const Shape *addVar(JSContext *cx, jsid id, intN index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject
