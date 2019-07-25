@@ -888,12 +888,23 @@ struct JSObject : js::gc::Cell {
     
     static const uint32 CALL_RESERVED_SLOTS = 2;
 
+    
+    inline JSStackFrame *maybeCallObjStackFrame() const;
+
     inline JSObject &getCallObjCallee() const;
     inline JSFunction *getCallObjCalleeFunction() const; 
     inline void setCallObjCallee(JSObject &callee);
 
     inline const js::Value &getCallObjArguments() const;
     inline void setCallObjArguments(const js::Value &v);
+
+    
+    inline const js::Value &callObjArg(uintN i) const;
+    inline js::Value &callObjArg(uintN i);
+
+    
+    inline const js::Value &callObjVar(uintN i) const;
+    inline js::Value &callObjVar(uintN i);
 
     
 
@@ -954,6 +965,7 @@ struct JSObject : js::gc::Cell {
 
     inline js::Value *getFlatClosureUpvars() const;
     inline js::Value getFlatClosureUpvar(uint32 i) const;
+    inline js::Value &getFlatClosureUpvar(uint32 i);
     inline void setFlatClosureUpvars(js::Value *upvars);
 
     inline bool hasMethodObj(const JSObject& obj) const;
