@@ -81,6 +81,13 @@ class WebGLUniformLocation;
 class WebGLZeroingObject;
 class WebGLContextBoundObject;
 
+enum FakeBlackStatus { DoNotNeedFakeBlack, DoNeedFakeBlack, DontKnowIfNeedFakeBlack };
+
+inline PRBool is_pot_assuming_nonnegative(WebGLsizei x)
+{
+    return (x & (x-1)) == 0;
+}
+
 class WebGLObjectBaseRefPtr
 {
 protected:
@@ -318,6 +325,16 @@ public:
     
     
     PRUint32 Generation() { return mGeneration.value(); }
+
+    void SetDontKnowIfNeedFakeBlack() {
+        mFakeBlackStatus = DontKnowIfNeedFakeBlack;
+    }
+
+    PRBool NeedFakeBlack();
+
+    void BindFakeBlackTextures();
+    void UnbindFakeBlackTextures();
+
 protected:
     nsCOMPtr<nsIDOMHTMLCanvasElement> mCanvasElement;
     nsHTMLCanvasElement *HTMLCanvasElement() {
@@ -453,10 +470,17 @@ protected:
     
     PRBool mPixelStoreFlipY, mPixelStorePremultiplyAlpha;
 
+    FakeBlackStatus mFakeBlackStatus;
+
+    WebGLuint mBlackTexture2D, mBlackTextureCubeMap;
+    PRBool mBlackTexturesAreInitialized;
+
 public:
     
     static void LogMessage (const char *fmt, ...);
     static void LogMessage(const char *fmt, va_list ap);
+
+    friend class WebGLTexture;
 };
 
 
@@ -652,8 +676,17 @@ public:
 
     WebGLTexture(WebGLContext *context, WebGLuint name) :
         WebGLContextBoundObject(context),
-        mName(name), mDeleted(PR_FALSE)
-    { }
+        mDeleted(PR_FALSE), mName(name),
+        mTarget(0),
+        mMinFilter(LOCAL_GL_NEAREST_MIPMAP_LINEAR),
+        mMagFilter(LOCAL_GL_LINEAR),
+        mWrapS(LOCAL_GL_REPEAT),
+        mWrapT(LOCAL_GL_REPEAT),
+        mFacesCount(0),
+        mMaxLevelWithCustomImages(0),
+        mHaveGeneratedMipmap(PR_FALSE),
+        mFakeBlackStatus(DontKnowIfNeedFakeBlack)
+    {}
 
     void Delete() {
         if (mDeleted)
@@ -667,9 +700,323 @@ public:
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIWEBGLTEXTURE
+
 protected:
-    WebGLuint mName;
     PRBool mDeleted;
+    WebGLuint mName;
+
+
+
+
+
+
+    struct ImageInfo {
+        ImageInfo() : mWidth(0), mHeight(0), mFormat(0), mType(0), mIsDefined(PR_FALSE) {}
+        PRBool operator==(const ImageInfo& a) const {
+            return mWidth == a.mWidth && mHeight == a.mHeight &&
+                   mFormat == a.mFormat && mType == a.mType;
+        }
+        PRBool operator!=(const ImageInfo& a) const {
+            return !(*this == a);
+        }
+        PRBool IsSquare() const {
+            return mWidth == mHeight;
+        }
+        PRBool IsPositive() const {
+            return mWidth > 0 && mHeight > 0;
+        }
+        PRBool IsPowerOfTwo() const {
+            return is_pot_assuming_nonnegative(mWidth) &&
+                   is_pot_assuming_nonnegative(mHeight); 
+        }
+        WebGLsizei mWidth, mHeight;
+        WebGLenum mFormat, mType;
+        PRBool mIsDefined;
+    };
+
+    ImageInfo& ImageInfoAt(size_t level, size_t face) {
+#ifdef DEBUG
+        if (face >= mFacesCount)
+            NS_ERROR("wrong face index, must be 0 for TEXTURE_2D and at most 5 for cube maps");
+#endif
+        
+        return mImageInfos.ElementAt(level * mFacesCount + face);
+    }
+
+    const ImageInfo& ImageInfoAt(size_t level, size_t face) const {
+        return const_cast<WebGLTexture*>(this)->ImageInfoAt(level, face);
+    }
+
+    WebGLenum mTarget;
+    WebGLenum mMinFilter, mMagFilter, mWrapS, mWrapT;
+
+    size_t mFacesCount, mMaxLevelWithCustomImages;
+    nsTArray<ImageInfo> mImageInfos;
+
+    PRBool mHaveGeneratedMipmap;
+    FakeBlackStatus mFakeBlackStatus;
+
+    void EnsureMaxLevelWithCustomImagesAtLeast(size_t aMaxLevelWithCustomImages) {
+        mMaxLevelWithCustomImages = PR_MAX(mMaxLevelWithCustomImages, aMaxLevelWithCustomImages);
+        mImageInfos.EnsureLengthAtLeast((mMaxLevelWithCustomImages + 1) * mFacesCount);
+    }
+
+    PRBool DoesMinFilterRequireMipmap() const {
+        return !(mMinFilter == LOCAL_GL_NEAREST || mMinFilter == LOCAL_GL_LINEAR);
+    }
+
+    PRBool AreBothWrapModesClampToEdge() const {
+        return mWrapS == LOCAL_GL_CLAMP_TO_EDGE && mWrapT == LOCAL_GL_CLAMP_TO_EDGE;
+    }
+
+    PRBool DoesTexture2DMipmapHaveAllLevelsConsistentlyDefined(size_t face) const {
+        if (mHaveGeneratedMipmap)
+            return PR_TRUE;
+
+        ImageInfo expected = ImageInfoAt(0, face);
+
+        
+        
+        for (size_t level = 0; level <= mMaxLevelWithCustomImages; ++level) {
+            const ImageInfo& actual = ImageInfoAt(level, face);
+            if (actual != expected)
+                return PR_FALSE;
+            expected.mWidth = PR_MAX(1, expected.mWidth >> 1);
+            expected.mHeight = PR_MAX(1, expected.mHeight >> 1);
+
+            
+            
+            if (actual.mWidth == 1 && actual.mHeight == 1)
+                return PR_TRUE;
+        }
+
+        
+        return PR_FALSE;
+    }
+
+public:
+
+    void SetDontKnowIfNeedFakeBlack() {
+        mFakeBlackStatus = DontKnowIfNeedFakeBlack;
+        mContext->SetDontKnowIfNeedFakeBlack();
+    }
+
+    void Bind(WebGLenum aTarget) {
+        
+        
+
+        PRBool firstTimeThisTextureIsBound = mTarget == 0;
+
+        if (!firstTimeThisTextureIsBound && aTarget != mTarget) {
+            mContext->ErrorInvalidOperation("bindTexture: this texture has already been bound to a different target");
+            
+            
+            return;
+        }
+
+        mTarget = aTarget;
+
+        mContext->gl->fBindTexture(mTarget, mName);
+
+        if (firstTimeThisTextureIsBound) {
+            mFacesCount = (mTarget == LOCAL_GL_TEXTURE_2D) ? 1 : 6;
+            EnsureMaxLevelWithCustomImagesAtLeast(0);
+            SetDontKnowIfNeedFakeBlack();
+
+            
+            
+            
+            if (mTarget == LOCAL_GL_TEXTURE_CUBE_MAP && !mContext->gl->IsGLES2())
+                mContext->gl->fTexParameteri(mTarget, LOCAL_GL_TEXTURE_WRAP_R, LOCAL_GL_CLAMP_TO_EDGE);
+        }
+    }
+
+    void SetImageInfo(WebGLenum aTarget, WebGLint aLevel,
+                      WebGLsizei aWidth, WebGLsizei aHeight,
+                      WebGLenum aFormat = 0, WebGLenum aType = 0) {
+        size_t face = 0;
+        if (aTarget == LOCAL_GL_TEXTURE_2D) {
+            if (mTarget != LOCAL_GL_TEXTURE_2D) return;
+        } else {
+            if (mTarget == LOCAL_GL_TEXTURE_2D) return;
+            face = aTarget - LOCAL_GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+        }
+
+        EnsureMaxLevelWithCustomImagesAtLeast(aLevel);
+
+        ImageInfo& imageInfo = ImageInfoAt(aLevel, face);
+        imageInfo.mWidth  = aWidth;
+        imageInfo.mHeight = aHeight;
+        if (aFormat)
+            imageInfo.mFormat = aFormat;
+        if (aType)
+            imageInfo.mType = aType;
+        imageInfo.mIsDefined = PR_TRUE;
+
+        if (aLevel > 0)
+            SetCustomMipmap();
+
+        SetDontKnowIfNeedFakeBlack();
+    }
+
+    void SetMinFilter(WebGLenum aMinFilter) {
+        mMinFilter = aMinFilter;
+        SetDontKnowIfNeedFakeBlack();
+    }
+    void SetMagFilter(WebGLenum aMagFilter) {
+        mMagFilter = aMagFilter;
+        SetDontKnowIfNeedFakeBlack();
+    }
+    void SetWrapS(WebGLenum aWrapS) {
+        mWrapS = aWrapS;
+        SetDontKnowIfNeedFakeBlack();
+    }
+    void SetWrapT(WebGLenum aWrapT) {
+        mWrapT = aWrapT;
+        SetDontKnowIfNeedFakeBlack();
+    }
+
+    void SetGeneratedMipmap() {
+        if (!mHaveGeneratedMipmap) {
+            mHaveGeneratedMipmap = PR_TRUE;
+            SetDontKnowIfNeedFakeBlack();
+        }
+    }
+
+    void SetCustomMipmap() {
+        if (mHaveGeneratedMipmap) {
+            
+            
+
+            
+            
+            ImageInfo imageInfo = ImageInfoAt(0, 0);
+            NS_ASSERTION(imageInfo.IsPowerOfTwo(), "this texture is NPOT, so how could GenerateMipmap() ever accept it?");
+
+            WebGLsizei size = PR_MAX(imageInfo.mWidth, imageInfo.mHeight);
+
+            
+            size_t maxLevel = 0;
+            for (WebGLsizei n = size; n > 1; n >>= 1)
+                ++maxLevel;
+
+            EnsureMaxLevelWithCustomImagesAtLeast(maxLevel);
+
+            for (size_t level = 1; level <= maxLevel; ++level) {
+                
+                imageInfo.mWidth >>= 1;
+                imageInfo.mHeight >>= 1;
+                for(size_t face = 0; face < mFacesCount; ++face)
+                    ImageInfoAt(level, face) = imageInfo;
+            }
+        }
+        mHaveGeneratedMipmap = PR_FALSE;
+    }
+
+    PRBool IsGenerateMipmapAllowed() const {
+        const ImageInfo &first = ImageInfoAt(0, 0);
+        if (!first.IsPowerOfTwo())
+            return PR_FALSE;
+        for (size_t face = 0; face < mFacesCount; ++face) {
+            if (ImageInfoAt(0, face) != first)
+                return PR_FALSE;
+        }
+        return PR_TRUE;
+    }
+
+    PRBool IsMipmapTexture2DComplete() const {
+        if (mTarget != LOCAL_GL_TEXTURE_2D)
+            return PR_FALSE;
+        if (!mImageInfos[0].IsPositive())
+            return PR_FALSE;
+        if (mHaveGeneratedMipmap)
+            return PR_TRUE;
+        return DoesTexture2DMipmapHaveAllLevelsConsistentlyDefined(0);
+    }
+
+    PRBool IsCubeComplete() const {
+        if (mTarget != LOCAL_GL_TEXTURE_CUBE_MAP)
+            return PR_FALSE;
+        const ImageInfo &first = ImageInfoAt(0, 0);
+        if (!first.IsPositive() || !first.IsSquare())
+            return PR_FALSE;
+        for (size_t face = 0; face < mFacesCount; ++face) {
+            if (ImageInfoAt(0, face) != first)
+                return PR_FALSE;
+        }
+        return PR_TRUE;
+    }
+
+    PRBool IsMipmapCubeComplete() const {
+        if (!IsCubeComplete()) 
+            return PR_FALSE;
+        for (size_t face = 0; face < mFacesCount; ++face) {
+            if (!DoesTexture2DMipmapHaveAllLevelsConsistentlyDefined(face))
+                return PR_FALSE;
+        }
+        return PR_TRUE;
+    }
+
+    PRBool NeedFakeBlack() {
+        
+        if (mFakeBlackStatus == DoNotNeedFakeBlack)
+            return PR_FALSE;
+
+        if (mFakeBlackStatus == DontKnowIfNeedFakeBlack) {
+            
+            
+
+            if (mTarget == LOCAL_GL_TEXTURE_2D)
+            {
+                if (DoesMinFilterRequireMipmap())
+                {
+                    if (!IsMipmapTexture2DComplete() ||
+                        !mImageInfos[0].IsPowerOfTwo())
+                    {
+                        mFakeBlackStatus = DoNeedFakeBlack;
+                    }
+                }
+                else 
+                {
+                    if (!mImageInfos[0].IsPositive() ||
+                        (!AreBothWrapModesClampToEdge() && !mImageInfos[0].IsPowerOfTwo()))
+                    {
+                        mFakeBlackStatus = DoNeedFakeBlack;
+                    }
+                }
+            }
+            else if (mTarget == LOCAL_GL_TEXTURE_CUBE_MAP)
+            {
+                PRBool areAllLevel0ImagesPOT = PR_TRUE;
+                for (size_t face = 0; face < mFacesCount; ++face)
+                    areAllLevel0ImagesPOT &= ImageInfoAt(0, face).IsPowerOfTwo();
+
+                if (DoesMinFilterRequireMipmap())
+                {
+                    if (!IsMipmapCubeComplete() ||
+                        !areAllLevel0ImagesPOT)
+                    {
+                        mFakeBlackStatus = DoNeedFakeBlack;
+                    }
+                }
+                else 
+                {
+                    if (!IsCubeComplete() ||
+                        (!AreBothWrapModesClampToEdge() && !areAllLevel0ImagesPOT))
+                    {
+                        mFakeBlackStatus = DoNeedFakeBlack;
+                    }
+                }
+            }
+
+            
+            
+            if (mFakeBlackStatus == DontKnowIfNeedFakeBlack)
+                mFakeBlackStatus = DoNotNeedFakeBlack;
+        }
+
+        return mFakeBlackStatus == DoNeedFakeBlack;
+    }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(WebGLTexture, WEBGLTEXTURE_PRIVATE_IID)
