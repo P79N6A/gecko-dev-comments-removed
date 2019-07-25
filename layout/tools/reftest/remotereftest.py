@@ -354,8 +354,17 @@ def main():
     
     reftest.startWebServer(options)
 
+    
+    os.system("ln -s ../jsreftest jsreftest")
 
-    reftest.runTests(args[0], options)
+    
+    manifest = args[0]
+    if os.path.exists(args[0]):
+        manifest = "http://" + str(options.remoteWebServer) + ":" + str(options.httpPort) + "/" + args[0]
+
+
+
+    reftest.runTests(manifest, options)
     reftest.stopWebServer(options)
 
 if __name__ == "__main__":
