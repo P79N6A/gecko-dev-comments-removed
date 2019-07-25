@@ -621,13 +621,6 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
   else
 #endif
   if (eventType.EqualsLiteral("focus")) {
-    if (targetNode == mDocument && mDocument != gLastFocusedNode) {
-      
-      
-      
-      NS_DISPATCH_RUNNABLEMETHOD(FireCurrentFocusEvent, this)
-    }
-
     
     
     
