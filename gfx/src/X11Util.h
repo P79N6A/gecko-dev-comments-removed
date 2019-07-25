@@ -54,6 +54,7 @@
 #  error Unknown toolkit
 #endif 
 
+#include "gfxCore.h"
 #include "nsDebug.h"
 
 namespace mozilla {
@@ -123,12 +124,12 @@ private:
 
 
 
-class ScopedXErrorHandler
+class NS_GFX ScopedXErrorHandler
 {
     
     struct ErrorEvent
     {
-        XErrorEvent m_error;
+        XErrorEvent mError;
 
         ErrorEvent()
         {
@@ -137,54 +138,31 @@ class ScopedXErrorHandler
     };
 
     
-    ErrorEvent m_xerror;
+    ErrorEvent mXError;
 
     
-    static ErrorEvent* s_xerrorptr;
+    static ErrorEvent* sXErrorPtr;
 
     
-    ErrorEvent* m_oldxerrorptr;
+    ErrorEvent* mOldXErrorPtr;
 
     
-    int (*m_oldErrorHandler)(Display *, XErrorEvent *);
+    int (*mOldErrorHandler)(Display *, XErrorEvent *);
 
 public:
 
     static int
-    ErrorHandler(Display *, XErrorEvent *ev)
-    {
-        s_xerrorptr->m_error = *ev;
-        return 0;
-    }
+    ErrorHandler(Display *, XErrorEvent *ev);
 
-    ScopedXErrorHandler()
-    {
-        
-        
-        m_oldxerrorptr = s_xerrorptr;
-        s_xerrorptr = &m_xerror;
-        m_oldErrorHandler = XSetErrorHandler(ErrorHandler);
-    }
+    ScopedXErrorHandler();
 
-    ~ScopedXErrorHandler()
-    {
-        s_xerrorptr = m_oldxerrorptr;
-        XSetErrorHandler(m_oldErrorHandler);
-    }
+    ~ScopedXErrorHandler();
 
     
 
 
 
-    bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nsnull)
-    {
-        XSync(dpy, False);
-        bool retval = m_xerror.m_error.error_code != 0;
-        if (ev)
-            *ev = m_xerror.m_error;
-        m_xerror = ErrorEvent(); 
-        return retval;
-    }
+    bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nsnull);
 };
 
 
