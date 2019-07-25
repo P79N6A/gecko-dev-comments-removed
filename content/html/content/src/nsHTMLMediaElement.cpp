@@ -388,7 +388,8 @@ NS_IMPL_STRING_ATTR(nsHTMLMediaElement, Preload, preload)
 
 NS_IMETHODIMP nsHTMLMediaElement::GetMozAutoplayEnabled(PRBool *aAutoplayEnabled)
 {
-  *aAutoplayEnabled = mAutoplayEnabled;
+  
+  *aAutoplayEnabled = !IsEditable() && mAutoplayEnabled;
 
   return NS_OK;
 }
