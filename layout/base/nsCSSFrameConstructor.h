@@ -234,9 +234,9 @@ public:
   
   
   
-  
   nsresult ContentRangeInserted(nsIContent*            aContainer,
-                                nsIContent*            aChild,
+                                nsIContent*            aStartChild,
+                                nsIContent*            aEndChild,
                                 PRInt32                aIndexInContainer,
                                 PRInt32                aEndIndexInContainer,
                                 nsILayoutHistoryState* aFrameState,
