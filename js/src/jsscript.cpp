@@ -1,46 +1,46 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=78:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
- * JS script operations.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include <string.h>
 #include "jstypes.h"
 #include "jsstdint.h"
@@ -106,11 +106,11 @@ Bindings::add(JSContext *cx, JSAtom *name, BindingKind kind)
     if (!ensureShape(cx))
         return false;
 
-    /*
-     * We still follow 10.2.3 of ES3 and make argument and variable properties
-     * of the Call objects enumerable. ES5 reformulated all of its Clause 10 to
-     * avoid objects as activations, something we should do too.
-     */
+    
+
+
+
+
     uintN attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED;
 
     uint16 *indexp;
@@ -152,7 +152,7 @@ Bindings::add(JSContext *cx, JSAtom *name, BindingKind kind)
 
     jsid id;
     if (!name) {
-        JS_ASSERT(kind == ARGUMENT); /* destructuring */
+        JS_ASSERT(kind == ARGUMENT); 
         id = INT_TO_JSID(nargs);
     } else {
         id = ATOM_TO_JSID(name);
@@ -295,7 +295,7 @@ Bindings::trace(JSTracer *trc)
         MarkShape(trc, lastBinding, "shape");
 }
 
-} /* namespace js */
+} 
 
 #if JS_HAS_XDR
 
@@ -335,12 +335,12 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
 
     JS_ASSERT(state);
 
-    /* Should not XDR scripts optimized for a single global object. */
+    
     JS_ASSERT_IF(script, !JSScript::isValidOffset(script->globalsOffset));
 
-    /* XDR arguments, local vars, and upvars. */
+    
     uint16 nargs, nvars, nupvars;
-#if defined(DEBUG) || defined(__GNUC__) /* quell GCC overwarning */
+#if defined(DEBUG) || defined(__GNUC__) 
     nargs = nvars = nupvars = Bindings::BINDING_COUNT_LIMIT;
 #endif
     uint32 argsVars, paddingUpvars;
@@ -376,14 +376,14 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
           }
         } automark(&cx->tempPool);
 
-        /*
-         * To xdr the names we prefix the names with a bitmap descriptor and
-         * then xdr the names as strings. For argument names (indexes below
-         * nargs) the corresponding bit in the bitmap is unset when the name
-         * is null. Such null names are not encoded or decoded. For variable
-         * names (indexes starting from nargs) bitmap's bit is set when the
-         * name is declared as const, not as ordinary var.
-         * */
+        
+
+
+
+
+
+
+
         uintN bitmapLength = JS_HOWMANY(nameCount, JS_BITS_PER_UINT32);
         uint32 *bitmap;
         JS_ARENA_ALLOCATE_CAST(bitmap, uint32 *, &cx->tempPool,
@@ -410,7 +410,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
         }
 #ifdef __GNUC__
         else {
-            names = NULL;   /* quell GCC uninitialized warning */
+            names = NULL;   
         }
 #endif
         for (uintN i = 0; i < bitmapLength; ++i) {
@@ -472,12 +472,12 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
         nslots = (uint32)((script->staticLevel << 16) | script->nslots);
         natoms = (uint32)script->atomMap.length;
 
-        /* Count the srcnotes, keeping notes pointing at the first one. */
+        
         notes = script->notes();
         for (sn = notes; !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn))
             continue;
         nsrcnotes = sn - notes;
-        nsrcnotes++;            /* room for the terminator */
+        nsrcnotes++;            
 
         if (JSScript::isValidOffset(script->objectsOffset))
             nobjects = script->objects()->length;
@@ -515,10 +515,10 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
     if (!JS_XDRUint32(xdr, &version))
         return JS_FALSE;
 
-    /*
-     * To fuse allocations, we need srcnote, atom, objects, regexp, and trynote
-     * counts early.
-     */
+    
+
+
+
     if (!JS_XDRUint32(xdr, &natoms))
         return JS_FALSE;
     if (!JS_XDRUint32(xdr, &nsrcnotes))
@@ -542,7 +542,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
         nClosedArgs = encodedClosedCount >> 16;
         nClosedVars = encodedClosedCount & 0xFFFF;
 
-        /* Note: version is packed into the 32b space with another 16b value. */
+        
         JSVersion version_ = JSVersion(version & JS_BITMASK(16));
         JS_ASSERT((version_ & VersionFlags::FULL_MASK) == uintN(version_));
         script = JSScript::NewScript(cx, length, nsrcnotes, natoms, nobjects, nupvars,
@@ -556,7 +556,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
         script->main += prologLength;
         script->nfixed = uint16(version >> 16);
 
-        /* If we know nsrcnotes, we allocated space for notes in script. */
+        
         notes = script->notes();
         *scriptp = script;
         tvr.setScript(script);
@@ -575,10 +575,10 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
             script->usesArguments = true;
     }
 
-    /*
-     * Control hereafter must goto error on failure, in order for the
-     * DECODE case to destroy script.
-     */
+    
+
+
+
     oldscript = xdr->script;
     code = script->code;
     if (xdr->mode == JSXDR_ENCODE) {
@@ -653,12 +653,12 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
             goto error;
     }
 
-    /*
-     * Here looping from 0-to-length to xdr objects is essential. It ensures
-     * that block objects from the script->objects array will be written and
-     * restored in the outer-to-inner order. js_XDRBlockObject relies on this
-     * to restore the parent chain.
-     */
+    
+
+
+
+
+
     for (i = 0; i != nobjects; ++i) {
         JSObject **objp = &script->objects()->vector[i];
         uint32 isBlock;
@@ -697,10 +697,10 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
     }
 
     if (ntrynotes != 0) {
-        /*
-         * We combine tn->kind and tn->stackDepth when serializing as XDR is not
-         * efficient when serializing small integer types.
-         */
+        
+
+
+
         JSTryNote *tn, *tnfirst;
         uint32 kindAndDepth;
         JS_STATIC_ASSERT(sizeof(tn->kind) == sizeof(uint8));
@@ -744,7 +744,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp)
     return JS_FALSE;
 }
 
-#endif /* JS_HAS_XDR */
+#endif 
 
 static void
 script_finalize(JSContext *cx, JSObject *obj)
@@ -766,39 +766,39 @@ Class js_ScriptClass = {
     "Script",
     JSCLASS_HAS_PRIVATE |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
-    PropertyStub,         /* addProperty */
-    PropertyStub,         /* delProperty */
-    PropertyStub,         /* getProperty */
-    StrictPropertyStub,   /* setProperty */
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
     ConvertStub,
     script_finalize,
-    NULL,                 /* reserved0   */
-    NULL,                 /* checkAccess */
-    NULL,                 /* call        */
-    NULL,                 /* construct   */
-    NULL,                 /* xdrObject   */
-    NULL,                 /* hasInstance */
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
     script_trace
 };
 
-/*
- * Shared script filename management.
- */
+
+
+
 static int
 js_compare_strings(const void *k1, const void *k2)
 {
     return strcmp((const char *) k1, (const char *) k2) == 0;
 }
 
-/* NB: This struct overlays JSHashEntry -- see jshash.h, do not reorganize. */
+
 typedef struct ScriptFilenameEntry {
-    JSHashEntry         *next;          /* hash chain linkage */
-    JSHashNumber        keyHash;        /* key hash function result */
-    const void          *key;           /* ptr to filename, below */
-    JSPackedBool        mark;           /* GC mark flag */
-    char                filename[3];    /* two or more bytes, NUL-terminated */
+    JSHashEntry         *next;          
+    JSHashNumber        keyHash;        
+    const void          *key;           
+    JSPackedBool        mark;           
+    char                filename[3];    
 } ScriptFilenameEntry;
 
 static void *
@@ -864,7 +864,7 @@ js_InitRuntimeScriptState(JSRuntime *rt)
         JS_NewHashTable(16, JS_HashString, js_compare_strings, NULL,
                         &sftbl_alloc_ops, NULL);
     if (!rt->scriptFilenameTable) {
-        FinishRuntimeScriptState(rt);       /* free lock if threadsafe */
+        FinishRuntimeScriptState(rt);       
         return JS_FALSE;
     }
     return JS_TRUE;
@@ -914,18 +914,18 @@ SaveScriptFilename(JSContext *cx, const char *filename)
     return sfe->filename;
 }
 
-/*
- * Back up from a saved filename by its offset within its hash table entry.
- */
+
+
+
 #define FILENAME_TO_SFE(fn) \
     ((ScriptFilenameEntry *) ((fn) - offsetof(ScriptFilenameEntry, filename)))
 
-/*
- * The sfe->key member, redundant given sfe->filename but required by the old
- * jshash.c code, here gives us a useful sanity check.  This assertion will
- * very likely botch if someone tries to mark a string that wasn't allocated
- * as an sfe->filename.
- */
+
+
+
+
+
+
 #define ASSERT_VALID_SFE(sfe)   JS_ASSERT((sfe)->key == (sfe)->filename)
 
 void
@@ -977,44 +977,44 @@ js_SweepScriptFilenames(JSRuntime *rt)
     if (!rt->scriptFilenameTable)
         return;
 
-    /*
-     * JS_HashTableEnumerateEntries shrinks the table if many entries are
-     * removed preventing wasting memory on a too sparse table.
-     */
+    
+
+
+
     JS_HashTableEnumerateEntries(rt->scriptFilenameTable,
                                  js_script_filename_sweeper,
                                  rt);
 }
 
-/*
- * JSScript data structures memory alignment:
- *
- * JSScript
- * JSObjectArray    script objects' descriptor if JSScript.objectsOffset != 0,
- *                    use script->objects() to access it.
- * JSObjectArray    script regexps' descriptor if JSScript.regexpsOffset != 0,
- *                    use script->regexps() to access it.
- * JSTryNoteArray   script try notes' descriptor if JSScript.tryNotesOffset
- *                    != 0, use script->trynotes() to access it.
- * JSAtom *a[]      array of JSScript.atomMap.length atoms pointed by
- *                    JSScript.atomMap.vector if any.
- * JSObject *o[]    array of script->objects()->length objects if any
- *                    pointed by script->objects()->vector.
- * JSObject *r[]    array of script->regexps()->length regexps if any
- *                    pointed by script->regexps()->vector.
- * JSTryNote t[]    array of script->trynotes()->length try notes if any
- *                    pointed by script->trynotes()->vector.
- * jsbytecode b[]   script bytecode pointed by JSScript.code.
- * jssrcnote  s[]   script source notes, use script->notes() to access it
- *
- * The alignment avoids gaps between entries as alignment requirement for each
- * subsequent structure or array is the same or divides the alignment
- * requirement for the previous one.
- *
- * The followings asserts checks that assuming that the alignment requirement
- * for JSObjectArray and JSTryNoteArray are sizeof(void *) and for JSTryNote
- * it is sizeof(uint32) as the structure consists of 3 uint32 fields.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 JS_STATIC_ASSERT(sizeof(JSScript) % sizeof(void *) == 0);
 JS_STATIC_ASSERT(sizeof(JSObjectArray) % sizeof(void *) == 0);
 JS_STATIC_ASSERT(sizeof(JSTryNoteArray) == sizeof(JSObjectArray));
@@ -1024,12 +1024,12 @@ JS_STATIC_ASSERT(sizeof(JSTryNote) == 3 * sizeof(uint32));
 JS_STATIC_ASSERT(sizeof(uint32) % sizeof(jsbytecode) == 0);
 JS_STATIC_ASSERT(sizeof(jsbytecode) % sizeof(jssrcnote) == 0);
 
-/*
- * Check that uint8 offsets is enough to reach any optional array allocated
- * after JSScript. For that we check that the maximum possible offset for
- * JSConstArray, that last optional array, still fits 1 byte and do not
- * coincide with INVALID_OFFSET.
- */
+
+
+
+
+
+
 JS_STATIC_ASSERT(sizeof(JSObjectArray) +
                  sizeof(JSUpvarArray) +
                  sizeof(JSObjectArray) +
@@ -1069,10 +1069,10 @@ JSScript::NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natom
 
     if (nconsts != 0) {
         size += sizeof(JSConstArray);
-        /*
-         * Calculate padding assuming that consts go after the other arrays,
-         * but before the bytecode and source notes.
-         */
+        
+
+
+
         constPadding = (8 - (size % 8)) % 8;
         size += constPadding + nconsts * sizeof(Value);
     }
@@ -1141,10 +1141,10 @@ JSScript::NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natom
         script->atomMap.vector = (JSAtom **)cursor;
         vectorSize = natoms * sizeof(script->atomMap.vector[0]);
 
-        /*
-         * Clear object map's vector so the GC tracing can run when not yet
-         * all atoms are copied to the array.
-         */
+        
+
+
+
         memset(cursor, 0, vectorSize);
         cursor += vectorSize;
     }
@@ -1189,10 +1189,10 @@ JSScript::NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natom
         cursor += totalClosed * sizeof(uint32);
     }
 
-    /*
-     * NB: We allocate the vector of uint32 upvar cookies after all vectors of
-     * pointers, to avoid misalignment on 64-bit platforms. See bug 514645.
-     */
+    
+
+
+
     if (nupvars != 0) {
         script->upvars()->length = nupvars;
         script->upvars()->vector = reinterpret_cast<UpvarCookie *>(cursor);
@@ -1201,7 +1201,7 @@ JSScript::NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natom
         cursor += vectorSize;
     }
 
-    /* Must go after other arrays; see constPadding definition. */
+    
     if (nconsts != 0) {
         cursor += constPadding;
         script->consts()->length = nconsts;
@@ -1240,7 +1240,7 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     const char *filename;
     JSFunction *fun;
 
-    /* The counts of indexed things must be checked during code generation. */
+    
     JS_ASSERT(cg->atomList.count <= INDEX_LIMIT);
     JS_ASSERT(cg->objectList.length <= INDEX_LIMIT);
     JS_ASSERT(cg->regexpList.length <= INDEX_LIMIT);
@@ -1261,7 +1261,7 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     if (!script)
         return NULL;
 
-    /* Now that we have script, error control flow must go to label bad. */
+    
     script->main += prologLength;
     memcpy(script->code, CG_PROLOG_BASE(cg), prologLength * sizeof(jsbytecode));
     memcpy(script->main, CG_BASE(cg), mainLength * sizeof(jsbytecode));
@@ -1323,14 +1323,13 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         cg->upvarMap.vector = NULL;
     }
 
-    /* Set global for compileAndGo scripts. */
+    
     if (script->compileAndGo) {
         GlobalScope *globalScope = cg->compiler()->globalScope;
-        script->global = globalScope->globalObj;
-        if (!script->global) {
-            JS_ASSERT(cx->globalObject);
-            script->global = cx->globalObject;
-        }
+        if (globalScope->globalObj && globalScope->globalObj->isGlobal())
+            script->global = globalScope->globalObj->asGlobal();
+        else if (cx->globalObject->isGlobal())
+            script->global = cx->globalObject->asGlobal();
     }
 
     if (cg->globalUses.length()) {
@@ -1350,10 +1349,10 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     cg->bindings.makeImmutable();
     script->bindings.transfer(cx, &cg->bindings);
 
-    /*
-     * We initialize fun->u.script to be the script constructed above
-     * so that the debugger has a valid FUN_SCRIPT(fun).
-     */
+    
+
+
+
     fun = NULL;
     if (cg->inFunction()) {
         fun = cg->fun();
@@ -1375,14 +1374,14 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         if (!script->typeSetFunction(cx, fun))
             goto bad;
 
-        /* Watch for scripts whose functions will not be cloned. These are singletons. */
+        
         if (cx->typeInferenceEnabled() && cg->parent && cg->parent->compiling() &&
             cg->parent->asCodeGenerator()->checkSingletonContext()) {
             fun->getType()->singleton = fun;
         }
     }
 
-    /* Tell the debugger about this compiled script. */
+    
     js_CallNewScriptHook(cx, script, fun);
 #ifdef DEBUG
     {
@@ -1458,34 +1457,34 @@ DestroyScript(JSContext *cx, JSScript *script)
     if (gsnCache->code == script->code)
         gsnCache->purge();
 
-    /*
-     * Worry about purging the property cache and any compiled traces related
-     * to its bytecode if this script is being destroyed from JS_DestroyScript
-     * or equivalent according to a mandatory "New/Destroy" protocol.
-     *
-     * The GC purges all property caches when regenerating shapes upon shape
-     * generator overflow, so no need in that event to purge just the entries
-     * for this script.
-     *
-     * The GC purges trace-JITted code on every GC activation, not just when
-     * regenerating shapes, so we don't have to purge fragments if the GC is
-     * currently running.
-     *
-     * JS_THREADSAFE note: The code below purges only the current thread's
-     * property cache, so a script not owned by a function or object, which
-     * hands off lifetime management for that script to the GC, must be used by
-     * only one thread over its lifetime.
-     *
-     * This should be an API-compatible change, since a script is never safe
-     * against premature GC if shared among threads without a rooted object
-     * wrapping it to protect the script's mapped atoms against GC. We use
-     * script->owner to enforce this requirement via assertions.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef CHECK_SCRIPT_OWNER
     JS_ASSERT_IF(cx->runtime->gcRunning, !script->owner);
 #endif
 
-    /* FIXME: bug 506341; would like to do this only if regenerating shapes. */
+    
     if (!cx->runtime->gcRunning) {
         JS_PROPERTY_CACHE(cx).purgeForScript(cx, script);
 
@@ -1500,7 +1499,7 @@ DestroyScript(JSContext *cx, JSScript *script)
 
     JS_ASSERT(!script->hasAnalysis());
 
-    /* Migrate any type objects associated with this script to the compartment. */
+    
     types::TypeObject *obj = script->typeObjects;
     while (obj) {
         types::TypeObject *next = obj->next;
@@ -1572,11 +1571,11 @@ js_TraceScript(JSTracer *trc, JSScript *script)
         MarkValueRange(trc, constarray->length, constarray->vector, "consts");
     }
 
-    /*
-     * Mark the object keeping this script alive. The script can be traced
-     * separately if, e.g. we are GC'ing while type inference code is active,
-     * and we need to make sure both the script and the object survive the GC.
-     */
+    
+
+
+
+
     if (!script->isCachedEval && !script->isUncachedEval && script->u.object)
         MarkObject(trc, *script->u.object, "object");
     if (script->fun)
@@ -1587,10 +1586,10 @@ js_TraceScript(JSTracer *trc, JSScript *script)
 
     script->bindings.trace(trc);
 
-    /*
-     * Trace all type objects associated with the script, these can be freely
-     * referenced from JIT code without needing to be pinned against GC.
-     */
+    
+
+
+
     types::TypeObject *obj = script->typeObjects;
     while (obj) {
         if (!obj->marked)
@@ -1619,10 +1618,10 @@ js_NewScriptObject(JSContext *cx, JSScript *script)
     obj->setPrivate(script);
     script->u.object = obj;
 
-    /*
-     * Clear the object's type/proto, to avoid entraining stuff. Once we no longer use the parent
-     * for security checks, then we can clear the parent, too.
-     */
+    
+
+
+
     if (!obj->clearType(cx))
         return JS_FALSE;
 
@@ -1653,7 +1652,7 @@ GSNCache::purge()
     GSN_CACHE_METER(this, purges);
 }
 
-} /* namespace js */
+} 
 
 jssrcnote *
 js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -1730,14 +1729,14 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
     jssrcnote *sn;
     JSSrcNoteType type;
 
-    /* Cope with StackFrame.pc value prior to entering js_Interpret. */
+    
     if (!pc)
         return 0;
 
-    /*
-     * Special case: function definition needs no line number note because
-     * the function's script contains its starting line number.
-     */
+    
+
+
+
     op = js_GetOpcode(cx, script, pc);
     if (js_CodeSpec[op].format & JOF_INDEXBASE)
         pc += js_CodeSpec[op].length;
@@ -1746,11 +1745,11 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
         return fun->u.i.script->lineno;
     }
 
-    /*
-     * General case: walk through source notes accumulating their deltas,
-     * keeping track of line-number notes, until we pass the note for pc's
-     * offset within script->code.
-     */
+    
+
+
+
+
     lineno = script->lineno;
     offset = 0;
     target = pc - script->code;
@@ -1770,7 +1769,7 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
     return lineno;
 }
 
-/* The line number limit is the same as the jssrcnote offset limit. */
+
 #define SN_LINE_LIMIT   (SN_3BYTE_OFFSET_FLAG << 16)
 
 jsbytecode *
@@ -1786,10 +1785,10 @@ js_LineNumberToPC(JSScript *script, uintN target)
     lineno = script->lineno;
     bestdiff = SN_LINE_LIMIT;
     for (sn = script->notes(); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
-        /*
-         * Exact-match only if offset is not in the prolog; otherwise use
-         * nearest greater-or-equal line number match.
-         */
+        
+
+
+
         if (lineno == target && script->code + offset >= script->main)
             goto out;
         if (lineno >= target) {
@@ -1895,12 +1894,12 @@ js_CloneScript(JSContext *cx, JSScript *script)
     JS_ASSERT(cx->compartment != script->compartment);
     JS_ASSERT(script->compartment);
 
-    // serialize script
+    
     AutoJSXDRState w(JS_XDRNewMem(cx, JSXDR_ENCODE));
     if (!w)
         return NULL;
 
-    // we don't want gecko to transcribe our principals for us
+    
     DisablePrincipalsTranscoding disable(cx);
 
     XDRScriptState wstate(w);
@@ -1915,13 +1914,13 @@ js_CloneScript(JSContext *cx, JSScript *script)
     if (!p)
         return NULL;
 
-    // de-serialize script
+    
     AutoJSXDRState r(JS_XDRNewMem(cx, JSXDR_DECODE));
     if (!r)
         return NULL;
 
-    // Hand p off from w to r.  Don't want them to share the data
-    // mem, lest they both try to free it in JS_XDRDestroy
+    
+    
     JS_XDRMemSetData(r, p, nbytes);
     JS_XDRMemSetData(w, NULL, 0);
 
@@ -1932,7 +1931,7 @@ js_CloneScript(JSContext *cx, JSScript *script)
     if (!js_XDRScript(r, &script))
         return NULL;
 
-    // set the proper principals for the script
+    
     script->principals = script->compartment->principals;
     if (script->principals)
         JSPRINCIPALS_HOLD(cx, script->principals);

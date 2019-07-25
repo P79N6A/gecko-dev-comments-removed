@@ -522,7 +522,7 @@ struct JSScript {
     JSFunction *fun;
 
     
-    JSObject *global;
+    js::GlobalObject *global;
 
     
     js::types::TypeSet *varTypes;

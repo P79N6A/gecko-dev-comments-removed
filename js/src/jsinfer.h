@@ -643,7 +643,7 @@ struct TypeCallsite
     
     inline TypeObject* getInitObject(JSContext *cx, bool isArray);
 
-    inline bool compileAndGo();
+    inline bool hasGlobal();
 };
 
 
