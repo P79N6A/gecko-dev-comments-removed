@@ -264,7 +264,12 @@ public class RepoUtils {
     
     
     
-    return logBookmark(computeParentFields(rec, parentId, parentName));
+    BookmarkRecord withParentFields = computeParentFields(rec, parentGUID, parentName);
+    if (withParentFields == null) {
+      
+      return null;
+    }
+    return logBookmark(withParentFields);
   }
 
   private static BookmarkRecord logBookmark(BookmarkRecord rec) {
