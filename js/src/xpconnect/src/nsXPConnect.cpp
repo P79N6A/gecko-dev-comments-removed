@@ -390,13 +390,18 @@ nsXPConnect::Collect()
     
     
     
-    JS_ASSERT(cx->thread->requestDepth >= 1);
-    JS_ASSERT(!cx->thread->data.conservativeGC.requestThreshold);
-    if(cx->thread->requestDepth == 1)
-        cx->thread->data.conservativeGC.requestThreshold = 1;
-    JS_GC(cx);
-    if(cx->thread->requestDepth == 1)
-        cx->thread->data.conservativeGC.requestThreshold = 0;
+    JS_ASSERT(cx->requestDepth >= 1);
+    JS_ASSERT(cx->thread->requestContext == cx);
+    if(cx->requestDepth >= 2)
+    {
+        JS_GC(cx);
+    }
+    else
+    {
+        JS_THREAD_DATA(cx)->conservativeGC.disable();
+        JS_GC(cx);
+        JS_THREAD_DATA(cx)->conservativeGC.enable();
+    }
 }
 
 NS_IMETHODIMP
@@ -846,19 +851,16 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     return NS_OK;
 }
 
-unsigned
-nsXPConnect::GetOutstandingRequests(JSContext* cx)
+PRInt32
+nsXPConnect::GetRequestDepth(JSContext* cx)
 {
-    unsigned n = cx->outstandingRequests;
+    PRInt32 requestDepth = cx->outstandingRequests;
     XPCCallContext* context = mCycleCollectionContext;
     
     
     if(context && cx == context->GetJSContext())
-    {
-        JS_ASSERT(n);
-        --n;
-    }
-    return n;
+        --requestDepth;
+    return requestDepth;
 }
 
 class JSContextParticipant : public nsCycleCollectionParticipant
@@ -889,9 +891,10 @@ public:
         
         
         
-        unsigned refCount = nsXPConnect::GetXPConnect()->GetOutstandingRequests(cx) + 1;
+        PRInt32 refCount = nsXPConnect::GetXPConnect()->GetRequestDepth(cx) + 1;
 
-        cb.DescribeNode(RefCounted, refCount, sizeof(JSContext), "JSContext");
+        cb.DescribeNode(RefCounted, refCount, sizeof(JSContext),
+                        "JSContext");
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[global object]");
         if (cx->globalObject) {
             cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,

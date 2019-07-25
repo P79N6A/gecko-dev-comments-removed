@@ -495,7 +495,7 @@ public:
     virtual void PrintAllReferencesTo(void *p);
 #endif
 
-    unsigned GetOutstandingRequests(JSContext* cx);
+    PRInt32 GetRequestDepth(JSContext* cx);
 
     
     static nsCycleCollectionParticipant *JSContextParticipant();
@@ -3542,7 +3542,7 @@ struct XPCJSContextInfo {
     XPCJSContextInfo(JSContext* aCx) :
         cx(aCx),
         frame(nsnull),
-        suspendDepth(0)
+        requestDepth(0)
     {}
     JSContext* cx;
 
@@ -3551,7 +3551,7 @@ struct XPCJSContextInfo {
     JSStackFrame* frame;
 
     
-    jsrefcount suspendDepth;
+    jsrefcount requestDepth;
 };
 
 class XPCJSContextStack

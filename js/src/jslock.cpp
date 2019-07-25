@@ -421,7 +421,7 @@ WillDeadlock(JSContext *ownercx, JSThread *thread)
 
      for (;;) {
         JS_ASSERT(ownercx->thread);
-        JS_ASSERT(ownercx->thread->requestDepth);
+        JS_ASSERT(ownercx->thread->requestContext);
         JSTitle *title = ownercx->thread->titleToShare;
         if (!title || !title->ownercx) {
             
@@ -529,7 +529,8 @@ static JSBool
 ClaimTitle(JSTitle *title, JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-    JS_ASSERT_IF(!cx->thread->requestDepth, cx->thread == rt->gcThread && rt->gcRunning);
+    JS_ASSERT_IF(!cx->thread->requestContext,
+                 cx->thread == rt->gcThread && rt->gcRunning);
 
     JS_RUNTIME_METER(rt, claimAttempts);
     AutoLockGC lock(rt);
@@ -556,13 +557,13 @@ ClaimTitle(JSTitle *title, JSContext *cx)
         bool canClaim;
         if (title->u.link) {
             JS_ASSERT(js_ValidContextPointer(rt, ownercx));
-            JS_ASSERT(ownercx->thread->requestDepth);
+            JS_ASSERT(ownercx->thread->requestContext);
             JS_ASSERT(!rt->gcRunning);
             canClaim = (ownercx->thread == cx->thread);
         } else {
             canClaim = (!js_ValidContextPointer(rt, ownercx) ||
                         !ownercx->thread ||
-                        !ownercx->thread->requestDepth ||
+                        !ownercx->thread->requestContext ||
                         cx->thread == ownercx->thread  ||
                         cx->thread == rt->gcThread ||
                         ownercx->thread->gcWaiting);
@@ -1186,8 +1187,8 @@ js_UnlockTitle(JSContext *cx, JSTitle *title)
     
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
-    if (cx->thread->lockedSealedTitle == title) {
-        cx->thread->lockedSealedTitle = NULL;
+    if (cx->lockedSealedTitle == title) {
+        cx->lockedSealedTitle = NULL;
         return;
     }
 
@@ -1235,8 +1236,8 @@ js_LockObj(JSContext *cx, JSObject *obj)
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
 
-    if (obj->sealed() && !cx->thread->lockedSealedTitle) {
-        cx->thread->lockedSealedTitle = &obj->title;
+    if (obj->sealed() && !cx->lockedSealedTitle) {
+        cx->lockedSealedTitle = title;
         return;
     }
 
@@ -1302,7 +1303,7 @@ js_IsTitleLocked(JSContext *cx, JSTitle *title)
         return JS_TRUE;
 
     
-    if (cx->thread->lockedSealedTitle == title)
+    if (cx->lockedSealedTitle == title)
         return JS_TRUE;
 
     

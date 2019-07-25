@@ -430,7 +430,8 @@ void XPCJSRuntime::AddXPConnectRoots(JSContext* cx,
         
         
         
-        if(!cb.WantAllTraces() && nsXPConnect::GetXPConnect()->GetOutstandingRequests(acx))
+        if(!cb.WantAllTraces() &&
+           nsXPConnect::GetXPConnect()->GetRequestDepth(acx) != 0)
             continue;
         cb.NoteRoot(nsIProgrammingLanguage::CPLUSPLUS, acx,
                     nsXPConnect::JSContextParticipant());
@@ -459,7 +460,7 @@ XPCJSRuntime::ClearWeakRoots()
     while((acx = JS_ContextIterator(GetJSRuntime(), &iter)))
     {
         if(XPCPerThreadData::IsMainThread(acx) &&
-           !nsXPConnect::GetXPConnect()->GetOutstandingRequests(acx))
+           nsXPConnect::GetXPConnect()->GetRequestDepth(acx) == 0)
         {
             JS_ClearNewbornRoots(acx);
         }
