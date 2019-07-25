@@ -177,6 +177,8 @@ public:
   
   PRPackedBool mInPluginInitCall;
 
+  nsXPIDLCString mFakeURL;
+
 private:
   nsNPAPIPlugin* mPlugin;
 
