@@ -432,3 +432,13 @@ pref("app.update.interval", 28800);
 
 
 pref("editor.singleLine.pasteNewlines", 2);
+
+#ifdef MOZ_PLATFORM_MAEMO
+
+pref("font.default.x-baltic", "SwissA");
+pref("font.default.x-central-euro", "SwissA");
+pref("font.default.x-cyrillic", "SwissA");
+pref("font.default.x-unicode", "SwissA");
+pref("font.default.x-user-def", "SwissA");
+pref("font.default.x-western", "SwissA");
+#endif
