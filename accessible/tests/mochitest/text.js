@@ -1,5 +1,5 @@
-////////////////////////////////////////////////////////////////////////////////
-// Public
+
+
 
 const BOUNDARY_CHAR = nsIAccessibleText.BOUNDARY_CHAR;
 const BOUNDARY_WORD_START = nsIAccessibleText.BOUNDARY_WORD_START;
@@ -11,15 +11,15 @@ const BOUNDARY_ATTRIBUTE_RANGE = nsIAccessibleText.BOUNDARY_ATTRIBUTE_RANGE;
 const kTodo = 1;
 const kOk = 2;
 
-/**
- * Test characterCount for the given array of accessibles.
- *
- * @param aCount  [in] the expected character count
- * @param aIDs    [in] array of accessible identifiers to test
- */
+
+
+
+
+
+
 function testCharacterCount(aIDs, aCount)
 {
-  for (var i = 1; i < aIDs.length; i++) {
+  for (var i = 0; i < aIDs.length; i++) {
     var textacc = getAccessible(aIDs[i], [nsIAccessibleText]);
     is(textacc.characterCount, aCount,
        "Wrong character count for " + prettyName(aIDs[i]));
@@ -43,21 +43,21 @@ function testText(aIDs, aStartOffset, aEndOffset, aText)
   }
 }
 
-/**
- * Test getTextAtOffset function over different elements
- *
- * @param aOffset         [in] the offset to get the text at
- * @param aBoundaryType   [in] Boundary type for text to be retrieved
- * @param aText           [in] expected return text for getTextAtOffset
- * @param aStartOffset    [in] expected return start offset for getTextAtOffset
- * @param aEndOffset      [in] expected return end offset for getTextAtOffset
- * @param ...             [in] list of tuples made of:
- *                              element identifier
- *                              kTodo or kOk for returned text
- *                              kTodo or kOk for returned start offset
- *                              kTodo or kOk for returned offset result
- *          
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function testTextAtOffset(aOffset, aBoundaryType, aText,
                           aStartOffset, aEndOffset)
 {
@@ -75,21 +75,21 @@ function testTextAtOffset(aOffset, aBoundaryType, aText,
   }
 }
 
-/**
- * Test getTextAfterOffset function over different elements
- *
- * @param aOffset         [in] the offset to get the text after
- * @param aBoundaryType   [in] Boundary type for text to be retrieved
- * @param aText           [in] expected return text for getTextAfterOffset
- * @param aStartOffset    [in] expected return start offset for getTextAfterOffset
- * @param aEndOffset      [in] expected return end offset for getTextAfterOffset
- * @param ...             [in] list of tuples made of:
- *                              element identifier
- *                              kTodo or kOk for returned text
- *                              kTodo or kOk for returned start offset
- *                              kTodo or kOk for returned offset result
- *          
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function testTextAfterOffset(aOffset, aBoundaryType,
                              aText, aStartOffset, aEndOffset)
 {
@@ -107,21 +107,21 @@ function testTextAfterOffset(aOffset, aBoundaryType,
   }
 }
 
-/**
- * Test getTextBeforeOffset function over different elements
- *
- * @param aOffset         [in] the offset to get the text before
- * @param aBoundaryType   [in] Boundary type for text to be retrieved
- * @param aText           [in] expected return text for getTextBeforeOffset
- * @param aStartOffset    [in] expected return start offset for getTextBeforeOffset
- * @param aEndOffset      [in] expected return end offset for getTextBeforeOffset
- * @param ...             [in] list of tuples made of:
- *                              element identifier
- *                              kTodo or kOk for returned text
- *                              kTodo or kOk for returned start offset
- *                              kTodo or kOk for returned offset result
- *          
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function testTextBeforeOffset(aOffset, aBoundaryType,
                               aText, aStartOffset, aEndOffset)
 {
@@ -139,13 +139,13 @@ function testTextBeforeOffset(aOffset, aBoundaryType,
   }
 }
 
-/**
- * Test word count for an element.
- *
- * @param aElement   [in] element identifier
- * @param aCount     [in] Expected word count
- * @param aToDoFlag  [in] kTodo or kOk for returned text
- */
+
+
+
+
+
+
+
 function testWordCount(aElement, aCount, aToDoFlag)
 {
   var isFunc = (aToDoFlag == kTodo) ? todo_is : is;
@@ -167,14 +167,14 @@ function testWordCount(aElement, aCount, aToDoFlag)
          wordCount);
 }
 
-/**
- * Test word at a position for an element.
- *
- * @param aElement    [in] element identifier
- * @param aWordIndex  [in] index of the word to test
- * @param aText       [in] expected text for that word
- * @param aToDoFlag   [in] kTodo or kOk for returned text
- */
+
+
+
+
+
+
+
+
 function testWordAt(aElement, aWordIndex, aText, aToDoFlag)
 {
   var isFunc = (aToDoFlag == kTodo) ? todo_is : is;
@@ -217,13 +217,13 @@ function testWordAt(aElement, aWordIndex, aText, aToDoFlag)
   }
 }
 
-/**
- * Test words in a element.
- *
- * @param aElement   [in]           element identifier
- * @param aWords     [in]           array of expected words
- * @param aToDoFlag  [in, optional] kTodo or kOk for returned text
- */
+
+
+
+
+
+
+
 function testWords(aElement, aWords, aToDoFlag)
 {
   if (aToDoFlag == null)
@@ -236,8 +236,8 @@ function testWords(aElement, aWords, aToDoFlag)
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Private
+
+
 
 function testTextHelper(aID, aOffset, aBoundaryType,
                         aText, aStartOffset, aEndOffset,
