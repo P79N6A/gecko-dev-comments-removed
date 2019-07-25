@@ -39,8 +39,6 @@
 
 
 #include "CodeGenerator-x86-shared.h"
-#include "ion/MIR.h"
-#include "ion/MIRGraph.h"
 #include "CodeGenerator-shared-inl.h"
 #include "ion/IonFrames.h"
 #include "ion/MoveEmitter.h"
@@ -119,10 +117,31 @@ CodeGeneratorX86Shared::visitGoto(LGoto *jump)
     LLabel *header = target->begin()->toLabel();
 
     
-    if (current->mir()->id() + 1 == target->mir()->id())
+    if (isNextBlock(target))
         return true;
 
     masm.jmp(header->label());
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
+{
+    const LAllocation *opd = test->getOperand(0);
+    LBlock *ifTrue = test->ifTrue()->lir();
+    LBlock *ifFalse = test->ifFalse()->lir();
+
+    
+    masm.testl(ToRegister(opd), ToRegister(opd));
+
+    if (isNextBlock(ifFalse)) {
+        masm.j(AssemblerX86Shared::NonZero, ifTrue->begin()->toLabel()->label());
+    } else if (isNextBlock(ifTrue)) {
+        masm.j(AssemblerX86Shared::Zero, ifFalse->begin()->toLabel()->label());
+    } else {
+        masm.j(AssemblerX86Shared::Zero, ifFalse->begin()->toLabel()->label());
+        masm.jmp(ifTrue->begin()->toLabel()->label());
+    }
     return true;
 }
 
