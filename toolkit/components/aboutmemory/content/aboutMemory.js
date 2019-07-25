@@ -36,6 +36,9 @@
 
 
 
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+
 var gMemReporters = { };
 
 function $(n) {
@@ -115,6 +118,9 @@ function formatNumber(n) {
     return s;
 }
 
+
+
+
 function updateMemoryStatus()
 {
     
@@ -125,11 +131,11 @@ function updateMemoryStatus()
         
         
         setTextContent($("memMappedValue"),
-                       formatNumber(gMemReporters["malloc/mapped"].memoryUsed));
+                       formatNumber(gMemReporters["malloc/mapped"][0].memoryUsed));
 
         
         setTextContent($("memInUseValue"),
-                       formatNumber(gMemReporters["malloc/allocated"].memoryUsed));
+                       formatNumber(gMemReporters["malloc/allocated"][0].memoryUsed));
     } else {
         $("memOverview").style.display = "none";
     }
@@ -140,9 +146,16 @@ function updateMemoryStatus()
 
     var otherCount = 0;
 
-    for each (var rep in gMemReporters) {
-        var row = makeTableRow([rep.path, rep.description],
-                               makeTableCell(formatNumber(rep.memoryUsed), "memValue"));
+    for each (var reporters in gMemReporters) {
+        
+        
+        var total = 0;
+        reporters.forEach(function(reporter) {
+          total += reporter.memoryUsed;
+        });
+
+        var row = makeTableRow([reporters[0].path, reporters[0].description],
+                               makeTableCell(formatNumber(total), "memValue"));
 
         mo.appendChild(row);
 
@@ -155,18 +168,23 @@ function updateMemoryStatus()
     }
 }
 
+
+
+
 function updateMemoryReporters()
 {
     gMemReporters = [];
 
-    var mgr = Components
-        .classes["@mozilla.org/memory-reporter-manager;1"]
-        .getService(Components.interfaces.nsIMemoryReporterManager);
+    var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
+              getService(Ci.nsIMemoryReporterManager);
 
     var e = mgr.enumerateReporters();
     while (e.hasMoreElements()) {
-        var mr = e.getNext().QueryInterface(Components.interfaces.nsIMemoryReporter);
-        gMemReporters[mr.path] = mr;
+        var reporter = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
+        if (!gMemReporters[reporter.path]) {
+          gMemReporters[reporter.path] = [];
+        }
+        gMemReporters[reporter.path].push(reporter);
     }
 }
 
