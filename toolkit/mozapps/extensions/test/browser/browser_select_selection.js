@@ -17,27 +17,27 @@ const SYSTEM = AddonManager.SCOPE_SYSTEM;
 
 var ADDONS = [
   
-  [false,          true,          false,         false,    false,     true,       PROFILE, true,        72,       "enabled",           ""],               
-  [false,          true,          false,         false,    true,      true,       PROFILE, true,        73,       "enabled",           ""],               
-  [false,          true,          false,         false,    true,      false,      PROFILE, true,        82,       "unneededupdate",    ""],               
-  [false,          false,         false,         true,     false,     true,       PROFILE, true,        83,       "",                  "disabled"],       
-  [false,          false,         false,         true,     true,      true,       PROFILE, true,        84,       "",                  "disabled"],       
-  [false,          false,         false,         true,     true,      false,      PROFILE, true,        85,       "unneededupdate",    "disabled"],       
-  [false,          true,          true,          false,    false,     true,       PROFILE, true,        86,       "incompatible",      ""],               
-  [false,          true,          true,          false,    true,      true,       PROFILE, true,        87,       "autoupdate",        ""],               
-  [false,          true,          true,          false,    true,      false,      PROFILE, true,        88,       "neededupdate",      ""],               
-  [false,          false,         true,          true,     false,     true,       PROFILE, true,        89,       "incompatible",      "disabled"],       
-  [false,          true,          true,          true,     true,      true,       PROFILE, true,        74,       "autoupdate",        "disabled"],       
-  [false,          true,          true,          true,     true,      false,      PROFILE, true,        75,       "neededupdate",      "disabled"],       
-  [true,           false,         false,         false,    false,     true,       PROFILE, false,       76,       "enabled",           ""],               
-  [true,           false,         false,         false,    true,      true,       PROFILE, false,       77,       "enabled",           ""],               
-  [true,           false,         false,         false,    true,      false,      PROFILE, false,       78,       "unneededupdate",    ""],               
+  [false,          true,          false,         false,    false,     true,       PROFILE, true,        46,       "enabled",           ""],               
+  [false,          true,          false,         false,    true,      true,       PROFILE, true,        47,       "enabled",           ""],               
+  [false,          true,          false,         false,    true,      false,      PROFILE, true,        52,       "unneededupdate",    ""],               
+  [false,          false,         false,         true,     false,     true,       PROFILE, true,        53,       "",                  "disabled"],       
+  [false,          false,         false,         true,     true,      true,       PROFILE, true,        54,       "",                  "disabled"],       
+  [false,          false,         false,         true,     true,      false,      PROFILE, true,        55,       "unneededupdate",    "disabled"],       
+  [false,          true,          true,          false,    false,     true,       PROFILE, true,        56,       "incompatible",      ""],               
+  [false,          true,          true,          false,    true,      true,       PROFILE, true,        57,       "autoupdate",        ""],               
+  [false,          true,          true,          false,    true,      false,      PROFILE, true,        58,       "neededupdate",      ""],               
+  [false,          false,         true,          true,     false,     true,       PROFILE, true,        59,       "incompatible",      "disabled"],       
+  [false,          true,          true,          true,     true,      true,       PROFILE, true,        48,       "autoupdate",        "disabled"],       
+  [false,          true,          true,          true,     true,      false,      PROFILE, true,        49,       "neededupdate",      "disabled"],       
+  [true,           false,         false,         false,    false,     true,       PROFILE, false,       50,       "enabled",           ""],               
+  [true,           false,         false,         false,    true,      true,       PROFILE, false,       51,       "enabled",           ""],               
+  [true,           false,         false,         false,    true,      false,      PROFILE, false,       52,       "unneededupdate",    ""],               
 
   
 
-  [true,           true,          true,          false,    false,     true,       PROFILE, false,       79,       "incompatible",      ""],               
-  [true,           true,          true,          false,    true,      true,       PROFILE, false,       80,       "autoupdate",        ""],               
-  [true,           true,          true,          false,    true,      false,      PROFILE, false,       81,       "neededupdate",      ""],               
+  [true,           true,          true,          false,    false,     true,       PROFILE, false,       38,       "incompatible",      ""],               
+  [true,           true,          true,          false,    true,      true,       PROFILE, false,       39,       "autoupdate",        ""],               
+  [true,           true,          true,          false,    true,      false,      PROFILE, false,       40,       "neededupdate",      ""],               
 
   
 
@@ -50,10 +50,10 @@ var ADDONS = [
   [true,           true,          false,         false,    true,      false,      SYSTEM,  false,       5,        "enabled",           ""],               
   [false,          true,          true,          true,     true,      false,      SYSTEM,  false,       6,        "incompatible",      "disabled"],       
   [true,           true,          true,          false,    true,      false,      SYSTEM,  false,       7,        "incompatible",      ""],               
-  [false,          false,         false,         true,     true,      false,      APP,     true,        38,       "",                  "disabled"],       
-  [true,           true,          false,         false,    true,      false,      APP,     false,       39,       "enabled",           ""],               
-  [false,          true,          true,          true,     true,      false,      APP,     true,        40,       "incompatible",      "disabled"],       
-  [true,           true,          true,          false,    true,      false,      APP,     false,       41,       "incompatible",      ""],               
+  [false,          false,         false,         true,     true,      false,      APP,     true,        42,       "",                  "disabled"],       
+  [true,           true,          false,         false,    true,      false,      APP,     false,       43,       "enabled",           ""],               
+  [false,          true,          true,          true,     true,      false,      APP,     true,        44,       "incompatible",      "disabled"],       
+  [true,           true,          true,          false,    true,      false,      APP,     false,       45,       "incompatible",      ""],               
 ];
 
 function waitForView(aView, aCallback) {
@@ -227,7 +227,7 @@ add_test(function selection_test() {
     pos++;
   }
 
-  is(pos, 90, "Should have seen the right number of add-ons");
+  is(pos, 60, "Should have seen the right number of add-ons");
 
   run_next_test();
 });
