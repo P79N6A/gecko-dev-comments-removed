@@ -3,15 +3,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko.gfx;
 
-import android.graphics.Rect;
+import org.mozilla.gecko.gfx.CairoImage;
+import org.mozilla.gecko.gfx.CairoUtils;
+import org.mozilla.gecko.gfx.IntSize;
+import org.mozilla.gecko.gfx.LayerController;
+import org.mozilla.gecko.gfx.TileLayer;
+import android.graphics.PointF;
 import android.graphics.RectF;
-import android.graphics.Region;
-import android.graphics.RegionIterator;
-import android.opengl.GLES20;
-
+import android.opengl.GLES11;
+import android.opengl.GLES11Ext;
+import android.util.Log;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import javax.microedition.khronos.opengles.GL10;
 
 
 
@@ -19,51 +58,10 @@ import java.nio.FloatBuffer;
 
 
 public class SingleTileLayer extends TileLayer {
-    private static final String LOGTAG = "GeckoSingleTileLayer";
-
-    private Rect mMask;
-
-    
-    
-    private final RectF mBounds;
-    private final RectF mTextureBounds;
-    private final RectF mViewport;
-    private final Rect mIntBounds;
-    private final Rect mSubRect;
-    private final RectF mSubRectF;
-    private final Region mMaskedBounds;
-    private final Rect mCropRect;
-    private final RectF mObjRectF;
-    private final float[] mCoords;
-
-    public SingleTileLayer(CairoImage image) {
-        this(false, image);
-    }
+    public SingleTileLayer(CairoImage image) { this(false, image); }
 
     public SingleTileLayer(boolean repeat, CairoImage image) {
-        this(image, repeat ? TileLayer.PaintMode.REPEAT : TileLayer.PaintMode.NORMAL);
-    }
-
-    public SingleTileLayer(CairoImage image, TileLayer.PaintMode paintMode) {
-        super(image, paintMode);
-
-        mBounds = new RectF();
-        mTextureBounds = new RectF();
-        mViewport = new RectF();
-        mIntBounds = new Rect();
-        mSubRect = new Rect();
-        mSubRectF = new RectF();
-        mMaskedBounds = new Region();
-        mCropRect = new Rect();
-        mObjRectF = new RectF();
-        mCoords = new float[20];
-    }
-
-    
-
-
-    public void setMask(Rect aMaskRect) {
-        mMask = aMaskRect;
+        super(repeat, image);
     }
 
     @Override
@@ -73,81 +71,31 @@ public class SingleTileLayer extends TileLayer {
         if (!initialized())
             return;
 
-        mViewport.set(context.viewport);
+        GLES11.glBindTexture(GL10.GL_TEXTURE_2D, getTextureID());
+
+        RectF bounds;
+        int[] cropRect;
+        IntSize size = getSize();
+        RectF viewport = context.viewport;
 
         if (repeats()) {
-            
-            
-            
-            mBounds.set(getBounds(context));
-            mTextureBounds.set(0.0f, 0.0f, mBounds.width(), mBounds.height());
-            mBounds.set(0.0f, 0.0f, mViewport.width(), mViewport.height());
-        } else if (stretches()) {
-            
-            
-            mBounds.set(context.pageRect);
-            mTextureBounds.set(mBounds);
+            bounds = new RectF(0.0f, 0.0f, viewport.width(), viewport.height());
+            int width = Math.round(viewport.width());
+            int height = Math.round(-viewport.height());
+            cropRect = new int[] { 0, size.height, width, height };
         } else {
-            mBounds.set(getBounds(context));
-            mTextureBounds.set(mBounds);
+            bounds = getBounds(context, new FloatSize(size));
+            cropRect = new int[] { 0, size.height, size.width, -size.height };
         }
 
-        mBounds.roundOut(mIntBounds);
-        mMaskedBounds.set(mIntBounds);
-        if (mMask != null) {
-            mMaskedBounds.op(mMask, Region.Op.DIFFERENCE);
-            if (mMaskedBounds.isEmpty())
-                return;
-        }
+        GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, cropRect,
+                                0);
 
-        
-        
-        RegionIterator i = new RegionIterator(mMaskedBounds);
-        while (i.next(mSubRect)) {
-            
-            
-            mSubRectF.set(Math.max(mBounds.left, (float)mSubRect.left),
-                          Math.max(mBounds.top, (float)mSubRect.top),
-                          Math.min(mBounds.right, (float)mSubRect.right),
-                          Math.min(mBounds.bottom, (float)mSubRect.bottom));
+        float height = bounds.height();
+        float left = bounds.left - viewport.left;
+        float top = viewport.height() - (bounds.top + height - viewport.top);
 
-            
-            
-            mCropRect.set(Math.round(mSubRectF.left - mBounds.left),
-                          Math.round(mBounds.bottom - mSubRectF.top),
-                          Math.round(mSubRectF.right - mBounds.left),
-                          Math.round(mBounds.bottom - mSubRectF.bottom));
-
-            mObjRectF.set(mSubRectF.left - mViewport.left,
-                          mViewport.bottom - mSubRectF.bottom,
-                          mSubRectF.right - mViewport.left,
-                          mViewport.bottom - mSubRectF.top);
-
-            fillRectCoordBuffer(mCoords, mObjRectF, mViewport.width(), mViewport.height(),
-                                mCropRect, mTextureBounds.width(), mTextureBounds.height());
-
-            FloatBuffer coordBuffer = context.coordBuffer;
-            int positionHandle = context.positionHandle;
-            int textureHandle = context.textureHandle;
-
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, getTextureID());
-
-            
-            coordBuffer.position(0);
-            coordBuffer.put(mCoords);
-
-            
-            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
-
-            
-            coordBuffer.position(0);
-            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20, coordBuffer);
-
-            
-            coordBuffer.position(3);
-            GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20, coordBuffer);
-            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-        }
+        GLES11Ext.glDrawTexfOES(left, top, 0.0f, bounds.width(), height);
     }
 }
+
