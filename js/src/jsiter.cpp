@@ -1126,7 +1126,6 @@ js_NewGenerator(JSContext *cx)
     gen->liveFrame = newfp;
 
     
-    newfp->imacpc = NULL;
     newfp->setCallObj(fp->maybeCallObj());
     if (fp->hasCallObj()) {      
         fp->getCallObj()->setPrivate(newfp);
@@ -1148,6 +1147,7 @@ js_NewGenerator(JSContext *cx)
     JS_ASSERT(!fp->hasBlockChain());
     newfp->setBlockChain(NULL);
     newfp->flags = fp->flags | JSFRAME_GENERATOR | JSFRAME_FLOATING_GENERATOR;
+    JS_ASSERT(!newfp->hasIMacroPC());
 
     
     memcpy(vp, fp->argv - 2, vplen * sizeof(Value));

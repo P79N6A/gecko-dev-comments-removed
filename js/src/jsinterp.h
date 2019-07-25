@@ -69,6 +69,7 @@ enum JSFrameFlags {
     JSFRAME_GENERATOR          =  0x80, 
     JSFRAME_OVERRIDE_ARGS      = 0x100, 
     JSFRAME_DUMMY              = 0x200, 
+    JSFRAME_IN_IMACRO          = 0x400, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -91,9 +92,9 @@ struct JSStackFrame
     void                *annotation;    
     void                *hookData;      
     JSVersion           callerVersion;  
+    jsbytecode          *imacpc;        
 
   public:
-    jsbytecode          *imacpc;        
     JSScript            *script;        
     JSFunction          *fun;           
     uintN               argc;           
@@ -307,6 +308,33 @@ struct JSStackFrame
 
     void setCallerVersion(JSVersion version) {
         callerVersion = version;
+    }
+
+    
+
+    bool hasIMacroPC() const { return flags & JSFRAME_IN_IMACRO; }
+
+    
+
+
+
+
+
+    jsbytecode *getIMacroPC() const {
+        JS_ASSERT(flags & JSFRAME_IN_IMACRO);
+        return imacpc;
+    }
+
+    
+    jsbytecode *maybeIMacroPC() const { return hasIMacroPC() ? getIMacroPC() : NULL; }
+
+    void clearIMacroPC() { flags &= ~JSFRAME_IN_IMACRO; }
+
+    void setIMacroPC(jsbytecode *newIMacPC) {
+        JS_ASSERT(newIMacPC);
+        JS_ASSERT(!(flags & JSFRAME_IN_IMACRO));
+        imacpc = newIMacPC;
+        flags |= JSFRAME_IN_IMACRO;
     }
 
     
