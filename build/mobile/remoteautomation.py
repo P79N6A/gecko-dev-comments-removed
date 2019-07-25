@@ -79,12 +79,6 @@ class RemoteAutomation(Automation):
         if env is None:
             env = {}
 
-        
-        
-        
-        if 'MOZ_HIDE_RESULTS_TABLE' in os.environ:
-            env['MOZ_HIDE_RESULTS_TABLE'] = os.environ['MOZ_HIDE_RESULTS_TABLE']
-
         if crashreporter:
             env['MOZ_CRASHREPORTER_NO_REPORT'] = '1'
             env['MOZ_CRASHREPORTER'] = '1'

@@ -80,11 +80,6 @@ if (params.closeWhenDone) {
 }
 
 
-if (params.hideResultsTable) {
-  document.documentElement.classList.add("hide-results-table");
-}
-
-
 if (params.logFile) {
   MozillaFileLogger.init(params.logFile);
   TestRunner.logger.addListener("mozLogger", fileLevel + "", MozillaFileLogger.getLogCallback());
