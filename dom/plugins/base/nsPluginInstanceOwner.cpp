@@ -2730,6 +2730,9 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
 nsresult
 nsPluginInstanceOwner::Destroy()
 {
+  if (mObjectFrame)
+    mObjectFrame->SetInstanceOwner(nsnull);
+
 #ifdef MAC_CARBON_PLUGINS
   
   CancelTimer();
