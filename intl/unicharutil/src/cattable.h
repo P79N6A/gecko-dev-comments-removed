@@ -3146,7 +3146,7 @@ static const PRUint8 gGenCatIdx16[256] = {
      26,  
 };
 
-static const PRUint8 gGenCatIdx17[64] = {
+static const PRUint8 gGenCatIdx17[74] = {
      29,  
      29,  
      29,  
@@ -3211,6 +3211,68 @@ static const PRUint8 gGenCatIdx17[64] = {
       3,  
       3,  
       3,  
+     30,  
+      3,  
+     29,  
+     29,  
+     29,  
+     29,  
+     65,  
+      3,  
+     29,  
+     30,  
+};
+
+static const PRUint8 gGenCatIdx18[16] = {
+    203,  
+      3,  
+      3,  
+      3,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+    204,  
+};
+
+static const PRUint8 gGenCatIdx19[30] = {
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
 };
 
 static const PRUint32 gGenCatPatPl0[] = {
@@ -3625,6 +3687,8 @@ static const PRUint32 gGenCatPatPl1[] = {
     0x70000000,  
     0x70077070,  
     0x00777700,  
+    0x00000040,  
+    0x44444444,  
 }; 
 
 static PRUint8 GetCat(PRUint32 u)
@@ -3730,8 +3794,20 @@ static PRUint8 GetCat(PRUint32 u)
     }
 
     
-    if(0x01F000 <= u && u <= 0x01F1FF) {
+    if(0x01F000 <= u && u <= 0x01F24F) {
         pat = gGenCatPatPl1[gGenCatIdx17 [( u - 0x01F000 ) / 8]];
+        return (pat  >> ((u % 8) * 4)) & 0x0F;
+    }
+
+    
+    if(0x0E0000 <= u && u <= 0x0E007F) {
+        pat = gGenCatPatPl1[gGenCatIdx18 [( u - 0x0E0000 ) / 8]];
+        return (pat  >> ((u % 8) * 4)) & 0x0F;
+    }
+
+    
+    if(0x0E0100 <= u && u <= 0x0E01EF) {
+        pat = gGenCatPatPl1[gGenCatIdx19 [( u - 0x0E0100 ) / 8]];
         return (pat  >> ((u % 8) * 4)) & 0x0F;
     }
 
