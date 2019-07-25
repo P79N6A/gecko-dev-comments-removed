@@ -8083,7 +8083,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 void
 nsCSSFrameConstructor::RestyleElement(Element        *aElement,
                                       nsIFrame       *aPrimaryFrame,
-                                      nsChangeHint   aMinHint)
+                                      nsChangeHint   aMinHint,
+                                      RestyleTracker& aRestyleTracker)
 {
   NS_ASSERTION(aPrimaryFrame == aElement->GetPrimaryFrame(),
                "frame/content mismatch");
@@ -8100,7 +8101,8 @@ nsCSSFrameConstructor::RestyleElement(Element        *aElement,
   } else if (aPrimaryFrame) {
     nsStyleChangeList changeList;
     mPresShell->FrameManager()->
-      ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint);
+      ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
+                            aRestyleTracker);
     ProcessRestyledFrames(changeList);
   } else {
     
@@ -11623,8 +11625,10 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   nsStyleChangeList changeList;
   
   
+  
   mPresShell->FrameManager()->ComputeStyleChangeFor(mPresShell->GetRootFrame(),
-                                                    &changeList, aExtraHint);
+                                                    &changeList, aExtraHint,
+                                                    mPendingRestyles);
   
   ProcessRestyledFrames(changeList);
   

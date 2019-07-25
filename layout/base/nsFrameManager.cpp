@@ -91,6 +91,7 @@
 #include "nsAutoPtr.h"
 #include "imgIRequest.h"
 #include "nsTransitionManager.h"
+#include "RestyleTracker.h"
 
 #include "nsFrameManager.h"
 #ifdef ACCESSIBILITY
@@ -961,7 +962,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsIContent        *aParentContent,
                                       nsStyleChangeList *aChangeList, 
                                       nsChangeHint       aMinChange,
-                                      PRBool             aFireAccessibilityEvents)
+                                      PRBool             aFireAccessibilityEvents,
+                                      RestyleTracker&    aRestyleTracker)
 {
   if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aMinChange)) {
     
@@ -1049,7 +1051,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       assumeDifferenceHint = ReResolveStyleContext(aPresContext, providerFrame,
                                                    aParentContent, aChangeList,
-                                                   aMinChange, PR_FALSE);
+                                                   aMinChange, PR_FALSE,
+                                                   aRestyleTracker);
 
       
       
@@ -1390,19 +1393,22 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                     content, aChangeList,
                                     NS_SubtractHint(aMinChange,
                                                     nsChangeHint_ReflowFrame),
-                                    fireAccessibilityEvents);
+                                    fireAccessibilityEvents,
+                                    aRestyleTracker);
 
               
               
               ReResolveStyleContext(aPresContext, child, content,
                                     aChangeList, aMinChange,
-                                    fireAccessibilityEvents);
+                                    fireAccessibilityEvents,
+                                    aRestyleTracker);
             }
             else {  
               if (child != resolvedChild) {
                 ReResolveStyleContext(aPresContext, child, content,
                                       aChangeList, aMinChange,
-                                      fireAccessibilityEvents);
+                                      fireAccessibilityEvents,
+                                      aRestyleTracker);
               } else {
                 NOISY_TRACE_FRAME("child frame already resolved as descendant, skipping",aFrame);
               }
@@ -1424,7 +1430,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
 void
 nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame, 
                                       nsStyleChangeList *aChangeList,
-                                      nsChangeHint       aMinChange)
+                                      nsChangeHint       aMinChange,
+                                      RestyleTracker&    aRestyleTracker)
 {
   if (aMinChange) {
     aChangeList->AppendChange(aFrame, aFrame->GetContent(), aMinChange);
@@ -1449,7 +1456,8 @@ nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame,
       
       nsChangeHint frameChange =
         ReResolveStyleContext(GetPresContext(), frame, nsnull,
-                              aChangeList, topLevelChange, PR_TRUE);
+                              aChangeList, topLevelChange, PR_TRUE,
+                              aRestyleTracker);
       NS_UpdateHint(topLevelChange, frameChange);
 
       if (topLevelChange & nsChangeHint_ReconstructFrame) {
