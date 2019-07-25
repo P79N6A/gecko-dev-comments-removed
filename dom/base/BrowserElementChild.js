@@ -7,7 +7,6 @@
 let Cu = Components.utils;
 let Ci = Components.interfaces;
 let Cc = Components.classes;
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function debug(msg) {
   
@@ -15,6 +14,10 @@ function debug(msg) {
 
 function sendAsyncMsg(msg, data) {
   sendAsyncMessage('browser-element-api:' + msg, data);
+}
+
+function sendSyncMsg(msg, data) {
+  return sendSyncMessage('browser-element-api:' + msg, data);
 }
 
 
@@ -49,9 +52,12 @@ BrowserElementChild.prototype = {
     
     
     
+    
+    
+    
     content.QueryInterface(Ci.nsIInterfaceRequestor)
            .getInterface(Components.interfaces.nsIDOMWindowUtils)
-           .setIsApp(false);
+           .setIsApp(sendSyncMsg('get-mozapp')[0]);
 
     addEventListener('DOMTitleChanged',
                      this._titleChangedHandler.bind(this),
