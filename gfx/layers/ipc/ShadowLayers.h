@@ -308,6 +308,11 @@ public:
 
   bool ShouldDoubleBuffer() { return GetParentBackendType() == LayerManager::LAYERS_BASIC; }
 
+  
+
+
+  void SetIsFirstPaint() { mIsFirstPaint = true; }
+
 protected:
   ShadowLayerForwarder();
 
@@ -332,6 +337,8 @@ private:
 
   Transaction* mTxn;
   LayersBackend mParentBackend;
+
+  bool mIsFirstPaint;
 };
 
 

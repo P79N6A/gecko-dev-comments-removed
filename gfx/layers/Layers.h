@@ -487,6 +487,11 @@ public:
   { return mUserData.Get(aKey); }
 
   
+
+
+  virtual void SetIsFirstPaint() {}
+
+  
   
   
   

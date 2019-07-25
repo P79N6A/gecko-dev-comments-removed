@@ -91,7 +91,7 @@ public:
 
   virtual bool RecvStop() MOZ_OVERRIDE;
 
-  virtual void ShadowLayersUpdated() MOZ_OVERRIDE;
+  virtual void ShadowLayersUpdated(bool isFirstPaint) MOZ_OVERRIDE;
   void Destroy();
 
   LayerManager* GetLayerManager() { return mLayerManager; }
@@ -143,6 +143,13 @@ private:
   float mXScale;
   float mYScale;
   nsIntPoint mScrollOffset;
+
+  
+  
+  
+  
+  
+  bool mIsFirstPaint;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };
