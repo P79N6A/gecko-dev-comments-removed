@@ -108,6 +108,7 @@
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellTreeItem.h"
 #include "ExternalHelperAppChild.h"
+#include "nsILoadContext.h"
 
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
@@ -2193,8 +2194,20 @@ nsresult nsExternalAppHandler::OpenWithApplication()
 #endif
 
 
+    bool inPrivateBrowsing = false;
+    NS_ASSERTION(mRequest, "This should never be called with a null request");
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
+    if (channel) {
+      nsCOMPtr<nsILoadContext> ctx;
+      NS_QueryNotificationCallbacks(channel, ctx);
+      if (ctx) {
+        inPrivateBrowsing = ctx->UsePrivateBrowsing();
+      }
+    }
 
-    if (deleteTempFileOnExit || mExtProtSvc->InPrivateBrowsing())
+    
+    
+    if (deleteTempFileOnExit || inPrivateBrowsing)
       mFinalFileDestination->SetPermissions(0400);
 
     rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);
@@ -2211,7 +2224,7 @@ nsresult nsExternalAppHandler::OpenWithApplication()
     else if (deleteTempFileOnExit) {
       mExtProtSvc->DeleteTemporaryFileOnExit(mFinalFileDestination);
     }
-    else if (mExtProtSvc->InPrivateBrowsing()) {
+    else if (inPrivateBrowsing) {
       mExtProtSvc->DeleteTemporaryPrivateFileWhenPossible(mFinalFileDestination);
     }
   }
