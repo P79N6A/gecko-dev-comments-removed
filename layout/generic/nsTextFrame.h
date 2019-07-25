@@ -271,8 +271,6 @@ public:
   void AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
                                  InlinePrefWidthData *aData);
 
-  gfxFloat GetSnappedBaselineY(gfxContext* aContext, gfxFloat aY);
-
   
 
 

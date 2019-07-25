@@ -934,6 +934,10 @@ public:
   
   static nscolor GetTextColor(nsIFrame* aFrame);
 
+  
+  static gfxFloat GetSnappedBaselineY(nsIFrame* aFrame, gfxContext* aContext,
+                                      nscoord aY, nscoord aAscent);
+
   static void DrawString(const nsIFrame*      aFrame,
                          nsRenderingContext* aContext,
                          const PRUnichar*     aString,
