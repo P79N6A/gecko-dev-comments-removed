@@ -33,6 +33,33 @@ if (parentRunner) {
 }
 
 
+
+
+SimpleTest.areOOPPenabled = function () {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var prefservice = Components.classes["@mozilla.org/preferences-service;1"]
+                        .getService(Components.interfaces.nsIPrefBranch);
+    
+    var pref = false;
+    
+    if (navigator.platform.indexOf("Mac") == 0) {
+        var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
+                                   .getService(Components.interfaces.nsIXULAppInfo)
+                                   .QueryInterface(Components.interfaces.nsIXULRuntime);
+        if (xulRuntime.XPCOMABI.match(/x86-/)) {
+            pref = prefservice.getBoolPref("dom.ipc.plugins.enabled.i386");
+        }
+        else if (xulRuntime.XPCOMABI.match(/x86_64-/)) {
+            pref = prefservice.getBoolPref("dom.ipc.plugins.enabled.x86_64");
+        }
+    }
+    else {
+        pref = prefservice.getBoolPref("dom.ipc.plugins.enabled");
+    }
+    return pref;
+};
+
+
 if (parentRunner) {
     SimpleTest._logEnabled = parentRunner.logEnabled;
 }
