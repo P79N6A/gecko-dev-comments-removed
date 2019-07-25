@@ -651,12 +651,15 @@ void gfxFontFamily::LocalizedName(nsAString& aLocalizedName)
 void
 gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
 {
-    if (!mHasStyles)
+    if (!mHasStyles) {
         FindStyleVariations();
+    }
 
-    
-    
-    
+    if (!TestCharacterMap(aMatchData->mCh)) {
+        
+        
+        return;
+    }
 
     
     PRUint32 numFonts = mAvailableFonts.Length();
@@ -2611,11 +2614,8 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
             return font.forget();
         }
         
-        
-        
-        
         gfxFontFamily *family = font->GetFontEntry()->Family();
-        if (family) {
+        if (family && family->TestCharacterMap(aCh)) {
             FontSearch matchData(aCh, font);
             family->FindFontForChar(&matchData);
             gfxFontEntry *fe = matchData.mBestMatch;
