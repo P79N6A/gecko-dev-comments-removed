@@ -431,7 +431,7 @@ JS_XDRString(JSXDRState *xdr, JSString **strp)
                                              (*strp)->length(),
                                              true);
         
-        JS_ASSERT(len != -1);
+        JS_ASSERT(len != (size_t) -1);
         JS_ASSERT(size_t(uint32(len)) == len);
         
         JS_STATIC_ASSERT(JSString::MAX_LENGTH < (uint32(-1) / 3));
