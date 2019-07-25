@@ -1027,36 +1027,12 @@ class HashSet
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     typedef typename Impl::AddPtr AddPtr;
     AddPtr lookupForAdd(const Lookup &l) const {
         return impl.lookupForAdd(l);
     }
 
-    bool add(AddPtr &p, const T &t) {
-        return impl.add(p, t);
-    }
-
-    bool relookupOrAdd(AddPtr &p, const Lookup &l, const T &t) {
-        return impl.relookupOrAdd(p, l, t);
-    }
+    bool add(AddPtr &p, const T &t) { return impl.add(p, t); }
 
     
 
