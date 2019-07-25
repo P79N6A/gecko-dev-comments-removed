@@ -167,14 +167,14 @@ window.Page = {
       var group = Groups.getActiveGroup();
       if( group && group._children.length == 0 )
         Page.show();
-        
+
       
       
       
       if( group == null && Tabbar.getVisibleTabs().length == 0){
         Page.show();
       }
-        
+
       return false;
     });
         
