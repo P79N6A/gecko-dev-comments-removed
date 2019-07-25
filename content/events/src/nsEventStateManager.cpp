@@ -100,6 +100,8 @@
 #include "nsIDOMUIEvent.h"
 #include "nsDOMDragEvent.h"
 #include "nsIDOMNSEditableElement.h"
+#include "nsIDOMMozBrowserFrame.h"
+#include "nsIMozBrowserFrame.h"
 
 #include "nsCaret.h"
 
@@ -1701,12 +1703,30 @@ nsEventStateManager::DispatchCrossProcessEvent(nsEvent* aEvent, nsIFrameLoader* 
 
 bool
 nsEventStateManager::IsRemoteTarget(nsIContent* target) {
-  return target &&
-         (target->Tag() == nsGkAtoms::browser ||
-          target->Tag() == nsGkAtoms::iframe) &&
-         target->IsXUL() &&
-         target->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
-                             nsGkAtoms::_true, eIgnoreCase);
+  if (!target) {
+    return false;
+  }
+
+  
+  if ((target->Tag() == nsGkAtoms::browser ||
+       target->Tag() == nsGkAtoms::iframe) &&
+      target->IsXUL() &&
+      target->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
+                          nsGkAtoms::_true, eIgnoreCase)) {
+    return true;
+  }
+
+  
+  nsCOMPtr<nsIMozBrowserFrame> browserFrame = do_QueryInterface(target);
+  if (browserFrame) {
+    bool isRemote = false;
+    browserFrame->GetReallyIsBrowser(&isRemote);
+    if (isRemote) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 
@@ -4764,19 +4784,6 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
 void
 nsEventStateManager::ContentRemoved(nsIDocument* aDocument, nsIContent* aContent)
 {
-  
-
-
-
-
-  if (aContent->IsHTML() &&
-      (aContent->Tag() == nsGkAtoms::a || aContent->Tag() == nsGkAtoms::area) &&
-      (aContent->AsElement()->State().HasAtLeastOneOfStates(NS_EVENT_STATE_FOCUS |
-                                                            NS_EVENT_STATE_HOVER))) {
-    nsGenericHTMLElement* element = static_cast<nsGenericHTMLElement*>(aContent);
-    element->LeaveLink(element->GetPresContext());
-  }
-
   
   
   nsFocusManager* fm = nsFocusManager::GetFocusManager();

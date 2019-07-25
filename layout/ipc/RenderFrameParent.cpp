@@ -52,6 +52,7 @@
 #include "nsViewportFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "nsIObserver.h"
+#include "nsContentUtils.h"
 
 typedef nsContentView::ViewConfig ViewConfig;
 using namespace mozilla::layers;
@@ -411,8 +412,8 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
       NSIntPixelsToAppUnits(metrics.mViewport.width, auPerDevPixel) * aXScale,
       NSIntPixelsToAppUnits(metrics.mViewport.height, auPerDevPixel) * aYScale);
     view->mContentSize = nsSize(
-      nsPresContext::CSSPixelsToAppUnits(metrics.mCSSContentSize.width) * aXScale,
-      nsPresContext::CSSPixelsToAppUnits(metrics.mCSSContentSize.height) * aYScale);
+      NSIntPixelsToAppUnits(metrics.mContentSize.width, auPerDevPixel) * aXScale,
+      NSIntPixelsToAppUnits(metrics.mContentSize.height, auPerDevPixel) * aYScale);
 
     newContentViews[scrollId] = view;
   }
@@ -695,8 +696,7 @@ RenderFrameParent::BuildViewMap()
 LayerManager*
 RenderFrameParent::GetLayerManager() const
 {
-  nsIDocument* doc = mFrameLoader->OwnerDoc();
-  return doc->GetShell()->GetLayerManager();
+  return nsContentUtils::LayerManagerForDocument(mFrameLoader->OwnerDoc()).get();
 }
 
 ShadowLayersParent*
