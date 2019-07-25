@@ -38,6 +38,7 @@
 
 
 #include "IndexedDatabaseManager.h"
+#include "DatabaseInfo.h"
 
 #include "nsIFile.h"
 #include "nsIObserverService.h"
@@ -78,9 +79,6 @@
 
 
 #define PREF_INDEXEDDB_QUOTA "dom.indexedDB.warningQuota"
-
-
-#define BAD_TLS_INDEX (PRUintn)-1 
 
 USING_INDEXEDDB_NAMESPACE
 using namespace mozilla::services;
@@ -1183,6 +1181,8 @@ IndexedDatabaseManager::ClearDatabasesForURI(nsIURI* aURI)
   for (PRUint32 index = 0; index < liveDatabases.Length(); index++) {
     liveDatabases[index]->Invalidate();
   }
+  
+  DatabaseInfo::RemoveAllForOrigin(origin);
 
   
   
