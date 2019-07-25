@@ -119,7 +119,6 @@ public:
 
   virtual void PullOverflowsFromPrevInFlow();
   virtual nscoord GetBaseline() const;
-  virtual nscoord GetCaretBaseline() const;
 
   
 
