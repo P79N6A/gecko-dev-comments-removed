@@ -143,6 +143,48 @@ nsDOMDeviceStorage::SetRootFileForType(const nsAString& aType, const PRInt32 aIn
   }
 
   
+  if (aType.Equals(NS_LITERAL_STRING("videos"))) {
+#ifdef MOZ_WIDGET_GONK
+    if (aIndex == 0) {
+      NS_NewLocalFile(NS_LITERAL_STRING("/data/videos"), false, getter_AddRefs(f));
+    }
+    else if (aIndex == 1) {
+      NS_NewLocalFile(NS_LITERAL_STRING("/sdcard/videos"), false, getter_AddRefs(f));
+      typeResult = DEVICE_STORAGE_TYPE_EXTERNAL;
+    }
+#elif defined (MOZ_WIDGET_COCOA)
+    if (aIndex == 0) {
+      dirService->Get(NS_OSX_MOVIE_DOCUMENTS_DIR, NS_GET_IID(nsILocalFile), getter_AddRefs(f));
+    }
+#elif defined (XP_UNIX)
+    if (aIndex == 0) {
+      dirService->Get(NS_UNIX_XDG_VIDEOS_DIR, NS_GET_IID(nsILocalFile), getter_AddRefs(f));
+    }
+#endif
+  }
+
+  
+  if (aType.Equals(NS_LITERAL_STRING("music"))) {
+#ifdef MOZ_WIDGET_GONK
+    if (aIndex == 0) {
+      NS_NewLocalFile(NS_LITERAL_STRING("/data/music"), false, getter_AddRefs(f));
+    }
+    else if (aIndex == 1) {
+      NS_NewLocalFile(NS_LITERAL_STRING("/sdcard/music"), false, getter_AddRefs(f));
+      typeResult = DEVICE_STORAGE_TYPE_EXTERNAL;
+    }
+#elif defined (MOZ_WIDGET_COCOA)
+    if (aIndex == 0) {
+      dirService->Get(NS_OSX_MUSIC_DOCUMENTS_DIR, NS_GET_IID(nsILocalFile), getter_AddRefs(f));
+    }
+#elif defined (XP_UNIX)
+    if (aIndex == 0) {
+      dirService->Get(NS_UNIX_XDG_MUSIC_DIR, NS_GET_IID(nsILocalFile), getter_AddRefs(f));
+    }
+#endif
+  }
+
+  
   if (mozilla::Preferences::GetBool("device.storage.testing", false)) {
 
     
