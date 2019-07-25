@@ -894,9 +894,14 @@ FormHistory.prototype = {
 
         this._dbFinalize();
 
-        
-        
-        try { this.dbConnection.close(); } catch(e) {}
+        if (this.dbConnection !== undefined) {
+            try {
+                this.dbConnection.close();
+            } catch (e) {
+                Components.utils.reportError(e);
+            }
+        }
+
         this.dbFile.remove(false);
     }
 };
