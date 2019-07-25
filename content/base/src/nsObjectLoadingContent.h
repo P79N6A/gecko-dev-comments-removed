@@ -151,7 +151,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     void NotifyOwnerDocumentActivityChanged();
 
-    bool SrcStreamLoadInitiated() { return mSrcStreamLoadInitiated; };
+    bool SrcStreamLoading() { return mSrcStreamLoading; };
 
   protected:
     
@@ -403,7 +403,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     
-    bool mSrcStreamLoadInitiated;
+    
+    
+    
+    bool mSrcStreamLoading;
 
     
     PluginSupportState          mFallbackReason;

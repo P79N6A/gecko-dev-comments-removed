@@ -932,9 +932,9 @@ nsPluginHost::GetPluginTempDir(nsIFile **aDir)
   return sPluginTempDir->Clone(aDir);
 }
 
-nsresult nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
-                                                   nsObjectLoadingContent* aContent,
-                                                   nsIStreamListener** aListener)
+nsresult nsPluginHost::CreateListenerForChannel(nsIChannel* aChannel,
+                                                nsObjectLoadingContent* aContent,
+                                                nsIStreamListener** aListener)
 {
   NS_PRECONDITION(aChannel && aContent,
                   "Invalid arguments to InstantiatePluginForChannel");
@@ -1068,7 +1068,7 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
   
   
   if (!aMimeType) {
-    if (bCanHandleInternally && !aContent->SrcStreamLoadInitiated()) {
+    if (bCanHandleInternally && !aContent->SrcStreamLoading()) {
       NewEmbeddedPluginStream(aURL, aContent, nsnull);
     }
     return NS_ERROR_FAILURE;
@@ -1096,7 +1096,7 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
     
     const char *value;
     bool havedata = NS_SUCCEEDED(pti->GetAttribute("SRC", &value));
-    if (havedata && !isJava && bCanHandleInternally && !aContent->SrcStreamLoadInitiated()) {
+    if (havedata && !isJava && bCanHandleInternally && !aContent->SrcStreamLoading()) {
       NewEmbeddedPluginStream(aURL, nsnull, instance.get());
     }
   }
