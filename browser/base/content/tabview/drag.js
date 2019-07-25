@@ -108,8 +108,8 @@ Drag.prototype = {
   
   
   snapBounds: function Drag_snapBounds(bounds, stationaryCorner, assumeConstantSize, keepProportional, checkItemStatus) {
-		if (!stationaryCorner)
-			stationaryCorner || 'topleft';
+    if (!stationaryCorner)
+      stationaryCorner || 'topleft';
     var update = false; 
     var updateX = false;
     var updateY = false;
