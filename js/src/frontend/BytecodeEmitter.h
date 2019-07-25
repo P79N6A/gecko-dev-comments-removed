@@ -26,18 +26,6 @@
 
 namespace js {
 
-
-
-
-
-
-
-
-
-#define CATCHNOTE(stmt)  ((stmt).update)
-#define GOSUBS(stmt)     ((stmt).breaks)
-#define GUARDJUMP(stmt)  ((stmt).continues)
-
 struct TryNode {
     JSTryNote       note;
     TryNode       *prev;
