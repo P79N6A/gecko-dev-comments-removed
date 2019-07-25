@@ -412,8 +412,8 @@ public class PanZoomController
     }
 
     private void track(MotionEvent event) {
-        mX.lastTouchPos = mX.touchPos;
-        mY.lastTouchPos = mY.touchPos;
+        mX.saveTouchPos();
+        mY.saveTouchPos();
 
         for (int i = 0; i < event.getHistorySize(); i++) {
             track(event.getHistoricalX(0, i),
@@ -702,8 +702,8 @@ public class PanZoomController
         }
 
         private float firstTouchPos;            
-        public float touchPos;                  
-        public float lastTouchPos;              
+        private float touchPos;                 
+        private float lastTouchPos;             
         public float velocity;                  
         public boolean locked;                  
         public boolean disableSnap;             
@@ -737,6 +737,10 @@ public class PanZoomController
 
         float panDistance(float currentPos) {
             return currentPos - firstTouchPos;
+        }
+
+        void saveTouchPos() {
+            lastTouchPos = touchPos;
         }
 
         void updateWithTouchAt(float pos, float timeDelta) {
