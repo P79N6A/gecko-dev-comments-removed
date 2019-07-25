@@ -171,6 +171,7 @@ DOMSVGLengthList::Clear()
   }
 
   if (Length() > 0) {
+    nsAttrValue emptyOrOldValue = Element()->WillChangeLengthList(AttrEnum());
     
     
     
@@ -178,7 +179,7 @@ DOMSVGLengthList::Clear()
 
     mItems.Clear();
     InternalList().Clear();
-    Element()->DidChangeLengthList(AttrEnum(), true);
+    Element()->DidChangeLengthList(AttrEnum(), emptyOrOldValue);
     if (mAList->IsAnimating()) {
       Element()->AnimationNeedsResample();
     }
@@ -256,6 +257,7 @@ DOMSVGLengthList::InsertItemBefore(nsIDOMSVGLength *newItem,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeLengthList(AttrEnum());
   
   MaybeInsertNullInAnimValListAt(index);
 
@@ -269,7 +271,7 @@ DOMSVGLengthList::InsertItemBefore(nsIDOMSVGLength *newItem,
 
   UpdateListIndicesFromIndex(mItems, index + 1);
 
-  Element()->DidChangeLengthList(AttrEnum(), true);
+  Element()->DidChangeLengthList(AttrEnum(), emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -298,6 +300,7 @@ DOMSVGLengthList::ReplaceItem(nsIDOMSVGLength *newItem,
     domItem = domItem->Copy(); 
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeLengthList(AttrEnum());
   if (mItems[index]) {
     
     
@@ -311,7 +314,7 @@ DOMSVGLengthList::ReplaceItem(nsIDOMSVGLength *newItem,
   
   domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
 
-  Element()->DidChangeLengthList(AttrEnum(), true);
+  Element()->DidChangeLengthList(AttrEnum(), emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
@@ -332,6 +335,7 @@ DOMSVGLengthList::RemoveItem(PRUint32 index,
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
+  nsAttrValue emptyOrOldValue = Element()->WillChangeLengthList(AttrEnum());
   
   
   
@@ -350,7 +354,7 @@ DOMSVGLengthList::RemoveItem(PRUint32 index,
 
   UpdateListIndicesFromIndex(mItems, index);
 
-  Element()->DidChangeLengthList(AttrEnum(), true);
+  Element()->DidChangeLengthList(AttrEnum(), emptyOrOldValue);
   if (mAList->IsAnimating()) {
     Element()->AnimationNeedsResample();
   }
