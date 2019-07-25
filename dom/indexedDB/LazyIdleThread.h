@@ -72,11 +72,17 @@ public:
   NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSIOBSERVER
 
+  enum ShutdownMethod {
+    AutomaticShutdown = 0,
+    ManualShutdown
+  };
+
   
 
 
 
   LazyIdleThread(PRUint32 aIdleTimeoutMS,
+                 ShutdownMethod aShutdownMethod = AutomaticShutdown,
                  nsIObserver* aIdleObserver = nsnull);
 
   
@@ -195,6 +201,13 @@ private:
 
 
 
+
+  ShutdownMethod mShutdownMethod;
+
+  
+
+
+
   PRPackedBool mShutdown;
 
   
@@ -211,4 +224,4 @@ private:
 
 END_INDEXEDDB_NAMESPACE
 
-#endif 
+#endif

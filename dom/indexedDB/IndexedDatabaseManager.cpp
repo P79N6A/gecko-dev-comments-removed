@@ -68,7 +68,7 @@ using namespace mozilla::services;
 
 namespace {
 
-bool gShutdown = false;
+PRInt32 gShutdown = 0;
 
 
 IndexedDatabaseManager* gInstance = nsnull;
@@ -116,7 +116,7 @@ IndexedDatabaseManager::GetOrCreate()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (gShutdown) {
+  if (IsShuttingDown()) {
     NS_ERROR("Calling GetOrCreateInstance() after shutdown!");
     return nsnull;
   }
@@ -153,7 +153,8 @@ IndexedDatabaseManager::GetOrCreate()
 
     
     
-    instance->mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS);
+    instance->mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
+                                             LazyIdleThread::ManualShutdown);
 
     
     gInstance = instance;
@@ -187,7 +188,7 @@ IndexedDatabaseManager::RegisterDatabase(IDBDatabase* aDatabase)
   NS_ASSERTION(aDatabase, "Null pointer!");
 
   
-  if (gShutdown) {
+  if (IsShuttingDown()) {
     return false;
   }
 
@@ -205,6 +206,8 @@ IndexedDatabaseManager::RegisterDatabase(IDBDatabase* aDatabase)
     NS_WARNING("Out of memory?");
     return false;
   }
+
+  aDatabase->mRegistered = true;
   return true;
 }
 
@@ -285,6 +288,13 @@ IndexedDatabaseManager::WaitForClearAndDispatch(const nsACString& aOrigin,
   
   
   return NS_DispatchToCurrentThread(aRunnable);
+}
+
+
+bool
+IndexedDatabaseManager::IsShuttingDown()
+{
+  return !!gShutdown;
 }
 
 NS_IMPL_ISUPPORTS2(IndexedDatabaseManager, nsIIndexedDatabaseManager,
@@ -447,7 +457,9 @@ IndexedDatabaseManager::Observe(nsISupports* aSubject,
   if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID)) {
     
     
-    gShutdown = true;
+    if (PR_AtomicSet(&gShutdown, 1)) {
+      NS_ERROR("Shutdown more than once?!");
+    }
 
     
     if (NS_FAILED(mIOThread->Shutdown())) {
