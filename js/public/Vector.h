@@ -560,7 +560,6 @@ Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
                                      size_t &newCap)
 {
     size_t newMinCap = curLength + lengthInc;
-    size_t newMinSize = newMinCap * sizeof(T);
 
     
 
@@ -573,13 +572,7 @@ Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
     }
 
     
-
-
-
-
-
-    size_t newSize = RoundUpPow2(newMinSize);
-    newCap = newSize / sizeof(T);
+    newCap = RoundUpPow2(newMinCap);
 
     
 
