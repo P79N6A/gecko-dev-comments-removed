@@ -102,7 +102,7 @@ GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 NS_IMETHODIMP
 GfxInfo::GetDWriteVersion(nsAString & aDwriteVersion)
 {
-  gfxWindowsPlatform::GetPlatform()->GetDLLVersion(L"dwrite.dll", aDwriteVersion);
+  gfxWindowsPlatform::GetDLLVersion(L"dwrite.dll", aDwriteVersion);
   return NS_OK;
 }
 
@@ -361,14 +361,14 @@ GfxInfo::Init()
                                  ? L"igd10umd64.dll"
                                  : L"igd10umd32.dll";
     nsString dllVersion;
-    
-    gfxWindowsPlatform::GetPlatform()->GetDLLVersion((PRUnichar*)dllFileName, dllVersion);
+    gfxWindowsPlatform::GetDLLVersion((PRUnichar*)dllFileName, dllVersion);
 
     PRUint64 dllNumericVersion = 0, driverNumericVersion = 0;
-    
     ParseDriverVersion(dllVersion, &dllNumericVersion);
     ParseDriverVersion(mDriverVersion, &driverNumericVersion);
 
+    
+    
     
     if (dllNumericVersion != driverNumericVersion)
       mHasDriverVersionMismatch = PR_TRUE;

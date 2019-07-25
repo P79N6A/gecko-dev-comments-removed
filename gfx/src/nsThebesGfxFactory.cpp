@@ -53,7 +53,6 @@
 
 
 
-
 namespace {
 class GfxInitialization : public nsISupports {
     NS_DECL_ISUPPORTS
@@ -129,18 +128,6 @@ static const mozilla::Module::ContractIDEntry kThebesContracts[] = {
     { NULL }
 };
 
-static const mozilla::Module::CategoryEntry kThebesCategories[] = {
-    { "app-startup", "Gfx Initialization", "service,@mozilla.org/gfx/init;1" },
-    { NULL }
-};
-
-static nsresult
-nsThebesGfxModuleCtor()
-{
-    gfxPlatform::Init();
-    return NS_OK;
-}
-
 static void
 nsThebesGfxModuleDtor()
 {
@@ -152,9 +139,9 @@ static const mozilla::Module kThebesModule = {
     mozilla::Module::kVersion,
     kThebesCIDs,
     kThebesContracts,
-    kThebesCategories,
     NULL,
-    nsThebesGfxModuleCtor,
+    NULL,
+    NULL,
     nsThebesGfxModuleDtor
 };
 
