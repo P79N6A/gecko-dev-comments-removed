@@ -283,6 +283,8 @@ nsDocAccessibleWrap::GetNativeWindow() const
 void
 nsDocAccessibleWrap::NotifyOfInitialUpdate()
 {
+  nsDocAccessible::NotifyOfInitialUpdate();
+
   if (nsWinUtils::IsWindowEmulationEnabled()) {
     
     if (nsWinUtils::IsTabDocument(mDocument)) {

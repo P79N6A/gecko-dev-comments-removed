@@ -1503,6 +1503,15 @@ nsDocAccessible::CacheChildren()
 void
 nsDocAccessible::NotifyOfInitialUpdate()
 {
+  
+  
+  
+  nsIContent* contentElm = nsCoreUtils::GetRoleContent(mDocument);
+  if (contentElm && mContent != contentElm)
+    mContent = contentElm;
+
+  
+  CacheChildrenInSubtree(this);
 }
 
 void

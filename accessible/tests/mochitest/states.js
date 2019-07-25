@@ -60,12 +60,13 @@ const EXT_STATE_VERTICAL = nsIAccessibleStates.EXT_STATE_VERTICAL;
 
 
 
+
 function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
-                    aAbsentExtraState)
+                    aAbsentExtraState, aTestName)
 {
   var [state, extraState] = getStates(aAccOrElmOrID);
 
-  var id = prettyName(aAccOrElmOrID);
+  var id = prettyName(aAccOrElmOrID) + (aTestName ? " [" + aTestName + "]": "");
 
   
   isState(state & aState, aState, false,
