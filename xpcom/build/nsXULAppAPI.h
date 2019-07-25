@@ -54,11 +54,6 @@
 
 
 
-
-
-
-
-
 struct nsXREAppData
 {
   

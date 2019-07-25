@@ -134,14 +134,10 @@ struct Module;
 
 
 
-
-
 XPCOM_API(nsresult)
 NS_InitXPCOM2(nsIServiceManager* *result, 
               nsIFile* binDirectory,
               nsIDirectoryServiceProvider* appFileLocationProvider);
-
-
 
 
 
@@ -167,10 +163,8 @@ NS_ShutdownXPCOM(nsIServiceManager* servMgr);
 
 
 
-
 XPCOM_API(nsresult)
 NS_GetServiceManager(nsIServiceManager* *result);
-
 
 
 
@@ -194,7 +188,6 @@ NS_GetComponentManager(nsIComponentManager* *result);
 
 
 
-
 XPCOM_API(nsresult)
 NS_GetComponentRegistrar(nsIComponentRegistrar* *result);
 
@@ -207,11 +200,8 @@ NS_GetComponentRegistrar(nsIComponentRegistrar* *result);
 
 
 
-
 XPCOM_API(nsresult)
 NS_GetMemoryManager(nsIMemory* *result);
-
-
 
 
 
@@ -256,8 +246,6 @@ NS_NewNativeLocalFile(const nsACString &path,
 
 
 
-
-
 XPCOM_API(void*)
 NS_Alloc(PRSize size);
 
@@ -277,12 +265,8 @@ NS_Alloc(PRSize size);
 
 
 
-
-
 XPCOM_API(void*)
 NS_Realloc(void* ptr, PRSize size);
-
-
 
 
 
@@ -428,8 +412,6 @@ NS_CycleCollectorForget2(nsPurpleBufferEntry *e);
 
 
 
-
-
 #define XPCOM_DIRECTORY_PROVIDER_CATEGORY "xpcom-directory-providers"
 
 
@@ -438,10 +420,7 @@ NS_CycleCollectorForget2(nsPurpleBufferEntry *e);
 
 
 
-
-
 #define NS_XPCOM_STARTUP_CATEGORY "xpcom-startup"
-
 
 
 
@@ -469,11 +448,7 @@ NS_CycleCollectorForget2(nsPurpleBufferEntry *e);
 
 
 
-
-
 #define NS_XPCOM_SHUTDOWN_OBSERVER_ID "xpcom-shutdown"
-
-
 
 
 
@@ -490,12 +465,8 @@ NS_CycleCollectorForget2(nsPurpleBufferEntry *e);
 
 
 
-
-
 #define NS_XPCOM_CATEGORY_ENTRY_REMOVED_OBSERVER_ID \
   "xpcom-category-entry-removed"
-
-
 
 
 

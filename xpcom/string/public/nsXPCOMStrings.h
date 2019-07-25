@@ -189,12 +189,8 @@ enum {
 
 
 
-
-
 XPCOM_API(nsresult)
 NS_StringContainerInit(nsStringContainer &aContainer);
-
-
 
 
 
@@ -227,12 +223,8 @@ NS_StringContainerInit2
 
 
 
-
-
 XPCOM_API(void)
 NS_StringContainerFinish(nsStringContainer &aContainer);
-
-
 
 
 
@@ -283,8 +275,6 @@ NS_StringGetData
 
 
 
-
-
 XPCOM_API(PRUint32)
 NS_StringGetMutableData
   (nsAString &aStr, PRUint32 aDataLength, PRUnichar **aData);
@@ -299,13 +289,9 @@ NS_StringGetMutableData
 
 
 
-
-
 XPCOM_API(PRUnichar *)
 NS_StringCloneData
   (const nsAString &aStr);
-
-
 
 
 
@@ -355,14 +341,10 @@ NS_StringSetData
 
 
 
-
-
 XPCOM_API(nsresult)
 NS_StringSetDataRange
   (nsAString &aStr, PRUint32 aCutOffset, PRUint32 aCutLength,
    const PRUnichar *aData, PRUint32 aDataLength = PR_UINT32_MAX);
-
-
 
 
 
@@ -512,12 +494,8 @@ enum {
 
 
 
-
-
 XPCOM_API(nsresult)
 NS_CStringContainerInit(nsCStringContainer &aContainer);
-
-
 
 
 
@@ -550,12 +528,8 @@ NS_CStringContainerInit2
 
 
 
-
-
 XPCOM_API(void)
 NS_CStringContainerFinish(nsCStringContainer &aContainer);
-
-
 
 
 
@@ -606,8 +580,6 @@ NS_CStringGetData
 
 
 
-
-
 XPCOM_API(PRUint32)
 NS_CStringGetMutableData
   (nsACString &aStr, PRUint32 aDataLength, char **aData);
@@ -622,13 +594,9 @@ NS_CStringGetMutableData
 
 
 
-
-
 XPCOM_API(char *)
 NS_CStringCloneData
   (const nsACString &aStr);
-
-
 
 
 
@@ -678,14 +646,10 @@ NS_CStringSetData
 
 
 
-
-
 XPCOM_API(nsresult)
 NS_CStringSetDataRange
   (nsACString &aStr, PRUint32 aCutOffset, PRUint32 aCutLength,
    const char *aData, PRUint32 aDataLength = PR_UINT32_MAX);
-
-
 
 
 
@@ -823,13 +787,9 @@ enum nsCStringEncoding {
 
 
 
-
-
 XPCOM_API(nsresult)
 NS_CStringToUTF16(const nsACString &aSource, nsCStringEncoding aSrcEncoding,
                   nsAString &aDest);
-
-
 
 
 
