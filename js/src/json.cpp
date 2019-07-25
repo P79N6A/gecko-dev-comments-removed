@@ -113,22 +113,28 @@ Class js_JSONClass = {
     ConvertStub
 };
 
+
 JSBool
 js_json_parse(JSContext *cx, uintN argc, Value *vp)
 {
-    JSString *s = NULL;
-    Value *argv = vp + 2;
-    Value reviver = UndefinedValue();
+    
+    JSLinearString *linear;
+    if (argc >= 1) {
+        JSString *str = js_ValueToString(cx, vp[2]);
+        if (!str)
+            return false;
+        linear = str->ensureLinear(cx);
+        if (!linear)
+            return false;
+    } else {
+        linear = cx->runtime->atomState.typeAtoms[JSTYPE_VOID];
+    }
+    JS::Anchor<JSString *> anchor(linear);
 
-    if (!JS_ConvertArguments(cx, argc, Jsvalify(argv), "S / v", &s, &reviver))
-        return JS_FALSE;
+    Value reviver = (argc >= 2) ? vp[3] : UndefinedValue();
 
-    JSLinearString *linearStr = s->ensureLinear(cx);
-    if (!linearStr)
-        return JS_FALSE;
-    JS::Anchor<JSString *> anchor(linearStr);
-
-    return ParseJSONWithReviver(cx, linearStr->chars(), linearStr->length(), reviver, vp);
+    
+    return ParseJSONWithReviver(cx, linear->chars(), linear->length(), reviver, vp);
 }
 
 
@@ -980,12 +986,15 @@ ParseJSONWithReviver(JSContext *cx, const jschar *chars, size_t length, const Va
     ok &= !!js_FinishJSONParse(cx, jp, reviver);
     return ok;
 #else
+    
     JSONSourceParser parser(cx, chars, length,
                             decodingMode == STRICT
                             ? JSONSourceParser::StrictJSON
                             : JSONSourceParser::LegacyJSON);
     if (!parser.parse(vp))
         return false;
+
+    
     if (js_IsCallable(reviver))
         return Revive(cx, reviver, vp);
     return true;
