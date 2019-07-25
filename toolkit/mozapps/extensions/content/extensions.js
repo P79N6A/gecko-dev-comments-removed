@@ -1486,7 +1486,7 @@ var gCategories = {
     
     
     
-    if (this.node.selectedItem == this._search)
+    if (!this.node.selectedItem || this.node.selectedItem == this._search)
       this.node.value = VIEW_DEFAULT;
 
     var self = this;
