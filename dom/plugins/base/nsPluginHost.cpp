@@ -1616,8 +1616,7 @@ nsPluginHost::GetPluginTags(PRUint32* aPluginCount, nsIPluginTag*** aResults)
   *aPluginCount = count;
 
   plugin = mPlugins;
-  PRUint32 i;
-  for (i = 0; i < count; i++) {
+  for (PRUint32 i = 0; i < count; i++) {
     (*aResults)[i] = plugin;
     NS_ADDREF((*aResults)[i]);
     plugin = plugin->mNext;
@@ -2014,46 +2013,6 @@ PRBool nsPluginHost::IsDuplicatePlugin(nsPluginTag * aPluginTag)
   return PR_FALSE;
 }
 
-
-struct pluginFileinDirectory
-{
-  nsString mFilePath;
-  PRInt64  mModTime;
-
-  pluginFileinDirectory()
-  {
-    mModTime = LL_ZERO;
-  }
-};
-
-
-
-
-NS_SPECIALIZE_TEMPLATE
-class nsDefaultComparator<pluginFileinDirectory, pluginFileinDirectory>
-{
-  public:
-  PRBool Equals(const pluginFileinDirectory& aA,
-                const pluginFileinDirectory& aB) const {
-    if (aA.mModTime == aB.mModTime &&
-        Compare(aA.mFilePath, aB.mFilePath,
-                nsCaseInsensitiveStringComparator()) == 0)
-      return PR_TRUE;
-    else
-      return PR_FALSE;
-  }
-  PRBool LessThan(const pluginFileinDirectory& aA,
-                  const pluginFileinDirectory& aB) const {
-    if (aA.mModTime < aB.mModTime)
-      return PR_TRUE;
-    else if(aA.mModTime == aB.mModTime)
-      return Compare(aA.mFilePath, aB.mFilePath,
-                     nsCaseInsensitiveStringComparator()) < 0;
-    else
-      return PR_FALSE;
-  }
-};
-
 typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
 
 nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
@@ -2077,8 +2036,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
   if (NS_FAILED(rv))
     return rv;
 
-  
-  nsAutoTArray<pluginFileinDirectory, 8> pluginFilesArray;
+  nsAutoTArray<nsCOMPtr<nsILocalFile>, 6> pluginFiles;
 
   PRBool hasMore;
   while (NS_SUCCEEDED(iter->HasMoreElements(&hasMore)) && hasMore) {
@@ -2094,41 +2052,26 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     
     dirEntry->Normalize();
 
-    nsAutoString filePath;
-    rv = dirEntry->GetPath(filePath);
-    if (NS_FAILED(rv))
-      continue;
-
     if (nsPluginsDir::IsPluginFile(dirEntry)) {
-      pluginFileinDirectory * item = pluginFilesArray.AppendElement();
-      if (!item)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-      
-      PRInt64 fileModTime = LL_ZERO;
-      dirEntry->GetLastModifiedTime(&fileModTime);
-
-      item->mModTime = fileModTime;
-      item->mFilePath = filePath;
+      pluginFiles.AppendElement(dirEntry);
     }
-  } 
-
-  
-  
-  pluginFilesArray.Sort();
+  }
 
   PRBool warnOutdated = PR_FALSE;
 
-  
-  for (PRUint32 i = 0; i < pluginFilesArray.Length(); i++) {
-    pluginFileinDirectory &pfd = pluginFilesArray[i];
-    nsCOMPtr <nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
-    nsCOMPtr <nsILocalFile> localfile = do_QueryInterface(file);
-    localfile->InitWithPath(pfd.mFilePath);
-    PRInt64 fileModTime = pfd.mModTime;
+  for (PRUint32 i = 0; i < pluginFiles.Length(); i++) {
+    nsCOMPtr<nsILocalFile>& localfile = pluginFiles[i];
+
+    nsString utf16FilePath;
+    rv = localfile->GetPath(utf16FilePath);
+    if (NS_FAILED(rv))
+      continue;
+
+    PRInt64 fileModTime = LL_ZERO;
+    localfile->GetLastModifiedTime(&fileModTime);
 
     
-    NS_ConvertUTF16toUTF8 filePath(pfd.mFilePath);
+    NS_ConvertUTF16toUTF8 filePath(utf16FilePath);
     nsRefPtr<nsPluginTag> pluginTag;
     RemoveCachedPluginsInfo(filePath.get(),
                             getter_AddRefs(pluginTag));
@@ -2193,7 +2136,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
 
     
     if (!pluginTag) {
-      nsPluginFile pluginFile(file);
+      nsPluginFile pluginFile(localfile);
 
       
       PRLibrary *library = nsnull;
@@ -2293,16 +2236,42 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       }
 
       pluginTag->SetHost(this);
-      pluginTag->mNext = mPlugins;
-      mPlugins = pluginTag;
 
-      if (pluginTag->IsEnabled())
+      
+      
+      
+      if (mPlugins) {
+        nsPluginTag *prev = nsnull;
+        nsPluginTag *next = mPlugins;
+        while (next) {
+          if (pluginTag->mLastModifiedTime >= next->mLastModifiedTime) {
+            pluginTag->mNext = next;
+            if (prev) {
+              prev->mNext = pluginTag;
+            } else {
+              mPlugins = pluginTag;
+            }
+            break;
+          }
+          prev = next;
+          next = prev->mNext;
+          if (!next) {
+            prev->mNext = pluginTag;
+          }
+        }
+      } else {
+        mPlugins = pluginTag;
+      }
+
+      if (pluginTag->IsEnabled()) {
         pluginTag->RegisterWithCategoryManager(mOverrideInternalTypes);
+      }
     }
   }
-  
-  if (warnOutdated)
+
+  if (warnOutdated) {
     mPrefService->SetBoolPref("plugins.update.notifyUser", PR_TRUE);
+  }
 
   return NS_OK;
 }
@@ -2545,17 +2514,6 @@ nsresult nsPluginHost::FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsCh
   
   NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsPluginTag>, mCachedPlugins, mNext);
   NS_ITERATIVE_UNREF_LIST(nsRefPtr<nsInvalidPluginTag>, mInvalidPlugins, mNext);
-
-  
-  nsRefPtr<nsPluginTag> next;
-  nsRefPtr<nsPluginTag> prev;
-  for (nsRefPtr<nsPluginTag> cur = mPlugins; cur; cur = next) {
-    next = cur->mNext;
-    cur->mNext = prev;
-    prev = cur;
-  }
-
-  mPlugins = prev;
 
   NS_TIMELINE_STOP_TIMER("LoadPlugins");
   NS_TIMELINE_MARK_TIMER("LoadPlugins");
