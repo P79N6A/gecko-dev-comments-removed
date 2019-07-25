@@ -41,9 +41,8 @@
 #ifndef mozilla_RangedPtr_h_
 #define mozilla_RangedPtr_h_
 
+#include "mozilla/Attributes.h"
 #include "mozilla/Util.h"
-
-#ifdef __cplusplus
 
 namespace mozilla {
 
@@ -274,7 +273,5 @@ class RangedPtr
 };
 
 } 
-
-#endif 
 
 #endif  
