@@ -90,6 +90,21 @@ function isXrayWrapper(x) {
   }
 }
 
+function callGetOwnPropertyDescriptor(obj, name) {
+  
+  
+  
+  
+  
+  
+  
+  try {
+    obj.__lookupGetter__(name);
+    obj.__lookupSetter__(name);
+  } catch(e) { }
+  return Object.getOwnPropertyDescriptor(obj, name);
+}
+
 
 
 function doApply(fun, invocant, args) {
@@ -226,7 +241,7 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   if (own)
-    desc = Object.getOwnPropertyDescriptor(obj, name);
+    desc = callGetOwnPropertyDescriptor(obj, name);
 
   
   
@@ -236,7 +251,7 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   
   else if (!isXrayWrapper(this.wrappedObject))
-    desc = crawlProtoChain(obj, function(o) {return Object.getOwnPropertyDescriptor(o, name);});
+    desc = crawlProtoChain(obj, function(o) {return callGetOwnPropertyDescriptor(o, name);});
 
   
   
