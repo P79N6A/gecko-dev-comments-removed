@@ -343,8 +343,11 @@ nsRootAccessible::FireAccessibleFocusEvent(nsAccessible* aFocusAccessible,
       
       
       if (activeDescendantContent) {
-        focusAccessible =
+        nsAccessible* activeDescendant = 
           GetAccService()->GetAccessible(activeDescendantContent);
+        if (activeDescendant) {
+          focusAccessible = activeDescendant;
+        }
       }
     }
   }
