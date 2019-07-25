@@ -94,11 +94,23 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStreamListener)
 
+  enum Consumption {
+    CONSUMED,
+    NOT_CONSUMED
+  };
+  
+
+
+
+
+  virtual void NotifyConsumptionChanged(MediaStreamGraph* aGraph, Consumption aConsuming) {}
+
   enum Blocking {
     BLOCKED,
     UNBLOCKED
   };
   
+
 
 
   virtual void NotifyBlockingChanged(MediaStreamGraph* aGraph, Blocking aBlocked) {}
@@ -371,8 +383,11 @@ protected:
 class SourceMediaStream : public MediaStream {
 public:
   SourceMediaStream(nsDOMMediaStream* aWrapper) :
-    MediaStream(aWrapper), mMutex("mozilla::media::SourceMediaStream"),
-    mUpdateKnownTracksTime(0), mUpdateFinished(false), mDestroyed(false)
+    MediaStream(aWrapper),
+    mLastConsumptionState(MediaStreamListener::NOT_CONSUMED),
+    mMutex("mozilla::media::SourceMediaStream"),
+    mUpdateKnownTracksTime(0),
+    mUpdateFinished(false), mDestroyed(false)
   {}
 
   virtual SourceMediaStream* AsSourceStream() { return this; }
@@ -470,6 +485,9 @@ protected:
     NS_ERROR("Bad track ID!");
     return nsnull;
   }
+
+  
+  MediaStreamListener::Consumption mLastConsumptionState;
 
   
   
