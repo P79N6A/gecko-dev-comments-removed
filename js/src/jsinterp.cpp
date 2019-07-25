@@ -966,7 +966,6 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
         initialVarObj = (cx->options & JSOPTION_VAROBJFIX) ? chain->getGlobal() : chain;
     }
 
-#if 0 
     
 
 
@@ -984,7 +983,6 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
         frame.fp()->setScopeChainAndCallObj(*initialVarObj);
     }
     JS_ASSERT(!initialVarObj->getOps()->defineProperty);
-#endif
 
 #if JS_HAS_SHARP_VARS
     JS_STATIC_ASSERT(SHARP_NSLOTS == 2);
