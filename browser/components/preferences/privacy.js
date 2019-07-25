@@ -80,7 +80,6 @@ var gPrivacyPane = {
 
   prefsForDefault: [
     "places.history.enabled",
-    "browser.download.manager.retention",
     "browser.formfill.enable",
     "network.cookie.cookieBehavior",
     "network.cookie.lifetimePolicy",
@@ -96,7 +95,6 @@ var gPrivacyPane = {
 
   dependentControls: [
     "rememberHistory",
-    "rememberDownloads",
     "rememberForms",
     "keepUntil",
     "keepCookiesUntil",
@@ -178,10 +176,6 @@ var gPrivacyPane = {
         rememberHistoryCheckbox.checked = true;
 
       
-      if (!document.getElementById("rememberDownloads").checked)
-        document.getElementById("browser.download.manager.retention").value = 2;
-
-      
       document.getElementById("browser.formfill.enable").value = true;
 
       
@@ -223,8 +217,6 @@ var gPrivacyPane = {
       
       document.getElementById("rememberHistory").checked = disabled ? false :
         document.getElementById("places.history.enabled").value;
-      document.getElementById("rememberDownloads").checked = disabled ? false :
-        this.readDownloadRetention();
       document.getElementById("rememberForms").checked = disabled ? false :
         document.getElementById("browser.formfill.enable").value;
 
@@ -332,34 +324,6 @@ var gPrivacyPane = {
 
 
 
-
-
-
-
-
-
-
-
-  
-
-
-
-
-  readDownloadRetention: function ()
-  {
-    var pref = document.getElementById("browser.download.manager.retention");
-    return (pref.value == 2);
-  },
-
-  
-
-
-
-  writeDownloadRetention: function ()
-  {
-    var checkbox = document.getElementById("rememberDownloads");
-    return checkbox.checked ? 2 : 0;
-  },
 
   
 
