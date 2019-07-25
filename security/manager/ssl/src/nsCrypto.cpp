@@ -696,6 +696,10 @@ cryptojs_generateOneKeyPair(JSContext *cx, nsKeyPairInfo *keyPairInfo,
                                                      (params) ? strlen(params):0, 
                                                      keySize, keyPairInfo);
 
+  if (!keyGenParams) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   
   
 
