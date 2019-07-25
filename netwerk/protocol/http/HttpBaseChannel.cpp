@@ -1553,13 +1553,12 @@ HttpBaseChannel::ShouldRewriteRedirectToGET(PRUint32 httpStatus,
                                             nsHttpAtom method)
 {
   
-  
   if (httpStatus == 301 || httpStatus == 302)
-    return true;
+    return method == nsHttp::Post;
 
   
   if (httpStatus == 303)
-    return true;
+    return method != nsHttp::Head;
 
   
   return false;

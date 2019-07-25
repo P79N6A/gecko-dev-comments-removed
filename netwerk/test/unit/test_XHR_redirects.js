@@ -75,23 +75,23 @@ function run_test() {
   
   var tests = [
     
-    [301, "DELETE", "GET", 200], 
+    [301, "DELETE", null, 301],
     [301, "GET", "GET", 200],
-    [301, "HEAD", "GET", 200], 
+    [301, "HEAD", "HEAD", 200],
     [301, "POST", "GET", 200],
-    [301, "PUT", "GET", 200], 
-    [301, "PROPFIND", "GET", 200], 
+    [301, "PUT", null, 301],
+    [301, "PROPFIND", "PROPFIND", 200],
     
-    [302, "DELETE", "GET", 200], 
+    [302, "DELETE", null, 302],
     [302, "GET", "GET", 200],
-    [302, "HEAD", "GET", 200], 
+    [302, "HEAD", "HEAD", 200],
     [302, "POST", "GET", 200],
-    [302, "PUT", "GET", 200], 
-    [302, "PROPFIND", "GET", 200], 
+    [302, "PUT", null, 302],
+    [302, "PROPFIND", "PROPFIND", 200],
     
     [303, "DELETE", "GET", 200],
     [303, "GET", "GET", 200],
-    [303, "HEAD", "GET", 200],
+    [303, "HEAD", "HEAD", 200],
     [303, "POST", "GET", 200],
     [303, "PUT", "GET", 200],
     [303, "PROPFIND", "GET", 200],
