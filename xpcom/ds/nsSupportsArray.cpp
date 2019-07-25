@@ -112,7 +112,7 @@ nsSupportsArray::~nsSupportsArray()
   DeleteArray();
 }
 
-bool nsSupportsArray::GrowArrayBy(PRInt32 aGrowBy)
+void nsSupportsArray::GrowArrayBy(PRInt32 aGrowBy)
 {
   
   
@@ -139,10 +139,6 @@ bool nsSupportsArray::GrowArrayBy(PRInt32 aGrowBy)
   nsISupports** oldArray = mArray;
 
   mArray = new nsISupports*[newCount];
-  if (!mArray) {                    
-    mArray = oldArray;
-    return false;
-  }
   mArraySize = newCount;
 
 #if DEBUG_SUPPORTSARRAY
@@ -165,8 +161,6 @@ bool nsSupportsArray::GrowArrayBy(PRInt32 aGrowBy)
       delete[] oldArray;
     }
   }
-
-  return true;
 }
 
 nsresult
@@ -176,8 +170,6 @@ nsSupportsArray::Create(nsISupports *aOuter, REFNSIID aIID, void **aResult)
     return NS_ERROR_NO_AGGREGATION;
 
   nsCOMPtr<nsISupportsArray> it = new nsSupportsArray();
-  if (!it)
-    return NS_ERROR_OUT_OF_MEMORY;
 
   return it->QueryInterface(aIID, aResult);
 }
@@ -206,8 +198,6 @@ nsSupportsArray::Read(nsIObjectInputStream *aStream)
     }
     else {
       nsISupports** array = new nsISupports*[newArraySize];
-      if (!array)
-        return NS_ERROR_OUT_OF_MEMORY;
       if (mArray != mAutoArray)
         delete[] mArray;
       mArray = array;
@@ -341,8 +331,7 @@ nsSupportsArray::InsertElementAt(nsISupports* aElement, PRUint32 aIndex)
   if (aIndex <= mCount) {
     if (mArraySize < (mCount + 1)) {
       
-      if (!GrowArrayBy(1))
-        return false;
+      GrowArrayBy(1);
     }
 
     
@@ -383,8 +372,7 @@ nsSupportsArray::InsertElementsAt(nsISupportsArray* aElements, PRUint32 aIndex)
   if (aIndex <= mCount) {
     if (mArraySize < (mCount + countElements)) {
       
-      if (!GrowArrayBy(countElements))
-        return false;
+      GrowArrayBy(countElements);
     }
 
     
@@ -729,8 +717,6 @@ NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
                       nsISupportsArray* array)
 {
     nsArrayEnumerator* enumer = new nsArrayEnumerator(array);
-    if (enumer == nullptr)
-        return NS_ERROR_OUT_OF_MEMORY;
     *result = enumer; 
     NS_ADDREF(*result);
     return NS_OK;
