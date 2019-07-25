@@ -243,14 +243,16 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
   }
   else {
     
+    PRBool stretchAll =
+      NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags) ||
+      NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags);
     NS_ASSERTION(NS_MATHML_IS_EMBELLISH_OPERATOR(mEmbellishData.flags) ||
-                 NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags) ||
-                 NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags),
+                 stretchAll,
                  "invalid call to GetPreferredStretchSize");
     PRBool firstTime = PR_TRUE;
     nsBoundingMetrics bm, bmChild;
-    
-    nsIFrame* childFrame = GetFirstChild(nsnull);
+    nsIFrame* childFrame =
+      stretchAll ? GetFirstChild(nsnull) : mPresentationData.baseFrame;
     while (childFrame) {
       
       nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);
@@ -280,8 +282,8 @@ nsMathMLContainerFrame::GetPreferredStretchSize(nsRenderingContext& aRenderingCo
       if (firstTime) {
         firstTime = PR_FALSE;
         bm = bmChild;
-        if (!NS_MATHML_WILL_STRETCH_ALL_CHILDREN_HORIZONTALLY(mPresentationData.flags) &&
-            !NS_MATHML_WILL_STRETCH_ALL_CHILDREN_VERTICALLY(mPresentationData.flags)) {
+        if (!stretchAll) {
+          
           
           break;
         }
