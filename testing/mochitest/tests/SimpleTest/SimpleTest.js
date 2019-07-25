@@ -513,9 +513,10 @@ SimpleTest.executeSoon = function(aFunc) {
     if ("Components" in window && "classes" in window.Components) {
         try {
             netscape.security.PrivilegeManager
-                             .enablePrivilege("UniversalXPConnect");
+              .enablePrivilege("UniversalXPConnect");
             var tm = Components.classes["@mozilla.org/thread-manager;1"]
-                               .getService(Components.interfaces.nsIThreadManager);
+                       .getService(Components.interfaces.nsIThreadManager);
+
             tm.mainThread.dispatch({
                 run: function() {
                     aFunc();
@@ -527,7 +528,6 @@ SimpleTest.executeSoon = function(aFunc) {
             
         }
     }
-
     setTimeout(aFunc, 0);
 }
 
@@ -535,34 +535,20 @@ SimpleTest.executeSoon = function(aFunc) {
 
 
 
-
-
 SimpleTest.finish = function () {
-  SimpleTest.executeSoon(SimpleTest._finishNow);
-};
-
-
-
-
-
-
-SimpleTest._finishNow = function () {
     if (parentRunner) {
         
         parentRunner.testFinished(SimpleTest._tests);
     } else {
-        
         SimpleTest.showReport();
     }
 };
 
 
-
-
-
 addLoadEvent(function() {
-    if (SimpleTest._stopOnLoad)
-      SimpleTest._finishNow();
+    if (SimpleTest._stopOnLoad) {
+        SimpleTest.finish();
+    }
 });
 
 
@@ -794,6 +780,6 @@ window.onerror = function simpletestOnerror(errorMsg, url, lineNumber) {
 
   if (!SimpleTest._stopOnLoad) {
     
-    SimpleTest.finish();
+    SimpleTest.executeSoon(SimpleTest.finish);
   }
 }
