@@ -583,9 +583,14 @@ FrameState::storeLocal(uint32 n)
     }
 
     
-    if (localFe->isCopied())
+    if (localFe->isCopied()) {
         uncopy(localFe);
-    forgetRegs(localFe);
+        if (!localFe->isCopied())
+            forgetRegs(localFe);
+    } else {
+        forgetRegs(localFe);
+    }
+
     localFe->resetUnsynced();
 
     
