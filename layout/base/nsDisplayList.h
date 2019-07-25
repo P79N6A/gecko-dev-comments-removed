@@ -57,6 +57,8 @@
 #include "FrameLayerBuilder.h"
 #include "nsThemeConstants.h"
 
+#include "mozilla/StandardInteger.h"
+
 #include <stdlib.h>
 
 class nsIPresShell;
@@ -1887,8 +1889,8 @@ public:
   
   
   
-  PRWord GetScrollLayerCount();
-  PRWord RemoveScrollLayerCount();
+  intptr_t GetScrollLayerCount();
+  intptr_t RemoveScrollLayerCount();
 
 private:
   nsIFrame* mScrollFrame;

@@ -60,12 +60,14 @@
 #include "nsPrintfCString.h"
 #endif
 
+#include "mozilla/StandardInteger.h"
+
 
 
 
 
 #define ALIGN_SHIFT 3
-#define PL_ARENA_CONST_ALIGN_MASK ((PRUword(1) << ALIGN_SHIFT) - 1)
+#define PL_ARENA_CONST_ALIGN_MASK ((uintptr_t(1) << ALIGN_SHIFT) - 1)
 #include "plarena.h"
 
 #ifdef _WIN32
@@ -95,31 +97,31 @@ static const size_t ARENA_PAGE_SIZE = 8192;
 
 #ifdef _WIN32
 static void *
-ReserveRegion(PRUword region, PRUword size)
+ReserveRegion(uintptr_t region, uintptr_t size)
 {
   return VirtualAlloc((void *)region, size, MEM_RESERVE, PAGE_NOACCESS);
 }
 
 static void
-ReleaseRegion(void *region, PRUword size)
+ReleaseRegion(void *region, uintptr_t size)
 {
   VirtualFree(region, size, MEM_RELEASE);
 }
 
 static bool
-ProbeRegion(PRUword region, PRUword size)
+ProbeRegion(uintptr_t region, uintptr_t size)
 {
   SYSTEM_INFO sinfo;
   GetSystemInfo(&sinfo);
-  if (region >= (PRUword)sinfo.lpMaximumApplicationAddress &&
-      region + size >= (PRUword)sinfo.lpMaximumApplicationAddress) {
+  if (region >= (uintptr_t)sinfo.lpMaximumApplicationAddress &&
+      region + size >= (uintptr_t)sinfo.lpMaximumApplicationAddress) {
     return true;
   } else {
     return false;
   }
 }
 
-static PRUword
+static uintptr_t
 GetDesiredRegionSize()
 {
   SYSTEM_INFO sinfo;
@@ -131,7 +133,7 @@ GetDesiredRegionSize()
 
 #elif defined(__OS2__)
 static void *
-ReserveRegion(PRUword region, PRUword size)
+ReserveRegion(uintptr_t region, uintptr_t size)
 {
   
   
@@ -139,20 +141,20 @@ ReserveRegion(PRUword region, PRUword size)
 }
 
 static void
-ReleaseRegion(void *region, PRUword size)
+ReleaseRegion(void *region, uintptr_t size)
 {
   return;
 }
 
 static bool
-ProbeRegion(PRUword region, PRUword size)
+ProbeRegion(uintptr_t region, uintptr_t size)
 {
   
   
   return false;
 }
 
-static PRUword
+static uintptr_t
 GetDesiredRegionSize()
 {
   
@@ -164,19 +166,19 @@ GetDesiredRegionSize()
 #else 
 
 static void *
-ReserveRegion(PRUword region, PRUword size)
+ReserveRegion(uintptr_t region, uintptr_t size)
 {
   return mmap((caddr_t)region, size, PROT_NONE, MAP_PRIVATE|MAP_ANON, -1, 0);
 }
 
 static void
-ReleaseRegion(void *region, PRUword size)
+ReleaseRegion(void *region, uintptr_t size)
 {
   munmap((caddr_t)region, size);
 }
 
 static bool
-ProbeRegion(PRUword region, PRUword size)
+ProbeRegion(uintptr_t region, uintptr_t size)
 {
   if (madvise((caddr_t)region, size, MADV_NORMAL)) {
     return true;
@@ -185,7 +187,7 @@ ProbeRegion(PRUword region, PRUword size)
   }
 }
 
-static PRUword
+static uintptr_t
 GetDesiredRegionSize()
 {
   return sysconf(_SC_PAGESIZE);
@@ -195,23 +197,23 @@ GetDesiredRegionSize()
 
 #endif 
 
-PR_STATIC_ASSERT(sizeof(PRUword) == 4 || sizeof(PRUword) == 8);
-PR_STATIC_ASSERT(sizeof(PRUword) == sizeof(void *));
+PR_STATIC_ASSERT(sizeof(uintptr_t) == 4 || sizeof(uintptr_t) == 8);
+PR_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void *));
 
-static PRUword
-ReservePoisonArea(PRUword rgnsize)
+static uintptr_t
+ReservePoisonArea(uintptr_t rgnsize)
 {
-  if (sizeof(PRUword) == 8) {
+  if (sizeof(uintptr_t) == 8) {
     
     
     
     return
-      (((PRUword(0x7FFFFFFFu) << 31) << 1 | PRUword(0xF0DEAFFFu))
+      (((uintptr_t(0x7FFFFFFFu) << 31) << 1 | uintptr_t(0xF0DEAFFFu))
        & ~(rgnsize-1));
 
   } else {
     
-    PRUword candidate = (0xF0DEAFFF & ~(rgnsize-1));
+    uintptr_t candidate = (0xF0DEAFFF & ~(rgnsize-1));
     void *result = ReserveRegion(candidate, rgnsize);
     if (result == (void *)candidate) {
       
@@ -230,14 +232,14 @@ ReservePoisonArea(PRUword rgnsize)
     
     
     if (result != RESERVE_FAILED) {
-      return PRUword(result);
+      return uintptr_t(result);
     }
 
     
     
     result = ReserveRegion(0, rgnsize);
     if (result != RESERVE_FAILED) {
-      return PRUword(result);
+      return uintptr_t(result);
     }
 
     NS_RUNTIMEABORT("no usable poison region identified");
@@ -245,14 +247,14 @@ ReservePoisonArea(PRUword rgnsize)
   }
 }
 
-static PRUword ARENA_POISON;
+static uintptr_t ARENA_POISON;
 static PRCallOnceType ARENA_POISON_guard;
 
 static PRStatus
 ARENA_POISON_init()
 {
-  PRUword rgnsize = GetDesiredRegionSize();
-  PRUword rgnbase = ReservePoisonArea(rgnsize);
+  uintptr_t rgnsize = GetDesiredRegionSize();
+  uintptr_t rgnbase = ReservePoisonArea(rgnsize);
 
   if (rgnsize == 0) 
     return PR_FAILURE;
@@ -357,8 +359,8 @@ struct nsPresArena::State {
       {
         char* p = reinterpret_cast<char*>(result);
         char* limit = p + list->mEntrySize;
-        for (; p < limit; p += sizeof(PRUword)) {
-          NS_ABORT_IF_FALSE(*reinterpret_cast<PRUword*>(p) == ARENA_POISON,
+        for (; p < limit; p += sizeof(uintptr_t)) {
+          NS_ABORT_IF_FALSE(*reinterpret_cast<uintptr_t*>(p) == ARENA_POISON,
                             "PresArena: poison overwritten");
         }
       }
@@ -380,8 +382,8 @@ struct nsPresArena::State {
 
     char* p = reinterpret_cast<char*>(aPtr);
     char* limit = p + list->mEntrySize;
-    for (; p < limit; p += sizeof(PRUword)) {
-      *reinterpret_cast<PRUword*>(p) = ARENA_POISON;
+    for (; p < limit; p += sizeof(uintptr_t)) {
+      *reinterpret_cast<uintptr_t*>(p) = ARENA_POISON;
     }
 
     list->mEntries.AppendElement(aPtr);
@@ -478,7 +480,7 @@ nsPresArena::FreeByCode(nsQueryFrame::FrameIID aCode, void* aPtr)
   mState->Free(aCode, aPtr);
 }
 
- PRUword
+ uintptr_t
 nsPresArena::GetPoisonValue()
 {
   return ARENA_POISON;

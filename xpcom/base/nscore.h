@@ -56,6 +56,7 @@
 
 
 #include "prtypes.h"
+#include "mozilla/StandardInteger.h"
 
 
 
@@ -393,9 +394,9 @@ typedef PRUint32 nsrefcnt;
 
 
 
-#define NS_PTR_TO_INT32(x)  ((PRInt32)  (PRWord) (x))
-#define NS_PTR_TO_UINT32(x) ((PRUint32) (PRWord) (x))
-#define NS_INT32_TO_PTR(x)  ((void *)   (PRWord) (x))
+#define NS_PTR_TO_INT32(x)  ((PRInt32)  (intptr_t) (x))
+#define NS_PTR_TO_UINT32(x) ((PRUint32) (intptr_t) (x))
+#define NS_INT32_TO_PTR(x)  ((void *)   (intptr_t) (x))
 
 
 

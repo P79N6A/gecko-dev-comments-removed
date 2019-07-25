@@ -48,6 +48,8 @@
 #include "nscore.h"
 #include "nsQueryFrame.h"
 
+#include "mozilla/StandardInteger.h"
+
 
 
 
@@ -83,7 +85,7 @@ public:
 
 
 
-  static PRUword GetPoisonValue();
+  static uintptr_t GetPoisonValue();
 
 private:
   struct State;
