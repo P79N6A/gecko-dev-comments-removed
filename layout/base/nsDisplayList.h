@@ -213,7 +213,15 @@ public:
 
 
 
-  void IgnorePaintSuppression() { mIsBackgroundOnly = PR_FALSE; }
+  void IgnorePaintSuppression() {
+    mIsBackgroundOnly = PR_FALSE;
+    mIgnoreSuppression = PR_TRUE;
+  }
+  
+
+
+
+  PRBool IsIgnoringPaintSuppression() { return mIgnoreSuppression; }
   
 
 
@@ -386,6 +394,7 @@ private:
   PRPackedBool                   mBuildCaret;
   PRPackedBool                   mEventDelivery;
   PRPackedBool                   mIsBackgroundOnly;
+  PRPackedBool                   mIgnoreSuppression;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
   PRPackedBool                   mSelectedFramesOnly;
   PRPackedBool                   mAccurateVisibleRegions;
