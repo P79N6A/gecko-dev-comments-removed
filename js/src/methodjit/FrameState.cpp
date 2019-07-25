@@ -308,15 +308,13 @@ FrameState::assertValidRegisterState() const
 #endif
 
 void
-FrameState::syncFancy(Assembler &masm, Registers avail, uint32 resumeAt,
+FrameState::syncFancy(Assembler &masm, Registers avail, FrameEntry *resumeAt,
                       FrameEntry *bottom) const
 {
-    
-    reifier.reset(&masm, avail, tracker.nentries, bottom);
+    reifier.reset(&masm, avail, resumeAt, bottom);
 
-    for (uint32 i = resumeAt; i < tracker.nentries; i--) {
-        FrameEntry *fe = tracker[i];
-        if (fe >= sp)
+    for (FrameEntry *fe = resumeAt; fe >= bottom; fe--) {
+        if (!fe->isTracked())
             continue;
 
         reifier.sync(fe);
@@ -326,6 +324,29 @@ FrameState::syncFancy(Assembler &masm, Registers avail, uint32 resumeAt,
 void
 FrameState::sync(Assembler &masm, Uses uses) const
 {
+    if (!entries)
+        return;
+
+    
+    for (uint32 i = 0; i < JSC::MacroAssembler::TotalRegisters; i++) {
+        RegisterID reg = RegisterID(i);
+        FrameEntry *fe = regstate[reg].usedBy();
+        if (!fe)
+            continue;
+
+        JS_ASSERT(fe->isTracked());
+
+        if (regstate[reg].type() == RematInfo::DATA) {
+            JS_ASSERT(fe->data.reg() == reg);
+            if (!fe->data.synced())
+                syncData(fe, addressOf(fe), masm);
+        } else {
+            JS_ASSERT(fe->type.reg() == reg);
+            if (!fe->type.synced())
+                syncType(fe, addressOf(fe), masm);
+        }
+    }
+
     
 
 
@@ -336,31 +357,33 @@ FrameState::sync(Assembler &masm, Uses uses) const
     FrameEntry *bottom = sp - uses.nuses;
 
     if (inTryBlock)
-        bottom = NULL;
+        bottom = entries;
 
-    for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
-        FrameEntry *fe = tracker[i];
-        if (fe >= sp)
+    for (FrameEntry *fe = sp - 1; fe >= bottom; fe--) {
+        if (!fe->isTracked())
             continue;
 
         Address address = addressOf(fe);
 
         if (!fe->isCopy()) {
             
-            if (fe->data.inRegister())
-                avail.putReg(fe->data.reg());
-            if (fe->type.inRegister())
-                avail.putReg(fe->type.reg());
 
-            
-            if (!fe->data.synced() && (fe->data.inRegister() || fe >= bottom)) {
+
+
+
+            if (fe->data.inRegister()) {
+                avail.putReg(fe->data.reg());
+            } else if (!fe->data.synced()) {
                 syncData(fe, address, masm);
                 if (fe->isConstant())
                     continue;
             }
-            if (!fe->type.synced() && (fe->type.inRegister() || fe >= bottom))
-                syncType(fe, addressOf(fe), masm);
-        } else if (fe >= bottom) {
+
+            if (fe->type.inRegister())
+                avail.putReg(fe->type.reg());
+            else if (!fe->type.synced())
+                syncType(fe, address, masm);
+        } else {
             FrameEntry *backing = fe->copyOf();
             JS_ASSERT(backing != fe);
             JS_ASSERT(!backing->isConstant() && !fe->isConstant());
@@ -371,7 +394,7 @@ FrameState::sync(Assembler &masm, Uses uses) const
 
             if ((!fe->type.synced() && !backing->type.inRegister()) ||
                 (!fe->data.synced() && !backing->data.inRegister())) {
-                syncFancy(masm, avail, i, bottom);
+                syncFancy(masm, avail, fe, bottom);
                 return;
             }
 
