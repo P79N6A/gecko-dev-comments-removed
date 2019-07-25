@@ -36,6 +36,7 @@
 
 
 
+
 .hud-box {
     border-bottom: 1px solid #aaa;
 }
@@ -56,7 +57,7 @@
     font-weight: bold;
 }
 
-.hud-output-node div {
+.hud-output-node * {
     -moz-user-select: text;
     white-space: pre-wrap;
     -moz-user-focus: normal;
