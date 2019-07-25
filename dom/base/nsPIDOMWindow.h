@@ -526,7 +526,8 @@ public:
   
 
 
-  virtual nsresult DispatchSyncHashchange() = 0;
+
+  virtual nsresult DispatchAsyncHashchange() = 0;
 
   
 
