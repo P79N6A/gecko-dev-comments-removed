@@ -47,7 +47,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
-const DEBUG = false; 
+const DEBUG = true; 
 
 const RADIOINTERFACELAYER_CID =
   Components.ID("{2d831c8d-6017-435b-a80c-e5d422810cea}");
@@ -141,11 +141,15 @@ function RadioInterfaceLayer() {
   this.worker.onerror = this.onerror.bind(this);
   this.worker.onmessage = this.onmessage.bind(this);
   debug("Starting Worker\n");
-  this.currentState = {
-    signalStrength: null,
-    operator:       null,
+  this.radioState = {
     radioState:     null,
-    cardState:      null
+    cardState:      null,
+    connected:      null,
+    roaming:        null,
+    signalStrength: null,
+    bars:           null,
+    operator:       null,
+    type:           null,
   };
 }
 RadioInterfaceLayer.prototype = {
@@ -190,22 +194,58 @@ RadioInterfaceLayer.prototype = {
         this.handleEnumerateCalls(message.calls);
         break;
       case "registrationstatechange":
-        this.currentState.registrationState = message.registrationState;
+        
+        
         break;
       case "gprsregistrationstatechange":
-        this.currentState.gprsRegistrationState = message.gprsRegistrationState;
+        let state = message.gprsRegistrationState;
+        if (!state || state.regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
+          this.resetRadioState();
+          this.notifyRadioStateChanged();
+          return;
+        }
+
+        this.radioState.connected =
+          (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_HOME) ||
+          (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
+        this.radioState.roaming =
+          this.radioState.connected &&
+          (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
+        this.radioState.type = RIL.GECKO_RADIO_TECH[state.radioTech] || null;
+        this.notifyRadioStateChanged();
         break;
       case "signalstrengthchange":
-        this.currentState.signalStrength = message.signalStrength;
+        
+        let signalStrength = message.signalStrength.gsmSignalStrength;
+        if (signalStrength == 99) {
+          signalStrength = null;
+        }
+        this.radioState.signalStrength = signalStrength;
+        if (message.signalStrength.bars) {
+          this.radioState.bars = message.signalStrength.bars;
+        } else if (signalStrength != null) {
+          
+          
+          this.radioState.bars = Math.round(signalStrength / 7.75);
+        } else {
+          this.radioState.bars = null;
+        }
+        this.notifyRadioStateChanged();
         break;
       case "operatorchange":
-        this.currentState.operator = message.operator;
+        this.radioState.operator = message.operator.alphaLong;
+        this.notifyRadioStateChanged();
         break;
       case "radiostatechange":
-        this.currentState.radioState = message.radioState;
+        this.radioState.radioState = message.radioState;
+        this.notifyRadioStateChanged();
         break;
       case "cardstatechange":
-        this.currentState.cardState = message.cardState;
+        this.radioState.cardState = message.cardState;
+        if (!message.cardState || message.cardState == "absent") {
+          this.resetRadioState();
+        }
+        this.notifyRadioStateChanged();
         break;
       case "sms-received":
         this.handleSmsReceived(message);
@@ -376,13 +416,27 @@ RadioInterfaceLayer.prototype = {
                                   [datacalls, datacalls.length]);
   },
 
+  resetRadioState: function resetRadioState() {
+    this.radioState.connected = null;
+    this.radioState.roaming = null;
+    this.radioState.signalStrength = null;
+    this.radioState.bars = null;
+    this.radioState.operator = null;
+    this.radioState.type = null;
+  },
+
+  notifyRadioStateChanged: function notifyRadioStateChanged() {
+    debug("Radio state changed: " + JSON.stringify(this.radioState));
+    Services.obs.notifyObservers(null, "ril-radiostate-changed", null);
+  },
+
   
 
   worker: null,
 
   
 
-  currentState: null,
+  radioState: null,
 
   dial: function dial(number) {
     debug("Dialing " + number);

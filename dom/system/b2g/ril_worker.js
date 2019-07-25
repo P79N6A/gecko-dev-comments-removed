@@ -1113,11 +1113,16 @@ RIL[REQUEST_UDUB] = function REQUEST_UDUB(length) {
 };
 RIL[REQUEST_LAST_CALL_FAIL_CAUSE] = null;
 RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH() {
+  let signalStrength = Buf.readUint32();
+  
+  
+  let bars = signalStrength >> 8;
+  signalStrength = signalStrength & 0xff;
   let strength = {
     
+    gsmSignalStrength: signalStrength,
     
-    
-    gsmSignalStrength: Buf.readUint32() & 0xff,
+    bars:              bars,
     
     gsmBitErrorRate:   Buf.readUint32(),
     
@@ -1650,6 +1655,7 @@ let Phone = {
     if ((!iccStatus) || (iccStatus.cardState == CARD_STATE_ABSENT)) {
       if (DEBUG) debug("ICC absent");
       if (this.cardState == GECKO_CARDSTATE_ABSENT) {
+        this.operator = null;
         return;
       }
       this.cardState = GECKO_CARDSTATE_ABSENT;
@@ -1687,6 +1693,7 @@ let Phone = {
           return;
         }
         this.cardState = GECKO_CARDSTATE_ABSENT;
+        this.operator = null;
         this.sendDOMMessage({type: "cardstatechange",
                              cardState: this.cardState});
         return;
