@@ -91,6 +91,8 @@
 #include "nsPIDOMStorage.h"
 #include "nsIWidget.h"
 #include "nsFocusManager.h"
+#include "nsIPresShell.h"
+#include "nsPresContext.h"
 
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
@@ -1903,23 +1905,17 @@ nsWindowWatcher::SizeOpenedDocShellItem(nsIDocShellTreeItem *aDocShellItem,
     return;
     
   float devPixelsPerCSSPixel = 1.0;
-  nsCOMPtr<nsIWidget> mainWidget;
-  treeOwnerAsWin->GetMainWidget(getter_AddRefs(mainWidget));
-  if (!mainWidget) {
-    
-    
-    nsCOMPtr<nsIBaseWindow> shellWindow(do_QueryInterface(aDocShellItem));
-    if (shellWindow)
-      shellWindow->GetParentWidget(getter_AddRefs(mainWidget));
-  }
-  if (mainWidget) {
-    nsCOMPtr<nsIDeviceContext> ctx = mainWidget->GetDeviceContext();
-    
-    if (ctx) {
-      PRInt32 unitsPerDevPixel = ctx->AppUnitsPerDevPixel();
-      if (unitsPerDevPixel) {
-        devPixelsPerCSSPixel = float(ctx->AppUnitsPerCSSPixel()) /
-                                     unitsPerDevPixel;
+  if (aParent) {
+    nsCOMPtr<nsIDOMDocument> openerDoc;
+    aParent->GetDocument(getter_AddRefs(openerDoc));
+    if (openerDoc) {
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(openerDoc);
+      nsIPresShell* shell = doc->GetShell();
+      if (shell) {
+        nsPresContext* presContext = shell->GetPresContext();
+        if (presContext) {
+          devPixelsPerCSSPixel = presContext->CSSPixelsToDevPixels(1.0f);
+        }
       }
     }
   }
