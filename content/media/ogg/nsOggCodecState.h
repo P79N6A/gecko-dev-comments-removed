@@ -314,6 +314,7 @@ public:
   int mStreams;     
 
   OpusDecoder *mDecoder;
+  int mSkip;        
 
 private:
 
