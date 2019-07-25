@@ -27,6 +27,7 @@ function test(str, f) {
         f(g1.eval("new Object()"));
     } catch (e) {
         assertEq(Object.prototype.toString.call(e), "[object Error]");
+        assertEq(e.name, "TypeError");
         threw = true;
     }
     assertEq(threw, true);
@@ -35,6 +36,7 @@ function test(str, f) {
         f(g2.eval("new Object()"));
     } catch (e) {
         assertEq(Object.prototype.toString.call(e), "[object Error]");
+        assertEq(e.name, "TypeError");
         threw = true;
     }
     assertEq(threw, true);
@@ -43,6 +45,7 @@ function test(str, f) {
         f(proxy1);
     } catch (e) {
         assertEq(Object.prototype.toString.call(e), "[object Error]");
+        assertEq(e.name, "TypeError");
         threw = true;
     }
     assertEq(threw, true);
@@ -51,6 +54,7 @@ function test(str, f) {
         f(proxy2);
     } catch (e) {
         assertEq(Object.prototype.toString.call(e), "[object Error]");
+        assertEq(e.name, "TypeError");
         threw = true;
     }
     assertEq(threw, true);
@@ -74,24 +78,10 @@ test("new RegExp('1')", function(r) RegExp.prototype.toString.call(r));
 test("new RegExp('1')", function(r) RegExp.prototype.exec.call(r, '1').toString());
 test("new RegExp('1')", function(r) RegExp.prototype.test.call(r, '1'));
 test("new RegExp('1')", function(r) RegExp.prototype.compile.call(r, '1').toString());
-test("new RegExp('1')", function(r) assertEq("a1".search(r), 1));
-test("new RegExp('1')", function(r) assertEq("a1".match(r)[0], '1'));
-test("new RegExp('1')", function(r) assertEq("a1".replace(r, 'A'), 'aA'));
-test("new RegExp('1')", function(r) assertEq(String("a1b".split(r)), "a,b"));
-test("new RegExp('1')", function(r) assertEq(r, RegExp(r)));
-test("new RegExp('1')", function(r) assertEq(String(new RegExp(r)), String(r)));
-test("new RegExp('1')", function(r) assertEq(String(/x/.compile(r)), String(r)));
 test("new WeakMap()", function(w) WeakMap.prototype.has.call(w, {}));
 test("new WeakMap()", function(w) WeakMap.prototype.get.call(w, {}));
 test("new WeakMap()", function(w) WeakMap.prototype.delete.call(w, {}));
 test("new WeakMap()", function(w) WeakMap.prototype.set.call(w, {}));
-test("new Map()", function(w) Map.prototype.has.call(w, {}));
-test("new Map()", function(w) Map.prototype.get.call(w, {}));
-test("new Map()", function(w) Map.prototype.delete.call(w, {}));
-test("new Map()", function(w) Map.prototype.set.call(w, {}));
-test("new Set()", function(w) Set.prototype.has.call(w, {}));
-test("new Set()", function(w) Set.prototype.add.call(w, {}));
-test("new Set()", function(w) Set.prototype.delete.call(w, {}));
 
 test("new Int8Array(1)", function(a) Int8Array.prototype.subarray.call(a).toString());
 test("new Uint8Array(1)", function(a) Uint8Array.prototype.subarray.call(a).toString());
@@ -102,16 +92,6 @@ test("new Uint32Array(1)", function(a) Uint32Array.prototype.subarray.call(a).to
 test("new Float32Array(1)", function(a) Float32Array.prototype.subarray.call(a).toString());
 test("new Float64Array(1)", function(a) Float64Array.prototype.subarray.call(a).toString());
 test("new Uint8ClampedArray(1)", function(a) Uint8ClampedArray.prototype.subarray.call(a).toString());
-
-test("new Int8Array(1)", function(a) Int8Array.subarray(a).toString());
-test("new Uint8Array(1)", function(a) Uint8Array.subarray(a).toString());
-test("new Int16Array(1)", function(a) Int16Array.subarray(a).toString());
-test("new Uint16Array(1)", function(a) Uint16Array.subarray(a).toString());
-test("new Int32Array(1)", function(a) Int32Array.subarray(a).toString());
-test("new Uint32Array(1)", function(a) Uint32Array.subarray(a).toString());
-test("new Float32Array(1)", function(a) Float32Array.subarray(a).toString());
-test("new Float64Array(1)", function(a) Float64Array.subarray(a).toString());
-test("new Uint8ClampedArray(1)", function(a) Uint8ClampedArray.subarray(a).toString());
 
 test("new Int8Array(1)", function(a) Int8Array.prototype.set.call(a, []));
 test("new Uint8Array(1)", function(a) Uint8Array.prototype.set.call(a, []));
@@ -167,6 +147,5 @@ test("new Date()", function(d) justDontThrow(Date.prototype.toTimeString.call(d)
 test("new Date()", function(d) justDontThrow(Date.prototype.toDateString.call(d)));
 test("new Date()", function(d) justDontThrow(Date.prototype.toSource.call(d)));
 test("new Date()", function(d) justDontThrow(Date.prototype.toString.call(d)));
-test("new Date()", function(d) justDontThrow(Date.prototype.valueOf.call(d)));
 
 throw "done";

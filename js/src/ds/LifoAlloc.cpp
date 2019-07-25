@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "LifoAlloc.h"
 
 #include <new>
@@ -32,21 +65,16 @@ BumpChunk::new_(size_t chunkSize)
     return result;
 }
 
-void
-BumpChunk::delete_(BumpChunk *chunk)
+void *
+BumpChunk::tryAllocUnaligned(size_t n)
 {
-#ifdef DEBUG
-        memset(chunk, 0xcd, sizeof(*chunk) + chunk->bumpSpaceSize);
-#endif
-        js_free(chunk);
-}
+    char *oldBump = bump;
+    char *newBump = bump + n;
+    if (newBump > limit)
+        return NULL;
 
-bool
-BumpChunk::canAlloc(size_t n)
-{
-    char *aligned = AlignPtr(bump);
-    char *bumped = aligned + n;
-    return bumped <= limit && bumped > headerBase();
+    setBump(newBump);
+    return oldBump;
 }
 
 } 
@@ -60,7 +88,38 @@ LifoAlloc::freeAll()
         first = first->next();
         BumpChunk::delete_(victim);
     }
-    first = latest = last = NULL;
+    first = latest = NULL;
+}
+
+void
+LifoAlloc::freeUnused()
+{
+    
+    if (markCount || !first)
+        return; 
+
+    JS_ASSERT(first && latest);
+
+    
+    if (!latest->used()) {
+        BumpChunk *lastUsed = NULL;
+        for (BumpChunk *it = first; it != latest; it = it->next()) {
+            if (it->used())
+                lastUsed = it;
+        }
+        if (!lastUsed) {
+            freeAll();
+            return;
+        }
+        latest = lastUsed;
+    }
+
+    
+    size_t freed = 0;
+    for (BumpChunk *victim = latest->next(); victim; victim = victim->next()) {
+        BumpChunk::delete_(victim);
+        freed++;
+    }
 }
 
 LifoAlloc::BumpChunk *
@@ -77,57 +136,38 @@ LifoAlloc::getOrCreateChunk(size_t n)
     }
 
     size_t defaultChunkFreeSpace = defaultChunkSize_ - sizeof(BumpChunk);
-    size_t chunkSize;
-    if (n > defaultChunkFreeSpace) {
-        size_t allocSizeWithHeader = n + sizeof(BumpChunk);
-
-        
-        if (allocSizeWithHeader < n ||
-            (allocSizeWithHeader & (size_t(1) << (tl::BitSize<size_t>::result - 1)))) {
-            return NULL;
-        }
-
-        chunkSize = RoundUpPow2(allocSizeWithHeader);
-    } else {
-        chunkSize = defaultChunkSize_;
-    }
+    size_t chunkSize = n > defaultChunkFreeSpace
+                       ? RoundUpPow2(n + sizeof(BumpChunk))
+                       : defaultChunkSize_;
 
     
     BumpChunk *newChunk = BumpChunk::new_(chunkSize);
     if (!newChunk)
         return NULL;
     if (!first) {
-        latest = first = last = newChunk;
+        latest = first = newChunk;
     } else {
         JS_ASSERT(latest && !latest->next());
         latest->setNext(newChunk);
-        latest = last = newChunk;
+        latest = newChunk;
     }
     return newChunk;
 }
 
-void
-LifoAlloc::transferFrom(LifoAlloc *other)
+void *
+LifoAlloc::allocUnaligned(size_t n)
 {
-    JS_ASSERT(!markCount);
-    JS_ASSERT(latest == first);
-    JS_ASSERT(!other->markCount);
+    void *result;
+    if (latest && (result = latest->tryAllocUnaligned(n)))
+        return result;
 
-    if (!other->first)
-        return;
-
-    append(other->first, other->last);
-    other->first = other->last = other->latest = NULL;
+    return alloc(n);
 }
 
-void
-LifoAlloc::transferUnusedFrom(LifoAlloc *other)
+void *
+LifoAlloc::reallocUnaligned(void *origPtr, size_t origSize, size_t incr)
 {
-    JS_ASSERT(!markCount);
-    JS_ASSERT(latest == first);
-
-    if (other->markCount || !other->first)
-        return;
+    JS_ASSERT(first && latest);
 
     
 
@@ -135,10 +175,15 @@ LifoAlloc::transferUnusedFrom(LifoAlloc *other)
 
 
 
-
-    if (other->latest->next()) {
-        append(other->latest->next(), other->last);
-        other->latest->setNext(NULL);
-        other->last = other->latest;
+    if (latest
+        && origPtr == (char *) latest->mark() - origSize
+        && latest->canAllocUnaligned(incr)) {
+        JS_ALWAYS_TRUE(allocUnaligned(incr));
+        return origPtr;
     }
+
+    
+    size_t newSize = origSize + incr;
+    void *newPtr = allocUnaligned(newSize);
+    return newPtr ? memcpy(newPtr, origPtr, origSize) : NULL;
 }
