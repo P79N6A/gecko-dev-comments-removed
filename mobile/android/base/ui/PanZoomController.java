@@ -501,6 +501,12 @@ public class PanZoomController
         }
     }
 
+    private float getVelocity() {
+        float xvel = mX.getRealVelocity();
+        float yvel = mY.getRealVelocity();
+        return FloatMath.sqrt(xvel * xvel + yvel * yvel);
+    }
+
     private boolean stopped() {
         float absVelocity = (float)Math.sqrt(mX.velocity * mX.velocity +
                                              mY.velocity * mY.velocity);
@@ -635,12 +641,10 @@ public class PanZoomController
             }
 
             
-            boolean flingingX = mX.getFlingState() == Axis.FlingStates.FLINGING;
-            boolean flingingY = mY.getFlingState() == Axis.FlingStates.FLINGING;
-            if (flingingX)
-                mX.advanceFling();
-            if (flingingY)
-                mY.advanceFling();
+            boolean flingingX = mX.advanceFling();
+            boolean flingingY = mY.advanceFling();
+
+            boolean overscrolled = ((mX.overscrolled() || mY.overscrolled()) && !mOverridePanning);
 
             
             if (flingingX || flingingY) {
@@ -652,20 +656,22 @@ public class PanZoomController
 
 
 
-                float excess = PointUtils.distance(new PointF(mX.getExcess(), mY.getExcess()));
-                PointF velocityVector = new PointF(mX.getRealVelocity(), mY.getRealVelocity());
-                float threshold = (excess >= 1.0f) ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD;
-                if (PointUtils.distance(velocityVector) >= threshold)
+
+                float threshold = (overscrolled ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD);
+                if (getVelocity() >= threshold) {
+                    
                     return;
+                }
+
+                mX.stopFling();
+                mY.stopFling();
             }
 
             
 
 
 
-            boolean overscrolledX = mX.getOverscroll() != Axis.Overscroll.NONE;
-            boolean overscrolledY = mY.getOverscroll() != Axis.Overscroll.NONE;
-            if (!mOverridePanning && (overscrolledX || overscrolledY)) {
+            if (overscrolled) {
                 bounce();
             } else {
                 finishAnimation();
@@ -691,7 +697,7 @@ public class PanZoomController
             FLINGING,
         }
 
-        public enum Overscroll {
+        private enum Overscroll {
             NONE,
             MINUS,      
             PLUS,       
@@ -755,7 +761,11 @@ public class PanZoomController
             touchPos = pos;
         }
 
-        public Overscroll getOverscroll() {
+        boolean overscrolled() {
+            return getOverscroll() != Overscroll.NONE;
+        }
+
+        private Overscroll getOverscroll() {
             boolean minus = (getOrigin() < 0.0f);
             boolean plus = (getViewportEnd() > getPageLength());
             if (minus && plus)
@@ -770,7 +780,7 @@ public class PanZoomController
 
         
         
-        public float getExcess() {
+        private float getExcess() {
             switch (getOverscroll()) {
             case MINUS:     return -getOrigin();
             case PLUS:      return getViewportEnd() - getPageLength();
@@ -810,35 +820,34 @@ public class PanZoomController
         }
 
         
-        public void advanceFling() {
-            
+        public boolean advanceFling() {
+            if (mFlingState != FlingStates.FLINGING) {
+                return false;
+            }
+
             float excess = getExcess();
             if (disableSnap || FloatUtils.fuzzyEquals(excess, 0.0f)) {
+                
                 if (Math.abs(velocity) >= VELOCITY_THRESHOLD) {
                     velocity *= FRICTION_FAST;
                 } else {
                     float t = velocity / VELOCITY_THRESHOLD;
                     velocity *= FloatUtils.interpolate(FRICTION_SLOW, FRICTION_FAST, t);
                 }
-
-                if (Math.abs(velocity) < FLING_STOPPED_THRESHOLD) {
-                    velocity = 0.0f;
-                    setFlingState(FlingStates.STOPPED);
-                }
-                return;
+            } else {
+                
+                float elasticity = 1.0f - excess / (getViewportLength() * SNAP_LIMIT);
+                if (getOverscroll() == Overscroll.MINUS)
+                    velocity = Math.min((velocity + OVERSCROLL_DECEL_RATE) * elasticity, 0.0f);
+                else 
+                    velocity = Math.max((velocity - OVERSCROLL_DECEL_RATE) * elasticity, 0.0f);
             }
+            return true;
+        }
 
-            
-            float elasticity = 1.0f - excess / (getViewportLength() * SNAP_LIMIT);
-            if (getOverscroll() == Overscroll.MINUS)
-                velocity = Math.min((velocity + OVERSCROLL_DECEL_RATE) * elasticity, 0.0f);
-            else 
-                velocity = Math.max((velocity - OVERSCROLL_DECEL_RATE) * elasticity, 0.0f);
-
-            if (Math.abs(velocity) < 0.3f) {
-                velocity = 0.0f;
-                setFlingState(FlingStates.STOPPED);
-            }
+        void stopFling() {
+            velocity = 0.0f;
+            setFlingState(FlingStates.STOPPED);
         }
 
         
