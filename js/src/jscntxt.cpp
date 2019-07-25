@@ -45,8 +45,11 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include "jstypes.h"
+
+#define __STDC_LIMIT_MACROS
 #include "jsstdint.h"
+
+#include "jstypes.h"
 #include "jsarena.h" 
 #include "jsutil.h" 
 #include "jsclist.h"
@@ -1179,6 +1182,9 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 #ifdef JS_THREADSAFE
     js_ClearContextThread(cx);
 #endif
+#ifdef JS_METER_DST_OFFSET_CACHING
+    cx->dstOffsetCache.dumpStats();
+#endif
     JS_UNLOCK_GC(rt);
     FreeContext(cx);
 }
@@ -2235,6 +2241,40 @@ js_CurrentPCIsInImacro(JSContext *cx)
 #else
     return false;
 #endif
+}
+
+void
+DSTOffsetCache::purge()
+{
+    
+
+
+
+
+    offsetMilliseconds = 0;
+    rangeStartSeconds = rangeEndSeconds = INT64_MIN;
+
+#ifdef JS_METER_DST_OFFSET_CACHING
+    totalCalculations = 0;
+    hit = 0;
+    missIncreasing = missDecreasing = 0;
+    missIncreasingOffsetChangeExpand = missIncreasingOffsetChangeUpper = 0;
+    missDecreasingOffsetChangeExpand = missDecreasingOffsetChangeLower = 0;
+    missLargeIncrease = missLargeDecrease = 0;
+#endif
+
+    sanityCheck();
+}
+
+
+
+
+
+
+
+DSTOffsetCache::DSTOffsetCache()
+{
+    purge();
 }
 
 JSContext::JSContext(JSRuntime *rt)
