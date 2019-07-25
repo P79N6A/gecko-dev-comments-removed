@@ -3327,31 +3327,53 @@ SessionStoreService.prototype = {
         if (!node)
           continue;
 
+        let eventType;
         let value = aData[key];
         if (typeof value == "string" && node.type != "file") {
           if (node.value == value)
             continue; 
 
           node.value = value;
-
-          let event = aDocument.createEvent("UIEvents");
-          event.initUIEvent("input", true, true, aDocument.defaultView, 0);
-          node.dispatchEvent(event);
+          eventType = "input";
         }
-        else if (typeof value == "boolean")
+        else if (typeof value == "boolean") {
+          if (node.checked == value)
+            continue; 
+
           node.checked = value;
-        else if (typeof value == "number")
+          eventType = "change";
+        }
+        else if (typeof value == "number") {
+          
+          
+          if (node.selectedIndex == value)
+            continue;
+
           try {
             node.selectedIndex = value;
+            eventType = "change";
           } catch (ex) {  }
-        else if (value && value.fileList && value.type == "file" && node.type == "file")
+        }
+        else if (value && value.fileList && value.type == "file" && node.type == "file") {
           node.mozSetFileNameArray(value.fileList, value.fileList.length);
+          eventType = "input";
+        }
         else if (value && typeof value.indexOf == "function" && node.options) {
           Array.forEach(node.options, function(aOpt, aIx) {
             aOpt.selected = value.indexOf(aIx) > -1;
+
+            
+            if (!aOpt.defaultSelected)
+              eventType = "change";
           });
         }
+
         
+        if (eventType) {
+          let event = aDocument.createEvent("UIEvents");
+          event.initUIEvent(eventType, true, true, aDocument.defaultView, 0);
+          node.dispatchEvent(event);
+        }
       }
     }
 
