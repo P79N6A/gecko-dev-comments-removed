@@ -528,8 +528,8 @@ struct JSScript : public js::gc::Cell {
     js::ScriptOpcodeCounts pcCounters;
 
   private:
-    js::DebugScript *debug;
-    JSFunction      *function_;
+    js::DebugScript     *debug;
+    js::HeapPtrFunction function_;
   public:
 
     
@@ -537,7 +537,7 @@ struct JSScript : public js::gc::Cell {
 
 
     JSFunction *function() const { return function_; }
-    void setFunction(JSFunction *fun) { function_ = fun; }
+    void setFunction(JSFunction *fun);
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
