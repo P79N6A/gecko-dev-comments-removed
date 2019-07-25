@@ -94,18 +94,18 @@ public:
 
 
 
-  virtual nsresult GetCurrentFrameIndex(PRUint32* aCurrentFrameIdx) = 0;
+  virtual PRUint32 GetCurrentFrameIndex() = 0;
 
   
 
 
-  virtual nsresult GetNumFrames(PRUint32* aNumFrames) = 0;
+  virtual PRUint32 GetNumFrames() = 0;
 
   
 
 
 
-  virtual nsresult GetDataSize(PRUint32* aDataSize) = 0;
+  virtual PRUint32 GetDataSize() = 0;
 
 protected:
   Image();

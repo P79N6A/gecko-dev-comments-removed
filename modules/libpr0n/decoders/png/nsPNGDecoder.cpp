@@ -145,11 +145,8 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
     SetAnimFrameInfo();
 #endif
 
-  PRUint32 numFrames = 0;
-  mImage->GetNumFrames(&numFrames);
-
   if (mObserver)
-    mObserver->OnStartFrame(nsnull, numFrames - 1);
+    mObserver->OnStartFrame(nsnull, mImage->GetNumFrames() - 1);
 
   PR_LOG(gPNGDecoderAccountingLog, PR_LOG_DEBUG,
          ("PNGDecoderAccounting: nsPNGDecoder::CreateFrame -- created "
@@ -187,8 +184,7 @@ void nsPNGDecoder::SetAnimFrameInfo()
               (static_cast<PRFloat64>(delay_num) * 1000 / delay_den);
   }
 
-  PRUint32 numFrames = 0;
-  mImage->GetNumFrames(&numFrames);
+  PRUint32 numFrames = mImage->GetNumFrames();
 
   mImage->SetFrameTimeout(numFrames - 1, timeout);
 
@@ -214,7 +210,7 @@ void nsPNGDecoder::EndImageFrame()
 {
   PRUint32 numFrames = 1;
 #ifdef PNG_APNG_SUPPORTED
-  mImage->GetNumFrames(&numFrames);
+  numFrames = mImage->GetNumFrames();
 
   
   if (numFrames > 1) {
@@ -226,8 +222,7 @@ void nsPNGDecoder::EndImageFrame()
       mError = PR_TRUE;
       
     }
-    PRUint32 curFrame;
-    mImage->GetCurrentFrameIndex(&curFrame);
+    PRUint32 curFrame = mImage->GetCurrentFrameIndex();
     if (mObserver)
       mObserver->OnDataAvailable(nsnull, curFrame == numFrames - 1,
                                  &mFrameRect);
@@ -861,8 +856,7 @@ row_callback(png_structp png_ptr, png_bytep new_row,
     if (!rowHasNoAlpha)
       decoder->mFrameHasNoAlpha = PR_FALSE;
 
-    PRUint32 numFrames = 0;
-    decoder->mImage->GetNumFrames(&numFrames);
+    PRUint32 numFrames = decoder->mImage->GetNumFrames();
     if (numFrames <= 1) {
       
       nsIntRect r(0, row_num, width, 1);
@@ -870,8 +864,7 @@ row_callback(png_structp png_ptr, png_bytep new_row,
         decoder->mError = PR_TRUE;  
         return;
       }
-      PRUint32 curFrame;
-      decoder->mImage->GetCurrentFrameIndex(&curFrame);
+      PRUint32 curFrame = decoder->mImage->GetCurrentFrameIndex();
       if (decoder->mObserver)
         decoder->mObserver->OnDataAvailable(nsnull,
                                             curFrame == numFrames - 1, &r);

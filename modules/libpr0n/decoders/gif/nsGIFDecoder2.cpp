@@ -212,8 +212,7 @@ nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
   
   
   if (!mGIFStruct.images_decoded && mObserver) {
-    PRUint32 imgCurFrame;
-    mImageContainer->GetCurrentFrameIndex(&imgCurFrame);
+    PRUint32 imgCurFrame = mImageContainer->GetCurrentFrameIndex();
     mObserver->OnDataAvailable(nsnull, imgCurFrame == PRUint32(mGIFStruct.images_decoded), &r);
   }
   return NS_OK;
@@ -269,14 +268,10 @@ nsGIFDecoder2::Write(const char *aBuffer, PRUint32 aCount)
   if (NS_FAILED(rv)) {
 
     
-    PRUint32 numFrames = 0;
-    if (mImageContainer)
-      mImageContainer->GetNumFrames(&numFrames);
-
     
     
     
-    if (numFrames > 1) {
+    if (mImageContainer && mImageContainer->GetNumFrames() > 1) {
       EndGIF( PR_TRUE);
     }
 
@@ -340,8 +335,7 @@ nsresult nsGIFDecoder2::BeginImageFrame(gfx_depth aDepth)
     if (mGIFStruct.y_offset > 0) {
       PRInt32 imgWidth;
       mImageContainer->GetWidth(&imgWidth);
-      PRUint32 imgCurFrame;
-      mImageContainer->GetCurrentFrameIndex(&imgCurFrame);
+      PRUint32 imgCurFrame = mImageContainer->GetCurrentFrameIndex();
       nsIntRect r(0, 0, imgWidth, mGIFStruct.y_offset);
       if (mObserver)
         mObserver->OnDataAvailable(nsnull,
@@ -400,8 +394,7 @@ void nsGIFDecoder2::EndImageFrame()
     
     const PRUint32 realFrameHeight = mGIFStruct.height + mGIFStruct.y_offset;
     if (realFrameHeight < mGIFStruct.screen_height) {
-      PRUint32 imgCurFrame;
-      mImageContainer->GetCurrentFrameIndex(&imgCurFrame);
+      PRUint32 imgCurFrame = mImageContainer->GetCurrentFrameIndex();
       nsIntRect r(0, realFrameHeight,
                   mGIFStruct.screen_width,
                   mGIFStruct.screen_height - realFrameHeight);
