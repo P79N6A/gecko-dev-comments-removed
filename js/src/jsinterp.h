@@ -149,14 +149,8 @@ ComputeThis(JSContext *cx, StackFrame *fp);
 
 
 
-
-
-
 extern bool
-Invoke(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
-
-
-
+InvokeKernel(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
 
 
 
@@ -166,10 +160,27 @@ inline bool
 Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONSTRUCT)
 {
     args.setActive();
-    bool ok = Invoke(cx, ImplicitCast<CallArgs>(args), construct);
+    bool ok = InvokeKernel(cx, args, construct);
     args.setInactive();
     return ok;
 }
+
+
+
+
+
+
+extern bool
+Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *argv,
+       Value *rval);
+
+
+
+
+
+extern bool
+InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, uintN argc, Value *argv,
+                     Value *rval);
 
 
 
@@ -201,37 +212,31 @@ class InvokeSessionGuard;
 
 
 
-
-extern bool
-ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
-               uintN argc, Value *argv, Value *rval);
-
-extern bool
-ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
-                 JSAccessMode mode, uintN argc, Value *argv, Value *rval);
-
-
-
-
-
-
-
-
-
 extern JS_REQUIRES_STACK bool
-InvokeConstructor(JSContext *cx, const CallArgs &args);
+InvokeConstructorKernel(JSContext *cx, const CallArgs &args);
+
+
+inline bool
+InvokeConstructor(JSContext *cx, InvokeArgsGuard &args)
+{
+    args.setActive();
+    bool ok = InvokeConstructorKernel(cx, ImplicitCast<CallArgs>(args));
+    args.setInactive();
+    return ok;
+}
+
+
+extern bool
+InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Value *rval);
+
+
+
+
 
 extern JS_REQUIRES_STACK bool
 InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                uintN argc, Value *argv, Value *rval);
 
-extern bool
-ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
-                          Value *rval);
-
-extern bool
-ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
-
 
 
 
@@ -239,8 +244,12 @@ ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rv
 
 
 extern bool
-Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
-        ExecuteType type, StackFrame *evalInFrame, Value *result);
+ExecuteKernel(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
+              ExecuteType type, StackFrame *evalInFrame, Value *result);
+
+
+extern bool
+Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
 
 
 enum InterpMode

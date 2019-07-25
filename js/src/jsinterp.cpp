@@ -621,7 +621,7 @@ RunScript(JSContext *cx, JSScript *script, StackFrame *fp)
 
 
 JS_REQUIRES_STACK bool
-Invoke(JSContext *cx, const CallArgs &argsRef, MaybeConstruct construct)
+InvokeKernel(JSContext *cx, const CallArgs &argsRef, MaybeConstruct construct)
 {
     
 
@@ -781,8 +781,8 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
 }
 
 bool
-ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
-               uintN argc, Value *argv, Value *rval)
+Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *argv,
+       Value *rval)
 {
     LeaveTrace(cx);
 
@@ -814,8 +814,7 @@ ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
 }
 
 bool
-ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
-                          Value *rval)
+InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Value *rval)
 {
     LeaveTrace(cx);
 
@@ -835,8 +834,8 @@ ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *a
 }
 
 bool
-ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
-                 JSAccessMode mode, uintN argc, Value *argv, Value *rval)
+InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, uintN argc, Value *argv,
+                     Value *rval)
 {
     LeaveTrace(cx);
 
@@ -846,7 +845,7 @@ ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
 
     JS_CHECK_RECURSION(cx, return false);
 
-    return ExternalInvoke(cx, ObjectValue(*obj), fval, argc, argv, rval);
+    return Invoke(cx, ObjectValue(*obj), fval, argc, argv, rval);
 }
 
 #if JS_HAS_SHARP_VARS
@@ -878,8 +877,8 @@ InitSharpSlots(JSContext *cx, StackFrame *fp)
 #endif
 
 bool
-Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
-        ExecuteType type, StackFrame *evalInFrame, Value *result)
+ExecuteKernel(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
+              ExecuteType type, StackFrame *evalInFrame, Value *result)
 {
     JS_ASSERT_IF(evalInFrame, type == EXECUTE_DEBUG);
 
@@ -919,7 +918,7 @@ Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &this
 }
 
 bool
-ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChainArg, Value *rval)
+Execute(JSContext *cx, JSScript *script, JSObject &scopeChainArg, Value *rval)
 {
     
     JSObject *scopeChain = &scopeChainArg;
@@ -944,8 +943,8 @@ ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChainArg, Value 
         return false;
     Value thisv = ObjectValue(*thisObj);
 
-    return Execute(cx, script, *scopeChain, thisv, EXECUTE_GLOBAL,
-                   NULL , rval);
+    return ExecuteKernel(cx, script, *scopeChain, thisv, EXECUTE_GLOBAL,
+                         NULL , rval);
 }
 
 bool
@@ -1190,7 +1189,7 @@ TypeOfValue(JSContext *cx, const Value &vref)
 }
 
 JS_REQUIRES_STACK bool
-InvokeConstructor(JSContext *cx, const CallArgs &argsRef)
+InvokeConstructorKernel(JSContext *cx, const CallArgs &argsRef)
 {
     JS_ASSERT(!js_FunctionClass.construct);
     CallArgs args = argsRef;
@@ -1212,7 +1211,7 @@ InvokeConstructor(JSContext *cx, const CallArgs &argsRef)
             if (!fun->isInterpretedConstructor())
                 goto error;
 
-            if (!Invoke(cx, args, CONSTRUCT))
+            if (!InvokeKernel(cx, args, CONSTRUCT))
                 return false;
 
             JS_ASSERT(args.rval().isObject());
@@ -3986,7 +3985,7 @@ BEGIN_CASE(JSOP_EVAL)
         if (!DirectEval(cx, args))
             goto error;
     } else {
-        if (!Invoke(cx, args))
+        if (!InvokeKernel(cx, args))
             goto error;
     }
     CHECK_INTERRUPT_HANDLER();
@@ -4010,10 +4009,10 @@ BEGIN_CASE(JSOP_FUNAPPLY)
     
     if (!IsFunctionObject(args.calleev(), &callee, &fun) || !fun->isInterpretedConstructor()) {
         if (construct) {
-            if (!InvokeConstructor(cx, args))
+            if (!InvokeConstructorKernel(cx, args))
                 goto error;
         } else {
-            if (!Invoke(cx, args))
+            if (!InvokeKernel(cx, args))
                 goto error;
         }
         regs.sp = args.spAfterCall();

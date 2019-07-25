@@ -1,55 +1,55 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99 ft=cpp:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * June 12, 2009.
+ *
+ * The Initial Developer of the Original Code is
+ *   the Mozilla Corporation.
+ *
+ * Contributor(s):
+ *   Dave Herman <dherman@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * JS reflection package.
+ */
 #include <stdlib.h>
-#include <string.h>     
+#include <string.h>     /* for jsparse.h */
 #include "jspubtd.h"
 #include "jsatom.h"
 #include "jsobj.h"
 #include "jsreflect.h"
-#include "jscntxt.h"    
-#include "jsbit.h"      
-#include "jsscript.h"   
-#include "jsinterp.h"   
+#include "jscntxt.h"    /* for jsparse.h */
+#include "jsbit.h"      /* for jsparse.h */
+#include "jsscript.h"   /* for jsparse.h */
+#include "jsinterp.h"   /* for jsparse.h */
 #include "jsparse.h"
 #include "jsregexp.h"
 #include "jsvector.h"
@@ -72,53 +72,53 @@ using namespace js;
 namespace js {
 
 char const *aopNames[] = {
-    "=",    
-    "+=",   
-    "-=",   
-    "*=",   
-    "/=",   
-    "%=",   
-    "<<=",  
-    ">>=",  
-    ">>>=", 
-    "|=",   
-    "^=",   
-    "&="    
+    "=",    /* AOP_ASSIGN */
+    "+=",   /* AOP_PLUS */
+    "-=",   /* AOP_MINUS */
+    "*=",   /* AOP_STAR */
+    "/=",   /* AOP_DIV */
+    "%=",   /* AOP_MOD */
+    "<<=",  /* AOP_LSH */
+    ">>=",  /* AOP_RSH */
+    ">>>=", /* AOP_URSH */
+    "|=",   /* AOP_BITOR */
+    "^=",   /* AOP_BITXOR */
+    "&="    /* AOP_BITAND */
 };
 
 char const *binopNames[] = {
-    "==",         
-    "!=",         
-    "===",        
-    "!==",        
-    "<",          
-    "<=",         
-    ">",          
-    ">=",         
-    "<<",         
-    ">>",         
-    ">>>",        
-    "+",          
-    "-",          
-    "*",          
-    "/",          
-    "%",          
-    "|",          
-    "^",          
-    "&",          
-    "in",         
-    "instanceof", 
-    "..",         
+    "==",         /* BINOP_EQ */
+    "!=",         /* BINOP_NE */
+    "===",        /* BINOP_STRICTEQ */
+    "!==",        /* BINOP_STRICTNE */
+    "<",          /* BINOP_LT */
+    "<=",         /* BINOP_LE */
+    ">",          /* BINOP_GT */
+    ">=",         /* BINOP_GE */
+    "<<",         /* BINOP_LSH */
+    ">>",         /* BINOP_RSH */
+    ">>>",        /* BINOP_URSH */
+    "+",          /* BINOP_PLUS */
+    "-",          /* BINOP_MINUS */
+    "*",          /* BINOP_STAR */
+    "/",          /* BINOP_DIV */
+    "%",          /* BINOP_MOD */
+    "|",          /* BINOP_BITOR */
+    "^",          /* BINOP_BITXOR */
+    "&",          /* BINOP_BITAND */
+    "in",         /* BINOP_IN */
+    "instanceof", /* BINOP_INSTANCEOF */
+    "..",         /* BINOP_DBLDOT */
 };
 
 char const *unopNames[] = {
-    "delete",  
-    "-",       
-    "+",       
-    "!",       
-    "~",       
-    "typeof",  
-    "void"     
+    "delete",  /* UNOP_DELETE */
+    "-",       /* UNOP_NEG */
+    "+",       /* UNOP_POS */
+    "!",       /* UNOP_NOT */
+    "~",       /* UNOP_BITNOT */
+    "typeof",  /* UNOP_TYPEOF */
+    "void"     /* UNOP_VOID */
 };
 
 char const *nodeTypeNames[] = {
@@ -137,12 +137,12 @@ char const *callbackNames[] = {
 
 typedef AutoValueVector NodeVector;
 
-
-
-
-
-
-
+/*
+ * JSParseNode is a somewhat intricate data structure, and its invariants have
+ * evolved, making it more likely that there could be a disconnect between the
+ * parser and the AST serializer. We use these macros to check invariants on a
+ * parse node and raise a dynamic error on failure.
+ */
 #define LOCAL_ASSERT(expr)                                                             \
     JS_BEGIN_MACRO                                                                     \
         JS_ASSERT(expr);                                                               \
@@ -160,21 +160,21 @@ typedef AutoValueVector NodeVector;
     JS_END_MACRO
 
 
-
-
-
-
-
-
-
+/*
+ * Builder class that constructs JavaScript AST node objects. See:
+ *
+ *     https://developer.mozilla.org/en/SpiderMonkey/Parser_API
+ *
+ * Bug 569487: generalize builder interface
+ */
 class NodeBuilder
 {
     JSContext   *cx;
-    bool        saveLoc;               
-    char const  *src;                  
-    Value       srcval;                
-    Value       callbacks[AST_LIMIT];  
-    Value       userv;                 
+    bool        saveLoc;               /* save source location information?     */
+    char const  *src;                  /* source filename or null               */
+    Value       srcval;                /* source filename JS value or null      */
+    Value       callbacks[AST_LIMIT];  /* user-specified callbacks              */
+    Value       userv;                 /* user-specified builder object or null */
 
   public:
     NodeBuilder(JSContext *c, bool l, char const *s)
@@ -231,11 +231,11 @@ class NodeBuilder
             if (!newNodeLoc(pos, &loc))
                 return false;
             Value argv[] = { loc };
-            return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+            return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
         }
 
-        Value argv[] = { NullValue() }; 
-        return ExternalInvoke(cx, userv, fun, 0, argv, dst);
+        Value argv[] = { NullValue() }; /* no zero-length arrays allowed! */
+        return Invoke(cx, userv, fun, 0, argv, dst);
     }
 
     bool callback(Value fun, Value v1, TokenPos *pos, Value *dst) {
@@ -244,11 +244,11 @@ class NodeBuilder
             if (!newNodeLoc(pos, &loc))
                 return false;
             Value argv[] = { v1, loc };
-            return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+            return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
         }
 
         Value argv[] = { v1 };
-        return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+        return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
     }
 
     bool callback(Value fun, Value v1, Value v2, TokenPos *pos, Value *dst) {
@@ -257,11 +257,11 @@ class NodeBuilder
             if (!newNodeLoc(pos, &loc))
                 return false;
             Value argv[] = { v1, v2, loc };
-            return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+            return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
         }
 
         Value argv[] = { v1, v2 };
-        return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+        return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
     }
 
     bool callback(Value fun, Value v1, Value v2, Value v3, TokenPos *pos, Value *dst) {
@@ -270,11 +270,11 @@ class NodeBuilder
             if (!newNodeLoc(pos, &loc))
                 return false;
             Value argv[] = { v1, v2, v3, loc };
-            return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+            return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
         }
 
         Value argv[] = { v1, v2, v3 };
-        return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+        return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
     }
 
     bool callback(Value fun, Value v1, Value v2, Value v3, Value v4, TokenPos *pos, Value *dst) {
@@ -283,11 +283,11 @@ class NodeBuilder
             if (!newNodeLoc(pos, &loc))
                 return false;
             Value argv[] = { v1, v2, v3, v4, loc };
-            return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+            return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
         }
 
         Value argv[] = { v1, v2, v3, v4 };
-        return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+        return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
     }
 
     bool callback(Value fun, Value v1, Value v2, Value v3, Value v4, Value v5,
@@ -297,11 +297,11 @@ class NodeBuilder
             if (!newNodeLoc(pos, &loc))
                 return false;
             Value argv[] = { v1, v2, v3, v4, v5, loc };
-            return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+            return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
         }
 
         Value argv[] = { v1, v2, v3, v4, v5 };
-        return ExternalInvoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
+        return Invoke(cx, userv, fun, JS_ARRAY_LENGTH(argv), argv, dst);
     }
 
     Value opt(Value v) {
@@ -310,9 +310,9 @@ class NodeBuilder
     }
 
     bool atomValue(const char *s, Value *dst) {
-        
-
-
+        /*
+         * Bug 575416: instead of js_Atomize, lookup constant atoms in tbl file
+         */
         JSAtom *atom = js_Atomize(cx, s, strlen(s));
         if (!atom)
             return false;
@@ -418,13 +418,13 @@ class NodeBuilder
     bool setProperty(JSObject *obj, const char *name, Value val) {
         JS_ASSERT_IF(val.isMagic(), val.whyMagic() == JS_SERIALIZE_NO_NODE);
 
-        
+        /* Represent "no node" as null and ensure users are not exposed to magic values. */
         if (val.isMagic(JS_SERIALIZE_NO_NODE))
             val.setNull();
 
-        
-
-
+        /*
+         * Bug 575416: instead of js_Atomize, lookup constant atoms in tbl file
+         */
         JSAtom *atom = js_Atomize(cx, name, strlen(name));
         if (!atom)
             return false;
@@ -443,18 +443,18 @@ class NodeBuilder
     }
 
   public:
-    
+    /*
+     * All of the public builder methods take as their last two
+     * arguments a nullable token position and a non-nullable, rooted
+     * outparam.
+     *
+     * All Value arguments are rooted. Any Value arguments representing
+     * optional subnodes may be a JS_SERIALIZE_NO_NODE magic value.
+     */
 
-
-
-
-
-
-
-
-    
-
-
+    /*
+     * misc nodes
+     */
 
     bool program(NodeVector &elts, TokenPos *pos, Value *dst);
 
@@ -475,9 +475,9 @@ class NodeBuilder
     bool propertyInitializer(Value key, Value val, PropKind kind, TokenPos *pos, Value *dst);
 
 
-    
-
-
+    /*
+     * statements
+     */
 
     bool blockStatement(NodeVector &elts, TokenPos *pos, Value *dst);
 
@@ -517,9 +517,9 @@ class NodeBuilder
 
     bool letStatement(NodeVector &head, Value stmt, TokenPos *pos, Value *dst);
 
-    
-
-
+    /*
+     * expressions
+     */
 
     bool binaryExpression(BinaryOperator op, Value left, Value right, TokenPos *pos, Value *dst);
 
@@ -564,15 +564,15 @@ class NodeBuilder
 
     bool letExpression(NodeVector &head, Value expr, TokenPos *pos, Value *dst);
 
-    
-
-
+    /*
+     * declarations
+     */
 
     bool variableDeclaration(NodeVector &elts, VarDeclKind kind, TokenPos *pos, Value *dst);
 
-    
-
-
+    /*
+     * patterns
+     */
 
     bool arrayPattern(NodeVector &elts, TokenPos *pos, Value *dst);
 
@@ -580,9 +580,9 @@ class NodeBuilder
 
     bool propertyPattern(Value key, Value patt, TokenPos *pos, Value *dst);
 
-    
-
-
+    /*
+     * xml
+     */
 
     bool xmlAnyName(TokenPos *pos, Value *dst);
 
@@ -657,7 +657,7 @@ NodeBuilder::newArray(NodeVector &elts, Value *dst)
 
         JS_ASSERT_IF(val.isMagic(), val.whyMagic() == JS_SERIALIZE_NO_NODE);
 
-        
+        /* Represent "no node" as an array hole by not adding the value. */
         if (val.isMagic(JS_SERIALIZE_NO_NODE))
             continue;
 
@@ -1591,11 +1591,11 @@ NodeBuilder::xmlPI(Value target, Value contents, TokenPos *pos, Value *dst)
 }
 
 
-
-
-
-
-
+/*
+ * Serialization of parse nodes to JavaScript objects.
+ *
+ * All serialization methods take a non-nullable JSParseNode pointer.
+ */
 
 class ASTSerializer
 {
@@ -1892,7 +1892,7 @@ ASTSerializer::program(JSParseNode *pn, Value *dst)
 bool
 ASTSerializer::sourceElement(JSParseNode *pn, Value *dst)
 {
-    
+    /* SpiderMonkey allows declarations even in pure statement contexts. */
     return statement(pn, dst);
 }
 
@@ -1921,12 +1921,12 @@ ASTSerializer::variableDeclaration(JSParseNode *pn, bool let, Value *dst)
 {
     JS_ASSERT(let ? PN_TYPE(pn) == TOK_LET : PN_TYPE(pn) == TOK_VAR);
 
-    
+    /* Later updated to VARDECL_CONST if we find a PND_CONST declarator. */
     VarDeclKind kind = let ? VARDECL_LET : VARDECL_VAR;
 
     NodeVector dtors(cx);
 
-    
+    /* In a for-in context, variable declarations contain just a single pattern. */
     if (pn->pn_xflags & PNX_FORINVAR) {
         Value patt, child;
         return pattern(pn->pn_head, &kind, &patt) &&
@@ -1950,7 +1950,7 @@ ASTSerializer::variableDeclaration(JSParseNode *pn, bool let, Value *dst)
 bool
 ASTSerializer::variableDeclarator(JSParseNode *pn, VarDeclKind *pkind, Value *dst)
 {
-    
+    /* A destructuring declarator is always a TOK_ASSIGN. */
     JS_ASSERT(PN_TYPE(pn) == TOK_NAME || PN_TYPE(pn) == TOK_ASSIGN);
 
     JSParseNode *pnleft;
@@ -1981,10 +1981,10 @@ ASTSerializer::letHead(JSParseNode *pn, NodeVector &dtors)
 
     for (JSParseNode *next = pn->pn_head; next; next = next->pn_next) {
         Value child;
-        
-
-
-
+        /*
+         * Unlike in |variableDeclaration|, this does not update |kind|; since let-heads do
+         * not contain const declarations, declarators should never have PND_CONST set.
+         */
         if (!variableDeclarator(next, &kind, &child))
             return false;
         dtors.infallibleAppend(child);
@@ -2030,7 +2030,7 @@ ASTSerializer::switchStatement(JSParseNode *pn, Value *dst)
 
     for (JSParseNode *next = listNode->pn_head; next; next = next->pn_next) {
         Value child;
-#ifdef __GNUC__ 
+#ifdef __GNUC__ /* quell GCC overwarning */
         child = UndefinedValue();
 #endif
         if (!switchCase(next, &child))
@@ -2127,7 +2127,7 @@ ASTSerializer::statement(JSParseNode *pn, Value *dst)
 
         if (PN_TYPE(pn) != TOK_LC)
             return statement(pn, dst);
-        
+        /* FALL THROUGH */
 
       case TOK_LC:
         return blockStatement(pn, dst);
@@ -2199,7 +2199,7 @@ ASTSerializer::statement(JSParseNode *pn, Value *dst)
                builder.forStatement(init, test, update, stmt, &pn->pn_pos, dst);
       }
 
-      
+      /* Synthesized by the parser when a for-in loop contains a variable initializer. */
       case TOK_SEQ:
       {
         LOCAL_ASSERT(pn->pn_count == 2);
@@ -2352,7 +2352,7 @@ ASTSerializer::comprehension(JSParseNode *pn, Value *dst)
             return false;
         next = next->pn_kid2;
     } else if (PN_TYPE(next) == TOK_LC && next->pn_count == 0) {
-        
+        /* js_FoldConstants optimized away the push. */
         NodeVector empty(cx);
         return builder.arrayExpression(empty, &pn->pn_pos, dst);
     }
@@ -2614,7 +2614,7 @@ ASTSerializer::expression(JSParseNode *pn, Value *dst)
         return builder.graphIndexExpression(pn->pn_num, &pn->pn_pos, dst);
 
       case TOK_ARRAYCOMP:
-        
+        /* NB: it's no longer the case that pn_count could be 2. */
         LOCAL_ASSERT(pn->pn_count == 1);
         LOCAL_ASSERT(PN_TYPE(pn->pn_head) == TOK_LEXICALSCOPE);
 
@@ -2932,7 +2932,7 @@ ASTSerializer::pattern(JSParseNode *pn, VarDeclKind *pkind, Value *dst)
       case TOK_NAME:
         if (pkind && (pn->pn_dflags & PND_CONST))
             *pkind = VARDECL_CONST;
-        
+        /* FALL THROUGH */
 
       default:
         return expression(pn, dst);
@@ -2994,7 +2994,7 @@ ASTSerializer::functionArgsAndBody(JSParseNode *pn, NodeVector &args, Value *bod
     JSParseNode *pnargs;
     JSParseNode *pnbody;
 
-    
+    /* Extract the args and body separately. */
     if (PN_TYPE(pn) == TOK_ARGSBODY) {
         pnargs = pn;
         pnbody = pn->last();
@@ -3005,7 +3005,7 @@ ASTSerializer::functionArgsAndBody(JSParseNode *pn, NodeVector &args, Value *bod
 
     JSParseNode *pndestruct;
 
-    
+    /* Extract the destructuring assignments. */
     if (pnbody->pn_arity == PN_LIST && (pnbody->pn_xflags & PNX_DESTRUCT)) {
         JSParseNode *head = pnbody->pn_head;
         LOCAL_ASSERT(head && PN_TYPE(head) == TOK_SEMI);
@@ -3016,13 +3016,13 @@ ASTSerializer::functionArgsAndBody(JSParseNode *pn, NodeVector &args, Value *bod
         pndestruct = NULL;
     }
 
-    
+    /* Serialize the arguments and body. */
     switch (PN_TYPE(pnbody)) {
-      case TOK_RETURN: 
+      case TOK_RETURN: /* expression closure, no destructured args */
         return functionArgs(pn, pnargs, NULL, pnbody, args) &&
                expression(pnbody->pn_kid, body);
 
-      case TOK_SEQ:    
+      case TOK_SEQ:    /* expression closure with destructured args */
       {
         JSParseNode *pnstart = pnbody->pn_head->pn_next;
         LOCAL_ASSERT(pnstart && PN_TYPE(pnstart) == TOK_RETURN);
@@ -3031,7 +3031,7 @@ ASTSerializer::functionArgsAndBody(JSParseNode *pn, NodeVector &args, Value *bod
                expression(pnstart->pn_kid, body);
       }
 
-      case TOK_LC:     
+      case TOK_LC:     /* statement closure */
       {
         JSParseNode *pnstart = (pnbody->pn_xflags & PNX_DESTRUCT)
                                ? pnbody->pn_head->pn_next
@@ -3055,31 +3055,31 @@ ASTSerializer::functionArgs(JSParseNode *pn, JSParseNode *pnargs, JSParseNode *p
     JSParseNode *destruct = pndestruct ? pndestruct->pn_head : NULL;
     Value node;
 
-    
-
-
-
-
-
-
-
+    /*
+     * Arguments are found in potentially two different places: 1) the
+     * argsbody sequence (which ends with the body node), or 2) a
+     * destructuring initialization at the beginning of the body. Loop
+     * |arg| through the argsbody and |destruct| through the initial
+     * destructuring assignments, stopping only when we've exhausted
+     * both.
+     */
     while ((arg && arg != pnbody) || destruct) {
         if (destruct && destruct->pn_right->frameSlot() == i) {
             if (!pattern(destruct->pn_left, NULL, &node) || !args.append(node))
                 return false;
             destruct = destruct->pn_next;
         } else if (arg && arg != pnbody) {
-            
-
-
-
-
-
-
-
-
-
-
+            /*
+             * We don't check that arg->frameSlot() == i since we
+             * can't call that method if the arg def has been turned
+             * into a use, e.g.:
+             *
+             *     function(a) { function a() { } }
+             *
+             * There's no other way to ask a non-destructuring arg its
+             * index in the formals list, so we rely on the ability to
+             * ask destructuring args their index above.
+             */
             if (!identifier(arg, &node) || !args.append(node))
                 return false;
             arg = arg->pn_next;
@@ -3097,7 +3097,7 @@ ASTSerializer::functionBody(JSParseNode *pn, TokenPos *pos, Value *dst)
 {
     NodeVector elts(cx);
 
-    
+    /* We aren't sure how many elements there are up front, so we'll check each append. */
     for (JSParseNode *next = pn; next; next = next->pn_next) {
         Value child;
         if (!sourceElement(next, &child) || !elts.append(child))
@@ -3107,7 +3107,7 @@ ASTSerializer::functionBody(JSParseNode *pn, TokenPos *pos, Value *dst)
     return builder.blockStatement(elts, pos, dst);
 }
 
-} 
+} /* namespace js */
 
 static JSBool
 reflect_parse(JSContext *cx, uint32 argc, jsval *vp)
@@ -3142,7 +3142,7 @@ reflect_parse(JSContext *cx, uint32 argc, jsval *vp)
 
         Value prop;
 
-        
+        /* config.loc */
         if (!GetPropertyDefault(cx, config, ATOM_TO_JSID(cx->runtime->atomState.locAtom),
                                 BooleanValue(true), &prop)) {
             return JS_FALSE;
@@ -3151,7 +3151,7 @@ reflect_parse(JSContext *cx, uint32 argc, jsval *vp)
         loc = js_ValueToBoolean(prop);
 
         if (loc) {
-            
+            /* config.source */
             if (!GetPropertyDefault(cx, config, ATOM_TO_JSID(cx->runtime->atomState.sourceAtom),
                                     NullValue(), &prop)) {
                 return JS_FALSE;
@@ -3173,7 +3173,7 @@ reflect_parse(JSContext *cx, uint32 argc, jsval *vp)
                 filenamep.reset(filename);
             }
 
-            
+            /* config.line */
             if (!GetPropertyDefault(cx, config, ATOM_TO_JSID(cx->runtime->atomState.lineAtom),
                                     Int32Value(1), &prop) ||
                 !ValueToECMAUint32(cx, prop, &lineno)) {
@@ -3181,7 +3181,7 @@ reflect_parse(JSContext *cx, uint32 argc, jsval *vp)
             }
         }
 
-        
+        /* config.builder */
         if (!GetPropertyDefault(cx, config, ATOM_TO_JSID(cx->runtime->atomState.builderAtom),
                                 NullValue(), &prop)) {
             return JS_FALSE;
@@ -3197,7 +3197,7 @@ reflect_parse(JSContext *cx, uint32 argc, jsval *vp)
         }
     }
 
-    
+    /* Extract the builder methods first to report errors before parsing. */
     ASTSerializer serialize(cx, loc, filename, lineno);
     if (!serialize.init(builder))
         return JS_FALSE;
