@@ -196,8 +196,13 @@ nsOuterDocAccessible::InvalidateChildren()
 PRBool
 nsOuterDocAccessible::AppendChild(nsAccessible *aAccessible)
 {
-  NS_ASSERTION(!mChildren.Length(),
-               "Previous child document of outerdoc accessible wasn't removed!");
+  
+  
+  
+  
+  
+  if (mChildren.Length())
+    mChildren[0]->Shutdown();
 
   if (!nsAccessible::AppendChild(aAccessible))
     return PR_FALSE;
