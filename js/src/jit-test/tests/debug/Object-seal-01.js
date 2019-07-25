@@ -27,14 +27,14 @@ function test(code) {
     var xw = gw.getOwnPropertyDescriptor("x").value;
 
     function check() {
-	
-	
-	g.compareObjects();
+        
+        
+        g.compareObjects();
 
-	
-	assertEq(xw.isExtensible(), g.Object.isExtensible(g.x), code + ' isExtensible');
-	assertEq(xw.isSealed(), g.Object.isSealed(g.x), code + ' isSealed');
-	assertEq(xw.isFrozen(), g.Object.isFrozen(g.x), code + ' isFrozen');
+        
+        assertEq(xw.isExtensible(), g.Object.isExtensible(g.x), code + ' isExtensible');
+        assertEq(xw.isSealed(), g.Object.isSealed(g.x), code + ' isSealed');
+        assertEq(xw.isFrozen(), g.Object.isFrozen(g.x), code + ' isFrozen');
     }
 
     check();
