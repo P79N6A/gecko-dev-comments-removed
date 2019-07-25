@@ -1126,8 +1126,7 @@ _getvalue(NPP aNPP,
         case NPNVasdEnabledBool: 
         case NPNVisOfflineBool: 
         case NPNVSupportsXEmbedBool: 
-        case NPNVSupportsWindowless: 
-        case NPNVprivateModeBool: {
+        case NPNVSupportsWindowless: { 
             NPError result;
             bool value;
             PluginModuleChild::current()->
