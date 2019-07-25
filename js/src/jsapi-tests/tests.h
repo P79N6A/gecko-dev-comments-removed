@@ -41,6 +41,7 @@
 #include "jsapi.h"
 #include "jsprvtd.h"
 #include "jsvector.h"
+#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -305,3 +306,78 @@ protected:
     static cls_##testname cls_##testname##_instance;
 
 
+
+
+
+
+
+
+
+#define BEGIN_FIXTURE_TEST(fixture, testname)                           \
+    class cls_##testname : public fixture {                             \
+    public:                                                             \
+        virtual const char * name() { return #testname; }               \
+        virtual bool run()
+
+#define END_FIXTURE_TEST(fixture, testname)                             \
+    };                                                                  \
+    static cls_##testname cls_##testname##_instance;
+
+
+
+
+
+
+
+
+class TempFile {
+    const char *name;
+    FILE *stream;
+
+  public:
+    TempFile() : name(), stream() { }
+    ~TempFile() {
+        if (stream)
+            close();
+        if (name)
+            remove();
+    }
+
+    
+
+
+
+
+
+    FILE *open(const char *fileName)
+    {
+        stream = fopen(fileName, "wb+");
+        if (!stream) {
+            fprintf(stderr, "error opening temporary file '%s': %s\n",
+                    fileName, strerror(errno));
+            exit(1);
+        }            
+        name = fileName;
+        return stream;
+    }
+
+    
+    void close() {
+        if (fclose(stream) == EOF) {
+            fprintf(stderr, "error closing temporary file '%s': %s\n",
+                    name, strerror(errno));
+            exit(1);
+        }
+        stream = NULL;
+    }
+
+    
+    void remove() {
+        if (::remove(name) != 0) {
+            fprintf(stderr, "error deleting temporary file '%s': %s\n",
+                    name, strerror(errno));
+            exit(1);
+        }
+        name = NULL;
+    }
+};
