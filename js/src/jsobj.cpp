@@ -6132,18 +6132,7 @@ CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
 JSType
 js_TypeOf(JSContext *cx, JSObject *obj)
 {
-    
-
-
-
-
-    if (obj->isCallable()) {
-        return (obj->getClass() != &js_RegExpClass)
-               ? JSTYPE_FUNCTION
-               : JSTYPE_OBJECT;
-    }
-
-    return JSTYPE_OBJECT;
+    return obj->isCallable() ? JSTYPE_FUNCTION : JSTYPE_OBJECT;
 }
 
 bool
