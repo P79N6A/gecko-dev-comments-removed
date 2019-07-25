@@ -25,6 +25,203 @@
 namespace js {
 namespace frontend {
 
+struct StmtInfoTC : public StmtInfoBase {
+    StmtInfoTC      *down;          
+    StmtInfoTC      *downScope;     
+
+    uint32_t        blockid;        
+
+    
+    bool            isFunctionBodyBlock;
+
+    StmtInfoTC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
+};
+
+typedef HashSet<JSAtom *> FuncStmtSet;
+struct Parser;
+struct SharedContext;
+
+typedef Vector<Definition *, 16> DeclVector;
+
+
+
+
+
+
+
+
+
+struct TreeContext                  
+{
+    typedef StmtInfoTC StmtInfo;
+
+    SharedContext   *sc;            
+
+    uint32_t        bodyid;         
+    uint32_t        blockidGen;     
+
+    StmtInfoTC      *topStmt;       
+    StmtInfoTC      *topScopeStmt;  
+    Rooted<StaticBlockObject *> blockChain;
+                                    
+
+    const unsigned  staticLevel;    
+
+    uint32_t        parenDepth;     
+
+    uint32_t        yieldCount;     
+
+    ParseNode       *blockNode;     
+
+  private:
+    AtomDecls       decls_;         
+    DeclVector      args_;          
+    DeclVector      vars_;          
+
+  public:
+    const AtomDecls &decls() const {
+        return decls_;
+    }
+
+    uint32_t numArgs() const {
+        JS_ASSERT(sc->inFunction());
+        return args_.length();
+    }
+
+    uint32_t numVars() const {
+        JS_ASSERT(sc->inFunction());
+        return vars_.length();
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool define(JSContext *cx, PropertyName *name, ParseNode *pn, Definition::Kind);
+
+    
+
+
+
+
+
+
+
+    void popLetDecl(JSAtom *atom);
+
+    
+    void prepareToAddDuplicateArg(Definition *prevDecl);
+
+    
+    void updateDecl(JSAtom *atom, ParseNode *newDecl);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool generateFunctionBindings(JSContext *cx, Bindings *bindings) const;
+
+  public:
+    ParseNode       *yieldNode;     
+
+
+    FunctionBox     *functionList;
+
+    
+    
+    
+    CompileError    *queuedStrictModeError;
+
+  private:
+    TreeContext     **parserTC;     
+
+
+
+  public:
+    OwnedAtomDefnMapPtr lexdeps;    
+
+    TreeContext     *parent;        
+
+    ParseNode       *innermostWith; 
+
+    FuncStmtSet     *funcStmts;     
+
+
+
+    
+
+
+
+    bool            hasReturnExpr:1; 
+    bool            hasReturnVoid:1; 
+
+    bool            inForInit:1;    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool            inDeclDestructuring:1;
+
+    inline TreeContext(Parser *prs, SharedContext *sc, unsigned staticLevel, uint32_t bodyid);
+    inline ~TreeContext();
+
+    inline bool init();
+
+    inline void setQueuedStrictModeError(CompileError *e);
+
+    unsigned blockid();
+
+    
+    
+    
+    
+    
+    
+    
+    bool atBodyLevel();
+};
+
+bool
+GenerateBlockId(TreeContext *tc, uint32_t &blockid);
+
 struct BindData;
 
 enum FunctionSyntaxKind { Expression, Statement };
