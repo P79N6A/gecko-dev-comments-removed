@@ -9879,7 +9879,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
         PRInt32 curIndex = -1;
         rv = rootSH->GetIndex(&curIndex);
         if (NS_SUCCEEDED(rv) && curIndex > -1) {
-            internalSH->EvictContentViewers(curIndex - 1, curIndex);
+            internalSH->EvictOutOfRangeContentViewers(curIndex);
         }
     }
 
