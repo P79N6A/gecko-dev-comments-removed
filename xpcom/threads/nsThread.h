@@ -94,7 +94,6 @@ private:
   struct nsThreadShutdownContext *mShutdownContext;
 
   bool mShutdownRequired;
-  bool mShutdownPending;
   
   bool mEventsAreDoomed;
   MainThreadFlag mIsMainThread;
