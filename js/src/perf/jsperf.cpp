@@ -40,6 +40,8 @@
 #include "jscntxt.h" 
 #include "jsobj.h" 
 
+#include "jsobjinlines.h"
+
 using JS::PerfMeasurement;
 
 

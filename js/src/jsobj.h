@@ -66,7 +66,7 @@ namespace nanojit { class ValidateWriter; }
 namespace js {
 
 class AutoPropDescArrayRooter;
-class JSProxyHandler;
+class ProxyHandler;
 class RegExp;
 class CallObject;
 struct GCMarker;
@@ -375,6 +375,7 @@ extern Class XMLFilterClass;
 class ArgumentsObject;
 class GlobalObject;
 class NormalArgumentsObject;
+class NumberObject;
 class StrictArgumentsObject;
 class StringObject;
 
@@ -539,7 +540,6 @@ struct JSObject : js::gc::Cell {
     inline bool isNative() const;
     inline bool isNewborn() const;
 
-    
     js::Class *getClass() const;
     JSClass *getJSClass() const;
     bool hasClass(const js::Class *c) const;
@@ -936,6 +936,7 @@ struct JSObject : js::gc::Cell {
     }
 
   public:
+    inline js::NumberObject *asNumber();
     inline js::StringObject *asString();
 
     
@@ -1175,12 +1176,12 @@ struct JSObject : js::gc::Cell {
 
 
 
-    inline js::JSProxyHandler *getProxyHandler() const;
+    inline js::ProxyHandler *getProxyHandler() const;
     inline const js::Value &getProxyPrivate() const;
     inline void setProxyPrivate(const js::Value &priv);
     inline const js::Value &getProxyExtra() const;
     inline void setProxyExtra(const js::Value &extra);
-    inline JSWrapper *getWrapperHandler() const;
+    inline js::Wrapper *getWrapperHandler() const;
 
     
 
@@ -1440,14 +1441,14 @@ struct JSObject : js::gc::Cell {
     inline bool isProxy() const { return isObjectProxy() || isFunctionProxy(); }
 
     inline bool isXMLId() const {
-    return hasClass(&js::QNameClass) || hasClass(&js::AttributeNameClass) || hasClass(&js::AnyNameClass);
-}
+        return hasClass(&js::QNameClass) || hasClass(&js::AttributeNameClass) || hasClass(&js::AnyNameClass);
+    }
     inline bool isQName() const {
-    return hasClass(&js::QNameClass) || hasClass(&js::AttributeNameClass) || hasClass(&js::AnyNameClass);
-}
+        return hasClass(&js::QNameClass) || hasClass(&js::AttributeNameClass) || hasClass(&js::AnyNameClass);
+    }
     inline bool isObjectProxy() const {
-    return hasClass(&js::ObjectProxyClass) || hasClass(&js::OuterWindowProxyClass);
-}
+        return hasClass(&js::ObjectProxyClass) || hasClass(&js::OuterWindowProxyClass);
+    }
 
     JS_FRIEND_API(bool) isWrapper() const;
     bool isCrossCompartmentWrapper() const;
@@ -2087,7 +2088,7 @@ eval(JSContext *cx, uintN argc, Value *vp);
 
 
 extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, const CallArgs &call);
+DirectEval(JSContext *cx, const CallArgs &args);
 
 
 
@@ -2102,13 +2103,94 @@ IsAnyBuiltinEval(JSFunction *fun);
 
 
 extern JSPrincipals *
-PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx);
+PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx);
 
 extern JSObject *
 NonNullObject(JSContext *cx, const Value &v);
 
 extern const char *
 InformalValueTypeName(const Value &v);
-}
+
+
+
+
+
+
+
+
+
+
+extern void
+ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline JSObject *
+NonGenericMethodGuard(JSContext *cx, CallArgs args, Class *clasp, bool *ok);
+
+
+
+
+
+
+
+
+extern bool
+HandleNonGenericMethodClassMismatch(JSContext *cx, CallArgs args, Class *clasp);
+
+
+
+
+
+
+
+
+template <typename T>
+inline bool
+BoxedPrimitiveMethodGuard(JSContext *cx, CallArgs args, T *v, bool *ok);
+
+
+
+
+
+enum ESClassValue { ESClass_Array, ESClass_Number, ESClass_String, ESClass_Boolean };
+
+
+
+
+
+
+
+inline bool
+ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx);
+
+}  
 
 #endif 

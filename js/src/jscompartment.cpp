@@ -74,6 +74,7 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     gcTriggerBytes(0),
     gcLastBytes(0),
     hold(false),
+    typeLifoAlloc(TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
 #ifdef JS_TRACER
     traceMonitor_(NULL),
 #endif
@@ -133,11 +134,6 @@ JSCompartment::init(JSContext *cx)
     activeAnalysis = activeInference = false;
     types.init(cx);
 
-    
-    static const size_t ARENA_HEADER_SIZE_HACK = 40;
-
-    JS_InitArenaPool(&pool, "analysis", 4096 - ARENA_HEADER_SIZE_HACK, 8);
-
     if (!crossCompartmentWrappers.init())
         return false;
 
@@ -189,7 +185,7 @@ static bool
 IsCrossCompartmentWrapper(JSObject *wrapper)
 {
     return wrapper->isWrapper() &&
-           !!(JSWrapper::wrapperHandler(wrapper)->flags() & JSWrapper::CROSS_COMPARTMENT);
+           !!(Wrapper::wrapperHandler(wrapper)->flags() & Wrapper::CROSS_COMPARTMENT);
 }
 
 bool
@@ -630,8 +626,8 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 
 
-        JSArenaPool oldPool;
-        MoveArenaPool(&pool, &oldPool);
+        LifoAlloc oldAlloc(typeLifoAlloc.defaultChunkSize());
+        oldAlloc.steal(&typeLifoAlloc);
 
         
 
@@ -664,9 +660,6 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
             JSScript *script = i.get<JSScript>();
             script->clearAnalysis();
         }
-
-        
-        JS_FinishArenaPool(&oldPool);
     }
 
     active = false;
