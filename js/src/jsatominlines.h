@@ -135,8 +135,6 @@ js_Int32ToId(JSContext* cx, int32 index, jsid* id)
 
 namespace js {
 
-static const size_t UINT32_CHAR_BUFFER_LENGTH = sizeof("4294967295") - 1;
-
 
 
 

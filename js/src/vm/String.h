@@ -43,6 +43,7 @@
 
 #include "jscell.h"
 
+class JSString;
 class JSDependentString;
 class JSExtensibleString;
 class JSExternalString;
@@ -51,6 +52,29 @@ class JSFixedString;
 class JSStaticAtom;
 class JSRope;
 class JSAtom;
+
+namespace js {
+
+class PropertyName;
+
+
+static const size_t UINT32_CHAR_BUFFER_LENGTH = sizeof("4294967295") - 1;
+
+
+enum InternBehavior
+{
+    DoNotInternAtom = false,
+    InternAtom = true
+};
+
+} 
+
+
+
+
+
+extern JSAtom *
+js_AtomizeString(JSContext *cx, JSString *str, js::InternBehavior ib = js::DoNotInternAtom);
 
 
 
@@ -476,6 +500,21 @@ class JSFlatString : public JSLinearString
 
     
 
+
+
+
+
+    bool isElement(uint32 *indexp) const;
+
+    
+
+
+
+
+    inline js::PropertyName *toPropertyName(JSContext *cx);
+
+    
+
     inline void finalize(JSRuntime *rt);
 };
 
@@ -678,6 +717,9 @@ class JSAtom : public JSFixedString
     
     static inline JSStaticAtom *lookupStatic(const jschar *chars, size_t length);
 
+    
+    inline js::PropertyName *asPropertyName();
+
     inline void finalize(JSRuntime *rt);
 };
 
@@ -707,6 +749,20 @@ class JSStaticAtom : public JSAtom
 {};
 
 JS_STATIC_ASSERT(sizeof(JSStaticAtom) == sizeof(JSString));
+
+namespace js {
+
+
+
+
+
+
+class PropertyName : public JSAtom
+{};
+
+JS_STATIC_ASSERT(sizeof(PropertyName) == sizeof(JSString));
+
+} 
 
 
 
@@ -756,6 +812,16 @@ JSString::ensureFixed(JSContext *cx)
         d.lengthAndFlags ^= JS_BIT(3);
     }
     return &asFixed();
+}
+
+inline js::PropertyName *
+JSAtom::asPropertyName()
+{
+#ifdef DEBUG
+    uint32 dummy;
+    JS_ASSERT(!isElement(&dummy));
+#endif
+    return static_cast<js::PropertyName *>(this);
 }
 
 #endif

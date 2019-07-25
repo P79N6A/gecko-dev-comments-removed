@@ -38,9 +38,12 @@
 
 
 
+#include "mozilla/RangedPtr.h"
+
 #include "String.h"
 #include "String-inl.h"
 
+using namespace mozilla;
 using namespace js;
 
 bool
@@ -317,3 +320,52 @@ JSDependentString::undepend(JSContext *cx)
 JSStringFinalizeOp JSExternalString::str_finalizers[JSExternalString::TYPE_LIMIT] = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
+
+bool
+JSFlatString::isElement(uint32 *indexp) const
+{
+    const jschar *s = charsZ();
+    jschar ch = *s;
+
+    if (!JS7_ISDEC(ch))
+        return false;
+
+    size_t n = length();
+    if (n > UINT32_CHAR_BUFFER_LENGTH)
+        return false;
+
+    
+
+
+
+    RangedPtr<const jschar> cp(s, n + 1);
+    const RangedPtr<const jschar> end(s + n, s, n + 1);
+
+    uint32 index = JS7_UNDEC(*cp++);
+    uint32 oldIndex = 0;
+    uint32 c = 0;
+
+    if (index != 0) {
+        while (JS7_ISDEC(*cp)) {
+            oldIndex = index;
+            c = JS7_UNDEC(*cp);
+            index = 10 * index + c;
+            cp++;
+        }
+    }
+
+    
+    if (cp != end)
+        return false;
+
+    
+
+
+
+    if (oldIndex < UINT32_MAX / 10 || (oldIndex == UINT32_MAX / 10 && c <= (UINT32_MAX % 10))) {
+        *indexp = index;
+        return true;
+    }
+
+    return false;
+}
