@@ -5,6 +5,7 @@
 #ifndef CHROME_COMMON_IPC_CHANNEL_H_
 #define CHROME_COMMON_IPC_CHANNEL_H_
 
+#include <queue>
 #include "chrome/common/ipc_message.h"
 
 namespace IPC {
@@ -31,6 +32,10 @@ class Channel : public Message::Sender {
     
     
     virtual void OnChannelError() {}
+
+    
+    
+    virtual void GetQueuedMessages(std::queue<Message>& queue) {}
   };
 
   enum Mode {

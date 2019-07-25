@@ -13,7 +13,8 @@
 #include "nsTraceRefcnt.h"
 #include "nsXULAppAPI.h"
 
-using mozilla::MonitorAutoLock;
+using namespace mozilla;
+using namespace std;
 
 template<>
 struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
@@ -115,7 +116,6 @@ AsyncChannel::ProcessLink::Open(mozilla::ipc::Transport* aTransport,
     
 
     mTransport = aTransport;
-    mExistingListener = mTransport->set_listener(this);
 
     
     
@@ -132,9 +132,6 @@ AsyncChannel::ProcessLink::Open(mozilla::ipc::Transport* aTransport,
         mChan->mChild = false;
         needOpen = false;
         aIOLoop = XRE_GetIOMessageLoop();
-        
-        
-        mChan->mChannelState = ChannelConnected;
     }
 
     mIOLoop = aIOLoop;
@@ -142,11 +139,24 @@ AsyncChannel::ProcessLink::Open(mozilla::ipc::Transport* aTransport,
     NS_ASSERTION(mIOLoop, "need an IO loop");
     NS_ASSERTION(mChan->mWorkerLoop, "need a worker loop");
 
-    if (needOpen) {             
+    {
         MonitorAutoLock lock(*mChan->mMonitor);
 
-        mIOLoop->PostTask(FROM_HERE, 
-                          NewRunnableMethod(this, &ProcessLink::OnChannelOpened));
+        if (needOpen) {
+            
+            
+            
+            mIOLoop->PostTask(
+                FROM_HERE,
+                NewRunnableMethod(this, &ProcessLink::OnChannelOpened));
+        } else {
+            
+            
+            
+            mIOLoop->PostTask(
+                FROM_HERE,
+                NewRunnableMethod(this, &ProcessLink::OnTakeConnectedChannel));
+        }
 
         
         while (!mChan->Connected()) {
@@ -670,10 +680,45 @@ AsyncChannel::ProcessLink::OnChannelOpened()
     mChan->AssertLinkThread();
     {
         MonitorAutoLock lock(*mChan->mMonitor);
+
+        mExistingListener = mTransport->set_listener(this);
+#ifdef DEBUG
+        if (mExistingListener) {
+            queue<Message> pending;
+            mExistingListener->GetQueuedMessages(pending);
+            MOZ_ASSERT(pending.empty());
+        }
+#endif  
+
         mChan->mChannelState = ChannelOpening;
         lock.Notify();
     }
     mTransport->Connect();
+}
+
+void
+AsyncChannel::ProcessLink::OnTakeConnectedChannel()
+{
+    AssertIOThread();
+
+    queue<Message> pending;
+    {
+        MonitorAutoLock lock(*mChan->mMonitor);
+
+        mChan->mChannelState = ChannelConnected;
+
+        mExistingListener = mTransport->set_listener(this);
+        if (mExistingListener) {
+            mExistingListener->GetQueuedMessages(pending);
+        }
+        lock.Notify();
+    }
+
+    
+    while (!pending.empty()) {
+        OnMessageReceived(pending.front());
+        pending.pop();
+    }
 }
 
 void

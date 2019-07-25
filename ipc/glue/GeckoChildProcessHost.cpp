@@ -693,16 +693,26 @@ GeckoChildProcessHost::OnChannelConnected(int32 peer_pid)
   lock.Notify();
 }
 
-
-
-
 void
 GeckoChildProcessHost::OnMessageReceived(const IPC::Message& aMsg)
 {
+  
+  
+  mQueue.push(aMsg);
 }
+
 void
 GeckoChildProcessHost::OnChannelError()
 {
+  
+}
+
+void
+GeckoChildProcessHost::GetQueuedMessages(std::queue<IPC::Message>& queue)
+{
+  
+  DCHECK(MessageLoopForIO::current());
+  swap(queue, mQueue);
   
 }
 
