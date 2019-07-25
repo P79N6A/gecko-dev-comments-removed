@@ -275,6 +275,11 @@ struct JSStmtInfo {
 
 
 
+#define TCF_NEED_SCRIPT_OBJECT 0x40000000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -644,8 +649,7 @@ struct JSCodeGenerator : public JSTreeContext
 
 
     js::OwnedAtomIndexMapPtr upvarIndices; 
-
-    js::UpvarCookies upvarMap;      
+    JSUpvarArray    upvarMap;       
 
     typedef js::Vector<js::GlobalSlotArray::Entry, 16> GlobalUseVector;
 
@@ -980,7 +984,6 @@ typedef enum JSSrcNoteType {
     SRC_CONT2LABEL  = 17,       
     SRC_SWITCH      = 18,       
 
-    SRC_SWITCHBREAK = 18,       
     SRC_FUNCDEF     = 19,       
     SRC_CATCH       = 20,       
     SRC_EXTENDED    = 21,       

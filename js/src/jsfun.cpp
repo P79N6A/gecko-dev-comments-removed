@@ -52,6 +52,7 @@
 #include "jsbool.h"
 #include "jsbuiltins.h"
 #include "jscntxt.h"
+#include "jsdbg.h"
 #include "jsversion.h"
 #include "jsemit.h"
 #include "jsfun.h"
@@ -186,7 +187,7 @@ js_GetArgsProperty(JSContext *cx, StackFrame *fp, jsid id, Value *vp)
 js::ArgumentsObject *
 ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee)
 {
-    JS_ASSERT(argc <= StackSpace::ARGS_LENGTH_MAX);
+    JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
 
     JSObject *proto;
     if (!js_GetClassPrototype(cx, callee.getGlobal(), JSProto_Object, &proto))
@@ -245,12 +246,12 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
 
 
 
-    JS_ASSERT(fp->isFunctionFrame());
+    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
+
     while (fp->isEvalInFunction())
         fp = fp->prev();
 
     
-    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
     if (fp->hasArgsObj())
         return &fp->argsObj();
 
@@ -361,6 +362,160 @@ args_delProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     return true;
 }
 
+static JS_REQUIRES_STACK JSObject *
+WrapEscapingClosure(JSContext *cx, StackFrame *fp, JSFunction *fun)
+{
+    JS_ASSERT(fun->optimizedClosure());
+    JS_ASSERT(!fun->u.i.wrapper);
+
+    
+
+
+
+
+
+
+    JSObject *scopeChain = GetScopeChain(cx, fp);
+    if (!scopeChain)
+        return NULL;
+
+    JSObject *wfunobj = NewFunction(cx, scopeChain);
+    if (!wfunobj)
+        return NULL;
+    AutoObjectRooter tvr(cx, wfunobj);
+
+    JSFunction *wfun = (JSFunction *) wfunobj;
+    wfunobj->setPrivate(wfun);
+    wfun->nargs = fun->nargs;
+    wfun->flags = fun->flags | JSFUN_HEAVYWEIGHT;
+    wfun->u.i.skipmin = fun->u.i.skipmin;
+    wfun->u.i.wrapper = true;
+    wfun->u.i.script = NULL;
+    wfun->atom = fun->atom;
+
+    JSScript *script = fun->script();
+    jssrcnote *snbase = script->notes();
+    jssrcnote *sn = snbase;
+    while (!SN_IS_TERMINATOR(sn))
+        sn = SN_NEXT(sn);
+    uintN nsrcnotes = (sn - snbase) + 1;
+
+    
+    JSScript *wscript = JSScript::NewScript(cx, script->length, nsrcnotes,
+                                            script->atomMap.length,
+                                            JSScript::isValidOffset(script->objectsOffset)
+                                            ? script->objects()->length
+                                            : 0,
+                                            script->bindings.countUpvars(),
+                                            JSScript::isValidOffset(script->regexpsOffset)
+                                            ? script->regexps()->length
+                                            : 0,
+                                            JSScript::isValidOffset(script->trynotesOffset)
+                                            ? script->trynotes()->length
+                                            : 0,
+                                            JSScript::isValidOffset(script->constOffset)
+                                            ? script->consts()->length
+                                            : 0,
+                                            JSScript::isValidOffset(script->globalsOffset)
+                                            ? script->globals()->length
+                                            : 0,
+                                            script->nClosedArgs,
+                                            script->nClosedVars,
+                                            script->getVersion());
+    if (!wscript)
+        return NULL;
+
+    memcpy(wscript->code, script->code, script->length);
+    wscript->main = wscript->code + (script->main - script->code);
+
+    memcpy(wscript->notes(), snbase, nsrcnotes * sizeof(jssrcnote));
+    memcpy(wscript->atomMap.vector, script->atomMap.vector,
+           wscript->atomMap.length * sizeof(JSAtom *));
+    if (JSScript::isValidOffset(script->objectsOffset)) {
+        memcpy(wscript->objects()->vector, script->objects()->vector,
+               wscript->objects()->length * sizeof(JSObject *));
+    }
+    if (JSScript::isValidOffset(script->regexpsOffset)) {
+        memcpy(wscript->regexps()->vector, script->regexps()->vector,
+               wscript->regexps()->length * sizeof(JSObject *));
+    }
+    if (JSScript::isValidOffset(script->trynotesOffset)) {
+        memcpy(wscript->trynotes()->vector, script->trynotes()->vector,
+               wscript->trynotes()->length * sizeof(JSTryNote));
+    }
+    if (JSScript::isValidOffset(script->globalsOffset)) {
+        memcpy(wscript->globals()->vector, script->globals()->vector,
+               wscript->globals()->length * sizeof(GlobalSlotArray::Entry));
+    }
+    if (script->nClosedArgs + script->nClosedVars != 0)
+        script->copyClosedSlotsTo(wscript);
+
+    if (script->bindings.hasUpvars()) {
+        JS_ASSERT(script->bindings.countUpvars() == wscript->upvars()->length);
+        memcpy(wscript->upvars()->vector, script->upvars()->vector,
+               script->bindings.countUpvars() * sizeof(uint32));
+    }
+
+    jsbytecode *pc = wscript->code;
+    while (*pc != JSOP_STOP) {
+        
+        JSOp op = js_GetOpcode(cx, wscript, pc);
+        const JSCodeSpec *cs = &js_CodeSpec[op];
+        ptrdiff_t oplen = cs->length;
+        if (oplen < 0)
+            oplen = js_GetVariableBytecodeLength(pc);
+
+        
+
+
+
+
+
+        switch (op) {
+          case JSOP_GETFCSLOT:      *pc = JSOP_GETUPVAR_DBG; break;
+          case JSOP_CALLFCSLOT:     *pc = JSOP_CALLUPVAR_DBG; break;
+          case JSOP_DEFFUN_FC:      *pc = JSOP_DEFFUN_DBGFC; break;
+          case JSOP_DEFLOCALFUN_FC: *pc = JSOP_DEFLOCALFUN_DBGFC; break;
+          case JSOP_LAMBDA_FC:      *pc = JSOP_LAMBDA_DBGFC; break;
+          default:;
+        }
+        pc += oplen;
+    }
+
+    
+
+
+
+    JS_ASSERT(wscript->getVersion() == script->getVersion());
+    wscript->nfixed = script->nfixed;
+    wscript->filename = script->filename;
+    wscript->lineno = script->lineno;
+    wscript->nslots = script->nslots;
+    wscript->staticLevel = script->staticLevel;
+    wscript->principals = script->principals;
+    wscript->noScriptRval = script->noScriptRval;
+    wscript->savedCallerFun = script->savedCallerFun;
+    wscript->hasSharps = script->hasSharps;
+    wscript->strictModeCode = script->strictModeCode;
+    wscript->compileAndGo = script->compileAndGo;
+    wscript->usesEval = script->usesEval;
+    wscript->usesArguments = script->usesArguments;
+    wscript->warnedAboutTwoArgumentEval = script->warnedAboutTwoArgumentEval;
+    if (wscript->principals)
+        JSPRINCIPALS_HOLD(cx, wscript->principals);
+#ifdef CHECK_SCRIPT_OWNER
+    wscript->owner = script->owner;
+#endif
+
+    wscript->bindings.clone(cx, &script->bindings);
+
+    
+    FUN_SET_KIND(wfun, JSFUN_INTERPRETED);
+    wfun->u.i.script = wscript;
+    js_CallNewScriptHook(cx, wscript, wfun);
+    return wfunobj;
+}
+
 static JSBool
 ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
@@ -389,8 +544,22 @@ ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     } else {
         JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom));
         const Value &v = argsobj->callee();
-        if (!v.isMagic(JS_ARGS_HOLE))
+        if (!v.isMagic(JS_ARGS_HOLE)) {
+            
+
+
+
+
+
+
+
+            if (GET_FUNCTION_PRIVATE(cx, &v.toObject())->needsWrapper()) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_OPTIMIZED_CLOSURE_LEAK);
+                return false;
+            }
             *vp = v;
+        }
     }
     return true;
 }
@@ -529,6 +698,7 @@ StrictArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 }
 
 static JSBool
+
 StrictArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 {
     if (!obj->isStrictArguments())
@@ -554,7 +724,7 @@ StrictArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 
     AutoValueRooter tvr(cx);
     return js_DeleteProperty(cx, argsobj, id, tvr.addr(), strict) &&
-           js_SetPropertyHelper(cx, argsobj, id, 0, vp, strict);
+           js_SetProperty(cx, argsobj, id, vp, strict);
 }
 
 static JSBool
@@ -746,6 +916,49 @@ Class js_DeclEnvClass = {
     ConvertStub
 };
 
+static JSBool
+CheckForEscapingClosure(JSContext *cx, JSObject *obj, Value *vp)
+{
+    JS_ASSERT(obj->isCall() || obj->getClass() == &js_DeclEnvClass);
+
+    const Value &v = *vp;
+
+    JSObject *funobj;
+    if (IsFunctionObject(v, &funobj)) {
+        JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+
+        
+
+
+
+
+
+        if (fun->needsWrapper()) {
+            LeaveTrace(cx);
+
+            StackFrame *fp = (StackFrame *) obj->getPrivate();
+            if (fp) {
+                JSObject *wrapper = WrapEscapingClosure(cx, fp, fun);
+                if (!wrapper)
+                    return false;
+                vp->setObject(*wrapper);
+                return true;
+            }
+
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_OPTIMIZED_CLOSURE_LEAK);
+            return false;
+        }
+    }
+    return true;
+}
+
+static JSBool
+CalleeGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+{
+    return CheckForEscapingClosure(cx, obj, vp);
+}
+
 
 
 
@@ -824,7 +1037,7 @@ CreateFunCallObject(JSContext *cx, StackFrame *fp)
             return NULL;
 
         if (!DefineNativeProperty(cx, scopeChain, ATOM_TO_JSID(lambdaName),
-                                  ObjectValue(fp->callee()), NULL, NULL,
+                                  ObjectValue(fp->callee()), CalleeGetter, NULL,
                                   JSPROP_PERMANENT | JSPROP_READONLY, 0, 0)) {
             return NULL;
         }
@@ -869,8 +1082,9 @@ inline static void
 CopyValuesToCallObject(JSObject &callobj, uintN nargs, Value *argv, uintN nvars, Value *slots)
 {
     JS_ASSERT(callobj.numSlots() >= JSObject::CALL_RESERVED_SLOTS + nargs + nvars);
-    callobj.copySlots(JSObject::CALL_RESERVED_SLOTS, argv, nargs);
-    callobj.copySlots(JSObject::CALL_RESERVED_SLOTS + nargs, slots, nvars);
+    Value *base = callobj.getSlots() + JSObject::CALL_RESERVED_SLOTS;
+    memcpy(base, argv, nargs * sizeof(Value));
+    memcpy(base + nargs, slots, nvars * sizeof(Value));
 }
 
 void
@@ -1012,11 +1226,14 @@ SetCallArg(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     JS_ASSERT((int16) JSID_TO_INT(id) == JSID_TO_INT(id));
     uintN i = (uint16) JSID_TO_INT(id);
 
+    Value *argp;
     if (StackFrame *fp = obj->maybeCallObjStackFrame())
-        fp->formalArg(i) = *vp;
+        argp = &fp->formalArg(i);
     else
-        obj->setCallObjArg(i, *vp);
+        argp = &obj->callObjArg(i);
 
+    GCPoke(cx, *argp);
+    *argp = *vp;
     return true;
 }
 
@@ -1036,7 +1253,10 @@ SetCallUpvar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     JS_ASSERT((int16) JSID_TO_INT(id) == JSID_TO_INT(id));
     uintN i = (uint16) JSID_TO_INT(id);
 
-    obj->getCallObjCallee()->setFlatClosureUpvar(i, *vp);
+    Value *up = &obj->getCallObjCallee()->getFlatClosureUpvar(i);
+
+    GCPoke(cx, *up);
+    *up = *vp;
     return true;
 }
 
@@ -1050,7 +1270,17 @@ GetCallVar(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         *vp = fp->varSlot(i);
     else
         *vp = obj->callObjVar(i);
+
     return true;
+}
+
+JSBool
+GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, Value *vp)
+{
+    if (!GetCallVar(cx, obj, id, vp))
+        return false;
+
+    return CheckForEscapingClosure(cx, obj, vp);
 }
 
 JSBool
@@ -1076,11 +1306,14 @@ SetCallVar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
     }
 #endif
 
+    Value *varp;
     if (StackFrame *fp = obj->maybeCallObjStackFrame())
-        fp->varSlot(i) = *vp;
+        varp = &fp->varSlot(i);
     else
-        obj->setCallObjVar(i, *vp);
+        varp = &obj->callObjVar(i);
 
+    GCPoke(cx, *varp);
+    *varp = *vp;
     return true;
 }
 
@@ -1163,7 +1396,7 @@ call_trace(JSTracer *trc, JSObject *obj)
         uintN count = fp->script()->bindings.countArgsAndVars();
 
         JS_ASSERT(obj->numSlots() >= first + count);
-        obj->setSlotsUndefined(first, count);
+        SetValueRangeToUndefined(obj->getSlots() + first, count);
     }
 
     MaybeMarkGenerator(trc, obj);
@@ -1200,6 +1433,21 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
     }
 
     JSFunction *fun = this->fun();
+
+    
+
+
+
+
+
+    if (fun->needsWrapper()) {
+        JSObject *wrapper = WrapEscapingClosure(cx, this, fun);
+        if (!wrapper)
+            return false;
+        vp->setObject(*wrapper);
+        return true;
+    }
+
     JSObject &funobj = callee();
     vp->setObject(funobj);
 
@@ -1295,6 +1543,12 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 static JSBool
 fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
+    
+
+
+
+
+
     while (!obj->isFunction()) {
         obj = obj->getProto();
         if (!obj)
@@ -1435,15 +1689,10 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, JSObject *obj)
 
 
 
-    if (!obj->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
-                             ObjectValue(*proto), PropertyStub, StrictPropertyStub,
-                             JSPROP_PERMANENT) ||
-        !proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
-                               ObjectValue(*obj), PropertyStub, StrictPropertyStub, 0))
-    {
-       return NULL;
-    }
 
+
+    if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
+        return NULL;
     return proto;
 }
 
@@ -1458,6 +1707,7 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
     if (JSID_IS_ATOM(id, cx->runtime->atomState.classPrototypeAtom)) {
         
+
 
 
 
@@ -1586,18 +1836,11 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
         fun->u.i.wrapper = JSPackedBool((firstword >> 1) & 1);
     }
 
-    
-
-
-
-    JSScript *script = fun->u.i.script;
-    if (!js_XDRScript(xdr, &script))
+    if (!js_XDRScript(xdr, &fun->u.i.script))
         return false;
-    fun->u.i.script = script;
 
     if (xdr->mode == JSXDR_DECODE) {
         *objp = FUN_OBJECT(fun);
-        fun->u.i.script->setOwnerObject(fun);
 #ifdef CHECK_SCRIPT_OWNER
         fun->script()->owner = NULL;
 #endif
@@ -1670,7 +1913,7 @@ fun_trace(JSTracer *trc, JSObject *obj)
         MarkString(trc, fun->atom, "atom");
 
     if (fun->isInterpreted() && fun->script())
-        js_TraceScript(trc, fun->script(), obj);
+        js_TraceScript(trc, fun->script());
 }
 
 static void
@@ -1692,7 +1935,7 @@ fun_finalize(JSContext *cx, JSObject *obj)
 
 
     if (fun->isInterpreted() && fun->script())
-        js_DestroyScriptFromGC(cx, fun->script(), obj);
+        js_DestroyScriptFromGC(cx, fun->script());
 }
 
 
@@ -1877,13 +2120,10 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     LeaveTrace(cx);
 
     
-    if (length > StackSpace::ARGS_LENGTH_MAX) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_MANY_FUN_APPLY_ARGS);
-        return false;
-    }
+    uintN n = uintN(JS_MIN(length, JS_ARGS_LENGTH_MAX));
 
     InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, length, &args))
+    if (!cx->stack.pushInvokeArgs(cx, n, &args))
         return false;
 
     
@@ -1891,7 +2131,7 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     args.thisv() = vp[2];
 
     
-    if (!GetElements(cx, aobj, length, args.argv()))
+    if (!GetElements(cx, aobj, n, args.argv()))
         return false;
 
     
@@ -1915,11 +2155,11 @@ JSObject::initBoundFunction(JSContext *cx, const Value &thisArg,
     JS_ASSERT(isFunction());
 
     flags |= JSObject::BOUND_FUNCTION;
-    setSlot(JSSLOT_BOUND_FUNCTION_THIS, thisArg);
-    setSlot(JSSLOT_BOUND_FUNCTION_ARGS_COUNT, PrivateUint32Value(argslen));
+    getSlotRef(JSSLOT_BOUND_FUNCTION_THIS) = thisArg;
+    getSlotRef(JSSLOT_BOUND_FUNCTION_ARGS_COUNT).setPrivateUint32(argslen);
     if (argslen != 0) {
         
-        EmptyShape *empty = EmptyShape::create(cx, getClass());
+        EmptyShape *empty = EmptyShape::create(cx, clasp);
         if (!empty)
             return false;
 
@@ -1930,7 +2170,7 @@ JSObject::initBoundFunction(JSContext *cx, const Value &thisArg,
             return false;
 
         JS_ASSERT(numSlots() >= argslen + FUN_CLASS_RESERVED_SLOTS);
-        copySlots(FUN_CLASS_RESERVED_SLOTS, args, argslen);
+        memcpy(getSlots() + FUN_CLASS_RESERVED_SLOTS, args, argslen * sizeof(Value));
     }
     return true;
 }
@@ -1984,7 +2224,7 @@ CallOrConstructBoundFunction(JSContext *cx, uintN argc, Value *vp)
     uintN argslen;
     const Value *boundArgs = obj->getBoundFunctionArguments(argslen);
 
-    if (argc + argslen > StackSpace::ARGS_LENGTH_MAX) {
+    if (argc + argslen > JS_ARGS_LENGTH_MAX) {
         js_ReportAllocationOverflow(cx);
         return false;
     }
@@ -2375,7 +2615,6 @@ js_InitFunctionClass(JSContext *cx, JSObject *obj)
     script->owner = NULL;
 #endif
     fun->u.i.script = script;
-    script->setOwnerObject(fun);
     js_CallNewScriptHook(cx, script, fun);
 
     if (obj->isGlobal()) {
@@ -2478,17 +2717,15 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
             JS_ASSERT(script);
             JS_ASSERT(script->compartment == fun->compartment());
             JS_ASSERT(script->compartment != cx->compartment);
-            JS_OPT_ASSERT(script->ownerObject == fun);
 
-            JSScript *cscript = js_CloneScript(cx, script);
-            if (!cscript)
+            cfun->u.i.script = js_CloneScript(cx, script);
+            if (!cfun->script())
                 return NULL;
-            cfun->u.i.script = cscript;
-            cfun->script()->setOwnerObject(cfun);
 #ifdef CHECK_SCRIPT_OWNER
             cfun->script()->owner = NULL;
 #endif
             js_CallNewScriptHook(cx, cfun->script(), cfun);
+            Debugger::onNewScript(cx, cfun->script(), cfun, Debugger::NewHeldScript);
         }
     }
     return clone;
@@ -2559,6 +2796,16 @@ js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen)
         upvars[i] = GetUpvar(cx, level, uva->vector[i]);
 
     return closure;
+}
+
+JSObject *
+js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun)
+{
+    JS_ASSERT(cx->fp()->fun()->flags & JSFUN_HEAVYWEIGHT);
+    JS_ASSERT(!cx->fp()->fun()->optimizedClosure());
+    JS_ASSERT(FUN_FLAT_CLOSURE(fun));
+
+    return WrapEscapingClosure(cx, cx->fp(), fun);
 }
 
 JSFunction *

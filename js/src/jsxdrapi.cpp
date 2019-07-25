@@ -49,6 +49,7 @@
 #include "jsprf.h"
 #include "jsapi.h"
 #include "jscntxt.h"
+#include "jsdbg.h"
 #include "jsnum.h"
 #include "jsobj.h"              
 #include "jsscript.h"           
@@ -717,12 +718,13 @@ JS_XDRScriptObject(JSXDRState *xdr, JSObject **scriptObjp)
         return false;
 
     if (xdr->mode == JSXDR_DECODE) {
-        js_CallNewScriptHook(xdr->cx, script, NULL);
         *scriptObjp = js_NewScriptObject(xdr->cx, script);
         if (!*scriptObjp) {
-            js_DestroyScript(xdr->cx, script, 8);
+            js_DestroyScript(xdr->cx, script);
             return false;
         }
+        js_CallNewScriptHook(xdr->cx, script, NULL);
+        Debugger::onNewScript(xdr->cx, script, *scriptObjp, Debugger::NewHeldScript);
     }
 
     return true;

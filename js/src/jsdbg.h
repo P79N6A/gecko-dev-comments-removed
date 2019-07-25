@@ -58,6 +58,9 @@ class Debugger {
     friend class js::Breakpoint;
     friend JSBool (::JS_DefineDebuggerObject)(JSContext *cx, JSObject *obj);
 
+  public:
+    enum NewScriptKind { NewNonHeldScript, NewHeldScript };
+
   private:
     JSCList link;                       
     JSObject *object;                   
@@ -70,6 +73,7 @@ class Debugger {
     
     bool hasDebuggerHandler;            
     bool hasThrowHandler;               
+    bool hasNewScriptHandler;           
 
     JSCList breakpoints;                
 
@@ -113,6 +117,19 @@ class Debugger {
                               GlobalObjectSet::Enum *compartmentEnum,
                               GlobalObjectSet::Enum *debugEnum);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
     JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
                                       bool callHook = true);
@@ -143,6 +160,8 @@ class Debugger {
     inline bool hasAnyLiveHooks() const;
 
     static void slowPathLeaveStackFrame(JSContext *cx);
+    static void slowPathOnNewScript(JSContext *cx, JSScript *script, JSObject *obj,
+                                    NewScriptKind kind);
     static void slowPathOnDestroyScript(JSScript *script);
 
     typedef bool (Debugger::*DebuggerObservesMethod)() const;
@@ -164,6 +183,12 @@ class Debugger {
 
     
     JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
+
+    
+    
+    
+    
+    void handleNewScript(JSContext *cx, JSScript *script, JSObject *obj, NewScriptKind kind);
 
     
     void destroyNonHeldScript(JSScript *script);
@@ -205,11 +230,14 @@ class Debugger {
     static inline void leaveStackFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
     static inline JSTrapStatus onThrow(JSContext *cx, js::Value *vp);
+    static inline void onNewScript(JSContext *cx, JSScript *script, JSObject *obj,
+                                   NewScriptKind kind);
     static inline void onDestroyScript(JSScript *script);
     static JSTrapStatus onTrap(JSContext *cx, Value *vp);
 
     
 
+    inline bool observesNewScript() const;
     inline bool observesScope(JSObject *obj) const;
     inline bool observesFrame(StackFrame *fp) const;
 
@@ -274,12 +302,6 @@ class Debugger {
     Debugger & operator=(const Debugger &);
 };
 
-bool
-Debugger::hasAnyLiveHooks() const
-{
-    return enabled && (hasDebuggerHandler || hasThrowHandler || !JS_CLIST_IS_EMPTY(&breakpoints));
-}
-
 class BreakpointSite {
     friend class js::Breakpoint;
     friend class ::JSCompartment;
@@ -339,19 +361,16 @@ class Breakpoint {
 };
 
 bool
-Debugger::observesScope(JSObject *obj) const
+Debugger::hasAnyLiveHooks() const
 {
-    return debuggees.has(obj->getGlobal());
+    return enabled && (hasDebuggerHandler ||
+                       hasThrowHandler ||
+                       hasNewScriptHandler ||
+                       !JS_CLIST_IS_EMPTY(&breakpoints));
 }
 
-bool
-Debugger::observesFrame(StackFrame *fp) const
-{
-    return observesScope(&fp->scopeChain());
-}
-
-js::Debugger *
-js::Debugger::fromLinks(JSCList *links)
+Debugger *
+Debugger::fromLinks(JSCList *links)
 {
     unsigned char *p = reinterpret_cast<unsigned char *>(links);
     return reinterpret_cast<Debugger *>(p - offsetof(Debugger, link));
@@ -378,6 +397,24 @@ Debugger::fromJSObject(JSObject *obj)
 {
     JS_ASSERT(obj->getClass() == &jsclass);
     return (Debugger *) obj->getPrivate();
+}
+
+bool
+Debugger::observesNewScript() const
+{
+    return enabled && hasNewScriptHandler;
+}
+
+bool
+Debugger::observesScope(JSObject *obj) const
+{
+    return debuggees.has(obj->getGlobal());
+}
+
+bool
+Debugger::observesFrame(StackFrame *fp) const
+{
+    return observesScope(&fp->scopeChain());
 }
 
 void
@@ -408,6 +445,14 @@ Debugger::onThrow(JSContext *cx, js::Value *vp)
 }
 
 void
+Debugger::onNewScript(JSContext *cx, JSScript *script, JSObject *obj, NewScriptKind kind)
+{
+    JS_ASSERT_IF(kind == NewNonHeldScript && script->compileAndGo, obj);
+    if (!script->compartment->getDebuggees().empty())
+        slowPathOnNewScript(cx, script, obj, kind);
+}
+
+void
 Debugger::onDestroyScript(JSScript *script)
 {
     if (!script->compartment->getDebuggees().empty())
@@ -420,4 +465,4 @@ EvaluateInScope(JSContext *cx, JSObject *scobj, StackFrame *fp, const jschar *ch
 
 }
 
-#endif 
+#endif
