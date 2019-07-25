@@ -1021,10 +1021,10 @@ class TypeScript
     
     js::GlobalObject *global;
 
+  public:
+
     
     TypeScriptNesting *nesting;
-
-  public:
 
     
     TypeResult *dynamicList;
@@ -1076,13 +1076,8 @@ class TypeScript
 
 
 
-
-
-
-
-
     static inline void Monitor(JSContext *cx, JSScript *script, jsbytecode *pc,
-                               js::Value &val);
+                               const js::Value &val);
 
     
     static inline void MonitorAssign(JSContext *cx, JSScript *script, jsbytecode *pc,
@@ -1094,7 +1089,7 @@ class TypeScript
     static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, Type type);
     static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, const js::Value &value);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
-    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, js::Value &value);
+    static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
 
     static void Sweep(JSContext *cx, JSScript *script);
     inline void trace(JSTracer *trc);

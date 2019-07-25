@@ -191,6 +191,69 @@ JS_STATIC_ASSERT(offsetof(FrameRegs, sp) == 0);
 # define HIDE_SYMBOL(name)
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(__GNUC__) && !defined(_WIN64)
 
 
@@ -276,8 +339,7 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
-SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
+    
     CFI(".cfi_startproc"                 "\n")
     CFI(".cfi_def_cfa rbp, 16"           "\n")
     CFI(".cfi_offset rbp, -16"           "\n")
@@ -286,6 +348,9 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
     CFI(".cfi_offset r14, -40"           "\n")
     CFI(".cfi_offset r15, -48"           "\n")
     CFI(".cfi_offset rbx, -56"           "\n")
+    CFI("nop"                            "\n")
+".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
+SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
     "or   %rdi, %rsi"                    "\n"
     "movq %rsi, 0x30(%rbx)"              "\n"
     "movq %rsp, %rdi"                    "\n"
@@ -306,8 +371,7 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
-SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
+    
     CFI(".cfi_startproc"                    "\n")
     CFI(".cfi_def_cfa rbp, 16"              "\n")
     CFI(".cfi_offset rbp, -16"              "\n")
@@ -316,6 +380,9 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     CFI(".cfi_offset r14, -40"              "\n")
     CFI(".cfi_offset r15, -48"              "\n")
     CFI(".cfi_offset rbx, -56"              "\n")
+    CFI("nop"                               "\n")
+".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
+SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "movq %rsp, %rdi"                       "\n"
     "call " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
     "testq %rax, %rax"                      "\n"
@@ -339,8 +406,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
-SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
+    
     CFI(".cfi_startproc"                    "\n")
     CFI(".cfi_def_cfa rbp, 16"              "\n")
     CFI(".cfi_offset rbp, -16"              "\n")
@@ -349,6 +415,9 @@ SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     CFI(".cfi_offset r14, -40"              "\n")
     CFI(".cfi_offset r15, -48"              "\n")
     CFI(".cfi_offset rbx, -56"              "\n")
+    CFI("nop"                               "\n")
+".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
+SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     "movq %rsp, %rcx"                       "\n"
     "movq %rax, %rdx"                       "\n"
     "call " SYMBOL_STRING_RELOC(js_InternalInterpret) "\n"
@@ -379,8 +448,7 @@ SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
-SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
+    
     CFI(".cfi_startproc"                            "\n")
     CFI(".cfi_def_cfa rbp, 16"                      "\n")
     CFI(".cfi_offset rbp, -16"                      "\n")
@@ -389,6 +457,9 @@ SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
     CFI(".cfi_offset r14, -40"                      "\n")
     CFI(".cfi_offset r15, -48"                      "\n")
     CFI(".cfi_offset rbx, -56"                      "\n")   
+    CFI("nop"                                       "\n")
+".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
+SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
     "movq 0x20(%rbx), %rbx"                         "\n" 
     "movq %rbx, 0x38(%rsp)"                         "\n"
     "jmp " SYMBOL_STRING_RELOC(JaegerInterpoline)   "\n"
@@ -454,14 +525,16 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
-SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
+    
     CFI(".cfi_startproc"                 "\n")
     CFI(".cfi_def_cfa ebp, 8"            "\n")
     CFI(".cfi_offset ebp, -8"            "\n")
     CFI(".cfi_offset esi, -12"           "\n")
     CFI(".cfi_offset edi, -16"           "\n")
     CFI(".cfi_offset ebx, -20"           "\n")
+    CFI("nop"                            "\n")
+".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
+SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
     "movl  %esi, 0x18(%ebp)"             "\n"
     "movl  %edi, 0x1C(%ebp)"             "\n"
     "movl  %esp, %ebp"                   "\n"
@@ -482,8 +555,6 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
-SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     
     CFI(".cfi_startproc"                 "\n")
     CFI(".cfi_def_cfa ebp, 8"            "\n")
@@ -491,6 +562,10 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     CFI(".cfi_offset esi, -12"           "\n")
     CFI(".cfi_offset edi, -16"           "\n")
     CFI(".cfi_offset ebx, -20"           "\n")
+    CFI("nop"                            "\n")
+".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
+SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
+    
     "pushl %esp"                         "\n"
     "pushl (%esp)"                       "\n"
     "pushl (%esp)"                       "\n"
@@ -519,14 +594,16 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
-SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
+    
     CFI(".cfi_startproc"                 "\n")
     CFI(".cfi_def_cfa ebp, 8"            "\n")
     CFI(".cfi_offset ebp, -8"            "\n")
     CFI(".cfi_offset esi, -12"           "\n")
     CFI(".cfi_offset edi, -16"           "\n")
     CFI(".cfi_offset ebx, -20"           "\n")
+    CFI("nop"                            "\n")
+".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
+SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     
     "pushl %esp"                         "\n"
     "pushl %eax"                         "\n"
@@ -557,14 +634,16 @@ SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
 
 asm (
 ".text\n"
-".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
-SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
+    
     CFI(".cfi_startproc"                            "\n")
     CFI(".cfi_def_cfa ebp, 8"                       "\n")
     CFI(".cfi_offset ebp, -8"                       "\n")
     CFI(".cfi_offset esi, -12"                      "\n")
     CFI(".cfi_offset edi, -16"                      "\n")
     CFI(".cfi_offset ebx, -20"                      "\n")      
+    CFI("nop"                                       "\n")
+".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
+SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
     "movl 0x10(%ebp), %ebp"                         "\n" 
     "movl  %ebp, 0x1C(%esp)"                        "\n"
     "jmp " SYMBOL_STRING_RELOC(JaegerInterpoline)   "\n"

@@ -46,7 +46,6 @@
 #include "frontend/Parser.h"
 
 #include "jsobjinlines.h"
-#include "jsfuninlines.h"
 
 using namespace js;
 using namespace js::frontend;
@@ -164,7 +163,6 @@ FindFunArgs(FunctionBox *funbox, int level, FunctionBoxQueue *queue)
     do {
         ParseNode *fn = funbox->node;
         JS_ASSERT(fn->isArity(PN_FUNC));
-        JSFunction *fun = funbox->function();
         int fnlevel = level;
 
         
@@ -195,7 +193,7 @@ FindFunArgs(FunctionBox *funbox, int level, FunctionBoxQueue *queue)
         uintN skipmin = UpvarCookie::FREE_LEVEL;
         ParseNode *pn = fn->pn_body;
 
-        if (pn->isKind(PNK_UPVARS)) {
+        if (pn->isKind(TOK_UPVARS)) {
             AtomDefnMapPtr &upvars = pn->pn_names;
             JS_ASSERT(upvars->count() != 0);
 
@@ -248,9 +246,7 @@ FindFunArgs(FunctionBox *funbox, int level, FunctionBoxQueue *queue)
 
 
 
-
         if (skipmin != UpvarCookie::FREE_LEVEL) {
-            fun->u.i.skipmin = skipmin;
             if (skipmin < allskipmin)
                 allskipmin = skipmin;
         }
@@ -274,7 +270,7 @@ MarkFunArgs(JSContext *cx, FunctionBox *funbox, uint32 functionCount)
         JS_ASSERT(fn->isFunArg());
 
         ParseNode *pn = fn->pn_body;
-        if (pn->isKind(PNK_UPVARS)) {
+        if (pn->isKind(TOK_UPVARS)) {
             AtomDefnMapPtr upvars = pn->pn_names;
             JS_ASSERT(!upvars->empty());
 
@@ -513,56 +509,14 @@ FlagHeavyweights(Definition *dn, FunctionBox *funbox, uint32 *tcflags)
 }
 
 static void
-ConsiderUnbranding(FunctionBox *funbox)
-{
-    
-
-
-
-
-
-
-
-
-
-    bool returnsExpr = !!(funbox->tcflags & TCF_RETURN_EXPR);
-#if JS_HAS_EXPR_CLOSURES
-    {
-        ParseNode *pn2 = funbox->node->pn_body;
-        if (pn2->isKind(PNK_UPVARS))
-            pn2 = pn2->pn_tree;
-        if (pn2->isKind(PNK_ARGSBODY))
-            pn2 = pn2->last();
-        if (!pn2->isKind(PNK_STATEMENTLIST))
-            returnsExpr = true;
-    }
-#endif
-    if (!returnsExpr) {
-        uintN methodSets = 0, slowMethodSets = 0;
-
-        for (ParseNode *method = funbox->methods; method; method = method->pn_link) {
-            JS_ASSERT(method->isOp(JSOP_LAMBDA) || method->isOp(JSOP_LAMBDA_FC));
-            ++methodSets;
-            if (!method->pn_funbox->joinable())
-                ++slowMethodSets;
-        }
-
-        if (funbox->shouldUnbrand(methodSets, slowMethodSets))
-            funbox->tcflags |= TCF_FUN_UNBRAND_THIS;
-    }
-}
-
-static void
 SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
 {
     for (; funbox; funbox = funbox->siblings) {
         ParseNode *fn = funbox->node;
         ParseNode *pn = fn->pn_body;
 
-        if (funbox->kids) {
+        if (funbox->kids)
             SetFunctionKinds(funbox->kids, tcflags, isDirectEval);
-            ConsiderUnbranding(funbox);
-        }
 
         JSFunction *fun = funbox->function();
 
@@ -586,7 +540,7 @@ SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
             bool hasUpvars = false;
             bool canFlatten = true;
 
-            if (pn->isKind(PNK_UPVARS)) {
+            if (pn->isKind(TOK_UPVARS)) {
                 AtomDefnMapPtr upvars = pn->pn_names;
                 JS_ASSERT(!upvars->empty());
 
@@ -637,7 +591,7 @@ SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
             }
         }
 
-        if (fun->kind() == JSFUN_INTERPRETED && pn->isKind(PNK_UPVARS)) {
+        if (fun->kind() == JSFUN_INTERPRETED && pn->isKind(TOK_UPVARS)) {
             
 
 
@@ -674,8 +628,8 @@ SetFunctionKinds(FunctionBox *funbox, uint32 *tcflags, bool isDirectEval)
 
 
 
-static void
-MarkExtensibleScopeDescendants(FunctionBox *funbox, bool hasExtensibleParent) 
+static bool
+MarkExtensibleScopeDescendants(JSContext *context, FunctionBox *funbox, bool hasExtensibleParent) 
 {
     for (; funbox; funbox = funbox->siblings) {
         
@@ -685,14 +639,20 @@ MarkExtensibleScopeDescendants(FunctionBox *funbox, bool hasExtensibleParent)
 
 
         JS_ASSERT(!funbox->bindings.extensibleParents());
-        if (hasExtensibleParent)
-            funbox->bindings.setExtensibleParents();
+        if (hasExtensibleParent) {
+            if (!funbox->bindings.setExtensibleParents(context))
+                return false;
+        }
 
         if (funbox->kids) {
-            MarkExtensibleScopeDescendants(funbox->kids,
-                                           hasExtensibleParent || funbox->scopeIsExtensible());
+            if (!MarkExtensibleScopeDescendants(context, funbox->kids,
+                                                hasExtensibleParent || funbox->scopeIsExtensible())) {
+                return false;
+            }
         }
     }
+
+    return true;
 }
 
 bool
@@ -703,7 +663,8 @@ frontend::AnalyzeFunctions(TreeContext *tc)
         return true;
     if (!MarkFunArgs(tc->parser->context, tc->functionList, tc->parser->functionCount))
         return false;
-    MarkExtensibleScopeDescendants(tc->functionList, false);
+    if (!MarkExtensibleScopeDescendants(tc->parser->context, tc->functionList, false))
+        return false;
     bool isDirectEval = !!tc->parser->callerFrame;
     SetFunctionKinds(tc->functionList, &tc->flags, isDirectEval);
     return true;

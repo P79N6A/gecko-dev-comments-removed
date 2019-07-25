@@ -207,15 +207,6 @@ struct StmtInfo {
 
 
 
-
-
-
-#define TCF_FUN_UNBRAND_THIS   0x100000
-
-
-
-
-
 #define TCF_FUN_MODULE_PATTERN 0x200000
 
 
@@ -359,8 +350,24 @@ struct TreeContext {
 
     void trace(JSTracer *trc);
 
-    inline TreeContext(Parser *prs);
-    inline ~TreeContext();
+    TreeContext(Parser *prs)
+      : flags(0), bodyid(0), blockidGen(0), parenDepth(0), yieldCount(0), argumentsCount(0),
+        topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
+        decls(prs->context), parser(prs), yieldNode(NULL), argumentsNode(NULL), scopeChain_(NULL),
+        lexdeps(prs->context), parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
+        innermostWith(NULL), bindings(prs->context), sharpSlotBase(-1)
+    {
+        prs->tc = this;
+    }
+
+    
+
+
+
+
+    ~TreeContext() {
+        parser->tc = this->parent;
+    }
 
     
 
@@ -674,6 +681,7 @@ struct BytecodeEmitter : public TreeContext
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
+    uint16          traceIndex;     
     uint16          typesetCount;   
 
     BytecodeEmitter(Parser *parser, uintN lineno);
@@ -956,7 +964,7 @@ enum SrcNoteType {
     SRC_WHILE       = 4,        
 
 
-    SRC_LOOPHEAD    = 4,        
+    SRC_TRACE       = 4,        
     SRC_CONTINUE    = 5,        
 
 

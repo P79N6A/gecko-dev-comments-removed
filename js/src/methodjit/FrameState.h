@@ -616,14 +616,6 @@ class FrameState
     
 
 
-
-
-    FPRegisterID getScratchFPReg();
-    void restoreScratchFPReg(FPRegisterID reg);
-
-    
-
-
     inline FrameEntry *peek(int32 depth);
 
     
@@ -998,8 +990,7 @@ class FrameState
     inline void forgetAllRegs(FrameEntry *fe);
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);
 #if defined JS_NUNBOX32
-    void syncFancy(Assembler &masm, Registers avail, FrameEntry *resumeAt,
-                   FrameEntry *bottom) const;
+    void syncFancy(Assembler &masm, Registers avail, int trackerIndex) const;
 #endif
     inline bool tryFastDoubleLoad(FrameEntry *fe, FPRegisterID fpReg, Assembler &masm) const;
     void resetInternalState();

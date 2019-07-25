@@ -202,6 +202,8 @@
 
 
 
+
+
 namespace js {
 
 
@@ -212,9 +214,8 @@ static const uint32 SHAPE_MAXIMUM_SLOT = JS_BIT(24) - 2;
 
 
 
-
-
 struct PropertyTable {
+    static const uint32 MIN_ENTRIES         = 7;
     static const uint32 MIN_SIZE_LOG2       = 4;
     static const uint32 MIN_SIZE            = JS_BIT(MIN_SIZE_LOG2);
 
@@ -595,7 +596,8 @@ struct Shape : public js::gc::Cell
 
     size_t sizeOfKids(JSUsableSizeFun usf) const {
         
-        return (!inDictionary() && kids.isHash())
+        JS_ASSERT(!inDictionary());
+        return kids.isHash()
              ? kids.toHash()->sizeOf(usf, true)
              : 0;
     }
@@ -677,8 +679,6 @@ struct Shape : public js::gc::Cell
     
     Shape(const Shape &other);
 
-    bool inDictionary() const { return (flags & IN_DICTIONARY) != 0; }
-
     
 
 
@@ -695,6 +695,7 @@ struct Shape : public js::gc::Cell
         PUBLIC_FLAGS    = HAS_SHORTID | METHOD
     };
 
+    bool inDictionary() const   { return (flags & IN_DICTIONARY) != 0; }
     uintN getFlags() const  { return flags & PUBLIC_FLAGS; }
     bool hasShortID() const { return (flags & HAS_SHORTID) != 0; }
 
@@ -911,6 +912,18 @@ struct Shape : public js::gc::Cell
         return count;
     }
 
+    bool isBigEnoughForAPropertyTable() const {
+        JS_ASSERT(!hasTable());
+        const js::Shape *shape = this;
+        uint32 count = 0;
+        for (js::Shape::Range r = shape->all(); !r.empty(); r.popFront()) {
+            ++count;
+            if (count >= PropertyTable::MIN_ENTRIES)
+                return true;
+        }
+        return false;
+    }
+
 #ifdef DEBUG
     void dump(JSContext *cx, FILE *fp) const;
     void dumpSubtree(JSContext *cx, int level, FILE *fp) const;
@@ -918,7 +931,6 @@ struct Shape : public js::gc::Cell
 
     void finalize(JSContext *cx, bool background);
     void removeChild(js::Shape *child);
-    void removeChildSlowly(js::Shape *child);
 
     
     static inline size_t offsetOfBase() { return offsetof(Shape, base_); }
@@ -999,6 +1011,17 @@ class ShapeKindArray
 
 namespace js {
 
+
+
+
+
+
+
+
+
+
+
+
 JS_ALWAYS_INLINE js::Shape **
 Shape::search(JSContext *cx, js::Shape **pstart, jsid id, bool adding)
 {
@@ -1007,9 +1030,12 @@ Shape::search(JSContext *cx, js::Shape **pstart, jsid id, bool adding)
         return start->table().search(id, adding);
 
     if (start->numLinearSearches() == LINEAR_SEARCHES_MAX) {
-        if (start->hashify(cx))
+        if (start->isBigEnoughForAPropertyTable() && start->hashify(cx))
             return start->table().search(id, adding);
         
+
+
+
         JS_ASSERT(!start->hasTable());
     } else {
         start->incrementNumLinearSearches();

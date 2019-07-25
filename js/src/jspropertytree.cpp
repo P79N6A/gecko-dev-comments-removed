@@ -136,13 +136,24 @@ Shape::removeChild(Shape *child)
     JS_ASSERT(!child->inDictionary());
 
     KidsPointer *kidp = &kids;
+
     if (kidp->isShape()) {
         JS_ASSERT(kidp->toShape() == child);
-        kids.setNull();
+        kidp->setNull();
         return;
     }
 
-    kidp->toHash()->remove(child);
+    KidsHash *hash = kidp->toHash();
+    JS_ASSERT(hash->count() >= 2);      
+    hash->remove(child);
+    if (hash->count() == 1) {
+        
+        KidsHash::Range r = hash->all(); 
+        Shape *otherChild = r.front();
+        JS_ASSERT((r.popFront(), r.empty()));    
+        kidp->setShape(otherChild);
+        js::UnwantedForeground::delete_(hash);
+    }
 }
 
 Shape *

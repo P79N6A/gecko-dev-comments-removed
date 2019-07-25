@@ -72,7 +72,7 @@
 #include "jstracer.h"
 
 #include "frontend/BytecodeCompiler.h"
-#include "frontend/BytecodeGenerator.h"
+#include "frontend/BytecodeEmitter.h"
 #include "frontend/TokenStream.h"
 #include "vm/CallObject.h"
 #include "vm/Debugger.h"
@@ -122,69 +122,6 @@ js_GetArgsValue(JSContext *cx, StackFrame *fp, Value *vp)
         return JS_FALSE;
     vp->setObject(*argsobj);
     return JS_TRUE;
-}
-
-JSBool
-js_GetArgsProperty(JSContext *cx, StackFrame *fp, jsid id, Value *vp)
-{
-    JS_ASSERT(fp->isFunctionFrame());
-
-    if (fp->hasOverriddenArgs()) {
-        JS_ASSERT(fp->hasCallObj());
-
-        Value v;
-        if (!fp->callObj().getProperty(cx, cx->runtime->atomState.argumentsAtom, &v))
-            return false;
-
-        JSObject *obj;
-        if (v.isPrimitive()) {
-            obj = js_ValueToNonNullObject(cx, v);
-            if (!obj)
-                return false;
-        } else {
-            obj = &v.toObject();
-        }
-        return obj->getGeneric(cx, id, vp);
-    }
-
-    vp->setUndefined();
-    if (JSID_IS_INT(id)) {
-        uint32 arg = uint32(JSID_TO_INT(id));
-        ArgumentsObject *argsobj = fp->maybeArgsObj();
-        if (arg < fp->numActualArgs()) {
-            if (argsobj) {
-                const Value &v = argsobj->element(arg);
-                if (v.isMagic(JS_ARGS_HOLE))
-                    return argsobj->getGeneric(cx, id, vp);
-                if (fp->functionScript()->strictModeCode) {
-                    *vp = v;
-                    return true;
-                }
-            }
-            *vp = fp->canonicalActualArg(arg);
-        } else {
-            
-
-
-
-
-
-
-
-
-
-
-
-            if (argsobj)
-                return argsobj->getGeneric(cx, id, vp);
-        }
-    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        ArgumentsObject *argsobj = fp->maybeArgsObj();
-        if (argsobj && argsobj->hasOverriddenLength())
-            return argsobj->getGeneric(cx, id, vp);
-        vp->setInt32(fp->numActualArgs());
-    }
-    return true;
 }
 
 js::ArgumentsObject *
@@ -2299,8 +2236,8 @@ Function(JSContext *cx, uintN argc, Value *vp)
         return false;
 
     JSPrincipals *principals = PrincipalsForCompiledCode(args, cx);
-    bool ok = BytecodeCompiler::compileFunctionBody(cx, fun, principals, &bindings, chars, length,
-                                                    filename, lineno, cx->findVersion());
+    bool ok = frontend::CompileFunctionBody(cx, fun, principals, &bindings, chars, length,
+                                            filename, lineno, cx->findVersion());
     args.rval().setObject(*fun);
     return ok;
 }
