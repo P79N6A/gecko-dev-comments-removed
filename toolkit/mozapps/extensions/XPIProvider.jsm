@@ -79,6 +79,7 @@ const FILE_XPI_ADDONS_LIST            = "extensions.ini";
 
 const KEY_PROFILEDIR                  = "ProfD";
 const KEY_APPDIR                      = "XCurProcD";
+const KEY_TEMPDIR                     = "TmpD";
 
 const KEY_APP_PROFILE                 = "app-profile";
 const KEY_APP_GLOBAL                  = "app-global";
@@ -132,7 +133,8 @@ const BOOTSTRAP_REASONS = {
 const TYPES = {
   extension: 2,
   theme: 4,
-  locale: 8
+  locale: 8,
+  multipackage: 32
 };
 
 
@@ -405,10 +407,6 @@ function loadManifestFromRDF(aUri, aStream) {
   PROP_METADATA.forEach(function(aProp) {
     addon[aProp] = getRDFProperty(ds, root, aProp);
   });
-  if (!addon.id || !addon.version)
-    throw new Error("No ID or version in install manifest");
-  if (!gIDTest.test(addon.id))
-    throw new Error("Illegal add-on ID " + addon.id);
 
   if (!addon.type) {
     addon.type = addon.internalName ? "theme" : "extension";
@@ -424,6 +422,15 @@ function loadManifestFromRDF(aUri, aStream) {
 
   if (!(addon.type in TYPES))
     throw new Error("Install manifest specifies unknown type: " + addon.type);
+
+  if (addon.type != "multipackage") {
+    if (!addon.id)
+      throw new Error("No ID in install manifest");
+    if (!gIDTest.test(addon.id))
+      throw new Error("Illegal add-on ID " + addon.id);
+    if (!addon.version)
+      throw new Error("No version in install manifest");
+  }
 
   
   if (addon.type == "extension") {
@@ -602,11 +609,47 @@ function loadManifestFromZipReader(aZipReader) {
 
 
 
+function loadManifestFromZipFile(aXPIFile) {
+  let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"].
+                  createInstance(Ci.nsIZipReader);
+  try {
+    zipReader.open(aXPIFile);
+
+    return loadManifestFromZipReader(zipReader);
+  }
+  finally {
+    zipReader.close();
+  }
+}
+
+
+
+
+
+
+
+
+
 
 function buildJarURI(aJarfile, aPath) {
   let uri = Services.io.newFileURI(aJarfile);
   uri = "jar:" + uri.spec + "!/" + aPath;
   return NetUtil.newURI(uri);
+}
+
+
+
+
+
+
+
+function getTemporaryFile() {
+  let file = FileUtils.getDir(KEY_TEMPDIR, []);
+  let random = Math.random().toString(36).replace(/0./, '').substr(-3);
+  file.append("tmp-" + random + ".xpi");
+  file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+
+  return file;
 }
 
 
@@ -3869,7 +3912,36 @@ function AddonInstall(aCallback, aInstallLocation, aUrl, aHash, aName, aType,
     }
 
     try {
-      this.loadManifest();
+      let self = this;
+      this.loadManifest(function() {
+        XPIDatabase.getVisibleAddonForID(self.addon.id, function(aAddon) {
+          self.existingAddon = aAddon;
+
+          if (!self.addon.isCompatible) {
+            
+            self.state = AddonManager.STATE_CHECKING;
+            new UpdateChecker(self.addon, {
+              onUpdateFinished: function(aAddon) {
+                self.state = AddonManager.STATE_DOWNLOADED;
+                XPIProvider.installs.push(self);
+                AddonManagerPrivate.callInstallListeners("onNewInstall",
+                                                         self.listeners,
+                                                         self.wrapper);
+
+                aCallback(self);
+              }
+            }, AddonManager.UPDATE_WHEN_ADDON_INSTALLED);
+          }
+          else {
+            XPIProvider.installs.push(self);
+            AddonManagerPrivate.callInstallListeners("onNewInstall",
+                                                     self.listeners,
+                                                     self.wrapper);
+
+            aCallback(self);
+          }
+        });
+      });
     }
     catch (e) {
       WARN("Invalid XPI: " + e);
@@ -3878,34 +3950,6 @@ function AddonInstall(aCallback, aInstallLocation, aUrl, aHash, aName, aType,
       aCallback(this);
       return;
     }
-
-    let self = this;
-    XPIDatabase.getVisibleAddonForID(this.addon.id, function(aAddon) {
-      self.existingAddon = aAddon;
-
-      if (!self.addon.isCompatible) {
-        
-        self.state = AddonManager.STATE_CHECKING;
-        new UpdateChecker(self.addon, {
-          onUpdateFinished: function(aAddon) {
-            self.state = AddonManager.STATE_DOWNLOADED;
-            XPIProvider.installs.push(self);
-            AddonManagerPrivate.callInstallListeners("onNewInstall",
-                                                     self.listeners,
-                                                     self.wrapper);
-
-            aCallback(self);
-          }
-        }, AddonManager.UPDATE_WHEN_ADDON_INSTALLED);
-      }
-      else {
-        XPIProvider.installs.push(self);
-        AddonManagerPrivate.callInstallListeners("onNewInstall", self.listeners,
-                                                 self.wrapper);
-
-        aCallback(self);
-      }
-    });
   }
   else {
     this.state = AddonManager.STATE_AVAILABLE;
@@ -3940,9 +3984,11 @@ AddonInstall.prototype = {
   releaseNotesURI: null,
   sourceURI: null,
   file: null,
+  ownsTempFile: false,
   certificate: null,
   certName: null,
 
+  linkedInstalls: null,
   existingAddon: null,
   addon: null,
 
@@ -4047,57 +4093,209 @@ AddonInstall.prototype = {
   
 
 
-
-
-
-
-  loadManifest: function AI_loadManifest() {
-    let zipreader = Cc["@mozilla.org/libjar/zip-reader;1"].
-                    createInstance(Ci.nsIZipReader);
-    zipreader.open(this.file);
+  removeTemporaryFile: function AI_removeTemporaryFile() {
+    
+    if (!this.ownsTempFile)
+      return;
 
     try {
-      let principal = zipreader.getCertificatePrincipal(null);
-      if (principal && principal.hasCertificate) {
-        LOG("Verifying XPI signature");
-        if (verifyZipSigning(zipreader, principal)) {
-          let x509 = principal.certificate;
-          if (x509 instanceof Ci.nsIX509Cert)
-            this.certificate = x509;
-          if (this.certificate && this.certificate.commonName.length > 0)
-            this.certName = this.certificate.commonName;
-          else
-            this.certName = principal.prettyName;
-        }
-        else {
-          throw new Error("XPI is incorrectly signed");
-        }
-      }
-
-      if (!zipreader.hasEntry(FILE_INSTALL_MANIFEST)) {
-        zipreader.close();
-        throw new Error("Missing install.rdf");
-      }
-
-      this.addon = loadManifestFromZipReader(zipreader);
-      this.addon.sourceURI = this.sourceURI.spec;
-      if (this.releaseNotesURI)
-        this.addon.releaseNotesURI = this.releaseNotesURI.spec;
-      this.addon._install = this;
-
-      this.name = this.addon.selectedLocale.name;
-      this.type = this.addon.type;
-      this.version = this.addon.version;
-
-      
-      
-      
-      
-      
+      this.file.remove(true);
+      this.ownsTempFile = false;
     }
-    finally {
+    catch (e) {
+      WARN("Failed to remove temporary file " + this.file.path + ": " + e);
+    }
+  },
+
+  
+
+
+
+  updateAddonURIs: function AI_updateAddonURIs() {
+    this.addon.sourceURI = this.sourceURI.spec;
+    if (this.releaseNotesURI)
+      this.addon.releaseNotesURI = this.releaseNotesURI.spec;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  loadMultipackageManifests: function AI_loadMultipackageManifests(aZipReader,
+                                                                   aCallback) {
+    let files = [];
+    let entries = aZipReader.findEntries("(*.[Xx][Pp][Ii]|*.[Jj][Aa][Rr])");
+    while (entries.hasMore()) {
+      let entryName = entries.getNext();
+      var target = getTemporaryFile();
+      try {
+        aZipReader.extract(entryName, target);
+        files.push(target);
+      }
+      catch (e) {
+        WARN("Failed to extract " + entryName + " from multi-package " +
+             "XPI: " + e);
+        target.remove(false);
+      }
+    }
+
+    aZipReader.close();
+
+    if (files.length == 0) {
+      throw new Error("Multi-package XPI does not contain any packages " +
+                      "to install");
+    }
+
+    let addon = null;
+
+    
+    
+    while (files.length > 0) {
+      this.removeTemporaryFile();
+      this.file = files.shift();
+      this.ownsTempFile = true;
+      try {
+        addon = loadManifestFromZipFile(this.file);
+        break;
+      }
+      catch (e) {
+        WARN(this.file.leafName + " cannot be installed from multi-package " +
+             "XPI: " + e);
+      }
+    }
+
+    if (!addon) {
+      
+      aCallback();
+      return;
+    }
+
+    this.addon = addon;
+
+    this.updateAddonURIs();
+
+    this.addon._install = this;
+    this.name = this.addon.selectedLocale.name;
+    this.type = this.addon.type;
+    this.version = this.addon.version;
+
+    
+    
+    
+    
+    
+
+    
+    if (files.length > 0) {
+      this.linkedInstalls = [];
+      let count = 0;
+      let self = this;
+      files.forEach(function(file) {
+        AddonInstall.createInstall(function(aInstall) {
+          
+          if (aInstall.state == AddonManager.STATE_DOWNLOAD_FAILED) {
+            
+            file.remove(true);
+          }
+          else {
+            
+            aInstall.ownsTempFile = true;
+
+            self.linkedInstalls.push(aInstall)
+
+            aInstall.sourceURI = self.sourceURI;
+            aInstall.releaseNotesURI = self.releaseNotesURI;
+            aInstall.updateAddonURIs();
+          }
+
+          count++;
+          if (count == files.length)
+            aCallback();
+        }, file);
+      }, this);
+    }
+    else {
+      aCallback();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  loadManifest: function AI_loadManifest(aCallback) {
+    let zipreader = Cc["@mozilla.org/libjar/zip-reader;1"].
+                    createInstance(Ci.nsIZipReader);
+    try {
+      zipreader.open(this.file);
+    }
+    catch (e) {
       zipreader.close();
+      throw e;
     }
+
+    let principal = zipreader.getCertificatePrincipal(null);
+    if (principal && principal.hasCertificate) {
+      LOG("Verifying XPI signature");
+      if (verifyZipSigning(zipreader, principal)) {
+        let x509 = principal.certificate;
+        if (x509 instanceof Ci.nsIX509Cert)
+          this.certificate = x509;
+        if (this.certificate && this.certificate.commonName.length > 0)
+          this.certName = this.certificate.commonName;
+        else
+          this.certName = principal.prettyName;
+      }
+      else {
+        zipreader.close();
+        throw new Error("XPI is incorrectly signed");
+      }
+    }
+
+    try {
+      this.addon = loadManifestFromZipReader(zipreader);
+    }
+    catch (e) {
+      zipreader.close();
+      throw e;
+    }
+
+    if (this.addon.type == "multipackage") {
+      this.loadMultipackageManifests(zipreader, aCallback);
+      return;
+    }
+
+    zipreader.close();
+
+    this.updateAddonURIs();
+
+    this.addon._install = this;
+    this.name = this.addon.selectedLocale.name;
+    this.type = this.addon.type;
+    this.version = this.addon.version;
+
+    
+    
+    
+    
+    
+
+    aCallback();
   },
 
   observe: function AI_observe(aSubject, aTopic, aData) {
@@ -4146,10 +4344,8 @@ AddonInstall.prototype = {
     }
 
     try {
-      this.file = FileUtils.getDir("TmpD", []);
-      let random =  Math.random().toString(36).replace(/0./, '').substr(-3);
-      this.file.append("tmp-" + random + ".xpi");
-      this.file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      this.file = getTemporaryFile();
+      this.ownsTempFile = true;
       this.stream = Cc["@mozilla.org/network/file-output-stream;1"].
                     createInstance(Ci.nsIFileOutputStream);
       this.stream.init(this.file, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE |
@@ -4272,21 +4468,21 @@ AddonInstall.prototype = {
           return;
         }
         try {
-          this.loadManifest();
-
-          if (this.addon.isCompatible) {
-            this.downloadCompleted();
-          }
-          else {
-            
-            this.state = AddonManager.STATE_CHECKING;
-            let self = this;
-            new UpdateChecker(this.addon, {
-              onUpdateFinished: function(aAddon) {
-                self.downloadCompleted();
-              }
-            }, AddonManager.UPDATE_WHEN_ADDON_INSTALLED);
-          }
+          let self = this;
+          this.loadManifest(function() {
+            if (self.addon.isCompatible) {
+              self.downloadCompleted();
+            }
+            else {
+              
+              self.state = AddonManager.STATE_CHECKING;
+              new UpdateChecker(self.addon, {
+                onUpdateFinished: function(aAddon) {
+                  self.downloadCompleted();
+                }
+              }, AddonManager.UPDATE_WHEN_ADDON_INSTALLED);
+            }
+          });
         }
         catch (e) {
           this.downloadFailed(AddonManager.ERROR_CORRUPT_FILE, e);
@@ -4321,12 +4517,7 @@ AddonInstall.prototype = {
     XPIProvider.removeActiveInstall(this);
     AddonManagerPrivate.callInstallListeners("onDownloadFailed", this.listeners,
                                              this.wrapper);
-    try {
-      this.file.remove(true);
-    }
-    catch (e) {
-      WARN("Failed to remove temporary file " + this.file.path + ": " + e);
-    }
+    this.removeTemporaryFile();
   },
 
   
@@ -4339,8 +4530,15 @@ AddonInstall.prototype = {
       self.state = AddonManager.STATE_DOWNLOADED;
       if (AddonManagerPrivate.callInstallListeners("onDownloadEnded",
                                                    self.listeners,
-                                                   self.wrapper))
+                                                   self.wrapper)) {
         self.install();
+
+        if (self.linkedInstalls) {
+          self.linkedInstalls.forEach(function(aInstall) {
+            aInstall.install();
+          });
+        }
+      }
     });
   },
 
@@ -4515,15 +4713,7 @@ AddonInstall.prototype = {
                                                this.wrapper);
     }
     finally {
-      
-      if (!(this.sourceURI instanceof Ci.nsIFileURL)) {
-        try {
-          this.file.remove(true);
-        }
-        catch (e) {
-          WARN("Failed to remove temporary file " + this.file.path + ": " + e);
-        }
-      }
+      this.removeTemporaryFile();
     }
   }
 }
@@ -4618,6 +4808,12 @@ function AddonInstallWrapper(aInstall) {
   });
   this.__defineGetter__("addon", function() createWrapper(aInstall.addon));
   this.__defineGetter__("sourceURI", function() aInstall.sourceURI);
+
+  this.__defineGetter__("linkedInstalls", function() {
+    if (!aInstall.linkedInstalls)
+      return null;
+    return [i.wrapper for each (i in aInstall.linkedInstalls)];
+  });
 
   this.install = function() {
     aInstall.install();

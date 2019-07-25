@@ -137,6 +137,17 @@ Installer.prototype = {
           failed.push(install);
         else
           installs.push(install);
+
+        if (install.linkedInstalls) {
+          install.linkedInstalls.forEach(function(aInstall) {
+            aInstall.addListener(this);
+            
+            if (aInstall.addon.appDisabled)
+              failed.push(aInstall);
+            else
+              installs.push(aInstall);
+          }, this);
+        }
         break;
       default:
         WARN("Download of " + install.sourceURI + " in unexpected state " +

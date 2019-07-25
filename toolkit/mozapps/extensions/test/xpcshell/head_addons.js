@@ -795,4 +795,20 @@ Services.prefs.setBoolPref("extensions.logging.enabled", true);
 
 Services.prefs.setIntPref("extensions.enabledScopes", AddonManager.SCOPE_PROFILE);
 
-do_register_cleanup(shutdownManager);
+
+const gTmpD = gProfD.clone();
+gTmpD.append("temp");
+gTmpD.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+registerDirectory("TmpD", gTmpD);
+
+do_register_cleanup(function() {
+  
+  var dirEntries = gTmpD.directoryEntries
+                        .QueryInterface(AM_Ci.nsIDirectoryEnumerator);
+  var entry;
+  while (entry = dirEntries.nextFile) {
+    do_throw("Found unexpected file in temporary directory: " + entry.leafName);
+  }
+
+  shutdownManager();
+});
