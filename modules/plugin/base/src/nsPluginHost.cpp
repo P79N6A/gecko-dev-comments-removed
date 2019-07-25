@@ -189,7 +189,8 @@ using mozilla::TimeStamp;
 
 
 
-static const char *kPluginRegistryVersion = "0.11";
+
+static const char *kPluginRegistryVersion = "0.12";
 
 static const char *kMinimumRegistryVersion = "0.9";
 
