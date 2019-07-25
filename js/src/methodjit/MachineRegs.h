@@ -416,7 +416,7 @@ struct Registers {
 
     
     static inline RegisterID tempCallReg() {
-        Registers regs(AvailRegs);
+        Registers regs(TempRegs);
         regs.takeReg(Registers::ArgReg0);
         regs.takeReg(Registers::ArgReg1);
         return regs.takeAnyReg().reg();
