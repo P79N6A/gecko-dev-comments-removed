@@ -1218,30 +1218,18 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aFrameOffset,
   }
   PRInt64 offset = -1;
   PRUint32 frames = 0;
-  
-  
-  
-  
-  
-  
-  
-  if (!mAudioStream->IsPaused()) {
-    LOG(PR_LOG_DEBUG, ("%p Decoder playing %d frames of data to stream for AudioData at %lld",
-                       mDecoder.get(), audio->mFrames, audio->mTime));
-    mAudioStream->Write(audio->mAudioData,
-                        audio->mFrames);
+  LOG(PR_LOG_DEBUG, ("%p Decoder playing %d frames of data to stream for AudioData at %lld",
+                     mDecoder.get(), audio->mFrames, audio->mTime));
+  mAudioStream->Write(audio->mAudioData,
+                      audio->mFrames);
 
-    offset = audio->mOffset;
-    frames = audio->mFrames;
+  offset = audio->mOffset;
+  frames = audio->mFrames;
 
-    
-    mEventManager.QueueWrittenAudioData(audio->mAudioData.get(),
-                                        audio->mFrames * aChannels,
-                                        (aFrameOffset + frames) * aChannels);
-  } else {
-    mReader->mAudioQueue.PushFront(audio);
-    audio.forget();
-  }
+  
+  mEventManager.QueueWrittenAudioData(audio->mAudioData.get(),
+                                      audio->mFrames * aChannels,
+                                      (aFrameOffset + frames) * aChannels);
   if (offset != -1) {
     mDecoder->UpdatePlaybackOffset(offset);
   }
@@ -1267,11 +1255,6 @@ void nsBuiltinDecoderStateMachine::StopPlayback()
 
   mDecoder->mPlaybackStatistics.Stop(TimeStamp::Now());
 
-  
-  
-  
-  
-  
   if (IsPlaying()) {
     mPlayDuration += DurationToUsecs(TimeStamp::Now() - mPlayStartTime);
     mPlayStartTime = TimeStamp();
