@@ -2747,9 +2747,21 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
   UpdateNonClientMargins();
 
   
+  DWORD style;
+  if (nsUXThemeData::CheckForCompositor()) {
+    style = GetWindowLong(mWnd, GWL_STYLE);
+    SetWindowLong(mWnd, GWL_STYLE, style & ~WS_VISIBLE);
+  }
+
+  
   
   
   nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen);
+
+  if (nsUXThemeData::CheckForCompositor()) {
+    style = GetWindowLong(mWnd, GWL_STYLE);
+    SetWindowLong(mWnd, GWL_STYLE, style | WS_VISIBLE);
+  }
 
   
   nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
