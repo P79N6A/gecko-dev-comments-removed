@@ -1027,6 +1027,13 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, JSStackFrame *caller, uintN 
 
 
 
+
+
+
+
+
+
+
     uintN count = 0;
     JSScript **scriptp = bucket;
 
@@ -1227,7 +1234,7 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
 
     JSScript *script = NULL;
     JSScript **bucket = EvalCacheHash(cx, linearStr);
-    if (evalType == DIRECT_EVAL && caller->isFunctionFrame())
+    if (evalType == DIRECT_EVAL && caller->isFunctionFrame() && !caller->isEvalFrame())
         script = EvalCacheLookup(cx, linearStr, caller, staticLevel, principals, scopeobj, bucket);
 
     
