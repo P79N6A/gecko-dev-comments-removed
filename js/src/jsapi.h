@@ -3068,9 +3068,10 @@ JS_StringToVersion(const char *string);
                                                    "use strict" annotations. */
 
 
+
 #define JSCOMPILEOPTION_MASK    (JSOPTION_ALLOW_XML | JSOPTION_MOAR_XML)
 
-#define JSRUNOPTION_MASK        (JS_BITMASK(20) & ~JSCOMPILEOPTION_MASK)
+#define JSRUNOPTION_MASK        (JS_BITMASK(21) & ~JSCOMPILEOPTION_MASK)
 #define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32_t)

@@ -15,6 +15,12 @@
 
 JS_BEGIN_EXTERN_C
 
+
+
+
+
+#define JSOPTION_ONLY_CNG_SOURCE JS_BIT(20)
+
 extern JS_FRIEND_API(void)
 JS_SetGrayGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
