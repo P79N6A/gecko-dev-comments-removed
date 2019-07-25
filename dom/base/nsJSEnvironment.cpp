@@ -1602,7 +1602,7 @@ nsJSContext::CompileScript(const PRUnichar* aText,
 
 nsresult
 nsJSContext::ExecuteScript(void *aScriptObject,
-                           void *aScopeObject,
+                           JSObject* aScopeObject,
                            nsAString* aRetValue,
                            bool* aIsUndefined)
 {
@@ -1620,28 +1620,21 @@ nsJSContext::ExecuteScript(void *aScriptObject,
     return NS_OK;
   }
 
+  if (!aScopeObject) {
+    aScopeObject = JS_GetGlobalObject(mContext);
+  }
+
+  
+  
   nsresult rv;
-
-  if (!aScopeObject)
-    aScopeObject = ::JS_GetGlobalObject(mContext);
-
-  
-  
   nsCOMPtr<nsIJSContextStack> stack =
            do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
   if (NS_FAILED(rv) || NS_FAILED(stack->Push(mContext))) {
     return NS_ERROR_FAILURE;
   }
 
-  
-  
-  
-  jsval val;
-  JSBool ok;
-
   JSScript *script = static_cast<JSScript *>(aScriptObject);
   nsCOMPtr<nsIPrincipal> principal;
-
   rv = sSecurityManager->GetObjectPrincipal(mContext,
                                             JS_GetGlobalFromScript(script),
                                             getter_AddRefs(principal));
@@ -1653,8 +1646,12 @@ nsJSContext::ExecuteScript(void *aScriptObject,
   nsJSContext::TerminationFuncHolder holder(this);
   JSAutoRequest ar(mContext);
   ++mExecuteDepth;
-  ok = ::JS_ExecuteScript(mContext, (JSObject *)aScopeObject, script, &val);
 
+  
+  
+  
+  jsval val;
+  bool ok = JS_ExecuteScript(mContext, aScopeObject, script, &val);
   if (ok) {
     
     rv = JSValueToAString(mContext, val, aRetValue, aIsUndefined);
