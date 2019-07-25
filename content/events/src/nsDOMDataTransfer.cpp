@@ -337,7 +337,10 @@ nsDOMDataTransfer::GetData(const nsAString& aFormat, nsAString& aData)
     
     
     nsAutoString lowercaseFormat;
-    nsContentUtils::ASCIIToLower(aFormat, lowercaseFormat);
+    rv = nsContentUtils::ASCIIToLower(aFormat, lowercaseFormat);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
     
     if (lowercaseFormat.EqualsLiteral("url")) {
       PRInt32 lastidx = 0, idx;
