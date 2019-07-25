@@ -488,7 +488,7 @@ public class GeckoInputConnection
         
 
         if (!text.contentEquals(GeckoApp.surfaceView.mEditable))
-            GeckoApp.surfaceView.setupEditable(text);
+            GeckoApp.surfaceView.setEditable(text);
 
         if (mUpdateRequest == null)
             return;
