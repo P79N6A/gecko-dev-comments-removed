@@ -8907,16 +8907,9 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
   
   sFullScreenDoc = do_GetWeakReference(static_cast<nsIDocument*>(this));
 
-  
-  
-  
-  
-  
-  
-  
-  SetWindowFullScreen(this, true);
-
 #ifdef DEBUG
+  
+  
   NS_ASSERTION(GetFullScreenElement() == aElement,
                "Full-screen element should be the requested element!");
   NS_ASSERTION(IsFullScreenDoc(), "Should be full-screen doc");
@@ -8926,6 +8919,15 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
   NS_ASSERTION(c->AsElement() == aElement,
     "GetMozFullScreenElement should match GetFullScreenElement()");
 #endif
+
+  
+  
+  
+  
+  
+  
+  
+  SetWindowFullScreen(this, true);
 }
 
 NS_IMETHODIMP
