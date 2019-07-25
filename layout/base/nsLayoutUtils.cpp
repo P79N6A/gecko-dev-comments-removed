@@ -1216,7 +1216,8 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
   nsIPresShell* presShell = presContext->PresShell();
 
   nsRegion visibleRegion;
-  if (aFlags & PAINT_WIDGET_LAYERS) {
+  if ((aFlags & PAINT_WIDGET_LAYERS) &&
+      !(aFlags & PAINT_IGNORE_VIEWPORT_SCROLLING)) {
     
     
     visibleRegion = aFrame->GetOverflowRectRelativeToSelf();
@@ -1287,6 +1288,13 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     }
   }
 
+  
+  
+  
+  PRBool willFlushLayers = aFlags & (PAINT_IGNORE_SUPPRESSION |
+                                     PAINT_IGNORE_VIEWPORT_SCROLLING |
+                                     PAINT_HIDE_CARET);
+
   nsIAtom* frameType = aFrame->GetType();
   
   
@@ -1337,9 +1345,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     nsIntRegion visibleWindowRegion(visibleRegion.ToOutsidePixels(pixelRatio));
     nsIntRegion dirtyWindowRegion(aDirtyRegion.ToOutsidePixels(pixelRatio));
 
-    if (aFlags & (PAINT_IGNORE_SUPPRESSION |
-                  PAINT_IGNORE_VIEWPORT_SCROLLING |
-                  PAINT_HIDE_CARET)) {
+    if (willFlushLayers) {
       
       
       
