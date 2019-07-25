@@ -4250,19 +4250,7 @@ nsresult nsEditor::EndUpdateViewBatch()
 
     StCaretHider caretHider(caret);
 
-    PRUint32 flags = 0;
-
-    GetFlags(&flags);
-
-    
-    PRUint32 updateFlag = NS_VMREFRESH_IMMEDIATE;
-
-    
-    
-    if (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask) {
-      updateFlag = NS_VMREFRESH_DEFERRED;
-    }
-    mBatch.EndUpdateViewBatch(updateFlag);
+    mBatch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
 
     
 
@@ -4980,8 +4968,19 @@ nsEditor::CreateRange(nsIDOMNode *aStartParent, PRInt32 aStartOffset,
                       nsIDOMNode *aEndParent, PRInt32 aEndOffset,
                       nsIDOMRange **aRange)
 {
-  return nsRange::CreateRange(aStartParent, aStartOffset, aEndParent,
-                              aEndOffset, aRange);
+  NS_ADDREF(*aRange = new nsRange());
+
+  nsresult result = (*aRange)->SetStart(aStartParent, aStartOffset);
+
+  if (NS_SUCCEEDED(result))
+    result = (*aRange)->SetEnd(aEndParent, aEndOffset);
+
+  if (NS_FAILED(result))
+  {
+    NS_RELEASE((*aRange));
+    *aRange = 0;
+  }
+  return result;
 }
 
 nsresult 
