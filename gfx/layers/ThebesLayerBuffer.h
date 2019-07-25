@@ -112,6 +112,10 @@ public:
 
 
   struct PaintState {
+    PaintState()
+      : mDidSelfCopy(PR_FALSE)
+    {}
+
     nsRefPtr<gfxContext> mContext;
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
