@@ -136,5 +136,24 @@ nsresult Decoder::WriteInternal(const char* aBuffer, PRUint32 aCount) {return NS
 nsresult Decoder::FinishInternal() {return NS_OK; }
 nsresult Decoder::ShutdownInternal(PRUint32 aFlags) {return NS_OK; }
 
+
+
+
+
+void
+Decoder::PostSize(PRInt32 aWidth, PRInt32 aHeight)
+{
+  
+  NS_ABORT_IF_FALSE(aWidth >= 0, "Width can't be negative!");
+  NS_ABORT_IF_FALSE(aHeight >= 0, "Height can't be negative!");
+
+  
+  mImage->SetSize(aWidth, aHeight);
+
+  
+  if (mObserver)
+    mObserver->OnStartContainer(nsnull, mImage);
+}
+
 } 
 } 

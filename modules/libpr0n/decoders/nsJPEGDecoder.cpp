@@ -257,9 +257,7 @@ nsJPEGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
     }
 
     
-    mImage->SetSize(mInfo.image_width, mInfo.image_height);
-    if (mObserver)
-      mObserver->OnStartContainer(nsnull, mImage);
+    PostSize(mInfo.image_width, mInfo.image_height);
 
     
     if (IsSizeDecode())

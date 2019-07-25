@@ -136,6 +136,15 @@ protected:
 
 
 
+  
+  
+  void PostSize(PRInt32 aWidth, PRInt32 aHeight);
+
+
+  
+
+
+
 
   nsRefPtr<RasterImage> mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
