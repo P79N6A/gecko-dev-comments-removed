@@ -76,7 +76,7 @@ const kElementsReceivingInput = {
 };
 
 
-const kBufferAmount = 300;
+const kBufferAmount = 600;
 
 
 const kUsingGLLayers = true;
@@ -1570,13 +1570,63 @@ Tab.prototype = {
     if (this._zoom <= 0)
       return;
 
-    dump("### Setting displayport, screen-size = " + gScreenWidth + "x" + gScreenHeight + ", zoom = " + this._zoom);
+    let viewport = this.viewport;
+
+    
+    
+
+    
+    let xBufferAmount = Math.min(kBufferAmount, Math.max(0, viewport.pageWidth - viewport.width));
+    
+    
+    let savedPixels = (kBufferAmount - xBufferAmount) * (viewport.height + kBufferAmount);
+    let extraYAmount = Math.floor(savedPixels / (viewport.width + xBufferAmount));
+    let yBufferAmount = Math.min(kBufferAmount + extraYAmount, Math.max(0, viewport.pageHeight - viewport.height));
+    
+    if (xBufferAmount == kBufferAmount && yBufferAmount < kBufferAmount) {
+        savedPixels = (kBufferAmount - yBufferAmount) * (viewport.width + xBufferAmount);
+        let extraXAmount = Math.floor(savedPixels / (viewport.height + yBufferAmount));
+        xBufferAmount = Math.min(xBufferAmount + extraXAmount, Math.max(0, viewport.pageWidth - viewport.width));
+    }
+
+    
+    
+    
+    
+    
+    let leftMargin = Math.max(0, viewport.x);
+    let rightMargin = Math.max(0, viewport.pageWidth - (viewport.x + viewport.width));
+    if (leftMargin < (xBufferAmount / 2)) {
+      rightMargin = xBufferAmount - leftMargin;
+    } else if (rightMargin < (xBufferAmount / 2)) {
+      leftMargin = xBufferAmount - rightMargin;
+    } else {
+      leftMargin = rightMargin = xBufferAmount / 2;
+    }
+    let topMargin = Math.max(0, viewport.y);
+    let bottomMargin = Math.max(0, viewport.pageHeight - (viewport.y + viewport.height));
+    if (topMargin < (yBufferAmount / 2)) {
+      bottomMargin = yBufferAmount - topMargin;
+    } else if (bottomMargin < (yBufferAmount / 2)) {
+      topMargin = yBufferAmount - bottomMargin;
+    } else {
+      topMargin = bottomMargin = yBufferAmount / 2;
+    }
+
+    dump("### displayport margins=(" + leftMargin + ", " + topMargin + ", " + rightMargin + ", " + bottomMargin + ") at zoom=" + viewport.zoom
+        + " and buffer amounts=(" + xBufferAmount + ", " + yBufferAmount + ")");
+
+    
+    
+    
+    
+
     let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
-    cwu.setResolution(this._zoom, this._zoom);
-    cwu.setDisplayPortForElement(-kBufferAmount / this._zoom, -kBufferAmount / this._zoom,
-                                 (gScreenWidth + kBufferAmount * 2) / this._zoom,
-                                 (gScreenHeight + kBufferAmount * 2) / this._zoom,
+    cwu.setDisplayPortForElement(-leftMargin / viewport.zoom,
+                                 -topMargin / viewport.zoom,
+                                 (leftMargin + viewport.width + rightMargin) / viewport.zoom,
+                                 (topMargin + viewport.height + bottomMargin) / viewport.zoom,
                                  this.browser.contentDocument.documentElement);
   },
 
@@ -1595,8 +1645,13 @@ Tab.prototype = {
     let zoom = aViewport.zoom;
     if (Math.abs(zoom - this._zoom) >= 1e-6) {
       this._zoom = zoom;
-      this.refreshDisplayPort();
+      let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      cwu.setResolution(zoom, zoom);
     }
+
+    
+    this.refreshDisplayPort();
   },
 
   get viewport() {
