@@ -51,7 +51,8 @@ public:
   
 
 
-  virtual PRInt32 CellIndexAt(PRUint32 aRowIdx, PRUint32 aColIdx) { return -1; }
+  virtual PRInt32 CellIndexAt(PRUint32 aRowIdx, PRUint32 aColIdx)
+    { return ColCount() * aRowIdx + aColIdx; }
 
   
 
