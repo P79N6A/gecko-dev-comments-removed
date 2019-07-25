@@ -563,8 +563,9 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
 
 function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
 {
-  if (typeof gDownloadLastDir != "object")
+  if (!getTargetFile.gDownloadLastDir)
     Components.utils.import("resource:
+  var gDownloadLastDir = getTargetFile.gDownloadLastDir;
 
   var prefs = getPrefsBrowserDownload("browser.download.");
   var useDownloadDir = prefs.getBoolPref("useDownloadDir");
