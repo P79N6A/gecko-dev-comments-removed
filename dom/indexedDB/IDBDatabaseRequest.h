@@ -60,7 +60,6 @@ class IDBDatabaseRequest : public IDBRequest::Generator,
                            public nsIObserver
 {
   friend class AsyncConnectionHelper;
-  friend class IDBTransactionRequest;
 
 public:
   NS_DECL_ISUPPORTS
@@ -83,21 +82,13 @@ public:
     return mDatabaseId;
   }
 
-protected:
-  IDBDatabaseRequest();
-  ~IDBDatabaseRequest();
-
-  void DisableConnectionThreadTimeout() {
-    mConnectionThread->DisableIdleTimeout();
-  }
-
-  void EnableConnectionThreadTimeout() {
-    mConnectionThread->EnableIdleTimeout();
-  }
-
   const nsString& FilePath() {
     return mFilePath;
   }
+
+protected:
+  IDBDatabaseRequest();
+  ~IDBDatabaseRequest();
 
   
   nsresult GetOrCreateConnection(mozIStorageConnection** aConnection);
@@ -109,8 +100,6 @@ private:
   nsString mFilePath;
 
   nsRefPtr<LazyIdleThread> mConnectionThread;
-
-  nsTArray<IDBTransactionRequest*> mTransactions;
 
   
   
