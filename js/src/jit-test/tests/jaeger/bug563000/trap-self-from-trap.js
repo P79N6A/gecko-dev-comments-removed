@@ -7,14 +7,14 @@ function doNothing() { }
 function myparent(nested) {
   if (nested) {
     
-    trap(myparent, 33, "success()");
+    trap(myparent, 41, "success()");
     doNothing();
   } else {
     doNothing();
   }
 }
 
-trap(myparent, 47, "myparent(true)");
+trap(myparent, 57, "myparent(true)");
 
 function success() {
   x = "success";

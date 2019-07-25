@@ -82,7 +82,7 @@ typedef enum JSOp {
 #define JOF_LOOKUPSWITCH  5       /* lookup switch */
 #define JOF_QARG          6       /* quickened get/set function argument ops */
 #define JOF_LOCAL         7       /* var or block-local variable */
-
+#define JOF_DOUBLE        8       /* uint32_t index for double value */
 #define JOF_UINT24        12      /* extended unsigned 24-bit literal (index) */
 #define JOF_UINT8         13      /* uint8_t immediate, e.g. top 8 bits of 24-bit
                                      atom index */
@@ -113,7 +113,7 @@ typedef enum JSOp {
 #define JOF_BACKPATCH    (1U<<15) /* backpatch placeholder during codegen */
 #define JOF_LEFTASSOC    (1U<<16) /* left-associative operator */
 #define JOF_DECLARING    (1U<<17) /* var, const, or function declaration op */
-#define JOF_INDEXBASE    (1U<<18) /* atom segment base setting prefix op */
+
 #define JOF_PARENHEAD    (1U<<20) /* opcode consumes value of expression in
                                      parenthesized statement head */
 #define JOF_INVOKE       (1U<<21) /* JSOP_CALL, JSOP_NEW, JSOP_EVAL */
@@ -192,7 +192,7 @@ SET_JUMP_OFFSET(jsbytecode *pc, int32_t off)
 #define UINT32_INDEX_LEN        4
 
 static JS_ALWAYS_INLINE uint32_t
-GET_UINT32_INDEX(jsbytecode *pc)
+GET_UINT32_INDEX(const jsbytecode *pc)
 {
     return (pc[1] << 24) | (pc[2] << 16) | (pc[3] << 8) | pc[4];
 }
@@ -205,22 +205,6 @@ SET_UINT32_INDEX(jsbytecode *pc, uint32_t index)
     pc[3] = (jsbytecode)(index >> 8);
     pc[4] = (jsbytecode)index;
 }
-
-
-
-
-
-
-
-#define INDEX_LEN               2
-#define INDEX_HI(i)             ((jsbytecode)((i) >> 8))
-#define INDEX_LO(i)             ((jsbytecode)(i))
-#define GET_INDEX(pc)           GET_UINT16(pc)
-#define SET_INDEX(pc,i)         ((pc)[1] = INDEX_HI(i), (pc)[2] = INDEX_LO(i))
-
-#define GET_INDEXBASE(pc)       (JS_ASSERT(*(pc) == JSOP_INDEXBASE),          \
-                                 ((uintN)((pc)[1])) << 16)
-#define INDEXBASE_LEN           1
 
 #define UINT24_HI(i)            ((jsbytecode)((i) >> 16))
 #define UINT24_MID(i)           ((jsbytecode)((i) >> 8))
@@ -320,26 +304,10 @@ js_printf(JSPrinter *jp, const char *format, ...);
 extern JSBool
 js_puts(JSPrinter *jp, const char *s);
 
-
-
-
-
-
-
-
-uintN
-js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
-
-
-
-
-
 #define GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom)                       \
     JS_BEGIN_MACRO                                                            \
-        JS_ASSERT(*(pc) != JSOP_DOUBLE);                                      \
         JS_ASSERT(js_CodeSpec[*(pc)].format & JOF_ATOM);                      \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
-        (atom) = (script)->getAtom(index_);                                   \
+        (atom) = (script)->getAtom(GET_UINT32_INDEX((pc) + (pcoff)));         \
     JS_END_MACRO
 
 #define GET_NAME_FROM_BYTECODE(script, pc, pcoff, name)                       \
@@ -348,13 +316,6 @@ js_GetIndexFromBytecode(JSScript *script, jsbytecode *pc, ptrdiff_t pcoff);
         GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom_);                     \
         JS_ASSERT(js_CodeSpec[*(pc)].format & (JOF_NAME | JOF_PROP));         \
         (name) = atom_->asPropertyName();                                     \
-    JS_END_MACRO
-
-#define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, dbl)                      \
-    JS_BEGIN_MACRO                                                            \
-        uintN index_ = js_GetIndexFromBytecode((script), (pc), (pcoff));      \
-        JS_ASSERT(index_ < (script)->consts()->length);                       \
-        (dbl) = (script)->getConst(index_).toDouble();                        \
     JS_END_MACRO
 
 namespace js {

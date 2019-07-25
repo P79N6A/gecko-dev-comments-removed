@@ -2525,6 +2525,7 @@ void Context::readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
             
             
             
+            
             memcpy(dest + j * outputPitch,
                    source + j * inputPitch,
                    (rect.right - rect.left) * 4);
@@ -2671,10 +2672,10 @@ void Context::readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                   default: UNREACHABLE();
                 }
                 break;
-              case GL_RGB:   
+              case GL_RGB:
                 switch (type)
                 {
-                  case GL_UNSIGNED_SHORT_5_6_5:   
+                  case GL_UNSIGNED_SHORT_5_6_5:
                     dest16[i + j * outputPitch / sizeof(unsigned short)] = 
                         ((unsigned short)(31 * b + 0.5f) << 0) |
                         ((unsigned short)(63 * g + 0.5f) << 5) |

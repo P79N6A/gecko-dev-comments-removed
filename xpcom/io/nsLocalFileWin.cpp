@@ -82,6 +82,8 @@
 #include "SpecialSystemDirectory.h"
 
 #include "nsTraceRefcntImpl.h"
+#include "nsXPCOMCIDInternal.h"
+#include "nsThreadUtils.h"
 
 using namespace mozilla;
 
@@ -109,6 +111,199 @@ unsigned char *_mbsstr( const unsigned char *str,
 #ifndef DRIVE_REMOTE
 #define DRIVE_REMOTE 4
 #endif
+
+
+
+
+
+class AsyncLocalFileWinDone : public nsRunnable
+{
+public:
+    AsyncLocalFileWinDone() :
+        mWorkerThread(do_GetCurrentThread())
+    {
+        
+        MOZ_ASSERT(!NS_IsMainThread()); 
+    }
+
+    NS_IMETHOD Run() {
+        
+        MOZ_ASSERT(NS_IsMainThread());
+
+        
+        
+        mWorkerThread->Shutdown();
+        return NS_OK;
+    }
+
+private:
+    nsCOMPtr<nsIThread> mWorkerThread;
+};
+
+
+
+
+
+class AsyncLocalFileWinOperation : public nsRunnable
+{
+public:
+    enum FileOp { RevealOp, LaunchOp };
+
+    AsyncLocalFileWinOperation(AsyncLocalFileWinOperation::FileOp aOperation,
+                               const nsAString &aResolvedPath) : 
+        mOperation(aOperation),
+        mResolvedPath(aResolvedPath)
+    {
+    }
+
+    NS_IMETHOD Run() {
+        NS_ASSERTION(!NS_IsMainThread(),
+            "AsyncLocalFileWinOperation should not be run on the main thread!");
+
+        switch(mOperation) {
+        case RevealOp: {
+            Reveal();
+        }
+        break;
+        case LaunchOp: {
+            Launch();
+        }
+        break;
+        }
+
+        
+        nsCOMPtr<nsIRunnable> resultrunnable = new AsyncLocalFileWinDone();
+        NS_DispatchToMainThread(resultrunnable);
+        return NS_OK;
+    }
+
+private:
+    
+    nsresult Reveal() 
+    {
+        DWORD attributes = GetFileAttributesW(mResolvedPath.get());
+        if (INVALID_FILE_ATTRIBUTES == attributes) {
+            return NS_ERROR_FILE_INVALID_PATH;
+        }
+
+        HRESULT hr;
+        if (attributes & FILE_ATTRIBUTE_DIRECTORY) {
+            
+            ITEMIDLIST *dir = ILCreateFromPathW(mResolvedPath.get());
+            if (!dir) {
+              return NS_ERROR_FAILURE;
+            }
+
+            const ITEMIDLIST* selection[] = { dir };
+            UINT count = ArrayLength(selection);
+
+            
+            hr = SHOpenFolderAndSelectItems(dir, count, selection, 0);
+            CoTaskMemFree(dir);
+        } else {
+            PRInt32 len = mResolvedPath.Length();
+            
+            
+            if (len > MAX_PATH) {
+                return NS_ERROR_FILE_INVALID_PATH;
+            }
+            WCHAR parentDirectoryPath[MAX_PATH + 1] = { 0 };
+            wcsncpy(parentDirectoryPath, mResolvedPath.get(), MAX_PATH);
+            PathRemoveFileSpecW(parentDirectoryPath);
+
+            
+            ITEMIDLIST *dir = ILCreateFromPathW(parentDirectoryPath);
+            if (!dir) {
+                return NS_ERROR_FAILURE;
+            }
+
+            
+            ITEMIDLIST *item = ILCreateFromPathW(mResolvedPath.get());
+            if (!item) {
+                CoTaskMemFree(dir);
+                return NS_ERROR_FAILURE;
+            }
+            
+            const ITEMIDLIST* selection[] = { item };
+            UINT count = ArrayLength(selection);
+
+            
+            hr = SHOpenFolderAndSelectItems(dir, count, selection, 0);
+
+            CoTaskMemFree(dir);
+            CoTaskMemFree(item);
+        }
+        
+        return SUCCEEDED(hr) ? NS_OK : NS_ERROR_FAILURE;
+    }
+    
+    
+    nsresult Launch()
+    {
+        
+        SHELLEXECUTEINFOW seinfo;
+        memset(&seinfo, 0, sizeof(seinfo));
+        seinfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+        seinfo.fMask  = NULL;
+        seinfo.hwnd   = NULL;
+        seinfo.lpVerb = NULL;
+        seinfo.lpFile = mResolvedPath.get();
+        seinfo.lpParameters =  NULL;
+        seinfo.lpDirectory  = NULL;
+        seinfo.nShow  = SW_SHOWNORMAL;
+        
+        if (ShellExecuteExW(&seinfo))
+            return NS_OK;
+        DWORD r = GetLastError();
+        
+        
+        if (r == SE_ERR_NOASSOC) {
+            nsAutoString shellArg;
+            shellArg.Assign(NS_LITERAL_STRING("shell32.dll,OpenAs_RunDLL ") + 
+                            mResolvedPath);
+            seinfo.lpFile = L"RUNDLL32.EXE";
+            seinfo.lpParameters = shellArg.get();
+            if (ShellExecuteExW(&seinfo))
+                return NS_OK;
+            r = GetLastError();
+        }
+        if (r < 32) {
+            switch (r) {
+              case 0:
+              case SE_ERR_OOM:
+                  return NS_ERROR_OUT_OF_MEMORY;
+              case ERROR_FILE_NOT_FOUND:
+                  return NS_ERROR_FILE_NOT_FOUND;
+              case ERROR_PATH_NOT_FOUND:
+                  return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+              case ERROR_BAD_FORMAT:
+                  return NS_ERROR_FILE_CORRUPTED;
+              case SE_ERR_ACCESSDENIED:
+                  return NS_ERROR_FILE_ACCESS_DENIED;
+              case SE_ERR_ASSOCINCOMPLETE:
+              case SE_ERR_NOASSOC:
+                  return NS_ERROR_UNEXPECTED;
+              case SE_ERR_DDEBUSY:
+              case SE_ERR_DDEFAIL:
+              case SE_ERR_DDETIMEOUT:
+                  return NS_ERROR_NOT_AVAILABLE;
+              case SE_ERR_DLLNOTFOUND:
+                  return NS_ERROR_FAILURE;
+              case SE_ERR_SHARE:
+                  return NS_ERROR_FILE_IS_LOCKED;
+              default:
+                  return NS_ERROR_FILE_EXECUTION_FAILED;
+            }
+        }
+        return NS_OK;
+    }
+
+    
+    nsString mResolvedPath;
+
+    
+    AsyncLocalFileWinOperation::FileOp mOperation;
+};
 
 class nsDriveEnumerator : public nsISimpleEnumerator
 {
@@ -2796,128 +2991,61 @@ nsLocalFile::SetFileAttributesWin(PRUint32 aAttribs)
 NS_IMETHODIMP
 nsLocalFile::Reveal()
 {
-  
-  bool isDirectory = false;
-  nsresult rv = IsDirectory(&isDirectory);
-  if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND)
-      return rv;
-
-  HRESULT hr;
-  if (isDirectory) {
     
-    ITEMIDLIST *dir = ILCreateFromPathW(mResolvedPath.get());
-    if (!dir) {
-      return NS_ERROR_FAILURE;
-    }
-
-    const ITEMIDLIST* selection[] = { dir };
-    UINT count = ArrayLength(selection);
+    MOZ_ASSERT(NS_IsMainThread()); 
 
     
-    hr = SHOpenFolderAndSelectItems(dir, count, selection, 0);
-    CoTaskMemFree(dir);
-  }
-  else {
-    
-    nsCOMPtr<nsIFile> parentDirectory;
-    rv = GetParent(getter_AddRefs(parentDirectory));
-    NS_ENSURE_SUCCESS(rv, rv);
-    nsAutoString parentDirectoryPath;
-    rv = parentDirectory->GetPath(parentDirectoryPath);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    ITEMIDLIST *dir = ILCreateFromPathW(parentDirectoryPath.get());
-    if (!dir) {
-      return NS_ERROR_FAILURE;
+    nsresult rv = Resolve();
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_NOT_FOUND) {
+        return rv;
     }
 
     
-    ITEMIDLIST *item = ILCreateFromPathW(mResolvedPath.get());
-    if (!item) {
-      CoTaskMemFree(dir);
-      return NS_ERROR_FAILURE;
+    nsCOMPtr<nsIThreadManager> tm = do_GetService(NS_THREADMANAGER_CONTRACTID);
+    nsCOMPtr<nsIThread> mythread;
+    rv = tm->NewThread(0, 0, getter_AddRefs(mythread));
+    if (NS_FAILED(rv)) {
+        return rv;
     }
-    
-    const ITEMIDLIST* selection[] = { item };
-    UINT count = ArrayLength(selection);
+
+    nsCOMPtr<nsIRunnable> runnable = 
+        new AsyncLocalFileWinOperation(AsyncLocalFileWinOperation::RevealOp,
+                                       mResolvedPath);
 
     
-    hr = SHOpenFolderAndSelectItems(dir, count, selection, 0);
-
-    CoTaskMemFree(dir);
-    CoTaskMemFree(item);
-  }
-  
-  if (SUCCEEDED(hr)) {
+    
+    mythread->Dispatch(runnable, NS_DISPATCH_NORMAL);
     return NS_OK;
-  }
-  else {
-    return NS_ERROR_FAILURE;
-  }
 }
 
 NS_IMETHODIMP
 nsLocalFile::Launch()
 {
-    const nsString &path = mWorkingPath;
     
+    MOZ_ASSERT(NS_IsMainThread()); 
+
     
-    SHELLEXECUTEINFOW seinfo;
-    memset(&seinfo, 0, sizeof(seinfo));
-    seinfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-    seinfo.fMask  = NULL;
-    seinfo.hwnd   = NULL;
-    seinfo.lpVerb = NULL;
-    seinfo.lpFile = path.get();
-    seinfo.lpParameters =  NULL;
-    seinfo.lpDirectory  = NULL;
-    seinfo.nShow  = SW_SHOWNORMAL;
+    nsresult rv = Resolve();
+    if (NS_FAILED(rv))
+        return rv;
+
     
-    if (ShellExecuteExW(&seinfo))
-        return NS_OK;
-    DWORD r = GetLastError();
-    
-    if (r == SE_ERR_NOASSOC) {
-        nsAutoString shellArg;
-        shellArg.Assign(NS_LITERAL_STRING("shell32.dll,OpenAs_RunDLL ") + path);
-        seinfo.lpFile = L"RUNDLL32.EXE";
-        seinfo.lpParameters = shellArg.get();
-        if (ShellExecuteExW(&seinfo))
-            return NS_OK;
-        r = GetLastError();
+    nsCOMPtr<nsIThreadManager> tm = do_GetService(NS_THREADMANAGER_CONTRACTID);
+    nsCOMPtr<nsIThread> mythread;
+    rv = tm->NewThread(0, 0, getter_AddRefs(mythread));
+    if (NS_FAILED(rv)) {
+        return rv;
     }
-    if (r < 32) {
-        switch (r) {
-          case 0:
-          case SE_ERR_OOM:
-              return NS_ERROR_OUT_OF_MEMORY;
-          case ERROR_FILE_NOT_FOUND:
-              return NS_ERROR_FILE_NOT_FOUND;
-          case ERROR_PATH_NOT_FOUND:
-              return NS_ERROR_FILE_UNRECOGNIZED_PATH;
-          case ERROR_BAD_FORMAT:
-              return NS_ERROR_FILE_CORRUPTED;
-          case SE_ERR_ACCESSDENIED:
-              return NS_ERROR_FILE_ACCESS_DENIED;
-          case SE_ERR_ASSOCINCOMPLETE:
-          case SE_ERR_NOASSOC:
-              return NS_ERROR_UNEXPECTED;
-          case SE_ERR_DDEBUSY:
-          case SE_ERR_DDEFAIL:
-          case SE_ERR_DDETIMEOUT:
-              return NS_ERROR_NOT_AVAILABLE;
-          case SE_ERR_DLLNOTFOUND:
-              return NS_ERROR_FAILURE;
-          case SE_ERR_SHARE:
-              return NS_ERROR_FILE_IS_LOCKED;
-          default:
-              return NS_ERROR_FILE_EXECUTION_FAILED;
-        }
-    }
+
+    nsCOMPtr<nsIRunnable> runnable = 
+        new AsyncLocalFileWinOperation(AsyncLocalFileWinOperation::LaunchOp,
+                                       mResolvedPath);
+
+    
+    
+    mythread->Dispatch(runnable, NS_DISPATCH_NORMAL);
     return NS_OK;
 }
-
 
 nsresult
 NS_NewLocalFile(const nsAString &path, bool followLinks, nsILocalFile* *result)

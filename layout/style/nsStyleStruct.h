@@ -436,6 +436,26 @@ struct nsStyleBackground {
       return !(*this == aOther);
     }
   };
+  
+  struct Repeat;
+  friend struct Repeat;
+  struct Repeat {
+    PRUint8 mXRepeat, mYRepeat;
+    
+    
+    Repeat() {}
+
+    
+    void SetInitialValues();
+
+    bool operator==(const Repeat& aOther) const {
+      return mXRepeat == aOther.mXRepeat &&
+             mYRepeat == aOther.mYRepeat;
+    }
+    bool operator!=(const Repeat& aOther) const {
+      return !(*this == aOther);
+    }
+  };
 
   struct Layer;
   friend struct Layer;
@@ -443,7 +463,7 @@ struct nsStyleBackground {
     PRUint8 mAttachment;                
     PRUint8 mClip;                      
     PRUint8 mOrigin;                    
-    PRUint8 mRepeat;                    
+    Repeat mRepeat;                     
     Position mPosition;                 
     nsStyleImage mImage;                
     Size mSize;                         

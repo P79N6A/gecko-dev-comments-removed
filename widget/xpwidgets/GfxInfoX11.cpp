@@ -65,12 +65,14 @@ pid_t glxtest_pid = 0;
 nsresult
 GfxInfo::Init()
 {
+    mGLMajorVersion = 0;
     mMajorVersion = 0;
     mMinorVersion = 0;
     mRevisionVersion = 0;
     mIsMesa = false;
     mIsNVIDIA = false;
     mIsFGLRX = false;
+    mIsNouveau = false;
     mHasTextureFromPixmap = false;
     return GfxInfoBase::Init();
 }
@@ -208,6 +210,9 @@ GfxInfo::GetData()
 #endif
 
     
+    mGLMajorVersion = strtol(mVersion.get(), 0, 10);
+
+    
     
     const char *whereToReadVersionNumbers = nsnull;
     const char *Mesa_in_version_string = strstr(mVersion.get(), "Mesa");
@@ -216,6 +221,8 @@ GfxInfo::GetData()
         
         
         whereToReadVersionNumbers = Mesa_in_version_string + strlen("Mesa");
+        if (strcasestr(mVendor.get(), "nouveau"))
+            mIsNouveau = true;
     } else if (strstr(mVendor.get(), "NVIDIA Corporation")) {
         mIsNVIDIA = true;
         
@@ -283,6 +290,14 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
   if (aOS)
     *aOS = os;
 
+  if (mGLMajorVersion == 1) {
+    
+    
+    
+    *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
+    return NS_OK;
+  }
+
 #ifdef MOZ_PLATFORM_MAEMO
   *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
   
@@ -318,7 +333,10 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
       }
 
       if (mIsMesa) {
-        if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
+        if (mIsNouveau) {
+          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
+          aSuggestedDriverVersion.AssignLiteral("<Not the Nouveau driver>");
+        } else if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
           aSuggestedDriverVersion.AssignLiteral("Mesa 7.10.3");
         }

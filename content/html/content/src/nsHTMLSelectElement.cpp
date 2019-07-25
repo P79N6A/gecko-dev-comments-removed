@@ -1992,6 +1992,8 @@ nsHTMLOptionCollection::GetOptionIndex(mozilla::dom::Element* aOption,
                                        bool aForward,
                                        PRInt32* aIndex)
 {
+  
+
   PRInt32 index;
 
   

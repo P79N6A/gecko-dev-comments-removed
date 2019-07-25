@@ -3021,61 +3021,47 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType)
 
 
 
-JSBool
+static bool
 Detecting(JSContext *cx, jsbytecode *pc)
 {
-    jsbytecode *endpc;
-    JSOp op;
+    
+    JSOp op = JSOp(*pc);
+    if (js_CodeSpec[op].format & JOF_DETECTING)
+        return true;
+
     JSAtom *atom;
 
     JSScript *script = cx->stack.currentScript();
-    endpc = script->code + script->length;
-    for (;; pc += js_CodeSpec[op].length) {
-        JS_ASSERT(script->code <= pc && pc < endpc);
+    jsbytecode *endpc = script->code + script->length;
+    JS_ASSERT(script->code <= pc && pc < endpc);
 
+    if (op == JSOP_NULL) {
         
-        op = JSOp(*pc);
-        if (js_CodeSpec[op].format & JOF_DETECTING)
-            return JS_TRUE;
-
-        switch (op) {
-          case JSOP_NULL:
-            
 
 
 
-            if (++pc < endpc) {
-                op = JSOp(*pc);
-                return op == JSOP_EQ || op == JSOP_NE;
-            }
-            return JS_FALSE;
+        if (++pc < endpc) {
+            op = JSOp(*pc);
+            return op == JSOP_EQ || op == JSOP_NE;
+        }
+        return false;
+    }
 
-          case JSOP_GETGNAME:
-          case JSOP_NAME:
-            
+    if (op == JSOP_GETGNAME || op == JSOP_NAME) {
+        
 
 
 
 
-            GET_ATOM_FROM_BYTECODE(script, pc, 0, atom);
-            if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
-                (pc += js_CodeSpec[op].length) < endpc) {
-                op = JSOp(*pc);
-                return op == JSOP_EQ || op == JSOP_NE ||
-                       op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
-            }
-            return JS_FALSE;
-
-          default:
-            
-
-
-
-            if (!(js_CodeSpec[op].format & JOF_INDEXBASE))
-                return JS_FALSE;
-            break;
+        atom = script->getAtom(GET_UINT32_INDEX(pc));
+        if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
+            (pc += js_CodeSpec[op].length) < endpc) {
+            op = JSOp(*pc);
+            return op == JSOP_EQ || op == JSOP_NE || op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
         }
     }
+
+    return false;
 }
 
 
@@ -3971,20 +3957,6 @@ JSObject::setSlotSpan(JSContext *cx, uint32_t span)
 
     base->setSlotSpan(span);
     return true;
-}
-
-#if defined(_MSC_VER) && _MSC_VER >= 1500
-
-
-
-MOZ_NEVER_INLINE
-#endif
-const js::Shape *
-JSObject::nativeLookup(JSContext *cx, jsid id)
-{
-    JS_ASSERT(isNative());
-    js::Shape **spp;
-    return js::Shape::search(cx, lastProperty(), id, &spp);
 }
 
 bool
@@ -5370,8 +5342,8 @@ js::CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname)
                                         JSMSG_UNDECLARED_VAR, bytes.ptr());
 }
 
-bool
-JSObject::reportReadOnly(JSContext *cx, jsid id, uintN report)
+static bool
+ReportReadOnly(JSContext *cx, jsid id, uintN report)
 {
     return js_ReportValueErrorFlags(cx, report, JSMSG_READ_ONLY,
                                     JSDVG_IGNORE_STACK, IdToValue(id), NULL,
@@ -5462,9 +5434,9 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
                 if (pd.attrs & JSPROP_READONLY) {
                     if (strict)
-                        return obj->reportReadOnly(cx, id);
+                        return ReportReadOnly(cx, id, JSREPORT_ERROR);
                     if (cx->hasStrictOption())
-                        return obj->reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+                        return ReportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                     return true;
                 }
             }
@@ -5505,9 +5477,9 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             if (!shape->writable()) {
                 
                 if (strict)
-                    return obj->reportReadOnly(cx, id);
+                    return ReportReadOnly(cx, id, JSREPORT_ERROR);
                 if (cx->hasStrictOption())
-                    return obj->reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+                    return ReportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                 return JS_TRUE;
             }
         }
@@ -6255,10 +6227,6 @@ js_ClearNative(JSContext *cx, JSObject *obj)
     }
     return true;
 }
-
-static ObjectElements emptyObjectHeader(0, 0);
-HeapValue *js::emptyObjectElements =
-    (HeapValue *) (uintptr_t(&emptyObjectHeader) + sizeof(ObjectElements));
 
 JSBool
 js_ReportGetterOnlyAssignment(JSContext *cx)

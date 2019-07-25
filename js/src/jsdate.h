@@ -64,7 +64,7 @@ js_InitDateClass(JSContext *cx, JSObject *obj);
 
 
 extern JS_FRIEND_API(JSObject*)
-js_NewDateObjectMsec(JSContext* cx, jsdouble msec_time);
+js_NewDateObjectMsec(JSContext* cx, double msec_time);
 
 
 

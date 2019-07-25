@@ -855,8 +855,9 @@ nsAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
     GetDocAccessible(content->OwnerDoc());
 
   
-  
-  NS_ENSURE_TRUE(contentDocAcc, fallbackAnswer);
+  NS_ASSERTION(contentDocAcc, "could not get the document accessible");
+  if (!contentDocAcc)
+    return fallbackAnswer;
 
   nsAccessible* accessible = contentDocAcc->GetAccessibleOrContainer(content);
   if (!accessible)

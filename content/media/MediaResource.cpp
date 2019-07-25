@@ -336,15 +336,12 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     
     
     
-    if (mLoadInBackground) {
-      mLoadInBackground = false;
+    nsLoadFlags loadFlags;
+    DebugOnly<nsresult> rv = mChannel->GetLoadFlags(&loadFlags);
+    NS_ASSERTION(NS_SUCCEEDED(rv), "GetLoadFlags() failed!");
 
-      nsLoadFlags loadFlags;
-      DebugOnly<nsresult> rv = mChannel->GetLoadFlags(&loadFlags);
-      NS_ASSERTION(NS_SUCCEEDED(rv), "GetLoadFlags() failed!");
-
-      loadFlags &= ~nsIRequest::LOAD_BACKGROUND;
-      ModifyLoadFlags(loadFlags);
+    if (loadFlags & nsIRequest::LOAD_BACKGROUND) {
+      ModifyLoadFlags(loadFlags & ~nsIRequest::LOAD_BACKGROUND);
     }
   }
 

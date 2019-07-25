@@ -255,6 +255,17 @@ public:
 
   void NotifyItemChanged(const ItemChangeData& aData);
 
+  
+
+
+
+
+
+
+
+  nsresult GetDescendantFolders(PRInt64 aFolderId,
+                                nsTArray<PRInt64>& aDescendantFoldersArray);
+
 private:
   static nsNavBookmarks* gBookmarksService;
 

@@ -456,14 +456,14 @@ protected:
   struct BackgroundParseState {
     nsCSSValue&  mColor;
     nsCSSValueList* mImage;
-    nsCSSValueList* mRepeat;
+    nsCSSValuePairList* mRepeat;
     nsCSSValueList* mAttachment;
     nsCSSValueList* mClip;
     nsCSSValueList* mOrigin;
     nsCSSValueList* mPosition;
     nsCSSValuePairList* mSize;
     BackgroundParseState(
-        nsCSSValue& aColor, nsCSSValueList* aImage, nsCSSValueList* aRepeat,
+        nsCSSValue& aColor, nsCSSValueList* aImage, nsCSSValuePairList* aRepeat,
         nsCSSValueList* aAttachment, nsCSSValueList* aClip,
         nsCSSValueList* aOrigin, nsCSSValueList* aPosition,
         nsCSSValuePairList* aSize) :
@@ -475,6 +475,8 @@ protected:
   bool ParseBackgroundItem(BackgroundParseState& aState);
 
   bool ParseValueList(nsCSSProperty aPropID); 
+  bool ParseBackgroundRepeat();
+  bool ParseBackgroundRepeatValues(nsCSSValuePair& aValue);
   bool ParseBackgroundPosition();
 
   
@@ -5461,6 +5463,8 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
   switch (aPropID) {  
   case eCSSProperty_background:
     return ParseBackground();
+  case eCSSProperty_background_repeat:
+    return ParseBackgroundRepeat();
   case eCSSProperty_background_position:
     return ParseBackgroundPosition();
   case eCSSProperty_background_size:
@@ -5862,7 +5866,8 @@ CSSParserImpl::ParseBackground()
   }
 
   nsCSSValue image, repeat, attachment, clip, origin, position, size;
-  BackgroundParseState state(color, image.SetListValue(), repeat.SetListValue(),
+  BackgroundParseState state(color, image.SetListValue(), 
+                             repeat.SetPairListValue(),
                              attachment.SetListValue(), clip.SetListValue(),
                              origin.SetListValue(), position.SetListValue(),
                              size.SetPairListValue());
@@ -5886,7 +5891,7 @@ CSSParserImpl::ParseBackground()
     
     state.mImage->mNext = new nsCSSValueList;
     state.mImage = state.mImage->mNext;
-    state.mRepeat->mNext = new nsCSSValueList;
+    state.mRepeat->mNext = new nsCSSValuePairList;
     state.mRepeat = state.mRepeat->mNext;
     state.mAttachment->mNext = new nsCSSValueList;
     state.mAttachment = state.mAttachment->mNext;
@@ -5924,8 +5929,9 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
   
   
   aState.mImage->mValue.SetNoneValue();
-  aState.mRepeat->mValue.SetIntValue(NS_STYLE_BG_REPEAT_XY,
-                                     eCSSUnit_Enumerated);
+  aState.mRepeat->mXValue.SetIntValue(NS_STYLE_BG_REPEAT_REPEAT,
+                                      eCSSUnit_Enumerated);
+  aState.mRepeat->mYValue.Reset();
   aState.mAttachment->mValue.SetIntValue(NS_STYLE_BG_ATTACHMENT_SCROLL,
                                          eCSSUnit_Enumerated);
   aState.mClip->mValue.SetIntValue(NS_STYLE_BG_CLIP_BORDER,
@@ -5986,11 +5992,13 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
         if (haveRepeat)
           return false;
         haveRepeat = true;
-        if (!ParseSingleValueProperty(aState.mRepeat->mValue,
-                                      eCSSProperty_background_repeat)) {
+        nsCSSValuePair scratch;
+        if (!ParseBackgroundRepeatValues(scratch)) {
           NS_NOTREACHED("should be able to parse");
           return false;
         }
+        aState.mRepeat->mXValue = scratch.mXValue;
+        aState.mRepeat->mYValue = scratch.mYValue;
       } else if (nsCSSProps::FindKeyword(keyword,
                    nsCSSProps::kBackgroundPositionKTable, dummy)) {
         if (havePosition)
@@ -6100,6 +6108,64 @@ CSSParserImpl::ParseValueList(nsCSSProperty aPropID)
   }
   AppendValue(aPropID, value);
   return true;
+}
+
+bool
+CSSParserImpl::ParseBackgroundRepeat()
+{
+  nsCSSValue value;
+  if (ParseVariant(value, VARIANT_INHERIT, nsnull)) {
+    
+    if (!ExpectEndProperty()) {
+      return false;
+    }
+  } else {
+    nsCSSValuePair valuePair;
+    if (!ParseBackgroundRepeatValues(valuePair)) {
+      return false;
+    }
+    nsCSSValuePairList* item = value.SetPairListValue();
+    for (;;) {
+      item->mXValue = valuePair.mXValue;
+      item->mYValue = valuePair.mYValue;
+      if (CheckEndProperty()) {
+        break;
+      }
+      if (!ExpectSymbol(',', true)) {
+        return false;
+      }
+      if (!ParseBackgroundRepeatValues(valuePair)) {
+        return false;
+      }
+      item->mNext = new nsCSSValuePairList;
+      item = item->mNext;
+    }
+  }
+
+  AppendValue(eCSSProperty_background_repeat, value);
+  return true;
+}
+
+bool
+CSSParserImpl::ParseBackgroundRepeatValues(nsCSSValuePair& aValue) 
+{
+  nsCSSValue& xValue = aValue.mXValue;
+  nsCSSValue& yValue = aValue.mYValue;
+  
+  if (ParseEnum(xValue, nsCSSProps::kBackgroundRepeatKTable)) {
+    PRInt32 value = xValue.GetIntValue();
+    
+    if (value == NS_STYLE_BG_REPEAT_REPEAT_X ||
+        value == NS_STYLE_BG_REPEAT_REPEAT_Y ||
+        !ParseEnum(yValue, nsCSSProps::kBackgroundRepeatPartKTable)) {
+      
+      
+      yValue.Reset();
+    }
+    return true;
+  }
+  
+  return false;
 }
 
 

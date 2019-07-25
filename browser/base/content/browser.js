@@ -1657,23 +1657,19 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   
   
-  setTimeout(function() PlacesUtils.livemarks.start(), 5000);
-
-  
-  
-  
-  
   
   setTimeout(function() {
     gDownloadMgr = Cc["@mozilla.org/download-manager;1"].
                    getService(Ci.nsIDownloadManager);
 
+#ifdef XP_WIN
     if (Win7Features) {
       let tempScope = {};
       Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
+#endif
   }, 10000);
 
 #ifndef XP_MACOSX
@@ -3630,12 +3626,12 @@ function FillHistoryMenu(aParent) {
     item.setAttribute("index", j);
 
     if (j != index) {
-      try {
-        let iconURL = Cc["@mozilla.org/browser/favicon-service;1"]
-                         .getService(Ci.nsIFaviconService)
-                         .getFaviconForPage(entry.URI).spec;
+      function FHM_getFaviconURLCallback(aURI) {
+        let iconURL = PlacesUtils.favicons.getFaviconLinkForIcon(aURI).spec;
         item.style.listStyleImage = "url(" + iconURL + ")";
-      } catch (ex) {}
+      }
+      PlacesUtils.favicons.getFaviconURLForPage(entry.URI,
+                                                FHM_getFaviconURLCallback);
     }
 
     if (j < index) {
@@ -6998,11 +6994,13 @@ function getPluginInfo(pluginElement)
 
 var gPluginHandler = {
 
+#ifdef MOZ_CRASHREPORTER
   get CrashSubmit() {
     delete this.CrashSubmit;
     Cu.import("resource://gre/modules/CrashSubmit.jsm", this);
     return this.CrashSubmit;
   },
+#endif
 
   
   makeNicePluginName : function (aName, aFilename) {
@@ -7142,6 +7140,7 @@ var gPluginHandler = {
     BrowserOpenAddonsMgr("addons://list/plugin");
   },
 
+#ifdef MOZ_CRASHREPORTER
   
   submitReport : function(pluginDumpID, browserDumpID) {
     
@@ -7150,6 +7149,7 @@ var gPluginHandler = {
     if (browserDumpID)
       this.CrashSubmit.submit(browserDumpID);
   },
+#endif
 
   
   reloadPage: function (browser) {

@@ -316,17 +316,48 @@ nsCSSProps::ReleaseTable(void)
   }
 }
 
-#if 0 
+
+
+enum {
+#define CSS_PROP_ALIAS(aliasname_, propid_, aliasmethod_)                     \
+  eCSSAliasCountBefore_##aliasmethod_,
+#include "nsCSSPropAliasList.h"
+#undef CSS_PROP_ALIAS
+
+  eCSSAliasCount
+};
+
+enum {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+#define CSS_PROP_ALIAS(aliasname_, propid_, aliasmethod_)                     \
+  eMaxCSSAliasNameSizeBefore_##aliasmethod_,                                  \
+  eMaxCSSAliasNameSizeWith_##aliasmethod_ =                                   \
+    PR_MAX(sizeof(#aliasname_), eMaxCSSAliasNameSizeBefore_##aliasmethod_) - 1,
+#include "nsCSSPropAliasList.h"
+#undef CSS_PROP_ALIAS
+
+  eMaxCSSAliasNameSize
+};
+
 struct CSSPropertyAlias {
-  char name[sizeof("-moz-...")];
+  char name[PR_MAX(eMaxCSSAliasNameSize, 1)];
   nsCSSProperty id;
 };
 
-static const CSSPropertyAlias gAliases[] = {
-  
-  
+static const CSSPropertyAlias gAliases[PR_MAX(eCSSAliasCount, 1)] = {
+#define CSS_PROP_ALIAS(aliasname_, propid_, aliasmethod_) \
+  { #aliasname_, eCSSProperty_##propid_ },
+#include "nsCSSPropAliasList.h"
+#undef CSS_PROP_ALIAS
 };
-#endif
 
 nsCSSProperty
 nsCSSProps::LookupProperty(const nsACString& aProperty)
@@ -334,8 +365,9 @@ nsCSSProps::LookupProperty(const nsACString& aProperty)
   NS_ABORT_IF_FALSE(gPropertyTable, "no lookup table, needs addref");
 
   nsCSSProperty res = nsCSSProperty(gPropertyTable->Lookup(aProperty));
-#if 0 
-  if (res == eCSSProperty_UNKNOWN) {
+  
+  
+  if (eCSSAliasCount != 0 && res == eCSSProperty_UNKNOWN) {
     for (const CSSPropertyAlias *alias = gAliases,
                             *alias_end = ArrayEnd(gAliases);
          alias < alias_end; ++alias) {
@@ -345,7 +377,6 @@ nsCSSProps::LookupProperty(const nsACString& aProperty)
       }
     }
   }
-#endif
   return res;
 }
 
@@ -357,8 +388,9 @@ nsCSSProps::LookupProperty(const nsAString& aProperty)
   
   NS_ABORT_IF_FALSE(gPropertyTable, "no lookup table, needs addref");
   nsCSSProperty res = nsCSSProperty(gPropertyTable->Lookup(aProperty));
-#if 0 
-  if (res == eCSSProperty_UNKNOWN) {
+  
+  
+  if (eCSSAliasCount != 0 && res == eCSSProperty_UNKNOWN) {
     for (const CSSPropertyAlias *alias = gAliases,
                             *alias_end = ArrayEnd(gAliases);
          alias < alias_end; ++alias) {
@@ -368,7 +400,6 @@ nsCSSProps::LookupProperty(const nsAString& aProperty)
       }
     }
   }
-#endif
   return res;
 }
 
@@ -627,10 +658,16 @@ const PRInt32 nsCSSProps::kBackgroundPositionKTable[] = {
 };
 
 const PRInt32 nsCSSProps::kBackgroundRepeatKTable[] = {
-  eCSSKeyword_no_repeat,  NS_STYLE_BG_REPEAT_OFF,
-  eCSSKeyword_repeat,     NS_STYLE_BG_REPEAT_XY,
-  eCSSKeyword_repeat_x,   NS_STYLE_BG_REPEAT_X,
-  eCSSKeyword_repeat_y,   NS_STYLE_BG_REPEAT_Y,
+  eCSSKeyword_no_repeat,  NS_STYLE_BG_REPEAT_NO_REPEAT,
+  eCSSKeyword_repeat,     NS_STYLE_BG_REPEAT_REPEAT,
+  eCSSKeyword_repeat_x,   NS_STYLE_BG_REPEAT_REPEAT_X,
+  eCSSKeyword_repeat_y,   NS_STYLE_BG_REPEAT_REPEAT_Y,
+  eCSSKeyword_UNKNOWN,-1
+};
+
+const PRInt32 nsCSSProps::kBackgroundRepeatPartKTable[] = {
+  eCSSKeyword_no_repeat,  NS_STYLE_BG_REPEAT_NO_REPEAT,
+  eCSSKeyword_repeat,     NS_STYLE_BG_REPEAT_REPEAT,
   eCSSKeyword_UNKNOWN,-1
 };
 

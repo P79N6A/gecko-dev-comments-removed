@@ -176,6 +176,16 @@ public:
 
 
 
+  bool Contains(KeyType aKey) const
+  {
+    return !!GetEntry(aKey);
+  }
+
+  
+
+
+
+
 
   EntryType* PutEntry(KeyType aKey)
   {

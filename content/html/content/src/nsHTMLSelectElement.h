@@ -150,6 +150,8 @@ public:
 
 
 
+
+
   nsresult GetOptionIndex(mozilla::dom::Element* aOption,
                           PRInt32 aStartIndex, bool aForward,
                           PRInt32* aIndex);
@@ -200,8 +202,8 @@ public:
   }
 
 private:
-  nsCheapStringSet mValues;
-  nsCheapInt32Set mIndices;
+  nsCheapSet<nsStringHashKey> mValues;
+  nsCheapSet<nsUint32HashKey> mIndices;
 };
 
 class NS_STACK_CLASS nsSafeOptionListMutation
