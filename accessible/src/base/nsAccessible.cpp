@@ -2521,6 +2521,8 @@ nsAccessible::Shutdown()
 {
   
   
+  mFlags |= eIsDefunct;
+
   InvalidateChildren();
   if (mParent)
     mParent->RemoveChild(this);
