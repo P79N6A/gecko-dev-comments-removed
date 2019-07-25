@@ -58,7 +58,7 @@ import android.util.Log;
 import android.view.View;
 
 public class GeckoLayerClient implements GeckoEventResponder,
-                                         FlexibleGLSurfaceView.Listener {
+                                         LayerView.Listener {
     private static final String LOGTAG = "GeckoLayerClient";
     private static final String PREF_DISPLAYPORT_STRATEGY = "gfx.displayport.strategy";
 

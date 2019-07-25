@@ -58,6 +58,14 @@ import android.util.Log;
 import java.nio.IntBuffer;
 import java.util.LinkedList;
 
+import org.mozilla.gecko.GeckoApp;
+import android.content.Context;
+import android.graphics.PixelFormat;
+import android.opengl.GLSurfaceView;
+import android.util.AttributeSet;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import javax.microedition.khronos.opengles.GL10;
 
 
 
@@ -66,9 +74,12 @@ import java.util.LinkedList;
 
 
 
-public class LayerView extends FlexibleGLSurfaceView {
+
+
+public class LayerView extends SurfaceView implements SurfaceHolder.Callback {
     private Context mContext;
     private LayerController mController;
+    private GLController mGLController;
     private InputConnectionHandler mInputConnectionHandler;
     private LayerRenderer mRenderer;
     private GestureDetector mGestureDetector;
@@ -81,6 +92,8 @@ public class LayerView extends FlexibleGLSurfaceView {
     
     private int mPaintState = PAINT_NONE;
 
+    private Listener mListener;
+
     
 
     public static final int PAINT_NONE = 0;
@@ -91,10 +104,14 @@ public class LayerView extends FlexibleGLSurfaceView {
     public LayerView(Context context, LayerController controller) {
         super(context);
 
+        SurfaceHolder holder = getHolder();
+        holder.addCallback(this);
+        holder.setFormat(PixelFormat.RGB_565);
+
+        mGLController = new GLController(this);
         mContext = context;
         mController = controller;
         mRenderer = new LayerRenderer(this);
-        setRenderer(mRenderer);
         mGestureDetector = new GestureDetector(context, controller.getGestureListener());
         mScaleGestureDetector =
             new SimpleScaleGestureDetector(controller.getScaleGestureListener());
@@ -196,15 +213,9 @@ public class LayerView extends FlexibleGLSurfaceView {
         return false;
     }
 
-    @Override
-    public void requestRender() {
-        super.requestRender();
-
-        synchronized(this) {
-            if (!mRenderTimeReset) {
-                mRenderTimeReset = true;
-                mRenderTime = System.nanoTime();
-            }
+    public synchronized void requestRender() {
+        if (mListener != null) {
+            mListener.renderRequested();
         }
     }
 
@@ -238,13 +249,12 @@ public class LayerView extends FlexibleGLSurfaceView {
 
     public void setLayerRenderer(LayerRenderer renderer) {
         mRenderer = renderer;
-        setRenderer(mRenderer);
     }
 
     public LayerRenderer getLayerRenderer() {
         return mRenderer;
     }
-    
+
     
 
     public void setPaintState(int paintState) {
@@ -257,5 +267,61 @@ public class LayerView extends FlexibleGLSurfaceView {
     public int getPaintState() {
         return mPaintState;
     }
-}
 
+
+    public GLSurfaceView.Renderer getRenderer() {
+        return mRenderer;
+    }
+
+    public void setListener(Listener listener) {
+        mListener = listener;
+    }
+
+    public synchronized GLController getGLController() {
+        return mGLController;
+    }
+
+    
+    public synchronized void surfaceChanged(SurfaceHolder holder, int format, int width,
+                                            int height) {
+        mGLController.sizeChanged(width, height);
+
+        if (mListener != null) {
+            mListener.surfaceChanged(width, height);
+        }
+    }
+
+    
+    public synchronized void surfaceCreated(SurfaceHolder holder) {
+        mGLController.surfaceCreated();
+    }
+
+    
+    public synchronized void surfaceDestroyed(SurfaceHolder holder) {
+        mGLController.surfaceDestroyed();
+
+        if (mListener != null) {
+            mListener.compositionPauseRequested();
+        }
+    }
+
+    
+    public static GLController registerCxxCompositor() {
+        try {
+            LayerView layerView = GeckoApp.mAppContext.getLayerController().getView();
+            return layerView.getGLController();
+        } catch (Exception e) {
+            Log.e(LOGTAG, "### Exception! " + e);
+            return null;
+        }
+    }
+
+    public interface Listener {
+        void renderRequested();
+        void compositionPauseRequested();
+        void compositionResumeRequested();
+        void surfaceChanged(int width, int height);
+    }
+
+
+}
