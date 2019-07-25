@@ -3553,10 +3553,6 @@ gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
     gfxFont *font;
 
     
-    if (aCh > 0xFFFF)
-        return nsnull;
-
-    
     PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
     eFontPrefLang charLang = gfxPlatform::GetPlatform()->GetFontPrefLangFor(unicodeRange);
 

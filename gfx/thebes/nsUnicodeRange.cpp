@@ -213,7 +213,7 @@ static nsIAtom **gUnicodeRangeToLangGroupAtomTable[] =
 
 
 
-#define NUM_OF_SUBTABLES      9
+#define NUM_OF_SUBTABLES      10
 #define SUBTABLE_SIZE         16
 
 static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] = 
@@ -252,7 +252,7 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeTertiaryTable,     
     kRangeTertiaryTable,     
     kRangeTertiaryTable,     
-    kRangeTibetan,           
+    kRangeTibetan            
   },
   { 
     kRangeTertiaryTable,     
@@ -270,7 +270,7 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeUnassigned,        
     kRangeUnassigned,        
     kRangeSetLatin,          
-    kRangeGreek,             
+    kRangeGreek              
   },
   { 
     kRangeSetLatin,          
@@ -288,7 +288,7 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeUnassigned,        
     kRangeUnassigned,        
     kRangeSetCJK,            
-    kRangeSetCJK,            
+    kRangeSetCJK             
   },
   {  
     kRangeYi,                
@@ -306,7 +306,7 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeKorean,            
     kRangeKorean,            
     kRangeKorean,            
-    kRangeKorean,            
+    kRangeKorean             
   },
   {  
     kRangeKorean,            
@@ -324,7 +324,7 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeSurrogate,         
     kRangeSurrogate,         
     kRangeSurrogate,         
-    kRangeSurrogate,         
+    kRangeSurrogate          
   },
   { 
     kRangePrivate,           
@@ -341,11 +341,8 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeArabic,            
     kRangeArabic,            
     kRangeArabic,            
-    kRangeArabic,            
-                             
-                             
-                             
     kRangeTableBase+8,       
+    kRangeTableBase+9        
   },
   { 
     kRangeCyrillic,          
@@ -363,7 +360,25 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
     kRangeHebrew,            
     kRangeHebrew,            
     kRangeHebrew,            
-    kRangeHebrew,            
+    kRangeHebrew             
+  },
+  { 
+    kRangeSetCJK,            
+    kRangeSetCJK,            
+    kRangeSetCJK,            
+    kRangeSetCJK,            
+    kRangeSetCJK,            
+    kRangeSetCJK,            
+    kRangeSetCJK,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic,            
+    kRangeArabic             
   },
   { 
     kRangeSetCJK,            
@@ -425,7 +440,7 @@ static const PRUint8 gUnicodeTertiaryRangeTable[TERTIARY_TABLE_SIZE] =
     kRangeCanadian,          
     kRangeCanadian,          
     kRangeCanadian,          
-    kRangeOghamRunic,        
+    kRangeOghamRunic         
 };
 
 
@@ -436,12 +451,25 @@ static const PRUint8 gUnicodeTertiaryRangeTable[TERTIARY_TABLE_SIZE] =
 
 
 
-PRUint32 FindCharUnicodeRange(PRUnichar ch)
+PRUint32 FindCharUnicodeRange(PRUint32 ch)
 {
   PRUint32 range;
+  
+  
+  if (ch > 0xFFFF) {
+    PRUint32 p = (ch >> 16);
+    if (p == 1) {
+        return kRangeSMP;
+    } else if (p == 2) {
+        return kRangeSetCJK;
+    }
+    return kRangeHigherPlanes;
+  }
 
   
+  
   range = gUnicodeSubrangeTable[0][ch >> 12];
+  
   
   if (range < kRangeTableBase)
     

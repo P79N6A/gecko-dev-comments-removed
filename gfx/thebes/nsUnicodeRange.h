@@ -108,6 +108,10 @@ const PRUint8   kRangeYi                   = 50;
 const PRUint8   kRangeCombiningDiacriticalMarks = 51;
 const PRUint8   kRangeSpecials             = 52;
 
+
+const PRUint8   kRangeSMP                  = 53;  
+const PRUint8   kRangeHigherPlanes         = 54;  
+
 const PRUint8   kRangeTableBase   = 128;    
 const PRUint8   kRangeTertiaryTable  = 145; 
                                             
@@ -115,5 +119,5 @@ const PRUint8   kRangeTertiaryTable  = 145;
 
 
 
-PRUint32 FindCharUnicodeRange(PRUnichar ch);
+PRUint32 FindCharUnicodeRange(PRUint32 ch);
 nsIAtom* LangGroupFromUnicodeRange(PRUint8 unicodeRange);
