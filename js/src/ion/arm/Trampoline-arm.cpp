@@ -120,7 +120,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     masm.finishDataTransfer();
     
-    aasm->as_dtr(IsLoad, 32, Offset, r10, DTRAddr(sp, DtrOffImm(40)));
+    aasm->as_dtr(IsLoad, 32, Offset, r11, DTRAddr(sp, DtrOffImm(40)));
 
     
     
@@ -129,7 +129,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.as_dtr(IsLoad, 32, Offset, OsrFrameReg, DTRAddr(sp, DtrOffImm(44)));
     
 #if 0
-    JS_STATIC_ASSERT(OsrFrameReg == r7);
+    JS_STATIC_ASSERT(OsrFrameReg == r10);
 #endif
     aasm->as_mov(r9, lsl(r1, 3)); 
     
@@ -172,6 +172,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
         
         
         
+        
         aasm->as_extdtr(IsLoad,  64, true, PostIndex, r6, EDtrAddr(r2, EDtrOffImm(8)));
         aasm->as_extdtr(IsStore, 64, true, PostIndex, r6, EDtrAddr(r4, EDtrOffImm(8)));
         aasm->as_b(&header, Assembler::NonZero);
@@ -185,7 +186,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
                            
     masm.transferReg(r8);  
     masm.transferReg(r9);  
-    masm.transferReg(r10); 
+    masm.transferReg(r11); 
     masm.finishDataTransfer();
     
     aasm->as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
