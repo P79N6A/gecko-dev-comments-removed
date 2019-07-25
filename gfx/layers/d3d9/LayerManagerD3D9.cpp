@@ -46,9 +46,8 @@
 #include "gfxWindowsPlatform.h"
 #include "nsIGfxInfo.h"
 #include "nsServiceManagerUtils.h"
-#include "nsIPrefService.h"
-#include "nsIPrefBranch2.h"
 #include "gfxFailure.h"
+#include "mozilla/Preferences.h"
 
 #include "gfxCrashReporterUtils.h"
 
@@ -75,15 +74,9 @@ LayerManagerD3D9::Initialize()
 {
   ScopedGfxFeatureReporter reporter("D3D9 Layers");
 
-  nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
   
-  PRBool forceAccelerate = PR_FALSE;
-  if (prefs) {
-    
-    prefs->GetBoolPref("layers.acceleration.force-enabled",
-                       &forceAccelerate);
-  }
+  PRBool forceAccelerate =
+    Preferences::GetBool("layers.acceleration.force-enabled", PR_FALSE);
 
   nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
   if (gfxInfo) {
