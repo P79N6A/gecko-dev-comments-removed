@@ -884,6 +884,9 @@ PreInit()
   sChecked = TRUE;
 
   
+  
+  
+  
   if (PR_GetEnv(sAccEnv) || !PR_GetEnv("DBUS_SESSION_BUS_ADDRESS"))
     return;
 
