@@ -4597,8 +4597,12 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
         pixman_region32_intersect(&intersectRegion,
                                   &newRegion, &existingRegion);
 
-        if (pixman_region32_equal(&intersectRegion, &existingRegion))
+        
+        
+        if (mClipRects &&
+            pixman_region32_equal(&intersectRegion, &existingRegion)) {
             return;
+        }
 
         if (!pixman_region32_equal(&intersectRegion, &newRegion)) {
             GetIntRects(intersectRegion, &intersectRects);
