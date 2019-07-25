@@ -266,7 +266,7 @@ namespace {
       
       char rtPath[MAXPATHLEN];
       rv = joinPath(rtPath, greDir, kWEBAPPRT_PATH, MAXPATHLEN);
-      NS_ENSURE_SUCCESS(rv, rv);
+      NS_ENSURE_SUCCESS(rv, false);
 
       
       char rtIniPath[MAXPATHLEN];
@@ -285,7 +285,7 @@ namespace {
 
       ScopedXREAppData webShellAppData;
       rv = webShellAppData.create(rtINI);
-      NS_ENSURE_SUCCESS(rv, rv);
+      NS_ENSURE_SUCCESS(rv, false);
 
       SetAllocatedString(webShellAppData->profile, profile);
       SetAllocatedString(webShellAppData->name, profile);
@@ -503,8 +503,7 @@ main(int argc, char* argv[])
 
   
   
-  rv = GetFirefoxDirFromRegistry(firefoxDir);
-  if (NS_SUCCEEDED(rv)) {
+  if (GetFirefoxDirFromRegistry(firefoxDir)) {
     if (AttemptLoadFromDir(firefoxDir)) {
       
       return 0;
