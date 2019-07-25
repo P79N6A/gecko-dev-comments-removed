@@ -99,12 +99,19 @@ ThreadActor.prototype = {
       this._dbg = new Debugger();
     }
 
+    
+    
+    
+    if (aGlobal.location &&
+        (aGlobal.location.protocol == "about:" ||
+         aGlobal.location.protocol == "chrome:")) {
+      return;
+    }
+
     this.dbg.addDebuggee(aGlobal);
     this.dbg.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
     this.dbg.onDebuggerStatement = this.onDebuggerStatement.bind(this);
     this.dbg.onNewScript = this.onNewScript.bind(this);
-    
-    this.dbg.enabled = false;
   },
 
   

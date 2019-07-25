@@ -34,7 +34,8 @@ function test_early_debugger_statement(aActor)
   gClient.addListener("paused", paused);
   
   
-  gTab.linkedBrowser.contentWindow.wrappedJSObject.runDebuggerStatement();
+  
+  
 
   gClient.removeListener("paused", paused);
 
