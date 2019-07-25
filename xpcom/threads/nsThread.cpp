@@ -98,7 +98,7 @@ void ScheduleMemoryPressureEvent()
   PR_ATOMIC_SET(&sMemoryPressurePending, 1);
 }
 
-};
+} 
 
 
 
