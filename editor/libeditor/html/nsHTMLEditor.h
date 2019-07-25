@@ -45,6 +45,7 @@
 #include "nsPlaintextEditor.h"
 #include "nsIEditor.h"
 #include "nsIHTMLEditor.h"
+#include "nsIHTMLEditor_MOZILLA_2_0_BRANCH.h"
 #include "nsITableEditor.h"
 #include "nsIEditorMailSupport.h"
 #include "nsIEditorStyleSheets.h"
@@ -90,6 +91,7 @@ struct PropItem;
 
 class nsHTMLEditor : public nsPlaintextEditor,
                      public nsIHTMLEditor,
+                     public nsIHTMLEditor_MOZILLA_2_0_BRANCH,
                      public nsIHTMLObjectResizer,
                      public nsIHTMLAbsPosEditor,
                      public nsITableEditor,
@@ -165,6 +167,10 @@ public:
   
 
   NS_DECL_NSIHTMLEDITOR
+
+  
+
+  NS_DECL_NSIHTMLEDITOR_MOZILLA_2_0_BRANCH
 
   
   
