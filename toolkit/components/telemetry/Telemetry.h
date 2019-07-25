@@ -137,6 +137,13 @@ private:
 
 
 
+bool CanRecord();
+
+
+
+
+
+
 
 
 
