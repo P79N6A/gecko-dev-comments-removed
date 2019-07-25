@@ -54,6 +54,10 @@
 namespace mozilla {
 namespace widget {
 
+#ifdef DEBUG
+NS_IMPL_ISUPPORTS_INHERITED1(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
+#endif
+
 
 int glxtest_pipe = 0;
 pid_t glxtest_pid = 0;
@@ -481,6 +485,40 @@ GfxInfo::GetIsGPU2Active(bool* aIsGPU2Active)
   return NS_ERROR_FAILURE;
 }
 
+#ifdef DEBUG
+
+
+
+
+
+NS_IMETHODIMP GfxInfo::SpoofVendorID(const nsAString & aVendorID)
+{
+  CopyUTF16toUTF8(aVendorID, mVendor);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP GfxInfo::SpoofDeviceID(const nsAString & aDeviceID)
+{
+  CopyUTF16toUTF8(aDeviceID, mRenderer);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString & aDriverVersion)
+{
+  CopyUTF16toUTF8(aDriverVersion, mVersion);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP GfxInfo::SpoofOSVersion(PRUint32 aVersion)
+{
+  
+  return NS_OK;
+}
+
+#endif
 
 } 
 } 

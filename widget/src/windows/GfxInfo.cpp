@@ -1032,18 +1032,16 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
 
 
 
-NS_IMETHODIMP GfxInfo::SpoofVendorID(PRUint32 aVendorID)
+NS_IMETHODIMP GfxInfo::SpoofVendorID(const nsAString & aVendorID)
 {
-  mAdapterVendorID.Truncate(0);
-  mAdapterVendorID.AppendPrintf("0x%04x", aVendorID);
+  mAdapterVendorID = aVendorID;
   return NS_OK;
 }
 
 
-NS_IMETHODIMP GfxInfo::SpoofDeviceID(PRUint32 aDeviceID)
+NS_IMETHODIMP GfxInfo::SpoofDeviceID(const nsAString & aDeviceID)
 {
-  mAdapterDeviceID.Truncate(0);
-  mAdapterDeviceID.AppendPrintf("0x%04x", aDeviceID);
+  mAdapterDeviceID = aDeviceID;
   return NS_OK;
 }
 

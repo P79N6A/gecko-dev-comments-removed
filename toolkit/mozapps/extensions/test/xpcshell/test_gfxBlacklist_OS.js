@@ -10,6 +10,12 @@ do_load_httpd_js();
 
 var gTestserver = null;
 
+function get_platform() {
+  var xulRuntime = Components.classes["@mozilla.org/xre/app-info;1"]
+                             .getService(Components.interfaces.nsIXULRuntime);
+  return xulRuntime.OS;
+}
+
 function load_blocklist(file) {
   Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:4444/data/" + file);
   var blocklist = Cc["@mozilla.org/extensions/blocklist;1"].
@@ -35,11 +41,30 @@ function run_test() {
   gfxInfo.QueryInterface(Ci.nsIGfxInfoDebug);
 
   
-  gfxInfo.spoofVendorID(0xabcd);
-  gfxInfo.spoofDeviceID(0x1234);
-  gfxInfo.spoofDriverVersion("8.52.322.2201");
-  
-  gfxInfo.spoofOSVersion(0x60000);
+  switch (get_platform()) {
+    case "WINNT":
+      gfxInfo.spoofVendorID("0xabcd");
+      gfxInfo.spoofDeviceID("0x1234");
+      gfxInfo.spoofDriverVersion("8.52.322.2201");
+      
+      gfxInfo.spoofOSVersion(0x60000);
+      break;
+    case "Linux":
+      
+      do_test_finished();
+      return;
+    case "Darwin":
+      gfxInfo.spoofVendorID("0xabcd");
+      gfxInfo.spoofDeviceID("0x1234");
+      
+      gfxInfo.spoofOSVersion(0x1060);
+      break;
+    case "Android":
+      
+      
+      do_test_finished();
+      return;
+  }
 
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "3", "8");
   startupManager();

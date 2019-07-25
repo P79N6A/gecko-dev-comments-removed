@@ -51,6 +51,10 @@
 
 using namespace mozilla::widget;
 
+#ifdef DEBUG
+NS_IMPL_ISUPPORTS_INHERITED1(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
+#endif
+
 
 
 nsresult
@@ -329,3 +333,36 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
 
   return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
 }
+
+#ifdef DEBUG
+
+
+
+
+NS_IMETHODIMP GfxInfo::SpoofVendorID(const nsAString & aVendorID)
+{
+  mAdapterVendorID = aVendorID;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP GfxInfo::SpoofDeviceID(const nsAString & aDeviceID)
+{
+  mAdapterDeviceID = aDeviceID;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString & aDriverVersion)
+{
+  mDriverVersion = aDriverVersion;
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP GfxInfo::SpoofOSVersion(PRUint32 aVersion)
+{
+  return NS_OK;
+}
+
+#endif
