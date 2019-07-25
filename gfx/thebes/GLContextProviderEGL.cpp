@@ -1132,6 +1132,30 @@ public:
         return PR_TRUE;         
     }
 
+    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion)
+    {
+        nsIntRect bounds = aRegion.GetBounds();
+        nsIntPoint dest = bounds.TopLeft();
+
+        
+        bounds.x = 0;
+        bounds.y = 0;
+  
+        if (!mCreated) {
+            bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        }
+
+        mShaderType =
+          mGLContext->UploadSurfaceToTexture(aSurf,
+                                             bounds,
+                                             mTexture,
+                                             !mCreated,
+                                             dest,
+                                             PR_FALSE);
+        mCreated = PR_TRUE;
+        return true;
+    }
+
     virtual PRBool InUpdate() const { return !!mUpdateContext; }
 
     virtual void Resize(const nsIntSize& aSize)

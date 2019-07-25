@@ -202,6 +202,8 @@ public:
         EndUpdate();
     }
 
+    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion) =0;
+
     
 
 
@@ -295,6 +297,7 @@ public:
 
     virtual gfxContext* BeginUpdate(nsIntRegion& aRegion);
     virtual PRBool EndUpdate();
+    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion);
 
     
     virtual already_AddRefed<gfxASurface>
