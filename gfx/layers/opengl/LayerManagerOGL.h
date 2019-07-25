@@ -73,6 +73,11 @@ namespace mozilla {
 namespace layers {
 
 class LayerOGL;
+class ShadowThebesLayer;
+class ShadowContainerLayer;
+class ShadowImageLayer;
+class ShadowCanvasLayer;
+class ShadowColorLayer;
 
 
 
