@@ -132,7 +132,7 @@ Recompiler::recompile()
          f = f->previous) {
 
         
-        JSStackFrame *end = f->entryFp->prev();
+        JSStackFrame *end = f->entryfp->prev();
         for (JSStackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
             
             
