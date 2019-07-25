@@ -452,6 +452,11 @@ public:
   PRUint8 *CopyData(Data& aDest, gfxIntSize& aDestSize,
                     PRUint32& aDestBufferSize, const Data& aData);
 
+  
+
+
+
+
   virtual PRUint8* AllocateBuffer(PRUint32 aSize);
 
   
