@@ -146,7 +146,7 @@ nsGIFDecoder2::FinishInternal()
     mGIFOpen = PR_FALSE;
   }
 
-  mImage->SetLoopCount(mGIFStruct.loop_count);
+  mImage->SetLoopCount(mGIFStruct.loop_count - 1);
 }
 
 
@@ -871,11 +871,6 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
           
 
           mGIFStruct.loop_count = GETINT16(q + 1);
-  
-          
-          if (mGIFStruct.loop_count == 0)
-            mGIFStruct.loop_count = -1;
-  
           GETN(1, gif_netscape_extension_block);
           break;
         
