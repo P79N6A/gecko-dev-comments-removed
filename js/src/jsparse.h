@@ -1050,6 +1050,8 @@ typedef struct BindData BindData;
 
 namespace js {
 
+enum FunctionSyntaxKind { Expression, Statement };
+
 struct Parser : private js::AutoGCRooter
 {
     JSContext           *const context; 
@@ -1094,7 +1096,6 @@ struct Parser : private js::AutoGCRooter
     JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
     bool hasXML() const { return tokenStream.hasXML(); }
-    bool hasAnonFunFix() const { return tokenStream.hasAnonFunFix(); }
 
     
 
@@ -1116,7 +1117,7 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda);
+    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind);
 
     
 
@@ -1203,7 +1204,7 @@ private:
     enum FunctionType { GETTER, SETTER, GENERAL };
     bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **list);
     JSParseNode *functionBody();
-    JSParseNode *functionDef(JSAtom *name, FunctionType type, uintN lambda);
+    JSParseNode *functionDef(JSAtom *name, FunctionType type, FunctionSyntaxKind kind);
 
     JSParseNode *condition();
     JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,

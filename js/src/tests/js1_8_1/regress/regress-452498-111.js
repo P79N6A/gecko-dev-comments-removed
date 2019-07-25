@@ -54,7 +54,6 @@ function test()
  
 
 
-options("anonfunfix");
 new Function("{function x(){}}");
 
 

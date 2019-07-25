@@ -345,7 +345,6 @@ class TokenStream
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    bool hasAnonFunFix() const { return VersionHasAnonFunFix(version); }
     bool hasXML() const { return xml || VersionShouldParseXML(versionNumber()); }
     void setXML(bool enabled) { xml = enabled; }
 

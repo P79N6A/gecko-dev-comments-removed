@@ -1958,12 +1958,9 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext 
 #endif 
 
 JSFunction *
-Parser::newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda)
+Parser::newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
 {
-    JSObject *parent;
-    JSFunction *fun;
-
-    JS_ASSERT((lambda & ~JSFUN_LAMBDA) == 0);
+    JS_ASSERT_IF(kind == Statement, atom != NULL);
 
     
 
@@ -1973,9 +1970,12 @@ Parser::newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda)
 
     while (tc->parent)
         tc = tc->parent;
-    parent = tc->inFunction() ? NULL : tc->scopeChain();
+    JSObject *parent = tc->inFunction() ? NULL : tc->scopeChain();
 
-    fun = js_NewFunction(context, NULL, NULL, 0, JSFUN_INTERPRETED | lambda, parent, atom);
+    JSFunction *fun =
+        js_NewFunction(context, NULL, NULL, 0,
+                       JSFUN_INTERPRETED | (kind == Expression ? JSFUN_LAMBDA : 0),
+                       parent, atom);
     if (fun && !tc->compileAndGo()) {
         FUN_OBJECT(fun)->clearParent();
         FUN_OBJECT(fun)->clearProto();
@@ -2660,10 +2660,10 @@ JSDefinition::kindString(Kind kind)
 
 static JSFunctionBox *
 EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
-              uintN lambda = JSFUN_LAMBDA)
+              FunctionSyntaxKind kind = Expression)
 {
     JSTreeContext *tc = funtc->parent;
-    JSFunction *fun = tc->parser->newFunction(tc, funAtom, lambda);
+    JSFunction *fun = tc->parser->newFunction(tc, funAtom, kind);
     if (!fun)
         return NULL;
 
@@ -2687,7 +2687,7 @@ EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 static bool
 LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
-              uintN lambda = JSFUN_LAMBDA)
+              FunctionSyntaxKind kind = Expression)
 {
     JSTreeContext *tc = funtc->parent;
     tc->blockidGen = funtc->blockidGen;
@@ -2716,7 +2716,7 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
             JSDefinition *dn = ALE_DEFN(ale);
             JS_ASSERT(dn->isPlaceholder());
 
-            if (atom == funAtom && lambda != 0) {
+            if (atom == funAtom && kind == Expression) {
                 dn->pn_op = JSOP_CALLEE;
                 dn->pn_cookie.set(funtc->staticLevel, UpvarCookie::CALLEE_SLOT);
                 dn->pn_dflags |= PND_BOUND;
@@ -3020,8 +3020,10 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
 }
 
 JSParseNode *
-Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
+Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 {
+    JS_ASSERT_IF(kind == Statement, funAtom);
+
     
     tokenStream.mungeCurrentToken(TOK_FUNCTION, JSOP_NOP);
     JSParseNode *pn = FunctionNode::create(tc);
@@ -3038,14 +3040,15 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
+
     bool bodyLevel = tc->atBodyLevel();
-    pn->pn_dflags = (lambda || !bodyLevel) ? PND_FUNARG : 0;
+    pn->pn_dflags = (kind == Expression || !bodyLevel) ? PND_FUNARG : 0;
 
     
 
 
 
-    if (lambda == 0 && funAtom) {
+    if (kind == Statement) {
         if (JSAtomListElement *ale = tc->decls.lookup(funAtom)) {
             JSDefinition *dn = ALE_DEFN(ale);
             JSDefinition::Kind dn_kind = dn->kind();
@@ -3150,7 +3153,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
     
     JSTreeContext funtc(tc->parser);
 
-    JSFunctionBox *funbox = EnterFunction(pn, &funtc, funAtom, lambda);
+    JSFunctionBox *funbox = EnterFunction(pn, &funtc, funAtom, kind);
     if (!funbox)
         return NULL;
 
@@ -3224,7 +3227,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 #if JS_HAS_EXPR_CLOSURES
     if (tt == TOK_LC)
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
-    else if (lambda == 0 && !MatchOrInsertSemicolon(context, &tokenStream))
+    else if (kind == Statement && !MatchOrInsertSemicolon(context, &tokenStream))
         return NULL;
 #else
     MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
@@ -3300,41 +3303,25 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-        if (!bodyLevel && lambda == 0 && funAtom)
+        if (!bodyLevel && kind == Statement)
             outertc->flags |= TCF_FUN_HEAVYWEIGHT;
     }
 
-    JSParseNode *result = pn;
     JSOp op = JSOP_NOP;
-    if (lambda != 0) {
-        
-
-
+    if (kind == Expression) {
         op = JSOP_LAMBDA;
-    } else if (!funAtom) {
-        
+    } else {
+        if (!bodyLevel) {
+            
 
 
 
 
 
-
-        result = UnaryNode::create(outertc);
-        if (!result)
-            return NULL;
-        result->pn_type = TOK_SEMI;
-        result->pn_pos = pn->pn_pos;
-        result->pn_kid = pn;
-        op = JSOP_LAMBDA;
-    } else if (!bodyLevel) {
-        
-
-
-
-
-
-        op = JSOP_DEFFUN;
-        outertc->noteMightAliasLocals();
+            JS_ASSERT(!outertc->inStrictMode());
+            op = JSOP_DEFFUN;
+            outertc->noteMightAliasLocals();
+        }
     }
 
     funbox->kids = funtc.functionList;
@@ -3348,7 +3335,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
         pn->pn_body = body;
     }
 
-    if (!outertc->inFunction() && bodyLevel && funAtom && !lambda && outertc->compiling()) {
+    if (!outertc->inFunction() && bodyLevel && kind == Statement && outertc->compiling()) {
         JS_ASSERT(pn->pn_cookie.isFree());
         if (!DefineGlobal(pn, outertc->asCodeGenerator(), funAtom))
             return NULL;
@@ -3356,14 +3343,14 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
     pn->pn_blockid = outertc->blockid();
 
-    if (!LeaveFunction(pn, &funtc, funAtom, lambda))
+    if (!LeaveFunction(pn, &funtc, funAtom, kind))
         return NULL;
 
     
     if (!outertc->inStrictMode())
         tokenStream.setStrictMode(false);
 
-    return result;
+    return pn;
 }
 
 JSParseNode *
@@ -3373,12 +3360,9 @@ Parser::functionStmt()
     if (tokenStream.getToken(TSF_KEYWORD_IS_NAME) == TOK_NAME) {
         name = tokenStream.currentToken().t_atom;
     } else {
-        if (hasAnonFunFix()) {
-            
-            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
-            return NULL;
-        }
-        tokenStream.ungetToken();
+        
+        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_UNNAMED_FUNCTION_STMT);
+        return NULL;
     }
 
     
@@ -3387,7 +3371,7 @@ Parser::functionStmt()
         return NULL;
     }
 
-    return functionDef(name, GENERAL, 0);
+    return functionDef(name, GENERAL, Statement);
 }
 
 JSParseNode *
@@ -3398,7 +3382,7 @@ Parser::functionExpr()
         name = tokenStream.currentToken().t_atom;
     else
         tokenStream.ungetToken();
-    return functionDef(name, GENERAL, JSFUN_LAMBDA);
+    return functionDef(name, GENERAL, Expression);
 }
 
 
@@ -8475,7 +8459,7 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                     pn->pn_xflags |= PNX_NONCONST;
 
                     
-                    pn2 = functionDef(NULL, op == JSOP_SETTER ? SETTER : GETTER, JSFUN_LAMBDA);
+                    pn2 = functionDef(NULL, op == JSOP_SETTER ? SETTER : GETTER, Expression);
                     pn2 = JSParseNode::newBinaryOrAppend(TOK_COLON, op, pn3, pn2, tc);
                     goto skip;
                 }
