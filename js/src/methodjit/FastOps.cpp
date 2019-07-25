@@ -40,6 +40,7 @@
 #include "jsbool.h"
 #include "jslibmath.h"
 #include "jsnum.h"
+#include "jsscope.h"
 #include "methodjit/MethodJIT.h"
 #include "methodjit/Compiler.h"
 #include "methodjit/StubCalls.h"
@@ -965,6 +966,14 @@ mjit::Compiler::jsop_setelem()
         RegisterID idReg = maybeIdReg.reg();
 
         
+
+
+
+        RegisterID T1 = frame.allocReg();
+
+        Label syncTarget = stubcc.syncExitAndJump(Uses(3));
+
+        
         BaseIndex slot(objReg, idReg, Assembler::JSVAL_SCALE);
 #if defined JS_NUNBOX32
         Jump notHole = masm.branch32(Assembler::Equal, masm.tagOf(slot), ImmType(JSVAL_TYPE_MAGIC));
@@ -972,7 +981,57 @@ mjit::Compiler::jsop_setelem()
         masm.loadTypeTag(slot, Registers::ValueReg);
         Jump notHole = masm.branchPtr(Assembler::Equal, Registers::ValueReg, ImmType(JSVAL_TYPE_MAGIC));
 #endif
-        stubcc.linkExit(notHole, Uses(3));
+
+        
+        Label lblHole = stubcc.masm.label();
+        stubcc.linkExitDirect(notHole, lblHole);
+
+        
+        RegisterID baseReg = frame.tempRegForData(obj, objReg, stubcc.masm);
+
+        
+
+
+
+
+
+        
+
+
+
+        stubcc.masm.loadPtr(Address(baseReg, offsetof(JSObject, proto)), T1);
+        stubcc.masm.loadPtr(Address(T1, offsetof(JSObject, map)), T1);
+        stubcc.masm.load32(Address(T1, offsetof(JSScope, flags)), T1);
+        stubcc.masm.and32(Imm32(JSScope::INDEXED_PROPERTIES), T1);
+        Jump extendedArray = stubcc.masm.branchTest32(Assembler::NonZero, T1, T1);
+        extendedArray.linkTo(syncTarget, &stubcc.masm);
+
+        
+        stubcc.masm.loadPtr(Address(baseReg, offsetof(JSObject, proto)), T1);
+        stubcc.masm.loadPtr(Address(T1, offsetof(JSObject, proto)), T1);
+        stubcc.masm.loadPtr(Address(T1, offsetof(JSObject, map)), T1);
+        stubcc.masm.load32(Address(T1, offsetof(JSScope, flags)), T1);
+        stubcc.masm.and32(Imm32(JSScope::INDEXED_PROPERTIES), T1);
+        Jump extendedObject = stubcc.masm.branchTest32(Assembler::NonZero, T1, T1);
+        extendedObject.linkTo(syncTarget, &stubcc.masm);
+
+        
+        Address arrayLength(baseReg, offsetof(JSObject, fslots[JSObject::JSSLOT_ARRAY_LENGTH]));
+        stubcc.masm.loadPayload(arrayLength, T1);
+        Jump underLength = stubcc.masm.branch32(Assembler::LessThan, idReg, T1);
+        stubcc.masm.move(idReg, T1);
+        stubcc.masm.add32(Imm32(1), T1);
+        stubcc.masm.storePayload(T1, arrayLength);
+        underLength.linkTo(stubcc.masm.label(), &stubcc.masm);
+
+        
+        if (baseReg == objReg)
+            stubcc.masm.loadPtr(Address(objReg, offsetof(JSObject, dslots)), objReg);
+
+        
+        Jump jmpHoleExit = stubcc.masm.jump();
+        Label lblRejoin = masm.label();
+        stubcc.crossJump(jmpHoleExit, lblRejoin);
 
         stubcc.leave();
         stubcc.call(stubs::SetElem);
@@ -993,6 +1052,7 @@ mjit::Compiler::jsop_setelem()
         }
 
         frame.freeReg(idReg);
+        frame.freeReg(T1);
     }
     frame.freeReg(objReg);
 

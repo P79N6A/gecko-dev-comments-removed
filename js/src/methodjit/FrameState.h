@@ -324,6 +324,12 @@ class FrameState
 
 
 
+    inline RegisterID tempRegForData(FrameEntry *fe, RegisterID reg, Assembler &masm) const;
+
+    
+
+
+
     inline void emitLoadTypeTag(FrameEntry *fe, RegisterID reg) const;
     inline void emitLoadTypeTag(Assembler &masm, FrameEntry *fe, RegisterID reg) const;
 
