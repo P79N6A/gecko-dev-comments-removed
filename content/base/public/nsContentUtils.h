@@ -444,6 +444,16 @@ public:
   
 
 
+  static bool IsHTMLBlock(nsIAtom* aLocalName);
+
+  
+
+
+  static bool IsHTMLVoid(nsIAtom* aLocalName);
+
+  
+
+
 
 
 
