@@ -1811,10 +1811,6 @@ var FormHelperUI = {
     close: "cmd_formClose"
   },
 
-  
-  _currentCaretRect: null,
-  _currentElementRect: null,
-
   get enabled() {
     return Services.prefs.getBoolPref("formhelper.enabled");
   },
@@ -1844,12 +1840,12 @@ var FormHelperUI = {
     messageManager.addMessageListener("FormAssist:Show", this);
     messageManager.addMessageListener("FormAssist:Hide", this);
     messageManager.addMessageListener("FormAssist:Update", this);
-    messageManager.addMessageListener("FormAssist:Resize", this);
     messageManager.addMessageListener("FormAssist:AutoComplete", this);
 
     
     document.getElementById("tabs").addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
+    window.addEventListener("resize", this, true);
 
     
     messageManager.addMessageListener("DOMWillOpenModalDialog", this);
@@ -1904,8 +1900,19 @@ var FormHelperUI = {
   },
 
   handleEvent: function formHelperHandleEvent(aEvent) {
-    if (aEvent.type == "TabSelect" || aEvent.type == "URLChanged")
-      this.hide();
+    switch (aEvent.type) {
+      case "TabSelect":
+      case "URLChanged":
+        this.hide();
+        break;
+
+      case "resize":
+        setTimeout(function(self) {
+          SelectHelperUI.resize();
+          self._container.contentHasChanged();
+        }, 0, this);
+        break;
+    }
   },
 
   receiveMessage: function formHelperReceiveMessage(aMessage) {
@@ -1925,12 +1932,6 @@ var FormHelperUI = {
 
       case "FormAssist:AutoComplete":
         this._updateAutocompleteFor(json.current);
-        this._container.contentHasChanged();
-        break;
-
-      case "FormAssist:Resize":
-        SelectHelperUI.resize();
-        this._zoom(this._currentElementRect, this._currentCaretRect);
         this._container.contentHasChanged();
         break;
 
@@ -1956,6 +1957,9 @@ var FormHelperUI = {
     }
   },
 
+  
+  _currentCaretRect: null,
+  _currentElementRect: null,
   observe: function formHelperObserve(aSubject, aTopic, aData) {
     let rect = Rect.fromRect(JSON.parse(aData));
     rect.height = rect.bottom - rect.top;
