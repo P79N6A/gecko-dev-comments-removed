@@ -228,7 +228,7 @@ public:
   virtual ~nsHTMLComboboxListAccessible() {}
 
   
-  virtual nsIFrame* GetFrame();
+  virtual nsIFrame* GetFrame() const;
   virtual bool IsPrimaryForNode() const;
 
   

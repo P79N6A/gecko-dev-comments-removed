@@ -135,10 +135,10 @@ public:
 
   virtual void Shutdown();
 
-    
+  
 
 
-    virtual nsIFrame* GetFrame();
+  virtual nsIFrame* GetFrame() const;
 
   
 
