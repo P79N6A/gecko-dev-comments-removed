@@ -42,6 +42,7 @@
 #include "nsDOMStorage.h"
 #include "nsDOMStorageDBWrapper.h"
 #include "nsIFile.h"
+#include "nsIURL.h"
 #include "nsIVariant.h"
 #include "nsIEffectiveTLDService.h"
 #include "nsAppDirectoryServiceDefs.h"
@@ -354,14 +355,21 @@ nsDOMStorageDBWrapper::CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey)
   if (domainScope.IsEmpty()) {
     
     
-    PRBool isAboutUrl = PR_FALSE;
-    if ((NS_SUCCEEDED(aUri->SchemeIs("about", &isAboutUrl)) && isAboutUrl) ||
-        (NS_SUCCEEDED(aUri->SchemeIs("moz-safe-about", &isAboutUrl)) && isAboutUrl)) {
+    
+    PRBool isScheme = PR_FALSE;
+    if ((NS_SUCCEEDED(aUri->SchemeIs("about", &isScheme)) && isScheme) ||
+        (NS_SUCCEEDED(aUri->SchemeIs("moz-safe-about", &isScheme)) && isScheme)) {
       rv = aUri->GetPath(domainScope);
       NS_ENSURE_SUCCESS(rv, rv);
       
       
       ToLowerCase(domainScope);
+    }
+    else if (NS_SUCCEEDED(aUri->SchemeIs("file", &isScheme)) && isScheme) {
+      nsCOMPtr<nsIURL> url = do_QueryInterface(aUri, &rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = url->GetDirectory(domainScope);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 
