@@ -100,6 +100,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsIFrameMessageManager.h"
 #include "FrameLayerBuilder.h"
+#include "nsDOMMediaQueryList.h"
 
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
@@ -254,12 +255,17 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   NS_ASSERTION(mDocument, "Null document");
   mUserFontSet = nsnull;
   mUserFontSetDirty = PR_TRUE;
+
+  PR_INIT_CLIST(&mDOMMediaQueryLists);
 }
 
 nsPresContext::~nsPresContext()
 {
   NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
   SetShell(nsnull);
+
+  NS_ABORT_IF_FALSE(PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists),
+                    "must not have media query lists left");
 
   
   
@@ -1643,11 +1649,56 @@ nsPresContext::MediaFeatureValuesChanged(PRBool aCallerWillRebuildStyleData)
       !aCallerWillRebuildStyleData) {
     RebuildAllStyleData(nsChangeHint(0));
   }
+
+  if (!nsContentUtils::IsSafeToRunScript()) {
+    NS_ABORT_IF_FALSE(mDocument->IsBeingUsedAsImage(),
+                      "How did we get here?  Are we failing to notify "
+                      "listeners that we should notify?");
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+
+  if (!PR_CLIST_IS_EMPTY(&mDOMMediaQueryLists)) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsDOMMediaQueryList::NotifyList notifyList;
+    for (PRCList *l = PR_LIST_HEAD(&mDOMMediaQueryLists);
+         l != &mDOMMediaQueryLists; l = PR_NEXT_LINK(l)) {
+      nsDOMMediaQueryList *mql = static_cast<nsDOMMediaQueryList*>(l);
+      mql->MediumFeaturesChanged(notifyList);
+    }
+
+    for (PRUint32 i = 0, i_end = notifyList.Length(); i != i_end; ++i) {
+      nsDOMMediaQueryList::HandleChangeData &d = notifyList[i];
+      d.listener->HandleChange(d.mql);
+    }
+
+    
+  }
 }
 
 void
 nsPresContext::PostMediaFeatureValuesChangedEvent()
 {
+  
+  
+  
   if (!mPendingMediaFeatureValuesChanged) {
     nsCOMPtr<nsIRunnable> ev =
       NS_NewRunnableMethod(this, &nsPresContext::HandleMediaFeatureValuesChangedEvent);
@@ -1665,6 +1716,19 @@ nsPresContext::HandleMediaFeatureValuesChangedEvent()
   if (mPendingMediaFeatureValuesChanged && mShell) {
     MediaFeatureValuesChanged(PR_FALSE);
   }
+}
+
+void
+nsPresContext::MatchMedia(const nsAString& aMediaQueryList,
+                          nsIDOMMediaQueryList** aResult)
+{
+  nsRefPtr<nsDOMMediaQueryList> result =
+    new nsDOMMediaQueryList(this, aMediaQueryList);
+
+  
+  PR_INSERT_BEFORE(result, &mDOMMediaQueryLists);
+
+  result.forget(aResult);
 }
 
 void

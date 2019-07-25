@@ -2876,7 +2876,6 @@ nsXULPrototypeElement::SetAttrAt(PRUint32 aPos, const nsAString& aValue,
         nsRefPtr<css::StyleRule> rule;
 
         nsCSSParser parser;
-        NS_ENSURE_TRUE(parser, NS_ERROR_OUT_OF_MEMORY);
 
         
         parser.ParseStyleAttribute(aValue, aDocumentURI, aDocumentURI,
