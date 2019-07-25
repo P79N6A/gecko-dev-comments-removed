@@ -2,15 +2,11 @@
 
 
 
-const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 let EXPORTED_SYMBOLS = [ ];
 
-Cu.import("resource:///modules/devtools/gcli.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource:///modules/devtools/gcli.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "console",
-                                  "resource:///modules/devtools/Console.jsm");
 
 
 

@@ -9,10 +9,6 @@ let console = (function() {
 })();
 
 
-let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
-Services.scriptloader.loadSubScript(testDir + "/helpers.js", this);
-
-
 
 
 function addTab(aURL, aCallback)
@@ -40,6 +36,87 @@ registerCleanupFunction(function tearDown() {
 
   console = undefined;
 });
+
+
+
+
+
+
+
+let DeveloperToolbarTest = {
+  
+
+
+  show: function DTT_show(aCallback) {
+    if (DeveloperToolbar.visible) {
+      ok(false, "DeveloperToolbar.visible at start of openDeveloperToolbar");
+    }
+    else {
+      DeveloperToolbar.show(true, aCallback);
+    }
+  },
+
+  
+
+
+  hide: function DTT_hide() {
+    if (!DeveloperToolbar.visible) {
+      ok(false, "!DeveloperToolbar.visible at start of closeDeveloperToolbar");
+    }
+    else {
+      DeveloperToolbar.display.inputter.setInput("");
+      DeveloperToolbar.hide();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  test: function DTT_test(uri, testFunc) {
+    let menuItem = document.getElementById("menu_devToolbar");
+    let command = document.getElementById("Tools:DevToolbar");
+    let appMenuItem = document.getElementById("appmenu_devToolbar");
+
+    registerCleanupFunction(function() {
+      DeveloperToolbarTest.hide();
+
+      
+      if (menuItem) menuItem.hidden = true;
+      if (command) command.setAttribute("disabled", "true");
+      if (appMenuItem) appMenuItem.hidden = true;
+    });
+
+    
+    if (menuItem) menuItem.hidden = false;
+    if (command) command.removeAttribute("disabled");
+    if (appMenuItem) appMenuItem.hidden = false;
+
+    addTab(uri, function(browser, tab) {
+      DeveloperToolbarTest.show(function() {
+
+        try {
+          testFunc(browser, tab);
+        }
+        catch (ex) {
+          ok(false, "" + ex);
+          console.error(ex);
+          finish();
+          throw ex;
+        }
+      });
+    });
+  },
+};
 
 function catchFail(func) {
   return function() {
