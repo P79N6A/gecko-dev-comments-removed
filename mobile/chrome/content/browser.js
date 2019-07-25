@@ -375,6 +375,7 @@ var Browser = {
 
     
     container.customClicker = new ContentCustomClicker(bv);
+    container.customKeySender = new ContentCustomKeySender(bv);
 
     
     let contentScrollbox = this.contentScrollbox = document.getElementById("content-scrollbox");
@@ -1973,6 +1974,28 @@ ContentCustomClicker.prototype = {
     toString: function toString() {
       return "[ContentCustomClicker] { }";
     }
+};
+
+
+function ContentCustomKeySender(browserView) {
+  this._browserView = browserView;
+}
+
+ContentCustomKeySender.prototype = {
+  
+  dispatchKeyEvent: function _dispatchKeyEvent(event) {
+    let browser = this._browserView.getBrowser();
+    if (browser) {
+      let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+      try {
+        fl.sendCrossProcessKeyEvent(event.type, event.keyCode, event.charCode, event.modifiers);
+      } catch (e) {}
+    }
+  },
+
+  toString: function toString() {
+    return "[ContentCustomClicker] { }";
+  }
 };
 
 
