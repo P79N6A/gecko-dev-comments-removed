@@ -384,36 +384,6 @@ GreedyAllocator::allocateRegisterOperand(LAllocation *a, VirtualRegister *vr)
     return true;
 }
 
-bool
-GreedyAllocator::allocateWritableOperand(LAllocation *a, VirtualRegister *vr)
-{
-    AnyRegister reg;
-    if (!vr->hasRegister()) {
-        
-        
-        if (!allocateReg(vr))
-            return false;
-        reg = vr->reg();
-    } else {
-        if (allocatableRegs().empty(vr->isDouble())) {
-            
-            if (!allocate(vr->type(), DISALLOW, &reg))
-                return false;
-            align(vr->reg(), reg);
-        } else {
-            
-            reg = vr->reg();
-
-            allocateStack(vr);
-            if (!restore(vr->backingStack(), reg))
-                return false;
-        }
-    }
-
-    *a = LAllocation(reg);
-    return true;
-}
-
 static inline bool
 DeservesRegister(LDefinition::Type type)
 {
