@@ -377,20 +377,22 @@ class TypeSet
     
     inline bool hasType(Type type);
 
-    TypeFlags baseFlags() { return flags & TYPE_FLAG_BASE_MASK; }
-    bool unknown() { return !!(flags & TYPE_FLAG_UNKNOWN); }
-    bool unknownObject() { return !!(flags & (TYPE_FLAG_UNKNOWN | TYPE_FLAG_ANYOBJECT)); }
+    TypeFlags baseFlags() const { return flags & TYPE_FLAG_BASE_MASK; }
+    bool unknown() const { return !!(flags & TYPE_FLAG_UNKNOWN); }
+    bool unknownObject() const { return !!(flags & (TYPE_FLAG_UNKNOWN | TYPE_FLAG_ANYOBJECT)); }
 
-    bool hasAnyFlag(TypeFlags flags) {
+    bool empty() const { return !baseFlags() && !baseObjectCount(); }
+
+    bool hasAnyFlag(TypeFlags flags) const {
         JS_ASSERT((flags & TYPE_FLAG_BASE_MASK) == flags);
         return !!(baseFlags() & flags);
     }
 
-    bool isOwnProperty(bool configurable) {
+    bool isOwnProperty(bool configurable) const {
         return flags & (configurable ? TYPE_FLAG_CONFIGURED_PROPERTY : TYPE_FLAG_OWN_PROPERTY);
     }
-    bool isDefiniteProperty() { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
-    unsigned definiteSlot() {
+    bool isDefiniteProperty() const { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
+    unsigned definiteSlot() const {
         JS_ASSERT(isDefiniteProperty());
         return flags >> TYPE_FLAG_DEFINITE_SHIFT;
     }
@@ -501,7 +503,9 @@ class TypeSet
     inline void clearObjects();
 
   private:
-    inline uint32 baseObjectCount() const;
+    uint32 baseObjectCount() const {
+        return (flags & TYPE_FLAG_OBJECT_COUNT_MASK) >> TYPE_FLAG_OBJECT_COUNT_SHIFT;
+    }
     inline void setBaseObjectCount(uint32 count);
 };
 
@@ -594,8 +598,16 @@ struct TypeBarrier
 
     Type type;
 
-    TypeBarrier(TypeSet *target, Type type)
-        : next(NULL), target(target), type(type)
+    
+
+
+
+    JSObject *singleton;
+    jsid singletonId;
+
+    TypeBarrier(TypeSet *target, Type type, JSObject *singleton, jsid singletonId)
+        : next(NULL), target(target), type(type),
+          singleton(singleton), singletonId(singletonId)
     {}
 };
 
@@ -741,6 +753,12 @@ struct TypeObject : gc::Cell
     static const uint32 CONTRIBUTION_LIMIT = 2000;
 
     
+
+
+
+
+
+
 
 
 

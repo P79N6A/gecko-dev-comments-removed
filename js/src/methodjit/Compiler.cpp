@@ -2861,16 +2861,9 @@ mjit::Compiler::jsop_getglobal(uint32 index)
         }
     }
 
-    
-
-
-
-    bool testUndefined = globalObj->getSlot(slot).isUndefined() && !analysis->popGuaranteed(PC);
-
     RegisterID reg = frame.allocReg();
     Address address = masm.objSlotRef(globalObj, reg, slot);
-    BarrierState barrier = pushAddressMaybeBarrier(address, knownPushedType(0), true,
-                                                   testUndefined);
+    BarrierState barrier = pushAddressMaybeBarrier(address, knownPushedType(0), true);
     finishBarrier(barrier, REJOIN_GETTER, 0);
 }
 
