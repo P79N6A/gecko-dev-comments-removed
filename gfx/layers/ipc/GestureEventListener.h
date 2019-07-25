@@ -51,6 +51,13 @@ public:
 
 
 
+
+  void CancelGesture();
+
+  
+
+
+
   AsyncPanZoomController* GetAsyncPanZoomController();
 
 protected:
