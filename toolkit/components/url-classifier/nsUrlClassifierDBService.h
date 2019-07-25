@@ -31,6 +31,7 @@
 
 class nsUrlClassifierDBServiceWorker;
 class nsIThread;
+class nsIURI;
 
 
 
