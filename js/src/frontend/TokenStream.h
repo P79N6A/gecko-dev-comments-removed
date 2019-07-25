@@ -47,6 +47,7 @@ enum TokenKind {
     TOK_MOD,                       
     TOK_INC, TOK_DEC,              
     TOK_DOT,                       
+    TOK_TRIPLEDOT,                 
     TOK_LB, TOK_RB,                
     TOK_LC, TOK_RC,                
     TOK_LP, TOK_RP,                
