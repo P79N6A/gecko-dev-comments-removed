@@ -405,21 +405,17 @@ JSObject::getChildProperty(JSContext *cx, Shape *parent, Shape &child)
 
 
 
-
-
-    if (!child.isAlias()) {
-        if (child.attrs & JSPROP_SHARED) {
-            child.slot = SHAPE_INVALID_SLOT;
-        } else {
-            
+    if (child.attrs & JSPROP_SHARED) {
+        child.slot = SHAPE_INVALID_SLOT;
+    } else {
+        
 
 
 
 
 
-            if (child.slot == SHAPE_INVALID_SLOT && !allocSlot(cx, &child.slot))
-                return NULL;
-        }
+        if (child.slot == SHAPE_INVALID_SLOT && !allocSlot(cx, &child.slot))
+            return NULL;
     }
 
     Shape *shape;
@@ -772,7 +768,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
-    bool hadSlot = !shape->isAlias() && shape->hasSlot();
+    bool hadSlot = shape->hasSlot();
     uint32 oldSlot = shape->slot;
     if (!(attrs & JSPROP_SHARED) && slot == SHAPE_INVALID_SLOT && hadSlot)
         slot = oldSlot;
@@ -810,7 +806,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     if (inDictionaryMode()) {
         
-        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED) && !(flags & Shape::ALIAS)) {
+        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED)) {
             if (!allocSlot(cx, &slot))
                 return NULL;
         }
@@ -928,7 +924,7 @@ JSObject::changeProperty(JSContext *cx, const Shape *shape, uintN attrs, uintN m
     if (inDictionaryMode()) {
         
         uint32 slot = shape->slot;
-        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED) && !(flags & Shape::ALIAS)) {
+        if (slot == SHAPE_INVALID_SLOT && !(attrs & JSPROP_SHARED)) {
             if (!allocSlot(cx, &slot))
                 return NULL;
         }
@@ -996,7 +992,7 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
     
     bool addedToFreelist = false;
-    bool hadSlot = !shape->isAlias() && shape->hasSlot();
+    bool hadSlot = shape->hasSlot();
     if (hadSlot) {
         addedToFreelist = freeSlot(cx, shape->slot);
         JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
