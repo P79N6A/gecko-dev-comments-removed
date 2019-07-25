@@ -253,8 +253,8 @@ public:
 
 
 
-  PRBool ParseDivAlignValue(const nsAString& aString,
-                            nsAttrValue& aResult) const;
+  static PRBool ParseDivAlignValue(const nsAString& aString,
+                                   nsAttrValue& aResult);
 
   
 
