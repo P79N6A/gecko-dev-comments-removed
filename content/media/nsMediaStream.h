@@ -288,6 +288,11 @@ protected:
   
   
   
+  void ModifyLoadFlags(nsLoadFlags aFlags);
+
+  
+  
+  
   nsMediaDecoder* mDecoder;
 
   
