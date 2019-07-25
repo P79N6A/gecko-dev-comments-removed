@@ -654,6 +654,23 @@ gfxGDIFontList::GetFontSubstitutes()
             mNonExistingFonts.AppendElement(substituteName);
         }
     }
+
+    
+    
+    
+    nsAutoString substituteName;
+    substituteName.AssignLiteral("Courier");
+    BuildKeyNameFromFontName(substituteName);
+    if (!mFontSubstitutes.Get(substituteName)) {
+        gfxFontFamily *ff;
+        nsAutoString actualFontName;
+        actualFontName.AssignLiteral("Courier New");
+        BuildKeyNameFromFontName(actualFontName);
+        ff = mFontFamilies.GetWeak(actualFontName);
+        if (ff) {
+            mFontSubstitutes.Put(substituteName, ff);
+        }
+    }
     return NS_OK;
 }
 
