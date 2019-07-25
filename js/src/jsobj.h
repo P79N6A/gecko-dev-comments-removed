@@ -239,6 +239,13 @@ struct NativeIterator;
 
 struct JSFunction;
 
+namespace nanojit {
+class ValidateWriter;
+}
+
+
+
+
 
 
 
@@ -277,7 +284,10 @@ struct JSObject : js::gc::Cell {
 
 
 
+
+
     friend class js::TraceRecorder;
+    friend class nanojit::ValidateWriter;
 
     
 
