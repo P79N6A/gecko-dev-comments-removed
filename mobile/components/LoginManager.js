@@ -87,11 +87,6 @@ LoginManager.prototype = {
     },
 
 
-    get _prefBranch() {
-       return Services.prefs.getBranch("signon.");
-    },
-
-
     _nsLoginInfo : null, 
     _debug    : false, 
     _remember : true,  
@@ -119,15 +114,14 @@ LoginManager.prototype = {
             "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
 
         
-        let prefBranch = this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
-        prefBranch.addObserver("", this, true);
+        Services.prefs.addObserver("signon.", this, false);
 
         
-        this._debug = prefBranch.getBoolPref("debug");
-        this._remember = prefBranch.getBoolPref("rememberSignons");
+        this._debug = Services.prefs.getBoolPref("signon.debug");
+        this._remember = Services.prefs.getBoolPref("signon.rememberSignons");
 
         
-        Services.obs.addObserver(this, "xpcom-shutdown", true);
+        Services.obs.addObserver(this, "xpcom-shutdown", false);
     },
 
     
@@ -149,18 +143,8 @@ LoginManager.prototype = {
 
     observe : function (subject, topic, data) {
         if (topic == "nsPref:changed") {
-            var prefName = data;
-            this._pwmgr.log("got change to " + prefName + " preference");
-
-            if (prefName == "debug") {
-                this._pwmgr._debug = 
-                    this._pwmgr.prefBranch.getBoolPref("debug");
-            } else if (prefName == "rememberSignons") {
-                this._pwmgr._remember =
-                    this._pwmgr.prefBranch.getBoolPref("rememberSignons");
-            } else {
-                this._pwmgr.log("Oops! Pref not handled, change ignored.");
-            }
+            this._pwmgr._debug    = Services.prefs.getBoolPref("signon.debug");
+            this._pwmgr._remember = Services.prefs.getBoolPref("signon.rememberSignons");
         } else if (topic == "xpcom-shutdown") {
             
             
@@ -219,8 +203,7 @@ LoginManager.prototype = {
 
                 
                 
-                
-                var win = message.target.contentWindow || message.target.ownerDocument.defaultView;
+                var win = message.target.contentWindow || null;
 
                 var formLogin = new this._nsLoginInfo();
 

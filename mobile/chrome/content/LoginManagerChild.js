@@ -76,10 +76,6 @@ var loginManager = {
             return false;
     },
 
-    get _prefBranch() {
-       return Services.prefs.getBranch("signon.");
-    },
-
     _nsLoginInfo : null, 
     _debug    : false, 
     _remember : true,  
@@ -91,7 +87,7 @@ var loginManager = {
         this._observer._pwmgr            = this;
 
         
-        Services.obs.addObserver(this._observer, "earlyformsubmit", true);
+        Services.obs.addObserver(this._observer, "earlyformsubmit", false);
 
         
         var progress = docShell.QueryInterface(Ci.nsIInterfaceRequestor).
@@ -108,12 +104,11 @@ var loginManager = {
             "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
 
         
-        let prefBranch = this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
-        prefBranch.addObserver("", this._observer, true);
+        Services.prefs.addObserver("signon.", this._observer, false);
 
         
-        this._debug = prefBranch.getBoolPref("debug");
-        this._remember = prefBranch.getBoolPref("rememberSignons");
+        this._debug = Services.prefs.getBoolPref("signon.debug");
+        this._remember = Services.prefs.getBoolPref("signon.rememberSignons");
     },
 
 
@@ -578,7 +573,7 @@ var loginManager = {
                  " forms on " + doc.documentURI);
 
         var autofillForm = !this._inPrivateBrowsing &&
-                           this._prefBranch.getBoolPref("autofillForms");
+                           Services.prefs.getBoolPref("signon.autofillForms");
 
         
         
@@ -624,6 +619,7 @@ var loginManager = {
             formOrigin: formOrigin
         })[0];
 
+        
         
 
         var foundLogins = message.foundLogins;
@@ -840,8 +836,7 @@ var loginManager = {
                     break;
 
                 case "unload":
-                    let prefBranch = this._pwmgr._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
-                    prefBranch.removeObserver("", this._pwmgr);
+                    Services.prefs.removeObserver("signon.", this._pwmgr);
                     Services.obs.removeObserver(this._pwmgr._observer, "earlyformsubmit");
                     break;
 
