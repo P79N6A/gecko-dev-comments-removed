@@ -2711,81 +2711,92 @@ ToLocaleHelper(JSContext *cx, CallReceiver call, JSObject *obj, const char *form
     return true;
 }
 
-
-
-
-
-static JSBool
-date_toLocaleHelper(JSContext *cx, unsigned argc, Value *vp, Native native, const char *format)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    JSObject *thisObj;
-    if (!NonGenericMethodGuard(cx, args, native, &DateClass, &thisObj))
-        return false;
-    if (!thisObj)
-        return true;
-
-    return ToLocaleHelper(cx, args, thisObj, format);
-}
-
-static JSBool
-date_toLocaleStringHelper(JSContext *cx, Native native, unsigned argc, Value *vp)
+static bool
+ToLocaleStringHelper(JSContext *cx, CallReceiver call, Handle<JSObject*> thisObj)
 {
     
 
 
 
-    return date_toLocaleHelper(cx, argc, vp, native,
+    return ToLocaleHelper(cx, call, thisObj,
 #if defined(_WIN32) && !defined(__MWERKS__)
-                                   "%#c"
+                          "%#c"
 #else
-                                   "%c"
+                          "%c"
 #endif
-                               );
+                         );
 }
+
 
 static JSBool
 date_toLocaleString(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_toLocaleStringHelper(cx, date_toLocaleString, argc, vp);
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleString, &DateClass, thisObj.address()))
+        return false;
+    if (!thisObj)
+        return true;
+
+    return ToLocaleStringHelper(cx, args, thisObj);
 }
+
 
 static JSBool
 date_toLocaleDateString(JSContext *cx, unsigned argc, Value *vp)
 {
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    JSObject *thisObj;
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleDateString, &DateClass, &thisObj))
+        return false;
+    if (!thisObj)
+        return true;
+
     
 
 
 
-    return date_toLocaleHelper(cx, argc, vp, date_toLocaleDateString,
+    static const char format[] =
 #if defined(_WIN32) && !defined(__MWERKS__)
                                    "%#x"
 #else
                                    "%x"
 #endif
-                               );
+                                   ;
+
+    return ToLocaleHelper(cx, args, thisObj, format);
 }
+
 
 static JSBool
 date_toLocaleTimeString(JSContext *cx, unsigned argc, Value *vp)
 {
-    return date_toLocaleHelper(cx, argc, vp, date_toLocaleTimeString, "%X");
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    JSObject *thisObj;
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleTimeString, &DateClass, &thisObj))
+        return false;
+    if (!thisObj)
+        return true;
+
+    return ToLocaleHelper(cx, args, thisObj, "%X");
 }
 
 static JSBool
 date_toLocaleFormat(JSContext *cx, unsigned argc, Value *vp)
 {
-    if (argc == 0)
-        return date_toLocaleStringHelper(cx, date_toLocaleFormat, argc, vp);
-
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    JSObject *thisObj;
-    if (!NonGenericMethodGuard(cx, args, date_toLocaleFormat, &DateClass, &thisObj))
+    Rooted<JSObject*> thisObj(cx);
+    if (!NonGenericMethodGuard(cx, args, date_toLocaleFormat, &DateClass, thisObj.address()))
         return false;
     if (!thisObj)
         return true;
+
+    if (argc == 0)
+        return ToLocaleStringHelper(cx, args, thisObj);
 
     JSString *fmt = ToString(cx, args[0]);
     if (!fmt)
