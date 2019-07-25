@@ -111,7 +111,18 @@ JSStackFrame::resetInvokeCallFrame()
                            JSFRAME_HAS_SCOPECHAIN |
                            JSFRAME_HAS_ANNOTATION |
                            JSFRAME_HAS_HOOK_DATA |
+                           JSFRAME_HAS_CALL_OBJ |
+                           JSFRAME_HAS_ARGS_OBJ |
                            JSFRAME_FINISHED_IN_INTERPRETER)));
+
+    
+
+
+
+
+    JS_ASSERT_IF(flags_ & JSFRAME_HAS_CALL_OBJ, callObj().getPrivate() == NULL);
+    JS_ASSERT_IF(flags_ & JSFRAME_HAS_ARGS_OBJ, argsObj().getPrivate() == NULL);
+
     flags_ &= JSFRAME_FUNCTION |
               JSFRAME_OVERFLOW_ARGS |
               JSFRAME_HAS_PREVPC |
