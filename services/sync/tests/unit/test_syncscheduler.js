@@ -213,42 +213,30 @@ add_test(function test_scheduleNextSync() {
   SyncScheduler.syncInterval = SyncScheduler.singleDeviceInterval;
 
   
-  let initial_nextSync;
-
-  
-  let syncInterval;
-
-  
   do_check_eq(Status.backoffInterval, 0);
 
   _("Test setting sync interval when nextSync == 0");
-  initial_nextSync = SyncScheduler.nextSync = 0;
-  let expectedInterval = SyncScheduler.singleDeviceInterval;
+  SyncScheduler.nextSync = 0;
   SyncScheduler.scheduleNextSync();
 
   
-  do_check_neq(SyncScheduler.nextSync, initial_nextSync);
-  syncInterval = SyncScheduler.nextSync - Date.now();
-  _("Sync Interval: " + syncInterval);
+  do_check_true(SyncScheduler.nextSync > 0);
 
   
   
-  do_check_true(syncInterval <= expectedInterval);
+  let expectedInterval = SyncScheduler.singleDeviceInterval;
+  do_check_true(SyncScheduler.nextSync - Date.now() <= expectedInterval);
   do_check_eq(SyncScheduler.syncTimer.delay, expectedInterval);
 
   _("Test setting sync interval when nextSync != 0");
   
-  initial_nextSync = SyncScheduler.nextSync = Date.now() + 
-    SyncScheduler.singleDeviceInterval;
+  SyncScheduler.nextSync = Date.now() + SyncScheduler.singleDeviceInterval;
   SyncScheduler.scheduleNextSync();
 
-  syncInterval = SyncScheduler.nextSync - Date.now();
-  _("Sync Interval: " + syncInterval);
-
   
   
-  do_check_true(syncInterval <= expectedInterval);
-  do_check_eq(SyncScheduler.syncTimer.delay, expectedInterval);
+  do_check_true(SyncScheduler.nextSync - Date.now() <= expectedInterval);
+  do_check_true(SyncScheduler.syncTimer.delay <= expectedInterval);
 });
 
 add_test(function test_handleSyncError() {
