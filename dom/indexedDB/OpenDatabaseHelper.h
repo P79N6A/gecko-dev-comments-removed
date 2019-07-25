@@ -82,7 +82,6 @@ public:
   }
 
   nsresult NotifySetVersionFinished();
-  void BlockDatabase();
 
 protected:
   

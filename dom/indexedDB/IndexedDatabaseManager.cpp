@@ -694,14 +694,18 @@ IndexedDatabaseManager::OnDatabaseClosed(IDBDatabase* aDatabase)
       
       if (runnable->mHelper && runnable->mDatabases.IsEmpty()) {
         
-        
-        
-        
+        nsRefPtr<AsyncConnectionHelper> helper;
+        helper.swap(runnable->mHelper);
 
-        TransactionThreadPool* pool = TransactionThreadPool::GetOrCreate();
+        if (NS_FAILED(helper->DispatchToTransactionPool())) {
+          NS_WARNING("Failed to dispatch to thread pool!");
+        }
 
-        nsRefPtr<WaitForTransactionsToFinishRunnable> waitRunnable =
-          new WaitForTransactionsToFinishRunnable(runnable);
+        
+        
+        
+        TransactionThreadPool* pool = TransactionThreadPool::Get();
+        NS_ASSERTION(pool, "This should never be null!");
 
         
         
@@ -711,34 +715,13 @@ IndexedDatabaseManager::OnDatabaseClosed(IDBDatabase* aDatabase)
         }
 
         
-        if (!pool->WaitForAllDatabasesToComplete(array, waitRunnable)) {
+        if (!pool->WaitForAllDatabasesToComplete(array, runnable)) {
           NS_WARNING("Failed to wait for transaction to complete!");
         }
       }
       break;
     }
   }
-}
-
-void
-IndexedDatabaseManager::UnblockSetVersionRunnable(IDBDatabase* aDatabase)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(aDatabase, "Null pointer!");
-
-  
-  for (PRUint32 index = 0; index < mSetVersionRunnables.Length(); index++) {
-    nsRefPtr<SetVersionRunnable>& runnable = mSetVersionRunnables[index];
-
-    if (runnable->mRequestingDatabase->Id() == aDatabase->Id()) {
-      NS_ASSERTION(!runnable->mHelper,
-                 "Why are we unblocking a runnable if the helper didn't run?");
-      NS_DispatchToCurrentThread(runnable);
-      return;
-    }
-  }
-
-  NS_NOTREACHED("How did we get here!");
 }
 
 
@@ -1297,42 +1280,6 @@ IndexedDatabaseManager::SetVersionRunnable::Run()
   
   
   mgr->OnSetVersionRunnableComplete(this);
-
-  return NS_OK;
-}
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(IndexedDatabaseManager::WaitForTransactionsToFinishRunnable,
-                              nsIRunnable)
-
-NS_IMETHODIMP
-IndexedDatabaseManager::WaitForTransactionsToFinishRunnable::Run()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-
-  
-  nsRefPtr<AsyncConnectionHelper> helper;
-  helper.swap(mRunnable->mHelper);
-
-  nsRefPtr<SetVersionRunnable> runnable;
-  runnable.swap(mRunnable);
-
-  
-  
-  if (helper->HasTransaction()) {
-    if (NS_FAILED(helper->DispatchToTransactionPool())) {
-      NS_WARNING("Failed to dispatch to thread pool!");
-    }
-  }
-  
-  else {
-    IndexedDatabaseManager* manager = IndexedDatabaseManager::Get();
-    NS_ASSERTION(manager, "We should definitely have a manager here");
-
-    helper->Dispatch(manager->IOThread());
-  }
-
-  
-  
 
   return NS_OK;
 }

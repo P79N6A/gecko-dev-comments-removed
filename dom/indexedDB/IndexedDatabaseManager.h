@@ -204,8 +204,6 @@ private:
   
   inline void OnUsageCheckComplete(AsyncUsageRunnable* aRunnable);
 
-  void UnblockSetVersionRunnable(IDBDatabase* aDatabase);
-
   
   
   
@@ -228,26 +226,6 @@ private:
 
   
   inline void OnSetVersionRunnableComplete(SetVersionRunnable* aRunnable);
-
-
-  
-  
-  class WaitForTransactionsToFinishRunnable : public nsIRunnable
-  {
-  public:
-    WaitForTransactionsToFinishRunnable(SetVersionRunnable* aRunnable)
-    : mRunnable(aRunnable)
-    {
-      NS_ASSERTION(mRunnable, "Why don't we have a runnable?");
-      NS_ASSERTION(mRunnable->mDatabases.IsEmpty(), "We're here too early!");
-    }
-
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIRUNNABLE
-
-  private:
-    nsRefPtr<SetVersionRunnable> mRunnable;
-  };
 
   
   nsClassHashtable<nsCStringHashKey, nsTArray<IDBDatabase*> > mLiveDatabases;
