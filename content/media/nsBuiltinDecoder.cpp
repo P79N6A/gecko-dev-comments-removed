@@ -862,16 +862,7 @@ void nsBuiltinDecoder::PlaybackPositionChanged()
   {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     if (mDecoderStateMachine) {
-      if (!IsSeeking()) {
-        
-        
-        
-        
-        
-        
-        
-        mCurrentTime = mDecoderStateMachine->GetCurrentTime();
-      }
+      mCurrentTime = mDecoderStateMachine->GetCurrentTime();
       mDecoderStateMachine->ClearPositionChangeFlag();
     }
   }
