@@ -45,6 +45,10 @@ MODULE = crashreporter
 LIBXUL_LIBRARY = 1
 LIBRARY_NAME = exception_handler_s
 
+
+DIRS = \
+	$(NULL)
+
 ifeq  ($(OS_ARCH),WINNT)
 DIRS += \
   google-breakpad/src/common/windows \
@@ -106,10 +110,6 @@ CPPSRCS = \
 	$(NULL)
 
 FORCE_STATIC_LIB = 1
-
-EXTRA_JS_MODULES = \
-  CrashSubmit.jsm \
-  $(NULL)
 
 ifdef ENABLE_TESTS
 TOOL_DIRS = test
