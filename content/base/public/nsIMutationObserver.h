@@ -34,10 +34,8 @@
 
 
 
-
-
-#ifndef nsIMutationObserver_h
-#define nsIMutationObserver_h
+#ifndef nsIMutationObserver_h___
+#define nsIMutationObserver_h___
 
 #include "nsISupports.h"
 
@@ -45,12 +43,6 @@ class nsIAtom;
 class nsIContent;
 class nsIDocument;
 class nsINode;
-
-namespace mozilla {
-namespace dom {
-class Element;
-} 
-} 
 
 #define NS_IMUTATION_OBSERVER_IID \
 { 0x85eea794, 0xed8e, 0x4e1b, \
@@ -203,7 +195,7 @@ public:
 
 
   virtual void AttributeChanged(nsIDocument* aDocument,
-                                mozilla::dom::Element* aElement,
+                                nsIContent*  aContent,
                                 PRInt32      aNameSpaceID,
                                 nsIAtom*     aAttribute,
                                 PRInt32      aModType) = 0;
@@ -341,7 +333,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
 
 #define NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED                         \
     virtual void AttributeChanged(nsIDocument* aDocument,                    \
-                                  mozilla::dom::Element* aElement,           \
+                                  nsIContent* aContent,                      \
                                   PRInt32 aNameSpaceID,                      \
                                   nsIAtom* aAttribute,                       \
                                   PRInt32 aModType);
@@ -411,7 +403,7 @@ _class::AttributeWillChange(nsIDocument* aDocument,                       \
 }                                                                         \
 void                                                                      \
 _class::AttributeChanged(nsIDocument* aDocument,                          \
-                         mozilla::dom::Element* aElement,                 \
+                         nsIContent* aContent,                            \
                          PRInt32 aNameSpaceID,                            \
                          nsIAtom* aAttribute,                             \
                          PRInt32 aModType)                                \

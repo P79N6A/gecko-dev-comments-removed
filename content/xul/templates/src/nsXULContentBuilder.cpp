@@ -71,8 +71,6 @@
 #include "pldhash.h"
 #include "rdf.h"
 
-using namespace mozilla::dom;
-
 
 
 
@@ -1559,7 +1557,7 @@ nsXULContentBuilder::GetResultForContent(nsIDOMElement* aElement,
 
 void
 nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
-                                      Element*     aElement,
+                                      nsIContent*  aContent,
                                       PRInt32      aNameSpaceID,
                                       nsIAtom*     aAttribute,
                                       PRInt32      aModType)
@@ -1569,14 +1567,14 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
     
     
     
-    if (aElement->GetNameSpaceID() == kNameSpaceID_XUL &&
-        aAttribute == nsGkAtoms::open) {
+    if ((aContent->GetNameSpaceID() == kNameSpaceID_XUL) &&
+        (aAttribute == nsGkAtoms::open)) {
         
-        if (aElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
+        if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::open,
                                   nsGkAtoms::_true, eCaseMatters))
-            OpenContainer(aElement);
+            OpenContainer(aContent);
         else
-            CloseContainer(aElement);
+            CloseContainer(aContent);
     }
 
     if ((aNameSpaceID == kNameSpaceID_XUL) &&
@@ -1587,7 +1585,7 @@ nsXULContentBuilder::AttributeChanged(nsIDocument* aDocument,
         mSortState.initialized = PR_FALSE;
 
     
-    nsXULTemplateBuilder::AttributeChanged(aDocument, aElement, aNameSpaceID,
+    nsXULTemplateBuilder::AttributeChanged(aDocument, aContent, aNameSpaceID,
                                            aAttribute, aModType);
 }
 

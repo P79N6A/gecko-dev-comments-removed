@@ -605,22 +605,23 @@ nsContentList::GetNamedItem(const nsAString& aName, nsWrapperCache **aCache,
 }
 
 void
-nsContentList::AttributeChanged(nsIDocument *aDocument, Element* aElement,
+nsContentList::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
                                 PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                 PRInt32 aModType)
 {
-  NS_PRECONDITION(aElement, "Must have a content node to work with");
+  NS_PRECONDITION(aContent, "Must have a content node to work with");
+  NS_PRECONDITION(aContent->IsElement(), "Should be an element");
   
   if (!mFunc || !mFuncMayDependOnAttr || mState == LIST_DIRTY ||
-      !MayContainRelevantNodes(aElement->GetNodeParent()) ||
-      !nsContentUtils::IsInSameAnonymousTree(mRootNode, aElement)) {
+      !MayContainRelevantNodes(aContent->GetNodeParent()) ||
+      !nsContentUtils::IsInSameAnonymousTree(mRootNode, aContent)) {
     
     
     return;
   }
   
-  if (Match(aElement)) {
-    if (mElements.IndexOf(aElement) == -1) {
+  if (Match(aContent->AsElement())) {
+    if (mElements.IndexOf(aContent) == -1) {
       
       
       
@@ -631,12 +632,12 @@ nsContentList::AttributeChanged(nsIDocument *aDocument, Element* aElement,
     
     
     
-    mElements.RemoveObject(aElement);
+    mElements.RemoveObject(aContent);
   }
 }
 
 void
-nsContentList::ContentAppended(nsIDocument* aDocument, nsIContent* aContainer,
+nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
                                nsIContent* aFirstNewContent,
                                PRInt32 aNewIndexInContainer)
 {

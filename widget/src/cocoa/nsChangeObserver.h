@@ -61,7 +61,6 @@ void ObserveContentInserted(nsIDocument *aDocument, nsIContent *aChild, PRInt32 
 class nsChangeObserver
 {
 public:
-  
   virtual void ObserveAttributeChanged(nsIDocument* aDocument,
                                        nsIContent* aContent,
                                        nsIAtom* aAttribute)=0;

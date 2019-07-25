@@ -108,8 +108,6 @@
 #include "nsXULTemplateQueryProcessorXML.h"
 #include "nsXULTemplateQueryProcessorStorage.h"
 
-using namespace mozilla::dom;
-
 
 
 static NS_DEFINE_CID(kRDFContainerUtilsCID,      NS_RDFCONTAINERUTILS_CID);
@@ -1117,12 +1115,12 @@ nsXULTemplateBuilder::Observe(nsISupports* aSubject,
 
 void
 nsXULTemplateBuilder::AttributeChanged(nsIDocument* aDocument,
-                                       Element*     aElement,
+                                       nsIContent*  aContent,
                                        PRInt32      aNameSpaceID,
                                        nsIAtom*     aAttribute,
                                        PRInt32      aModType)
 {
-    if (aElement == mRoot && aNameSpaceID == kNameSpaceID_None) {
+    if (aContent == mRoot && aNameSpaceID == kNameSpaceID_None) {
         
         
         
