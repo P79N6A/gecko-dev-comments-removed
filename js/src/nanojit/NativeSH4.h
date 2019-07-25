@@ -134,7 +134,7 @@ namespace nanojit
     typedef uint16_t NIns;
 
     
-    const int32_t LARGEST_UNDERRUN_PROT = 32 * sizeof(NIns);
+    const int32_t LARGEST_UNDERRUN_PROT = 50 * sizeof(int);
 
     
     const size_t LARGEST_BRANCH_PATCH = 3 * sizeof(NIns) + sizeof(uint32_t);
@@ -152,6 +152,20 @@ namespace nanojit
 #define SH4_IMMD_NOCHK_SIZE (9 * sizeof(NIns) + 2 * sizeof(uint32_t))
 
     
+#define SH4_IMMI_NOCHK_SIZE (6 * sizeof(NIns))
+
+    
+#define STATIC_FP 64
+
+    
+#define MAX_NB_SLOTS 20
+
+    struct pool {
+        int nb_slots;
+        int *slots;
+    };
+
+    
 
 
 
@@ -164,6 +178,7 @@ namespace nanojit
     const static Register argRegs[4], retRegs[2];                       \
     const static Register argDregs[4], retDregs[1];                     \
     int max_stack_args;                                                 \
+    static struct pool current_pool;                                    \
                                                                         \
     void nativePageReset();                                             \
     void nativePageSetup();                                             \
@@ -171,7 +186,10 @@ namespace nanojit
     bool hardenNopInsertion(const Config& /*c*/) { return false; }      \
     bool simplifyOpcode(LOpcode &);                                     \
                                                                         \
-    NIns *asm_immi(int, Register, bool force = false);                  \
+    bool asm_generate_pool(int reserved_bytes, int nb_slots = MAX_NB_SLOTS); \
+    bool asm_load_constant(int, Register);                              \
+    void asm_immi(int, Register, bool force = false);                   \
+    void asm_immi_nochk(int, Register, bool force = false);             \
     void asm_immd(uint64_t, Register);                                  \
     void asm_immd_nochk(uint64_t, Register);                            \
     void asm_arg_regi(LIns*, Register);                                 \

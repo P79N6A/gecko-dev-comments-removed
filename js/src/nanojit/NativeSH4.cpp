@@ -59,24 +59,28 @@ namespace nanojit
         "d4",  "d4~",  "d5",  "d5~",  "d6",  "d6~",  "d7", "d7~"
     };
 
+    struct pool Assembler::current_pool;
+
     inline void Assembler::SH4_emit16(uint16_t value) {
-        NanoAssert(_nIns - codeStart >= 2);
         _nIns--;
+        NanoAssert((uintptr_t)_nIns >= (uintptr_t)codeStart);
         *((uint16_t*)_nIns) = value;
     }
 
     inline void Assembler::SH4_emit32(uint32_t value) {
-        NanoAssert(_nIns - codeStart >= 4);
         _nIns -= 2;
+        NanoAssert((uintptr_t)_nIns >= (uintptr_t)codeStart);
         *((uint32_t *)(void *)_nIns) = value;
     }
 
 #include "NativeSH4-auto-generated.h"
 
 #define SH4_movl_PCrel(address, reg)                                    \
-    SH4_movl_dispPC(((uint32_t)(address) - (((uint32_t)_nIns) & ~0x3)), reg)
+    SH4_movl_dispPC(((uint32_t)(address) - (((uint32_t)(_nIns + 1)) & ~0x3)), reg)
 
 #define SH4_LABEL(target) (int32_t)((uint32_t)(target) - (uint32_t)(_nIns) - 2)
+
+#define FP_RELATIVE(offset) (STATIC_FP + (offset))
 
     void Assembler::nativePageReset() { }
 
@@ -84,6 +88,8 @@ namespace nanojit
         NanoAssert(!_inExit);
         if (!_nIns)
             codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
+        current_pool.nb_slots = 0;
+        current_pool.slots = NULL;
     }
 
     void Assembler::MR(Register dest, Register src) {
@@ -92,48 +98,68 @@ namespace nanojit
     }
 
     void Assembler::JMP(NIns *target, bool from_underrunProtect) {
-        underrunProtect(2 * sizeof(NIns));
+        
+        
+        asm_generate_pool(0);
+
+        underrunProtect(7 * sizeof(NIns));
+
         if (target != NULL && FITS_SH4_bra(SH4_LABEL(target + 1 * sizeof(NIns)))) {
             
             SH4_nop();
             SH4_bra(SH4_LABEL(target));
         }
-        else if (from_underrunProtect) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-            SH4_movl_incRy(SP, Rtemp);
-            SH4_jmp_indRx(Rtemp);
-
-            asm_immi((int)target, Rtemp, (target == NULL));
-
-            SH4_movl_decRx(Rtemp, SP);
-        }
         else {
             
-            SH4_nop();
+            
+            
+
+            NIns *target_addr;
+
+            
+            if (((uint32_t)_nIns & 0x3) != 0)
+                SH4_nop();
+
+            
+            SH4_emit32((uint32_t)target);
+            target_addr = _nIns;
+
+            
+            
+            if (from_underrunProtect)
+                SH4_movl_incRy(SP, Rtemp);
+            else
+                SH4_nop();
+                
+            
             SH4_jmp_indRx(Rtemp);
-            asm_immi((int)target, Rtemp, (target == NULL));
+
+            
+            SH4_movl_PCrel(target_addr, Rtemp);
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            if (from_underrunProtect)
+                SH4_movl_decRx(Rtemp, SP);
         }
     }
 
@@ -255,6 +281,7 @@ namespace nanojit
                 if (arg->isop(LIR_allocp)) {
                     
                     underrunProtect(1 * sizeof(NIns));
+                    offset = FP_RELATIVE(offset);
                     SH4_add(FP, reg);      
                     asm_immi(offset, reg); 
                 }
@@ -314,6 +341,7 @@ namespace nanojit
             if (arg->isop(LIR_allocp)) {
                 
                 underrunProtect(1 * sizeof(NIns));
+                offset = FP_RELATIVE(offset);
                 SH4_add(FP, reg);      
                 asm_immi(offset, reg); 
             }
@@ -477,6 +505,23 @@ namespace nanojit
         
         
         NIns *after_mov_false = _nIns;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        asm_generate_pool(4 * sizeof(sizeof(NIns)), 50);
 
         SH4_nop();
         SH4_bra(SH4_LABEL(after_mov_true));
@@ -642,6 +687,9 @@ namespace nanojit
     void Assembler::asm_base_offset(int offset, Register base_reg) {
         underrunProtect(2 * sizeof(NIns));
 
+        if (base_reg == FP)
+            offset = FP_RELATIVE(offset);
+
         if (offset != 0) {
             if (FITS_SH4_add_imm(offset)) {
                 SH4_add_imm(offset, Rtemp);
@@ -689,6 +737,9 @@ namespace nanojit
         
         NanoAssert(result_reg != Rtemp);
 
+        if (base_reg == FP)
+            offset = FP_RELATIVE(offset);
+
         if (offset == 0) {
             
             underrunProtect(1 * sizeof(NIns));
@@ -701,11 +752,9 @@ namespace nanojit
         }
         else {
             
-            if (false 
+            if ( result_reg == R0
                 && base_reg != R0) {
-                NanoAssertMsg(0, "not yet tested.");
                 
-
                 underrunProtect(1 * sizeof(NIns));
                 SH4_movl_dispR0Ry(base_reg, result_reg); 
                 asm_immi(offset, R0);                    
@@ -728,6 +777,9 @@ namespace nanojit
             SH4_extu ## length(result_reg, result_reg);                 \
         }                                                               \
                                                                         \
+        if (base_reg == FP)                                             \
+            offset = FP_RELATIVE(offset);                               \
+                                                                        \
         if (offset == 0) {                                              \
             /* No displacement. */                                      \
             SH4_mov ## length ## _indRy(base_reg, result_reg);          \
@@ -737,14 +789,12 @@ namespace nanojit
             /* special #size bits load "@(base + offset) -> R0". */     \
             if (result_reg == R0) {                                     \
                 /* We are lucky, the result is R0. */                   \
-                NanoAssertMsg(0, "not yet tested.");                    \
                 SH4_mov ## length ## _dispRy_R0(offset, base_reg); /* @(base + offset) -> R0 */ \
             }                                                           \
             else {                                                      \
                 /* We have to save and restore R0. */                   \
-                NanoAssertMsg(0, "not yet tested.");                    \
                 SH4_mov(Rtemp, R0);                                /* 4. Rtemp -> R0            */ \
-                SH4_mov(Rtemp, result_reg);                        /* 3. R0 -> result           */ \
+                SH4_mov(R0, result_reg);                           /* 3. R0 -> result           */ \
                 SH4_mov ## length ## _dispRy_R0(offset, base_reg); /* 2. @(base + offset) -> R0 */ \
                 SH4_mov(R0, Rtemp);                                /* 1. R0 -> Rtemp            */ \
             }                                                           \
@@ -864,7 +914,7 @@ namespace nanojit
             NIns *over_constant = NULL;
 
             
-            NanoAssert(_nIns - SH4_IMMD_NOCHK_SIZE >= codeStart);
+            NanoAssert((uintptr_t)_nIns - SH4_IMMD_NOCHK_SIZE >= (uintptr_t)codeStart);
             NanoAssert(result_reg != Rtemp);
 
             
@@ -897,49 +947,9 @@ namespace nanojit
             SH4_movl_decRx(R0, SP);
     }
 
-#define SIGNIFICAND_MASK 0x000FFFFFFFFFFFFFLLU
-#define EXPONENT_MASK    0x7FF0000000000000LLU
-#define SIGN_MASK        0x8000000000000000LLU
-#define SIGNIFICAND_OFFSET 0
-#define EXPONENT_OFFSET    52
-#define SIGN_OFFSET        63
-
     void Assembler::asm_immd(uint64_t value, Register result_reg) {
-        int exponent = ((value & EXPONENT_MASK ) >> EXPONENT_OFFSET) - 1023;
-        int sign     = (value & SIGN_MASK)       >> SIGN_OFFSET;
-
-        NanoAssert(result_reg != Rtemp);
-
-        if ((value & SIGNIFICAND_MASK) == 0
-            && exponent == -1023) {
-            
-            underrunProtect(4 * sizeof(NIns));
-
-            if (sign != 0)
-                SH4_fneg_double(result_reg);   
-
-            SH4_float_FPUL_double(result_reg); 
-            SH4_lds_FPUL(Rtemp);               
-            SH4_mov_imm(0, Rtemp);             
-        }
-        else if ((value & SIGNIFICAND_MASK) == 0
-                 && exponent >= 0
-                 && exponent < 31) {
-            
-            
-
-            int immI = (1 << exponent) * (sign ? -1 : 1);
-
-            underrunProtect(3 * sizeof(NIns));
-            SH4_float_FPUL_double(result_reg); 
-            SH4_lds_FPUL(Rtemp);               
-            asm_immi(immI, Rtemp);             
-        }
-        else {
-            
-            underrunProtect(SH4_IMMD_NOCHK_SIZE);
-            asm_immd_nochk(value, result_reg);
-        }
+        underrunProtect(SH4_IMMD_NOCHK_SIZE);
+        asm_immd_nochk(value, result_reg);
     }
 
     void Assembler::asm_immd(LIns *inst) {
@@ -954,7 +964,8 @@ namespace nanojit
 
     void Assembler::asm_restore(LIns *inst, Register reg) {
         if (inst->isop(LIR_allocp)) {
-            int offset = arDisp(inst);
+            int offset = FP_RELATIVE(arDisp(inst));
+
             underrunProtect(2 * sizeof(NIns));
             if (FITS_SH4_add_imm(offset)){
                 SH4_add_imm(offset, reg); 
@@ -980,7 +991,11 @@ namespace nanojit
     }
 
     NIns* Assembler::genEpilogue() {
-        underrunProtect(5 * sizeof(NIns));
+        
+        
+        asm_generate_pool(0);
+
+        underrunProtect(6 * sizeof(NIns));
 
         
         SH4_nop();
@@ -993,6 +1008,7 @@ namespace nanojit
         SH4_ldsl_incRx_PR(SP);
 
         
+        SH4_add_imm(STATIC_FP, SP);
         SH4_mov(FP, SP);
 
         return _nIns;
@@ -1025,22 +1041,45 @@ namespace nanojit
         }
     }
 
-    NIns *Assembler::asm_immi(int constant, Register reg, bool force) {
-        NIns *constant_addr = NULL;
+#define MIN_IMM -128
+#define MAX_IMM 127
 
-        if (FITS_SH4_mov_imm(constant) && !force) {
-            
-            underrunProtect(1 * sizeof(NIns));
-            SH4_mov_imm(constant, reg);
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
+
+    
+    void Assembler::asm_immi_nochk(int constant, Register reg, bool force) {
+        
+        
+        if (!force
+            && constant >= 2 * MIN_IMM
+            && constant <= 2 * MAX_IMM) {
+            int tmp;
+
+            while (constant < MIN_IMM || constant > MAX_IMM) {
+                if (constant < 0)
+                    tmp = MAX(constant, MIN_IMM);
+                else
+                    tmp = MIN(constant, MAX_IMM);
+
+                SH4_add_imm(tmp, reg);  
+                constant -= tmp;
+            }
+            SH4_mov_imm(constant, reg); 
         }
-        else if (false && !force) {
-            
-            NanoAssertMsg(0, "not yet tested.");
-        }
+        
         else {
-            
-            underrunProtect(6 * sizeof(NIns));
             NIns *over_constant = _nIns;
+            NIns *constant_addr = NULL;
+
+            
+            if (!force && asm_load_constant(constant, reg))
+                return;
 
             
             if (((uint32_t)_nIns & 0x3) != 0)
@@ -1057,13 +1096,22 @@ namespace nanojit
             
             SH4_movl_PCrel(constant_addr, reg);
         }
+    }
 
-        return constant_addr;
+#undef MIN_IMM
+#undef MAX_IMM
+
+    void Assembler::asm_immi(int constant, Register reg, bool force) {
+        underrunProtect(SH4_IMMI_NOCHK_SIZE);
+        asm_immi_nochk(constant, reg, force);
     }
 
     void Assembler::asm_store32i(Register value_reg, int offset, Register base_reg) {
         
         NanoAssert(value_reg != Rtemp && base_reg != Rtemp);
+
+        if (base_reg == FP)
+            offset = FP_RELATIVE(offset);
 
         if (offset == 0) {
             
@@ -1077,27 +1125,18 @@ namespace nanojit
         }
         else {
             
-            if (false 
-                && base_reg != R0) {
-                NanoAssertMsg(0, "not yet tested.");
-                
-
-                underrunProtect(1 * sizeof(NIns));
-                SH4_movl_dispR0Rx(value_reg, base_reg); 
-                asm_immi(offset, R0);                   
-            }
-            else {
-                
-                underrunProtect(2 * sizeof(NIns));
-                SH4_movl_indRx(value_reg, Rtemp); 
-                SH4_add(base_reg, Rtemp);         
-                asm_immi(offset, Rtemp);          
-            }
+            underrunProtect(2 * sizeof(NIns));
+            SH4_movl_indRx(value_reg, Rtemp); 
+            SH4_add(base_reg, Rtemp);         
+            asm_immi(offset, Rtemp);          
         }
     }
 
 #define gen_asm_storeXXi(size, length)                                  \
     void Assembler::asm_store ## size ## i(Register value_reg, int offset, Register base_reg) { \
+        if (base_reg == FP)                                             \
+            offset = FP_RELATIVE(offset);                               \
+                                                                        \
         if (offset == 0) {                                              \
             /* No displacement. */                                      \
             underrunProtect(1 * sizeof(NIns));                          \
@@ -1108,14 +1147,10 @@ namespace nanojit
             /* special #size bits store "R0 -> @(base + offset)". */    \
             if (value_reg == R0) {                                      \
                 /* We are lucky, the value is R0. */                    \
-                NanoAssertMsg(0, "not yet tested.");                    \
-                                                                        \
                 underrunProtect(1 * sizeof(NIns));                      \
                 SH4_mov ## length ## _R0_dispRx(offset, base_reg); /* R0 -> @(base + offset) */ \
             } else {                                                    \
                 /* We have to save and restore R0. */                   \
-                NanoAssertMsg(0, "not yet tested.");                    \
-                                                                        \
                 underrunProtect(4 * sizeof(NIns));                      \
                 SH4_mov(Rtemp, R0);                                /* 4. Rtemp -> R0            */ \
                 SH4_mov ## length ## _R0_dispRx(offset, base_reg); /* 3. R0 -> @(base + offset) */ \
@@ -1345,8 +1380,9 @@ namespace nanojit
 
     NIns *Assembler::asm_branch(bool test, NIns *target) {
         NIns *patch_target = NULL;
+        NIns *over_pool = NULL;
 
-        underrunProtect(3 * sizeof(NIns));
+        underrunProtect(3 * sizeof(NIns) + SH4_IMMI_NOCHK_SIZE);
 
         
         if (target != NULL && FITS_SH4_bt(SH4_LABEL(target))) {
@@ -1359,32 +1395,56 @@ namespace nanojit
 
             return NULL;
         }
-        else if (false && target != NULL &&  FITS_SH4_bra(SH4_LABEL(target))) {
+
+        over_pool = _nIns;
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        asm_generate_pool(3 * sizeof(NIns) + SH4_IMMI_NOCHK_SIZE, 50);
+
+        
+        
+        if (target != NULL &&  FITS_SH4_bra(SH4_LABEL(target + 1 * sizeof(NIns)))) {
             
+            SH4_nop();
+            SH4_bra(SH4_LABEL(target));
+
             
-            NanoAssert(0); 
+            if (test == true)
+                SH4_bf(SH4_LABEL(over_pool));
+            else
+                SH4_bt(SH4_LABEL(over_pool));
+
             return NULL;
         }
 
         
 
-        NIns *over_jump = _nIns;
         
         SH4_nop();
         SH4_jmp_indRx(Rtemp);
 
         
-        
+        asm_immi_nochk((int)target, Rtemp, true);
+        patch_target = _nIns;
 
         
         if (test == true)
-            SH4_bf(SH4_LABEL(over_jump));
+            SH4_bf(SH4_LABEL(over_pool));
         else
-            SH4_bt(SH4_LABEL(over_jump));
-
-        
-        asm_immi((int)target, Rtemp, true);
-        patch_target = _nIns;
+            SH4_bt(SH4_LABEL(over_pool));
 
         return patch_target;
     }
@@ -1418,6 +1478,10 @@ namespace nanojit
             
             if (!_epilogue)
                 _epilogue = genEpilogue();
+
+            
+            
+            asm_generate_pool(0);
 
             underrunProtect(2 * sizeof(NIns));
 
@@ -1459,28 +1523,20 @@ namespace nanojit
         nHints[LIR_calli]  = rmask(retRegs[0]);
         nHints[LIR_calld]  = rmask(retDregs[0]);
         nHints[LIR_paramp] = PREFER_SPECIAL;
+        nHints[LIR_sti2s]   = rmask(R0);
+        nHints[LIR_sti2c]   = rmask(R0);
+        nHints[LIR_lduc2ui] = rmask(R0);
+        nHints[LIR_ldc2i]   = rmask(R0);
+        nHints[LIR_ldus2ui] = rmask(R0);
+        nHints[LIR_lds2i]   = rmask(R0);
+        nHints[LIR_ldi]     = rmask(R0);
+
+        current_pool.nb_slots = 0;
+        current_pool.slots = NULL;
     }
 
     
     void Assembler::nPatchBranch(NIns *branch, NIns *target) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         
         branch += 3;
 
@@ -1509,27 +1565,31 @@ namespace nanojit
 
     
     NIns* Assembler::genPrologue() {
-        int frame_size = max_stack_args + _activation.stackSlotsNeeded() * STACK_GRANULARITY;
-        frame_size = -alignUp(frame_size, NJ_ALIGN_STACK);
+        int adjusted_stack_size = max_stack_args + _activation.stackSlotsNeeded() * STACK_GRANULARITY - STATIC_FP;
+        adjusted_stack_size = alignUp(adjusted_stack_size, NJ_ALIGN_STACK);
+
+        underrunProtect(SH4_IMMI_NOCHK_SIZE + 5 * sizeof(NIns));
 
         
-        if (frame_size != 0) {
-            underrunProtect(1 * sizeof(NIns));
-            if (FITS_SH4_add_imm(frame_size))
-                SH4_add_imm(frame_size, SP);
+        if (adjusted_stack_size != 0) {
+            adjusted_stack_size = -adjusted_stack_size;
+
+            if (FITS_SH4_add_imm(adjusted_stack_size))
+                SH4_add_imm(adjusted_stack_size, SP);
             else {
                 
                 
                 SH4_add(R0, SP);
-                asm_immi(frame_size, R0);
+                asm_immi_nochk(adjusted_stack_size, R0);
             }
         }
 
-        underrunProtect(3 * sizeof(NIns));
-        NIns *patchEntry = _nIns;
-
+        
         
         SH4_mov(SP, FP);
+        SH4_add_imm(-STATIC_FP, SP);
+
+        NIns *patchEntry = _nIns;
 
         
         SH4_stsl_PR_decRx(SP);
@@ -1565,13 +1625,13 @@ namespace nanojit
     void Assembler::underrunProtect(int nb_bytes) {
         NanoAssertMsg(nb_bytes <= LARGEST_UNDERRUN_PROT, "constant LARGEST_UNDERRUN_PROT is too small");
 
-        NIns *pc = _nIns;
-        if (_nIns - nb_bytes < codeStart) {
+        if ((uintptr_t)_nIns - nb_bytes < (uintptr_t)codeStart) {
+            NIns* target = _nIns;
             codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
 
             
             
-            JMP(pc, true);
+            JMP(target, true);
         }
     }
 
@@ -1579,5 +1639,176 @@ namespace nanojit
         NanoAssert(0); 
     }
 
+#define MOVL_PCREL_RANGE 1020
+
+    
+    
+    
+    
+    bool Assembler::asm_generate_pool(int reserved_bytes, int nb_slots) {
+        const int instructions_per_constant = 10;
+        int i;
+
+        nb_slots = MIN(MAX_NB_SLOTS, nb_slots);
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        int scalar_mn = 0;
+        int scalar_xy = 0;
+        uintptr_t instruction_x = (uintptr_t)_nIns & ~0x3;
+        uintptr_t instruction_y = instruction_x;
+        uintptr_t code_start    = (uintptr_t)codeStart + reserved_bytes;
+        uintptr_t code_end      = (uintptr_t)codeEnd;
+
+        
+        if (   (uintptr_t)current_pool.slots < code_start
+            || (uintptr_t)current_pool.slots > code_end)
+            current_pool.nb_slots = 0;
+
+        
+        for (i = 0; i < current_pool.nb_slots; i++) {
+            if (current_pool.slots[i] == 0) {
+                scalar_mn = current_pool.nb_slots - i;
+                instruction_y = (uintptr_t)&current_pool.slots[i] - MOVL_PCREL_RANGE;
+                break;
+            }
+        }
+
+        
+        if (   instruction_y < code_start
+            || instruction_y > code_end)
+            instruction_y = code_start - 1 * sizeof(NIns);
+
+        
+        scalar_xy = (ptrdiff_t)(instruction_x - instruction_y) / (int)sizeof(NIns);
+        scalar_xy--;
+
+        if (scalar_xy > 0 && scalar_xy <= scalar_mn * instructions_per_constant) {
+            verbose_only(verbose_outputf("pool not emitted: 0 < scalar_xy [%d] <= %d * scalar_mn [%d]",
+                                         (int)scalar_xy, instructions_per_constant, scalar_mn));
+            return false;
+        }
+
+        
+        
+        while (instruction_x - nb_slots * (sizeof(int) + instructions_per_constant * sizeof(NIns)) < code_start)
+            nb_slots--;
+
+        if (nb_slots <= 2) {
+            verbose_only(verbose_outputf("pool not emitted: not enough space in the current code buffer."));
+            return false;
+        }
+
+        
+        current_pool.slots    = (int *)(instruction_x - nb_slots * sizeof(int));
+        current_pool.nb_slots = nb_slots;
+        memset(current_pool.slots, 0, nb_slots * sizeof(int));
+
+        _nIns = (NIns *)current_pool.slots;
+
+        verbose_only(verbose_outputf("pool emitted: 0 >= scalar_xy [%d] > %d * scalar_mn [%d]; address = %p, size = %d",
+                                     (int)scalar_xy, instructions_per_constant, scalar_mn, current_pool.slots, current_pool.nb_slots));
+        return true;
+    }
+
+    bool Assembler::asm_load_constant(int constant, Register reg) {
+        bool has_generated_pool = false;
+        int *slot;
+        NIns *over_pool;
+
+        
+        if (current_pool.slots == NULL) {
+            over_pool = _nIns;
+
+            
+            
+            
+            has_generated_pool = asm_generate_pool(2 * sizeof(NIns));
+            if (!has_generated_pool)
+                return false;
+
+            
+            
+            SH4_nop();
+            SH4_bra(SH4_LABEL(over_pool));
+        }
+
+    try_again:
+
+        
+        uintptr_t farther_slot = MIN((((uintptr_t) _nIns) & ~0x3) + MOVL_PCREL_RANGE,
+                                     (uintptr_t) &current_pool.slots[current_pool.nb_slots - 1]);
+
+        verbose_only(verbose_outputf("pool load: _nIns = %p, constant = %d, farther_slot = 0x%x", _nIns, constant, farther_slot));
+
+        
+        for (slot = (int *)farther_slot; slot >= current_pool.slots; slot--) {
+            
+            if (*slot == constant) {
+                verbose_only(verbose_outputf("pool load: found same constant in slot @ %p", slot));
+                SH4_movl_PCrel(slot, reg);
+                return true;
+            }
+            
+            if (*slot == 0) {
+                verbose_only(verbose_outputf("pool load: found a free slot @ %p", slot));
+                *slot = constant;
+                SH4_movl_PCrel(slot, reg);
+                return true;
+            }
+        }
+
+        NanoAssert(!has_generated_pool);
+
+        over_pool = _nIns;
+
+        
+        
+        
+        has_generated_pool = asm_generate_pool(1 * sizeof(NIns));
+        if (!has_generated_pool) {
+            verbose_only(verbose_outputf("pool load: no slot found", slot));
+            return false;
+        }
+        else {
+            SH4_nop();
+            SH4_bra(SH4_LABEL(over_pool));
+            goto try_again;
+        }
+    }
 }
+
 #endif 
