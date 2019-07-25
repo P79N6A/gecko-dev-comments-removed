@@ -455,11 +455,6 @@ protected:
   
 
 
-  bool PlaceholderApplies() const { return IsSingleLineTextControlInternal(PR_FALSE, mType); }
-
-  
-
-
   nsresult SetDefaultValueAsValue();
 
   nsCOMPtr<nsIControllers> mControllers;
