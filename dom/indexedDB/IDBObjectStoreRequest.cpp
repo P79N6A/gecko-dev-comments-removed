@@ -433,6 +433,49 @@ IDBObjectStoreRequest::GetJSONFromArg0(
   return NS_OK;
 }
 
+
+nsresult
+IDBObjectStoreRequest::GetKeyPathValueFromJSON(const nsAString& aJSON,
+                                               const nsAString& aKeyPath,
+                                               JSContext** aCx,
+                                               nsAString& aValue)
+{
+  NS_ASSERTION(!aJSON.IsEmpty(), "Empty JSON!");
+  NS_ASSERTION(!aKeyPath.IsEmpty(), "Empty keyPath!");
+  NS_ASSERTION(aCx, "Null pointer!");
+
+  nsresult rv;
+
+  if (!*aCx) {
+    rv = nsContentUtils::ThreadJSContextStack()->GetSafeJSContext(aCx);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  JSAutoRequest ar(*aCx);
+
+  js::AutoValueRooter clone(*aCx);
+
+  nsCOMPtr<nsIJSON> json(new nsJSON());
+  rv = json->DecodeToJSVal(aJSON, *aCx, clone.addr());
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  JSObject* obj = JSVAL_TO_OBJECT(clone.value());
+
+  const jschar* keyPathChars =
+    reinterpret_cast<const jschar*>(aKeyPath.BeginReading());
+  const size_t keyPathLen = aKeyPath.Length();
+
+  js::AutoValueRooter value(*aCx);
+  JSBool ok = JS_GetUCProperty(*aCx, obj, keyPathChars, keyPathLen,
+                               value.addr());
+  NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
+
+  rv = json->EncodeFromJSVal(value.addr(), *aCx, aValue);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
 ObjectStoreInfo*
 IDBObjectStoreRequest::GetObjectStoreInfo()
 {
@@ -1544,77 +1587,88 @@ CreateIndexHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   
   (void)aConnection->GetLastInsertRowID(&mId);
 
-  return OK;
-}
+  
 
-PRUint16
-CreateIndexHelper::GetSuccessResult(nsIWritableVariant* aResult)
-{
-  NS_PRECONDITION(NS_IsMainThread(), "Wrong thread!");
 
-  ObjectStoreInfo* info = mObjectStore->GetObjectStoreInfo();
-  if (!info) {
-    NS_ERROR("Couldn't get info!");
-    return nsIIDBDatabaseException::UNKNOWN_ERR;
-  }
 
-#ifdef DEBUG
-  {
-    bool found = false;
-    PRUint32 indexCount = info->indexes.Length();
-    for (PRUint32 index = 0; index < indexCount; index++) {
-      if (info->indexes[index].name == mName) {
-        found = true;
-        break;
-      }
-    }
-    NS_ASSERTION(!found, "Alreayd have this index!");
-  }
-#endif
 
-  IndexInfo* newInfo = info->indexes.AppendElement();
-  if (!newInfo) {
-    NS_ERROR("Couldn't add index name!  Out of memory?");
-    return nsIIDBDatabaseException::UNKNOWN_ERR;
-  }
 
-  newInfo->name = mName;
-  newInfo->keyPath = mKeyPath;
-  newInfo->unique = mUnique;
-  newInfo->autoIncrement = mAutoIncrement;
 
-  nsCOMPtr<nsIIDBIndexRequest> result;
-  nsresult rv = mObjectStore->Index(mName, getter_AddRefs(result));
-  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
-  aResult->SetAsISupports(result);
-  return OK;
-}
 
-PRUint16
-RemoveIndexHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
-{
-  NS_PRECONDITION(!NS_IsMainThread(), "Wrong thread!");
 
-  nsCOMPtr<mozIStorageStatement> stmt;
-  nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
-    "DELETE FROM object_store_index "
-    "WHERE name = :name "
-  ), getter_AddRefs(stmt));
-  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
-  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("name"), mName);
-  NS_ENSURE_SUCCESS(rv, nsIIDBDatabaseException::UNKNOWN_ERR);
 
-  if (NS_FAILED(stmt->Execute())) {
-    return nsIIDBDatabaseException::NOT_FOUND_ERR;
-  }
 
-  return OK;
-}
 
-PRUint16
-RemoveIndexHelper::GetSuccessResult(nsIWritableVariant* )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+)
 {
   NS_PRECONDITION(NS_IsMainThread(), "Wrong thread!");
 
