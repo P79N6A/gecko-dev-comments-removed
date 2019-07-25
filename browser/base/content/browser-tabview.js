@@ -48,6 +48,7 @@ let TabView = {
   PREF_STARTUP_PAGE: "browser.startup.page",
   PREF_RESTORE_ENABLED_ONCE: "browser.panorama.session_restore_enabled_once",
   VISIBILITY_IDENTIFIER: "tabview-visibility",
+  GROUPS_IDENTIFIER: "tabview-groups",
 
   
   get windowTitle() {
@@ -95,13 +96,20 @@ let TabView = {
       
       let sessionstore =
         Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-      let data = sessionstore.getWindowValue(window, this.VISIBILITY_IDENTIFIER);
 
+      let data = sessionstore.getWindowValue(window, this.VISIBILITY_IDENTIFIER);
       if (data && data == "true") {
         this.show();
       } else {
-        let self = this;
+        try {
+          data = sessionstore.getWindowValue(window, this.GROUPS_IDENTIFIER);
+          if (data) {
+            let parsedData = JSON.parse(data);
+            this.updateGroupNumberBroadcaster(parsedData.totalNumber || 0);
+          }
+        } catch (e) { }
 
+        let self = this;
         
         
         this._tabShowEventListener = function (event) {
@@ -378,6 +386,14 @@ let TabView = {
     toolbar.currentSet = currentSet;
     toolbar.setAttribute("currentset", currentSet);
     document.persist(toolbar.id, "currentset");
+  },
+
+  
+  
+  
+  updateGroupNumberBroadcaster: function TabView_updateGroupNumberBroadcaster(number) {
+    let groupsNumber = document.getElementById("tabviewGroupsNumber");
+    groupsNumber.setAttribute("groups", number);
   },
 
   
