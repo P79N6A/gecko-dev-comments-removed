@@ -196,6 +196,9 @@ protected:
   mozilla::TimeStamp         mCurrentSampleTime;
   mozilla::TimeStamp         mStartTime;
   PRPackedBool               mResampleNeeded;
+  
+  
+  
   PRPackedBool               mDeferredStartSampling;
 #ifdef DEBUG
   PRPackedBool               mRunningSample;
