@@ -208,6 +208,8 @@ class ValueOperand
     }
 };
 
+static const ValueOperand JSReturnOperand = ValueOperand(JSReturnReg);
+
 class Assembler : public AssemblerX86Shared
 {
     

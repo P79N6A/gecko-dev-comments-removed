@@ -170,7 +170,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
     masm.pop(r12); 
-    masm.movq(JSReturnReg, Operand(r12, 0));
+    masm.storeValue(JSReturnOperand, Operand(r12, 0));
 
     GenerateReturn(masm, JS_TRUE);
 
@@ -333,8 +333,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
 
     
-    masm.movq(Operand(rsp, 0), JSReturnReg);
-    masm.addq(Imm32(8), rsp);
+    masm.popValue(JSReturnOperand);
 
     
     masm.testl(rax, rax);
