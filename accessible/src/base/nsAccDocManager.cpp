@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsAccDocManager.h"
 
 #include "nsAccessibilityService.h"
@@ -521,25 +522,25 @@ nsAccDocManager::ShutdownDocAccessiblesInTree(nsIDocShellTreeItem *aTreeItem,
                                               nsIDocument *aDocument)
 {
   nsCOMPtr<nsIDocShellTreeNode> treeNode(do_QueryInterface(aTreeItem));
-  if (!treeNode)
-    return;
 
-  PRInt32 subDocumentsCount = 0;
-  treeNode->GetChildCount(&subDocumentsCount);
-  for (PRInt32 idx = 0; idx < subDocumentsCount; idx++) {
-    nsCOMPtr<nsIDocShellTreeItem> treeItemChild;
-    treeNode->GetChildAt(idx, getter_AddRefs(treeItemChild));
-    NS_ASSERTION(treeItemChild, "No tree item when there should be");
-    if (!treeItemChild)
-      continue;
+  if (treeNode) {
+    PRInt32 subDocumentsCount = 0;
+    treeNode->GetChildCount(&subDocumentsCount);
+    for (PRInt32 idx = 0; idx < subDocumentsCount; idx++) {
+      nsCOMPtr<nsIDocShellTreeItem> treeItemChild;
+      treeNode->GetChildAt(idx, getter_AddRefs(treeItemChild));
+      NS_ASSERTION(treeItemChild, "No tree item when there should be");
+      if (!treeItemChild)
+        continue;
 
-    nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(treeItemChild));
-    nsCOMPtr<nsIContentViewer> contentViewer;
-    docShell->GetContentViewer(getter_AddRefs(contentViewer));
-    if (!contentViewer)
-      continue;
+      nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(treeItemChild));
+      nsCOMPtr<nsIContentViewer> contentViewer;
+      docShell->GetContentViewer(getter_AddRefs(contentViewer));
+      if (!contentViewer)
+        continue;
 
-    ShutdownDocAccessiblesInTree(treeItemChild, contentViewer->GetDocument());
+      ShutdownDocAccessiblesInTree(treeItemChild, contentViewer->GetDocument());
+    }
   }
 
   ShutdownDocAccessible(aDocument);
