@@ -2699,15 +2699,15 @@ PlacesRemoveItemTransaction.prototype = {
       txn.doTransaction();
     }
     else {
+      
+      let tags = this._uri ? PlacesUtils.tagging.getTagsForURI(this._uri) : null;
+
       PlacesUtils.bookmarks.removeItem(this._id);
-      if (this._uri) {
-        
-        
-        
-        if (PlacesUtils.getMostRecentBookmarkForURI(this._uri) == -1) {
-          this._tags = PlacesUtils.tagging.getTagsForURI(this._uri);
-          PlacesUtils.tagging.untagURI(this._uri, this._tags);
-        }
+
+      
+      
+      if (tags && PlacesUtils.getMostRecentBookmarkForURI(this._uri) == -1) {
+        this._tags = tags;
       }
     }
   },
