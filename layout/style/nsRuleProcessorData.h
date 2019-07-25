@@ -51,7 +51,6 @@
 #include "nsCSSPseudoElements.h"
 #include "nsRuleWalker.h"
 #include "nsNthIndexCache.h"
-#include "nsILoadContext.h"
 #include "mozilla/BloomFilter.h"
 #include "mozilla/GuardObjects.h"
 
@@ -223,9 +222,6 @@ struct NS_STACK_CLASS TreeMatchContext {
   AncestorFilter mAncestorFilter;
 
   
-  bool mUsingPrivateBrowsing;
-
-  
   TreeMatchContext(bool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling,
                    nsIDocument* aDocument)
@@ -236,16 +232,7 @@ struct NS_STACK_CLASS TreeMatchContext {
     , mScopedRoot(nsnull)
     , mIsHTMLDocument(aDocument->IsHTML())
     , mCompatMode(aDocument->GetCompatibilityMode())
-    , mUsingPrivateBrowsing(false)
   {
-    nsCOMPtr<nsISupports> container = mDocument->GetContainer();
-    if (container) {
-      nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(container);
-      NS_ASSERTION(loadContext, "Couldn't get loadContext from container; assuming no private browsing.");
-      if (loadContext) {
-        loadContext->GetUsePrivateBrowsing(&mUsingPrivateBrowsing);
-      }
-    }
   }
 };
 
