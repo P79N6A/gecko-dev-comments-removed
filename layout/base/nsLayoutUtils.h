@@ -1506,6 +1506,12 @@ public:
 
 
 
+  static bool GPUImageScalingEnabled();
+
+  
+
+
+
   static void UnionChildOverflow(nsIFrame* aFrame,
                                  nsOverflowAreas& aOverflowAreas);
 

@@ -1602,7 +1602,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     mBounds.UnionRect(mBounds, itemContent);
     itemVisibleRect.IntersectRect(itemVisibleRect, itemDrawRect);
 
-    LayerState layerState = item->GetLayerState(mBuilder, mManager);
+    LayerState layerState = item->GetLayerState(mBuilder, mManager, mParameters);
 
     nsIFrame* activeScrolledRoot =
       nsLayoutUtils::GetActiveScrolledRootFor(item, mBuilder);
@@ -2070,7 +2070,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   }
 
   if (aContainerItem &&
-      aContainerItem->GetLayerState(aBuilder, aManager) == LAYER_ACTIVE_EMPTY) {
+      aContainerItem->GetLayerState(aBuilder, aManager, aParameters) == LAYER_ACTIVE_EMPTY) {
     
     
     
