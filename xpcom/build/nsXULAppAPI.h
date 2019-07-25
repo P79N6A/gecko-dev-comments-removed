@@ -130,6 +130,15 @@
 
 
 
+#define XRE_MAIN_FLAG_USE_METRO 0x01
+
+
+
+
+
+
+
+
 
 
 
@@ -141,7 +150,8 @@
 
 
 XRE_API(int,
-        XRE_main, (int argc, char* argv[], const nsXREAppData* sAppData))
+        XRE_main, (int argc, char* argv[], const nsXREAppData* aAppData,
+                   PRUint32 aFlags))
 
 
 
@@ -429,8 +439,25 @@ XRE_API(void,
 XRE_API(void,
         XRE_TelemetryAccumulate, (int aID, PRUint32 aSample))
 
-
 XRE_API(void,
         XRE_InitOmnijar, (nsILocalFile* greOmni,
                           nsILocalFile* appOmni))
+
+#ifdef XP_WIN
+
+
+
+enum WindowsEnvironmentType {
+  WindowsEnvironmentType_Desktop = 0,
+  WindowsEnvironmentType_Metro = 1
+};
+
+
+
+
+
+XRE_API(WindowsEnvironmentType,
+        XRE_GetWindowsEnvironment, ())
+#endif 
+
 #endif 

@@ -302,7 +302,7 @@ namespace {
       directory.forget(&webShellAppData->directory);
 
       
-      XRE_main(*pargc, *pargv, webShellAppData);
+      XRE_main(*pargc, *pargv, webShellAppData, 0);
     }
 
     return true;
