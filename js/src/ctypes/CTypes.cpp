@@ -457,7 +457,7 @@ static JSFunctionSpec sModuleFunctions[] = {
   JS_FS_END
 };
 
-static inline bool FloatIsFinite(jsdouble f) {
+static inline bool FloatIsFinite(double f) {
 #ifdef WIN32
   return _finite(f) != 0;
 #else
@@ -1004,8 +1004,8 @@ struct ConvertImpl {
 
 
 template<>
-struct ConvertImpl<uint64_t, jsdouble> {
-  static JS_ALWAYS_INLINE uint64_t Convert(jsdouble d) {
+struct ConvertImpl<uint64_t, double> {
+  static JS_ALWAYS_INLINE uint64_t Convert(double d) {
     return d > 0x7fffffffffffffffui64 ?
            uint64_t(d - 0x8000000000000000ui64) + 0x8000000000000000ui64 :
            uint64_t(d);
@@ -1020,16 +1020,16 @@ struct ConvertImpl<uint64_t, jsdouble> {
 #ifdef SPARC
 
 template<>
-struct ConvertImpl<uint64_t, jsdouble> {
-  static JS_ALWAYS_INLINE uint64_t Convert(jsdouble d) {
+struct ConvertImpl<uint64_t, double> {
+  static JS_ALWAYS_INLINE uint64_t Convert(double d) {
     return d >= 0xffffffffffffffff ?
            0x8000000000000000 : uint64_t(d);
   }
 };
 
 template<>
-struct ConvertImpl<int64_t, jsdouble> {
-  static JS_ALWAYS_INLINE int64_t Convert(jsdouble d) {
+struct ConvertImpl<int64_t, double> {
+  static JS_ALWAYS_INLINE int64_t Convert(double d) {
     return d >= 0x7fffffffffffffff ?
            0x8000000000000000 : int64_t(d);
   }
@@ -1156,7 +1156,7 @@ jsvalToBool(JSContext* cx, jsval val, bool* result)
     return i == 0 || i == 1;
   }
   if (JSVAL_IS_DOUBLE(val)) {
-    jsdouble d = JSVAL_TO_DOUBLE(val);
+    double d = JSVAL_TO_DOUBLE(val);
     *result = d != 0;
     
     return d == 1 || d == 0;
@@ -1183,7 +1183,7 @@ jsvalToInteger(JSContext* cx, jsval val, IntegerType* result)
   if (JSVAL_IS_DOUBLE(val)) {
     
     
-    jsdouble d = JSVAL_TO_DOUBLE(val);
+    double d = JSVAL_TO_DOUBLE(val);
     return ConvertExact(d, result);
   }
   if (!JSVAL_IS_PRIMITIVE(val)) {
@@ -1380,7 +1380,7 @@ jsvalToBigInteger(JSContext* cx,
   if (JSVAL_IS_DOUBLE(val)) {
     
     
-    jsdouble d = JSVAL_TO_DOUBLE(val);
+    double d = JSVAL_TO_DOUBLE(val);
     return ConvertExact(d, result);
   }
   if (allowString && JSVAL_IS_STRING(val)) {
@@ -1418,7 +1418,7 @@ jsvalToSize(JSContext* cx, jsval val, bool allowString, size_t* result)
     return false;
 
   
-  return Convert<size_t>(jsdouble(*result)) == *result;
+  return Convert<size_t>(double(*result)) == *result;
 }
 
 
@@ -1474,7 +1474,7 @@ jsidToSize(JSContext* cx, jsid val, bool allowString, size_t* result)
     return false;
 
   
-  return Convert<size_t>(jsdouble(*result)) == *result;
+  return Convert<size_t>(double(*result)) == *result;
 }
 
 
@@ -1482,12 +1482,12 @@ jsidToSize(JSContext* cx, jsid val, bool allowString, size_t* result)
 static JSBool
 SizeTojsval(JSContext* cx, size_t size, jsval* result)
 {
-  if (Convert<size_t>(jsdouble(size)) != size) {
+  if (Convert<size_t>(double(size)) != size) {
     JS_ReportError(cx, "size overflow");
     return false;
   }
 
-  return JS_NewNumberValue(cx, jsdouble(size), result);
+  return JS_NewNumberValue(cx, double(size), result);
 }
 
 
@@ -1499,7 +1499,7 @@ jsvalToIntegerExplicit(jsval val, IntegerType* result)
 
   if (JSVAL_IS_DOUBLE(val)) {
     
-    jsdouble d = JSVAL_TO_DOUBLE(val);
+    double d = JSVAL_TO_DOUBLE(val);
     *result = FloatIsFinite(d) ? IntegerType(d) : 0;
     return true;
   }
@@ -1532,11 +1532,11 @@ jsvalToPtrExplicit(JSContext* cx, jsval val, uintptr_t* result)
     return true;
   }
   if (JSVAL_IS_DOUBLE(val)) {
-    jsdouble d = JSVAL_TO_DOUBLE(val);
+    double d = JSVAL_TO_DOUBLE(val);
     if (d < 0) {
       
       intptr_t i = Convert<intptr_t>(d);
-      if (jsdouble(i) != d)
+      if (double(i) != d)
         return false;
 
       *result = uintptr_t(i);
@@ -1546,7 +1546,7 @@ jsvalToPtrExplicit(JSContext* cx, jsval val, uintptr_t* result)
     
     
     *result = Convert<uintptr_t>(d);
-    return jsdouble(*result) == d;
+    return double(*result) == d;
   }
   if (!JSVAL_IS_PRIMITIVE(val)) {
     JSObject* obj = JSVAL_TO_OBJECT(val);
@@ -1651,7 +1651,7 @@ ConvertToJS(JSContext* cx,
     type value = *static_cast<type*>(data);                                    \
     if (sizeof(type) < 4)                                                      \
       *result = INT_TO_JSVAL(jsint(value));                                    \
-    else if (!JS_NewNumberValue(cx, jsdouble(value), result))                  \
+    else if (!JS_NewNumberValue(cx, double(value), result))                    \
       return false;                                                            \
     break;                                                                     \
   }
@@ -1680,7 +1680,7 @@ ConvertToJS(JSContext* cx,
 #define DEFINE_FLOAT_TYPE(name, type, ffiType)                                 \
   case TYPE_##name: {                                                          \
     type value = *static_cast<type*>(data);                                    \
-    if (!JS_NewNumberValue(cx, jsdouble(value), result))                       \
+    if (!JS_NewNumberValue(cx, double(value), result))                         \
       return false;                                                            \
     break;                                                                     \
   }
@@ -6207,7 +6207,7 @@ Int64::Lo(JSContext* cx, uintN argc, jsval* vp)
 
   JSObject* obj = JSVAL_TO_OBJECT(argv[0]);
   int64_t u = Int64Base::GetInt(obj);
-  jsdouble d = uint32_t(INT64_LO(u));
+  double d = uint32_t(INT64_LO(u));
 
   jsval result;
   if (!JS_NewNumberValue(cx, d, &result))
@@ -6229,7 +6229,7 @@ Int64::Hi(JSContext* cx, uintN argc, jsval* vp)
 
   JSObject* obj = JSVAL_TO_OBJECT(argv[0]);
   int64_t u = Int64Base::GetInt(obj);
-  jsdouble d = int32_t(INT64_HI(u));
+  double d = int32_t(INT64_HI(u));
 
   jsval result;
   if (!JS_NewNumberValue(cx, d, &result))
@@ -6374,7 +6374,7 @@ UInt64::Lo(JSContext* cx, uintN argc, jsval* vp)
 
   JSObject* obj = JSVAL_TO_OBJECT(argv[0]);
   uint64_t u = Int64Base::GetInt(obj);
-  jsdouble d = uint32_t(INT64_LO(u));
+  double d = uint32_t(INT64_LO(u));
 
   jsval result;
   if (!JS_NewNumberValue(cx, d, &result))
@@ -6396,7 +6396,7 @@ UInt64::Hi(JSContext* cx, uintN argc, jsval* vp)
 
   JSObject* obj = JSVAL_TO_OBJECT(argv[0]);
   uint64_t u = Int64Base::GetInt(obj);
-  jsdouble d = uint32_t(INT64_HI(u));
+  double d = uint32_t(INT64_HI(u));
 
   jsval result;
   if (!JS_NewNumberValue(cx, d, &result))

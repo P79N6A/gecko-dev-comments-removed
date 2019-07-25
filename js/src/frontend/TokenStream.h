@@ -322,7 +322,7 @@ struct Token {
             PropertyName *target;       
             JSAtom       *data;         
         } xmlpi;
-        jsdouble        number;         
+        double          number;         
         RegExpFlag      reflags;        
 
     } u;
@@ -359,7 +359,7 @@ struct Token {
         u.reflags = flags;
     }
 
-    void setNumber(jsdouble n) {
+    void setNumber(double n) {
         u.number = n;
     }
 
@@ -396,7 +396,7 @@ struct Token {
         return u.reflags;
     }
 
-    jsdouble number() const {
+    double number() const {
         JS_ASSERT(type == TOK_NUMBER);
         return u.number;
     }

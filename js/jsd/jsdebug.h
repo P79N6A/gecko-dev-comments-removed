@@ -333,40 +333,40 @@ JSD_GetScriptMaxRecurseDepth(JSDContext* jsdc, JSDScript *script);
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetScriptMinExecutionTime(JSDContext* jsdc, JSDScript *script);
 
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetScriptMaxExecutionTime(JSDContext* jsdc, JSDScript *script);
 
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetScriptTotalExecutionTime(JSDContext* jsdc, JSDScript *script);
 
 
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetScriptMinOwnExecutionTime(JSDContext* jsdc, JSDScript *script);
 
 
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetScriptMaxOwnExecutionTime(JSDContext* jsdc, JSDScript *script);
 
 
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetScriptTotalOwnExecutionTime(JSDContext* jsdc, JSDScript *script);
 
 
@@ -1293,7 +1293,7 @@ JSD_GetValueInt(JSDContext* jsdc, JSDValue* jsdval);
 
 
 
-extern JSD_PUBLIC_API(jsdouble)
+extern JSD_PUBLIC_API(double)
 JSD_GetValueDouble(JSDContext* jsdc, JSDValue* jsdval);
 
 
