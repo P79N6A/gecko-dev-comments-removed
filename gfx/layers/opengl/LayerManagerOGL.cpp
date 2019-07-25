@@ -592,7 +592,7 @@ LayerManagerOGL::Render()
   if (clipRect) {
     nsIntRect r = *clipRect;
     WorldTransformRect(r);
-    if (!mGLContext->IsDoubleBuffered() && !mTarget)
+    if (IsDrawingFlipped())
       mGLContext->FixWindowCoordinateRect(r, mWidgetSize.height);
     mGLContext->fScissor(r.x, r.y, r.width, r.height);
   } else {
@@ -760,7 +760,7 @@ LayerManagerOGL::SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTra
   
   
   gfx3DMatrix viewMatrix;
-  if (mGLContext->IsDoubleBuffered() && !mTarget) {
+  if (IsDrawingFlipped()) {
     
 
 

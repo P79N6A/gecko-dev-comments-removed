@@ -387,6 +387,14 @@ public:
 
 
 
+  bool IsDrawingFlipped() {
+    return mGLContext->IsDoubleBuffered() && !mTarget; 
+  }
+
+  
+
+
+
 
   void SetWorldTransform(const gfxMatrix& aMatrix);
   gfxMatrix& GetWorldTransform(void);

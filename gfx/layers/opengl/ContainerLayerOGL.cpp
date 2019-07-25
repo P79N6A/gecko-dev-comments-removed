@@ -256,14 +256,10 @@ ContainerRender(Container* aContainer,
 
     if (needsFramebuffer) {
       scissorRect.MoveBy(- visibleRect.TopLeft());
-    } else {
-      if (!frameBuffer) {
-        
-        aManager->WorldTransformRect(scissorRect);
-      }
+    }
 
-      if (!aPreviousFrameBuffer) {
-        
+    if (aManager->IsDrawingFlipped()) {
+      
 
 
 
@@ -271,10 +267,11 @@ ContainerRender(Container* aContainer,
 
 
 
-        aContainer->gl()->FixWindowCoordinateRect(scissorRect,
-                                                  aManager->GetWigetSize().height);
-      }
-
+      aContainer->gl()->FixWindowCoordinateRect(scissorRect,
+                                                aContainer->gl()->ViewportRect().height);
+    }
+    
+    if (clipRect && !needsFramebuffer) {
       scissorRect.IntersectRect(scissorRect, cachedScissor);
     }
 
