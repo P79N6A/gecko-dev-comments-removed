@@ -409,7 +409,7 @@ window.TabItem.prototype = iQ.extend(new Item(), {
       height: box.height
     }, {
       duration: 300,
-      easing: 'fast',
+      easing: 'cubic-bezier', 
       complete: function() { 
         $tab.removeClass('front');
         
