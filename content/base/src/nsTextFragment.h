@@ -47,8 +47,6 @@
 #include "nsString.h"
 #include "nsReadableUtils.h"
 #include "nsTraceRefcnt.h"
-#include "nsDOMMemoryReporter.h"
-
 class nsString;
 class nsCString;
 
@@ -81,7 +79,7 @@ class nsCString;
 
 
 
-class NS_FINAL_CLASS nsTextFragment {
+class nsTextFragment {
 public:
   static nsresult Init();
   static void Shutdown();
@@ -225,17 +223,6 @@ public:
     PRUint32 mIsBidi : 1;
     PRUint32 mLength : 29;
   };
-
-  
-
-
-
-  PRInt64 SizeOf() const
-  {
-    PRInt64 size = sizeof(*this);
-    size += GetLength() * Is2b() ? sizeof(*m2b) : sizeof(*m1b);
-    return size;
-  }
 
 private:
   void ReleaseText();

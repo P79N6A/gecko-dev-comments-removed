@@ -3228,16 +3228,6 @@ nsGenericHTMLFrameElement::CopyInnerTo(nsGenericElement* aDest) const
   return rv;
 }
 
-PRInt64
-nsGenericHTMLFrameElement::SizeOf() const
-{
-  PRInt64 size = MemoryReporter::GetBasicSize<nsGenericHTMLFrameElement,
-                                              nsGenericHTMLElement>(this);
-  
-  size += mFrameLoader ? sizeof(*mFrameLoader.get()) : 0;
-  return size;
-}
-
 
 
 nsresult
