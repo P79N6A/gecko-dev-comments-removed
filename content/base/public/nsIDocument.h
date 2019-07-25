@@ -107,7 +107,6 @@ struct JSObject;
 class nsFrameLoader;
 class nsIBoxObject;
 class imgIRequest;
-class nsISHEntry;
 
 namespace mozilla {
 namespace css {
@@ -451,16 +450,11 @@ public:
 
   nsIPresShell* GetShell() const
   {
-    return GetBFCacheEntry() ? nsnull : mPresShell;
+    return mShellIsHidden ? nsnull : mPresShell;
   }
 
-  void SetBFCacheEntry(nsISHEntry* aSHEntry) {
-    mSHEntry = aSHEntry;
-    
-    mShellIsHidden = !!aSHEntry;
-  }
-
-  nsISHEntry* GetBFCacheEntry() const { return mSHEntry; }
+  void SetShellHidden(PRBool aHide) { mShellIsHidden = aHide; }
+  PRBool ShellIsHidden() const { return mShellIsHidden; }
 
   
 
@@ -1600,8 +1594,6 @@ protected:
   
   PRPackedBool mIsInitialDocumentInWindow;
 
-  
-  
   PRPackedBool mShellIsHidden;
 
   PRPackedBool mIsRegularHTML;
@@ -1714,10 +1706,6 @@ protected:
   nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
 
   AnimationListenerList mAnimationFrameListeners;
-
-  
-  
-  nsISHEntry* mSHEntry;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

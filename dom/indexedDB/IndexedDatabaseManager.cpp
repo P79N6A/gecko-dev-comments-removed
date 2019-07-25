@@ -56,7 +56,6 @@
 #include "IDBFactory.h"
 #include "LazyIdleThread.h"
 #include "TransactionThreadPool.h"
-#include "nsISHEntry.h"
 
 
 
@@ -167,29 +166,14 @@ public:
     for (PRUint32 index = 0; index < mWaitingDatabases.Length(); index++) {
       nsRefPtr<IDBDatabase>& database = mWaitingDatabases[index];
 
-      if (database->IsClosed()) {
-        continue;
+      if (!database->IsClosed()) {
+
+        nsCOMPtr<nsIDOMEvent> event(IDBVersionChangeEvent::Create(mVersion));
+        NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
+
+        PRBool dummy;
+        database->DispatchEvent(event, &dummy);
       }
-
-      
-      nsCOMPtr<nsIDocument> ownerDoc = database->GetOwnerDocument();
-      nsISHEntry* shEntry;
-      if (ownerDoc && (shEntry = ownerDoc->GetBFCacheEntry())) {
-        nsCOMPtr<nsISHEntryInternal> sheInternal = do_QueryInterface(shEntry);
-        if (sheInternal) {
-          sheInternal->RemoveFromBFCacheSync();
-        }
-        NS_ASSERTION(database->IsClosed(),
-                     "Kicking doc out of bfcache should have closed database");
-        continue;
-      }
-
-      
-      nsCOMPtr<nsIDOMEvent> event(IDBVersionChangeEvent::Create(mVersion));
-      NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
-
-      PRBool dummy;
-      database->DispatchEvent(event, &dummy);
     }
 
     
