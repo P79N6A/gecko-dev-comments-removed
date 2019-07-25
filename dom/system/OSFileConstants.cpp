@@ -53,10 +53,34 @@ namespace {
 
 bool gInitialized = false;
 
+typedef struct {
+  
+
+
+  nsString libdir;
+  nsString tmpdir;
+  nsString profiledir;
+} Paths;
 
 
 
-nsString* gLibDirectory;
+
+Paths* gPaths;
+
+}
+
+
+
+
+nsresult GetPathToSpecialDir(const char *aKey, nsString aOutPath)
+{
+  nsCOMPtr<nsIFile> file;
+  nsresult rv = NS_GetSpecialDirectory(aKey, getter_AddRefs(file));
+  if (NS_FAILED(rv) || !file) {
+    return rv;
+  }
+
+  return file->GetPath(aOutPath);
 }
 
 
@@ -72,22 +96,44 @@ nsresult InitOSFileConstants()
 
   gInitialized = true;
 
+  ScopedDeletePtr<Paths> paths(new Paths);
+
   
-  nsCOMPtr<nsIFile> xpcomLib;
-  nsresult rv = NS_GetSpecialDirectory("XpcomLib", getter_AddRefs(xpcomLib));
-  if (NS_FAILED(rv) || !xpcomLib) {
+  nsresult rv = NS_GetSpecialDirectory(aKey, getter_AddRefs(file));
+
+  nsCOMPtr<nsIFile> file;
+  nsresult rv = NS_GetSpecialDirectory("XpcomLib", getter_AddRefs(file));
+  if (NS_FAILED(rv) || !file) {
     return rv;
   }
 
   nsCOMPtr<nsIFile> libDir;
-  rv = xpcomLib->GetParent(getter_AddRefs(libDir));
+  rv = file->GetParent(getter_AddRefs(libDir));
   if (NS_FAILED(rv)) {
     return rv;
   }
 
-  gLibDirectory = new nsString();
-  return libDir->GetPath(*gLibDirectory);
+  rv = libDir->GetPath(paths.rwget()->libdir);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  rv = GetPathToSpecialDir("TmpD", paths.rwget()->tmpdir);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  rv = GetPathToSpecialDir("ProfD", paths.rwget()->profiledir);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  gPaths = paths.forget();
+  return NS_OK;
 }
+
+
+
 
 void CleanupOSFileConstants()
 {
@@ -97,7 +143,7 @@ void CleanupOSFileConstants()
   }
 
   gInitialized = false;
-  delete gLibDirectory;
+  delete gPaths;
 }
 
 
@@ -480,6 +526,17 @@ JSObject *GetOrCreateObjectProperty(JSContext *cx, JSObject *aObject,
 
 
 
+bool SetStringProperty(JSContext *cx, JSObject *aObject, const char *aProperty,
+                       const nsString aValue)
+{
+    JSString* strValue = JS_NewUCStringCopyZ(cx, aValue.get());
+    jsval valValue = STRING_TO_JSVAL(strValue);
+    return JS_SetProperty(cx, aObject, aProperty, &valValue);
+}
+
+
+
+
 
 
 
@@ -552,7 +609,7 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
 
   
   {
-    nsAutoString xulPath(*gLibDirectory);
+    nsAutoString xulPath(gPaths->libdir);
 
     xulPath.Append(PR_GetDirectorySeparator());
 
@@ -567,11 +624,17 @@ bool DefineOSFileConstants(JSContext *cx, JSObject *global)
     xulPath.Append(NS_LITERAL_STRING(DLL_SUFFIX));
 #endif 
 
-    JSString* strPathToLibXUL = JS_NewUCStringCopyZ(cx, xulPath.get());
-    jsval valXul = STRING_TO_JSVAL(strPathToLibXUL);
-    if (!JS_SetProperty(cx, objPath, "libxul", &valXul)) {
+    if (!SetStringProperty(cx, objPath, "libxul", xulPath)) {
       return false;
     }
+  }
+
+  if (!SetStringProperty(cx, objPath, "tmpdir", gPaths->tmpdir)) {
+    return false;
+  }
+
+  if (!SetStringProperty(cx, objPath, "profiledir", gPaths->libdir)) {
+    return false;
   }
 
   return true;
