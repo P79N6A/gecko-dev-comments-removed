@@ -181,6 +181,45 @@ RegExpStatics::getRightContext(JSSubString *out) const
     out->length = matchPairsInput->length() - get(0, 1);
 }
 
+inline void
+RegExpStatics::setMultiline(JSContext *cx, bool enabled)
+{
+    aboutToWrite();
+    if (enabled) {
+        flags = RegExpFlag(flags | MultilineFlag);
+        markFlagsSet(cx);
+    } else {
+        flags = RegExpFlag(flags & ~MultilineFlag);
+    }
+}
+
+inline void
+RegExpStatics::markFlagsSet(JSContext *cx)
+{
+    
+
+
+
+
+
+
+
+    GlobalObject *global = GetGlobalForScopeChain(cx);
+    JS_ASSERT(this == global->getRegExpStatics());
+
+    types::MarkTypeObjectFlags(cx, global, types::OBJECT_FLAG_REGEXP_FLAGS_SET);
+}
+
+inline void
+RegExpStatics::reset(JSContext *cx, JSString *newInput, bool newMultiline)
+{
+    aboutToWrite();
+    clear();
+    pendingInput = newInput;
+    setMultiline(cx, newMultiline);
+    checkInvariants();
+}
+
 } 
 
 #endif

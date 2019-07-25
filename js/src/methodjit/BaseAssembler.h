@@ -1306,9 +1306,14 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         storePtr(ImmPtr(templateObject->type()), Address(result, JSObject::offsetOfType()));
 
         
+
+
+
         if (!templateObject->isDenseArray()) {
-            for (unsigned i = 0; i < templateObject->numFixedSlots(); i++)
-                storeValue(UndefinedValue(), Address(result, JSObject::getFixedSlotOffset(i)));
+            for (unsigned i = 0; i < templateObject->numFixedSlots(); i++) {
+                storeValue(templateObject->getFixedSlot(i),
+                           Address(result, JSObject::getFixedSlotOffset(i)));
+            }
         }
 
         return jump;

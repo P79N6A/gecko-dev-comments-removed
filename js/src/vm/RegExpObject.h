@@ -285,6 +285,9 @@ class RegExpPrivate
     void decref(JSContext *cx);
 
     
+    size_t *addressOfRefCount() { return &refCount; }
+
+    
 
     JSLinearString *getSource() const { return source; }
     size_t getParenCount() const { return parenCount; }
