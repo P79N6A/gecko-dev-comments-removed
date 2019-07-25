@@ -37,8 +37,9 @@
 
 
 
-
-const EXPORTED_SYMBOLS = ["SyncScheduler", "ErrorHandler"];
+const EXPORTED_SYMBOLS = ["SyncScheduler",
+                          "ErrorHandler",
+                          "SendCredentialsController"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -735,4 +736,92 @@ let ErrorHandler = {
         break;
     }
   },
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function SendCredentialsController(jpakeclient) {
+  this._log = Log4Moz.repository.getLogger("Sync.SendCredentialsController");
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
+
+  this._log.trace("Loading.");
+  this.jpakeclient = jpakeclient;
+
+  
+  
+  
+  
+  Services.obs.addObserver(this, "weave:service:sync:finish", false);
+  Services.obs.addObserver(this, "weave:service:sync:error",  false);
+  Services.obs.addObserver(this, "weave:service:start-over",  false);
+}
+SendCredentialsController.prototype = {
+
+  unload: function unload() {
+    this._log.trace("Unloading.");
+    try {
+      Services.obs.removeObserver(this, "weave:service:sync:finish");
+      Services.obs.removeObserver(this, "weave:service:sync:error");
+      Services.obs.removeObserver(this, "weave:service:start-over");
+    } catch (ex) {
+      
+    }
+  },
+
+  observe: function observe(subject, topic, data) {
+    switch (topic) {
+      case "weave:service:sync:finish":
+      case "weave:service:sync:error":
+        Utils.nextTick(this.sendCredentials, this);
+        break;
+      case "weave:service:start-over":
+        
+        this.jpakeclient.abort();
+        break;
+    }
+  },
+
+  sendCredentials: function sendCredentials() {
+    this._log.trace("Sending credentials.");
+    let credentials = {account:   Weave.Service.account,
+                       password:  Weave.Service.password,
+                       synckey:   Weave.Service.passphrase,
+                       serverURL: Weave.Service.serverURL};
+    this.jpakeclient.sendAndComplete(credentials);
+  },
+
+  
+
+  onComplete: function onComplete() {
+    this._log.debug("Exchange was completed successfully!");
+    this.unload();
+  },
+
+  onAbort: function onAbort(error) {
+    
+    
+    this._log.debug("Exchange was aborted with error: " + error);
+    this.unload();
+  },
+
+  
+  displayPIN: function displayPIN() {},
+  onPairingStart: function onPairingStart() {},
+  onPaired: function onPaired() {}
 };
