@@ -254,19 +254,18 @@ class BaseShape : public js::gc::Cell
 
 
 
-        EXTENSIBLE_PARENTS =    0x8,
-        DELEGATE           =   0x10,
-        SYSTEM             =   0x20,
-        NOT_EXTENSIBLE     =   0x40,
-        INDEXED            =   0x80,
-        BOUND_FUNCTION     =  0x100,
-        VAROBJ             =  0x200,
-        WATCHED            =  0x400,
-        ITERATED_SINGLETON =  0x800,
-        NEW_TYPE_UNKNOWN   = 0x1000,
-        UNCACHEABLE_PROTO  = 0x2000,
+        DELEGATE           =    0x8,
+        SYSTEM             =   0x10,
+        NOT_EXTENSIBLE     =   0x20,
+        INDEXED            =   0x40,
+        BOUND_FUNCTION     =   0x80,
+        VAROBJ             =  0x100,
+        WATCHED            =  0x200,
+        ITERATED_SINGLETON =  0x400,
+        NEW_TYPE_UNKNOWN   =  0x800,
+        UNCACHEABLE_PROTO  = 0x1000,
 
-        OBJECT_FLAG_MASK   = 0x3ff8
+        OBJECT_FLAG_MASK   = 0x1ff8
     };
 
   private:
@@ -798,52 +797,6 @@ struct Shape : public js::gc::Cell
         JS_ASSERT_IF(isDataDescriptor(), writable());
         return hasSlot() || (attrs & JSPROP_SHADOWABLE);
     }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static Shape *setExtensibleParents(JSContext *cx, Shape *shape);
-    bool extensibleParents() const { return !!(base()->flags & BaseShape::EXTENSIBLE_PARENTS); }
 
     uint32_t entryCount() {
         if (hasTable())

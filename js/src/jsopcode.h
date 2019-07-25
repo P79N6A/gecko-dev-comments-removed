@@ -496,6 +496,12 @@ IsLocalOp(JSOp op)
     return JOF_OPTYPE(op) == JOF_LOCAL;
 }
 
+inline bool
+IsGlobalOp(JSOp op)
+{
+    return js_CodeSpec[op].format & JOF_GNAME;
+}
+
 
 
 

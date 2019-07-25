@@ -34,12 +34,9 @@ struct PropertyCacheEntry
 
   private:
     
-    uint8_t       scopeIndex;
-    
     uint8_t       protoIndex;
 
   public:
-    static const size_t MaxScopeIndex = 15;
     static const size_t MaxProtoIndex = 15;
 
     
@@ -50,7 +47,7 @@ struct PropertyCacheEntry
 
 
 
-    bool isOwnPropertyHit() const { return scopeIndex == 0 && protoIndex == 0; }
+    bool isOwnPropertyHit() const { return protoIndex == 0; }
 
     
 
@@ -60,18 +57,15 @@ struct PropertyCacheEntry
 
 
 
-    bool isPrototypePropertyHit() const { return scopeIndex == 0 && protoIndex == 1; }
+    bool isPrototypePropertyHit() const { return protoIndex == 1; }
 
-    void assign(jsbytecode *kpc, Shape *kshape, Shape *pshape,
-                Shape *prop, unsigned scopeIndex, unsigned protoIndex) {
-        JS_ASSERT(scopeIndex <= MaxScopeIndex);
+    void assign(jsbytecode *kpc, Shape *kshape, Shape *pshape, Shape *prop, unsigned protoIndex) {
         JS_ASSERT(protoIndex <= MaxProtoIndex);
 
         this->kpc = kpc;
         this->kshape = kshape;
         this->pshape = pshape;
         this->prop = prop;
-        this->scopeIndex = uint8_t(scopeIndex);
         this->protoIndex = uint8_t(protoIndex);
     }
 };
@@ -183,8 +177,7 @@ class PropertyCache
 
 
 
-    PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, unsigned scopeIndex,
-                             JSObject *pobj, js::Shape *shape);
+    PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, JSObject *pobj, js::Shape *shape);
 
     void purge(JSRuntime *rt);
 

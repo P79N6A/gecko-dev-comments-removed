@@ -1224,23 +1224,21 @@ ReadPropertyDescriptors(JSContext *cx, HandleObject props, bool checkAccessors,
 static const unsigned RESOLVE_INFER = 0xffff;
 
 
+extern bool
+LookupName(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
+           MutableHandleObject objp, MutableHandleObject pobjp, MutableHandleShape propp);
+
+
+
+
+
+
+
 
 
 extern bool
-FindPropertyHelper(JSContext *cx, HandlePropertyName name,
-                   bool cacheResult, HandleObject scopeChain,
-                   MutableHandleObject objp, MutableHandleObject pobjp, MutableHandleShape propp);
-
-
-
-
-
-extern bool
-FindProperty(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
-             MutableHandleObject objp, MutableHandleObject pobjp, MutableHandleShape propp);
-
-extern JSObject *
-FindIdentifierBase(JSContext *cx, HandleObject scopeChain, HandlePropertyName name);
+LookupNameForSet(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
+                 MutableHandleObject objp);
 
 }
 
