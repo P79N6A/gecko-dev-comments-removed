@@ -444,10 +444,15 @@ nsFrameLoader::ReallyStartLoadingInternal()
   mDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
   NS_ENSURE_TRUE(loadInfo, NS_ERROR_FAILURE);
 
-  
-  
-  
-  loadInfo->SetOwner(mOwnerContent->NodePrincipal());
+  if (!OwnerIsBrowserFrame()) {
+    
+    
+    
+    
+    
+    
+    loadInfo->SetOwner(mOwnerContent->NodePrincipal());
+  }
 
   nsCOMPtr<nsIURI> referrer;
   rv = mOwnerContent->NodePrincipal()->GetURI(getter_AddRefs(referrer));
