@@ -92,6 +92,7 @@ public class AwesomeBarTabs extends TabHost {
     private static enum HistorySection { TODAY, YESTERDAY, WEEK, OLDER };
 
     private Context mContext;
+    private boolean mInflated;
     private OnUrlOpenListener mUrlOpenListener;
     private View.OnTouchListener mListTouchListener;
     private JSONArray mSearchEngines;
@@ -512,13 +513,21 @@ public class AwesomeBarTabs extends TabHost {
         Log.d(LOGTAG, "Creating AwesomeBarTabs");
 
         mContext = context;
+        mInflated = false;
         mSearchEngines = new JSONArray();
+    }
+
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
 
         
-        LayoutInflater inflater =
-                (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        
+        
+        if (mInflated)
+            return;
 
-        inflater.inflate(R.layout.awesomebar_tabs, this);
+        mInflated = true;
 
         
         
