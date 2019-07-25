@@ -92,6 +92,18 @@ public:
   already_AddRefed<mozIStorageStatement> PutStatement(bool aOverwrite,
                                                       bool aAutoIncrement);
 
+  
+
+
+
+
+
+
+
+
+
+  already_AddRefed<mozIStorageStatement> RemoveStatement(bool aAutoIncrement);
+
   nsIThread* ConnectionThread() {
     return mConnectionThread;
   }
@@ -127,6 +139,8 @@ private:
   nsCOMPtr<mozIStorageStatement> mPutAutoIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mPutOverwriteStmt;
   nsCOMPtr<mozIStorageStatement> mPutOverwriteAutoIncrementStmt;
+  nsCOMPtr<mozIStorageStatement> mRemoveStmt;
+  nsCOMPtr<mozIStorageStatement> mRemoveAutoIncrementStmt;
 };
 
 END_INDEXEDDB_NAMESPACE
