@@ -380,14 +380,24 @@ TabTracker.prototype = {
     }
   },
 
-  _registerListenersForWindow: function TabTracker__registerListen(window) {
-    if (! window.getBrowser) {
-      return;
-    }
+  _getBrowser: function TabTracker__getBrowser(window) {
+    
+    if (typeof window.getBrowser != "function")
+      return null;
+
+    
     let browser = window.getBrowser();
-    if (! browser.tabContainer) {
+    if (browser == null || typeof browser.tabContainer != "object")
+      return null;
+
+    return browser;
+  },
+
+  _registerListenersForWindow: function TabTracker__registerListen(window) {
+    let browser = this._getBrowser(window);
+    if (browser == null)
       return;
-    }
+
     
     
     let container = browser.tabContainer;
@@ -397,13 +407,10 @@ TabTracker.prototype = {
   },
 
   _unRegisterListenersForWindow: function TabTracker__unregister(window) {
-    if (! window.getBrowser) {
+    let browser = this._getBrowser(window);
+    if (browser == null)
       return;
-    }
-    let browser = window.getBrowser();
-    if (! browser.tabContainer) {
-      return;
-    }
+
     let container = browser.tabContainer;
     container.removeEventListener("TabOpen", this.onTabOpened, false);
     container.removeEventListener("TabClose", this.onTabClosed, false);
