@@ -413,11 +413,6 @@ pref("security.fileuri.strict_origin_policy", false);
 pref("layers.acceleration.force-enabled", true);
 
 
-pref("dom.screenEnabledProperty.enabled", true);
-pref("dom.screenBrightnessProperty.enabled", true);
-pref("dom.mozScreenWhitelist", "http://homescreen.gaiamobile.org,http://settings.gaiamobile.org");
-
-
 
 pref("browser.link.open_newwindow", 3);
 
