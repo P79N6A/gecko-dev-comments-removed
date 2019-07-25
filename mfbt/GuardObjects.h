@@ -131,29 +131,29 @@ namespace mozilla {
     }
   };
 
-  #define MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER \
+  #define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER \
       mozilla::GuardObjectNotificationReceiver _mCheckNotUsedAsTemporary;
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM \
+  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM \
       , const mozilla::GuardObjectNotifier& _notifier = \
                 mozilla::GuardObjectNotifier()
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM \
+  #define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM \
       const mozilla::GuardObjectNotifier& _notifier = \
               mozilla::GuardObjectNotifier()
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL \
+  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL \
       , const mozilla::GuardObjectNotifier& _notifier
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT \
+  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT \
       , _notifier
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_INIT \
+  #define MOZ_GUARD_OBJECT_NOTIFIER_INIT \
       PR_BEGIN_MACRO _mCheckNotUsedAsTemporary.Init(_notifier); PR_END_MACRO
 
 #else 
 
-  #define MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT
-  #define MOZILLA_GUARD_OBJECT_NOTIFIER_INIT PR_BEGIN_MACRO PR_END_MACRO
+  #define MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM
+  #define MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM
+  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL
+  #define MOZ_GUARD_OBJECT_NOTIFIER_PARAM_TO_PARENT
+  #define MOZ_GUARD_OBJECT_NOTIFIER_INIT PR_BEGIN_MACRO PR_END_MACRO
 
 #endif 
 
