@@ -1940,11 +1940,6 @@ SessionStoreService.prototype = {
                 tabbrowser.tabs[t] :
                 tabbrowser.addTab("about:blank", {skipAnimation: true}));
       
-      
-      if (!tabs[t].selected) {
-        tabs[t].hidden = true;
-      }
-      
       if (!aOverwriteTabs && root._firstTabs) {
         tabbrowser.moveTabTo(tabs[t], t);
       }
