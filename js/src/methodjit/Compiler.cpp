@@ -4362,10 +4362,23 @@ mjit::Compiler::jsop_length()
 
 
 
+    if (loop && loop->generatingInvariants()) {
+        FrameEntry *fe = loop->invariantLength(top);
+        if (fe) {
+            frame.pop();
+            frame.pushTemporary(fe);
+            return true;
+        }
+    }
+
+    
+
+
+
+
     types::TypeSet *types = frame.extra(top).types;
     types::ObjectKind kind = types ? types->getKnownObjectKind(cx) : types::OBJECT_UNKNOWN;
-    if ((kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY) &&
-        knownPushedType(0) == JSVAL_TYPE_INT32) {
+    if ((kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY)) {
         bool isObject = top->isTypeKnown();
         if (!isObject) {
             Jump notObject = frame.testObject(Assembler::NotEqual, top);
@@ -5412,7 +5425,7 @@ mjit::Compiler::jsop_this()
 
             
             frame.pop();
-            frame.learnThisIsObject();
+            frame.learnThisIsObject(type != JSVAL_TYPE_OBJECT);
             frame.pushThis();
         }
 
@@ -6583,6 +6596,9 @@ mjit::Compiler::finishLoop(jsbytecode *head)
 
     loop->entryJump().linkTo(masm.label(), &masm);
 
+    jsbytecode *oldPC = PC;
+
+    PC = entryTarget;
     {
         REJOIN_SITE(stubs::MissedBoundsCheckEntry);
         OOL_STUBCALL(stubs::MissedBoundsCheckEntry);
@@ -6599,12 +6615,14 @@ mjit::Compiler::finishLoop(jsbytecode *head)
         }
         stubcc.crossJump(stubcc.masm.jump(), masm.label());
     }
+    PC = oldPC;
 
     frame.prepareForJump(entryTarget, masm, true);
 
     if (!jumpInScript(masm.jump(), entryTarget))
         return false;
 
+    PC = head;
     if (!a->analysis.getCode(head).safePoint) {
         
 
@@ -6631,6 +6649,7 @@ mjit::Compiler::finishLoop(jsbytecode *head)
 
         loopEntries.append(entry);
     }
+    PC = oldPC;
 
     
     loop->flushLoop(stubcc);

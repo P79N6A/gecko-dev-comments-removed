@@ -147,30 +147,41 @@ class LoopState : public MacroAssemblerTypedefs
 
 
 
-    struct HoistedBoundsCheck
-    {
-        
-        uint32 arraySlot;
-        uint32 valueSlot;
-        int32 constant;
+
+    struct InvariantEntry {
+        enum {
+            
+
+
+
+            BOUNDS_CHECK,
+
+            
+            NEGATIVE_CHECK,
+
+            INVARIANT_SLOTS,
+            INVARIANT_LENGTH
+        } kind;
+        union {
+            struct {
+                uint32 arraySlot;
+                uint32 valueSlot;
+                int32 constant;
+            } check;
+            struct {
+                uint32 arraySlot;
+                uint32 temporary;
+            } array;
+        } u;
+        InvariantEntry() { PodZero(this); }
     };
-    Vector<HoistedBoundsCheck, 4, CompilerAllocPolicy> hoistedBoundsChecks;
+    Vector<InvariantEntry, 4, CompilerAllocPolicy> invariantEntries;
 
     bool loopInvariantEntry(const FrameEntry *fe);
     bool addHoistedCheck(uint32 arraySlot, uint32 valueSlot, int32 constant);
+    void addNegativeCheck(uint32 valueSlot, int32 constant);
 
-    
-
-
-
-    struct InvariantArraySlots
-    {
-        uint32 arraySlot;
-        uint32 temporary;
-    };
-    Vector<InvariantArraySlots, 4, CompilerAllocPolicy> invariantArraySlots;
-
-    bool hasInvariants() { return !hoistedBoundsChecks.empty() || !invariantArraySlots.empty(); }
+    bool hasInvariants() { return !invariantEntries.empty(); }
     void restoreInvariants(Assembler &masm, Vector<Jump> *jumps);
 
   public:
@@ -224,6 +235,74 @@ class LoopState : public MacroAssemblerTypedefs
 
     bool hoistArrayLengthCheck(const FrameEntry *obj, const FrameEntry *id);
     FrameEntry *invariantSlots(const FrameEntry *obj);
+    FrameEntry *invariantLength(const FrameEntry *obj);
+
+  private:
+    
+
+    
+    analyze::StackAnalysis stack;
+
+    
+
+
+
+
+
+
+    enum { UNASSIGNED = uint32(-1) };
+    uint32 testLHS;
+    uint32 testRHS;
+    int32 testConstant;
+    bool testLessEqual;
+
+    
+
+
+
+    bool testLength;
+
+    
+
+
+
+
+    struct Increment {
+        uint32 slot;
+        uint32 offset;
+    };
+    Vector<Increment, 4, CompilerAllocPolicy> increments;
+
+    
+    bool unknownModset;
+
+    
+
+
+
+    Vector<types::TypeObject *, 4, CompilerAllocPolicy> growArrays;
+
+    
+    struct ModifiedProperty {
+        types::TypeObject *object;
+        jsid id;
+    };
+    Vector<ModifiedProperty, 4, CompilerAllocPolicy> modifiedProperties;
+
+    void analyzeLoopTest();
+    void analyzeLoopIncrements();
+    void analyzeModset();
+
+    bool loopVariableAccess(jsbytecode *pc);
+    bool getLoopTestAccess(jsbytecode *pc, uint32 *slotp, int32 *constantp);
+
+    bool addGrowArray(types::TypeObject *object);
+    bool addModifiedProperty(types::TypeObject *object, jsid id);
+
+    bool hasGrowArray(types::TypeObject *object);
+    bool hasModifiedProperty(types::TypeObject *object, jsid id);
+
+    inline types::TypeSet *poppedTypes(jsbytecode *pc, unsigned which);
 };
 
 } 
