@@ -84,6 +84,9 @@ public:
                                    nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
                                    nsIRunnable* aCallback);
 
+  
+  bool HasTransactionsForDatabase(IDBDatabase* aDatabase);
+
 protected:
   class TransactionQueue : public nsIRunnable
   {

@@ -185,6 +185,7 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 
 #include "mozAutoDocUpdate.h"
 #include "nsGlobalWindow.h"
+#include "mozilla/dom/indexedDB/IndexedDatabaseManager.h"
 
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
@@ -7029,6 +7030,7 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
     }
   }
 
+  
   nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
   if (loadGroup) {
     nsCOMPtr<nsISimpleEnumerator> requests;
@@ -7054,6 +7056,13 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
         return PR_FALSE;
       }
     }
+  }
+
+  
+  indexedDB::IndexedDatabaseManager* idbManager =
+    indexedDB::IndexedDatabaseManager::Get();
+  if (idbManager && idbManager->HasOpenTransactions(win)) {
+    return PR_FALSE;
   }
 
   PRBool canCache = PR_TRUE;

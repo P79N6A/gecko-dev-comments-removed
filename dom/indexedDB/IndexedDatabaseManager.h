@@ -104,6 +104,9 @@ public:
   
   void CloseDatabasesForWindow(nsPIDOMWindow* aWindow);
 
+  
+  bool HasOpenTransactions(nsPIDOMWindow* aWindow);
+
 private:
   IndexedDatabaseManager();
   ~IndexedDatabaseManager();
