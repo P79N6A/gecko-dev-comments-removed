@@ -69,7 +69,7 @@
 #include "jsscript.h"
 #include "jsstr.h"
 
-#include "frontend/CodeGenerator.h"
+#include "frontend/BytecodeGenerator.h"
 #include "frontend/TokenStream.h"
 #include "vm/Debugger.h"
 

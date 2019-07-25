@@ -38,8 +38,8 @@
 
 
 
-#ifndef CodeGenerator_h__
-#define CodeGenerator_h__
+#ifndef BytecodeGenerator_h__
+#define BytecodeGenerator_h__
 
 
 
