@@ -882,14 +882,13 @@ function Focus()
         return false;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
+    var fm = CC["@mozilla.org/focus-manager;1"].getService(CI.nsIFocusManager);
+    fm.activeWindow = window;
+    try {
+        var dock = CC["@mozilla.org/widget/macdocksupport;1"].getService(CI.nsIMacDockSupport);
+        dock.activateApplication(true);
+    } catch(ex) {
+    }
     return true;
 }
 
