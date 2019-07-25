@@ -128,6 +128,7 @@ public:
   virtual nsresult Instantiate(const char* aMimeType, nsIURI* aURI);
   virtual void TryNotifyContentObjectWrapper();
   virtual void StopPlugin();
+  virtual void SetIsDocumentActive(PRBool aIsActive);
 
   
 

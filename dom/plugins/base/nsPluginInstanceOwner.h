@@ -202,6 +202,7 @@ public:
 #else 
   void UpdateWindowPositionAndClipRect(PRBool aSetWindow);
   void UpdateWindowVisibility(PRBool aVisible);
+  void UpdateDocumentActiveState(PRBool aIsActive);
 #endif 
   void CallSetWindow();
   
@@ -343,6 +344,7 @@ private:
   PRPackedBool                mFlash10Quirks;
 #endif
   PRPackedBool                mPluginWindowVisible;
+  PRPackedBool                mPluginDocumentActiveState;
   
   
   

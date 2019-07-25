@@ -94,6 +94,13 @@ public:
 
 
   virtual nsIWidget* GetWidget() = 0;
+
+  
+
+
+
+
+  virtual void SetIsDocumentActive(PRBool aIsActive) = 0;
 };
 
 #endif 
