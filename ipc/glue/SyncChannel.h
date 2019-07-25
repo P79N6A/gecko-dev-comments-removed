@@ -41,8 +41,7 @@ public:
     SyncChannel(SyncListener* aListener);
     virtual ~SyncChannel();
 
-    NS_OVERRIDE
-    virtual bool Send(Message* msg) {
+    virtual bool Send(Message* msg) MOZ_OVERRIDE {
         return AsyncChannel::Send(msg);
     }
 
@@ -106,8 +105,8 @@ protected:
 protected:
     
     
-    NS_OVERRIDE virtual void OnMessageReceivedFromLink(const Message& msg);
-    NS_OVERRIDE virtual void OnChannelErrorFromLink();
+    virtual void OnMessageReceivedFromLink(const Message& msg) MOZ_OVERRIDE;
+    virtual void OnChannelErrorFromLink() MOZ_OVERRIDE;
 
     
     bool ProcessingSyncMessage() const {

@@ -10,6 +10,7 @@
 
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"    
+#include "mozilla/Attributes.h"
 
 
 
