@@ -2475,9 +2475,8 @@ nsGlobalWindow::SetScriptsEnabled(PRBool aEnabled, PRBool aFireTimeouts)
   if (aEnabled && aFireTimeouts) {
     
     
-    nsCOMPtr<nsIRunnable> event =
-      NS_NEW_RUNNABLE_METHOD(nsGlobalWindow, this, RunTimeout);
-    NS_DispatchToCurrentThread(event);
+    void (nsGlobalWindow::*run)() = &nsGlobalWindow::RunTimeout;
+    NS_DispatchToCurrentThread(NS_NewRunnableMethod(this, run));
   }
 }
 

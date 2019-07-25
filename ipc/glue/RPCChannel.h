@@ -196,11 +196,11 @@ protected:
     }
 
     NS_OVERRIDE
-    virtual bool ShouldDeferNotifyMaybeError() {
+    virtual bool ShouldDeferNotifyMaybeError() const {
         return IsOnCxxStack();
     }
 
-    bool EventOccurred();
+    bool EventOccurred() const;
 
     void MaybeProcessDeferredIncall();
     void EnqueuePendingMessages();
@@ -230,8 +230,7 @@ protected:
         { }
 
         void Describe(int32* id, const char** dir, const char** sems,
-                      const char** name)
-            const
+                      const char** name) const
         {
             *id = mMsg->routing_id();
             *dir = (IN_MESSAGE == mDirection) ? "in" : "out";
@@ -282,18 +281,18 @@ protected:
     };
 
     
-    size_t StackDepth() {
+    size_t StackDepth() const {
         mMutex.AssertCurrentThreadOwns();
         return mStack.size();
     }
 
     void DebugAbort(const char* file, int line, const char* cond,
                     const char* why,
-                    const char* type="rpc", bool reply=false);
+                    const char* type="rpc", bool reply=false) const;
 
     
     
-    void DumpRPCStack(FILE* outfile=NULL, const char* const pfx="");
+    void DumpRPCStack(FILE* outfile=NULL, const char* const pfx="") const;
 
     
     
@@ -335,7 +334,8 @@ protected:
     
     
     
-    std::queue<Message> mPending;
+    typedef std::queue<Message> MessageQueue;
+    MessageQueue mPending;
 
     
     
