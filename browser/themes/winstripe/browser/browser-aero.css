@@ -45,21 +45,6 @@
     -moz-margin-start: 1px;
   }
 
-  
-
-  #identity-popup,
-  #editBookmarkPanel {
-    -moz-appearance: tooltip;
-    color: InfoText;
-  }
-
-  
-
-  #identity-popup-container {
-    -moz-padding-start: 6px;
-    -moz-padding-end: 6px;
-  }
-
   #sidebar-splitter {
     border: 0;
     -moz-border-end: 1px solid #A9B7C9;
