@@ -30,6 +30,26 @@ function testAbsentAttrs(aAccOrElmOrID, aAbsentAttrs)
 
 
 
+function testCSSAttrs(aID)
+{
+  var node = document.getElementById(aID);
+  var computedStyle = document.defaultView.getComputedStyle(node, "");
+
+  var attrs = {
+    "display": computedStyle.display,
+    "text-align": computedStyle.textAlign,
+    "text-indent": computedStyle.textIndent,
+    "margin-left": computedStyle.marginLeft,
+    "margin-right": computedStyle.marginRight,
+    "margin-top": computedStyle.marginTop,
+    "margin-bottom": computedStyle.marginBottom
+  };
+  testAttrs(aID, attrs, true);
+}
+
+
+
+
 
 
 
