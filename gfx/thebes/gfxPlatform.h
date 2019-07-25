@@ -319,6 +319,11 @@ public:
 
     virtual bool FontHintingEnabled() { return true; }
 
+    
+
+
+    bool UseCmapsDuringSystemFallback();
+
 #ifdef MOZ_GRAPHITE
     
 
@@ -464,6 +469,10 @@ protected:
 #endif
 
     PRInt8  mBidiNumeralOption;
+
+    
+    
+    PRInt8  mFallbackUsesCmaps;
 
     
     PRInt32 mUseHarfBuzzScripts;

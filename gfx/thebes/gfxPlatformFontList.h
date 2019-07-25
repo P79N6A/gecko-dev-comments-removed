@@ -162,6 +162,10 @@ protected:
                                              PRUint32& aCmapCount);
 
     
+    
+    virtual bool UsesSystemFallback() { return false; }
+
+    
     void InitOtherFamilyNames();
 
     static PLDHashOperator InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
