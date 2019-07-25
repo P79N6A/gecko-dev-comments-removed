@@ -47,6 +47,10 @@
      let gBytesWrittenPtr = gBytesWritten.address();
 
      
+     let gFileInfo = new OS.Shared.Type.FILE_INFORMATION.implementation();
+     let gFileInfoPtr = gFileInfo.address();
+
+     
 
 
 
@@ -179,7 +183,18 @@
          
          whence = (whence == undefined)?Const.FILE_BEGIN:whence;
          return throw_on_negative("setPosition",
-	   WinFile.SetFilePointer(this.fd, pos, null, whence));
+           WinFile.SetFilePointer(this.fd, pos, null, whence));
+       },
+
+       
+
+
+
+
+       stat: function stat() {
+         throw_on_zero("stat",
+           WinFile.GetFileInformationByHandle(this.fd, gFileInfoPtr));
+         return new File.Info(gFileInfo);
        }
      };
 
@@ -321,7 +336,7 @@
 
      File.open = function Win_open(path, mode, options) {
        options = options || noOptions;
-
+       mode = mode || noOptions;
        let share = options.winShare || DEFAULT_SHARE;
        let security = options.winSecurity || null;
        let flags = options.winFlags || DEFAULT_FLAGS;
@@ -471,17 +486,21 @@
 
 
      let FILETIME_to_Date = function FILETIME_to_Date(fileTime) {
-       LOG("fileTimeToDate:", fileTime);
        if (fileTime == null) {
          throw new TypeError("Expecting a non-null filetime");
        }
-       LOG("fileTimeToDate normalized:", fileTime);
-       throw_on_zero("FILETIME_to_Date", WinFile.FileTimeToSystemTime(fileTime.address(),
+       throw_on_zero("FILETIME_to_Date",
+                     WinFile.FileTimeToSystemTime(fileTime.address(),
                                                   gSystemTimePtr));
-       return new Date(gSystemTime.wYear, gSystemTime.wMonth,
-                       gSystemTime.wDay, gSystemTime.wHour,
-                       gSystemTime.wMinute, gSystemTime.wSecond,
-                       gSystemTime.wMilliSeconds);
+       
+       
+       let utc = Date.UTC(gSystemTime.wYear,
+                          gSystemTime.wMonth - 1
+                          ,
+                          gSystemTime.wDay, gSystemTime.wHour,
+                          gSystemTime.wMinute, gSystemTime.wSecond,
+                          gSystemTime.wMilliSeconds);
+       return new Date(utc);
      };
 
      
@@ -615,13 +634,13 @@
 
 
        get isDir() {
-         return this._dwFileAttributes & Const.FILE_ATTRIBUTE_DIRECTORY;
+         return !!(this._dwFileAttributes & Const.FILE_ATTRIBUTE_DIRECTORY);
        },
        
 
 
-       get isLink() {
-         return this._dwFileAttributes & Const.FILE_ATTRIBUTE_REPARSE_POINT;
+       get isSymLink() {
+         return !!(this._dwFileAttributes & Const.FILE_ATTRIBUTE_REPARSE_POINT);
        },
        
 
@@ -670,6 +689,129 @@
          Object.defineProperty(this, "path", {value: path});
          return path;
        }
+     };
+
+     
+
+
+
+
+
+
+
+
+     File.Info = function Info(stat) {
+       this._dwFileAttributes = stat.dwFileAttributes;
+       this._ftCreationTime = stat.ftCreationTime;
+       this._ftLastAccessTime = stat.ftLastAccessTime;
+       this._ftLastWriteTime = stat.ftLastAccessTime;
+       this._nFileSizeHigh = stat.nFileSizeHigh;
+       this._nFileSizeLow = stat.nFileSizeLow;
+     };
+     File.Info.prototype = {
+       
+
+
+       get isDir() {
+         return !!(this._dwFileAttributes & Const.FILE_ATTRIBUTE_DIRECTORY);
+       },
+       
+
+
+       get isSymLink() {
+         return !!(this._dwFileAttributes & Const.FILE_ATTRIBUTE_REPARSE_POINT);
+       },
+       
+
+
+
+
+
+
+
+       get size() {
+         try {
+           return OS.Shared.projectValue(
+             ctypes.uint64_t("" +
+             this._nFileSizeHigh +
+             this._nFileSizeLow));
+         } catch (x) {
+           return NaN;
+         }
+       },
+       
+
+
+
+
+       get creationDate() {
+         delete this.creationDate;
+         let date = FILETIME_to_Date(this._ftCreationTime);
+         Object.defineProperty(this, "creationDate", { value: date });
+         return date;
+       },
+       
+
+
+
+
+
+
+
+       get lastAccessDate() {
+         delete this.lastAccess;
+         let date = FILETIME_to_Date(this._ftLastAccessTime);
+         Object.defineProperty(this, "lastAccessDate", { value: date });
+         return date;
+       },
+       
+
+
+
+
+
+
+
+       get lastModificationDate() {
+         delete this.lastModification;
+         let date = FILETIME_to_Date(this._ftLastWriteTime);
+         Object.defineProperty(this, "lastModificationDate", { value: date });
+         return date;
+       }
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+     File.stat = function stat(path) {
+       let file = File.open(path, FILE_STAT_MODE, FILE_STAT_OPTIONS);
+       try {
+         return file.stat();
+       } finally {
+         file.close();
+       }
+     };
+     
+     
+     const FILE_STAT_MODE = {
+       read:true
+     };
+     const FILE_STAT_OPTIONS = {
+       
+       winAccess: 0,
+       
+       winFlags: OS.Constants.Win.FILE_FLAG_BACKUP_SEMANTICS,
+       winDisposition: OS.Constants.Win.OPEN_EXISTING
      };
 
      
