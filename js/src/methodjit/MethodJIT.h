@@ -185,6 +185,8 @@ struct JITScript {
     uint32          nPICs;           
 #endif
     void            *invoke;         
+    uint32          *escaping;       
+    uint32          nescaping;       
 };
 
 

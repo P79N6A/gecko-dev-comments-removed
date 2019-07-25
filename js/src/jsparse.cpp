@@ -2951,16 +2951,22 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-    if (funtc.inStrictMode()) {
-        
+
+    
 
 
 
-        if (outertc->inFunction() && outertc->inStrictMode()) {
-            if (funtc.callsEval())
-                outertc->noteCallsEval();
-        }
-    }
+
+
+
+
+
+
+
+
+
+    if (funtc.callsEval())
+        outertc->noteCallsEval();
 
 #if JS_HAS_DESTRUCTURING
     
