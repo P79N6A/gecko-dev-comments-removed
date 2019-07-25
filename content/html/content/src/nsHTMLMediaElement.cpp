@@ -631,18 +631,9 @@ static PRBool HasSourceChildren(nsIContent *aElement)
   return PR_FALSE;
 }
 
-
-static PRBool HasPotentialResource(nsIContent *aElement)
-{
-  nsAutoString src;
-  if (aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::src, src))
-    return PR_TRUE;
-  return HasSourceChildren(aElement);
-}
-
 void nsHTMLMediaElement::SelectResource()
 {
-  if (!HasPotentialResource(this)) {
+  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::src) && !HasSourceChildren(this)) {
     
     
     mNetworkState = nsIDOMHTMLMediaElement::NETWORK_EMPTY;
