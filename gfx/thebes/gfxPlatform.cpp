@@ -365,6 +365,8 @@ gfxPlatform::Shutdown()
 
 gfxPlatform::~gfxPlatform()
 {
+    mScreenReferenceSurface = nsnull;
+
     
     
     
