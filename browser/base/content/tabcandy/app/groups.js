@@ -568,7 +568,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
       
       
       var self = this;
-      a.one('mouseup', function(){
+      $el.one('mouseup', function(){
         setTimeout(function(){
           if( self._children.length == 0 ) self.close();
         }, 50);
@@ -1068,7 +1068,7 @@ DragInfo.prototype = {
   
   drag: function(event, ui) {
     if(this.item.isAGroup) {
-      
+      ui = this.snap(event,ui);      
       var bb = this.item.getBounds();
       bb.left = ui.position.left;
       bb.top = ui.position.top;
@@ -1104,7 +1104,7 @@ DragInfo.prototype = {
     if(this.parent && this.parent.expanded)
       this.parent.arrange();
       
-    if(this.item && !this.$el.hasClass('acceptsDrop') && !this.item.parent) {
+    if(this.item && !this.item.parent) {
       this.item.setZ(drag.zIndex);
       drag.zIndex++;
       
