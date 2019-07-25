@@ -10,6 +10,7 @@ import org.mozilla.gecko.sync.Utils;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteDatabaseLockedException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Build;
 import android.text.TextUtils;
@@ -72,20 +73,17 @@ public class DBUtils {
     }
 
     public static void ensureDatabaseIsNotLocked(SQLiteOpenHelper dbHelper, String databasePath) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        
-        
-        
-        
-        if (db.isReadOnly()) {
-            
-            dbHelper.close();
-
-            Log.d(LOGTAG, "Database is in read-only mode, trying to forcefully unlock the database file: " + databasePath);
+        try {
+            dbHelper.getWritableDatabase();
+        } catch (SQLiteDatabaseLockedException e) {
+            Log.d(LOGTAG, "Database is locked, trying to forcefully unlock the database file: " + databasePath);
 
             
             GeckoAppShell.unlockDatabaseFile(databasePath);
+
+            
+            
+            dbHelper.getWritableDatabase();
 
             
             
