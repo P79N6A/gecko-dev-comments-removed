@@ -380,9 +380,11 @@ GfxInfo::AddCrashReportAnnotations()
 #if defined(MOZ_CRASHREPORTER) && defined(MOZ_ENABLE_LIBXUL)
   nsCAutoString deviceIDString, vendorIDString;
   PRUint32 deviceID, vendorID;
+  nsAutoString adapterDriverVersionString;
 
   GetAdapterDeviceID(&deviceID);
   GetAdapterVendorID(&vendorID);
+  GetAdapterDriverVersion(adapterDriverVersionString);
 
   deviceIDString.AppendPrintf("%04x", deviceID);
   vendorIDString.AppendPrintf("%04x", vendorID);
@@ -391,13 +393,15 @@ GfxInfo::AddCrashReportAnnotations()
       vendorIDString);
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterDeviceID"),
       deviceIDString);
-
+  
   
 
   nsCAutoString note;
   
   note.AppendPrintf("AdapterVendorID: %04x, ", vendorID);
-  note.AppendPrintf("AdapterDeviceID: %04x", deviceID);
+  note.AppendPrintf("AdapterDeviceID: %04x, ", deviceID);
+  note.AppendPrintf("AdapterDriverVersion: ");
+  note.Append(NS_LossyConvertUTF16toASCII(adapterDriverVersionString));
 
   if (vendorID == 0) {
       
