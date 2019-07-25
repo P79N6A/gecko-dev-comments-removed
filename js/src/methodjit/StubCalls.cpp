@@ -981,35 +981,6 @@ stubs::InitElem(VMFrame &f, uint32_t last)
     }
 }
 
-JSObject * JS_FASTCALL
-stubs::DefLocalFun(VMFrame &f, JSFunction *fun)
-{
-    
-
-
-
-
-
-
-    JS_ASSERT(fun->isInterpreted());
-
-    JSObject *parent;
-    if (fun->isNullClosure()) {
-        parent = &f.fp()->scopeChain();
-    } else {
-        parent = GetScopeChain(f.cx, f.fp());
-        if (!parent)
-            THROWV(NULL);
-    }
-    JSObject *obj = CloneFunctionObjectIfNotSingleton(f.cx, fun, parent);
-    if (!obj)
-        THROWV(NULL);
-
-    JS_ASSERT_IF(f.script()->compileAndGo, obj->global() == fun->global());
-
-    return obj;
-}
-
 void JS_FASTCALL
 stubs::RegExp(VMFrame &f, JSObject *regex)
 {

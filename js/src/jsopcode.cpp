@@ -4786,8 +4786,22 @@ Decompile(SprintStack *ss, jsbytecode *pc, int nb)
                     break;
                 }
 #endif 
-                
+                else if (sn && SN_TYPE(sn) == SRC_CONTINUE) {
+                    
 
+
+
+
+
+
+                    LOCAL_ASSERT(pc[JSOP_LAMBDA_LENGTH] == JSOP_SETLOCAL);
+                    LOCAL_ASSERT(pc[JSOP_LAMBDA_LENGTH + JSOP_SETLOCAL_LENGTH] == JSOP_POP);
+                    len = JSOP_LAMBDA_LENGTH + JSOP_SETLOCAL_LENGTH + JSOP_POP_LENGTH;
+                    todo = -2;
+                    break;
+                }
+
+                
                 fun = jp->script->getFunction(GET_UINT32_INDEX(pc));
                 {
                     
