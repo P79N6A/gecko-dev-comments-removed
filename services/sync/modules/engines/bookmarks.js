@@ -188,10 +188,14 @@ BookmarksEngine.prototype = {
     let self = yield;
 
     
+
+
+
     
     
-    
-    
+    this._createOutgoingShare.async( this, selectedFolder, username );
+    this._updateOutgoingShare.async( this, selectedFolder, username );
+
     
 
     let folderItemId = selectedFolder.node.itemId;
@@ -199,6 +203,13 @@ BookmarksEngine.prototype = {
     ans.setItemAnnotation(folderItemId, OUTGOING_SHARED_ANNO, username, 0,
                             ans.EXPIRE_NEVER);
     
+
+    
+    if ( this._xmppClient ) {
+      let msgText = "share " + folderName;
+      this._xmppClient.sendMessage( username, msgText );
+    }
+
     
 
 
@@ -233,7 +244,7 @@ BookmarksEngine.prototype = {
     }
   },
 
-  _createOutgoingShare: function BmkEngine__createOutgoing(guid, username) {
+  _createOutgoingShare: function BmkEngine__createOutgoing(folder, username) {
     let self = yield;
     let prefix = DAV.defaultPrefix;
 
@@ -246,6 +257,7 @@ BookmarksEngine.prototype = {
     DAV.GET(this.keysFile, self.cb);
     let ret = yield;
     Utils.ensureStatus(ret.status, "Could not get keys file.");
+    
     let keys = this._json.decode(ret.responseText);
 
     
@@ -275,10 +287,10 @@ BookmarksEngine.prototype = {
     ret = yield;
     Utils.ensureStatus(ret.status, "Could not upload keyring file.");
 
-    
-
-
     this._log.debug("All done sharing!");
+
+    
+    
 
     self.done(true);
   },
@@ -286,6 +298,10 @@ BookmarksEngine.prototype = {
   _updateOutgoingShare: function BmkEngine__updateOutgoing(guid, username) {
     
 
+  },
+
+  _stopOutgoingShare: function BmkEngine__stopOutgoingShare( guid, username ) {
+    
   },
 
   _createIncomingShare: function BookmarkEngine__createShare(guid, id, title) {
