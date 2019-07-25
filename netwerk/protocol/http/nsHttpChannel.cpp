@@ -72,6 +72,7 @@
 #include "nsAlgorithm.h"
 #include "sampler.h"
 #include "nsIConsoleService.h"
+#include "base/compiler_specific.h"
 
 using namespace mozilla;
 
@@ -121,7 +122,7 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
 
 
 nsHttpChannel::nsHttpChannel()
-    : HttpAsyncAborter<nsHttpChannel>(this)
+    : ALLOW_THIS_IN_INITIALIZER_LIST(HttpAsyncAborter<nsHttpChannel>(this))
     , mLogicalOffset(0)
     , mCacheAccess(0)
     , mPostID(0)
@@ -134,7 +135,6 @@ nsHttpChannel::nsHttpChannel()
     , mResuming(false)
     , mInitedCacheEntry(false)
     , mCacheForOfflineUse(false)
-    , mCachingOpportunistically(false)
     , mFallbackChannel(false)
     , mCustomConditionalRequest(false)
     , mFallingBack(false)
@@ -2081,7 +2081,6 @@ nsHttpChannel::ProcessFallback(bool *waitingForRedirectCallback)
     }
 
     mCacheForOfflineUse = false;
-    mCachingOpportunistically = false;
     mOfflineCacheClientID.Truncate();
     mOfflineCacheEntry = 0;
     mOfflineCacheAccess = 0;
@@ -2334,9 +2333,7 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
             NS_FAILED(namespaceEntry->GetItemType(&namespaceType)) ||
             (namespaceType &
              (nsIApplicationCacheNamespace::NAMESPACE_FALLBACK |
-              nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC |
               nsIApplicationCacheNamespace::NAMESPACE_BYPASS)) == 0) {
-            
             
             
             
@@ -2351,19 +2348,6 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
             nsIApplicationCacheNamespace::NAMESPACE_FALLBACK) {
             rv = namespaceEntry->GetData(mFallbackKey);
             NS_ENSURE_SUCCESS(rv, rv);
-        }
-
-        if ((namespaceType &
-             nsIApplicationCacheNamespace::NAMESPACE_OPPORTUNISTIC) &&
-            mLoadFlags & LOAD_DOCUMENT_URI) {
-            
-            
-            nsCString clientID;
-            mApplicationCache->GetClientID(clientID);
-
-            mCacheForOfflineUse = !clientID.IsEmpty();
-            SetOfflineCacheClientID(clientID);
-            mCachingOpportunistically = true;
         }
     }
 
@@ -3104,17 +3088,6 @@ nsHttpChannel::CloseOfflineCacheEntry()
 
     mOfflineCacheEntry = 0;
     mOfflineCacheAccess = 0;
-
-    if (mCachingOpportunistically) {
-        nsCOMPtr<nsIApplicationCacheService> appCacheService =
-            do_GetService(NS_APPLICATIONCACHESERVICE_CONTRACTID);
-        if (appCacheService) {
-            nsCAutoString cacheKey;
-            GenerateCacheKey(mPostID, cacheKey);
-            appCacheService->CacheOpportunistically(mApplicationCache,
-                                                    cacheKey);
-        }
-    }
 }
 
 
@@ -4155,7 +4128,7 @@ nsHttpChannel::Get##name##Time(PRTime* _retval) {              \
         return NS_OK;                                          \
     }                                                          \
     *_retval = mChannelCreationTime +                          \
-        (stamp - mChannelCreationTimestamp).ToSeconds() * 1e6; \
+        (PRTime) ((stamp - mChannelCreationTimestamp).ToSeconds() * 1e6); \
     return NS_OK;                                              \
 }
 
@@ -4601,10 +4574,18 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
         
         
         
+
+        
+        
+        
+        
+        PRUint32 odaOffset = mLogicalOffset > PR_UINT32_MAX
+                           ? PR_UINT32_MAX : PRUint32(mLogicalOffset);
+
         nsresult rv =  mListener->OnDataAvailable(this,
                                                   mListenerContext,
                                                   input,
-                                                  mLogicalOffset,
+                                                  odaOffset,
                                                   count);
         if (NS_SUCCEEDED(rv))
             mLogicalOffset = progress;

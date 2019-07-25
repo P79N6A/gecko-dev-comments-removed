@@ -109,7 +109,7 @@ static void*
 TryAllocAlignedBytes(size_t aSize)
 {
     
-#if defined(HAVE_POSIX_MEMALIGN) || defined(HAVE_JEMALLOC_POSIX_MEMALIGN)
+#if defined(HAVE_POSIX_MEMALIGN)
     void* ptr;
     
     

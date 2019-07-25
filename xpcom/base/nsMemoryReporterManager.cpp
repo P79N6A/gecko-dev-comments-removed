@@ -62,21 +62,8 @@ static PRInt64 GetExplicit()
 }
 
 #if defined(MOZ_MEMORY)
-#  if defined(XP_WIN) || defined(SOLARIS) || defined(ANDROID) || defined(XP_MACOSX)
-#    define HAVE_JEMALLOC_STATS 1
-#    include "jemalloc.h"
-#  elif defined(XP_LINUX)
-#    define HAVE_JEMALLOC_STATS 1
-#    include "jemalloc_types.h"
-
-
-
-
-extern "C" {
-extern void jemalloc_stats(jemalloc_stats_t* stats)
-  NS_VISIBILITY_DEFAULT __attribute__((weak));
-}
-#  endif  
+#  define HAVE_JEMALLOC_STATS 1
+#  include "jemalloc.h"
 #endif  
 
 #if defined(XP_LINUX) || defined(XP_MACOSX) || defined(SOLARIS)

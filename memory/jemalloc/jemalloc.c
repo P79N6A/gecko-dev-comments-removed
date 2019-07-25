@@ -124,6 +124,8 @@
 
 
 
+
+
 #ifdef MOZ_MEMORY_DARWIN
 #define MALLOC_DOUBLE_PURGE
 #endif
@@ -374,7 +376,7 @@ __FBSDID("$FreeBSD: head/lib/libc/stdlib/malloc.c 180599 2008-07-18 19:35:44Z ja
 
 #endif
 
-#include "jemalloc.h"
+#include "jemalloc_types.h"
 #include "linkedlist.h"
 
 
@@ -5918,7 +5920,7 @@ MALLOC_OUT:
 #endif
 	}
 
-#if !defined(MOZ_MEMORY_WINDOWS)
+#if !defined(MOZ_MEMORY_WINDOWS) && !defined(MOZ_MEMORY_DARWIN)
 	
 	pthread_atfork(_malloc_prefork, _malloc_postfork, _malloc_postfork);
 #endif
@@ -6550,8 +6552,11 @@ free(void *ptr)
 
 
 
+#ifdef MOZ_MEMORY_DARWIN
+static
+#endif
 size_t
-je_malloc_usable_size_in_advance(size_t size)
+je_malloc_good_size(size_t size)
 {
 	
 
@@ -6915,7 +6920,7 @@ zone_destroy(malloc_zone_t *zone)
 static size_t
 zone_good_size(malloc_zone_t *zone, size_t size)
 {
-	return je_malloc_usable_size_in_advance(size);
+	return je_malloc_good_size(size);
 }
 
 static size_t

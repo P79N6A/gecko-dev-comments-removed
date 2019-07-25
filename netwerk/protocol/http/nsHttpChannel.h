@@ -339,9 +339,6 @@ private:
     PRUint32                          mCacheForOfflineUse       : 1;
     
     
-    PRUint32                          mCachingOpportunistically : 1;
-    
-    
     PRUint32                          mFallbackChannel          : 1;
     
     

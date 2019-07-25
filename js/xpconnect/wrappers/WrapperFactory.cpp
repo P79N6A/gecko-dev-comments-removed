@@ -380,16 +380,38 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
         
         
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         XrayType type;
         if (AccessCheck::needsSystemOnlyWrapper(obj)) {
             wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
                                         OnlyIfSubjectIsSystem>::singleton;
-        } else if (IsLocationObject(obj)) {
-            typedef XrayWrapper<CrossCompartmentSecurityWrapper> Xray;
-            usingXray = true;
-            wrapper = &FilteringWrapper<Xray, LocationPolicy>::singleton;
         } else if (!targetdata || !targetdata->wantXrays ||
                    (type = GetXrayType(obj)) == NotXray) {
+            
+            if (IsLocationObject(obj)) {
+                JSAutoEnterCompartment ac;
+                if (!ac.enter(cx, obj))
+                    return nsnull;
+                XPCWrappedNative *wn = GetWrappedNative(cx, obj);
+                if (!wn)
+                    return nsnull;
+                obj = wn->GetSameCompartmentSecurityWrapper(cx);
+            }
             wrapper = &CrossCompartmentWrapper::singleton;
         } else if (type == XrayForDOMObject) {
             wrapper = &XrayDOM::singleton;

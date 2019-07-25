@@ -1356,8 +1356,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            nsIXPCScriptable::WANT_DELPROPERTY |
                            nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |
                            nsIXPCScriptable::WANT_NEWENUMERATE)
-  NS_DEFINE_CLASSINFO_DATA(StorageList, nsStorageListSH,
-                           ARRAY_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(StorageItem, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(StorageEvent, nsDOMGenericSH,
@@ -3921,10 +3919,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorage)
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(StorageList, nsIDOMStorageList)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorageList)
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(StorageItem, nsIDOMStorageItem)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorageItem)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMToString)
@@ -4799,7 +4793,7 @@ nsDOMClassInfo::Convert(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsDOMClassInfo::Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+nsDOMClassInfo::Finalize(nsIXPConnectWrappedNative *wrapper, JSFreeOp *fop,
                          JSObject *obj)
 {
   NS_WARNING("nsDOMClassInfo::Finalize Don't call me!");
@@ -7403,7 +7397,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+nsWindowSH::Finalize(nsIXPConnectWrappedNative *wrapper, JSFreeOp *fop,
                      JSObject *obj)
 {
   nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryWrappedNative(wrapper));
@@ -8940,7 +8934,7 @@ nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSObject *obj, jsid id,
 
 
 void
-nsHTMLDocumentSH::ReleaseDocument(JSContext *cx, JSObject *obj)
+nsHTMLDocumentSH::ReleaseDocument(JSFreeOp *fop, JSObject *obj)
 {
   nsIHTMLDocument *doc = (nsIHTMLDocument *)::JS_GetPrivate(obj);
 
@@ -10632,18 +10626,6 @@ nsStorage2SH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
 
 
-nsISupports*
-nsStorageListSH::GetNamedItem(nsISupports *aNative, const nsAString& aName,
-                              nsWrapperCache **aCache, nsresult *aResult)
-{
-  nsDOMStorageList* storagelist = static_cast<nsDOMStorageList*>(aNative);
-
-  return storagelist->GetNamedItem(aName, aResult);
-}
-
-
-
-
 NS_INTERFACE_MAP_BEGIN(nsEventListenerThisTranslator)
   NS_INTERFACE_MAP_ENTRY(nsIXPCFunctionThisTranslator)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
@@ -10740,7 +10722,7 @@ nsDOMConstructorSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx
   
   JSBool found;
   if (!JS_HasPropertyById(cx, nativePropsObj, id, &found)) {
-    *_retval = PR_FALSE;
+    *_retval = false;
     return NS_OK;
   }
 

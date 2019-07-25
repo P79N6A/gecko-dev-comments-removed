@@ -248,8 +248,7 @@ public:
           mHasIdAttribute(false),
           mHasClassAttribute(false),
           mHasStyleAttribute(false),
-          mHoldsScriptObject(false),
-          mScriptTypeID(nsIProgrammingLanguage::UNKNOWN)
+          mHoldsScriptObject(false)
     {
     }
 
@@ -297,11 +296,6 @@ public:
     bool                     mHasStyleAttribute:1;
     bool                     mHoldsScriptObject:1;
 
-    
-    
-    
-    
-    PRUint16                 mScriptTypeID;
 };
 
 class nsXULDocument;
@@ -699,4 +693,4 @@ protected:
     }
 };
 
-#endif 
+#endif

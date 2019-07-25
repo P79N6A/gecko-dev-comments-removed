@@ -10,6 +10,7 @@
 
 
 
+
 const STATE_CHECKED = nsIAccessibleStates.STATE_CHECKED;
 const STATE_CHECKABLE = nsIAccessibleStates.STATE_CHECKABLE;
 const STATE_COLLAPSED = nsIAccessibleStates.STATE_COLLAPSED;
@@ -71,7 +72,7 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
                     aAbsentExtraState, aTestName)
 {
   var [state, extraState] = getStates(aAccOrElmOrID);
-
+  var role = getRole(aAccOrElmOrID);
   var id = prettyName(aAccOrElmOrID) + (aTestName ? " [" + aTestName + "]": "");
 
   
@@ -135,7 +136,7 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
   }
 
   
-  if (state & STATE_CHECKED || state & STATE_MIXED)
+  if (state & STATE_CHECKED || state & STATE_MIXED && role != ROLE_PROGRESSBAR)
     isState(state & STATE_CHECKABLE, STATE_CHECKABLE, false,
             "Checked or mixed element must be checkable!");
 

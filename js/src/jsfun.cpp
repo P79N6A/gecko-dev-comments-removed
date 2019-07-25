@@ -916,6 +916,22 @@ fun_bind(JSContext *cx, unsigned argc, Value *vp)
     }
 
     
+    Value thisArg = args.length() >= 1 ? args[0] : UndefinedValue();
+
+    JSObject *boundFunction = js_fun_bind(cx, target, thisArg, boundArgs, argslen);
+    if (!boundFunction)
+        return false;
+
+    
+    args.rval().setObject(*boundFunction);
+    return true;
+}
+
+JSObject*
+js_fun_bind(JSContext *cx, HandleObject target, Value thisArg,
+            Value *boundArgs, unsigned argslen)
+{
+    
     unsigned length = 0;
     if (target->isFunction()) {
         unsigned nargs = target->toFunction()->nargs;
@@ -930,23 +946,18 @@ fun_bind(JSContext *cx, unsigned argc, Value *vp)
         js_NewFunction(cx, NULL, CallOrConstructBoundFunction, length,
                        JSFUN_CONSTRUCTOR, target, name);
     if (!funobj)
-        return false;
+        return NULL;
 
     
     if (!funobj->setParent(cx, target))
-        return false;
+        return NULL;
 
-    
-    Value thisArg = args.length() >= 1 ? args[0] : UndefinedValue();
     if (!funobj->toFunction()->initBoundFunction(cx, thisArg, boundArgs, argslen))
-        return false;
+        return NULL;
 
     
     
-
-    
-    args.rval().setObject(*funobj);
-    return true;
+    return funobj;
 }
 
 

@@ -318,16 +318,16 @@ struct JSCompartment
 
     
     js::BaseShapeSet             baseShapes;
-    void sweepBaseShapeTable(JSContext *cx);
+    void sweepBaseShapeTable();
 
     
     js::InitialShapeSet          initialShapes;
-    void sweepInitialShapeTable(JSContext *cx);
+    void sweepInitialShapeTable();
 
     
     js::types::TypeObjectSet     newTypeObjects;
     js::types::TypeObjectSet     lazyTypeObjects;
-    void sweepNewTypeObjectTable(JSContext *cx, js::types::TypeObjectSet &table);
+    void sweepNewTypeObjectTable(js::types::TypeObjectSet &table);
 
     js::types::TypeObject        *emptyTypeObject;
 
@@ -388,8 +388,8 @@ struct JSCompartment
 
     void mark(JSTracer *trc);
     void markTypes(JSTracer *trc);
-    void discardJitCode(JSContext *cx);
-    void sweep(JSContext *cx, bool releaseTypes);
+    void discardJitCode(js::FreeOp *fop);
+    void sweep(js::FreeOp *fop, bool releaseTypes);
     void purge();
 
     void setGCLastBytes(size_t lastBytes, size_t lastMallocBytes, js::JSGCInvocationKind gckind);
@@ -451,12 +451,12 @@ struct JSCompartment
 
   private:
     
-    void updateForDebugMode(JSContext *cx);
+    void updateForDebugMode(js::FreeOp *fop);
 
   public:
     js::GlobalObjectSet &getDebuggees() { return debuggees; }
     bool addDebuggee(JSContext *cx, js::GlobalObject *global);
-    void removeDebuggee(JSContext *cx, js::GlobalObject *global,
+    void removeDebuggee(js::FreeOp *fop, js::GlobalObject *global,
                         js::GlobalObjectSet::Enum *debuggeesEnum = NULL);
     bool setDebugModeFromC(JSContext *cx, bool b);
 
@@ -464,7 +464,7 @@ struct JSCompartment
     void clearTraps(JSContext *cx);
 
   private:
-    void sweepBreakpoints(JSContext *cx);
+    void sweepBreakpoints(js::FreeOp *fop);
 
   public:
     js::WatchpointMap *watchpointMap;

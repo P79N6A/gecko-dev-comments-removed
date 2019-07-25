@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_A11Y_OUTERDOCACCESSIBLE_H_
 #define MOZILLA_A11Y_OUTERDOCACCESSIBLE_H_
 
-#include "AccessibleWrap.h"
+#include "nsAccessibleWrap.h"
 
 namespace mozilla {
 namespace a11y {
@@ -20,18 +53,18 @@ namespace a11y {
 
 
 
-class OuterDocAccessible : public AccessibleWrap
+class OuterDocAccessible : public nsAccessibleWrap
 {
 public:
-  OuterDocAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  OuterDocAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
   virtual ~OuterDocAccessible();
 
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD GetActionDescription(uint8_t aIndex, nsAString& aDescription);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD GetActionDescription(PRUint8 aIndex, nsAString& aDescription);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
   virtual void Shutdown();
@@ -39,15 +72,15 @@ public:
   
   virtual mozilla::a11y::role NativeRole();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-  virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
-                                   EWhichChildAtPoint aWhichChild);
+  virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
+                                     EWhichChildAtPoint aWhichChild);
 
   virtual void InvalidateChildren();
-  virtual bool AppendChild(Accessible* aAccessible);
-  virtual bool RemoveChild(Accessible* aAccessible);
+  virtual bool AppendChild(nsAccessible *aAccessible);
+  virtual bool RemoveChild(nsAccessible *aAccessible);
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
 protected:
   

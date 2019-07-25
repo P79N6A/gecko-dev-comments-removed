@@ -40,6 +40,7 @@
 #ifndef _nsARIAMap_H_
 #define _nsARIAMap_H_
 
+#include "mozilla/a11y/ARIAStateMap.h"
 #include "mozilla/a11y/Role.h"
 #include "prtypes.h"
 
@@ -153,125 +154,11 @@ struct nsAttributeCharacteristics
 
 #define kNoReqStates 0
 
-enum eStateValueType
-{
-  kBoolType,
-  kMixedType
-};
-
 enum EDefaultStateRule
 {
   
   eUseFirstState
 };
-
-
-
-
-enum eStateMapEntryID
-{
-  eARIANone,
-  eARIAAutoComplete,
-  eARIABusy,
-  eARIACheckableBool,
-  eARIACheckableMixed,
-  eARIACheckedMixed,
-  eARIADisabled,
-  eARIAExpanded,
-  eARIAHasPopup,
-  eARIAInvalid,
-  eARIAMultiline,
-  eARIAMultiSelectable,
-  eARIAOrientation,
-  eARIAPressed,
-  eARIAReadonly,
-  eARIAReadonlyOrEditable,
-  eARIARequired,
-  eARIASelectable,
-  eReadonlyUntilEditable
-};
-
-class nsStateMapEntry
-{
-public:
-  
-
-
-  nsStateMapEntry();
-
-  
-
-
-
-  nsStateMapEntry(PRUint64 aDefaultState, PRUint64 aExclusingState);
-
-  
-
-
-  nsStateMapEntry(nsIAtom** aAttrName, eStateValueType aType,
-                  PRUint64 aPermanentState,
-                  PRUint64 aTrueState,
-                  PRUint64 aFalseState = 0,
-                  bool aDefinedIfAbsent = false);
-
-  
-
-
-  nsStateMapEntry(nsIAtom** aAttrName,
-                  const char* aValue1, PRUint64 aState1,
-                  const char* aValue2, PRUint64 aState2,
-                  const char* aValue3 = 0, PRUint64 aState3 = 0);
-
-  
-
-
-
-  nsStateMapEntry(nsIAtom** aAttrName, EDefaultStateRule aDefaultStateRule,
-                  const char* aValue1, PRUint64 aState1,
-                  const char* aValue2, PRUint64 aState2,
-                  const char* aValue3 = 0, PRUint64 aState3 = 0);
-
-  
-
-
-
-
-
-
-
-  static bool MapToStates(nsIContent* aContent, PRUint64* aState,
-                            eStateMapEntryID aStateMapEntryID);
-
-private:
-  
-  nsIAtom** mAttributeName;
-
-  
-  bool mIsToken;
-
-  
-  PRUint64 mPermanentState;
-
-  
-  const char* mValue1;
-  PRUint64 mState1;
-
-  const char* mValue2;
-  PRUint64 mState2;
-
-  const char* mValue3;
-  PRUint64 mState3;
-
-  
-  PRUint64 mDefaultState;
-
-  
-  bool mDefinedIfAbsent;
-
-  
-  PRUint64 mExcludingState;
-};
-
 
 
 
@@ -302,15 +189,15 @@ struct nsRoleMapEntry
 
   
   PRUint64 state;   
+
   
   
   
   
   
-  
-  eStateMapEntryID attributeMap1;
-  eStateMapEntryID attributeMap2;
-  eStateMapEntryID attributeMap3;
+  mozilla::a11y::aria::EStateRule attributeMap1;
+  mozilla::a11y::aria::EStateRule attributeMap2;
+  mozilla::a11y::aria::EStateRule attributeMap3;
 };
 
 
@@ -346,14 +233,9 @@ struct nsARIAMap
   
 
 
-  static nsStateMapEntry gWAIStateMap[];
 
-  
+  static mozilla::a11y::aria::EStateRule gWAIUnivStateMap[];
 
-
-
-  static eStateMapEntryID gWAIUnivStateMap[];
-  
   
 
 
@@ -364,11 +246,12 @@ struct nsARIAMap
 
 
 
-  static PRUint64 UniversalStatesFor(nsIContent* aContent)
+  static PRUint64 UniversalStatesFor(mozilla::dom::Element* aElement)
   {
     PRUint64 state = 0;
     PRUint32 index = 0;
-    while (nsStateMapEntry::MapToStates(aContent, &state, gWAIUnivStateMap[index]))
+    while (mozilla::a11y::aria::MapToState(gWAIUnivStateMap[index],
+                                           aElement, &state))
       index++;
 
     return state;

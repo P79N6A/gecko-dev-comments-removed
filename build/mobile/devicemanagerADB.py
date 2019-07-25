@@ -7,7 +7,8 @@ import tempfile
 
 class DeviceManagerADB(DeviceManager):
 
-  def __init__(self, host = None, port = 20701, retrylimit = 5, packageName = None):
+  def __init__(self, host=None, port=20701, retrylimit=5, packageName='fennec',
+               adbPath='adb', deviceSerial=None):
     self.host = host
     self.port = port
     self.retrylimit = retrylimit
@@ -20,13 +21,20 @@ class DeviceManagerADB(DeviceManager):
     self.packageName = None
     self.tempDir = None
 
-    if packageName:
-      self.packageName = packageName
-    else:
+    
+    self.adbPath = adbPath
+
+    
+    
+    self.deviceSerial = deviceSerial
+
+    if packageName == 'fennec':
       if os.getenv('USER'):
         self.packageName = 'org.mozilla.fennec_' + os.getenv('USER')
       else:
         self.packageName = 'org.mozilla.fennec_'
+    elif packageName:
+      self.packageName = packageName
 
     
     self.verifyADB()
@@ -96,7 +104,11 @@ class DeviceManagerADB(DeviceManager):
       cmdline = envstr + "; " + cmdline
 
     
-    proc = subprocess.Popen(["adb", "shell", cmdline],
+    args=[self.adbPath]
+    if self.deviceSerial:
+        args.extend(['-s', self.deviceSerial])
+    args.extend(["shell", cmdline])
+    proc = subprocess.Popen(args,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdout, stderr) = proc.communicate()
     outputfile.write(stdout.rstrip('\n'))
@@ -149,7 +161,9 @@ class DeviceManagerADB(DeviceManager):
   
   def mkDir(self, name):
     try:
-      self.checkCmdAs(["shell", "mkdir", name])
+      result = self.runCmdAs(["shell", "mkdir", name]).stdout.read()
+      if 'read-only file system' in result.lower():
+        return None
       self.chmodDir(name)
       return name
     except:
@@ -523,10 +537,14 @@ class DeviceManagerADB(DeviceManager):
     testRoot = "/data/local/tests"
     if (self.dirExists(testRoot)):
       return testRoot
+
     root = "/mnt/sdcard"
-    if (not self.dirExists(root)):
-      root = "/data/local"
-    testRoot = root + "/tests"
+    if self.dirExists(root):
+      testRoot = root + "/tests"
+      if self.mkDir(testRoot):
+        return testRoot
+
+    testRoot = "/data/local/tests"
     if (not self.dirExists(testRoot)):
       self.mkDir(testRoot)
     return testRoot
@@ -671,11 +689,14 @@ class DeviceManagerADB(DeviceManager):
   def runCmd(self, args):
     
     
+    finalArgs = [self.adbPath]
+    if self.deviceSerial:
+      finalArgs.extend(['-s', self.deviceSerial])
     if (not self.haveRoot and self.useRunAs and args[0] == "shell" and args[1] != "run-as"):
       args.insert(1, "run-as")
       args.insert(2, self.packageName)
-    args.insert(0, "adb")
-    return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    finalArgs.extend(args)
+    return subprocess.Popen(finalArgs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
   def runCmdAs(self, args):
     if self.useRunAs:
@@ -686,11 +707,14 @@ class DeviceManagerADB(DeviceManager):
   def checkCmd(self, args):
     
     
+    finalArgs = [self.adbPath]
+    if self.deviceSerial:
+      finalArgs.extend(['-s', self.deviceSerial])
     if (not self.haveRoot and self.useRunAs and args[0] == "shell" and args[1] != "run-as"):
       args.insert(1, "run-as")
       args.insert(2, self.packageName)
-    args.insert(0, "adb")
-    return subprocess.check_call(args)
+    finalArgs.extend(args)
+    return subprocess.check_call(finalArgs)
 
   def checkCmdAs(self, args):
     if (self.useRunAs):
@@ -715,6 +739,10 @@ class DeviceManagerADB(DeviceManager):
 
   def verifyADB(self):
     
+    if self.adbPath != 'adb':
+      if not os.access(self.adbPath, os.X_OK):
+        raise DMError("invalid adb path, or adb not executable: %s", self.adbPath)
+
     try:
       self.checkCmd(["version"])
     except os.error, err:
@@ -723,6 +751,23 @@ class DeviceManagerADB(DeviceManager):
       raise DMError("unable to execute ADB: ensure Android SDK is installed and adb is in your $PATH")
 
   def verifyDevice(self):
+    
+    if self.deviceSerial:
+      deviceStatus = None
+      proc = subprocess.Popen([self.adbPath, "devices"],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+      for line in proc.stdout:
+        m = re.match('(.+)?\s+(.+)$', line)
+        if m:
+          if self.deviceSerial == m.group(1):
+            deviceStatus = m.group(2)
+      if deviceStatus == None:
+        raise DMError("device not found: %s" % self.deviceSerial)
+      elif deviceStatus != "device":
+        raise DMError("bad status for device %s: %s" % (self.deviceSerial,
+                                                        deviceStatus))
+
     
     try:
       self.checkCmd(["shell", "echo"])

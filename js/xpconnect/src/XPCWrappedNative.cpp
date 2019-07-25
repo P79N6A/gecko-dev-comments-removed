@@ -1669,6 +1669,16 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 if (!propertyHolder || !JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
                     return NS_ERROR_OUT_OF_MEMORY;
 
+                
+                
+                
+                {
+                    JSAutoEnterCompartment innerAC;
+                    if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
+                        !wrapper->GetSameCompartmentSecurityWrapper(ccx))
+                        return NS_ERROR_FAILURE;
+                }
+
                 JSObject *ww = wrapper->GetWrapper();
                 if (ww) {
                     JSObject *newwrapper;
@@ -1683,12 +1693,41 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                             return NS_ERROR_FAILURE;
                     }
 
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    JSObject *wwsaved = ww;
+                    wrapper->SetWrapper(newwrapper);
                     ww = js_TransplantObjectWithWrapper(ccx, flat, ww, newobj,
                                                         newwrapper);
-                    if (!ww)
+                    if (!ww) {
+                        wrapper->SetWrapper(wwsaved);
                         return NS_ERROR_FAILURE;
+                    }
+
                     flat = newobj;
-                    wrapper->SetWrapper(ww);
                 } else {
                     flat = JS_TransplantObject(ccx, flat, newobj);
                     if (!flat)
@@ -2164,6 +2203,52 @@ XPCWrappedNative::InitTearOffJSObject(XPCCallContext& ccx,
     JS_SetPrivate(obj, to);
     to->SetJSObject(obj);
     return true;
+}
+
+JSObject*
+XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
+{
+    
+    JSObject *flat = GetFlatJSObject();
+    JSObject *wrapper = GetWrapper();
+
+    
+    
+    
+    
+    
+    if (wrapper)
+        return wrapper;
+
+    
+    JSCompartment *cxCompartment = js::GetContextCompartment(cx);
+    MOZ_ASSERT(cxCompartment == js::GetObjectCompartment(flat));
+    if (xpc::AccessCheck::isChrome(cxCompartment)) {
+        MOZ_ASSERT(wrapper == NULL);
+        return flat;
+    }
+
+    
+    
+    
+    if (xpc::WrapperFactory::IsLocationObject(flat)) {
+        wrapper = xpc::WrapperFactory::WrapLocationObject(cx, flat);
+        if (!wrapper)
+            return NULL;
+    } else if (NeedsSOW()) {
+        wrapper = xpc::WrapperFactory::WrapSOWObject(cx, flat);
+        if (!wrapper)
+            return NULL;
+    }
+
+    
+    if (wrapper) {
+        SetWrapper(wrapper);
+        return wrapper;
+    }
+
+    
+    return flat;
 }
 
 

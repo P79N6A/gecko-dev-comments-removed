@@ -396,7 +396,7 @@ XPCWrappedNativeScope::SuspectAllWrappers(XPCJSRuntime* rt,
 
 
 void
-XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
+XPCWrappedNativeScope::StartFinalizationPhaseOfGC(JSFreeOp *fop, XPCJSRuntime* rt)
 {
     
     
@@ -416,7 +416,7 @@ XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
 
         if (cur->mGlobalJSObject &&
             JS_IsAboutToBeFinalized(cur->mGlobalJSObject)) {
-            cur->mGlobalJSObject.finalize(cx);
+            cur->mGlobalJSObject.finalize(fop->runtime());
             cur->mScriptObjectPrincipal = nsnull;
             if (cur->GetCachedDOMPrototypes().IsInitialized())
                  cur->GetCachedDOMPrototypes().Clear();
@@ -431,7 +431,7 @@ XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
         } else {
             if (cur->mPrototypeJSObject &&
                 JS_IsAboutToBeFinalized(cur->mPrototypeJSObject)) {
-                cur->mPrototypeJSObject.finalize(cx);
+                cur->mPrototypeJSObject.finalize(fop->runtime());
             }
             if (cur->mPrototypeNoHelper &&
                 JS_IsAboutToBeFinalized(cur->mPrototypeNoHelper)) {
@@ -446,7 +446,7 @@ XPCWrappedNativeScope::FinishedMarkPhaseOfGC(JSContext* cx, XPCJSRuntime* rt)
 
 
 void
-XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC(JSContext* cx)
+XPCWrappedNativeScope::FinishedFinalizationPhaseOfGC()
 {
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
 

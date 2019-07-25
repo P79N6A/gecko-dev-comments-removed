@@ -187,6 +187,45 @@ struct ConservativeGCData
     }
 };
 
+class FreeOp : public JSFreeOp {
+    bool        shouldFreeLater_;
+    bool        onBackgroundThread_;
+
+  public:
+    static FreeOp *get(JSFreeOp *fop) {
+        return static_cast<FreeOp *>(fop);
+    }
+
+    FreeOp(JSRuntime *rt, bool shouldFreeLater, bool onBackgroundThread)
+      : JSFreeOp(rt),
+        shouldFreeLater_(shouldFreeLater),
+        onBackgroundThread_(onBackgroundThread)
+    {
+    }
+
+    bool shouldFreeLater() const {
+        return shouldFreeLater_;
+    }
+
+    bool onBackgroundThread() const {
+        return onBackgroundThread_;
+    }
+
+    inline void free_(void* p);
+
+    JS_DECLARE_DELETE_METHODS(free_, inline)
+
+    static void staticAsserts() {
+        
+
+
+
+
+
+        JS_STATIC_ASSERT(offsetof(FreeOp, shouldFreeLater_) == sizeof(JSFreeOp));
+    }
+};
+
 } 
 
 struct JSRuntime : js::RuntimeFriendFields
@@ -254,7 +293,7 @@ struct JSRuntime : js::RuntimeFriendFields
     JSContextCallback   cxCallback;
 
     
-    JSCompartmentCallback compartmentCallback;
+    JSDestroyCompartmentCallback destroyCompartmentCallback;
 
     js::ActivityCallback  activityCallback;
     void                 *activityCallbackArg;
@@ -317,7 +356,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     volatile uintptr_t  gcIsNeeded;
-    volatile uintptr_t  gcFullIsNeeded;
 
     js::WeakMapBase     *gcWeakMapList;
     js::gcstats::Statistics gcStats;
@@ -332,9 +370,6 @@ struct JSRuntime : js::RuntimeFriendFields
     js::gcreason::Reason gcTriggerReason;
 
     
-    bool                gcIsFull;
-
-    
 
 
 
@@ -347,13 +382,7 @@ struct JSRuntime : js::RuntimeFriendFields
     js::gc::State       gcIncrementalState;
 
     
-    bool                gcCompartmentCreated;
-
-    
     bool                gcLastMarkSlice;
-
-    
-    bool                gcIncrementalIsFull;
 
     
 
@@ -420,8 +449,9 @@ struct JSRuntime : js::RuntimeFriendFields
     int                 gcZeal_;
     int                 gcZealFrequency;
     int                 gcNextScheduled;
-    bool                gcDebugCompartmentGC;
     bool                gcDeterministicOnly;
+
+    js::Vector<JSObject *, 0, js::SystemAllocPolicy> gcSelectedForMarking;
 
     int gcZeal() { return gcZeal_; }
 
@@ -508,6 +538,14 @@ struct JSRuntime : js::RuntimeFriendFields
 
     js::GCHelperThread  gcHelperThread;
 #endif 
+
+  private:
+    js::FreeOp          defaultFreeOp_;
+
+  public:
+    js::FreeOp *defaultFreeOp() {
+        return &defaultFreeOp_;
+    }
 
     uint32_t            debuggerMutations;
 
@@ -786,7 +824,7 @@ namespace VersionFlags {
 static const unsigned MASK         = 0x0FFF; 
 static const unsigned HAS_XML      = 0x1000; 
 static const unsigned FULL_MASK    = 0x3FFF;
-}
+} 
 
 static inline JSVersion
 VersionNumber(JSVersion version)
@@ -848,6 +886,17 @@ VersionIsKnown(JSVersion version)
 typedef HashSet<JSObject *,
                 DefaultHasher<JSObject *>,
                 SystemAllocPolicy> BusyArraysSet;
+
+inline void
+FreeOp::free_(void* p) {
+#ifdef JS_THREADSAFE
+    if (shouldFreeLater()) {
+        runtime()->gcHelperThread.freeLater(p);
+        return;
+    }
+#endif
+    runtime()->free_(p);
+}
 
 } 
 

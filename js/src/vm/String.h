@@ -395,7 +395,7 @@ class JSString : public js::gc::Cell
 
     
 
-    inline void finalize(JSContext *cx, bool background);
+    inline void finalize(js::FreeOp *fop);
 
     
 
@@ -533,9 +533,7 @@ class JSFlatString : public JSLinearString
 
     inline js::PropertyName *toPropertyName(JSContext *cx);
 
-    
-
-    inline void finalize(JSRuntime *rt);
+    inline void finalize(js::FreeOp *fop);
 };
 
 JS_STATIC_ASSERT(sizeof(JSFlatString) == sizeof(JSString));
@@ -630,7 +628,7 @@ class JSShortString : public JSInlineString
 
     
 
-    JS_ALWAYS_INLINE void finalize(JSContext *cx, bool background);
+    JS_ALWAYS_INLINE void finalize(js::FreeOp *fop);
 };
 
 JS_STATIC_ASSERT(sizeof(JSShortString) == 2 * sizeof(JSString));
@@ -654,8 +652,7 @@ class JSExternalString : public JSFixedString
 
     
 
-    inline void finalize(JSContext *cx, bool background);
-    inline void finalize();
+    inline void finalize(js::FreeOp *fop);
 };
 
 JS_STATIC_ASSERT(sizeof(JSExternalString) == sizeof(JSString));
@@ -670,7 +667,7 @@ class JSAtom : public JSFixedString
     
     inline js::PropertyName *asPropertyName();
 
-    inline void finalize(JSRuntime *rt);
+    inline void finalize(js::FreeOp *fop);
 
 #ifdef DEBUG
     void dump();

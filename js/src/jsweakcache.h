@@ -69,11 +69,10 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
 
   public:
     
-    void sweep(JSContext *cx) {
-
+    void sweep(FreeOp *fop) {
         
         for (Enum e(*this); !e.empty(); e.popFront()) {
-            if (!gc::IsMarked(cx, e.front().key) || !gc::IsMarked(cx, e.front().value))
+            if (!gc::IsMarked(e.front().key) || !gc::IsMarked(e.front().value))
                 e.removeFront();
         }
 
@@ -81,8 +80,8 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
         
         
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
-            JS_ASSERT(gc::IsMarked(cx, r.front().key));
-            JS_ASSERT(gc::IsMarked(cx, r.front().value));
+            JS_ASSERT(gc::IsMarked(r.front().key));
+            JS_ASSERT(gc::IsMarked(r.front().value));
         }
 #endif
     }

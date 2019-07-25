@@ -802,7 +802,12 @@ public:
 
 
 
-  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, bool aNotify) = 0;
+
+
+
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
+                                const nsAString* aSerialized,
+                                bool aNotify) = 0;
 
   
 

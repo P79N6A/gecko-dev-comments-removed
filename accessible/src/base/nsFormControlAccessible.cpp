@@ -80,6 +80,22 @@ ProgressMeterAccessible<Max>::NativeRole()
   return roles::PROGRESSBAR;
 }
 
+template<int Max>
+PRUint64
+ProgressMeterAccessible<Max>::NativeState()
+{
+  PRUint64 state = nsFormControlAccessible::NativeState();
+
+  
+  nsAutoString attrValue;
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, attrValue);
+
+  if (attrValue.IsEmpty())
+    state |= states::MIXED;
+
+  return state;
+}
+
 
 
 
