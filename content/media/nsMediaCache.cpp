@@ -1077,7 +1077,7 @@ nsMediaCache::PredictNextUseForIncomingData(nsMediaCacheStream* aStream)
       NS_MIN<PRInt64>(millisecondsAhead, PR_INT32_MAX));
 }
 
-enum StreamAction { NONE, SEEK, RESUME, SUSPEND };
+enum StreamAction { NONE, SEEK, SEEK_AND_RESUME, RESUME, SUSPEND };
 
 void
 nsMediaCache::Update()
@@ -1322,7 +1322,7 @@ nsMediaCache::Update()
         
         
         stream->mChannelOffset = (desiredOffset/BLOCK_SIZE)*BLOCK_SIZE;
-        actions[i] = SEEK;
+        actions[i] = stream->mCacheSuspended ? SEEK_AND_RESUME : SEEK;
       } else if (enableReading && stream->mCacheSuspended) {
         actions[i] = RESUME;
       } else if (!enableReading && !stream->mCacheSuspended) {
@@ -1341,36 +1341,53 @@ nsMediaCache::Update()
   
   
   
+
+  
+  
+  
   for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
     nsMediaCacheStream* stream = mStreams[i];
-    nsresult rv = NS_OK;
     switch (actions[i]) {
     case SEEK:
-      LOG(PR_LOG_DEBUG, ("Stream %p CacheSeek to %lld (resume=%d)", stream,
-           (long long)stream->mChannelOffset, stream->mCacheSuspended));
-      rv = stream->mClient->CacheClientSeek(stream->mChannelOffset,
-                                            stream->mCacheSuspended);
+	case SEEK_AND_RESUME:
       stream->mCacheSuspended = false;
       stream->mChannelEnded = false;
       break;
-
     case RESUME:
-      LOG(PR_LOG_DEBUG, ("Stream %p Resumed", stream));
-      rv = stream->mClient->CacheClientResume();
       stream->mCacheSuspended = false;
       break;
-
     case SUSPEND:
-      LOG(PR_LOG_DEBUG, ("Stream %p Suspended", stream));
-      rv = stream->mClient->CacheClientSuspend();
       stream->mCacheSuspended = true;
       break;
-
     default:
       break;
     }
-
     stream->mHasHadUpdate = true;
+  }
+
+  for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
+    nsMediaCacheStream* stream = mStreams[i];
+    nsresult rv;
+    switch (actions[i]) {
+    case SEEK:
+	case SEEK_AND_RESUME:
+      LOG(PR_LOG_DEBUG, ("Stream %p CacheSeek to %lld (resume=%d)", stream,
+           (long long)stream->mChannelOffset, actions[i] == SEEK_AND_RESUME));
+      rv = stream->mClient->CacheClientSeek(stream->mChannelOffset,
+                                            actions[i] == SEEK_AND_RESUME);
+      break;
+    case RESUME:
+      LOG(PR_LOG_DEBUG, ("Stream %p Resumed", stream));
+      rv = stream->mClient->CacheClientResume();
+      break;
+    case SUSPEND:
+      LOG(PR_LOG_DEBUG, ("Stream %p Suspended", stream));
+      rv = stream->mClient->CacheClientSuspend();
+      break;
+    default:
+      rv = NS_OK;
+      break;
+    }
 
     if (NS_FAILED(rv)) {
       
