@@ -591,7 +591,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       }
       return NS_OK;
     }
-    if (!request->mLoading) {
+    if (!request->mLoading && ReadyToExecuteScripts()) {
       
       
       
