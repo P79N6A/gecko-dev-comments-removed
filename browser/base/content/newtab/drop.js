@@ -94,7 +94,11 @@ let gDrop = {
       
       let dt = aEvent.dataTransfer;
       let [url, title] = dt.getData("text/x-moz-url").split(/[\r\n]+/);
-      gPinnedLinks.pin({url: url, title: title}, index);
+      let link = {url: url, title: title};
+      gPinnedLinks.pin(link, index);
+
+      
+      gBlockedLinks.unblock(link);
     }
   },
 

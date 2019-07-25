@@ -387,6 +387,15 @@ let BlockedLinks = {
 
 
 
+  unblock: function BlockedLinks_unblock(aLink) {
+    if (this.isBlocked(aLink))
+      delete this.links[aLink.url];
+  },
+
+  
+
+
+
   isBlocked: function BlockedLinks_isBlocked(aLink) {
     return (aLink.url in this.links);
   },
