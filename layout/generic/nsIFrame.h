@@ -1731,22 +1731,24 @@ public:
     eSVG =                              1 << 1,
     eSVGForeignObject =                 1 << 2,
     eSVGContainer =                     1 << 3,
-    eBidiInlineContainer =              1 << 4,
+    eSVGGeometry =                      1 << 4,
+    eSVGPaintServer =                   1 << 5,
+    eBidiInlineContainer =              1 << 6,
     
-    eReplaced =                         1 << 5,
-    
-    
-    eReplacedContainsBlock =            1 << 6,
-    
-    
-    eLineParticipant =                  1 << 7,
-    eXULBox =                           1 << 8,
-    eCanContainOverflowContainers =     1 << 9,
-    eBlockFrame =                       1 << 10,
+    eReplaced =                         1 << 7,
     
     
+    eReplacedContainsBlock =            1 << 8,
     
-    eExcludesIgnorableWhitespace =      1 << 11,
+    
+    eLineParticipant =                  1 << 9,
+    eXULBox =                           1 << 10,
+    eCanContainOverflowContainers =     1 << 11,
+    eBlockFrame =                       1 << 12,
+    
+    
+    
+    eExcludesIgnorableWhitespace =      1 << 13,
 
     
     
