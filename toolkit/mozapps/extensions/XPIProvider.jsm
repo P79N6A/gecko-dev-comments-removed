@@ -2031,9 +2031,9 @@ var XPIProvider = {
 
               
               
-              let oldVersion = aManifests[aLocation.name][id].version;
-              let newVersion = oldBootstrap.version;
-              let uninstallReason = Services.vc.compare(newVersion, oldVersion) < 0 ?
+              let newVersion = aManifests[aLocation.name][id].version;
+              let oldVersion = oldBootstrap.version;
+              let uninstallReason = Services.vc.compare(oldVersion, newVersion) < 0 ?
                                     BOOTSTRAP_REASONS.ADDON_UPGRADE :
                                     BOOTSTRAP_REASONS.ADDON_DOWNGRADE;
 
