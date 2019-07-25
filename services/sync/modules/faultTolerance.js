@@ -54,12 +54,16 @@ function FTService() {
   Log4Moz.Service.rootLogger.addAppender(this._appender);
 }
 FTService.prototype = {
+  get lastException() this._lastException,
   onMessage: function FTS_onMessage(message) {
+    
     
   },
   onException: function FTS_onException(exception) {
-    dump("got an exception: " + exception + "\n");
-    throw exception;
+    this._lastException = exception;
+    if ("Could not acquire lock" == exception)
+      return false; 
+    return true; 
   }
 };
 
