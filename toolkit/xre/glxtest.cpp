@@ -110,14 +110,11 @@ static void glxtest()
   typedef GLXFBConfig* (* PFNGLXQUERYVERSION) (Display *, int *, int *);
   PFNGLXQUERYVERSION glXQueryVersion = cast<PFNGLXQUERYVERSION>(dlsym(libgl, "glXQueryVersion"));
 
-  typedef GLXFBConfig* (* PFNGLXCHOOSEFBCONFIG) (Display *, int, const int *, int *);
-  PFNGLXCHOOSEFBCONFIG glXChooseFBConfig = cast<PFNGLXCHOOSEFBCONFIG>(glXGetProcAddress("glXChooseFBConfig"));
+  typedef XVisualInfo* (* PFNGLXCHOOSEVISUAL) (Display *, int, int *);
+  PFNGLXCHOOSEVISUAL glXChooseVisual = cast<PFNGLXCHOOSEVISUAL>(glXGetProcAddress("glXChooseVisual"));
 
-  typedef XVisualInfo* (* PFNGLXGETVISUALFROMFBCONFIG) (Display *, GLXFBConfig);
-  PFNGLXGETVISUALFROMFBCONFIG glXGetVisualFromFBConfig = cast<PFNGLXGETVISUALFROMFBCONFIG>(glXGetProcAddress("glXGetVisualFromFBConfig"));
-
-  typedef GLXContext (* PFNGLXCREATENEWCONTEXT) (Display *, GLXFBConfig, int, GLXContext, Bool);
-  PFNGLXCREATENEWCONTEXT glXCreateNewContext = cast<PFNGLXCREATENEWCONTEXT>(glXGetProcAddress("glXCreateNewContext"));
+  typedef GLXContext (* PFNGLXCREATECONTEXT) (Display *, XVisualInfo *, GLXContext, Bool);
+  PFNGLXCREATECONTEXT glXCreateContext = cast<PFNGLXCREATECONTEXT>(glXGetProcAddress("glXCreateContext"));
 
   typedef Bool (* PFNGLXMAKECURRENT) (Display*, GLXDrawable, GLXContext);
   PFNGLXMAKECURRENT glXMakeCurrent = cast<PFNGLXMAKECURRENT>(glXGetProcAddress("glXMakeCurrent"));
@@ -130,9 +127,8 @@ static void glxtest()
 
   if (!glXQueryExtension ||
       !glXQueryVersion ||
-      !glXChooseFBConfig ||
-      !glXGetVisualFromFBConfig ||
-      !glXCreateNewContext ||
+      !glXChooseVisual ||
+      !glXCreateContext ||
       !glXMakeCurrent ||
       !glXDestroyContext ||
       !glGetString)
@@ -151,30 +147,32 @@ static void glxtest()
   XSetErrorHandler(x_error_handler);
 
   
-  int numReturned;
-  GLXFBConfig *fbConfigs = glXChooseFBConfig(dpy, DefaultScreen(dpy), NULL, &numReturned );
-  if (!fbConfigs)
-    fatal_error("No FBConfigs found");
-  XVisualInfo *vInfo = glXGetVisualFromFBConfig(dpy, fbConfigs[0]);
+   int attribs[] = {
+      GLX_RGBA,
+      GLX_RED_SIZE, 1,
+      GLX_GREEN_SIZE, 1,
+      GLX_BLUE_SIZE, 1,
+      None };
+  XVisualInfo *vInfo = glXChooseVisual(dpy, DefaultScreen(dpy), attribs);
   if (!vInfo)
-    fatal_error("No visual found for first FBConfig");
+    fatal_error("No visuals found");
 
   
   
-  Window win1;
+  Window window;
   XSetWindowAttributes swa;
   swa.colormap = XCreateColormap(dpy, RootWindow(dpy, vInfo->screen),
                                  vInfo->visual, AllocNone);
+
   swa.border_pixel = 0;
-  win1 = XCreateWindow(dpy, RootWindow(dpy, vInfo->screen),
-                       10, 10, 16, 16,
+  window = XCreateWindow(dpy, RootWindow(dpy, vInfo->screen),
+                       0, 0, 16, 16,
                        0, vInfo->depth, InputOutput, vInfo->visual,
                        CWBorderPixel | CWColormap, &swa);
 
-
   
-  GLXContext context = glXCreateNewContext(dpy, fbConfigs[0], GLX_RGBA_TYPE, NULL, True);
-  glXMakeCurrent(dpy, win1, context);
+  GLXContext context = glXCreateContext(dpy, vInfo, NULL, True);
+  glXMakeCurrent(dpy, window, context);
 
   
   void* glXBindTexImageEXT = glXGetProcAddress("glXBindTexImageEXT"); 
@@ -203,7 +201,8 @@ static void glxtest()
   
   glXMakeCurrent(dpy, None, NULL); 
   glXDestroyContext(dpy, context);
-  XDestroyWindow(dpy,win1);
+  XDestroyWindow(dpy, window);
+  XFreeColormap(dpy, swa.colormap);
   XCloseDisplay(dpy);
   dlclose(libgl);
 
