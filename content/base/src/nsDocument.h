@@ -952,7 +952,6 @@ protected:
 
 
   static PRBool CheckGetElementByIdArg(const nsIAtom* aId);
-  nsIdentifierMapEntry* GetElementByIdInternal(nsIAtom* aID);
 
   void DispatchContentLoadedEvents();
 
