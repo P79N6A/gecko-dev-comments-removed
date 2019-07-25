@@ -734,6 +734,7 @@ nsXREDirProvider::DoStartup()
 
     LoadExtensionBundleDirectories();
 
+    obsSvc->NotifyObservers(nsnull, "load-extension-defaults", nsnull);
     obsSvc->NotifyObservers(nsnull, "profile-after-change", kStartup);
 
     
