@@ -84,7 +84,7 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         mAwesomeTabs = (AwesomeBarTabs) findViewById(R.id.awesomebar_tabs);
         mAwesomeTabs.setOnUrlOpenListener(new AwesomeBarTabs.OnUrlOpenListener() {
             public void onUrlOpen(String url) {
-                openUrlAndFinish(url);
+                submitAndFinish(url);
             }
 
             public void onSearch(String engine) {
@@ -95,7 +95,7 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         mGoButton = (ImageButton) findViewById(R.id.awesomebar_button);
         mGoButton.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
-                openUrlAndFinish(mText.getText().toString());
+                submitAndFinish(mText.getText().toString());
             }
         });
 
@@ -166,7 +166,7 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
                     if (event.getAction() != KeyEvent.ACTION_DOWN)
                         return true;
 
-                    openUrlAndFinish(mText.getText().toString());
+                    submitAndFinish(mText.getText().toString());
                     return true;
                 } else {
                     return false;
@@ -209,6 +209,34 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         return true;
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    private boolean isSearchUrl(String text) {
+        text = text.trim();
+        if (text.length() == 0)
+            return false;
+
+        int colon = text.indexOf(':');
+        int dot = text.indexOf('.');
+        int space = text.indexOf(' ');
+
+        
+        boolean spacedOut = space > -1 && (space < colon || space < dot);
+
+        return spacedOut || (dot == -1);
+    }
+
     private void updateGoButton(String text) {
         if (text.length() == 0) {
             mGoButton.setVisibility(View.GONE);
@@ -218,11 +246,17 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         mGoButton.setVisibility(View.VISIBLE);
 
         int imageResource = R.drawable.ic_awesomebar_go;
-        if (!GeckoAppShell.canCreateFixupURI(text)) {
+        if (isSearchUrl(text))
             imageResource = R.drawable.ic_awesomebar_search;
-        }
 
         mGoButton.setImageResource(imageResource);
+    }
+
+    private void submitAndFinish(String url) {
+        if (isSearchUrl(url))
+            openSearchAndFinish(url, "__default__");
+        else
+            openUrlAndFinish(url);
     }
 
     private void cancelAndFinish() {
