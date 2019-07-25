@@ -367,23 +367,6 @@ class DeviceManagerSUT(DeviceManager):
   
   
   
-  def mkDirs(self, filename):
-    parts = filename.split('/')
-    name = ""
-    for part in parts:
-      if (part == parts[-1]): break
-      if (part != ""):
-        name += '/' + part
-        if (self.mkDir(name) == None):
-          print "failed making directory: " + str(name)
-          return None
-    return name
-
-  
-  
-  
-  
-  
   def pushDir(self, localDir, remoteDir):
     if (self.debug >= 2): print "pushing directory: %s to %s" % (localDir, remoteDir)
     for root, dirs, files in os.walk(localDir, followlinks=True):

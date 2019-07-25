@@ -181,24 +181,6 @@ class DeviceManagerADB(DeviceManager):
   
   
   
-  def mkDirs(self, filename):
-    parts = filename.split('/')
-    name = ""
-    for part in parts:
-      if (part == parts[-1]): break
-      if (part != ""):
-        name += '/' + part
-        if (not self.dirExists(name)):
-          if (self.mkDir(name) == None):
-            print "failed making directory: " + str(name)
-            return None
-    return name
-
-  
-  
-  
-  
-  
   def pushDir(self, localDir, remoteDir):
     
     
