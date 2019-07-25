@@ -272,8 +272,8 @@ public:
 
 
 
-  nsresult SetEventHandlerToJsval(nsIAtom *aEventName, JSContext *cx,
-                                  JSObject *aScope, const jsval &v,
+  nsresult SetEventHandlerToJsval(nsIAtom* aEventName, JSContext* cx,
+                                  JSObject* aScope, const jsval& v,
                                   bool aExpectScriptContext);
   
 
