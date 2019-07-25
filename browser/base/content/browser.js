@@ -4126,16 +4126,6 @@ var XULBrowserWindow = {
     }
 
     
-    var disableChrome = this.inContentWhitelist.some(function(aSpec) {
-      return aSpec == location;
-    });
-
-    if (disableChrome)
-      document.documentElement.setAttribute("disablechrome", "true");
-    else
-      document.documentElement.removeAttribute("disablechrome");
-
-    
     
     
     
@@ -4206,6 +4196,16 @@ var XULBrowserWindow = {
         
         PlacesStarButton.updateState();
       }
+
+      
+      var disableChrome = this.inContentWhitelist.some(function(aSpec) {
+        return aSpec == location;
+      });
+
+      if (disableChrome)
+        document.documentElement.setAttribute("disablechrome", "true");
+      else
+        document.documentElement.removeAttribute("disablechrome");
     }
     UpdateBackForwardCommands(gBrowser.webNavigation);
 

@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Weave
+ *
+ * The Initial Developer of the Original Code is
+ * the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2008
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Dan Mills <thunder@mozilla.com>
+ *   Richard Newman <rnewman@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 const EXPORTED_SYMBOLS = ['HistoryEngine'];
 
@@ -73,7 +73,7 @@ HistoryEngine.prototype = {
 function HistoryStore(name) {
   Store.call(this, name);
 
-  
+  // Explicitly nullify our references to our cached services so we don't leak
   Svc.Obs.add("places-shutdown", function() {
     for each ([query, stmt] in Iterator(this._stmts))
       stmt.finalize();
@@ -138,7 +138,7 @@ HistoryStore.prototype = {
   },
 
   get _addGUIDAnnotationNameStm() {
-    
+    // Gecko <2.0 only
     let stmt = this._getStmt(
       "INSERT OR IGNORE INTO moz_anno_attributes (name) VALUES (:anno_name)");
     stmt.params.anno_name = GUID_ANNO;
@@ -146,7 +146,7 @@ HistoryStore.prototype = {
   },
 
   get _checkGUIDPageAnnotationStm() {
-    
+    // Gecko <2.0 only
     let stmt = this._getStmt(
       "SELECT h.id AS place_id, " +
         "(SELECT id FROM moz_anno_attributes WHERE name = :anno_name) AS name_id, " +
@@ -161,7 +161,7 @@ HistoryStore.prototype = {
   },
 
   get _addPageAnnotationStm() {
-    
+    // Gecko <2.0 only
     return this._getStmt(
     "INSERT OR REPLACE INTO moz_annos " +
       "(id, place_id, anno_attribute_id, mime_type, content, flags, " +
@@ -176,7 +176,7 @@ HistoryStore.prototype = {
       return this.__setGUIDStm;
     }
 
-    
+    // Obtains a statement to set the guid iff the guid column exists.
     let stmt;
     if (this._haveGUIDColumn) {
       stmt = this._getStmt(
@@ -190,14 +190,14 @@ HistoryStore.prototype = {
     return this.__setGUIDStm = stmt;
   },
 
-  
+  // Some helper functions to handle GUIDs
   setGUID: function setGUID(uri, guid) {
     uri = uri.spec ? uri.spec : uri;
 
     if (arguments.length == 1)
       guid = Utils.makeGUID();
 
-    
+    // If we can, set the GUID on moz_places and do not do any other work.
     let (stmt = this._setGUIDStm) {
       if (stmt) {
         stmt.params.guid = guid;
@@ -207,7 +207,7 @@ HistoryStore.prototype = {
       }
     }
 
-    
+    // Ensure annotation name exists
     Utils.queryAsync(this._addGUIDAnnotationNameStm);
 
     let stmt = this._checkGUIDPageAnnotationStm;
@@ -246,9 +246,9 @@ HistoryStore.prototype = {
       return this.__guidStm;
     }
 
-    
-    
-    
+    // Try to first read from moz_places.  Creating the statement will throw
+    // if the column doesn't exist, though so fallback to just reading from
+    // the annotation table.
     let stmt;
     if (this._haveGUIDColumn) {
       stmt = this._getStmt(
@@ -275,18 +275,18 @@ HistoryStore.prototype = {
     let stm = this._guidStm;
     stm.params.page_url = uri.spec ? uri.spec : uri;
 
-    
+    // Use the existing GUID if it exists
     let result = Utils.queryAsync(stm, ["guid"])[0];
     if (result && result.guid)
       return result.guid;
 
-    
+    // Give the uri a GUID if it doesn't have one
     if (create)
       return this.setGUID(uri);
   },
 
   get _visitStm() {
-    
+    // Gecko <2.0
     if (this._haveTempTables) {
       let where = 
         "WHERE place_id = IFNULL( " +
@@ -300,7 +300,7 @@ HistoryStore.prototype = {
         "FROM moz_historyvisits " + where +
         "ORDER BY date DESC LIMIT 10 ");
     }
-    
+    // Gecko 2.0
     return this._getStmt(
       "SELECT visit_type type, visit_date date " +
       "FROM moz_historyvisits " +
@@ -314,9 +314,9 @@ HistoryStore.prototype = {
       return this.__urlStmt;
     }
 
-    
-    
-    
+    // Try to first read from moz_places.  Creating the statement will throw
+    // if the column doesn't exist, though so fallback to just reading from
+    // the annotation table.
     let stmt;
     if (this._haveGUIDColumn) {
       stmt = this._getStmt(
@@ -342,7 +342,7 @@ HistoryStore.prototype = {
   },
 
   get _allUrlStm() {
-    
+    // Gecko <2.0
     if (this._haveTempTables)
       return this._getStmt(
         "SELECT url, frecency FROM moz_places_temp " +
@@ -353,7 +353,7 @@ HistoryStore.prototype = {
         "ORDER BY 2 DESC " +
         "LIMIT :max_results");
 
-    
+    // Gecko 2.0
     return this._getStmt(
       "SELECT url " +
       "FROM moz_places " +
@@ -362,13 +362,13 @@ HistoryStore.prototype = {
       "LIMIT :max_results");
   },
 
-  
+  // See bug 320831 for why we use SQL here
   _getVisits: function HistStore__getVisits(uri) {
     this._visitStm.params.url = uri;
     return Utils.queryAsync(this._visitStm, ["date", "type"]);
   },
 
-  
+  // See bug 468732 for why we use SQL here
   _findURLByGUID: function HistStore__findURLByGUID(guid) {
     this._urlStm.params.guid = guid;
     return Utils.queryAsync(this._urlStm, ["url", "title", "frecency"])[0];
@@ -380,7 +380,7 @@ HistoryStore.prototype = {
 
 
   getAllIDs: function HistStore_getAllIDs() {
-    
+    // Only get places visited within the last 30 days (30*24*60*60*1000ms)
     this._allUrlStm.params.cutoff_date = (Date.now() - 2592000000) * 1000;
     this._allUrlStm.params.max_results = MAX_HISTORY_UPLOAD;
 
@@ -393,7 +393,7 @@ HistoryStore.prototype = {
   },
 
   create: function HistStore_create(record) {
-    
+    // Add the url and set the GUID
     this.update(record);
     this.setGUID(record.histUri, record.id);
   },
@@ -422,7 +422,7 @@ HistoryStore.prototype = {
     if (this.urlExists(uri))
       curvisits = this._getVisits(record.histUri);
 
-    
+    // Add visits if there's no local visit with the same date
     for each (let {date, type} in record.visits)
       if (curvisits.every(function(cur) cur.date != date))
         Svc.History.addVisit(uri, date, null, type, type == 5 || type == 6, 0);
@@ -439,7 +439,7 @@ HistoryStore.prototype = {
   urlExists: function HistStore_urlExists(url) {
     if (typeof(url) == "string")
       url = Utils.makeURI(url);
-    
+    // Don't call isVisited on a null URL to work around crasher bug 492442.
     return url ? this._hsvc.isVisited(url) : false;
   },
 
@@ -490,7 +490,7 @@ HistoryTracker.prototype = {
   },
 
   _GUIDForUri: function _GUIDForUri(uri, create) {
-    
+    // Isn't indirection fun...
     return Engines.get("history")._store.GUIDForUri(uri, create);
   },
 
@@ -505,9 +505,9 @@ HistoryTracker.prototype = {
   onPageChanged: function HT_onPageChanged() {},
   onTitleChanged: function HT_onTitleChanged() {},
 
-  
-
-
+  /* Every add or remove is worth 1 point.
+   * Clearing the whole history is worth 50 points (see below)
+   */
   _upScore: function BMT__upScore() {
     this.score += 1;
   },
