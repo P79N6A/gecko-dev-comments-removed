@@ -3407,13 +3407,13 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, StackFrame *fp, const jschar 
 
 
 
-    JSPrincipals *prin = fp->scopeChain()->principals(cx);
-    bool compileAndGo = true;
-    bool noScriptRval = false;
-    JSScript *script = frontend::CompileScript(cx, env, fp, prin, prin,
-                                               compileAndGo, noScriptRval,
-                                               chars, length, filename, lineno,
-                                               cx->findVersion(), NULL,  1);
+    CompileOptions options(cx);
+    options.setPrincipals(fp->scopeChain()->principals(cx))
+           .setCompileAndGo(true)
+           .setNoScriptRval(false)
+           .setFileAndLine(filename, lineno);
+    JSScript *script = frontend::CompileScript(cx, env, fp, options, chars, length,
+                                                NULL,  1);
     if (!script)
         return false;
 

@@ -239,14 +239,13 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
         if (!ss)
             return NULL;
 
+        CompileOptions options(cx);
+        options.setNoScriptRval(true)
+               .setVersion(JSVERSION_DEFAULT);
         Rooted<JSScript*> script(cx, JSScript::Create(cx,
                                                        NullPtr(),
                                                        false,
-                                                       NULL,
-                                                       NULL,
-                                                       false,
-                                                       true,
-                                                      JSVERSION_DEFAULT,
+                                                      options,
                                                        0,
                                                       ss,
                                                       0,
