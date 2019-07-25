@@ -7568,8 +7568,16 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
     
     
     
-    if (metrics->mLastSize.width != aWidth)
+    if (metrics->mLastSize.width != aWidth) {
       reflowState.mFlags.mHResize = true;
+
+      
+      
+      
+      if (nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
+        AddStateBits(NS_FRAME_IS_DIRTY);
+      }
+    }
     if (metrics->mLastSize.height != aHeight)
       reflowState.mFlags.mVResize = true;
 
