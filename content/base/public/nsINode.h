@@ -708,6 +708,7 @@ public:
 
 
   NS_DECL_NSIDOMEVENTTARGET
+  using nsIDOMEventTarget::AddEventListener;
 
   
 

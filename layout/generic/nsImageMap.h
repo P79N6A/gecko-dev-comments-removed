@@ -44,14 +44,15 @@
 #include "nsCoord.h"
 #include "nsTArray.h"
 #include "nsStubMutationObserver.h"
-#include "nsIDOMFocusListener.h"
+#include "nsIDOMEventListener.h"
 #include "nsIFrame.h"
 
 class Area;
 class nsIDOMEvent;
 class nsRenderingContext;
 
-class nsImageMap : public nsStubMutationObserver, public nsIDOMFocusListener
+class nsImageMap : public nsStubMutationObserver,
+                   public nsIDOMEventListener
 {
 public:
   nsImageMap();
@@ -85,9 +86,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   
-  NS_IMETHOD Focus(nsIDOMEvent* aEvent);
-  NS_IMETHOD Blur(nsIDOMEvent* aEvent);
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  NS_DECL_NSIDOMEVENTLISTENER
 
   nsresult GetBoundsForAreaContent(nsIContent *aContent,
                                    nsRect& aBounds);
@@ -103,8 +102,6 @@ protected:
 
   nsresult AddArea(nsIContent* aArea);
  
-  nsresult ChangeFocus(nsIDOMEvent* aEvent, PRBool aFocus);
-
   void MaybeUpdateAreas(nsIContent *aContent);
 
   nsIPresShell* mPresShell; 
