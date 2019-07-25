@@ -1227,22 +1227,17 @@ nsLocalFile::GetDiskSpaceAvailable(int64_t *aDiskSpaceAvailable)
 #endif
         return NS_ERROR_FAILURE;
     }
+    
+
+
+
+
+    *aDiskSpaceAvailable = (int64_t)fs_buf.F_BSIZE * (fs_buf.f_bavail - 1);
+
 #ifdef DEBUG_DISK_SPACE
-    printf("DiskSpaceAvailable: %d bytes\n",
-         fs_buf.f_bsize * (fs_buf.f_bavail - 1));
+    printf("DiskSpaceAvailable: %lu bytes\n",
+         *aDiskSpaceAvailable);
 #endif
-
-    
-
-
-
-
-#if defined(SOLARIS) || defined(XP_MACOSX)
-    
-    *aDiskSpaceAvailable = (int64_t)fs_buf.f_frsize * (fs_buf.f_bavail - 1);
-#else
-    *aDiskSpaceAvailable = (int64_t)fs_buf.f_bsize * (fs_buf.f_bavail - 1);
-#endif 
 
 #if defined(USE_LINUX_QUOTACTL)
 
@@ -1265,7 +1260,7 @@ nsLocalFile::GetDiskSpaceAvailable(int64_t *aDiskSpaceAvailable)
     {
         int64_t QuotaSpaceAvailable = 0;
         if (dq.dqb_bhardlimit > dq.dqb_curspace)
-            QuotaSpaceAvailable = int64_t(fs_buf.f_bsize * (dq.dqb_bhardlimit - dq.dqb_curspace));
+            QuotaSpaceAvailable = int64_t(fs_buf.F_BSIZE * (dq.dqb_bhardlimit - dq.dqb_curspace));
         if(QuotaSpaceAvailable < *aDiskSpaceAvailable) {
             *aDiskSpaceAvailable = QuotaSpaceAvailable;
         }
