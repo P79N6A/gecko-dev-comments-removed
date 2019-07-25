@@ -632,6 +632,8 @@ DocAccessible::Shutdown()
 
   
   
+  
+  mFlags |= eIsDefunct;
   nsCOMPtr<nsIDocument> kungFuDeathGripDoc = mDocument;
   mDocument = nsnull;
 
