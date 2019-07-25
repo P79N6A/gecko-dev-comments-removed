@@ -1182,3 +1182,6 @@ pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
 
 pref("image.mem.max_decoded_image_kb", 256000);
+
+
+pref("social.manifest.motown", "{\"origin\":\"https://motown-dev.mozillalabs.com\",\"name\":\"MoTown\",\"workerURL\":\"https://motown-dev.mozillalabs.com/social/worker.js\"}");
