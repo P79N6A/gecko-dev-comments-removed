@@ -87,6 +87,11 @@ class B2GRemoteAutomation(Automation):
         except:
           print "WARNING: unable to remove directory: %s" % (dumpDir)
 
+    def initializeProfile(self, profileDir, extraPrefs = [], useServerLocations = False):
+        
+        extraPrefs.extend(["browser.manifestURL='dummy (bug 772307)'"])
+        return Automation.initializeProfile(self, profileDir, extraPrefs, useServerLocations)
+
     def buildCommandLine(self, app, debuggerInfo, profileDir, testURL, extraArgs):
         
         if (self._remoteProfile):
