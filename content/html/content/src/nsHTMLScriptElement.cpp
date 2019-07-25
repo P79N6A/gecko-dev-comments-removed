@@ -363,6 +363,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Script)
 nsHTMLScriptElement::nsHTMLScriptElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                                          PRUint32 aFromParser)
   : nsGenericHTMLElement(aNodeInfo)
+  , nsScriptElement(aFromParser)
 {
   mDoneAddingChildren = !aFromParser;
   AddMutationObserver(this);
@@ -428,7 +429,7 @@ nsHTMLScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  it->mIsEvaluated = mIsEvaluated;
+  it->mAlreadyStarted = mAlreadyStarted;
   it->mLineNumber = mLineNumber;
   it->mMalformed = mMalformed;
 
@@ -477,11 +478,10 @@ nsHTMLScriptElement::DoneAddingChildren(PRBool aHaveNotified)
 {
   mDoneAddingChildren = PR_TRUE;
   nsresult rv = MaybeProcessScript();
-  if (!mIsEvaluated) {
+  if (!mAlreadyStarted) {
     
     
-    mFrozen = PR_FALSE;
-    mUri = nsnull;
+    LoseParserInsertedness();
   }
   return rv;
 }
@@ -555,7 +555,7 @@ nsHTMLScriptElement::MaybeProcessScript()
 
     
     
-    NS_ASSERTION(mIsEvaluated, "should have set mIsEvaluated already");
+    NS_ASSERTION(mAlreadyStarted, "should have set mIsEvaluated already");
     NS_ASSERTION(!mScriptEventHandler, "how could we have an SEH already?");
 
     mScriptEventHandler = new nsHTMLScriptEventHandler(this);
