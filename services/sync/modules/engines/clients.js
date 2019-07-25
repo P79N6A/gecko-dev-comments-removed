@@ -195,17 +195,19 @@ ClientEngine.prototype = {
   },
   
   
-  handleHMACMismatch: function handleHMACMismatch(item) {
+  handleHMACMismatch: function handleHMACMismatch(item, mayRetry) {
     this._log.debug("Handling HMAC mismatch for " + item.id);
-    if (SyncEngine.prototype.handleHMACMismatch.call(this, item))
-      return true;
+    
+    let base = SyncEngine.prototype.handleHMACMismatch.call(this, item, mayRetry);
+    if (base != SyncEngine.kRecoveryStrategy.error)
+      return base;
 
     
     this._log.debug("Bad client record detected. Scheduling for deletion.");
     this._deleteId(item.id);
 
     
-    return false;
+    return SyncEngine.kRecoveryStrategy.ignore;
   }
 };
 

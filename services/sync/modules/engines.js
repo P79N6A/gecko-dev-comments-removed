@@ -416,6 +416,15 @@ function SyncEngine(name) {
   Engine.call(this, name || "SyncEngine");
   this.loadToFetch();
 }
+
+
+
+SyncEngine.kRecoveryStrategy = {
+  ignore: "ignore",
+  retry:  "retry",
+  error:  "error"
+};
+
 SyncEngine.prototype = {
   __proto__: Engine.prototype,
   _recordObj: CryptoWrapper,
@@ -640,14 +649,37 @@ SyncEngine.prototype = {
       try {
         try {
           item.decrypt();
-        } catch (ex if (Utils.isHMACMismatch(ex) &&
-                        self.handleHMACMismatch(item))) {
+        } catch (ex if Utils.isHMACMismatch(ex)) {
+          let strategy = self.handleHMACMismatch(item, true);
+          if (strategy == SyncEngine.kRecoveryStrategy.retry) {
+            
+            try {
+              
+              self._log.info("Trying decrypt again...");
+              item.decrypt();
+              strategy = null;
+            } catch (ex if Utils.isHMACMismatch(ex)) {
+              strategy = self.handleHMACMismatch(item, false);
+            }
+          }
           
-          
-          
-          self._log.info("Trying decrypt again...");
-          item.decrypt();
-        }       
+          switch (strategy) {
+            case null:
+              
+              break;
+            case SyncEngine.kRecoveryStrategy.retry:
+              self._log.debug("Ignoring second retry suggestion.");
+              
+            case SyncEngine.kRecoveryStrategy.error:
+              self._log.warn("Error decrypting record: " + Utils.exceptionStr(ex));
+              failed.push(item.id);
+              return;
+            case SyncEngine.kRecoveryStrategy.ignore:
+              self._log.debug("Ignoring record " + item.id +
+                              " with bad HMAC: already handled.");
+              return;
+          }
+        }
       } catch (ex) {
         self._log.warn("Error decrypting record: " + Utils.exceptionStr(ex));
         failed.push(item.id);
@@ -1007,8 +1039,27 @@ SyncEngine.prototype = {
     new Resource(this.engineURL).delete();
     this._resetClient();
   },
+
   
-  handleHMACMismatch: function handleHMACMismatch(item) {
-    return Weave.Service.handleHMACEvent();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  handleHMACMismatch: function handleHMACMismatch(item, mayRetry) {
+    
+    return (Weave.Service.handleHMACEvent() && mayRetry) ?
+           SyncEngine.kRecoveryStrategy.retry :
+           SyncEngine.kRecoveryStrategy.error;
   }
 };
