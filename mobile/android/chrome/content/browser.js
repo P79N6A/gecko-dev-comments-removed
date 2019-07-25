@@ -1657,8 +1657,6 @@ Tab.prototype = {
       pageWidth *= viewport.zoom;
       pageHeight *= viewport.zoom;
 
-      viewport.allowZoom  = this.metadata.allowZoom;
-
       
 
 
