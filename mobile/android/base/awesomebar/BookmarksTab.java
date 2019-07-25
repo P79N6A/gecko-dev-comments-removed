@@ -197,7 +197,11 @@ public class BookmarksTab extends AwesomeBarTab {
             return;
         }
 
-        listener.onUrlOpen(cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL)));
+        String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
+        if (isInReadingList()) {
+            url = getReaderForUrl(url);
+        }
+        listener.onUrlOpen(url);
     }
 
     private class BookmarksListAdapter extends SimpleCursorAdapter {
@@ -380,6 +384,10 @@ public class BookmarksTab extends AwesomeBarTab {
 
         return adapter.moveToParentFolder();
     }
+
+    
+
+
 
     public boolean isInReadingList() {
         return mInReadingList;
