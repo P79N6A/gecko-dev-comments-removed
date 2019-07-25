@@ -143,7 +143,7 @@ var TPS =
             Weave.Service.logout();
             Utils.nextTick(this.RunNextTestAction, this);
           }
-          else {
+          else if (this._waitingForSync) {
             
             this.DumpError("sync error; aborting test");
             return;
@@ -471,7 +471,7 @@ var TPS =
         this.DumpError("Sync logged in on startup...profile may be dirty");
         return;
       }
-      
+
       
       Services.obs.addObserver(this, "weave:service:sync:finish", true);
       Services.obs.addObserver(this, "weave:service:sync:error", true);
@@ -498,7 +498,15 @@ var TPS =
       
       if (this.phases["phase" + (parseInt(this._currentPhase) + 1)] == undefined)
         this_phase.push([this.WipeServer]);
+
       
+      
+      let prefs = CC["@mozilla.org/preferences-service;1"]
+                  .getService(CI.nsIPrefBranch);
+      prefs.setCharPref('tps.account.username', this.config.account.username);
+      prefs.setCharPref('tps.account.password', this.config.account.password);
+      prefs.setCharPref('tps.account.passphrase', this.config.account.passphrase);
+
       
       this._currentAction = 0;
     }
