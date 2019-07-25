@@ -633,10 +633,6 @@ JSRuntime::init(uint32 maxbytes)
         return false;
 #endif
 
-    deflatedStringCache = new js::DeflatedStringCache();
-    if (!deflatedStringCache || !deflatedStringCache->init())
-        return false;
-
     wrapObjectCallback = js::TransparentObjectWrapper;
 
 #ifdef JS_THREADSAFE
@@ -679,11 +675,6 @@ JSRuntime::~JSRuntime()
     js_FreeRuntimeScriptState(this);
     js_FinishAtomState(this);
 
-    
-
-
-
-    delete deflatedStringCache;
 #if ENABLE_YARR_JIT
     delete regExpAllocator;
 #endif
@@ -1179,7 +1170,7 @@ bool
 JSAutoEnterCompartment::enter(JSContext *cx, JSObject *target)
 {
     JS_ASSERT(!call);
-    if (cx->compartment == target->getCompartment()) {
+    if (cx->compartment == target->compartment()) {
         call = reinterpret_cast<JSCrossCompartmentCall*>(1);
         return true;
     }
@@ -1233,8 +1224,8 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
 
 
 
-    JSCompartment *destination = target->getCompartment();
-    if (wrapper->getCompartment() == destination) {
+    JSCompartment *destination = target->compartment();
+    if (wrapper->compartment() == destination) {
         
         
         
@@ -1311,7 +1302,7 @@ JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
             return NULL;
         if (!wrapper->swap(cx, tobj))
             return NULL;
-        wrapper->getCompartment()->crossCompartmentWrappers.put(targetv, wrapperv);
+        wrapper->compartment()->crossCompartmentWrappers.put(targetv, wrapperv);
     }
 
     return obj;
@@ -5079,7 +5070,7 @@ JS_NewString(JSContext *cx, char *bytes, size_t nbytes)
     }
 
     
-    if (!cx->runtime->deflatedStringCache->setBytes(cx, str, bytes))
+    if (!cx->compartment->deflatedStringCache.setBytes(cx, str, bytes))
         cx->free(bytes);
     return str;
 }
