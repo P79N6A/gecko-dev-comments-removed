@@ -9,7 +9,6 @@
 #define ScopeObject_h___
 
 #include "jscntxt.h"
-#include "jsiter.h"
 #include "jsobj.h"
 #include "jsweakmap.h"
 
@@ -29,10 +28,7 @@ namespace js {
 struct ScopeCoordinate
 {
     uint16_t hops;
-    uint16_t binding;
-
-    
-    uint16_t frameBinding;
+    uint16_t slot;
 
     inline ScopeCoordinate(jsbytecode *pc);
     inline ScopeCoordinate() {}
@@ -44,7 +40,7 @@ ScopeCoordinateBlockChain(JSScript *script, jsbytecode *pc);
 
 
 extern PropertyName *
-ScopeCoordinateName(JSScript *script, jsbytecode *pc);
+ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
 
 
 
@@ -88,13 +84,13 @@ ScopeCoordinateName(JSScript *script, jsbytecode *pc);
 
 class ScopeObject : public JSObject
 {
-    
-    void *getPrivate() const;
-
   protected:
     static const uint32_t SCOPE_CHAIN_SLOT = 0;
 
   public:
+    
+    static const uint32_t CALL_BLOCK_RESERVED_SLOTS = 2;
+
     
 
 
@@ -113,14 +109,6 @@ class ScopeObject : public JSObject
     inline void setAliasedVar(ScopeCoordinate sc, const Value &v);
 
     
-
-
-
-
-    inline StackFrame *maybeStackFrame() const;
-    inline void setStackFrame(StackFrame *frame);
-
-    
     static inline size_t offsetOfEnclosingScope();
 };
 
@@ -129,10 +117,10 @@ class CallObject : public ScopeObject
     static const uint32_t CALLEE_SLOT = 1;
 
     static CallObject *
-    create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleObject callee);
+    create(JSContext *cx, JSScript *script, HandleObject enclosing, HandleFunction callee);
 
   public:
-    static const uint32_t RESERVED_SLOTS = 3;
+    static const uint32_t RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
 
     static CallObject *createForFunction(JSContext *cx, StackFrame *fp);
     static CallObject *createForStrictEval(JSContext *cx, StackFrame *fp);
@@ -149,14 +137,12 @@ class CallObject : public ScopeObject
     inline void setCallee(JSObject *callee);
 
     
-    inline const Value &arg(unsigned i) const;
-    inline void setArg(unsigned i, const Value &v);
-    inline void initArgUnchecked(unsigned i, const Value &v);
+    inline const Value &arg(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
+    inline void setArg(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
-    inline const Value &var(unsigned i) const;
-    inline void setVar(unsigned i, const Value &v);
-    inline void initVarUnchecked(unsigned i, const Value &v);
+    inline const Value &var(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
+    inline void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
 
@@ -166,15 +152,8 @@ class CallObject : public ScopeObject
     inline HeapSlotArray argArray();
     inline HeapSlotArray varArray();
 
-    inline void copyValues(unsigned nargs, Value *argv, unsigned nvars, Value *slots);
-
-    static JSBool getArgOp(JSContext *cx, HandleObject obj, HandleId id, Value *vp);
-    static JSBool getVarOp(JSContext *cx, HandleObject obj, HandleId id, Value *vp);
     static JSBool setArgOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
     static JSBool setVarOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
-
-    
-    bool containsVarOrArg(PropertyName *name, Value *vp, JSContext *cx);
 
     
     void copyUnaliasedValues(StackFrame *fp);
@@ -202,10 +181,6 @@ class NestedScopeObject : public ScopeObject
 
 class WithObject : public NestedScopeObject
 {
-    
-    js::StackFrame *maybeStackFrame() const;
-    void setStackFrame(StackFrame *frame);
-
     static const unsigned THIS_SLOT = 2;
 
     
@@ -213,7 +188,11 @@ class WithObject : public NestedScopeObject
 
   public:
     static const unsigned RESERVED_SLOTS = 3;
+#ifdef JS_THREADSAFE
+    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
+#else
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
+#endif
 
     static WithObject *
     create(JSContext *cx, HandleObject proto, HandleObject enclosing, uint32_t depth);
@@ -228,11 +207,22 @@ class WithObject : public NestedScopeObject
 class BlockObject : public NestedScopeObject
 {
   public:
-    static const unsigned RESERVED_SLOTS = 2;
+    static const unsigned RESERVED_SLOTS = CALL_BLOCK_RESERVED_SLOTS;
+#ifdef JS_THREADSAFE
+    static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4_BACKGROUND;
+#else
     static const gc::AllocKind FINALIZE_KIND = gc::FINALIZE_OBJECT4;
+#endif
 
     
     inline uint32_t slotCount() const;
+
+    
+
+
+
+
+    unsigned slotToFrameLocal(JSScript *script, unsigned i);
 
   protected:
     
@@ -242,10 +232,6 @@ class BlockObject : public NestedScopeObject
 
 class StaticBlockObject : public BlockObject
 {
-    
-    StackFrame *maybeStackFrame() const;
-    void setStackFrame(StackFrame *frame);
-
   public:
     static StaticBlockObject *create(JSContext *cx);
 
@@ -273,7 +259,7 @@ class StaticBlockObject : public BlockObject
 
 
 
-    bool needsClone() const;
+    bool needsClone();
 
     const Shape *addVar(JSContext *cx, jsid id, int index, bool *redeclared);
 };
@@ -288,17 +274,8 @@ class ClonedBlockObject : public BlockObject
     StaticBlockObject &staticBlock() const;
 
     
-
-
-
-    void put(StackFrame *fp);
-
-    
-    const Value &var(unsigned i);
-    void setVar(unsigned i, const Value &v);
-
-    
-    bool containsVar(PropertyName *name, Value *vp, JSContext *cx);
+    const Value &var(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
+    void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
     void copyUnaliasedValues(StackFrame *fp);
@@ -470,7 +447,7 @@ class DebugScopes
     bool init();
 
     void mark(JSTracer *trc);
-    void sweep();
+    void sweep(JSRuntime *rt);
 
     DebugScopeObject *hasDebugScope(JSContext *cx, ScopeObject &scope) const;
     bool addDebugScope(JSContext *cx, ScopeObject &scope, DebugScopeObject &debugScope);

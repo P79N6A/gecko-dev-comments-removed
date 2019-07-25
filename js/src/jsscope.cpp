@@ -289,7 +289,7 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
 
 
 
-        uint32_t slots = child.slotSpan() + 1;  
+        uint32_t slots = child.slotSpan();
         gc::AllocKind kind = gc::GetGCObjectKind(slots);
 
         
@@ -300,11 +300,11 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
 
         uint32_t nfixed = gc::GetGCKindSlots(kind);
         if (nfixed < slots) {
-            nfixed = CallObject::RESERVED_SLOTS + 1;
-            JS_ASSERT(gc::GetGCKindSlots(gc::GetGCObjectKind(nfixed)) == CallObject::RESERVED_SLOTS + 1);
+            nfixed = CallObject::RESERVED_SLOTS;
+            JS_ASSERT(gc::GetGCKindSlots(gc::GetGCObjectKind(nfixed)) == CallObject::RESERVED_SLOTS);
         }
 
-        shape->setNumFixedSlots(nfixed - 1);
+        shape->setNumFixedSlots(nfixed);
     }
     return shape;
 }

@@ -127,7 +127,7 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, Value *vp)
 
 
 
-        JSInlinedSite *inlined;
+        InlinedSite *inlined;
         jsbytecode *prevpc = fp->prev()->pcQuadratic(cx->stack, fp, &inlined);
         if (inlined) {
             mjit::JITChunk *chunk = fp->prev()->jit()->chunk(prevpc);
@@ -696,7 +696,7 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
         args.thisv() = vp[2];
 
         
-        cx->fp()->forEachCanonicalActualArg(CopyTo(args.array()));
+        cx->fp()->forEachUnaliasedActual(CopyTo(args.array()));
     } else {
         
         if (!vp[3].isObject()) {
