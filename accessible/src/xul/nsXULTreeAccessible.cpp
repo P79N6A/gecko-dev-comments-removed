@@ -146,10 +146,11 @@ nsXULTreeAccessible::NativeState()
 void
 nsXULTreeAccessible::Value(nsString& aValue)
 {
-  
-
   aValue.Truncate();
+  if (!mTreeView)
+    return;
 
+  
   nsCOMPtr<nsITreeSelection> selection;
   mTreeView->GetSelection(getter_AddRefs(selection));
   if (!selection)
