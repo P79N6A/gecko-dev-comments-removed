@@ -141,7 +141,7 @@ WeaveSvc.prototype = {
     
     if (value == this.serverURL)
       return;
-    
+
     
     Svc.Prefs.set("serverURL", value);
     Svc.Prefs.reset("clusterURL");
@@ -1017,7 +1017,7 @@ WeaveSvc.prototype = {
       if (this.nextSync != 0)
         interval = this.nextSync - Date.now();
       
-      else 
+      else
         interval = Math.max(this.syncInterval, Status.backoffInterval);
     }
 
@@ -1075,7 +1075,7 @@ WeaveSvc.prototype = {
           break;
         default:
           this._scheduleNextSync();
-          return; 
+          return;
       }
     }
 

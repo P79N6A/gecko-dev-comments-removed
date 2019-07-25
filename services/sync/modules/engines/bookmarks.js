@@ -391,7 +391,7 @@ BookmarksStore.prototype = {
       Svc.Bookmark.moveItem(orphan, parentId, insertPos);
       Svc.Annos.removeItemAnnotation(orphan, PARENT_ANNO);
     });
-    
+
     
     orphans.forEach(this._attachFollowers, this);
   },

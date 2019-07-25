@@ -146,12 +146,12 @@ Resource.prototype = {
     
     channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
     channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
-    
+
     
     channel.notificationCallbacks = new badCertListener();
+
     
-    
-    let headers = this.headers; 
+    let headers = this.headers;
     for (let key in headers) {
       if (key == 'Authorization')
         this._log.trace("HTTP Header " + key + ": ***** (suppressed)");
