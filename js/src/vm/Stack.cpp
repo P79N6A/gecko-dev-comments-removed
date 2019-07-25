@@ -778,8 +778,7 @@ ContextStack::popFrame(const FrameGuard &fg)
     JS_ASSERT(space().firstUnused() == fg.regs_.sp);
     JS_ASSERT(&fg.regs_ == &seg_->regs());
 
-    if (fg.regs_.fp()->isNonEvalFunctionFrame())
-        fg.regs_.fp()->functionEpilogue();
+    fg.regs_.fp()->putActivationObjects();
 
     seg_->popRegs(fg.prevRegs_);
     if (fg.pushedSeg_)
@@ -1015,13 +1014,6 @@ StackIter::settleOnNewState()
         if (containsFrame && (!containsCall || (Value *)fp_ >= calls_->argv())) {
             
             if (fp_->isDummyFrame()) {
-                popFrame();
-                continue;
-            }
-
-            
-            if (containsCall && !calls_->active() && fp_->hasArgs() &&
-                calls_->argv() == fp_->actualArgs()) {
                 popFrame();
                 continue;
             }
