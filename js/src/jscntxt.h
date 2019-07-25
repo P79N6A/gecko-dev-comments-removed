@@ -1648,6 +1648,8 @@ struct JSContext
     
     JSCompartment       *compartment;
 
+    inline void setCompartment(JSCompartment *compartment);
+
     
     JS_REQUIRES_STACK
     JSFrameRegs         *regs;
@@ -1938,6 +1940,8 @@ struct JSContext
     bool                 methodJitEnabled;
     bool                 profilingEnabled;
 #endif
+
+    bool                 inferenceEnabled;
 
     
     void updateJITEnabled();

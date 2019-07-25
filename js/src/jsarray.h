@@ -89,8 +89,15 @@ inline JSObject::EnsureDenseResult
 JSObject::ensureDenseArrayElements(JSContext *cx, uintN index, uintN extra)
 {
     JS_ASSERT(isDenseArray());
+
     uintN currentCapacity = numSlots();
     uintN initLength = getDenseArrayInitializedLength();
+
+    
+
+
+
+    JS_ASSERT_IF(!cx->typeInferenceEnabled(), currentCapacity == initLength);
 
     uintN requiredCapacity;
     if (extra == 1) {

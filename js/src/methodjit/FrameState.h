@@ -329,12 +329,6 @@ class FrameState
     
 
 
-
-    inline void pushInitializerObject(RegisterID payload, bool array, JSObject *baseobj);
-
-    
-
-
     inline void pop();
 
     
@@ -674,10 +668,17 @@ class FrameState
     void discardFe(FrameEntry *fe);
 
     
-    inline types::TypeSet *getTypeSet(FrameEntry *fe);
-
-    
-    inline void learnTypeSet(unsigned slot, types::TypeSet *types);
+    struct StackEntryExtra {
+        bool initArray;
+        JSObject *initObject;
+        types::TypeSet *types;
+        JSAtom *name;
+        void reset() { PodZero(this); }
+    };
+    StackEntryExtra& extra(FrameEntry *fe) {
+        JS_ASSERT(fe >= spBase && fe < sp);
+        return a->extraArray[fe - spBase];
+    }
 
     
 
@@ -1032,7 +1033,7 @@ class FrameState
         Tracker tracker;
 
         
-        types::TypeSet **typeSets;
+        StackEntryExtra *extraArray;
 
         
 
