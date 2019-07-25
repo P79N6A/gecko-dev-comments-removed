@@ -1330,6 +1330,36 @@ pref("mousewheel.horizscroll.withmetakey.action",0);
 pref("mousewheel.horizscroll.withmetakey.numlines",1);
 pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
 
+
+
+
+
+
+
+
+
+pref("general.smoothScroll.pixels.durationMinMS", 200);
+pref("general.smoothScroll.pixels.durationMaxMS", 800);
+pref("general.smoothScroll.lines.durationMinMS", 150);
+pref("general.smoothScroll.lines.durationMaxMS", 150);
+pref("general.smoothScroll.pages.durationMinMS", 150);
+pref("general.smoothScroll.pages.durationMaxMS", 150);
+pref("general.smoothScroll.scrollbars.durationMinMS", 150);
+pref("general.smoothScroll.scrollbars.durationMaxMS", 150);
+pref("general.smoothScroll.other.durationMinMS", 150);
+pref("general.smoothScroll.other.durationMaxMS", 150);
+pref("general.smoothScroll.pixels", true);
+pref("general.smoothScroll.lines", true);
+pref("general.smoothScroll.pages", true);
+pref("general.smoothScroll.scrollbars", true);
+pref("general.smoothScroll.other", true);
+
+
+
+
+
+pref("general.smoothScroll.durationToIntervalRatio", 200);
+
 pref("profile.confirm_automigration",true);
 
 
