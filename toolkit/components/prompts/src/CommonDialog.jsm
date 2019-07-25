@@ -217,12 +217,14 @@ CommonDialog.prototype = {
 
         
         try {
-            if (this.soundID) {
+            if (xulDialog && this.soundID) {
                 Cc["@mozilla.org/sound;1"].
                 createInstance(Ci.nsISound).
-                playEventSound(soundID);
+                playEventSound(this.soundID);
             }
-        } catch (e) { }
+        } catch (e) {
+            Cu.reportError("Couldn't play common dialog event sound: " + e);
+        }
 
         let topic = "common-dialog-loaded";
         if (!xulDialog)
