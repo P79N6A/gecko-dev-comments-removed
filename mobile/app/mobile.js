@@ -74,9 +74,6 @@ pref("toolkit.zoomManager.zoomValues", ".2,.3,.5,.67,.8,.9,1,1.1,1.2,1.33,1.5,1.
 pref("browser.viewport.scaleRatio", -1);
 
 
-pref("ui.use_native_popup_windows", true);
-
-
 pref("ui.scrollbarsCanOverlapContent", 1);
 
 
