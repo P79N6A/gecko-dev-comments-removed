@@ -47,7 +47,6 @@
 #include "nsAlgorithm.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrefService.h"
-#include "cairo-xlib-xrender.h"
 
 
 
@@ -495,10 +494,3 @@ gfxXlibSurface::FindRenderFormat(Display *dpy, gfxImageFormat format)
 
     return (XRenderPictFormat*)NULL;
 }
-
-XRenderPictFormat*
-gfxXlibSurface::XRenderFormat()
-{
-    return cairo_xlib_surface_get_xrender_format(CairoSurface());
-}
-
