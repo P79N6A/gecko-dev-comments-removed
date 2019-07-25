@@ -302,9 +302,15 @@ def process_explicit_remove_files(dir_path, patch_info):
         for line in lines:
             
             if line and not line.startswith("#"):
+                if prefix != "":
+                    if line.startswith("../"):
+                        line = line.replace("../../", "")
+                        line = line.replace("../", "Contents/")
+                    else:
+                        line = os.path.join(prefix,line)
                 
                 
-                line=os.path.join(prefix,line).replace("\\", "/")
+                line = line.replace("\\", "/")
                 patch_info.append_remove_instruction(line)
 
 def create_partial_patch(from_dir_path, to_dir_path, patch_filename, shas, patch_info, forced_updates):
