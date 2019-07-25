@@ -186,6 +186,12 @@ public:
 
   
   
+  
+  static PRBool
+  URICanUseChromePersist(nsIURI* aURI);
+  
+  
+  
   PRBool
   CacheStoragePermissions();
 
