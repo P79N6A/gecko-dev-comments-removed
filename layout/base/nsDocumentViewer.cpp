@@ -2734,8 +2734,7 @@ SetChildMinFontSize(nsIMarkupDocumentViewer* aChild, void* aClosure)
 {
   nsCOMPtr<nsIMarkupDocumentViewer_MOZILLA_2_0_BRANCH> branch =
     do_QueryInterface(aChild);
-  struct ZoomInfo* ZoomInfo = (struct ZoomInfo*) aClosure;
-  branch->SetMinFontSize(ZoomInfo->mZoom);
+  branch->SetMinFontSize(NS_PTR_TO_INT32(aClosure));
 }
 
 static void
@@ -2768,8 +2767,7 @@ SetExtResourceMinFontSize(nsIDocument* aDocument, void* aClosure)
   if (shell) {
     nsPresContext* ctxt = shell->GetPresContext();
     if (ctxt) {
-      struct ZoomInfo* ZoomInfo = static_cast<struct ZoomInfo*>(aClosure);
-      ctxt->SetMinFontSize(ZoomInfo->mZoom);
+      ctxt->SetMinFontSize(NS_PTR_TO_INT32(aClosure));
     }
   }
 
@@ -2848,8 +2846,7 @@ DocumentViewerImpl::SetMinFontSize(PRInt32 aMinFontSize)
   
   
   
-  struct ZoomInfo ZoomInfo = { aMinFontSize };
-  CallChildren(SetChildMinFontSize, &ZoomInfo);
+  CallChildren(SetChildMinFontSize, NS_INT32_TO_PTR(aMinFontSize));
 
   
   nsPresContext* pc = GetPresContext();
@@ -2858,7 +2855,8 @@ DocumentViewerImpl::SetMinFontSize(PRInt32 aMinFontSize)
   }
 
   
-  mDocument->EnumerateExternalResources(SetExtResourceMinFontSize, &ZoomInfo);
+  mDocument->EnumerateExternalResources(SetExtResourceMinFontSize,
+                                        NS_INT32_TO_PTR(aMinFontSize));
 
   batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   
@@ -3093,7 +3091,7 @@ DocumentViewerImpl::SetHintCharacterSetSource(PRInt32 aHintCharacterSetSource)
   mHintCharsetSource = aHintCharacterSetSource;
   
   CallChildren(SetChildHintCharacterSetSource,
-                      (void*) aHintCharacterSetSource);
+                      NS_INT32_TO_PTR(aHintCharacterSetSource));
   return NS_OK;
 }
 
@@ -3230,7 +3228,7 @@ NS_IMETHODIMP DocumentViewerImpl::SetBidiOptions(PRUint32 aBidiOptions)
     mPresContext->SetBidi(aBidiOptions, PR_TRUE); 
   }
   
-  CallChildren(SetChildBidiOptions, (void*) aBidiOptions);
+  CallChildren(SetChildBidiOptions, NS_INT32_TO_PTR(aBidiOptions));
   return NS_OK;
 }
 
