@@ -174,7 +174,6 @@ public:
   virtual void StartBuffering();
 
   
-  
   NS_IMETHOD Run();
 
   
@@ -215,13 +214,19 @@ public:
   }
 
   PRBool OnStateMachineThread() const {
-    return mDecoder->OnStateMachineThread();
+    return IsCurrentThread(GetStateMachineThread());
   }
-
+ 
   
   
   
-  nsBuiltinDecoder* mDecoder;
+  
+  
+  
+  
+  
+  
+  nsRefPtr<nsBuiltinDecoder> mDecoder;
 
   
   
@@ -251,12 +256,21 @@ public:
   virtual void SetFrameBufferLength(PRUint32 aLength);
 
   
+  static nsIThread* GetStateMachineThread();
+
+  
+  
+  
+  
   nsresult ScheduleStateMachine();
 
   
   
   
   nsresult ScheduleStateMachine(PRInt64 aUsecs);
+
+  
+  void TimeoutExpired();
 
 protected:
 
@@ -418,8 +432,17 @@ protected:
   
   void DecodeThreadRun();
 
+  
+  nsresult CallRunStateMachine();
+
+  
+  
+  
+  nsresult RunStateMachine();
+
   PRBool IsStateMachineScheduled() const {
-    return !mTimeout.IsNull();
+    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+    return !mTimeout.IsNull() || mRunAgain;
   }
 
   
@@ -560,6 +583,21 @@ protected:
   
   
   PRPackedBool mQuickBuffering;
+
+  
+  
+  PRPackedBool mIsRunning;
+
+  
+  
+  PRPackedBool mRunAgain;
+
+  
+  
+  
+  
+  
+  PRPackedBool mDispatchedRunEvent;
 
 private:
   
