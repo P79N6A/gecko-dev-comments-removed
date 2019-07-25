@@ -85,9 +85,6 @@ var _fromByTestLists =
   paint: [
     
     
-    
-    
-    
     new AnimTestcaseFromBy("none", "none",  { noEffect: 1 }),
     new AnimTestcaseFromBy("url(#gradA)", "url(#gradB)", { noEffect: 1 }),
     new AnimTestcaseFromBy("url(#gradA)", "url(#gradB) red", { noEffect: 1 }),
