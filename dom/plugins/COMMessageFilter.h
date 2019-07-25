@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef mozilla_plugins_COMMessageFilter_h
+#define mozilla_plugins_COMMessageFilter_h
+
+#include <objidl.h>
+#include "nsISupportsImpl.h"
+#include "nsAutoPtr.h"
+
+namespace mozilla {
+namespace plugins {
+
+class PluginModuleChild;
+
+class COMMessageFilter : public IMessageFilter
+{
+public:
+  static void Initialize(PluginModuleChild* plugin);
+
+  COMMessageFilter(PluginModuleChild* plugin)
+    : mPlugin(plugin)
+  { }
+
+  HRESULT WINAPI QueryInterface(REFIID riid, void** ppv);
+  DWORD WINAPI AddRef();
+  DWORD WINAPI Release();
+
+  DWORD WINAPI HandleInComingCall(DWORD dwCallType,
+                                  HTASK htaskCaller,
+                                  DWORD dwTickCount,
+                                  LPINTERFACEINFO lpInterfaceInfo);
+  DWORD WINAPI RetryRejectedCall(HTASK htaskCallee,
+                                 DWORD dwTickCount,
+                                 DWORD dwRejectType);
+  DWORD WINAPI MessagePending(HTASK htaskCallee,
+                              DWORD dwTickCount,
+                              DWORD dwPendingType);
+
+private:
+  nsAutoRefCnt mRefCnt;
+  PluginModuleChild* mPlugin;
+  nsRefPtr<IMessageFilter> mPreviousFilter;
+};
+
+} 
+} 
+
+#endif 
