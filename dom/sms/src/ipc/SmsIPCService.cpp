@@ -60,6 +60,9 @@ SmsIPCService::GetSmsChild()
   return sSmsChild;
 }
 
+
+
+
 NS_IMETHODIMP
 SmsIPCService::HasSupport(bool* aHasSupport)
 {
@@ -96,6 +99,20 @@ SmsIPCService::CreateSmsMessage(PRInt32 aId,
 {
   return SmsMessage::Create(
     aId, aDelivery, aSender, aReceiver, aBody, aTimestamp, aCx, aMessage);
+}
+
+
+
+
+NS_IMETHODIMP
+SmsIPCService::SaveSentMessage(const nsAString& aReceiver,
+                               const nsAString& aBody,
+                               PRUint64 aDate, PRInt32* aId)
+{
+  GetSmsChild()->SendSaveSentMessage(nsString(aReceiver), nsString(aBody),
+                                     aDate, aId);
+
+  return NS_OK;
 }
 
 } 
