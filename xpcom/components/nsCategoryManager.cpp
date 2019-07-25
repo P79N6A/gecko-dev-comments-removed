@@ -326,6 +326,17 @@ CategoryNode::AddLeaf(const char* aEntryName,
   return rv;
 }
 
+void
+CategoryNode::DeleteLeaf(const char* aEntryName)
+{
+  
+  
+  MutexAutoLock lock(mLock);
+
+  
+  mTable.RemoveEntry(aEntryName);
+}
+
 NS_METHOD 
 CategoryNode::Enumerate(nsISimpleEnumerator **_retval)
 {
@@ -554,11 +565,33 @@ nsCategoryManager::GetCategoryEntry( const char *aCategoryName,
   return status;
 }
 
+NS_IMETHODIMP
+nsCategoryManager::AddCategoryEntry( const char *aCategoryName,
+                                     const char *aEntryName,
+                                     const char *aValue,
+                                     PRBool aPersist,
+                                     PRBool aReplace,
+                                     char **_retval )
+{
+  if (aPersist) {
+    NS_ERROR("Category manager doesn't support persistence.");
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  AddCategoryEntry(aCategoryName, aEntryName, aValue, aReplace, _retval);
+  return NS_OK;
+}
+
 void
 nsCategoryManager::AddCategoryEntry(const char *aCategoryName,
                                     const char *aEntryName,
-                                    const char *aValue)
+                                    const char *aValue,
+                                    bool aReplace,
+                                    char** aOldValue)
 {
+  if (aOldValue)
+    *aOldValue = NULL;
+
   
   
   CategoryNode* category;
@@ -594,8 +627,70 @@ nsCategoryManager::AddCategoryEntry(const char *aCategoryName,
     NotifyObservers(NS_XPCOM_CATEGORY_ENTRY_ADDED_OBSERVER_ID,
                     aCategoryName, aEntryName);
 
-    NS_Free(oldEntry);
+    if (aOldValue)
+      *aOldValue = oldEntry;
+    else
+      NS_Free(oldEntry);
   }
+}
+
+NS_IMETHODIMP
+nsCategoryManager::DeleteCategoryEntry( const char *aCategoryName,
+                                        const char *aEntryName,
+                                        PRBool aDontPersist)
+{
+  if (!aDontPersist) {
+    NS_ERROR("Persistence not supported in the category manager.");
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  NS_ENSURE_ARG_POINTER(aCategoryName);
+  NS_ENSURE_ARG_POINTER(aEntryName);
+
+  
+
+
+
+
+
+  CategoryNode* category;
+  {
+    MutexAutoLock lock(mLock);
+    category = get_category(aCategoryName);
+  }
+
+  if (category) {
+    category->DeleteLeaf(aEntryName);
+
+    NotifyObservers(NS_XPCOM_CATEGORY_ENTRY_REMOVED_OBSERVER_ID,
+                    aCategoryName, aEntryName);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCategoryManager::DeleteCategory( const char *aCategoryName )
+{
+  NS_ENSURE_ARG_POINTER(aCategoryName);
+
+  
+  
+  
+
+  CategoryNode* category;
+  {
+    MutexAutoLock lock(mLock);
+    category = get_category(aCategoryName);
+  }
+
+  if (category) {
+    category->Clear();
+    NotifyObservers(NS_XPCOM_CATEGORY_CLEARED_OBSERVER_ID,
+                    aCategoryName, nsnull);
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
