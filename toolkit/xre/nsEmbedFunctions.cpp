@@ -384,51 +384,58 @@ XRE_InitChildProcess(int aArgc,
       break;
   }
 
-  
-  MessageLoop uiMessageLoop(uiLoopType);
   {
-    nsAutoPtr<ProcessChild> process;
+    
+    
+    
+    
 
-    switch (aProcess) {
-    case GeckoProcessType_Default:
-      NS_RUNTIMEABORT("This makes no sense");
-      break;
+    
+    MessageLoop uiMessageLoop(uiLoopType);
+    {
+      nsAutoPtr<ProcessChild> process;
 
-    case GeckoProcessType_Plugin:
-      process = new PluginProcessChild(parentHandle);
-      break;
+      switch (aProcess) {
+      case GeckoProcessType_Default:
+        NS_RUNTIMEABORT("This makes no sense");
+        break;
 
-    case GeckoProcessType_Content:
-      process = new ContentProcess(parentHandle);
-      break;
+      case GeckoProcessType_Plugin:
+        process = new PluginProcessChild(parentHandle);
+        break;
 
-    case GeckoProcessType_Jetpack:
-      process = new JetpackProcessChild(parentHandle);
-      break;
+      case GeckoProcessType_Content:
+        process = new ContentProcess(parentHandle);
+        break;
 
-    case GeckoProcessType_IPDLUnitTest:
+      case GeckoProcessType_Jetpack:
+        process = new JetpackProcessChild(parentHandle);
+        break;
+
+      case GeckoProcessType_IPDLUnitTest:
 #ifdef MOZ_IPDL_TESTS
-      process = new IPDLUnitTestProcessChild(parentHandle);
+        process = new IPDLUnitTestProcessChild(parentHandle);
 #else 
-      NS_RUNTIMEABORT("rebuild with --enable-ipdl-tests");
+        NS_RUNTIMEABORT("rebuild with --enable-ipdl-tests");
 #endif
-      break;
+        break;
 
-    default:
-      NS_RUNTIMEABORT("Unknown main thread class");
+      default:
+        NS_RUNTIMEABORT("Unknown main thread class");
+      }
+
+      if (!process->Init()) {
+        NS_LogTerm();
+        return NS_ERROR_FAILURE;
+      }
+
+      
+      uiMessageLoop.MessageLoop::Run();
+
+      
+      
+      process->CleanUp();
     }
-
-    if (!process->Init()) {
-      NS_LogTerm();
-      return NS_ERROR_FAILURE;
-    }
-
-    
-    uiMessageLoop.MessageLoop::Run();
-
-    
-    
-    process->CleanUp();
   }
 
   NS_LogTerm();
