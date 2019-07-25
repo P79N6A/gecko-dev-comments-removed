@@ -1418,7 +1418,8 @@ js_IsDebugScopeSlow(const JSObject *obj)
 
 
 DebugScopes::DebugScopes(JSRuntime *rt)
- : proxiedScopes(rt),
+ : rt(rt),
+   proxiedScopes(rt),
    missingScopes(rt),
    liveScopes(rt)
 {}
@@ -1447,7 +1448,7 @@ DebugScopes::mark(JSTracer *trc)
 }
 
 void
-DebugScopes::sweep(JSRuntime *rt)
+DebugScopes::sweep()
 {
     
 
@@ -1455,7 +1456,7 @@ DebugScopes::sweep(JSRuntime *rt)
 
 
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
-        if (!IsObjectMarked(&e.front().value))
+        if (!IsObjectMarked(e.front().value.unsafeGet()))
             e.removeFront();
     }
 
@@ -1700,8 +1701,25 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 StackFrame *
 DebugScopes::hasLiveFrame(ScopeObject &scope)
 {
-    if (LiveScopeMap::Ptr p = liveScopes.lookup(&scope))
-        return p->value;
+    if (LiveScopeMap::Ptr p = liveScopes.lookup(&scope)) {
+        StackFrame *fp = p->value;
+
+        
+
+
+
+
+
+
+
+
+
+
+        if (JSGenerator *gen = fp->maybeSuspendedGenerator(rt))
+            JSObject::readBarrier(gen->obj);
+
+        return fp;
+    }
     return NULL;
 }
 
