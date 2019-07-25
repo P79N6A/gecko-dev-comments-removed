@@ -175,5 +175,17 @@ PluginProcessChild::CleanUp()
     nsRegion::ShutdownStatic();
 }
 
+
+void
+PluginProcessChild::AppendNotesToCrashReport(const nsCString& aNotes)
+{
+    AssertPluginThread();
+
+    PluginProcessChild* p = PluginProcessChild::current();
+    if (p) {
+        p->mPlugin.SendAppendNotesToCrashReport(aNotes);
+    }
+}
+
 } 
 } 
