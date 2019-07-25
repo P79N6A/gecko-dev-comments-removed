@@ -262,21 +262,6 @@ public:
 
   static void             StartAllowingD3D9(bool aReinitialize);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  PRBool                  AssociateDefaultIMC(PRBool aAssociate);
-
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
   PRBool HasTaskbarIconBeenCreated() { return mHasTaskbarIconBeenCreated; }
   
@@ -519,6 +504,7 @@ protected:
   PRUint32              mBlurSuppressLevel;
   DWORD_PTR             mOldStyle;
   DWORD_PTR             mOldExStyle;
+  HIMC                  mOldIMC;
   IMEContext            mIMEContext;
   nsNativeDragTarget*   mNativeDragTarget;
   HKL                   mLastKeyboardLayout;
