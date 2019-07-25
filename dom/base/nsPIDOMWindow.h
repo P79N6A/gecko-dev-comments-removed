@@ -167,9 +167,6 @@ public:
     win->mMutationBits |= aType;
   }
 
-  virtual void MaybeUpdateTouchState() {}
-  virtual void UpdateTouchState() {}
-
   
   nsIDOMDocument* GetExtantDocument() const
   {
@@ -397,11 +394,6 @@ public:
   virtual PRBool CanClose() = 0;
   virtual nsresult ForceClose() = 0;
 
-  void SetModalContentWindow(PRBool aIsModalContentWindow)
-  {
-    mIsModalContentWindow = aIsModalContentWindow;
-  }
-
   PRBool IsModalContentWindow() const
   {
     return mIsModalContentWindow;
@@ -425,16 +417,6 @@ public:
     return mMayHavePaintEventListener;
   }
   
-  
-
-
-
-  void SetHasTouchEventListeners()
-  {
-    mMayHaveTouchEventListener = PR_TRUE;
-    MaybeUpdateTouchState();
-  }
-
   
 
 
@@ -573,7 +555,6 @@ protected:
   PRPackedBool           mIsHandlingResizeEvent;
   PRPackedBool           mIsInnerWindow;
   PRPackedBool           mMayHavePaintEventListener;
-  PRPackedBool           mMayHaveTouchEventListener;
 
   
   

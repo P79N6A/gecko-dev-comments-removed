@@ -3464,7 +3464,7 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
     
     
     if (aClearFromProtoChain) {
-      nsWindowSH::InvalidateGlobalScopePolluter(mContext, obj);
+      nsCommonWindowSH::InvalidateGlobalScopePolluter(mContext, obj);
 
       
       for (JSObject *o = ::JS_GetPrototype(mContext, obj), *next;

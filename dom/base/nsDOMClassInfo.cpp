@@ -250,6 +250,7 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMNSHTMLElement.h"
 #include "nsIDOMHTMLAnchorElement.h"
+#include "nsIDOMNSHTMLAnchorElement2.h"
 #include "nsIDOMHTMLAppletElement.h"
 #include "nsIDOMHTMLAreaElement.h"
 #include "nsIDOMHTMLBRElement.h"
@@ -274,7 +275,9 @@
 #include "nsIDOMHTMLHtmlElement.h"
 #include "nsIDOMHTMLIFrameElement.h"
 #include "nsIDOMHTMLImageElement.h"
+#include "nsIDOMNSHTMLImageElement.h"
 #include "nsIDOMHTMLInputElement.h"
+#include "nsIDOMNSHTMLInputElement.h"
 #include "nsIDOMHTMLIsIndexElement.h"
 #include "nsIDOMHTMLLIElement.h"
 #include "nsIDOMHTMLLabelElement.h"
@@ -305,13 +308,12 @@
 #include "nsIDOMHTMLTitleElement.h"
 #include "nsIDOMHTMLUListElement.h"
 #include "nsIDOMHTMLMediaError.h"
-#include "nsIDOMHTMLTimeRanges.h"
 #include "nsIDOMHTMLSourceElement.h"
 #include "nsIDOMHTMLVideoElement.h"
 #include "nsIDOMHTMLAudioElement.h"
 #include "nsIDOMProgressEvent.h"
 #include "nsIDOMNSUIEvent.h"
-#include "nsIDOMCSS2Properties.h"
+#include "nsIDOMNSCSS2Properties.h"
 #include "nsIDOMCSSCharsetRule.h"
 #include "nsIDOMCSSImportRule.h"
 #include "nsIDOMCSSMediaRule.h"
@@ -466,8 +468,6 @@
 #include "nsIDOMSimpleGestureEvent.h"
 
 #include "nsIDOMNSMouseEvent.h"
-
-#include "nsIDOMMozTouchEvent.h"
 
 #include "nsIEventListenerService.h"
 #include "nsIFrameMessageManager.h"
@@ -631,12 +631,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
   
 
 
-  NS_DEFINE_CLASSINFO_DATA(Window, nsWindowSH,
+  NS_DEFINE_CLASSINFO_DATA(Window, nsOuterWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
                            WINDOW_SCRIPTABLE_FLAGS)
 
-  
-  NS_DEFINE_CLASSINFO_DATA(InnerWindow, nsWindowSH,
+  NS_DEFINE_CLASSINFO_DATA(InnerWindow, nsInnerWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
                            WINDOW_SCRIPTABLE_FLAGS)
 
@@ -685,7 +684,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            ARRAY_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(DOMSettableTokenList, nsDOMTokenListSH,
                            ARRAY_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(DocumentFragment, nsNodeSH, NODE_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(DocumentFragment, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(Element, nsElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(Attr, nsAttributeSH,
@@ -927,12 +927,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   
-  NS_DEFINE_CLASSINFO_DATA(ChromeWindow, nsWindowSH,
+  NS_DEFINE_CLASSINFO_DATA(ChromeWindow, nsOuterWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
                            WINDOW_SCRIPTABLE_FLAGS)
 
-  
-  NS_DEFINE_CLASSINFO_DATA(InnerChromeWindow, nsWindowSH,
+  NS_DEFINE_CLASSINFO_DATA(InnerChromeWindow, nsInnerWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
                            WINDOW_SCRIPTABLE_FLAGS)
 
@@ -1315,12 +1314,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(FileReader, nsEventTargetSH,
                            EVENTTARGET_SCRIPTABLE_FLAGS)
 
-  NS_DEFINE_CLASSINFO_DATA(ModalContentWindow, nsWindowSH,
+  NS_DEFINE_CLASSINFO_DATA(ModalContentWindow, nsOuterWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
                            WINDOW_SCRIPTABLE_FLAGS)
 
-  
-  NS_DEFINE_CLASSINFO_DATA(InnerModalContentWindow, nsWindowSH,
+  NS_DEFINE_CLASSINFO_DATA(InnerModalContentWindow, nsInnerWindowSH,
                            DEFAULT_SCRIPTABLE_FLAGS |
                            WINDOW_SCRIPTABLE_FLAGS)
 
@@ -1356,8 +1354,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(HTMLAudioElement, nsElementSH,
                            ELEMENT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(HTMLTimeRanges, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 #endif
 
   NS_DEFINE_CLASSINFO_DATA(ProgressEvent, nsDOMGenericSH,
@@ -1380,8 +1376,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(SimpleGestureEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
-  NS_DEFINE_CLASSINFO_DATA(MozTouchEvent, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 #ifdef MOZ_MATHML
   NS_DEFINE_CLASSINFO_DATA_WITH_NAME(MathMLElement, Element, nsElementSH,
                                      ELEMENT_SCRIPTABLE_FLAGS)
@@ -2430,6 +2424,8 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(HTMLAnchorElement, nsIDOMHTMLAnchorElement)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLAnchorElement)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSHTMLAnchorElement)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSHTMLAnchorElement2)
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
@@ -2550,11 +2546,13 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(HTMLImageElement, nsIDOMHTMLImageElement)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLImageElement)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSHTMLImageElement)
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(HTMLInputElement, nsIDOMHTMLInputElement)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLInputElement)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSHTMLInputElement)
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
@@ -2774,12 +2772,16 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN(CSSStyleDeclaration, nsIDOMCSSStyleDeclaration)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMCSSStyleDeclaration)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMCSS2Properties)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGCSS2Properties)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSCSS2Properties)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(ComputedCSSStyleDeclaration,
                                       nsIDOMCSSStyleDeclaration)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMCSSStyleDeclaration)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMCSS2Properties)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMSVGCSS2Properties)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSCSS2Properties)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(ROCSSPrimitiveValue,
@@ -3844,11 +3846,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLAudioElement)
     DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(HTMLTimeRanges, nsIDOMHTMLTimeRanges)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMHTMLTimeRanges)
-    DOM_CLASSINFO_EVENT_MAP_ENTRIES
-  DOM_CLASSINFO_MAP_END  
 #endif
 
   DOM_CLASSINFO_MAP_BEGIN(ProgressEvent, nsIDOMProgressEvent)
@@ -3875,13 +3872,6 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(SimpleGestureEvent, nsIDOMSimpleGestureEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMSimpleGestureEvent)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
-    DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(MozTouchEvent, nsIDOMMozTouchEvent)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozTouchEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMouseEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSMouseEvent)
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
@@ -4827,8 +4817,8 @@ nsDOMClassInfo::ShutDown()
 
 
 NS_IMETHODIMP
-nsWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
-                      JSObject *globalObj, JSObject **parentObj)
+nsCommonWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
+                            JSObject *globalObj, JSObject **parentObj)
 {
   
   
@@ -4870,18 +4860,21 @@ nsWindowSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
 static JSClass sGlobalScopePolluterClass = {
   "Global Scope Polluter",
   JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_NEW_RESOLVE,
-  nsWindowSH::SecurityCheckOnSetProp, nsWindowSH::SecurityCheckOnSetProp,
-  nsWindowSH::GlobalScopePolluterGetProperty,
-  nsWindowSH::SecurityCheckOnSetProp, JS_EnumerateStub,
-  (JSResolveOp)nsWindowSH::GlobalScopePolluterNewResolve, JS_ConvertStub,
+  nsCommonWindowSH::SecurityCheckOnSetProp,
+  nsCommonWindowSH::SecurityCheckOnSetProp,
+  nsCommonWindowSH::GlobalScopePolluterGetProperty,
+  nsCommonWindowSH::SecurityCheckOnSetProp,
+  JS_EnumerateStub,
+  (JSResolveOp)nsCommonWindowSH::GlobalScopePolluterNewResolve,
+  JS_ConvertStub,
   nsHTMLDocumentSH::ReleaseDocument
 };
 
 
 
 JSBool
-nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSObject *obj,
-                                           jsid id, jsval *vp)
+nsCommonWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSObject *obj,
+                                                 jsid id, jsval *vp)
 {
   
   
@@ -4907,8 +4900,8 @@ nsWindowSH::GlobalScopePolluterGetProperty(JSContext *cx, JSObject *obj,
 
 
 JSBool
-nsWindowSH::SecurityCheckOnSetProp(JSContext *cx, JSObject *obj, jsid id,
-                                   jsval *vp)
+nsCommonWindowSH::SecurityCheckOnSetProp(JSContext *cx, JSObject *obj, jsid id,
+                                         jsval *vp)
 {
   
   
@@ -4932,8 +4925,8 @@ GetDocument(JSContext *cx, JSObject *obj)
 
 
 JSBool
-nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSObject *obj,
-                                          jsid id, uintN flags,
+nsCommonWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSObject *obj,
+                                                jsid id, uintN flags,
                                           JSObject **objp)
 {
   if (flags & (JSRESOLVE_ASSIGNING | JSRESOLVE_DECLARING |
@@ -5002,7 +4995,7 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSObject *obj,
 
 
 void
-nsWindowSH::InvalidateGlobalScopePolluter(JSContext *cx, JSObject *obj)
+nsCommonWindowSH::InvalidateGlobalScopePolluter(JSContext *cx, JSObject *obj)
 {
   JSObject *proto;
 
@@ -5029,8 +5022,8 @@ nsWindowSH::InvalidateGlobalScopePolluter(JSContext *cx, JSObject *obj)
 
 
 nsresult
-nsWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
-                                       nsIHTMLDocument *doc)
+nsCommonWindowSH::InstallGlobalScopePolluter(JSContext *cx, JSObject *obj,
+                                             nsIHTMLDocument *doc)
 {
   
   
@@ -5097,8 +5090,8 @@ GetChildFrame(nsGlobalWindow *win, jsid id)
 }
 
 NS_IMETHODIMP
-nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
+nsCommonWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                              JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
@@ -5233,8 +5226,8 @@ nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
+nsCommonWindowSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                              JSObject *obj, jsid id, jsval *vp, PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
@@ -5310,9 +5303,9 @@ nsWindowSH::SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, jsval *vp,
-                        PRBool *_retval)
+nsCommonWindowSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                              JSObject *obj, jsid id, jsval *vp,
+                              PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
@@ -5369,9 +5362,9 @@ nsWindowSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::DelProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, jsval *vp,
-                        PRBool *_retval)
+nsCommonWindowSH::DelProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                              JSObject *obj, jsid id, jsval *vp,
+                              PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
@@ -6213,8 +6206,8 @@ ResolvePrototype(nsIXPConnect *aXPConnect, nsGlobalWindow *aWin, JSContext *cx,
 
 
 nsresult
-nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
-                          JSObject *obj, JSString *str, PRBool *did_resolve)
+nsCommonWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
+                                JSObject *obj, JSString *str, PRBool *did_resolve)
 {
   *did_resolve = PR_FALSE;
 
@@ -6283,8 +6276,8 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
   if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor ||
       name_struct->mType == nsGlobalNameStruct::eTypeExternalClassInfo) {
     
-    if (name_struct->mChromeOnly &&
-        !nsContentUtils::IsSystemPrincipal(aWin->GetPrincipal())) {
+    if (name_struct->mChromeOnly && aWin->IsChromeWindow()) {
+      NS_ASSERTION(nsContentUtils::IsCallerChrome(), "Uh, bad?!");
       return NS_OK;
     }
 
@@ -6454,12 +6447,12 @@ ContentWindowGetter(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 }
 
 PRBool
-nsWindowSH::sResolving = PR_FALSE;
+nsCommonWindowSH::sResolving = PR_FALSE;
 
 NS_IMETHODIMP
-nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                       JSObject *obj, jsid id, PRUint32 flags,
-                       JSObject **objp, PRBool *_retval)
+nsCommonWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                             JSObject *obj, jsid id, PRUint32 flags,
+                             JSObject **objp, PRBool *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
@@ -7003,9 +6996,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
           return NS_OK;
         }
       }
-    } else if (id == sDialogArguments_id &&
-               (mData == &sClassInfoData[eDOMClassInfo_InnerModalContentWindow_id] ||
-                mData == &sClassInfoData[eDOMClassInfo_ModalContentWindow_id])) {
+    } else if (id == sDialogArguments_id && win->IsModalContentWindow()) {
       nsCOMPtr<nsIArray> args;
       ((nsGlobalModalWindow *)win)->GetDialogArguments(getter_AddRefs(args));
 
@@ -7092,9 +7083,9 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, PRUint32 enum_op, jsval *statep,
-                         jsid *idp, PRBool *_retval)
+nsCommonWindowSH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                               JSObject *obj, PRUint32 enum_op, jsval *statep,
+                               jsid *idp, PRBool *_retval)
 {
   switch ((JSIterateOp)enum_op) {
     
@@ -7156,8 +7147,8 @@ nsWindowSH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                     JSObject *obj)
+nsCommonWindowSH::Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                           JSObject *obj)
 {
   nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryWrappedNative(wrapper));
   NS_ENSURE_TRUE(sgo, NS_ERROR_UNEXPECTED);
@@ -7168,8 +7159,8 @@ nsWindowSH::Finalize(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::Equality(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                     JSObject * obj, const jsval &val, PRBool *bp)
+nsCommonWindowSH::Equality(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                           JSObject * obj, const jsval &val, PRBool *bp)
 {
   *bp = PR_FALSE;
 
@@ -7205,8 +7196,8 @@ nsWindowSH::Equality(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                        JSObject * obj, JSObject * *_retval)
+nsCommonWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                              JSObject * obj, JSObject * *_retval)
 {
   nsGlobalWindow *origWin = nsGlobalWindow::FromWrapper(wrapper);
   nsGlobalWindow *win = origWin->GetOuterWindowInternal();
@@ -7233,8 +7224,8 @@ nsWindowSH::OuterObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
 }
 
 NS_IMETHODIMP
-nsWindowSH::InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
-                        JSObject * obj, JSObject * *_retval)
+nsCommonWindowSH::InnerObject(nsIXPConnectWrappedNative *wrapper, JSContext * cx,
+                              JSObject * obj, JSObject * *_retval)
 {
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
 
