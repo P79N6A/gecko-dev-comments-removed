@@ -2,12 +2,7 @@
 
 let itemsSet, HUD;
 
-registerCleanupFunction(function() {
-  Services.prefs.clearUserPref("devtools.gcli.enable");
-});
-
 function test() {
-  Services.prefs.setBoolPref("devtools.gcli.enable", false);
   addTab("data:text/html;charset=utf-8,Web Console test for bug 626484");
   browser.addEventListener("load", tabLoaded, true);
 }

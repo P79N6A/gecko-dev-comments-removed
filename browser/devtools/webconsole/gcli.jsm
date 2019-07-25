@@ -61,6 +61,7 @@ var EXPORTED_SYMBOLS = [ "gcli" ];
 
 
 var Node = Components.interfaces.nsIDOMNode;
+var HTMLElement = Components.interfaces.nsIDOMHTMLElement;
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -228,7 +229,7 @@ var console = {};
 
     if (typeof aThing == "object") {
       var type = getCtorName(aThing);
-      if (type == "XULElement") {
+      if (aThing instanceof Node && aThing.tagName) {
         return debugElement(aThing);
       }
       type = (type == "Object" ? "" : type + " ");
@@ -292,8 +293,8 @@ var console = {};
         reply += "  " + aThing.message + "\n";
         reply += logProperty("stack", aThing.stack);
       }
-      else if (type == "XULElement") {
-        reply += "  " + debugElement(aThing) + " (XUL)\n";
+      else if (aThing instanceof Node && aThing.tagName) {
+        reply += "  " + debugElement(aThing) + "\n";
       }
       else {
         var keys = Object.getOwnPropertyNames(aThing);
@@ -691,7 +692,7 @@ var mozl10n = {};
 
 })(mozl10n);
 
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types/basic', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/cli', 'gcli/commands/help', 'gcli/ui/console'], function(require, exports, module) {
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types/basic', 'gcli/types/command', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/types/selection', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/help', 'gcli/ui/ffdisplay'], function(require, exports, module) {
 
   
   exports.addCommand = require('gcli/canon').addCommand;
@@ -701,19 +702,27 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
 
   
   require('gcli/types/basic').startup();
+  require('gcli/types/command').startup();
   require('gcli/types/javascript').startup();
   require('gcli/types/node').startup();
   require('gcli/types/resource').startup();
-  require('gcli/cli').startup();
+  require('gcli/types/setting').startup();
+  require('gcli/types/selection').startup();
+
+  require('gcli/settings').startup();
+  require('gcli/ui/intro').startup();
+  require('gcli/ui/focus').startup();
+  require('gcli/ui/fields/basic').startup();
+  require('gcli/ui/fields/javascript').startup();
+  require('gcli/ui/fields/selection').startup();
+
   require('gcli/commands/help').startup();
 
-  var Requisition = require('gcli/cli').Requisition;
-  var Console = require('gcli/ui/console').Console;
+  
+  
+  
 
-  var cli = require('gcli/cli');
-  var jstype = require('gcli/types/javascript');
-  var nodetype = require('gcli/types/node');
-  var resource = require('gcli/types/resource');
+  var FFDisplay = require('gcli/ui/ffdisplay').FFDisplay;
 
   
 
@@ -737,52 +746,9 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
 
 
 
-
-    createView: function(opts) {
-      jstype.setGlobalObject(opts.jsEnvironment.globalObject);
-      nodetype.setDocument(opts.contentDocument);
-      cli.setEvalFunction(opts.jsEnvironment.evalFunction);
-      resource.setDocument(opts.contentDocument);
-
-      if (opts.requisition == null) {
-        opts.requisition = new Requisition(opts.environment, opts.chromeDocument);
-      }
-
-      opts.console = new Console(opts);
-    },
-
-    
-
-
-    reattachConsole: function(opts) {
-      jstype.setGlobalObject(opts.jsEnvironment.globalObject);
-      nodetype.setDocument(opts.contentDocument);
-      cli.setEvalFunction(opts.jsEnvironment.evalFunction);
-
-      opts.requisition.environment = opts.environment;
-      opts.requisition.document = opts.chromeDocument;
-
-      opts.console.reattachConsole(opts);
-    },
-
-    
-
-
-    removeView: function(opts) {
-      opts.console.destroy();
-      delete opts.console;
-
-      opts.requisition.destroy();
-      delete opts.requisition;
-
-      cli.unsetEvalFunction();
-      nodetype.unsetDocument();
-      jstype.unsetGlobalObject();
-      resource.unsetDocument();
-      resource.clearResourceCache();
-    },
-
-    commandOutputManager: require('gcli/canon').commandOutputManager
+    createDisplay: function(opts) {
+      return new FFDisplay(opts);
+    }
   };
 });
 
@@ -933,16 +899,11 @@ canon.Command = Command;
 
 function Parameter(paramSpec, command, groupName) {
   this.command = command || { name: 'unnamed' };
-
-  Object.keys(paramSpec).forEach(function(key) {
-    this[key] = paramSpec[key];
-  }, this);
-
-  this.description = 'description' in this ? this.description : undefined;
-  this.description = lookup(this.description, 'canonDescNone');
-  this.manual = 'manual' in this ? this.manual : undefined;
-  this.manual = lookup(this.manual);
+  this.paramSpec = paramSpec;
+  this.name = this.paramSpec.name;
+  this.type = this.paramSpec.type;
   this.groupName = groupName;
+  this.defaultValue = this.paramSpec.defaultValue;
 
   if (!this.name) {
     throw new Error('In ' + this.command.name +
@@ -960,7 +921,7 @@ function Parameter(paramSpec, command, groupName) {
   
   
   if (this.type instanceof BooleanType) {
-    if ('defaultValue' in this) {
+    if (this.defaultValue !== undefined) {
       console.error('In ' + this.command.name + '/' + this.name +
           ': boolean parameters can not have a defaultValue.' +
           ' Ignoring');
@@ -987,6 +948,12 @@ function Parameter(paramSpec, command, groupName) {
         ': ' + ex);
     }
   }
+
+  
+  
+  if (this.defaultValue === undefined) {
+    this.defaultValue = this.type.getBlank().value;
+  }
 }
 
 
@@ -1005,17 +972,60 @@ Parameter.prototype.isKnownAs = function(name) {
 
 
 
-Parameter.prototype.isDataRequired = function() {
-  return this.defaultValue === undefined;
+
+Parameter.prototype.getBlank = function() {
+  var conversion;
+
+  if (this.type.getBlank) {
+    return this.type.getBlank();
+  }
+
+  return this.type.parseString('');
 };
 
 
 
 
 
-Parameter.prototype.isPositionalAllowed = function() {
-  return this.groupName == null;
-};
+Object.defineProperty(Parameter.prototype, 'manual', {
+  get: function() {
+    return lookup(this.paramSpec.manual || undefined);
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'description', {
+  get: function() {
+    return lookup(this.paramSpec.description || undefined, 'canonDescNone');
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'isDataRequired', {
+  get: function() {
+    return this.defaultValue === undefined;
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'isPositionalAllowed', {
+  get: function() {
+    return this.groupName == null;
+  },
+  enumerable: true
+});
 
 canon.Parameter = Parameter;
 
@@ -1033,7 +1043,7 @@ canon.addCommand = function addCommand(commandSpec) {
   commandNames.push(commandSpec.name);
   commandNames.sort();
 
-  canon.canonChange();
+  canon.onCanonChange();
   return command;
 };
 
@@ -1050,7 +1060,7 @@ canon.removeCommand = function removeCommand(commandOrName) {
     return test !== name;
   });
 
-  canon.canonChange();
+  canon.onCanonChange();
 };
 
 
@@ -1082,7 +1092,7 @@ canon.getCommandNames = function getCommandNames() {
 
 
 
-canon.canonChange = util.createEvent('canon.canonChange');
+canon.onCanonChange = util.createEvent('canon.onCanonChange');
 
 
 
@@ -1095,32 +1105,8 @@ canon.canonChange = util.createEvent('canon.canonChange');
 
 
 function CommandOutputManager() {
-  this._event = util.createEvent('CommandOutputManager');
+  this.onOutput = util.createEvent('CommandOutputManager.onOutput');
 }
-
-
-
-
-
-
-CommandOutputManager.prototype.sendCommandOutput = function(output) {
-  this._event({ output: output });
-};
-
-
-
-
-
-CommandOutputManager.prototype.addListener = function(fn, ctx) {
-  this._event.add(fn, ctx);
-};
-
-
-
-
-CommandOutputManager.prototype.removeListener = function(fn, ctx) {
-  this._event.remove(fn, ctx);
-};
 
 canon.CommandOutputManager = CommandOutputManager;
 
@@ -1147,6 +1133,25 @@ define('gcli/util', ['require', 'exports', 'module' ], function(require, exports
 
 
 
+var eventDebug = false;
+
+
+
+
+function nameFunction(handler) {
+  var scope = handler.scope ? handler.scope.constructor.name + '.' : '';
+  var name = handler.func.name;
+  if (name) {
+    return scope + name;
+  }
+  for (var prop in handler.scope) {
+    if (handler.scope[prop] === handler.func) {
+      return scope + prop;
+    }
+  }
+  return scope + handler.func;
+}
+
 
 
 
@@ -1169,17 +1174,39 @@ define('gcli/util', ['require', 'exports', 'module' ], function(require, exports
 
 exports.createEvent = function(name) {
   var handlers = [];
+  var holdFire = false;
+  var heldEvents = [];
+  var eventCombiner = undefined;
 
   
 
 
 
   var event = function(ev) {
+    if (holdFire) {
+      heldEvents.push(ev);
+      if (eventDebug) {
+        console.log('Held fire: ' + name, ev);
+      }
+      return;
+    }
+
+    if (eventDebug) {
+      console.group('Fire: ' + name + ' to ' + handlers.length + ' listeners', ev);
+    }
+
     
     
     for (var i = 0; i < handlers.length; i++) {
       var handler = handlers[i];
+      if (eventDebug) {
+        console.log(nameFunction(handler));
+      }
       handler.func.call(handler.scope, ev);
+    }
+
+    if (eventDebug) {
+      console.groupEnd();
     }
   };
 
@@ -1212,25 +1239,92 @@ exports.createEvent = function(name) {
     handlers = [];
   };
 
+  
+
+
+
+  event.holdFire = function() {
+    if (eventDebug) {
+      console.group('Holding fire: ' + name);
+    }
+
+    holdFire = true;
+  };
+
+  
+
+
+
+
+
+
+  event.resumeFire = function() {
+    if (eventDebug) {
+      console.groupEnd('Resume fire: ' + name);
+    }
+
+    if (holdFire !== true) {
+      throw new Error('Event not held: ' + name);
+    }
+
+    holdFire = false;
+    if (heldEvents.length === 0) {
+      return;
+    }
+
+    if (heldEvents.length === 1) {
+      event(heldEvents[0]);
+    }
+    else {
+      var first = heldEvents[0];
+      var last = heldEvents[heldEvents.length - 1];
+      if (eventCombiner) {
+        event(eventCombiner(first, last, heldEvents));
+      }
+      else {
+        event(last);
+      }
+    }
+
+    heldEvents = [];
+  };
+
+  
+
+
+
+
+
+
+
+
+
+  Object.defineProperty(event, 'eventCombiner', {
+    set: function(newEventCombiner) {
+      if (typeof newEventCombiner !== 'function') {
+        throw new Error('eventCombiner is not a function');
+      }
+      eventCombiner = newEventCombiner;
+    },
+
+    enumerable: true
+  });
+
   return event;
 };
 
 
 
 
-var dom = {};
+
+
+
+exports.NS_XHTML = 'http://www.w3.org/1999/xhtml';
 
 
 
 
-dom.NS_XHTML = 'http://www.w3.org/1999/xhtml';
-
-
-
-
-dom.NS_XUL = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
-
-
+exports.NS_XUL = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
 
 
 
@@ -1241,9 +1335,11 @@ dom.NS_XUL = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
 
 
 
-dom.createElement = function(doc, tag) {
-  if (dom.isXmlDocument(doc)) {
-    return doc.createElementNS(dom.NS_XHTML, tag);
+
+
+exports.createElement = function(doc, tag) {
+  if (exports.isXmlDocument(doc)) {
+    return doc.createElementNS(exports.NS_XHTML, tag);
   }
   else {
     return doc.createElement(tag);
@@ -1254,7 +1350,7 @@ dom.createElement = function(doc, tag) {
 
 
 
-dom.clearElement = function(elem) {
+exports.clearElement = function(elem) {
   while (elem.hasChildNodes()) {
     elem.removeChild(elem.firstChild);
   }
@@ -1271,17 +1367,17 @@ var isAllWhitespace = /^\s*$/;
 
 
 
-dom.removeWhitespace = function(elem, deep) {
+exports.removeWhitespace = function(elem, deep) {
   var i = 0;
   while (i < elem.childNodes.length) {
     var child = elem.childNodes.item(i);
-    if (child.nodeType === Node.TEXT_NODE &&
+    if (child.nodeType === 3  &&
         isAllWhitespace.test(child.textContent)) {
       elem.removeChild(child);
     }
     else {
-      if (deep && child.nodeType === Node.ELEMENT_NODE) {
-        dom.removeWhitespace(child, deep);
+      if (deep && child.nodeType === 1 ) {
+        exports.removeWhitespace(child, deep);
       }
       i++;
     }
@@ -1294,10 +1390,30 @@ dom.removeWhitespace = function(elem, deep) {
 
 
 
-dom.importCss = function(cssText, doc) {
+
+
+exports.importCss = function(cssText, doc, id) {
+  if (!cssText) {
+    return undefined;
+  }
+
   doc = doc || document;
 
-  var style = dom.createElement(doc, 'style');
+  if (!id) {
+    id = 'hash-' + hash(cssText);
+  }
+
+  var found = doc.getElementById(id);
+  if (found) {
+    if (found.tagName.toLowerCase() !== 'style') {
+      console.error('Warning: importCss passed id=' + id +
+              ', but that pre-exists (and isn\'t a style tag)');
+    }
+    return found;
+  }
+
+  var style = exports.createElement(doc, 'style');
+  style.id = id;
   style.appendChild(doc.createTextNode(cssText));
 
   var head = doc.getElementsByTagName('head')[0] || doc.documentElement;
@@ -1310,13 +1426,42 @@ dom.importCss = function(cssText, doc) {
 
 
 
-dom.setInnerHtml = function(elem, html) {
-  if (dom.isXmlDocument(elem.ownerDocument)) {
+
+
+function hash(str) {
+  var hash = 0;
+  if (str.length == 0) {
+    return hash;
+  }
+  for (var i = 0; i < str.length; i++) {
+    var char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; 
+  }
+  return hash;
+}
+
+
+
+
+
+exports.setContents = function(elem, contents) {
+  if (typeof HTMLElement !== 'undefined' && contents instanceof HTMLElement) {
+    exports.clearElement(elem);
+    elem.appendChild(contents);
+    return;
+  }
+
+  if (exports.isXmlDocument(elem.ownerDocument)) {
     try {
-      dom.clearElement(elem);
-      html = '<div xmlns="' + dom.NS_XHTML + '">' + html + '</div>';
+      var ns = elem.ownerDocument.documentElement.namespaceURI;
+      if (!ns) {
+        ns = exports.NS_XHTML;
+      }
+      exports.clearElement(elem);
+      contents = '<div xmlns="' + ns + '">' + contents + '</div>';
       var range = elem.ownerDocument.createRange();
-      var child = range.createContextualFragment(html).firstChild;
+      var child = range.createContextualFragment(contents).firstChild;
       while (child.hasChildNodes()) {
         elem.appendChild(child.firstChild);
       }
@@ -1328,8 +1473,18 @@ dom.setInnerHtml = function(elem, html) {
     }
   }
   else {
-    elem.innerHTML = html;
+    elem.innerHTML = contents;
   }
+};
+
+
+
+
+
+exports.toDom = function(document, html) {
+  var div = exports.createElement(document, 'div');
+  exports.setContents(div, html);
+  return div.children[0];
 };
 
 
@@ -1339,7 +1494,7 @@ dom.setInnerHtml = function(elem, html) {
 
 
 
-dom.isXmlDocument = function(doc) {
+exports.isXmlDocument = function(doc) {
   doc = doc || document;
   
   if (doc.contentType && doc.contentType != 'text/html') {
@@ -1351,8 +1506,6 @@ dom.isXmlDocument = function(doc) {
   }
   return false;
 };
-
-exports.dom = dom;
 
 
 
@@ -1372,7 +1525,7 @@ function positionInNodeList(element, nodeList) {
 
 
 
-dom.findCssSelector = function(ele) {
+exports.findCssSelector = function(ele) {
   var document = ele.ownerDocument;
   if (ele.id && document.getElementById(ele.id) === ele) {
     return '#' + ele.id;
@@ -1422,7 +1575,7 @@ dom.findCssSelector = function(ele) {
 
   
   index = positionInNodeList(ele, ele.parentNode.children) + 1;
-  selector = dom.findCssSelector(ele.parentNode) + ' > ' +
+  selector = exports.findCssSelector(ele.parentNode) + ' > ' +
           tagName + ':nth-child(' + index + ')';
 
   return selector;
@@ -1431,9 +1584,31 @@ dom.findCssSelector = function(ele) {
 
 
 
+exports.createUrlLookup = function(callingModule) {
+  return function imageUrl(path) {
+    try {
+      return require('text!gcli/ui/' + path);
+    }
+    catch (ex) {
+      var filename = callingModule.id.split('/').pop() + '.js';
+
+      if (callingModule.uri.substr(-filename.length) !== filename) {
+        console.error('Can\'t work out path from module.uri/module.id');
+        return path;
+      }
+
+      if (callingModule.uri) {
+        var end = callingModule.uri.length - filename.length - 1;
+        return callingModule.uri.substr(0, end) + '/' + path;
+      }
+
+      return filename + '/' + path;
+    }
+  };
+};
 
 
-var event = {};
+
 
 
 
@@ -1448,10 +1623,10 @@ var event = {};
 
 
 if ('KeyEvent' in this) {
-  event.KeyEvent = this.KeyEvent;
+  exports.KeyEvent = this.KeyEvent;
 }
 else {
-  event.KeyEvent = {
+  exports.KeyEvent = {
     DOM_VK_CANCEL: 3,
     DOM_VK_HELP: 6,
     DOM_VK_BACK_SPACE: 8,
@@ -1570,8 +1745,6 @@ else {
   };
 }
 
-exports.event = event;
-
 
 });
 
@@ -1616,6 +1789,15 @@ exports.getPreferredLocales = function() {
 
 exports.lookup = function(key) {
   try {
+    
+    
+    
+    
+
+
+
+
+
     return stringBundle.GetStringFromName(key);
   }
   catch (ex) {
@@ -1778,8 +1960,7 @@ Conversion.prototype.assign = function(assignment) {
 
 
 Conversion.prototype.isDataProvided = function() {
-  var argProvided = this.arg.text !== '';
-  return this.value !== undefined || argProvided;
+  return !this.arg.isBlank();
 };
 
 
@@ -1812,7 +1993,7 @@ Conversion.prototype.valueEquals = function(that) {
 
 
 Conversion.prototype.argEquals = function(that) {
-  return this.arg.equals(that.arg);
+  return that == null ? false : this.arg.equals(that.arg);
 };
 
 
@@ -1848,6 +2029,56 @@ Conversion.prototype.getPredictions = function() {
     return this.predictions();
   }
   return this.predictions || [];
+};
+
+
+
+
+
+
+
+
+
+Conversion.prototype.getPredictionAt = function(index) {
+  if (index == null) {
+    return undefined;
+  }
+
+  var predictions = this.getPredictions();
+  if (predictions.length === 0) {
+    return undefined;
+  }
+
+  index = index % predictions.length;
+  if (index < 0) {
+    index = predictions.length + index;
+  }
+  return predictions[index];
+};
+
+
+
+
+
+
+
+
+
+Conversion.prototype.constrainPredictionIndex = function(index) {
+  if (index == null) {
+    return undefined;
+  }
+
+  var predictions = this.getPredictions();
+  if (predictions.length === 0) {
+    return undefined;
+  }
+
+  index = index % predictions.length;
+  if (index < 0) {
+    index = predictions.length + index;
+  }
+  return index;
 };
 
 
@@ -1994,7 +2225,19 @@ Type.prototype.decrement = function(value) {
 
 
 
-Type.prototype.getDefault = undefined;
+
+Type.prototype.getBlank = function() {
+  return this.parse(new Argument());
+};
+
+
+
+
+
+
+Type.prototype.getType = function() {
+  return this;
+};
 
 types.Type = Type;
 
@@ -2141,6 +2384,7 @@ Argument.prototype.beget = function(replText, options) {
   var prefix = this.prefix;
   var suffix = this.suffix;
 
+  
   var quote = (replText.indexOf(' ') >= 0 || replText.length == 0) ?
       '\'' : '';
 
@@ -2234,8 +2478,10 @@ argument.Argument = Argument;
 
 
 
+
+
 function ScriptArgument(text, prefix, suffix) {
-  this.text = text;
+  this.text = text !== undefined ? text : '';
   this.prefix = prefix !== undefined ? prefix : '';
   this.suffix = suffix !== undefined ? suffix : '';
 
@@ -2261,15 +2507,21 @@ ScriptArgument.prototype.beget = function(replText, options) {
   var prefix = this.prefix;
   var suffix = this.suffix;
 
-  var quote = (replText.indexOf(' ') >= 0 || replText.length == 0) ?
-      '\'' : '';
-
   if (options && options.normalize) {
     prefix = '{ ';
     suffix = ' }';
   }
 
   return new ScriptArgument(replText, prefix, suffix);
+};
+
+
+
+
+
+
+ScriptArgument.prototype.isBlank = function() {
+  return false;
 };
 
 argument.ScriptArgument = ScriptArgument;
@@ -2543,7 +2795,7 @@ argument.ArrayArgument = ArrayArgument;
 
 
 
-define('gcli/types/basic', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/argument'], function(require, exports, module) {
+define('gcli/types/basic', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/spell', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
 
 
 var l10n = require('gcli/l10n');
@@ -2552,6 +2804,8 @@ var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
 var ArrayConversion = require('gcli/types').ArrayConversion;
+var Speller = require('gcli/types/spell').Speller;
+var SelectionType = require('gcli/types/selection').SelectionType;
 
 var Argument = require('gcli/argument').Argument;
 var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
@@ -2567,7 +2821,6 @@ exports.startup = function() {
   types.registerType(NumberType);
   types.registerType(BooleanType);
   types.registerType(BlankType);
-  types.registerType(SelectionType);
   types.registerType(DeferredType);
   types.registerType(ArrayType);
 };
@@ -2577,7 +2830,6 @@ exports.shutdown = function() {
   types.unregisterType(NumberType);
   types.unregisterType(BooleanType);
   types.unregisterType(BlankType);
-  types.unregisterType(SelectionType);
   types.unregisterType(DeferredType);
   types.unregisterType(ArrayType);
 };
@@ -2603,7 +2855,7 @@ StringType.prototype.stringify = function(value) {
 
 StringType.prototype.parse = function(arg) {
   if (arg.text == null || arg.text === '') {
-    return new Conversion(null, arg, Status.INCOMPLETE, '');
+    return new Conversion(undefined, arg, Status.INCOMPLETE, '');
   }
   return new Conversion(arg.text, arg);
 };
@@ -2645,7 +2897,7 @@ NumberType.prototype.getMin = function() {
       return this._min;
     }
   }
-  return 0;
+  return undefined;
 };
 
 NumberType.prototype.getMax = function() {
@@ -2662,23 +2914,25 @@ NumberType.prototype.getMax = function() {
 
 NumberType.prototype.parse = function(arg) {
   if (arg.text.replace(/\s/g, '').length === 0) {
-    return new Conversion(null, arg, Status.INCOMPLETE, '');
+    return new Conversion(undefined, arg, Status.INCOMPLETE, '');
   }
 
   var value = parseInt(arg.text, 10);
   if (isNaN(value)) {
-    return new Conversion(null, arg, Status.ERROR,
+    return new Conversion(undefined, arg, Status.ERROR,
         l10n.lookupFormat('typesNumberNan', [ arg.text ]));
   }
 
-  if (this.getMax() != null && value > this.getMax()) {
-    return new Conversion(null, arg, Status.ERROR,
-        l10n.lookupFormat('typesNumberMax', [ value, this.getMax() ]));
+  var max = this.getMax();
+  if (max != null && value > max) {
+    return new Conversion(undefined, arg, Status.ERROR,
+        l10n.lookupFormat('typesNumberMax', [ value, max ]));
   }
 
-  if (value < this.getMin()) {
-    return new Conversion(null, arg, Status.ERROR,
-        l10n.lookupFormat('typesNumberMin', [ value, this.getMin() ]));
+  var min = this.getMin();
+  if (min != null && value < min) {
+    return new Conversion(undefined, arg, Status.ERROR,
+        l10n.lookupFormat('typesNumberMin', [ value, min ]));
   }
 
   return new Conversion(value, arg);
@@ -2696,7 +2950,8 @@ NumberType.prototype.decrement = function(value) {
 
 NumberType.prototype.increment = function(value) {
   if (typeof value !== 'number' || isNaN(value)) {
-    return this.getMin();
+    var min = this.getMin();
+    return min != null ? min : 0;
   }
   var newValue = value + this._step;
   
@@ -2714,11 +2969,11 @@ NumberType.prototype.increment = function(value) {
 
 NumberType.prototype._boundsCheck = function(value) {
   var min = this.getMin();
-  if (value < min) {
+  if (min != null && value < min) {
     return min;
   }
   var max = this.getMax();
-  if (value > max) {
+  if (max != null && value > max) {
     return max;
   }
   return value;
@@ -2727,6 +2982,370 @@ NumberType.prototype._boundsCheck = function(value) {
 NumberType.prototype.name = 'number';
 
 exports.NumberType = NumberType;
+
+
+
+
+
+function BooleanType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('BooleanType can not be customized');
+  }
+}
+
+BooleanType.prototype = Object.create(SelectionType.prototype);
+
+BooleanType.prototype.lookup = [
+  { name: 'false', value: false },
+  { name: 'true', value: true }
+];
+
+BooleanType.prototype.parse = function(arg) {
+  if (arg instanceof TrueNamedArgument) {
+    return new Conversion(true, arg);
+  }
+  if (arg instanceof FalseNamedArgument) {
+    return new Conversion(false, arg);
+  }
+  return SelectionType.prototype.parse.call(this, arg);
+};
+
+BooleanType.prototype.stringify = function(value) {
+  return '' + value;
+};
+
+BooleanType.prototype.getBlank = function() {
+  return new Conversion(false, new Argument(), Status.VALID, '', this.lookup);
+};
+
+BooleanType.prototype.name = 'boolean';
+
+exports.BooleanType = BooleanType;
+
+
+
+
+
+function DeferredType(typeSpec) {
+  if (typeof typeSpec.defer !== 'function') {
+    throw new Error('Instances of DeferredType need typeSpec.defer to be a function that returns a type');
+  }
+  Object.keys(typeSpec).forEach(function(key) {
+    this[key] = typeSpec[key];
+  }, this);
+}
+
+DeferredType.prototype = Object.create(Type.prototype);
+
+DeferredType.prototype.stringify = function(value) {
+  return this.defer().stringify(value);
+};
+
+DeferredType.prototype.parse = function(arg) {
+  return this.defer().parse(arg);
+};
+
+DeferredType.prototype.decrement = function(value) {
+  var deferred = this.defer();
+  return (deferred.decrement ? deferred.decrement(value) : undefined);
+};
+
+DeferredType.prototype.increment = function(value) {
+  var deferred = this.defer();
+  return (deferred.increment ? deferred.increment(value) : undefined);
+};
+
+DeferredType.prototype.increment = function(value) {
+  var deferred = this.defer();
+  return (deferred.increment ? deferred.increment(value) : undefined);
+};
+
+DeferredType.prototype.getType = function() {
+  return this.defer();
+};
+
+Object.defineProperty(DeferredType.prototype, 'isImportant', {
+  get: function() {
+    return this.defer().isImportant;
+  },
+  enumerable: true
+});
+
+DeferredType.prototype.name = 'deferred';
+
+exports.DeferredType = DeferredType;
+
+
+
+
+
+
+function BlankType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('BlankType can not be customized');
+  }
+}
+
+BlankType.prototype = Object.create(Type.prototype);
+
+BlankType.prototype.stringify = function(value) {
+  return '';
+};
+
+BlankType.prototype.parse = function(arg) {
+  return new Conversion(undefined, arg);
+};
+
+BlankType.prototype.name = 'blank';
+
+exports.BlankType = BlankType;
+
+
+
+
+
+function ArrayType(typeSpec) {
+  if (!typeSpec.subtype) {
+    console.error('Array.typeSpec is missing subtype. Assuming string.' +
+        JSON.stringify(typeSpec));
+    typeSpec.subtype = 'string';
+  }
+
+  Object.keys(typeSpec).forEach(function(key) {
+    this[key] = typeSpec[key];
+  }, this);
+  this.subtype = types.getType(this.subtype);
+}
+
+ArrayType.prototype = Object.create(Type.prototype);
+
+ArrayType.prototype.stringify = function(values) {
+  
+  return values.join(' ');
+};
+
+ArrayType.prototype.parse = function(arg) {
+  if (arg instanceof ArrayArgument) {
+    var conversions = arg.getArguments().map(function(subArg) {
+      var conversion = this.subtype.parse(subArg);
+      
+      
+      
+      subArg.conversion = conversion;
+      return conversion;
+    }, this);
+    return new ArrayConversion(conversions, arg);
+  }
+  else {
+    console.error('non ArrayArgument to ArrayType.parse', arg);
+    throw new Error('non ArrayArgument to ArrayType.parse');
+  }
+};
+
+ArrayType.prototype.getBlank = function(values) {
+  return new ArrayConversion([], new ArrayArgument());
+};
+
+ArrayType.prototype.name = 'array';
+
+exports.ArrayType = ArrayType;
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/spell', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Speller() {
+  
+  this._nWords = {};
+}
+
+Speller.letters = "abcdefghijklmnopqrstuvwxyz".split("");
+
+
+
+
+
+
+Speller.prototype.train = function(words) {
+  words.forEach(function(word) {
+    word = word.toLowerCase();
+    this._nWords[word] = this._nWords.hasOwnProperty(word) ?
+            this._nWords[word] + 1 :
+            1;
+  }, this);
+};
+
+
+
+
+Speller.prototype.correct = function(word) {
+  if (this._nWords.hasOwnProperty(word)) {
+    return word;
+  }
+
+  var candidates = {};
+  var list = this._edits(word);
+  list.forEach(function(edit) {
+    if (this._nWords.hasOwnProperty(edit)) {
+      candidates[this._nWords[edit]] = edit;
+    }
+  }, this);
+
+  if (this._countKeys(candidates) > 0) {
+    return candidates[this._max(candidates)];
+  }
+
+  list.forEach(function(edit) {
+    this._edits(edit).forEach(function(w) {
+      if (this._nWords.hasOwnProperty(w)) {
+        candidates[this._nWords[w]] = w;
+      }
+    }, this);
+  }, this);
+
+  return this._countKeys(candidates) > 0 ?
+      candidates[this._max(candidates)] :
+      null;
+};
+
+
+
+
+Speller.prototype._countKeys = function(object) {
+  
+  var count = 0;
+  for (var attr in object) {
+    if (object.hasOwnProperty(attr)) {
+      count++;
+    }
+  }
+  return count;
+};
+
+
+
+
+
+
+Speller.prototype._max = function(candidates) {
+  var arr = [];
+  for (var candidate in candidates) {
+    if (candidates.hasOwnProperty(candidate)) {
+      arr.push(candidate);
+    }
+  }
+  return Math.max.apply(null, arr);
+};
+
+
+
+
+
+Speller.prototype._edits = function(word) {
+  var results = [];
+
+  
+  for (var i = 0; i < word.length; i++) {
+    results.push(word.slice(0, i) + word.slice(i + 1));
+  }
+
+  
+  for (i = 0; i < word.length - 1; i++) {
+    results.push(word.slice(0, i) + word.slice(i + 1, i + 2)
+            + word.slice(i, i + 1) + word.slice(i + 2));
+  }
+
+  
+  for (i = 0; i < word.length; i++) {
+    Speller.letters.forEach(function(l) {
+      results.push(word.slice(0, i) + l + word.slice(i + 1));
+    }, this);
+  }
+
+  
+  for (i = 0; i <= word.length; i++) {
+    Speller.letters.forEach(function(l) {
+      results.push(word.slice(0, i) + l + word.slice(i));
+    }, this);
+  }
+
+  return results;
+};
+
+exports.Speller = Speller;
+
+
+});
+
+
+
+
+
+
+define('gcli/types/selection', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/spell', 'gcli/argument'], function(require, exports, module) {
+
+
+var l10n = require('gcli/l10n');
+var types = require('gcli/types');
+var Type = require('gcli/types').Type;
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
+var Speller = require('gcli/types/spell').Speller;
+var Argument = require('gcli/argument').Argument;
+
+
+
+
+
+exports.startup = function() {
+  types.registerType(SelectionType);
+};
+
+exports.shutdown = function() {
+  types.unregisterType(SelectionType);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2741,12 +3360,16 @@ function SelectionType(typeSpec) {
 
 SelectionType.prototype = Object.create(Type.prototype);
 
+SelectionType.prototype.maxPredictions = 10;
+
 SelectionType.prototype.stringify = function(value) {
+  if (this.stringifyProperty != null) {
+    return value[this.stringifyProperty];
+  }
   var name = null;
   var lookup = this.getLookup();
   lookup.some(function(item) {
-    var test = (item.value == null) ? item : item.value;
-    if (test === value) {
+    if (item.value === value) {
       name = item.name;
       return true;
     }
@@ -2788,10 +3411,8 @@ SelectionType.prototype.getLookup = function() {
 SelectionType.prototype._dataToLookup = function(data) {
   return data.map(function(option) {
     return { name: option, value: option };
-  });
+  }, this);
 };
-
-
 
 
 
@@ -2800,16 +3421,79 @@ SelectionType.prototype._dataToLookup = function(data) {
 
 SelectionType.prototype._findPredictions = function(arg) {
   var predictions = [];
-  this.getLookup().forEach(function(item) {
-    if (item.name.indexOf(arg.text) === 0) {
-      predictions.push(item);
+  var lookup = this.getLookup();
+  var i, option;
+
+  
+  
+  if (arg.suffix.length > 0) {
+    for (i = 0; i < lookup.length && predictions.length < this.maxPredictions; i++) {
+      option = lookup[i];
+      if (option.name === arg.text) {
+        this._addToPredictions(predictions, option, arg);
+      }
     }
-  }, this);
+
+    return predictions;
+  }
+
+  
+  for (i = 0; i < lookup.length && predictions.length < this.maxPredictions; i++) {
+    option = lookup[i];
+    if (option.name.indexOf(arg.text) === 0) {
+      this._addToPredictions(predictions, option, arg);
+    }
+  }
+
+  
+  if (predictions.length < (this.maxPredictions / 2)) {
+    for (i = 0; i < lookup.length && predictions.length < this.maxPredictions; i++) {
+      option = lookup[i];
+      if (option.name.indexOf(arg.text) !== -1) {
+        if (predictions.indexOf(option) === -1) {
+          this._addToPredictions(predictions, option, arg);
+        }
+      }
+    }
+  }
+
+  
+  if (false && predictions.length === 0) {
+    var speller = new Speller();
+    var names = lookup.map(function(opt) {
+      return opt.name;
+    });
+    speller.train(names);
+    var corrected = speller.correct(arg.text);
+    if (corrected) {
+      lookup.forEach(function(opt) {
+        if (opt.name === corrected) {
+          predictions.push(opt);
+        }
+      }, this);
+    }
+  }
+
   return predictions;
+};
+
+
+
+
+
+
+
+SelectionType.prototype._addToPredictions = function(predictions, option, arg) {
+  predictions.push(option);
 };
 
 SelectionType.prototype.parse = function(arg) {
   var predictions = this._findPredictions(arg);
+
+  if (predictions.length === 0) {
+    var msg = l10n.lookupFormat('typesSelectionNomatch', [ arg.text ]);
+    return new Conversion(undefined, arg, Status.ERROR, msg, predictions);
+  }
 
   
   
@@ -2817,17 +3501,13 @@ SelectionType.prototype.parse = function(arg) {
     this.noMatch();
   }
 
-  if (predictions.length > 0) {
-    if (predictions[0].name === arg.text) {
-      var value = predictions[0].value ? predictions[0].value : predictions[0];
-      return new Conversion(value, arg, Status.VALID, '', predictions);
-    }
+  var value = predictions[0].value;
 
-    return new Conversion(null, arg, Status.INCOMPLETE, '', predictions);
+  if (predictions[0].name === arg.text) {
+    return new Conversion(value, arg, Status.VALID, '', predictions);
   }
 
-  var msg = l10n.lookupFormat('typesSelectionNomatch', [ arg.text ]);
-  return new Conversion(null, arg, Status.ERROR, msg, predictions);
+  return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictions);
 };
 
 
@@ -2894,160 +3574,109 @@ SelectionType.prototype.name = 'selection';
 exports.SelectionType = SelectionType;
 
 
+});
 
 
 
-function BooleanType(typeSpec) {
-  if (Object.keys(typeSpec).length > 0) {
-    throw new Error('BooleanType can not be customized');
-  }
+
+
+
+define('gcli/types/command', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/l10n', 'gcli/types', 'gcli/types/selection'], function(require, exports, module) {
+
+
+var canon = require('gcli/canon');
+var l10n = require('gcli/l10n');
+var types = require('gcli/types');
+var SelectionType = require('gcli/types/selection').SelectionType;
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
+
+
+
+
+
+exports.startup = function() {
+  types.registerType(CommandType);
+};
+
+exports.shutdown = function() {
+  types.unregisterType(CommandType);
+};
+
+
+
+
+
+
+
+
+
+function CommandType() {
+  this.stringifyProperty = 'name';
 }
 
-BooleanType.prototype = Object.create(SelectionType.prototype);
+CommandType.prototype = Object.create(SelectionType.prototype);
 
-BooleanType.prototype.lookup = [
-  { name: 'true', value: true },
-  { name: 'false', value: false }
-];
+CommandType.prototype.name = 'command';
 
-BooleanType.prototype.parse = function(arg) {
-  if (arg instanceof TrueNamedArgument) {
-    return new Conversion(true, arg);
-  }
-  if (arg instanceof FalseNamedArgument) {
-    return new Conversion(false, arg);
-  }
-  return SelectionType.prototype.parse.call(this, arg);
-};
-
-BooleanType.prototype.stringify = function(value) {
-  return '' + value;
-};
-
-BooleanType.prototype.getDefault = function() {
-  return new Conversion(false, new Argument(''));
-};
-
-BooleanType.prototype.name = 'boolean';
-
-exports.BooleanType = BooleanType;
-
-
-
-
-
-function DeferredType(typeSpec) {
-  if (typeof typeSpec.defer !== 'function') {
-    throw new Error('Instances of DeferredType need typeSpec.defer to be a function that returns a type');
-  }
-  Object.keys(typeSpec).forEach(function(key) {
-    this[key] = typeSpec[key];
+CommandType.prototype.lookup = function() {
+  var commands = canon.getCommands();
+  commands.sort(function(c1, c2) {
+    return c1.name.localeCompare(c2.name);
+  });
+  return commands.map(function(command) {
+    return { name: command.name, value: command };
   }, this);
-}
-
-DeferredType.prototype = Object.create(Type.prototype);
-
-DeferredType.prototype.stringify = function(value) {
-  return this.defer().stringify(value);
 };
 
-DeferredType.prototype.parse = function(arg) {
-  return this.defer().parse(arg);
-};
-
-DeferredType.prototype.decrement = function(value) {
-  var deferred = this.defer();
-  return (deferred.decrement ? deferred.decrement(value) : undefined);
-};
-
-DeferredType.prototype.increment = function(value) {
-  var deferred = this.defer();
-  return (deferred.increment ? deferred.increment(value) : undefined);
-};
-
-DeferredType.prototype.increment = function(value) {
-  var deferred = this.defer();
-  return (deferred.increment ? deferred.increment(value) : undefined);
-};
-
-DeferredType.prototype.name = 'deferred';
-
-exports.DeferredType = DeferredType;
 
 
 
-
-
-
-function BlankType(typeSpec) {
-  if (Object.keys(typeSpec).length > 0) {
-    throw new Error('BlankType can not be customized');
+CommandType.prototype._addToPredictions = function(predictions, option, arg) {
+  if (option.value.hidden) {
+    return;
   }
-}
-
-BlankType.prototype = Object.create(Type.prototype);
-
-BlankType.prototype.stringify = function(value) {
-  return '';
-};
-
-BlankType.prototype.parse = function(arg) {
-  return new Conversion(null, arg);
-};
-
-BlankType.prototype.name = 'blank';
-
-exports.BlankType = BlankType;
-
-
-
-
-
-function ArrayType(typeSpec) {
-  if (!typeSpec.subtype) {
-    console.error('Array.typeSpec is missing subtype. Assuming string.' +
-        JSON.stringify(typeSpec));
-    typeSpec.subtype = 'string';
-  }
-
-  Object.keys(typeSpec).forEach(function(key) {
-    this[key] = typeSpec[key];
-  }, this);
-  this.subtype = types.getType(this.subtype);
-}
-
-ArrayType.prototype = Object.create(Type.prototype);
-
-ArrayType.prototype.stringify = function(values) {
   
-  return values.join(' ');
-};
-
-ArrayType.prototype.parse = function(arg) {
-  if (arg instanceof ArrayArgument) {
-    var conversions = arg.getArguments().map(function(subArg) {
-      var conversion = this.subtype.parse(subArg);
-      
-      
-      
-      subArg.conversion = conversion;
-      return conversion;
-    }, this);
-    return new ArrayConversion(conversions, arg);
-  }
-  else {
-    console.error('non ArrayArgument to ArrayType.parse', arg);
-    throw new Error('non ArrayArgument to ArrayType.parse');
+  
+  
+  
+  if (arg.text.length !== 0 || option.name.indexOf(' ') === -1) {
+    predictions.push(option);
   }
 };
 
-ArrayType.prototype.getDefault = function() {
-  return new ArrayConversion([], new ArrayArgument());
+CommandType.prototype.parse = function(arg) {
+  
+  
+  var predictFunc = function() {
+    return this._findPredictions(arg);
+  }.bind(this);
+
+  var predictions = this._findPredictions(arg);
+
+  if (predictions.length === 0) {
+    var msg = l10n.lookupFormat('typesSelectionNomatch', [ arg.text ]);
+    return new Conversion(undefined, arg, Status.ERROR, msg, predictFunc);
+  }
+
+  var command = predictions[0].value;
+
+  if (predictions.length === 1) {
+    
+    
+    if (command.name === arg.text && typeof command.exec === 'function') {
+      return new Conversion(command, arg, Status.VALID, '');
+    }
+    return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
+  }
+
+  
+  if (predictions[0].name === arg.text) {
+    return new Conversion(command, arg, Status.VALID, '', predictFunc);
+  }
+
+  return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
 };
-
-ArrayType.prototype.name = 'array';
-
-exports.ArrayType = ArrayType;
 
 
 });
@@ -3139,6 +3768,10 @@ JavascriptType.prototype.parse = function(arg) {
   var typed = arg.text;
   var scope = globalObject;
 
+  
+  if (typed === '') {
+    return new Conversion(undefined, arg, Status.INCOMPLETE);
+  }
   
   if (!isNaN(parseFloat(typed)) && isFinite(typed)) {
     return new Conversion(typed, arg);
@@ -3328,7 +3961,7 @@ JavascriptType.prototype.parse = function(arg) {
         }
         else if (typeof value === 'string') {
           if (value.length > 40) {
-            value = value.substring(0, 37) + 'â€¦';
+            value = value.substring(0, 37) + '…';
           }
           description = '= \'' + value + '\'';
           incomplete = false;
@@ -3678,8 +4311,7 @@ NodeType.prototype.stringify = function(value) {
 
 NodeType.prototype.parse = function(arg) {
   if (arg.text === '') {
-    return new Conversion(null, arg, Status.INCOMPLETE,
-            l10n.lookup('nodeParseNone'));
+    return new Conversion(undefined, arg, Status.INCOMPLETE);
   }
 
   var nodes;
@@ -3687,12 +4319,12 @@ NodeType.prototype.parse = function(arg) {
     nodes = doc.querySelectorAll(arg.text);
   }
   catch (ex) {
-    return new Conversion(null, arg, Status.ERROR,
+    return new Conversion(undefined, arg, Status.ERROR,
             l10n.lookup('nodeParseSyntax'));
   }
 
   if (nodes.length === 0) {
-    return new Conversion(null, arg, Status.INCOMPLETE,
+    return new Conversion(undefined, arg, Status.INCOMPLETE,
         l10n.lookup('nodeParseNone'));
   }
 
@@ -3700,16 +4332,14 @@ NodeType.prototype.parse = function(arg) {
     var node = nodes.item(0);
     node.__gcliQuery = arg.text;
 
-    host.flashNode(node, 'green');
+    host.flashNodes(node, true);
 
     return new Conversion(node, arg, Status.VALID, '');
   }
 
-  Array.prototype.forEach.call(nodes, function(n) {
-    host.flashNode(n, 'red');
-  });
+  host.flashNodes(nodes, false);
 
-  return new Conversion(null, arg, Status.ERROR,
+  return new Conversion(undefined, arg, Status.ERROR,
           l10n.lookupFormat('nodeParseMultiple', [ nodes.length ]));
 };
 
@@ -3725,15 +4355,31 @@ NodeType.prototype.name = 'node';
 
 define('gcli/host', ['require', 'exports', 'module' ], function(require, exports, module) {
 
+  XPCOMUtils.defineLazyGetter(this, "Highlighter", function() {
+    var tmp = {};
+    Components.utils.import("resource:///modules/highlighter.jsm", tmp);
+    return tmp.Highlighter;
+  });
 
-
-
-
-
-exports.flashNode = function(node, color) {
   
+
+
+
+  exports.chromeWindow = undefined;
+
   
-};
+
+
+
+  exports.flashNodes = function(nodes, match) {
+    
+    
+
+
+
+
+
+  };
 
 
 });
@@ -3743,15 +4389,11 @@ exports.flashNode = function(node, color) {
 
 
 
-define('gcli/types/resource', ['require', 'exports', 'module' , 'gcli/host', 'gcli/l10n', 'gcli/types', 'gcli/types/basic'], function(require, exports, module) {
+define('gcli/types/resource', ['require', 'exports', 'module' , 'gcli/types', 'gcli/types/selection'], function(require, exports, module) {
 
 
-var host = require('gcli/host');
-var l10n = require('gcli/l10n');
 var types = require('gcli/types');
-var SelectionType = require('gcli/types/basic').SelectionType;
-var Status = require('gcli/types').Status;
-var Conversion = require('gcli/types').Conversion;
+var SelectionType = require('gcli/types/selection').SelectionType;
 
 
 
@@ -3790,6 +4432,7 @@ exports.setDocument = function(document) {
 
 
 exports.unsetDocument = function() {
+  ResourceCache.clear();
   doc = undefined;
 };
 
@@ -3807,8 +4450,7 @@ exports.getDocument = function() {
 
 
 
-function Resource(id, name, type, inline, element) {
-  this.id = id;
+function Resource(name, type, inline, element) {
   this.name = name;
   this.type = type;
   this.inline = inline;
@@ -3851,6 +4493,10 @@ CssResource.prototype.loadContents = function(callback) {
 
 CssResource._getAllStyles = function() {
   var resources = [];
+  if (doc == null) {
+    return resources;
+  }
+
   Array.prototype.forEach.call(doc.styleSheets, function(domSheet) {
     CssResource._getStyle(domSheet, resources);
   });
@@ -3923,6 +4569,10 @@ ScriptResource.prototype.loadContents = function(callback) {
 };
 
 ScriptResource._getAllScripts = function() {
+  if (doc == null) {
+    return [];
+  }
+
   var scriptNodes = doc.querySelectorAll('script');
   var resources = Array.prototype.map.call(scriptNodes, function(scriptNode) {
     var resource = ResourceCache.get(scriptNode);
@@ -4044,22 +4694,466 @@ var ResourceCache = {
 
 
 
-define('gcli/cli', ['require', 'exports', 'module' , 'gcli/util', 'gcli/canon', 'gcli/promise', 'gcli/types', 'gcli/types/basic', 'gcli/argument'], function(require, exports, module) {
+define('gcli/types/setting', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/types', 'gcli/types/selection', 'gcli/types/basic'], function(require, exports, module) {
+
+
+var settings = require('gcli/settings');
+var types = require('gcli/types');
+var SelectionType = require('gcli/types/selection').SelectionType;
+var DeferredType = require('gcli/types/basic').DeferredType;
+
+
+
+
+
+exports.startup = function() {
+  types.registerType(SettingType);
+  types.registerType(SettingValueType);
+};
+
+exports.shutdown = function() {
+  types.unregisterType(SettingType);
+  types.unregisterType(SettingValueType);
+};
+
+
+
+
+
+
+
+
+
+
+
+var lastSetting = null;
+
+
+
+
+function SettingType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('SettingType can not be customized');
+  }
+}
+
+SettingType.prototype = Object.create(SelectionType.prototype);
+
+SettingType.prototype.lookup = function() {
+  return settings.getAll().map(function(setting) {
+    return { name: setting.name, value: setting };
+  });
+};
+
+SettingType.prototype.noMatch = function() {
+  lastSetting = null;
+};
+
+SettingType.prototype.stringify = function(option) {
+  lastSetting = option;
+  return SelectionType.prototype.stringify.call(this, option);
+};
+
+SettingType.prototype.parse = function(arg) {
+  var conversion = SelectionType.prototype.parse.call(this, arg);
+  lastSetting = conversion.value;
+  return conversion;
+};
+
+SettingType.prototype.name = 'setting';
+
+
+
+
+
+function SettingValueType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('SettingType can not be customized');
+  }
+}
+
+SettingValueType.prototype = Object.create(DeferredType.prototype);
+
+SettingValueType.prototype.defer = function() {
+  if (lastSetting != null) {
+    return lastSetting.type;
+  }
+  else {
+    return types.getType('blank');
+  }
+};
+
+SettingValueType.prototype.name = 'settingValue';
+
+
+});
+
+
+
+
+
+
+define('gcli/settings', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types'], function(require, exports, module) {
+
+var imports = {};
+
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm', imports);
+
+imports.XPCOMUtils.defineLazyGetter(imports, 'prefBranch', function() {
+  var prefService = Components.classes['@mozilla.org/preferences-service;1']
+          .getService(Components.interfaces.nsIPrefService);
+  return prefService.getBranch(null)
+          .QueryInterface(Components.interfaces.nsIPrefBranch2);
+});
+
+imports.XPCOMUtils.defineLazyGetter(imports, 'supportsString', function() {
+  return Components.classes["@mozilla.org/supports-string;1"]
+          .createInstance(Components.interfaces.nsISupportsString);
+});
 
 
 var util = require('gcli/util');
+var types = require('gcli/types');
+
+var allSettings = [];
+
+
+
+
+
+exports.startup = function() {
+  imports.prefBranch.getChildList('').forEach(function(name) {
+    allSettings.push(new Setting(name));
+  }.bind(this));
+  allSettings.sort(function(s1, s2) {
+    return s1.name.localeCompare(s2.name);
+  }.bind(this));
+};
+
+exports.shutdown = function() {
+  allSettings = [];
+};
+
+
+
+
+var DEVTOOLS_PREFIX = 'devtools.gcli.';
+
+
+
+
+
+function Setting(prefSpec) {
+  if (typeof prefSpec === 'string') {
+    
+    this.name = prefSpec;
+    this.description = '';
+  }
+  else {
+    
+    this.name = DEVTOOLS_PREFIX + prefSpec.name;
+
+    if (prefSpec.ignoreTypeDifference !== true && prefSpec.type) {
+      if (this.type.name !== prefSpec.type) {
+        throw new Error('Locally declared type (' + prefSpec.type + ') != ' +
+            'Mozilla declared type (' + this.type.name + ') for ' + this.name);
+      }
+    }
+
+    this.description = prefSpec.description;
+  }
+
+  this.onChange = util.createEvent('Setting.onChange');
+}
+
+
+
+
+Object.defineProperty(Setting.prototype, 'type', {
+  get: function() {
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        return types.getType('boolean');
+
+      case imports.prefBranch.PREF_INT:
+        return types.getType('number');
+
+      case imports.prefBranch.PREF_STRING:
+        return types.getType('string');
+
+      default:
+        throw new Error('Unknown type for ' + this.name);
+    }
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Setting.prototype, 'value', {
+  get: function() {
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        return imports.prefBranch.getBoolPref(this.name);
+
+      case imports.prefBranch.PREF_INT:
+        return imports.prefBranch.getIntPref(this.name);
+
+      case imports.prefBranch.PREF_STRING:
+        var value = imports.prefBranch.getComplexValue(this.name,
+                Components.interfaces.nsISupportsString).data;
+        
+        var isL10n = /^chrome:\/\/.+\/locale\/.+\.properties/.test(value);
+        if (!this.changed && isL10n) {
+          value = imports.prefBranch.getComplexValue(this.name,
+                  Components.interfaces.nsIPrefLocalizedString).data;
+        }
+        return value;
+
+      default:
+        throw new Error('Invalid value for ' + this.name);
+    }
+  },
+
+  set: function(value) {
+    if (imports.prefBranch.prefIsLocked(this.name)) {
+      throw new Error('Locked preference ' + this.name);
+    }
+
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        imports.prefBranch.setBoolPref(this.name, value);
+        break;
+
+      case imports.prefBranch.PREF_INT:
+        imports.prefBranch.setIntPref(this.name, value);
+        break;
+
+      case imports.prefBranch.PREF_STRING:
+        imports.supportsString.data = value;
+        imports.prefBranch.setComplexValue(this.name,
+                Components.interfaces.nsISupportsString,
+                imports.supportsString);
+        break;
+
+      default:
+        throw new Error('Invalid value for ' + this.name);
+    }
+
+    Services.prefs.savePrefFile(null);
+  },
+
+  enumerable: true
+});
+
+
+
+
+
+exports.getAll = function(filter) {
+  if (filter == null) {
+    return allSettings;
+  }
+  return allSettings.filter(function(setting) {
+    return setting.name.indexOf(filter) !== -1;
+  });
+};
+
+
+
+
+exports.addSetting = function(prefSpec) {
+  var setting = new Setting(prefSpec);
+  for (var i = 0; i < allSettings.length; i++) {
+    if (allSettings[i].name === setting.name) {
+      allSettings[i] = setting;
+    }
+  }
+  return setting;
+};
+
+
+
+
+exports.removeSetting = function(nameOrSpec) {
+};
+
+
+});
+
+
+
+
+
+
+define('gcli/ui/intro', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/l10n', 'gcli/ui/view', 'gcli/cli', 'text!gcli/ui/intro.html'], function(require, exports, module) {
+
+  var settings = require('gcli/settings');
+  var l10n = require('gcli/l10n');
+  var view = require('gcli/ui/view');
+  var Output = require('gcli/cli').Output;
+
+  
+
+
+  var hideIntroSettingSpec = {
+    name: 'hideIntro',
+    type: 'boolean',
+    description: l10n.lookup('hideIntroDesc')
+  };
+  var hideIntro;
+
+  
+
+
+  exports.startup = function() {
+    hideIntro = settings.addSetting(hideIntroSettingSpec);
+  };
+
+  exports.shutdown = function() {
+    settings.removeSetting(hideIntroSettingSpec);
+    hideIntro = undefined;
+  };
+
+  
+
+
+  exports.maybeShowIntro = function(commandOutputManager) {
+    if (hideIntro.value) {
+      return;
+    }
+
+    var output = new Output();
+    commandOutputManager.onOutput({ output: output });
+
+    var viewData = view.createView({
+      html: require('text!gcli/ui/intro.html'),
+      data: {
+        showHideButton: true,
+        onGotIt: function(ev) {
+          hideIntro.value = true;
+          output.onClose();
+        }
+      }
+    });
+
+    output.complete(viewData);
+  };
+});
+
+
+
+
+
+
+define('gcli/ui/view', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/domtemplate'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var domtemplate = require('gcli/ui/domtemplate');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.createView = function(options) {
+  if (options.html == null) {
+    throw new Error('options.html is missing');
+  }
+
+  return {
+    
+
+
+    isView: true,
+
+    
+
+
+
+
+    appendTo: function(element, clear) {
+      
+      
+      
+      if (clear === true) {
+        util.clearElement(element);
+      }
+
+      element.appendChild(this.toDom(element.ownerDocument));
+    },
+
+    
+
+
+
+
+    toDom: function(document) {
+      if (options.css) {
+        util.importCss(options.css, document, options.cssId);
+      }
+
+      var child = util.toDom(document, options.html);
+      domtemplate.template(child, options.data || {}, options.options || {});
+      return child;
+    }
+  };
+};
+
+
+});
+
+
+
+
+
+
+define('gcli/ui/domtemplate', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+  var obj = {};
+  Components.utils.import('resource:///modules/devtools/Templater.jsm', obj);
+  exports.template = obj.template;
+
+});
+
+
+
+
+
+
+define('gcli/cli', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/view', 'gcli/canon', 'gcli/promise', 'gcli/types', 'gcli/types/basic', 'gcli/argument'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var view = require('gcli/ui/view');
 
 var canon = require('gcli/canon');
 var Promise = require('gcli/promise').Promise;
 
-var types = require('gcli/types');
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
-var Type = require('gcli/types').Type;
 var ArrayType = require('gcli/types/basic').ArrayType;
 var StringType = require('gcli/types/basic').StringType;
 var BooleanType = require('gcli/types/basic').BooleanType;
-var SelectionType = require('gcli/types/basic').SelectionType;
 
 var Argument = require('gcli/argument').Argument;
 var ArrayArgument = require('gcli/argument').ArrayArgument;
@@ -4074,12 +5168,10 @@ var evalCommand;
 
 
 exports.startup = function() {
-  types.registerType(CommandType);
   evalCommand = canon.addCommand(evalCommandSpec);
 };
 
 exports.shutdown = function() {
-  types.unregisterType(CommandType);
   canon.removeCommand(evalCommandSpec.name);
   evalCommand = undefined;
 };
@@ -4104,12 +5196,13 @@ exports.shutdown = function() {
 
 
 
+
 function Assignment(param, paramIndex) {
   this.param = param;
   this.paramIndex = paramIndex;
-  this.assignmentChange = util.createEvent('Assignment.assignmentChange');
+  this.onAssignmentChange = util.createEvent('Assignment.onAssignmentChange');
 
-  this.setDefault();
+  this.setBlank();
 }
 
 
@@ -4130,16 +5223,26 @@ Assignment.prototype.paramIndex = undefined;
 
 
 
-Assignment.prototype.getArg = function() {
-  return this.conversion.arg;
-};
+
+
+Object.defineProperty(Assignment.prototype, 'arg', {
+  get: function() {
+    return this.conversion.arg;
+  },
+  enumerable: true
+});
 
 
 
 
-Assignment.prototype.getValue = function() {
-  return this.conversion.value;
-};
+
+
+Object.defineProperty(Assignment.prototype, 'value', {
+  get: function() {
+    return this.conversion.value;
+  },
+  enumerable: true
+});
 
 
 
@@ -4176,7 +5279,7 @@ Assignment.prototype.setConversion = function(conversion) {
     return;
   }
 
-  this.assignmentChange({
+  this.onAssignmentChange({
     assignment: this,
     conversion: this.conversion,
     oldConversion: oldConversion
@@ -4186,20 +5289,8 @@ Assignment.prototype.setConversion = function(conversion) {
 
 
 
-
-Assignment.prototype.setDefault = function() {
-  var conversion;
-  if (this.param.getDefault) {
-    conversion = this.param.getDefault();
-  }
-  else if (this.param.type.getDefault) {
-    conversion = this.param.type.getDefault();
-  }
-  else {
-    conversion = this.param.type.parse(new Argument());
-  }
-
-  this.setConversion(conversion);
+Assignment.prototype.setBlank = function() {
+  this.setConversion(this.param.type.getBlank());
 };
 
 
@@ -4233,33 +5324,18 @@ Assignment.prototype.ensureVisibleArgument = function() {
 
 
 Assignment.prototype.getStatus = function(arg) {
-  if (this.param.isDataRequired() && !this.conversion.isDataProvided()) {
+  if (this.param.isDataRequired && !this.conversion.isDataProvided()) {
     return Status.ERROR;
   }
 
   
   
   
-  if (!this.param.isDataRequired() && this.getArg().isBlank()) {
+  if (!this.param.isDataRequired && this.arg.isBlank()) {
     return Status.VALID;
   }
 
   return this.conversion.getStatus(arg);
-};
-
-
-
-
-Assignment.prototype.complete = function() {
-  var predictions = this.conversion.getPredictions();
-  if (predictions.length > 0) {
-    var arg = this.conversion.arg.beget(predictions[0].name);
-    if (!predictions[0].incomplete) {
-      arg.suffix = ' ';
-    }
-    var conversion = this.param.type.parse(arg);
-    this.setConversion(conversion);
-  }
 };
 
 
@@ -4301,82 +5377,6 @@ exports.Assignment = Assignment;
 
 
 
-
-
-
-
-function CommandType() {
-}
-
-CommandType.prototype = Object.create(Type.prototype);
-
-CommandType.prototype.name = 'command';
-
-CommandType.prototype.decrement = SelectionType.prototype.decrement;
-CommandType.prototype.increment = SelectionType.prototype.increment;
-CommandType.prototype._findValue = SelectionType.prototype._findValue;
-
-CommandType.prototype.stringify = function(command) {
-  return command.name;
-};
-
-
-
-
-
-CommandType.prototype._findPredictions = function(arg) {
-  var predictions = [];
-  canon.getCommands().forEach(function(command) {
-    if (command.name.indexOf(arg.text) === 0) {
-      
-      
-      
-      
-      if (arg.text.length !== 0 || command.name.indexOf(' ') === -1) {
-        predictions.push(command);
-      }
-    }
-  }, this);
-  return predictions;
-};
-
-CommandType.prototype.parse = function(arg) {
-  
-  
-  var predictFunc = function() {
-    return this._findPredictions(arg);
-  }.bind(this);
-
-  var predictions = this._findPredictions(arg);
-
-  if (predictions.length === 0) {
-    return new Conversion(null, arg, Status.ERROR,
-        'Can\'t use \'' + arg.text + '\'.', predictFunc);
-  }
-
-  var command = predictions[0];
-
-  if (predictions.length === 1) {
-    
-    
-    if (command.name === arg.text && typeof command.exec === 'function') {
-      return new Conversion(command, arg, Status.VALID, '');
-    }
-    return new Conversion(null, arg, Status.INCOMPLETE, '', predictFunc);
-  }
-
-  
-  if (command.name === arg.text) {
-    return new Conversion(command, arg, Status.VALID, '', predictFunc);
-  }
-
-  return new Conversion(null, arg, Status.INCOMPLETE, '', predictFunc);
-};
-
-
-
-
-
 var customEval = eval;
 
 
@@ -4413,6 +5413,7 @@ var evalCommandSpec = {
       description: ''
     }
   ],
+  hidden: true,
   returnType: 'object',
   description: { key: 'cliEvalJavascript' },
   exec: function(args, context) {
@@ -4426,15 +5427,25 @@ var evalCommandSpec = {
 
 
 function CommandAssignment() {
-  this.param = new canon.Parameter({
-    name: '__command',
-    type: 'command',
-    description: 'The command to execute'
+  var commandParamMetadata = { name: '__command', type: 'command' };
+  
+  
+  
+  var self = this;
+  Object.defineProperty(commandParamMetadata, 'description', {
+    get: function() {
+      var value = self.value;
+      return value && value.description ?
+          value.description :
+          'The command to execute';
+    },
+    enumerable: true
   });
+  this.param = new canon.Parameter(commandParamMetadata);
   this.paramIndex = -1;
-  this.assignmentChange = util.createEvent('CommandAssignment.assignmentChange');
+  this.onAssignmentChange = util.createEvent('CommandAssignment.onAssignmentChange');
 
-  this.setDefault();
+  this.setBlank();
 }
 
 CommandAssignment.prototype = Object.create(Assignment.prototype);
@@ -4442,10 +5453,12 @@ CommandAssignment.prototype = Object.create(Assignment.prototype);
 CommandAssignment.prototype.getStatus = function(arg) {
   return Status.combine(
     Assignment.prototype.getStatus.call(this, arg),
-    this.conversion.value && !this.conversion.value.exec ?
-      Status.INCOMPLETE : Status.VALID
+    this.conversion.value && this.conversion.value.exec ?
+            Status.VALID : Status.INCOMPLETE
   );
 };
+
+exports.CommandAssignment = CommandAssignment;
 
 
 
@@ -4457,9 +5470,9 @@ function UnassignedAssignment() {
     type: 'string'
   });
   this.paramIndex = -1;
-  this.assignmentChange = util.createEvent('UnassignedAssignment.assignmentChange');
+  this.onAssignmentChange = util.createEvent('UnassignedAssignment.onAssignmentChange');
 
-  this.setDefault();
+  this.setBlank();
 }
 
 UnassignedAssignment.prototype = Object.create(Assignment.prototype);
@@ -4470,17 +5483,13 @@ UnassignedAssignment.prototype.getStatus = function(arg) {
 
 UnassignedAssignment.prototype.setUnassigned = function(args) {
   if (!args || args.length === 0) {
-    this.setDefault();
+    this.setBlank();
   }
   else {
     var conversion = this.param.type.parse(new MergedArgument(args));
     this.setConversion(conversion);
   }
 };
-
-
-
-
 
 
 
@@ -4547,14 +5556,13 @@ function Requisition(environment, doc) {
   
   this._structuralChangeInProgress = false;
 
-  this.commandAssignment.assignmentChange.add(this._onCommandAssignmentChange, this);
-  this.commandAssignment.assignmentChange.add(this._onAssignmentChange, this);
+  this.commandAssignment.onAssignmentChange.add(this._commandAssignmentChanged, this);
+  this.commandAssignment.onAssignmentChange.add(this._assignmentChanged, this);
 
   this.commandOutputManager = canon.commandOutputManager;
 
-  this.assignmentChange = util.createEvent('Requisition.assignmentChange');
-  this.commandChange = util.createEvent('Requisition.commandChange');
-  this.inputChange = util.createEvent('Requisition.inputChange');
+  this.onAssignmentChange = util.createEvent('Requisition.onAssignmentChange');
+  this.onTextChange = util.createEvent('Requisition.onTextChange');
 }
 
 
@@ -4567,8 +5575,8 @@ var MORE_THAN_THE_MOST_ARGS_POSSIBLE = 1000000;
 
 
 Requisition.prototype.destroy = function() {
-  this.commandAssignment.assignmentChange.remove(this._onCommandAssignmentChange, this);
-  this.commandAssignment.assignmentChange.remove(this._onAssignmentChange, this);
+  this.commandAssignment.onAssignmentChange.remove(this._commandAssignmentChanged, this);
+  this.commandAssignment.onAssignmentChange.remove(this._assignmentChanged, this);
 
   delete this.document;
   delete this.environment;
@@ -4578,7 +5586,7 @@ Requisition.prototype.destroy = function() {
 
 
 
-Requisition.prototype._onAssignmentChange = function(ev) {
+Requisition.prototype._assignmentChanged = function(ev) {
   
   if (ev.oldConversion != null &&
       ev.conversion.valueEquals(ev.oldConversion)) {
@@ -4589,7 +5597,7 @@ Requisition.prototype._onAssignmentChange = function(ev) {
     return;
   }
 
-  this.assignmentChange(ev);
+  this.onAssignmentChange(ev);
 
   
   
@@ -4603,12 +5611,12 @@ Requisition.prototype._onAssignmentChange = function(ev) {
   
   
   var i;
-  if (ev.assignment.param.isPositionalAllowed()) {
+  if (ev.assignment.param.isPositionalAllowed) {
     for (i = 0; i < ev.assignment.paramIndex; i++) {
       var assignment = this.getAssignment(i);
-      if (assignment.param.isPositionalAllowed()) {
+      if (assignment.param.isPositionalAllowed) {
         if (assignment.ensureVisibleArgument()) {
-          this._args.push(assignment.getArg());
+          this._args.push(assignment.arg);
         }
       }
     }
@@ -4627,7 +5635,7 @@ Requisition.prototype._onAssignmentChange = function(ev) {
   }
 
   if (index === MORE_THAN_THE_MOST_ARGS_POSSIBLE) {
-    this._args.push(ev.assignment.getArg());
+    this._args.push(ev.assignment.arg);
   }
   else {
     
@@ -4638,31 +5646,32 @@ Requisition.prototype._onAssignmentChange = function(ev) {
   }
   this._structuralChangeInProgress = false;
 
-  this.inputChange();
+  this.onTextChange();
 };
 
 
 
 
-Requisition.prototype._onCommandAssignmentChange = function(ev) {
+Requisition.prototype._commandAssignmentChanged = function(ev) {
+  
+  
+  
+  if (ev.conversion.valueEquals(ev.oldConversion)) {
+    return;
+  }
+
   this._assignments = {};
 
-  var command = this.commandAssignment.getValue();
+  var command = this.commandAssignment.value;
   if (command) {
     for (var i = 0; i < command.params.length; i++) {
       var param = command.params[i];
       var assignment = new Assignment(param, i);
-      assignment.assignmentChange.add(this._onAssignmentChange, this);
+      assignment.onAssignmentChange.add(this._assignmentChanged, this);
       this._assignments[param.name] = assignment;
     }
   }
   this.assignmentCount = Object.keys(this._assignments).length;
-
-  this.commandChange({
-    requisition: this,
-    oldValue: ev.oldValue,
-    newValue: command
-  });
 };
 
 
@@ -4706,7 +5715,7 @@ Requisition.prototype.getStatus = function() {
   var status = Status.VALID;
   this.getAssignments(true).forEach(function(assignment) {
     var assignStatus = assignment.getStatus();
-    if (assignment.getStatus() > status) {
+    if (assignStatus > status) {
       status = assignStatus;
     }
   }, this);
@@ -4723,7 +5732,9 @@ Requisition.prototype.getStatus = function() {
 Requisition.prototype.getArgsObject = function() {
   var args = {};
   this.getAssignments().forEach(function(assignment) {
-    args[assignment.param.name] = assignment.getValue();
+    args[assignment.param.name] = assignment.conversion.isDataProvided() ?
+            assignment.value :
+            assignment.param.defaultValue;
   }, this);
   return args;
 };
@@ -4748,10 +5759,101 @@ Requisition.prototype.getAssignments = function(includeCommand) {
 
 
 
-Requisition.prototype.setDefaultArguments = function() {
+Requisition.prototype.setBlankArguments = function() {
   this.getAssignments().forEach(function(assignment) {
-    assignment.setDefault();
+    assignment.setBlank();
   }, this);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Requisition.prototype.complete = function(cursor, predictionChoice) {
+  var assignment = this.getAssignmentAt(cursor.start);
+
+  var predictions = assignment.conversion.getPredictions();
+  if (predictions.length > 0) {
+    this.onTextChange.holdFire();
+
+    var prediction = assignment.conversion.getPredictionAt(predictionChoice);
+
+    
+    var arg = assignment.arg.beget(prediction.name);
+    var conversion = assignment.param.type.parse(arg);
+    assignment.setConversion(conversion);
+
+    
+    
+    
+    if (this._args.indexOf(arg) === -1) {
+      this._args.push(arg);
+    }
+
+    if (prediction.incomplete) {
+      
+      
+      return;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    var nextIndex = assignment.paramIndex + 1;
+    var nextAssignment = this.getAssignment(nextIndex);
+    if (nextAssignment) {
+      
+      var nextArg = nextAssignment.conversion.arg;
+      if (nextArg.prefix.charAt(0) !== ' ') {
+        nextArg.prefix = ' ' + nextArg.prefix;
+        var nextConversion = nextAssignment.param.type.parse(nextArg);
+        nextAssignment.setConversion(nextConversion);
+
+        
+        
+        
+        if (this._args.indexOf(nextArg) === -1) {
+          this._args.push(nextArg);
+        }
+      }
+    }
+    else {
+      
+      
+      var conversion = assignment.conversion;
+      var arg = conversion.arg;
+      if (arg.suffix.charAt(arg.suffix.length - 1) !== ' ') {
+        arg.suffix = arg.suffix + ' ';
+
+        
+        
+        
+        
+        
+        
+        assignment.setConversion(conversion);
+      }
+    }
+
+    this.onTextChange();
+    this.onTextChange.resumeFire();
+  }
 };
 
 
@@ -4760,9 +5862,9 @@ Requisition.prototype.setDefaultArguments = function() {
 Requisition.prototype.toCanonicalString = function() {
   var line = [];
 
-  var cmd = this.commandAssignment.getValue() ?
-      this.commandAssignment.getValue().name :
-      this.commandAssignment.getArg().text;
+  var cmd = this.commandAssignment.value ?
+      this.commandAssignment.value.name :
+      this.commandAssignment.arg.text;
   line.push(cmd);
 
   Object.keys(this._assignments).forEach(function(name) {
@@ -4771,15 +5873,15 @@ Requisition.prototype.toCanonicalString = function() {
     
     
     
-    if (assignment.getValue() !== assignment.param.defaultValue) {
+    if (assignment.value !== assignment.param.defaultValue) {
       line.push(' ');
-      line.push(type.stringify(assignment.getValue()));
+      line.push(type.stringify(assignment.value));
     }
   }, this);
 
   
   if (cmd === '{') {
-    if (this.getAssignment(0).getArg().suffix.indexOf('}') === -1) {
+    if (this.getAssignment(0).arg.suffix.indexOf('}') === -1) {
       line.push(' }');
     }
   }
@@ -4842,6 +5944,24 @@ Requisition.prototype.toString = function() {
   }
 
   return this.toCanonicalString();
+};
+
+
+
+
+
+
+
+
+
+
+
+Requisition.prototype.typedEndsWithWhitespace = function() {
+  if (this._args) {
+    return this._args.slice(-1)[0].suffix.slice(-1) === ' ';
+  }
+
+  return this.toCanonicalString().slice(-1) === ' ';
 };
 
 
@@ -4966,37 +6086,47 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
 
 
 
+
+
+
+
+
+
+
+
 Requisition.prototype.exec = function(input) {
   var command;
   var args;
-  var visible = true;
+  var hidden = false;
+  if (input && input.hidden) {
+    hidden = true;
+  }
 
   if (input) {
-    if (input.args != null) {
+    if (typeof input === 'string') {
+      this.update(input);
+    }
+    else if (typeof input.typed === 'string') {
+      this.update(input.typed);
+    }
+    else if (input.command != null) {
       
       
-      command = canon.getCommand(input.typed);
+      command = canon.getCommand(input.command);
       if (!command) {
-        console.error('Command not found: ' + command);
+        console.error('Command not found: ' + input.command);
       }
       args = input.args;
-
-      
-      
-      visible = 'visible' in input ? input.visible : false;
-    }
-    else {
-      this.update(input);
     }
   }
 
   if (!command) {
-    command = this.commandAssignment.getValue();
+    command = this.commandAssignment.value;
     args = this.getArgsObject();
   }
 
   if (!command) {
-    return false;
+    throw new Error('Unknown command');
   }
 
   
@@ -5007,51 +6137,41 @@ Requisition.prototype.exec = function(input) {
     typed = typed.replace(/\s*}\s*$/, '');
   }
 
-  var outputObject = {
+  var output = new Output({
     command: command,
     args: args,
     typed: typed,
     canonical: this.toCanonicalString(),
-    completed: false,
-    start: new Date()
-  };
+    hidden: hidden
+  });
 
-  this.commandOutputManager.sendCommandOutput(outputObject);
-
-  var onComplete = function(output, error) {
-    if (visible) {
-      outputObject.end = new Date();
-      outputObject.duration = outputObject.end.getTime() - outputObject.start.getTime();
-      outputObject.error = error;
-      outputObject.output = output;
-      outputObject.completed = true;
-      this.commandOutputManager.sendCommandOutput(outputObject);
-    }
-  }.bind(this);
+  this.commandOutputManager.onOutput({ output: output });
 
   try {
-    var context = new ExecutionContext(this);
+    var context = exports.createExecutionContext(this);
     var reply = command.exec(args, context);
 
     if (reply != null && reply.isPromise) {
       reply.then(
-        function(data) { onComplete(data, false); },
-        function(error) { onComplete(error, true); });
+          function(data) { output.complete(data); },
+          function(error) { output.error = true; output.complete(error); });
 
+      output.promise = reply;
       
       
     }
     else {
-      onComplete(reply, false);
+      output.complete(reply);
     }
   }
   catch (ex) {
     console.error(ex);
-    onComplete(ex, true);
+    output.error = true;
+    output.complete(ex);
   }
 
-  this.clear();
-  return true;
+  this.update('');
+  return output;
 };
 
 
@@ -5064,32 +6184,16 @@ Requisition.prototype.exec = function(input) {
 
 
 
-
-
-
-Requisition.prototype.update = function(input) {
-  if (input.cursor == null) {
-    input.cursor = { start: input.length, end: input.length };
-  }
-
+Requisition.prototype.update = function(typed) {
   this._structuralChangeInProgress = true;
 
-  this._args = this._tokenize(input.typed);
-
+  this._args = this._tokenize(typed);
   var args = this._args.slice(0); 
   this._split(args);
   this._assign(args);
 
   this._structuralChangeInProgress = false;
-
-  this.inputChange();
-};
-
-
-
-
-Requisition.prototype.clear = function() {
-  this.update({ typed: '', cursor: { start: 0, end: 0 } });
+  this.onTextChange();
 };
 
 
@@ -5339,7 +6443,7 @@ Requisition.prototype._split = function(args) {
   if (args[0] instanceof ScriptArgument) {
     
     
-    conversion = new Conversion(evalCommand, new Argument());
+    conversion = new Conversion(evalCommand, new ScriptArgument());
     this.commandAssignment.setConversion(conversion);
     return;
   }
@@ -5380,14 +6484,14 @@ Requisition.prototype._split = function(args) {
 
 
 Requisition.prototype._assign = function(args) {
-  if (!this.commandAssignment.getValue()) {
+  if (!this.commandAssignment.value) {
     this._unassigned.setUnassigned(args);
     return;
   }
 
   if (args.length === 0) {
-    this.setDefaultArguments();
-    this._unassigned.setDefault();
+    this.setBlankArguments();
+    this._unassigned.setBlank();
     return;
   }
 
@@ -5408,7 +6512,7 @@ Requisition.prototype._assign = function(args) {
         new MergedArgument(args);
       var conversion = assignment.param.type.parse(arg);
       assignment.setConversion(conversion);
-      this._unassigned.setDefault();
+      this._unassigned.setBlank();
       return;
     }
   }
@@ -5470,8 +6574,8 @@ Requisition.prototype._assign = function(args) {
 
     
     
-    if (!assignment.param.isPositionalAllowed()) {
-      assignment.setDefault();
+    if (!assignment.param.isPositionalAllowed) {
+      assignment.setBlank();
       return;
     }
 
@@ -5503,12 +6607,7 @@ Requisition.prototype._assign = function(args) {
     assignment.setConversion(conversion);
   }, this);
 
-  if (args.length > 0) {
-    this._unassigned.setUnassigned(args);
-  }
-  else {
-    this._unassigned.setDefault();
-  }
+  this._unassigned.setUnassigned(args);
 };
 
 exports.Requisition = Requisition;
@@ -5516,15 +6615,111 @@ exports.Requisition = Requisition;
 
 
 
+function Output(options) {
+  options = options || {};
+  this.command = options.command || '';
+  this.args = options.args || {};
+  this.typed = options.typed || '';
+  this.canonical = options.canonical || '';
+  this.hidden = options.hidden === true ? true : false;
 
-function ExecutionContext(requisition) {
-  this.requisition = requisition;
-  this.environment = requisition.environment;
-  this.document = requisition.document;
+  this.data = undefined;
+  this.completed = false;
+  this.error = false;
+  this.start = new Date();
+
+  this.onClose = util.createEvent('Output.onClose');
+  this.onChange = util.createEvent('Output.onChange');
 }
 
-ExecutionContext.prototype.createPromise = function() {
-  return new Promise();
+
+
+
+
+Output.prototype.complete = function(data) {
+  this.data = data;
+
+  this.end = new Date();
+  this.duration = this.end.getTime() - this.start.getTime();
+  this.completed = true;
+
+  this.onChange({ output: this });
+};
+
+
+
+
+
+
+Output.prototype.toDom = function(element) {
+  util.clearElement(element);
+  var document = element.ownerDocument;
+
+  var output = this.data;
+  if (output == null) {
+    return;
+  }
+
+  var node;
+  if (typeof HTMLElement !== 'undefined' && output instanceof HTMLElement) {
+    node = output;
+  }
+  else if (output.isView) {
+    node = output.toDom(document);
+  }
+  else {
+    if (this.command.returnType === 'terminal') {
+      node = util.createElement(document, 'textarea');
+      node.classList.add('gcli-row-terminal');
+      node.readOnly = true;
+    }
+    else {
+      node = util.createElement(document, 'p');
+    }
+
+    util.setContents(node, output.toString());
+  }
+
+  element.appendChild(node);
+};
+
+
+
+
+
+Output.prototype.toString = function(document) {
+  var output = this.data;
+  if (output == null) {
+    return '';
+  }
+
+  if (typeof HTMLElement !== 'undefined' && output instanceof HTMLElement) {
+    return output.textContent;
+  }
+
+  if (output.isView) {
+    return output.toDom(document).textContent;
+  }
+
+  return output.toString();
+};
+
+exports.Output = Output;
+
+
+
+
+exports.createExecutionContext = function(requisition) {
+  return {
+    exec: requisition.exec.bind(requisition),
+    update: requisition.update.bind(requisition),
+    document: requisition.document,
+    environment: requisition.environment,
+    createView: view.createView,
+    createPromise: function() {
+      return new Promise();
+    }
+  };
 };
 
 
@@ -5541,1225 +6736,71 @@ define('gcli/promise', ['require', 'exports', 'module' ], function(require, expo
   exports.Promise = Promise;
 
 });
-
-
-
-
-
-
-define('gcli/commands/help', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/util', 'gcli/l10n', 'gcli/ui/domtemplate', 'text!gcli/commands/help.css', 'text!gcli/commands/help_intro.html', 'text!gcli/commands/help_list.html', 'text!gcli/commands/help_man.html'], function(require, exports, module) {
-var help = exports;
-
-
-var canon = require('gcli/canon');
-var util = require('gcli/util');
-var l10n = require('gcli/l10n');
-var domtemplate = require('gcli/ui/domtemplate');
-
-var helpCss = require('text!gcli/commands/help.css');
-var helpStyle = undefined;
-var helpIntroHtml = require('text!gcli/commands/help_intro.html');
-var helpIntroTemplate = undefined;
-var helpListHtml = require('text!gcli/commands/help_list.html');
-var helpListTemplate = undefined;
-var helpManHtml = require('text!gcli/commands/help_man.html');
-var helpManTemplate = undefined;
-
-
-
-
-
-
-var helpCommandSpec;
-
-
-
-
-help.startup = function() {
-
-  helpCommandSpec = {
-    name: 'help',
-    description: l10n.lookup('helpDesc'),
-    manual: l10n.lookup('helpManual'),
-    params: [
-      {
-        name: 'search',
-        type: 'string',
-        description: l10n.lookup('helpSearchDesc'),
-        manual: l10n.lookup('helpSearchManual'),
-        defaultValue: null
-      }
-    ],
-    returnType: 'html',
-
-    exec: function(args, context) {
-      help.onFirstUseStartup(context.document);
-
-      var match = canon.getCommand(args.search);
-      if (match) {
-        var clone = helpManTemplate.cloneNode(true);
-        domtemplate.template(clone, getManTemplateData(match, context),
-                { allowEval: true, stack: 'help_man.html' });
-        return clone;
-      }
-
-      var parent = util.dom.createElement(context.document, 'div');
-      if (!args.search) {
-        parent.appendChild(helpIntroTemplate.cloneNode(true));
-      }
-      parent.appendChild(helpListTemplate.cloneNode(true));
-      domtemplate.template(parent, getListTemplateData(args, context),
-              { allowEval: true, stack: 'help_intro.html | help_list.html' });
-      return parent;
-    }
-  };
-
-  canon.addCommand(helpCommandSpec);
-};
-
-help.shutdown = function() {
-  canon.removeCommand(helpCommandSpec);
-
-  helpListTemplate = undefined;
-  helpStyle.parentElement.removeChild(helpStyle);
-  helpStyle = undefined;
-};
-
-
-
-
-help.onFirstUseStartup = function(document) {
-  if (!helpIntroTemplate) {
-    helpIntroTemplate = util.dom.createElement(document, 'div');
-    util.dom.setInnerHtml(helpIntroTemplate, helpIntroHtml);
-  }
-  if (!helpListTemplate) {
-    helpListTemplate = util.dom.createElement(document, 'div');
-    util.dom.setInnerHtml(helpListTemplate, helpListHtml);
-  }
-  if (!helpManTemplate) {
-    helpManTemplate = util.dom.createElement(document, 'div');
-    util.dom.setInnerHtml(helpManTemplate, helpManHtml);
-  }
-  if (!helpStyle && helpCss != null) {
-    helpStyle = util.dom.importCss(helpCss, document);
-  }
-};
-
-
-
-
-
-function updateCommand(element, context) {
-  context.requisition.update({
-    typed: element.querySelector('.gcli-help-command').textContent
-  });
-}
-
-
-
-
-
-function executeCommand(element, context) {
-  context.requisition.exec({
-    visible: true,
-    typed: element.querySelector('.gcli-help-command').textContent
-  });
-}
-
-
-
-
-function getListTemplateData(args, context) {
-  return {
-    l10n: l10n.propertyLookup,
-    lang: context.document.defaultView.navigator.language,
-
-    onclick: function(ev) {
-      updateCommand(ev.currentTarget, context);
-    },
-
-    ondblclick: function(ev) {
-      executeCommand(ev.currentTarget, context);
-    },
-
-    getHeading: function() {
-      return args.search == null ?
-              'Available Commands:' :
-              'Commands starting with \'' + args.search + '\':';
-    },
-
-    getMatchingCommands: function() {
-      var matching = canon.getCommands().filter(function(command) {
-        if (args.search && command.name.indexOf(args.search) !== 0) {
-          
-          return false;
-        }
-        if (!args.search && command.name.indexOf(' ') != -1) {
-          
-          return false;
-        }
-        return true;
-      });
-      matching.sort();
-      return matching;
-    }
-  };
-}
-
-
-
-
-function getManTemplateData(command, context) {
-  return {
-    l10n: l10n.propertyLookup,
-    lang: context.document.defaultView.navigator.language,
-
-    command: command,
-
-    onclick: function(ev) {
-      updateCommand(ev.currentTarget, context);
-    },
-
-    getTypeDescription: function(param) {
-      var input = '';
-      if (param.defaultValue === undefined) {
-        input = 'required';
-      }
-      else if (param.defaultValue === null) {
-        input = 'optional';
-      }
-      else {
-        input = param.defaultValue;
-      }
-      return '(' + param.type.name + ', ' + input + ')';
-    }
-  };
-}
-
-});
-
-
-
-
-
-
-define('gcli/ui/domtemplate', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-  var obj = {};
-  Components.utils.import('resource:///modules/devtools/Templater.jsm', obj);
-  exports.template = obj.template;
-
-});
-define("text!gcli/commands/help.css", [], "");
-
-define("text!gcli/commands/help_intro.html", [], "\n" +
-  "<h2>${l10n.introHeader}</h2>\n" +
-  "\n" +
-  "<p>\n" +
-  "</p>\n" +
-  "");
-
-define("text!gcli/commands/help_list.html", [], "\n" +
-  "<h3>${getHeading()}</h3>\n" +
-  "\n" +
-  "<table>\n" +
-  "  <tr foreach=\"command in ${getMatchingCommands()}\"\n" +
-  "      onclick=\"${onclick}\" ondblclick=\"${ondblclick}\">\n" +
-  "    <th class=\"gcli-help-name\">${command.name}</th>\n" +
-  "    <td class=\"gcli-help-arrow\">&#x2192;</td>\n" +
-  "    <td>\n" +
-  "      ${command.description}\n" +
-  "      <span class=\"gcli-out-shortcut gcli-help-command\">help ${command.name}</span>\n" +
-  "    </td>\n" +
-  "  </tr>\n" +
-  "</table>\n" +
-  "");
-
-define("text!gcli/commands/help_man.html", [], "\n" +
-  "<h3>${command.name}</h3>\n" +
-  "\n" +
-  "<h4 class=\"gcli-help-header\">\n" +
-  "  ${l10n.helpManSynopsis}:\n" +
-  "  <span class=\"gcli-help-synopsis\" onclick=\"${onclick}\">\n" +
-  "    <span class=\"gcli-help-command\">${command.name}</span>\n" +
-  "    <span foreach=\"param in ${command.params}\">\n" +
-  "      ${param.defaultValue !== undefined ? '[' + param.name + ']' : param.name}\n" +
-  "    </span>\n" +
-  "  </span>\n" +
-  "</h4>\n" +
-  "\n" +
-  "<h4 class=\"gcli-help-header\">${l10n.helpManDescription}:</h4>\n" +
-  "\n" +
-  "<p class=\"gcli-help-description\">\n" +
-  "  ${command.manual || command.description}\n" +
-  "</p>\n" +
-  "\n" +
-  "<h4 class=\"gcli-help-header\">${l10n.helpManParameters}:</h4>\n" +
-  "\n" +
-  "<ul class=\"gcli-help-parameter\">\n" +
-  "  <li if=\"${command.params.length === 0}\">${l10n.helpManNone}</li>\n" +
-  "  <li foreach=\"param in ${command.params}\">\n" +
-  "    <tt>${param.name}</tt> ${getTypeDescription(param)}\n" +
-  "    <br/>\n" +
-  "    ${param.manual || param.description}\n" +
-  "  </li>\n" +
-  "</ul>\n" +
-  "");
-
-
-
-
-
-
-
-define('gcli/ui/console', ['require', 'exports', 'module' , 'gcli/ui/inputter', 'gcli/ui/arg_fetch', 'gcli/ui/menu', 'gcli/ui/focus'], function(require, exports, module) {
-
-var Inputter = require('gcli/ui/inputter').Inputter;
-var ArgFetcher = require('gcli/ui/arg_fetch').ArgFetcher;
-var CommandMenu = require('gcli/ui/menu').CommandMenu;
-var FocusManager = require('gcli/ui/focus').FocusManager;
-
-
-
-
-
-function Console(options) {
-  this.hintElement = options.hintElement;
-  this.gcliTerm = options.gcliTerm;
-  this.consoleWrap = options.consoleWrap;
-  this.requisition = options.requisition;
-
-  
-  this.focusManager = new FocusManager({ document: options.chromeDocument });
-  this.focusManager.onFocus.add(this.gcliTerm.show, this.gcliTerm);
-  this.focusManager.onBlur.add(this.gcliTerm.hide, this.gcliTerm);
-  this.focusManager.addMonitoredElement(this.gcliTerm.hintNode, 'gcliTerm');
-
-  this.inputter = new Inputter({
-    document: options.chromeDocument,
-    requisition: options.requisition,
-    inputElement: options.inputElement,
-    completeElement: options.completeElement,
-    completionPrompt: '',
-    backgroundElement: options.backgroundElement,
-    focusManager: this.focusManager,
-    scratchpad: options.scratchpad
-  });
-
-  this.menu = new CommandMenu({
-    document: options.chromeDocument,
-    requisition: options.requisition,
-    menuClass: 'gcliterm-menu'
-  });
-  this.hintElement.appendChild(this.menu.element);
-
-  this.argFetcher = new ArgFetcher({
-    document: options.chromeDocument,
-    requisition: options.requisition,
-    argFetcherClass: 'gcliterm-argfetcher'
-  });
-  this.hintElement.appendChild(this.argFetcher.element);
-
-  this.chromeWindow = options.chromeDocument.defaultView;
-  this.resizer = this.resizer.bind(this);
-  this.chromeWindow.addEventListener('resize', this.resizer, false);
-  this.requisition.commandChange.add(this.resizer, this);
-}
-
-
-
-
-Console.prototype.reattachConsole = function(options) {
-  this.chromeWindow.removeEventListener('resize', this.resizer, false);
-  this.chromeWindow = options.chromeDocument.defaultView;
-  this.chromeWindow.addEventListener('resize', this.resizer, false);
-
-  this.focusManager.document = options.chromeDocument;
-  this.inputter.document = options.chromeDocument;
-  this.inputter.completer.document = options.chromeDocument;
-  this.menu.document = options.chromeDocument;
-  this.argFetcher.document = options.chromeDocument;
-};
-
-
-
-
-Console.prototype.destroy = function() {
-  this.chromeWindow.removeEventListener('resize', this.resizer, false);
-  delete this.resizer;
-  delete this.chromeWindow;
-  delete this.consoleWrap;
-
-  this.hintElement.removeChild(this.menu.element);
-  this.menu.destroy();
-  this.hintElement.removeChild(this.argFetcher.element);
-  this.argFetcher.destroy();
-
-  this.inputter.destroy();
-
-  this.focusManager.removeMonitoredElement(this.gcliTerm.hintNode, 'gcliTerm');
-  this.focusManager.onFocus.remove(this.gcliTerm.show, this.gcliTerm);
-  this.focusManager.onBlur.remove(this.gcliTerm.hide, this.gcliTerm);
-  this.focusManager.destroy();
-
-  delete this.gcliTerm;
-  delete this.hintElement;
-};
-
-
-
-
-Console.prototype.resizer = function() {
-  
-  
-  
-
-  var parentRect = this.consoleWrap.getBoundingClientRect();
-  
-  var parentHeight = parentRect.bottom - parentRect.top - 64;
-
-  
-  
-  if (parentHeight < 100) {
-    this.hintElement.classList.add('gcliterm-hint-nospace');
-  }
-  else {
-    this.hintElement.classList.remove('gcliterm-hint-nospace');
-
-    var isMenuVisible = this.menu.element.style.display !== 'none';
-    if (isMenuVisible) {
-      this.menu.setMaxHeight(parentHeight);
-
-      
-      
-      var idealMenuHeight = (19 * this.menu.items.length) + 22;
-      if (idealMenuHeight > parentHeight) {
-        this.hintElement.classList.add('gcliterm-hint-scroll');
-      }
-      else {
-        this.hintElement.classList.remove('gcliterm-hint-scroll');
-      }
-    }
-    else {
-      this.argFetcher.setMaxHeight(parentHeight);
-
-      this.hintElement.style.overflowY = null;
-      this.hintElement.style.borderBottomColor = 'white';
-    }
-  }
-
-  
-  
-  var doc = this.hintElement.ownerDocument;
-
-  var outputNode = this.hintElement.parentNode.parentNode.children[1];
-  var outputs = outputNode.getElementsByClassName('gcliterm-msg-body');
-  var listItems = outputNode.getElementsByClassName('hud-msg-node');
-
-  
-  
-  
-  
-  
-  var scrollbarWidth = 20;
-
-  if (listItems.length > 0) {
-    var parentWidth = outputNode.getBoundingClientRect().width - scrollbarWidth;
-    var otherWidth;
-    var body;
-
-    for (var i = 0; i < listItems.length; ++i) {
-      var listItem = listItems[i];
-      
-      otherWidth = 0;
-      body = null;
-
-      for (var j = 0; j < listItem.children.length; j++) {
-        var child = listItem.children[j];
-
-        if (child.classList.contains('gcliterm-msg-body')) {
-          body = child.children[0];
-        }
-        else {
-          otherWidth += child.getBoundingClientRect().width;
-        }
-
-        var styles = doc.defaultView.getComputedStyle(child, null);
-        otherWidth += parseInt(styles.borderLeftWidth, 10) +
-                      parseInt(styles.borderRightWidth, 10) +
-                      parseInt(styles.paddingLeft, 10) +
-                      parseInt(styles.paddingRight, 10) +
-                      parseInt(styles.marginLeft, 10) +
-                      parseInt(styles.marginRight, 10);
-      }
-
-      if (body) {
-        body.style.width = (parentWidth - otherWidth) + 'px';
-      }
-    }
-  }
-};
-
-exports.Console = Console;
-
-});
-
-
-
-
-
-
-define('gcli/ui/inputter', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/history', 'gcli/ui/completer', 'text!gcli/ui/inputter.css'], function(require, exports, module) {
-var cliView = exports;
-
-
-var KeyEvent = require('gcli/util').event.KeyEvent;
-var dom = require('gcli/util').dom;
-var l10n = require('gcli/l10n');
-
-var Status = require('gcli/types').Status;
-var History = require('gcli/history').History;
-var Completer = require('gcli/ui/completer').Completer;
-
-var inputterCss = require('text!gcli/ui/inputter.css');
-
-
-
-
-
-function Inputter(options) {
-  this.requisition = options.requisition;
-  this.scratchpad = options.scratchpad;
-
-  
-  this.element = options.inputElement || 'gcli-input';
-  if (typeof this.element === 'string') {
-    this.document = options.document || document;
-    var name = this.element;
-    this.element = this.document.getElementById(name);
-    if (!this.element) {
-      throw new Error('No element with id=' + name + '.');
-    }
-  }
-  else {
-    
-    this.document = this.element.ownerDocument;
-  }
-
-  if (inputterCss != null) {
-    this.style = dom.importCss(inputterCss, this.document);
-  }
-
-  this.element.spellcheck = false;
-
-  
-  this.lastTabDownAt = 0;
-
-  
-  this._caretChange = null;
-
-  
-  this.onKeyDown = this.onKeyDown.bind(this);
-  this.onKeyUp = this.onKeyUp.bind(this);
-  this.element.addEventListener('keydown', this.onKeyDown, false);
-  this.element.addEventListener('keyup', this.onKeyUp, false);
-
-  this.completer = options.completer || new Completer(options);
-  this.completer.decorate(this);
-
-  
-  this.history = options.history || new History(options);
-  this._scrollingThroughHistory = false;
-
-  
-  this.onMouseUp = function(ev) {
-    this.completer.update(this.getInputState());
-  }.bind(this);
-  this.element.addEventListener('mouseup', this.onMouseUp, false);
-
-  this.focusManager = options.focusManager;
-  if (this.focusManager) {
-    this.focusManager.addMonitoredElement(this.element, 'input');
-  }
-
-  this.requisition.inputChange.add(this.onInputChange, this);
-
-  this.update();
-}
-
-
-
-
-Inputter.prototype.destroy = function() {
-  this.requisition.inputChange.remove(this.onInputChange, this);
-  if (this.focusManager) {
-    this.focusManager.removeMonitoredElement(this.element, 'input');
-  }
-
-  this.element.removeEventListener('keydown', this.onKeyDown, false);
-  this.element.removeEventListener('keyup', this.onKeyUp, false);
-  delete this.onKeyDown;
-  delete this.onKeyUp;
-
-  this.history.destroy();
-  this.completer.destroy();
-
-  if (this.style) {
-    this.style.parentNode.removeChild(this.style);
-    delete this.style;
-  }
-
-  delete this.document;
-  delete this.element;
-};
-
-
-
-
-Inputter.prototype.appendAfter = function(element) {
-  this.element.parentNode.insertBefore(element, this.element.nextSibling);
-};
-
-
-
-
-Inputter.prototype.onInputChange = function() {
-  if (this._caretChange == null) {
-    
-    
-    
-    this._caretChange = Caret.TO_ARG_END;
-  }
-  this._setInputInternal(this.requisition.toString());
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Inputter.prototype._setInputInternal = function(str, update) {
-  if (!this.document) {
-    return; 
-  }
-
-  if (this.element.value && this.element.value === str) {
-    this._processCaretChange(this.getInputState(), false);
-    return;
-  }
-
-  
-  
-  this.document.defaultView.setTimeout(function() {
-    if (!this.document) {
-      return; 
-    }
-
-    
-    
-    
-    var input = this.getInputState();
-    input.typed = str;
-    this._processCaretChange(input);
-    this.element.value = str;
-
-    if (update) {
-      this.update();
-    }
-  }.bind(this), 0);
-};
-
-
-
-
-
-var Caret = {
-  
-
-
-  NO_CHANGE: 0,
-
-  
-
-
-  SELECT_ALL: 1,
-
-  
-
-
-  TO_END: 2,
-
-  
-
-
-
-  TO_ARG_END: 3
-};
-
-
-
-
-
-
-
-
-Inputter.prototype._processCaretChange = function(input, forceUpdate) {
-  var start, end;
-  switch (this._caretChange) {
-    case Caret.SELECT_ALL:
-      start = 0;
-      end = input.typed.length;
-      break;
-
-    case Caret.TO_END:
-      start = input.typed.length;
-      end = input.typed.length;
-      break;
-
-    case Caret.TO_ARG_END:
-      
-      
-      
-      start = input.cursor.start;
-      do {
-        start++;
-      }
-      while (start < input.typed.length && input.typed[start - 1] !== ' ');
-
-      end = start;
-      break;
-
-    case null:
-    case Caret.NO_CHANGE:
-      start = input.cursor.start;
-      end = input.cursor.end;
-      break;
-  }
-
-  start = (start > input.typed.length) ? input.typed.length : start;
-  end = (end > input.typed.length) ? input.typed.length : end;
-
-  var newInput = { typed: input.typed, cursor: { start: start, end: end }};
-  if (start !== input.cursor.start || end !== input.cursor.end || forceUpdate) {
-    this.completer.update(newInput);
-  }
-
-  this.element.selectionStart = newInput.cursor.start;
-  this.element.selectionEnd = newInput.cursor.end;
-
-  this._caretChange = null;
-  return newInput;
-};
-
-
-
-
-
-
-
-
-
-
-Inputter.prototype.setInput = function(str) {
-  this.element.value = str;
-  this.update();
-};
-
-
-
-
-Inputter.prototype.focus = function() {
-  this.element.focus();
-};
-
-
-
-
-
-Inputter.prototype.onKeyDown = function(ev) {
-  if (ev.keyCode === KeyEvent.DOM_VK_UP || ev.keyCode === KeyEvent.DOM_VK_DOWN) {
-    ev.preventDefault();
-  }
-  if (ev.keyCode === KeyEvent.DOM_VK_TAB) {
-    this.lastTabDownAt = 0;
-    if (!ev.shiftKey) {
-      ev.preventDefault();
-      
-      
-      this.lastTabDownAt = ev.timeStamp;
-    }
-    if (ev.metaKey || ev.altKey || ev.crtlKey) {
-      if (this.document.commandDispatcher) {
-        this.document.commandDispatcher.advanceFocus();
-      }
-      else {
-        this.element.blur();
-      }
-    }
-  }
-};
-
-
-
-
-Inputter.prototype.onKeyUp = function(ev) {
-  
-  if (this.scratchpad && this.scratchpad.shouldActivate(ev)) {
-    if (this.scratchpad.activate(this.element.value)) {
-      this._setInputInternal('', true);
-    }
-    return;
-  }
-
-  
-  if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
-    var worst = this.requisition.getStatus();
-    
-    if (worst === Status.VALID) {
-      this._scrollingThroughHistory = false;
-      this.history.add(this.element.value);
-      this.requisition.exec();
-    }
-    
-    
-    return;
-  }
-
-  if (ev.keyCode === KeyEvent.DOM_VK_TAB && !ev.shiftKey) {
-    
-    
-    
-    
-    
-    
-    if (this.lastTabDownAt + 1000 > ev.timeStamp) {
-      
-      
-      
-      this._caretChange = Caret.TO_ARG_END;
-      this._processCaretChange(this.getInputState(), true);
-      this.getCurrentAssignment().complete();
-    }
-    this.lastTabDownAt = 0;
-    this._scrollingThroughHistory = false;
-    return;
-  }
-
-  if (ev.keyCode === KeyEvent.DOM_VK_UP) {
-    if (this.element.value === '' || this._scrollingThroughHistory) {
-      this._scrollingThroughHistory = true;
-      this._setInputInternal(this.history.backward(), true);
-    }
-    else {
-      this.getCurrentAssignment().increment();
-    }
-    return;
-  }
-
-  if (ev.keyCode === KeyEvent.DOM_VK_DOWN) {
-    if (this.element.value === '' || this._scrollingThroughHistory) {
-      this._scrollingThroughHistory = true;
-      this._setInputInternal(this.history.forward(), true);
-    }
-    else {
-      this.getCurrentAssignment().decrement();
-    }
-    return;
-  }
-
-  this._scrollingThroughHistory = false;
-  this._caretChange = Caret.NO_CHANGE;
-  this.update();
-};
-
-
-
-
-
-Inputter.prototype.getCurrentAssignment = function() {
-  var start = this.element.selectionStart;
-  return this.requisition.getAssignmentAt(start);
-};
-
-
-
-
-Inputter.prototype.update = function() {
-  var input = this.getInputState();
-  this.requisition.update(input);
-  this.completer.update(input);
-};
-
-
-
-
-Inputter.prototype.getInputState = function() {
-  var input = {
-    typed: this.element.value,
-    cursor: {
-      start: this.element.selectionStart,
-      end: this.element.selectionEnd
-    }
-  };
-
-  
-  
-  if (input.typed == null) {
-    input = { typed: '', cursor: { start: 0, end: 0 } };
-    console.log('fixing input.typed=""', input);
-  }
-
-  
-  if (input.cursor.start == null) {
-    input.cursor.start = 0;
-  }
-
-  return input;
-};
-
-cliView.Inputter = Inputter;
-
-
-});
-
-
-
-
-
-
-define('gcli/history', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-
-
-
-
-
-function History() {
-  
-  
-  
-  
-  this._buffer = [''];
-
-  
-  
-  this._current = 0;
-}
-
-
-
-
-History.prototype.destroy = function() {
-
-};
-
-
-
-
-History.prototype.add = function(command) {
-  this._buffer.splice(1, 0, command);
-  this._current = 0;
-};
-
-
-
-
-History.prototype.forward = function() {
-  if (this._current > 0 ) {
-    this._current--;
-  }
-  return this._buffer[this._current];
-};
-
-
-
-
-History.prototype.backward = function() {
-  if (this._current < this._buffer.length - 1) {
-    this._current++;
-  }
-  return this._buffer[this._current];
-};
-
-exports.History = History;
-
-});
-
-
-
-
-
-define('gcli/ui/completer', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/domtemplate', 'text!gcli/ui/completer.html'], function(require, exports, module) {
-
-
-var dom = require('gcli/util').dom;
-var domtemplate = require('gcli/ui/domtemplate');
-
-var completerHtml = require('text!gcli/ui/completer.html');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function Completer(options) {
-  this.document = options.document || document;
-  this.requisition = options.requisition;
-  this.elementCreated = false;
-  this.scratchpad = options.scratchpad;
-  this.input = { typed: '', cursor: { start: 0, end: 0 } };
-
-  this.element = options.completeElement || 'gcli-row-complete';
-  if (typeof this.element === 'string') {
-    var name = this.element;
-    this.element = this.document.getElementById(name);
-
-    if (!this.element) {
-      this.elementCreated = true;
-      this.element = dom.createElement(this.document, 'div');
-      this.element.className = 'gcli-in-complete gcli-in-valid';
-      this.element.setAttribute('tabindex', '-1');
-      this.element.setAttribute('aria-live', 'polite');
-    }
-  }
-
-  this.completionPrompt = typeof options.completionPrompt === 'string'
-      ? options.completionPrompt
-      : '\u00bb';
-
-  if (options.inputBackgroundElement) {
-    this.backgroundElement = options.inputBackgroundElement;
-  }
-  else {
-    this.backgroundElement = this.element;
-  }
-
-  this.template = dom.createElement(this.document, 'div');
-  dom.setInnerHtml(this.template, completerHtml);
-  
-  this.template = this.template.children[0];
-  
-  dom.removeWhitespace(this.template, true);
-}
-
-
-
-
-Completer.prototype.destroy = function() {
-  delete this.document;
-  delete this.element;
-  delete this.backgroundElement;
-  delete this.template;
-
-  if (this.elementCreated) {
-    this.document.defaultView.removeEventListener('resize', this.resizer, false);
-  }
-
-  delete this.inputter;
-};
-
-
-
-
-
-
-Completer.copyStyles = [ 'fontSize', 'fontFamily', 'fontWeight', 'fontStyle' ];
-
-
-
-
-
-Completer.prototype.decorate = function(inputter) {
-  this.inputter = inputter;
-  var inputEle = inputter.element;
-
-  
-  
-  if (this.elementCreated) {
-    this.inputter.appendAfter(this.element);
-
-    var styles = this.document.defaultView.getComputedStyle(inputEle, null);
-    Completer.copyStyles.forEach(function(style) {
-      this.element.style[style] = styles[style];
-    }, this);
-
-    
-    
-    this.element.style.color = inputEle.style.backgroundColor;
-
-    
-    
-    
-    
-    this.element.style.backgroundColor = (this.backgroundElement != this.element) ?
-        'transparent' :
-        inputEle.style.backgroundColor;
-    inputEle.style.backgroundColor = 'transparent';
-
-    
-    inputEle.style.paddingLeft = '20px';
-
-    this.resizer = this.resizer.bind(this);
-    this.document.defaultView.addEventListener('resize', this.resizer, false);
-    this.resizer();
-  }
-};
-
-
-
-
-Completer.prototype.resizer = function() {
-  
-  if (!this.inputter.element.getBoundingClientRect) {
-    return;
-  }
-
-  var rect = this.inputter.element.getBoundingClientRect();
-  
-  var height = rect.bottom - rect.top - 4;
-
-  this.element.style.top = rect.top + 'px';
-  this.element.style.height = height + 'px';
-  this.element.style.lineHeight = height + 'px';
-  this.element.style.left = rect.left + 'px';
-  this.element.style.width = (rect.right - rect.left) + 'px';
-};
-
-
-
-
-
-
-function isStrictCompletion(inputValue, completion) {
-  
-  
-  inputValue = inputValue.replace(/^\s*/, '');
-  
-  
-  return completion.indexOf(inputValue) === 0;
-}
-
-
-
-
-Completer.prototype.update = function(input) {
-  this.input = input;
-
-  var template = this.template.cloneNode(true);
-  domtemplate.template(template, this, { stack: 'completer.html' });
-
-  dom.clearElement(this.element);
-  while (template.hasChildNodes()) {
-    this.element.appendChild(template.firstChild);
-  }
-};
-
-
-
-
-
-
-Object.defineProperty(Completer.prototype, 'statusMarkup', {
-  get: function() {
-    var markup = this.requisition.getInputStatusMarkup(this.input.cursor.start);
-    markup.forEach(function(member) {
-      member.string = member.string.replace(/ /g, '\u00a0'); 
-      member.className = 'gcli-in-' + member.status.toString().toLowerCase();
-    }, this);
-    return markup;
-  }
-});
-
-
-
-
-
-
-Object.defineProperty(Completer.prototype, 'tabText', {
-  get: function() {
-    var current = this.requisition.getAssignmentAt(this.input.cursor.start);
-    var predictions = current.getPredictions();
-
-    if (this.input.typed.length === 0 || predictions.length === 0) {
-      return '';
-    }
-
-    var tab = predictions[0].name;
-    var existing = current.getArg().text;
-
-    if (isStrictCompletion(existing, tab) &&
-            this.input.cursor.start === this.input.typed.length) {
-      
-      var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
-      return tab.slice(existing.length - numLeadingSpaces);
-    }
-
-    
-    return ' \u00a0\u21E5 ' + tab; 
-  }
-});
-
-
-
-
-Object.defineProperty(Completer.prototype, 'scratchLink', {
-  get: function() {
-    if (!this.scratchpad) {
-      return null;
-    }
-    var command = this.requisition.commandAssignment.getValue();
-    return command && command.name === '{' ? this.scratchpad.linkText : null;
-  }
-});
-
-
-
-
-
-Object.defineProperty(Completer.prototype, 'unclosedJs', {
-  get: function() {
-    var command = this.requisition.commandAssignment.getValue();
-    var jsCommand = command && command.name === '{';
-    var unclosedJs = jsCommand &&
-        this.requisition.getAssignment(0).getArg().suffix.indexOf('}') === -1;
-    return unclosedJs;
-  }
-});
-
-exports.Completer = Completer;
-
-
-});
-define("text!gcli/ui/completer.html", [], "\n" +
+define("text!gcli/ui/intro.html", [], "\n" +
   "<div>\n" +
-  "  <span class=\"gcli-prompt\">${completionPrompt} </span>\n" +
-  "  <loop foreach=\"member in ${statusMarkup}\">\n" +
-  "    <span class=\"${member.className}\">${member.string}</span>\n" +
-  "  </loop>\n" +
-  "  <span class=\"gcli-in-ontab\">${tabText}</span>\n" +
-  "  <span class=\"gcli-in-closebrace\" if=\"${unclosedJs}\">}</span>\n" +
-  "  <div class=\"gcli-in-scratchlink\" if=\"${scratchLink}\">${scratchLink}</div>\n" +
+  "  <p>\n" +
+  "  GCLI is an experiment to create a highly usable <strong>graphical command\n" +
+  "  line</strong> for developers. It's not a JavaScript\n" +
+  "  <a href=\"https://en.wikipedia.org/wiki/Read�eval�print_loop\">REPL</a>, so\n" +
+  "  it focuses on speed of input over JavaScript syntax and a rich display over\n" +
+  "  monospace output.</p>\n" +
+  "\n" +
+  "  <p>Type <span class=\"gcli-out-shortcut\">help</span> for a list of commands,\n" +
+  "  or press <code>F1/Escape</code> to show/hide command hints.</p>\n" +
+  "\n" +
+  "  <button onclick=\"${onGotIt}\" if=\"${showHideButton}\">Got it!</button>\n" +
   "</div>\n" +
   "");
 
-define("text!gcli/ui/inputter.css", [], "");
+
+
+
+
+
+
+define('gcli/ui/focus', ['require', 'exports', 'module' , 'gcli/util', 'gcli/settings', 'gcli/l10n', 'gcli/canon'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var settings = require('gcli/settings');
+var l10n = require('gcli/l10n');
+var canon = require('gcli/canon');
+
+
+
+
+var Eagerness = {
+  NEVER: 1,
+  SOMETIMES: 2,
+  ALWAYS: 3
+};
+var eagerHelperSettingSpec = {
+  name: 'eagerHelper',
+  type: {
+    name: 'selection',
+    lookup: [
+      { name: 'never', value: Eagerness.NEVER },
+      { name: 'sometimes', value: Eagerness.SOMETIMES },
+      { name: 'always', value: Eagerness.ALWAYS },
+    ]
+  },
+  defaultValue: 1,
+  description: l10n.lookup('eagerHelperDesc'),
+  ignoreTypeDifference: true
+};
+var eagerHelper;
+
+
+
+
+exports.startup = function() {
+  eagerHelper = settings.addSetting(eagerHelperSettingSpec);
+};
+
+exports.shutdown = function() {
+  settings.removeSetting(eagerHelperSettingSpec);
+  eagerHelper = undefined;
+};
 
 
 
@@ -6767,18 +6808,6 @@ define("text!gcli/ui/inputter.css", [], "");
 
 
 
-define('gcli/ui/arg_fetch', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types', 'gcli/ui/field', 'gcli/ui/domtemplate', 'text!gcli/ui/arg_fetch.css', 'text!gcli/ui/arg_fetch.html'], function(require, exports, module) {
-var argFetch = exports;
-
-
-var dom = require('gcli/util').dom;
-var Status = require('gcli/types').Status;
-
-var getField = require('gcli/ui/field').getField;
-var domtemplate = require('gcli/ui/domtemplate');
-
-var editorCss = require('text!gcli/ui/arg_fetch.css');
-var argFetchHtml = require('text!gcli/ui/arg_fetch.html');
 
 
 
@@ -6789,97 +6818,202 @@ var argFetchHtml = require('text!gcli/ui/arg_fetch.html');
 
 
 
+function FocusManager(options, components) {
+  options = options || {};
 
-function ArgFetcher(options) {
-  this.document = options.document || document;
-  this.requisition = options.requisition;
+  this._document = components.document || document;
+  this._debug = options.debug || false;
+  this._blurDelay = options.blurDelay || 150;
+  this._window = this._document.defaultView;
+
+  this._commandOutputManager = options.commandOutputManager ||
+      canon.commandOutputManager;
+  this._commandOutputManager.onOutput.add(this._outputted, this);
+
+  this._blurDelayTimeout = null; 
+  this._monitoredElements = [];  
+
+  this._isError = false;
+  this._hasFocus = false;
+  this._helpRequested = false;
+  this._recentOutput = false;
 
   
-  if (!this.document) {
-    throw new Error('No document');
-  }
-
-  this.element =  dom.createElement(this.document, 'div');
-  this.element.className = options.argFetcherClass || 'gcli-argfetch';
   
-  this.fields = [];
-
   
-  this.okElement = null;
-
   
-  if (editorCss != null) {
-    this.style = dom.importCss(editorCss, this.document);
-  }
+  
 
-  var templates = dom.createElement(this.document, 'div');
-  dom.setInnerHtml(templates, argFetchHtml);
-  this.reqTempl = templates.querySelector('.gcli-af-template');
+  this.onVisibilityChange = util.createEvent('FocusManager.onVisibilityChange');
 
-  this.requisition.commandChange.add(this.onCommandChange, this);
-  this.requisition.inputChange.add(this.onInputChange, this);
+  this._focused = this._focused.bind(this);
+  this._document.addEventListener('focus', this._focused, true);
 
-  this.onCommandChange();
+  eagerHelper.onChange.add(this._eagerHelperChanged, this);
+
+  this.isTooltipVisible = undefined;
+  this.isOutputVisible = undefined;
+  this._checkShow();
 }
 
 
 
 
-ArgFetcher.prototype.destroy = function() {
-  this.requisition.inputChange.remove(this.onInputChange, this);
-  this.requisition.commandChange.remove(this.onCommandChange, this);
+FocusManager.prototype.destroy = function() {
+  eagerHelper.onChange.remove(this._eagerHelperChanged, this);
 
-  if (this.style) {
-    this.style.parentNode.removeChild(this.style);
-    delete this.style;
+  this._document.removeEventListener('focus', this._focused, true);
+  this._commandOutputManager.onOutput.remove(this._outputted, this);
+
+  for (var i = 0; i < this._monitoredElements.length; i++) {
+    var monitor = this._monitoredElements[i];
+    console.error('Hanging monitored element: ', monitor.element);
+
+    monitor.element.removeEventListener('focus', monitor.onFocus, true);
+    monitor.element.removeEventListener('blur', monitor.onBlur, true);
   }
 
-  this.fields.forEach(function(field) { field.destroy(); });
+  if (this._blurDelayTimeout) {
+    this._window.clearTimeout(this._blurDelayTimeout);
+    this._blurDelayTimeout = null;
+  }
 
-  delete this.document;
-  delete this.element;
-  delete this.okElement;
-  delete this.reqTempl;
+  
+  delete this._focused;
+  delete this._document;
+  delete this._window;
+  delete this._commandOutputManager;
 };
 
 
 
 
-ArgFetcher.prototype.onCommandChange = function(ev) {
-  var command = this.requisition.commandAssignment.getValue();
-  if (!command || !command.exec) {
-    this.element.style.display = 'none';
+
+
+
+
+FocusManager.prototype.addMonitoredElement = function(element, where) {
+  if (this._debug) {
+    console.log('FocusManager.addMonitoredElement(' + (where || 'unknown') + ')');
   }
-  else {
-    if (ev && ev.oldValue === ev.newValue) {
-      
+
+  var monitor = {
+    element: element,
+    where: where,
+    onFocus: function() { this._reportFocus(where); }.bind(this),
+    onBlur: function() { this._reportBlur(where); }.bind(this)
+  };
+
+  element.addEventListener('focus', monitor.onFocus, true);
+  element.addEventListener('blur', monitor.onBlur, true);
+  this._monitoredElements.push(monitor);
+};
+
+
+
+
+
+
+FocusManager.prototype.removeMonitoredElement = function(element, where) {
+  if (this._debug) {
+    console.log('FocusManager.removeMonitoredElement(' + (where || 'unknown') + ')');
+  }
+
+  var newMonitoredElements = this._monitoredElements.filter(function(monitor) {
+    if (monitor.element === element) {
+      element.removeEventListener('focus', monitor.onFocus, true);
+      element.removeEventListener('blur', monitor.onBlur, true);
+      return false;
+    }
+    return true;
+  });
+
+  this._monitoredElements = newMonitoredElements;
+};
+
+
+
+
+FocusManager.prototype.updatePosition = function(dimensions) {
+  var ev = {
+    tooltipVisible: this.isTooltipVisible,
+    outputVisible: this.isOutputVisible
+  };
+  this.onVisibilityChange(ev);
+};
+
+
+
+
+FocusManager.prototype._outputted = function(ev) {
+  this._recentOutput = true;
+  this._helpRequested = false;
+  this._checkShow();
+};
+
+
+
+
+
+FocusManager.prototype._focused = function() {
+  this._reportBlur('document');
+};
+
+
+
+
+
+
+FocusManager.prototype._reportFocus = function(where) {
+  if (this._debug) {
+    console.log('FocusManager._reportFocus(' + (where || 'unknown') + ')');
+  }
+
+  
+
+  if (this._blurDelayTimeout) {
+    if (this._debug) {
+      console.log('FocusManager.cancelBlur');
+    }
+    this._window.clearTimeout(this._blurDelayTimeout);
+    this._blurDelayTimeout = null;
+  }
+
+  if (!this._hasFocus) {
+    this._hasFocus = true;
+  }
+  this._checkShow();
+};
+
+
+
+
+
+
+
+FocusManager.prototype._reportBlur = function(where) {
+  if (this._debug) {
+    console.log('FocusManager._reportBlur(' + where + ')');
+  }
+
+  
+
+  if (this._hasFocus) {
+    if (this._blurDelayTimeout) {
+      if (this._debug) {
+        console.log('FocusManager.blurPending');
+      }
       return;
     }
 
-    this.fields.forEach(function(field) { field.destroy(); });
-    this.fields = [];
-
-    var reqEle = this.reqTempl.cloneNode(true);
-    domtemplate.template(reqEle, this,
-            { allowEval: true, stack: 'arg_fetch.html' });
-    dom.clearElement(this.element);
-    this.element.appendChild(reqEle);
-
-    var status = this.requisition.getStatus();
-    this.okElement.disabled = (status === Status.VALID);
-
-    this.element.style.display = 'block';
-  }
-};
-
-
-
-
-ArgFetcher.prototype.onInputChange = function(ev) {
-  var command = this.requisition.commandAssignment.getValue();
-  if (command && command.exec) {
-    var status = this.requisition.getStatus();
-    this.okElement.disabled = (status !== Status.VALID);
+    this._blurDelayTimeout = this._window.setTimeout(function() {
+      if (this._debug) {
+        console.log('FocusManager.blur');
+      }
+      this._hasFocus = false;
+      this._checkShow();
+      this._blurDelayTimeout = null;
+    }.bind(this), this._blurDelay);
   }
 };
 
@@ -6887,88 +7021,181 @@ ArgFetcher.prototype.onInputChange = function(ev) {
 
 
 
-ArgFetcher.prototype.getInputFor = function(assignment) {
-  try {
-    var newField = getField(assignment.param.type, {
-      document: this.document,
-      type: assignment.param.type,
-      name: assignment.param.name,
-      requisition: this.requisition,
-      required: assignment.param.isDataRequired(),
-      named: !assignment.param.isPositionalAllowed()
-    });
-
-    
-    newField.fieldChanged.add(function(ev) {
-      assignment.setConversion(ev.conversion);
-    }, this);
-    assignment.assignmentChange.add(function(ev) {
-      newField.setConversion(ev.conversion);
-    }.bind(this));
-
-    this.fields.push(newField);
-    newField.setConversion(this.assignment.conversion);
-
-    
-    
-    assignment.field = newField;
-
-    return newField.element;
-  }
-  catch (ex) {
-    
-    
-    console.error(ex);
-    return '';
-  }
-};
-
-
-
-
-ArgFetcher.prototype.linkMessageElement = function(assignment, element) {
+FocusManager.prototype._resetSlowTypingAlarm = function() {
   
-  var field = assignment.field;
-  delete assignment.field;
-  if (field == null) {
-    console.error('Missing field for ' + assignment.param.name);
-    return 'Missing field';
+  
+  
+};
+
+
+
+
+FocusManager.prototype._cancelSlowTypingAlarm = function() {
+  
+  
+  
+  
+  
+};
+
+
+
+
+FocusManager.prototype._onSlowTyping = function() {
+  
+  
+};
+
+
+
+
+FocusManager.prototype._eagerHelperChanged = function() {
+  this._checkShow();
+};
+
+
+
+
+
+FocusManager.prototype.onInputChange = function(ev) {
+  
+  
+  this._recentOutput = false;
+  this._checkShow();
+};
+
+
+
+
+
+FocusManager.prototype.helpRequest = function() {
+  if (this._debug) {
+    console.log('FocusManager.helpRequest');
   }
-  field.setMessageElement(element);
-  return '';
+
+  
+  
+  this._helpRequested = true;
+  this._recentOutput = false;
+  this._checkShow();
 };
 
 
 
 
-ArgFetcher.prototype.onFormOk = function(ev) {
-  this.requisition.exec();
+
+FocusManager.prototype.removeHelp = function() {
+  if (this._debug) {
+    console.log('FocusManager.removeHelp');
+  }
+
+  
+  
+  this._importantFieldFlag = false;
+  this._isError = false;
+  this._helpRequested = false;
+  this._recentOutput = false;
+  this._checkShow();
 };
 
 
 
 
-ArgFetcher.prototype.onFormCancel = function(ev) {
-  this.requisition.clear();
+FocusManager.prototype.setImportantFieldFlag = function(flag) {
+  if (this._debug) {
+    console.log('FocusManager.setImportantFieldFlag', flag);
+  }
+  this._importantFieldFlag = flag;
+  this._checkShow();
 };
 
 
 
 
-ArgFetcher.prototype.setMaxHeight = function(height, isTooBig) {
-  this.fields.forEach(function(field) {
-    if (field.menu) {
-      
-      
-      
-      
-      
-      field.menu.setMaxHeight(height - 105);
+FocusManager.prototype.setError = function(isError) {
+  if (this._debug) {
+    console.log('FocusManager._isError', isError);
+  }
+  this._isError = isError;
+  this._checkShow();
+};
+
+
+
+
+
+FocusManager.prototype._checkShow = function() {
+  var fire = false;
+  var ev = {
+    tooltipVisible: this.isTooltipVisible,
+    outputVisible: this.isOutputVisible
+  };
+
+  var showTooltip = this._shouldShowTooltip();
+  if (this.isTooltipVisible !== showTooltip.visible) {
+    ev.tooltipVisible = this.isTooltipVisible = showTooltip.visible;
+    fire = true;
+  }
+
+  var showOutput = this._shouldShowOutput();
+  if (this.isOutputVisible !== showOutput.visible) {
+    ev.outputVisible = this.isOutputVisible = showOutput.visible;
+    fire = true;
+  }
+
+  if (fire) {
+    if (this._debug) {
+      console.debug('FocusManager.onVisibilityChange', ev);
     }
-  });
+    this.onVisibilityChange(ev);
+  }
 };
 
-argFetch.ArgFetcher = ArgFetcher;
+
+
+
+
+FocusManager.prototype._shouldShowTooltip = function() {
+  if (eagerHelper.value === Eagerness.NEVER) {
+    return { visible: false, reason: 'eagerHelper !== NEVER' };
+  }
+
+  if (eagerHelper.value === Eagerness.ALWAYS) {
+    return { visible: true, reason: 'eagerHelper !== ALWAYS' };
+  }
+
+  if (this._isError) {
+    return { visible: true, reason: 'isError' };
+  }
+
+  if (this._helpRequested) {
+    return { visible: true, reason: 'helpRequested' };
+  }
+
+  if (this._importantFieldFlag) {
+    return { visible: true, reason: 'importantFieldFlag' };
+  }
+
+  
+  
+  
+
+  return { visible: false, reason: 'default' };
+};
+
+
+
+
+
+FocusManager.prototype._shouldShowOutput = function() {
+  if (this._recentOutput) {
+    return { visible: true, reason: 'recentOutput' };
+  }
+
+  return { visible: false, reason: 'default' };
+};
+
+exports.FocusManager = FocusManager;
 
 
 });
@@ -6978,12 +7205,10 @@ argFetch.ArgFetcher = ArgFetcher;
 
 
 
-define('gcli/ui/field', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/types/javascript', 'gcli/ui/menu'], function(require, exports, module) {
+define('gcli/ui/fields/basic', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/ui/fields'], function(require, exports, module) {
 
 
-var dom = require('gcli/util').dom;
-var createEvent = require('gcli/util').createEvent;
-var KeyEvent = require('gcli/util').event.KeyEvent;
+var util = require('gcli/util');
 var l10n = require('gcli/l10n');
 
 var Argument = require('gcli/argument').Argument;
@@ -6991,21 +7216,372 @@ var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
 var FalseNamedArgument = require('gcli/argument').FalseNamedArgument;
 var ArrayArgument = require('gcli/argument').ArrayArgument;
 
-var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
 var ArrayConversion = require('gcli/types').ArrayConversion;
 
 var StringType = require('gcli/types/basic').StringType;
 var NumberType = require('gcli/types/basic').NumberType;
 var BooleanType = require('gcli/types/basic').BooleanType;
-var BlankType = require('gcli/types/basic').BlankType;
-var SelectionType = require('gcli/types/basic').SelectionType;
 var DeferredType = require('gcli/types/basic').DeferredType;
 var ArrayType = require('gcli/types/basic').ArrayType;
-var JavascriptType = require('gcli/types/javascript').JavascriptType;
 
-var Menu = require('gcli/ui/menu').Menu;
+var Field = require('gcli/ui/fields').Field;
+var fields = require('gcli/ui/fields');
 
+
+
+
+
+exports.startup = function() {
+  fields.addField(StringField);
+  fields.addField(NumberField);
+  fields.addField(BooleanField);
+  fields.addField(DeferredField);
+  fields.addField(ArrayField);
+};
+
+exports.shutdown = function() {
+  fields.removeField(StringField);
+  fields.removeField(NumberField);
+  fields.removeField(BooleanField);
+  fields.removeField(DeferredField);
+  fields.removeField(ArrayField);
+};
+
+
+
+
+
+function StringField(type, options) {
+  Field.call(this, type, options);
+  this.arg = new Argument();
+
+  this.element = util.createElement(this.document, 'input');
+  this.element.type = 'text';
+  this.element.classList.add('gcli-field');
+
+  this.onInputChange = this.onInputChange.bind(this);
+  this.element.addEventListener('keyup', this.onInputChange, false);
+
+  this.onFieldChange = util.createEvent('StringField.onFieldChange');
+}
+
+StringField.prototype = Object.create(Field.prototype);
+
+StringField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.element.removeEventListener('keyup', this.onInputChange, false);
+  delete this.element;
+  delete this.document;
+  delete this.onInputChange;
+};
+
+StringField.prototype.setConversion = function(conversion) {
+  this.arg = conversion.arg;
+  this.element.value = conversion.arg.text;
+  this.setMessage(conversion.message);
+};
+
+StringField.prototype.getConversion = function() {
+  
+  this.arg = this.arg.beget(this.element.value, { prefixSpace: true });
+  return this.type.parse(this.arg);
+};
+
+StringField.claim = function(type) {
+  return type instanceof StringType ? Field.MATCH : Field.BASIC;
+};
+
+
+
+
+
+function NumberField(type, options) {
+  Field.call(this, type, options);
+  this.arg = new Argument();
+
+  this.element = util.createElement(this.document, 'input');
+  this.element.type = 'number';
+  if (this.type.max) {
+    this.element.max = this.type.max;
+  }
+  if (this.type.min) {
+    this.element.min = this.type.min;
+  }
+  if (this.type.step) {
+    this.element.step = this.type.step;
+  }
+
+  this.onInputChange = this.onInputChange.bind(this);
+  this.element.addEventListener('keyup', this.onInputChange, false);
+
+  this.onFieldChange = util.createEvent('NumberField.onFieldChange');
+}
+
+NumberField.prototype = Object.create(Field.prototype);
+
+NumberField.claim = function(type) {
+  return type instanceof NumberType ? Field.MATCH : Field.NO_MATCH;
+};
+
+NumberField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.element.removeEventListener('keyup', this.onInputChange, false);
+  delete this.element;
+  delete this.document;
+  delete this.onInputChange;
+};
+
+NumberField.prototype.setConversion = function(conversion) {
+  this.arg = conversion.arg;
+  this.element.value = conversion.arg.text;
+  this.setMessage(conversion.message);
+};
+
+NumberField.prototype.getConversion = function() {
+  this.arg = this.arg.beget(this.element.value, { prefixSpace: true });
+  return this.type.parse(this.arg);
+};
+
+
+
+
+
+function BooleanField(type, options) {
+  Field.call(this, type, options);
+
+  this.name = options.name;
+  this.named = options.named;
+
+  this.element = util.createElement(this.document, 'input');
+  this.element.type = 'checkbox';
+  this.element.id = 'gcliForm' + this.name;
+
+  this.onInputChange = this.onInputChange.bind(this);
+  this.element.addEventListener('change', this.onInputChange, false);
+
+  this.onFieldChange = util.createEvent('BooleanField.onFieldChange');
+}
+
+BooleanField.prototype = Object.create(Field.prototype);
+
+BooleanField.claim = function(type) {
+  return type instanceof BooleanType ? Field.MATCH : Field.NO_MATCH;
+};
+
+BooleanField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.element.removeEventListener('change', this.onInputChange, false);
+  delete this.element;
+  delete this.document;
+  delete this.onInputChange;
+};
+
+BooleanField.prototype.setConversion = function(conversion) {
+  this.element.checked = conversion.value;
+  this.setMessage(conversion.message);
+};
+
+BooleanField.prototype.getConversion = function() {
+  var arg;
+  if (this.named) {
+    arg = this.element.checked ?
+            new TrueNamedArgument(this.name) :
+            new FalseNamedArgument();
+  }
+  else {
+    arg = new Argument(' ' + this.element.checked);
+  }
+  return this.type.parse(arg);
+};
+
+
+
+
+
+
+function DeferredField(type, options) {
+  Field.call(this, type, options);
+  this.options = options;
+  this.requisition.onAssignmentChange.add(this.update, this);
+
+  this.element = util.createElement(this.document, 'div');
+  this.update();
+
+  this.onFieldChange = util.createEvent('DeferredField.onFieldChange');
+}
+
+DeferredField.prototype = Object.create(Field.prototype);
+
+DeferredField.prototype.update = function() {
+  var subtype = this.type.defer();
+  if (subtype === this.subtype) {
+    return;
+  }
+
+  if (this.field) {
+    this.field.onFieldChange.remove(this.fieldChanged, this);
+    this.field.destroy();
+  }
+
+  this.subtype = subtype;
+  this.field = fields.getField(subtype, this.options);
+  this.field.onFieldChange.add(this.fieldChanged, this);
+
+  util.clearElement(this.element);
+  this.element.appendChild(this.field.element);
+};
+
+DeferredField.claim = function(type) {
+  return type instanceof DeferredType ? Field.MATCH : Field.NO_MATCH;
+};
+
+DeferredField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.requisition.onAssignmentChange.remove(this.update, this);
+  delete this.element;
+  delete this.document;
+  delete this.onInputChange;
+};
+
+DeferredField.prototype.setConversion = function(conversion) {
+  this.field.setConversion(conversion);
+};
+
+DeferredField.prototype.getConversion = function() {
+  return this.field.getConversion();
+};
+
+Object.defineProperty(DeferredField.prototype, 'isImportant', {
+  get: function() {
+    return this.field.isImportant;
+  },
+  enumerable: true
+});
+
+
+
+
+
+
+function ArrayField(type, options) {
+  Field.call(this, type, options);
+  this.options = options;
+
+  this._onAdd = this._onAdd.bind(this);
+  this.members = [];
+
+  
+  this.element = util.createElement(this.document, 'div');
+  this.element.classList.add('gcli-array-parent');
+
+  
+  this.addButton = util.createElement(this.document, 'button');
+  this.addButton.classList.add('gcli-array-member-add');
+  this.addButton.addEventListener('click', this._onAdd, false);
+  this.addButton.innerHTML = l10n.lookup('fieldArrayAdd');
+  this.element.appendChild(this.addButton);
+
+  
+  this.container = util.createElement(this.document, 'div');
+  this.container.classList.add('gcli-array-members');
+  this.element.appendChild(this.container);
+
+  this.onInputChange = this.onInputChange.bind(this);
+
+  this.onFieldChange = util.createEvent('ArrayField.onFieldChange');
+}
+
+ArrayField.prototype = Object.create(Field.prototype);
+
+ArrayField.claim = function(type) {
+  return type instanceof ArrayType ? Field.MATCH : Field.NO_MATCH;
+};
+
+ArrayField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.addButton.removeEventListener('click', this._onAdd, false);
+};
+
+ArrayField.prototype.setConversion = function(conversion) {
+  
+  util.clearElement(this.container);
+  this.members = [];
+
+  conversion.conversions.forEach(function(subConversion) {
+    this._onAdd(null, subConversion);
+  }, this);
+};
+
+ArrayField.prototype.getConversion = function() {
+  var conversions = [];
+  var arrayArg = new ArrayArgument();
+  for (var i = 0; i < this.members.length; i++) {
+    var conversion = this.members[i].field.getConversion();
+    conversions.push(conversion);
+    arrayArg.addArgument(conversion.arg);
+  }
+  return new ArrayConversion(conversions, arrayArg);
+};
+
+ArrayField.prototype._onAdd = function(ev, subConversion) {
+  
+  var element = util.createElement(this.document, 'div');
+  element.classList.add('gcli-array-member');
+  this.container.appendChild(element);
+
+  
+  var field = fields.getField(this.type.subtype, this.options);
+  field.onFieldChange.add(function() {
+    var conversion = this.getConversion();
+    this.onFieldChange({ conversion: conversion });
+    this.setMessage(conversion.message);
+  }, this);
+
+  if (subConversion) {
+    field.setConversion(subConversion);
+  }
+  element.appendChild(field.element);
+
+  
+  var delButton = util.createElement(this.document, 'button');
+  delButton.classList.add('gcli-array-member-del');
+  delButton.addEventListener('click', this._onDel, false);
+  delButton.innerHTML = l10n.lookup('fieldArrayDel');
+  element.appendChild(delButton);
+
+  var member = {
+    element: element,
+    field: field,
+    parent: this
+  };
+  member.onDelete = function() {
+    this.parent.container.removeChild(this.element);
+    this.parent.members = this.parent.members.filter(function(test) {
+      return test !== this;
+    });
+    this.parent.onInputChange();
+  }.bind(member);
+  delButton.addEventListener('click', member.onDelete, false);
+
+  this.members.push(member);
+};
+
+
+});
+
+
+
+
+
+
+define('gcli/ui/fields', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types/basic'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var KeyEvent = require('gcli/util').KeyEvent;
+
+var BlankType = require('gcli/types/basic').BlankType;
 
 
 
@@ -7075,7 +7651,7 @@ Field.prototype.setMessage = function(message) {
     if (message == null) {
       message = '';
     }
-    dom.setInnerHtml(this.messageElement, message);
+    util.setContents(this.messageElement, message);
   }
 };
 
@@ -7085,7 +7661,7 @@ Field.prototype.setMessage = function(message) {
 
 Field.prototype.onInputChange = function(ev) {
   var conversion = this.getConversion();
-  this.fieldChanged({ conversion: conversion });
+  this.onFieldChange({ conversion: conversion });
   this.setMessage(conversion.message);
 
   if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
@@ -7097,29 +7673,58 @@ Field.prototype.onInputChange = function(ev) {
 
 
 
+Field.prototype.isImportant = false;
+
+
+
+
+
 
 Field.claim = function() {
   throw new Error('Field should not be used directly');
 };
-Field.MATCH = 5;
-Field.DEFAULT_MATCH = 4;
-Field.IF_NOTHING_BETTER = 1;
-Field.NO_MATCH = 0;
+
+
+
+
+
+
+
+
+
+Field.TOOLTIP_MATCH = 5;   
+Field.TOOLTIP_DEFAULT = 4; 
+Field.MATCH = 3;           
+Field.DEFAULT = 2;         
+Field.BASIC = 1;           
+Field.NO_MATCH = 0;        
+
+exports.Field = Field;
 
 
 
 
 
 var fieldCtors = [];
-function addField(fieldCtor) {
+
+
+
+
+
+exports.addField = function(fieldCtor) {
   if (typeof fieldCtor !== 'function') {
     console.error('addField erroring on ', fieldCtor);
     throw new Error('addField requires a Field constructor');
   }
   fieldCtors.push(fieldCtor);
-}
+};
 
-function removeField(field) {
+
+
+
+
+
+exports.removeField = function(field) {
   if (typeof field !== 'string') {
     fields = fields.filter(function(test) {
       return test !== field;
@@ -7133,9 +7738,22 @@ function removeField(field) {
     console.error('removeField erroring on ', field);
     throw new Error('removeField requires an instance of Field');
   }
-}
+};
 
-function getField(type, options) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.getField = function(type, options) {
   var ctor;
   var highestClaim = -1;
   fieldCtors.forEach(function(fieldCtor) {
@@ -7151,240 +7769,73 @@ function getField(type, options) {
     throw new Error('Can\'t find field for ' + type);
   }
 
+  if (options.tooltip && highestClaim < Field.TOOLTIP_DEFAULT) {
+    return new BlankField(type, options);
+  }
+
   return new ctor(type, options);
-}
-
-exports.Field = Field;
-exports.addField = addField;
-exports.removeField = removeField;
-exports.getField = getField;
-
-
-
-
-
-function StringField(type, options) {
-  Field.call(this, type, options);
-  this.arg = new Argument();
-
-  this.element = dom.createElement(this.document, 'input');
-  this.element.type = 'text';
-  this.element.classList.add('gcli-field');
-
-  this.onInputChange = this.onInputChange.bind(this);
-  this.element.addEventListener('keyup', this.onInputChange, false);
-
-  this.fieldChanged = createEvent('StringField.fieldChanged');
-}
-
-StringField.prototype = Object.create(Field.prototype);
-
-StringField.prototype.destroy = function() {
-  Field.prototype.destroy.call(this);
-  this.element.removeEventListener('keyup', this.onInputChange, false);
-  delete this.element;
-  delete this.document;
-  delete this.onInputChange;
 };
 
-StringField.prototype.setConversion = function(conversion) {
-  this.arg = conversion.arg;
-  this.element.value = conversion.arg.text;
+
+
+
+
+
+function BlankField(type, options) {
+  Field.call(this, type, options);
+
+  this.element = util.createElement(this.document, 'div');
+
+  this.onFieldChange = util.createEvent('BlankField.onFieldChange');
+}
+
+BlankField.prototype = Object.create(Field.prototype);
+
+BlankField.claim = function(type) {
+  return type instanceof BlankType ? Field.MATCH : Field.NO_MATCH;
+};
+
+BlankField.prototype.setConversion = function(conversion) {
   this.setMessage(conversion.message);
 };
 
-StringField.prototype.getConversion = function() {
-  
-  this.arg = this.arg.beget(this.element.value, { prefixSpace: true });
-  return this.type.parse(this.arg);
+BlankField.prototype.getConversion = function() {
+  return this.type.parse(new Argument());
 };
 
-StringField.claim = function(type) {
-  return type instanceof StringType ? Field.MATCH : Field.IF_NOTHING_BETTER;
+exports.addField(BlankField);
+
+
+});
+
+
+
+
+
+
+define('gcli/ui/fields/javascript', ['require', 'exports', 'module' , 'gcli/util', 'gcli/argument', 'gcli/types/javascript', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+
+var Argument = require('gcli/argument').Argument;
+var JavascriptType = require('gcli/types/javascript').JavascriptType;
+
+var Menu = require('gcli/ui/fields/menu').Menu;
+var Field = require('gcli/ui/fields').Field;
+var fields = require('gcli/ui/fields');
+
+
+
+
+
+exports.startup = function() {
+  fields.addField(JavascriptField);
 };
 
-exports.StringField = StringField;
-addField(StringField);
-
-
-
-
-
-function NumberField(type, options) {
-  Field.call(this, type, options);
-  this.arg = new Argument();
-
-  this.element = dom.createElement(this.document, 'input');
-  this.element.type = 'number';
-  if (this.type.max) {
-    this.element.max = this.type.max;
-  }
-  if (this.type.min) {
-    this.element.min = this.type.min;
-  }
-  if (this.type.step) {
-    this.element.step = this.type.step;
-  }
-
-  this.onInputChange = this.onInputChange.bind(this);
-  this.element.addEventListener('keyup', this.onInputChange, false);
-
-  this.fieldChanged = createEvent('NumberField.fieldChanged');
-}
-
-NumberField.prototype = Object.create(Field.prototype);
-
-NumberField.claim = function(type) {
-  return type instanceof NumberType ? Field.MATCH : Field.NO_MATCH;
+exports.shutdown = function() {
+  fields.removeField(JavascriptField);
 };
-
-NumberField.prototype.destroy = function() {
-  Field.prototype.destroy.call(this);
-  this.element.removeEventListener('keyup', this.onInputChange, false);
-  delete this.element;
-  delete this.document;
-  delete this.onInputChange;
-};
-
-NumberField.prototype.setConversion = function(conversion) {
-  this.arg = conversion.arg;
-  this.element.value = conversion.arg.text;
-  this.setMessage(conversion.message);
-};
-
-NumberField.prototype.getConversion = function() {
-  this.arg = this.arg.beget(this.element.value, { prefixSpace: true });
-  return this.type.parse(this.arg);
-};
-
-exports.NumberField = NumberField;
-addField(NumberField);
-
-
-
-
-
-function BooleanField(type, options) {
-  Field.call(this, type, options);
-
-  this.name = options.name;
-  this.named = options.named;
-
-  this.element = dom.createElement(this.document, 'input');
-  this.element.type = 'checkbox';
-  this.element.id = 'gcliForm' + this.name;
-
-  this.onInputChange = this.onInputChange.bind(this);
-  this.element.addEventListener('change', this.onInputChange, false);
-
-  this.fieldChanged = createEvent('BooleanField.fieldChanged');
-}
-
-BooleanField.prototype = Object.create(Field.prototype);
-
-BooleanField.claim = function(type) {
-  return type instanceof BooleanType ? Field.MATCH : Field.NO_MATCH;
-};
-
-BooleanField.prototype.destroy = function() {
-  Field.prototype.destroy.call(this);
-  this.element.removeEventListener('change', this.onInputChange, false);
-  delete this.element;
-  delete this.document;
-  delete this.onInputChange;
-};
-
-BooleanField.prototype.setConversion = function(conversion) {
-  this.element.checked = conversion.value;
-  this.setMessage(conversion.message);
-};
-
-BooleanField.prototype.getConversion = function() {
-  var value = this.element.checked;
-  var arg = this.named ?
-    value ? new TrueNamedArgument(this.name) : new FalseNamedArgument() :
-    new Argument(' ' + value);
-  return new Conversion(value, arg);
-};
-
-exports.BooleanField = BooleanField;
-addField(BooleanField);
-
-
-
-
-
-
-
-
-
-
-
-
-
-function SelectionField(type, options) {
-  Field.call(this, type, options);
-
-  this.items = [];
-
-  this.element = dom.createElement(this.document, 'select');
-  this.element.classList.add('gcli-field');
-  this._addOption({
-    name: l10n.lookupFormat('fieldSelectionSelect', [ options.name ])
-  });
-  var lookup = this.type.getLookup();
-  lookup.forEach(this._addOption, this);
-
-  this.onInputChange = this.onInputChange.bind(this);
-  this.element.addEventListener('change', this.onInputChange, false);
-
-  this.fieldChanged = createEvent('SelectionField.fieldChanged');
-}
-
-SelectionField.prototype = Object.create(Field.prototype);
-
-SelectionField.claim = function(type) {
-  return type instanceof SelectionType ? Field.DEFAULT_MATCH : Field.NO_MATCH;
-};
-
-SelectionField.prototype.destroy = function() {
-  Field.prototype.destroy.call(this);
-  this.element.removeEventListener('change', this.onInputChange, false);
-  delete this.element;
-  delete this.document;
-  delete this.onInputChange;
-};
-
-SelectionField.prototype.setConversion = function(conversion) {
-  var index;
-  this.items.forEach(function(item) {
-    if (item.value && item.value === conversion.value) {
-      index = item.index;
-    }
-  }, this);
-  this.element.value = index;
-  this.setMessage(conversion.message);
-};
-
-SelectionField.prototype.getConversion = function() {
-  var item = this.items[this.element.value];
-  var arg = new Argument(item.name, ' ');
-  var value = item.value ? item.value : item;
-  return new Conversion(value, arg);
-};
-
-SelectionField.prototype._addOption = function(item) {
-  item.index = this.items.length;
-  this.items.push(item);
-
-  var option = dom.createElement(this.document, 'option');
-  option.innerHTML = item.name;
-  option.value = item.index;
-  this.element.appendChild(option);
-};
-
-exports.SelectionField = SelectionField;
-addField(SelectionField);
 
 
 
@@ -7396,35 +7847,40 @@ function JavascriptField(type, options) {
   this.onInputChange = this.onInputChange.bind(this);
   this.arg = new Argument('', '{ ', ' }');
 
-  this.element = dom.createElement(this.document, 'div');
+  this.element = util.createElement(this.document, 'div');
 
-  this.input = dom.createElement(this.document, 'input');
+  this.input = util.createElement(this.document, 'input');
   this.input.type = 'text';
   this.input.addEventListener('keyup', this.onInputChange, false);
   this.input.classList.add('gcli-field');
   this.input.classList.add('gcli-field-javascript');
   this.element.appendChild(this.input);
 
-  this.menu = new Menu({ document: this.document, field: true });
+  this.menu = new Menu({
+    document: this.document,
+    field: true,
+    type: type
+  });
   this.element.appendChild(this.menu.element);
 
   this.setConversion(this.type.parse(new Argument('')));
 
-  this.fieldChanged = createEvent('JavascriptField.fieldChanged');
+  this.onFieldChange = util.createEvent('JavascriptField.onFieldChange');
 
   
-  this.menu.onItemClick = this.onItemClick.bind(this);
+  this.menu.onItemClick.add(this.itemClicked, this);
 }
 
 JavascriptField.prototype = Object.create(Field.prototype);
 
 JavascriptField.claim = function(type) {
-  return type instanceof JavascriptType ? Field.MATCH : Field.NO_MATCH;
+  return type instanceof JavascriptType ? Field.TOOLTIP_MATCH : Field.NO_MATCH;
 };
 
 JavascriptField.prototype.destroy = function() {
   Field.prototype.destroy.call(this);
   this.input.removeEventListener('keyup', this.onInputChange, false);
+  this.menu.onItemClick.remove(this.itemClicked, this);
   this.menu.destroy();
   delete this.element;
   delete this.input;
@@ -7463,18 +7919,15 @@ JavascriptField.prototype.setConversion = function(conversion) {
   this.setMessage(conversion.message);
 };
 
-JavascriptField.prototype.onItemClick = function(ev) {
-  this.item = ev.currentTarget.item;
-  this.arg = this.arg.beget(this.item.complete, { normalize: true });
-  var conversion = this.type.parse(this.arg);
-  this.fieldChanged({ conversion: conversion });
-  this.setMessage(conversion.message);
+JavascriptField.prototype.itemClicked = function(ev) {
+  this.onFieldChange(ev);
+  this.setMessage(ev.conversion.message);
 };
 
 JavascriptField.prototype.onInputChange = function(ev) {
   this.item = ev.currentTarget.item;
   var conversion = this.getConversion();
-  this.fieldChanged({ conversion: conversion });
+  this.onFieldChange({ conversion: conversion });
   this.setMessage(conversion.message);
 };
 
@@ -7486,207 +7939,6 @@ JavascriptField.prototype.getConversion = function() {
 
 JavascriptField.DEFAULT_VALUE = '__JavascriptField.DEFAULT_VALUE';
 
-exports.JavascriptField = JavascriptField;
-addField(JavascriptField);
-
-
-
-
-
-
-function DeferredField(type, options) {
-  Field.call(this, type, options);
-  this.options = options;
-  this.requisition.assignmentChange.add(this.update, this);
-
-  this.element = dom.createElement(this.document, 'div');
-  this.update();
-
-  this.fieldChanged = createEvent('DeferredField.fieldChanged');
-}
-
-DeferredField.prototype = Object.create(Field.prototype);
-
-DeferredField.prototype.update = function() {
-  var subtype = this.type.defer();
-  if (subtype === this.subtype) {
-    return;
-  }
-
-  if (this.field) {
-    this.field.destroy();
-  }
-
-  this.subtype = subtype;
-  this.field = getField(subtype, this.options);
-  this.field.fieldChanged.add(this.fieldChanged, this);
-
-  dom.clearElement(this.element);
-  this.element.appendChild(this.field.element);
-};
-
-DeferredField.claim = function(type) {
-  return type instanceof DeferredType ? Field.MATCH : Field.NO_MATCH;
-};
-
-DeferredField.prototype.destroy = function() {
-  Field.prototype.destroy.call(this);
-  this.requisition.assignmentChange.remove(this.update, this);
-  delete this.element;
-  delete this.document;
-  delete this.onInputChange;
-};
-
-DeferredField.prototype.setConversion = function(conversion) {
-  this.field.setConversion(conversion);
-};
-
-DeferredField.prototype.getConversion = function() {
-  return this.field.getConversion();
-};
-
-exports.DeferredField = DeferredField;
-addField(DeferredField);
-
-
-
-
-
-
-function BlankField(type, options) {
-  Field.call(this, type, options);
-
-  this.element = dom.createElement(this.document, 'div');
-
-  this.fieldChanged = createEvent('BlankField.fieldChanged');
-}
-
-BlankField.prototype = Object.create(Field.prototype);
-
-BlankField.claim = function(type) {
-  return type instanceof BlankType ? Field.MATCH : Field.NO_MATCH;
-};
-
-BlankField.prototype.setConversion = function() { };
-
-BlankField.prototype.getConversion = function() {
-  return new Conversion(null);
-};
-
-exports.BlankField = BlankField;
-addField(BlankField);
-
-
-
-
-
-
-function ArrayField(type, options) {
-  Field.call(this, type, options);
-  this.options = options;
-
-  this._onAdd = this._onAdd.bind(this);
-  this.members = [];
-
-  
-  this.element = dom.createElement(this.document, 'div');
-  this.element.classList.add('gcli-array-parent');
-
-  
-  this.addButton = dom.createElement(this.document, 'button');
-  this.addButton.classList.add('gcli-array-member-add');
-  this.addButton.addEventListener('click', this._onAdd, false);
-  this.addButton.innerHTML = l10n.lookup('fieldArrayAdd');
-  this.element.appendChild(this.addButton);
-
-  
-  this.container = dom.createElement(this.document, 'div');
-  this.container.classList.add('gcli-array-members');
-  this.element.appendChild(this.container);
-
-  this.onInputChange = this.onInputChange.bind(this);
-
-  this.fieldChanged = createEvent('ArrayField.fieldChanged');
-}
-
-ArrayField.prototype = Object.create(Field.prototype);
-
-ArrayField.claim = function(type) {
-  return type instanceof ArrayType ? Field.MATCH : Field.NO_MATCH;
-};
-
-ArrayField.prototype.destroy = function() {
-  Field.prototype.destroy.call(this);
-  this.addButton.removeEventListener('click', this._onAdd, false);
-};
-
-ArrayField.prototype.setConversion = function(conversion) {
-  
-  dom.clearElement(this.container);
-  this.members = [];
-
-  conversion.conversions.forEach(function(subConversion) {
-    this._onAdd(null, subConversion);
-  }, this);
-};
-
-ArrayField.prototype.getConversion = function() {
-  var conversions = [];
-  var arrayArg = new ArrayArgument();
-  for (var i = 0; i < this.members.length; i++) {
-    var conversion = this.members[i].field.getConversion();
-    conversions.push(conversion);
-    arrayArg.addArgument(conversion.arg);
-  }
-  return new ArrayConversion(conversions, arrayArg);
-};
-
-ArrayField.prototype._onAdd = function(ev, subConversion) {
-  
-  var element = dom.createElement(this.document, 'div');
-  element.classList.add('gcli-array-member');
-  this.container.appendChild(element);
-
-  
-  var field = getField(this.type.subtype, this.options);
-  field.fieldChanged.add(function() {
-    var conversion = this.getConversion();
-    this.fieldChanged({ conversion: conversion });
-    this.setMessage(conversion.message);
-  }, this);
-
-  if (subConversion) {
-    field.setConversion(subConversion);
-  }
-  element.appendChild(field.element);
-
-  
-  var delButton = dom.createElement(this.document, 'button');
-  delButton.classList.add('gcli-array-member-del');
-  delButton.addEventListener('click', this._onDel, false);
-  delButton.innerHTML = l10n.lookup('fieldArrayDel');
-  element.appendChild(delButton);
-
-  var member = {
-    element: element,
-    field: field,
-    parent: this
-  };
-  member.onDelete = function() {
-    this.parent.container.removeChild(this.element);
-    this.parent.members = this.parent.members.filter(function(test) {
-      return test !== this;
-    });
-    this.parent.onInputChange();
-  }.bind(member);
-  delButton.addEventListener('click', member.onDelete, false);
-
-  this.members.push(member);
-};
-
-exports.ArrayField = ArrayField;
-addField(ArrayField);
-
 
 });
 
@@ -7695,19 +7947,19 @@ addField(ArrayField);
 
 
 
-define('gcli/ui/menu', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types', 'gcli/argument', 'gcli/canon', 'gcli/ui/domtemplate', 'text!gcli/ui/menu.css', 'text!gcli/ui/menu.html'], function(require, exports, module) {
+define('gcli/ui/fields/menu', ['require', 'exports', 'module' , 'gcli/util', 'gcli/argument', 'gcli/canon', 'gcli/ui/domtemplate', 'text!gcli/ui/fields/menu.css', 'text!gcli/ui/fields/menu.html'], function(require, exports, module) {
 
 
-var dom = require('gcli/util').dom;
+var util = require('gcli/util');
 
-var Conversion = require('gcli/types').Conversion;
 var Argument = require('gcli/argument').Argument;
 var canon = require('gcli/canon');
 
 var domtemplate = require('gcli/ui/domtemplate');
 
-var menuCss = require('text!gcli/ui/menu.css');
-var menuHtml = require('text!gcli/ui/menu.html');
+var menuCss = require('text!gcli/ui/fields/menu.css');
+var menuHtml = require('text!gcli/ui/fields/menu.html');
+
 
 
 
@@ -7723,13 +7975,14 @@ var menuHtml = require('text!gcli/ui/menu.html');
 function Menu(options) {
   options = options || {};
   this.document = options.document || document;
+  this.type = options.type;
 
   
   if (!this.document) {
     throw new Error('No document');
   }
 
-  this.element =  dom.createElement(this.document, 'div');
+  this.element =  util.createElement(this.document, 'div');
   this.element.classList.add(options.menuClass || 'gcli-menu');
   if (options && options.field) {
     this.element.classList.add(options.menuFieldClass || 'gcli-menu-field');
@@ -7737,29 +7990,39 @@ function Menu(options) {
 
   
   if (menuCss != null) {
-    this.style = dom.importCss(menuCss, this.document);
+    util.importCss(menuCss, this.document, 'gcli-menu');
   }
 
-  var templates = dom.createElement(this.document, 'div');
-  dom.setInnerHtml(templates, menuHtml);
-  this.optTempl = templates.querySelector('.gcli-menu-template');
+  this.template = util.toDom(this.document, menuHtml);
+  this.templateOptions = { blankNullUndefined: true, stack: 'menu.html' };
 
   
   this.items = null;
+
+  this.onItemClick = util.createEvent('Menu.onItemClick');
 }
 
 
 
 
 Menu.prototype.destroy = function() {
-  if (this.style) {
-    this.style.parentNode.removeChild(this.style);
-    delete this.style;
-  }
-
   delete this.element;
   delete this.items;
-  delete this.optTempl;
+  delete this.template;
+};
+
+
+
+
+
+
+Menu.prototype.onItemClickInternal = function(ev) {
+  var name = ev.currentTarget.querySelector('.gcli-menu-name').innerHTML;
+  var arg = new Argument(name);
+  arg.suffix = ' ';
+
+  var conversion = this.type.parse(arg);
+  this.onItemClick({ conversion: conversion });
 };
 
 
@@ -7768,31 +8031,99 @@ Menu.prototype.destroy = function() {
 
 
 
-Menu.prototype.onItemClick = function(ev) {
-};
+Menu.prototype.show = function(items, match) {
+  this.items = items.filter(function(item) {
+    return item.hidden === undefined || item.hidden !== true;
+  }.bind(this));
 
+  if (match) {
+    this.items = this.items.map(function(item) {
+      return gethighlightingProxy(item, match, this.template.ownerDocument);
+    }.bind(this));
+  }
 
-
-
-
-
-
-Menu.prototype.show = function(items, error) {
-  this.error = error;
-  this.items = items;
-
-  if (this.error == null && this.items.length === 0) {
+  if (this.items.length === 0) {
     this.element.style.display = 'none';
     return;
   }
 
-  var options = this.optTempl.cloneNode(true);
-  domtemplate.template(options, this, { allowEval: true, stack: 'menu.html' });
+  var options = this.template.cloneNode(true);
+  domtemplate.template(options, this, this.templateOptions);
 
-  dom.clearElement(this.element);
+  util.clearElement(this.element);
   this.element.appendChild(options);
 
   this.element.style.display = 'block';
+};
+
+
+
+
+function gethighlightingProxy(item, match, document) {
+  if (typeof Proxy === 'undefined') {
+    return item;
+  }
+  return Proxy.create({
+    get: function(rcvr, name) {
+      var value = item[name];
+      if (name !== 'name') {
+        return value;
+      }
+
+      var startMatch = value.indexOf(match);
+      if (startMatch === -1) {
+        return value;
+      }
+
+      var before = value.substr(0, startMatch);
+      var after = value.substr(startMatch + match.length);
+      var parent = document.createElement('span');
+      parent.appendChild(document.createTextNode(before));
+      var highlight = document.createElement('span');
+      highlight.classList.add('gcli-menu-typed');
+      highlight.appendChild(document.createTextNode(match));
+      parent.appendChild(highlight);
+      parent.appendChild(document.createTextNode(after));
+      return parent;
+    }
+  });
+}
+
+
+
+
+Menu.prototype.setChoiceIndex = function(choice) {
+  var nodes = this.element.querySelectorAll('.gcli-menu-option');
+  for (var i = 0; i < nodes.length; i++) {
+    nodes[i].classList.remove('gcli-menu-highlight');
+  }
+
+  if (choice == null) {
+    return;
+  }
+
+  if (nodes.length <= choice) {
+    console.error('Cant highlight ' + choice + '. Only ' + nodes.length + ' options');
+    return;
+  }
+
+  nodes.item(choice).classList.add('gcli-menu-highlight');
+};
+
+
+
+
+
+Menu.prototype.selectChoice = function() {
+  var selected = this.element.querySelector('.gcli-menu-highlight .gcli-menu-name');
+  if (selected) {
+    var name = selected.innerHTML;
+    var arg = new Argument(name);
+    arg.suffix = ' ';
+
+    var conversion = this.type.parse(arg);
+    this.onItemClick({ conversion: conversion });
+  }
 };
 
 
@@ -7812,147 +8143,1599 @@ Menu.prototype.setMaxHeight = function(height) {
 exports.Menu = Menu;
 
 
-
-
-
-
-
-
-
-function CommandMenu(options) {
-  Menu.call(this, options);
-  this.requisition = options.requisition;
-
-  this.requisition.commandChange.add(this.onCommandChange, this);
-  canon.canonChange.add(this.onCommandChange, this);
-
-  this.onCommandChange();
-}
-
-CommandMenu.prototype = Object.create(Menu.prototype);
-
-
-
-
-CommandMenu.prototype.destroy = function() {
-  this.requisition.commandChange.remove(this.onCommandChange, this);
-  canon.canonChange.remove(this.onCommandChange, this);
-
-  Menu.prototype.destroy.call(this);
-};
-
-
-
-
-CommandMenu.prototype.onItemClick = function(ev) {
-  var type = this.requisition.commandAssignment.param.type;
-
-  var name = ev.currentTarget.querySelector('.gcli-menu-name').innerHTML;
-  var arg = new Argument(name);
-  arg.suffix = ' ';
-
-  var conversion = type.parse(arg);
-  this.requisition.commandAssignment.setConversion(conversion);
-};
-
-
-
-
-CommandMenu.prototype.onCommandChange = function(ev) {
-  var command = this.requisition.commandAssignment.getValue();
-  if (!command || !command.exec) {
-    var error = this.requisition.commandAssignment.getMessage();
-    var predictions = this.requisition.commandAssignment.getPredictions();
-
-    if (predictions.length === 0) {
-      var commandType = this.requisition.commandAssignment.param.type;
-      var conversion = commandType.parse(new Argument());
-      predictions = conversion.getPredictions();
-    }
-
-    predictions.sort(function(command1, command2) {
-      return command1.name.localeCompare(command2.name);
-    });
-    var items = [];
-    predictions.forEach(function(item) {
-      if (item.description && !item.hidden) {
-        items.push(item);
-      }
-    }, this);
-
-    this.show(items, error);
-  }
-  else {
-    if (ev && ev.oldValue === ev.newValue) {
-      return; 
-    }
-
-    this.hide();
-  }
-};
-
-exports.CommandMenu = CommandMenu;
-
-
 });
-define("text!gcli/ui/menu.css", [], "");
+define("text!gcli/ui/fields/menu.css", [], "");
 
-define("text!gcli/ui/menu.html", [], "\n" +
+define("text!gcli/ui/fields/menu.html", [], "\n" +
   "<table class=\"gcli-menu-template\" aria-live=\"polite\">\n" +
   "  <tr class=\"gcli-menu-option\" foreach=\"item in ${items}\"\n" +
-  "      onclick=\"${onItemClick}\" title=\"${item.manual || ''}\">\n" +
+  "      onclick=\"${onItemClickInternal}\" title=\"${item.manual}\">\n" +
   "    <td class=\"gcli-menu-name\">${item.name}</td>\n" +
   "    <td class=\"gcli-menu-desc\">${item.description}</td>\n" +
-  "  </tr>\n" +
-  "  <tr if=\"${error}\">\n" +
-  "    <td class=\"gcli-menu-error\" colspan=\"2\">${error}</td>\n" +
   "  </tr>\n" +
   "</table>\n" +
   "");
 
-define("text!gcli/ui/arg_fetch.css", [], "");
 
-define("text!gcli/ui/arg_fetch.html", [], "\n" +
-  "<!--\n" +
-  "Template for an Assignment.\n" +
-  "Evaluated each time the commandAssignment changes\n" +
-  "-->\n" +
-  "<div class=\"gcli-af-template\" aria-live=\"polite\">\n" +
-  "  <div>\n" +
-  "    <div class=\"gcli-af-cmddesc\">\n" +
-  "      ${requisition.commandAssignment.getValue().description}\n" +
-  "    </div>\n" +
-  "    <table class=\"gcli-af-params\">\n" +
-  "      <tbody foreach=\"assignment in ${requisition.getAssignments()}\">\n" +
-  "        <!-- Parameter -->\n" +
-  "        <tr>\n" +
-  "          <td class=\"gcli-af-paramname\">\n" +
-  "            <label for=\"gcliForm${assignment.param.name}\">\n" +
-  "              ${assignment.param.description ? assignment.param.description + ':' : ''}\n" +
-  "            </label>\n" +
-  "          </td>\n" +
-  "          <td>${getInputFor(assignment)}</td>\n" +
-  "          <td>\n" +
-  "            <span class=\"gcli-af-required\" if=\"${assignment.param.isDataRequired()}\">*</span>\n" +
-  "          </td>\n" +
-  "        </tr>\n" +
-  "        <tr>\n" +
-  "          <td class=\"gcli-af-error\" colspan=\"2\">\n" +
-  "            ${linkMessageElement(assignment, __element)}\n" +
-  "          </td>\n" +
-  "        </tr>\n" +
-  "      </tbody>\n" +
-  "      <tfoot>\n" +
-  "        <tr>\n" +
-  "          <td colspan=\"3\" class=\"gcli-af-submit\">\n" +
-  "            <input type=\"submit\" value=\"Cancel\" onclick=\"${onFormCancel}\"/>\n" +
-  "            <input type=\"submit\" value=\"OK\" onclick=\"${onFormOk}\" save=\"${okElement}\"/>\n" +
-  "          </td>\n" +
-  "        </tr>\n" +
-  "      </tfoot>\n" +
-  "    </table>\n" +
+
+
+
+
+
+define('gcli/ui/fields/selection', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/types/selection', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var l10n = require('gcli/l10n');
+
+var Argument = require('gcli/argument').Argument;
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
+var BooleanType = require('gcli/types/basic').BooleanType;
+var SelectionType = require('gcli/types/selection').SelectionType;
+
+var Menu = require('gcli/ui/fields/menu').Menu;
+var Field = require('gcli/ui/fields').Field;
+var fields = require('gcli/ui/fields');
+
+
+
+
+
+exports.startup = function() {
+  fields.addField(SelectionField);
+  fields.addField(SelectionTooltipField);
+};
+
+exports.shutdown = function() {
+  fields.removeField(SelectionField);
+  fields.removeField(SelectionTooltipField);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+function SelectionField(type, options) {
+  Field.call(this, type, options);
+
+  this.items = [];
+
+  this.element = util.createElement(this.document, 'select');
+  this.element.classList.add('gcli-field');
+  this._addOption({
+    name: l10n.lookupFormat('fieldSelectionSelect', [ options.name ])
+  });
+  var lookup = this.type.getLookup();
+  lookup.forEach(this._addOption, this);
+
+  this.onInputChange = this.onInputChange.bind(this);
+  this.element.addEventListener('change', this.onInputChange, false);
+
+  this.onFieldChange = util.createEvent('SelectionField.onFieldChange');
+}
+
+SelectionField.prototype = Object.create(Field.prototype);
+
+SelectionField.claim = function(type) {
+  if (type instanceof BooleanType) {
+    return Field.BASIC;
+  }
+  return type instanceof SelectionType ? Field.DEFAULT : Field.NO_MATCH;
+};
+
+SelectionField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.element.removeEventListener('change', this.onInputChange, false);
+  delete this.element;
+  delete this.document;
+  delete this.onInputChange;
+};
+
+SelectionField.prototype.setConversion = function(conversion) {
+  var index;
+  this.items.forEach(function(item) {
+    if (item.value && item.value === conversion.value) {
+      index = item.index;
+    }
+  }, this);
+  this.element.value = index;
+  this.setMessage(conversion.message);
+};
+
+SelectionField.prototype.getConversion = function() {
+  var item = this.items[this.element.value];
+  return this.type.parse(new Argument(item.name, ' '));
+};
+
+SelectionField.prototype._addOption = function(item) {
+  item.index = this.items.length;
+  this.items.push(item);
+
+  var option = util.createElement(this.document, 'option');
+  option.innerHTML = item.name;
+  option.value = item.index;
+  this.element.appendChild(option);
+};
+
+
+
+
+
+function SelectionTooltipField(type, options) {
+  Field.call(this, type, options);
+
+  this.onInputChange = this.onInputChange.bind(this);
+  this.arg = new Argument();
+
+  this.menu = new Menu({ document: this.document, type: type });
+  this.element = this.menu.element;
+
+  this.onFieldChange = util.createEvent('SelectionTooltipField.onFieldChange');
+
+  
+  this.menu.onItemClick.add(this.itemClicked, this);
+}
+
+SelectionTooltipField.prototype = Object.create(Field.prototype);
+
+SelectionTooltipField.claim = function(type) {
+  return type.getType() instanceof SelectionType ? Field.TOOLTIP_MATCH : Field.NO_MATCH;
+};
+
+SelectionTooltipField.prototype.destroy = function() {
+  Field.prototype.destroy.call(this);
+  this.menu.onItemClick.remove(this.itemClicked, this);
+  this.menu.destroy();
+  delete this.element;
+  delete this.document;
+  delete this.onInputChange;
+};
+
+SelectionTooltipField.prototype.setConversion = function(conversion) {
+  this.arg = conversion.arg;
+  var items = conversion.getPredictions().map(function(prediction) {
+    
+    
+    
+    return prediction.value.description ? prediction.value : prediction;
+  }, this);
+  this.menu.show(items, conversion.arg.text);
+  this.setMessage(conversion.message);
+};
+
+SelectionTooltipField.prototype.itemClicked = function(ev) {
+  this.onFieldChange(ev);
+  this.setMessage(ev.conversion.message);
+};
+
+SelectionTooltipField.prototype.onInputChange = function(ev) {
+  this.item = ev.currentTarget.item;
+  var conversion = this.getConversion();
+  this.onFieldChange({ conversion: conversion });
+  this.setMessage(conversion.message);
+};
+
+SelectionTooltipField.prototype.getConversion = function() {
+  
+  this.arg = this.arg.beget('typed', { normalize: true });
+  return this.type.parse(this.arg);
+};
+
+
+
+
+SelectionTooltipField.prototype.setChoiceIndex = function(choice) {
+  this.menu.setChoiceIndex(choice);
+};
+
+
+
+
+
+SelectionTooltipField.prototype.selectChoice = function() {
+  this.menu.selectChoice();
+};
+
+Object.defineProperty(SelectionTooltipField.prototype, 'isImportant', {
+  get: function() {
+    return this.type.name !== 'command';
+  },
+  enumerable: true
+});
+
+SelectionTooltipField.DEFAULT_VALUE = '__SelectionTooltipField.DEFAULT_VALUE';
+
+
+});
+
+
+
+
+
+
+define('gcli/commands/help', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/l10n', 'gcli/ui/view', 'text!gcli/commands/help_man.html', 'text!gcli/commands/help_list.html', 'text!gcli/commands/help.css'], function(require, exports, module) {
+var help = exports;
+
+
+var canon = require('gcli/canon');
+var l10n = require('gcli/l10n');
+var view = require('gcli/ui/view');
+
+
+
+exports.helpManHtml = require('text!gcli/commands/help_man.html');
+exports.helpListHtml = require('text!gcli/commands/help_list.html');
+exports.helpCss = require('text!gcli/commands/help.css');
+
+
+
+
+var helpCommandSpec = {
+  name: 'help',
+  description: l10n.lookup('helpDesc'),
+  manual: l10n.lookup('helpManual'),
+  params: [
+    {
+      name: 'search',
+      type: 'string',
+      description: l10n.lookup('helpSearchDesc'),
+      manual: l10n.lookup('helpSearchManual'),
+      defaultValue: null
+    }
+  ],
+  returnType: 'html',
+
+  exec: function(args, context) {
+    var match = canon.getCommand(args.search || undefined);
+    if (match) {
+      return view.createView({
+        html: exports.helpManHtml,
+        options: { allowEval: true, stack: 'help_man.html' },
+        data: getManTemplateData(match, context),
+        css: exports.helpCss,
+        cssId: 'gcli-help'
+      });
+    }
+
+    return view.createView({
+      html: exports.helpListHtml,
+      options: { allowEval: true, stack: 'help_list.html' },
+      data: getListTemplateData(args, context),
+      css: exports.helpCss,
+      cssId: 'gcli-help'
+    });
+  }
+};
+
+
+
+
+help.startup = function() {
+  canon.addCommand(helpCommandSpec);
+};
+
+help.shutdown = function() {
+  canon.removeCommand(helpCommandSpec);
+};
+
+
+
+
+
+function updateCommand(element, context) {
+  var typed = element.querySelector('.gcli-help-command').textContent;
+  context.update(typed);
+}
+
+
+
+
+
+function executeCommand(element, context) {
+  context.exec({
+    visible: true,
+    typed: element.querySelector('.gcli-help-command').textContent
+  });
+}
+
+
+
+
+function getListTemplateData(args, context) {
+  return {
+    l10n: l10n.propertyLookup,
+    includeIntro: args.search == null,
+
+    onclick: function(ev) {
+      updateCommand(ev.currentTarget, context);
+    },
+
+    ondblclick: function(ev) {
+      executeCommand(ev.currentTarget, context);
+    },
+
+    getHeading: function() {
+      return args.search == null ?
+              'Available Commands:' :
+              'Commands starting with \'' + args.search + '\':';
+    },
+
+    getMatchingCommands: function() {
+      var matching = canon.getCommands().filter(function(command) {
+        if (command.hidden) {
+          return false;
+        }
+
+        if (args.search && command.name.indexOf(args.search) !== 0) {
+          
+          return false;
+        }
+        if (!args.search && command.name.indexOf(' ') != -1) {
+          
+          return false;
+        }
+        return true;
+      });
+      matching.sort();
+      return matching;
+    }
+  };
+}
+
+
+
+
+function getManTemplateData(command, context) {
+  var manTemplateData = {
+    l10n: l10n.propertyLookup,
+    command: command,
+
+    onclick: function(ev) {
+      updateCommand(ev.currentTarget, context);
+    },
+
+    ondblclick: function(ev) {
+      executeCommand(ev.currentTarget, context);
+    },
+
+    getTypeDescription: function(param) {
+      var input = '';
+      if (param.defaultValue === undefined) {
+        input = 'required';
+      }
+      else if (param.defaultValue === null) {
+        input = 'optional';
+      }
+      else {
+        input = param.defaultValue;
+      }
+      return '(' + param.type.name + ', ' + input + ')';
+    }
+  };
+
+  Object.defineProperty(manTemplateData, 'subcommands', {
+    get: function() {
+      var matching = canon.getCommands().filter(function(subcommand) {
+        return subcommand.name.indexOf(command.name) === 0 &&
+                subcommand.name !== command.name;
+      });
+      matching.sort();
+      return matching;
+    },
+    enumerable: true
+  });
+
+  return manTemplateData;
+}
+
+});
+define("text!gcli/commands/help_man.html", [], "\n" +
+  "<div>\n" +
+  "  <h3>${command.name}</h3>\n" +
+  "\n" +
+  "  <h4 class=\"gcli-help-header\">\n" +
+  "    ${l10n.helpManSynopsis}:\n" +
+  "    <span class=\"gcli-help-synopsis\" onclick=\"${onclick}\">\n" +
+  "      <span class=\"gcli-help-command\">${command.name}</span>\n" +
+  "      <span foreach=\"param in ${command.params}\">\n" +
+  "        ${param.defaultValue !== undefined ? '[' + param.name + ']' : param.name}\n" +
+  "      </span>\n" +
+  "    </span>\n" +
+  "  </h4>\n" +
+  "\n" +
+  "  <h4 class=\"gcli-help-header\">${l10n.helpManDescription}:</h4>\n" +
+  "\n" +
+  "  <p class=\"gcli-help-description\">\n" +
+  "    ${command.manual || command.description}\n" +
+  "  </p>\n" +
+  "\n" +
+  "  <div if=\"${command.exec}\">\n" +
+  "    <h4 class=\"gcli-help-header\">${l10n.helpManParameters}:</h4>\n" +
+  "\n" +
+  "    <ul class=\"gcli-help-parameter\">\n" +
+  "      <li if=\"${command.params.length === 0}\">${l10n.helpManNone}</li>\n" +
+  "      <li foreach=\"param in ${command.params}\">\n" +
+  "        <tt>${param.name}</tt> ${getTypeDescription(param)}\n" +
+  "        <br/>\n" +
+  "        ${param.manual || param.description}\n" +
+  "      </li>\n" +
+  "    </ul>\n" +
   "  </div>\n" +
+  "\n" +
+  "  <div if=\"${!command.exec}\">\n" +
+  "    <h4 class=\"gcli-help-header\">${l10n.subCommands}:</h4>\n" +
+  "\n" +
+  "    <ul class=\"gcli-help-${subcommands}\">\n" +
+  "      <li if=\"${subcommands.length === 0}\">${l10n.subcommandsNone}</li>\n" +
+  "      <li foreach=\"subcommand in ${subcommands}\">\n" +
+  "        <strong>${subcommand.name}</strong>:\n" +
+  "        ${subcommand.description}\n" +
+  "        <span class=\"gcli-help-synopsis\" onclick=\"${onclick}\" ondblclick=\"${ondblclick}\">\n" +
+  "          <span class=\"gcli-help-command\">help ${subcommand.name}</span>\n" +
+  "        </span>\n" +
+  "      </li>\n" +
+  "    </ul>\n" +
+  "  </div>\n" +
+  "\n" +
   "</div>\n" +
+  "");
+
+define("text!gcli/commands/help_list.html", [], "\n" +
+  "<div>\n" +
+  "  <h3>${getHeading()}</h3>\n" +
+  "\n" +
+  "  <table>\n" +
+  "    <tr foreach=\"command in ${getMatchingCommands()}\"\n" +
+  "        onclick=\"${onclick}\" ondblclick=\"${ondblclick}\">\n" +
+  "      <th class=\"gcli-help-name\">${command.name}</th>\n" +
+  "      <td class=\"gcli-help-arrow\">&#x2192;</td>\n" +
+  "      <td>\n" +
+  "        ${command.description}\n" +
+  "        <span class=\"gcli-out-shortcut gcli-help-command\">help ${command.name}</span>\n" +
+  "      </td>\n" +
+  "    </tr>\n" +
+  "  </table>\n" +
+  "</div>\n" +
+  "");
+
+define("text!gcli/commands/help.css", [], "");
+
+
+
+
+
+
+
+define('gcli/ui/ffdisplay', ['require', 'exports', 'module' , 'gcli/ui/inputter', 'gcli/ui/completer', 'gcli/ui/tooltip', 'gcli/ui/focus', 'gcli/cli', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/host', 'gcli/ui/intro', 'gcli/canon'], function(require, exports, module) {
+
+var Inputter = require('gcli/ui/inputter').Inputter;
+var Completer = require('gcli/ui/completer').Completer;
+var Tooltip = require('gcli/ui/tooltip').Tooltip;
+var FocusManager = require('gcli/ui/focus').FocusManager;
+
+var Requisition = require('gcli/cli').Requisition;
+
+var cli = require('gcli/cli');
+var jstype = require('gcli/types/javascript');
+var nodetype = require('gcli/types/node');
+var resource = require('gcli/types/resource');
+var host = require('gcli/host');
+var intro = require('gcli/ui/intro');
+
+var commandOutputManager = require('gcli/canon').commandOutputManager;
+
+
+
+
+
+function setContentDocument(document) {
+  if (document) {
+    
+    
+    nodetype.setDocument(document);
+    resource.setDocument(document);
+  }
+  else {
+    resource.unsetDocument();
+    nodetype.unsetDocument();
+    jstype.unsetGlobalObject();
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function FFDisplay(options) {
+  if (options.eval) {
+    cli.setEvalFunction(options.eval);
+  }
+  setContentDocument(options.contentDocument);
+  host.chromeWindow = options.chromeWindow;
+
+  this.onOutput = commandOutputManager.onOutput;
+  this.requisition = new Requisition(options.environment, options.outputDocument);
+
+  
+  this.focusManager = new FocusManager(options, {
+    
+    document: options.chromeDocument
+  });
+  this.onVisibilityChange = this.focusManager.onVisibilityChange;
+
+  this.inputter = new Inputter(options, {
+    requisition: this.requisition,
+    focusManager: this.focusManager,
+    element: options.inputElement
+  });
+
+  this.completer = new Completer(options, {
+    requisition: this.requisition,
+    inputter: this.inputter,
+    backgroundElement: options.backgroundElement,
+    element: options.completeElement
+  });
+
+  this.tooltip = new Tooltip(options, {
+    requisition: this.requisition,
+    focusManager: this.focusManager,
+    inputter: this.inputter,
+    element: options.hintElement
+  });
+
+  this.inputter.tooltip = this.tooltip;
+
+  if (options.consoleWrap) {
+    this.consoleWrap = options.consoleWrap;
+    var win = options.consoleWrap.ownerDocument.defaultView;
+    this.resizer = this.resizer.bind(this);
+
+    win.addEventListener('resize', this.resizer, false);
+    this.requisition.onTextChange.add(this.resizer, this);
+  }
+
+  this.options = options;
+}
+
+
+
+
+
+
+FFDisplay.prototype.maybeShowIntro = function() {
+  intro.maybeShowIntro(commandOutputManager);
+};
+
+
+
+
+
+
+
+
+FFDisplay.prototype.reattach = function(options) {
+  setContentDocument(options.contentDocument);
+  host.chromeWindow = options.chromeWindow;
+  this.requisition.environment = options.environment;
+};
+
+
+
+
+FFDisplay.prototype.destroy = function() {
+  if (this.consoleWrap) {
+    var win = this.options.consoleWrap.ownerDocument.defaultView;
+
+    this.requisition.onTextChange.remove(this.resizer, this);
+    win.removeEventListener('resize', this.resizer, false);
+  }
+
+  this.tooltip.destroy();
+  this.completer.destroy();
+  this.inputter.destroy();
+  this.focusManager.destroy();
+
+  this.requisition.destroy();
+
+  host.chromeWindow = undefined;
+  setContentDocument(null);
+  cli.unsetEvalFunction();
+
+  delete this.options;
+
+  
+  
+  
+  
+  
+  
+};
+
+
+
+
+FFDisplay.prototype.resizer = function() {
+  
+  
+  
+
+  var parentRect = this.options.consoleWrap.getBoundingClientRect();
+  
+  var parentHeight = parentRect.bottom - parentRect.top - 64;
+
+  
+  
+  if (parentHeight < 100) {
+    this.options.hintElement.classList.add('gcliterm-hint-nospace');
+  }
+  else {
+    this.options.hintElement.classList.remove('gcliterm-hint-nospace');
+    this.options.hintElement.style.overflowY = null;
+    this.options.hintElement.style.borderBottomColor = 'white';
+  }
+
+  
+  
+  var doc = this.options.hintElement.ownerDocument;
+
+  var outputNode = this.options.hintElement.parentNode.parentNode.children[1];
+  var outputs = outputNode.getElementsByClassName('gcliterm-msg-body');
+  var listItems = outputNode.getElementsByClassName('hud-msg-node');
+
+  
+  
+  
+  
+  
+  var scrollbarWidth = 20;
+
+  if (listItems.length > 0) {
+    var parentWidth = outputNode.getBoundingClientRect().width - scrollbarWidth;
+    var otherWidth;
+    var body;
+
+    for (var i = 0; i < listItems.length; ++i) {
+      var listItem = listItems[i];
+      
+      otherWidth = 0;
+      body = null;
+
+      for (var j = 0; j < listItem.children.length; j++) {
+        var child = listItem.children[j];
+
+        if (child.classList.contains('gcliterm-msg-body')) {
+          body = child.children[0];
+        }
+        else {
+          otherWidth += child.getBoundingClientRect().width;
+        }
+
+        var styles = doc.defaultView.getComputedStyle(child, null);
+        otherWidth += parseInt(styles.borderLeftWidth, 10) +
+                      parseInt(styles.borderRightWidth, 10) +
+                      parseInt(styles.paddingLeft, 10) +
+                      parseInt(styles.paddingRight, 10) +
+                      parseInt(styles.marginLeft, 10) +
+                      parseInt(styles.marginRight, 10);
+      }
+
+      if (body) {
+        body.style.width = (parentWidth - otherWidth) + 'px';
+      }
+    }
+  }
+};
+
+exports.FFDisplay = FFDisplay;
+
+});
+
+
+
+
+
+
+define('gcli/ui/inputter', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types', 'gcli/history', 'text!gcli/ui/inputter.css'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var KeyEvent = require('gcli/util').KeyEvent;
+
+var Status = require('gcli/types').Status;
+var History = require('gcli/history').History;
+
+var inputterCss = require('text!gcli/ui/inputter.css');
+
+
+
+
+
+
+
+
+
+
+
+
+function Inputter(options, components) {
+  this.requisition = components.requisition;
+  this.focusManager = components.focusManager;
+
+  this.element = components.element;
+  this.element.classList.add('gcli-in-input');
+  this.element.spellcheck = false;
+
+  this.document = this.element.ownerDocument;
+
+  this.scratchpad = options.scratchpad;
+
+  if (inputterCss != null) {
+    this.style = util.importCss(inputterCss, this.document, 'gcli-inputter');
+  }
+
+  
+  this.lastTabDownAt = 0;
+
+  
+  this._caretChange = null;
+
+  
+  this.onKeyDown = this.onKeyDown.bind(this);
+  this.onKeyUp = this.onKeyUp.bind(this);
+  this.element.addEventListener('keydown', this.onKeyDown, false);
+  this.element.addEventListener('keyup', this.onKeyUp, false);
+
+  
+  this.history = new History();
+  this._scrollingThroughHistory = false;
+
+  
+  this._choice = null;
+  this.onChoiceChange = util.createEvent('Inputter.onChoiceChange');
+
+  
+  this.onMouseUp = this.onMouseUp.bind(this);
+  this.element.addEventListener('mouseup', this.onMouseUp, false);
+
+  if (this.focusManager) {
+    this.focusManager.addMonitoredElement(this.element, 'input');
+  }
+
+  this.requisition.onTextChange.add(this.textChanged, this);
+
+  this.assignment = this.requisition.getAssignmentAt(0);
+  this.onAssignmentChange = util.createEvent('Inputter.onAssignmentChange');
+  this.onInputChange = util.createEvent('Inputter.onInputChange');
+
+  this.onResize = util.createEvent('Inputter.onResize');
+  this.onWindowResize = this.onWindowResize.bind(this);
+  this.document.defaultView.addEventListener('resize', this.onWindowResize, false);
+
+  this.requisition.update(this.element.value || '');
+}
+
+
+
+
+Inputter.prototype.destroy = function() {
+  this.document.defaultView.removeEventListener('resize', this.onWindowResize, false);
+
+  this.requisition.onTextChange.remove(this.textChanged, this);
+  if (this.focusManager) {
+    this.focusManager.removeMonitoredElement(this.element, 'input');
+  }
+
+  this.element.removeEventListener('mouseup', this.onMouseUp, false);
+  this.element.removeEventListener('keydown', this.onKeyDown, false);
+  this.element.removeEventListener('keyup', this.onKeyUp, false);
+
+  this.history.destroy();
+
+  if (this.style) {
+    this.style.parentNode.removeChild(this.style);
+    delete this.style;
+  }
+
+  delete this.onMouseUp;
+  delete this.onKeyDown;
+  delete this.onKeyUp;
+  delete this.onWindowResize;
+  delete this.tooltip;
+  delete this.document;
+  delete this.element;
+};
+
+
+
+
+
+Inputter.prototype.onWindowResize = function() {
+  
+  if (!this.element) {
+    return;
+  }
+
+  
+  var dimensions = this.getDimensions();
+  if (dimensions) {
+    this.onResize(dimensions);
+  }
+};
+
+
+
+
+
+Inputter.prototype.getDimensions = function() {
+  
+  if (!this.element.getBoundingClientRect) {
+    return undefined;
+  }
+
+  var rect = this.element.getBoundingClientRect();
+  return {
+    top: rect.top + 1,
+    height: rect.bottom - rect.top - 1,
+    left: rect.left + 2,
+    width: rect.right - rect.left
+  };
+};
+
+
+
+
+Inputter.prototype.onMouseUp = function(ev) {
+  this._checkAssignment();
+};
+
+
+
+
+Inputter.prototype.textChanged = function() {
+  if (!this.document) {
+    return; 
+  }
+
+  if (this._caretChange == null) {
+    
+    
+    
+    this._caretChange = Caret.TO_ARG_END;
+  }
+
+  var newStr = this.requisition.toString();
+  var input = this.getInputState();
+
+  input.typed = newStr;
+  this._processCaretChange(input);
+
+  this.element.value = newStr;
+  this.onInputChange({ inputState: input });
+};
+
+
+
+
+
+var Caret = {
+  
+
+
+  NO_CHANGE: 0,
+
+  
+
+
+  SELECT_ALL: 1,
+
+  
+
+
+  TO_END: 2,
+
+  
+
+
+
+  TO_ARG_END: 3
+};
+
+
+
+
+
+
+Inputter.prototype._processCaretChange = function(input) {
+  var start, end;
+  switch (this._caretChange) {
+    case Caret.SELECT_ALL:
+      start = 0;
+      end = input.typed.length;
+      break;
+
+    case Caret.TO_END:
+      start = input.typed.length;
+      end = input.typed.length;
+      break;
+
+    case Caret.TO_ARG_END:
+      
+      
+      
+      start = input.cursor.start;
+      do {
+        start++;
+      }
+      while (start < input.typed.length && input.typed[start - 1] !== ' ');
+
+      end = start;
+      break;
+
+    default:
+      start = input.cursor.start;
+      end = input.cursor.end;
+      break;
+  }
+
+  start = (start > input.typed.length) ? input.typed.length : start;
+  end = (end > input.typed.length) ? input.typed.length : end;
+
+  var newInput = {
+    typed: input.typed,
+    cursor: { start: start, end: end }
+  };
+
+  this.element.selectionStart = start;
+  this.element.selectionEnd = end;
+
+  this._checkAssignment(start);
+
+  this._caretChange = null;
+  return newInput;
+};
+
+
+
+
+
+
+
+
+Inputter.prototype._checkAssignment = function(start) {
+  if (start == null) {
+    start = this.element.selectionStart;
+  }
+  var newAssignment = this.requisition.getAssignmentAt(start);
+  if (this.assignment !== newAssignment) {
+    this.assignment = newAssignment;
+    this.onAssignmentChange({ assignment: this.assignment });
+  }
+
+  
+  
+  
+  
+  
+  
+  if (this.focusManager) {
+    var message = this.assignment.conversion.message;
+    this.focusManager.setError(message != null && message !== '');
+  }
+};
+
+
+
+
+
+
+
+
+
+
+Inputter.prototype.setInput = function(str) {
+  this.requisition.update(str);
+};
+
+
+
+
+
+Inputter.prototype.setCursor = function(cursor) {
+  this._caretChange = Caret.NO_CHANGE;
+  this._processCaretChange({ typed: this.element.value, cursor: cursor });
+};
+
+
+
+
+Inputter.prototype.focus = function() {
+  this.element.focus();
+  this._checkAssignment();
+};
+
+
+
+
+
+Inputter.prototype.onKeyDown = function(ev) {
+  if (ev.keyCode === KeyEvent.DOM_VK_UP || ev.keyCode === KeyEvent.DOM_VK_DOWN) {
+    ev.preventDefault();
+    return;
+  }
+
+  
+  
+  if (ev.keyCode === KeyEvent.DOM_VK_F1 ||
+      ev.keyCode === KeyEvent.DOM_VK_ESCAPE ||
+      ev.keyCode === KeyEvent.DOM_VK_UP ||
+      ev.keyCode === KeyEvent.DOM_VK_DOWN) {
+    return;
+  }
+
+  if (this.focusManager) {
+    this.focusManager.onInputChange(ev);
+  }
+
+  if (ev.keyCode === KeyEvent.DOM_VK_TAB) {
+    this.lastTabDownAt = 0;
+    if (!ev.shiftKey) {
+      ev.preventDefault();
+      
+      
+      this.lastTabDownAt = ev.timeStamp;
+    }
+    if (ev.metaKey || ev.altKey || ev.crtlKey) {
+      if (this.document.commandDispatcher) {
+        this.document.commandDispatcher.advanceFocus();
+      }
+      else {
+        this.element.blur();
+      }
+    }
+  }
+};
+
+
+
+
+Inputter.prototype.onKeyUp = function(ev) {
+  if (this.focusManager && ev.keyCode === KeyEvent.DOM_VK_F1) {
+    this.focusManager.helpRequest();
+    return;
+  }
+
+  if (this.focusManager && ev.keyCode === KeyEvent.DOM_VK_ESCAPE) {
+    this.focusManager.removeHelp();
+    return;
+  }
+
+  if (ev.keyCode === KeyEvent.DOM_VK_UP) {
+    if (this.tooltip && this.tooltip.isMenuShowing) {
+      this.changeChoice(-1);
+    }
+    else if (this.element.value === '' || this._scrollingThroughHistory) {
+      this._scrollingThroughHistory = true;
+      this.requisition.update(this.history.backward());
+    }
+    else {
+      
+      
+      if (this.assignment.getStatus() === Status.VALID) {
+        this.assignment.increment();
+        
+        if (this.focusManager) {
+          this.focusManager.onInputChange(ev);
+        }
+      }
+      else {
+        this.changeChoice(-1);
+      }
+    }
+    return;
+  }
+
+  if (ev.keyCode === KeyEvent.DOM_VK_DOWN) {
+    if (this.tooltip && this.tooltip.isMenuShowing) {
+      this.changeChoice(+1);
+    }
+    else if (this.element.value === '' || this._scrollingThroughHistory) {
+      this._scrollingThroughHistory = true;
+      this.requisition.update(this.history.forward());
+    }
+    else {
+      
+      if (this.assignment.getStatus() === Status.VALID) {
+        this.assignment.decrement();
+        
+        if (this.focusManager) {
+          this.focusManager.onInputChange(ev);
+        }
+      }
+      else {
+        this.changeChoice(+1);
+      }
+    }
+    return;
+  }
+
+  
+  if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
+    var worst = this.requisition.getStatus();
+    
+    if (worst === Status.VALID) {
+      this._scrollingThroughHistory = false;
+      this.history.add(this.element.value);
+      this.requisition.exec();
+    }
+    else {
+      
+      
+      this.tooltip.selectChoice();
+
+      
+      
+    }
+
+    this._choice = null;
+    return;
+  }
+
+  if (ev.keyCode === KeyEvent.DOM_VK_TAB && !ev.shiftKey) {
+    
+    
+    
+    
+    
+    
+    if (this.lastTabDownAt + 1000 > ev.timeStamp) {
+      
+      
+      
+      this._caretChange = Caret.TO_ARG_END;
+      var inputState = this.getInputState();
+      this._processCaretChange(inputState);
+      if (this._choice == null) {
+        this._choice = 0;
+      }
+      this.requisition.complete(inputState.cursor, this._choice);
+    }
+    this.lastTabDownAt = 0;
+    this._scrollingThroughHistory = false;
+
+    this._choice = null;
+    this.onChoiceChange({ choice: this._choice });
+    return;
+  }
+
+  
+  if (this.scratchpad && this.scratchpad.shouldActivate(ev)) {
+    if (this.scratchpad.activate(this.element.value)) {
+      this.requisition.update('');
+    }
+    return;
+  }
+
+  this._scrollingThroughHistory = false;
+  this._caretChange = Caret.NO_CHANGE;
+
+  this.requisition.update(this.element.value);
+
+  this._choice = null;
+  this.onChoiceChange({ choice: this._choice });
+};
+
+
+
+
+
+Inputter.prototype.changeChoice = function(amount) {
+  if (this._choice == null) {
+    this._choice = 0;
+  }
+  
+  
+  
+  this._choice += amount;
+  this.onChoiceChange({ choice: this._choice });
+};
+
+
+
+
+
+Inputter.prototype.getCurrentAssignment = function() {
+  var start = this.element.selectionStart;
+  return this.requisition.getAssignmentAt(start);
+};
+
+
+
+
+Inputter.prototype.getInputState = function() {
+  var input = {
+    typed: this.element.value,
+    cursor: {
+      start: this.element.selectionStart,
+      end: this.element.selectionEnd
+    }
+  };
+
+  
+  
+  if (input.typed == null) {
+    input = { typed: '', cursor: { start: 0, end: 0 } };
+    console.log('fixing input.typed=""', input);
+  }
+
+  
+  if (input.cursor.start == null) {
+    input.cursor.start = 0;
+  }
+
+  return input;
+};
+
+exports.Inputter = Inputter;
+
+
+});
+
+
+
+
+
+
+define('gcli/history', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+
+
+
+
+function History() {
+  
+  
+  
+  
+  this._buffer = [''];
+
+  
+  
+  this._current = 0;
+}
+
+
+
+
+History.prototype.destroy = function() {
+  delete this._buffer;
+};
+
+
+
+
+History.prototype.add = function(command) {
+  this._buffer.splice(1, 0, command);
+  this._current = 0;
+};
+
+
+
+
+History.prototype.forward = function() {
+  if (this._current > 0 ) {
+    this._current--;
+  }
+  return this._buffer[this._current];
+};
+
+
+
+
+History.prototype.backward = function() {
+  if (this._current < this._buffer.length - 1) {
+    this._current++;
+  }
+  return this._buffer[this._current];
+};
+
+exports.History = History;
+
+});define("text!gcli/ui/inputter.css", [], "");
+
+
+
+
+
+
+
+define('gcli/ui/completer', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/domtemplate', 'text!gcli/ui/completer.html'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var domtemplate = require('gcli/ui/domtemplate');
+
+var completerHtml = require('text!gcli/ui/completer.html');
+
+
+
+
+
+
+
+
+
+
+
+
+function Completer(options, components) {
+  this.requisition = components.requisition;
+  this.scratchpad = options.scratchpad;
+  this.input = { typed: '', cursor: { start: 0, end: 0 } };
+  this.choice = 0;
+
+  this.element = components.element;
+  this.element.classList.add('gcli-in-complete');
+  this.element.setAttribute('tabindex', '-1');
+  this.element.setAttribute('aria-live', 'polite');
+
+  this.document = this.element.ownerDocument;
+
+  this.inputter = components.inputter;
+
+  this.inputter.onInputChange.add(this.update, this);
+  this.inputter.onAssignmentChange.add(this.update, this);
+  this.inputter.onChoiceChange.add(this.update, this);
+
+  if (components.autoResize) {
+    this.inputter.onResize.add(this.resized, this);
+
+    var dimensions = this.inputter.getDimensions();
+    if (dimensions) {
+      this.resized(dimensions);
+    }
+  }
+
+  this.template = util.toDom(this.document, completerHtml);
+  
+  util.removeWhitespace(this.template, true);
+
+  this.update();
+}
+
+
+
+
+Completer.prototype.destroy = function() {
+  this.inputter.onInputChange.remove(this.update, this);
+  this.inputter.onAssignmentChange.remove(this.update, this);
+  this.inputter.onChoiceChange.remove(this.update, this);
+  this.inputter.onResize.remove(this.resized, this);
+
+  delete this.document;
+  delete this.element;
+  delete this.template;
+  delete this.inputter;
+};
+
+
+
+
+Completer.prototype.resized = function(ev) {
+  this.element.style.top = ev.top + 'px';
+  this.element.style.height = ev.height + 'px';
+  this.element.style.lineHeight = ev.height + 'px';
+  this.element.style.left = ev.left + 'px';
+  this.element.style.width = ev.width + 'px';
+};
+
+
+
+
+
+
+function isStrictCompletion(inputValue, completion) {
+  
+  
+  inputValue = inputValue.replace(/^\s*/, '');
+  
+  
+  return completion.indexOf(inputValue) === 0;
+}
+
+
+
+
+Completer.prototype.update = function(ev) {
+  if (ev && ev.choice != null) {
+    this.choice = ev.choice;
+  }
+  this._preTemplateUpdate();
+
+  var template = this.template.cloneNode(true);
+  domtemplate.template(template, this, { stack: 'completer.html' });
+
+  util.clearElement(this.element);
+  while (template.hasChildNodes()) {
+    this.element.appendChild(template.firstChild);
+  }
+};
+
+
+
+
+
+
+Completer.prototype._preTemplateUpdate = function() {
+  this.input = this.inputter.getInputState();
+
+  this.directTabText = '';
+  this.arrowTabText = '';
+
+  
+  
+  
+  if (this.input.typed.trim().length === 0) {
+    return;
+  }
+
+  var current = this.inputter.assignment;
+  var prediction = current.conversion.getPredictionAt(this.choice);
+  if (!prediction) {
+    return;
+  }
+
+  var tabText = prediction.name;
+  var existing = current.arg.text;
+
+  if (existing === tabText) {
+    return;
+  }
+
+  if (isStrictCompletion(existing, tabText) &&
+          this.input.cursor.start === this.input.typed.length) {
+    
+    var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
+
+    this.directTabText = tabText.slice(existing.length - numLeadingSpaces);
+  }
+  else {
+    
+    
+    this.arrowTabText = ' \u00a0\u21E5 ' + tabText;
+  }
+};
+
+
+
+
+
+
+Object.defineProperty(Completer.prototype, 'statusMarkup', {
+  get: function() {
+    var markup = this.requisition.getInputStatusMarkup(this.input.cursor.start);
+    markup.forEach(function(member) {
+      member.string = member.string.replace(/ /g, '\u00a0'); 
+      member.className = 'gcli-in-' + member.status.toString().toLowerCase();
+    }, this);
+    return markup;
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Completer.prototype, 'scratchLink', {
+  get: function() {
+    if (!this.scratchpad) {
+      return null;
+    }
+    var command = this.requisition.commandAssignment.value;
+    return command && command.name === '{' ? this.scratchpad.linkText : null;
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Completer.prototype, 'unclosedJs', {
+  get: function() {
+    var command = this.requisition.commandAssignment.value;
+    var jsCommand = command && command.name === '{';
+    var unclosedJs = jsCommand &&
+        this.requisition.getAssignment(0).arg.suffix.indexOf('}') === -1;
+    return unclosedJs;
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Completer.prototype, 'emptyParameters', {
+  get: function() {
+    var typedEndSpace = this.requisition.typedEndsWithWhitespace();
+    
+    var directTabText = this.directTabText;
+    
+    
+    
+    var firstBlankParam = true;
+    var params = [];
+    this.requisition.getAssignments().forEach(function(assignment) {
+      if (!assignment.param.isPositionalAllowed) {
+        return;
+      }
+
+      if (!assignment.arg.isBlank()) {
+        if (directTabText !== '') {
+          firstBlankParam = false;
+        }
+        return;
+      }
+
+      if (directTabText !== '' && firstBlankParam) {
+        firstBlankParam = false;
+        return;
+      }
+
+      var text = (assignment.param.isDataRequired) ?
+          '<' + assignment.param.name + '>' :
+          '[' + assignment.param.name + ']';
+
+      
+      
+      if (!typedEndSpace || !firstBlankParam) {
+        text = '\u00a0' + text; 
+      }
+
+      firstBlankParam = false;
+      params.push(text);
+    }.bind(this));
+    return params;
+  },
+  enumerable: true
+});
+
+exports.Completer = Completer;
+
+
+});
+define("text!gcli/ui/completer.html", [], "\n" +
+  "<description>\n" +
+  "  <loop foreach=\"member in ${statusMarkup}\">\n" +
+  "    <label class=\"${member.className}\">${member.string}</label>\n" +
+  "  </loop>\n" +
+  "  <label class=\"gcli-in-ontab\">${directTabText}</label>\n" +
+  "  <label class=\"gcli-in-todo\" foreach=\"param in ${emptyParameters}\">${param}</label>\n" +
+  "  <label class=\"gcli-in-ontab\">${arrowTabText}</label>\n" +
+  "  <label class=\"gcli-in-closebrace\" if=\"${unclosedJs}\">}</label>\n" +
+  "</description>\n" +
   "");
 
 
@@ -7961,10 +9744,17 @@ define("text!gcli/ui/arg_fetch.html", [], "\n" +
 
 
 
-define('gcli/ui/focus', ['require', 'exports', 'module' , 'gcli/util'], function(require, exports, module) {
+define('gcli/ui/tooltip', ['require', 'exports', 'module' , 'gcli/util', 'gcli/cli', 'gcli/ui/fields', 'gcli/ui/domtemplate', 'text!gcli/ui/tooltip.css', 'text!gcli/ui/tooltip.html'], function(require, exports, module) {
 
 
 var util = require('gcli/util');
+var CommandAssignment = require('gcli/cli').CommandAssignment;
+
+var fields = require('gcli/ui/fields');
+var domtemplate = require('gcli/ui/domtemplate');
+
+var tooltipCss = require('text!gcli/ui/tooltip.css');
+var tooltipHtml = require('text!gcli/ui/tooltip.html');
 
 
 
@@ -7980,99 +9770,204 @@ var util = require('gcli/util');
 
 
 
+function Tooltip(options, components) {
+  this.inputter = components.inputter;
+  this.requisition = components.requisition;
+  this.focusManager = components.focusManager;
 
-function FocusManager(options) {
-  options = options || {};
+  this.element = components.element;
+  this.element.classList.add(options.tooltipClass || 'gcli-tooltip');
+  this.document = this.element.ownerDocument;
 
-  this._debug = options.debug || false;
-  this._blurDelayTimeout = null; 
-  this._monitoredElements = [];  
-
-  this.hasFocus = false;
-  this.blurDelay = options.blurDelay || 250;
-  this.document = options.document || document;
-
-  this.onFocus = util.createEvent('FocusManager.onFocus');
-  this.onBlur = util.createEvent('FocusManager.onBlur');
+  this.panelElement = components.panelElement;
+  if (this.panelElement) {
+    this.panelElement.classList.add('gcli-panel-hide');
+    this.focusManager.onVisibilityChange.add(this.visibilityChanged, this);
+  }
+  this.focusManager.addMonitoredElement(this.element, 'tooltip');
 
   
+  this.fields = [];
+
   
-  this._onDocumentFocus = function() {
-    this.reportBlur('document');
-  }.bind(this);
-  this.document.addEventListener('focus', this._onDocumentFocus, true);
+  if (tooltipCss != null) {
+    this.style = util.importCss(tooltipCss, this.document, 'gcli-tooltip');
+  }
+
+  this.template = util.toDom(this.document, tooltipHtml);
+  this.templateOptions = { blankNullUndefined: true, stack: 'tooltip.html' };
+
+  this.inputter.onChoiceChange.add(this.choiceChanged, this);
+  this.inputter.onAssignmentChange.add(this.assignmentChanged, this);
+
+  
+  this.assignment = undefined;
+  this.assignmentChanged({ assignment: this.inputter.assignment });
 }
 
 
 
 
-FocusManager.prototype.destroy = function() {
-  this.document.removeEventListener('focus', this._onDocumentFocus, true);
+Tooltip.prototype.destroy = function() {
+  this.inputter.onAssignmentChange.remove(this.assignmentChanged, this);
+  this.inputter.onChoiceChange.remove(this.choiceChanged, this);
+
+  if (this.panelElement) {
+    this.focusManager.onVisibilityChange.remove(this.visibilityChanged, this);
+  }
+  this.focusManager.removeMonitoredElement(this.element, 'tooltip');
+
+  if (this.style) {
+    this.style.parentNode.removeChild(this.style);
+    delete this.style;
+  }
+
+  this.field.onFieldChange.remove(this.fieldChanged, this);
+  this.field.destroy();
+
+  delete this.errorEle;
+  delete this.descriptionEle;
+  delete this.highlightEle;
+
+  delete this.field;
+  delete this.focusManager;
   delete this.document;
-
-  for (var i = 0; i < this._monitoredElements.length; i++) {
-    var monitor = this._monitoredElements[i];
-    console.error('Hanging monitored element: ', monitor.element);
-
-    monitor.element.removeEventListener('focus', monitor.onFocus, true);
-    monitor.element.removeEventListener('blur', monitor.onBlur, true);
-  }
-
-  if (this._blurDelayTimeout) {
-    clearTimeout(this._blurDelayTimeout);
-    this._blurDelayTimeout = null;
-  }
+  delete this.element;
+  delete this.panelElement;
+  delete this.template;
 };
 
 
 
 
+Object.defineProperty(Tooltip.prototype, 'isMenuShowing', {
+  get: function() {
+    return this.focusManager.isTooltipVisible &&
+           this.field != null &&
+           this.field.menu != null;
+  },
+  enumerable: true
+});
 
 
 
 
-FocusManager.prototype.addMonitoredElement = function(element, where) {
-  if (this._debug) {
-    console.log('FocusManager.addMonitoredElement(' + (where || 'unknown') + ')');
-  }
-
-  var monitor = {
-    element: element,
-    where: where,
-    onFocus: function() { this.reportFocus(where); }.bind(this),
-    onBlur: function() { this.reportBlur(where); }.bind(this)
-  };
-
-  element.addEventListener('focus', monitor.onFocus, true);
-  element.addEventListener('blur', monitor.onBlur, true);
-  this._monitoredElements.push(monitor);
-};
-
-
-
-
-
-FocusManager.prototype.removeMonitoredElement = function(element) {
-  var monitor;
-  var matchIndex;
-
-  for (var i = 0; i < this._monitoredElements.length; i++) {
-    if (this._monitoredElements[i].element === element) {
-      monitor = this._monitoredElements[i];
-      matchIndex = i;
-    }
-  }
-
-  if (!monitor) {
-    if (this._debug) {
-      console.error('Missing monitor for element. ', element);
-    }
+Tooltip.prototype.assignmentChanged = function(ev) {
+  
+  
+  
+  if (this.assignment === ev.assignment) {
     return;
   }
 
-  this._monitoredElements.splice(matchIndex, 1);
-  element.removeEventListener('focus', monitor.onFocus, true);
-  element.removeEventListener('blur', monitor.onBlur, true);
+  if (this.assignment) {
+    this.assignment.onAssignmentChange.remove(this.assignmentContentsChanged, this);
+  }
+  this.assignment = ev.assignment;
+
+  if (this.field) {
+    this.field.onFieldChange.remove(this.fieldChanged, this);
+    this.field.destroy();
+  }
+
+  this.field = fields.getField(this.assignment.param.type, {
+    document: this.document,
+    name: this.assignment.param.name,
+    requisition: this.requisition,
+    required: this.assignment.param.isDataRequired,
+    named: !this.assignment.param.isPositionalAllowed,
+    tooltip: true
+  });
+
+  this.focusManager.setImportantFieldFlag(this.field.isImportant);
+
+  this.field.onFieldChange.add(this.fieldChanged, this);
+  this.assignment.onAssignmentChange.add(this.assignmentContentsChanged, this);
+
+  this.field.setConversion(this.assignment.conversion);
+
+  
+  this.errorEle = undefined;
+  this.descriptionEle = undefined;
+  this.highlightEle = undefined;
+
+  var contents = this.template.cloneNode(true);
+  domtemplate.template(contents, this, this.templateOptions);
+  util.clearElement(this.element);
+  this.element.appendChild(contents);
+  this.element.style.display = 'block';
+
+  this.field.setMessageElement(this.errorEle);
+
+  this._updatePosition();
+};
+
+
+
+
+Tooltip.prototype.choiceChanged = function(ev) {
+  if (this.field && this.field.setChoiceIndex) {
+    var choice = this.assignment.conversion.constrainPredictionIndex(ev.choice);
+    this.field.setChoiceIndex(choice);
+  }
+};
+
+
+
+
+
+Tooltip.prototype.selectChoice = function(ev) {
+  if (this.field && this.field.selectChoice) {
+    this.field.selectChoice();
+  }
+};
+
+
+
+
+Tooltip.prototype.fieldChanged = function(ev) {
+  this.assignment.setConversion(ev.conversion);
+
+  var isError = ev.conversion.message != null && ev.conversion.message !== '';
+  this.focusManager.setError(isError);
+
+  
+  
+  
+  this.document.defaultView.setTimeout(function() {
+    this.inputter.focus();
+  }.bind(this), 10);
+};
+
+
+
+
+Tooltip.prototype.assignmentContentsChanged = function(ev) {
+  
+  
+  
+  if (ev.conversion.arg.text === ev.oldConversion.arg.text) {
+    return;
+  }
+
+  this.field.setConversion(ev.conversion);
+  util.setContents(this.descriptionEle, this.description);
+
+  this._updatePosition();
+};
+
+
+
+
+Tooltip.prototype._updatePosition = function() {
+  var dimensions = this.getDimensionsOfAssignment();
+
+  
+  if (this.panelElement) {
+    this.panelElement.style.left = (dimensions.start * 10) + 'px';
+  }
+
+  this.focusManager.updatePosition(dimensions);
 };
 
 
@@ -8080,23 +9975,22 @@ FocusManager.prototype.removeMonitoredElement = function(element) {
 
 
 
-FocusManager.prototype.reportFocus = function(where) {
-  if (this._debug) {
-    console.log('FocusManager.reportFocus(' + (where || 'unknown') + ')');
-  }
-
-  if (this._blurDelayTimeout) {
-    if (this._debug) {
-      console.log('FocusManager.cancelBlur');
+Tooltip.prototype.getDimensionsOfAssignment = function() {
+  var before = '';
+  var assignments = this.requisition.getAssignments(true);
+  for (var i = 0; i < assignments.length; i++) {
+    if (assignments[i] === this.assignment) {
+      break;
     }
-    clearTimeout(this._blurDelayTimeout);
-    this._blurDelayTimeout = null;
+    before += assignments[i].toString();
   }
+  before += this.assignment.arg.prefix;
 
-  if (!this.hasFocus) {
-    this.hasFocus = true;
-    this.onFocus();
-  }
+  var startChar = before.length;
+  before += this.assignment.arg.text;
+  var endChar = before.length;
+
+  return { start: startChar, end: endChar };
 };
 
 
@@ -8104,35 +9998,61 @@ FocusManager.prototype.reportFocus = function(where) {
 
 
 
-
-FocusManager.prototype.reportBlur = function(where) {
-  if (this._debug) {
-    console.log('FocusManager.reportBlur(' + where + ')');
-  }
-
-  if (this.hasFocus) {
-    if (this._blurDelayTimeout) {
-      if (this._debug) {
-        console.log('FocusManager.blurPending');
-      }
-      return;
+Object.defineProperty(Tooltip.prototype, 'description', {
+  get: function() {
+    if (this.assignment instanceof CommandAssignment &&
+            this.assignment.value == null) {
+      return '';
     }
 
-    this._blurDelayTimeout = setTimeout(function() {
-      if (this._debug) {
-        console.log('FocusManager.blur');
+    var output = this.assignment.param.manual;
+    if (output) {
+      var wrapper = this.document.createElement('span');
+      util.setContents(wrapper, output);
+      if (!this.assignment.param.isDataRequired) {
+        var optional = this.document.createElement('span');
+        optional.appendChild(this.document.createTextNode(' (Optional)'));
+        wrapper.appendChild(optional);
       }
-      this.hasFocus = false;
-      this.onBlur();
-      this._blurDelayTimeout = null;
-    }.bind(this), this.blurDelay);
+      return wrapper;
+    }
+
+    return this.assignment.param.description;
+  },
+  enumerable: true
+});
+
+
+
+
+Tooltip.prototype.visibilityChanged = function(ev) {
+  if (!this.panelElement) {
+    return;
+  }
+
+  if (ev.tooltipVisible) {
+    this.panelElement.classList.remove('gcli-panel-hide');
+  }
+  else {
+    this.panelElement.classList.add('gcli-panel-hide');
   }
 };
 
-exports.FocusManager = FocusManager;
+exports.Tooltip = Tooltip;
 
 
 });
+define("text!gcli/ui/tooltip.css", [], "");
+
+define("text!gcli/ui/tooltip.html", [], "\n" +
+  "<div class=\"gcli-tt\" aria-live=\"polite\">\n" +
+  "  <div class=\"gcli-tt-description\" save=\"${descriptionEle}\">${description}</div>\n" +
+  "  ${field.element}\n" +
+  "  <div class=\"gcli-tt-error\" save=\"${errorEle}\">${assignment.conversion.message}</div>\n" +
+  "  <div class=\"gcli-tt-highlight\" save=\"${highlightEle}\"></div>\n" +
+  "</div>\n" +
+  "");
+
 
 
 
