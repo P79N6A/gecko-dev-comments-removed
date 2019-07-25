@@ -183,6 +183,31 @@ TokenStream::init(const jschar *base, size_t length, const char *fn, uintN ln, J
     listenerData = cx->debugHooks->sourceHandlerData;
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+    memset(oneCharTokens, 0, sizeof(oneCharTokens));
+    oneCharTokens[';'] = TOK_SEMI;
+    oneCharTokens[','] = TOK_COMMA;
+    oneCharTokens['?'] = TOK_HOOK;
+    oneCharTokens['['] = TOK_LB;
+    oneCharTokens[']'] = TOK_RB;
+    oneCharTokens['{'] = TOK_LC;
+    oneCharTokens['}'] = TOK_RC;
+    oneCharTokens['('] = TOK_LP;
+    oneCharTokens[')'] = TOK_RP;
+
+    
     memset(maybeEOL, 0, sizeof(maybeEOL));
     maybeEOL['\n'] = true;
     maybeEOL['\r'] = true;
@@ -833,7 +858,6 @@ TokenStream::getTokenInternal()
     
 
 
-
     if (flags & TSF_XMLTEXTMODE) {
         tt = TOK_XMLSPACE;      
         tp = newToken(0);
@@ -869,7 +893,6 @@ TokenStream::getTokenInternal()
     }
 
     
-
 
 
     if (flags & TSF_XMLTAGMODE) {
@@ -1020,6 +1043,14 @@ TokenStream::getTokenInternal()
     
 
 
+    if (c < 128) {
+        tt = (TokenKind)oneCharTokens[c];
+        if (tt != 0)
+            goto out;
+    }
+
+    
+
 
     hadUnicodeEscape = false;
     if (JS_ISIDSTART(c) ||
@@ -1097,7 +1128,6 @@ TokenStream::getTokenInternal()
     
 
 
-
     if (JS7_ISDECNZ(c) || (c == '.' && JS7_ISDEC(peekChar()))) {
         numStart = userbuf.addressOfNextRawChar() - 1;
 
@@ -1154,7 +1184,6 @@ TokenStream::getTokenInternal()
     }
 
     
-
 
 
     if (c == '0') {
@@ -1217,7 +1246,6 @@ TokenStream::getTokenInternal()
     }
 
     
-
 
 
     if (c == '"' || c == '\'') {
@@ -1319,18 +1347,7 @@ TokenStream::getTokenInternal()
     
 
 
-
     switch (c) {
-      case ';':  tt = TOK_SEMI; break;
-      case '[':  tt = TOK_LB; break;
-      case ']':  tt = TOK_RB; break;
-      case '{':  tt = TOK_LC; break;
-      case '}':  tt = TOK_RC; break;
-      case '(':  tt = TOK_LP; break;
-      case ')':  tt = TOK_RP; break;
-      case ',':  tt = TOK_COMMA; break;
-      case '?':  tt = TOK_HOOK; break;
-
       case '.':
 #if JS_HAS_XML_SUPPORT
         if (matchChar(c))

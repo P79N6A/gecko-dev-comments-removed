@@ -608,10 +608,12 @@ class TokenStream
     void                *listenerData;  
     void                *listenerTSData;
     CharBuffer          tokenbuf;       
-    bool                maybeEOL[256];  
-    bool                maybeStrSpecial[256];
+    int8                oneCharTokens[128];  
+    JSPackedBool        maybeEOL[256];       
+    JSPackedBool        maybeStrSpecial[256];
     JSVersion           version;        
     bool                xml;            
+    JS_STATIC_ASSERT(sizeof(maybeEOL) == 256);
 };
 
 } 
