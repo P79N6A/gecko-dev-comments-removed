@@ -667,10 +667,20 @@ enum Reason {
 } 
 
 extern JS_FRIEND_API(void)
-GCForReason(JSContext *cx, gcreason::Reason reason);
+PrepareCompartmentForGC(JSCompartment *comp);
 
 extern JS_FRIEND_API(void)
-CompartmentGCForReason(JSContext *cx, JSCompartment *comp, gcreason::Reason reason);
+PrepareForFullGC(JSRuntime *rt);
+
+
+
+
+
+
+
+
+extern JS_FRIEND_API(void)
+GCForReason(JSContext *cx, gcreason::Reason reason);
 
 extern JS_FRIEND_API(void)
 ShrinkingGC(JSContext *cx, gcreason::Reason reason);
