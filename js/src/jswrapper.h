@@ -101,6 +101,8 @@ class JSCrossCompartmentWrapper : public JSWrapper {
     JS_FRIEND_API(JSCrossCompartmentWrapper());
 
   public:
+    typedef enum { GET, SET } Mode;
+
     virtual JS_FRIEND_API(~JSCrossCompartmentWrapper());
 
     
@@ -130,10 +132,8 @@ class JSCrossCompartmentWrapper : public JSWrapper {
     virtual JSString *fun_toString(JSContext *cx, JSObject *proxy, uintN indent);
 
     
-    virtual bool enter(JSContext *cx, JSObject *proxy, jsid id);
+    virtual bool enter(JSContext *cx, JSObject *proxy, jsid id, Mode mode);
     virtual void leave(JSContext *cx, JSObject *proxy);
-    virtual bool filter(JSContext *cx, JSObject *proxy, js::AutoValueVector &props);
-    virtual bool filter(JSContext *cx, JSObject *proxy, jsval *vp);
 
     static JSCrossCompartmentWrapper singleton;
 
