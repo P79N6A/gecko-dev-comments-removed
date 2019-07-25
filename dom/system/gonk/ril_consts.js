@@ -537,6 +537,51 @@ const PDU_FCS_OK          = 0x00;
 const PDU_FCS_UNSPECIFIED = 0xFF;
 
 
+
+const PDU_ST_0_RECEIVED             = 0x00;
+const PDU_ST_0_FORWARDED_NO_CONFIRM = 0x01;
+const PDU_ST_0_REPLACED_BY_SC       = 0x02;
+const PDU_ST_0_RESERVED_BEGIN       = 0x03;
+const PDU_ST_0_SC_SPECIFIC_BEGIN    = 0x10;
+const PDU_ST_0_SC_SPECIFIC_END      = 0x1F;
+
+const PDU_ST_1_CONGESTION        = 0x20;
+const PDU_ST_1_SME_BUSY          = 0x21;
+const PDU_ST_1_SME_NO_RESPONSE   = 0x22;
+const PDU_ST_1_SERVICE_REJECTED  = 0x23;
+const PDU_ST_1_QOS_UNAVAILABLE   = 0x24;
+const PDU_ST_1_SME_ERROR         = 0x25;
+const PDU_ST_1_RESERVED_BEGIN    = 0x26;
+const PDU_ST_1_SC_SPECIFIC_BEGIN = 0x30;
+const PDU_ST_1_SC_SPECIFIC_END   = 0x3F;
+
+
+const PDU_ST_2_RPC_ERROR                = 0x40;
+const PDU_ST_2_DEST_INCOMPATIBLE        = 0x41;
+const PDU_ST_2_CONNECTION_REJECTED      = 0x42;
+const PDU_ST_2_NOT_OBTAINABLE           = 0x43;
+const PDU_ST_2_QOS_UNAVAILABLE          = 0x44;
+const PDU_ST_2_INTERWORKING_UNAVALIABLE = 0x45;
+const PDU_ST_2_VALIDITY_EXPIRED         = 0x46;
+const PDU_ST_2_DELETED_BY_SME           = 0x47;
+const PDU_ST_2_DELETED_BY_SC            = 0x48;
+const PDU_ST_2_SM_MISSING               = 0x49;
+const PDU_ST_2_RESERVED_BEGIN           = 0x4A;
+const PDU_ST_2_SC_SPECIFIC_BEGIN        = 0x50;
+const PDU_ST_2_SC_SPECIFIC_END          = 0x5F;
+
+
+const PDU_ST_3_CONGESTION        = 0x60;
+const PDU_ST_3_SME_BUSY          = 0x61;
+const PDU_ST_3_SME_NO_RESPONSE   = 0x62;
+const PDU_ST_3_SERVICE_REJECTED  = 0x63;
+const PDU_ST_3_QOS_UNAVAILABLE   = 0x64;
+const PDU_ST_3_SME_ERROR         = 0x65;
+const PDU_ST_3_RESERVED_BEGIN    = 0x66;
+const PDU_ST_3_SC_SPECIFIC_BEGIN = 0x70;
+const PDU_ST_3_SC_SPECIFIC_END   = 0x7F;
+
+
 const PDU_MAX_USER_DATA_7BIT = 160;
 
 const PDU_MAX_USER_DATA_8BIT = 140;
