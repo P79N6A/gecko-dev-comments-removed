@@ -745,7 +745,7 @@ namespace nanojit
             if (isInReg()) {
                 Register r = { sharedFields.regnum };
                 return r;
-            } else { 
+            } else {
                 return deprecated_UnknownReg;
             }
         }
@@ -985,8 +985,16 @@ namespace nanojit
             return isImmI() || isImmQorD();
         }
 
+        bool isConditionalBranch() const {
+            return isop(LIR_jt) || isop(LIR_jf) || isJov();
+        }
+
+        bool isUnConditionalBranch() const {
+            return isop(LIR_j) || isop(LIR_jtbl);
+        }
+
         bool isBranch() const {
-            return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j) || isop(LIR_jtbl) || isJov();
+            return isConditionalBranch() || isUnConditionalBranch();
         }
 
         LTy retType() const {
@@ -1035,7 +1043,7 @@ namespace nanojit
 
     typedef SeqBuilder<LIns*> InsList;
     typedef SeqBuilder<char*> StringList;
-
+    typedef HashMap<LIns*,bool> InsSet;
 
     
     class LInsOp0
@@ -1990,7 +1998,7 @@ namespace nanojit
         
         
         
-        HashMap <LIns*, bool> knownCmpValues;
+        InsSet knownCmpValues;
 
         
         
@@ -2469,6 +2477,100 @@ namespace nanojit
         void finish();
         LIns* read();
     };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class CfgLister : public LirFilter
+    {
+    public:
+        virtual LIns* read();
+
+        typedef enum _CfgMode
+        {
+              CFG_EBB   
+            , CFG_BB    
+            , CFG_INS   
+        }
+        CfgMode;
+
+        CfgLister(LirFilter* in, Allocator& alloc, CfgMode mode=CFG_EBB);
+
+        void printGmlCfg(FILE* f, LInsPrinter* printer, InsSet* makeProxyNodesFor);
+
+    private:
+        void        addEdge(LIns* from, LIns* to);
+        uint32_t    node2id(LIns* i);
+        const char* nodeName(LIns* i, InsBuf& b, LInsPrinter* printer);
+        const char* nodeShape(LIns* i, InsSet* pseudo);
+        uint32_t    edgeCountOf(LIns* i);
+
+        void printEdges(FILE* f, LInsPrinter* printer, InsSet* pseudo);
+        void printNode(FILE* f, InsList* nodeIns, LInsPrinter* printer, InsSet* pseudo);
+
+        void gmlNode(FILE* f, uint32_t id, const char* shape, const char* title);
+        void gmlEdge(FILE* f, uint32_t srcId, uint32_t dstId, const char* style, const char* fill, const char* width, const char* text);
+
+        
+        void gmlNodePrefix(FILE* f, uint32_t id, const char* shape);
+        void gmlNodeSuffix(FILE* f);
+        void gmlNodeTextLine(FILE* f, const char* text, int32_t tabCount);
+
+        Allocator&                  _alloc;
+        HashMap<LIns*, LIns*>       _alt;       
+        HashMap<LIns*, InsList*>    _edges;     
+        InsSet                      _vertices;  
+        HashMap<LIns*, uint32_t>    _ids;       
+        LIns*                       _prior;     
+        uint32_t                    _count;     
+        CfgMode                     _mode;      
+    };
+
 #endif
 
 }

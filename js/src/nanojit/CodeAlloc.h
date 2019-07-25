@@ -218,9 +218,6 @@ namespace nanojit
         size_t size();
 
         
-        void getStats(size_t& total, size_t& frag_size, size_t& free_size);
-
-        
         void logStats();
 
         

@@ -157,6 +157,350 @@ namespace nanojit
         _prevIns = ins;
         return ins;
     }
+
+
+    
+    CfgLister::CfgLister(LirFilter* in, Allocator& alloc, CfgMode mode)
+        : LirFilter(in), _alloc(alloc), _alt(alloc), _edges(alloc), _vertices(alloc), _ids(alloc), _mode(mode)
+    {
+        _count = 1;  
+        _prior = 0;
+    }
+
+    LIns* CfgLister::read()
+    {
+        bool priorAsVertex = false; 
+
+        LIns *ins = in->read();
+        _ids.put(ins, _count++);
+
+        LOpcode op = ins->opcode();
+        LIns* target;
+        switch (op) {
+        case LIR_j:
+        case LIR_jt:
+        case LIR_jf:
+        case LIR_addjovi:
+        case LIR_subjovi:
+        case LIR_muljovi:
+        CASE64(LIR_addjovq:)
+        CASE64(LIR_subjovq:)
+            target = ins->getTarget();
+            addEdge(ins, target);
+            _vertices.put(target,true);
+            priorAsVertex = (_mode == CFG_BB);
+            break;
+
+        case LIR_jtbl: {
+            uint32_t tableSize = ins->getTableSize();
+            NanoAssert(tableSize > 0);
+            for (uint32_t i = 0; i < tableSize; i++)
+            {
+                target = ins->getTarget();
+                addEdge(ins, ins->getTarget());
+                _vertices.put(target,true);
+            }
+            priorAsVertex = (_mode == CFG_BB);
+            break;
+            }
+        default:
+            ;
+        }
+
+        
+        priorAsVertex = ( _prior && _mode == CFG_INS && !_prior->isImmAny() ) ? true : priorAsVertex;
+
+        if (_prior && priorAsVertex)
+            _vertices.put(_prior,true);
+
+        _prior = ins;
+        return ins;
+    }
+
+    void CfgLister::addEdge(LIns* from, LIns* to)
+    {
+        InsList* list = _edges.get(from);
+        if (!list) {
+            list = new (_alloc) InsList(_alloc);
+            _edges.put(from,list);
+        }
+        NanoAssert( from && to && (from != to) ); 
+        NanoAssert( _ids.containsKey(to) || to->isop(LIR_label) ); 
+        list->add(to);
+
+        
+        _alt.put(from,from);
+        _alt.put(to,to);
+    }
+
+    uint32_t CfgLister::node2id(LIns* i)
+    {
+        NanoAssert( _ids.containsKey(i) );
+        uint32_t id = _ids.get(i);
+        return _count - id;
+    }
+
+    const char* CfgLister::nodeName(LIns* i, InsBuf& b, LInsPrinter* printer)
+    {
+        
+        const char* str = ( _mode == CFG_INS ) ? printer->lirNameMap->lookupName(i) : 0;
+        str = !str ? printer->formatIns(&b, i) : str;
+        return str;
+    }
+
+    const char* CfgLister::nodeShape(LIns* i, InsSet* pseudos)
+    {
+        const char* shape = "roundrectangle";
+        if (i->isGuard())
+            shape = "hexagon";
+        else if ( pseudos->containsKey(i) )
+            shape = "ellipse";
+        else if ( edgeCountOf(i) > 1 )
+            shape = "diamond";
+        return shape;
+    }
+
+    uint32_t CfgLister::edgeCountOf(LIns* i)
+    {
+        uint32_t a = 0;
+        Seq<LIns*>* l = _edges.get(i) ? _edges.get(i)->get() : 0;
+        for(; l; l=l->tail)
+            a++;
+        return a;
+    }
+
+    void CfgLister::printGmlCfg(FILE* f, LInsPrinter* printer, InsSet* makeProxyNodesFor)
+    {
+        fprintf(f, "graph [ directed 1 hierarchic 1\n");
+
+        
+        
+        
+        
+        
+        
+        InsList n(_alloc);          
+        InsSet incoming(_alloc);    
+        bool last = true;           
+        LIns* priorBlock = 0;       
+        LIns* priorIns = 0;         
+
+        LirReader rdr(finalIns());
+        LIns* ins = rdr.read();
+        for (; !ins->isop(LIR_start); ins = rdr.read())
+        {
+            
+            if (priorBlock && last)
+            {
+                last = false;
+                LOpcode op = ins->opcode();
+                if ( !ins->isUnConditionalBranch() && !isRetOpcode(op))
+                    addEdge(ins, priorBlock); 
+            }
+
+            
+            if ( _vertices.containsKey(ins) )
+            {
+                
+                InsSet::Iter inc(incoming);
+                while(inc.next())
+                    _alt.put(inc.key(), ins);
+
+                n.insert(ins);
+                printNode(f, &n, printer, makeProxyNodesFor);
+
+                
+                n.clear();
+                incoming.clear();
+                priorBlock = ins;
+                last = true;
+            }
+            else
+            {
+                
+                bool ignore = ins->isImmAny();
+                if (!ignore)
+                    n.insert(ins);
+                if ( _alt.containsKey(ins) )
+                    incoming.put(ins,true);
+
+                priorIns = ins;
+            }
+        }
+
+        
+        InsSet::Iter inc(incoming);
+        while(inc.next())
+            _alt.put(inc.key(), ins);
+
+        n.insert(ins);
+        printNode(f, &n, printer, makeProxyNodesFor);
+
+        
+        printEdges(f, printer, makeProxyNodesFor);
+        fprintf(f, "]\n");
+    }
+
+    
+    
+    void CfgLister::printNode(FILE* f, InsList* nodeIns, LInsPrinter* printer, InsSet* pseudo)
+    {
+        
+        Seq<LIns*>* list = nodeIns->get();
+        LIns* ins = list->head;
+
+        InsBuf str;
+        uint32_t id = node2id(ins);
+        const char* text = nodeName(ins, str, printer);
+        const char* shape = nodeShape(ins, pseudo);
+        gmlNodePrefix(f, id, shape);
+        gmlNodeTextLine(f, text, 0);
+
+        for (list=list->tail; list; list=list->tail)
+        {
+            LIns* i = list->head;
+            text = nodeName(i, str, printer);
+            gmlNodeTextLine(f, text, 1);
+        }
+
+        gmlNodeSuffix(f);
+    }
+
+    void CfgLister::printEdges(FILE* f, LInsPrinter* printer, InsSet* makeProxyNodesFor)
+    {
+        uint32_t pseudoId = ~0; 
+        InsBuf str;
+        HashMap<LIns*, InsList*>::Iter ite(_edges);
+        while(ite.next())
+        {
+            LIns* origSrc = ite.key();
+            LIns* src = _alt.containsKey(origSrc) ? _alt.get(origSrc) : src;
+            uint32_t sid = node2id(src);
+            Seq<LIns*>* l = ite.value()->get();
+            while (l)
+            {
+                LIns* origDst = l->head;
+                LIns* dst = _alt.get(origDst); 
+                uint32_t did = node2id(dst);
+
+                bool proxyNode = makeProxyNodesFor->containsKey(origDst);
+                if (_mode != CFG_INS && proxyNode)
+                {
+                    
+                    l = l->tail;
+                    continue;
+                }
+
+                
+                if (proxyNode)
+                {
+                    did = --pseudoId;
+                    gmlNode(f, did, "ellipse", nodeName(dst, str, printer));
+                    NanoAssert(did > _count);  
+                }
+
+                const char* str_dashed = "dashed";
+                const char* str_solid  = "solid";
+                const char* str_red = "#E00000";
+                const char* str_gray = "#AAAAAA";
+
+                const char* text = 0;
+                const char* style = str_dashed;
+                const char* fill = str_gray;
+                const char* width = 0;
+
+                if ( origSrc->isConditionalBranch() )
+                {
+                    bool explicitEdge = origSrc->getTarget() == origDst;
+                    if (explicitEdge)
+                    {
+                        
+                        style = str_solid;
+                        fill = 0; 
+                        text = origSrc->isop(LIR_jf) ? "0" : "1";
+                    }
+                    else
+                    {
+                        
+                        text = origSrc->isop(LIR_jf) ? "1" : "0";
+                    }
+                }
+                if (did < sid)
+                {
+                    
+                    style = str_solid;
+                    fill = str_red;
+                    width = "2";
+                }
+                gmlEdge(f, sid, did, style, fill, width, text);
+                l = l->tail;
+            }
+        }
+    }
+
+    void CfgLister::gmlNodePrefix(FILE* f, uint32_t id, const char* shape)
+    {
+        fprintf(f, "  node [\n");
+        fprintf(f, "    id %d\n", id);
+        fprintf(f, "    graphics [\n");
+        fprintf(f, "      type \"%s\"\n", shape);
+        fprintf(f, "    ]\n");
+        fprintf(f, "    LabelGraphics [\n");
+        fprintf(f, "      alignment \"left\"\n");
+        fprintf(f, "      fontName  \"Consolas\"\n");
+        fprintf(f, "      anchor    \"tl\"\n"); 
+        fprintf(f, "      text      \"");
+    }
+
+    void CfgLister::gmlNodeTextLine(FILE* f, const char* text, int32_t tabCount)
+    {
+        while(tabCount-->0)
+           fprintf(f, "\t");
+        fprintf(f, "%s\n", text);
+    }
+
+    void CfgLister::gmlNodeSuffix(FILE* f)
+    {
+        fprintf(f, "      \"\n");
+        fprintf(f, "    ]\n");
+        fprintf(f, "  ]\n");
+    }
+
+    void CfgLister::gmlNode(FILE* f, uint32_t id, const char* shape, const char* title)
+    {
+        fprintf(f, "  node [\n");
+        fprintf(f, "    id %d\n", id);
+        fprintf(f, "    graphics [\n");
+        fprintf(f, "      type \"%s\"\n", shape);
+        fprintf(f, "    ]\n");
+        fprintf(f, "    LabelGraphics [\n");
+        fprintf(f, "      text      \"%s\"\n", title);
+        fprintf(f, "      alignment \"left\"\n");
+        fprintf(f, "      fontName  \"Consolas\"\n");
+        fprintf(f, "      anchor    \"tl\"\n"); 
+        fprintf(f, "    ]\n");
+        fprintf(f, "  ]\n");
+    }
+
+    void CfgLister::gmlEdge(FILE* f, uint32_t srcId, uint32_t dstId, const char* style, const char* fill, const char* width, const char* text)
+    {
+        fprintf(f, "  edge [\n");
+        fprintf(f, "    source %d\n", srcId);
+        fprintf(f, "    target %d\n", dstId);
+        fprintf(f, "    graphics [\n");
+        fprintf(f, "      arrow \"last\"\n");
+        if (style) fprintf(f, "      style \"%s\"\n", style);
+        if (fill)  fprintf(f, "      fill \"%s\"\n", fill);
+        if (width) fprintf(f, "      width %s\n", width);
+        fprintf(f, "    ]\n");
+        fprintf(f, "    LabelGraphics [\n");
+        if (text) fprintf(f, "      text      \"%s\"\n", text);
+        fprintf(f, "      model     \"three_center\"\n");
+        fprintf(f, "      fontStyle \"bold\"\n");
+        fprintf(f, "    ]\n");
+        fprintf(f, "  ]\n");
+    }
+
 #endif
 
     
@@ -1376,7 +1720,7 @@ namespace nanojit
         void retire(LIns* i) {
             RetiredEntry *e = new (alloc) RetiredEntry();
             e->i = i;
-            SeqBuilder<LIns*> livelist(alloc);
+            InsList livelist(alloc);
             HashMap<LIns*, LIns*>::Iter iter(live);
             int live_count = 0;
             while (iter.next()) {
@@ -3092,7 +3436,7 @@ namespace nanojit
         LIns *args[] = { split(a) };
         return out->insCall(call, args);
     }
-    
+
     LIns* SoftFloatFilter::callD2(const CallInfo *call, LIns *a, LIns *b) {
         LIns *args[] = { split(b), split(a) };
         return split(call, args);
@@ -3106,7 +3450,7 @@ namespace nanojit
     LIns* SoftFloatFilter::ins1(LOpcode op, LIns *a) {
         const CallInfo *ci = softFloatOps.opmap[op];
         if (ci) {
-            if (ci->returnType() == ARGTYPE_D)            
+            if (ci->returnType() == ARGTYPE_D)
                 return callD1(ci, a);
             else
                 return callI1(ci, a);
