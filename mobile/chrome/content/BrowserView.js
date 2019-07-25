@@ -597,7 +597,9 @@ BrowserView.prototype = {
 
   getPageZoomLevel: function getPageZoomLevel() {
     let bvs = this._browserViewportState;  
-    let browserW = this.viewportToBrowser(bvs.viewportRect.right);
+
+    
+    let browserW = this.viewportToBrowser(bvs.viewportRect.right) || 1.0;
     return this.getVisibleRect().width / browserW;
   },
 
