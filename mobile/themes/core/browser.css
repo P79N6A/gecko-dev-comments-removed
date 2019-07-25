@@ -39,7 +39,7 @@
 #toolbar-main {
   -moz-appearance: none;
   -moz-box-align: center;
-  padding: 0 8px; 
+  padding: 0;
   border: none;
   background: #5e6166;
 }
@@ -60,12 +60,12 @@ toolbarbutton.urlbar-button {
 
 #tool-app-switch {
   margin-top: -8px; 
-  -moz-margin-start: -8px; 
+  -moz-margin-start: 0; 
   min-width: 72px !important; 
   min-height: 72px !important; 
   visibility: collapse;
   -moz-margin-end: 8px; 
-  list-style-image: url("chrome://browser/skin/images/task-switch-40.png");
+  list-style-image: url("chrome://browser/skin/images/task-switch-hdpi.png");
   background-color: transparent !important;
   border: none !important;
 }
@@ -82,11 +82,11 @@ toolbarbutton.urlbar-button {
 
 #tool-app-close {
   margin-top: -8px; 
-  -moz-margin-end: -8px !important; 
+  -moz-margin-end: 0 !important; 
   min-width: 72px !important; 
   min-height: 72px !important; 
   visibility: collapse;
-  list-style-image: url("chrome://browser/skin/images/task-close-40.png");
+  list-style-image: url("chrome://browser/skin/images/task-close-hdpi.png");
   background-color: transparent !important;
   border: none !important;
 }
@@ -109,11 +109,11 @@ toolbarbutton.urlbar-button {
 
 #toolbar-main[dialog="true"] #tool-app-close {
   visibility: visible;
-  list-style-image: url("chrome://browser/skin/images/task-back-40.png");
+  list-style-image: url("chrome://browser/skin/images/task-back-hdpi.png");
 }
 
 #toolbar-main[dialog="true"] #tool-app-close:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/images/task-back-rtl-40.png");
+  list-style-image: url("chrome://browser/skin/images/task-back-rtl-hdpi.png");
 }
 %endif
 
@@ -353,7 +353,7 @@ toolbarbutton.button-control:not([disabled="true"]):hover:active {
   min-width: 72px !important; 
   max-width: 72px !important; 
   min-height: 72px !important; 
-  list-style-image: url("chrome://browser/skin/images/task-back-40.png");
+  list-style-image: url("chrome://browser/skin/images/task-back-hdpi.png");
   background: transparent !important;
   border: none !important;
 }
@@ -367,7 +367,7 @@ toolbarbutton.button-control:not([disabled="true"]):hover:active {
 }
 
 #tool-panel-close:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/images/task-back-rtl-40.png");
+  list-style-image: url("chrome://browser/skin/images/task-back-rtl-hdpi.png");
 }
 
 #tool-panel-close:hover:active:-moz-locale-dir(rtl) {
@@ -545,47 +545,6 @@ richlistitem[typeName="showmore"] {
 .console-error-msg,
 .console-msg-text {
   white-space: pre-wrap;
-}
-
-
-#tool-bookmarks-close {
-  margin-top: -8px; 
-  margin-bottom: -8px; 
-  -moz-margin-end: -8px; 
-  -moz-padding-end: 8px !important; 
-  min-width: 72px !important; 
-  min-height: 72px !important; 
-  list-style-image: url("chrome://browser/skin/images/task-back-40.png");
-}
-
-#tool-bookmarks-close:-moz-locale-dir(rtl) {
-  list-style-image: url("chrome://browser/skin/images/task-back-rtl-40.png");
-}
-
-#tool-bookmarks-close:hover:active {
-  background-color: #8db8d8 !important;
-}
-
-#tool-bookmarks-close:hover:active:-moz-locale-dir(ltr) {
-  -moz-border-radius-bottomleft: 6px;
-}
-
-#tool-bookmarks-close:hover:active:-moz-locale-dir(rtl) {
-  -moz-border-radius-bottomright: 6px;
-}
-
-#bookmarklist-container {
-  padding: 0;
-}
-
-#bookmarklist-header {
-  -moz-box-align: center;
-  padding: 4px 8px; 
-}
-
-#bookmark-items {
-  -moz-appearance: none !important;
-  padding: 0;
 }
 
 
