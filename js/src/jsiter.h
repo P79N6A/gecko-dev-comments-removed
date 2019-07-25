@@ -163,23 +163,23 @@ class ElementIteratorObject : public JSObject {
 };
 
 bool
-VectorToIdArray(JSContext *cx, AutoIdVector &props, JSIdArray **idap);
+VectorToIdArray(JSContext *cx, js::AutoIdVector &props, JSIdArray **idap);
 
 bool
-GetIterator(JSContext *cx, HandleObject obj, unsigned flags, Value *vp);
+GetIterator(JSContext *cx, JSObject *obj, unsigned flags, js::Value *vp);
 
 bool
-VectorToKeyIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props, Value *vp);
+VectorToKeyIterator(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector &props, js::Value *vp);
 
 bool
-VectorToValueIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props, Value *vp);
+VectorToValueIterator(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector &props, js::Value *vp);
 
 
 
 
 
 bool
-EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVector &props, Value *vp);
+EnumeratedIdVectorToIterator(JSContext *cx, JSObject *obj, unsigned flags, js::AutoIdVector &props, js::Value *vp);
 
 
 
@@ -188,7 +188,7 @@ EnumeratedIdVectorToIterator(JSContext *cx, HandleObject obj, unsigned flags, Au
 
 
 extern JSBool
-ValueToIterator(JSContext *cx, unsigned flags, Value *vp);
+ValueToIterator(JSContext *cx, unsigned flags, js::Value *vp);
 
 extern bool
 CloseIterator(JSContext *cx, JSObject *iterObj);
@@ -216,7 +216,7 @@ js_SuppressDeletedElements(JSContext *cx, JSObject *obj, uint32_t begin, uint32_
 
 
 extern JSBool
-js_IteratorMore(JSContext *cx, js::HandleObject iterobj, js::Value *rval);
+js_IteratorMore(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
 extern JSBool
 js_IteratorNext(JSContext *cx, JSObject *iterobj, js::Value *rval);
@@ -233,7 +233,7 @@ namespace js {
 
 
 inline bool
-Next(JSContext *cx, HandleObject iter, Value *vp)
+Next(JSContext *cx, JSObject *iter, Value *vp)
 {
     if (!js_IteratorMore(cx, iter, vp))
         return false;
@@ -262,7 +262,7 @@ ForOf(JSContext *cx, const Value &iterable, Op op)
     Value iterv(iterable);
     if (!ValueToIterator(cx, JSITER_FOR_OF, &iterv))
         return false;
-    RootedVarObject iter(cx, &iterv.toObject());
+    JSObject *iter = &iterv.toObject();
 
     bool ok = true;
     while (ok) {

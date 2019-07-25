@@ -60,13 +60,13 @@ class StringObject : public JSObject
 
 
 
-    static inline StringObject *create(JSContext *cx, HandleString str);
+    static inline StringObject *create(JSContext *cx, JSString *str);
 
     
 
 
 
-    static inline StringObject *createWithProto(JSContext *cx, HandleString str, JSObject &proto);
+    static inline StringObject *createWithProto(JSContext *cx, JSString *str, JSObject &proto);
 
     JSString *unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toString();
@@ -81,7 +81,7 @@ class StringObject : public JSObject
     }
 
   private:
-    inline bool init(JSContext *cx, HandleString str);
+    inline bool init(JSContext *cx, JSString *str);
 
     void setStringThis(JSString *str) {
         JS_ASSERT(getReservedSlot(PRIMITIVE_VALUE_SLOT).isUndefined());

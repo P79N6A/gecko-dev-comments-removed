@@ -54,8 +54,6 @@
 #include "frontend/Parser.h"
 #include "frontend/ParseMaps.h"
 
-#include "vm/ScopeObject.h"
-
 namespace js {
 
 typedef HashSet<JSAtom *> FuncStmtSet;
@@ -138,12 +136,12 @@ struct StmtInfo {
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
-    RootedVarAtom   label;          
-    RootedVar<StaticBlockObject *> blockObj; 
+    union {
+        JSAtom      *label;         
+        StaticBlockObject *blockObj;
+    };
     StmtInfo        *down;          
     StmtInfo        *downScope;     
-
-    StmtInfo(JSContext *cx) : label(cx), blockObj(cx) {}
 };
 
 #define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
@@ -338,8 +336,7 @@ struct TreeContext {
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
-    RootedVar<StaticBlockObject *> blockChain;
-                                    
+    StaticBlockObject *blockChain;  
 
 
     ParseNode       *blockNode;     
@@ -354,9 +351,11 @@ struct TreeContext {
 
 
   private:
-    RootedVarFunction fun_;         
+    union {
+        JSFunction  *fun_;          
 
-    RootedVarObject   scopeChain_;  
+        JSObject    *scopeChain_;   
+    };
 
   public:
     JSFunction *fun() const {
@@ -545,8 +544,7 @@ class GCConstList {
 
 struct GlobalScope {
     GlobalScope(JSContext *cx, JSObject *globalObj, BytecodeEmitter *bce)
-      : globalObj(cx, globalObj), bce(bce), defs(cx), names(cx),
-        defsRoot(cx, &defs), namesRoot(cx, &names)
+      : globalObj(globalObj), bce(bce), defs(cx), names(cx)
     { }
 
     struct GlobalDef {
@@ -560,7 +558,7 @@ struct GlobalScope {
         GlobalDef(JSAtom *atom, FunctionBox *box) : atom(atom), funbox(box) { }
     };
 
-    RootedVarObject globalObj;
+    JSObject        *globalObj;
     BytecodeEmitter *bce;
 
     
@@ -573,13 +571,6 @@ struct GlobalScope {
 
     Vector<GlobalDef, 16> defs;
     AtomIndexMap      names;
-
-    
-
-
-
-    JS::SkipRoot      defsRoot;
-    JS::SkipRoot      namesRoot;
 };
 
 struct BytecodeEmitter : public TreeContext

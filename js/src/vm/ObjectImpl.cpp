@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=78:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -21,7 +21,7 @@ using namespace js;
 
 static ObjectElements emptyElementsHeader(0, 0);
 
-
+/* Objects with no elements share one empty set of elements. */
 HeapSlot *js::emptyObjectElements =
     reinterpret_cast<HeapSlot *>(uintptr_t(&emptyElementsHeader) + sizeof(ObjectElements));
 
@@ -124,14 +124,14 @@ js::ObjectImpl::slotInRange(uint32_t slot, SentinelAllowed sentinel) const
         return slot <= capacity;
     return slot < capacity;
 }
-#endif 
+#endif /* DEBUG */
 
 #if defined(_MSC_VER) && _MSC_VER >= 1500
-
-
-
-
-
+/*
+ * Work around a compiler bug in MSVC9 and above, where inlining this function
+ * causes stack pointer offsets to go awry and spp to refer to something higher
+ * up the stack.
+ */
 MOZ_NEVER_INLINE
 #endif
 const Shape *
@@ -141,15 +141,6 @@ js::ObjectImpl::nativeLookup(JSContext *cx, jsid id)
     Shape **spp;
     return Shape::search(cx, lastProperty(), id, &spp);
 }
-
-#ifdef DEBUG
-const Shape *
-js::ObjectImpl::nativeLookupNoAllocation(JSContext *cx, jsid id)
-{
-    MOZ_ASSERT(isNative());
-    return Shape::searchNoAllocation(cx, lastProperty(), id);
-}
-#endif
 
 void
 js::ObjectImpl::markChildren(JSTracer *trc)
@@ -185,10 +176,10 @@ js::DenseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
 {
     MOZ_ASSERT(this == &obj->elementsHeader());
 
-    
-
-
-
+    /*
+     * If the new property doesn't have the right attributes, or an atypical
+     * getter or setter is being used, go sparse.
+     */
     if (attrs != JSPROP_ENUMERATE ||
         (attrs & (JSPROP_GETTER | JSPROP_SETTER)) || getter || setter)
     {
@@ -198,21 +189,21 @@ js::DenseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
         return elts.defineElement(cx, obj, index, value, getter, setter, attrs);
     }
 
-    
+    /* If space for the dense element already exists, we only need set it. */
     uint32_t initLen = initializedLength();
     if (index < initLen) {
         obj->elements[index].set(obj->asObjectPtr(), index, value);
         return true;
     }
 
-    
+    /* Otherwise we ensure space for it exists and that it's initialized. */
     ObjectImpl::DenseElementsResult res = obj->ensureDenseElementsInitialized(cx, index, 0);
 
-    
+    /* Propagate any error. */
     if (res == ObjectImpl::Failure)
         return false;
 
-    
+    /* Otherwise, if the index was too far out of range, go sparse. */
     if (res == ObjectImpl::ConvertToSparse) {
         if (!obj->makeElementsSparse(cx))
             return false;
@@ -220,7 +211,7 @@ js::DenseElementsHeader::defineElement(JSContext *cx, ObjectImpl *obj,
         return elts.defineElement(cx, obj, index, value, getter, setter, attrs);
     }
 
-    
+    /* But if we were able to ensure the element's existence, we're good. */
     MOZ_ASSERT(res == ObjectImpl::Succeeded);
     obj->elements[index].set(obj->asObjectPtr(), index, value);
     return true;
@@ -243,12 +234,12 @@ js::TypedElementsHeader<T>::defineElement(JSContext *cx, ObjectImpl *obj,
                                        uint32_t index, const Value &value,
                                        PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
 {
-    
-
-
-
+    /*
+     * XXX This isn't really a good error message, if this is even how typed
+     *     arrays should behave...
+     */
     js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_OBJECT_NOT_EXTENSIBLE,
-                             JSDVG_IGNORE_STACK, ObjectValue(*(JSObject*)obj), 
+                             JSDVG_IGNORE_STACK, ObjectValue(*(JSObject*)obj), // XXX
                              NULL, NULL, NULL);
     return false;
 }

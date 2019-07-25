@@ -145,13 +145,13 @@ IsNativeFunction(const js::Value &v, JSNative native)
 
 
 static JS_ALWAYS_INLINE bool
-ClassMethodIsNative(JSContext *cx, HandleObject obj, Class *clasp, HandleId methodid, JSNative native)
+ClassMethodIsNative(JSContext *cx, JSObject *obj, Class *clasp, jsid methodid, JSNative native)
 {
     JS_ASSERT(obj->getClass() == clasp);
 
     Value v;
     if (!HasDataProperty(cx, obj, methodid, &v)) {
-        RootedVarObject proto(cx, obj->getProto());
+        JSObject *proto = obj->getProto();
         if (!proto || proto->getClass() != clasp || !HasDataProperty(cx, proto, methodid, &v))
             return false;
     }
@@ -205,6 +205,21 @@ Function(JSContext *cx, unsigned argc, Value *vp);
 extern bool
 IsBuiltinFunctionConstructor(JSFunction *fun);
 
+
+
+
+
+
+
+
+
+
+
+
+
+const Shape *
+LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj);
+
 static inline JSObject *
 SkipScopeParent(JSObject *parent)
 {
@@ -216,11 +231,11 @@ SkipScopeParent(JSObject *parent)
 }
 
 inline JSFunction *
-CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
+CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
                     gc::AllocKind kind = JSFunction::FinalizeKind)
 {
     JS_ASSERT(parent);
-    RootedVarObject proto(cx, parent->global().getOrCreateFunctionPrototype(cx));
+    JSObject *proto = parent->global().getOrCreateFunctionPrototype(cx);
     if (!proto)
         return NULL;
 
@@ -228,7 +243,7 @@ CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
 }
 
 inline JSFunction *
-CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObject parent)
+CloneFunctionObjectIfNotSingleton(JSContext *cx, JSFunction *fun, JSObject *parent)
 {
     
 
@@ -248,7 +263,7 @@ CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObjec
 }
 
 inline JSFunction *
-CloneFunctionObject(JSContext *cx, HandleFunction fun)
+CloneFunctionObject(JSContext *cx, JSFunction *fun)
 {
     
 
@@ -262,9 +277,7 @@ CloneFunctionObject(JSContext *cx, HandleFunction fun)
     if (fun->hasSingletonType())
         return fun;
 
-    return js_CloneFunctionObject(cx, fun,
-                                  RootedVarObject(cx, fun->environment()),
-                                  RootedVarObject(cx, fun->getProto()),
+    return js_CloneFunctionObject(cx, fun, fun->environment(), fun->getProto(),
                                   JSFunction::ExtendedFinalizeKind);
 }
 

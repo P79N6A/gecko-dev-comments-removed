@@ -1,48 +1,48 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsscope_h___
 #define jsscope_h___
-
-
-
+/*
+ * JS symbol tables.
+ */
 #include <new>
 #ifdef DEBUG
 #include <stdio.h>
@@ -63,95 +63,95 @@
 #pragma warning(disable:4100) /* Silence unreferenced formal parameter warnings */
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * In isolation, a Shape represents a property that exists in one or more
+ * objects; it has an id, flags, etc. (But it doesn't represent the property's
+ * value.)  However, Shapes are always stored in linked linear sequence of
+ * Shapes, called "shape lineages". Each shape lineage represents the layout of
+ * an entire object. 
+ *   
+ * Every JSObject has a pointer, |shape_|, accessible via lastProperty(), to
+ * the last Shape in a shape lineage, which identifies the property most
+ * recently added to the object.  This pointer permits fast object layout
+ * tests. The shape lineage order also dictates the enumeration order for the
+ * object; ECMA requires no particular order but this implementation has
+ * promised and delivered property definition order.
+ *   
+ * Shape lineages occur in two kinds of data structure.
+ * 
+ * 1. N-ary property trees. Each path from a non-root node to the root node in
+ *    a property tree is a shape lineage. Property trees permit full (or
+ *    partial) sharing of Shapes between objects that have fully (or partly)
+ *    identical layouts. The root is an EmptyShape whose identity is determined
+ *    by the object's class, compartment and prototype. These Shapes are shared
+ *    and immutable.
+ * 
+ * 2. Dictionary mode lists. Shapes in such lists are said to be "in
+ *    dictionary mode", as are objects that point to such Shapes. These Shapes
+ *    are unshared, private to a single object, and immutable except for their
+ *    links in the dictionary list.
+ * 
+ * All shape lineages are bi-directionally linked, via the |parent| and
+ * |kids|/|listp| members.
+ * 
+ * Shape lineages start out life in the property tree. They can be converted
+ * (by copying) to dictionary mode lists in the following circumstances.
+ * 
+ * 1. The shape lineage's size reaches MAX_HEIGHT. This reasonable limit avoids
+ *    potential worst cases involving shape lineage mutations.
+ * 
+ * 2. A property represented by a non-last Shape in a shape lineage is removed
+ *    from an object. (In the last Shape case, obj->shape_ can be easily
+ *    adjusted to point to obj->shape_->parent.)  We originally tried lazy
+ *    forking of the property tree, but this blows up for delete/add
+ *    repetitions.
+ * 
+ * 3. A property represented by a non-last Shape in a shape lineage has its
+ *    attributes modified.
+ * 
+ * To find the Shape for a particular property of an object initially requires
+ * a linear search. But if the number of searches starting at any particular
+ * Shape in the property tree exceeds MAX_LINEAR_SEARCHES and the Shape's
+ * lineage has (excluding the EmptyShape) at least MIN_ENTRIES, we create an
+ * auxiliary hash table -- the PropertyTable -- that allows faster lookup.
+ * Furthermore, a PropertyTable is always created for dictionary mode lists,
+ * and it is attached to the last Shape in the lineage. Property tables for
+ * property tree Shapes never change, but property tables for dictionary mode
+ * Shapes can grow and shrink.
+ *
+ * There used to be a long, math-heavy comment here explaining why property
+ * trees are more space-efficient than alternatives.  This was removed in bug
+ * 631138; see that bug for the full details.
+ *
+ * Because many Shapes have similar data, there is actually a secondary type
+ * called a BaseShape that holds some of a Shape's data.  Many shapes can share
+ * a single BaseShape.
+ */
 
 namespace js {
 
-
+/* Limit on the number of slotful properties in an object. */
 static const uint32_t SHAPE_INVALID_SLOT = JS_BIT(24) - 1;
 static const uint32_t SHAPE_MAXIMUM_SLOT = JS_BIT(24) - 2;
 
-
-
-
-
+/*
+ * Shapes use multiplicative hashing, but specialized to
+ * minimize footprint.
+ */
 struct PropertyTable {
     static const uint32_t HASH_BITS     = tl::BitSize<HashNumber>::result;
     static const uint32_t MIN_ENTRIES   = 7;
     static const uint32_t MIN_SIZE_LOG2 = 4;
     static const uint32_t MIN_SIZE      = JS_BIT(MIN_SIZE_LOG2);
 
-    int             hashShift;          
+    int             hashShift;          /* multiplicative hash shift */
 
-    uint32_t        entryCount;         
-    uint32_t        removedCount;       
-    uint32_t        freelist;           
-
-
-    js::Shape       **entries;          
+    uint32_t        entryCount;         /* number of entries in table */
+    uint32_t        removedCount;       /* removed entry sentinels in table */
+    uint32_t        freelist;           /* SHAPE_INVALID_SLOT or head of slot
+                                           freelist in owning dictionary-mode
+                                           object */
+    js::Shape       **entries;          /* table of ptrs to shared tree nodes */
 
     PropertyTable(uint32_t nentries)
       : hashShift(HASH_BITS - MIN_SIZE_LOG2),
@@ -159,51 +159,51 @@ struct PropertyTable {
         removedCount(0),
         freelist(SHAPE_INVALID_SLOT)
     {
-        
+        /* NB: entries is set by init, which must be called. */
     }
 
     ~PropertyTable() {
         js::UnwantedForeground::free_(entries);
     }
 
-    
+    /* By definition, hashShift = HASH_BITS - log2(capacity). */
     uint32_t capacity() const { return JS_BIT(HASH_BITS - hashShift); }
 
-    
+    /* Computes the size of the entries array for a given capacity. */
     static size_t sizeOfEntries(size_t cap) { return cap * sizeof(Shape *); }
 
-    
-
-
-
+    /*
+     * This counts the PropertyTable object itself (which must be
+     * heap-allocated) and its |entries| array.
+     */
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
         return mallocSizeOf(this) + mallocSizeOf(entries);
     }
 
-    
+    /* Whether we need to grow.  We want to do this if the load factor is >= 0.75 */
     bool needsToGrow() const {
         uint32_t size = capacity();
         return entryCount + removedCount >= size - (size >> 2);
     }
 
-    
-
-
-
-
+    /*
+     * Try to grow the table.  On failure, reports out of memory on cx
+     * and returns false.  This will make any extant pointers into the
+     * table invalid.  Don't call this unless needsToGrow() is true.
+     */
     bool grow(JSContext *cx);
 
-    
-
-
-
-
+    /*
+     * NB: init and change are fallible but do not report OOM, so callers can
+     * cope or ignore. They do however use JSRuntime's calloc_ method in order
+     * to update the malloc counter on success.
+     */
     bool            init(JSRuntime *rt, js::Shape *lastProp);
     bool            change(int log2Delta, JSContext *cx);
     js::Shape       **search(jsid id, bool adding);
 };
 
-} 
+} /* namespace js */
 
 struct JSObject;
 
@@ -211,58 +211,58 @@ namespace js {
 
 class PropertyTree;
 
-
-
-
+/*
+ * Reuse the API-only JSPROP_INDEX attribute to mean shadowability.
+ */
 #define JSPROP_SHADOWABLE       JSPROP_INDEX
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Shapes encode information about both a property lineage *and* a particular
+ * property. This information is split across the Shape and the BaseShape
+ * at shape->base(). Both Shape and BaseShape can be either owned or unowned
+ * by, respectively, the Object or Shape referring to them.
+ *
+ * Owned Shapes are used in dictionary objects, and form a doubly linked list
+ * whose entries are all owned by that dictionary. Unowned Shapes are all in
+ * the property tree.
+ *
+ * Owned BaseShapes are used for shapes which have property tables, including
+ * the last properties in all dictionaries. Unowned BaseShapes compactly store
+ * information common to many shapes. In a given compartment there is a single
+ * BaseShape for each combination of BaseShape information. This information
+ * is cloned in owned BaseShapes so that information can be quickly looked up
+ * for a given object or shape without regard to whether the base shape is
+ * owned or not.
+ *
+ * All combinations of owned/unowned Shapes/BaseShapes are possible:
+ *
+ * Owned Shape, Owned BaseShape:
+ *
+ *     Last property in a dictionary object. The BaseShape is transferred from
+ *     property to property as the object's last property changes.
+ *
+ * Owned Shape, Unowned BaseShape:
+ *
+ *     Property in a dictionary object other than the last one.
+ *
+ * Unowned Shape, Owned BaseShape:
+ *
+ *     Property in the property tree which has a property table.
+ *
+ * Unowned Shape, Unowned BaseShape:
+ *
+ *     Property in the property tree which does not have a property table.
+ *
+ * BaseShapes additionally encode some information about the referring object
+ * itself. This includes the object's class, parent and various flags that may
+ * be set for the object. Except for the class, this information is mutable and
+ * may change when the object has an established property lineage. On such
+ * changes the entire property lineage is not updated, but rather only the
+ * last property (and its base shape). This works because only the object's
+ * last property is used to query information about the object. Care must be
+ * taken to call JSObject::canRemoveLastProperty when unwinding an object to
+ * an earlier property, however.
+ */
 
 class UnownedBaseShape;
 
@@ -274,18 +274,18 @@ class BaseShape : public js::gc::Cell
     friend struct StackShape;
 
     enum Flag {
-        
+        /* Owned by the referring shape. */
         OWNED_SHAPE        = 0x1,
 
-        
+        /* getterObj/setterObj are active in unions below. */
         HAS_GETTER_OBJECT  = 0x2,
         HAS_SETTER_OBJECT  = 0x4,
 
-        
-
-
-
-
+        /*
+         * Flags set which describe the referring object. Once set these cannot
+         * be unset, and are transferred from shape to shape as the object's
+         * last property changes.
+         */
 
         EXTENSIBLE_PARENTS =    0x8,
         DELEGATE           =   0x10,
@@ -303,28 +303,28 @@ class BaseShape : public js::gc::Cell
     };
 
   private:
-    Class               *clasp;         
-    HeapPtrObject       parent;         
-    uint32_t            flags;          
-    uint32_t            slotSpan_;      
-
+    Class               *clasp;         /* Class of referring object. */
+    HeapPtrObject       parent;         /* Parent of referring object. */
+    uint32_t            flags;          /* Vector of above flags. */
+    uint32_t            slotSpan_;      /* Object slot span for BaseShapes at
+                                         * dictionary last properties. */
 
     union {
-        js::PropertyOp  rawGetter;      
-        JSObject        *getterObj;     
-
+        js::PropertyOp  rawGetter;      /* getter hook for shape */
+        JSObject        *getterObj;     /* user-defined callable "get" object or
+                                           null if shape->hasGetterValue() */
     };
 
     union {
-        js::StrictPropertyOp rawSetter; 
-        JSObject        *setterObj;     
-
+        js::StrictPropertyOp rawSetter; /* setter hook for shape */
+        JSObject        *setterObj;     /* user-defined callable "set" object or
+                                           null if shape->hasSetterValue() */
     };
 
-    
+    /* For owned BaseShapes, the canonical unowned BaseShape. */
     HeapPtr<UnownedBaseShape> unowned_;
 
-    
+    /* For owned BaseShapes, the shape's property table. */
     PropertyTable       *table_;
 
   public:
@@ -335,7 +335,7 @@ class BaseShape : public js::gc::Cell
                      uint8_t attrs, PropertyOp rawGetter, StrictPropertyOp rawSetter);
     inline BaseShape(const StackBaseShape &base);
 
-    
+    /* Not defined: BaseShapes must not be stack allocated. */
     ~BaseShape();
 
     inline BaseShape &operator=(const BaseShape &other);
@@ -364,22 +364,22 @@ class BaseShape : public js::gc::Cell
     uint32_t slotSpan() const { JS_ASSERT(isOwned()); return slotSpan_; }
     void setSlotSpan(uint32_t slotSpan) { JS_ASSERT(isOwned()); slotSpan_ = slotSpan; }
 
-    
+    /* Lookup base shapes from the compartment's baseShapes table. */
     static UnownedBaseShape *getUnowned(JSContext *cx, const StackBaseShape &base);
 
-    
+    /* Get the canonical base shape. */
     inline UnownedBaseShape *unowned();
 
-    
+    /* Get the canonical base shape for an owned one. */
     inline UnownedBaseShape *baseUnowned();
 
-    
+    /* Get the canonical base shape for an unowned one (i.e. identity). */
     inline UnownedBaseShape *toUnowned();
 
-    
+    /* Check that an owned base shape is consistent with its unowned base. */
     inline void assertConsistency();
 
-    
+    /* For JIT usage */
     static inline size_t offsetOfClass() { return offsetof(BaseShape, clasp); }
     static inline size_t offsetOfParent() { return offsetof(BaseShape, parent); }
     static inline size_t offsetOfFlags() { return offsetof(BaseShape, flags); }
@@ -418,7 +418,7 @@ BaseShape::baseUnowned()
     JS_ASSERT(isOwned() && unowned_); return unowned_;
 }
 
-
+/* Entries for the per-compartment baseShapes set of unowned base shapes. */
 struct StackBaseShape
 {
     typedef const StackBaseShape *Lookup;
@@ -476,52 +476,48 @@ struct Shape : public js::gc::Cell
 
     JS_ENUM_HEADER(SlotInfo, uint32_t)
     {
-        
+        /* Number of fixed slots in objects with this shape. */
         FIXED_SLOTS_MAX        = 0x1f,
         FIXED_SLOTS_SHIFT      = 27,
         FIXED_SLOTS_MASK       = uint32_t(FIXED_SLOTS_MAX << FIXED_SLOTS_SHIFT),
 
-        
-
-
-
-
-
+        /* 
+         * numLinearSearches starts at zero and is incremented initially on
+         * search() calls. Once numLinearSearches reaches LINEAR_SEARCHES_MAX,
+         * the table is created on the next search() call. The table can also
+         * be created when hashifying for dictionary mode.
+         */
         LINEAR_SEARCHES_MAX    = 0x7,
         LINEAR_SEARCHES_SHIFT  = 24,
         LINEAR_SEARCHES_MASK   = LINEAR_SEARCHES_MAX << LINEAR_SEARCHES_SHIFT,
 
-        
-
-
-
-
-
+        /*
+         * Mask to get the index in object slots for shapes which hasSlot().
+         * For !hasSlot() shapes in the property tree with a parent, stores the
+         * parent's slot index (which may be invalid), and invalid for all
+         * other shapes.
+         */
         SLOT_MASK              = JS_BIT(24) - 1
     } JS_ENUM_FOOTER(SlotInfo);
 
-    uint32_t            slotInfo;       
-    uint8_t             attrs;          
-    uint8_t             flags;          
-    int16_t             shortid_;       
+    uint32_t            slotInfo;       /* mask of above info */
+    uint8_t             attrs;          /* attributes, see jsapi.h JSPROP_* */
+    uint8_t             flags;          /* flags, see below for defines */
+    int16_t             shortid_;       /* tinyid, or local arg/var index */
 
-    HeapPtrShape        parent;        
-    
+    HeapPtrShape        parent;        /* parent node, reverse for..in order */
+    /* kids is valid when !inDictionary(), listp is valid when inDictionary(). */
     union {
-        KidsPointer kids;       
-
-        HeapPtrShape *listp;    
-
-
-
+        KidsPointer kids;       /* null, single child, or a tagged ptr
+                                   to many-kids data structure */
+        HeapPtrShape *listp;    /* dictionary list starting at shape_
+                                   has a double-indirect back pointer,
+                                   either to the next shape's parent if not
+                                   last, else to obj->shape_ */
     };
 
     static inline Shape *search(JSContext *cx, Shape *start, jsid id,
                                 Shape ***pspp, bool adding = false);
-
-#ifdef DEBUG
-    static inline Shape *searchNoAllocation(JSContext *cx, Shape *start, jsid id);
-#endif
 
     inline void removeFromDictionary(JSObject *obj);
     inline void insertIntoDictionary(HeapPtrShape *dictp);
@@ -531,7 +527,7 @@ struct Shape : public js::gc::Cell
 
     Shape *getChildBinding(JSContext *cx, const StackShape &child);
 
-    
+    /* Replace the base shape of the last shape in a non-dictionary lineage with base. */
     static Shape *replaceLastProperty(JSContext *cx, const StackBaseShape &base,
                                       JSObject *proto, Shape *shape);
 
@@ -617,40 +613,40 @@ struct Shape : public js::gc::Cell
     }
 
   protected:
-    
-
-
-
-
+    /*
+     * Implementation-private bits stored in shape->flags. See public: enum {}
+     * flags further below, which were allocated FCFS over time, so interleave
+     * with these bits.
+     */
     enum {
-        
+        /* Property is placeholder for a non-native class. */
         NON_NATIVE      = 0x01,
 
-        
+        /* Property stored in per-object dictionary, not shared property tree. */
         IN_DICTIONARY   = 0x02,
 
         UNUSED_BITS     = 0x3C
     };
 
-    
+    /* Get a shape identical to this one, without parent/kids information. */
     Shape(const StackShape &other, uint32_t nfixed);
 
-    
+    /* Used by EmptyShape (see jsscopeinlines.h). */
     Shape(UnownedBaseShape *base, uint32_t nfixed);
 
-    
+    /* Copy constructor disabled, to avoid misuse of the above form. */
     Shape(const Shape &other) MOZ_DELETE;
 
-    
-
-
-
-
-
+    /*
+     * Whether this shape has a valid slot value. This may be true even if
+     * !hasSlot() (see SlotInfo comment above), and may be false even if
+     * hasSlot() if the shape is being constructed and has not had a slot
+     * assigned yet. After construction, hasSlot() implies !hasMissingSlot().
+     */
     bool hasMissingSlot() const { return maybeSlot() == SHAPE_INVALID_SLOT; }
 
   public:
-    
+    /* Public bits stored in shape->flags. */
     enum {
         HAS_SHORTID     = 0x40,
         PUBLIC_FLAGS    = HAS_SHORTID
@@ -665,7 +661,7 @@ struct Shape : public js::gc::Cell
     PropertyOp getterOp() const { JS_ASSERT(!hasGetterValue()); return base()->rawGetter; }
     JSObject *getterObject() const { JS_ASSERT(hasGetterValue()); return base()->getterObj; }
 
-    
+    // Per ES5, decode null getterObj as the undefined value, which encodes as null.
     Value getterValue() const {
         JS_ASSERT(hasGetterValue());
         return base()->getterObj ? js::ObjectValue(*base()->getterObj) : js::UndefinedValue();
@@ -682,7 +678,7 @@ struct Shape : public js::gc::Cell
     StrictPropertyOp setterOp() const { JS_ASSERT(!hasSetterValue()); return base()->rawSetter; }
     JSObject *setterObject() const { JS_ASSERT(hasSetterValue()); return base()->setterObj; }
 
-    
+    // Per ES5, decode null setterObj as the undefined value, which encodes as null.
     Value setterValue() const {
         JS_ASSERT(hasSetterValue());
         return base()->setterObj ? js::ObjectValue(*base()->setterObj) : js::UndefinedValue();
@@ -759,10 +755,10 @@ struct Shape : public js::gc::Cell
     int16_t shortid() const { JS_ASSERT(hasShortID()); return maybeShortid(); }
     int16_t maybeShortid() const { return shortid_; }
 
-    
-
-
-
+    /*
+     * If SHORTID is set in shape->flags, we use shape->shortid rather
+     * than id when calling shape's getter or setter.
+     */
     jsid getUserId() const {
         return hasShortID() ? INT_TO_JSID(shortid()) : propid();
     }
@@ -771,7 +767,7 @@ struct Shape : public js::gc::Cell
     bool configurable() const { return (attrs & JSPROP_PERMANENT) == 0; }
     bool enumerable() const { return (attrs & JSPROP_ENUMERATE) != 0; }
     bool writable() const {
-        
+        // JS_ASSERT(isDataDescriptor());
         return (attrs & JSPROP_READONLY) == 0;
     }
     bool hasGetterValue() const { return attrs & JSPROP_GETTER; }
@@ -784,60 +780,60 @@ struct Shape : public js::gc::Cell
         return (attrs & (JSPROP_SETTER | JSPROP_GETTER)) != 0;
     }
 
-    
-
-
-
-
-
+    /*
+     * For ES5 compatibility, we allow properties with PropertyOp-flavored
+     * setters to be shadowed when set. The "own" property thereby created in
+     * the directly referenced object will have the same getter and setter as
+     * the prototype property. See bug 552432.
+     */
     bool shadowable() const {
         JS_ASSERT_IF(isDataDescriptor(), writable());
         return hasSlot() || (attrs & JSPROP_SHADOWABLE);
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Sometimes call objects and run-time block objects need unique shapes, but
+     * sometimes they don't.
+     *
+     * Property cache entries only record the shapes of the first and last
+     * objects along the search path, so if the search traverses more than those
+     * two objects, then those first and last shapes must determine the shapes
+     * of everything else along the path. The js_PurgeScopeChain stuff takes
+     * care of making this work, but that suffices only because we require that
+     * start points with the same shape have the same successor object in the
+     * search path --- a cache hit means the starting shapes were equal, which
+     * means the search path tail (everything but the first object in the path)
+     * was shared, which in turn means the effects of a purge will be seen by
+     * all affected starting search points.
+     *
+     * For call and run-time block objects, the "successor object" is the scope
+     * chain parent. Unlike prototype objects (of which there are usually few),
+     * scope chain parents are created frequently (possibly on every call), so
+     * following the shape-implies-parent rule blindly would lead one to give
+     * every call and block its own shape.
+     *
+     * In many cases, however, it's not actually necessary to give call and
+     * block objects their own shapes, and we can do better. If the code will
+     * always be used with the same global object, and none of the enclosing
+     * call objects could have bindings added to them at runtime (by direct eval
+     * calls or function statements), then we can use a fixed set of shapes for
+     * those objects. You could think of the shapes in the functions' bindings
+     * and compile-time blocks as uniquely identifying the global object(s) at
+     * the end of the scope chain.
+     *
+     * (In fact, some JSScripts we do use against multiple global objects (see
+     * bug 618497), and using the fixed shapes isn't sound there.)
+     *
+     * In deciding whether a call or block has any extensible parents, we
+     * actually only need to consider enclosing calls; blocks are never
+     * extensible, and the other sorts of objects that appear in the scope
+     * chains ('with' blocks, say) are not CacheableNonGlobalScopes.
+     *
+     * If the hasExtensibleParents flag is set for the last property in a
+     * script's bindings or a compiler-generated Block object, then created
+     * Call or Block objects need unique shapes. If the flag is clear, then we
+     * can use lastBinding's shape.
+     */
     static Shape *setExtensibleParents(JSContext *cx, Shape *shape);
     bool extensibleParents() const { return !!(base()->flags & BaseShape::EXTENSIBLE_PARENTS); }
 
@@ -875,18 +871,18 @@ struct Shape : public js::gc::Cell
     static inline void writeBarrierPre(const Shape *shape);
     static inline void writeBarrierPost(const Shape *shape, void *addr);
 
-    
-
-
-
-
+    /*
+     * All weak references need a read barrier for incremental GC. This getter
+     * method implements the read barrier. It's used to obtain initial shapes
+     * from the compartment.
+     */
     static inline void readBarrier(const Shape *shape);
 
     static inline ThingRootKind rootKind() { return THING_ROOT_SHAPE; }
 
     inline void markChildren(JSTracer *trc);
 
-    
+    /* For JIT usage */
     static inline size_t offsetOfBase() { return offsetof(Shape, base_); }
 
   private:
@@ -901,41 +897,41 @@ struct EmptyShape : public js::Shape
 {
     EmptyShape(UnownedBaseShape *base, uint32_t nfixed);
 
-    
-
-
-
+    /*
+     * Lookup an initial shape matching the given parameters, creating an empty
+     * shape if none was found.
+     */
     static Shape *getInitialShape(JSContext *cx, Class *clasp, JSObject *proto,
                                   JSObject *parent, gc::AllocKind kind, uint32_t objectFlags = 0);
 
-    
-
-
-
-
+    /*
+     * Reinsert an alternate initial shape, to be returned by future
+     * getInitialShape calls, until the new shape becomes unreachable in a GC
+     * and the table entry is purged.
+     */
     static void insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto);
 };
 
-
-
-
-
+/*
+ * Entries for the per-compartment initialShapes set indexing initial shapes
+ * for objects in the compartment and the associated types.
+ */
 struct InitialShapeEntry
 {
-    
-
-
-
-
+    /*
+     * Initial shape to give to the object. This is an empty shape, except for
+     * certain classes (e.g. String, RegExp) which may add certain baked-in
+     * properties.
+     */
     ReadBarriered<Shape> shape;
 
-    
-
-
-
+    /*
+     * Matching prototype for the entry. The shape of an object determines its
+     * prototype, but the prototype cannot be determined from the shape itself.
+     */
     JSObject *proto;
 
-    
+    /* State used to determine a match on an initial shape. */
     struct Lookup {
         Class *clasp;
         JSObject *proto;
@@ -1006,7 +1002,7 @@ struct StackShape
     inline HashNumber hash() const;
 };
 
-
+/* Rooter for stack allocated shapes. */
 class RootStackShape
 {
     Root<const UnownedBaseShape*> baseShapeRoot;
@@ -1019,13 +1015,13 @@ class RootStackShape
     {}
 };
 
-} 
+} /* namespace js */
 
-
+/* js::Shape pointer tag bit indicating a collision. */
 #define SHAPE_COLLISION                 (uintptr_t(1))
 #define SHAPE_REMOVED                   ((js::Shape *) SHAPE_COLLISION)
 
-
+/* Macros to get and set shape pointer values and collision flags. */
 #define SHAPE_IS_FREE(shape)            ((shape) == NULL)
 #define SHAPE_IS_REMOVED(shape)         ((shape) == SHAPE_REMOVED)
 #define SHAPE_IS_LIVE(shape)            ((shape) > SHAPE_REMOVED)
@@ -1066,10 +1062,10 @@ Shape::search(JSContext *cx, Shape *start, jsid id, Shape ***pspp, bool adding)
                 return SHAPE_FETCH(spp);
             }
         }
-        
-
-
-
+        /*
+         * No table built -- there weren't enough entries, or OOM occurred.
+         * Don't increment numLinearSearches, to keep hasTable() false.
+         */
         JS_ASSERT(!start->hasTable());
     } else {
         start->incrementNumLinearSearches();
@@ -1083,25 +1079,7 @@ Shape::search(JSContext *cx, Shape *start, jsid id, Shape ***pspp, bool adding)
     return NULL;
 }
 
-#ifdef DEBUG
- inline Shape *
-Shape::searchNoAllocation(JSContext *cx, Shape *start, jsid id)
-{
-    if (start->hasTable()) {
-        Shape **spp = start->table().search(id, false);
-        return SHAPE_FETCH(spp);
-    }
-
-    for (Shape *shape = start; shape; shape = shape->parent) {
-        if (shape->propidRef() == id)
-            return shape;
-    }
-
-    return NULL;
-}
-#endif 
-
-} 
+} // namespace js
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -1113,4 +1091,4 @@ namespace JS {
     template<> class AnchorPermitted<const js::Shape *> { };
 }
 
-#endif
+#endif /* jsscope_h___ */
