@@ -291,7 +291,18 @@ public:
     
     
     
-    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
+    
+    PRBool GetExistingFontTable(PRUint32 aTag, hb_blob_t** aBlob);
+
+    
+    
+    
+    
+    
+    
+    
+    hb_blob_t *ShareFontTableAndGetBlob(PRUint32 aTag,
+                                        nsTArray<PRUint8>* aTable);
 
     
     
@@ -981,12 +992,13 @@ public:
     
     
     
-
     
     
-    virtual hb_blob_t *GetFontTable(PRUint32 aTag) {
-        return mFontEntry->GetFontTable(aTag);
-    }
+    
+    
+    
+    
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 
     
     

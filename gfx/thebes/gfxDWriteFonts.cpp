@@ -419,7 +419,10 @@ gfxDWriteFont::GetFontTable(PRUint32 aTag)
     if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
         
         
-        return mFontEntry->GetFontTable(aTag);
+        hb_blob_t *blob;
+        if (mFontEntry->GetExistingFontTable(aTag, &blob)) {
+            return blob;
+        }
     }
 
     return nsnull;
