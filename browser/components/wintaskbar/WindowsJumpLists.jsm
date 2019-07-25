@@ -205,9 +205,6 @@ var WinTaskbarJumpList =
 
     
     this._initTimer();
-
-    
-    this.update();
   },
 
   update: function WTBJL_update() {
