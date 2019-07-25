@@ -79,6 +79,9 @@ struct RuntimeSizes
       , unusedCodeMemory(0)
       , stackCommitted(0)
       , gcMarker(0)
+      , mathCache(0)
+      , scriptFilenames(0)
+      , compartmentObjects(0)
     {}
 
     size_t object;
@@ -91,6 +94,14 @@ struct RuntimeSizes
     size_t unusedCodeMemory;
     size_t stackCommitted;
     size_t gcMarker;
+    size_t mathCache;
+    size_t scriptFilenames;
+
+    
+    
+    
+    
+    size_t compartmentObjects;
 };
 
 struct CompartmentStats
