@@ -1163,4 +1163,16 @@ pref("toolkit.startup.max_resumed_crashes", 3);
 
 
 
+pref("pdfjs.disabled", false);
+
+
+pref("pdfjs.firstRun", true);
+
+
+pref("pdfjs.previousHandler.preferredAction", 0);
+pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
+
+
+
+
 pref("image.mem.max_decoded_image_kb", 256000);

@@ -1,12 +1,21 @@
 
 
 
-
 const RELATIVE_DIR = "browser/extensions/pdfjs/test/";
 const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 
 function test() {
   var tab;
+
+  let handlerService = Cc["@mozilla.org/uriloader/handler-service;1"].getService(Ci.nsIHandlerService);
+  let mimeService = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
+  let handlerInfo = mimeService.getFromTypeAndExtension('application/pdf', 'pdf');
+
+  
+  is(handlerInfo.alwaysAskBeforeHandling, false, 'pdf handler defaults to always-ask is false');
+  is(handlerInfo.preferredAction, Ci.nsIHandlerInfo.handleInternally, 'pdf handler defaults to internal');
+
+  info('Pref action: ' + handlerInfo.preferredAction);
 
   waitForExplicitFinish();
   registerCleanupFunction(function() {
@@ -23,13 +32,14 @@ function test() {
 
     
     setTimeout(function() {
-      runTests(document, window);
+      runTests(document, window, finish);
     }, 0);
   }, true);
 }
 
 
-function runTests(document, window) {
+function runTests(document, window, callback) {
+
   
   
   
@@ -67,5 +77,5 @@ function runTests(document, window) {
   viewBookmark.click();
   ok(viewBookmark.href.length > 0, 'viewBookmark button has href');
 
-  finish();
+  callback();
 }
