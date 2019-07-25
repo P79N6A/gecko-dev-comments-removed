@@ -6846,49 +6846,50 @@ nsGlobalWindow::ActivateOrDeactivate(PRBool aActivate)
   
   
   nsCOMPtr<nsIWidget> mainWidget = GetMainWidget();
-  if (mainWidget) {
-    
-    
-    nsCOMPtr<nsIWidget> topLevelWidget = mainWidget->GetSheetWindowParent();
-    if (!topLevelWidget)
-      topLevelWidget = mainWidget;
+  if (!mainWidget)
+    return;
 
-    
-    nsCOMPtr<nsIDOMWindowInternal> topLevelWindow;
-    if (topLevelWidget == mainWidget) {
-      topLevelWindow = static_cast<nsIDOMWindowInternal *>(this);
-    } else {
-      
-      
-      
-      
-      void* clientData;
-      topLevelWidget->GetClientData(clientData); 
-      nsISupports* data = static_cast<nsISupports*>(clientData);
-      nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(data));
-      topLevelWindow = do_GetInterface(req);
-    }
-
-    if (topLevelWindow) {
-      
-      
-      nsCOMPtr<nsIDOMDocument> domDoc;
-      topLevelWindow->GetDocument(getter_AddRefs(domDoc));
-      nsCOMPtr<nsIDocument> doc(do_QueryInterface(domDoc));
-      nsCOMPtr<nsIDOMXULDocument> xulDoc(do_QueryInterface(doc));
-      nsCOMPtr<nsIDOMChromeWindow> chromeWin = do_QueryInterface(topLevelWindow);
-      if (xulDoc && chromeWin) {
-        nsCOMPtr<nsIContent> rootElem = doc->GetRootContent();
-        if (rootElem) {
-          if (aActivate)
-            rootElem->SetAttr(kNameSpaceID_None, nsGkAtoms::active,
-                              NS_LITERAL_STRING("true"), PR_TRUE);
-          else
-            rootElem->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, PR_TRUE);
-        }
-      }
-    }
+  
+  
+  nsCOMPtr<nsIWidget> topLevelWidget = mainWidget->GetSheetWindowParent();
+  if (!topLevelWidget) {
+    topLevelWidget = mainWidget;
   }
+
+  
+  nsCOMPtr<nsIDOMWindowInternal> topLevelWindow;
+  if (topLevelWidget == mainWidget) {
+    topLevelWindow = static_cast<nsIDOMWindowInternal*>(this);
+  } else {
+    
+    
+    
+    
+    void* clientData;
+    topLevelWidget->GetClientData(clientData); 
+    nsISupports* data = static_cast<nsISupports*>(clientData);
+    nsCOMPtr<nsIInterfaceRequestor> req(do_QueryInterface(data));
+    topLevelWindow = do_GetInterface(req);
+  }
+  if (topLevelWindow) {
+    nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(topLevelWindow));
+    piWin->SetActive(aActivate);
+  }
+}
+
+static PRBool
+NotifyDocumentTree(nsIDocument* aDocument, void* aData)
+{
+  aDocument->EnumerateSubDocuments(NotifyDocumentTree, nsnull);
+  aDocument->DocumentStatesChanged(NS_DOCUMENT_STATE_WINDOW_INACTIVE);
+  return PR_TRUE;
+}
+
+void
+nsGlobalWindow::SetActive(PRBool aActive)
+{
+  nsPIDOMWindow::SetActive(aActive);
+  NotifyDocumentTree(mDoc, nsnull);
 }
 
 void
