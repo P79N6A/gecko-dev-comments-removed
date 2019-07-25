@@ -640,6 +640,20 @@ protected:
 
 
 
+  static const bool kFireMutationEvent           = true;
+  static const bool kDontFireMutationEvent       = false;
+  static const bool kNotifyDocumentObservers     = true;
+  static const bool kDontNotifyDocumentObservers = false;
+  static const bool kCallAfterSetAttr            = true;
+  static const bool kDontCallAfterSetAttr        = false;
+
+  
+
+
+
+
+
+
 
 
 
