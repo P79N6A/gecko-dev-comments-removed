@@ -703,6 +703,17 @@ stubs::GetElem(VMFrame &f)
     f.regs.sp[-2] = *copyFrom;
 }
 
+static inline bool
+FetchElementId(VMFrame &f, JSObject *obj, const Value &idval, jsid &id, Value *vp)
+{
+    int32_t i_;
+    if (ValueFitsInInt32(idval, &i_)) {
+        id = INT_TO_JSID(i_);
+        return true;
+    }
+    return !!js_InternNonIntElementId(f.cx, obj, idval, &id, vp);
+}
+
 void JS_FASTCALL
 stubs::SetElem(VMFrame &f)
 {
@@ -720,13 +731,8 @@ stubs::SetElem(VMFrame &f)
     if (!obj)
         THROW();
 
-    
-    int32_t i_;
-    if (ValueFitsInInt32(idval, &i_)) {
-        id = INT_TO_JSID(i_);
-    } else if (!js_InternNonIntElementId(cx, obj, idval, &id, &regs.sp[-2])) {
+    if (!FetchElementId(f, obj, idval, id, &regs.sp[-2]))
         THROW();
-    }
 
     if (obj->isDenseArray() && JSID_IS_INT(id)) {
         jsuint length = obj->getDenseArrayCapacity();
@@ -1714,5 +1720,50 @@ stubs::EndInit(VMFrame &f)
     const Value &lref = f.regs.sp[-1];
     JS_ASSERT(lref.isObject());
     f.cx->weakRoots.finalizableNewborns[FINALIZE_OBJECT] = &lref.asObject();
+}
+
+void JS_FASTCALL
+stubs::InitElem(VMFrame &f, uint32 last)
+{
+    JSContext *cx = f.cx;
+    JSFrameRegs &regs = f.regs;
+
+    
+    JS_ASSERT(regs.sp - f.fp->base() >= 3);
+    const Value &rref = regs.sp[-1];
+
+    
+    const Value &lref = regs.sp[-3];
+    JS_ASSERT(lref.isObject());
+    JSObject *obj = &lref.asObject();
+
+    
+    jsid id;
+    const Value &idval = regs.sp[-2];
+    if (!FetchElementId(f, obj, idval, id, &regs.sp[-2]))
+        THROW();
+
+    
+
+
+
+    if (!CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL, NULL))
+        THROW();
+
+    
+
+
+
+
+    if (rref.isMagic(JS_ARRAY_HOLE)) {
+        JS_ASSERT(obj->isArray());
+        JS_ASSERT(JSID_IS_INT(id));
+        JS_ASSERT(jsuint(JSID_TO_INT(id)) < JS_ARGS_LENGTH_MAX);
+        if (last && !js_SetLengthProperty(cx, obj, (jsuint) (JSID_TO_INT(id) + 1)))
+            THROW();
+    } else {
+        if (!obj->defineProperty(cx, id, rref, NULL, NULL, JSPROP_ENUMERATE))
+            THROW();
+    }
 }
 
