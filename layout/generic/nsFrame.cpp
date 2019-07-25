@@ -2177,25 +2177,14 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     if (!list.IsEmpty()) {
       
       
+      nsDisplayItem* item;
       if (!child->GetParent()->GetParent() &&
           disp->mPosition == NS_STYLE_POSITION_FIXED) {
-        rv = aLists.PositionedDescendants()->AppendNewToTop(
-          new (aBuilder) nsDisplayFixedPosition(aBuilder, child, child, &list));
-
-        
-        
-        while (!extraPositionedDescendants.IsEmpty()) {
-          nsDisplayList fixedPosDescendantList;
-          nsDisplayItem* item = extraPositionedDescendants.RemoveBottom();
-          fixedPosDescendantList.AppendToTop(item);
-          aLists.PositionedDescendants()->AppendNewToTop(
-            new (aBuilder) nsDisplayFixedPosition(aBuilder, item->GetUnderlyingFrame(),
-                                                  child, &fixedPosDescendantList));
-        }
+        item = new (aBuilder) nsDisplayFixedPosition(aBuilder, child, &list);
       } else {
-        rv = aLists.PositionedDescendants()->AppendNewToTop(
-          new (aBuilder) nsDisplayWrapList(aBuilder, child, &list));
+        item = new (aBuilder) nsDisplayWrapList(aBuilder, child, &list);
       }
+      rv = aLists.PositionedDescendants()->AppendNewToTop(item);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   } else if (disp->IsFloating()) {
