@@ -2349,13 +2349,24 @@ nsHttpChannel::OpenOfflineCacheEntryForWriting()
     return rv;
 }
 
+
 nsresult
 nsHttpChannel::GenerateCacheKey(PRUint32 postID, nsACString &cacheKey)
+{
+    AssembleCacheKey(mFallbackChannel ? mFallbackKey.get() : mSpec.get(),
+                     postID, cacheKey);
+    return NS_OK;
+}
+
+
+void
+nsHttpChannel::AssembleCacheKey(const char *spec, PRUint32 postID,
+                                nsACString &cacheKey)
 {
     cacheKey.Truncate();
 
     if (mLoadFlags & LOAD_ANONYMOUS) {
-      cacheKey.AssignLiteral("anon&");
+        cacheKey.AssignLiteral("anon&");
     }
 
     if (postID) {
@@ -2365,17 +2376,15 @@ nsHttpChannel::GenerateCacheKey(PRUint32 postID, nsACString &cacheKey)
     }
 
     if (!cacheKey.IsEmpty()) {
-      cacheKey.AppendLiteral("uri=");
+        cacheKey.AppendLiteral("uri=");
     }
 
     
-    const char *spec = mFallbackChannel ? mFallbackKey.get() : mSpec.get();
     const char *p = strchr(spec, '#');
     if (p)
         cacheKey.Append(spec, p - spec);
     else
         cacheKey.Append(spec);
-    return NS_OK;
 }
 
 
@@ -3317,24 +3326,8 @@ nsHttpChannel::AsyncProcessRedirection(PRUint32 redirectType)
     LOG(("redirecting to: %s [redirection-limit=%u]\n",
         location, PRUint32(mRedirectionLimit)));
 
-    nsresult rv;
+    nsresult rv = CreateNewURI(location, getter_AddRefs(mRedirectURI));
 
-    
-    
-    nsCOMPtr<nsIIOService> ioService;
-    rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
-    if (NS_FAILED(rv)) return rv;
-
-    
-    nsCAutoString originCharset;
-    rv = mURI->GetOriginCharset(originCharset);
-    if (NS_FAILED(rv))
-        originCharset.Truncate();
-
-    rv = ioService->NewURI(nsDependentCString(location),
-                           originCharset.get(),
-                           mURI,
-                           getter_AddRefs(mRedirectURI));
     if (NS_FAILED(rv)) return rv;
 
     if (mApplicationCache) {
@@ -3352,6 +3345,26 @@ nsHttpChannel::AsyncProcessRedirection(PRUint32 redirectType)
     }
 
     return ContinueProcessRedirectionAfterFallback(NS_OK);
+}
+
+
+nsresult
+nsHttpChannel::CreateNewURI(const char *loc, nsIURI **newURI)
+{
+    nsCOMPtr<nsIIOService> ioService;
+    nsresult rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
+    if (NS_FAILED(rv)) return rv;
+
+    
+    nsCAutoString originCharset;
+    rv = mURI->GetOriginCharset(originCharset);
+    if (NS_FAILED(rv))
+        originCharset.Truncate();
+
+    return ioService->NewURI(nsDependentCString(loc),
+                             originCharset.get(),
+                             mURI,
+                             newURI);
 }
 
 nsresult
@@ -4975,37 +4988,82 @@ nsHttpChannel::MaybeInvalidateCacheEntryForSubsequentGet()
        mRequestHead.Method() == nsHttp::Trace ||
        mRequestHead.Method() == nsHttp::Connect)
         return;
-        
-    
-    
-    
-    
-    
-    LOG(("MaybeInvalidateCacheEntryForSubsequentGet [this=%p]\n", this));
 
-    nsCAutoString tmpCacheKey;
+
     
+    
+    nsCAutoString tmpCacheKey;
     GenerateCacheKey(0, tmpCacheKey);
+    LOG(("MaybeInvalidateCacheEntryForSubsequentGet [this=%p uri=%s]\n", 
+        this, tmpCacheKey.get()));
+    DoInvalidateCacheEntry(tmpCacheKey);
+
+    
+    const char *location = mResponseHead->PeekHeader(nsHttp::Location);
+    if (location) {
+        LOG(("  Location-header=%s\n", location));
+        InvalidateCacheEntryForLocation(location);
+    }
+
+    
+    location = mResponseHead->PeekHeader(nsHttp::Content_Location);
+    if (location) {
+        LOG(("  Content-Location-header=%s\n", location));
+        InvalidateCacheEntryForLocation(location);
+    }
+}
+
+void
+nsHttpChannel::InvalidateCacheEntryForLocation(const char *location)
+{
+    nsCAutoString tmpCacheKey, tmpSpec;
+    nsCOMPtr<nsIURI> resultingURI;
+    nsresult rv = CreateNewURI(location, getter_AddRefs(resultingURI));
+    if (NS_SUCCEEDED(rv) && HostPartIsTheSame(resultingURI)) {
+        if (NS_SUCCEEDED(resultingURI->GetAsciiSpec(tmpSpec))) {
+            location = tmpSpec.get();  
+
+            
+            AssembleCacheKey(location, 0, tmpCacheKey);
+            DoInvalidateCacheEntry(tmpCacheKey);
+        } else
+            NS_WARNING(("  failed getting ascii-spec\n"));
+    } else {
+        LOG(("  hosts not matching\n"));
+    }
+}
+
+void
+nsHttpChannel::DoInvalidateCacheEntry(nsACString &key)
+{
+    
+    
+    
+    
+    
 
     
     nsCOMPtr<nsICacheSession> session;
     nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
 
-    nsresult rv;
-    rv = gHttpHandler->GetCacheSession(storagePolicy,
-                                       getter_AddRefs(session));
+    nsresult rv = gHttpHandler->GetCacheSession(storagePolicy,
+                                                getter_AddRefs(session));
 
-    if (NS_FAILED(rv)) return;
+    if (NS_FAILED(rv))
+        return;
 
     
     nsCOMPtr<nsICacheEntryDescriptor> tmpCacheEntry;
-    rv = session->OpenCacheEntry(tmpCacheKey, nsICache::ACCESS_READ,
+    rv = session->OpenCacheEntry(key, nsICache::ACCESS_READ,
                                  PR_FALSE,
                                  getter_AddRefs(tmpCacheEntry));
-    
+
     
     if(NS_SUCCEEDED(rv)) {
-       tmpCacheEntry->SetExpirationTime(0);
+        tmpCacheEntry->SetExpirationTime(0);
+        LOG(("  cache-entry invalidated [key=%s]\n", key.Data()));
+    } else {
+        LOG(("  cache-entry not found [key=%s]\n", key.Data()));
     }
 }
 
