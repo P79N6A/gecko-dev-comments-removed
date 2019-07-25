@@ -2,17 +2,13 @@
 
 
 
-#ifndef mozilla_a11y_AccCollector_h__
-#define mozilla_a11y_AccCollector_h__
+#ifndef AccCollector_h_
+#define AccCollector_h_
 
-#include "Filters.h"
+#include "filters.h"
 
+#include "nscore.h"
 #include "nsTArray.h"
-
-class Accessible;
-
-namespace mozilla {
-namespace a11y {
 
 
 
@@ -86,10 +82,7 @@ protected:
 
   virtual void AppendObject(Accessible* aAccessible);
 
-  friend class ::Accessible;
+  friend class Accessible;
 };
-
-} 
-} 
 
 #endif

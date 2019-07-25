@@ -33,14 +33,6 @@ class nsAccessiblePivot;
 
 const uint32_t kDefaultCacheSize = 256;
 
-namespace mozilla {
-namespace a11y {
-
-class RelatedAccIterator;
-
-} 
-} 
-
 class DocAccessible : public HyperTextAccessibleWrap,
                       public nsIAccessibleDocument,
                       public nsIDocumentObserver,
@@ -575,7 +567,7 @@ protected:
   typedef nsTArray<nsAutoPtr<AttrRelProvider> > AttrRelProviderArray;
   nsClassHashtable<nsStringHashKey, AttrRelProviderArray> mDependentIDsHash;
 
-  friend class mozilla::a11y::RelatedAccIterator;
+  friend class RelatedAccIterator;
 
   
 
