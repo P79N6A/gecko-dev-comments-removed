@@ -52,6 +52,8 @@
 namespace js {
 namespace mjit {
 
+
+
 struct FrameAddress : JSC::MacroAssembler::Address
 {
     FrameAddress(int32 offset)
@@ -191,6 +193,14 @@ class BaseAssembler : public JSC::MacroAssembler
 
         
         setupVMFrame();
+
+#ifdef JS_METHODJIT_PROFILE_STUBS
+        push(Registers::ArgReg0);
+        push(Registers::ArgReg1);
+        call(JS_FUNC_TO_DATA_PTR(void *, mjit::ProfileStubCall));
+        pop(Registers::ArgReg1);
+        pop(Registers::ArgReg0);
+#endif
 
         return call(pfun);
     }
