@@ -101,6 +101,7 @@
 #include "nsBidiPresUtils.h"
 
 #include "gfxRect.h"
+#include "ImageLayers.h"
 
 
 #define ICON_SIZE        (16)
@@ -114,7 +115,6 @@
 
 #define ALIGN_UNSET PRUint8(-1)
 
-using namespace mozilla;
 using namespace mozilla::layers;
 
 
