@@ -614,10 +614,6 @@ protected:
   
   TimeStamp mLastPaintEndTime;
 
-#ifdef ACCESSIBILITY
-  static bool           sIsAccessibilityOn;
-#endif 
-
   
   
   static MSG            sRedirectedKeyDown;

@@ -283,10 +283,6 @@ bool            nsWindow::sAllowD3D9              = false;
 
 TriStateBool nsWindow::sHasBogusPopupsDropShadowOnMultiMonitor = TRI_UNKNOWN;
 
-#ifdef ACCESSIBILITY
-bool            nsWindow::sIsAccessibilityOn      = false;
-#endif 
-
 
 const PRUnichar* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
 PRUint32        nsWindow::sOOPPPluginFocusEvent   =
@@ -5195,13 +5191,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       if (sJustGotActivate) {
         result = DispatchFocusToTopLevelWindow(NS_ACTIVATE);
       }
-
-#ifdef ACCESSIBILITY
-      if (nsWindow::sIsAccessibilityOn) {
-        
-        nsAccessible *rootAccessible = GetRootAccessible();
-      }
-#endif
       break;
 
     case WM_KILLFOCUS:
@@ -8066,8 +8055,6 @@ nsWindow::GetRootAccessible()
   
   if (accForceDisable)
       return nsnull;
-
-  nsWindow::sIsAccessibilityOn = true;
 
   if (mInDtor || mOnDestroyCalled || mWindowType == eWindowType_invisible) {
     return nsnull;
