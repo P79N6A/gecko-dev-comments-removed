@@ -576,9 +576,16 @@ public:
     }
 
     
+    bool ShouldEnableRobustnessTimer() {
+        return mHasRobustness ||
+               IsExtensionEnabled(WebGL_MOZ_WEBGL_lose_context) ||
+               (gl != nsnull && gl->GetContextType() == gl::GLContext::ContextTypeEGL);
+    }
+
+    
     
     void SetupRobustnessTimer() {
-        if (mContextLost || (!mHasRobustness && gl->GetContextType() != gl::GLContext::ContextTypeEGL))
+        if (!ShouldEnableRobustnessTimer())
             return;
 
         
@@ -669,10 +676,29 @@ protected:
     PRInt32 mGLMaxVertexUniformVectors;
 
     
+    
+    
+    
+    enum ContextStatus {
+        
+        ContextStable,
+        
+        
+        ContextLostAwaitingEvent,
+        
+        
+        ContextLost,
+        
+        
+        
+        ContextLostAwaitingRestore
+    };
+
+    
     enum WebGLExtensionID {
         WebGL_OES_texture_float,
         WebGL_OES_standard_derivatives,
-        WebGL_WEBGL_EXT_lose_context,
+        WebGL_MOZ_WEBGL_lose_context,
         WebGLExtensionID_Max
     };
     nsCOMPtr<WebGLExtension> mEnabledExtensions[WebGLExtensionID_Max];
@@ -805,6 +831,7 @@ protected:
                              const GLvoid *data);
 
     void MaybeRestoreContext();
+    bool IsContextStable();
     void ForceLoseContext();
     void ForceRestoreContext();
 
@@ -861,10 +888,12 @@ protected:
     int mBackbufferClearingStatus;
 
     nsCOMPtr<nsITimer> mContextRestorer;
-    bool mContextLost;
     bool mAllowRestore;
     bool mRobustnessTimerRunning;
     bool mDrawSinceRobustnessTimerSet;
+    ContextStatus mContextStatus;
+    bool mContextLostErrorSet;
+    bool mContextLostDueToTest;
 
 public:
     
