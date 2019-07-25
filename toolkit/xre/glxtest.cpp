@@ -213,7 +213,7 @@ static void glxtest()
   
   
   
-  glXDestroyContext(dpy, context);
+  glXMakeCurrent(dpy, None, NULL); 
   glXDestroyPixmap(dpy, glxpixmap);
   XFreePixmap(dpy, pixmap);
   XCloseDisplay(dpy);
