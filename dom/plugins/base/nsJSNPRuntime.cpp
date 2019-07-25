@@ -466,8 +466,28 @@ JSValToNPVariant(NPP npp, JSContext *cx, jsval val, NPVariant *variant)
     return true;
   }
 
-  NPObject *npobj =
-    nsJSObjWrapper::GetNewOrUsed(npp, cx, JSVAL_TO_OBJECT(val));
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  JSObject *obj = JSVAL_TO_OBJECT(val);
+  JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
+  obj = js::UnwrapObjectChecked(cx, obj);
+  JS_SetErrorReporter(cx, reporter);
+  if (!obj) {
+    JS_ClearPendingException(cx);
+    obj = JSVAL_TO_OBJECT(val);
+  }
+
+  NPObject *npobj = nsJSObjWrapper::GetNewOrUsed(npp, cx, obj);
   if (!npobj) {
     return false;
   }
