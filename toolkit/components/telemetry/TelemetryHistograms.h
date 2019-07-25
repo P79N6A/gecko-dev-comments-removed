@@ -315,6 +315,13 @@ HISTOGRAM_BOOLEAN(FX_CONTEXT_SEARCH_AND_TAB_SELECT, "Firefox: Background tab was
 HISTOGRAM(FX_IDENTITY_POPUP_OPEN_MS, 1, 1000, 10, EXPONENTIAL, "Firefox: Time taken by the identity popup to open in milliseconds")
 
 
+
+
+HISTOGRAM(FX_THUMBNAILS_CAPTURE_TIME_MS, 1, 500, 15, EXPONENTIAL, "THUMBNAILS: Time (ms) it takes to capture a thumbnail")
+HISTOGRAM(FX_THUMBNAILS_STORE_TIME_MS, 1, 500, 15, EXPONENTIAL, "THUMBNAILS: Time (ms) it takes to store a thumbnail in the cache")
+HISTOGRAM(FX_THUMBNAILS_HIT_OR_MISS, 0, 1, 2, BOOLEAN, "THUMBNAILS: Thumbnail found")
+
+
 HISTOGRAM_BOOLEAN(INNERWINDOWS_WITH_MUTATION_LISTENERS, "Deleted or to-be-reused innerwindow which has had mutation event listeners.")
 HISTOGRAM(XUL_REFLOW_MS, 1, 3000, 10, EXPONENTIAL, "XUL reflows (ms)")
 HISTOGRAM(HTML_REFLOW_MS, 1, 3000, 10, EXPONENTIAL, "HTML reflows (ms)")
