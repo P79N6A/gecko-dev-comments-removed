@@ -277,11 +277,10 @@ window.Group = function(listOfEls, options) {
     
   
   this.$expander = iQ("<img/>")
+    .attr('src', 'chrome://tabcandy/content/img/app/stack-expander.png')
     .addClass("stackExpander")
     .appendTo($container)
     .hide(); 
-  
-  this.$expander.get(0).src = 'chrome://tabcandy/content/img/app/stack-expander.png';    
   
   
   if(this.locked.bounds)
@@ -1227,7 +1226,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     
     iQ(container).droppable(this.dropOptions);
     
-    this.$expander.mousedown(function(){
+    this.$expander.click(function(){
       self.expand();
     });
   },
