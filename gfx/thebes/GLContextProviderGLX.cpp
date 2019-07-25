@@ -180,24 +180,62 @@ GLXLibrary::EnsureInitialized()
     }
 
     Display *display = DefaultXDisplay();
+    PRBool ignoreBlacklist = PR_GetEnv("MOZ_GLX_IGNORE_BLACKLIST") != nsnull;
+    if (!ignoreBlacklist) {
+        
+        
+        
+        const char *clientVendor = xGetClientString(display, GLX_VENDOR);
+        if (clientVendor && strcmp(clientVendor, "ATI") == 0) {
+            printf("[GLX] The ATI proprietary libGL.so.1 is currently "
+                   "blacklisted to avoid crashes that happen in some "
+                   "situations. If you would like to bypass this, set the "
+                   "MOZ_GLX_IGNORE_BLACKLIST environment variable.\n");
+            return PR_FALSE;
+        }
+    }
 
     int screen = DefaultScreen(display);
     const char *serverVendor = NULL;
     const char *serverVersionStr = NULL;
     const char *extensionsStr = NULL;
 
-    if (!xQueryVersion(display, &gGLXMajorVersion, &gGLXMinorVersion)) {
-        gGLXMajorVersion = 0;
-        gGLXMinorVersion = 0;
-        return PR_FALSE;
+    
+    
+    
+    
+    {
+        ScopedXErrorHandler xErrorHandler;
+
+        if (!xQueryVersion(display, &gGLXMajorVersion, &gGLXMinorVersion)) {
+            gGLXMajorVersion = 0;
+            gGLXMinorVersion = 0;
+            return PR_FALSE;
+        }
+
+        serverVendor = xQueryServerString(display, screen, GLX_VENDOR);
+        serverVersionStr = xQueryServerString(display, screen, GLX_VERSION);
+
+        PRBool IsDriverBlacklisted = !serverVendor ||   
+                                     !serverVersionStr ||
+                                     strcmp(serverVendor, "NVIDIA Corporation");
+
+        if (IsDriverBlacklisted && !ignoreBlacklist)
+        {
+          printf("[GLX] your GL driver is currently blocked. If you would like to bypass this, "
+                  "define the MOZ_GLX_IGNORE_BLACKLIST environment variable.\n");
+          return PR_FALSE;
+        }
+
+        if (!GLXVersionCheck(1, 1))
+            
+            return PR_FALSE;
+
+        extensionsStr = xQueryExtensionsString(display, screen);
+
+        if (xErrorHandler.GetError())
+          return PR_FALSE;
     }
-
-    serverVendor = xQueryServerString(display, screen, GLX_VENDOR);
-    serverVersionStr = xQueryServerString(display, screen, GLX_VERSION);
-
-    if (!GLXVersionCheck(1, 1))
-        
-        return PR_FALSE;
 
     LibrarySymbolLoader::SymLoadStruct *sym13;
     if (!GLXVersionCheck(1, 3)) {

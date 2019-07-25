@@ -2727,12 +2727,6 @@ static DWORD InitDwriteBG(LPVOID lpdwThreadParam)
 
 PRTime gXRE_mainTimestamp = 0;
 
-#ifdef MOZ_X11
-#ifndef MOZ_PLATFORM_MAEMO
-void fire_glxtest_process();
-#endif
-#endif
-
 int
 XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 {
@@ -2751,16 +2745,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 #ifdef DEBUG
   if (PR_GetEnv("XRE_MAIN_BREAK"))
     NS_BREAK();
-#endif
-
-  
-  
-  
-  
-#ifdef MOZ_X11
-#ifndef MOZ_PLATFORM_MAEMO
-  fire_glxtest_process();
-#endif
 #endif
 
   SetupErrorHandling(argv[0]);
