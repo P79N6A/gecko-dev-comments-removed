@@ -51,8 +51,8 @@ namespace mozilla {
 namespace dom {
 
 #define MOZILLA_DOM_LINK_IMPLEMENTATION_IID \
-  { 0xa687a99c, 0x3893, 0x45c0, \
-    {0x8e, 0xab, 0xb8, 0xf7, 0xd7, 0x9e, 0x9e, 0x7b } }
+  { 0x7EA57721, 0xE373, 0x458E, \
+    {0x8F, 0x44, 0xF8, 0x96, 0x56, 0xB4, 0x14, 0xF5 } }
 
 class Link : public nsISupports
 {
@@ -112,6 +112,24 @@ public:
   
   
   Element* GetElement() const { return mElement; }
+
+  
+
+
+  virtual void OnDNSPrefetchDeferred() {  }
+  
+  
+
+
+  virtual void OnDNSPrefetchRequested() {  }
+
+  
+
+
+
+
+
+  virtual bool HasDeferredDNSPrefetchRequest() { return true; }
 
 protected:
   virtual ~Link();
