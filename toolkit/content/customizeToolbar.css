@@ -59,6 +59,6 @@
 }
 
 
-toolbarpaletteitem[place="palette"] > .toolbarbutton-1 > .toolbarbutton-text {
+.toolbarbutton-text {
   display: none;
 }
