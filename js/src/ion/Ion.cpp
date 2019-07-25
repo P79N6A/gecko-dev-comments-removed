@@ -171,9 +171,15 @@ IonCompartment::initialize(JSContext *cx)
 void
 IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 {
+    
+    
+    
+    
+    
     if (!compartment->active)
         return;
 
+    
     
     if (enterJIT_)
         MarkIonCodeRoot(trc, enterJIT_.unsafeGetAddress(), "enterJIT");
@@ -182,18 +188,6 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
     
     if (osrPrologue_)
         MarkIonCodeRoot(trc, osrPrologue_.unsafeGetAddress(), "osrPrologue");
-    if (bailoutHandler_)
-        MarkIonCodeRoot(trc, bailoutHandler_.unsafeGetAddress(), "bailoutHandler");
-    if (argumentsRectifier_)
-        MarkIonCodeRoot(trc, argumentsRectifier_.unsafeGetAddress(), "argumentsRectifier");
-    if (invalidator_)
-        MarkIonCodeRoot(trc, invalidator_.unsafeGetAddress(), "invalidator");
-    if (preBarrier_)
-        MarkIonCodeRoot(trc, preBarrier_.unsafeGetAddress(), "preBarrier");
-    for (size_t i = 0; i < bailoutTables_.length(); i++) {
-        if (bailoutTables_[i])
-            MarkIonCodeRoot(trc, bailoutTables_[i].unsafeGetAddress(), "bailoutTable");
-    }
 
     
     
