@@ -3,6 +3,7 @@
 
 
 #include "StartupTimeline.h"
+#include "nsXULAppAPI.h"
 
 namespace mozilla {
 
@@ -13,4 +14,15 @@ const char *StartupTimeline::sStartupTimelineDesc[StartupTimeline::MAX_EVENT_ID]
 #undef mozilla_StartupTimeline_Event
 };
 
+} 
+
+
+
+
+
+void
+XRE_StartupTimelineRecord(int aEvent, PRTime aWhen)
+{
+  mozilla::StartupTimeline::Record((mozilla::StartupTimeline::Event) aEvent, aWhen);
 }
+
