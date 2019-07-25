@@ -112,7 +112,14 @@ public:
 
 
 
-  void BeginUpdatingRetainedLayers(LayerManager* aManager);
+  void WillBeginRetainedLayerTransaction(LayerManager* aManager);
+
+  
+
+
+
+
+  void WillEndTransaction(LayerManager* aManager);
 
   
 

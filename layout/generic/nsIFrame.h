@@ -1810,6 +1810,7 @@ public:
 
 
 
+
   void BeginDeferringInvalidatesForDisplayRoot(const nsRegion& aExcludeRegion);
 
   
@@ -1885,14 +1886,26 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
   enum {
-  	INVALIDATE_IMMEDIATE = 0x01,
-  	INVALIDATE_CROSS_DOC = 0x02,
-  	INVALIDATE_REASON_SCROLL_BLIT = 0x04,
-  	INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
+    INVALIDATE_IMMEDIATE = 0x01,
+    INVALIDATE_CROSS_DOC = 0x02,
+    INVALIDATE_REASON_SCROLL_BLIT = 0x04,
+    INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
     INVALIDATE_REASON_MASK = INVALIDATE_REASON_SCROLL_BLIT |
                              INVALIDATE_REASON_SCROLL_REPAINT,
-    INVALIDATE_NO_THEBES_LAYERS = 0x10
+    INVALIDATE_NO_THEBES_LAYERS = 0x10,
+    INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x20
   };
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,
