@@ -135,6 +135,8 @@ public:
 
   NPError SetWindowless(bool aWindowless);
 
+  NPError SetWindowlessLocal(bool aWindowlessLocal);
+
   NPError SetTransparent(bool aTransparent);
 
   NPError SetWantsAllNetworkStreams(bool aWantsAllNetworkStreams);
@@ -150,6 +152,8 @@ public:
 #ifdef MOZ_WIDGET_ANDROID
   PRUint32 GetANPDrawingModel() { return mANPDrawingModel; }
   void SetANPDrawingModel(PRUint32 aModel);
+
+  
   void* GetJavaSurface();
   void SetJavaSurface(void* aSurface);
   void RequestJavaSurface();
@@ -242,6 +246,7 @@ protected:
   
   
   bool mWindowless;
+  bool mWindowlessLocal;
   bool mTransparent;
   bool mCached;
   bool mUsesDOMForCursor;

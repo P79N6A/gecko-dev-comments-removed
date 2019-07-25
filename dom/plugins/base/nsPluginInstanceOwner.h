@@ -94,6 +94,12 @@ class gfxXlibSurface;
 #include <os2.h>
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+namespace mozilla {
+  class AndroidMediaLayer;
+}
+#endif
+
 
 #ifdef KeyPress
 #undef KeyPress
@@ -135,7 +141,9 @@ public:
 #endif
 
   nsresult Destroy();  
-
+  
+  void PrepareToStop(bool aDelayedStop);
+  
 #ifdef XP_WIN
   void Paint(const RECT& aDirty, HDC aDC);
 #elif defined(XP_MACOSX)
@@ -162,11 +170,14 @@ public:
   
   
   
-  nsresult Init(nsIContent* aContent);
+  nsresult Init(nsPresContext* aPresContext, nsObjectFrame* aFrame,
+                nsIContent* aContent);
   
   void* GetPluginPortFromWidget();
   void ReleasePluginPort(void* pluginPort);
-
+  
+  void SetPluginHost(nsIPluginHost* aHost);
+  
   nsEventStatus ProcessEvent(const nsGUIEvent & anEvent);
   
 #ifdef XP_MACOSX
@@ -205,10 +216,16 @@ public:
   void UpdateWindowVisibility(bool aVisible);
   void UpdateDocumentActiveState(bool aIsActive);
 #endif 
-
-  void SetFrame(nsObjectFrame *aFrame);
-  nsObjectFrame* GetFrame();
-
+  void CallSetWindow();
+  
+  void SetOwner(nsObjectFrame *aOwner)
+  {
+    mObjectFrame = aOwner;
+  }
+  nsObjectFrame* GetOwner() {
+    return mObjectFrame;
+  }
+  
   PRUint32 GetLastEventloopNestingLevel() const {
     return mLastEventloopNestingLevel; 
   }
@@ -286,6 +303,26 @@ public:
   void EndUpdateBackground(gfxContext* aContext, const nsIntRect& aRect);
   
   bool UseAsyncRendering();
+
+#ifdef ANDROID
+  nsIntRect GetVisibleRect() {
+    return nsIntRect(0, 0, mPluginWindow->width, mPluginWindow->height);
+  }
+
+  void SetInverted(bool aInverted) {
+    mInverted = aInverted;
+  }
+
+  bool Inverted() {
+    return mInverted;
+  }
+
+  mozilla::AndroidMediaLayer* Layer() {
+    return mLayer;
+  }
+
+  void Invalidate();
+#endif
   
 private:
   
@@ -299,19 +336,25 @@ private:
   
   void FixUpURLS(const nsString &name, nsAString &value);
 #ifdef ANDROID
+  void SendSize(int width, int height);
+  void SendOnScreenEvent(bool onScreen);
+
   bool AddPluginView(const gfxRect& aRect);
   void RemovePluginView();
-  bool mPluginViewAdded;
-  gfxRect mLastPluginRect;
+
+  bool mOnScreen;
+  bool mInverted;
+
+  
+  mozilla::AndroidMediaLayer *mLayer;
 #endif 
  
   nsPluginNativeWindow       *mPluginWindow;
   nsRefPtr<nsNPAPIPluginInstance> mInstance;
-  nsObjectFrame              *mObjectFrame;
-  nsIContent                 *mContent; 
+  nsObjectFrame              *mObjectFrame; 
+  nsCOMPtr<nsIContent>        mContent;
   nsCString                   mDocumentBase;
   char                       *mTagText;
-  bool                        mWidgetCreationComplete;
   nsCOMPtr<nsIWidget>         mWidget;
   nsRefPtr<nsPluginHost>      mPluginHost;
   
@@ -347,7 +390,10 @@ private:
 #endif
   bool                        mPluginWindowVisible;
   bool                        mPluginDocumentActiveState;
-
+  
+  
+  
+  bool                        mDestroyWidget;
   PRUint16          mNumCachedAttrs;
   PRUint16          mNumCachedParams;
   char              **mCachedAttrParamNames;
@@ -355,11 +401,6 @@ private:
   
 #ifdef XP_MACOSX
   NPEventModel mEventModel;
-  
-  
-  
-  
-  bool mUseAsyncRendering;
 #endif
   
   
