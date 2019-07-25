@@ -298,6 +298,12 @@ struct JSScript {
     inline void setTypeNesting(JSScript *parent, const jsbytecode *pc);
 
     
+
+
+
+    inline void nukeUpvarTypes(JSContext *cx);
+
+    
     inline js::types::TypeObject *
     getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
 

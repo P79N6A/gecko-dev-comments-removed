@@ -362,6 +362,8 @@ class Script
     
     inline Bytecode *parentCode();
 
+    void nukeUpvarTypes(JSContext *cx);
+
     
     void finish(JSContext *cx);
 
@@ -529,6 +531,26 @@ GetDefCount(JSScript *script, unsigned offset)
         return js_CodeSpec[*pc].ndefs;
     }
 }
+
+
+struct UntrapOpcode
+{
+    jsbytecode *pc;
+    bool trap;
+
+    UntrapOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
+        : pc(pc), trap(JSOp(*pc) == JSOP_TRAP)
+    {
+        if (trap)
+            *pc = JS_GetTrapOpcode(cx, script, pc);
+    }
+
+    ~UntrapOpcode()
+    {
+        if (trap)
+            *pc = JSOP_TRAP;
+    }
+};
 
 
 
