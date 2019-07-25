@@ -132,6 +132,12 @@ void nsAccessNode::LastRelease()
 
 
 
+bool
+nsAccessNode::IsDefunct() const
+{
+  return !mContent;
+}
+
 PRBool
 nsAccessNode::Init()
 {

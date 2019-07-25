@@ -1087,8 +1087,8 @@ nsXULTreeGridCellAccessible::IsSelected(PRBool *aIsSelected)
 
 
 
-PRBool
-nsXULTreeGridCellAccessible::IsDefunct()
+bool
+nsXULTreeGridCellAccessible::IsDefunct() const
 {
   return nsLeafAccessible::IsDefunct() || !mParent || !mTree || !mTreeView ||
     !mColumn;

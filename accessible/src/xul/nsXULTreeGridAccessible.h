@@ -155,7 +155,7 @@ public:
   NS_DECL_NSIACCESSIBLETABLECELL
 
   
-  virtual PRBool IsDefunct();
+  virtual bool IsDefunct() const;
   virtual PRBool Init();
   virtual bool IsPrimaryForNode() const;
 

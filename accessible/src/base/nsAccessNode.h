@@ -123,17 +123,17 @@ public:
   
 
 
-  virtual PRBool IsDefunct() { return !mContent; }
-
-  
-
-
   virtual PRBool Init();
 
   
 
 
   virtual void Shutdown();
+
+  
+
+
+  virtual bool IsDefunct() const;
 
   
 

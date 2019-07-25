@@ -332,8 +332,8 @@ nsApplicationAccessible::GetPlatformVersion(nsAString& aVersion)
 
 
 
-PRBool
-nsApplicationAccessible::IsDefunct()
+bool
+nsApplicationAccessible::IsDefunct() const
 {
   return nsAccessibilityService::IsShutdown();
 }
