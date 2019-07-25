@@ -647,7 +647,7 @@ struct TypeNewScript
     JSScript *script;
 
     
-     unsigned finalizeKind;
+    gc::AllocKind allocKind;
 
     
 
@@ -806,8 +806,7 @@ struct TypeObject : gc::Cell
 
 
     inline bool canProvideEmptyShape(js::Class *clasp);
-    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp,
-                                          unsigned kind);
+    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp, gc::AllocKind kind);
 
     
 
