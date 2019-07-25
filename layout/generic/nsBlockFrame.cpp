@@ -5071,13 +5071,60 @@ nsBlockInFlowLineIterator::nsBlockInFlowLineIterator(nsBlockFrame* aFrame,
     nsIFrame* aFindFrame, PRBool* aFoundValidLine)
   : mFrame(aFrame), mInOverflowLines(nsnull)
 {
-  mLine = aFrame->begin_lines();
-
   *aFoundValidLine = PR_FALSE;
 
   nsIFrame* child = FindChildContaining(aFrame, aFindFrame);
   if (!child)
     return;
+
+  
+  nsLineBox* cursor = static_cast<nsLineBox*>
+    (aFrame->Properties().Get(LineCursorProperty()));
+  if (!cursor) {
+    line_iterator iter = aFrame->begin_lines();
+    if (iter != aFrame->end_lines()) {
+      cursor = iter;
+    }
+  }
+
+  if (cursor) {
+    
+    
+    nsBlockFrame::line_iterator line = aFrame->line(cursor);
+    nsBlockFrame::reverse_line_iterator rline = aFrame->rline(cursor);
+    nsBlockFrame::line_iterator line_end = aFrame->end_lines();
+    nsBlockFrame::reverse_line_iterator rline_end = aFrame->rend_lines();
+    for (--rline;;) {
+      if (line == line_end && rline == rline_end) {
+        
+        break;
+      }
+      if (line != line_end) {
+        if (line->Contains(child)) {
+          *aFoundValidLine = PR_TRUE;
+          mLine = line;
+          return;
+        }
+        ++line;
+      }
+      if (rline != rline_end) {
+        if (rline->Contains(child)) {
+          *aFoundValidLine = PR_TRUE;
+          mLine = rline;
+          return;
+        }
+        ++rline;
+      }
+    }
+  }
+
+  
+  
+  
+  
+  
+
+  mLine = aFrame->end_lines();
 
   if (!FindValidLine())
     return;
