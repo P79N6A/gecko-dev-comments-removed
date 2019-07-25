@@ -39,6 +39,7 @@
 
 
 
+
 #ifndef __nanojit_NativeARM__
 #define __nanojit_NativeARM__
 
@@ -65,12 +66,7 @@ namespace nanojit
 
 #define NJ_VFP_MAX_REGISTERS            8
 #define NJ_MAX_REGISTERS                (11 + NJ_VFP_MAX_REGISTERS)
-
-
-
-
-#define NJ_MAX_STACK_ENTRY              1024
-
+#define NJ_MAX_STACK_ENTRY              4096
 #define NJ_MAX_PARAMETERS               16
 #define NJ_ALIGN_STACK                  8
 
@@ -229,6 +225,7 @@ verbose_only( extern const char* shiftNames[]; )
     void        asm_stkarg(LInsp p, int stkd);                                  \
     void        asm_cmpi(Register, int32_t imm);                                \
     void        asm_ldr_chk(Register d, Register b, int32_t off, bool chk);     \
+    int32_t     asm_str(Register rt, Register rr, int32_t off);                 \
     void        asm_cmp(LIns *cond);                                            \
     void        asm_cmpd(LIns *cond);                                           \
     void        asm_ld_imm(Register d, int32_t imm, bool chk = true);           \
