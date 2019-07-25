@@ -90,6 +90,10 @@ public:
           return sBridge->AttachThread();
         return nsnull;
     }
+    
+    static jclass GetGeckoAppShellClass() {
+        return sBridge->mGeckoAppShellClass;
+    }
 
     
     
@@ -230,5 +234,6 @@ protected:
 
 extern "C" JNIEnv * GetJNIForThread();
 extern PRBool mozilla_AndroidBridge_SetMainThread(void *);
+extern jclass GetGeckoAppShellClass();
 
 #endif 
