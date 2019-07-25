@@ -1488,7 +1488,7 @@ pref("dom.ipc.plugins.timeoutSecs", 25);
 
 
 
-pref("dom.ipc.plugins.parentTimeoutSecs", 15);
+pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 25);
