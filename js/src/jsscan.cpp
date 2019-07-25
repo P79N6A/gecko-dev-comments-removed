@@ -177,7 +177,7 @@ js_IsIdentifier(JSString *str)
 
 TokenStream::TokenStream(JSContext *cx)
   : cx(cx), tokens(), cursor(), lookahead(), ungetpos(), ungetbuf(), flags(),
-    linelen(), linepos(), file(), listenerTSData(), tokenbuf(cx)
+    linepos(), lineposNext(), file(), listenerTSData(), tokenbuf(cx)
 {}
 
 #ifdef _MSC_VER
@@ -395,17 +395,11 @@ TokenStream::getChar()
             linebuf.limit = linebuf.base + ulen + llenAdjust;
 
             
-            if (!(flags & TSF_NLFLAG))
-                linepos += linelen;
-            else
-                linepos = 0;
+            linepos = lineposNext;
             if (linebuf.limit[-1] == '\n')
-                flags |= TSF_NLFLAG;
+                lineposNext = 0;
             else
-                flags &= ~TSF_NLFLAG;
-
-            
-            linelen = ulen;
+                lineposNext += ulen;
         }
         c = *linebuf.ptr++;
     }

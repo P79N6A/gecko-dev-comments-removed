@@ -255,7 +255,8 @@ enum TokenStreamFlags
     TSF_EOF = 0x02,             
     TSF_NEWLINES = 0x04,        
     TSF_OPERAND = 0x08,         
-    TSF_NLFLAG = 0x20,          
+    TSF_UNEXPECTED_EOF = 0x10,  
+    TSF_KEYWORD_IS_NAME = 0x20, 
     TSF_STRICT_MODE_CODE = 0x40,
     TSF_DIRTYLINE = 0x80,       
     TSF_OWNFILENAME = 0x100,    
@@ -264,9 +265,6 @@ enum TokenStreamFlags
     TSF_XMLONLYMODE = 0x800,    
 
     
-    TSF_UNEXPECTED_EOF = 0x1000,
-
-    
 
 
 
@@ -285,10 +283,7 @@ enum TokenStreamFlags
 
 
 
-    TSF_IN_HTML_COMMENT = 0x2000,
-
-    
-    TSF_KEYWORD_IS_NAME = 0x4000
+    TSF_IN_HTML_COMMENT = 0x2000
 };
 
 #define t_op            u.s.op
@@ -487,8 +482,8 @@ class TokenStream
     uintN               ungetpos;       
     jschar              ungetbuf[6];    
     uintN               flags;          
-    uint32              linelen;        
     uint32              linepos;        
+    uint32              lineposNext;    
     TokenBuf            linebuf;        
     TokenBuf            userbuf;        
     const char          *filename;      
