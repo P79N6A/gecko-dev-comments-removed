@@ -51,10 +51,18 @@
 #include <nsClassHashtable.h>
 #include "VideoUtils.h"
 
-class OggPageDeallocator : public nsDequeFunctor {
-  virtual void* operator() (void* aPage) {
-    ogg_page* p = static_cast<ogg_page*>(aPage);
-    delete [] p->header;
+
+
+#define VALIDATE_VORBIS_SAMPLE_CALCULATION
+#ifdef  VALIDATE_VORBIS_SAMPLE_CALCULATION
+#include <map>
+#endif
+
+
+class OggPacketDeallocator : public nsDequeFunctor {
+  virtual void* operator() (void* aPacket) {
+    ogg_packet* p = static_cast<ogg_packet*>(aPacket);
+    delete [] p->packet;
     delete p;
     return nsnull;
   }
@@ -67,21 +75,26 @@ class OggPageDeallocator : public nsDequeFunctor {
 
 
 
-class nsPageQueue : private nsDeque {
+
+
+
+class nsPacketQueue : private nsDeque {
 public:
-  nsPageQueue() : nsDeque(new OggPageDeallocator()) {}
-  ~nsPageQueue() { Erase(); }
+  nsPacketQueue() : nsDeque(new OggPacketDeallocator()) {}
+  ~nsPacketQueue() { Erase(); }
   PRBool IsEmpty() { return nsDeque::GetSize() == 0; }
-  void Append(ogg_page* aPage);
-  ogg_page* PopFront() { return static_cast<ogg_page*>(nsDeque::PopFront()); }
-  ogg_page* PeekFront() { return static_cast<ogg_page*>(nsDeque::PeekFront()); }
+  void Append(ogg_packet* aPacket);
+  ogg_packet* PopFront() { return static_cast<ogg_packet*>(nsDeque::PopFront()); }
+  ogg_packet* PeekFront() { return static_cast<ogg_packet*>(nsDeque::PeekFront()); }
+  void PushFront(ogg_packet* aPacket) { nsDeque::PushFront(aPacket); }
+  void PushBack(ogg_packet* aPacket) { nsDeque::PushFront(aPacket); }
   void Erase() { nsDeque::Erase(); }
 };
 
 
 
 class nsOggCodecState {
- public:
+public:
   
   enum CodecType {
     TYPE_VORBIS=0,
@@ -90,9 +103,8 @@ class nsOggCodecState {
     TYPE_UNKNOWN=3
   };
 
- public:
-  nsOggCodecState(ogg_page* aBosPage);
   virtual ~nsOggCodecState();
+  
   
   
   static nsOggCodecState* Create(ogg_page* aPage);
@@ -119,7 +131,11 @@ class nsOggCodecState {
 
   
   
-  void Deactivate() { mActive = PR_FALSE; }
+  void Deactivate() {
+    mActive = PR_FALSE;
+    mDoneReadingHeaders = PR_TRUE;
+    Reset();
+  }
 
   
   virtual nsresult Reset();
@@ -127,11 +143,29 @@ class nsOggCodecState {
   
   
   
-  inline void AddToBuffer(ogg_page* aPage) { mBuffer.Append(aPage); }
+  
+  
+  
+  virtual PRBool IsHeader(ogg_packet* aPacket) { return PR_FALSE; }
 
   
   
-  PRBool PageInFromBuffer();
+  
+  
+  
+  ogg_packet* PacketOut();
+
+  
+  
+  static void ReleasePacket(ogg_packet* aPacket);
+
+  
+  
+  
+  
+  
+  
+  virtual nsresult PageIn(ogg_page* aPage);
 
   
   PRUint64 mPacketCount;
@@ -143,13 +177,36 @@ class nsOggCodecState {
   ogg_stream_state mState;
 
   
-  nsPageQueue mBuffer;
+  
+  nsPacketQueue mPackets;
 
   
   PRPackedBool mActive;
   
   
   PRPackedBool mDoneReadingHeaders;
+
+protected:
+  
+  
+  
+  nsOggCodecState(ogg_page* aBosPage, PRBool aActive);
+
+  
+  void ClearUnstamped();
+
+  
+  
+  
+  
+  
+  
+  
+  PRBool PacketOutUntilGranulepos();
+
+  
+  
+  nsTArray<ogg_packet*> mUnstamped;
 };
 
 class nsVorbisState : public nsOggCodecState {
@@ -157,31 +214,83 @@ public:
   nsVorbisState(ogg_page* aBosPage);
   virtual ~nsVorbisState();
 
-  virtual CodecType GetType() { return TYPE_VORBIS; }
-  virtual PRBool DecodeHeader(ogg_packet* aPacket);
-  virtual PRInt64 Time(PRInt64 granulepos);
-  virtual PRBool Init();
-  virtual nsresult Reset();
+  CodecType GetType() { return TYPE_VORBIS; }
+  PRBool DecodeHeader(ogg_packet* aPacket);
+  PRInt64 Time(PRInt64 granulepos);
+  PRBool Init();
+  nsresult Reset();
+  PRBool IsHeader(ogg_packet* aPacket);
+  nsresult PageIn(ogg_page* aPage); 
 
   
   static PRInt64 Time(vorbis_info* aInfo, PRInt64 aGranulePos); 
- 
+
   vorbis_info mInfo;
   vorbis_comment mComment;
   vorbis_dsp_state mDsp;
   vorbis_block mBlock;
+
+private:
+
+  
+  
+  nsresult ReconstructVorbisGranulepos();
+
+  
+  
+  
+  
+  long mPrevVorbisBlockSize;
+
+  
+  
+  
+  PRInt64 mGranulepos;
+
+#ifdef VALIDATE_VORBIS_SAMPLE_CALCULATION
+  
+  
+  
+  std::map<ogg_packet*, long> mVorbisPacketSamples;
+#endif
+
+  
+  
+  
+  void RecordVorbisPacketSamples(ogg_packet* aPacket, long aSamples);
+
+  
+  
+  
+  void AssertHasRecordedPacketSamples(ogg_packet* aPacket);
+
+public:
+  
+  
+  
+  void ValidateVorbisPacketSamples(ogg_packet* aPacket, long aSamples);
+
 };
+
+
+
+int TheoraVersion(th_info* info,
+                  unsigned char maj,
+                  unsigned char min,
+                  unsigned char sub);
 
 class nsTheoraState : public nsOggCodecState {
 public:
   nsTheoraState(ogg_page* aBosPage);
   virtual ~nsTheoraState();
 
-  virtual CodecType GetType() { return TYPE_THEORA; }
-  virtual PRBool DecodeHeader(ogg_packet* aPacket);
-  virtual PRInt64 Time(PRInt64 granulepos);
-  virtual PRInt64 StartTime(PRInt64 granulepos);
-  virtual PRBool Init();
+  CodecType GetType() { return TYPE_THEORA; }
+  PRBool DecodeHeader(ogg_packet* aPacket);
+  PRInt64 Time(PRInt64 granulepos);
+  PRInt64 StartTime(PRInt64 granulepos);
+  PRBool Init();
+  PRBool IsHeader(ogg_packet* aPacket);
+  nsresult PageIn(ogg_page* aPage); 
 
   
   
@@ -189,13 +298,23 @@ public:
 
   
   static PRInt64 Time(th_info* aInfo, PRInt64 aGranulePos); 
-  
+
   th_info mInfo;
   th_comment mComment;
   th_setup_info *mSetup;
   th_dec_ctx* mCtx;
 
   float mPixelAspectRatio;
+
+private:
+
+  
+  
+  
+  
+  
+  void ReconstructTheoraGranulepos();
+
 };
 
 
@@ -205,11 +324,12 @@ public:
 class nsSkeletonState : public nsOggCodecState {
 public:
   nsSkeletonState(ogg_page* aBosPage);
-  virtual ~nsSkeletonState();
-  virtual CodecType GetType() { return TYPE_SKELETON; }
-  virtual PRBool DecodeHeader(ogg_packet* aPacket);
-  virtual PRInt64 Time(PRInt64 granulepos) { return -1; }
-  virtual PRBool Init() { return PR_TRUE; }
+  ~nsSkeletonState();
+  CodecType GetType() { return TYPE_SKELETON; }
+  PRBool DecodeHeader(ogg_packet* aPacket);
+  PRInt64 Time(PRInt64 granulepos) { return -1; }
+  PRBool Init() { return PR_TRUE; }
+  PRBool IsHeader(ogg_packet* aPacket) { return PR_TRUE; }
 
   
   

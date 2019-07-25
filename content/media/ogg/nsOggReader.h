@@ -191,24 +191,6 @@ private:
 
   
   
-  nsresult DecodeVorbis(nsTArray<nsAutoPtr<SoundData> >& aChunks,
-                        ogg_packet* aPacket);
-
-  
-  
-  nsresult DecodeTheora(nsTArray<nsAutoPtr<VideoData> >& aFrames,
-                        ogg_packet* aPacket);
-
-  
-  
-  PRInt64 ReadOggPage(ogg_page* aPage);
-
-  
-  
-  PRBool ReadOggPacket(nsOggCodecState* aCodecState, ogg_packet* aPacket);
-
-  
-  
   
   
   
@@ -241,6 +223,31 @@ private:
                             PRInt64 aEndTime,
                             PRBool aExact);
 private:
+
+  
+  
+  nsresult DecodeVorbis(ogg_packet* aPacket);
+
+  
+  
+  
+  nsresult DecodeTheora(ogg_packet* aPacket);
+
+  
+  
+  PRInt64 ReadOggPage(ogg_page* aPage);
+
+  
+  
+  
+  
+  PRBool ReadHeaders(nsOggCodecState* aState);
+
+  
+  
+  
+  ogg_packet* NextOggPacket(nsOggCodecState* aCodecState);
+
   
   nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
 
@@ -276,17 +283,6 @@ private:
   
   
   PRInt64 mPageOffset;
-
-  
-  PRInt64 mTheoraGranulepos;
-
-  
-  PRInt64 mVorbisGranulepos;
-
-  
-  
-  
-  PRInt64 mDataOffset;
 };
 
 #endif
