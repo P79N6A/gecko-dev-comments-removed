@@ -1655,10 +1655,11 @@ nsHTMLInputElement::SetCheckedChangedInternal(bool aCheckedChanged)
 NS_IMETHODIMP
 nsHTMLInputElement::SetChecked(bool aChecked)
 {
-  return DoSetChecked(aChecked, true, true);
+  DoSetChecked(aChecked, true, true);
+  return NS_OK;
 }
 
-nsresult
+void
 nsHTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
                                  bool aSetValueChanged)
 {
@@ -1673,18 +1674,19 @@ nsHTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
   
   
   if (mChecked == aChecked) {
-    return NS_OK;
+    return;
   }
 
   
   if (mType != NS_FORM_INPUT_RADIO) {
     SetCheckedInternal(aChecked, aNotify);
-    return NS_OK;
+    return;
   }
 
   
   if (aChecked) {
-    return RadioSetChecked(aNotify);
+    RadioSetChecked(aNotify);
+    return;
   }
 
   nsIRadioGroupContainer* container = GetRadioGroupContainer();
@@ -1697,10 +1699,9 @@ nsHTMLInputElement::DoSetChecked(bool aChecked, bool aNotify,
   
   
   SetCheckedInternal(false, aNotify);
-  return NS_OK;
 }
 
-nsresult
+void
 nsHTMLInputElement::RadioSetChecked(bool aNotify)
 {
   
@@ -1715,22 +1716,16 @@ nsHTMLInputElement::RadioSetChecked(bool aNotify)
   }
 
   
-  nsresult rv = NS_OK;
   nsIRadioGroupContainer* container = GetRadioGroupContainer();
   if (container) {
     nsAutoString name;
     GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-    rv = container->SetCurrentRadioButton(name, this);
+    container->SetCurrentRadioButton(name, this);
   }
 
   
   
-  
-  if (NS_SUCCEEDED(rv)) {
-    SetCheckedInternal(true, aNotify);
-  }
-
-  return rv;
+  SetCheckedInternal(true, aNotify);
 }
 
 nsIRadioGroupContainer*
@@ -1764,8 +1759,7 @@ nsHTMLInputElement::GetSelectedRadioButton()
   nsAutoString name;
   GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
 
-  nsCOMPtr<nsIDOMHTMLInputElement> selected;
-  container->GetCurrentRadioButton(name, getter_AddRefs(selected));
+  nsCOMPtr<nsIDOMHTMLInputElement> selected = container->GetCurrentRadioButton(name);
   return selected.forget();
 }
 
@@ -3142,7 +3136,8 @@ nsHTMLInputElement::Reset()
     case VALUE_MODE_VALUE:
       return SetDefaultValueAsValue();
     case VALUE_MODE_DEFAULT_ON:
-      return DoSetChecked(DefaultChecked(), true, false);
+      DoSetChecked(DefaultChecked(), true, false);
+      return NS_OK;
     case VALUE_MODE_FILENAME:
       ClearFiles(false);
       return NS_OK;
@@ -3658,8 +3653,7 @@ nsHTMLInputElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, PRInt32
   nsAutoString name;
   GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
 
-  nsCOMPtr<nsIDOMHTMLInputElement> currentRadio;
-  container->GetCurrentRadioButton(name, getter_AddRefs(currentRadio));
+  nsCOMPtr<nsIDOMHTMLInputElement> currentRadio = container->GetCurrentRadioButton(name);
   if (currentRadio) {
     *aTabIndex = -1;
   }

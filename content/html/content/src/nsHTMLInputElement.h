@@ -400,7 +400,7 @@ protected:
 
 
 
-  nsresult DoSetChecked(bool aValue, bool aNotify, bool aSetValueChanged);
+  void DoSetChecked(bool aValue, bool aNotify, bool aSetValueChanged);
 
   
 
@@ -415,7 +415,7 @@ protected:
 
   void SetCheckedInternal(bool aValue, bool aNotify);
 
-  nsresult RadioSetChecked(bool aNotify);
+  void RadioSetChecked(bool aNotify);
   void SetCheckedChanged(bool aCheckedChanged);
 
   
