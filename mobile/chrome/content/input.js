@@ -186,10 +186,11 @@ MouseModule.prototype = {
     let dragData = this._dragData;
     if (dragData.dragging) {
       
-      let [sX, sY] = dragData.panPosition();
       this._doDragStop();
     }
     dragData.reset();
+    this.dX = 0;
+    this.dY = 0;
 
     
     
@@ -246,6 +247,9 @@ MouseModule.prototype = {
       aEvent.preventDefault();
     }
 
+    
+    
+    this._waitingForPaint = false;
     this._onMouseMove(aEvent);
 
     let dragData = this._dragData;
@@ -300,13 +304,31 @@ MouseModule.prototype = {
   _onMouseMove: function _onMouseMove(aEvent) {
     let dragData = this._dragData;
 
-    if (dragData.dragging && !this._waitingForPaint) {
+    if (dragData.dragging) {
       let oldIsPan = dragData.isPan();
       dragData.setDragPosition(aEvent.screenX, aEvent.screenY);
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      let [sX, sY] = dragData.panPosition();
+      this.dX += dragData.prevPanX - sX;
+      this.dY += dragData.prevPanY - sY;
+
       if (dragData.isPan()) {
         
-        let [sX, sY] = dragData.panPosition();
-        this._doDragMove();
+        this._kinetic.addData(sX - dragData.prevPanX, sY - dragData.prevPanY);
+        if (!this._waitingForPaint) {
+          this._dragBy(this.dX, this.dY);
+          this.dX = 0;
+          this.dY = 0;
+        }
 
         
         if (!oldIsPan && dragData.isPan()) {
@@ -357,24 +379,8 @@ MouseModule.prototype = {
       this._dragger = null;
     } else if (dragData.isPan()) {
       
-      let [sX, sY] = dragData.panPosition();
-      let dX = dragData.prevPanX - sX;
-      let dY = dragData.prevPanY - sY;
-      this._kinetic.addData(-dX, -dY);
       this._kinetic.start();
     }
-  },
-
-  
-
-
-  _doDragMove: function _doDragMove() {
-    let dragData = this._dragData;
-    let [sX, sY] = dragData.panPosition();
-    let dX = dragData.prevPanX - sX;
-    let dY = dragData.prevPanY - sY;
-    this._kinetic.addData(-dX, -dY);
-    this._dragBy(dX, dY);
   },
 
   
@@ -711,13 +717,13 @@ DragData.prototype = {
 
         this.locked = true;
       }
-
-      
-      
-      let [prevX, prevY] = this._lockAxis(this.sX, this.sY);
-      this.prevPanX = prevX;
-      this.prevPanY = prevY;
     }
+
+    
+    
+    let [prevX, prevY] = this._lockAxis(this.sX, this.sY);
+    this.prevPanX = prevX;
+    this.prevPanY = prevY;
 
     this.sX = sX;
     this.sY = sY;
