@@ -1077,6 +1077,14 @@ class nsIWidget : public nsISupports {
 
 
 
+    virtual void DrawWindowUnderlay(LayerManager* aManager, nsIntRect aRect) = 0;
+
+    
+
+
+
+
+
     virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
