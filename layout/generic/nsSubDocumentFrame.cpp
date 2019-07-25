@@ -282,19 +282,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (frameLoader) {
     RenderFrameParent* rfp = frameLoader->GetCurrentRemoteFrame();
     if (rfp) {
-      
-      
-      nsDisplayList shadowTree;
-      shadowTree.AppendToTop(
-        new (aBuilder) nsDisplayRemote(aBuilder, this, rfp));
-
-      
-      nsPoint offset = GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
-      nsRect bounds = mInnerView->GetBounds() + offset;
-
-      return aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(aBuilder, this, &shadowTree,
-                                     bounds));
+      return rfp->BuildDisplayList(aBuilder, this, aDirtyRect, aLists);
     }
   }
 #endif

@@ -65,6 +65,8 @@ class nsClientRectList;
 #include "imgIContainer.h"
 #include "nsCSSPseudoElements.h"
 #include "nsHTMLReflowState.h"
+#include "nsIFrameLoader.h"
+#include "Layers.h"
 
 class nsBlockFrame;
 class gfxDrawable;
@@ -79,6 +81,7 @@ class nsLayoutUtils
   typedef gfxPattern::GraphicsFilter GraphicsFilter;
 
 public:
+  typedef mozilla::layers::FrameMetrics::ViewID ViewID;
 
   
 
@@ -434,6 +437,23 @@ public:
 
 
   static gfxMatrix ChangeMatrixBasis(const gfxPoint &aOrigin, const gfxMatrix &aMatrix);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult GetRemoteContentIds(nsIFrame* aFrame,
+                                     const nsRect& aTarget,
+                                     nsTArray<ViewID> &aOutIDs,
+                                     PRBool aIgnoreRootScrollFrame);
 
   
 
