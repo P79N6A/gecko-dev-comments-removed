@@ -35,6 +35,7 @@
 
 
 
+
 package org.mozilla.gecko.db;
 
 import java.io.File;
@@ -247,6 +248,7 @@ public class BrowserProvider extends ContentProvider {
     }
 
     private static boolean hasImagesInProjection(String[] projection) {
+        if (projection == null) return true;
         for (int i = 0; i < projection.length; ++i) {
             if (projection[i].equals(Images.FAVICON) ||
                 projection[i].equals(Images.THUMBNAIL))
