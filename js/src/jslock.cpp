@@ -45,7 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jspubtd.h"
-#include "jsutil.h" 
+#include "jsutil.h"
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsbit.h"
@@ -507,8 +507,7 @@ FinishSharingTitle(JSContext *cx, JSTitle *title)
     JSObject *obj = TITLE_TO_OBJECT(title);
     if (obj) {
         uint32 nslots = obj->slotSpan();
-        JS_ASSERT(nslots >= JSSLOT_START(obj->getClass()));
-        for (uint32 i = JSSLOT_START(obj->getClass()); i != nslots; ++i) {
+        for (uint32 i = 0; i != nslots; ++i) {
             Value v = obj->getSlot(i);
             if (v.isString() &&
                 !js_MakeStringImmutable(cx, v.toString())) {
@@ -682,7 +681,7 @@ js_GetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot)
 
 
     if (CX_THREAD_IS_RUNNING_GC(cx) ||
-        obj->sealed() ||
+        !obj->isExtensible() ||
         (obj->title.ownercx && ClaimTitle(&obj->title, cx))) {
         return Jsvalify(obj->getSlot(slot));
     }
@@ -760,7 +759,7 @@ js_SetSlotThreadSafe(JSContext *cx, JSObject *obj, uint32 slot, jsval v)
 
 
     if (CX_THREAD_IS_RUNNING_GC(cx) ||
-        obj->sealed() ||
+        !obj->isExtensible() ||
         (obj->title.ownercx && ClaimTitle(&obj->title, cx))) {
         obj->lockedSetSlot(slot, Valueify(v));
         return;
@@ -1245,7 +1244,7 @@ js_LockObj(JSContext *cx, JSObject *obj)
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
 
-    if (obj->sealed() && !cx->thread->lockedSealedTitle) {
+    if (!obj->isExtensible() && !cx->thread->lockedSealedTitle) {
         cx->thread->lockedSealedTitle = &obj->title;
         return;
     }
