@@ -1468,7 +1468,10 @@ def getWrapTemplateForTypeImpl(type, result, descriptorProvider,
   if (WrapNewBindingObject(cx, obj, %s, ${jsvalPtr})) {
     return true;
   }""" % result
-            if descriptor.workers:
+            
+            assert(not descriptor.prefable or not descriptor.workers)
+            if not descriptor.prefable:
+                
                 
                 
                 wrappingCode += """
