@@ -124,7 +124,8 @@ nsHTMLEditor::HideInlineTableEditingUI()
   RemoveMouseClickListener(mAddRowAfterButton);
 
   
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  nsCOMPtr<nsIPresShell> ps;
+  GetPresShell(getter_AddRefs(ps));
   
   
   

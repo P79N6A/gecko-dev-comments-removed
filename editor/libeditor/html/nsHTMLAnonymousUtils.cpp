@@ -156,7 +156,8 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
   NS_ENSURE_TRUE(doc, NS_ERROR_NULL_POINTER);
 
   
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  nsCOMPtr<nsIPresShell> ps;
+  GetPresShell(getter_AddRefs(ps));
   NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
 
   

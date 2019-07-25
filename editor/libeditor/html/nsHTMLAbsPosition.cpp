@@ -311,7 +311,8 @@ nsHTMLEditor::HideGrabber()
   NS_ENSURE_TRUE(mGrabber, NS_ERROR_NULL_POINTER);
 
   
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+  nsCOMPtr<nsIPresShell> ps;
+  GetPresShell(getter_AddRefs(ps));
   
   
   
@@ -427,7 +428,8 @@ nsresult
 nsHTMLEditor::EndMoving()
 {
   if (mPositioningShadow) {
-    nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
+    nsCOMPtr<nsIPresShell> ps;
+    GetPresShell(getter_AddRefs(ps));
     NS_ENSURE_TRUE(ps, NS_ERROR_NOT_INITIALIZED);
 
     nsCOMPtr<nsIDOMNode> parentNode;
