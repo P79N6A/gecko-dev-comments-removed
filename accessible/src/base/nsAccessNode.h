@@ -176,12 +176,6 @@ public:
 
   already_AddRefed<nsIPresShell> GetPresShell();
 
-  
-
-
-
-  PRBool HasWeakShell() const { return !!mWeakShell; }
-
 protected:
     nsPresContext* GetPresContext();
 

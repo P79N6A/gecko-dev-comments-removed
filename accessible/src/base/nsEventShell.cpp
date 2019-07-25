@@ -195,10 +195,6 @@ nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
   if (!mDocument)
     return;
 
-  nsCOMPtr<nsIPresShell> presShell = mDocument->GetPresShell();
-  if (!presShell)
-    return;
-
   
   
   nsTArray < nsRefPtr<nsAccEvent> > events;
@@ -213,8 +209,7 @@ nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
       mDocument->ProcessPendingEvent(accEvent);
 
     
-    
-    if (!mDocument || !mDocument->HasWeakShell())
+    if (!mDocument)
       return;
   }
 
