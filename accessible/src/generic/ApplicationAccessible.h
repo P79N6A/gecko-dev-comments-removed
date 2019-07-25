@@ -63,7 +63,6 @@ public:
   
   virtual void Init();
   virtual void Shutdown();
-  virtual bool IsPrimaryForNode() const;
 
   
   virtual GroupPos GroupPosition();

@@ -141,6 +141,12 @@ HTMLLIAccessible::CacheChildren()
 
 
 
+HTMLListBulletAccessible::
+  HTMLListBulletAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  LeafAccessible(aContent, aDoc)
+{
+  mFlags |= eSharedNode;
+}
 
 
 
@@ -150,12 +156,6 @@ HTMLListBulletAccessible::GetFrame() const
 {
   nsBlockFrame* blockFrame = do_QueryFrame(mContent->GetPrimaryFrame());
   return blockFrame ? blockFrame->GetBullet() : nullptr;
-}
-
-bool
-HTMLListBulletAccessible::IsPrimaryForNode() const
-{
-  return false;
 }
 
 

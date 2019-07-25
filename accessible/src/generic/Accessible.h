@@ -689,6 +689,15 @@ public:
 
   bool IsInDocument() const { return !(mFlags & eIsNotInDocument); }
 
+  
+
+
+
+
+
+
+  bool IsPrimaryForNode() const { return !(mFlags & eSharedNode); }
+
 protected:
 
   
@@ -738,7 +747,8 @@ protected:
 
   enum StateFlags {
     eIsDefunct = 1 << 2, 
-    eIsNotInDocument = 1 << 3 
+    eIsNotInDocument = 1 << 3, 
+    eSharedNode = 1 << 4 
   };
 
   
@@ -746,23 +756,23 @@ protected:
 
 
   enum AccessibleTypes {
-    eApplicationAccessible = 1 << 4,
-    eAutoCompleteAccessible = 1 << 5,
-    eAutoCompletePopupAccessible = 1 << 6,
-    eComboboxAccessible = 1 << 7,
-    eDocAccessible = 1 << 8,
-    eHyperTextAccessible = 1 << 9,
-    eHTMLFileInputAccessible = 1 << 10,
-    eHTMLListItemAccessible = 1 << 11,
-    eImageAccessible = 1 << 12,
-    eImageMapAccessible = 1 << 13,
-    eListControlAccessible = 1 << 14,
-    eMenuButtonAccessible = 1 << 15,
-    eMenuPopupAccessible = 1 << 16,
-    eRootAccessible = 1 << 17,
-    eTextLeafAccessible = 1 << 18,
-    eXULDeckAccessible = 1 << 19,
-    eXULTreeAccessible = 1 << 20
+    eApplicationAccessible = 1 << 5,
+    eAutoCompleteAccessible = 1 << 6,
+    eAutoCompletePopupAccessible = 1 << 7,
+    eComboboxAccessible = 1 << 8,
+    eDocAccessible = 1 << 9,
+    eHyperTextAccessible = 1 << 10,
+    eHTMLFileInputAccessible = 1 << 11,
+    eHTMLListItemAccessible = 1 << 12,
+    eImageAccessible = 1 << 13,
+    eImageMapAccessible = 1 << 14,
+    eListControlAccessible = 1 << 15,
+    eMenuButtonAccessible = 1 << 16,
+    eMenuPopupAccessible = 1 << 17,
+    eRootAccessible = 1 << 18,
+    eTextLeafAccessible = 1 << 19,
+    eXULDeckAccessible = 1 << 20,
+    eXULTreeAccessible = 1 << 21
   };
 
   

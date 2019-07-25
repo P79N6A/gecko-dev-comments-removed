@@ -152,6 +152,9 @@ HTMLAreaAccessible::
   HTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   HTMLLinkAccessible(aContent, aDoc)
 {
+  
+  
+  mFlags |= eSharedNode;
 }
 
 
@@ -181,17 +184,6 @@ HTMLAreaAccessible::Description(nsString& aDescription)
   nsCOMPtr<nsIDOMHTMLAreaElement> area(do_QueryInterface(mContent));
   if (area)
     area->GetShape(aDescription);
-}
-
-
-
-
-bool
-HTMLAreaAccessible::IsPrimaryForNode() const
-{
-  
-  
-  return false;
 }
 
 

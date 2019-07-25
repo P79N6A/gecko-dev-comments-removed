@@ -154,7 +154,6 @@ public:
 
   
   virtual void Shutdown();
-  virtual bool IsPrimaryForNode() const;
 
   
   virtual GroupPos GroupPosition();

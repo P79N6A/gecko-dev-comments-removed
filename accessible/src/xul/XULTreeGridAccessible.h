@@ -151,7 +151,6 @@ public:
 
   
   virtual void Init();
-  virtual bool IsPrimaryForNode() const;
 
   
   virtual void Shutdown();
