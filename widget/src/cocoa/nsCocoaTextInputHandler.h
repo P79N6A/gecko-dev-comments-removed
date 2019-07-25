@@ -259,6 +259,10 @@ public:
   static CFArrayRef CreateAllIMEModeList();
   static void DebugPrintAllIMEModes(PRLogModuleInfo* aLogModuleInfo);
 
+  
+  
+  static TSMDocumentID GetCurrentTSMDocumentID();
+
 protected:
   
   
