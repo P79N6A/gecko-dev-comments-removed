@@ -95,12 +95,13 @@ gTests.push({
 
   onPageReady: function() {
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
-
-    waitFor(gCurrentTest.onBookmarksReady, function() { return BrowserUI.activePanel == BookmarkList });
   },
 
   onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
+
     let bookmarkitem = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_01);
     bookmarkitem.control.scrollBoxObject.ensureElementIsVisible(bookmarkitem);
 
@@ -129,16 +130,21 @@ gTests.push({
 
   run: function() {
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
 
     
     let bookmark = BookmarkList.panel.items[0];
     bookmark.startEditing();
 
-    waitFor(gCurrentTest.onBookmarksReady, function() { return bookmark.isEditing == true; });
+    waitFor(gCurrentTest.onEditorReady, function() { return bookmark.isEditing == true; });
   },
 
-  onBookmarksReady: function() {
+  onEditorReady: function() {
     let bookmarkitem = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_01);
     EventUtils.synthesizeMouse(bookmarkitem, bookmarkitem.width / 2, bookmarkitem.height / 2, {});
 
@@ -166,16 +172,21 @@ gTests.push({
 
   run: function() {
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
 
     
     let bookmark = BookmarkList.panel.items[0];
     bookmark.startEditing();
 
-    waitFor(gCurrentTest.onBookmarksReady, function() { return bookmark.isEditing == true; });
+    waitFor(gCurrentTest.onEditorReady, function() { return bookmark.isEditing == true; });
   },
 
-  onBookmarksReady: function() {
+  onEditorReady: function() {
     let bookmark = PlacesUtils.getMostRecentBookmarkForURI(makeURI(testURL_02));
     is(PlacesUtils.bookmarks.getItemTitle(bookmark), "Browser Blank Page 01", "Title remains the same.");
 
@@ -206,16 +217,21 @@ gTests.push({
 
   run: function() {
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
 
     
     let bookmark = BookmarkList.panel.items[0];
     bookmark.startEditing();
 
-    waitFor(gCurrentTest.onBookmarksReady, function() { return bookmark.isEditing == true; });
+    waitFor(gCurrentTest.onEditorReady, function() { return bookmark.isEditing == true; });
   },
 
-  onBookmarksReady: function() {
+  onEditorReady: function() {
     let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
     bookmark.remove();
 
@@ -245,7 +261,12 @@ gTests.push({
                                                    testURL_02);
 
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
 
     
     let bookmarksPanel = BookmarkList.panel;
@@ -272,9 +293,9 @@ gTests.push({
     
     isnot(bookmarksPanel._readOnlyFolders.indexOf(parseInt(first.itemId)), -1, "Desktop subfolder is showing after mouse click");
 
-    BrowserUI.activePanel = null;
     PlacesUtils.bookmarks.removeItem(gCurrentTest.bmId);
 
+    BrowserUI.activePanel = null;
     runNextTest();
   }
 });

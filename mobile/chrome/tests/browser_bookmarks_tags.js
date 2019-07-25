@@ -66,7 +66,12 @@ gTests.push({
     ok(bookmarkItem != -1, testURL_02 + " should be added.");
 
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
 
     
     let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
@@ -101,7 +106,13 @@ gTests.push({
 
   run: function() {
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
+
 
     
     let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
@@ -144,7 +155,12 @@ gTests.push({
 
   run: function() {
     
+    window.addEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
     BrowserUI.doCommand("cmd_bookmarks");
+  },
+
+  onBookmarksReady: function() {
+    window.removeEventListener("NavigationPanelShown", gCurrentTest.onBookmarksReady, false);
 
     
     let bookmark = document.getAnonymousElementByAttribute(BookmarkList.panel, "uri", testURL_02);
