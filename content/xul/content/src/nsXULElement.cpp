@@ -877,76 +877,112 @@ nsXULElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                            const nsAttrValue* aValue, bool aNotify)
 {
     if (aNamespaceID == kNameSpaceID_None) {
-        
-
-        
-        
-        MaybeAddPopupListener(aName);
-        if (nsContentUtils::IsEventAttributeName(aName, EventNameType_XUL) && aValue) {
-            if (aValue->Type() == nsAttrValue::eString) {
-                AddScriptEventListener(aName, aValue->GetStringValue(), true);
-            } else {
-                nsAutoString body;
-                aValue->ToString(body);
-                AddScriptEventListener(aName, body, true);
-            }
-        }
-
-        
-        if (mNodeInfo->Equals(nsGkAtoms::window) && aValue) {
-            if (aName == nsGkAtoms::hidechrome) {
-                HideWindowChrome(
-                  aValue->Equals(NS_LITERAL_STRING("true"), eCaseMatters));
-            }
-            else if (aName == nsGkAtoms::chromemargin) {
-                SetChromeMargins(aValue);
-            }
-        }
-
-        
-        
-        nsIDocument *document = GetCurrentDoc();
-        if (document && document->GetRootElement() == this) {
-            if (aName == nsGkAtoms::title) {
-                document->NotifyPossibleTitleChange(false);
-            }
-            else if ((aName == nsGkAtoms::activetitlebarcolor ||
-                      aName == nsGkAtoms::inactivetitlebarcolor) && aValue) {
-                nscolor color = NS_RGBA(0, 0, 0, 0);
-                if (aValue->Type() == nsAttrValue::eColor) {
-                    aValue->GetColorValue(color);
+        if (aValue) {
+            
+            
+            MaybeAddPopupListener(aName);
+            if (nsContentUtils::IsEventAttributeName(aName, EventNameType_XUL)) {
+                if (aValue->Type() == nsAttrValue::eString) {
+                    AddScriptEventListener(aName, aValue->GetStringValue(), true);
                 } else {
-                    nsAutoString tmp;
-                    nsAttrValue attrValue;
-                    aValue->ToString(tmp);
-                    attrValue.ParseColor(tmp);
-                    attrValue.GetColorValue(color);
-                }
-                SetTitlebarColor(color, aName == nsGkAtoms::activetitlebarcolor);
-            }
-            else if (aName == nsGkAtoms::drawintitlebar) {
-                SetDrawsInTitlebar(aValue &&
-                    aValue->Equals(NS_LITERAL_STRING("true"), eCaseMatters));
-            }
-            else if (aName == nsGkAtoms::localedir) {
-                
-                nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(document);
-                if (xuldoc) {
-                    xuldoc->ResetDocumentDirection();
+                    nsAutoString body;
+                    aValue->ToString(body);
+                    AddScriptEventListener(aName, body, true);
                 }
             }
-            else if (aName == nsGkAtoms::lwtheme ||
-                     aName == nsGkAtoms::lwthemetextcolor) {
-                
-                nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(document);
-                if (xuldoc) {
-                    xuldoc->ResetDocumentLWTheme();
+    
+            
+            if (mNodeInfo->Equals(nsGkAtoms::window)) {
+                if (aName == nsGkAtoms::hidechrome) {
+                    HideWindowChrome(
+                      aValue->Equals(NS_LITERAL_STRING("true"), eCaseMatters));
+                }
+                else if (aName == nsGkAtoms::chromemargin) {
+                    SetChromeMargins(aValue);
                 }
             }
-        }
-
-        if (aName == nsGkAtoms::src && document) {
-            LoadSrc();
+    
+            
+            
+            nsIDocument *document = GetCurrentDoc();
+            if (document && document->GetRootElement() == this) {
+                if (aName == nsGkAtoms::title) {
+                    document->NotifyPossibleTitleChange(false);
+                }
+                else if ((aName == nsGkAtoms::activetitlebarcolor ||
+                          aName == nsGkAtoms::inactivetitlebarcolor)) {
+                    nscolor color = NS_RGBA(0, 0, 0, 0);
+                    if (aValue->Type() == nsAttrValue::eColor) {
+                        aValue->GetColorValue(color);
+                    } else {
+                        nsAutoString tmp;
+                        nsAttrValue attrValue;
+                        aValue->ToString(tmp);
+                        attrValue.ParseColor(tmp);
+                        attrValue.GetColorValue(color);
+                    }
+                    SetTitlebarColor(color, aName == nsGkAtoms::activetitlebarcolor);
+                }
+                else if (aName == nsGkAtoms::drawintitlebar) {
+                    SetDrawsInTitlebar(
+                        aValue->Equals(NS_LITERAL_STRING("true"), eCaseMatters));
+                }
+                else if (aName == nsGkAtoms::localedir) {
+                    
+                    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(document);
+                    if (xuldoc) {
+                        xuldoc->ResetDocumentDirection();
+                    }
+                }
+                else if (aName == nsGkAtoms::lwtheme ||
+                         aName == nsGkAtoms::lwthemetextcolor) {
+                    
+                    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(document);
+                    if (xuldoc) {
+                        xuldoc->ResetDocumentLWTheme();
+                    }
+                }
+            }
+    
+            if (aName == nsGkAtoms::src && document) {
+                LoadSrc();
+            }
+        } else  {
+            if (mNodeInfo->Equals(nsGkAtoms::window)) {
+                if (aName == nsGkAtoms::hidechrome) {
+                    HideWindowChrome(false);
+                }
+                else if (aName == nsGkAtoms::chromemargin) {
+                    ResetChromeMargins();
+                }
+            }
+    
+            nsIDocument* doc = GetCurrentDoc();
+            if (doc && doc->GetRootElement() == this) {
+                if ((aName == nsGkAtoms::activetitlebarcolor ||
+                     aName == nsGkAtoms::inactivetitlebarcolor)) {
+                    
+                    SetTitlebarColor(NS_RGBA(0, 0, 0, 0), aName == nsGkAtoms::activetitlebarcolor);
+                }
+                else if (aName == nsGkAtoms::localedir) {
+                    
+                    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
+                    if (xuldoc) {
+                        xuldoc->ResetDocumentDirection();
+                    }
+                }
+                else if ((aName == nsGkAtoms::lwtheme ||
+                          aName == nsGkAtoms::lwthemetextcolor)) {
+                    
+                    nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
+                    if (xuldoc) {
+                        xuldoc->ResetDocumentLWTheme();
+                    }
+                }
+                else if (aName == nsGkAtoms::drawintitlebar) {
+                    SetDrawsInTitlebar(false);
+                }
+            }
         }
 
         
@@ -971,157 +1007,6 @@ nsXULElement::ParseAttribute(PRInt32 aNamespaceID,
     }
 
     return true;
-}
-
-nsresult
-nsXULElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, bool aNotify)
-{
-    
-    
-    NS_ASSERTION(nsnull != aName, "must have attribute name");
-    nsresult rv;
-
-    nsIDocument* doc = GetCurrentDoc();
-    mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, aNotify);
-
-    bool isId = false;
-    if (aName == nsGkAtoms::id && aNameSpaceID == kNameSpaceID_None) {
-      
-      RemoveFromIdTable();
-      isId = true;
-    }
-
-    PRInt32 index = mAttrsAndChildren.IndexOfAttr(aName, aNameSpaceID);
-    if (index < 0) {
-        return NS_OK;
-    }
-
-    nsAutoString oldValue;
-    GetAttr(aNameSpaceID, aName, oldValue);
-
-    if (aNotify) {
-        nsNodeUtils::AttributeWillChange(this, aNameSpaceID, aName,
-                                         nsIDOMMutationEvent::REMOVAL);
-    }
-
-    bool hasMutationListeners = aNotify &&
-        nsContentUtils::HasMutationListeners(this,
-            NS_EVENT_BITS_MUTATION_ATTRMODIFIED, this);
-
-    nsCOMPtr<nsIDOMAttr> attrNode;
-    if (hasMutationListeners) {
-        nsAutoString ns;
-        nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, ns);
-        GetAttributeNodeNSInternal(ns, nsDependentAtomString(aName),
-                                   getter_AddRefs(attrNode));
-    }
-
-    nsDOMSlots *slots = GetExistingDOMSlots();
-    if (slots && slots->mAttributeMap) {
-      slots->mAttributeMap->DropAttribute(aNameSpaceID, aName);
-    }
-
-    
-    
-    nsMutationGuard::DidMutate();
-
-    nsAttrValue ignored;
-    rv = mAttrsAndChildren.RemoveAttrAt(index, ignored);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    
-
-    
-    
-    
-
-    if (isId) {
-        ClearHasID();
-    }
-
-    if (aNameSpaceID == kNameSpaceID_None) {
-        if (mNodeInfo->Equals(nsGkAtoms::window)) {
-            if (aName == nsGkAtoms::hidechrome) {
-                HideWindowChrome(false);
-            }
-            else if (aName == nsGkAtoms::chromemargin) {
-                ResetChromeMargins();
-            }
-        }
-
-        if (doc && doc->GetRootElement() == this) {
-            if ((aName == nsGkAtoms::activetitlebarcolor ||
-                 aName == nsGkAtoms::inactivetitlebarcolor)) {
-                
-                SetTitlebarColor(NS_RGBA(0, 0, 0, 0), aName == nsGkAtoms::activetitlebarcolor);
-            }
-            else if (aName == nsGkAtoms::localedir) {
-                
-                nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
-                if (xuldoc) {
-                    xuldoc->ResetDocumentDirection();
-                }
-            }
-            else if ((aName == nsGkAtoms::lwtheme ||
-                      aName == nsGkAtoms::lwthemetextcolor)) {
-                
-                nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(doc);
-                if (xuldoc) {
-                    xuldoc->ResetDocumentLWTheme();
-                }
-            }
-            else if (aName == nsGkAtoms::drawintitlebar) {
-                SetDrawsInTitlebar(false);
-            }
-        }
-
-        
-        
-        if (aName == nsGkAtoms::accesskey || aName == nsGkAtoms::control) {
-            UnregisterAccessKey(oldValue);
-        }
-
-        
-        
-        if (doc && (aName == nsGkAtoms::observes ||
-                          aName == nsGkAtoms::command)) {
-            RemoveBroadcaster(oldValue);
-        }
-    }
-
-    if (doc) {
-        nsRefPtr<nsXBLBinding> binding =
-            doc->BindingManager()->GetBinding(this);
-        if (binding)
-            binding->AttributeChanged(aName, aNameSpaceID, true, aNotify);
-
-    }
-
-    UpdateState(aNotify);
-
-    if (aNotify) {
-        nsNodeUtils::AttributeChanged(this, aNameSpaceID, aName,
-                                      nsIDOMMutationEvent::REMOVAL);
-    }
-
-    if (hasMutationListeners) {
-        nsMutationEvent mutation(true, NS_MUTATION_ATTRMODIFIED);
-
-        mutation.mRelatedNode = attrNode;
-        mutation.mAttrName = aName;
-
-        if (!oldValue.IsEmpty())
-          mutation.mPrevAttrValue = do_GetAtom(oldValue);
-        mutation.mAttrChange = nsIDOMMutationEvent::REMOVAL;
-
-        mozAutoSubtreeModified subtree(OwnerDoc(), this);
-        (new nsAsyncDOMEvent(this, mutation))->RunDOMEventWhenSafe();
-    }
-
-    return NS_OK;
 }
 
 void
