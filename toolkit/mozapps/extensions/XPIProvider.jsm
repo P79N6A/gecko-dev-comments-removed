@@ -4029,6 +4029,15 @@ var XPIDatabase = {
     DB_BOOL_METADATA.forEach(function(aProp) {
       addon[aProp] = aRow[aProp] != 0;
     });
+    try {
+      addon._sourceBundle = addon._installLocation.getLocationForID(addon.id);
+    }
+    catch (e) {
+      
+      
+      
+    }
+
     this.addonCache[aRow.internal_id] = Components.utils.getWeakReference(addon);
     return addon;
   },
@@ -4210,6 +4219,14 @@ var XPIDatabase = {
     DB_BOOL_METADATA.forEach(function(aProp) {
       addon[aProp] = aRow.getResultByName(aProp) != 0;
     });
+    try {
+      addon._sourceBundle = addon._installLocation.getLocationForID(addon.id);
+    }
+    catch (e) {
+      
+      
+      
+    }
 
     this.addonCache[internal_id] = Components.utils.getWeakReference(addon);
     addon._pendingCallbacks = [aCallback];
@@ -5668,6 +5685,7 @@ AddonInstall.prototype = {
         cleanStagingDir(stagedAddon.parent, []);
 
         
+        this.addon._sourceBundle = file;
         this.addon._installLocation = this.installLocation;
         this.addon.updateDate = recursiveLastModifiedTime(file);
         this.addon.visible = true;
@@ -6560,14 +6578,7 @@ function AddonWrapper(aAddon) {
   };
 
   this.hasResource = function(aPath) {
-    let bundle = null;
-    if (aAddon instanceof DBAddonInternal) {
-      bundle = aAddon._sourceBundle = aAddon._installLocation
-                                            .getLocationForID(aAddon.id);
-    }
-    else {
-      bundle = aAddon._sourceBundle.clone();
-    }
+    let bundle = aAddon._sourceBundle.clone();
 
     if (bundle.isDirectory()) {
       if (aPath) {
@@ -6587,14 +6598,7 @@ function AddonWrapper(aAddon) {
   },
 
   this.getResourceURI = function(aPath) {
-    let bundle = null;
-    if (aAddon instanceof DBAddonInternal) {
-      bundle = aAddon._sourceBundle = aAddon._installLocation
-                                            .getLocationForID(aAddon.id);
-    }
-    else {
-      bundle = aAddon._sourceBundle.clone();
-    }
+    let bundle = aAddon._sourceBundle.clone();
 
     if (bundle.isDirectory()) {
       if (aPath) {
