@@ -1434,8 +1434,8 @@ protected:
 
 
         lhs.asBits = rhs.asBits;
-#endif
     }
+#endif
 };
 
 }  
