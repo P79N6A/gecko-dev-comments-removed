@@ -6100,8 +6100,13 @@ mjit::Compiler::jsop_newinit()
         count = GET_UINT24(PC);
         break;
       case JSOP_NEWOBJECT:
+        
+
+
+
+
         isArray = false;
-        baseobj = script->getObject(fullAtomIndex(PC));
+        baseobj = globalObj ? script->getObject(fullAtomIndex(PC)) : NULL;
         break;
       default:
         JS_NOT_REACHED("Bad op");
