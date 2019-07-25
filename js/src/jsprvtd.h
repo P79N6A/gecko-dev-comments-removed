@@ -93,8 +93,6 @@ typedef struct JSTreeContext        JSTreeContext;
 typedef struct JSTryNote            JSTryNote;
 
 
-typedef struct JSLinearString       JSLinearString;
-typedef struct JSAtom               JSAtom;
 typedef struct JSAtomList           JSAtomList;
 typedef struct JSAtomListElement    JSAtomListElement;
 typedef struct JSAtomMap            JSAtomMap;
@@ -118,7 +116,16 @@ typedef struct JSXMLArrayCursor     JSXMLArrayCursor;
 
 
 #ifdef __cplusplus
+
 extern "C++" {
+
+class JSDependentString;
+class JSExtensibleString;
+class JSLinearString;
+class JSFixedString;
+class JSStaticAtom;
+class JSRope;
+class JSAtom;
 
 namespace js {
 
@@ -177,6 +184,11 @@ class Bindings;
 } 
 
 } 
+
+#else
+
+typedef struct JSAtom JSAtom;
+
 #endif  
 
 

@@ -43,38 +43,26 @@
 #include "jsatom.h"
 #include "jsnum.h"
 
-
-
-
 inline bool
 js_ValueToAtom(JSContext *cx, const js::Value &v, JSAtom **atomp)
 {
-    JSString *str;
-    JSAtom *atom;
-
-    
-
-
-
-
-
-
-    if (v.isString()) {
-        str = v.toString();
-        if (str->isAtom()) {
-            *atomp = STRING_TO_ATOM(str);
-            return true;
-        }
-    } else {
-        str = js_ValueToString(cx, v);
+    if (!v.isString()) {
+        JSString *str = js_ValueToString(cx, v);
         if (!str)
             return false;
+        JS::Anchor<JSString *> anchor(str);
+        *atomp = js_AtomizeString(cx, str, 0);
+        return !!*atomp;
     }
-    atom = js_AtomizeString(cx, str, 0);
-    if (!atom)
-        return false;
-    *atomp = atom;
-    return true;
+
+    JSString *str = v.toString();
+    if (str->isAtom()) {
+        *atomp = &str->asAtom();
+        return true;
+    }
+
+    *atomp = js_AtomizeString(cx, str, 0);
+    return !!*atomp;
 }
 
 inline bool
@@ -121,7 +109,7 @@ js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
     JSAtom *atom;
     if (js_ValueToAtom(cx, idval, &atom)) {
         *idp = ATOM_TO_JSID(atom);
-        vp->setString(ATOM_TO_STRING(atom));
+        vp->setString(atom);
         return true;
     }
     return false;

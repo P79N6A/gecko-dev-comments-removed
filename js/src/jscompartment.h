@@ -348,18 +348,18 @@ class NativeIterCache {
 
 
 class DtoaCache {
-    double   d;
-    jsint    base;
-    JSString *s;        
+    double        d;
+    jsint         base;
+    JSFixedString *s;      
   public:
     DtoaCache() : s(NULL) {}
     void purge() { s = NULL; }
 
-    JSString *lookup(jsint base, double d) {
+    JSFixedString *lookup(jsint base, double d) {
         return this->s && base == this->base && d == this->d ? this->s : NULL;
     }
 
-    void cache(jsint base, double d, JSString *s) {
+    void cache(jsint base, double d, JSFixedString *s) {
         this->base = base;
         this->d = d;
         this->s = s;

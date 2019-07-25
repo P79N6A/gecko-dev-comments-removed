@@ -75,9 +75,6 @@ struct Cell {
 
     inline JSCompartment *compartment() const;
 
-    
-    JS_ALWAYS_INLINE js::gc::Cell *asCell() { return this; }
-
     JS_ALWAYS_INLINE js::gc::FreeCell *asFreeCell() {
         return reinterpret_cast<FreeCell *>(this);
     }

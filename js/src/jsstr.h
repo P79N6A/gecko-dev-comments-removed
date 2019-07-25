@@ -40,14 +40,6 @@
 #ifndef jsstr_h___
 #define jsstr_h___
 
-
-
-
-
-
-
-
-
 #include <ctype.h>
 #include "jsapi.h"
 #include "jsprvtd.h"
@@ -57,33 +49,6 @@
 #include "jsvalue.h"
 #include "jscell.h"
 
-enum {
-    UNIT_STRING_LIMIT        = 256U,
-    SMALL_CHAR_LIMIT         = 128U, 
-    NUM_SMALL_CHARS          = 64U,
-    INT_STRING_LIMIT         = 256U,
-    NUM_HUNDRED_STRINGS      = 156U
-};
-
-extern jschar *
-js_GetDependentStringChars(JSString *str);
-
-extern JSString * JS_FASTCALL
-js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
-
-JS_STATIC_ASSERT(JS_BITS_PER_WORD >= 32);
-
-struct JSRopeBufferInfo {
-    
-    size_t capacity;
-};
-
-
-namespace js { namespace mjit {
-    class Compiler;
-}}
-
-struct JSLinearString;
 
 
 
@@ -117,53 +82,132 @@ struct JSLinearString;
 
 
 
-struct JSString
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class JSString : public js::gc::Cell
 {
-    friend class js::TraceRecorder;
-    friend class js::mjit::Compiler;
-
-    friend JSAtom *js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
+  protected:
+    static const size_t NUM_INLINE_CHARS = 2 * sizeof(void *) / sizeof(jschar);
 
     
+    struct Data
+    {
+        size_t                     lengthAndFlags;      
+        union {
+            const jschar           *chars;              
+            JSString               *left;               
+        } u1;
+        union {
+            jschar                 inlineStorage[NUM_INLINE_CHARS]; 
+            struct {
+                union {
+                    JSLinearString *base;               
+                    JSString       *right;              
+                    size_t         capacity;            
+                    size_t         externalStringType;  
+                } u2;
+                union {
+                    JSString       *parent;             
+                    size_t         reserved;            
+                } u3;
+            } s;
+        };
+    } d;
 
-
-
-    uint32                 lengthAndFlags;      
-    union {
-        const jschar       *chars;              
-        JSString           *left;               
-    } u;
-    union {
-        jschar             inlineStorage[4];    
-        struct {
-            union {
-                JSString   *right;              
-                JSString   *base;               
-                size_t     capacity;            
-            };
-            union {
-                JSString   *parent;             
-                size_t     reserved;            
-            };
-        } s;
-        size_t             externalStringType;  
-    };
-
+  public:
     
-
-    
-
-
 
     static const size_t LENGTH_SHIFT      = 4;
     static const size_t FLAGS_MASK        = JS_BITMASK(LENGTH_SHIFT);
     static const size_t MAX_LENGTH        = JS_BIT(32 - LENGTH_SHIFT) - 1;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static const size_t ROPE_BIT          = JS_BIT(0);
+
     static const size_t LINEAR_MASK       = JS_BITMASK(1);
     static const size_t LINEAR_FLAGS      = 0x0;
 
+    static const size_t DEPENDENT_BIT     = JS_BIT(1);
+
     static const size_t FLAT_MASK         = JS_BITMASK(2);
     static const size_t FLAT_FLAGS        = 0x0;
+
+    static const size_t FIXED_FLAGS       = JS_BIT(2);
 
     static const size_t ATOM_MASK         = JS_BITMASK(3);
     static const size_t ATOM_FLAGS        = 0x0;
@@ -171,9 +215,6 @@ struct JSString
     static const size_t STATIC_ATOM_MASK  = JS_BITMASK(4);
     static const size_t STATIC_ATOM_FLAGS = 0x0;
 
-    static const size_t ROPE_BIT          = JS_BIT(0);
-    static const size_t DEPENDENT_BIT     = JS_BIT(1);
-    static const size_t PLAIN_FLAGS       = JS_BIT(2);
     static const size_t EXTENSIBLE_FLAGS  = JS_BIT(2) | JS_BIT(3);
     static const size_t NON_STATIC_ATOM   = JS_BIT(3);
 
@@ -181,326 +222,278 @@ struct JSString
         return (length << LENGTH_SHIFT) | flags;
     }
 
-    inline js::gc::Cell *asCell() {
-        return reinterpret_cast<js::gc::Cell *>(this);
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(size_t(JSString::MAX_LENGTH) <= size_t(JSVAL_INT_MAX));
+        JS_STATIC_ASSERT(JSString::MAX_LENGTH <= JSVAL_INT_MAX);
+        JS_STATIC_ASSERT(JS_BITS_PER_WORD >= 32);
+        JS_STATIC_ASSERT(((JSString::MAX_LENGTH << JSString::LENGTH_SHIFT) >>
+                           JSString::LENGTH_SHIFT) == JSString::MAX_LENGTH);
+        JS_STATIC_ASSERT(sizeof(JSString) ==
+                         offsetof(JSString, d.inlineStorage) +
+                         NUM_INLINE_CHARS * sizeof(jschar));
     }
 
-    inline js::gc::FreeCell *asFreeCell() {
-        return reinterpret_cast<js::gc::FreeCell *>(this);
+    
+    friend class JSRope;
+
+  public:
+    
+
+    JS_ALWAYS_INLINE
+    size_t length() const {
+        return d.lengthAndFlags >> LENGTH_SHIFT;
     }
 
-    JS_ALWAYS_INLINE bool isLinear() const {
-        return (lengthAndFlags & LINEAR_MASK) == LINEAR_FLAGS;
+    JS_ALWAYS_INLINE
+    bool empty() const {
+        return d.lengthAndFlags <= FLAGS_MASK;
     }
 
-    JS_ALWAYS_INLINE bool isRope() const {
-        bool rope = lengthAndFlags & ROPE_BIT;
-        JS_ASSERT_IF(rope, (lengthAndFlags & FLAGS_MASK) == ROPE_BIT);
+    
+
+
+
+
+    inline const jschar *getChars(JSContext *cx);
+    inline const jschar *getCharsZ(JSContext *cx);
+
+    
+
+    inline JSLinearString *ensureLinear(JSContext *cx);
+    inline JSFlatString *ensureFlat(JSContext *cx);
+    inline JSFixedString *ensureFixed(JSContext *cx);
+
+    
+
+    JS_ALWAYS_INLINE
+    bool isRope() const {
+        bool rope = d.lengthAndFlags & ROPE_BIT;
+        JS_ASSERT_IF(rope, (d.lengthAndFlags & FLAGS_MASK) == ROPE_BIT);
         return rope;
     }
 
-    JS_ALWAYS_INLINE bool isFlat() const {
-        return (lengthAndFlags & FLAT_MASK) == FLAT_FLAGS;
+    JS_ALWAYS_INLINE
+    JSRope &asRope() {
+        JS_ASSERT(isRope());
+        return *(JSRope *)this;
     }
 
-    JS_ALWAYS_INLINE bool isDependent() const {
-        bool dependent = lengthAndFlags & DEPENDENT_BIT;
-        JS_ASSERT_IF(dependent, (lengthAndFlags & FLAGS_MASK) == DEPENDENT_BIT);
+    JS_ALWAYS_INLINE
+    bool isLinear() const {
+        return (d.lengthAndFlags & LINEAR_MASK) == LINEAR_FLAGS;
+    }
+
+    JS_ALWAYS_INLINE
+    JSLinearString &asLinear() {
+        JS_ASSERT(isLinear());
+        return *(JSLinearString *)this;
+    }
+
+    JS_ALWAYS_INLINE
+    bool isDependent() const {
+        bool dependent = d.lengthAndFlags & DEPENDENT_BIT;
+        JS_ASSERT_IF(dependent, (d.lengthAndFlags & FLAGS_MASK) == DEPENDENT_BIT);
         return dependent;
     }
 
-    JS_ALWAYS_INLINE bool isAtom() const {
-        bool atomized = (lengthAndFlags & ATOM_MASK) == ATOM_FLAGS;
+    JS_ALWAYS_INLINE
+    JSDependentString &asDependent() {
+        JS_ASSERT(isDependent());
+        return *(JSDependentString *)this;
+    }
+
+    JS_ALWAYS_INLINE
+    bool isFlat() const {
+        return (d.lengthAndFlags & FLAT_MASK) == FLAT_FLAGS;
+    }
+
+    JS_ALWAYS_INLINE
+    JSFlatString &asFlat() {
+        JS_ASSERT(isFlat());
+        return *(JSFlatString *)this;
+    }
+
+    JS_ALWAYS_INLINE
+    bool isExtensible() const {
+        return (d.lengthAndFlags & FLAGS_MASK) == EXTENSIBLE_FLAGS;
+    }
+
+    JS_ALWAYS_INLINE
+    JSExtensibleString &asExtensible() const {
+        JS_ASSERT(isExtensible());
+        return *(JSExtensibleString *)this;
+    }
+
+#ifdef DEBUG
+    bool isShort() const;
+    bool isFixed() const;
+#endif
+
+    JS_ALWAYS_INLINE
+    JSFixedString &asFixed() {
+        JS_ASSERT(isFixed());
+        return *(JSFixedString *)this;
+    }
+
+    JS_ALWAYS_INLINE
+    bool isAtom() const {
+        bool atomized = (d.lengthAndFlags & ATOM_MASK) == ATOM_FLAGS;
         JS_ASSERT_IF(atomized, isFlat());
         return atomized;
     }
 
-    JS_ALWAYS_INLINE bool isStaticAtom() const {
-        return (lengthAndFlags & FLAGS_MASK) == STATIC_ATOM_FLAGS;
+    JS_ALWAYS_INLINE
+    JSAtom &asAtom() const {
+        JS_ASSERT(isAtom());
+        return *(JSAtom *)this;
     }
 
-    JS_ALWAYS_INLINE bool isPlain() const {
-        return (lengthAndFlags & FLAGS_MASK) == PLAIN_FLAGS;
-    }
-
-    JS_ALWAYS_INLINE bool isExtensible() const {
-        return (lengthAndFlags & FLAGS_MASK) == EXTENSIBLE_FLAGS;
-    }
-
-    JS_ALWAYS_INLINE size_t length() const {
-        return lengthAndFlags >> LENGTH_SHIFT;
-    }
-
-    JS_ALWAYS_INLINE bool empty() const {
-        return lengthAndFlags <= FLAGS_MASK;
-    }
-
-    
-    JS_ALWAYS_INLINE const jschar *getChars(JSContext *cx) {
-        if (isRope())
-            return flatten(cx);
-        return nonRopeChars();
-    }
-
-    
-    JS_ALWAYS_INLINE const jschar *getCharsZ(JSContext *cx) {
-        if (!isFlat())
-            return undepend(cx);
-        return flatChars();
-    }
-
-    JS_ALWAYS_INLINE void initFlatNotTerminated(jschar *chars, size_t length) {
-        JS_ASSERT(length <= MAX_LENGTH);
-        JS_ASSERT(!isGCThingStatic(this));
-        lengthAndFlags = buildLengthAndFlags(length, PLAIN_FLAGS);
-        u.chars = chars;
-    }
-
-    
-    JS_ALWAYS_INLINE void initFlat(jschar *chars, size_t length) {
-        initFlatNotTerminated(chars, length);
-        JS_ASSERT(chars[length] == jschar(0));
-    }
-
-    JS_ALWAYS_INLINE void initShortString(const jschar *chars, size_t length) {
-        JS_ASSERT(length <= MAX_LENGTH);
-        JS_ASSERT(chars >= inlineStorage && chars < (jschar *)(this + 2));
-        JS_ASSERT(!isGCThingStatic(this));
-        lengthAndFlags = buildLengthAndFlags(length, PLAIN_FLAGS);
-        u.chars = chars;
-    }
-
-    JS_ALWAYS_INLINE void initFlatExtensible(jschar *chars, size_t length, size_t cap) {
-        JS_ASSERT(length <= MAX_LENGTH);
-        JS_ASSERT(chars[length] == jschar(0));
-        JS_ASSERT(!isGCThingStatic(this));
-        lengthAndFlags = buildLengthAndFlags(length, EXTENSIBLE_FLAGS);
-        u.chars = chars;
-        s.capacity = cap;
-    }
-
-    JS_ALWAYS_INLINE JSFlatString *assertIsFlat() {
-        JS_ASSERT(isFlat());
-        return reinterpret_cast<JSFlatString *>(this);
-    }
-
-    JS_ALWAYS_INLINE const jschar *flatChars() const {
-        JS_ASSERT(isFlat());
-        return u.chars;
-    }
-
-    JS_ALWAYS_INLINE size_t flatLength() const {
-        JS_ASSERT(isFlat());
-        return length();
-    }
-
-    inline void flatSetAtomized() {
-        JS_ASSERT(isFlat() && !isExtensible() && !isGCThingStatic(this));
-        lengthAndFlags = buildLengthAndFlags(length(), NON_STATIC_ATOM);
-    }
-
-    inline void flatClearExtensible() {
-        
-
-
-
-        JS_ASSERT(isFlat());
-        if (isExtensible()) {
-            JS_ASSERT(!isAtom());
-            lengthAndFlags = buildLengthAndFlags(length(), PLAIN_FLAGS);
-        }
+    JS_ALWAYS_INLINE
+    bool isStaticAtom() const {
+        return (d.lengthAndFlags & FLAGS_MASK) == STATIC_ATOM_FLAGS;
     }
 
     
 
-
-
-    inline void initDependent(JSString *base, const jschar *chars, size_t length) {
-        JS_ASSERT(!isGCThingStatic(this));
-        JS_ASSERT(base->isFlat());
-        JS_ASSERT(chars >= base->flatChars() && chars < base->flatChars() + base->length());
-        JS_ASSERT(length <= base->length() - (chars - base->flatChars()));
-        lengthAndFlags = buildLengthAndFlags(length, DEPENDENT_BIT);
-        u.chars = chars;
-        s.base = base;
-    }
-
-    inline JSLinearString *dependentBase() const {
-        JS_ASSERT(isDependent());
-        return s.base->assertIsLinear();
-    }
-
-    JS_ALWAYS_INLINE const jschar *dependentChars() {
-        JS_ASSERT(isDependent());
-        return u.chars;
-    }
-
-    inline size_t dependentLength() const {
-        JS_ASSERT(isDependent());
-        return length();
-    }
-
-    const jschar *undepend(JSContext *cx);
-
-    const jschar *nonRopeChars() const {
-        JS_ASSERT(!isRope());
-        return u.chars;
-    }
+    inline void finalize(JSContext *cx);
 
     
-    inline void initRopeNode(JSString *left, JSString *right, size_t length) {
-        JS_ASSERT(left->length() + right->length() == length);
-        lengthAndFlags = buildLengthAndFlags(length, ROPE_BIT);
-        u.left = left;
-        s.right = right;
-    }
 
-    inline JSString *ropeLeft() const {
-        JS_ASSERT(isRope());
-        return u.left;
-    }
+    inline void mark(JSTracer *trc);
 
-    inline JSString *ropeRight() const {
-        JS_ASSERT(isRope());
-        return s.right;
-    }
-
-    inline void finishTraversalConversion(JSString *base, const jschar *baseBegin, const jschar *end) {
-        JS_ASSERT(baseBegin <= u.chars && u.chars <= end);
-        lengthAndFlags = buildLengthAndFlags(end - u.chars, DEPENDENT_BIT);
-        s.base = base;
-    }
-
-    const jschar *flatten(JSContext *maybecx);
-
-    JSLinearString *ensureLinear(JSContext *cx) {
-        if (isRope() && !flatten(cx))
-            return NULL;
-        return reinterpret_cast<JSLinearString *>(this);
-    }
-
-    JSLinearString *assertIsLinear() {
-        JS_ASSERT(isLinear());
-        return reinterpret_cast<JSLinearString *>(this);
-    }
-
-    typedef uint8 SmallChar;
-
-    static inline bool fitsInSmallChar(jschar c) {
-        return c < SMALL_CHAR_LIMIT && toSmallChar[c] != INVALID_SMALL_CHAR;
-    }
-
-    static inline bool isUnitString(void *ptr) {
-        jsuword delta = reinterpret_cast<jsuword>(ptr) -
-                        reinterpret_cast<jsuword>(unitStringTable);
-        if (delta >= UNIT_STRING_LIMIT * sizeof(JSString))
-            return false;
-
-        
-        JS_ASSERT(delta % sizeof(JSString) == 0);
-        return true;
-    }
-
-    static inline bool isLength2String(void *ptr) {
-        jsuword delta = reinterpret_cast<jsuword>(ptr) -
-                        reinterpret_cast<jsuword>(length2StringTable);
-        if (delta >= NUM_SMALL_CHARS * NUM_SMALL_CHARS * sizeof(JSString))
-            return false;
-
-        
-        JS_ASSERT(delta % sizeof(JSString) == 0);
-        return true;
-    }
-
-    static inline bool isHundredString(void *ptr) {
-        jsuword delta = reinterpret_cast<jsuword>(ptr) -
-                        reinterpret_cast<jsuword>(hundredStringTable);
-        if (delta >= NUM_HUNDRED_STRINGS * sizeof(JSString))
-            return false;
-
-        
-        JS_ASSERT(delta % sizeof(JSString) == 0);
-        return true;
-    }
-
-    static inline bool isGCThingStatic(void *ptr) {
-        return isUnitString(ptr) || isLength2String(ptr) || isHundredString(ptr);
-    }
-
-#ifdef __SUNPRO_CC
-#pragma align 8 (__1cIJSStringPunitStringTable_, __1cIJSStringSlength2StringTable_, __1cIJSStringShundredStringTable_)
-#endif
-
-    static const SmallChar INVALID_SMALL_CHAR = -1;
-
-    static const jschar fromSmallChar[];
-    static const SmallChar toSmallChar[];
-    static const JSString unitStringTable[];
-    static const JSString length2StringTable[];
-    static const JSString hundredStringTable[];
     
-
-
-
-    static const JSString *const intStringTable[];
-
-    static JSFlatString *unitString(jschar c);
-    static JSLinearString *getUnitString(JSContext *cx, JSString *str, size_t index);
-    static JSFlatString *length2String(jschar c1, jschar c2);
-    static JSFlatString *length2String(uint32 i);
-    static JSFlatString *intString(jsint i);
-
-    static JSFlatString *lookupStaticString(const jschar *chars, size_t length);
-
-    JS_ALWAYS_INLINE void finalize(JSContext *cx);
 
     static size_t offsetOfLengthAndFlags() {
-        return offsetof(JSString, lengthAndFlags);
+        return offsetof(JSString, d.lengthAndFlags);
     }
 
     static size_t offsetOfChars() {
-        return offsetof(JSString, u.chars);
-    }
-
-    static void staticAsserts() {
-        JS_STATIC_ASSERT(((JSString::MAX_LENGTH << JSString::LENGTH_SHIFT) >>
-                           JSString::LENGTH_SHIFT) == JSString::MAX_LENGTH);
+        return offsetof(JSString, d.u1.chars);
     }
 };
 
-
-
-
-
-
-struct JSLinearString : JSString
+class JSRope : public JSString
 {
-    const jschar *chars() const { return JSString::nonRopeChars(); }
+    friend class JSString;
+    JSFlatString *flatten(JSContext *cx);
+
+    void init(JSString *left, JSString *right, size_t length);
+
+  public:
+    static inline JSRope *new_(JSContext *cx, JSString *left,
+                               JSString *right, size_t length);
+
+    inline JSString *leftChild() const {
+        JS_ASSERT(isRope());
+        return d.u1.left;
+    }
+
+    inline JSString *rightChild() const {
+        JS_ASSERT(isRope());
+        return d.s.u2.right;
+    }
+};
+
+JS_STATIC_ASSERT(sizeof(JSRope) == sizeof(JSString));
+
+class JSLinearString : public JSString
+{
+    friend class JSString;
+    inline void mark(JSTracer *trc);
+
+  public:
+    JS_ALWAYS_INLINE
+    const jschar *chars() const {
+        JS_ASSERT(isLinear());
+        return d.u1.chars;
+    }
 };
 
 JS_STATIC_ASSERT(sizeof(JSLinearString) == sizeof(JSString));
 
-
-
-
-
-struct JSFlatString : JSLinearString
+class JSDependentString : public JSLinearString
 {
-    const jschar *charsZ() const { return chars(); }
+    friend class JSString;
+    JSFixedString *undepend(JSContext *cx);
+
+    void init(JSLinearString *base, const jschar *chars, size_t length);
+
+  public:
+    static inline JSDependentString *new_(JSContext *cx, JSLinearString *base,
+                                          const jschar *chars, size_t length);
+
+    JSLinearString *base() const {
+        JS_ASSERT(isDependent());
+        return d.s.u2.base;
+    }
+};
+
+JS_STATIC_ASSERT(sizeof(JSDependentString) == sizeof(JSString));
+
+class JSFlatString : public JSLinearString
+{
+    friend class JSRope;
+    void morphExtensibleIntoDependent(JSLinearString *base) {
+        d.lengthAndFlags = buildLengthAndFlags(length(), DEPENDENT_BIT);
+        d.s.u2.base = base;
+    }
+
+  public:
+    JS_ALWAYS_INLINE
+    const jschar *charsZ() const {
+        JS_ASSERT(isFlat());
+        return chars();
+    }
 };
 
 JS_STATIC_ASSERT(sizeof(JSFlatString) == sizeof(JSString));
 
-
-
-
-
-struct JSAtom : JSFlatString
+class JSExtensibleString : public JSFlatString
 {
+  public:
+    JS_ALWAYS_INLINE
+    size_t capacity() const {
+        JS_ASSERT(isExtensible());
+        return d.s.u2.capacity;
+    }
 };
 
-struct JSExternalString : JSString
+JS_STATIC_ASSERT(sizeof(JSExtensibleString) == sizeof(JSString));
+
+class JSFixedString : public JSFlatString
 {
+    void init(const jschar *chars, size_t length);
+
+  public:
+    static inline JSFixedString *new_(JSContext *cx, const jschar *chars, size_t length);
+
+    
+
+
+
+    inline JSAtom *morphInternedStringIntoAtom();
+};
+
+JS_STATIC_ASSERT(sizeof(JSFixedString) == sizeof(JSString));
+
+class JSExternalString : public JSFixedString
+{
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(TYPE_LIMIT == 8);
+    }
+
+    void init(const jschar *chars, size_t length, intN type);
+
+  public:
+    static inline JSExternalString *new_(JSContext *cx, const jschar *chars,
+                                         size_t length, intN type);
+
+    intN externalStringType() const {
+        JS_ASSERT(isFlat() && !isAtom());
+        JS_ASSERT(d.s.u2.externalStringType < TYPE_LIMIT);
+        return d.s.u2.externalStringType;
+    }
+
     static const uintN TYPE_LIMIT = 8;
     static JSStringFinalizeOp str_finalizers[TYPE_LIMIT];
 
@@ -515,73 +508,192 @@ struct JSExternalString : JSString
         return -1;
     }
 
+    
+
     void finalize(JSContext *cx);
     void finalize();
 };
 
-JS_STATIC_ASSERT(sizeof(JSString) == sizeof(JSExternalString));
+JS_STATIC_ASSERT(sizeof(JSExternalString) == sizeof(JSString));
 
-
-
-
-
-
-class JSShortString : public js::gc::Cell
+class JSShortString : public JSFixedString
 {
-    JSString mHeader;
-    JSString mDummy;
+    
+    static const size_t INLINE_EXTENSION_CHARS = sizeof(JSString::Data) / sizeof(jschar);
+
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(INLINE_EXTENSION_CHARS % sizeof(js::gc::FreeCell) == 0);
+        JS_STATIC_ASSERT(MAX_SHORT_LENGTH + 1 ==
+                         (sizeof(JSShortString) -
+                          offsetof(JSShortString, d.inlineStorage)) / sizeof(jschar));
+    }
+
+    jschar inlineStorageExtension[INLINE_EXTENSION_CHARS];
+
+  public:
+    jschar *inlineStorageBeforeInit() {
+        return d.inlineStorage;
+    }
+
+    jschar *init(size_t length) {
+        JS_ASSERT(lengthFits(length));
+        d.u1.chars = d.inlineStorage;
+        d.lengthAndFlags = buildLengthAndFlags(length, FIXED_FLAGS);
+        return d.inlineStorage;
+    }
+
+    void resetLength(size_t length) {
+        JS_ASSERT(lengthFits(length));
+        d.lengthAndFlags = buildLengthAndFlags(length, FIXED_FLAGS);
+    }
+
+    void initAtOffsetInBuffer(const jschar *chars, size_t length) {
+        JS_ASSERT(lengthFits(length + (chars - d.inlineStorage)));
+        JS_ASSERT(chars >= d.inlineStorage && chars < d.inlineStorage + MAX_SHORT_LENGTH);
+        d.lengthAndFlags = buildLengthAndFlags(length, FIXED_FLAGS);
+        d.u1.chars = chars;
+    }
+
+    static const size_t MAX_SHORT_LENGTH = JSString::NUM_INLINE_CHARS +
+                                           INLINE_EXTENSION_CHARS +
+                                           -1 ;
+
+    static inline bool lengthFits(size_t length) {
+        return length <= MAX_SHORT_LENGTH;
+    }
+
+    
+
+    JS_ALWAYS_INLINE void finalize(JSContext *cx);
+};
+
+JS_STATIC_ASSERT(sizeof(JSShortString) == 2 * sizeof(JSString));
+
+class JSAtom : public JSFixedString
+{
+  public:
+    
+
+    static const size_t UNIT_STATIC_LIMIT   = 256U;
+    static const size_t SMALL_CHAR_LIMIT    = 128U; 
+    static const size_t NUM_SMALL_CHARS     = 64U;
+    static const size_t INT_STATIC_LIMIT    = 256U;
+    static const size_t NUM_HUNDRED_STATICS = 156U;
+
+#ifdef __SUNPRO_CC
+# pragma align 8 (__1cGJSAtomPunitStaticTable_, __1cGJSAtomSlength2StaticTable_, __1cGJSAtomShundredStaticTable_)
+#endif
+    static const JSString::Data unitStaticTable[];
+    static const JSString::Data length2StaticTable[];
+    static const JSString::Data hundredStaticTable[];
+    static const JSString::Data *const intStaticTable[];
+
+  private:
+    
+    static inline bool isUnitString(void *ptr);
+    static inline bool isLength2String(void *ptr);
+    static inline bool isHundredString(void *ptr);
+
+    typedef uint8 SmallChar;
+    static const SmallChar INVALID_SMALL_CHAR = -1;
+
+    static inline bool fitsInSmallChar(jschar c);
+
+    static const jschar fromSmallChar[];
+    static const SmallChar toSmallChar[];
+
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(sizeof(JSString::Data) == sizeof(JSString));
+    }
+
+    static JSStaticAtom &length2Static(jschar c1, jschar c2);
+    static JSStaticAtom &length2Static(uint32 i);
 
   public:
     
 
 
 
+    static inline bool isStatic(void *ptr);
 
-    inline jschar *init(size_t length) {
-        JS_ASSERT(length <= MAX_SHORT_STRING_LENGTH);
-        mHeader.initShortString(mHeader.inlineStorage, length);
-        return mHeader.inlineStorage;
-    }
+    static inline bool hasIntStatic(int32 i);
+    static inline JSStaticAtom &intStatic(jsint i);
 
-    inline jschar *getInlineStorageBeforeInit() {
-        return mHeader.inlineStorage;
-    }
+    static inline bool hasUnitStatic(jschar c);
+    static JSStaticAtom &unitStatic(jschar c);
 
-    inline void initAtOffsetInBuffer(jschar *p, size_t length) {
-        JS_ASSERT(p >= mHeader.inlineStorage && p < mHeader.inlineStorage + MAX_SHORT_STRING_LENGTH);
-        mHeader.initShortString(p, length);
-    }
+    
+    static inline JSLinearString *getUnitStringForElement(JSContext *cx, JSString *str, size_t index);
 
-    inline void resetLength(size_t length) {
-        mHeader.initShortString(mHeader.flatChars(), length);
-    }
-
-    inline JSString *header() {
-        return &mHeader;
-    }
-
-    static const size_t FREE_STRING_WORDS = 2;
-
-    static const size_t MAX_SHORT_STRING_LENGTH =
-            ((sizeof(JSString) + FREE_STRING_WORDS * sizeof(size_t)) / sizeof(jschar)) - 1;
-
-    static inline bool fitsIntoShortString(size_t length) {
-        return length <= MAX_SHORT_STRING_LENGTH;
-    }
-
-    JS_ALWAYS_INLINE void finalize(JSContext *cx);
-
-    static void staticAsserts() {
-        JS_STATIC_ASSERT(offsetof(JSString, inlineStorage) ==
-                         sizeof(JSString) - JSShortString::FREE_STRING_WORDS * sizeof(void *));
-        JS_STATIC_ASSERT(offsetof(JSShortString, mDummy) == sizeof(JSString));
-        JS_STATIC_ASSERT(offsetof(JSString, inlineStorage) +
-                         sizeof(jschar) * (JSShortString::MAX_SHORT_STRING_LENGTH + 1) ==
-                         sizeof(JSShortString));
-    }
+    
+    static inline JSStaticAtom *lookupStatic(const jschar *chars, size_t length);
 };
 
+JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
+
+class JSShortAtom : public JSShortString 
+{
+    
+
+
+
+};
+
+JS_STATIC_ASSERT(sizeof(JSShortAtom) == sizeof(JSShortString));
+
+class JSStaticAtom : public JSAtom
+{};
+
+JS_STATIC_ASSERT(sizeof(JSStaticAtom) == sizeof(JSString));
+
+
+
+JS_ALWAYS_INLINE const jschar *
+JSString::getChars(JSContext *cx)
+{
+    return ensureLinear(cx)->chars();
+}
+
+JS_ALWAYS_INLINE const jschar *
+JSString::getCharsZ(JSContext *cx)
+{
+    return ensureFlat(cx)->chars();
+}
+
+JS_ALWAYS_INLINE JSLinearString *
+JSString::ensureLinear(JSContext *cx)
+{
+    return isLinear()
+           ? &asLinear()
+           : asRope().flatten(cx);
+}
+
+JS_ALWAYS_INLINE JSFlatString *
+JSString::ensureFlat(JSContext *cx)
+{
+    return isFlat()
+           ? &asFlat()
+           : isDependent()
+             ? asDependent().undepend(cx)
+             : asRope().flatten(cx);
+}
+
+JS_ALWAYS_INLINE JSFixedString *
+JSString::ensureFixed(JSContext *cx)
+{
+    if (!ensureFlat(cx))
+        return NULL;
+    if (isExtensible()) {
+        JS_ASSERT((d.lengthAndFlags & FLAT_MASK) == 0);
+        JS_STATIC_ASSERT(EXTENSIBLE_FLAGS == (JS_BIT(2) | JS_BIT(3)));
+        JS_STATIC_ASSERT(FIXED_FLAGS == JS_BIT(2));
+        d.lengthAndFlags ^= JS_BIT(3);
+    }
+    return &asFixed();
+}
+
 namespace js {
+
 
 class StringBuffer;
 
@@ -602,14 +714,8 @@ class RopeBuilder;
 
 }  
 
-extern const jschar *
-js_GetStringChars(JSContext *cx, JSString *str);
-
-extern const jschar *
-js_UndependString(JSContext *cx, JSString *str);
-
-extern JSBool
-js_MakeStringImmutable(JSContext *cx, JSString *str);
+extern JSString * JS_FASTCALL
+js_ConcatStrings(JSContext *cx, JSString *s1, JSString *s2);
 
 extern JSString * JS_FASTCALL
 js_toLowerCase(JSContext *cx, JSString *str);
@@ -824,25 +930,24 @@ extern const char js_decodeURIComponent_str[];
 extern const char js_encodeURIComponent_str[];
 
 
-extern JSFlatString *
+extern JSFixedString *
 js_NewString(JSContext *cx, jschar *chars, size_t length);
 
 extern JSLinearString *
-js_NewDependentString(JSContext *cx, JSString *base, size_t start,
-                      size_t length);
+js_NewDependentString(JSContext *cx, JSString *base, size_t start, size_t length);
 
 
-extern JSFlatString *
+extern JSFixedString *
 js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n);
 
-extern JSFlatString *
+extern JSFixedString *
 js_NewStringCopyN(JSContext *cx, const char *s, size_t n);
 
 
-extern JSFlatString *
+extern JSFixedString *
 js_NewStringCopyZ(JSContext *cx, const jschar *s);
 
-extern JSFlatString *
+extern JSFixedString *
 js_NewStringCopyZ(JSContext *cx, const char *s);
 
 
@@ -891,22 +996,20 @@ ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 extern JS_FRIEND_API(JSString *)
 js_ValueToSource(JSContext *cx, const js::Value &v);
 
+namespace js {
+
 
 
 
 
 inline uint32
-js_HashString(JSLinearString *str)
+HashChars(const jschar *chars, size_t length)
 {
-    const jschar *s = str->chars();
-    size_t n = str->length();
-    uint32 h;
-    for (h = 0; n; s++, n--)
-        h = JS_ROTATE_LEFT32(h, 4) ^ *s;
+    uint32 h = 0;
+    for (; length; chars++, length--)
+        h = JS_ROTATE_LEFT32(h, 4) ^ *chars;
     return h;
 }
-
-namespace js {
 
 
 
@@ -934,20 +1037,6 @@ StringEqualsAscii(JSLinearString *str, const char *asciiBytes);
 
 } 
 
-
-
-
-
-
-
-static const jsuint sBMHCharSetSize = 256; 
-static const jsuint sBMHPatLenMax   = 255; 
-static const jsint  sBMHBadPattern  = -2;  
-
-extern jsint
-js_BoyerMooreHorspool(const jschar *text, jsuint textlen,
-                      const jschar *pat, jsuint patlen);
-
 extern size_t
 js_strlen(const jschar *s);
 
@@ -958,18 +1047,6 @@ extern jschar *
 js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 
 #define js_strncpy(t, s, n)     memcpy((t), (s), (n) * sizeof(jschar))
-
-inline void
-js_short_strncpy(jschar *dest, const jschar *src, size_t num)
-{
-    
-
-
-
-    JS_ASSERT(JSShortString::fitsIntoShortString(num));
-    for (size_t i = 0; i < num; i++)
-        dest[i] = src[i];
-}
 
 
 

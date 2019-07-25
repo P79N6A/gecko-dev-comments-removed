@@ -205,12 +205,12 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
             return true;
 
         
-        if (str->asCell()->compartment() == this)
+        if (str->compartment() == this)
             return true;
 
         
         if (str->isAtom()) {
-            JS_ASSERT(str->asCell()->compartment() == cx->runtime->atomsCompartment);
+            JS_ASSERT(str->compartment() == cx->runtime->atomsCompartment);
             return true;
         }
     }
