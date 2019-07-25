@@ -628,7 +628,7 @@ JSRuntime::init(uint32 maxbytes)
         return false;
 
 #if ENABLE_YARR_JIT
-    regExpAllocator = JSC::ExecutableAllocator::create();
+    regExpAllocator = new JSC::ExecutableAllocator();
     if (!regExpAllocator)
         return false;
 #endif
@@ -3128,26 +3128,16 @@ LookupResult(JSContext *cx, JSObject *obj, JSObject *obj2, jsid id,
         }
 
         
-        if (obj2->containsSlot(shape->slot)) {
+        if (obj2->containsSlot(shape->slot))
             *vp = obj2->nativeGetSlot(shape->slot);
-            return true;
-        }
+        else
+            vp->setBoolean(true);
+    } else if (obj2->isDenseArray()) {
+        return js_GetDenseArrayElementValue(cx, obj2, id, vp);
     } else {
-        if (obj2->isDenseArray())
-            return js_GetDenseArrayElementValue(cx, obj2, id, vp);
-        if (obj2->isProxy()) {
-            AutoPropertyDescriptorRooter desc(cx);
-            if (!JSProxy::getPropertyDescriptor(cx, obj2, id, false, &desc))
-                return false;
-            if (!(desc.attrs & JSPROP_SHARED)) {
-                *vp = desc.value;
-                return true;
-            }
-        }
+        
+        vp->setBoolean(true);
     }
-
-    
-    vp->setBoolean(true);
     return true;
 }
 
@@ -4428,6 +4418,17 @@ JS_CompileUCScript(JSContext *cx, JSObject *obj, const jschar *chars, size_t len
 }
 
 JS_PUBLIC_API(JSScript *)
+JS_CompileScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
+                                     JSPrincipals *principals,
+                                     const char *bytes, size_t length,
+                                     const char *filename, uintN lineno,
+                                     JSVersion version)
+{
+    AutoVersionAPI ava(cx, version);
+    return JS_CompileScriptForPrincipals(cx, obj, principals, bytes, length, filename, lineno);   
+}
+
+JS_PUBLIC_API(JSScript *)
 JS_CompileScriptForPrincipals(JSContext *cx, JSObject *obj,
                               JSPrincipals *principals,
                               const char *bytes, size_t length,
@@ -4546,6 +4547,14 @@ JS_CompileFileHandleForPrincipals(JSContext *cx, JSObject *obj, const char *file
     }
     LAST_FRAME_CHECKS(cx, script);
     return script;
+}
+
+JS_PUBLIC_API(JSScript *)
+JS_CompileFileHandleForPrincipalsVersion(JSContext *cx, JSObject *obj, const char *filename,
+                                         FILE *file, JSPrincipals *principals, JSVersion version)
+{
+    AutoVersionAPI ava(cx, version);
+    return JS_CompileFileHandleForPrincipals(cx, obj, filename, file, principals);
 }
 
 JS_PUBLIC_API(JSScript *)
@@ -4736,10 +4745,7 @@ JS_DecompileScript(JSContext *cx, JSScript *script, const char *name, uintN inde
     JSString *str;
 
     CHECK_REQUEST(cx);
-#ifdef DEBUG
-    if (cx->compartment != script->compartment)
-        CompartmentChecker::fail(cx->compartment, script->compartment);
-#endif
+    assertSameCompartment(cx, script);
     jp = js_NewPrinter(cx, name, NULL,
                        indent & ~JS_DONT_PRETTY_PRINT,
                        !(indent & JS_DONT_PRETTY_PRINT),
@@ -4792,6 +4798,15 @@ JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval)
     LAST_FRAME_CHECKS(cx, ok);
     return ok;
 }
+
+JS_PUBLIC_API(JSBool)
+JS_ExecuteScriptVersion(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval,
+                        JSVersion version)
+{
+    AutoVersionAPI ava(cx, version);
+    return JS_ExecuteScript(cx, obj, script, rval);
+}
+
 
 JS_PUBLIC_API(JSBool)
 JS_EvaluateUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
