@@ -501,9 +501,7 @@ ThreadActor.prototype = {
   onScripts: function TA_onScripts(aRequest) {
     
     for (let s of this.dbg.findScripts()) {
-      if (s.url.indexOf("chrome://") != 0) {
-        this._addScript(s);
-      }
+      this._addScript(s);
     }
     
     let scripts = [];
@@ -917,6 +915,10 @@ ThreadActor.prototype = {
 
 
   _addScript: function TA__addScript(aScript) {
+    
+    if (aScript.url.indexOf("chrome://") == 0) {
+      return;
+    }
     
     
     if (!this._scripts[aScript.url]) {
