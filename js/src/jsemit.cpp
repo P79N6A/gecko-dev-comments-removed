@@ -2163,19 +2163,13 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
-
-
-
-
-
     switch (op) {
       case JSOP_NAME:
       case JSOP_SETCONST:
         break;
       case JSOP_DELNAME:
         if (dn_kind != JSDefinition::UNKNOWN) {
-            if (cg->parser->callerFrame && !cg->funbox)
+            if (cg->parser->callerFrame && dn->isTopLevel())
                 JS_ASSERT(cg->compileAndGo());
             else
                 pn->pn_op = JSOP_FALSE;
@@ -4578,11 +4572,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
             break;
         }
-
-        JS_ASSERT_IF(cx->options & JSOPTION_ANONFUNFIX,
-                     pn->pn_defn ||
-                     (!pn->pn_used && !pn->isTopLevel()) ||
-                     (fun->flags & JSFUN_LAMBDA));
 
         JS_ASSERT_IF(pn->pn_funbox->tcflags & TCF_FUN_HEAVYWEIGHT,
                      FUN_KIND(fun) == JSFUN_INTERPRETED);
