@@ -60,7 +60,7 @@ class GeolocationRequestParent : public PGeolocationRequestParent
   
   nsCOMPtr<nsIURI>           mURI;
   nsCOMPtr<nsIDOMElement>    mElement;
-  nsGeolocationRequestProxy *mProxy;
+  nsCOMPtr<nsGeolocationRequestProxy> mProxy;
 
  private:  
   virtual bool Recvprompt();
