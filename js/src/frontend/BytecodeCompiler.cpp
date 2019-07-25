@@ -113,20 +113,15 @@ frontend::CompileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     if (!script)
         return NULL;
 
-    BytecodeEmitter bce(&parser, &sc, script, callerFrame, lineno);
+    
+    JSObject *globalScope = scopeChain && scopeChain == &scopeChain->global() ? scopeChain : NULL;
+    JS_ASSERT_IF(globalScope, globalScope->isNative());
+    JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
+
+    BytecodeEmitter bce( NULL, &parser, &sc, script, callerFrame, !!globalScope,
+                        lineno);
     if (!bce.init())
         return NULL;
-
-    
-    JSObject *globalObj = scopeChain && scopeChain == &scopeChain->global()
-                          ? &scopeChain->global()
-                          : NULL;
-
-    JS_ASSERT_IF(globalObj, globalObj->isNative());
-    JS_ASSERT_IF(globalObj, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalObj->getClass()));
-
-    GlobalScope globalScope(cx, globalObj);
-    bce.globalScope = &globalScope;
 
     
     if (callerFrame && callerFrame->isScriptFrame() && callerFrame->script()->strictModeCode)
@@ -281,7 +276,8 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
         return false;
 
     StackFrame *nullCallerFrame = NULL;
-    BytecodeEmitter funbce(&parser, &funsc, script, nullCallerFrame, lineno);
+    BytecodeEmitter funbce( NULL, &parser, &funsc, script, nullCallerFrame,
+                            false, lineno);
     if (!funbce.init())
         return false;
 

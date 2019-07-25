@@ -63,21 +63,13 @@ class GCConstList {
     void finish(ConstArray *array);
 };
 
-struct GlobalScope {
-    GlobalScope(JSContext *cx, JSObject *globalObj)
-      : globalObj(cx, globalObj)
-    { }
-
-    RootedObject globalObj;
-};
-
 struct BytecodeEmitter
 {
-    SharedContext   *sc;            
+    SharedContext   *const sc;      
 
-    BytecodeEmitter *parent;        
+    BytecodeEmitter *const parent;  
 
-    Rooted<JSScript*> script;       
+    const Rooted<JSScript*> script;       
 
     struct {
         jsbytecode  *base;          
@@ -90,9 +82,9 @@ struct BytecodeEmitter
         unsigned    currentLine;    
     } prolog, main, *current;
 
-    Parser          *parser;        
+    Parser          *const parser;  
 
-    StackFrame      *const callerFrame;  
+    StackFrame      *const callerFrame; 
 
     OwnedAtomIndexMapPtr atomIndices; 
     unsigned        firstLine;      
@@ -116,8 +108,6 @@ struct BytecodeEmitter
     CGObjectList    regexpList;     
 
 
-    GlobalScope     *globalScope;   
-
     
     typedef Vector<uint32_t, 8> SlotVector;
     SlotVector      closedArgs;
@@ -129,8 +119,12 @@ struct BytecodeEmitter
 
     bool            inForInit:1;        
 
-    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script,
-                    StackFrame *callerFrame, unsigned lineno);
+    const bool      hasGlobalScope:1;   
+
+
+    BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
+                    HandleScript script, StackFrame *callerFrame, bool hasGlobalScope,
+                    unsigned lineno);
     bool init();
 
     
