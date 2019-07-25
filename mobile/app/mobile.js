@@ -96,6 +96,9 @@ pref("network.autodial-helper.enabled", true);
 #endif
 
 
+pref("browser.display.history.maxresults", 100);
+
+
 pref("browser.sessionhistory.max_total_viewers", 1);
 pref("browser.sessionhistory.max_entries", 50);
 

@@ -1227,7 +1227,6 @@ function GestureModule(owner, browserViewContainer) {
 }
 
 GestureModule.prototype = {
-
   
 
 
@@ -1350,3 +1349,4 @@ GestureModule.prototype = {
     }
   }
 };
+
