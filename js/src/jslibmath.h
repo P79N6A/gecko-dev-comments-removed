@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef _LIBMATH_H
 #define _LIBMATH_H
 
@@ -93,14 +94,14 @@ NumberDiv(double a, double b) {
     if (b == 0) {
         if (a == 0 || JSDOUBLE_IS_NaN(a) 
 #ifdef XP_WIN
-            || JSDOUBLE_IS_NaN(a) 
+            || JSDOUBLE_IS_NaN(b) 
 #endif
         )
             return js_NaN;    
-        else if (JSDOUBLE_IS_NEG(a) != JSDOUBLE_IS_NEG(b))
+
+        if (JSDOUBLE_IS_NEG(a) != JSDOUBLE_IS_NEG(b))
             return js_NegativeInfinity;
-        else
-            return js_PositiveInfinity; 
+        return js_PositiveInfinity; 
     }
 
     return a / b;
