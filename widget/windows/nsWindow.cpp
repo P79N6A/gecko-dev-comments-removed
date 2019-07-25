@@ -3759,7 +3759,9 @@ void nsWindow::DispatchPendingEvents()
 
   
   
-  if (::GetQueueStatus(QS_PAINT)) {
+  
+  if (::GetQueueStatus(QS_PAINT) &&
+      ((TimeStamp::Now() - mLastPaintEndTime).ToMilliseconds() >= 50)) {
     
     HWND topWnd = WinUtils::GetTopLevelHWND(mWnd);
 
