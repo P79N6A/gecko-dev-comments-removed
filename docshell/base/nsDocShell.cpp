@@ -9192,7 +9192,17 @@ nsresult nsDocShell::DoChannelLoad(nsIChannel * aChannel,
     
     switch (mLoadType) {
     case LOAD_HISTORY:
-        loadFlags |= nsIRequest::VALIDATE_NEVER;
+        {
+            
+            
+            PRBool uriModified = PR_FALSE;
+            if (mLSHE) {
+                mLSHE->GetURIWasModified(&uriModified);
+            }
+
+            if (!uriModified)
+                loadFlags |= nsIRequest::VALIDATE_NEVER;
+        }
         break;
 
     case LOAD_RELOAD_CHARSET_CHANGE:
@@ -9853,6 +9863,15 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     newSHEntry->SetStateData(scContainer);
     newSHEntry->SetPostData(nsnull);
+
+    
+    
+    
+    
+    PRBool sameExceptHashes = PR_TRUE, oldURIWasModified = PR_FALSE;
+    newURI->EqualsExceptRef(mCurrentURI, &sameExceptHashes);
+    oldOSHE->GetURIWasModified(&oldURIWasModified);
+    newSHEntry->SetURIWasModified(!sameExceptHashes || oldURIWasModified);
 
     
     
