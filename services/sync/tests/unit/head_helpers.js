@@ -240,7 +240,8 @@ FakeCryptoService.prototype = {
   },
 
   generateRandomIV: function() {
-    return "fake-random-iv";
+    
+    return "fake-fake-fake-random-iv";
   },
 
   generateRandomBytes: function(aByteCount) {
