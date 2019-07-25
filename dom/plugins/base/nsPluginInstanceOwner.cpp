@@ -1710,6 +1710,56 @@ void nsPluginInstanceOwner::ScrollPositionDidChange(nscoord aX, nscoord aY)
 
 #ifdef MOZ_WIDGET_ANDROID
 
+
+
+
+static nsPoint
+GetOffsetRootContent(nsIFrame* aFrame)
+{
+  
+  
+  
+  nsPoint offset(0, 0), docOffset(0, 0);
+  const nsIFrame* f = aFrame;
+  PRInt32 currAPD = aFrame->PresContext()->AppUnitsPerDevPixel();
+  PRInt32 apd = currAPD;
+  nsRect displayPort;
+  while (f) {
+    if (f->GetContent() && nsLayoutUtils::GetDisplayPort(f->GetContent(), &displayPort))
+      break;
+
+    docOffset += f->GetPosition();
+    nsIFrame* parent = f->GetParent();
+    if (parent) {
+      f = parent;
+    } else {
+      nsPoint newOffset(0, 0);
+      f = nsLayoutUtils::GetCrossDocParentFrame(f, &newOffset);
+      PRInt32 newAPD = f ? f->PresContext()->AppUnitsPerDevPixel() : 0;
+      if (!f || newAPD != currAPD) {
+        
+        offset += docOffset.ConvertAppUnits(currAPD, apd);
+        docOffset.x = docOffset.y = 0;
+      }
+      currAPD = newAPD;
+      docOffset += newOffset;
+    }
+  }
+
+  offset += docOffset.ConvertAppUnits(currAPD, apd);
+
+  return offset;
+}
+
+gfxRect nsPluginInstanceOwner::GetPluginRect()
+{
+  
+  nsRect bounds = mObjectFrame->GetContentRectRelativeToSelf() + GetOffsetRootContent(mObjectFrame);
+  nsIntRect intBounds = bounds.ToNearestPixels(mObjectFrame->PresContext()->AppUnitsPerDevPixel());
+
+  return gfxRect(intBounds);
+}
+
 void nsPluginInstanceOwner::SendSize(int width, int height)
 {
   if (!mInstance)
@@ -1799,10 +1849,14 @@ void nsPluginInstanceOwner::ExitFullScreen() {
   if (model == kSurface_ANPDrawingModel) {
     
     
-    Invalidate();
+    AddPluginView(GetPluginRect());
   }
 
   mInstance->NotifyFullScreen(mFullScreen);
+
+  
+  
+  Invalidate();
 }
 
 void nsPluginInstanceOwner::ExitFullScreen(jobject view) {
@@ -2848,47 +2902,6 @@ void nsPluginInstanceOwner::Paint(const nsRect& aDirtyRect, HPS aHPS)
 
 #ifdef MOZ_WIDGET_ANDROID
 
-
-
-
-static nsPoint
-GetOffsetRootContent(nsIFrame* aFrame)
-{
-  
-  
-  
-  nsPoint offset(0, 0), docOffset(0, 0);
-  const nsIFrame* f = aFrame;
-  PRInt32 currAPD = aFrame->PresContext()->AppUnitsPerDevPixel();
-  PRInt32 apd = currAPD;
-  nsRect displayPort;
-  while (f) {
-    if (f->GetContent() && nsLayoutUtils::GetDisplayPort(f->GetContent(), &displayPort))
-      break;
-
-    docOffset += f->GetPosition();
-    nsIFrame* parent = f->GetParent();
-    if (parent) {
-      f = parent;
-    } else {
-      nsPoint newOffset(0, 0);
-      f = nsLayoutUtils::GetCrossDocParentFrame(f, &newOffset);
-      PRInt32 newAPD = f ? f->PresContext()->AppUnitsPerDevPixel() : 0;
-      if (!f || newAPD != currAPD) {
-        
-        offset += docOffset.ConvertAppUnits(currAPD, apd);
-        docOffset.x = docOffset.y = 0;
-      }
-      currAPD = newAPD;
-      docOffset += newOffset;
-    }
-  }
-
-  offset += docOffset.ConvertAppUnits(currAPD, apd);
-
-  return offset;
-}
-
 void nsPluginInstanceOwner::Paint(gfxContext* aContext,
                                   const gfxRect& aFrameRect,
                                   const gfxRect& aDirtyRect)
@@ -2898,10 +2911,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
 
   PRInt32 model = mInstance->GetANPDrawingModel();
 
-  
-  nsRect bounds = mObjectFrame->GetContentRectRelativeToSelf() + GetOffsetRootContent(mObjectFrame);
-  nsIntRect intBounds = bounds.ToNearestPixels(mObjectFrame->PresContext()->AppUnitsPerDevPixel());
-  gfxRect pluginRect(intBounds);
+  gfxRect pluginRect = GetPluginRect();
 
   if (model == kSurface_ANPDrawingModel) {
     if (!AddPluginView(pluginRect)) {
