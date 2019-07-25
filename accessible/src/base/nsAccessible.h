@@ -611,6 +611,11 @@ public:
 
   virtual nsAccessible* ContainerWidget() const;
 
+  
+
+
+  static void TranslateString(const nsAString& aKey, nsAString& aStringOut);
+
 protected:
 
   
@@ -703,7 +708,6 @@ protected:
 
   
   static nsresult GetFullKeyName(const nsAString& aModifierName, const nsAString& aKeyName, nsAString& aStringOut);
-  static nsresult GetTranslatedString(const nsAString& aKey, nsAString& aStringOut);
 
   
 

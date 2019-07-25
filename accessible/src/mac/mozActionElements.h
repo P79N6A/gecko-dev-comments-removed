@@ -43,6 +43,7 @@
 
 @interface mozButtonAccessible : mozAccessible
 - (void)click;
+- (BOOL)isTab;
 @end
 
 @interface mozCheckboxAccessible : mozButtonAccessible
@@ -52,4 +53,12 @@
 
 
 @interface mozPopupButtonAccessible : mozButtonAccessible
+@end
+
+
+@interface mozTabsAccessible : mozAccessible
+{
+  NSMutableArray* mTabs;
+}
+-(id)tabs;
 @end
