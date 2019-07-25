@@ -79,7 +79,6 @@ public:
   static nsresult Start(nsIURI* aURI)
   {
     NS_PRECONDITION(aURI, "Null URI");
-    return NS_OK;
 
 #ifdef MOZ_IPC
   
