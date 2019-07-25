@@ -70,7 +70,7 @@
 #include <inttypes.h>
 #endif
 
-#if WTF_PLATFORM_SYMBIAN
+#if WTF_OS_SYMBIAN
 #include <e32def.h>
 #include <e32debug.h>
 #endif
@@ -145,7 +145,7 @@ void WTFLogVerbose(const char* file, int line, const char* function, WTFLogChann
 
 
 #ifndef CRASH
-#if WTF_PLATFORM_SYMBIAN
+#if WTF_OS_SYMBIAN
 #define CRASH() do { \
     __DEBUGGER(); \
     User::Panic(_L("Webkit CRASH"),0); \
@@ -160,7 +160,7 @@ void WTFLogVerbose(const char* file, int line, const char* function, WTFLogChann
 
 
 
-#if WTF_PLATFORM_WIN_OS || WTF_PLATFORM_SYMBIAN
+#if WTF_PLATFORM_WIN || WTF_OS_SYMBIAN
 
 #undef ASSERT
 #endif
