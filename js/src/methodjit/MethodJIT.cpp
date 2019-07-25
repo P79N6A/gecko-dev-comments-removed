@@ -48,7 +48,8 @@ using namespace js;
 using namespace js::mjit;
 
 #ifdef JS_METHODJIT_PROFILE_STUBS
-static uint32 StubCallsForOp[255];
+static const size_t STUB_CALLS_FOR_OP_COUNT = 255;
+static uint32 StubCallsForOp[STUB_CALLS_FOR_OP_COUNT];
 #endif
 
 extern "C" void JS_FASTCALL
@@ -542,6 +543,11 @@ ThreadData::Initialize()
         return false;
     }
 
+#ifdef JS_METHODJIT_PROFILE_STUBS
+    for (size_t i = 0; i < STUB_CALLS_FOR_OP_COUNT; ++i)
+        StubCallsForOp[i] = 0;
+#endif
+
     return true;
 }
 
@@ -583,8 +589,8 @@ ThreadData::purge(JSContext *cx)
         return;
 
     for (ThreadData::ScriptSet::Enum e(picScripts); !e.empty(); e.popFront()) {
-#if defined JS_POLYIC
         JSScript *script = e.front();
+#if defined JS_POLYIC
         ic::PurgePICs(cx, script);
 #endif
 #if defined JS_MONOIC

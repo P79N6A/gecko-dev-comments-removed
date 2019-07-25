@@ -69,7 +69,8 @@ struct PICInfo {
         CALL,
         SET,
         NAME,
-        BIND
+        BIND,
+        GETELEM
     };
 
     union {
@@ -82,8 +83,11 @@ struct PICInfo {
             uint16 typeCheckOffset : 9;
 
             
-            uint32 objRemat    : 20;
-            bool objNeedsRemat : 1;
+            uint32 objRemat     : 20;
+            bool objNeedsRemat  : 1;
+            RegisterID idReg    : 5;  
+            uint32 idRemat      : 20;
+            bool idNeedsRemat   : 1;
 
             
             
@@ -106,8 +110,20 @@ struct PICInfo {
     RegisterID shapeReg : 5;        
     RegisterID objReg   : 5;        
 
+    
+    uint32 stubsGenerated : 5;
+
+    
+    int shapeGuard : 8;
+    
+    
+    uint16 callReturn : 9;
+
+    unsigned unused : 24;
+
+
     inline bool isGet() {
-        return kind == GET || kind == CALL;
+        return kind == GET || kind == CALL || kind == GETELEM;
     }
     inline RegisterID typeReg() {
         JS_ASSERT(isGet());
@@ -121,9 +137,17 @@ struct PICInfo {
         JS_ASSERT(isGet());
         return u.get.objRemat;
     }
+    inline uint32 idRemat() {
+        JS_ASSERT(isGet());
+        return u.get.idRemat;
+    }
     inline bool objNeedsRemat() {
         JS_ASSERT(isGet());
         return u.get.objNeedsRemat;
+    }
+    inline bool idNeedsRemat() {
+        JS_ASSERT(isGet());
+        return u.get.idNeedsRemat;
     }
     inline bool shapeNeedsRemat() {
         return !shapeRegHasBaseShape;
@@ -134,12 +158,6 @@ struct PICInfo {
     }
 
     
-    uint32 stubsGenerated : 5;
-
-    
-    int shapeGuard : 8;
-    
-    
     JSAtom *atom;
 
     
@@ -147,9 +165,6 @@ struct PICInfo {
 
     
     JSC::CodeLocationLabel storeBack;
-
-    
-    uint16 callReturn : 9;
 
     
     JSC::CodeLocationLabel slowPathStart;
@@ -200,6 +215,7 @@ struct PICInfo {
 
 void PurgePICs(JSContext *cx, JSScript *script);
 void JS_FASTCALL GetProp(VMFrame &f, uint32 index);
+void JS_FASTCALL GetElem(VMFrame &f, uint32 index);
 void JS_FASTCALL SetProp(VMFrame &f, uint32 index);
 void JS_FASTCALL CallProp(VMFrame &f, uint32 index);
 void JS_FASTCALL Name(VMFrame &f, uint32 index);

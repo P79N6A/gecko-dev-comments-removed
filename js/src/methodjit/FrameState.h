@@ -260,6 +260,15 @@ class FrameState
 
 
 
+
+
+    inline RegisterID tempRegForType(FrameEntry *fe, RegisterID fallback);
+
+    
+
+
+
+
     inline RegisterID tempRegForData(FrameEntry *fe);
 
     
@@ -468,6 +477,12 @@ class FrameState
 
 
     inline Jump testBoolean(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
+    inline Jump testString(Assembler::Condition cond, FrameEntry *fe);
 
     
 
