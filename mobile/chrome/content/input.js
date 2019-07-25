@@ -245,6 +245,8 @@ MouseModule.prototype = {
       }
     }
 
+    this._target = null;
+
     
     if (dragData.isPan()) {
       

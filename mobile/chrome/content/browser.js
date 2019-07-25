@@ -1263,15 +1263,20 @@ const BrowserSearch = {
 
 
 const ContentTouchHandler = {
+  
+  
+  _messageId: 0,
+
   init: function init() {
-    document.addEventListener("TapDown", this, false);
+    document.addEventListener("TapDown", this, true);
     document.addEventListener("TapUp", this, false);
     document.addEventListener("TapSingle", this, false);
     document.addEventListener("TapDouble", this, false);
     document.addEventListener("TapLong", this, false);
-    document.addEventListener("PanBegin", this, false);
 
-    document.addEventListener("PopupChanged", this._popupChanged.bind(this), false);
+    document.addEventListener("PanBegin", this, false);
+    document.addEventListener("PopupChanged", this, false);
+    document.addEventListener("CancelTouchSequence", this, false);
 
     
     
@@ -1284,47 +1289,79 @@ const ContentTouchHandler = {
     
     
     messageManager.addMessageListener("Browser:ContextMenu", this);
+
+    messageManager.addMessageListener("Browser:Highlight", this);
   },
 
-  handleEvent: function handleEvent(ev) {
+  handleEvent: function handleEvent(aEvent) {
     
-    if (ev.target.localName == "browser")
+    if (aEvent.target.localName == "browser")
       return;
 
-    if (!this._targetIsContent(ev)) {
-      TapHighlightHelper.hide();
-      this._dispatchMouseEvent("Browser:MouseCancel");
-      return;
-    }
-
-    switch (ev.type) {
-      case "TapDown":
-        this.tapDown(ev.clientX, ev.clientY);
-        break;
-      case "TapUp":
-        thisTapSingletapUp(ev.clientX, ev.clientY);
-        break;
-      case "TapSingle":
-        this.tapSingle(ev.clientX, ev.clientY, ev.modifiers);
-        break;
-      case "TapDouble":
-        this.tapDouble(ev.clientX1, ev.clientY1, ev.clientX2, ev.clientY2);
-        break;
-      case "TapLong":
-        this.tapLong();
-        break;
+    switch (aEvent.type) {
       case "PanBegin":
-        this.panBegin();
+      case "PopupChanged":
+      case "CancelTouchSequence":
+        this._clearPendingMessages();
         break;
+
+      default: {
+        if (ContextHelper.popupState) {
+          
+          aEvent.preventDefault();
+          break;
+        }
+
+        if (!this._targetIsContent(aEvent)) {
+          
+          this._clearPendingMessages();
+          break;
+        }
+
+        switch (aEvent.type) {
+          case "TapDown":
+            this.tapDown(aEvent.clientX, aEvent.clientY);
+            break;
+          case "TapUp":
+            this.tapUp(aEvent.clientX, aEvent.clientY);
+            break;
+          case "TapSingle":
+            this.tapSingle(aEvent.clientX, aEvent.clientY, aEvent.modifiers);
+            break;
+          case "TapDouble":
+            this.tapDouble(aEvent.clientX1, aEvent.clientY1, aEvent.clientX2, aEvent.clientY2);
+            break;
+          case "TapLong":
+            this.tapLong();
+            break;
+        }
+      }
     }
   },
 
   receiveMessage: function receiveMessage(aMessage) {
-    this._contextMenu = { name: aMessage.name, json: aMessage.json, target: aMessage.target };
+    if (aMessage.json.messageId != this._messageId)
+      return;
+
+    switch (aMessage.name) {
+      case "Browser:ContextMenu":
+        
+        this._contextMenu = { name: aMessage.name, json: aMessage.json, target: aMessage.target };
+        break;
+
+      case "Browser:Highlight": {
+        let rects = aMessage.json.rects.map(
+          function(r) new Rect(r.left, r.top, r.width, r.height));
+        TapHighlightHelper.show(rects);
+        break;
+      }
+    }
   },
 
-  _popupChanged: function _popupChanged() {
-    TapHighlightHelper.hide(200);
+  
+  _clearPendingMessages: function _clearPendingMessages() {
+    this._messageId++;
+    TapHighlightHelper.hide(0);
     this._contextMenu = null;
   },
 
@@ -1342,7 +1379,12 @@ const ContentTouchHandler = {
     let aModifiers = aModifiers || null;
     let browser = getBrowser();
     let [x, y] = Browser.transformClientToBrowser(aX, aY);
-    browser.messageManager.sendAsyncMessage(aName, { x: x, y: y, modifiers: aModifiers });
+    browser.messageManager.sendAsyncMessage(aName, {
+      x: x,
+      y: y,
+      modifiers: aModifiers,
+      messageId: this._messageId
+    });
   },
 
   tapDown: function tapDown(aX, aY) {
@@ -1362,13 +1404,6 @@ const ContentTouchHandler = {
     this._contextMenu = null;
   },
 
-  panBegin: function panBegin() {
-    TapHighlightHelper.hide(0);
-    this._contextMenu = null;
-
-    this._dispatchMouseEvent("Browser:MouseCancel");
-  },
-
   tapSingle: function tapSingle(aX, aY, aModifiers) {
     TapHighlightHelper.hide(200);
     this._contextMenu = null;
@@ -1376,15 +1411,10 @@ const ContentTouchHandler = {
     
     if (!ContextHelper.popupState)
       this._dispatchMouseEvent("Browser:MouseUp", aX, aY, aModifiers);
-    this._dispatchMouseEvent("Browser:MouseCancel");
   },
 
   tapDouble: function tapDouble(aX1, aY1, aX2, aY2) {
-    TapHighlightHelper.hide();
-    this._contextMenu = null;
-
-
-    this._dispatchMouseEvent("Browser:MouseCancel");
+    this._clearPendingMessages();
 
     const kDoubleClickRadius = 100;
 
