@@ -4,8 +4,11 @@
 
 
 
-function reflectString(aElement, aAttr)
+
+function reflectString(aElement, aAttr, aOtherValues)
 {
+  var otherValues = aOtherValues !== undefined ? aOtherValues : [];
+
   
   is(aElement.getAttribute(aAttr), null,
      "When not set, the content attribute should be undefined.");
@@ -56,6 +59,8 @@ function reflectString(aElement, aAttr)
         toString: function() { return "bar" } },
       "bar" ]
   ];
+
+  otherValues.forEach(function(v) { stringsToTest.push([v, v]) });
 
   stringsToTest.forEach(function([v, r]) {
     aElement.setAttribute(aAttr, v);
