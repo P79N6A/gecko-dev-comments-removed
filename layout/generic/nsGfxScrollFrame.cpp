@@ -1436,36 +1436,9 @@ nsGfxScrollFrameInner::ScrollTo(nsPoint aScrollPosition,
   }
 }
 
-static void InvalidateWidgets(nsIView* aView)
-{
-  if (aView->HasWidget()) {
-    nsIWidget* widget = aView->GetWidget();
-    nsWindowType type;
-    widget->GetWindowType(type);
-    if (type != eWindowType_popup) {
-      
-      
-      
-      
-      
-      
-      widget->Show(PR_FALSE);
-      widget->Show(PR_TRUE);
-    }
-    return;
-  }
-
-  for (nsIView* v = aView->GetFirstChild(); v; v = v->GetNextSibling()) {
-    InvalidateWidgets(v);
-  }
-}
 
 
-
-
-
-static void AdjustViewsAndWidgets(nsIFrame* aFrame,
-                                  PRBool aInvalidateWidgets)
+static void AdjustViews(nsIFrame* aFrame)
 {
   nsIView* view = aFrame->GetView();
   if (view) {
@@ -1474,9 +1447,6 @@ static void AdjustViewsAndWidgets(nsIFrame* aFrame,
     pt += aFrame->GetPosition();
     view->SetPosition(pt.x, pt.y);
 
-    if (aInvalidateWidgets) {
-      InvalidateWidgets(view);
-    }
     return;
   }
 
@@ -1490,7 +1460,7 @@ static void AdjustViewsAndWidgets(nsIFrame* aFrame,
     
     nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
     while (childFrame) {
-      AdjustViewsAndWidgets(childFrame, aInvalidateWidgets);
+      AdjustViews(childFrame);
 
       
       childFrame = childFrame->GetNextSibling();
@@ -1614,7 +1584,7 @@ void nsGfxScrollFrameInner::ScrollVisual(nsIntPoint aPixDelta)
 
   rootPresContext->RequestUpdatePluginGeometry(mOuter);
 
-  AdjustViewsAndWidgets(mScrolledFrame, PR_FALSE);
+  AdjustViews(mScrolledFrame);
   
   
   PRUint32 flags = nsIFrame::INVALIDATE_REASON_SCROLL_REPAINT;
