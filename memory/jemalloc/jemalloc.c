@@ -2195,6 +2195,26 @@ static void *
 pages_map(void *addr, size_t size, int pfd)
 {
 	void *ret;
+#if defined(__ia64__)
+        
+
+
+
+
+
+
+
+
+
+
+
+
+	bool check_placement = true;
+        if (addr == NULL) {
+		addr = (void*)0x0000070000000000;
+		check_placement = false;
+	}
+#endif
 
 	
 
@@ -2214,8 +2234,21 @@ pages_map(void *addr, size_t size, int pfd)
 
 	if (ret == MAP_FAILED)
 		ret = NULL;
+#if defined(__ia64__)
+        
+
+
+
+        else if ((long long)ret & 0xffff800000000000) {
+		munmap(ret, size);
+                ret = NULL;
+        }
+        
+	else if (check_placement && ret != addr) {
+#else
 	else if (addr != NULL && ret != addr) {
-		
+#endif
+
 
 
 		if (munmap(ret, size) == -1) {
@@ -2230,8 +2263,13 @@ pages_map(void *addr, size_t size, int pfd)
 		ret = NULL;
 	}
 
+#if defined(__ia64__)
+	assert(ret == NULL || (!check_placement && ret != NULL)
+	    || (check_placement && ret == addr));
+#else
 	assert(ret == NULL || (addr == NULL && ret != addr)
 	    || (addr != NULL && ret == addr));
+#endif
 	return (ret);
 }
 
