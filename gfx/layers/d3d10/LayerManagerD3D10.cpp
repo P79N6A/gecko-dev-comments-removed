@@ -296,6 +296,9 @@ LayerManagerD3D10::Destroy()
     if (mRoot) {
       static_cast<LayerD3D10*>(mRoot->ImplData())->LayerManagerDestroyed();
     }
+    mRootForShadowTree = nsnull;
+    
+    
   }
   LayerManager::Destroy();
 }
@@ -709,8 +712,74 @@ LayerManagerD3D10::Render()
   if (mTarget) {
     PaintToTarget();
   } else if (mBackBuffer) {
+    ShadowLayerForwarder::BeginTransaction();
+    
+    nsIntRect contentRect = nsIntRect(0, 0, rect.width, rect.height);
+    if (!mRootForShadowTree) {
+        mRootForShadowTree = new DummyRoot(this);
+        mRootForShadowTree->SetShadow(ConstructShadowFor(mRootForShadowTree));
+        CreatedContainerLayer(mRootForShadowTree);
+        ShadowLayerForwarder::SetRoot(mRootForShadowTree);
+    }
+
+    nsRefPtr<WindowLayer> windowLayer =
+        static_cast<WindowLayer*>(mRootForShadowTree->GetFirstChild());
+    if (!windowLayer) {
+        windowLayer = new WindowLayer(this);
+        windowLayer->SetShadow(ConstructShadowFor(windowLayer));
+        CreatedThebesLayer(windowLayer);
+        ShadowLayerForwarder::CreatedThebesBuffer(windowLayer,
+                                                  contentRect,
+                                                  contentRect,
+                                                  SurfaceDescriptor());
+
+        mRootForShadowTree->InsertAfter(windowLayer, nsnull);
+        ShadowLayerForwarder::InsertAfter(mRootForShadowTree, windowLayer);
+    }
+
+    if (!mRootForShadowTree->GetVisibleRegion().IsEqual(contentRect)) {
+        mRootForShadowTree->SetVisibleRegion(contentRect);
+        windowLayer->SetVisibleRegion(contentRect);
+
+        ShadowLayerForwarder::Mutated(mRootForShadowTree);
+        ShadowLayerForwarder::Mutated(windowLayer);
+    }
+
+    FrameMetrics m;
+    if (ContainerLayer* cl = mRoot->AsContainerLayer()) {
+        m = cl->GetFrameMetrics();
+    } else {
+        m.mScrollId = FrameMetrics::ROOT_SCROLL_ID;
+    }
+    if (m != mRootForShadowTree->GetFrameMetrics()) {
+        mRootForShadowTree->SetFrameMetrics(m);
+        ShadowLayerForwarder::Mutated(mRootForShadowTree);
+    }
+
+    SurfaceDescriptorD3D10 sd;
+    GetDescriptor(mBackBuffer, &sd);
+    ShadowLayerForwarder::PaintedThebesBuffer(windowLayer,
+                                              contentRect,
+                                              contentRect, nsIntPoint(),
+                                              sd);
+
+    
+    
+    
+    mDevice->OMSetRenderTargets(0, NULL, NULL);
+
+    
+    
+    mDevice->Flush();
+
+    mRTView = NULL;
+
+    AutoInfallibleTArray<EditReply, 10> replies;
+    ShadowLayerForwarder::EndTransaction(&replies);
+    
+    
+
     swap(mBackBuffer, mRemoteFrontBuffer);
-    mRTView = nsnull;
   } else {
     mSwapChain->Present(0, 0);
   }
