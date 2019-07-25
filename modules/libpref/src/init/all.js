@@ -1156,6 +1156,7 @@ pref("intl.hyphenation-alias.uk-*", "uk");
 
 pref("intl.hyphenation-alias.de", "de-1996");
 pref("intl.hyphenation-alias.de-*", "de-1996");
+pref("intl.hyphenation-alias.de-AT-1901", "de-1901");
 pref("intl.hyphenation-alias.de-DE-1901", "de-1901");
 pref("intl.hyphenation-alias.de-CH-*", "de-CH");
 
