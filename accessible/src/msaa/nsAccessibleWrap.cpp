@@ -76,19 +76,6 @@ using namespace mozilla::a11y;
 
 const PRUint32 USE_ROLE_STRING = 0;
 
-#ifndef ROLE_SYSTEM_SPLITBUTTON
-const PRUint32 ROLE_SYSTEM_SPLITBUTTON  = 0x3e; 
-#endif
-
-#ifndef ROLE_SYSTEM_IPADDRESS
-const PRUint32 ROLE_SYSTEM_IPADDRESS = 0x3f; 
-#endif
-
-#ifndef ROLE_SYSTEM_OUTLINEBUTTON
-const PRUint32 ROLE_SYSTEM_OUTLINEBUTTON = 0x40; 
-#endif
-
-
 
 
 
