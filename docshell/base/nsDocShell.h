@@ -326,8 +326,7 @@ protected:
                                    PRBool aBypassClassifier);
 
     nsresult ScrollIfAnchor(nsIURI * aURI, PRBool * aWasAnchor,
-                            PRUint32 aLoadType, nscoord *cx, nscoord *cy,
-                            PRBool * aDoHashchange);
+                            PRUint32 aLoadType, PRBool * aDoHashchange);
 
     
     
