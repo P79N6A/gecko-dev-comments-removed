@@ -1406,7 +1406,7 @@ child actors.'''
 
         
         msgenum = TypeEnum('MessageType')
-        msgstart = _messageStartName(self.protocol.decl.type) +' << 10'
+        msgstart = _messageStartName(self.protocol.decl.type) +' << 16'
         msgenum.addId(self.protocol.name + 'Start', msgstart)
         msgenum.addId(self.protocol.name +'PreStart', '('+ msgstart +') - 1')
 

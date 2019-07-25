@@ -38,6 +38,12 @@ struct LogData;
 
 class Message : public Pickle {
  public:
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  typedef uint32 msgid_t;
+#else
+  typedef uint16 msgid_t;
+#endif
+
   
   class Sender {
    public:
@@ -63,9 +69,9 @@ class Message : public Pickle {
   
   
 #if !defined(CHROMIUM_MOZILLA_BUILD)
-  Message(int32 routing_id, uint16 type, PriorityValue priority);
+  Message(int32 routing_id, msgid_t type, PriorityValue priority);
 #else
-  Message(int32 routing_id, uint16 type, PriorityValue priority,
+  Message(int32 routing_id, msgid_t type, PriorityValue priority,
           const char* const name="???");
 #endif
 
@@ -133,7 +139,7 @@ class Message : public Pickle {
     return (header()->flags & PUMPING_MSGS_BIT) != 0;
   }
 
-  uint16 type() const {
+  msgid_t type() const {
     return header()->type;
   }
 
@@ -286,8 +292,12 @@ class Message : public Pickle {
 #pragma pack(push, 2)
   struct Header : Pickle::Header {
     int32 routing;  
-    uint16 type;    
+    msgid_t type;   
+#if defined(CHROMIUM_MOZILLA_BUILD)
+    uint32 flags;   
+#else
     uint16 flags;   
+#endif
 #if defined(OS_POSIX)
     uint32 num_fds; 
 #endif
