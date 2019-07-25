@@ -86,11 +86,10 @@ WebGLProgram::UpdateInfo(gl::GLContext *gl)
 
 
 
-PRBool
-WebGLContext::ValidateBuffers(PRUint32 count)
-{
-    NS_ENSURE_TRUE(count > 0, PR_TRUE);
 
+PRBool
+WebGLContext::ValidateBuffers(PRInt32 *maxAllowedCount, const char *info)
+{
 #ifdef DEBUG
     GLuint currentProgram = 0;
     MakeContextCurrent();
@@ -100,6 +99,8 @@ WebGLContext::ValidateBuffers(PRUint32 count)
     if (currentProgram != mCurrentProgram->GLName())
         return PR_FALSE;
 #endif
+
+    *maxAllowedCount = -1;
 
     PRUint32 attribs = mAttribBuffers.Length();
     for (PRUint32 i = 0; i < attribs; ++i) {
@@ -111,7 +112,7 @@ WebGLContext::ValidateBuffers(PRUint32 count)
             continue;
 
         if (vd.buf == nsnull) {
-            LogMessageIfVerbose("No VBO bound to enabled attrib index %d!", i);
+            ErrorInvalidOperation("%s: no VBO bound to enabled vertex attrib index %d!", info, i);
             return PR_FALSE;
         }
 
@@ -121,19 +122,31 @@ WebGLContext::ValidateBuffers(PRUint32 count)
             continue;
 
         
-        CheckedUint32 checked_needed = CheckedUint32(vd.byteOffset) + 
-            CheckedUint32(vd.actualStride()) * (count-1) + 
-            CheckedUint32(vd.componentSize()) * vd.size;   
+        CheckedUint32 checked_byteLength
+          = CheckedUint32(vd.buf->ByteLength()) - vd.byteOffset;
+        CheckedUint32 checked_sizeOfLastElement
+          = CheckedUint32(vd.componentSize()) * vd.size;
 
-        if (!checked_needed.valid()) {
-            LogMessageIfVerbose("Integer overflow computing the size of bound vertex attrib buffer at index %d", i);
-            return PR_FALSE;
+        if (!checked_byteLength.valid() ||
+            !checked_sizeOfLastElement.valid())
+        {
+          ErrorInvalidOperation("%s: integer overflow occured while checking vertex attrib %d", info, i);
+          return PR_FALSE;
         }
 
-        if (vd.buf->ByteLength() < checked_needed.value()) {
-            LogMessageIfVerbose("VBO too small for bound attrib index %d: need at least %d bytes, but have only %d",
-                       i, checked_needed.value(), vd.buf->ByteLength());
+        if (checked_byteLength.value() < checked_sizeOfLastElement.value()) {
+          *maxAllowedCount = 0;
+        } else {
+          CheckedUint32 checked_maxAllowedCount
+            = ((checked_byteLength - checked_sizeOfLastElement) / vd.actualStride()) + 1;
+
+          if (!checked_maxAllowedCount.valid()) {
+            ErrorInvalidOperation("%s: integer overflow occured while checking vertex attrib %d", info, i);
             return PR_FALSE;
+          }
+
+          if (*maxAllowedCount == -1 || *maxAllowedCount > checked_maxAllowedCount.value())
+              *maxAllowedCount = checked_maxAllowedCount.value();
         }
     }
 
