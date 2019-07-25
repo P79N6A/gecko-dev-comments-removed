@@ -374,65 +374,8 @@ Debug_SetValueRangeToCrashOnTouch(HeapValue *vec, size_t len)
 #endif
 }
 
-
-
-
-
-
-
-
-
-
-
-struct VMFunction
-{
-    enum DataType {
-        Type_Void,
-        Type_Bool,
-        Type_Object,
-        Type_Value
-    };
-
-    
-    void *wrapped;
-
-    
-    
-    uint32 explicitArgs;
-
-    
-    
-    
-    DataType outParam;
-
-    
-    
-    
-    
-    DataType returnType;
-
-    uint32 argc() const {
-        
-        return 1 + explicitArgs +
-               ((outParam == Type_Void) ? 0 : 1);
-    }
-
-    DataType failType() const {
-        JS_ASSERT(returnType == Type_Object || returnType == Type_Bool);
-        JS_ASSERT_IF(outParam != Type_Void, returnType == Type_Bool);
-        return returnType;
-    }
-};
-
 JSObject*
 NewInitArray(JSContext *cx, uint32 count, types::TypeObject *type);
-
-const VMFunction NewInitArrayVMFun = {
-    JS_FUNC_TO_DATA_PTR(void *, NewInitArray),
-    2, 
-    VMFunction::Type_Void,
-    VMFunction::Type_Object
-};
 
 }  
 
