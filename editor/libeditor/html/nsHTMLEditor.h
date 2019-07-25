@@ -369,6 +369,8 @@ public:
 
   NS_IMETHOD SelectAll();
 
+  NS_IMETHOD GetRootElement(nsIDOMElement **aRootElement);
+
   
   NS_IMETHOD StyleSheetLoaded(nsCSSStyleSheet*aSheet, PRBool aWasAlternate,
                               nsresult aStatus);
@@ -436,6 +438,8 @@ protected:
 
   virtual nsresult InstallEventListeners();
   virtual void RemoveEventListeners();
+
+  nsresult GetBodyElement(nsIDOMHTMLElement** aBody);
 
   
   PRBool SetCaretInTableCell(nsIDOMElement* aElement);

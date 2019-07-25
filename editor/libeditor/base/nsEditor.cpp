@@ -41,7 +41,6 @@
 
 #include "pratom.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMHTMLDocument.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMNSHTMLElement.h"
 #include "nsPIDOMEventTarget.h"
@@ -119,6 +118,10 @@
 
 #ifdef NS_DEBUG_EDITOR
 static PRBool gNoisy = PR_FALSE;
+#endif
+
+#ifdef DEBUG
+#include "nsIDOMHTMLDocument.h"
 #endif
 
 
@@ -2121,52 +2124,13 @@ nsEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
   }
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsEditor::GetRootElement(nsIDOMElement **aRootElement)
 {
-  if (!aRootElement)
-    return NS_ERROR_NULL_POINTER;
-
-  if (mRootElement)
-  {
-    
-    *aRootElement = mRootElement;
-    NS_ADDREF(*aRootElement);
-    return NS_OK;
-  }
-
-  *aRootElement = nsnull;
-
-  NS_PRECONDITION(mDocWeak, "bad state, null mDocWeak");
-  nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryReferent(mDocWeak);
-  if (!htmlDoc) {
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  
-  
-
-  nsCOMPtr<nsIDOMHTMLElement> bodyElement; 
-  nsresult rv = htmlDoc->GetBody(getter_AddRefs(bodyElement));
-  if (NS_SUCCEEDED(rv) && bodyElement)
-  {
-    mRootElement = bodyElement;
-  }
-  else
-  {
-    
-    
-    nsCOMPtr<nsIDOMDocument> doc = do_QueryReferent(mDocWeak);
-    NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
-
-    rv = doc->GetDocumentElement(getter_AddRefs(mRootElement));
-    NS_ENSURE_SUCCESS(rv, rv);
-    NS_ENSURE_TRUE(mRootElement, NS_ERROR_NULL_POINTER);
-  }
-
+  NS_ENSURE_ARG_POINTER(aRootElement);
+  NS_ENSURE_TRUE(mRootElement, NS_ERROR_NOT_AVAILABLE);
   *aRootElement = mRootElement;
   NS_ADDREF(*aRootElement);
-
   return NS_OK;
 }
 
