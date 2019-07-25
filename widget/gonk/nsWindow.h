@@ -42,6 +42,8 @@
 
 extern nsIntRect gScreenBounds;
 
+class nsIdleService;
+
 namespace mozilla {
 namespace gl {
 class GLContext;
@@ -131,8 +133,13 @@ protected:
     bool mVisible;
     nsIntRegion mDirtyRegion;
     InputContext mInputContext;
+    nsCOMPtr<nsIdleService> mIdleService;
 
     void BringToTop();
+
+    
+    
+    void UserActivity();
 };
 
 #endif 
