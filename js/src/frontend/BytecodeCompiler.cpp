@@ -375,12 +375,12 @@ frontend::CompileFunctionBody(JSContext *cx, JSFunction *fun,
 
 
 
-            Vector<JSAtom *> names(cx);
+            BindingNames names(cx);
             if (!funbce.bindings.getLocalNameArray(cx, &names)) {
                 fn = NULL;
             } else {
                 for (unsigned i = 0; i < nargs; i++) {
-                    if (!DefineArg(fn, names[i], i, &funbce)) {
+                    if (!DefineArg(fn, names[i].maybeAtom, i, &funbce)) {
                         fn = NULL;
                         break;
                     }

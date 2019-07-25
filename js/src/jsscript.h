@@ -110,6 +110,13 @@ struct Shape;
 
 enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT };
 
+struct BindingName {
+    JSAtom *maybeAtom;
+    BindingKind kind;
+};
+
+typedef Vector<BindingName, 32> BindingNames;
+
 
 
 
@@ -238,7 +245,7 @@ class Bindings
 
 
 
-    bool getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp);
+    bool getLocalNameArray(JSContext *cx, BindingNames *namesp);
 
     
 
@@ -584,6 +591,8 @@ struct JSScript : public js::gc::Cell
                                uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
                                JSVersion version);
     static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
+
+    void setVersion(JSVersion v) { version = v; }
 
     
     bool argumentsHasLocalBinding() const { return argsHasLocalBinding_; }
