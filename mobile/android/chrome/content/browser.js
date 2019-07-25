@@ -1457,7 +1457,7 @@ Tab.prototype = {
         let plugin = aEvent.target;
         
         this._pluginsToPlay.push(plugin);
-        
+
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");        
         if (!overlay)
           return;
@@ -1477,8 +1477,11 @@ Tab.prototype = {
 
       case "pagehide": {
         
-        this._pluginsToPlay = [];
-        this._pluginOverlayShowing = false;
+        if (aEvent.target.defaultView == this.browser.contentWindow) {
+          
+          this._pluginsToPlay = [];
+          this._pluginOverlayShowing = false;
+        }
         break;
       }
     }
@@ -3264,7 +3267,7 @@ var PluginHelper = {
     
     let self = this;
     let callbackArgs = Array.prototype.slice.call(arguments).slice(2);
-      plugin.addEventListener("click", function(evt) {
+    plugin.addEventListener("click", function(evt) {
       if (!evt.isTrusted)
         return;
       evt.preventDefault();
