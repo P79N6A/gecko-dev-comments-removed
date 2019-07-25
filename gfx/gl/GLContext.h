@@ -554,6 +554,7 @@ public:
 #endif
     {
         mUserData.Init();
+        mOwningThread = NS_GetCurrentThread();
     }
 
     virtual ~GLContext() {
@@ -639,6 +640,23 @@ public:
 
     bool IsGlobalSharedContext() { return mIsGlobalSharedContext; }
     void SetIsGlobalSharedContext(bool aIsOne) { mIsGlobalSharedContext = aIsOne; }
+
+    
+
+
+
+    bool IsOwningThreadCurrent() { return NS_GetCurrentThread() == mOwningThread; }
+
+    void DispatchToOwningThread(nsIRunnable *event) {
+        
+        
+        
+        
+        nsCOMPtr<nsIThread> mainThread;
+        if (NS_SUCCEEDED(NS_GetMainThread(getter_AddRefs(mainThread)))) {
+            mOwningThread->Dispatch(event, NS_DISPATCH_NORMAL);
+        }
+    }
 
     const ContextFormat& CreationFormat() { return mCreationFormat; }
     const ContextFormat& ActualFormat() { return mActualFormat; }
@@ -1580,6 +1598,9 @@ protected:
 
     ContextFormat mCreationFormat;
     nsRefPtr<GLContext> mSharedContext;
+
+    
+    nsCOMPtr<nsIThread> mOwningThread;
 
     GLContextSymbols mSymbols;
 
