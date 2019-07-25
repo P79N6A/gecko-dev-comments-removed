@@ -513,3 +513,26 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 browser[tabmodalPromptShowing] {
   -moz-user-focus: none !important;
 }
+
+
+
+statuspanel {
+  -moz-binding: url("chrome://browser/content/tabbrowser.xml#statuspanel");
+  position: relative;
+  margin-top: -3em;
+  pointer-events: none; 
+}
+
+statuspanel[label=""] {
+  visibility: collapse;
+}
+
+statuspanel[mirror] {
+  -moz-box-pack: end;
+}
+
+.statuspanel-inner {
+  height: 3em;
+  -moz-box-align: end;
+  pointer-events: auto;
+}
