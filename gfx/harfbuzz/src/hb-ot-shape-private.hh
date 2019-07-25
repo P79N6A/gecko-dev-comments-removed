@@ -108,8 +108,36 @@ _hb_unicode_modified_combining_class (hb_unicode_funcs_t *ufuncs,
 
 
 
+  static const int permuted_hebrew_classes[25 - 10 + 1] = {
+            15,
+      16,
+      17,
+     18,
+            19,
+            20,
+            21,
+            22,
+           23,
+            14,
+           24,
+           12,
+            25,
+             13,
+         10,
+          11,
+  };
+
+  
+
+
+
   if (unlikely (hb_in_range<int> (c, 27, 33)))
     c = c == 33 ? 27 : c + 1;
+  
+
+
+  else if (unlikely (hb_in_range<int> (c, 10, 25)))
+    c = permuted_hebrew_classes[c - 10];
 
   return c;
 }
