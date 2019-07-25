@@ -1385,6 +1385,14 @@ let PlacesControllerDragHelper = {
       if (this.GENERIC_VIEW_DROP_TYPES.indexOf(aFlavors[i]) != -1)
         return aFlavors[i];
     }
+
+    
+    
+    
+    if (aFlavors.contains("text/plain")) {
+        return PlacesUtils.TYPE_UNICODE;
+    }
+
     return null;
   },
 
