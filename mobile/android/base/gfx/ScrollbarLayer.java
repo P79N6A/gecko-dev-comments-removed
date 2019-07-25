@@ -152,7 +152,7 @@ public class ScrollbarLayer extends TileLayer {
         foregroundPaint.setAntiAlias(true);
         foregroundPaint.setStyle(Paint.Style.FILL);
         
-        foregroundPaint.setColor(Color.argb((int)Math.round(mOpacity * 127), 0, 0, 0));
+        foregroundPaint.setColor(Color.argb(Math.round(mOpacity * 127), 0, 0, 0));
 
         mCanvas.drawColor(Color.argb(0, 0, 0, 0), PorterDuff.Mode.CLEAR);
         mCanvas.drawCircle(CAP_RADIUS, CAP_RADIUS, CAP_RADIUS, foregroundPaint);
