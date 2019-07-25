@@ -252,7 +252,7 @@ IdentityManager.prototype = {
     this._syncKey = value;
 
     
-    
+    this._syncKeyBundle = null;
     let bundle = this.syncKeyBundle;
 
     this._syncKeyUpdated = true;
@@ -313,6 +313,12 @@ IdentityManager.prototype = {
 
     if (!this.syncKey) {
       return LOGIN_FAILED_NO_PASSPHRASE;
+    }
+
+    
+    
+    if (!this._syncKeyBundle) {
+      return LOGIN_FAILED_INVALID_PASSPHRASE;
     }
 
     return STATUS_OK;
