@@ -96,18 +96,24 @@ WBORecord.prototype = {
   
 };
 
+
+let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
+
 function WBOFilter() {}
 WBOFilter.prototype = {
   beforePUT: function(data, wbo) {
     let self = yield;
     let foo = wbo.uri.spec.split('/');
     data.id = decodeURI(foo[foo.length-1]);
+    data.payload = json.encode([data.payload]);
     self.done(data);
   },
   afterGET: function(data, wbo) {
     let self = yield;
     let foo = wbo.uri.spec.split('/');
     data.id = decodeURI(foo[foo.length-1]);
+    
+    data.payload = data.payload[0]; 
     self.done(data);
   }
 };
