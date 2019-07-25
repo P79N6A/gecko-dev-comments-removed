@@ -147,6 +147,16 @@ static PRBool IsChromeURI(nsIURI* aURI)
     return PR_FALSE;
 }
 
+static PRBool IsOverlayAllowed(nsIURI* aURI)
+{
+    PRBool canOverlay = PR_FALSE;
+    if (NS_SUCCEEDED(aURI->SchemeIs("about", &canOverlay)) && canOverlay)
+        return PR_TRUE;
+    if (NS_SUCCEEDED(aURI->SchemeIs("chrome", &canOverlay)) && canOverlay)
+        return PR_TRUE;
+    return PR_FALSE;
+}
+
 
 
 
@@ -579,7 +589,7 @@ nsXULDocument::EndLoad()
         nsXULPrototypeCache::GetInstance()->WritePrototype(mCurrentPrototype);
     }
 
-    if (isChrome) {
+    if (IsOverlayAllowed(uri)) {
         nsCOMPtr<nsIXULOverlayProvider> reg =
             mozilla::services::GetXULOverlayProviderService();
 
@@ -608,7 +618,7 @@ nsXULDocument::EndLoad()
             }
         }
 
-        if (useXULCache) {
+        if (isChrome && useXULCache) {
             
             
             
@@ -2601,7 +2611,7 @@ nsXULDocument::AddChromeOverlays()
     nsCOMPtr<nsIURI> docUri = mCurrentPrototype->GetURI();
 
     
-    if (!IsChromeURI(docUri)) return NS_OK;
+    if (!IsOverlayAllowed(docUri)) return NS_OK;
 
     nsCOMPtr<nsIXULOverlayProvider> chromeReg =
         mozilla::services::GetXULOverlayProviderService();
@@ -2694,7 +2704,8 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
     
     
 
-    if (!IsChromeURI(mDocumentURI)) {
+    PRBool documentIsChrome = IsChromeURI(mDocumentURI);
+    if (!documentIsChrome) {
         
         rv = NodePrincipal()->CheckMayLoad(aURI, PR_TRUE);
         if (NS_FAILED(rv)) {
@@ -2705,8 +2716,10 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
 
     
     
+    
+    
     PRBool overlayIsChrome = IsChromeURI(aURI);
-    mCurrentPrototype = overlayIsChrome ?
+    mCurrentPrototype = overlayIsChrome && documentIsChrome ?
         nsXULPrototypeCache::GetInstance()->GetPrototype(aURI) : nsnull;
 
     
@@ -2807,7 +2820,9 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
         
         
         
-        if (useXULCache && overlayIsChrome) {
+        
+        
+        if (useXULCache && overlayIsChrome && documentIsChrome) {
             nsXULPrototypeCache::GetInstance()->PutPrototype(mCurrentPrototype);
         }
 
