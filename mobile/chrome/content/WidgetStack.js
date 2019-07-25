@@ -416,6 +416,9 @@ WidgetStack.prototype = {
   
   
   panBy: function panBy(dx, dy, ignoreBarriers) {
+    dx = Math.round(dx);
+    dy = Math.round(dy);
+
     if (dx == 0 && dy ==0)
       return false;
 
