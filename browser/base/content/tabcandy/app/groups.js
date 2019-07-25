@@ -365,6 +365,13 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
+	isEmpty: function() {
+		return this._children.length == 0 && !this.getTitle();
+	},
+
+  
+  
+  
   save: function() {
     if (!this._inited) 
       return;
