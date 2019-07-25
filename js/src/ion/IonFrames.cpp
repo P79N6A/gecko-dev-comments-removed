@@ -388,6 +388,11 @@ MarkIonActivation(JSTracer *trc, uint8 *top)
           case IonFrame_JS:
             MarkIonJSFrame(trc, frames);
             break;
+          case IonFrame_Rectifier:
+            
+            
+            
+            break;
           default:
             JS_NOT_REACHED("unexpected frame type");
             break;
