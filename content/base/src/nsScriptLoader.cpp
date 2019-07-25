@@ -648,6 +648,8 @@ nsScriptLoader::ProcessRequest(nsScriptLoadRequest* aRequest)
 
   NS_TIME_FUNCTION;
 
+  nsCOMPtr<nsIDocument> doc;
+
   
   if (aRequest->mIsInline) {
     
@@ -658,11 +660,21 @@ nsScriptLoader::ProcessRequest(nsScriptLoadRequest* aRequest)
   }
   else {
     script = &aRequest->mScriptText;
+
+    nsCOMPtr<nsIContent> eltAsContent = do_QueryInterface(aRequest->mElement);
+    NS_ASSERTION(eltAsContent, "Script should QI to nsIContent.");
+    doc = eltAsContent->GetOwnerDoc();
   }
 
   FireScriptAvailable(NS_OK, aRequest);
   aRequest->mElement->BeginEvaluating();
+  if (doc) {
+    doc->BeginEvaluatingExternalScript();
+  }
   nsresult rv = EvaluateScript(aRequest, *script);
+  if (doc) {
+    doc->EndEvaluatingExternalScript();
+  }
   aRequest->mElement->EndEvaluating();
   FireScriptEvaluated(rv, aRequest);
 

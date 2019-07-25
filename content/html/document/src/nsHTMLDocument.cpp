@@ -2169,12 +2169,34 @@ nsHTMLDocument::WriteCommon(const nsAString& aText,
       (mWriteState == ePendingClose &&
        !mPendingScripts.Contains(key)) ||
       (mParser && !mParser->IsInsertionPointDefined())) {
+    if (mExternalScriptsBeingEvaluated) {
+      
+      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                      "DocumentWriteIgnored",
+                                      nsnull, 0,
+                                      mDocumentURI,
+                                      EmptyString(), 0, 0,
+                                      nsIScriptError::warningFlag,
+                                      "DOM Events");
+      return NS_OK;
+    }
     mWriteState = eDocumentClosed;
     mParser->Terminate();
     NS_ASSERTION(!mParser, "mParser should have been null'd out");
   }
 
   if (!mParser) {
+    if (mExternalScriptsBeingEvaluated) {
+      
+      nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                      "DocumentWriteIgnored",
+                                      nsnull, 0,
+                                      mDocumentURI,
+                                      EmptyString(), 0, 0,
+                                      nsIScriptError::warningFlag,
+                                      "DOM Events");
+      return NS_OK;
+    }
     rv = Open();
 
     

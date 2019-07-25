@@ -1276,6 +1276,16 @@ public:
 
   PRUint32 EventHandlingSuppressed() const { return mEventsSuppressed; }
 
+  
+
+
+  void BeginEvaluatingExternalScript() { ++mExternalScriptsBeingEvaluated; }
+
+  
+
+
+  void EndEvaluatingExternalScript() { --mExternalScriptsBeingEvaluated; }
+
   PRBool IsDNSPrefetchAllowed() const { return mAllowDNSPrefetch; }
 
   
@@ -1577,6 +1587,12 @@ protected:
   nsCOMPtr<nsIDocument> mDisplayDocument;
 
   PRUint32 mEventsSuppressed;
+
+  
+
+
+
+  PRUint32 mExternalScriptsBeingEvaluated;
 
   nsString mPendingStateObject;
 
