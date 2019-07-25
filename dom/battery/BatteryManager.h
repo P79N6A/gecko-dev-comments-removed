@@ -74,6 +74,13 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(BatteryManager,
                                            nsDOMEventTargetHelper)
 
+  
+
+
+
+  static bool HasSupport();
+
+
 private:
   
 
