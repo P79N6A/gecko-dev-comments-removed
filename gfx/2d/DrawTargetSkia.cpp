@@ -171,7 +171,14 @@ DrawTargetSkia::DrawTargetSkia()
 
 DrawTargetSkia::~DrawTargetSkia()
 {
-  MarkChanged();
+  if (mSnapshots.size()) {
+    for (std::vector<SourceSurfaceSkia*>::iterator iter = mSnapshots.begin();
+         iter != mSnapshots.end(); iter++) {
+      (*iter)->DrawTargetDestroyed();
+    }
+    
+    mSnapshots.clear();
+  }
 }
 
 TemporaryRef<SourceSurface>
