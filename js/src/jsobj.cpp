@@ -3234,7 +3234,6 @@ Class js_WithClass = {
         with_Enumerate,
         with_TypeOf,
         NULL,             
-        NULL,             
         with_ThisObject,
         NULL,             
     }
@@ -6516,11 +6515,7 @@ js_TraceObject(JSTracer *trc, JSObject *obj)
     if (!JS_CLIST_IS_EMPTY(&cx->runtime->watchPointList))
         js_TraceWatchPoints(trc, obj);
 
-    
-    Class *clasp = obj->getClass();
-    if (clasp->trace)
-        clasp->trace(trc, obj);
-    if (clasp->flags & JSCLASS_IS_GLOBAL) {
+    if (obj->getClass()->flags & JSCLASS_IS_GLOBAL) {
         JSCompartment *compartment = obj->getCompartment();
         compartment->mark(trc);
     }
