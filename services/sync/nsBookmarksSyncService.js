@@ -111,7 +111,6 @@ BookmarksSyncService.prototype = {
   _dav: null,
 
   
-  
   _snapshot: {},
   _snapshotVersion: 0,
 
@@ -263,7 +262,7 @@ BookmarksSyncService.prototype = {
   },
 
   _nodeParentsInt: function BSS__nodeParentsInt(guid, tree, parents) {
-    if (tree[guid] && tree[guid].parentGuid == null)
+    if (!tree[guid] || !tree[guid].parentGuid)
       return parents;
     parents.push(tree[guid].parentGuid);
     return this._nodeParentsInt(tree[guid].parentGuid, tree, parents);
@@ -317,7 +316,6 @@ BookmarksSyncService.prototype = {
       return true;
     if ((a.guid == b.guid) && !this._deepEquals(a, b))
       return true;
-
     return false;
   },
 
@@ -608,13 +606,16 @@ BookmarksSyncService.prototype = {
       case "uri":
         this._bms.changeBookmarkURI(itemId, makeURI(command.data.uri));
         break;
-      case "index": 
+      case "index":
         this._bms.moveItem(itemId, this._bms.getFolderIdForItem(itemId),
                            command.data.index);
         break;
       case "parentGuid":
+        let index = -1;
+        if (command.data.index && command.data.index >= 0)
+          index = command.data.index;
         this._bms.moveItem(
-          itemId, this._bms.getItemIdForGUID(command.data.parentGuid), -1);
+          itemId, this._bms.getItemIdForGUID(command.data.parentGuid), index);
         break;
       default:
         this.notice("Warning: Can't change item property: " + key);
@@ -791,9 +792,15 @@ BookmarksSyncService.prototype = {
                                                   this._wrapNode(localBookmarks));
         this._snapshotVersion = server['version'];
         this._applyCommands(clientChanges);
-        
-        
-        this._snapshot = this._wrapNode(localBookmarks);
+
+        let newSnapshot = this._wrapNode(localBookmarks);
+        let diff = this._detectUpdates(this._snapshot, newSnapshot);
+        if (diff.length != 0) {
+          this.notice("Error: commands did not apply correctly.  Diff:\n" +
+                      uneval(diff));
+          this._snapshot = this._wrapNode(localBookmarks);
+          
+        }
         this._saveSnapshot();
       }
 
@@ -810,6 +817,7 @@ BookmarksSyncService.prototype = {
           this.notice("Successfully updated deltas on server");
           this._saveSnapshot();
         } else {
+          
           
           this.notice("Error: could not update deltas on server");
         }
@@ -857,15 +865,17 @@ BookmarksSyncService.prototype = {
       var tmp = eval(uneval(this._snapshot)); 
 
       
-      this.notice("[sync bowels] local version: " + this._snapshotVersion);
-      for (var z in ret.deltas) {
-        this.notice("[sync bowels] remote version: " + z);
-      }
-      this.notice("foo: " + uneval(ret.deltas[this._snapshotVersion + 1]));
-      if (ret.deltas[this._snapshotVersion + 1])
-        this.notice("-> is true");
-      else
-        this.notice("-> is false");
+      
+
+
+
+
+
+
+
+
+
+
 
       if (ret.deltas[this._snapshotVersion + 1]) {
         
@@ -877,10 +887,10 @@ BookmarksSyncService.prototype = {
             ret.version = v;
         }
         keys = keys.sort();
-        this.notice("TMP: " + uneval(tmp));
+        
         for (var i = 0; i < keys.length; i++) {
           tmp = this._applyCommandsToObj(ret.deltas[keys[i]], tmp);
-          this.notice("TMP: " + uneval(tmp));
+          
         }
         ret.status = 1;
         ret["updates"] = this._detectUpdates(this._snapshot, tmp);
