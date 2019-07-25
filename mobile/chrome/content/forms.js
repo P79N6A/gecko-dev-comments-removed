@@ -580,7 +580,14 @@ FormAssistant.prototype = {
     let isOpaque = (style.getPropertyValue("opacity") != 0);
 
     let rect = aElement.getBoundingClientRect();
-    return isVisible && isOpaque && (rect.height != 0 || rect.width != 0);
+
+    
+    
+    
+    
+    
+    
+    return isVisible && (isOpaque || this._isSelectElement(aElement)) && (rect.height != 0 || rect.width != 0);
   },
 
   _isSelectElement: function formHelperIsSelectElement(aElement) {
