@@ -3,7 +3,7 @@
 
 
 
-#include "nsHTMLImageMapAccessible.h"
+#include "HTMLImageMapAccessible.h"
 
 #include "nsAccUtils.h"
 #include "nsARIAMap.h"
@@ -24,8 +24,8 @@ using namespace mozilla::a11y;
 
 
 
-nsHTMLImageMapAccessible::
-  nsHTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+HTMLImageMapAccessible::
+  HTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   ImageAccessibleWrap(aContent, aDoc)
 {
   mFlags |= eImageMapAccessible;
@@ -34,13 +34,13 @@ nsHTMLImageMapAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLImageMapAccessible, ImageAccessible)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLImageMapAccessible, ImageAccessible)
 
 
 
 
 role
-nsHTMLImageMapAccessible::NativeRole()
+HTMLImageMapAccessible::NativeRole()
 {
   return roles::IMAGE_MAP;
 }
@@ -49,19 +49,19 @@ nsHTMLImageMapAccessible::NativeRole()
 
 
 PRUint32
-nsHTMLImageMapAccessible::AnchorCount()
+HTMLImageMapAccessible::AnchorCount()
 {
   return ChildCount();
 }
 
 Accessible*
-nsHTMLImageMapAccessible::AnchorAt(PRUint32 aAnchorIndex)
+HTMLImageMapAccessible::AnchorAt(PRUint32 aAnchorIndex)
 {
   return GetChildAt(aAnchorIndex);
 }
 
 already_AddRefed<nsIURI>
-nsHTMLImageMapAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
+HTMLImageMapAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 {
   Accessible* area = GetChildAt(aAnchorIndex);
   if (!area)
@@ -75,7 +75,7 @@ nsHTMLImageMapAccessible::AnchorURIAt(PRUint32 aAnchorIndex)
 
 
 void
-nsHTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
+HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
 {
   nsImageFrame* imageFrame = do_QueryFrame(mContent->GetPrimaryFrame());
 
@@ -108,7 +108,7 @@ nsHTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
 
     Accessible* area = mChildren.SafeElementAt(idx);
     if (!area || area->GetContent() != areaContent) {
-      nsRefPtr<Accessible> area = new nsHTMLAreaAccessible(areaContent, mDoc);
+      nsRefPtr<Accessible> area = new HTMLAreaAccessible(areaContent, mDoc);
       if (!mDoc->BindToDocument(area, aria::GetRoleMap(areaContent)))
         break;
 
@@ -138,7 +138,7 @@ nsHTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
 
 
 void
-nsHTMLImageMapAccessible::CacheChildren()
+HTMLImageMapAccessible::CacheChildren()
 {
   UpdateChildAreas(false);
 }
@@ -148,8 +148,8 @@ nsHTMLImageMapAccessible::CacheChildren()
 
 
 
-nsHTMLAreaAccessible::
-  nsHTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+HTMLAreaAccessible::
+  HTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsHTMLLinkAccessible(aContent, aDoc)
 {
 }
@@ -158,7 +158,7 @@ nsHTMLAreaAccessible::
 
 
 nsresult
-nsHTMLAreaAccessible::GetNameInternal(nsAString & aName)
+HTMLAreaAccessible::GetNameInternal(nsAString & aName)
 {
   nsresult rv = Accessible::GetNameInternal(aName);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -173,7 +173,7 @@ nsHTMLAreaAccessible::GetNameInternal(nsAString & aName)
 }
 
 void
-nsHTMLAreaAccessible::Description(nsString& aDescription)
+HTMLAreaAccessible::Description(nsString& aDescription)
 {
   aDescription.Truncate();
 
@@ -187,7 +187,7 @@ nsHTMLAreaAccessible::Description(nsString& aDescription)
 
 
 bool
-nsHTMLAreaAccessible::IsPrimaryForNode() const
+HTMLAreaAccessible::IsPrimaryForNode() const
 {
   
   
@@ -198,7 +198,7 @@ nsHTMLAreaAccessible::IsPrimaryForNode() const
 
 
 Accessible*
-nsHTMLAreaAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
+HTMLAreaAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    EWhichChildAtPoint aWhichChild)
 {
   
@@ -209,7 +209,7 @@ nsHTMLAreaAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
 
 
 PRUint32
-nsHTMLAreaAccessible::StartOffset()
+HTMLAreaAccessible::StartOffset()
 {
   
   
@@ -220,7 +220,7 @@ nsHTMLAreaAccessible::StartOffset()
 }
 
 PRUint32
-nsHTMLAreaAccessible::EndOffset()
+HTMLAreaAccessible::EndOffset()
 {
   return IndexInParent() + 1;
 }
@@ -229,13 +229,13 @@ nsHTMLAreaAccessible::EndOffset()
 
 
 void
-nsHTMLAreaAccessible::CacheChildren()
+HTMLAreaAccessible::CacheChildren()
 {
   
 }
 
 void
-nsHTMLAreaAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame)
+HTMLAreaAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame)
 {
   nsIFrame* frame = GetFrame();
   if (!frame)

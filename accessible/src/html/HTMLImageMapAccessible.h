@@ -3,28 +3,30 @@
 
 
 
-#ifndef _nsHTMLAreaAccessible_H_
-#define _nsHTMLAreaAccessible_H_
+#ifndef mozilla_a11y_HTMLImageMapAccessible_h__
+#define mozilla_a11y_HTMLImageMapAccessible_h__
 
 #include "ImageAccessibleWrap.h"
 #include "nsHTMLLinkAccessible.h"
-
 #include "nsIDOMHTMLMapElement.h"
 
+namespace mozilla {
+namespace a11y {
 
 
 
-class nsHTMLImageMapAccessible : public mozilla::a11y::ImageAccessibleWrap
+
+class HTMLImageMapAccessible : public ImageAccessibleWrap
 {
 public:
-  nsHTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsHTMLImageMapAccessible() { }
+  HTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~HTMLImageMapAccessible() { }
 
   
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
 
   
   virtual PRUint32 AnchorCount();
@@ -45,22 +47,11 @@ protected:
 
 
 
-inline nsHTMLImageMapAccessible*
-Accessible::AsImageMap()
-{
-  return IsImageMapAccessible() ?
-    static_cast<nsHTMLImageMapAccessible*>(this) : nsnull;
-}
-
-
-
-
-
-class nsHTMLAreaAccessible : public nsHTMLLinkAccessible
+class HTMLAreaAccessible : public nsHTMLLinkAccessible
 {
 public:
 
-  nsHTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual bool IsPrimaryForNode() const;
@@ -81,5 +72,18 @@ protected:
   
   virtual void CacheChildren();
 };
+
+} 
+} 
+
+
+
+
+inline mozilla::a11y::HTMLImageMapAccessible*
+Accessible::AsImageMap()
+{
+  return IsImageMapAccessible() ?
+    static_cast<mozilla::a11y::HTMLImageMapAccessible*>(this) : nsnull;
+}
 
 #endif
