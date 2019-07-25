@@ -255,6 +255,21 @@ JSObject::isFunction() const
     return getClass() == &js_FunctionClass;
 }
 
+inline bool
+JSObject::isCallable()
+{
+    if (isNative())
+        return isFunction() || getClass()->call;
+
+    return !!map->ops->call;
+}
+
+static inline bool
+js_IsCallable(jsval v)
+{
+    return !JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isCallable();
+}
+
 
 
 
@@ -291,7 +306,7 @@ GetArgsPrivateNative(JSObject *argsobj)
 {
     JS_ASSERT(argsobj->isArguments());
     uintptr_t p = (uintptr_t) argsobj->getPrivate();
-    return p & 2 ? (ArgsPrivateNative *)(p & ~2) : NULL;
+    return (ArgsPrivateNative *) (p & 2 ? p & ~2 : NULL);
 }
 
 } 
