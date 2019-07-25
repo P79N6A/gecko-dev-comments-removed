@@ -371,6 +371,7 @@ JSCompartment::wrapException(JSContext *cx)
     return true;
 }
 
+#if defined JS_METHODJIT && defined JS_MONOIC
 
 
 
@@ -395,6 +396,7 @@ ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
     }
     return pool->m_destroy;
 }
+#endif
 
 void
 JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
