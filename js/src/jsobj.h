@@ -466,6 +466,8 @@ struct JSObject {
 
     inline void voidDenseOnlyArraySlots();  
 
+    JSBool makeDenseArraySlow(JSContext *cx);
+
     
 
 

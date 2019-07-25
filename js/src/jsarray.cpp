@@ -139,7 +139,7 @@ INDEX_TOO_BIG(jsuint index)
 JS_STATIC_ASSERT(sizeof(JSScopeProperty) > 4 * sizeof(jsval));
 
 #define ENSURE_SLOW_ARRAY(cx, obj)                                             \
-    (obj->getClass() == &js_SlowArrayClass || js_MakeArraySlow(cx, obj))
+    (obj->getClass() == &js_SlowArrayClass || obj->makeDenseArraySlow(cx))
 
 
 
@@ -514,7 +514,7 @@ SetArrayElement(JSContext *cx, JSObject *obj, jsdouble index, jsval v)
             }
         }
 
-        if (!js_MakeArraySlow(cx, obj))
+        if (!obj->makeDenseArraySlow(cx))
             return JS_FALSE;
     }
 
@@ -609,11 +609,6 @@ js_IsArrayLike(JSContext *cx, JSObject *obj, JSBool *answerp, jsuint *lengthp)
     }
     return js_GetLengthProperty(cx, obj, lengthp);
 }
-
-
-
-
-
 
 
 
@@ -868,7 +863,7 @@ array_setProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
         return js_SetProperty(cx, obj, id, vp);
 
     if (!js_IdIsIndex(id, &i) || INDEX_TOO_SPARSE(obj, i)) {
-        if (!js_MakeArraySlow(cx, obj))
+        if (!obj->makeDenseArraySlow(cx))
             return JS_FALSE;
         return js_SetProperty(cx, obj, id, vp);
     }
@@ -1132,15 +1127,16 @@ JSClass js_SlowArrayClass = {
 
 
 JSBool
-js_MakeArraySlow(JSContext *cx, JSObject *obj)
+JSObject::makeDenseArraySlow(JSContext *cx)
 {
-    JS_ASSERT(obj->isDenseArray());
+    JS_ASSERT(isDenseArray());
 
     
 
 
 
     uint32 emptyShape;
+    JSObject *obj = this;
     JSObject *arrayProto = obj->getProto();
     if (arrayProto->getClass() == &js_ObjectClass) {
         
@@ -1166,10 +1162,15 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
     }
 
     
+    if (!scope->addProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
+                            array_length_getter, array_length_setter,
+                            JSSLOT_ARRAY_LENGTH, JSPROP_PERMANENT | JSPROP_SHARED, 0, 0)) {
+        goto out_bad;
+    }
+
+    
     for (uint32 i = 0; i < capacity; i++) {
         jsid id;
-        JSScopeProperty *sprop;
-
         if (!JS_ValueToId(cx, INT_TO_JSVAL(i), &id))
             goto out_bad;
 
@@ -1178,9 +1179,7 @@ js_MakeArraySlow(JSContext *cx, JSObject *obj)
             continue;
         }
 
-        sprop = scope->addDataProperty(cx, id, JS_INITIAL_NSLOTS + i,
-                                       JSPROP_ENUMERATE);
-        if (!sprop)
+        if (!scope->addDataProperty(cx, id, JS_INITIAL_NSLOTS + i, JSPROP_ENUMERATE))
             goto out_bad;
     }
 
@@ -2178,7 +2177,7 @@ array_push1_dense(JSContext* cx, JSObject* obj, jsval v, jsval *rval)
 {
     uint32 length = obj->getArrayLength();
     if (INDEX_TOO_SPARSE(obj, length)) {
-        if (!js_MakeArraySlow(cx, obj))
+        if (!obj->makeDenseArraySlow(cx))
             return JS_FALSE;
         return array_push_slowly(cx, obj, 1, &v, rval);
     }
@@ -3049,12 +3048,6 @@ array_isArray(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
 }
 
-static JSPropertySpec array_props[] = {
-    {js_length_str,   -1,   JSPROP_SHARED | JSPROP_PERMANENT,
-                            array_length_getter,    array_length_setter},
-    {0,0,0,0,0}
-};
-
 static JSFunctionSpec array_methods[] = {
 #if JS_HAS_TOSOURCE
     JS_FN(js_toSource_str,      array_toSource,     0,0),
@@ -3185,7 +3178,7 @@ JSObject *
 js_InitArrayClass(JSContext *cx, JSObject *obj)
 {
     JSObject *proto = JS_InitClass(cx, obj, NULL, &js_ArrayClass, js_Array, 1,
-                                   array_props, array_methods, NULL, array_static_methods);
+                                   NULL, array_methods, NULL, array_static_methods);
 
     
     if (!proto || !InitArrayObject(cx, proto, 0, NULL))
