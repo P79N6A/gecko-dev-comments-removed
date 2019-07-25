@@ -1510,10 +1510,6 @@ int NS_main(int argc, NS_tchar **argv)
         if (result != WAIT_OBJECT_0)
           return 1;
       }
-
-      
-      
-      Sleep(50);
 #else
       waitpid(pid, NULL, 0);
 #endif
@@ -1657,15 +1653,26 @@ int NS_main(int argc, NS_tchar **argv)
 
     
     
-    callbackFile = CreateFileW(argv[callbackIndex],
+    
+    int retries = 5;
+    do {
+      
+      
+      callbackFile = CreateFileW(argv[callbackIndex],
 #ifdef WINCE
-                               GENERIC_WRITE,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                 GENERIC_WRITE,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE,
 #else
-                               DELETE | GENERIC_WRITE,
-                               0, 
+                                 DELETE | GENERIC_WRITE,
+                                 0, 
 #endif
-                               NULL, OPEN_EXISTING, 0, NULL);
+                                 NULL, OPEN_EXISTING, 0, NULL);
+      if (callbackFile != INVALID_HANDLE_VALUE)
+        break;
+
+      Sleep(50);
+    } while (--retries);
+
     
     
     if (callbackFile == INVALID_HANDLE_VALUE) {
