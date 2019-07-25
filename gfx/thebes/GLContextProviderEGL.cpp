@@ -1276,9 +1276,6 @@ public:
         }
 
         
-        mIsRGBFormat = PR_FALSE;
-
-        
 
         mUpdateSurface =
             new gfxImageSurface(gfxIntSize(mUpdateRect.width, mUpdateRect.height),
