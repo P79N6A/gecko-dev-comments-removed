@@ -1,0 +1,816 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/net/HttpBaseChannel.h"
+
+#include "nsHttpHandler.h"
+#include "nsMimeTypes.h"
+#include "nsNetUtil.h"
+
+#define DROP_DEAD()                                                            \
+  do {                                                                         \
+    fprintf(stderr,                                                            \
+            "*&*&*&*&*&*&*&**&*&&*& FATAL ERROR: '%s' UNIMPLEMENTED: %s +%d",  \
+            __FUNCTION__, __FILE__, __LINE__);                                 \
+    NS_ABORT();                                                                \
+    return NS_ERROR_NOT_IMPLEMENTED;                                           \
+  } while (0)
+
+namespace mozilla {
+namespace net {
+
+HttpBaseChannel::HttpBaseChannel()
+  : mStatus(NS_OK)
+  , mLoadFlags(LOAD_NORMAL)
+  , mCaps(0)
+  , mRedirectionLimit(gHttpHandler->RedirectionLimit())
+  , mIsPending(PR_FALSE)
+  , mWasOpened(PR_FALSE)
+  , mResponseHeadersModified(PR_FALSE)
+  , mAllowPipelining(PR_TRUE)
+  , mForceAllowThirdPartyCookie(PR_FALSE)
+{
+  LOG(("Creating HttpBaseChannel @%x\n", this));
+
+  
+  NS_ADDREF(gHttpHandler);
+}
+
+HttpBaseChannel::~HttpBaseChannel()
+{
+  LOG(("Destroying HttpBaseChannel @%x\n", this));
+
+  nsHttpHandler* handler = gHttpHandler;
+  NS_RELEASE(handler);
+}
+
+nsresult
+HttpBaseChannel::Init(nsIURI *aURI,
+                      PRUint8 aCaps,
+                      nsProxyInfo *aProxyInfo)
+{
+  LOG(("HttpBaseChannel::Init [this=%p]\n", this));
+
+  NS_PRECONDITION(aURI, "null uri");
+
+  nsresult rv = nsHashPropertyBag::Init();
+  if (NS_FAILED(rv)) return rv;
+
+  mURI = aURI;
+  mOriginalURI = aURI;
+  mDocumentURI = nsnull;
+  mCaps = aCaps;
+
+  
+  nsCAutoString host;
+  PRInt32 port = -1;
+  PRBool usingSSL = PR_FALSE;
+
+  rv = mURI->SchemeIs("https", &usingSSL);
+  if (NS_FAILED(rv)) return rv;
+
+  rv = mURI->GetAsciiHost(host);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  if (host.IsEmpty())
+    return NS_ERROR_MALFORMED_URI;
+
+  rv = mURI->GetPort(&port);
+  if (NS_FAILED(rv)) return rv;
+
+  LOG(("host=%s port=%d\n", host.get(), port));
+
+  rv = mURI->GetAsciiSpec(mSpec);
+  if (NS_FAILED(rv)) return rv;
+  LOG(("uri=%s\n", mSpec.get()));
+
+  mConnectionInfo = new nsHttpConnectionInfo(host, port,
+                                             aProxyInfo, usingSSL);
+  if (!mConnectionInfo)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  
+  mRequestHead.SetMethod(nsHttp::Get);
+
+  
+  nsCAutoString hostLine;
+  rv = nsHttpHandler::GenerateHostPort(host, port, hostLine);
+  if (NS_FAILED(rv)) return rv;
+
+  rv = mRequestHead.SetHeader(nsHttp::Host, hostLine);
+  if (NS_FAILED(rv)) return rv;
+
+  rv = gHttpHandler->
+      AddStandardRequestHeaders(&mRequestHead.Headers(), aCaps,
+                                !mConnectionInfo->UsingSSL() &&
+                                mConnectionInfo->UsingHttpProxy());
+
+  return rv;
+}
+
+
+
+
+
+NS_IMPL_ISUPPORTS_INHERITED4(HttpBaseChannel,
+                             nsHashPropertyBag, 
+                             nsIRequest,
+                             nsIChannel,
+                             nsIHttpChannel,
+                             nsIHttpChannelInternal)
+
+
+
+
+
+NS_IMETHODIMP
+HttpBaseChannel::GetName(nsACString& aName)
+{
+  aName = mSpec;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::IsPending(PRBool *aIsPending)
+{
+  NS_ENSURE_ARG_POINTER(aIsPending);
+  *aIsPending = mIsPending;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetStatus(nsresult *aStatus)
+{
+  NS_ENSURE_ARG_POINTER(aStatus);
+  *aStatus = mStatus;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetLoadGroup(nsILoadGroup **aLoadGroup)
+{
+  NS_ENSURE_ARG_POINTER(aLoadGroup);
+  *aLoadGroup = mLoadGroup;
+  NS_IF_ADDREF(*aLoadGroup);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetLoadGroup(nsILoadGroup *aLoadGroup)
+{
+  mLoadGroup = aLoadGroup;
+  mProgressSink = nsnull;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetLoadFlags(nsLoadFlags *aLoadFlags)
+{
+  NS_ENSURE_ARG_POINTER(aLoadFlags);
+  *aLoadFlags = mLoadFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
+{
+  mLoadFlags = aLoadFlags;
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+HttpBaseChannel::GetOriginalURI(nsIURI **aOriginalURI)
+{
+  NS_ENSURE_ARG_POINTER(aOriginalURI);
+  *aOriginalURI = mOriginalURI;
+  NS_ADDREF(*aOriginalURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetOriginalURI(nsIURI *aOriginalURI)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  NS_ENSURE_ARG_POINTER(aOriginalURI);
+  mOriginalURI = aOriginalURI;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetURI(nsIURI **aURI)
+{
+  NS_ENSURE_ARG_POINTER(aURI);
+  *aURI = mURI;
+  NS_ADDREF(*aURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetNotificationCallbacks(nsIInterfaceRequestor **aCallbacks)
+{
+  *aCallbacks = mCallbacks;
+  NS_IF_ADDREF(*aCallbacks);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetNotificationCallbacks(nsIInterfaceRequestor *aCallbacks)
+{
+  mCallbacks = aCallbacks;
+  mProgressSink = nsnull;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetContentType(nsACString& aContentType)
+{
+  if (!mResponseHead) {
+    aContentType.Truncate();
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  if (!mResponseHead->ContentType().IsEmpty()) {
+    aContentType = mResponseHead->ContentType();
+    return NS_OK;
+  }
+
+  aContentType.AssignLiteral(UNKNOWN_CONTENT_TYPE);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetContentType(const nsACString& aContentType)
+{
+  if (mListener || mWasOpened) {
+    if (!mResponseHead)
+      return NS_ERROR_NOT_AVAILABLE;
+
+    nsCAutoString contentTypeBuf, charsetBuf;
+    PRBool hadCharset;
+    net_ParseContentType(aContentType, contentTypeBuf, charsetBuf, &hadCharset);
+
+    mResponseHead->SetContentType(contentTypeBuf);
+
+    
+    if (hadCharset)
+      mResponseHead->SetContentCharset(charsetBuf);
+
+  } else {
+    
+    PRBool dummy;
+    net_ParseContentType(aContentType, mContentTypeHint, mContentCharsetHint,
+                         &dummy);
+  }
+  
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetContentCharset(nsACString& aContentCharset)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  aContentCharset = mResponseHead->ContentCharset();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetContentCharset(const nsACString& aContentCharset)
+{
+  if (mListener) {
+    if (!mResponseHead)
+      return NS_ERROR_NOT_AVAILABLE;
+
+    mResponseHead->SetContentCharset(aContentCharset);
+  } else {
+    
+    mContentCharsetHint = aContentCharset;
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetContentLength(PRInt32 *aContentLength)
+{
+  NS_ENSURE_ARG_POINTER(aContentLength);
+
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  
+  *aContentLength = mResponseHead->ContentLength();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetContentLength(PRInt32 value)
+{
+  NS_NOTYETIMPLEMENTED("nsHttpChannel::SetContentLength");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::Open(nsIInputStream **aResult)
+{
+  NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_IN_PROGRESS);
+  return NS_ImplementChannelOpen(this, aResult);
+}
+
+
+
+
+
+NS_IMETHODIMP
+HttpBaseChannel::GetRequestMethod(nsACString& aMethod)
+{
+  aMethod = mRequestHead.Method();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetRequestMethod(const nsACString& aMethod)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  const nsCString& flatMethod = PromiseFlatCString(aMethod);
+
+  
+  if (!nsHttp::IsValidToken(flatMethod))
+    return NS_ERROR_INVALID_ARG;
+
+  nsHttpAtom atom = nsHttp::ResolveAtom(flatMethod.get());
+  if (!atom)
+    return NS_ERROR_FAILURE;
+
+  mRequestHead.SetMethod(atom);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetReferrer(nsIURI **referrer)
+{
+  NS_ENSURE_ARG_POINTER(referrer);
+  *referrer = mReferrer;
+  NS_IF_ADDREF(*referrer);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetReferrer(nsIURI *referrer)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  
+  mReferrer = nsnull;
+  mRequestHead.ClearHeader(nsHttp::Referer);
+
+  if (!referrer)
+      return NS_OK;
+
+  
+  PRUint32 referrerLevel;
+  if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
+    referrerLevel = 1; 
+  else
+    referrerLevel = 2; 
+  if (gHttpHandler->ReferrerLevel() < referrerLevel)
+    return NS_OK;
+
+  nsCOMPtr<nsIURI> referrerGrip;
+  nsresult rv;
+  PRBool match;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  rv = referrer->SchemeIs("wyciwyg", &match);
+  if (NS_FAILED(rv)) return rv;
+  if (match) {
+    nsCAutoString path;
+    rv = referrer->GetPath(path);
+    if (NS_FAILED(rv)) return rv;
+
+    PRUint32 pathLength = path.Length();
+    if (pathLength <= 2) return NS_ERROR_FAILURE;
+
+    
+    
+    
+    PRInt32 slashIndex = path.FindChar('/', 2);
+    if (slashIndex == kNotFound) return NS_ERROR_FAILURE;
+
+    
+    nsCAutoString charset;
+    referrer->GetOriginCharset(charset);
+
+    
+    rv = NS_NewURI(getter_AddRefs(referrerGrip),
+                   Substring(path, slashIndex + 1, pathLength - slashIndex - 1),
+                   charset.get());
+    if (NS_FAILED(rv)) return rv;
+
+    referrer = referrerGrip.get();
+  }
+
+  
+  
+  
+  static const char *const referrerWhiteList[] = {
+    "http",
+    "https",
+    "ftp",
+    "gopher",
+    nsnull
+  };
+  match = PR_FALSE;
+  const char *const *scheme = referrerWhiteList;
+  for (; *scheme && !match; ++scheme) {
+    rv = referrer->SchemeIs(*scheme, &match);
+    if (NS_FAILED(rv)) return rv;
+  }
+  if (!match)
+    return NS_OK; 
+
+  
+  
+  
+  
+  
+  
+  rv = referrer->SchemeIs("https", &match);
+  if (NS_FAILED(rv)) return rv;
+  if (match) {
+    rv = mURI->SchemeIs("https", &match);
+    if (NS_FAILED(rv)) return rv;
+    if (!match)
+      return NS_OK;
+
+    if (!gHttpHandler->SendSecureXSiteReferrer()) {
+      nsCAutoString referrerHost;
+      nsCAutoString host;
+
+      rv = referrer->GetAsciiHost(referrerHost);
+      if (NS_FAILED(rv)) return rv;
+
+      rv = mURI->GetAsciiHost(host);
+      if (NS_FAILED(rv)) return rv;
+
+      
+      if (!referrerHost.Equals(host))
+        return NS_OK;
+    }
+  }
+
+  nsCOMPtr<nsIURI> clone;
+  
+  
+  
+  
+  
+  rv = referrer->Clone(getter_AddRefs(clone));
+  if (NS_FAILED(rv)) return rv;
+
+  
+  clone->SetUserPass(EmptyCString());
+
+  
+  nsCOMPtr<nsIURL> url = do_QueryInterface(clone);
+  if (url)
+    url->SetRef(EmptyCString());
+
+  nsCAutoString spec;
+  rv = clone->GetAsciiSpec(spec);
+  if (NS_FAILED(rv)) return rv;
+
+  
+  mReferrer = clone;
+  mRequestHead.SetHeader(nsHttp::Referer, spec);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetRequestHeader(const nsACString& aHeader,
+                                  nsACString& aValue)
+{
+  
+  
+  nsHttpAtom atom = nsHttp::ResolveAtom(aHeader);
+  if (!atom)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  return mRequestHead.GetHeader(atom, aValue);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
+                                  const nsACString& aValue,
+                                  PRBool aMerge)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  const nsCString &flatHeader = PromiseFlatCString(aHeader);
+  const nsCString &flatValue  = PromiseFlatCString(aValue);
+
+  LOG(("HttpBaseChannel::SetRequestHeader [this=%p header=\"%s\" value=\"%s\" merge=%u]\n",
+      this, flatHeader.get(), flatValue.get(), aMerge));
+
+  
+  if (!nsHttp::IsValidToken(flatHeader))
+    return NS_ERROR_INVALID_ARG;
+  
+  
+  
+  
+  
+  
+  if (flatValue.FindCharInSet("\r\n") != kNotFound ||
+      flatValue.Length() != strlen(flatValue.get()))
+    return NS_ERROR_INVALID_ARG;
+
+  nsHttpAtom atom = nsHttp::ResolveAtom(flatHeader.get());
+  if (!atom) {
+    NS_WARNING("failed to resolve atom");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return mRequestHead.SetHeader(atom, flatValue, aMerge);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::VisitRequestHeaders(nsIHttpHeaderVisitor *visitor)
+{
+  return mRequestHead.Headers().VisitHeaders(visitor);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetResponseHeader(const nsACString &header, nsACString &value)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  nsHttpAtom atom = nsHttp::ResolveAtom(header);
+  if (!atom)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  return mResponseHead->GetHeader(atom, value);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetResponseHeader(const nsACString& header, 
+                                   const nsACString& value, 
+                                   PRBool merge)
+{
+  LOG(("HttpBaseChannel::SetResponseHeader [this=%p header=\"%s\" value=\"%s\" merge=%u]\n",
+      this, PromiseFlatCString(header).get(), PromiseFlatCString(value).get(), merge));
+
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  nsHttpAtom atom = nsHttp::ResolveAtom(header);
+  if (!atom)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  
+  if (atom == nsHttp::Content_Type ||
+      atom == nsHttp::Content_Length ||
+      atom == nsHttp::Content_Encoding ||
+      atom == nsHttp::Trailer ||
+      atom == nsHttp::Transfer_Encoding)
+    return NS_ERROR_ILLEGAL_VALUE;
+
+  mResponseHeadersModified = PR_TRUE;
+
+  return mResponseHead->SetHeader(atom, value, merge);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::VisitResponseHeaders(nsIHttpHeaderVisitor *visitor)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  return mResponseHead->Headers().VisitHeaders(visitor);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetAllowPipelining(PRBool *value)
+{
+  NS_ENSURE_ARG_POINTER(value);
+  *value = mAllowPipelining;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetAllowPipelining(PRBool value)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  mAllowPipelining = value;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetRedirectionLimit(PRUint32 *value)
+{
+  NS_ENSURE_ARG_POINTER(value);
+  *value = mRedirectionLimit;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetRedirectionLimit(PRUint32 value)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  mRedirectionLimit = PR_MIN(value, 0xff);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::IsNoStoreResponse(PRBool *value)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  *value = mResponseHead->NoStore();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::IsNoCacheResponse(PRBool *value)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  *value = mResponseHead->NoCache();
+  if (!*value)
+    *value = mResponseHead->ExpiresInPast();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetResponseStatus(PRUint32 *aValue)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  *aValue = mResponseHead->Status();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetResponseStatusText(nsACString& aValue)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  aValue = mResponseHead->StatusText();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetRequestSucceeded(PRBool *aValue)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  PRUint32 status = mResponseHead->Status();
+  *aValue = (status / 100 == 2);
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+HttpBaseChannel::GetDocumentURI(nsIURI **aDocumentURI)
+{
+  NS_ENSURE_ARG_POINTER(aDocumentURI);
+  *aDocumentURI = mDocumentURI;
+  NS_IF_ADDREF(*aDocumentURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetDocumentURI(nsIURI *aDocumentURI)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  mDocumentURI = aDocumentURI;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetRequestVersion(PRUint32 *major, PRUint32 *minor)
+{
+  nsHttpVersion version = mRequestHead.Version();
+
+  if (major) { *major = version / 10; }
+  if (minor) { *minor = version % 10; }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetResponseVersion(PRUint32 *major, PRUint32 *minor)
+{
+  if (!mResponseHead)
+  {
+    *major = *minor = 0; 
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsHttpVersion version = mResponseHead->Version();
+
+  if (major) { *major = version / 10; }
+  if (minor) { *minor = version % 10; }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetCookie(const char *aCookieHeader)
+{
+  if (mLoadFlags & LOAD_ANONYMOUS)
+    return NS_OK;
+
+  
+  if (!(aCookieHeader && *aCookieHeader))
+    return NS_OK;
+
+  nsICookieService *cs = gHttpHandler->GetCookieService();
+  NS_ENSURE_TRUE(cs, NS_ERROR_FAILURE);
+
+  return cs->SetCookieStringFromHttp(mURI,
+                                     nsnull,
+                                     nsnull,
+                                     aCookieHeader,
+                                     mResponseHead->PeekHeader(nsHttp::Date),
+                                     this);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetForceAllowThirdPartyCookie(PRBool *aForce)
+{
+  *aForce = mForceAllowThirdPartyCookie;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetForceAllowThirdPartyCookie(PRBool aForce)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  mForceAllowThirdPartyCookie = aForce;
+  return NS_OK;
+}
+
+
+
+}
+}
+
