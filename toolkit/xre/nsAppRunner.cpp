@@ -2640,7 +2640,7 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     NS_BREAK();
 #endif
 
-  SetupErrorHandling();
+  SetupErrorHandling(argv[0]);
 
 #ifdef MOZ_ACCESSIBILITY_ATK
   
@@ -3662,7 +3662,7 @@ XRE_GetProcessType()
 }
 
 void
-SetupErrorHandling()
+SetupErrorHandling(const char* progname)
 {
 #ifdef XP_WIN
   
@@ -3703,7 +3703,7 @@ SetupErrorHandling()
 #endif
 
 #if defined(XP_UNIX) || defined(XP_BEOS)
-  InstallUnixSignalHandlers(argv[0]);
+  InstallUnixSignalHandlers(progname);
 #endif
 
 #ifndef WINCE
