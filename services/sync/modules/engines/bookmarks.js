@@ -952,26 +952,17 @@ BookmarksStore.prototype = {
     return null;
   },
 
-  _applyIncoming: function BStore__applyIncoming(record) {
-    let self = yield;
-
-    if (!this._lookup)
-      this.wrap();
-
-    this._log.trace("RECORD: " + record.id + " -> " + uneval(record.cleartext));
-
-    if (!record.cleartext)
-      this._removeCommand({GUID: record.id});
-    else if (this._getItemIdForGUID(record.id) < 0)
-      this._createCommand({GUID: record.id, data: record.cleartext});
-    else {
-      let data = Utils.deepCopy(record.cleartext);
-      delete data.GUID;
-      this._editCommand({GUID: record.id, data: data});
-    }
-  },
   applyIncoming: function BStore_applyIncoming(onComplete, record) {
-    this._applyIncoming.async(this, onComplete, record);
+    let fn = function(rec) {
+      let self = yield;
+      if (!record.cleartext)
+        this._removeCommand({GUID: record.id});
+      else if (this._getItemIdForGUID(record.id) < 0)
+        this._createCommand({GUID: record.id, data: record.cleartext});
+      else
+        this._editCommand({GUID: record.id, data: record.cleartext});
+    };
+    fn.async(this, onComplete, record);
   },
 
   _createCommand: function BStore__createCommand(command) {
@@ -1071,10 +1062,13 @@ BookmarksStore.prototype = {
     }
     if (newId) {
       this._log.trace("Setting GUID of new item " + newId + " to " + command.GUID);
-      this._bms.setItemGUID(newId, command.GUID);
-      let foo = this._bms.getItemGUID(command.GUID);
-      if (foo == newId)
-        this._log.debug("OK!");
+      let cur = this._bms.getItemGUID(newId);
+      if (cur == command.GUID)
+        this._log.warn("Item " + newId + " already has GUID " + command.GUID);
+      else {
+        this._bms.setItemGUID(newId, command.GUID);
+        Engines.get("bookmarks")._tracker._all[newId] = command.GUID; 
+      }
     }
   },
 
@@ -1088,10 +1082,8 @@ BookmarksStore.prototype = {
     }
 
     var itemId = this._bms.getItemIdForGUID(command.GUID);
-    this._log.debug("woo: " + itemId);
     if (itemId < 0) {
-      this._log.warn("Attempted to remove item " + command.GUID +
-                     ", but it does not exist.  Skipping.");
+      this._log.debug("Item " + command.GUID + "already removed");
       return;
     }
     var type = this._bms.getItemType(itemId);
@@ -1240,6 +1232,7 @@ BookmarksStore.prototype = {
 
     this._log.debug("Changing GUID " + oldID + " to " + newID);
     this._bms.setItemGUID(itemId, newID);
+    Engines.get("bookmarks")._tracker._all[itemId] = newID; 
   },
 
   _getNode: function BSS__getNode(folder) {
@@ -1467,47 +1460,73 @@ BookmarksTracker.prototype = {
 
   _init: function BMT__init() {
     this.__proto__.__proto__._init.call(this);
+
+    
+    
+    
+    
+    
+
+    
+    let store = new BookmarksStore();
+    let all = store.wrap();
+    this._all = {};
+    for (let guid in all) {
+      this._all[this._bms.getItemIdForGUID(guid)] = guid;
+    }
+
     this._bms.addObserver(this, false);
   },
 
   
-
-  
-
-  onItemAdded: function BMT_onEndUpdateBatch(itemId, folder, index) {
+  _upScore: function BMT__upScore() {
     if (!this.enabled)
       return;
-    let guid = this._bms.getItemGUID(itemId);
-    this._log.debug("Item " + guid + " added, adding to queue");
-    this.addChangedID(guid);
     this._score += 10;
+  },
+
+  onItemAdded: function BMT_onEndUpdateBatch(itemId, folder, index) {
+    this._log.trace("onItemAdded: " + itemId);
+
+    this._all[itemId] = this._bms.getItemGUID(itemId);
+    this.addChangedID(this._all[itemId]);
+
+    this._upScore();
   },
 
   onItemRemoved: function BMT_onItemRemoved(itemId, folder, index) {
-    if (!this.enabled)
-      return;
-    let guid = this._bms.getItemGUID(itemId);
-    this._log.debug("Item " + guid + " removed, adding to queue");
-    this.addChangedID(guid);
-    this._score += 10;
+    this._log.trace("onItemRemoved: " + itemId);
+
+    this.addChangedID(this._all[itemId]);
+    delete this._all[itemId];
+
+    this._upScore();
   },
 
   onItemChanged: function BMT_onItemChanged(itemId, property, isAnnotationProperty, value) {
-    if (!this.enabled)
-      return;
+    this._log.trace("onItemChanged: " + itemId + ", property: " + property +
+                    ", isAnno: " + isAnnotationProperty + ", value: " + value);
+
+    
+    
+    
+    
+    
+    
+    
     let guid = this._bms.getItemGUID(itemId);
-    this._log.debug("Item " + guid + " changed, adding to queue");
-    this.addChangedID(guid);
-    this._score += 10;
+    if (guid != this._all[itemId])
+      this._log.trace("GUID change, ignoring");
+    else
+      this.addChangedID(this._all[itemId]); 
+
+    this._upScore();
   },
 
   onItemMoved: function BMT_onItemMoved(itemId, oldParent, oldIndex, newParent, newIndex) {
-    if (!this.enabled)
-      return;
-    let guid = this._bms.getItemGUID(itemId);
-    this._log.debug("Item " + guid + " moved, adding to queue");
-    this.addChangedID(guid);
-    this._score += 10;
+    this._log.trace("onItemMoved: " + itemId);
+    this.addChangedID(this._all[itemId]);
+    this._upScore();
   },
 
   onBeginUpdateBatch: function BMT_onBeginUpdateBatch() {},
