@@ -915,9 +915,19 @@ WordSplitState::ClassifyCharacter(PRInt32 aIndex, PRBool aRecurse) const
       charCategory == nsIUGenCategory::kPunctuation ||
       charCategory == nsIUGenCategory::kSymbol) {
     
-    if (mDOMWordText[aIndex] != '-') {
-      return CHAR_CLASS_SEPARATOR;
+    if (aIndex > 0 &&
+        mDOMWordText[aIndex] == '-' &&
+        mDOMWordText[aIndex - 1] != '-' &&
+        ClassifyCharacter(aIndex - 1, false) == CHAR_CLASS_WORD) {
+      
+      
+      if (aIndex == PRInt32(mDOMWordText.Length()) - 1)
+        return CHAR_CLASS_SEPARATOR;
+      if (mDOMWordText[aIndex + 1] != '.' &&
+          ClassifyCharacter(aIndex + 1, false) == CHAR_CLASS_WORD)
+        return CHAR_CLASS_WORD;
     }
+    return CHAR_CLASS_SEPARATOR;
   }
 
   
