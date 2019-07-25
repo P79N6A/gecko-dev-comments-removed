@@ -47,7 +47,7 @@
 #include "nsWeakReference.h"
 #include "nsIContent.h"
 #include "nsHashtable.h"
-#include "nsIXBLDocumentInfo.h"
+#include "nsXBLDocumentInfo.h"
 #include "nsCOMArray.h"
 #include "nsXBLProtoImpl.h"
 
@@ -140,7 +140,7 @@ public:
   void SetBasePrototype(nsXBLPrototypeBinding* aBinding);
   nsXBLPrototypeBinding* GetBasePrototype() { return mBaseBinding; }
 
-  nsIXBLDocumentInfo* XBLDocumentInfo() const { return mXBLDocInfoWeak; }
+  nsXBLDocumentInfo* XBLDocumentInfo() const { return mXBLDocInfoWeak; }
   PRBool IsChrome() { return mXBLDocInfoWeak->IsChrome(); }
   
   PRBool HasBasePrototype() { return mHasBaseProto; }
@@ -200,7 +200,7 @@ public:
   
   
   nsresult Init(const nsACString& aRef,
-                nsIXBLDocumentInfo* aInfo,
+                nsXBLDocumentInfo* aInfo,
                 nsIContent* aElement,
                 PRBool aFirstBinding = PR_FALSE);
 
@@ -277,7 +277,7 @@ protected:
  
   nsXBLPrototypeResources* mResources; 
                                       
-  nsIXBLDocumentInfo* mXBLDocInfoWeak; 
+  nsXBLDocumentInfo* mXBLDocInfoWeak; 
 
   nsObjectHashtable* mAttributeTable; 
                                       

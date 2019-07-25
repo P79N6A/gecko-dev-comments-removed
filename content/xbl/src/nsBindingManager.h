@@ -56,7 +56,7 @@ class nsIAtom;
 class nsIDOMNodeList;
 class nsIDocument;
 class nsIURI;
-class nsIXBLDocumentInfo;
+class nsXBLDocumentInfo;
 class nsIStreamListener;
 class nsStyleSet;
 class nsXBLBinding;
@@ -199,9 +199,9 @@ public:
 
   void ExecuteDetachedHandlers();
 
-  nsresult PutXBLDocumentInfo(nsIXBLDocumentInfo* aDocumentInfo);
-  nsIXBLDocumentInfo* GetXBLDocumentInfo(nsIURI* aURI);
-  void RemoveXBLDocumentInfo(nsIXBLDocumentInfo* aDocumentInfo);
+  nsresult PutXBLDocumentInfo(nsXBLDocumentInfo* aDocumentInfo);
+  nsXBLDocumentInfo* GetXBLDocumentInfo(nsIURI* aURI);
+  void RemoveXBLDocumentInfo(nsXBLDocumentInfo* aDocumentInfo);
 
   nsresult PutLoadingDocListener(nsIURI* aURL, nsIStreamListener* aListener);
   nsIStreamListener* GetLoadingDocListener(nsIURI* aURL);
@@ -317,7 +317,7 @@ protected:
   
   
   
-  nsInterfaceHashtable<nsURIHashKey,nsIXBLDocumentInfo> mDocumentTable;
+  nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo> mDocumentTable;
 
   
   
