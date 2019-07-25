@@ -674,7 +674,56 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
       }
       break;
     }
+    case eCSSProperty_animation: {
+      const nsCSSProperty* subprops =
+        nsCSSProps::SubpropertyEntryFor(eCSSProperty_animation);
+      static const size_t numProps = 8;
+      NS_ABORT_IF_FALSE(subprops[numProps] == eCSSProperty_UNKNOWN,
+                        "unexpected number of subproperties");
+      const nsCSSValue* values[numProps];
+      const nsCSSValueList* lists[numProps];
 
+      for (PRUint32 i = 0; i < numProps; ++i) {
+        values[i] = data->ValueFor(subprops[i]);
+        NS_ABORT_IF_FALSE(values[i]->GetUnit() == eCSSUnit_List ||
+                          values[i]->GetUnit() == eCSSUnit_ListDep,
+                          nsPrintfCString(32, "bad a-duration unit %d",
+                                          values[i]->GetUnit()).get());
+        lists[i] = values[i]->GetListValue();
+      }
+
+      for (;;) {
+        
+        
+        NS_ABORT_IF_FALSE(subprops[numProps - 1] ==
+                            eCSSProperty_animation_name,
+                          "animation-name must be last");
+        bool done = false;
+        for (PRUint32 i = 0;;) {
+          lists[i]->mValue.AppendToString(subprops[i], aValue);
+          lists[i] = lists[i]->mNext;
+          if (!lists[i]) {
+            done = true;
+          }
+          if (++i == numProps) {
+            break;
+          }
+          aValue.Append(PRUnichar(' '));
+        }
+        if (done) {
+          break;
+        }
+        aValue.AppendLiteral(", ");
+      }
+      for (PRUint32 i = 0; i < numProps; ++i) {
+        if (lists[i]) {
+          
+          aValue.Truncate();
+          break;
+        }
+      }
+      break;
+    }
     case eCSSProperty_marker: {
       const nsCSSValue &endValue =
         *data->ValueFor(eCSSProperty_marker_end);

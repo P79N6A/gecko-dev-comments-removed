@@ -364,6 +364,96 @@ CSS_PROP_FONT(
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
 #endif
+CSS_PROP_SHORTHAND(
+    -moz-animation,
+    animation,
+    CSS_PROP_DOMPROP_PREFIXED(Animation),
+    CSS_PROPERTY_PARSE_FUNCTION)
+CSS_PROP_DISPLAY(
+    -moz-animation-delay,
+    animation_delay,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationDelay),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_TIME, 
+    nsnull,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-direction,
+    animation_direction,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationDirection),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_KEYWORD, 
+    kAnimationDirectionKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-duration,
+    animation_duration,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationDuration),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_TIME, 
+    nsnull,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-fill-mode,
+    animation_fill_mode,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationFillMode),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_KEYWORD, 
+    kAnimationFillModeKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-iteration-count,
+    animation_iteration_count,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationIterationCount),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        
+        
+        CSS_PROPERTY_VALUE_NONNEGATIVE |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_KEYWORD | VARIANT_NUMBER, 
+    kAnimationIterationCountKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-name,
+    animation_name,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationName),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    
+    
+    VARIANT_NONE | VARIANT_IDENTIFIER_NO_INHERIT, 
+    nsnull,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-play-state,
+    animation_play_state,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationPlayState),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_KEYWORD, 
+    kAnimationPlayStateKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
+CSS_PROP_DISPLAY(
+    -moz-animation-timing-function,
+    animation_timing_function,
+    CSS_PROP_DOMPROP_PREFIXED(AnimationTimingFunction),
+    CSS_PROPERTY_PARSE_VALUE_LIST |
+        CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
+    VARIANT_KEYWORD | VARIANT_TIMING_FUNCTION, 
+    kTransitionTimingFunctionKTable,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
 CSS_PROP_BACKENDONLY(
     azimuth,
     azimuth,

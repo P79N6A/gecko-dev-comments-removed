@@ -369,6 +369,16 @@ private:
   nsIDOMCSSValue* DoGetTransitionTimingFunction();
 
   
+  nsIDOMCSSValue* DoGetAnimationName();
+  nsIDOMCSSValue* DoGetAnimationDuration();
+  nsIDOMCSSValue* DoGetAnimationDelay();
+  nsIDOMCSSValue* DoGetAnimationTimingFunction();
+  nsIDOMCSSValue* DoGetAnimationDirection();
+  nsIDOMCSSValue* DoGetAnimationFillMode();
+  nsIDOMCSSValue* DoGetAnimationIterationCount();
+  nsIDOMCSSValue* DoGetAnimationPlayState();
+
+  
   nsIDOMCSSValue* DoGetFill();
   nsIDOMCSSValue* DoGetStroke();
   nsIDOMCSSValue* DoGetMarkerEnd();
