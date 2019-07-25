@@ -64,7 +64,6 @@
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsautooplen.h"        
-#include "jsstaticcheck.h"
 
 #include "jsatominlines.h"
 #include "jsobjinlines.h"
