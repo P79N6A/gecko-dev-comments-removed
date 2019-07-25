@@ -299,6 +299,8 @@ pref("browser.urlbar.match.url", "@");
 
 pref("browser.urlbar.default.behavior", 0);
 
+pref("browser.urlbar.formatting.enabled", true);
+
 
 
 
