@@ -94,14 +94,6 @@ public:
 
 
   virtual nsIWidget* GetWidget() = 0;
-
-  
-
-
-
-  virtual nsresult SetAbsoluteScreenPosition(class nsIDOMElement* element,
-                                             nsIDOMClientRect* position,
-                                             nsIDOMClientRect* clip) = 0;
 };
 
 #endif 
