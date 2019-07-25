@@ -833,7 +833,7 @@ FrameState::relocateReg(AnyRegisterID reg, RegisterAllocation *alloc, Uses uses)
 
 
 
-    JS_ASSERT(alloc->assigned(reg) && !a->freeRegs.hasReg(reg));
+    JS_ASSERT(!a->freeRegs.hasReg(reg));
 
     for (unsigned i = 0; i < uses.nuses; i++) {
         FrameEntry *fe = peek(-1 - i);
@@ -977,9 +977,24 @@ FrameState::syncForBranch(jsbytecode *target, Uses uses)
 
         a->freeRegs.takeReg(reg);
         regstate(reg).associate(fe, RematInfo::DATA);
+
+        
+
+
+
+        if (alloc->getParentRegs().hasReg(reg))
+            a->parentRegs.putReg(reg);
     }
 
-    restoreParentRegistersInMask(masm, alloc->getParentRegs().freeMask & ~a->parentRegs.freeMask, true);
+    
+    Registers parents(alloc->getParentRegs().freeMask & ~a->parentRegs.freeMask);
+    while (!parents.empty()) {
+        AnyRegisterID reg = parents.takeAnyReg();
+        if (!a->freeRegs.hasReg(reg))
+            relocateReg(reg, alloc, uses);
+        a->parentRegs.putReg(reg);
+        restoreParentRegister(masm, reg);
+    }
 
     return true;
 }
