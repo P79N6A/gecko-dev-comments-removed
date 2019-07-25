@@ -53,8 +53,15 @@ class SmsRequest : public nsIDOMMozSmsRequest
 public:
   friend class SmsRequestManager;
 
+  
+
+
+
+
   enum ErrorType {
     eNoError = 0,
+    eNoSignalError,
+    eUnknownError,
     eInternalError,
   };
 
