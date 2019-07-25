@@ -1,0 +1,101 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NSXREMOTESERVICE_H
+#define NSXREMOTESERVICE_H
+
+#include "nsString.h"
+
+#include "nsIRemoteService.h"
+#include "nsIObserver.h"
+#include <X11/Xlib.h>
+#include <X11/X.h>
+
+class nsIDOMWindow;
+class nsIWeakReference;
+
+
+
+
+class nsXRemoteService : public nsIRemoteService,
+                         public nsIObserver
+{
+public:
+    NS_DECL_NSIOBSERVER
+
+
+protected:
+    nsXRemoteService();
+
+    static PRBool HandleNewProperty(Window aWindowId,Display* aDisplay,
+                                    Time aEventTime, Atom aChangedAtom,
+                                    nsIWeakReference* aDomWindow);
+    
+    void XRemoteBaseStartup(const char *aAppName, const char *aProfileName);
+
+    void HandleCommandsFor(Window aWindowId);
+    static nsXRemoteService *sRemoteImplementation;
+private:
+    void EnsureAtoms();
+    static const char* HandleCommand(char* aCommand, nsIDOMWindow* aWindow,
+                                     PRUint32 aTimestamp);
+
+    static const char* HandleCommandLine(char* aBuffer, nsIDOMWindow* aWindow,
+                                         PRUint32 aTimestamp);
+
+    virtual void SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
+                                                PRUint32 aTimestamp) = 0;
+
+    nsCString mAppName;
+    nsCString mProfileName;
+
+    static Atom sMozVersionAtom;
+    static Atom sMozLockAtom;
+    static Atom sMozCommandAtom;
+    static Atom sMozResponseAtom;
+    static Atom sMozUserAtom;
+    static Atom sMozProfileAtom;
+    static Atom sMozProgramAtom;
+    static Atom sMozCommandLineAtom;
+};
+
+#endif 

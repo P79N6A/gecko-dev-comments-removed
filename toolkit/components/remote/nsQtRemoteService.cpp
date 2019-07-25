@@ -39,84 +39,78 @@
 
 
 
+#include <QWidget>
+#include <QX11Info>
 #include "nsQtRemoteService.h"
 
-#include <X11/Xatom.h> 
-#include <stdlib.h>
-
-#include "nsIBaseWindow.h"
-#include "nsIDocShell.h"
-#include "nsPIDOMWindow.h"
 #include "mozilla/ModuleUtils.h"
-#include "nsILocalFile.h"
-#include "nsIObserverService.h"
 #include "nsIServiceManager.h"
-#include "nsIWeakReference.h"
-#include "nsIWidget.h"
 #include "nsIAppShellService.h"
-#include "nsAppShellCID.h"
 
 #include "nsCOMPtr.h"
-#include "nsString.h"
-#include "prprf.h"
-#include "prenv.h"
-#include "nsCRT.h"
 
-#ifdef MOZ_WIDGET_GTK2
 
-#endif
 
-#include "nsICommandLineRunner.h"
-#include "nsXULAppAPI.h"
 
-#define MOZILLA_VERSION_PROP   "_MOZILLA_VERSION"
-#define MOZILLA_LOCK_PROP      "_MOZILLA_LOCK"
-#define MOZILLA_COMMAND_PROP   "_MOZILLA_COMMAND"
-#define MOZILLA_RESPONSE_PROP  "_MOZILLA_RESPONSE"
-#define MOZILLA_USER_PROP      "_MOZILLA_USER"
-#define MOZILLA_PROFILE_PROP   "_MOZILLA_PROFILE"
-#define MOZILLA_PROGRAM_PROP   "_MOZILLA_PROGRAM"
-#define MOZILLA_COMMANDLINE_PROP "_MOZILLA_COMMANDLINE"
+class MozQRemoteEventHandlerWidget: public QWidget {
+public:
+  
 
-#ifdef IS_BIG_ENDIAN
-#define TO_LITTLE_ENDIAN32(x) \
-    ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >> 8) | \
-    (((x) & 0x0000ff00) << 8) | (((x) & 0x000000ff) << 24))
-#else
-#define TO_LITTLE_ENDIAN32(x) (x)
-#endif
 
-const unsigned char kRemoteVersion[] = "5.1";
+
+  MozQRemoteEventHandlerWidget(nsQtRemoteService &aRemoteService);
+
+protected:
+  
+
+
+
+  bool x11Event(XEvent *);
+
+private:
+  
+
+
+  nsQtRemoteService &mRemoteService;
+};
+
+MozQRemoteEventHandlerWidget::MozQRemoteEventHandlerWidget(nsQtRemoteService &aRemoteService)
+  :mRemoteService(aRemoteService)
+{
+}
+
+bool
+MozQRemoteEventHandlerWidget::x11Event(XEvent *aEvt)
+{
+  if (aEvt->type == PropertyNotify && aEvt->xproperty.state == PropertyNewValue)
+    mRemoteService.PropertyNotifyEvent(aEvt);
+
+  return false;
+}
 
 NS_IMPL_ISUPPORTS2(nsQtRemoteService,
                    nsIRemoteService,
                    nsIObserver)
 
+nsQtRemoteService::nsQtRemoteService():
+mServerWindow(0)
+{
+}
+
 NS_IMETHODIMP
 nsQtRemoteService::Startup(const char* aAppName, const char* aProfileName)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (mServerWindow) return NS_ERROR_ALREADY_INITIALIZED;
+  NS_ASSERTION(aAppName, "Don't pass a null appname!");
+
+  XRemoteBaseStartup(aAppName,aProfileName);
+
+  
+  mServerWindow = new MozQRemoteEventHandlerWidget(*this);
+
+  HandleCommandsFor(mServerWindow->winId());
+  return NS_OK;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 NS_IMETHODIMP
 nsQtRemoteService::RegisterWindow(nsIDOMWindow* aWindow)
@@ -127,15 +121,29 @@ nsQtRemoteService::RegisterWindow(nsIDOMWindow* aWindow)
 NS_IMETHODIMP
 nsQtRemoteService::Shutdown()
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  if (!mServerWindow)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  delete mServerWindow;
+  mServerWindow = nsnull;
+
+  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsQtRemoteService::Observe(nsISupports* aSubject,
-                            const char *aTopic,
-                            const PRUnichar *aData)
+void
+nsQtRemoteService::PropertyNotifyEvent(XEvent *aEvt)
 {
-  return NS_OK;
+  HandleNewProperty(aEvt->xproperty.window,
+                    QX11Info::display(),
+                    aEvt->xproperty.time,
+                    aEvt->xproperty.atom,
+                    0);
+}
+
+void
+nsQtRemoteService::SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
+                                                  PRUint32 aTimestamp)
+{
 }
 
 
