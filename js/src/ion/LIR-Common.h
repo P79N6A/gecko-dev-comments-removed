@@ -603,6 +603,39 @@ class LMathD : public LBinaryMath<0>
 };
 
 
+class LAddV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(AddV);
+    BOX_OUTPUT_ACCESSORS();
+
+    static const size_t LhsInput = 0;
+    static const size_t RhsInput = BOX_PIECES;
+};
+
+
+class LConcat : public LCallInstructionHelper<1, 2, 0>
+{
+  public:
+    LIR_HEADER(Concat);
+
+    LConcat(const LAllocation &lhs, const LAllocation &rhs) {
+        setOperand(0, lhs);
+        setOperand(1, rhs);
+    }
+
+    const LAllocation *lhs() {
+        return this->getOperand(0);
+    }
+    const LAllocation *rhs() {
+        return this->getOperand(1);
+    }
+    const LDefinition *output() {
+        return this->getDef(0);
+    }
+};
+
+
 class LInt32ToDouble : public LInstructionHelper<1, 1, 0>
 {
   public:
@@ -710,6 +743,28 @@ class LTruncateDToInt32 : public LInstructionHelper<1, 1, 0>
     }
     const LDefinition *output() {
         return getDef(0);
+    }
+};
+
+
+
+class LIntToString : public LCallInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(IntToString);
+
+    LIntToString(const LAllocation &input) {
+        setOperand(0, input);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+    const MToString *mir() {
+        return mir_->toToString();
     }
 };
 
