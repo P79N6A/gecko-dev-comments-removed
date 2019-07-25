@@ -672,7 +672,7 @@ var BrowserUI = {
       
     
     let modalElementsLength = document.getElementsByClassName("modal-block").length;
-    if (modalElementsLength > 0) 
+    if (modalElementsLength > 0)
       return;
 
     
