@@ -210,13 +210,21 @@ WeaveSvc.prototype = {
   onWindowOpened: function Weave__onWindowOpened() {
     if (!this._startupFinished) {
       if (Utils.prefs.getBoolPref("autoconnect") &&
-          this.username && this.username != 'nobody') {
-        
-        let self = this;
-        this.login(function() { self.sync(); });
-      }
+          this.username && this.username != 'nobody')
+        this._initialLoginAndSync.async(this);
       this._startupFinished = true;
     }
+  },
+
+  _initialLoginAndSync: function Weave__initialLoginAndSync() {
+    let self = yield;
+
+    
+    
+    
+
+    yield this.login(self.cb);
+    yield this.sync(self.cb);
   },
 
   _setSchedule: function Weave__setSchedule(schedule) {
