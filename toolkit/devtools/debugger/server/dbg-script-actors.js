@@ -945,11 +945,13 @@ ThreadActor.prototype = {
     
     let existing = this._breakpointStore[aScript.url];
     if (existing) {
+      let endLine = aScript.startLine + aScript.lineCount - 1;
       
       
       for (let line = existing.length - 1; line >= 0; line--) {
         let bp = existing[line];
-        if (bp) {
+        
+        if (bp && line >= aScript.startLine && line <= endLine) {
           this._setBreakpoint(bp);
         }
       }
