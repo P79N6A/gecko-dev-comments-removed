@@ -5958,7 +5958,7 @@ nsGlobalWindow::OpenNoNavigate(const nsAString& aUrl,
                       false,          
                       nullptr, nullptr,  
                       GetPrincipal(),    
-                      nsnull,            
+                      nullptr,           
                       _retval);
 
 }
