@@ -760,7 +760,7 @@ nsBaseWidget::AutoUseBasicLayerManager::~AutoUseBasicLayerManager()
 bool
 nsBaseWidget::GetShouldAccelerate()
 {
-#if defined(XP_WIN) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5)
+#if defined(XP_WIN) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5) || defined(MOZ_GL_PROVIDER)
   bool accelerateByDefault = true;
 #elif defined(XP_MACOSX)
 
