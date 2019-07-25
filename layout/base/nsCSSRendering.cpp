@@ -4199,22 +4199,13 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
     return nsnull;
   }
 
-  
-  
-  
   gfxIntSize blurRadius = ComputeBlurRadius(aBlurRadius, aAppUnitsPerDevPixel);
-  aDestinationCtx->UserToDevice(blurRadius);
-
-  PRInt32 spreadRadiusScalar = NS_MIN(
-    PRInt32(aSpreadRadius / aAppUnitsPerDevPixel),
-    PRInt32(MAX_SPREAD_RADIUS));
-  gfxIntSize spreadRadius(spreadRadiusScalar, spreadRadiusScalar);
-  aDestinationCtx->UserToDevice(spreadRadius);
-
+  PRInt32 spreadRadius = NS_MIN(PRInt32(aSpreadRadius / aAppUnitsPerDevPixel),
+                                PRInt32(MAX_SPREAD_RADIUS));
   mDestinationCtx = aDestinationCtx;
 
   
-  if (blurRadius.width <= 0 && blurRadius.height <= 0 && spreadRadiusScalar <= 0 &&
+  if (blurRadius.width <= 0 && blurRadius.height <= 0 && spreadRadius <= 0 &&
       !(aFlags & FORCE_MASK)) {
     mContext = aDestinationCtx;
     return mContext;
@@ -4223,29 +4214,13 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
   
   gfxRect rect = nsLayoutUtils::RectToGfxRect(aRect, aAppUnitsPerDevPixel);
 
-  gfxRect deviceRect = mDestinationCtx->UserToDevice(rect);
-
   gfxRect dirtyRect =
     nsLayoutUtils::RectToGfxRect(aDirtyRect, aAppUnitsPerDevPixel);
   dirtyRect.RoundOut();
 
-  gfxRect deviceDirtyRect = mDestinationCtx->UserToDevice(dirtyRect);
-
-  gfxRect deviceSkipRect;
-  gfxRect* deviceSkipRectPtr = NULL;
-  if (aSkipRect) {
-    deviceSkipRect = mDestinationCtx->UserToDevice(*aSkipRect);
-    deviceSkipRectPtr = &deviceSkipRect;
-  }
-
   
-  mContext = blur.Init(deviceRect, spreadRadius, blurRadius,
-                       &deviceDirtyRect, deviceSkipRectPtr);
-
-  gfxMatrix matrix = aDestinationCtx->CurrentMatrix();
-  if (mContext) {
-    mContext->Scale(matrix.xx, matrix.yy);
-  }
+  mContext = blur.Init(rect, gfxIntSize(spreadRadius, spreadRadius),
+                       blurRadius, &dirtyRect, aSkipRect);
   return mContext;
 }
 
@@ -4255,11 +4230,6 @@ nsContextBoxBlur::DoPaint()
   if (mContext == mDestinationCtx)
     return;
 
-  
-  
-  gfxContextMatrixAutoSaveRestore save(mDestinationCtx);
-  gfxMatrix matrix = mDestinationCtx->CurrentMatrix();
-  mDestinationCtx->Scale(1 / matrix.xx, 1 / matrix.yy);
   blur.Paint(mDestinationCtx);
 }
 
