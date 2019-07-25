@@ -329,7 +329,7 @@
 
 
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(ANDROID)
 #define WTF_PLATFORM_LINUX 1
 #endif
 

@@ -247,7 +247,7 @@ class FilePath {
 #endif  
 
 
-#if defined(COMPILER_GCC)
+#if defined(COMPILER_GCC) && !defined(ANDROID)
 namespace __gnu_cxx {
 
 template<>

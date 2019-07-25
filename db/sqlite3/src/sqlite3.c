@@ -25868,7 +25868,7 @@ SQLITE_API int sqlite3_fullsync_count = 0;
 
 
 
-#if !defined(fdatasync) && !defined(__linux__)
+#if (!defined(fdatasync) && !defined(__linux__)) || defined(ANDROID)
 # define fdatasync fsync
 #endif
 

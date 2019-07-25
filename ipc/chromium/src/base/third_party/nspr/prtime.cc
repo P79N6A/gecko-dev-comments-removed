@@ -73,6 +73,9 @@
 #endif
 #include <errno.h>  
 #include <time.h>
+#ifdef ANDROID
+#include <ctype.h>  
+#endif
 
 namespace nspr {
 

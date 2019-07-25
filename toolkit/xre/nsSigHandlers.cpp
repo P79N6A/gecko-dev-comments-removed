@@ -60,7 +60,9 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <stdlib.h> 
-#include <ucontext.h>
+#ifndef __arm__ 
+#  include <ucontext.h>
+#endif
 #endif
 
 #if defined(SOLARIS)
@@ -188,7 +190,7 @@ static void fpehandler(int signum, siginfo_t *si, void *context)
   *mxcsr &= ~SSE_STATUS_FLAGS; 
 #endif
 #endif
-#ifdef LINUX
+#if defined(LINUX) && !defined(__arm__)
   ucontext_t *uc = (ucontext_t *)context;
 
 #if defined(__i386__)
