@@ -488,7 +488,7 @@ class Compiler : public BaseCompiler
     Label labelOf(jsbytecode *target, uint32 inlineIndex);
     void addCallSite(const InternalCallSite &callSite);
     void addReturnSite();
-    void inlineStubCall(void *stub, RejoinState rejoin);
+    void inlineStubCall(void *stub, RejoinState rejoin, Uses uses);
 
     bool debugMode() { return debugMode_; }
     bool inlining() { return inlining_; }
@@ -778,16 +778,20 @@ class Compiler : public BaseCompiler
 
 
 #define INLINE_STUBCALL(stub, rejoin)                                       \
-    inlineStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin)
+    inlineStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, Uses(0))
+#define INLINE_STUBCALL_USES(stub, rejoin, uses)                            \
+    inlineStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, uses)
 
 
 
 #define OOL_STUBCALL(stub, rejoin)                                          \
-    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin)
+    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, Uses(0))
+#define OOL_STUBCALL_USES(stub, rejoin, uses)                               \
+    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, uses)
 
 
 #define OOL_STUBCALL_LOCAL_SLOTS(stub, rejoin, slots)                       \
-    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, (slots))
+    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, Uses(0), (slots))
 
 } 
 } 

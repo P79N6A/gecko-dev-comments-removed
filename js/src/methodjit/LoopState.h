@@ -253,7 +253,7 @@ class LoopState : public MacroAssemblerTypedefs
     bool generatingInvariants() { return !skipAnalysis; }
 
     
-    void addInvariantCall(Jump jump, Label label, bool ool, bool entry, unsigned patchIndex);
+    void addInvariantCall(Jump jump, Label label, bool ool, bool entry, unsigned patchIndex, Uses uses);
 
     uint32 headOffset() { return lifetime->head; }
     uint32 getLoopRegs() { return loopRegs.freeMask; }

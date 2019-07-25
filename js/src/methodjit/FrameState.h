@@ -948,7 +948,10 @@ class FrameState
     inline FrameEntry *getTemporary(uint32 which);
 
     
-    Vector<TemporaryCopy> *getTemporaryCopies();
+
+
+
+    Vector<TemporaryCopy> *getTemporaryCopies(Uses uses);
 
     inline void syncAndForgetFe(FrameEntry *fe, bool markSynced = false);
     inline void forgetLoopReg(FrameEntry *fe);
