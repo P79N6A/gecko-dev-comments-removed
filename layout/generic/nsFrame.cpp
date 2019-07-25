@@ -2020,11 +2020,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
     if (child != aBuilder->GetIgnoreScrollFrame()) {
       nsRect childDirty;
-      nsRect overflow = child->GetVisualOverflowRect();
-
-      if (!childDirty.IntersectRect(dirty, overflow)) {
+      if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
         return NS_OK;
-      }
       
       
       
