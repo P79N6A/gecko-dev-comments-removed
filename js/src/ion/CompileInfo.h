@@ -44,7 +44,7 @@
 namespace js {
 namespace ion {
 
-inline uintN
+inline unsigned
 CountArgSlots(JSFunction *fun)
 {
     return fun ? fun->nargs + 2 : 1; 
@@ -87,11 +87,11 @@ class CompileInfo
     const char *filename() const {
         return script_->filename;
     }
-    uintN lineno() const {
+    unsigned lineno() const {
         return script_->lineno;
     }
-    uintN lineno(JSContext *cx, jsbytecode *pc) const {
-        return js_PCToLineNumber(cx, script_, pc);
+    unsigned lineno(JSContext *cx, jsbytecode *pc) const {
+        return PCToLineNumber(script_, pc);
     }
 
     
@@ -119,17 +119,17 @@ class CompileInfo
     }
 
     
-    uintN nslots() const {
+    unsigned nslots() const {
         return nslots_;
     }
 
-    uintN nargs() const {
+    unsigned nargs() const {
         return fun()->nargs;
     }
-    uintN nlocals() const {
+    unsigned nlocals() const {
         return script()->nfixed;
     }
-    uintN ninvoke() const {
+    unsigned ninvoke() const {
         return nlocals() + CountArgSlots(fun());
     }
 
@@ -163,7 +163,7 @@ class CompileInfo
   private:
     JSScript *script_;
     JSFunction *fun_;
-    uintN nslots_;
+    unsigned nslots_;
     jsbytecode *osrPc_;
 };
 

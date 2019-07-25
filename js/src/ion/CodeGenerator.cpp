@@ -846,7 +846,7 @@ CodeGenerator::visitDefVar(LDefVar *lir)
     Register scopeChain = ToRegister(lir->getScopeChain());
     Register nameTemp   = ToRegister(lir->nameTemp());
 
-    typedef bool (*pf)(JSContext *, PropertyName *, uintN, JSObject *);
+    typedef bool (*pf)(JSContext *, PropertyName *, unsigned, JSObject *);
     static const VMFunction DefVarOrConstInfo =
         FunctionInfo<pf>(DefVarOrConst);
 
