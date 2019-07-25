@@ -36,7 +36,7 @@
 
 
 #include "nsHapticFeedback.h"
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
 #include <dbus/dbus.h>
 #include <mce/dbus-names.h>
 #endif
