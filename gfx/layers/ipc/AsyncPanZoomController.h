@@ -1,0 +1,360 @@
+
+
+
+
+
+
+#ifndef mozilla_layers_AsyncPanZoomController_h
+#define mozilla_layers_AsyncPanZoomController_h
+
+#include "GeckoContentController.h"
+#include "mozilla/Monitor.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/TimeStamp.h"
+#include "InputData.h"
+#include "Axis.h"
+
+namespace mozilla {
+namespace layers {
+
+class CompositorParent;
+class GestureEventListener;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AsyncPanZoomController {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AsyncPanZoomController)
+
+  typedef mozilla::MonitorAutoLock MonitorAutoLock;
+
+public:
+  enum GestureBehavior {
+    
+    
+    DEFAULT_GESTURES,
+    
+    
+    USE_GESTURE_DETECTOR
+  };
+
+  AsyncPanZoomController(GeckoContentController* aController,
+                         GestureBehavior aGestures = DEFAULT_GESTURES);
+  ~AsyncPanZoomController();
+
+  
+  
+  
+
+  
+
+
+
+
+
+  nsEventStatus HandleInputEvent(const InputData& aEvent);
+
+  
+
+
+
+
+
+
+
+
+
+  nsEventStatus HandleInputEvent(const nsInputEvent& aEvent,
+                                 nsInputEvent* aOutEvent);
+
+  
+
+
+
+
+
+
+
+
+
+
+  void UpdateViewportSize(int aWidth, int aHeight);
+
+  
+  
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool SampleContentTransformForFrame(const TimeStamp& aSampleTime,
+                                      const FrameMetrics& aFrame,
+                                      const gfx3DMatrix& aCurrentTransform,
+                                      gfx3DMatrix* aNewTransform);
+
+  
+
+
+
+
+
+  void NotifyLayersUpdated(const FrameMetrics& aViewportFrame, bool aIsFirstPaint);
+
+  
+
+
+
+  void SetCompositorParent(CompositorParent* aCompositorParent);
+
+  
+  
+  
+
+  
+
+
+
+  void SetPageRect(const gfx::Rect& aCSSPageRect);
+
+  
+
+
+
+
+  void SetDPI(int aDPI);
+
+protected:
+  
+
+
+
+  nsEventStatus OnTouchStart(const MultiTouchInput& aEvent);
+
+  
+
+
+  nsEventStatus OnTouchMove(const MultiTouchInput& aEvent);
+
+  
+
+
+
+  nsEventStatus OnTouchEnd(const MultiTouchInput& aEvent);
+
+  
+
+
+
+  nsEventStatus OnTouchCancel(const MultiTouchInput& aEvent);
+
+  
+
+
+
+
+  nsEventStatus OnScaleBegin(const PinchGestureInput& aEvent);
+
+  
+
+
+
+  nsEventStatus OnScale(const PinchGestureInput& aEvent);
+
+  
+
+
+
+  nsEventStatus OnScaleEnd(const PinchGestureInput& aEvent);
+
+  
+
+
+
+
+  nsEventStatus OnLongPress(const TapGestureInput& aEvent);
+
+  
+
+
+
+
+  nsEventStatus OnSingleTapUp(const TapGestureInput& aEvent);
+
+  
+
+
+
+
+  nsEventStatus OnSingleTapConfirmed(const TapGestureInput& aEvent);
+
+  
+
+
+
+
+  nsEventStatus OnDoubleTap(const TapGestureInput& aEvent);
+
+  
+
+
+
+
+
+  nsEventStatus OnCancelTap(const TapGestureInput& aEvent);
+
+  
+
+
+  void ScrollBy(const nsIntPoint& aOffset);
+
+  
+
+
+
+
+
+
+  void ScaleWithFocus(float aScale, const nsIntPoint& aFocus);
+
+  
+
+
+
+  void ScheduleComposite();
+
+  
+
+
+
+
+  void CancelAnimation();
+
+  
+
+
+
+
+
+  float PanDistance(const MultiTouchInput& aEvent);
+
+  
+
+
+  const nsPoint GetVelocityVector();
+
+  
+
+
+
+
+  SingleTouchData& GetFirstSingleTouch(const MultiTouchInput& aEvent);
+
+  
+
+
+  void TrackTouch(const MultiTouchInput& aEvent);
+
+  
+
+
+
+
+
+
+  const nsIntRect CalculatePendingDisplayPort();
+
+  
+
+
+
+
+  void RequestContentRepaint();
+
+  
+
+
+
+
+
+  bool DoFling(const TimeDuration& aDelta);
+
+  
+
+
+
+  const FrameMetrics& GetFrameMetrics();
+
+private:
+  enum PanZoomState {
+    NOTHING,        
+    FLING,          
+    TOUCHING,       
+    PANNING,        
+    PINCHING,       
+  };
+
+  nsRefPtr<CompositorParent> mCompositorParent;
+  nsRefPtr<GeckoContentController> mGeckoContentController;
+  nsRefPtr<GestureEventListener> mGestureEventListener;
+
+  
+  
+  FrameMetrics mFrameMetrics;
+  
+  
+  FrameMetrics mLastContentPaintMetrics;
+
+  AxisX mX;
+  AxisY mY;
+
+  Monitor mMonitor;
+
+  
+  
+  TimeStamp mLastSampleTime;
+  
+  PRInt32 mLastEventTime;
+  
+  PRInt32 mLastRepaint;
+
+  
+  
+  nsIntPoint mLastZoomFocus;
+  PanZoomState mState;
+  int mDPI;
+
+  friend class Axis;
+};
+
+}
+}
+
+#endif
