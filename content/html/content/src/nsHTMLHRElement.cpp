@@ -281,12 +281,14 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 
       
       
+      
+      
       nsCSSCornerSizes& corners = aData->mMarginData->mBorderRadius;
 
       NS_FOR_CSS_FULL_CORNERS(c) {
         nsCSSValue& dimen = corners.GetCorner(c);
         if (dimen.GetUnit() == eCSSUnit_Null) {
-          dimen.SetPercentValue(1.0f);
+          dimen.SetFloatValue(10000.0f, eCSSUnit_Pixel);
         }
       }
     }
