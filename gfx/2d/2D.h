@@ -485,6 +485,13 @@ public:
 
   virtual TemporaryRef<Path> GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget) = 0;
 
+  
+
+
+
+
+  virtual void CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder) = 0;
+
 protected:
   ScaledFont() {}
 };
