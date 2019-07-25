@@ -2121,6 +2121,27 @@ nsIMM32Handler::OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
           IMEContext.IsValid() && !::ImmGetOpenStatus(IMEContext.get());
       }
       return PR_FALSE;
+    case VK_TAB:
+    case VK_PRIOR:
+    case VK_NEXT:
+    case VK_END:
+    case VK_HOME:
+    case VK_LEFT:
+    case VK_UP:
+    case VK_RIGHT:
+    case VK_DOWN:
+      
+      
+      
+      
+      
+      
+      
+      if (IsComposingOnOurEditor()) {
+        
+        CancelComposition(aWindow, PR_FALSE);
+      }
+      return PR_FALSE;
     default:
       return PR_FALSE;
   }
