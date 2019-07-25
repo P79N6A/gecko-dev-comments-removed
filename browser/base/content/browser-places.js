@@ -346,8 +346,6 @@ var PlacesCommandHook = {
     if (aBrowser.contentWindow == window.content) {
       var starIcon = aBrowser.ownerDocument.getElementById("star-button");
       if (starIcon && isElementVisible(starIcon)) {
-        
-        
         if (aShowEditUI)
           StarUI.showEditBookmarkPopup(itemId, starIcon, "bottomcenter topright");
         return;
