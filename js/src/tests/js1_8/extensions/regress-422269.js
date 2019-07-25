@@ -38,8 +38,8 @@
 
 var BUGNUMBER = 422269;
 var summary = 'Compile-time let block should not capture runtime references';
-var actual = 'No leak';
-var expect = 'No leak';
+var actual = 'referenced only by stack and closure';
+var expect = 'referenced only by stack and closure';
 
 
 
@@ -56,31 +56,39 @@ function test()
   function f()
   {
     let m = {sin: Math.sin};
-    (function() { m.sin(1); })();
+    (function holder() { m.sin(1); })();
     return m;
   }
 
-  if (typeof countHeap == 'undefined')
+  if (typeof findReferences == 'undefined')
   {
     expect = actual = 'Test skipped';
-    print('Test skipped. Requires countHeap function.');
+    print('Test skipped. Requires findReferences function.');
   }
   else
   {
     var x = f();
-    f(); 
-    gc();
-    var n = countHeap();
-    x = null;
-    
-    
-    
-    eval("");
-    gc();
+    var refs = findReferences(x);
 
-    var n2 = countHeap();
-    if (n2 >= n)
-      actual = "leak is detected, something roots the result of f";
+    
+    
+    
+    
+    
+    for (var edge in refs) {
+      
+      if (refs[edge].every(function (r) r === null))
+        delete refs[edge];
+      
+      
+      else if (refs[edge].length === 1 &&
+               typeof refs[edge][0] === "function" &&
+               refs[edge][0].name === "holder")
+        delete refs[edge];
+    }
+
+    if (Object.keys(refs).length != 0)
+        actual = "unexpected references to the result of f: " + Object.keys(refs).join(", ");
   }
   reportCompare(expect, actual, summary);
 

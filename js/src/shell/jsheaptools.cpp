@@ -552,31 +552,6 @@ ReferenceFinder::findReferences(JSObject *target)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 JSBool
 FindReferences(JSContext *cx, uintN argc, jsval *vp)
 {
