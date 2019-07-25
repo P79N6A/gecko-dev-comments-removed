@@ -363,6 +363,9 @@ struct JSRuntime : js::RuntimeFriendFields
     uint64_t            gcStartNumber;
 
     
+    bool                gcIsFull;
+
+    
     js::gcreason::Reason gcTriggerReason;
 
     
