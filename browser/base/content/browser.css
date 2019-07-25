@@ -546,4 +546,9 @@ statuspanel[inactive][previoustype=overLink] {
 }
 
 
+.tabview-menuitem {
+  max-width: 32em;
+}
+
+
 %include highlighter.css
