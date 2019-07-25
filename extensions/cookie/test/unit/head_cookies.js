@@ -34,12 +34,15 @@ function do_wait_for_db_close(dbfile) {
   while (db) {
     
     try {
-      db = Services.storage.openUnsharedDatabase(dbfile);
-      db.schemaVersion = 0; 
+      db.schemaVersion = 81;
+      if (db.schemaVersion != 81)
+        throw "Write poll loop schemaVersion not changed";
+      db.schemaVersion = 0;  
       db.close();
       db = null;
     }
     catch (e) {
+      dump("Write poll loop threw error " + e + "\n");
       if (thr.hasPendingEvents())
         thr.processNextEvent(false);
     }
