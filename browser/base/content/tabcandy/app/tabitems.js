@@ -178,11 +178,6 @@ window.TabItem = function(container, tab) {
 
 window.TabItem.prototype = iQ.extend(new Item(), {
   
-  
-  
-  
-  
-  
   getStorageData: function(getImageData) {
     return {
       bounds: this.getBounds(), 
@@ -195,11 +190,6 @@ window.TabItem.prototype = iQ.extend(new Item(), {
     };
   },
 
-  
-  
-  
-  
-  
   
   save: function(saveImageData) {
     try{
@@ -215,22 +205,10 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
   
   
-  
-  
   getURL: function() {
     return this.tab.url;
   },
     
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   setBounds: function(rect, immediately, options) {
     if (!isRect(rect)) {
@@ -376,23 +354,16 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
 
   
-  
-  
   inStack: function(){
     return iQ(this.container).hasClass("stacked");
   },
 
-  
-  
   
   setZ: function(value) {
     this.zIndex = value;
     iQ(this.container).css({zIndex: value});
   },
     
-  
-  
-  
   
   close: function() {
     this.tab.close();
@@ -402,13 +373,9 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
   
   
-  
-  
   addClass: function(className) {
     iQ(this.container).addClass(className);
   },
-  
-  
   
   
   removeClass: function(className) {
@@ -431,9 +398,6 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
   
   
-  
-  
-  
   setResizable: function(value){
     var $resizer = iQ('.expander', this.container);
 
@@ -450,17 +414,15 @@ window.TabItem.prototype = iQ.extend(new Item(), {
   },
   
   
-  
-  
   makeActive: function(){
    iQ(this.container).find("canvas").addClass("focus")
+   iQ(this.container).find("img.thumb-placeholder").addClass("focus")
   },
 
   
-  
-  
   makeDeactive: function(){
    iQ(this.container).find("canvas").removeClass("focus")
+   iQ(this.container).find("img.thumb-placeholder").removeClass("focus")
   },
   
   
@@ -631,8 +593,6 @@ window.TabItems = {
   fontSize: 9,
 
   
-  
-  
   init: function() {
     this.items = [];
     
@@ -652,15 +612,10 @@ window.TabItems = {
   },
 
   
-  
-  
   register: function(item) {
-    Utils.assert('item must be a TabItem', item && item.isAnItem);
     Utils.assert('only register once per item', this.items.indexOf(item) == -1);
     this.items.push(item);
   },
-  
-  
   
   
   unregister: function(item) {
@@ -669,8 +624,6 @@ window.TabItems = {
       this.items.splice(index, 1);  
   },
     
-  
-  
   
   getItems: function() {
     return Utils.copy(this.items);
@@ -685,11 +638,6 @@ window.TabItems = {
   },
   
   
-  
-  
-  
-  
-  
   saveAll: function(saveImageData) {
     var items = this.getItems();
     items.forEach(function(item) {
@@ -698,11 +646,8 @@ window.TabItems = {
   },
   
   
-  
-  
-  
-  
   storageSanity: function(data) {
+    
     var sane = true;
     if (!isRect(data.bounds)) {
       Utils.log('TabItems.storageSanity: bad bounds', data.bounds);
@@ -712,8 +657,6 @@ window.TabItems = {
     return sane;
   },
 
-  
-  
   
   reconnect: function(item) {
     var found = false;

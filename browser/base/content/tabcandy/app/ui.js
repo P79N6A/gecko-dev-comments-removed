@@ -46,11 +46,7 @@
 window.Keys = {meta: false};
 
 
-
-
 Navbar = {
-  
-  
   
   get urlBar() {
     var win = Utils.getCurrentWindow();
@@ -64,8 +60,6 @@ Navbar = {
 
 
 var Tabbar = {
-  
-  
   
   get el() {
     return window.Tabs[0].raw.parentNode; 
@@ -160,28 +154,20 @@ window.Page = {
   closedSelectedTabInTabCandy: false,
   stopZoomPreparation: false,
     
-  
-  
-  
   isTabCandyVisible: function(){
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
              selectedIndex == 1);
   },
   
-  
-  
-  
   hideChrome: function(){
     var currentWin = Utils.getCurrentWindow();
     currentWin.document.getElementById("tab-candy-deck").selectedIndex = 1;
+    currentWin.document.getElementById("tab-candy").contentWindow.focus();
     
     currentWin.gBrowser.updateTitlebar();
     this._setActiveTitleColor(true);
   },
     
-  
-  
-  
   showChrome: function(){
     var currentWin = Utils.getCurrentWindow();
     var tabContainer = currentWin.gBrowser.tabContainer;
@@ -196,13 +182,6 @@ window.Page = {
     this._setActiveTitleColor(false);
   },
 
-  
-  
-  
-  
-  
-  
-  
   _setActiveTitleColor: function(set) {
     
     if (Utils.isMac()) {
@@ -215,9 +194,6 @@ window.Page = {
     }
   },
 
-  
-  
-  
   showTabCandy: function() {
     var self = this;
     var currentTab = UI.currentTab;
@@ -247,68 +223,6 @@ window.Page = {
       });
     }
   },
-
-  
-  
-  
-  setupKeyHandlers: function(){
-    var self = this;
-    iQ(window).keyup(function(e){
-      if (!e.metaKey) window.Keys.meta = false;
-    });
-    
-    iQ(window).keydown(function(e){
-      if (e.metaKey) window.Keys.meta = true;
-      
-      if (!self.getActiveTab()) return;
-      
-      var centers = [[item.bounds.center(), item] for each(item in TabItems.getItems())];
-      myCenter = self.getActiveTab().bounds.center();
-
-      function getClosestTabBy(norm){
-        var matches = centers
-          .filter(function(item){return norm(item[0], myCenter)})
-          .sort(function(a,b){
-            return myCenter.distance(a[0]) - myCenter.distance(b[0]);
-          });
-        if ( matches.length > 0 )
-          return matches[0][1];
-        return null;
-      }
-
-      var norm = null;
-      switch (e.which){
-        case 39: 
-          norm = function(a, me){return a.x > me.x};
-          break;
-        case 37: 
-          norm = function(a, me){return a.x < me.x};
-          break;
-        case 40: 
-          norm = function(a, me){return a.y > me.y};
-          break;
-        case 38: 
-          norm = function(a, me){return a.y < me.y}
-          break;
-      }
-      
-      if ( norm != null && iQ(":focus").length == 0 ){
-        var nextTab = getClosestTabBy(norm);
-        if ( nextTab ){
-          if ( nextTab.inStack() && !nextTab.parent.expanded){
-            nextTab = nextTab.parent.getChild(0);
-          }
-          self.setActiveTab(nextTab);           
-        }
-        e.preventDefault();               
-      }
-      
-      if ((e.which == 27 || e.which == 13) && iQ(":focus").length == 0 )
-        if ( self.getActiveTab() ) self.getActiveTab().zoomIn();
-    });
-  },
-    
-  
   
   
   init: function() {
@@ -321,10 +235,10 @@ window.Page = {
         contentDocument;
     iQ(tabCandyContentDoc).mousedown(function(e){
       if ( e.originalTarget.id == "content" )
-        Page.createGroupOnDrag(e)
+        self.createGroupOnDrag(e)
     });
 
-    this.setupKeyHandlers();
+    this._setupKeyHandlers();
 
     Tabs.onClose(function(){
       if (self.isTabCandyVisible()) {
@@ -370,8 +284,6 @@ window.Page = {
   },
   
   
-  
-  
   tabOnFocus: function(tab) {
     var focusTab = tab;
     var currentTab = UI.currentTab;
@@ -380,12 +292,14 @@ window.Page = {
     
     UI.currentTab = focusTab;
     
-    if (this.isTabCandyVisible() && (this.closedLastVisibleTab || this.closedSelectedTabInTabCandy)) {
+    if (this.isTabCandyVisible() &&
+        (this.closedLastVisibleTab || this.closedSelectedTabInTabCandy)) {
       this.closedLastVisibleTab = false;
       this.closedSelectedTabInTabCandy = false;
       return;      
     }
 
+    
     
     if (this.isTabCandyVisible())
       this.showChrome();
@@ -396,17 +310,23 @@ window.Page = {
     
     iQ.timeout(function() { 
       
-      if (Page.stopZoomPreparation) {
+      if (self.stopZoomPreparation) {
         self.stopZoomPreparation = false;
+        if (focusTab && focusTab.mirror) {
+          var item = TabItems.getItemByTabElement(focusTab.mirror.el);
+          if (item)
+            self.setActiveTab(item);
+        }
         return;
       }
-      var visibleTabCount = Tabbar.getVisibleTabCount();
- 
+      
       if (focusTab != UI.currentTab) {
         
         return;
       }
-       
+      
+      var visibleTabCount = Tabbar.getVisibleTabCount();
+
       var newItem = null;
       if (focusTab && focusTab.mirror)
         newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
@@ -439,11 +359,103 @@ window.Page = {
   },
 
   
-  
-  
+  _setupKeyHandlers: function(){
+    var self = this;
+    iQ(window).keyup(function(e){
+      if (!e.metaKey) window.Keys.meta = false;
+    });
+    
+    iQ(window).keydown(function(event){
+      if (event.metaKey) window.Keys.meta = true;
+      
+      if (!self.getActiveTab() || iQ(":focus").length > 0) {
+        
+        
+        if (event.which == 9) {
+          event.stopPropagation();
+          event.preventDefault();
+        }
+        return;
+      }  
+     
+      function getClosestTabBy(norm){
+        var centers =
+          [[item.bounds.center(), item] for each(item in TabItems.getItems())];
+        var myCenter = self.getActiveTab().bounds.center();
+        var matches = centers
+          .filter(function(item){return norm(item[0], myCenter)})
+          .sort(function(a,b){
+            return myCenter.distance(a[0]) - myCenter.distance(b[0]);
+          });
+        if ( matches.length > 0 )
+          return matches[0][1];
+        return null;
+      }
+
+      var norm = null;
+      switch (event.which) {
+        case 39: 
+          norm = function(a, me){return a.x > me.x};
+          break;
+        case 37: 
+          norm = function(a, me){return a.x < me.x};
+          break;
+        case 40: 
+          norm = function(a, me){return a.y > me.y};
+          break;
+        case 38: 
+          norm = function(a, me){return a.y < me.y}
+          break;
+      }        
+     
+      if (norm != null) {
+        var nextTab = getClosestTabBy(norm);
+        if (nextTab) {
+          if (nextTab.inStack() && !nextTab.parent.expanded)
+            nextTab = nextTab.parent.getChild(0);
+          self.setActiveTab(nextTab);        
+        }
+        event.stopPropagation();
+        event.preventDefault();
+      } else if (event.which == 27 || event.which == 13) { 
+        var activeTab = self.getActiveTab();
+        if (activeTab)
+          activeTab.zoomIn();
+        event.stopPropagation();
+        event.preventDefault();
+      } else if (event.which == 9) { 
+        var activeTab = self.getActiveTab();
+        if (activeTab) {
+          var tabItems = (activeTab.parent ? activeTab.parent.getChildren() :
+                          Groups.getOrphanedTabs());
+          var length = tabItems.length;
+          var currentIndex = tabItems.indexOf(activeTab);
+            
+          if (length > 1) {
+            if (event.shiftKey) {
+              if (currentIndex == 0) {
+                newIndex = (length - 1);
+              } else {
+                newIndex = (currentIndex - 1);
+              }
+            } else {
+              if (currentIndex == (length - 1)) {
+                newIndex = 0;
+              } else {
+                newIndex = (currentIndex + 1);
+              } 
+            }
+            self.setActiveTab(tabItems[newIndex]);        
+          }
+        }
+        event.stopPropagation();
+        event.preventDefault();
+      }
+    });
+  },
+
   
   createGroupOnDrag: function(e){
-
     const minSize = 60;
     const minMinSize = 15;
     
@@ -656,7 +668,7 @@ UIClass.prototype = {
     try {   
       var self = this;
       
-      this.setBrowserKeyHandler();
+      this._setBrowserKeyHandler();
       
       
       this.addDevMenu();
@@ -817,12 +829,9 @@ UIClass.prototype = {
       Utils.log(e);
     }
   },
+
   
-  
-  
-  
-  
-  setBrowserKeyHandler : function() {
+  _setBrowserKeyHandler : function() {
     var self = this;
     var browser = Utils.getCurrentWindow().gBrowser;
     var tabbox = browser.mTabBox;
@@ -903,19 +912,12 @@ UIClass.prototype = {
             event.preventDefault();
           }
         }
-      }
+      }      
     }, false);
   },
   
   
-  
-  
-  
-  
-  
-  
   advanceSelectedTab : function(reverse, index) {
-    Utils.assert('reverse should be false when index exists', !index || !reverse);
     var tabbox = Utils.getCurrentWindow().gBrowser.mTabBox;
     var tabs = tabbox.tabs;
     var visibleTabs = [];
@@ -955,12 +957,6 @@ UIClass.prototype = {
     }
   },
 
-  
-  
-  
-  
-  
-  
   
   resize: function(force) {
     if ( typeof(force) == "undefined" ) force = false;
@@ -1049,8 +1045,6 @@ UIClass.prototype = {
   },
   
   
-  
-  
   addDevMenu: function() {
     try {
       var self = this;
@@ -1126,16 +1120,11 @@ UIClass.prototype = {
   },
 
   
-  
-  
   reset: function() {
     Storage.wipe();
     location.href = '';      
   },
     
-  
-  
-  
   
   saveAll: function() {  
     this.save();
@@ -1143,8 +1132,6 @@ UIClass.prototype = {
     TabItems.saveAll();
   },
 
-  
-  
   
   save: function() {  
     if (!this.initialized) 
@@ -1158,8 +1145,6 @@ UIClass.prototype = {
       Storage.saveUIData(Utils.getCurrentWindow(), data);
   },
 
-  
-  
   
   storageSanity: function(data) {
     if (iQ.isEmptyObject(data))
@@ -1175,14 +1160,10 @@ UIClass.prototype = {
   },
 
   
-  
-  
   saveVisibility: function(isVisible) {
     Storage.saveVisibilityData(Utils.getCurrentWindow(), { visible: isVisible });
   },
 
-  
-  
   
   arrangeBySite: function() {
     function putInGroup(set, key) {
@@ -1228,8 +1209,6 @@ UIClass.prototype = {
     
     Groups.arrange();
   }, 
-  
-  
   
   
   newTab: function(url) {
