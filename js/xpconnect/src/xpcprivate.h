@@ -3742,11 +3742,6 @@ public:
         {XPCWrappedNative* old = mResolvingWrapper;
          mResolvingWrapper = w; return old;}
 
-    
-    XPCJSContextStack* GetJSContextStack() {
-        return nsXPConnect::GetXPConnect()->GetRuntime()->GetJSContextStack();
-    }
-
     void Cleanup();
     void ReleaseNatives();
 

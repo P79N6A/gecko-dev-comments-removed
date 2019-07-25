@@ -495,8 +495,7 @@ static JSContext *
 GetContextFromObject(JSObject *obj)
 {
     
-    XPCJSContextStack* stack =
-        XPCPerThreadData::GetData(nsnull)->GetJSContextStack();
+    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
 
     if (stack && stack->Peek())
         return nsnull;
