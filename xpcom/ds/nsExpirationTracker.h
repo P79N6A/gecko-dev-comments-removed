@@ -259,6 +259,14 @@ template <class T, PRUint32 K> class nsExpirationTracker {
     
     friend class Iterator;
 
+    PRBool IsEmpty() {
+      for (PRUint32 i = 0; i < K; ++i) {
+        if (!mGenerations[i].IsEmpty())
+          return PR_FALSE;
+      }
+      return PR_TRUE;
+    }
+
   protected:
     
 
@@ -298,13 +306,10 @@ template <class T, PRUint32 K> class nsExpirationTracker {
       nsExpirationTracker* tracker = static_cast<nsExpirationTracker*>(aThis);
       tracker->AgeOneGeneration();
       
-      PRUint32 i;
-      for (i = 0; i < K; ++i) {
-        if (!tracker->mGenerations[i].IsEmpty())
-          return;
+      if (tracker->IsEmpty()) {
+        tracker->mTimer->Cancel();
+        tracker->mTimer = nsnull;
       }
-      tracker->mTimer->Cancel();
-      tracker->mTimer = nsnull;
     }
 
     nsresult CheckStartTimer() {
