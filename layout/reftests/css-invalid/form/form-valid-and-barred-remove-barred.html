@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+
+
+<html class='reftest-wait'>
+  <head>
+    <style>
+      form:invalid { display: none; }
+    </style>
+  </head>
+  <script>
+    function onloadHandler()
+    {
+      document.forms[0].removeChild(document.getElementById('j'));
+      document.documentElement.className = '';
+    }
+  </script>
+  <body onload='onloadHandler();'>
+    <form>
+      <input id='i' value='foo'required>
+      <input id='j' value='bar' readonly>
+    </form>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <style>
+      form:invalid { display:none }
+    </style>
+    <script>
+      function onLoadHandler()
+      {
+        document.forms[0].appendChild(document.getElementById('i'));
+        document.documentElement.className='';
+      }
+    </script>
+  </head>
+  <body onload='onLoadHandler();'>
+    <input id='i' required>
+    <form>
+    </form>
+  </body>
+</html>
