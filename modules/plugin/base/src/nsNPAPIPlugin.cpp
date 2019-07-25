@@ -316,6 +316,10 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     return PR_FALSE;
   }
 
+  if (!aPluginTag) {
+    return PR_FALSE;
+  }
+
 #ifdef XP_MACOSX
   
   if (OSXVersion() < 0x00001060) {
@@ -324,8 +328,7 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   
   
   
-  if (aPluginTag && 
-      aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
+  if (aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
     
     
     if (aPluginTag->mVersion.FindChar('.') < 2) {
@@ -384,6 +387,15 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 #else
   nsCAutoString prefGroupKey("dom.ipc.plugins.enabled.");
 #endif
+
+  
+  
+  PRBool javaIsEnabled;
+  if (aPluginTag->mIsJavaPlugin &&
+      NS_SUCCEEDED(prefs->GetBoolPref("dom.ipc.plugins.java.enabled", &javaIsEnabled)) &&
+      !javaIsEnabled) {
+    return PR_FALSE;
+  }
 
   PRUint32 prefCount;
   char** prefNames;
