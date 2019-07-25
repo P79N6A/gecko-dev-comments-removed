@@ -39,13 +39,13 @@
 
 #include "nsARIAMap.h"
 
-#include "nsIAccessibleRole.h"
 #include "Role.h"
 #include "States.h"
 
 #include "nsIContent.h"
 
 using namespace mozilla::a11y;
+using namespace mozilla::a11y::aria;
 
 
 
@@ -607,92 +607,12 @@ nsRoleMapEntry nsARIAMap::gEmptyRoleMap = {
   kNoReqStates
 };
 
-nsStateMapEntry nsARIAMap::gWAIStateMap[] = {
-  
-  nsStateMapEntry(),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_autocomplete,
-                  "inline", states::SUPPORTS_AUTOCOMPLETION,
-                  "list", states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION,
-                  "both", states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_busy,
-                  "true", states::BUSY,
-                  "error", states::INVALID),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_checked, kBoolType,
-                  states::CHECKABLE, states::CHECKED, 0, true),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_checked, kMixedType,
-                  states::CHECKABLE, states::CHECKED, 0, true),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_checked, kMixedType,
-                  states::CHECKABLE, states::CHECKED, 0),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_disabled, kBoolType,
-                  0, states::UNAVAILABLE),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_expanded, kBoolType,
-                  0, states::EXPANDED, states::COLLAPSED),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_haspopup, kBoolType,
-                  0, states::HASPOPUP),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_invalid, kBoolType,
-                  0, states::INVALID),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_multiline, kBoolType,
-                  0, states::MULTI_LINE, states::SINGLE_LINE, true),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_multiselectable, kBoolType,
-                  0, states::MULTISELECTABLE | states::EXTSELECTABLE),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_orientation, eUseFirstState,
-                  "horizontal", states::HORIZONTAL,
-                  "vertical", states::VERTICAL),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_pressed, kMixedType,
-                  states::CHECKABLE, states::PRESSED),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_readonly, kBoolType,
-                  0, states::READONLY),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_readonly, kBoolType,
-                  0, states::READONLY, states::EDITABLE, true),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_required, kBoolType,
-                  0, states::REQUIRED),
-
-  
-  nsStateMapEntry(&nsGkAtoms::aria_selected, kBoolType,
-                  states::SELECTABLE, states::SELECTED, 0, true),
-
-  
-  nsStateMapEntry(states::READONLY, states::EDITABLE)
-};
 
 
 
 
 
-
-eStateMapEntryID nsARIAMap::gWAIUnivStateMap[] = {
+EStateRule nsARIAMap::gWAIUnivStateMap[] = {
   eARIABusy,
   eARIADisabled,
   eARIAExpanded,  
@@ -746,182 +666,3 @@ nsAttributeCharacteristics nsARIAMap::gWAIUnivAttrMap[] = {
 };
 
 PRUint32 nsARIAMap::gWAIUnivAttrMapLength = NS_ARRAY_LENGTH(nsARIAMap::gWAIUnivAttrMap);
-
-
-
-
-
-nsStateMapEntry::nsStateMapEntry() :
-  mAttributeName(nsnull),
-  mIsToken(false),
-  mPermanentState(0),
-  mValue1(nsnull),
-  mState1(0),
-  mValue2(nsnull),
-  mState2(0),
-  mValue3(nsnull),
-  mState3(0),
-  mDefaultState(0),
-  mDefinedIfAbsent(false)
-{}
-
-nsStateMapEntry::nsStateMapEntry(PRUint64 aDefaultState,
-                                 PRUint64 aExclusingState) :
-  mAttributeName(nsnull),
-  mIsToken(false),
-  mPermanentState(0),
-  mValue1(nsnull),
-  mState1(0),
-  mValue2(nsnull),
-  mState2(0),
-  mValue3(nsnull),
-  mState3(0),
-  mDefaultState(aDefaultState),
-  mDefinedIfAbsent(false),
-  mExcludingState(aExclusingState)
-{
-}
-
-nsStateMapEntry::nsStateMapEntry(nsIAtom** aAttrName, eStateValueType aType,
-                                 PRUint64 aPermanentState,
-                                 PRUint64 aTrueState,
-                                 PRUint64 aFalseState,
-                                 bool aDefinedIfAbsent) :
-  mAttributeName(aAttrName),
-  mIsToken(true),
-  mPermanentState(aPermanentState),
-  mValue1("false"),
-  mState1(aFalseState),
-  mValue2(nsnull),
-  mState2(0),
-  mValue3(nsnull),
-  mState3(0),
-  mDefaultState(aTrueState),
-  mDefinedIfAbsent(aDefinedIfAbsent),
-  mExcludingState(0)
-{
-  if (aType == kMixedType) {
-    mValue2 = "mixed";
-    mState2 = states::MIXED;
-  }
-}
-
-nsStateMapEntry::nsStateMapEntry(nsIAtom** aAttrName,
-                                 const char* aValue1, PRUint64 aState1,
-                                 const char* aValue2, PRUint64 aState2,
-                                 const char* aValue3, PRUint64 aState3) :
-  mAttributeName(aAttrName), mIsToken(false), mPermanentState(0),
-  mValue1(aValue1), mState1(aState1),
-  mValue2(aValue2), mState2(aState2),
-  mValue3(aValue3), mState3(aState3),
-  mDefaultState(0), mDefinedIfAbsent(false), mExcludingState(0)
-{
-}
-
-nsStateMapEntry::nsStateMapEntry(nsIAtom** aAttrName,
-                                 EDefaultStateRule aDefaultStateRule,
-                                 const char* aValue1, PRUint64 aState1,
-                                 const char* aValue2, PRUint64 aState2,
-                                 const char* aValue3, PRUint64 aState3) :
-  mAttributeName(aAttrName), mIsToken(true), mPermanentState(0),
-  mValue1(aValue1), mState1(aState1),
-  mValue2(aValue2), mState2(aState2),
-  mValue3(aValue3), mState3(aState3),
-  mDefaultState(0), mDefinedIfAbsent(true), mExcludingState(0)
-{
-  if (aDefaultStateRule == eUseFirstState)
-    mDefaultState = aState1;
-}
-
-bool
-nsStateMapEntry::MapToStates(nsIContent* aContent, PRUint64* aState,
-                             eStateMapEntryID aStateMapEntryID)
-{
-  
-  if (aStateMapEntryID == eARIANone)
-    return false;
-
-  const nsStateMapEntry& entry = nsARIAMap::gWAIStateMap[aStateMapEntryID];
-
-  
-  
-  if (!entry.mAttributeName) {
-    if (!(*aState & entry.mExcludingState))
-      *aState |= entry.mDefaultState;
-
-    return true;
-  }
-
-  if (entry.mIsToken) {
-    
-    
-    bool hasAttr = aContent->HasAttr(kNameSpaceID_None, *entry.mAttributeName);
-    if (entry.mDefinedIfAbsent && !hasAttr) {
-      if (entry.mPermanentState)
-        *aState |= entry.mPermanentState;
-      if (entry.mState1)
-        *aState |= entry.mState1;
-      return true;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    if (!hasAttr ||
-        aContent->AttrValueIs(kNameSpaceID_None, *entry.mAttributeName,
-                              nsGkAtoms::_empty, eCaseMatters) ||
-        aContent->AttrValueIs(kNameSpaceID_None, *entry.mAttributeName,
-                              nsGkAtoms::_undefined, eCaseMatters)) {
-
-      if (entry.mPermanentState)
-        *aState &= ~entry.mPermanentState;
-      return true;
-    }
-
-    if (entry.mPermanentState)
-      *aState |= entry.mPermanentState;
-  }
-
-  nsAutoString attrValue;
-  if (!aContent->GetAttr(kNameSpaceID_None, *entry.mAttributeName, attrValue))
-    return true;
-
-  
-  
-  bool applyDefaultStates = true;
-  if (entry.mValue1) {
-    if (attrValue.EqualsASCII(entry.mValue1)) {
-      applyDefaultStates = false;
-
-      if (entry.mState1)
-        *aState |= entry.mState1;
-    } else if (entry.mValue2) {
-      if (attrValue.EqualsASCII(entry.mValue2)) {
-        applyDefaultStates = false;
-
-        if (entry.mState2)
-          *aState |= entry.mState2;
-
-      } else if (entry.mValue3) {
-        if (attrValue.EqualsASCII(entry.mValue3)) {
-          applyDefaultStates = false;
-
-          if (entry.mState3)
-            *aState |= entry.mState3;
-
-        }
-      }
-    }
-  }
-
-  if (applyDefaultStates) {
-    if (entry.mDefaultState)
-      *aState |= entry.mDefaultState;
-  }
-
-  return true;
-}
