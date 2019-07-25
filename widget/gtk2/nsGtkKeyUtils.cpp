@@ -37,6 +37,11 @@
 
 
 
+
+#include "prlog.h"
+
+#include "nsGtkKeyUtils.h"
+
 #include <gdk/gdkkeysyms.h>
 #ifndef GDK_Sleep
 #define GDK_Sleep 0x1008ff2f
@@ -48,6 +53,10 @@
 #endif 
 #include "nsGUIEvent.h"
 #include "keysym2ucs.h"
+
+#ifdef PR_LOGGING
+PRLogModuleInfo* gKeymapWrapperLog = nsnull;
+#endif 
 
 #include "mozilla/Util.h"
 
@@ -328,3 +337,79 @@ PRUint32 nsConvertCharCodeToUnicode(GdkEventKey* aEvent)
     
     return 0;
 }
+
+namespace mozilla {
+namespace widget {
+
+#define MOZ_MODIFIER_KEYS "MozKeymapWrapper"
+
+KeymapWrapper* KeymapWrapper::sInstance = nsnull;
+
+ KeymapWrapper*
+KeymapWrapper::GetInstance()
+{
+    if (sInstance) {
+        return sInstance;
+    }
+
+    sInstance = new KeymapWrapper();
+    return sInstance;
+}
+
+KeymapWrapper::KeymapWrapper() :
+    mInitialized(false), mGdkKeymap(gdk_keymap_get_default())
+{
+#ifdef PR_LOGGING
+    if (!gKeymapWrapperLog) {
+        gKeymapWrapperLog = PR_NewLogModule("KeymapWrapperWidgets");
+    }
+    PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
+        ("KeymapWrapper(%p): Constructor, mGdkKeymap=%p",
+         this, mGdkKeymap));
+#endif 
+
+    g_signal_connect(mGdkKeymap, "keys-changed",
+                     (GCallback)OnKeysChanged, this);
+
+    
+    g_object_weak_ref(G_OBJECT(mGdkKeymap),
+                      (GWeakNotify)OnDestroyKeymap, this);
+}
+
+KeymapWrapper::~KeymapWrapper()
+{
+    PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
+        ("KeymapWrapper(%p): Destructor", this));
+}
+
+ void
+KeymapWrapper::OnDestroyKeymap(KeymapWrapper* aKeymapWrapper,
+                               GdkKeymap *aGdkKeymap)
+{
+    PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
+        ("KeymapWrapper: OnDestroyKeymap, aGdkKeymap=%p, aKeymapWrapper=%p",
+         aGdkKeymap, aKeymapWrapper));
+    MOZ_ASSERT(aKeymapWrapper == sInstance,
+               "Desroying unexpected instance");
+    delete sInstance;
+    sInstance = nsnull;
+}
+
+ void
+KeymapWrapper::OnKeysChanged(GdkKeymap *aGdkKeymap,
+                             KeymapWrapper* aKeymapWrapper)
+{
+    PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
+        ("KeymapWrapper: OnKeysChanged, aGdkKeymap=%p, aKeymapWrapper=%p",
+         aGdkKeymap, aKeymapWrapper));
+
+    MOZ_ASSERT(sInstance == aKeymapWrapper,
+               "This instance must be the singleton instance");
+
+    
+    
+    sInstance->mInitialized = false;
+}
+
+} 
+} 
