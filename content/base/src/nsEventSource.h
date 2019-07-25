@@ -215,7 +215,6 @@ protected:
   bool mFrozen;
   bool mErrorLoadOnRedirect;
   bool mGoingToDispatchAllMessages;
-  bool mWithCredentials;
 
   
   nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
@@ -244,7 +243,7 @@ protected:
   nsString mOriginalURL;
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  nsString mOrigin;
+  nsCString mOrigin;
 
   PRUint32 mRedirectFlags;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
