@@ -433,6 +433,7 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOldExStyle           = 0;
   mPainting             = 0;
   mLastKeyboardLayout   = 0;
+  mAssumeWheelIsZoomUntil = 0;
   mBlurSuppressLevel    = 0;
   mIMEContext.mStatus   = nsIWidget::IME_STATUS_ENABLED;
 #ifdef MOZ_XUL
@@ -4641,6 +4642,24 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mAssumeWheelIsZoomUntil) {
+    LONG msgTime = ::GetMessageTime();
+    if ((mAssumeWheelIsZoomUntil >= 0x3fffffffu && DWORD(msgTime) < 0x40000000u) ||
+        (mAssumeWheelIsZoomUntil < DWORD(msgTime))) {
+      mAssumeWheelIsZoomUntil = 0;
+    }
+  }
+
+  
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return PR_TRUE;
 
@@ -5014,6 +5033,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_KEYUP:
     {
       MSG nativeMsg = InitMSG(msg, wParam, lParam);
+      nativeMsg.time = ::GetMessageTime();
       result = ProcessKeyUpMessage(nativeMsg, nsnull);
       DispatchPendingEvents();
     }
@@ -6693,8 +6713,19 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
   ::ReplyMessage(isVertical ? 0 : TRUE);
 #endif
 
+  
+  
+  
+  PRBool isControl;
+  if (mAssumeWheelIsZoomUntil &&
+      static_cast<DWORD>(::GetMessageTime()) < mAssumeWheelIsZoomUntil) {
+    isControl = PR_TRUE;
+  } else {
+    isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  }
+
   scrollEvent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollEvent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
+  scrollEvent.isControl = isControl;
   scrollEvent.isMeta    = PR_FALSE;
   scrollEvent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
   InitEvent(scrollEvent);
@@ -7149,6 +7180,28 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
 
   if (sUseElantechGestureHacks) {
     PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (virtualKeyCode == VK_CONTROL && aMsg.time == 10) {
+      
+      
+      
+      mAssumeWheelIsZoomUntil = ::GetTickCount() & 0x7FFFFFFF;
+    }
   }
 
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
