@@ -53,6 +53,8 @@ struct Registers {
 
 
 #if defined(JS_CPU_X64)
+    static const RegisterID TypeMaskReg = JSC::X86Registers::r13;
+    static const RegisterID PayloadMaskReg = JSC::X86Registers::r14;
     static const RegisterID ValueReg = JSC::X86Registers::r15;
 #endif
 
@@ -105,9 +107,9 @@ struct Registers {
     static const uint32 SavedRegs =
         
           (1 << JSC::X86Registers::r12)
-        | (1 << JSC::X86Registers::r13)
-        | (1 << JSC::X86Registers::r14)
-        
+    
+    
+    
 #  if defined(_MSC_VER)
         | (1 << JSC::X86Registers::esi)
         | (1 << JSC::X86Registers::edi)
