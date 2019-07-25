@@ -508,10 +508,11 @@ nsHttpChannel::SetupTransaction()
         
         
         
-        
-        if (!mAllowPipelining || (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) ||
+        if (!mAllowPipelining ||
+           (mLoadFlags & (LOAD_INITIAL_DOCUMENT_URI | INHIBIT_PIPELINE)) ||
             !(mRequestHead.Method() == nsHttp::Get ||
               mRequestHead.Method() == nsHttp::Head ||
+              mRequestHead.Method() == nsHttp::Options ||
               mRequestHead.Method() == nsHttp::Propfind ||
               mRequestHead.Method() == nsHttp::Proppatch)) {
             LOG(("  pipelining disallowed\n"));
@@ -1772,7 +1773,10 @@ nsHttpChannel::EnsureAssocReq()
                    endofmethod - method)) {
         LOG(("  Assoc-Req failure Method %s", method));
         if (mConnectionInfo)
-            mConnectionInfo->BanPipelining();
+            gHttpHandler->ConnMgr()->
+                PipelineFeedbackInfo(mConnectionInfo,
+                                     nsHttpConnectionMgr::RedCorruptedContent,
+                                     nsnull, 0);
 
         nsCOMPtr<nsIConsoleService> consoleService =
             do_GetService(NS_CONSOLESERVICE_CONTRACTID);
@@ -1802,7 +1806,10 @@ nsHttpChannel::EnsureAssocReq()
     if (!equals) {
         LOG(("  Assoc-Req failure URL %s", assoc_val));
         if (mConnectionInfo)
-            mConnectionInfo->BanPipelining();
+            gHttpHandler->ConnMgr()->
+                PipelineFeedbackInfo(mConnectionInfo,
+                                     nsHttpConnectionMgr::RedCorruptedContent,
+                                     nsnull, 0);
 
         nsCOMPtr<nsIConsoleService> consoleService =
             do_GetService(NS_CONSOLESERVICE_CONTRACTID);
