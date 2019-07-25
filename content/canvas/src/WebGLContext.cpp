@@ -425,7 +425,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     
     
     
-    if (!(mGeneration+1).valid())
+    if (!(mGeneration + 1).isValid())
         return NS_ERROR_FAILURE; 
 
     gl::ContextFormat format(gl::ContextFormat::BasicRGBA32);
