@@ -50,14 +50,14 @@ nsDataHandler::GetScheme(nsACString &result) {
 }
 
 NS_IMETHODIMP
-nsDataHandler::GetDefaultPort(int32_t *result) {
+nsDataHandler::GetDefaultPort(PRInt32 *result) {
     
     *result = -1;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDataHandler::GetProtocolFlags(uint32_t *result) {
+nsDataHandler::GetProtocolFlags(PRUint32 *result) {
     *result = URI_NORELATIVE | URI_NOAUTH | URI_INHERITS_SECURITY_CONTEXT |
         URI_LOADABLE_BY_ANYONE | URI_NON_PERSISTABLE | URI_IS_LOCAL_RESOURCE |
         URI_SYNC_LOAD_IS_OK;
@@ -129,7 +129,7 @@ nsDataHandler::NewChannel(nsIURI* uri, nsIChannel* *result) {
 }
 
 NS_IMETHODIMP 
-nsDataHandler::AllowPort(int32_t port, const char *scheme, bool *_retval) {
+nsDataHandler::AllowPort(PRInt32 port, const char *scheme, bool *_retval) {
     
     *_retval = false;
     return NS_OK;
@@ -163,9 +163,16 @@ nsDataHandler::ParseURI(nsCString& spec,
 
     
     char *base64 = PL_strcasestr(buffer, BASE64_EXTENSION);
-    if (base64 && *(base64 + strlen(BASE64_EXTENSION))==0) {
-        isBase64 = true;
-        *base64 = '\0';
+    if (base64) {
+        char *beyond = base64 + strlen(BASE64_EXTENSION);
+        
+        
+        
+        
+        if (*beyond == '\0' || *beyond == ';') {
+            isBase64 = true;
+            *base64 = '\0';
+        }
     }
 
     if (comma == buffer) {
