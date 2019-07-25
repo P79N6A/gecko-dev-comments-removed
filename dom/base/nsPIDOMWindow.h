@@ -592,6 +592,13 @@ public:
 
   virtual void RefreshCompartmentPrincipal() = 0;
 
+  
+
+
+
+
+  virtual bool IsPartOfApp() = 0;
+
 protected:
   
   
