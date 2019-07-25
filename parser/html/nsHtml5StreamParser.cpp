@@ -992,6 +992,13 @@ nsHtml5StreamParser::ContinueAfterScripts(nsHtml5Tokenizer* aTokenizer,
       mSpeculations.RemoveElementAt(0);
       if (mSpeculations.IsEmpty()) {
         
+        if (mTreeBuilder->IsDiscretionaryFlushSafe()) {
+          
+          
+          
+          mTreeBuilder->SetOpSink(mExecutor);
+          mTreeBuilder->Flush();
+        }
         mTreeBuilder->SetOpSink(mExecutor->GetStage());
         mExecutor->StartReadingFromStage();
         mSpeculating = PR_FALSE;
