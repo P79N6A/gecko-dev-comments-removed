@@ -28,14 +28,13 @@ namespace Framebuffer {
 
 
 
-bool Open();
+
+bool Open(nsIntSize* aScreenSize);
 
 
 
 
 void Close();
-
-
 
 bool GetSize(nsIntSize *aScreenSize);
 
