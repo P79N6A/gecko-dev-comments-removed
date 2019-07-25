@@ -42,6 +42,9 @@
 #include "jscompartment.h"
 #include "jscntxt.h"
 
+#include "jsinferinlines.h"
+#include "jsobjinlines.h"
+
 namespace js {
 namespace analyze {
 
@@ -746,23 +749,24 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
     PodZero(codeArray, script->length);
 
     unsigned nfixed = analysis->localCount();
-    locals = ArenaArray<LifetimeVariable>(pool, nfixed);
-    if (!locals)
-        return false;
-    PodZero(locals, nfixed);
-
     unsigned nargs = script->fun ? script->fun->nargs : 0;
-    args = ArenaArray<LifetimeVariable>(pool, nargs);
-    if (!args)
+
+    nLifetimes = 2 + nargs + nfixed;
+    lifetimes = ArenaArray<LifetimeVariable>(pool, nLifetimes);
+    if (!lifetimes)
         return false;
-    PodZero(args, nargs);
+    PodZero(lifetimes, nLifetimes);
 
-    PodZero(&thisVar);
+    LifetimeVariable *thisVar = lifetimes + 1;
+    LifetimeVariable *args = lifetimes + 2;
+    LifetimeVariable *locals = lifetimes + 2 + nargs;
 
-    saved = ArenaArray<LifetimeVariable*>(pool, nfixed + nargs + 1);
+    saved = ArenaArray<LifetimeVariable*>(pool, nLifetimes);
     if (!saved)
         return false;
     savedCount = 0;
+
+    LifetimeLoop *loop = NULL;
 
     uint32 offset = script->length - 1;
     while (offset < script->length) {
@@ -772,16 +776,19 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
             continue;
         }
 
+        if (loop && code->safePoint)
+            loop->hasSafePoints = true;
+
         UntrapOpcode untrap(cx, script, script->code + offset);
 
-        if (codeArray[offset].loopBackedge) {
+        if (codeArray[offset].loop) {
             
 
 
 
 
 
-            unsigned backedge = codeArray[offset].loopBackedge;
+            unsigned backedge = codeArray[offset].loop->backedge;
             for (unsigned i = 0; i < nfixed; i++) {
                 if (locals[i].lifetime && !extendVariable(cx, locals[i], offset, backedge))
                     return false;
@@ -790,7 +797,14 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
                 if (args[i].lifetime && !extendVariable(cx, args[i], offset, backedge))
                     return false;
             }
+
+            JS_ASSERT_IF(loop, loop == codeArray[offset].loop);
+            loop = NULL;
         }
+
+        
+        if (loop && code->jumpTarget && offset != loop->entry && offset > loop->lastBlock)
+            loop->lastBlock = offset;
 
         jsbytecode *pc = script->code + offset;
         JSOp op = (JSOp) *pc;
@@ -798,10 +812,6 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
         switch (op) {
           case JSOP_GETARG:
           case JSOP_CALLARG:
-          case JSOP_INCARG:
-          case JSOP_DECARG:
-          case JSOP_ARGINC:
-          case JSOP_ARGDEC:
           case JSOP_GETARGPROP: {
             unsigned arg = GET_ARGNO(pc);
             if (!analysis->argEscapes(arg)) {
@@ -813,17 +823,29 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
 
           case JSOP_SETARG: {
             unsigned arg = GET_ARGNO(pc);
-            if (!analysis->argEscapes(arg))
-                killVariable(cx, args[arg], offset);
+            if (!analysis->argEscapes(arg)) {
+                if (!killVariable(cx, args[arg], offset))
+                    return false;
+            }
+            break;
+          }
+
+          case JSOP_INCARG:
+          case JSOP_DECARG:
+          case JSOP_ARGINC:
+          case JSOP_ARGDEC: {
+            unsigned arg = GET_ARGNO(pc);
+            if (!analysis->argEscapes(arg)) {
+                if (!killVariable(cx, args[arg], offset))
+                    return false;
+                if (!addVariable(cx, args[arg], offset))
+                    return false;
+            }
             break;
           }
 
           case JSOP_GETLOCAL:
           case JSOP_CALLLOCAL:
-          case JSOP_INCLOCAL:
-          case JSOP_DECLOCAL:
-          case JSOP_LOCALINC:
-          case JSOP_LOCALDEC:
           case JSOP_GETLOCALPROP: {
             unsigned local = GET_SLOTNO(pc);
             if (!analysis->localEscapes(local)) {
@@ -840,14 +862,29 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
             unsigned local = GET_SLOTNO(pc);
             if (!analysis->localEscapes(local)) {
                 JS_ASSERT(local < nfixed);
-                killVariable(cx, locals[local], offset);
+                if (!killVariable(cx, locals[local], offset))
+                    return false;
+            }
+            break;
+          }
+
+          case JSOP_INCLOCAL:
+          case JSOP_DECLOCAL:
+          case JSOP_LOCALINC:
+          case JSOP_LOCALDEC: {
+            unsigned local = GET_SLOTNO(pc);
+            if (!analysis->localEscapes(local)) {
+                if (!killVariable(cx, locals[local], offset))
+                    return false;
+                if (!addVariable(cx, locals[local], offset))
+                    return false;
             }
             break;
           }
 
           case JSOP_THIS:
           case JSOP_GETTHISPROP:
-            if (!addVariable(cx, thisVar, offset))
+            if (!addVariable(cx, *thisVar, offset))
                 return false;
             break;
 
@@ -861,6 +898,11 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
           case JSOP_ANDX:
           case JSOP_GOTO:
           case JSOP_GOTOX: {
+            
+
+
+
+
             uint32 targetOffset = offset + GetJumpOffset(pc, pc);
             if (targetOffset < offset) {
                 JSOp nop = JSOp(script->code[targetOffset]);
@@ -868,10 +910,57 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
                     
                     jsbytecode *target = script->code + targetOffset;
                     targetOffset = targetOffset + GetJumpOffset(target, target);
+
+                    
+
+
+
+
+                    JS_ASSERT(loop);
+                    if (loop->entry == targetOffset && loop->entry > loop->lastBlock)
+                        loop->lastBlock = loop->entry;
                 } else {
                     
                     JS_ASSERT(nop == JSOP_TRACE || nop == JSOP_NOTRACE);
-                    codeArray[targetOffset].loopBackedge = offset;
+
+                    
+
+
+
+
+                    if (loop && loop->entry > loop->lastBlock)
+                        loop->lastBlock = loop->entry;
+
+                    loop = ArenaNew<LifetimeLoop>(pool);
+                    if (!loop)
+                        return false;
+                    PodZero(loop);
+
+                    codeArray[targetOffset].loop = loop;
+                    loop->head = targetOffset;
+                    loop->backedge = offset;
+                    loop->lastBlock = loop->head;
+
+                    
+
+
+
+                    uint32 entry = targetOffset;
+                    if (entry) {
+                        do {
+                            entry--;
+                        } while (!analysis->maybeCode(entry));
+
+                        jsbytecode *entrypc = script->code + entry;
+                        if (JSOp(*entrypc) == JSOP_GOTO || JSOp(*entrypc) == JSOP_GOTOX)
+                            loop->entry = entry + GetJumpOffset(entrypc, entrypc);
+                        else
+                            loop->entry = targetOffset;
+                    } else {
+                        
+                        loop->entry = targetOffset;
+                    }
+
                     break;
                 }
             }
@@ -966,11 +1055,17 @@ LifetimeScript::addVariable(JSContext *cx, LifetimeVariable &var, unsigned offse
     return true;
 }
 
-inline void
+inline bool
 LifetimeScript::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offset)
 {
-    if (!var.lifetime)
-        return;
+    if (!var.lifetime) {
+        
+        var.saved = ArenaNew<Lifetime>(pool, offset, var.saved);
+        if (!var.saved)
+            return false;
+        var.saved->write = true;
+        return true;
+    }
     JS_ASSERT(offset < var.lifetime->start);
 
     
@@ -979,12 +1074,15 @@ LifetimeScript::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
 
 
     var.lifetime->start = offset;
+    var.lifetime->write = true;
 
     var.saved = var.lifetime;
     var.savedEnd = 0;
     var.lifetime = NULL;
 
     saved[savedCount++] = &var;
+
+    return true;
 }
 
 inline bool
@@ -1007,6 +1105,368 @@ LifetimeScript::extendVariable(JSContext *cx, LifetimeVariable &var, unsigned st
     tail->start = segment->end;
     tail->loopTail = true;
     segment->next = tail;
+
+    return true;
+}
+
+
+bool
+LifetimeScript::loopVariableAccess(LifetimeLoop *loop, jsbytecode *pc)
+{
+    unsigned nargs = script->fun ? script->fun->nargs : 0;
+    switch (JSOp(*pc)) {
+      case JSOP_GETLOCAL:
+      case JSOP_INCLOCAL:
+      case JSOP_DECLOCAL:
+      case JSOP_LOCALINC:
+      case JSOP_LOCALDEC:
+        if (analysis->localEscapes(GET_SLOTNO(pc)))
+            return false;
+        return firstWrite(2 + nargs + GET_SLOTNO(pc), loop) != uint32(-1);
+      case JSOP_GETARG:
+      case JSOP_INCARG:
+      case JSOP_DECARG:
+      case JSOP_ARGINC:
+      case JSOP_ARGDEC:
+        if (analysis->argEscapes(GET_SLOTNO(pc)))
+            return false;
+        return firstWrite(2 + GET_SLOTNO(pc), loop) != uint32(-1);
+      default:
+        return false;
+    }
+}
+
+
+
+
+
+bool
+LifetimeScript::getLoopTestAccess(jsbytecode *pc, uint32 *slotp, int32 *constantp)
+{
+    *slotp = LifetimeLoop::UNASSIGNED;
+    *constantp = 0;
+
+    
+
+
+
+
+
+
+
+
+    JSOp op = JSOp(*pc);
+    switch (op) {
+
+      case JSOP_GETLOCAL:
+      case JSOP_INCLOCAL:
+      case JSOP_DECLOCAL:
+      case JSOP_LOCALINC:
+      case JSOP_LOCALDEC: {
+        uint32 local = GET_SLOTNO(pc);
+        if (analysis->localEscapes(local))
+            return false;
+        *slotp = 2 + (script->fun ? script->fun->nargs : 0) + local;  
+        if (op == JSOP_LOCALINC)
+            *constantp = -1;
+        else if (op == JSOP_LOCALDEC)
+            *constantp = 1;
+        return true;
+      }
+
+      case JSOP_GETARG:
+      case JSOP_INCARG:
+      case JSOP_DECARG:
+      case JSOP_ARGINC:
+      case JSOP_ARGDEC: {
+        uint32 arg = GET_SLOTNO(pc);
+        if (analysis->argEscapes(GET_SLOTNO(pc)))
+            return false;
+        *slotp = 2 + arg;  
+        if (op == JSOP_ARGINC)
+            *constantp = -1;
+        else if (op == JSOP_ARGDEC)
+            *constantp = 1;
+        return true;
+      }
+
+      case JSOP_ZERO:
+        *constantp = 0;
+        return true;
+
+      case JSOP_ONE:
+        *constantp = 1;
+        return true;
+
+      case JSOP_UINT16:
+        *constantp = (int32_t) GET_UINT16(pc);
+        return true;
+
+      case JSOP_UINT24:
+        *constantp = (int32_t) GET_UINT24(pc);
+        return true;
+
+      case JSOP_INT8:
+        *constantp = GET_INT8(pc);
+        return true;
+
+      case JSOP_INT32:
+        
+
+
+
+        *constantp = GET_INT32(pc);
+        if (*constantp >= JSObject::NSLOTS_LIMIT || *constantp <= -JSObject::NSLOTS_LIMIT)
+            return false;
+        return true;
+
+      default:
+        return false;
+    }
+}
+
+void
+LifetimeScript::analyzeLoopTest(LifetimeLoop *loop)
+{
+    
+
+
+
+
+
+
+
+
+    
+    if (loop->entry == loop->head)
+        return;
+
+    
+    if (loop->entry < loop->lastBlock)
+        return;
+
+    
+
+
+
+    jsbytecode *backedge = script->code + loop->backedge;
+
+    jsbytecode *one = script->code + loop->entry;
+    if (one == backedge)
+        return;
+    jsbytecode *two = one + GetBytecodeLength(one);
+    if (two == backedge)
+        return;
+    jsbytecode *three = two + GetBytecodeLength(two);
+    if (three == backedge)
+        return;
+    if (three + GetBytecodeLength(three) != backedge || JSOp(*backedge) != JSOP_IFNE)
+        return;
+
+    
+    JSOp cmpop = JSOp(*three);
+    switch (cmpop) {
+      case JSOP_GT:
+      case JSOP_GE:
+      case JSOP_LT:
+      case JSOP_LE:
+        break;
+      default:
+        return;
+    }
+
+    
+    if (!loopVariableAccess(loop, one)) {
+        jsbytecode *tmp = one;
+        one = two;
+        two = tmp;
+        cmpop = ReverseCompareOp(cmpop);
+    }
+
+    
+    if (loopVariableAccess(loop, two))
+        return;
+
+    uint32 lhs;
+    int32 lhsConstant;
+    if (!getLoopTestAccess(one, &lhs, &lhsConstant))
+        return;
+
+    uint32 rhs;
+    int32 rhsConstant;
+    if (!getLoopTestAccess(two, &rhs, &rhsConstant))
+        return;
+
+    if (lhs == LifetimeLoop::UNASSIGNED)
+        return;
+
+    
+
+    loop->testLHS = lhs;
+    loop->testRHS = rhs;
+    loop->testConstant = rhsConstant - lhsConstant;
+
+    switch (cmpop) {
+      case JSOP_GT:
+        loop->testConstant++;  
+        
+      case JSOP_GE:
+        loop->testLessEqual = false;
+        break;
+
+      case JSOP_LT:
+        loop->testConstant--;  
+      case JSOP_LE:
+        loop->testLessEqual = true;
+        break;
+
+      default:
+        JS_NOT_REACHED("Bad op");
+        return;
+    }
+}
+
+bool
+LifetimeScript::analyzeLoopIncrements(JSContext *cx, LifetimeLoop *loop)
+{
+    
+
+
+
+
+
+    Vector<LifetimeLoop::Increment> increments(cx);
+
+    unsigned nargs = script->fun ? script->fun->nargs : 0;
+    for (unsigned i = 0; i < nargs; i++) {
+        if (analysis->argEscapes(i))
+            continue;
+
+        uint32 offset = onlyWrite(2 + i, loop);
+        if (offset == uint32(-1) || offset < loop->lastBlock)
+            continue;
+
+        JSOp op = JSOp(script->code[offset]);
+        if (op == JSOP_SETARG)
+            continue;
+
+        LifetimeLoop::Increment inc;
+        inc.slot = 2 + i;  
+        inc.offset = offset;
+        if (!increments.append(inc))
+            return false;
+    }
+
+    for (unsigned i = 0; i < script->nfixed; i++) {
+        if (analysis->localEscapes(i))
+            continue;
+
+        uint32 offset = onlyWrite(2 + nargs + i, loop);
+        if (offset == uint32(-1) || offset < loop->lastBlock)
+            continue;
+
+        JSOp op = JSOp(script->code[offset]);
+        if (op == JSOP_SETLOCAL || op == JSOP_SETLOCALPOP)
+            continue;
+
+        LifetimeLoop::Increment inc;
+        inc.slot = 2 + (script->fun ? script->fun->nargs : 0) + i;  
+        inc.offset = offset;
+        if (!increments.append(inc))
+            return false;
+    }
+
+    loop->increments = ArenaArray<LifetimeLoop::Increment>(pool, increments.length());
+    if (!loop->increments)
+        return false;
+    loop->nIncrements = increments.length();
+
+    for (unsigned i = 0; i < increments.length(); i++)
+        loop->increments[i] = increments[i];
+
+    return true;
+}
+
+bool
+LifetimeScript::analyzeLoopModset(JSContext *cx, LifetimeLoop *loop)
+{
+    Vector<types::TypeObject *> growArrays(cx);
+
+    
+
+
+
+
+
+    types::TypeSet **stack = ArenaArray<types::TypeSet*>(pool, script->nslots);
+    if (!stack)
+        return false;
+
+    unsigned offset = loop->head;
+    unsigned stackDepth = 0;
+
+    while (offset < loop->backedge) {
+        jsbytecode *pc = script->code + offset;
+        unsigned successorOffset = offset + GetBytecodeLength(pc);
+
+        analyze::Bytecode *opinfo = analysis->maybeCode(offset);
+        if (!opinfo) {
+            offset = successorOffset;
+            continue;
+        }
+
+        if (opinfo->stackDepth > stackDepth) {
+            unsigned ndefs = opinfo->stackDepth - stackDepth;
+            memset(&stack[stackDepth], 0, ndefs * sizeof(types::TypeSet*));
+        }
+        stackDepth = opinfo->stackDepth;
+
+        switch (JSOp(*pc)) {
+
+          case JSOP_SETHOLE: {
+            types::TypeSet *types = stack[opinfo->stackDepth - 3];
+            if (types && !types->unknown()) {
+                unsigned count = types->getObjectCount();
+                for (unsigned i = 0; i < count; i++) {
+                    types::TypeObject *object = types->getObject(i);
+                    if (object) {
+                        bool found = false;
+                        for (unsigned i = 0; !found && i < growArrays.length(); i++) {
+                            if (growArrays[i] == object)
+                                found = true;
+                        }
+                        if (!found && !growArrays.append(object))
+                            return false;
+                    }
+                }
+            } else {
+                loop->unknownModset = true;
+            }
+            break;
+          }
+
+          default:
+            break;
+        }
+
+        unsigned nuses = analyze::GetUseCount(script, offset);
+        unsigned ndefs = analyze::GetDefCount(script, offset);
+        memset(&stack[stackDepth - nuses], 0, ndefs * sizeof(types::TypeSet*));
+        stackDepth = stackDepth - nuses + ndefs;
+
+        for (unsigned i = 0; i < ndefs; i++)
+            stack[stackDepth - ndefs + i] = script->types->pushed(offset, i);
+
+        offset = successorOffset;
+    }
+
+    loop->growArrays = ArenaArray<types::TypeObject*>(pool, growArrays.length());
+    if (!loop->growArrays)
+        return false;
+    loop->nGrowArrays = growArrays.length();
+
+    for (unsigned i = 0; i < growArrays.length(); i++)
+        loop->growArrays[i] = growArrays[i];
 
     return true;
 }

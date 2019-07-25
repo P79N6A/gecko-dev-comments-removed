@@ -177,7 +177,6 @@ public:
 
 
 
-
     virtual void newObjectState(JSContext *cx) {}
 
     
@@ -215,10 +214,9 @@ enum ObjectKind {
     OBJECT_NONE,
     OBJECT_UNKNOWN,
     OBJECT_PACKED_ARRAY,
-    OBJECT_DENSE_ARRAY,
+    OBJECT_DENSE_ARRAY,         
     OBJECT_INLINEABLE_FUNCTION,
     OBJECT_SCRIPTED_FUNCTION,
-    OBJECT_NATIVE_FUNCTION,
     OBJECT_NO_SPECIAL_EQUALITY
 };
 
@@ -241,7 +239,7 @@ enum {
 typedef uint32 TypeFlags;
 
 
-struct TypeSet
+class TypeSet
 {
     
     TypeFlags typeFlags;
@@ -249,6 +247,8 @@ struct TypeSet
     
     TypeObject **objectSet;
     unsigned objectCount;
+
+  public:
 
     
     TypeConstraint *constraintList;
@@ -266,6 +266,7 @@ struct TypeSet
     
     inline bool hasType(jstype type);
 
+    bool hasAnyFlag(TypeFlags flags) { return typeFlags & flags; }
     bool unknown() { return typeFlags & TYPE_FLAG_UNKNOWN; }
 
     
@@ -276,6 +277,14 @@ struct TypeSet
 
     
     void addTypeSet(JSContext *cx, ClonedTypeSet *types);
+
+    
+
+
+
+
+    inline unsigned getObjectCount();
+    inline TypeObject *getObject(unsigned i);
 
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
@@ -319,6 +328,9 @@ struct TypeSet
     ObjectKind getKnownObjectKind(JSContext *cx);
 
     
+    static ObjectKind GetObjectKind(JSContext *cx, TypeObject *object);
+
+    
     bool hasUnknownProperties(JSContext *cx);
 
     
@@ -335,6 +347,10 @@ struct TypeSet
 
 
     static void Clone(JSContext *cx, TypeSet *source, ClonedTypeSet *target);
+
+    static void
+    CondenseSweepTypeSet(JSContext *cx, TypeCompartment *compartment,
+                         HashSet<JSScript*> *pcondensed, TypeSet *types);
 
   private:
     inline void markUnknown(JSContext *cx);
@@ -369,6 +385,37 @@ struct Property
 };
 
 
+enum {
+    
+
+
+
+
+
+
+    OBJECT_FLAG_UNKNOWN_MASK = uint32(-1),
+
+    
+    OBJECT_FLAG_NON_DENSE_ARRAY = 1 << 0,
+
+    
+    OBJECT_FLAG_NON_PACKED_ARRAY = 1 << 1,
+
+    
+
+
+
+    OBJECT_FLAG_ARRAY_SHRANK = 1 << 2,
+
+    
+    OBJECT_FLAG_UNINLINEABLE = 1 << 3,
+
+    
+    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 4
+};
+typedef uint32 TypeObjectFlags;
+
+
 struct TypeObject
 {
 #ifdef DEBUG
@@ -381,6 +428,9 @@ struct TypeObject
 
     
     js::EmptyShape **emptyShapes;
+
+    
+    TypeObjectFlags flags;
 
     
     bool isFunction;
@@ -428,27 +478,6 @@ struct TypeObject
     TypeObject *next;
 
     
-
-
-
-
-
-
-    bool unknownProperties;
-
-    
-    bool isDenseArray;
-
-    
-    bool isPackedArray;
-
-    
-    bool isUninlineable;
-
-    
-    bool hasSpecialEquality;
-
-    
     JSObject *singleton;
 
     TypeObject() {}
@@ -462,6 +491,9 @@ struct TypeObject
         JS_ASSERT(isFunction);
         return (TypeFunction *) this;
     }
+
+    bool unknownProperties() { return flags == OBJECT_FLAG_UNKNOWN_MASK; }
+    bool hasFlags(TypeObjectFlags flags) { return (this->flags & flags) == flags; }
 
     
 
@@ -487,13 +519,15 @@ struct TypeObject
     
     void splicePrototype(JSContext *cx, JSObject *proto);
 
+    inline unsigned getPropertyCount();
+    inline Property *getProperty(unsigned i);
+
     
 
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
     void addPrototype(JSContext *cx, TypeObject *proto);
-    void markNotPacked(JSContext *cx, bool notDense);
+    void setFlags(JSContext *cx, TypeObjectFlags flags);
     void markUnknown(JSContext *cx);
-    void markUninlineable(JSContext *cx);
     void storeToInstances(JSContext *cx, Property *base);
     void getFromPrototypes(JSContext *cx, Property *base);
 
@@ -742,7 +776,7 @@ struct TypeCompartment
 
     
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
-                              const char *name, bool isFunction, JSObject *proto);
+                              const char *name, bool isFunction, bool isArray, JSObject *proto);
 
     
     TypeObject *newInitializerTypeObject(JSContext *cx, JSScript *script,

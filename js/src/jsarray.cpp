@@ -81,6 +81,7 @@
 
 
 
+
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
@@ -648,6 +649,9 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
     vp->setNumber(newlen);
     if (oldlen < newlen)
         return obj->setArrayLength(cx, newlen);
+
+    if (!cx->markTypeArrayShrank(obj->getType()))
+        return false;
 
     if (obj->isDenseArray()) {
         
@@ -1400,7 +1404,7 @@ array_toLocaleString(JSContext *cx, uintN argc, Value *vp)
 static inline bool
 InitArrayTypes(JSContext *cx, TypeObject *type, const Value *vector, unsigned count)
 {
-    if (cx->typeInferenceEnabled() && !type->unknownProperties) {
+    if (cx->typeInferenceEnabled() && !type->unknownProperties()) {
         AutoEnterTypeInference enter(cx);
 
         TypeSet *types = type->getProperty(cx, JSID_VOID, true);
@@ -3435,7 +3439,7 @@ array_TypeNew(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *jssite)
     if (site->returnTypes)
         site->returnTypes->addType(cx, (jstype) object);
 
-    if (object->unknownProperties)
+    if (object->unknownProperties())
         return;
 
     TypeSet *indexTypes = object->getProperty(cx, JSID_VOID, true);

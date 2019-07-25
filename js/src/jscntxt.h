@@ -2068,7 +2068,7 @@ struct JSContext
 
     JS_FRIEND_API(void) checkMallocGCPressure(void *p);
 
-public:
+  public:
 
     inline bool typeInferenceEnabled();
 
@@ -2121,10 +2121,16 @@ public:
     inline bool markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
 
     
+    inline bool markTypeArrayShrank(js::types::TypeObject *obj);
+
+    
     inline bool markTypeFunctionUninlineable(js::types::TypeObject *obj);
 
     
     inline bool markTypeObjectUnknownProperties(js::types::TypeObject *obj);
+
+    
+    inline bool markTypeObjectHasSpecialEquality(js::types::TypeObject *obj);
 
     
 
@@ -2132,6 +2138,10 @@ public:
 
     inline bool fixArrayType(JSObject *obj);
     inline bool fixObjectType(JSObject *obj);
+
+  private:
+
+    inline bool addTypeFlags(js::types::TypeObject *obj, js::types::TypeObjectFlags flags);
 
 }; 
 

@@ -595,9 +595,12 @@ stubs::SetElem(VMFrame &f)
                         break;
                     if ((jsuint)i >= obj->getArrayLength() && !obj->setArrayLength(cx, i + 1))
                         THROW();
+                    *f.pc() = JSOP_SETHOLE;
                 }
                 obj->setDenseArrayElement(i, rval);
                 goto end_setelem;
+            } else {
+                *f.pc() = JSOP_SETHOLE;
             }
         }
     } while (0);
@@ -2844,6 +2847,29 @@ stubs::AssertArgumentTypes(VMFrame &f)
         JS_ASSERT(script->argTypes(i)->hasType(types::GetValueType(f.cx, fp->formalArg(i))));
 }
 #endif
+
+void JS_FASTCALL
+stubs::MissedBoundsCheckEntry(VMFrame &f)
+{
+    
+    JS_ASSERT(!f.script()->failedBoundsCheck);
+    f.script()->failedBoundsCheck = true;
+
+    Recompiler recompiler(f.cx, f.script());
+    if (!recompiler.recompile())
+        THROW();
+}
+
+void JS_FASTCALL
+stubs::MissedBoundsCheckHead(VMFrame &f)
+{
+    
+
+
+
+
+    stubs::MissedBoundsCheckEntry(f);
+}
 
 void JS_FASTCALL
 stubs::Exception(VMFrame &f)

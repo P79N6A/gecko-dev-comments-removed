@@ -464,6 +464,7 @@ struct JSScript {
     bool            debugMode:1;      
     bool            singleStepMode:1; 
     bool            inlineParents:1;  
+    bool            failedBoundsCheck:1; 
 #endif
 
     jsbytecode      *main;      

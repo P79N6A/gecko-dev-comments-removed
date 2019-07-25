@@ -1113,6 +1113,14 @@ mjit::Compiler::jsop_setelem_dense()
         objReg = frame.copyDataIntoReg(obj);
     }
 
+    
+    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, id);
+    MaybeJump initlenGuard;
+    if (!hoisted) {
+        initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+                                             objReg, key, Assembler::BelowOrEqual);
+    }
+
     frame.unpinEntry(vr);
     if (!key.isConstant() && !frame.haveSameBacking(id, value))
         frame.unpinReg(key.reg());
@@ -1120,12 +1128,10 @@ mjit::Compiler::jsop_setelem_dense()
     Label syncTarget = stubcc.syncExitAndJump(Uses(3));
 
     
-    Jump initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
-                                              objReg, key, Assembler::BelowOrEqual);
-
     
-    {
-        stubcc.linkExitDirect(initlenGuard, stubcc.masm.label());
+    
+    if (!hoisted) {
+        stubcc.linkExitDirect(initlenGuard.get(), stubcc.masm.label());
 
         
         
@@ -1418,6 +1424,11 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
 
     
 
+    
+    
+    
+    bool allowUndefined = mayPushUndefined(0);
+
     RegisterID objReg = frame.tempRegForData(obj);
     frame.pinReg(objReg);
 
@@ -1433,20 +1444,20 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     if (!isPacked || type == JSVAL_TYPE_UNKNOWN || type == JSVAL_TYPE_DOUBLE)
         typeReg = frame.allocReg();
 
+    
+    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, id);
+    MaybeJump initlenGuard;
+    if (!hoisted) {
+        initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+                                             objReg, key, Assembler::BelowOrEqual);
+    }
+
     frame.unpinReg(objReg);
     if (!key.isConstant() && !frame.haveSameBacking(id, obj))
         frame.unpinReg(key.reg());
 
-    
-    
-    
-    bool allowUndefined = mayPushUndefined(0);
-
-    
-    Jump initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
-                                              objReg, key, Assembler::BelowOrEqual);
-    if (!allowUndefined)
-        stubcc.linkExit(initlenGuard, Uses(2));
+    if (!hoisted && !allowUndefined)
+        stubcc.linkExit(initlenGuard.get(), Uses(2));
 
     masm.loadPtr(Address(objReg, offsetof(JSObject, slots)), dataReg);
 
@@ -1481,7 +1492,8 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     stubcc.rejoin(Changes(2));
 
     if (allowUndefined) {
-        stubcc.linkExitDirect(initlenGuard, stubcc.masm.label());
+        if (!hoisted)
+            stubcc.linkExitDirect(initlenGuard.get(), stubcc.masm.label());
         if (!isPacked)
             stubcc.linkExitDirect(holeCheck, stubcc.masm.label());
         JS_ASSERT(type == JSVAL_TYPE_UNKNOWN || type == JSVAL_TYPE_UNDEFINED);
