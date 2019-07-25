@@ -70,7 +70,13 @@ def web_socket_transfer_data(request):
     msgutil.close_connection(request)
     msgutil.send_message(request, "server data")
   elif request.ws_protocol == "test-15":
-    msgutil.close_connection(request, True)
+    
+    
+    
+    
+    
+    raise RuntimeError("test-15 should be disabled for now")
+    
     return
   elif request.ws_protocol == "test-17" or request.ws_protocol == "test-21":
     time.sleep(2)
