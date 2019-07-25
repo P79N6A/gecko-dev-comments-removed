@@ -234,8 +234,14 @@ function getRootDirectory(path, chromeURI) {
     chromeURI = getChromeURI(path);
   }
   var myURL = chromeURI.QueryInterface(Components.interfaces.nsIURL);
+  var mydir = myURL.directory;
 
-  return chromeURI.prePath + myURL.directory;
+  if (mydir.match('/$') != '/')
+  {
+    mydir += '/';
+  }
+
+  return chromeURI.prePath + mydir;
 }
 
 
