@@ -349,7 +349,10 @@ class StackFrame
 
         
         DOWN_FRAMES_EXPANDED = 0x100000,  
-        LOWERED_CALL_APPLY   = 0x200000   
+        LOWERED_CALL_APPLY   = 0x200000,  
+
+        
+        RUNNING_IN_ION       = 0x400000   
     };
 
   private:
@@ -1158,6 +1161,16 @@ class StackFrame
 #endif
 
     void methodjitStaticAsserts();
+
+    bool runningInIon() const {
+        return !!(flags_ & RUNNING_IN_ION);
+    }
+    void setRunningInIon() {
+        flags_ |= RUNNING_IN_ION;
+    }
+    void clearRunningInIon() {
+        flags_ &= ~RUNNING_IN_ION;
+    }
 };
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(StackFrame) / sizeof(Value);

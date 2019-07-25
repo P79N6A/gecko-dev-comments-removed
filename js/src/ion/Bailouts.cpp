@@ -243,12 +243,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
     
     in.ionScript()->forbidOsr();
 
-    
-    
-    
-    
-    cx->stack.repointRegs(&activation->oldFrameRegs());
-
     BailoutClosure *br = cx->new_<BailoutClosure>();
     if (!br)
         return false;
@@ -345,9 +339,6 @@ ion::ThunkToInterpreter(Value *vp)
     
     
     cx->delete_(br);
-
-    JS_ASSERT(&cx->regs() == &activation->oldFrameRegs());
-    cx->stack.repointRegs(NULL);
 
     return ok ? JS_TRUE : JS_FALSE;
 }
