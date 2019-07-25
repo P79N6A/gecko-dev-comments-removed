@@ -158,6 +158,9 @@ public:
 
     bool UsingSpdy() { return mUsingSpdy; }
 
+    
+    void  ReadTimeoutTick(PRIntervalTime now);
+
 private:
     
     nsresult ProxyStartSSL();

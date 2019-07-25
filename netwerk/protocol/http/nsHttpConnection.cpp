@@ -852,6 +852,26 @@ nsHttpConnection::TakeTransport(nsISocketTransport  **aTransport,
 }
 
 void
+nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
+{
+    NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+
+    
+    if (!mTransaction)
+        return;
+
+    
+    
+    if (mSpdySession) {
+        mSpdySession->ReadTimeoutTick(now);
+        return;
+    }
+    
+    
+
+}
+
+void
 nsHttpConnection::GetSecurityInfo(nsISupports **secinfo)
 {
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
