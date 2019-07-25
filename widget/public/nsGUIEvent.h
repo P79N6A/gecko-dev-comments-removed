@@ -413,7 +413,6 @@ class nsHashKey;
 
 #define NS_NOTIFYPAINT_START    3400
 #define NS_AFTERPAINT           (NS_NOTIFYPAINT_START)
-#define NS_BEFOREPAINT          (NS_NOTIFYPAINT_START+1)
 
 
 #define NS_SIMPLE_GESTURE_EVENT_START    3500
@@ -535,7 +534,7 @@ public:
   nsIntPoint  refPoint;
   
   
-  PRUint64    time;
+  PRUint32    time;
   
   
   PRUint32    flags;
