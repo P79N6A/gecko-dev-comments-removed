@@ -2788,7 +2788,8 @@ EmitNameOp(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSBool callContex
     if (op == JSOP_ARGUMENTS || op == JSOP_CALLEE) {
         if (Emit1(cx, bce, op) < 0)
             return JS_FALSE;
-        if (callContext && Emit1(cx, bce, JSOP_PUSH) < 0)
+        
+        if (callContext && Emit1(cx, bce, JSOP_UNDEFINED) < 0)
             return JS_FALSE;
     } else {
         if (!pn->pn_cookie.isFree()) {
@@ -6075,7 +6076,8 @@ EmitReturn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (!EmitTree(cx, bce, pn2))
             return false;
     } else {
-        if (Emit1(cx, bce, JSOP_PUSH) < 0)
+        
+        if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
             return false;
     }
 
@@ -6388,7 +6390,7 @@ EmitCallOrNew(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
         callop = false;             
         break;
     }
-    if (!callop && Emit1(cx, bce, JSOP_PUSH) < 0)
+    if (!callop && Emit1(cx, bce, JSOP_UNDEFINED) < 0)
         return false;
 
     
@@ -7027,7 +7029,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             if (!EmitTree(cx, bce, pn->pn_kid))
                 return JS_FALSE;
         } else {
-            if (Emit1(cx, bce, JSOP_PUSH) < 0)
+            if (Emit1(cx, bce, JSOP_UNDEFINED) < 0)
                 return JS_FALSE;
         }
         if (pn->pn_hidden && NewSrcNote(cx, bce, SRC_HIDDEN) < 0)
