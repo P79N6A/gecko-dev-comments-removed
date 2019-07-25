@@ -38,17 +38,10 @@
 
 
 
-
 #include "jsctypes-test.h"
-#include "jsapi.h"
 #include "nsCRTGlue.h"
 #include <math.h>
 #include <stdarg.h>
-#include <stdio.h>
-
-#if defined(XP_WIN)
-#define snprintf _snprintf
-#endif 
 
 template <typename T> struct ValueTraits {
   static T literal() { return static_cast<T>(109.25); }
@@ -410,3 +403,4 @@ test_vector_add_va_cdecl(PRUint8 num_vecs,
 }
 
 RECT data_rect = { -1, -2, 3, 4 };
+
