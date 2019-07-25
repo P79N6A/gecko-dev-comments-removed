@@ -2242,8 +2242,13 @@ nsGfxScrollFrameInner::ScrollToRestoredPosition()
     
     
     
-    if (mRestorePos != GetScrollPosition()) {
-      ScrollTo(mRestorePos, nsIScrollableFrame::INSTANT);
+    if (mRestorePos != mLastPos ) {
+      nsPoint scrollToPos = mRestorePos;
+      if (!IsLTR())
+        
+        scrollToPos.x = mScrollPort.x - 
+          (mScrollPort.XMost() - scrollToPos.x - mScrolledFrame->GetRect().width);
+      ScrollTo(scrollToPos, nsIScrollableFrame::INSTANT);
       
       
       mLastPos = GetLogicalScrollPosition();
@@ -3589,7 +3594,11 @@ nsGfxScrollFrameInner::SaveState(nsIStatefulFrame::SpecialStateID aStateID)
     return nsnull;
   }
 
-  nsPoint scrollPos = GetScrollPosition();
+  nsPoint scrollPos = GetLogicalScrollPosition();
+  
+  if (scrollPos == nsPoint(0,0)) {
+    return nsnull;
+  }
 
   nsPresState* state = new nsPresState();
   if (!state) {
