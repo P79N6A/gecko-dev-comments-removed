@@ -1682,21 +1682,37 @@ nsSMILTimedElement::GetNextInterval(const nsSMILInterval* aPrevInterval,
       } while (tempEnd && aReplacedInterval &&
                tempEnd->GetBaseTime() == aReplacedInterval->End());
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      bool openEndedIntervalOk = mEndSpecs.IsEmpty() ||
-                                 !HaveDefiniteEndTimes() ||
-                                 EndHasEventConditions();
-      if (!tempEnd && !openEndedIntervalOk)
-        return false; 
+      if (!tempEnd) {
+        
+        
+        
+        
+        
+        
+        
+        bool openEndedIntervalOk = mEndSpecs.IsEmpty() ||
+                                   mEndInstances.IsEmpty() ||
+                                   EndHasEventConditions();
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        openEndedIntervalOk = openEndedIntervalOk ||
+                             (aReplacedInterval &&
+                              AreEndTimesDependentOn(aReplacedInterval->End()));
+
+        if (!openEndedIntervalOk) {
+          return false; 
+        }
+      }
 
       nsSMILTimeValue intervalEnd = tempEnd
                                   ? tempEnd->Time() : nsSMILTimeValue();
@@ -2255,17 +2271,6 @@ nsSMILTimedElement::GetPreviousInterval() const
 }
 
 bool
-nsSMILTimedElement::HaveDefiniteEndTimes() const
-{
-  if (mEndInstances.IsEmpty())
-    return false;
-
-  
-  
-  return mEndInstances[0]->Time().IsDefinite();
-}
-
-bool
 nsSMILTimedElement::EndHasEventConditions() const
 {
   for (PRUint32 i = 0; i < mEndSpecs.Length(); ++i) {
@@ -2273,6 +2278,21 @@ nsSMILTimedElement::EndHasEventConditions() const
       return true;
   }
   return false;
+}
+
+bool
+nsSMILTimedElement::AreEndTimesDependentOn(
+  const nsSMILInstanceTime* aBase) const
+{
+  if (mEndInstances.IsEmpty())
+    return false;
+
+  for (PRUint32 i = 0; i < mEndInstances.Length(); ++i) {
+    if (mEndInstances[i]->GetBaseTime() != aBase) {
+      return false;
+    }
+  }
+  return true;
 }
 
 
