@@ -5430,6 +5430,10 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
     return;
 
   
+  if (cif->rtype == &ffi_type_void)
+    return;
+
+  
   
   
   
