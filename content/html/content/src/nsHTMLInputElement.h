@@ -110,7 +110,6 @@ private:
   PRBool mInPrivateBrowsing;
 };
 
-class nsIRadioGroupContainer;
 class nsIRadioVisitor;
 
 class nsHTMLInputElement : public nsGenericHTMLFormElement,
@@ -283,6 +282,15 @@ public:
   void     UpdateBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidityStateType aType);
+  
+
+
+
+
+
+
+
+  void     UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf);
 
   
 
