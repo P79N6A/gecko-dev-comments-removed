@@ -3251,7 +3251,7 @@ pref("image.mem.discardable", true);
 
 
 
-pref("image.mem.decodeondraw", false);
+pref("image.mem.decodeondraw", true);
 
 
 
