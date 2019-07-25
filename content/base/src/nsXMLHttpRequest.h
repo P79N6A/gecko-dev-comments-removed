@@ -68,6 +68,7 @@
 
 class nsILoadGroup;
 class AsyncVerifyRedirectCallbackForwarder;
+class nsIUnicodeDecoder;
 
 class nsXHREventTarget : public nsDOMEventTargetWrapperCache,
                          public nsIXMLHttpRequestEventTarget
@@ -206,8 +207,8 @@ public:
 protected:
   friend class nsMultipartProxyListener;
 
-  nsresult DetectCharset(nsACString& aCharset);
-  nsresult ConvertBodyToText(nsAString& aOutBuffer);
+  nsresult DetectCharset();
+  nsresult AppendToResponseText(const char * aBuffer, PRUint32 aBufferLen);
   static NS_METHOD StreamReaderFunc(nsIInputStream* in,
                 void* closure,
                 const char* fromRawSegment,
@@ -274,6 +275,7 @@ protected:
   };
 
   
+  
   nsCString mResponseBody;
 
   
@@ -281,7 +283,21 @@ protected:
   
   
   
-  nsString mResponseBodyUnicode;
+  nsString mResponseText;
+  
+  
+  
+  PRUint32 mResponseBodyDecodedPos;
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIUnicodeDecoder> mDecoder;
+
+  nsCString mResponseCharset;
 
   enum {
     XML_HTTP_RESPONSE_TYPE_DEFAULT,
