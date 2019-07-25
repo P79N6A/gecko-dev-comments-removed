@@ -6284,7 +6284,7 @@ PresShell::HandleEvent(nsIView         *aView,
     if (framePresContext == rootPresContext &&
         frame == FrameManager()->GetRootFrame()) {
       nsIFrame* popupFrame =
-        nsLayoutUtils::GetPopupFrameForEventCoordinates(aEvent);
+        nsLayoutUtils::GetPopupFrameForEventCoordinates(rootPresContext, aEvent);
       
       
       if (popupFrame &&

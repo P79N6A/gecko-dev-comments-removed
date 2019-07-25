@@ -410,7 +410,9 @@ public:
 
 
 
-  static nsIFrame* GetPopupFrameForEventCoordinates(const nsEvent* aEvent);
+
+  static nsIFrame* GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
+                                                    const nsEvent* aEvent);
 
 
 
