@@ -82,10 +82,12 @@ namespace JSC {
 # undef max
 #endif
 
+const size_t OVERSIZE_ALLOCATION = size_t(-1);
+
 inline size_t roundUpAllocationSize(size_t request, size_t granularity)
 {
     if ((std::numeric_limits<size_t>::max() - granularity) <= request)
-        CRASH(); 
+        return OVERSIZE_ALLOCATION;
     
     
     size_t size = request + (granularity - 1);
@@ -130,7 +132,12 @@ public:
     
     static ExecutablePool* create(size_t n)
     {
-        return new ExecutablePool(n);
+        ExecutablePool *pool = new ExecutablePool(n);
+        if (!pool->m_freePtr) {
+            delete pool;
+            return NULL;
+        }
+        return pool;
     }
 
     void* alloc(size_t n)
@@ -140,6 +147,8 @@ public:
         
         
         n = roundUpAllocationSize(n, sizeof(void*));
+        if (n == OVERSIZE_ALLOCATION)
+            return NULL;
 
         if (static_cast<ptrdiff_t>(n) < (m_end - m_freePtr)) {
             void* result = m_freePtr;
@@ -162,6 +171,7 @@ public:
     size_t available() const { return (m_pools.length() > 1) ? 0 : m_end - m_freePtr; }
 
 private:
+    
     static Allocation systemAlloc(size_t n);
     static void systemRelease(const Allocation& alloc);
 
@@ -177,13 +187,25 @@ private:
 class ExecutableAllocator {
     enum ProtectionSeting { Writable, Executable };
 
+    
+    ExecutableAllocator() {}
 public:
     static size_t pageSize;
-    ExecutableAllocator()
+
+    
+    static ExecutableAllocator *create()
     {
+        ExecutableAllocator *allocator = new ExecutableAllocator();
+        if (!allocator)
+            return allocator;
+
         if (!pageSize)
             intializePageSize();
-        m_smallAllocationPool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
+        allocator->m_smallAllocationPool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
+        if (!allocator->m_smallAllocationPool) {
+            delete allocator;
+            return NULL;
+        }
     }
 
     ~ExecutableAllocator() { delete m_smallAllocationPool; }
@@ -206,6 +228,8 @@ public:
 
         
         ExecutablePool* pool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
+        if (!pool)
+            return NULL;
   	    
 
         
@@ -330,24 +354,38 @@ private:
     static void intializePageSize();
 };
 
+
+
 inline ExecutablePool::ExecutablePool(size_t n) : m_refCount(1)
 {
     size_t allocSize = roundUpAllocationSize(n, JIT_ALLOCATOR_PAGE_SIZE);
+    if (allocSize == OVERSIZE_ALLOCATION) {
+        m_freePtr = NULL;
+        return;
+    }
     Allocation mem = systemAlloc(allocSize);
-    m_pools.append(mem);
+    if (!mem.pages) {
+        m_freePtr = NULL;
+        return;
+    }
+    if (!m_pools.append(mem)) {
+        systemRelease(mem);
+        m_freePtr = NULL;
+        return;
+    }
     m_freePtr = mem.pages;
-    if (!m_freePtr)
-        CRASH(); 
     m_end = m_freePtr + allocSize;
 }
 
 inline void* ExecutablePool::poolAllocate(size_t n)
 {
     size_t allocSize = roundUpAllocationSize(n, JIT_ALLOCATOR_PAGE_SIZE);
+    if (allocSize == OVERSIZE_ALLOCATION)
+        return NULL;
     
     Allocation result = systemAlloc(allocSize);
     if (!result.pages)
-        CRASH(); 
+        return NULL;
     
     JS_ASSERT(m_end >= m_freePtr);
     if ((allocSize - n) > static_cast<size_t>(m_end - m_freePtr)) {
