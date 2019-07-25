@@ -90,11 +90,9 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
     
     
     bool hasFlags;
-    nsresult rv =
-      NS_URIChainHasFlags(aContentLocation,
-                          nsIProtocolHandler::URI_IS_LOCAL_RESOURCE |
-                          nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
-                          &hasFlags);
+    nsresult rv = NS_URIChainHasFlags(aContentLocation,
+                                      nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
+                                      &hasFlags);
     if (NS_FAILED(rv) || !hasFlags) {
       
       *aDecision = nsIContentPolicy::REJECT_TYPE;
