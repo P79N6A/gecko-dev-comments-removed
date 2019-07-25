@@ -334,6 +334,9 @@ public:
         return static_cast<gfxGDIFontList*>(sPlatformFontList);
     }
 
+    
+    virtual nsresult InitFontList();
+
     virtual gfxFontEntry* GetDefaultFont(const gfxFontStyle* aStyle, PRBool& aNeedsBold);
 
     virtual gfxFontEntry* LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
@@ -351,9 +354,6 @@ private:
     gfxGDIFontList();
 
     void InitializeFontEmbeddingProcs();
-
-    
-    virtual void InitFontList();
 
     nsresult GetFontSubstitutes();
 

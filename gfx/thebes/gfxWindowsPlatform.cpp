@@ -201,6 +201,8 @@ gfxWindowsPlatform::gfxWindowsPlatform()
     mUseClearTypeForDownloadableFonts = UNINITIALIZED_VALUE;
     mUseClearTypeAlways = UNINITIALIZED_VALUE;
 
+    mUsingGDIFonts = PR_FALSE;
+
     
 
  
@@ -235,8 +237,7 @@ gfxWindowsPlatform::~gfxWindowsPlatform()
     
 
  
-    CoUninitialize(); 
-
+    CoUninitialize();
 }
 
 void
@@ -301,12 +302,13 @@ gfxWindowsPlatform::UpdateRenderMode()
         d2dDisabled = PR_FALSE;
     rv = pref->GetBoolPref("gfx.direct2d.force-enabled", &d2dForceEnabled);
     if (NS_FAILED(rv))
-        d2dDisabled = PR_FALSE;
+        d2dForceEnabled = PR_FALSE;
 
     bool tryD2D = !d2dBlocked || d2dForceEnabled;
     
     
-    if (d2dDisabled) {
+    
+    if (d2dDisabled || mUsingGDIFonts) {
         tryD2D = false;
     }
 
@@ -406,22 +408,38 @@ gfxWindowsPlatform::VerifyD2DDevice(PRBool aAttemptForce)
     }
 #endif
 }
+
 gfxPlatformFontList*
 gfxWindowsPlatform::CreatePlatformFontList()
 {
+    mUsingGDIFonts = PR_FALSE;
+    gfxPlatformFontList *pfl;
 #ifdef MOZ_FT2_FONTS
-    return new gfxFT2FontList();
+    pfl = new gfxFT2FontList();
 #else
 #ifdef CAIRO_HAS_DWRITE_FONT
-    if (!GetDWriteFactory()) {
-#endif
-        return new gfxGDIFontList();
-#ifdef CAIRO_HAS_DWRITE_FONT
-    } else {
-        return new gfxDWriteFontList();
+    if (GetDWriteFactory()) {
+        pfl = new gfxDWriteFontList();
+        if (NS_SUCCEEDED(pfl->InitFontList())) {
+            return pfl;
+        }
+        
+        
+        
+        gfxPlatformFontList::Shutdown();
+        SetRenderMode(RENDER_GDI);
     }
 #endif
+    pfl = new gfxGDIFontList();
+    mUsingGDIFonts = PR_TRUE;
 #endif
+
+    if (NS_SUCCEEDED(pfl->InitFontList())) {
+        return pfl;
+    }
+
+    gfxPlatformFontList::Shutdown();
+    return nsnull;
 }
 
 already_AddRefed<gfxASurface>

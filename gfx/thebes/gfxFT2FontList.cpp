@@ -235,13 +235,15 @@ gfxFT2FontList::FindFonts()
 #endif 
 }
 
-void
+nsresult
 gfxFT2FontList::InitFontList()
 {
     
     gfxPlatformFontList::InitFontList();
     
     FindFonts();
+
+    return NS_OK;
 }
 
 struct FullFontNameSearch {

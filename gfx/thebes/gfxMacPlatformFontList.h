@@ -113,7 +113,7 @@ private:
     gfxMacPlatformFontList();
 
     
-    virtual void InitFontList();
+    virtual nsresult InitFontList();
 
     
     void InitSingleFaceList();
