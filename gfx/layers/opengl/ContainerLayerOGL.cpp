@@ -344,15 +344,7 @@ ShadowContainerLayerOGL::ShadowContainerLayerOGL(LayerManagerOGL *aManager)
  
 ShadowContainerLayerOGL::~ShadowContainerLayerOGL()
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  Destroy();
 }
 
 void
