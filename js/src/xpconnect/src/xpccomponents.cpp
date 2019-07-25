@@ -3726,6 +3726,18 @@ nsXPCComponents_Utils::Import(const nsACString & registryLocation)
 }
 
 
+
+NS_IMETHODIMP
+nsXPCComponents_Utils::Unload(const nsACString & registryLocation)
+{
+    nsCOMPtr<xpcIJSModuleLoader> moduleloader =
+        do_GetService(MOZJSCOMPONENTLOADER_CONTRACTID);
+    if (!moduleloader)
+        return NS_ERROR_FAILURE;
+    return moduleloader->Unload(registryLocation);
+}
+
+
 NS_IMETHODIMP
 nsXPCComponents_Utils::GetWeakReference(xpcIJSWeakReference **_retval)
 {
