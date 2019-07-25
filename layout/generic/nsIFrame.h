@@ -144,23 +144,23 @@ typedef PRUint32 nsSplittableType;
 
 typedef PRUint32 nsFrameState;
 
+#define NS_FRAME_STATE_BIT(n_) (nsFrameState(1) << (n_))
+
 enum {
-  NS_FRAME_IN_REFLOW =                          0x00000001,
+  NS_FRAME_IN_REFLOW =                          NS_FRAME_STATE_BIT(0),
 
   
-  NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO =    0x00000001,
-
-  
-  
-  
-  NS_FRAME_FIRST_REFLOW =                       0x00000002,
+  NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO =    NS_FRAME_STATE_BIT(0),
 
   
   
   
-  NS_FRAME_IS_FLUID_CONTINUATION =              0x00000004,
+  NS_FRAME_FIRST_REFLOW =                       NS_FRAME_STATE_BIT(1),
 
-
+  
+  
+  
+  NS_FRAME_IS_FLUID_CONTINUATION =              NS_FRAME_STATE_BIT(2),
 
 
 
@@ -169,46 +169,35 @@ enum {
 
 
 
+
+
   
   
   
-  NS_FRAME_EXTERNAL_REFERENCE =                 0x00000010,
+  NS_FRAME_EXTERNAL_REFERENCE =                 NS_FRAME_STATE_BIT(4),
 
   
   
   
   
-  NS_FRAME_CONTAINS_RELATIVE_HEIGHT =           0x00000020,
+  NS_FRAME_CONTAINS_RELATIVE_HEIGHT =           NS_FRAME_STATE_BIT(5),
 
   
-  NS_FRAME_GENERATED_CONTENT =                  0x00000040,
-
-  
-  
-  
-  
-  
-  NS_FRAME_IS_OVERFLOW_CONTAINER =              0x00000080,
-
-  
-  
-  NS_FRAME_OUT_OF_FLOW =                        0x00000100,
-
-  
-  NS_FRAME_SELECTED_CONTENT =                   0x00000200,
+  NS_FRAME_GENERATED_CONTENT =                  NS_FRAME_STATE_BIT(6),
 
   
   
   
   
   
-  
-  NS_FRAME_IS_DIRTY =                           0x00000400,
+  NS_FRAME_IS_OVERFLOW_CONTAINER =              NS_FRAME_STATE_BIT(7),
 
   
   
+  NS_FRAME_OUT_OF_FLOW =                        NS_FRAME_STATE_BIT(8),
+
   
-  NS_FRAME_TOO_DEEP_IN_FRAME_TREE =             0x00000800,
+  NS_FRAME_SELECTED_CONTENT =                   NS_FRAME_STATE_BIT(9),
 
   
   
@@ -216,24 +205,12 @@ enum {
   
   
   
-  
-  
-  
-  
-  NS_FRAME_HAS_DIRTY_CHILDREN =                 0x00001000,
-
-  
-  NS_FRAME_HAS_VIEW =                           0x00002000,
-
-  
-  NS_FRAME_INDEPENDENT_SELECTION =              0x00004000,
+  NS_FRAME_IS_DIRTY =                           NS_FRAME_STATE_BIT(10),
 
   
   
   
-  
-  
-  NS_FRAME_IS_SPECIAL =                         0x00008000,
+  NS_FRAME_TOO_DEEP_IN_FRAME_TREE =             NS_FRAME_STATE_BIT(11),
 
   
   
@@ -241,31 +218,56 @@ enum {
   
   
   
-  NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS = 0x00010000,
+  
+  
+  
+  
+  NS_FRAME_HAS_DIRTY_CHILDREN =                 NS_FRAME_STATE_BIT(12),
+
+  
+  NS_FRAME_HAS_VIEW =                           NS_FRAME_STATE_BIT(13),
+
+  
+  NS_FRAME_INDEPENDENT_SELECTION =              NS_FRAME_STATE_BIT(14),
+
+  
+  
+  
+  
+  
+  NS_FRAME_IS_SPECIAL =                         NS_FRAME_STATE_BIT(15),
+
+  
+  
+  
+  
+  
+  
+  NS_FRAME_MAY_BE_TRANSFORMED_OR_HAVE_RENDERING_OBSERVERS =
+                                                NS_FRAME_STATE_BIT(16),
 
 #ifdef IBMBIDI
   
   
-  NS_FRAME_IS_BIDI =                            0x00020000,
+  NS_FRAME_IS_BIDI =                            NS_FRAME_STATE_BIT(17),
 #endif
 
   
-  NS_FRAME_HAS_CHILD_WITH_VIEW =                0x00040000,
+  NS_FRAME_HAS_CHILD_WITH_VIEW =                NS_FRAME_STATE_BIT(18),
 
   
   
-  NS_FRAME_REFLOW_ROOT =                        0x00080000,
+  NS_FRAME_REFLOW_ROOT =                        NS_FRAME_STATE_BIT(19),
 
   
-  NS_FRAME_RESERVED =                           0x000FFFFF,
+  NS_FRAME_IMPL_RESERVED =                      nsFrameState(0xFFF00000),
 
   
-  
-  NS_FRAME_IMPL_RESERVED =                      0xFFF00000,
+  NS_FRAME_RESERVED =                           ~NS_FRAME_IMPL_RESERVED,
 
   
-  NS_STATE_IS_HORIZONTAL =                      0x00400000,
-  NS_STATE_IS_DIRECTION_NORMAL =                0x80000000
+  NS_STATE_IS_HORIZONTAL =                      NS_FRAME_STATE_BIT(22),
+  NS_STATE_IS_DIRECTION_NORMAL =                NS_FRAME_STATE_BIT(31)
 };
 
 
