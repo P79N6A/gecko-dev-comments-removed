@@ -103,7 +103,12 @@ FormAssistant.prototype = {
       
       
       this._executeDelayed(function(self) {
-        sendAsyncMessage("FormAssist:Show", self._getJSON());
+        
+        
+        
+        
+        if (self._isVisibleElement(gFocusManager.focusedElement))
+          sendAsyncMessage("FormAssist:Show", self._getJSON());
       });
     } else {
       
@@ -545,7 +550,7 @@ FormAssistant.prototype = {
     let element = this.currentElement;
     let focusedElement = gFocusManager.getFocusedElementForWindow(content, true, {});
     if (element && (element.mozIsTextField && element.mozIsTextField(false) ||
-        element instanceof HTMLTextAreaElement) && focusedElement == element) {
+        element instanceof HTMLTextAreaElement) && focusedElement == element && this._isVisibleElement(element)) {
       let utils = Util.getWindowUtils(element.ownerDocument.defaultView);
       let rect = utils.sendQueryContentEvent(utils.QUERY_CARET_RECT, element.selectionEnd, 0, 0, 0);
       if (rect) {
