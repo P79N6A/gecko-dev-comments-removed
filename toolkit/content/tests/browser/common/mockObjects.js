@@ -66,7 +66,7 @@ MockObjectRegisterer.prototype = {
 
   register: function MOR_register() {
     netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    if (this._originalCID)
+    if (this._originalFactory)
       throw new Exception("Invalid object state when calling register()");
 
     
@@ -79,14 +79,17 @@ MockObjectRegisterer.prototype = {
       }
     };
 
-    this._cid = Components.classes["@mozilla.org/uuid-generator;1"].
-      getService(Components.interfaces.nsIUUIDGenerator).generateUUID();
-
-    
     var componentRegistrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-    this._originalCID = componentRegistrar.contractIDToCID(this._contractID);
 
     
+    this._cid = componentRegistrar.contractIDToCID(this._contractID);
+
+    
+    this._originalFactory = Components.manager.getClassObject(Components.classes[this._contractID],
+                                                              Components.interfaces.nsIFactory);
+
+    componentRegistrar.unregisterFactory(this._cid, this._originalFactory);
+
     componentRegistrar.registerFactory(this._cid,
                                        "",
                                        this._contractID,
@@ -98,7 +101,7 @@ MockObjectRegisterer.prototype = {
 
   unregister: function MOR_unregister() {
     netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    if (!this._originalCID)
+    if (!this._originalFactory)
       throw new Exception("Invalid object state when calling unregister()");
 
     
@@ -107,14 +110,14 @@ MockObjectRegisterer.prototype = {
                                          this._mockFactory);
 
     
-    componentRegistrar.registerFactory(this._originalCID,
+    componentRegistrar.registerFactory(this._cid,
                                        "",
                                        this._contractID,
-                                       null);
+                                       this._originalFactory);
 
     
     this._cid = null;
-    this._originalCID = null;
+    this._originalFactory = null;
     this._mockFactory = null;
   },
 
@@ -123,7 +126,7 @@ MockObjectRegisterer.prototype = {
   
 
 
-  _originalCID: null,
+  _originalFactory: null,
 
   
 
