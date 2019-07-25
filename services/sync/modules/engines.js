@@ -285,7 +285,9 @@ SyncEngine.prototype = {
       meta.generateIV();
       meta.addUnwrappedKey(pubkey, symkey);
       let res = new Resource(meta.uri);
-      res.put(meta.serialize());
+      let resp = res.put(meta.serialize());
+      if (!resp.success)
+        throw resp;
 
       
       CryptoMetas.set(meta.uri, meta);
@@ -343,7 +345,9 @@ SyncEngine.prototype = {
       Sync.sleep(0);
     });
 
-    newitems.get();
+    let resp = newitems.get();
+    if (!resp.success)
+      throw resp;
 
     if (this.lastSync < this._lastSyncTmp)
         this.lastSync = this._lastSyncTmp;
@@ -464,13 +468,24 @@ SyncEngine.prototype = {
       
       let doUpload = Utils.bind2(this, function(desc) {
         this._log.info("Uploading " + desc + " of " + outnum + " records");
+<<<<<<< local
         up.post();
+=======
+        let resp = up.post();
+        if (!resp.success)
+          throw resp;
+>>>>>>> other
 
+<<<<<<< local
         
         let modified = up._lastChannel.getResponseHeader("X-Weave-Timestamp");
         if (modified > this.lastSync)
           this.lastSync = modified;
 
+=======
+        if (up.data.modified > this.lastSync)
+          this.lastSync = up.data.modified;
+>>>>>>> other
         up.clearRecords();
       });
 
