@@ -177,8 +177,7 @@ nsSegmentEncoder::EncodeSegmentCount(const char *str,
                                      const URLSegment &seg,
                                      PRInt16 mask,
                                      nsAFlatCString &result,
-                                     PRBool &appended,
-                                     PRUint32 extraLen)
+                                     PRBool &appended)
 {
     appended = PR_FALSE;
     if (!str)
@@ -221,8 +220,6 @@ nsSegmentEncoder::EncodeSegmentCount(const char *str,
             len = encBuf.Length();
             appended = PR_TRUE;
         }
-
-        len += extraLen;
     }
     return len;
 }
@@ -501,19 +498,16 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
       encBasename, encExtension, encParam, encQuery, encRef;
     PRBool useEncUsername, useEncPassword, useEncHost, useEncDirectory,
       useEncBasename, useEncExtension, useEncParam, useEncQuery, useEncRef;
-    nsCAutoString portbuf;
 
     
     
     
     
-    
-
-    PRUint32 approxLen = 0;
+    PRUint32 approxLen = 3; 
 
     
     if (mScheme.mLen > 0)
-        approxLen += mScheme.mLen + 3; 
+        approxLen += mScheme.mLen;
 
     
     
@@ -521,31 +515,14 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
     {
         GET_SEGMENT_ENCODER(encoder);
         GET_QUERY_ENCODER(queryEncoder);
-        
-        approxLen += encoder.EncodeSegmentCount(spec, mUsername,  esc_Username,      encUsername,  useEncUsername,1);
-        
-        approxLen += encoder.EncodeSegmentCount(spec, mPassword,  esc_Password,      encPassword,  useEncPassword,1);
-        
-        NS_ABORT_IF_FALSE(mPort > 0 || mPort == -1, "Invalid negative mPort");
-        if (mPort != -1 && mPort != mDefaultPort)
-        {
-            
-            portbuf.AppendInt(mPort);
-            approxLen += portbuf.Length() + 1;
-        }
-
-        approxLen += 1; 
-        
-        approxLen += encoder.EncodeSegmentCount(spec, mDirectory, esc_Directory,     encDirectory, useEncDirectory,1);
+        approxLen += encoder.EncodeSegmentCount(spec, mUsername,  esc_Username,      encUsername,  useEncUsername);
+        approxLen += encoder.EncodeSegmentCount(spec, mPassword,  esc_Password,      encPassword,  useEncPassword);
+        approxLen += encoder.EncodeSegmentCount(spec, mDirectory, esc_Directory,     encDirectory, useEncDirectory);
         approxLen += encoder.EncodeSegmentCount(spec, mBasename,  esc_FileBaseName,  encBasename,  useEncBasename);
-        approxLen += encoder.EncodeSegmentCount(spec, mExtension, esc_FileExtension, encExtension, useEncExtension,1);
-
-        
-        approxLen += encoder.EncodeSegmentCount(spec, mParam,     esc_Param,         encParam,     useEncParam,1);
-        
-        approxLen += queryEncoder.EncodeSegmentCount(spec, mQuery, esc_Query,        encQuery,     useEncQuery,1);
-        
-        approxLen += encoder.EncodeSegmentCount(spec, mRef,       esc_Ref,           encRef,       useEncRef,1);
+        approxLen += encoder.EncodeSegmentCount(spec, mExtension, esc_FileExtension, encExtension, useEncExtension);
+        approxLen += encoder.EncodeSegmentCount(spec, mParam,     esc_Param,         encParam,     useEncParam);
+        approxLen += queryEncoder.EncodeSegmentCount(spec, mQuery, esc_Query,        encQuery,     useEncQuery);
+        approxLen += encoder.EncodeSegmentCount(spec, mRef,       esc_Ref,           encRef,       useEncRef);
     }
 
     
@@ -568,8 +545,7 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
     
     
     
-    
-    if (!EnsureStringLength(mSpec, approxLen+1)) 
+    if (!EnsureStringLength(mSpec, approxLen + 32))
         return NS_ERROR_OUT_OF_MEMORY;
     char *buf;
     mSpec.BeginWriting(buf);
@@ -596,10 +572,10 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
     if (mHost.mLen > 0) {
         i = AppendSegmentToBuf(buf, i, spec, mHost, &encHost, useEncHost);
         net_ToLowerCase(buf + mHost.mPos, mHost.mLen);
-        NS_ABORT_IF_FALSE(mPort > 0 || mPort == -1, "Invalid negative mPort");
         if (mPort != -1 && mPort != mDefaultPort) {
+            nsCAutoString portbuf;
+            portbuf.AppendInt(mPort);
             buf[i++] = ':';
-            
             i = AppendToBuf(buf, i, portbuf.get(), portbuf.Length());
         }
     }
@@ -687,7 +663,7 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
         CoalescePath(coalesceFlag, buf + mDirectory.mPos);
     }
     mSpec.SetLength(strlen(buf));
-    NS_ASSERTION(mSpec.Length() <= approxLen, "We've overflowed the mSpec buffer!");
+    NS_ASSERTION(mSpec.Length() <= approxLen+32, "We've overflowed the mSpec buffer!");
     return NS_OK;
 }
 
