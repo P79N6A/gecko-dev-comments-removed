@@ -1055,8 +1055,5 @@ xpc_qsAssertContextOK(JSContext *cx)
 
     
     NS_ASSERTION(cx == topJSContext, "wrong context on XPCJSContextStack!");
-
-    NS_ASSERTION(XPCPerThreadData::IsMainThread(cx),
-                 "XPConnect quick stub called on non-main thread");
 }
 #endif

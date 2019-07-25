@@ -1297,11 +1297,6 @@ private:
 JSObject*
 XPC_WN_JSOp_ThisObject(JSContext *cx, JSHandleObject obj)
 {
-    
-    
-    if (!XPCPerThreadData::IsMainThread(cx))
-        return obj;
-
     return JS_ObjectToOuterObject(cx, obj);
 }
 
