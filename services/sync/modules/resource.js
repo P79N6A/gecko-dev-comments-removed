@@ -36,6 +36,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ["Resource", "AsyncResource",
                           "Auth", "BrokenBasicAuthenticator",
                           "BasicAuthenticator", "NoOpAuthenticator"];
@@ -238,13 +239,13 @@ AsyncResource.prototype = {
   _onProgress: function Res__onProgress(channel) {},
 
   _doRequest: function _doRequest(action, data, callback) {
+    this._log.trace("In _doRequest.");
     this._callback = callback;
     let channel = this._channel = this._createRequest();
 
     if ("undefined" != typeof(data))
       this._data = data;
 
-    
     
     if ("PUT" == action || "POST" == action) {
       
@@ -274,6 +275,8 @@ AsyncResource.prototype = {
   },
 
   _onComplete: function _onComplete(error, data) {
+    this._log.trace("In _onComplete. Error is " + error + ".");
+
     if (error) {
       this._callback(error);
       return;
@@ -283,29 +286,54 @@ AsyncResource.prototype = {
     let channel = this._channel;
     let action = channel.requestMethod;
 
+    this._log.trace("Channel: " + channel);
+    this._log.trace("Action: "  + action);
+
     
-    let headers = {};
+    
     let status = 0;
     let success = false;
+
     try {
+      status  = channel.responseStatus;
+      success = channel.requestSucceeded;    
+
+      this._log.trace("Status: " + status);
+      this._log.trace("Success: " + success);
+
+      
+      let mesg = [action, success ? "success" : "fail", status,
+                  channel.URI.spec].join(" ");
+      this._log.debug("mesg: " + mesg);
+
+      if (mesg.length > 200)
+        mesg = mesg.substr(0, 200) + "â€¦";
+      this._log.debug(mesg);
+
+      
+      if (this._log.level <= Log4Moz.Level.Trace)
+        this._log.trace(action + " body: " + data);
+
+    } catch(ex) {
+      
+      
+      this._log.warn("Caught unexpected exception " + Utils.exceptionStr(ex) +
+                     " in _onComplete.");
+      this._log.debug(Utils.stackTrace(ex));
+    }
+
+    
+    
+    let headers = {};
+    try {
+      this._log.trace("Processing response headers.");
+
       
       channel.visitResponseHeaders({
         visitHeader: function visitHeader(header, value) {
           headers[header.toLowerCase()] = value;
         }
       });
-      status = channel.responseStatus;
-      success = channel.requestSucceeded;
-
-      
-      let mesg = [action, success ? "success" : "fail", status,
-                  channel.URI.spec].join(" ");
-      if (mesg.length > 200)
-        mesg = mesg.substr(0, 200) + "â€¦";
-      this._log.debug(mesg);
-      
-      if (this._log.level <= Log4Moz.Level.Trace)
-        this._log.trace(action + " body: " + data);
 
       
       
@@ -316,20 +344,23 @@ AsyncResource.prototype = {
       if (success && headers["x-weave-quota-remaining"])
         Observers.notify("weave:service:quota:remaining",
                          parseInt(headers["x-weave-quota-remaining"], 10));
-    }
-    
-    catch(ex) {
-      this._log.debug(action + " cached: " + status);
+    } catch (ex) {
+      this._log.debug("Caught exception " + Utils.exceptionStr(ex) +
+                      " visiting headers in _onComplete.");
+      this._log.debug(Utils.stackTrace(ex));
     }
 
-    let ret = new String(data);
-    ret.headers = headers;
-    ret.status = status;
+    let ret     = new String(data);
+    ret.status  = status;
     ret.success = success;
+    ret.headers = headers;
 
+    
+    
     
     Utils.lazy2(ret, "obj", function() JSON.parse(ret));
 
+    
     
     if (status == 401) {
       
@@ -477,6 +508,7 @@ function ChannelListener(onComplete, onProgress, logger, timeout) {
 ChannelListener.prototype = {
 
   onStartRequest: function Channel_onStartRequest(channel) {
+    this._log.trace("onStartRequest called for channel " + channel + ".");
     channel.QueryInterface(Ci.nsIHttpChannel);
 
     
@@ -485,7 +517,8 @@ ChannelListener.prototype = {
     }
     catch(ex) {}
 
-    this._log.trace(channel.requestMethod + " " + channel.URI.spec);
+    this._log.trace("onStartRequest: " + channel.requestMethod + " " +
+                    channel.URI.spec);
     this._data = '';
     this.delayAbort();
   },
@@ -494,19 +527,27 @@ ChannelListener.prototype = {
     
     this.abortTimer.clear();
 
+    let success = Components.isSuccessCode(status);
+    this._log.trace("Channel for " + channel.requestMethod + " " +
+                    channel.URI.spec + ": isSuccessCode(" + status + ")? " +
+                    success);
+
     if (this._data == '')
       this._data = null;
 
     
     
     
-    if (!Components.isSuccessCode(status)) {
+    if (!success) {
       let message = Components.Exception("", status).name;
       let error = Components.Exception(message, status);
       this._onComplete(error);
       return;
     }
 
+    this._log.trace("Channel: flags = " + channel.loadFlags +
+                    ", URI = " + channel.URI.spec +
+                    ", HTTP success? " + channel.requestSucceeded);
     this._onComplete(null, this._data);
   },
 
