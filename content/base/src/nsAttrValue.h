@@ -49,6 +49,7 @@
 #include "nsStringBuffer.h"
 #include "nsColor.h"
 #include "nsCaseTreatment.h"
+#include "nsMargin.h"
 
 typedef PRUptrdiff PtrBits;
 class nsAString;
@@ -98,6 +99,7 @@ public:
 #ifdef MOZ_SVG
   explicit nsAttrValue(nsISVGValue* aValue);
 #endif
+  explicit nsAttrValue(const nsIntMargin& aValue);
   ~nsAttrValue();
 
   static nsresult Init();
@@ -120,6 +122,7 @@ public:
     ,eSVGValue =    0x12
 #endif
     ,eFloatValue  = 0x13
+    ,eIntMarginValue = 0x14
   };
 
   ValueType Type() const;
@@ -133,6 +136,7 @@ public:
 #ifdef MOZ_SVG
   void SetTo(nsISVGValue* aValue);
 #endif
+  void SetTo(const nsIntMargin& aValue);
 
   void SwapValueWith(nsAttrValue& aOther);
 
@@ -153,6 +157,7 @@ public:
   inline nsISVGValue* GetSVGValue() const;
 #endif
   inline float GetFloatValue() const;
+  PRBool GetIntMarginValue(nsIntMargin& aMargin) const;
 
   
 
@@ -297,6 +302,15 @@ public:
 
   PRBool ParseLazyURIValue(const nsAString& aString);
 
+  
+
+
+
+
+
+
+  PRBool ParseIntMarginValue(const nsAString& aString);
+
 private:
   
   enum ValueBaseType {
@@ -325,6 +339,7 @@ private:
       nsISVGValue* mSVGValue;
 #endif
       float mFloatValue;
+      nsIntMargin* mIntMargin;
     };
   };
 
@@ -440,6 +455,17 @@ nsAttrValue::GetFloatValue() const
 {
   NS_PRECONDITION(Type() == eFloatValue, "wrong type");
   return GetMiscContainer()->mFloatValue;
+}
+
+inline PRBool
+nsAttrValue::GetIntMarginValue(nsIntMargin& aMargin) const
+{
+  NS_PRECONDITION(Type() == eIntMarginValue, "wrong type");
+  nsIntMargin* m = GetMiscContainer()->mIntMargin;
+  if (!m)
+    return PR_FALSE;
+  aMargin = *m;
+  return PR_TRUE;
 }
 
 inline nsAttrValue::ValueBaseType

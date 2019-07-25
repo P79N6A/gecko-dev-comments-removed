@@ -401,6 +401,16 @@ public:
 
   static PRBool IsHTMLWhitespace(PRUnichar aChar);
 
+  
+
+
+
+
+
+
+
+  static PRBool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
+
   static void Shutdown();
 
   
