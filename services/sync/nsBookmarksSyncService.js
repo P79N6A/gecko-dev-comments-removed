@@ -302,49 +302,46 @@ BookmarksSyncService.prototype = {
         return;
       }
 
+      LOG("Local snapshot version: " + this._snapshotVersion);
+      LOG("Latest server version: " + server['version']);
+
       
       LOG("Generating local updates");
       var localUpdates = this._sanitizeCommands(this._sync.detectUpdates(this._snapshot, localJson));
-
-      
-
       if (!(server['status'] == 1 || localUpdates.length > 0)) {
-        LOG("Sync complete: no changes needed on client or server");
+        LOG("Sync complete (1): no changes needed on client or server");
         return;
       }
-
+	  
+      
       var propagations = [server['updates'], localUpdates];
-
       if (server['status'] == 1 && localUpdates.length > 0) {
         LOG("Reconciling updates");
-        var propagations = this._sync.reconcile([localUpdates, server['updates']]);
+        propagations = this._sync.reconcile([localUpdates, server['updates']]);
       }
-      LOG("Local:" + uneval(propagations[0]));
-      LOG("To server:" + uneval(propagations[1]));
-
-      LOG("Local snapshot version: " + this._snapshotVersion);
-      LOG("Latest server version: " + server['version']);
-      this._snapshotVersion = server['version'];
-
-      if (!(propagations[0].length || propagations[1].length)) {
+	  
+	  if (!((propagations[0] && propagations[0].length > 0) || (propagations[1] && propagations[1].length > 0))) {
         this._snapshot = this._wrapNode(localBookmarks);
-        LOG("Sync complete: no changes needed on client or server");
+        LOG("Sync complete (2): no changes needed on client or server");
         return;
-      }
+      } 
+	  
+	 this._snapshotVersion = server['version'];
 
       
-      if (propagations[0].length) {
+      if (propagations[0] && propagations[0].length > 0) {
         LOG("Applying changes locally");
         localBookmarks = this._getLocalBookmarks(); 
         this._snapshot = this._wrapNode(localBookmarks);
         
-        this._sync.applyCommands(this._snapshot, eval(uneval(propagations[0])));
+   	    this._sync.applyCommands(this._snapshot, eval(uneval(propagations[0])));
         this._applyCommands(localBookmarks, propagations[0]);
         this._snapshot = this._wrapNode(localBookmarks);
+		this._snapshotVersion = server['version'];
       }
 
       
-      if (propagations[1].length) {
+      if (propagations[1] && propagations[1].length) {
         LOG("Uploading changes to server");
         this._snapshotVersion++;
         server['deltas'][this._snapshotVersion] = propagations[1];
@@ -356,8 +353,7 @@ BookmarksSyncService.prototype = {
         else
           LOG("Error: could not update deltas on server");
       }
-
-      LOG("Sync complete");
+	      LOG("Sync complete");
     } finally {
       
       
