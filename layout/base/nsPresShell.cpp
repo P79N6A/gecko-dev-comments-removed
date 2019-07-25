@@ -237,6 +237,7 @@ using namespace mozilla::layers;
 
 PRBool nsIPresShell::gIsAccessibilityActive = PR_FALSE;
 CapturingContentInfo nsIPresShell::gCaptureInfo;
+nsIContent* nsIPresShell::gKeyDownTarget;
 
 
 
@@ -1837,6 +1838,10 @@ PresShell::Destroy()
 #endif 
 
   MaybeReleaseCapturingContent();
+
+  if (gKeyDownTarget && gKeyDownTarget->GetOwnerDoc() == mDocument) {
+    NS_RELEASE(gKeyDownTarget);
+  }
 
   mContentToScrollTo = nsnull;
 
@@ -6460,6 +6465,30 @@ PresShell::HandleEvent(nsIView         *aView,
       
       if (!mCurrentEventContent || !GetCurrentEventFrame())
         mCurrentEventContent = mDocument->GetRootElement();
+
+      if (aEvent->message == NS_KEY_DOWN) {
+        NS_IF_RELEASE(gKeyDownTarget);
+        NS_IF_ADDREF(gKeyDownTarget = mCurrentEventContent);
+      }
+      else if ((aEvent->message == NS_KEY_PRESS || aEvent->message == NS_KEY_UP) &&
+               gKeyDownTarget) {
+        
+        
+        
+        
+        
+        
+        if (mCurrentEventContent &&
+            nsContentUtils::IsChromeDoc(gKeyDownTarget->GetCurrentDoc()) &&
+            !nsContentUtils::IsChromeDoc(mCurrentEventContent->GetCurrentDoc())) {
+          mCurrentEventContent = gKeyDownTarget;
+        }
+
+        if (aEvent->message == NS_KEY_UP) {
+          NS_RELEASE(gKeyDownTarget);
+        }
+      }
+
       mCurrentEventFrame = nsnull;
         
       if (!mCurrentEventContent || !GetCurrentEventFrame() ||

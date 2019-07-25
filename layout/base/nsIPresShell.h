@@ -1159,6 +1159,8 @@ protected:
   
   typedef nsPtrHashKey<nsIPresShell> PresShellPtrKey;
   static nsTHashtable<PresShellPtrKey> *sLiveShells;
+
+  static nsIContent* gKeyDownTarget;
 };
 
 
