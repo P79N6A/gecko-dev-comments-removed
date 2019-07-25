@@ -86,7 +86,6 @@ class nsHttpChannel : public HttpBaseChannel
                     , public nsITraceableChannel
                     , public nsIApplicationCacheChannel
                     , public nsIAsyncVerifyRedirectCallback
-                    , public nsIHttpChannelParentInternal
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -103,7 +102,6 @@ public:
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
     NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
-    NS_DECL_NSIHTTPCHANNELPARENTINTERNAL
 
     
     
@@ -150,6 +148,7 @@ public:
 public:  
     typedef void (nsHttpChannel:: *nsAsyncCallback)(void);
     nsHttpResponseHead * GetResponseHead() const { return mResponseHead; }
+    void SetRemoteChannel(bool aRemote) { mRemoteChannel = aRemote; }
     void InternalSetUploadStream(nsIInputStream *uploadStream) 
       { mUploadStream = uploadStream; }
     void SetUploadStreamHasHeaders(PRBool hasHeaders) 
