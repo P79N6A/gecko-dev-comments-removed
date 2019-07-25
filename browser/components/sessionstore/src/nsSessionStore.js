@@ -713,7 +713,7 @@ SessionStoreService.prototype = {
       return;
 
     
-    aWindow.__SSi = "window" + Date.now();
+    aWindow.__SSi = "window" + Math.floor(Date.now());
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [] };
@@ -3751,7 +3751,7 @@ SessionStoreService.prototype = {
         
         
         window.__lastSessionWindowID = pinnedWindowState.__lastSessionWindowID
-                                     = "" + Date.now() + Math.random();
+                                     = "" + Math.floor(Date.now()) + Math.random();
 
         
         this._splitCookiesFromWindow(window, pinnedWindowState);
