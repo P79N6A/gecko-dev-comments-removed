@@ -81,7 +81,6 @@ public:
   virtual ~nsPluginHost();
 
   static nsPluginHost* GetInst();
-  static const char *GetPluginName(nsIPluginInstance *aPluginInstance);
 
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
 
@@ -115,14 +114,14 @@ public:
 
   nsresult
   NewPluginURLStream(const nsString& aURL, 
-                     nsIPluginInstance *aInstance, 
+                     nsNPAPIPluginInstance *aInstance, 
                      nsIPluginStreamListener *aListener,
                      nsIInputStream *aPostStream = nsnull,
                      const char *aHeadersData = nsnull, 
                      PRUint32 aHeadersDataLen = 0);
 
   nsresult
-  GetURLWithHeaders(nsISupports* pluginInst, 
+  GetURLWithHeaders(nsNPAPIPluginInstance *pluginInst, 
                     const char* url, 
                     const char* target = NULL,
                     nsIPluginStreamListener* streamListener = NULL,
@@ -133,7 +132,7 @@ public:
                     const char* getHeaders = NULL);
 
   nsresult
-  DoURLLoadSecurityCheck(nsIPluginInstance *aInstance,
+  DoURLLoadSecurityCheck(nsNPAPIPluginInstance *aInstance,
                          const char* aURL);
 
   nsresult
@@ -161,8 +160,24 @@ public:
   void RemoveIdleTimeTarget(nsIPluginInstanceOwner* objectFrame);
 
 #ifdef MOZ_IPC
-  void PluginCrashed(nsNPAPIPlugin* plugin);
+  void PluginCrashed(nsNPAPIPlugin* plugin,
+                     const nsAString& pluginDumpID,
+                     const nsAString& browserDumpID);
 #endif
+
+  nsPluginInstanceTag *FindInstanceTag(nsIPluginInstance *instance);
+  nsPluginInstanceTag *FindInstanceTag(const char *mimetype);
+  nsPluginInstanceTag *FindStoppedInstanceTag(const char * url);
+  nsPluginInstanceTag *FindOldestStoppedInstanceTag();
+  PRUint32 StoppedInstanceTagCount();
+
+  void StopRunningInstances(nsISupportsArray* aReloadDocs, nsPluginTag* aPluginTag);
+
+  nsTArray< nsAutoPtr<nsPluginInstanceTag> > *InstanceTagArray();
+
+  
+  nsPluginTag*
+  FindTagForLibrary(PRLibrary* aLibrary);
 
 private:
   nsresult
@@ -170,14 +185,14 @@ private:
 
   nsresult
   NewEmbeddedPluginStreamListener(nsIURI* aURL, nsIPluginInstanceOwner *aOwner,
-                                  nsIPluginInstance* aInstance,
+                                  nsNPAPIPluginInstance* aInstance,
                                   nsIStreamListener** aListener);
 
   nsresult
-  NewEmbeddedPluginStream(nsIURI* aURL, nsIPluginInstanceOwner *aOwner, nsIPluginInstance* aInstance);
+  NewEmbeddedPluginStream(nsIURI* aURL, nsIPluginInstanceOwner *aOwner, nsNPAPIPluginInstance* aInstance);
 
   nsresult
-  NewFullPagePluginStream(nsIStreamListener *&aStreamListener, nsIPluginInstance *aInstance);
+  NewFullPagePluginStream(nsIStreamListener *&aStreamListener, nsIURI* aURI, nsNPAPIPluginInstance *aInstance);
 
   
   
@@ -195,12 +210,9 @@ private:
   FindStoppedPluginForURL(nsIURI* aURL, nsIPluginInstanceOwner *aOwner);
 
   nsresult
-  SetUpDefaultPluginInstance(const char *aMimeType, nsIURI *aURL, nsIPluginInstanceOwner *aOwner);
-
-  nsresult
   AddInstanceToActiveList(nsCOMPtr<nsIPlugin> aPlugin,
                           nsIPluginInstance* aInstance,
-                          nsIURI* aURL, PRBool aDefaultPlugin);
+                          nsIURI* aURL);
 
   nsresult
   FindPlugins(PRBool aCreatePluginList, PRBool * aPluginsChanged);
@@ -243,7 +255,9 @@ private:
 
   
   void UnloadUnusedLibraries();
-  
+
+  void OnPluginInstanceDestroyed(nsPluginTag* aPluginTag);
+
   nsRefPtr<nsPluginTag> mPlugins;
   nsRefPtr<nsPluginTag> mCachedPlugins;
   PRPackedBool mPluginsLoaded;
@@ -254,12 +268,10 @@ private:
   PRPackedBool mOverrideInternalTypes;
 
   
-  PRPackedBool mAllowAlienStarHandler;
+  PRPackedBool mPluginsDisabled;
 
-  
-  PRPackedBool mDefaultPluginDisabled;
+  nsTArray< nsAutoPtr<nsPluginInstanceTag> > mInstanceTags;
 
-  nsPluginInstanceTagList mPluginInstanceTagList;
   nsTArray<PRLibrary*> mUnusedLibraries;
 
   nsCOMPtr<nsIFile> mPluginRegFile;
