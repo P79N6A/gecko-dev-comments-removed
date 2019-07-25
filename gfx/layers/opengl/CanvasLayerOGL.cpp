@@ -109,7 +109,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
   }
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
-      
+
   
   
   GLint texSize = gl()->GetMaxTextureSize();
@@ -118,7 +118,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
     MakeTextureIfNeeded(gl(), mTexture);
     
     
-    NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget, 
+    NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget,
                       "Invalid texture size when WebGL surface already exists at that size?");
   }
 }
@@ -223,7 +223,7 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
                                                 GetMaskLayer() ? Mask2d : MaskNone);
   } else if (mDelayedUpdates) {
     NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget, "WebGL canvases should always be using full texture upload");
-    
+
     drawRect.IntersectRect(drawRect, GetEffectiveVisibleRegion().GetBounds());
 
     nsRefPtr<gfxASurface> surf = mCanvasSurface;
@@ -299,7 +299,7 @@ ShadowCanvasLayerOGL::ShadowCanvasLayerOGL(LayerManagerOGL* aManager)
 {
   mImplData = static_cast<LayerOGL*>(this);
 }
- 
+
 ShadowCanvasLayerOGL::~ShadowCanvasLayerOGL()
 {}
 
