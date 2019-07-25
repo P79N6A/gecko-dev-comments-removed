@@ -131,9 +131,10 @@ public:
   virtual already_AddRefed<ContainerLayer> CreateContainerLayer();
   virtual already_AddRefed<ImageLayer> CreateImageLayer();
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
-  virtual already_AddRefed<ImageContainer> CreateImageContainer();
   virtual already_AddRefed<ColorLayer> CreateColorLayer();
   virtual already_AddRefed<ReadbackLayer> CreateReadbackLayer();
+  virtual ImageFactory *GetImageFactory();
+
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer()
   { return nsnull; }
   virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer()
@@ -207,6 +208,8 @@ protected:
   nsRefPtr<gfxContext> mDefaultTarget;
   
   nsRefPtr<gfxContext> mTarget;
+  
+  nsRefPtr<ImageFactory> mFactory;
 
   
   gfxCachedTempSurface mCachedSurface;
@@ -275,55 +278,5 @@ private:
 
 }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-class nsMainThreadSurfaceRef;
-
-template <>
-class nsAutoRefTraits<nsMainThreadSurfaceRef> {
-public:
-  typedef gfxASurface* RawRef;
-
-  
-
-
-  class SurfaceReleaser : public nsRunnable {
-  public:
-    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
-    NS_IMETHOD Run() {
-      mRef->Release();
-      return NS_OK;
-    }
-    RawRef mRef;
-  };
-
-  static RawRef Void() { return nsnull; }
-  static void Release(RawRef aRawRef)
-  {
-    if (NS_IsMainThread()) {
-      aRawRef->Release();
-      return;
-    }
-    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
-    NS_DispatchToMainThread(runnable);
-  }
-  static void AddRef(RawRef aRawRef)
-  {
-    NS_ASSERTION(NS_IsMainThread(),
-                 "Can only add a reference on the main thread");
-    aRawRef->AddRef();
-  }
-};
 
 #endif 

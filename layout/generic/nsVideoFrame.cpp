@@ -199,58 +199,6 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   nsRefPtr<ImageContainer> container = element->GetImageContainer();
   
   
-  if (container && container->Manager() != aManager) {
-    
-    
-    container->SetLayerManager(aManager);
-  }
-
-  
-  
-  
-  
-  
-  if (!container || 
-      (container->Manager() && container->Manager() != aManager) ||
-      container->GetBackendType() != aManager->GetBackendType())
-  {
-    nsRefPtr<ImageContainer> tmpContainer = aManager->CreateImageContainer();
-    if (!tmpContainer)
-      return nsnull;
-    
-    
-    CairoImage::Data cairoData;
-    nsRefPtr<gfxASurface> imageSurface;
-    if (container) {
-      
-      
-      imageSurface = container->GetCurrentAsSurface(&cairoData.mSize);
-      if (!imageSurface) {
-        
-        return nsnull;
-      }
-      cairoData.mSurface = imageSurface;
-    } else {
-      
-      cairoData.mSurface = element->GetPrintSurface();
-      if (!cairoData.mSurface)
-        return nsnull;
-      cairoData.mSize = gfxIntSize(videoSize.width, videoSize.height);
-    }
-
-    
-    Image::Format cairoFormat = Image::CAIRO_SURFACE;
-    nsRefPtr<Image> image = tmpContainer->CreateImage(&cairoFormat, 1);
-    if (!image)
-      return nsnull;
-
-    NS_ASSERTION(image->GetFormat() == cairoFormat, "Wrong format");
-    static_cast<CairoImage*>(image.get())->SetData(cairoData);
-    tmpContainer->SetCurrentImage(image);
-    container = tmpContainer.forget();
-  }
-
-  
   
   gfxIntSize frameSize = container->GetCurrentSize();
   if (frameSize.width == 0 || frameSize.height == 0) {

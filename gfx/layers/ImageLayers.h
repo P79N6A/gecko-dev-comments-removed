@@ -46,8 +46,12 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/mozalloc.h"
+#include "mozilla/Mutex.h"
+#include "gfxPlatform.h"
 
-class nsIOSurface;
+#ifdef XP_MACOSX
+#include "nsIOSurface.h"
+#endif
 
 namespace mozilla {
 namespace layers {
@@ -58,6 +62,14 @@ enum StereoMode {
   STEREO_MODE_RIGHT_LEFT,
   STEREO_MODE_BOTTOM_TOP,
   STEREO_MODE_TOP_BOTTOM
+};
+
+struct ImageBackendData
+{
+  virtual ~ImageBackendData() {}
+
+protected:
+  ImageBackendData() {}
 };
 
 
@@ -108,12 +120,19 @@ public:
 
 
 
-
     MAC_IO_SURFACE
   };
 
   Format GetFormat() { return mFormat; }
   void* GetImplData() { return mImplData; }
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface() = 0;
+  virtual gfxIntSize GetSize() = 0;
+
+  ImageBackendData* GetBackendData(LayerManager::LayersBackend aBackend)
+  { return mBackendData[aBackend]; }
+  void SetBackendData(LayerManager::LayersBackend aBackend, ImageBackendData* aData)
+  { mBackendData[aBackend] = aData; }
 
 protected:
   Image(void* aImplData, Format aFormat) :
@@ -121,8 +140,90 @@ protected:
     mFormat(aFormat)
   {}
 
+  nsAutoPtr<ImageBackendData> mBackendData[LayerManager::LAYERS_LAST];
+
   void* mImplData;
   Format mFormat;
+};
+
+
+
+
+
+
+
+
+class BufferRecycleBin {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RecycleBin)
+
+  typedef mozilla::gl::GLContext GLContext;
+
+public:
+  BufferRecycleBin();
+
+  void RecycleBuffer(PRUint8* aBuffer, PRUint32 aSize);
+  
+  PRUint8* GetBuffer(PRUint32 aSize);
+
+private:
+  typedef mozilla::Mutex Mutex;
+
+  
+  
+  Mutex mLock;
+
+  
+  
+  nsTArray<nsAutoArrayPtr<PRUint8> > mRecycledBuffers;
+  
+  PRUint32 mRecycledBufferSize;
+};
+
+
+
+
+static inline bool
+FormatInList(const Image::Format* aFormats, PRUint32 aNumFormats,
+             Image::Format aFormat)
+{
+  for (PRUint32 i = 0; i < aNumFormats; ++i) {
+    if (aFormats[i] == aFormat) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class THEBES_API ImageFactory
+{
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageFactory)
+protected:
+  friend class ImageContainer;
+
+  ImageFactory() {}
+  virtual ~ImageFactory() {}
+
+  virtual already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
+                                              PRUint32 aNumFormats,
+                                              const gfxIntSize &aScaleHint,
+                                              BufferRecycleBin *aRecycleBin);
+
 };
 
 
@@ -139,10 +240,12 @@ public:
   ImageContainer() :
     mReentrantMonitor("ImageContainer.mReentrantMonitor"),
     mPaintCount(0),
-    mPreviousImagePainted(false)
+    mPreviousImagePainted(false),
+    mImageFactory(new ImageFactory()),
+    mRecycleBin(new BufferRecycleBin())
   {}
 
-  virtual ~ImageContainer() {}
+  ~ImageContainer();
 
   
 
@@ -152,8 +255,8 @@ public:
 
 
 
-  virtual already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
-                                              PRUint32 aNumFormats) = 0;
+  already_AddRefed<Image> CreateImage(const Image::Format* aFormats,
+                                      PRUint32 aNumFormats);
 
   
 
@@ -163,25 +266,7 @@ public:
 
 
 
-  virtual void SetCurrentImage(Image* aImage) = 0;
-
-  
-
-
-
-  virtual void SetDelayedConversion(bool aDelayed) {}
-
-  
-
-
-
-
-
-
-
-
-
-  virtual already_AddRefed<Image> GetCurrentImage() = 0;
+  void SetCurrentImage(Image* aImage);
 
   
 
@@ -193,22 +278,12 @@ public:
 
 
 
-
-
-
-
-
-  virtual already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSizeResult) = 0;
-
-  
-
-
-
-
-  LayerManager* Manager()
+  already_AddRefed<Image> GetCurrentImage()
   {
-    NS_PRECONDITION(NS_IsMainThread(), "Must be called on main thread");
-    return mManager;
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+
+    nsRefPtr<Image> retval = mActiveImage;
+    return retval.forget();
   }
 
   
@@ -216,14 +291,24 @@ public:
 
 
 
-  virtual gfxIntSize GetCurrentSize() = 0;
+
+
+
+
+
+
+
+
+
+
+  already_AddRefed<gfxASurface> GetCurrentAsSurface(gfxIntSize* aSizeResult);
 
   
 
 
 
 
-  virtual bool SetLayerManager(LayerManager *aManager) = 0;
+  gfxIntSize GetCurrentSize();
 
   
 
@@ -232,14 +317,14 @@ public:
 
 
 
-  virtual void SetScaleHint(const gfxIntSize& ) { }
+  void SetScaleHint(const gfxIntSize& aScaleHint)
+  { mScaleHint = aScaleHint; }
 
-  
-
-
-
-
-  virtual LayerManager::LayersBackend GetBackendType() = 0;
+  void SetImageFactory(ImageFactory *aFactory)
+  {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    mImageFactory = aFactory ? aFactory : new ImageFactory();
+  }
 
   
 
@@ -285,18 +370,10 @@ public:
 
 protected:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
-  LayerManager* mManager;
 
   
   
   ReentrantMonitor mReentrantMonitor;
-
-  ImageContainer(LayerManager* aManager) :
-    mManager(aManager),
-    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
-    mPaintCount(0),
-    mPreviousImagePainted(false)
-  {}
 
   
   
@@ -306,6 +383,8 @@ protected:
     mPreviousImagePainted = !mPaintTime.IsNull();
     mPaintTime = TimeStamp();
   }
+
+  nsRefPtr<Image> mActiveImage;
 
   
   
@@ -318,6 +397,15 @@ protected:
 
   
   bool mPreviousImagePainted;
+
+  
+  
+  
+  nsRefPtr<ImageFactory> mImageFactory;
+
+  gfxIntSize mScaleHint;
+
+  nsRefPtr<BufferRecycleBin> mRecycleBin;
 };
 
 
@@ -332,8 +420,6 @@ public:
 
   void SetContainer(ImageContainer* aContainer) 
   {
-    NS_ASSERTION(!aContainer->Manager() || aContainer->Manager() == Manager(), 
-                 "ImageContainer must have the same manager as the ImageLayer");
     mContainer = aContainer;  
   }
   
@@ -422,13 +508,13 @@ public:
     MAX_DIMENSION = 16384
   };
 
+  ~PlanarYCbCrImage();
+
   
 
 
 
-
-
-  virtual void SetData(const Data& aData) = 0;
+  virtual void SetData(const Data& aData);
 
   
 
@@ -440,19 +526,14 @@ public:
   
 
 
-  virtual const Data* GetData() { return nsnull; }
+  virtual const Data* GetData() { return &mData; }
 
   
 
 
 
 
-
-
-
-
-  PRUint8 *CopyData(Data& aDest, gfxIntSize& aDestSize,
-                    PRUint32& aDestBufferSize, const Data& aData);
+  void CopyData(const Data& aData);
 
   
 
@@ -464,11 +545,27 @@ public:
   
 
 
-  virtual PRUint32 GetDataSize() = 0;
+  virtual PRUint32 GetDataSize() { return mBufferSize; }
 
-protected:
-  PlanarYCbCrImage(void* aImplData) : Image(aImplData, PLANAR_YCBCR) {}
+  already_AddRefed<gfxASurface> GetAsSurface();
+
+  virtual gfxIntSize GetSize() { return mSize; }
+
+  void SetOffscreenFormat(gfxImageFormat aFormat) { mOffscreenFormat = aFormat; }
+  gfxImageFormat GetOffscreenFormat() { return mOffscreenFormat; }
+
+  
+  nsAutoArrayPtr<PRUint8> mBuffer;
+  PRUint32 mBufferSize;
+  Data mData;
+  gfxIntSize mSize;
+  gfxImageFormat mOffscreenFormat;
+  nsCountedRef<nsMainThreadSurfaceRef> mSurface;
+  nsRefPtr<BufferRecycleBin> mRecycleBin;
+
+  PlanarYCbCrImage(BufferRecycleBin *aRecycleBin);
 };
+
 
 
 
@@ -486,10 +583,26 @@ public:
 
 
 
-  virtual void SetData(const Data& aData) = 0;
+  void SetData(const Data& aData)
+  {
+    mSurface = aData.mSurface;
+    mSize = aData.mSize;
+  }
 
-protected:
-  CairoImage(void* aImplData) : Image(aImplData, CAIRO_SURFACE) {}
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface()
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Must be main thread");
+    nsRefPtr<gfxASurface> surface = mSurface.get();
+    return surface.forget();
+  }
+
+  gfxIntSize GetSize() { return mSize; }
+
+  CairoImage() : Image(NULL, CAIRO_SURFACE) {}
+
+  nsCountedRef<nsMainThreadSurfaceRef> mSurface;
+  gfxIntSize mSize;
 };
 
 #ifdef XP_MACOSX
@@ -499,12 +612,27 @@ public:
     nsIOSurface* mIOSurface;
   };
 
+  MacIOSurfaceImage()
+    : Image(NULL, MAC_IO_SURFACE)
+    , mSize(0, 0)
+    , mPluginInstanceOwner(NULL)
+    , mUpdateCallback(NULL)
+    , mDestroyCallback(NULL)
+    {}
+
+  virtual ~MacIOSurfaceImage()
+  {
+    if (mDestroyCallback) {
+      mDestroyCallback(mPluginInstanceOwner);
+    }
+  }
+
  
 
 
 
 
-  virtual void SetData(const Data& aData) = 0;
+  virtual void SetData(const Data& aData);
 
   
 
@@ -512,12 +640,38 @@ public:
 
 
   typedef void (*UpdateSurfaceCallback)(ImageContainer* aContainer, void* aInstanceOwner);
-  virtual void SetUpdateCallback(UpdateSurfaceCallback aCallback, void* aInstanceOwner) = 0;
-  typedef void (*DestroyCallback)(void* aInstanceOwner);
-  virtual void SetDestroyCallback(DestroyCallback aCallback) = 0;
+  virtual void SetUpdateCallback(UpdateSurfaceCallback aCallback, void* aInstanceOwner)
+  {
+    mUpdateCallback = aCallback;
+    mPluginInstanceOwner = aInstanceOwner;
+  }
 
-protected:
-  MacIOSurfaceImage(void* aImplData) : Image(aImplData, MAC_IO_SURFACE) {}
+  typedef void (*DestroyCallback)(void* aInstanceOwner);
+  virtual void SetDestroyCallback(DestroyCallback aCallback)
+  {
+    mDestroyCallback = aCallback;
+  }
+
+  virtual gfxIntSize GetSize()
+  {
+    return mSize;
+  }
+
+  nsIOSurface* GetIOSurface()
+  {
+    return mIOSurface;
+  }
+
+  void Update(ImageContainer* aContainer);
+
+  virtual already_AddRefed<gfxASurface> GetAsSurface();
+
+private:
+  gfxIntSize mSize;
+  nsRefPtr<nsIOSurface> mIOSurface;
+  void* mPluginInstanceOwner;
+  UpdateSurfaceCallback mUpdateCallback;
+  DestroyCallback mDestroyCallback;
 };
 #endif
 

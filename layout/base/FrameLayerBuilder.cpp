@@ -219,7 +219,7 @@ protected:
 
 
 
-    already_AddRefed<ImageContainer> CanOptimizeImageLayer(LayerManager* aManager);
+    already_AddRefed<ImageContainer> CanOptimizeImageLayer();
 
     
 
@@ -969,13 +969,13 @@ ContainerState::FindOpaqueBackgroundColorFor(PRInt32 aThebesLayerIndex)
 }
 
 already_AddRefed<ImageContainer>
-ContainerState::ThebesLayerData::CanOptimizeImageLayer(LayerManager* aManager)
+ContainerState::ThebesLayerData::CanOptimizeImageLayer()
 {
   if (!mImage || !mImageClip.mRoundedClipRects.IsEmpty()) {
     return nsnull;
   }
 
-  return mImage->GetContainer(aManager);
+  return mImage->GetContainer();
 }
 
 void
@@ -987,7 +987,7 @@ ContainerState::PopThebesLayerData()
   ThebesLayerData* data = mThebesLayerDataStack[lastIndex];
 
   nsRefPtr<Layer> layer;
-  nsRefPtr<ImageContainer> imageContainer = data->CanOptimizeImageLayer(mManager); 
+  nsRefPtr<ImageContainer> imageContainer = data->CanOptimizeImageLayer(); 
 
   if (data->mIsSolidColorInVisibleRegion || imageContainer) {
     NS_ASSERTION(!(data->mIsSolidColorInVisibleRegion && imageContainer),

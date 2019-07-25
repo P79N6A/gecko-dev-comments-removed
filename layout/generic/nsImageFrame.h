@@ -391,7 +391,7 @@ public:
 
 
 
-  already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager);
+  already_AddRefed<ImageContainer> GetContainer();
   
   
 

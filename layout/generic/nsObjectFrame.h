@@ -40,6 +40,10 @@
 #ifndef nsObjectFrame_h___
 #define nsObjectFrame_h___
 
+#ifdef XP_WIN
+#include <windows.h>
+#endif
+
 #include "nsPluginInstanceOwner.h"
 #include "nsIObjectFrame.h"
 #include "nsFrame.h"
@@ -120,8 +124,19 @@ public:
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
   NS_METHOD GetPluginInstance(nsNPAPIPluginInstance** aPluginInstance);
-
+  virtual nsresult Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamListener);
+  virtual nsresult Instantiate(const char* aMimeType, nsIURI* aURI);
+  virtual void TryNotifyContentObjectWrapper();
+  virtual void StopPlugin();
   virtual void SetIsDocumentActive(bool aIsActive);
+
+  
+
+
+
+
+
+  void StopPluginInternal(bool aDelayedStop);
 
   NS_IMETHOD GetCursor(const nsPoint& aPoint, nsIFrame::Cursor& aCursor);
 
@@ -148,7 +163,7 @@ public:
 #endif
 
   
-  nsresult PrepForDrawing(nsIWidget *aWidget);
+  nsresult CreateWidget(nscoord aWidth, nscoord aHeight, bool aViewOnly);
 
   
   static nsIObjectFrame* GetNextObjectFrame(nsPresContext* aPresContext,
@@ -171,7 +186,7 @@ public:
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager);
 
-  already_AddRefed<ImageContainer> GetImageContainer(LayerManager* aManager = nsnull);
+  already_AddRefed<ImageContainer> GetImageContainer();
   
 
 
@@ -194,6 +209,20 @@ public:
 
   nsIWidget* GetWidget() { return mWidget; }
 
+protected:
+  nsObjectFrame(nsStyleContext* aContext);
+  virtual ~nsObjectFrame();
+
+  
+  
+  void GetDesiredSize(nsPresContext* aPresContext,
+                      const nsHTMLReflowState& aReflowState,
+                      nsHTMLReflowMetrics& aDesiredSize);
+
+  nsresult InstantiatePlugin(nsPluginHost* aPluginHost, 
+                             const char* aMimetype,
+                             nsIURI* aURL);
+
   
 
 
@@ -205,18 +234,6 @@ public:
 
   nsresult CallSetWindow(bool aCheckIsHidden = true);
 
-  void SetInstanceOwner(nsPluginInstanceOwner* aOwner);
-
-protected:
-  nsObjectFrame(nsStyleContext* aContext);
-  virtual ~nsObjectFrame();
-
-  
-  
-  void GetDesiredSize(nsPresContext* aPresContext,
-                      const nsHTMLReflowState& aReflowState,
-                      nsHTMLReflowMetrics& aDesiredSize);
-
   bool IsFocusable(PRInt32 *aTabIndex = nsnull, bool aWithMouse = false);
 
   
@@ -224,6 +241,8 @@ protected:
 
   bool IsOpaque() const;
   bool IsTransparentMode() const;
+
+  void NotifyContentObjectWrapper();
 
   nsIntPoint GetWindowOriginInPixels(bool aWindowless);
 
@@ -235,6 +254,12 @@ protected:
   void PaintPlugin(nsDisplayListBuilder* aBuilder,
                    nsRenderingContext& aRenderingContext,
                    const nsRect& aDirtyRect, const nsRect& aPluginRect);
+
+  
+
+
+
+  NS_HIDDEN_(nsresult) PrepareInstanceOwner();
 
   
 
@@ -266,8 +291,8 @@ private:
   private:
     nsString mEventType;
   };
-
-  nsPluginInstanceOwner*          mInstanceOwner; 
+  
+  nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
   nsIView*                        mInnerView;
   nsCOMPtr<nsIWidget>             mWidget;
   nsIntRect                       mWindowlessRect;
@@ -276,6 +301,11 @@ private:
 
 
   PluginBackgroundSink*           mBackgroundSink;
+
+  
+  
+  
+  bool mPreventInstantiation;
 
   bool mReflowCallbackPosted;
 
