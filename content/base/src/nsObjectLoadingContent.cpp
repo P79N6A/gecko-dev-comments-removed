@@ -683,9 +683,9 @@ nsObjectLoadingContent::~nsObjectLoadingContent()
 nsresult
 nsObjectLoadingContent::InstantiatePluginInstance()
 {
-  if (mType != eType_Plugin) {
-    LOG(("OBJLC [%p]: Refusing to instantiate non-plugin, "
-         "type %u", this, mType));
+  if (mType != eType_Plugin || mIsLoading) {
+    LOG(("OBJLC [%p]: Not instantiating loading or non-plugin object, type %u",
+         this, mType));
     return NS_OK;
   }
 
@@ -1560,6 +1560,9 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   
+  if (mIsLoading) {
+    LOG(("OBJLC [%p]: Re-entering into LoadObject", this));
+  }
   mIsLoading = true;
   AutoSetLoadingToFalse reentryCheck(this);
 
@@ -1569,6 +1572,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   if (!mIsLoading) {
     
     
+    LOG(("OBJLC [%p]: Re-entered into LoadObject, aborting outer load", this));
     return NS_OK;
   }
 
@@ -1618,6 +1622,13 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     } else {
       allowLoad = CheckProcessPolicy(&contentPolicy);
     }
+
+    
+    if (!mIsLoading) {
+      LOG(("OBJLC [%p]: We re-entered in content policy, leaving original load",
+           this));
+      return NS_OK;
+    }
     
     
     if (!allowLoad) {
@@ -1663,6 +1674,10 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   
   
+  
+  
+  
+  mIsLoading = false;
   
   switch (mType) {
     case eType_Image:
