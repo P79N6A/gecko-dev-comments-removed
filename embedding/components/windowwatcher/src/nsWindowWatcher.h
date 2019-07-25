@@ -47,6 +47,7 @@
 #include "nsIWindowCreator.h" 
 #include "nsIWindowWatcher.h"
 #include "nsIPromptFactory.h"
+#include "nsIAuthPromptAdapterFactory.h"
 #include "nsPIWindowWatcher.h"
 #include "nsTArray.h"
 
@@ -57,6 +58,7 @@ class  nsIWebBrowserChrome;
 class  nsString;
 class  nsWatcherWindowEnumerator;
 class  nsIScriptContext;
+class  nsPromptService;
 struct JSContext;
 struct JSObject;
 struct nsWatcherWindowEntry;
@@ -66,7 +68,8 @@ struct SizeSpec;
 class nsWindowWatcher :
       public nsIWindowWatcher,
       public nsPIWindowWatcher,
-      public nsIPromptFactory
+      public nsIPromptFactory,
+      public nsIAuthPromptAdapterFactory
 {
 friend class nsWatcherWindowEnumerator;
 
@@ -81,8 +84,10 @@ public:
   NS_DECL_NSIWINDOWWATCHER
   NS_DECL_NSPIWINDOWWATCHER
   NS_DECL_NSIPROMPTFACTORY
+  NS_DECL_NSIAUTHPROMPTADAPTERFACTORY
 
-private:
+protected:
+  friend class nsPromptService;
   PRBool AddEnumerator(nsWatcherWindowEnumerator* inEnumerator);
   PRBool RemoveEnumerator(nsWatcherWindowEnumerator* inEnumerator);
 

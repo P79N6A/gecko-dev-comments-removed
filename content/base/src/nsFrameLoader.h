@@ -84,6 +84,7 @@ protected:
     mNeedsAsyncDestroy(PR_FALSE),
     mInSwap(PR_FALSE)
 #ifdef MOZ_IPC
+    , mDelayRemoteDialogs(PR_FALSE)
     , mRemoteWidgetCreated(PR_FALSE)
     , mRemoteFrame(false)
     , mChildProcess(nsnull)
@@ -138,9 +139,13 @@ public:
                                nsRefPtr<nsFrameLoader>& aFirstToSwap,
                                nsRefPtr<nsFrameLoader>& aSecondToSwap);
 
+  
+  void DestroyChild();
+
 #ifdef MOZ_IPC
   mozilla::dom::PIFrameEmbeddingParent* GetChildProcess();
 #endif
+  NS_IMETHOD GetCrossProcessObjectWrapper(nsIVariant** cpow);
 
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
@@ -186,6 +191,7 @@ private:
   PRPackedBool mInSwap : 1;
 
 #ifdef MOZ_IPC
+  PRPackedBool mDelayRemoteDialogs : 1;
   PRPackedBool mRemoteWidgetCreated : 1;
   bool mRemoteFrame;
   
