@@ -314,6 +314,40 @@ function _computeKeyCodeFromChar(aChar)
 
 
 
+function isKeypressFiredKey(aDOMKeyCode)
+{
+  if (typeof(aDOMKeyCode) == "string") {
+    if (aDOMKeyCode.indexOf("VK_") == 0) {
+      aDOMKeyCode = KeyEvent["DOM_" + aDOMKeyCode];
+      if (!aDOMKeyCode) {
+        throw "Unknown key: " + aDOMKeyCode;
+      }
+    } else {
+      
+      return true;
+    }
+  }
+  switch (aDOMKeyCode) {
+    case KeyEvent.DOM_VK_SHIFT:
+    case KeyEvent.DOM_VK_CONTROL:
+    case KeyEvent.DOM_VK_ALT:
+    case KeyEvent.DOM_VK_CAPS_LOCK:
+    case KeyEvent.DOM_VK_NUM_LOCK:
+    case KeyEvent.DOM_VK_SCROLL_LOCK:
+    case KeyEvent.DOM_VK_META:
+      return false;
+    default:
+      return true;
+  }
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -347,9 +381,10 @@ function synthesizeKey(aKey, aEvent, aWindow)
     } else {
       var keyDownDefaultHappened =
           utils.sendKeyEvent("keydown", keyCode, 0, modifiers);
-      
-      utils.sendKeyEvent("keypress", charCode ? 0 : keyCode, charCode,
-                         modifiers, !keyDownDefaultHappened);
+      if (isKeypressFiredKey(keyCode)) {
+        utils.sendKeyEvent("keypress", charCode ? 0 : keyCode, charCode,
+                           modifiers, !keyDownDefaultHappened);
+      }
       utils.sendKeyEvent("keyup", keyCode, 0, modifiers);
     }
   }
