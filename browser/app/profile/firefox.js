@@ -1043,9 +1043,6 @@ pref("devtools.debugger.enabled", false);
 pref("devtools.debugger.ui.height", 250);
 
 
-pref("devtools.debugger.log", false);
-
-
 pref("devtools.styleinspector.enabled", true);
 
 

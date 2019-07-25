@@ -313,6 +313,9 @@ pref("toolkit.telemetry.server_owner", "Mozilla");
 pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.html#telemetry");
 
 
+pref("devtools.debugger.log", false);
+
+
 pref("view_source.syntax_highlight", true);
 pref("view_source.wrap_long_lines", false);
 pref("view_source.editor.external", false);
