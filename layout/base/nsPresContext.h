@@ -1248,7 +1248,7 @@ public:
 
 
 
-  void ForcePluginGeometryUpdate();
+  void SynchronousPluginGeometryUpdate();
 
   
 

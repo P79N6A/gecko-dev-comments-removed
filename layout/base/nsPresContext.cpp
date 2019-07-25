@@ -2651,8 +2651,13 @@ nsRootPresContext::UpdatePluginGeometry()
 }
 
 void
-nsRootPresContext::ForcePluginGeometryUpdate()
+nsRootPresContext::SynchronousPluginGeometryUpdate()
 {
+  if (!mNeedsToUpdatePluginGeometry) {
+    
+    return;
+  }
+
   
   nsIPresShell* shell = GetPresShell();
   if (!shell)
@@ -2684,8 +2689,10 @@ nsRootPresContext::RequestUpdatePluginGeometry(nsIFrame* aFrame)
     mNeedsToUpdatePluginGeometry = PR_TRUE;
 
     
+    
+    
     nsCOMPtr<nsIRunnable> event =
-      NS_NewRunnableMethod(this, &nsRootPresContext::ForcePluginGeometryUpdate);
+      NS_NewRunnableMethod(this, &nsRootPresContext::SynchronousPluginGeometryUpdate);
     NS_DispatchToMainThread(event);
 
     mUpdatePluginGeometryForFrame = aFrame;
