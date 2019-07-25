@@ -69,13 +69,17 @@ class IonCode : public gc::Cell
     { }
 
   public:
-    uint8 *code() const {
+    uint8 *raw() const {
         return code_;
     }
     uint32 size() const {
         return size_;
     }
     void finalize(JSContext *cx);
+
+    template <typename T> T as() const {
+        return JS_DATA_TO_FUNC_PTR(T, raw());
+    }
 
     
     
@@ -88,14 +92,26 @@ class IonCode : public gc::Cell
 
 struct IonScript
 {
-    IonCode *method;
+    IonCode *method_;
 
   private:
     void trace(JSTracer *trc, JSScript *script);
 
   public:
+    
+    IonScript();
+
+    static IonScript *New(JSContext *cx);
     static void Trace(JSTracer *trc, JSScript *script);
     static void Destroy(JSContext *cx, JSScript *script);
+
+  public:
+    IonCode *method() const {
+        return method_;
+    }
+    void setMethod(IonCode *code) {
+        method_ = code;
+    }
 };
 
 }

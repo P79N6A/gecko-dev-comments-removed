@@ -51,10 +51,15 @@ static const ptrdiff_t STACK_SLOT_SIZE       = 8;
 static const uint32 MAX_STACK_SLOTS          = 256;
 
 
-static const uint32 ION_FRAME_PREFIX_SIZE    = 8;
 
 
-static const uint32 ION_FRAME_SLACK_SIZE     = 16;
+static const uint32 ION_FRAME_PREFIX_SIZE    = 16;
+
+
+
+
+
+static const uint32 ION_FRAME_SLACK_SIZE     = 24;
 
 class Registers {
   public:

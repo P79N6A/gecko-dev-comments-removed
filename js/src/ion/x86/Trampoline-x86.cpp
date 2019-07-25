@@ -67,14 +67,31 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.push(X86Registers::edi);
 
     
-
-
-
-    
     
     masm.load32(Address(X86Registers::ebp, 12), X86Registers::eax);
-    masm.sub32(Imm32(1), X86Registers::eax);
     masm.lshift32(Imm32(3), X86Registers::eax);
+
+    
+    
+    
+    
+    
+    
+    
+    masm.move(X86Registers::esp, X86Registers::ecx);
+    masm.subPtr(X86Registers::eax, X86Registers::ecx);
+    masm.sub32(Imm32(8), X86Registers::ecx);
+
+    
+    masm.andPtr(Imm32(15), X86Registers::ecx);
+    masm.subPtr(X86Registers::ecx, X86Registers::esp);
+
+    
+
+
+
+    
+    masm.sub32(Imm32(8), X86Registers::eax);
 
     
     masm.loadPtr(Address(X86Registers::ebp, 16), X86Registers::ebx);
@@ -98,6 +115,13 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     loopCondition.linkTo(masm.label(), &masm);
 
     
+    
+    masm.load32(Address(X86Registers::ebp, 12), X86Registers::eax);
+    masm.lshift32(Imm32(3), X86Registers::eax);
+    masm.add32(X86Registers::eax, X86Registers::ecx);
+    masm.push(X86Registers::ecx);
+
+    
 
 
 
@@ -105,19 +129,29 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.call(Address(X86Registers::ebp, 8));
 
     
-    masm.loadPtr(Address(X86Registers::ebp, 20), X86Registers::eax);
-    masm.store32(X86Registers::ecx, Address(X86Registers::eax, 0)); 
-    masm.store32(X86Registers::edx, Address(X86Registers::eax, 4)); 
-
     
-
-
-    
-    masm.load32(Address(X86Registers::ebp, 12), X86Registers::eax);
-    masm.lshift32(Imm32(3), X86Registers::eax);
-
-    
+    masm.pop(X86Registers::eax);
     masm.add32(X86Registers::eax, X86Registers::esp);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    masm.loadPtr(Address(X86Registers::esp, 32), X86Registers::eax);
+    masm.store32(X86Registers::ecx, Address(X86Registers::eax, 4)); 
+    masm.store32(X86Registers::edx, Address(X86Registers::eax, 0)); 
+
+    
+
+
 
     
     masm.pop(X86Registers::edi);
@@ -126,6 +160,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
     
     masm.pop(X86Registers::ebp);
+    masm.ret();
 
     LinkerT<MacroAssembler> linker(masm);
     return linker.newCode(cx);
