@@ -113,6 +113,8 @@ public:
 
   virtual void DestroyFrontBuffer();
 
+  virtual void Disconnect();
+
   
   void Destroy();
   Layer* GetLayer();

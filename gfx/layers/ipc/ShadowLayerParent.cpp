@@ -61,6 +61,18 @@ ShadowLayerParent::Bind(Layer* layer)
   mLayer = layer;
 }
 
+void
+ShadowLayerParent::Destroy()
+{
+  
+  
+  
+  
+  if (mLayer) {
+    mLayer->Disconnect();
+  }
+}
+
 ContainerLayer*
 ShadowLayerParent::AsContainer() const
 {
@@ -76,7 +88,10 @@ ShadowLayerParent::ActorDestroy(ActorDestroyReason why)
     return;                     
 
   case Deletion:
-    mLayer->Disconnect();
+    
+    if (mLayer) {
+      mLayer->Disconnect();
+    }
     break;
 
   case AbnormalShutdown:

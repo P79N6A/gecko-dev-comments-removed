@@ -1067,10 +1067,7 @@ nsFrameLoader::DestroyChild()
 #ifdef MOZ_IPC
   if (mRemoteBrowser) {
     mRemoteBrowser->SetOwnerElement(nsnull);
-    
-    
-    
-    unused << mRemoteBrowser->SendDestroy();
+    mRemoteBrowser->Destroy();
     mRemoteBrowser = nsnull;
   }
 #endif
