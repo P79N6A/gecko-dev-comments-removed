@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 349605;
 var summary = 'decompilation of let inside |for| statements';
 var actual = '';

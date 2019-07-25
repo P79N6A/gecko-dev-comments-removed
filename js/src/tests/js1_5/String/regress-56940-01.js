@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 56940;
 var summary = 'String concat should not be O(N**2)';
 var actual = '';

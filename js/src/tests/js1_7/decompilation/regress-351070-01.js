@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 351070;
 var summary = 'decompilation of let declaration should not change scope';
 var summarytrunk = 'let declaration must be direct child of block or top-level implicit block';

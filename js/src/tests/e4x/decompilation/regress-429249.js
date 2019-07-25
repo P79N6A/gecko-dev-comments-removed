@@ -37,6 +37,7 @@
 
 
 
+
 var summary = 'trap should not change decompilation <x/>';
 var BUGNUMBER = 429249
 var actual = '';

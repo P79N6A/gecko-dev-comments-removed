@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 465980;
 var summary = 'Do not crash @ InitArrayElements';
 var actual = '';

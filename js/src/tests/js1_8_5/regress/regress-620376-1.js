@@ -5,6 +5,7 @@
 
 
 
+
 function test() {
     if (typeof timeout != "function")
 	return;

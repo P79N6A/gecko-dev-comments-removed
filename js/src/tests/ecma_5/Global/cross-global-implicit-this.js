@@ -2,6 +2,7 @@
 
 
 
+
 var BUGNUMBER = 671947;
 var summary = "Unqualified function invocation uses the global object of the called property as |this|";
 var actual = "------------------------";

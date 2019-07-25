@@ -2,6 +2,7 @@
 
 
 
+
 var p = Proxy.create({ fix: function() { return {foo: {value: 2} }; } });
 Object.preventExtensions(p);
 reportCompare(p.foo, 2, "property exists");

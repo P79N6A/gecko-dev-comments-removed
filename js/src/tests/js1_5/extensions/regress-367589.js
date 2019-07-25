@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 367589;
 var summary = 'Do not assert !SPROP_HAS_STUB_SETTER(sprop) || (sprop->attrs & JSPROP_GETTER)';
 var actual = 'No Crash';

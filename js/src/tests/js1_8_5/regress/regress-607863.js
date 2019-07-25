@@ -4,6 +4,7 @@
 
 
 
+
 var sandbox = evalcx('');
 var foreign = evalcx('({ get f() this, set x(v) { result = this } })', sandbox);
 var local = Object.create(foreign);

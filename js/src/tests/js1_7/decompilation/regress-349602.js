@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 349602;
 var summary = 'decompilation of let with e4x literal';
 var actual = '';

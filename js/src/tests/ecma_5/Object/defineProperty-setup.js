@@ -1,6 +1,7 @@
 
 
 
+
 assertEq("defineProperty" in Object, true);
 assertEq(Object.defineProperty.length, 3);
 

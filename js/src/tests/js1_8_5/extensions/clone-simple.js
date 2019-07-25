@@ -2,6 +2,7 @@
 
 
 
+
 function testEq(b) {
     var a = deserialize(serialize(b));
     assertEq(a, b);

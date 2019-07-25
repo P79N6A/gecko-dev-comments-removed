@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 577325;
 var summary = 'Implement the ES5 algorithm for processing function statements';
 

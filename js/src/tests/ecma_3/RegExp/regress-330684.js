@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 330684;
 var summary = 'Do not hang on RegExp';
 var actual = 'Do not hang on RegExp';

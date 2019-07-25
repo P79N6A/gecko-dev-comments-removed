@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 406572;
 var summary = 'JSOP_CLOSURE unconditionally replaces properties of the variable object - Browser only';
 var actual = '';

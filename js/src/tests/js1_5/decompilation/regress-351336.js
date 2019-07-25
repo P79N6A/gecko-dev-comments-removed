@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 351336;
 var summary = 'decompilation of for initialization containing for';
 var actual = '';

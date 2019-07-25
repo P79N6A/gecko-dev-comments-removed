@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 350387;
 var summary = 'Var declaration and let with same name';
 var actual = '';

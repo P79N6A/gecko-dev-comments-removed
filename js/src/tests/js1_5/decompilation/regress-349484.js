@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 349484;
 var summary = 'Incorrect decompilation of import/export statements';
 var actual = 'No Crash';

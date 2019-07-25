@@ -40,6 +40,7 @@
 
 
 
+
 START('setNamespace() should not affect namespaceDeclarations()');
 printBugNumber('278112');
 

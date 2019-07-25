@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 352609;
 var summary = 'decompilation of |let| expression for |is not a function| error';
 var actual = '';

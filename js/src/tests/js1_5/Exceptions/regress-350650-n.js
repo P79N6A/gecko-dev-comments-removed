@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 350650;
 var summary = 'js reports "uncaught exception';
 var actual = 'Error';

@@ -5,6 +5,7 @@
 
 
 
+
 if (typeof Worker != 'undefined') {
     JSTest.waitForExplicitFinish();
     var w = Worker(workerDir + "worker-fib-child.js");

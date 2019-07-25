@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 362583;
 var summary = 'Do not assert: caller->fun && !JSFUN_HEAVYWEIGHT_TEST(caller->fun->flags)';
 var actual = 'No Crash';

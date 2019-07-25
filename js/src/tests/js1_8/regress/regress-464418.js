@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 464418;
 var summary = 'Do not assert: fp->slots + fp->script->nfixed + ' +
   'js_ReconstructStackDepth(cx, fp->script, fp->regs->pc) == fp->regs->sp';

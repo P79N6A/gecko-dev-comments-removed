@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 455982;
 var summary = 'Do not assert with JIT: with generator as getter';
 var actual = 'No Crash';

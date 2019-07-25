@@ -48,6 +48,7 @@
 
 
 
+
 var SECTION = "JS1_2";
 var VERSION = "JS1_2";
 startTest();

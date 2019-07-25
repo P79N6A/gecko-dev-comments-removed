@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 289669;
 var summary = 'O(N^2) behavior on String.replace(/RegExp/, ...)';
 var actual = '';

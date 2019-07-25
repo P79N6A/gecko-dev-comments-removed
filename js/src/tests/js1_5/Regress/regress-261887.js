@@ -38,6 +38,7 @@
 
 
 
+
 var BUGNUMBER = 261887;
 var summary = 'deleted properties should not be visited by for in';
 var actual = '';

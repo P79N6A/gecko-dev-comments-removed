@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 380237;
 var summary = 'Generator expressions parenthesization test';
 var actual = '';

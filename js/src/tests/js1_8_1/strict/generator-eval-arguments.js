@@ -9,6 +9,7 @@
 
 
 
+
 assertEq(testLenientAndStrict('(1 for (eval in []))',
                               parsesSuccessfully,
                               parseRaisesException(SyntaxError)),

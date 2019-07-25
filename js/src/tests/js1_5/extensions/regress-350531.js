@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 350531;
 var summary = 'exhaustively test parenthesization of binary operator subsets';
 var actual = '';

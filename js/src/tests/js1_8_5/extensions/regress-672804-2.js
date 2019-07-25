@@ -1,6 +1,7 @@
 
 
 
+
 var a = 0;
 function f() {
     let (a = let (x = 1) x) {}

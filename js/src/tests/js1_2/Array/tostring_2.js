@@ -47,6 +47,7 @@
 
 
 
+
 var SECTION = "Array/tostring_2.js";
 var VERSION = "JS_12";
 startTest();

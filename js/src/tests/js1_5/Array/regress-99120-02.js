@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 99120;
 var summary = 'sort() should not be O(N^2) on nearly sorted data';
 var actual = '';

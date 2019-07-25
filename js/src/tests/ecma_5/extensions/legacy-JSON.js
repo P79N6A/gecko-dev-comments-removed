@@ -1,6 +1,7 @@
 
 
 
+
 try
 {
   parseLegacyJSON("[,]");

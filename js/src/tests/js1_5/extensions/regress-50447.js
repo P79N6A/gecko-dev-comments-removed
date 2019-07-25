@@ -47,6 +47,7 @@
 
 
 
+
 var BUGNUMBER = 50447;
 var summary = 'Test (non-ECMA) Error object properties fileName, lineNumber';
 

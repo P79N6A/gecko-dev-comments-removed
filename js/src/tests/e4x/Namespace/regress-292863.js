@@ -36,6 +36,7 @@
 
 
 
+
 var summary = "Undeclaring namespace prefix should cause parse error";
 var BUGNUMBER = 292863;
 var actual = 'no error';

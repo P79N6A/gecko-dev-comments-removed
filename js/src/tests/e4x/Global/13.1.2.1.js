@@ -40,6 +40,7 @@
 
 
 
+
 START("13.1.2.1 - isXMLName()");
 
 var BUGNUMBER = 289630;

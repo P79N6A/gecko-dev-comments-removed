@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 476414;
 var summary = 'Do not crash @ js_NativeSet';
 var actual = '';

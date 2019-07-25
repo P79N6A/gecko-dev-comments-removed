@@ -2,6 +2,7 @@
 
 
 
+
 function expect(actual, arg) {
     reportCompare(expect.expected, actual, arg);
 }

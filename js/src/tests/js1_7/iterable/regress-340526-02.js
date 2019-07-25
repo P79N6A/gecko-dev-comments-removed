@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 340526;
 var summary = 'Iterators: cross-referenced objects with close handler can ' +
   'delay close handler execution';

@@ -2,6 +2,7 @@
 
 
 
+
 var BUGNUMBER = 616294;
 var summary =
   "|delete x| inside a function in eval code, where that eval code includes " +

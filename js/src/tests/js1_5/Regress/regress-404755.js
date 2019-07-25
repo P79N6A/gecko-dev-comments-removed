@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 404755;
 var summary = 'Do not consume heap when deleting property';
 var actual = 'No leak';

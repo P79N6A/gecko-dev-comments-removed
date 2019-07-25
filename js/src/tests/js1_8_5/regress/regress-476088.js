@@ -2,6 +2,7 @@
 
 
 
+
 var err;
 try {
     f = function() { var x; x.y; }

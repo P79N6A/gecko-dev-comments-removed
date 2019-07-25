@@ -3,6 +3,7 @@
 
 
 
+
 assertEq(testLenientAndStrict("var o = {m:function(){}}; o.function::m()",
                               parsesSuccessfully,
                               parseRaisesException(SyntaxError)),

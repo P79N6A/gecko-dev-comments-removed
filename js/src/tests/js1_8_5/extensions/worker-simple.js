@@ -5,6 +5,7 @@
 
 
 
+
 if (typeof Worker != 'undefined') {
     JSTest.waitForExplicitFinish();
     var w = new Worker(workerDir + "worker-simple-child.js");

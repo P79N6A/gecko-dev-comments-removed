@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 452476;
 var summary = 'Do not assert with JIT: !cx->runningJittedCode';
 var actual = 'No Crash';

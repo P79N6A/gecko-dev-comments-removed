@@ -2,6 +2,7 @@
 
 
 
+
 function testRegExp(b) {
     var a = deserialize(serialize(b));
     assertEq(a === b, false);

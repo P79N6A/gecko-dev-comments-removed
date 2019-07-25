@@ -6,6 +6,7 @@
 
 
 
+
 var BUGNUMBER = 415721;
 var summary = 'jsatom.c double hashing re-validation logic is unsound';
 

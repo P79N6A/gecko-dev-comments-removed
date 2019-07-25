@@ -37,6 +37,7 @@
 
 
 
+
 var summary = 'No Syntax Error when trailing space and XML.ignoreWhitespace ' +
     'true';
 var BUGNUMBER = 324688;

@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 476414;
 var summary = 'Do not crash @ GetGCThingFlags';
 var actual = '';

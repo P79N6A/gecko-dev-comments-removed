@@ -5,6 +5,7 @@
 
 
 
+
 if (typeof timeout == 'function' && typeof Worker != 'undefined') {
     
     

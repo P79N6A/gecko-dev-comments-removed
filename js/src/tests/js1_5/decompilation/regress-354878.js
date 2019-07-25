@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 354878;
 var summary = 'decompilation of |if(0) { LABEL: const x;}|';
 var actual = '';

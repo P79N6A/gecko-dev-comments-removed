@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 307456;
 var summary = 'Do not Freeze with RegExp';
 var actual = 'No Crash';

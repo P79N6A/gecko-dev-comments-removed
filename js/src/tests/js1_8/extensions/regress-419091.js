@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 419091;
 var summary = 'Do not assert: JS_PROPERTY_CACHE(cx).disabled >= 0';
 var actual = '';

@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 351626;
 var summary = 'decompilation of if(lamda)';
 var actual = '';

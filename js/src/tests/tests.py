@@ -104,6 +104,15 @@ class TestCase(Test):
         self.slow = slow         
         self.debugMode = debugMode 
 
+        
+        self.terms = None
+
+        
+        self.tag = None
+
+        
+        self.comment = None
+
     def __str__(self):
         ans = self.path
         if not self.enable:
@@ -127,3 +136,13 @@ class TestCase(Test):
         if js_args:
             parts += js_args
         self.js_cmd_prefix = parts
+
+    def __cmp__(self, other):
+        if self.path == other.path:
+            return 0
+        elif self.path < other.path:
+            return -1
+        return 1
+
+    def __hash__(self):
+        return self.path.__hash__()

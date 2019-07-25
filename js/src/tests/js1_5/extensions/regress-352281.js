@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 352281;
 var summary = 'decompilation of |while| and function declaration';
 var actual = '';

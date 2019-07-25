@@ -9,6 +9,7 @@
 
 
 
+
 assertEq(testLenientAndStrict('let eval;',
                               parsesSuccessfully,
                               parseRaisesException(SyntaxError)),

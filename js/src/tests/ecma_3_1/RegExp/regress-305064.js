@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 305064;
 var summary = 'CharacterClassEscape \\s';
 var actual = '';

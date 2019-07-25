@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 363258;
 var summary = 'Timer resolution';
 var actual = '';

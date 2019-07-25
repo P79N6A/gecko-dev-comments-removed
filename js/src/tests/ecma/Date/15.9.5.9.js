@@ -50,6 +50,7 @@
 
 
 
+
 var SECTION = "15.9.5.9";
 var VERSION = "ECMA_1";
 startTest();

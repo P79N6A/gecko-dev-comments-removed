@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 354924;
 var summary = 'Do not crash with export/import and setter';
 var actual = 'No Crash';

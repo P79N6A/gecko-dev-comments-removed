@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 383269;
 var summary = 'Leak related to arguments object';
 var actual = 'No Leak';

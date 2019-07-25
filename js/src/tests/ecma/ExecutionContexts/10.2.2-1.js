@@ -62,6 +62,7 @@
 
 
 
+
 var SECTION = "10.2.2-1";
 var VERSION = "ECMA_1";
 startTest();

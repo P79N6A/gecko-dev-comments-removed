@@ -38,6 +38,7 @@
 
 
 
+
 var UBound = 0;
 var BUGNUMBER = 99663;
 var summary = 'Regression test for Bugzilla bug 99663';

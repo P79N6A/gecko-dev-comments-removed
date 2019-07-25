@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 353249;
 var summary = 'regression test for bug 353249';
 var actual = '';

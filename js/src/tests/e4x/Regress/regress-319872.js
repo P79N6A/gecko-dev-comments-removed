@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 319872;
 var summary = 'Do not Crash in jsxml.c';
 var actual = 'No Crash';

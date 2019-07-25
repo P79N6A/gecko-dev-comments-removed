@@ -1,6 +1,7 @@
 
 
 
+
 var e = [], x = {b: []};
 function f() {
     let (a = [[] for (x in e)], {b: []} = x) {}

@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 350692;
 var summary = 'import x["y"]["z"]';
 var actual = 'No Crash';

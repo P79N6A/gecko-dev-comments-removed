@@ -37,6 +37,7 @@
 
 
 
+
 var summary = "11.1.4 - XML Initializer - {} Expressions - 08";
 
 var BUGNUMBER = 325750;

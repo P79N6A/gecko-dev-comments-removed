@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 305064;
 var summary = 'Tests the trim, trimRight  and trimLeft methods';
 var actual = '';

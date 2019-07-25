@@ -52,6 +52,7 @@
 
 
 
+
 var SECTION = "tostring-1";
 var VERSION = "JS1_2";
 startTest();

@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';
 var actual = '';

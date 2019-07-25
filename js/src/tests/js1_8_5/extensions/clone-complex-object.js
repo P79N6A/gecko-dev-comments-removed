@@ -2,6 +2,7 @@
 
 
 
+
 function isClone(a, b) {
     var stack = [[a, b]];
     var memory = new WeakMap();

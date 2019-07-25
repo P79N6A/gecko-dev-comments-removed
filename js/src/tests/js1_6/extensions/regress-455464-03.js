@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 455464;
 var summary = 'Do not assert with JIT: !TRACE_RECORDER(cx) ^ (jumpTable == recordingJumpTable)';
 var actual = 'No Crash';

@@ -4,6 +4,7 @@
 
 
 
+
 var BUGNUMBER = 608473;
 var summary =
   '|var eval = otherWindow.eval; eval(...)| should behave like indirectly ' +

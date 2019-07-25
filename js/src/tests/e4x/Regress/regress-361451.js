@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 361451;
 var summary = 'Do not crash with E4X, watch, import';
 var actual = 'No Crash';

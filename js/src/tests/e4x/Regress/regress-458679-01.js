@@ -37,6 +37,7 @@
 
 
 
+
 var summary = 'GetXMLEntity should not assume FastAppendChar is infallible';
 var BUGNUMBER = 458679;
 var actual = '';

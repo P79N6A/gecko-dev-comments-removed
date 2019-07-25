@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 259935;
 var summary = 'document.all can be easily detected';
 var actual = '';

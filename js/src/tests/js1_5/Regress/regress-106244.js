@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 106244;
 var summary = 'No warning in strict mode if (a = b && c == d)...';
 var actual = '';

@@ -2,6 +2,7 @@
 
 
 
+
 var BUGNUMBER = 621432;
 var summary =
   "If a var statement can't create a global property because the global " +

@@ -36,6 +36,7 @@
 
 
 
+
 var BUGNUMBER = 425360;
 var summary = 'Do not assert: !cx->throwing';
 var actual = 'No Crash';

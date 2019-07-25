@@ -6,6 +6,7 @@
 
 
 
+
 var BUGNUMBER = 320887;
 var summary = 'var x should not throw a ReferenceError';
 var actual = 'No error';

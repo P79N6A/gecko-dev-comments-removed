@@ -6,6 +6,7 @@
 
 
 
+
 try {
     Reflect.parse("with({foo})bar");
     throw new Error("supposed to be a syntax error");

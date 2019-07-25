@@ -37,6 +37,7 @@
 
 
 
+
 var BUGNUMBER = 335700;
 var summary = 'Object Construction with getter closures should be O(N)';
 var actual = '';
