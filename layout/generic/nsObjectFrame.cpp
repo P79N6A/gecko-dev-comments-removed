@@ -697,8 +697,10 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   
   viewMan->SetViewVisibility(view, nsViewVisibility_kHide);
 
+  PRBool usewidgets;
   nsCOMPtr<nsIDeviceContext> dx;
   viewMan->GetDeviceContext(*getter_AddRefs(dx));
+  dx->SupportsNativeWidgets(usewidgets);
 
   
   
@@ -717,7 +719,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     return NS_ERROR_FAILURE;
   }
 
-  if (!aViewOnly && !mWidget) {
+  if (!aViewOnly && !mWidget && usewidgets) {
     mInnerView = viewMan->CreateView(GetContentRect() - GetPosition(), view);
     if (!mInnerView) {
       NS_ERROR("Could not create inner view");
