@@ -416,7 +416,10 @@ var BrowserApp = {
       link: {
         label: learnMoreLabel,
         url: learnMoreUrl
-      }
+      },
+      
+      
+      persistence: 1
     };
     NativeWindow.doorhanger.show(message, "telemetry-optin", buttons, this.selectedTab.id, options);
   },
