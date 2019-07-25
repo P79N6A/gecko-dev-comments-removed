@@ -2951,12 +2951,23 @@ PluginInstanceChild::ShowPluginFrame()
         
         
         PaintRectToSurface(rect, mCurrentSurface, gfxRGBA(0.0, 0.0, 0.0, 0.0));
-    } else if (mDoAlphaExtraction) {
+    } else if (!temporarilyMakeVisible && mDoAlphaExtraction) {
+        
+        
         PLUGIN_LOG_DEBUG(("  (with alpha recovery)"));
         PaintRectWithAlphaExtraction(rect, mCurrentSurface);
     } else {
         PLUGIN_LOG_DEBUG(("  (onto opaque surface)"));
-        PaintRectToSurface(rect, mCurrentSurface, gfxRGBA(0.0, 0.0, 0.0, 0.0));
+
+        
+        
+        
+        
+        nsRefPtr<gfxASurface> target =
+            (temporarilyMakeVisible && mHelperSurface) ?
+            mHelperSurface : mCurrentSurface;
+
+        PaintRectToSurface(rect, target, gfxRGBA(0.0, 0.0, 0.0, 0.0));
     }
     mHasPainted = true;
 
@@ -2971,6 +2982,14 @@ PluginInstanceChild::ShowPluginFrame()
         if (mPluginIface->setwindow) {
             mPluginIface->setwindow(&mData, &mWindow);
         }
+
+        
+        
+        
+        
+        
+        mAccumulatedInvalidRect.SetRect(0, 0, mWindow.width, mWindow.height);
+        return true;
     }
 
     NPRect r = { (uint16_t)rect.y, (uint16_t)rect.x,
