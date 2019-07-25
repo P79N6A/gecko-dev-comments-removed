@@ -1,6 +1,9 @@
 
 
 
+
+
+
 function waitFor(callback, test, timeout) {
   if (test()) {
     callback();
@@ -10,6 +13,21 @@ function waitFor(callback, test, timeout) {
   timeout = timeout || Date.now();
   if (Date.now() - timeout > 1000)
     throw "waitFor timeout";
+  setTimeout(waitFor, 50, callback, test, timeout);
+};
+
+
+
+
+function waitForAndContinue(callback, test, timeout) {
+  if (test()) {
+    callback();
+    return;
+  }
+
+  timeout = timeout || Date.now();
+  if (Date.now() - timeout > 1000)
+    callback();
   setTimeout(waitFor, 50, callback, test, timeout);
 };
 
