@@ -72,6 +72,23 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
 #if defined(PR_LOGGING)
 #define LOG(args) PR_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
@@ -85,7 +102,7 @@ namespace mozilla {
 namespace safebrowsing {
 
 const uint32 STORE_MAGIC = 0x1231af3b;
-const uint32 CURRENT_VERSION = 1;
+const uint32 CURRENT_VERSION = 2;
 
 void
 TableUpdate::NewAddPrefix(PRUint32 aAddChunk, const Prefix& aHash)
@@ -642,17 +659,82 @@ nsresult InflateReadTArray(nsIInputStream* aStream, nsTArray<T>* aOut,
   return NS_OK;
 }
 
+static nsresult
+ByteSliceWrite(nsIOutputStream* aOut, nsTArray<PRUint32>& aData)
+{
+  nsTArray<PRUint8> slice1;
+  nsTArray<PRUint8> slice2;
+  nsTArray<PRUint8> slice3;
+  nsTArray<PRUint8> slice4;
+  PRUint32 count = aData.Length();
+
+  slice1.SetCapacity(count);
+  slice2.SetCapacity(count);
+  slice3.SetCapacity(count);
+  slice4.SetCapacity(count);
+
+  for (PRUint32 i = 0; i < count; i++) {
+    slice1.AppendElement( aData[i] >> 24);
+    slice2.AppendElement((aData[i] >> 16) & 0xFF);
+    slice3.AppendElement((aData[i] >>  8) & 0xFF);
+    slice4.AppendElement( aData[i]        & 0xFF);
+  }
+
+  nsresult rv = DeflateWriteTArray(aOut, slice1);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = DeflateWriteTArray(aOut, slice2);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = DeflateWriteTArray(aOut, slice3);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  rv = WriteTArray(aOut, slice4);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+static nsresult
+ByteSliceRead(nsIInputStream* aInStream, nsTArray<PRUint32>* aData, PRUint32 count)
+{
+  nsTArray<PRUint8> slice1;
+  nsTArray<PRUint8> slice2;
+  nsTArray<PRUint8> slice3;
+  nsTArray<PRUint8> slice4;
+
+  nsresult rv = InflateReadTArray(aInStream, &slice1, count);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = InflateReadTArray(aInStream, &slice2, count);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = InflateReadTArray(aInStream, &slice3, count);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = ReadTArray(aInStream, &slice4, count);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aData->SetCapacity(count);
+
+  for (uint32 i = 0; i < count; i++) {
+    aData->AppendElement((slice1[i] << 24) | (slice2[i] << 16)
+                         | (slice3[i] << 8) | (slice4[i]));
+  }
+
+  return NS_OK;
+}
+
 nsresult
 HashStore::ReadAddPrefixes()
 {
-  nsTArray<uint32> chunks;
+  nsTArray<PRUint32> chunks;
   PRUint32 count = mHeader.numAddPrefixes;
 
-  nsresult rv = InflateReadTArray(mInputStream, &chunks, count);
+  nsresult rv = ByteSliceRead(mInputStream, &chunks, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mAddPrefixes.SetCapacity(count);
-  for (uint32 i = 0; i < count; i++) {
+  for (PRUint32 i = 0; i < count; i++) {
     AddPrefix *add = mAddPrefixes.AppendElement();
     add->prefix.FromUint32(0);
     add->addChunk = chunks[i];
@@ -666,23 +748,23 @@ HashStore::ReadSubPrefixes()
 {
   nsTArray<PRUint32> addchunks;
   nsTArray<PRUint32> subchunks;
-  nsTArray<Prefix> prefixes;
+  nsTArray<PRUint32> prefixes;
   PRUint32 count = mHeader.numSubPrefixes;
 
-  nsresult rv = InflateReadTArray(mInputStream, &addchunks, count);
+  nsresult rv = ByteSliceRead(mInputStream, &addchunks, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = InflateReadTArray(mInputStream, &subchunks, count);
+  rv = ByteSliceRead(mInputStream, &subchunks, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = ReadTArray(mInputStream, &prefixes, count);
+  rv = ByteSliceRead(mInputStream, &prefixes, count);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mSubPrefixes.SetCapacity(count);
   for (uint32 i = 0; i < count; i++) {
     SubPrefix *sub = mSubPrefixes.AppendElement();
     sub->addChunk = addchunks[i];
-    sub->prefix = prefixes[i];
+    sub->prefix.FromUint32(prefixes[i]);
     sub->subChunk = subchunks[i];
   }
 
@@ -693,7 +775,7 @@ HashStore::ReadSubPrefixes()
 nsresult
 HashStore::WriteAddPrefixes(nsIOutputStream* aOut)
 {
-  nsTArray<uint32> chunks;
+  nsTArray<PRUint32> chunks;
   PRUint32 count = mAddPrefixes.Length();
   chunks.SetCapacity(count);
 
@@ -701,7 +783,7 @@ HashStore::WriteAddPrefixes(nsIOutputStream* aOut)
     chunks.AppendElement(mAddPrefixes[i].Chunk());
   }
 
-  nsresult rv = DeflateWriteTArray(aOut, chunks);
+  nsresult rv = ByteSliceWrite(aOut, chunks);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -710,9 +792,9 @@ HashStore::WriteAddPrefixes(nsIOutputStream* aOut)
 nsresult
 HashStore::WriteSubPrefixes(nsIOutputStream* aOut)
 {
-  nsTArray<uint32> addchunks;
-  nsTArray<uint32> subchunks;
-  nsTArray<Prefix> prefixes;
+  nsTArray<PRUint32> addchunks;
+  nsTArray<PRUint32> subchunks;
+  nsTArray<PRUint32> prefixes;
   PRUint32 count = mSubPrefixes.Length();
   addchunks.SetCapacity(count);
   subchunks.SetCapacity(count);
@@ -720,18 +802,17 @@ HashStore::WriteSubPrefixes(nsIOutputStream* aOut)
 
   for (uint32 i = 0; i < count; i++) {
     addchunks.AppendElement(mSubPrefixes[i].AddChunk());
-    prefixes.AppendElement(mSubPrefixes[i].PrefixHash());
+    prefixes.AppendElement(mSubPrefixes[i].PrefixHash().ToUint32());
     subchunks.AppendElement(mSubPrefixes[i].Chunk());
   }
 
-  nsresult rv = DeflateWriteTArray(aOut, addchunks);
+  nsresult rv = ByteSliceWrite(aOut, addchunks);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = DeflateWriteTArray(aOut, subchunks);
+  rv = ByteSliceWrite(aOut, subchunks);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  rv = WriteTArray(aOut, prefixes);
+  rv = ByteSliceWrite(aOut, prefixes);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
