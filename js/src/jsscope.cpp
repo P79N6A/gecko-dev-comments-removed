@@ -278,35 +278,12 @@ Shape::getChildBinding(JSContext *cx, const StackShape &child)
 {
     JS_ASSERT(!inDictionary());
 
-    Shape *shape = cx->propertyTree().getChild(cx, this, numFixedSlots(), child);
-    if (shape) {
-        
+    
+    uint32_t slots = child.slotSpan();
+    gc::AllocKind kind = gc::GetGCObjectKind(slots);
+    uint32_t nfixed = gc::GetGCKindSlots(kind);
 
-        
-
-
-
-
-
-
-        uint32_t slots = child.slotSpan();
-        gc::AllocKind kind = gc::GetGCObjectKind(slots);
-
-        
-
-
-
-
-
-        uint32_t nfixed = gc::GetGCKindSlots(kind);
-        if (nfixed < slots) {
-            nfixed = CallObject::RESERVED_SLOTS;
-            JS_ASSERT(gc::GetGCKindSlots(gc::GetGCObjectKind(nfixed)) == CallObject::RESERVED_SLOTS);
-        }
-
-        shape->setNumFixedSlots(nfixed);
-    }
-    return shape;
+    return cx->propertyTree().getChild(cx, this, nfixed, child);
 }
 
  Shape *

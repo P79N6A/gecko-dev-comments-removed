@@ -191,41 +191,24 @@ JSScript::hasGlobal() const
 
 
 
-    JS_ASSERT(types && types->hasScope());
-    js::GlobalObject *obj = types->global;
-    return obj && !obj->isCleared();
+    return compileAndGo && !global().isCleared();
 }
 
-inline js::GlobalObject *
+inline js::GlobalObject &
 JSScript::global() const
 {
-    JS_ASSERT(hasGlobal());
-    return types->global;
+    
+
+
+
+    return *compartment()->maybeGlobal();
 }
 
 inline bool
 JSScript::hasClearedGlobal() const
 {
-    JS_ASSERT(types && types->hasScope());
-    js::GlobalObject *obj = types->global;
-    return obj && obj->isCleared();
-}
-
-inline js::types::TypeScriptNesting *
-JSScript::nesting() const
-{
-    JS_ASSERT(function() && types && types->hasScope());
-    return types->nesting;
-}
-
-inline void
-JSScript::clearNesting()
-{
-    js::types::TypeScriptNesting *nesting = this->nesting();
-    if (nesting) {
-        js::Foreground::delete_(nesting);
-        types->nesting = NULL;
-    }
+    JS_ASSERT(types);
+    return global().isCleared();
 }
 
 #ifdef JS_METHODJIT
