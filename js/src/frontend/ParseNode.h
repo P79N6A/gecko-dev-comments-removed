@@ -106,6 +106,7 @@ enum ParseNodeKind {
     PNK_CONTINUE,
     PNK_IN,
     PNK_VAR,
+    PNK_CONST,
     PNK_WITH,
     PNK_RETURN,
     PNK_NEW,
@@ -721,7 +722,8 @@ struct ParseNode {
 
 #define PNX_STRCAT      0x01            /* PNK_ADD list has string term */
 #define PNX_CANTFOLD    0x02            /* PNK_ADD list has unfoldable term */
-#define PNX_POPVAR      0x04            /* PNK_VAR last result needs popping */
+#define PNX_POPVAR      0x04            /* PNK_VAR or PNK_CONST last result
+                                           needs popping */
 #define PNX_FORINVAR    0x08            /* PNK_VAR is left kid of PNK_FORIN node
                                            which is left kid of PNK_FOR */
 #define PNX_ENDCOMMA    0x10            /* array literal has comma at end */
