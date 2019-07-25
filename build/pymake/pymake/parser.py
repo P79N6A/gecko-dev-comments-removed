@@ -1,7 +1,3 @@
-
-
-
-
 """
 Module for parsing Makefile syntax.
 

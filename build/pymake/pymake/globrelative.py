@@ -1,7 +1,3 @@
-
-
-
-
 """
 Filename globbing like the python glob module with minor differences:
 

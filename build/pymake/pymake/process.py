@@ -1,7 +1,3 @@
-
-
-
-
 """
 Skipping shell invocations is good, when possible. This wrapper around subprocess does dirty work of
 parsing command lines into argv and making sure that no shell magic is being used.
