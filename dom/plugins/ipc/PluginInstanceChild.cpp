@@ -3352,16 +3352,6 @@ PluginInstanceChild::InvalidateRectDelayed(void)
 
     if (!ShowPluginFrame()) {
         AsyncShowPluginFrame();
-    } else if (!mCurrentInvalidateTask) {
-        
-        
-        
-        
-        
-        mCurrentInvalidateTask =
-            NewRunnableMethod(this, &PluginInstanceChild::InvalidateRectDelayed);
-        MessageLoop::current()->PostDelayedTask(
-            FROM_HERE, mCurrentInvalidateTask, 15);
     }
 }
 
