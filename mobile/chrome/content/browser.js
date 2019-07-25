@@ -80,22 +80,20 @@ var Browser = {
     
     let browserContainer = document.getElementById("browser-container");
     ws = new WidgetStack(browserContainer);
-    
+
     
     ws.beginUpdateBatch();
     
-    
-    window.gSidebarVisible = false;
     function panHandler(vr, dx, dy) {
       if (dx) {
         let visibleNow = ws.isWidgetVisible("tabs-container") || ws.isWidgetVisible("browser-controls");
-        if (visibleNow && !gSidebarVisible) {
+        let isToolbarFrozen = ws.isWidgetFrozen('toolbar-main');
+        if (visibleNow && !isToolbarFrozen) {
           BrowserUI.showToolbar(URLBAR_FORCE);
         }
-        else if (!visibleNow && gSidebarVisible) {
+        else if (!visibleNow && isToolbarFrozen) {
           BrowserUI.showToolbar();
         }
-        gSidebarVisible = visibleNow;
       }
 
       

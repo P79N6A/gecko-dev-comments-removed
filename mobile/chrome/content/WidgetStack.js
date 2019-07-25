@@ -419,7 +419,7 @@ WidgetStack.prototype = {
     dx = Math.round(dx);
     dy = Math.round(dy);
 
-    if (dx == 0 && dy ==0)
+    if (dx == 0 && dy == 0)
       return false;
 
     let needsDragWrap = !this._dragging;
@@ -495,6 +495,10 @@ WidgetStack.prototype = {
     if (!rect)
         rect = new wsRect(0, 0, 0, 0);
     return rect;
+  },
+
+  isWidgetFrozen: function isWidgetFrozen(wid) {
+    return this._getState(wid).frozen;
   },
 
   
@@ -1247,10 +1251,10 @@ WidgetStack.prototype = {
     
     
     this._viewportOverflow = new wsBorder(
-       Math.min(ofRect.top, 0),
-       Math.min(ofRect.left, 0),
-       Math.max(ofRect.bottom - vp.rect.height, 0),
-       Math.max(ofRect.right - vp.rect.width, 0)
+       Math.round(Math.min(ofRect.top, 0)),
+       Math.round(Math.min(ofRect.left, 0)),
+       Math.round(Math.max(ofRect.bottom - vp.rect.height, 0)),
+       Math.round(Math.max(ofRect.right - vp.rect.width, 0))
     );
 
     
