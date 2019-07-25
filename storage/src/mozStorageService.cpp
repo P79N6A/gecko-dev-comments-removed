@@ -138,12 +138,144 @@ GetStorageSQLiteMemoryUsed()
   return ::sqlite3_memory_used();
 }
 
-NS_MEMORY_REPORTER_IMPLEMENT(StorageSQLiteMemoryUsed,
-    "explicit/storage/sqlite",
-    KIND_HEAP,
+
+
+
+
+NS_MEMORY_REPORTER_IMPLEMENT(StorageSQLite,
+    "storage-sqlite",
+    KIND_OTHER,
     UNITS_BYTES,
     GetStorageSQLiteMemoryUsed,
     "Memory used by SQLite.")
+
+class StorageSQLiteMultiReporter : public nsIMemoryMultiReporter
+{
+private:
+  Service *mService;    
+  nsCString mStmtDesc;
+  nsCString mCacheDesc;
+  nsCString mSchemaDesc;
+
+public:
+  NS_DECL_ISUPPORTS
+
+  StorageSQLiteMultiReporter(Service *aService) 
+  : mService(aService)
+  {
+    NS_NAMED_LITERAL_CSTRING(mStmtDesc,
+      "Memory (approximate) used by all prepared statements used by "
+      "connections to this database.");
+
+    NS_NAMED_LITERAL_CSTRING(mCacheDesc,
+      "Memory (approximate) used by all pager caches used by connections "
+      "to this database.");
+
+    NS_NAMED_LITERAL_CSTRING(mSchemaDesc,
+      "Memory (approximate) used to store the schema for all databases "
+      "associated with connections to this database.");
+  }
+
+  
+  
+  
+  
+  
+  
+  NS_IMETHOD CollectReports(nsIMemoryMultiReporterCallback *aCallback,
+                            nsISupports *aClosure)
+  {
+    size_t totalConnSize = 0;
+    {
+      nsTArray<nsRefPtr<Connection> > connections;
+      mService->getConnections(connections);
+
+      for (PRUint32 i = 0; i < connections.Length(); i++) {
+        nsRefPtr<Connection> &conn = connections[i];
+
+        nsCString pathHead("explicit/storage/sqlite/");
+        pathHead.Append(conn->getFilename());
+        pathHead.AppendLiteral("/");
+
+        SQLiteMutexAutoLock lockedScope(conn->sharedDBMutex);
+
+        totalConnSize +=
+          doConnMeasurement(aCallback, aClosure, *conn.get(), pathHead,
+                            NS_LITERAL_CSTRING("stmt"), mStmtDesc,
+                            SQLITE_DBSTATUS_STMT_USED);
+        totalConnSize +=
+          doConnMeasurement(aCallback, aClosure, *conn.get(), pathHead,
+                            NS_LITERAL_CSTRING("cache"), mCacheDesc,
+                            SQLITE_DBSTATUS_CACHE_USED);
+        totalConnSize +=
+          doConnMeasurement(aCallback, aClosure, *conn.get(), pathHead,
+                            NS_LITERAL_CSTRING("schema"), mSchemaDesc,
+                            SQLITE_DBSTATUS_SCHEMA_USED);
+      }
+    }
+
+    PRInt64 other = ::sqlite3_memory_used() - totalConnSize;
+
+    aCallback->Callback(NS_LITERAL_CSTRING(""),
+                        NS_LITERAL_CSTRING("explicit/storage/sqlite/other"),
+                        nsIMemoryReporter::KIND_HEAP,
+                        nsIMemoryReporter::UNITS_BYTES, other,
+                        NS_LITERAL_CSTRING("All unclassified sqlite memory."),
+                        aClosure);
+
+    return NS_OK;
+  }
+
+private:
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  size_t doConnMeasurement(nsIMemoryMultiReporterCallback *aCallback,
+                           nsISupports *aClosure,
+                           sqlite3 *aConn,
+                           const nsACString &aPathHead,
+                           const nsACString &aKind,
+                           const nsACString &aDesc,
+                           int aOption)
+  {
+    nsCString path(aPathHead);
+    path.Append(aKind);
+    path.AppendLiteral("-used");
+
+    int curr = 0, max = 0;
+    int rc = ::sqlite3_db_status(aConn, aOption, &curr, &max, 0);
+    nsresult rv = convertResultCode(rc);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    aCallback->Callback(NS_LITERAL_CSTRING(""), path,
+                        nsIMemoryReporter::KIND_HEAP,
+                        nsIMemoryReporter::UNITS_BYTES, PRInt64(curr),
+                        aDesc, aClosure);
+    return curr;
+  }
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(
+  StorageSQLiteMultiReporter,
+  nsIMemoryMultiReporter
+)
 
 
 
@@ -151,10 +283,12 @@ NS_MEMORY_REPORTER_IMPLEMENT(StorageSQLiteMemoryUsed,
 class ServiceMainThreadInitializer : public nsRunnable
 {
 public:
-  ServiceMainThreadInitializer(nsIObserver *aObserver,
+  ServiceMainThreadInitializer(Service *aService,
+                               nsIObserver *aObserver,
                                nsIXPConnect **aXPConnectPtr,
                                PRInt32 *aSynchronousPrefValPtr)
-  : mObserver(aObserver)
+  : mService(aService)
+  , mObserver(aObserver)
   , mXPConnectPtr(aXPConnectPtr)
   , mSynchronousPrefValPtr(aSynchronousPrefValPtr)
   {
@@ -191,12 +325,16 @@ public:
 
     
     
-    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLiteMemoryUsed));
+    mService->mStorageSQLiteReporter = new NS_MEMORY_REPORTER_NAME(StorageSQLite);
+    mService->mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(mService);
+    (void)::NS_RegisterMemoryReporter(mService->mStorageSQLiteReporter);
+    (void)::NS_RegisterMemoryMultiReporter(mService->mStorageSQLiteMultiReporter);
 
     return NS_OK;
   }
 
 private:
+  Service *mService;
   nsIObserver *mObserver;
   nsIXPConnect **mXPConnectPtr;
   PRInt32 *mSynchronousPrefValPtr;
@@ -282,11 +420,16 @@ Service::Service()
 , mSqliteVFS(nsnull)
 , mRegistrationMutex("Service::mRegistrationMutex")
 , mConnections()
+, mStorageSQLiteReporter(nsnull)
+, mStorageSQLiteMultiReporter(nsnull)
 {
 }
 
 Service::~Service()
 {
+  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteReporter);
+  (void)::NS_UnregisterMemoryMultiReporter(mStorageSQLiteMultiReporter);
+
   int rc = sqlite3_vfs_unregister(mSqliteVFS);
   if (rc != SQLITE_OK)
     NS_WARNING("Failed to unregister sqlite vfs wrapper.");
@@ -472,7 +615,7 @@ Service::initialize()
 
   
   nsCOMPtr<nsIRunnable> event =
-    new ServiceMainThreadInitializer(this, &sXPConnect, &sSynchronousPref);
+    new ServiceMainThreadInitializer(this, this, &sXPConnect, &sSynchronousPref);
   if (event && ::NS_IsMainThread()) {
     (void)event->Run();
   }
