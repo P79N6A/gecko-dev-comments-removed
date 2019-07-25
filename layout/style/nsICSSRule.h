@@ -47,6 +47,7 @@ class nsCSSStyleSheet;
 class nsICSSGroupRule;
 class nsAString;
 template<class T> struct already_AddRefed;
+class nsIStyleSheet;
 
 
 #define NS_ICSS_RULE_IID \
