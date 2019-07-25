@@ -180,6 +180,11 @@ private:
 
 public:
     
+    
+    
+    
+    
+    mozilla::Monitor mTableMonitor;
     nsDataHashtable<nsIDHashKey, xptiInterfaceEntry*> mIIDTable;
     nsDataHashtable<nsDepCharHashKey, xptiInterfaceEntry*> mNameTable;
 };
@@ -406,15 +411,7 @@ private:
         return mEntry && mEntry->EnsureResolved();
     }
 
-    PRBool BuildParent()
-    {
-        NS_ASSERTION(mEntry && 
-                     mEntry->IsFullyResolved() && 
-                     !mParent &&
-                     mEntry->Parent(),
-                    "bad BuildParent call");
-        return NS_SUCCEEDED(mEntry->Parent()->GetInterfaceInfo(&mParent));
-    }
+    PRBool BuildParent();
 
     xptiInterfaceInfo();  
 
@@ -451,18 +448,6 @@ public:
         return self->mResolveLock;
     }
 
-    static Mutex& GetAutoRegLock(xptiInterfaceInfoManager* self = nsnull) 
-    {
-        self = self ? self : GetSingleton();
-        return self->mAutoRegLock;
-    }
-
-    static Monitor& GetInfoMonitor(xptiInterfaceInfoManager* self = nsnull) 
-    {
-        self = self ? self : GetSingleton();
-        return self->mInfoMonitor;
-    }
-
     xptiInterfaceEntry* GetInterfaceEntryForIID(const nsIID *iid);
 
 private:
@@ -482,8 +467,6 @@ private:
 private:
     xptiWorkingSet               mWorkingSet;
     Mutex                        mResolveLock;
-    Mutex                        mAutoRegLock;
-    Monitor                      mInfoMonitor;
     Mutex                        mAdditionalManagersLock;
     nsCOMArray<nsISupports>      mAdditionalManagers;
 };
