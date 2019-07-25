@@ -1,73 +1,81 @@
 const EXPORTED_SYMBOLS = [ "PlainAuthenticator", "Md5DigestAuthenticator" ];
 
-if(typeof(atob) == 'undefined') {
-
-
-
-
-var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-
-function btoa(input) {
-   var output = "";
-   var chr1, chr2, chr3;
-   var enc1, enc2, enc3, enc4;
-   var i = 0;
-
-   do {
-      chr1 = input.charCodeAt(i++);
-      chr2 = input.charCodeAt(i++);
-      chr3 = input.charCodeAt(i++);
-
-      enc1 = chr1 >> 2;
-      enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-      enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-      enc4 = chr3 & 63;
-
-      if (isNaN(chr2)) {
-         enc3 = enc4 = 64;
-      } else if (isNaN(chr3)) {
-         enc4 = 64;
-      }
-
-      output = output + keyStr.charAt(enc1) + keyStr.charAt(enc2) + 
-         keyStr.charAt(enc3) + keyStr.charAt(enc4);
-   } while (i < input.length);
-   
-   return output;
+function LOG(aMsg) {
+  dump("Weave::AuthenticationLayer: " + aMsg + "\n");
 }
 
-function atob(input) {
-   var output = "";
-   var chr1, chr2, chr3;
-   var enc1, enc2, enc3, enc4;
-   var i = 0;
+if (typeof(atob) == 'undefined') {
+  
+  
+  
 
-   
-   input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+  var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-   do {
-      enc1 = keyStr.indexOf(input.charAt(i++));
-      enc2 = keyStr.indexOf(input.charAt(i++));
-      enc3 = keyStr.indexOf(input.charAt(i++));
-      enc4 = keyStr.indexOf(input.charAt(i++));
+  function btoa(input) {
+     var output = "";
+     var chr1, chr2, chr3;
+     var enc1, enc2, enc3, enc4;
+     var i = 0;
 
-      chr1 = (enc1 << 2) | (enc2 >> 4);
-      chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
-      chr3 = ((enc3 & 3) << 6) | enc4;
+     do {
+        chr1 = input.charCodeAt(i++);
+        chr2 = input.charCodeAt(i++);
+        chr3 = input.charCodeAt(i++);
 
-      output = output + String.fromCharCode(chr1);
+        enc1 = chr1 >> 2;
+        enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+        enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+        enc4 = chr3 & 63;
 
-      if (enc3 != 64) {
-         output = output + String.fromCharCode(chr2);
-      }
-      if (enc4 != 64) {
-         output = output + String.fromCharCode(chr3);
-      }
-   } while (i < input.length);
+        if (isNaN(chr2)) {
+           enc3 = enc4 = 64;
+        } else if (isNaN(chr3)) {
+           enc4 = 64;
+        }
 
-   return output;
+        output = output + keyStr.charAt(enc1) + keyStr.charAt(enc2) + 
+           keyStr.charAt(enc3) + keyStr.charAt(enc4);
+     } while (i < input.length);
+     
+     return output;
+  }
+
+  function atob(input) {
+     var output = "";
+     var chr1, chr2, chr3;
+     var enc1, enc2, enc3, enc4;
+     var i = 0;
+
+     
+     input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+
+     do {
+        enc1 = keyStr.indexOf(input.charAt(i++));
+        enc2 = keyStr.indexOf(input.charAt(i++));
+        enc3 = keyStr.indexOf(input.charAt(i++));
+        enc4 = keyStr.indexOf(input.charAt(i++));
+
+        chr1 = (enc1 << 2) | (enc2 >> 4);
+        chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+        chr3 = ((enc3 & 3) << 6) | enc4;
+
+        output = output + String.fromCharCode(chr1);
+
+        if (enc3 != 64) {
+           output = output + String.fromCharCode(chr2);
+        }
+        if (enc4 != 64) {
+           output = output + String.fromCharCode(chr3);
+        }
+     } while (i < input.length);
+
+     return output;
+  }
 }
-}
+
+
+
+
 
 
 
@@ -94,14 +102,14 @@ BaseAuthenticator.prototype = {
     this._password = password;
     this._stepNumber = 0;
     this._errorMsg = "";
-  },
+ },
 
  getError: function () {
     
 
 
     return this._errorMsg;
-  },
+ },
 
  generateResponse: function( rootElem ) {
     
@@ -113,7 +121,7 @@ BaseAuthenticator.prototype = {
 
     this._errorMsg = "generateResponse() should be overridden by subclass.";
     return false;
-  },
+ },
  
  verifyProtocolSupport: function( rootElem, protocolName ) {
     
@@ -152,7 +160,7 @@ BaseAuthenticator.prototype = {
     var mechanisms = child.getElementsByTagName( "mechanism" );
     for ( var x = 0; x < mechanisms.length; x++ ) {
       if ( mechanisms[x].firstChild.nodeValue == protocolName ) {
-	protocolSupported = true;
+	      protocolSupported = true;
       }
     }
       
@@ -161,7 +169,7 @@ BaseAuthenticator.prototype = {
       return false;
     }
     return true;
-  }
+ }
 
 };
 
@@ -180,15 +188,15 @@ function Md5DigestAuthenticator( ) {
 }
 Md5DigestAuthenticator.prototype = {
 
- _makeCNonce: function( ) {
+  _makeCNonce: function( ) {
     return "\"" + Math.floor( 10000000000 * Math.random() ) + "\"";
   },
- 
- generateResponse: function Md5__generateResponse( rootElem ) {
+
+  generateResponse: function Md5__generateResponse( rootElem ) {
     if ( this._stepNumber == 0 ) {
 
       if ( this.verifyProtocolSupport( rootElem, "DIGEST-MD5" ) == false ) {
-	return false;
+        return false;
       }
       
       this._stepNumber = 1;
@@ -252,8 +260,8 @@ Md5DigestAuthenticator.prototype = {
       
       
       if ( rootElem.nodeName == "failure" ) {
-	this._errorMsg = rootElem.firstChild.nodeName;
-	return false;
+        this._errorMsg = rootElem.firstChild.nodeName;
+        return false;
       }
       
     }
@@ -261,7 +269,7 @@ Md5DigestAuthenticator.prototype = {
     return false;
   },
 
- _unpackChallenge: function( challengeString ) {
+  _unpackChallenge: function( challengeString ) {
     var challenge = atob( challengeString );
     dump( "After b64 decoding: " + challenge + "\n" );
     var challengeItemStrings = challenge.split( "," );
@@ -273,7 +281,7 @@ Md5DigestAuthenticator.prototype = {
     return challengeItems;
   },
 
- _packChallengeResponse: function( responseDict ) {
+  _packChallengeResponse: function( responseDict ) {
     var responseArray = []
     for( var x in responseDict ) {
       responseArray.push( x + "=" + responseDict[x] );
@@ -292,53 +300,59 @@ function PlainAuthenticator( ) {
 }
 PlainAuthenticator.prototype = {
  
- generateResponse: function( rootElem ) {
+  generateResponse: function( rootElem ) {
     if ( this._stepNumber == 0 ) {
       if ( this.verifyProtocolSupport( rootElem, "PLAIN" ) == false ) {
-	return false;
+        return false;
       }
       var authString = btoa( this._realm + '\0' + this._name + '\0' + this._password );
       this._stepNumber = 1;
+
+      
       return "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>" + authString + "</auth>";
+
     } else if ( this._stepNumber == 1 ) {
       if ( rootElem.nodeName == "failure" ) {
-	
-	this._errorMsg = rootElem.firstChild.nodeName;
-	return false;
+	      
+	      this._errorMsg = rootElem.firstChild.nodeName;
+	      return false;
       } else if ( rootElem.nodeName == "success" ) {
-	
-	
-	
+        
+        
+        
 
 
 
-	
-	
-	this._stepNumber = 2;
-	return "<?xml version='1.0'?><stream:stream to='jonathan-dicarlos-macbook-pro.local' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>";
+        
+        
+        this._stepNumber = 2;
+        return "<?xml version='1.0'?><stream:stream to='" +
+               this._realm +
+               "' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>";
       }
     } else if ( this._stepNumber == 2 ) {
       
       
       var bindNodes = rootElem.getElementsByTagName( "bind" );
       if ( bindNodes.length > 0 ) {
-	this._needBinding = true;
+	      this._needBinding = true;
       }
+
       var sessionNodes = rootElem.getElementsByTagName( "session" );
       if ( sessionNodes.length > 0 ) {
-	this._needSession = true;
+	      this._needSession = true;
       }
 
       if ( !this._needBinding && !this._needSession ) {
-	
-	return this.COMPLETION_CODE;
+	      
+	      return this.COMPLETION_CODE;
       }
       
       if ( this._needBinding ) {
-	
-	
-	this._stepNumber = 3;
-	return "<iq type='set' id='bind_1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></iq>";
+        
+        
+        this._stepNumber = 3;
+        return "<iq type='set' id='bind_1'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/></iq>";
       } 
       
       this._errorMsg = "Server requested session not binding: can't happen?";
@@ -347,20 +361,20 @@ PlainAuthenticator.prototype = {
       
       var jidNodes = rootElem.getElementsByTagName( "jid" );
       if ( jidNodes.length == 0 ) {
-	this._errorMsg = "Expected JID node from server, got none.";
-	return false;
+	      this._errorMsg = "Expected JID node from server, got none.";
+	      return false;
       }
       this._jid = jidNodes[0].firstChild.nodeValue;
       
       
-      dump( "JID set to " + this._jid );
+      LOG( "JID set to " + this._jid );
 
       
       if ( this._needSession ) {
-	this._stepNumber = 4;
-	return "<iq to='" + this._realm + "' type='set' id='sess_1'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>";
+	      this._stepNumber = 4;
+	      return "<iq to='" + this._realm + "' type='set' id='sess_1'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq>";
       } else {
-	return this.COMPLETION_CODE;
+	      return this.COMPLETION_CODE;
       }
     } else if ( this._stepNumber == 4 ) {
       
