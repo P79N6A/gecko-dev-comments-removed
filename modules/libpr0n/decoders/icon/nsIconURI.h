@@ -64,10 +64,10 @@ public:
   virtual ~nsMozIconURI();
 
 protected:
-  nsCOMPtr<nsIURI> mFileIcon; 
+  nsCOMPtr<nsIURL> mIconURL; 
   PRUint32 mSize; 
   nsCString mContentType; 
-  nsCString mDummyFilePath; 
+  nsCString mFileName; 
   nsCString mStockIcon;
   PRInt32 mIconSize;     
   PRInt32 mIconState;    

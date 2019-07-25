@@ -356,30 +356,25 @@ nsIconChannel::InitWithGnome(nsIMozIconURI *aIconURI)
   fileInfo.refcount = 1; 
 
   nsCAutoString spec;
-  nsCOMPtr<nsIURI> fileURI;
-  rv = aIconURI->GetIconFile(getter_AddRefs(fileURI));
-  if (fileURI) {
-    fileURI->GetAsciiSpec(spec);
+  nsCOMPtr<nsIURL> url;
+  rv = aIconURI->GetIconURL(getter_AddRefs(url));
+  if (url) {
+    url->GetAsciiSpec(spec);
     
     
     PRBool isFile;
-    if (NS_SUCCEEDED(fileURI->SchemeIs("file", &isFile)) && isFile) {
+    if (NS_SUCCEEDED(url->SchemeIs("file", &isFile)) && isFile) {
       _gnome_vfs_get_file_info(spec.get(), &fileInfo, GNOME_VFS_FILE_INFO_DEFAULT);
     }
     else {
       
-      nsCOMPtr<nsIURL> url(do_QueryInterface(fileURI));
-      if (url) {
-        nsCAutoString name;
-        
-        
-        
-        
-        
-        url->GetFileName(name);
-        fileInfo.name = g_strdup(name.get());
-      }
       
+      
+      
+      
+      nsCAutoString name;
+      url->GetFileName(name);
+      fileInfo.name = g_strdup(name.get());
 
       if (!type.IsEmpty()) {
         fileInfo.valid_fields = GNOME_VFS_FILE_INFO_FIELDS_MIME_TYPE;
