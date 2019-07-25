@@ -4884,14 +4884,7 @@ CSSParserImpl::ParseGradient(nsCSSValue& aValue, PRBool aIsRadial,
 
     
     if (!haveAngle || !ExpectSymbol(',', PR_TRUE)) {
-      
-      
-      
-      nsCSSValuePair bgPos;
-      if (ParseBoxPositionValues(bgPos, PR_FALSE)) {
-        cssGradient->mBgPosX = bgPos.mXValue;
-        cssGradient->mBgPosY = bgPos.mYValue;
-      } else {
+      if (!ParseBoxPositionValues(cssGradient->mBgPos, PR_FALSE)) {
         SkipUntil(')');
         return PR_FALSE;
       }
