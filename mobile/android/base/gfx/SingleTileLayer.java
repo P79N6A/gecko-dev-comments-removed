@@ -165,6 +165,9 @@ public class SingleTileLayer extends TileLayer {
             coordBuffer.put(coords);
 
             
+            GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
+
+            
             coordBuffer.position(0);
             GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20, coordBuffer);
 
