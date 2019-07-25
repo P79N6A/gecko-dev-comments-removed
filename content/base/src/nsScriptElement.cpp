@@ -146,29 +146,6 @@ nsScriptElement::ContentInserted(nsIDocument *aDocument,
   MaybeProcessScript();
 }
 
-static PRBool
-InNonScriptingContainer(nsIContent* aNode)
-{
-  aNode = aNode->GetParent();
-  while (aNode) {
-    
-    
-    
-    
-    if (aNode->IsHTML()) {
-      nsIAtom *localName = aNode->Tag();
-      if (localName == nsGkAtoms::iframe ||
-          localName == nsGkAtoms::noframes ||
-          localName == nsGkAtoms::noembed) {
-        return PR_TRUE;
-      }
-    }
-    aNode = aNode->GetParent();
-  }
-
-  return PR_FALSE;
-}
-
 nsresult
 nsScriptElement::MaybeProcessScript()
 {
@@ -185,16 +162,9 @@ nsScriptElement::MaybeProcessScript()
 
   FreezeUriAsyncDefer();
 
-  if (InNonScriptingContainer(cont)) {
-    
-    mAlreadyStarted = PR_TRUE;
-    return NS_OK;
-  }
-
-  nsresult scriptresult = NS_OK;
   nsRefPtr<nsScriptLoader> loader = cont->GetOwnerDoc()->ScriptLoader();
   mAlreadyStarted = PR_TRUE;
-  scriptresult = loader->ProcessScriptElement(this);
+  nsresult scriptresult = loader->ProcessScriptElement(this);
 
   
   
