@@ -22,6 +22,11 @@ if (parent) {
     if (!parentRunner && parent.wrappedJSObject) {
         parentRunner = parent.wrappedJSObject.TestRunner;
     }
+
+    
+    if (window.SpecialPowers == undefined && parent.SpecialPowers !== undefined) {
+        window.SpecialPowers = parent.SpecialPowers;
+    }
 }
 
 
