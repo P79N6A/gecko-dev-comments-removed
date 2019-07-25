@@ -2,8 +2,6 @@
 
 
 
-let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
-
 function test() {
   waitForExplicitFinish();
 
@@ -17,7 +15,7 @@ function test() {
   runSocialTestWithProvider(manifest, doTest);
 }
 
-function doTest() {
+function doTest(finishcb) {
   ok(SocialSidebar.canShow, "social sidebar should be able to be shown");
   ok(SocialSidebar.enabled, "social sidebar should be on by default");
 
@@ -51,7 +49,7 @@ function doTest() {
       checkShown(true);
 
       
-      SocialService.removeProvider(Social.provider.origin, finish);
+      finishcb();
     });
 
     

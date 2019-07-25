@@ -6,7 +6,8 @@ let prefName = "social.enabled",
     shareButton,
     sharePopup,
     okButton,
-    undoButton;
+    undoButton,
+    gFinishCB;
 
 function test() {
   waitForExplicitFinish();
@@ -18,11 +19,7 @@ function test() {
     executeSoon(tabLoaded);
   }, true);
 
-  
-  Services.prefs.setBoolPref(prefName, true);
-
   registerCleanupFunction(function() {
-    Services.prefs.clearUserPref(prefName);
     gBrowser.removeTab(tab);
   });
 }
@@ -30,19 +27,20 @@ function test() {
 function tabLoaded() {
   ok(Social, "Social module loaded");
 
-  
-  
-  if (Social.provider) {
-    executeSoon(testInitial);
-  } else {
-    Services.obs.addObserver(function obs() {
-      Services.obs.removeObserver(obs, "test-social-ui-ready");
-      executeSoon(testInitial);
-    }, "test-social-ui-ready", false);
-  }
+  let manifest = { 
+    name: "provider 1",
+    origin: "https://example.com",
+    sidebarURL: "https://example.com/browser/browser/base/content/test/social_sidebar.html",
+    workerURL: "https://example.com/browser/browser/base/content/test/social_worker.js",
+    iconURL: "chrome://branding/content/icon48.png"
+  };
+  runSocialTestWithProvider(manifest, function (finishcb) {
+    gFinishCB = finishcb;
+    testInitial();
+  });
 }
 
-function testInitial() {
+function testInitial(finishcb) {
   ok(Social.provider, "Social provider is active");
   ok(Social.provider.enabled, "Social provider is enabled");
   ok(Social.provider.port, "Social provider has a port to its FrameWorker");
@@ -116,19 +114,33 @@ function checkShortcutWorked(keyTarget) {
 
 function checkOKButton() {
   is(document.activeElement, okButton, "ok button should be focused by default");
-  checkNextInTabOrder(undoButton, function () {
-    checkNextInTabOrder(okButton, testCloseBySpace);
-  });
-}
 
-function checkNextInTabOrder(element, next) {
   
   
   if (navigator.platform.indexOf("Mac") != -1) {
-    executeSoon(next);
+    executeSoon(testCloseBySpace);
     return;
   }
 
+  let displayName = document.getElementById("socialUserDisplayName");
+
+  
+  if (navigator.platform.indexOf("Linux") != -1) {
+    checkNextInTabOrder(displayName, function () {
+      checkNextInTabOrder(undoButton, function () {
+        checkNextInTabOrder(okButton, testCloseBySpace);
+      });
+    });
+  } else {
+    checkNextInTabOrder(undoButton, function () {
+      checkNextInTabOrder(displayName, function () {
+        checkNextInTabOrder(okButton, testCloseBySpace);
+      });
+    });
+  }
+}
+
+function checkNextInTabOrder(element, next) {
   function listener() {
     element.removeEventListener("focus", listener);
     is(document.activeElement, element, element.id + " should be next in tab order");
@@ -155,5 +167,5 @@ function testCloseBySpace() {
 function testDisable() {
   Services.prefs.setBoolPref(prefName, false);
   is(shareButton.hidden, true, "Share button should be hidden when pref is disabled");
-  finish();
+  gFinishCB();
 }

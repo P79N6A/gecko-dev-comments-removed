@@ -2,8 +2,6 @@
 
 
 
-let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
-
 function test() {
   waitForExplicitFinish();
 
@@ -13,10 +11,8 @@ function test() {
     workerURL: "https://example1.com/worker.js",
     iconURL: "chrome://branding/content/icon48.png"
   };
-  runSocialTestWithProvider(manifest, function () {
-    runSocialTests(tests, undefined, undefined, function () {
-      SocialService.removeProvider(Social.provider.origin, finish);
-    });
+  runSocialTestWithProvider(manifest, function (finishcb) {
+    runSocialTests(tests, undefined, undefined, finishcb);
   });
 }
 
