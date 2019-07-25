@@ -46,7 +46,8 @@
 const kDoubleClickInterval = 400;
 
 
-const kDoubleClickThreshold = 300;
+
+const kDoubleClickThreshold = 200;
 
 
 const kTapRadius = 25;
