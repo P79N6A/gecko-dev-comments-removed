@@ -50,8 +50,8 @@ class nsTextControlFrame;
 
 
 #define NS_ITEXTCONTROLELEMENT_IID    \
-{ 0x2e758eee, 0xd023, 0x4fd1,    \
-  { 0x97, 0x93, 0xae, 0xeb, 0xbb, 0xf3, 0xa8, 0x3f } }
+{ 0xe0a05008, 0xef02, 0x4fa2,    \
+    { 0x93, 0xf2, 0x78, 0xe1, 0xec, 0xf7, 0x5b, 0x79 } }
 
 
 
@@ -132,14 +132,6 @@ public:
 
 
 
-
-  NS_IMETHOD_(void) SetTextEditorValue(const nsAString& aValue, bool aUserInput) = 0;
-
-  
-
-
-
-
   NS_IMETHOD_(nsIEditor*) GetTextEditor() = 0;
 
   
@@ -189,11 +181,6 @@ public:
 
 
   NS_IMETHOD_(void) InitializeKeyboardEventListeners() = 0;
-
-  
-
-
-  NS_IMETHOD_(void) UpdatePlaceholderText(bool aNotify) = 0;
 
   
 
