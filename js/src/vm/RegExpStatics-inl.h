@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef RegExpStatics_inl_h__
 #define RegExpStatics_inl_h__
 
@@ -36,7 +69,7 @@ RegExpStatics::RegExpStatics()
 }
 
 inline bool
-RegExpStatics::createDependent(JSContext *cx, size_t start, size_t end, Value *out) const
+RegExpStatics::createDependent(JSContext *cx, size_t start, size_t end, Value *out) const 
 {
     JS_ASSERT(start <= end);
     JS_ASSERT(end <= matchPairsInput->length());
@@ -266,9 +299,10 @@ RegExpStatics::markFlagsSet(JSContext *cx)
 
 
 
-    JS_ASSERT(this == cx->global()->getRegExpStatics());
+    GlobalObject *global = GetGlobalForScopeChain(cx);
+    JS_ASSERT(this == global->getRegExpStatics());
 
-    types::MarkTypeObjectFlags(cx, cx->global(), types::OBJECT_FLAG_REGEXP_FLAGS_SET);
+    types::MarkTypeObjectFlags(cx, global, types::OBJECT_FLAG_REGEXP_FLAGS_SET);
 }
 
 inline void
@@ -286,7 +320,7 @@ RegExpStatics::reset(JSContext *cx, JSString *newInput, bool newMultiline)
 inline js::RegExpStatics *
 JSContext::regExpStatics()
 {
-    return global()->getRegExpStatics();
+    return js::GetGlobalForScopeChain(this)->getRegExpStatics();
 }
 
 #endif

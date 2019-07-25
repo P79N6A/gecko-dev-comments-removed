@@ -5,14 +5,54 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef ArgumentsObject_inl_h___
 #define ArgumentsObject_inl_h___
 
 #include "ArgumentsObject.h"
 
-#include "ScopeObject-inl.h"
-
 namespace js {
+
+inline void
+ArgumentsObject::initInitialLength(uint32_t length)
+{
+    JS_ASSERT(getFixedSlot(INITIAL_LENGTH_SLOT).isUndefined());
+    initFixedSlot(INITIAL_LENGTH_SLOT, Int32Value(length << PACKED_BITS_COUNT));
+    JS_ASSERT((getFixedSlot(INITIAL_LENGTH_SLOT).toInt32() >> PACKED_BITS_COUNT) == int32_t(length));
+    JS_ASSERT(!hasOverriddenLength());
+}
 
 inline uint32_t
 ArgumentsObject::initialLength() const
@@ -32,114 +72,53 @@ ArgumentsObject::markLengthOverridden()
 inline bool
 ArgumentsObject::hasOverriddenLength() const
 {
-    const Value &v = getFixedSlot(INITIAL_LENGTH_SLOT);
+    const js::Value &v = getFixedSlot(INITIAL_LENGTH_SLOT);
     return v.toInt32() & LENGTH_OVERRIDDEN_BIT;
+}
+
+inline void
+ArgumentsObject::initData(ArgumentsData *data)
+{
+    JS_ASSERT(getFixedSlot(DATA_SLOT).isUndefined());
+    initFixedSlot(DATA_SLOT, PrivateValue(data));
 }
 
 inline ArgumentsData *
 ArgumentsObject::data() const
 {
-    return reinterpret_cast<ArgumentsData *>(getFixedSlot(DATA_SLOT).toPrivate());
+    return reinterpret_cast<js::ArgumentsData *>(getFixedSlot(DATA_SLOT).toPrivate());
 }
 
-inline JSScript *
-ArgumentsObject::containingScript() const
-{
-    return data()->script;
-}
-
-inline const Value &
-ArgumentsObject::arg(unsigned i) const
-{
-    JS_ASSERT(i < data()->numArgs);
-    const Value &v = data()->args[i];
-    JS_ASSERT(!v.isMagic(JS_FORWARD_TO_CALL_OBJECT));
-    return v;
-}
-
-inline void
-ArgumentsObject::setArg(unsigned i, const Value &v)
-{
-    JS_ASSERT(i < data()->numArgs);
-    HeapValue &lhs = data()->args[i];
-    JS_ASSERT(!lhs.isMagic(JS_FORWARD_TO_CALL_OBJECT));
-    lhs = v;
-}
-
-inline const Value &
+inline const js::Value &
 ArgumentsObject::element(uint32_t i) const
 {
-    JS_ASSERT(!isElementDeleted(i));
-    const Value &v = data()->args[i];
-    if (v.isMagic(JS_FORWARD_TO_CALL_OBJECT)) {
-        CallObject &callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().asCall();
-        for (AliasedFormalIter fi(callobj.callee().script()); ; fi++) {
-            if (fi.frameIndex() == i)
-                return callobj.aliasedVar(fi);
-        }
-    }
-    return v;
+    JS_ASSERT(i < initialLength());
+    return data()->slots[i];
+}
+
+inline const js::Value *
+ArgumentsObject::elements() const
+{
+    return Valueify(data()->slots);
 }
 
 inline void
-ArgumentsObject::setElement(uint32_t i, const Value &v)
+ArgumentsObject::setElement(uint32_t i, const js::Value &v)
 {
-    JS_ASSERT(!isElementDeleted(i));
-    HeapValue &lhs = data()->args[i];
-    if (lhs.isMagic(JS_FORWARD_TO_CALL_OBJECT)) {
-        CallObject &callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().asCall();
-        for (AliasedFormalIter fi(callobj.callee().script()); ; fi++) {
-            if (fi.frameIndex() == i) {
-                callobj.setAliasedVar(fi, v);
-                return;
-            }
-        }
-    }
-    lhs = v;
+    JS_ASSERT(i < initialLength());
+    data()->slots[i] = v;
 }
 
-inline bool
-ArgumentsObject::isElementDeleted(uint32_t i) const
+inline js::StackFrame *
+ArgumentsObject::maybeStackFrame() const
 {
-    JS_ASSERT(i < data()->numArgs);
-    if (i >= initialLength())
-        return false;
-    return IsBitArrayElementSet(data()->deletedBits, initialLength(), i);
-}
-
-inline bool
-ArgumentsObject::isAnyElementDeleted() const
-{
-    return IsAnyBitArrayElementSet(data()->deletedBits, initialLength());
+    return reinterpret_cast<js::StackFrame *>(getFixedSlot(STACK_FRAME_SLOT).toPrivate());
 }
 
 inline void
-ArgumentsObject::markElementDeleted(uint32_t i)
+ArgumentsObject::setStackFrame(StackFrame *frame)
 {
-    SetBitArrayElement(data()->deletedBits, initialLength(), i);
-}
-
-inline bool
-ArgumentsObject::maybeGetElement(uint32_t i, MutableHandleValue vp)
-{
-    if (i >= initialLength() || isElementDeleted(i))
-        return false;
-    vp.set(element(i));
-    return true;
-}
-
-inline bool
-ArgumentsObject::maybeGetElements(uint32_t start, uint32_t count, Value *vp)
-{
-    JS_ASSERT(start + count >= start);
-
-    uint32_t length = initialLength();
-    if (start > length || start + count > length || isAnyElementDeleted())
-        return false;
-
-    for (uint32_t i = start, end = start + count; i < end; ++i, ++vp)
-        *vp = element(i);
-    return true;
+    setFixedSlot(STACK_FRAME_SLOT, PrivateValue(frame));
 }
 
 inline size_t
@@ -148,7 +127,7 @@ ArgumentsObject::sizeOfMisc(JSMallocSizeOfFun mallocSizeOf) const
     return mallocSizeOf(data());
 }
 
-inline const Value &
+inline const js::Value &
 NormalArgumentsObject::callee() const
 {
     return data()->callee;
@@ -157,7 +136,7 @@ NormalArgumentsObject::callee() const
 inline void
 NormalArgumentsObject::clearCallee()
 {
-    data()->callee.set(compartment(), MagicValue(JS_OVERWRITTEN_CALLEE));
+    data()->callee.set(compartment(), MagicValue(JS_ARGS_HOLE));
 }
 
 } 

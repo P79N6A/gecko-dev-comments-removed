@@ -290,6 +290,12 @@ struct JSFunction : public JSObject
     inline JSAtom *methodAtom() const;
     inline void setMethodAtom(JSAtom *atom);
 
+    
+
+
+
+    size_t sizeOfMisc(JSMallocSizeOfFun mallocSizeOf) const;
+
   private:
     
 

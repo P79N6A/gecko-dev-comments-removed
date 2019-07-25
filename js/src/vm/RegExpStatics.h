@@ -5,13 +5,46 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef RegExpStatics_h__
 #define RegExpStatics_h__
 
 #include "jscntxt.h"
+#include "jsgcmark.h"
 
 #include "gc/Barrier.h"
-#include "gc/Marking.h"
 #include "js/Vector.h"
 
 #include "vm/MatchPairs.h"
@@ -172,11 +205,11 @@ class RegExpStatics
         return get(0, 1) - get(0, 0) > 0;
     }
 
-    void mark(JSTracer *trc) {
+    void mark(JSTracer *trc) const {
         if (pendingInput)
-            MarkString(trc, &pendingInput, "res->pendingInput");
+            MarkString(trc, pendingInput, "res->pendingInput");
         if (matchPairsInput)
-            MarkString(trc, &matchPairsInput, "res->matchPairsInput");
+            MarkString(trc, matchPairsInput, "res->matchPairsInput");
     }
 
     bool pairIsPresent(size_t pairNum) const {
@@ -208,38 +241,17 @@ class RegExpStatics
     void getLastParen(JSSubString *out) const;
     void getLeftContext(JSSubString *out) const;
     void getRightContext(JSSubString *out) const;
-
-    class AutoRooter : private AutoGCRooter
-    {
-      public:
-        explicit AutoRooter(JSContext *cx, RegExpStatics *statics_
-                            JS_GUARD_OBJECT_NOTIFIER_PARAM)
-          : AutoGCRooter(cx, REGEXPSTATICS), statics(statics_), skip(cx, statics_)
-        {
-            JS_GUARD_OBJECT_NOTIFIER_INIT;
-        }
-
-        friend void AutoGCRooter::trace(JSTracer *trc);
-        void trace(JSTracer *trc);
-
-      private:
-        RegExpStatics *statics;
-        SkipRoot skip;
-        JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-    };
 };
 
 class PreserveRegExpStatics
 {
     RegExpStatics * const original;
     RegExpStatics buffer;
-    RegExpStatics::AutoRooter bufferRoot;
 
   public:
-    explicit PreserveRegExpStatics(JSContext *cx, RegExpStatics *original)
+    explicit PreserveRegExpStatics(RegExpStatics *original)
      : original(original),
-       buffer(RegExpStatics::InitBuffer()),
-       bufferRoot(cx, &buffer)
+       buffer(RegExpStatics::InitBuffer())
     {}
 
     bool init(JSContext *cx) {
