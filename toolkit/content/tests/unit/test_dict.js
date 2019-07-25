@@ -208,83 +208,6 @@ function test_set_property_non_strict() {
   do_check_eq(dict.get, realget);
 }
 
-
-
-
-function test_set_property_lazy_getter() {
-  let thunkCalled = false;
-
-  let setThunk = function(dict) {
-    thunkCalled = false;
-    dict.setAsLazyGetter("foo", function() {
-      thunkCalled = true;
-      return "bar";
-    });
-  };
-
-  let (dict = new Dict()) {
-    setThunk(dict);
-
-    
-    
-    do_check_true(dict.has("foo"));
-    do_check_false(thunkCalled);
-    do_check_true(dict.isLazyGetter("foo"));
-
-    
-    
-    do_check_eq(dict.get("foo"), "bar");
-    do_check_true(thunkCalled);
-    do_check_false(dict.isLazyGetter("foo"));
-
-    
-    thunkCalled = false;
-    do_check_eq(dict.get("foo"), "bar");
-    do_check_false(thunkCalled);
-    do_check_false(dict.isLazyGetter("foo"));
-  }
-
-  
-  let (dict = new Dict()) {
-    setThunk(dict);
-    do_check_true(dict.isLazyGetter("foo"));
-
-    let (listvalues = dict.listvalues()) {
-      do_check_false(dict.isLazyGetter("foo"));
-      do_check_true(thunkCalled);
-      do_check_true(listvalues.length, 1);
-      do_check_eq(listvalues[0], "bar");
-    }
-
-    thunkCalled = false;
-
-    
-    let (listvalues = dict.listvalues()) {
-      do_check_false(dict.isLazyGetter("foo"));
-      do_check_false(thunkCalled);
-      do_check_true(listvalues.length, 1);
-      do_check_eq(listvalues[0], "bar");
-    }
-  }
-
-  
-  let (dict = new Dict()) {
-    setThunk(dict);
-    let values = dict.values;
-
-    
-    do_check_true(dict.isLazyGetter("foo"));
-    do_check_false(thunkCalled);
-    do_check_eq(values.next(), "bar");
-    do_check_true(thunkCalled);
-
-    thunkCalled = false;
-    do_check_false(dict.isLazyGetter("foo"));
-    do_check_eq(dict.get("foo"), "bar");
-    do_check_false(thunkCalled);
-  }
-}
-
 var tests = [
   test_get_set_has_del,
   test_get_default,
@@ -295,7 +218,6 @@ var tests = [
   test_iterators,
   test_set_property_strict,
   test_set_property_non_strict,
-  test_set_property_lazy_getter
 ];
 
 function run_test() {
