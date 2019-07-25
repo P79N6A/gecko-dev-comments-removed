@@ -166,9 +166,8 @@ nsXPCWrappedJSClass::GetNewOrUsed(XPCCallContext& ccx, REFNSIID aIID,
         ccx.GetXPConnect()->GetInfoForIID(&aIID, getter_AddRefs(info));
         if(info)
         {
-            PRBool canScript, isBuiltin;
+            PRBool canScript;
             if(NS_SUCCEEDED(info->IsScriptable(&canScript)) && canScript &&
-               NS_SUCCEEDED(info->IsBuiltinClass(&isBuiltin)) && !isBuiltin &&
                nsXPConnect::IsISupportsDescendant(info))
             {
                 clazz = new nsXPCWrappedJSClass(ccx, aIID, info);
@@ -296,9 +295,8 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
         ccx.GetXPConnect()->GetInfoForIID(&aIID, getter_AddRefs(info));
         if(!info)
             return nsnull;
-        PRBool canScript, isBuiltin;
-        if(NS_FAILED(info->IsScriptable(&canScript)) || !canScript ||
-           NS_FAILED(info->IsBuiltinClass(&isBuiltin)) || isBuiltin)
+        PRBool canScript;
+        if(NS_FAILED(info->IsScriptable(&canScript)) || !canScript)
             return nsnull;
     }
 
@@ -663,13 +661,6 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         return NS_OK;
     }
 
-#ifdef XPC_IDISPATCH_SUPPORT
-    
-    if(nsXPConnect::IsIDispatchEnabled() && aIID.Equals(NSID_IDISPATCH))
-    {
-        return XPCIDispatchExtension::IDispatchQIWrappedJS(self, aInstancePtr);
-    }
-#endif
     if(aIID.Equals(NS_GET_IID(nsIPropertyBag)))
     {
         
