@@ -1180,6 +1180,18 @@ nsPresContext::GetParentPresContext()
         return f->PresContext();
     }
   }
+  
+  
+  nsIDocument *doc = Document();
+  if (doc) {
+    doc = doc->GetParentDocument();
+    if (doc) {
+      shell = doc->GetShell();
+      if (shell) {
+        return shell->GetPresContext();
+      }
+    }
+  }
   return nsnull;
 }
 
@@ -1204,7 +1216,7 @@ nsPresContext::GetRootPresContext()
   nsPresContext* pc = this;
   for (;;) {
     nsPresContext* parent = pc->GetParentPresContext();
-    if (!parent)
+    if (!parent || parent == pc)
       break;
     pc = parent;
   }
