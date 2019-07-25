@@ -797,6 +797,7 @@ nsHttpTransaction::ParseLineSegment(char *segment, PRUint32 len)
             LOG(("ignoring 1xx response\n"));
             mHaveStatusLine = PR_FALSE;
             mHttpResponseMatched = PR_FALSE;
+            mConnection->SetLastTransactionExpectedNoContent(PR_TRUE);
             mResponseHead->Reset();
             return NS_OK;
         }
@@ -885,6 +886,7 @@ nsHttpTransaction::ParseHead(char *buf,
     }
     
 
+    NS_ABORT_IF_FALSE (mHttpResponseMatched, "inconsistent");
     while ((eol = static_cast<char *>(memchr(buf, '\n', count - *countRead))) != nsnull) {
         
         len = eol - buf + 1;
@@ -905,6 +907,12 @@ nsHttpTransaction::ParseHead(char *buf,
 
         
         buf = eol + 1;
+
+        if (!mHttpResponseMatched) {
+            
+            
+            return NS_ERROR_NET_INTERRUPT;
+        }
     }
 
     
@@ -1100,9 +1108,17 @@ nsHttpTransaction::ProcessData(char *buf, PRUint32 count, PRUint32 *countRead)
     if (!mHaveAllHeaders) {
         PRUint32 bytesConsumed = 0;
 
-        rv = ParseHead(buf, count, &bytesConsumed);
-        if (NS_FAILED(rv)) return rv;
-
+        do {
+            PRUint32 localBytesConsumed = 0;
+            char *localBuf = buf + bytesConsumed;
+            PRUint32 localCount = count - bytesConsumed;
+            
+            rv = ParseHead(localBuf, localCount, &localBytesConsumed);
+            if (NS_FAILED(rv) && rv != NS_ERROR_NET_INTERRUPT)
+                return rv;
+            bytesConsumed += localBytesConsumed;
+        } while (rv == NS_ERROR_NET_INTERRUPT);
+        
         count -= bytesConsumed;
 
         
