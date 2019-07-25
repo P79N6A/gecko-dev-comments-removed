@@ -19,6 +19,23 @@
 #include <string>
 #endif
 
+
+
+
+
+
+#if defined(MOZ_GFX) && !defined(HAVE_NULLPTR)
+#ifndef __cplusplus
+# define nullptr ((void*)0)
+#elif defined(__GNUC__)
+# define nullptr __null
+#elif defined(_WIN64)
+# define nullptr 0LL
+#else
+# define nullptr 0L
+#endif
+#endif 
+
 struct _cairo_surface;
 typedef _cairo_surface cairo_surface_t;
 
