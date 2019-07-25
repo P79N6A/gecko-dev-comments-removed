@@ -35,7 +35,11 @@
 
 
 
+const Cc = Components.classes;
+const Ci = Components.interfaces;
 const Cu = Components.utils;
+const Cr = Components.results;
+
 Cu.import("resource://gre/modules/Services.jsm");
 
 let EXPORTED_SYMBOLS = ["AllTabs"];
@@ -68,10 +72,10 @@ let AllTabs = {
   register: function register(eventName, callback) {
     
     let listeners = eventListeners[eventName];
-    if (listeners)
-      listeners.push(callback);
-    else
+    if (listeners == null)
       eventListeners[eventName] = [callback];
+    else
+      listeners.push(callback);
   },
 
   
@@ -87,7 +91,7 @@ let AllTabs = {
   unregister: function unregister(eventName, callback) {
     
     let listeners = eventListeners[eventName];
-    if (!listeners)
+    if (listeners == null)
       return;
 
     
@@ -116,10 +120,10 @@ function registerBrowserWindow(browserWindow) {
     browserWindow.addEventListener(tabEvent, function(event) {
       
       let listeners = eventListeners[eventName];
-      if (!listeners)
+      if (listeners == null)
         return;
 
-      let tab = event.target;
+      let tab = event.originalTarget;
 
       
       listeners.slice().forEach(function(callback) {
@@ -127,28 +131,28 @@ function registerBrowserWindow(browserWindow) {
           callback(tab, event);
         }
         
-        catch(ex) {
-          Cu.reportError(ex);
-        }
+        catch(ex) {}
       });
     }, true);
   });
 }
 
-function observer(subject, topic, data) {
-  switch (topic) {
-    case "domwindowopened":
-      subject.addEventListener("load", function() {
-        subject.removeEventListener("load", arguments.callee, false);
+let observer = {
+  observe: function observe(subject, topic, data) {
+    switch (topic) {
+      case "domwindowopened":
+        subject.addEventListener("load", function() {
+          subject.removeEventListener("load", arguments.callee, false);
 
-        
-        let doc = subject.document.documentElement;
-        if (doc.getAttribute("windowtype") == "navigator:browser")
-          registerBrowserWindow(subject);
-      }, false);
-      break;
+          
+          let doc = subject.document.documentElement;
+          if (doc.getAttribute("windowtype") == "navigator:browser")
+            registerBrowserWindow(subject);
+        }, false);
+        break;
+    }
   }
-}
+};
 
 
 browserWindows.forEach(registerBrowserWindow);
