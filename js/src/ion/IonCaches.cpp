@@ -277,6 +277,9 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value
     JSAtom *atom = cache.atom();
 
     
+    AutoDetectInvalidation adi(cx, vp, script);
+
+    
     
     
     if (cache.stubCount() < MAX_STUBS && obj->isNative()) {
@@ -306,10 +309,6 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value
         cache.getScriptedLocation(&script, &pc);
         types::TypeScript::Monitor(cx, script, pc, *vp);
     }
-
-    
-    if (script->ion != ion)
-        cx->runtime->setIonReturnOverride(*vp);
 
     return true;
 }
@@ -534,6 +533,9 @@ js::ion::GetElementCache(JSContext *cx, size_t cacheIndex, JSObject *obj, const 
 
     IonCacheGetElement &cache = ion->getCache(cacheIndex).toGetElement();
 
+    
+    AutoDetectInvalidation adi(cx, res, script);
+
     jsid id;
     if (!FetchElementId(cx, obj, idval, id, res))
         return false;
@@ -565,11 +567,6 @@ js::ion::GetElementCache(JSContext *cx, size_t cacheIndex, JSObject *obj, const 
         return false;
 
     types::TypeScript::Monitor(cx, script_, pc, *res);
-
-    
-    if (script->ion != ion)
-        cx->runtime->setIonReturnOverride(*res);
-
     return true;
 }
 
