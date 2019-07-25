@@ -157,6 +157,12 @@ public class GeckoInputConnection
             GeckoAppShell.sendEventToGecko(
                 new GeckoEvent(GeckoEvent.IME_DELETE_TEXT, 0, 0));
         }
+
+        
+        
+        
+        disableChangeNotifications();
+
         return true;
     }
 
@@ -382,6 +388,8 @@ public class GeckoInputConnection
     public boolean setComposingText(CharSequence text, int newCursorPosition) {
         
 
+        enableChangeNotifications();
+
         
         mComposingText = text != null ? text.toString() : "";
 
@@ -591,6 +599,8 @@ public class GeckoInputConnection
                                  int start, int oldEnd, int newEnd) {
         
         
+        if (!mChangeNotificationsEnabled)
+            return;
 
         if (mBatchMode) {
             mBatchChanges.add(new ChangeNotification(text, start, oldEnd, newEnd));
@@ -628,6 +638,10 @@ public class GeckoInputConnection
     public void notifySelectionChange(InputMethodManager imm,
                                       int start, int end) {
         
+
+        if (!mChangeNotificationsEnabled)
+            return;
+
         if (mBatchMode) {
             mBatchChanges.add(new ChangeNotification(start, end));
             return;
@@ -705,6 +719,14 @@ public class GeckoInputConnection
     {
     }
 
+    private void disableChangeNotifications() {
+        mChangeNotificationsEnabled = false;
+    }
+
+    private void enableChangeNotifications() {
+        mChangeNotificationsEnabled = true;
+    }
+
     
     boolean mComposing;
     
@@ -720,7 +742,9 @@ public class GeckoInputConnection
     
     int mNumPendingChanges;
 
-    boolean mBatchMode;
+    private boolean mBatchMode;
+    private boolean mChangeNotificationsEnabled = true;
+
     private CopyOnWriteArrayList<ChangeNotification> mBatchChanges =
         new CopyOnWriteArrayList<ChangeNotification>();
 
