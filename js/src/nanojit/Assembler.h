@@ -408,6 +408,7 @@ namespace nanojit
             NIns*       _nExitIns;              
                                                 
         #ifdef NJ_VERBOSE
+            NIns*       _nInsAfter;             
             size_t      codeBytes;              
             size_t      exitBytes;              
         #endif
