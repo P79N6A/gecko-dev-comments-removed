@@ -314,7 +314,7 @@ function getDefaultHomepage() {
 function getEntity(urls, entityId)
 {
   
-  urls.push("resource:///res/dtd/xhtml11.dtd");
+  urls.push("resource:///res/dtd/htmlmathml-f.ent");
 
   
   var extEntities = "";
