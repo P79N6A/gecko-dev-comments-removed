@@ -3818,7 +3818,7 @@ function findCompletionBeginning(aStr)
 
 function JSPropertyProvider(aScope, aInputValue)
 {
-  let obj = aScope;
+  let obj = XPCNativeWrapper.unwrap(aScope);
 
   
   
