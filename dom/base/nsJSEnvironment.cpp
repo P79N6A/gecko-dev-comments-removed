@@ -1244,7 +1244,7 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
   
   if (ok && ((JSVersion)aVersion) != JSVERSION_UNKNOWN) {
 
-    JSAutoRequest ar(mContext);
+    XPCAutoRequest ar(mContext);
 
     JSAutoEnterCompartment ac;
     if (!ac.enter(mContext, aScopeObject)) {
@@ -1447,7 +1447,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   
   if (ok && JSVersion(aVersion) != JSVERSION_UNKNOWN) {
-    JSAutoRequest ar(mContext);
+    XPCAutoRequest ar(mContext);
     JSAutoEnterCompartment ac;
     if (!ac.enter(mContext, aScopeObject)) {
       stack->Pop(nsnull);
@@ -1471,7 +1471,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
 
   
   if (ok) {
-    JSAutoRequest ar(mContext);
+    XPCAutoRequest ar(mContext);
     JSAutoEnterCompartment ac;
     if (!ac.enter(mContext, aScopeObject)) {
       stack->Pop(nsnull);
@@ -1533,7 +1533,8 @@ nsJSContext::CompileScript(const PRUnichar* aText,
   if (!ok || JSVersion(aVersion) == JSVERSION_UNKNOWN)
     return NS_OK;
     
-  JSAutoRequest ar(mContext);
+  XPCAutoRequest ar(mContext);
+
 
   JSScript* script =
     ::JS_CompileUCScriptForPrincipalsVersion(mContext,
@@ -1598,7 +1599,7 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsJSContext::TerminationFuncHolder holder(this);
-  JSAutoRequest ar(mContext);
+  XPCAutoRequest ar(mContext);
   ++mExecuteDepth;
 
   
@@ -1726,7 +1727,7 @@ nsJSContext::CompileEventHandler(nsIAtom *aName,
   
   
   
-  JSAutoRequest ar(mContext);
+  XPCAutoRequest ar(mContext);
 
   JSFunction* fun =
       ::JS_CompileUCFunctionForPrincipalsVersion(mContext,
@@ -1789,7 +1790,7 @@ nsJSContext::CompileFunction(JSObject* aTarget,
 
   JSObject *target = aTarget;
 
-  JSAutoRequest ar(mContext);
+  XPCAutoRequest ar(mContext);
 
   JSFunction* fun =
       ::JS_CompileUCFunctionForPrincipalsVersion(mContext,
@@ -1834,10 +1835,10 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
   SAMPLE_LABEL("JS", "CallEventHandler");
 
   nsAutoMicroTask mt;
-  JSAutoRequest ar(mContext);
   xpc_UnmarkGrayObject(aScope);
   xpc_UnmarkGrayObject(aHandler);
 
+  XPCAutoRequest ar(mContext);
   JSObject* target = nsnull;
   nsresult rv = JSObjectFromInterface(aTarget, aScope, &target);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1946,10 +1947,10 @@ nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, JSObject* aScope,
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
   NS_PRECONDITION(!aBoundHandler, "Shouldn't already have a bound handler!");
 
-  JSAutoRequest ar(mContext);
   xpc_UnmarkGrayObject(aScope);
   xpc_UnmarkGrayObject(aHandler);
 
+  XPCAutoRequest ar(mContext);
 
   
   JSObject *target = nsnull;
@@ -2106,7 +2107,7 @@ nsJSContext::CreateNativeGlobalForInner(
 JSContext*
 nsJSContext::GetNativeContext()
 {
-  return mContext;
+  return xpc_UnmarkGrayContext(mContext);
 }
 
 nsresult
@@ -2152,7 +2153,7 @@ nsJSContext::SetProperty(JSObject* aTarget, const char* aPropName, nsISupports* 
   PRUint32  argc;
   jsval    *argv = nsnull;
 
-  JSAutoRequest ar(mContext);
+  XPCAutoRequest ar(mContext);
 
   Maybe<nsRootedJSValueArray> tempStorage;
 
