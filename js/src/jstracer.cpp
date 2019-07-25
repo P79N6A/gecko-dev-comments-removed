@@ -12458,7 +12458,7 @@ TraceRecorder::recordInitPropertyOp(jsbytecode op)
     LIns* v_ins = get(&v);
 
     JSAtom* atom = atoms[GET_INDEX(cx->regs->pc)];
-    jsid id = ATOM_TO_JSID(atom);
+    jsid id = js_CheckForStringIndex(ATOM_TO_JSID(atom));
 
     
     
