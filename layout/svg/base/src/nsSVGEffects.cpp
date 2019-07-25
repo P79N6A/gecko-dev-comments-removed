@@ -35,7 +35,6 @@
 
 
 
-
 #include "nsSVGEffects.h"
 #include "nsISupportsImpl.h"
 #include "nsSVGOuterSVGFrame.h"
@@ -198,7 +197,8 @@ nsSVGRenderingObserver::AttributeChanged(nsIDocument *aDocument,
 void
 nsSVGRenderingObserver::ContentAppended(nsIDocument *aDocument,
                                         nsIContent *aContainer,
-                                        PRInt32 aNewIndexInContainer)
+                                        nsIContent *aFirstNewContent,
+                                        PRInt32 )
 {
   DoUpdate();
 }
@@ -207,7 +207,7 @@ void
 nsSVGRenderingObserver::ContentInserted(nsIDocument *aDocument,
                                         nsIContent *aContainer,
                                         nsIContent *aChild,
-                                        PRInt32 aIndexInContainer)
+                                        PRInt32 )
 {
   DoUpdate();
 }

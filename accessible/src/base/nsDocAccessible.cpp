@@ -1309,7 +1309,8 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
 
 void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
                                       nsIContent* aContainer,
-                                      PRInt32 aNewIndexInContainer)
+                                      nsIContent* aFirstNewContent,
+                                      PRInt32 )
 {
   if ((!mIsContentLoaded || !mDocument) && mAccessNodeCache.Count() <= 1) {
     
@@ -1317,14 +1318,13 @@ void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
     return;
   }
 
-  PRUint32 childCount = aContainer->GetChildCount();
-  for (PRUint32 index = aNewIndexInContainer; index < childCount; index ++) {
-    nsCOMPtr<nsIContent> child(aContainer->GetChildAt(index));
+  
+  for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
     
     
     
     
-    InvalidateCacheSubtree(child, nsIAccessibilityService::NODE_APPEND);
+    InvalidateCacheSubtree(cur, nsIAccessibilityService::NODE_APPEND);
   }
 }
 
@@ -1363,7 +1363,7 @@ void nsDocAccessible::CharacterDataChanged(nsIDocument *aDocument,
 
 void
 nsDocAccessible::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
-                                 nsIContent* aChild, PRInt32 aIndexInContainer)
+                                 nsIContent* aChild, PRInt32 )
 {
   
   
@@ -1374,7 +1374,7 @@ nsDocAccessible::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
 
 void
 nsDocAccessible::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
-                                nsIContent* aChild, PRInt32 aIndexInContainer)
+                                nsIContent* aChild, PRInt32 )
 {
   
   

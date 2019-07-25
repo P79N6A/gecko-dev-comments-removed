@@ -186,8 +186,10 @@ public:
 
 
 
+
   virtual void ContentAppended(nsIDocument *aDocument,
                                nsIContent* aContainer,
+                               nsIContent* aFirstNewContent,
                                PRInt32     aNewIndexInContainer) = 0;
 
   
@@ -286,6 +288,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIMutationObserver, NS_IMUTATION_OBSERVER_IID)
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED                          \
     virtual void ContentAppended(nsIDocument* aDocument,                     \
                                  nsIContent* aContainer,                     \
+                                 nsIContent* aFirstNewContent,               \
                                  PRInt32 aNewIndexInContainer);
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED                          \
@@ -355,6 +358,7 @@ _class::AttributeChanged(nsIDocument* aDocument,                          \
 void                                                                      \
 _class::ContentAppended(nsIDocument* aDocument,                           \
                         nsIContent* aContainer,                           \
+                        nsIContent* aFirstNewContent,                     \
                         PRInt32 aNewIndexInContainer)                     \
 {                                                                         \
 }                                                                         \

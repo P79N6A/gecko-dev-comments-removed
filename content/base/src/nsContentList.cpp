@@ -636,6 +636,7 @@ nsContentList::AttributeChanged(nsIDocument *aDocument, nsIContent* aContent,
 
 void
 nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
+                               nsIContent* aFirstNewContent,
                                PRInt32 aNewIndexInContainer)
 {
   NS_PRECONDITION(aContainer, "Can't get at the new content if no container!");
@@ -673,8 +674,7 @@ nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
 
 
 
-      if (nsContentUtils::PositionIsBefore(ourLastContent,
-                                           aContainer->GetChildAt(aNewIndexInContainer))) {
+      if (nsContentUtils::PositionIsBefore(ourLastContent, aFirstNewContent)) {
         appendToList = PR_TRUE;
       }
     }
@@ -683,9 +683,7 @@ nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
     if (!appendToList) {
       
       
-      for (nsIContent* cur = aContainer->GetChildAt(aNewIndexInContainer);
-           cur;
-           cur = cur->GetNextSibling()) {
+      for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
         if (MatchSelf(cur)) {
           
           
@@ -712,17 +710,15 @@ nsContentList::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
 
 
     if (mDeep) {
-      for (nsIContent* cur = aContainer->GetChildAt(aNewIndexInContainer);
-         cur;
-         cur = cur->GetNextNode(aContainer)) {
+      for (nsIContent* cur = aFirstNewContent;
+           cur;
+           cur = cur->GetNextNode(aContainer)) {
         if (cur->IsElement() && Match(cur->AsElement())) {
           mElements.AppendObject(cur);
         }
       }
     } else {
-      for (nsIContent* cur = aContainer->GetChildAt(aNewIndexInContainer);
-           cur;
-           cur = cur->GetNextSibling()) {
+      for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
         if (cur->IsElement() && Match(cur->AsElement())) {
           mElements.AppendObject(cur);
         }
