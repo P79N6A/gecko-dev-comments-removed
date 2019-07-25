@@ -515,6 +515,8 @@ button {
   
   white-space: inherit;
   text-indent: 0;
+  
+  display: inline-block;
 }
 
 *|*::-moz-button-content {
