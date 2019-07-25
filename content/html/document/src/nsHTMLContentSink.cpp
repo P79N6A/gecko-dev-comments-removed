@@ -196,7 +196,6 @@ public:
   NS_IMETHOD CloseMalformedContainer(const nsHTMLTag aTag);
   NS_IMETHOD AddLeaf(const nsIParserNode& aNode);
   NS_IMETHOD AddComment(const nsIParserNode& aNode);
-  NS_IMETHOD AddProcessingInstruction(const nsIParserNode& aNode);
   NS_IMETHOD DidProcessTokens(void);
   NS_IMETHOD WillProcessAToken(void);
   NS_IMETHOD DidProcessAToken(void);
@@ -1941,21 +1940,6 @@ HTMLContentSink::AddComment(const nsIParserNode& aNode)
   nsresult rv = mCurrentContext->AddComment(aNode);
 
   return rv;
-}
-
-
-
-
-
-
-
-nsresult
-HTMLContentSink::AddProcessingInstruction(const nsIParserNode& aNode)
-{
-  nsresult result = NS_OK;
-  
-
-  return result;
 }
 
 NS_IMETHODIMP

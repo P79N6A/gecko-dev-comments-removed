@@ -225,32 +225,6 @@ nsLoggingSink::AddLeaf(const nsIParserNode& aNode) {
 
 
 NS_IMETHODIMP
-nsLoggingSink::AddProcessingInstruction(const nsIParserNode& aNode){
-
-#ifdef VERBOSE_DEBUG
-  DebugDump("<",aNode.GetText(),(mNodeStackPos)*2);
-#endif
-
-  nsresult theResult=NS_OK;
-
-  
-  if(mSink) {
-    theResult=mSink->AddProcessingInstruction(aNode);
-  }
-  
-  return theResult;
-}
-
-
-
-
-
-
-
-
-
-
-NS_IMETHODIMP
 nsLoggingSink::AddComment(const nsIParserNode& aNode){
 
 #ifdef VERBOSE_DEBUG

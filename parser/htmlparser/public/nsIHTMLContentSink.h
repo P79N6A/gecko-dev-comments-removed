@@ -194,16 +194,6 @@ public:
 
      
   NS_IMETHOD AddComment(const nsIParserNode& aNode) = 0;
-
-  
-
-
-
-
-
-
-     
-  NS_IMETHOD AddProcessingInstruction(const nsIParserNode& aNode) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIHTMLContentSink, NS_IHTML_CONTENT_SINK_IID)
