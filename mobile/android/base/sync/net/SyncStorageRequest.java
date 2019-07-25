@@ -82,7 +82,7 @@ public class SyncStorageRequest implements Resource {
 
 
   public class SyncStorageResourceDelegate extends SyncResourceDelegate {
-    private static final String LOG_TAG = "SyncStorageResourceDelegate";
+    private static final String LOG_TAG = "SSResourceDelegate";
     protected SyncStorageRequest request;
 
     SyncStorageResourceDelegate(SyncStorageRequest request) {
