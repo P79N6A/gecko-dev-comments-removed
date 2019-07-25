@@ -79,8 +79,12 @@
 
 
 
+
+
 extern NS_COM_GLUE NS_METHOD
-NS_NewThread(nsIThread **result, nsIRunnable *initialEvent = nsnull);
+NS_NewThread(nsIThread **result,
+             nsIRunnable *initialEvent = nsnull,
+             PRUint32 stackSize = nsIThreadManager::DEFAULT_STACK_SIZE);
 
 
 

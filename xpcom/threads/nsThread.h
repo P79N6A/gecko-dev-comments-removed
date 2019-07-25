@@ -58,6 +58,7 @@ public:
   NS_DECL_NSISUPPORTSPRIORITY
 
   nsThread();
+  nsThread(PRUint32 aStackSize);
 
   
   nsresult Init();
@@ -138,6 +139,7 @@ private:
   PRInt32   mPriority;
   PRThread *mThread;
   PRUint32  mRunningEvent;  
+  PRUint32  mStackSize;
 
   struct nsThreadShutdownContext *mShutdownContext;
 
