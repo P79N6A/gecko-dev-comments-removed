@@ -1424,6 +1424,91 @@ StringMatch(const jschar *text, jsuint textlen,
                           UnrolledMatch<ManualCmp>(text, textlen, pat, patlen);
 }
 
+static const size_t sRopeMatchThresholdRatioLog2 = 5;
+
+static jsint
+RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
+{
+    JS_ASSERT(textstr->isTopNode());
+
+    if (patlen == 0)
+        return 0;
+    if (textstr->length() < patlen)
+        return -1;
+
+    
+
+
+
+
+    Vector<JSString *, 16, SystemAllocPolicy> strs;
+
+    
+
+
+
+
+
+    size_t textstrlen = textstr->length();
+    size_t threshold = textstrlen >> sRopeMatchThresholdRatioLog2;
+    JSRopeLeafIterator iter(textstr);
+    for (JSString *str = iter.init(); str; str = iter.next()) {
+        if (threshold-- == 0 || !strs.append(str))
+            return StringMatch(textstr->chars(), textstrlen, pat, patlen);
+    }
+
+    
+    jsint pos = 0;
+
+    
+
+    for (JSString **outerp = strs.begin(); outerp != strs.end(); ++outerp) {
+        
+        const jschar *chars;
+        size_t len;
+        (*outerp)->getCharsAndLength(chars, len);
+        jsint matchResult = StringMatch(chars, len, pat, patlen);
+        if (matchResult != -1)
+            return pos + matchResult;
+
+        
+        JSString **innerp = outerp;
+
+        
+
+
+
+        const jschar *const text = chars + (patlen > len ? 0 : len - patlen + 1);
+        const jschar *const textend = chars + len;
+        const jschar p0 = *pat;
+        const jschar *const p1 = pat + 1;
+        const jschar *const patend = pat + patlen;
+        for (const jschar *t = text; t != textend; ) {
+            if (*t++ != p0)
+                continue;
+            const jschar *ttend = textend;
+            for (const jschar *pp = p1, *tt = t; pp != patend; ++pp, ++tt) {
+                while (tt == ttend) {
+                    if (++innerp == strs.end())
+                        return -1;
+                    (*innerp)->getCharsAndEnd(tt, ttend);
+                }
+                if (*pp != *tt)
+                    goto break_continue;
+            }
+
+            
+            return pos + (t - chars) - 1;  
+
+          break_continue:;
+        }
+
+        pos += len;
+    }
+
+    return -1;
+}
+
 static JSBool
 str_indexOf(JSContext *cx, uintN argc, Value *vp)
 {
@@ -1674,8 +1759,18 @@ class RegExpGuard
              (patlen > sMaxFlatPatLen || js_ContainsRegExpMetaChars(pat, patlen)))) {
             return false;
         }
-        textstr->getCharsAndLength(text, textlen);
-        match = StringMatch(text, textlen, pat, patlen);
+        
+
+
+
+        if (textstr->isTopNode()) {
+            match = RopeMatch(textstr, pat, patlen);
+        } else {
+            const jschar *text;
+            size_t textlen;
+            textstr->getCharsAndLength(text, textlen);
+            match = StringMatch(text, textlen, pat, patlen);
+        }
         return true;
     }
 
@@ -1683,8 +1778,6 @@ class RegExpGuard
     JSString *patstr;
     const jschar *pat;
     size_t patlen;
-    const jschar *text;
-    size_t textlen;
     jsint match;
 
     
@@ -2140,22 +2233,71 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
         return true;
     }
 
-    const jschar *rep;
-    size_t replen;
-    repstr->getCharsAndLength(rep, replen);
+    JSRopeBuilder builder(cx);
+    size_t match = g.match; 
+    size_t matchEnd = match + g.patlen;
 
-    JSCharBuffer cb(cx);
-    if (!cb.reserve(g.textlen - g.patlen + replen) ||
-        !cb.append(g.text, static_cast<size_t>(g.match)) ||
-        !cb.append(rep, replen) ||
-        !cb.append(g.text + g.match + g.patlen, g.text + g.textlen)) {
-        return false;
+    if (textstr->isTopNode()) {
+        
+
+
+
+        JSRopeLeafIterator iter(textstr);
+        size_t pos = 0;
+        for (JSString *str = iter.init(); str; str = iter.next()) {
+            size_t len = str->length();
+            size_t strEnd = pos + len;
+            if (pos < matchEnd && strEnd > match) {
+                
+
+
+
+                if (match >= pos) {
+                    
+
+
+
+
+
+                    JSString *leftSide = js_NewDependentString(cx, str, 0, match - pos);
+                    if (!leftSide ||
+                        !builder.append(cx, leftSide) ||
+                        !builder.append(cx, repstr)) {
+                        return false;
+                    }
+                }
+
+                
+
+
+
+                if (strEnd > matchEnd) {
+                    JSString *rightSide = js_NewDependentString(cx, str, matchEnd - pos,
+                                                                strEnd - matchEnd);
+                    if (!rightSide || !builder.append(cx, rightSide))
+                        return false;
+                }
+            } else {
+                if (!builder.append(cx, str))
+                    return false;
+            }
+            pos += str->length();
+        }
+    } else {
+        JSString *leftSide = js_NewDependentString(cx, textstr, 0, match);
+        if (!leftSide)
+            return false;
+        JSString *rightSide = js_NewDependentString(cx, textstr, match + g.patlen,
+                                                    textstr->length() - match - g.patlen);
+        if (!rightSide ||
+            !builder.append(cx, leftSide) ||
+            !builder.append(cx, repstr) ||
+            !builder.append(cx, rightSide)) {
+            return false;
+        }
     }
 
-    JSString *str = js_NewStringFromCharBuffer(cx, cb);
-    if (!str)
-        return false;
-    vp->setString(str);
+    vp->setString(builder.getStr());
     return true;
 }
 

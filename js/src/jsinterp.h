@@ -209,7 +209,7 @@ struct JSStackFrame
 
 
 
-    JSObject *varobj(js::CallStack *cs) const;
+    JSObject *varobj(js::CallStackSegment *css) const;
 
     
     JSObject *varobj(JSContext *cx) const;
@@ -399,6 +399,9 @@ InstanceOf(JSContext *cx, JSObject *obj, Class *clasp, Value *argv)
     extern bool InstanceOfSlow(JSContext *, JSObject *, Class *, Value *);
     return InstanceOfSlow(cx, obj, clasp, argv);
 }
+
+extern JSBool
+js_HasInstance(JSContext *cx, JSObject *obj, const js::Value *v, JSBool *bp);
 
 inline void *
 GetInstancePrivate(JSContext *cx, JSObject *obj, Class *clasp, Value *argv)
