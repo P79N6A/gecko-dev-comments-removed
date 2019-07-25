@@ -1720,6 +1720,26 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   
+  let enabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
+  if (enabled) {
+    document.getElementById("menu_remoteDebugger").hidden = false;
+    document.getElementById("Tools:RemoteDebugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+    document.getElementById("appmenu_remoteDebugger").hidden = false;
+#endif
+  }
+
+  
+  let enabled = gPrefService.getBoolPref("devtools.chrome.enabled");
+  if (enabled) {
+    document.getElementById("menu_chromeDebugger").hidden = false;
+    document.getElementById("Tools:ChromeDebugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+    document.getElementById("appmenu_chromeDebugger").hidden = false;
+#endif
+  }
+
+  
   
   let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
   if (consoleEnabled) {
