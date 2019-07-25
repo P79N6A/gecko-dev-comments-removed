@@ -59,26 +59,23 @@ namespace js {
 JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 {
     
-    TCF_IN_FUNCTION =                          0x1,
+    TCF_IN_FOR_INIT =                          0x1,
 
     
-    TCF_IN_FOR_INIT =                          0x2,
+    TCF_FUN_HEAVYWEIGHT =                      0x2,
 
     
-    TCF_FUN_HEAVYWEIGHT =                      0x4,
+    TCF_FUN_IS_GENERATOR =                     0x4,
 
     
-    TCF_FUN_IS_GENERATOR =                     0x8,
-
-    
-    TCF_GENEXP_LAMBDA =                       0x10,
+    TCF_GENEXP_LAMBDA =                        0x8,
 
     
     
     
     
     
-    TCF_STRICT_MODE_CODE =                    0x20,
+    TCF_STRICT_MODE_CODE =                    0x10,
 
     
     
@@ -100,17 +97,17 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_BINDINGS_ACCESSED_DYNAMICALLY =       0x40,
+    TCF_BINDINGS_ACCESSED_DYNAMICALLY =       0x20,
 
     
     
-    TCF_FUN_MIGHT_ALIAS_LOCALS =              0x80,
+    TCF_FUN_MIGHT_ALIAS_LOCALS =              0x40,
 
     
-    TCF_HAS_SINGLETONS =                     0x100,
+    TCF_HAS_SINGLETONS =                      0x80,
 
     
-    TCF_IN_WITH =                            0x200,
+    TCF_IN_WITH =                            0x100,
 
     
     
@@ -119,7 +116,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_FUN_EXTENSIBLE_SCOPE =               0x400,
+    TCF_FUN_EXTENSIBLE_SCOPE =               0x200,
 
     
     
@@ -142,7 +139,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_ARGUMENTS_HAS_LOCAL_BINDING =        0x800,
+    TCF_ARGUMENTS_HAS_LOCAL_BINDING =        0x400,
 
     
     
@@ -153,7 +150,7 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_DEFINITELY_NEEDS_ARGS_OBJ =         0x1000
+    TCF_DEFINITELY_NEEDS_ARGS_OBJ =          0x800
 
 } JS_ENUM_FOOTER(TreeContextFlags);
 
@@ -201,9 +198,10 @@ struct SharedContext {
 
     Bindings::StackRoot bindingsRoot; 
 
-    inline SharedContext(JSContext *cx);
+    const bool      inFunction;     
 
-    bool inFunction()                  const { return flags & TCF_IN_FUNCTION; }
+    inline SharedContext(JSContext *cx, bool inFunction);
+
     bool inStrictMode()                const { return flags & TCF_STRICT_MODE_CODE; }
     bool bindingsAccessedDynamically() const { return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY; }
     bool mightAliasLocals()            const { return flags & TCF_FUN_MIGHT_ALIAS_LOCALS; }
@@ -221,19 +219,19 @@ struct SharedContext {
     unsigned argumentsLocalSlot() const;
 
     JSFunction *fun() const {
-        JS_ASSERT(inFunction());
+        JS_ASSERT(inFunction);
         return fun_;
     }
     void setFunction(JSFunction *fun) {
-        JS_ASSERT(inFunction());
+        JS_ASSERT(inFunction);
         fun_ = fun;
     }
     JSObject *scopeChain() const {
-        JS_ASSERT(!inFunction());
+        JS_ASSERT(!inFunction);
         return scopeChain_;
     }
     void setScopeChain(JSObject *scopeChain) {
-        JS_ASSERT(!inFunction());
+        JS_ASSERT(!inFunction);
         scopeChain_ = scopeChain;
     }
 
