@@ -1694,7 +1694,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, bool aDeleteSele
   nsAutoEditBatch beginBatching(this);
   nsAutoRules beginRulesSniffing(this, kOpInsertElement, nsIEditor::eNext);
 
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   if (!selection) {
     return NS_ERROR_FAILURE;
   }
@@ -2179,7 +2179,7 @@ nsHTMLEditor::MakeOrChangeList(const nsAString& aListType, bool entireList, cons
   nsAutoRules beginRulesSniffing(this, kOpMakeList, nsIEditor::eNext);
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsTextRulesInfo ruleInfo(kOpMakeList);
@@ -2255,7 +2255,7 @@ nsHTMLEditor::RemoveList(const nsAString& aListType)
   nsAutoRules beginRulesSniffing(this, kOpRemoveList, nsIEditor::eNext);
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsTextRulesInfo ruleInfo(kOpRemoveList);
@@ -2286,7 +2286,7 @@ nsHTMLEditor::MakeDefinitionItem(const nsAString& aItemType)
   nsAutoRules beginRulesSniffing(this, kOpMakeDefListItem, nsIEditor::eNext);
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(kOpMakeDefListItem);
   ruleInfo.blockType = &aItemType;
@@ -2317,7 +2317,7 @@ nsHTMLEditor::InsertBasicBlock(const nsAString& aBlockType)
   nsAutoRules beginRulesSniffing(this, kOpMakeBasicBlock, nsIEditor::eNext);
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(kOpMakeBasicBlock);
   ruleInfo.blockType = &aBlockType;
@@ -2391,7 +2391,7 @@ nsHTMLEditor::Indent(const nsAString& aIndent)
   nsAutoRules beginRulesSniffing(this, opID, nsIEditor::eNext);
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsTextRulesInfo ruleInfo(opID);
@@ -2468,7 +2468,7 @@ nsHTMLEditor::Align(const nsAString& aAlignType)
   bool cancel, handled;
   
   
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(kOpAlign);
   ruleInfo.alignType = &aAlignType;
@@ -3389,21 +3389,24 @@ nsHTMLEditor::DeleteSelectionImpl(EDirection aAction,
     return NS_OK;
   }
 
-  nsRefPtr<nsTypedSelection> typedSel = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
   
   
-  NS_ENSURE_STATE(typedSel);
-  NS_ENSURE_STATE(typedSel->GetAnchorFocusRange());
-  NS_ENSURE_STATE(typedSel->GetAnchorFocusRange()->Collapsed());
+  NS_ENSURE_STATE(selection);
+  NS_ENSURE_STATE(selection->GetAnchorFocusRange());
+  NS_ENSURE_STATE(selection->GetAnchorFocusRange()->Collapsed());
 
-  nsCOMPtr<nsIContent> content = do_QueryInterface(typedSel->GetAnchorNode());
+  nsCOMPtr<nsIContent> content = do_QueryInterface(selection->GetAnchorNode());
   NS_ENSURE_STATE(content);
 
   
   
   nsCOMPtr<nsIContent> blockParent = content;
-  while (!IsBlockNode(blockParent)) {
+  while (blockParent && !IsBlockNode(blockParent)) {
     blockParent = blockParent->GetParent();
+  }
+  if (!blockParent) {
+    return NS_OK;
   }
   bool emptyBlockParent;
   res = IsEmptyNode(blockParent, &emptyBlockParent);
@@ -4884,7 +4887,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
   
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
-  nsRefPtr<nsTypedSelection> selection = GetTypedSelection();
+  nsRefPtr<Selection> selection = GetSelection();
 
   bool isCollapsed = selection->Collapsed();
 

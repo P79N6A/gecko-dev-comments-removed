@@ -185,7 +185,9 @@ bool IsValidVersionTag(uint32_t tag) {
          tag == Tag("typ1");
 }
 
-bool ProcessGeneric(ots::OpenTypeFile *header, ots::OTSStream *output,
+bool ProcessGeneric(ots::OpenTypeFile *header,
+                    uint32_t signature,
+                    ots::OTSStream *output,
                     const uint8_t *data, size_t length,
                     const std::vector<OpenTypeTable>& tables,
                     ots::Buffer& file);
@@ -263,7 +265,8 @@ bool ProcessTTF(ots::OpenTypeFile *header,
     tables.push_back(table);
   }
 
-  return ProcessGeneric(header, output, data, length, tables, file);
+  return ProcessGeneric(header, header->version, output, data, length,
+                        tables, file);
 }
 
 bool ProcessWOFF(ots::OpenTypeFile *header,
@@ -421,10 +424,11 @@ bool ProcessWOFF(ots::OpenTypeFile *header,
     return OTS_FAILURE_MSG_HDR("file length mismatch (trailing junk?)");
   }
 
-  return ProcessGeneric(header, output, data, length, tables, file);
+  return ProcessGeneric(header, woff_tag, output, data, length, tables, file);
 }
 
-bool ProcessGeneric(ots::OpenTypeFile *header, ots::OTSStream *output,
+bool ProcessGeneric(ots::OpenTypeFile *header, uint32_t signature,
+                    ots::OTSStream *output,
                     const uint8_t *data, size_t length,
                     const std::vector<OpenTypeTable>& tables,
                     ots::Buffer& file) {
@@ -485,10 +489,11 @@ bool ProcessGeneric(ots::OpenTypeFile *header, ots::OTSStream *output,
     }
     
     
-    const uint32_t end_byte = tables[i].offset + tables[i].length;
+    uint32_t end_byte = tables[i].offset + tables[i].length;
     
-    
-    
+    if (signature == Tag("wOFF")) {
+        end_byte = Round4(end_byte);
+    }
     if (!end_byte || end_byte > length) {
       return OTS_FAILURE_MSG_TAG("table overruns end of file", &tables[i].tag);
     }

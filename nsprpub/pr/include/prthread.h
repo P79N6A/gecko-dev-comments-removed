@@ -148,6 +148,17 @@ NSPR_API(void) PR_SetThreadPriority(PRThread *thread, PRThreadPriority priority)
 
 
 
+NSPR_API(PRStatus) PR_SetCurrentThreadName(const char *name);
+
+
+
+
+NSPR_API(const char *) PR_GetThreadName(const PRThread *thread);
+
+
+
+
+
 
 
 

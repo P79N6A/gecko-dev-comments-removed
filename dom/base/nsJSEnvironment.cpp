@@ -1200,27 +1200,25 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
 
   
   
-  nsCOMPtr<nsIPrincipal> principal;
-  nsCOMPtr<nsIScriptObjectPrincipal> objPrincipal = do_QueryInterface(GetGlobalObject());
-  if (!objPrincipal)
-    return NS_ERROR_FAILURE;
-  principal = objPrincipal->GetPrincipal();
-  if (!principal)
-    return NS_ERROR_FAILURE;
-#ifdef DEBUG
-  bool equal = false;
-  principal->Equals(aPrincipal, &equal);
-  MOZ_ASSERT(equal);
-  nsIPrincipal *scopeObjectPrincipal =
-    nsJSPrincipals::get(JS_GetCompartmentPrincipals(js::GetObjectCompartment(aScopeObject)));
-  equal = false;
-  principal->Equals(scopeObjectPrincipal, &equal);
-  MOZ_ASSERT(equal);
-#endif
+  
+  nsCOMPtr<nsIPrincipal> principal = aPrincipal;
+  nsresult rv;
+  if (!aPrincipal) {
+    nsIScriptGlobalObject *global = GetGlobalObject();
+    if (!global)
+      return NS_ERROR_FAILURE;
+    nsCOMPtr<nsIScriptObjectPrincipal> objPrincipal =
+      do_QueryInterface(global, &rv);
+    if (NS_FAILED(rv))
+      return NS_ERROR_FAILURE;
+    principal = objPrincipal->GetPrincipal();
+    if (!principal)
+      return NS_ERROR_FAILURE;
+  }
 
   bool ok = false;
 
-  nsresult rv = sSecurityManager->CanExecuteScripts(mContext, principal, &ok);
+  rv = sSecurityManager->CanExecuteScripts(mContext, principal, &ok);
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
   }
@@ -1236,6 +1234,9 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
   }
 
   jsval val;
+
+  rv = sSecurityManager->PushContextPrincipal(mContext, nsnull, principal);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsJSContext::TerminationFuncHolder holder(this);
 
@@ -1291,6 +1292,8 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
       *aIsUndefined = true;
     }
   }
+
+  sSecurityManager->PopContextPrincipal(mContext);
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -1399,23 +1402,17 @@ nsJSContext::EvaluateString(const nsAString& aScript,
 
   
   
-  nsCOMPtr<nsIPrincipal> principal;
-  nsCOMPtr<nsIScriptObjectPrincipal> objPrincipal = do_QueryInterface(GetGlobalObject());
-  if (!objPrincipal)
-    return NS_ERROR_FAILURE;
-  principal = objPrincipal->GetPrincipal();
-  if (!principal)
-    return NS_ERROR_FAILURE;
-#ifdef DEBUG
-  bool equal = false;
-  principal->Equals(aPrincipal, &equal);
-  MOZ_ASSERT(equal);
-  nsIPrincipal *scopeObjectPrincipal =
-    nsJSPrincipals::get(JS_GetCompartmentPrincipals(js::GetObjectCompartment(aScopeObject)));
-  equal = false;
-  principal->Equals(scopeObjectPrincipal, &equal);
-  MOZ_ASSERT(equal);
-#endif
+  
+  nsCOMPtr<nsIPrincipal> principal = aPrincipal;
+  if (!aPrincipal) {
+    nsCOMPtr<nsIScriptObjectPrincipal> objPrincipal =
+      do_QueryInterface(GetGlobalObject());
+    if (!objPrincipal)
+      return NS_ERROR_FAILURE;
+    principal = objPrincipal->GetPrincipal();
+    if (!principal)
+      return NS_ERROR_FAILURE;
+  }
 
   bool ok = false;
 
@@ -1439,6 +1436,9 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   
   jsval val = JSVAL_VOID;
   jsval* vp = aRetValue ? &val : NULL;
+
+  rv = sSecurityManager->PushContextPrincipal(mContext, nsnull, principal);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsJSContext::TerminationFuncHolder holder(this);
 
@@ -1490,6 +1490,8 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   }
 
   --mExecuteDepth;
+
+  sSecurityManager->PopContextPrincipal(mContext);
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -1588,6 +1590,15 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
     return NS_ERROR_FAILURE;
   }
 
+  nsCOMPtr<nsIPrincipal> principal;
+  rv = sSecurityManager->GetObjectPrincipal(mContext,
+                                            JS_GetGlobalFromScript(aScriptObject),
+                                            getter_AddRefs(principal));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = sSecurityManager->PushContextPrincipal(mContext, nsnull, principal);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsJSContext::TerminationFuncHolder holder(this);
   XPCAutoRequest ar(mContext);
   ++mExecuteDepth;
@@ -1613,6 +1624,8 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
   }
 
   --mExecuteDepth;
+
+  sSecurityManager->PopContextPrincipal(mContext);
 
   
   if (NS_FAILED(stack->Pop(nsnull)))
@@ -1854,12 +1867,24 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
     jsval *argv = nsnull;
 
     JSObject *funobj = aHandler;
+    nsCOMPtr<nsIPrincipal> principal;
+    rv = sSecurityManager->GetObjectPrincipal(mContext, funobj,
+                                              getter_AddRefs(principal));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    JSStackFrame *currentfp = nsnull;
+    rv = sSecurityManager->PushContextPrincipal(mContext,
+                                                JS_FrameIterator(mContext, &currentfp),
+                                                principal);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     jsval funval = OBJECT_TO_JSVAL(funobj);
     JSAutoEnterCompartment ac;
     js::ForceFrame ff(mContext, funobj);
     if (!ac.enter(mContext, funobj) || !ff.enter() ||
         !JS_WrapObject(mContext, &target)) {
       ReportPendingException();
+      sSecurityManager->PopContextPrincipal(mContext);
       return NS_ERROR_FAILURE;
     }
 
@@ -1902,6 +1927,8 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
     
     if (NS_FAILED(rv))
       ReportPendingException();
+
+    sSecurityManager->PopContextPrincipal(mContext);
   }
 
   pusher.Pop();

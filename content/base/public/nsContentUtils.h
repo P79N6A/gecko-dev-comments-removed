@@ -120,6 +120,8 @@ class nsIDOMHTMLInputElement;
 
 namespace mozilla {
 
+class Selection;
+
 namespace layers {
   class LayerManager;
 } 
@@ -2027,6 +2029,22 @@ public:
 
   static nsresult IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
                                     const char* aPrefURL, bool *aAllowed);
+
+  
+
+
+
+
+
+
+
+
+
+
+  static void GetSelectionInTextControl(mozilla::Selection* aSelection,
+                                        Element* aRoot,
+                                        PRInt32& aOutStartOffset,
+                                        PRInt32& aOutEndOffset);
   
 private:
   static bool InitializeEventTable();

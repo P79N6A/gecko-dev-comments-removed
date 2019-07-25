@@ -13,6 +13,7 @@
 class nsEventStateManager;
 class nsGlobalWindow;
 class nsFocusManager;
+class nsICSSDeclaration;
 
 
 enum {
@@ -56,8 +57,8 @@ class Link;
 
 
 #define NS_ELEMENT_IID \
-{ 0xab6554b0, 0xb675, 0x45a7, \
-  { 0xac, 0x23, 0x44, 0x1c, 0x94, 0x5f, 0x3b, 0xee } }
+{ 0x8493dd61, 0x4d59, 0x410a, \
+  { 0x97, 0x40, 0xd0, 0xa0, 0xc2, 0x03, 0xff, 0x52 } }
 
 class Element : public nsIContent
 {
@@ -181,9 +182,12 @@ public:
 
 
 
+  virtual nsICSSDeclaration* GetSMILOverrideStyle() = 0;
+
+  
 
 
-  virtual nsIDOMCSSStyleDeclaration* GetSMILOverrideStyle() = 0;
+  virtual bool IsLabelable() const = 0;
 
 protected:
   

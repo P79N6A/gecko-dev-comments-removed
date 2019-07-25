@@ -121,14 +121,6 @@ public:
   
   NS_IMETHOD TypedText(const nsAString& aString, ETypingAction aAction);
 
-  
-
-
-
-  nsresult GetTextSelectionOffsets(nsISelection *aSelection,
-                                   PRUint32 &aStartOffset, 
-                                   PRUint32 &aEndOffset);
-
   nsresult InsertTextAt(const nsAString &aStringToInsert,
                         nsIDOMNode *aDestinationNode,
                         PRInt32 aDestOffset,

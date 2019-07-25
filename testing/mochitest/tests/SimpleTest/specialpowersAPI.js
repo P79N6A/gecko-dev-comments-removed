@@ -119,8 +119,12 @@ function wrapPrivileged(obj) {
       
       
       
+      
+      
+      
+      
       var FakeConstructor = function() {
-        doApply(obj, this, unwrappedArgs);
+        return doApply(obj, this, unwrappedArgs);
       };
       FakeConstructor.prototype = obj.prototype;
 
@@ -767,8 +771,7 @@ SpecialPowersAPI.prototype = {
   },
 
   createSystemXHR: function() {
-    return Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
-             .createInstance(Ci.nsIXMLHttpRequest);
+    return this.wrap(Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest));
   },
 
   snapshotWindow: function (win, withCaret) {

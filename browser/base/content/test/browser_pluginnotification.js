@@ -150,7 +150,7 @@ function test3() {
 }
 
 function test4(tab, win) {
-  is(win.wrappedJSObject.gViewController.currentViewId, "addons://list/plugin", "Should have displayed the plugins pane");
+  is(win.wrappedJSObject.gViewController.currentViewId, "addons://list/plugin", "Test 4, Should have displayed the plugins pane");
   gBrowser.removeTab(tab);
 }
 
@@ -213,6 +213,21 @@ function test8() {
   prepareTest(test9a, gTestRoot + "plugin_test2.html");
 }
 
+function waitForCondition(condition, nextTest, errorMsg) {
+  var tries = 0;
+  var interval = setInterval(function() {
+    if (tries >= 500) {
+      ok(false, errorMsg);
+      moveOn();
+    }
+    if (condition()) {
+      moveOn();
+    }
+    tries++;
+  }, 10);
+  var moveOn = function() { clearInterval(interval); nextTest(); };
+}
+
 
 function test9a() {
   var notificationBox = gBrowser.getNotificationBox(gTestBrowser);
@@ -237,7 +252,9 @@ function test9a() {
   ok(!objLoadingContent.activated, "Test 9a, Plugin with id=" + plugin2.id + " should not be activated");
 
   EventUtils.synthesizeMouse(plugin1, 100, 100, { });
-  setTimeout(test9b, 1000);
+  var objLoadingContent = plugin1.QueryInterface(Ci.nsIObjectLoadingContent);
+  var condition = function() objLoadingContent.activated;
+  waitForCondition(condition, test9b, "Test 9a, Waited too long for plugin to activate");
 }
 
 
@@ -264,8 +281,11 @@ function test9b() {
   ok(!objLoadingContent.activated, "Test 9b, Plugin with id=" + plugin2.id + " should not be activated");
 
   EventUtils.synthesizeMouse(plugin2, 100, 100, { });
-  setTimeout(test9c, 1000);
+  var objLoadingContent = plugin2.QueryInterface(Ci.nsIObjectLoadingContent);
+  var condition = function() objLoadingContent.activated;
+  waitForCondition(condition, test9c, "Test 9b, Waited too long for plugin to activate");
 }
+
 
 
 function test9c() {
@@ -306,7 +326,8 @@ function test10a() {
   ok(!objLoadingContent.activated, "Test 10a, Plugin should not be activated");
 
   popupNotification.mainAction.callback();
-  setTimeout(test10b, 0);
+  var condition = function() objLoadingContent.activated;
+  waitForCondition(condition, test10b, "Test 10a, Waited too long for plugin to activate");
 }
 
 
@@ -331,30 +352,26 @@ function test11b() {
   var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   ok(!popupNotification, "Test 11b, Should not have a click-to-play notification");
 
-  Services.obs.addObserver(test11d, "PopupNotifications-updateNotShowing", false);
-  
+  Services.obs.addObserver(test11c, "PopupNotifications-updateNotShowing", false);
   gTestBrowser.contentWindow.history.back();
 }
 
 
 function test11c() {
-  gTestBrowser.removeEventListener("pageshow", test11c, false);
-  Services.obs.addObserver(test11d, "PopupNotifications-updateNotShowing", false);
+  Services.obs.removeObserver(test11c, "PopupNotifications-updateNotShowing", false);
+  var condition = function() PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  waitForCondition(condition, test11d, "Test 11c, waited too long for click-to-play-plugin notification");
 }
 
 
 function test11d() {
-  Services.obs.removeObserver(test11d, "PopupNotifications-updateNotShowing", false);
-  setTimeout(function() {
-    var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
-    ok(popupNotification, "Test 11d, Should have a click-to-play notification");
-    is(gClickToPlayPluginActualEvents, gClickToPlayPluginExpectedEvents,
-       "There should be a PluginClickToPlay event for each plugin that was " +
-       "blocked due to the plugins.click_to_play pref");
+  var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  ok(popupNotification, "Test 11d, Should have a click-to-play notification");
+  is(gClickToPlayPluginActualEvents, gClickToPlayPluginExpectedEvents,
+     "There should be a PluginClickToPlay event for each plugin that was " +
+     "blocked due to the plugins.click_to_play pref");
 
-    prepareTest(test12a, gTestRoot + "plugin_clickToPlayAllow.html");
-  }, 1000);
-
+  prepareTest(test12a, gTestRoot + "plugin_clickToPlayAllow.html");
 }
 
 
@@ -367,7 +384,8 @@ function test12a() {
 
   
   popupNotification.secondaryActions[0].callback();
-  setTimeout(test12b, 0);
+  var condition = function() objLoadingContent.activated;
+  waitForCondition(condition, test12b, "Test 12a, Waited too long for plugin to activate");
 }
 
 
@@ -404,7 +422,7 @@ function test13a() {
 
   
   popupNotification.secondaryActions[1].callback();
-  setTimeout(test13b, 0);
+  test13b();
 }
 
 
@@ -467,8 +485,8 @@ function test16a() {
   var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   ok(!popupNotification, "Test 16a, Should not have a click-to-play notification");
   var plugin = gTestBrowser.contentWindow.addPlugin();
-
-  setTimeout(test16b, 100);
+  var condition = function() PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  waitForCondition(condition, test16b, "Test 16a, Waited too long for click-to-play-plugin notification");
 }
 
 
@@ -479,7 +497,8 @@ function test16b() {
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 16b, Plugin should not be activated");
   EventUtils.synthesizeMouse(plugin, 100, 100, { });
-  setTimeout(test16c, 100);
+  var condition = function() objLoadingContent.activated;
+  waitForCondition(condition, test16c, "Test 16b, Waited too long for plugin to activate");
 }
 
 
@@ -490,8 +509,8 @@ function test16c() {
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(objLoadingContent.activated, "Test 16c, Plugin should be activated");
   var plugin = gTestBrowser.contentWindow.addPlugin();
-
-  setTimeout(test16d, 100);
+  var condition = function() PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  waitForCondition(condition, test16d, "Test 16c, Waited too long for click-to-play-plugin notification");
 }
 
 
@@ -501,6 +520,17 @@ function test16d() {
   var plugin = gTestBrowser.contentDocument.getElementsByTagName("embed")[1];
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 16d, Plugin should not be activated");
+
+  prepareTest(test17, gTestRoot + "plugin_bug749455.html");
+}
+
+
+
+function test17() {
+  var clickToPlayNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+  ok(clickToPlayNotification, "Test 17, Should have a click-to-play notification");
+  var missingNotification = PopupNotifications.getNotification("missing-plugins", gTestBrowser);
+  ok(!missingNotification, "Test 17, Should not have a missing plugin notification");
 
   finishTest();
 }

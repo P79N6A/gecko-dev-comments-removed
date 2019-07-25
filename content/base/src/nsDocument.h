@@ -1261,8 +1261,8 @@ private:
 
 
 
-  already_AddRefed<nsIDOMElement>
-    CheckAncestryAndGetFrame(nsIDocument* aDocument) const;
+
+  nsIContent* GetContentInThisDocument(nsIFrame* aFrame) const;
 
   
   

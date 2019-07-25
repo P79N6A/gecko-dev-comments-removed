@@ -844,6 +844,7 @@ Connection::getFilename()
 int
 Connection::stepStatement(sqlite3_stmt *aStatement)
 {
+  MOZ_ASSERT(aStatement);
   bool checkedMainThread = false;
   TimeStamp startTime = TimeStamp::Now();
 
@@ -880,16 +881,9 @@ Connection::stepStatement(sqlite3_stmt *aStatement)
   
   TimeDuration duration = TimeStamp::Now() - startTime;
   if (duration.ToMilliseconds() >= Telemetry::kSlowStatementThreshold) {
-    const char *sql = ::sqlite3_sql(aStatement);
-    
-    
-    
-    
-    if (sql) {
-      nsDependentCString statementString(sql);
-      Telemetry::RecordSlowSQLStatement(statementString, getFilename(),
-                                        duration.ToMilliseconds(), false);
-    }
+    nsDependentCString statementString(::sqlite3_sql(aStatement));
+    Telemetry::RecordSlowSQLStatement(statementString, getFilename(),
+                                      duration.ToMilliseconds(), false);
   }
 
   (void)::sqlite3_extended_result_codes(mDBConn, 0);
@@ -939,7 +933,15 @@ Connection::prepareStatement(const nsCString &aSQL,
 
   (void)::sqlite3_extended_result_codes(mDBConn, 0);
   
-  return srv & 0xFF;
+  int rc = srv & 0xFF;
+  
+  
+  
+  if (rc == SQLITE_OK && *_stmt == NULL) {
+    return SQLITE_MISUSE;
+  }
+
+  return rc;
 }
 
 

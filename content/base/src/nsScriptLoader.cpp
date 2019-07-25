@@ -392,10 +392,6 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     return false;
   }
 
-  
-  
-  
-  Element* rootElement = mDocument->GetRootElement();
   PRUint32 typeID = nsIProgrammingLanguage::JAVASCRIPT;
   PRUint32 version = 0;
   nsAutoString language, type, src;
