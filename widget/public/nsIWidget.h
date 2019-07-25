@@ -515,6 +515,9 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
+
     NS_IMETHOD Move(PRInt32 aX, PRInt32 aY) = 0;
 
     
