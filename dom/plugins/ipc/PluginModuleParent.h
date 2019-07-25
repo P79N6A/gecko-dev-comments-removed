@@ -90,7 +90,8 @@ protected:
 
     virtual PPluginIdentifierParent*
     AllocPPluginIdentifier(const nsCString& aString,
-                           const int32_t& aInt);
+                           const int32_t& aInt,
+                           const bool& aTemporary);
 
     virtual bool
     DeallocPPluginIdentifier(PPluginIdentifierParent* aActor);
@@ -136,8 +137,14 @@ public:
         return !IsOnCxxStack();
     }
 
-    PPluginIdentifierParent*
-    GetIdentifierForNPIdentifier(NPIdentifier aIdentifier);
+    
+
+
+
+
+
+    PluginIdentifierParent*
+    GetIdentifierForNPIdentifier(NPP npp, NPIdentifier aIdentifier);
 
     void ProcessRemoteNativeEventsInRPCCall();
 
