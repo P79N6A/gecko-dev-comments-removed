@@ -342,29 +342,31 @@ let UI = {
         item.parent.remove(item);
       groupItem.add(item, {immediately: true});
     });
-    
+    GroupItems.setActiveGroupItem(groupItem);
+
     if (firstTime) {
       gPrefBranch.setBoolPref("experienced_first_run", true);
       
       
       Services.prefs.savePrefFile(null);
 
-      let url = gPrefBranch.getCharPref("welcome_url");
-      let newTab = gBrowser.loadOneTab(url, {inBackground: true});
-      let newTabItem = newTab._tabViewTabItem;
-      let parent = newTabItem.parent;
-      Utils.assert(parent, "should have a parent");
-
-      newTabItem.parent.remove(newTabItem);
-      let aspect = TabItems.tabHeight / TabItems.tabWidth;
-      let welcomeBounds = new Rect(UI.rtl ? pageBounds.left : box.right, box.top,
-                                   welcomeWidth, welcomeWidth * aspect);
-      newTabItem.setBounds(welcomeBounds, true);
-      GroupItems.setActiveGroupItem(groupItem);
-
       
-      if (!this.isTabViewVisible())
-        GroupItems._updateTabBar();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
   },
 
