@@ -84,6 +84,10 @@ class MediaStreamGraph;
 
 
 
+
+
+
+
 class MediaStreamListener {
 public:
   virtual ~MediaStreamListener() {}
@@ -263,10 +267,7 @@ public:
   {
     mExplicitBlockerCount.SetAtAndAfter(aTime, mExplicitBlockerCount.GetAt(aTime) + aDelta);
   }
-  void AddListenerImpl(already_AddRefed<MediaStreamListener> aListener)
-  {
-    *mListeners.AppendElement() = aListener;
-  }
+  void AddListenerImpl(already_AddRefed<MediaStreamListener> aListener);
   void RemoveListenerImpl(MediaStreamListener* aListener)
   {
     mListeners.RemoveElement(aListener);

@@ -2645,7 +2645,11 @@ void nsHTMLMediaElement::ResourceLoaded()
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
   AddRemoveSelfReference();
   if (mReadyState >= nsIDOMHTMLMediaElement::HAVE_METADATA) {
-    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
+    
+    
+    
+    ChangeReadyState(mStream ? nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA
+                     : nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
   }
   
   DispatchAsyncEvent(NS_LITERAL_STRING("progress"));
