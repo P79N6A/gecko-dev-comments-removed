@@ -1953,12 +1953,7 @@ Tab.prototype = {
     if ((aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) == 0) {
       
       
-      
-      
-      
-      
       this.contentDocumentIsDisplayed = false;
-      this.setDisplayPort(0, 0, {left: 0, top: 0, right: gScreenWidth, bottom: gScreenHeight });
     } else {
       this.sendViewportUpdate();
     }
@@ -2185,6 +2180,13 @@ Tab.prototype = {
         if (contentDocument == this.browser.contentDocument) {
           this.setResolution(this.getDefaultZoomLevel(), false);
           ViewportHandler.updateMetadata(this);
+
+          
+          
+          
+          
+          this.setDisplayPort(0, 0, {left: 0, top: 0, right: gScreenWidth, bottom: gScreenHeight });
+
           BrowserApp.displayedDocumentChanged();
           this.contentDocumentIsDisplayed = true;
         }
