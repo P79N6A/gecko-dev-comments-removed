@@ -793,6 +793,24 @@ nsBaseWidget::GetShouldAccelerate()
 
 # if defined(NP_NO_QUICKDRAW)
   PRBool accelerateByDefault = PR_TRUE;
+
+  
+  
+  
+  
+  
+  SInt32 major, minor, bugfix;
+  OSErr err1 = ::Gestalt(gestaltSystemVersionMajor, &major);
+  OSErr err2 = ::Gestalt(gestaltSystemVersionMinor, &minor);
+  OSErr err3 = ::Gestalt(gestaltSystemVersionBugFix, &bugfix);
+  if (err1 == noErr && err2 == noErr && err3 == noErr) {
+    if (major == 10 && minor == 6) {
+      if (bugfix <= 2) {
+        accelerateByDefault = PR_FALSE;
+      }
+    }
+  }
+
 # else
   PRBool accelerateByDefault = PR_FALSE;
 # endif
