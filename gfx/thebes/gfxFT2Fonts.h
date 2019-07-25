@@ -47,14 +47,17 @@
 #include "gfxFontUtils.h"
 #include "gfxUserFontSet.h"
 
-namespace mozilla {
-    namespace dom {
-        class FontListEntry;
-    };
-};
-using mozilla::dom::FontListEntry;
-
 typedef struct FT_FaceRec_* FT_Face;
+
+class FileAndIndex {
+public:
+    FileAndIndex(nsCString aFilename, PRUint32 aIndex) :
+        filename(aFilename), index(aIndex) {}
+    FileAndIndex(FileAndIndex* fai) :
+        filename(fai->filename), index(fai->index) {}
+    nsCString filename;
+    PRUint32 index;
+};
 
 
 
@@ -69,9 +72,13 @@ public:
         gfxFontFamily(aName) { }
 
     FontEntry *FindFontEntry(const gfxFontStyle& aFontStyle);
+    virtual void FindStyleVariations();
+    void AddFontFileAndIndex(nsCString aFilename, PRUint32 aIndex);
 
+private:
     
-    void AddFacesToFontList(InfallibleTArray<FontListEntry>* aFontList);
+    
+    nsTArray<FileAndIndex> mFilenames;
 };
 
 class FontEntry : public gfxFontEntry
@@ -91,22 +98,12 @@ public:
         return Name();
     }
 
-    
     static FontEntry* 
     CreateFontEntry(const gfxProxyFontEntry &aProxyEntry,
                     const PRUint8 *aFontData, PRUint32 aLength);
 
-    
-    
-    
-    static FontEntry*
-    CreateFontEntry(const FontListEntry& aFLE);
-
-    
-    
     static FontEntry* 
-    CreateFontEntry(FT_Face aFace, const char *aFilename, PRUint8 aIndex,
-                    const PRUint8 *aFontData = nsnull);
+    CreateFontEntryFromFace(FT_Face aFace, const PRUint8 *aFontData = nsnull);
         
         
 
@@ -137,11 +134,8 @@ public:
 
     FontEntry *GetFontEntry();
 
-#ifndef ANDROID
     static already_AddRefed<gfxFT2Font>
     GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle, PRBool aNeedsBold = PR_FALSE);
-#endif
-
     static already_AddRefed<gfxFT2Font>
     GetOrMakeFont(FontEntry *aFontEntry, const gfxFontStyle *aStyle, PRBool aNeedsBold = PR_FALSE);
 
