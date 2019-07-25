@@ -1254,23 +1254,18 @@ private:
 
     
     
+    
+    
+    
     struct StringWrapperEntry
     {
-        StringWrapperEntry()
-            : mInUse(PR_FALSE)
-        {
-        }
+        StringWrapperEntry() : mInUse(PR_FALSE) { }
 
-        XPCReadableJSStringWrapper mString;
+        js::AlignedStorage2<XPCReadableJSStringWrapper> mString;
         PRBool mInUse;
     };
 
-    
-    
-    
-    
-    
-    char mStringWrapperData[sizeof(StringWrapperEntry) * XPCCCX_STRING_CACHE_SIZE];
+    StringWrapperEntry mScratchStrings[XPCCCX_STRING_CACHE_SIZE];
 };
 
 class XPCLazyCallContext
