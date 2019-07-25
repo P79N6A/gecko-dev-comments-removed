@@ -65,7 +65,8 @@ const char* XPCJSRuntime::mStrings[] = {
     "__scriptOnly__",       
     "baseURIObject",        
     "nodePrincipal",        
-    "documentURIObject"     
+    "documentURIObject",    
+    "mozMatchesSelector"    
 };
 
 
