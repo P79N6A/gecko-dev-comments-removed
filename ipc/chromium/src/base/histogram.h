@@ -381,6 +381,7 @@ class Histogram {
                                    Flags flags);
 
   void Add(int value);
+  void Subtract(int value);
 
   
   virtual void AddBoolean(bool value);
