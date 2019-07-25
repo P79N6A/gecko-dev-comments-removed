@@ -650,9 +650,6 @@ pref("network.protocol-handler.expose-all", true);
 
 
 
-pref("network.hosts.smtp_server",           "mail");
-pref("network.hosts.pop_server",            "mail");
-
 
 pref("network.http.version", "1.1");	  
 
@@ -2532,8 +2529,6 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 #ifdef ANDROID
 
-pref("network.hosts.smtp_server", "localhost");
-pref("network.hosts.pop_server", "pop");
 pref("network.protocol-handler.warn-external.file", false);
 pref("browser.drag_out_of_frame_style", 1);
 
@@ -2808,8 +2803,6 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 #ifndef XP_MACOSX
 #ifdef XP_UNIX
 
-pref("network.hosts.smtp_server", "localhost");
-pref("network.hosts.pop_server", "pop");
 pref("network.protocol-handler.warn-external.file", false);
 pref("browser.drag_out_of_frame_style", 1);
 
