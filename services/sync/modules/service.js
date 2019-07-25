@@ -821,6 +821,9 @@ WeaveSvc.prototype = {
   
 
 
+
+
+
   wipeServer: function WeaveSvc_wipeServer(onComplete) {
     let fn = function WeaveSvc__wipeServer() {
       let self = yield;
@@ -847,19 +850,78 @@ WeaveSvc.prototype = {
   
 
 
-  resetClient: function WeaveSvc_resetClient(onComplete) {
-    let fn = function WeaveSvc__resetClient() {
+
+
+
+  wipeClient: function WeaveSvc_wipeClient(onComplete) {
+    let fn = function WeaveSvc__wipeClient() {
+      let self = yield;
+
+      
+      yield this.resetService(self.cb);
+
+      
+      for each (let engine in [Clients].concat(Engines.getAll()))
+        yield engine.wipeClient(self.cb);
+    };
+    this._catchAll(this._notify("wipe-client", "", fn)).async(this, onComplete);
+  },
+
+  
+
+
+
+
+
+
+  wipeRemote: function WeaveSvc_wipeRemote(onComplete) {
+    let fn = function WeaveSvc__wipeRemote() {
+      let self = yield;
+
+      
+      
+
+      
+      this.prepCommand("wipeAll", []);
+    };
+    this._catchAll(this._notify("wipe-remote", "", fn)).async(this, onComplete);
+  },
+
+  
+
+
+
+
+
+  resetService: function WeaveSvc__resetService(onComplete) {
+    let fn = function WeaveSvc__resetService() {
       let self = yield;
 
       
       this.clearLogs();
-      this._log.info("Logs reinitialized for client reset");
+      this._log.info("Logs reinitialized for service reset");
 
       
       Clients.resetSyncID();
       Svc.Prefs.reset("lastSync");
       for each (let cache in [PubKeys, PrivKeys, CryptoMetas, Records])
         cache.clearCache();
+    };
+    this._catchAll(this._notify("reset-service", "", fn)).async(this, onComplete);
+  },
+
+  
+
+
+
+
+
+  resetClient: function WeaveSvc_resetClient(onComplete) {
+    let fn = function WeaveSvc__resetClient() {
+      let self = yield;
+
+      
+      yield this.resetService(self.cb);
 
       
       for each (let engine in [Clients].concat(Engines.getAll()))
@@ -876,7 +938,7 @@ WeaveSvc.prototype = {
       } catch (e) {
         this._log.debug("Could not remove old snapshots: " + Utils.exceptionStr(e));
       }
-    }
+    };
     this._catchAll(this._notify("reset-client", "", fn)).async(this, onComplete);
   },
 
