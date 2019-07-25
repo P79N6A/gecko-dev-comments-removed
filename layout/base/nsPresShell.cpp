@@ -5786,17 +5786,22 @@ void PresShell::UpdateCanvasBackground()
   
   
   
-  nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
-  if (rootFrame) {
+  nsIFrame* rootStyleFrame = FrameConstructor()->GetRootElementStyleFrame();
+  if (rootStyleFrame) {
     nsStyleContext* bgStyle =
-      nsCSSRendering::FindRootFrameBackground(rootFrame);
+      nsCSSRendering::FindRootFrameBackground(rootStyleFrame);
     
     
     
     
     mCanvasBackgroundColor =
       nsCSSRendering::DetermineBackgroundColor(GetPresContext(), bgStyle,
-                                               rootFrame);
+                                               rootStyleFrame);
+    if (nsLayoutUtils::GetCrossDocParentFrame(FrameManager()->GetRootFrame()) &&
+        !nsContentUtils::IsChildOfSameType(mDocument)) {
+      mCanvasBackgroundColor =
+        NS_ComposeColors(mPresContext->DefaultBackgroundColor(), mCanvasBackgroundColor);
+    }
   }
 
   
