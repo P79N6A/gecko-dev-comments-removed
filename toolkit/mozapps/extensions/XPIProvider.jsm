@@ -1976,8 +1976,9 @@ var XPIProvider = {
 
           try {
             fis.init(jsonfile, -1, 0, 0);
-            aManifests[aLocation.name][id] = json.decodeFromStream(fis,
-                                                                   jsonfile.fileSize);
+            let addonObj = json.decodeFromStream(fis, jsonfile.fileSize);
+            aManifests[aLocation.name][id] = new AddonInternal();
+            aManifests[aLocation.name][id].fromJSON(addonObj);
             existingAddonID = aManifests[aLocation.name][id].existingAddonID || id;
           }
           catch (e) {
@@ -2540,6 +2541,7 @@ var XPIProvider = {
 
       
       if (aMigrateData) {
+        LOG("Migrating data from old database");
         
         
         if (newAddon.type != "theme")
@@ -2553,6 +2555,7 @@ var XPIProvider = {
         
         
         if (aMigrateData.version == newAddon.version) {
+          LOG("Migrating compatibility info");
           if ("targetApplications" in aMigrateData)
             newAddon.applyCompatibilityUpdate(aMigrateData, true);
         }
@@ -6771,6 +6774,18 @@ AddonInternal.prototype = {
     }
 
     return obj;
+  },
+
+  
+
+
+
+
+
+
+  fromJSON: function(aObj) {
+    for (let prop in aObj)
+      this[prop] = aObj[prop];
   }
 };
 
