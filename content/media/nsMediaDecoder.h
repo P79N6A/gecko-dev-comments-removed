@@ -253,6 +253,12 @@ protected:
   
   nsresult StopProgress();
 
+  
+  void PinForSeek();
+
+  
+  void UnpinForSeek();
+
 protected:
   
   nsCOMPtr<nsITimer> mProgressTimer;
@@ -291,6 +297,10 @@ protected:
 
   
   float mPixelAspectRatio;
+
+  
+  
+  PRPackedBool mPinnedForSeek;
 
   
   PRPackedBool mSizeChanged;
