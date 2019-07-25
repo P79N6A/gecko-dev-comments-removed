@@ -239,8 +239,10 @@ ContentSecurityPolicy.prototype = {
 
     
     
+    
+    
     var newpolicy = CSPRep.fromString(aPolicy,
-                                      selfURI.scheme + "://" + selfURI.hostPort,
+				      selfURI,
                                       this._docRequest,
                                       this);
 

@@ -48,6 +48,14 @@ const POLICY_URI = "http://localhost:" + POLICY_PORT + "/policy";
 const POLICY_URI_RELATIVE = "/policy";
 
 
+function URI(uriString) {
+  var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+                .getService(Components.interfaces.nsIIOService);
+  return ioService.newURI(uriString, null, null);
+}
+
+
+
 function do_check_in_array(arr, val, stack) {
   if (!stack)
     stack = Components.stack.caller;
@@ -272,7 +280,7 @@ test(
     function test_CSPSourceList_fromString_twohost() {
       var str = "foo.bar:21 https://ras.bar";
       var parsed = "http://foo.bar:21 https://ras.bar:443";
-      var sd = CSPSourceList.fromString(str, "http://self.com:80");
+      var sd = CSPSourceList.fromString(str, URI("http://self.com:80"));
       
       do_check_neq(null,sd);
       
@@ -284,9 +292,9 @@ test(
 test(
     function test_CSPSourceList_permits() {
       var nullSourceList = CSPSourceList.fromString("'none'");
-      var simpleSourceList = CSPSourceList.fromString("a.com", "http://self.com");
+      var simpleSourceList = CSPSourceList.fromString("a.com", URI("http://self.com"));
       var doubleSourceList = CSPSourceList.fromString("https://foo.com http://bar.com:88",
-                                                      "http://self.com:88");
+                                                      URI("http://self.com:88"));
       var allSourceList = CSPSourceList.fromString("*");
 
       
@@ -362,7 +370,7 @@ test(
       var SD = CSPRep.SRC_DIRECTIVES;
 
       
-      cspr = CSPRep.fromString("allow *", "http://self.com:80");
+      cspr = CSPRep.fromString("allow *", URI("http://self.com:80"));
       
       do_check_has_key(cspr._directives, SD.DEFAULT_SRC);
 
@@ -384,7 +392,7 @@ test(
       var SD = CSPRep.SRC_DIRECTIVES;
 
       
-      cspr = CSPRep.fromString("default-src *", "http://self.com:80");
+      cspr = CSPRep.fromString("default-src *", URI("http://self.com:80"));
       
       do_check_has_key(cspr._directives, SD.DEFAULT_SRC);
 
@@ -399,8 +407,8 @@ test(
 
       
       
-      cspr = CSPRep.fromString("default-src *", "http://self.com:80");
-      cspr_allow = CSPRep.fromString("allow *", "http://self.com:80");
+      cspr = CSPRep.fromString("default-src *", URI("http://self.com:80"));
+      cspr_allow = CSPRep.fromString("allow *", URI("http://self.com:80"));
 
       for (var d in SD) {
         do_check_equivalent(cspr._directives[SD[d]],
@@ -418,7 +426,7 @@ test(
 
       
       cspr = CSPRep.fromString("allow bar.com; script-src https://foo.com", 
-                               "http://self.com");
+                               URI("http://self.com"));
 
       for(var x in DEFAULTS) {
         
@@ -446,7 +454,7 @@ test(
       var polstr = "allow allow.com; "
                   + "script-src https://foo.com; "
                   + "img-src bar.com:*";
-      cspr = CSPRep.fromString(polstr, "http://self.com");
+      cspr = CSPRep.fromString(polstr, URI("http://self.com"));
 
       for(var x in DEFAULTS) {
         do_check_true(cspr.permits("http://allow.com", DEFAULTS[x]));
@@ -478,7 +486,7 @@ test(function test_CSPRep_fromString_withself() {
 
       
       cspr = CSPRep.fromString("allow 'self'; script-src 'self' https://*:*",
-                              self);
+                              URI(self));
       
       do_check_false(cspr.permits("https://foo.com:400", SD.IMG_SRC));
       
@@ -498,7 +506,7 @@ test(function test_FrameAncestor_defaults() {
       var SD = CSPRep.SRC_DIRECTIVES;
       var self = "http://self.com:34";
 
-      cspr = CSPRep.fromString("allow 'none'", self);
+      cspr = CSPRep.fromString("allow 'none'", URI(self));
 
       
       do_check_true(cspr.permits("https://foo.com:400", SD.FRAME_ANCESTORS));
@@ -507,7 +515,7 @@ test(function test_FrameAncestor_defaults() {
       do_check_true(cspr.permits("http://self.com", SD.FRAME_ANCESTORS));
       do_check_true(cspr.permits("http://subd.self.com:34", SD.FRAME_ANCESTORS));
 
-      cspr = CSPRep.fromString("allow 'none'; frame-ancestors 'self'", self);
+      cspr = CSPRep.fromString("allow 'none'; frame-ancestors 'self'", URI(self));
 
       
       do_check_true(cspr.permits("http://self.com:34", SD.FRAME_ANCESTORS));
@@ -531,27 +539,27 @@ test(function test_CSP_ReportURI_parsing() {
       var uri_valid_relative2_expanded = self + "/" + uri_valid_relative2;
       var uri_invalid_relative = "javascript:alert(1)";
 
-      cspr = CSPRep.fromString("allow *; report-uri " + uri_valid_absolute, self);
+      cspr = CSPRep.fromString("allow *; report-uri " + uri_valid_absolute, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       do_check_in_array(parsedURIs, uri_valid_absolute);
       do_check_eq(parsedURIs.length, 1);
 
-      cspr = CSPRep.fromString("allow *; report-uri " + uri_invalid_host_absolute, self);
+      cspr = CSPRep.fromString("allow *; report-uri " + uri_invalid_host_absolute, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       do_check_in_array(parsedURIs, "");
       do_check_eq(parsedURIs.length, 1); 
 
-      cspr = CSPRep.fromString("allow *; report-uri " + uri_invalid_relative, self);
+      cspr = CSPRep.fromString("allow *; report-uri " + uri_invalid_relative, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       do_check_in_array(parsedURIs, "");
       do_check_eq(parsedURIs.length, 1);
 
-      cspr = CSPRep.fromString("allow *; report-uri " + uri_valid_relative, self);
+      cspr = CSPRep.fromString("allow *; report-uri " + uri_valid_relative, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       do_check_in_array(parsedURIs, uri_valid_relative_expanded);
       do_check_eq(parsedURIs.length, 1);
 
-      cspr = CSPRep.fromString("allow *; report-uri " + uri_valid_relative2, self);
+      cspr = CSPRep.fromString("allow *; report-uri " + uri_valid_relative2, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       dump(parsedURIs.length);
       do_check_in_array(parsedURIs, uri_valid_relative2_expanded);
@@ -560,7 +568,7 @@ test(function test_CSP_ReportURI_parsing() {
       
       cspr = CSPRep.fromString("allow *; report-uri " +
                                uri_valid_relative2 + " " +
-                               uri_valid_absolute, self);
+                               uri_valid_absolute, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       do_check_in_array(parsedURIs, uri_valid_relative2_expanded);
       do_check_in_array(parsedURIs, uri_valid_absolute);
@@ -569,7 +577,7 @@ test(function test_CSP_ReportURI_parsing() {
       cspr = CSPRep.fromString("allow *; report-uri " +
                                uri_valid_relative2 + " " +
                                uri_invalid_host_absolute + " " +
-                               uri_valid_absolute, self);
+                               uri_valid_absolute, URI(self));
       parsedURIs = cspr.getReportURIs().split(/\s+/);
       do_check_in_array(parsedURIs, uri_valid_relative2_expanded);
       do_check_in_array(parsedURIs, uri_valid_absolute);

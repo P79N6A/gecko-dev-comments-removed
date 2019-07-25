@@ -87,7 +87,7 @@ function CSPWarning(aMsg, aSource, aScriptSample, aLineNum) {
 
   var consoleMsg = Components.classes["@mozilla.org/scripterror;1"]
                     .createInstance(Components.interfaces.nsIScriptError);
-  consoleMsg.init('CSP: ' + aMsg, aSource, aScriptSample, aLineNum, 0,
+  consoleMsg.init(textMessage, aSource, aScriptSample, aLineNum, 0,
                   Components.interfaces.nsIScriptError.warningFlag,
                   "Content Security Policy");
   Components.classes["@mozilla.org/consoleservice;1"]
@@ -100,7 +100,7 @@ function CSPError(aMsg) {
 
   var consoleMsg = Components.classes["@mozilla.org/scripterror;1"]
                     .createInstance(Components.interfaces.nsIScriptError);
-  consoleMsg.init('CSP: ' + aMsg, null, null, 0, 0,
+  consoleMsg.init(textMessage, null, null, 0, 0,
                   Components.interfaces.nsIScriptError.errorFlag,
                   "Content Security Policy");
   Components.classes["@mozilla.org/consoleservice;1"]
@@ -231,8 +231,6 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
   var selfUri = null;
   if (self instanceof Components.interfaces.nsIURI)
     selfUri = self.clone();
-  else if (self)
-    selfUri = gIoService.newURI(self, null, null);
 
   var dirs = aStr.split(";");
 
@@ -452,8 +450,8 @@ CSPRep.prototype = {
     var dirs = [];
 
     if (this._allowEval || this._allowInlineScripts) {
-      dirs.push("options " + (this._allowEval ? "eval-script" : "")
-                           + (this._allowInlineScripts ? "inline-script" : ""));
+      dirs.push("options" + (this._allowEval ? " eval-script" : "")
+                           + (this._allowInlineScripts ? " inline-script" : ""));
     }
     for (var i in this._directives) {
       if (this._directives[i]) {
@@ -617,6 +615,12 @@ CSPSourceList.fromString = function(aStr, self, enforceSelfChecks) {
   
   
   
+
+  
+
+  if(self && !(self instanceof CSPSource)) {
+     self = CSPSource.create(self);
+  }
 
   var slObj = new CSPSourceList();
   if (aStr === "'none'")
@@ -803,6 +807,15 @@ function CSPSource() {
   
   this._isSelf = false;
 }
+
+
+
+
+
+
+
+
+
 
 
 
