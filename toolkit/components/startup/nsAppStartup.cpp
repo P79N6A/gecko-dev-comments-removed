@@ -42,6 +42,7 @@
 
 
 
+
 #include "nsAppStartup.h"
 
 #include "nsIAppShellService.h"
@@ -97,6 +98,38 @@
 #include "mozilla/StartupTimeline.h"
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
+
+#if defined(XP_WIN)
+#include "mozilla/perfprobe.h"
+
+
+
+
+
+
+
+
+#define NS_APPLICATION_TRACING_CID \
+  { 0x509962E0, 0x406B, 0x46F4, \
+  { 0x99, 0xBA, 0x5A, 0x00, 0x9F, 0x8D, 0x22, 0x25} }
+
+
+
+#define NS_PLACES_INIT_COMPLETE_EVENT_CID \
+  { 0xA3DA04E0, 0x57D7, 0x482A, \
+  { 0xA1, 0xC1, 0x61, 0xDA, 0x5F, 0x95, 0xBA, 0xCB} }
+
+#define NS_SESSION_STORE_WINDOW_RESTORED_EVENT_CID \
+  { 0x917B96B1, 0xECAD, 0x4DAB, \
+  { 0xA7, 0x60, 0x8D, 0x49, 0x02, 0x77, 0x48, 0xAE} }
+
+static NS_DEFINE_CID(kApplicationTracingCID,
+  NS_APPLICATION_TRACING_CID);
+static NS_DEFINE_CID(kPlacesInitCompleteCID,
+  NS_PLACES_INIT_COMPLETE_EVENT_CID);
+static NS_DEFINE_CID(kSessionStoreWindowRestoredCID,
+  NS_SESSION_STORE_WINDOW_RESTORED_EVENT_CID);
+#endif 
 
 using namespace mozilla;
 
@@ -158,6 +191,39 @@ nsAppStartup::Init()
   os->AddObserver(this, "profile-change-teardown", true);
   os->AddObserver(this, "xul-window-registered", true);
   os->AddObserver(this, "xul-window-destroyed", true);
+
+#if defined(XP_WIN)
+  os->AddObserver(this, "places-init-complete", true);
+  
+
+  
+  mProbesManager =
+    new ProbeManager(
+                     kApplicationTracingCID,
+                     NS_LITERAL_CSTRING("Application startup probe"));
+  
+  
+
+  if (mProbesManager) {
+    mPlacesInitCompleteProbe =
+      mProbesManager->
+      GetProbe(kPlacesInitCompleteCID,
+               NS_LITERAL_CSTRING("places-init-complete"));
+    NS_WARN_IF_FALSE(mPlacesInitCompleteProbe,
+                     "Cannot initialize probe 'places-init-complete'");
+
+    mSessionWindowRestoredProbe =
+      mProbesManager->
+      GetProbe(kSessionStoreWindowRestoredCID,
+               NS_LITERAL_CSTRING("sessionstore-windows-restored"));
+    NS_WARN_IF_FALSE(mSessionWindowRestoredProbe,
+                     "Cannot initialize probe 'sessionstore-windows-restored'");
+
+    rv = mProbesManager->StartSession();
+    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
+                     "Cannot initialize system probe manager");
+  }
+#endif 
 
   return NS_OK;
 }
@@ -560,6 +626,15 @@ nsAppStartup::Observe(nsISupports *aSubject,
     ExitLastWindowClosingSurvivalArea();
   } else if (!strcmp(aTopic, "sessionstore-windows-restored")) {
     StartupTimeline::Record(StartupTimeline::SESSION_RESTORED);
+#if defined(XP_WIN)
+    if (mSessionWindowRestoredProbe) {
+      mSessionWindowRestoredProbe->Trigger();
+    }
+  } else if (!strcmp(aTopic, "places-init-complete")) {
+    if (mPlacesInitCompleteProbe) {
+      mPlacesInitCompleteProbe->Trigger();
+    }
+#endif
   } else {
     NS_ERROR("Unexpected observer topic.");
   }
