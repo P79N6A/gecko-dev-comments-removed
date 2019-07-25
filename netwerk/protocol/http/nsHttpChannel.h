@@ -83,7 +83,6 @@ class nsHttpChannel : public HttpBaseChannel
                     , public nsITraceableChannel
                     , public nsIApplicationCacheChannel
                     , public nsIAsyncVerifyRedirectCallback
-                    , public nsIHttpChannelParentInternal
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -99,7 +98,6 @@ public:
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
     NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
-    NS_DECL_NSIHTTPCHANNELPARENTINTERNAL
 
     
     
@@ -338,8 +336,6 @@ private:
     PRUint32                          mCustomConditionalRequest : 1;
     PRUint32                          mFallingBack              : 1;
     PRUint32                          mWaitingForRedirectCallback : 1;
-    
-    PRUint32                          mRemoteChannel : 1;
     
     
     PRUint32                          mRequestTimeInitialized : 1;
