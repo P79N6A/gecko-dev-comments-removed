@@ -53,7 +53,6 @@ namespace css {
 
 
 
-
 class TextOverflow {
  public:
   
@@ -69,12 +68,6 @@ class TextOverflow {
 
 
   void ProcessLine(const nsDisplayListSet& aLists, nsLineBox* aLine);
-
-  
-
-
-
-  void DidProcessLines();
 
   
 
