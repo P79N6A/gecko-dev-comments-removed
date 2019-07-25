@@ -275,13 +275,7 @@ nsSMILTimedElement::~nsSMILTimedElement()
   
   
   
-  mElementState = STATE_POSTACTIVE;
-  ResetCurrentInterval();
-
-  for (PRInt32 i = mOldIntervals.Length() - 1; i >= 0; --i) {
-    mOldIntervals[i]->Unlink();
-  }
-  mOldIntervals.Clear();
+  ClearIntervals();
 
   
   
@@ -768,7 +762,10 @@ nsSMILTimedElement::Rewind()
                     mSeekState == SEEK_BACKWARD_FROM_ACTIVE,
                     "Rewind in the middle of a forwards seek?");
 
-  ClearIntervalProgress();
+  ClearIntervals();
+  
+  
+  mElementState = STATE_STARTUP;
 
   UnsetBeginSpec(RemoveNonDynamic);
   UnsetEndSpec(RemoveNonDynamic);
@@ -1244,6 +1241,7 @@ nsSMILTimedElement::Unlink()
 {
   AutoIntervalUpdateBatcher updateBatcher(*this);
 
+  
   PRUint32 count = mBeginSpecs.Length();
   for (PRUint32 i = 0; i < count; ++i) {
     nsSMILTimeValueSpec* beginSpec = mBeginSpecs[i];
@@ -1258,6 +1256,11 @@ nsSMILTimedElement::Unlink()
     NS_ABORT_IF_FALSE(endSpec, "null nsSMILTimeValueSpec in list of end specs");
     endSpec->Unlink();
   }
+
+  ClearIntervals();
+
+  
+  mTimeDependents.Clear();
 }
 
 
@@ -1331,9 +1334,9 @@ nsSMILTimedElement::ClearSpecs(TimeValueSpecList& aSpecs,
 }
 
 void
-nsSMILTimedElement::ClearIntervalProgress()
+nsSMILTimedElement::ClearIntervals()
 {
-  mElementState = STATE_STARTUP;
+  mElementState = STATE_POSTACTIVE;
   mCurrentRepeatIteration = 0;
   ResetCurrentInterval();
 
