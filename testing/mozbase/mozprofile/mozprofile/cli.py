@@ -2,6 +2,8 @@
 
 
 
+
+
 """
 Creates and/or modifies a Firefox profile.
 The profile can be modified by passing in addons to install or preferences to set.

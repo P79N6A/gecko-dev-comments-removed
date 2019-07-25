@@ -1,12 +1,13 @@
 
 
 
+
 from logging import getLogger as getSysLogger
 from logging import *
 
 
 
-from logging import getLoggerClass, addLevelName, setLoggerClass
+from logging import getLoggerClass, addLevelName, setLoggerClass, shutdown
 
 _default_level = INFO
 _LoggerClass = getLoggerClass()

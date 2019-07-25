@@ -2,7 +2,6 @@
 
 
 
-
 from ctypes import sizeof, windll, addressof, c_wchar, create_unicode_buffer
 from ctypes.wintypes import DWORD, HANDLE
 

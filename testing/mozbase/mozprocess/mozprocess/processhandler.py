@@ -111,14 +111,15 @@ class ProcessHandlerMixin(object):
                     except BaseException, e:
                         if getattr(e, "errno", None) != 3:
                             
-                            print >> sys.stderr, "Could not kill process, could not find pid: %s" % self.pid
+                            print >> sys.stdout, "Could not kill process, could not find pid: %s, assuming it's already dead" % self.pid
                 else:
                     os.kill(self.pid, signal.SIGKILL)
                 if self.returncode is None:
                     self.returncode = subprocess.Popen._internal_poll(self)
 
             self._cleanup()
-            return self.returncode
+
+        return self.returncode
 
         def wait(self):
             """ Popen.wait
@@ -365,7 +366,8 @@ falling back to not using job objects for managing child processes"""
                     except:
                         err = "IO Completion Port failed to signal process shutdown"
                     
-                    self.returncode = winprocess.GetExitCodeProcess(self._handle)
+                    if self._handle:
+                        self.returncode = winprocess.GetExitCodeProcess(self._handle)
                     self._cleanup()
 
                     if err is not None:
@@ -482,7 +484,7 @@ falling back to not using job objects for managing child processes"""
                  cmd,
                  args=None,
                  cwd=None,
-                 env=os.environ.copy(),
+                 env=None,
                  ignore_children = False,
                  processOutputLine=(),
                  onTimeout=(),
@@ -507,10 +509,13 @@ falling back to not using job objects for managing child processes"""
         self.cmd = cmd
         self.args = args
         self.cwd = cwd
-        self.env = env
         self.didTimeout = False
         self._ignore_children = ignore_children
         self.keywordargs = kwargs
+
+        if env is None:
+            env = os.environ.copy()
+        self.env = env
 
         
         self.processOutputLineHandlers = list(processOutputLine)
@@ -623,7 +628,6 @@ falling back to not using job objects for managing child processes"""
                 lineReadTimeout = timeout - (datetime.now() - self.startTime).seconds
             (line, self.didTimeout) = self.readWithTimeout(logsource, lineReadTimeout)
 
-
         if self.didTimeout:
             self.proc.kill()
             self.onTimeout()
@@ -710,6 +714,7 @@ class LogOutput(object):
 
 
 
+
 class ProcessHandler(ProcessHandlerMixin):
 
     def __init__(self, cmd, logfile=None, storeOutput=True, **kwargs):
@@ -721,7 +726,11 @@ class ProcessHandler(ProcessHandlerMixin):
         appended to the given file.
         """
 
-        kwargs.setdefault('processOutputLine', []).append(print_output)
+        kwargs.setdefault('processOutputLine', [])
+
+        
+        if not kwargs['processOutputLine']:
+            kwargs['processOutputLine'].append(print_output)
 
         if logfile:
             logoutput = LogOutput(logfile)

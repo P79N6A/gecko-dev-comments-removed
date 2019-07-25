@@ -2,7 +2,6 @@
 
 
 
-
 """
 utility functions for mozrunner
 """

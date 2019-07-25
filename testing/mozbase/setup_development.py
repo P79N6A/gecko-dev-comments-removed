@@ -3,6 +3,7 @@
 
 
 
+
 """
 Setup mozbase packages for development.
 
@@ -11,8 +12,6 @@ If no arguments are given, install all packages.
 
 See https://wiki.mozilla.org/Auto-tools/Projects/MozBase
 """
-
-
 
 import pkg_resources
 import os
@@ -149,13 +148,20 @@ def main(args=sys.argv[1:]):
         parser.exit()
 
     
+    
     deps = {}
+    alldeps = {}
     mapping = {} 
     
     for package in packages:
         key, value = dependencies(os.path.join(here, package))
         deps[key] = [sanitize_dependency(dep) for dep in value]
         mapping[package] = key
+
+        
+        for dep in value:
+            alldeps[sanitize_dependency(dep)] = ''.join(dep.split())
+
     
     flag = True
     while flag:
@@ -165,6 +171,9 @@ def main(args=sys.argv[1:]):
                 if dep in all_packages and dep not in deps:
                     key, value = dependencies(os.path.join(here, dep))
                     deps[key] = [sanitize_dependency(dep) for dep in value]
+
+                    for dep in value:
+                        alldeps[sanitize_dependency(dep)] = ''.join(dep.split())
                     mapping[package] = key
                     flag = True
                     break
@@ -194,8 +203,19 @@ def main(args=sys.argv[1:]):
         parser.exit()
 
     
+    
+    
+    
+    
+    pypi_deps = dict([(i, j) for i,j in alldeps.items()
+                      if i not in unrolled])
+    for package, version in pypi_deps.items():
+        
+        call(['easy_install', version])
+
+    
     for package in unrolled:
-        call([sys.executable, 'setup.py', 'develop'],
+        call([sys.executable, 'setup.py', 'develop', '--no-deps'],
              cwd=os.path.join(here, reverse_mapping[package]))
 
 if __name__ == '__main__':

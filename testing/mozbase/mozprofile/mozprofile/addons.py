@@ -4,7 +4,6 @@
 
 import os
 import shutil
-import sys
 import tempfile
 import urllib2
 import zipfile
@@ -25,11 +24,14 @@ class AddonManager(object):
         profile - the path to the profile for which we install addons
         """
         self.profile = profile
-        self.installed_addons = []
-        
-        self.addons = []
-        self.manifests = []
 
+        
+        
+        self.installed_addons = []
+        self.installed_manifests = []
+
+        
+        self._addon_dirs = []
 
     def install_addons(self, addons=None, manifests=None):
         """
@@ -41,6 +43,7 @@ class AddonManager(object):
         if addons:
             if isinstance(addons, basestring):
                 addons = [addons]
+            self.installed_addons.extend(addons)
             for addon in addons:
                 self.install_from_path(addon)
         
@@ -49,14 +52,13 @@ class AddonManager(object):
                 manifests = [manifests]
             for manifest in manifests:
                 self.install_from_manifest(manifest)
-
+            self.installed_manifests.extended(manifests)
 
     def install_from_manifest(self, filepath):
         """
         Installs addons from a manifest
         filepath - path to the manifest of addons to install
         """
-        self.manifests.append(filepath)
         manifest = ManifestParser()
         manifest.read(filepath)
         addons = manifest.get()
@@ -155,7 +157,6 @@ class AddonManager(object):
         - path: url, path to .xpi, or directory of addons
         - unpack: whether to unpack unless specified otherwise in the install.rdf
         """
-        self.addons.append(path)
 
         
         
@@ -208,7 +209,7 @@ class AddonManager(object):
                 shutil.copy(xpifile, addon_path + '.xpi')
             else:
                 dir_util.copy_tree(addon, addon_path, preserve_symlinks=1)
-                self.installed_addons.append(addon_path)
+                self._addon_dirs.append(addon_path)
 
             
             if tmpdir:
@@ -220,6 +221,6 @@ class AddonManager(object):
 
     def clean_addons(self):
         """Cleans up addons in the profile."""
-        for addon in self.installed_addons:
+        for addon in self._addon_dirs:
             if os.path.isdir(addon):
                 dir_util.remove_tree(addon)
