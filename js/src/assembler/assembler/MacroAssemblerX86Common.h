@@ -721,10 +721,8 @@ public:
     
     Jump branch32WithPatch(Condition cond, RegisterID left, Imm32 right, Label &clabel)
     {
-        if (((cond == Equal) || (cond == NotEqual)) && !right.m_value)
-            m_assembler.testl_rr(left, left);
-        else
-            m_assembler.cmpl_ir(right.m_value, left);
+        
+        m_assembler.cmpl_ir(right.m_value, left);
         clabel = label();
         return Jump(m_assembler.jCC(x86Condition(cond)));
     }
