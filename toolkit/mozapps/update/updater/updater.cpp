@@ -2067,6 +2067,7 @@ UpdateThreadFunc(void *param)
 
       ensure_remove_recursive(stageDir);
       WriteStatusText(sUsingService ? "pending-service" : "pending");
+      putenv("MOZ_PROCESS_UPDATES="); 
       reportRealResults = false; 
     }
   }
