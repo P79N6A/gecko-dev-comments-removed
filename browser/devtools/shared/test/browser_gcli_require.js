@@ -4,22 +4,7 @@
 
 
 
-
-
-
-
-var modules = { gcli: null };
-
-Components.utils.import("resource:///modules/gcli.jsm", modules);
-
-var define, require, console;
-
 function test() {
-
-  define = modules.gcli._internal.define;
-  require = modules.gcli._internal.require;
-  console = modules.gcli._internal.console;
-
   define('gclitest/requirable', [], function(require, exports, module) {
     exports.thing1 = 'thing1';
     exports.thing2 = 2;
@@ -43,8 +28,6 @@ function test() {
   testRecursive();
   testUncompilable();
 
-  finishTest();
-
   delete define.modules['gclitest/requirable'];
   delete define.globalDomain.modules['gclitest/requirable'];
   delete define.modules['gclitest/unrequirable'];
@@ -52,11 +35,7 @@ function test() {
   delete define.modules['gclitest/recurse'];
   delete define.globalDomain.modules['gclitest/recurse'];
 
-  define = null;
-  require = null;
-  console = null;
-
-  modules = null;
+  finish();
 }
 
 function testWorking() {
