@@ -534,6 +534,15 @@ JSStackFrame::staticAsserts()
 {
     JS_STATIC_ASSERT(offsetof(JSStackFrame, rval) % sizeof(js::Value) == 0);
     JS_STATIC_ASSERT(offsetof(JSStackFrame, thisv) % sizeof(js::Value) == 0);
+    
+    
+#if defined(JS_METHODJIT)
+# if defined(JS_CPU_X86)
+    JS_STATIC_ASSERT(offsetof(JSStackFrame, rval) == 0x28);
+# elif defined(JS_CPU_X64)
+    JS_STATIC_ASSERT(offsetof(JSStackFrame, rval) == 0x40);
+# endif
+#endif
 }
 
 static JS_INLINE uintN
