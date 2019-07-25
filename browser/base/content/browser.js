@@ -5204,6 +5204,8 @@ var TabsProgressListener = {
                               aFlags) {
     
     if (aBrowser.contentWindow == aWebProgress.DOMWindow) {
+      
+      
       if (aRequest) {
         
         aBrowser._clickToPlayDoorhangerShown = false;
