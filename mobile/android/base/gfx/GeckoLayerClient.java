@@ -119,8 +119,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
             layerController.setViewportMetrics(mGeckoViewport);
         }
 
-        GeckoAppShell.registerGeckoEventListener("Viewport:UpdateAndDraw", this);
-        GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
+        GeckoAppShell.registerGeckoEventListener("Viewport:Update", this);
 
         sendResizeEventIfNecessary(false);
 
@@ -278,10 +277,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     
     public void handleMessage(String event, JSONObject message) {
-        if ("Viewport:UpdateAndDraw".equals(event)) {
-            mUpdateViewportOnEndDraw = true;
-            mIgnorePaintsPendingViewportSizeChange = false;
-        } else if ("Viewport:UpdateLater".equals(event)) {
+        if ("Viewport:Update".equals(event)) {
             mUpdateViewportOnEndDraw = true;
             mIgnorePaintsPendingViewportSizeChange = false;
         }
