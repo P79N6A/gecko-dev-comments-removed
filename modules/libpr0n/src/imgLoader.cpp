@@ -671,7 +671,7 @@ nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup 
   aRequest->GetURI(getter_AddRefs(uri));
 
   
-  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, uri, aObserver);
+  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, aRequest->mImage, uri, aObserver);
   if (NS_FAILED(rv)) {
     NS_RELEASE(proxyRequest);
     return rv;
@@ -1988,7 +1988,6 @@ imgCacheValidator::imgCacheValidator(imgRequest *request, void *aContext) :
 
 imgCacheValidator::~imgCacheValidator()
 {
-  
   if (mRequest) {
     mRequest->mValidator = nsnull;
   }
@@ -2008,6 +2007,9 @@ void imgCacheValidator::AddProxy(imgRequestProxy *aProxy)
 
 NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt)
 {
+  
+  
+  
   nsCOMPtr<nsICachingChannel> cacheChan(do_QueryInterface(aRequest));
   if (cacheChan) {
     PRBool isFromCache;

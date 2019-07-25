@@ -37,6 +37,9 @@
 
 
 
+#ifndef imgRequestProxy_h__
+#define imgRequestProxy_h__
+
 #include "imgIRequest.h"
 #include "imgIDecoderObserver.h"
 #include "nsISecurityInfoProvider.h"
@@ -75,7 +78,8 @@ public:
 
   
   
-  nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup, nsIURI* aURI, imgIDecoderObserver *aObserver);
+  nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup, imgContainer* aImage,
+                nsIURI* aURI, imgIDecoderObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
                                                
@@ -83,14 +87,17 @@ public:
   void AddToLoadGroup();
   void RemoveFromLoadGroup(PRBool releaseLoadGroup);
 
-  
-  nsresult NotifyListener();
-
-protected:
-  friend class imgRequest;
+  inline PRBool HasObserver() const {
+    return mListener != nsnull;
+  }
 
   void SetPrincipal(nsIPrincipal *aPrincipal);
-  void SetImage(imgIContainer *aImage);
+
+  
+  void NotifyListener();
+
+protected:
+  friend class imgStatusTracker;
 
   class imgCancelRunnable;
   friend class imgCancelRunnable;
@@ -129,10 +136,6 @@ protected:
   void OnStartRequest();
   void OnStopRequest(PRBool aLastPart);
 
-  inline PRBool HasObserver() const {
-    return mListener != nsnull;
-  }
-
   
   void DoCancel(nsresult status);
 
@@ -142,8 +145,6 @@ protected:
   void DoRemoveFromLoadGroup() {
     RemoveFromLoadGroup(PR_TRUE);
   }
-
-  nsresult GetState(PRUint32 *aState);
 
 private:
   friend class imgCacheValidator;
@@ -161,14 +162,11 @@ private:
 
   
   
-  nsCOMPtr<imgIContainer> mImage;
+  nsRefPtr<imgContainer> mImage;
 
   
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
-
-  PRUint32 mImageStatus;
-  PRUint32 mState;
 
   
   
@@ -182,8 +180,6 @@ private:
   PRPackedBool mIsInLoadGroup;
   PRPackedBool mListenerIsStrongRef;
   PRPackedBool mDecodeRequested;
-  
-  
-  
-  PRPackedBool mHadLastPart;
 };
+
+#endif 
