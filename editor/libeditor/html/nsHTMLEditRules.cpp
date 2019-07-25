@@ -1549,7 +1549,7 @@ nsHTMLEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
   
   
   *aCancel = PR_FALSE;
-  
+
   
   
   if (IsMailEditor())
@@ -1562,25 +1562,36 @@ nsHTMLEditRules::WillInsertBreak(nsISelection *aSelection, PRBool *aCancel, PRBo
   
   nsCOMPtr<nsIDOMNode> node;
   PRInt32 offset;
-  
+
   res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(node), &offset);
   NS_ENSURE_SUCCESS(res, res);
   NS_ENSURE_TRUE(node, NS_ERROR_FAILURE);
-    
+
+  
+  if (!mHTMLEditor->IsModifiableNode(node))
+  {
+    *aCancel = PR_TRUE;
+    return NS_OK;
+  }
+
   
   nsCOMPtr<nsIDOMNode> blockParent;
-  
   if (IsBlockNode(node)) 
     blockParent = node;
   else 
     blockParent = mHTMLEditor->GetBlockNodeParent(node);
-    
   NS_ENSURE_TRUE(blockParent, NS_ERROR_FAILURE);
+
   
   
-  if (!mHTMLEditor->IsModifiableNode(blockParent))
+  
+  nsCOMPtr<nsIContent> hostContent = mHTMLEditor->GetActiveEditingHost();
+  nsCOMPtr<nsIDOMNode> hostNode = do_QueryInterface(hostContent);
+  if (!nsEditorUtils::IsDescendantOf(blockParent, hostNode)) 
   {
-    *aCancel = PR_TRUE;
+    res = StandardBreakImpl(node, offset, aSelection);
+    NS_ENSURE_SUCCESS(res, res);
+    *aHandled = PR_TRUE;
     return NS_OK;
   }
 
