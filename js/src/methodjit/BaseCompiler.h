@@ -182,16 +182,6 @@ class LinkerHelper : public JSC::LinkBuffer
     }
 };
 
-class Repatcher : public JSC::RepatchBuffer
-{
-  public:
-    Repatcher(JITScript *jit) : JSC::RepatchBuffer(jit->code)
-    { }
-
-    Repatcher(const JSC::JITCode &code) : JSC::RepatchBuffer(code)
-    { }
-};
-
 
 
 

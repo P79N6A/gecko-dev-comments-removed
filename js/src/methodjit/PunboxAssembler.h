@@ -131,6 +131,15 @@ class PunboxAssembler : public JSC::MacroAssembler
         move(Imm64(val.asRawBits() & JSVAL_PAYLOAD_MASK), payload);
     }
 
+    
+
+
+
+
+    Label loadValueWithAddressOffsetPatch(Address address, RegisterID type, RegisterID payload) {
+        return loadValueAsComponents(address, type, payload);
+    }
+
     template <typename T>
     void storeValueFromComponents(RegisterID type, RegisterID payload, T address) {
         move(type, Registers::ValueReg);
@@ -143,6 +152,28 @@ class PunboxAssembler : public JSC::MacroAssembler
         move(type, Registers::ValueReg);
         orPtr(payload, Registers::ValueReg);
         storeValue(Registers::ValueReg, address);
+    }
+
+    
+
+
+
+
+    Label storeValueWithAddressOffsetPatch(RegisterID type, RegisterID payload, Address address) {
+        storeValueFromComponents(type, payload, address);
+        return label();
+    }
+
+    
+    Label storeValueWithAddressOffsetPatch(ImmTag type, RegisterID payload, Address address) {
+        storeValueFromComponents(type, payload, address);
+        return label();
+    }
+
+    
+    Label storeValueWithAddressOffsetPatch(const Value &v, Address address) {
+        storeValue(v, address);
+        return label();
     }
 
     template <typename T>

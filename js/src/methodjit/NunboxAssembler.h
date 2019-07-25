@@ -42,6 +42,7 @@
 #define jsjaeger_assembler_h__
 
 #include "assembler/assembler/MacroAssembler.h"
+#include "methodjit/CodeGenIncludes.h"
 #include "methodjit/RematInfo.h"
 
 namespace js {
@@ -79,6 +80,7 @@ class NunboxAssembler : public JSC::MacroAssembler
 
     template <typename T>
     T payloadOf(T address) {
+        JS_ASSERT(PAYLOAD_OFFSET == 0);
         return address;
     }
 
@@ -156,6 +158,113 @@ class NunboxAssembler : public JSC::MacroAssembler
 
         move(ImmTag(jv.s.tag), type);
         move(Imm32(jv.s.payload.u32), payload);
+    }
+
+    
+
+
+
+
+
+
+
+
+    Label loadValueWithAddressOffsetPatch(Address address, RegisterID treg, RegisterID dreg) {
+        JS_ASSERT(address.base != dreg); 
+
+        Label start = label();
+#if defined JS_CPU_X86
+        
+
+
+
+        loadPayload(address, dreg);
+        DBGLABEL_NOMASM(endPayload);
+        loadTypeTag(address, treg);
+        DBGLABEL_NOMASM(endType);
+        JS_ASSERT(differenceBetween(start, endPayload) == 6);
+        JS_ASSERT(differenceBetween(endPayload, endType) == 6);
+        return start;
+#elif defined JS_CPU_ARM
+        
+
+
+
+        DataLabel32 load = load64WithAddressOffsetPatch(address, treg, dreg);
+        JS_ASSERT(differenceBetween(start, load) == 0);
+        (void) load;
+        return start;
+#endif
+    }
+
+    
+
+
+
+
+
+    Label storeValueWithAddressOffsetPatch(RegisterID treg, RegisterID dreg, Address address) {
+        Label start = label();
+#if defined JS_CPU_X86
+        
+
+
+
+        storeTypeTag(treg, address);
+        DBGLABEL_NOMASM(endType);
+        storePayload(dreg, address);
+        DBGLABEL_NOMASM(endPayload);
+        JS_ASSERT(differenceBetween(start, endType) == 6);
+        JS_ASSERT(differenceBetween(endType, endPayload) == 6);
+        return start;
+#elif defined JS_CPU_ARM
+        DataLabel32 store = store64WithAddressOffsetPatch(treg, dreg, address);
+        JS_ASSERT(differenceBetween(start, store) == 0);
+        (void) store;
+        return start;
+#endif
+    }
+
+    
+    Label storeValueWithAddressOffsetPatch(ImmType type, RegisterID dreg, Address address) {
+        Label start = label();
+#if defined JS_CPU_X86
+        storeTypeTag(type, address);
+        DBGLABEL_NOMASM(endType);
+        storePayload(dreg, address);
+        DBGLABEL_NOMASM(endPayload);
+        JS_ASSERT(differenceBetween(start, endType) == 10);
+        JS_ASSERT(differenceBetween(endType, endPayload) == 6);
+        return start;
+#elif defined JS_CPU_ARM
+        DataLabel32 store = store64WithAddressOffsetPatch(type, dreg, address);
+        JS_ASSERT(differenceBetween(start, store) == 0);
+        (void) store;
+        return start;
+#endif
+    }
+
+    
+    Label storeValueWithAddressOffsetPatch(const Value &v, Address address) {
+        jsval_layout jv;
+        jv.asBits = JSVAL_BITS(Jsvalify(v));
+        ImmTag type(jv.s.tag);
+        Imm32 payload(jv.s.payload.u32);
+        Label start = label();
+#if defined JS_CPU_X86
+        store32(type, tagOf(address));
+        DBGLABEL_NOMASM(endType);
+        store32(payload, payloadOf(address));
+        DBGLABEL_NOMASM(endPayload);
+        JS_ASSERT(differenceBetween(start, endType) == 10);
+        JS_ASSERT(differenceBetween(endType, endPayload) == 10);
+        return start;
+#elif defined JS_CPU_ARM
+        DataLabel32 store = store64WithAddressOffsetPatch(type, payload, address);
+        JS_ASSERT(differenceBetween(start, store) == 0);
+        (void) store;
+        return start;
+#endif
     }
 
     

@@ -91,18 +91,6 @@ class FrameSize
 namespace ic {
 
 struct MICInfo {
-#ifdef JS_CPU_X86
-    static const uint32 GET_DATA_OFFSET = 6;
-    static const uint32 GET_TYPE_OFFSET = 12;
-
-    static const uint32 SET_TYPE_OFFSET = 6;
-    static const uint32 SET_DATA_CONST_TYPE_OFFSET = 16;
-    static const uint32 SET_DATA_TYPE_OFFSET = 12;
-#elif JS_CPU_X64 || JS_CPU_ARM
-    
-    
-#endif
-
     enum Kind
 #ifdef _MSC_VER
     : uint8_t
@@ -119,12 +107,17 @@ struct MICInfo {
     
 
     
+
+
+
+
+
+
+
+
     JSC::CodeLocationLabel load;
     JSC::CodeLocationDataLabel32 shape;
     JSC::CodeLocationCall stubCall;
-#if defined JS_PUNBOX64
-    uint32 patchValueOffset;
-#endif
 
     
     Kind kind : 3;
