@@ -223,7 +223,7 @@ struct PICInfo {
             
             
             
-            int secondShapeGuard : 8;
+            int secondShapeGuard;
         } get;
         ValueRemat vr;
     } u;
@@ -245,7 +245,7 @@ struct PICInfo {
     uint32 stubsGenerated : 5;
 
     
-    int shapeGuard : 8;
+    int shapeGuard;
     
     
     uint32 callReturn;
