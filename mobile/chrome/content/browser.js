@@ -732,13 +732,11 @@ var NativeWindow = {
     items: {}, 
     textContext: null, 
     linkContext: null, 
-    videoContext: null,
     _contextId: 0, 
 
     init: function() {
       this.textContext = this.SelectorContext("input[type='text'],input[type='password'],textarea");
       this.linkContext = this.SelectorContext("a:not([href='']),area:not([href='']),link");
-      this.videoContext = this.SelectorContext("video");
       Services.obs.addObserver(this, "Gesture:LongPress", false);
 
       
@@ -756,7 +754,7 @@ var NativeWindow = {
                });
 
       this.add(Strings.browser.GetStringFromName("contextmenu.fullScreen"),
-               this.videoContext,
+               this.SelectorContext("video:not(:-moz-full-screen)"),
                function(aTarget) {
                  aTarget.mozRequestFullScreen();
                });
