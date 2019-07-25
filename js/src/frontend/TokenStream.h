@@ -590,7 +590,7 @@ class TokenStream
 
     TokenKind peekToken() {
         if (lookahead != 0) {
-            JS_ASSERT(lookahead == 1);
+            JS_ASSERT(lookahead <= 2);
             return tokens[(cursor + lookahead) & ntokensMask].type;
         }
         TokenKind tt = getTokenInternal();
@@ -608,7 +608,7 @@ class TokenStream
             return TOK_EOL;
 
         if (lookahead != 0) {
-            JS_ASSERT(lookahead == 1);
+            JS_ASSERT(lookahead <= 2);
             return tokens[(cursor + lookahead) & ntokensMask].type;
         }
 
