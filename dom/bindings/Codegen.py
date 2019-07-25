@@ -1546,7 +1546,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                                     isMember=False,
                                     isOptional=False,
                                     invalidEnumValueFatal=True,
-                                    defaultValue=None):
+                                    defaultValue=None,
+                                    treatNullAs="Default",
+                                    treatUndefinedAs="Default"):
     """
     Get a template for converting a JS value to a native object based on the
     given type and descriptor.  If failureCode is given, then we're actually
@@ -2130,14 +2132,22 @@ for (uint32_t i = 0; i < length; ++i) {
         
         
 
-        
-        
+        treatAs = {
+            "Default": "eStringify",
+            "EmptyString": "eEmpty",
+            "Null": "eNull"
+        }
         if type.nullable():
-            nullBehavior = "eNull"
-            undefinedBehavior = "eNull"
-        else:
-            nullBehavior = "eStringify"
-            undefinedBehavior = "eStringify"
+            
+            treatNullAs = "Null"
+            
+            
+            if treatUndefinedAs == "Default":
+                treatUndefinedAs = "Null"
+        nullBehavior = treatAs[treatNullAs]
+        if treatUndefinedAs == "Missing":
+            raise TypeError("We don't support [TreatUndefinedAs=Missing]")
+        undefinedBehavior = treatAs[treatUndefinedAs]
 
         def getConversionCode(varName):
             conversionCode = (
@@ -2485,7 +2495,9 @@ class CGArgumentConverter(CGThing):
                                             self.descriptorProvider,
                                             isOptional=(self.argcAndIndex is not None),
                                             invalidEnumValueFatal=self.invalidEnumValueFatal,
-                                            defaultValue=self.argument.defaultValue),
+                                            defaultValue=self.argument.defaultValue,
+                                            treatNullAs=self.argument.treatNullAs,
+                                            treatUndefinedAs=self.argument.treatUndefinedAs),
             self.replacementVariables,
             self.argcAndIndex).define()
 
@@ -3262,6 +3274,8 @@ class FakeArgument():
         self.optional = False
         self.variadic = False
         self.defaultValue = None
+        self.treatNullAs = "Default"
+        self.treatUndefinedAs = "Default"
 
 class CGSetterCall(CGPerSignatureCall):
     """
@@ -4358,7 +4372,9 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         if operation.isSetter() or operation.isCreator():
             
             argument = arguments[1]
-            template = getJSToNativeConversionTemplate(argument.type, descriptor)
+            template = getJSToNativeConversionTemplate(argument.type, descriptor,
+                                                       treatNullAs=argument.treatNullAs,
+                                                       treatUndefinedAs=argument.treatUndefinedAs)
             templateValues = {
                 "declName": argument.identifier.name,
                 "holderName": argument.identifier.name + "_holder",
