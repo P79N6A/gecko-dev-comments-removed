@@ -4,66 +4,26 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
-const MIGRATOR = Ci.nsIBrowserProfileMigrator;
 
-const LOCAL_FILE_CID = "@mozilla.org/file/local;1";
 const FILE_INPUT_STREAM_CID = "@mozilla.org/network/file-input-stream;1";
-
-const BUNDLE_MIGRATION = "chrome://browser/locale/migration/migration.properties";
 
 const S100NS_FROM1601TO1970 = 0x19DB1DED53E8000;
 const S100NS_PER_MS = 10;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/FileUtils.jsm");
+Cu.import("resource://gre/modules/MigrationUtils.jsm");
 
-XPCOMUtils.defineLazyGetter(this, "bookmarksSubfolderTitle", function () {
-  
-  let strbundle =
-    Services.strings.createBundle(BUNDLE_MIGRATION);
-  let sourceNameChrome = strbundle.GetStringFromName("sourceNameChrome");
-  return strbundle.formatStringFromName("importedBookmarksFolder",
-                                        [sourceNameChrome],
-                                        1);
-});
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 
 
 
@@ -112,223 +72,230 @@ function insertBookmarkItems(aFolderId, aItems)
   }
 }
 
-function ChromeProfileMigrator()
-{
+
+function ChromeProfileMigrator() {
+  let chromeUserDataFolder = FileUtils.getDir(
+#ifdef XP_WIN
+    "LocalAppData", ["Google", "Chrome", "User Data"]
+#elifdef XP_MACOSX
+    "ULibDir", ["Application Support", "Google", "Chrome"]
+#else
+    "Home", [".config", "google-chrome"]
+#endif
+    , false);
+  this._chromeUserDataFolder = chromeUserDataFolder.exists() ?
+    chromeUserDataFolder : null;
 }
 
-ChromeProfileMigrator.prototype = {
-  _paths: {
-    bookmarks : null,
-    cookies : null,
-    history : null,
-    prefs : null,
-    userData : null,
-  },
+ChromeProfileMigrator.prototype = Object.create(MigratorPrototype);
 
-  _homepageURL : null,
-  _replaceBookmarks : false,
-  _sourceProfile: null,
-  _profilesCache: null,
+ChromeProfileMigrator.prototype.getResources =
+  function Chrome_getResources(aProfile) {
+    if (this._chromeUserDataFolder) {
+      let profileFolder = this._chromeUserDataFolder.clone();
+      profileFolder.append(aProfile);
+      if (profileFolder.exists()) {
+        let possibleResources = [GetBookmarksResource(profileFolder),
+                                 GetHistoryResource(profileFolder),
+                                 GetCookiesResource(profileFolder)];
+        return [r for each (r in possibleResources) if (r != null)];
+      }
+    }
+    return [];
+  };
 
-  
+Object.defineProperty(ChromeProfileMigrator.prototype, "sourceProfiles", {
+  get: function Chrome_sourceProfiles() {
+    if ("__sourceProfiles" in this)
+      return this.__sourceProfiles;
 
+    if (!this._chromeUserDataFolder)
+      return [];
 
-
-
-
-  _notifyStart : function Chrome_notifyStart(aType)
-  {
-    Services.obs.notifyObservers(null, "Migration:ItemBeforeMigrate", aType);
-    this._pendingCount++;
-  },
-
-  
-
-
-
-
-
-  _notifyError : function Chrome_notifyError(aType)
-  {
-    Services.obs.notifyObservers(null, "Migration:ItemError", aType);
-  },
-
-  
-
-
-
-
-
-
-  _notifyCompleted : function Chrome_notifyIfCompleted(aType)
-  {
-    Services.obs.notifyObservers(null, "Migration:ItemAfterMigrate", aType);
-    if (--this._pendingCount == 0) {
+    let profiles;
+    try {
       
-      Services.obs.notifyObservers(null, "Migration:Ended", null);
-    }
-  },
+      let localState = this._chromeUserDataFolder.clone();
+      localState.append("Local State");
+      if (!localState.exists())
+        throw new Error("Chrome's 'Local State' file does not exist.");
+      if (!localState.isReadable())
+        throw new Error("Chrome's 'Local State' file could not be read.");
 
-  
-
-
-  _migrateBookmarks : function Chrome_migrateBookmarks()
-  {
-    this._notifyStart(MIGRATOR.BOOKMARKS);
-
-    try {
-      PlacesUtils.bookmarks.runInBatchMode({
-        _self : this,
-        runBatched : function (aUserData) {
-          let migrator = this._self;
-          let file = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-          file.initWithPath(migrator._paths.bookmarks);
-
-          NetUtil.asyncFetch(file, function(aInputStream, aResultCode) {
-            if (!Components.isSuccessCode(aResultCode)) {
-              migrator._notifyCompleted(MIGRATOR.BOOKMARKS);
-              return;
-            }
-
-            
-            let bookmarkJSON = NetUtil.readInputStreamToString(aInputStream,
-                                                               aInputStream.available(),
-                                                               { charset : "UTF-8" });
-            let roots = JSON.parse(bookmarkJSON).roots;
-
-            
-            if (roots.bookmark_bar.children &&
-                roots.bookmark_bar.children.length > 0) {
-              
-              let parentId = PlacesUtils.toolbarFolderId;
-              if (!migrator._replaceBookmarks) { 
-                parentId =
-                  PlacesUtils.bookmarks.createFolder(parentId,
-                                                     bookmarksSubfolderTitle,
-                                                     PlacesUtils.bookmarks.DEFAULT_INDEX);
-              }
-              insertBookmarkItems(parentId, roots.bookmark_bar.children);
-            }
-
-            
-            if (roots.other.children &&
-                roots.other.children.length > 0) {
-              
-              let parentId = PlacesUtils.bookmarksMenuFolderId;
-              if (!migrator._replaceBookmarks) { 
-                parentId =
-                  PlacesUtils.bookmarks.createFolder(parentId,
-                                                     bookmarksSubfolderTitle,
-                                                     PlacesUtils.bookmarks.DEFAULT_INDEX);
-              }
-              insertBookmarkItems(parentId, roots.other.children);
-            }
-
-            migrator._notifyCompleted(MIGRATOR.BOOKMARKS);
-          });
-        }
-      }, null);
+      let fstream = Cc[FILE_INPUT_STREAM_CID].createInstance(Ci.nsIFileInputStream);
+      fstream.init(localState, -1, 0, 0);
+      let inputStream = NetUtil.readInputStreamToString(fstream, fstream.available(),
+                                                        { charset: "UTF-8" });
+      let info_cache = JSON.parse(inputStream).profile.info_cache;
+      if (info_cache)
+        profiles = Object.keys(info_cache);
     } catch (e) {
-      Cu.reportError(e);
-      this._notifyError(MIGRATOR.BOOKMARKS);
-      this._notifyCompleted(MIGRATOR.BOOKMARKS);
+      Cu.reportError("Error detecting Chrome profiles: " + e);
+      
+      let defaultProfileFolder = this._chromeUserDataFolder.clone();
+      defaultProfileFolder.append("Default");
+      if (defaultProfileFolder.exists())
+        profiles = ["Default"];
     }
-  },
 
-  
+    
+    return this.__sourceProfiles = profiles.filter(function(profileName) {
+      let resources = this.getResources(profileName);
+      return resources && resources.length > 0;
+    }, this);
+  }
+});
 
+Object.defineProperty(ChromeProfileMigrator.prototype, "sourceHomePageURL", {
+  get: function Chrome_sourceHomePageURL() {
+    let prefsFile = this._chromeUserDataFolder.clone();
+    prefsFile.append("Preferences");
+    if (prefsFile.exists()) {
+      
+      let fstream = Cc[FILE_INPUT_STREAM_CID].
+                    createInstance(Ci.nsIFileInputStream);
+      fstream.init(file, -1, 0, 0);
+      try {
+        return JSON.parse(
+          NetUtil.readInputStreamToString(fstream, fstream.available(),
+                                          { charset: "UTF-8" })
+            ).homepage;
+      }
+      catch(e) {
+        Cu.reportError("Error parsing Chrome's preferences file: " + e);
+      }
+    }
+    return "";
+  }
+});
 
-  _migrateHistory : function Chrome_migrateHistory()
-  {
-    this._notifyStart(MIGRATOR.HISTORY);
+function GetBookmarksResource(aProfileFolder) {
+  let bookmarksFile = aProfileFolder.clone();
+  bookmarksFile.append("Bookmarks");
+  if (!bookmarksFile.exists())
+    return null;
 
-    try {
-      PlacesUtils.history.runInBatchMode({
-        _self : this,
-        runBatched : function (aUserData) {
+  return {
+    type: Ci.nsIBrowserProfileMigrator.BOOKMARKS,
+
+    migrate: function(aCallback) {
+      NetUtil.asyncFetch(bookmarksFile, MigrationUtils.wrapMigrateFunction(
+        function(aInputStream, aResultCode) {
+          if (!Components.isSuccessCode(aResultCode))
+            throw new Error("Could not read Bookmarks file");
+            
           
-          let file = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-          file.initWithPath(this._self._paths.history);
-
-          let dbConn = Services.storage.openUnsharedDatabase(file);
-          let stmt = dbConn.createAsyncStatement(
-              "SELECT url, title, last_visit_time, typed_count FROM urls WHERE hidden = 0");
-
-          stmt.executeAsync({
-            _asyncHistory : Cc["@mozilla.org/browser/history;1"]
-                            .getService(Ci.mozIAsyncHistory),
-            _db : dbConn,
-            _self : this._self,
-            handleResult : function(aResults) {
-              let places = [];
-              for (let row = aResults.getNextRow(); row; row = aResults.getNextRow()) {
-                try {
-                  
-                  let transType = PlacesUtils.history.TRANSITION_LINK;
-                  if (row.getResultByName("typed_count") > 0)
-                    transType = PlacesUtils.history.TRANSITION_TYPED;
-
-                  places.push({
-                    uri: NetUtil.newURI(row.getResultByName("url")),
-                    title: row.getResultByName("title"),
-                    visits: [{
-                      transitionType: transType,
-                      visitDate: chromeTimeToDate(
-                                   row.getResultByName(
-                                     "last_visit_time")) * 1000,
-                    }],
-                  });
-                } catch (e) {
-                  Cu.reportError(e);
+          let bookmarkJSON = NetUtil.readInputStreamToString(
+            aInputStream, aInputStream.available(), { charset : "UTF-8" });
+          let roots = JSON.parse(bookmarkJSON).roots;
+          PlacesUtils.bookmarks.runInBatchMode({
+            runBatched: function() {
+              
+              if (roots.bookmark_bar.children &&
+                  roots.bookmark_bar.children.length > 0) {
+                
+                let parentId = PlacesUtils.toolbarFolderId;
+                if (!MigrationUtils.isStartupMigration) { 
+                  parentId = MigrationUtils.createImportedBookmarksFolder(
+                    "Chrome", parentId);
                 }
+                insertBookmarkItems(parentId, roots.bookmark_bar.children);
               }
 
-              try {
-                this._asyncHistory.updatePlaces(places);
-              } catch (e) {
-                Cu.reportError(e);
+              
+              if (roots.other.children &&
+                  roots.other.children.length > 0) {
+                
+                let parentId = PlacesUtils.bookmarksMenuFolderId;
+                if (!MigrationUtils.isStartupMigration) { 
+                  parentId = MigrationUtils.createImportedBookmarksFolder(
+                    "Chrome", parentId);
+                }
+                insertBookmarkItems(parentId, roots.other.children);
               }
-            },
-
-            handleError : function(aError) {
-              Cu.reportError("Async statement execution returned with '" +
-                             aError.result + "', '" + aError.message + "'");
-            },
-
-            handleCompletion : function(aReason) {
-              this._db.asyncClose();
-              this._self._notifyCompleted(MIGRATOR.HISTORY);
             }
-          });
-          stmt.finalize();
-        }
-      }, null);
-    } catch (e) {
-      Cu.reportError(e);
-      this._notifyError(MIGRATOR.HISTORY);
-      this._notifyCompleted(MIGRATOR.HISTORY);
+          }, null);
+        }, aCallback));
     }
-  },
+  };
+}
 
-  
+function GetHistoryResource(aProfileFolder) {
+  let historyFile = aProfileFolder.clone();
+  historyFile.append("History");
+  if (!historyFile.exists())
+    return null;
 
+  return {
+    type: Ci.nsIBrowserProfileMigrator.HISTORY,
 
-  _migrateCookies : function Chrome_migrateCookies()
-  {
-    this._notifyStart(MIGRATOR.COOKIES);
+    migrate: function(aCallback) {
+      let dbConn = Services.storage.openUnsharedDatabase(historyFile);
+      let stmt = dbConn.createAsyncStatement(
+        "SELECT url, title, last_visit_time, typed_count FROM urls WHERE hidden = 0");
 
-    try {
-      
-      let file = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-      file.initWithPath(this._paths.cookies);
+      stmt.executeAsync({
+        handleResult : function(aResults) {
+          let places = [];
+          for (let row = aResults.getNextRow(); row; row = aResults.getNextRow()) {
+            try {
+              
+              let transType = PlacesUtils.history.TRANSITION_LINK;
+              if (row.getResultByName("typed_count") > 0)
+                transType = PlacesUtils.history.TRANSITION_TYPED;
 
-      let dbConn = Services.storage.openUnsharedDatabase(file);
+              places.push({
+                uri: NetUtil.newURI(row.getResultByName("url")),
+                title: row.getResultByName("title"),
+                visits: [{
+                  transitionType: transType,
+                  visitDate: chromeTimeToDate(
+                               row.getResultByName(
+                                 "last_visit_time")) * 1000,
+                }],
+              });
+            } catch (e) {
+              Cu.reportError(e);
+            }
+          }
+
+          try {
+            PlacesUtils.asyncHistory.updatePlaces(places);
+          } catch (e) {
+            Cu.reportError(e);
+          }
+        },
+
+        handleError : function(aError) {
+          Cu.reportError("Async statement execution returned with '" +
+                         aError.result + "', '" + aError.message + "'");
+        },
+
+        handleCompletion : function(aReason) {
+          dbConn.asyncClose();
+          aCallback(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED);
+        }
+      });
+      stmt.finalize();
+    }
+  };
+}
+
+function GetCookiesResource(aProfileFolder) {
+  let cookiesFile = aProfileFolder.clone();
+  cookiesFile.append("Cookies");
+  if (!cookiesFile.exists())
+    return null;
+
+  return {
+    type: Ci.nsIBrowserProfileMigrator.COOKIES,
+
+    migrate: function(aCallback) {
+      let dbConn = Services.storage.openUnsharedDatabase(cookiesFile);
       let stmt = dbConn.createAsyncStatement(
           "SELECT host_key, path, name, value, secure, httponly, expires_utc FROM cookies");
 
       stmt.executeAsync({
-        _db : dbConn,
-        _self : this,
         handleResult : function(aResults) {
           for (let row = aResults.getNextRow(); row; row = aResults.getNextRow()) {
             let host_key = row.getResultByName("host_key");
@@ -360,246 +327,17 @@ ChromeProfileMigrator.prototype = {
         },
 
         handleCompletion : function(aReason) {
-          this._db.asyncClose();
-          this._self._notifyCompleted(MIGRATOR.COOKIES);
+          dbConn.asyncClose();
+          aCallback(aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED);
         },
       });
       stmt.finalize();
-    } catch (e) {
-      Cu.reportError(e);
-      this._notifyError(MIGRATOR.COOKIES);
-      this._notifyCompleted(MIGRATOR.COOKIES);
     }
-  },
+  }
+}
 
-  
-
-
-
-  
-
-
-
-
-
-
-
-
-
-  migrate : function Chrome_migrate(aItems, aStartup, aProfile)
-  {
-    if (aStartup) {
-      aStartup.doStartup();
-      this._replaceBookmarks = true;
-    }
-
-    this._sourceProfile = aProfile;
-
-    Services.obs.notifyObservers(null, "Migration:Started", null);
-
-    
-    
-    this._pendingCount = 1;
-
-    if (aItems & MIGRATOR.HISTORY)
-      this._migrateHistory();
-
-    if (aItems & MIGRATOR.COOKIES)
-      this._migrateCookies();
-
-    if (aItems & MIGRATOR.BOOKMARKS)
-      this._migrateBookmarks();
-
-    if (--this._pendingCount == 0) {
-      
-      
-      
-      Services.obs.notifyObservers(null, "Migration:Ended", null);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  getMigrateData: function Chrome_getMigrateData(aProfile, aDoingStartup)
-  {
-    this._sourceProfile = aProfile;
-    let chromeProfileDir = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-    chromeProfileDir.initWithPath(this._paths.userData + aProfile);
-
-    let result = 0;
-    if (!chromeProfileDir.exists() || !chromeProfileDir.isReadable())
-      return result;
-
-    
-
-    try {
-      let file = chromeProfileDir.clone();
-      file.append("Bookmarks");
-      if (file.exists()) {
-        this._paths.bookmarks = file.path;
-        result += MIGRATOR.BOOKMARKS;
-      }
-    } catch (e) {
-      Cu.reportError(e);
-    }
-
-    if (!this._paths.prefs) {
-      let file = chromeProfileDir.clone();
-      file.append("Preferences");
-      this._paths.prefs = file.path;
-    }
-
-    
-
-    try {
-      let file = chromeProfileDir.clone();
-      file.append("History");
-      if (file.exists()) {
-        this._paths.history = file.path;
-        result += MIGRATOR.HISTORY;
-      }
-    } catch (e) {
-      Cu.reportError(e);
-    }
-
-    try {
-      let file = chromeProfileDir.clone();
-      file.append("Cookies");
-      if (file.exists()) {
-        this._paths.cookies = file.path;
-        result += MIGRATOR.COOKIES;
-      }
-    } catch (e) {
-      Cu.reportError(e);
-    }
-
-    return result;
-  },
-
-  
-
-
-
-
-  get sourceExists()
-  {
-#ifdef XP_WIN
-    this._paths.userData = Services.dirsvc.get("LocalAppData", Ci.nsIFile).path +
-                            "\\Google\\Chrome\\User Data\\";
-#elifdef XP_MACOSX
-    this._paths.userData = Services.dirsvc.get("Home", Ci.nsIFile).path +
-                            "/Library/Application Support/Google/Chrome/";
-#else
-    this._paths.userData = Services.dirsvc.get("Home", Ci.nsIFile).path +
-                            "/.config/google-chrome/";
-#endif
-    let result = 0;
-    try {
-      let userDataDir = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-      userDataDir.initWithPath(this._paths.userData);
-      if (!userDataDir.exists() || !userDataDir.isReadable())
-        return false;
-
-      let profiles = this.sourceProfiles;
-      if (profiles.length < 1)
-        return false;
-
-      
-      result = this.getMigrateData(profiles.queryElementAt(0, Ci.nsISupportsString), false);
-    } catch (e) {
-      Cu.reportError(e);
-    }
-    return result > 0;
-  },
-
-  get sourceHasMultipleProfiles()
-  {
-    return this.sourceProfiles.length > 1;
-  },
-
-  get sourceProfiles()
-  {
-    let profiles = Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
-    try {
-      if (!this._profilesCache) {
-        let localState = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-        
-        localState.initWithPath(this._paths.userData + "Local State");
-        if (!localState.exists())
-          throw new Components.Exception("Chrome's 'Local State' file does not exist.",
-                                         Cr.NS_ERROR_FILE_NOT_FOUND);
-        if (!localState.isReadable())
-          throw new Components.Exception("Chrome's 'Local State' file could not be read.",
-                                         Cr.NS_ERROR_FILE_ACCESS_DENIED);
-        let fstream = Cc[FILE_INPUT_STREAM_CID].createInstance(Ci.nsIFileInputStream);
-        fstream.init(localState, -1, 0, 0);
-        let inputStream = NetUtil.readInputStreamToString(fstream, fstream.available(),
-                                                          { charset: "UTF-8" });
-        this._profilesCache = JSON.parse(inputStream).profile.info_cache;
-      }
-
-      for (let index in this._profilesCache) {
-        let str = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-        str.data = index;
-        profiles.appendElement(str, false);
-      }
-    } catch (e) {
-      Cu.reportError("Error detecting Chrome profiles: " + e);
-      
-      if (profiles.length < 1) {
-        let str = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-        
-        str.data = "Default";
-        profiles.appendElement(str, false);
-      }
-    }
-    return profiles;
-  },
-
-  
-
-
-
-
-  get sourceHomePageURL()
-  {
-    try  {
-      if (this._homepageURL)
-        return this._homepageURL;
-
-      if (!this._paths.prefs)
-        this.getMigrateData(this._sourceProfile, false);
-
-      
-      let file = Cc[LOCAL_FILE_CID].createInstance(Ci.nsILocalFile);
-      file.initWithPath(this._paths.prefs);
-      let fstream = Cc[FILE_INPUT_STREAM_CID].
-                    createInstance(Ci.nsIFileInputStream);
-      fstream.init(file, -1, 0, 0); 
-      this._homepageURL = JSON.parse(
-        NetUtil.readInputStreamToString(fstream, fstream.available(),
-                                        { charset: "UTF-8" })).homepage;
-      return this._homepageURL;
-    } catch (e) {
-      Cu.reportError(e);
-    }
-    return "";
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIBrowserProfileMigrator
-  ]),
-
-  classDescription: "Chrome Profile Migrator",
-  contractID: "@mozilla.org/profile/migrator;1?app=browser&type=chrome",
-  classID: Components.ID("{4cec1de4-1671-4fc3-a53e-6c539dc77a26}")
-};
+ChromeProfileMigrator.prototype.classDescription = "Chrome Profile Migrator";
+ChromeProfileMigrator.prototype.contractID = "@mozilla.org/profile/migrator;1?app=browser&type=chrome";
+ChromeProfileMigrator.prototype.classID = Components.ID("{4cec1de4-1671-4fc3-a53e-6c539dc77a26}");
 
 const NSGetFactory = XPCOMUtils.generateNSGetFactory([ChromeProfileMigrator]);
