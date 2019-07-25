@@ -89,14 +89,18 @@ struct TreeMatchContext {
   
   const PRPackedBool mIsHTMLDocument;
 
+  
+  const nsCompatibility mCompatMode;
+
   TreeMatchContext(PRBool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling,
-                   PRBool aIsHTMLDocument)
+                   nsIDocument* aDocument)
     : mForStyling(aForStyling)
     , mHaveRelevantLink(PR_FALSE)
     , mVisitedHandling(aVisitedHandling)
     , mScopedRoot(nsnull)
-    , mIsHTMLDocument(aIsHTMLDocument)
+    , mIsHTMLDocument(aDocument->IsHTML())
+    , mCompatMode(aDocument->GetCompatibilityMode())
   {
   }
 };
@@ -108,8 +112,7 @@ struct RuleProcessorData : public TreeMatchContext {
   RuleProcessorData(nsPresContext* aPresContext,
                     mozilla::dom::Element* aElement, 
                     nsRuleWalker* aRuleWalker,
-                    PRBool aForStyling,
-                    nsCompatibility* aCompat = nsnull);
+                    PRBool aForStyling);
   
   
   ~RuleProcessorData();
@@ -117,20 +120,17 @@ struct RuleProcessorData : public TreeMatchContext {
   
   static RuleProcessorData* Create(nsPresContext* aPresContext,
                                    mozilla::dom::Element* aElement, 
-                                   nsRuleWalker* aRuleWalker,
-                                   nsCompatibility aCompat)
+                                   nsRuleWalker* aRuleWalker)
   {
     
     
     
     if (NS_LIKELY(aPresContext)) {
       return new (aPresContext) RuleProcessorData(aPresContext, aElement,
-                                                  aRuleWalker, PR_FALSE,
-                                                  &aCompat);
+                                                  aRuleWalker, PR_FALSE);
     }
 
-    return new RuleProcessorData(aPresContext, aElement, aRuleWalker, PR_FALSE,
-                                 &aCompat);
+    return new RuleProcessorData(aPresContext, aElement, aRuleWalker, PR_FALSE);
   }
   
   void Destroy() {
@@ -189,7 +189,6 @@ public:
   nsIAtom*          mContentTag;    
   nsIAtom*          mContentID;     
   PRPackedBool      mHasAttributes; 
-  nsCompatibility   mCompatMode;    
   PRInt32           mNameSpaceID;   
   const nsAttrValue* mClasses;      
   
