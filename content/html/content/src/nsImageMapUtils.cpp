@@ -79,26 +79,7 @@ nsImageMapUtils::FindImageMap(nsIDocument *aDocument,
 
   const nsAString& usemap = Substring(start, end);
 
-  nsCOMPtr<nsIHTMLDocument> htmlDoc(do_QueryInterface(aDocument));
-  if (htmlDoc) {
-    nsCOMPtr<nsIDOMHTMLMapElement> map =
-      do_QueryInterface(htmlDoc->GetImageMap(usemap));
-    return map.forget();
-  } else {
-    
-    
-    
-    
-    
-    
-    Element* element = aDocument->GetElementById(usemap);
-
-    if (element) {
-      nsIDOMHTMLMapElement* map;
-      CallQueryInterface(element, &map);
-      return map;
-    }
-  }
-  
-  return nsnull;
+  nsCOMPtr<nsIDOMHTMLMapElement> map =
+    do_QueryInterface(aDocument->FindImageMap(usemap));
+  return map.forget();
 }
