@@ -1745,7 +1745,7 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 
 
         if (rt->gcQuotaReached())
-            cx->triggerGC(true);
+            cx->runtime->triggerGC(true);
 
         a = NewGCArena(cx);
         if (!a)
