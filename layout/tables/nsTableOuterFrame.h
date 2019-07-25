@@ -41,9 +41,7 @@
 #include "nsHTMLContainerFrame.h"
 #include "nsBlockFrame.h"
 #include "nsITableLayout.h"
-
-struct nsStyleTable;
-class nsTableFrame;
+#include "nsTableFrame.h"
 
 class nsTableCaptionFrame : public nsBlockFrame
 {
@@ -259,17 +257,15 @@ protected:
                       nscoord                  aAvailableWidth,
                       nsMargin&                aMargin);
 
-private:
+  nsTableFrame* InnerTableFrame() {
+    return static_cast<nsTableFrame*>(mFrames.FirstChild());
+  }
   
-  nsTableFrame* mInnerTableFrame; 
+private:
   nsFrameList   mCaptionFrames;
-  nsIFrame*     mCaptionFrame;
 };
 
 inline PRIntn nsTableOuterFrame::GetSkipSides() const
 { return 0; }
 
 #endif
-
-
-
