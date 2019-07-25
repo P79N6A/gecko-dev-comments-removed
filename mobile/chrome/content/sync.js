@@ -135,7 +135,7 @@ let WeaveGlue = {
         self.jpake = null;
 
         
-        if (!aError)
+        if (!aError || container.hidden)
           return;
 
         
@@ -162,7 +162,6 @@ let WeaveGlue = {
             break;
           case 2:
           default:
-            self.abortEasySetup();
             self.close();
             break;
         }
@@ -203,6 +202,9 @@ let WeaveGlue = {
   },
 
   close: function close() {
+    if (this.jpake)
+      this.abortEasySetup();
+
     
     this._resetScrollPosition();
 
@@ -523,7 +525,6 @@ let WeaveGlue = {
   },
 
   openTutorial: function _openTutorial() {
-    WeaveGlue.abortEasySetup();
     WeaveGlue.close();
 
     let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
