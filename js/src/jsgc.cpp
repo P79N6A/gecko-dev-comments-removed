@@ -633,7 +633,9 @@ static JSGCArena *
 NewGCArena(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-    if (!JS_THREAD_DATA(cx)->waiveGCQuota && rt->gcBytes >= rt->gcMaxBytes) {
+    if (!JS_THREAD_DATA(cx)->waiveGCQuota && 
+        (rt->gcBytes >= rt->gcMaxBytes || 
+        rt->gcBytes > GC_HEAP_GROWTH_FACTOR * rt->gcNewArenaTriggerBytes)) {
         
 
 
@@ -952,6 +954,7 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
 
     rt->setGCLastBytes(8192);
+    rt->gcNewArenaTriggerBytes = GC_ARENA_ALLOCATION_TRIGGER;
 
     METER(PodZero(&rt->gcStats));
     return true;
@@ -2766,6 +2769,11 @@ GC(JSContext *cx  GCTIMER_PARAM)
          ++i) {
         FinalizeArenaList<JSString, FinalizeExternalString>(cx, i);
     }
+    
+    rt->gcNewArenaTriggerBytes = rt->gcBytes < GC_ARENA_ALLOCATION_TRIGGER ?
+                                 GC_ARENA_ALLOCATION_TRIGGER :
+                                 rt->gcBytes;
+
     TIMESTAMP(sweepStringEnd);
 
     SweepCompartments(cx);
