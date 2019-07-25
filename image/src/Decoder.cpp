@@ -55,6 +55,7 @@ Decoder::Decoder(RasterImage &aImage, imgIDecoderObserver* aObserver)
   , mInFrame(false)
   , mDecodeDone(false)
   , mDataError(false)
+  , mIsAnimated(false)
 {
 }
 
@@ -260,8 +261,13 @@ Decoder::PostFrameStop()
   FlushInvalidations();
 
   
-  if (mObserver)
+  if (mObserver) {
     mObserver->OnStopFrame(nsnull, mFrameCount - 1); 
+    if (mFrameCount > 1 && !mIsAnimated) {
+      mIsAnimated = true;
+      mObserver->OnImageIsAnimated(nsnull);
+    }
+  }
 }
 
 void
