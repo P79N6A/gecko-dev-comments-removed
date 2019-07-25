@@ -97,8 +97,9 @@ public:
 
   
   nsresult SetDatabaseVersion(IDBDatabase* aDatabase,
-                              IDBVersionChangeRequest* aRequest,
-                              const nsAString& aVersion,
+                              IDBOpenDBRequest* aRequest,
+                              PRInt64 aOldVersion,
+                              PRInt64 aNewVersion,
                               AsyncConnectionHelper* aHelper);
 
   

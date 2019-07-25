@@ -49,6 +49,8 @@
 #include "nsIRunnable.h"
 #include "nsIThread.h"
 
+#include "nsDOMEvent.h"
+
 #include "mozilla/TimeStamp.h"
 
 class mozIStorageConnection;
@@ -59,18 +61,43 @@ class IDBTransaction;
 
 
 
-
-
-
-
-
-
-
-class AsyncConnectionHelper : public nsIRunnable,
-                              public mozIStorageProgressHandler
+class HelperBase : public nsIRunnable
 {
   friend class IDBRequest;
+public:
+  virtual nsresult GetResultCode() = 0;
 
+  virtual nsresult GetSuccessResult(JSContext* aCx,
+                                    jsval* aVal) = 0;
+
+protected:
+  HelperBase(IDBRequest* aRequest)
+    : mRequest(aRequest)
+  { }
+
+  
+
+
+
+  nsresult WrapNative(JSContext* aCx,
+                      nsISupports* aNative,
+                      jsval* aResult);
+
+  nsRefPtr<IDBRequest> mRequest;
+};
+
+
+
+
+
+
+
+
+
+
+class AsyncConnectionHelper : public HelperBase,
+                              public mozIStorageProgressHandler
+{
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIRUNNABLE
@@ -133,6 +160,13 @@ protected:
 
 
 
+  virtual already_AddRefed<nsDOMEvent> CreateSuccessEvent();
+
+  
+
+
+
+
 
   virtual nsresult OnSuccess();
 
@@ -160,14 +194,6 @@ protected:
   
 
 
-
-  nsresult WrapNative(JSContext* aCx,
-                      nsISupports* aNative,
-                      jsval* aResult);
-
-  
-
-
   static nsresult ConvertCloneBuffersToArray(
                                 JSContext* aCx,
                                 nsTArray<JSAutoStructuredCloneBuffer>& aBuffers,
@@ -176,7 +202,6 @@ protected:
 protected:
   nsRefPtr<IDBDatabase> mDatabase;
   nsRefPtr<IDBTransaction> mTransaction;
-  nsRefPtr<IDBRequest> mRequest;
 
 private:
   nsCOMPtr<mozIStorageProgressHandler> mOldProgressHandler;

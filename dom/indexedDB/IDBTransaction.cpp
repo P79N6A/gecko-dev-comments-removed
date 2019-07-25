@@ -182,6 +182,14 @@ IDBTransaction::OnRequestFinished()
   }
 }
 
+void
+IDBTransaction::SetTransactionListener(IDBTransactionListener* aListener)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  NS_ASSERTION(!mListener, "Shouldn't already have a listener!");
+  mListener = aListener;
+}
+
 nsresult
 IDBTransaction::CommitOrRollback()
 {
@@ -190,7 +198,7 @@ IDBTransaction::CommitOrRollback()
   TransactionThreadPool* pool = TransactionThreadPool::GetOrCreate();
   NS_ENSURE_STATE(pool);
 
-  nsRefPtr<CommitHelper> helper(new CommitHelper(this));
+  nsRefPtr<CommitHelper> helper(new CommitHelper(this, mListener));
 
   mCachedStatements.Enumerate(DoomCachedStatements, helper);
   NS_ASSERTION(!mCachedStatements.Count(), "Statements left!");
@@ -775,6 +783,11 @@ IDBTransaction::Abort()
   mAborted = true;
   mReadyState = nsIIDBTransaction::DONE;
 
+  if (Mode() == nsIIDBTransaction::VERSION_CHANGE) {
+    
+    mDatabase->Close();
+  }
+
   
   
   if (needToCommitOrRollback) {
@@ -908,8 +921,10 @@ IDBTransaction::AfterProcessNextEvent(nsIThreadInternal* aThread,
   return NS_OK;
 }
 
-CommitHelper::CommitHelper(IDBTransaction* aTransaction)
+CommitHelper::CommitHelper(IDBTransaction* aTransaction,
+                           IDBTransactionListener* aListener)
 : mTransaction(aTransaction),
+  mListener(aListener),
   mAborted(!!aTransaction->mAborted),
   mHaveMetadata(false)
 {
@@ -965,7 +980,14 @@ CommitHelper::Run()
 #ifdef DEBUG
     mTransaction->mFiredCompleteOrAbort = true;
 #endif
+
+    
+    if (mListener) {
+      mListener->NotifyTransactionComplete(mTransaction);
+    }
+
     mTransaction = nsnull;
+
     return NS_OK;
   }
 
@@ -994,7 +1016,7 @@ CommitHelper::Run()
         nsresult rv =
           IDBFactory::LoadDatabaseInformation(mConnection,
                                               mTransaction->Database()->Id(),
-                                              mOldVersion, mOldObjectStores);
+                                              &mOldVersion, mOldObjectStores);
         if (NS_SUCCEEDED(rv)) {
           mHaveMetadata = true;
         }

@@ -1,9 +1,9 @@
-/**
- * Any copyright is dedicated to the Public Domain.
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
 
-// Make sure this is a unique origin or the tests will randomly fail!
+
+
+
+
+
 const testPageURL = "http://test1.example.org/browser/" +
   "dom/indexedDB/test/browser_quotaPrompt.html";
 const notificationID = "indexedDB-quota-prompt";
@@ -71,7 +71,7 @@ function test1()
   }, true);
 
   info("loading test page: " + testPageURL);
-  content.location = testPageURL;
+  content.location = testPageURL + "?v=1";
 }
 
 function test2()
@@ -136,5 +136,5 @@ function test2()
   }, true);
 
   info("loading test page: " + testPageURL);
-  content.location = testPageURL;
+  content.location = testPageURL + "?v=3";
 }
