@@ -595,7 +595,7 @@ struct JSScript {
     inline void typeMonitorUnknown(JSContext *cx, const jsbytecode *pc);
 
     
-    inline void typeMonitor(JSContext *cx, const jsbytecode *pc, const js::Value &val);
+    inline void typeMonitor(JSContext *cx, jsbytecode *pc, const js::Value &val);
 
     
     inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,
