@@ -31,7 +31,7 @@
     padding: 3px;
     -moz-box-shadow: 1px 1px 3px rgba(0,0,0,.2);
   }
-  
+         
   .thumb{
     width: 160px;
     height: 120px;
@@ -111,21 +111,13 @@
     text-align: center;
     cursor: pointer;
   }
-  
-  #mode {
-    font-size: 11px;
-    margin: 5px 0px 0px 5px;
-  }
     
   </style>
   
 </head>
-
+  
 <body>
   <div id="nav">
-    <div id="mode">
-      Mode: Stacks (<a href="../index.html">switch</a>)
-    </div>
     <div class="search">
       <input type="text"/>
     </div>
@@ -136,22 +128,26 @@
 
   <script type="text/javascript;version=1.8">
   </script>
-  <script type="text/javascript" src="../js/optional/stacktrace.js"></script>
-  <script type="text/javascript;version=1.8" src="../js/jquery.js"></script>  
-  <script type="text/javascript;version=1.8" src="../js/jquery-ui.js"></script>  
-  <script type="text/javascript;version=1.8" src="../js/utils.js"></script>  
+  <script type="text/javascript;version=1.8" src="../../js/optional/stacktrace.js"></script>
+  <script type="text/javascript;version=1.8" src="../../js/core/jquery.js"></script>  
+  <script type="text/javascript;version=1.8" src="../../js/optional/jquery-ui.js"></script>  
+  <script type="text/javascript;version=1.8" src="../../js/core/utils.js"></script>  
   <script type="text/javascript;version=1.8">
   	Utils.log('it begins');
-/*
-  	Utils.trace('test');
-  	Utils.log({foo: 2, bar: 3 });
-*/
+/*     Utils.testLogging(); */
   </script>
-  <script type="text/javascript;version=1.8" src="../js/tabs.js"></script>
-  <script type="text/javascript;version=1.8" src="../js/mirror.js"></script>
+  <script type="text/javascript;version=1.8" src="../../js/core/tabs.js"></script>
+  <script type="text/javascript;version=1.8" src="../../js/core/mirror.js"></script>
   <script type="text/javascript;version=1.8" src="js/ui.js"></script>  
-  <script type="text/javascript;version=1.8" src="../js/optional/jquery.lasso.js"></script>
+  <script type="text/javascript;version=1.8" src="../../js/shared/jquery.lasso.js"></script>
   <script type="text/javascript;version=1.8" src="js/jquery.select.js"></script>  
+  
+  
+  <script type="text/javascript;version=1.8" src="../../js/optional/switch.js"></script>  
+  <script type="text/javascript;version=1.8">
+    Switch.insert('#nav', '');
+  </script>
+  
 
 </body>
 </html>
