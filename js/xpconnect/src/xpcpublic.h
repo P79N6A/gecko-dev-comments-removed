@@ -154,13 +154,6 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, jsval *vp)
     return nsnull;
 }
 
-inline JSObject*
-xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope)
-{
-    jsval dummy;
-    return xpc_FastGetCachedWrapper(cache, scope, &dummy);
-}
-
 
 
 
