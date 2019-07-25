@@ -1975,6 +1975,92 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, bool doTypeCheck)
 }
 
 bool
+mjit::Compiler::jsop_callprop_generic(JSAtom *atom)
+{
+    FrameEntry *top = frame.peek(-1);
+
+    
+
+
+
+
+    RegisterID objReg = frame.copyDataIntoReg(top);
+    RegisterID shapeReg = frame.allocReg();
+
+    PICGenInfo pic(ic::PICInfo::CALL);
+
+    
+    JS_STATIC_ASSERT(JSVAL_MASK32_NONFUNOBJ < JSVAL_MASK32_FUNOBJ);
+    pic.typeReg = frame.copyTypeIntoReg(top);
+
+    
+    pic.hotPathBegin = masm.label();
+
+    
+
+
+
+
+
+    Jump typeCheck = masm.branch32(Assembler::Below, pic.typeReg, Imm32(JSVAL_MASK32_NONFUNOBJ));
+    stubcc.linkExit(typeCheck);
+    stubcc.leave();
+    Jump typeCheckDone = stubcc.masm.jump();
+
+    pic.typeCheck = stubcc.masm.label();
+    pic.hasTypeCheck = true;
+    pic.objReg = objReg;
+    pic.shapeReg = shapeReg;
+    pic.atom = atom;
+    pic.objRemat = frame.dataRematInfo(top);
+
+    
+
+
+
+    uint32 thisvSlot = frame.frameDepth();
+    Address thisv = Address(JSFrameReg, sizeof(JSStackFrame) + thisvSlot * sizeof(Value));
+    masm.storeTypeTag(pic.typeReg, thisv);
+    masm.storeData32(pic.objReg, thisv);
+    frame.freeReg(pic.typeReg);
+
+    
+    masm.loadPtr(Address(objReg, offsetof(JSObject, map)), shapeReg);
+    masm.load32(Address(shapeReg, offsetof(JSObjectMap, shape)), shapeReg);
+    pic.shapeGuard = masm.label();
+    Jump j = masm.branch32(Assembler::NotEqual, shapeReg,
+                           Imm32(int32(JSObjectMap::INVALID_SHAPE)));
+    pic.slowPathStart = stubcc.masm.label();
+    stubcc.linkExit(j);
+
+    
+    stubcc.leave();
+    typeCheckDone.linkTo(stubcc.masm.label(), &stubcc.masm);
+    stubcc.masm.move(Imm32(pics.length()), Registers::ArgReg1);
+    pic.callReturn = stubcc.call(ic::CallProp);
+
+    
+    frame.pop();
+    frame.pushRegs(shapeReg, objReg);
+    frame.pushSynced();
+
+    
+    masm.loadPtr(Address(objReg, offsetof(JSObject, dslots)), objReg);
+
+    
+    Address slot(objReg, 1 << 24);
+    masm.loadTypeTag(slot, shapeReg);
+    masm.loadData32(slot, objReg);
+    pic.storeBack = masm.label();
+
+    stubcc.rejoin(1);
+
+    pics.append(pic);
+
+    return true;
+}
+
+bool
 mjit::Compiler::jsop_callprop_str(JSAtom *atom)
 {
     if (!script->compileAndGo) {
@@ -2108,7 +2194,7 @@ mjit::Compiler::jsop_callprop(JSAtom *atom)
 
     if (top->isTypeKnown())
         return jsop_callprop_obj(atom);
-    return jsop_callprop_slow(atom);
+    return jsop_callprop_generic(atom);
 }
 
 void

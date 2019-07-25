@@ -276,6 +276,12 @@ class FrameState
 
 
 
+    RegisterID copyTypeIntoReg(FrameEntry *fe);
+
+    
+
+
+
 
     inline bool shouldAvoidTypeRemat(FrameEntry *fe);
 

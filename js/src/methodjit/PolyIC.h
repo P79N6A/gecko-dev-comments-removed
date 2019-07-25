@@ -69,12 +69,13 @@ struct PICInfo {
     };
 
     union {
+        
         struct {
             RegisterID typeReg  : 5;  
             bool hasTypeCheck   : 1;  
 
             
-            uint8 typeCheckOffset;
+            uint8 typeCheckOffset : 8;
 
             
             uint32 objRemat    : 20;
