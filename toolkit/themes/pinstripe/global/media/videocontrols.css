@@ -78,6 +78,10 @@
   font-family: Helvetica, sans-serif;
 }
 
+.positionLabel {
+  display: none;
+}
+
 .backgroundBar {
   
   
