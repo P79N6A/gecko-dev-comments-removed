@@ -640,6 +640,42 @@ var WifiManager = (function() {
     return true;
   }
 
+  function killSupplicant(callback) {
+    
+    
+    
+    
+    
+    var count = 0;
+    var timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    function tick() {
+      getProperty("init.svc.wpa_supplicant", "stopped", function (result) {
+        if (result === null) {
+          callback(false);
+          return;
+        }
+        if (result === "stopped" || ++count >= 5) {
+          
+          timer = null;
+          callback(count < 5);
+          return;
+        }
+
+        
+        timer.initWithCallback(tick, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
+      });
+    }
+
+    setProperty("ctl.stop", "wpa_supplicant", tick);
+  }
+
+  function prepareForStartup(callback) {
+    stopDhcp(manager.ifname, function() {
+      
+      killSupplicant(callback);
+    });
+  }
+
   
   var airplaneMode = false;
 
@@ -651,24 +687,29 @@ var WifiManager = (function() {
     if (enable && airplaneMode)
       return false;
     if (enable) {
-      loadDriver(function (status) {
-        if (status < 0) {
-          callback(status);
+      
+      getProperty("wifi.interface", "tiwlan0", function (ifname) {
+        if (!ifname) {
+          callback(-1);
           return;
         }
-        startSupplicant(function (status) {
-          if (status < 0) {
-            callback(status);
-            return;
-          }
-          getProperty("wifi.interface", "tiwlan0", function (ifname) {
-            if (!ifname) {
-              callback(-1);
+        manager.ifname = ifname;
+
+        prepareForStartup(function() {
+          
+          loadDriver(function (status) {
+            if (status < 0) {
+              callback(status);
               return;
             }
-            manager.ifname = ifname;
-            enableInterface(ifname, function (ok) {
-              callback(ok ? 0 : -1);
+            startSupplicant(function (status) {
+              if (status < 0) {
+                callback(status);
+                return;
+              }
+              enableInterface(ifname, function (ok) {
+                callback(ok ? 0 : -1);
+              });
             });
           });
         });
