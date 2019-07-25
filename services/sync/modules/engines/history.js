@@ -35,6 +35,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['HistoryEngine'];
 
 const Cc = Components.classes;
@@ -121,6 +122,7 @@ HistoryStore.prototype = {
   },
 
   get _addGUIDAnnotationNameStm() {
+    
     let stmt = this._getStmt(
       "INSERT OR IGNORE INTO moz_anno_attributes (name) VALUES (:anno_name)");
     stmt.params.anno_name = GUID_ANNO;
@@ -128,32 +130,22 @@ HistoryStore.prototype = {
   },
 
   get _checkGUIDPageAnnotationStm() {
-    let base =
+    
+    let stmt = this._getStmt(
       "SELECT h.id AS place_id, " +
         "(SELECT id FROM moz_anno_attributes WHERE name = :anno_name) AS name_id, " +
-        "a.id AS anno_id, a.dateAdded AS anno_date ";
-    let stmt;
-    if (this._haveTempTables) {
-      
-      stmt = this._getStmt(base +
-        "FROM (SELECT id FROM moz_places_temp WHERE url = :page_url " +
-              "UNION " +
-              "SELECT id FROM moz_places WHERE url = :page_url) AS h " +
-        "LEFT JOIN moz_annos a ON a.place_id = h.id " +
-                             "AND a.anno_attribute_id = name_id");
-    } else {
-      
-      stmt = this._getStmt(base +
-        "FROM moz_places h " + 
-        "LEFT JOIN moz_annos a ON a.place_id = h.id " +
-                             "AND a.anno_attribute_id = name_id " +
-        "WHERE h.url = :page_url");
-    }
+        "a.id AS anno_id, a.dateAdded AS anno_date " +
+      "FROM (SELECT id FROM moz_places_temp WHERE url = :page_url " +
+            "UNION " +
+            "SELECT id FROM moz_places WHERE url = :page_url) AS h " +
+      "LEFT JOIN moz_annos a ON a.place_id = h.id " +
+                           "AND a.anno_attribute_id = name_id");
     stmt.params.anno_name = GUID_ANNO;
     return stmt;
   },
 
   get _addPageAnnotationStm() {
+    
     return this._getStmt(
     "INSERT OR REPLACE INTO moz_annos " +
       "(id, place_id, anno_attribute_id, mime_type, content, flags, " +
@@ -162,12 +154,43 @@ HistoryStore.prototype = {
             ":expiration, :type, :date_added, :last_modified)");
   },
 
+  __setGUIDStm: null,
+  get _setGUIDStm() {
+    if (this.__setGUIDStm !== null) {
+      return this.__setGUIDStm;
+    }
+
+    
+    let stmt;
+    try {
+      stmt = this._getStmt(
+        "UPDATE moz_places " +
+        "SET guid = :guid " +
+        "WHERE url = :page_url");
+    }
+    catch (e) {
+      stmt = false;
+    }
+
+    return this.__setGUIDStm = stmt;
+  },
+
   
   setGUID: function setGUID(uri, guid) {
     uri = uri.spec ? uri.spec : uri;
 
     if (arguments.length == 1)
       guid = Utils.makeGUID();
+
+    
+    let (stmt = this._setGUIDStm) {
+      if (stmt) {
+        stmt.params.guid = guid;
+        stmt.params.page_url = uri;
+        Utils.queryAsync(stmt);
+        return guid;
+      }
+    }
 
     
     Utils.queryAsync(this._addGUIDAnnotationNameStm);
@@ -202,29 +225,36 @@ HistoryStore.prototype = {
     return guid;
   },
 
+  __guidStm: null,
   get _guidStm() {
-    let base =
-      "SELECT a.content AS guid " +
-      "FROM moz_annos a " +
-      "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id ";
-    let stm;
-    if (this._haveTempTables) {
-      
-      stm = this._getStmt(base +
+    if (this.__guidStm) {
+      return this.__guidStm;
+    }
+
+    
+    
+    
+    let stmt;
+    try {
+      stmt = this._getStmt(
+        "SELECT guid " +
+        "FROM moz_places " +
+        "WHERE url = :page_url");
+    }
+    catch (e) {
+      stmt = this._getStmt(
+        "SELECT a.content AS guid " +
+        "FROM moz_annos a " +
+        "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id " +
         "JOIN ( " +
           "SELECT id FROM moz_places_temp WHERE url = :page_url " +
           "UNION " +
           "SELECT id FROM moz_places WHERE url = :page_url " +
         ") AS h ON h.id = a.place_id " +
-        "WHERE n.name = :anno_name");
-    } else {
-      
-      stm = this._getStmt(base +
-        "JOIN moz_places h ON h.id = a.place_id " +
-        "WHERE n.name = :anno_name AND h.url = :page_url");
+        "WHERE n.name = '" + GUID_ANNO + "'");
     }
-    stm.params.anno_name = GUID_ANNO;
-    return stm;
+
+    return this.__guidStmt = stmt;
   },
 
   GUIDForUri: function GUIDForUri(uri, create) {
@@ -233,7 +263,7 @@ HistoryStore.prototype = {
 
     
     let result = Utils.queryAsync(stm, ["guid"])[0];
-    if (result)
+    if (result && result.guid)
       return result.guid;
 
     
@@ -264,24 +294,38 @@ HistoryStore.prototype = {
       "ORDER BY date DESC LIMIT 10");
   },
 
+  __urlStmt: null,
   get _urlStm() {
-    let where =
-      "WHERE id = (" +
-        "SELECT place_id " +
-        "FROM moz_annos " +
-        "WHERE content = :guid AND anno_attribute_id = (" +
-          "SELECT id " +
-          "FROM moz_anno_attributes " +
-          "WHERE name = '" + GUID_ANNO + "')) ";
+    if (this.__urlStmt) {
+      return this.__urlStmt;
+    }
+
     
-    if (this._haveTempTables)
-      return this._getStmt(
+    
+    
+    let stmt;
+    try {
+      stmt = this._getStmt(
+        "SELECT url, title, frecency " +
+        "FROM moz_places " +
+        "WHERE guid = :guid");
+    }
+    catch (e) {
+      let where =
+        "WHERE id = (" +
+          "SELECT place_id " +
+          "FROM moz_annos " +
+          "WHERE content = :guid AND anno_attribute_id = (" +
+            "SELECT id " +
+            "FROM moz_anno_attributes " +
+            "WHERE name = '" + GUID_ANNO + "')) ";
+      stmt = this._getStmt(
         "SELECT url, title, frecency FROM moz_places_temp " + where +
         "UNION ALL " +
         "SELECT url, title, frecency FROM moz_places " + where + "LIMIT 1");
-    
-    return this._getStmt(
-      "SELECT url, title, frecency FROM moz_places " + where + "LIMIT 1");
+    }
+
+    return this.__urlStmt = stmt;
   },
 
   get _allUrlStm() {
