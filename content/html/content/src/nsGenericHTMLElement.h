@@ -71,7 +71,7 @@ public:
                              void **aInstancePtr);
 
   
-  nsresult CopyInnerTo(nsGenericElement* aDest) const;
+  nsresult CopyInnerTo(nsGenericElement* aDest);
 
   
   NS_METHOD SetAttribute(const nsAString& aName,
