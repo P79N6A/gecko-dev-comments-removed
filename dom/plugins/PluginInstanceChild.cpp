@@ -99,6 +99,8 @@ using mozilla::gfx::SharedDIB;
 
 const int kFlashWMUSERMessageThrottleDelayMs = 5;
 
+static const TCHAR kPluginIgnoreSubclassProperty[] = TEXT("PluginIgnoreSubclassProperty");
+
 #elif defined(XP_MACOSX)
 #include <ApplicationServices/ApplicationServices.h>
 #endif 
@@ -211,6 +213,7 @@ PluginInstanceChild::InitQuirksModes(const nsCString& aMimeType)
     if (FindInReadable(flash, aMimeType)) {
         mQuirks |= QUIRK_WINLESS_TRACKPOPUP_HOOK;
         mQuirks |= QUIRK_FLASH_THROTTLE_WMUSER_EVENTS; 
+        mQuirks |= QUIRK_FLASH_HOOK_SETLONGPTR;
     }
 #endif
 }
@@ -937,6 +940,7 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
           mWindow.type = aWindow.type;
 
           if (mPluginIface->setwindow) {
+              SetProp(mPluginWindowHWND, kPluginIgnoreSubclassProperty, (HANDLE)1);
               (void) mPluginIface->setwindow(&mData, &mWindow);
               WNDPROC wndProc = reinterpret_cast<WNDPROC>(
                   GetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC));
@@ -945,6 +949,8 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
                       SetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC,
                                        reinterpret_cast<LONG_PTR>(PluginWindowProc)));
               }
+              RemoveProp(mPluginWindowHWND, kPluginIgnoreSubclassProperty);
+              HookSetWindowLongPtr();
           }
       }
       break;
@@ -1002,6 +1008,7 @@ PluginInstanceChild::Initialize()
 
 static const TCHAR kWindowClassName[] = TEXT("GeckoPluginWindow");
 static const TCHAR kPluginInstanceChildProperty[] = TEXT("PluginInstanceChildProperty");
+static const TCHAR kFlashThrottleProperty[] = TEXT("MozillaFlashThrottleProperty");
 
 
 bool
@@ -1066,14 +1073,14 @@ PluginInstanceChild::DestroyPluginWindow()
         
         WNDPROC wndProc = reinterpret_cast<WNDPROC>(
             GetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC));
+        
+        RemoveProp(mPluginWindowHWND, kPluginInstanceChildProperty);
         if (wndProc == PluginWindowProc) {
             NS_ASSERTION(mPluginWndProc, "Should have old proc here!");
             SetWindowLongPtr(mPluginWindowHWND, GWLP_WNDPROC,
                              reinterpret_cast<LONG_PTR>(mPluginWndProc));
             mPluginWndProc = 0;
         }
-
-        RemoveProp(mPluginWindowHWND, kPluginInstanceChildProperty);
         DestroyWindow(mPluginWindowHWND);
         mPluginWindowHWND = 0;
     }
@@ -1130,7 +1137,6 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
 {
     NS_ASSERTION(!mozilla::ipc::SyncChannel::IsPumpingMessages(),
                  "Failed to prevent a nonqueued message from running!");
-
     PluginInstanceChild* self = reinterpret_cast<PluginInstanceChild*>(
         GetProp(hWnd, kPluginInstanceChildProperty));
     if (!self) {
@@ -1195,6 +1201,9 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
     
     
     switch(message) {    
+      case WM_LBUTTONDOWN:
+      case WM_MBUTTONDOWN:
+      case WM_RBUTTONDOWN:
       case WM_LBUTTONUP:
       case WM_MBUTTONUP:
       case WM_RBUTTONUP:
@@ -1212,6 +1221,158 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         RemoveProp(hWnd, kPluginInstanceChildProperty);
 
     return res;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+#ifdef _WIN64
+typedef LONG_PTR
+  (WINAPI *User32SetWindowLongPtrA)(HWND hWnd,
+                                    int nIndex,
+                                    LONG_PTR dwNewLong);
+typedef LONG_PTR
+  (WINAPI *User32SetWindowLongPtrW)(HWND hWnd,
+                                    int nIndex,
+                                    LONG_PTR dwNewLong);
+static User32SetWindowLongPtrA sUser32SetWindowLongAHookStub = NULL;
+static User32SetWindowLongPtrW sUser32SetWindowLongWHookStub = NULL;
+#else
+typedef LONG
+(WINAPI *User32SetWindowLongA)(HWND hWnd,
+                               int nIndex,
+                               LONG dwNewLong);
+typedef LONG
+(WINAPI *User32SetWindowLongW)(HWND hWnd,
+                               int nIndex,
+                               LONG dwNewLong);
+static User32SetWindowLongA sUser32SetWindowLongAHookStub = NULL;
+static User32SetWindowLongW sUser32SetWindowLongWHookStub = NULL;
+#endif
+
+extern LRESULT CALLBACK
+NeuteredWindowProc(HWND hwnd,
+                   UINT uMsg,
+                   WPARAM wParam,
+                   LPARAM lParam);
+
+const wchar_t kOldWndProcProp[] = L"MozillaIPCOldWndProc";
+
+
+PRBool
+PluginInstanceChild::SetWindowLongHookCheck(HWND hWnd,
+                                            int nIndex,
+                                            LONG_PTR newLong)
+{
+      
+  if (nIndex != GWLP_WNDPROC ||
+      
+      !GetProp(hWnd, kPluginInstanceChildProperty) ||
+      
+      GetProp(hWnd, kPluginIgnoreSubclassProperty) ||
+      
+      newLong == reinterpret_cast<LONG_PTR>(PluginWindowProc) ||
+      newLong == reinterpret_cast<LONG_PTR>(NeuteredWindowProc) ||
+      newLong == reinterpret_cast<LONG_PTR>(DefWindowProcA) ||
+      newLong == reinterpret_cast<LONG_PTR>(DefWindowProcW) ||
+      
+      GetProp(hWnd, kOldWndProcProp))
+      return PR_TRUE;
+  
+  return PR_FALSE;
+}
+
+#ifdef _WIN64
+LONG_PTR WINAPI
+PluginInstanceChild::SetWindowLongPtrAHook(HWND hWnd,
+                                           int nIndex,
+                                           LONG_PTR newLong)
+#else
+LONG WINAPI
+PluginInstanceChild::SetWindowLongAHook(HWND hWnd,
+                                        int nIndex,
+                                        LONG newLong)
+#endif
+{
+    if (SetWindowLongHookCheck(hWnd, nIndex, newLong))
+        return sUser32SetWindowLongAHookStub(hWnd, nIndex, newLong);
+
+    
+    LONG_PTR proc = sUser32SetWindowLongAHookStub(hWnd, nIndex, newLong);
+
+    
+    PluginInstanceChild* self = reinterpret_cast<PluginInstanceChild*>(
+        GetProp(hWnd, kPluginInstanceChildProperty));
+
+    
+    self->mPluginWndProc =
+        reinterpret_cast<WNDPROC>(sUser32SetWindowLongAHookStub(hWnd, nIndex,
+            reinterpret_cast<LONG_PTR>(PluginWindowProc)));
+    return proc;
+}
+
+#ifdef _WIN64
+LONG_PTR WINAPI
+PluginInstanceChild::SetWindowLongPtrWHook(HWND hWnd,
+                                           int nIndex,
+                                           LONG_PTR newLong)
+#else
+LONG WINAPI
+PluginInstanceChild::SetWindowLongWHook(HWND hWnd,
+                                        int nIndex,
+                                        LONG newLong)
+#endif
+{
+    if (SetWindowLongHookCheck(hWnd, nIndex, newLong))
+        return sUser32SetWindowLongWHookStub(hWnd, nIndex, newLong);
+
+    
+    LONG_PTR proc = sUser32SetWindowLongWHookStub(hWnd, nIndex, newLong);
+
+    
+    PluginInstanceChild* self = reinterpret_cast<PluginInstanceChild*>(
+        GetProp(hWnd, kPluginInstanceChildProperty));
+
+    
+    self->mPluginWndProc =
+        reinterpret_cast<WNDPROC>(sUser32SetWindowLongWHookStub(hWnd, nIndex,
+            reinterpret_cast<LONG_PTR>(PluginWindowProc)));
+    return proc;
+}
+
+void
+PluginInstanceChild::HookSetWindowLongPtr()
+{
+#ifdef _WIN64
+    
+    
+    return;
+#endif
+
+    if (!(GetQuirks() & QUIRK_FLASH_HOOK_SETLONGPTR))
+        return;
+
+    sUser32Intercept.Init("user32.dll");
+#ifdef _WIN64
+    sUser32Intercept.AddHook("SetWindowLongPtrA", SetWindowLongPtrAHook,
+                             (void**) &sUser32SetWindowLongAHookStub);
+    sUser32Intercept.AddHook("SetWindowLongPtrW", SetWindowLongPtrWHook,
+                             (void**) &sUser32SetWindowLongWHookStub);
+#else
+    sUser32Intercept.AddHook("SetWindowLongA", SetWindowLongAHook,
+                             (void**) &sUser32SetWindowLongAHookStub);
+    sUser32Intercept.AddHook("SetWindowLongW", SetWindowLongWHook,
+                             (void**) &sUser32SetWindowLongWHookStub);
+#endif
 }
 
 
@@ -1600,7 +1761,7 @@ PluginInstanceChild::UnhookWinlessFlashThrottle()
                    reinterpret_cast<LONG_PTR>(tmpProc));
 
   
-  RemoveProp(mWinlessHiddenMsgHWND, kPluginInstanceChildProperty);
+  RemoveProp(mWinlessHiddenMsgHWND, kFlashThrottleProperty);
   mWinlessHiddenMsgHWND = nsnull;
 }
 
@@ -1612,7 +1773,7 @@ PluginInstanceChild::WinlessHiddenFlashWndProc(HWND hWnd,
                                                LPARAM lParam)
 {
     PluginInstanceChild* self = reinterpret_cast<PluginInstanceChild*>(
-        GetProp(hWnd, kPluginInstanceChildProperty));
+        GetProp(hWnd, kFlashThrottleProperty));
     if (!self) {
         NS_NOTREACHED("Badness!");
         return 0;
@@ -1670,7 +1831,7 @@ PluginInstanceChild::EnumThreadWindowsCallback(HWND hWnd,
             self->mWinlessThrottleOldWndProc =
                 reinterpret_cast<WNDPROC>(SetWindowLongPtr(hWnd, GWLP_WNDPROC,
                 reinterpret_cast<LONG_PTR>(WinlessHiddenFlashWndProc)));
-            SetProp(hWnd, kPluginInstanceChildProperty, self);
+            SetProp(hWnd, kFlashThrottleProperty, self);
             NS_ASSERTION(self->mWinlessThrottleOldWndProc,
                          "SetWindowLongPtr failed?!");
         }
@@ -2760,6 +2921,10 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
 {
     PLUGIN_LOG_DEBUG_METHOD;
     AssertPluginThread();
+
+#if defined(OS_WIN)
+    SetProp(mPluginWindowHWND, kPluginIgnoreSubclassProperty, (HANDLE)1);
+#endif
 
     if (mBackSurface) {
         

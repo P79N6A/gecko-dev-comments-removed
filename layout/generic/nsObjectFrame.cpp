@@ -1255,7 +1255,7 @@ nsDisplayPlugin::Paint(nsDisplayListBuilder* aBuilder,
                        nsIRenderingContext* aCtx)
 {
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-  f->PaintPlugin(*aCtx, mVisibleRect, GetBounds(aBuilder));
+  f->PaintPlugin(aBuilder, *aCtx, mVisibleRect, GetBounds(aBuilder));
 }
 
 PRBool
@@ -1267,8 +1267,12 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
 }
 
 PRBool
-nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder)
+nsDisplayPlugin::IsOpaque(nsDisplayListBuilder* aBuilder,
+                          PRBool* aForceTransparentSurface)
 {
+  if (aForceTransparentSurface) {
+    *aForceTransparentSurface = PR_FALSE;
+  }
   nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
   return f->IsOpaque();
 }
@@ -1775,7 +1779,8 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 }
 
 void
-nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
+nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
+                           nsIRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect, const nsRect& aPluginRect)
 {
   
@@ -2010,7 +2015,7 @@ nsObjectFrame::PaintPlugin(nsIRenderingContext& aRenderingContext,
         nativeDraw.EndNativeDrawing();
       } while (nativeDraw.ShouldRenderAgain());
       nativeDraw.PaintToContext();
-    } else if (!(ctx->GetFlags() & gfxContext::FLAG_DESTINED_FOR_SCREEN)) {
+    } else if (!aBuilder->IsPaintingToWindow()) {
       
       
       typedef BOOL (WINAPI * PrintWindowPtr)
@@ -2278,6 +2283,16 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
                "Instantiation should still be prevented!");
   mPreventInstantiation = PR_FALSE;
 
+#ifdef ACCESSIBILITY
+  if (PresContext()->PresShell()->IsAccessibilityActive()) {
+    nsCOMPtr<nsIAccessibilityService> accService =
+      do_GetService("@mozilla.org/accessibilityService;1");
+    if (accService) {
+      accService->RecreateAccessible(PresContext()->PresShell(), mContent);
+    }
+  }
+#endif
+
   return rv;
 }
 
@@ -2292,6 +2307,10 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
     return NS_OK;
   }
 
+  
+  
+  
+  
   NS_ASSERTION(aMimeType || aURI, "Need a type or a URI!");
 
   
@@ -2335,6 +2354,16 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
 
   NS_ASSERTION(mPreventInstantiation,
                "Instantiation should still be prevented!");
+
+#ifdef ACCESSIBILITY
+  if (PresContext()->PresShell()->IsAccessibilityActive()) {
+    nsCOMPtr<nsIAccessibilityService> accService =
+      do_GetService("@mozilla.org/accessibilityService;1");
+    if (accService) {
+      accService->RecreateAccessible(PresContext()->PresShell(), mContent);
+    }
+  }
+#endif
 
   mPreventInstantiation = PR_FALSE;
 
@@ -2515,17 +2544,22 @@ nsObjectFrame::StopPluginInternal(PRBool aDelayedStop)
 
   if (mWidget) {
     nsRootPresContext* rootPC = PresContext()->GetRootPresContext();
-    NS_ASSERTION(rootPC, "unable to unregister the plugin frame");
-    rootPC->UnregisterPluginForGeometryUpdates(this);
+    if (rootPC) {
+      rootPC->UnregisterPluginForGeometryUpdates(this);
 
-    
-    
-    nsIWidget* parent = mWidget->GetParent();
-    if (parent) {
-      nsTArray<nsIWidget::Configuration> configurations;
-      GetEmptyClipConfiguration(&configurations);
-      parent->ConfigureChildren(configurations);
-      DidSetWidgetGeometry();
+      
+      
+      nsIWidget* parent = mWidget->GetParent();
+      if (parent) {
+        nsTArray<nsIWidget::Configuration> configurations;
+        GetEmptyClipConfiguration(&configurations);
+        parent->ConfigureChildren(configurations);
+        DidSetWidgetGeometry();
+      }
+    }
+    else {
+      NS_ASSERTION(PresContext()->PresShell()->IsFrozen(),
+                   "unable to unregister the plugin frame");
     }
   }
 
