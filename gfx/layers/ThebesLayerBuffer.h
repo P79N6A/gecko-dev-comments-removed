@@ -171,9 +171,18 @@ protected:
     TOP, BOTTOM
   };
   nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide);
+  
+
+
+
+
   void DrawBufferQuadrant(gfxContext* aTarget, XSide aXSide, YSide aYSide,
-                          float aOpacity);
-  void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity);
+                          float aOpacity,
+                          gfxASurface* aMask,
+                          const gfxMatrix* aMaskTransform);
+  void DrawBufferWithRotation(gfxContext* aTarget, float aOpacity,
+                              gfxASurface* aMask = nsnull,
+                              const gfxMatrix* aMaskTransform = nsnull);
 
   
 
