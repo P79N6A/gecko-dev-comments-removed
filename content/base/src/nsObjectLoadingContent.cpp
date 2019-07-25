@@ -87,6 +87,7 @@
 #include "nsMimeTypes.h"
 #include "nsStyleUtil.h"
 #include "nsGUIEvent.h"
+#include "nsUnicharUtils.h"
 
 
 #include "nsFrameLoader.h"
@@ -1731,7 +1732,7 @@ nsObjectLoadingContent::TypeForClassID(const nsAString& aClassID,
   }
 
   
-  if (StringBeginsWith(aClassID, NS_LITERAL_STRING("clsid:"))) {
+  if (StringBeginsWith(aClassID, NS_LITERAL_STRING("clsid:"), nsCaseInsensitiveStringComparator())) {
     
 
     if (NS_SUCCEEDED(pluginHost->IsPluginEnabledForType("application/x-oleobject"))) {
