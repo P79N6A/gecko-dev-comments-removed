@@ -529,7 +529,7 @@ Service::shutdown()
 
 sqlite3_vfs *ConstructTelemetryVFS();
 
-#ifdef MOZ_MEMORY
+#ifdef MOZ_STORAGE_MEMORY
 #  include "jemalloc.h"
 
 namespace {
@@ -608,7 +608,7 @@ Service::initialize()
 
   int rc;
 
-#ifdef MOZ_MEMORY
+#ifdef MOZ_STORAGE_MEMORY
   rc = ::sqlite3_config(SQLITE_CONFIG_MALLOC, &memMethods);
   if (rc != SQLITE_OK)
     return convertResultCode(rc);
