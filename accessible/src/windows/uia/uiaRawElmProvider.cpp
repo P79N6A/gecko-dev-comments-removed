@@ -146,6 +146,43 @@ uiaRawElmProvider::GetPropertyValue(PROPERTYID aPropertyId,
   if (!aPropertyValue)
     return E_INVALIDARG;
 
+  if (mAcc->IsDefunct())
+    return CO_E_OBJNOTCONNECTED;
+
+  aPropertyValue->vt = VT_EMPTY;
+
+  switch (aPropertyId) {
+    
+    case UIA_AcceleratorKeyPropertyId: {
+      nsAutoString keyString;
+
+      mAcc->KeyboardShortcut().ToString(keyString);
+
+      if (!keyString.IsEmpty()) {
+        aPropertyValue->vt = VT_BSTR;
+        aPropertyValue->bstrVal = ::SysAllocString(keyString.get());
+        return S_OK;
+      }
+
+      break;
+    }
+
+    
+    case UIA_AccessKeyPropertyId: {
+      nsAutoString keyString;
+
+      mAcc->AccessKey().ToString(keyString);
+
+      if (!keyString.IsEmpty()) {
+        aPropertyValue->vt = VT_BSTR;
+        aPropertyValue->bstrVal = ::SysAllocString(keyString.get());
+        return S_OK;
+      }
+
+      break;
+    }
+  }
+
   
   
   aPropertyValue->vt = VT_EMPTY;
