@@ -71,6 +71,7 @@ typedef struct FT_LibraryRec_ *FT_Library;
 #endif
 
 #include <windows.h>
+#include <objbase.h>
 
 
 
