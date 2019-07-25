@@ -2004,6 +2004,19 @@ CrossScriptSSA::foldValue(const CrossSSAValue &cv)
             break;
           }
 
+          case JSOP_TOID: {
+            
+
+
+
+
+            ScriptAnalysis *analysis = frame.script->analysis();
+            SSAValue toidv = analysis->poppedValue(pc, 0);
+            if (analysis->getValueTypes(toidv)->getKnownTypeTag(cx) == JSVAL_TYPE_INT32)
+                return foldValue(CrossSSAValue(cv.frame, toidv));
+            break;
+          }
+
           default:;
         }
     }
