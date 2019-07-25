@@ -149,17 +149,17 @@ private:
   already_AddRefed<nsIURI> GetURIToMutate();
   void SetHrefAttribute(nsIURI *aURI);
 
-  nsLinkState mLinkState;
-
   mutable nsCOMPtr<nsIURI> mCachedURI;
-
-  bool mRegistered;
 
   Element * const mElement;
 
   
   
   nsCOMPtr<IHistory> mHistory;
+
+  PRUint16 mLinkState;
+
+  bool mRegistered;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Link, MOZILLA_DOM_LINK_IMPLEMENTATION_IID)
