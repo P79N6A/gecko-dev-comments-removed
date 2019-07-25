@@ -124,27 +124,6 @@ class JaegerCompartment;
 
 
 
-class ContextAllocPolicy
-{
-    JSContext *cx;
-
-  public:
-    ContextAllocPolicy(JSContext *cx) : cx(cx) {}
-    JSContext *context() const { return cx; }
-
-    
-    void *malloc_(size_t bytes);
-    void free_(void *p);
-    void *realloc_(void *p, size_t bytes);
-    void reportAllocOverflow() const;
-};
-
-
-
-
-
-
-
 
 
 
@@ -1449,7 +1428,6 @@ struct JSRuntime {
             onTooMuchMalloc();
     }
 
-  private:
     
 
 
@@ -3168,30 +3146,6 @@ js_RegenerateShapeForGC(JSRuntime *rt)
 
 namespace js {
 
-inline void *
-ContextAllocPolicy::malloc_(size_t bytes)
-{
-    return cx->malloc_(bytes);
-}
-
-inline void
-ContextAllocPolicy::free_(void *p)
-{
-    cx->free_(p);
-}
-
-inline void *
-ContextAllocPolicy::realloc_(void *p, size_t bytes)
-{
-    return cx->realloc_(p, bytes);
-}
-
-inline void
-ContextAllocPolicy::reportAllocOverflow() const
-{
-    js_ReportAllocationOverflow(cx);
-}
-
 template<class T>
 class AutoVectorRooter : protected AutoGCRooter
 {
@@ -3251,7 +3205,8 @@ class AutoVectorRooter : protected AutoGCRooter
     friend void AutoGCRooter::trace(JSTracer *trc);
 
   private:
-    Vector<T, 8> vector;
+    typedef Vector<T, 8> VectorImpl;
+    VectorImpl vector;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 

@@ -179,7 +179,8 @@ struct JSStructuredCloneWriter {
 
     
     
-    js::HashSet<JSObject *> memory;
+    typedef js::HashSet<JSObject *> MemorySet;
+    MemorySet memory;
 
     
     const JSStructuredCloneCallbacks *callbacks;

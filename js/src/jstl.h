@@ -40,6 +40,7 @@
 #ifndef jstl_h_
 #define jstl_h_
 
+#include "jspubtd.h"
 #include "jsbit.h"
 #include "jsstaticcheck.h"
 #include "jsstdint.h"
@@ -232,28 +233,6 @@ PointerRangeSize(T *begin, T *end)
 {
     return (size_t(end) - size_t(begin)) / sizeof(T);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class SystemAllocPolicy
-{
-  public:
-    void *malloc_(size_t bytes) { return js::OffTheBooks::malloc_(bytes); }
-    void *realloc_(void *p, size_t bytes) { return js::OffTheBooks::realloc_(p, bytes); }
-    void free_(void *p) { js::UnwantedForeground::free_(p); }
-    void reportAllocOverflow() const {}
-};
 
 
 
