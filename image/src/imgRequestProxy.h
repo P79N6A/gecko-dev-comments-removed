@@ -154,6 +154,10 @@ protected:
   void OnStopRequest(bool aLastPart);
 
   
+  void BlockOnload();
+  void UnblockOnload();
+
+  
   void DoCancel(nsresult status);
 
   

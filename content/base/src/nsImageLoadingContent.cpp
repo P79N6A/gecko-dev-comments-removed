@@ -153,23 +153,6 @@ nsImageLoadingContent::OnStartDecode(imgIRequest* aRequest)
 {
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
-  
-  if (aRequest == mCurrentRequest) {
-
-    
-    
-    PRUint32 loadFlags;
-    nsresult rv = aRequest->GetLoadFlags(&loadFlags);
-    bool background =
-      (NS_SUCCEEDED(rv) && (loadFlags & nsIRequest::LOAD_BACKGROUND));
-
-    
-    if (!background) {
-      NS_ABORT_IF_FALSE(!mBlockingOnload, "Shouldn't already be blocking");
-      SetBlockingOnload(true);
-    }
-  }
-
   LOOP_OVER_OBSERVERS(OnStartDecode(aRequest));
   return NS_OK;
 }
@@ -215,10 +198,6 @@ nsImageLoadingContent::OnStopFrame(imgIRequest* aRequest,
 {
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
-  
-  if (aRequest == mCurrentRequest)
-    SetBlockingOnload(false);
-
   LOOP_OVER_OBSERVERS(OnStopFrame(aRequest, aFrame));
   return NS_OK;
 }
@@ -228,15 +207,6 @@ nsImageLoadingContent::OnStopContainer(imgIRequest* aRequest,
                                        imgIContainer* aContainer)
 {
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
-
-  
-  
-  
-  
-  
-  
-  if (aRequest == mCurrentRequest)
-    SetBlockingOnload(false);
 
   LOOP_OVER_OBSERVERS(OnStopContainer(aRequest, aContainer));
   return NS_OK;
@@ -309,7 +279,7 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
     FireEvent(NS_LITERAL_STRING("error"));
   }
 
-  nsCOMPtr<nsINode> thisNode = do_QueryInterface(this);
+  nsCOMPtr<nsINode> thisNode = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   nsSVGEffects::InvalidateDirectRenderingObservers(thisNode->AsElement());
 
   return NS_OK;
@@ -598,6 +568,36 @@ NS_IMETHODIMP nsImageLoadingContent::ForceReload()
   return LoadImage(currentURI, true, true, nullptr, nsIRequest::VALIDATE_ALWAYS);
 }
 
+NS_IMETHODIMP
+nsImageLoadingContent::BlockOnload(imgIRequest* aRequest)
+{
+  if (aRequest != mCurrentRequest) {
+    return NS_OK;
+  }
+
+  nsIDocument* doc = GetOurCurrentDoc();
+  if (doc) {
+    doc->BlockOnload();
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsImageLoadingContent::UnblockOnload(imgIRequest* aRequest)
+{
+  if (aRequest != mCurrentRequest) {
+    return NS_OK;
+  }
+
+  nsIDocument* doc = GetOurCurrentDoc();
+  if (doc) {
+    doc->UnblockOnload(false);
+  }
+
+  return NS_OK;
+}
+
 
 
 
@@ -691,7 +691,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   
   
 #ifdef DEBUG
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ABORT_IF_FALSE(thisContent &&
                     thisContent->NodePrincipal() == aDocument->NodePrincipal(),
                     "Principal mismatch?");
@@ -699,8 +699,11 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
 
   
   PRInt16 cpDecision = nsIContentPolicy::REJECT_REQUEST;
-  nsContentUtils::CanLoadImage(aNewURI, this, aDocument,
-                               aDocument->NodePrincipal(), &cpDecision);
+  nsContentUtils::CanLoadImage(aNewURI,
+                               static_cast<nsIImageLoadingContent*>(this),
+                               aDocument,
+                               aDocument->NodePrincipal(),
+                               &cpDecision);
   if (!NS_CP_ACCEPTED(cpDecision)) {
     FireEvent(NS_LITERAL_STRING("error"));
     SetBlockedRequest(aNewURI, cpDecision);
@@ -806,7 +809,7 @@ nsImageLoadingContent::UpdateImageState(bool aNotify)
     return;
   }
   
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   if (!thisContent) {
     return;
   }
@@ -870,7 +873,8 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
 nsIDocument*
 nsImageLoadingContent::GetOurOwnerDoc()
 {
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ENSURE_TRUE(thisContent, nullptr);
 
   return thisContent->OwnerDoc();
@@ -879,7 +883,8 @@ nsImageLoadingContent::GetOurOwnerDoc()
 nsIDocument*
 nsImageLoadingContent::GetOurCurrentDoc()
 {
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ENSURE_TRUE(thisContent, nullptr);
 
   return thisContent->GetCurrentDoc();
@@ -888,7 +893,8 @@ nsImageLoadingContent::GetOurCurrentDoc()
 nsIFrame*
 nsImageLoadingContent::GetOurPrimaryFrame()
 {
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   return thisContent->GetPrimaryFrame();
 }
 
@@ -911,7 +917,7 @@ nsImageLoadingContent::StringToURI(const nsAString& aSpec,
   NS_PRECONDITION(aURI, "Null out param");
 
   
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   NS_ASSERTION(thisContent, "An image loading content must be an nsIContent");
   nsCOMPtr<nsIURI> baseURL = thisContent->GetBaseURI();
 
@@ -933,7 +939,7 @@ nsImageLoadingContent::FireEvent(const nsAString& aEventType)
   
   
 
-  nsCOMPtr<nsINode> thisNode = do_QueryInterface(this);
+  nsCOMPtr<nsINode> thisNode = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
 
   nsRefPtr<nsAsyncDOMEvent> event =
     new nsLoadBlockingAsyncDOMEvent(thisNode, aEventType, false, false);
@@ -1080,10 +1086,6 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
   mCurrentRequest->CancelAndForgetObserver(aReason);
   mCurrentRequest = nullptr;
   mCurrentRequestFlags = 0;
-
-  
-  
-  SetBlockingOnload(false);
 }
 
 void
@@ -1145,28 +1147,6 @@ nsImageLoadingContent::HaveSize(imgIRequest *aImage)
   PRUint32 status;
   nsresult rv = aImage->GetImageStatus(&status);
   return (NS_SUCCEEDED(rv) && (status & imgIRequest::STATUS_SIZE_AVAILABLE));
-}
-
-void
-nsImageLoadingContent::SetBlockingOnload(bool aBlocking)
-{
-  
-  if (mBlockingOnload == aBlocking)
-    return;
-
-  
-  nsIDocument* doc = GetOurOwnerDoc();
-
-  if (doc) {
-    
-    if (aBlocking)
-      doc->BlockOnload();
-    else
-      doc->UnblockOnload(false);
-
-    
-    mBlockingOnload = aBlocking;
-  }
 }
 
 void
