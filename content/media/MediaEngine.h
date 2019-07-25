@@ -50,7 +50,7 @@ public:
   virtual void GetUUID(nsAString&) = 0;
 
   
-  virtual nsresult Allocate() = 0;
+  virtual already_AddRefed<nsDOMMediaStream> Allocate() = 0;
 
   
   virtual nsresult Deallocate() = 0;
