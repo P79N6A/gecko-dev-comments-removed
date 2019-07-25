@@ -324,6 +324,7 @@ public:
   virtual bool TagCanContainTag(const nsAString& aParentTag, const nsAString& aChildTag);
   
   
+  virtual bool IsContainer(nsINode* aNode);
   virtual bool IsContainer(nsIDOMNode *aNode);
 
   
@@ -387,6 +388,9 @@ public:
 
   virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
 
+  nsresult IsVisTextNode(nsIContent* aNode,
+                         bool* outIsEmptyNode,
+                         bool aSafeToAskFrames);
   nsresult IsVisTextNode( nsIDOMNode *aNode, 
                           bool *outIsEmptyNode, 
                           bool aSafeToAskFrames);
@@ -394,7 +398,7 @@ public:
                        bool aMozBRDoesntCount = false,
                        bool aListOrCellNotEmpty = false,
                        bool aSafeToAskFrames = false);
-  nsresult IsEmptyNodeImpl(nsIDOMNode *aNode,
+  nsresult IsEmptyNodeImpl(nsINode* aNode,
                            bool *outIsEmptyBlock, 
                            bool aMozBRDoesntCount,
                            bool aListOrCellNotEmpty,
