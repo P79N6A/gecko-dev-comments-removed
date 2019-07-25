@@ -57,7 +57,13 @@
 #include "mozilla/Preferences.h"
 
 #include "sqlite3.h"
+#include "test_quota.h"
 #include "test_quota.c"
+
+#ifdef SQLITE_OS_WIN
+
+#undef CompareString
+#endif
 
 #include "nsIPromptService.h"
 #include "nsIMemoryReporter.h"
@@ -745,7 +751,7 @@ Service::SetQuotaForFilenamePattern(const nsACString &aPattern,
 }
 
 NS_IMETHODIMP
-Service::UpdateQutoaInformationForFile(nsIFile *aFile)
+Service::UpdateQuotaInformationForFile(nsIFile *aFile)
 {
   NS_ENSURE_ARG_POINTER(aFile);
 

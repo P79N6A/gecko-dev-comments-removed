@@ -41,6 +41,7 @@
 #define mozilla_dom_indexeddb_asyncconnectionhelper_h__
 
 
+#include "DatabaseInfo.h"
 #include "IndexedDatabase.h"
 #include "IDBDatabase.h"
 #include "IDBRequest.h"
@@ -198,9 +199,9 @@ protected:
   
 
 
-  static nsresult ConvertCloneBuffersToArray(
+  static nsresult ConvertCloneReadInfosToArray(
                                 JSContext* aCx,
-                                nsTArray<JSAutoStructuredCloneBuffer>& aBuffers,
+                                nsTArray<StructuredCloneReadInfo>& aReadInfos,
                                 jsval* aResult);
 
 protected:

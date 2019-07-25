@@ -40,6 +40,7 @@
 #ifndef mozilla_dom_indexeddb_indexeddatabasemanager_h__
 #define mozilla_dom_indexeddb_indexeddatabasemanager_h__
 
+#include "mozilla/dom/indexedDB/FileManager.h"
 #include "mozilla/dom/indexedDB/IndexedDatabase.h"
 #include "mozilla/dom/indexedDB/IDBDatabase.h"
 #include "mozilla/dom/indexedDB/IDBRequest.h"
@@ -103,6 +104,8 @@ public:
   
   static bool IsShuttingDown();
 
+  static bool IsClosed();
+
   typedef void (*WaitingOnDatabasesCallback)(nsTArray<nsRefPtr<IDBDatabase> >&, void*);
 
   
@@ -148,7 +151,8 @@ public:
   static PRUint32
   GetIndexedDBQuotaMB();
 
-  nsresult EnsureQuotaManagementForDirectory(nsIFile* aDirectory);
+  nsresult EnsureOriginIsInitialized(const nsACString& aOrigin,
+                                     nsIFile** aDirectory);
 
   
   
@@ -172,6 +176,26 @@ public:
 
   static nsresult
   GetASCIIOriginFromWindow(nsPIDOMWindow* aWindow, nsCString& aASCIIOrigin);
+
+  already_AddRefed<FileManager>
+  GetOrCreateFileManager(const nsACString& aOrigin,
+                         const nsAString& aDatabaseName);
+
+  void InvalidateFileManagersForOrigin(const nsACString& aOrigin);
+
+  void InvalidateFileManager(const nsACString& aOrigin,
+                             const nsAString& aDatabaseName);
+
+  nsresult AsyncDeleteFile(FileManager* aFileManager,
+                           PRInt64 aFileId);
+
+  static mozilla::Mutex& FileMutex()
+  {
+    IndexedDatabaseManager* mgr = Get();
+    NS_ASSERTION(mgr, "Must have a manager here!");
+
+    return mgr->mFileMutex;
+  }
 
 private:
   IndexedDatabaseManager();
@@ -250,10 +274,14 @@ private:
     
     inline nsresult RunInternal();
 
+    nsresult GetUsageForDirectory(nsIFile* aDirectory,
+                                  PRUint64* aUsage);
+
     nsCOMPtr<nsIURI> mURI;
     nsCString mOrigin;
     nsCOMPtr<nsIIndexedDatabaseUsageCallback> mCallback;
     PRUint64 mUsage;
+    PRUint64 mFileUsage;
     PRInt32 mCanceled;
   };
 
@@ -302,6 +330,19 @@ private:
     SynchronizedOp* mOp;
   };
 
+  class AsyncDeleteFileRunnable : public nsIRunnable
+  {
+  public:
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIRUNNABLE
+    AsyncDeleteFileRunnable(const nsAString& aFilePath)
+    : mFilePath(aFilePath)
+    { }
+
+  private:
+    nsString mFilePath;
+  };
+
   static nsresult DispatchHelper(AsyncConnectionHelper* aHelper);
 
   
@@ -315,6 +356,12 @@ private:
 
   
   nsRefPtrHashtable<nsPtrHashKey<nsPIDOMWindow>, CheckQuotaHelper> mQuotaHelperHash;
+
+  
+  
+  
+  nsClassHashtable<nsCStringHashKey,
+                   nsTArray<nsRefPtr<FileManager> > > mFileManagers;
 
   
   
@@ -336,7 +383,7 @@ private:
   
   
   
-  nsTArray<nsCString> mTrackedQuotaPaths;
+  mozilla::Mutex mFileMutex;
 };
 
 class AutoEnterWindow
