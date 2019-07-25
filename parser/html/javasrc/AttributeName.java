@@ -488,10 +488,6 @@ public final class AttributeName
 
 
     @SuppressWarnings("unused") private void destructor() {
-        Portability.releaseLocal(local[0]); 
-        
-        
-        
         Portability.deleteArray(local);
     }
 

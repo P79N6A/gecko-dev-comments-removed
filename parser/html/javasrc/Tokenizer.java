@@ -5727,7 +5727,6 @@ public class Tokenizer implements Locator {
     
     
     private void initDoctypeFields() {
-        Portability.releaseLocal(doctypeName);
         doctypeName = "";
         if (systemIdentifier != null) {
             Portability.releaseString(systemIdentifier);
@@ -6034,7 +6033,6 @@ public class Tokenizer implements Locator {
 
 
 
-                        Portability.releaseLocal(doctypeName);
                         doctypeName = "";
                         if (systemIdentifier != null) {
                             Portability.releaseString(systemIdentifier);
@@ -6434,7 +6432,6 @@ public class Tokenizer implements Locator {
         
         
         
-        Portability.releaseLocal(doctypeName);
         doctypeName = null;
         Portability.releaseString(publicIdentifier);
         publicIdentifier = null;
@@ -6494,7 +6491,6 @@ public class Tokenizer implements Locator {
     public void end() throws SAXException {
         strBuf = null;
         longStrBuf = null;
-        Portability.releaseLocal(doctypeName);
         doctypeName = null;
         if (systemIdentifier != null) {
             Portability.releaseString(systemIdentifier);
@@ -6642,7 +6638,6 @@ public class Tokenizer implements Locator {
         endTag = other.endTag;
         shouldSuspend = false;
 
-        Portability.releaseLocal(doctypeName);
         if (other.doctypeName == null) {
             doctypeName = null;
         } else {

@@ -115,18 +115,6 @@ nsHtml5Portability::releaseString(nsString* str)
   delete str;
 }
 
-
-void
-nsHtml5Portability::retainLocal(nsIAtom* local)
-{
-}
-
-
-void
-nsHtml5Portability::releaseLocal(nsIAtom* local)
-{
-}
-
 PRBool
 nsHtml5Portability::localEqualsBuffer(nsIAtom* local, PRUnichar* buf, PRInt32 offset, PRInt32 length)
 {

@@ -74,31 +74,6 @@ public final class Portability {
         
     }
     
-    public static void retainLocal(@Local String local) {
-        
-    }
-
-    
-
-
-
-    public static void releaseLocal(@Local String local) {
-        
-    }
-    
-    
-    
-    
-    public static void retainElement(Object elt) {
-        
-    }
-
-    public static void releaseElement(Object elt) {
-        
-    }
-    
-    
-    
     
     
     public static boolean localEqualsBuffer(@Local String local, @NoLength char[] buf, int offset, int length) {
