@@ -59,6 +59,7 @@
 
 
 
+
 "use strict";
 
 importScripts("ril_consts.js");
@@ -1451,6 +1452,312 @@ let Phone = {
 
 };
 
+
+
+
+
+
+
+
+
+
+let GsmPDUHelper = {
+
+  
+
+
+
+
+  readHexNibble: function readHexNibble() {
+    let nibble = Buf.readUint16();
+    if (nibble >= 48 && nibble <= 57) {
+      nibble -= 48;
+    } else if (nibble >= 65 && nibble <= 70) {
+      nibble -= 55;
+    } else if (nibble >= 97 && nibble <= 102) {
+      nibble -= 87;
+    } else {
+      throw "Found invalid nibble during PDU parsing: " +
+            String.fromCharCode(nibble);
+    }
+    return nibble;
+  },
+
+  
+
+
+
+
+  readHexOctet: function readHexOctet() {
+    return (this.readHexNibble() << 4) | this.readHexNibble();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  octetToBCD: function octetToBCD(octet) {
+    return ((octet & 0xf0) <= 0x90) * ((octet >> 4) & 0x0f) +
+           ((octet & 0x0f) <= 0x09) * (octet & 0x0f) * 10;
+  },
+
+  
+
+
+
+
+
+
+
+  readSwappedNibbleBCD: function readSwappedNibbleBCD(length) {
+    let number = 0;
+    for (let i = 0; i < length; i++) {
+      let octet = this.readHexOctet();
+      
+      
+      if ((octet & 0xf0) == 0xf0) {
+        number *= 10;
+        number += octet & 0x0f;
+        continue;
+      }
+      number *= 100;
+      number += this.octetToBCD(octet);
+    }
+    return number;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  readSeptetsToString: function readSeptetsToString(length) {
+    let ret = "";
+    let byteLength = Math.ceil(length * 7 / 8);
+
+    let leftOver = 0;
+    for (let i = 0; i < byteLength; i++) {
+      let octet = this.readHexOctet();
+      let shift = (i % 7);
+      let leftOver_mask = (0xff << (7 - shift)) & 0xff;
+      let septet_mask = (0xff >> (shift + 1));
+
+      let septet = ((octet & septet_mask) << shift) | leftOver;
+      ret += alphabet_7bit[septet];
+      leftOver = (octet & leftOver_mask) >> (7 - shift);
+
+      
+      if (shift == 6) {
+        ret += alphabet_7bit[leftOver];
+        leftOver = 0;
+      }
+    }
+    if (ret.length != length) {
+      ret = ret.slice(0, length);
+    }
+    return ret;
+  },
+
+  
+
+
+
+
+
+
+
+  readUCS2String: function readUCS2String(length) {
+    
+  },
+
+  
+
+
+
+
+
+  readUserData: function readUserData(length, codingScheme) {
+    if (DEBUG) {
+      debug("Reading " + length + " bytes of user data.");
+      debug("Coding scheme: " + codingScheme);
+    }
+    
+    let encoding = 7;
+    switch (codingScheme & 0xC0) {
+      case 0x0:
+        
+        switch (codingScheme & 0x0C) {
+          case 0x4:
+            encoding = 8;
+            break;
+          case 0x8:
+            encoding = 16;
+            break;
+        }
+        break;
+      case 0xC0:
+        
+        switch (codingScheme & 0x30) {
+          case 0x20:
+            encoding = 16;
+            break;
+          case 0x30:
+            if (!codingScheme & 0x04) {
+              encoding = 8;
+            }
+            break;
+        }
+        break;
+      default:
+        
+        break;
+    }
+
+    if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
+    switch (encoding) {
+      case 7:
+        
+        
+        if (length > PDU_MAX_USER_DATA_7BIT) {
+          if (DEBUG) debug("PDU error: user data is too long: " + length);
+          return null;
+        }
+        return this.readSeptetsToString(length);
+      case 8:
+        
+        return null;
+      case 16:
+        return this.readUCS2String(length);
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+  readMessage: function readMessage() {
+    
+    let msg = {
+      SMSC:      null,
+      reference: null,
+      sender:    null,
+      body:      null,
+      validity:  null,
+      timestamp: null
+    };
+
+    
+    let smscLength = this.readHexOctet();
+    if (smscLength > 0) {
+      let smscTypeOfAddress = this.readHexOctet();
+      
+      msg.SMSC = this.readSwappedNibbleBCD(smscLength - 1).toString();
+      if ((smscTypeOfAddress >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
+        msg.SMSC = '+' + msg.SMSC;
+      }
+    }
+
+    
+    let firstOctet = this.readHexOctet();
+    
+    let isSmsSubmit = firstOctet & PDU_MTI_SMS_SUBMIT;
+    if (isSmsSubmit) {
+      msg.reference = this.readHexOctet(); 
+    }
+
+    
+    
+    let senderAddressLength = this.readHexOctet();
+    if (senderAddressLength <= 0) {
+      if (DEBUG) debug("PDU error: invalid sender address length: " + senderAddressLength);
+      return null;
+    }
+    
+    let senderTypeOfAddress = this.readHexOctet();
+    if (senderAddressLength % 2 == 1) {
+      senderAddressLength += 1;
+    }
+    if (DEBUG) debug("PDU: Going to read sender address: " + senderAddressLength);
+    msg.sender = this.readSwappedNibbleBCD(senderAddressLength / 2).toString();
+    if (msg.sender.length <= 0) {
+      if (DEBUG) debug("PDU error: no sender number provided");
+      return null;
+    }
+    if ((senderTypeOfAddress >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
+      msg.sender = '+' + msg.sender;
+    }
+
+    
+    let protocolIdentifier = this.readHexOctet();
+
+    
+    let dataCodingScheme = this.readHexOctet();
+
+    
+    
+    if (isSmsSubmit) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (firstOctet & (PDU_VPF_ABSOLUTE | PDU_VPF_RELATIVE | PDU_VPF_ENHANCED)) {
+        msg.validity = this.readHexOctet();
+      }
+      
+    } else {
+      
+      let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
+      let month  = this.readSwappedNibbleBCD(1) - 1;
+      let day    = this.readSwappedNibbleBCD(1) - 1;
+      let hour   = this.readSwappedNibbleBCD(1) - 1;
+      let minute = this.readSwappedNibbleBCD(1) - 1;
+      let second = this.readSwappedNibbleBCD(1) - 1;
+      msg.timestamp = Date.UTC(year, month, day, hour, minute, second);
+
+      
+      
+      let tzOctet = this.readHexOctet();
+      let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
+      if (tzOctet & 0x08) {
+        msg.timestamp -= tzOffset;
+      } else {
+        msg.timestamp += tzOffset;
+      }
+    }
+
+    
+    let userDataLength = this.readHexOctet();
+
+    
+    if (userDataLength > 0) {
+      msg.body = this.readUserData(userDataLength, dataCodingScheme);
+    }
+
+    return msg;
+  }
+};
 
 
 

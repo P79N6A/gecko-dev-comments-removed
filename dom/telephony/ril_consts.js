@@ -36,6 +36,7 @@
 
 
 
+
 const REQUEST_GET_SIM_STATUS = 1;
 const REQUEST_ENTER_SIM_PIN = 2;
 const REQUEST_ENTER_SIM_PUK = 3;
@@ -205,6 +206,8 @@ const CALL_PRESENTATION_RESTRICTED = 1;
 const CALL_PRESENTATION_UNKNOWN = 2;
 const CALL_PRESENTATION_PAYPHONE = 3;
 
+const SMS_HANDLED = 0;
+
 
 
 
@@ -240,4 +243,173 @@ const RIL_TO_DOM_CALL_STATE = [
   DOM_CALL_READYSTATE_RINGING,   
   DOM_CALL_READYSTATE_INCOMING,  
   DOM_CALL_READYSTATE_HELD       
+];
+
+
+
+
+
+
+
+const PDU_TOA_UNKNOWN       = 0x80; 
+                                    
+                                    
+const PDU_TOA_ISDN          = 0x81; 
+const PDU_TOA_DATA_NUM      = 0x83; 
+const PDU_TOA_TELEX_NUM     = 0x84; 
+const PDU_TOA_NATIONAL_NUM  = 0x88; 
+const PDU_TOA_PRIVATE_NUM   = 0x89; 
+const PDU_TOA_ERMES_NUM     = 0x8A; 
+const PDU_TOA_INTERNATIONAL = 0x90; 
+const PDU_TOA_NATIONAL      = 0xA0; 
+                                    
+const PDU_TOA_NETWORK_SPEC  = 0xB0; 
+                                    
+                                    
+const PDU_TOA_SUSCRIBER     = 0xC0; 
+                                    
+                                    
+                                    
+const PDU_TOA_ALPHANUMERIC  = 0xD0; 
+                                    
+const PDU_TOA_ABBREVIATED   = 0xE0; 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const PDU_RP    = 0x80;       
+                              
+const PDU_UDHI  = 0x40;       
+                              
+                              
+const PDU_SRI_SRR = 0x20;     
+                              
+const PDU_VPF_ABSOLUTE = 0x18;
+                              
+const PDU_VPF_RELATIVE = 0x10;
+                              
+const PDU_VPF_ENHANCED = 0x8; 
+                              
+const PDU_MMS_RD       = 0x04;
+                              
+
+
+const PDU_MTI_SMS_STATUS_COMMAND  = 0x02;
+const PDU_MTI_SMS_SUBMIT          = 0x01;
+const PDU_MTI_SMS_DELIVER         = 0x00;
+
+
+const PDU_MAX_USER_DATA_7BIT = 160;
+
+
+const PDU_DCS_MSG_CODING_7BITS_ALPHABET = 0xF0;
+const PDU_DCS_MSG_CODING_8BITS_ALPHABET = 0xF4;
+const PDU_DCS_MSG_CODING_16BITS_ALPHABET= 0x08;
+const PDU_DCS_MSG_CLASS_ME_SPECIFIC     = 0xF1;
+const PDU_DCS_MSG_CLASS_SIM_SPECIFIC    = 0xF2;
+const PDU_DCS_MSG_CLASS_TE_SPECIFIC     = 0xF3;
+
+
+const PDU_TIMESTAMP_YEAR_OFFSET = 2000;
+
+
+
+const alphabet_7bit = [
+  "@",      
+  "\xa3",   
+  "$",      
+  "\xa5",   
+  "\xe8",   
+  "\xe9",   
+  "\xf9",   
+  "\xec",   
+  "\xf2",   
+  "\xc7",   
+  "\n",     
+  "\xd8",   
+  "\xf8",   
+  "\r",     
+  "\xc5",   
+  "\xe5",   
+  "\u0394", 
+  "_",      
+  "\u03a6", 
+  "\u0393", 
+  "\u039b", 
+  "\u03a9", 
+  "\u03a0", 
+  "\u03a8", 
+  "\u03a3", 
+  "\u0398", 
+  "\u039e", 
+  "\u20ac", 
+  "\xc6",   
+  "\xe6",   
+  "\xdf",   
+  "\xc9",   
+  " ",      
+  "!",      
+  "\"",     
+  "#",      
+  "\xa4",   
+  "%",      
+  "&",      
+  "'",      
+  "(",      
+  ")",      
+  "*",      
+  "+",      
+  ",",      
+  "-",      
+  ".",      
+  "/",      
+  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+  ":",      
+  ";",      
+  "<",      
+  "=",      
+  ">",      
+  "?",      
+  "\xa1",   
+  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+  "\xc4",   
+  "\xd6",   
+  "\xd1",   
+  "\xdc",   
+  "\xa7",   
+  "\xbf",   
+  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+  "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+  "\xe4",   
+  "\xf6",   
+  "\xf1",   
+  "\xfc",   
+  "\xe0"    
 ];
