@@ -690,8 +690,6 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   
   
   NoteIntentionalCrash();
-  fprintf(stderr, "Begin crash sequence.  instanceData = %p\n", instanceData);
-  fflush(stderr);
 
   
   pthread_t crasherThread;
