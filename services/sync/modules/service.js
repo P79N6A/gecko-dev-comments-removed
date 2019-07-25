@@ -635,21 +635,6 @@ WeaveSvc.prototype = {
     }
   },
 
-  _handleResource401: function _handleResource401(request) {
-    
-    let spec = request.resource.spec;
-    let cluster = this.clusterURL;
-    if (spec.indexOf(cluster) != 0)
-      return;
-
-    
-    if (!this._setCluster())
-      return;
-
-    
-    request.newUri = this.clusterURL + spec.slice(cluster.length);
-  },
-
   
   _findCluster: function _findCluster() {
     this._log.debug("Finding cluster for user " + this.username);
@@ -687,7 +672,7 @@ WeaveSvc.prototype = {
   _setCluster: function _setCluster() {
     
     let cluster = this._findCluster();
-    this._log.debug("cluster value = " + cluster);
+    this._log.debug("Cluster value = " + cluster);
     if (cluster == null)
       return false;
 
@@ -695,19 +680,20 @@ WeaveSvc.prototype = {
     if (cluster == this.clusterURL)
       return false;
 
+    this._log.debug("Setting cluster to " + cluster);
     this.clusterURL = cluster;
+    Svc.Prefs.set("lastClusterUpdate", Date.now().toString());
     return true;
   },
 
   
+  
   _updateCluster: function _updateCluster() {
+    this._log.info("Updating cluster.");
     let cTime = Date.now();
     let lastUp = parseFloat(Svc.Prefs.get("lastClusterUpdate"));
     if (!lastUp || ((cTime - lastUp) >= CLUSTER_BACKOFF)) {
-      if (this._setCluster()) {
-        Svc.Prefs.set("lastClusterUpdate", cTime.toString());
-        return true;
-      }
+      return this._setCluster();
     }
     return false;
   },
@@ -1779,8 +1765,13 @@ WeaveSvc.prototype = {
       throw "aborting sync, remote setup failed";
 
     
-    this._log.trace("Refreshing client list");
-    this._syncEngine(Clients);
+    this._log.debug("Refreshing client list.");
+    if (!this._syncEngine(Clients)) {
+      
+      
+      this._log.warn("Client engine sync failed. Aborting.");
+      return;
+    }
 
     
     switch (Svc.Prefs.get("firstSync")) {
@@ -1809,6 +1800,9 @@ WeaveSvc.prototype = {
       }
       finally {
         
+        
+        
+        
         this._syncEngine(Clients);
       }
     }
@@ -1827,6 +1821,15 @@ WeaveSvc.prototype = {
       }
 
       
+      
+      
+      if (!this.clusterURL) {
+        this._log.debug("Aborting sync, no cluster URL: " +
+                        "not uploading new meta/global.");
+        return;
+      }
+
+      
       let meta = Records.get(this.metaURL);
       if (meta.isNew || meta.changed) {
         new Resource(this.metaURL).put(meta);
@@ -1834,9 +1837,9 @@ WeaveSvc.prototype = {
         delete meta.changed;
       }
 
-      if (this._syncError)
+      if (this._syncError) {
         throw "Some engines did not sync correctly";
-      else {
+      } else {
         Svc.Prefs.set("lastSync", new Date().toString());
         Status.sync = SYNC_SUCCEEDED;
         let syncTime = ((Date.now() - syncStartTime) / 1000).toFixed(2);
@@ -1945,8 +1948,16 @@ WeaveSvc.prototype = {
     }
     catch(e) {
       
-      if (e.status == 401 && this._updateCluster())
-        return this._syncEngine(engine);
+      if (e.status == 401) {
+        
+        
+        
+        
+        this.logout();
+        Svc.Prefs.reset("clusterURL");
+        Utils.nextTick(this.sync, this);
+        return false;
+      }
 
       this._checkServerError(e);
 

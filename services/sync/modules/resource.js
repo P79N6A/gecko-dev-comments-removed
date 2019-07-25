@@ -389,25 +389,6 @@ AsyncResource.prototype = {
     
     XPCOMUtils.defineLazyGetter(ret, "obj", function() JSON.parse(ret));
 
-    
-    
-    if (status == 401) {
-      
-      let subject = {
-        newUri: "",
-        resource: this,
-        response: ret
-      }
-      Observers.notify("weave:resource:status:401", subject);
-
-      
-      if (subject.newUri != "") {
-        this.uri = subject.newUri;
-        this._doRequest(action, this._data, this._callback);
-        return;
-      }
-    }
-
     this._callback(null, ret);
   },
 
