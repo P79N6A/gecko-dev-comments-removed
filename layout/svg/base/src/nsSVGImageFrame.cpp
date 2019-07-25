@@ -275,6 +275,8 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
     nsRect dirtyRect; 
     if (aDirtyRect) {
       dirtyRect = aDirtyRect->ToAppUnits(PresContext()->AppUnitsPerDevPixel());
+      
+      dirtyRect.MoveBy(-mRect.TopLeft());
     }
 
     
