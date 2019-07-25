@@ -1816,7 +1816,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
   channel->GetLoadGroup(getter_AddRefs(loadGroup));
 
   
-  requestFlags &= 0xFFFF;
+  requestFlags &= nsIRequest::LOAD_REQUESTMASK;
 
   nsresult rv = NS_OK;
   if (request) {

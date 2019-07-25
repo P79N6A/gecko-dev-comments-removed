@@ -506,7 +506,7 @@ nsLoadGroup::SetDefaultLoadRequest(nsIRequest *aRequest)
         
         
         
-        mLoadFlags &= 0xFFFF;
+        mLoadFlags &= nsIRequest::LOAD_REQUESTMASK;
     }
     
     return NS_OK;
