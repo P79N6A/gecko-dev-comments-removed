@@ -48,6 +48,8 @@ Cu.import("resource://services-sync/util.js");
 const EXPORTED_SYMBOLS = ["JPAKEClient"];
 
 const REQUEST_TIMEOUT         = 60; 
+const KEYEXCHANGE_VERSION     = 3;
+
 const JPAKE_SIGNERID_SENDER   = "sender";
 const JPAKE_SIGNERID_RECEIVER = "receiver";
 const JPAKE_LENGTH_SECRET     = 8;
@@ -122,8 +124,26 @@ const JPAKE_VERIFY_VALUE      = "0123456789ABCDEF";
 
 
 
-function JPAKEClient(observer) {
-  this.observer = observer;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function JPAKEClient(controller) {
+  this.controller = controller;
 
   this._log = Log4Moz.repository.getLogger("Sync.JPAKEClient");
   this._log.level = Log4Moz.Level[Svc.Prefs.get(
@@ -146,6 +166,12 @@ JPAKEClient.prototype = {
   _chain: Async.chain,
 
   
+
+
+
+  
+
+
 
 
 
@@ -173,32 +199,86 @@ JPAKEClient.prototype = {
                 this._computeFinal,
                 this._computeKeyVerification,
                 this._putStep,
+                function(callback) {
+                  
+                  this._maxTries = Svc.Prefs.get("jpake.lastMsgMaxTries");
+                  callback();
+                },
                 this._getStep,
                 this._decryptData,
                 this._complete)();
   },
 
-  sendWithPIN: function sendWithPIN(pin, obj) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  pairWithPIN: function pairWithPIN(pin, expectDelay) {
     this._my_signerid = JPAKE_SIGNERID_SENDER;
     this._their_signerid = JPAKE_SIGNERID_RECEIVER;
 
     this._channel = pin.slice(JPAKE_LENGTH_SECRET);
     this._channelURL = this._serverURL + this._channel;
     this._secret = pin.slice(0, JPAKE_LENGTH_SECRET);
-    this._data = JSON.stringify(obj);
 
     this._chain(this._computeStepOne,
                 this._getStep,
+                function (callback) {
+                  
+                  
+                  if (!expectDelay) {
+                    return callback();
+                  }
+                  if (!this._incoming.version || this._incoming.version < 3) {
+                    return this.abort(JPAKE_ERROR_DELAYUNSUPPORTED);
+                  }
+                  return callback();
+                },
                 this._putStep,
                 this._computeStepTwo,
                 this._getStep,
                 this._putStep,
                 this._computeFinal,
                 this._getStep,
-                this._encryptData,
+                this._verifyPairing)();
+  },
+
+  
+
+
+
+
+
+  sendAndComplete: function sendAndComplete(obj) {
+    if (!this._paired || this._finished) {
+      this._log.error("Can't send data, no active pairing!");
+      throw "No active pairing!";
+    }
+    this._data = JSON.stringify(obj);
+    this._chain(this._encryptData,
                 this._putStep,
                 this._complete)();
   },
+
+  
+
+
+
+
+
+
+
 
   abort: function abort(error) {
     this._log.debug("Aborting...");
@@ -213,10 +293,9 @@ JPAKEClient.prototype = {
     if (error == JPAKE_ERROR_CHANNEL ||
         error == JPAKE_ERROR_NETWORK ||
         error == JPAKE_ERROR_NODATA) {
-      Utils.namedTimer(function() { this.observer.onAbort(error); }, 0,
-                       this, "_timer_onAbort");
+      Utils.nextTick(function() { this.controller.onAbort(error); }, this);
     } else {
-      this._reportFailure(error, function() { self.observer.onAbort(error); });
+      this._reportFailure(error, function() { self.controller.onAbort(error); });
     }
   },
 
@@ -285,8 +364,7 @@ JPAKEClient.prototype = {
 
       
       let pin = this._secret + this._channel;
-      Utils.namedTimer(function() { this.observer.displayPIN(pin); }, 0,
-                       this, "_timer_displayPIN");
+      Utils.nextTick(function() { this.controller.displayPIN(pin); }, this);
       callback();
     }));
   },
@@ -295,6 +373,11 @@ JPAKEClient.prototype = {
   _putStep: function _putStep(callback) {
     this._log.trace("Uploading message " + this._outgoing.type);
     let request = this._newRequest(this._channelURL);
+    if (this._their_etag) {
+      request.setHeader("If-Match", this._their_etag);
+    } else {
+      request.setHeader("If-None-Match", "*");
+    }
     request.put(this._outgoing, Utils.bind2(this, function (error) {
       if (this._finished) {
         return;
@@ -313,7 +396,7 @@ JPAKEClient.prototype = {
       }
       
       
-      this._etag = request.response.headers["etag"];
+      this._my_etag = request.response.headers["etag"];
       Utils.namedTimer(function () { callback(); }, this._pollInterval * 2,
                        this, "_pollTimer");
     }));
@@ -324,8 +407,8 @@ JPAKEClient.prototype = {
   _getStep: function _getStep(callback) {
     this._log.trace("Retrieving next message.");
     let request = this._newRequest(this._channelURL);
-    if (this._etag) {
-      request.setHeader("If-None-Match", this._etag);
+    if (this._my_etag) {
+      request.setHeader("If-None-Match", this._my_etag);
     }
 
     request.get(Utils.bind2(this, function (error) {
@@ -361,6 +444,14 @@ JPAKEClient.prototype = {
       if (request.response.status != 200) {
         this._log.error("Could not retrieve data. Server responded with HTTP "
                         + request.response.status);
+        this.abort(JPAKE_ERROR_SERVER);
+        return;
+      }
+
+      this._their_etag = request.response.headers["etag"];
+      if (!this._their_etag) {
+        this._log.error("Server did not supply ETag for message: "
+                        + request.response.body);
         this.abort(JPAKE_ERROR_SERVER);
         return;
       }
@@ -414,7 +505,9 @@ JPAKEClient.prototype = {
                gx2: gx2.value,
                zkp_x1: {gr: gv1.value, b: r1.value, id: this._my_signerid},
                zkp_x2: {gr: gv2.value, b: r2.value, id: this._my_signerid}};
-    this._outgoing = {type: this._my_signerid + "1", payload: one};
+    this._outgoing = {type: this._my_signerid + "1",
+                      version: KEYEXCHANGE_VERSION,
+                      payload: one};
     this._log.trace("Generated message " + this._outgoing.type);
     callback();
   },
@@ -452,7 +545,9 @@ JPAKEClient.prototype = {
     }
     let two = {A: A.value,
                zkp_A: {gr: gvA.value, b: rA.value, id: this._my_signerid}};
-    this._outgoing = {type: this._my_signerid + "2", payload: two};
+    this._outgoing = {type: this._my_signerid + "2",
+                      version: KEYEXCHANGE_VERSION,
+                      payload: two};
     this._log.trace("Generated message " + this._outgoing.type);
     callback();
   },
@@ -504,12 +599,13 @@ JPAKEClient.prototype = {
       return;
     }
     this._outgoing = {type: this._my_signerid + "3",
+                      version: KEYEXCHANGE_VERSION,
                       payload: {ciphertext: ciphertext, IV: iv}};
     this._log.trace("Generated message " + this._outgoing.type);
     callback();
   },
 
-  _encryptData: function _encryptData(callback) {
+  _verifyPairing: function _verifyPairing(callback) {
     this._log.trace("Verifying their key.");
     if (this._incoming.type != this._their_signerid + "3") {
       this._log.error("Invalid round 3 data: " +
@@ -518,6 +614,7 @@ JPAKEClient.prototype = {
       return;
     }
     let step3 = this._incoming.payload;
+    let ciphertext;
     try {
       ciphertext = Svc.Crypto.encrypt(JPAKE_VERIFY_VALUE,
                                       this._crypto_key, step3.IV);
@@ -530,6 +627,13 @@ JPAKEClient.prototype = {
       return;
     }
 
+    this._log.debug("Verified pairing!");
+    this._paired = true;
+    Utils.nextTick(function () { this.controller.onPaired(); }, this);
+    callback();
+  },
+
+  _encryptData: function _encryptData(callback) {
     this._log.trace("Encrypting data.");
     let iv, ciphertext, hmac;
     try {
@@ -542,6 +646,7 @@ JPAKEClient.prototype = {
       return;
     }
     this._outgoing = {type: this._my_signerid + "3",
+                      version: KEYEXCHANGE_VERSION,
                       payload: {ciphertext: ciphertext, IV: iv, hmac: hmac}};
     this._log.trace("Generated message " + this._outgoing.type);
     callback();
@@ -594,8 +699,8 @@ JPAKEClient.prototype = {
   _complete: function _complete() {
     this._log.debug("Exchange completed.");
     this._finished = true;
-    Utils.namedTimer(function () { this.observer.onComplete(this._newData); },
-                     0, this, "_timer_onComplete");
+    Utils.nextTick(function () { this.controller.onComplete(this._newData); },
+                   this);
   }
 
 };
