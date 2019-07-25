@@ -909,13 +909,12 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     }
 
     if (mType == NS_FORM_INPUT_RADIO && aName == nsGkAtoms::required) {
-      nsIRadioGroupContainer* c = GetRadioGroupContainer();
+      nsCOMPtr<nsIRadioGroupContainer> c = GetRadioGroupContainer();
       nsCOMPtr<nsIRadioGroupContainer_MOZILLA_2_0_BRANCH> container =
         do_QueryInterface(c);
+      nsAutoString name;
 
-      if (container) {
-        nsAutoString name;
-        GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
+      if (container && GetNameIfExists(name)) {
         container->RadioRequiredChanged(name, this);
       }
     }
@@ -1577,11 +1576,12 @@ nsHTMLInputElement::DoSetChecked(PRBool aChecked, PRBool aNotify,
     if (aChecked) {
       rv = RadioSetChecked(aNotify);
     } else {
-      nsIRadioGroupContainer* container = GetRadioGroupContainer();
+      nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
       if (container) {
         nsAutoString name;
-        GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-        container->SetCurrentRadioButton(name, nsnull);
+        if (GetNameIfExists(name)) {
+          container->SetCurrentRadioButton(name, nsnull);
+        }
       }
       
       
@@ -1618,10 +1618,9 @@ nsHTMLInputElement::RadioSetChecked(PRBool aNotify)
   
   
   
-  nsIRadioGroupContainer* container = GetRadioGroupContainer();
-  if (container) {
-    nsAutoString name;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
+  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
+  nsAutoString name;
+  if (container && GetNameIfExists(name)) {
     rv = container->SetCurrentRadioButton(name, this);
   }
 
@@ -1635,40 +1634,35 @@ nsHTMLInputElement::RadioSetChecked(PRBool aNotify)
   return rv;
 }
 
-nsIRadioGroupContainer*
-nsHTMLInputElement::GetRadioGroupContainer() const
+ already_AddRefed<nsIRadioGroupContainer>
+nsHTMLInputElement::GetRadioGroupContainer()
 {
-  NS_ASSERTION(mType == NS_FORM_INPUT_RADIO,
-               "GetRadioGroupContainer should only be called when type='radio'");
-
-  nsAutoString name;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-
-  if (name.IsEmpty()) {
-    return nsnull;
-  }
-
+  nsIRadioGroupContainer* retval = nsnull;
   if (mForm) {
-    return mForm;
+    CallQueryInterface(mForm, &retval);
+  } else {
+    nsIDocument* currentDoc = GetCurrentDoc();
+    if (currentDoc) {
+      CallQueryInterface(currentDoc, &retval);
+    }
   }
-
-  nsIDocument* doc = GetCurrentDoc();
-  nsCOMPtr<nsIRadioGroupContainer> group = do_QueryInterface(doc);
-  return group.get();
+  return retval;
 }
 
 already_AddRefed<nsIDOMHTMLInputElement>
 nsHTMLInputElement::GetSelectedRadioButton()
 {
   nsIDOMHTMLInputElement* selected;
-  nsIRadioGroupContainer* container = GetRadioGroupContainer();
+  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
 
   if (!container) {
     return nsnull;
   }
 
   nsAutoString name;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
+  if (!GetNameIfExists(name)) {
+    return nsnull;
+  }
 
   container->GetCurrentRadioButton(name, &selected);
   return selected;
@@ -2285,28 +2279,29 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
               case NS_VK_DOWN:
               case NS_VK_RIGHT:
               
-              nsIRadioGroupContainer* container = GetRadioGroupContainer();
+              nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
               if (container) {
                 nsAutoString name;
-                GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-                nsCOMPtr<nsIDOMHTMLInputElement> selectedRadioButton;
-                container->GetNextRadioButton(name, isMovingBack, this,
-                                              getter_AddRefs(selectedRadioButton));
-                nsCOMPtr<nsIContent> radioContent =
-                  do_QueryInterface(selectedRadioButton);
-                if (radioContent) {
-                  rv = selectedRadioButton->Focus();
-                  if (NS_SUCCEEDED(rv)) {
-                    nsEventStatus status = nsEventStatus_eIgnore;
-                    nsMouseEvent event(NS_IS_TRUSTED_EVENT(aVisitor.mEvent),
-                                       NS_MOUSE_CLICK, nsnull,
-                                       nsMouseEvent::eReal);
-                    event.inputSource = nsIDOMNSMouseEvent::MOZ_SOURCE_KEYBOARD;
-                    rv = nsEventDispatcher::Dispatch(radioContent,
-                                                     aVisitor.mPresContext,
-                                                     &event, nsnull, &status);
+                if (GetNameIfExists(name)) {
+                  nsCOMPtr<nsIDOMHTMLInputElement> selectedRadioButton;
+                  container->GetNextRadioButton(name, isMovingBack, this,
+                                                getter_AddRefs(selectedRadioButton));
+                  nsCOMPtr<nsIContent> radioContent =
+                    do_QueryInterface(selectedRadioButton);
+                  if (radioContent) {
+                    rv = selectedRadioButton->Focus();
                     if (NS_SUCCEEDED(rv)) {
-                      aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+                      nsEventStatus status = nsEventStatus_eIgnore;
+                      nsMouseEvent event(NS_IS_TRUSTED_EVENT(aVisitor.mEvent),
+                                         NS_MOUSE_CLICK, nsnull,
+                                         nsMouseEvent::eReal);
+                      event.inputSource = nsIDOMNSMouseEvent::MOZ_SOURCE_KEYBOARD;
+                      rv = nsEventDispatcher::Dispatch(radioContent,
+                                                       aVisitor.mPresContext,
+                                                       &event, nsnull, &status);
+                      if (NS_SUCCEEDED(rv)) {
+                        aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+                      }
                     }
                   }
                 }
@@ -3411,40 +3406,69 @@ nsHTMLInputElement::AddedToRadioGroup()
   nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
   if (container) {
     nsAutoString name;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-    container->AddToRadioGroup(name, static_cast<nsIFormControl*>(this));
+    if (GetNameIfExists(name)) {
+      container->AddToRadioGroup(name, static_cast<nsIFormControl*>(this));
 
-    
-    
-    nsCOMPtr<nsIRadioGroupContainer_MOZILLA_2_0_BRANCH> container2 =
-      do_QueryInterface(container);
-    SetValidityState(VALIDITY_STATE_VALUE_MISSING,
-                     container2->GetValueMissingState(name));
+      
+      
+      nsCOMPtr<nsIRadioGroupContainer_MOZILLA_2_0_BRANCH> container2 =
+        do_QueryInterface(container);
+      SetValidityState(VALIDITY_STATE_VALUE_MISSING,
+                       container2->GetValueMissingState(name));
+    }
   }
 }
 
 void
 nsHTMLInputElement::WillRemoveFromRadioGroup()
 {
-  nsIRadioGroupContainer* container = GetRadioGroupContainer();
-  if (!container) {
+  
+  
+  
+  
+  if (!mForm && !(IsInDoc() && GetParent())) {
     return;
   }
 
+  
+  
+  
+  
   nsAutoString name;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-
-  
-  
+  PRBool gotName = PR_FALSE;
   if (GetChecked()) {
-    container->SetCurrentRadioButton(name, nsnull);
+    if (!gotName) {
+      if (!GetNameIfExists(name)) {
+        
+        return;
+      }
+      gotName = PR_TRUE;
+    }
+
+    nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
+    if (container) {
+      container->SetCurrentRadioButton(name, nsnull);
+    }
   }
 
   
   
   
-  UpdateValueMissingValidityStateForRadio(true);
-  container->RemoveFromRadioGroup(name, static_cast<nsIFormControl*>(this));
+  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
+  if (container) {
+    if (!gotName) {
+      if (!GetNameIfExists(name)) {
+        
+        return;
+      }
+      gotName = PR_TRUE;
+    }
+
+    UpdateValueMissingValidityStateForRadio(true);
+
+    container->RemoveFromRadioGroup(name,
+                                    static_cast<nsIFormControl*>(this));
+  }
 }
 
 PRBool
@@ -3505,14 +3529,12 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRI
 
   
   
-  nsIRadioGroupContainer* container = GetRadioGroupContainer();
-  if (!container) {
+  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
+  nsAutoString name;
+  if (!container || !GetNameIfExists(name)) {
     *aIsFocusable = defaultFocusable;
     return PR_FALSE;
   }
-
-  nsAutoString name;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
 
   nsCOMPtr<nsIDOMHTMLInputElement> currentRadio;
   container->GetCurrentRadioButton(name, getter_AddRefs(currentRadio));
@@ -3526,15 +3548,19 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool aWithMouse, PRBool *aIsFocusable, PRI
 nsresult
 nsHTMLInputElement::VisitGroup(nsIRadioVisitor* aVisitor, PRBool aFlushContent)
 {
-  nsIRadioGroupContainer* container = GetRadioGroupContainer();
+  nsresult rv = NS_OK;
+  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
   if (container) {
     nsAutoString name;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-    return container->WalkRadioGroup(name, aVisitor, aFlushContent);
+    if (GetNameIfExists(name)) {
+      rv = container->WalkRadioGroup(name, aVisitor, aFlushContent);
+    } else {
+      aVisitor->Visit(this);
+    }
+  } else {
+    aVisitor->Visit(this);
   }
-
-  aVisitor->Visit(this);
-  return NS_OK;
+  return rv;
 }
 
 nsHTMLInputElement::ValueModeType
@@ -3813,21 +3839,15 @@ nsHTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
                               : HasAttr(kNameSpaceID_None, nsGkAtoms::required);
   bool valueMissing = false;
 
-  nsIRadioGroupContainer* c = GetRadioGroupContainer();
+  nsCOMPtr<nsIRadioGroupContainer> c = GetRadioGroupContainer();
   nsCOMPtr<nsIRadioGroupContainer_MOZILLA_2_0_BRANCH> container =
     do_QueryInterface(c);
-
-  if (!container) {
-    SetValidityState(VALIDITY_STATE_VALUE_MISSING, required && !selected);
-    return;
-  }
-
   nsAutoString name;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
+  GetNameIfExists(name);
 
   
   
-  if (!required) {
+  if (!required && container && !name.IsEmpty()) {
     required = (aIgnoreSelf && HasAttr(kNameSpaceID_None, nsGkAtoms::required))
                  ? container->GetRequiredRadioCount(name) - 1
                  : container->GetRequiredRadioCount(name);
@@ -3835,14 +3855,18 @@ nsHTMLInputElement::UpdateValueMissingValidityStateForRadio(bool aIgnoreSelf)
 
   valueMissing = required && !selected;
 
-  if (container->GetValueMissingState(name) != valueMissing) {
-    container->SetValueMissingState(name, valueMissing);
+  if (container && !name.IsEmpty()) {
+    if (container->GetValueMissingState(name) != valueMissing) {
+      container->SetValueMissingState(name, valueMissing);
 
+      SetValidityState(VALIDITY_STATE_VALUE_MISSING, valueMissing);
+
+      nsCOMPtr<nsIRadioVisitor> visitor =
+        new nsRadioSetValueMissingState(this, valueMissing, notify);
+      VisitGroup(visitor, notify);
+    }
+  } else {
     SetValidityState(VALIDITY_STATE_VALUE_MISSING, valueMissing);
-
-    nsCOMPtr<nsIRadioVisitor> visitor =
-      new nsRadioSetValueMissingState(this, valueMissing, notify);
-    VisitGroup(visitor, notify);
   }
 }
 
