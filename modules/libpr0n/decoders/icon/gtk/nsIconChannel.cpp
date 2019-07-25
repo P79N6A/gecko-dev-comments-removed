@@ -168,6 +168,8 @@ static GtkIconFactory *gIconFactory = nsnull;
 static void
 ensure_stock_image_widget()
 {
+  
+  
   if (!gProtoWindow) {
     gProtoWindow = gtk_window_new(GTK_WINDOW_POPUP);
     GtkWidget* protoLayout = gtk_fixed_new();
@@ -464,30 +466,47 @@ nsIconChannel::Init(nsIURI* aURI)
   iconURI->GetIconState(iconStateString);
 
   GtkIconSize icon_size = moz_gtk_icon_size(iconSizeString.get());
-   
+  GtkStateType state = iconStateString.EqualsLiteral("disabled") ?
+    GTK_STATE_INSENSITIVE : GTK_STATE_NORMAL;
+
+  
   ensure_stock_image_widget();
+  GtkStyle *style = gtk_widget_get_style(gStockImageWidget);
+  GtkIconSet *icon_set =
+    gtk_style_lookup_icon_set(style, stockIcon.get());
 
-  gboolean sensitive = strcmp(iconStateString.get(), "disabled");
-  gtk_widget_set_sensitive (gStockImageWidget, sensitive);
+  if (icon_set) {
+    gtk_icon_set_ref(icon_set);
+  } else {
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-  GdkPixbuf *icon = gtk_widget_render_icon(gStockImageWidget, stockIcon.get(),
-                                           icon_size, NULL);
-  if (!icon) {
     ensure_icon_factory();
       
-    GtkIconSet *icon_set = gtk_icon_set_new();
+    icon_set = gtk_icon_set_new();
     GtkIconSource *icon_source = gtk_icon_source_new();
     
     gtk_icon_source_set_icon_name(icon_source, stockIcon.get());
     gtk_icon_set_add_source(icon_set, icon_source);
     gtk_icon_factory_add(gIconFactory, stockIcon.get(), icon_set);
-    gtk_icon_set_unref(icon_set);
     gtk_icon_source_free(icon_source);
-
-    icon = gtk_widget_render_icon(gStockImageWidget, stockIcon.get(),
-                                  icon_size, NULL);
   }
 
+  GdkPixbuf *icon =
+    gtk_icon_set_render_icon (icon_set, style,
+                              gtk_widget_get_default_direction(), state,
+                              icon_size, gStockImageWidget, NULL);
+  gtk_icon_set_unref(icon_set);
+
+  
+  
   if (!icon)
     return NS_ERROR_NOT_AVAILABLE;
   
