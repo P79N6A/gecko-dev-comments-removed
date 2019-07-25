@@ -350,6 +350,83 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     }
 };
 
+SimpleTest.waitForClipboard_polls = 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SimpleTest.waitForClipboard = function(aExpectedVal, aSetupFn, aSuccessFn, aFailureFn) {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+    var cbSvc = Components.classes["@mozilla.org/widget/clipboard;1"].
+                getService(Components.interfaces.nsIClipboard);
+
+    
+    function reset() {
+        SimpleTest.waitForClipboard_polls = 0;
+    }
+
+    function wait(expectedVal, successFn, failureFn) {
+        netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+        if (++SimpleTest.waitForClipboard_polls > 50) {
+            
+            SimpleTest.ok(false, "Timed out while polling clipboard for pasted data. " +
+                                 "Expected " + expectedVal);
+            reset();
+            failureFn();
+            return;
+        }
+
+        var xferable = Components.classes["@mozilla.org/widget/transferable;1"].
+                       createInstance(Components.interfaces.nsITransferable);
+        xferable.addDataFlavor("text/unicode");
+        cbSvc.getData(xferable, cbSvc.kGlobalClipboard);
+        var data = {};
+        try {
+            xferable.getTransferData("text/unicode", data, {});
+            data = data.value.QueryInterface(Components.interfaces.nsISupportsString).data;
+        } catch (e) {}
+
+        if (data == expectedVal) {
+            
+            if (data != preExpectedVal)
+                SimpleTest.ok(true,
+                              "Clipboard has the correct value (" + expectedVal + ")");
+            reset();
+            successFn();
+        } else {
+            setTimeout(function() wait(expectedVal, successFn, failureFn), 100);
+        }
+    }
+
+    
+    var preExpectedVal = aExpectedVal + "-waitForClipboard-known-value";
+    var cbHelperSvc = Components.classes["@mozilla.org/widget/clipboardhelper;1"].
+                      getService(Components.interfaces.nsIClipboardHelper);
+    cbHelperSvc.copyString(preExpectedVal);
+    wait(preExpectedVal, function() {
+        
+        aSetupFn();
+        wait(aExpectedVal, aSuccessFn, aFailureFn);
+    }, aFailureFn);
+}
+
 
 
 
