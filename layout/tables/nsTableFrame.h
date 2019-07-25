@@ -489,7 +489,7 @@ protected:
   void InitChildReflowState(nsHTMLReflowState& aReflowState);
 
   
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
 public:
   bool IsRowInserted() const;

@@ -227,16 +227,16 @@ NS_GFX_(nscolor)
 NS_ComposeColors(nscolor aBG, nscolor aFG)
 {
   
-  PRIntn r, g, b, a;
+  int r, g, b, a;
 
-  PRIntn bgAlpha = NS_GET_A(aBG);
-  PRIntn fgAlpha = NS_GET_A(aFG);
+  int bgAlpha = NS_GET_A(aBG);
+  int fgAlpha = NS_GET_A(aFG);
 
   
   
   FAST_DIVIDE_BY_255(a, bgAlpha*(255-fgAlpha));
   a = fgAlpha + a;
-  PRIntn blendAlpha;
+  int blendAlpha;
   if (a == 0) {
     
     

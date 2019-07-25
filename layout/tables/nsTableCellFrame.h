@@ -212,7 +212,7 @@ public:
 
 protected:
   
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
   
 

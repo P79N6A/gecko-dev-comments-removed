@@ -901,7 +901,7 @@ ProcessRDN(CERTRDN* rdn, nsAString &finalString, nsINSSComponent *nssComponent)
 
     
     
-    PRIntn escapedValueCapacity = decodeItem->len * 3 + 3;
+    int escapedValueCapacity = decodeItem->len * 3 + 3;
     nsAutoArrayPtr<char> escapedValue;
     escapedValue = new char[escapedValueCapacity];
     if (!escapedValue) {

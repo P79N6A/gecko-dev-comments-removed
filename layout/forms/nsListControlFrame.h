@@ -113,7 +113,7 @@ public:
 #endif
 
     
-  virtual PRIntn GetSkipSides() const;
+  virtual int GetSkipSides() const;
 
     
   virtual void SetComboboxFrame(nsIFrame* aComboboxFrame);
