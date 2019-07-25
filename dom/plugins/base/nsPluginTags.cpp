@@ -105,72 +105,10 @@ mVersion(aPluginInfo->fVersion),
 mLastModifiedTime(0),
 mFlags(NS_PLUGIN_FLAG_ENABLED)
 {
-  if (!aPluginInfo->fMimeTypeArray) {
-    return;
-  }
-
-  for (PRUint32 i = 0; i < aPluginInfo->fVariantCount; i++) {
-    
-    char* currentMIMEType = aPluginInfo->fMimeTypeArray[i];
-    if (currentMIMEType) {
-      if (mIsJavaPlugin) {
-        if (strcmp(currentMIMEType, "application/x-java-vm-npruntime") == 0) {
-          
-          
-          
-          mIsNPRuntimeEnabledJavaPlugin = true;
-          continue;
-        }
-      }
-      mMimeTypes.AppendElement(nsCString(currentMIMEType));
-      if (nsPluginHost::IsJavaMIMEType(currentMIMEType)) {
-        mIsJavaPlugin = true;
-      }
-      else if (strcmp(currentMIMEType, "application/x-shockwave-flash") == 0) {
-        mIsFlashPlugin = true;
-      }
-    } else {
-      continue;
-    }
-
-    
-    if (aPluginInfo->fMimeDescriptionArray &&
-        aPluginInfo->fMimeDescriptionArray[i]) {
-      
-      
-      
-      
-      char cur = '\0';
-      char pre = '\0';
-      char * p = PL_strrchr(aPluginInfo->fMimeDescriptionArray[i], '(');
-      if (p && (p != aPluginInfo->fMimeDescriptionArray[i])) {
-        if ((p - 1) && *(p - 1) == ' ') {
-          pre = *(p - 1);
-          *(p - 1) = '\0';
-        } else {
-          cur = *p;
-          *p = '\0';
-        }
-      }
-      mMimeDescriptions.AppendElement(nsCString(aPluginInfo->fMimeDescriptionArray[i]));
-      
-      if (cur != '\0')
-        *p = cur;
-      if (pre != '\0')
-        *(p - 1) = pre;      
-    } else {
-      mMimeDescriptions.AppendElement(nsCString());
-    }
-
-    
-    if (aPluginInfo->fExtensionArray &&
-        aPluginInfo->fExtensionArray[i]) {
-      mExtensions.AppendElement(nsCString(aPluginInfo->fExtensionArray[i]));
-    } else {
-      mExtensions.AppendElement(nsCString());
-    }
-  }
-
+  InitMime(aPluginInfo->fMimeTypeArray,
+           aPluginInfo->fMimeDescriptionArray,
+           aPluginInfo->fExtensionArray,
+           aPluginInfo->fVariantCount);
   EnsureMembersAreUTF8();
 }
 
@@ -191,26 +129,14 @@ mDescription(aDescription),
 mLibrary(nsnull),
 mIsJavaPlugin(false),
 mIsNPRuntimeEnabledJavaPlugin(false),
+mIsFlashPlugin(false),
 mFileName(aFileName),
 mFullPath(aFullPath),
 mVersion(aVersion),
 mLastModifiedTime(aLastModifiedTime),
 mFlags(0) 
 {
-  for (PRInt32 i = 0; i < aVariants; i++) {
-    if (mIsJavaPlugin && aMimeTypes[i] &&
-        strcmp(aMimeTypes[i], "application/x-java-vm-npruntime") == 0) {
-      mIsNPRuntimeEnabledJavaPlugin = true;
-      continue;
-    }
-    mMimeTypes.AppendElement(nsCString(aMimeTypes[i]));
-    mMimeDescriptions.AppendElement(nsCString(aMimeDescriptions[i]));
-    mExtensions.AppendElement(nsCString(aExtensions[i]));
-    if (nsPluginHost::IsJavaMIMEType(mMimeTypes[i].get())) {
-      mIsJavaPlugin = true;
-    }
-  }
-
+  InitMime(aMimeTypes, aMimeDescriptions, aExtensions, static_cast<PRUint32>(aVariants));
   if (!aArgsAreUTF8)
     EnsureMembersAreUTF8();
 }
@@ -221,6 +147,81 @@ nsPluginTag::~nsPluginTag()
 }
 
 NS_IMPL_ISUPPORTS1(nsPluginTag, nsIPluginTag)
+
+void nsPluginTag::InitMime(const char* const* aMimeTypes,
+                           const char* const* aMimeDescriptions,
+                           const char* const* aExtensions,
+                           PRUint32 aVariantCount)
+{
+  if (!aMimeTypes) {
+    return;
+  }
+
+  for (PRUint32 i = 0; i < aVariantCount; i++) {
+    if (!aMimeTypes[i]) {
+      continue;
+    }
+
+    
+    
+    if (mIsJavaPlugin) {
+      if (strcmp(aMimeTypes[i], "application/x-java-vm-npruntime") == 0) {
+        
+        
+        
+        mIsNPRuntimeEnabledJavaPlugin = true;
+        continue;
+      }
+    }
+
+    
+    if (nsPluginHost::IsJavaMIMEType(aMimeTypes[i])) {
+      mIsJavaPlugin = true;
+    } else if (strcmp(aMimeTypes[i], "application/x-shockwave-flash") == 0) {
+      mIsFlashPlugin = true;
+    }
+
+    
+    mMimeTypes.AppendElement(nsCString(aMimeTypes[i]));
+
+    
+    if (aMimeDescriptions && aMimeDescriptions[i]) {
+      
+      
+      
+      
+      char cur = '\0';
+      char pre = '\0';
+      char * p = PL_strrchr(aMimeDescriptions[i], '(');
+      if (p && (p != aMimeDescriptions[i])) {
+        if ((p - 1) && *(p - 1) == ' ') {
+          pre = *(p - 1);
+          *(p - 1) = '\0';
+        } else {
+          cur = *p;
+          *p = '\0';
+        }
+      }
+      mMimeDescriptions.AppendElement(nsCString(aMimeDescriptions[i]));
+      
+      if (cur != '\0') {
+        *p = cur;
+      }
+      if (pre != '\0') {
+        *(p - 1) = pre;
+      }
+    } else {
+      mMimeDescriptions.AppendElement(nsCString());
+    }
+
+    
+    if (aExtensions && aExtensions[i]) {
+      mExtensions.AppendElement(nsCString(aExtensions[i]));
+    } else {
+      mExtensions.AppendElement(nsCString());
+    }
+  }
+}
 
 #if !defined(XP_WIN) && !defined(XP_MACOSX)
 static nsresult ConvertToUTF8(nsIUnicodeDecoder *aUnicodeDecoder,
