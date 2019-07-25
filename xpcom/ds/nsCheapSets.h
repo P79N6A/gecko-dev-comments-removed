@@ -38,158 +38,135 @@
 #ifndef __nsCheapSets_h__
 #define __nsCheapSets_h__
 
-#include "nsHashSets.h"
+#include "nsTHashtable.h"
 #include "mozilla/StdInt.h"
 
 
 
 
 
-class nsCheapStringSet {
+template<typename EntryType>
+class nsCheapSet
+{
 public:
-  nsCheapStringSet() : mValOrHash(nsnull)
+  typedef typename EntryType::KeyType KeyType;
+
+  nsCheapSet() : mState(ZERO)
   {
   }
-  ~nsCheapStringSet();
-
-  
-
-
-
-  nsresult Put(const nsAString& aVal);
-
-  
-
-
-
-  void Remove(const nsAString& aVal);
-
-  
-
-
-
-
-  bool Contains(const nsAString& aVal)
+  ~nsCheapSet()
   {
-    nsStringHashSet* set = GetHash();
-    
-    if (set) {
-      return set->Contains(aVal);
+    switch (mState) {
+    case ZERO:
+      break;
+    case ONE:
+      GetSingleEntry()->~EntryType();
+      break;
+    case MANY:
+      delete mUnion.table;
+      break;
+    default:
+      NS_NOTREACHED("bogus state");
+      break;
     }
+  }
 
-    
-    nsAString* str = GetStr();
-    return str && str->Equals(aVal);
+  nsresult Put(const KeyType aVal);
+
+  void Remove(const KeyType aVal);
+
+  bool Contains(const KeyType aVal)
+  {
+    switch (mState) {
+    case ZERO:
+      return false;
+    case ONE:
+      return GetSingleEntry()->KeyEquals(EntryType::KeyToPointer(aVal));
+    case MANY:
+      return !!mUnion.table->GetEntry(aVal);
+    default:
+      NS_NOTREACHED("bogus state");
+      return false;
+    }
   }
 
 private:
-  typedef PRUword PtrBits;
+  EntryType* GetSingleEntry()
+  {
+    return reinterpret_cast<EntryType*>(&mUnion.singleEntry[0]);
+  }
 
-  
-  nsStringHashSet* GetHash()
-  {
-    return (PtrBits(mValOrHash) & 0x1) ? nsnull : (nsStringHashSet*)mValOrHash;
-  }
-  
-  nsAString* GetStr()
-  {
-    return (PtrBits(mValOrHash) & 0x1)
-           ? (nsAString*)(PtrBits(mValOrHash) & ~0x1)
-           : nsnull;
-  }
-  
-  nsresult SetStr(const nsAString& aVal)
-  {
-    nsString* str = new nsString(aVal);
-    if (!str) {
+  enum SetState {
+    ZERO,
+    ONE,
+    MANY
+  };
+
+  union {
+    nsTHashtable<EntryType> *table;
+    char singleEntry[sizeof(EntryType)];
+  } mUnion;
+  enum SetState mState;
+};
+
+template<typename EntryType>
+nsresult
+nsCheapSet<EntryType>::Put(const KeyType aVal)
+{
+  switch (mState) {
+  case ZERO:
+    new (GetSingleEntry()) EntryType(EntryType::KeyToPointer(aVal));
+    mState = ONE;
+    return NS_OK;
+  case ONE:
+    {
+      nsTHashtable<EntryType> *table = new nsTHashtable<EntryType>();
+      if (!table) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      if (!table->Init()) {
+        return NS_ERROR_FAILURE;
+      }
+      EntryType *entry = GetSingleEntry();
+      if (!table->PutEntry(entry->GetKey())) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      entry->~EntryType();
+      mUnion.table = table;
+      mState = MANY;
+    }
+    
+  case MANY:
+    if (!mUnion.table->PutEntry(aVal)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    mValOrHash = (nsAString*)(PtrBits(str) | 0x1);
+    return NS_OK;
+  default:
+    NS_NOTREACHED("bogus state");
     return NS_OK;
   }
-  
-  nsresult InitHash(nsStringHashSet** aSet);
+}
 
-private:
-  
-  void* mValOrHash;
-};
-
-
-
-
-
-
-class nsCheapInt32Set {
-public:
-  nsCheapInt32Set() : mValOrHash(nsnull)
-  {
-  }
-  ~nsCheapInt32Set();
-
-  
-
-
-  nsresult Put(PRInt32 aVal);
- 
-  
-
-
-
-  void Remove(PRInt32 aVal);
-
-  
-
-
-
-
-  bool Contains(PRInt32 aVal)
-  {
-    nsInt32HashSet* set = GetHash();
-    if (set) {
-      return set->Contains(aVal);
+template<typename EntryType>
+void
+nsCheapSet<EntryType>::Remove(const KeyType aVal)
+{
+  switch (mState) {
+  case ZERO:
+    break;
+  case ONE:
+    if (Contains(aVal)) {
+      GetSingleEntry()->~EntryType();
+      mState = ZERO;
     }
-    if (IsInt()) {
-      return GetInt() == aVal;
-    }
-    return false;
+    break;
+  case MANY:
+    mUnion.table->RemoveEntry(aVal);
+    break;
+  default:
+    NS_NOTREACHED("bogus state");
+    break;
   }
-
-private:
-  typedef PRUword PtrBits;
-
-  
-  nsInt32HashSet* GetHash()
-  {
-    return PtrBits(mValOrHash) & 0x1 ? nsnull : (nsInt32HashSet*)mValOrHash;
-  }
-  
-  bool IsInt()
-  {
-    return !!(PtrBits(mValOrHash) & 0x1);
-  }
-  
-  PRInt32 GetInt()
-  {
-    return PtrBits(mValOrHash) >> 1;
-  }
-  
-  void SetInt(PRInt32 aInt)
-  {
-    mValOrHash = (void*)(intptr_t)((aInt << 1) | 0x1);
-  }
-  
-  nsresult InitHash(nsInt32HashSet** aSet);
-
-private:
-  
-  void* mValOrHash;
-};
-
-
-
-
-
-
+}
 
 #endif
