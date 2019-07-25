@@ -57,11 +57,12 @@ function getBrowser() {
   return Browser.selectedBrowser;
 }
 
-const kDefaultBrowserWidth = 980;
 const kBrowserFormZoomLevelMin = 0.8;
 const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
 
+const kDefaultBrowserWidth = 800;
+const kFallbackBrowserWidth = 980;
 const kDefaultMetadata = { autoSize: false, allowZoom: true, autoScale: true };
 
 
@@ -2294,6 +2295,8 @@ ProgressController.prototype = {
         
         Browser.scrollContentToTop({ x: 0 });
       }
+      this._tab.useFallbackWidth = false;
+      this._tab.updateViewportSize();
     }
 
     let event = document.createEvent("UIEvents");
@@ -2449,6 +2452,7 @@ function Tab(aURI, aParams) {
   this._loading = false;
   this._chromeTab = null;
   this._metadata = null;
+  this.useFallbackWidth = false;
   this.owner = null;
 
   
@@ -2543,7 +2547,7 @@ Tab.prototype = {
       } else if (!validW && validH) {
         viewportW = viewportH * (screenW / screenH);
       } else if (!validW && !validH) {
-        viewportW = kDefaultBrowserWidth;
+        viewportW = this.useFallbackWidth ? kFallbackBrowserWidth : kDefaultBrowserWidth;
         viewportH = kDefaultBrowserWidth * (screenH / screenW);
       }
     }
@@ -2643,10 +2647,10 @@ Tab.prototype = {
     
     browser.stop();
 
-    let self = this;
-    browser.messageManager.addMessageListener("MozScrolledAreaChanged", function() {
-      self.updateDefaultZoomLevel();
-    });
+    browser.messageManager.addMessageListener("MozScrolledAreaChanged", (function() {
+      
+      setTimeout(this.scrolledAreaChanged.bind(this), 0);
+    }).bind(this));
 
     
     let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
@@ -2694,6 +2698,15 @@ Tab.prototype = {
   
   resetZoomLevel: function resetZoomLevel() {
     this._defaultZoomLevel = this._browser.scale;
+  },
+
+  scrolledAreaChanged: function scrolledAreaChanged() {
+    this.updateDefaultZoomLevel();
+
+    if (!this.useFallbackWidth && this._browser.contentDocumentWidth > kDefaultBrowserWidth)
+      this.useFallbackWidth = true;
+
+    this.updateViewportSize();
   },
 
   
