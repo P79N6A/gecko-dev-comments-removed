@@ -632,9 +632,6 @@ nsSocketTransportService::Run()
     nsCOMPtr<nsIThreadInternal> threadInt = do_QueryInterface(thread);
     threadInt->SetObserver(this);
 
-    
-    srand(PR_Now());
-
     for (;;) {
         bool pendingEvents = false;
         thread->HasPendingEvents(&pendingEvents);

@@ -679,11 +679,6 @@ pref("security.fileuri.strict_origin_policy", true);
 
 
 
-
-
-pref("network.allow-experiments", true);
-
-
 pref("network.protocol-handler.external-default", true);      
 pref("network.protocol-handler.warn-external-default", true); 
 
