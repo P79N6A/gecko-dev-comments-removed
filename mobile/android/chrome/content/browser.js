@@ -192,6 +192,7 @@ var BrowserApp = {
     window.addEventListener("MozShowFullScreenWarning", showFullScreenWarning, true);
 
     NativeWindow.init();
+    SelectionHandler.init();
     Downloads.init();
     FindHelper.init();
     FormAssistant.init();
@@ -345,6 +346,7 @@ var BrowserApp = {
 
   shutdown: function shutdown() {
     NativeWindow.uninit();
+    SelectionHandler.uninit();
     FormAssistant.uninit();
     FindHelper.uninit();
     OfflineApps.uninit();
@@ -1245,6 +1247,9 @@ var NativeWindow = {
                              0, null);
         rootElement.ownerDocument.defaultView.addEventListener("contextmenu", this, false);
         rootElement.dispatchEvent(event);
+      } else {
+        
+        SelectionHandler.startSelection(rootElement, aX, aY);
       }
     },
 
@@ -1347,6 +1352,349 @@ var NativeWindow = {
   }
 };
 
+var SelectionHandler = {
+  
+  cache: null,
+  selectedText: "",
+
+  
+  get _view() {
+    if (this._viewRef)
+      return this._viewRef.get();
+    return null;
+  },
+
+  set _view(aView) {
+    this._viewRef = Cu.getWeakReference(aView);
+  },
+
+  
+  get _start() {
+    if (this._startRef)
+      return this._startRef.get();
+    return null;
+  },
+
+  set _start(aElement) {
+    this._startRef = Cu.getWeakReference(aElement);
+  },
+
+  get _end() {
+    if (this._endRef)
+      return this._endRef.get();
+    return null;
+  },
+
+  set _end(aElement) {
+    this._endRef = Cu.getWeakReference(aElement);
+  },
+
+  
+  HANDLE_WIDTH: 35,
+  HANDLE_HEIGHT: 64,
+  HANDLE_VERTICAL_MARGIN: 4,
+  HANDLE_PADDING: 20,
+
+  init: function sh_init() {
+    Services.obs.addObserver(this, "Gesture:SingleTap", false);
+  },
+
+  uninit: function sh_uninit() {
+    Services.obs.removeObserver(this, "Gesture:SingleTap", false);
+  },
+
+  observe: function sh_observe(aSubject, aTopic, aData) {
+    let data = JSON.parse(aData);
+
+    if (this._view)
+      this.endSelection(data.x, data.y);
+  },
+
+  
+  startSelection: function sh_startSelection(aElement, aX, aY) {
+    
+    if (this._view)
+      this.endSelection(0, 0);
+
+    
+    this._view = aElement.ownerDocument.defaultView;
+
+    
+    this.selectedText = "";
+
+    
+    
+    let selection = this._view.getSelection();
+    selection.removeAllRanges();
+
+    
+    let cwu = BrowserApp.selectedBrowser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+                                                       getInterface(Ci.nsIDOMWindowUtils);
+    cwu.sendMouseEventToWindow("mousedown", aX, aY, 0, 0, 0, true);
+    cwu.sendMouseEventToWindow("mouseup", aX, aY, 0, 0, 0, true);
+
+    try {
+      let selectionController = this._view.QueryInterface(Ci.nsIInterfaceRequestor).
+                                           getInterface(Ci.nsIWebNavigation).
+                                           QueryInterface(Ci.nsIInterfaceRequestor).
+                                           getInterface(Ci.nsISelectionDisplay).
+                                           QueryInterface(Ci.nsISelectionController);
+
+      
+      selectionController.wordMove(false, false);
+      selectionController.wordMove(true, true);
+    } catch(e) {
+      
+      Cu.reportError("Error selecting word: " + e);
+      return;
+    }
+
+    
+    if (selection.rangeCount == 0)
+      return;
+
+    let range = selection.getRangeAt(0);
+    if (!range)
+      return;
+
+    
+    this.cache = {};
+    this.updateCacheFromRange(range);
+    this.updateCacheOffset();
+
+    
+    this.selectedText = selection.toString().trim();
+
+    
+    if (!this.selectedText.length) {
+      selection.collapseToStart();
+      return;
+    }
+
+    this.showHandles();
+  },
+
+  
+  moveSelection: function sh_moveSelection(aIsStartHandle, aX, aY) {
+    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    if (aIsStartHandle) {
+      this._start.style.left = aX + this.cache.offset.x + "px";
+      this._start.style.top = aY + this.cache.offset.y + "px";
+    } else {
+      this._end.style.left = aX + this.cache.offset.x + "px";
+      this._end.style.top = aY + this.cache.offset.y + "px";
+    }
+
+    
+
+    
+    let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+
+    if (aIsStartHandle) {
+      
+      let start = this._start.getBoundingClientRect();
+      cwu.sendMouseEventToWindow("mousedown", start.right - this.HANDLE_PADDING, start.top - this.HANDLE_VERTICAL_MARGIN, 0, 0, 0, true);
+      cwu.sendMouseEventToWindow("mouseup", start.right - this.HANDLE_PADDING, start.top - this.HANDLE_VERTICAL_MARGIN, 0, 0, 0, true);
+    }
+
+    
+    let end = this._end.getBoundingClientRect();
+    cwu.sendMouseEventToWindow("mousedown", end.left + this.HANDLE_PADDING, end.top - this.HANDLE_VERTICAL_MARGIN, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+    cwu.sendMouseEventToWindow("mouseup", end.left + this.HANDLE_PADDING, end.top - this.HANDLE_VERTICAL_MARGIN, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+  },
+
+  finishMoveSelection: function sh_finishMoveSelection(aIsStartHandle) {
+    
+    let selection = this._view.getSelection();
+    this.selectedText = selection.toString().trim();
+
+    
+    let range = selection.getRangeAt(0);
+
+    this.updateCacheFromRange(range);
+    this.updateCacheOffset();
+
+    
+    this.positionHandles();
+  },
+
+  
+  endSelection: function sh_endSelection(aX, aY) {
+    this.hideHandles();
+    this._view.getSelection().removeAllRanges();
+
+    let contentWindow = BrowserApp.selectedBrowser.contentWindow;
+    let element = ElementTouchHelper.elementFromPoint(contentWindow, aX, aY);
+    if (!element)
+      element = ElementTouchHelper.anyElementFromPoint(contentWindow, aX, aY);
+
+    
+    if (element.ownerDocument.defaultView == this._view) {
+      let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+      let scrollX = {}, scrollY = {};
+      cwu.getScrollXY(false, scrollX, scrollY);
+
+      
+      let pointInSelection = (aX - this.cache.offset.x + scrollX.value > this.cache.rect.left &&
+                              aX - this.cache.offset.x + scrollX.value < this.cache.rect.right) &&
+                             (aY - this.cache.offset.y + scrollY.value > this.cache.rect.top &&
+                              aY - this.cache.offset.y + scrollY.value < this.cache.rect.bottom);
+
+      if (pointInSelection && this.selectedText.length) {
+        let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
+        clipboard.copyString(this.selectedText);
+        NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
+      }
+    }
+
+    this._view = null;
+    this.cache = null;
+  },
+
+  updateCacheFromRange: function sh_updateCacheFromRange(aRange) {
+    let rects = aRange.getClientRects();
+    this.cache.start = { x: rects[0].left, y: rects[0].bottom };
+    this.cache.end = { x: rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
+
+    this.cache.rect = aRange.getBoundingClientRect();
+  },
+
+  updateCacheOffset: function sh_updateCacheOffset() {
+    let offset = { x: 0, y: 0 };
+    let cwu = null, scrollX = {}, scrollY = {};
+    let win = this._view;
+
+    
+    
+    while (win) {
+      cwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+      cwu.getScrollXY(false, scrollX, scrollY);
+
+      offset.x += scrollX.value;
+      offset.y += scrollY.value;
+
+      
+      if (!win.frameElement)
+        break;
+
+      win = win.frameElement.contentWindow;
+    }
+
+    this.cache.offset = offset;
+  },
+
+  
+  
+  positionHandles: function sh_positionHandles() {
+    this._start.style.left = (this.cache.start.x + this.cache.offset.x - this.HANDLE_WIDTH - this.HANDLE_PADDING) + "px";
+    this._start.style.top = (this.cache.start.y + this.cache.offset.y - this.HANDLE_VERTICAL_MARGIN - this.HANDLE_PADDING) + "px";
+
+    this._end.style.left = (this.cache.end.x + this.cache.offset.x - this.HANDLE_PADDING) + "px";
+    this._end.style.top = (this.cache.end.y + this.cache.offset.y - this.HANDLE_VERTICAL_MARGIN - this.HANDLE_PADDING) + "px";
+  },
+
+  showHandles: function sh_showHandles() {
+    let doc = this._view.document;
+    this._start = doc.getAnonymousElementByAttribute(doc.documentElement, "anonid", "selection-handle-start");
+    this._end = doc.getAnonymousElementByAttribute(doc.documentElement, "anonid", "selection-handle-end");
+
+    if (!this._start || !this._end) {
+      Cu.reportError("SelectionHandler.showHandles: Couldn't find anonymous handle elements");
+      this.endSelection(0, 0);
+      return;
+    }
+
+    this.positionHandles();
+
+    this._start.setAttribute("showing", "true");
+    this._end.setAttribute("showing", "true");
+
+    this._start.addEventListener("touchend", this, true);
+    this._end.addEventListener("touchend", this, true);
+
+    this._start.addEventListener("touchstart", this, true);
+    this._end.addEventListener("touchstart", this, true);
+  },
+
+  hideHandles: function sh_hideHandles() {
+    if (!this._start || !this._end)
+      return;
+
+    this._start.removeAttribute("showing");
+    this._end.removeAttribute("showing");
+
+    this._start.removeEventListener("touchstart", this, true);
+    this._end.removeEventListener("touchstart", this, true);
+
+    this._start.removeEventListener("touchend", this, true);
+    this._end.removeEventListener("touchend", this, true);
+
+    this._start = null;
+    this._end = null;
+  },
+
+  _touchId: null,
+  _touchDelta: null,
+
+  handleEvent: function sh_handleEvent(aEvent) {
+    let isStartHandle = (aEvent.target == this._start);
+
+    switch (aEvent.type) {
+      case "touchstart":
+        aEvent.preventDefault();
+
+        
+        this.updateCacheOffset();
+
+        let touch = aEvent.changedTouches[0];
+        this._touchId = touch.identifier;
+
+        
+        let rect = aEvent.target.getBoundingClientRect();
+        this._touchDelta = { x: touch.clientX - rect.left,
+                             y: touch.clientY - rect.top };
+
+        aEvent.target.addEventListener("touchmove", this, false);
+        break;
+
+      case "touchend":
+        aEvent.target.removeEventListener("touchmove", this, false);
+
+        this._touchId = null;
+        this._touchDelta = null;
+
+        
+        this.finishMoveSelection(isStartHandle);
+        break;
+
+      case "touchmove":
+        touch = aEvent.changedTouches.identifiedTouch(this.touchId);
+
+        
+        this.moveSelection(isStartHandle, touch.clientX - this._touchDelta.x,
+                                          touch.clientY - this._touchDelta.y);
+        break;
+    }
+  }
+};
 
 function nsBrowserAccess() {
 }
