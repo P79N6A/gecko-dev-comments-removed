@@ -5,8 +5,6 @@
 
 
 
-
-
 Components.utils.import("resource:///modules/gcli.jsm");
 
 let hud;
