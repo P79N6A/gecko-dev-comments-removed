@@ -4775,7 +4775,7 @@ var gHomeButton = {
     
     if (!url) {
       var SBS = Cc["@mozilla.org/intl/stringbundle;1"].getService(Ci.nsIStringBundleService);
-      var configBundle = SBS.createBundle("resource:/browserconfig.properties");
+      var configBundle = SBS.createBundle("chrome:
       url = configBundle.GetStringFromName(this.prefDomain);
     }
 
