@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html class="reftest-wait">
+  
   <script type="text/javascript">
-    function focusInput()
+    function setPlaceholder()
     {
-      document.getElementById('t1').focus();
+      document.getElementById('p1').placeholder = "my placeholder";
     }
     function disableReftestWait()
     {
       document.documentElement.className = '';
     }
   </script>
-  <body onload="focusInput();">
-    <input id='t1' type="text" readonly onfocus="disableReftestWait();">
+
+  <body onload="setPlaceholder(); disableReftestWait();">
+    <textarea id="p1" placeholder=""></textarea>
   </body>
 </html>

@@ -383,6 +383,8 @@ private:
   
   PRPackedBool mFireChangeEventState;
   PRPackedBool mInSecureKeyboardInputMode;
+  
+  PRPackedBool mUsePlaceholder;
 
 #ifdef DEBUG
   PRPackedBool mInEditorInitialization;

@@ -177,6 +177,11 @@ public:
   
 
 
+  NS_IMETHOD_(nsIContent*) CreatePlaceholderNode() = 0;
+
+  
+
+
   NS_IMETHOD_(nsIContent*) GetPlaceholderNode() = 0;
 
   
