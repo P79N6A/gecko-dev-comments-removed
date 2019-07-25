@@ -237,9 +237,7 @@ nsHttpTransaction::Init(PRUint8 caps,
 
     
     
-    bool pruneProxyHeaders = 
-        cinfo->ShouldForceConnectMethod() ||
-        (cinfo->UsingSSL() && cinfo->UsingHttpProxy());
+    bool pruneProxyHeaders = cinfo->UsingConnect();
     
     mReqHeaderBuf.Truncate();
     requestHead->Flatten(mReqHeaderBuf, pruneProxyHeaders);
