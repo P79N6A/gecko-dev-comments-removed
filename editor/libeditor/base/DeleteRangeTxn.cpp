@@ -204,7 +204,11 @@ NS_IMETHODIMP DeleteRangeTxn::DoTransaction(void)
   {
     nsCOMPtr<nsISelection> selection;
     result = mEditor->GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(result, result);
+    
+    
+    
+    
+    NS_ENSURE_SUCCESS(result, NS_OK);
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
     result = selection->Collapse(mStartParent, mStartOffset);
   }
