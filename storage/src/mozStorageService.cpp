@@ -314,13 +314,103 @@ Service::shutdown()
 }
 
 sqlite3_vfs* ConstructTelemetryVFS();
- 
+
+#ifdef MOZ_MEMORY
+
+#  if defined(XP_WIN) || defined(SOLARIS) || defined(ANDROID) || defined(XP_MACOSX)
+#    include "jemalloc.h"
+#  elif defined(XP_LINUX)
+
+
+
+
+extern "C" {
+extern size_t je_malloc_usable_size_in_advance(size_t size)
+  NS_VISIBILITY_DEFAULT __attribute__((weak));
+}
+#  endif  
+
+namespace {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void* sqliteMemMalloc(int n)
+{
+  return ::moz_malloc(n);
+}
+
+static void* sqliteMemRealloc(void* p, int n)
+{
+  return ::moz_realloc(p, n);
+}
+
+static int sqliteMemSize(void* p)
+{
+  return ::moz_malloc_usable_size(p);
+}
+
+static int sqliteMemRoundup(int n)
+{
+  n = je_malloc_usable_size_in_advance(n);
+
+  
+  
+  
+  return n <= 8 ? 8 : n;
+}
+
+static int sqliteMemInit(void* p)
+{
+  return 0;
+}
+
+static void sqliteMemShutdown(void* p)
+{
+}
+
+const sqlite3_mem_methods memMethods = {
+  &sqliteMemMalloc,
+  &moz_free,
+  &sqliteMemRealloc,
+  &sqliteMemSize,
+  &sqliteMemRoundup,
+  &sqliteMemInit,
+  &sqliteMemShutdown,
+  NULL
+}; 
+
+} 
+
+#endif  
+
 nsresult
 Service::initialize()
 {
   NS_TIME_FUNCTION;
 
   int rc;
+
+#ifdef MOZ_MEMORY
+  rc = ::sqlite3_config(SQLITE_CONFIG_MALLOC, &memMethods);
+  if (rc != SQLITE_OK)
+    return convertResultCode(rc);
+#endif
 
   
   

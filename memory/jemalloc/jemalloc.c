@@ -6495,6 +6495,47 @@ free(void *ptr)
 
 
 
+
+
+size_t
+je_malloc_usable_size_in_advance(size_t size)
+{
+	
+
+
+
+	if (size < small_min) {
+		
+		size = pow2_ceil(size);
+		
+
+
+
+
+		if (size < (1U << TINY_MIN_2POW))
+			size = (1U << TINY_MIN_2POW);
+	} else if (size <= small_max) {
+		
+		size = QUANTUM_CEILING(size);
+	} else if (size <= bin_maxclass) {
+		
+		size = pow2_ceil(size);
+	} else if (size <= arena_maxclass) {
+		
+		size = PAGE_CEILING(size);
+	} else {
+		
+
+
+
+
+
+		size = PAGE_CEILING(size);
+	}
+	return size;
+}
+
+
 #ifdef MOZ_MEMORY_ANDROID
 size_t
 malloc_usable_size(void *ptr)
