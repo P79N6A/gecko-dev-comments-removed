@@ -1019,10 +1019,13 @@ nsGeolocation::RegisterRequestWithPrompt(nsGeolocationRequest* request)
     
     TabChild* child = GetTabChildFrom(window->GetDocShell());
     
-    PGeolocationRequestChild* a = 
-        child->SendPGeolocationRequestConstructor(request, IPC::URI(mURI));
+    child->SendPGeolocationRequestConstructor(request, IPC::URI(mURI));
+    
+    
+    
+    request->AddRef();
 
-    (void) a->Sendprompt();
+    unused << request->Sendprompt();
     return;
   }
 #endif
