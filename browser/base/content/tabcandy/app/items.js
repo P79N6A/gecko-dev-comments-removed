@@ -107,6 +107,10 @@ window.Item = function() {
   
   
   
+  this.resizeOptions = null;
+  
+  
+  
   this.isDragging = false;
 };
 
@@ -189,6 +193,30 @@ window.Item.prototype = {
   			return false;
   		}
   	};
+  	
+  	
+  	var self = this;
+  	var resizeInfo = null;
+    this.resizeOptions = {
+      aspectRatio: self.keepProportional,
+      minWidth: 90,
+      minHeight: 90,
+      start: function(e,ui){
+      	resizeInfo = new Drag(this, e);
+      },
+      resize: function(e,ui){
+        self.reloadBounds();
+        resizeInfo.snap(e,ui, false, self.keepProportional);
+      },
+      stop: function(){
+        self.reloadBounds();
+        self.setUserSize();
+        self.pushAway();
+        Trenches.disactivate();
+        resizeInfo = null;
+      } 
+    };
+  	
   },
   
   
@@ -556,6 +584,21 @@ window.Items = {
     var width = Math.max(100, window.innerWidth);
     var height = Math.max(100, window.innerHeight - (top + bottom));
     return new Rect(0, top, width, height);
+  },
+  
+  
+  
+  
+  getSafeWindowBounds: function() {
+    
+    var gutter = Items.defaultGutter;
+    var pageBounds = Items.getPageBounds();
+    var newTabGroupBounds = Groups.getBoundsForNewTabGroup();
+    
+    
+    
+    var topGutter = 5;
+    return new Rect( gutter, topGutter, pageBounds.width - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
   },
   
   

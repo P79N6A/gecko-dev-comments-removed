@@ -65,7 +65,7 @@ var Drag = function(element, event) {
   this.$el.data('isDragging', true);
   this.item.setZ(999999);
   
-  this.safeWindowBounds = this.getSafeWindowBounds();
+  this.safeWindowBounds = Items.getSafeWindowBounds();
   Trenches.activateOthersTrenches(this.el);
   
   
@@ -82,7 +82,7 @@ var Drag = function(element, event) {
 
 Drag.prototype = {
   
-  snap: function(event, ui){
+  snap: function(event, ui, assumeConstantSize, keepProportional){
     var bounds = this.item.getBounds();
     var update = false; 
     var updateX = false;
@@ -91,46 +91,84 @@ Drag.prototype = {
 
     
     if (!Keys.meta) { 
-      newRect = Trenches.snap(bounds,true);
-      if (newRect) 
+      newRect = Trenches.snap(bounds,assumeConstantSize,keepProportional);
+      if (newRect) { 
         update = true;
+        bounds = newRect;
+      }
     }
 
     
-    newRect = newRect || bounds;
-
-    var swb = this.safeWindowBounds;
-
-    var snapRadius = ( Keys.meta ? 0 : Trenches.defaultRadius );
-    if (newRect.left < swb.left + snapRadius ) {
-      newRect.left = swb.left;
+    newRect = this.snapToEdge(bounds,assumeConstantSize,keepProportional);
+    if (newRect) {
       update = true;
-      updateX = true;
-    }
-    if (newRect.left + newRect.width > swb.left + swb.width - snapRadius) {
-      if (updateX)
-        newRect.width = swb.left + swb.width - newRect.left;
-      else
-        newRect.left = swb.left + swb.width - newRect.width;
-      update = true;
-    }
-    if (newRect.top < swb.top + snapRadius) {
-      newRect.top = swb.top;
-      update = true;
-      updateY = true;
-    }
-    if (newRect.top + newRect.height > swb.top + swb.height - snapRadius) {
-      if (updateY)
-        newRect.height = swb.top + swb.height - newRect.top;
-      else
-        newRect.top = swb.top + swb.height - newRect.height;
-      update = true;
+      bounds = newRect;
     }
 
     if (update)
-      this.item.setBounds(newRect,true);
+      this.item.setBounds(bounds,true);
 
     return ui;
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  snapToEdge: function Drag_snapToEdge(rect, assumeConstantSize, keepProportional) {
+    var swb = this.safeWindowBounds;
+    var update = false;
+    var updateX = false;
+    var updateY = false;
+
+    var snapRadius = ( Keys.meta ? 0 : Trenches.defaultRadius );
+    if (rect.left < swb.left + snapRadius ) {
+      rect.left = swb.left;
+      update = true;
+      updateX = true;
+    }
+    
+    if (rect.right > swb.right - snapRadius) {
+      if (updateX || !assumeConstantSize) {
+        var newWidth = swb.right - rect.left;
+        if (keepProportional)
+          rect.height = rect.height * newWidth / rect.width;
+        rect.width = newWidth;
+        update = true;
+      } else if (!updateX || !Trenches.preferLeft) {
+        rect.left = swb.right - rect.width;
+        update = true;
+      }
+    }
+    if (rect.top < swb.top + snapRadius) {
+      rect.top = swb.top;
+      update = true;
+      updateY = true;
+    }
+    if (rect.bottom > swb.bottom - snapRadius) {
+      if (updateY || !assumeConstantSize) {
+        var newHeight = swb.bottom - rect.top;
+        if (keepProportional)
+          rect.width = rect.width * newHeight / rect.height;
+        rect.height = newHeight;
+        update = true;
+      } else if (!updateY || !Trenches.preferTop) {
+        rect.top = swb.bottom - rect.height;
+        update = true;
+      }
+    }
+    
+    if (update)
+      return rect;
+    else
+      return false;
   },
   
   
@@ -142,7 +180,7 @@ Drag.prototype = {
       bb.left = ui.position.left;
       bb.top = ui.position.top;
       this.item.setBounds(bb, true);
-      ui = this.snap(event,ui);
+      ui = this.snap(event,ui,true);
 
 
       
@@ -190,16 +228,5 @@ Drag.prototype = {
     
     Trenches.disactivate();
     
-  },
-  getSafeWindowBounds: function() {
-    
-    var gutter = Items.defaultGutter;
-    var pageBounds = Items.getPageBounds();
-    var newTabGroupBounds = Groups.getBoundsForNewTabGroup();
-    
-    
-    
-    var topGutter = 5;
-    return new Rect( gutter, topGutter, pageBounds.width - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
   }
 };

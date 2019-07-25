@@ -97,6 +97,8 @@ window.Group = function(listOfEls, options) {
   this.locked = (options.locked ? Utils.copy(options.locked) : {});
   this.topChild = null;
   
+  this.keepProportional = false;
+  
   
   
   this._activeTab = null;
@@ -1169,32 +1171,13 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   setResizable: function(value){
-    var self = this;
-    
+
+    this.resizeOptions.minWidth = 90;
+    this.resizeOptions.minHeight = 90;
+
     if(value) {
       this.$resizer.fadeIn();
-      iQ(this.container).resizable({
-        aspectRatio: false,
-        minWidth: 90,
-        minHeight: 90,
-        start: function(){
-          Trenches.activateOthersTrenches(self.container);
-        },
-        resize: function(){
-          self.reloadBounds();
-          var bounds = self.getBounds();
-          
-          var newRect = Trenches.snap(bounds,false);
-          if (newRect) 
-            self.setBounds(bounds,true);
-        },
-        stop: function(){
-          self.reloadBounds();
-          self.setUserSize();
-          self.pushAway();
-          Trenches.disactivate();
-        } 
-      });
+      iQ(this.container).resizable(this.resizeOptions);
     } else {
       this.$resizer.fadeOut();
       iQ(this.container).resizable('destroy');
