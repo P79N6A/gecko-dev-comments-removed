@@ -1049,7 +1049,7 @@ var gBrowserInit = {
 
     
     if ("arguments" in window && window.arguments.length > 1 && window.arguments[1]) {
-      if (window.arguments[1].startsWith("charset=")) {
+      if (window.arguments[1].indexOf("charset=") != -1) {
         var arrayArgComponents = window.arguments[1].split("=");
         if (arrayArgComponents) {
           
@@ -2758,7 +2758,7 @@ function getMeOutOfHere() {
     url = prefs.getComplexValue("browser.startup.homepage",
                                 Ci.nsIPrefLocalizedString).data;
     
-    if (url.contains("|"))
+    if (url.indexOf("|") != -1)
       url = url.split("|")[0];
   } catch(e) {
     Components.utils.reportError("Couldn't get homepage pref: " + e);
@@ -3467,7 +3467,7 @@ function FillHistoryMenu(aParent) {
 
 function addToUrlbarHistory(aUrlToAdd) {
   if (aUrlToAdd &&
-      !aUrlToAdd.contains(" ") &&
+      aUrlToAdd.indexOf(" ") == -1 &&
       !/[\x00-\x1F]/.test(aUrlToAdd))
     PlacesUIUtils.markPageAsTyped(aUrlToAdd);
 }

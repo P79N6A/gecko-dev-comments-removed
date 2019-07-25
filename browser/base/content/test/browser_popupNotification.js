@@ -756,7 +756,7 @@ function triggerSecondaryCommand(popup, index) {
   }, false);
 
   
-  EventUtils.synthesizeKey("VK_DOWN", { altKey: !navigator.platform.contains("Mac") });
+  EventUtils.synthesizeKey("VK_DOWN", { altKey: (navigator.platform.indexOf("Mac") == -1) });
 }
 
 function loadURI(uri, callback) {

@@ -143,7 +143,7 @@ function checkOKButton() {
 
   
   
-  if (navigator.platform.contains("Mac")) {
+  if (navigator.platform.indexOf("Mac") != -1) {
     executeSoon(testCloseBySpace);
     return;
   }
@@ -151,7 +151,7 @@ function checkOKButton() {
   let displayName = document.getElementById("socialUserDisplayName");
 
   
-  if (navigator.platform.contains("Linux")) {
+  if (navigator.platform.indexOf("Linux") != -1) {
     checkNextInTabOrder(displayName, function () {
       checkNextInTabOrder(undoButton, function () {
         checkNextInTabOrder(okButton, testCloseBySpace);
