@@ -71,6 +71,10 @@ private:
     
     static bool generateForceReturn(Assembler &masm);
 
+#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
+    static bool generateForceReturnFast(Assembler &masm);
+#endif
+
     JSC::ExecutableAllocator *execPool;
     Trampolines *trampolines;
 };

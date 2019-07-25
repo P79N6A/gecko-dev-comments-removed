@@ -101,6 +101,10 @@
 #endif
 
 
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#define WTF_COMPILER_SUNPRO 1
+#endif
+
 
 
 
