@@ -51,6 +51,7 @@
 
 using namespace js;
 
+
 
 
 extern Class DebugFrame_class;
@@ -76,6 +77,7 @@ enum {
     JSSLOT_DEBUGOBJECT_COUNT
 };
 
+
 
 
 bool
@@ -136,6 +138,7 @@ CheckThisClass(JSContext *cx, Value *vp, Class *clasp, const char *fnname)
         return false;                                                        \
     js::classname *private = (classname *) thisobj->getPrivate();
 
+
 
 
 enum {
@@ -513,6 +516,7 @@ Debug::dispatchHook(JSContext *cx, js::Value *vp, DebugObservesMethod observesEv
     return JSTRAP_CONTINUE;
 }
 
+
 
 
 bool
@@ -1045,6 +1049,7 @@ JSFunctionSpec Debug::methods[] = {
     JS_FS_END
 };
 
+
 
 
 Class DebugFrame_class = {
@@ -1312,6 +1317,7 @@ static JSFunctionSpec DebugFrame_methods[] = {
     JS_FS_END
 };
 
+
 
 
 Class DebugObject_class = {
@@ -1521,6 +1527,7 @@ static JSFunctionSpec DebugObject_methods[] = {
     JS_FS_END
 };
 
+
 
 
 extern JS_PUBLIC_API(JSBool)
