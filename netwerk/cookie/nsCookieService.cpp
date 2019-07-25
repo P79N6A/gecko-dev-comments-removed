@@ -39,6 +39,12 @@
 
 
 
+
+#ifdef MOZ_LOGGING
+
+#define FORCE_PR_LOG
+#endif
+
 #ifdef MOZ_IPC
 #include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/NeckoCommon.h"
@@ -204,8 +210,6 @@ struct nsEnumerationData
 
 
 
-
-#define FORCE_PR_LOG
 #include "prlog.h"
 #endif
 
