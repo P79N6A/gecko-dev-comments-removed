@@ -2674,7 +2674,7 @@ gfxFontGroup::UpdateFontList()
         mSkipDrawing = PR_FALSE;
 
         
-#if defined(XP_MACOSX) || defined(XP_WIN)
+#if defined(XP_MACOSX) || (defined(XP_WIN) && !defined(WINCE)) || defined(ANDROID)
         BuildFontList();
 #else
         ForEachFont(FindPlatformFont, this);
