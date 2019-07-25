@@ -6646,10 +6646,51 @@ EmitSyntheticStatements(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrd
     return PopStatementBCE(cx, bce);
 }
 
+static bool
+EmitConditionalExpression(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    
+    if (!EmitTree(cx, bce, pn->pn_kid1))
+        return JS_FALSE;
+    ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_COND);
+    if (noteIndex < 0)
+        return JS_FALSE;
+    ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFEQ, 0);
+    if (beq < 0 || !EmitTree(cx, bce, pn->pn_kid2))
+        return JS_FALSE;
+
+    
+    ptrdiff_t jmp = EmitJump(cx, bce, JSOP_GOTO, 0);
+    if (jmp < 0)
+        return JS_FALSE;
+    CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, beq);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    JS_ASSERT(bce->stackDepth > 0);
+    bce->stackDepth--;
+    if (!EmitTree(cx, bce, pn->pn_kid3))
+        return JS_FALSE;
+    CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, jmp);
+    if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
+        return JS_FALSE;
+    return true;
+}
+
 JSBool
 frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
-    ptrdiff_t top, off, tmp, beq, jmp;
+    ptrdiff_t top, off, tmp, jmp;
     ParseNode *pn2, *pn3;
     JSAtom *atom;
     jsatomid atomIndex;
@@ -6835,41 +6876,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_HOOK:
-        
-        if (!EmitTree(cx, bce, pn->pn_kid1))
-            return JS_FALSE;
-        noteIndex = NewSrcNote(cx, bce, SRC_COND);
-        if (noteIndex < 0)
-            return JS_FALSE;
-        beq = EmitJump(cx, bce, JSOP_IFEQ, 0);
-        if (beq < 0 || !EmitTree(cx, bce, pn->pn_kid2))
-            return JS_FALSE;
-
-        
-        jmp = EmitJump(cx, bce, JSOP_GOTO, 0);
-        if (jmp < 0)
-            return JS_FALSE;
-        CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, beq);
-
-        
-
-
-
-
-
-
-
-
-
-
-
-        JS_ASSERT(bce->stackDepth > 0);
-        bce->stackDepth--;
-        if (!EmitTree(cx, bce, pn->pn_kid3))
-            return JS_FALSE;
-        CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, jmp);
-        if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq))
-            return JS_FALSE;
+        ok = EmitConditionalExpression(cx, bce, pn);
         break;
 
       case PNK_OR:
