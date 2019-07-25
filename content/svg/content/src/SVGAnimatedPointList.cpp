@@ -70,7 +70,7 @@ SVGAnimatedPointList::SetBaseValueString(const nsAString& aValue)
     baseValWrapper->InternalListWillChangeTo(newBaseValue);
   }
 
-  DOMSVGPointList *animValWrapper;
+  DOMSVGPointList* animValWrapper = nsnull;
   if (!IsAnimating()) {  
     animValWrapper = DOMSVGPointList::GetDOMWrapperIfExists(GetAnimValKey());
     if (animValWrapper) {

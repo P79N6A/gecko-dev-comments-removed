@@ -70,7 +70,7 @@ SVGAnimatedPathSegList::SetBaseValueString(const nsAString& aValue)
     baseValWrapper->InternalListWillChangeTo(newBaseValue);
   }
 
-  DOMSVGPathSegList *animValWrapper;
+  DOMSVGPathSegList* animValWrapper = nsnull;
   if (!IsAnimating()) {  
     animValWrapper = DOMSVGPathSegList::GetDOMWrapperIfExists(GetAnimValKey());
     if (animValWrapper) {
