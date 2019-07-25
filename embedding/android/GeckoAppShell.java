@@ -1790,4 +1790,7 @@ public class GeckoAppShell
     public static void disableNetworkNotifications() {
         GeckoNetworkManager.getInstance().disableNotifications();
     }
+
+    
+    public static void preventPanning() { }
 }
