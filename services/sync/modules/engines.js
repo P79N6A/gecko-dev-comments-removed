@@ -329,17 +329,23 @@ NewEngine.prototype = {
   },
 
   _recDepth: function NewEngine__recDepth(rec) {
+    
     if (rec.depth)
       return rec.depth;
+
+    
     if (!rec.parentid)
       return 0;
+
+    
     for each (let inc in this.incoming) {
       if (inc.id == rec.parentid) {
         rec.depth = this._recDepth(inc) + 1;
         return rec.depth;
       }
     }
-    this._log.warn("Couldn't calculate depth of item " + rec.id);
+
+    
     return 0;
   },
 
