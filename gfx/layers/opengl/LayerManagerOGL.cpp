@@ -64,6 +64,8 @@
 
 #include "gfxCrashReporterUtils.h"
 
+#include "sampler.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -758,6 +760,7 @@ LayerManagerOGL::BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
 void
 LayerManagerOGL::Render()
 {
+  SAMPLE_LABEL("LayerManagerOGL", "Render");
   if (mDestroyed) {
     NS_WARNING("Call on destroyed layer manager");
     return;
@@ -814,8 +817,8 @@ LayerManagerOGL::Render()
   
   RootLayer()->RenderLayer(mGLContext->IsDoubleBuffered() ? 0 : mBackBufferFBO,
                            nsIntPoint(0, 0));
-                           
-  mWidget->DrawOver(this, rect);
+
+  mWidget->DrawWindowOverlay(this, rect);
 
   if (mTarget) {
     CopyToTarget();
@@ -1129,8 +1132,33 @@ LayerManagerOGL::SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix)
   } FOR_EACH_LAYER_PROGRAM_END
 }
 
+static GLenum
+GetFrameBufferInternalFormat(GLContext* gl,
+                             GLuint aCurrentFrameBuffer,
+                             nsIWidget* aWidget)
+{
+  if (aCurrentFrameBuffer == 0) { 
+    return aWidget->GetGLFrameBufferFormat();
+  }
+  return LOCAL_GL_RGBA;
+}
+
+static bool
+AreFormatsCompatibleForCopyTexImage2D(GLenum aF1, GLenum aF2)
+{
+  
+  
+  
+#ifdef USE_GLES2
+  return (aF1 == aF2);
+#else
+  return true;
+#endif
+}
+
 void
 LayerManagerOGL::CreateFBOWithTexture(const nsIntRect& aRect, InitMode aInit,
+                                      GLuint aCurrentFrameBuffer,
                                       GLuint *aFBO, GLuint *aTexture)
 {
   GLuint tex, fbo;
@@ -1139,12 +1167,40 @@ LayerManagerOGL::CreateFBOWithTexture(const nsIntRect& aRect, InitMode aInit,
   mGLContext->fGenTextures(1, &tex);
   mGLContext->fBindTexture(mFBOTextureTarget, tex);
   if (aInit == InitModeCopy) {
-    mGLContext->fCopyTexImage2D(mFBOTextureTarget,
-                                0,
-                                LOCAL_GL_RGBA,
-                                aRect.x, aRect.y,
-                                aRect.width, aRect.height,
-                                0);
+    
+    
+    
+    
+    
+    GLenum format =
+      GetFrameBufferInternalFormat(gl(), aCurrentFrameBuffer, mWidget);
+    if (AreFormatsCompatibleForCopyTexImage2D(format, LOCAL_GL_RGBA)) {
+      mGLContext->fCopyTexImage2D(mFBOTextureTarget,
+                                  0,
+                                  LOCAL_GL_RGBA,
+                                  aRect.x, aRect.y,
+                                  aRect.width, aRect.height,
+                                  0);
+    } else {
+      
+      
+      
+      
+      
+      mGLContext->fTexImage2D(mFBOTextureTarget,
+                              0,
+                              LOCAL_GL_RGBA,
+                              aRect.width, aRect.height,
+                              0,
+                              LOCAL_GL_RGBA,
+                              LOCAL_GL_UNSIGNED_BYTE,
+                              NULL);
+      mGLContext->fCopyTexSubImage2D(mFBOTextureTarget,
+                                     0,    
+                                     0, 0, 
+                                     aRect.x, aRect.y,
+                                     aRect.width, aRect.height);
+    }
   } else {
     mGLContext->fTexImage2D(mFBOTextureTarget,
                             0,
