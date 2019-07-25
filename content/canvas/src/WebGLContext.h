@@ -264,6 +264,107 @@ protected:
     DeletionStatus mDeletionStatus;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+class WebGLRefPtr
+{
+public:
+    WebGLRefPtr()
+        : mRawPtr(0)
+    { }
+
+    WebGLRefPtr(const WebGLRefPtr<T>& aSmartPtr)
+        : mRawPtr(aSmartPtr.mRawPtr)
+    {
+        AddRefOnPtr(mRawPtr);
+    }
+
+    WebGLRefPtr(T *aRawPtr)
+        : mRawPtr(aRawPtr)
+    {
+        AddRefOnPtr(mRawPtr);
+    }
+
+    ~WebGLRefPtr() {
+        ReleasePtr(mRawPtr);
+    }
+
+    WebGLRefPtr<T>&
+    operator=(const WebGLRefPtr<T>& rhs)
+    {
+        assign_with_AddRef(rhs.mRawPtr);
+        return *this;
+    }
+
+    WebGLRefPtr<T>&
+    operator=(T* rhs)
+    {
+        assign_with_AddRef(rhs);
+        return *this;
+    }
+
+    T* get() const {
+        return static_cast<T*>(mRawPtr);
+    }
+
+    operator T*() const {
+        return get();
+    }
+
+    T* operator->() const {
+        NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL WebGLRefPtr with operator->()!");
+        return get();
+    }
+
+    T& operator*() const {
+        NS_ABORT_IF_FALSE(mRawPtr != 0, "You can't dereference a NULL WebGLRefPtr with operator*()!");
+        return *get();
+    }
+
+private:
+
+    static void AddRefOnPtr(T* rawPtr) {
+        if (rawPtr) {
+            rawPtr->WebGLAddRef();
+            rawPtr->AddRef();
+        }
+    }
+
+    static void ReleasePtr(T* rawPtr) {
+        if (rawPtr) {
+            rawPtr->WebGLRelease(); 
+            rawPtr->Release();
+        }
+    }
+
+    void assign_with_AddRef(T* rawPtr) {
+        AddRefOnPtr(rawPtr);
+        assign_assuming_AddRef(rawPtr);
+    }
+
+    void assign_assuming_AddRef(T* newPtr) {
+        T* oldPtr = mRawPtr;
+        mRawPtr = newPtr;
+        ReleasePtr(oldPtr);
+    }
+
+protected:
+    T *mRawPtr;
+};
+
 class WebGLObjectBaseRefPtr
 {
 protected:
