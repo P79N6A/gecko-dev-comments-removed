@@ -1293,7 +1293,8 @@ private:
   
   void GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
                                            nsIContent **aTargetToUse,
-                                           nsIntPoint& aTargetPt);
+                                           nsIntPoint& aTargetPt,
+                                           nsIWidget *aRootWidget);
 
   void FireResizeEvent();
   static void AsyncResizeEventCallback(nsITimer* aTimer, void* aPresShell);
@@ -4289,9 +4290,18 @@ PresShell::ScrollFrameRectIntoView(nsIFrame*     aFrame,
       rect.IntersectRect(rect, sf->GetScrollPortRect());
     }
     rect += container->GetPosition();
-    nsPoint extraOffset(0,0);
-    container = nsLayoutUtils::GetCrossDocParentFrame(container, &extraOffset);
-    rect += extraOffset;
+    nsIFrame* parent = container->GetParent();
+    if (!parent) {
+      nsPoint extraOffset(0,0);
+      parent = nsLayoutUtils::GetCrossDocParentFrame(container, &extraOffset);
+      if (parent) {
+        PRInt32 APD = container->PresContext()->AppUnitsPerDevPixel();        
+        PRInt32 parentAPD = parent->PresContext()->AppUnitsPerDevPixel();
+        rect = rect.ConvertAppUnitsRoundOut(APD, parentAPD);
+        rect += extraOffset;
+      }
+    }
+    container = parent;
   } while (container);
 
   return didScroll;
@@ -4302,6 +4312,8 @@ PresShell::GetRectVisibility(nsIFrame* aFrame,
                              const nsRect &aRect,
                              nscoord aMinTwips) const
 {
+  NS_ASSERTION(aFrame->PresContext() == GetPresContext(),
+               "prescontext mismatch?");
   nsIFrame* rootFrame = FrameManager()->GetRootFrame();
   NS_ASSERTION(rootFrame,
                "How can someone have a frame for this presshell when there's no root?");
@@ -6824,7 +6836,8 @@ PresShell::AdjustContextMenuKeyEvent(nsMouseEvent* aEvent)
     nsCOMPtr<nsIContent> currentPointElement;
     GetCurrentItemAndPositionForElement(currentFocus,
                                         getter_AddRefs(currentPointElement),
-                                        aEvent->refPoint);
+                                        aEvent->refPoint,
+                                        aEvent->widget);
     if (currentPointElement) {
       mCurrentEventContent = currentPointElement;
       mCurrentEventFrame = nsnull;
@@ -6918,31 +6931,28 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
     NS_ENSURE_SUCCESS(rv, PR_FALSE);
   }
 
-  
+  nsPresContext* presContext = GetPresContext();
+
   
   nsRect caretCoords;
   nsIFrame* caretFrame = caret->GetGeometry(domSelection, &caretCoords);
   if (!caretFrame)
     return PR_FALSE;
-  nsPoint widgetOffset;
-  nsIWidget* widget = caretFrame->GetNearestWidget(widgetOffset);
-  if (!widget)
+  nsPoint viewOffset;
+  nsIView* view = caretFrame->GetClosestView(&viewOffset);
+  if (!view)
     return PR_FALSE;
-  caretCoords.MoveBy(widgetOffset);
-  nsIView* caretView = nsIView::GetViewFor(widget);
+  
+  if (aEventWidget) {
+    viewOffset += view->GetOffsetToWidget(aEventWidget);
+  }
+  caretCoords.MoveBy(viewOffset);
 
   
-  
-  nsIView* widgetView = nsIView::GetViewFor(aEventWidget);
-  NS_ENSURE_TRUE(widgetView, PR_FALSE);
-  nsPoint viewToWidget;
-  widgetView->GetNearestWidget(&viewToWidget);
-  nsPoint viewDelta = caretView->GetOffsetTo(widgetView) + viewToWidget;
-
-  
-  nsPresContext* presContext = GetPresContext();
-  aTargetPt.x = presContext->AppUnitsToDevPixels(viewDelta.x + caretCoords.x + caretCoords.width);
-  aTargetPt.y = presContext->AppUnitsToDevPixels(viewDelta.y + caretCoords.y + caretCoords.height);
+  aTargetPt.x =
+    presContext->AppUnitsToDevPixels(caretCoords.x + caretCoords.width);
+  aTargetPt.y =
+    presContext->AppUnitsToDevPixels(caretCoords.y + caretCoords.height);
 
   
   
@@ -6954,14 +6964,17 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
 void
 PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
                                                nsIContent** aTargetToUse,
-                                               nsIntPoint& aTargetPt)
+                                               nsIntPoint& aTargetPt,
+                                               nsIWidget *aRootWidget)
 {
   nsCOMPtr<nsIContent> focusedContent(do_QueryInterface(aCurrentEl));
   ScrollContentIntoView(focusedContent, NS_PRESSHELL_SCROLL_ANYWHERE,
                                         NS_PRESSHELL_SCROLL_ANYWHERE);
 
+  nsPresContext* presContext = GetPresContext();
+
   PRBool istree = PR_FALSE, checkLineHeight = PR_TRUE;
-  PRInt32 extraPixelsY = 0, extraTreeY = 0;
+  nscoord extraTreeY = 0;
 
 #ifdef MOZ_XUL
   
@@ -6993,7 +7006,8 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
           treeBox->GetFirstVisibleRow(&firstVisibleRow);
           treeBox->GetRowHeight(&rowHeight);
 
-          extraPixelsY = (currentIndex - firstVisibleRow + 1) * rowHeight;
+          extraTreeY += presContext->CSSPixelsToAppUnits(
+                          (currentIndex - firstVisibleRow + 1) * rowHeight);
           istree = PR_TRUE;
 
           nsCOMPtr<nsITreeColumns> cols;
@@ -7008,7 +7022,7 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
               if (colContent) {
                 nsIFrame* frame = colContent->GetPrimaryFrame();
                 if (frame) {
-                  extraTreeY = frame->GetSize().height;
+                  extraTreeY += frame->GetSize().height;
                 }
               }
             }
@@ -7039,6 +7053,9 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
 
   nsIFrame *frame = focusedContent->GetPrimaryFrame();
   if (frame) {
+    NS_ASSERTION(frame->PresContext() == GetPresContext(),
+      "handling event for focused content that is not in our document?");
+
     nsPoint frameOrigin(0, 0);
 
     
@@ -7046,7 +7063,9 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
     NS_ASSERTION(view, "No view for frame");
 
     
-    frameOrigin += view->GetOffsetTo(nsnull);
+    if (aRootWidget) {
+      frameOrigin += view->GetOffsetToWidget(aRootWidget);
+    }
 
     
     
@@ -7063,19 +7082,21 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
         nsIScrollableFrame *scrollFrame =
           nsLayoutUtils::GetNearestScrollableFrame(frame);
         if (scrollFrame) {
-          nscoord scrollFrameLineHeight =
-            scrollFrame->GetLineScrollAmount().height;
-          if (extra > scrollFrameLineHeight) {
-            extra = scrollFrameLineHeight; 
+          nsSize scrollAmount = scrollFrame->GetLineScrollAmount();
+          nsIFrame* f = do_QueryFrame(scrollFrame);
+          PRInt32 APD = presContext->AppUnitsPerDevPixel();
+          PRInt32 scrollAPD = f->PresContext()->AppUnitsPerDevPixel();
+          scrollAmount = scrollAmount.ConvertAppUnits(scrollAPD, APD);
+          if (extra > scrollAmount.height) {
+            extra = scrollAmount.height;
           }
         }
       }
     }
 
-    nsPresContext* presContext = GetPresContext();
     aTargetPt.x = presContext->AppUnitsToDevPixels(frameOrigin.x);
     aTargetPt.y = presContext->AppUnitsToDevPixels(
-                    frameOrigin.y + extra + extraTreeY) + extraPixelsY;
+                    frameOrigin.y + extra + extraTreeY);
   }
 
   NS_IF_ADDREF(*aTargetToUse = focusedContent);

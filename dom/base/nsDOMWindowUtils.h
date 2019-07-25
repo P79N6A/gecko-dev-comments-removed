@@ -56,6 +56,8 @@ protected:
 
   
   
+  
+  
   nsIWidget* GetWidget(nsPoint* aOffset = nsnull);
   nsIWidget* GetWidgetForElement(nsIDOMElement* aElement);
 

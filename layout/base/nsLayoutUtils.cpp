@@ -801,6 +801,12 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
     return nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
 
   
+  
+  PRInt32 rootAPD = rootFrame->PresContext()->AppUnitsPerDevPixel();
+  PRInt32 localAPD = aFrame->PresContext()->AppUnitsPerDevPixel();
+  widgetToView = widgetToView.ConvertAppUnits(rootAPD, localAPD);
+
+  
 
 
   if (transformFound)
@@ -809,7 +815,7 @@ nsLayoutUtils::GetEventCoordinatesRelativeTo(const nsEvent* aEvent, nsIFrame* aF
   
 
 
-  return widgetToView - aFrame->GetOffsetTo(rootFrame);
+  return widgetToView - aFrame->GetOffsetToCrossDoc(rootFrame);
 }
 
 nsIFrame*

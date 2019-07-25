@@ -3540,8 +3540,8 @@ nsPoint nsIFrame::GetOffsetTo(const nsIFrame* aOther) const
   NS_PRECONDITION(aOther,
                   "Must have frame for destination coordinate system!");
 
-  
-  
+  NS_ASSERTION(PresContext() == aOther->PresContext(),
+               "GetOffsetTo called on frames in different documents");
 
   
   
@@ -3955,7 +3955,7 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
 
 
     NS_ASSERTION(*aOutAncestor, "Cannot transform the viewport frame!");
-    nsPoint delta = GetOffsetTo(*aOutAncestor);
+    nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
     PRInt32 scaleFactor = PresContext()->AppUnitsPerDevPixel();
 
     gfxMatrix result =
@@ -3994,7 +3994,7 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
   
 
 
-  nsPoint delta = GetOffsetTo(*aOutAncestor);
+  nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
   PRInt32 scaleFactor = PresContext()->AppUnitsPerDevPixel();
   return gfxMatrix().Translate
     (gfxPoint(NSAppUnitsToFloatPixels(delta.x, scaleFactor),

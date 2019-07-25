@@ -1898,6 +1898,9 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
       return NS_OK;
     }
 
+    
+    
+    
     adjSize = frame->GetContentRect().Size();
     documentIsTopLevel = PR_FALSE;
     
