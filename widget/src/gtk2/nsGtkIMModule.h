@@ -90,6 +90,10 @@ public:
     ~nsGtkIMModule();
 
     
+    
+    PRBool IsEnabled();
+
+    
     void OnFocusWindow(nsWindow* aWindow);
     
     void OnBlurWindow(nsWindow* aWindow);
@@ -103,7 +107,8 @@ public:
     
     
     
-    PRBool OnKeyEvent(nsWindow* aWindow, GdkEventKey* aEvent);
+    PRBool OnKeyEvent(nsWindow* aWindow, GdkEventKey* aEvent,
+                      PRBool aKeyDownEventWasSent = PR_FALSE);
 
     
     nsresult ResetInputState(nsWindow* aCaller);
@@ -179,6 +184,12 @@ protected:
     
     
     PRPackedBool mIgnoreNativeCompositionEvent;
+    
+    
+    
+    
+    
+    PRPackedBool mKeyDownEventWasSent;
 
     
     
@@ -218,10 +229,6 @@ protected:
     
     
     GtkIMContext* GetContext();
-
-    
-    
-    PRBool IsEnabled();
 
     
     

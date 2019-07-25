@@ -3014,8 +3014,12 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
 
     
     
-    if (mIMModule && mIMModule->OnKeyEvent(this, aEvent)) {
-        return TRUE;
+    PRBool IMEWasEnabled = PR_FALSE;
+    if (mIMModule) {
+        IMEWasEnabled = mIMModule->IsEnabled();
+        if (mIMModule->OnKeyEvent(this, aEvent)) {
+            return TRUE;
+        }
     }
 
     nsEventStatus status;
@@ -3037,6 +3041,17 @@ nsWindow::OnKeyPressEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     if (DispatchKeyDownEvent(aEvent, &isKeyDownCancelled) &&
         NS_UNLIKELY(mIsDestroyed)) {
         return TRUE;
+    }
+
+    
+    
+    
+    if (!IMEWasEnabled && mIMModule && mIMModule->IsEnabled()) {
+        
+        
+        if (mIMModule->OnKeyEvent(this, aEvent, PR_TRUE)) {
+            return TRUE;
+        }
     }
 
     
