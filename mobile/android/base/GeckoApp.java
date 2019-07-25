@@ -464,6 +464,7 @@ abstract public class GeckoApp
             forward.setEnabled(false);
             share.setEnabled(false);
             saveAsPDF.setEnabled(false);
+            agentMode.setEnabled(false);
             return true;
         }
         
@@ -484,7 +485,10 @@ abstract public class GeckoApp
 
         
         String scheme = Uri.parse(tab.getURL()).getScheme();
-        share.setEnabled(!(scheme.equals("about") || scheme.equals("chrome") || scheme.equals("file")));
+        boolean enabled = !(scheme.equals("about") || scheme.equals("chrome") ||
+                            scheme.equals("file"));
+        share.setEnabled(enabled);
+        agentMode.setEnabled(enabled);
 
         
         saveAsPDF.setEnabled(!(tab.getURL().equals("about:home") ||
