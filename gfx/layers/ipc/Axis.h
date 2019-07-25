@@ -132,7 +132,7 @@ public:
 
 
 
-  float DisplacementWillOverscrollAmount(PRInt32 aDisplacement);
+  float DisplacementWillOverscrollAmount(int32_t aDisplacement);
 
   
 
@@ -153,7 +153,7 @@ public:
 
 
 
-  float ScaleWillOverscrollAmount(float aScale, PRInt32 aFocus);
+  float ScaleWillOverscrollAmount(float aScale, int32_t aFocus);
 
   
 
