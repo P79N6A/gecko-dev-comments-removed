@@ -2160,7 +2160,7 @@ IonBuilder::jsop_setgname(JSAtom *atom)
         return false;
 
     
-    MDefinition *pushedGlobal = current->pop();
+    DebugOnly<MDefinition *> pushedGlobal = current->pop();
     JS_ASSERT(&pushedGlobal->toConstant()->value().toObject() == globalObj);
 
     
