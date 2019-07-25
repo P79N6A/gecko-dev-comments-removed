@@ -2334,12 +2334,11 @@ ProgressController.prototype = {
     }
 
     
-    if (Browser._browserView._idleServiceObserver.isIdle()) {
-	
-	Browser._browserView._tileManager.restartPrefetchCrawl();
-    }
-
-    this._tab.updateThumbnail();
+    if (Browser._browserView._idleServiceObserver.isIdle())
+      Browser._browserView._tileManager.restartPrefetchCrawl();
+    
+    if (this.browser.currentURI.spec != "about:blank")
+      this._tab.updateThumbnail();
   },
 
   _documentStop: function() {
@@ -2514,9 +2513,6 @@ Tab.prototype = {
   },
 
   startLoading: function() {
-    
-    
-
     this._loading = true;
     this._browserViewportState.zoomChanged = false;
 
