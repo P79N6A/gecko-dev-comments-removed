@@ -94,9 +94,20 @@ let Notifications = {
   },
 
   
+
+
+
+
+
+
+  removeAll: function Notifications_removeAll(title) {
+    this.notifications.filter(function(old) old.title == title || !title).
+      forEach(function(old) this.remove(old), this);
+  },
+
+  
   replaceTitle: function Notifications_replaceTitle(notification) {
-    this.notifications.filter(function(old) old.title == notification.title)
-      .forEach(function(old) this.remove(old), this);
+    this.removeAll(notification.title);
     this.add(notification);
   }
 };
