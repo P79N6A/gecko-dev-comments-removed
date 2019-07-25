@@ -88,8 +88,7 @@ public:
   
   
   
-  
-  virtual nsresult Write(const void* aBuf, PRUint32 aCount, PRBool aBlocking) = 0;
+  virtual nsresult Write(const void* aBuf, PRUint32 aCount) = 0;
 
   
   
