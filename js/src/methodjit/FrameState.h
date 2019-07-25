@@ -229,6 +229,13 @@ class FrameState
 
 
 
+    inline RegisterID predictRegForType(FrameEntry *fe);
+
+    
+
+
+
+
     inline RegisterID tempRegForType(FrameEntry *fe);
 
     
@@ -248,6 +255,25 @@ class FrameState
 
 
     inline RegisterID tempRegForConstant(FrameEntry *fe);
+
+    
+
+
+
+    inline void emitLoadTypeTag(FrameEntry *fe, RegisterID reg) const;
+    inline void emitLoadTypeTag(Assembler &masm, FrameEntry *fe, RegisterID reg) const;
+
+    
+
+
+
+    inline void convertInt32ToDouble(Assembler &masm, FrameEntry *fe,
+                                     FPRegisterID fpreg) const;
+
+    
+
+
+    inline bool peekTypeInRegister(FrameEntry *fe) const;
 
     
 
@@ -276,6 +302,15 @@ class FrameState
 
 
     RegisterID copyDataIntoReg(FrameEntry *fe);
+    RegisterID copyDataIntoReg(Assembler &masm, FrameEntry *fe);
+
+    
+
+
+
+    FPRegisterID copyEntryIntoFPReg(FrameEntry *fe, FPRegisterID fpreg);
+    FPRegisterID copyEntryIntoFPReg(Assembler &masm, FrameEntry *fe,
+                                    FPRegisterID fpreg);
 
     
 
@@ -351,6 +386,11 @@ class FrameState
 
 
     void syncAndKill(uint32 mask); 
+
+    
+
+
+    void syncAllRegs(uint32 mask);
 
     
 

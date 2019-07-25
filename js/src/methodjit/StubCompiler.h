@@ -125,6 +125,17 @@ class StubCompiler
 #undef STUB_CALL_TYPE
 
     
+
+
+
+    JSC::MacroAssembler::Label syncExit();
+    
+
+
+
+    JSC::MacroAssembler::Label syncExitAndJump();
+
+    
     void linkExit(Jump j);
     void linkExitDirect(Jump j, Label L);
 
@@ -137,6 +148,7 @@ class StubCompiler
 
 
     void rejoin(uint32 invalidationDepth);
+    void linkRejoin(Jump j);
 
     
     void fixCrossJumps(uint8 *ncode, size_t offset, size_t total);
