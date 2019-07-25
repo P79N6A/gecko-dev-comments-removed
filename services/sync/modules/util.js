@@ -1416,6 +1416,18 @@ let Utils = {
     return true;
   },
 
+  
+  
+  ensureMPUnlocked: function ensureMPUnlocked() {
+    sdr = Cc["@mozilla.org/security/sdr;1"].getService(Ci.nsISecretDecoderRing);
+    var ok = false;
+    try {
+      sdr.encryptString("bacon");
+      ok = true;
+    } catch(e) {}
+    return ok;
+  },
+  
   __prefs: null,
   get prefs() {
     if (!this.__prefs) {
