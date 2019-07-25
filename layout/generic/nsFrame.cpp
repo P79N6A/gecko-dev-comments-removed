@@ -5616,6 +5616,11 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       FrameContentRange range = GetRangeForFrame(targetFrame.frame);
       aPos->mResultContent = range.content;
       aPos->mContentOffset = endOfLine ? range.end : range.start;
+      if (endOfLine && targetFrame.frame->HasTerminalNewline()) {
+        
+        
+        --aPos->mContentOffset;
+      }
       aPos->mResultFrame = targetFrame.frame;
       aPos->mAttachForward = (aPos->mContentOffset == range.start);
       if (!range.content)
