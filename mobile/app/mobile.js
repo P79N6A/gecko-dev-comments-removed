@@ -132,6 +132,9 @@ pref("network.buffer.cache.size",  16384);
 pref("browser.display.history.maxresults", 100);
 
 
+pref("browser.display.remotetabs.timeout", 10);
+
+
 pref("browser.sessionhistory.max_total_viewers", 1);
 pref("browser.sessionhistory.max_entries", 50);
 pref("browser.sessionhistory.optimize_eviction", true);
