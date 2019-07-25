@@ -2,6 +2,7 @@
 
 
 
+import select
 import socket
 import SocketServer
 import time, datetime
@@ -211,7 +212,9 @@ class DeviceManagerSUT(DeviceManager):
 
           
           try:
-            temp = self._sock.recv(1024)
+             
+            if select.select([self._sock], [], [], 1)[0]:
+                temp = self._sock.recv(1024)
             if (self.debug >= 4): print "response: " + str(temp)
           except socket.error, msg:
             self._sock.close()
