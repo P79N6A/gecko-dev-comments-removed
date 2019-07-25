@@ -1146,17 +1146,6 @@ WeaveSvc.prototype = {
       return;
     }
 
-    if (Svc.Prefs.isSet("firstSync")) {
-      switch(Svc.Prefs.get("firstSync")) {
-        case "wipeClient":
-          this.wipeClient();
-          break;
-        case "wipeRemote":
-          this.wipeRemote(Engines.getAll().map(function(e) e.name));
-          break;
-      }
-    }
-
     
     this._clearSyncTriggers();
     this.nextSync = 0;
@@ -1169,6 +1158,16 @@ WeaveSvc.prototype = {
 
     if (!(this._remoteSetup()))
       throw "aborting sync, remote setup failed";
+
+    
+    switch (Svc.Prefs.get("firstSync")) {
+      case "wipeClient":
+        this.wipeClient(Engines.getEnabled().map(function(e) e.name));
+        break;
+      case "wipeRemote":
+        this.wipeRemote(Engines.getEnabled().map(function(e) e.name));
+        break;
+    }
 
     
     let infoURL = this.infoURL;
