@@ -290,6 +290,33 @@ struct ContextFriendFields {
 #endif
 };
 
+struct RuntimeFriendFields {
+    
+
+
+
+    volatile int32_t    interrupt;
+
+    
+    uintptr_t           nativeStackLimit;
+
+#if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
+    
+
+
+
+    Rooted<void*> *thingGCRooters[THING_ROOT_LIMIT];
+#endif
+
+    RuntimeFriendFields()
+      : interrupt(0),
+        nativeStackLimit(0) { }
+
+    static const RuntimeFriendFields *get(const JSRuntime *rt) {
+        return reinterpret_cast<const RuntimeFriendFields *>(rt);
+    }
+};
+
 } 
 
 #endif 
