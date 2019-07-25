@@ -505,8 +505,9 @@ if __name__ == '__main__':
             print >>sys.stderr, "--regen useless without --cachedir"
         
         
-        for filename in [os.path.join(options.cachedir, f) for f in ["xpidllex.py", "xpidlyacc.py"]]:
-            os.remove(filename)
+        for fileglobs in [os.path.join(options.cachedir, f) for f in ["xpidllex.py*", "xpidlyacc.py*"]]:
+            for filename in glob.glob(fileglobs):
+                os.remove(filename)
 
     
     p = xpidl.IDLParser(outputdir=options.cachedir)
