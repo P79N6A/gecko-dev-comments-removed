@@ -86,6 +86,7 @@ HttpChannelParent::ActorDestroy(ActorDestroyReason why)
 {
   
   
+  
   mIPCClosed = true;
 }
 
@@ -317,20 +318,12 @@ HttpChannelParent::RecvUpdateAssociatedContentSecurity(const PRInt32& high,
                                                        const PRInt32& broken,
                                                        const PRInt32& no)
 {
-  nsHttpChannel *chan = static_cast<nsHttpChannel *>(mChannel.get());
-
-  nsCOMPtr<nsISupports> secInfo;
-  chan->GetSecurityInfo(getter_AddRefs(secInfo));
-
-  nsCOMPtr<nsIAssociatedContentSecurity> assoc = do_QueryInterface(secInfo);
-  if (!assoc)
-    return true;
-
-  assoc->SetCountSubRequestsHighSecurity(high);
-  assoc->SetCountSubRequestsLowSecurity(low);
-  assoc->SetCountSubRequestsBrokenSecurity(broken);
-  assoc->SetCountSubRequestsNoSecurity(no);
-
+  if (mAssociatedContentSecurity) {
+    mAssociatedContentSecurity->SetCountSubRequestsHighSecurity(high);
+    mAssociatedContentSecurity->SetCountSubRequestsLowSecurity(low);
+    mAssociatedContentSecurity->SetCountSubRequestsBrokenSecurity(broken);
+    mAssociatedContentSecurity->SetCountSubRequestsNoSecurity(no);
+  }
   return true;
 }
 
@@ -360,9 +353,8 @@ bool
 HttpChannelParent::RecvDocumentChannelCleanup()
 {
   
-  
-  mCacheDescriptor = 0;
-
+  mChannel = 0;          
+  mCacheDescriptor = 0;  
   return true;
 }
 
@@ -421,6 +413,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   nsCOMPtr<nsISupports> secInfoSupp;
   chan->GetSecurityInfo(getter_AddRefs(secInfoSupp));
   if (secInfoSupp) {
+    mAssociatedContentSecurity = do_QueryInterface(secInfoSupp);
     nsCOMPtr<nsISerializable> secInfoSer = do_QueryInterface(secInfoSupp);
     if (secInfoSer)
       NS_SerializeToString(secInfoSer, secInfoSerialization);

@@ -90,7 +90,11 @@ NS_IMETHODIMP_(nsrefcnt) HttpChannelChild::Release()
   --mRefCnt;
   NS_LOG_RELEASE(this, mRefCnt, "HttpChannelChild");
 
-  if (mRefCnt == 1 && mKeptAlive && mIPCOpen) {
+  
+  
+  
+  if (mKeptAlive && mRefCnt == 1) {
+    NS_ASSERTION(mIPCOpen, "mIPCOpen false!");
     mKeptAlive = false;
     
     
@@ -486,15 +490,14 @@ HttpChannelChild::OnStopRequest(const nsresult& statusCode)
       mLoadGroup->RemoveRequest(this, nsnull, mStatus);
   }
 
-  if (!(mLoadFlags & LOAD_DOCUMENT_URI)) {
-    
-    
-    PHttpChannelChild::Send__delete__(this);
-  } else {
-    
+  if (mLoadFlags & LOAD_DOCUMENT_URI) {
     
     mKeptAlive = true;
     SendDocumentChannelCleanup();
+  } else {
+    
+    
+    PHttpChannelChild::Send__delete__(this);
   }
 }
 
@@ -923,7 +926,7 @@ HttpChannelChild::Cancel(nsresult status)
     
     mCanceled = true;
     mStatus = status;
-    if (mIPCOpen)
+    if (RemoteChannelExists())
       SendCancel(status);
   }
   return NS_OK;
@@ -932,7 +935,7 @@ HttpChannelChild::Cancel(nsresult status)
 NS_IMETHODIMP
 HttpChannelChild::Suspend()
 {
-  NS_ENSURE_TRUE(mIPCOpen, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
   if (!mSuspendCount++) {
     SendSuspend();
     mEventQ.Suspend();
@@ -956,7 +959,7 @@ HttpChannelChild::CompleteResume()
 NS_IMETHODIMP
 HttpChannelChild::Resume()
 {
-  NS_ENSURE_TRUE(mIPCOpen, NS_ERROR_NOT_AVAILABLE);
+  NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
 
   nsresult rv = NS_OK;
@@ -1169,7 +1172,7 @@ HttpChannelChild::GetCacheTokenCachedCharset(nsACString &_retval)
 NS_IMETHODIMP
 HttpChannelChild::SetCacheTokenCachedCharset(const nsACString &aCharset)
 {
-  if (!mCacheEntryAvailable || !mIPCOpen)
+  if (!mCacheEntryAvailable || !RemoteChannelExists())
     return NS_ERROR_NOT_AVAILABLE;
 
   mCachedCharset = aCharset;
@@ -1216,7 +1219,7 @@ HttpChannelChild::SetPriority(PRInt32 aPriority)
   if (mPriority == newValue)
     return NS_OK;
   mPriority = newValue;
-  if (mIPCOpen) 
+  if (RemoteChannelExists())
     SendSetPriority(mPriority);
   return NS_OK;
 }

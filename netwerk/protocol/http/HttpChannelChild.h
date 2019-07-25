@@ -170,8 +170,11 @@ private:
   bool mSendResumeAt;
 
   bool mIPCOpen;
-  bool mKeptAlive;
+  bool mKeptAlive;            
   ChannelEventQueue mEventQ;
+
+  
+  bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
 
   void AssociateApplicationCache(const nsCString &groupID,
                                  const nsCString &clientID);
