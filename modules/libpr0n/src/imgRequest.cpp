@@ -1174,6 +1174,25 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     }
 
     
+    if (httpChannel) {
+      nsCAutoString contentLength;
+      rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
+                                          contentLength);
+      if (NS_SUCCEEDED(rv)) {
+        PRInt32 len = contentLength.ToInteger(&rv);
+
+        
+        
+        if (len > 0) {
+          PRUint32 sizeHint = (PRUint32) len;
+          sizeHint = PR_MIN(sizeHint, 20000000); 
+          mImage->SetSourceSizeHint(sizeHint);
+        }
+      }
+    }
+
+
+    
     if (mDecodeRequested) {
       mImage->RequestDecode();
     }
