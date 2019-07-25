@@ -572,6 +572,13 @@ protected:
     PRInt32 MaxTextureSizeForTarget(WebGLenum target) const {
         return target == LOCAL_GL_TEXTURE_2D ? mGLMaxTextureSize : mGLMaxCubeMapTextureSize;
     }
+    
+    
+
+    GLenum CheckedBufferData(GLenum target,
+                             GLsizeiptr size,
+                             const GLvoid *data,
+                             GLenum usage);
 
     
     nsTArray<WebGLVertexAttribData> mAttribBuffers;
