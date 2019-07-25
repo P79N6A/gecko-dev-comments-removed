@@ -403,6 +403,11 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     
     
 
+#ifdef JS_CPU_ARM
+    
+    masm.breakpoint();
+    return true;
+#else
     typedef bool (*pf)(JSContext *);
     static const VMFunction ReportOverRecursedInfo =
         FunctionInfo<pf>(ReportOverRecursed);
@@ -415,6 +420,7 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     masm.breakpoint();
 #endif
     return true;
+#endif
 }
 
 bool
