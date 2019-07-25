@@ -667,7 +667,7 @@ bool
 pluginCrashInNestedLoop(InstanceData* instanceData)
 {
   
-  sleep(1);
+  while(sleep(1)) {}
 
   
   bool found_event = false;
@@ -681,7 +681,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
 
   
   
-  sleep(1);
+  while(sleep(1)) {}
 
   
   
