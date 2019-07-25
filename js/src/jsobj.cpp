@@ -1020,6 +1020,13 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
 
 
+    if (caller->scopeChain().compartment() != vp[0].toObject().compartment())
+        indirectCall = true;
+
+    
+
+
+
 
 
 
@@ -1249,6 +1256,8 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
         if (!script)
             return JS_FALSE;
     }
+
+    assertSameCompartment(cx, scopeobj, script);
 
     
 
@@ -3113,6 +3122,8 @@ js_NewWithObject(JSContext *cx, JSObject *proto, JSObject *parent, jsint depth)
     JSObject *thisp = proto->thisObject(cx);
     if (!thisp)
         return NULL;
+
+    assertSameCompartment(cx, obj, thisp);
 
     obj->setWithThis(thisp);
     return obj;
