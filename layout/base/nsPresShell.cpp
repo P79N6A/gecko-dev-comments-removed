@@ -474,6 +474,20 @@ public:
         
         
         mPresShell->FlushPendingNotifications(Flush_Layout);
+      } else if (aVisitor.mEvent->message == NS_WHEEL_WHEEL &&
+                 aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault) {
+        nsIFrame* frame = mPresShell->GetCurrentEventFrame();
+        if (frame) {
+          
+          
+          
+          
+          nsRefPtr<nsEventStateManager> esm =
+            aVisitor.mPresContext->EventStateManager();
+          esm->DispatchLegacyMouseScrollEvents(frame,
+                 static_cast<widget::WheelEvent*>(aVisitor.mEvent),
+                 &aVisitor.mEventStatus);
+        }
       }
       nsIFrame* frame = mPresShell->GetCurrentEventFrame();
       if (!frame &&
@@ -5645,7 +5659,7 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
   NS_TIME_FUNCTION_MIN(1.0);
 
   nsIContent* capturingContent =
-    NS_IS_MOUSE_EVENT(aEvent) || aEvent->eventStructType == NS_MOUSE_SCROLL_EVENT ?
+    NS_IS_MOUSE_EVENT(aEvent) || aEvent->eventStructType == NS_WHEEL_EVENT ?
       GetCapturingContent() : nullptr;
 
   nsCOMPtr<nsIDocument> retargetEventDoc;
