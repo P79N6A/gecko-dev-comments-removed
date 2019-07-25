@@ -640,10 +640,11 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_INCNAME)
             jsop_nameinc(op, stubs::IncName, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_INCNAME)
 
           BEGIN_CASE(JSOP_INCGNAME)
-            jsop_nameinc(op, stubs::IncGlobalName, fullAtomIndex(PC));
+            jsop_gnameinc(op, stubs::IncGlobalName, fullAtomIndex(PC));
           END_CASE(JSOP_INCGNAME)
 
           BEGIN_CASE(JSOP_INCPROP)
@@ -657,10 +658,11 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_DECNAME)
             jsop_nameinc(op, stubs::DecName, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_DECNAME)
 
           BEGIN_CASE(JSOP_DECGNAME)
-            jsop_nameinc(op, stubs::DecGlobalName, fullAtomIndex(PC));
+            jsop_gnameinc(op, stubs::DecGlobalName, fullAtomIndex(PC));
           END_CASE(JSOP_DECGNAME)
 
           BEGIN_CASE(JSOP_DECPROP)
@@ -672,8 +674,13 @@ mjit::Compiler::generateMethod()
             jsop_eleminc(op, stubs::DecElem);
           END_CASE(JSOP_DECELEM)
 
+          BEGIN_CASE(JSOP_NAMEINC)
+            jsop_nameinc(op, stubs::NameInc, fullAtomIndex(PC));
+            break;
+          END_CASE(JSOP_NAMEINC)
+
           BEGIN_CASE(JSOP_GNAMEINC)
-            jsop_nameinc(op, stubs::GlobalNameInc, fullAtomIndex(PC));
+            jsop_gnameinc(op, stubs::GlobalNameInc, fullAtomIndex(PC));
           END_CASE(JSOP_GNAMEINC)
 
           BEGIN_CASE(JSOP_PROPINC)
@@ -687,10 +694,11 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_NAMEDEC)
             jsop_nameinc(op, stubs::NameDec, fullAtomIndex(PC));
+            break;
           END_CASE(JSOP_NAMEDEC)
 
           BEGIN_CASE(JSOP_GNAMEDEC)
-            jsop_nameinc(op, stubs::GlobalNameDec, fullAtomIndex(PC));
+            jsop_gnameinc(op, stubs::GlobalNameDec, fullAtomIndex(PC));
           END_CASE(JSOP_GNAMEDEC)
 
           BEGIN_CASE(JSOP_PROPDEC)
@@ -2422,13 +2430,101 @@ mjit::Compiler::jsop_this()
 }
 
 void
-mjit::Compiler::jsop_nameinc(JSOp op, VoidStubAtom stub, uint32 index)
+mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
 {
     JSAtom *atom = script->getAtom(index);
     prepareStubCall(Uses(0));
     masm.move(ImmPtr(atom), Registers::ArgReg1);
     stubCall(stub);
     frame.pushSynced();
+}
+
+void
+mjit::Compiler::jsop_nameinc(JSOp op, VoidStubAtom stub, uint32 index)
+{
+    JSAtom *atom = script->getAtom(index);
+    jsbytecode *next = &PC[JSOP_NAMEINC_LENGTH];
+    bool pop = (JSOp(*next) == JSOP_POP) && !analysis[next].nincoming;
+    int amt = (op == JSOP_NAMEINC || op == JSOP_INCNAME) ? -1 : 1;
+
+#if ENABLE_PIC
+    if (pop || (op == JSOP_INCNAME || op == JSOP_DECNAME)) {
+        
+
+        jsop_name(atom);
+        
+
+        frame.push(Int32Value(amt));
+        
+
+        
+        jsop_binary(JSOP_SUB, stubs::Sub);
+        
+
+        jsop_bindname(index);
+        
+
+        frame.dup2();
+        
+
+        frame.shift(-3);
+        
+
+        frame.shift(-1);
+        
+
+        jsop_setprop(atom);
+        
+
+        if (pop)
+            frame.pop();
+    } else {
+        
+
+        jsop_name(atom);
+        
+
+        jsop_pos();
+        
+
+        frame.dup();
+        
+
+        frame.push(Int32Value(-amt));
+        
+
+        jsop_binary(JSOP_ADD, stubs::Add);
+        
+
+        jsop_bindname(index);
+        
+
+        frame.dup2();
+        
+
+        frame.shift(-3);
+        
+
+        frame.shift(-1);
+        
+
+        jsop_setprop(atom);
+        
+
+        frame.pop();
+        
+    }
+#else
+    prepareStubCall(Uses(1));
+    masm.move(ImmPtr(atom), Registers::ArgReg1);
+    stubCall(stub);
+    frame.pop();
+    frame.pushSynced();
+#endif
+
+    PC += JSOP_NAMEINC_LENGTH;
+    if (pop)
+        PC += JSOP_POP_LENGTH;
 }
 
 void
