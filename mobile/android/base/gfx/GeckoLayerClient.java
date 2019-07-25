@@ -126,21 +126,21 @@ public class GeckoLayerClient implements GeckoEventListener,
     }
 
     
-    public Rect beginDrawing(int width, int height, String metadata) {
+    public boolean beginDrawing(int width, int height, String metadata) {
         Log.e(LOGTAG, "### beginDrawing " + width + " " + height);
 
         
         
         
         if (!mFirstPaint && mIgnorePaintsPendingViewportSizeChange) {
-            return null;
+            return false;
         }
         mFirstPaint = false;
 
         
         if (initializeVirtualLayer()) {
             Log.e(LOGTAG, "### Cancelling draw due to virtual layer initialization");
-            return null;
+            return false;
         }
 
         try {
@@ -157,50 +157,14 @@ public class GeckoLayerClient implements GeckoEventListener,
             }
         } catch (JSONException e) {
             Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
-            return null;
-        }
-
-
-        
-        
-        Rect bufferRect = new Rect(0, 0, width, height);
-
-        if (!mUpdateViewportOnEndDraw) {
-            
-            
-            ViewportMetrics currentMetrics = mLayerController.getViewportMetrics();
-            PointF currentBestOrigin = RectUtils.getOrigin(currentMetrics.getClampedViewport());
-
-            Rect currentRect = RectUtils.round(new RectF(currentBestOrigin.x, currentBestOrigin.y,
-                                                         currentBestOrigin.x + width, currentBestOrigin.y + height));
-
-            
-            PointF currentOrigin = mNewGeckoViewport.getOrigin();
-            bufferRect = RectUtils.round(new RectF(currentOrigin.x, currentOrigin.y,
-                                                   currentOrigin.x + width, currentOrigin.y + height));
-
-            int area = width * height;
-
-            
-            if (!bufferRect.intersect(currentRect)) {
-                Log.w(LOGTAG, "Prediction would avoid useless paint of " + area + " pixels (100.0%)");
-                
-                
-                updateViewport(true);
-                return null;
-            }
-
-            int wasted = area - (bufferRect.width() * bufferRect.height());
-            Log.w(LOGTAG, "Prediction would avoid useless paint of " + wasted + " pixels (" + ((float)wasted * 100.0f / area) + "%)");
-
-            bufferRect.offset(Math.round(-currentOrigin.x), Math.round(-currentOrigin.y));
+            return false;
         }
 
         if (mBufferSize.width != width || mBufferSize.height != height) {
             mBufferSize = new IntSize(width, height);
         }
 
-        return bufferRect;
+        return true;
     }
 
     
