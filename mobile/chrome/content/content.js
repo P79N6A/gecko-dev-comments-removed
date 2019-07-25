@@ -2,7 +2,7 @@
 dump("###################################### content loaded\n");
 
 
-const kTapOverlayTimeout = 300;
+const kTapOverlayTimeout = 200;
 
 let Cc = Components.classes;
 let Ci = Components.interfaces;

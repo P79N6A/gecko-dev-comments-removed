@@ -205,26 +205,31 @@ var BrowserUI = {
 
   _editURI: function _editURI(aEdit) {
     if (aEdit) {
+      
+      
+      
       let isOpened = this._edit.hasAttribute("open");
       if (!isOpened) {
         Elements.urlbarState.setAttribute("mode", "edit");
         this._edit.defaultValue = this._edit.value;
+
+        
+        let urlString = this.getDisplayURI(Browser.selectedBrowser);
+        if (Util.isURLEmpty(urlString))
+          urlString = "";
+        this._edit.value = urlString;
       }
 
       
-      let urlString = this.getDisplayURI(Browser.selectedBrowser);
-      if (Util.isURLEmpty(urlString))
-        urlString = "";
-      this._edit.value = urlString;
-
-      if (!this._edit.readOnly) {
+      
+      if (!this._edit.readOnly || Util.isPortrait()) {
         
         
         this._edit.blur();
         gFocusManager.setFocus(this._edit, Ci.nsIFocusManager.FLAG_NOSCROLL);
       }
 
-      this._edit.readOnly = !isOpened;
+      this._edit.readOnly = false;
     }
     else if (!aEdit) {
       this._updateToolbar();
@@ -391,6 +396,8 @@ var BrowserUI = {
 
     this._edit.addEventListener("click", this, false);
     this._edit.addEventListener("mousedown", this, false);
+
+    BadgeHandlers.register(this._edit.popup);
 
     let awesomePopup = document.getElementById("popup_autocomplete");
     awesomePopup.addEventListener("popupshown", this, false);
@@ -566,6 +573,11 @@ var BrowserUI = {
       this._edit.popup.close();
     else
       this._edit.popup.closePopup();
+
+    
+    
+    this._edit.detachController();
+    this.activePanel = null;
   },
 
   isAutoCompleteOpen: function isAutoCompleteOpen() {
@@ -578,7 +590,6 @@ var BrowserUI = {
 
     
     Browser.hideSidebars();
-    this.activePanel = null;
     this.closeAutoComplete(false);
 
     
@@ -632,6 +643,7 @@ var BrowserUI = {
   },
 
   selectTab: function selectTab(aTab) {
+    this.activePanel = null;
     Browser.selectedTab = aTab;
   },
 
@@ -927,7 +939,6 @@ var BrowserUI = {
         break;
       case "cmd_go":
         this.goToURI();
-        this.activePanel = null;
         break;
       case "cmd_openLocation":
         this.showToolbar(true);
@@ -1380,8 +1391,8 @@ var AwesomePanel = function(aElementId, aCommandId) {
     let item = aEvent.originalTarget;
     let uri = item.getAttribute("url") || item.getAttribute("uri");
     if (uri != "") {
-      BrowserUI.activePanel = null;
       BrowserUI.goToURI(uri);
+      BrowserUI.activePanel = null;
     }
   }
 };
@@ -2413,7 +2424,6 @@ var ContextCommands = {
   }
 }
 
-
 var SharingUI = {
   _dialog: null,
 
@@ -2480,3 +2490,74 @@ var SharingUI = {
   ]
 };
 
+
+var BadgeHandlers = {
+  _handlers: [
+    {
+      _lastUpdate: 0,
+      _lastCount: 0,
+      url: "http://mail.google.com",
+      updateBadge: function(aItem) {
+        
+        let now = Date.now();
+        if (this._lastCount && this._lastUpdate > now - 1000) {
+          aItem.setAttribute("badge", this._lastCount);
+          return;
+        }
+
+        this._lastUpdate = now;
+
+        
+        
+        let login = BadgeHandlers.getLogin("https://www.google.com");
+
+        
+        
+        let req = new XMLHttpRequest();
+        req.mozBackgroundRequest = true;
+        req.open("GET", "https://mail.google.com/mail/feed/atom", true, login.username, login.password);
+        req.onreadystatechange = function(aEvent) {
+          if (req.readyState == 4) {
+            if (req.status == 200) {
+              this._lastCount = req.responseXML.getElementsByTagName("fullcount")[0].childNodes[0].nodeValue;
+            } else {
+              this._lastCount = 0;
+            }
+            this._lastCount = BadgeHandlers.setNumberBadge(aItem, this._lastCount);
+          }
+        };
+        req.send(null);
+      }
+    }
+  ],
+
+  register: function(aPopup) {
+    let handlers = this._handlers;
+    for (let i = 0; i < handlers.length; i++)
+      aPopup.registerBadgeHandler(handlers[i].url, handlers[i]);
+  },
+
+  getLogin: function(aURL) {
+    let lm = Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+    let logins = lm.findLogins({}, aURL, aURL, null);
+    let username = logins.length > 0 ? logins[0].username : "";
+    let password = logins.length > 0 ? logins[0].password : "";
+    return { username: username, password: password };
+  },
+
+  clampBadge: function(aValue) {
+    if (aValue > 100)
+      aValue = "99+";
+    return aValue;
+  },
+
+  setNumberBadge: function(aItem, aValue) {
+    if (parseInt(aValue) != 0) {
+      aValue = this.clampBadge(aValue);
+      aItem.setAttribute("badge", aValue);
+    } else {
+      aItem.removeAttribute("badge");
+    }
+    return aValue;
+  }
+};

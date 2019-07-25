@@ -56,7 +56,7 @@ function getBrowser() {
   return Browser.selectedBrowser;
 }
 
-const kDefaultBrowserWidth = 800;
+const kDefaultBrowserWidth = 980;
 const kBrowserFormZoomLevelMin = 1.0;
 const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
@@ -167,10 +167,6 @@ var Browser = {
       
       dump("###########" + e + "\n");
     }
-
-    let needOverride = Util.needHomepageOverride();
-    if (needOverride == "new profile")
-      this.initNewProfile();
 
     let container = document.getElementById("browsers");
     
@@ -303,44 +299,12 @@ var Browser = {
     Util.forceOnline();
 
     
-    let whereURI = this.getHomePage();
-    if (needOverride == "new profile")
-        whereURI = "about:firstrun";
-
     
-    
-    if (window.arguments && window.arguments[0]) {
-      if (window.arguments[0] instanceof Ci.nsICommandLine) {
-        try {
-          var cmdLine = window.arguments[0];
+    let defaultURL = this.getHomePage();
+    if (window.arguments && window.arguments[0])
+      defaultURL = window.arguments[0];
 
-          
-          if (cmdLine.length == 1) {
-            
-            var uri = cmdLine.getArgument(0);
-            if (uri != "" && uri[0] != '-') {
-              whereURI = cmdLine.resolveURI(uri);
-              if (whereURI)
-                whereURI = whereURI.spec;
-            }
-          }
-
-          
-          var uriFlag = cmdLine.handleFlagWithParam("url", false);
-          if (uriFlag) {
-            whereURI = cmdLine.resolveURI(uriFlag);
-            if (whereURI)
-              whereURI = whereURI.spec;
-          }
-        } catch (e) {}
-      }
-      else {
-        
-        whereURI = window.arguments[0];
-      }
-    } 
-
-    this.addTab(whereURI, true);
+    this.addTab(defaultURL, true);
 
     
     if (Services.prefs.getBoolPref("browser.console.showInPanel")){
@@ -446,9 +410,6 @@ var Browser = {
 
     window.controllers.removeController(this);
     window.controllers.removeController(BrowserUI);
-  },
-
-  initNewProfile: function initNewProfile() {
   },
 
   getHomePage: function () {
