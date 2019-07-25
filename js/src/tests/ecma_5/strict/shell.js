@@ -37,6 +37,36 @@ function completesNormally(code) {
 
 
 
+function returns(value) {
+  return function(code) {
+    try {
+      return eval(code) === value;
+    } catch (exception) {
+      return false;
+    }
+  }
+}
+
+
+
+
+
+
+function returnsCopyOf(value) {
+  return function(code) {
+    try {
+      return deep_equal(eval(code), value);
+    } catch (exception) {
+      return false;
+    }
+  }
+}
+
+
+
+
+
+
 
 
 function raisesException(exception) {
@@ -85,4 +115,31 @@ function parseRaisesException(exception) {
 
 function clean_uneval(val) {
   return uneval(val).replace(/\s+/g, ' ');
+}
+
+
+
+
+
+
+
+function deep_equal(a, b) {
+  if (typeof a != typeof b)
+    return false;
+  if (typeof a == 'object') {
+    props = {}
+    
+    for (prop in a) {
+      if (!deep_equal(a[prop], b[prop]))
+        return false;
+      props[prop] = true;
+    }
+    
+    for (prop in b)
+      if (!props[prop])
+        return false;
+    
+    return a.length == b.length;
+  }
+  return a == b;
 }
