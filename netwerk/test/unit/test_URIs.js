@@ -1,6 +1,15 @@
 
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 const Ci = Components.interfaces;
+const Cr = Components.results;
+
+var gIoService = Components.classes["@mozilla.org/network/io-service;1"]
+                           .getService(Components.interfaces.nsIIOService);
+
+
+
+
+
 
 
 
@@ -29,11 +38,24 @@ var gTests = [
     path:    "text/html;charset=utf-8,<html></html>",
     ref:     "",
     nsIURL:  false, nsINestedURI: false },
+  { spec:    "data:text/html;charset=utf-8,<html>\r\n\t</html>",
+    scheme:  "data",
+    prePath: "data:",
+    path:    "text/html;charset=utf-8,<html></html>",
+    ref:     "",
+    nsIURL:  false, nsINestedURI: false },
   { spec:    "data:text/plain,hello world",
     scheme:  "data",
     prePath: "data:",
     path:    "text/plain,hello%20world",
     ref:     "",
+    nsIURL:  false, nsINestedURI: false },
+  { spec:    "file:///dir/afile",
+    scheme:  "data",
+    prePath: "data:",
+    path:    "text/plain,2",
+    ref:     "",
+    relativeURI: "data:te\nxt/plain,2",
     nsIURL:  false, nsINestedURI: false },
   { spec:    "file://",
     scheme:  "file",
@@ -52,6 +74,20 @@ var gTests = [
     prePath: "file://",
     path:    "/myFile.html",
     ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "file:///dir/afile",
+    scheme:  "file",
+    prePath: "file://",
+    path:    "/dir/data/text/plain,2",
+    ref:     "",
+    relativeURI: "data/text/plain,2",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "file:///dir/dir2/",
+    scheme:  "file",
+    prePath: "file://",
+    path:    "/dir/dir2/data/text/plain,2",
+    ref:     "",
+    relativeURI: "data/text/plain,2",
     nsIURL:  true, nsINestedURI: false },
   { spec:    "ftp://",
     scheme:  "ftp",
@@ -74,6 +110,9 @@ var gTests = [
   { spec:    "ftp://foo:bar@ftp.mozilla.org:100/pub/mozilla.org/README",
     scheme:  "ftp",
     prePath: "ftp://foo:bar@ftp.mozilla.org:100",
+    port:    100,
+    username: "foo",
+    password: "bar",
     path:    "/pub/mozilla.org/README",
     ref:     "",
     nsIURL:  true, nsINestedURI: false },
@@ -99,6 +138,44 @@ var gTests = [
     scheme:  "http",
     prePath: "http://www.example.com",
     path:    "/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://www.exa\nmple.com/",
+    scheme:  "http",
+    prePath: "http://www.example.com",
+    path:    "/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://10.32.4.239/",
+    scheme:  "http",
+    prePath: "http://10.32.4.239",
+    host:    "10.32.4.239",
+    path:    "/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://[::192.9.5.5]/ipng",
+    scheme:  "http",
+    prePath: "http://[::192.9.5.5]",
+    host:    "::192.9.5.5",
+    path:    "/ipng",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:8888/index.html",
+    scheme:  "http",
+    prePath: "http://[fedc:ba98:7654:3210:fedc:ba98:7654:3210]:8888",
+    host:    "fedc:ba98:7654:3210:fedc:ba98:7654:3210",
+    port:    8888,
+    path:    "/index.html",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://bar:foo@www.mozilla.org:8080/pub/mozilla.org/README.html",
+    scheme:  "http",
+    prePath: "http://bar:foo@www.mozilla.org:8080",
+    port:    8080,
+    username: "bar",
+    password: "foo",
+    host:    "www.mozilla.org",
+    path:    "/pub/mozilla.org/README.html",
     ref:     "",
     nsIURL:  true, nsINestedURI: false },
   { spec:    "jar:resource://!/",
@@ -173,6 +250,284 @@ var gTests = [
     path:    "abc",
     ref:     "",
     nsIURL:  false, nsINestedURI: false },
+  { spec:    "http://www2.example.com/",
+    relativeURI: "a/b/c/d",
+    scheme:  "http",
+    prePath: "http://www2.example.com",
+    path:    "/a/b/c/d",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g:h",
+    scheme:  "g",
+    prePath: "g:",
+    path:    "h",
+    ref:     "",
+    nsIURL:  false, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "./g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g/",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "/g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "?y",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/d;p?y",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g?y",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g?y",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "#s",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/d;p?q#s",
+    ref:     "s",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g#s",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g#s",
+    ref:     "s",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g?y#s",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g?y#s",
+    ref:     "s",
+    nsIURL:  true, nsINestedURI: false },
+  
+
+
+
+
+
+
+
+
+
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g;x",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g;x",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g;x?y#s",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g;x?y#s",
+    ref:     "s",
+    nsIURL:  true, nsINestedURI: false },
+  
+
+
+
+
+
+
+
+
+
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: ".",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "./",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "..",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../..",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../../",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../../g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+
+  
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../../../g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "../../../../g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+
+  
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "/./g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "/../g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g.",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g.",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: ".g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/.g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g..",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g..",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "..g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/..g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: ".",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "./../g",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/g",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "./g/.",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g/",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g/./h",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g/h",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g/../h",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/h",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g;x=1/./y",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/g;x=1/y",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+  { spec:    "http://a/b/c/d;p?q",
+    relativeURI: "g;x=1/../y",
+    scheme:  "http",
+    prePath: "http://a",
+    path:    "/b/c/y",
+    ref:     "",
+    nsIURL:  true, nsINestedURI: false },
+
 ];
 
 var gHashSuffixes = [
@@ -239,24 +594,57 @@ function do_check_uri_eqExceptRef(aURI1, aURI2, aCheckTrueFunc) {
 
 
 function do_check_property(aTest, aURI, aPropertyName, aTestFunctor) {
-  var expectedVal = aTestFunctor ?
-    aTestFunctor(aTest[aPropertyName]) :
-    aTest[aPropertyName];
+  if (aTest[aPropertyName]) {
+    var expectedVal = aTestFunctor ?
+                      aTestFunctor(aTest[aPropertyName]) :
+                      aTest[aPropertyName];
 
-  do_info("testing " + aPropertyName + " of " +
-          (aTestFunctor ? "modified '" : "'" ) + aTest.spec +
-          "' is '" + expectedVal + "'");
-  do_check_eq(aURI[aPropertyName], expectedVal);
+    do_info("testing " + aPropertyName + " of " +
+            (aTestFunctor ? "modified '" : "'" ) + aTest.spec +
+            "' is '" + expectedVal + "'");
+    do_check_eq(aURI[aPropertyName], expectedVal);
+  }
 }
 
 
 function do_test_uri_basic(aTest) {
-  var URI = NetUtil.newURI(aTest.spec);
+  var URI;
+
+  do_info("Basic tests for " + aTest.spec + " relative URI: " + aTest.relativeURI);
+
+  try {
+    URI = NetUtil.newURI(aTest.spec);
+  } catch(e) {
+    do_info("Caught error on parse of" + aTest.spec + " Error: " + e.result);
+    if (aTest.fail) {
+      do_check_eq(e.result, aTest.result);
+      return;
+    }
+    do_throw(e.result);
+  }
+
+  if (aTest.relativeURI) {
+    var relURI;
+
+    try {
+      relURI = gIoService.newURI(aTest.relativeURI, null, URI);
+    } catch (e) {
+      do_info("Caught error on Relative parse of " + aTest.spec + " + " + aTest.relativeURI +" Error: " + e.result);
+      if (aTest.relativeFail) {
+        do_check_eq(e.result, aTest.relativeFail);
+        return;
+      }
+      do_throw(e.result);
+    }
+    do_info("relURI.path = " + relURI.path + ", was " + URI.path);
+    URI = relURI;
+    do_info("URI.path now = " + URI.path);
+  }
 
   
   do_info("testing " + aTest.spec + " equals a clone of itself");
   do_check_uri_eq(URI, URI.clone());
-  do_check_uri_eq(URI, URI.cloneIgnoringRef());
+  do_check_uri_eqExceptRef(URI, URI.cloneIgnoringRef());
   do_info("testing " + aTest.spec + " instanceof nsIURL");
   do_check_eq(URI instanceof Ci.nsIURL, aTest.nsIURL);
   do_info("testing " + aTest.spec + " instanceof nsINestedURI");
@@ -282,6 +670,10 @@ function do_test_uri_basic(aTest) {
   do_check_property(aTest, URI, "prePath");
   do_check_property(aTest, URI, "path");
   do_check_property(aTest, URI, "ref");
+  do_check_property(aTest, URI, "port");
+  do_check_property(aTest, URI, "username");
+  do_check_property(aTest, URI, "password");
+  do_check_property(aTest, URI, "host");
 }
 
 
@@ -289,8 +681,25 @@ function do_test_uri_with_hash_suffix(aTest, aSuffix) {
   do_info("making sure caller is using suffix that starts with '#'");
   do_check_eq(aSuffix[0], "#");
 
-  var testURI = NetUtil.newURI(aTest.spec + aSuffix);
   var origURI = NetUtil.newURI(aTest.spec);
+  var testURI;
+
+  if (aTest.relativeURI) {
+    try {
+      origURI = gIoService.newURI(aTest.relativeURI, null, origURI);
+    } catch (e) {
+      do_info("Caught error on Relative parse of " + aTest.spec + " + " + aTest.relativeURI +" Error: " + e.result);
+      return;
+    }
+    try {
+      testURI = gIoService.newURI(aSuffix, null, origURI);
+    } catch (e) {
+      do_info("Caught error adding suffix to " + aTest.spec + " + " + aTest.relativeURI + ", suffix " + aSuffix + " Error: " + e.result);
+      return;
+    }
+  } else {
+    testURI = NetUtil.newURI(aTest.spec + aSuffix);
+  }
 
   do_info("testing " + aTest.spec + " with '" + aSuffix + "' appended " +
            "equals a clone of itself");
@@ -310,23 +719,24 @@ function do_test_uri_with_hash_suffix(aTest, aSuffix) {
           " is equalExceptRef to self with '" + aSuffix + "' appended");
   do_check_uri_eqExceptRef(origURI, testURI);
 
-  do_info("testing cloneIgnoringRef on " + testURI.spec +
-          " is equal to no-ref version but not equal to ref version");
-  var cloneNoRef = testURI.cloneIgnoringRef();
-  if ((aTest.spec == "http://" || aTest.spec == "ftp://") && aSuffix == "#") {
-    do_info("TODO: bug 657033");
-    do_check_uri_eq(cloneNoRef, origURI, todo_check_true);
-  } else {
+  if (!origURI.ref) {
+    
+    do_info("testing cloneIgnoringRef on " + testURI.spec +
+            " is equal to no-ref version but not equal to ref version");
+    var cloneNoRef = testURI.cloneIgnoringRef();
     do_check_uri_eq(cloneNoRef, origURI);
+    do_check_false(cloneNoRef.equals(testURI));
   }
-  do_check_false(cloneNoRef.equals(testURI));
 
   do_check_property(aTest, testURI, "scheme");
   do_check_property(aTest, testURI, "prePath");
-  do_check_property(aTest, testURI, "path",
-                    function(aStr) { return aStr + aSuffix; });
-  do_check_property(aTest, testURI, "ref",
-                    function(aStr) { return aSuffix.substr(1); });
+  if (!origURI.ref) {
+    
+    do_check_property(aTest, testURI, "path",
+                      function(aStr) { return aStr + aSuffix; });
+    do_check_property(aTest, testURI, "ref",
+                      function(aStr) { return aSuffix.substr(1); });
+  }
 }
 
 
@@ -370,41 +780,39 @@ function do_test_mutate_ref(aTest, aSuffix) {
   do_check_uri_eq(testURI, refURIWithoutSuffix);
   do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
 
-  
-  var specWithSuffix = aTest.spec + aSuffix;
-  do_info("testing that setting spec to " +
-          specWithSuffix + " and then clearing ref does what we expect");
-  testURI.spec = specWithSuffix
-  testURI.ref = "";
-  if ((aTest.spec == "http://" || aTest.spec == "ftp://") && aSuffix == "#") {
-    do_info("TODO: bug 657033");
-    do_check_uri_eq(testURI, refURIWithoutSuffix, todo_check_true);
-    do_check_uri_eqExceptRef(testURI, refURIWithSuffix, todo_check_true);
-  } else {
-    do_check_uri_eq(testURI, refURIWithoutSuffix);
-    do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
-  }
-
-  
-  if (!(testURI instanceof Ci.nsIJARURI)) {
+  if (!aTest.relativeURI) {
     
-    
-    testURI = NetUtil.newURI(aTest.spec);
 
-    var pathWithSuffix = aTest.path + aSuffix;
-    do_info("testing that setting path to " +
-            pathWithSuffix + " and then clearing ref does what we expect");
-    testURI.path = pathWithSuffix;
+    
+    var specWithSuffix = aTest.spec + aSuffix;
+    do_info("testing that setting spec to " +
+            specWithSuffix + " and then clearing ref does what we expect");
+    testURI.spec = specWithSuffix;
     testURI.ref = "";
     do_check_uri_eq(testURI, refURIWithoutSuffix);
     do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
 
     
-    testURI.path = pathWithSuffix;
-    do_info("testing that clearing path from " + 
-            pathWithSuffix + " also clears .ref");
-    testURI.path = "";
-    do_check_eq(testURI.ref, "");
+    if (!(testURI instanceof Ci.nsIJARURI)) {
+      
+      
+      testURI = NetUtil.newURI(aTest.spec);
+
+      var pathWithSuffix = aTest.path + aSuffix;
+      do_info("testing that setting path to " +
+              pathWithSuffix + " and then clearing ref does what we expect");
+      testURI.path = pathWithSuffix;
+      testURI.ref = "";
+      do_check_uri_eq(testURI, refURIWithoutSuffix);
+      do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
+
+      
+      testURI.path = pathWithSuffix;
+      do_info("testing that clearing path from " + 
+              pathWithSuffix + " also clears .ref");
+      testURI.path = "";
+      do_check_eq(testURI.ref, "");
+    }
   }
 }
 
@@ -437,22 +845,42 @@ function do_test_immutable(aTest) {
 
 function run_test()
 {
+  
+  
+  let base = gIoService.newURI("http://example.org/xenia?", null, null);
+  let resolved = gIoService.newURI("?x", null, base);
+  let expected = gIoService.newURI("http://example.org/xenia?x",
+                                  null, null);
+  do_info("Bug 662981: ACSII - comparing " + resolved.spec + " and " + expected.spec);
+  do_check_true(resolved.equals(expected));
+
+  
+  
+  base = gIoService.newURI("http://example.org/xènia?", null, null);
+  resolved = gIoService.newURI("?x", null, base);
+  expected = gIoService.newURI("http://example.org/xènia?x",
+                              null, null);
+  do_info("Bug 662981: UTF8 - comparing " + resolved.spec + " and " + expected.spec);
+  do_check_true(resolved.equals(expected));
+
   gTests.forEach(function(aTest) {
     
     do_test_uri_basic(aTest);
 
-    
-    gHashSuffixes.forEach(function(aSuffix) {
-      do_test_uri_with_hash_suffix(aTest, aSuffix);
-      if (!aTest.immutable) {
-        do_test_mutate_ref(aTest, aSuffix);
-      }
-    });
+    if (!aTest.fail) {
+      
+      gHashSuffixes.forEach(function(aSuffix) {
+          do_test_uri_with_hash_suffix(aTest, aSuffix);
+          if (!aTest.immutable) {
+            do_test_mutate_ref(aTest, aSuffix);
+          }
+        });
 
-    
-    
-    if (aTest.immutable) {
-      do_test_immutable(aTest);
+      
+      
+      if (aTest.immutable) {
+        do_test_immutable(aTest);
+      }
     }
   });
 }
