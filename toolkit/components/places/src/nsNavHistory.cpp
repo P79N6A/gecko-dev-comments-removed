@@ -2730,20 +2730,12 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
     hidden = oldHiddenState;
     if (hidden == 1 &&
-        (!aIsRedirect || aTransitionType == TRANSITION_TYPED) &&
-        aTransitionType != TRANSITION_EMBED &&
-        aTransitionType != TRANSITION_FRAMED_LINK)
+        (!GetHiddenState(aIsRedirect, aTransitionType) ||
+         aTransitionType == TRANSITION_TYPED)) {
       hidden = 0; 
+    }
 
     typed = (PRInt32)(oldTypedState == 1 || (aTransitionType == TRANSITION_TYPED));
 

@@ -267,6 +267,19 @@ protected:
 
 void ForceWALCheckpoint(mozIStorageConnection* aDBConn);
 
+
+
+
+
+
+
+
+
+
+
+bool GetHiddenState(bool aIsRedirect,
+                    PRUint32 aTransitionType);
+
 } 
 } 
 
