@@ -37,6 +37,7 @@
 
 
 #include <windows.h>
+#include <setupapi.h>
 #include "gfxWindowsPlatform.h"
 #include "GfxInfo.h"
 #include "GfxInfoWebGL.h"
@@ -181,6 +182,31 @@ static void normalizeDriverId(nsString& driverid) {
 }
 
 
+typedef HDEVINFO (WINAPI*SetupDiGetClassDevsWFunc)(
+  CONST GUID *ClassGuid,
+  PCWSTR Enumerator,
+  HWND hwndParent,
+  DWORD Flags
+);
+typedef BOOL (WINAPI*SetupDiEnumDeviceInfoFunc)(
+  HDEVINFO DeviceInfoSet,
+  DWORD MemberIndex,
+  PSP_DEVINFO_DATA DeviceInfoData
+);
+typedef BOOL (WINAPI*SetupDiGetDeviceRegistryPropertyWFunc)(
+  HDEVINFO DeviceInfoSet,
+  PSP_DEVINFO_DATA DeviceInfoData,
+  DWORD Property,
+  PDWORD PropertyRegDataType,
+  PBYTE PropertyBuffer,
+  DWORD PropertyBufferSize,
+  PDWORD RequiredSize
+);
+typedef BOOL (WINAPI*SetupDiDestroyDeviceInfoListFunc)(
+  HDEVINFO DeviceInfoSet
+);
+
+
 
 
 
@@ -232,50 +258,73 @@ GfxInfo::Init()
   mDeviceString = displayDevice.DeviceString;
 
 
-  HKEY key, subkey;
-  LONG result, enumresult;
-  DWORD index = 0;
-  WCHAR subkeyname[64];
-  WCHAR value[128];
-  DWORD dwcbData = sizeof(subkeyname);
+  HMODULE setupapi = LoadLibraryW(L"setupapi.dll");
 
-  
-  result = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-                        L"System\\CurrentControlSet\\Control\\Class\\{4D36E968-E325-11CE-BFC1-08002BE10318}", 
-                        0, KEY_QUERY_VALUE | KEY_ENUMERATE_SUB_KEYS, &key);
-  if (result != ERROR_SUCCESS) {
-    return rv;
-  }
+  if (setupapi) {
+    SetupDiGetClassDevsWFunc setupGetClassDevs = (SetupDiGetClassDevsWFunc)
+      GetProcAddress(setupapi, "SetupDiGetClassDevsW");
+    SetupDiEnumDeviceInfoFunc setupEnumDeviceInfo = (SetupDiEnumDeviceInfoFunc)
+      GetProcAddress(setupapi, "SetupDiEnumDeviceInfo");
+    SetupDiGetDeviceRegistryPropertyWFunc setupGetDeviceRegistryProperty = (SetupDiGetDeviceRegistryPropertyWFunc)
+      GetProcAddress(setupapi, "SetupDiGetDeviceRegistryPropertyW");
+    SetupDiDestroyDeviceInfoListFunc setupDestroyDeviceInfoList = (SetupDiDestroyDeviceInfoListFunc)
+      GetProcAddress(setupapi, "SetupDiDestroyDeviceInfoList");
 
-  nsAutoString wantedDriverId(mDeviceID);
-  normalizeDriverId(wantedDriverId);
+    if (setupGetClassDevs &&
+        setupEnumDeviceInfo &&
+        setupGetDeviceRegistryProperty &&
+        setupDestroyDeviceInfoList) {
+      
+      HDEVINFO devinfo = setupGetClassDevs(NULL,
+                                           PromiseFlatString(mDeviceID).get(),
+                                           NULL,
+                                           DIGCF_PRESENT | DIGCF_PROFILE | DIGCF_ALLCLASSES);
 
-  while ((enumresult = RegEnumKeyExW(key, index, subkeyname, &dwcbData, NULL, NULL, NULL, NULL)) != ERROR_NO_MORE_ITEMS) {
-    result = RegOpenKeyExW(key, subkeyname, 0, KEY_QUERY_VALUE, &subkey);
-    if (result == ERROR_SUCCESS) {
-      dwcbData = sizeof(value);
-      result = RegQueryValueExW(subkey, L"MatchingDeviceId", NULL, NULL, (LPBYTE)value, &dwcbData);
-      if (result == ERROR_SUCCESS) {
-        nsAutoString matchingDeviceId(value);
-        normalizeDriverId(matchingDeviceId);
-        if (wantedDriverId.Find(matchingDeviceId) > -1) {
+      if (devinfo != INVALID_HANDLE_VALUE) {
+        HKEY key;
+        LONG result;
+        WCHAR value[255];
+        DWORD dwcbData;
+        SP_DEVINFO_DATA devinfoData;
+        DWORD memberIndex = 0;
+
+        devinfoData.cbSize = sizeof(devinfoData);
+        NS_NAMED_LITERAL_STRING(driverKeyPre, "System\\CurrentControlSet\\Control\\Class\\");
+        
+        while (setupEnumDeviceInfo(devinfo, memberIndex++, &devinfoData)) {
           
-          result = RegQueryValueExW(subkey, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
-          if (result == ERROR_SUCCESS)
-            mDriverVersion = value;
-          result = RegQueryValueExW(subkey, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
-          if (result == ERROR_SUCCESS)
-            mDriverDate = value;
-          break;
+          if (setupGetDeviceRegistryProperty(devinfo,
+                                             &devinfoData,
+                                             SPDRP_DRIVER,
+                                             NULL,
+                                             (PBYTE)value,
+                                             sizeof(value),
+                                             NULL)) {
+            nsAutoString driverKey(driverKeyPre);
+            driverKey += value;
+            result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, driverKey.BeginReading(), 0, KEY_QUERY_VALUE, &key);
+            if (result == ERROR_SUCCESS) {
+              
+              dwcbData = sizeof(value);
+              result = RegQueryValueExW(key, L"DriverVersion", NULL, NULL, (LPBYTE)value, &dwcbData);
+              if (result == ERROR_SUCCESS)
+                mDriverVersion = value;
+              dwcbData = sizeof(value);
+              result = RegQueryValueExW(key, L"DriverDate", NULL, NULL, (LPBYTE)value, &dwcbData);
+              if (result == ERROR_SUCCESS)
+                mDriverDate = value;
+              RegCloseKey(key);
+              break;
+            }
+          }
         }
-      }
-      RegCloseKey(subkey);
-    }
-    index++;
-    dwcbData = sizeof(subkeyname);
-  }
 
-  RegCloseKey(key);
+        setupDestroyDeviceInfoList(devinfo);
+      }
+    }
+
+    FreeLibrary(setupapi);
+  }
 
   const char *spoofedDriverVersionString = PR_GetEnv("MOZ_GFX_SPOOF_DRIVER_VERSION");
   if (spoofedDriverVersionString) {
