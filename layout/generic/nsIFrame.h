@@ -2760,6 +2760,19 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
   
   bool CheckAndClearPaintedState();
 
+  
+  
+  
+  
+  
+  
+  
+  
+  enum {
+    VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY = 0x01
+  };
+  bool IsVisibleConsideringAncestors(PRUint32 aFlags = 0) const;
+
 protected:
   
   nsRect           mRect;

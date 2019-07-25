@@ -97,10 +97,11 @@ public:
 
   nsDeckFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
+  nsIFrame* GetSelectedBox();
+
 protected:
 
   
-  nsIBox* GetSelectedBox();
   void IndexChanged(nsPresContext* aPresContext);
   PRInt32 GetSelectedIndex();
   void HideBox(nsPresContext* aPresContext, nsIBox* aBox);

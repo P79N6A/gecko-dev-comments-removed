@@ -1442,8 +1442,7 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, PRUint32 aFlags)
     
     
     
-    return frame->AreAncestorViewsVisible() &&
-           frame->GetStyleVisibility()->IsVisible() &&
+    return frame->IsVisibleConsideringAncestors() &&
            aContent->IsFocusable() ? aContent : nsnull;
   }
 

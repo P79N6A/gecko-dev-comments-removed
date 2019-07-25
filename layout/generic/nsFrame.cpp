@@ -119,6 +119,7 @@
 #include "nsSVGIntegrationUtils.h"
 #include "nsSVGEffects.h"
 #include "nsChangeHint.h"
+#include "nsDeckFrame.h"
 
 #include "gfxContext.h"
 #include "CSSCalc.h"
@@ -299,6 +300,48 @@ nsIFrame::CheckAndClearPaintedState()
     }
   }
   return result;
+}
+
+bool
+nsIFrame::IsVisibleConsideringAncestors(PRUint32 aFlags) const
+{
+  if (!GetStyleVisibility()->IsVisible()) {
+    return false;
+  }
+
+  const nsIFrame* frame = this;
+  while (frame) {
+    nsIView* view = frame->GetView();
+    if (view && view->GetVisibility() == nsViewVisibility_kHide)
+      return false;
+    
+    nsIFrame* parent = frame->GetParent();
+    nsDeckFrame* deck = do_QueryFrame(parent);
+    if (deck) {
+      if (deck->GetSelectedBox() != frame)
+        return false;
+    }
+
+    if (parent) {
+      frame = parent;
+    } else {
+      parent = nsLayoutUtils::GetCrossDocParentFrame(frame);
+      if (!parent)
+        break;
+
+      if ((aFlags & nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY) == 0 &&
+          parent->PresContext()->IsChrome() && !frame->PresContext()->IsChrome()) {
+        break;
+      }
+
+      if (!parent->GetStyleVisibility()->IsVisible())
+        return false;
+
+      frame = parent;
+    }
+  }
+
+  return true;
 }
 
 static bool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
@@ -7005,38 +7048,34 @@ nsIFrame::IsFocusable(PRInt32 *aTabIndex, bool aWithMouse)
   }
   bool isFocusable = false;
 
-  if (mContent && mContent->IsElement() && AreAncestorViewsVisible()) {
-    const nsStyleVisibility* vis = GetStyleVisibility();
-    if (vis->mVisible != NS_STYLE_VISIBILITY_COLLAPSE &&
-        vis->mVisible != NS_STYLE_VISIBILITY_HIDDEN) {
-      const nsStyleUserInterface* ui = GetStyleUserInterface();
-      if (ui->mUserFocus != NS_STYLE_USER_FOCUS_IGNORE &&
-          ui->mUserFocus != NS_STYLE_USER_FOCUS_NONE) {
-        
-        tabIndex = 0;
-      }
-      isFocusable = mContent->IsFocusable(&tabIndex, aWithMouse);
-      if (!isFocusable && !aWithMouse &&
-          GetType() == nsGkAtoms::scrollFrame &&
-          mContent->IsHTML() &&
-          !mContent->IsRootOfNativeAnonymousSubtree() &&
-          mContent->GetParent() &&
-          !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
-        
-        
-        
-        
-        
-        
-        
-        nsIScrollableFrame *scrollFrame = do_QueryFrame(this);
-        if (scrollFrame &&
-            scrollFrame->GetScrollbarStyles() != nsIScrollableFrame::ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN) &&
-            !scrollFrame->GetScrollRange().IsEqualEdges(nsRect(0, 0, 0, 0))) {
-            
-            isFocusable = true;
-            tabIndex = 0;
-        }
+  if (mContent && mContent->IsElement() && IsVisibleConsideringAncestors()) {
+    const nsStyleUserInterface* ui = GetStyleUserInterface();
+    if (ui->mUserFocus != NS_STYLE_USER_FOCUS_IGNORE &&
+        ui->mUserFocus != NS_STYLE_USER_FOCUS_NONE) {
+      
+      tabIndex = 0;
+    }
+    isFocusable = mContent->IsFocusable(&tabIndex, aWithMouse);
+    if (!isFocusable && !aWithMouse &&
+        GetType() == nsGkAtoms::scrollFrame &&
+        mContent->IsHTML() &&
+        !mContent->IsRootOfNativeAnonymousSubtree() &&
+        mContent->GetParent() &&
+        !mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tabindex)) {
+      
+      
+      
+      
+      
+      
+      
+      nsIScrollableFrame *scrollFrame = do_QueryFrame(this);
+      if (scrollFrame &&
+          scrollFrame->GetScrollbarStyles() != nsIScrollableFrame::ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN) &&
+          !scrollFrame->GetScrollRange().IsEqualEdges(nsRect(0, 0, 0, 0))) {
+          
+          isFocusable = true;
+          tabIndex = 0;
       }
     }
   }
