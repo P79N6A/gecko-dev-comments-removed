@@ -1350,6 +1350,12 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 #error "Unknown boxing format"
 #endif
         nextsp[-1].setRawBits(rvalBits);
+
+        
+
+
+
+        script->types.monitor(cx, pc, nextsp[-1]);
         f.regs.pc = nextpc;
         break;
       }
@@ -1377,16 +1383,16 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
 
-
-        RemoveOrphanedNative(cx, fp);
-        if (rejoin == REJOIN_NATIVE_LOWERED) {
-            
-
-
-
+        if (rejoin == REJOIN_NATIVE_LOWERED)
             nextsp[-1] = nextsp[0];
-        }
-        script->types.monitor(cx, pc, nextsp[-1]);
+
+        
+        RemoveOrphanedNative(cx, fp);
+
+        
+
+
+
         f.regs.pc = nextpc;
         break;
       }
