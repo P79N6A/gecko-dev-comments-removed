@@ -2,124 +2,127 @@
 
 
 .viewContainer {
-	background: -moz-Dialog;
-	font-family: monospace;
-	font-size: inherit; 
+  background: #cddae5; 
+  font-family: monospace;
+  font-size: inherit; 
 }
 
 .view {
-	background: #fff;
+  background: #f0f0ff; 
+  padding-left: 0;
 }
 
 .readonly > .view {
-	background: #f6f6f6;
+  background: #f0f0ff;
 }
 
 
-.ruler {
-	background-color: white;
+.viewContent > div {
+  padding-left: 4px; 
 }
+
+
 .ruler.lines {
-	border-right: 1px solid lightgray;
-	text-align: right;
+  text-align: right;
 }
 
 
 .rulerLines {
-	background: -moz-Dialog;
-	color: -moz-DialogText;
-	min-width: 1.4em;
-	padding-left: 4px;
-	padding-right: 4px;
-	text-align: end;
+  border-right: 1px solid #b4c4d3;
+  background: #cddae5;
+  color: #7a8a99;
+  min-width: 1.4em;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: end;
 }
 
 .token_singleline_comment {
-	color: green;
+  color: #45a946; 
 }
 
 .token_multiline_comment {
-	color: green;
+  color: #45a946; 
 }
 
 .token_doc_comment {
-	color: #00008F;
+  color: #45a946; 
 }
 
 .token_doc_html_markup {
-	color: #7F7F9F;
+  color: #dd0058; 
 }
 
 .token_doc_tag {
-	color: #7F9FBF;
+  color: #dd0058; 
 }
 
-.token_task_tag {
-	color: #7F9FBF;
+.token_task_tag { 
+  color: black;
+  background: yellow;
 }
 
 .token_string {
-	color: blue;
+  color: #1e66b1; 
+  font-style: italic;
 }
 
 .token_keyword {
-	color: darkred;
-	font-weight: bold;
+  color: #dd0058; 
 }
 
 .token_space {
-	
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAIAAABv85FHAAAABnRSTlMA/wAAAACkwsAdAAAAIUlEQVR4nGP4z8CAC+GUIEXuABhgkTuABEiRw2cmae4EAH05X7xDolNRAAAAAElFTkSuQmCC");
-	background-repeat: no-repeat;
- 	background-position: center center;
+  
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAIAAABv85FHAAAABnRSTlMA/wAAAACkwsAdAAAAIUlEQVR4nGP4z8CAC+GUIEXuABhgkTuABEiRw2cmae4EAH05X7xDolNRAAAAAElFTkSuQmCC");
+  background-repeat: no-repeat;
+  background-position: center center;
 }
 
 .token_tab {
-	
-	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAJCAIAAACJ2loDAAAABnRSTlMA/wD/AP83WBt9AAAAMklEQVR4nGP4TwRgoK6i52c3bz5w6zMSA6tJn28d2Lx589nnCAYu63AaSLxJRLoJPwAAeNk0aG4opfMAAAAASUVORK5CYII=");
-	background-repeat: no-repeat;
- 	background-position: left center;
+  
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAJCAIAAACJ2loDAAAABnRSTlMA/wD/AP83WBt9AAAAMklEQVR4nGP4TwRgoK6i52c3bz5w6zMSA6tJn28d2Lx589nnCAYu63AaSLxJRLoJPwAAeNk0aG4opfMAAAAASUVORK5CYII=");
+  background-repeat: no-repeat;
+  background-position: left center;
 }
 
-.line_caret {
-	background: #EAF2FE;
+.line_caret { 
+  background: #dae2ee; 
 }
 
 .readonly .line_caret {
-	background: #fcfcfc;
+  background: #cddae5; 
 }
 
 
 .entity-name-tag {
-	color: #3f7f7f;
+  color: #dd0058; 
 }
 
 .entity-other-attribute-name {
-	color: #7f007f;
+  color: #dd0058; 
 }
 
 .punctuation-definition-comment {
-	color: #3f5fbf;
+  color: #45a946; 
 }
 
 .comment {
-	color: #3f5fbf
+  color: #45a946; 
 }
 
 .string-quoted {
-	color: #2a00ff;
-	font-style: italic;
+  color: #1e66b1; 
+  font-style: italic;
 }
 
 .invalid {
-	color: red;
-	font-weight: bold;
+  color: red;
+  font-weight: bold;
 }
 
 .annotationRange.currentBracket {
 }
 
 .annotationRange.matchingBracket {
-	outline: 1px solid red;
+  outline: 1px solid grey;
 }
-
