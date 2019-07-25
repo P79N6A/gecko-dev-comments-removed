@@ -3474,9 +3474,12 @@ Selection::AddItem(nsRange* aItem, PRInt32* aOutIndex)
   }
 
   PRInt32 startIndex, endIndex;
-  GetIndicesForInterval(aItem->GetStartParent(), aItem->StartOffset(),
-                        aItem->GetEndParent(), aItem->EndOffset(),
-                        false, &startIndex, &endIndex);
+  nsresult rv = GetIndicesForInterval(aItem->GetStartParent(),
+                                      aItem->StartOffset(),
+                                      aItem->GetEndParent(),
+                                      aItem->EndOffset(), false,
+                                      &startIndex, &endIndex);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (endIndex == -1) {
     
@@ -3540,10 +3543,9 @@ Selection::AddItem(nsRange* aItem, PRInt32* aOutIndex)
 
   
   PRInt32 insertionPoint;
-  nsresult rv = FindInsertionPoint(&temp, aItem->GetStartParent(),
-                                   aItem->StartOffset(),
-                                   CompareToRangeStart,
-                                   &insertionPoint);
+  rv = FindInsertionPoint(&temp, aItem->GetStartParent(),
+                          aItem->StartOffset(), CompareToRangeStart,
+                          &insertionPoint);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!temp.InsertElementAt(insertionPoint, RangeData(aItem)))
@@ -3738,8 +3740,11 @@ Selection::GetRangesForIntervalArray(nsINode* aBeginNode, PRInt32 aBeginOffset,
 {
   aRanges->Clear();
   PRInt32 startIndex, endIndex;
-  GetIndicesForInterval(aBeginNode, aBeginOffset, aEndNode, aEndOffset,
-                        aAllowAdjacent, &startIndex, &endIndex);
+  nsresult res = GetIndicesForInterval(aBeginNode, aBeginOffset,
+                                       aEndNode, aEndOffset, aAllowAdjacent,
+                                       &startIndex, &endIndex);
+  NS_ENSURE_SUCCESS(res, res);
+
   if (startIndex == -1 || endIndex == -1)
     return NS_OK;
 
@@ -3757,7 +3762,7 @@ Selection::GetRangesForIntervalArray(nsINode* aBeginNode, PRInt32 aBeginOffset,
 
 
 
-void
+nsresult
 Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
                                  nsINode* aEndNode, PRInt32 aEndOffset,
                                  bool aAllowAdjacent,
@@ -3775,7 +3780,7 @@ Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
   *aEndIndex = -1;
 
   if (mRanges.Length() == 0)
-    return;
+    return NS_OK;
 
   bool intervalIsCollapsed = aBeginNode == aEndNode &&
     aBeginOffset == aEndOffset;
@@ -3786,7 +3791,7 @@ Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
   if (NS_FAILED(FindInsertionPoint(&mRanges, aEndNode, aEndOffset,
                                    &CompareToRangeStart,
                                    &endsBeforeIndex))) {
-    return;
+    return NS_OK;
   }
 
   if (endsBeforeIndex == 0) {
@@ -3795,7 +3800,7 @@ Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
     
     
     if (!RangeMatchesBeginPoint(endRange, aEndNode, aEndOffset))
-      return;
+      return NS_OK;
 
     
     
@@ -3803,7 +3808,7 @@ Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
     
     
     if (!aAllowAdjacent && !(endRange->Collapsed() && intervalIsCollapsed))
-      return;
+      return NS_OK;
   }
   *aEndIndex = endsBeforeIndex;
 
@@ -3811,10 +3816,10 @@ Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
   if (NS_FAILED(FindInsertionPoint(&mRanges, aBeginNode, aBeginOffset,
                                    &CompareToRangeEnd,
                                    &beginsAfterIndex))) {
-    return;
+    return NS_OK;
   }
   if (beginsAfterIndex == (PRInt32) mRanges.Length())
-    return; 
+    return NS_OK; 
 
   if (aAllowAdjacent) {
     
@@ -3874,9 +3879,13 @@ Selection::GetIndicesForInterval(nsINode* aBeginNode, PRInt32 aBeginOffset,
      }
   }
 
+  NS_ASSERTION(beginsAfterIndex <= endsBeforeIndex,
+               "Is mRanges not ordered?");
+  NS_ENSURE_STATE(beginsAfterIndex <= endsBeforeIndex);
+
   *aStartIndex = beginsAfterIndex;
   *aEndIndex = endsBeforeIndex;
-  return;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
