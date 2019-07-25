@@ -1,8 +1,6 @@
 
 
 
-let tabViewShownCount = 0;
-
 
 function test() {
   waitForExplicitFinish();
@@ -10,20 +8,12 @@ function test() {
   
   ok(!TabView.isVisible(), "Tab View starts hidden");
 
-  
-  window.addEventListener("tabviewshown", onTabViewLoadedAndShown("ltr"), false);
-  toggleTabView();
-}
-
-function toggleTabView() {
-  let tabViewCommand = document.getElementById("Browser:ToggleTabView");
-  tabViewCommand.doCommand();
+  showTabView(onTabViewLoadedAndShown("ltr"));
 }
 
 
 function onTabViewLoadedAndShown(dir) {
   return function() {
-    window.removeEventListener("tabviewshown", arguments.callee, false);
     ok(TabView.isVisible(), "Tab View is visible.");
 
     let contentWindow = document.getElementById("tab-view").contentWindow;
@@ -32,24 +22,20 @@ function onTabViewLoadedAndShown(dir) {
        "The direction should be set to " + dir.toUpperCase());
 
     
-    window.addEventListener("tabviewhidden", onTabViewHidden(dir), false);
-    TabView.toggle();
+    hideTabView(onTabViewHidden(dir));
   };
 }
 
 
 function onTabViewHidden(dir) {
   return function() {
-    window.removeEventListener("tabviewhidden", arguments.callee, false);
     ok(!TabView.isVisible(), "Tab View is hidden.");
 
     if (dir == "ltr") {
       
       Services.prefs.setCharPref("intl.uidirection.en-US", "rtl");
 
-      
-      window.addEventListener("tabviewshown", onTabViewLoadedAndShown("rtl"), false);
-      toggleTabView();
+      showTabView(onTabViewLoadedAndShown("rtl"));
     } else {
       
       Services.prefs.clearUserPref("intl.uidirection.en-US");
@@ -58,4 +44,3 @@ function onTabViewHidden(dir) {
     }
   };
 }
-
