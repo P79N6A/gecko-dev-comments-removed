@@ -176,6 +176,12 @@ public:
 
   GLContext *gl() const { return mGLContext; }
 
+  DrawThebesLayerCallback GetThebesLayerCallback() const
+  { return mThebesLayerCallback; }
+
+  void* GetThebesLayerCallbackData() const
+  { return mThebesLayerCallbackData; }
+
   
 
 
