@@ -113,9 +113,6 @@ private:
     PRUint32  mPushBackMax;
 
     
-    PRUint32  mHttp1xTransactionCount;
-
-    
     PRUint64  mReceivingFromProgress;
     PRUint64  mSendingToProgress;
     bool      mSuppressSendEvents;

@@ -169,11 +169,7 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mRememberClientAuthCertificate(false),
     mHandshakeStartTime(0),
     mPort(0),
-    mIsCertIssuerBlacklisted(false),
-    mNPNCompleted(false),
-    mHandshakeCompleted(false),
-    mJoined(false),
-    mSentClientCert(false)
+    mIsCertIssuerBlacklisted(false)
 {
 }
 
@@ -439,89 +435,6 @@ nsNSSSocketInfo::GetErrorMessage(PRUnichar** aText)
   return *aText != nsnull ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
-void
-nsNSSSocketInfo::SetNegotiatedNPN(const char *value, PRUint32 length)
-{
-  if (!value)
-    mNegotiatedNPN.Truncate();
-  else
-    mNegotiatedNPN.Assign(value, length);
-  mNPNCompleted = true;
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::GetNegotiatedNPN(nsACString &aNegotiatedNPN)
-{
-  if (!mNPNCompleted)
-    return NS_ERROR_NOT_CONNECTED;
-
-  aNegotiatedNPN = mNegotiatedNPN;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::JoinConnection(const nsACString & npnProtocol,
-                                const nsACString & hostname,
-                                PRInt32 port,
-                                bool *_retval NS_OUTPARAM)
-{
-  *_retval = false;
-
-  
-  if (port != mPort)
-    return NS_OK;
-
-  
-  if (!mNPNCompleted || !mNegotiatedNPN.Equals(npnProtocol))
-    return NS_OK;
-
-  
-  
-  if (mHostName && hostname.Equals(mHostName)) {
-    *_retval = true;
-    return NS_OK;
-  }
-
-  
-  
-  if (!mHandshakeCompleted || !SSLStatus() || !SSLStatus()->mServerCert)
-    return NS_OK;
-
-  
-  
-  
-  if (SSLStatus()->mHaveCertErrorBits)
-    return NS_OK;
-
-  
-  
-  
-  if (mSentClientCert)
-    return NS_OK;
-
-  
-  
-
-  CERTCertificate *nssCert = nsnull;
-  CERTCertificateCleaner nsscertCleaner(nssCert);
-
-  nsCOMPtr<nsIX509Cert2> cert2 = do_QueryInterface(SSLStatus()->mServerCert);
-  if (cert2)
-    nssCert = cert2->GetCert();
-
-  if (!nssCert)
-    return NS_OK;
-
-  if (CERT_VerifyCertName(nssCert, PromiseFlatCString(hostname).get()) !=
-      SECSuccess)
-    return NS_OK;
-
-  
-  mJoined = true;
-  *_retval = true;
-  return NS_OK;
-}
-
 static nsresult
 formatPlainErrorMessage(nsXPIDLCString const & host, PRInt32 port,
                         PRErrorCode err, nsString &returnedMessage);
@@ -611,36 +524,6 @@ NS_IMETHODIMP
 nsNSSSocketInfo::StartTLS()
 {
   return ActivateSSL();
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::SetNPNList(nsTArray<nsCString> &protocolArray)
-{
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return NS_ERROR_NOT_AVAILABLE;
-  if (!mFd)
-    return NS_ERROR_FAILURE;
-
-  
-  nsCString npnList;
-
-  for (PRUint32 index = 0; index < protocolArray.Length(); ++index) {
-    if (protocolArray[index].IsEmpty() ||
-        protocolArray[index].Length() > 255)
-      return NS_ERROR_ILLEGAL_VALUE;
-
-    npnList.Append(protocolArray[index].Length());
-    npnList.Append(protocolArray[index]);
-  }
-  
-  if (SSL_SetNextProtoNego(
-        mFd,
-        reinterpret_cast<const unsigned char *>(npnList.get()),
-        npnList.Length()) != SECSuccess)
-    return NS_ERROR_FAILURE;
-
-  return NS_OK;
 }
 
 static NS_DEFINE_CID(kNSSCertificateCID, NS_X509CERT_CID);
@@ -2892,9 +2775,9 @@ public:
                          CERTCertificate * serverCert) 
     : mRV(SECFailure)
     , mErrorCodeToReport(SEC_ERROR_NO_MEMORY)
+    , mCANames(caNames)
     , mPRetCert(pRetCert)
     , mPRetKey(pRetKey)
-    , mCANames(caNames)
     , mSocketInfo(info)
     , mServerCert(serverCert)
   {
@@ -2902,12 +2785,12 @@ public:
 
   SECStatus mRV;                        
   PRErrorCode mErrorCodeToReport;       
-  CERTCertificate** const mPRetCert;    
-  SECKEYPrivateKey** const mPRetKey;    
 protected:
   virtual void RunOnTargetThread();
 private:
   CERTDistNames* const mCANames;        
+  CERTCertificate** const mPRetCert;    
+  SECKEYPrivateKey** const mPRetKey;    
   nsNSSSocketInfo * const mSocketInfo;  
   CERTCertificate * const mServerCert;  
 };
@@ -2950,18 +2833,6 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
     return SECFailure;
   }
 
-  if (info->GetJoined()) {
-    
-    
-    
-
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-           ("[%p] Not returning client cert due to previous join\n", socket));
-    *pRetCert = nsnull;
-    *pRetKey = nsnull;
-    return SECSuccess;
-  }
-
   
   nsRefPtr<ClientAuthDataRunnable> runnable =
     new ClientAuthDataRunnable(caNames, pRetCert, pRetKey, info, serverCert);
@@ -2973,9 +2844,6 @@ SECStatus nsNSS_SSLGetClientAuthData(void* arg, PRFileDesc* socket,
   
   if (runnable->mRV != SECSuccess) {
     PR_SetError(runnable->mErrorCodeToReport, 0);
-  } else if (*runnable->mPRetCert || *runnable->mPRetKey) {
-    
-    info->SetSentClientCert();
   }
 
   return runnable->mRV;

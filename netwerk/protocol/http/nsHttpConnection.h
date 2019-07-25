@@ -47,7 +47,6 @@
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "prinrval.h"
-#include "SpdySession.h"
 
 #include "nsIStreamListener.h"
 #include "nsISocketTransport.h"
@@ -94,8 +93,7 @@ public:
 
     
     
-    
-    nsresult Activate(nsAHttpTransaction *, PRUint8 caps, PRInt32 pri);
+    nsresult Activate(nsAHttpTransaction *, PRUint8 caps);
 
     
     void Close(nsresult reason);
@@ -104,15 +102,15 @@ public:
     
 
     bool     SupportsPipelining() { return mSupportsPipelining; }
-    bool     IsKeepAlive() { return mUsingSpdy ||
-                                    (mKeepAliveMask && mKeepAlive); }
+    bool     IsKeepAlive() { return mKeepAliveMask && mKeepAlive; }
     bool     CanReuse();   
-    bool     CanDirectlyActivate();
 
     
     PRUint32 TimeToLive();
 
-    void     DontReuse();
+    void     DontReuse()   { mKeepAliveMask = false;
+                             mKeepAlive = false;
+                             mIdleTimeout = 0; }
     void     DropTransport() { DontReuse(); mSocketTransport = 0; }
 
     bool     LastTransactionExpectedNoContent()
@@ -142,8 +140,8 @@ public:
     void     SetIsReusedAfter(PRUint32 afterMilliseconds);
     void     SetIdleTimeout(PRUint16 val) {mIdleTimeout = val;}
     nsresult PushBack(const char *data, PRUint32 length);
-    nsresult ResumeSend(nsAHttpTransaction *caller);
-    nsresult ResumeRecv(nsAHttpTransaction *caller);
+    nsresult ResumeSend();
+    nsresult ResumeRecv();
     PRInt64  MaxBytesRead() {return mMaxBytesRead;}
 
     static NS_METHOD ReadFromStream(nsIInputStream *, void *, const char *,
@@ -155,8 +153,6 @@ public:
     
     void BeginIdleMonitoring();
     void EndIdleMonitoring();
-
-    bool UsingSpdy() { return mUsingSpdy; }
 
 private:
     
@@ -171,18 +167,6 @@ private:
     bool     IsAlive();
     bool     SupportsPipelining(nsHttpResponseHead *);
     
-    
-    
-    bool     EnsureNPNComplete();
-    void     SetupNPN(PRUint8 caps);
-
-    
-    
-    void     HandleAlternateProtocol(nsHttpResponseHead *);
-
-    
-    nsresult AddTransaction(nsAHttpTransaction *, PRInt32);
-
 private:
     nsCOMPtr<nsISocketTransport>    mSocketTransport;
     nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
@@ -210,7 +194,6 @@ private:
     PRIntervalTime                  mConsiderReusedAfterEpoch;
     PRInt64                         mCurrentBytesRead;   
     PRInt64                         mMaxBytesRead;       
-    PRInt64                         mTotalBytesRead;     
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
@@ -221,21 +204,6 @@ private:
     bool                            mCompletedProxyConnect;
     bool                            mLastTransactionExpectedNoContent;
     bool                            mIdleMonitoring;
-
-    
-    
-    PRUint32                        mHttp1xTransactionCount;
-
-    
-    bool                            mNPNComplete;
-    bool                            mSetupNPNCalled;
-    bool                            mUsingSpdy;
-    nsRefPtr<mozilla::net::SpdySession> mSpdySession;
-    PRInt32                         mPriority;
-    bool                            mReportedSpdy;
-
-    
-    bool                            mEverUsedSpdy;
 };
 
 #endif 

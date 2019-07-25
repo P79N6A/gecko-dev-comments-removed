@@ -134,11 +134,6 @@ typedef PRUint8 nsHttpVersion;
 
 
 
-#define NS_HTTP_DISALLOW_SPDY        (1<<7)
-
-
-
-
 
 
 #define NS_HTTP_MAX_PIPELINED_REQUESTS 8 

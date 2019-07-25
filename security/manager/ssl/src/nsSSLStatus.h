@@ -74,9 +74,6 @@ public:
   bool mIsUntrusted;
 
   bool mHaveKeyLengthAndCipher;
-
-  
-
   bool mHaveCertErrorBits;
 };
 

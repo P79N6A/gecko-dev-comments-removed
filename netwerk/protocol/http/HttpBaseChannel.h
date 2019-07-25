@@ -167,9 +167,6 @@ public:
   NS_IMETHOD GetLocalPort(PRInt32* port);
   NS_IMETHOD GetRemoteAddress(nsACString& addr);
   NS_IMETHOD GetRemotePort(PRInt32* port);
-  NS_IMETHOD GetAllowSpdy(bool *aAllowSpdy);
-  NS_IMETHOD SetAllowSpdy(bool aAllowSpdy);
-  
   inline void CleanRedirectCacheChainIfNecessary()
   {
       if (mRedirectedCachekeys) {
@@ -298,7 +295,6 @@ protected:
   PRUint32                          mTracingEnabled             : 1;
   
   PRUint32                          mTimingEnabled              : 1;
-  PRUint32                          mAllowSpdy                  : 1;
 
   
   PRUint32                          mSuspendCount;

@@ -45,15 +45,12 @@
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
 #include "nsClassHashtable.h"
-#include "nsDataHashtable.h"
 #include "nsAutoPtr.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "nsISocketTransportService.h"
-#include "nsHashSets.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
-#include "nsIX509Cert3.h"
 
 class nsHttpPipeline;
 
@@ -100,8 +97,7 @@ public:
     void PruneDeadConnectionsAfter(PRUint32 time);
 
     
-    
-    void ConditionallyStopPruneDeadConnectionsTimer();
+    void StopPruneDeadConnectionsTimer();
 
     
     nsresult AddTransaction(nsHttpTransaction *, PRInt32 priority);
@@ -135,11 +131,6 @@ public:
     nsresult UpdateParam(nsParamName name, PRUint16 value);
 
     
-    bool GetSpdyAlternateProtocol(nsACString &key);
-    void ReportSpdyAlternateProtocol(nsHttpConnection *);
-    void RemoveSpdyAlternateProtocol(nsACString &key);
-
-    
     
     
 
@@ -156,11 +147,6 @@ public:
     
     nsresult CloseIdleConnection(nsHttpConnection *);
 
-    
-    
-    
-    void ReportSpdyConnection(nsHttpConnection *, bool usingSpdy);
-
 private:
     virtual ~nsHttpConnectionMgr();
     class nsHalfOpenSocket;
@@ -174,39 +160,17 @@ private:
     struct nsConnectionEntry
     {
         nsConnectionEntry(nsHttpConnectionInfo *ci)
-          : mConnInfo(ci),
-            mUsingSpdy(false),
-            mTestedSpdy(false),
-            mSpdyPreferred(false)
+            : mConnInfo(ci)
         {
             NS_ADDREF(mConnInfo);
         }
-        ~nsConnectionEntry();
+       ~nsConnectionEntry() { NS_RELEASE(mConnInfo); }
 
         nsHttpConnectionInfo        *mConnInfo;
         nsTArray<nsHttpTransaction*> mPendingQ;    
         nsTArray<nsHttpConnection*>  mActiveConns; 
         nsTArray<nsHttpConnection*>  mIdleConns;   
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        nsCString mCoalescingKey;
-
-        
-        
-        
-        bool mUsingSpdy;
-
-        bool mTestedSpdy;
-        bool mSpdyPreferred;
     };
 
     
@@ -309,7 +273,7 @@ private:
     bool     AtActiveConnectionLimit(nsConnectionEntry *, PRUint8 caps);
     void     GetConnection(nsConnectionEntry *, nsHttpTransaction *,
                            bool, nsHttpConnection **);
-    nsresult DispatchTransaction(nsConnectionEntry *, nsHttpTransaction *,
+    nsresult DispatchTransaction(nsConnectionEntry *, nsAHttpTransaction *,
                                  PRUint8 caps, nsHttpConnection *);
     bool     BuildPipeline(nsConnectionEntry *, nsAHttpTransaction *, nsHttpPipeline **);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
@@ -319,23 +283,7 @@ private:
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     StartedConnect();
     void     RecvdConnect();
-
     
-    nsConnectionEntry *GetSpdyPreferred(nsConnectionEntry *aOriginalEntry);
-    void               SetSpdyPreferred(nsConnectionEntry *ent);
-    void               RemoveSpdyPreferred(nsACString &aDottedDecimal);
-    nsHttpConnection  *GetSpdyPreferredConn(nsConnectionEntry *ent);
-    nsDataHashtable<nsCStringHashKey, nsConnectionEntry *>   mSpdyPreferredHash;
-    nsConnectionEntry *LookupConnectionEntry(nsHttpConnectionInfo *ci,
-                                             nsHttpConnection *conn,
-                                             nsHttpTransaction *trans);
-
-    void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
-    void               ProcessSpdyPendingQ();
-    static PLDHashOperator ProcessSpdyPendingQCB(
-        const nsACString &key, nsAutoPtr<nsConnectionEntry> &ent,
-        void *closure);
-
     
     typedef void (nsHttpConnectionMgr:: *nsConnEventHandler)(PRInt32, void *);
 
@@ -413,13 +361,6 @@ private:
     
     
     nsClassHashtable<nsCStringHashKey, nsConnectionEntry> mCT;
-
-    
-    nsCStringHashSet mAlternateProtocolHash;
-    static PLDHashOperator TrimAlternateProtocolHash(PLDHashTable *table,
-                                                     PLDHashEntryHdr *hdr,
-                                                     PRUint32 number,
-                                                     void *closure);
 };
 
 #endif 
