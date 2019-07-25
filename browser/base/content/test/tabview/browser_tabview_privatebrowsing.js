@@ -1,41 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let contentWindow = null;
 let normalURLs = []; 
 let pbTabURL = "about:privatebrowsing";

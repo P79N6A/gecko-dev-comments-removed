@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let appTab, contentWindow;
 let originalGroup, originalGroupTab, newGroup, newGroupTab;
 

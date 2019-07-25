@@ -1,40 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   const DUMMY_PAGE_URL = "http://mochi.test:8888/browser/browser/base/content/test/tabview/dummy_page.html";
   const DUMMY_PAGE_URL_2 = "http://mochi.test:8888/";
