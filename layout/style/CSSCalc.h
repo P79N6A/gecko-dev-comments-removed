@@ -306,6 +306,159 @@ ConvertCalcUnit(nsStyleUnit aUnit)
   return nsCSSUnit(aUnit - 14);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class CalcOps>
+static void
+SerializeCalcInternal(const typename CalcOps::input_type& aValue, CalcOps &aOps);
+
+
+
+template <class CalcOps>
+static void
+SerializeCalc(const typename CalcOps::input_type& aValue, CalcOps &aOps)
+{
+  aOps.Append("-moz-");
+  nsCSSUnit unit = CalcOps::GetUnit(aValue);
+  if (unit != eCSSUnit_Calc_Minimum && unit != eCSSUnit_Calc_Maximum) {
+    aOps.Append("calc(");
+  }
+  if (unit == eCSSUnit_Calc) {
+    const typename CalcOps::input_array_type *array = aValue.GetArrayValue();
+    NS_ABORT_IF_FALSE(array->Count() == 1, "unexpected length");
+    SerializeCalcInternal(array->Item(0), aOps);
+  } else {
+    SerializeCalcInternal(aValue, aOps);
+  }
+  if (unit != eCSSUnit_Calc_Minimum && unit != eCSSUnit_Calc_Maximum) {
+    aOps.Append(")");
+  }
+}
+
+static inline PRBool
+IsCalcAdditiveUnit(nsCSSUnit aUnit)
+{
+  return aUnit == eCSSUnit_Calc_Plus ||
+         aUnit == eCSSUnit_Calc_Minus;
+}
+
+static inline PRBool
+IsCalcMultiplicativeUnit(nsCSSUnit aUnit)
+{
+  return aUnit == eCSSUnit_Calc_Times_L ||
+         aUnit == eCSSUnit_Calc_Times_R ||
+         aUnit == eCSSUnit_Calc_Divided;
+}
+
+
+
+template <class CalcOps>
+ void
+SerializeCalcInternal(const typename CalcOps::input_type& aValue, CalcOps &aOps)
+{
+  nsCSSUnit unit = CalcOps::GetUnit(aValue);
+  if (eCSSUnit_Calc_Minimum == unit || eCSSUnit_Calc_Maximum == unit) {
+    const typename CalcOps::input_array_type *array = aValue.GetArrayValue();
+    if (eCSSUnit_Calc_Minimum == unit) {
+      aOps.Append("min(");
+    } else {
+      aOps.Append("max(");
+    }
+
+    for (size_t i = 0, i_end = array->Count(); i < i_end; ++i) {
+      if (i != 0) {
+        aOps.Append(", ");
+      }
+      SerializeCalcInternal(array->Item(i), aOps);
+    }
+
+    aOps.Append(")");
+  } else if (IsCalcAdditiveUnit(unit)) {
+    const typename CalcOps::input_array_type *array = aValue.GetArrayValue();
+    NS_ABORT_IF_FALSE(array->Count() == 2, "unexpected length");
+
+    SerializeCalcInternal(array->Item(0), aOps);
+
+    if (eCSSUnit_Calc_Plus == unit) {
+      aOps.Append(" + ");
+    } else {
+      NS_ABORT_IF_FALSE(eCSSUnit_Calc_Minus == unit, "unexpected unit");
+      aOps.Append(" - ");
+    }
+
+    PRBool needParens = IsCalcAdditiveUnit(CalcOps::GetUnit(array->Item(1)));
+    if (needParens) {
+      aOps.Append("(");
+    }
+    SerializeCalcInternal(array->Item(1), aOps);
+    if (needParens) {
+      aOps.Append(")");
+    }
+  } else if (IsCalcMultiplicativeUnit(unit)) {
+    const typename CalcOps::input_array_type *array = aValue.GetArrayValue();
+    NS_ABORT_IF_FALSE(array->Count() == 2, "unexpected length");
+
+    PRBool needParens = IsCalcAdditiveUnit(CalcOps::GetUnit(array->Item(0)));
+    if (needParens) {
+      aOps.Append("(");
+    }
+    if (unit == eCSSUnit_Calc_Times_L) {
+      aOps.AppendNumber(array->Item(0));
+    } else {
+      SerializeCalcInternal(array->Item(0), aOps);
+    }
+    if (needParens) {
+      aOps.Append(")");
+    }
+
+    if (eCSSUnit_Calc_Times_L == unit || eCSSUnit_Calc_Times_R == unit) {
+      aOps.Append(" * ");
+    } else {
+      NS_ABORT_IF_FALSE(eCSSUnit_Calc_Divided == unit, "unexpected unit");
+      aOps.Append(" / ");
+    }
+
+    nsCSSUnit subUnit = CalcOps::GetUnit(array->Item(1));
+    needParens = IsCalcAdditiveUnit(subUnit) ||
+                 IsCalcMultiplicativeUnit(subUnit);
+    if (needParens) {
+      aOps.Append("(");
+    }
+    if (unit == eCSSUnit_Calc_Times_L) {
+      SerializeCalcInternal(array->Item(1), aOps);
+    } else {
+      aOps.AppendNumber(array->Item(1));
+    }
+    if (needParens) {
+      aOps.Append(")");
+    }
+  } else {
+    aOps.AppendLeafValue(aValue);
+  }
+}
+
 }
 
 }
