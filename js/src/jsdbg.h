@@ -45,6 +45,7 @@
 #include "jsapi.h"
 #include "jscompartment.h"
 #include "jsgc.h"
+#include "jshashtable.h"
 #include "jswrapper.h"
 #include "jsvalue.h"
 
@@ -63,6 +64,10 @@ class Debug {
     
     
     bool hasDebuggerHandler;
+
+    typedef HashMap<JSStackFrame *, JSObject *, DefaultHasher<JSStackFrame *>, SystemAllocPolicy>
+        FrameMap;
+    FrameMap frames;
 
     JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
     JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
@@ -83,13 +88,21 @@ class Debug {
 
     inline bool hasAnyLiveHooks() const;
 
+    bool getScriptFrame(JSContext *cx, JSStackFrame *fp, Value *vp);
+    static void slowPathLeaveStackFrame(JSContext *cx);
+
     inline bool observesDebuggerStatement() const;
     static JSTrapStatus dispatchDebuggerStatement(JSContext *cx, Value *vp);
     JSTrapStatus handleDebuggerStatement(JSContext *cx, Value *vp);
 
   public:
     Debug(JSObject *dbg, JSObject *hooks, JSCompartment *compartment);
+    bool init();
+    inline JSObject *toJSObject() const;
+    static inline Debug *fromJSObject(JSObject *obj);
 
+    
+    
     
     
     
@@ -105,13 +118,13 @@ class Debug {
     
     
     static bool mark(GCMarker *trc, JSCompartment *compartment, JSGCInvocationKind gckind);
-
-    inline JSObject *toJSObject() const;
-    static inline Debug *fromJSObject(JSObject *obj);
+    static void sweepAll(JSRuntime *rt);
+    static void sweepCompartment(JSCompartment *compartment);
 
     inline bool observesCompartment(JSCompartment *c) const;
     void detachFrom(JSCompartment *c);
 
+    static inline void leaveStackFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
 };
 
@@ -140,6 +153,13 @@ Debug::fromJSObject(JSObject *obj)
 {
     JS_ASSERT(obj->getClass() == &jsclass);
     return (Debug *) obj->getPrivate();
+}
+
+void
+Debug::leaveStackFrame(JSContext *cx)
+{
+    if (!cx->compartment->getDebuggers().empty())
+        slowPathLeaveStackFrame(cx);
 }
 
 bool
