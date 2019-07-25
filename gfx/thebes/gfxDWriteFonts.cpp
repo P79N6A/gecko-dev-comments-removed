@@ -228,6 +228,12 @@ gfxDWriteFont::ComputeMetrics()
     if (HasBitmapStrikeForSize(NS_lround(mAdjustedSize))) {
         mAdjustedSize = NS_lround(mAdjustedSize);
         mUseSubpixelPositions = PR_FALSE;
+        
+        
+        
+        if (mAntialiasOption == kAntialiasDefault && UsingClearType()) {
+            mAntialiasOption = kAntialiasGrayscale;
+        }
     }
 
     mMetrics = new gfxFont::Metrics;
