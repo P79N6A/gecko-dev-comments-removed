@@ -56,8 +56,6 @@
 #include "nsHashKeys.h"
 #include "nsCCUncollectableMarker.h"
 
-using namespace mozilla;
-
 #ifdef MOZ_LOGGING
 
 #define FORCE_PR_LOG 1
@@ -77,9 +75,6 @@ nsNodeInfoManager::GetNodeInfoInnerHashValue(const void *key)
     reinterpret_cast<const nsINodeInfo::nsNodeInfoInner *>(key);
 
   if (node->mName) {
-    
-    
-    
     return HashString(nsDependentAtomString(node->mName));
   }
   return HashString(*(node->mNameString));
