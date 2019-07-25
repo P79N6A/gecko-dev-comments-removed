@@ -168,8 +168,9 @@ class PropertyCache
 
     PropertyCacheEntry  table[SIZE];
     JSBool              empty;
-#ifdef JS_PROPERTY_CACHE_METERING
+
   public:
+#ifdef JS_PROPERTY_CACHE_METERING
     PropertyCacheEntry  *pctestentry;   
     uint32              fills;          
     uint32              nofills;        
@@ -200,12 +201,17 @@ class PropertyCache
     uint32              misses;         
     uint32              flushes;        
     uint32              pcpurges;       
-  private:
+
 # define PCMETER(x)     x
 #else
 # define PCMETER(x)     ((void)0)
 #endif
 
+    PropertyCache() {
+        PodZero(this);
+    }
+    
+  private:
     
 
 

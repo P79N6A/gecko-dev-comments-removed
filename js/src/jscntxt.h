@@ -75,35 +75,6 @@
 #endif
 
 
-
-
-
-
-
-typedef struct JSGSNCache {
-    jsbytecode      *code;
-    JSDHashTable    table;
-#ifdef JS_GSNMETER
-    uint32          hits;
-    uint32          misses;
-    uint32          fills;
-    uint32          purges;
-# define GSN_CACHE_METER(cache,cnt) (++(cache)->cnt)
-#else
-# define GSN_CACHE_METER(cache,cnt)
-#endif
-} JSGSNCache;
-
-#define js_FinishGSNCache(cache) js_PurgeGSNCache(cache)
-
-extern void
-js_PurgeGSNCache(JSGSNCache *cache);
-
-
-#define JS_PURGE_GSN_CACHE(cx)      js_PurgeGSNCache(&JS_GSN_CACHE(cx))
-#define JS_METER_GSN_CACHE(cx,cnt)  GSN_CACHE_METER(&JS_GSN_CACHE(cx), cnt)
-
-
 namespace nanojit {
 
 class Assembler;
@@ -648,9 +619,10 @@ class StackSpace
     static const size_t STACK_QUOTA    = (VALUES_PER_STACK_FRAME + 18) *
                                          JS_MAX_INLINE_CALL_COUNT;
 
-    
+    StackSpace();
+    ~StackSpace();
+
     bool init();
-    void finish();
 
 #ifdef DEBUG
     template <class T>
@@ -807,36 +779,54 @@ private:
     JSStackFrame *curfp;
 };
 
-} 
 
-#ifdef DEBUG
-# define FUNCTION_KIND_METER_LIST(_)                                          \
-                        _(allfun), _(heavy), _(nofreeupvar), _(onlyfreevar),  \
-                        _(flat), _(badfunarg),                                \
-                        _(joinedsetmethod), _(joinedinitmethod),              \
-                        _(joinedreplace), _(joinedsort), _(joinedmodulepat),  \
-                        _(mreadbarrier), _(mwritebarrier), _(mwslotbarrier),  \
-                        _(unjoined), _(indynamicscope)
-# define identity(x)    x
 
-struct JSFunctionMeter {
-    int32 FUNCTION_KIND_METER_LIST(identity);
-};
 
-# undef identity
 
-# define JS_FUNCTION_METER(cx,x) JS_RUNTIME_METER((cx)->runtime, functionMeter.x)
-#else
-# define JS_FUNCTION_METER(cx,x) ((void)0)
+
+
+struct GSNCache {
+    typedef HashMap<jsbytecode *,
+                    jssrcnote *,
+                    PointerHasher<jsbytecode *, 0>,
+                    SystemAllocPolicy> Map;
+
+    jsbytecode      *code;
+    Map             map;
+#ifdef JS_GSNMETER
+    struct Stats {
+        uint32          hits;
+        uint32          misses;
+        uint32          fills;
+        uint32          purges;
+
+        Stats() : hits(0), misses(0), fills(0), purges(0) { }
+    };
+
+    Stats           stats;
 #endif
 
+    GSNCache() : code(NULL) { }
 
-struct JSPendingProxyOperation {
-    JSPendingProxyOperation *next;
-    JSObject *object;
+    void purge();
+};
+ 
+inline GSNCache *
+GetGSNCache(JSContext *cx);
+
+struct PendingProxyOperation {
+    PendingProxyOperation   *next;
+    JSObject                *object;
 };
 
-struct JSThreadData {
+struct ThreadData {
+    
+
+
+
+
+    volatile int32      interruptFlags;
+
 #ifdef JS_THREADSAFE
     
     unsigned            requestDepth;
@@ -854,17 +844,15 @@ struct JSThreadData {
     JSCompartment       *onTraceCompartment;
     JSCompartment       *recordingCompartment;
     JSCompartment       *profilingCompartment;
- #endif
 
     
+    uint32              maxCodeCacheBytes;
 
-
-
-
-    volatile int32      interruptFlags;
+    static const uint32 DEFAULT_JIT_CACHE_SIZE = 16 * 1024 * 1024;
+#endif
 
     
-    js::StackSpace      stackSpace;
+    StackSpace          stackSpace;
 
     
 
@@ -876,15 +864,10 @@ struct JSThreadData {
 
 
 
-    JSGSNCache          gsnCache;
+    GSNCache            gsnCache;
 
     
-    js::PropertyCache   propertyCache;
-
-#ifdef JS_TRACER
-    
-    uint32              maxCodeCacheBytes;
-#endif
+    PropertyCache       propertyCache;
 
     
     DtoaState           *dtoaState;
@@ -893,18 +876,31 @@ struct JSThreadData {
     jsuword             *nativeStackBase;
 
     
-    JSPendingProxyOperation *pendingProxyOperation;
+    PendingProxyOperation *pendingProxyOperation;
 
-    js::ConservativeGCThreadData conservativeGC;
+    ConservativeGCThreadData conservativeGC;
+
+    ThreadData();
+    ~ThreadData();
 
     bool init();
-    void finish();
-    void mark(JSTracer *trc);
-    void purge(JSContext *cx);
+    
+    void mark(JSTracer *trc) {
+        stackSpace.mark(trc);
+    }
+
+    void purge(JSContext *cx) {
+        gsnCache.purge();
+
+        
+        propertyCache.purge(cx);
+    }
 
     
-    inline void triggerOperationCallback(JSRuntime *rt);
+    void triggerOperationCallback(JSRuntime *rt);
 };
+
+} 
 
 #ifdef JS_THREADSAFE
 
@@ -932,7 +928,26 @@ struct JSThread {
 # endif
 
     
-    JSThreadData        data;
+    js::ThreadData      data;
+
+    JSThread(void *id)
+      : id(id),
+        suspendCount(0)
+# ifdef DEBUG
+      , checkRequestDepth(0)
+# endif        
+    {
+        JS_INIT_CLIST(&contextList);
+    }
+
+    ~JSThread() {
+        
+        JS_ASSERT(JS_CLIST_IS_EMPTY(&contextList));
+    }
+
+    bool init() {
+        return data.init();
+    }
 };
 
 #define JS_THREAD_DATA(cx)      (&(cx)->thread->data)
@@ -955,6 +970,27 @@ extern void
 js_ClearContextThread(JSContext *cx);
 
 #endif 
+
+#ifdef DEBUG
+# define FUNCTION_KIND_METER_LIST(_)                                          \
+                        _(allfun), _(heavy), _(nofreeupvar), _(onlyfreevar),  \
+                        _(flat), _(badfunarg),                                \
+                        _(joinedsetmethod), _(joinedinitmethod),              \
+                        _(joinedreplace), _(joinedsort), _(joinedmodulepat),  \
+                        _(mreadbarrier), _(mwritebarrier), _(mwslotbarrier),  \
+                        _(unjoined), _(indynamicscope)
+# define identity(x)    x
+
+struct JSFunctionMeter {
+    int32 FUNCTION_KIND_METER_LIST(identity);
+};
+
+# undef identity
+
+# define JS_FUNCTION_METER(cx,x) JS_RUNTIME_METER((cx)->runtime, functionMeter.x)
+#else
+# define JS_FUNCTION_METER(cx,x) ((void)0)
+#endif
 
 typedef enum JSDestroyContextMode {
     JSDCM_NO_GC,
@@ -1206,7 +1242,7 @@ struct JSRuntime {
     
     volatile int32      interruptCounter;
 #else
-    JSThreadData        threadData;
+    js::ThreadData      threadData;
 
 #define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
 #endif
@@ -1431,7 +1467,6 @@ struct JSRuntime {
 };
 
 
-#define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
 
 #ifdef DEBUG
@@ -1593,6 +1628,7 @@ typedef js::HashSet<JSObject *,
 struct JSContext
 {
     explicit JSContext(JSRuntime *rt);
+    ~JSContext();
 
     
     JSCList             link;
@@ -2857,7 +2893,7 @@ class JSAutoResolveFlags
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-extern JSThreadData *
+extern js::ThreadData *
 js_CurrentThreadData(JSRuntime *rt);
 
 extern JSBool
@@ -2879,7 +2915,7 @@ class ThreadDataIter : public JSThread::Map::Range
   public:
     ThreadDataIter(JSRuntime *rt) : JSThread::Map::Range(rt->threads.all()) {}
 
-    JSThreadData *threadData() const {
+    ThreadData *threadData() const {
         return &front().value->data;
     }
 };
@@ -2902,7 +2938,7 @@ class ThreadDataIter
         done = true;
     }
 
-    JSThreadData *threadData() const {
+    ThreadData *threadData() const {
         JS_ASSERT(!done);
         return &runtime->threadData;
     }
@@ -3059,26 +3095,6 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 #define JS_CHECK_OPERATION_LIMIT(cx)                                          \
     (JS_ASSERT_REQUEST_DEPTH(cx),                                             \
      (!JS_THREAD_DATA(cx)->interruptFlags || js_InvokeOperationCallback(cx)))
-
-JS_ALWAYS_INLINE void
-JSThreadData::triggerOperationCallback(JSRuntime *rt)
-{
-    
-
-
-
-
-
-    if (interruptFlags)
-        return;
-    JS_ATOMIC_SET(&interruptFlags, 1);
-
-#ifdef JS_THREADSAFE
-    
-    if (requestDepth != 0)
-        JS_ATOMIC_INCREMENT(&rt->interruptCounter);
-#endif
-}
 
 
 

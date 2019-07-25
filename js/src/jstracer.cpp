@@ -2386,6 +2386,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, TraceMonitor *tm,
 
 
 
+
         w.comment("begin-interruptFlags-check");
         
 #ifdef JS_THREADSAFE

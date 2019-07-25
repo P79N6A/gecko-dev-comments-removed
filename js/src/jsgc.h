@@ -697,7 +697,7 @@ typedef js::HashMap<void *,
 
 
 JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
-    
+
 struct WrapperHasher
 {
     typedef Value Lookup;
@@ -915,16 +915,16 @@ class GCHelperThread {
         sweeping(false),
         freeCursor(NULL),
         freeCursorEnd(NULL) { }
-    
+
     bool init(JSRuntime *rt);
     void finish(JSRuntime *rt);
-    
+
     
     void startBackgroundSweep(JSRuntime *rt);
-    
+
     
     void waitBackgroundSweepEnd(JSRuntime *rt);
-    
+
     void freeLater(void *ptr) {
         JS_ASSERT(!sweeping);
         if (freeCursor != freeCursorEnd)
@@ -976,6 +976,21 @@ struct ConservativeGCThreadData {
 
 
     unsigned requestThreshold;
+
+    ConservativeGCThreadData()
+      : nativeStackTop(NULL), requestThreshold(NULL)
+    {
+    }
+
+    ~ConservativeGCThreadData() {
+#ifdef JS_THREADSAFE
+        
+
+
+
+        JS_ASSERT(!hasStackToScan());
+#endif
+    }
 
     JS_NEVER_INLINE void recordStackTop();
 
