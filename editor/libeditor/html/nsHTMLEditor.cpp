@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsCRT.h"
 
 #include "nsUnicharUtils.h"
@@ -305,9 +306,7 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc,
     }
 
     
-    result = NS_NewHTMLCSSUtils(getter_Transfers(mHTMLCSSUtils));
-    if (NS_FAILED(result)) { return result; }
-    mHTMLCSSUtils->Init(this);
+    mHTMLCSSUtils = new nsHTMLCSSUtils(this);
 
     
     nsCOMPtr<nsIPresShell> presShell;
@@ -323,11 +322,9 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc,
 
     
     mTypeInState = new TypeInState();
-    if (!mTypeInState) {return NS_ERROR_NULL_POINTER;}
 
     
     mSelectionListenerP = new ResizerSelectionListener(this);
-    if (!mSelectionListenerP) {return NS_ERROR_NULL_POINTER;}
 
     if (!IsInteractionAllowed()) {
       

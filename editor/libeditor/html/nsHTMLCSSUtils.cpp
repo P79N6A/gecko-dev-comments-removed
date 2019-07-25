@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsHTMLEditor.h"
 #include "nsCOMPtr.h"
 #include "nsHTMLEditUtils.h"
@@ -296,29 +297,21 @@ const nsHTMLCSSUtils::CSSEquivTable hrAlignEquivTable[] = {
   { nsHTMLCSSUtils::eCSSEditableProperty_NONE, 0 }
 };
 
-nsHTMLCSSUtils::nsHTMLCSSUtils()
-: mIsCSSPrefChecked(PR_FALSE)
+nsHTMLCSSUtils::nsHTMLCSSUtils(nsHTMLEditor* aEditor)
+  : mHTMLEditor(aEditor)
+  , mIsCSSPrefChecked(PR_FALSE)
 {
+  
+  nsresult result = NS_OK;
+  nsCOMPtr<nsIPrefBranch> prefBranch =
+    do_GetService(NS_PREFSERVICE_CONTRACTID, &result);
+  if (NS_SUCCEEDED(result) && prefBranch) {
+    prefBranch->GetBoolPref("editor.use_css", &mIsCSSPrefChecked);
+  }
 }
 
 nsHTMLCSSUtils::~nsHTMLCSSUtils()
 {
-}
-
-nsresult
-nsHTMLCSSUtils::Init(nsHTMLEditor *aEditor)
-{
-  nsresult result = NS_OK;
-  mHTMLEditor = static_cast<nsHTMLEditor*>(aEditor);
-
-  
-  nsCOMPtr<nsIPrefBranch> prefBranch =
-    do_GetService(NS_PREFSERVICE_CONTRACTID, &result);
-  if (NS_SUCCEEDED(result) && prefBranch) {
-    result = prefBranch->GetBoolPref("editor.use_css", &mIsCSSPrefChecked);
-    NS_ENSURE_SUCCESS(result, result);
-  }
-  return result;
 }
 
 
@@ -615,19 +608,6 @@ nsHTMLCSSUtils::GetDefaultViewCSS(nsIDOMNode *aNode, nsIDOMWindow **aViewCSS)
   NS_ENSURE_SUCCESS(res, res);
   window.forget(aViewCSS);
   return NS_OK;
-}
-
-nsresult
-NS_NewHTMLCSSUtils(nsHTMLCSSUtils** aInstancePtrResult)
-{
-  nsHTMLCSSUtils * rules = new nsHTMLCSSUtils();
-  if (rules) {
-    *aInstancePtrResult = rules;
-    return NS_OK;
-  }
-
-  *aInstancePtrResult = nsnull;
-  return NS_ERROR_OUT_OF_MEMORY;
 }
 
 

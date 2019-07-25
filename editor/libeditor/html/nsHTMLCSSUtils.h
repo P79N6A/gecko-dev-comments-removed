@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsHTMLCSSUtils_h__
 #define nsHTMLCSSUtils_h__
 
@@ -62,7 +63,7 @@ typedef void (*nsProcessValueFunc)(const nsAString * aInputString, nsAString & a
 class nsHTMLCSSUtils
 {
 public:
-  nsHTMLCSSUtils();
+  explicit nsHTMLCSSUtils(nsHTMLEditor* aEditor);
   ~nsHTMLCSSUtils();
 
   enum nsCSSEditableProperty {
@@ -98,9 +99,6 @@ public:
     PRBool gettable;
     PRBool caseSensitiveValue;
   };
-
-public:
-  nsresult    Init(nsHTMLEditor * aEditor);
 
   
 
@@ -401,10 +399,7 @@ private:
 private:
   nsHTMLEditor            *mHTMLEditor;
   PRBool                  mIsCSSPrefChecked; 
-
 };
-
-nsresult NS_NewHTMLCSSUtils(nsHTMLCSSUtils** aInstancePtrResult);
 
 #define NS_EDITOR_INDENT_INCREMENT_IN        0.4134f
 #define NS_EDITOR_INDENT_INCREMENT_CM        1.05f
