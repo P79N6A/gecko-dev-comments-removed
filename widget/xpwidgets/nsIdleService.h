@@ -164,7 +164,7 @@ protected:
 
 
 
-  void CheckAwayState(bool aNoTimeReset);
+  void CheckAwayState(bool aNewObserver);
 
 private:
   
@@ -225,6 +225,36 @@ private:
 
 
   bool mPolledIdleTimeIsValid;
+
+  
+
+
+
+
+
+
+
+
+  bool TryNotifyBackState(PRUint32 aIdleTime);
+
+  
+
+
+
+
+
+
+
+
+  bool TryNotifyIdleState(PRUint32 aIdleTime);
+
+  
+
+
+
+
+
+  void RescheduleIdleTimer(PRUint32 aIdleTime);
 };
 
 #endif 
