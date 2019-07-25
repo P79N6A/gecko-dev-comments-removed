@@ -535,7 +535,6 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
     }
 
     
-    
     aRegion = nsIntRegion(mUpdateRect);
 
     nsIntSize rgnSize = mUpdateRect.Size();
@@ -614,6 +613,12 @@ BasicTextureImage::EndUpdate()
           DEBUG_GL_ERROR_CHECK(mGLContext);
         }
     } else {
+        
+        
+        
+        
+        unsigned char* data = uploadImage->Data() + mUpdateOffset.x * 4 +
+                                                    mUpdateOffset.y * uploadImage->Stride();
         mGLContext->fTexSubImage2D(LOCAL_GL_TEXTURE_2D,
                                    0,
                                    mUpdateRect.x,
@@ -622,7 +627,7 @@ BasicTextureImage::EndUpdate()
                                    mUpdateRect.height,
                                    LOCAL_GL_RGBA,
                                    LOCAL_GL_UNSIGNED_BYTE,
-                                   uploadImage->Data());
+                                   data);
     }
     mUpdateContext = NULL;
 
