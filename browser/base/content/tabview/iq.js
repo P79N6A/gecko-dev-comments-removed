@@ -581,49 +581,58 @@ iQ.fn = iQ.prototype = {
 
   
   
-  animate: function(css, duration, callback) {
-    Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  animate: function(css, options) {
     try {
+      Utils.assert('does not yet support multi-objects (or null objects)', this.length == 1);
 
+      if(!options)
+        options = {};
+      
+      var easings = {
+        tabcandyBounce: 'cubic-bezier(0.0, 0.35, .6, 1.4)', 
+        easeInQuad: 'ease-in' 
+      };
+      
+      var duration = (options.duration || 400);
+      var easing = (easings[options.easing] || 'ease');
 
+      this.css({
+        '-moz-transition-property': 'all', 
+        '-moz-transition-duration': (duration / 1000) + 's',  
+        '-moz-transition-timing-function': easing
+      });
 
-
-
-
-
-
-      this.addClass(duration);
-      iQ.animationCount++;
+      this.css(css);
       
       var self = this;
-      var cleanedUp = false;
-      this.one('transitionend', function() {
+      setTimeout(function() {
         try {
-
-          if(!cleanedUp) {
-            iQ.animationCount--;
+          self.css({
+            '-moz-transition-property': 'none',  
+            '-moz-transition-duration': '',  
+            '-moz-transition-timing-function': ''
+          });
   
-
-
-
-
-
-
-
-      
-            self.removeClass(duration);
-            cleanedUp = true;
-            if(iQ.isFunction(callback))
-              callback.apply(this);
-          }
+          if(iQ.isFunction(options.complete))
+            options.complete.apply(self);
         } catch(e) {
           Utils.log(e);
-        }
-      });
-      
-      this.css(css);
+        }      
+      }, duration);
     } catch(e) {
-      Utils.log('iQ.fn.animate error', e);
+      Utils.log(e);
     }
     
     return this;
