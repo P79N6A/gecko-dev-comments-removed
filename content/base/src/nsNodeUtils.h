@@ -91,7 +91,7 @@ public:
 
 
 
-  static void AttributeChanged(mozilla::dom::Element* aElement,
+  static void AttributeChanged(nsIContent* aContent,
                                PRInt32 aNameSpaceID,
                                nsIAtom* aAttribute,
                                PRInt32 aModType);
