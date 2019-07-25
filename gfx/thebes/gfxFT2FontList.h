@@ -68,6 +68,10 @@ public:
     nsresult ReadCMAP();
     nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer);
 
+    
+    
+    void CheckForBrokenFont();
+
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
                                      FontListSizes*    aSizes) const;
     virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,

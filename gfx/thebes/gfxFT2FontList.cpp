@@ -722,6 +722,35 @@ AppendToFaceList(nsCString& aFaceList,
 }
 
 void
+FT2FontEntry::CheckForBrokenFont()
+{
+    NS_ASSERTION(mFamily != nsnull, "font entry must belong to a family");
+
+    
+    if (mFamily->IsBadUnderlineFamily()) {
+        mIsBadUnderlineFont = true;
+    }
+
+    
+    
+    
+    if (mFamily->Name().EqualsLiteral("roboto")) {
+        mIgnoreGSUB = true;
+    }
+
+    
+    
+    
+    else if (mFamily->Name().EqualsLiteral("droid sans arabic")) {
+        const TT_Header *head = static_cast<const TT_Header*>
+            (FT_Get_Sfnt_Table(mFTFace, ft_sfnt_head));
+        if (head && head->CheckSum_Adjust == 0xe445242) {
+            mIgnoreGSUB = true;
+        }
+    }
+}
+
+void
 gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                                         bool aStdFile,
                                         FontNameCache *aCache)
@@ -777,27 +806,9 @@ gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                 }
                 fe->mStandardFace = aStdFile;
                 family->AddFontEntry(fe);
-                if (family->IsBadUnderlineFamily()) {
-                    fe->mIsBadUnderlineFont = true;
-                }
 
                 
-                
-                
-                if (name.EqualsLiteral("roboto")) {
-                    fe->mIgnoreGSUB = true;
-                }
-
-                
-                
-                
-                else if (name.EqualsLiteral("droid sans arabic")) {
-                    const TT_Header *head = static_cast<const TT_Header*>
-                        (FT_Get_Sfnt_Table(face, ft_sfnt_head));
-                    if (head && head->CheckSum_Adjust == 0xe445242) {
-                        fe->mIgnoreGSUB = true;
-                    }
-                }
+                fe->CheckForBrokenFont();
 
                 AppendToFaceList(faceList, name, fe);
 #ifdef PR_LOGGING
@@ -1005,20 +1016,9 @@ gfxFT2FontList::AppendFaceFromFontListEntry(const FontListEntry& aFLE,
             }
         }
         family->AddFontEntry(fe);
-        if (family->IsBadUnderlineFamily()) {
-            fe->mIsBadUnderlineFont = true;
-        }
 
         
-        
-        
-        
-        
-        
-        
-        if (name.EqualsLiteral("roboto")) {
-            fe->mIgnoreGSUB = true;
-        }
+        fe->CheckForBrokenFont();
     }
 }
 
