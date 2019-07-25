@@ -136,6 +136,43 @@ namespace
 
 
 
+
+
+
+
+NS_STACK_CLASS class nsSMILTimedElement::AutoIntervalUpdateBatcher
+{
+public:
+  AutoIntervalUpdateBatcher(nsSMILTimedElement& aTimedElement)
+    : mTimedElement(aTimedElement),
+      mDidSetFlag(!aTimedElement.mDeferIntervalUpdates)
+  {
+    mTimedElement.mDeferIntervalUpdates = PR_TRUE;
+  }
+
+  ~AutoIntervalUpdateBatcher()
+  {
+    if (!mDidSetFlag)
+      return;
+
+    mTimedElement.mDeferIntervalUpdates = PR_FALSE;
+
+    if (mTimedElement.mDoDeferredUpdate) {
+      mTimedElement.mDoDeferredUpdate = PR_FALSE;
+      mTimedElement.UpdateCurrentInterval();
+    }
+  }
+
+private:
+  nsSMILTimedElement& mTimedElement;
+  PRPackedBool mDidSetFlag;
+};
+
+
+
+
+
+
 template <class TestFunctor>
 void
 nsSMILTimedElement::RemoveInstanceTimes(InstanceTimeList& aArray,
@@ -192,7 +229,9 @@ nsSMILTimedElement::nsSMILTimedElement()
   mCurrentRepeatIteration(0),
   mPrevRegisteredMilestone(sMaxMilestone),
   mElementState(STATE_STARTUP),
-  mSeekState(SEEK_NOT_SEEKING)
+  mSeekState(SEEK_NOT_SEEKING),
+  mDeferIntervalUpdates(PR_FALSE),
+  mDoDeferredUpdate(PR_FALSE)
 {
   mSimpleDur.SetIndefinite();
   mMin.SetMillis(0L);
@@ -222,6 +261,17 @@ nsSMILTimedElement::~nsSMILTimedElement()
     mOldIntervals[i]->Unlink();
   }
   mOldIntervals.Clear();
+
+  
+  
+  
+  
+  NS_ABORT_IF_FALSE(!mDeferIntervalUpdates,
+      "Interval updates should no longer be blocked when an nsSMILTimedElement "
+      "disappears");
+  NS_ABORT_IF_FALSE(!mDoDeferredUpdate,
+      "There should no longer be any pending updates when an "
+      "nsSMILTimedElement disappears");
 }
 
 void
@@ -1100,14 +1150,19 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
   }
 
   
-  PRUint32 count = mBeginSpecs.Length();
-  for (PRUint32 i = 0; i < count; ++i) {
-    mBeginSpecs[i]->ResolveReferences(aContextNode);
-  }
+  {
+    AutoIntervalUpdateBatcher updateBatcher(*this);
 
-  count = mEndSpecs.Length();
-  for (PRUint32 j = 0; j < count; ++j) {
-    mEndSpecs[j]->ResolveReferences(aContextNode);
+    
+    PRUint32 count = mBeginSpecs.Length();
+    for (PRUint32 i = 0; i < count; ++i) {
+      mBeginSpecs[i]->ResolveReferences(aContextNode);
+    }
+
+    count = mEndSpecs.Length();
+    for (PRUint32 j = 0; j < count; ++j) {
+      mEndSpecs[j]->ResolveReferences(aContextNode);
+    }
   }
 
   RegisterMilestone();
@@ -1116,6 +1171,8 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
 void
 nsSMILTimedElement::HandleTargetElementChange(Element* aNewTarget)
 {
+  AutoIntervalUpdateBatcher updateBatcher(*this);
+
   PRUint32 count = mBeginSpecs.Length();
   for (PRUint32 i = 0; i < count; ++i) {
     mBeginSpecs[i]->HandleTargetElementChange(aNewTarget);
@@ -1149,6 +1206,8 @@ nsSMILTimedElement::Traverse(nsCycleCollectionTraversalCallback* aCallback)
 void
 nsSMILTimedElement::Unlink()
 {
+  AutoIntervalUpdateBatcher updateBatcher(*this);
+
   PRUint32 count = mBeginSpecs.Length();
   for (PRUint32 i = 0; i < count; ++i) {
     nsSMILTimeValueSpec* beginSpec = mBeginSpecs[i];
@@ -1183,6 +1242,8 @@ nsSMILTimedElement::SetBeginOrEndSpec(const nsAString& aSpec,
 
   ClearSpecs(timeSpecsList, instances, aRemove);
 
+  AutoIntervalUpdateBatcher updateBatcher(*this);
+
   do {
     start = end + 1;
     end = aSpec.FindChar(';', start);
@@ -1198,8 +1259,6 @@ nsSMILTimedElement::SetBeginOrEndSpec(const nsAString& aSpec,
   if (NS_FAILED(rv)) {
     ClearSpecs(timeSpecsList, instances, aRemove);
   }
-
-  UpdateCurrentInterval();
 
   return rv;
 }
@@ -1820,6 +1879,12 @@ nsSMILTimedElement::CheckForEarlyEnd(
 void
 nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
 {
+  
+  if (mDeferIntervalUpdates) {
+    mDoDeferredUpdate = PR_TRUE;
+    return;
+  }
+
   
   
   
