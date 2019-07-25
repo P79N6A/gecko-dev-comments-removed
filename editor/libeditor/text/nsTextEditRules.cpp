@@ -221,6 +221,12 @@ nsTextEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
   
   nsAutoLockRulesSniffing lockIt(this);
   mDidExplicitlySetInterline = PR_FALSE;
+  if (!mActionNesting)
+  {
+    
+    mTheAction = action;
+  }
+  mActionNesting++;
   
   
   nsCOMPtr<nsISelection> selection;
@@ -230,12 +236,6 @@ nsTextEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
   selection->GetAnchorNode(getter_AddRefs(mCachedSelectionNode));
   selection->GetAnchorOffset(&mCachedSelectionOffset);
 
-  if (!mActionNesting)
-  {
-    
-    mTheAction = action;
-  }
-  mActionNesting++;
   return NS_OK;
 }
 
