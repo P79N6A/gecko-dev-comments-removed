@@ -513,6 +513,8 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     GeneralRegisterSet regs =
         GeneralRegisterSet::Not(GeneralRegisterSet(Register::Codes::VolatileMask));
 
+    regs.take(r4);
+
     
     
     
@@ -520,6 +522,9 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     
     masm.linkExitFrame();
+
+    
+    masm.ma_mov(lr, r4);
 
     
     Register argsBase = InvalidReg;
@@ -569,10 +574,19 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         masm.freeStack(sizeof(Value));
     }
 
+    
+    
+    Label invalidated;
+    masm.ma_cmp(r4, Operand(sp, 0));
+    masm.ma_b(&invalidated, Assembler::NotEqual);
+
     masm.retn(Imm32(sizeof(IonExitFrameLayout) + argumentPadding + f.explicitArgs * sizeof(void *)));
 
     masm.bind(&exception);
     masm.handleException();
+
+    masm.bind(&invalidated);
+    masm.ret();
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx);
