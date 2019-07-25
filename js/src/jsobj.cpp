@@ -1024,22 +1024,21 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
 
 
-
-    Value *argv = JS_ARGV(cx, vp);
-    JSObject *obj = ComputeThisFromVp(cx, vp);
-    if (!obj)
-        return JS_FALSE;
-    obj = obj->wrappedObject(cx);
-
-    OBJ_TO_INNER_OBJECT(cx, obj);
-    if (!obj)
-        return JS_FALSE;
-
-    
-
-
-
     {
+        JSObject *obj = ComputeThisFromVp(cx, vp);
+        if (!obj)
+            return JS_FALSE;
+
+        
+
+
+
+        obj = obj->wrappedObject(cx);
+
+        OBJ_TO_INNER_OBJECT(cx, obj);
+        if (!obj)
+            return JS_FALSE;
+
         JSObject *parent = obj->getParent();
         if (indirectCall || parent) {
             uintN flags = parent
@@ -1053,6 +1052,7 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
         }
     }
 
+    Value *argv = JS_ARGV(cx, vp);
     if (!argv[0].isString()) {
         *vp = argv[0];
         return JS_TRUE;
@@ -1102,16 +1102,7 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
     if (indirectCall) {
         
         staticLevel = 0;
-
-        if (!js_CheckPrincipalsAccess(cx, obj,
-                                      js_StackFramePrincipals(cx, caller),
-                                      cx->runtime->atomState.evalAtom)) {
-            return JS_FALSE;
-        }
-
-        
-        JS_ASSERT(!obj->getParent());
-        scopeobj = obj;
+        scopeobj = vp[0].toObject().getGlobal();
     } else {
         
 
