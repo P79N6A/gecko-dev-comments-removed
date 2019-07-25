@@ -236,7 +236,7 @@ Parser::newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc)
         }
     }
     funbox->level = tc->sc->staticLevel;
-    funbox->tcflags = tc->sc->flags & TCF_STRICT_MODE_CODE;
+    funbox->tcflags = 0;    
     funbox->inWith = !!tc->innermostWith;
     if (!tc->sc->inFunction) {
         JSObject *scope = tc->sc->scopeChain();
@@ -1094,7 +1094,8 @@ EnterFunction(ParseNode *fn, Parser *parser, JSAtom *funAtom = NULL,
         return NULL;
 
     
-    funtc->sc->flags |= funbox->tcflags;
+    JS_ASSERT(!funtc->sc->flags);
+    funtc->sc->flags = tc->sc->flags & TCF_STRICT_MODE_CODE;  
     funtc->sc->blockidGen = tc->sc->blockidGen;
     if (!GenerateBlockId(funtc->sc, funtc->sc->bodyid))
         return NULL;
@@ -1138,7 +1139,8 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
     tc->sc->blockidGen = funtc->sc->blockidGen;
 
     FunctionBox *funbox = fn->pn_funbox;
-    funbox->tcflags |= funtc->sc->flags;
+    JS_ASSERT(!funbox->tcflags);    
+    funbox->tcflags = funtc->sc->flags;
 
     fn->pn_dflags |= PND_INITIALIZED;
     if (!tc->sc->topStmt || tc->sc->topStmt->type == STMT_BLOCK)
@@ -5466,7 +5468,6 @@ Parser::generatorExpr(ParseNode *kid)
 
 
         gensc.flags |= TCF_FUN_IS_GENERATOR | outertc->sc->flags;
-        funbox->tcflags |= gensc.flags;
         funbox->inGenexpLambda = true;
         genfn->pn_funbox = funbox;
         genfn->pn_blockid = gensc.bodyid;
