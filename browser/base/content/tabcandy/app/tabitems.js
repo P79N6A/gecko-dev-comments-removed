@@ -126,6 +126,7 @@ window.TabItem = function(container, tab) {
   var self = this;
   this.tab.mirror.addOnClose(this, function(who, info) {
     TabItems.unregister(self);
+    Trenches.unregister(self.container);
   });   
      
   this.tab.mirror.addSubscriber(this, 'urlChanged', function(who, info) {
@@ -198,7 +199,7 @@ window.TabItem.prototype = iQ.extend(new Item(), {
     
     if(!options)
       options = {};
-    
+
     if(this._zoomPrep)
       this.bounds.copy(rect);
     else {
@@ -277,6 +278,9 @@ window.TabItem.prototype = iQ.extend(new Item(), {
     
     if(!isRect(this.bounds))
       Utils.trace('TabItem.setBounds: this.bounds is not a real rectangle!', this.bounds);
+		
+    if (this.parent === null)
+			this.setTrenches(rect);
 
     this.save();
   },
@@ -337,7 +341,7 @@ window.TabItem.prototype = iQ.extend(new Item(), {
           self.reloadBounds();
           var bounds = self.getBounds();
 					
-					var newRect = Trenches.snap(bounds,false);
+					var newRect = Trenches.snap(bounds,false,true);
 					if (newRect) 
 						self.setBounds(bounds,true);
         },
