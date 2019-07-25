@@ -1,5 +1,3 @@
-Cu.import("resource://gre/modules/Services.jsm");
-
 
 
 
@@ -48,4 +46,3 @@ function runTests(tests, cbPreTest, cbPostTest) {
   }
   runNextTest();
 }
-
