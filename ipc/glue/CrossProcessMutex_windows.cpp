@@ -1,0 +1,106 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <windows.h>
+
+#include "base/process_util.h"
+#include "CrossProcessMutex.h"
+#include "nsDebug.h"
+#include "nsTraceRefcnt.h"
+
+using namespace base;
+
+namespace mozilla {
+
+CrossProcessMutex::CrossProcessMutex(const char*)
+{
+  
+  
+  
+  mMutex = ::CreateMutexA(NULL, FALSE, NULL);
+  if (!mMutex) {
+    NS_RUNTIMEABORT("This shouldn't happen - failed to create mutex!");
+  }
+  MOZ_COUNT_CTOR(CrossProcessMutex);
+}
+
+CrossProcessMutex::CrossProcessMutex(CrossProcessMutexHandle aHandle)
+{
+  DWORD flags;
+  if (!::GetHandleInformation(aHandle, &flags)) {
+    NS_RUNTIMEABORT("Attempt to construct a mutex from an invalid handle!");
+  }
+  mMutex = aHandle;
+}
+
+CrossProcessMutex::~CrossProcessMutex()
+{
+  NS_ASSERTION(mMutex, "Improper construction of mutex or double free.");
+  ::CloseHandle(mMutex);
+  MOZ_COUNT_DTOR(CrossProcessMutex);
+}
+
+void
+CrossProcessMutex::Lock()
+{
+  NS_ASSERTION(mMutex, "Improper construction of mutex.");
+  ::WaitForSingleObject(mMutex, INFINITE);
+}
+
+void
+CrossProcessMutex::Unlock()
+{
+  NS_ASSERTION(mMutex, "Improper construction of mutex.");
+  ::ReleaseMutex(mMutex);
+}
+
+CrossProcessMutexHandle
+CrossProcessMutex::ShareToProcess(ProcessHandle aHandle)
+{
+  HANDLE newHandle;
+  bool succeeded = ::DuplicateHandle(GetCurrentProcessHandle(),
+                                     mMutex, aHandle, &newHandle,
+                                     NULL, FALSE, DUPLICATE_SAME_ACCESS);
+
+  if (!succeeded) {
+    return NULL;
+  }
+
+  return newHandle;
+}
+
+}
