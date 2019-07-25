@@ -411,16 +411,20 @@ function updateAboutMemory()
   let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
       getService(Ci.nsIMemoryReporterManager);
 
+  let treesByProcess = {}, othersByProcess = {};
+  getTreesAndOthersByProcess(mgr, treesByProcess, othersByProcess);
+
   
   
-  let reportsByProcess = getReportsByProcess(mgr);
   let hasMozMallocUsableSize = mgr.hasMozMallocUsableSize;
-  appendProcessReportsElements(body, "Main", reportsByProcess["Main"],
-                               hasMozMallocUsableSize);
-  for (let process in reportsByProcess) {
-    if (process !== "Main") {
-      appendProcessReportsElements(body, process, reportsByProcess[process],
+  appendProcessAboutMemoryElements(body, "Main", treesByProcess["Main"],
+                                   othersByProcess["Main"],
                                    hasMozMallocUsableSize);
+  for (let process in treesByProcess) {
+    if (process !== "Main") {
+      appendProcessAboutMemoryElements(body, process, treesByProcess[process],
+                                       othersByProcess[process],
+                                       hasMozMallocUsableSize);
     }
   }
 
@@ -478,28 +482,19 @@ function updateAboutMemory()
 
 
 
-function Report(aUnsafePath, aKind, aUnits, aAmount, aDescription)
-{
-  this._unsafePath  = aUnsafePath;
-  this._kind        = aKind;
-  this._units       = aUnits;
-  this._amount      = aAmount;
-  this._description = aDescription;
-  
-  
-}
 
-Report.prototype = {
-  
-  
-  
-  merge: function(r) {
-    this._amount += r._amount;
-    this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
-  },
-};
 
-function getReportsByProcess(aMgr)
+
+
+
+
+
+
+
+
+
+
+function getTreesAndOthersByProcess(aMgr, aTreesByProcess, aOthersByProcess)
 {
   
   
@@ -520,30 +515,66 @@ function getReportsByProcess(aMgr)
            aMRName === "ghost-windows";
   }
 
-  let reportsByProcess = {};
-
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
                         aDescription)
   {
     let process = aProcess === "" ? "Main" : aProcess;
-    let r = new Report(aUnsafePath, aKind, aUnits, aAmount, aDescription);
-    if (!reportsByProcess[process]) {
-      reportsByProcess[process] = {};
-    }
-    let reports = reportsByProcess[process];
-    let rOld = reports[r._unsafePath];
-    if (rOld) {
+
+    if (aUnsafePath.indexOf('/') !== -1) {
       
       
-      rOld.merge(r);
+      
+      if (!aTreesByProcess[process]) {
+        aTreesByProcess[process] = new TreeNode("tree-of-trees");
+      }
+      let t = aTreesByProcess[process]; 
+
+      
+      
+      let unsafeNames = aUnsafePath.split('/');
+      let u = t;
+      for (let i = 0; i < unsafeNames.length; i++) {
+        let unsafeName = unsafeNames[i];
+        let uMatch = u.findKid(unsafeName);
+        if (uMatch) {
+          u = uMatch;
+        } else {
+          let v = new TreeNode(unsafeName);
+          if (!u._kids) {
+            u._kids = [];
+          }
+          u._kids.push(v);
+          u = v;
+        }
+      }
+    
+      if (u._amount) {
+        
+        u._amount += aAmount;
+        u._nMerged = u._nMerged ? u._nMerged + 1 : 2;
+      } else {
+        
+        u._amount = aAmount;
+        u._description = aDescription;
+        u._kind = aKind;
+      }
+
     } else {
-      reports[r._unsafePath] = r;
+      
+      
+      if (!aOthersByProcess[process]) {
+        aOthersByProcess[process] = {};
+      }
+      let others = aOthersByProcess[process]; 
+
+      
+      assert(!others[aUnsafePath], "dup'd OTHER report");
+      others[aUnsafePath] =
+        new OtherReport(aUnsafePath, aUnits, aAmount, aDescription);
     }
   }
 
   processMemoryReporters(aMgr, ignoreSingle, ignoreMulti, handleReport);
-
-  return reportsByProcess;
 }
 
 
@@ -600,60 +631,18 @@ TreeNode.compare = function(a, b) {
 
 
 
-function buildTree(aReports, aTreePrefix)
+function fillInTree(aTreeOfTrees, aTreePrefix)
 {
   assert(aTreePrefix.indexOf('/') == aTreePrefix.length - 1,
          "aTreePrefix doesn't end in '/'");
 
   
   
-  
-
-  let foundReport = false;
-  let t = new TreeNode("falseRoot");
-  for (let unsafePath in aReports) {
-    
-    if (unsafePath.startsWith(aTreePrefix)) {
-      foundReport = true;
-      let r = aReports[unsafePath];
-      let unsafeNames = r._unsafePath.split('/');
-      let u = t;
-      for (let i = 0; i < unsafeNames.length; i++) {
-        let unsafeName = unsafeNames[i];
-        let uMatch = u.findKid(unsafeName);
-        if (uMatch) {
-          u = uMatch;
-        } else {
-          let v = new TreeNode(unsafeName);
-          if (!u._kids) {
-            u._kids = [];
-          }
-          u._kids.push(v);
-          u = v;
-        }
-      }
-      
-      u._amount = r._amount;
-      u._description = r._description;
-      u._kind = r._kind;
-      if (r._nMerged) {
-        u._nMerged = r._nMerged;
-      }
-      r._done = true;
-    }
-  }
-
-  
-  
-  
-  if (!foundReport) {
-    assert(aTreePrefix !== 'explicit/', "aTreePrefix !== 'explicit/'");
+  let t = aTreeOfTrees.findKid(aTreePrefix.replace(/\//g, ''));
+  if (!t) {
+    assert(aTreePrefix !== 'explicit/', "missing explicit tree");
     return null;
   }
-
-  
-  
-  t = t._kids[0];
 
   
   function fillInNonLeafNodes(aT, aCannotMerge)
@@ -714,26 +703,9 @@ function buildTree(aReports, aTreePrefix)
 
 
 
-function ignoreSmapsTrees(aReports)
-{
-  for (let unsafePath in aReports) {
-    let r = aReports[unsafePath];
-    if (isSmapsPath(r._unsafePath)) {
-      r._done = true;
-    }
-  }
-}
 
 
-
-
-
-
-
-
-
-
-function fixUpExplicitTree(aT, aReports)
+function fixUpExplicitTree(aT, aOthers)
 {
   
   function getKnownHeapUsedBytes(aT)
@@ -754,20 +726,18 @@ function fixUpExplicitTree(aT, aReports)
   
   
   
-  let heapAllocatedReport = aReports["heap-allocated"];
+  let heapAllocatedReport = aOthers["heap-allocated"];
   if (heapAllocatedReport === undefined)
     return false;
 
   let heapAllocatedBytes = heapAllocatedReport._amount;
   let heapUnclassifiedT = new TreeNode("heap-unclassified");
   heapUnclassifiedT._amount = heapAllocatedBytes - getKnownHeapUsedBytes(aT);
-  
-  
-  
-  heapUnclassifiedT._description = kindToString(KIND_HEAP) +
+  heapUnclassifiedT._description =
       "Memory not classified by a more specific reporter. This includes " +
       "slop bytes due to internal fragmentation in the heap allocator " +
       "(caused when the allocator rounds up request sizes).";
+  heapUnclassifiedT._kind = KIND_HEAP;
   aT._kids.push(heapUnclassifiedT);
   aT._amount += heapUnclassifiedT._amount;
   return true;
@@ -913,23 +883,25 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
 
 
-function appendProcessReportsElements(aP, aProcess, aReports,
-                                      aHasMozMallocUsableSize)
+
+
+function appendProcessAboutMemoryElements(aP, aProcess, aTreeOfTrees, aOthers,
+                                          aHasMozMallocUsableSize)
 {
   appendElementWithText(aP, "h1", "", aProcess + " Process\n\n");
 
   
   let warningsDiv = appendElement(aP, "div", "accuracyWarning");
 
-  let explicitTree = buildTree(aReports, 'explicit/');
-  let hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReports);
+  let explicitTree = fillInTree(aTreeOfTrees, "explicit/");
+  let hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aOthers);
   sortTreeAndInsertAggregateNodes(explicitTree._amount, explicitTree);
   appendTreeElements(aP, explicitTree, aProcess);
 
   
   if (gVerbose) {
     kSmapsTreePrefixes.forEach(function(aTreePrefix) {
-      let t = buildTree(aReports, aTreePrefix);
+      let t = fillInTree(aTreeOfTrees, aTreePrefix);
 
       
       
@@ -939,16 +911,11 @@ function appendProcessReportsElements(aP, aProcess, aReports,
         appendTreeElements(aP, t, aProcess);
       }
     });
-  } else {
-    
-    
-    
-    ignoreSmapsTrees(aReports);
   }
 
   
   
-  appendOtherElements(aP, aReports);
+  appendOtherElements(aP, aOthers);
 
   
   
@@ -1218,7 +1185,6 @@ function expandPathToThisElement(aElement)
 
 
 
-
 function appendTreeElements(aPOuter, aT, aProcess)
 {
   let treeBytes = aT._amount;
@@ -1226,7 +1192,6 @@ function appendTreeElements(aPOuter, aT, aProcess)
   let isExplicitTree = aT._unsafeName == 'explicit';
 
   
-
 
 
 
@@ -1418,10 +1383,7 @@ OtherReport.compare = function(a, b) {
 
 
 
-
-
-
-function appendOtherElements(aP, aReportsByProcess)
+function appendOtherElements(aP, aOthers)
 {
   appendSectionHeader(aP, kSectionNames['other']);
 
@@ -1429,19 +1391,13 @@ function appendOtherElements(aP, aReportsByProcess)
 
   
   
-  
   let maxStringLength = 0;
   let otherReports = [];
-  for (let unsafePath in aReportsByProcess) {
-    let r = aReportsByProcess[unsafePath];
-    if (!r._done) {
-      assert(r._nMerged === undefined, "dup'd OTHER report");
-      let o = new OtherReport(r._unsafePath, r._units, r._amount,
-                              r._description);
-      otherReports.push(o);
-      if (o._asString.length > maxStringLength) {
-        maxStringLength = o._asString.length;
-      }
+  for (let unsafePath in aOthers) {
+    let o = aOthers[unsafePath];
+    otherReports.push(o);
+    if (o._asString.length > maxStringLength) {
+      maxStringLength = o._asString.length;
     }
   }
   otherReports.sort(OtherReport.compare);
@@ -1696,8 +1652,6 @@ function appendProcessAboutCompartmentsElementsHelper(aP, aEntries, aKindString)
 
   appendTextNode(aP, "\n");   
 }
-
-
 
 
 
