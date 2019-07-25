@@ -469,10 +469,8 @@ struct JSScript : public js::gc::Cell {
 
 
     bool            hasSingletons:1;  
-    bool            hasFunction:1;       
-    bool            isHeavyweightFunction:1; 
-    bool            isOuterFunction:1;       
-    bool            isInnerFunction:1;       
+    bool            isOuterFunction:1; 
+    bool            isInnerFunction:1; 
 
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
@@ -499,10 +497,8 @@ struct JSScript : public js::gc::Cell {
 
 
 
-#if JS_BITS_PER_WORD == 64
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
-#endif
 
     const char      *filename;  
     JSAtom          **atoms;    
@@ -538,6 +534,11 @@ struct JSScript : public js::gc::Cell {
     
     JSPCCounters    pcCounters;
 
+    
+    JSFunction      *function_;
+
+    JSFunction *function() const { return function_; }
+
 #ifdef JS_CRASH_DIAGNOSTICS
     JSObject        *ownerObject;
 
@@ -563,7 +564,7 @@ struct JSScript : public js::gc::Cell {
     js::types::TypeScript *types;
 
     
-    inline bool ensureHasTypes(JSContext *cx, JSFunction *fun = NULL);
+    inline bool ensureHasTypes(JSContext *cx);
 
     
 
@@ -571,7 +572,7 @@ struct JSScript : public js::gc::Cell {
 
 
 
-    inline bool ensureRanAnalysis(JSContext *cx, JSFunction *fun = NULL, JSObject *scope = NULL);
+    inline bool ensureRanAnalysis(JSContext *cx, JSObject *scope);
 
     
     inline bool ensureRanInference(JSContext *cx);
@@ -589,14 +590,13 @@ struct JSScript : public js::gc::Cell {
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
 
-    inline JSFunction *function() const;
     inline js::GlobalObject *global() const;
     inline js::types::TypeScriptNesting *nesting() const;
 
     inline void clearNesting();
 
   private:
-    bool makeTypes(JSContext *cx, JSFunction *fun);
+    bool makeTypes(JSContext *cx);
     bool makeAnalysis(JSContext *cx);
   public:
 

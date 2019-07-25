@@ -168,7 +168,7 @@ LoopState::init(jsbytecode *head, Jump entry, jsbytecode *entryTarget)
 
 
 
-    if (outerScript->hasFunction) {
+    if (outerScript->function()) {
         if (TypeSet::HasObjectFlags(cx, outerScript->function()->getType(cx), OBJECT_FLAG_UNINLINEABLE))
             this->skipAnalysis = true;
     }

@@ -1012,9 +1012,6 @@ class TypeScript
     analyze::ScriptAnalysis *analysis;
 
     
-    JSFunction *function;
-
-    
 
 
 
@@ -1032,8 +1029,7 @@ class TypeScript
     
     TypeResult *dynamicList;
 
-    TypeScript(JSFunction *fun) {
-        this->function = fun;
+    TypeScript() {
         this->global = (js::GlobalObject *) GLOBAL_MISSING_SCOPE;
     }
 
@@ -1098,9 +1094,6 @@ class TypeScript
     static void Sweep(JSContext *cx, JSScript *script);
     inline void trace(JSTracer *trc);
     void destroy();
-
-    
-    static inline size_t offsetOfFunction() { return offsetof(TypeScript, function); }
 };
 
 struct ArrayTableKey;

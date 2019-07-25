@@ -52,6 +52,82 @@ namespace analyze {
 
 
 
+bool
+Bytecode::mergeDefines(JSContext *cx, ScriptAnalysis *script, bool initial,
+                       unsigned newDepth, uint32 *newArray, unsigned newCount)
+{
+    if (initial) {
+        
+
+
+
+        stackDepth = newDepth;
+        defineArray = newArray;
+        defineCount = newCount;
+        return true;
+    }
+
+    
+
+
+
+    if (analyzed) {
+#ifdef DEBUG
+        
+
+
+
+
+
+
+
+
+
+        JS_ASSERT(stackDepth == newDepth);
+        for (unsigned i = 0; i < defineCount; i++) {
+            bool found = false;
+            for (unsigned j = 0; j < newCount; j++) {
+                if (newArray[j] == defineArray[i])
+                    found = true;
+            }
+            JS_ASSERT(found);
+        }
+#endif
+    } else {
+        JS_ASSERT(stackDepth == newDepth);
+        bool owned = false;
+        for (unsigned i = 0; i < defineCount; i++) {
+            bool found = false;
+            for (unsigned j = 0; j < newCount; j++) {
+                if (newArray[j] == defineArray[i])
+                    found = true;
+            }
+            if (!found) {
+                
+
+
+
+
+                if (!owned) {
+                    uint32 *reallocArray = cx->typeLifoAlloc().newArray<uint32>(defineCount);
+                    if (!reallocArray) {
+                        script->setOOM(cx);
+                        return false;
+                    }
+                    memcpy(reallocArray, defineArray, defineCount * sizeof(uint32));
+                    defineArray = reallocArray;
+                    owned = true;
+                }
+
+                
+                defineArray[i--] = defineArray[--defineCount];
+            }
+        }
+    }
+
+    return true;
+}
+
 #ifdef DEBUG
 void
 PrintBytecode(JSContext *cx, JSScript *script, jsbytecode *pc)
@@ -72,26 +148,30 @@ PrintBytecode(JSContext *cx, JSScript *script, jsbytecode *pc)
 inline bool
 ScriptAnalysis::addJump(JSContext *cx, unsigned offset,
                         unsigned *currentOffset, unsigned *forwardJump,
-                        unsigned stackDepth)
+                        unsigned stackDepth, uint32 *defineArray, unsigned defineCount)
 {
     JS_ASSERT(offset < script->length);
 
     Bytecode *&code = codeArray[offset];
-    if (!code) {
+    bool initial = (code == NULL);
+    if (initial) {
         code = cx->typeLifoAlloc().new_<Bytecode>();
         if (!code) {
             setOOM(cx);
             return false;
         }
-        code->stackDepth = stackDepth;
     }
-    JS_ASSERT(code->stackDepth == stackDepth);
 
+    if (!code->mergeDefines(cx, this, initial, stackDepth, defineArray, defineCount))
+        return false;
     code->jumpTarget = true;
 
     if (offset < *currentOffset) {
         jsbytecode *pc = script->code + offset;
         UntrapOpcode untrap(cx, script, pc);
+
+        if (JSOp(*pc) == JSOP_TRACE || JSOp(*pc) == JSOP_NOTRACE)
+            code->loopHead = true;
 
         
         isInlineable = false;
@@ -107,6 +187,31 @@ ScriptAnalysis::addJump(JSContext *cx, unsigned offset,
     }
 
     return true;
+}
+
+inline void
+ScriptAnalysis::setLocal(uint32 local, uint32 offset)
+{
+    JS_ASSERT(local < script->nfixed);
+    JS_ASSERT(offset != LOCAL_CONDITIONALLY_DEFINED);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    JS_ASSERT(definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED ||
+              definedLocals[local] == offset || offset == LOCAL_USE_BEFORE_DEF);
+
+    definedLocals[local] = offset;
 }
 
 void
@@ -174,19 +279,23 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     LifoAlloc &tla = cx->typeLifoAlloc();
 
     unsigned length = script->length;
-    unsigned nargs = script->hasFunction ? script->function()->nargs : 0;
+    unsigned nargs = script->function() ? script->function()->nargs : 0;
 
     numSlots = TotalSlots(script);
 
     codeArray = tla.newArray<Bytecode*>(length);
+    definedLocals = tla.newArray<uint32>(script->nfixed);
     escapedSlots = tla.newArray<JSPackedBool>(numSlots);
 
-    if (!codeArray || !escapedSlots) {
+    if (!codeArray || !definedLocals || !escapedSlots) {
         setOOM(cx);
         return;
     }
 
     PodZero(codeArray, length);
+
+    for (unsigned i = 0; i < script->nfixed; i++)
+        definedLocals[i] = LOCAL_CONDITIONALLY_DEFINED;
 
     
 
@@ -209,15 +318,22 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     }
 
     if (script->usesEval || script->compartment()->debugMode()) {
-        for (unsigned i = 0; i < script->nfixed; i++)
+        for (unsigned i = 0; i < script->nfixed; i++) {
             escapedSlots[LocalSlot(script, i)] = true;
+            setLocal(i, LOCAL_USE_BEFORE_DEF);
+        }
     } else {
         for (uint32 i = 0; i < script->nClosedVars; i++) {
             unsigned local = script->getClosedVar(i);
-            JS_ASSERT(local < script->nfixed);
             escapedSlots[LocalSlot(script, local)] = true;
+            setLocal(local, LOCAL_USE_BEFORE_DEF);
         }
     }
+
+    
+    static const uint32 LOCAL_LIMIT = 50;
+    for (unsigned i = LOCAL_LIMIT; i < script->nfixed; i++)
+        setLocal(i, LOCAL_USE_BEFORE_DEF);
 
     
 
@@ -226,15 +342,17 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     if (cx->compartment->debugMode())
         usesReturnValue_ = true;
 
+    bool heavyweight = script->function() && script->function()->isHeavyweight();
+
     isInlineable = true;
     if (script->nClosedArgs || script->nClosedVars ||
-        (script->hasFunction && script->function()->isHeavyweight()) ||
+        script->nfixed >= LOCAL_LIMIT || heavyweight ||
         script->usesEval || script->usesArguments || cx->compartment->debugMode()) {
         isInlineable = false;
     }
 
     modifiesArguments_ = false;
-    if (script->nClosedArgs || (script->hasFunction && script->function()->isHeavyweight()))
+    if (script->nClosedArgs || heavyweight)
         modifiesArguments_ = true;
 
     canTrackVars = true;
@@ -316,9 +434,31 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
         }
 
         unsigned stackDepth = code->stackDepth;
+        uint32 *defineArray = code->defineArray;
+        unsigned defineCount = code->defineCount;
 
-        if (!forwardJump)
+        if (!forwardJump) {
+            
+
+
+
+
+
+
+
+
             code->unconditional = true;
+            for (unsigned i = 0; i < defineCount; i++) {
+                uint32 local = defineArray[i];
+                JS_ASSERT_IF(definedLocals[local] != LOCAL_CONDITIONALLY_DEFINED &&
+                             definedLocals[local] != LOCAL_USE_BEFORE_DEF,
+                             definedLocals[local] <= offset);
+                if (definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED)
+                    setLocal(local, offset);
+            }
+            defineArray = code->defineArray = NULL;
+            defineCount = code->defineCount = 0;
+        }
 
         
 
@@ -421,16 +561,20 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             jsint high = GET_JUMP_OFFSET(pc2);
             pc2 += JUMP_OFFSET_LEN;
 
-            if (!addJump(cx, defaultOffset, &nextOffset, &forwardJump, stackDepth))
+            if (!addJump(cx, defaultOffset, &nextOffset, &forwardJump,
+                         stackDepth, defineArray, defineCount)) {
                 return;
+            }
             getCode(defaultOffset).switchTarget = true;
             getCode(defaultOffset).safePoint = true;
 
             for (jsint i = low; i <= high; i++) {
                 unsigned targetOffset = offset + GetJumpOffset(pc, pc2);
                 if (targetOffset != offset) {
-                    if (!addJump(cx, targetOffset, &nextOffset, &forwardJump, stackDepth))
+                    if (!addJump(cx, targetOffset, &nextOffset, &forwardJump,
+                                 stackDepth, defineArray, defineCount)) {
                         return;
+                    }
                 }
                 getCode(targetOffset).switchTarget = true;
                 getCode(targetOffset).safePoint = true;
@@ -449,16 +593,20 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             unsigned npairs = GET_UINT16(pc2);
             pc2 += UINT16_LEN;
 
-            if (!addJump(cx, defaultOffset, &nextOffset, &forwardJump, stackDepth))
+            if (!addJump(cx, defaultOffset, &nextOffset, &forwardJump,
+                         stackDepth, defineArray, defineCount)) {
                 return;
+            }
             getCode(defaultOffset).switchTarget = true;
             getCode(defaultOffset).safePoint = true;
 
             while (npairs) {
                 pc2 += INDEX_LEN;
                 unsigned targetOffset = offset + GetJumpOffset(pc, pc2);
-                if (!addJump(cx, targetOffset, &nextOffset, &forwardJump, stackDepth))
+                if (!addJump(cx, targetOffset, &nextOffset, &forwardJump,
+                             stackDepth, defineArray, defineCount)) {
                     return;
+                }
                 getCode(targetOffset).switchTarget = true;
                 getCode(targetOffset).safePoint = true;
                 pc2 += jmplen;
@@ -487,8 +635,10 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
                         forwardCatch = catchOffset;
 
                     if (tn->kind != JSTRY_ITER) {
-                        if (!addJump(cx, catchOffset, &nextOffset, &forwardJump, stackDepth))
+                        if (!addJump(cx, catchOffset, &nextOffset, &forwardJump,
+                                     stackDepth, defineArray, defineCount)) {
                             return;
+                        }
                         getCode(catchOffset).exceptionEntry = true;
                         getCode(catchOffset).safePoint = true;
                     }
@@ -510,6 +660,10 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
                     localsAliasStack_ = true;
                     break;
                 }
+                if (!localDefined(local, offset)) {
+                    setLocal(local, LOCAL_USE_BEFORE_DEF);
+                    isInlineable = false;
+                }
             }
             break;
           }
@@ -518,12 +672,50 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_INCLOCAL:
           case JSOP_DECLOCAL:
           case JSOP_LOCALINC:
-          case JSOP_LOCALDEC:
+          case JSOP_LOCALDEC: {
+            uint32 local = GET_SLOTNO(pc);
+            if (local >= script->nfixed) {
+                localsAliasStack_ = true;
+                break;
+            }
+
+            if (!localDefined(local, offset)) {
+                setLocal(local, LOCAL_USE_BEFORE_DEF);
+                isInlineable = false;
+            }
+            break;
+          }
+
           case JSOP_SETLOCAL: {
             uint32 local = GET_SLOTNO(pc);
             if (local >= script->nfixed) {
                 localsAliasStack_ = true;
                 break;
+            }
+
+            
+
+
+
+
+
+
+            if (definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED) {
+                if (forwardJump) {
+                    
+                    uint32 *newArray = tla.newArray<uint32>(defineCount + 1);
+                    if (!newArray) {
+                        setOOM(cx);
+                        return;
+                    }
+                    if (defineCount)
+                        memcpy(newArray, defineArray, defineCount * sizeof(uint32));
+                    defineArray = newArray;
+                    defineArray[defineCount++] = local;
+                } else {
+                    
+                    setLocal(local, offset);
+                }
             }
             break;
           }
@@ -547,6 +739,8 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_LAMBDA_FC:
           case JSOP_GETFCSLOT:
           case JSOP_CALLFCSLOT:
+          case JSOP_ARGSUB:
+          case JSOP_ARGCNT:
           case JSOP_DEBUGGER:
           case JSOP_FUNCALL:
           case JSOP_FUNAPPLY:
@@ -565,6 +759,18 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             unsigned newStackDepth = stackDepth;
 
             switch (op) {
+              case JSOP_OR:
+              case JSOP_AND:
+              case JSOP_ORX:
+              case JSOP_ANDX:
+                
+
+
+
+
+                stackDepth--;
+                break;
+
               case JSOP_CASE:
               case JSOP_CASEX:
                 
@@ -575,8 +781,10 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             }
 
             unsigned targetOffset = offset + GetJumpOffset(pc, pc);
-            if (!addJump(cx, targetOffset, &nextOffset, &forwardJump, newStackDepth))
+            if (!addJump(cx, targetOffset, &nextOffset, &forwardJump,
+                         newStackDepth, defineArray, defineCount)) {
                 return;
+            }
         }
 
         
@@ -584,19 +792,23 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             JS_ASSERT(successorOffset < script->length);
 
             Bytecode *&nextcode = codeArray[successorOffset];
+            bool initial = (nextcode == NULL);
 
-            if (!nextcode) {
+            if (initial) {
                 nextcode = tla.new_<Bytecode>();
                 if (!nextcode) {
                     setOOM(cx);
                     return;
                 }
-                nextcode->stackDepth = stackDepth;
             }
-            JS_ASSERT(nextcode->stackDepth == stackDepth);
 
             if (type == JOF_JUMP || type == JOF_JUMPX)
                 nextcode->jumpFallthrough = true;
+
+            if (!nextcode->mergeDefines(cx, this, initial, stackDepth,
+                                        defineArray, defineCount)) {
+                return;
+            }
 
             
             if (type == JOF_JUMP || type == JOF_JUMPX)
@@ -666,7 +878,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
 
         JSOp op = (JSOp) *pc;
 
-        if (op == JSOP_LOOPHEAD && code->loop) {
+        if ((op == JSOP_TRACE || op == JSOP_NOTRACE) && code->loop) {
             
 
 
@@ -813,7 +1025,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
 
 #ifdef DEBUG
                 JSOp nop = JSOp(script->code[targetOffset]);
-                JS_ASSERT(nop == JSOP_LOOPHEAD || nop == JSOP_TRAP);
+                JS_ASSERT(nop == JSOP_TRACE || nop == JSOP_NOTRACE || nop == JSOP_TRAP);
 #endif
 
                 
@@ -1170,7 +1382,7 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             PodZero(stack + stackDepth, code->stackDepth - stackDepth);
         stackDepth = code->stackDepth;
 
-        if (op == JSOP_LOOPHEAD && code->loop) {
+        if ((op == JSOP_TRACE || op == JSOP_NOTRACE) && code->loop) {
             
 
 

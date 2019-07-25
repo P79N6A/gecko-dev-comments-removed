@@ -2243,7 +2243,7 @@ nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
 
         script = frameScript;
     }
-    else if (!JS_GetScriptPrincipals(cx, script))
+    else if (!js::IsOriginalScriptFunction(fun))
     {
         
         
