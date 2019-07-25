@@ -1287,66 +1287,10 @@ public:
     }
   }
 
-  static void DropScriptObject(PRUint32 aLangID, void *aObject,
-                               const char *name, void *aClosure)
-  {
-    DropScriptObject(aLangID, aObject, aClosure);
-  }
-
   
 
 
   static void DestroyAnonymousContent(nsCOMPtr<nsIContent>* aContent);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsresult HoldScriptObject(PRUint32 aLangID, void* aScriptObjectHolder,
-                                   nsScriptObjectTracer* aTracer,
-                                   void* aNewObject, bool aWasHoldingObjects)
-  {
-    if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
-      return aWasHoldingObjects ? NS_OK :
-                                  HoldJSObjects(aScriptObjectHolder, aTracer);
-    }
-
-    return HoldScriptObject(aLangID, aNewObject);
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  static nsresult DropScriptObjects(PRUint32 aLangID, void* aScriptObjectHolder,
-                                    nsScriptObjectTracer* aTracer)
-  {
-    if (aLangID == nsIProgrammingLanguage::JAVASCRIPT) {
-      return DropJSObjects(aScriptObjectHolder);
-    }
-
-    aTracer->Trace(aScriptObjectHolder, DropScriptObject, nsnull);
-
-    return NS_OK;
-  }
 
   
 
@@ -2063,11 +2007,6 @@ private:
 
   static nsresult EnsureStringBundle(PropertiesFile aFile);
 
-  static nsIDOMScriptObjectFactory *GetDOMScriptObjectFactory();
-
-  static nsresult HoldScriptObject(PRUint32 aLangID, void* aObject);
-  static void DropScriptObject(PRUint32 aLangID, void *aObject, void *aClosure);
-
   static bool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
                                 nsIPrincipal* aPrincipal);
 
@@ -2129,8 +2068,6 @@ private:
   static nsILineBreaker* sLineBreaker;
   static nsIWordBreaker* sWordBreaker;
 
-  static nsIScriptRuntime* sScriptRuntimes[NS_STID_ARRAY_UBOUND];
-  static PRInt32 sScriptRootCount[NS_STID_ARRAY_UBOUND];
   static PRUint32 sJSGCThingRootCount;
 
 #ifdef IBMBIDI
