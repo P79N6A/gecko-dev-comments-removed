@@ -99,18 +99,6 @@ public:
   virtual already_AddRefed<nsAccessible> CreateAccessible();
 #endif
 
-  
-
-
-
-
-
-
-
-
-
-  PRInt32 GetFileFilterFromAccept() const;
-
   typedef PRBool (*AcceptAttrCallback)(const nsAString&, void*);
   void ParseAcceptAttribute(AcceptAttrCallback aCallback, void* aClosure) const;
 

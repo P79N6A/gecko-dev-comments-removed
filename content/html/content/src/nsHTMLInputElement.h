@@ -279,6 +279,19 @@ public:
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidityStateType aType);
 
+  
+
+
+
+
+
+
+
+
+
+
+  PRInt32 GetFiltersFromAccept();
+
 protected:
   
   

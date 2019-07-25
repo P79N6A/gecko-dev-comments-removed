@@ -100,8 +100,6 @@
 #include "nsILocalFile.h"
 #include "nsNetUtil.h"
 #include "nsDOMFile.h"
-#include "nsFileControlFrame.h"
-#include "nsTextControlFrame.h"
 #include "nsIFilePicker.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIPrivateBrowsingService.h"
@@ -305,9 +303,6 @@ AsyncClickHandler::Run()
   if (!filePicker)
     return NS_ERROR_FAILURE;
 
-  nsFileControlFrame* frame =
-    static_cast<nsFileControlFrame*>(mInput->GetPrimaryFrame());
-
   PRBool multi;
   rv = mInput->GetMultiple(&multi);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -317,19 +312,22 @@ AsyncClickHandler::Run()
                         (PRInt16)nsIFilePicker::modeOpen);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  PRUint32 filter = 0;
-  if (frame)
-    filter = frame->GetFileFilterFromAccept();
-  filePicker->AppendFilters(filter | nsIFilePicker::filterAll);
+  if (mInput->HasAttr(kNameSpaceID_None, nsGkAtoms::accept)) {
+    PRInt32 filters = mInput->GetFiltersFromAccept();
 
-  
-  if (filter) {
-    
-    
-    
-    filePicker->SetFilterIndex(1);
+    if (filters) {
+      
+      filePicker->AppendFilters(filters | nsIFilePicker::filterAll);
+
+      
+      
+      
+      filePicker->SetFilterIndex(1);
+    } else {
+      filePicker->AppendFilters(nsIFilePicker::filterAll);
+    }
+  } else {
+    filePicker->AppendFilters(nsIFilePicker::filterAll);
   }
 
   
@@ -4411,5 +4409,34 @@ nsHTMLInputElement::FieldSetDisabledChanged(PRInt32 aStates)
 
   aStates |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
   nsGenericHTMLFormElement::FieldSetDisabledChanged(aStates);
+}
+
+PRInt32
+nsHTMLInputElement::GetFiltersFromAccept()
+{
+  NS_ASSERTION(HasAttr(kNameSpaceID_None, nsGkAtoms::accept),
+               "You should not call GetFileFiltersFromAccept if the element"
+               " has no accept attribute!");
+
+  PRInt32 filters = 0;
+  nsAutoString accept;
+  GetAttr(kNameSpaceID_None, nsGkAtoms::accept, accept);
+
+  nsCharSeparatedTokenizerTemplate<nsContentUtils::IsHTMLWhitespace>
+    tokenizer(accept, ',');
+
+  while (tokenizer.hasMoreTokens()) {
+    const nsDependentSubstring token = tokenizer.nextToken();
+
+    if (token.EqualsLiteral("image/*")) {
+      filters |= nsIFilePicker::filterImages;
+    } else if (token.EqualsLiteral("audio/*")) {
+      filters |= nsIFilePicker::filterAudio;
+    } else if (token.EqualsLiteral("video/*")) {
+      filters |= nsIFilePicker::filterVideo;
+    }
+  }
+
+  return filters;
 }
 
