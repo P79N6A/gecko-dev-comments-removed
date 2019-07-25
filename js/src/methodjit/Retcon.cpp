@@ -118,8 +118,8 @@ Recompiler::patchCall(JITScript *jit, StackFrame *fp, void **location)
 }
 
 void
-Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp, jsbytecode *pc,
-                        RejoinState rejoin)
+Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp,
+                        jsbytecode *pc, CallSite *inlined, RejoinState rejoin)
 {
     
 
@@ -137,8 +137,19 @@ Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp, jsbytecod
     ic::CallICInfo *callICs = jit->callICs();
     for (i = 0; i < jit->nCallICs; i++) {
         CallSite *call = callICs[i].call;
-        if (call->inlineIndex == uint32(-1) && call->pcOffset == uint32(pc - jit->script->code))
+        if (inlined) {
+            
+
+
+
+
+
+            if (call->inlineIndex == inlined->inlineIndex && call->pcOffset == inlined->pcOffset)
+                break;
+        } else if (call->inlineIndex == uint32(-1) &&
+                   call->pcOffset == uint32(pc - jit->script->code)) {
             break;
+        }
     }
     JS_ASSERT(i < jit->nCallICs);
     ic::CallICInfo &ic = callICs[i];
@@ -221,6 +232,9 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
 
     cx->compartment->types.frameExpansions++;
 
+    RejoinState rejoin = (RejoinState) f->stubRejoin;
+    JS_ASSERT(rejoin != REJOIN_NATIVE_LOWERED && rejoin != REJOIN_NATIVE_EXPANDED);
+
     
 
 
@@ -228,21 +242,34 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
 
     void **frameAddr = f->returnAddressLocation();
     uint8* codeStart = (uint8 *)fp->jit()->code.m_code.executableAddress();
-    bool patchFrameReturn =
-        (f->stubRejoin == 0) && (*frameAddr == codeStart + inlined->codeOffset);
 
     InlineFrame *inner = &fp->jit()->inlineFrames()[inlined->inlineIndex];
     jsbytecode *innerpc = inner->fun->script()->code + inlined->pcOffset;
 
     StackFrame *innerfp = expandInlineFrameChain(cx, fp, inner);
 
-    if (f->regs.fp() == fp) {
+    
+    if (f->stubRejoin == REJOIN_NATIVE) {
+        
+        if (f->regs.fp() == fp) {
+            patchNative(cx, fp->jit(), innerfp, f->regs.pc, f->regs.inlined(), rejoin);
+            f->stubRejoin = REJOIN_NATIVE_EXPANDED;
+        }
+    } else if (f->stubRejoin) {
+        
+        if (f->regs.fp()->prev() == fp) {
+            fp->prev()->setRejoin(StubRejoin(rejoin));
+            *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+        }
+    } else if (*frameAddr == codeStart + inlined->codeOffset) {
+        
+        SetRejoinState(innerfp, *inlined, frameAddr);
+    }
+
+    if (f->fp() == fp) {
         JS_ASSERT(f->regs.inlined() == inlined);
         f->regs.expandInline(innerfp, innerpc);
     }
-
-    if (patchFrameReturn)
-        SetRejoinState(f->regs.fp(), *inlined, frameAddr);
 
     
 
@@ -394,10 +421,15 @@ Recompiler::recompile(bool resetUses)
         RejoinState rejoin = (RejoinState) f->stubRejoin;
         if (rejoin == REJOIN_NATIVE || rejoin == REJOIN_NATIVE_LOWERED) {
             
-            if (fp->script() == script && fp->isConstructing())
-                patchNative(cx, script->jitCtor, fp, fp->pc(cx, NULL), rejoin);
-            else if (fp->script() == script)
-                patchNative(cx, script->jitNormal, fp, fp->pc(cx, NULL), rejoin);
+            if (fp->script() == script && fp->isConstructing()) {
+                patchNative(cx, script->jitCtor, fp, fp->pc(cx, NULL), NULL, rejoin);
+                f->stubRejoin = REJOIN_NATIVE_EXPANDED;
+            } else if (fp->script() == script) {
+                patchNative(cx, script->jitNormal, fp, fp->pc(cx, NULL), NULL, rejoin);
+                f->stubRejoin = REJOIN_NATIVE_EXPANDED;
+            }
+        } else if (rejoin == REJOIN_NATIVE_EXPANDED) {
+            
         } else if (rejoin) {
             
             if (fp->prev()->script() == script) {

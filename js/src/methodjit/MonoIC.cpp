@@ -627,12 +627,6 @@ class CallCompiler : public BaseCompiler
     bool generateFullCallStub(JITScript *from, JSScript *script, uint32 flags)
     {
         
-        if (f.regs.inlined()) {
-            disable(from);
-            return true;
-        }
-
-        
 
 
 
@@ -667,7 +661,7 @@ class CallCompiler : public BaseCompiler
 
 
 
-            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.regs.pc, false)),
+            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), false)),
                           FrameAddress(offsetof(VMFrame, stubRejoin)));
         }
 
@@ -848,10 +842,6 @@ class CallCompiler : public BaseCompiler
             return true;
 
         
-        if (f.regs.inlined())
-            return true;
-
-        
         if (!ic.hit) {
             ic.hit = true;
             return true;
@@ -870,7 +860,7 @@ class CallCompiler : public BaseCompiler
 
 
 
-            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.regs.pc, true)),
+            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), true)),
                           FrameAddress(offsetof(VMFrame, stubRejoin)));
         }
 
@@ -890,11 +880,11 @@ class CallCompiler : public BaseCompiler
         RegisterID t0 = tempRegs.takeAnyReg().reg();
 
         
-        masm.storePtr(ImmPtr(cx->regs().pc),
+        masm.storePtr(ImmPtr(f.regs.pc),
                       FrameAddress(offsetof(VMFrame, regs.pc)));
 
         
-        masm.storePtr(ImmPtr(NULL),
+        masm.storePtr(ImmPtr(f.regs.inlined()),
                       FrameAddress(VMFrame::offsetOfInlined));
 
         
@@ -965,7 +955,7 @@ class CallCompiler : public BaseCompiler
 
 
 
-        if (native == js_regexp_exec && !CallResultEscapes(f.regs.pc))
+        if (native == js_regexp_exec && !CallResultEscapes(f.pc()))
             native = js_regexp_test;
 
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, native), false);
