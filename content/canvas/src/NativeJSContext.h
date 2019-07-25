@@ -340,7 +340,7 @@ public:
 
     
     PRBool DefineBoolProperty(const char *name, PRBool val) {
-        if (!JS_DefineProperty(mCtx->ctx, mObject, name, val ? JS_TRUE : JS_FALSE, NULL, NULL, JSPROP_ENUMERATE))
+        if (!JS_DefineProperty(mCtx->ctx, mObject, name, val ? JSVAL_TRUE : JSVAL_FALSE, NULL, NULL, JSPROP_ENUMERATE))
             return PR_FALSE;
         return PR_TRUE;
     }

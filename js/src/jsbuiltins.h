@@ -116,6 +116,8 @@ struct JSNativeTraceInfo {
 
 #define _JS_I32_ARGTYPE    nanojit::ARGTYPE_I
 #define _JS_I32_RETTYPE    nanojit::ARGTYPE_I
+#define _JS_U64_ARGTYPE    nanojit::ARGTYPE_Q
+#define _JS_U64_RETTYPE    nanojit::ARGTYPE_Q
 #define _JS_F64_ARGTYPE    nanojit::ARGTYPE_D
 #define _JS_F64_RETTYPE    nanojit::ARGTYPE_D
 #define _JS_PTR_ARGTYPE    nanojit::ARGTYPE_P
@@ -189,9 +191,10 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_CALLEE_PROTOTYPE  _JS_CTYPE(JSObject *,             _JS_PTR,"p","",  INFALLIBLE)
 #define _JS_CTYPE_FUNCTION          _JS_CTYPE(JSFunction *,           _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_PC                _JS_CTYPE(jsbytecode *,           _JS_PTR,"P", "", INFALLIBLE)
-#define _JS_CTYPE_VALUEPTR          _JS_CTYPE(js::Value *,            _JS_PTR, "","p", INFALLIBLE)
-#define _JS_CTYPE_CVALUEPTR         _JS_CTYPE(const js::Value *,      _JS_PTR, "","p", INFALLIBLE)
-#define _JS_CTYPE_SIZET             _JS_CTYPE(size_t,                 _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_VALUEPTR          _JS_CTYPE(js::Value *,            _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_CVALUEPTR         _JS_CTYPE(const js::Value *,      _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_JSID              _JS_CTYPE(jsid,                   _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_JSVAL             _JS_CTYPE(js::Value,              _JS_U64, --, --, INFALLIBLE)
 #define _JS_CTYPE_BOOL              _JS_CTYPE(JSBool,                 _JS_I32, "","i", INFALLIBLE)
 #define _JS_CTYPE_BOOL_RETRY        _JS_CTYPE(JSBool,                 _JS_I32, --, --, FAIL_NEITHER)
 #define _JS_CTYPE_BOOL_FAIL         _JS_CTYPE(JSBool,                 _JS_I32, --, --, FAIL_STATUS)
@@ -229,6 +232,25 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_APNPTR            _JS_CTYPE(ArgsPrivateNative *,    _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_CVIPTR            _JS_CTYPE(const ClosureVarInfo *, _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_FRAMEINFO         _JS_CTYPE(FrameInfo *,            _JS_PTR, --, --, INFALLIBLE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if JS_BITS_PER_WORD == 32
+# define _JS_CTYPE_VALUE            _JS_CTYPE(js::ValueArgType,       _JS_PTR, "","v", INFALLIBLE)
+#elif JS_BITS_PER_WORD == 64
+# define _JS_CTYPE_VALUE            _JS_CTYPE(js::ValueArgType,       _JS_U64, "","v", INFALLIBLE)
+#endif
 
 #define _JS_EXPAND(tokens)  tokens
 
@@ -528,12 +550,11 @@ JS_DECLARE_CALLINFO(js_Array_dense_setelem_double)
 JS_DECLARE_CALLINFO(js_NewEmptyArray)
 JS_DECLARE_CALLINFO(js_NewEmptyArrayWithLength)
 JS_DECLARE_CALLINFO(js_NewArrayWithSlots)
-JS_DECLARE_CALLINFO(js_ArrayCompPush)
+JS_DECLARE_CALLINFO(js_ArrayCompPush_tn)
 
 
 JS_DECLARE_CALLINFO(js_UnboxDouble)
 JS_DECLARE_CALLINFO(js_UnboxInt32)
-JS_DECLARE_CALLINFO(js_TryUnboxInt32)
 JS_DECLARE_CALLINFO(js_dmod)
 JS_DECLARE_CALLINFO(js_imod)
 JS_DECLARE_CALLINFO(js_DoubleToInt32)

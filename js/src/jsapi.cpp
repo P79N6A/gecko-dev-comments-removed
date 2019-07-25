@@ -111,6 +111,15 @@ using namespace js;
 JS_PUBLIC_DATA(jsid) JSID_VOID = { (size_t)JSID_VOID_TYPE };
 #endif
 
+#ifdef DEBUG
+JS_PUBLIC_DATA(jsval) JSVAL_NULL  = { BUILD_JSVAL(JSVAL_TAG_NULL,      0) };
+JS_PUBLIC_DATA(jsval) JSVAL_ZERO  = { BUILD_JSVAL(JSVAL_TAG_INT32,     0) };
+JS_PUBLIC_DATA(jsval) JSVAL_ONE   = { BUILD_JSVAL(JSVAL_TAG_INT32,     1) };
+JS_PUBLIC_DATA(jsval) JSVAL_FALSE = { BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_FALSE) };
+JS_PUBLIC_DATA(jsval) JSVAL_TRUE  = { BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE) };
+JS_PUBLIC_DATA(jsval) JSVAL_VOID  = { BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0) };
+#endif
+
 JS_PUBLIC_API(int64)
 JS_Now()
 {
@@ -4633,8 +4642,7 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET_MASK(const_cast<jsword*>(&cx->interruptFlags),
-                       JSContext::INTERRUPT_OPERATION_CALLBACK);
+    JS_ATOMIC_SET(&cx->operationCallbackFlag, 1);
 }
 
 JS_PUBLIC_API(void)
@@ -5386,7 +5394,7 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 #if !defined(STATIC_JS_API) && defined(XP_WIN) && !defined (WINCE)
 
-#include "jswin.h"
+#include <windows.h>
 
 
 

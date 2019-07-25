@@ -262,6 +262,8 @@ extern const char XPC_XPCONNECT_CONTRACTID[];
 
 #define WRAPPER_SLOTS (JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(1))
 
+#define INVALID_OBJECT ((JSObject *)1)
+
 
 
 
@@ -2601,7 +2603,7 @@ public:
         
         
         
-        if(mFlatJSObject && mFlatJSObject != (JSObject*)JSVAL_ONE)
+        if(mFlatJSObject && mFlatJSObject != INVALID_OBJECT)
         {
             JS_CALL_OBJECT_TRACER(trc, mFlatJSObject,
                                   "XPCWrappedNative::mFlatJSObject");
@@ -4035,7 +4037,7 @@ class XPCMarkableJSVal
 {
 public:
     XPCMarkableJSVal(jsval val) : mVal(val), mValPtr(&mVal) {}
-    XPCMarkableJSVal(jsval *pval) : mVal(0), mValPtr(pval) {}
+    XPCMarkableJSVal(jsval *pval) : mVal(JSVAL_VOID), mValPtr(pval) {}
     ~XPCMarkableJSVal() {}
     void Mark() {}
     void TraceJS(JSTracer* trc)

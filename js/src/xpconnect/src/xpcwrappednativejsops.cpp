@@ -1060,7 +1060,7 @@ XPC_WN_Helper_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 {
     
     
-    if(!(obj = (JSObject*)argv[-2]))
+    if(!(obj = JSVAL_TO_OBJECT(argv[-2])))
         return JS_FALSE;
 
     SLIM_LOG_WILL_MORPH(cx, obj);
@@ -1075,7 +1075,7 @@ XPC_WN_Helper_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 {
     
     
-    if(!(obj = (JSObject*)argv[-2]))
+    if(!(obj = JSVAL_TO_OBJECT(argv[-2])))
         return JS_FALSE;
 
     SLIM_LOG_WILL_MORPH(cx, obj);

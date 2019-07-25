@@ -131,7 +131,7 @@ struct JSFunction : public JSObject
     uint16          nargs;        
 
     uint16          flags;        
-    union U {
+    union {
         struct {
             uint16      extra;    
             uint16      spare;    
@@ -140,7 +140,7 @@ struct JSFunction : public JSObject
 
             JSNativeTraceInfo *trcinfo;
         } n;
-        struct Scripted {
+        struct {
             uint16      nvars;    
             uint16      nupvars;  
 
@@ -380,18 +380,6 @@ SetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
 SetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
-
-
-
-
-
-
-extern JSBool JS_FASTCALL
-js_SetCallArg(JSContext *cx, JSObject *obj, size_t slotid, js::Value *vp);
-
-extern JSBool JS_FASTCALL
-js_SetCallVar(JSContext *cx, JSObject *obj, size_t slotid, js::Value *vp);
 
 
 
