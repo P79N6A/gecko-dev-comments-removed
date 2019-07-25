@@ -3329,14 +3329,26 @@ let GsmPDUHelper = {
   
 
 
+  bcdChars: "0123456789*#,;",
+  semiOctetToBcdChar: function semiOctetToBcdChar(semiOctet) {
+    if (semiOctet >= 14) {
+      throw new RangeError();
+    }
+
+    return this.bcdChars.charAt(semiOctet);
+  },
+
+  
 
 
 
 
 
-  readSwappedNibbleBCD: function readSwappedNibbleBCD(length) {
+
+
+  readSwappedNibbleBcdNum: function readSwappedNibbleBcdNum(pairs) {
     let number = 0;
-    for (let i = 0; i < length; i++) {
+    for (let i = 0; i < pairs; i++) {
       let octet = this.readHexOctet();
       
       if (octet == 0xff) {
@@ -3353,6 +3365,32 @@ let GsmPDUHelper = {
       number += this.octetToBCD(octet);
     }
     return number;
+  },
+
+  
+
+
+
+
+
+
+
+  readSwappedNibbleBcdString: function readSwappedNibbleBcdString(pairs) {
+    let str = "";
+    for (let i = 0; i < pairs; i++) {
+      let nibbleH = this.readHexNibble();
+      let nibbleL = this.readHexNibble();
+      if (nibbleL == 0x0F) {
+        break;
+      }
+
+      str += this.semiOctetToBcdChar(nibbleL);
+      if (nibbleH != 0x0F) {
+        str += this.semiOctetToBcdChar(nibbleH);
+      }
+    }
+
+    return str;
   },
 
   
@@ -3722,6 +3760,10 @@ let GsmPDUHelper = {
 
 
 
+
+
+
+
   readAddress: function readAddress(len) {
     
     if (!len || (len < 0)) {
@@ -3737,7 +3779,7 @@ let GsmPDUHelper = {
     let toa = this.readHexOctet();
 
     
-    let addr = this.readSwappedNibbleBCD(len / 2).toString();
+    let addr = this.readSwappedNibbleBcdString(len / 2);
     if (addr.length <= 0) {
       if (DEBUG) debug("PDU error: no number provided");
       return null;
@@ -3909,12 +3951,12 @@ let GsmPDUHelper = {
 
 
   readTimestamp: function readTimestamp() {
-    let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
-    let month  = this.readSwappedNibbleBCD(1) - 1;
-    let day    = this.readSwappedNibbleBCD(1);
-    let hour   = this.readSwappedNibbleBCD(1);
-    let minute = this.readSwappedNibbleBCD(1);
-    let second = this.readSwappedNibbleBCD(1);
+    let year   = this.readSwappedNibbleBcdNum(1) + PDU_TIMESTAMP_YEAR_OFFSET;
+    let month  = this.readSwappedNibbleBcdNum(1) - 1;
+    let day    = this.readSwappedNibbleBcdNum(1);
+    let hour   = this.readSwappedNibbleBcdNum(1);
+    let minute = this.readSwappedNibbleBcdNum(1);
+    let second = this.readSwappedNibbleBcdNum(1);
     let timestamp = Date.UTC(year, month, day, hour, minute, second);
 
     
@@ -4064,7 +4106,7 @@ let GsmPDUHelper = {
     if (smscLength > 0) {
       let smscTypeOfAddress = this.readHexOctet();
       
-      msg.SMSC = this.readSwappedNibbleBCD(smscLength - 1).toString();
+      msg.SMSC = this.readSwappedNibbleBcdString(smscLength - 1);
       if ((smscTypeOfAddress >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
         msg.SMSC = '+' + msg.SMSC;
       }
