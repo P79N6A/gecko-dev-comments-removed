@@ -589,10 +589,6 @@ struct BytecodeEmitter : public TreeContext
     CGObjectList    regexpList;     
 
 
-    OwnedAtomIndexMapPtr upvarIndices; 
-
-    UpvarCookies    upvarMap;       
-
     GlobalScope     *globalScope;   
 
     typedef Vector<GlobalSlotArray::Entry, 16> GlobalUseVector;
@@ -637,10 +633,6 @@ struct BytecodeEmitter : public TreeContext
 
 
     bool addGlobalUse(JSAtom *atom, uint32_t slot, UpvarCookie *cookie);
-
-    bool hasUpvarIndices() const {
-        return upvarIndices.hasMap() && !upvarIndices->empty();
-    }
 
     bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
     JSVersion version() const { return parser->versionWithFlags(); }

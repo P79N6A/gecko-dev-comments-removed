@@ -217,11 +217,16 @@ NS_IMETHODIMP nsGBKToUnicode::ConvertNoBuff(const char* aSrc,
                }
              }
            }
+           aSrc += 4;
+           i += 3;
         } else {
           *aDest = UCS2_NO_MAPPING; 
+          
+          
+          
+          
+          aSrc++;
         }
-        aSrc += 4;
-        i+=3;
       }
       else if ((PRUint8) aSrc[0] == (PRUint8)0xA0 )
       {

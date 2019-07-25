@@ -230,33 +230,6 @@ inline int NS_SUCCEEDED(nsresult _nsresult) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define NS_ERROR_PROXY_INVALID_IN_PARAMETER        ((nsresult) 0x80010010L)
-
-
-
-
-
-#define NS_ERROR_PROXY_INVALID_OUT_PARAMETER       ((nsresult) 0x80010011L)
-
-
-
-
  
 
  

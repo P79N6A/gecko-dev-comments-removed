@@ -157,7 +157,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
   PaintState result;
   
   
-  bool canHaveRotation = !(aFlags & PAINT_WILL_RESAMPLE);
+  bool canHaveRotation = !(aFlags & (PAINT_WILL_RESAMPLE | PAINT_NO_ROTATION));
 
   nsIntRegion validRegion = aLayer->GetValidRegion();
 

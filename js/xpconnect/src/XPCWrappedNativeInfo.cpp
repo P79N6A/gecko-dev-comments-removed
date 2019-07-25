@@ -667,6 +667,54 @@ XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
 
 
 XPCNativeSet*
+XPCNativeSet::GetNewOrUsed(XPCCallContext& ccx,
+                           XPCNativeSet* firstSet,
+                           XPCNativeSet* secondSet,
+                           bool preserveFirstSetOrder)
+{
+    
+    PRUint32 uniqueCount = firstSet->mInterfaceCount;
+    for (PRUint32 i = 0; i < secondSet->mInterfaceCount; ++i) {
+        if (!firstSet->HasInterface(secondSet->mInterfaces[i]))
+            uniqueCount++;
+    }
+
+    
+    
+    if (uniqueCount == firstSet->mInterfaceCount)
+        return firstSet;
+
+    
+    
+    if (!preserveFirstSetOrder && uniqueCount == secondSet->mInterfaceCount)
+        return secondSet;
+
+    
+    
+    
+    
+    
+    
+    
+    XPCNativeSet* currentSet = firstSet;
+    for (PRUint32 i = 0; i < secondSet->mInterfaceCount; ++i) {
+        XPCNativeInterface* iface = secondSet->mInterfaces[i];
+        if (!currentSet->HasInterface(iface)) {
+            
+            PRUint32 pos = currentSet->mInterfaceCount;
+            currentSet = XPCNativeSet::GetNewOrUsed(ccx, currentSet, iface, pos);
+            if (!currentSet)
+                return nsnull;
+        }
+    }
+
+    
+    MOZ_ASSERT(currentSet->mInterfaceCount == uniqueCount);
+    return currentSet;
+}
+
+
+XPCNativeSet*
 XPCNativeSet::NewInstance(XPCCallContext& ccx,
                           XPCNativeInterface** array,
                           PRUint16 count)

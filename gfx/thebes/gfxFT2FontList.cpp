@@ -136,7 +136,7 @@ FT2FontEntry::CreateScaledFont(const gfxFontStyle *aStyle)
 
     
     bool needsOblique = !IsItalic() &&
-            (aStyle->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE));
+            (aStyle->style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE));
 
     if (needsOblique) {
         const double kSkewFactor = 0.25;
@@ -766,6 +766,14 @@ gfxFT2FontList::AppendFacesFromFontFile(nsCString& aFileName,
                 if (family->IsBadUnderlineFamily()) {
                     fe->mIsBadUnderlineFont = true;
                 }
+
+                
+                
+                
+                if (name.EqualsLiteral("roboto")) {
+                    fe->mIgnoreGSUB = true;
+                }
+
                 AppendToFaceList(faceList, name, fe);
 #ifdef PR_LOGGING
                 if (LOG_ENABLED()) {
@@ -974,6 +982,17 @@ gfxFT2FontList::AppendFaceFromFontListEntry(const FontListEntry& aFLE,
         family->AddFontEntry(fe);
         if (family->IsBadUnderlineFamily()) {
             fe->mIsBadUnderlineFont = true;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        if (name.EqualsLiteral("roboto")) {
+            fe->mIgnoreGSUB = true;
         }
     }
 }

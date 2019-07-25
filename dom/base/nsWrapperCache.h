@@ -43,7 +43,6 @@
 
 struct JSObject;
 struct JSContext;
-class nsContentUtils;
 class XPCWrappedNativeScope;
 
 typedef PRUptrdiff PtrBits;
@@ -81,15 +80,8 @@ typedef PRUptrdiff PtrBits;
 
 
 
-
-
-
-
-
 class nsWrapperCache
 {
-  friend class nsContentUtils;
-
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_WRAPPERCACHE_IID)
 
@@ -100,7 +92,6 @@ public:
   {
     NS_ASSERTION(!PreservingWrapper(),
                  "Destroying cache with a preserved wrapper!");
-    RemoveExpandoObject();
   }
 
   
@@ -121,35 +112,29 @@ public:
 
 
 
-  JSObject* GetWrapperPreserveColor() const;
+  JSObject* GetWrapperPreserveColor() const
+  {
+    return GetJSObjectFromBits();
+  }
+
+  void SetWrapper(JSObject* aWrapper)
+  {
+    NS_ASSERTION(!PreservingWrapper(), "Clearing a preserved wrapper!");
+    NS_ASSERTION(aWrapper, "Use ClearWrapper!");
+
+    SetWrapperBits(aWrapper);
+  }
 
   
 
 
 
+  void ClearWrapper()
+  {
+    NS_ASSERTION(!PreservingWrapper(), "Clearing a preserved wrapper!");
 
-
-
-
-
-
-
-
-  JSObject* GetExpandoObjectPreserveColor() const;
-
-  void SetWrapper(JSObject* aWrapper);
-
-  
-
-
-
-  void ClearWrapper();
-
-  
-
-
-
-  void ClearWrapperIfProxy();
+    SetWrapperBits(NULL);
+  }
 
   bool PreservingWrapper()
   {
@@ -195,7 +180,6 @@ public:
 
   bool IsBlack();
 
-private:
   
   void SetPreservingWrapper(bool aPreserve)
   {
@@ -206,6 +190,8 @@ private:
       mWrapperPtrBits &= ~WRAPPER_BIT_PRESERVED;
     }
   }
+
+private:
   JSObject *GetJSObjectFromBits() const
   {
     return reinterpret_cast<JSObject*>(mWrapperPtrBits & ~kWrapperBitMask);
@@ -215,9 +201,6 @@ private:
     mWrapperPtrBits = reinterpret_cast<PtrBits>(aWrapper) |
                       (mWrapperPtrBits & WRAPPER_IS_PROXY);
   }
-  void RemoveExpandoObject();
-
-  static JSObject *GetExpandoFromSlot(JSObject *obj);
 
   
 

@@ -82,6 +82,7 @@
 #include "FrameLayerBuilder.h"
 #include "nsSMILKeySpline.h"
 #include "nsSubDocumentFrame.h"
+#include "nsSVGOuterSVGFrame.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -606,6 +607,12 @@ nsHTMLScrollFrame::GuessVScrollbarNeeded(const ScrollReflowState& aState)
     return false;
 
   if (mInner.mIsRoot) {
+    nsIFrame *f = mInner.mScrolledFrame->GetFirstPrincipalChild();
+    if (f && f->GetType() == nsGkAtoms::svgOuterSVGFrame &&
+        static_cast<nsSVGOuterSVGFrame*>(f)->VerticalScrollbarNotNeeded()) {
+      
+      return false;
+    }
     
     
     

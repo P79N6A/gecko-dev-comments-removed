@@ -3720,7 +3720,20 @@ nsXPCComponents_Utils::GetGlobalForObject(const JS::Value& object,
   if (JSVAL_IS_PRIMITIVE(object))
     return NS_ERROR_XPC_BAD_CONVERT_JS;
 
-  JSObject *obj = JS_GetGlobalForObject(cx, JSVAL_TO_OBJECT(object));
+  
+  
+  
+  
+  
+  JSObject *obj = JSVAL_TO_OBJECT(object);
+  obj = js::UnwrapObject(obj);
+  {
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, obj))
+      return NS_ERROR_FAILURE;
+    obj = JS_GetGlobalForObject(cx, obj);
+  }
+  JS_WrapObject(cx, &obj);
   *retval = OBJECT_TO_JSVAL(obj);
 
   

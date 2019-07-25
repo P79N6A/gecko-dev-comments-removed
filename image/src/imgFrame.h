@@ -195,6 +195,9 @@ private:
   
   bool mLocked;
 
+  
+  bool mInformedDiscardTracker;
+
 #ifdef XP_WIN
   bool mIsDDBSurface;
 #endif

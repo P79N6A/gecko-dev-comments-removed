@@ -37,6 +37,7 @@
 
 
 #include "imgFrame.h"
+#include "DiscardTracker.h"
 
 #include <limits.h>
 
@@ -66,6 +67,8 @@ static PRUint32 gTotalDDBSize = 0;
 #define kMaxSingleDDBSize (4*1024*1024)
 
 #endif
+
+using namespace mozilla::image;
 
 
 static bool AllowedImageSize(PRInt32 aWidth, PRInt32 aHeight)
@@ -147,6 +150,7 @@ imgFrame::imgFrame() :
   , mIsDDBSurface(false)
 #endif
   , mLocked(false)
+  , mInformedDiscardTracker(false)
 {
   static bool hasCheckedOptimize = false;
   if (!hasCheckedOptimize) {
@@ -166,6 +170,10 @@ imgFrame::~imgFrame()
       gTotalDDBSize -= mSize.width * mSize.height * 4;
   }
 #endif
+
+  if (mInformedDiscardTracker) {
+    DiscardTracker::InformAllocation(-4 * mSize.height * mSize.width);
+  }
 }
 
 nsresult imgFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, 
@@ -227,6 +235,14 @@ nsresult imgFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
 #endif
   }
 
+  
+  
+  
+  if (!mPalettedImageData) {
+    DiscardTracker::InformAllocation(4 * mSize.width * mSize.height);
+    mInformedDiscardTracker = true;
+  }
+
   return NS_OK;
 }
 
@@ -271,6 +287,14 @@ nsresult imgFrame::Optimize()
 #ifdef XP_MACOSX
         mQuartzSurface = nsnull;
 #endif
+
+        
+        
+        if (mInformedDiscardTracker) {
+          DiscardTracker::InformAllocation(-4 * mSize.width * mSize.height);
+          mInformedDiscardTracker = false;
+        }
+
         return NS_OK;
       }
     }

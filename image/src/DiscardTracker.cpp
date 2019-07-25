@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsComponentManagerUtils.h"
 #include "nsITimer.h"
 #include "RasterImage.h"
@@ -44,77 +12,95 @@
 namespace mozilla {
 namespace image {
 
-static bool sInitialized = false;
-static bool sTimerOn = false;
-static PRUint32 sMinDiscardTimeoutMs = 10000; 
-static nsITimer *sTimer = nsnull;
-static struct DiscardTrackerNode sHead, sSentinel, sTail;
+static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
+
+ LinkedList<DiscardTracker::Node> DiscardTracker::sDiscardableImages;
+ nsCOMPtr<nsITimer> DiscardTracker::sTimer;
+ bool DiscardTracker::sInitialized = false;
+ bool DiscardTracker::sTimerOn = false;
+ bool DiscardTracker::sDiscardRunnablePending = false;
+ PRInt64 DiscardTracker::sCurrentDecodedImageBytes = 0;
+ PRUint32 DiscardTracker::sMinDiscardTimeoutMs = 10000;
+ PRUint32 DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
 
 
 
 
+
+NS_IMETHODIMP
+DiscardTracker::DiscardRunnable::Run()
+{
+  sDiscardRunnablePending = false;
+  DiscardTracker::DiscardNow();
+  return NS_OK;
+}
+
+int
+DiscardTimeoutChangedCallback(const char* aPref, void *aClosure)
+{
+  DiscardTracker::ReloadTimeout();
+  return 0;
+}
 
 nsresult
-DiscardTracker::Reset(DiscardTrackerNode *node)
+DiscardTracker::Reset(Node *node)
 {
+  
+  
+  
+  MOZ_ASSERT(node->img);
+  MOZ_ASSERT(node->img->CanDiscard());
+  MOZ_ASSERT(!node->img->mAnim);
+
+  
   nsresult rv;
-#ifdef DEBUG
-  bool isSentinel = (node == &sSentinel);
-
-  
-  NS_ABORT_IF_FALSE(isSentinel || node->curr, "Node doesn't point to anything!");
-
-  
-  NS_ABORT_IF_FALSE(isSentinel || node->curr->CanDiscard(),
-                    "trying to reset discarding but can't discard!");
-
-  
-  NS_ABORT_IF_FALSE(isSentinel || !node->curr->mAnim,
-                    "Trying to reset discarding on animated image!");
-#endif
-
-  
   if (NS_UNLIKELY(!sInitialized)) {
     rv = Initialize();
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
-  Remove(node);
+  bool wasInList = node->isInList();
+  if (wasInList) {
+    node->remove();
+  }
+  node->timestamp = TimeStamp::Now();
+  sDiscardableImages.insertFront(node);
 
   
-  node->prev = sTail.prev;
-  node->next = &sTail;
-  node->prev->next = sTail.prev = node;
+  
+  
+  if (!wasInList) {
+    MaybeDiscardSoon();
+  }
 
   
-  rv = TimerOn();
+  rv = EnableTimer();
   NS_ENSURE_SUCCESS(rv,rv);
 
   return NS_OK;
+}
+
+void
+DiscardTracker::Remove(Node *node)
+{
+  if (node->isInList())
+    node->remove();
+
+  if (sDiscardableImages.isEmpty())
+    DisableTimer();
 }
 
 
 
 
 void
-DiscardTracker::Remove(DiscardTrackerNode *node)
+DiscardTracker::Shutdown()
 {
-  NS_ABORT_IF_FALSE(node != nsnull, "Can't pass null node");
-
-  
-  if ((node->prev == nsnull) || (node->next == nsnull)) {
-    NS_ABORT_IF_FALSE(node->prev == node->next,
-                      "Node is half in a list!");
-    return;
+  if (sTimer) {
+    sTimer->Cancel();
+    sTimer = NULL;
   }
-
-  
-  node->prev->next = node->next;
-  node->next->prev = node->prev;
-
-  
-  node->prev = node->next = nsnull;
 }
 
 
@@ -128,29 +114,26 @@ DiscardTracker::DiscardAll()
 
   
   
-  Remove(&sSentinel);
-
-  
-  for (DiscardTrackerNode *node = sHead.next;
-       node != &sTail; node = sHead.next) {
-    NS_ABORT_IF_FALSE(node->curr, "empty node!");
-    Remove(node);
-    node->curr->Discard();
+  Node *n;
+  while ((n = sDiscardableImages.popFirst())) {
+    n->img->Discard();
   }
 
   
-  Reset(&sSentinel);
-
-  
-  
-  TimerOff();
+  DisableTimer();
 }
 
-static int
-DiscardTimeoutChangedCallback(const char* aPref, void *aClosure)
+void
+DiscardTracker::InformAllocation(PRInt64 bytes)
 {
-  DiscardTracker::ReloadTimeout();
-  return 0;
+  
+
+  sCurrentDecodedImageBytes += bytes;
+  MOZ_ASSERT(sCurrentDecodedImageBytes >= 0);
+
+  
+  
+  MaybeDiscardSoon();
 }
 
 
@@ -159,27 +142,19 @@ DiscardTimeoutChangedCallback(const char* aPref, void *aClosure)
 nsresult
 DiscardTracker::Initialize()
 {
-  nsresult rv;
-
-  
-  sHead.curr = sTail.curr = sSentinel.curr = nsnull;
-  sHead.prev = sTail.next = nsnull;
-  sHead.next = sTail.prev = &sSentinel;
-  sSentinel.prev = &sHead;
-  sSentinel.next = &sTail;
-
   
   Preferences::RegisterCallback(DiscardTimeoutChangedCallback,
-                                DISCARD_TIMEOUT_PREF);
+                                sDiscardTimeoutPref);
 
-  ReloadTimeout();
+  Preferences::AddUintVarCache(&sMaxDecodedImageKB,
+                              "image.mem.max_decoded_image_kb",
+                              50 * 1024);
 
   
-  nsCOMPtr<nsITimer> t = do_CreateInstance("@mozilla.org/timer;1");
-  NS_ENSURE_TRUE(t, NS_ERROR_OUT_OF_MEMORY);
-  t.forget(&sTimer);
-  rv = TimerOn();
-  NS_ENSURE_SUCCESS(rv, rv);
+  sTimer = do_CreateInstance("@mozilla.org/timer;1");
+
+  
+  ReloadTimeout();
 
   
   sInitialized = true;
@@ -191,26 +166,11 @@ DiscardTracker::Initialize()
 
 
 void
-DiscardTracker::Shutdown()
-{
-  if (sTimer) {
-    sTimer->Cancel();
-    NS_RELEASE(sTimer);
-    sTimer = nsnull;
-  }
-}
-
-
-
-
-void
 DiscardTracker::ReloadTimeout()
 {
-  nsresult rv;
-
   
   PRInt32 discardTimeout;
-  rv = Preferences::GetInt(DISCARD_TIMEOUT_PREF, &discardTimeout);
+  nsresult rv = Preferences::GetInt(sDiscardTimeoutPref, &discardTimeout);
 
   
   if (!NS_SUCCEEDED(rv) || discardTimeout <= 0)
@@ -224,17 +184,15 @@ DiscardTracker::ReloadTimeout()
   sMinDiscardTimeoutMs = (PRUint32) discardTimeout;
 
   
-  if (sTimerOn) {
-    TimerOff();
-    TimerOn();
-  }
+  DisableTimer();
+  EnableTimer();
 }
 
 
 
 
 nsresult
-DiscardTracker::TimerOn()
+DiscardTracker::EnableTimer()
 {
   
   if (sTimerOn)
@@ -242,9 +200,11 @@ DiscardTracker::TimerOn()
   sTimerOn = true;
 
   
+  
+  
   return sTimer->InitWithFuncCallback(TimerCallback,
                                       nsnull,
-                                      sMinDiscardTimeoutMs,
+                                      sMinDiscardTimeoutMs / 2,
                                       nsITimer::TYPE_REPEATING_SLACK);
 }
 
@@ -252,7 +212,7 @@ DiscardTracker::TimerOn()
 
 
 void
-DiscardTracker::TimerOff()
+DiscardTracker::DisableTimer()
 {
   
   if (!sTimerOn)
@@ -271,22 +231,52 @@ DiscardTracker::TimerOff()
 void
 DiscardTracker::TimerCallback(nsITimer *aTimer, void *aClosure)
 {
-  DiscardTrackerNode *node;
+  DiscardNow();
+}
 
+void
+DiscardTracker::DiscardNow()
+{
   
-  for (node = sSentinel.prev; node != &sHead; node = sSentinel.prev) {
-    NS_ABORT_IF_FALSE(node->curr, "empty node!");
-    Remove(node);
-    node->curr->Discard();
+  
+  
+  
+
+  TimeStamp now = TimeStamp::Now();
+  Node* node;
+  while ((node = sDiscardableImages.getLast())) {
+    if ((now - node->timestamp).ToMilliseconds() > sMinDiscardTimeoutMs ||
+        sCurrentDecodedImageBytes > sMaxDecodedImageKB * 1024) {
+
+      
+      
+      node->img->Discard();
+
+      
+      
+      Remove(node);
+    }
+    else {
+      break;
+    }
   }
 
   
-  Reset(&sSentinel);
+  if (sDiscardableImages.isEmpty())
+    DisableTimer();
+}
 
+void
+DiscardTracker::MaybeDiscardSoon()
+{
   
   
-  if (sSentinel.prev == &sHead)
-    TimerOff();
+  if (sCurrentDecodedImageBytes > sMaxDecodedImageKB * 1024 &&
+      !sDiscardableImages.isEmpty() && !sDiscardRunnablePending) {
+    sDiscardRunnablePending = true;
+    nsRefPtr<DiscardRunnable> runnable = new DiscardRunnable();
+    NS_DispatchToCurrentThread(runnable);
+  }
 }
 
 } 

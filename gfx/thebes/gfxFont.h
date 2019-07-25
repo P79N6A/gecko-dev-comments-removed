@@ -79,15 +79,6 @@ class nsILanguageAtomService;
 
 typedef struct _hb_blob_t hb_blob_t;
 
-
-#define FONT_STYLE_NORMAL              NS_FONT_STYLE_NORMAL
-#define FONT_STYLE_ITALIC              NS_FONT_STYLE_ITALIC
-#define FONT_STYLE_OBLIQUE             NS_FONT_STYLE_OBLIQUE
-
-
-#define FONT_WEIGHT_NORMAL             NS_FONT_WEIGHT_NORMAL
-#define FONT_WEIGHT_BOLD               NS_FONT_WEIGHT_BOLD
-
 #define FONT_MAX_SIZE                  2000.0
 
 #define NO_FONT_LANGUAGE_OVERRIDE      0
@@ -123,22 +114,12 @@ struct THEBES_API gfxFontStyle {
     gfxFontStyle(const gfxFontStyle& aStyle);
 
     
-    PRUint8 style : 7;
+    
+    
+    nsRefPtr<nsIAtom> language;
 
     
-    
-    
-    bool systemFont : 1;
-
-    
-    bool printerFont : 1;
-
-    
-    PRUint16 weight;
-
-    
-    
-    PRInt16 stretch;
+    nsTArray<gfxFontFeature> featureSettings;
 
     
     gfxFloat size;
@@ -148,11 +129,6 @@ struct THEBES_API gfxFontStyle {
     
     
     float sizeAdjust;
-
-    
-    
-    
-    nsRefPtr<nsIAtom> language;
 
     
     
@@ -167,7 +143,22 @@ struct THEBES_API gfxFontStyle {
     PRUint32 languageOverride;
 
     
-    nsTArray<gfxFontFeature> featureSettings;
+    PRUint16 weight;
+
+    
+    
+    PRInt8 stretch;
+
+    
+    
+    
+    bool systemFont : 1;
+
+    
+    bool printerFont : 1;
+
+    
+    PRUint8 style : 2;
 
     
     
@@ -216,6 +207,7 @@ public:
         mIsLocalUserFont(false), mStandardFace(aIsStandardFace),
         mSymbolFont(false),
         mIgnoreGDEF(false),
+        mIgnoreGSUB(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
 #ifdef MOZ_GRAPHITE
         mCheckedForGraphiteTables(false),
@@ -249,6 +241,7 @@ public:
     bool IsItalic() const { return mItalic; }
     bool IsBold() const { return mWeight >= 600; } 
     bool IgnoreGDEF() const { return mIgnoreGDEF; }
+    bool IgnoreGSUB() const { return mIgnoreGSUB; }
 
     virtual bool IsSymbolFont();
 
@@ -332,6 +325,7 @@ public:
     bool             mStandardFace : 1;
     bool             mSymbolFont  : 1;
     bool             mIgnoreGDEF  : 1;
+    bool             mIgnoreGSUB  : 1;
 
     PRUint16         mWeight;
     PRInt16          mStretch;
@@ -366,6 +360,7 @@ protected:
         mStandardFace(false),
         mSymbolFont(false),
         mIgnoreGDEF(false),
+        mIgnoreGSUB(false),
         mWeight(500), mStretch(NS_FONT_STRETCH_NORMAL),
 #ifdef MOZ_GRAPHITE
         mCheckedForGraphiteTables(false),
@@ -2558,7 +2553,8 @@ public:
     
     
     static gfxTextRun *Create(const gfxTextRunFactory::Parameters *aParams,
-        const void *aText, PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
+                              PRUint32 aLength, gfxFontGroup *aFontGroup,
+                              PRUint32 aFlags);
 
     
     struct GlyphRun {
@@ -2780,7 +2776,7 @@ protected:
 
 
 
-    gfxTextRun(const gfxTextRunFactory::Parameters *aParams, const void *aText,
+    gfxTextRun(const gfxTextRunFactory::Parameters *aParams,
                PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
 
     
@@ -3037,7 +3033,7 @@ protected:
 
     gfxTextRun *MakeEmptyTextRun(const Parameters *aParams, PRUint32 aFlags);
     gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags);
-    gfxTextRun *MakeBlankTextRun(const void* aText, PRUint32 aLength,
+    gfxTextRun *MakeBlankTextRun(PRUint32 aLength,
                                  const Parameters *aParams, PRUint32 aFlags);
 
     

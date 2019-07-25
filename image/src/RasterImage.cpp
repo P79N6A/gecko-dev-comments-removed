@@ -214,8 +214,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mAnimationFinished(false)
 {
   
-  mDiscardTrackerNode.curr = this;
-  mDiscardTrackerNode.prev = mDiscardTrackerNode.next = nsnull;
+  mDiscardTrackerNode.img = this;
   Telemetry::GetHistogramById(Telemetry::IMAGE_DECODE_COUNT)->Add(0);
 
   
@@ -2221,7 +2220,7 @@ RasterImage::CanForciblyDiscard() {
 
 bool
 RasterImage::DiscardingActive() {
-  return !!(mDiscardTrackerNode.prev || mDiscardTrackerNode.next);
+  return mDiscardTrackerNode.isInList();
 }
 
 

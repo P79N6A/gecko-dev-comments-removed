@@ -236,9 +236,21 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
         obj = JSVAL_TO_OBJECT(v);
         NS_ASSERTION(IS_WN_WRAPPER(obj), "bad object");
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
         XPCWrappedNative *newwn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
-        if (newwn->GetSet()->GetInterfaceCount() < wn->GetSet()->GetInterfaceCount())
-            newwn->SetSet(wn->GetSet());
+        XPCNativeSet *unionSet = XPCNativeSet::GetNewOrUsed(ccx, newwn->GetSet(),
+                                                            wn->GetSet(), false);
+        if (!unionSet)
+            return nsnull;
+        newwn->SetSet(unionSet);
     }
 
     return DoubleWrap(cx, obj, flags);

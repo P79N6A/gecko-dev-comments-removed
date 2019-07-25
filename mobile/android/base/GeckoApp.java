@@ -1321,7 +1321,7 @@ abstract public class GeckoApp
                 
                 
                 
-                if (tab.getState() != tab.STATE_LOADING) {
+                if (tab.getState() != Tab.STATE_LOADING) {
                     mMainHandler.post(new Runnable() {
                         public void run() {
                             loadFavicon(tab);
@@ -1700,7 +1700,7 @@ abstract public class GeckoApp
             
             intent.setAction(Intent.ACTION_MAIN);
             intent.setData(null);
-            passedUri = null;
+            passedUri = "about:empty";
         }
 
         sGeckoThread = new GeckoThread(intent, passedUri, mRestoreSession);
@@ -2379,9 +2379,9 @@ abstract public class GeckoApp
             
             Tab tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {
-                Tab.HistoryEntry he = tab.getLastHistoryEntry();
-                if (he != null) {
-                    intent.putExtra(AwesomeBar.CURRENT_URL_KEY, he.mUri);
+                String url = tab.getURL();
+                if (url != null) {
+                    intent.putExtra(AwesomeBar.CURRENT_URL_KEY, url);
                 }
             }
         }

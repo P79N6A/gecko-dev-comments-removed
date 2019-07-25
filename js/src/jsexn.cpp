@@ -65,13 +65,13 @@
 #include "jswrapper.h"
 
 #include "vm/GlobalObject.h"
+#include "vm/StringBuffer.h"
 
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
 
 #include "vm/Stack-inl.h"
 #include "vm/String-inl.h"
-#include "vm/StringBuffer-inl.h"
 
 using namespace mozilla;
 using namespace js;
@@ -290,11 +290,42 @@ struct SuppressErrorsGuard
     }
 };
 
-struct AppendArg {
-    Vector<Value> &values;
-    AppendArg(Vector<Value> &values) : values(values) {}
+struct AppendWrappedArg {
+    JSContext *cx;
+    AutoValueVector &values;
+    AppendWrappedArg(JSContext *cx, AutoValueVector &values)
+      : cx(cx),
+        values(values)
+    {}
+
     bool operator()(unsigned, Value *vp) {
-        return values.append(*vp);
+        Value v = *vp;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        if (!cx->compartment->wrap(cx, &v))
+            v = JSVAL_VOID;
+
+        
+        return values.append(v);
     }
 };
 
@@ -311,20 +342,18 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
     JSCheckAccessOp checkAccess = cx->runtime->securityCallbacks->checkObjectAccess;
 
     Vector<JSStackTraceStackElem> frames(cx);
-    Vector<Value> values(cx);
+    AutoValueVector values(cx);
     {
         SuppressErrorsGuard seg(cx);
         for (FrameRegsIter i(cx); !i.done(); ++i) {
+            StackFrame *fp = i.fp();
+
             
 
 
 
 
 
-
-            StackFrame *fp = i.fp();
-            if (fp->compartment() != cx->compartment)
-                break;
             if (checkAccess && fp->isNonEvalFunctionFrame()) {
                 Value v = NullValue();
                 jsid callerid = ATOM_TO_JSID(cx->runtime->atomState.callerAtom);
@@ -338,7 +367,7 @@ InitExnPrivate(JSContext *cx, JSObject *exnObject, JSString *message,
             if (fp->isNonEvalFunctionFrame()) {
                 frame.funName = fp->fun()->atom ? fp->fun()->atom : cx->runtime->emptyString;
                 frame.argc = fp->numActualArgs();
-                if (!fp->forEachCanonicalActualArg(AppendArg(values)))
+                if (!fp->forEachCanonicalActualArg(AppendWrappedArg(cx, values)))
                     return false;
             } else {
                 frame.funName = NULL;
@@ -591,7 +620,7 @@ ValueToShortSource(JSContext *cx, const Value &v)
 
 
         char buf[100];
-        JS_snprintf(buf, sizeof buf, "[object %s]", obj->getClass()->name);
+        JS_snprintf(buf, sizeof buf, "[object %s]", js::UnwrapObject(obj, false)->getClass()->name);
         str = JS_NewStringCopyZ(cx, buf);
     }
 

@@ -1670,8 +1670,15 @@ namespace js {
 
 
 
+
 extern bool
-HasDataProperty(JSContext *cx, JSObject *obj, jsid methodid, js::Value *vp);
+HasDataProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+
+inline bool
+HasDataProperty(JSContext *cx, JSObject *obj, JSAtom *atom, Value *vp)
+{
+    return HasDataProperty(cx, obj, js_CheckForStringIndex(ATOM_TO_JSID(atom)), vp);
+}
 
 extern JSBool
 CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,

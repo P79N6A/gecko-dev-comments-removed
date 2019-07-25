@@ -94,6 +94,7 @@
 #include "mozilla/Util.h"
 #include "yarr/BumpPointerAllocator.h"
 #include "vm/MethodGuard.h"
+#include "vm/StringBuffer.h"
 
 #include "jsatominlines.h"
 #include "jsinferinlines.h"
@@ -105,7 +106,6 @@
 #include "vm/RegExpStatics-inl.h"
 #include "vm/Stack-inl.h"
 #include "vm/String-inl.h"
-#include "vm/StringBuffer-inl.h"
 
 #if ENABLE_YARR_JIT
 #include "assembler/jit/ExecutableAllocator.h"
@@ -4578,57 +4578,14 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent)
     }
 
     JSFunction *fun = funobj->toFunction();
-    if (!fun->isInterpreted())
-        return CloneFunctionObject(cx, fun, parent, fun->getAllocKind());
-
-    if (fun->script()->compileAndGo) {
+    if (fun->isInterpreted() && fun->script()->compileAndGo) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                              JSMSG_BAD_CLONE_FUNOBJ_SCOPE);
         return NULL;
     }
 
-    if (!fun->isFlatClosure())
-        return CloneFunctionObject(cx, fun, parent, fun->getAllocKind());
 
-    
-
-
-
-
-
-
-
-
-
-
-
-    JSObject *clone = js_AllocFlatClosure(cx, fun, parent);
-    if (!clone)
-        return NULL;
-
-    JSUpvarArray *uva = fun->script()->upvars();
-    uint32_t i = uva->length;
-    JS_ASSERT(i != 0);
-
-    for (Shape::Range r(fun->script()->bindings.lastUpvar()); i-- != 0; r.popFront()) {
-        JSObject *obj = parent;
-        int skip = uva->vector[i].level();
-        while (--skip > 0) {
-            if (!obj) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_BAD_CLONE_FUNOBJ_SCOPE);
-                return NULL;
-            }
-            obj = obj->enclosingScope();
-        }
-
-        Value v;
-        if (!obj->getGeneric(cx, r.front().propid(), &v))
-            return NULL;
-        clone->toFunction()->setFlatClosureUpvar(i, v);
-    }
-
-    return clone;
+    return CloneFunctionObject(cx, fun, parent, fun->getAllocKind());
 }
 
 JS_PUBLIC_API(JSObject *)

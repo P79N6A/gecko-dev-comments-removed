@@ -226,7 +226,7 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       
       
       gfxRect childBBox = child->GetBBoxContribution(tm, aFlags);
-      if (firstChild) {
+      if (firstChild && (childBBox.Width() > 0 || childBBox.Height() > 0)) {
         bbox = childBBox;
         firstChild = false;
         continue;

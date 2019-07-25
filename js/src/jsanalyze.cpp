@@ -164,9 +164,11 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
 
 
+
+
     PodZero(escapedSlots, numSlots);
 
-    if (script->usesEval || script->usesArguments || script->compartment()->debugMode()) {
+    if (script->usesEval || script->mayNeedArgsObj() || script->compartment()->debugMode()) {
         for (unsigned i = 0; i < nargs; i++)
             escapedSlots[ArgSlot(i)] = true;
     } else {
@@ -201,7 +203,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
     isInlineable = true;
     if (script->nClosedArgs || script->nClosedVars || heavyweight ||
-        script->usesEval || script->usesArguments || cx->compartment->debugMode()) {
+        script->usesEval || script->mayNeedArgsObj() || cx->compartment->debugMode()) {
         isInlineable = false;
     }
 
@@ -516,10 +518,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_ARGUMENTS:
           case JSOP_THROW:
           case JSOP_EXCEPTION:
-          case JSOP_DEFLOCALFUN_FC:
-          case JSOP_LAMBDA_FC:
-          case JSOP_GETFCSLOT:
-          case JSOP_CALLFCSLOT:
           case JSOP_DEBUGGER:
           case JSOP_FUNCALL:
           case JSOP_FUNAPPLY:
@@ -681,6 +679,19 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     JS_ASSERT(forwardJump == 0 && forwardCatch == 0);
 
     ranBytecode_ = true;
+
+    
+
+
+
+
+    if (!script->analyzedArgsUsage()) {
+        if (!script->mayNeedArgsObj())
+            script->setNeedsArgsObj(false);
+        else
+            analyzeSSA(cx);
+        JS_ASSERT_IF(!failed(), script->analyzedArgsUsage());
+    }
 }
 
 
@@ -796,8 +807,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
           case JSOP_SETARG:
           case JSOP_SETLOCAL:
           case JSOP_SETLOCALPOP:
-          case JSOP_DEFLOCALFUN:
-          case JSOP_DEFLOCALFUN_FC: {
+          case JSOP_DEFLOCALFUN: {
             uint32_t slot = GetBytecodeSlot(script, pc);
             if (!slotEscapes(slot))
                 killVariable(cx, lifetimes[slot], offset, saved, savedCount);
@@ -1604,6 +1614,77 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
     }
 
     ranSSA_ = true;
+
+    
+
+
+
+
+
+
+    if (script->analyzedArgsUsage())
+        return;
+
+    
+    JS_ASSERT(script->function());
+    JS_ASSERT(script->mayNeedArgsObj());
+    JS_ASSERT(!script->usesEval);
+
+    
+
+
+
+    if (localsAliasStack()) {
+        script->setNeedsArgsObj(true);
+        return;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    bool canOptimizeApply = !script->function()->isHeavyweight();
+    bool haveOptimizedApply = false;
+
+    jsbytecode *pc;
+    for (offset = 0; offset < script->length; offset += GetBytecodeLength(pc)) {
+        pc = script->code + offset;
+
+        
+        JS_ASSERT_IF(script->strictModeCode, *pc != JSOP_SETARG);
+
+        
+        if (JSOp(*pc) != JSOP_ARGUMENTS)
+            continue;
+
+        
+        if (!maybeCode(offset))
+            continue;
+
+        if (SpeculateApplyOptimization(pc) && canOptimizeApply) {
+            haveOptimizedApply = true;
+            continue;
+        }
+
+        Vector<SSAValue> seen(cx);
+        if (haveOptimizedApply ||
+            !followEscapingArguments(cx, SSAValue::PushedValue(offset, 0), &seen))
+        {
+            script->setNeedsArgsObj(true);
+            return;
+        }
+
+        canOptimizeApply = false;
+    }
+
+    script->setNeedsArgsObj(false);
 }
 
 
@@ -1885,6 +1966,74 @@ ScriptAnalysis::freezeNewValues(JSContext *cx, uint32_t offset)
     code.newValues[count].value.clear();
 
     cx->delete_(pending);
+}
+
+bool
+ScriptAnalysis::followEscapingArguments(JSContext *cx, const SSAValue &v, Vector<SSAValue> *seen)
+{
+    
+
+
+
+    if (!trackUseChain(v))
+        return true;
+
+    for (unsigned i = 0; i < seen->length(); i++) {
+        if (v == (*seen)[i])
+            return true;
+    }
+    if (!seen->append(v)) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return false;
+    }
+
+    SSAUseChain *use = useChain(v);
+    while (use) {
+        if (!followEscapingArguments(cx, use, seen))
+            return false;
+        use = use->next;
+    }
+
+    return true;
+}
+
+bool
+ScriptAnalysis::followEscapingArguments(JSContext *cx, SSAUseChain *use, Vector<SSAValue> *seen)
+{
+    if (!use->popped)
+        return followEscapingArguments(cx, SSAValue::PhiValue(use->offset, use->u.phi), seen);
+
+    jsbytecode *pc = script->code + use->offset;
+    uint32_t which = use->u.which;
+
+    JSOp op = JSOp(*pc);
+
+    if (op == JSOP_POP || op == JSOP_POPN)
+        return true;
+
+    
+    if (op == JSOP_GETELEM && which == 1)
+        return true;
+
+    
+    if (op == JSOP_LENGTH)
+        return true;
+
+    
+
+    if (op == JSOP_SETLOCAL) {
+        uint32_t slot = GetBytecodeSlot(script, pc);
+        if (!trackSlot(slot) || script->strictModeCode)
+            return false;
+        if (!followEscapingArguments(cx, SSAValue::PushedValue(use->offset, 0), seen))
+            return false;
+        return followEscapingArguments(cx, SSAValue::WrittenVar(slot, use->offset), seen);
+    }
+
+    if (op == JSOP_GETLOCAL)
+        return followEscapingArguments(cx, SSAValue::PushedValue(use->offset, 0), seen);
+
+    return false;
 }
 
 CrossSSAValue

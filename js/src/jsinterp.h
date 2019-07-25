@@ -271,20 +271,6 @@ ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
 
 
-extern const Value &
-GetUpvar(JSContext *cx, unsigned level, UpvarCookie cookie);
-
-
-extern StackFrame *
-FindUpvarFrame(JSContext *cx, unsigned targetLevel);
-
-
-
-
-
-
-
-
 
 
 

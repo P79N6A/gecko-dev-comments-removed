@@ -698,39 +698,6 @@ public:
     Mutated();
   }
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void SetTileSourceRect(const nsIntRect* aRect)
-  {
-    mUseTileSourceRect = aRect != nsnull;
-    if (aRect) {
-      mTileSourceRect = *aRect;
-    }
-    Mutated();
-  }
-
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
 
   
@@ -744,7 +711,6 @@ public:
   virtual Layer* GetFirstChild() { return nsnull; }
   virtual Layer* GetLastChild() { return nsnull; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
-  const nsIntRect* GetTileSourceRect() { return mUseTileSourceRect ? &mTileSourceRect : nsnull; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
 
   

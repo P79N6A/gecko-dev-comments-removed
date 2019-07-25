@@ -3598,7 +3598,7 @@ nsTextPaintStyle::InitSelectionColors()
 
   
   if (mSelectionTextColor == NS_DONT_CHANGE_COLOR) {
-    nscoord frameColor = mFrame->GetVisitedDependentColor(eCSSProperty_color);
+    nscolor frameColor = mFrame->GetVisitedDependentColor(eCSSProperty_color);
     mSelectionTextColor = EnsureDifferentColors(frameColor, mSelectionBGColor);
   } else {
     EnsureSufficientContrast(&mSelectionTextColor, &mSelectionBGColor);
@@ -6868,7 +6868,7 @@ nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
 nsTextFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                          nsSize aCBSize, nscoord aAvailableWidth,
                          nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                         bool aShrinkWrap)
+                         PRUint32 aFlags)
 {
   
   return nsSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);

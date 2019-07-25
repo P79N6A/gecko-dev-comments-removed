@@ -305,12 +305,6 @@ public:
   
 
 
-
-  bool ShouldDoubleBuffer() { return GetParentBackendType() == LayerManager::LAYERS_BASIC; }
-
-  
-
-
   void SetIsFirstPaint() { mIsFirstPaint = true; }
 
 protected:

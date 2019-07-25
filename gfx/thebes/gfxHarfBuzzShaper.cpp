@@ -117,8 +117,14 @@ HBGetTable(hb_face_t *face, hb_tag_t aTag, void *aUserData)
     
     
     if (aTag == TRUETYPE_TAG('G','D','E','F') &&
-        font->GetFontEntry()->IgnoreGDEF())
-    {
+        font->GetFontEntry()->IgnoreGDEF()) {
+        return nsnull;
+    }
+
+    
+    
+    if (aTag == TRUETYPE_TAG('G','S','U','B') &&
+        font->GetFontEntry()->IgnoreGSUB()) {
         return nsnull;
     }
 

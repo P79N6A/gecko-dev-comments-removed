@@ -45,6 +45,7 @@
 #include "LayerManagerOGL.h"
 #include "gfxImageSurface.h"
 #include "GLContext.h"
+#include "base/task.h"
 
 
 namespace mozilla {
@@ -85,6 +86,62 @@ private:
   nsRefPtr<Buffer> mBuffer;
 };
 
+class ShadowThebesLayerBufferOGL
+{
+public:
+  ShadowThebesLayerBufferOGL()
+  {
+    MOZ_COUNT_CTOR(ShadowThebesLayerBufferOGL);
+  }
+
+  ~ShadowThebesLayerBufferOGL()
+  {
+    MOZ_COUNT_DTOR(ShadowThebesLayerBufferOGL);
+  }
+
+  void Swap(gfxASurface* aNewBuffer,
+            const nsIntRect& aNewRect, const nsIntPoint& aNewRotation,
+            gfxASurface** aOldBuffer,
+            nsIntRect* aOldRect, nsIntPoint* aOldRotation)
+  {
+    *aOldRect = mBufferRect;
+    *aOldRotation = mBufferRotation;
+    nsRefPtr<gfxASurface> oldBuffer = mBuffer;
+
+    mBufferRect = aNewRect;
+    mBufferRotation = aNewRotation;
+    mBuffer = aNewBuffer;
+    oldBuffer.forget(aOldBuffer);
+  }
+
+  nsIntRect Rect() {
+    return mBufferRect;
+  }
+
+  nsIntPoint Rotation() {
+    return mBufferRotation;
+  }
+
+  nsRefPtr<gfxASurface> Buffer() {
+    return mBuffer;
+  }
+
+  
+
+
+
+  void Clear()
+  {
+    mBuffer = nsnull;
+    mBufferRect.SetEmpty();
+  }
+
+protected:
+  nsRefPtr<gfxASurface> mBuffer;
+  nsIntRect mBufferRect;
+  nsIntPoint mBufferRotation;
+};
+
 class ShadowThebesLayerOGL : public ShadowThebesLayer,
                              public LayerOGL
 {
@@ -92,13 +149,23 @@ public:
   ShadowThebesLayerOGL(LayerManagerOGL *aManager);
   virtual ~ShadowThebesLayerOGL();
 
+  virtual bool ShouldDoubleBuffer();
   virtual void
   Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
        OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion);
+  virtual void EnsureTextureUpdated();
+  virtual void EnsureTextureUpdated(nsIntRegion& aRegion);
+  virtual void ProgressiveUpload();
   virtual void DestroyFrontBuffer();
 
   virtual void Disconnect();
+
+  virtual void SetValidRegion(const nsIntRegion& aRegion)
+  {
+    mOldValidRegion = mValidRegion;
+    ShadowThebesLayer::SetValidRegion(aRegion);
+  }
 
   
   void Destroy();
@@ -110,6 +177,23 @@ public:
 
 private:
   nsRefPtr<ShadowBufferOGL> mBuffer;
+
+  
+  
+  nsIntRegion mRegionPendingUpload;
+
+  
+  CancelableTask* mUploadTask;
+
+  
+  ShadowThebesLayerBufferOGL mFrontBuffer;
+  
+  SurfaceDescriptor mFrontBufferDescriptor;
+  
+  
+  
+  
+  nsIntRegion mOldValidRegion;
 };
 
 } 

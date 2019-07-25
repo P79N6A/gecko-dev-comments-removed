@@ -152,25 +152,6 @@ struct JSXML;
 
 namespace js {
 
-
-
-
-
-
-
-
-
-
-
-template<class T>
-class MarkablePtr
-{
-  public:
-    T *value;
-
-    explicit MarkablePtr(T *value) : value(value) {}
-};
-
 template<class T, typename Unioned = uintptr_t>
 class HeapPtr
 {
@@ -231,13 +212,6 @@ class HeapPtr
     T *operator->() const { return value; }
 
     operator T*() const { return value; }
-
-    
-
-
-
-    template<class U>
-    operator MarkablePtr<U>() const { return MarkablePtr<U>(value); }
 
   private:
     void pre() { T::writeBarrierPre(value); }
@@ -508,9 +482,6 @@ class ReadBarriered
     void set(T *v) { value = v; }
 
     operator bool() { return !!value; }
-
-    template<class U>
-    operator MarkablePtr<U>() const { return MarkablePtr<U>(value); }
 };
 
 class ReadBarrieredValue

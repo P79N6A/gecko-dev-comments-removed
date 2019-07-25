@@ -471,16 +471,6 @@ class Value
         return JSVAL_IS_MAGIC_IMPL(data);
     }
 
-    
-
-
-
-
-    JS_ALWAYS_INLINE
-    bool isParticularMagic(JSWhyMagic why) const {
-        return isMagic() && data.s.payload.why == why;
-    }
-
     JS_ALWAYS_INLINE
     bool isMarkable() const {
         return JSVAL_IS_TRACEABLE_IMPL(data);

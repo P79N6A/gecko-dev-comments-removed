@@ -81,11 +81,9 @@
 #include "nsIDocShell.h"
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
-#include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShellTreeNode.h"
 #include "nsIXPConnect.h"
-#include "jsapi.h"
 #include "nsDisplayList.h"
 
 #include "nsTArray.h"
@@ -109,12 +107,19 @@
 #include "nsIMemoryReporter.h"
 #include "nsStyleUtil.h"
 #include "CanvasImageCache.h"
+#include "CheckedInt.h"
 
 #include <algorithm>
+
+#include "jsapi.h"
+#include "jstypedarray.h"
+
+#include "mozilla/Assertions.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/ipc/PDocumentRendererParent.h"
+#include "mozilla/dom/ImageData.h"
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/ipc/DocumentRendererParent.h"
+#include "mozilla/ipc/PDocumentRendererParent.h"
 
 
 #undef DrawText
@@ -405,6 +410,10 @@ public:
     friend class PathAutoSaveRestore;
 
 protected:
+    nsresult GetImageDataArray(JSContext* aCx, int32_t aX, int32_t aY,
+                               uint32_t aWidth, uint32_t aHeight,
+                               JSObject** aRetval);
+
     
 
 
@@ -3821,19 +3830,11 @@ nsCanvasRenderingContext2D::EnsureUnpremultiplyTable() {
 
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::GetImageData()
+nsCanvasRenderingContext2D::GetImageData(double aSx, double aSy,
+                                         double aSw, double aSh,
+                                         JSContext* aCx,
+                                         nsIDOMImageData** aRetval)
 {
-    
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32 w, PRUint32 h,
-                                                  PRUint8 *aData, PRUint32 aDataLen)
-{
-    if (!EnsureSurface())
-        return NS_ERROR_FAILURE;
-
     if (!mCanvasElement && !mDocShell) {
         NS_ERROR("No canvas element and no docshell in GetImageData!!!");
         return NS_ERROR_DOM_SECURITY_ERR;
@@ -3843,26 +3844,97 @@ nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32
     
     if (mCanvasElement &&
         HTMLCanvasElement()->IsWriteOnly() &&
-        !nsContentUtils::IsCallerTrustedForRead())
-    {
+        !nsContentUtils::IsCallerTrustedForRead()) {
         
         return NS_ERROR_DOM_SECURITY_ERR;
     }
 
-    if (w == 0 || h == 0 || aDataLen != w * h * 4)
-        return NS_ERROR_DOM_SYNTAX_ERR;
+    if (!EnsureSurface()) {
+        return NS_ERROR_FAILURE;
+    }
 
-    CheckedInt32 rightMost = CheckedInt32(x) + w;
-    CheckedInt32 bottomMost = CheckedInt32(y) + h;
+    if (!NS_finite(aSx) || !NS_finite(aSy) ||
+        !NS_finite(aSw) || !NS_finite(aSh)) {
+        return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    }
 
-    if (!rightMost.valid() || !bottomMost.valid())
+    if (!aSw || !aSh) {
+        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    }
+
+    int32_t x = JS_DoubleToInt32(aSx);
+    int32_t y = JS_DoubleToInt32(aSy);
+    int32_t wi = JS_DoubleToInt32(aSw);
+    int32_t hi = JS_DoubleToInt32(aSh);
+
+    
+    
+    uint32_t w, h;
+    if (aSw < 0) {
+        w = -wi;
+        x -= w;
+    } else {
+        w = wi;
+    }
+    if (aSh < 0) {
+        h = -hi;
+        y -= h;
+    } else {
+        h = hi;
+    }
+
+    if (w == 0) {
+        w = 1;
+    }
+    if (h == 0) {
+        h = 1;
+    }
+
+    JSObject* array;
+    nsresult rv = GetImageDataArray(aCx, x, y, w, h, &array);
+    NS_ENSURE_SUCCESS(rv, rv);
+    MOZ_ASSERT(array);
+
+    nsRefPtr<ImageData> imageData = new ImageData(w, h, *array);
+    imageData.forget(aRetval);
+    return NS_OK;
+}
+
+nsresult
+nsCanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
+                                              int32_t aX,
+                                              int32_t aY,
+                                              uint32_t aWidth,
+                                              uint32_t aHeight,
+                                              JSObject** aRetval)
+{
+    MOZ_ASSERT(aWidth && aHeight);
+
+    CheckedInt<uint32_t> len = CheckedInt<uint32_t>(aWidth) * aHeight * 4;
+    if (!len.valid()) {
+        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    }
+
+    CheckedInt<int32_t> rightMost = CheckedInt<int32_t>(aX) + aWidth;
+    CheckedInt<int32_t> bottomMost = CheckedInt<int32_t>(aY) + aHeight;
+
+    if (!rightMost.valid() || !bottomMost.valid()) {
         return NS_ERROR_DOM_SYNTAX_ERR;
+    }
+
+    JSObject* darray =
+      js_CreateTypedArray(aCx, js::TypedArray::TYPE_UINT8_CLAMPED, len.value());
+    if (!darray) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    uint8_t* data = static_cast<uint8_t*>(JS_GetTypedArrayData(darray));
 
     
     nsRefPtr<gfxImageSurface> tmpsurf =
-        new gfxImageSurface(aData,
-                            gfxIntSize(w, h),
-                            w * 4,
+        new gfxImageSurface(data,
+                            gfxIntSize(aWidth, aHeight),
+                            aWidth * 4,
                             gfxASurface::ImageFormatARGB32);
 
     if (tmpsurf->CairoStatus())
@@ -3875,7 +3947,7 @@ nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32
 
     if (!mZero) {
         gfxRect srcRect(0, 0, mWidth, mHeight);
-        gfxRect destRect(x, y, w, h);
+        gfxRect destRect(aX, aY, aWidth, aHeight);
 
         bool finishedPainting = false;
         
@@ -3892,7 +3964,7 @@ nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32
 
         if (!finishedPainting) {
             tmpctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-            tmpctx->SetSource(mSurface, gfxPoint(-x, -y));
+            tmpctx->SetSource(mSurface, gfxPoint(-aX, -aY));
             tmpctx->Paint();
         }
     }
@@ -3902,11 +3974,11 @@ nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32
 
     
     
-    PRUint8 *src = aData;
-    PRUint8 *dst = aData;
+    uint8_t *src = data;
+    uint8_t *dst = data;
 
-    for (PRUint32 j = 0; j < h; j++) {
-        for (PRUint32 i = 0; i < w; i++) {
+    for (uint32_t j = 0; j < aHeight; ++j) {
+        for (uint32_t i = 0; i < aWidth; ++i) {
             
 #ifdef IS_LITTLE_ENDIAN
             PRUint8 b = *src++;
@@ -3927,6 +3999,7 @@ nsCanvasRenderingContext2D::GetImageData_explicit(PRInt32 x, PRInt32 y, PRUint32
         }
     }
 
+    *aRetval = darray;
     return NS_OK;
 }
 

@@ -101,504 +101,6 @@ using namespace js;
 using namespace js::gc;
 using namespace js::types;
 
-js::ArgumentsObject *
-ArgumentsObject::create(JSContext *cx, uint32_t argc, JSObject &callee)
-{
-    JS_ASSERT(argc <= StackSpace::ARGS_LENGTH_MAX);
-
-    JSObject *proto = callee.global().getOrCreateObjectPrototype(cx);
-    if (!proto)
-        return NULL;
-
-    RootedVarTypeObject type(cx);
-
-    type = proto->getNewType(cx);
-    if (!type)
-        return NULL;
-
-    bool strict = callee.toFunction()->inStrictMode();
-    Class *clasp = strict ? &StrictArgumentsObjectClass : &NormalArgumentsObjectClass;
-
-    RootedVarShape emptyArgumentsShape(cx);
-    emptyArgumentsShape =
-        EmptyShape::getInitialShape(cx, clasp, proto,
-                                    proto->getParent(), FINALIZE_KIND,
-                                    BaseShape::INDEXED);
-    if (!emptyArgumentsShape)
-        return NULL;
-
-    ArgumentsData *data = (ArgumentsData *)
-        cx->malloc_(offsetof(ArgumentsData, slots) + argc * sizeof(Value));
-    if (!data)
-        return NULL;
-
-    data->callee.init(ObjectValue(callee));
-    for (HeapValue *vp = data->slots; vp != data->slots + argc; vp++)
-        vp->init(UndefinedValue());
-
-    
-    JSObject *obj = JSObject::create(cx, FINALIZE_KIND, emptyArgumentsShape, type, NULL);
-    if (!obj)
-        return NULL;
-
-    ArgumentsObject &argsobj = obj->asArguments();
-
-    JS_ASSERT(UINT32_MAX > (uint64_t(argc) << PACKED_BITS_COUNT));
-    argsobj.initInitialLength(argc);
-    argsobj.initData(data);
-    argsobj.setStackFrame(NULL);
-
-    JS_ASSERT(argsobj.numFixedSlots() >= NormalArgumentsObject::RESERVED_SLOTS);
-    JS_ASSERT(argsobj.numFixedSlots() >= StrictArgumentsObject::RESERVED_SLOTS);
-
-    return &argsobj;
-}
-
-struct STATIC_SKIP_INFERENCE PutArg
-{
-    PutArg(JSCompartment *comp, HeapValue *dst) : dst(dst), compartment(comp) {}
-    HeapValue *dst;
-    JSCompartment *compartment;
-    bool operator()(unsigned, Value *src) {
-        JS_ASSERT(dst->isMagic(JS_ARGS_HOLE) || dst->isUndefined());
-        if (!dst->isMagic(JS_ARGS_HOLE))
-            dst->set(compartment, *src);
-        ++dst;
-        return true;
-    }
-};
-
-ArgumentsObject *
-js_GetArgsObject(JSContext *cx, StackFrame *fp)
-{
-    
-
-
-
-    JS_ASSERT(fp->isFunctionFrame());
-    while (fp->isEvalInFunction())
-        fp = fp->prev();
-
-    
-
-
-
-    if (!fp->script()->createdArgs)
-        types::MarkArgumentsCreated(cx, fp->script());
-
-    
-    JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
-    if (fp->hasArgsObj())
-        return &fp->argsObj();
-
-    ArgumentsObject *argsobj = ArgumentsObject::create(cx, fp->numActualArgs(), fp->callee());
-    if (!argsobj)
-        return argsobj;
-
-    
-
-
-
-
-
-
-
-
-    if (argsobj->isStrictArguments())
-        fp->forEachCanonicalActualArg(PutArg(cx->compartment, argsobj->data()->slots));
-    else
-        argsobj->setStackFrame(fp);
-
-    fp->setArgsObj(*argsobj);
-    return argsobj;
-}
-
-void
-js_PutArgsObject(StackFrame *fp)
-{
-    ArgumentsObject &argsobj = fp->argsObj();
-    if (argsobj.isNormalArguments()) {
-        JS_ASSERT(argsobj.maybeStackFrame() == fp);
-        JSCompartment *comp = fp->scopeChain().compartment();
-        fp->forEachCanonicalActualArg(PutArg(comp, argsobj.data()->slots));
-        argsobj.setStackFrame(NULL);
-    } else {
-        JS_ASSERT(!argsobj.maybeStackFrame());
-    }
-}
-
-static JSBool
-args_delProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    ArgumentsObject &argsobj = obj->asArguments();
-    if (JSID_IS_INT(id)) {
-        unsigned arg = unsigned(JSID_TO_INT(id));
-        if (arg < argsobj.initialLength())
-            argsobj.setElement(arg, MagicValue(JS_ARGS_HOLE));
-    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        argsobj.markLengthOverridden();
-    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom)) {
-        argsobj.asNormalArguments().clearCallee();
-    }
-    return true;
-}
-
-static JSBool
-ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    if (!obj->isNormalArguments())
-        return true;
-
-    NormalArgumentsObject &argsobj = obj->asNormalArguments();
-    if (JSID_IS_INT(id)) {
-        
-
-
-
-        unsigned arg = unsigned(JSID_TO_INT(id));
-        if (arg < argsobj.initialLength()) {
-            JS_ASSERT(!argsobj.element(arg).isMagic(JS_ARGS_HOLE));
-            if (StackFrame *fp = argsobj.maybeStackFrame())
-                *vp = fp->canonicalActualArg(arg);
-            else
-                *vp = argsobj.element(arg);
-        }
-    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        if (!argsobj.hasOverriddenLength())
-            vp->setInt32(argsobj.initialLength());
-    } else {
-        JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom));
-        const Value &v = argsobj.callee();
-        if (!v.isMagic(JS_ARGS_HOLE))
-            *vp = v;
-    }
-    return true;
-}
-
-static JSBool
-ArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
-{
-    if (!obj->isNormalArguments())
-        return true;
-
-    NormalArgumentsObject &argsobj = obj->asNormalArguments();
-
-    if (JSID_IS_INT(id)) {
-        unsigned arg = unsigned(JSID_TO_INT(id));
-        if (arg < argsobj.initialLength()) {
-            if (StackFrame *fp = argsobj.maybeStackFrame()) {
-                JSScript *script = fp->functionScript();
-                if (script->usesArguments) {
-                    if (arg < fp->numFormalArgs())
-                        TypeScript::SetArgument(cx, script, arg, *vp);
-                    fp->canonicalActualArg(arg) = *vp;
-                }
-                return true;
-            }
-        }
-    } else {
-        JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom) ||
-                  JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom));
-    }
-
-    
-
-
-
-
-
-
-
-    AutoValueRooter tvr(cx);
-    return js_DeleteGeneric(cx, &argsobj, id, tvr.addr(), false) &&
-           js_DefineProperty(cx, &argsobj, id, vp, NULL, NULL, JSPROP_ENUMERATE);
-}
-
-static JSBool
-args_resolve(JSContext *cx, JSObject *obj, jsid id, unsigned flags,
-             JSObject **objp)
-{
-    *objp = NULL;
-
-    NormalArgumentsObject &argsobj = obj->asNormalArguments();
-
-    unsigned attrs = JSPROP_SHARED | JSPROP_SHADOWABLE;
-    if (JSID_IS_INT(id)) {
-        uint32_t arg = uint32_t(JSID_TO_INT(id));
-        if (arg >= argsobj.initialLength() || argsobj.element(arg).isMagic(JS_ARGS_HOLE))
-            return true;
-
-        attrs |= JSPROP_ENUMERATE;
-    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        if (argsobj.hasOverriddenLength())
-            return true;
-    } else {
-        if (!JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom))
-            return true;
-
-        if (argsobj.callee().isMagic(JS_ARGS_HOLE))
-            return true;
-    }
-
-    Value undef = UndefinedValue();
-    if (!js_DefineProperty(cx, &argsobj, id, &undef, ArgGetter, ArgSetter, attrs))
-        return JS_FALSE;
-
-    *objp = &argsobj;
-    return true;
-}
-
-static JSBool
-args_enumerate(JSContext *cx, JSObject *obj)
-{
-    NormalArgumentsObject &argsobj = obj->asNormalArguments();
-
-    
-
-
-
-    int argc = int(argsobj.initialLength());
-    for (int i = -2; i != argc; i++) {
-        jsid id = (i == -2)
-                  ? ATOM_TO_JSID(cx->runtime->atomState.lengthAtom)
-                  : (i == -1)
-                  ? ATOM_TO_JSID(cx->runtime->atomState.calleeAtom)
-                  : INT_TO_JSID(i);
-
-        JSObject *pobj;
-        JSProperty *prop;
-        if (!js_LookupProperty(cx, &argsobj, id, &pobj, &prop))
-            return false;
-    }
-    return true;
-}
-
-static JSBool
-StrictArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    if (!obj->isStrictArguments())
-        return true;
-
-    StrictArgumentsObject &argsobj = obj->asStrictArguments();
-
-    if (JSID_IS_INT(id)) {
-        
-
-
-
-        unsigned arg = unsigned(JSID_TO_INT(id));
-        if (arg < argsobj.initialLength()) {
-            const Value &v = argsobj.element(arg);
-            if (!v.isMagic(JS_ARGS_HOLE))
-                *vp = v;
-        }
-    } else {
-        JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom));
-        if (!argsobj.hasOverriddenLength())
-            vp->setInt32(argsobj.initialLength());
-    }
-    return true;
-}
-
-static JSBool
-StrictArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
-{
-    if (!obj->isStrictArguments())
-        return true;
-
-    StrictArgumentsObject &argsobj = obj->asStrictArguments();
-
-    if (JSID_IS_INT(id)) {
-        unsigned arg = unsigned(JSID_TO_INT(id));
-        if (arg < argsobj.initialLength()) {
-            argsobj.setElement(arg, *vp);
-            return true;
-        }
-    } else {
-        JS_ASSERT(JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom));
-    }
-
-    
-
-
-
-
-
-    AutoValueRooter tvr(cx);
-    return js_DeleteGeneric(cx, &argsobj, id, tvr.addr(), strict) &&
-           js_SetPropertyHelper(cx, &argsobj, id, 0, vp, strict);
-}
-
-static JSBool
-strictargs_resolve(JSContext *cx, JSObject *obj, jsid id, unsigned flags, JSObject **objp)
-{
-    *objp = NULL;
-
-    StrictArgumentsObject &argsobj = obj->asStrictArguments();
-
-    unsigned attrs = JSPROP_SHARED | JSPROP_SHADOWABLE;
-    PropertyOp getter = StrictArgGetter;
-    StrictPropertyOp setter = StrictArgSetter;
-
-    if (JSID_IS_INT(id)) {
-        uint32_t arg = uint32_t(JSID_TO_INT(id));
-        if (arg >= argsobj.initialLength() || argsobj.element(arg).isMagic(JS_ARGS_HOLE))
-            return true;
-
-        attrs |= JSPROP_ENUMERATE;
-    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
-        if (argsobj.hasOverriddenLength())
-            return true;
-    } else {
-        if (!JSID_IS_ATOM(id, cx->runtime->atomState.calleeAtom) &&
-            !JSID_IS_ATOM(id, cx->runtime->atomState.callerAtom)) {
-            return true;
-        }
-
-        attrs = JSPROP_PERMANENT | JSPROP_GETTER | JSPROP_SETTER | JSPROP_SHARED;
-        getter = CastAsPropertyOp(argsobj.global().getThrowTypeError());
-        setter = CastAsStrictPropertyOp(argsobj.global().getThrowTypeError());
-    }
-
-    Value undef = UndefinedValue();
-    if (!js_DefineProperty(cx, &argsobj, id, &undef, getter, setter, attrs))
-        return false;
-
-    *objp = &argsobj;
-    return true;
-}
-
-static JSBool
-strictargs_enumerate(JSContext *cx, JSObject *obj)
-{
-    StrictArgumentsObject *argsobj = &obj->asStrictArguments();
-
-    
-
-
-
-    JSObject *pobj;
-    JSProperty *prop;
-
-    
-    if (!js_LookupProperty(cx, argsobj, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), &pobj, &prop))
-        return false;
-
-    
-    if (!js_LookupProperty(cx, argsobj, ATOM_TO_JSID(cx->runtime->atomState.calleeAtom), &pobj, &prop))
-        return false;
-
-    
-    if (!js_LookupProperty(cx, argsobj, ATOM_TO_JSID(cx->runtime->atomState.callerAtom), &pobj, &prop))
-        return false;
-
-    for (uint32_t i = 0, argc = argsobj->initialLength(); i < argc; i++) {
-        if (!js_LookupProperty(cx, argsobj, INT_TO_JSID(i), &pobj, &prop))
-            return false;
-    }
-
-    return true;
-}
-
-static void
-args_finalize(JSContext *cx, JSObject *obj)
-{
-    cx->free_(reinterpret_cast<void *>(obj->asArguments().data()));
-}
-
-static void
-args_trace(JSTracer *trc, JSObject *obj)
-{
-    ArgumentsObject &argsobj = obj->asArguments();
-    ArgumentsData *data = argsobj.data();
-    MarkValue(trc, &data->callee, js_callee_str);
-    MarkValueRange(trc, argsobj.initialLength(), data->slots, js_arguments_str);
-
-    
-
-
-
-
-
-
-
-
-#if JS_HAS_GENERATORS
-    StackFrame *fp = argsobj.maybeStackFrame();
-    if (fp && fp->isFloatingGenerator())
-        MarkObject(trc, &js_FloatingFrameToGenerator(fp)->obj, "generator object");
-#endif
-}
-
-
-
-
-
-
-
-Class js::NormalArgumentsObjectClass = {
-    "Arguments",
-    JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
-    JSCLASS_HAS_RESERVED_SLOTS(NormalArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) |
-    JSCLASS_FOR_OF_ITERATION,
-    JS_PropertyStub,         
-    args_delProperty,
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    args_enumerate,
-    reinterpret_cast<JSResolveOp>(args_resolve),
-    JS_ConvertStub,
-    args_finalize,           
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    args_trace,
-    {
-        NULL,       
-        NULL,       
-        NULL,       
-        JS_ElementIteratorStub,
-        NULL,       
-        false,      
-    }
-};
-
-
-
-
-
-
-Class js::StrictArgumentsObjectClass = {
-    "Arguments",
-    JSCLASS_NEW_RESOLVE | JSCLASS_IMPLEMENTS_BARRIERS |
-    JSCLASS_HAS_RESERVED_SLOTS(StrictArgumentsObject::RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Object) |
-    JSCLASS_FOR_OF_ITERATION,
-    JS_PropertyStub,         
-    args_delProperty,
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    strictargs_enumerate,
-    reinterpret_cast<JSResolveOp>(strictargs_resolve),
-    JS_ConvertStub,
-    args_finalize,           
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    NULL,                    
-    args_trace,
-    {
-        NULL,       
-        NULL,       
-        NULL,       
-        JS_ElementIteratorStub,
-        NULL,       
-        false,      
-    }
-};
-
 bool
 StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 {
@@ -763,17 +265,10 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
             return false;
         }
 
-        
-
-
-
-
-
-        ArgumentsObject *argsobj = ArgumentsObject::create(cx, fp->numActualArgs(), fp->callee());
+        ArgumentsObject *argsobj = ArgumentsObject::createUnexpected(cx, fp);
         if (!argsobj)
             return false;
 
-        fp->forEachCanonicalActualArg(PutArg(cx->compartment, argsobj->data()->slots));
         *vp = ObjectValue(*argsobj);
         return true;
     }
@@ -1086,11 +581,6 @@ fun_hasInstance(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp)
 inline void
 JSFunction::trace(JSTracer *trc)
 {
-    if (isFlatClosure() && hasFlatClosureUpvars()) {
-        if (HeapValue *upvars = getFlatClosureUpvars())
-            MarkValueRange(trc, script()->bindings.countUpvars(), upvars, "upvars");
-    }
-
     if (isExtended()) {
         MarkValueRange(trc, ArrayLength(toExtended()->extendedSlots),
                        toExtended()->extendedSlots, "nativeReserved");
@@ -1113,21 +603,6 @@ fun_trace(JSTracer *trc, JSObject *obj)
     obj->toFunction()->trace(trc);
 }
 
-static void
-fun_finalize(JSContext *cx, JSObject *obj)
-{
-    if (obj->toFunction()->isFlatClosure())
-        obj->toFunction()->finalizeUpvars();
-}
-
-size_t
-JSFunction::sizeOfMisc(JSMallocSizeOfFun mallocSizeOf) const
-{
-    return (isFlatClosure() && hasFlatClosureUpvars()) ?
-           mallocSizeOf(getFlatClosureUpvars()) :
-           0;
-}
-
 
 
 
@@ -1144,7 +619,7 @@ JS_FRIEND_DATA(Class) js::FunctionClass = {
     fun_enumerate,
     (JSResolveOp)fun_resolve,
     JS_ConvertStub,
-    fun_finalize,
+    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
@@ -1286,44 +761,65 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
     if (argc < 2 || vp[3].isNullOrUndefined())
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
 
-    
-
-    
-    if (!vp[3].isObject()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
-        return false;
-    }
-
-    
-
-
-
-    JSObject *aobj = &vp[3].toObject();
-    uint32_t length;
-    if (!js_GetLengthProperty(cx, aobj, &length))
-        return false;
-
-    
-    if (length > StackSpace::ARGS_LENGTH_MAX) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_MANY_FUN_APPLY_ARGS);
-        return false;
-    }
-
     InvokeArgsGuard args;
-    if (!cx->stack.pushInvokeArgs(cx, length, &args))
-        return false;
+    if (vp[3].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
+        
 
-    
-    args.calleev() = fval;
-    args.thisv() = vp[2];
 
-    
-    if (!GetElements(cx, aobj, length, args.array()))
-        return false;
+
+
+
+        
+        unsigned length = cx->fp()->numActualArgs();
+        JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
+
+        if (!cx->stack.pushInvokeArgs(cx, length, &args))
+            return false;
+
+        
+        args.calleev() = fval;
+        args.thisv() = vp[2];
+
+        
+        cx->fp()->forEachCanonicalActualArg(CopyTo(args.array()));
+    } else {
+        
+        if (!vp[3].isObject()) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
+            return false;
+        }
+
+        
+
+
+
+        JSObject *aobj = &vp[3].toObject();
+        uint32_t length;
+        if (!js_GetLengthProperty(cx, aobj, &length))
+            return false;
+
+        
+        if (length > StackSpace::ARGS_LENGTH_MAX) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_TOO_MANY_FUN_APPLY_ARGS);
+            return false;
+        }
+
+        if (!cx->stack.pushInvokeArgs(cx, length, &args))
+            return false;
+
+        
+        args.calleev() = fval;
+        args.thisv() = vp[2];
+
+        
+        if (!GetElements(cx, aobj, length, args.array()))
+            return false;
+    }
 
     
     if (!Invoke(cx, args))
         return false;
+
     *vp = args.rval();
     return true;
 }
@@ -1879,59 +1375,6 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
         }
     }
     return clone;
-}
-
-
-
-
-
-
-JSFunction * JS_FASTCALL
-js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain)
-{
-    JS_ASSERT(fun->isFlatClosure());
-    JS_ASSERT(JSScript::isValidOffset(fun->script()->upvarsOffset) ==
-              fun->script()->bindings.hasUpvars());
-    JS_ASSERT_IF(JSScript::isValidOffset(fun->script()->upvarsOffset),
-                 fun->script()->upvars()->length == fun->script()->bindings.countUpvars());
-
-    JSFunction *closure = CloneFunctionObject(cx, fun, scopeChain, JSFunction::ExtendedFinalizeKind);
-    if (!closure)
-        return closure;
-
-    uint32_t nslots = fun->script()->bindings.countUpvars();
-    if (nslots == 0)
-        return closure;
-
-    HeapValue *data = (HeapValue *) cx->malloc_(nslots * sizeof(HeapValue));
-    if (!data)
-        return NULL;
-
-    closure->setExtendedSlot(JSFunction::FLAT_CLOSURE_UPVARS_SLOT, PrivateValue(data));
-    return closure;
-}
-
-JSFunction *
-js_NewFlatClosure(JSContext *cx, JSFunction *fun)
-{
-    
-
-
-
-
-    JSObject *scopeChain = &cx->fp()->scopeChain();
-
-    JSFunction *closure = js_AllocFlatClosure(cx, fun, scopeChain);
-    if (!closure || !fun->script()->bindings.hasUpvars())
-        return closure;
-
-    unsigned level = fun->script()->staticLevel;
-    JSUpvarArray *uva = fun->script()->upvars();
-
-    for (uint32_t i = 0, n = uva->length; i < n; i++)
-        closure->initFlatClosureUpvar(i, GetUpvar(cx, level, uva->vector[i]));
-
-    return closure;
 }
 
 JSFunction *

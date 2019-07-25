@@ -267,6 +267,23 @@ protected:
     
     LoadStatus LoadNext(gfxProxyFontEntry *aProxyEntry);
 
+    
+    
+    
+    
+    gfxFontEntry* LoadFont(gfxProxyFontEntry *aProxy,
+                           const PRUint8 *aFontData, PRUint32 &aLength);
+
+    
+    virtual nsresult SyncLoadFontData(gfxProxyFontEntry *aFontToLoad,
+                                      const gfxFontFaceSrc *aFontFaceSrc,
+                                      PRUint8* &aBuffer,
+                                      PRUint32 &aBufferLength)
+    {
+        
+        return NS_ERROR_NOT_IMPLEMENTED;
+    }
+
     gfxMixedFontFamily *GetFamily(const nsAString& aName) const;
 
     

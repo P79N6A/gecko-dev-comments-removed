@@ -1882,6 +1882,18 @@ public:
                                       XPCNativeInterface* newInterface,
                                       PRUint16 position);
 
+    
+    
+    
+    
+    
+    
+    
+    static XPCNativeSet* GetNewOrUsed(XPCCallContext& ccx,
+                                      XPCNativeSet* firstSet,
+                                      XPCNativeSet* secondSet,
+                                      bool preserveFirstSetOrder);
+
     static void ClearCacheEntryForClassInfo(nsIClassInfo* classInfo);
 
     inline JSBool FindMember(jsid name, XPCNativeMember** pMember,

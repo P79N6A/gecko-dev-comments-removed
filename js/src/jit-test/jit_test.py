@@ -436,7 +436,6 @@ def main(argv):
         op.error('missing JS_SHELL argument')
     
     JS, test_args = os.path.normpath(args[0]), args[1:]
-    JS = os.path.realpath(JS) 
 
     if stdio_might_be_broken():
         

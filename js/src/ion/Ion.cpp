@@ -806,7 +806,7 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->hasArgsObj() || fp->script()->usesArguments) {
+    if (fp->hasArgsObj() || fp->script()->mayNeedArgsObj()) {
         
         
         IonSpew(IonSpew_Abort, "frame has argsobj");
