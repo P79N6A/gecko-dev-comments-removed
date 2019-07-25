@@ -27,6 +27,10 @@ function webglTestLog(msg) {
   if (window.console && window.console.log) {
     window.console.log(msg);
   }
+  if (document.getElementById("console")) {
+    var log = document.getElementById("console");
+    log.innerHTML += msg + "<br>";
+  }
 }
 
 
@@ -94,6 +98,7 @@ function getGLErrorAsString(ctx, err) {
     return "NO_ERROR";
   }
   for (var name in ctx) {
+      if (name == "canvas") continue;
     if (ctx[name] === err) {
       return name;
     }
@@ -136,6 +141,66 @@ function glErrorShouldBe(ctx, glError) {
 
 
 
+function createProgram(gl, vshaders, fshaders, attribs)
+{
+    if (typeof(vshaders) == "string")
+	vshaders = [vshaders];
+    if (typeof(fshaders) == "string")
+	fshaders = [fshaders];
+
+    var shaders = [];
+    var i;
+
+    for (i = 0; i < vshaders.length; ++i) {
+	var shader = loadShader(gl, vshaders[i], gl.VERTEX_SHADER);
+	if (!shader)
+	    return null;
+	shaders.push(shader);
+    }
+
+    for (i = 0; i < fshaders.length; ++i) {
+	var shader = loadShader(gl, fshaders[i], gl.FRAGMENT_SHADER);
+	if (!shader)
+	    return null;
+	shaders.push(shader);
+    }
+
+    var prog = gl.createProgram();
+    for (i = 0; i < shaders.length; ++i) {
+	gl.attachShader(prog, shaders[i]);
+    }
+
+    if (attribs) {
+        for (var i in attribs) {
+            gl.bindAttribLocation (prog, i, attribs[i]);
+	}
+    }
+
+    gl.linkProgram(prog);
+
+    
+    var linked = gl.getProgramParameter(prog, gl.LINK_STATUS);
+    if (!linked) {
+        
+        var error = gl.getProgramInfoLog(prog);
+        webglTestLog("Error in program linking:" + error);
+
+        gl.deleteProgram(prog);
+	for (i = 0; i < shaders.length; ++i)
+	    gl.deleteShader(shaders[i]);
+        return null;
+    }
+
+    return prog;
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -154,42 +219,9 @@ function initWebGL(canvasName, vshader, fshader, attribs, clearColor, clearDepth
     }
 
     
-    var vertexShader = loadShaderFromScript(gl, vshader);
-    var fragmentShader = loadShaderFromScript(gl, fshader);
-
-    if (!vertexShader || !fragmentShader)
-        return null;
-
-    
-    gl.program = gl.createProgram();
-
+    gl.program = createProgram(gl, vshader, fshader, attribs);
     if (!gl.program)
         return null;
-
-    
-    gl.attachShader (gl.program, vertexShader);
-    gl.attachShader (gl.program, fragmentShader);
-
-    
-    for (var i in attribs)
-        gl.bindAttribLocation (gl.program, i, attribs[i]);
-
-    
-    gl.linkProgram(gl.program);
-
-    
-    var linked = gl.getProgramParameter(gl.program, gl.LINK_STATUS);
-    if (!linked) {
-        
-        var error = gl.getProgramInfoLog (gl.program);
-        webglTestLog("Error in program linking:"+error);
-
-        gl.deleteProgram(gl.program);
-        gl.deleteProgram(fragmentShader);
-        gl.deleteProgram(vertexShader);
-
-        return null;
-    }
 
     gl.useProgram(gl.program);
 
