@@ -155,6 +155,19 @@ public:
         return mRefCnt < 2;
     }
 
+    
+
+
+
+
+
+
+
+
+
+    static void MoveValue(void *aSource, void *aDest, nsCSSProperty aPropID,
+                          PRBool* aChanged);
+
 private:
     PRInt32 mStyleBits; 
                         
@@ -260,6 +273,26 @@ public:
 
     void ClearLonghandProperty(nsCSSProperty aPropID);
 
+    
+
+
+
+
+
+
+
+
+
+
+
+    void TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+                           nsCSSProperty aPropID,
+                           PRBool aIsImportant,
+                           PRBool aOverrideImportant,
+                           PRBool aMustCallValueAppended,
+                           mozilla::css::Declaration* aDeclaration,
+                           PRBool* aChanged);
+
     void AssertInitialState() {
 #ifdef DEBUG
         DoAssertInitialState();
@@ -278,6 +311,18 @@ private:
 
     void DoExpand(nsRefPtr<nsCSSCompressedDataBlock> *aBlock,
                   PRBool aImportant);
+
+    
+
+
+    void DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+                             nsCSSProperty aPropID,
+                             PRBool aIsImportant,
+                             PRBool aOverrideImportant,
+                             PRBool aMustCallValueAppended,
+                             mozilla::css::Declaration* aDeclaration,
+                             PRBool* aChanged);
+
 #ifdef DEBUG
     void DoAssertInitialState();
 #endif

@@ -41,11 +41,14 @@
 
 
 #include "nsCSSDataBlock.h"
+#include "mozilla/css/Declaration.h"
 #include "nsCSSProps.h"
 #include "nsRuleData.h"
 #include "nsRuleNode.h"
 #include "nsStyleSet.h"
 #include "nsStyleContext.h"
+
+namespace css = mozilla::css;
 
 
 
@@ -565,6 +568,66 @@ nsCSSCompressedDataBlock::CreateEmptyBlock()
     return result;
 }
 
+ void
+nsCSSCompressedDataBlock::MoveValue(void *aSource, void *aDest,
+                                    nsCSSProperty aPropID,
+                                    PRBool* aChanged)
+{
+  switch (nsCSSProps::kTypeTable[aPropID]) {
+    case eCSSType_Value: {
+      nsCSSValue *source = static_cast<nsCSSValue*>(aSource);
+      nsCSSValue *dest = static_cast<nsCSSValue*>(aDest);
+      if (*source != *dest)
+        *aChanged = PR_TRUE;
+      dest->~nsCSSValue();
+      memcpy(dest, source, sizeof(nsCSSValue));
+      new (source) nsCSSValue();
+    } break;
+
+    case eCSSType_Rect: {
+      nsCSSRect *source = static_cast<nsCSSRect*>(aSource);
+      nsCSSRect *dest = static_cast<nsCSSRect*>(aDest);
+      if (*source != *dest)
+        *aChanged = PR_TRUE;
+      dest->~nsCSSRect();
+      memcpy(dest, source, sizeof(nsCSSRect));
+      new (source) nsCSSRect();
+    } break;
+
+    case eCSSType_ValuePair: {
+      nsCSSValuePair *source = static_cast<nsCSSValuePair*>(aSource);
+      nsCSSValuePair *dest = static_cast<nsCSSValuePair*>(aDest);
+      if (*source != *dest)
+        *aChanged = PR_TRUE;
+      dest->~nsCSSValuePair();
+      memcpy(dest, source, sizeof(nsCSSValuePair));
+      new (source) nsCSSValuePair();
+    } break;
+
+    case eCSSType_ValueList: {
+      nsCSSValueList **source = static_cast<nsCSSValueList**>(aSource);
+      nsCSSValueList **dest = static_cast<nsCSSValueList**>(aDest);
+      if (**source != **dest)
+        *aChanged = PR_TRUE;
+      delete *dest;
+      *dest = *source;
+      *source = nsnull;
+    } break;
+
+    case eCSSType_ValuePairList: {
+      nsCSSValuePairList **source =
+        static_cast<nsCSSValuePairList**>(aSource);
+      nsCSSValuePairList **dest =
+        static_cast<nsCSSValuePairList**>(aDest);
+      if (**source != **dest)
+        *aChanged = PR_TRUE;
+      delete *dest;
+      *dest = *source;
+      *source = nsnull;
+    } break;
+  }
+}
+
 
 
 nsCSSExpandedDataBlock::nsCSSExpandedDataBlock()
@@ -953,6 +1016,73 @@ nsCSSExpandedDataBlock::ClearLonghandProperty(nsCSSProperty aPropID)
             }
         } break;
     }
+}
+
+void
+nsCSSExpandedDataBlock::TransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+                                          nsCSSProperty aPropID,
+                                          PRBool aIsImportant,
+                                          PRBool aOverrideImportant,
+                                          PRBool aMustCallValueAppended,
+                                          css::Declaration* aDeclaration,
+                                          PRBool* aChanged)
+{
+  if (nsCSSProps::IsShorthand(aPropID)) {
+    CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aPropID) {
+      DoTransferFromBlock(aFromBlock, *p, aIsImportant, aOverrideImportant,
+                          aMustCallValueAppended, aDeclaration, aChanged);
+    }
+  } else {
+    DoTransferFromBlock(aFromBlock, aPropID, aIsImportant, aOverrideImportant,
+                        aMustCallValueAppended, aDeclaration, aChanged);
+  }
+}
+
+void
+nsCSSExpandedDataBlock::DoTransferFromBlock(nsCSSExpandedDataBlock& aFromBlock,
+                                            nsCSSProperty aPropID,
+                                            PRBool aIsImportant,
+                                            PRBool aOverrideImportant,
+                                            PRBool aMustCallValueAppended,
+                                            css::Declaration* aDeclaration,
+                                            PRBool* aChanged)
+{
+  NS_ASSERTION(aFromBlock.HasPropertyBit(aPropID), "oops");
+  if (aIsImportant) {
+    if (!HasImportantBit(aPropID))
+      *aChanged = PR_TRUE;
+    SetImportantBit(aPropID);
+  } else {
+    if (HasImportantBit(aPropID)) {
+      
+      
+      
+      
+      
+      if (!aOverrideImportant) {
+        aFromBlock.ClearLonghandProperty(aPropID);
+        return;
+      }
+      *aChanged = PR_TRUE;
+      ClearImportantBit(aPropID);
+    }
+  }
+
+  if (aMustCallValueAppended || !HasPropertyBit(aPropID)) {
+    aDeclaration->ValueAppended(aPropID);
+  }
+
+  SetPropertyBit(aPropID);
+  aFromBlock.ClearPropertyBit(aPropID);
+
+  
+
+
+
+
+  void *v_source = aFromBlock.PropertyAt(aPropID);
+  void *v_dest = PropertyAt(aPropID);
+  nsCSSCompressedDataBlock::MoveValue(v_source, v_dest, aPropID, aChanged);
 }
 
 #ifdef DEBUG
