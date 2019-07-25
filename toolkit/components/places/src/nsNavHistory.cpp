@@ -677,18 +677,22 @@ nsNavHistory::InitDB()
   nsresult rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
-                                getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
+  PRInt32 pageSize = 0;
+  {
+    
+    
+    nsCOMPtr<mozIStorageStatement> statement;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
+                                  getter_AddRefs(statement));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool hasResult;
-  mozStorageStatementScoper scoper(statement);
-  rv = statement->ExecuteStep(&hasResult);
-  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
-  PRInt32 pageSize = statement->AsInt32(0);
+    PRBool hasResult;
+    mozStorageStatementScoper scoper(statement);
+    rv = statement->ExecuteStep(&hasResult);
+    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
+    pageSize = statement->AsInt32(0);
+  }
+  NS_ASSERTION(pageSize >= 512 && pageSize <= 65536, "Invalid page size.");
 
   
   
@@ -734,7 +738,7 @@ nsNavHistory::InitDB()
 
   rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
       "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE));
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ASSERTION(NS_SUCCEEDED(rv), "Unable to set journal mode.");
 
   
   
