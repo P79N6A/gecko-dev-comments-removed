@@ -77,7 +77,10 @@ class Linker
             return fail(cx);
 
         
-        uint8 *codeStart = (uint8 *)AlignBytes((uintptr_t)result, CodeAlignment);
+        uint8 *codeStart = result + sizeof(IonCode *);
+
+        
+        codeStart = (uint8 *)AlignBytes((uintptr_t)codeStart, CodeAlignment);
         uint32 headerSize = codeStart - result;
         IonCode *code = IonCode::New(cx, codeStart,
                                      bytesNeeded - headerSize, pool);
