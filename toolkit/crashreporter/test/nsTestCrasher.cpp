@@ -21,6 +21,8 @@ public:
 class B : A
 {
   void f() { }
+public:
+  void use() { }
 };
 
 void fcn( A* p )
@@ -32,6 +34,7 @@ void PureVirtualCall()
 {
   
   B b;
+  b.use(); 
 }
 
 
