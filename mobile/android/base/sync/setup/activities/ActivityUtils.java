@@ -16,7 +16,6 @@ public class ActivityUtils {
 
 
 
-
   public static String validateSyncKey(String key) throws InvalidSyncKeyException {
     String charKey = key.trim().replace("-", "").toLowerCase();
     if (!charKey.matches("^[abcdefghijkmnpqrstuvwxyz23456789]{26}$")) {
