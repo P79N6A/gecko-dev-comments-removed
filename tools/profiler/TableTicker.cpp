@@ -561,6 +561,33 @@ JSObject* TableTicker::ToJSObject(JSContext *aCx)
   return profile;
 }
 
+static
+void addProfileEntry(ProfileStack *aStack, ThreadProfile &aProfile, int i)
+{
+  
+  
+  const char* sampleLabel = aStack->mStack[i].mLabel;
+  if (aStack->mStack[i].isCopyLabel()) {
+    
+    
+
+    aProfile.addTag(ProfileEntry('c', ""));
+    
+    size_t strLen = strlen(sampleLabel) + 1;
+    for (size_t j = 0; j < strLen;) {
+      
+      char text[sizeof(void*)];
+      for (size_t pos = 0; pos < sizeof(void*) && j+pos < strLen; pos++) {
+        text[pos] = sampleLabel[j+pos];
+      }
+      j += sizeof(void*)/sizeof(char);
+      
+      aProfile.addTag(ProfileEntry('d', *((void**)(&text[0]))));
+    }
+  } else {
+    aProfile.addTag(ProfileEntry('c', sampleLabel));
+  }
+}
 
 #ifdef USE_BACKTRACE
 void TableTicker::doBacktrace(ThreadProfile &aProfile, TickSample* aSample)
@@ -581,6 +608,7 @@ void TableTicker::doBacktrace(ThreadProfile &aProfile, TickSample* aSample)
 #ifdef USE_NS_STACKWALK
 typedef struct {
   void** array;
+  void** sp_array;
   size_t size;
   size_t count;
 } PCArray;
@@ -593,7 +621,9 @@ void StackWalkCallback(void* aPC, void* aSP, void* aClosure)
     
     return;
   }
-  array->array[array->count++] = aPC;
+  array->sp_array[array->count] = aSP;
+  array->array[array->count] = aPC;
+  array->count++;
 }
 
 void TableTicker::doBacktrace(ThreadProfile &aProfile, TickSample* aSample)
@@ -603,8 +633,10 @@ void TableTicker::doBacktrace(ThreadProfile &aProfile, TickSample* aSample)
   MOZ_ASSERT(thread);
 #endif
   void* pc_array[1000];
+  void* sp_array[1000];
   PCArray array = {
     pc_array,
+    sp_array,
     mozilla::ArrayLength(pc_array),
     0
   };
@@ -624,8 +656,39 @@ void TableTicker::doBacktrace(ThreadProfile &aProfile, TickSample* aSample)
   if (NS_SUCCEEDED(rv)) {
     aProfile.addTag(ProfileEntry('s', "(root)"));
 
+    ProfileStack* stack = aProfile.GetStack();
+    int pseudoStackPos = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
     for (size_t i = array.count; i > 0; --i) {
-      aProfile.addTag(ProfileEntry('l', (void*)array.array[i - 1]));
+      while (pseudoStackPos < stack->mStackPointer) {
+        volatile StackEntry& entry = stack->mStack[pseudoStackPos];
+
+        if (entry.mStackAddress < array.sp_array[i-1] && entry.mStackAddress)
+          break;
+
+        addProfileEntry(stack, aProfile, pseudoStackPos);
+        pseudoStackPos++;
+      }
+
+      aProfile.addTag(ProfileEntry('l', (void*)array.array[i-1]));
     }
   }
 }
@@ -689,29 +752,7 @@ void doSampleStackTrace(ProfileStack *aStack, ThreadProfile &aProfile, TickSampl
   for (mozilla::sig_safe_t i = 0;
        i < aStack->mStackPointer && i < mozilla::ArrayLength(aStack->mStack);
        i++) {
-    
-    
-    const char* sampleLabel = aStack->mStack[i].mLabel;
-    if (aStack->mStack[i].isCopyLabel()) {
-      
-      
-
-      aProfile.addTag(ProfileEntry('c', ""));
-      
-      size_t strLen = strlen(sampleLabel) + 1;
-      for (size_t j = 0; j < strLen;) {
-        
-        char text[sizeof(void*)];
-        for (size_t pos = 0; pos < sizeof(void*) && j+pos < strLen; pos++) {
-          text[pos] = sampleLabel[j+pos];
-        }
-        j += sizeof(void*);
-        
-        aProfile.addTag(ProfileEntry('d', *((void**)(&text[0]))));
-      }
-    } else {
-      aProfile.addTag(ProfileEntry('c', sampleLabel));
-    }
+    addProfileEntry(aStack, aProfile, i);
   }
 #ifdef ENABLE_SPS_LEAF_DATA
   if (sample) {

@@ -155,7 +155,7 @@ class NS_STACK_CLASS SamplerStackFrameRAII {
 public:
   
   SamplerStackFrameRAII(const char *aInfo) {
-    mHandle = mozilla_sampler_call_enter(aInfo);
+    mHandle = mozilla_sampler_call_enter(aInfo, this, false);
   }
   ~SamplerStackFrameRAII() {
     mozilla_sampler_call_exit(mHandle);
