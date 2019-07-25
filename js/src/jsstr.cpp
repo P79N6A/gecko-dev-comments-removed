@@ -1990,7 +1990,7 @@ struct ReplaceData
 
 static bool
 InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, ReplaceData &rdata,
-                JSSubString *out, size_t *skip)
+                JSSubString *out, size_t *skip, volatile JSContext::DollarPath *path)
 {
     JS_ASSERT(*dp == '$');
 
@@ -2019,8 +2019,7 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, Repla
 
         *skip = cp - dp;
 
-        JS_ASSERT(num <= res->parenCount());
-
+        JS_CRASH_UNLESS(num <= res->parenCount());
         
 
 
@@ -2035,18 +2034,23 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, Repla
         rdata.dollarStr.chars = dp;
         rdata.dollarStr.length = 1;
         *out = rdata.dollarStr;
+        *path = JSContext::DOLLAR_LITERAL;
         return true;
       case '&':
         res->getLastMatch(out);
+        *path = JSContext::DOLLAR_AMP;
         return true;
       case '+':
         res->getLastParen(out);
+        *path = JSContext::DOLLAR_PLUS;
         return true;
       case '`':
         res->getLeftContext(out);
+        *path = JSContext::DOLLAR_TICK;
         return true;
       case '\'':
         res->getRightContext(out);
+        *path = JSContext::DOLLAR_QUOT;
         return true;
     }
     return false;
@@ -2159,10 +2163,11 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 
     JSString *repstr = rdata.repstr;
     size_t replen = repstr->length();
+    JSContext::DollarPath path;
     for (jschar *dp = rdata.dollar, *ep = rdata.dollarEnd; dp; dp = js_strchr_limit(dp, '$', ep)) {
         JSSubString sub;
         size_t skip;
-        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip)) {
+        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip, &path)) {
             replen += sub.length - skip;
             dp += skip;
         } else {
@@ -2179,6 +2184,10 @@ DoReplace(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, jschar *chars)
     JSString *repstr = rdata.repstr;
     jschar *cp;
     jschar *bp = cp = repstr->chars();
+    volatile JSContext::DollarPath path;
+    cx->dollarPath = &path;
+    jschar sourceBuf[128];
+    cx->blackBox = sourceBuf;
 
     for (jschar *dp = rdata.dollar, *ep = rdata.dollarEnd; dp; dp = js_strchr_limit(dp, '$', ep)) {
         size_t len = dp - cp;
@@ -2188,7 +2197,13 @@ DoReplace(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, jschar *chars)
 
         JSSubString sub;
         size_t skip;
-        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip)) {
+        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip, &path)) {
+            if (((size_t(sub.chars) & 0xfffffU) + sub.length) > 0x100000U) {
+                
+                size_t peekLen = JS_MIN(rdata.dollarEnd - rdata.dollar, 128);
+                js_strncpy(sourceBuf, rdata.dollar, peekLen);
+            }
+
             len = sub.length;
             js_strncpy(chars, sub.chars, len);
             chars += len;
