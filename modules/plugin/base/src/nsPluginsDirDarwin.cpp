@@ -225,11 +225,16 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
   if (!mPlugin)
     return NS_ERROR_NULL_POINTER;
 
+  
+  
+  
+  
+  
+  
+  
+#ifdef __LP64__
   char executablePath[PATH_MAX];
   executablePath[0] = '\0';
-
-  
-  
   nsCAutoString bundlePath;
   mPlugin->GetNativePath(bundlePath);
   CFStringRef pathRef = ::CFStringCreateWithCString(NULL, bundlePath.get(), kCFStringEncodingUTF8);
@@ -250,6 +255,11 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
     }
     ::CFRelease(pathRef); 
   }
+#else
+  nsCAutoString bundlePath;
+  mPlugin->GetNativePath(bundlePath);
+  const char *executablePath = bundlePath.get();
+#endif
 
   outLibrary = PR_LoadLibrary(executablePath);
   pLibrary = outLibrary;
