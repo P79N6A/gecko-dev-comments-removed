@@ -950,6 +950,23 @@ public:
 
 
 
+  typedef void (* TextShadowCallback)(nsRenderingContext* aCtx,
+                                      nsPoint aShadowOffset,
+                                      const nscolor& aShadowColor,
+                                      void* aData);
+
+  static void PaintTextShadow(const nsIFrame*     aFrame,
+                              nsRenderingContext* aContext,
+                              const nsRect&       aTextRect,
+                              const nsRect&       aDirtyRect,
+                              const nscolor&      aForegroundColor,
+                              TextShadowCallback  aCallback,
+                              void*               aCallbackData);
+
+  
+
+
+
 
 
   static nscoord GetCenteredFontBaseline(nsFontMetrics* aFontMetrics,

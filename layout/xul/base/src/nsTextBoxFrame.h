@@ -94,6 +94,7 @@ public:
 
 protected:
   friend class nsAsyncAccesskeyUpdate;
+  friend class nsDisplayXULTextBox;
   
   
   PRBool UpdateAccesskey(nsWeakFrame& aWeakThis);
@@ -133,12 +134,6 @@ private:
   void DrawText(nsRenderingContext& aRenderingContext,
                          const nsRect&        aTextRect,
                          const nscolor*       aOverrideColor);
-
-  void PaintOneShadow(gfxContext *     aCtx,
-                      const nsRect&    aTextRect,
-                      nsCSSShadowItem* aShadowDetails,
-                      const nscolor&   aForegroundColor,
-                      const nsRect&    aDirtyRect);
 
   nsString mTitle;
   nsString mCroppedTitle;

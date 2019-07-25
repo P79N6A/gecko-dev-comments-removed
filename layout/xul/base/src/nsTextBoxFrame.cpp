@@ -347,8 +347,21 @@ public:
 
   virtual void DisableComponentAlpha() { mDisableSubpixelAA = PR_TRUE; }
 
+  void PaintTextWithOffset(nsRenderingContext* aCtx,
+                           nsPoint aOffset);
+
   PRPackedBool mDisableSubpixelAA;
 };
+
+static void
+PaintTextShadowCallback(nsRenderingContext* aCtx,
+                        nsPoint aShadowOffset,
+                        const nscolor& aShadowColor,
+                        void* aData)
+{
+  reinterpret_cast<nsDisplayXULTextBox*>(aData)->
+           PaintTextWithOffset(aCtx, aShadowOffset);
+}
 
 void
 nsDisplayXULTextBox::Paint(nsDisplayListBuilder* aBuilder,
@@ -356,8 +369,24 @@ nsDisplayXULTextBox::Paint(nsDisplayListBuilder* aBuilder,
 {
   gfxContextAutoDisableSubpixelAntialiasing disable(aCtx->ThebesContext(),
                                                     mDisableSubpixelAA);
+
+  
+  nsRect drawRect = static_cast<nsTextBoxFrame*>(mFrame)->mTextDrawRect;
+  nsLayoutUtils::PaintTextShadow(mFrame, aCtx,
+                                 drawRect, mVisibleRect,
+                                 mFrame->GetStyleColor()->mColor,
+                                 PaintTextShadowCallback,
+                                 (void*)this);
+
+  PaintTextWithOffset(aCtx, nsPoint(0, 0));
+}
+
+void
+nsDisplayXULTextBox::PaintTextWithOffset(nsRenderingContext* aCtx,
+                                         nsPoint aOffset)
+{
   static_cast<nsTextBoxFrame*>(mFrame)->
-    PaintTitle(*aCtx, mVisibleRect, ToReferenceFrame());
+    PaintTitle(*aCtx, mVisibleRect, ToReferenceFrame() + aOffset);
 }
 
 nsRect
@@ -395,23 +424,7 @@ nsTextBoxFrame::PaintTitle(nsRenderingContext& aRenderingContext,
     if (mTitle.IsEmpty())
         return;
 
-    nsRect textRect = mTextDrawRect + aPt;
-
-    
-    const nsStyleText* textStyle = GetStyleText();
-    if (textStyle->mTextShadow) {
-      
-      
-      for (PRUint32 i = textStyle->mTextShadow->Length(); i > 0; --i) {
-        PaintOneShadow(aRenderingContext.ThebesContext(),
-                       textRect,
-                       textStyle->mTextShadow->ShadowAt(i - 1),
-                       GetStyleColor()->mColor,
-                       aDirtyRect);
-      }
-    }
-
-    DrawText(aRenderingContext, textRect, nsnull);
+    DrawText(aRenderingContext, mTextDrawRect + aPt, nsnull);
 }
 
 void
@@ -607,49 +620,6 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
                         NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH,
                         strikeStyle);
     }
-}
-
-void nsTextBoxFrame::PaintOneShadow(gfxContext*      aCtx,
-                                    const nsRect&    aTextRect,
-                                    nsCSSShadowItem* aShadowDetails,
-                                    const nscolor&   aForegroundColor,
-                                    const nsRect&    aDirtyRect) {
-  nsPoint shadowOffset(aShadowDetails->mXOffset,
-                       aShadowDetails->mYOffset);
-  nscoord blurRadius = NS_MAX(aShadowDetails->mRadius, 0);
-
-  nsRect shadowRect(aTextRect);
-  shadowRect.MoveBy(shadowOffset);
-
-  nsContextBoxBlur contextBoxBlur;
-  gfxContext* shadowContext = contextBoxBlur.Init(shadowRect, 0, blurRadius,
-                                                  PresContext()->AppUnitsPerDevPixel(),
-                                                  aCtx, aDirtyRect, nsnull);
-
-  if (!shadowContext)
-    return;
-
-  nscolor shadowColor;
-  if (aShadowDetails->mHasColor)
-    shadowColor = aShadowDetails->mColor;
-  else
-    shadowColor = aForegroundColor;
-
-  
-  nsRefPtr<nsRenderingContext> renderingContext = new nsRenderingContext();
-  renderingContext->Init(PresContext()->DeviceContext(), shadowContext);
-
-  aCtx->Save();
-  aCtx->NewPath();
-  aCtx->SetColor(gfxRGBA(shadowColor));
-
-  
-  
-  
-  
-  DrawText(*renderingContext, shadowRect, &shadowColor);
-  contextBoxBlur.DoPaint();
-  aCtx->Restore();
 }
 
 void
