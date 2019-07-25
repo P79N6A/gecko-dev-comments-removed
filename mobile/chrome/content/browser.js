@@ -2594,7 +2594,7 @@ var FormSubmitObserver = {
     let doc = aWindow.content.top.document;
     let tab = Browser.getTabForDocument(doc);
     if (tab)
-      tab.browser.lastSpec = null;
+      tab.browser.lastLocation = null;
   },
 
   QueryInterface : function(aIID) {
@@ -2808,22 +2808,23 @@ ProgressController.prototype = {
     if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
       return;
 
-    let location = aLocationURI ? aLocationURI.spec : "";
+    let spec = aLocationURI ? aLocationURI.spec : "";
+    let location = spec.split("#")[0]; 
 
     this._hostChanged = true;
 
-    if (location != this.browser.lastSpec) {
-      this.browser.lastSpec = this.browser.currentURI.spec;
+    if (location != this.browser.lastLocation) {
+      this.browser.lastLocation = location;
       Browser.removeTransientNotificationsForTab(this._tab);
       this._tab.resetZoomLevel();
 
       if (this._tab == Browser.selectedTab) {
         BrowserUI.updateURI();
 
-       
-       
-       
-       Browser.scrollContentToTop();
+        
+        
+        
+        Browser.scrollContentToTop();
       }
     }
   },
