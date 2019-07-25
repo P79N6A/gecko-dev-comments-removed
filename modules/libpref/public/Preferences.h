@@ -97,7 +97,11 @@ public:
 
 
 
-  static nsIPrefService* GetService() { return sPreferences; }
+  static nsIPrefService* GetService()
+  {
+    NS_ENSURE_TRUE(InitStaticMembers(), nsnull);
+    return sPreferences;
+  }
 
   
 
@@ -105,7 +109,8 @@ public:
 
   static nsIPrefBranch2* GetRootBranch()
   {
-    return sPreferences ? sPreferences->mRootBranch.get() : nsnull;
+    NS_ENSURE_TRUE(InitStaticMembers(), nsnull);
+    return sPreferences->mRootBranch.get();
   }
 
   
