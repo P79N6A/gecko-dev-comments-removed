@@ -320,8 +320,7 @@ class TokenStream
 
 
 
-    bool init(JSVersion version, const jschar *base, size_t length, FILE *fp,
-              const char *filename, uintN lineno);
+    bool init(const jschar *base, size_t length, FILE *fp, const char *filename, uintN lineno);
     void close();
     ~TokenStream() {}
 
@@ -442,8 +441,6 @@ class TokenStream
         return JS_FALSE;
     }
 
-    void setVersion(JSVersion newVersion) { version = newVersion; }
-
   private:
     typedef struct TokenBuf {
         jschar              *base;      
@@ -514,7 +511,6 @@ class TokenStream
     JSCharBuffer        tokenbuf;       
     bool                maybeEOL[256];  
     bool                maybeStrSpecial[256];
-    JSVersion           version;        
 };
 
 } 

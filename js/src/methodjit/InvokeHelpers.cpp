@@ -212,6 +212,8 @@ InlineReturn(VMFrame &f, JSBool ok)
 
     fp->putActivationObjects(cx);
 
+    
+
     if (fp->flags & JSFRAME_CONSTRUCTING && fp->getReturnValue().isPrimitive())
         fp->setReturnValue(fp->getThisValue());
 
@@ -387,6 +389,7 @@ stubs::CompileFunction(VMFrame &f)
     fp->setBlockChain(NULL);
     fp->setHookData(NULL);
     fp->setAnnotation(NULL);
+    fp->setCallerVersion(fp->down->getCallerVersion());
     fp->setScript(script);
     fp->clearReturnValue();
 #ifdef DEBUG
@@ -478,6 +481,9 @@ CreateFrame(VMFrame &f, uint32 flags, uint32 argc)
     
     if (fun->isHeavyweight() && !js_GetCallObject(cx, newfp))
         return false;
+
+    
+    newfp->setCallerVersion((JSVersion)cx->version);
 
     
     if (JSInterpreterHook hook = cx->debugHooks->callHook) {

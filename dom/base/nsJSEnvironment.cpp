@@ -329,7 +329,7 @@ nsJSVersionSetter::nsJSVersionSetter(JSContext *aContext, PRUint32 aVersion)
   
   
   
-  JSBool hasxml = (aVersion & js::VersionFlags::HAS_XML) != 0;
+  JSBool hasxml = (aVersion & JSVERSION_HAS_XML) != 0;
   mOldOptions = ::JS_GetOptions(mContext);
   mOptionsChanged = ((hasxml) ^ !!(mOldOptions & JSOPTION_XML));
 
@@ -342,7 +342,7 @@ nsJSVersionSetter::nsJSVersionSetter(JSContext *aContext, PRUint32 aVersion)
 
   
   
-  JSVersion newVer = (JSVersion)(aVersion & js::VersionFlags::MASK);
+  JSVersion newVer = (JSVersion)(aVersion & JSVERSION_MASK);
   mOldVersion = ::JS_SetVersion(mContext, newVer);
 }
 
