@@ -66,7 +66,7 @@ public class PanZoomController
 
     private LayerController mController;
 
-    private static final float FRICTION = 0.97f;
+    private static final float FRICTION = 0.85f;
     
     private static final float STOPPED_THRESHOLD = 4.0f;
     
@@ -74,7 +74,7 @@ public class PanZoomController
     
     private static final float OVERSCROLL_DECEL_RATE = 0.04f;
     
-    private static final int SNAP_TIME = 150;
+    private static final int SNAP_TIME = 240;
     
     
     private static final int SUBDIVISION_COUNT = 1000;
@@ -82,7 +82,7 @@ public class PanZoomController
     
     private static final float PAN_THRESHOLD = 4.0f;
     
-    private static final double AXIS_LOCK_ANGLE = Math.PI / 15.0; 
+    private static final double AXIS_LOCK_ANGLE = Math.PI / 6.0; 
 
     private Timer mFlingTimer;
     private Axis mX, mY;
