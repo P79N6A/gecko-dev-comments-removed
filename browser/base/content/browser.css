@@ -423,6 +423,12 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 }
 
 
+
+#status-bar {
+  display: -moz-box;
+}
+
+
 #status-bar > .statusbar-resizerpanel {
   display: none;
 }
