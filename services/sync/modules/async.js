@@ -82,23 +82,27 @@ let gOutstandingGenerators = new NamableTracker();
 
 
 function AsyncException(asyncStack, exceptionToWrap) {
-  this._exceptionToWrap = exceptionToWrap;
+  this._originalException = exceptionToWrap;
   this._asyncStack = asyncStack;
 
   
   
   
   this.__proto__ = {
-    get asyncStack() {
-      return this._asyncStack;
-    },
+    __proto__: this._originalException,
+
+    get asyncStack() this._asyncStack,
+    get originalException() this._originalException,
 
     addAsyncFrame: function AsyncException_addAsyncFrame(frame) {
       this._asyncStack += ((this._asyncStack? "\n" : "") +
                            formatAsyncFrame(frame));
+    },
+
+    toString: function AsyncException_toString() {
+      return this._originalException;
     }
   };
-  this.__proto__.__proto__ = this._exceptionToWrap;
 }
 
 function Generator(thisArg, method, onComplete, args) {
