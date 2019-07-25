@@ -1379,24 +1379,31 @@ nsTreeSanitizer::SanitizeURL(mozilla::dom::Element* aElement,
   nsCOMPtr<nsIURI> baseURI = aElement->GetBaseURI();
   nsCOMPtr<nsIURI> attrURI;
   nsresult rv = NS_NewURI(getter_AddRefs(attrURI), v, nsnull, baseURI);
-  if (NS_SUCCEEDED(rv)) {
-    rv = secMan->CheckLoadURIWithPrincipal(sNullPrincipal, attrURI, flags);
-  }
-  if (mCidEmbedsOnly &&
-      NS_SUCCEEDED(rv) &&
-      kNameSpaceID_None == aNamespace) {
-    if (nsGkAtoms::src == aLocalName || nsGkAtoms::background == aLocalName) {
-      bool isCid;
-      attrURI->SchemeIs("cid", &isCid);
-      if (!isCid) {
+  if (NS_SUCCEEDED(rv)) { 
+    if (mCidEmbedsOnly &&
+        kNameSpaceID_None == aNamespace) {
+      if (nsGkAtoms::src == aLocalName || nsGkAtoms::background == aLocalName) {
+        
+        
+        
+        if (!(v.Length() > 4 &&
+              (v[0] == 'c' || v[0] == 'C') &&
+              (v[1] == 'i' || v[1] == 'I') &&
+              (v[2] == 'd' || v[2] == 'D') &&
+              v[3] == ':')) {
+          rv = NS_ERROR_FAILURE;
+        }
+      } else if (nsGkAtoms::cdgroup_ == aLocalName ||
+                 nsGkAtoms::altimg_ == aLocalName ||
+                 nsGkAtoms::definitionURL_ == aLocalName) {
+        
+        
         rv = NS_ERROR_FAILURE;
+      } else {
+        rv = secMan->CheckLoadURIWithPrincipal(sNullPrincipal, attrURI, flags);
       }
-    } else if (nsGkAtoms::cdgroup_ == aLocalName ||
-               nsGkAtoms::altimg_ == aLocalName ||
-               nsGkAtoms::definitionURL_ == aLocalName) {
-      
-      
-      rv = NS_ERROR_FAILURE;
+    } else {
+      rv = secMan->CheckLoadURIWithPrincipal(sNullPrincipal, attrURI, flags);
     }
   }
   if (NS_FAILED(rv)) {
