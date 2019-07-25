@@ -102,9 +102,7 @@ let UI = {
   
   
   
-  
   _privateBrowsing: {
-    transitionStage: 0,
     transitionMode: "",
     wasInTabView: false 
   },
@@ -525,20 +523,6 @@ let UI = {
       let hasGroupItemsData = GroupItems.load();
       if (!hasGroupItemsData)
         self.reset(false);
-        
-      
-      if (self._privateBrowsing.transitionStage == 1)
-        self._privateBrowsing.transitionStage = 2;
-      else if (self._privateBrowsing.transitionStage == 3) {
-        if (self._privateBrowsing.transitionMode == "exit" &&
-            self._privateBrowsing.wasInTabView)
-          self.showTabView(false);
-
-        self._privateBrowsing.transitionStage = 0;
-        self._privateBrowsing.transitionMode = "";
-        TabItems.resumeReconnecting();
-        GroupItems.resumeUpdatingTabBar();
-      }
     }
 
     Services.obs.addObserver(srObserver, "sessionstore-browser-state-restored", false);
@@ -553,15 +537,10 @@ let UI = {
     
     
     
-    
-    
-    
-    
-    
-    
     function pbObserver(aSubject, aTopic, aData) {
       if (aTopic == "private-browsing") {
-        self._privateBrowsing.transitionStage = 3;
+        
+        
         if (aData == "enter") {
           
           self._privateBrowsing.wasInTabView = self.isTabViewVisible();
@@ -570,20 +549,30 @@ let UI = {
         }
       } else if (aTopic == "private-browsing-change-granted") {
         if (aData == "enter" || aData == "exit") {
-          self._privateBrowsing.transitionStage = 1;
           self._privateBrowsing.transitionMode = aData;
           GroupItems.pauseUpdatingTabBar();
           TabItems.pauseReconnecting();
         }
+      } else if (aTopic == "private-browsing-transition-complete") {
+        
+        if (self._privateBrowsing.transitionMode == "exit" &&
+            self._privateBrowsing.wasInTabView)
+          self.showTabView(false);
+
+        self._privateBrowsing.transitionMode = "";
+        TabItems.resumeReconnecting();
+        GroupItems.resumeUpdatingTabBar();
       }
     }
 
     Services.obs.addObserver(pbObserver, "private-browsing", false);
     Services.obs.addObserver(pbObserver, "private-browsing-change-granted", false);
+    Services.obs.addObserver(pbObserver, "private-browsing-transition-complete", false);
 
     this._cleanupFunctions.push(function() {
       Services.obs.removeObserver(pbObserver, "private-browsing");
       Services.obs.removeObserver(pbObserver, "private-browsing-change-granted");
+      Services.obs.removeObserver(pbObserver, "private-browsing-transition-complete");
     });
 
     
@@ -612,7 +601,7 @@ let UI = {
       } else {
         
         
-        if (self._privateBrowsing.transitionStage > 0)
+        if (self._privateBrowsing.transitionMode)
           return; 
           
         
