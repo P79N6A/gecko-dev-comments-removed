@@ -152,9 +152,9 @@ AsyncResource.prototype = {
   
   
   _userAgent:
-    Svc.AppInfo.name + "/" + Svc.AppInfo.version +     
-    " FxSync/" + WEAVE_VERSION + "." +                 
-    Svc.AppInfo.appBuildID + ".",                      
+    Services.appinfo.name + "/" + Services.appinfo.version +  
+    " FxSync/" + WEAVE_VERSION + "." +                        
+    Services.appinfo.appBuildID + ".",                        
 
   
   ABORT_TIMEOUT: 300000,
@@ -228,8 +228,9 @@ AsyncResource.prototype = {
   
   
   _createRequest: function Res__createRequest() {
-    let channel = Svc.IO.newChannel(this.spec, null, null).
-      QueryInterface(Ci.nsIRequest).QueryInterface(Ci.nsIHttpChannel);
+    let channel = Services.io.newChannel(this.spec, null, null)
+                          .QueryInterface(Ci.nsIRequest)
+                          .QueryInterface(Ci.nsIHttpChannel);
 
     
     channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
