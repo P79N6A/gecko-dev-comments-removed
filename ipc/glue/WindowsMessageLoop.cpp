@@ -637,7 +637,7 @@ SyncChannel::WaitForNotify()
       {
         MutexAutoLock lock(mMutex);
         if (!Connected()) {
-          return;
+          return true;
         }
       }
 
@@ -704,9 +704,11 @@ SyncChannel::WaitForNotify()
   ScheduleDeferredMessageRun();
 
   SyncChannel::SetIsPumpingMessages(false);
+
+  return true;
 }
 
-void
+bool
 RPCChannel::WaitForNotify()
 {
   mMutex.AssertCurrentThreadOwns();
@@ -714,7 +716,7 @@ RPCChannel::WaitForNotify()
   if (!StackDepth()) {
     NS_ASSERTION(!StackDepth(),
         "StackDepth() is 0 in a call to RPCChannel::WaitForNotify?");
-    return;
+    return true;
   }
 
   MutexAutoUnlock unlock(mMutex);
@@ -733,7 +735,7 @@ RPCChannel::WaitForNotify()
   
   if (RPCChannel::IsSpinLoopActive()) {
     if (SpinInternalEventLoop()) {
-      return;
+      return true;
     }
 
     
@@ -742,7 +744,7 @@ RPCChannel::WaitForNotify()
     
     
     if (IsMessagePending()) {
-      return;
+      return true;
     }
   }
   
@@ -806,12 +808,12 @@ RPCChannel::WaitForNotify()
         
         RPCChannel::EnterModalLoop();
         if (SpinInternalEventLoop())
-          return;
+          return true;
 
         
         
         if (IsMessagePending())
-          return;
+          return true;
 
         
         
@@ -851,6 +853,8 @@ RPCChannel::WaitForNotify()
   ScheduleDeferredMessageRun();
 
   SyncChannel::SetIsPumpingMessages(false);
+
+  return true;
 }
 
 void
@@ -861,8 +865,6 @@ SyncChannel::NotifyWorkerThread()
   if (!PostThreadMessage(gUIThreadId, gEventLoopMessage, 0, 0)) {
     NS_WARNING("Failed to post thread message!");
   }
-
-  return true;
 }
 
 void
