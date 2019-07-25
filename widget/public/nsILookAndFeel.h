@@ -44,10 +44,9 @@
 struct nsSize;
 
 
-
 #define NS_ILOOKANDFEEL_IID \
-{ 0xc23ca876, 0x6ecf, 0x49c6, \
-    { 0xb2, 0xb4, 0x5b, 0xe5, 0x16, 0xb5, 0x0e, 0x28 } }
+{ 0x2e89c566, 0x0a31, 0x4c93, \
+  { 0xbd, 0xff, 0x22, 0x26, 0x51, 0xdf, 0x45, 0xa0 } }
 
 class nsILookAndFeel: public nsISupports {
 public:
@@ -179,27 +178,6 @@ public:
   
   
   typedef enum {
-    eMetric_WindowTitleHeight,
-    eMetric_WindowBorderWidth,
-    eMetric_WindowBorderHeight,
-    eMetric_Widget3DBorder,
-    eMetric_TextFieldBorder,                              
-    eMetric_TextFieldHeight,
-    eMetric_TextVerticalInsidePadding,                    
-    eMetric_TextShouldUseVerticalInsidePadding,           
-    eMetric_TextHorizontalInsideMinimumPadding,  
-    eMetric_TextShouldUseHorizontalInsideMinimumPadding,  
-    eMetric_ButtonHorizontalInsidePaddingNavQuirks,  
-    eMetric_ButtonHorizontalInsidePaddingOffsetNavQuirks, 
-    eMetric_CheckboxSize,
-    eMetric_RadioboxSize,
-    
-    eMetric_ListShouldUseHorizontalInsideMinimumPadding,  
-    eMetric_ListHorizontalInsideMinimumPadding,         
-
-    eMetric_ListShouldUseVerticalInsidePadding,           
-    eMetric_ListVerticalInsidePadding,                    
-
     eMetric_CaretBlinkTime,                               
     eMetric_CaretWidth,                                   
     eMetric_ShowCaretDuringSelection,                       
@@ -210,7 +188,6 @@ public:
     eMetric_DragThresholdX,                               
     eMetric_DragThresholdY,
     eMetric_UseAccessibilityTheme,                        
-    eMetric_IsScreenReaderActive,                         
 
     eMetric_ScrollArrowStyle,                             
     eMetric_ScrollSliderStyle,                            
@@ -352,14 +329,6 @@ public:
   
   
   typedef enum {
-    eMetricFloat_TextFieldVerticalInsidePadding,
-    eMetricFloat_TextFieldHorizontalInsidePadding,
-    eMetricFloat_TextAreaVerticalInsidePadding,
-    eMetricFloat_TextAreaHorizontalInsidePadding,
-    eMetricFloat_ListVerticalInsidePadding,
-    eMetricFloat_ListHorizontalInsidePadding,
-    eMetricFloat_ButtonVerticalInsidePadding,
-    eMetricFloat_ButtonHorizontalInsidePadding,
     eMetricFloat_IMEUnderlineRelativeSize,
     eMetricFloat_SpellCheckerUnderlineRelativeSize,
 
