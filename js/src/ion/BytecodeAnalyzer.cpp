@@ -136,6 +136,7 @@ BytecodeAnalyzer::CFGState::DoWhile(jsbytecode *ifne, MBasicBlock *entry)
     state.state = DO_WHILE_LOOP;
     state.stopAt = ifne;
     state.loop.entry = entry;
+    state.loop.repeat = NULL;
     return state;
 }
 
@@ -146,6 +147,7 @@ BytecodeAnalyzer::CFGState::While(jsbytecode *ifne, jsbytecode *bodyStart, jsbyt
     state.state = WHILE_LOOP_COND;
     state.stopAt = ifne;
     state.loop.entry = entry;
+    state.loop.repeat = NULL;
     state.loop.w.bodyStart = bodyStart;
     state.loop.w.bodyEnd = bodyEnd;
     state.loop.w.successor = NULL;
@@ -292,6 +294,8 @@ BytecodeAnalyzer::snoopControlFlow(JSOp op)
             return ControlStatus_Error;
 
           case SRC_CONTINUE:
+            return simpleContinue(op, sn);
+
           case SRC_CONT2LABEL:
             JS_NOT_REACHED("continue NYI");
             return ControlStatus_Error;
@@ -617,10 +621,26 @@ BytecodeAnalyzer::processWhileBodyEnd(CFGState &state)
 {
     if (current) {
         
-        MGoto *ins = MGoto::New(this, state.loop.entry);
+        
+        MBasicBlock *target = state.loop.repeat
+                              ? state.loop.repeat
+                              : state.loop.entry;
+        MGoto *ins = MGoto::New(this, target);
         if (!current->end(ins))
             return ControlStatus_Error;
+    }
 
+    if (state.loop.repeat) {
+        MGoto *ins = MGoto::New(this, state.loop.entry);
+        if (!state.loop.repeat->end(ins))
+            return ControlStatus_Error;
+
+        
+        
+        current = state.loop.repeat;
+    }
+
+    if (current) {
         
         
         if (!state.loop.entry->addBackedge(current, state.loop.w.successor))
@@ -632,14 +652,50 @@ BytecodeAnalyzer::processWhileBodyEnd(CFGState &state)
     return ControlStatus_Joined;
 }
 
-bool
-BytecodeAnalyzer::pushConstant(const Value &v)
+BytecodeAnalyzer::CFGState &
+BytecodeAnalyzer::findInnermostLoop()
 {
-    MConstant *ins = MConstant::New(this, v);
-    if (!current->add(ins))
-        return false;
-    current->push(ins);
-    return true;
+    for (size_t i = cfgStack_.length() - 1; i < cfgStack_.length(); i--) {
+        if (cfgStack_[i].isLoop())
+            return cfgStack_[i];
+    }
+    JS_NOT_REACHED("continue without a loop!");
+    return cfgStack_.back();
+}
+
+BytecodeAnalyzer::ControlStatus
+BytecodeAnalyzer::simpleContinue(JSOp op, jssrcnote *sn)
+{
+    JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
+
+    CFGState &state = findInnermostLoop();
+
+    
+    JS_ASSERT(pc + GetJumpOffset(pc) == state.loop.entry->pc());
+
+    MBasicBlock *repeat = state.loop.repeat;
+    if (!repeat) {
+        
+        
+        
+        repeat = newBlock(current, pc);
+    }
+
+    MGoto *ins = MGoto::New(this, repeat);
+    if (!current->end(ins))
+        return ControlStatus_Error;
+
+    if (state.loop.repeat) {
+        
+        
+        if (!state.loop.repeat->addPredecessor(current))
+            return ControlStatus_Error;
+    } else {
+        state.loop.repeat = repeat;
+    }
+
+    current = NULL;
+    return processControlEnd();
 }
 
 bool
@@ -874,6 +930,16 @@ BytecodeAnalyzer::processReturn(JSOp op)
     
     current = NULL;
     return processControlEnd();
+}
+
+bool
+BytecodeAnalyzer::pushConstant(const Value &v)
+{
+    MConstant *ins = MConstant::New(this, v);
+    if (!current->add(ins))
+        return false;
+    current->push(ins);
+    return true;
 }
 
 bool
