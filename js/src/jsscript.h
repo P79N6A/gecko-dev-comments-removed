@@ -178,7 +178,6 @@ struct JSScript {
     void            *ncode;     
     void            **nmap;     
     JSC::ExecutablePool *execPool;  
-    unsigned        npics;      
     js::mjit::ic::PICInfo *pics; 
     js::mjit::ic::MICInfo *mics; 
 # ifdef DEBUG

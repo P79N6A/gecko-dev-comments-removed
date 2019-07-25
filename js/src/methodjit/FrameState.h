@@ -177,6 +177,11 @@ class FrameState
     
 
 
+    inline void pushRegs(RegisterID type, RegisterID data);
+
+    
+
+
 
 
     inline void pushUntypedPayload(JSValueMask32 tag, RegisterID payload);
@@ -232,6 +237,17 @@ class FrameState
 
 
     RegisterID ownRegForData(FrameEntry *fe);
+
+    
+
+
+
+
+
+
+
+
+    RegisterID ownRegForType(FrameEntry *fe);
 
     
 
@@ -385,7 +401,8 @@ class FrameState
     Address addressOf(const FrameEntry *fe) const;
 
   private:
-    inline RegisterID allocReg(FrameEntry *fe, RematInfo::RematType type, bool weak);
+    inline RegisterID alloc();
+    inline RegisterID alloc(FrameEntry *fe, RematInfo::RematType type, bool weak);
     inline void forgetReg(RegisterID reg);
     RegisterID evictSomething(uint32 mask);
     void evictReg(RegisterID reg);
