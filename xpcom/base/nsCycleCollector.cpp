@@ -982,7 +982,6 @@ struct nsCycleCollector
     PRBool mScanInProgress;
     PRBool mFollowupCollection;
     PRUint32 mCollectedObjects;
-    PRBool mFirstCollection;
     TimeStamp mCollectionStart;
 
     nsCycleCollectionLanguageRuntime *mRuntimes[nsIProgrammingLanguage::MAX+1];
@@ -2147,7 +2146,6 @@ nsCycleCollector::nsCycleCollector() :
     mCollectionInProgress(PR_FALSE),
     mScanInProgress(PR_FALSE),
     mCollectedObjects(0),
-    mFirstCollection(PR_TRUE),
     mWhiteNodes(nsnull),
     mWhiteNodeCount(0),
 #ifdef DEBUG_CC
@@ -2557,20 +2555,19 @@ nsCycleCollector::BeginCollection(PRBool aForceGC,
     
     
     
-    if (mFirstCollection && mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]) {
-        aForceGC = PR_TRUE;
-        mFirstCollection = PR_FALSE;
-    }
-
-    if (aForceGC && mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]) {
+    if (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]) {
+        nsCycleCollectionJSRuntime* rt =
+            static_cast<nsCycleCollectionJSRuntime*>
+                (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
+        if (rt->NeedCollect() || aForceGC) {
 #ifdef COLLECT_TIME_DEBUG
-        PRTime start = PR_Now();
+            PRTime start = PR_Now();
 #endif
-        static_cast<nsCycleCollectionJSRuntime*>
-            (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT])->Collect();
+            rt->Collect();
 #ifdef COLLECT_TIME_DEBUG
-        printf("cc: GC() took %lldms\n", (PR_Now() - start) / PR_USEC_PER_MSEC);
+            printf("cc: GC() took %lldms\n", (PR_Now() - start) / PR_USEC_PER_MSEC);
 #endif
+        }
     }
 
     if (aListener && NS_FAILED(aListener->Begin())) {

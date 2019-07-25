@@ -79,6 +79,11 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
     
 
 
+    virtual bool NeedCollect() = 0;
+
+    
+
+
     virtual void Collect() = 0;
 };
 
