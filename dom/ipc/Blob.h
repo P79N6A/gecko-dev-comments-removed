@@ -65,13 +65,10 @@ public:
           ActorDestroyReason;
   typedef mozilla::dom::BlobConstructorParams BlobConstructorParams;
 
-  friend class RemoteBlobType;
-
 protected:
   nsIDOMBlob* mBlob;
   RemoteBlobType* mRemoteBlob;
   bool mOwnsBlob;
-  bool mBlobIsFile;
 
 public:
   
@@ -85,20 +82,11 @@ public:
   static Blob*
   Create(const BlobConstructorParams& aParams);
 
-  
-  
-  
   already_AddRefed<nsIDOMBlob>
   GetBlob();
 
-  
-  bool
-  SetMysteryBlobInfo(const nsString& aName, const nsString& aContentType,
-                     PRUint64 aLength);
-
-  
-  bool
-  SetMysteryBlobInfo(const nsString& aContentType, PRUint64 aLength);
+  void
+  NoteDyingRemoteBlob();
 
 private:
   
@@ -107,18 +95,9 @@ private:
   
   Blob(const BlobConstructorParams& aParams);
 
-  void
-  SetRemoteBlob(nsRefPtr<RemoteBlobType>& aRemoteBlob);
-
-  void
-  NoteDyingRemoteBlob();
-
   
   virtual void
   ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
-
-  virtual bool
-  RecvResolveMystery(const ResolveMysteryParams& aParams) MOZ_OVERRIDE;
 
   virtual bool
   RecvPBlobStreamConstructor(StreamType* aActor) MOZ_OVERRIDE;
