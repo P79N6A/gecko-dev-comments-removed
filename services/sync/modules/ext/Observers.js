@@ -44,39 +44,105 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+
+
+
+
+
+
 let Observers = {
-  add: function(callback, topic) {
-    let observer = new Observer(callback);
-    if (!(topic in Observers._observers))
-      Observers._observers[topic] = {};
-    Observers._observers[topic][callback] = observer;
-    Observers._service.addObserver(observer, topic, true);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  add: function(topic, callback, thisObject) {
+    let observer = new Observer(topic, callback, thisObject);
+    this._cache.push(observer);
+    this._service.addObserver(observer, topic, true);
+
     return observer;
   },
 
-  remove: function(callback, topic) {
-    let observer = Observers._observers[topic][callback];
+  
+
+
+
+
+
+
+
+
+
+
+
+  remove: function(topic, callback, thisObject) {
+    
+    
+    
+    
+    let [observer] = this._cache.filter(function(v) v.topic      == topic    &&
+                                                    v.callback   == callback &&
+                                                    v.thisObject == thisObject);
     if (observer) {
-      Observers._service.removeObserver(observer, topic);
-      delete this._observers[topic][callback];
+      this._service.removeObserver(observer, topic);
+      this._cache.splice(this._cache.indexOf(observer), 1);
     }
   },
 
-  notify: function(subject, topic, data) {
-    Observers._service.notifyObservers(new Subject(subject), topic, data);
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  notify: function(topic, subject, data) {
+    subject = (typeof subject == "undefined") ? null : new Subject(subject);
+       data = (typeof    data == "undefined") ? null : data;
+    this._service.notifyObservers(subject, topic, data);
   },
 
   _service: Cc["@mozilla.org/observer-service;1"].
             getService(Ci.nsIObserverService),
 
   
-  
-  _observers: {}
+
+
+
+
+
+
+
+
+
+  _cache: []
 };
 
 
-function Observer(callback) {
-  this._callback = callback;
+function Observer(topic, callback, thisObject) {
+  this.topic = topic;
+  this.callback = callback;
+  this.thisObject = thisObject;
 }
 
 Observer.prototype = {
@@ -85,18 +151,29 @@ Observer.prototype = {
     
     
     
-    let unwrappedSubject = subject.wrappedJSObject || subject;
+    if (subject && typeof subject == "object" &&
+        ("wrappedJSObject" in subject) &&
+        ("observersModuleSubjectWrapper" in subject.wrappedJSObject))
+      subject = subject.wrappedJSObject.object;
 
-    if (typeof this._callback == "function")
-      this._callback(unwrappedSubject, topic, data);
-    else
-      this._callback.observe(unwrappedSubject, topic, data);
+    if (typeof this.callback == "function") {
+      if (this.thisObject)
+        this.callback.call(this.thisObject, subject, data);
+      else
+        this.callback(subject, data);
+    }
+    else 
+      this.callback.observe(subject, topic, data);
   }
 }
 
 
 function Subject(object) {
-  this.wrappedJSObject = object;
+  
+  
+  
+  
+  this.wrappedJSObject = { observersModuleSubjectWrapper: true, object: object };
 }
 
 Subject.prototype = {
