@@ -121,7 +121,7 @@ public:
 
 
 
-  NS_IMETHOD  UpdateView(nsIView *aView) = 0;
+  NS_IMETHOD  InvalidateView(nsIView *aView) = 0;
 
   
 
@@ -130,13 +130,12 @@ public:
 
 
 
-  NS_IMETHOD  UpdateViewNoSuppression(nsIView *aView, const nsRect &aRect) = 0;
+  NS_IMETHOD  InvalidateViewNoSuppression(nsIView *aView, const nsRect &aRect) = 0;
 
   
 
 
-
-  NS_IMETHOD  UpdateAllViews() = 0;
+  NS_IMETHOD  InvalidateAllViews() = 0;
 
   
 
