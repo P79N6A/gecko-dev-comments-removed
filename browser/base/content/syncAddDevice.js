@@ -61,6 +61,10 @@ let gSyncAddDevice = {
 
     this.throbber = document.getElementById("add-device-throbber");
     this.errorRow = document.getElementById("errorRow");
+
+    
+    
+    Weave.Utils.nextTick(Weave.Service.sync, Weave.Service);
   },
 
   onPageShow: function onPageShow() {
