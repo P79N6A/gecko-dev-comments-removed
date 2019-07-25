@@ -381,7 +381,7 @@ InspectorTreeView.prototype = {
 
   get selectionIndex()
   {
-    return this.selection.currentIndex;
+    return this.selection ? this.selection.currentIndex : -1;
   },
 
   
@@ -392,7 +392,7 @@ InspectorTreeView.prototype = {
   get selectedNode()
   {
     let rowIndex = this.selectionIndex;
-    return this.view.getNodeFromRowIndex(rowIndex);
+    return rowIndex > -1 ? this.view.getNodeFromRowIndex(rowIndex) : null;
   },
 
   
@@ -505,7 +505,7 @@ var InspectorUI = {
   toggleInspectorUI: function IUI_toggleInspectorUI(aEvent)
   {
     if (this.isPanelOpen) {
-      this.closeInspectorUI();
+      this.closeInspectorUI(true);
     } else {
       this.openInspectorUI();
     }
@@ -661,6 +661,7 @@ var InspectorUI = {
     
     this.browser = gBrowser.selectedBrowser;
     this.win = this.browser.contentWindow;
+    this.winID = this.getWindowID(this.win);
 
     
     let domPanelTitle = this.strings.GetStringFromName("dom.domPanelTitle");
@@ -687,11 +688,30 @@ var InspectorUI = {
 
     
     this.initializeHighlighter();
-    this.startInspecting();
+
+    if (!InspectorStore.hasID(this.winID) ||
+      InspectorStore.getValue(this.winID, "inspecting")) {
+      this.startInspecting();
+    }
+
     this.win.document.addEventListener("scroll", this, false);
     this.win.addEventListener("resize", this, false);
-    gBrowser.tabContainer.addEventListener("TabSelect", this, false);
     this.inspectCmd.setAttribute("checked", true);
+
+    if (InspectorStore.isEmpty()) {
+      gBrowser.tabContainer.addEventListener("TabSelect", this, false);
+    }
+
+    if (InspectorStore.hasID(this.winID)) {
+      let selectedNode = InspectorStore.getValue(this.winID, "selectedNode");
+      if (selectedNode) {
+        this.inspectNode(selectedNode);
+      }
+    } else {
+      InspectorStore.addStore(this.winID);
+      InspectorStore.setValue(this.winID, "selectedNode", null);
+      this.win.addEventListener("pagehide", this, true);
+    }
   },
 
   
@@ -707,11 +727,27 @@ var InspectorUI = {
 
 
 
-  closeInspectorUI: function IUI_closeInspectorUI()
+
+
+
+  closeInspectorUI: function IUI_closeInspectorUI(aClearStore)
   {
+    if (aClearStore) {
+      InspectorStore.deleteStore(this.winID);
+      this.win.removeEventListener("pagehide", this, true);
+    } else {
+      
+      InspectorStore.setValue(this.winID, "selectedNode",
+        this.treeView.selectedNode);
+      InspectorStore.setValue(this.winID, "inspecting", this.inspecting);
+    }
+
+    if (InspectorStore.isEmpty()) {
+      gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
+    }
+
     this.win.document.removeEventListener("scroll", this, false);
     this.win.removeEventListener("resize", this, false);
-    gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
     this.stopInspecting();
     if (this.highlighter && this.highlighter.isHighlighting) {
       this.highlighter.unhighlight();
@@ -731,6 +767,7 @@ var InspectorUI = {
     }
     this.inspectCmd.setAttribute("checked", false);
     this.browser = this.win = null; 
+    this.winID = null;
   },
 
   
@@ -911,9 +948,41 @@ var InspectorUI = {
 
   handleEvent: function IUI_handleEvent(event)
   {
+    let winID = null;
+    let win = null;
+
     switch (event.type) {
       case "TabSelect":
-        this.closeInspectorUI();
+        winID = this.getWindowID(gBrowser.selectedBrowser.contentWindow);
+        if (this.isPanelOpen && winID != this.winID) {
+          this.closeInspectorUI(false);
+        }
+
+        if (winID && InspectorStore.hasID(winID)) {
+          this.openInspectorUI();
+        }
+
+        if (InspectorStore.isEmpty()) {
+          gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
+        }
+        break;
+      case "pagehide":
+        win = event.originalTarget.defaultView;
+        
+        if (!win || win.frameElement || win.top != win) {
+          break;
+        }
+
+        win.removeEventListener(event.type, this, true);
+
+        winID = this.getWindowID(win);
+        if (winID && winID != this.winID) {
+          InspectorStore.deleteStore(winID);
+        }
+
+        if (InspectorStore.isEmpty()) {
+          gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
+        }
         break;
       case "keypress":
         switch (event.keyCode) {
@@ -1036,11 +1105,156 @@ var InspectorUI = {
 
 
 
+
+  getWindowID: function IUI_getWindowID(aWindow)
+  {
+    if (!aWindow) {
+      return null;
+    }
+
+    let util = {};
+
+    try {
+      util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+        getInterface(Ci.nsIDOMWindowUtils);
+    } catch (ex) { }
+
+    return util.currentInnerWindowID;
+  },
+
+  
+
+
+
+
   _log: function LOG(msg)
   {
     Services.console.logStringMessage(msg);
   },
 }
+
+
+
+
+var InspectorStore = {
+  store: {},
+  length: 0,
+
+  
+
+
+
+
+
+  isEmpty: function IS_isEmpty()
+  {
+    return this.length == 0 ? true : false;
+  },
+
+  
+
+
+
+
+
+
+  addStore: function IS_addStore(aID)
+  {
+    let result = false;
+
+    if (!(aID in this.store)) {
+      this.store[aID] = {};
+      this.length++;
+      result = true;
+    }
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+  deleteStore: function IS_deleteStore(aID)
+  {
+    let result = false;
+
+    if (aID in this.store) {
+      delete this.store[aID];
+      this.length--;
+      result = true;
+    }
+
+    return result;
+  },
+
+  
+
+
+
+
+
+  hasID: function IS_hasID(aID)
+  {
+    return (aID in this.store);
+  },
+
+  
+
+
+
+
+
+
+  getValue: function IS_getValue(aID, aKey)
+  {
+    return aID in this.store ? this.store[aID][aKey] : null;
+  },
+
+  
+
+
+
+
+
+
+
+
+  setValue: function IS_setValue(aID, aKey, aValue)
+  {
+    let result = false;
+
+    if (aID in this.store) {
+      this.store[aID][aKey] = aValue;
+      result = true;
+    }
+
+    return result;
+  },
+
+  
+
+
+
+
+
+
+
+  deleteValue: function IS_deleteValue(aID, aKey)
+  {
+    let result = false;
+
+    if (aID in this.store && aKey in this.store[aID]) {
+      delete this.store[aID][aKey];
+      result = true;
+    }
+
+    return result;
+  }
+};
 
 
 
