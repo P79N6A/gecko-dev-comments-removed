@@ -558,7 +558,7 @@ js::FoldConstants(JSContext *cx, ParseNode *pn, TreeContext *tc, bool inCond)
             break;
         
 
-      case PNK_HOOK:
+      case PNK_CONDITIONAL:
         
         switch (pn1->getKind()) {
           case PNK_NUMBER:
