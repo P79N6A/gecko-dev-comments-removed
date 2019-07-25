@@ -177,8 +177,8 @@ pref("browser.xul.error_pages.expert_bad_cert", false);
 pref("browser.search.log", false);
 
 
-pref("browser.search.order.1",                "chrome://browser/locale/region.properties");
-pref("browser.search.order.2",                "chrome://browser/locale/region.properties");
+pref("browser.search.order.1", "chrome://browser/locale/region.properties");
+pref("browser.search.order.2", "chrome://browser/locale/region.properties");
 
 
 pref("browser.search.update", false);
@@ -292,3 +292,5 @@ pref("javascript.options.jit.chrome", true);
 pref("dom.max_chrome_script_run_time", 30);
 pref("dom.max_script_run_time", 20);
 
+
+pref("browser.console.showInPanel", true);

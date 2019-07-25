@@ -237,6 +237,12 @@ var Browser = {
       if (whereURI)
         this.addTab(whereURI, true);
     }
+    
+    
+    if (gPrefService.getBoolPref("browser.console.showInPanel")){
+      let tool_console = document.getElementById("tool-console");
+      tool_console.hidden = false;
+    }
 
     
     
