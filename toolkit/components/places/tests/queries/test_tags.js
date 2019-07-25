@@ -42,8 +42,7 @@
 
 
 
-
-var gTests = [
+[
 
   function tags_getter_setter()
   {
@@ -590,7 +589,7 @@ var gTests = [
     cleanDatabase(run_next_test);
   },
 
-];
+].forEach(add_test);
 
 
 

@@ -829,3 +829,54 @@ function run_test_in_child(testFile, optionalCallback)
               callback);
 }
 
+
+
+
+
+
+
+
+
+
+
+let gTests = [];
+function add_test(func) {
+  gTests.push(func);
+  return func;
+}
+
+
+
+
+let gRunningTest = null;
+let gTestIndex = 0; 
+function run_next_test()
+{
+  function _run_next_test()
+  {
+    if (gTestIndex < gTests.length) {
+      do_test_pending();
+      gRunningTest = gTests[gTestIndex++];
+      print("TEST-INFO | " + _TEST_FILE + " | Starting " +
+            gRunningTest.name);
+      
+      try {
+        gRunningTest();
+      }
+      catch (e) {
+        do_throw(e);
+      }
+    }
+  }
+
+  
+  
+  
+  
+  do_execute_soon(_run_next_test);
+
+  if (gRunningTest !== null) {
+    
+    do_test_finished();
+  }
+}

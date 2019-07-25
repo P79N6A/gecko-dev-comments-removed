@@ -58,12 +58,10 @@ function add_visit(aURI, aTime) {
   return visitId;
 }
 
-var gTests = [];
 
 
 
-
-gTests.push(function() {
+add_test(function() {
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_QUERY;
   
@@ -89,7 +87,7 @@ gTests.push(function() {
 
 
 
-gTests.push(function() {
+add_test(function() {
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_QUERY;
   
@@ -115,7 +113,7 @@ gTests.push(function() {
 
 
 
-gTests.push(function() {
+add_test(function() {
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_SITE_QUERY;
   

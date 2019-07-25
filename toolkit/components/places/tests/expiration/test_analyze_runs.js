@@ -135,12 +135,12 @@ function test_shutdown()
 
 
 
-let gTests = [
+[
   test_timed,
   test_debug,
   test_clear_history,
   test_shutdown,
-];
+].forEach(add_test);
 
 function run_test()
 {
