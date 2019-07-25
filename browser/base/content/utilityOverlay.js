@@ -109,11 +109,6 @@ function openUILink( url, e, ignoreButton, ignoreAlt, allowKeywordFixup, postDat
 
 
 
-
-
-
-
-
 function whereToOpenLink( e, ignoreButton, ignoreAlt )
 {
   
@@ -249,7 +244,7 @@ function openLinkIn(url, where, params) {
   let loadInBackground = aInBackground;
   if (loadInBackground == null) {
     loadInBackground = aFromChrome ?
-                         getBoolPref("browser.tabs.loadBookmarksInBackground") :
+                         false :
                          getBoolPref("browser.tabs.loadInBackground");
   }
 
