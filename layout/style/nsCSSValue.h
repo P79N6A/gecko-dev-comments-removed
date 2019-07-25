@@ -108,6 +108,7 @@ enum nsCSSUnit {
   eCSSUnit_Attr         = 14,     
   eCSSUnit_Local_Font   = 15,     
   eCSSUnit_Font_Format  = 16,     
+  eCSSUnit_Element      = 17,     
   eCSSUnit_Array        = 20,     
   eCSSUnit_Counter      = 21,     
   eCSSUnit_Counters     = 22,     
@@ -243,7 +244,7 @@ public:
     { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
 
   PRBool    UnitHasStringValue() const
-    { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Font_Format; }
+    { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Element; }
   PRBool    UnitHasArrayValue() const
     { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
 
