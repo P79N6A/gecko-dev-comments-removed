@@ -2715,7 +2715,7 @@ ProgressController.prototype = {
 
   onStateChange: function onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
     
-    if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
+    if (aWebProgress.windowId != this._tab.browser.contentWindowId && this._tab.browser.contentWindowId)
       return;
 
     
@@ -2748,7 +2748,7 @@ ProgressController.prototype = {
   
   onLocationChange: function onLocationChange(aWebProgress, aRequest, aLocationURI) {
     
-    if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
+    if (aWebProgress.windowId != this._tab.browser.contentWindowId)
       return;
 
     let spec = aLocationURI ? aLocationURI.spec : "";
