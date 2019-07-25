@@ -2,23 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 {
   if (typeof Components != "undefined") {
     
@@ -28,7 +11,8 @@
 
     throw new Error("osfile_unix_back.jsm cannot be used from the main thread yet");
   }
-  importScripts("resource://gre/modules/osfile/osfile_shared.jsm");
+  importScripts("resource://gre/modules/osfile/osfile_shared_allthreads.jsm");
+  importScripts("resource://gre/modules/osfile/osfile_unix_allthreads.jsm");
   (function(exports) {
      "use strict";
      if (!exports.OS) {
@@ -42,36 +26,21 @@
      }
      exports.OS.Unix.File = {};
 
-     let LOG = OS.Shared.LOG.bind(OS.Shared, "Unix");
-
-     
-     let libc;
-     let libc_candidates =  [ "libsystem.B.dylib",
-                              "libc.so.6",
-                              "libc.so" ];
-     for (let i = 0; i < libc_candidates.length; ++i) {
-       try {
-         libc = ctypes.open(libc_candidates[i]);
-         break;
-       } catch (x) {
-         LOG("Could not open libc "+libc_candidates[i]);
-       }
-     }
-     if (!libc) {
-       throw new Error("Could not open any libc.");
-     }
+     let LOG = exports.OS.Shared.LOG.bind(OS.Shared, "Unix", "back");
+     let libc = exports.OS.Shared.Unix.libc;
 
      
 
 
 
 
+     
      let init = function init(aDeclareFFI) {
        let declareFFI;
        if (aDeclareFFI) {
          declareFFI = aDeclareFFI.bind(null, libc);
        } else {
-         declareFFI = OS.Shared.declareFFI.bind(null, libc);
+         declareFFI = exports.OS.Shared.Unix.declareFFI;
        }
 
        
@@ -468,11 +437,6 @@
                         Types.size_t,
                       Types.unsigned_int); 
 
-       UnixFile.strerror =
-         declareFFI("strerror", ctypes.default_abi,
-                     Types.null_or_string,
-                     Types.int);
-
        UnixFile.symlink =
          declareFFI("symlink", ctypes.default_abi,
                      Types.negativeone_or_nothing,
@@ -594,12 +558,6 @@
          array[1] = ctypes.CDataFinalizer(_pipebuf[1], _close);
          return result;
        };
-
-       
-
-       exports.OS.Unix.libc = libc;
-       exports.OS.Unix.declareFFI = declareFFI;
-
      };
      exports.OS.Unix.File._init = init;
    })(this);

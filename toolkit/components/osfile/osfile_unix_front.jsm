@@ -16,7 +16,6 @@
 
     throw new Error("osfile_unix_front.jsm cannot be used from the main thread yet");
   }
-  importScripts("resource://gre/modules/osfile/osfile_shared.jsm");
   importScripts("resource://gre/modules/osfile/osfile_unix_back.jsm");
   importScripts("resource://gre/modules/osfile/ospath_unix_back.jsm");
   (function(exports) {
@@ -173,59 +172,6 @@
        }
      };
 
-     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     File.Error = function(operation, errno) {
-       operation = operation || "unknown operation";
-       OS.Shared.Error.call(this, operation);
-       this.unixErrno = errno || ctypes.errno;
-     };
-     File.Error.prototype = new OS.Shared.Error();
-     File.Error.prototype.toString = function toString() {
-       return "Unix error " + this.unixErrno +
-         " during operation " + this.operation +
-         " (" + UnixFile.strerror(this.unixErrno).readString() + ")";
-     };
-
-     
-
-
-
-     Object.defineProperty(File.Error.prototype, "becauseExists", {
-       get: function becauseExists() {
-         return this.unixErrno == OS.Constants.libc.EEXISTS;
-       }
-     });
-     
-
-
-
-     Object.defineProperty(File.Error.prototype, "becauseNoSuchFile", {
-       get: function becauseNoSuchFile() {
-         return this.unixErrno == OS.Constants.libc.ENOENT;
-       }
-     });
 
      
      const noOptions = {};
@@ -886,6 +832,8 @@
      File.POS_END = exports.OS.Constants.libc.SEEK_END;
 
      File.Unix = exports.OS.Unix.File;
+     File.Error = exports.OS.Shared.Unix.Error;
      exports.OS.File = File;
+
    })(this);
 }
