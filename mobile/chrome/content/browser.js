@@ -1309,7 +1309,7 @@ Browser.WebProgress.prototype = {
         let location = spec.split("#")[0]; 
 
         if (tab == Browser.selectedTab)
-          BrowserUI.updateURI();
+          BrowserUI.updateURI({ captionOnly: true }); 
 
         let locationHasChanged = (location != tab.browser.lastLocation);
         if (locationHasChanged) {
@@ -1364,15 +1364,18 @@ Browser.WebProgress.prototype = {
       
       
       if (aTab.browser.currentURI.spec == "about:blank")
-        BrowserUI.updateURI();
+        BrowserUI.updateURI({ captionOnly: true });
     }
   },
 
   _networkStop: function _networkStop(aTab) {
     aTab.endLoading();
 
-    if (aTab == Browser.selectedTab)
+    if (aTab == Browser.selectedTab) {
+      
+      BrowserUI.updateURI();
       BrowserUI.update(TOOLBARSTATE_LOADED);
+    }
 
     if (aTab.browser.currentURI.spec != "about:blank")
       aTab.updateThumbnail();
