@@ -40,6 +40,7 @@
 
 
 
+
 (function(){
 
 
@@ -461,10 +462,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       return;
     }
     
-    
     rect.width = Math.max( 110, rect.width );
     rect.height = Math.max( 125, rect.height);
-
     
     var titleHeight = this.$titlebar.height();
     
