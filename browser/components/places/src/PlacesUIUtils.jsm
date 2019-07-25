@@ -379,12 +379,6 @@ var PlacesUIUtils = {
   function PUIU_showBookmarkDialog(aInfo, aParentWindow, aResizable) {
     
     
-    if (!aParentWindow) {
-      aParentWindow = this._getWindow(null);
-    }
-
-    
-    
     
     
     let hasFolderPicker = !("hiddenRows" in aInfo) ||
@@ -621,44 +615,9 @@ var PlacesUIUtils = {
     browserWindow.gBrowser.loadTabs(urls, loadInBackground, false);
   },
 
-  
-
-
-
-  _getWindow: function PUIU__getWindow(aView) {
-    if (aView) {
-      
-      if (aView instanceof Components.interfaces.nsIDOMNode)
-        return aView.ownerDocument.defaultView;
-
-      return Cu.getGlobalForObject(aView);
-    }
-
-    let caller = arguments.callee.caller;
-
-    
-    if (aView === null) {
-      Components.utils.reportError("The api has changed. A window should be " +
-                                   "passed to " + caller.name + ".  Not " +
-                                   "passing a window will throw in a future " +
-                                   "release.");
-    }
-    else {
-      Components.utils.reportError("The api has changed. A places view " +
-                                   "should be passed to " + caller.name + ". " +
-                                   "Not passing a view will throw in a future " +
-                                   "release.");
-    }
-
-    
-    
-    let topBrowserWin = this._getTopBrowserWin();
-    return topBrowserWin ? topBrowserWin : focusManager.focusedWindow;
-  },
-
   openContainerNodeInTabs:
   function PUIU_openContainerInTabs(aNode, aEvent, aView) {
-    let window = this._getWindow(aView);
+    let window = aView.ownerWindow;
 
     let urlsToOpen = PlacesUtils.getURLsForContainerNode(aNode);
     if (!this._confirmOpenInTabs(urlsToOpen.length, window))
@@ -668,7 +627,7 @@ var PlacesUIUtils = {
   },
 
   openURINodesInTabs: function PUIU_openURINodesInTabs(aNodes, aEvent, aView) {
-    let window = this._getWindow(aView);
+    let window = aView.ownerWindow;
 
     let urlsToOpen = [];
     for (var i=0; i < aNodes.length; i++) {
@@ -693,7 +652,7 @@ var PlacesUIUtils = {
 
   openNodeWithEvent:
   function PUIU_openNodeWithEvent(aNode, aEvent, aView) {
-    let window = this._getWindow(aView);
+    let window = aView.ownerWindow;
     this._openNodeIn(aNode, window.whereToOpenLink(aEvent), window);
   },
 
@@ -703,7 +662,7 @@ var PlacesUIUtils = {
 
 
   openNodeIn: function PUIU_openNodeIn(aNode, aWhere, aView) {
-    let window = this._getWindow(aView);
+    let window = aView.ownerWindow;
     this._openNodeIn(aNode, aWhere, window);
   },
 

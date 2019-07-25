@@ -733,6 +733,8 @@ PlacesViewBase.prototype = {
                                  .direction == "rtl";
   },
 
+  get ownerWindow() window,
+
   
 
 
