@@ -191,7 +191,7 @@ nsOuterDocAccessible::InvalidateChildren()
   
   
 
-  mChildrenFlags = eChildrenUninitialized;
+  mAreChildrenInitialized = PR_FALSE;
 }
 
 PRBool
