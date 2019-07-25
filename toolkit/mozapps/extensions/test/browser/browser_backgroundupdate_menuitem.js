@@ -39,17 +39,19 @@ add_test(function() {
   Services.prefs.setBoolPref("extensions.update.enabled", true);
   is_backgroundcheck_insync(true);
 
-  info("Clicking on background check menuitem - setting to unchecked");
-  var utilsBtn = gManagerWindow.document.getElementById("header-utils-btn");
-  utilsBtn.addEventListener("popupshown", function() {
-    EventUtils.synthesizeMouse(menuitem, 2, 2, { }, gManagerWindow);
-    executeSoon(function() {
-      is_backgroundcheck_insync(false);
-      info("Manually invoking command to toggle background update check on");
-      gManagerWindow.gViewController.doCommand("cmd_toggleBackgroundUpdateCheck");
-      is_backgroundcheck_insync(true);
-      run_next_test();
-    });
-  }, false);
-  EventUtils.synthesizeMouse(utilsBtn, 2, 2, { }, gManagerWindow);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 });
