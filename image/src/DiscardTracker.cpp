@@ -45,8 +45,6 @@ DiscardTimeoutChangedCallback(const char* aPref, void *aClosure)
 nsresult
 DiscardTracker::Reset(Node *node)
 {
-  EnsureMainThread();
-
   
   
   
@@ -86,8 +84,6 @@ DiscardTracker::Reset(Node *node)
 void
 DiscardTracker::Remove(Node *node)
 {
-  EnsureMainThread();
-
   if (node->isInList())
     node->remove();
 
@@ -101,8 +97,6 @@ DiscardTracker::Remove(Node *node)
 void
 DiscardTracker::Shutdown()
 {
-  EnsureMainThread();
-
   if (sTimer) {
     sTimer->Cancel();
     sTimer = NULL;
@@ -115,8 +109,6 @@ DiscardTracker::Shutdown()
 void
 DiscardTracker::DiscardAll()
 {
-  EnsureMainThread();
-
   if (!sInitialized)
     return;
 
@@ -134,8 +126,6 @@ DiscardTracker::DiscardAll()
 void
 DiscardTracker::InformAllocation(PRInt64 bytes)
 {
-  EnsureMainThread();
-
   
 
   sCurrentDecodedImageBytes += bytes;
@@ -144,17 +134,6 @@ DiscardTracker::InformAllocation(PRInt64 bytes)
   
   
   MaybeDiscardSoon();
-}
-
-void
-DiscardTracker::EnsureMainThread()
-{
-  
-  
-  
-  if (!NS_IsMainThread()) {
-    NS_RUNTIMEABORT("Must be on main thread!");
-  }
 }
 
 
