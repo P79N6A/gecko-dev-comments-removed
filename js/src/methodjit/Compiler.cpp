@@ -283,6 +283,12 @@ mjit::Compiler::scanInlineCalls(uint32_t index, uint32_t depth)
             }
 
             
+            if (script->hasScriptCounts != outerScript->hasScriptCounts) {
+                okay = false;
+                break;
+            }
+
+            
 
 
 
