@@ -209,6 +209,8 @@
 #include "nsGfxCIID.h"
 #endif
 
+#include "mozilla/FunctionTimer.h"
+
 
 
 
@@ -1092,7 +1094,7 @@ NS_METHOD nsWindow::Show(PRBool bState)
        mWindowType == eWindowType_popup))
   {
     firstShow = false;
-    mozilla::FunctionTimer::LogMessage("First toplevel/dialog/popup showing");
+    mozilla::FunctionTimer::LogMessage("@ First toplevel/dialog/popup showing");
   }
 #endif
 
@@ -3845,6 +3847,8 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
     
     
     case WM_CONTEXTMENU:
+    
+    case WM_IME_SETCONTEXT:
       handled = PR_TRUE;
     break;
   }
@@ -3880,6 +3884,10 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
 
 LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  NS_TIME_FUNCTION_MIN_FMT(5.0, "%s (line %d) (hWnd: %p, msg: %p, wParam: %p, lParam: %p",
+                           MOZ_FUNCTION_NAME, __LINE__, hWnd, msg,
+                           wParam, lParam);
+
   
   nsWindow *someWindow = GetNSWindowPtr(hWnd);
 

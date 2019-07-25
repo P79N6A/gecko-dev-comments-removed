@@ -50,6 +50,20 @@
 #pragma warning( disable : 4800 )
 #endif
 
+
+namespace mozilla {
+
+
+
+struct void_t {
+  bool operator==(const void_t&) const { return true; }
+};
+struct null_t {
+  bool operator==(const null_t&) const { return true; }
+};
+
+} 
+
 namespace IPC {
 
 template<>
@@ -209,6 +223,16 @@ struct ParamTraits<nsCString> : ParamTraits<nsACString>
   typedef nsCString paramType;
 };
 
+#ifdef MOZILLA_INTERNAL_API
+
+template<>
+struct ParamTraits<nsCAutoString> : ParamTraits<nsCString>
+{
+  typedef nsCAutoString paramType;
+};
+
+#endif  
+
 template <>
 struct ParamTraits<nsString> : ParamTraits<nsAString>
 {
@@ -299,26 +323,47 @@ struct ParamTraits<gfxMatrix>
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    if (!ReadParam(aMsg, aIter, &aResult->xx))
-      return false;
-    if (!ReadParam(aMsg, aIter, &aResult->xy))
-      return false;
-    if (!ReadParam(aMsg, aIter, &aResult->yx))
-      return false;
-    if (!ReadParam(aMsg, aIter, &aResult->yy))
-      return false;
-    if (!ReadParam(aMsg, aIter, &aResult->x0))
-      return false;
-    if (!ReadParam(aMsg, aIter, &aResult->y0))
-      return false;
+    if (ReadParam(aMsg, aIter, &aResult->xx) &&
+        ReadParam(aMsg, aIter, &aResult->xy) &&
+        ReadParam(aMsg, aIter, &aResult->yx) &&
+        ReadParam(aMsg, aIter, &aResult->yy) &&
+        ReadParam(aMsg, aIter, &aResult->x0) &&
+        ReadParam(aMsg, aIter, &aResult->y0))
+      return true;
 
-    return true;
+    return false;
   }
 
   static void Log(const paramType& aParam, std::wstring* aLog)
   {
     aLog->append(StringPrintf(L"[[%g %g] [%g %g] [%g %g]]", aParam.xx, aParam.xy, aParam.yx, aParam.yy,
 	  						    aParam.x0, aParam.y0));
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::void_t>
+{
+  typedef mozilla::void_t paramType;
+  static void Write(Message* aMsg, const paramType& aParam) { }
+  static bool
+  Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    *aResult = paramType();
+    return true;
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::null_t>
+{
+  typedef mozilla::null_t paramType;
+  static void Write(Message* aMsg, const paramType& aParam) { }
+  static bool
+  Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    *aResult = paramType();
+    return true;
   }
 };
 

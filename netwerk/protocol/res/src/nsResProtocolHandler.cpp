@@ -38,6 +38,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/chrome/RegistryMessageUtils.h"
+#endif
+
 #include "nsResProtocolHandler.h"
 #include "nsAutoLock.h"
 #include "nsIURL.h"
@@ -74,6 +78,7 @@ static PRLogModuleInfo *gResLog;
 #endif
 #define LOG(args) PR_LOG(gResLog, PR_LOG_DEBUG, args)
 
+#define kGRE           NS_LITERAL_CSTRING("gre")
 #define kGRE_RESOURCES NS_LITERAL_CSTRING("gre-resources")
 
 
@@ -91,7 +96,7 @@ nsResURL::EnsureFile()
     rv = gResHandler->ResolveURI(this, spec);
     if (NS_FAILED(rv)) return rv;
 
-#ifdef MOZ_CHROME_FILE_FORMAT_JAR
+#if defined(MOZ_CHROME_FILE_FORMAT_JAR) || defined(MOZ_OMNIJAR)
     nsCAutoString host;
     rv = GetHost(host);
     if (NS_FAILED(rv))
@@ -99,6 +104,14 @@ nsResURL::EnsureFile()
     
     if (host.Equals(kGRE_RESOURCES))
         return NS_ERROR_NO_INTERFACE;
+#endif
+#ifdef MOZ_OMNIJAR
+    if (mozilla::OmnijarPath()) {
+        if (host.Equals(kGRE))
+            return NS_ERROR_NO_INTERFACE;
+        if (host.IsEmpty())
+            return NS_ERROR_NO_INTERFACE;
+    }
 #endif
 
     rv = net_GetFileFromURLSpec(spec, getter_AddRefs(mFile));
@@ -174,6 +187,14 @@ nsResProtocolHandler::Init()
     mIOService = do_GetIOService(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef MOZ_OMNIJAR
+    nsCOMPtr<nsIFile> omniJar(mozilla::OmnijarPath());
+    if (omniJar)
+        return Init(omniJar);
+#endif
+
+    
+
     
     
     
@@ -183,14 +204,13 @@ nsResProtocolHandler::Init()
     
     
     
-    NS_NAMED_LITERAL_CSTRING(strGRE_DIR, "gre");
-    rv = AddSpecialDir(NS_GRE_DIR, strGRE_DIR);
+    rv = AddSpecialDir(NS_GRE_DIR, kGRE);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     nsCOMPtr<nsIURI> greURI;
     nsCOMPtr<nsIURI> greResURI;
-    GetSubstitution(strGRE_DIR, getter_AddRefs(greURI));
+    GetSubstitution(kGRE, getter_AddRefs(greURI));
 #ifdef MOZ_CHROME_FILE_FORMAT_JAR
     NS_NAMED_LITERAL_CSTRING(strGRE_RES_URL, "jar:chrome/toolkit.jar!/res/");
 #else
@@ -208,12 +228,67 @@ nsResProtocolHandler::Init()
     return rv;
 }
 
-void
-nsResProtocolHandler::EnumerateSubstitutions(SubstitutionTable::EnumReadFunction enumFunc,
-                                             void* userArg)
+#ifdef MOZ_OMNIJAR
+nsresult
+nsResProtocolHandler::Init(nsIFile *aOmniJar)
 {
-    mSubstitutions.EnumerateRead(enumFunc, userArg);
+    nsresult rv;
+    nsCOMPtr<nsIURI> uri;
+    nsCAutoString omniJarSpec;
+    NS_GetURLSpecFromActualFile(aOmniJar, omniJarSpec, mIOService);
+
+    nsCAutoString urlStr("jar:");
+    urlStr += omniJarSpec;
+    urlStr += "!/";
+
+    rv = mIOService->NewURI(urlStr, nsnull, nsnull, getter_AddRefs(uri));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+
+    
+    SetSubstitution(EmptyCString(), uri);
+
+    
+    SetSubstitution(kGRE, uri);
+
+    urlStr += "chrome/toolkit/res/";
+    rv = mIOService->NewURI(urlStr, nsnull, nsnull, getter_AddRefs(uri));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    SetSubstitution(kGRE_RESOURCES, uri);
+    return NS_OK;
 }
+#endif
+
+#ifdef MOZ_IPC
+static PLDHashOperator
+EnumerateSubstitution(const nsACString& aKey,
+                      nsIURI* aURI,
+                      void* aArg)
+{
+    nsTArray<ResourceMapping>* resources =
+            static_cast<nsTArray<ResourceMapping>*>(aArg);
+    SerializedURI uri;
+    if (aURI) {
+        aURI->GetSpec(uri.spec);
+        aURI->GetOriginCharset(uri.charset);
+    }
+
+    ResourceMapping resource = {
+        nsDependentCString(aKey), uri
+    };
+    resources->AppendElement(resource);
+    return (PLDHashOperator)PL_DHASH_NEXT;
+}
+
+void
+nsResProtocolHandler::CollectSubstitutions(nsTArray<ResourceMapping>& aResources)
+{
+    mSubstitutions.EnumerateRead(&EnumerateSubstitution, &aResources);
+}
+#endif
 
 
 
