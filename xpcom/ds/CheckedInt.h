@@ -78,7 +78,7 @@ CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt16,  PRInt32)
 CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint16, PRUint32)
 CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt32,  PRInt64)
 CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint32, PRUint64)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt64,  unsupported_type)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt64,  unsupported_type) 
 CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint64, unsupported_type)
 
 
@@ -215,19 +215,8 @@ template<typename T,
          bool twice_bigger_type_is_supported = integer_traits<T>::twice_bigger_type_is_supported>
 struct is_mul_valid_impl {};
 
-template<typename T>
-struct is_mul_valid_impl<T, true, true>
-{
-    static T run(T x, T y)
-    {
-        typedef typename integer_traits<T>::twice_bigger_type twice_bigger_type;
-        twice_bigger_type product = twice_bigger_type(x) * twice_bigger_type(y);
-        return is_in_range<T>(product);
-    }
-};
-
-template<typename T>
-struct is_mul_valid_impl<T, false, true>
+template<typename T, bool is_signed>
+struct is_mul_valid_impl<T, is_signed, true>
 {
     static T run(T x, T y)
     {
@@ -463,17 +452,15 @@ private:
 #define CHECKEDINT_BASIC_BINARY_OPERATOR(NAME, OP)               \
 template<typename T>                                          \
 inline CheckedInt<T> operator OP(const CheckedInt<T> &lhs, const CheckedInt<T> &rhs) \
-{                                                             \
-    T x = lhs.value();                                        \
-    T y = rhs.value();                                        \
-    T result = x OP y;                                        \
-    T is_op_valid                                             \
-        = CheckedInt_internal::is_##NAME##_valid(x, y, result);  \
-    /* give the compiler a good chance to perform RVO */      \
-    return CheckedInt<T>(result,                                 \
-                      lhs.mIsValid &                          \
-                      rhs.mIsValid &                          \
-                      is_op_valid);                           \
+{                                                                     \
+    T x = lhs.value();                                                \
+    T y = rhs.value();                                                \
+    T result = x OP y;                                                \
+    T is_op_valid                                                     \
+        = CheckedInt_internal::is_##NAME##_valid(x, y, result);       \
+    /* give the compiler a good chance to perform RVO */              \
+    return CheckedInt<T>(result,                                      \
+                         lhs.mIsValid & rhs.mIsValid & is_op_valid);  \
 }
 
 CHECKEDINT_BASIC_BINARY_OPERATOR(add, +)
@@ -491,9 +478,7 @@ inline CheckedInt<T> operator /(const CheckedInt<T> &lhs, const CheckedInt<T> &r
     T result = is_op_valid ? (x / y) : 0;
     
     return CheckedInt<T>(result,
-                      lhs.mIsValid &
-                      rhs.mIsValid &
-                      is_op_valid);
+                         lhs.mIsValid & rhs.mIsValid & is_op_valid);
 }
 
 
