@@ -1110,7 +1110,7 @@ mjit::Compiler::jsop_setelem_dense()
     analyze::CrossSSAValue objv(a->inlineIndex, analysis->poppedValue(PC, 2));
     analyze::CrossSSAValue indexv(a->inlineIndex, analysis->poppedValue(PC, 1));
     bool hoisted = loop && id->isType(JSVAL_TYPE_INT32) &&
-        loop->hoistArrayLengthCheck(objv, indexv);
+        loop->hoistArrayLengthCheck(DENSE_ARRAY, objv, indexv);
 
     if (hoisted) {
         FrameEntry *slotsFe = loop->invariantArraySlots(objv);
@@ -1375,18 +1375,31 @@ mjit::Compiler::jsop_setelem_typed(int atype)
     bool pinKey = !key.isConstant() && !frame.haveSameBacking(id, value);
     if (pinKey)
         frame.pinReg(key.reg());
-    RegisterID objReg = frame.copyDataIntoReg(obj);
 
-    
-    masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
+    analyze::CrossSSAValue objv(a->inlineIndex, analysis->poppedValue(PC, 1));
+    analyze::CrossSSAValue indexv(a->inlineIndex, analysis->poppedValue(PC, 0));
+    bool hoisted = loop && id->isType(JSVAL_TYPE_INT32) &&
+        loop->hoistArrayLengthCheck(TYPED_ARRAY, objv, indexv);
 
-    
-    Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
-                                             objReg, key, Assembler::BelowOrEqual);
-    stubcc.linkExit(lengthGuard, Uses(3));
+    RegisterID objReg;
+    if (hoisted) {
+        FrameEntry *slotsFe = loop->invariantArraySlots(objv);
+        objReg = frame.tempRegForData(slotsFe);
+        frame.pinReg(objReg);
+    } else {
+        objReg = frame.copyDataIntoReg(obj);
 
-    
-    masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+        
+        masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
+
+        
+        Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
+                                                 objReg, key, Assembler::BelowOrEqual);
+        stubcc.linkExit(lengthGuard, Uses(3));
+
+        
+        masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+    }
 
     
     
@@ -1412,7 +1425,10 @@ mjit::Compiler::jsop_setelem_typed(int atype)
     }
     if (pinKey)
         frame.unpinReg(key.reg());
-    frame.freeReg(objReg);
+    if (hoisted)
+        frame.unpinReg(objReg);
+    else
+        frame.freeReg(objReg);
 
     stubcc.leave();
     OOL_STUBCALL(STRICT_VARIANT(stubs::SetElem), REJOIN_FALLTHROUGH);
@@ -1671,7 +1687,7 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     analyze::CrossSSAValue objv(a->inlineIndex, analysis->poppedValue(PC, 1));
     analyze::CrossSSAValue indexv(a->inlineIndex, analysis->poppedValue(PC, 0));
     bool hoisted = loop && id->isType(JSVAL_TYPE_INT32) &&
-        loop->hoistArrayLengthCheck(objv, indexv);
+        loop->hoistArrayLengthCheck(DENSE_ARRAY, objv, indexv);
 
     
     
@@ -1861,7 +1877,31 @@ mjit::Compiler::jsop_getelem_typed(int atype)
                  : Int32Key::FromRegister(frame.tempRegForData(id));
     if (!key.isConstant())
         frame.pinReg(key.reg());
-    RegisterID objReg = frame.copyDataIntoReg(obj);
+
+    analyze::CrossSSAValue objv(a->inlineIndex, analysis->poppedValue(PC, 1));
+    analyze::CrossSSAValue indexv(a->inlineIndex, analysis->poppedValue(PC, 0));
+    bool hoisted = loop && id->isType(JSVAL_TYPE_INT32) &&
+        loop->hoistArrayLengthCheck(TYPED_ARRAY, objv, indexv);
+
+    RegisterID objReg;
+    if (hoisted) {
+        FrameEntry *slotsFe = loop->invariantArraySlots(objv);
+        objReg = frame.tempRegForData(slotsFe);
+        frame.pinReg(objReg);
+    } else {
+        objReg = frame.copyDataIntoReg(obj);
+
+        
+        masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
+
+        
+        Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
+                                                 objReg, key, Assembler::BelowOrEqual);
+        stubcc.linkExit(lengthGuard, Uses(2));
+
+        
+        masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
+    }
 
     
     
@@ -1891,20 +1931,12 @@ mjit::Compiler::jsop_getelem_typed(int atype)
     }
 
     
-    masm.loadPtr(Address(objReg, offsetof(JSObject, privateData)), objReg);
-
-    
-    Jump lengthGuard = masm.guardArrayExtent(TypedArray::lengthOffset(),
-                                             objReg, key, Assembler::BelowOrEqual);
-    stubcc.linkExit(lengthGuard, Uses(2));
-
-    
-    masm.loadPtr(Address(objReg, js::TypedArray::dataOffset()), objReg);
-
-    
     masm.loadFromTypedArray(atype, objReg, key, typeReg, dataReg, tempReg);
 
-    frame.freeReg(objReg);
+    if (hoisted)
+        frame.unpinReg(objReg);
+    else
+        frame.freeReg(objReg);
     if (!key.isConstant())
         frame.unpinReg(key.reg());
     if (tempReg.isSet())
