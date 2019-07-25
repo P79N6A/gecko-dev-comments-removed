@@ -177,12 +177,60 @@ PluginModuleChild::Init(const std::string& aPluginFilename,
     return true;
 }
 
+#if defined(OS_LINUX)
+typedef void (*GObjectDisposeFn)(GObject*);
+
+static GObjectDisposeFn real_gtk_plug_dispose;
+
+static void
+undo_bogus_unref(gpointer data, GObject* object, gboolean is_last_ref) {
+    if (!is_last_ref) 
+        return;
+
+    g_object_ref(object);
+}
+
+static void
+wrap_gtk_plug_dispose(GObject* object) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    g_object_add_toggle_ref(object, undo_bogus_unref, NULL);
+    (*real_gtk_plug_dispose)(object);
+    g_object_remove_toggle_ref(object, undo_bogus_unref, NULL);
+}
+#endif
+
 bool
 PluginModuleChild::InitGraphics()
 {
     
 #if defined(OS_LINUX)
     gtk_init(0, 0);
+
+    
+    gpointer gtk_plug_class = g_type_class_ref(GTK_TYPE_PLUG);
+    
+    
+    
+    
+    GObjectDisposeFn* dispose = &G_OBJECT_CLASS(gtk_plug_class)->dispose;
+
+    NS_ABORT_IF_FALSE(*dispose != wrap_gtk_plug_dispose,
+                      "InitGraphics called twice");
+    real_gtk_plug_dispose = *dispose;
+    *dispose = wrap_gtk_plug_dispose;
 #else
     
 #endif
