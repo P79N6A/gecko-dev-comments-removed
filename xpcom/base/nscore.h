@@ -324,6 +324,25 @@
 #  endif
 #endif
 
+#if (defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING))
+
+
+
+#define NS_BUILD_REFCNT_LOGGING
+#endif
+
+
+
+#if defined(NO_BUILD_REFCNT_LOGGING)
+#undef NS_BUILD_REFCNT_LOGGING
+#endif
+
+
+
+
+#if defined(NS_TRACE_MALLOC) || defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_VALGRIND)
+#define NS_FREE_PERMANENT_DATA
+#endif
 
 
 
