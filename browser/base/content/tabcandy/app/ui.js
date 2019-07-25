@@ -309,6 +309,9 @@ window.Page = {
           
           
           item.zoomOut(function() {
+            if(!currentTab.mirror) 
+              item = null;
+            
             self.setActiveTab(item);
             var activeGroup = Groups.getActiveGroup();
             if( activeGroup )
@@ -319,10 +322,13 @@ window.Page = {
           });
         }
       } else { 
+        UI.focused = false;
+        Page.showChrome();
+
         iQ.timeout(function() { 
-          UI.focused = false;
-          Page.showChrome();
-          
+          if(focusTab != UI.currentTab) 
+            return;
+            
           var newItem = null;
           if(focusTab && focusTab.mirror)
             newItem = TabItems.getItemByTabElement(focusTab.mirror.el);

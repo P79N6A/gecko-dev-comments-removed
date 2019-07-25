@@ -37,6 +37,7 @@ Storage = {
   
   
   saveTab: function(tab, data) {
+    Utils.assert('tab', tab);
 
     this._sessionStore.setTabValue(tab, this.TAB_DATA_IDENTIFIER,
       JSON.stringify(data));
@@ -44,6 +45,8 @@ Storage = {
 
   
   getTabData: function(tab) {
+    Utils.assert('tab', tab);
+
     var existingData = null;
     try {
 
@@ -53,7 +56,7 @@ Storage = {
       }
     } catch (e) {
       
-      Utils.log("Error in readTabData: "+e);
+      Utils.log(e);
     }
     
 
