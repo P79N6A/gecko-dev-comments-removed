@@ -179,6 +179,16 @@ public:
 
 
 
+  void SetMask(ShadowableLayer* aLayer,
+               ShadowableLayer* aMaskLayer);
+
+  
+
+
+
+
+
+
   
 
 

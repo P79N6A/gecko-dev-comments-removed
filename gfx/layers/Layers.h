@@ -85,6 +85,7 @@ class CanvasLayer;
 class ReadbackLayer;
 class ReadbackProcessor;
 class ShadowLayer;
+class ShadowableLayer;
 class ShadowLayerForwarder;
 class ShadowLayerManager;
 class SpecificLayerAttributes;
@@ -728,6 +729,7 @@ public:
 #endif
 
     mMaskLayer = aMaskLayer;
+    Mutated();
   }
 
   
@@ -839,6 +841,12 @@ public:
 
 
   virtual ShadowLayer* AsShadowLayer() { return nsnull; }
+
+  
+
+
+
+  virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
 
   
   

@@ -64,8 +64,6 @@ public:
                            void* aCallbackData,
                            ReadbackProcessor* aReadback) {}
 
-  virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
-
   
 
 
