@@ -6,7 +6,11 @@
 #ifndef CANVASIMAGECACHE_H_
 #define CANVASIMAGECACHE_H_
 
-class nsIDOMElement;
+namespace mozilla {
+namespace dom {
+class Element;
+} 
+} 
 class nsHTMLCanvasElement;
 class imgIRequest;
 class gfxASurface;
@@ -22,7 +26,7 @@ public:
 
 
 
-  static void NotifyDrawImage(nsIDOMElement* aImage,
+  static void NotifyDrawImage(dom::Element* aImage,
                               nsHTMLCanvasElement* aCanvas,
                               imgIRequest* aRequest,
                               gfxASurface* aSurface,
@@ -34,7 +38,7 @@ public:
 
 
 
-  static gfxASurface* Lookup(nsIDOMElement* aImage,
+  static gfxASurface* Lookup(dom::Element* aImage,
                              nsHTMLCanvasElement* aCanvas,
                              gfxIntSize* aSize);
 };
