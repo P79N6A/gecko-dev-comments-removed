@@ -14,110 +14,13 @@
 
 using namespace mozilla;
 
-struct AnimationPropertySegment
+ElementAnimations::ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
+                                     nsAnimationManager *aAnimationManager)
+  : CommonElementAnimationData(aElement, aElementProperty,
+                               aAnimationManager),
+    mNeedsRefreshes(true)
 {
-  float mFromKey, mToKey;
-  nsStyleAnimation::Value mFromValue, mToValue;
-  css::ComputedTimingFunction mTimingFunction;
-};
-
-struct AnimationProperty
-{
-  nsCSSProperty mProperty;
-  InfallibleTArray<AnimationPropertySegment> mSegments;
-};
-
-
-
-
-
-struct ElementAnimation
-{
-  ElementAnimation()
-    : mLastNotification(LAST_NOTIFICATION_NONE)
-  {
-  }
-
-  nsString mName; 
-  float mIterationCount; 
-  PRUint8 mDirection;
-  PRUint8 mFillMode;
-  PRUint8 mPlayState;
-
-  bool FillsForwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
-  }
-  bool FillsBackwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
-  }
-
-  bool IsPaused() const {
-    return mPlayState == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
-  }
-
-  TimeStamp mStartTime; 
-  TimeStamp mPauseStart;
-  TimeDuration mIterationDuration;
-
-  enum {
-    LAST_NOTIFICATION_NONE = PRUint32(-1),
-    LAST_NOTIFICATION_END = PRUint32(-2)
-  };
-  
-  
-  PRUint32 mLastNotification;
-
-  InfallibleTArray<AnimationProperty> mProperties;
-};
-
-typedef nsAnimationManager::EventArray EventArray;
-typedef nsAnimationManager::AnimationEventInfo AnimationEventInfo;
-
-
-
-
-struct ElementAnimations : public mozilla::css::CommonElementAnimationData
-{
-  ElementAnimations(dom::Element *aElement, nsIAtom *aElementProperty,
-                     nsAnimationManager *aAnimationManager)
-    : CommonElementAnimationData(aElement, aElementProperty,
-                                 aAnimationManager),
-      mNeedsRefreshes(true)
-  {
-  }
-
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime,
-                          EventArray &aEventsToDispatch);
-
-  bool IsForElement() const { 
-    return mElementProperty == nsGkAtoms::animationsProperty;
-  }
-
-  void PostRestyleForAnimation(nsPresContext *aPresContext) {
-    nsRestyleHint hint = IsForElement() ? eRestyle_Self : eRestyle_Subtree;
-    aPresContext->PresShell()->RestyleForAnimation(mElement, hint);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<css::AnimValuesStyleRule> mStyleRule;
-  
-  TimeStamp mStyleRuleRefreshTime;
-
-  
-  
-  
-  bool mNeedsRefreshes;
-
-  InfallibleTArray<ElementAnimation> mAnimations;
-};
+}
 
 static void
 ElementAnimationsPropertyDtor(void           *aObject,
