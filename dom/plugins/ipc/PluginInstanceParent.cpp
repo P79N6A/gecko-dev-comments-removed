@@ -96,7 +96,6 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
     , mPluginHWND(NULL)
     , mPluginWndProc(NULL)
     , mNestedEventState(false)
-    , mInAnswerFocusChange(false)
 #endif 
     , mQuirks(0)
 #if defined(XP_MACOSX)
@@ -1560,8 +1559,7 @@ PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
     switch (message) {
         case WM_SETFOCUS:
         
-        if (!self->mInAnswerFocusChange)
-          self->CallSetPluginFocus();
+        self->CallSetPluginFocus();
         break;
 
         case WM_CLOSE:
@@ -1741,8 +1739,6 @@ PluginInstanceParent::AnswerPluginFocusChange(const bool& gotFocus)
     
     
 #if defined(OS_WIN)
-    AutoRestore<bool> ar(mInAnswerFocusChange);
-    mInAnswerFocusChange = true;
     ::SendMessage(mPluginHWND, gOOPPPluginFocusEvent, gotFocus ? 1 : 0, 0);
     return true;
 #else
