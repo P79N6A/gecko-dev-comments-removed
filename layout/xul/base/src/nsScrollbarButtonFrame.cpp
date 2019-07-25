@@ -216,7 +216,9 @@ void nsScrollbarButtonFrame::Notify()
 {
   
   
-  if (mCursorOnThis) {
+  if (mCursorOnThis ||
+      LookAndFeel::GetInt(
+        LookAndFeel::eIntID_ScrollbarButtonAutoRepeatBehavior, 0)) {
     DoButtonAction(true);
   }
 }
