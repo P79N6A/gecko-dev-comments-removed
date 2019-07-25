@@ -37,6 +37,15 @@ extern char * getenv JPP((const char * name));
 #endif
 
 
+LOCAL(size_t)
+round_up_pow2 (size_t a, size_t b)
+
+
+{
+  return ((a + b - 1) & (~(b - 1)));
+}
+
+
 
 
 
@@ -265,7 +274,7 @@ alloc_small (j_common_ptr cinfo, int pool_id, size_t sizeofobject)
 
 
 
-  sizeofobject = jround_up(sizeofobject, ALIGN_SIZE);
+  sizeofobject = round_up_pow2(sizeofobject, ALIGN_SIZE);
 
   
   if ((SIZEOF(small_pool_hdr) + sizeofobject + ALIGN_SIZE - 1) > MAX_ALLOC_CHUNK)
@@ -354,7 +363,7 @@ alloc_large (j_common_ptr cinfo, int pool_id, size_t sizeofobject)
 
 
 
-  sizeofobject = jround_up(sizeofobject, ALIGN_SIZE);
+  sizeofobject = round_up_pow2(sizeofobject, ALIGN_SIZE);
 
   
   if ((SIZEOF(large_pool_hdr) + sizeofobject + ALIGN_SIZE - 1) > MAX_ALLOC_CHUNK)
@@ -420,7 +429,7 @@ alloc_sarray (j_common_ptr cinfo, int pool_id,
   
   if ((ALIGN_SIZE % SIZEOF(JSAMPLE)) != 0)
     out_of_memory(cinfo, 5);	
-  samplesperrow = (JDIMENSION)jround_up(samplesperrow, (2 * ALIGN_SIZE) / SIZEOF(JSAMPLE));
+  samplesperrow = (JDIMENSION)round_up_pow2(samplesperrow, (2 * ALIGN_SIZE) / SIZEOF(JSAMPLE));
 
   
   ltemp = (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)) /

@@ -211,6 +211,7 @@ struct jpeg_marker_struct {
 
 
 #define JCS_EXTENSIONS 1
+#define JCS_ALPHA_EXTENSIONS 1
 
 typedef enum {
 	JCS_UNKNOWN,		
@@ -225,7 +226,18 @@ typedef enum {
 	JCS_EXT_BGR,		
 	JCS_EXT_BGRX,		
 	JCS_EXT_XBGR,		
-	JCS_EXT_XRGB		
+	JCS_EXT_XRGB,		
+	
+
+
+
+
+
+
+	JCS_EXT_RGBA,		
+	JCS_EXT_BGRA,		
+	JCS_EXT_ABGR,		
+	JCS_EXT_ARGB		
 } J_COLOR_SPACE;
 
 
