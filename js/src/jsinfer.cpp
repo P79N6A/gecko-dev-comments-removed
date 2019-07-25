@@ -5205,7 +5205,11 @@ TypeSet::sweep(JSContext *cx, JSCompartment *compartment)
     }
 
     
+
+
+
     constraintList = NULL;
+    flags &= ~TYPE_FLAG_PROPAGATED_PROPERTY;
 }
 
 inline void

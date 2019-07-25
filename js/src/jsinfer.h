@@ -182,20 +182,6 @@ inline Type GetValueType(JSContext *cx, const Value &val);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class TypeConstraint
 {
 public:
@@ -661,6 +647,11 @@ struct TypeNewScript
     };
     Initializer *initializerList;
 };
+
+
+
+
+
 
 
 
