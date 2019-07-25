@@ -111,6 +111,20 @@ let CommonUtils = {
 
 
 
+
+  waitForNextTick: function waitForNextTick() {
+    let cb = Async.makeSyncCallback();
+    this.nextTick(cb);
+    Async.waitForSyncCallback(cb);
+
+    return;
+  },
+
+  
+
+
+
+
   namedTimer: function namedTimer(callback, wait, thisObj, name) {
     if (!thisObj || !name) {
       throw "You must provide both an object and a property name for the timer!";
@@ -394,6 +408,58 @@ let CommonUtils = {
         callback.call(that);
       }
     });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  ensureMillisecondsTimestamp: function ensureMillisecondsTimestamp(value) {
+    if (!value) {
+      return;
+    }
+
+    if (value < 0) {
+      throw new Error("Timestamp value is negative: " + value);
+    }
+
+    
+    if (value < 10000000000) {
+      throw new Error("Timestamp appears to be in seconds: " + value);
+    }
+
+    if (Math.floor(value) != Math.ceil(value)) {
+      throw new Error("Timestamp value is not an integer: " + value);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  readBytesFromInputStream: function readBytesFromInputStream(stream, count) {
+    let BinaryInputStream = Components.Constructor(
+        "@mozilla.org/binaryinputstream;1",
+        "nsIBinaryInputStream",
+        "setInputStream");
+    if (!count) {
+      count = stream.available();
+    }
+
+    return new BinaryInputStream(stream).readBytes(count);
   },
 };
 
