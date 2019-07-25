@@ -650,9 +650,6 @@ nsSVGFEGaussianBlurElement::GetDXY(PRUint32 *aDX, PRUint32 *aDY,
   if (stdX < 0 || stdY < 0)
     return NS_ERROR_FAILURE;
 
-  if (stdX == 0 || stdY == 0)
-    return NS_ERROR_UNEXPECTED;
-
   
   
   
@@ -775,8 +772,6 @@ nsSVGFEGaussianBlurElement::Filter(nsSVGFilterInstance* aInstance,
 {
   PRUint32 dx, dy;
   nsresult rv = GetDXY(&dx, &dy, *aInstance);
-  if (rv == NS_ERROR_UNEXPECTED) 
-    return NS_OK;
   if (NS_FAILED(rv))
     return rv;
 
