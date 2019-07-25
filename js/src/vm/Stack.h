@@ -612,6 +612,9 @@ class StackFrame
 
 
 
+
+
+
     JSFunction* fun() const {
         JS_ASSERT(isFunctionFrame());
         return exec.fun;
@@ -619,6 +622,15 @@ class StackFrame
 
     JSFunction* maybeFun() const {
         return isFunctionFrame() ? fun() : NULL;
+    }
+
+    JSFunction* maybeScriptFunction() const {
+        if (!isFunctionFrame())
+            return NULL;
+        const StackFrame *fp = this;
+        while (fp->isEvalFrame())
+            fp = fp->prev();
+        return fp->script()->function();
     }
 
     
