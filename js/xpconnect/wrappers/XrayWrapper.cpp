@@ -215,7 +215,7 @@ EnsureExpandoObject(JSContext *cx, JSObject *wrapper, JSObject *target)
     
     JSAutoEnterCompartment ac;
     if (!ac.enter(cx, target))
-        return false;
+        return nsnull;
 
     JSObject *expandoObject = LookupExpandoObject(cx, target, wrapper);
     if (!expandoObject) {
