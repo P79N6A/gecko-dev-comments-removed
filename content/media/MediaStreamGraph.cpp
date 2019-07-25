@@ -805,7 +805,8 @@ MediaStreamGraphImpl::UpdateCurrentTime()
     NS_ASSERTION(prevCurrentTime == nextCurrentTime, "Time can't go backwards!");
     
     LOG(PR_LOG_DEBUG, ("Time did not advance"));
-    return;
+    
+    
   }
 
   for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
@@ -838,7 +839,7 @@ MediaStreamGraphImpl::UpdateCurrentTime()
     
     stream->mBlocked.AdvanceCurrentTime(nextCurrentTime);
 
-    if (blockedTime < nextCurrentTime - mCurrentTime) {
+    if (blockedTime < nextCurrentTime - prevCurrentTime) {
       for (PRUint32 i = 0; i < stream->mListeners.Length(); ++i) {
         MediaStreamListener* l = stream->mListeners[i];
         l->NotifyOutput(this);
