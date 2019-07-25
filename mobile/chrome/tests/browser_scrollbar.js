@@ -87,11 +87,7 @@ gTests.push({
   },
 
   checkHorizontalScrollable: function() {
-    checkScrollbars(true, true);
-    
-    
-    
-    todo(false, "Don't cause the height to grow beyond the window height if it doesn't need to");
+    checkScrollbars(true, false);
 
     waitForPageShow(testURL_01 + "vertical", gCurrentTest.checkVerticalScrollable);
     gOpenedTabs.push(Browser.addTab(testURL_01 + "vertical", true));

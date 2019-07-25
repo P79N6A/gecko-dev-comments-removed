@@ -2679,7 +2679,8 @@ Tab.prototype = {
 
     
     
-    viewportH = Math.max(viewportH, screenH * (browser.contentDocumentWidth / screenW));
+    if (viewportH * this.clampZoomLevel(this.getPageZoomLevel()) < screenH)
+      viewportH = Math.max(viewportH, screenH * (browser.contentDocumentWidth / screenW));
 
     if (browser.contentWindowWidth != viewportW || browser.contentWindowHeight != viewportH)
       browser.setWindowSize(viewportW, viewportH);
