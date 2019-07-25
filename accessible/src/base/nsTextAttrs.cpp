@@ -74,7 +74,6 @@ const char* const kCopyValue = nsnull;
 static nsCSSTextAttrMapItem gCSSTextAttrsMap[] =
 {
   
-  { "font-style",        kAnyValue,       &nsGkAtoms::font_style,             kCopyValue },
   { "text-decoration",   "line-through",  &nsGkAtoms::textLineThroughStyle,  "solid" },
   { "text-decoration",   "underline",     &nsGkAtoms::textUnderlineStyle,    "solid" },
   { "vertical-align",    kAnyValue,       &nsGkAtoms::textPosition,          kCopyValue }
@@ -157,19 +156,15 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&langTextAttr));
 
   
-  nsCSSTextAttr fontStyleTextAttr(0, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontStyleTextAttr));
-
-  
-  nsCSSTextAttr lineThroughTextAttr(1, hyperTextElm, offsetElm);
+  nsCSSTextAttr lineThroughTextAttr(0, hyperTextElm, offsetElm);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&lineThroughTextAttr));
 
   
-  nsCSSTextAttr underlineTextAttr(2, hyperTextElm, offsetElm);
+  nsCSSTextAttr underlineTextAttr(1, hyperTextElm, offsetElm);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&underlineTextAttr));
 
   
-  nsCSSTextAttr posTextAttr(3, hyperTextElm, offsetElm);
+  nsCSSTextAttr posTextAttr(2, hyperTextElm, offsetElm);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&posTextAttr));
 
   
@@ -187,6 +182,10 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
   
   nsFontSizeTextAttr fontSizeTextAttr(rootFrame, frame);
   textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontSizeTextAttr));
+
+  
+  FontStyleTextAttr fontStyleTextAttr(rootFrame, frame);
+  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontStyleTextAttr));
 
   
   nsFontWeightTextAttr fontWeightTextAttr(rootFrame, frame);
@@ -390,7 +389,7 @@ void
 nsBGColorTextAttr::Format(const nscolor& aValue, nsAString& aFormattedValue)
 {
   nsAutoString value;
-  StyleInfo::Format(aValue, value);
+  StyleInfo::FormatColor(aValue, value);
   aFormattedValue = value;
 }
 
@@ -452,7 +451,7 @@ void
 ColorTextAttr::Format(const nscolor& aValue, nsAString& aFormattedValue)
 {
   nsAutoString value;
-  StyleInfo::Format(aValue, value);
+  StyleInfo::FormatColor(aValue, value);
   aFormattedValue = value;
 }
 
@@ -556,6 +555,41 @@ nscoord
 nsFontSizeTextAttr::GetFontSize(nsIFrame *aFrame)
 {
   return aFrame->GetStyleFont()->mSize;
+}
+
+
+
+
+
+
+FontStyleTextAttr::FontStyleTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame) :
+  nsTextAttr<nscoord>(!aFrame)
+{
+  mRootNativeValue = aRootFrame->GetStyleFont()->mFont.style;
+  mIsRootDefined = true;
+
+  if (aFrame) {
+    mNativeValue = aFrame->GetStyleFont()->mFont.style;
+    mIsDefined = true;
+  }
+}
+
+bool
+FontStyleTextAttr::GetValueFor(nsIContent* aContent, nscoord* aValue)
+{
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+  if (frame) {
+    *aValue = frame->GetStyleFont()->mFont.style;
+    return true;
+  }
+
+  return false;
+}
+
+void
+FontStyleTextAttr::Format(const nscoord& aValue, nsAString& aFormattedValue)
+{
+  StyleInfo::FormatFontStyle(aValue, aFormattedValue);
 }
 
 

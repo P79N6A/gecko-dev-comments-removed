@@ -385,6 +385,26 @@ private:
 
 
 
+class FontStyleTextAttr : public nsTextAttr<nscoord>
+{
+public:
+  FontStyleTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame);
+
+  
+  virtual nsIAtom* GetName() const { return nsGkAtoms::font_style; }
+
+protected:
+
+  
+  virtual bool GetValueFor(nsIContent* aContent, nscoord* aValue);
+  virtual void Format(const nscoord &aValue, nsAString &aFormattedValue);
+};
+
+
+
+
+
+
 class nsFontWeightTextAttr : public nsTextAttr<PRInt32>
 {
 public:
