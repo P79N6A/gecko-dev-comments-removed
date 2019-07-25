@@ -204,7 +204,7 @@ js_NewGCObject(JSContext *cx, js::gc::FinalizeKind kind)
     JSObject *obj = NewFinalizableGCThing<JSObject>(cx, kind);
     if (obj) {
         obj->capacity = js::gc::GetGCKindSlots(kind);
-        obj->map = NULL; 
+        obj->lastProp = NULL; 
     }
     return obj;
 }
@@ -235,7 +235,7 @@ js_NewGCFunction(JSContext *cx)
     JSFunction *fun = NewFinalizableGCThing<JSFunction>(cx, js::gc::FINALIZE_FUNCTION);
     if (fun) {
         fun->capacity = JSObject::FUN_CLASS_RESERVED_SLOTS;
-        fun->map = NULL; 
+        fun->lastProp = NULL; 
     }
     return fun;
 }

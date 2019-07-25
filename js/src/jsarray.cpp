@@ -1058,7 +1058,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
 
-    JSObjectMap *oldMap = map;
+    js::Shape *oldMap = lastProp;
 
     
     JSObject *arrayProto = getProto();

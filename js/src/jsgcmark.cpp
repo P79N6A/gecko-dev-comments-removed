@@ -534,7 +534,7 @@ static const uintN LARGE_OBJECT_CHUNK_SIZE = 2048;
 static void
 ScanObject(GCMarker *gcmarker, JSObject *obj)
 {
-    if (!obj->map)
+    if (obj->isNewborn())
         return;
 
     if (JSObject *parent = obj->getParent())
@@ -629,7 +629,7 @@ void
 MarkChildren(JSTracer *trc, JSObject *obj)
 {
     
-    if (!obj->map)
+    if (obj->isNewborn())
         return;
 
     
