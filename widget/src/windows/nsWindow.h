@@ -454,6 +454,9 @@ protected:
   static STDMETHODIMP_(LRESULT) LresultFromObject(REFIID riid, WPARAM wParam, LPUNKNOWN pAcc);
 #endif 
   void                    ClearCachedResources();
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+  void                    UpdateCaptionButtonsClippingRect();
+#endif
 
 protected:
   nsCOMPtr<nsIWidget>   mParent;
@@ -505,6 +508,14 @@ protected:
   nsIntMargin           mNonClientOffset;
   
   nsIntMargin           mNonClientMargins;
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+  
+  
+  nsIntRect             mCaptionButtons;
+  nsIntRegion           mCaptionButtonsRoundedRegion;
+#endif
+
   
   PRPackedBool          mCustomNonClient;
   
