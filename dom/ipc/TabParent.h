@@ -100,10 +100,10 @@ public:
             const nsString& bgcolor,
             const PRUint32& flags,
             const bool& flush,
-	    const gfxMatrix& aMatrix,
+            const gfxMatrix& aMatrix,
             const PRInt32& bufw,
             const PRInt32& bufh,
-            Shmem &buf);
+            Shmem& buf);
     virtual bool DeallocPDocumentRendererShmem(PDocumentRendererShmemParent* actor);
 
 protected:

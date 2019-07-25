@@ -252,7 +252,7 @@ NS_IMPL_RELEASE(nsCanvasGradient)
 NS_INTERFACE_MAP_BEGIN(nsCanvasGradient)
   NS_INTERFACE_MAP_ENTRY(nsCanvasGradient)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCanvasGradient)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasGradient)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasGradient)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -298,7 +298,7 @@ NS_IMPL_RELEASE(nsCanvasPattern)
 NS_INTERFACE_MAP_BEGIN(nsCanvasPattern)
   NS_INTERFACE_MAP_ENTRY(nsCanvasPattern)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCanvasPattern)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasPattern)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasPattern)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -335,7 +335,7 @@ NS_IMPL_RELEASE(nsTextMetrics)
 NS_INTERFACE_MAP_BEGIN(nsTextMetrics)
   NS_INTERFACE_MAP_ENTRY(nsTextMetrics)
   NS_INTERFACE_MAP_ENTRY(nsIDOMTextMetrics)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(TextMetrics)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(TextMetrics)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -367,10 +367,12 @@ public:
     NS_IMETHOD SetIsShmem(PRBool isShmem);
     
     NS_IMETHOD Redraw(const gfxRect &r);
+#ifdef MOZ_IPC
     
     
-    NS_IMETHOD Swap(mozilla::ipc::Shmem &back, PRInt32 x, PRInt32 y, 
+    NS_IMETHOD Swap(mozilla::ipc::Shmem& back, PRInt32 x, PRInt32 y, 
                     PRInt32 w, PRInt32 h);
+#endif
 
     
     NS_DECL_ISUPPORTS
@@ -442,7 +444,6 @@ protected:
     
     mozilla::ipc::Shmem mFrontBuffer;
     mozilla::ipc::Shmem mBackBuffer;
-    nsRefPtr<gfxASurface> mFrontSurface;
     nsRefPtr<gfxASurface> mBackSurface;
 
     
@@ -718,7 +719,7 @@ NS_INTERFACE_MAP_BEGIN(nsCanvasRenderingContext2D)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCanvasRenderingContext2D)
   NS_INTERFACE_MAP_ENTRY(nsICanvasRenderingContextInternal)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMCanvasRenderingContext2D)
-  NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(CanvasRenderingContext2D)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasRenderingContext2D)
 NS_INTERFACE_MAP_END
 
 
@@ -966,9 +967,6 @@ nsCanvasRenderingContext2D::CreateShmemSegments(PRInt32 width, PRInt32 height,
     mBackSurface = new gfxImageSurface(mBackBuffer.get<unsigned char>(),
                                        gfxIntSize(width, height),
                                        width * 4, format);
-    mFrontSurface = new gfxImageSurface(mFrontBuffer.get<unsigned char>(),
-                                        gfxIntSize(width, height),
-                                        width * 4, format);
 
     return true;
 }
@@ -987,14 +985,16 @@ nsCanvasRenderingContext2D::SetDimensions(PRInt32 width, PRInt32 height)
         if (mOpaque)
             format = gfxASurface::ImageFormatRGB24;
 
-	
 #ifdef MOZ_IPC
-	if (mShmem)
-	    CreateShmemSegments(width, height, format);
+        if (mShmem && CreateShmemSegments(width, height, format)) {
+            NS_ABORT_IF_FALSE(mFrontBuffer.get<unsigned char>(), "No front buffer!");
+            surface = new gfxImageSurface(mFrontBuffer.get<unsigned char>(),
+                                          gfxIntSize(width, height),
+                                          width * 4, format);
+        } else
 #endif
-
-	surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface
-	    (gfxIntSize(width, height), format);
+            surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface
+                (gfxIntSize(width, height), format);
 
         if (surface && surface->CairoStatus() != 0)
             surface = NULL;
@@ -1093,13 +1093,11 @@ nsCanvasRenderingContext2D::SetIsShmem(PRBool isShmem)
     return NS_OK;
 }
 
+#ifdef MOZ_IPC
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem &aBack, 
+nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem& aBack, 
                                  PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h)
 {
-#ifndef MOZ_IPC
-    return NS_ERROR_NOT_IMPLEMENTED;
-#else
     
     
     
@@ -1113,18 +1111,13 @@ nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem &aBack,
     mFrontBuffer = aBack;
 
     
-    nsRefPtr<gfxASurface> tmp = mFrontSurface;
-    mFrontSurface = mBackSurface;
+    nsRefPtr<gfxASurface> tmp = mSurface;
+    mSurface = mBackSurface;
     mBackSurface = tmp;
 
-    nsRefPtr<gfxPattern> pat = new gfxPattern(mFrontSurface);
-
-    mThebes->NewPath();
-    mThebes->PixelSnappedRectangleAndSetPattern(gfxRect(x, y, w, h), pat);
-    mThebes->Fill();
-
-    
-    mThebes->SetColor(gfxRGBA(1,1,1,1));
+    nsRefPtr<gfxContext> ctx = new gfxContext(mSurface);
+    CopyContext(ctx, mThebes);
+    mThebes = ctx;
 
     Redraw(gfxRect(x, y, w, h));
 
@@ -1132,21 +1125,9 @@ nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem &aBack,
     memcpy(mBackBuffer.get<unsigned char>(), mFrontBuffer.get<unsigned char>(),
            mWidth * mHeight * 4);
 
-    
-    nsCOMPtr<nsIContent> content = do_QueryInterface(mCanvasElement);
-    nsIDocument* ownerDoc = nsnull;
-    if (content)
-	ownerDoc = content->GetOwnerDoc();
-
-    if (ownerDoc && mCanvasElement) {
-	nsContentUtils::DispatchTrustedEvent(ownerDoc, mCanvasElement, 
-					     NS_LITERAL_STRING("MozAsyncCanvasRender"),
-					      PR_TRUE,  PR_TRUE);
-    }
-
     return NS_OK;
-#endif
 }
+#endif
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::Render(gfxContext *ctx, gfxPattern::GraphicsFilter aFilter)
@@ -3595,7 +3576,7 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
             child->SendPDocumentRendererShmemConstructor(x, y, w, h,
                                                          nsString(aBGColor),
                                                          renderDocFlags, flush,
-							 mThebes->CurrentMatrix(),
+                                                         mThebes->CurrentMatrix(),
                                                          mWidth, mHeight,
                                                          mBackBuffer);
         if (!pdocrender)

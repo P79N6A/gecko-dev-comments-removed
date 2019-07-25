@@ -55,7 +55,6 @@
 #include "nsIWebBrowserFocus.h"
 #include "nsIDOMEvent.h"
 #include "nsIPrivateDOMEvent.h"
-#include "nsXULAppAPI.h"
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
 #include "nsIJSRuntimeService.h"
@@ -68,12 +67,10 @@
 #include "nsScriptLoader.h"
 #include "nsPIWindowRoot.h"
 #include "nsIScriptContext.h"
-#include "nsXULAppAPI.h"
 #include "nsPresContext.h"
 
 #ifdef MOZ_WIDGET_QT
 #include <QX11EmbedWidget>
-#include <QApplication>
 #include <QGraphicsView>
 #include <QGraphicsWidget>
 #endif
@@ -84,12 +81,6 @@
 #endif
 
 using namespace mozilla::dom;
-
-#ifdef MOZ_WIDGET_QT
-static QApplication *gQApp = nsnull;
-extern int    gArgc;
-extern char **gArgv;
-#endif
 
 NS_IMPL_ISUPPORTS1(ContentListener, nsIDOMEventListener)
 
@@ -113,9 +104,6 @@ TabChild::Init()
 {
 #ifdef MOZ_WIDGET_GTK2
   gtk_init(NULL, NULL);
-#elif defined(MOZ_WIDGET_QT)
-  if (!qApp)
-    gQApp = new QApplication(gArgc, (char**)gArgv);
 #endif
 
   nsCOMPtr<nsIWebBrowser> webBrowser = do_CreateInstance(NS_WEBBROWSER_CONTRACTID);
@@ -361,11 +349,6 @@ TabChild::destroyWidget()
 
 TabChild::~TabChild()
 {
-#ifdef MOZ_WIDGET_QT 
-    if (gQApp) 
-      delete gQApp; 
-    gQApp = nsnull; 
-#endif
     destroyWidget();
     nsCOMPtr<nsIWebBrowser> webBrowser = do_QueryInterface(mWebNav);
     if (webBrowser) {
@@ -513,7 +496,7 @@ TabChild::AllocPDocumentRendererShmem(
         const nsString& bgcolor,
         const PRUint32& flags,
         const bool& flush,
-	const gfxMatrix& aMatrix,
+        const gfxMatrix& aMatrix,
         const PRInt32& bufw,
         const PRInt32& bufh,
         Shmem& buf)
@@ -530,7 +513,7 @@ TabChild::DeallocPDocumentRendererShmem(PDocumentRendererShmemChild* actor)
 
 bool
 TabChild::RecvPDocumentRendererShmemConstructor(
-        mozilla::ipc::PDocumentRendererShmemChild *__a,
+        PDocumentRendererShmemChild *__a,
         const PRInt32& aX,
         const PRInt32& aY,
         const PRInt32& aW,
@@ -538,7 +521,7 @@ TabChild::RecvPDocumentRendererShmemConstructor(
         const nsString& bgcolor,
         const PRUint32& flags,
         const bool& flush,
-	const gfxMatrix& aMatrix,
+        const gfxMatrix& aMatrix,
         const PRInt32& aBufW,
         const PRInt32& aBufH,
         Shmem& aBuf)
@@ -549,42 +532,23 @@ TabChild::RecvPDocumentRendererShmemConstructor(
     nsCOMPtr<nsIWebBrowser> browser = do_QueryInterface(mWebNav);
     if (!browser)
         return true; 
-    nsCOMPtr<nsIDOMWindow> window;
+ 
+   nsCOMPtr<nsIDOMWindow> window;
     if (NS_FAILED(browser->GetContentDOMWindow(getter_AddRefs(window))) ||
         !window)
-    {
-        return true; 
-    }
-
+         return true; 
+ 
     render->RenderDocument(window, aX, aY, aW, aH, bgcolor, flags, flush,
                            aMatrix, aBufW, aBufH, aBuf);
 
     gfxRect dirtyArea(0, 0, nsPresContext::AppUnitsToIntCSSPixels(aW), 
-		      nsPresContext::AppUnitsToIntCSSPixels(aH));
+                      nsPresContext::AppUnitsToIntCSSPixels(aH));
 
     dirtyArea = aMatrix.Transform(dirtyArea);
 
     return PDocumentRendererShmemChild::Send__delete__(__a, dirtyArea.X(), dirtyArea.Y(), 
-						       dirtyArea.Width(), dirtyArea.Height(),
+                                                       dirtyArea.Width(), dirtyArea.Height(),
                                                        aBuf);
-}
-
-
-bool
-TabChild::RecvregisterChromePackage(const nsString& aPackage,
-                                    const nsString& aBaseURI,
-                                    const PRUint32& aFlags)
-{
-	XRE_RegisterChromePackage(aPackage, aBaseURI, aFlags);
-	return true;
-}
-
-bool
-TabChild::RecvregisterChromeResource(const nsString& aPackage,
-                                     const nsString& aResolvedURI)
-{
-	XRE_RegisterChromeResource(aPackage, aResolvedURI);
-	return true;
 }
 
 bool

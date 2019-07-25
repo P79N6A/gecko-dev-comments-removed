@@ -61,6 +61,10 @@ child:
 
     PTestShell();
 
+    // A dummy message to make sure PContentProcess contains methods to create
+    // Shmem segments.
+    async Dummy(Shmem foo);
+
     RegisterChrome(ChromePackage[] packages, ResourceMapping[] resources,
                    OverrideMapping[] overrides);
 
