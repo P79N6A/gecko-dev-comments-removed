@@ -145,6 +145,7 @@ var BrowserApp = {
 
     this.deck = document.getElementById("browsers");
     BrowserEventHandler.init();
+    ViewportHandler.init();
 
     getBridge().setDrawMetadataProvider(this.getDrawMetadata.bind(this));
 
@@ -249,6 +250,7 @@ var BrowserApp = {
     NativeWindow.uninit();
     OfflineApps.uninit();
     IndexedDB.uninit();
+    ViewportHandler.uninit();
     XPInstallObserver.uninit();
   },
 
@@ -552,9 +554,16 @@ var BrowserApp = {
       browser.contentDocument.mozCancelFullScreen();
     } else if (aTopic == "Viewport:Change") {
       this.selectedTab.viewport = JSON.parse(aData);
+      ViewportHandler.onResize();
     }
-  }
-}
+  },
+
+  get defaultBrowserWidth() {
+    delete this.defaultBrowserWidth;
+    let width = Services.prefs.getIntPref("browser.viewport.desktopWidth");
+    return this.defaultBrowserWidth = width;
+   }
+};
 
 var NativeWindow = {
   init: function() {
@@ -897,6 +906,8 @@ nsBrowserAccess.prototype = {
 
 let gTabIDFactory = 0;
 
+const kDefaultMetadata = { autoSize: false, allowZoom: true, autoScale: true };
+
 
 
 let gScreenWidth = 1;
@@ -907,6 +918,7 @@ function Tab(aURL, aParams) {
   this.vbox = null;
   this.id = 0;
   this.create(aURL, aParams);
+  this._metadata = null;
   this._viewport = { x: 0, y: 0, width: gScreenWidth, height: gScreenHeight, offsetX: 0, offsetY: 0,
                      pageWidth: 1, pageHeight: 1, zoom: 1.0 };
   this.viewportExcess = { x: 0, y: 0 };
@@ -923,8 +935,7 @@ Tab.prototype = {
 
     this.browser = document.createElement("browser");
     this.browser.setAttribute("type", "content");
-    this.browser.style.width = "980px";
-    this.browser.style.height = "480px";
+    this.setBrowserSize(980, 480);
     this.browser.style.MozTransformOrigin = "0 0";
     this.vbox.appendChild(this.browser);
 
@@ -1004,18 +1015,8 @@ Tab.prototype = {
     let excessX = aViewport.x - this.browser.contentWindow.scrollX;
     let excessY = aViewport.y - this.browser.contentWindow.scrollY;
 
-    
-    
-    if (aViewport.width != this._viewport.width) {
-      this._viewport.width = aViewport.width;
-      this.browser.style.width = this._viewport.width.toString() + "px";
-      gScreenWidth = aViewport.width;
-    }
-    if (aViewport.height != this._viewport.height) {
-      this._viewport.height = aViewport.height;
-      this.browser.style.height = this._viewport.height.toString() + "px";
-      gScreenHeight = aViewport.height;
-    }
+    this._viewport.width = gScreenWidth = aViewport.width;
+    this._viewport.height = gScreenHeight = aViewport.height;
 
     let transformChanged = false;
 
@@ -1153,7 +1154,7 @@ Tab.prototype = {
     else
       mode = "unknown";
 
-   let message = {
+    let message = {
       gecko: {
         type: "Content:SecurityChange",
         tabID: this.id,
@@ -1214,6 +1215,80 @@ Tab.prototype = {
   OnHistoryPurge: function(aNumEntries) {
     this._sendHistoryEvent("Purge", -1, null);
     return true;
+  },
+
+  get metadata() {
+    return this._metadata || kDefaultMetadata;
+  },
+
+  
+  updateViewportMetadata: function updateViewportMetadata(aMetadata) {
+    if (aMetadata && aMetadata.autoScale) {
+      let scaleRatio = aMetadata.scaleRatio = ViewportHandler.getScaleRatio();
+
+      if ("defaultZoom" in aMetadata && aMetadata.defaultZoom > 0)
+        aMetadata.defaultZoom *= scaleRatio;
+      if ("minZoom" in aMetadata && aMetadata.minZoom > 0)
+        aMetadata.minZoom *= scaleRatio;
+      if ("maxZoom" in aMetadata && aMetadata.maxZoom > 0)
+        aMetadata.maxZoom *= scaleRatio;
+    }
+    this._metadata = aMetadata;
+    this.updateViewportSize();
+  },
+
+  
+  updateViewportSize: function updateViewportSize() {
+    let browser = this.browser;
+    if (!browser)
+      return;
+
+    let screenW = screen.width;
+    let screenH = screen.height;
+    let viewportW, viewportH;
+
+    let metadata = this.metadata;
+    if (metadata.autoSize) {
+      if ("scaleRatio" in metadata) {
+        viewportW = screenW / metadata.scaleRatio;
+        viewportH = screenH / metadata.scaleRatio;
+      } else {
+        viewportW = screenW;
+        viewportH = screenH;
+      }
+    } else {
+      viewportW = metadata.width;
+      viewportH = metadata.height;
+
+      
+      let maxInitialZoom = metadata.defaultZoom || metadata.maxZoom;
+      if (maxInitialZoom && viewportW)
+        viewportW = Math.max(viewportW, screenW / maxInitialZoom);
+
+      let validW = viewportW > 0;
+      let validH = viewportH > 0;
+
+      if (!validW)
+        viewportW = validH ? (viewportH * (screenW / screenH)) : BrowserApp.defaultBrowserWidth;
+      if (!validH)
+        viewportH = viewportW * (screenH / screenW);
+    }
+
+    
+    
+    let minScale = this.getPageZoomLevel(screenW);
+    viewportH = Math.max(viewportH, screenH / minScale);
+
+    this.setBrowserSize(viewportW, viewportH);
+  },
+
+  getPageZoomLevel: function getPageZoomLevel() {
+    return screen.width / this.browser.contentDocument.body.clientWidth;
+  },
+
+  setBrowserSize: function(aWidth, aHeight) {
+    this.browser.style.width = aWidth + "px";
+    this.browser.style.height = aHeight + "px";
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener, Ci.nsISHistoryListener, Ci.nsISupportsWeakReference])
@@ -2187,6 +2262,169 @@ var XPInstallObserver = {
 };
 
 
+const kViewportMinScale  = 0;
+const kViewportMaxScale  = 10;
+const kViewportMinWidth  = 200;
+const kViewportMaxWidth  = 10000;
+const kViewportMinHeight = 223;
+const kViewportMaxHeight = 10000;
+
+var ViewportHandler = {
+  init: function init() {
+    addEventListener("DOMWindowCreated", this, false);
+    addEventListener("DOMMetaAdded", this, false);
+    addEventListener("DOMContentLoaded", this, false);
+    addEventListener("pageshow", this, false);
+    addEventListener("resize", this, false);
+  },
+
+  uninit: function uninit() {
+    removeEventListener("DOMWindowCreated", this, false);
+    removeEventListener("DOMMetaAdded", this, false);
+    removeEventListener("DOMContentLoaded", this, false);
+    removeEventListener("pageshow", this, false);
+    removeEventListener("resize", this, false);
+  },
+
+  handleEvent: function handleEvent(aEvent) {
+    let target = aEvent.originalTarget;
+    let document = target.ownerDocument || target;
+    let browser = BrowserApp.getBrowserForDocument(document);
+    let tab = BrowserApp.getTabForBrowser(browser);
+    if (!tab)
+      return;
+
+    switch (aEvent.type) {
+      case "DOMWindowCreated":
+        this.resetMetadata(tab);
+        break;
+
+      case "DOMMetaAdded":
+        if (target.name == "viewport")
+          this.updateMetadata(tab);
+        break;
+
+      case "DOMContentLoaded":
+      case "pageshow":
+        this.updateMetadata(tab);
+        break;
+
+      case "resize":
+        this.onResize();
+        break;
+    }
+  },
+
+  resetMetadata: function resetMetadata(tab) {
+    tab.updateViewportMetadata(null);
+  },
+
+  updateMetadata: function updateMetadata(tab) {
+    let metadata = this.getViewportMetadata(tab.browser.contentWindow);
+    tab.updateViewportMetadata(metadata);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  getViewportMetadata: function getViewportMetadata(aWindow) {
+    let doctype = aWindow.document.doctype;
+    if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
+      return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
+
+    let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
+    if (handheldFriendly == "true")
+      return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
+
+    if (aWindow.document instanceof XULDocument)
+      return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
+
+    
+    
+    if (aWindow.frames.length > 0 && (aWindow.document.body instanceof HTMLFrameSetElement))
+      return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
+
+    
+    
+    
+
+    
+    
+    let scale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
+    let minScale = parseFloat(windowUtils.getDocumentMetadata("viewport-minimum-scale"));
+    let maxScale = parseFloat(windowUtils.getDocumentMetadata("viewport-maximum-scale"));
+
+    let widthStr = windowUtils.getDocumentMetadata("viewport-width");
+    let heightStr = windowUtils.getDocumentMetadata("viewport-height");
+    let width = this.clamp(parseInt(widthStr), kViewportMinWidth, kViewportMaxWidth);
+    let height = this.clamp(parseInt(heightStr), kViewportMinHeight, kViewportMaxHeight);
+
+    let allowZoomStr = windowUtils.getDocumentMetadata("viewport-user-scalable");
+    let allowZoom = !/^(0|no|false)$/.test(allowZoomStr); 
+
+    scale = this.clamp(scale, kViewportMinScale, kViewportMaxScale);
+    minScale = this.clamp(minScale, kViewportMinScale, kViewportMaxScale);
+    maxScale = this.clamp(maxScale, kViewportMinScale, kViewportMaxScale);
+
+    
+    let autoSize = (widthStr == "device-width" ||
+                    (!widthStr && (heightStr == "device-height" || scale == 1.0)));
+
+    return {
+      defaultZoom: scale,
+      minZoom: minScale,
+      maxZoom: maxScale,
+      width: width,
+      height: height,
+      autoSize: autoSize,
+      allowZoom: allowZoom,
+      autoScale: true
+    };
+  },
+
+  onResize: function onResize() {
+    for (let i = 0; i < BrowserApp.tabs.length; i++)
+      BrowserApp.tabs[i].updateViewportSize();
+  },
+
+  clamp: function(num, min, max) {
+    return Math.max(min, Math.min(max, num));
+  },
+
+  
+  
+  getScaleRatio: function getScaleRatio() {
+    let prefValue = Services.prefs.getIntPref("browser.viewport.scaleRatio");
+    if (prefValue > 0)
+      return prefValue / 100;
+
+    let dpi = this.displayDPI;
+    if (dpi < 200) 
+      return 1;
+    else if (dpi < 300) 
+      return 1.5;
+
+    
+    return Math.floor(dpi / 150);
+  },
+
+  get displayDPI() {
+    let utils = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    delete this.displayDPI;
+    return this.displayDPI = utils.displayDPI;
+  }
+};
+
+
 
 
 var PopupBlockerObserver = {
@@ -2253,7 +2491,7 @@ var PopupBlockerObserver = {
     let pageReport = BrowserApp.selectedBrowser.pageReport;
     if (pageReport) {
       for (let i = 0; i < pageReport.length; ++i) {
-        var popupURIspec = pageReport[i].popupWindowURI.spec;
+        let popupURIspec = pageReport[i].popupWindowURI.spec;
 
         
         
