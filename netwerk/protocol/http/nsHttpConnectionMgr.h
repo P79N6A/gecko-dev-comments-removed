@@ -162,6 +162,7 @@ public:
     
         
         
+        
         RedCorruptedContent = kPipelineInfoTypeRed | kPipelineInfoTypeBad | 0x0004,
 
         
