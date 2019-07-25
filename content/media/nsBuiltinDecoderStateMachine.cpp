@@ -631,7 +631,6 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   LOG(PR_LOG_DEBUG, ("%p Begun audio thread/loop", mDecoder.get()));
   PRInt64 audioDuration = 0;
   PRInt64 audioStartTime = -1;
-  PRInt64 framesWritten = 0;
   PRUint32 channels, rate;
   double volume = -1;
   bool setVolume;
@@ -746,6 +745,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
       break;
     }
 
+    PRInt64 framesWritten = 0;
     if (missingFrames > 0) {
       
       
@@ -780,18 +780,22 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     bool seeking = false;
     {
       ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      if (framesWritten < minWriteFrames) {
+      PRInt64 unplayedFrames = audioDuration % minWriteFrames;
+      if (minWriteFrames > 1 && unplayedFrames > 0) {
         
         
         
-        PRInt64 minToWrite = minWriteFrames - framesWritten;
-        if (minToWrite < PR_UINT32_MAX / channels) {
+        
+        
+        
+        PRInt64 framesToWrite = minWriteFrames - unplayedFrames;
+        if (framesToWrite < PR_UINT32_MAX / channels) {
           
           
-          PRUint32 numSamples = minToWrite * channels;
+          PRUint32 numSamples = framesToWrite * channels;
           nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numSamples]);
           memset(buf.get(), 0, numSamples * sizeof(AudioDataValue));
-          mAudioStream->Write(buf, minToWrite);
+          mAudioStream->Write(buf, framesToWrite);
         }
       }
 
