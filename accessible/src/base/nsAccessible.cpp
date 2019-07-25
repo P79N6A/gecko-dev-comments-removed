@@ -969,10 +969,8 @@ void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame
     *aBoundingFrame = ancestorFrame;
     
     
-    if (!nsCoreUtils::IsCorrectFrameType(ancestorFrame,
-                                         nsGkAtoms::inlineFrame) &&
-        !nsCoreUtils::IsCorrectFrameType(ancestorFrame,
-                                         nsGkAtoms::textFrame))
+    if (ancestorFrame->GetType() != nsGkAtoms::inlineFrame &&
+        ancestorFrame->GetType() != nsGkAtoms::textFrame)
       break;
     ancestorFrame = ancestorFrame->GetParent();
   }
@@ -996,8 +994,7 @@ void nsAccessible::GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame
 
     nsIFrame *iterNextFrame = nsnull;
 
-    if (nsCoreUtils::IsCorrectFrameType(iterFrame,
-                                        nsGkAtoms::inlineFrame)) {
+    if (iterFrame->GetType() == nsGkAtoms::inlineFrame) {
       
       
       iterNextFrame = iterFrame->GetFirstPrincipalChild();
