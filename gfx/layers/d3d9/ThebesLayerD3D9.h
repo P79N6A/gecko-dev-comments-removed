@@ -76,11 +76,6 @@ private:
 
   nsIntRect mTextureRect;
 
-  
-  nsRefPtr<gfxASurface> mD2DSurface;
-
-  bool mD2DSurfaceInitialized;
-
   bool HaveTextures(SurfaceMode aMode)
   {
     return mTexture && (aMode != SURFACE_COMPONENT_ALPHA || mTextureOnWhite);

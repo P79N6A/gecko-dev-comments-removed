@@ -84,9 +84,6 @@ protected:
 
   PRUint32 mCanvasFramebuffer;
 
-  
-  bool mIsInteropTexture;
-
   PRPackedBool mDataIsPremultiplied;
   PRPackedBool mNeedsYFlip;
 };
