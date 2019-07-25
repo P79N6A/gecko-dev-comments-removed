@@ -581,9 +581,16 @@ nsWindow::Create(nsIWidget *aParent,
     nsUXThemeData::dwmSetWindowAttributePtr(mWnd, DWMWA_NONCLIENT_RTL_LAYOUT, &dwAttribute, sizeof dwAttribute);
   }
 
-  if (mWindowType != eWindowType_plugin &&
-      mWindowType != eWindowType_invisible &&
+  if ((mWindowType == eWindowType_toplevel ||
+       mWindowType == eWindowType_dialog ||
+       mWindowType == eWindowType_popup) &&
       MouseScrollHandler::Device::IsFakeScrollableWindowNeeded()) {
+    
+    
+    
+    
+    
+    
     
     
     
@@ -612,6 +619,15 @@ nsWindow::Create(nsIWidget *aParent,
       (className.get(), L"FAKETRACKPOINTSCROLLABLE",
        WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | 0x30,
        0, 0, 0, 0, scrollContainerWnd, NULL, nsToolkit::mDllInstance, NULL);
+    HWND scrollBarWnd = ::CreateWindowW
+      (L"SCROLLBAR", L"FAKETRACKPOINTSCROLLBAR",
+       WS_CHILD | WS_VISIBLE | SBS_VERT,
+       0, 0, 0, 0, mWnd, NULL, nsToolkit::mDllInstance, NULL);
+
+    
+    
+    SCROLLINFO scrollInfo = { sizeof SCROLLINFO, SIF_ALL, 0, 100, 1, 50, 50 };
+    ::SetScrollInfo(scrollBarWnd, SB_CTL, &scrollInfo, FALSE);
 
     
     
@@ -6853,11 +6869,9 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
   
   if(mWindowType == eWindowType_plugin) {
     if(NULLREGION == ::CombineRgn(dest, dest, dest, RGN_OR)) {
-      ::ShowWindow(mWnd, SW_HIDE);
       ::EnableWindow(mWnd, FALSE);
     } else {
       ::EnableWindow(mWnd, TRUE);
-      ::ShowWindow(mWnd, SW_SHOW);
     }
   }
   if (!::SetWindowRgn(mWnd, dest, TRUE)) {
