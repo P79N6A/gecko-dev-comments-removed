@@ -2650,8 +2650,9 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
   
   if (newIndex != kNothingSelected) {
     
+    
     PRBool wasChanged = PR_FALSE;
-    if (isControl && charcode != ' ') {
+    if (isControl && !isShift && charcode != ' ') {
       mStartSelectionIndex = newIndex;
       mEndSelectionIndex = newIndex;
       InvalidateFocus();
