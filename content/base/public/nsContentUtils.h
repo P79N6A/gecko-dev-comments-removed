@@ -1781,6 +1781,25 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  static PRBool IsPatternMatching(nsAString& aValue, nsAString& aPattern,
+                                  nsIDocument* aDocument);
+
+  
+
+
+
   static void InitializeTouchEventTable();
 private:
   static PRBool InitializeEventTable();

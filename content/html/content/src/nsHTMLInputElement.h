@@ -369,23 +369,6 @@ protected:
   static PRBool IsValidEmailAddressList(const nsAString& aValue);
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static PRBool IsPatternMatching(nsAString& aValue, nsAString& aPattern,
-                                  nsIDocument* aDocument);
-
-  
   nsresult SetValueInternal(const nsAString& aValue,
                             PRBool aUserInput,
                             PRBool aSetValueChanged);
