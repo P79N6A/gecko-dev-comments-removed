@@ -233,8 +233,10 @@ protected:
 
 
 
+
     nsIntRegion  mVisibleAboveRegion;
     
+
 
 
 
@@ -1105,10 +1107,12 @@ ContainerState::PopThebesLayerData()
                                      data->mVisibleAboveRegion);
     nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
                                      data->mVisibleRegion);
+    nextData->mVisibleAboveRegion.SimplifyOutward(4);
     nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
                                      data->mDrawAboveRegion);
     nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
                                      data->mDrawRegion);
+    nextData->mDrawAboveRegion.SimplifyOutward(4);
   }
 
   mThebesLayerDataStack.RemoveElementAt(lastIndex);
@@ -1440,11 +1444,13 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       ThebesLayerData* data = GetTopThebesLayerData();
       if (data) {
         data->mVisibleAboveRegion.Or(data->mVisibleAboveRegion, itemVisibleRect);
+        data->mVisibleAboveRegion.SimplifyOutward(4);
         
         
         
         
         data->mDrawAboveRegion.Or(data->mDrawAboveRegion, itemDrawRect);
+        data->mDrawAboveRegion.SimplifyOutward(4);
       }
       RestrictVisibleRegionForLayer(ownLayer, itemVisibleRect);
       ContainerLayer* oldContainer = ownLayer->GetParent();
