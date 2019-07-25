@@ -1867,4 +1867,10 @@ public class GeckoAppShell
     public static void unlockScreenOrientation() {
         GeckoScreenOrientationListener.getInstance().unlockScreenOrientation();
     }
+
+    static native void notifyFilePickerResult(String filePath, long id);
+
+    
+    public static void showFilePickerAsync(String aMimeType, long id) {
+    }
 }
