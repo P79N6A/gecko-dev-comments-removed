@@ -1756,7 +1756,7 @@ IdentityHandler.prototype = {
 
       
       if (iData.city)
-        supplemental += iData.city + "\n";
+        supplemental += iData.city + " ";
       if (iData.state && iData.country)
         supplemental += this._stringBundle.getFormattedString("identity.identified.state_and_country",
                                                               [iData.state, iData.country]);
