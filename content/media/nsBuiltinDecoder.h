@@ -261,7 +261,7 @@ public:
 
   
   
-  virtual PRBool OnDecodeThread() = 0;
+  virtual PRBool OnDecodeThread() const = 0;
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus() = 0;
 
@@ -276,7 +276,7 @@ public:
   
   
   
-  virtual double GetCurrentTime() = 0;
+  virtual double GetCurrentTime() const = 0;
 
   
   
@@ -423,7 +423,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
     return IsCurrentThread(mStateMachineThread);
   }
 
-  PRBool OnDecodeThread() {
+  PRBool OnDecodeThread() const {
     return mDecoderStateMachine->OnDecodeThread();
   }
 

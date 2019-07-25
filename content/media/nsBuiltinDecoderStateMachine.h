@@ -158,14 +158,14 @@ public:
   virtual void Shutdown();
   virtual PRInt64 GetDuration();
   virtual void SetDuration(PRInt64 aDuration);
-  virtual PRBool OnDecodeThread() {
+  virtual PRBool OnDecodeThread() const {
     return IsCurrentThread(mDecodeThread);
   }
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
   virtual void Decode();
   virtual void Seek(double aTime);
-  virtual double GetCurrentTime();
+  virtual double GetCurrentTime() const;
   virtual void ClearPositionChangeFlag();
   virtual void SetSeekable(PRBool aSeekable);
   virtual void UpdatePlaybackPosition(PRInt64 aTime);
@@ -236,7 +236,6 @@ public:
   State mState;
 
   nsresult GetBuffered(nsTimeRanges* aBuffered) {
-    NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
     return mReader->GetBuffered(aBuffered, mStartTime);
   }
 
@@ -258,11 +257,13 @@ protected:
 
   
   
-  
-  
-  
-  PRBool IsDecodeCloseToDownload();
+  PRBool HasLowUndecodedData() const;
 
+  
+  
+  PRInt64 GetUndecodedData() const;
+
+  
   
   
   

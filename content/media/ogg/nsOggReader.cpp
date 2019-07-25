@@ -1597,8 +1597,6 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
 
 nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-
   
   
   
@@ -1708,8 +1706,6 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
 
 PRBool nsOggReader::IsKnownStream(PRUint32 aSerial)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-
   for (PRUint32 i = 0; i < mKnownStreams.Length(); i++) {
     PRUint32 serial = mKnownStreams[i];
     if (serial == aSerial) {
