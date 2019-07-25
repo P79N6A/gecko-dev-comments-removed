@@ -83,6 +83,14 @@ NativeWindow()
     if (!gNativeWindow) {
         
         
+        
+        
+        
+        
+        hal::SetScreenEnabled(true);
+
+        
+        
         gNativeWindow = new android::FramebufferNativeWindow();
 
         
@@ -163,9 +171,6 @@ static void *frameBufferWatcher(void *) {
 nsWindow::nsWindow()
 {
     if (!sScreenInitialized) {
-        
-        hal::SetScreenEnabled(true);
-
         
         
         if (pthread_create(&sFramebufferWatchThread, NULL, frameBufferWatcher, NULL)) {
