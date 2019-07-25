@@ -186,7 +186,7 @@ namespace js {
 
 
 extern bool
-EqualStrings(JSContext *cx, JSString *str1, JSString *str2, JSBool *result);
+EqualStrings(JSContext *cx, JSString *str1, JSString *str2, bool *result);
 
 
 extern bool
