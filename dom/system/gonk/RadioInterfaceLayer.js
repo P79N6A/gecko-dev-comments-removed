@@ -422,12 +422,14 @@ RadioInterfaceLayer.prototype = {
   handleSmsSent: function handleSmsSent(message) {
     debug("handleSmsSent: " + JSON.stringify(message));
     let timestamp = Date.now();
-    let id = gSmsDatabaseService.saveSentMessage(message.number, message.body, timestamp);
+    let id = gSmsDatabaseService.saveSentMessage(message.number,
+                                                 message.fullBody,
+                                                 timestamp);
     let sms = gSmsService.createSmsMessage(id,
                                            DOM_SMS_DELIVERY_SENT,
                                            null,
                                            message.number,
-                                           message.body,
+                                           message.fullBody,
                                            timestamp);
     
     gSmsRequestManager.notifySmsSent(message.requestId, sms);
@@ -551,6 +553,19 @@ RadioInterfaceLayer.prototype = {
   
 
 
+  _segmentRef: 0,
+  get nextSegmentRef() {
+    let ref = this._segmentRef++;
+
+    this._segmentRef %= (this.segmentRef16Bit ? 65535 : 255);
+
+    
+    return ref + 1;
+  },
+
+  
+
+
 
 
 
@@ -664,7 +679,7 @@ RadioInterfaceLayer.prototype = {
 
       options = {
         dcs: RIL.PDU_DCS_MSG_CODING_7BITS_ALPHABET,
-        encodedBodyLength: bodySeptets,
+        encodedFullBodyLength: bodySeptets,
         userDataHeaderLength: headerLen,
         langIndex: langIndex,
         langShiftIndex: langShiftIndex,
@@ -705,7 +720,7 @@ RadioInterfaceLayer.prototype = {
 
     return {
       dcs: RIL.PDU_DCS_MSG_CODING_16BITS_ALPHABET,
-      encodedBodyLength: bodyChars * 2,
+      encodedFullBodyLength: bodyChars * 2,
       userDataHeaderLength: headerLen,
       segmentMaxSeq: segments,
     };
@@ -746,7 +761,7 @@ RadioInterfaceLayer.prototype = {
     }
 
     if (options) {
-      options.body = message;
+      options.fullBody = message;
     }
 
     debug("_calculateUserDataLength: " + JSON.stringify(options));
@@ -868,11 +883,11 @@ RadioInterfaceLayer.prototype = {
     if (options.dcs == RIL.PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
       const langTable = RIL.PDU_NL_LOCKING_SHIFT_TABLES[options.langIndex];
       const langShiftTable = RIL.PDU_NL_SINGLE_SHIFT_TABLES[options.langShiftIndex];
-      options.segments = this._fragmentText7Bit(options.body,
+      options.segments = this._fragmentText7Bit(options.fullBody,
                                                 langTable, langShiftTable,
                                                 options.userDataHeaderLength);
     } else {
-      options.segments = this._fragmentTextUCS2(options.body,
+      options.segments = this._fragmentTextUCS2(options.fullBody,
                                                 options.userDataHeaderLength);
     }
 
@@ -892,6 +907,12 @@ RadioInterfaceLayer.prototype = {
     options.number = number;
     options.requestId = requestId;
     options.processId = processId;
+
+    this._fragmentText(message, options);
+    if (options.segmentMaxSeq > 1) {
+      options.segmentRef16Bit = this.segmentRef16Bit;
+      options.segmentRef = this.nextSegmentRef;
+    }
 
     this.worker.postMessage(options);
   },
