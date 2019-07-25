@@ -425,6 +425,9 @@ static PRBool ShouldRevalidateEntry(imgCacheEntry *aEntry,
   if (aFlags & nsIRequest::VALIDATE_ALWAYS) {
     bValidateEntry = PR_TRUE;
   }
+  else if (aEntry->GetMustValidate()) {
+    bValidateEntry = PR_TRUE;
+  }
   
   
   
@@ -438,7 +441,7 @@ static PRBool ShouldRevalidateEntry(imgCacheEntry *aEntry,
     if (aFlags & (nsIRequest::VALIDATE_NEVER | 
                   nsIRequest::VALIDATE_ONCE_PER_SESSION)) 
     {
-      bValidateEntry = aEntry->GetMustValidateIfExpired();
+      bValidateEntry = PR_FALSE;
     }
     
     
@@ -526,12 +529,12 @@ static PRUint32 SecondsFromPRTime(PRTime prTime)
   return PRUint32(PRInt64(prTime) / PRInt64(PR_USEC_PER_SEC));
 }
 
-imgCacheEntry::imgCacheEntry(imgRequest *request, PRBool mustValidateIfExpired )
+imgCacheEntry::imgCacheEntry(imgRequest *request, PRBool mustValidate )
  : mRequest(request),
    mDataSize(0),
    mTouchedTime(SecondsFromPRTime(PR_Now())),
    mExpiryTime(0),
-   mMustValidateIfExpired(mustValidateIfExpired),
+   mMustValidate(mustValidate),
    mEvicted(PR_FALSE),
    mHasNoProxies(PR_TRUE)
 {}

@@ -532,11 +532,6 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aReq
 
     
     
-    
-    
-    
-    
-    
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
     if (httpChannel) {
       PRBool bMustRevalidate = PR_FALSE;
@@ -561,7 +556,7 @@ void imgRequest::SetCacheValidation(imgCacheEntry* aCacheEntry, nsIRequest* aReq
       
       
       if (bMustRevalidate)
-        aCacheEntry->SetMustValidateIfExpired(bMustRevalidate);
+        aCacheEntry->SetMustValidate(bMustRevalidate);
     }
   }
 }
