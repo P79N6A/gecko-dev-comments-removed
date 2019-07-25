@@ -263,6 +263,14 @@ public:
   nscolor FindOpaqueColorCovering(nsDisplayListBuilder* aBuilder,
                                   ThebesLayer* aLayer, const nsRect& aRect);
 
+  
+
+
+  static void DestroyDisplayItemDataFor(nsIFrame* aFrame)
+  {
+    aFrame->Properties().Delete(DisplayItemDataProperty());
+  }
+
 protected:
   
 

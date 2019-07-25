@@ -162,6 +162,19 @@ public:
   static nsIObjectFrame* GetNextObjectFrame(nsPresContext* aPresContext,
                                             nsIFrame* aRoot);
 
+  
+
+
+
+
+
+  static void BeginSwapDocShells(nsIContent* aContent, void*);
+  
+
+
+
+  static void EndSwapDocShells(nsIContent* aContent, void*);
+
 protected:
   nsObjectFrame(nsStyleContext* aContext);
   virtual ~nsObjectFrame();
