@@ -39,6 +39,9 @@
 #include "nsAlgorithm.h"
 #include "nsWebMBufferedParser.h"
 #include "nsTimeRanges.h"
+#include "nsThreadUtils.h"
+
+using mozilla::MonitorAutoEnter;
 
 static const double NS_PER_S = 1e9;
 static const double MS_PER_S = 1e3;
@@ -63,7 +66,8 @@ VIntLength(unsigned char aFirstByte, PRUint32* aMask)
 }
 
 void nsWebMBufferedParser::Append(const unsigned char* aBuffer, PRUint32 aLength,
-                                  nsTArray<nsWebMTimeDataOffset>& aMapping)
+                                  nsTArray<nsWebMTimeDataOffset>& aMapping,
+                                  Monitor& aMonitor)
 {
   static const unsigned char CLUSTER_ID[] = { 0x1f, 0x43, 0xb6, 0x75 };
   static const unsigned char TIMECODE_ID = 0xe7;
@@ -167,10 +171,13 @@ void nsWebMBufferedParser::Append(const unsigned char* aBuffer, PRUint32 aLength
       } else {
         
         
-        PRUint32 idx;
-        if (!aMapping.GreatestIndexLtEq(mBlockOffset, idx)) {
-          nsWebMTimeDataOffset entry(mBlockOffset, mClusterTimecode + mBlockTimecode);
-          aMapping.InsertElementAt(idx, entry);
+        {
+          MonitorAutoEnter mon(aMonitor);
+          PRUint32 idx;
+          if (!aMapping.GreatestIndexLtEq(mBlockOffset, idx)) {
+            nsWebMTimeDataOffset entry(mBlockOffset, mClusterTimecode + mBlockTimecode);
+            aMapping.InsertElementAt(idx, entry);
+          }
         }
 
         
@@ -208,6 +215,8 @@ void nsWebMBufferedState::CalculateBufferedForRange(nsTimeRanges* aBuffered,
                                                     PRUint64 aTimecodeScale,
                                                     PRInt64 aStartTimeOffsetNS)
 {
+  MonitorAutoEnter mon(mMonitor);
+
   
   PRUint32 start;
   mTimeMapping.GreatestIndexLtEq(aStartOffset, start);
@@ -251,6 +260,7 @@ void nsWebMBufferedState::CalculateBufferedForRange(nsTimeRanges* aBuffered,
 
 void nsWebMBufferedState::NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRUint32 aOffset)
 {
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   PRUint32 idx;
   if (!mRangeParsers.GreatestIndexLtEq(aOffset, idx)) {
     
@@ -274,7 +284,10 @@ void nsWebMBufferedState::NotifyDataArrived(const char* aBuffer, PRUint32 aLengt
     }
   }
 
-  mRangeParsers[idx].Append(reinterpret_cast<const unsigned char*>(aBuffer), aLength, mTimeMapping);
+  mRangeParsers[idx].Append(reinterpret_cast<const unsigned char*>(aBuffer),
+                            aLength,
+                            mTimeMapping,
+                            mMonitor);
 
   
   PRUint32 i = 0;
