@@ -450,8 +450,7 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir)
   dialog->Advise(this, &mFDECookie);
 
   
-  FILEOPENDIALOGOPTIONS fos = 0;
-  fos |= FOS_PICKFOLDERS;
+  FILEOPENDIALOGOPTIONS fos = FOS_PICKFOLDERS;
   dialog->SetOptions(fos);
  
   
@@ -521,7 +520,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   nsString filterBuffer = mFilterList;
                                 
   nsAutoArrayPtr<PRUnichar> fileBuffer(new PRUnichar[FILE_BUFFER_SIZE]);
-  wcsncpy(fileBuffer,  mDefault.get(), FILE_BUFFER_SIZE);
+  wcsncpy(fileBuffer,  mDefaultFilePath.get(), FILE_BUFFER_SIZE);
   fileBuffer[FILE_BUFFER_SIZE-1] = '\0'; 
 
   if (!aInitialDir.IsEmpty()) {
@@ -638,7 +637,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
       break;
 
     default:
-      NS_ERROR("unsupported file picker mode");
+      NS_NOTREACHED("unsupported file picker mode");
       return false;
   }
 
@@ -711,7 +710,148 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
 bool
 nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
 {
-  return false;
+  nsRefPtr<IFileDialog> dialog;
+  if (mMode != modeSave) {
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC,
+                                IID_IFileOpenDialog,
+                                getter_AddRefs(dialog))))
+      return false;
+  } else {
+    if (FAILED(CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC,
+                                IID_IFileSaveDialog,
+                                getter_AddRefs(dialog))))
+      return false;
+  }
+
+  
+  dialog->Advise(this, &mFDECookie);
+
+  
+
+  FILEOPENDIALOGOPTIONS fos = 0;
+  fos |= FOS_SHAREAWARE | FOS_OVERWRITEPROMPT | FOS_NOREADONLYRETURN;
+
+  
+  if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
+    fos |= FOS_DONTADDTORECENT;
+  }
+
+  
+  
+  AutoRestoreWorkingPath arw;
+
+  
+  switch(mMode) {
+    case modeOpen:
+      fos |= FOS_FILEMUSTEXIST;
+      break;
+
+    case modeOpenMultiple:
+      fos |= FOS_FILEMUSTEXIST | FOS_ALLOWMULTISELECT;
+      break;
+
+    case modeSave:
+      
+      
+      if (IsDefaultPathLink())
+        fos |= FOS_NODEREFERENCELINKS;
+      break;
+  }
+
+  dialog->SetOptions(fos);
+
+  
+
+  
+  dialog->SetTitle(mTitle.get());
+
+  
+  if (!mDefaultFilename.IsEmpty()) {
+    dialog->SetFileName(mDefaultFilename.get());
+  }
+  
+  NS_NAMED_LITERAL_STRING(htmExt, "html");
+
+  
+  if (!mDefaultExtension.IsEmpty()) {
+    dialog->SetDefaultExtension(mDefaultExtension.get());
+  } else if (IsDefaultPathHtml()) {
+    dialog->SetDefaultExtension(htmExt.get());
+  }
+
+  
+  if (!aInitialDir.IsEmpty()) {
+    nsRefPtr<IShellItem> folder;
+    if (SUCCEEDED(SHCreateItemFromParsingName(aInitialDir.get(), NULL,
+                                              IID_IShellItem,
+                                              getter_AddRefs(folder)))) {
+      dialog->SetFolder(folder);
+    }
+  }
+
+  
+  if (!mComFilterList.IsEmpty()) {
+    dialog->SetFileTypes(mComFilterList.Length(), mComFilterList.get());
+    dialog->SetFileTypeIndex(mSelectedType);
+  }
+
+  
+
+  AutoDestroyTmpWindow adtw((HWND)(mParentWidget.get() ?
+    mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : NULL));
+
+  AutoWidgetPickerState awps(mParentWidget);
+  if (FAILED(dialog->Show(adtw.get()))) {
+    dialog->Unadvise(mFDECookie);
+    return false;
+  }
+  dialog->Unadvise(mFDECookie);
+
+  
+
+  
+  if (mMode != modeOpenMultiple) {
+    nsRefPtr<IShellItem> item;
+    if (FAILED(dialog->GetResult(getter_AddRefs(item))) || !item) {
+      return false;
+    }
+
+    LPWSTR str = NULL;
+    if (FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &str)))
+      return false;
+    mUnicodeFile.Assign(str);
+    CoTaskMemFree(str);
+    return true;
+  }
+
+  
+  nsRefPtr<IFileOpenDialog> openDlg;
+  dialog->QueryInterface(IID_IFileOpenDialog, getter_AddRefs(openDlg));
+  if (!openDlg) {
+    
+    return false;
+  }
+
+  nsRefPtr<IShellItemArray> items;
+  if (FAILED(openDlg->GetResults(getter_AddRefs(items))) || !items) {
+    return false;
+  }
+
+  DWORD count = 0;
+  items->GetCount(&count);
+  for (unsigned int idx = 0; idx < count; idx++) {
+    nsRefPtr<IShellItem> item;
+    if (SUCCEEDED(items->GetItemAt(idx, getter_AddRefs(item)))) {
+      LPWSTR str = NULL;
+      if (FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &str)))
+        continue;
+      nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
+      if (file && NS_SUCCEEDED(file->InitWithPath(nsDependentString(str))))
+        mFiles.AppendObject(file);
+      CoTaskMemFree(str);
+    }
+  }
+  return true;
 }
 
 
@@ -830,32 +970,33 @@ nsFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
 NS_IMETHODIMP
 nsFilePicker::SetDefaultString(const nsAString& aString)
 {
-  mDefault = aString;
+  mDefaultFilePath = aString;
 
   
   PRInt32 nameLength;
-  PRInt32 nameIndex = mDefault.RFind("\\");
+  PRInt32 nameIndex = mDefaultFilePath.RFind("\\");
   if (nameIndex == kNotFound)
     nameIndex = 0;
   else
     nameIndex ++;
-  nameLength = mDefault.Length() - nameIndex;
+  nameLength = mDefaultFilePath.Length() - nameIndex;
+  mDefaultFilename.Assign(Substring(mDefaultFilePath, nameIndex));
   
   if (nameLength > MAX_PATH) {
-    PRInt32 extIndex = mDefault.RFind(".");
+    PRInt32 extIndex = mDefaultFilePath.RFind(".");
     if (extIndex == kNotFound)
-      extIndex = mDefault.Length();
+      extIndex = mDefaultFilePath.Length();
 
     
     PRInt32 charsToRemove = nameLength - MAX_PATH;
     if (extIndex - nameIndex >= charsToRemove) {
-      mDefault.Cut(extIndex - charsToRemove, charsToRemove);
+      mDefaultFilePath.Cut(extIndex - charsToRemove, charsToRemove);
     }
   }
 
   
   
-  mDefault.ReplaceChar(FILE_ILLEGAL_CHARACTERS, '-');
+  mDefaultFilePath.ReplaceChar(FILE_ILLEGAL_CHARACTERS, '-');
 
   return NS_OK;
 }
@@ -922,8 +1063,8 @@ nsFilePicker::GetQualifiedPath(const PRUnichar *aInPath, nsString &aOutPath)
   }
 }
 
-NS_IMETHODIMP
-nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
+void
+nsFilePicker::AppendXPFilter(const nsAString& aTitle, const nsAString& aFilter)
 {
   mFilterList.Append(aTitle);
   mFilterList.Append(PRUnichar('\0'));
@@ -940,7 +1081,20 @@ nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
   }
 
   mFilterList.Append(PRUnichar('\0'));
+}
 
+NS_IMETHODIMP
+nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
+{
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+  if (nsWindow::GetWindowsVersion() >= VISTA_VERSION) {
+    mComFilterList.Append(aTitle, aFilter);
+  } else {
+    AppendXPFilter(aTitle, aFilter);
+  }
+#else
+  AppendXPFilter(aTitle, aFilter);
+#endif
   return NS_OK;
 }
 
@@ -986,7 +1140,7 @@ nsFilePicker::IsPrivacyModeEnabled()
 bool
 nsFilePicker::IsDefaultPathLink()
 {
-  NS_ConvertUTF16toUTF8 ext(mDefault);
+  NS_ConvertUTF16toUTF8 ext(mDefaultFilePath);
   ext.Trim(" .", false, true); 
   ToLowerCase(ext);
   if (StringEndsWith(ext, NS_LITERAL_CSTRING(".lnk")) ||
@@ -999,14 +1153,41 @@ nsFilePicker::IsDefaultPathLink()
 bool
 nsFilePicker::IsDefaultPathHtml()
 {
-  PRInt32 extIndex = mDefault.RFind(".");
+  PRInt32 extIndex = mDefaultFilePath.RFind(".");
   if (extIndex >= 0) {
     nsAutoString ext;
-    mDefault.Right(ext, mDefault.Length() - extIndex);
+    mDefaultFilePath.Right(ext, mDefaultFilePath.Length() - extIndex);
     if (ext.LowerCaseEqualsLiteral(".htm")  ||
         ext.LowerCaseEqualsLiteral(".html") ||
         ext.LowerCaseEqualsLiteral(".shtml"))
       return true;
   }
   return false;
+}
+
+void
+nsFilePicker::ComDlgFilterSpec::Append(const nsAString& aTitle, const nsAString& aFilter)
+{
+  PRUint32 size = sizeof(COMDLG_FILTERSPEC);
+  PRUint32 hdrLen = size * (mLength + 1);
+  mSpecList = (COMDLG_FILTERSPEC*)realloc(mSpecList, hdrLen);
+  if (!mSpecList) {
+    NS_WARNING("mSpecList realloc failed.");
+    return;
+  }
+  COMDLG_FILTERSPEC* pSpecForward = (COMDLG_FILTERSPEC*)(mSpecList + mLength);
+  memset(pSpecForward, 0, size);
+  nsString* pStr = mStrings.AppendElement(aTitle);
+  if (!pStr) {
+    NS_WARNING("mStrings.AppendElement failed.");
+    return;
+  }
+  pSpecForward->pszName = pStr->get();
+  pStr = mStrings.AppendElement(aFilter);
+  if (!pStr) {
+    NS_WARNING("mStrings.AppendElement failed.");
+    return;
+  }
+  pSpecForward->pszSpec = pStr->get();
+  mLength++;
 }
