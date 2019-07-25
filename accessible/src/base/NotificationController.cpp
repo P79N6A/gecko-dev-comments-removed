@@ -210,8 +210,10 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   if (!mDocument->HasLoadState(nsDocAccessible::eTreeConstructed)) {
     
     
-    if (!mDocument->IsBoundToParent())
+    if (!mDocument->IsBoundToParent()) {
+      mObservingState = eRefreshObserving;
       return;
+    }
 
 #ifdef DEBUG_NOTIFICATIONS
     printf("\ninitial tree created, document: %p, document node: %p\n",
