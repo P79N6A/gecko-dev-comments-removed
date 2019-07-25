@@ -456,7 +456,7 @@ nsDOMDataTransfer::MozGetDataAt(const nsAString& aFormat,
   
   nsIPrincipal* principal = nsnull;
   if (mEventType != NS_DRAGDROP_DROP && mEventType != NS_DRAGDROP_DRAGDROP &&
-      !nsContentUtils::IsCallerTrustedForCapability("UniversalBrowserRead")) {
+      !nsContentUtils::CallerHasUniversalXPConnect()) {
     nsresult rv = NS_OK;
     principal = GetCurrentPrincipal(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -525,7 +525,7 @@ nsDOMDataTransfer::MozSetDataAt(const nsAString& aFormat,
   
   if ((aFormat.EqualsLiteral("application/x-moz-file-promise") ||
        aFormat.EqualsLiteral("application/x-moz-file")) &&
-       !nsContentUtils::IsCallerTrustedForCapability("UniversalXPConnect")) {
+       !nsContentUtils::CallerHasUniversalXPConnect()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 

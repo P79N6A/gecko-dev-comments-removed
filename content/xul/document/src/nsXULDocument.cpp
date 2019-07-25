@@ -1381,7 +1381,7 @@ nsXULDocument::Persist(nsIContent* aElement, PRInt32 aNameSpaceID,
                        nsIAtom* aAttribute)
 {
     
-    if (!IsCapabilityEnabled("UniversalBrowserWrite"))
+    if (!IsCapabilityEnabled("UniversalXPConnect"))
         return NS_ERROR_NOT_AVAILABLE;
 
     
@@ -2140,7 +2140,7 @@ nsresult
 nsXULDocument::ApplyPersistentAttributes()
 {
     
-    if (!IsCapabilityEnabled("UniversalBrowserRead"))
+    if (!IsCapabilityEnabled("UniversalXPConnect"))
         return NS_ERROR_NOT_AVAILABLE;
 
     

@@ -170,7 +170,7 @@ nsDOMFileBase::GetMozFullPath(nsAString &aFileName)
   
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (nsContentUtils::IsCallerTrustedForCapability("UniversalFileRead")) {
+  if (nsContentUtils::CallerHasUniversalXPConnect()) {
     return GetMozFullPathInternal(aFileName);
   }
   aFileName.Truncate();
