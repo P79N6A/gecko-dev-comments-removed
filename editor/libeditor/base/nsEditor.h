@@ -191,6 +191,7 @@ public:
                             const nsAString *aValue = nsnull,
                             bool aCloneAttributes = false);
 
+  nsresult RemoveContainer(nsINode* aNode);
   nsresult RemoveContainer(nsIDOMNode *inNode);
   nsresult InsertContainerAbove(nsIDOMNode *inNode, 
                                 nsCOMPtr<nsIDOMNode> *outNode, 
@@ -504,6 +505,10 @@ public:
                        nsCOMPtr<nsIDOMNode> *aResultNode,
                        bool         bNoBlockCrossing = false,
                        nsIContent  *aActiveEditorRoot = nsnull);
+  nsIContent* GetNextNode(nsINode* aCurrentNode,
+                          bool aEditableNode,
+                          bool bNoBlockCrossing = false,
+                          nsIContent* aActiveEditorRoot = nsnull);
 
   
   nsresult GetNextNode(nsIDOMNode  *aParentNode, 
@@ -574,17 +579,13 @@ public:
   virtual bool IsTextInDirtyFrameVisible(nsIContent *aNode);
 
   
-  bool IsMozEditorBogusNode(nsIDOMNode *aNode);
   bool IsMozEditorBogusNode(nsIContent *aNode);
 
   
   nsresult CountEditableChildren(nsIDOMNode *aNode, PRUint32 &outCount);
   
   
-  nsresult GetFirstEditableNode(nsIDOMNode *aRoot, nsCOMPtr<nsIDOMNode> *outFirstNode);
-#ifdef XXX_DEAD_CODE
-  nsresult GetLastEditableNode(nsIDOMNode *aRoot, nsCOMPtr<nsIDOMNode> *outLastNode);
-#endif
+  nsINode* GetFirstEditableNode(nsINode* aRoot);
 
   nsresult GetIMEBufferLength(PRInt32* length);
   bool     IsIMEComposing();    

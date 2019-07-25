@@ -386,7 +386,7 @@ nsresult nsPluginStreamListenerPeer::Initialize(nsIURI *aURL,
 
 nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
                                                         nsNPAPIPluginInstance* aInstance,
-                                                        nsIPluginInstanceOwner *aOwner)
+                                                        nsObjectLoadingContent *aContent)
 {
 #ifdef PLUGIN_LOGGING
   nsCAutoString urlSpec;
@@ -404,7 +404,7 @@ nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
     NS_ASSERTION(mPluginInstance == nsnull, "nsPluginStreamListenerPeer::InitializeEmbedded mPluginInstance != nsnull");
     mPluginInstance = aInstance;
   } else {
-    mOwner = aOwner;
+    mContent = aContent;
   }
   
   mPendingRequests = 1;
@@ -580,17 +580,6 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
   
   
   
-  if (mOwner) {
-    nsCOMPtr<nsIPluginTagInfo> pti = do_QueryInterface(mOwner);
-    NS_ENSURE_TRUE(pti, NS_ERROR_FAILURE);
-    nsPluginTagType tagType;
-    if (NS_FAILED(pti->GetTagType(&tagType)))
-      return NS_ERROR_FAILURE;  
-  }
-  
-  
-  
-  
   nsCOMPtr<nsIInterfaceRequestor> callbacks;
   channel->GetNotificationCallbacks(getter_AddRefs(callbacks));
   if (callbacks)
@@ -642,37 +631,21 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
   
   PR_LogFlush();
 #endif
-  
-  NPWindow* window = nsnull;
-  
-  
-  
-  
-  
-  
-  
-  
-  if (!mPluginInstance && mOwner && !aContentType.IsEmpty()) {
-    nsRefPtr<nsNPAPIPluginInstance> pluginInstRefPtr;
-    mOwner->GetInstance(getter_AddRefs(pluginInstRefPtr));
-    mPluginInstance = pluginInstRefPtr.get();
 
-    mOwner->GetWindow(window);
-    if (!mPluginInstance && window) {
-      nsRefPtr<nsPluginHost> pluginHost = dont_AddRef(nsPluginHost::GetInst());
-      rv = pluginHost->SetUpPluginInstance(aContentType.get(), aURL, mOwner);
-      if (NS_SUCCEEDED(rv)) {
-        mOwner->GetInstance(getter_AddRefs(pluginInstRefPtr));
-        mPluginInstance = pluginInstRefPtr.get();
-        if (mPluginInstance) {
-          mOwner->CreateWidget();
-          
-          mOwner->SetWindow();
-        }
+  
+  
+  
+  if (!mPluginInstance && mContent && !aContentType.IsEmpty()) {
+    nsObjectLoadingContent *olc = static_cast<nsObjectLoadingContent*>(mContent.get());
+    rv = olc->InstantiatePluginInstance(aContentType.get(), aURL.get());
+    if (NS_SUCCEEDED(rv)) {
+      rv = olc->GetPluginInstance(getter_AddRefs(mPluginInstance));
+      if (NS_FAILED(rv)) {
+        return rv;
       }
     }
   }
-  
+
   
   rv = SetUpStreamListener(request, aURL);
   if (NS_FAILED(rv)) return rv;
@@ -869,7 +842,7 @@ nsresult nsPluginStreamListenerPeer::ServeStreamAsFile(nsIRequest *request,
       window->window = widget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
     }
 #endif
-    owner->SetWindow();
+    owner->CallSetWindow();
   }
   
   mSeekable = false;

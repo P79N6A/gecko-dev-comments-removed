@@ -57,12 +57,9 @@
 #include "nsIClientAuthDialogs.h"
 #include "nsClientAuthRemember.h"
 #include "nsICertOverrideService.h"
-#include "nsIBadCertListener2.h"
 #include "nsISSLErrorListener.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
-#include "nsRecentBadCerts.h"
-#include "nsIStrictTransportSecurityService.h"
 
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
@@ -75,7 +72,6 @@
 #include "nsSSLStatus.h"
 #include "nsNSSCertHelper.h"
 #include "nsNSSCleaner.h"
-#include "nsThreadUtils.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsISecureBrowserUI.h"
@@ -93,7 +89,6 @@
 #include "certdb.h"
 #include "cert.h"
 #include "keyhi.h"
-#include "secport.h"
 
 #include "mozilla/Util.h"
 
@@ -113,7 +108,6 @@ using namespace mozilla::psm;
 
 NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
 NSSCleanupAutoPtrClass(void, PR_FREEIF)
-NSSCleanupAutoPtrClass_WithParam(PRArenaPool, PORT_FreeArena, FalseParam, false)
 
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
@@ -164,6 +158,8 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mErrorCode(0),
     mErrorMessageType(PlainErrorMessage),
     mForSTARTTLS(false),
+    mSSL3Enabled(false),
+    mTLSEnabled(false),
     mHandshakePending(true),
     mHasCleartextPhase(false),
     mHandshakeInProgress(false),
@@ -942,11 +938,6 @@ void nsNSSSocketInfo::GetPreviousCert(nsIX509Cert** _result)
   NS_ASSERTION(_result, "_result parameter to GetPreviousCert is null");
   *_result = nsnull;
 
-  if (NS_IsMainThread()) {
-    NS_ERROR("nsNSSSocketInfo::GetPreviousCert called on the main thread");
-    return;
-  }
-
   nsRefPtr<PreviousCertRunnable> runnable = new PreviousCertRunnable(mCallbacks);
   nsresult rv = runnable->DispatchToMainThreadAndWait();
   NS_ASSERTION(NS_SUCCEEDED(rv), "runnable->DispatchToMainThreadAndWait() failed");
@@ -964,6 +955,10 @@ nsNSSSocketInfo::SetCertVerificationWaiting()
   mCertVerificationState = waiting_for_cert_verification;
   mCertVerificationStarted = PR_IntervalNow();
 }
+
+
+
+
 
 void
 nsNSSSocketInfo::SetCertVerificationResult(PRErrorCode errorCode,
@@ -1759,15 +1754,12 @@ nsSSLIOLayerHelpers::getSiteKey(nsNSSSocketInfo *socketInfo, nsCSubstring &key)
 
 
 bool
-nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(PRFileDesc* ssl_layer_fd, nsNSSSocketInfo *socketInfo)
+nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(nsNSSSocketInfo *socketInfo)
 {
-  PRBool currentlyUsesTLS = false;
-
   nsCAutoString key;
   getSiteKey(socketInfo, key);
 
-  SSL_OptionGet(ssl_layer_fd, SSL_ENABLE_TLS, &currentlyUsesTLS);
-  if (!currentlyUsesTLS) {
+  if (!socketInfo->IsTLSEnabled()) {
     
     
     
@@ -1776,27 +1768,19 @@ nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(PRFileDesc* ssl_layer_fd, ns
     return false;
   }
 
-  PRBool enableSSL3 = false;
-  SSL_OptionGet(ssl_layer_fd, SSL_ENABLE_SSL3, &enableSSL3);
-  if (enableSSL3) {
+  if (socketInfo->IsSSL3Enabled()) {
     
     addIntolerantSite(key);
   }
   
-  return currentlyUsesTLS;
+  return socketInfo->IsTLSEnabled();
 }
 
 void
-nsSSLIOLayerHelpers::rememberTolerantSite(PRFileDesc* ssl_layer_fd, 
-                                          nsNSSSocketInfo *socketInfo)
+nsSSLIOLayerHelpers::rememberTolerantSite(nsNSSSocketInfo *socketInfo)
 {
-  PRBool usingSecurity = false;
-  PRBool currentlyUsesTLS = false;
-  SSL_OptionGet(ssl_layer_fd, SSL_SECURITY, &usingSecurity);
-  SSL_OptionGet(ssl_layer_fd, SSL_ENABLE_TLS, &currentlyUsesTLS);
-  if (!usingSecurity || !currentlyUsesTLS) {
+  if (!socketInfo->IsTLSEnabled())
     return;
-  }
 
   nsCAutoString key;
   getSiteKey(socketInfo, key);
@@ -2024,7 +2008,7 @@ PRInt32 checkHandshake(PRInt32 bytesTransfered, bool wasReading,
       if (!wantRetry 
           && isTLSIntoleranceError(err, socketInfo->GetHasCleartextPhase()))
       {
-        wantRetry = nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(ssl_layer_fd, socketInfo);
+        wantRetry = nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(socketInfo);
       }
     }
     
@@ -2052,7 +2036,7 @@ PRInt32 checkHandshake(PRInt32 bytesTransfered, bool wasReading,
           && !socketInfo->GetHasCleartextPhase()) 
       {
         wantRetry = 
-          nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(ssl_layer_fd, socketInfo);
+          nsSSLIOLayerHelpers::rememberPossibleTLSProblemSite(socketInfo);
       }
     }
   }
@@ -3444,225 +3428,6 @@ done:
   }
 }
 
-class CertErrorRunnable : public SyncRunnableBase
-{
- public:
-  CertErrorRunnable(const void * fdForLogging,
-                    nsIX509Cert * cert,
-                    nsNSSSocketInfo * infoObject,
-                    PRErrorCode defaultErrorCodeToReport,
-                    PRUint32 collectedErrors,
-                    PRErrorCode errorCodeTrust,
-                    PRErrorCode errorCodeMismatch,
-                    PRErrorCode errorCodeExpired)
-    : mFdForLogging(fdForLogging), mCert(cert), mInfoObject(infoObject),
-      mDefaultErrorCodeToReport(defaultErrorCodeToReport),
-      mCollectedErrors(collectedErrors),
-      mErrorCodeTrust(errorCodeTrust),
-      mErrorCodeMismatch(errorCodeMismatch),
-      mErrorCodeExpired(errorCodeExpired)
-  {
-  }
-
-  NS_DECL_NSIRUNNABLE
-  virtual void RunOnTargetThread();
-  nsCOMPtr<nsIRunnable> mResult; 
-private:
-  SSLServerCertVerificationResult* CheckCertOverrides();
-  
-  const void * const mFdForLogging; 
-  const nsCOMPtr<nsIX509Cert> mCert;
-  const nsRefPtr<nsNSSSocketInfo> mInfoObject;
-  const PRErrorCode mDefaultErrorCodeToReport;
-  const PRUint32 mCollectedErrors;
-  const PRErrorCode mErrorCodeTrust;
-  const PRErrorCode mErrorCodeMismatch;
-  const PRErrorCode mErrorCodeExpired;
-};
-
-namespace mozilla { namespace psm {
-
-
-
-
-
-
-
-
-SECStatus
-HandleBadCertificate(PRErrorCode defaultErrorCodeToReport,
-                    nsNSSSocketInfo * socketInfo, CERTCertificate & cert,
-                    const void * fdForLogging,
-                    const nsNSSShutDownPreventionLock & )
-{
-  
-  if (defaultErrorCodeToReport == SEC_ERROR_REVOKED_CERTIFICATE) {
-    PR_SetError(SEC_ERROR_REVOKED_CERTIFICATE, 0);
-    return SECFailure;
-  }
-
-  if (defaultErrorCodeToReport == 0) {
-    NS_ERROR("No error code set during certificate validation failure.");
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
-    return SECFailure;
-  }
-
-  nsRefPtr<nsNSSCertificate> nssCert;
-  nssCert = nsNSSCertificate::Create(&cert);
-  if (!nssCert) {
-    NS_ERROR("nsNSSCertificate::Create failed in DispatchCertErrorRunnable");
-    PR_SetError(SEC_ERROR_NO_MEMORY, 0);
-    return SECFailure;
-  }
-
-  SECStatus srv;
-  nsresult nsrv;
-
-  nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
-  if (!inss) {
-    NS_ERROR("do_GetService(kNSSComponentCID) failed in DispatchCertErrorRunnable");
-    PR_SetError(defaultErrorCodeToReport, 0);
-    return SECFailure;
-  }
-
-  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
-  nsrv = inss->GetDefaultCERTValInParam(survivingParams);
-  if (NS_FAILED(nsrv)) {
-    NS_ERROR("GetDefaultCERTValInParam failed in DispatchCertErrorRunnable");
-    PR_SetError(defaultErrorCodeToReport, 0);
-    return SECFailure;
-  }
-  
-  PRArenaPool *log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-  PRArenaPoolCleanerFalseParam log_arena_cleaner(log_arena);
-  if (!log_arena) {
-    NS_ERROR("PORT_NewArena failed in DispatchCertErrorRunnable");
-    return SECFailure; 
-  }
-
-  CERTVerifyLog *verify_log = PORT_ArenaZNew(log_arena, CERTVerifyLog);
-  if (!verify_log) {
-    NS_ERROR("PORT_ArenaZNew failed in DispatchCertErrorRunnable");
-    return SECFailure; 
-  }
-  CERTVerifyLogContentsCleaner verify_log_cleaner(verify_log);
-  verify_log->arena = log_arena;
-
-  if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
-    srv = CERT_VerifyCertificate(CERT_GetDefaultCertDB(), &cert,
-                                true, certificateUsageSSLServer,
-                                PR_Now(), static_cast<void*>(socketInfo),
-                                verify_log, NULL);
-  }
-  else {
-    CERTValOutParam cvout[2];
-    cvout[0].type = cert_po_errorLog;
-    cvout[0].value.pointer.log = verify_log;
-    cvout[1].type = cert_po_end;
-
-    srv = CERT_PKIXVerifyCert(&cert, certificateUsageSSLServer,
-                              survivingParams->GetRawPointerForNSS(),
-                              cvout, static_cast<void*>(socketInfo));
-  }
-
-  
-  
-  
-  
-  
-
-  PRErrorCode errorCodeMismatch = 0;
-  PRErrorCode errorCodeTrust = 0;
-  PRErrorCode errorCodeExpired = 0;
-
-  PRUint32 collected_errors = 0;
-
-  if (socketInfo->IsCertIssuerBlacklisted()) {
-    collected_errors |= nsICertOverrideService::ERROR_UNTRUSTED;
-    errorCodeTrust = defaultErrorCodeToReport;
-  }
-
-  
-  if (CERT_VerifyCertName(&cert, socketInfo->GetHostName()) != SECSuccess) {
-    collected_errors |= nsICertOverrideService::ERROR_MISMATCH;
-    errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
-  }
-
-  CERTVerifyLogNode *i_node;
-  for (i_node = verify_log->head; i_node; i_node = i_node->next)
-  {
-    switch (i_node->error)
-    {
-      case SEC_ERROR_UNKNOWN_ISSUER:
-      case SEC_ERROR_CA_CERT_INVALID:
-      case SEC_ERROR_UNTRUSTED_ISSUER:
-      case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
-      case SEC_ERROR_UNTRUSTED_CERT:
-      case SEC_ERROR_INADEQUATE_KEY_USAGE:
-        
-        collected_errors |= nsICertOverrideService::ERROR_UNTRUSTED;
-        if (errorCodeTrust == SECSuccess) {
-          errorCodeTrust = i_node->error;
-        }
-        break;
-      case SSL_ERROR_BAD_CERT_DOMAIN:
-        collected_errors |= nsICertOverrideService::ERROR_MISMATCH;
-        if (errorCodeMismatch == SECSuccess) {
-          errorCodeMismatch = i_node->error;
-        }
-        break;
-      case SEC_ERROR_EXPIRED_CERTIFICATE:
-        collected_errors |= nsICertOverrideService::ERROR_TIME;
-        if (errorCodeExpired == SECSuccess) {
-          errorCodeExpired = i_node->error;
-        }
-        break;
-      default:
-        PR_SetError(i_node->error, 0);
-        return SECFailure;
-    }
-  }
-
-  if (!collected_errors)
-  {
-    
-    
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] !collected_errors: %d\n",
-           fdForLogging, static_cast<int>(defaultErrorCodeToReport)));
-    PR_SetError(defaultErrorCodeToReport, 0);
-    return SECFailure;
-  }
-
-  socketInfo->SetStatusErrorBits(*nssCert, collected_errors);
-
-  nsRefPtr<CertErrorRunnable> runnable =
-    new CertErrorRunnable(fdForLogging, 
-                          static_cast<nsIX509Cert*>(nssCert.get()),
-                          socketInfo, defaultErrorCodeToReport, 
-                          collected_errors, errorCodeTrust, 
-                          errorCodeMismatch, errorCodeExpired);
-
-  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-          ("[%p][%p] Before dispatching CertErrorRunnable\n",
-          fdForLogging, runnable.get()));
-
-  nsresult nrv;
-  nsCOMPtr<nsIEventTarget> stsTarget
-    = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &nrv);
-  if (NS_SUCCEEDED(nrv)) {
-    nrv = stsTarget->Dispatch(runnable, NS_DISPATCH_NORMAL);
-  }
-  if (NS_FAILED(nrv)) {
-    NS_ERROR("Failed to dispatch CertErrorRunnable");
-    PR_SetError(defaultErrorCodeToReport, 0);
-    return SECFailure;
-  }
-
-  return SECSuccess;
-}
-
-} } 
-
 void
 nsNSSSocketInfo::SetStatusErrorBits(nsIX509Cert & cert,
                                     PRUint32 collected_errors)
@@ -3686,162 +3451,6 @@ nsNSSSocketInfo::SetStatusErrorBits(nsIX509Cert & cert,
     this, mSSLStatus, SECFailure);
 }
 
-SSLServerCertVerificationResult *
-CertErrorRunnable::CheckCertOverrides()
-{
-  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p][%p] top of CertErrorRunnable::Run\n",
-                                    mFdForLogging, this));
-
-  if (!NS_IsMainThread()) {
-    NS_ERROR("CertErrorRunnable::CheckCertOverrides called off main thread");
-    return new SSLServerCertVerificationResult(*mInfoObject,
-                                               mDefaultErrorCodeToReport);
-  }
-
-  PRInt32 port;
-  mInfoObject->GetPort(&port);
-
-  nsCString hostWithPortString;
-  hostWithPortString.AppendASCII(mInfoObject->GetHostName());
-  hostWithPortString.AppendLiteral(":");
-  hostWithPortString.AppendInt(port);
-
-  PRUint32 remaining_display_errors = mCollectedErrors;
-
-  nsresult nsrv;
-
-  
-  
-  
-  bool strictTransportSecurityEnabled = false;
-  nsCOMPtr<nsIStrictTransportSecurityService> stss
-    = do_GetService(NS_STSSERVICE_CONTRACTID, &nsrv);
-  if (NS_SUCCEEDED(nsrv)) {
-    nsrv = stss->IsStsHost(mInfoObject->GetHostName(),
-                           &strictTransportSecurityEnabled);
-  }
-  if (NS_FAILED(nsrv)) {
-    return new SSLServerCertVerificationResult(*mInfoObject,
-                                               mDefaultErrorCodeToReport);
-  }
-
-  if (!strictTransportSecurityEnabled) {
-    nsCOMPtr<nsICertOverrideService> overrideService =
-      do_GetService(NS_CERTOVERRIDE_CONTRACTID);
-    
-
-    PRUint32 overrideBits = 0;
-
-    if (overrideService)
-    {
-      bool haveOverride;
-      bool isTemporaryOverride; 
-      nsCString hostString(mInfoObject->GetHostName());
-      nsrv = overrideService->HasMatchingOverride(hostString, port,
-                                                  mCert,
-                                                  &overrideBits,
-                                                  &isTemporaryOverride, 
-                                                  &haveOverride);
-      if (NS_SUCCEEDED(nsrv) && haveOverride) 
-      {
-       
-        remaining_display_errors -= overrideBits;
-      }
-    }
-
-    if (!remaining_display_errors) {
-      
-      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-             ("[%p][%p] All errors covered by override rules\n",
-             mFdForLogging, this));
-      return new SSLServerCertVerificationResult(*mInfoObject, 0);
-    }
-  } else {
-    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-           ("[%p][%p] Strict-Transport-Security is violated: untrusted "
-            "transport layer\n", mFdForLogging, this));
-  }
-
-  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-         ("[%p][%p] Certificate error was not overridden\n",
-         mFdForLogging, this));
-
-  
-  
-
-  
-  nsCOMPtr<nsIInterfaceRequestor> cb;
-  mInfoObject->GetNotificationCallbacks(getter_AddRefs(cb));
-  if (cb) {
-    nsCOMPtr<nsIBadCertListener2> bcl = do_GetInterface(cb);
-    if (bcl) {
-      nsIInterfaceRequestor *csi = static_cast<nsIInterfaceRequestor*>(mInfoObject);
-      bool suppressMessage = false; 
-      nsrv = bcl->NotifyCertProblem(csi, mInfoObject->SSLStatus(),
-                                    hostWithPortString, &suppressMessage);
-    }
-  }
-
-  nsCOMPtr<nsIRecentBadCertsService> recentBadCertsService = 
-    do_GetService(NS_RECENTBADCERTS_CONTRACTID);
- 
-  if (recentBadCertsService) {
-    NS_ConvertUTF8toUTF16 hostWithPortStringUTF16(hostWithPortString);
-    recentBadCertsService->AddBadCert(hostWithPortStringUTF16,
-                                      mInfoObject->SSLStatus());
-  }
-
-  
-  PRErrorCode errorCodeToReport = mErrorCodeTrust    ? mErrorCodeTrust
-                                : mErrorCodeMismatch ? mErrorCodeMismatch
-                                : mErrorCodeExpired  ? mErrorCodeExpired
-                                : mDefaultErrorCodeToReport;
-
-  return new SSLServerCertVerificationResult(*mInfoObject, errorCodeToReport,
-                                             OverridableCertErrorMessage);
-}
-
-NS_IMETHODIMP
-CertErrorRunnable::Run()
-{
-  
-  
-  
-  
-  
-  if (!NS_IsMainThread()) {
-    
-    
-    DispatchToMainThreadAndWait(); 
-
-    
-    if (!mResult) {
-      
-      NS_ERROR("Did not create a SSLServerCertVerificationResult");
-      mResult = new SSLServerCertVerificationResult(*mInfoObject,
-                                                    PR_INVALID_STATE_ERROR);
-    }
-    return mResult->Run(); 
-  } else {
-    
-    
-    return SyncRunnableBase::Run(); 
-  }
-}
-
-void 
-CertErrorRunnable::RunOnTargetThread()
-{
-  
-  
-  
-  
-  
-  
-  
-  mResult = CheckCertOverrides(); 
-}
- 
 static PRFileDesc*
 nsSSLIOLayerImportFD(PRFileDesc *fd,
                      nsNSSSocketInfo *infoObject,
@@ -3914,6 +3523,16 @@ nsSSLIOLayerSetOptions(PRFileDesc *fd, bool forSTARTTLS,
     
     
   }
+
+  PRBool enabled;
+  if (SECSuccess != SSL_OptionGet(fd, SSL_ENABLE_SSL3, &enabled)) {
+    return NS_ERROR_FAILURE;
+  }
+  infoObject->SetSSL3Enabled(enabled);
+  if (SECSuccess != SSL_OptionGet(fd, SSL_ENABLE_TLS, &enabled)) {
+    return NS_ERROR_FAILURE;
+  }
+  infoObject->SetTLSEnabled(enabled);
 
   if (SECSuccess != SSL_OptionSet(fd, SSL_HANDSHAKE_AS_CLIENT, true)) {
     return NS_ERROR_FAILURE;

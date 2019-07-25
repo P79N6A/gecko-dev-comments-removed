@@ -57,42 +57,6 @@ public:
   
 
 
-
-
-
-
-  virtual nsresult Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamListener) = 0;
-
-  
-
-
-
-  virtual void TryNotifyContentObjectWrapper() = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  virtual nsresult Instantiate(const char* aMimeType, nsIURI* aURI) = 0;
-
-  
-
-
-
-
-  virtual void StopPlugin() = 0;
-
-  
-
-
   virtual nsIWidget* GetWidget() = 0;
 
   

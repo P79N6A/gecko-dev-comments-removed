@@ -124,18 +124,31 @@
 
 
 
+
+
+
+
+
+
 #include "SSLServerCertVerification.h"
+#include "nsIBadCertListener2.h"
+#include "nsICertOverrideService.h"
+#include "nsIStrictTransportSecurityService.h"
 #include "nsNSSComponent.h"
-#include "nsNSSCertificate.h"
+#include "nsNSSCleaner.h"
+#include "nsRecentBadCerts.h"
 #include "nsNSSIOLayer.h"
 
+#include "mozilla/Assertions.h"
 #include "nsIThreadPool.h"
 #include "nsXPCOMCIDInternal.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
+#include "PSMRunnable.h"
 
 #include "ssl.h"
 #include "secerr.h"
+#include "secport.h"
 #include "sslerr.h"
 
 #ifdef PR_LOGGING
@@ -145,6 +158,12 @@ extern PRLogModuleInfo* gPIPNSSLog;
 namespace mozilla { namespace psm {
 
 namespace {
+
+NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
+
+NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
+NSSCleanupAutoPtrClass_WithParam(PRArenaPool, PORT_FreeArena, FalseParam, false)
+
 
 nsIThreadPool * gCertVerificationThreadPool = nsnull;
 } 
@@ -197,6 +216,379 @@ void StopSSLServerCertVerificationThreads()
 
 namespace {
 
+
+
+
+
+
+
+class SSLServerCertVerificationResult : public nsRunnable
+{
+public:
+  NS_DECL_NSIRUNNABLE
+
+  SSLServerCertVerificationResult(nsNSSSocketInfo & socketInfo,
+                                  PRErrorCode errorCode,
+                                  SSLErrorMessageType errorMessageType = 
+                                      PlainErrorMessage);
+
+  void Dispatch();
+private:
+  const nsRefPtr<nsNSSSocketInfo> mSocketInfo;
+public:
+  const PRErrorCode mErrorCode;
+  const SSLErrorMessageType mErrorMessageType;
+};
+
+class CertErrorRunnable : public SyncRunnableBase
+{
+ public:
+  CertErrorRunnable(const void * fdForLogging,
+                    nsIX509Cert * cert,
+                    nsNSSSocketInfo * infoObject,
+                    PRErrorCode defaultErrorCodeToReport,
+                    PRUint32 collectedErrors,
+                    PRErrorCode errorCodeTrust,
+                    PRErrorCode errorCodeMismatch,
+                    PRErrorCode errorCodeExpired)
+    : mFdForLogging(fdForLogging), mCert(cert), mInfoObject(infoObject),
+      mDefaultErrorCodeToReport(defaultErrorCodeToReport),
+      mCollectedErrors(collectedErrors),
+      mErrorCodeTrust(errorCodeTrust),
+      mErrorCodeMismatch(errorCodeMismatch),
+      mErrorCodeExpired(errorCodeExpired)
+  {
+  }
+
+  virtual void RunOnTargetThread();
+  nsRefPtr<SSLServerCertVerificationResult> mResult; 
+private:
+  SSLServerCertVerificationResult* CheckCertOverrides();
+  
+  const void * const mFdForLogging; 
+  const nsCOMPtr<nsIX509Cert> mCert;
+  const nsRefPtr<nsNSSSocketInfo> mInfoObject;
+  const PRErrorCode mDefaultErrorCodeToReport;
+  const PRUint32 mCollectedErrors;
+  const PRErrorCode mErrorCodeTrust;
+  const PRErrorCode mErrorCodeMismatch;
+  const PRErrorCode mErrorCodeExpired;
+};
+
+SSLServerCertVerificationResult *
+CertErrorRunnable::CheckCertOverrides()
+{
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p][%p] top of CheckCertOverrides\n",
+                                    mFdForLogging, this));
+
+  if (!NS_IsMainThread()) {
+    NS_ERROR("CertErrorRunnable::CheckCertOverrides called off main thread");
+    return new SSLServerCertVerificationResult(*mInfoObject,
+                                               mDefaultErrorCodeToReport);
+  }
+
+  PRInt32 port;
+  mInfoObject->GetPort(&port);
+
+  nsCString hostWithPortString;
+  hostWithPortString.AppendASCII(mInfoObject->GetHostName());
+  hostWithPortString.AppendLiteral(":");
+  hostWithPortString.AppendInt(port);
+
+  PRUint32 remaining_display_errors = mCollectedErrors;
+
+  nsresult nsrv;
+
+  
+  
+  
+  bool strictTransportSecurityEnabled = false;
+  nsCOMPtr<nsIStrictTransportSecurityService> stss
+    = do_GetService(NS_STSSERVICE_CONTRACTID, &nsrv);
+  if (NS_SUCCEEDED(nsrv)) {
+    nsrv = stss->IsStsHost(mInfoObject->GetHostName(),
+                           &strictTransportSecurityEnabled);
+  }
+  if (NS_FAILED(nsrv)) {
+    return new SSLServerCertVerificationResult(*mInfoObject,
+                                               mDefaultErrorCodeToReport);
+  }
+
+  if (!strictTransportSecurityEnabled) {
+    nsCOMPtr<nsICertOverrideService> overrideService =
+      do_GetService(NS_CERTOVERRIDE_CONTRACTID);
+    
+
+    PRUint32 overrideBits = 0;
+
+    if (overrideService)
+    {
+      bool haveOverride;
+      bool isTemporaryOverride; 
+      nsCString hostString(mInfoObject->GetHostName());
+      nsrv = overrideService->HasMatchingOverride(hostString, port,
+                                                  mCert,
+                                                  &overrideBits,
+                                                  &isTemporaryOverride, 
+                                                  &haveOverride);
+      if (NS_SUCCEEDED(nsrv) && haveOverride) 
+      {
+       
+        remaining_display_errors -= overrideBits;
+      }
+    }
+
+    if (!remaining_display_errors) {
+      
+      PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+             ("[%p][%p] All errors covered by override rules\n",
+             mFdForLogging, this));
+      return new SSLServerCertVerificationResult(*mInfoObject, 0);
+    }
+  } else {
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("[%p][%p] Strict-Transport-Security is violated: untrusted "
+            "transport layer\n", mFdForLogging, this));
+  }
+
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+         ("[%p][%p] Certificate error was not overridden\n",
+         mFdForLogging, this));
+
+  
+  
+
+  
+  nsCOMPtr<nsIInterfaceRequestor> cb;
+  mInfoObject->GetNotificationCallbacks(getter_AddRefs(cb));
+  if (cb) {
+    nsCOMPtr<nsIBadCertListener2> bcl = do_GetInterface(cb);
+    if (bcl) {
+      nsIInterfaceRequestor *csi = static_cast<nsIInterfaceRequestor*>(mInfoObject);
+      bool suppressMessage = false; 
+      nsrv = bcl->NotifyCertProblem(csi, mInfoObject->SSLStatus(),
+                                    hostWithPortString, &suppressMessage);
+    }
+  }
+
+  nsCOMPtr<nsIRecentBadCertsService> recentBadCertsService = 
+    do_GetService(NS_RECENTBADCERTS_CONTRACTID);
+ 
+  if (recentBadCertsService) {
+    NS_ConvertUTF8toUTF16 hostWithPortStringUTF16(hostWithPortString);
+    recentBadCertsService->AddBadCert(hostWithPortStringUTF16,
+                                      mInfoObject->SSLStatus());
+  }
+
+  
+  PRErrorCode errorCodeToReport = mErrorCodeTrust    ? mErrorCodeTrust
+                                : mErrorCodeMismatch ? mErrorCodeMismatch
+                                : mErrorCodeExpired  ? mErrorCodeExpired
+                                : mDefaultErrorCodeToReport;
+
+  return new SSLServerCertVerificationResult(*mInfoObject, errorCodeToReport,
+                                             OverridableCertErrorMessage);
+}
+
+void 
+CertErrorRunnable::RunOnTargetThread()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  mResult = CheckCertOverrides();
+  
+  MOZ_ASSERT(mResult);
+}
+
+
+
+CertErrorRunnable *
+CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
+                        nsNSSSocketInfo * socketInfo,
+                        CERTCertificate * cert,
+                        const void * fdForLogging)
+{
+  MOZ_ASSERT(socketInfo);
+  MOZ_ASSERT(cert);
+  
+  
+  if (defaultErrorCodeToReport == SEC_ERROR_REVOKED_CERTIFICATE) {
+    PR_SetError(SEC_ERROR_REVOKED_CERTIFICATE, 0);
+    return nsnull;
+  }
+
+  if (defaultErrorCodeToReport == 0) {
+    NS_ERROR("No error code set during certificate validation failure.");
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return nsnull;
+  }
+
+  nsRefPtr<nsNSSCertificate> nssCert;
+  nssCert = nsNSSCertificate::Create(cert);
+  if (!nssCert) {
+    NS_ERROR("nsNSSCertificate::Create failed");
+    PR_SetError(SEC_ERROR_NO_MEMORY, 0);
+    return nsnull;
+  }
+
+  SECStatus srv;
+  nsresult nsrv;
+
+  nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
+  if (!inss) {
+    NS_ERROR("do_GetService(kNSSComponentCID) failed");
+    PR_SetError(defaultErrorCodeToReport, 0);
+    return nsnull;
+  }
+
+  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
+  nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+  if (NS_FAILED(nsrv)) {
+    NS_ERROR("GetDefaultCERTValInParam failed");
+    PR_SetError(defaultErrorCodeToReport, 0);
+    return nsnull;
+  }
+  
+  PRArenaPool *log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+  PRArenaPoolCleanerFalseParam log_arena_cleaner(log_arena);
+  if (!log_arena) {
+    NS_ERROR("PORT_NewArena failed");
+    return nsnull; 
+  }
+
+  CERTVerifyLog *verify_log = PORT_ArenaZNew(log_arena, CERTVerifyLog);
+  if (!verify_log) {
+    NS_ERROR("PORT_ArenaZNew failed");
+    return nsnull; 
+  }
+  CERTVerifyLogContentsCleaner verify_log_cleaner(verify_log);
+  verify_log->arena = log_arena;
+
+  if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+    srv = CERT_VerifyCertificate(CERT_GetDefaultCertDB(), cert,
+                                true, certificateUsageSSLServer,
+                                PR_Now(), static_cast<void*>(socketInfo),
+                                verify_log, NULL);
+  }
+  else {
+    CERTValOutParam cvout[2];
+    cvout[0].type = cert_po_errorLog;
+    cvout[0].value.pointer.log = verify_log;
+    cvout[1].type = cert_po_end;
+
+    srv = CERT_PKIXVerifyCert(cert, certificateUsageSSLServer,
+                              survivingParams->GetRawPointerForNSS(),
+                              cvout, static_cast<void*>(socketInfo));
+  }
+
+  
+  
+  
+  
+  
+
+  PRErrorCode errorCodeMismatch = 0;
+  PRErrorCode errorCodeTrust = 0;
+  PRErrorCode errorCodeExpired = 0;
+
+  PRUint32 collected_errors = 0;
+
+  if (socketInfo->IsCertIssuerBlacklisted()) {
+    collected_errors |= nsICertOverrideService::ERROR_UNTRUSTED;
+    errorCodeTrust = defaultErrorCodeToReport;
+  }
+
+  
+  if (CERT_VerifyCertName(cert, socketInfo->GetHostName()) != SECSuccess) {
+    collected_errors |= nsICertOverrideService::ERROR_MISMATCH;
+    errorCodeMismatch = SSL_ERROR_BAD_CERT_DOMAIN;
+  }
+
+  CERTVerifyLogNode *i_node;
+  for (i_node = verify_log->head; i_node; i_node = i_node->next)
+  {
+    switch (i_node->error)
+    {
+      case SEC_ERROR_UNKNOWN_ISSUER:
+      case SEC_ERROR_CA_CERT_INVALID:
+      case SEC_ERROR_UNTRUSTED_ISSUER:
+      case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
+      case SEC_ERROR_UNTRUSTED_CERT:
+      case SEC_ERROR_INADEQUATE_KEY_USAGE:
+        
+        collected_errors |= nsICertOverrideService::ERROR_UNTRUSTED;
+        if (errorCodeTrust == SECSuccess) {
+          errorCodeTrust = i_node->error;
+        }
+        break;
+      case SSL_ERROR_BAD_CERT_DOMAIN:
+        collected_errors |= nsICertOverrideService::ERROR_MISMATCH;
+        if (errorCodeMismatch == SECSuccess) {
+          errorCodeMismatch = i_node->error;
+        }
+        break;
+      case SEC_ERROR_EXPIRED_CERTIFICATE:
+        collected_errors |= nsICertOverrideService::ERROR_TIME;
+        if (errorCodeExpired == SECSuccess) {
+          errorCodeExpired = i_node->error;
+        }
+        break;
+      default:
+        PR_SetError(i_node->error, 0);
+        return nsnull;
+    }
+  }
+
+  if (!collected_errors)
+  {
+    
+    
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("[%p] !collected_errors: %d\n",
+           fdForLogging, static_cast<int>(defaultErrorCodeToReport)));
+    PR_SetError(defaultErrorCodeToReport, 0);
+    return nsnull;
+  }
+
+  socketInfo->SetStatusErrorBits(*nssCert, collected_errors);
+
+  return new CertErrorRunnable(fdForLogging, 
+                               static_cast<nsIX509Cert*>(nssCert.get()),
+                               socketInfo, defaultErrorCodeToReport, 
+                               collected_errors, errorCodeTrust, 
+                               errorCodeMismatch, errorCodeExpired);
+}
+
+
+
+
+
+
+
+
+
+
+class CertErrorRunnableRunnable : public nsRunnable
+{
+public:
+  CertErrorRunnableRunnable(CertErrorRunnable * certErrorRunnable)
+    : mCertErrorRunnable(certErrorRunnable)
+  {
+  }
+private:
+  NS_IMETHOD Run()
+  {
+    nsresult rv = mCertErrorRunnable->DispatchToMainThreadAndWait();
+    
+    
+    if (NS_SUCCEEDED(rv)) {
+      rv = mCertErrorRunnable->mResult ? mCertErrorRunnable->mResult->Run()
+                                       : NS_ERROR_UNEXPECTED;
+    }
+    return rv;
+  }
+  nsRefPtr<CertErrorRunnable> mCertErrorRunnable;
+};
+
 class SSLServerCertVerificationJob : public nsRunnable
 {
 public:
@@ -212,9 +604,6 @@ private:
                                nsNSSSocketInfo & socketInfo, 
                                CERTCertificate & cert);
   ~SSLServerCertVerificationJob();
-
-  
-  SECStatus AuthCertificate(const nsNSSShutDownPreventionLock & proofOfLock);
 
   const void * const mFdForLogging;
   const nsRefPtr<nsNSSSocketInfo> mSocketInfo;
@@ -235,12 +624,9 @@ SSLServerCertVerificationJob::~SSLServerCertVerificationJob()
   CERT_DestroyCertificate(mCert);
 }
 
-static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
-
 SECStatus
 PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert, void * pinarg,
-                             const char * hostname,
-                             const nsNSSShutDownPreventionLock & )
+                             const char * hostname)
 {
     SECStatus          rv;
     
@@ -434,19 +820,18 @@ BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
 }
 
 SECStatus
-SSLServerCertVerificationJob::AuthCertificate(
-  nsNSSShutDownPreventionLock const & nssShutdownPreventionLock)
+AuthCertificate(nsNSSSocketInfo * socketInfo, CERTCertificate * cert)
 {
-  if (BlockServerCertChangeForSpdy(mSocketInfo, mCert) != SECSuccess)
+  if (BlockServerCertChangeForSpdy(socketInfo, cert) != SECSuccess)
     return SECFailure;
 
-  if (mCert->serialNumber.data &&
-      mCert->issuerName &&
-      !strcmp(mCert->issuerName, 
+  if (cert->serialNumber.data &&
+      cert->issuerName &&
+      !strcmp(cert->issuerName, 
         "CN=UTN-USERFirst-Hardware,OU=http://www.usertrust.com,O=The USERTRUST Network,L=Salt Lake City,ST=UT,C=US")) {
 
-    unsigned char *server_cert_comparison_start = mCert->serialNumber.data;
-    unsigned int server_cert_comparison_len = mCert->serialNumber.len;
+    unsigned char *server_cert_comparison_start = cert->serialNumber.data;
+    unsigned int server_cert_comparison_len = cert->serialNumber.len;
 
     while (server_cert_comparison_len) {
       if (*server_cert_comparison_start != 0)
@@ -478,33 +863,32 @@ SSLServerCertVerificationJob::AuthCertificate(
     }
   }
 
-  SECStatus rv = PSM_SSL_PKIX_AuthCertificate(mCert, mSocketInfo,
-                                              mSocketInfo->GetHostName(),
-                                              nssShutdownPreventionLock);
+  SECStatus rv = PSM_SSL_PKIX_AuthCertificate(cert, socketInfo,
+                                              socketInfo->GetHostName());
 
   
   
   
 
-  nsRefPtr<nsSSLStatus> status = mSocketInfo->SSLStatus();
+  nsRefPtr<nsSSLStatus> status = socketInfo->SSLStatus();
   nsRefPtr<nsNSSCertificate> nsc;
 
   if (!status || !status->mServerCert) {
-    nsc = nsNSSCertificate::Create(mCert);
+    nsc = nsNSSCertificate::Create(cert);
   }
 
   CERTCertList *certList = nsnull;
-  certList = CERT_GetCertChainFromCert(mCert, PR_Now(), certUsageSSLCA);
+  certList = CERT_GetCertChainFromCert(cert, PR_Now(), certUsageSSLCA);
   if (!certList) {
     rv = SECFailure;
   } else {
     PRErrorCode blacklistErrorCode;
     if (rv == SECSuccess) { 
-      blacklistErrorCode = PSM_SSL_BlacklistDigiNotar(mCert, certList);
+      blacklistErrorCode = PSM_SSL_BlacklistDigiNotar(cert, certList);
     } else { 
       PRErrorCode savedErrorCode = PORT_GetError();
       
-      blacklistErrorCode = PSM_SSL_DigiNotarTreatAsRevoked(mCert, certList);
+      blacklistErrorCode = PSM_SSL_DigiNotarTreatAsRevoked(cert, certList);
       if (blacklistErrorCode == 0) {
         
         PORT_SetError(savedErrorCode);
@@ -512,7 +896,7 @@ SSLServerCertVerificationJob::AuthCertificate(
     }
       
     if (blacklistErrorCode != 0) {
-      mSocketInfo->SetCertIssuerBlacklisted();
+      socketInfo->SetCertIssuerBlacklisted();
       PORT_SetError(blacklistErrorCode);
       rv = SECFailure;
     }
@@ -540,7 +924,7 @@ SSLServerCertVerificationJob::AuthCertificate(
         continue;
       }
         
-      if (node->cert == mCert) {
+      if (node->cert == cert) {
         
         
         continue;
@@ -568,19 +952,19 @@ SSLServerCertVerificationJob::AuthCertificate(
     
     if (!status) {
       status = new nsSSLStatus();
-      mSocketInfo->SetSSLStatus(status);
+      socketInfo->SetSSLStatus(status);
     }
 
     if (rv == SECSuccess) {
       
       
       nsSSLIOLayerHelpers::mHostsWithCertErrors->RememberCertHasError(
-        mSocketInfo, nsnull, rv);
+        socketInfo, nsnull, rv);
     }
     else {
       
       nsSSLIOLayerHelpers::mHostsWithCertErrors->LookupCertErrorBits(
-        mSocketInfo, status);
+        socketInfo, status);
     }
 
     if (status && !status->mServerCert) {
@@ -599,12 +983,9 @@ SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
                                        CERTCertificate * serverCert)
 {
   
-
   if (!socketInfo || !serverCert) {
     NS_ERROR("Invalid parameters for SSL server cert validation");
-    socketInfo->SetCertVerificationResult(PR_INVALID_STATE_ERROR,
-                                          PlainErrorMessage);
-    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
     return SECFailure;
   }
   
@@ -619,10 +1000,16 @@ SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
     nrv = gCertVerificationThreadPool->Dispatch(job, NS_DISPATCH_NORMAL);
   }
   if (NS_FAILED(nrv)) {
+    
+    
+    
+    
+    
+    
+    
     PRErrorCode error = nrv == NS_ERROR_OUT_OF_MEMORY
                       ? SEC_ERROR_NO_MEMORY
                       : PR_INVALID_STATE_ERROR;
-    socketInfo->SetCertVerificationResult(error, PlainErrorMessage);
     PORT_SetError(error);
     return SECFailure;
   }
@@ -648,7 +1035,7 @@ SSLServerCertVerificationJob::Run()
     
     
     PR_SetError(0, 0); 
-    SECStatus rv = AuthCertificate(nssShutdownPrevention);
+    SECStatus rv = AuthCertificate(mSocketInfo, mCert);
     if (rv == SECSuccess) {
       nsRefPtr<SSLServerCertVerificationResult> restart 
         = new SSLServerCertVerificationResult(*mSocketInfo, 0);
@@ -658,17 +1045,35 @@ SSLServerCertVerificationJob::Run()
 
     error = PR_GetError();
     if (error != 0) {
-      rv = HandleBadCertificate(error, mSocketInfo, *mCert, mFdForLogging,
-                                nssShutdownPrevention);
-      if (rv == SECSuccess) {
+      nsRefPtr<CertErrorRunnable> runnable = CreateCertErrorRunnable(
+              error, mSocketInfo, mCert, mFdForLogging);
+      if (!runnable) {
+        
+        error = PR_GetError(); 
+      } else {
         
         
         
         
-        return NS_OK; 
+
+        PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+                ("[%p][%p] Before dispatching CertErrorRunnable\n",
+                mFdForLogging, runnable.get()));
+
+        nsresult nrv;
+        nsCOMPtr<nsIEventTarget> stsTarget
+          = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &nrv);
+        if (NS_SUCCEEDED(nrv)) {
+          nrv = stsTarget->Dispatch(new CertErrorRunnableRunnable(runnable),
+                                    NS_DISPATCH_NORMAL);
+        }
+        if (NS_SUCCEEDED(nrv)) {
+          return NS_OK;
+        }
+
+        NS_ERROR("Failed to dispatch CertErrorRunnable");
+        error = PR_INVALID_STATE_ERROR;
       }
-      
-      error = PR_GetError(); 
     }
   }
 
@@ -710,14 +1115,91 @@ AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
   }
       
   CERTCertificate *serverCert = SSL_PeerCertificate(fd);
+  CERTCertificateCleaner serverCertCleaner(serverCert);
 
   nsNSSSocketInfo *socketInfo = static_cast<nsNSSSocketInfo*>(arg);
-  SECStatus rv = SSLServerCertVerificationJob::Dispatch(
+
+  bool onSTSThread;
+  nsresult nrv;
+  nsCOMPtr<nsIEventTarget> sts
+    = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &nrv);
+  if (NS_SUCCEEDED(nrv)) {
+    nrv = sts->IsOnCurrentThread(&onSTSThread);
+  }
+
+  if (NS_FAILED(nrv)) {
+    NS_ERROR("Could not get STS service or IsOnCurrentThread failed");
+    PR_SetError(PR_UNKNOWN_ERROR, 0);
+    return SECFailure;
+  }
+  
+  if (onSTSThread) {
+    
+    
+    
+    
+    SECStatus rv = SSLServerCertVerificationJob::Dispatch(
                         static_cast<const void *>(fd), socketInfo, serverCert);
+    return rv;
+  }
+  
+  
+  
+  
+  
+  SECStatus rv = AuthCertificate(socketInfo, serverCert);
+  if (rv == SECSuccess) {
+    return SECSuccess;
+  }
 
-  CERT_DestroyCertificate(serverCert);
+  PRErrorCode error = PR_GetError();
+  if (error != 0) {
+    nsRefPtr<CertErrorRunnable> runnable = CreateCertErrorRunnable(
+                    error, socketInfo, serverCert,
+                    static_cast<const void *>(fd));
+    if (!runnable) {
+      
+      error = PR_GetError();
+    } else {
+      
+      
+      
+      
+      nrv = runnable->DispatchToMainThreadAndWait();
+      if (NS_FAILED(nrv)) {
+        NS_ERROR("Failed to dispatch CertErrorRunnable");
+        PR_SetError(PR_INVALID_STATE_ERROR, 0);
+        return SECFailure;
+      }
 
-  return rv;
+      if (!runnable->mResult) {
+        NS_ERROR("CertErrorRunnable did not set result");
+        PR_SetError(PR_INVALID_STATE_ERROR, 0);
+        return SECFailure;
+      }
+
+      if (runnable->mResult->mErrorCode == 0) {
+        return SECSuccess; 
+      }
+
+      
+      
+      
+      
+      
+      socketInfo->SetCanceled(runnable->mResult->mErrorCode,
+                              runnable->mResult->mErrorMessageType);
+      error = runnable->mResult->mErrorCode;
+    }
+  }
+
+  if (error == 0) {
+    NS_ERROR("error code not set");
+    error = PR_UNKNOWN_ERROR;
+  }
+
+  PR_SetError(error, 0);
+  return SECFailure;
 }
 
 SSLServerCertVerificationResult::SSLServerCertVerificationResult(

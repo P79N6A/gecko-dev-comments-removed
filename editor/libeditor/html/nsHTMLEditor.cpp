@@ -1364,130 +1364,11 @@ NS_IMETHODIMP nsHTMLEditor::TabInTable(bool inIsShift, bool *outHandled)
   return res;
 }
 
-NS_IMETHODIMP nsHTMLEditor::CreateBRImpl(nsCOMPtr<nsIDOMNode> *aInOutParent, 
-                                         PRInt32 *aInOutOffset, 
-                                         nsCOMPtr<nsIDOMNode> *outBRNode, 
-                                         EDirection aSelect)
-{
-  NS_ENSURE_TRUE(aInOutParent && *aInOutParent && aInOutOffset && outBRNode, NS_ERROR_NULL_POINTER);
-  *outBRNode = nsnull;
-  nsresult res;
-  
-  
-  nsCOMPtr<nsIDOMNode> node = *aInOutParent;
-  PRInt32 theOffset = *aInOutOffset;
-  nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(node);
-  NS_NAMED_LITERAL_STRING(brType, "br");
-  nsCOMPtr<nsIDOMNode> brNode;
-  if (nodeAsText)  
-  {
-    nsCOMPtr<nsIDOMNode> tmp;
-    PRInt32 offset;
-    PRUint32 len;
-    nodeAsText->GetLength(&len);
-    GetNodeLocation(node, address_of(tmp), &offset);
-    NS_ENSURE_TRUE(tmp, NS_ERROR_FAILURE);
-    if (!theOffset)
-    {
-      
-    }
-    else if (theOffset == (PRInt32)len)
-    {
-      
-      offset++;
-    }
-    else
-    {
-      
-      res = SplitNode(node, theOffset, getter_AddRefs(tmp));
-      NS_ENSURE_SUCCESS(res, res);
-      res = GetNodeLocation(node, address_of(tmp), &offset);
-      NS_ENSURE_SUCCESS(res, res);
-    }
-    
-    res = CreateNode(brType, tmp, offset, getter_AddRefs(brNode));
-    NS_ENSURE_SUCCESS(res, res);
-    *aInOutParent = tmp;
-    *aInOutOffset = offset+1;
-  }
-  else
-  {
-    res = CreateNode(brType, node, theOffset, getter_AddRefs(brNode));
-    NS_ENSURE_SUCCESS(res, res);
-    (*aInOutOffset)++;
-  }
-
-  *outBRNode = brNode;
-  if (*outBRNode && (aSelect != eNone))
-  {
-    nsCOMPtr<nsISelection> selection;
-    nsCOMPtr<nsIDOMNode> parent;
-    PRInt32 offset;
-    res = GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(res, res);
-    nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
-    res = GetNodeLocation(*outBRNode, address_of(parent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
-    if (aSelect == eNext)
-    {
-      
-      selPriv->SetInterlinePosition(true);
-      res = selection->Collapse(parent, offset+1);
-    }
-    else if (aSelect == ePrevious)
-    {
-      
-      selPriv->SetInterlinePosition(true);
-      res = selection->Collapse(parent, offset);
-    }
-  }
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP nsHTMLEditor::CreateBR(nsIDOMNode *aNode, PRInt32 aOffset, nsCOMPtr<nsIDOMNode> *outBRNode, EDirection aSelect)
 {
   nsCOMPtr<nsIDOMNode> parent = aNode;
   PRInt32 offset = aOffset;
   return CreateBRImpl(address_of(parent), &offset, outBRNode, aSelect);
-}
-
-NS_IMETHODIMP nsHTMLEditor::InsertBR(nsCOMPtr<nsIDOMNode> *outBRNode)
-{
-  bool bCollapsed;
-  nsCOMPtr<nsISelection> selection;
-
-  NS_ENSURE_TRUE(outBRNode, NS_ERROR_NULL_POINTER);
-  *outBRNode = nsnull;
-
-  
-  nsAutoRules beginRulesSniffing(this, kOpInsertText, nsIEditor::eNext);
-
-  nsresult res = GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(res, res);
-  nsCOMPtr<nsISelectionPrivate> selPriv(do_QueryInterface(selection));
-  res = selection->GetIsCollapsed(&bCollapsed);
-  NS_ENSURE_SUCCESS(res, res);
-  if (!bCollapsed)
-  {
-    res = DeleteSelection(nsIEditor::eNone);
-    NS_ENSURE_SUCCESS(res, res);
-  }
-  nsCOMPtr<nsIDOMNode> selNode;
-  PRInt32 selOffset;
-  res = GetStartNodeAndOffset(selection, getter_AddRefs(selNode), &selOffset);
-  NS_ENSURE_SUCCESS(res, res);
-  
-  res = CreateBR(selNode, selOffset, outBRNode);
-  NS_ENSURE_SUCCESS(res, res);
-    
-  
-  res = GetNodeLocation(*outBRNode, address_of(selNode), &selOffset);
-  NS_ENSURE_SUCCESS(res, res);
-  selPriv->SetInterlinePosition(true);
-  res = selection->Collapse(selNode, selOffset+1);
-  
-  return res;
 }
 
 nsresult 
@@ -2099,9 +1980,7 @@ NS_IMETHODIMP
 nsHTMLEditor::GetBackgroundColorState(bool *aMixed, nsAString &aOutColor)
 {
   nsresult res;
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-  if (useCSS) {
+  if (IsCSSEnabled()) {
     
     
     res = GetCSSBackgroundColorState(aMixed, aOutColor, true);
@@ -2117,11 +1996,9 @@ NS_IMETHODIMP
 nsHTMLEditor::GetHighlightColorState(bool *aMixed, nsAString &aOutColor)
 {
   nsresult res = NS_OK;
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
   *aMixed = false;
   aOutColor.AssignLiteral("transparent");
-  if (useCSS) {
+  if (IsCSSEnabled()) {
     
     
     
@@ -2248,42 +2125,41 @@ nsHTMLEditor::GetHTMLBackgroundColorState(bool *aMixed, nsAString &aOutColor)
   *aMixed = false;
   aOutColor.Truncate();
   
-  nsCOMPtr<nsIDOMElement> element;
+  nsCOMPtr<nsIDOMElement> domElement;
   PRInt32 selectedCount;
   nsAutoString tagName;
   nsresult res = GetSelectedOrParentTableElement(tagName,
                                                  &selectedCount,
-                                                 getter_AddRefs(element));
+                                                 getter_AddRefs(domElement));
   NS_ENSURE_SUCCESS(res, res);
 
-  NS_NAMED_LITERAL_STRING(styleName, "bgcolor"); 
+  nsCOMPtr<nsINode> element = do_QueryInterface(domElement);
 
-  while (element)
-  {
+  while (element) {
     
-    res = element->GetAttribute(styleName, aOutColor);
-    NS_ENSURE_SUCCESS(res, res);
+    element->AsElement()->GetAttr(kNameSpaceID_None, nsGkAtoms::bgcolor, aOutColor);
 
     
-    if (!aOutColor.IsEmpty())
+    if (!aOutColor.IsEmpty()) {
       return NS_OK;
+    }
 
     
-    if(nsTextEditUtils::IsBody(element)) return NS_OK;
+    if (element->AsElement()->IsHTML(nsGkAtoms::body)) {
+      return NS_OK;
+    }
 
     
     
-    nsCOMPtr<nsIDOMNode> parentNode;
-    res = element->GetParentNode(getter_AddRefs(parentNode));
-    NS_ENSURE_SUCCESS(res, res);
-    element = do_QueryInterface(parentNode);
+    element = element->GetElementParent();
   }
 
   
-  mozilla::dom::Element *bodyElement = GetRoot();
+  dom::Element* bodyElement = GetRoot();
   NS_ENSURE_TRUE(bodyElement, NS_ERROR_NULL_POINTER);
 
-  return bodyElement->GetAttr(kNameSpaceID_None, nsGkAtoms::bgcolor, aOutColor);
+  bodyElement->GetAttr(kNameSpaceID_None, nsGkAtoms::bgcolor, aOutColor);
+  return NS_OK;
 }
 
 NS_IMETHODIMP 
@@ -3598,10 +3474,12 @@ nsHTMLEditor::GetEmbeddedObjects(nsISupportsArray** aNodeList)
 }
 
 
-NS_IMETHODIMP nsHTMLEditor::DeleteNode(nsIDOMNode * aNode)
+NS_IMETHODIMP
+nsHTMLEditor::DeleteNode(nsIDOMNode* aNode)
 {
   
-  if (!IsModifiableNode(aNode) && !IsMozEditorBogusNode(aNode)) {
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
+  if (!IsModifiableNode(aNode) && !IsMozEditorBogusNode(content)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -3668,8 +3546,7 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
   }
   
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
-    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aChild);
-    if (node && IsMozEditorBogusNode(node)) {
+    if (IsMozEditorBogusNode(aChild)) {
       
       return;
     }
@@ -3689,8 +3566,7 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
   }
   
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
-    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aChild);
-    if (node && IsMozEditorBogusNode(node)) {
+    if (aChild && IsMozEditorBogusNode(aChild)) {
       
       return;
     }
@@ -4132,50 +4008,31 @@ nsHTMLEditor::IsNodeInActiveEditor(nsIDOMNode* aNode)
 bool
 nsHTMLEditor::SetCaretInTableCell(nsIDOMElement* aElement)
 {
-  bool caretIsSet = false;
-
-  if (aElement && IsNodeInActiveEditor(aElement)) {
-    nsresult res = NS_OK;
-    nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
-    if (content)
-    {
-      nsIAtom *atom = content->Tag();
-      if (atom == nsEditProperty::table ||
-          atom == nsEditProperty::tbody ||
-          atom == nsEditProperty::thead ||
-          atom == nsEditProperty::tfoot ||
-          atom == nsEditProperty::caption ||
-          atom == nsEditProperty::tr ||
-          atom == nsEditProperty::td )
-      {
-        nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aElement);
-        nsCOMPtr<nsIDOMNode> parent;
-        
-        node->GetParentNode(getter_AddRefs(parent));
-        nsCOMPtr<nsIDOMNode>firstChild;
-        
-        bool hasChild;
-        while (NS_SUCCEEDED(node->HasChildNodes(&hasChild)) && hasChild)
-        {
-          if (NS_SUCCEEDED(node->GetFirstChild(getter_AddRefs(firstChild))))
-          {
-            parent = node;
-            node = firstChild;
-          }
-        }
-        
-        nsCOMPtr<nsISelection> selection;
-        res = GetSelection(getter_AddRefs(selection));
-        if (NS_SUCCEEDED(res) && selection && firstChild)
-        {
-          res = selection->Collapse(firstChild, 0);
-          if (NS_SUCCEEDED(res))
-            caretIsSet = true;
-        }
-      }
-    }
+  if (!aElement || !IsNodeInActiveEditor(aElement)) {
+    return false;
   }
-  return caretIsSet;
+
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aElement);
+  if (!element || !element->IsHTML()) {
+    return false;
+  }
+
+  if (!nsHTMLEditUtils::IsTableElement(element)) {
+    return false;
+  }
+
+  nsIContent* node = element;
+  while (node->HasChildren()) {
+    node = node->GetFirstChild();
+  }
+
+  
+  nsCOMPtr<nsISelection> selection;
+  nsresult rv = GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(rv, false);
+  NS_ENSURE_TRUE(selection, false);
+
+  return NS_SUCCEEDED(selection->CollapseNative(node, 0));
 }            
 
 
@@ -4978,10 +4835,8 @@ nsHTMLEditor::SetAttributeOrEquivalent(nsIDOMElement * aElement,
                                        const nsAString & aValue,
                                        bool aSuppressTransaction)
 {
-  bool useCSS;
   nsresult res = NS_OK;
-  GetIsCSSEnabled(&useCSS);
-  if (useCSS && mHTMLCSSUtils) {
+  if (IsCSSEnabled() && mHTMLCSSUtils) {
     PRInt32 count;
     res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(aElement, nsnull, &aAttribute, &aValue, &count,
                                                      aSuppressTransaction);
@@ -5042,10 +4897,8 @@ nsHTMLEditor::RemoveAttributeOrEquivalent(nsIDOMElement * aElement,
                                           const nsAString & aAttribute,
                                           bool aSuppressTransaction)
 {
-  bool useCSS;
   nsresult res = NS_OK;
-  GetIsCSSEnabled(&useCSS);
-  if (useCSS && mHTMLCSSUtils) {
+  if (IsCSSEnabled() && mHTMLCSSUtils) {
     res = mHTMLCSSUtils->RemoveCSSEquivalentToHTMLStyle(aElement, nsnull, &aAttribute, nsnull,
                                                         aSuppressTransaction);
     NS_ENSURE_SUCCESS(res, res);
@@ -5312,9 +5165,7 @@ NS_IMETHODIMP
 nsHTMLEditor::SetBackgroundColor(const nsAString& aColor)
 {
   nsresult res;
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-  if (useCSS) {
+  if (IsCSSEnabled()) {
     
     
     
@@ -5339,13 +5190,10 @@ nsHTMLEditor::NodesSameType(nsIDOMNode *aNode1, nsIDOMNode *aNode2)
     return false;
   }
 
-  bool useCSS;
-  GetIsCSSEnabled(&useCSS);
-
   nsIAtom *tag1 = GetTag(aNode1);
 
   if (tag1 == GetTag(aNode2)) {
-    if (useCSS && tag1 == nsEditProperty::span) {
+    if (IsCSSEnabled() && tag1 == nsEditProperty::span) {
       if (mHTMLCSSUtils->ElementsSameStyle(aNode1, aNode2)) {
         return true;
       }

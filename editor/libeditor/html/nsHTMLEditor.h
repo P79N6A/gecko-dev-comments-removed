@@ -418,7 +418,14 @@ public:
                                   nsCSSStyleSheet *aStyleSheet);
 
   nsresult RemoveStyleSheetFromList(const nsAString &aURL);
-                       
+
+  bool IsCSSEnabled()
+  {
+    
+    return mCSSAware && mHTMLCSSUtils && mHTMLCSSUtils->IsCSSPrefChecked();
+  }
+
+
 protected:
 
   NS_IMETHOD  InitRules();
@@ -445,11 +452,6 @@ protected:
   NS_IMETHOD TabInTable(bool inIsShift, bool *outHandled);
   NS_IMETHOD CreateBR(nsIDOMNode *aNode, PRInt32 aOffset, 
                       nsCOMPtr<nsIDOMNode> *outBRNode, nsIEditor::EDirection aSelect = nsIEditor::eNone);
-  NS_IMETHOD CreateBRImpl(nsCOMPtr<nsIDOMNode> *aInOutParent, 
-                         PRInt32 *aInOutOffset, 
-                         nsCOMPtr<nsIDOMNode> *outBRNode, 
-                         nsIEditor::EDirection aSelect);
-  NS_IMETHOD InsertBR(nsCOMPtr<nsIDOMNode> *outBRNode);
 
 
 
@@ -720,8 +722,8 @@ protected:
                              bool *aAll,
                              nsAString *outValue,
                              bool aCheckDefaults = true);
-  nsresult HasStyleOrIdOrClass(nsIDOMElement * aElement, bool *aHasStyleOrIdOrClass);
-  nsresult RemoveElementIfNoStyleOrIdOrClass(nsIDOMElement * aElement, nsIAtom * aTag);
+  bool HasStyleOrIdOrClass(mozilla::dom::Element* aElement);
+  nsresult RemoveElementIfNoStyleOrIdOrClass(nsIDOMNode* aElement);
 
   
   bool     OurWindowHasFocus();

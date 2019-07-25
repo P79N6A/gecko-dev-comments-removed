@@ -488,6 +488,7 @@
 #include "DOMSVGNumberList.h"
 #include "DOMSVGPathSegList.h"
 #include "DOMSVGPointList.h"
+#include "DOMSVGStringList.h"
 #include "DOMSVGTransformList.h"
 
 #include "mozilla/dom/indexedDB/IDBWrapperCache.h"
@@ -514,6 +515,7 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 
 #include "nsIDOMBatteryManager.h"
 #include "BatteryManager.h"
+#include "nsIDOMPowerManager.h"
 #include "nsIDOMSmsManager.h"
 #include "nsIDOMSmsMessage.h"
 #include "nsIDOMSmsEvent.h"
@@ -1293,8 +1295,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(SVGRect, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(SVGStringList, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)    
+  NS_DEFINE_CLASSINFO_DATA(SVGStringList, nsSVGStringListSH,
+                           ARRAY_SCRIPTABLE_FLAGS)    
   NS_DEFINE_CLASSINFO_DATA(SVGTransform, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(SVGTransformList, nsSVGTransformListSH,
@@ -1441,6 +1443,9 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozBatteryManager, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+
+  NS_DEFINE_CLASSINFO_DATA(MozPowerManager, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozSmsManager, nsDOMGenericSH,
@@ -4030,6 +4035,10 @@ nsDOMClassInfo::Init()
   DOM_CLASSINFO_MAP_BEGIN(MozBatteryManager, nsIDOMMozBatteryManager)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozBatteryManager)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(MozPowerManager, nsIDOMMozPowerManager)
+     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozPowerManager)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozSmsManager, nsIDOMMozSmsManager)
@@ -9561,6 +9570,7 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
 
 
 
+
 nsresult
 nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wrapper,
                                                   JSObject *obj,
@@ -9574,36 +9584,21 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  
+  nsresult rv = objlc->GetPluginInstance(_result);
+  if (NS_SUCCEEDED(rv) && *_result) {
+    return rv;
+  }
+
   
   if (!nsContentUtils::IsSafeToRunScript()) {
-    return objlc->GetPluginInstance(_result);
+    return rv;
   }
 
   
-  return objlc->EnsureInstantiation(_result);
-}
+  
+  objlc->SyncStartPluginInstance();
 
-
-
-static bool
-IsObjInProtoChain(JSContext *cx, JSObject *obj, JSObject *proto)
-{
-  JSObject *o = obj;
-
-  JSAutoRequest ar(cx);
-
-  while (o) {
-    JSObject *p = ::JS_GetPrototype(cx, o);
-
-    if (p == proto) {
-      return true;
-    }
-
-    o = p;
-  }
-
-  return false;
+  return objlc->GetPluginInstance(_result);
 }
 
 class nsPluginProtoChainInstallRunner : public nsIRunnable
@@ -9685,19 +9680,8 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
 
   if (!pi_obj) {
     
-
     return NS_OK;
   }
-
-  if (IsObjInProtoChain(cx, obj, pi_obj)) {
-    
-    
-    
-    
-
-    return NS_OK;
-  }
-
 
   
   
@@ -10906,3 +10890,45 @@ nsSVGListSH<ListInterfaceType, ListType>::GetItemAt(nsISupports *aNative,
 
   return list->GetItemWithoutAddRef(aIndex);
 }
+
+
+
+
+nsresult
+nsSVGStringListSH::GetStringAt(nsISupports *aNative, PRInt32 aIndex,
+                               nsAString& aResult)
+{
+  if (aIndex < 0) {
+    SetDOMStringToNull(aResult);
+    return NS_OK;
+  }
+
+  DOMSVGStringList* list = static_cast<DOMSVGStringList*>(
+                             static_cast<nsIDOMSVGStringList*>(aNative));
+#ifdef DEBUG
+  {
+    nsCOMPtr<nsIDOMSVGStringList> list_qi = do_QueryInterface(aNative);
+    
+    
+    
+    
+    NS_ABORT_IF_FALSE(list_qi == list, "Uh, fix QI!");
+  }
+#endif
+
+  nsresult rv = list->GetItem(aIndex, aResult);
+#ifdef DEBUG
+  if (DOMStringIsNull(aResult)) {
+    PRUint32 length = 0;
+    list->GetLength(&length);
+    NS_ASSERTION(PRUint32(aIndex) >= length, "Item should only return null for out-of-bounds access");
+  }
+#endif
+  if (rv == NS_ERROR_DOM_INDEX_SIZE_ERR) {
+    SetDOMStringToNull(aResult);
+    rv = NS_OK;
+  }
+  return rv;
+}
+
+

@@ -990,13 +990,13 @@ nsTextEditRules::DidRedo(nsISelection *aSelection, nsresult aResult)
         return NS_OK;  
       }
 
-      nsCOMPtr<nsIDOMNode> node;
-      nodeList->Item(0, getter_AddRefs(node));
-      NS_ENSURE_TRUE(node, NS_ERROR_NULL_POINTER);
-      if (mEditor->IsMozEditorBogusNode(node))
-        mBogusNode = node;
-      else
+      nsCOMPtr<nsIContent> content = nodeList->GetNodeAt(0);
+      MOZ_ASSERT(content);
+      if (mEditor->IsMozEditorBogusNode(content)) {
+        mBogusNode = do_QueryInterface(content);
+      } else {
         mBogusNode = nsnull;
+      }
     }
   }
   return res;
@@ -1114,66 +1114,63 @@ nsTextEditRules::CreateTrailingBRIfNeeded()
 nsresult
 nsTextEditRules::CreateBogusNodeIfNeeded(nsISelection *aSelection)
 {
-  if (!aSelection) { return NS_ERROR_NULL_POINTER; }
-  if (!mEditor) { return NS_ERROR_NULL_POINTER; }
-  if (mBogusNode) return NS_OK;  
+  NS_ENSURE_TRUE(aSelection, NS_ERROR_NULL_POINTER);
+  NS_ENSURE_TRUE(mEditor, NS_ERROR_NULL_POINTER);
+
+  if (mBogusNode) {
+    
+    return NS_OK;
+  }
 
   
   nsAutoRules beginRulesSniffing(mEditor, nsEditor::kOpIgnore, nsIEditor::eNone);
 
-  nsCOMPtr<nsIDOMNode> body = do_QueryInterface(mEditor->GetRoot());
-  if (!body)
-  {
+  nsCOMPtr<dom::Element> body = mEditor->GetRoot();
+  if (!body) {
     
     
-
     return NS_OK;
   }
 
   
   
   
-  bool needsBogusContent=true;
-  nsCOMPtr<nsIDOMNode> bodyChild;
-  nsresult res = body->GetFirstChild(getter_AddRefs(bodyChild));        
-  while ((NS_SUCCEEDED(res)) && bodyChild)
-  { 
+  for (nsCOMPtr<nsIContent> bodyChild = body->GetFirstChild();
+       bodyChild;
+       bodyChild = bodyChild->GetNextSibling()) {
     if (mEditor->IsMozEditorBogusNode(bodyChild) ||
-        !mEditor->IsEditable(body) ||
-        mEditor->IsEditable(bodyChild))
-    {
-      needsBogusContent = false;
-      break;
+        !mEditor->IsEditable(body) || 
+        mEditor->IsEditable(bodyChild)) {
+      return NS_OK;
     }
-    nsCOMPtr<nsIDOMNode>temp;
-    bodyChild->GetNextSibling(getter_AddRefs(temp));
-    bodyChild = do_QueryInterface(temp);
   }
+
   
-  if (needsBogusContent && mEditor->IsModifiableNode(body))
-  {
-    
-    nsCOMPtr<nsIContent> newContent;
-    res = mEditor->CreateHTMLContent(NS_LITERAL_STRING("br"), getter_AddRefs(newContent));
-    NS_ENSURE_SUCCESS(res, res);
-    nsCOMPtr<nsIDOMElement>brElement = do_QueryInterface(newContent);
-
-    
-    mBogusNode = brElement;
-    NS_ENSURE_TRUE(mBogusNode, NS_ERROR_NULL_POINTER);
-
-    
-    newContent->SetAttr(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom,
-                        kMOZEditorBogusNodeValue, false);
-    
-    
-    res = mEditor->InsertNode(mBogusNode, body, 0);
-    NS_ENSURE_SUCCESS(res, res);
-
-    
-    aSelection->Collapse(body, 0);
+  if (!mEditor->IsModifiableNode(body)) {
+    return NS_OK;
   }
-  return res;
+
+  
+  nsCOMPtr<nsIContent> newContent;
+  nsresult rv = mEditor->CreateHTMLContent(NS_LITERAL_STRING("br"), getter_AddRefs(newContent));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  mBogusNode = do_QueryInterface(newContent);
+  NS_ENSURE_TRUE(mBogusNode, NS_ERROR_NULL_POINTER);
+
+  
+  newContent->SetAttr(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom,
+                      kMOZEditorBogusNodeValue, false);
+
+  
+  nsCOMPtr<nsIDOMNode> bodyNode = do_QueryInterface(body);
+  rv = mEditor->InsertNode(mBogusNode, bodyNode, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  aSelection->CollapseNative(body, 0);
+  return NS_OK;
 }
 
 
