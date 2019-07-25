@@ -109,8 +109,8 @@ var fileLevel =  params.fileLevel || null;
 var consoleLevel = params.consoleLevel || null;
 
 
-if (params.loops) {
-  TestRunner.loops = params.loops;
+if (params.repeat) {
+  TestRunner.repeat = params.repeat;
 } 
 
 

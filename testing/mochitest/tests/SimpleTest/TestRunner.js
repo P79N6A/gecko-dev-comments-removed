@@ -129,7 +129,7 @@ TestRunner.requestLongerTimeout = function(factor) {
 
 
 
-TestRunner.loops = 0;
+TestRunner.repeat = 0;
 TestRunner._currentLoop = 0;
 
 
@@ -246,7 +246,7 @@ TestRunner.resetTests = function(listURLs) {
 TestRunner.loopTest = function(testPath) {
   
   document.getElementById("current-test-path").innerHTML = testPath;
-  var numLoops = TestRunner.loops;
+  var numLoops = TestRunner.repeat;
   var completed = 0; 
 
   
@@ -257,7 +257,7 @@ TestRunner.loopTest = function(testPath) {
       TestRunner.currentTestURL = testPath;
       TestRunner.updateUI(testWindow.SimpleTest._tests);
       testWindow.close();
-      if (TestRunner.loops == completed  && TestRunner.onComplete) {
+      if (TestRunner.repeat == completed  && TestRunner.onComplete) {
         TestRunner.onComplete();
       }
       completed++;
@@ -316,14 +316,15 @@ TestRunner.runNextTest = function() {
         TestRunner.log("Failed: " + $("fail-count").innerHTML);
         TestRunner.log("Todo:   " + $("todo-count").innerHTML);
         
-        if (TestRunner.loops == 0)
+        if (TestRunner.repeat == 0) {
           TestRunner.log("SimpleTest FINISHED");
+        }
 
-        if (TestRunner.loops == 0 && TestRunner.onComplete) {
+        if (TestRunner.repeat == 0 && TestRunner.onComplete) {
              TestRunner.onComplete();
          }
  
-        if (TestRunner._currentLoop < TestRunner.loops){
+        if (TestRunner._currentLoop < TestRunner.repeat) {
           TestRunner._currentLoop++;
           TestRunner.resetTests(TestRunner._urls);
         } else {
@@ -482,7 +483,7 @@ TestRunner.updateUI = function(tests) {
   tds[2].innerHTML = parseInt(tds[2].innerHTML) + parseInt(results.todo);
 
   
-  if(TestRunner.loops > 0){
+  if (TestRunner.repeat > 0) {
     TestRunner.displayLoopErrors('fail-table', tests);
   }
 }
