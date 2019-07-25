@@ -860,7 +860,7 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
 
   if (newHttpChannel) {
     
-    newHttpChannel->SetOriginalURI(mRedirectOriginalURI);
+    newHttpChannel->SetOriginalURI(mOriginalURI);
   }
 
   RequestHeaderTuples emptyHeaders;
