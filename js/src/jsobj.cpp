@@ -4458,10 +4458,8 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
     }
 
     
-    if (obj->containsSlot(shape->slot)) {
-        AbortRecordingIfChangingGlobalSlotType(cx, obj, value, shape->slot);
+    if (obj->containsSlot(shape->slot))
         obj->nativeSetSlot(shape->slot, value);
-    }
 
     
     valueCopy = value;
@@ -4924,7 +4922,6 @@ js_NativeSet(JSContext *cx, JSObject *obj, const Shape *shape, bool added, Value
     slot = shape->slot;
     if (slot != SHAPE_INVALID_SLOT) {
         JS_ASSERT(obj->containsSlot(slot));
-        AbortRecordingIfChangingGlobalSlotType(cx, obj, *vp, slot);
 
         
         if (shape->hasDefaultSetter()) {
