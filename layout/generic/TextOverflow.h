@@ -121,13 +121,18 @@ class TextOverflow {
 
 
 
+
+
   void ExamineFrameSubtree(nsIFrame*       aFrame,
                            const nsRect&   aContentArea,
                            const nsRect&   aInsideMarkersArea,
                            FrameHashtable* aFramesToHide,
-                           AlignmentEdges* aAlignmentEdges);
+                           AlignmentEdges* aAlignmentEdges,
+                           bool*           aFoundVisibleTextOrAtomic);
 
   
+
+
 
 
 
@@ -146,7 +151,8 @@ class TextOverflow {
                           const nsIAtom*  aFrameType,
                           const nsRect&   aInsideMarkersArea,
                           FrameHashtable* aFramesToHide,
-                          AlignmentEdges* aAlignmentEdges);
+                          AlignmentEdges* aAlignmentEdges,
+                          bool*           aFoundVisibleTextOrAtomic);
 
   
 
