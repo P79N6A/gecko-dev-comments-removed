@@ -5455,6 +5455,13 @@ nsContentUtils::GetCurrentJSContext()
 }
 
 
+JSContext *
+nsContentUtils::GetSafeJSContext()
+{
+  return sThreadJSContextStack->GetSafeJSContext();
+}
+
+
 nsresult
 nsContentUtils::ASCIIToLower(nsAString& aStr)
 {

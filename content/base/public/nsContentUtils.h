@@ -1572,6 +1572,7 @@ public:
                                                       nsresult* aRv);
 
   static JSContext *GetCurrentJSContext();
+  static JSContext *GetSafeJSContext();
 
   
 

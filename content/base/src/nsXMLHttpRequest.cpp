@@ -549,40 +549,32 @@ nsXMLHttpRequest::Initialize(nsISupports* aOwner, JSContext* cx, JSObject* obj,
 nsresult
 nsXMLHttpRequest::InitParameters(JSContext* aCx, const jsval* aParams)
 {
-  XMLHttpRequestParameters params;
-  nsresult rv = params.Init(aCx, aParams);
+  XMLHttpRequestParameters* params = new XMLHttpRequestParameters();
+  nsresult rv = params->Init(aCx, aParams);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  InitParameters(params.mozAnon, params.mozSystem);
-  return NS_OK;
-}
-
-void
-nsXMLHttpRequest::InitParameters(bool aAnon, bool aSystem)
-{
   
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(GetOwner());
-  if (!window || !window->GetDocShell()) {
-    return;
-  }
+  NS_ENSURE_TRUE(window && window->GetDocShell(), NS_OK);
 
   
   
   if (!nsContentUtils::IsCallerChrome()) {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(window->GetExtantDocument());
-    if (!doc) {
-      return;
-    }
+    NS_ENSURE_TRUE(doc, NS_OK);
 
     nsCOMPtr<nsIURI> uri;
     doc->NodePrincipal()->GetURI(getter_AddRefs(uri));
+
     if (!nsContentUtils::URIIsChromeOrInPref(uri, "dom.systemXHR.whitelist")) {
-      return;
+      return NS_OK;
     }
   }
 
-  mIsAnon = aAnon;
-  mIsSystem = aSystem;
+  mIsAnon = params->mozAnon;
+  mIsSystem = params->mozSystem;
+
+  return NS_OK;
 }
 
 void
@@ -2688,12 +2680,27 @@ GetRequestBody(nsIVariant* aBody, JSContext *aCx, nsIInputStream** aResult,
 
     
     jsval realVal;
+    nsCxPusher pusher;
+    JSAutoEnterCompartment ac;
     JSObject* obj;
+
+    
+    
+    
+    JSContext* cx = nsContentUtils::GetCurrentJSContext();
+    if (!cx) {
+      cx = nsContentUtils::GetSafeJSContext();
+      if (!pusher.Push(cx)) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+
     nsresult rv = aBody->GetAsJSVal(&realVal);
     if (NS_SUCCEEDED(rv) && !JSVAL_IS_PRIMITIVE(realVal) &&
         (obj = JSVAL_TO_OBJECT(realVal)) &&
-        (JS_IsArrayBufferObject(obj, aCx))) {
-      ArrayBuffer buf(aCx, obj);
+        ac.enter(cx, obj) &&
+        (JS_IsArrayBufferObject(obj, cx))) {
+      ArrayBuffer buf(cx, obj);
       return GetRequestBody(&buf, aResult, aContentType, aCharset);
     }
   }
