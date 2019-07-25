@@ -88,9 +88,6 @@ public:
   }
 
   
-  static void Shutdown();
-
-  
 
 
 
