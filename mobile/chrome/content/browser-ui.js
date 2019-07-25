@@ -107,6 +107,11 @@ var BrowserUI = {
 
     if (/\bicon\b/i(link.rel)) {
       this._faviconLink = link.href;
+
+      
+      
+      if (this._favicon.src != "")
+        this._setIcon(this._faviconLink);
     }
   },
 
