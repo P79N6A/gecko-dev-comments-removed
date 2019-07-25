@@ -3433,6 +3433,9 @@ InflateString(JSContext *cx, const char *bytes, size_t *lengthp, FlationCoding f
     jschar *chars;
     size_t nbytes = *lengthp;
 
+    
+    MaybeCheckStackRoots(cx);
+
     if (js_CStringsAreUTF8 || fc == CESU8Encoding) {
         if (!InflateUTF8StringToBuffer(cx, bytes, nbytes, NULL, &nchars, fc))
             goto bad;
