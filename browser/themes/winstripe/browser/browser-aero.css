@@ -24,6 +24,11 @@
     background: transparent;
   }
 
+  
+  #main-window[sizemode="maximized"] {
+    margin-top: 8px;
+  }
+
   #main-window:not(:-moz-lwtheme)[inFullscreen="true"] {
     -moz-appearance: none;
     background-color: #556;
