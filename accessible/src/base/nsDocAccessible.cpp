@@ -1024,8 +1024,21 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     }
   }
 
-  if (aAttribute == nsAccessibilityAtoms::role ||
-      aAttribute == nsAccessibilityAtoms::href ||
+  if (aAttribute == nsAccessibilityAtoms::role) {
+    if (mContent == aContent) {
+      
+      
+      SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aContent));
+    }
+    else {
+      
+      
+      
+      RecreateAccessible(aContent);
+    }
+  }
+
+  if (aAttribute == nsAccessibilityAtoms::href ||
       aAttribute == nsAccessibilityAtoms::onclick) {
     
     
