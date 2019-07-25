@@ -4341,156 +4341,180 @@ js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
 #define SCOPE_DEPTH_ACCUM(bs,val)                                             \
     JS_SCOPE_DEPTH_METERING(JS_BASIC_STATS_ACCUM(bs, val))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSBool
+CallResolveOp(JSContext *cx, JSObject *start, JSObject *obj, jsid id, uintN flags,
+              JSObject **objp, JSProperty **propp, bool *recursedp)
+{
+    JSClass *clasp = obj->getClass();
+    JSResolveOp resolve = clasp->resolve;
+    JSScope *scope = obj->scope();
+
+    
+
+
+
+
+
+
+
+    JSResolvingKey key = {obj, id};
+    JSResolvingEntry *entry;
+    if (!js_StartResolving(cx, &key, JSRESFLAG_LOOKUP, &entry)) {
+        JS_UNLOCK_OBJ(cx, obj);
+        return false;
+    }
+    if (!entry) {
+        
+        JS_UNLOCK_OBJ(cx, obj);
+        *recursedp = true;
+        return true;
+    }
+    uint32 generation = cx->resolvingTable->generation;
+    *recursedp = false;
+
+    *propp = NULL;
+
+    JSBool ok;
+    JSScopeProperty *sprop = NULL;
+    if (clasp->flags & JSCLASS_NEW_RESOLVE) {
+        JSNewResolveOp newresolve = (JSNewResolveOp)resolve;
+        if (flags == JSRESOLVE_INFER)
+            flags = js_InferFlags(cx, flags);
+        JSObject *obj2 = (clasp->flags & JSCLASS_NEW_RESOLVE_GETS_START) ? start : NULL;
+        JS_UNLOCK_OBJ(cx, obj);
+
+        {
+            
+            AutoKeepAtoms keep(cx->runtime);
+            ok = newresolve(cx, obj, ID_TO_VALUE(id), flags, &obj2);
+        }
+        if (!ok)
+            goto cleanup;
+
+        JS_LOCK_OBJ(cx, obj);
+        if (obj2) {
+            
+            if (obj2 != obj) {
+                JS_UNLOCK_OBJ(cx, obj);
+                if (obj2->isNative())
+                    JS_LOCK_OBJ(cx, obj2);
+            }
+            if (!obj2->isNative()) {
+                
+                JS_ASSERT(obj2 != obj);
+                ok = obj2->lookupProperty(cx, id, objp, propp);
+                if (!ok || *propp)
+                    goto cleanup;
+                JS_LOCK_OBJ(cx, obj2);
+            } else {
+                
+
+
+
+
+
+
+
+                scope = obj2->scope();
+                if (!scope->isSharedEmpty())
+                    sprop = scope->lookup(id);
+            }
+            if (sprop) {
+                JS_ASSERT(scope == obj2->scope());
+                JS_ASSERT(!scope->isSharedEmpty());
+                obj = obj2;
+            } else if (obj2 != obj) {
+                if (obj2->isNative())
+                    JS_UNLOCK_OBJ(cx, obj2);
+                JS_LOCK_OBJ(cx, obj);
+            }
+        }
+    } else {
+        
+
+
+
+        JS_UNLOCK_OBJ(cx, obj);
+        ok = resolve(cx, obj, ID_TO_VALUE(id));
+        if (!ok)
+            goto cleanup;
+        JS_LOCK_OBJ(cx, obj);
+        JS_ASSERT(obj->isNative());
+        scope = obj->scope();
+        if (!scope->isSharedEmpty())
+            sprop = scope->lookup(id);
+    }
+
+cleanup:
+    if (ok && sprop) {
+        JS_ASSERT(obj->scope() == scope);
+        *objp = obj;
+        *propp = (JSProperty *) sprop;
+    }
+    js_StopResolving(cx, &key, JSRESFLAG_LOOKUP, entry, generation);
+    return ok;
+}
+
 int
 js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp)
 {
-    JSObject *start, *obj2, *proto;
-    int protoIndex;
-    JSScope *scope;
-    JSScopeProperty *sprop;
-    JSClass *clasp;
-    JSResolveOp resolve;
-    JSResolvingKey key;
-    JSResolvingEntry *entry;
-    uint32 generation;
-    JSNewResolveOp newresolve;
-    JSBool ok;
-
     
     id = js_CheckForStringIndex(id);
 
     
-    start = obj;
+    JSObject *start = obj;
+    int protoIndex;
     for (protoIndex = 0; ; protoIndex++) {
         JS_LOCK_OBJ(cx, obj);
-        scope = obj->scope();
-        sprop = scope->lookup(id);
-
-        
-        if (!sprop) {
-            clasp = obj->getClass();
-            resolve = clasp->resolve;
-            if (resolve != JS_ResolveStub) {
-                
-                key.obj = obj;
-                key.id = id;
-
-                
-
-
-
-
-
-                if (!js_StartResolving(cx, &key, JSRESFLAG_LOOKUP, &entry)) {
-                    JS_UNLOCK_OBJ(cx, obj);
-                    return -1;
-                }
-                if (!entry) {
-                    
-                    JS_UNLOCK_OBJ(cx, obj);
-                    goto out;
-                }
-                generation = cx->resolvingTable->generation;
-
-                
-                *propp = NULL;
-
-                if (clasp->flags & JSCLASS_NEW_RESOLVE) {
-                    newresolve = (JSNewResolveOp)resolve;
-                    if (flags == JSRESOLVE_INFER)
-                        flags = js_InferFlags(cx, flags);
-                    obj2 = (clasp->flags & JSCLASS_NEW_RESOLVE_GETS_START)
-                           ? start
-                           : NULL;
-                    JS_UNLOCK_OBJ(cx, obj);
-
-                    {
-                        
-                        AutoKeepAtoms keep(cx->runtime);
-                        ok = newresolve(cx, obj, ID_TO_VALUE(id), flags, &obj2);
-                    }
-                    if (!ok)
-                        goto cleanup;
-
-                    JS_LOCK_OBJ(cx, obj);
-                    if (obj2) {
-                        
-                        if (obj2 != obj) {
-                            JS_UNLOCK_OBJ(cx, obj);
-                            if (obj2->isNative())
-                                JS_LOCK_OBJ(cx, obj2);
-                        }
-                        protoIndex = 0;
-                        for (proto = start; proto && proto != obj2;
-                             proto = proto->getProto()) {
-                            protoIndex++;
-                        }
-                        if (!obj2->isNative()) {
-                            
-                            JS_ASSERT(obj2 != obj);
-                            ok = obj2->lookupProperty(cx, id, objp, propp);
-                            if (!ok || *propp)
-                                goto cleanup;
-                            JS_LOCK_OBJ(cx, obj2);
-                        } else {
-                            
-
-
-
-
-
-
-
-                            scope = obj2->scope();
-                            if (!scope->isSharedEmpty())
-                                sprop = scope->lookup(id);
-                        }
-                        if (sprop) {
-                            JS_ASSERT(scope == obj2->scope());
-                            JS_ASSERT(!scope->isSharedEmpty());
-                            obj = obj2;
-                        } else if (obj2 != obj) {
-                            if (obj2->isNative())
-                                JS_UNLOCK_OBJ(cx, obj2);
-                            JS_LOCK_OBJ(cx, obj);
-                        }
-                    }
-                } else {
-                    
-
-
-
-                    JS_UNLOCK_OBJ(cx, obj);
-                    ok = resolve(cx, obj, ID_TO_VALUE(id));
-                    if (!ok)
-                        goto cleanup;
-                    JS_LOCK_OBJ(cx, obj);
-                    JS_ASSERT(obj->isNative());
-                    scope = obj->scope();
-                    if (!scope->isSharedEmpty())
-                        sprop = scope->lookup(id);
-                }
-
-            cleanup:
-                js_StopResolving(cx, &key, JSRESFLAG_LOOKUP, entry, generation);
-                if (!ok)
-                    return -1;
-                if (*propp)
-                    return protoIndex;
-            }
-        }
-
+        JSScopeProperty *sprop = obj->scope()->lookup(id);
         if (sprop) {
             SCOPE_DEPTH_ACCUM(&cx->runtime->protoLookupDepthStats, protoIndex);
-            JS_ASSERT(obj->scope() == scope);
             *objp = obj;
-
             *propp = (JSProperty *) sprop;
             return protoIndex;
         }
 
-        proto = obj->getProto();
+        
+        if (!sprop && obj->getClass()->resolve != JS_ResolveStub) {
+            bool recursed;
+            if (!CallResolveOp(cx, start, obj, id, flags, objp, propp, &recursed))
+                return -1;
+            if (recursed)
+                break;
+            if (*propp) {
+                
+                protoIndex = 0;
+                for (JSObject *proto = start; proto && proto != *objp; proto = proto->getProto())
+                    protoIndex++;
+                SCOPE_DEPTH_ACCUM(&cx->runtime->protoLookupDepthStats, protoIndex);
+                return protoIndex;
+            }
+        }
+
+        JSObject *proto = obj->getProto();
         JS_UNLOCK_OBJ(cx, obj);
         if (!proto)
             break;
@@ -4500,22 +4524,9 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
             return protoIndex + 1;
         }
 
-        
-
-
-
-
-
-
-
-
-        JS_ASSERT_IF(obj->getClass() != &js_BlockClass,
-                     obj->scope() != proto->scope());
-
         obj = proto;
     }
 
-out:
     *objp = NULL;
     *propp = NULL;
     return protoIndex;
