@@ -1,0 +1,130 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef MOZILLA_SVGPOINT_H__
+#define MOZILLA_SVGPOINT_H__
+
+#include "nsDebug.h"
+#include "nsContentUtils.h"
+#include "gfxPoint.h"
+
+namespace mozilla {
+
+
+
+
+
+
+class SVGPoint
+{
+public:
+
+  SVGPoint()
+#ifdef DEBUG
+    : mX(0.0f)
+    , mY(0.0f)
+#endif
+  {}
+
+  SVGPoint(float aX, float aY)
+    : mX(aX)
+    , mY(aY)
+  {
+    NS_ASSERTION(IsValid(), "Constructed an invalid SVGPoint");
+  }
+
+  SVGPoint(const SVGPoint &aOther)
+    : mX(aOther.mX)
+    , mY(aOther.mY)
+  {}
+
+  SVGPoint& operator=(const SVGPoint &rhs) {
+    mX = rhs.mX;
+    mY = rhs.mY;
+    return *this;
+  }
+
+  PRBool operator==(const SVGPoint &rhs) const {
+    return mX == rhs.mX && mY == rhs.mY;
+  }
+
+  SVGPoint& operator+=(const SVGPoint &rhs) {
+    mX += rhs.mX;
+    mY += rhs.mY;
+    return *this;
+  }
+
+  operator gfxPoint() const {
+    return gfxPoint(mX, mY);
+  }
+
+#ifdef DEBUG
+  PRBool IsValid() const {
+    return NS_FloatIsFinite(mX) && NS_FloatIsFinite(mY);
+  }
+#endif
+
+  float mX;
+  float mY;
+};
+
+inline SVGPoint operator+(const SVGPoint& aP1,
+                          const SVGPoint& aP2)
+{
+  return SVGPoint(aP1.mX + aP2.mX, aP1.mY + aP2.mY);
+}
+
+inline SVGPoint operator-(const SVGPoint& aP1,
+                          const SVGPoint& aP2)
+{
+  return SVGPoint(aP1.mX - aP2.mX, aP1.mY - aP2.mY);
+}
+
+inline SVGPoint operator*(float aFactor,
+                          const SVGPoint& aPoint)
+{
+  return SVGPoint(aFactor * aPoint.mX, aFactor * aPoint.mY);
+}
+
+inline SVGPoint operator*(const SVGPoint& aPoint,
+                          float aFactor)
+{
+  return SVGPoint(aFactor * aPoint.mX, aFactor * aPoint.mY);
+}
+
+} 
+
+#endif 

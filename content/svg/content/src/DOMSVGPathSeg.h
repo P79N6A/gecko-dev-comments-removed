@@ -84,6 +84,8 @@ public:
   
 
 
+
+
   static DOMSVGPathSeg *CreateFor(DOMSVGPathSegList *aList,
                                   PRUint32 aListIndex,
                                   PRBool aIsAnimValItem);

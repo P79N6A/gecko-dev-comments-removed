@@ -38,11 +38,8 @@
 #define NS_SVGPOLYELEMENT_H_
 
 #include "nsSVGPathGeometryElement.h"
-#include "nsCOMPtr.h"
-#include "nsIDOMSVGPoint.h"
-#include "nsSVGPointList.h"
 #include "nsIDOMSVGAnimatedPoints.h"
-#include "nsSVGUtils.h"
+#include "SVGAnimatedPointList.h"
 
 typedef nsSVGPathGeometryElement nsSVGPolyElementBase;
 
@@ -53,7 +50,6 @@ class nsSVGPolyElement : public nsSVGPolyElementBase,
 {
 protected:
   nsSVGPolyElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  nsresult Init();
 
 public:
   
@@ -63,7 +59,14 @@ public:
 
   
   NS_IMETHOD_(PRBool) IsAttributeMapped(const nsIAtom* name) const;
-  
+
+  virtual SVGAnimatedPointList* GetAnimatedPointList() {
+    return &mPoints;
+  }
+  virtual nsIAtom* GetPointListAttrName() const {
+    return nsGkAtoms::points;
+  }
+
   
   virtual PRBool AttributeDefinesGeometry(const nsIAtom *aName);
   virtual PRBool IsMarkable() { return PR_TRUE; }
@@ -71,8 +74,7 @@ public:
   virtual void ConstructPath(gfxContext *aCtx);
 
 protected:
-  nsCOMPtr<nsIDOMSVGPointList> mPoints;
-
+  SVGAnimatedPointList mPoints;
 };
 
 #endif 
