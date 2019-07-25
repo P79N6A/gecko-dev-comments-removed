@@ -1003,7 +1003,6 @@ struct nsCycleCollector
     void SelectPurple(GCGraphBuilder &builder);
     void MarkRoots(GCGraphBuilder &builder);
     void ScanRoots();
-    void RootWhite();
     PRBool CollectWhite(); 
 
     nsCycleCollector();
@@ -1868,8 +1867,8 @@ nsCycleCollector::ScanRoots()
 
 
 
-void
-nsCycleCollector::RootWhite()
+PRBool
+nsCycleCollector::CollectWhite()
 {
     
     
@@ -1904,12 +1903,6 @@ nsCycleCollector::RootWhite()
             }
         }
     }
-}
-
-PRBool
-nsCycleCollector::CollectWhite()
-{
-    nsresult rv;
 
 #if defined(DEBUG_CC) && !defined(__MINGW32__) && defined(WIN32)
     struct _CrtMemState ms1, ms2;
@@ -2717,14 +2710,6 @@ nsCycleCollector::FinishCollection()
 {
 #ifdef COLLECT_TIME_DEBUG
     PRTime now = PR_Now();
-#endif
-
-    RootWhite();
-
-#ifdef COLLECT_TIME_DEBUG
-    printf("cc: RootWhite() took %lldms\n",
-           (PR_Now() - now) / PR_USEC_PER_MSEC);
-    now = PR_Now();
 #endif
 
     PRBool collected = CollectWhite();
