@@ -2213,6 +2213,8 @@ Tab.prototype = {
     if (contentWin != contentWin.top)
         return;
 
+    this._hostChanged = true;
+
     let browser = BrowserApp.getBrowserForWindow(contentWin);
     let uri = browser.currentURI.spec;
     let documentURI = "";
@@ -2249,26 +2251,29 @@ Tab.prototype = {
     }
   },
 
+  
+  _state: null,
+  _hostChanged: false, 
+
   onSecurityChange: function(aWebProgress, aRequest, aState) {
-    let mode = "unknown";
-    if (aState & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
-      mode = "identified";
-    else if (aState & Ci.nsIWebProgressListener.STATE_SECURE_HIGH)
-      mode = "verified";
-    else if (aState & Ci.nsIWebProgressListener.STATE_IS_BROKEN)
-      mode = "mixed";
-    else
-      mode = "unknown";
+    
+    if (this._state == aState && !this._hostChanged)
+      return;
+
+    this._state = aState;
+    this._hostChanged = false;
+
+    let identity = IdentityHandler.checkIdentity(aState, this.browser);
 
     let message = {
       gecko: {
         type: "Content:SecurityChange",
         tabID: this.id,
-        mode: mode
+        identity: identity
       }
     };
 
-     sendMessageToJava(message);
+    sendMessageToJava(message);
   },
 
   onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
@@ -4602,6 +4607,159 @@ var CharacterEncoding = {
     let docCharset = browser.docShell.QueryInterface(Ci.nsIDocCharset);
     docCharset.charset = aEncoding;
     browser.reload(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
+  }
+};
+
+var IdentityHandler = {
+  
+  IDENTITY_MODE_IDENTIFIED       : "identified", 
+  IDENTITY_MODE_DOMAIN_VERIFIED  : "verified",   
+  IDENTITY_MODE_UNKNOWN          : "unknown",  
+
+  
+  _lastStatus : null,
+  _lastLocation : null,
+
+  
+
+
+
+  getIdentityData : function() {
+    let result = {};
+    let status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
+    let cert = status.serverCert;
+
+    
+    result.subjectOrg = cert.organization;
+
+    
+    if (cert.subjectName) {
+      result.subjectNameFields = {};
+      cert.subjectName.split(",").forEach(function(v) {
+        let field = v.split("=");
+        this[field[0]] = field[1];
+      }, result.subjectNameFields);
+
+      
+      result.city = result.subjectNameFields.L;
+      result.state = result.subjectNameFields.ST;
+      result.country = result.subjectNameFields.C;
+    }
+
+    
+    result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
+    result.cert = cert;
+
+    return result;
+  },
+
+  getIdentityMode: function getIdentityMode(aState) {
+    if (aState & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
+      return this.IDENTITY_MODE_IDENTIFIED;
+
+    if (aState & Ci.nsIWebProgressListener.STATE_SECURE_HIGH)
+      return this.IDENTITY_MODE_DOMAIN_VERIFIED;
+
+    return this.IDENTITY_MODE_UNKNOWN;
+  },
+
+  
+
+
+
+  checkIdentity: function checkIdentity(aState, aBrowser) {
+    this._lastStatus = aBrowser.securityUI
+                               .QueryInterface(Components.interfaces.nsISSLStatusProvider)
+                               .SSLStatus;
+
+    
+    
+    
+    let locationObj = {};
+    try {
+      let location = aBrowser.contentWindow.location;
+      locationObj.host = location.host;
+      locationObj.hostname = location.hostname;
+      locationObj.port = location.port;
+    } catch (ex) {
+      
+      
+      
+    }
+    this._lastLocation = locationObj;
+
+    let mode = this.getIdentityMode(aState);
+    let result = { mode: mode };
+
+    
+    if (mode == this.IDENTITY_MODE_UNKNOWN)
+      return result;
+
+    
+    result.encrypted = Strings.browser.GetStringFromName("identity.encrypted2");
+    result.host = this.getEffectiveHost();
+
+    let iData = this.getIdentityData();
+    result.verifier = Strings.browser.formatStringFromName("identity.identified.verifier", [iData.caOrg], 1);
+
+    
+    if (mode == this.IDENTITY_MODE_IDENTIFIED) {
+      result.owner = iData.subjectOrg;
+
+      
+      let supplemental = "";
+      if (iData.city)
+        supplemental += iData.city + "\n";
+      if (iData.state && iData.country)
+        supplemental += Strings.browser.formatStringFromName("identity.identified.state_and_country", [iData.state, iData.country], 2);
+      else if (iData.state) 
+        supplemental += iData.state;
+      else if (iData.country) 
+        supplemental += iData.country;
+      result.supplemental = supplemental;
+
+      return result;
+    }
+    
+    
+    result.owner = Strings.browser.GetStringFromName("identity.ownerUnknown2");
+
+    
+    if (!this._overrideService)
+      this._overrideService = Cc["@mozilla.org/security/certoverride;1"].getService(Ci.nsICertOverrideService);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (this._lastLocation.hostname &&
+        this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
+                                                  (this._lastLocation.port || 443),
+                                                  iData.cert, {}, {}))
+      result.verifier = Strings.browser.GetStringFromName("identity.identified.verified_by_you");
+
+    return result;
+  },
+
+  
+
+
+  getEffectiveHost: function getEffectiveHost() {
+    if (!this._IDNService)
+      this._IDNService = Cc["@mozilla.org/network/idn-service;1"]
+                         .getService(Ci.nsIIDNService);
+    try {
+      let baseDomain = Services.eTLD.getBaseDomainFromHost(this._lastLocation.hostname);
+      return this._IDNService.convertToDisplayIDN(baseDomain, {});
+    } catch (e) {
+      
+      
+      return this._lastLocation.hostname;
+    }
   }
 };
 
