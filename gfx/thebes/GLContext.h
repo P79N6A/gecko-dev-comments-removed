@@ -355,6 +355,19 @@ struct THEBES_API ContextFormat
     int colorBits() const { return red + green + blue; }
 };
 
+enum ShaderProgramType {
+    RGBALayerProgramType,
+    BGRALayerProgramType,
+    RGBXLayerProgramType,
+    BGRXLayerProgramType,
+    RGBARectLayerProgramType,
+    ColorLayerProgramType,
+    YCbCrLayerProgramType,
+    Copy2DProgramType,
+    Copy2DRectProgramType,
+    NumProgramTypes
+};
+
 class GLContext
     : public LibrarySymbolLoader
 {
@@ -704,6 +717,35 @@ public:
 
     void BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
                           TextureImage *aDst, const nsIntRect& aDstRect);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
+                                             const nsIntRect& aSrcRect,
+                                             GLuint& aTexture,
+                                             bool aOverwrite = false,
+                                             const nsIntPoint& aDstPoint = nsIntPoint(0, 0));
 
     
 
