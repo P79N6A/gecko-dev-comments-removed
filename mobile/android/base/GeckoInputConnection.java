@@ -640,11 +640,11 @@ public class GeckoInputConnection
             switch (inputChar) {
                 case '&':
                     
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                        return createKeyDownKeyUpEvents(KeyEvent.KEYCODE_7, KeyEvent.META_SHIFT_ON);
-                    }
                     
-                    break;
+                    
+                    
+                    
+                    return null;
 
                 case '<':
                 case '>':
