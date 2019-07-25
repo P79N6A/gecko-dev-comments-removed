@@ -1351,9 +1351,12 @@ RuleEditor.prototype = {
       textContent: " {"
     });
 
-    this.openBrace.addEventListener("click", function() {
-      this.newProperty();
-    }.bind(this), true);
+    code.addEventListener("click", function() {
+      let selection = this.doc.defaultView.getSelection();
+      if (selection.isCollapsed) {
+        this.newProperty();
+      }
+    }.bind(this), false);
 
     this.propertyList = createChild(code, "ul", {
       class: "ruleview-propertylist"
@@ -1412,6 +1415,11 @@ RuleEditor.prototype = {
 
   newProperty: function RuleEditor_newProperty()
   {
+    
+    if (!this.closeBrace.hasAttribute("tabindex")) {
+      return;
+    }
+
     
     
     
@@ -1522,12 +1530,21 @@ TextPropertyEditor.prototype = {
     });
     this.expander.addEventListener("click", this._onExpandClicked, true);
 
+    this.nameContainer = createChild(this.element, "span", {
+      class: "ruleview-namecontainer"
+    });
+    this.nameContainer.addEventListener("click", function(aEvent) {
+      this.nameSpan.click();
+      aEvent.stopPropagation();
+    }.bind(this), false);
+
     
     
-    this.nameSpan = createChild(this.element, "span", {
+    this.nameSpan = createChild(this.nameContainer, "span", {
       class: "ruleview-propertyname",
       tabindex: "0",
     });
+
     editableField({
       start: this._onStartEditing,
       element: this.nameSpan,
@@ -1535,12 +1552,23 @@ TextPropertyEditor.prototype = {
       advanceChars: ':'
     });
 
-    appendText(this.element, ": ");
+    appendText(this.nameContainer, ": ");
 
     
     
     
-    this.valueSpan = createChild(this.element, "span", {
+    let propertyContainer = createChild(this.element, "span", {
+      class: "ruleview-propertycontainer"
+    });
+    propertyContainer.addEventListener("click", function(aEvent) {
+      this.valueSpan.click();
+      aEvent.stopPropagation();
+    }.bind(this), false);
+
+    
+    
+    
+    this.valueSpan = createChild(propertyContainer, "span", {
       class: "ruleview-propertyvalue",
       tabindex: "0",
     });
@@ -1558,7 +1586,7 @@ TextPropertyEditor.prototype = {
                        value: this.prop.value,
                        priority: this.prop.priority };
 
-    appendText(this.element, ";");
+    appendText(propertyContainer, ";");
 
     this.warning = createChild(this.element, "div", {
       hidden: "",
@@ -1672,18 +1700,20 @@ TextPropertyEditor.prototype = {
   
 
 
-  _onEnableClicked: function TextPropertyEditor_onEnableClicked()
+  _onEnableClicked: function TextPropertyEditor_onEnableClicked(aEvent)
   {
     this.prop.setEnabled(this.enable.checked);
+    aEvent.stopPropagation();
   },
 
   
 
 
-  _onExpandClicked: function TextPropertyEditor_onExpandClicked()
+  _onExpandClicked: function TextPropertyEditor_onExpandClicked(aEvent)
   {
     this.expander.classList.toggle("styleinspector-open");
     this.computed.classList.toggle("styleinspector-open");
+    aEvent.stopPropagation();
   },
 
   
@@ -1811,12 +1841,13 @@ function editableField(aOptions)
 
 function editableItem(aElement, aCallback)
 {
-  aElement.addEventListener("click", function() {
+  aElement.addEventListener("click", function(evt) {
     let win = this.ownerDocument.defaultView;
     let selection = win.getSelection();
     if (selection.isCollapsed) {
       aCallback(aElement);
     }
+    evt.stopPropagation();
   }, false);
 
   
