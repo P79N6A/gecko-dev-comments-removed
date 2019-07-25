@@ -929,7 +929,41 @@ function validateFileName(aFileName)
   }
   else if (navigator.appVersion.indexOf("Macintosh") != -1)
     re = /[\:\/]+/g;
-  
+  else if (navigator.appVersion.indexOf("Android") != -1 ||
+           navigator.appVersion.indexOf("Maemo") != -1) {
+    
+    
+    
+    const dangerousChars = "*?<>|\":/\\[];,+=";
+    var processed = "";
+    for (var i = 0; i < aFileName.length; i++)
+      processed += aFileName.charCodeAt(i) >= 32 &&
+                   !(dangerousChars.indexOf(aFileName[i]) >= 0) ? aFileName[i]
+                                                                : "_";
+
+    
+    processed = processed.trim();
+
+    
+    
+    if (processed.replace(/_/g, "").length <= processed.length/2) {
+      
+      
+      
+      
+      var original = processed;
+      processed = "download";
+
+      
+      if (original.indexOf(".") >= 0) {
+        var suffix = original.split(".").slice(-1)[0];
+        if (suffix && suffix.indexOf("_") < 0)
+          processed += "." + suffix;
+      }
+    }
+    return processed;
+  }
+
   return aFileName.replace(re, "_");
 }
 
