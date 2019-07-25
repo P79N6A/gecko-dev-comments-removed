@@ -315,7 +315,7 @@ function readFileBytes(aFile) {
     data.push(String.fromCharCode.apply(null, bytes));
     count -= bytes.length;
     if (bytes.length == 0)
-      do_throw("Nothing read from input stream!");
+      throw "Nothing read from input stream!";
   }
   data.join('');
   fis.close();
@@ -427,6 +427,7 @@ function cleanUpdatesDir(aDir) {
     }
   }
 }
+
 
 
 

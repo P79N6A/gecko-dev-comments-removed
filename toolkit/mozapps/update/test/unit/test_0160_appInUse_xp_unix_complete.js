@@ -4,41 +4,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const TEST_ID = "0111";
+const TEST_ID = "0160";
 
 
 
@@ -51,80 +17,76 @@ const TEST_FILES = [
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0644,
-  comparePerms     : null
+  originalFile     : null,
+  compareFile      : "data/complete.png",
+  originalPerms    : 0776,
+  comparePerms     : 0644
 }, {
   fileName         : "1_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
-  originalContents : "ToBeModified\n",
-  compareContents  : "Modified\n",
+  originalContents : "ToBeReplacedWithToBeModified\n",
+  compareContents  : "ToBeModified\n",
   originalFile     : null,
   compareFile      : null,
-  originalPerms    : 0644,
-  comparePerms     : null
+  originalPerms    : 0775,
+  comparePerms     : 0644
 }, {
   fileName         : "1_1_text2",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
-  originalContents : "ToBeDeleted\n",
-  compareContents  : null,
+  originalContents : "ToBeReplacedWithToBeDeleted\n",
+  compareContents  : "ToBeDeleted\n",
   originalFile     : null,
   compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
+  originalPerms    : 0677,
+  comparePerms     : 0644
 }, {
   fileName         : "1_exe1.exe",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0755,
-  comparePerms     : null
+  originalFile     : "data/partial.png",
+  compareFile      : "data/complete.png",
+  originalPerms    : 0777,
+  comparePerms     : 0755
 }, {
   fileName         : "2_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/",
-  originalContents : "ToBeDeleted\n",
-  compareContents  : null,
+  originalContents : "ToBeReplacedWithToBeDeleted\n",
+  compareContents  : "ToBeDeleted\n",
   originalFile     : null,
   compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
-}, {
-  fileName         : "1_1_text3",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
-  originalContents : null,
-  compareContents  : "Added\n",
-  originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
-}, {
-  fileName         : "3_1_text1",
-  destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/3/3_1/",
-  originalContents : null,
-  compareContents  : "Added\n",
-  originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
+  originalPerms    : 0767,
   comparePerms     : 0644
 }];
 
+let gCallbackAppProcess;
+
 function run_test() {
-  if (IS_ANDROID) {
-    logTestInfo("this test is not applicable to Android... returning early");
+  if (!IS_UNIX || IS_ANDROID) {
+    logTestInfo("this test is only applicable to XP_UNIX platforms except " +
+                "for Android... returning early");
     return;
   }
 
   do_test_pending();
   do_register_cleanup(end_test);
 
-  setupUpdaterTest(TEST_ID, MAR_PARTIAL_FILE, TEST_FILES);
+  setupUpdaterTest(TEST_ID, MAR_COMPLETE_FILE, TEST_FILES);
+
+  
+  let callbackApp = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX);
+  callbackApp.append(AFTER_APPLY_DIR);
+  callbackApp.append(CALLBACK_BIN_FILE);
+  callbackApp.permissions = PERMS_DIRECTORY;
+  let args = ["-s", "20"];
+  gCallbackAppProcess = AUS_Cc["@mozilla.org/process/util;1"].
+                        createInstance(AUS_Ci.nsIProcess);
+  gCallbackAppProcess.init(callbackApp);
+  gCallbackAppProcess.run(false, args, args.length);
 
   
   
-  testUpdate();
+  do_timeout(100, testUpdate);
 }
 
 function end_test() {
@@ -147,8 +109,10 @@ function testUpdate() {
   
   let exitValue = runUpdate(TEST_ID);
   logTestInfo("testing updater binary process exitValue for success when " +
-              "applying a partial mar");
+              "applying a complete mar");
   do_check_eq(exitValue, 0);
+
+  gCallbackAppProcess.kill();
 
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
   do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
@@ -164,17 +128,6 @@ function testUpdate() {
   }
 
   checkFilesAfterUpdateSuccess(TEST_ID, TEST_FILES);
-
-  logTestInfo("testing directory still exists after removal of the last file " +
-              "in the directory (bug 386760)");
-  let testDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/",
-                            true);
-  do_check_true(testDir.exists());
-
-  logTestInfo("testing tobedeleted directory doesn't exist");
-  let toBeDeletedDir = applyToDir.clone();
-  toBeDeletedDir.append("tobedeleted");
-  do_check_false(toBeDeletedDir.exists());
 
   checkCallbackAppLog(TEST_ID);
 }

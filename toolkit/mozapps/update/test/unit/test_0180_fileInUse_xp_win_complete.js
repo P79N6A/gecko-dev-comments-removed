@@ -4,45 +4,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const TEST_ID = "0110";
-
-
-
-const MAX_TIME_DIFFERENCE = 60000;
+const TEST_ID = "0180";
 
 
 const TEST_FILES = [
@@ -52,50 +14,42 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : null,
-  compareFile      : "data/complete.png",
-  originalPerms    : 0776,
-  comparePerms     : 0644
+  compareFile      : "data/complete.png"
 }, {
   fileName         : "1_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : "ToBeReplacedWithToBeModified\n",
   compareContents  : "ToBeModified\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0775,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   fileName         : "1_1_text2",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : "ToBeReplacedWithToBeDeleted\n",
   compareContents  : "ToBeDeleted\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0677,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   fileName         : "1_exe1.exe",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/partial.png",
-  compareFile      : "data/complete.png",
-  originalPerms    : 0777,
-  comparePerms     : 0755
+  originalFile     : HELPER_BIN_FILE,
+  compareFile      : "data/complete.png"
 }, {
   fileName         : "2_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/",
   originalContents : "ToBeReplacedWithToBeDeleted\n",
   compareContents  : "ToBeDeleted\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0767,
-  comparePerms     : 0644
+  compareFile      : null
 }];
 
+let gFileInUseProcess;
+
 function run_test() {
-  if (IS_ANDROID) {
-    logTestInfo("this test is not applicable to Android... returning early");
+  if (!IS_WIN || IS_WINCE) {
+    logTestInfo("this test is only applicable to Windows... returning early");
     return;
   }
 
@@ -105,8 +59,17 @@ function run_test() {
   setupUpdaterTest(TEST_ID, MAR_COMPLETE_FILE, TEST_FILES);
 
   
+  let fileInUseBin = do_get_file(TEST_FILES[3].destinationDir +
+                                 TEST_FILES[3].fileName);
+  let args = ["-s", "20"];
+  gFileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
+                      createInstance(AUS_Ci.nsIProcess);
+  gFileInUseProcess.init(fileInUseBin);
+  gFileInUseProcess.run(false, args, args.length);
+
   
-  testUpdate();
+  
+  do_timeout(100, testUpdate);
 }
 
 function end_test() {
@@ -118,39 +81,22 @@ function testUpdate() {
   let applyToDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX);
 
   
-  
-  
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    applyToDir.lastModifiedTime = yesterday;
-  }
-
-  
   let exitValue = runUpdate(TEST_ID);
   logTestInfo("testing updater binary process exitValue for success when " +
               "applying a complete mar");
   do_check_eq(exitValue, 0);
 
+  gFileInUseProcess.kill();
+
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
   do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
 
-  
-  
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAX_TIME_DIFFERENCE);
-  }
-
   checkFilesAfterUpdateSuccess(TEST_ID, TEST_FILES);
 
-  logTestInfo("testing tobedeleted directory doesn't exist");
+  logTestInfo("testing tobedeleted directory exists");
   let toBeDeletedDir = applyToDir.clone();
   toBeDeletedDir.append("tobedeleted");
-  do_check_false(toBeDeletedDir.exists());
+  do_check_true(toBeDeletedDir.exists());
 
   checkCallbackAppLog(TEST_ID);
 }

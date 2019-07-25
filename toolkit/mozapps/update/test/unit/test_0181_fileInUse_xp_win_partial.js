@@ -4,127 +4,87 @@
 
 
 
+const TEST_ID = "0181";
+const MAR_IN_USE_WIN_FILE = "data/partial_in_use_win.mar";
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const TEST_ID = "0111";
-
-
-
-const MAX_TIME_DIFFERENCE = 60000;
-
-
-const TEST_FILES = [
+var TEST_FILES = [
 {
   fileName         : "1_1_image1.png",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0644,
-  comparePerms     : null
+  compareFile      : "data/partial.png"
 }, {
   fileName         : "1_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : "ToBeModified\n",
   compareContents  : "Modified\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0644,
-  comparePerms     : null
+  compareFile      : null
 }, {
   fileName         : "1_1_text2",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : "ToBeDeleted\n",
   compareContents  : null,
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
+  compareFile      : null
 }, {
   fileName         : "1_exe1.exe",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0755,
-  comparePerms     : null
+  originalFile     : "data/partial_in_use_win_before.exe",
+  compareFile      : "data/partial_in_use_win_after.exe"
 }, {
   fileName         : "2_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/",
   originalContents : "ToBeDeleted\n",
   compareContents  : null,
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
+  compareFile      : null
 }, {
   fileName         : "1_1_text3",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/1/1_1/",
   originalContents : null,
   compareContents  : "Added\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   fileName         : "3_1_text1",
   destinationDir   : TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/3/3_1/",
   originalContents : null,
   compareContents  : "Added\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : null
 }];
 
+let gFileInUseProcess;
+
 function run_test() {
-  if (IS_ANDROID) {
-    logTestInfo("this test is not applicable to Android... returning early");
+  if (!IS_WIN || IS_WINCE) {
+    logTestInfo("this test is only applicable to Windows... returning early");
     return;
   }
 
   do_test_pending();
   do_register_cleanup(end_test);
 
-  setupUpdaterTest(TEST_ID, MAR_PARTIAL_FILE, TEST_FILES);
+  setupUpdaterTest(TEST_ID, MAR_IN_USE_WIN_FILE, TEST_FILES);
+
+  
+  let fileInUseBin = do_get_file(TEST_FILES[3].destinationDir +
+                                 TEST_FILES[3].fileName);
+  let args = ["-s", "20"];
+  gFileInUseProcess = AUS_Cc["@mozilla.org/process/util;1"].
+                      createInstance(AUS_Ci.nsIProcess);
+  gFileInUseProcess.init(fileInUseBin);
+  gFileInUseProcess.run(false, args, args.length);
 
   
   
-  testUpdate();
+  do_timeout(100, testUpdate);
 }
 
 function end_test() {
@@ -136,45 +96,24 @@ function testUpdate() {
   let applyToDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX);
 
   
-  
-  
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    applyToDir.lastModifiedTime = yesterday;
-  }
-
-  
   let exitValue = runUpdate(TEST_ID);
   logTestInfo("testing updater binary process exitValue for success when " +
               "applying a partial mar");
   do_check_eq(exitValue, 0);
 
-  logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
-  do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
-
-  
-  
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAX_TIME_DIFFERENCE);
-  }
+  gFileInUseProcess.kill();
 
   checkFilesAfterUpdateSuccess(TEST_ID, TEST_FILES);
 
   logTestInfo("testing directory still exists after removal of the last file " +
               "in the directory (bug 386760)");
-  let testDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/",
-                            true);
+  let testDir = do_get_file(TEST_ID + APPLY_TO_DIR_SUFFIX + "/mar_test/2/2_1/", true);
   do_check_true(testDir.exists());
 
-  logTestInfo("testing tobedeleted directory doesn't exist");
+  logTestInfo("testing tobedeleted directory exists");
   let toBeDeletedDir = applyToDir.clone();
   toBeDeletedDir.append("tobedeleted");
-  do_check_false(toBeDeletedDir.exists());
+  do_check_true(toBeDeletedDir.exists());
 
   checkCallbackAppLog(TEST_ID);
 }
