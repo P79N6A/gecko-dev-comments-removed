@@ -40,6 +40,7 @@
 #include <QX11Info>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QPaintEngine>
 
 #include "gfxQtPlatform.h"
 
@@ -78,8 +79,11 @@
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 
-#define DEFAULT_RENDER_MODE RENDER_SHARED_IMAGE
 
+
+#define DEFAULT_RENDER_MODE RENDER_BUFFERED
+
+static QPaintEngine::Type sDefaultQtPaintEngineType = QPaintEngine::X11;
 gfxFontconfigUtils *gfxQtPlatform::sFontconfigUtils = nsnull;
 static cairo_user_data_key_t cairo_qt_pixmap_key;
 static void do_qt_pixmap_unref (void *data)
@@ -140,11 +144,16 @@ gfxQtPlatform::gfxQtPlatform()
             mRenderMode = RENDER_QPAINTER;
             break;
         case 1:
-            mRenderMode = RENDER_SHARED_IMAGE;
+            mRenderMode = RENDER_BUFFERED;
             break;
         default:
             mRenderMode = RENDER_QPAINTER;
     }
+
+    
+    
+    QPixmap pixmap(1, 1);
+    sDefaultQtPaintEngineType = pixmap.paintEngine()->type();
 }
 
 gfxQtPlatform::~gfxQtPlatform()
@@ -190,7 +199,8 @@ gfxQtPlatform::CreateOffscreenSurface(const gfxIntSize& size,
       return newSurface.forget();
     }
 
-    if (mRenderMode == RENDER_SHARED_IMAGE) {
+    if (mRenderMode == RENDER_BUFFERED &&
+        sDefaultQtPaintEngineType != QPaintEngine::X11) {
       newSurface = new gfxImageSurface(size, imageFormat);
       return newSurface.forget();
     }

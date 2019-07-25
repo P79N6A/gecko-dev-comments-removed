@@ -59,7 +59,7 @@ public:
         
         RENDER_QPAINTER = 0,
         
-        RENDER_SHARED_IMAGE,
+        RENDER_BUFFERED,
         
         RENDER_MODE_MAX
     };
