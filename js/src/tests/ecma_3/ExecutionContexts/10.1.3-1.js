@@ -105,18 +105,14 @@ addThis();
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+function f5(x,x,x,x)
+{
+}
+status = inSection(5);
+actual = f5.toString().match(/\((.*)\)/)[1];
+actual = actual.replace(/\s/g, ''); 
+expect = 'x,x,x,x';
+addThis();
 
 
 function f6(x,x,x,x)

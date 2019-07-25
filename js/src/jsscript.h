@@ -175,17 +175,6 @@ class Bindings {
     uint16_t nargs;
     uint16_t nvars;
     uint16_t nupvars;
-    
-
-
-
-
-
-
-
-
-
-    uint16_t hasHoles;
 
   public:
     inline Bindings(JSContext *cx);
@@ -267,11 +256,6 @@ class Bindings {
         JS_ASSERT(name != NULL); 
         *slotp = nargs;
         return add(cx, name, ARGUMENT);
-    }
-    void skipArgument(JSContext *cx, JSAtom *name, uint16_t *slotp) {
-        JS_ASSERT(name != NULL); 
-        hasHoles = true;
-        *slotp = nargs++;
     }
     bool addDestructuring(JSContext *cx, uint16_t *slotp) {
         *slotp = nargs;

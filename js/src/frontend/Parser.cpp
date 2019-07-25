@@ -1331,9 +1331,7 @@ Parser::functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **l
 
 
 
-                bool haveDup = false;
                 if (funtc.decls.lookupFirst(name)) {
-                    haveDup = true;
                     duplicatedArg = name;
                     if (destructuringArg)
                         goto report_dup_and_destructuring;
@@ -1341,15 +1339,8 @@ Parser::functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **l
 #endif
 
                 uint16_t slot;
-                if (haveDup) {
-                    
-
-
-                    funtc.bindings.skipArgument(context, name, &slot);
-                } else {
-                    if (!funtc.bindings.addArgument(context, name, &slot))
-                        return false;
-                }
+                if (!funtc.bindings.addArgument(context, name, &slot))
+                    return false;
                 if (!DefineArg(funbox->node, name, slot, &funtc))
                     return false;
                 break;
