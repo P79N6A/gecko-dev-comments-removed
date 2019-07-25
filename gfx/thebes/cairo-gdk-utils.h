@@ -64,18 +64,6 @@ typedef cairo_bool_t (* cairo_gdk_drawing_callback)
 
 
 
-typedef struct {
-    cairo_surface_t *surface;
-    cairo_bool_t    uniform_alpha;
-    cairo_bool_t    uniform_color;
-    double          alpha; 
-    double          r, g, b; 
-} cairo_gdk_drawing_result_t;
-
-
-
-
-
 
 
 typedef enum _cairo_gdk_drawing_opacity {
@@ -90,25 +78,8 @@ typedef enum _cairo_gdk_drawing_opacity {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef enum {
-    CAIRO_GDK_DRAWING_SUPPORTS_OFFSET = 0x01,
     CAIRO_GDK_DRAWING_SUPPORTS_CLIP_RECT = 0x02,
-    CAIRO_GDK_DRAWING_SUPPORTS_CLIP_LIST = 0x04,
-    CAIRO_GDK_DRAWING_SUPPORTS_ALTERNATE_SCREEN = 0x08,
-    CAIRO_GDK_DRAWING_SUPPORTS_NONDEFAULT_VISUAL = 0x10
 } cairo_gdk_drawing_support_t;
 
 

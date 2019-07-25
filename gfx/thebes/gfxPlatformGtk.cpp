@@ -711,39 +711,6 @@ gfxPlatformGtk::SetGdkDrawable(gfxASurface *target,
                                  do_gdk_drawable_unref);
 }
 
-#ifdef MOZ_X11
-
-static GdkColormap *
-LookupGdkColormapForVisual(GdkScreen* gdkScreen, const Visual* visual)
-{
-    
-    if (visual ==
-        GDK_VISUAL_XVISUAL(gdk_screen_get_system_visual(gdkScreen)))
-        return gdk_screen_get_system_colormap(gdkScreen);    
-
-    
-    
-    
-    
-    
-    
-    
-    if (visual ==
-        GDK_VISUAL_XVISUAL(gdk_screen_get_rgb_visual(gdkScreen)))
-        return gdk_screen_get_rgb_colormap(gdkScreen);
-
-    
-    
-    
-    
-    if (visual ==
-        GDK_VISUAL_XVISUAL(gdk_screen_get_rgba_visual(gdkScreen)))
-        return gdk_screen_get_rgba_colormap(gdkScreen);
-
-    return NULL;
-}
-#endif
-
 GdkDrawable *
 gfxPlatformGtk::GetGdkDrawable(gfxASurface *target)
 {
@@ -769,49 +736,7 @@ gfxPlatformGtk::GetGdkDrawable(gfxASurface *target)
         SetGdkDrawable(target, result);
         return result;
     }
-
-    
-    
-    
-    Screen *screen = cairo_xlib_surface_get_screen(xs->CairoSurface());
-    Visual *visual = cairo_xlib_surface_get_visual(xs->CairoSurface());
-    Display* dpy = DisplayOfScreen(screen);
-
-    GdkDisplay* gdkDpy = gdk_x11_lookup_xdisplay(dpy);
-    if (!gdkDpy)
-        return NULL;
-
-    
-    gint screen_num = 0;
-    for (int s = 0; s < ScreenCount(dpy); ++s) {
-        if (ScreenOfDisplay(dpy, s) == screen) {
-            screen_num = s;
-            break;
-        }
-    }
-    GdkScreen* gdkScreen = gdk_display_get_screen(gdkDpy, screen_num);
-
-    GdkColormap *cmap = LookupGdkColormapForVisual(gdkScreen, visual);
-    if (cmap == NULL)
-        return NULL;
-
-    gfxIntSize size = xs->GetSize();
-    int depth = cairo_xlib_surface_get_depth(xs->CairoSurface());
-    result = gdk_pixmap_foreign_new_for_screen(gdkScreen, xs->XDrawable(),
-                                               size.width, size.height, depth);
-    if (!result)
-        return NULL;
-
-    gdk_drawable_set_colormap(result, cmap);
-
-    SetGdkDrawable(target, result);
-    
-    
-    
-    g_object_unref(result);
-
-    return result;
-#else
-    return NULL;
 #endif
+
+    return NULL;
 }

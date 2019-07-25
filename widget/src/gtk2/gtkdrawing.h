@@ -245,6 +245,12 @@ gint moz_gtk_shutdown();
 
 
 
+GdkColormap* moz_gtk_widget_get_colormap();
+
+
+
+
+
 
 
 

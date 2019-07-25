@@ -42,6 +42,7 @@
 #include "gfxASurface.h"
 #include "gfxContext.h"
 #include "gfxXlibSurface.h"
+#include "nsRect.h"
 
 class QRect;
 
@@ -61,9 +62,9 @@ public:
 
 
 
-    virtual nsresult NativeDraw(gfxXlibSurface *xsurf,
-            Colormap colormap, short offsetX,
-            short offsetY, QRect * clipRects, PRUint32 numClipRects) = 0;
+    virtual nsresult DrawWithXlib(gfxXlibSurface *xsurf,
+            nsIntPoint offset,
+            nsIntRect* clipRects, PRUint32 numClipRects) = 0;
   
     enum {
         
@@ -72,16 +73,13 @@ public:
         
         DRAW_IS_OPAQUE = 0x01,
         
-        
-        DRAW_SUPPORTS_OFFSET = 0x02,
-        
         DRAW_SUPPORTS_CLIP_RECT = 0x04,
         
         
         DRAW_SUPPORTS_CLIP_LIST = 0x08,
         
         
-        DRAW_SUPPORTS_NONDEFAULT_VISUAL = 0x10,
+        DRAW_SUPPORTS_ALTERNATE_VISUAL = 0x10,
         
         
         
@@ -105,8 +103,9 @@ public:
 
 
 
-    nsresult Draw(gfxContext* ctx, int width, int height,
-                  PRUint32 flags, DrawOutput* output);
+    nsresult Draw(gfxContext* ctx, nsIntSize size,
+                  PRUint32 flags, Screen* screen, Visual* visual,
+                  DrawOutput* output);
 };
 
 #endif 
