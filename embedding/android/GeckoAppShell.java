@@ -811,6 +811,18 @@ public class GeckoAppShell
             intent.setDataAndType(Uri.parse(aUriSpec), aMimeType);
         } else {
             Uri uri = Uri.parse(aUriSpec);
+            if ("vnd.youtube".equals(uri.getScheme())) {
+                
+                String[] handlers = getHandlersForURL(aUriSpec, aAction);
+                if (handlers.length == 0) {
+                    intent = new Intent(Intent.ACTION_MAIN);
+                    intent.setClassName(GeckoApp.mAppContext.getPackageName(),
+                                        "org.mozilla.gecko.VideoPlayer");
+                    intent.setData(uri);
+                    GeckoApp.mAppContext.startActivity(intent);
+                    return true;
+                }
+            }
             if ("sms".equals(uri.getScheme())) {
                 
                 
