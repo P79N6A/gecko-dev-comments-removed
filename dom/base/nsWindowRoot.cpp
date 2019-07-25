@@ -36,7 +36,6 @@
 
 
 
-
 #include "nsCOMPtr.h"
 #include "nsWindowRoot.h"
 #include "nsPIDOMWindow.h"
@@ -239,39 +238,36 @@ nsWindowRoot::GetControllerForCommand(const char * aCommand,
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = nsnull;
 
-  nsCOMPtr<nsIControllers> controllers;
-  nsCOMPtr<nsIController> controller;
-
-  GetControllers(getter_AddRefs(controllers));
-  if (controllers) {
-    controllers->GetControllerForCommand(aCommand, getter_AddRefs(controller));
-    if (controller) {
-      controller.swap(*_retval);
-      return NS_OK;
+  {
+    nsCOMPtr<nsIControllers> controllers;
+    GetControllers(getter_AddRefs(controllers));
+    if (controllers) {
+      nsCOMPtr<nsIController> controller;
+      controllers->GetControllerForCommand(aCommand, getter_AddRefs(controller));
+      if (controller) {
+        controller.forget(_retval);
+        return NS_OK;
+      }
     }
   }
 
   nsCOMPtr<nsPIDOMWindow> focusedWindow;
   nsFocusManager::GetFocusedDescendant(mWindow, PR_TRUE, getter_AddRefs(focusedWindow));
   while (focusedWindow) {
-    nsCOMPtr<nsIDOMWindow> domWindow(do_QueryInterface(focusedWindow));
-
-    nsCOMPtr<nsIControllers> controllers2;
-    domWindow->GetControllers(getter_AddRefs(controllers2));
-    if (controllers2) {
-      controllers2->GetControllerForCommand(aCommand,
-                                            getter_AddRefs(controller));
+    nsCOMPtr<nsIControllers> controllers;
+    focusedWindow->GetControllers(getter_AddRefs(controllers));
+    if (controllers) {
+      nsCOMPtr<nsIController> controller;
+      controllers->GetControllerForCommand(aCommand,
+                                           getter_AddRefs(controller));
       if (controller) {
-        controller.swap(*_retval);
+        controller.forget(_retval);
         return NS_OK;
       }
     }
 
     
-    nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(focusedWindow); 
-    nsGlobalWindow *win =
-      static_cast<nsGlobalWindow *>
-                 (static_cast<nsIDOMWindow*>(piWindow));
+    nsGlobalWindow *win = static_cast<nsGlobalWindow*>(focusedWindow.get());
     focusedWindow = win->GetPrivateParent();
   }
   
@@ -296,8 +292,6 @@ nsresult
 NS_NewWindowRoot(nsPIDOMWindow* aWindow, nsIDOMEventTarget** aResult)
 {
   *aResult = new nsWindowRoot(aWindow);
-  if (!*aResult)
-    return NS_ERROR_OUT_OF_MEMORY;
   NS_ADDREF(*aResult);
   return NS_OK;
 }
