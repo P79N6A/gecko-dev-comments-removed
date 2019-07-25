@@ -35,6 +35,7 @@
 
 
 Components.utils.import('resource://gre/modules/CSPUtils.jsm');
+Components.utils.import('resource://gre/modules/NetUtil.jsm');
 
 
 do_load_httpd_js();
@@ -190,6 +191,7 @@ test(
 
       
       do_check_eq(null, CSPSource.fromString("a#2-c.com"));
+
       
 
       
@@ -229,6 +231,16 @@ test(
       do_check_true(src.permits("https://foobar.com"));
       
       do_check_false(src.permits("https://a.com"));
+
+      src = CSPSource.create("javascript:", "https://foobar.com:443");
+      
+      var aUri = NetUtil.newURI("javascript:alert('foo');");
+      do_check_true(src.permits(aUri));
+      
+      do_check_false(src.permits("https://a.com"));
+      
+      do_check_false(src.permits("https://foobar.com"));
+
     });
 
 

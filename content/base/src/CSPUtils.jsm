@@ -382,7 +382,6 @@ CSPRep.prototype = {
   
 
 
-
   toString:
   function csp_toString() {
     var dirs = [];
@@ -607,7 +606,6 @@ CSPSourceList.prototype = {
   },
 
   
-
 
 
   toString:
@@ -951,7 +949,7 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
         
         
         
-        if (!sObj._host) sObj._host = "*";
+        if (!sObj._host) sObj._host = CSPHost.fromString("*");
         if (!sObj._port) sObj._port = "*";
       } else {
         
@@ -1050,7 +1048,6 @@ CSPSource.prototype = {
   },
 
   
-
 
 
   toString:
@@ -1173,12 +1170,27 @@ CSPSource.prototype = {
     }
 
     
-    if (!this._host)
-      newSource._host = that._host;
-    else if (!that._host)
-      newSource._host = this._host;
-    else 
+    
+    
+    
+    
+    
+    
+
+    
+    if (this._host && that._host) {
       newSource._host = this._host.intersectWith(that._host);
+    } else if (this._host) {
+      CSPError("intersecting source with undefined host: " + that.toString());
+      newSource._host = this._host.clone();
+    } else if (that._host) {
+      CSPError("intersecting source with undefined host: " + this.toString());
+      newSource._host = that._host.clone();
+    } else {
+      CSPError("intersecting two sources with undefined hosts: " +
+               this.toString() + " and " + that.toString());
+      newSource._host = CSPHost.fromString("*");
+    }
 
     return newSource;
   },
@@ -1268,7 +1280,6 @@ CSPHost.prototype = {
   
 
 
-
   toString:
   function() {
     return this._segments.join(".");
@@ -1297,7 +1308,7 @@ CSPHost.prototype = {
 
   permits:
   function(aHost) {
-    if (!aHost) return false;
+    if (!aHost) aHost = CSPHost.fromString("*");
 
     if (!(aHost instanceof CSPHost)) {
       
