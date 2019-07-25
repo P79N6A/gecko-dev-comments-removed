@@ -177,6 +177,26 @@ void cairo_d2d_scroll(cairo_surface_t *surface, int x, int y, cairo_rectangle_t 
 
 
 cairo_bool_t cairo_d2d_has_support();
+
+
+
+
+
+
+
+
+
+
+
+HDC cairo_d2d_get_dc(cairo_surface_t *surface, cairo_bool_t retain_contents);
+
+
+
+
+
+
+
+void cairo_d2d_release_dc(cairo_surface_t *surcace, const cairo_rectangle_int_t *updated_rect);
 #endif
 
 CAIRO_END_DECLS
