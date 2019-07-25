@@ -279,11 +279,13 @@ gfxUserFontSet::OnLoadComplete(gfxFontEntry *aFontToLoad,
             fe = gfxPlatform::GetPlatform()->MakePlatformFont(pe,
                                                               aFontData,
                                                               aLength);
-            if (pe->mFeatureSettings) {
-                fe->mFeatureSettings = new nsTArray<gfxFontFeature>;
-                fe->mFeatureSettings->AppendElements(*pe->mFeatureSettings);
+            if (fe) {
+                if (pe->mFeatureSettings) {
+                    fe->mFeatureSettings = new nsTArray<gfxFontFeature>;
+                    fe->mFeatureSettings->AppendElements(*pe->mFeatureSettings);
+                }
+                fe->mLanguageOverride = pe->mLanguageOverride;
             }
-            fe->mLanguageOverride = pe->mLanguageOverride;
             aFontData = nsnull; 
         } else {
             
