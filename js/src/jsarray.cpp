@@ -1843,8 +1843,10 @@ js::array_sort(JSContext *cx, uintN argc, Value *vp)
             ++newlen;
         }
 
-        if (newlen == 0)
+        if (newlen == 0) {
+            vp->setObject(*obj);
             return true; 
+        }
 
         
 
