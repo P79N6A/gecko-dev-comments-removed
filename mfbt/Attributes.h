@@ -320,6 +320,25 @@
 #  define MOZ_FINAL
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define MOZ_WARN_UNUSED_RESULT __attribute__ ((warn_unused_result))
+#else
+#  define MOZ_WARN_UNUSED_RESULT
+#endif
+
 #endif 
 
 #endif  
