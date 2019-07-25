@@ -298,15 +298,22 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     }
 
     function waitForEvent(event) {
-        
-        
-        if (event.type == "load" && (expectBlankPage != (event.target.location == "about:blank")))
-            return;
+        try {
+            debugFocusLog("waitForEvent called <type:" + event.type + ", target" + event.target + ">");
 
-        SimpleTest["waitForFocus_" + event.type + "ed"] = true;
-        var win = (event.type == "load") ? targetWindow : childTargetWindow;
-        win.removeEventListener(event.type, waitForEvent, true);
-        maybeRunTests();
+            
+            
+            if (event.type == "load" && (expectBlankPage != (event.target.location == "about:blank")))
+                return;
+
+            SimpleTest["waitForFocus_" + event.type + "ed"] = true;
+            var win = (event.type == "load") ? targetWindow : childTargetWindow;
+            win.removeEventListener(event.type, waitForEvent, true);
+            maybeRunTests();
+        } catch (e) {
+            SimpleTest.ok(false, "Exception caught in waitForEvent: " + e.message +
+                ", at: " + e.fileName + " (" + e.lineNumber + ")");
+        }
     }
 
     
