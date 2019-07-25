@@ -820,7 +820,7 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
                                      frameIndex, newIndex, lineOffset);
             }
           } else if (runLength == fragmentLength &&
-                     numRun + 1 < runCount) {
+                     frame->GetNextSibling()) {
             
 
 
