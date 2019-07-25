@@ -263,8 +263,8 @@ protected:
   
   nsCOMPtr<nsIRequest> mReadRequest;
   nsCOMPtr<nsIDOMDocument> mResponseXML;
-  nsCOMPtr<nsIChannel> mACGetChannel;
-  nsTArray<nsCString> mACUnsafeHeaders;
+  nsCOMPtr<nsIChannel> mCORSPreflightChannel;
+  nsTArray<nsCString> mCORSUnsafeHeaders;
 
   nsRefPtr<nsDOMEventListenerWrapper> mOnUploadProgressListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnReadystatechangeListener;

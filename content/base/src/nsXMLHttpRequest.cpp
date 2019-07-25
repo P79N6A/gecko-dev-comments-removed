@@ -555,7 +555,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXMLHttpRequest,
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mChannel)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mReadRequest)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mResponseXML)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mACGetChannel)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCORSPreflightChannel)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOnUploadProgressListener)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOnReadystatechangeListener)
@@ -576,7 +576,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsXMLHttpRequest,
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mChannel)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mReadRequest)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mResponseXML)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mACGetChannel)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCORSPreflightChannel)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOnUploadProgressListener)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOnReadystatechangeListener)
@@ -933,8 +933,8 @@ nsXMLHttpRequest::Abort()
   if (mChannel) {
     mChannel->Cancel(NS_BINDING_ABORTED);
   }
-  if (mACGetChannel) {
-    mACGetChannel->Cancel(NS_BINDING_ABORTED);
+  if (mCORSPreflightChannel) {
+    mCORSPreflightChannel->Cancel(NS_BINDING_ABORTED);
   }
   mResponseXML = nsnull;
   PRUint32 responseLength = mResponseBody.Length();
@@ -1225,7 +1225,7 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
     
   nsCAutoString method;
   httpChannel->GetRequestMethod(method);
-  if (!mACUnsafeHeaders.IsEmpty() ||
+  if (!mCORSUnsafeHeaders.IsEmpty() ||
       HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR)) ||
       (mUpload && mUpload->HasListeners()) ||
       (!method.LowerCaseEqualsLiteral("get") &&
@@ -2126,7 +2126,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
       if (!contentType.LowerCaseEqualsLiteral("text/plain") &&
           !contentType.LowerCaseEqualsLiteral("application/x-www-form-urlencoded") &&
           !contentType.LowerCaseEqualsLiteral("multipart/form-data")) {
-        mACUnsafeHeaders.AppendElement(NS_LITERAL_CSTRING("Content-Type"));
+        mCORSUnsafeHeaders.AppendElement(NS_LITERAL_CSTRING("Content-Type"));
       }
     }
   }
@@ -2159,8 +2159,8 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (!IsSystemXHR()) {
     
     
-    listener = new nsCrossSiteListenerProxy(listener, mPrincipal, mChannel,
-                                            withCredentials, &rv);
+    listener = new nsCORSListenerProxy(listener, mPrincipal, mChannel,
+                                       withCredentials, &rv);
     NS_ENSURE_TRUE(listener, NS_ERROR_OUT_OF_MEMORY);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -2195,8 +2195,8 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
 
     rv = NS_StartCORSPreflight(mChannel, listener,
                                mPrincipal, withCredentials,
-                               mACUnsafeHeaders,
-                               getter_AddRefs(mACGetChannel));
+                               mCORSUnsafeHeaders,
+                               getter_AddRefs(mCORSPreflightChannel));
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else {
@@ -2207,7 +2207,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (NS_FAILED(rv)) {
     
     mChannel = nsnull;
-    mACGetChannel = nsnull;
+    mCORSPreflightChannel = nsnull;
     return rv;
   }
 
@@ -2292,9 +2292,9 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
   
   
-  if (mACGetChannel) {
+  if (mCORSPreflightChannel) {
     PRBool pending;
-    rv = mACGetChannel->IsPending(&pending);
+    rv = mCORSPreflightChannel->IsPending(&pending);
     NS_ENSURE_SUCCESS(rv, rv);
     
     if (pending) {
@@ -2359,7 +2359,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
 
     if (!safeHeader) {
-      mACUnsafeHeaders.AppendElement(header);
+      mCORSUnsafeHeaders.AppendElement(header);
     }
   }
 

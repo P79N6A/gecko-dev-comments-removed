@@ -457,12 +457,12 @@ nsresult nsMediaChannelStream::OpenChannel(nsIStreamListener** aStreamListener)
     NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
     if (element->ShouldCheckAllowOrigin()) {
       nsresult rv;
-      nsCrossSiteListenerProxy* crossSiteListener =
-        new nsCrossSiteListenerProxy(mListener,
-                                     element->NodePrincipal(),
-                                     mChannel,
-                                     PR_FALSE,
-                                     &rv);
+      nsCORSListenerProxy* crossSiteListener =
+        new nsCORSListenerProxy(mListener,
+                                element->NodePrincipal(),
+                                mChannel,
+                                PR_FALSE,
+                                &rv);
       listener = crossSiteListener;
       NS_ENSURE_TRUE(crossSiteListener, NS_ERROR_OUT_OF_MEMORY);
       NS_ENSURE_SUCCESS(rv, rv);
