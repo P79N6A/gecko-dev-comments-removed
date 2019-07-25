@@ -947,6 +947,8 @@ nsDocAccessible::AttributeWillChange(nsIDocument *aDocument,
     nsAccessible* accessible = GetAccessible(aElement);
     if (accessible)
       RemoveDependentIDsFor(accessible, aAttribute);
+    else if (aElement == mContent)
+      RemoveDependentIDsFor(this, aAttribute);
   }
 }
 
@@ -970,8 +972,12 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
   
   
   nsAccessible* accessible = GetAccessible(aElement);
-  if (!accessible && (mContent != aElement))
-    return;
+  if (!accessible) {
+    if (mContent != aElement)
+      return;
+
+    accessible = this;
+  }
 
   
   
