@@ -149,6 +149,7 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 #include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/MapsMemoryReporter.h"
 #include "mozilla/AvailableMemoryTracker.h"
+#include "mozilla/ClearOnShutdown.h"
 
 using base::AtExitManager;
 using mozilla::ipc::BrowserProcessSubThread;
@@ -639,6 +640,11 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
             observerService->Shutdown();
         }
     }
+
+    
+    
+    
+    mozilla::KillClearOnShutdown();
 
     
     
