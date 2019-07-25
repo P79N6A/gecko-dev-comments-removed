@@ -42,6 +42,11 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/layout/RenderFrameParent.h"
+using mozilla::layout::RenderFrameParent;
+#endif
+
 #include "nsCOMPtr.h"
 #include "nsLeafFrame.h"
 #include "nsGenericHTMLElement.h"
@@ -292,11 +297,6 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   }
   nsIView* view = GetView();
 
-  if (aParent->GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_DECK
-      && !view->HasWidget()) {
-    view->CreateWidget();
-  }
-
   
   
   
@@ -374,7 +374,20 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
+#ifdef MOZ_IPC
+  nsFrameLoader* frameLoader = FrameLoader();
+  if (frameLoader) {
+    RenderFrameParent* rfp = frameLoader->GetCurrentRemoteFrame();
+    if (rfp) {
+      
+      
+      return aLists.Content()
+        ->AppendNewToTop(new (aBuilder) nsDisplayRemote(aBuilder, this, rfp));
+    }
+  }
+#endif
+
   if (!mInnerView)
     return NS_OK;
   nsIView* subdocView = mInnerView->GetFirstChild();
@@ -480,13 +493,21 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (NS_SUCCEEDED(rv)) {
     if (subdocRootFrame && parentAPD != subdocAPD) {
       nsDisplayZoom* zoomItem =
-        new (aBuilder) nsDisplayZoom(subdocRootFrame, &childItems,
+        new (aBuilder) nsDisplayZoom(aBuilder, subdocRootFrame, &childItems,
                                      subdocAPD, parentAPD);
       childItems.AppendToTop(zoomItem);
+    } else if (!nsContentUtils::IsChildOfSameType(presShell->GetDocument())) {
+      
+      
+      
+      nsDisplayOwnLayer* layerItem = new (aBuilder) nsDisplayOwnLayer(
+        aBuilder, subdocRootFrame ? subdocRootFrame : this, &childItems);
+      childItems.AppendToTop(layerItem);
     }
+
     
     rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(this, this, &childItems,
+        new (aBuilder) nsDisplayClip(aBuilder, this, this, &childItems,
                                      subdocBoundsInParentUnits));
   }
   
