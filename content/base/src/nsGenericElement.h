@@ -384,11 +384,21 @@ public:
 
 
 
+  template<size_t N>
+  static bool
+  FindAttributeDependence(const nsIAtom* aAttribute,
+                          const MappedAttributeEntry* const (&aMaps)[N])
+  {
+    return FindAttributeDependence(aAttribute, aMaps, N);
+  }
+
+private:
   static bool
   FindAttributeDependence(const nsIAtom* aAttribute,
                           const MappedAttributeEntry* const aMaps[],
                           PRUint32 aMapCount);
 
+public:
   
   NS_IMETHOD GetNodeName(nsAString& aNodeName);
   NS_IMETHOD GetLocalName(nsAString& aLocalName);
