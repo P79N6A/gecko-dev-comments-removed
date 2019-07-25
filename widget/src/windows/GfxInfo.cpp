@@ -810,6 +810,15 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
     return NS_OK;
   }
 
+  
+  
+  if (aFeature == FEATURE_WEBGL_ANGLE &&
+      gfxWindowsPlatform::IsOptimus())
+  {
+    *aStatus = FEATURE_BLOCKED_DEVICE;
+    return NS_OK;
+  }
+
   OperatingSystem os = WindowsVersionToOperatingSystem(mWindowsVersion);
 
   
