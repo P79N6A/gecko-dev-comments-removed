@@ -677,8 +677,9 @@ args_or_call_trace(JSTracer *trc, JSObject *obj)
 
 
 
+
 JSClass js_ArgumentsClass = {
-    js_Object_str,
+    "Arguments",
     JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_RESERVED_SLOTS(JSObject::ARGS_FIXED_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Object),
