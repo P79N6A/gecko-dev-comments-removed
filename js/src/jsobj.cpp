@@ -1484,7 +1484,6 @@ js_HasOwnProperty(JSContext *cx, LookupPropOp lookup, JSObject *obj, jsid id,
     if (*objp == obj)
         return true;
 
-    Class *clasp = (*objp)->getClass();
     JSObject *outer = NULL;
     if (JSObjectOp op = (*objp)->getClass()->ext.outerObject) {
         outer = op(cx, *objp);
@@ -1492,30 +1491,8 @@ js_HasOwnProperty(JSContext *cx, LookupPropOp lookup, JSObject *obj, jsid id,
             return false;
     }
 
-    if (outer != *objp) {
-        if ((*objp)->isNative() && obj->getClass() == clasp) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            Shape *shape = reinterpret_cast<Shape *>(*propp);
-            if (shape->isSharedPermanent())
-                return true;
-        }
-
+    if (outer != *objp)
         *propp = NULL;
-    }
     return true;
 }
 
