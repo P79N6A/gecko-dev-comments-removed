@@ -651,3 +651,13 @@ pref("browser.firstrun.show.localepicker", true);
 
 
 pref("content.ime.strict_policy", true);
+
+
+
+
+
+
+
+
+
+pref("browser.dom.window.dump.enabled", false);
