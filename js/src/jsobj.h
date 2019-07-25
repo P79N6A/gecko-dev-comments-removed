@@ -60,11 +60,11 @@ namespace js { class AutoDescriptorArray; }
 
 
 struct PropertyDescriptor {
-  friend class js::AutoDescriptorArray;
+    friend class js::AutoDescriptorArray;
 
     PropertyDescriptor();
-  public:
 
+  public:
     
     bool initialize(JSContext* cx, jsid id, jsval v);
 
@@ -470,6 +470,7 @@ struct JSObject {
 
 
 
+  private:
     
 
 
@@ -483,7 +484,6 @@ struct JSObject {
 
 
 
-  private:
     static const uint32 JSSLOT_ARGS_LENGTH = JSSLOT_PRIVATE + 1;
     static const uint32 JSSLOT_ARGS_CALLEE = JSSLOT_PRIVATE + 2;
 
