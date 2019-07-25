@@ -62,6 +62,9 @@
 #include "nsLayoutUtils.h"
 #include "nsTextFrame.h"
 #include "nsFontFaceList.h"
+#include "mozilla/Telemetry.h"
+
+using namespace mozilla;
 
 nsresult NS_NewContentIterator(nsIContentIterator** aInstancePtrResult);
 nsresult NS_NewContentSubtreeIterator(nsIContentIterator** aInstancePtrResult);
@@ -242,6 +245,9 @@ nsRange::IsNodeSelected(nsINode* aNode, PRUint32 aStartOffset,
 nsRange::~nsRange() 
 {
   NS_ASSERTION(!IsInSelection(), "deleting nsRange that is in use");
+
+  
+  Telemetry::Accumulate(Telemetry::DOM_RANGE_DETACHED, mIsDetached);
 
   
   DoSetRange(nsnull, 0, nsnull, 0, nsnull);
