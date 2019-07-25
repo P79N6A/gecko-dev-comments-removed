@@ -706,6 +706,8 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       
       
       let transform = this.getZoomTransform(2);
+      TabItems.pausePainting();
+
       $canvas.css({
         '-moz-transform': transform.transform,
         '-moz-transform-origin': transform.transformOrigin
@@ -1103,6 +1105,7 @@ let TabItems = {
    
    resumePainting: function TabItems_resumePainting() {
      this.paintingPaused--;
+     Utils.assert(this.paintingPaused > -1, "paintingPaused should not go below zero");
      if (!this.isPaintingPaused())
        this.startHeartbeat();
    },
