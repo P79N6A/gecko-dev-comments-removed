@@ -50,7 +50,7 @@ let Keys = { meta: false };
 let UI = {
   
   
-  _frameInitalized: false,
+  _frameInitialized: false,
 
   
   
@@ -229,8 +229,14 @@ let UI = {
       Services.obs.addObserver(observer, "quit-application-requested", false);
 
       
-      this._frameInitalized = true;
+      this._frameInitialized = true;
       this._save();
+
+      
+      
+      let event = document.createEvent("Events");
+      event.initEvent("tabviewframeinitialized", true, false);
+      dispatchEvent(event);
     } catch(e) {
       Utils.log(e);
     }
@@ -254,6 +260,7 @@ let UI = {
     this._pageBounds = null;
     this._reorderTabItemsOnShow = null;
     this._reorderTabsOnHide = null;
+    this._frameInitialized = false;
   },
 
   
@@ -1031,7 +1038,7 @@ let UI = {
   
   
   _save: function UI__save() {
-    if (!this._frameInitalized)
+    if (!this._frameInitialized)
       return;
 
     var data = {

@@ -790,7 +790,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         if (typeof item.setResizable == 'function')
           item.setResizable(false);
 
-        if (item.tab == gBrowser.selectedTab)
+        
+        
+        if (item.tab == gBrowser.selectedTab || 
+            (!GroupItems.getActiveGroupItem() && !item.tab.hidden))
           GroupItems.setActiveGroupItem(this);
       }
 
