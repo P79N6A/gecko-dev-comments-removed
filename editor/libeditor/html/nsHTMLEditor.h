@@ -442,8 +442,6 @@ protected:
 
   
   bool SetCaretInTableCell(nsIDOMElement* aElement);
-  bool IsNodeInActiveEditor(nsIDOMNode* aNode);
-  bool IsNodeInActiveEditor(nsINode* aNode);
 
   
   NS_IMETHOD TabInTable(bool inIsShift, bool *outHandled);
