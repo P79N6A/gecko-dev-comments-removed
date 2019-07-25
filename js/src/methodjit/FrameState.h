@@ -244,17 +244,12 @@ class FrameState
     
 
 
-    inline void pushSynced();
+    inline void pushSynced(JSValueType knownType);
 
     
 
 
-    inline void pushSyncedType(JSValueType type);
-
-    
-
-
-    inline void pushSynced(JSValueType type, RegisterID reg);
+    inline void pushSynced(JSValueType knownType, RegisterID reg);
 
     
 
@@ -264,7 +259,7 @@ class FrameState
     
 
 
-    inline void push(Address address);
+    inline void push(Address address, JSValueType knownType);
 
     
 
@@ -274,7 +269,21 @@ class FrameState
     
 
 
-    inline void pushRegs(RegisterID type, RegisterID data);
+
+    inline void pushRegs(RegisterID type, RegisterID data, JSValueType knownType);
+
+    
+    void pushDouble(FPRegisterID fpreg);
+    void pushDouble(Address address);
+
+    
+    void ensureDouble(FrameEntry *fe);
+
+    
+    void ensureInMemoryDouble(FrameEntry *fe, Assembler &masm) const;
+
+    
+    void forgetKnownDouble(FrameEntry *fe);
 
     
 
@@ -298,7 +307,7 @@ class FrameState
 
 
 
-    inline void pushNumber(MaybeRegisterID payload, bool asInt32 = false);
+    inline void pushNumber(RegisterID payload, bool asInt32 = false);
 
     
 
@@ -333,7 +342,7 @@ class FrameState
     
 
 
-    void pushLocal(uint32 n);
+    void pushLocal(uint32 n, JSValueType knownType);
 
     inline FrameEntry *getLocal(uint32 slot);
 
@@ -359,6 +368,7 @@ class FrameState
 
 
     inline RegisterID tempRegForData(FrameEntry *fe);
+    inline FPRegisterID tempFPRegForData(FrameEntry *fe);
 
     
 
@@ -417,14 +427,6 @@ class FrameState
 
 
 
-    FPRegisterID copyEntryIntoFPReg(FrameEntry *fe, FPRegisterID fpreg);
-    FPRegisterID copyEntryIntoFPReg(Assembler &masm, FrameEntry *fe,
-                                    FPRegisterID fpreg);
-
-    
-
-
-
     RegisterID copyTypeIntoReg(FrameEntry *fe);
 
     
@@ -455,6 +457,8 @@ class FrameState
         MaybeRegisterID rhsData;
         MaybeRegisterID extraFree;
         RegisterID result;  
+        FPRegisterID lhsFP; 
+        FPRegisterID rhsFP; 
         bool resultHasRhs;  
         bool lhsNeedsRemat; 
         bool rhsNeedsRemat; 
@@ -513,6 +517,7 @@ class FrameState
 
 
     inline void freeReg(RegisterID reg);
+    inline void freeFPReg(FPRegisterID reg);
 
     
 
@@ -520,6 +525,7 @@ class FrameState
 
 
     inline RegisterID allocReg();
+    inline FPRegisterID allocFPReg();
 
     
 
@@ -551,8 +557,11 @@ class FrameState
     
 
 
-    void storeLocal(uint32 n, bool popGuaranteed = false, bool typeChange = true);
-    void storeTop(FrameEntry *target, bool popGuaranteed = false, bool typeChange = true);
+
+    void storeLocal(uint32 n, bool popGuaranteed = false,
+                    JSValueType type = JSVAL_TYPE_UNKNOWN);
+    void storeTop(FrameEntry *target, bool popGuaranteed = false,
+                  JSValueType type = JSVAL_TYPE_UNKNOWN);
 
     
 
@@ -604,6 +613,7 @@ class FrameState
 
 
     inline void learnType(FrameEntry *fe, JSValueType type, bool unsync = true);
+    inline void learnType(FrameEntry *fe, JSValueType type, RegisterID payload);
 
     
 
@@ -669,12 +679,14 @@ class FrameState
 
 
 
-    inline void pinReg(RegisterID reg);
+    inline void pinReg(RegisterID reg) { regstate[reg].pin(); }
+    inline void pinFPReg(FPRegisterID reg) { fpregstate[reg].pin(); }
 
     
 
 
-    inline void unpinReg(RegisterID reg);
+    inline void unpinReg(RegisterID reg) { regstate[reg].unpin(); }
+    inline void unpinFPReg(FPRegisterID reg) { fpregstate[reg].unpin(); }
 
     
 
@@ -755,10 +767,13 @@ class FrameState
   private:
     inline RegisterID allocReg(FrameEntry *fe, RematInfo::RematType type);
     inline void forgetReg(RegisterID reg);
+    inline void forgetFPReg(FPRegisterID reg);
     RegisterID evictSomeReg(uint32 mask);
+    FPRegisterID evictSomeFPReg();
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
     inline void addToTracker(FrameEntry *fe);
+    inline void setFPRegister(FrameEntry *fe, FPRegisterID fpreg, bool reassociate = false);
 
     
     inline void ensureFeSynced(const FrameEntry *fe, Assembler &masm) const;
@@ -826,6 +841,7 @@ class FrameState
 
     
     Registers freeRegs;
+    FPRegisters freeFPRegs;
 
     
     FrameEntry *entries;
@@ -850,6 +866,7 @@ class FrameState
 
 
     RegisterState regstate[Assembler::TotalRegisters];
+    RegisterState fpregstate[FPRegisters::TotalFPRegisters];
 
 #if defined JS_NUNBOX32
     mutable ImmutableSync reifier;

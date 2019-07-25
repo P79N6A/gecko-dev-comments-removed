@@ -745,6 +745,12 @@ Script::analyze(JSContext *cx)
                                         defineArray, defineCount)) {
                 return;
             }
+
+            
+            if (type == JOF_JUMP || type == JOF_JUMPX)
+                nextcode->jumpTarget = true;
+            else
+                nextcode->fallthrough = true;
         }
     }
 

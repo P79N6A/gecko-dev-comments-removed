@@ -59,7 +59,10 @@ struct Bytecode
     friend class Script;
 
     
-    bool jumpTarget : 1;
+    bool jumpTarget : 1;    
+
+    
+    bool fallthrough : 1;
 
     
     bool analyzed : 1;

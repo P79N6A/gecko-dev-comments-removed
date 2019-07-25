@@ -200,6 +200,7 @@ struct ValueRemat {
 
 struct RematInfo {
     typedef JSC::MacroAssembler::RegisterID RegisterID;
+    typedef JSC::MacroAssembler::FPRegisterID FPRegisterID;
 
     enum SyncState {
         SYNCED,
@@ -225,6 +226,9 @@ struct RematInfo {
         PhysLoc_Register,
 
         
+        PhysLoc_FPRegister,
+
+        
         PhysLoc_Invalid
     };
 
@@ -236,6 +240,16 @@ struct RematInfo {
     RegisterID reg() const {
         JS_ASSERT(inRegister());
         return reg_;
+    }
+
+    void setFPRegister(FPRegisterID reg) {
+        fpreg_ = reg;
+        location_ = PhysLoc_FPRegister;
+    }
+
+    FPRegisterID fpreg() const {
+        JS_ASSERT(inFPRegister());
+        return fpreg_;
     }
 
     void setMemory() {
@@ -251,6 +265,7 @@ struct RematInfo {
 
     bool isConstant() const { return location_ == PhysLoc_Constant; }
     bool inRegister() const { return location_ == PhysLoc_Register; }
+    bool inFPRegister() const { return location_ == PhysLoc_FPRegister; }
     bool inMemory() const { return location_ == PhysLoc_Memory; }
     bool synced() const { return sync_ == SYNCED; }
     void sync() {
@@ -267,8 +282,16 @@ struct RematInfo {
     }
 
   private:
-    
-    RegisterID reg_;
+    union {
+        
+        RegisterID reg_;
+
+        
+
+
+
+        FPRegisterID fpreg_;
+    };
 
     
     PhysLoc location_;
