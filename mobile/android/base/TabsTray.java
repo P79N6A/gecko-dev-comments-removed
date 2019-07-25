@@ -48,7 +48,7 @@ public class TabsTray extends LinearLayout
     
     private static final int MAX_ANIMATION_TIME = 250;
     
-    private static final float SWIPE_VERTICAL_WEIGHT = 1.5;
+    private static final float SWIPE_VERTICAL_WEIGHT = 1.5f;
     private static enum DragDirection {
         UNKNOWN,
         HORIZONTAL,
