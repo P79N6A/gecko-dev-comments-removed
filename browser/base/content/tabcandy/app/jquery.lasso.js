@@ -13,6 +13,8 @@ Lasso.prototype = {
     this._strokeColor = options.strokeColor || "rgba(0,0,255,.4)";
     this._onSelect    = options.onSelect || function(){};
     this._onStart     = options.onStart || function(){};
+    this._onMove      = options.onMove;
+    this._acceptMouseDown = options.acceptMouseDown || function(){ return true; }; 
       
     this._lastPos = null;
     this._isSelecting = false;
@@ -32,7 +34,11 @@ Lasso.prototype = {
     var self = this;
     $(this._container)
       .mousedown( function(e){
-        if( $(e.target).is(self._selector) || $(e.target).parent(self._selector).length > 0 ) return;
+        if( $(e.target).is(self._selector) 
+            || $(e.target).parent(self._selector).length > 0 
+            || !self._acceptMouseDown(e)) 
+          return;
+          
         self.startSelection();
         return false;
       })
@@ -86,6 +92,11 @@ Lasso.prototype = {
     }
     
     self._lastPos = pos;
+    
+    if(self._onMove) {
+      this._hitTest();
+      this._onMove(this.getSelectedElements());
+    }
   },
   
   _clear: function(){
