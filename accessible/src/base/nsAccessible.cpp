@@ -2626,7 +2626,7 @@ nsAccessible::GetSelected(PRBool *aSelected)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  *aSelected = IsSelected();
+  *aSelected = IsLinkSelected();
   return NS_OK;
 
 }
@@ -2930,13 +2930,6 @@ nsAccessible::IsValid()
   
   
   
-}
-
-bool
-nsAccessible::IsSelected()
-{
-  NS_PRECONDITION(IsHyperLink(), "IsSelected is called on not hyper link!");
-  return (gLastFocusedNode == GetNode());
 }
 
 PRUint32

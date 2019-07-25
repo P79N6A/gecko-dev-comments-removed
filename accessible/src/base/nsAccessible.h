@@ -426,7 +426,12 @@ public:
   
 
 
-  virtual bool IsSelected();
+  inline bool IsLinkSelected()
+  {
+    NS_PRECONDITION(IsHyperlink(),
+                    "IsLinkSelected() called on something that is not a hyper link!");
+    return gLastFocusedNode == GetNode();
+  }
 
   
 
