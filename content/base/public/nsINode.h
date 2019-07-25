@@ -1513,8 +1513,8 @@ protected:
 
 
 
-  nsresult doRemoveChildAt(PRUint32 aIndex, bool aNotify, nsIContent* aKid,
-                           nsAttrAndChildArray& aChildArray);
+  void doRemoveChildAt(PRUint32 aIndex, bool aNotify, nsIContent* aKid,
+                       nsAttrAndChildArray& aChildArray);
 
   
 
