@@ -682,10 +682,12 @@ txMozillaXSLTProcessor::TransformToDoc(nsIDOMDocument *aOutputDoc,
                                          mObserver);
     es.mOutputHandlerFactory = &handlerFactory;
 
-    es.init(*sourceNode, &mVariables);
+    nsresult rv = es.init(*sourceNode, &mVariables);
 
     
-    nsresult rv = txXSLTProcessor::execute(es);
+    if (NS_SUCCEEDED(rv)) {
+        rv = txXSLTProcessor::execute(es);
+    }
     
     nsresult endRv = es.end(rv);
     if (NS_SUCCEEDED(rv)) {
@@ -741,10 +743,12 @@ txMozillaXSLTProcessor::TransformToFragment(nsIDOMNode *aSource,
     txToFragmentHandlerFactory handlerFactory(*aResult);
     es.mOutputHandlerFactory = &handlerFactory;
 
-    es.init(*sourceNode, &mVariables);
+    rv = es.init(*sourceNode, &mVariables);
 
     
-    rv = txXSLTProcessor::execute(es);
+    if (NS_SUCCEEDED(rv)) {
+        rv = txXSLTProcessor::execute(es);
+    }
     
     nsresult endRv = es.end(rv);
     if (NS_SUCCEEDED(rv)) {
