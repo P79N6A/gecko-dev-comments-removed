@@ -518,7 +518,7 @@ public:
 
 
 
-  virtual PRUint32 TextLength() const = 0;
+  virtual PRUint32 TextLength() = 0;
 
   
 
@@ -550,7 +550,7 @@ public:
 
 
 
-  virtual bool TextIsOnlyWhitespace() const = 0;
+  virtual bool TextIsOnlyWhitespace() = 0;
 
   
 

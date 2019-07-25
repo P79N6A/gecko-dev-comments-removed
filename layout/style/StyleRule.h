@@ -80,7 +80,7 @@ private:
 struct nsPseudoClassList {
 public:
   nsPseudoClassList(nsCSSPseudoClasses::Type aType);
-  nsPseudoClassList(nsCSSPseudoClasses::Type aType, nsIAtom *aAtom);
+  nsPseudoClassList(nsCSSPseudoClasses::Type aType, const PRUnichar *aString);
   nsPseudoClassList(nsCSSPseudoClasses::Type aType, const PRInt32 *aIntPair);
   nsPseudoClassList(nsCSSPseudoClasses::Type aType,
                     nsCSSSelectorList *aSelectorList );
@@ -100,7 +100,7 @@ public:
     
     
     void*           mMemory; 
-    nsIAtom*        mAtom; 
+    PRUnichar*      mString;
     PRInt32*        mNumbers;
     nsCSSSelectorList* mSelectors;
   } u;
@@ -165,7 +165,7 @@ public:
   void AddID(const nsString& aID);
   void AddClass(const nsString& aClass);
   void AddPseudoClass(nsCSSPseudoClasses::Type aType);
-  void AddPseudoClass(nsCSSPseudoClasses::Type aType, nsIAtom* aAtom);
+  void AddPseudoClass(nsCSSPseudoClasses::Type aType, const PRUnichar* aString);
   void AddPseudoClass(nsCSSPseudoClasses::Type aType, const PRInt32* aIntPair);
   
   void AddPseudoClass(nsCSSPseudoClasses::Type aType,

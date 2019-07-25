@@ -93,28 +93,28 @@ public:
 
 
 
-  static bool SelectorListMatches(const mozilla::dom::Element* aElement,
+  static bool SelectorListMatches(mozilla::dom::Element* aElement,
                                     TreeMatchContext& aTreeMatchContext,
-                                    const nsCSSSelectorList* aSelectorList);
+                                    nsCSSSelectorList* aSelectorList);
 
   
 
 
 
-  static nsEventStates GetContentState(const mozilla::dom::Element* aElement);
+  static nsEventStates GetContentState(mozilla::dom::Element* aElement);
 
   
 
 
   static nsEventStates GetContentStateForVisitedHandling(
-             const mozilla::dom::Element* aElement,
+             mozilla::dom::Element* aElement,
              nsRuleWalker::VisitedHandlingType aVisitedHandling,
              bool aIsRelevantLink);
 
   
 
 
-  static bool IsLink(const mozilla::dom::Element* aElement);
+  static bool IsLink(mozilla::dom::Element* aElement);
 
   
   virtual void RulesMatching(ElementRuleProcessorData* aData);

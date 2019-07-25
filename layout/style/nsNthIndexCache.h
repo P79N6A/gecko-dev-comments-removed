@@ -67,7 +67,7 @@ public:
   
   
   
-  PRInt32 GetNthIndex(const Element* aChild, bool aIsOfType, bool aIsFromEnd,
+  PRInt32 GetNthIndex(Element* aChild, bool aIsOfType, bool aIsFromEnd,
                       bool aCheckEdgeOnly);
 
   void Reset();
@@ -77,8 +77,7 @@ private:
 
 
 
-  inline bool SiblingMatchesElement(const nsIContent* aSibling, 
-                                    const Element* aElement,
+  inline bool SiblingMatchesElement(nsIContent* aSibling, Element* aElement,
                                     bool aIsOfType);
 
   
@@ -95,8 +94,7 @@ private:
     void reportAllocOverflow() const {}
   };
 
-  typedef js::HashMap<const nsIContent*, CacheEntry,
-                      js::DefaultHasher<const nsIContent*>,
+  typedef js::HashMap<nsIContent*, CacheEntry, js::DefaultHasher<nsIContent*>,
                       SystemAllocPolicy> Cache;
 
   
@@ -110,8 +108,8 @@ private:
 
 
 
-  inline bool IndexDeterminedFromPreviousSibling(const nsIContent* aSibling,
-                                                 const Element* aChild,
+  inline bool IndexDeterminedFromPreviousSibling(nsIContent* aSibling,
+                                                 Element* aChild,
                                                  bool aIsOfType,
                                                  bool aIsFromEnd,
                                                  const Cache& aCache,
