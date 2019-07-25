@@ -621,12 +621,14 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-            AutoLockGC lock(rt);
-            JSCompartment **compartment = rt->compartments.begin();
-            JSCompartment **end = rt->compartments.end();
-            while (compartment < end) {
-                (*compartment)->types.print(cx, *compartment);
-                compartment++;
+            {
+                AutoLockGC lock(rt);
+                JSCompartment **compartment = rt->compartments.begin();
+                JSCompartment **end = rt->compartments.end();
+                while (compartment < end) {
+                    (*compartment)->types.print(cx, *compartment);
+                    compartment++;
+                }
             }
 
             js_FinishRuntimeNumberState(cx);
