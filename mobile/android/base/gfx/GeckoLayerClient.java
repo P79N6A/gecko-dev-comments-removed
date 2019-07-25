@@ -711,7 +711,7 @@ public class GeckoLayerClient
     }
 
     
-    public interface DrawListener {
+    public static interface DrawListener {
         public void drawFinished();
     }
 }
