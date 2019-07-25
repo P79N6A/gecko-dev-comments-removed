@@ -4,7 +4,6 @@
 
 
 #include "SVGFragmentIdentifier.h"
-#include "mozilla/CharTokenizer.h"
 #include "nsIDOMSVGDocument.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGViewElement.h"
@@ -19,6 +18,12 @@ IsMatchingParameter(const nsAString &aString, const nsAString &aParameterName)
   return StringBeginsWith(aString, aParameterName) &&
          aString.Last() == ')' &&
          aString.CharAt(aParameterName.Length()) == '(';
+}
+
+inline bool
+IgnoreWhitespace(PRUnichar aChar)
+{
+  return false;
 }
 
 static nsSVGViewElement*
@@ -98,15 +103,16 @@ SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
   
   
   
-
-  const nsAString *viewBoxParams = nullptr;
-  const nsAString *preserveAspectRatioParams = nullptr;
-  const nsAString *zoomAndPanParams = nullptr;
+  
+  bool viewBoxFound = false;
+  bool preserveAspectRatioFound = false;
+  bool zoomAndPanFound = false;
 
   
   int32_t bracketPos = aViewSpec.FindChar('(');
-  CharTokenizer<';'>tokenizer(
-    Substring(aViewSpec, bracketPos + 1, aViewSpec.Length() - bracketPos - 2));
+  uint32_t lengthOfViewSpec = aViewSpec.Length() - bracketPos - 2;
+  nsCharSeparatedTokenizerTemplate<IgnoreWhitespace> tokenizer(
+    Substring(aViewSpec, bracketPos + 1, lengthOfViewSpec), ';');
 
   if (!tokenizer.hasMoreTokens()) {
     return false;
@@ -125,50 +131,62 @@ SVGFragmentIdentifier::ProcessSVGViewSpec(const nsAString &aViewSpec,
       Substring(token, bracketPos + 1, token.Length() - bracketPos - 2);
 
     if (IsMatchingParameter(token, NS_LITERAL_STRING("viewBox"))) {
-      if (viewBoxParams) {
+      if (viewBoxFound ||
+          NS_FAILED(root->mViewBox.SetBaseValueString(
+                      params, root, true))) {
         return false;
       }
-      viewBoxParams = &params;
+      viewBoxFound = true;
     } else if (IsMatchingParameter(token, NS_LITERAL_STRING("preserveAspectRatio"))) {
-      if (preserveAspectRatioParams) {
+      if (preserveAspectRatioFound ||
+          NS_FAILED(root->mPreserveAspectRatio.SetBaseValueString(
+                      params, root, true))) {
         return false;
       }
-      preserveAspectRatioParams = &params;
+      preserveAspectRatioFound = true;
     } else if (IsMatchingParameter(token, NS_LITERAL_STRING("zoomAndPan"))) {
-      if (zoomAndPanParams) {
+      if (zoomAndPanFound) {
         return false;
       }
-      zoomAndPanParams = &params;
+      nsIAtom *valAtom = NS_GetStaticAtom(params);
+      if (!valAtom) {
+        return false;
+      }
+      const nsSVGEnumMapping *mapping = nsSVGSVGElement::sZoomAndPanMap;
+      while (mapping->mKey) {
+        if (valAtom == *(mapping->mKey)) {
+          
+          if (NS_FAILED(root->mEnumAttributes[nsSVGSVGElement::ZOOMANDPAN].SetBaseValue(
+                          mapping->mVal, root))) {
+            return false;
+          }
+          break;
+        }
+        mapping++;
+      }
+      if (!mapping->mKey) {
+          
+          return false;
+      }
+      zoomAndPanFound = true;
     } else {
       
       return false;
     }
   } while (tokenizer.hasMoreTokens());
 
-  if (viewBoxParams) {
-    root->mViewBox.SetBaseValueString(*viewBoxParams, root);
-  } else {
-    RestoreOldViewBox(root);
-  }
-
-  if (preserveAspectRatioParams) {
-    root->mPreserveAspectRatio.SetBaseValueString(*preserveAspectRatioParams, root);
-  } else {
-    RestoreOldPreserveAspectRatio(root);
-  }
-
-  if (zoomAndPanParams) {
-    nsCOMPtr<nsIAtom> valAtom = do_GetAtom(*zoomAndPanParams);
-    const nsSVGEnumMapping *mapping = root->sZoomAndPanMap;
-    while (mapping->mKey) {
-      if (valAtom == *(mapping->mKey)) {
-        root->mEnumAttributes[nsSVGSVGElement::ZOOMANDPAN].SetBaseValue(mapping->mVal, root);
-        break;
-      }
-      mapping++;
+  if (root->mUseCurrentView) {
+    
+    
+    if (!viewBoxFound) {
+      RestoreOldViewBox(root);
     }
-  } else {
-    RestoreOldZoomAndPan(root);
+    if (!preserveAspectRatioFound) {
+      RestoreOldPreserveAspectRatio(root);
+    }
+    if (!zoomAndPanFound) {
+      RestoreOldZoomAndPan(root);
+    }
   }
 
   return true;
