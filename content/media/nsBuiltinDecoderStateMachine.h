@@ -255,13 +255,14 @@ protected:
   
   
   
+  
+  
+  PRBool IsDecodeCloseToDownload();
+
+  
+  
+  
   PRInt64 AudioDecodedMs() const;
-
-  
-  PRBool HasLowDecodedData() const;
-
-  
-  PRBool HasAmpleDecodedData() const;
 
   
   
