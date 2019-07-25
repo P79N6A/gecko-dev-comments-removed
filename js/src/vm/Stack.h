@@ -324,7 +324,7 @@ CallArgsListFromVp(uintN argc, Value *vp, CallArgsList *prev)
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x80, 
-    INITIAL_LOWERED        =   0x800000  
+    INITIAL_LOWERED        =   0x200000  
 };
 
 enum ExecuteType {
@@ -357,23 +357,22 @@ class StackFrame
         FINISHED_IN_INTERP =      0x200,  
 
         
-        OVERRIDE_ARGS      =      0x400,  
-        OVERFLOW_ARGS      =      0x800,  
-        UNDERFLOW_ARGS     =     0x1000,  
+        OVERFLOW_ARGS      =      0x400,  
+        UNDERFLOW_ARGS     =      0x800,  
 
         
-        HAS_CALL_OBJ       =     0x2000,  
-        HAS_ARGS_OBJ       =     0x4000,  
-        HAS_HOOK_DATA      =     0x8000,  
-        HAS_ANNOTATION     =    0x10000,  
-        HAS_RVAL           =    0x20000,  
-        HAS_SCOPECHAIN     =    0x40000,  
-        HAS_PREVPC         =    0x80000,  
-        HAS_BLOCKCHAIN     =   0x100000,  
+        HAS_CALL_OBJ       =     0x1000,  
+        HAS_ARGS_OBJ       =     0x2000,  
+        HAS_HOOK_DATA      =     0x4000,  
+        HAS_ANNOTATION     =     0x8000,  
+        HAS_RVAL           =    0x10000,  
+        HAS_SCOPECHAIN     =    0x20000,  
+        HAS_PREVPC         =    0x40000,  
+        HAS_BLOCKCHAIN     =    0x80000,  
 
         
-        DOWN_FRAMES_EXPANDED = 0x400000,  
-        LOWERED_CALL_APPLY   = 0x800000   
+        DOWN_FRAMES_EXPANDED = 0x100000,  
+        LOWERED_CALL_APPLY   = 0x200000   
     };
 
   private:
@@ -1105,16 +1104,8 @@ class StackFrame
         return !!(flags_ & DEBUGGER);
     }
 
-    bool hasOverriddenArgs() const {
-        return !!(flags_ & OVERRIDE_ARGS);
-    }
-
     bool hasOverflowArgs() const {
         return !!(flags_ & OVERFLOW_ARGS);
-    }
-
-    void setOverriddenArgs() {
-        flags_ |= OVERRIDE_ARGS;
     }
 
     bool isYielding() {

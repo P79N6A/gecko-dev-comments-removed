@@ -415,8 +415,6 @@ JSFunction::toExtended() const
     return static_cast<const js::FunctionExtended *>(this);
 }
 
-extern JSBool
-js_GetArgsValue(JSContext *cx, js::StackFrame *fp, js::Value *vp);
 
 
 
@@ -427,8 +425,7 @@ js_GetArgsValue(JSContext *cx, js::StackFrame *fp, js::Value *vp);
 
 
 
-
-extern JSObject *
+extern js::ArgumentsObject *
 js_GetArgsObject(JSContext *cx, js::StackFrame *fp);
 
 extern void

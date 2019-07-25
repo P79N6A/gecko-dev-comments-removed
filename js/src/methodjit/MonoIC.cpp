@@ -1080,54 +1080,44 @@ ic::SplatApplyArgs(VMFrame &f)
         JS_ASSERT(JS_CALLEE(cx, vp).toObject().toFunction()->u.n.native == js_fun_apply);
 
         StackFrame *fp = f.regs.fp();
-        if (!fp->hasOverriddenArgs()) {
-            uintN n;
-            if (!fp->hasArgsObj()) {
-                
-                n = fp->numActualArgs();
-                if (!BumpStack(f, n))
-                    THROWV(false);
-                Value *argv = JS_ARGV(cx, vp + 1 );
-                f.regs.sp += n;
-                fp->forEachCanonicalActualArg(CopyTo(argv));
-            } else {
-                
-                JSObject *aobj = &fp->argsObj();
+        uintN n;
+        if (!fp->hasArgsObj()) {
+            
+            n = fp->numActualArgs();
+            if (!BumpStack(f, n))
+                THROWV(false);
+            Value *argv = JS_ARGV(cx, vp + 1 );
+            f.regs.sp += n;
+            fp->forEachCanonicalActualArg(CopyTo(argv));
+        } else {
+            
+            JSObject *aobj = &fp->argsObj();
 
-                
-                uintN length;
-                if (!js_GetLengthProperty(cx, aobj, &length))
-                    THROWV(false);
+            
+            uintN length;
+            if (!js_GetLengthProperty(cx, aobj, &length))
+                THROWV(false);
 
-                
-                if (length > StackSpace::ARGS_LENGTH_MAX) {
-                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                         JSMSG_TOO_MANY_FUN_APPLY_ARGS);
-                    THROWV(false);
-                }
-
-                n = length;
-                if (!BumpStack(f, n))
-                    THROWV(false);
-
-                
-                Value *argv = JS_ARGV(cx, &vp[1]);  
-                f.regs.sp += n;  
-                if (!GetElements(cx, aobj, n, argv))
-                    THROWV(false);
+            
+            if (length > StackSpace::ARGS_LENGTH_MAX) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_TOO_MANY_FUN_APPLY_ARGS);
+                THROWV(false);
             }
 
-            f.u.call.dynamicArgc = n;
-            return true;
+            n = length;
+            if (!BumpStack(f, n))
+                THROWV(false);
+
+            
+            Value *argv = JS_ARGV(cx, &vp[1]);  
+            f.regs.sp += n;  
+            if (!GetElements(cx, aobj, n, argv))
+                THROWV(false);
         }
 
-        
-
-
-
-        f.regs.sp++;
-        if (!js_GetArgsValue(cx, fp, &vp[3]))
-            THROWV(false);
+        f.u.call.dynamicArgc = n;
+        return true;
     }
 
     Value *vp = f.regs.sp - 4;

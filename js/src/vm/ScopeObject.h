@@ -133,9 +133,13 @@ class CallObject : public ScopeObject
     inline void setCallee(JSObject *callee);
 
     
-    inline const js::Value &getArguments() const;
+
+
+
+
+
+    inline const js::Value &arguments() const;
     inline void setArguments(const js::Value &v);
-    inline void initArguments(const js::Value &v);
 
     
     inline const js::Value &arg(uintN i) const;
