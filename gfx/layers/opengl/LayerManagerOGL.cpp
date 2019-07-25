@@ -226,6 +226,8 @@ LayerManagerOGL::Initialize()
     return false;
   }
 
+  mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
+
   if (mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB) {
     
 
