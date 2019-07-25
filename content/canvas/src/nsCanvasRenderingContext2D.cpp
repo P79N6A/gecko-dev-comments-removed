@@ -111,18 +111,13 @@
 #include "gfxUtils.h"
 
 #include "nsFrameManager.h"
-
 #include "nsFrameLoader.h"
-
 #include "nsBidiPresUtils.h"
-
 #include "Layers.h"
-
 #include "CanvasUtils.h"
-
 #include "nsIMemoryReporter.h"
-
 #include "nsStyleUtil.h"
+#include "CanvasImageCache.h"
 
 #ifdef MOZ_IPC
 #  include <algorithm>
@@ -3324,35 +3319,45 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
     gfxMatrix matrix;
     nsRefPtr<gfxPattern> pattern;
     nsRefPtr<gfxPath> path;
+    gfxIntSize imgSize;
+    nsRefPtr<gfxASurface> imgsurf =
+      CanvasImageCache::Lookup(imgElt, HTMLCanvasElement(), &imgSize);
 
-    
-    
-    PRUint32 sfeFlags = nsLayoutUtils::SFE_WANT_FIRST_FRAME;
-    nsLayoutUtils::SurfaceFromElementResult res =
-        nsLayoutUtils::SurfaceFromElement(imgElt, sfeFlags);
-    if (!res.mSurface) {
+    if (!imgsurf) {
         
-        return res.mIsStillLoading ? NS_OK : NS_ERROR_NOT_AVAILABLE;
-    }
+        
+        PRUint32 sfeFlags = nsLayoutUtils::SFE_WANT_FIRST_FRAME;
+        nsLayoutUtils::SurfaceFromElementResult res =
+            nsLayoutUtils::SurfaceFromElement(imgElt, sfeFlags);
+        if (!res.mSurface) {
+            
+            return res.mIsStillLoading ? NS_OK : NS_ERROR_NOT_AVAILABLE;
+        }
 
 #ifndef WINCE
-    
-    
-    if (res.mSurface == mSurface) {
-        sfeFlags |= nsLayoutUtils::SFE_WANT_NEW_SURFACE;
-        res = nsLayoutUtils::SurfaceFromElement(imgElt, sfeFlags);
-        if (!res.mSurface)
-            return NS_ERROR_NOT_AVAILABLE;
-    }
+        
+        
+        if (res.mSurface == mSurface) {
+            sfeFlags |= nsLayoutUtils::SFE_WANT_NEW_SURFACE;
+            res = nsLayoutUtils::SurfaceFromElement(imgElt, sfeFlags);
+            if (!res.mSurface)
+                return NS_ERROR_NOT_AVAILABLE;
+        }
 #endif
 
-    nsRefPtr<gfxASurface> imgsurf = res.mSurface;
-    nsCOMPtr<nsIPrincipal> principal = res.mPrincipal;
-    gfxIntSize imgSize = res.mSize;
-    PRBool forceWriteOnly = res.mIsWriteOnly;
+        imgsurf = res.mSurface.forget();
+        imgSize = res.mSize;
 
-    if (mCanvasElement)
-        CanvasUtils::DoDrawImageSecurityCheck(HTMLCanvasElement(), principal, forceWriteOnly);
+        if (mCanvasElement) {
+            CanvasUtils::DoDrawImageSecurityCheck(HTMLCanvasElement(),
+                                                  res.mPrincipal, res.mIsWriteOnly);
+        }
+
+        if (res.mImageRequest) {
+            CanvasImageCache::NotifyDrawImage(imgElt, HTMLCanvasElement(),
+                                              res.mImageRequest, imgsurf, imgSize);
+        }
+    }
 
     gfxContextPathAutoSaveRestore pathSR(mThebes, PR_FALSE);
 
