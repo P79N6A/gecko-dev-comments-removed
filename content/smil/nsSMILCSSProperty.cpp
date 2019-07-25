@@ -169,14 +169,17 @@ nsSMILCSSProperty::ValueFromString(const nsAString& aStr,
   nsSMILCSSValueType::ValueFromString(mPropID, mElement, aStr, aValue,
       &aPreventCachingOfSandwich);
 
+  if (aValue.IsNull()) {
+    return NS_ERROR_FAILURE;
+  }
+
   
   
   
   if (!aPreventCachingOfSandwich && mPropID == eCSSProperty_display) {
     aPreventCachingOfSandwich = true;
   }
-
-  return aValue.IsNull() ? NS_ERROR_FAILURE : NS_OK;
+  return NS_OK;
 }
 
 nsresult
