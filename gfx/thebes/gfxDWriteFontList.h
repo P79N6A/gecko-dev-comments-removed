@@ -215,6 +215,8 @@ public:
     IDWriteGdiInterop *GetGDIInterop() { return mGDIInterop; }
     PRBool UseGDIFontTableAccess() { return mGDIFontTableAccess; }
 
+    virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
+
 private:
     friend class gfxDWriteFontFamily;
 
@@ -233,6 +235,9 @@ private:
 
 
     FontTable mFontSubstitutes;
+
+    PRBool mInitialized;
+    virtual nsresult DelayedInitFontList();
 
     
     PRBool mGDIFontTableAccess;

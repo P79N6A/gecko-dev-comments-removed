@@ -2722,6 +2722,60 @@ NS_VISIBILITY_DEFAULT PRBool nspr_use_zone_allocator = PR_FALSE;
 
 #ifdef XP_WIN
 typedef BOOL (WINAPI* SetProcessDEPPolicyFunc)(DWORD dwFlags);
+
+#include <dwrite.h>
+
+typedef HRESULT (WINAPI*DWriteCreateFactoryFunc)(
+  __in   DWRITE_FACTORY_TYPE factoryType,
+  __in   REFIID iid,
+  __out  IUnknown **factory
+);
+
+#ifdef DEBUG_DWRITE_STARTUP
+
+#define LOGREGISTRY(msg) LogRegistryEvent(msg)
+
+
+static void LogRegistryEvent(const wchar_t *msg)
+{
+  HKEY dummyKey;
+  HRESULT hr;
+  wchar_t buf[512];
+
+  wsprintf(buf, L" log %s", msg);
+  hr = RegOpenKeyEx(HKEY_LOCAL_MACHINE, buf, 0, KEY_READ, &dummyKey);
+  if (SUCCEEDED(hr)) {
+    RegCloseKey(dummyKey);
+  }
+}
+#else
+
+#define LOGREGISTRY(msg)
+
+#endif
+
+static DWORD InitDwriteBG(LPVOID lpdwThreadParam)
+{
+  SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+  LOGREGISTRY(L"loading dwrite.dll");
+  HMODULE dwdll = LoadLibraryW(L"dwrite.dll");
+  DWriteCreateFactoryFunc createDWriteFactory = (DWriteCreateFactoryFunc)
+    GetProcAddress(dwdll, "DWriteCreateFactory");
+  if (createDWriteFactory) {
+    LOGREGISTRY(L"creating dwrite factory");
+    IDWriteFactory *factory;
+    HRESULT hr = createDWriteFactory(
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      reinterpret_cast<IUnknown**>(&factory));
+    
+    LOGREGISTRY(L"dwrite factory done");
+    factory->Release();
+    LOGREGISTRY(L"freed factory");
+  }
+  SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
+  return 0;
+}
 #endif
 
 PRTime gXRE_mainTimestamp = 0;
@@ -2747,6 +2801,26 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 #endif
 
   SetupErrorHandling(argv[0]);
+
+#ifdef XP_WIN
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      
+  OSVERSIONINFO vinfo;
+  vinfo.dwOSVersionInfoSize = sizeof(vinfo);
+  if (GetVersionEx(&vinfo) && vinfo.dwMajorVersion >= 6) {
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&InitDwriteBG, NULL, 0, NULL);
+  }
+
+#endif
 
 #ifdef XP_UNIX
   const char *home = PR_GetEnv("HOME");

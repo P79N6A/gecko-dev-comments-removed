@@ -98,7 +98,7 @@ public:
     gfxFontEntry* FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont);
 
     
-    gfxFontFamily* FindFamily(const nsAString& aFamily);
+    virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
 
     gfxFontEntry* FindFontForFamily(const nsAString& aFamily, const gfxFontStyle* aStyle, PRBool& aNeedsBold);
 
