@@ -52,6 +52,17 @@ function expect_fail(f) {
   do_check_true(failed);
 }
 
+function expect_success(f) {
+  let succeeded = false;
+  try {
+    f();
+    succeeded = true;
+  } catch (e) {
+    succeeded = false;
+  }
+  do_check_true(succeeded);
+}
+
 function test_boolean_histogram()
 {
   var h = Telemetry.newHistogram("test::boolean histogram", 99,1,4, Telemetry.HISTOGRAM_BOOLEAN);
@@ -93,6 +104,78 @@ function test_getSlowSQL() {
   do_check_true(("mainThread" in slow) && ("otherThreads" in slow));
 }
 
+function test_addons() {
+  var addon_id = "testing-addon";
+  var fake_addon_id = "fake-addon";
+  var name1 = "testing-histogram1";
+  var register = Telemetry.registerAddonHistogram;
+  expect_success(function ()
+                 register(addon_id, name1, 1, 5, 6, Telemetry.HISTOGRAM_LINEAR));
+  
+  expect_fail(function ()
+	      register(addon_id, name1, 1, 5, 6, Telemetry.HISTOGRAM_LINEAR));
+  
+  expect_fail(function () Telemetry.getAddonHistogram(fake_addon_id, name1));
+
+  
+  var h1 = Telemetry.getAddonHistogram(addon_id, name1);
+  h1.add(1);
+  h1.add(3);
+  var s1 = h1.snapshot();
+  do_check_eq(s1.histogram_type, Telemetry.HISTOGRAM_LINEAR);
+  do_check_eq(s1.min, 1);
+  do_check_eq(s1.max, 5);
+  do_check_eq(s1.counts[1], 1);
+  do_check_eq(s1.counts[3], 1);
+
+  var name2 = "testing-histogram2";
+  expect_success(function ()
+                 register(addon_id, name2, 2, 4, 4, Telemetry.HISTOGRAM_LINEAR));
+
+  var h2 = Telemetry.getAddonHistogram(addon_id, name2);
+  h2.add(2);
+  h2.add(3);
+  var s2 = h2.snapshot();
+  do_check_eq(s2.histogram_type, Telemetry.HISTOGRAM_LINEAR);
+  do_check_eq(s2.min, 2);
+  do_check_eq(s2.max, 4);
+  do_check_eq(s2.counts[1], 1);
+  do_check_eq(s2.counts[2], 1);
+
+  
+  
+  var extra_addon = "testing-extra-addon";
+  expect_success(function ()
+		 register(extra_addon, name1, 0, 1, 2, Telemetry.HISTOGRAM_BOOLEAN));
+
+  
+  snapshots = Telemetry.addonHistogramSnapshots;
+  do_check_true(addon_id in snapshots)
+  do_check_true(extra_addon in snapshots);
+
+  
+  do_check_true(name1 in snapshots[addon_id]);
+  do_check_true(name2 in snapshots[addon_id]);
+  var s1_alt = snapshots[addon_id][name1];
+  var s2_alt = snapshots[addon_id][name2];
+  do_check_eq(s1_alt.min, s1.min);
+  do_check_eq(s1_alt.max, s1.max);
+  do_check_eq(s1_alt.histogram_type, s1.histogram_type);
+  do_check_eq(s2_alt.min, s2.min);
+  do_check_eq(s2_alt.max, s2.max);
+  do_check_eq(s2_alt.histogram_type, s2.histogram_type);
+
+  
+  do_check_false(name1 in snapshots[extra_addon]);
+
+  
+  Telemetry.unregisterAddonHistograms(addon_id);
+  snapshots = Telemetry.addonHistogramSnapshots;
+  do_check_false(addon_id in snapshots);
+  
+  do_check_true(extra_addon in snapshots);
+}
+
 
 function test_privateMode() {
   var h = Telemetry.newHistogram("test::private_mode_boolean", 1,2,3, Telemetry.HISTOGRAM_BOOLEAN);
@@ -121,4 +204,5 @@ function run_test()
   test_getHistogramById();
   test_getSlowSQL();
   test_privateMode();
+  test_addons();
 }
