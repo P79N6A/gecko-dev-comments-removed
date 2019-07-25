@@ -1415,6 +1415,12 @@ var SelectionHandler = {
       this.endSelection(data.x, data.y);
   },
 
+  notifySelectionChanged: function sh_notifySelectionChanged(aDoc, aSel, aReason) {
+    
+    if (aSel == "" && aReason == Ci.nsISelectionListener.NO_REASON)
+      this.endSelection();
+  },
+
   
   startSelection: function sh_startSelection(aElement, aX, aY) {
     
@@ -1459,6 +1465,9 @@ var SelectionHandler = {
       selection.collapseToStart();
       return;
     }
+
+    
+    selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
 
     
     this.cache = {};
@@ -1575,6 +1584,10 @@ var SelectionHandler = {
 
   
   endSelection: function sh_endSelection(aX, aY) {
+    if (!this._active)
+      return;
+
+    this._active = false;
     this.hideHandles();
 
     let selectedText = "";
@@ -1583,6 +1596,7 @@ var SelectionHandler = {
       if (selection) {
         selectedText = selection.toString().trim();
         selection.removeAllRanges();
+        selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
       }
     }
 
@@ -1611,7 +1625,6 @@ var SelectionHandler = {
     this._isRTL = false;
     this._view = null;
     this.cache = null;
-    this._active = false;
   },
 
   _getViewOffset: function sh_getViewOffset() {
