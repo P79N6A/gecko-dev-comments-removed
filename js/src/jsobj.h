@@ -516,9 +516,6 @@ struct JSObject : public js::ObjectImpl
     inline js::GlobalObject &global() const;
 
     
-    inline JSPrincipals *principals(JSContext *cx);
-
-    
     static inline bool clearType(JSContext *cx, js::HandleObject obj);
     static bool clearParent(JSContext *cx, js::HandleObject obj);
 

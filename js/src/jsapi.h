@@ -2001,17 +2001,6 @@ typedef void
 
 
 
-
-
-
-
-typedef JSPrincipals *
-(* JSObjectPrincipalsFinder)(JSObject *obj);
-
-
-
-
-
 typedef JSBool
 (* JSCSPEvalChecker)(JSContext *cx);
 
@@ -4908,7 +4897,6 @@ JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
 
 struct JSSecurityCallbacks {
     JSCheckAccessOp            checkObjectAccess;
-    JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
 };
 

@@ -366,5 +366,5 @@ js::PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx)
     
     
 
-    return call.callee().principals(cx);
+    return call.callee().compartment()->principals;
 }

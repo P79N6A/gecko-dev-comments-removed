@@ -3450,7 +3450,7 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, StackFrame *fp, const jschar 
 
 
     CompileOptions options(cx);
-    options.setPrincipals(fp->scopeChain()->principals(cx))
+    options.setPrincipals(fp->scopeChain()->compartment()->principals)
            .setCompileAndGo(true)
            .setNoScriptRval(false)
            .setFileAndLine(filename, lineno);
