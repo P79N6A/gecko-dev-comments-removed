@@ -13,6 +13,8 @@
 
 #include "mozilla/StandardInteger.h"
 
+class nsArenaMemoryStats;
+
 
 
 
@@ -56,7 +58,12 @@ public:
   NS_HIDDEN_(void*) AllocateByObjectID(ObjectID aID, size_t aSize);
   NS_HIDDEN_(void)  FreeByObjectID(ObjectID aID, void* aPtr);
 
-  size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  
+
+
+
+  void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
+                           nsArenaMemoryStats* aArenaStats);
 
   
 
