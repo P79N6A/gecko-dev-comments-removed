@@ -454,7 +454,8 @@ nsUnknownContentTypeDialog.prototype = {
         rememberChoice.disabled = true;
       }
       else {
-        rememberChoice.checked = !this.mLauncher.MIMEInfo.alwaysAskBeforeHandling;
+        rememberChoice.checked = !this.mLauncher.MIMEInfo.alwaysAskBeforeHandling &&
+                                 this.mLauncher.MIMEInfo.preferredAction != this.nsIMIMEInfo.handleInternally;
       }
       this.toggleRememberChoice(rememberChoice);
 
@@ -777,6 +778,14 @@ nsUnknownContentTypeDialog.prototype = {
   },
 
   updateMIMEInfo: function() {
+    
+    
+    
+    if (this.mLauncher.MIMEInfo.preferredAction == this.nsIMIMEInfo.handleInternally &&
+        !this.dialogElement("rememberChoice").checked) {
+      return false;
+    }
+
     var needUpdate = false;
     
     
