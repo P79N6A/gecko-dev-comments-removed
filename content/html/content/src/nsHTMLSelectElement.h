@@ -150,6 +150,8 @@ public:
 
 
 
+
+
   nsresult GetOptionIndex(mozilla::dom::Element* aOption,
                           PRInt32 aStartIndex, bool aForward,
                           PRInt32* aIndex);
