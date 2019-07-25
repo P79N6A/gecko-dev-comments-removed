@@ -129,7 +129,6 @@ let UI = {
 
   
   
-  
   isDOMWindowClosing: false,
 
   
@@ -258,20 +257,17 @@ let UI = {
       });
 
       
-      function domWinClosedObserver(subject, topic, data) {
-        if (topic == "domwindowclosed" && subject == gWindow) {
-          self.isDOMWindowClosing = true;
-          if (self.isTabViewVisible())
-            GroupItems.removeHiddenGroups();
-          TabItems.saveAll(true);
-          self._save();
-        }
-      }
-      Services.obs.addObserver(
-        domWinClosedObserver, "domwindowclosed", false);
-      this._cleanupFunctions.push(function() {
-        Services.obs.removeObserver(domWinClosedObserver, "domwindowclosed");
-      });
+      gWindow.addEventListener("SSWindowClosing", function onWindowClosing() {
+        gWindow.removeEventListener("SSWindowClosing", onWindowClosing, false);
+
+        self.isDOMWindowClosing = true;
+
+        if (self.isTabViewVisible())
+          GroupItems.removeHiddenGroups();
+
+        TabItems.saveAll(true);
+        self._save();
+      }, false);
 
       
       this._frameInitialized = true;
