@@ -165,14 +165,8 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
 
     @Override
     public String ifUnmodifiedSince() {
-      Long timestampInMilliseconds = session.config.getPersistedServerClientRecordTimestamp();
-
       
-      if (timestampInMilliseconds == 0) {
-        return null;
-      }
-
-      return Utils.millisecondsToDecimalSecondsString(timestampInMilliseconds);
+      return null;
     }
 
     @Override
