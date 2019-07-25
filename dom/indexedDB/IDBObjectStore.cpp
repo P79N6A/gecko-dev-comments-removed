@@ -1110,7 +1110,7 @@ IDBObjectStore::AddOrPut(const jsval& aValue,
   }
 
   
-  if (aOverwrite && key.IsUnset()) {
+  if (aOverwrite && !mAutoIncrement && key.IsUnset()) {
     return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
   }
 
@@ -1793,7 +1793,7 @@ AddHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   }
 
   
-  if (autoIncrement && !mOverwrite) {
+  if (autoIncrement && !mayOverwrite) {
 #ifdef DEBUG
     PRInt64 oldKey = unsetKey ? 0 : mKey.ToInteger();
 #endif
