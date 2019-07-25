@@ -566,6 +566,14 @@ js_SetLengthProperty(JSContext *cx, JSObject *obj, jsdouble length)
 
     v.setNumber(length);
     id = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
+
+    
+
+
+
+    if (!obj->isArray())
+        cx->addTypePropertyId(obj->getType(), id, v);
+
     
     return obj->setProperty(cx, id, &v, false);
 }
@@ -2032,10 +2040,8 @@ array_push_slowly(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *
     rval->setNumber(newlength);
 
     
-    if (!rval->isInt32()) {
+    if (!rval->isInt32())
         cx->markTypeCallerOverflow();
-        cx->addTypeProperty(obj->getType(), "length", *rval);
-    }
 
     return js_SetLengthProperty(cx, obj, newlength);
 }
@@ -2303,6 +2309,11 @@ array_unshift(JSContext *cx, uintN argc, Value *vp)
 
     
     vp->setNumber(newlen);
+
+    
+    if (!vp->isInt32())
+        cx->markTypeCallerOverflow();
+
     return JS_TRUE;
 }
 
@@ -2317,16 +2328,20 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
     
     TypeObject *type;
     if (obj && obj->isArray()) {
+        
+
+
+
+
         type = obj->getType();
     } else {
         
 
 
 
-        type = cx->getTypeCallerInitObject(true);
+        type = cx->getTypeNewObject(JSProto_Array);
         if (!type)
             return JS_FALSE;
-        cx->markTypeObjectUnknownProperties(type);
         cx->markTypeCallerUnexpected((jstype) type);
     }
 
@@ -2638,16 +2653,16 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
     
     TypeObject *type;
     if (obj->isArray()) {
+        
         type = obj->getType();
     } else {
         
 
 
 
-        type = cx->getTypeCallerInitObject(true);
+        type = cx->getTypeNewObject(JSProto_Array);
         if (!type)
             return JS_FALSE;
-        cx->markTypeObjectUnknownProperties(type);
         cx->markTypeCallerUnexpected((jstype) type);
     }
 
@@ -3018,6 +3033,9 @@ array_every(JSContext *cx, uintN argc, Value *vp)
     return array_extra(cx, EVERY, argc, vp);
 }
 #endif
+
+
+
 
 
 
