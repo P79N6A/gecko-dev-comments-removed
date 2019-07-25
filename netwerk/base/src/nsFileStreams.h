@@ -48,6 +48,7 @@
 #include "nsCOMPtr.h"
 #include "prlog.h"
 #include "prio.h"
+#include "nsIIPCSerializable.h"
 
 template<class CharType> class nsLineBuffer;
 
@@ -76,13 +77,15 @@ protected:
 
 class nsFileInputStream : public nsFileStream,
                           public nsIFileInputStream,
-                          public nsILineInputStream
+                          public nsILineInputStream,
+                          public nsIIPCSerializable
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSIINPUTSTREAM
     NS_DECL_NSIFILEINPUTSTREAM
     NS_DECL_NSILINEINPUTSTREAM
+    NS_DECL_NSIIPCSERIALIZABLE
     
     
     NS_IMETHOD Seek(PRInt32 aWhence, PRInt64 aOffset);
@@ -106,15 +109,12 @@ protected:
     
 
 
-
     nsCOMPtr<nsIFile> mFile;
     
 
 
-
     PRInt32 mIOFlags;
     
-
 
 
     PRInt32 mPerm;
