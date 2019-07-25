@@ -779,9 +779,10 @@ struct JSRuntime : js::RuntimeFriendFields
     
     js::StaticStrings   staticStrings;
 
-    JSWrapObjectCallback wrapObjectCallback;
-    JSPreWrapCallback    preWrapObjectCallback;
-    js::PreserveWrapperCallback preserveWrapperCallback;
+    JSWrapObjectCallback                   wrapObjectCallback;
+    JSSameCompartmentWrapObjectCallback    sameCompartmentWrapObjectCallback;
+    JSPreWrapCallback                      preWrapObjectCallback;
+    js::PreserveWrapperCallback            preserveWrapperCallback;
 
     js::ScriptFilenameTable scriptFilenameTable;
 
