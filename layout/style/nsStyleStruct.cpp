@@ -2217,17 +2217,24 @@ nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
 
 nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 {
-  nsChangeHint hint = nsChangeHint(0);
-
   if (!EqualURIs(mBinding, aOther.mBinding)
       || mPosition != aOther.mPosition
       || mDisplay != aOther.mDisplay
       || (mFloats == NS_STYLE_FLOAT_NONE) != (aOther.mFloats == NS_STYLE_FLOAT_NONE)
       || mOverflowX != aOther.mOverflowX
       || mOverflowY != aOther.mOverflowY
-      || mResize != aOther.mResize)
-    NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
+      || mResize != aOther.mResize) {
+    return nsChangeHint_ReconstructFrame;
+  }
 
+  
+  
+  
+  if (HasTransform() != aOther.HasTransform()) {
+    return nsChangeHint_ReconstructFrame;
+  }
+
+  nsChangeHint hint = nsChangeHint(0);
   if (mFloats != aOther.mFloats) {
     
     NS_UpdateHint(hint,
@@ -2242,21 +2249,18 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       || mBreakBefore != aOther.mBreakBefore
       || mBreakAfter != aOther.mBreakAfter
       || mAppearance != aOther.mAppearance
-      || mOrient != aOther.mOrient
-      || mClipFlags != aOther.mClipFlags || !mClip.IsEqualInterior(aOther.mClip))
+      || mOrient != aOther.mOrient) {
     NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_ReflowFrame, nsChangeHint_RepaintFrame));
+  } else if (mClipFlags != aOther.mClipFlags
+             || !mClip.IsEqualInterior(aOther.mClip)) {
+    NS_UpdateHint(hint, NS_STYLE_HINT_UPDATE_OVERFLOW);
+  }
 
   if (mOpacity != aOther.mOpacity) {
     NS_UpdateHint(hint, nsChangeHint_UpdateOpacityLayer);
   }
 
-  
-
-
-  if (HasTransform() != aOther.HasTransform()) {
-    NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
-  }
-  else if (HasTransform()) {
+  if (HasTransform()) {
     
 
 
