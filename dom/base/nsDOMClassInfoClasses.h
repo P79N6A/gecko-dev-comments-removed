@@ -475,4 +475,6 @@ DOMCI_CLASS(ContentFrameMessageManager)
 
 DOMCI_CLASS(FormData)
 
+
 DOMCI_CLASS(WebSocket)
+DOMCI_CLASS(CloseEvent)
