@@ -280,6 +280,8 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
 
     
     mMovePreferred = (preferredEffect & DROPEFFECT_MOVE) != 0;
+
+    nsMemory::Free(tempOutData);
   } else {
     mMovePreferred = PR_FALSE;
   }
