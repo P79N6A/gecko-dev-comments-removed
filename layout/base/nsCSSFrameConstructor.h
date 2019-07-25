@@ -136,10 +136,11 @@ private:
     CONTENTINSERT
   };
 
+  
+  
   PRBool MaybeConstructLazily(Operation aOperation,
                               nsIContent* aContainer,
-                              nsIContent* aChild,
-                              PRInt32 aIndex);
+                              nsIContent* aChild);
 
   
   
@@ -167,7 +168,6 @@ private:
 
 public:
   
-
 
 
 
