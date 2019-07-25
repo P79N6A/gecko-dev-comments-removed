@@ -4254,7 +4254,7 @@ mjit::Compiler::jsop_instanceof()
     
     frame.dup();
 
-    if (!jsop_getprop(cx->runtime->atomState.classPrototypeAtom, false, false))
+    if (!jsop_getprop(cx->runtime->atomState.classPrototypeAtom, false))
         return false;
 
     
@@ -4437,7 +4437,7 @@ mjit::Compiler::constructThis()
     frame.pushTypedPayload(JSVAL_TYPE_OBJECT, calleeReg);
 
     
-    if (!jsop_getprop(cx->runtime->atomState.classPrototypeAtom, false))
+    if (!jsop_getprop(cx->runtime->atomState.classPrototypeAtom, false, false))
         return false;
 
     
