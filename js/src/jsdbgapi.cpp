@@ -1289,6 +1289,9 @@ JS_GetFrameReturnValue(JSContext *cx, JSStackFrame *fp)
 JS_PUBLIC_API(void)
 JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fp, jsval rval)
 {
+#ifdef JS_METHODJIT
+    JS_ASSERT_IF(fp->isScriptFrame(), fp->script()->debugMode);
+#endif
     assertSameCompartment(cx, fp, rval);
     fp->setReturnValue(Valueify(rval));
 }
@@ -1543,6 +1546,59 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda)
             js_RemoveRoot(cx->runtime, &pd[i].alias);
     }
     cx->free(pd);
+}
+
+
+
+JS_FRIEND_API(JSBool)
+js_GetPropertyByIdWithFakeFrame(JSContext *cx, JSObject *obj, JSObject *scopeobj, jsid id,
+                                jsval *vp)
+{
+    JS_ASSERT(scopeobj->isGlobal());
+
+    DummyFrameGuard frame;
+    if (!cx->stack().pushDummyFrame(cx, *scopeobj, &frame))
+        return false;
+
+    bool ok = JS_GetPropertyById(cx, obj, id, vp);
+
+    JS_ASSERT(!frame.fp()->hasCallObj());
+    JS_ASSERT(!frame.fp()->hasArgsObj());
+    return ok;
+}
+
+JS_FRIEND_API(JSBool)
+js_SetPropertyByIdWithFakeFrame(JSContext *cx, JSObject *obj, JSObject *scopeobj, jsid id,
+                                jsval *vp)
+{
+    JS_ASSERT(scopeobj->isGlobal());
+
+    DummyFrameGuard frame;
+    if (!cx->stack().pushDummyFrame(cx, *scopeobj, &frame))
+        return false;
+
+    bool ok = JS_SetPropertyById(cx, obj, id, vp);
+
+    JS_ASSERT(!frame.fp()->hasCallObj());
+    JS_ASSERT(!frame.fp()->hasArgsObj());
+    return ok;
+}
+
+JS_FRIEND_API(JSBool)
+js_CallFunctionValueWithFakeFrame(JSContext *cx, JSObject *obj, JSObject *scopeobj, jsval funval,
+                                  uintN argc, jsval *argv, jsval *rval)
+{
+    JS_ASSERT(scopeobj->isGlobal());
+
+    DummyFrameGuard frame;
+    if (!cx->stack().pushDummyFrame(cx, *scopeobj, &frame))
+        return false;
+
+    bool ok = JS_CallFunctionValue(cx, obj, funval, argc, argv, rval);
+
+    JS_ASSERT(!frame.fp()->hasCallObj());
+    JS_ASSERT(!frame.fp()->hasArgsObj());
+    return ok;
 }
 
 

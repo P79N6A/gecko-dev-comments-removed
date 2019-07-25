@@ -330,6 +330,13 @@ Script::analyze(JSContext *cx, JSScript *script)
 
 
 
+    if (cx->compartment->debugMode)
+        usesRval = true;
+
+    
+
+
+
 
     unsigned forwardJump = 0;
 
