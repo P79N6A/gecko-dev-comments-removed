@@ -571,24 +571,130 @@ Prompt.prototype = {
       PromptUtils.setAuthInfo(aAuthInfo, username.value, password.value);
     }
 
-    let ok;
-    if (aAuthInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD)
+    let canAutologin = false;
+    if (aAuthInfo.flags & Ci.nsIAuthInformation.AUTH_PROXY &&
+        !(aAuthInfo.flags & Ci.nsIAuthInformation.PREVIOUS_FAILED) &&
+        Services.prefs.getBoolPref("signon.autologin.proxy"))
+      canAutologin = true;
+
+    let ok = canAutologin;
+    if (!ok && aAuthInfo.flags & Ci.nsIAuthInformation.ONLY_PASSWORD)
       ok = this.nsIPrompt_promptPassword(null, message, password, checkMsg, check);
-    else
+    else if (!ok)
       ok = this.nsIPrompt_promptUsernameAndPassword(null, message, username, password, checkMsg, check);
 
     PromptUtils.setAuthInfo(aAuthInfo, username.value, password.value);
 
-    if (ok && canSave && check.value) {
+    if (ok && canSave && check.value)
       PromptUtils.savePassword(foundLogins, username, password, hostname, httpRealm);
-    }
 
     return ok;
   },
 
-  asyncPromptAuth: function asyncPromptAuth(aChannel, aCallback, aContext, aLevel, aAuthInfo) {
+  _asyncPrompts: {},
+  _asyncPromptInProgress: false,
+
+  _doAsyncPrompt : function() {
+    if (this._asyncPromptInProgress)
+      return;
+
     
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    let hashKey = null;
+    for (hashKey in this._asyncPrompts)
+      break;
+
+    if (!hashKey)
+      return;
+
+    
+    
+    let prompt = this._asyncPrompts[hashKey];
+    let prompter = prompt.prompter;
+    let [hostname, httpRealm] = PromptUtils.getAuthTarget(prompt.channel, prompt.authInfo);
+    let foundLogins = PromptUtils.pwmgr.findLogins({}, hostname, null, httpRealm);
+    if (foundLogins.length > 0 && PromptUtils.pwmgr.uiBusy)
+      return;
+
+    this._asyncPromptInProgress = true;
+    prompt.inProgress = true;
+
+    let self = this;
+
+    let runnable = {
+      run: function() {
+        let ok = false;
+        try {
+          ok = prompter.promptAuth(prompt.channel, prompt.level, prompt.authInfo);
+        } catch (e) {
+          Cu.reportError("_doAsyncPrompt:run: " + e + "\n");
+        }
+
+        delete self._asyncPrompts[hashKey];
+        prompt.inProgress = false;
+        self._asyncPromptInProgress = false;
+
+        for each (let consumer in prompt.consumers) {
+          if (!consumer.callback)
+            
+            
+            continue;
+
+          try {
+            if (ok)
+              consumer.callback.onAuthAvailable(consumer.context, prompt.authInfo);
+            else
+              consumer.callback.onAuthCancelled(consumer.context, true);
+          } catch (e) {  }
+        }
+        self._doAsyncPrompt();
+      }
+    }
+
+    Services.tm.mainThread.dispatch(runnable, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+  asyncPromptAuth: function asyncPromptAuth(aChannel, aCallback, aContext, aLevel, aAuthInfo) {
+    let cancelable = null;
+    try {
+      
+      
+      
+      
+
+      cancelable = {
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsICancelable]),
+        callback: aCallback,
+        context: aContext,
+        cancel: function() {
+          this.callback.onAuthCancelled(this.context, false);
+          this.callback = null;
+          this.context = null;
+        }
+      };
+      let [hostname, httpRealm] = PromptUtils.getAuthTarget(aChannel, aAuthInfo);
+      let hashKey = aLevel + "|" + hostname + "|" + httpRealm;
+      let asyncPrompt = this._asyncPrompts[hashKey];
+      if (asyncPrompt) {
+        asyncPrompt.consumers.push(cancelable);
+        return cancelable;
+      }
+
+      asyncPrompt = {
+        consumers: [cancelable],
+        channel: aChannel,
+        authInfo: aAuthInfo,
+        level: aLevel,
+        inProgress : false,
+        prompter: this
+      }
+
+      this._asyncPrompts[hashKey] = asyncPrompt;
+      this._doAsyncPrompt();
+    } catch (e) {
+      Cu.reportError("PromptService: " + e + "\n");
+      throw e;
+    }
+    return cancelable;
   }
 };
 
