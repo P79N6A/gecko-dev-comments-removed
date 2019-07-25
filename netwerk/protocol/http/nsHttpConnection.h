@@ -174,6 +174,7 @@ private:
     
     
     bool     EnsureNPNComplete();
+    void     SetupNPN(PRUint8 caps);
 
     
     nsresult AddTransaction(nsAHttpTransaction *, PRInt32);
@@ -218,6 +219,7 @@ private:
 
     
     bool                            mNPNComplete;
+    bool                            mSetupNPNCalled;
     bool                            mUsingSpdy;
     nsRefPtr<mozilla::net::SpdySession> mSpdySession;
     PRInt32                         mPriority;
