@@ -235,13 +235,13 @@ class MacroAssemblerARM : public Assembler
 
     
     
-    void ma_cmn(Imm32 imm, Register src1, Condition c = Always);
+    void ma_cmn(Register src1, Imm32 imm, Condition c = Always);
     void ma_cmn(Register src1, Register src2, Condition c = Always);
     void ma_cmn(Register src1, Operand op, Condition c = Always);
 
     
-    void ma_cmp(Imm32 imm, Register src1, Condition c = Always);
-    void ma_cmp(ImmGCPtr ptr, Register src1, Condition c = Always);
+    void ma_cmp(Register src1, Imm32 imm, Condition c = Always);
+    void ma_cmp(Register src1, ImmGCPtr ptr, Condition c = Always);
     void ma_cmp(Register src1, Operand op, Condition c = Always);
     void ma_cmp(Register src1, Register src2, Condition c = Always);
 
