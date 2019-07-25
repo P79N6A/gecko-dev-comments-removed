@@ -298,6 +298,18 @@ PRUint32        nsWindow::sOOPPPluginFocusEvent   =
 
 MSG             nsWindow::sRedirectedKeyDown;
 
+PRBool          nsWindow::sNeedsToInitMouseWheelSettings = PR_TRUE;
+ULONG           nsWindow::sMouseWheelScrollLines  = 0;
+ULONG           nsWindow::sMouseWheelScrollChars  = 0;
+
+HWND            nsWindow::sLastMouseWheelWnd = NULL;
+PRInt32         nsWindow::sRemainingDeltaForScroll = 0;
+PRInt32         nsWindow::sRemainingDeltaForPixel = 0;
+PRBool          nsWindow::sLastMouseWheelDeltaIsPositive = PR_FALSE;
+PRBool          nsWindow::sLastMouseWheelOrientationIsVertical = PR_FALSE;
+PRBool          nsWindow::sLastMouseWheelUnitIsPage = PR_FALSE;
+PRUint32        nsWindow::sLastMouseWheelTime = 0;
+
 
 
 
@@ -4524,8 +4536,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   PRBool result = PR_FALSE;    
   *aRetValue = 0;
 
-  static PRBool getWheelInfo = PR_TRUE;
-
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   LRESULT dwmHitResult;
@@ -5187,7 +5197,12 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
     case WM_SETTINGCHANGE:
-      getWheelInfo = PR_TRUE;
+      switch (wParam) {
+        case SPI_SETWHEELSCROLLLINES:
+        case SPI_SETWHEELSCROLLCHARS:
+          sNeedsToInitMouseWheelSettings = PR_TRUE;
+          break;
+      }
       break;
 
     case WM_INPUTLANGCHANGEREQUEST:
@@ -5259,8 +5274,9 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       
       
-      if (OnMouseWheel(msg, wParam, lParam, getWheelInfo, result, aRetValue))
+      if (OnMouseWheel(msg, wParam, lParam, result, aRetValue)) {
         return result;
+      }
     }
     break;
 
@@ -6281,117 +6297,151 @@ PRUint16 nsWindow::GetMouseInputSource()
   return inputSource;
 }
 
-
-
-
-
-
-PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& getWheelInfo, PRBool& result, LRESULT *aRetValue)
+ void
+nsWindow::InitMouseWheelScrollData()
 {
-  
-  static int iDeltaPerLine, iDeltaPerChar;
-  static ULONG ulScrollLines, ulScrollChars = 1;
-  static int currentVDelta, currentHDelta;
-  static HWND currentWindow = 0;
+  if (!sNeedsToInitMouseWheelSettings) {
+    return;
+  }
+  sNeedsToInitMouseWheelSettings = PR_FALSE;
+  ResetRemainingWheelDelta();
 
-  PRBool isVertical = msg == WM_MOUSEWHEEL;
-
-  
-  if (getWheelInfo) {
-    getWheelInfo = PR_FALSE;
-
-    SystemParametersInfo (SPI_GETWHEELSCROLLLINES, 0, &ulScrollLines, 0);
-
-    
-    
-
+  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0,
+                              &sMouseWheelScrollLines, 0)) {
+    NS_WARNING("Failed to get SPI_GETWHEELSCROLLLINES");
+    sMouseWheelScrollLines = 3;
+  } else if (sMouseWheelScrollLines > WHEEL_DELTA) {
     
     
     
     
     
-
-    iDeltaPerLine = 0;
-    if (ulScrollLines) {
-      if (ulScrollLines <= WHEEL_DELTA) {
-        iDeltaPerLine = WHEEL_DELTA / ulScrollLines;
-      } else {
-        ulScrollLines = WHEEL_PAGESCROLL;
-      }
-    }
-
-    if (!SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0,
-                              &ulScrollChars, 0)) {
-      
-      ulScrollChars = 1;
-    }
-
-    iDeltaPerChar = 0;
-    if (ulScrollChars) {
-      if (ulScrollChars <= WHEEL_DELTA) {
-        iDeltaPerChar = WHEEL_DELTA / ulScrollChars;
-      } else {
-        ulScrollChars = WHEEL_PAGESCROLL;
-      }
-    }
+    
+    sMouseWheelScrollLines = WHEEL_PAGESCROLL;
   }
 
-  if ((isVertical  && ulScrollLines != WHEEL_PAGESCROLL && !iDeltaPerLine) ||
-      (!isVertical && ulScrollChars != WHEEL_PAGESCROLL && !iDeltaPerChar))
-    return PR_FALSE; 
+  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0,
+                              &sMouseWheelScrollChars, 0)) {
+    NS_ASSERTION(!nsUXThemeData::sIsVistaOrLater,
+                 "Failed to get SPI_GETWHEELSCROLLCHARS");
+    sMouseWheelScrollChars = 1;
+  } else if (sMouseWheelScrollChars > WHEEL_DELTA) {
+    
+    sMouseWheelScrollChars = WHEEL_PAGESCROLL;
+  }
+}
+
+
+void
+nsWindow::ResetRemainingWheelDelta()
+{
+  sRemainingDeltaForPixel = 0;
+  sRemainingDeltaForScroll = 0;
+  sLastMouseWheelWnd = NULL;
+}
+
+static PRInt32 RoundDelta(double aDelta)
+{
+  return aDelta >= 0 ? (PRInt32)NS_floor(aDelta) : (PRInt32)NS_ceil(aDelta);
+}
+
+
+
+
+
+
+PRBool
+nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
+                       PRBool& aHandled, LRESULT *aRetValue)
+{
+  InitMouseWheelScrollData();
+
+  PRBool isVertical = (aMessage == WM_MOUSEWHEEL);
+  if ((isVertical && sMouseWheelScrollLines == 0) ||
+      (!isVertical && sMouseWheelScrollChars == 0)) {
+    
+    
+    
+    ResetRemainingWheelDelta();
+    *aRetValue = isVertical ? TRUE : FALSE; 
+    aHandled = PR_FALSE;
+    return PR_FALSE;
+  }
 
   
   
   PRBool quit;
-  if (!HandleScrollingPlugins(msg, wParam, lParam, result, aRetValue, quit))
+  if (!HandleScrollingPlugins(aMessage, aWParam, aLParam,
+                              aHandled, aRetValue, quit)) {
+    ResetRemainingWheelDelta();
     return quit; 
+ }
 
-  
-  
-  if (currentWindow != mWnd) {
-    currentVDelta = 0;
-    currentHDelta = 0;
-    currentWindow = mWnd;
-  }
-
-  nsMouseScrollEvent scrollEvent(PR_TRUE, NS_MOUSE_SCROLL, this);
-  scrollEvent.delta = 0;
-  if (isVertical) {
-    scrollEvent.scrollFlags = nsMouseScrollEvent::kIsVertical;
-    if (ulScrollLines == WHEEL_PAGESCROLL) {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-      scrollEvent.delta = (((short) HIWORD (wParam)) > 0) ? -1 : 1;
-    } else {
-      currentVDelta -= (short) HIWORD (wParam);
-      if (PR_ABS(currentVDelta) >= iDeltaPerLine) {
-        scrollEvent.delta = currentVDelta / iDeltaPerLine;
-        currentVDelta %= iDeltaPerLine;
-      }
-    }
-  } else {
-    scrollEvent.scrollFlags = nsMouseScrollEvent::kIsHorizontal;
-    if (ulScrollChars == WHEEL_PAGESCROLL) {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-      scrollEvent.delta = (((short) HIWORD (wParam)) > 0) ? 1 : -1;
-    } else {
-      currentHDelta += (short) HIWORD (wParam);
-      if (PR_ABS(currentHDelta) >= iDeltaPerChar) {
-        scrollEvent.delta = currentHDelta / iDeltaPerChar;
-        currentHDelta %= iDeltaPerChar;
-      }
-    }
-  }
-
-  if (!scrollEvent.delta) {
-    
-    
-    result = PR_TRUE;
+  PRInt32 nativeDelta = (short)HIWORD(aWParam);
+  if (!nativeDelta) {
+    *aRetValue = isVertical ? TRUE : FALSE; 
+    aHandled = PR_FALSE;
+    ResetRemainingWheelDelta();
     return PR_FALSE; 
   }
 
   
   
   ::ReplyMessage(isVertical ? 0 : TRUE);
+
+  PRBool isPageScroll =
+    ((isVertical && sMouseWheelScrollLines == WHEEL_PAGESCROLL) ||
+     (!isVertical && sMouseWheelScrollChars == WHEEL_PAGESCROLL));
+
+  
+  
+  
+  PRUint32 now = PR_IntervalToMilliseconds(PR_IntervalNow());
+  if (sLastMouseWheelWnd &&
+      (sLastMouseWheelWnd != mWnd ||
+       sLastMouseWheelDeltaIsPositive != (nativeDelta > 0) ||
+       sLastMouseWheelOrientationIsVertical != isVertical ||
+       sLastMouseWheelUnitIsPage != isPageScroll ||
+       now - sLastMouseWheelTime > 1500)) {
+    ResetRemainingWheelDelta();
+  }
+  sLastMouseWheelWnd = mWnd;
+  sLastMouseWheelDeltaIsPositive = (nativeDelta > 0);
+  sLastMouseWheelOrientationIsVertical = isVertical;
+  sLastMouseWheelUnitIsPage = isPageScroll;
+  sLastMouseWheelTime = now;
+
+  nsMouseScrollEvent testEvent(PR_TRUE, NS_MOUSE_SCROLL, this);
+  InitEvent(testEvent);
+  testEvent.scrollFlags = isPageScroll ? nsMouseScrollEvent::kIsFullPage : 0;
+  testEvent.scrollFlags |= isVertical ? nsMouseScrollEvent::kIsVertical :
+                                        nsMouseScrollEvent::kIsHorizontal;
+  testEvent.delta = sLastMouseWheelDeltaIsPositive ? -1 : 1;
+  nsQueryContentEvent queryEvent(PR_TRUE, NS_QUERY_SCROLL_TARGET_INFO, this);
+  InitEvent(queryEvent);
+  queryEvent.InitForQueryScrollTargetInfo(&testEvent);
+  DispatchWindowEvent(&queryEvent);
+  
+  
+  if (queryEvent.mSucceeded) {
+    if (isPageScroll) {
+      if (isVertical) {
+        queryEvent.mSucceeded = (queryEvent.mReply.mPageHeight > 0);
+      } else {
+        queryEvent.mSucceeded = (queryEvent.mReply.mPageWidth > 0);
+      }
+    } else {
+      queryEvent.mSucceeded = (queryEvent.mReply.mLineHeight > 0);
+    }
+  }
+
+  *aRetValue = isVertical ? FALSE : TRUE; 
+  nsModifierKeyState modKeyState;
+
+  
+  
+  
+  PRInt32 orienter = isVertical ? -1 : 1;
 
   
   
@@ -6401,25 +6451,97 @@ PRBool nsWindow::OnMouseWheel(UINT msg, WPARAM wParam, LPARAM lParam, PRBool& ge
       static_cast<DWORD>(::GetMessageTime()) < mAssumeWheelIsZoomUntil) {
     isControl = PR_TRUE;
   } else {
-    isControl = IS_VK_DOWN(NS_VK_CONTROL);
+    isControl = modKeyState.mIsControlDown;
   }
 
-  scrollEvent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollEvent.isControl = isControl;
-  scrollEvent.isMeta    = PR_FALSE;
-  scrollEvent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
+  nsMouseScrollEvent scrollEvent(PR_TRUE, NS_MOUSE_SCROLL, this);
   InitEvent(scrollEvent);
-  if (nsnull != mEventCallback) {
-    result = DispatchWindowEvent(&scrollEvent);
-  }
   
-  
+  scrollEvent.scrollFlags =
+    queryEvent.mSucceeded ? nsMouseScrollEvent::kHasPixels : 0;
+  scrollEvent.isShift     = modKeyState.mIsShiftDown;
+  scrollEvent.isControl   = isControl;
+  scrollEvent.isMeta      = PR_FALSE;
+  scrollEvent.isAlt       = modKeyState.mIsAltDown;
 
-  if (result)
-    *aRetValue = isVertical ? 0 : TRUE;
+  PRInt32 nativeDeltaForScroll = nativeDelta + sRemainingDeltaForScroll;
+
+  if (isPageScroll) {
+    scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
+    if (isVertical) {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
+    } else {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
+    }
+    scrollEvent.delta = nativeDeltaForScroll * orienter / WHEEL_DELTA;
+    PRInt32 recomputedNativeDelta = scrollEvent.delta * orienter / WHEEL_DELTA;
+    sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
+  } else {
+    double deltaPerUnit;
+    if (isVertical) {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
+      deltaPerUnit = (double)WHEEL_DELTA / sMouseWheelScrollLines;
+    } else {
+      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
+      deltaPerUnit = (double)WHEEL_DELTA / sMouseWheelScrollChars;
+    }
+    scrollEvent.delta =
+      RoundDelta((double)nativeDeltaForScroll * orienter / deltaPerUnit);
+    PRInt32 recomputedNativeDelta =
+      (PRInt32)(scrollEvent.delta * orienter * deltaPerUnit);
+    sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
+  }
+
+  if (scrollEvent.delta) {
+    aHandled = DispatchWindowEvent(&scrollEvent);
+    if (mOnDestroyCalled) {
+      ResetRemainingWheelDelta();
+      return PR_FALSE;
+    }
+  }
+
   
-  return PR_FALSE; 
-} 
+  if (!queryEvent.mSucceeded) {
+    sRemainingDeltaForPixel = 0;
+    return PR_FALSE;
+  }
+
+  nsMouseScrollEvent pixelEvent(PR_TRUE, NS_MOUSE_PIXEL_SCROLL, this);
+  InitEvent(pixelEvent);
+  pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll |
+    (scrollEvent.scrollFlags & ~nsMouseScrollEvent::kHasPixels);
+  pixelEvent.isShift     = modKeyState.mIsShiftDown;
+  pixelEvent.isControl   = modKeyState.mIsControlDown;
+  pixelEvent.isMeta      = PR_FALSE;
+  pixelEvent.isAlt       = modKeyState.mIsAltDown;
+
+  PRInt32 nativeDeltaForPixel = nativeDelta + sRemainingDeltaForPixel;
+
+  double deltaPerPixel;
+  if (isPageScroll) {
+    if (isVertical) {
+      deltaPerPixel = (double)WHEEL_DELTA / queryEvent.mReply.mPageHeight;
+    } else {
+      deltaPerPixel = (double)WHEEL_DELTA / queryEvent.mReply.mPageWidth;
+    }
+  } else {
+    if (isVertical) {
+      deltaPerPixel = (double)WHEEL_DELTA / sMouseWheelScrollLines;
+    } else {
+      deltaPerPixel = (double)WHEEL_DELTA / sMouseWheelScrollChars;
+    }
+    deltaPerPixel /= queryEvent.mReply.mLineHeight;
+  }
+  pixelEvent.delta =
+    RoundDelta((double)nativeDeltaForPixel * orienter / deltaPerPixel);
+  PRInt32 recomputedNativeDelta =
+    (PRInt32)(pixelEvent.delta * orienter * deltaPerPixel);
+  sRemainingDeltaForPixel = nativeDeltaForPixel - recomputedNativeDelta;
+  if (pixelEvent.delta != 0) {
+    aHandled = DispatchWindowEvent(&pixelEvent);
+  }
+  return PR_FALSE;
+}
 
 static PRBool
 StringCaseInsensitiveEquals(const PRUnichar* aChars1, const PRUint32 aNumChars1,
