@@ -330,6 +330,17 @@ SessionStore.prototype = {
     }
 
     this._windows[aWindow.__SSID].selected = index + 1; 
+
+    
+    
+    if (aBrowser.__SS_restore) {
+      let data = aBrowser.__SS_data;
+      if (data.entries.length > 0)
+        aBrowser.loadURI(data.entries[0].url, null, null);
+
+      delete aBrowser.__SS_restore;
+    }
+
     this._updateCrashReportURL(aWindow);
   },
 
