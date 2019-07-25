@@ -60,8 +60,6 @@ const kStateActive = 0x00000001;
 
 const kXLinkNamespace = "http://www.w3.org/1999/xlink";
 
-const kTapHighlightDelay = 50; 
-
 
 
 const kElementsReceivingInput = {
@@ -3634,29 +3632,18 @@ var BrowserEventHandler = {
 
   _highlightElement: null,
 
-  _highlightTimeout: null,
-
   _doTapHighlight: function _doTapHighlight(aElement) {
-    this._cancelTapHighlight();
+    DOMUtils.setContentState(aElement, kStateActive);
     this._highlightElement = aElement;
-    
-    this._highlightTimeout = setTimeout(function() {
-      DOMUtils.setContentState(aElement, kStateActive);
-    }, kTapHighlightDelay);
   },
 
   _cancelTapHighlight: function _cancelTapHighlight() {
-    if (this._highlightTimeout) {
-      clearTimeout(this._highlightTimeout);
-      this._highlightTimeout = null;
-    }
-
     if (!this._highlightElement)
       return;
 
     
     
-    if (this._highlightElement.ownerDocument && this._highlightElement.ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
+    if (this._highlightElement.ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
       DOMUtils.setContentState(this._highlightElement.ownerDocument.documentElement, kStateActive);
 
     DOMUtils.setContentState(BrowserApp.selectedBrowser.contentWindow.document.documentElement, kStateActive);
