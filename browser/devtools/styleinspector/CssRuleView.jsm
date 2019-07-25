@@ -1271,7 +1271,7 @@ InplaceEditor.prototype = {
     
     
     
-    this._measurement.textContent = this.input.value.replace(' ', '\u00a0', 'g');
+    this._measurement.textContent = this.input.value.replace(/ /g, '\u00a0');
 
     
     
