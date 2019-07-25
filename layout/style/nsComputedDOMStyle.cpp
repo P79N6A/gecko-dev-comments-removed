@@ -948,8 +948,6 @@ nsComputedDOMStyle::DoGetMozTransformOrigin()
 nsIDOMCSSValue*
 nsComputedDOMStyle::DoGetMozTransform()
 {
-  static const PRInt32 NUM_FLOATS = 4;
-
   
   const nsStyleDisplay* display = GetStyleDisplay();
 
@@ -969,14 +967,6 @@ nsComputedDOMStyle::DoGetMozTransform()
 
   nsAutoString resultString(NS_LITERAL_STRING("matrix("));
 
-  
-
-
-
-  for (PRInt32 index = 0; index < NUM_FLOATS; ++index) {
-    resultString.AppendFloat(display->mTransform.GetMainMatrixEntry(index));
-    resultString.Append(NS_LITERAL_STRING(", "));
-  }
 
   
 
@@ -991,20 +981,26 @@ nsComputedDOMStyle::DoGetMozTransform()
     (mInnerFrame ? nsDisplayTransform::GetFrameBoundsForTransform(mInnerFrame) :
      nsRect(0, 0, 0, 0));
 
-  
+   PRBool dummy;
+   gfxMatrix matrix =
+     nsStyleTransformMatrix::ReadTransforms(display->mSpecifiedTransform,
+                                            mStyleContextHolder,
+                                            mStyleContextHolder->PresContext(),
+                                            dummy,
+                                            bounds,
+                                            float(nsDeviceContext::AppUnitsPerCSSPixel()));
 
-
-
-  float deltaX = nsPresContext::AppUnitsToFloatCSSPixels
-    (display->mTransform.GetXTranslation(bounds));
-  float deltaY = nsPresContext::AppUnitsToFloatCSSPixels
-    (display->mTransform.GetYTranslation(bounds));
-
-
-  
-  resultString.AppendFloat(deltaX);
+  resultString.AppendFloat(matrix.xx);
+  resultString.Append(NS_LITERAL_STRING(", "));
+  resultString.AppendFloat(matrix.yx);
+  resultString.Append(NS_LITERAL_STRING(", "));
+  resultString.AppendFloat(matrix.xy);
+  resultString.Append(NS_LITERAL_STRING(", "));
+  resultString.AppendFloat(matrix.yy);
+  resultString.Append(NS_LITERAL_STRING(", "));
+  resultString.AppendFloat(matrix.x0);
   resultString.Append(NS_LITERAL_STRING("px, "));
-  resultString.AppendFloat(deltaY);
+  resultString.AppendFloat(matrix.y0);
   resultString.Append(NS_LITERAL_STRING("px)"));
 
   

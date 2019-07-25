@@ -1514,7 +1514,6 @@ struct nsStyleDisplay {
   
   
   const nsCSSValueList *mSpecifiedTransform; 
-  nsStyleTransformMatrix mTransform; 
   nsStyleCoord mTransformOrigin[2]; 
 
   nsAutoTArray<nsTransition, 1> mTransitions; 

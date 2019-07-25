@@ -38,11 +38,13 @@
 
 
 
+
 #ifndef nsStyleTransformMatrix_h_
 #define nsStyleTransformMatrix_h_
 
 #include "nsCSSValue.h"
 #include "gfxMatrix.h"
+#include "gfx3DMatrix.h"
 #include "nsRect.h"
 
 struct nsCSSValueList;
@@ -52,61 +54,9 @@ class nsPresContext;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 class nsStyleTransformMatrix
 {
  public:
-  
-
-
-  nsStyleTransformMatrix();
-
-  
-
-
-
-
-
-
-
-
-
-
-  gfxMatrix GetThebesMatrix(const nsRect& aBounds, float aFactor) const;
-
-  
-
-
-
-
-
-
-
-  nsStyleTransformMatrix& operator *= (const nsStyleTransformMatrix &aOther);
-
-  
-
-
-
-
-
-
-
-
-  const nsStyleTransformMatrix
-    operator * (const nsStyleTransformMatrix &aOther) const;
-
   
 
 
@@ -127,90 +77,63 @@ class nsStyleTransformMatrix
 
 
 
-  void SetToTransformFunction(const nsCSSValue::Array* aData,
-                              nsStyleContext* aContext,
-                              nsPresContext* aPresContext,
-                              PRBool& aCanStoreInRuleTree);
+
+
+  static gfx3DMatrix MatrixForTransformFunction(const nsCSSValue::Array* aData,
+                                                nsStyleContext* aContext,
+                                                nsPresContext* aPresContext,
+                                                PRBool& aCanStoreInRuleTree,
+                                                nsRect& aBounds, 
+                                                float aAppUnitsPerMatrixUnit);
 
   
 
 
 
-  static nsStyleTransformMatrix ReadTransforms(const nsCSSValueList* aList,
-                                               nsStyleContext* aContext,
-                                               nsPresContext* aPresContext,
-                                               PRBool &aCanStoreInRuleTree);
-  
-
-
-  void SetToIdentity();
-
-  
-
-
-
-
-
-
-
-
-
-  float GetMainMatrixEntry(PRInt32 aIndex) const
-  {
-    NS_PRECONDITION(aIndex >= 0 && aIndex < 4, "Index out of bounds!");
-    return mMain[aIndex];
-  }
-
-  
-
-
-
-
-
-
-  nscoord GetXTranslation(const nsRect& aBounds) const;
-  nscoord GetYTranslation(const nsRect& aBounds) const;
-
-  
-
-
-  nscoord GetCoordXTranslation() const { return mDelta[0]; }
-  nscoord GetCoordYTranslation() const { return mDelta[1]; }
-  float GetWidthRelativeXTranslation() const { return mX[0]; }
-  float GetWidthRelativeYTranslation() const { return mX[1]; }
-  float GetHeightRelativeXTranslation() const { return mY[0]; }
-  float GetHeightRelativeYTranslation() const { return mY[1]; }
-
-  
-
-
-
-
-
-  PRBool operator== (const nsStyleTransformMatrix& aOther) const;
-  PRBool operator!= (const nsStyleTransformMatrix& aOther) const
-  {
-    return !(*this == aOther);
-  }
+  static gfxMatrix ReadTransforms(const nsCSSValueList* aList,
+                                  nsStyleContext* aContext,
+                                  nsPresContext* aPresContext,
+                                  PRBool &aCanStoreInRuleTree,
+                                  nsRect& aBounds,
+                                  float aAppUnitsPerMatrixUnit);
 
  private:
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  float mMain[4];
-  nscoord mDelta[2];
-  float mX[2];
-  float mY[2];
+  static gfx3DMatrix ProcessMatrix(const nsCSSValue::Array *aData,
+                                   nsStyleContext *aContext,
+                                   nsPresContext *aPresContext,
+                                   PRBool &aCanStoreInRuleTree,
+                                   nsRect& aBounds, float aAppUnitsPerMatrixUnit,
+                                   PRBool *aPercentX = nsnull, 
+                                   PRBool *aPercentY = nsnull);
+  static gfx3DMatrix ProcessInterpolateMatrix(const nsCSSValue::Array *aData,
+                                              nsStyleContext *aContext,
+                                              nsPresContext *aPresContext,
+                                              PRBool &aCanStoreInRuleTree,
+                                              nsRect& aBounds, float aAppUnitsPerMatrixUnit);
+  static gfx3DMatrix ProcessTranslateX(const nsCSSValue::Array *aData,
+                                       nsStyleContext *aContext,
+                                       nsPresContext *aPresContext,
+                                       PRBool &aCanStoreInRuleTree,
+                                       nsRect& aBounds, float aAppUnitsPerMatrixUnit);
+  static gfx3DMatrix ProcessTranslateY(const nsCSSValue::Array *aData,
+                                       nsStyleContext *aContext,
+                                       nsPresContext *aPresContext,
+                                       PRBool &aCanStoreInRuleTree,
+                                       nsRect& aBounds, float aAppUnitsPerMatrixUnit);
+  static gfx3DMatrix ProcessTranslate(const nsCSSValue::Array *aData,
+                                      nsStyleContext *aContext,
+                                      nsPresContext *aPresContext,
+                                      PRBool &aCanStoreInRuleTree,
+                                      nsRect& aBounds, float aAppUnitsPerMatrixUnit);
+  static gfx3DMatrix ProcessScaleHelper(float aXScale, float aYScale, float aZScale);
+  static gfx3DMatrix ProcessScaleX(const nsCSSValue::Array *aData);
+  static gfx3DMatrix ProcessScaleY(const nsCSSValue::Array *aData);
+  static gfx3DMatrix ProcessScale(const nsCSSValue::Array *aData);
+  static gfx3DMatrix ProcessSkewHelper(double aXAngle, double aYAngle);
+  static gfx3DMatrix ProcessSkewX(const nsCSSValue::Array *aData);
+  static gfx3DMatrix ProcessSkewY(const nsCSSValue::Array *aData);
+  static gfx3DMatrix ProcessSkew(const nsCSSValue::Array *aData);
+  static gfx3DMatrix ProcessRotateZ(const nsCSSValue::Array *aData);
 };
 
 #endif

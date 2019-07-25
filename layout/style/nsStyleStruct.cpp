@@ -2094,8 +2094,6 @@ nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
 
   
   mSpecifiedTransform = aSource.mSpecifiedTransform;
-  if (mSpecifiedTransform)
-    mTransform = aSource.mTransform;
   
   
   mTransformOrigin[0] = aSource.mTransformOrigin[0];
@@ -2150,7 +2148,8 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 
 
 
-    if (mTransform != aOther.mTransform)
+    if (!mSpecifiedTransform != !aOther.mSpecifiedTransform ||
+        (mSpecifiedTransform && *mSpecifiedTransform != *aOther.mSpecifiedTransform))
       NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_ReflowFrame,
                                          nsChangeHint_UpdateTransformLayer));
     

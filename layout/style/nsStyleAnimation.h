@@ -57,6 +57,7 @@ struct nsCSSValueList;
 struct nsCSSValuePair;
 struct nsCSSValuePairList;
 struct nsCSSRect;
+struct gfxMatrix;
 
 namespace mozilla {
 namespace dom {
@@ -217,6 +218,17 @@ public:
   static PRBool ExtractComputedValue(nsCSSProperty aProperty,
                                      nsStyleContext* aStyleContext,
                                      Value& aComputedValue);
+
+   
+
+
+
+
+
+
+
+   static gfxMatrix InterpolateTransformMatrix(const gfxMatrix &aMatrix1, double aCoeff1,
+                                               const gfxMatrix &aMatrix2, double aCoeff2);
 
   
 
