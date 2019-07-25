@@ -387,7 +387,8 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
 
 
-    JSObject *global = cx->fp ? cx->fp->getScopeChain()->getGlobal() : cx->globalObject;
+    JSObject *global =
+        cx->hasfp() ? cx->fp()->getScopeChain()->getGlobal() : cx->globalObject;
     wrapper->setParent(global);
     return true;
 }

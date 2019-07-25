@@ -53,6 +53,7 @@
 typedef struct JSFrameRegs {
     js::Value       *sp;            
     jsbytecode      *pc;            
+    JSStackFrame    *fp;            
 } JSFrameRegs;
 
 
