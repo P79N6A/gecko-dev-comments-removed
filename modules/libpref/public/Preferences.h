@@ -74,8 +74,8 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPREFSERVICE
   NS_DECL_NSIPREFSERVICEINTERNAL
-  NS_FORWARD_NSIPREFBRANCH(mRootBranch->)
-  NS_FORWARD_NSIPREFBRANCH2(mRootBranch->)
+  NS_FORWARD_NSIPREFBRANCH(sRootBranch->)
+  NS_FORWARD_NSIPREFBRANCH2(sRootBranch->)
   NS_DECL_NSIOBSERVER
 
   Preferences();
@@ -110,7 +110,17 @@ public:
   static nsIPrefBranch2* GetRootBranch()
   {
     NS_ENSURE_TRUE(InitStaticMembers(), nsnull);
-    return sPreferences->mRootBranch.get();
+    return sRootBranch;
+  }
+
+  
+
+
+
+  static nsIPrefBranch* GetDefaultRootBranch()
+  {
+    NS_ENSURE_TRUE(InitStaticMembers(), nsnull);
+    return sDefaultRootBranch;
   }
 
   
@@ -137,6 +147,27 @@ public:
     GetUint(aPref, &result);
     return result;
   }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   static nsAdoptingCString GetCString(const char* aPref);
   static nsAdoptingString GetString(const char* aPref);
@@ -251,6 +282,65 @@ public:
                                   const char* aPref,
                                   PRUint32 aDefault = 0);
 
+  
+
+
+
+
+
+  static nsresult GetDefaultBool(const char* aPref, PRBool* aResult);
+  static nsresult GetDefaultInt(const char* aPref, PRInt32* aResult);
+  static nsresult GetDefaultUint(const char* aPref, PRUint32* aResult)
+  {
+    return GetDefaultInt(aPref, reinterpret_cast<PRInt32*>(aResult));
+  }
+
+  
+
+
+
+
+
+  static PRBool GetDefaultBool(const char* aPref, PRBool aFailedResult)
+  {
+    PRBool result;
+    return NS_SUCCEEDED(GetDefaultBool(aPref, &result)) ? result :
+                                                          aFailedResult;
+  }
+  static PRInt32 GetDefaultInt(const char* aPref, PRInt32 aFailedResult)
+  {
+    PRInt32 result;
+    return NS_SUCCEEDED(GetDefaultInt(aPref, &result)) ? result : aFailedResult;
+  }
+  static PRUint32 GetDefaultUint(const char* aPref, PRUint32 aFailedResult)
+  {
+   return static_cast<PRUint32>(
+     GetDefaultInt(aPref, static_cast<PRInt32>(aFailedResult)));
+  }
+
+  
+
+
+
+
+
+
+
+  static nsAdoptingString GetDefaultString(const char* aPref);
+  static nsAdoptingCString GetDefaultCString(const char* aPref);
+  static nsAdoptingString GetDefaultLocalizedString(const char* aPref);
+  static nsAdoptingCString GetDefaultLocalizedCString(const char* aPref);
+
+  static nsresult GetDefaultCString(const char* aPref, nsACString* aResult);
+  static nsresult GetDefaultString(const char* aPref, nsAString* aResult);
+  static nsresult GetDefaultLocalizedCString(const char* aPref,
+                                             nsACString* aResult);
+  static nsresult GetDefaultLocalizedString(const char* aPref,
+                                            nsAString* aResult);
+
+  static nsresult GetDefaultComplex(const char* aPref, const nsIID &aType,
+                                    void** aResult);
+
 protected:
   nsresult NotifyServiceObservers(const char *aSubject);
   nsresult UseDefaultPrefFile();
@@ -262,10 +352,12 @@ protected:
   nsresult MakeBackupPrefFile(nsIFile *aFile);
 
 private:
-  nsCOMPtr<nsIPrefBranch2> mRootBranch;
   nsCOMPtr<nsIFile>        mCurrentFile;
 
   static Preferences*      sPreferences;
+  static nsIPrefBranch2*   sRootBranch;
+  
+  static nsIPrefBranch*    sDefaultRootBranch;
   static PRBool            sShutdown;
 
   
