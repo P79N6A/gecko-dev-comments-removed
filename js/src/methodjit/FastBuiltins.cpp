@@ -323,7 +323,7 @@ mjit::Compiler::compileArrayPush(FrameEntry *thisValue, FrameEntry *arg)
 
     
     ValueRemat vr;
-    frame.pinEntry(arg, vr);
+    frame.pinEntry(arg, vr,  false);
 
     RegisterID objReg = frame.tempRegForData(thisValue);
     frame.pinReg(objReg);

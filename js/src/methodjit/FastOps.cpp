@@ -1077,7 +1077,7 @@ mjit::Compiler::jsop_setelem_dense()
     
 
     ValueRemat vr;
-    frame.pinEntry(value, vr);
+    frame.pinEntry(value, vr,  false);
 
     Int32Key key = id->isConstant()
                  ? Int32Key::FromConstant(id->getValue().toInt32())

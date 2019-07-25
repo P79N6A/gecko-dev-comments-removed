@@ -494,7 +494,8 @@ class FrameState
 
 
 
-    void pinEntry(FrameEntry *fe, ValueRemat &vr);
+
+    void pinEntry(FrameEntry *fe, ValueRemat &vr, bool breakDouble = true);
 
     
     void unpinEntry(const ValueRemat &vr);
