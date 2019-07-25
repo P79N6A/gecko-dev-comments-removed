@@ -470,7 +470,7 @@ CompileStatus JS_NEVER_INLINE
 TryCompile(JSContext *cx, JSStackFrame *fp);
 
 void
-ReleaseScriptCode(JSContext *cx, JSScript *script);
+ReleaseScriptCode(JSContext *cx, JSScript *script, bool normal);
 
 
 void
