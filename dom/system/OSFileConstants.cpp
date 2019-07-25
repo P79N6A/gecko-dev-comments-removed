@@ -9,6 +9,7 @@
 
 #if defined(XP_UNIX)
 #include "unistd.h"
+#include "dirent.h"
 #endif 
 
 #if defined(XP_MACOSX)
@@ -264,6 +265,19 @@ static dom::ConstantSpec gLibcProperties[] =
 #endif 
   INT_CONSTANT(EXDEV),
 
+#if defined(DT_UNKNOWN)
+  
+  INT_CONSTANT(DT_UNKNOWN),
+  INT_CONSTANT(DT_FIFO),
+  INT_CONSTANT(DT_CHR),
+  INT_CONSTANT(DT_DIR),
+  INT_CONSTANT(DT_BLK),
+  INT_CONSTANT(DT_REG),
+  INT_CONSTANT(DT_LNK),
+  INT_CONSTANT(DT_SOCK),
+  INT_CONSTANT(DT_WHT),
+#endif 
+
   
   
   
@@ -274,7 +288,38 @@ static dom::ConstantSpec gLibcProperties[] =
 
 #if defined(XP_UNIX)
   
-  {"OSFILE_SIZEOF_MODE_T", INT_TO_JSVAL(sizeof (mode_t)) },
+  { "OSFILE_SIZEOF_MODE_T", INT_TO_JSVAL(sizeof (mode_t)) },
+
+  
+  
+  { "OSFILE_SIZEOF_DIRENT", INT_TO_JSVAL(sizeof (dirent)) },
+
+  
+  { "OSFILE_OFFSETOF_DIRENT_D_NAME", INT_TO_JSVAL(offsetof (struct dirent, d_name)) },
+  
+  
+  { "OSFILE_SIZEOF_DIRENT_D_NAME", INT_TO_JSVAL(sizeof (struct dirent) - offsetof (struct dirent, d_name)) },
+
+#if defined(DT_UNKNOWN)
+  
+  
+  
+  { "OSFILE_OFFSETOF_DIRENT_D_TYPE", INT_TO_JSVAL(offsetof (struct dirent, d_type)) },
+#endif 
+
+#endif 
+
+
+  
+
+  
+  
+  
+  
+  
+  
+#if defined(_DARWIN_FEATURE_64_BIT_INODE)
+  { "_DARWIN_FEATURE_64_BIT_INODE", INT_TO_JSVAL(1) },
 #endif 
 
   PROP_END
@@ -295,6 +340,9 @@ static dom::ConstantSpec gWinProperties[] =
   
   INT_CONSTANT(FORMAT_MESSAGE_FROM_SYSTEM),
   INT_CONSTANT(FORMAT_MESSAGE_IGNORE_INSERTS),
+
+  
+  INT_CONSTANT(MAX_PATH),
 
   
   INT_CONSTANT(GENERIC_ALL),
@@ -319,6 +367,7 @@ static dom::ConstantSpec gWinProperties[] =
   INT_CONSTANT(FILE_ATTRIBUTE_DIRECTORY),
   INT_CONSTANT(FILE_ATTRIBUTE_NORMAL),
   INT_CONSTANT(FILE_ATTRIBUTE_READONLY),
+  INT_CONSTANT(FILE_ATTRIBUTE_REPARSE_POINT),
   INT_CONSTANT(FILE_ATTRIBUTE_TEMPORARY),
 
   
@@ -337,13 +386,18 @@ static dom::ConstantSpec gWinProperties[] =
   INT_CONSTANT(INVALID_SET_FILE_POINTER),
 
   
+  INT_CONSTANT(FILE_ATTRIBUTE_DIRECTORY),
+
+
+  
   INT_CONSTANT(MOVEFILE_COPY_ALLOWED),
   INT_CONSTANT(MOVEFILE_REPLACE_EXISTING),
 
   
+  INT_CONSTANT(ERROR_ACCESS_DENIED),
   INT_CONSTANT(ERROR_FILE_EXISTS),
   INT_CONSTANT(ERROR_FILE_NOT_FOUND),
-  INT_CONSTANT(ERROR_ACCESS_DENIED),
+  INT_CONSTANT(ERROR_NO_MORE_FILES),
 
   PROP_END
 };
