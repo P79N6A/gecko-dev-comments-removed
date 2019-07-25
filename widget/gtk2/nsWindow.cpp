@@ -3295,10 +3295,10 @@ nsWindow::ThemeChanged()
 }
 
 void
-nsWindow::CheckNeedDragLeaveEnter(nsWindow* aInnerMostWidget,
-                                  nsIDragService* aDragService,
-                                  GdkDragContext *aDragContext,
-                                  nscoord aX, nscoord aY)
+nsWindow::CheckNeedDragLeave(nsWindow* aInnerMostWidget,
+                             nsIDragService* aDragService,
+                             GdkDragContext *aDragContext,
+                             nscoord aX, nscoord aY)
 {
     
     if (sLastDragMotionWindow) {
@@ -3318,7 +3318,6 @@ nsWindow::CheckNeedDragLeaveEnter(nsWindow* aInnerMostWidget,
 
     
     UpdateDragStatus(aDragContext, aDragService);
-    aInnerMostWidget->OnDragEnter(aX, aY);
 
     
     sLastDragMotionWindow = aInnerMostWidget;
@@ -3379,7 +3378,7 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
         mDragLeaveTimer = nsnull;
     }
 
-    CheckNeedDragLeaveEnter(innerMostWidget, dragService, aDragContext, retx, rety);
+    CheckNeedDragLeave(innerMostWidget, dragService, aDragContext, retx, rety);
 
     
     dragSessionGTK->TargetStartDragMotion();
@@ -3468,7 +3467,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
         mDragLeaveTimer = nsnull;
     }
 
-    CheckNeedDragLeaveEnter(innerMostWidget, dragService, aDragContext, retx, rety);
+    CheckNeedDragLeave(innerMostWidget, dragService, aDragContext, retx, rety);
 
     
     
@@ -3601,22 +3600,6 @@ nsWindow::OnDragLeave(void)
             }
         }
     }
-}
-
-void
-nsWindow::OnDragEnter(nscoord aX, nscoord aY)
-{
-    
-
-    LOGDRAG(("nsWindow::OnDragEnter(%p)\n", (void*)this));
-
-    nsDragEvent event(true, NS_DRAGDROP_ENTER, this);
-
-    event.refPoint.x = aX;
-    event.refPoint.y = aY;
-
-    nsEventStatus status;
-    DispatchEvent(&event, status);
 }
 
 static void
