@@ -107,6 +107,7 @@ nsHttpChannel::nsHttpChannel()
     , mFallingBack(PR_FALSE)
     , mWaitingForRedirectCallback(PR_FALSE)
     , mRemoteChannel(PR_FALSE)
+    , mRequestTimeInitialized(PR_FALSE)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
 }
@@ -520,6 +521,7 @@ nsHttpChannel::SetupTransaction()
 
     
     mRequestTime = NowInSeconds();
+    mRequestTimeInitialized = PR_TRUE;
 
     
     if (mLoadFlags & LOAD_BYPASS_CACHE) {
@@ -3708,8 +3710,10 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     mStatus = status;
 
     
-    if (mCacheEntry && (mCacheAccess & nsICache::ACCESS_WRITE))
+    if (mCacheEntry && (mCacheAccess & nsICache::ACCESS_WRITE) &&
+        mRequestTimeInitialized){
         FinalizeCacheEntry();
+    }
     
     if (mListener) {
         LOG(("  calling OnStopRequest\n"));

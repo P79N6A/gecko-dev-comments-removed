@@ -326,6 +326,9 @@ private:
     PRUint32                          mWaitingForRedirectCallback : 1;
     
     PRUint32                          mRemoteChannel : 1;
+    
+    
+    PRUint32                          mRequestTimeInitialized : 1;
 
     class nsContentEncodings : public nsIUTF8StringEnumerator
     {
