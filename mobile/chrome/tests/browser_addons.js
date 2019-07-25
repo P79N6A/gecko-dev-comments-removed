@@ -165,15 +165,18 @@ function open_manager(aView, aCallback) {
   panelButton.click();
   var addonsButton = document.getElementById("tool-addons");
   addonsButton.click();
-  
-  ExtensionsView.init();
-  ExtensionsView._delayedInit();
 
-  
-  
-  setTimeout(function() {
+  if (!ExtensionsView._list) {
+    window.addEventListener("ViewChanged", function() {
+      window.removeEventListener("ViewChanged", arguments.callee, true);
+      aCallback();
+    }, true);
+    
+    ExtensionsView.init();
+    ExtensionsView._delayedInit();
+  } else {
     aCallback();
-  }, 2000);
+  }
 }
 
 function close_manager(aCallback) {
