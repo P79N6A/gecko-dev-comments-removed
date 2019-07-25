@@ -568,6 +568,9 @@ pref("dom.storage.enabled", true);
 pref("dom.storage.default_quota",      5120);
 
 
+pref("dom.min_timeout_value", 10);
+
+
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
 #endif

@@ -270,7 +270,11 @@ static PRBool               gDOMWindowDumpEnabled      = PR_FALSE;
 #endif
 
 
-#define DOM_MIN_TIMEOUT_VALUE 10 // 10ms
+#define DEFAULT_MIN_TIMEOUT_VALUE 10 // 10ms
+static PRInt32 gMinTimeoutValue;
+static inline PRInt32 DOMMinTimeoutValue() {
+  return NS_MAX(gMinTimeoutValue, 0);
+}
 
 
 
@@ -881,13 +885,15 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
 
   gRefCnt++;
 
-#if !(defined(NS_DEBUG) || defined(MOZ_ENABLE_JS_DUMP))
   if (gRefCnt == 1) {
-    static const char* prefName = "browser.dom.window.dump.enabled";
-    nsContentUtils::AddBoolPrefVarCache(prefName, &gDOMWindowDumpEnabled);
-    gDOMWindowDumpEnabled = nsContentUtils::GetBoolPref(prefName);
-  }
+#if !(defined(NS_DEBUG) || defined(MOZ_ENABLE_JS_DUMP))
+    nsContentUtils::AddBoolPrefVarCache("browser.dom.window.dump.enabled",
+                                        &gDOMWindowDumpEnabled);
 #endif
+    nsContentUtils::AddIntPrefVarCache("dom.min_timeout_value",
+                                       &gMinTimeoutValue,
+                                       DEFAULT_MIN_TIMEOUT_VALUE);
+  }
 
   if (gDumpFile == nsnull) {
     const nsAdoptingCString& fname = 
@@ -8682,12 +8688,12 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   }
 
   PRUint32 nestingLevel = sNestingLevel + 1;
-  if (interval < DOM_MIN_TIMEOUT_VALUE) {
+  if (interval < DOMMinTimeoutValue()) {
     if (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
       
       
 
-      interval = DOM_MIN_TIMEOUT_VALUE;
+      interval = DOMMinTimeoutValue();;
     }
     else if (interval < 0) {
       
@@ -8696,7 +8702,7 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     }
   }
 
-  NS_ASSERTION(interval >= 0, "DOM_MIN_TIMEOUT_VALUE lies");
+  NS_ASSERTION(interval >= 0, "DOMMinTimeoutValue() lies");
   PRUint32 realInterval = interval;
 
   
@@ -9107,7 +9113,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       
       TimeDuration nextInterval =
         TimeDuration::FromMilliseconds(NS_MAX(timeout->mInterval,
-                                              PRUint32(DOM_MIN_TIMEOUT_VALUE)));
+                                              PRUint32(DOMMinTimeoutValue())));
 
       
       
@@ -9812,7 +9818,7 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
       
       PRUint32 delay =
         NS_MAX(PRInt32(t->mTimeRemaining.ToMilliseconds()),
-               DOM_MIN_TIMEOUT_VALUE);
+               DOMMinTimeoutValue());
 
       
       
