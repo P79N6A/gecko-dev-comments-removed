@@ -49,6 +49,8 @@
 #include "prlog.h"
 #include "prtime.h"
 
+#include "nsInt64.h"
+
 #include "nsIExternalHelperAppService.h"
 #include "nsIExternalProtocolService.h"
 #include "nsIWebProgressListener2.h"
@@ -340,8 +342,8 @@ protected:
   PRBool mTempFileIsExecutable;
 
   PRTime mTimeDownloadStarted;
-  PRInt64 mContentLength;
-  PRInt64 mProgress; 
+  nsInt64 mContentLength;
+  nsInt64 mProgress; 
 
   
 
@@ -357,7 +359,7 @@ protected:
 
 
 
-  nsresult SetUpTempFile();
+  nsresult SetUpTempFile(nsIChannel * aChannel);
   
 
 

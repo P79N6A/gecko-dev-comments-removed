@@ -1100,13 +1100,16 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     if (imageType == imgIContainer::TYPE_RASTER) {
       
       if (httpChannel) {
-        PRInt64 contentLength;
-        rv = httpChannel->GetContentLength(&contentLength);
+        nsCAutoString contentLength;
+        rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
+                                            contentLength);
         if (NS_SUCCEEDED(rv)) {
+          PRInt32 len = contentLength.ToInteger(&rv);
+
           
           
-          if (contentLength > 0) {
-            PRUint32 sizeHint = (PRUint32) contentLength;
+          if (len > 0) {
+            PRUint32 sizeHint = (PRUint32) len;
             sizeHint = PR_MIN(sizeHint, 20000000); 
             RasterImage* rasterImage = static_cast<RasterImage*>(mImage.get());
             rasterImage->SetSourceSizeHint(sizeHint);
