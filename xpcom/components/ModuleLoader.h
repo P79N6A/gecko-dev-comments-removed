@@ -41,6 +41,7 @@
 
 #include "nsISupports.h"
 #include "mozilla/Module.h"
+#include "mozilla/FileLocation.h"
 
 #define MOZILLA_MODULELOADER_PSEUDO_IID \
 { 0xD951A8CE, 0x6E9F, 0x464F, \
@@ -66,13 +67,7 @@ public:
 
 
 
-  virtual const Module* LoadModule(nsILocalFile* aFile) = 0;
-
-  
-
-
-  virtual const Module* LoadModuleFromJAR(nsILocalFile* aJARFile,
-                                          const nsACString& aPath) = 0;
+  virtual const Module* LoadModule(mozilla::FileLocation &aFile) = 0;
 };
 NS_DEFINE_STATIC_IID_ACCESSOR(ModuleLoader, MOZILLA_MODULELOADER_PSEUDO_IID)
 
