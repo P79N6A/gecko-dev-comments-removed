@@ -67,7 +67,7 @@
 
 
 
-class NS_COM nsPrintfCString : public nsCString
+class nsPrintfCString : public nsCString
   {
     typedef nsCString string_type;
 

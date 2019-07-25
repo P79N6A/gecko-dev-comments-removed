@@ -37,7 +37,7 @@
 
 
 
-NS_COM nsTAdoptingString_CharT&
+nsTAdoptingString_CharT&
 nsTAdoptingString_CharT::operator=( const self_type& str )
   {
     

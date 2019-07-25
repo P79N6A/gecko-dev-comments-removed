@@ -88,7 +88,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIByteBuffer, NS_IBYTEBUFFER_IID)
 }
 
 
-extern NS_COM nsresult 
+extern nsresult 
 NS_NewByteBuffer(nsIByteBuffer** aInstancePtrResult,
                  nsISupports* aOuter,
                  PRUint32 aBufferSize = 0);

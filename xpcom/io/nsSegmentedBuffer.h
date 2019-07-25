@@ -56,10 +56,10 @@ public:
     }
 
 
-    NS_COM nsresult Init(PRUint32 segmentSize, PRUint32 maxSize,
+    nsresult Init(PRUint32 segmentSize, PRUint32 maxSize,
                   nsIMemory* allocator = nsnull);
 
-    NS_COM char* AppendNewSegment();   
+    char* AppendNewSegment();   
 
     
     PRBool DeleteFirstSegment();  
@@ -71,7 +71,7 @@ public:
     
     PRBool ReallocLastSegment(size_t newSize);
 
-    NS_COM void Empty();               
+    void Empty();               
 
     inline PRUint32 GetSegmentCount() {
         if (mFirstSegmentIndex <= mLastSegmentIndex)

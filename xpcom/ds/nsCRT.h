@@ -95,7 +95,7 @@ extern const PRUnichar kIsoLatin1ToUCS2[256];
 
 
 
-class NS_COM nsCRT {
+class nsCRT {
 public:
   enum {
     LF='\n'   ,

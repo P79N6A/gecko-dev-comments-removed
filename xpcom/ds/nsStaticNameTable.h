@@ -59,7 +59,7 @@
 
 
 
-class NS_COM nsStaticCaseInsensitiveNameTable
+class nsStaticCaseInsensitiveNameTable
 {
 public:
   enum { NOT_FOUND = -1 };

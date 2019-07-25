@@ -742,7 +742,7 @@ nsCategoryManager::SuppressNotifications(PRBool aSuppress)
 
 
 
-NS_COM void
+void
 NS_CreateServicesFromCategory(const char *category,
                               nsISupports *origin,
                               const char *observerTopic)

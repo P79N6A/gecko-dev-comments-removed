@@ -44,7 +44,7 @@
 
 
 
-class NS_COM nsCheapStringSet {
+class nsCheapStringSet {
 public:
   nsCheapStringSet() : mValOrHash(nsnull)
   {
@@ -119,7 +119,7 @@ private:
 
 
 
-class NS_COM nsCheapInt32Set {
+class nsCheapInt32Set {
 public:
   nsCheapInt32Set() : mValOrHash(nsnull)
   {

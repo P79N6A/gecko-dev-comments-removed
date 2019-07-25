@@ -80,7 +80,7 @@
 
 
 
-extern NS_COM nsresult
+extern nsresult
 NS_NewByteInputStream(nsIInputStream** aStreamResult,
                       const char* aStringToRead, PRInt32 aLength = -1,
                       nsAssignmentType aAssignment = NS_ASSIGNMENT_DEPEND);
@@ -93,7 +93,7 @@ NS_NewByteInputStream(nsIInputStream** aStreamResult,
 
 
 
-extern NS_COM nsresult
+extern nsresult
 NS_NewStringInputStream(nsIInputStream** aStreamResult,
                         const nsAString& aStringToRead);
 
@@ -101,7 +101,7 @@ NS_NewStringInputStream(nsIInputStream** aStreamResult,
 
 
 
-extern NS_COM nsresult
+extern nsresult
 NS_NewCStringInputStream(nsIInputStream** aStreamResult,
                          const nsACString& aStringToRead);
 

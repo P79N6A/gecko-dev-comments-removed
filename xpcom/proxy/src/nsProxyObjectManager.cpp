@@ -326,7 +326,7 @@ nsProxyObjectManager::GetClass(REFNSIID aIID, nsProxyEventClass **aResult)
 
 
 
-NS_COM nsresult
+nsresult
 NS_GetProxyForObject(nsIEventTarget *target, 
                      REFNSIID aIID, 
                      nsISupports* aObj, 

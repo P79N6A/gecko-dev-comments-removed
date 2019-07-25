@@ -74,7 +74,7 @@
 
 
 
-class NS_COM nsCaseInsensitiveCStringComparator
+class nsCaseInsensitiveCStringComparator
     : public nsCStringComparator
   {
     public:

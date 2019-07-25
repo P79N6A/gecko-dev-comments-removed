@@ -398,7 +398,7 @@ void CLASSNAME::Remove(const KEY_TYPE aKey) {                                 \
 
 
 
-class NS_COM PLDHashStringEntry : public PLDHashEntryHdr
+class PLDHashStringEntry : public PLDHashEntryHdr
 {
 public:
   PLDHashStringEntry(const void* aKey) :
@@ -418,7 +418,7 @@ public:
 
 
 
-class NS_COM PLDHashCStringEntry : public PLDHashEntryHdr
+class PLDHashCStringEntry : public PLDHashEntryHdr
 {
 public:
   PLDHashCStringEntry(const void* aKey) :
@@ -438,7 +438,7 @@ public:
 
 
 
-class NS_COM PLDHashInt32Entry : public PLDHashEntryHdr
+class PLDHashInt32Entry : public PLDHashEntryHdr
 {
 public:
   PLDHashInt32Entry(const void* aKey) :
@@ -459,7 +459,7 @@ public:
 
 
 
-class NS_COM PLDHashVoidEntry : public PLDHashEntryHdr
+class PLDHashVoidEntry : public PLDHashEntryHdr
 {
 public:
   PLDHashVoidEntry(const void* aKey) :

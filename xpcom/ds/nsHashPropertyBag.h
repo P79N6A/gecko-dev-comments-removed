@@ -48,12 +48,7 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsInterfaceHashtable.h"
 
-
-
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY
-
-class NS_COM nsHashPropertyBag : public nsIWritablePropertyBag
+class nsHashPropertyBag : public nsIWritablePropertyBag
                                , public nsIWritablePropertyBag2
 {
 public:
@@ -82,7 +77,7 @@ protected:
 
 
 
-extern "C" NS_COM nsresult
+extern "C" nsresult
 NS_NewHashPropertyBag(nsIWritablePropertyBag* *_retval);
 
 #endif 

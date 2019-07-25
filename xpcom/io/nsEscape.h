@@ -68,23 +68,23 @@ extern "C" {
 
 
 
-NS_COM char * nsEscape(const char * str, nsEscapeMask mask);
+char * nsEscape(const char * str, nsEscapeMask mask);
 
-NS_COM char * nsUnescape(char * str);
+char * nsUnescape(char * str);
 	
 
 
 
-NS_COM PRInt32 nsUnescapeCount (char * str);
+PRInt32 nsUnescapeCount (char * str);
 	
 
 
 
 
-NS_COM char *
+char *
 nsEscapeHTML(const char * string);
 
-NS_COM PRUnichar *
+PRUnichar *
 nsEscapeHTML2(const PRUnichar *aSourceBuffer,
               PRInt32 aSourceBufferLen = -1);
  
@@ -142,7 +142,7 @@ enum EscapeMask {
 
 
 
-NS_COM PRBool NS_EscapeURL(const char *str,
+PRBool NS_EscapeURL(const char *str,
                            PRInt32 len,
                            PRUint32 flags,
                            nsACString &result);
@@ -158,7 +158,7 @@ NS_COM PRBool NS_EscapeURL(const char *str,
 
 
 
-NS_COM PRBool NS_UnescapeURL(const char *str,
+PRBool NS_UnescapeURL(const char *str,
                              PRInt32 len,
                              PRUint32 flags,
                              nsACString &result);

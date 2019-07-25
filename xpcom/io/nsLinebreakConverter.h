@@ -38,13 +38,12 @@
 #ifndef nsLinebreakConverter_h_
 #define nsLinebreakConverter_h_
 
-
 #include "nscore.h"
 #include "nsString.h"
 
 
 
-class NS_COM nsLinebreakConverter
+class nsLinebreakConverter
 {
 public:
 
@@ -151,8 +150,5 @@ public:
                         PRInt32 aSrcLen = kIgnoreLen, PRInt32* aOutLen = nsnull);
     
 };
-
-
-
 
 #endif 

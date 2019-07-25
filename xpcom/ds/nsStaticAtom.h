@@ -77,7 +77,7 @@ struct nsFakeStringBuffer {
 };
 
 
-NS_COM nsresult
+nsresult
 NS_RegisterStaticAtoms(const nsStaticAtom*, PRUint32 aAtomCount);
 
 #endif

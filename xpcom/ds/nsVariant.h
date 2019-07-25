@@ -113,7 +113,7 @@ struct nsDiscriminatedUnion
 
 
 
-class NS_COM nsVariant : public nsIWritableVariant
+class nsVariant : public nsIWritableVariant
 {
 public:
     NS_DECL_ISUPPORTS

@@ -54,7 +54,7 @@ class nsIThreadObserver;
 
 
 extern nsresult
-NS_COM NS_SetGlobalThreadObserver(nsIThreadObserver* aObserver);
+NS_SetGlobalThreadObserver(nsIThreadObserver* aObserver);
 
 #endif 
 

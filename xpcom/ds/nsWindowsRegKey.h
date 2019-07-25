@@ -53,7 +53,7 @@
 
 
 
-extern "C" NS_COM nsresult
+extern "C" nsresult
 NS_NewWindowsRegKey(nsIWindowsRegKey **result);
 
 

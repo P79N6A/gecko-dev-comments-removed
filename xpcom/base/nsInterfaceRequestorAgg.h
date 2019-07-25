@@ -46,7 +46,7 @@
 
 
 
-extern NS_COM nsresult
+extern nsresult
 NS_NewInterfaceRequestorAggregation(nsIInterfaceRequestor  *aFirst,
                                     nsIInterfaceRequestor  *aSecond,
                                     nsIInterfaceRequestor **aResult);

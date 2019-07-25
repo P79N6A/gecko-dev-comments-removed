@@ -44,12 +44,7 @@
 
 static const PRUint32 kAutoArraySize = 8;
 
-
-
-#undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY
-
-class NS_COM nsSupportsArray : public nsISupportsArray {
+class nsSupportsArray : public nsISupportsArray {
 public:
   nsSupportsArray(void);
   ~nsSupportsArray(void); 

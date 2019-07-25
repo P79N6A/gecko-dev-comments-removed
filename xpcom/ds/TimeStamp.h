@@ -57,7 +57,7 @@ class TimeStamp;
 
 
 
-class NS_COM TimeDuration
+class TimeDuration
 {
 public:
   
@@ -186,7 +186,7 @@ private:
 
 
 
-class NS_COM TimeStamp
+class TimeStamp
 {
 public:
   

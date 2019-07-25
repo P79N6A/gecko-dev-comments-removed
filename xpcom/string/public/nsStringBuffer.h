@@ -73,7 +73,7 @@ class nsStringBuffer
 
 
 
-      NS_COM static nsStringBuffer* Alloc(size_t storageSize);
+      static nsStringBuffer* Alloc(size_t storageSize);
 
       
 
@@ -86,18 +86,18 @@ class nsStringBuffer
 
 
 
-      NS_COM static nsStringBuffer* Realloc(nsStringBuffer* buf, size_t storageSize);
+      static nsStringBuffer* Realloc(nsStringBuffer* buf, size_t storageSize);
 
       
 
 
-      NS_COM void NS_FASTCALL AddRef();
+      void NS_FASTCALL AddRef();
 
       
 
 
 
-      NS_COM void NS_FASTCALL Release();
+      void NS_FASTCALL Release();
 
       
 
@@ -148,8 +148,8 @@ class nsStringBuffer
 
 
 
-      NS_COM static nsStringBuffer* FromString(const nsAString &str);
-      NS_COM static nsStringBuffer* FromString(const nsACString &str);
+      static nsStringBuffer* FromString(const nsAString &str);
+      static nsStringBuffer* FromString(const nsACString &str);
 
       
 
@@ -165,9 +165,9 @@ class nsStringBuffer
 
 
 
-      NS_COM void ToString(PRUint32 len, nsAString &str,
+      void ToString(PRUint32 len, nsAString &str,
                            PRBool aMoveOwnership = PR_FALSE);
-      NS_COM void ToString(PRUint32 len, nsACString &str,
+      void ToString(PRUint32 len, nsACString &str,
                            PRBool aMoveOwnership = PR_FALSE);
   };
 

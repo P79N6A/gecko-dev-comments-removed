@@ -73,20 +73,20 @@ class nsTSubstringTuple_CharT
         
 
 
-      NS_COM size_type Length() const;
+      size_type Length() const;
 
         
 
 
 
 
-      NS_COM void WriteTo(char_type *buf, PRUint32 bufLen) const;
+      void WriteTo(char_type *buf, PRUint32 bufLen) const;
 
         
 
 
 
-      NS_COM PRBool IsDependentOn(const char_type *start, const char_type *end) const;
+      PRBool IsDependentOn(const char_type *start, const char_type *end) const;
 
     private:
 
