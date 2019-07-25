@@ -44,6 +44,8 @@
 
 #include "prlink.h"
 
+#include "nsThreadUtils.h"
+
 #include "gfxImageSurface.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
@@ -436,12 +438,19 @@ GLContext::CreateTextureImage(const nsIntSize& aSize,
 
 BasicTextureImage::~BasicTextureImage()
 {
-    nsRefPtr<GLContext> ctx = mGLContext->GetSharedContext();
-    if (!ctx) {
-      ctx = mGLContext;
+    GLContext *ctx = mGLContext;
+    if (ctx->IsDestroyed() || !NS_IsMainThread()) {
+        ctx = ctx->GetSharedContext();
     }
-    ctx->MakeCurrent();
-    ctx->fDeleteTextures(1, &mTexture);
+
+    
+    
+    
+    
+    if (ctx && !ctx->IsDestroyed()) {
+        mGLContext->MakeCurrent();
+        mGLContext->fDeleteTextures(1, &mTexture);
+    }
 }
 
 gfxContext*

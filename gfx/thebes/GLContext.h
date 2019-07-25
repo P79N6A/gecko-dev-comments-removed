@@ -393,6 +393,11 @@ public:
     
     void THEBES_API MarkDestroyed();
 
+    PRBool IsDestroyed() {
+        
+        return fUseProgram == nsnull;
+    }
+
     enum NativeDataType {
       NativeGLContext,
       NativeImageSurface,
