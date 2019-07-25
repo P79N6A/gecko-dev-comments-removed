@@ -46,8 +46,6 @@
 class gfxASurface;
 class _CGLContextObject;
 
-
-
 typedef _CGLContextObject* CGLContextObj;
 typedef uint32_t IOSurfaceID;
 
@@ -67,6 +65,8 @@ public:
   size_t GetBytesPerRow();
   void Lock();
   void Unlock();
+  
+  
   CGLError CGLTexImageIOSurface2D(void *ctxt,
                                   GLenum internalFormat, GLenum format,
                                   GLenum type, GLuint plane);
