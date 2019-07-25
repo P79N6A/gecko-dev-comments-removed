@@ -50,6 +50,12 @@
 
 
 
+extern "C" NS_HIDDEN_(void)
+XPCOMGlueEnablePreload();
+
+
+
+
 
 extern "C" NS_HIDDEN_(nsresult)
 XPCOMGlueStartup(const char* xpcomFile);

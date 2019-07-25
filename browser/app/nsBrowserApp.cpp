@@ -209,6 +209,21 @@ int main(int argc, char* argv[])
 
   strcpy(++lastSlash, XPCOM_DLL);
 
+#ifdef XP_WIN
+  
+  
+  
+  
+  
+  IO_COUNTERS ioCounters;
+  if (GetProcessIoCounters(GetCurrentProcess(), &ioCounters)
+      && !ioCounters.ReadOperationCount)
+#endif
+  {
+      XPCOMGlueEnablePreload();
+  }
+
+
   rv = XPCOMGlueStartup(exePath);
   if (NS_FAILED(rv)) {
     Output("Couldn't load XPCOM.\n");
