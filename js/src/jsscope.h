@@ -208,15 +208,6 @@
 
 #define SHAPE_INVALID_SLOT              0xffffffff
 
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4307) /* Silence warning about + 1 overflowing. */
-#endif
-JS_STATIC_ASSERT(uint32(SHAPE_INVALID_SLOT + 1) == uint32(0));
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 namespace js {
 
 
@@ -415,6 +406,7 @@ struct Shape : public JSObjectMap
 
 
     void setParent(js::Shape *p) {
+        JS_STATIC_ASSERT(uint32(SHAPE_INVALID_SLOT) == ~uint32(0));
         if (p)
             slotSpan = JS_MAX(p->slotSpan, slot + 1);
         JS_ASSERT(slotSpan < JSObject::NSLOTS_LIMIT);
