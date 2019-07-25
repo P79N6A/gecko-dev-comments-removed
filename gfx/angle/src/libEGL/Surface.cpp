@@ -290,7 +290,7 @@ void Surface::subclassWindow()
     }
 
     SetLastError(0);
-    LONG oldWndProc = SetWindowLong(mWindow, GWL_WNDPROC, reinterpret_cast<LONG>(SurfaceWindowProc));
+    LONG_PTR oldWndProc = SetWindowLongPtr(mWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(SurfaceWindowProc));
     if(oldWndProc == 0 && GetLastError() != ERROR_SUCCESS)
     {
         mWindowSubclassed = false;
@@ -310,7 +310,7 @@ void Surface::unsubclassWindow()
     }
 
     
-    LONG parentWndFunc = reinterpret_cast<LONG>(GetProp(mWindow, kParentWndProc));
+    LONG_PTR parentWndFunc = reinterpret_cast<LONG_PTR>(GetProp(mWindow, kParentWndProc));
 
     
     
@@ -319,8 +319,8 @@ void Surface::unsubclassWindow()
     
     if(parentWndFunc)
     {
-        LONG prevWndFunc = SetWindowLong(mWindow, GWL_WNDPROC, parentWndFunc);
-        ASSERT(prevWndFunc == reinterpret_cast<LONG>(SurfaceWindowProc));
+        LONG_PTR prevWndFunc = SetWindowLongPtr(mWindow, GWLP_WNDPROC, parentWndFunc);
+        ASSERT(prevWndFunc == reinterpret_cast<LONG_PTR>(SurfaceWindowProc));
     }
 
     RemoveProp(mWindow, kSurfaceProperty);
