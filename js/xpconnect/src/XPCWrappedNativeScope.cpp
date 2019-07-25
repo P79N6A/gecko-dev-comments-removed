@@ -190,9 +190,13 @@ XPCWrappedNativeScope::IsDyingScope(XPCWrappedNativeScope *scope)
 void
 XPCWrappedNativeScope::SetComponents(nsXPCComponents* aComponents)
 {
-    NS_IF_ADDREF(aComponents);
-    NS_IF_RELEASE(mComponents);
     mComponents = aComponents;
+}
+
+nsXPCComponents*
+XPCWrappedNativeScope::GetComponents()
+{
+    return mComponents;
 }
 
 
@@ -310,7 +314,12 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
 
     
     
-    NS_IF_RELEASE(mComponents);
+    if (mComponents)
+        mComponents->mScope = nsnull;
+
+    
+    
+    mComponents = nsnull;
 
     JSRuntime *rt = mRuntime->GetJSRuntime();
     mGlobalJSObject.finalize(rt);
