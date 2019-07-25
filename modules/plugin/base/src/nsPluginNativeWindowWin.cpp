@@ -38,6 +38,7 @@
 
 
 
+
 #include "windows.h"
 #include "windowsx.h"
 
@@ -51,7 +52,7 @@
 #include "nsDebug.h"
 
 #include "nsGUIEvent.h"
-
+#include "nsWindowsDllInterceptor.h"
 #include "nsPluginSafety.h"
 #include "nsPluginNativeWindow.h"
 #include "nsThreadUtils.h"
@@ -152,6 +153,7 @@ private:
 public:
   
   WNDPROC GetPrevWindowProc();
+  void SetPrevWindowProc(WNDPROC proc) { mPluginWinProc = proc; }
   WNDPROC GetWindowProc();
   PluginWindowEvent * GetPluginWindowEvent(HWND aWnd,
                                            UINT aMsg,
@@ -159,8 +161,8 @@ public:
                                            LPARAM aLParam);
 
 private:
-  WNDPROC mPrevWinProc;
   WNDPROC mPluginWinProc;
+  WNDPROC mPrevWinProc;
   PluginWindowWeakRef mWeakRef;
   nsRefPtr<PluginWindowEvent> mCachedPluginWindowEvent;
 
@@ -383,6 +385,135 @@ static LRESULT CALLBACK PluginWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
 
 
 
+
+
+
+
+
+
+static WindowsDllInterceptor sUser32Intercept;
+
+#ifdef _WIN64
+typedef LONG_PTR
+  (WINAPI *User32SetWindowLongPtrA)(HWND hWnd,
+                                    int nIndex,
+                                    LONG_PTR dwNewLong);
+typedef LONG_PTR
+  (WINAPI *User32SetWindowLongPtrW)(HWND hWnd,
+                                    int nIndex,
+                                    LONG_PTR dwNewLong);
+static User32SetWindowLongPtrA sUser32SetWindowLongAHookStub = NULL;
+static User32SetWindowLongPtrW sUser32SetWindowLongWHookStub = NULL;
+#else
+typedef LONG
+(WINAPI *User32SetWindowLongA)(HWND hWnd,
+                               int nIndex,
+                               LONG dwNewLong);
+typedef LONG
+(WINAPI *User32SetWindowLongW)(HWND hWnd,
+                               int nIndex,
+                               LONG dwNewLong);
+static User32SetWindowLongA sUser32SetWindowLongAHookStub = NULL;
+static User32SetWindowLongW sUser32SetWindowLongWHookStub = NULL;
+#endif
+static inline PRBool
+SetWindowLongHookCheck(HWND hWnd,
+                       int nIndex,
+                       LONG_PTR newLong)
+{
+  nsPluginNativeWindowWin * win =
+    (nsPluginNativeWindowWin *)GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
+  if (!win || (win && win->mPluginType != nsPluginType_Flash) ||
+      (nIndex == GWLP_WNDPROC &&
+       newLong == reinterpret_cast<LONG_PTR>(PluginWndProc)))
+    return PR_TRUE;
+  return PR_FALSE;
+}
+
+#ifdef _WIN64
+LONG_PTR WINAPI
+SetWindowLongPtrAHook(HWND hWnd,
+                      int nIndex,
+                      LONG_PTR newLong)
+#else
+LONG WINAPI
+SetWindowLongAHook(HWND hWnd,
+                   int nIndex,
+                   LONG newLong)
+#endif
+{
+  if (SetWindowLongHookCheck(hWnd, nIndex, newLong))
+      return sUser32SetWindowLongAHookStub(hWnd, nIndex, newLong);
+
+  
+  LONG_PTR proc = sUser32SetWindowLongAHookStub(hWnd, nIndex, newLong);
+
+  
+  nsPluginNativeWindowWin * win =
+    (nsPluginNativeWindowWin *)GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
+
+  
+  win->SetPrevWindowProc(
+    reinterpret_cast<WNDPROC>(sUser32SetWindowLongAHookStub(hWnd, nIndex,
+      reinterpret_cast<LONG_PTR>(PluginWndProc))));
+  return proc;
+}
+
+#ifdef _WIN64
+LONG_PTR WINAPI
+SetWindowLongPtrWHook(HWND hWnd,
+                      int nIndex,
+                      LONG_PTR newLong)
+#else
+LONG WINAPI
+SetWindowLongWHook(HWND hWnd,
+                   int nIndex,
+                   LONG newLong)
+#endif
+{
+  if (SetWindowLongHookCheck(hWnd, nIndex, newLong))
+      return sUser32SetWindowLongWHookStub(hWnd, nIndex, newLong);
+
+  
+  LONG_PTR proc = sUser32SetWindowLongWHookStub(hWnd, nIndex, newLong);
+
+  
+  nsPluginNativeWindowWin * win =
+    (nsPluginNativeWindowWin *)GetProp(hWnd, NS_PLUGIN_WINDOW_PROPERTY_ASSOCIATION);
+
+  
+  win->SetPrevWindowProc(
+    reinterpret_cast<WNDPROC>(sUser32SetWindowLongWHookStub(hWnd, nIndex,
+      reinterpret_cast<LONG_PTR>(PluginWndProc))));
+  return proc;
+}
+
+static void
+HookSetWindowLongPtr()
+{
+#ifdef _WIN64
+  
+  
+  return;
+#endif
+
+  sUser32Intercept.Init("user32.dll");
+#ifdef _WIN64
+  sUser32Intercept.AddHook("SetWindowLongPtrA", SetWindowLongPtrAHook,
+                           (void**) &sUser32SetWindowLongAHookStub);
+  sUser32Intercept.AddHook("SetWindowLongPtrW", SetWindowLongPtrWHook,
+                           (void**) &sUser32SetWindowLongWHookStub);
+#else
+  sUser32Intercept.AddHook("SetWindowLongA", SetWindowLongAHook,
+                           (void**) &sUser32SetWindowLongAHookStub);
+  sUser32Intercept.AddHook("SetWindowLongW", SetWindowLongWHook,
+                           (void**) &sUser32SetWindowLongWHookStub);
+#endif
+}
+
+
+
+
 nsPluginNativeWindowWin::nsPluginNativeWindowWin() : nsPluginNativeWindow()
 {
   
@@ -491,6 +622,8 @@ nsPluginNativeWindowWin::GetPluginWindowEvent(HWND aWnd, UINT aMsg, WPARAM aWPar
 nsresult nsPluginNativeWindowWin::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPluginInstance)
 {
   
+
+  
   
   if (!aPluginInstance) {
     UndoSubclassAndAssociateWindow();
@@ -516,22 +649,24 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPl
 
   
 #ifndef WINCE
-  
-  
-  
-  WNDPROC currentWndProc =
-    (WNDPROC)::GetWindowLongPtr((HWND)window, GWLP_WNDPROC);
-  if (!mPrevWinProc && currentWndProc != PluginWndProc)
-    mPrevWinProc = currentWndProc;
+  if (window) {
+    
+    
+    
+    WNDPROC currentWndProc =
+      (WNDPROC)::GetWindowLongPtr((HWND)window, GWLP_WNDPROC);
+    if (!mPrevWinProc && currentWndProc != PluginWndProc)
+      mPrevWinProc = currentWndProc;
 
-  
-  
-  if (mPluginType == nsPluginType_PDF) {
-    HWND parent = ::GetParent((HWND)window);
-    if (mParentWnd != parent) {
-      NS_ASSERTION(!mParentWnd, "Plugin's parent window changed");
-      mParentWnd = parent;
-      mParentProc = ::GetWindowLongPtr(mParentWnd, GWLP_WNDPROC);
+    
+    
+    if (mPluginType == nsPluginType_PDF) {
+      HWND parent = ::GetParent((HWND)window);
+      if (mParentWnd != parent) {
+        NS_ASSERTION(!mParentWnd, "Plugin's parent window changed");
+        mParentWnd = parent;
+        mParentProc = ::GetWindowLongPtr(mParentWnd, GWLP_WNDPROC);
+      }
     }
   }
 #endif
@@ -540,6 +675,11 @@ nsresult nsPluginNativeWindowWin::CallSetWindow(nsCOMPtr<nsIPluginInstance> &aPl
 
 #ifndef WINCE
   SubclassAndAssociateWindow();
+
+  if (window && mPluginType == nsPluginType_Flash &&
+      !GetPropW((HWND)window, L"PluginInstanceParentProperty")) {
+    HookSetWindowLongPtr();
+  }
 #endif
 
   return NS_OK;
