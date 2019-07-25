@@ -129,6 +129,10 @@ SimpleTest._logResult = function(test, passString, failString) {
     }
 };
 
+SimpleTest._logInfo = function(name, message) {
+    this._logResult({result:true, name:name, diag:message}, "TEST-INFO");
+};
+
 
 
 
@@ -330,7 +334,7 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     childTargetWindow = childTargetWindow.value;
 
     function info(msg) {
-        SimpleTest._logResult({result: true, name: msg}, "TEST-INFO");
+        SimpleTest._logInfo("", msg);
     }
 
     function debugFocusLog(prefix) {
@@ -522,6 +526,8 @@ SimpleTest.waitForClipboard = function(aExpectedStringOrValidatorFn, aSetupFn,
 
 
 SimpleTest.executeSoon = function(aFunc) {
+    
+    
     if ("Components" in window && "classes" in window.Components) {
         try {
             netscape.security.PrivilegeManager
@@ -553,6 +559,17 @@ SimpleTest.finish = function () {
         parentRunner.testFinished(SimpleTest._tests);
     } else {
         SimpleTest.showReport();
+    }
+};
+
+
+
+
+
+
+SimpleTest.expectChildProcessCrash = function () {
+    if (parentRunner) {
+        parentRunner.expectChildProcessCrash();
     }
 };
 
