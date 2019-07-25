@@ -13203,21 +13203,14 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         
         CHECK_STATUS_A(makeNumberInt32(idx_ins, &idx_ins));
 
-        LIns* slots_ins = w.ldpObjFixedSlots(obj_ins);
         
         CHECK_STATUS_A(guard(true,
-                             w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(slots_ins)),
+                             w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(obj_ins)),
                                     "inRange"),
                              OVERFLOW_EXIT, true));
 
         
-        LIns* data_base_ins = w.ldpConstTypedArrayData(slots_ins);
-        LIns* offset_ins = w.ldiConstTypedArrayByteOffset(slots_ins);
-#ifdef NANOJIT_64BIT
-        LIns* data_ins = w.addp(data_base_ins, w.ui2uq(offset_ins));
-#else
-        LIns* data_ins = w.addp(data_base_ins, offset_ins);
-#endif
+        LIns* data_ins = w.ldpConstTypedArrayData(obj_ins);
 
         LIns* pidx_ins = w.ui2p(idx_ins);
         LIns* typed_v_ins = v_ins;
@@ -14294,8 +14287,6 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
     JSObject* tarray = js::TypedArray::getTypedArray(obj);
     JS_ASSERT(tarray);
 
-    LIns *slots_ins = w.ldpObjFixedSlots(obj_ins);
-
     
     if ((jsuint) idx >= js::TypedArray::getLength(tarray))
         RETURN_STOP_A("out-of-range index on typed array");
@@ -14310,18 +14301,12 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
 
 
     guard(true,
-          w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(slots_ins)), "inRange"),
+          w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(obj_ins)), "inRange"),
           BRANCH_EXIT);
 
     
 
-    LIns* data_base_ins = w.ldpConstTypedArrayData(slots_ins);
-    LIns* offset_ins = w.ldiConstTypedArrayByteOffset(slots_ins);
-#ifdef NANOJIT_64BIT
-    LIns* data_ins = w.addp(data_base_ins, w.ui2uq(offset_ins));
-#else
-    LIns* data_ins = w.addp(data_base_ins, offset_ins);
-#endif
+    LIns* data_ins = w.ldpConstTypedArrayData(obj_ins);
 
     switch (js::TypedArray::getType(tarray)) {
       case js::TypedArray::TYPE_INT8:
@@ -16326,7 +16311,7 @@ TraceRecorder::record_JSOP_LENGTH()
     } else if (OkToTraceTypedArrays && js_IsTypedArray(obj)) {
         
         guardClass(obj_ins, obj->getClass(), snapshot(BRANCH_EXIT), LOAD_NORMAL);
-        v_ins = w.i2d(w.ldiConstTypedArrayLength(w.ldpObjFixedSlots(obj_ins)));
+        v_ins = w.i2d(w.ldiConstTypedArrayLength(obj_ins));
     } else {
         if (!obj->isNative())
             RETURN_STOP_A("can't trace length property access on non-array, non-native object");
