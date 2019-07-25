@@ -299,7 +299,13 @@ public:
 
 
 
-  PRInt32 AppUnitsPerInch() const { return mAppUnitsPerInch; }
+  PRInt32 AppUnitsPerPhysicalInch() const { return mAppUnitsPerPhysicalInch; }
+
+  
+
+
+
+  static PRInt32 AppUnitsPerCSSInch() { return 96 * AppUnitsPerCSSPixel(); }
 
   
 
@@ -494,7 +500,7 @@ public:
 
 protected:
   PRInt32 mAppUnitsPerDevPixel;
-  PRInt32 mAppUnitsPerInch;
+  PRInt32 mAppUnitsPerPhysicalInch;
   PRInt32 mAppUnitsPerDevNotScaledPixel;
   float  mPixelScale;
 };

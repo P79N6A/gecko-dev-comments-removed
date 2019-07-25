@@ -202,7 +202,6 @@ public:
   
   
   float GetLength(PRUint8 mCtxType);
-  float GetMMPerPx(PRUint8 mCtxType = 0);
 
   
   gfxMatrix GetViewBoxTransform();
@@ -286,8 +285,6 @@ protected:
   
   
   float mViewportWidth, mViewportHeight;
-
-  float mCoordCtxMmPerPx;
 
 #ifdef MOZ_SMIL
   
