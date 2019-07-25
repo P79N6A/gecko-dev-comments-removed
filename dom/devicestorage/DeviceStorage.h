@@ -64,8 +64,7 @@ private:
   bool  mIsWatchingFile;
 
 #ifdef MOZ_WIDGET_GONK
-  PRUint32 mLastVolumeState; 
-  void DispatchMountChangeEvent(bool aMounted);
+  void DispatchMountChangeEvent(nsAString& aType);
 #endif
 
   
