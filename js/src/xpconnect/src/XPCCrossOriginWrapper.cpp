@@ -390,8 +390,6 @@ WrapObject(JSContext *cx, JSObject *parent, jsval *vp, XPCWrappedNative* wn)
     return JS_TRUE;
   }
 
-  XPCJSRuntime *rt = nsXPConnect::GetRuntimeInstance();
-
   
   parent = JS_GetGlobalForObject(cx, parent);
 
