@@ -128,10 +128,6 @@ namespace JSC {
 
 namespace js {
 
-#ifdef JS_METHODJIT
-struct VMFrame;
-#endif
-
 
 static const size_t MONITOR_N_GLOBAL_STATES = 4;
 static const size_t FRAGMENT_TABLE_SIZE = 512;
@@ -226,14 +222,7 @@ struct TracerState
     ~TracerState();
 };
 
-#ifdef JS_METHODJIT
 namespace mjit {
-    struct Trampolines
-    {
-        void (* forceReturn)();
-        JSC::ExecutablePool *forceReturnPool;
-    };
-
     struct ThreadData
     {
         JSC::ExecutableAllocator *execPool;
@@ -241,11 +230,6 @@ namespace mjit {
         
         typedef js::HashSet<JSScript*, DefaultHasher<JSScript*>, js::SystemAllocPolicy> ScriptSet;
         ScriptSet picScripts;
-
-        
-        Trampolines trampolines;
-
-        VMFrame *activeFrame;
 
         bool Initialize();
         void Finish();
@@ -255,7 +239,6 @@ namespace mjit {
         void purge(JSContext *cx);
     };
 }
-#endif 
 
 
 
@@ -359,7 +342,8 @@ class CallStack
       : cx(NULL), previousInContext(NULL), previousInThread(NULL),
         initialFrame(NULL), suspendedFrame(NULL),
         suspendedRegsAndSaved(NULL, false), initialArgEnd(NULL),
-        initialVarObj(NULL) { }
+        initialVarObj(NULL)
+    {}
 
     
 
@@ -667,6 +651,9 @@ class StackSpace
     inline Value *firstUnused() const;
 
     inline void assertIsCurrent(JSContext *cx) const;
+#ifdef DEBUG
+    CallStack *getCurrentCallStack() const { return currentCallStack; }
+#endif
 
     
 
@@ -793,9 +780,6 @@ class StackSpace
     
     JS_REQUIRES_STACK
     JS_FRIEND_API(bool) pushInvokeArgsFriendAPI(JSContext *, uintN, InvokeArgsGuard &);
-
-    CallStack
-    *getCurrentCallStack() const { return currentCallStack; }
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);

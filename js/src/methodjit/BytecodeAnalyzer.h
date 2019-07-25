@@ -52,7 +52,6 @@ namespace js
         bool   visited;         
         bool   exceptionEntry;  
         bool   safePoint;       
-        bool   trap;            
         bool   inTryBlock;      
         uint32 nincoming;       
         uint32 stackDepth;      
