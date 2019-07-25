@@ -155,7 +155,8 @@ def build_one_stage_aux(stage_dir, is_stage_one):
 
     binutils_build_dir = stage_dir + '/binutils'
     build_package(binutils_source_dir, binutils_build_dir,
-                  ["--prefix=%s" % tool_inst_dir])
+                  ["--prefix=%s" % tool_inst_dir,
+                   "--without-zlib"])
 
     
     
