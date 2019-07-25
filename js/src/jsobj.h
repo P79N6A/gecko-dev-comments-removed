@@ -443,8 +443,14 @@ struct JSObject : js::gc::Cell {
     bool generic()              { return !!(flags & GENERIC); }
     void setGeneric()           { flags |= GENERIC; }
 
-    bool hasSpecialEquality()   { return !!(flags & HAS_EQUALITY); }
+    bool hasSpecialEquality() const { return !!(flags & HAS_EQUALITY); }
+    void assertSpecialEqualitySynced() const {
+        JS_ASSERT(!!clasp->ext.equality == hasSpecialEquality());
+    }
+
     
+    inline void syncSpecialEquality();
+
   private:
     void generateOwnShape(JSContext *cx);
 
@@ -724,22 +730,24 @@ struct JSObject : js::gc::Cell {
 
 
   private:
+    enum ImmutabilityType { SEAL, FREEZE };
+
     
 
 
 
 
 
-    bool sealOrFreeze(JSContext *cx, bool freeze = false);
+    bool sealOrFreeze(JSContext *cx, ImmutabilityType it);
 
   public:
     bool isExtensible() const { return !(flags & NOT_EXTENSIBLE); }
     bool preventExtensions(JSContext *cx, js::AutoIdVector *props);
+
     
+    inline bool seal(JSContext *cx) { return sealOrFreeze(cx, SEAL); }
     
-    inline bool seal(JSContext *cx) { return sealOrFreeze(cx); }
-    
-    bool freeze(JSContext *cx) { return sealOrFreeze(cx, true); }
+    bool freeze(JSContext *cx) { return sealOrFreeze(cx, FREEZE); }
         
     
 
@@ -1009,7 +1017,7 @@ struct JSObject : js::gc::Cell {
               js::types::TypeObject *type, void *priv, bool useHoles);
 
     inline void finish(JSContext *cx);
-    JS_ALWAYS_INLINE void finalize(JSContext *cx, unsigned thindKind);
+    JS_ALWAYS_INLINE void finalize(JSContext *cx);
 
     
 

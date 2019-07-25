@@ -290,11 +290,30 @@ struct JSTreeContext {
     JSAtomList      decls;          
     js::Parser      *parser;        
 
+  private:
     union {
-        JSFunction  *fun;           
+        JSFunction  *fun_;          
 
-        JSObject    *scopeChain;    
+        JSObject    *scopeChain_;   
     };
+
+  public:
+    JSFunction *fun() const {
+        JS_ASSERT(inFunction());
+        return fun_;
+    }
+    void setFunction(JSFunction *fun) {
+        JS_ASSERT(inFunction());
+        fun_ = fun;
+    }
+    JSObject *scopeChain() const {
+        JS_ASSERT(!inFunction());
+        return scopeChain_;
+    }
+    void setScopeChain(JSObject *scopeChain) {
+        JS_ASSERT(!inFunction());
+        scopeChain_ = scopeChain;
+    }
 
     JSAtomList      lexdeps;        
     JSTreeContext   *parent;        
@@ -315,7 +334,7 @@ struct JSTreeContext {
     JSTreeContext(js::Parser *prs)
       : flags(0), bodyid(0), blockidGen(0),
         topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
-        parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
+        parser(prs), scopeChain_(NULL), parent(prs->tc), staticLevel(0),
         funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
     {
         prs->tc = this;

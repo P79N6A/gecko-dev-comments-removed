@@ -123,9 +123,6 @@ using namespace js::types;
 #define MAXSTR   "4294967295"
 
 
-#define MIN_SPARSE_INDEX 256
-
-
 
 
 
@@ -1087,11 +1084,9 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     JSObjectMap *oldMap = map;
 
     
-
-
-
     JSObject *arrayProto = getProto();
-    if (!InitScopeForObject(cx, this, &js_SlowArrayClass, arrayProto, FINALIZE_OBJECT0))
+    js::gc::FinalizeKind kind = js::gc::FinalizeKind(arena()->header()->thingKind);
+    if (!InitScopeForObject(cx, this, &js_SlowArrayClass, arrayProto, kind))
         return false;
 
     uint32 initlen = getDenseArrayInitializedLength();
@@ -1108,6 +1103,10 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     }
 
     
+
+
+
+    uint32 next = 0;
     for (uint32 i = 0; i < initlen; i++) {
         jsid id;
         if (!ValueToId(cx, Int32Value(i), &id)) {
@@ -1115,23 +1114,31 @@ JSObject::makeDenseArraySlow(JSContext *cx)
             return false;
         }
 
-        if (getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE)) {
-            setDenseArrayElement(i, UndefinedValue());
+        if (getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE))
             continue;
-        }
 
-        if (!addDataProperty(cx, id, i, JSPROP_ENUMERATE)) {
+        setDenseArrayElement(next, getDenseArrayElement(i));
+
+        if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
             return false;
         }
-    }
 
-    
-    ClearValueRange(getDenseArrayElements() + initlen, getDenseArrayCapacity() - initlen, false);
+        next++;
+    }
 
     
     initializedLength = 0;
     JS_ASSERT(emptyShapes == NULL);
+
+    
+
+
+
+    if (hasSlotsArray() && next <= numFixedSlots())
+        revertToFixedSlots(cx);
+
+    ClearValueRange(slots + next, this->capacity - next, false);
 
     
 
@@ -3377,18 +3384,6 @@ static void array_TypeNew(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *
     }
 #endif
 }
-
-JSObject* JS_FASTCALL
-js_InitializerArray(JSContext* cx, int32 count)
-{
-    TypeObject *type = cx->getFixedTypeObject(TYPE_OBJECT_UNKNOWN_ARRAY);
-    gc::FinalizeKind kind = GuessObjectGCKind(count, true);
-    return NewArrayWithKind(cx, type, kind);
-}
-#ifdef JS_TRACER
-JS_DEFINE_CALLINFO_2(extern, OBJECT, js_InitializerArray, CONTEXT, INT32, 0,
-                     nanojit::ACCSET_STORE_ANY)
-#endif
 
 JSObject *
 js_InitArrayClass(JSContext *cx, JSObject *obj)

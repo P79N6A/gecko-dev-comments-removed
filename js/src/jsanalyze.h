@@ -358,8 +358,11 @@ class Script
         
         bool hasGetSet;
 
+        
+        bool hasHole;
+
         TypeState()
-            : hasGetSet(false)
+            : hasGetSet(false), hasHole(false)
         {}
     };
 

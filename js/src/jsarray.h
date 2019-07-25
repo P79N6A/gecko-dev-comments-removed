@@ -144,6 +144,9 @@ js_NewArrayObject(JSContext *cx, jsuint length, const js::Value *vector, js::typ
 extern JSObject *
 js_NewSlowArrayObject(JSContext *cx, js::types::TypeObject *type);
 
+
+const uint32 MIN_SPARSE_INDEX = 256;
+
 extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
 

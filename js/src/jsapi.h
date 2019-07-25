@@ -577,7 +577,6 @@ JS_GetEmptyStringValue(JSContext *cx);
 
 
 
-
 extern JS_PUBLIC_API(JSBool)
 JS_ConvertArguments(JSContext *cx, uintN argc, jsval *argv, const char *format,
                     ...);
@@ -1654,7 +1653,7 @@ JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
 extern JS_PUBLIC_API(void)
 JS_SetScriptStackQuota(JSContext *cx, size_t quota);
 
-#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x2000000)
+#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x8000000)
 
 
 
@@ -2957,9 +2956,6 @@ JS_InternUCStringN(JSContext *cx, const jschar *s, size_t length);
 extern JS_PUBLIC_API(JSString *)
 JS_InternUCString(JSContext *cx, const jschar *s);
 
-extern JS_PUBLIC_API(char *)
-JS_GetStringBytes(JSString *str);
-
 
 
 
@@ -2968,9 +2964,6 @@ JS_GetStringChars(JSString *str);
 
 extern JS_PUBLIC_API(size_t)
 JS_GetStringLength(JSString *str);
-
-extern JS_PUBLIC_API(const char *)
-JS_GetStringBytesZ(JSContext *cx, JSString *str);
 
 
 
@@ -3102,6 +3095,80 @@ JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
 
 JS_PUBLIC_API(char *)
 JS_EncodeString(JSContext *cx, JSString *str);
+
+
+
+
+
+
+JS_PUBLIC_API(size_t)
+JS_GetStringEncodingLength(JSContext *cx, JSString *str);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_PUBLIC_API(size_t)
+JS_EncodeStringToBuffer(JSString *str, char *buffer, size_t length);
+
+#ifdef __cplusplus
+
+class JSAutoByteString {
+  public:
+    JSAutoByteString(JSContext *cx, JSString *str JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mBytes(JS_EncodeString(cx, str)) {
+        JS_ASSERT(cx);
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    JSAutoByteString(JS_GUARD_OBJECT_NOTIFIER_PARAM0)
+      : mBytes(NULL) {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    ~JSAutoByteString() {
+        js_free(mBytes);
+    }
+
+    char *encode(JSContext *cx, JSString *str) {
+        JS_ASSERT(!mBytes);
+        JS_ASSERT(cx);
+        mBytes = JS_EncodeString(cx, str);
+        return mBytes;
+    }
+
+    void clear() {
+        js_free(mBytes);
+        mBytes = NULL;
+    }
+
+    char *ptr() const {
+        return mBytes;
+    }
+
+    bool operator!() const {
+        return !mBytes;
+    }
+
+  private:
+    char        *mBytes;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+    
+    JSAutoByteString(const JSAutoByteString &another);
+    JSAutoByteString &operator=(const JSAutoByteString &another);
+};
+
+#endif
 
 
 

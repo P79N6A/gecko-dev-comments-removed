@@ -319,6 +319,12 @@ class FrameState
     
 
 
+
+    inline void pushInitializerObject(RegisterID payload, bool array, JSObject *baseobj);
+
+    
+
+
     inline void pop();
 
     
