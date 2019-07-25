@@ -237,7 +237,7 @@ do_decrement:
 
     if(0 == cnt)
     {
-        NS_DELETEXPCOM(this);   
+        delete this;   
         return 0;
     }
     if(1 == cnt)
