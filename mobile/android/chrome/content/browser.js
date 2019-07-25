@@ -1675,7 +1675,7 @@ Tab.prototype = {
     let win = this.browser.contentWindow;
     
     
-    zoom = 1;
+    let zoom = 1;
     let xpos = ((aReset && win) ? win.scrollX * zoom : this._viewport.x);
     let ypos = ((aReset && win) ? win.scrollY * zoom : this._viewport.y);
 
