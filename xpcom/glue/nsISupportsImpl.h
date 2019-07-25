@@ -53,7 +53,7 @@
 
 #if !defined(XPCOM_GLUE_AVOID_NSPR)
 #include "prthread.h" 
-#include "pratom.h"   
+#include "nsAtomicRefcnt.h" 
 #endif
 
 #include "nsDebug.h"
@@ -1256,11 +1256,15 @@ NS_IMETHODIMP_(nsrefcnt) Class::Release(void)                                 \
 NS_IMETHODIMP_(nsrefcnt) _class::AddRef(void)                                 \
 {                                                                             \
   NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");                   \
-  nsrefcnt count;                                                             \
-  count = PR_AtomicIncrement((PRInt32*)&mRefCnt);                             \
+  nsrefcnt count = NS_AtomicIncrementRefcnt(mRefCnt);                         \
   NS_LOG_ADDREF(this, count, #_class, sizeof(*this));                         \
-  return count;                                                               \
+  return (nsrefcnt) count;                                                    \
 }
+
+
+
+
+
 
 
 
@@ -1270,9 +1274,8 @@ NS_IMETHODIMP_(nsrefcnt) _class::AddRef(void)                                 \
 #define NS_IMPL_THREADSAFE_RELEASE(_class)                                    \
 NS_IMETHODIMP_(nsrefcnt) _class::Release(void)                                \
 {                                                                             \
-  nsrefcnt count;                                                             \
   NS_PRECONDITION(0 != mRefCnt, "dup release");                               \
-  count = PR_AtomicDecrement((PRInt32 *)&mRefCnt);                            \
+  nsrefcnt count = NS_AtomicDecrementRefcnt(mRefCnt);                         \
   NS_LOG_RELEASE(this, count, #_class);                                       \
   if (0 == count) {                                                           \
     mRefCnt = 1; /* stabilize */                                              \
