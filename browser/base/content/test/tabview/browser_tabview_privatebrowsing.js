@@ -50,35 +50,33 @@ function onTabViewLoadedAndShown() {
   }
   
   
-  gBrowser.loadOneTab("about:robots", { inBackground: false });
+  gBrowser.addTab("about:robots");
   is(gBrowser.tabs.length, 2, "we now have 2 tabs");
   registerCleanupFunction(function() {
     gBrowser.removeTab(gBrowser.tabs[1]);
   });
 
   afterAllTabsLoaded(function() {
-    showTabView(function() {
-      
-      for (let a = 0; a < gBrowser.tabs.length; a++)
-        normalURLs.push(gBrowser.tabs[a].linkedBrowser.currentURI.spec);
+    
+    for (let a = 0; a < gBrowser.tabs.length; a++)
+      normalURLs.push(gBrowser.tabs[a].linkedBrowser.currentURI.spec);
 
-      
-      verifyNormal();
+    
+    verifyNormal();
 
+    
+    togglePBAndThen(function() {
+      ok(!TabView.isVisible(), "Tab View is no longer visible");
+      verifyPB();
+      
       
       togglePBAndThen(function() {
-        ok(!TabView.isVisible(), "Tab View is no longer visible");
-        verifyPB();
+        ok(TabView.isVisible(), "Tab View is visible again");
+        verifyNormal();
 
-        
-        togglePBAndThen(function() {
-          ok(TabView.isVisible(), "Tab View is visible again");
-          verifyNormal();
-
-          hideTabView(onTabViewHidden);
-        });
+        hideTabView(onTabViewHidden);
       });
-    }); 
+    });
   });
 }
 
