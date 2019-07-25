@@ -97,8 +97,6 @@ private:
   
   void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
 
-  void SetupDualViewports(const gfxIntSize &aSize);
-  
   
   void FillTexturesBlackWhite(const nsIntRegion& aRegion, const nsIntPoint& aOffset);
 
