@@ -2789,9 +2789,9 @@ IsFunctionQName(JSContext *cx, JSObject *qn, jsid *funidp)
     JSAtom *atom;
     JSString *uri;
 
-    atom = cx->runtime->atomState.lazy.functionNamespaceURIAtom;
+    atom = cx->runtime->atomState.functionNamespaceURIAtom;
     uri = GetURI(qn);
-    if (uri && atom &&
+    if (uri &&
         (uri == ATOM_TO_STRING(atom) ||
          js_EqualStrings(uri, ATOM_TO_STRING(atom)))) {
         return JS_ValueToId(cx, STRING_TO_JSVAL(GetLocalName(qn)), funidp);
@@ -7147,11 +7147,7 @@ js_GetFunctionNamespace(JSContext *cx, Value *vp)
 {
     JSRuntime *rt;
     JSObject *obj;
-    JSAtom *atom;
     JSString *prefix, *uri;
-
-    
-    static const char anti_uri[] = "@mozilla.org/js/function";
 
     
     rt = cx->runtime;
@@ -7162,20 +7158,8 @@ js_GetFunctionNamespace(JSContext *cx, Value *vp)
         if (!obj) {
             JS_UNLOCK_GC(rt);
 
-            
-
-
-
-
-
-
-            atom = js_Atomize(cx, anti_uri, sizeof anti_uri - 1, ATOM_PINNED);
-            if (!atom)
-                return JS_FALSE;
-            rt->atomState.lazy.functionNamespaceURIAtom = atom;
-
             prefix = ATOM_TO_STRING(rt->atomState.typeAtoms[JSTYPE_FUNCTION]);
-            uri = ATOM_TO_STRING(atom);
+            uri = ATOM_TO_STRING(rt->atomState.functionNamespaceURIAtom);
             obj = NewXMLNamespace(cx, prefix, uri, JS_FALSE);
             if (!obj)
                 return JS_FALSE;
