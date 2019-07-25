@@ -741,6 +741,7 @@ public:
   virtual NS_HIDDEN_(void) EndObservingDocument();
   virtual NS_HIDDEN_(nsresult) InitialReflow(nscoord aWidth, nscoord aHeight);
   virtual NS_HIDDEN_(nsresult) ResizeReflow(nscoord aWidth, nscoord aHeight);
+  virtual NS_HIDDEN_(nsresult) ResizeReflowOverride(nscoord aWidth, nscoord aHeight);
   virtual NS_HIDDEN_(void) StyleChangeReflow();
   virtual NS_HIDDEN_(nsIPageSequenceFrame*) GetPageSequenceFrame() const;
   virtual NS_HIDDEN_(nsIFrame*) GetRealPrimaryFrameFor(nsIContent* aContent) const;
@@ -1008,6 +1009,9 @@ protected:
   void     ScheduleReflow();
 
   
+  nsresult ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight);
+
+  
   PRBool DoReflow(nsIFrame* aFrame, PRBool aInterruptible);
 #ifdef DEBUG
   void DoVerifyReflow();
@@ -1146,6 +1150,8 @@ protected:
 
   PRPackedBool mIgnoreFrameDestruction;
   PRPackedBool mHaveShutDown;
+
+  PRPackedBool mViewportOverridden;
 
   
   
@@ -1662,6 +1668,7 @@ PresShell::PresShell()
   mRenderFlags = 0;
   mXResolution = 1.0;
   mYResolution = 1.0;
+  mViewportOverridden = PR_FALSE;
 
   static bool registeredReporter = false;
   if (!registeredReporter) {
@@ -2798,7 +2805,25 @@ PresShell::AsyncResizeEventCallback(nsITimer* aTimer, void* aPresShell)
 }
 
 nsresult
+PresShell::ResizeReflowOverride(nscoord aWidth, nscoord aHeight)
+{
+  mViewportOverridden = PR_TRUE;
+  return ResizeReflowIgnoreOverride(aWidth, aHeight);
+}
+
+nsresult
 PresShell::ResizeReflow(nscoord aWidth, nscoord aHeight)
+{
+  if (mViewportOverridden) {
+    
+    
+    return NS_OK;
+  }
+  return ResizeReflowIgnoreOverride(aWidth, aHeight);
+}
+
+nsresult
+PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 {
   NS_PRECONDITION(!mIsReflowing, "Shouldn't be in reflow here!");
   NS_PRECONDITION(aWidth != NS_UNCONSTRAINEDSIZE,

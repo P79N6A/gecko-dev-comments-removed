@@ -139,8 +139,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
- { 0x34f80395, 0xff82, 0x49fa, \
-    { 0x9c, 0x83, 0xa6, 0xba, 0x49, 0xa8, 0x55, 0x4a } }
+ { 0xb79574cd, 0x2555, 0x4b57, \
+    { 0xb3, 0xf8, 0x27, 0x57, 0x3e, 0x60, 0x74, 0x01 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -350,6 +350,12 @@ public:
 
 
   virtual NS_HIDDEN_(nsresult) ResizeReflow(nscoord aWidth, nscoord aHeight) = 0;
+  
+
+
+
+
+  virtual NS_HIDDEN_(nsresult) ResizeReflowOverride(nscoord aWidth, nscoord aHeight) = 0;
 
   
 
