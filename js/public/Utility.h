@@ -866,7 +866,7 @@ RoundUpPow2(size_t x)
 
 
 
-typedef size_t(*JSMallocSizeOfFun)(const void *p, size_t computedSize);
+typedef size_t(*JSMallocSizeOfFun)(const void *p);
 
 
 #ifndef HAVE_STATIC_ANNOTATIONS

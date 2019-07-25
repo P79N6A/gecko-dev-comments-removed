@@ -55,7 +55,6 @@
 #include "nsTArray.h"
 
 class nsIPrincipal;
-class nsIXPConnectWrappedJS;
 struct nsDOMClassInfoData;
 
 #ifndef BAD_TLS_INDEX
@@ -192,15 +191,6 @@ xpc_UnmarkGrayObject(JSObject *obj)
 
 
 
-extern void
-xpc_MarkInCCGeneration(nsISupports* aVariant, PRUint32 aGeneration);
-
-
-extern void
-xpc_UnmarkGrayObject(nsIXPConnectWrappedJS* aWrappedJS);
-
-
-
 NS_EXPORT_(void)
 xpc_ActivateDebugMode();
 
@@ -219,7 +209,7 @@ bool StringToJsval(JSContext *cx, nsString &str, JS::Value *rval);
 
 void *GetCompartmentName(JSContext *cx, JSCompartment *c);
 void DestroyCompartmentName(void *string);
-size_t JsMallocSizeOf(const void *ptr, size_t computedSize);
+size_t JsMallocSizeOf(const void *ptr);
 
 } 
 

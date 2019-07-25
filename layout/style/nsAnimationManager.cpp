@@ -443,8 +443,7 @@ nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
  size_t
 nsAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  return aMallocSizeOf(this, sizeof(nsAnimationManager)) +
-         SizeOfExcludingThis(aMallocSizeOf);
+  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
 nsIStyleRule*

@@ -177,8 +177,7 @@ struct PropertyTable {
 
 
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
-        return mallocSizeOf(this, sizeof(PropertyTable)) +
-               mallocSizeOf(entries, sizeOfEntries(capacity()));
+        return mallocSizeOf(this) + mallocSizeOf(entries);
     }
 
     

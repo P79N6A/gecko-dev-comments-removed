@@ -172,8 +172,7 @@ nsHTMLCSSStyleSheet::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
  size_t
 nsHTMLCSSStyleSheet::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  return aMallocSizeOf(this, sizeof(nsHTMLCSSStyleSheet)) +
-         SizeOfExcludingThis(aMallocSizeOf);
+  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
 void

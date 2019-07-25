@@ -61,8 +61,7 @@
 
 
 
-
-typedef size_t(*nsMallocSizeOfFun)(const void *p, size_t computedSize);
+typedef size_t(*nsMallocSizeOfFun)(const void *p);
 
 
 

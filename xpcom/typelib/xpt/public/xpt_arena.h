@@ -83,7 +83,7 @@ XPT_PUBLIC_API(void)
 XPT_ArenaFree(XPTArena *arena, void* block);
 
 
-typedef size_t(*xptMallocSizeOfFun)(const void *p, size_t computedSize);
+typedef size_t(*xptMallocSizeOfFun)(const void *p);
 
 XPT_PUBLIC_API(size_t)
 XPT_SizeOfArena(XPTArena *arena, xptMallocSizeOfFun mallocSizeOf);

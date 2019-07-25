@@ -96,12 +96,8 @@ void
 JSRuntime::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
                                size_t *regexpCode, size_t *stackCommitted)
 {
-    
-
-
-
     if (normal)
-        *normal = mallocSizeOf(dtoaState, 0);
+        *normal = mallocSizeOf(dtoaState);
 
     if (temporary)
         *temporary = tempLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
@@ -1318,8 +1314,7 @@ JSContext::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
 
 
 
-    return mallocSizeOf(this, sizeof(JSContext)) +
-           busyArrays.sizeOfExcludingThis(mallocSizeOf);
+    return mallocSizeOf(this) + busyArrays.sizeOfExcludingThis(mallocSizeOf);
 }
 
 namespace JS {

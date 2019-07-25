@@ -389,14 +389,14 @@ struct nsPresArena::State {
 
   size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
   {
-    size_t n = aMallocSizeOf(this, sizeof(*this));
+    size_t n = aMallocSizeOf(this);
 
     
     
     
     const PLArena *arena = mPool.first.next;
     while (arena) {
-      n += aMallocSizeOf(arena, arena->limit - arena->base);
+      n += aMallocSizeOf(arena);
       arena = arena->next;
     }
     return n;

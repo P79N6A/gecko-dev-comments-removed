@@ -169,8 +169,7 @@ nsDiskCacheMap::Open(nsILocalFile *  cacheDirectory)
     {
         
         
-        PRUint32 overhead =
-            moz_malloc_size_of(mRecordArray, mHeader.mRecordCount * sizeof(nsDiskCacheRecord));
+        PRUint32 overhead = moz_malloc_size_of(mRecordArray);
         mozilla::Telemetry::Accumulate(mozilla::Telemetry::HTTP_DISK_CACHE_OVERHEAD,
                 overhead);
     }

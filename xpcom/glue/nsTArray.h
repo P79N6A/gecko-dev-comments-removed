@@ -522,16 +522,13 @@ public:
   size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) const {
     if (this->UsesAutoArrayBuffer() || Hdr() == EmptyHdr())
       return 0;
-    return mallocSizeOf(this->Hdr(), 
-                        sizeof(nsTArrayHeader) +
-                        this->Capacity() * sizeof(elem_type));
+    return mallocSizeOf(this->Hdr());
   }
 
   
   
   size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf) const {
-    return mallocSizeOf(this, sizeof(nsTArray)) +
-           SizeOfExcludingThis(mallocSizeOf);
+    return mallocSizeOf(this) + SizeOfExcludingThis(mallocSizeOf);
   }
 
   

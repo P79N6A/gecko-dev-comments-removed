@@ -103,10 +103,7 @@ nsTransformedTextRun::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf)
   total += mStyles.SizeOfExcludingThis(aMallocSizeOf);
   total += mCapitalize.SizeOfExcludingThis(aMallocSizeOf);
   if (mOwnsFactory) {
-    
-    
-    
-    total += aMallocSizeOf(mFactory, 0);
+    total += aMallocSizeOf(mFactory);
   }
   return total;
 }
@@ -114,9 +111,7 @@ nsTransformedTextRun::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf)
 size_t
 nsTransformedTextRun::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
 {
-  return aMallocSizeOf(this, sizeof(nsTransformedTextRun) +
-                             GetLength() * sizeof(CompressedGlyph)) +
-         SizeOfExcludingThis(aMallocSizeOf);
+  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
 nsTransformedTextRun*
