@@ -800,12 +800,6 @@ pref("places.history.enabled", true);
 
 
 
-
-
-pref("places.database.cache_to_memory_percentage", 6);
-
-
-
 pref("places.frecency.numVisits", 10);
 
 
