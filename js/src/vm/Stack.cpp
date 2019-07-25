@@ -359,7 +359,8 @@ StackSpace::bumpLimit(JSContext *cx, StackFrame *fp, Value *sp,
 
 
 
-    Value *quota = (Value *)fp + STACK_QUOTA;
+    Value *quota = Max(*limit, (Value *)fp + STACK_QUOTA);
+    JS_ASSERT(quota >= sp);
     uintN remain = quota - sp;
     uintN inc = nvals + remain;
     if (!ensureSpace(NULL, sp, inc))
