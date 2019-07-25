@@ -697,7 +697,7 @@ function NetworkPanel(aParent, aHttpActivity)
   });
 
   
-  this.browser = createAndAppendElement(this.panel, "iframe", {
+  this.iframe = createAndAppendElement(this.panel, "iframe", {
     src: "chrome://browser/content/NetworkPanel.xhtml",
     type: "content",
     flex: "1"
@@ -710,7 +710,7 @@ function NetworkPanel(aParent, aHttpActivity)
     self.panel.removeEventListener("popuphidden", onPopupHide, false);
     self.panel.parentNode.removeChild(self.panel);
     self.panel = null;
-    self.browser = null;
+    self.iframe = null;
     self.document = null;
     self.httpActivity = null;
 
@@ -723,7 +723,7 @@ function NetworkPanel(aParent, aHttpActivity)
   
   this.panel.addEventListener("load", function onLoad() {
     self.panel.removeEventListener("load", onLoad, true)
-    self.document = self.browser.contentWindow.document;
+    self.document = self.iframe.contentWindow.document;
     self.update();
   }, true);
 
