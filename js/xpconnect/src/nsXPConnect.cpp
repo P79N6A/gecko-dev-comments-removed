@@ -2374,18 +2374,6 @@ nsXPConnect::SetReportAllJSExceptions(bool newval)
 }
 
 
-NS_IMETHODIMP_(bool)
-nsXPConnect::DefineDOMQuickStubs(JSContext * cx,
-                                 JSObject * proto,
-                                 PRUint32 flags,
-                                 PRUint32 interfaceCount,
-                                 const nsIID * *interfaceArray)
-{
-    return DOM_DefineQuickStubs(cx, proto, flags,
-                                interfaceCount, interfaceArray);
-}
-
-
 NS_IMETHODIMP
 nsXPConnect::GetRuntime(JSRuntime **runtime)
 {

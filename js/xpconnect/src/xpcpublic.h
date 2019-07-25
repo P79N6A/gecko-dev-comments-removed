@@ -228,6 +228,28 @@ nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
 #ifdef DEBUG
 void DumpJSHeap(FILE* file);
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, PRUint32 flags,
+                     PRUint32 interfaceCount, const nsIID **interfaceArray);
+
 } 
 
 class nsIMemoryMultiReporterCallback;
