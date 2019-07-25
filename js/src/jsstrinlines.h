@@ -57,6 +57,13 @@ namespace js {
 
 
 
+
+
+
+
+
+
+
 class StringBuffer
 {
     
