@@ -60,6 +60,12 @@
 #define MOZ_WM_TRACE                      (WM_APP+0x0301)
 
 
+#define MOZ_WM_MOUSEVWHEEL                (WM_APP+0x0310)
+#define MOZ_WM_MOUSEHWHEEL                (WM_APP+0x0311)
+#define MOZ_WM_VSCROLL                    (WM_APP+0x0312)
+#define MOZ_WM_HSCROLL                    (WM_APP+0x0313)
+
+
 #define WIN2K_VERSION                     0x500
 #define WINXP_VERSION                     0x501
 #define WIN2K3_VERSION                    0x502
