@@ -2963,7 +2963,10 @@ nsHTMLInputElement::VisitGroup(nsIRadioVisitor* aVisitor, PRBool aFlushContent)
 PRBool
 nsHTMLInputElement::IsTooLong()
 {
-  
+  if (!GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)) {
+    return PR_FALSE;
+  }
+
   PRInt32 maxLength = -1;
   PRInt32 textLength = -1;
 
