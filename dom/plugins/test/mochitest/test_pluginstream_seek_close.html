@@ -5,7 +5,7 @@
           src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" 
         href="/tests/SimpleTest/test.css" />
-<script type="application/javascript>
+<script>
   SimpleTest.waitForExplicitFinish();
 
   function frameLoaded() {
@@ -24,14 +24,14 @@
 
   <iframe id="testframe" name="testframe" onload="frameLoaded()"></iframe>
 
-  <!--
-   - Tests a seekable stream.  Calls NPN_RequestRead with the specified
-   - range, and verifies that an NPP_Write call is made with the correct 
-   - parameters, including the buffer data for the byte range.  Once all 
-   - calls to NPP_Write have finished, the plugin calls NPN_DestroyStream 
-   - and then displays the entire stream's content in a browser frame via 
-   - NPN_GetURL.
-   -->
+  
+
+
+
+
+
+
+
   <embed src="neverending.sjs" streammode="seek" closestream
          frame="testframe" streamchunksize="1024" range="100,100"
          id="embedtest" style="width: 400px; height: 100px;"
