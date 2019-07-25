@@ -44,6 +44,13 @@
 #include "nsRect.h"
 #include "nsIThreadManager.h"
 
+#include "CheckedInt.h"
+
+using mozilla::CheckedInt64;
+using mozilla::CheckedUint64;
+using mozilla::CheckedInt32;
+using mozilla::CheckedUint32;
+
 
 
 
@@ -99,33 +106,15 @@ private:
 
 
 
-bool AddOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
- 
 
 
-
-bool MulOverflow32(PRUint32 a, PRUint32 b, PRUint32& aResult);
-
-
-
-bool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
-
-
-
-
-bool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
+CheckedInt64 FramesToUsecs(PRInt64 aFrames, PRUint32 aRate);
 
 
 
 
 
-bool FramesToUsecs(PRInt64 aFrames, PRUint32 aRate, PRInt64& aOutUsecs);
-
-
-
-
-
-bool UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutFrames);
+CheckedInt64 UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate);
 
 
 static const PRInt64 USECS_PER_S = 1000000;
