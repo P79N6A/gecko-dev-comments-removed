@@ -3021,61 +3021,47 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType)
 
 
 
-JSBool
+static bool
 Detecting(JSContext *cx, jsbytecode *pc)
 {
-    jsbytecode *endpc;
-    JSOp op;
+    
+    JSOp op = JSOp(*pc);
+    if (js_CodeSpec[op].format & JOF_DETECTING)
+        return true;
+
     JSAtom *atom;
 
     JSScript *script = cx->stack.currentScript();
-    endpc = script->code + script->length;
-    for (;; pc += js_CodeSpec[op].length) {
-        JS_ASSERT(script->code <= pc && pc < endpc);
+    jsbytecode *endpc = script->code + script->length;
+    JS_ASSERT(script->code <= pc && pc < endpc);
 
+    if (op == JSOP_NULL) {
         
-        op = JSOp(*pc);
-        if (js_CodeSpec[op].format & JOF_DETECTING)
-            return JS_TRUE;
-
-        switch (op) {
-          case JSOP_NULL:
-            
 
 
 
-            if (++pc < endpc) {
-                op = JSOp(*pc);
-                return op == JSOP_EQ || op == JSOP_NE;
-            }
-            return JS_FALSE;
+        if (++pc < endpc) {
+            op = JSOp(*pc);
+            return op == JSOP_EQ || op == JSOP_NE;
+        }
+        return false;
+    }
 
-          case JSOP_GETGNAME:
-          case JSOP_NAME:
-            
+    if (op == JSOP_GETGNAME || op == JSOP_NAME) {
+        
 
 
 
 
-            GET_ATOM_FROM_BYTECODE(script, pc, 0, atom);
-            if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
-                (pc += js_CodeSpec[op].length) < endpc) {
-                op = JSOp(*pc);
-                return op == JSOP_EQ || op == JSOP_NE ||
-                       op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
-            }
-            return JS_FALSE;
-
-          default:
-            
-
-
-
-            if (!(js_CodeSpec[op].format & JOF_INDEXBASE))
-                return JS_FALSE;
-            break;
+        atom = script->getAtom(GET_UINT32_INDEX(pc));
+        if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
+            (pc += js_CodeSpec[op].length) < endpc) {
+            op = JSOp(*pc);
+            return op == JSOP_EQ || op == JSOP_NE || op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
         }
     }
+
+    return false;
 }
 
 

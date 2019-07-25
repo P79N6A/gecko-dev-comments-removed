@@ -1581,9 +1581,6 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
 
 
 
-    JSOp op = JSOp(*pc);
-    if (js_CodeSpec[op].format & JOF_INDEXBASE)
-        pc += js_CodeSpec[op].length;
     if (*pc == JSOP_DEFFUN)
         return script->getFunction(GET_UINT32_INDEX(pc))->script()->lineno;
 

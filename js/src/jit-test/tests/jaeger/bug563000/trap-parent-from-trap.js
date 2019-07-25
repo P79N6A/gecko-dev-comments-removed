@@ -5,7 +5,7 @@ x = "notset";
 function child() {
   x = "failure1";
   
-  trap(parent, 10, "success()");
+  trap(parent, 16, "success()");
 }
 
 function parent() {

@@ -5,7 +5,7 @@ function main() { x = "failure"; }
 function success() { x = "success"; }
 
 
-trap(main, 10, "success()");
+trap(main, 16, "success()");
 main();
 
 assertEq(x, "success");
