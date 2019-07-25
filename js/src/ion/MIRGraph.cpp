@@ -181,13 +181,9 @@ MBasicBlock::inheritNonPredecessor(MBasicBlock *parent)
     copySlots(parent);
 
     
-    entryResumePoint_ = new MResumePoint(this, pc(), callerResumePoint());
-    if (!entryResumePoint_->init(this))
+    entryResumePoint_ = MResumePoint::New(this, pc(), callerResumePoint());
+    if (!entryResumePoint_)
         return false;
-
-    for (size_t i = 0; i < stackDepth(); i++)
-        entryResumePoint()->initOperand(i, getSlot(i));
-
     return true;
 }
 

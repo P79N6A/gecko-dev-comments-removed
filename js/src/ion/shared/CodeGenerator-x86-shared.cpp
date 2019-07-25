@@ -917,6 +917,29 @@ CodeGeneratorX86Shared::visitBoundsCheck(LBoundsCheck *lir)
     return bailoutIf(Assembler::BelowOrEqual, lir->snapshot());
 }
 
+bool
+CodeGeneratorX86Shared::visitGuardShape(LGuardShape *guard)
+{
+    Register obj = ToRegister(guard->input());
+    masm.cmpPtr(Operand(obj, JSObject::offsetOfShape()), ImmGCPtr(guard->mir()->shape()));
+    if (!bailoutIf(Assembler::NotEqual, guard->snapshot()))
+        return false;
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitGuardClass(LGuardClass *guard)
+{
+    Register obj = ToRegister(guard->input());
+    Register tmp = ToRegister(guard->tempInt());
+
+    masm.loadBaseShape(obj, tmp);
+    masm.cmpPtr(Operand(tmp, BaseShape::offsetOfClass()), ImmWord(guard->mir()->getClass()));
+    if (!bailoutIf(Assembler::NotEqual, guard->snapshot()))
+        return false;
+    return true;
+}
+
 
 
 
