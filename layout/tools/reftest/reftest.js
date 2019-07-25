@@ -336,9 +336,6 @@ function BuildConditionSandbox(aURL) {
     }
 
     
-    sandbox.MOZ_WIDGET_TOOLKIT = xr.widgetToolkit;
-
-    
     sandbox.cocoaWidget = xr.widgetToolkit == "cocoa";
     sandbox.gtk2Widget = xr.widgetToolkit == "gtk2";
     sandbox.qtWidget = xr.widgetToolkit == "qt";
