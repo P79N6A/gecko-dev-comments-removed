@@ -4291,7 +4291,7 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
     } else {
         
         JSIdArray *ida = (JSIdArray *) pdata;
-        MarkIdRange(trc, ida->vector, ida->vector + ida->length, "prop iter");
+        MarkIdRange(trc, ida->length, ida->vector, "prop iter");
     }
 }
 
