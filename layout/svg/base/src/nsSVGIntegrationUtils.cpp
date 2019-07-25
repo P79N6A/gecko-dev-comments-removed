@@ -252,15 +252,17 @@ nsRect
   
   
   
-  nsIntRect overrideBBox =
-    GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
-                                     aPreEffectsOverflowRect,
-                                     firstFrameToUserSpace).
-      ToOutsidePixels(appUnitsPerDevPixel);
+  gfxRect overrideBBox =
+    nsLayoutUtils::RectToGfxRect(
+      GetPreEffectsVisualOverflowUnion(firstFrame, aFrame,
+                                       aPreEffectsOverflowRect,
+                                       firstFrameToUserSpace),
+      aFrame->PresContext()->AppUnitsPerCSSPixel());
+  overrideBBox.RoundOut();
 
   nsRect overflowRect =
     filterFrame->GetPostFilterBounds(firstFrame, &overrideBBox).
-                   ToAppUnits(appUnitsPerDevPixel);
+                   ToAppUnits(aFrame->PresContext()->AppUnitsPerDevPixel());
 
   
   return overflowRect - (aFrame->GetOffsetTo(firstFrame) + firstFrameToUserSpace);
