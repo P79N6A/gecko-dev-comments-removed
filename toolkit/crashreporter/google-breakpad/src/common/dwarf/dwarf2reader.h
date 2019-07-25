@@ -398,6 +398,15 @@ class Dwarf2Handler {
   
   
   
+  virtual void ProcessAttributeSignature(uint64 offset,
+                                         enum DwarfAttribute attr,
+                                         enum DwarfForm form,
+                                         uint64 signature) { }
+
+  
+  
+  
+  
   virtual void EndDIE(uint64 offset) { }
 
 };
