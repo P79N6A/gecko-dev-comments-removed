@@ -253,14 +253,20 @@ var FullZoom = {
       return;
     }
 
-    var self = this;
-    Services.contentPrefs.getPref(aURI, this.name, function (aResult) {
-      
-      let browser = aBrowser || gBrowser.selectedBrowser;
-      if (aURI.equals(browser.currentURI)) {
-        self._applyPrefToSetting(aResult, browser);
-      }
-    });
+    let browser = aBrowser || gBrowser.selectedBrowser;
+
+    if (Services.contentPrefs.hasCachedPref(aURI, this.name)) {
+      let zoomValue = Services.contentPrefs.getPref(aURI, this.name);
+      this._applyPrefToSetting(zoomValue, browser);
+    } else {
+      var self = this;
+      Services.contentPrefs.getPref(aURI, this.name, function (aResult) {
+        
+        if (aURI.equals(browser.currentURI)) {
+          self._applyPrefToSetting(aResult, browser);
+        }
+      });
+    }
   },
 
   
