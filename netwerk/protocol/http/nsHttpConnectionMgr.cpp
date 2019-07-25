@@ -1103,24 +1103,13 @@ nsHttpConnectionMgr::AtActiveConnectionLimit(nsConnectionEntry *ent, PRUint8 cap
         return true;
     }
 
-    PRInt32 totalCount = ent->mActiveConns.Length();
-
     
     
-    PRUint32 pendingHalfOpens = 0;
-    for (PRUint32 i = 0; i < ent->mHalfOpens.Length(); ++i) {
-        nsHalfOpenSocket *halfOpen = ent->mHalfOpens[i];
-
-        
-        
-        
-        if (halfOpen->HasConnected())
-            continue;
-
-        ++pendingHalfOpens;
-    }
     
-    totalCount += pendingHalfOpens;
+    
+    
+    PRUint32 totalCount =
+        ent->mActiveConns.Length() + ent->UnconnectedHalfOpens();
 
     PRUint16 maxPersistConns;
 
@@ -1185,7 +1174,7 @@ nsHttpConnectionMgr::RestrictConnections(nsConnectionEntry *ent)
     
     
     
-    if (ent->mHalfOpens.Length())
+    if (ent->UnconnectedHalfOpens())
         return true;
 
     
@@ -2316,19 +2305,12 @@ nsHttpConnectionMgr::nsHalfOpenSocket::~nsHalfOpenSocket()
         
         
         
-        bool restrictedBeforeRelease =
-            gHttpHandler->ConnMgr()->RestrictConnections(mEnt);
-
-        
-        
-        
         mEnt->mHalfOpens.RemoveElement(this);
-
-        if (restrictedBeforeRelease &&
-            !gHttpHandler->ConnMgr()->RestrictConnections(mEnt)) {
-            LOG(("nsHalfOpenSocket %p lifted RestrictConnections() limit.\n"));
+        
+        
+        
+        if (!mEnt->UnconnectedHalfOpens())
             gHttpHandler->ConnMgr()->ProcessPendingQForEntry(mEnt);
-        }
     }
 }
 
@@ -3029,4 +3011,15 @@ nsConnectionEntry::MaxPipelineDepth(nsAHttpTransaction::Classifier aClass)
         return kPipelineRestricted;
 
     return mGreenDepth;
+}
+
+PRUint32
+nsHttpConnectionMgr::nsConnectionEntry::UnconnectedHalfOpens()
+{
+    PRUint32 unconnectedHalfOpens = 0;
+    for (PRUint32 i = 0; i < mHalfOpens.Length(); ++i) {
+        if (!mHalfOpens[i]->HasConnected())
+            ++unconnectedHalfOpens;
+    }
+    return unconnectedHalfOpens;
 }

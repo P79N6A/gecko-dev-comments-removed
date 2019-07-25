@@ -262,6 +262,10 @@ private:
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;
 
         
+        
+        PRUint32 UnconnectedHalfOpens();
+
+        
         const static PRUint32 kPipelineUnlimited  = 1024; 
         const static PRUint32 kPipelineOpen       = 6;    
         const static PRUint32 kPipelineRestricted = 2;    
