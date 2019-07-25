@@ -39,7 +39,6 @@
 
 
 #include "base/basictypes.h"
-#include "jscntxt.h"
 
 #include "mozilla/jsipc/ContextWrapperChild.h"
 #include "mozilla/jsipc/ObjectWrapperChild.h"
