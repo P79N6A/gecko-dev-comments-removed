@@ -535,6 +535,8 @@ public:
     return HasAttr(kNameSpaceID_None, nsGkAtoms::hidden);
   }
 
+  virtual bool IsLabelable() const;
+
 protected:
   
 
