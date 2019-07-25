@@ -717,6 +717,8 @@ pref("ui.zooming.animation_frames", "");
 
 pref("accessibility.accessfu.activate", 2);
 
+pref("accessibility.accessfu.explorebytouch", 2);
+
 
 pref("network.manage-offline-status", true);
 
