@@ -5161,7 +5161,13 @@ nsGenericElement::MaybeCheckSameAttrVal(PRInt32 aNamespaceID,
       }
       bool valueMatches = aValue.EqualsAsStrings(*info.mValue);
       if (valueMatches && aPrefix == info.mName->GetPrefix()) {
-        return !OwnerDoc()->MayHaveDOMMutationObservers();
+        if (OwnerDoc()->MayHaveDOMMutationObservers()) {
+          
+          
+          *aHasListeners = false;
+        } else {
+          return true;
+        }
       }
       modification = true;
     }
