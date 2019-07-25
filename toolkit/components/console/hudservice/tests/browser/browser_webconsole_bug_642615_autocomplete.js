@@ -20,7 +20,7 @@ function tabLoad(aEvent) {
 
   jsterm.clearOutput();
 
-  ok(!jsterm.completionValue, "no completionValue");
+  ok(!jsterm.completeNode.value, "no completeNode.value");
 
   jsterm.setInputValue("doc");
 
@@ -28,28 +28,28 @@ function tabLoad(aEvent) {
   jsterm.inputNode.addEventListener("keyup", function() {
     jsterm.inputNode.removeEventListener("keyup", arguments.callee, false);
 
-    let completionValue = jsterm.completionValue;
-    ok(completionValue, "we have a completionValue");
+    let completionValue = jsterm.completeNode.value;
+    ok(completionValue, "we have a completeNode.value");
 
     
     jsterm.inputNode.addEventListener("input", function() {
       jsterm.inputNode.removeEventListener("input", arguments.callee, false);
 
-      ok(!jsterm.completionValue, "no completionValue after clipboard paste");
+      ok(!jsterm.completeNode.value, "no completeNode.value after clipboard paste");
 
       
       jsterm.inputNode.addEventListener("input", function() {
         jsterm.inputNode.removeEventListener("input", arguments.callee, false);
 
-        is(jsterm.completionValue, completionValue,
-           "same completionValue after undo");
+        is(jsterm.completeNode.value, completionValue,
+           "same completeNode.value after undo");
 
         
         jsterm.inputNode.addEventListener("keyup", function() {
           jsterm.inputNode.removeEventListener("keyup", arguments.callee, false);
 
-          ok(!jsterm.completionValue,
-             "no completionValue after clipboard paste (via keyboard event)");
+          ok(!jsterm.completeNode.value,
+             "no completeNode.value after clipboard paste (via keyboard event)");
 
           executeSoon(finishTest);
         }, false);
