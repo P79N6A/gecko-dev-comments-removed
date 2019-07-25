@@ -105,7 +105,6 @@ unsigned char *_mbsstr( const unsigned char *str,
 #endif
 
 ILCreateFromPathWPtr nsLocalFile::sILCreateFromPathW = NULL;
-ILFreePtr nsLocalFile::sILFree = NULL;
 SHOpenFolderAndSelectItemsPtr nsLocalFile::sSHOpenFolderAndSelectItems = NULL;
 PRLibrary *nsLocalFile::sLibShell = NULL;
 
@@ -2739,8 +2738,7 @@ nsLocalFile::RevealUsingShell()
 {
   
   
-  if (!sLibShell || !sILCreateFromPathW || 
-      !sILFree || !sSHOpenFolderAndSelectItems) {
+  if (!sLibShell || !sILCreateFromPathW || !sSHOpenFolderAndSelectItems) {
     return NS_ERROR_FAILURE;
   }
 
@@ -2757,11 +2755,11 @@ nsLocalFile::RevealUsingShell()
     }
 
     const ITEMIDLIST* selection[] = { dir };
-    UINT count = sizeof(selection) / sizeof(ITEMIDLIST);
+    UINT count = PR_ARRAY_SIZE(selection);
 
     
     hr = sSHOpenFolderAndSelectItems(dir, count, selection, 0);
-    sILFree(dir);
+    CoTaskMemFree(dir);
   }
   else {
     
@@ -2781,18 +2779,18 @@ nsLocalFile::RevealUsingShell()
     
     ITEMIDLIST *item = sILCreateFromPathW(mResolvedPath.get());
     if (!item) {
-      sILFree(dir);
+      CoTaskMemFree(dir);
       return NS_ERROR_FAILURE;
     }
     
     const ITEMIDLIST* selection[] = { item };
-    UINT count = sizeof(selection) / sizeof(ITEMIDLIST);
+    UINT count = PR_ARRAY_SIZE(selection);
 
     
     hr = sSHOpenFolderAndSelectItems(dir, count, selection, 0);
 
-    sILFree(dir);
-    sILFree(item);
+    CoTaskMemFree(dir);
+    CoTaskMemFree(item);
   }
   
   if (SUCCEEDED(hr)) {
@@ -3105,9 +3103,6 @@ nsLocalFile::GlobalInit()
       sILCreateFromPathW = (ILCreateFromPathWPtr) 
                            PR_FindFunctionSymbol(sLibShell, 
                                                  "ILCreateFromPathW");
-
-      
-      sILFree = (ILFreePtr) PR_FindFunctionSymbol(sLibShell, "ILFree");
 
       
       sSHOpenFolderAndSelectItems = (SHOpenFolderAndSelectItemsPtr) 
