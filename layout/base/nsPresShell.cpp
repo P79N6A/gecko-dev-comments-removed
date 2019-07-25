@@ -914,7 +914,10 @@ PresShell::Destroy()
     NS_RELEASE(gKeyDownTarget);
   }
 
-  mContentToScrollTo = nsnull;
+  if (mContentToScrollTo) {
+    mContentToScrollTo->DeleteProperty(nsGkAtoms::scrolling);
+    mContentToScrollTo = nsnull;
+  }
 
   if (mPresContext) {
     
@@ -3149,23 +3152,39 @@ static void ScrollToShowRect(nsIScrollableFrame*      aScrollFrame,
   }
 }
 
+static void
+DeleteScrollIntoViewData(void* aObject, nsIAtom* aPropertyName,
+                         void* aPropertyValue, void* aData)
+{
+  PresShell::ScrollIntoViewData* data =
+    static_cast<PresShell::ScrollIntoViewData*>(aPropertyValue);
+  delete data;
+}
+
 nsresult
 PresShell::ScrollContentIntoView(nsIContent*              aContent,
                                  nsIPresShell::ScrollAxis aVertical,
                                  nsIPresShell::ScrollAxis aHorizontal,
                                  PRUint32                 aFlags)
 {
-  nsCOMPtr<nsIContent> content = aContent; 
-  NS_ENSURE_TRUE(content, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIDocument> currentDoc = content->GetCurrentDoc();
+  NS_ENSURE_TRUE(aContent, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsIDocument> currentDoc = aContent->GetCurrentDoc();
   NS_ENSURE_STATE(currentDoc);
 
   NS_ASSERTION(mDidInitialReflow, "should have done initial reflow by now");
 
+  if (mContentToScrollTo) {
+    mContentToScrollTo->DeleteProperty(nsGkAtoms::scrolling);
+  }
   mContentToScrollTo = aContent;
-  mContentScrollVAxis = aVertical;
-  mContentScrollHAxis = aHorizontal;
-  mContentToScrollToFlags = aFlags;
+  ScrollIntoViewData* data = new ScrollIntoViewData();
+  data->mContentScrollVAxis = aVertical;
+  data->mContentScrollHAxis = aHorizontal;
+  data->mContentToScrollToFlags = aFlags;
+  if (NS_FAILED(mContentToScrollTo->SetProperty(nsGkAtoms::scrolling, data,
+                                                ::DeleteScrollIntoViewData))) {
+    mContentToScrollTo = nsnull;
+  }
 
   
   currentDoc->SetNeedLayoutFlush();
@@ -3180,21 +3199,19 @@ PresShell::ScrollContentIntoView(nsIContent*              aContent,
   
   
   if (mContentToScrollTo) {
-    DoScrollContentIntoView(content, aVertical, aHorizontal, aFlags);
+    DoScrollContentIntoView();
   }
   return NS_OK;
 }
 
 void
-PresShell::DoScrollContentIntoView(nsIContent*              aContent,
-                                   nsIPresShell::ScrollAxis aVertical,
-                                   nsIPresShell::ScrollAxis aHorizontal,
-                                   PRUint32                 aFlags)
+PresShell::DoScrollContentIntoView()
 {
   NS_ASSERTION(mDidInitialReflow, "should have done initial reflow by now");
 
-  nsIFrame* frame = aContent->GetPrimaryFrame();
+  nsIFrame* frame = mContentToScrollTo->GetPrimaryFrame();
   if (!frame) {
+    mContentToScrollTo->DeleteProperty(nsGkAtoms::scrolling);
     mContentToScrollTo = nsnull;
     return;
   }
@@ -3213,6 +3230,13 @@ PresShell::DoScrollContentIntoView(nsIContent*              aContent,
     return;
   }
 
+  ScrollIntoViewData* data = static_cast<ScrollIntoViewData*>(
+    mContentToScrollTo->GetProperty(nsGkAtoms::scrolling));
+  if (NS_UNLIKELY(!data)) {
+    mContentToScrollTo = nsnull;
+    return;
+  }
+
   
   
   
@@ -3225,7 +3249,8 @@ PresShell::DoScrollContentIntoView(nsIContent*              aContent,
   
   nsRect frameBounds;
   bool haveRect = false;
-  bool useWholeLineHeightForInlines = aVertical.mWhenToScroll != nsIPresShell::SCROLL_IF_NOT_FULLY_VISIBLE;
+  bool useWholeLineHeightForInlines =
+    data->mContentScrollVAxis.mWhenToScroll != nsIPresShell::SCROLL_IF_NOT_FULLY_VISIBLE;
   
   
   nsIFrame* prevBlock = nsnull;
@@ -3238,8 +3263,9 @@ PresShell::DoScrollContentIntoView(nsIContent*              aContent,
                           frameBounds, haveRect, prevBlock, lines, curLine);
   } while ((frame = frame->GetNextContinuation()));
 
-  ScrollFrameRectIntoView(container, frameBounds, aVertical, aHorizontal,
-                          aFlags);
+  ScrollFrameRectIntoView(container, frameBounds, data->mContentScrollVAxis,
+                          data->mContentScrollHAxis,
+                          data->mContentToScrollToFlags);
 }
 
 bool
@@ -3836,11 +3862,11 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       mViewManager->FlushDelayedResize(true);
       if (ProcessReflowCommands(aType < Flush_Layout) && mContentToScrollTo) {
         
-        DoScrollContentIntoView(mContentToScrollTo,
-                                mContentScrollVAxis,
-                                mContentScrollHAxis,
-                                mContentToScrollToFlags);
-        mContentToScrollTo = nsnull;
+        DoScrollContentIntoView();
+        if (mContentToScrollTo) {
+          mContentToScrollTo->DeleteProperty(nsGkAtoms::scrolling);
+          mContentToScrollTo = nsnull;
+        }
       }
     } else if (!mIsDestroying && mSuppressInterruptibleReflows &&
                aType == Flush_InterruptibleLayout) {

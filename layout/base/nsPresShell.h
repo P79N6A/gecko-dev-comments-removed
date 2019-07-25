@@ -362,6 +362,14 @@ public:
                            size_t *aPresContextSize) const;
   size_t SizeOfTextRuns(nsMallocSizeOfFun aMallocSizeOf) const;
 
+  
+  
+  struct ScrollIntoViewData {
+    ScrollAxis mContentScrollVAxis;
+    ScrollAxis mContentScrollHAxis;
+    PRUint32   mContentToScrollToFlags;
+  };
+
 protected:
   virtual ~PresShell();
 
@@ -408,10 +416,7 @@ protected:
 #endif
 
   
-  void DoScrollContentIntoView(nsIContent* aContent,
-                               ScrollAxis  aVertical,
-                               ScrollAxis  aHorizontal,
-                               PRUint32    aFlags);
+  void DoScrollContentIntoView();
 
   friend struct AutoRenderingStateSaveRestore;
   friend struct RenderingState;
@@ -777,9 +782,6 @@ protected:
   
   
   nsCOMPtr<nsIContent>      mContentToScrollTo;
-  ScrollAxis                mContentScrollVAxis;
-  ScrollAxis                mContentScrollHAxis;
-  PRUint32                  mContentToScrollToFlags;
 
   nscoord                   mLastAnchorScrollPositionY;
 
