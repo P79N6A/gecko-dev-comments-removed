@@ -7,6 +7,7 @@
 
 
 
+
 const TEST_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-console.html";
 
 function test() {
@@ -20,8 +21,8 @@ function tabLoaded() {
 
   
 
-  let HUD = HUDService.getDisplayByURISpec(
-    browser.contentWindow.wrappedJSObject.document.location.href);
+  hudId = HUDService.displaysIndex()[0];
+  let HUD = HUDService.hudWeakReferences[hudId].get().HUDBox;
   let filterBox = HUD.querySelector(".hud-filter-box");
   outputNode = HUD.querySelector(".hud-output-node");
   let selection = getSelection();
