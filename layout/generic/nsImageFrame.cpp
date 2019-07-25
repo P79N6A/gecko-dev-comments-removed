@@ -642,10 +642,6 @@ nsImageFrame::OnStopDecode(imgIRequest *aRequest,
                            nsresult aStatus,
                            const PRUnichar *aStatusArg)
 {
-  nsPresContext *presContext = PresContext();
-  nsIPresShell *presShell = presContext->GetPresShell();
-  NS_ASSERTION(presShell, "No PresShell.");
-
   
   nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
   NS_ASSERTION(imageLoader, "Who's notifying us??");
@@ -657,39 +653,47 @@ nsImageFrame::OnStopDecode(imgIRequest *aRequest,
   }
 
   if (loadType == nsIImageLoadingContent::PENDING_REQUEST) {
-    
-    bool intrinsicSizeChanged = true;
-    if (NS_SUCCEEDED(aStatus)) {
-      nsCOMPtr<imgIContainer> imageContainer;
-      aRequest->GetImage(getter_AddRefs(imageContainer));
-      NS_ASSERTION(imageContainer, "Successful load with no container?");
-      intrinsicSizeChanged = UpdateIntrinsicSize(imageContainer);
-      intrinsicSizeChanged = UpdateIntrinsicRatio(imageContainer) ||
-        intrinsicSizeChanged;
-    }
-    else {
-      
-      mIntrinsicSize.width.SetCoordValue(0);
-      mIntrinsicSize.height.SetCoordValue(0);
-      mIntrinsicRatio.SizeTo(0, 0);
-    }
-
-    if (mState & IMAGE_GOTINITIALREFLOW) { 
-      if (!(mState & IMAGE_SIZECONSTRAINED) && intrinsicSizeChanged) {
-        if (presShell) { 
-          presShell->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
-                                      NS_FRAME_IS_DIRTY);
-        }
-      } else {
-        nsSize s = GetSize();
-        nsRect r(0, 0, s.width, s.height);
-        
-        Invalidate(r);
-      }
-    }
+    NotifyNewCurrentRequest(aRequest, aStatus);
   }
 
   return NS_OK;
+}
+
+void
+nsImageFrame::NotifyNewCurrentRequest(imgIRequest *aRequest,
+                                      nsresult aStatus)
+{
+  
+  bool intrinsicSizeChanged = true;
+  if (NS_SUCCEEDED(aStatus)) {
+    nsCOMPtr<imgIContainer> imageContainer;
+    aRequest->GetImage(getter_AddRefs(imageContainer));
+    NS_ASSERTION(imageContainer, "Successful load with no container?");
+    intrinsicSizeChanged = UpdateIntrinsicSize(imageContainer);
+    intrinsicSizeChanged = UpdateIntrinsicRatio(imageContainer) ||
+      intrinsicSizeChanged;
+  }
+  else {
+    
+    mIntrinsicSize.width.SetCoordValue(0);
+    mIntrinsicSize.height.SetCoordValue(0);
+    mIntrinsicRatio.SizeTo(0, 0);
+  }
+
+  if (mState & IMAGE_GOTINITIALREFLOW) { 
+    if (!(mState & IMAGE_SIZECONSTRAINED) && intrinsicSizeChanged) {
+      nsIPresShell *presShell = PresContext()->GetPresShell();
+      if (presShell) { 
+        presShell->FrameNeedsReflow(this, nsIPresShell::eStyleChange,
+                                    NS_FRAME_IS_DIRTY);
+      }
+    } else {
+      nsSize s = GetSize();
+      nsRect r(0, 0, s.width, s.height);
+      
+      Invalidate(r);
+    }
+  }
 }
 
 nsresult

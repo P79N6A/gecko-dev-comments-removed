@@ -300,6 +300,12 @@ protected:
   
 
 
+
+  void MakePendingRequestCurrent();
+
+  
+
+
   void ClearCurrentRequest(nsresult aReason);
   void ClearPendingRequest(nsresult aReason);
 

@@ -61,6 +61,7 @@
 #include "nsNetUtil.h"
 #include "nsAsyncDOMEvent.h"
 #include "nsGenericElement.h"
+#include "nsImageFrame.h"
 
 #include "nsIPresShell.h"
 #include "nsEventStates.h"
@@ -300,10 +301,7 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
 
   
   if (aRequest == mPendingRequest) {
-    PrepareCurrentRequest() = mPendingRequest;
-    mPendingRequest = nsnull;
-    mCurrentRequestNeedsResetAnimation = mPendingRequestNeedsResetAnimation;
-    mPendingRequestNeedsResetAnimation = false;
+    MakePendingRequestCurrent();
   }
   NS_ABORT_IF_FALSE(aRequest == mCurrentRequest,
                     "One way or another, we should be current by now");
@@ -792,6 +790,26 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
                                  getter_AddRefs(req));
   if (NS_SUCCEEDED(rv)) {
     TrackImage(req);
+
+    
+    
+    
+    
+    if (req == mPendingRequest) {
+      PRUint32 pendingLoadStatus;
+      rv = req->GetImageStatus(&pendingLoadStatus);
+      if (NS_SUCCEEDED(rv) &&
+          (pendingLoadStatus & imgIRequest::STATUS_LOAD_COMPLETE)) {
+        MakePendingRequestCurrent();
+        MOZ_ASSERT(mCurrentRequest,
+                   "How could we not have a current request here?");
+
+        nsImageFrame *f = do_QueryFrame(GetOurPrimaryFrame());
+        if (f) {
+          f->NotifyNewCurrentRequest(mCurrentRequest, NS_OK);
+        }
+      }
+    }
   } else {
     
     
@@ -1044,6 +1062,16 @@ nsImageLoadingContent::PreparePendingRequest()
 
   
   return mPendingRequest;
+}
+
+void
+nsImageLoadingContent::MakePendingRequestCurrent()
+{
+  MOZ_ASSERT(mPendingRequest);
+  PrepareCurrentRequest() = mPendingRequest;
+  mPendingRequest = nsnull;
+  mCurrentRequestNeedsResetAnimation = mPendingRequestNeedsResetAnimation;
+  mPendingRequestNeedsResetAnimation = false;
 }
 
 void
