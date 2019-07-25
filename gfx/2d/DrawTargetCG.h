@@ -103,6 +103,7 @@ public:
 
   
   bool Init(const IntSize &aSize, SurfaceFormat&);
+  bool Init(unsigned char* aData, const IntSize &aSize, int32_t aStride, SurfaceFormat aFormat);
   bool Init(CGContextRef cgContext, const IntSize &aSize);
 
 
@@ -148,6 +149,14 @@ private:
   IntSize mSize;
   CGColorSpaceRef mColorSpace;
   CGContextRef mCg;
+
+  
+
+
+
+
+
+
 
   void *mData;
 
