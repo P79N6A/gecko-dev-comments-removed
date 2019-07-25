@@ -70,6 +70,11 @@ nsBaseAppShell::nsBaseAppShell()
 {
 }
 
+nsBaseAppShell::~nsBaseAppShell()
+{
+  NS_ASSERTION(mSyncSections.Count() == 0, "Must have run all sync sections");
+}
+
 nsresult
 nsBaseAppShell::Init()
 {
@@ -369,14 +374,20 @@ nsBaseAppShell::Observe(nsISupports *subject, const char *topic,
 NS_IMETHODIMP
 nsBaseAppShell::RunInStableState(nsIRunnable* aRunnable)
 {
-  if (!mRunning) {
-    
-    
-    aRunnable->Run();
-    return NS_OK;
-  }
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   
   
   mSyncSections.AppendObject(aRunnable);
+
+  
+  nsIThread* thread = NS_GetCurrentThread(); 
+  if (!NS_HasPendingEvents(thread) &&
+       NS_FAILED(thread->Dispatch(new nsRunnable(), NS_DISPATCH_NORMAL)))
+  {
+    
+    
+    RunSyncSections();
+  }
   return NS_OK;
 }
+

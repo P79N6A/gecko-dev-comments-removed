@@ -62,7 +62,7 @@ public:
   nsBaseAppShell();
 
 protected:
-  virtual ~nsBaseAppShell() {}
+  virtual ~nsBaseAppShell();
 
   
 
