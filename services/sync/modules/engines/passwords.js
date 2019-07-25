@@ -35,7 +35,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ['PasswordEngine'];
+
+const EXPORTED_SYMBOLS = ['PasswordEngine', 'LoginRec'];
 
 const Cu = Components.utils;
 const Cc = Components.classes;
@@ -46,8 +47,20 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/stores.js");
 Cu.import("resource://services-sync/trackers.js");
-Cu.import("resource://services-sync/type_records/passwords.js");
+Cu.import("resource://services-sync/base_records/crypto.js");
 Cu.import("resource://services-sync/util.js");
+
+function LoginRec(collection, id) {
+  CryptoWrapper.call(this, collection, id);
+}
+LoginRec.prototype = {
+  __proto__: CryptoWrapper.prototype,
+  _logName: "Record.Login",
+};
+
+Utils.deferGetSet(LoginRec, "cleartext", ["hostname", "formSubmitURL",
+  "httpRealm", "username", "password", "usernameField", "passwordField"]);
+
 
 function PasswordEngine() {
   SyncEngine.call(this, "Passwords");

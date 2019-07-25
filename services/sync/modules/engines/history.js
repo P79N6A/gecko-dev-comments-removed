@@ -36,7 +36,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ['HistoryEngine'];
+
+const EXPORTED_SYMBOLS = ['HistoryEngine', 'HistoryRec'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -44,15 +45,28 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 const GUID_ANNO = "sync/guid";
+const HISTORY_TTL = 5184000; 
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/stores.js");
 Cu.import("resource://services-sync/trackers.js");
-Cu.import("resource://services-sync/type_records/history.js");
+Cu.import("resource://services-sync/base_records/crypto.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/log4moz.js");
+
+function HistoryRec(collection, id) {
+  CryptoWrapper.call(this, collection, id);
+}
+HistoryRec.prototype = {
+  __proto__: CryptoWrapper.prototype,
+  _logName: "Record.History",
+  ttl: HISTORY_TTL
+};
+
+Utils.deferGetSet(HistoryRec, "cleartext", ["histUri", "title", "visits"]);
+
 
 function HistoryEngine() {
   SyncEngine.call(this, "History");

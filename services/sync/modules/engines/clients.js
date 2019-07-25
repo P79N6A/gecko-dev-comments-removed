@@ -34,7 +34,8 @@
 
 
 
-const EXPORTED_SYMBOLS = ["Clients"];
+
+const EXPORTED_SYMBOLS = ["Clients", "ClientsRec"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -44,10 +45,23 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/ext/StringBundle.js");
 Cu.import("resource://services-sync/stores.js");
-Cu.import("resource://services-sync/type_records/clients.js");
+Cu.import("resource://services-sync/base_records/crypto.js");
 Cu.import("resource://services-sync/util.js");
 
+const CLIENTS_TTL = 1814400; 
 const CLIENTS_TTL_REFRESH = 604800; 
+
+function ClientsRec(collection, id) {
+  CryptoWrapper.call(this, collection, id);
+}
+ClientsRec.prototype = {
+  __proto__: CryptoWrapper.prototype,
+  _logName: "Record.Clients",
+  ttl: CLIENTS_TTL
+};
+
+Utils.deferGetSet(ClientsRec, "cleartext", ["name", "type", "commands"]);
+
 
 Utils.lazy(this, "Clients", ClientEngine);
 
