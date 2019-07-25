@@ -4482,10 +4482,24 @@ class SlotMap : public SlotVisitorBase
     JS_REQUIRES_STACK virtual void
     adjustType(SlotInfo& info) {
         JS_ASSERT(info.lastCheck != TypeCheck_Undemote && info.lastCheck != TypeCheck_Bad);
+#ifdef DEBUG
         if (info.lastCheck == TypeCheck_Promote) {
             JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
-            mRecorder.set(info.vp, mRecorder.d2i(mRecorder.get(info.vp)));
-        } else if (info.lastCheck == TypeCheck_Demote) {
+            
+
+
+
+
+
+
+
+
+
+            LIns* ins = mRecorder.getFromTracker(info.vp);
+            JS_ASSERT_IF(ins, isPromoteInt(ins));
+        } else 
+#endif
+        if (info.lastCheck == TypeCheck_Demote) {
             JS_ASSERT(info.type == TT_INT32 || info.type == TT_DOUBLE);
             JS_ASSERT(mRecorder.get(info.vp)->isD());
 
