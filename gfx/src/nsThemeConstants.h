@@ -30,26 +30,32 @@
 #define NS_THEME_TOOLBAR_BUTTON_DROPDOWN                   15
 
 
-#define NS_THEME_TOOLBAR_SEPARATOR                         16
+#define NS_THEME_BUTTON_ARROW_UP                           16
+#define NS_THEME_BUTTON_ARROW_DOWN                         17
+#define NS_THEME_BUTTON_ARROW_NEXT                         18
+#define NS_THEME_BUTTON_ARROW_PREVIOUS                     19
 
 
-#define NS_THEME_TOOLBAR_GRIPPER                           17
+#define NS_THEME_TOOLBAR_SEPARATOR                         20
 
 
-#define NS_THEME_SPLITTER                                  19
+#define NS_THEME_TOOLBAR_GRIPPER                           21
 
 
-#define NS_THEME_STATUSBAR                                 21
+#define NS_THEME_SPLITTER                                  22
 
 
-#define NS_THEME_STATUSBAR_PANEL                           22
+#define NS_THEME_STATUSBAR                                 23
+
+
+#define NS_THEME_STATUSBAR_PANEL                           24
 
 
 
-#define NS_THEME_STATUSBAR_RESIZER_PANEL                   23
+#define NS_THEME_STATUSBAR_RESIZER_PANEL                   25
 
 
-#define NS_THEME_RESIZER                                   24
+#define NS_THEME_RESIZER                                   26
 
 
 #define NS_THEME_LISTBOX                                   31

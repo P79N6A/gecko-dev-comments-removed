@@ -386,7 +386,7 @@ gint moz_gtk_get_tab_scroll_arrow_size(gint* width, gint* height);
 
 
 
-gint moz_gtk_get_downarrow_size(gint* width, gint* height);
+gint moz_gtk_get_arrow_size(gint* width, gint* height);
 
 
 
