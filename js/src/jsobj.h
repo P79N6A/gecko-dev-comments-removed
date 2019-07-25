@@ -210,9 +210,9 @@ MeterEntryCount(uintN count);
 
 } 
 
-struct JSObjectMap {
-    uint32 shape;       
-    uint32 slotSpan;    
+struct JSObjectMap : public js::gc::Cell {
+    mutable uint32 shape;  
+    uint32 slotSpan;       
 
     static JS_FRIEND_DATA(JSObjectMap) sharedNonNative;
 

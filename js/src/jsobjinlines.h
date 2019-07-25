@@ -134,15 +134,12 @@ JSObject::trace(JSTracer *trc)
     JSContext *cx = trc->context;
     js::Shape *shape = lastProp;
 
+    MarkShape(trc, shape, "shape");
+
     if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes) {
         
 
 
-
-        if (!shape->hasRegenFlag()) {
-            shape->shape = js_RegenerateShapeForGC(cx->runtime);
-            shape->setRegenFlag();
-        }
 
         uint32 newShape = shape->shape;
         if (hasOwnShape()) {
@@ -151,11 +148,6 @@ JSObject::trace(JSTracer *trc)
         }
         objShape = newShape;
     }
-
-    
-    do {
-        shape->trace(trc);
-    } while ((shape = shape->parent) != NULL && !shape->marked());
 }
 
 inline void
