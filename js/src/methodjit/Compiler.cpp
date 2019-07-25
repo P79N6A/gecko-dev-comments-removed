@@ -333,9 +333,15 @@ mjit::Compiler::generatePrologue()
                                          FrameAddress(offsetof(VMFrame, stackLimit)));
 
         
+
+
+
+
+
+
         {
             stubcc.linkExitDirect(stackCheck, stubcc.masm.label());
-            OOL_STUBCALL(stubs::HitStackQuota);
+            OOL_STUBCALL_LOCAL_SLOTS(stubs::HitStackQuota, 0);
             stubcc.crossJump(stubcc.masm.jump(), masm.label());
         }
 
