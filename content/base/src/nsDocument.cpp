@@ -5543,6 +5543,11 @@ nsDocument::GetAnimationController()
     }
   }
 
+  
+  if (!mIsShowing) {
+    mAnimationController->OnPageHide();
+  }
+
   return mAnimationController;
 }
 #endif 
