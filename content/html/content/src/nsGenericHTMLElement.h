@@ -148,6 +148,8 @@ public:
   NS_IMETHOD Blur();
   NS_IMETHOD GetTabIndex(PRInt32 *aTabIndex);
   NS_IMETHOD SetTabIndex(PRInt32 aTabIndex);
+  NS_IMETHOD GetHidden(PRBool* aHidden);
+  NS_IMETHOD SetHidden(PRBool aHidden);
   NS_IMETHOD GetSpellcheck(PRBool* aSpellcheck);
   NS_IMETHOD SetSpellcheck(PRBool aSpellcheck);
   NS_IMETHOD GetDraggable(PRBool* aDraggable);
