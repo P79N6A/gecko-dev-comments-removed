@@ -980,6 +980,8 @@ js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot);
 
 
 
+
+
 bool
 js_EnsureReservedSlots(JSContext *cx, JSObject *obj, size_t nreserved);
 
