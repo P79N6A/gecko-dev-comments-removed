@@ -52,7 +52,6 @@
 #include "mozIStorageBindingParams.h"
 #include "mozIStorageValueArray.h"
 #include "mozIStorageFunction.h"
-#include "nsPrintfCString.h"
 #include "nsNetUtil.h"
 
 
