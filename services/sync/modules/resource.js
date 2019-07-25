@@ -35,7 +35,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ['Resource', 'JsonFilter'];
+const EXPORTED_SYMBOLS = ["Resource"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -125,29 +125,12 @@ Resource.prototype = {
     this._data = value;
   },
 
-  
-  
-  
-  
-  
-  _filters: null,
-  pushFilter: function Res_pushFilter(filter) {
-    this._filters.push(filter);
-  },
-  popFilter: function Res_popFilter() {
-    return this._filters.pop();
-  },
-  clearFilters: function Res_clearFilters() {
-    this._filters = [];
-  },
-
   _init: function Res__init(uri) {
     this._log = Log4Moz.repository.getLogger(this._logName);
     this._log.level =
       Log4Moz.Level[Utils.prefs.getCharPref("log.logger.network.resources")];
     this.uri = uri;
     this._headers = {'Content-type': 'text/plain'};
-    this._filters = [];
   },
 
   
@@ -185,26 +168,6 @@ Resource.prototype = {
   
   
   
-  filterUpload: function Resource_filterUpload() {
-    this._data = this._filters.reduce(function(data, filter) {
-      return filter.beforePUT(data);
-    }, this._data);
-  },
-
-  
-  
-  
-  
-  filterDownload: function Resource_filterDownload() {
-    this._data = this._filters.reduceRight(function(data, filter) {
-      return filter.afterGET(data);
-    }, this._data);
-  },
-
-  
-  
-  
-  
   
   _request: function Res__request(action, data) {
     let iter = 0;
@@ -216,7 +179,10 @@ Resource.prototype = {
     
     
     if ("PUT" == action || "POST" == action) {
-      this.filterUpload();
+      
+      if (this._data.constructor.toString() != String)
+        this._data = JSON.stringify(this._data);
+
       this._log.debug(action + " Length: " + this._data.length);
       this._log.trace(action + " Body: " + this._data);
 
@@ -359,30 +325,6 @@ ChannelListener.prototype = {
 
     this._data += siStream.read(count);
     this._onProgress();
-  }
-};
-
-
-
-
-
-
-function JsonFilter() {
-  let level = "Debug";
-  try { level = Utils.prefs.getCharPref("log.logger.network.jsonFilter"); }
-  catch (e) {  }
-  this._log = Log4Moz.repository.getLogger("Net.JsonFilter");
-  this._log.level = Log4Moz.Level[level];
-}
-JsonFilter.prototype = {
-  beforePUT: function JsonFilter_beforePUT(data) {
-    this._log.trace("Encoding data as JSON");
-    return JSON.stringify(data);
-  },
-
-  afterGET: function JsonFilter_afterGET(data) {
-    this._log.trace("Decoding JSON data");
-    return JSON.parse(data);
   }
 };
 
