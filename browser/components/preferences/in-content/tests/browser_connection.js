@@ -63,15 +63,11 @@ function test() {
 
 
 
-  gBrowser.selectedTab = gBrowser.addTab("about:preferences");
-  let newTabBrowser = gBrowser.getBrowserForTab(gBrowser.selectedTab);
-  newTabBrowser.addEventListener("load", function tabLoadListener() {
-    newTabBrowser.removeEventListener("load", tabLoadListener, true);
+  open_preferences(function tabOpened(aContentWindow) {
     is(gBrowser.currentURI.spec, "about:preferences", "about:preferences loaded");
     windowWatcher.registerNotification(observer);
     gBrowser.contentWindow.gAdvancedPane.showConnections();
-  }, true);
-
+  });
 }
 
 
