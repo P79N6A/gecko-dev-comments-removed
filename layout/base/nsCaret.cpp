@@ -178,7 +178,6 @@ nsCaret::nsCaret()
 #endif
 , mLastContentOffset(0)
 , mLastHint(nsFrameSelection::HINTLEFT)
-, mLastFrameOffset(0)
 {
 }
 
@@ -301,7 +300,6 @@ void nsCaret::Terminate()
   mPresShell = nsnull;
 
   mLastContent = nsnull;
-  mLastFrame = nsnull;
 }
 
 
@@ -742,16 +740,6 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
                                     nsIFrame**              aReturnFrame,
                                     PRInt32*                aReturnOffset)
 {
-  
-  if (mLastFrame.IsAlive() &&
-      mLastContent == aContentNode &&
-      mLastContentOffset == aOffset &&
-      mLastHint == aFrameHint &&
-      mLastBidiLevel == aBidiLevel) {
-    *aReturnFrame = mLastFrame;
-    *aReturnOffset = mLastFrameOffset;
-    return NS_OK;
-  }
 
   
   nsCOMPtr<nsIPresShell> presShell = do_QueryReferent(mPresShell);
@@ -912,8 +900,6 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   }
   *aReturnFrame = theFrame;
   *aReturnOffset = theFrameOffset;
-  mLastFrame = theFrame;
-  mLastFrameOffset = theFrameOffset;
   return NS_OK;
 }
 
