@@ -158,16 +158,6 @@ class Assembler : public BaseAssembler
             store32(Imm32(jv.s.payload.u32), payloadOf(address));
     }
 
-    
-
-
-
-
-    void storeLayout(const jsval_layout &jv, Address address) {
-        store32(ImmTag(jv.s.tag), tagOf(address));
-        store32(Imm32(jv.s.payload.u32), payloadOf(address));
-    }
-
     void storeValue(const Value &v, BaseIndex address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));
