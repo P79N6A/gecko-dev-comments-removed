@@ -74,12 +74,6 @@
 
 
 
-
-#define NS_XPCOMPROXY_CONTRACTID "@mozilla.org/xpcomproxy;1"
-
-
-
-
 #define XULAPPINFO_SERVICE_CONTRACTID \
   "@mozilla.org/xre/app-info;1"
 
