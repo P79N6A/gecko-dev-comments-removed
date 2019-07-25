@@ -7191,7 +7191,7 @@ PresShell::WillPaint(PRBool aWillSendDidPaint)
 {
   
   
-  if (mPaintingSuppressed) {
+  if (mPaintingSuppressed || !mIsActive) {
     return;
   }
 

@@ -1659,11 +1659,13 @@ nsViewManager::CallWillPaintOnObservers(PRBool aWillSendDidPaint)
     nsViewManager* vm = (nsViewManager*)gViewManagers->ElementAt(index);
     if (vm->RootViewManager() == this) {
       
-      nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
-      if (obs) {
-        obs->WillPaint(aWillSendDidPaint);
-        NS_ASSERTION(mUpdateBatchCnt == savedUpdateBatchCnt,
-                     "Observer did not end view batch?");
+      if (vm->mRootView && vm->mRootView->IsEffectivelyVisible()) {
+        nsCOMPtr<nsIViewObserver> obs = vm->GetViewObserver();
+        if (obs) {
+          obs->WillPaint(aWillSendDidPaint);
+          NS_ASSERTION(mUpdateBatchCnt == savedUpdateBatchCnt,
+                       "Observer did not end view batch?");
+        }
       }
     }
   }
