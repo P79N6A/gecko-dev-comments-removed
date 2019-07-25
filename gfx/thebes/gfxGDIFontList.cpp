@@ -749,24 +749,27 @@ gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
         return nsnull;
     }
 
-    
-    PRUint16 w = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
     bool isCFF = false; 
     
     
     
     
     
-    gfxFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
+    GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) , 
-        PRUint32(aProxyEntry->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL), 
-        w, aProxyEntry->mStretch, nsnull);
+        lookup->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL,
+        lookup->mWeight, aProxyEntry->mStretch, nsnull);
         
     if (!fe)
         return nsnull;
 
     fe->mIsUserFont = true;
     fe->mIsLocalUserFont = true;
+
+    
+    fe->mWeight = (aProxyEntry->mWeight == 0 ? 400 : aProxyEntry->mWeight);
+    fe->mItalic = aProxyEntry->mItalic;
+
     return fe;
 }
 
