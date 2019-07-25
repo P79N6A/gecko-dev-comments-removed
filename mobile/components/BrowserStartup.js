@@ -87,8 +87,17 @@ BrowserStartup.prototype = {
     let importBookmarks = databaseStatus == histsvc.DATABASE_STATUS_CREATE ||
                           databaseStatus == histsvc.DATABASE_STATUS_CORRUPT;
 
-    if (!importBookmarks)
-      return;
+    if (!importBookmarks) {
+      
+      
+      
+      
+      let annos = Cc["@mozilla.org/browser/annotation-service;1"].
+                  getService(Ci.nsIAnnotationService);
+      let mobileRootItems = annos.getItemsWithAnnotation("mobile/bookmarksRoot", {});
+      if (mobileRootItems.length > 0)
+        return; 
+    }
 
     Cu.import("resource://gre/modules/utils.js");
 
@@ -102,7 +111,10 @@ BrowserStartup.prototype = {
             converter.charset = "UTF-8";
             jsonStr = converter.convertFromByteArray(aResult, aResult.length);
 
-            PlacesUtils.restoreBookmarksFromJSONString(jsonStr, true);
+            
+            
+            
+            PlacesUtils.restoreBookmarksFromJSONString(jsonStr, false);
           } catch (err) {
             Cu.reportError("Failed to parse default bookmarks from bookmarks.json: " + err);
           }
