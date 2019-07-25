@@ -291,7 +291,7 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
   
   PRUint32 bufSize;
   rv = imgStream->Available(&bufSize);
-  CheckedInt32 safeBufSize(bufSize);
+  CheckedUint32 safeBufSize(bufSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -304,7 +304,8 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
     return NS_ERROR_OUT_OF_MEMORY;
   PRUint32 numReadThisTime = 0;
   while ((rv = imgStream->Read(&aResult[aSize], safeBufSize.value() - aSize,
-                         &numReadThisTime)) == NS_OK && numReadThisTime > 0) {
+                               &numReadThisTime)) == NS_OK &&
+         numReadThisTime > 0) {
     aSize += numReadThisTime;
     if (aSize == safeBufSize.value()) {
       
