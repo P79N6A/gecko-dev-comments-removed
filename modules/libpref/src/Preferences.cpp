@@ -1020,6 +1020,7 @@ static nsresult pref_InitInitialObjects()
   
   
   
+  
 
   nsZipFind *findPtr;
   nsAutoPtr<nsZipFind> find;
@@ -1062,37 +1063,35 @@ static nsresult pref_InitInitialObjects()
       NS_WARNING("Error parsing GRE default preferences. Is this an old-style embedding app?");
   }
 
-  if (!mozilla::Omnijar::HasOmnijar(mozilla::Omnijar::APP)) {
-    
-    nsCOMPtr<nsIFile> defaultPrefDir;
+  
+  nsCOMPtr<nsIFile> defaultPrefDir;
 
-    rv = NS_GetSpecialDirectory(NS_APP_PREF_DEFAULTS_50_DIR, getter_AddRefs(defaultPrefDir));
-    NS_ENSURE_SUCCESS(rv, rv);
+  rv = NS_GetSpecialDirectory(NS_APP_PREF_DEFAULTS_50_DIR, getter_AddRefs(defaultPrefDir));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    
-    static const char* specialFiles[] = {
+  
+  static const char* specialFiles[] = {
 #if defined(XP_MACOSX)
-      "macprefs.js"
+    "macprefs.js"
 #elif defined(XP_WIN)
-      "winpref.js"
+    "winpref.js"
 #elif defined(XP_UNIX)
-      "unix.js"
+    "unix.js"
 #if defined(VMS)
-      , "openvms.js"
+    , "openvms.js"
 #elif defined(_AIX)
-      , "aix.js"
+    , "aix.js"
 #endif
 #elif defined(XP_OS2)
-      "os2pref.js"
+    "os2pref.js"
 #elif defined(XP_BEOS)
-      "beos.js"
+    "beos.js"
 #endif
-    };
+  };
 
-    rv = pref_LoadPrefsInDir(defaultPrefDir, specialFiles, NS_ARRAY_LENGTH(specialFiles));
-    if (NS_FAILED(rv))
-      NS_WARNING("Error parsing application default preferences.");
-  }
+  rv = pref_LoadPrefsInDir(defaultPrefDir, specialFiles, NS_ARRAY_LENGTH(specialFiles));
+  if (NS_FAILED(rv))
+    NS_WARNING("Error parsing application default preferences.");
 
   
   nsZipArchive *appJarReader = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
