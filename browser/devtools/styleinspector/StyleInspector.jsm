@@ -1,0 +1,182 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Cu = Components.utils;
+const Ci = Components.interfaces;
+
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+var EXPORTED_SYMBOLS = ["StyleInspector"];
+
+var StyleInspector = {
+  
+
+
+
+  get isEnabled()
+  {
+    return Services.prefs.getBoolPref("devtools.styleinspector.enabled");
+  },
+
+  createPanel: function SI_createPanel()
+  {
+    let win = Services.wm.getMostRecentWindow("navigator:browser");
+    let popupSet = win.document.getElementById("mainPopupSet");
+    let ns = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    let panel = win.document.createElementNS(ns, "panel");
+
+    panel.setAttribute("orient", "vertical");
+    panel.setAttribute("ignorekeys", "true");
+    panel.setAttribute("noautofocus", "true");
+    panel.setAttribute("noautohide", "true");
+    panel.setAttribute("titlebar", "normal");
+    panel.setAttribute("close", "true");
+    panel.setAttribute("label", StyleInspector.l10n("panelTitle"));
+
+    
+    let contentWindow = win.gBrowser.selectedBrowser.contentWindow;
+    panel.setAttribute("width", 200);
+    panel.setAttribute("height", contentWindow.outerHeight / 2 - 60);
+
+    let vbox = win.document.createElement("vbox");
+    vbox.setAttribute("flex", "1");
+    panel.appendChild(vbox);
+
+    let iframe = win.document.createElementNS(ns, "iframe");
+    iframe.setAttribute("flex", "1");
+    iframe.setAttribute("tooltip", "aHTMLTooltip");
+    iframe.setAttribute("src", "chrome://browser/content/csshtmltree.xhtml");
+    vbox.appendChild(iframe);
+
+    let hbox = win.document.createElement("hbox");
+    hbox.setAttribute("class", "resizerbox");
+    vbox.appendChild(hbox);
+
+    let spacer = win.document.createElement("spacer");
+    spacer.setAttribute("flex", "1");
+    hbox.appendChild(spacer);
+
+    let resizer = win.document.createElement("resizer");
+    resizer.setAttribute("dir", "bottomend");
+    hbox.appendChild(resizer);
+    popupSet.appendChild(panel);
+
+    panel.addEventListener("popupshown", function SI_popup_shown() {
+      if (!this.cssHtmlTree) {
+        this.cssLogic = new CssLogic();
+        this.cssHtmlTree = new CssHtmlTree(iframe, this.cssLogic, this);
+      }
+
+      this.cssLogic.highlight(this.selectedNode);
+      this.cssHtmlTree.highlight(this.selectedNode);
+      Services.obs.notifyObservers(null, "StyleInspector-opened", null);
+    }, false);
+
+    panel.addEventListener("popuphidden", function SI_popup_hidden() {
+      Services.obs.notifyObservers(null, "StyleInspector-closed", null);
+    }, false);
+    
+    
+
+
+    panel.isOpen = function SI_isOpen()
+    {
+      return this.state && this.state == "open";
+    };
+
+    
+
+
+
+
+    panel.selectNode = function SI_selectNode(aNode)
+    {
+      this.selectedNode = aNode;
+      if (this.isOpen()) {
+        this.cssLogic.highlight(aNode);
+        this.cssHtmlTree.highlight(aNode);
+      } else {
+        let win = Services.wm.getMostRecentWindow("navigator:browser");
+        this.openPopup(win.gBrowser.selectedBrowser, "end_before", 0, 0, false, false);
+      }
+    };
+
+    
+
+
+
+    function isInitialized()
+    {
+      return panel.cssLogic && panel.cssHtmlTree;
+    }
+
+    return panel;
+  },
+
+  
+
+
+
+
+  l10n: function SI_l10n(aName)
+  {
+    try {
+      return _strings.GetStringFromName(aName);
+    } catch (ex) {
+      Services.console.logStringMessage("Error reading '" + aName + "'");
+      throw new Error("l10n error with " + aName);
+    }
+  },
+};
+
+XPCOMUtils.defineLazyGetter(this, "_strings", function() Services.strings
+          .createBundle("chrome:
+
+XPCOMUtils.defineLazyGetter(this, "CssLogic", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/devtools/CssLogic.jsm", tmp);
+  return tmp.CssLogic;
+});
+
+XPCOMUtils.defineLazyGetter(this, "CssHtmlTree", function() {
+  let tmp = {};
+  Cu.import("resource:///modules/devtools/CssHtmlTree.jsm", tmp);
+  return tmp.CssHtmlTree;
+});

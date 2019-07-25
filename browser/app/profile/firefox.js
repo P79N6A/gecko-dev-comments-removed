@@ -800,6 +800,12 @@ pref("places.history.enabled", true);
 
 
 
+
+
+pref("places.database.cache_to_memory_percentage", 6);
+
+
+
 pref("places.frecency.numVisits", 10);
 
 
@@ -1008,6 +1014,9 @@ pref("devtools.errorconsole.enabled", false);
 
 
 pref("devtools.inspector.enabled", true);
+
+
+pref("devtools.styleinspector.enabled", true);
 
 
 pref("devtools.scratchpad.enabled", true);
