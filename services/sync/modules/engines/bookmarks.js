@@ -227,6 +227,18 @@ BookmarksStore.prototype = {
     }
   },
 
+  
+
+
+  _findAnnoItems: function BStore__findAnnoItems(anno, val) {
+    
+    if (anno == PARENT_ANNO)
+      val = "T" + val;
+
+    return Svc.Annos.getItemsWithAnnotation(anno, {}).filter(function(id)
+      Utils.anno(id, anno) == val);
+  },
+
   create: function BStore_create(record) {
     let newId;
     switch (record.type) {
@@ -285,6 +297,15 @@ BookmarksStore.prototype = {
 
     this._log.trace("Setting GUID of new item " + newId + " to " + record.id);
     this._setGUID(newId, record.id);
+
+    
+    if (record.type == "folder") {
+      let orphans = this._findAnnoItems(PARENT_ANNO, record.id);
+      this._log.debug("Reparenting orphans " + orphans + " to " + record.title);
+      orphans.forEach(function(orphan) {
+        Svc.Bookmark.moveItem(orphan, newId, -1);
+      });
+    }
   },
 
   remove: function BStore_remove(record) {
