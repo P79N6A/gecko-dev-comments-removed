@@ -374,6 +374,19 @@ public:
 
   mozilla::dom::Element* AsElement();
 
+  
+
+
+  bool IsContent() const {
+    return IsNodeOfType(eCONTENT);
+  }
+
+  
+
+
+
+  nsIContent* AsContent();
+
   virtual nsIDOMNode* AsDOMNode() = 0;
 
   
