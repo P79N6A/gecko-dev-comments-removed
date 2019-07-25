@@ -2251,6 +2251,12 @@ BasicShadowableThebesLayer::SetBackBufferAndAttrs(const OptionalThebesBuffer& aB
   mROFrontBuffer = aReadOnlyFrontBuffer;
   mFrontUpdatedRegion = aFrontUpdatedRegion;
   mFrontValidRegion = aValidRegion;
+  if (OptionalThebesBuffer::Tnull_t == mROFrontBuffer.type()) {
+    
+    
+    
+    SyncFrontBufferToBackBuffer();
+  }
 }
 
 void

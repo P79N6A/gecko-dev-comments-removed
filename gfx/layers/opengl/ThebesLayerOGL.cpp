@@ -834,7 +834,9 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
                         const nsIntRect& aRect, const nsIntPoint& aRotation)
 {
   gfxIntSize size = aUpdate->GetSize();
-  if (GetSize() != nsIntSize(size.width, size.height)) {
+  if (!mTexImage ||
+      GetSize() != nsIntSize(size.width, size.height) ||
+      mTexImage->GetContentType() != aUpdate->GetContentType()) {
     
     
     mTexImage = CreateClampOrRepeatTextureImage(gl(),
