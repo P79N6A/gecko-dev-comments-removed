@@ -3252,7 +3252,6 @@ typedef void* GLeglImage;
 #define LOCAL_EGL_CORE_NATIVE_ENGINE          0x305B
 #define LOCAL_EGL_READ                        0x305A
 #define LOCAL_EGL_DRAW                        0x3059
-#define LOCAL_EGL_BAD_PARAMETER               0x300C
 #define LOCAL_EGL_CONTEXT_LOST                0x300E
 
 
@@ -3263,9 +3262,6 @@ typedef void* GLeglImage;
 
 
 #define LOCAL_EGL_GL_TEXTURE_2D               0x30B1
-
-
-#define LOCAL_GL_TEXTURE_EXTERNAL             0x8D65
 
 
 #define LOCAL_EGL_SYNC_FENCE                  0x30F9
