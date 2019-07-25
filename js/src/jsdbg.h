@@ -152,10 +152,25 @@ class Debug {
     
     
     
+    
+    
     bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
 
     
     bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool newCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
 };
 
 bool
