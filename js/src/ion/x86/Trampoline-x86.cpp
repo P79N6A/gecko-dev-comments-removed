@@ -469,7 +469,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register outReg = InvalidReg;
-    if (f.outParam == VMFunction::OutParam_Value) {
+    if (f.outParam == VMFunction::Type_Value) {
         outReg = regs.takeAny();
         masm.reserveStack(sizeof(Value));
         masm.movl(esp, outReg);
@@ -496,36 +496,19 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.callWithABI(f.wrapped);
 
     
+    JS_ASSERT(f.failType() == VMFunction::Type_Bool || f.failType() == VMFunction::Type_Object);
     Label exception;
-    if (f.failCond != VMFunction::FallibleNone) {
-        
-        masm.testl(eax, eax);
-        masm.j(Assembler::Zero, &exception);
-    }
+    masm.testl(eax, eax);
+    masm.j(Assembler::Zero, &exception);
 
     
-    if (f.outParam == VMFunction::OutParam_Value) {
-        JS_ASSERT(f.returnType == VMFunction::ReturnValue);
+    if (f.outParam == VMFunction::Type_Value) {
         masm.loadValue(Operand(esp, 0), JSReturnOperand);
         masm.freeStack(sizeof(Value));
     }
 
     
-    switch (f.returnType) {
-      case VMFunction::ReturnNothing:
-        regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet());
-        break;
-      case VMFunction::ReturnBool:
-      case VMFunction::ReturnPointer:
-        regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet(Registers::JSCCallMask));
-        break;
-      case VMFunction::ReturnValue:
-        regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet(Registers::JSCallMask));
-        break;
-      default:
-        JS_NOT_REACHED("Unknown ReturnType.");
-        break;
-    }
+    regs = GeneralRegisterSet::Not(GeneralRegisterSet(Registers::JSCallMask | Registers::CallMask));
 
     
     temp = regs.getAny();
@@ -537,10 +520,8 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.push(temp);
     masm.ret();
 
-    if (f.failCond != VMFunction::FallibleNone) {
-        masm.bind(&exception);
-        masm.handleException();
-    }
+    masm.bind(&exception);
+    masm.handleException();
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx);

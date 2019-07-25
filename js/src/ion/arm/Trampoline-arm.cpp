@@ -40,13 +40,11 @@
 
 
 #include "jscompartment.h"
-#include "jsinterp.h"
 #include "assembler/assembler/MacroAssembler.h"
 #include "ion/IonCompartment.h"
 #include "ion/IonLinker.h"
 #include "ion/IonFrames.h"
 #include "ion/Bailouts.h"
-
 
 using namespace js;
 using namespace js::ion;
@@ -516,7 +514,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register outReg = InvalidReg;
-    if (f.outParam == VMFunction::OutParam_Value) {
+    if (f.outParam == VMFunction::Type_Value) {
         outReg = regs.takeAny();
         masm.reserveStack(sizeof(Value));
         masm.ma_mov(sp, outReg);
@@ -543,23 +541,22 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         masm.setABIArg(f.argc() - 1, outReg);
 
     masm.callWithABI(f.wrapped);
+
     
-    Label ret;
-    masm.bind(&ret);
-    
+    JS_ASSERT(f.failType() == VMFunction::Type_Bool || f.failType() == VMFunction::Type_Object);
     Label exception;
     masm.ma_cmp(r0, Imm32(0));
     masm.ma_b(&exception,Assembler::Zero);
 
     
-    if (f.outParam == VMFunction::OutParam_Value) {
+    if (f.outParam == VMFunction::Type_Value) {
         masm.ma_ldrd(EDtrAddr(sp, EDtrOffImm(0)), JSReturnReg_Data);
         masm.freeStack(sizeof(Value));
     }
 
     
-    regs = GeneralRegisterSet(Registers::AllocatableMask & ~Registers::JSCCallMask);
-    temp = regs.takeAny();
+    regs = GeneralRegisterSet::Not(GeneralRegisterSet(Registers::JSCallMask | Registers::CallMask));
+    temp = regs;
 
     
     
@@ -575,7 +572,6 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     masm.bind(&exception);
     masm.handleException();
-
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx);
