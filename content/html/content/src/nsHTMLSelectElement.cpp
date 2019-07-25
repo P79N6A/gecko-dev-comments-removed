@@ -156,9 +156,6 @@ nsHTMLSelectElement::nsHTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo
   
 
   
-  
-
-  
   AddStatesSilently(NS_EVENT_STATE_ENABLED |
                     NS_EVENT_STATE_OPTIONAL |
                     NS_EVENT_STATE_VALID);
@@ -166,9 +163,7 @@ nsHTMLSelectElement::nsHTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo
 
 nsHTMLSelectElement::~nsHTMLSelectElement()
 {
-  if (mOptions) {
-    mOptions->DropReference();
-  }
+  mOptions->DropReference();
 }
 
 
