@@ -17,8 +17,10 @@ const PRUint32 FPR_COUNT = 8;
 
 static inline void
 invoke_count_words(PRUint32 paramCount, nsXPTCVariant * s,
-                   PRUint32 & nr_gpr, PRUint32 & nr_fpr, PRUint32 & nr_stack)
+                   PRUint32 & nr_stack)
 {
+    PRUint32 nr_gpr;
+    PRUint32 nr_fpr;
     nr_gpr = 1; 
     nr_fpr = 0;
     nr_stack = 0;
@@ -103,8 +105,8 @@ EXPORT_XPCOM_API(nsresult)
 NS_InvokeByIndex_P(nsISupports * that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant * params)
 {
-    PRUint32 nr_gpr, nr_fpr, nr_stack;
-    invoke_count_words(paramCount, params, nr_gpr, nr_fpr, nr_stack);
+    PRUint32 nr_stack;
+    invoke_count_words(paramCount, params, nr_stack);
     
     
     if (nr_stack)
@@ -117,39 +119,38 @@ NS_InvokeByIndex_P(nsISupports * that, PRUint32 methodIndex,
     invoke_copy_to_stack(stack, paramCount, params, gpregs, fpregs);
 
     
+    
+    
+    
+    
+    
+    
+
+    
+    
+
+    
     double d0, d1, d2, d3, d4, d5, d6, d7;
 
-    switch (nr_fpr) {
-#define ARG_FPR(N) \
-    case N+1: d##N = fpregs[N];
-        ARG_FPR(7);
-        ARG_FPR(6);
-        ARG_FPR(5);
-        ARG_FPR(4);
-        ARG_FPR(3);
-        ARG_FPR(2);
-        ARG_FPR(1);
-        ARG_FPR(0);
-    case 0:;
-#undef ARG_FPR
-    }
-    
+    d7 = fpregs[7];
+    d6 = fpregs[6];
+    d5 = fpregs[5];
+    d4 = fpregs[4];
+    d3 = fpregs[3];
+    d2 = fpregs[2];
+    d1 = fpregs[1];
+    d0 = fpregs[0];
+
     
     PRUint64 a0, a1, a2, a3, a4, a5;
-    
-    switch (nr_gpr) {
-#define ARG_GPR(N) \
-    case N+1: a##N = gpregs[N];
-        ARG_GPR(5);
-        ARG_GPR(4);
-        ARG_GPR(3);
-        ARG_GPR(2);
-        ARG_GPR(1);
-    case 1: a0 = (PRUint64) that;
-    case 0:;
-#undef ARG_GPR
-    }
-    
+
+    a5 = gpregs[5];
+    a4 = gpregs[4];
+    a3 = gpregs[3];
+    a2 = gpregs[2];
+    a1 = gpregs[1];
+    a0 = (PRUint64) that;
+
     
     PRUint64 methodAddress = *((PRUint64 *)that);
     methodAddress += 8 * methodIndex;
