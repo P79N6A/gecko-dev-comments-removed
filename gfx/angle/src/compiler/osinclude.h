@@ -37,7 +37,7 @@
 #endif  
 
 
-#include "compiler/debug.h"
+#include "compiler/compilerdebug.h"
 
 
 
