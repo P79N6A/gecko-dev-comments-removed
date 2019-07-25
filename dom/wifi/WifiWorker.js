@@ -598,7 +598,7 @@ var WifiManager = (function() {
     return true;
   }
 
-  function parseStatus(status, reconnected) {
+  function parseStatus(status) {
     if (status === null) {
       debug("Unable to get wpa supplicant's status");
       return;
@@ -643,7 +643,7 @@ var WifiManager = (function() {
 
     notifyStateChange({ state: state, fromStatus: true });
     if (state === "COMPLETED")
-      onconnected(reconnected);
+      onconnected();
   }
 
   
@@ -653,7 +653,7 @@ var WifiManager = (function() {
     if (ok === 0) {
       
       retryTimer = null;
-      didConnectSupplicant(false, function(){});
+      didConnectSupplicant(function(){});
       return;
     }
     if (connectTries++ < 3) {
@@ -683,15 +683,10 @@ var WifiManager = (function() {
 
   manager.start = function() {
     debug("detected SDK version " + sdkVersion + " and device " + device);
-
-    
-    
-    
-    if (manager.state === "UNINITIALIZED")
-      connectToSupplicant(connectCallback);
+    connectToSupplicant(connectCallback);
   }
 
-  function dhcpAfterConnect() {
+  function onconnected() {
     
     
     runDhcp(manager.ifname, function (data) {
@@ -721,32 +716,6 @@ var WifiManager = (function() {
             notify("dhcpconnected", { info: data });
           });
         });
-      });
-    });
-  }
-
-  function onconnected(reconnected) {
-    if (!reconnected) {
-      dhcpAfterConnect();
-      return;
-    }
-
-    
-    
-    getProperty("init.svc.dhcpcd_" + manager.ifname, "stopped", function(value) {
-      if (value === "running") {
-        notify("dhcpconnected");
-        return;
-      }
-
-      
-      getProperty("init.svc.dhcpcd", "stopped", function(value) {
-        if (value === "running") {
-          notify("dhcpconnected");
-          return;
-        }
-
-        dhcpAfterConnect();
       });
     });
   }
@@ -851,7 +820,7 @@ var WifiManager = (function() {
       
       
       if (notifyStateChange({ state: "CONNECTED", BSSID: bssid, id: id }))
-        onconnected(false);
+        onconnected();
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-SCAN-RESULTS") === 0) {
@@ -905,49 +874,27 @@ var WifiManager = (function() {
     setProperty("ctl.stop", "wpa_supplicant", tick);
   }
 
-  function didConnectSupplicant(reconnected, callback) {
+  function didConnectSupplicant(callback) {
     waitForEvent();
 
     
     statusCommand(function(status) {
-      parseStatus(status, reconnected);
+      parseStatus(status);
       notify("supplicantconnection");
       callback();
     });
   }
 
   function prepareForStartup(callback) {
-    
-    
-    getProperty(SUPP_PROP, "stopped", function (value) {
-      if (value !== "running") {
-        stopDhcp(manager.ifname, function() { callback(false) });
-        return;
-      }
-
+    manager.connectionDropped(function() {
       
-      connectToSupplicant(function (retval) {
-        if (retval === 0) {
-          
-          debug("Successfully connected!");
-
-          manager.supplicantStarted = true;
-
-          
-          
-          
-          didConnectSupplicant(true, function() { callback(true) });
-          return;
-        }
-
-        debug("Didn't connect, trying other method.");
-        suppressEvents = true;
-        stopDhcp(manager.ifname, function() {
-          
-          killSupplicant(function() {
-            suppressEvents = false;
-            callback(false);
-          });
+      
+      
+      suppressEvents = true;
+      killSupplicant(function() {
+        disableInterface(manager.ifname, function (ok) {
+          suppressEvents = false;
+          callback();
         });
       });
     });
@@ -994,12 +941,7 @@ var WifiManager = (function() {
                                      kNetworkInterfaceStateChangedTopic,
                                      null);
 
-        prepareForStartup(function(already_connected) {
-          if (already_connected) {
-            callback(0);
-            return;
-          }
-
+        prepareForStartup(function() {
           loadDriver(function (status) {
             if (status < 0) {
               callback(status);
@@ -2057,10 +1999,23 @@ WifiWorker.prototype = {
       return;
     }
 
-    this.waitForScan((function (networks) {
+    let callback = (function (networks) {
       this._sendMessage(message, networks !== null, networks, msg);
+    }).bind(this);
+    this.waitForScan(callback);
+
+    WifiManager.scan(true, (function(ok) {
+      
+      if (ok)
+        return;
+
+      
+      this.wantScanResults.splice(this.wantScanResults.indexOf(callback), 1);
+
+      
+      
+      this._sendMessage(message, false, "ScanFailed", msg);
     }).bind(this));
-    WifiManager.scan(true, function() {});
   },
 
   _notifyAfterStateChange: function(success, newState) {
