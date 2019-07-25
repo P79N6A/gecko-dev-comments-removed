@@ -684,12 +684,29 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
 
   
   if (mClassList) {
-    nsAtomList* list = mClassList;
-    while (list != nsnull) {
-      list->mAtom->ToString(temp);
-      aString.Append(PRUnichar('.'));
-      nsStyleUtil::AppendEscapedCSSIdent(temp, aString);
-      list = list->mNext;
+    if (isPseudoElement) {
+#ifdef MOZ_XUL
+      NS_ABORT_IF_FALSE(nsCSSAnonBoxes::IsTreePseudoElement(mLowercaseTag),
+                        "must be tree pseudo-element");
+
+      aString.Append(PRUnichar('('));
+      for (nsAtomList* list = mClassList; list; list = list->mNext) {
+        nsStyleUtil::AppendEscapedCSSIdent(nsDependentAtomString(list->mAtom), aString);
+        aString.Append(PRUnichar(','));
+      }
+      
+      aString.Replace(aString.Length() - 1, 1, PRUnichar(')'));
+#else
+      NS_ERROR("Can't happen");
+#endif
+    } else {
+      nsAtomList* list = mClassList;
+      while (list != nsnull) {
+        list->mAtom->ToString(temp);
+        aString.Append(PRUnichar('.'));
+        nsStyleUtil::AppendEscapedCSSIdent(temp, aString);
+        list = list->mNext;
+      }
     }
   }
 
@@ -747,65 +764,44 @@ nsCSSSelector::AppendToStringWithoutCombinatorsOrNegations
   }
 
   
-  if (isPseudoElement) {
-#ifdef MOZ_XUL
-    if (mPseudoClassList) {
-      NS_ABORT_IF_FALSE(nsCSSAnonBoxes::IsTreePseudoElement(mLowercaseTag),
-                        "must be tree pseudo-element");
+  for (nsPseudoClassList* list = mPseudoClassList; list; list = list->mNext) {
+    nsCSSPseudoClasses::PseudoTypeToString(list->mType, temp);
+    
+    
+    
+    
+    aString.Append(temp);
+    if (list->u.mMemory) {
       aString.Append(PRUnichar('('));
-      for (nsPseudoClassList* list = mPseudoClassList; list;
-           list = list->mNext) {
-        nsCSSPseudoClasses::PseudoTypeToString(list->mType, temp);
-        nsStyleUtil::AppendEscapedCSSIdent(temp, aString);
-        NS_ABORT_IF_FALSE(!list->u.mMemory, "data not expected");
-        aString.Append(PRUnichar(','));
-      }
-      
-      aString.Replace(aString.Length() - 1, 1, PRUnichar(')'));
-    }
-#else
-    NS_ABORT_IF_FALSE(!mPseudoClassList, "unexpected pseudo-class list");
-#endif
-  } else {
-    for (nsPseudoClassList* list = mPseudoClassList; list; list = list->mNext) {
-      nsCSSPseudoClasses::PseudoTypeToString(list->mType, temp);
-      
-      
-      
-      
-      aString.Append(temp);
-      if (list->u.mMemory) {
-        aString.Append(PRUnichar('('));
-        if (nsCSSPseudoClasses::HasStringArg(list->mType)) {
-          nsStyleUtil::AppendEscapedCSSIdent(
-            nsDependentString(list->u.mString), aString);
-        } else if (nsCSSPseudoClasses::HasNthPairArg(list->mType)) {
-          PRInt32 a = list->u.mNumbers[0],
-                  b = list->u.mNumbers[1];
-          temp.Truncate();
-          if (a != 0) {
-            if (a == -1) {
-              temp.Append(PRUnichar('-'));
-            } else if (a != 1) {
-              temp.AppendInt(a);
-            }
-            temp.Append(PRUnichar('n'));
+      if (nsCSSPseudoClasses::HasStringArg(list->mType)) {
+        nsStyleUtil::AppendEscapedCSSIdent(
+          nsDependentString(list->u.mString), aString);
+      } else if (nsCSSPseudoClasses::HasNthPairArg(list->mType)) {
+        PRInt32 a = list->u.mNumbers[0],
+                b = list->u.mNumbers[1];
+        temp.Truncate();
+        if (a != 0) {
+          if (a == -1) {
+            temp.Append(PRUnichar('-'));
+          } else if (a != 1) {
+            temp.AppendInt(a);
           }
-          if (b != 0 || a == 0) {
-            if (b >= 0 && a != 0) 
-              temp.Append(PRUnichar('+'));
-            temp.AppendInt(b);
-          }
-          aString.Append(temp);
-        } else {
-          NS_ASSERTION(nsCSSPseudoClasses::HasSelectorListArg(list->mType),
-                       "unexpected pseudo-class");
-          nsString tmp;
-          list->u.mSelectors->ToString(tmp, aSheet);
-          aString.Append(tmp);
+          temp.Append(PRUnichar('n'));
         }
-        aString.Append(PRUnichar(')'));
+        if (b != 0 || a == 0) {
+          if (b >= 0 && a != 0) 
+            temp.Append(PRUnichar('+'));
+          temp.AppendInt(b);
+        }
+        aString.Append(temp);
+      } else {
+        NS_ASSERTION(nsCSSPseudoClasses::HasSelectorListArg(list->mType),
+                     "unexpected pseudo-class");
+        nsString tmp;
+        list->u.mSelectors->ToString(tmp, aSheet);
+        aString.Append(tmp);
       }
+      aString.Append(PRUnichar(')'));
     }
   }
 }
