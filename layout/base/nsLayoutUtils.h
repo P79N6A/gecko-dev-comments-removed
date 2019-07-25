@@ -512,15 +512,9 @@ public:
 
   
 
-
-
-
-
-
-
-
-  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame,
-                                            nsIFrame* aStopAtAncestor = nsnull);
+  static nsRect TransformRectToBoundsInAncestor(nsIFrame* aFrame,
+                                                const nsRect& aRect,
+                                                nsIFrame* aStopAtAncestor);
 
   
 
@@ -533,7 +527,6 @@ public:
 
   static nsPoint InvertTransformsToRoot(nsIFrame* aFrame,
                                         const nsPoint &aPt);
-
 
   
 
