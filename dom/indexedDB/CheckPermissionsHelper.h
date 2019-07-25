@@ -31,11 +31,9 @@ public:
 
   CheckPermissionsHelper(OpenDatabaseHelper* aHelper,
                          nsIDOMWindow* aWindow,
-                         const nsACString& aASCIIOrigin,
                          bool aForDeletion)
   : mHelper(aHelper),
     mWindow(aWindow),
-    mASCIIOrigin(aASCIIOrigin),
     
     
     mPromptAllowed(!aForDeletion),
@@ -43,13 +41,11 @@ public:
     mPromptResult(0)
   {
     NS_ASSERTION(aHelper, "Null pointer!");
-    NS_ASSERTION(!aASCIIOrigin.IsEmpty(), "Empty origin!");
   }
 
 private:
   nsRefPtr<OpenDatabaseHelper> mHelper;
   nsCOMPtr<nsIDOMWindow> mWindow;
-  nsCString mASCIIOrigin;
   bool mPromptAllowed;
   bool mHasPrompted;
   PRUint32 mPromptResult;
