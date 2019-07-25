@@ -1239,6 +1239,21 @@ public:
   
 
 
+  PRUint32 FontSizeInflationEmPerLine() const {
+    return mFontSizeInflationEmPerLine;
+  }
+
+  PRUint32 FontSizeInflationMinTwips() const {
+    return mFontSizeInflationMinTwips;
+  }
+
+  PRUint32 FontSizeInflationLineThreshold() const {
+    return mFontSizeInflationLineThreshold;
+  }
+
+  
+
+
 protected:
   virtual bool AddRefreshObserverExternal(nsARefreshObserver* aObserver,
                                             mozFlushType aFlushType);
@@ -1362,6 +1377,12 @@ protected:
   bool                      mScrollPositionClampingScrollPortSizeSet : 1;
 
   static nsIContent*        gKeyDownTarget;
+
+  
+  
+  PRUint32 mFontSizeInflationEmPerLine;
+  PRUint32 mFontSizeInflationMinTwips;
+  PRUint32 mFontSizeInflationLineThreshold;
 };
 
 
