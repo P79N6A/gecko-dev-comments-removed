@@ -253,16 +253,11 @@ public:
 
   void ToString(StringBuilder &profile)
   {
-    
-    
-    
-    
-    int oldReadPos = mReadPos;
-    while (mReadPos != mLastFlushPos) {
-      profile.Append(mEntries[mReadPos].TagToString(this).c_str());
-      mReadPos = (mReadPos + 1) % mEntrySize;
+    int readPos = mReadPos;
+    while (readPos != mLastFlushPos) {
+      profile.Append(mEntries[readPos].TagToString(this).c_str());
+      readPos = (readPos + 1) % mEntrySize;
     }
-    mReadPos = oldReadPos;
   }
 
   JSObject *ToJSObject(JSContext *aCx)
@@ -306,14 +301,12 @@ public:
 
   void WriteProfile(FILE* stream)
   {
-    
-    int oldReadPos = mReadPos;
-    while (mReadPos != mLastFlushPos) {
-      string tag = mEntries[mReadPos].TagToString(this);
+    int readPos = mReadPos;
+    while (readPos != mLastFlushPos) {
+      string tag = mEntries[readPos].TagToString(this);
       fwrite(tag.data(), 1, tag.length(), stream);
-      mReadPos = (mReadPos + 1) % mEntrySize;
+      readPos = (readPos + 1) % mEntrySize;
     }
-    mReadPos = oldReadPos;
   }
 private:
   
