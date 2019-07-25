@@ -124,8 +124,12 @@ ServerWBO.prototype = {
 
 
 
-function ServerCollection(wbos) {
+
+
+
+function ServerCollection(wbos, acceptNew) {
   this.wbos = wbos || {};
+  this.acceptNew = acceptNew || false;
 }
 ServerCollection.prototype = {
 
@@ -139,7 +143,9 @@ ServerCollection.prototype = {
     let result;
     if (options.full) {
       let data = [wbo.get() for ([id, wbo] in Iterator(this.wbos))
-                            if (this._inResultSet(wbo, options))];
+                            
+                            if (wbo.modified &&
+                                this._inResultSet(wbo, options))];
       if (options.limit) {
         data = data.slice(0, options.limit);
       }
@@ -165,6 +171,11 @@ ServerCollection.prototype = {
     
     for each (let record in input) {
       let wbo = this.wbos[record.id];
+      if (!wbo && this.acceptNew) {
+        _("Creating WBO " + JSON.stringify(record.id) + " on the fly.");
+        wbo = new ServerWBO(record.id);
+        this.wbos[record.id] = wbo;
+      }
       if (wbo) {
         wbo.payload = record.payload;
         wbo.modified = Date.now() / 1000;
@@ -181,6 +192,7 @@ ServerCollection.prototype = {
   delete: function(options) {
     for (let [id, wbo] in Iterator(this.wbos)) {
       if (this._inResultSet(wbo, options)) {
+        _("Deleting " + JSON.stringify(wbo));
         wbo.delete();
       }
     }
