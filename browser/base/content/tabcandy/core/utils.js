@@ -24,29 +24,42 @@ window.Point = function(x, y) {
 }
 
 
-window.Rect = function(left, top, width, height) {
-  this.left = left;
-  this.top = top;
-  this.width = width;
-  this.height = height;
+window.Rect = function(a, top, width, height) {
+  if(typeof(a.left) != 'undefined' && typeof(a.top) != 'undefined'
+      && typeof(a.right) != 'undefined' && typeof(a.bottom) != 'undefined') {
+    this.left = a.left;
+    this.top = a.top;
+    this.width = a.width;
+    this.height = a.height;
+  } else {
+    this.left = a;
+    this.top = top;
+    this.width = width;
+    this.height = height;
+  }
 }
 
 window.Rect.prototype = {
+  
   get right() {
     return this.left + this.width;
   },
+  
   
   set right(value) {
       this.width = value - this.left;
   },
 
+  
   get bottom() {
     return this.top + this.height;
   },
   
+  
   set bottom(value) {
       this.height = value - this.top;
   },
+  
   
   intersects: function(rect) {
     return (rect.right > this.left
@@ -55,15 +68,41 @@ window.Rect.prototype = {
         && rect.top < this.bottom);      
   },
   
+  
   center: function() {
     return new Point(this.left + (this.width / 2), this.top + (this.height / 2));
   },
   
-  inset: function(x, y) {
-    this.left += x;
-    this.width -= x * 2;
-    this.top += y;
-    this.height -= y * 2;
+  
+  inset: function(a, b) {
+    if(typeof(a.x) != 'undefined' && typeof(a.y) != 'undefined') {
+      b = a.y; 
+      a = a.x;
+    }
+    
+    this.left += a;
+    this.width -= a * 2;
+    this.top += b;
+    this.height -= b * 2;
+  },
+  
+  
+  offset: function(a, b) {
+    if(typeof(a.x) != 'undefined' && typeof(a.y) != 'undefined') {
+      this.left += a.x;
+      this.top += a.y;
+    } else {
+      this.left += a;
+      this.top += b;
+    }
+  },
+  
+  
+  equals: function(a) {
+    return (a.left == this.left
+        && a.top == this.top
+        && a.right == this.right
+        && a.bottom == this.bottom);
   }
 };
 
