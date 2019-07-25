@@ -420,7 +420,6 @@ iQ.fn = iQ.prototype = {
   
 	width: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
-
     return parseInt(this.css('width')); 
   },
 
@@ -428,23 +427,16 @@ iQ.fn = iQ.prototype = {
   
 	height: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
-
-    return parseInt(this.css('height')); 
+    return parseInt(this.css('height'));
   },
 
   
   
   position: function(unused) {
     Utils.assert('does not yet support setting', unused === undefined);
-
-
     return {
       left: parseInt(this.css('left')),
       top: parseInt(this.css('top'))
-
-
-
-
     };
   },
   
@@ -612,19 +604,6 @@ iQ.fn = iQ.prototype = {
       var duration = (options.duration || 400);
       var easing = (easings[options.easing] || 'ease');
 
-      
-      
-      
-      rupper = /([A-Z])/g;    
-      this.each(function(){
-        var cStyle = window.getComputedStyle(this, null);      
-        for(var prop in css){
-          prop = prop.replace( rupper, "-$1" ).toLowerCase();
-          iQ(this).css(prop, cStyle.getPropertyValue(prop));
-        }    
-      });
-
-
       this.css({
         '-moz-transition-property': 'all', 
         '-moz-transition-duration': (duration / 1000) + 's',  
@@ -634,19 +613,15 @@ iQ.fn = iQ.prototype = {
       this.css(css);
       
       var self = this;
-      setTimeout(function() {
-        try {
-          self.css({
-            '-moz-transition-property': 'none',  
-            '-moz-transition-duration': '',  
-            '-moz-transition-timing-function': ''
-          });
-  
-          if(iQ.isFunction(options.complete))
-            options.complete.apply(self);
-        } catch(e) {
-          Utils.log(e);
-        }      
+      iQ.timeout(function() {
+        self.css({
+          '-moz-transition-property': 'none',  
+          '-moz-transition-duration': '',  
+          '-moz-transition-timing-function': ''
+        });
+
+        if(iQ.isFunction(options.complete))
+          options.complete.apply(self);
       }, duration);
     } catch(e) {
       Utils.log(e);
@@ -787,7 +762,7 @@ iQ.fn = iQ.prototype = {
     
     return this; 
   },
-
+  
   
   
   draggable: function(options) {
@@ -1282,7 +1257,20 @@ iQ.extend({
 		}
 
 		return ret;
-	}	
+	},
+
+  
+  
+  
+  timeout: function(func, delay) {
+    setTimeout(function() { 
+      try {
+        func();
+      } catch(e) {
+        Utils.log(e);
+      }
+    }, delay);
+  }
 });
 
 
