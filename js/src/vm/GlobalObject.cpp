@@ -42,7 +42,6 @@
 
 #include "jscntxt.h"
 #include "jsexn.h"
-#include "jsmath.h"
 #include "json.h"
 
 #include "jsobjinlines.h"
@@ -111,7 +110,7 @@ GlobalObject::create(JSContext *cx, Class *clasp)
         return NULL;
 
     GlobalObject *globalObj = obj->asGlobal();
-    globalObj->makeVarObj();
+
     globalObj->syncSpecialEquality();
 
     
@@ -174,7 +173,7 @@ GlobalObject::clear(JSContext *cx)
     RegExpStatics::extractFrom(this)->clear();
 
     
-    setSlot(RUNTIME_CODEGEN_ENABLED, UndefinedValue());
+    setSlot(EVAL_ALLOWED, UndefinedValue());
 
     
 
@@ -186,9 +185,9 @@ GlobalObject::clear(JSContext *cx)
 }
 
 bool
-GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx)
+GlobalObject::isEvalAllowed(JSContext *cx)
 {
-    Value &v = getSlotRef(RUNTIME_CODEGEN_ENABLED);
+    Value &v = getSlotRef(EVAL_ALLOWED);
     if (v.isUndefined()) {
         JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
 
@@ -196,68 +195,70 @@ GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx)
 
 
 
-        v = BooleanValue((!callbacks || !callbacks->contentSecurityPolicyAllows) ||
-                         callbacks->contentSecurityPolicyAllows(cx));
+        v.setBoolean((!callbacks || !callbacks->contentSecurityPolicyAllows) ||
+                     callbacks->contentSecurityPolicyAllows(cx));
     }
     return !v.isFalse();
 }
 
-JSFunction *
-GlobalObject::createConstructor(JSContext *cx, Native ctor, Class *clasp, JSAtom *name,
-                                uintN length)
+void
+GlobalDebuggees_finalize(JSContext *cx, JSObject *obj)
 {
-    JSFunction *fun = js_NewFunction(cx, NULL, ctor, length, JSFUN_CONSTRUCTOR, this, name);
-    if (!fun)
-        return NULL;
-
-    
-
-
-
-    FUN_CLASP(fun) = clasp;
-    return fun;
+    cx->delete_((GlobalObject::DebugVector *) obj->getPrivate());
 }
 
-JSObject *
-GlobalObject::createBlankPrototype(JSContext *cx, Class *clasp)
+static Class
+GlobalDebuggees_class = {
+    "GlobalDebuggee", JSCLASS_HAS_PRIVATE,
+    PropertyStub, PropertyStub, PropertyStub, StrictPropertyStub,
+    EnumerateStub, ResolveStub, ConvertStub, GlobalDebuggees_finalize
+};
+
+GlobalObject::DebugVector *
+GlobalObject::getDebuggers()
 {
-    JS_ASSERT(clasp != &js_ObjectClass);
-    JS_ASSERT(clasp != &js_FunctionClass);
-
-    JSObject *objectProto;
-    if (!js_GetClassPrototype(cx, this, JSProto_Object, &objectProto))
+    Value debuggers = getReservedSlot(DEBUGGERS);
+    if (debuggers.isUndefined())
         return NULL;
-
-    JSObject *proto = NewNonFunction<WithProto::Given>(cx, clasp, objectProto, this);
-    if (!proto)
-        return NULL;
-
-    
-
-
-
-    if (!proto->getEmptyShape(cx, clasp, gc::FINALIZE_OBJECT0))
-        return NULL;
-
-    return proto;
+    JS_ASSERT(debuggers.toObject().clasp == &GlobalDebuggees_class);
+    return (DebugVector *) debuggers.toObject().getPrivate();
 }
 
-bool
-LinkConstructorAndPrototype(JSContext *cx, JSObject *ctor, JSObject *proto)
+GlobalObject::DebugVector *
+GlobalObject::getOrCreateDebuggers(JSContext *cx)
 {
-    return ctor->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
-                                ObjectValue(*proto), PropertyStub, StrictPropertyStub,
-                                JSPROP_PERMANENT | JSPROP_READONLY) &&
-           proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
-                                 ObjectValue(*ctor), PropertyStub, StrictPropertyStub, 0);
+    DebugVector *vec = getDebuggers();
+    if (vec)
+        return vec;
+
+    JSObject *obj = NewNonFunction<WithProto::Given>(cx, &GlobalDebuggees_class, NULL, NULL);
+    if (!obj)
+        return NULL;
+    vec = cx->new_<DebugVector>();
+    if (!vec)
+        return NULL;
+    obj->setPrivate(vec);
+    if (!js_SetReservedSlot(cx, this, DEBUGGERS, ObjectValue(*obj)))
+        return NULL;
+    return vec;
 }
 
 bool
-DefinePropertiesAndBrand(JSContext *cx, JSObject *obj, JSPropertySpec *ps, JSFunctionSpec *fs)
+GlobalObject::addDebug(JSContext *cx, Debug *dbg)
 {
-    if ((ps && !JS_DefineProperties(cx, obj, ps)) || (fs && !JS_DefineFunctions(cx, obj, fs)))
+    DebugVector *vec = getOrCreateDebuggers(cx);
+    if (!vec)
         return false;
-    obj->brand(cx);
+#ifdef DEBUG
+    for (Debug **p = vec->begin(); p != vec->end(); p++)
+        JS_ASSERT(*p != dbg);
+#endif
+    if (vec->empty() && !compartment()->addDebuggee(this))
+        return false;
+    if (!vec->append(dbg)) {
+        compartment()->removeDebuggee(this);
+        return false;
+    }
     return true;
 }
 

@@ -42,6 +42,8 @@
 #define GlobalObject_h___
 
 #include "jsfun.h"
+#include "jsprvtd.h"
+#include "jsvector.h"
 
 extern JSObject *
 js_InitFunctionAndObjectClasses(JSContext *cx, JSObject *obj);
@@ -83,15 +85,16 @@ class GlobalObject : public ::JSObject {
     static const uintN STANDARD_CLASS_SLOTS  = JSProto_LIMIT * 3;
 
     
-    static const uintN THROWTYPEERROR          = STANDARD_CLASS_SLOTS;
-    static const uintN REGEXP_STATICS          = THROWTYPEERROR + 1;
-    static const uintN FUNCTION_NS             = REGEXP_STATICS + 1;
-    static const uintN RUNTIME_CODEGEN_ENABLED = FUNCTION_NS + 1;
-    static const uintN EVAL                    = RUNTIME_CODEGEN_ENABLED + 1;
-    static const uintN FLAGS                   = EVAL + 1;
+    static const uintN THROWTYPEERROR        = STANDARD_CLASS_SLOTS;
+    static const uintN REGEXP_STATICS        = THROWTYPEERROR + 1;
+    static const uintN FUNCTION_NS           = REGEXP_STATICS + 1;
+    static const uintN EVAL_ALLOWED          = FUNCTION_NS + 1;
+    static const uintN EVAL                  = EVAL_ALLOWED + 1;
+    static const uintN FLAGS                 = EVAL + 1;
+    static const uintN DEBUGGERS             = FLAGS + 1;
 
     
-    static const uintN RESERVED_SLOTS = FLAGS + 1;
+    static const uintN RESERVED_SLOTS = DEBUGGERS + 1;
 
     void staticAsserts() {
         
@@ -111,29 +114,12 @@ class GlobalObject : public ::JSObject {
   public:
     static GlobalObject *create(JSContext *cx, Class *clasp);
 
-    
-
-
-
-    JSFunction *
-    createConstructor(JSContext *cx, Native ctor, Class *clasp, JSAtom *name, uintN length);
-
-    
-
-
-
-
-
-
-
-    JSObject *createBlankPrototype(JSContext *cx, js::Class *clasp);
-
     void setThrowTypeError(JSFunction *fun) {
+        Value &v = getSlotRef(THROWTYPEERROR);
         
         
         
-        
-        setSlot(THROWTYPEERROR, ObjectValue(*fun));
+        v.setObject(*fun);
     }
 
     JSObject *getThrowTypeError() const {
@@ -150,39 +136,38 @@ class GlobalObject : public ::JSObject {
         return getSlot(FLAGS).toInt32() & FLAGS_CLEARED;
     }
 
-    bool isRuntimeCodeGenEnabled(JSContext *cx);
+    bool isEvalAllowed(JSContext *cx);
 
     const Value &getOriginalEval() const {
         return getSlot(EVAL);
     }
 
     void setOriginalEval(JSObject *evalobj) {
+        Value &v = getSlotRef(EVAL);
         
         
         
-        
-        setSlot(EVAL, ObjectValue(*evalobj));
+        v.setObject(*evalobj);
     }
 
     bool getFunctionNamespace(JSContext *cx, Value *vp);
 
     bool initStandardClasses(JSContext *cx);
+
+    typedef js::Vector<js::Debug *, 0, js::SystemAllocPolicy> DebugVector;
+
+    
+    
+    DebugVector *getDebuggers();
+
+    
+    
+    DebugVector *getOrCreateDebuggers(JSContext *cx);
+
+    bool addDebug(JSContext *cx, Debug *dbg);
 };
 
-
-
-
-
-
-extern bool
-LinkConstructorAndPrototype(JSContext *cx, JSObject *ctor, JSObject *proto);
-
-
-
-
-
-extern bool
-DefinePropertiesAndBrand(JSContext *cx, JSObject *obj, JSPropertySpec *ps, JSFunctionSpec *fs);
+typedef HashSet<GlobalObject *, DefaultHasher<GlobalObject *>, SystemAllocPolicy> GlobalObjectSet;
 
 } 
 

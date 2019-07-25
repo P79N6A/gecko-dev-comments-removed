@@ -48,6 +48,7 @@
 #include "jshashtable.h"
 #include "jswrapper.h"
 #include "jsvalue.h"
+#include "vm/GlobalObject.h"
 
 namespace js {
 
@@ -57,7 +58,7 @@ class Debug {
   private:
     JSCList link;                       
     JSObject *object;                   
-    JSCompartment *debuggeeCompartment; 
+    GlobalObject *debuggeeGlobal;       
     JSObject *hooksObject;              
     JSObject *uncaughtExceptionHook;    
     bool enabled;
@@ -67,10 +68,15 @@ class Debug {
     bool hasDebuggerHandler;            
     bool hasThrowHandler;               
 
+    
+    
     typedef HashMap<StackFrame *, JSObject *, DefaultHasher<StackFrame *>, SystemAllocPolicy>
         FrameMap;
     FrameMap frames;
 
+    
+    
+    
     typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, SystemAllocPolicy>
         ObjectMap;
     ObjectMap objects;
@@ -111,17 +117,18 @@ class Debug {
     JSTrapStatus handleThrow(JSContext *cx, Value *vp);
 
   public:
-    Debug(JSObject *dbg, JSObject *hooks, JSCompartment *compartment);
+    Debug(JSObject *dbg, JSObject *hooks);
     ~Debug();
 
-    bool init();
+    bool init(JSContext *cx);
     inline JSObject *toJSObject() const;
     static inline Debug *fromJSObject(JSObject *obj);
     static Debug *fromChildJSObject(JSObject *obj);
+    void removeDebuggee(GlobalObject *global, GlobalObjectSet::Enum *e);
+    static void detachFromCompartment(JSCompartment *comp);
 
     
 
-    
     
     
     
@@ -138,9 +145,7 @@ class Debug {
     
     static bool mark(GCMarker *trc, JSCompartment *compartment, JSGCInvocationKind gckind);
     static void sweepAll(JSRuntime *rt);
-
-    inline bool observesCompartment(JSCompartment *c) const;
-    void detachFrom(JSCompartment *c);
+    static void sweepCompartment(JSCompartment *compartment);
 
     static inline void leaveStackFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
@@ -188,6 +193,11 @@ class Debug {
     
     
     bool newCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
+
+  private:
+    
+    Debug(const Debug &);
+    Debug & operator=(const Debug &);
 };
 
 bool
@@ -199,20 +209,13 @@ Debug::hasAnyLiveHooks() const
 bool
 Debug::observesScope(JSObject *obj) const
 {
-    return observesCompartment(obj->compartment());
+    return obj->getGlobal() == debuggeeGlobal;
 }
 
 bool
 Debug::observesFrame(StackFrame *fp) const
 {
     return observesScope(&fp->scopeChain());
-}
-
-bool
-Debug::observesCompartment(JSCompartment *c) const
-{
-    JS_ASSERT(c);
-    return debuggeeCompartment == c;
 }
 
 JSObject *
@@ -232,14 +235,14 @@ Debug::fromJSObject(JSObject *obj)
 void
 Debug::leaveStackFrame(JSContext *cx)
 {
-    if (!cx->compartment->getDebuggers().empty())
+    if (!cx->compartment->getDebuggees().empty())
         slowPathLeaveStackFrame(cx);
 }
 
 JSTrapStatus
 Debug::onDebuggerStatement(JSContext *cx, js::Value *vp)
 {
-    return cx->compartment->getDebuggers().empty()
+    return cx->compartment->getDebuggees().empty()
            ? JSTRAP_CONTINUE
            : dispatchHook(cx, vp,
                           DebugObservesMethod(&Debug::observesDebuggerStatement),
@@ -249,7 +252,7 @@ Debug::onDebuggerStatement(JSContext *cx, js::Value *vp)
 JSTrapStatus
 Debug::onThrow(JSContext *cx, js::Value *vp)
 {
-    return cx->compartment->getDebuggers().empty()
+    return cx->compartment->getDebuggees().empty()
            ? JSTRAP_CONTINUE
            : dispatchHook(cx, vp,
                           DebugObservesMethod(&Debug::observesThrow),

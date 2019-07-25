@@ -199,12 +199,10 @@ JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
     comp->debugMode = !!debug;
 
     
-    if (debug) {
-        JS_ASSERT(comp->getDebuggers().empty());
-    } else {
-        while (!comp->getDebuggers().empty())
-            comp->getDebuggers().back()->detachFrom(comp);
-    }
+    if (debug)
+        JS_ASSERT(comp->getDebuggees().empty());
+    else
+        Debug::detachFromCompartment(comp);
 
     
     
