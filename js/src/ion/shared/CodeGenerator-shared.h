@@ -67,6 +67,7 @@ class CodeGeneratorShared : public LInstructionVisitor
     LBlock *current;
     SnapshotWriter snapshots_;
     IonCode *deoptTable_;
+    uint32 pushedArgs_;
 
     
     js::Vector<SnapshotOffset, 0, SystemAllocPolicy> bailouts_;
@@ -167,6 +168,12 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     inline bool isNextBlock(LBlock *block) {
         return (current->mir()->id() + 1 == block->mir()->id());
+    }
+
+    template <typename T>
+    void pushArg(const T &t) {
+        masm.Push(t);
+        pushedArgs_++;
     }
 
   protected:

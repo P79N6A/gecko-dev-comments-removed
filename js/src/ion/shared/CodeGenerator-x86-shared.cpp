@@ -107,13 +107,14 @@ CodeGeneratorX86Shared::generateEpilogue()
 
 
 
-
 bool
 CodeGeneratorX86Shared::callVM(const VMFunction &fun, LInstruction *ins)
 {
     
     
     
+    JS_ASSERT(pushedArgs_ == fun.explicitArgs);
+    pushedArgs_ = 0;
 
     
     IonCompartment *ion = gen->cx->compartment->ionCompartment();
@@ -143,7 +144,6 @@ CodeGeneratorX86Shared::callVM(const VMFunction &fun, LInstruction *ins)
 
     
     
-
     return true;
 }
 
@@ -770,10 +770,9 @@ CodeGeneratorX86Shared::visitNewArray(LNewArray *ins)
     const Register type = ReturnReg;
     masm.movePtr(ImmWord(ins->mir()->type()), type);
 
-    JS_ASSERT(ins->function().explicitArgs == 2);
-    masm.Push(type);
-    masm.Push(Imm32(ins->mir()->count()));
-    if (!callVM(ins->function(), ins))
+    pushArg(type);
+    pushArg(Imm32(ins->mir()->count()));
+    if (!callVM(NewInitArrayVMFun, ins))
         return false;
     return true;
 }
