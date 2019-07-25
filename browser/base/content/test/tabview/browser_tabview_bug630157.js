@@ -65,11 +65,6 @@ function test() {
     simulateDoubleClick(container, 2);
     assertNumberOfTabs(1);
 
-    
-    let container = groupItem.container;
-    simulateDoubleClick(container);
-    assertNumberOfTabs(1);
-
     groupItem.close();
     hideTabView(finishTest);
   }

@@ -1660,9 +1660,46 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   _addHandlers: function GroupItem__addHandlers(container) {
     let self = this;
+    let lastMouseDownTarget;
 
-    var dropIndex = false;
-    var dropSpaceTimer = null;
+    container.mousedown(function(e) {
+      let target = e.target;
+      
+      
+      
+      if (Utils.isLeftClick(e) &&
+          self.$closeButton[0] != target &&
+          self.$ntb[0] != target &&
+          self.$titlebar[0] != target &&
+          !self.$titlebar.contains(target) &&
+          !self.$appTabTray.contains(target)) {
+        lastMouseDownTarget = target;
+      } else {
+        lastMouseDownTarget = null;
+      }
+    });
+    container.mouseup(function(e) {
+      let same = (e.target == lastMouseDownTarget);
+      lastMouseDownTarget = null;
+
+      if (same && !self.isDragging) {
+        if (gBrowser.selectedTab.pinned &&
+            UI.getActiveTab() != self.getActiveTab() &&
+            self.getChildren().length > 0) {
+          UI.setActive(self, { dontSetActiveTabInGroup: true });
+          UI.goToTab(gBrowser.selectedTab);
+        } else {
+          let tabItem = self.getTopChild();
+          if (tabItem)
+            tabItem.zoomIn();
+          else
+            self.newTab();
+        }
+      }
+    });
+
+    let dropIndex = false;
+    let dropSpaceTimer = null;
 
     
     
