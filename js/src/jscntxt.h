@@ -562,21 +562,6 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                gcLastMarkSlice;
 
     
-    bool                gcSweepOnBackgroundThread;
-
-    
-
-
-    int                gcSweepPhase;
-    ptrdiff_t          gcSweepCompartmentIndex;
-    int                gcSweepKindIndex;
-
-    
-
-
-    js::gc::ArenaHeader *gcArenasAllocatedDuringSweep;
-
-    
 
 
 
