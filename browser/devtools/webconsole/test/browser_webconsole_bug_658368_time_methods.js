@@ -18,18 +18,25 @@ function test() {
 function consoleOpened(hud) {
   outputNode = hud.outputNode;
 
-  executeSoon(function() {
-    findLogEntry("aTimer: timer started");
-    findLogEntry("ms");
-
-    
-    
-    addTab("data:text/html;charset=utf-8,<script type='text/javascript'>" +
-           "console.timeEnd('bTimer');</script>");
-    browser.addEventListener("load", function onLoad() {
-      browser.removeEventListener("load", onLoad, true);
-      openConsole(null, testTimerIndependenceInTabs);
-    }, true);
+  waitForSuccess({
+    name: "aTimer started",
+    validatorFn: function()
+    {
+      return outputNode.textContent.indexOf("aTimer: timer started") > -1;
+    },
+    successFn: function()
+    {
+      findLogEntry("ms");
+      
+      
+      addTab("data:text/html;charset=utf-8,<script type='text/javascript'>" +
+             "console.timeEnd('bTimer');</script>");
+      browser.addEventListener("load", function onLoad() {
+        browser.removeEventListener("load", onLoad, true);
+        openConsole(null, testTimerIndependenceInTabs);
+      }, true);
+    },
+    failureFn: finishTest,
   });
 }
 
@@ -56,22 +63,30 @@ function testTimerIndependenceInSameTab() {
   let hud = HUDService.hudReferences[hudId];
   outputNode = hud.outputNode;
 
-  executeSoon(function() {
-    findLogEntry("bTimer: timer started");
-    hud.jsterm.clearOutput();
+  waitForSuccess({
+    name: "bTimer started",
+    validatorFn: function()
+    {
+      return outputNode.textContent.indexOf("bTimer: timer started") > -1;
+    },
+    successFn: function() {
+      hud.jsterm.clearOutput();
 
-    
-    
-    browser.addEventListener("load", function onLoad() {
-      browser.removeEventListener("load", onLoad, true);
-      executeSoon(testTimerIndependenceInSameTabAgain);
-    }, true);
-    content.location = "data:text/html;charset=utf-8,<script type='text/javascript'>" +
-           "console.timeEnd('bTimer');</script>";
+      
+      
+      browser.addEventListener("load", function onLoad() {
+        browser.removeEventListener("load", onLoad, true);
+        executeSoon(testTimerIndependenceInSameTabAgain);
+      }, true);
+      content.location = "data:text/html;charset=utf-8," +
+        "<script type='text/javascript'>" +
+        "console.timeEnd('bTimer');</script>";
+    },
+    failureFn: finishTest,
   });
 }
 
-function testTimerIndependenceInSameTabAgain(hud) {
+function testTimerIndependenceInSameTabAgain() {
   let hudId = HUDService.getHudIdByWindow(content);
   let hud = HUDService.hudReferences[hudId];
   outputNode = hud.outputNode;
