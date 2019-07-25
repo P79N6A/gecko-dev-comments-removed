@@ -126,6 +126,8 @@ using namespace mozilla::places;
 
 #define PREF_CACHE_TO_MEMORY_PERCENTAGE         "database.cache_to_memory_percentage"
 
+#define PREF_FORCE_DATABASE_REPLACEMENT         "database.replaceOnStartup"
+
 
 
 
@@ -574,11 +576,9 @@ nsNavHistory::Init()
 nsresult
 nsNavHistory::InitDBFile(PRBool aForceInit)
 {
-  if (aForceInit) {
-    NS_ASSERTION(mDBConn,
-                 "When forcing initialization, a database connection must exist!");
-    NS_ASSERTION(mDBService,
-                 "When forcing initialization, the database service must exist!");
+  if (!mDBService) {
+    mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+    NS_ENSURE_STATE(mDBService);
   }
 
   
@@ -606,10 +606,12 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     }
 
     
-    
-    
-    rv = mDBConn->Close();
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (mDBConn) {
+      
+      
+      rv = mDBConn->Close();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     
     rv = mDBFile->Remove(PR_FALSE);
@@ -636,13 +638,27 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
     rv = mDBFile->Exists(&dbExists);
     NS_ENSURE_SUCCESS(rv, rv);
     
-    if (!dbExists)
+    if (!dbExists) {
       mDatabaseStatus = DATABASE_STATUS_CREATE;
+    }
+    else {
+      
+      PRBool forceDatabaseReplacement;
+      if (NS_SUCCEEDED(mPrefBranch->GetBoolPref(PREF_FORCE_DATABASE_REPLACEMENT,
+                                                &forceDatabaseReplacement)) &&
+          forceDatabaseReplacement) {
+        
+        rv = mPrefBranch->ClearUserPref(PREF_FORCE_DATABASE_REPLACEMENT);
+        NS_ENSURE_SUCCESS(rv, rv);
+        
+        rv = InitDBFile(PR_TRUE);
+        NS_ENSURE_SUCCESS(rv, rv);
+        return NS_OK;
+      }
+    }
   }
 
   
-  mDBService = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
   
   rv = mDBService->OpenUnsharedDatabase(mDBFile, getter_AddRefs(mDBConn));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
@@ -3501,18 +3517,15 @@ PlacesSQLQueryBuilder::SelectAsSite()
   
   nsCAutoString visitsJoin;
   nsCAutoString additionalConditions;
-  nsCAutoString timeConstraints;
   if (!mConditions.IsEmpty()) {
     visitsJoin.AssignLiteral("JOIN moz_historyvisits v ON v.place_id = h.id ");
     additionalConditions.AssignLiteral("{QUERY_OPTIONS_VISITS} "
                                        "{QUERY_OPTIONS_PLACES} "
                                        "{ADDITIONAL_CONDITIONS} ");
-    timeConstraints.AssignLiteral("||'&beginTime='||:begin_time||"
-                                    "'&endTime='||:end_time");
   }
 
   mQueryString = nsPrintfCString(2048,
-    "SELECT null, 'place:type=%ld&sort=%ld&domain=&domainIsHost=true'%s, "
+    "SELECT null, 'place:type=%ld&sort=%ld&domain=&domainIsHost=true', "
            ":localhost, :localhost, null, null, null, null, null, null, null "
     "WHERE EXISTS ( "
       "SELECT h.id FROM moz_places h "
@@ -3525,7 +3538,7 @@ PlacesSQLQueryBuilder::SelectAsSite()
     ") "
     "UNION ALL "
     "SELECT null, "
-           "'place:type=%ld&sort=%ld&domain='||host||'&domainIsHost=true'%s, "
+           "'place:type=%ld&sort=%ld&domain='||host||'&domainIsHost=true', "
            "host, host, null, null, null, null, null, null, null "
     "FROM ( "
       "SELECT get_unreversed_host(h.rev_host) AS host "
@@ -3540,12 +3553,10 @@ PlacesSQLQueryBuilder::SelectAsSite()
     ") ",
     nsINavHistoryQueryOptions::RESULTS_AS_URI,
     mSortingMode,
-    PromiseFlatCString(timeConstraints).get(),
     PromiseFlatCString(visitsJoin).get(),
     PromiseFlatCString(additionalConditions).get(),
     nsINavHistoryQueryOptions::RESULTS_AS_URI,
     mSortingMode,
-    PromiseFlatCString(timeConstraints).get(),
     PromiseFlatCString(visitsJoin).get(),
     PromiseFlatCString(additionalConditions).get()
   );
