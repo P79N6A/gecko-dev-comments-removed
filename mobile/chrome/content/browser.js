@@ -2930,8 +2930,7 @@ Tab.prototype = {
     if (isDefault) {
       if (browser.scale != this._defaultZoomLevel) {
         browser.scale = this._defaultZoomLevel;
-      }
-      else {
+      } else {
         
         
         
