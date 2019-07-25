@@ -124,25 +124,6 @@ new TestCase( SECTION, "\\333",      String.fromCharCode(219),      "\333" );
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 new TestCase( SECTION, "\\xF0",      String.fromCharCode(240),         "\xF0" );
 new TestCase( SECTION, "\\xE1",      String.fromCharCode(225),         "\xE1" );
 new TestCase( SECTION, "\\xD2",      String.fromCharCode(210),         "\xD2" );
@@ -181,11 +162,6 @@ new TestCase( SECTION, "\\x1E1",      String.fromCharCode(30)+"1",         "\x1E
 new TestCase( SECTION, "\\x0F0",      String.fromCharCode(15)+"0",         "\x0F0" );
 
 
-
-new TestCase( SECTION, "\\xG",        "xG",                                 "\xG" );
-new TestCase( SECTION, "\\xCG",       "xCG",      				"\xCG" );
-
-
 new TestCase( SECTION, "\\a",    "a",        "\a" );
 new TestCase( SECTION, "\\c",    "c",        "\c" );
 new TestCase( SECTION, "\\d",    "d",        "\d" );
@@ -201,10 +177,7 @@ new TestCase( SECTION, "\\o",    "o",        "\o" );
 new TestCase( SECTION, "\\p",    "p",        "\p" );
 new TestCase( SECTION, "\\q",    "q",        "\q" );
 new TestCase( SECTION, "\\s",    "s",        "\s" );
-new TestCase( SECTION, "\\u",    "u",        "\u" );
-
 new TestCase( SECTION, "\\w",    "w",        "\w" );
-new TestCase( SECTION, "\\x",    "x",        "\x" );
 new TestCase( SECTION, "\\y",    "y",        "\y" );
 new TestCase( SECTION, "\\z",    "z",        "\z" );
 new TestCase( SECTION, "\\9",    "9",        "\9" );
