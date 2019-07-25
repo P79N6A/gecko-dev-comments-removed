@@ -52,8 +52,6 @@ function setUp() {
   Service.passphrase = "aabcdeabcdeabcdeabcdeabcde";
   Service.clusterURL = "http://localhost:8080/";
   new FakeCryptoService();
-  Engines.unregister("catapult");
-  Engines.register(CatapultEngine);
 }
 
 function generateAndUploadKeys() {
@@ -247,6 +245,35 @@ add_test(function test_engine_networkError() {
   server.stop(run_next_test);
 });
 
+add_test(function test_resource_timeout() {
+  setUp();
+  let server = sync_httpd_setup();
+
+  let engine = Engines.get("catapult");
+  engine.enabled = true;
+  
+  engine.exception = Components.Exception("Aborting due to channel inactivity.",
+                                          Cr.NS_ERROR_NET_TIMEOUT);
+
+  try {
+    do_check_eq(Status.sync, SYNC_SUCCEEDED);
+
+    do_check_true(generateAndUploadKeys());
+
+    Service.login();
+    Service.sync();
+
+    do_check_eq(Status.sync, LOGIN_FAILED_NETWORK_ERROR);
+  } finally {
+    Status.resetSync();
+    Service.startOver();
+  }
+  server.stop(run_next_test);
+});
+
+
+
+
 
 
 add_test(function test_engine_applyFailed() {
@@ -277,35 +304,10 @@ add_test(function test_engine_applyFailed() {
 });
 
 
-add_test(function test_resource_timeout() {
-  setUp();
-  let server = sync_httpd_setup();
-
-  let engine = Engines.get("catapult");
-  engine.enabled = true;
-  
-  engine.exception = Components.Exception("Aborting due to channel inactivity.",
-                                          Cr.NS_ERROR_NET_TIMEOUT);
-
-  try {
-    do_check_eq(Status.sync, SYNC_SUCCEEDED);
-
-    do_check_true(generateAndUploadKeys());
-
-    Service.login();
-    Service.sync();
-
-    do_check_eq(Status.sync, LOGIN_FAILED_NETWORK_ERROR);
-  } finally {
-    Status.resetSync();
-    Service.startOver();
-  }
-  server.stop(run_next_test);
-});
-
 function run_test() {
   if (DISABLE_TESTS_BUG_604565)
     return;
 
+  Engines.register(CatapultEngine);
   run_next_test();
 }
