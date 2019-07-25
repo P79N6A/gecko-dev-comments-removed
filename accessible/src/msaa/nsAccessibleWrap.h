@@ -327,7 +327,7 @@ public:
   
 
 
-  virtual nsAccessible *GetXPAccessibleFor(const VARIANT& aVarChild);
+  nsAccessible* GetXPAccessibleFor(const VARIANT& aVarChild);
 
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 

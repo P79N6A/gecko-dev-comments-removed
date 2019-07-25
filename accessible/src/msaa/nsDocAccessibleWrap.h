@@ -93,9 +93,6 @@ public:
   virtual void Shutdown();
 
   
-  virtual nsAccessible *GetXPAccessibleFor(const VARIANT& varChild);
-
-  
   virtual void* GetNativeWindow() const;
 
 protected:

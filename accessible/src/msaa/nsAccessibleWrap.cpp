@@ -1763,6 +1763,38 @@ nsAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
     return nsnull;
 
   
+  
+  
+
+  if (aVarChild.lVal < 0) {
+    
+    void* uniqueID = reinterpret_cast<void*>(-aVarChild.lVal);
+
+    
+    if (IsDoc())
+      return AsDoc()->GetAccessibleByUniqueIDInSubtree(uniqueID);
+
+    
+    if (ARIARole() == nsIAccessibleRole::ROLE_DOCUMENT) {
+      nsDocAccessible* document = GetDocAccessible();
+      nsAccessible* child =
+        document->GetAccessibleByUniqueIDInSubtree(uniqueID);
+
+      
+      
+      nsAccessible* parent = child ? child->GetParent() : nsnull;
+      while (parent && parent != document) {
+        if (parent == this)
+          return child;
+
+        parent = parent->GetParent();
+      }
+    }
+
+    return nsnull;
+  }
+
+  
   return GetChildAt(aVarChild.lVal - 1);
 }
 

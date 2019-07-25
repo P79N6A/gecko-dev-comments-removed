@@ -99,22 +99,6 @@ STDMETHODIMP nsDocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
   return S_OK;
 }
 
-nsAccessible*
-nsDocAccessibleWrap::GetXPAccessibleFor(const VARIANT& aVarChild)
-{
-  
-  
-  
-
-  if (aVarChild.vt == VT_I4 && aVarChild.lVal < 0) {
-    
-    void* uniqueID = reinterpret_cast<void*>(-aVarChild.lVal);
-    return GetAccessibleByUniqueIDInSubtree(uniqueID);
-  }
-
-  return nsAccessibleWrap::GetXPAccessibleFor(aVarChild);
-}
-
 STDMETHODIMP nsDocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
 {
 __try {
