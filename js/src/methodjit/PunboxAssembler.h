@@ -205,18 +205,24 @@ class Assembler : public BaseAssembler
         storePtr(imm, valueOf(address));
     }
 
-    void storeValue(const Value &v, Address address) {
+    
+
+
+
+    Label storeValue(const Value &v, Address address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));
 
         storePtr(Imm64(jv.asBits), valueOf(address));
+        return label();
     }
 
-    void storeValue(const Value &v, BaseIndex address) {
+    Label storeValue(const Value &v, BaseIndex address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));
 
         storePtr(Imm64(jv.asBits), valueOf(address));        
+        return label();
     }
 
     void loadFunctionPrivate(RegisterID base, RegisterID to) {

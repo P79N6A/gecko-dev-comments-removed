@@ -48,11 +48,71 @@
 #include "methodjit/MethodJIT.h"
 #include "RematInfo.h"
 
+
+#ifdef DEBUG
+# define DBGLABEL(name) Label name = masm.label();
+# define DBGLABEL_ASSIGN(name) name = masm.label();
+#else
+# define DBGLABEL(name)
+# define DBGLABEL_ASSIGN(name)
+#endif
+
 namespace js {
 namespace mjit {
 namespace ic {
 
 static const uint32 MAX_PIC_STUBS = 16;
+
+
+#ifdef JS_CPU_X86
+static const int32 SETPROP_INLINE_SHAPE_OFFSET     =   6; 
+static const int32 SETPROP_INLINE_SHAPE_JUMP       =  12; 
+static const int32 SETPROP_DSLOTS_BEFORE_CONSTANT  = -23; 
+static const int32 SETPROP_DSLOTS_BEFORE_KTYPE     = -19; 
+static const int32 SETPROP_DSLOTS_BEFORE_DYNAMIC   = -15; 
+static const int32 SETPROP_INLINE_STORE_DYN_TYPE   =  -6; 
+static const int32 SETPROP_INLINE_STORE_DYN_DATA   =   0; 
+static const int32 SETPROP_INLINE_STORE_KTYPE_TYPE = -10; 
+static const int32 SETPROP_INLINE_STORE_KTYPE_DATA =   0; 
+static const int32 SETPROP_INLINE_STORE_CONST_TYPE = -14; 
+static const int32 SETPROP_INLINE_STORE_CONST_DATA =  -4; 
+static const int32 SETPROP_STUB_SHAPE_JUMP         =  12; 
+#endif
+
+
+#ifdef JS_CPU_X86
+static const int32 GETPROP_DSLOTS_LOAD         = -15; 
+static const int32 GETPROP_TYPE_LOAD           =  -6; 
+static const int32 GETPROP_DATA_LOAD           =   0; 
+static const int32 GETPROP_INLINE_TYPE_GUARD   =  12; 
+static const int32 GETPROP_INLINE_SHAPE_OFFSET =   6; 
+static const int32 GETPROP_INLINE_SHAPE_JUMP   =  12; 
+static const int32 GETPROP_STUB_SHAPE_JUMP     =  12; 
+#endif
+
+
+#ifdef JS_CPU_X86
+static const int32 GETELEM_DSLOTS_LOAD         = -15; 
+static const int32 GETELEM_TYPE_LOAD           =  -6; 
+static const int32 GETELEM_DATA_LOAD           =   0; 
+static const int32 GETELEM_INLINE_SHAPE_OFFSET =   6; 
+static const int32 GETELEM_INLINE_ATOM_OFFSET  =  18; 
+static const int32 GETELEM_INLINE_ATOM_JUMP    =  24; 
+static const int32 GETELEM_INLINE_SHAPE_JUMP   =  12; 
+static const int32 GETELEM_STUB_ATOM_JUMP      =  12; 
+static const int32 GETELEM_STUB_SHAPE_JUMP     =  24; 
+#endif
+
+
+#ifdef JS_CPU_X86
+static const int32 SCOPENAME_JUMP_OFFSET = 5; 
+#endif
+
+
+#ifdef JS_CPU_X86
+static const int32 BINDNAME_INLINE_JUMP_OFFSET = 10; 
+static const int32 BINDNAME_STUB_JUMP_OFFSET   =  5; 
+#endif
 
 void PurgePICs(JSContext *cx);
 
