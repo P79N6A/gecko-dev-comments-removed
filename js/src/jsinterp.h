@@ -67,9 +67,8 @@ enum JSFrameFlags {
     JSFRAME_EVAL               =  0x10, 
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
-    JSFRAME_ITERATOR           =  0x80, 
-    JSFRAME_GENERATOR          = 0x200, 
-    JSFRAME_OVERRIDE_ARGS      = 0x400, 
+    JSFRAME_GENERATOR          =  0x80, 
+    JSFRAME_OVERRIDE_ARGS      = 0x100, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -298,12 +297,11 @@ js_Invoke(JSContext *cx, const js::InvokeArgsGuard &args, uintN flags);
 
 
 #define JSINVOKE_CONSTRUCT      JSFRAME_CONSTRUCTING
-#define JSINVOKE_ITERATOR       JSFRAME_ITERATOR
 
 
 
 
-#define JSINVOKE_FUNFLAGS       (JSINVOKE_CONSTRUCT | JSINVOKE_ITERATOR)
+#define JSINVOKE_FUNFLAGS       JSINVOKE_CONSTRUCT
 
 
 
