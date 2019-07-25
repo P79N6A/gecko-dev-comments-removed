@@ -246,23 +246,34 @@ static inline PRUint64 version(PRUint32 major, PRUint32 minor, PRUint32 revision
     return (PRUint64(major) << 32) + (PRUint64(minor) << 16) + PRUint64(revision);
 }
 
+static GfxDriverInfo gDriverInfo[] = {
+  GfxDriverInfo()
+};
+
+const GfxDriverInfo*
+GfxInfo::GetGfxDriverInfo()
+{
+  return &gDriverInfo[0];
+}
+
 nsresult
-GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aSuggestedDriverVersion, GfxDriverInfo* aDriverInfo )
+GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, 
+                              PRInt32 *aStatus, 
+                              nsAString & aSuggestedDriverVersion, 
+                              GfxDriverInfo* aDriverInfo , 
+                              OperatingSystem* aOS )
+
 {
     GetData();
     *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
     aSuggestedDriverVersion.SetIsVoid(true);
 
-    if (aDriverInfo) {
-      
-      
-      return NS_OK;
-    }
-
 #ifdef MOZ_PLATFORM_MAEMO
     
     return NS_OK;
 #endif
+
+    OperatingSystem os = DRIVER_OS_LINUX;
 
     
     if (aFeature == nsIGfxInfo::FEATURE_OPENGL_LAYERS && !mHasTextureFromPixmap) {
@@ -304,7 +315,11 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
         
         *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
     }
-  return NS_OK;
+
+  if (aOS)
+    *aOS = os;
+
+  return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
 }
 
 

@@ -249,6 +249,10 @@ BlacklistOSToOperatingSystem(const nsAString& os)
     return DRIVER_OS_OS_X_10_5;
   else if (os == NS_LITERAL_STRING("Darwin 10"))
     return DRIVER_OS_OS_X_10_6;
+  else if (os == NS_LITERAL_STRING("Darwin 11"))
+    return DRIVER_OS_OS_X_10_7;
+  else if (os == NS_LITERAL_STRING("Android"))
+    return DRIVER_OS_ANDROID;
   else if (os == NS_LITERAL_STRING("All"))
     return DRIVER_OS_ALL;
 
@@ -549,6 +553,12 @@ GfxInfoBase::Init()
   return NS_OK;
 }
 
+static const GfxDriverInfo gDriverInfo[] = {
+  
+  GfxDriverInfo()
+};
+
+
 NS_IMETHODIMP
 GfxInfoBase::GetFeatureStatus(PRInt32 aFeature, PRInt32* aStatus NS_OUTPARAM)
 {
@@ -557,6 +567,175 @@ GfxInfoBase::GetFeatureStatus(PRInt32 aFeature, PRInt32* aStatus NS_OUTPARAM)
 
   nsString version;
   return GetFeatureStatusImpl(aFeature, aStatus, version);
+}
+
+nsresult
+GfxInfoBase::GetFeatureStatusImpl(PRInt32 aFeature,
+                                  PRInt32* aStatus,
+                                  nsAString& aVersion,
+                                  GfxDriverInfo* aDriverInfo ,
+                                  OperatingSystem* aOS )
+{
+  if (*aStatus != nsIGfxInfo::FEATURE_NO_INFO) {
+    
+    
+    return NS_OK;
+  }
+
+  OperatingSystem os = DRIVER_OS_UNKNOWN;
+  if (aOS)
+    os = *aOS;
+
+  PRUint32 adapterVendorID = 0;
+  PRUint32 adapterDeviceID = 0;
+  nsAutoString adapterDriverVersionString;
+  if (NS_FAILED(GetAdapterVendorID(&adapterVendorID)) ||
+      NS_FAILED(GetAdapterDeviceID(&adapterDeviceID)) ||
+      NS_FAILED(GetAdapterDriverVersion(adapterDriverVersionString)))
+  {
+    return NS_ERROR_FAILURE;
+  }
+
+  PRUint64 driverVersion;
+  if (!ParseDriverVersion(adapterDriverVersionString, &driverVersion)) {
+#if !defined(XP_MACOSX)
+    return NS_ERROR_FAILURE;
+#endif
+  }
+
+  
+  
+  
+  if (os == DRIVER_OS_WINDOWS_XP &&
+      adapterVendorID == GfxDriverInfo::vendorNVIDIA &&
+      adapterDeviceID == 0x0861 && 
+      driverVersion == V(6,14,11,7756))
+  {
+    return NS_OK;
+  }
+
+  PRInt32 status = *aStatus;
+  const GfxDriverInfo* info = aDriverInfo ? aDriverInfo : &gDriverInfo[0];
+  
+  
+  
+  
+  bool loopingOverOS = false;
+  while (true) {
+    if (!info->mOperatingSystem) {
+      if (loopingOverOS)
+        break;
+      else
+      {
+        
+        loopingOverOS = true;
+        
+       info = GetGfxDriverInfo();
+      }
+    }
+
+    if (info->mOperatingSystem != DRIVER_OS_ALL &&
+        info->mOperatingSystem != os)
+    {
+      info++;
+      continue;
+    }
+
+    if (info->mAdapterVendor != GfxDriverInfo::allAdapterVendors &&
+        info->mAdapterVendor != adapterVendorID) {
+      info++;
+      continue;
+    }
+
+    if (info->mDevices != GfxDriverInfo::allDevices) {
+        bool deviceMatches = false;
+        for (const PRUint32 *devices = info->mDevices; *devices; ++devices) {
+            if (*devices == adapterDeviceID) {
+                deviceMatches = true;
+                break;
+            }
+        }
+
+        if (!deviceMatches) {
+            info++;
+            continue;
+        }
+    }
+
+    bool match = false;
+
+#if !defined(XP_MACOSX)
+    switch (info->mComparisonOp) {
+    case DRIVER_LESS_THAN:
+      match = driverVersion < info->mDriverVersion;
+      break;
+    case DRIVER_LESS_THAN_OR_EQUAL:
+      match = driverVersion <= info->mDriverVersion;
+      break;
+    case DRIVER_GREATER_THAN:
+      match = driverVersion > info->mDriverVersion;
+      break;
+    case DRIVER_GREATER_THAN_OR_EQUAL:
+      match = driverVersion >= info->mDriverVersion;
+      break;
+    case DRIVER_EQUAL:
+      match = driverVersion == info->mDriverVersion;
+      break;
+    case DRIVER_NOT_EQUAL:
+      match = driverVersion != info->mDriverVersion;
+      break;
+    case DRIVER_BETWEEN_EXCLUSIVE:
+      match = driverVersion > info->mDriverVersion && driverVersion < info->mDriverVersionMax;
+      break;
+    case DRIVER_BETWEEN_INCLUSIVE:
+      match = driverVersion >= info->mDriverVersion && driverVersion <= info->mDriverVersionMax;
+      break;
+    case DRIVER_BETWEEN_INCLUSIVE_START:
+      match = driverVersion >= info->mDriverVersion && driverVersion < info->mDriverVersionMax;
+      break;
+    default:
+      NS_WARNING("Bogus op in GfxDriverInfo");
+      break;
+    }
+#else
+    
+    
+    match = true;
+#endif
+
+    if (match) {
+      if (info->mFeature == GfxDriverInfo::allFeatures ||
+          info->mFeature == aFeature)
+      {
+        status = info->mFeatureStatus;
+        break;
+      }
+    }
+
+    info++;
+  }
+ 
+  *aStatus = status;
+
+  
+  
+#if defined(XP_WIN)
+  if (status == FEATURE_BLOCKED_DRIVER_VERSION) {
+    if (info->mSuggestedVersion) {
+        aVersion.AppendPrintf("%s", info->mSuggestedVersion);
+    } else if (info->mComparisonOp == DRIVER_LESS_THAN &&
+               info->mDriverVersion != GfxDriverInfo::allDriverVersions)
+    {
+        aVersion.AppendPrintf("%lld.%lld.%lld.%lld",
+                             (info->mDriverVersion & 0xffff000000000000) >> 48,
+                             (info->mDriverVersion & 0x0000ffff00000000) >> 32,
+                             (info->mDriverVersion & 0x00000000ffff0000) >> 16,
+                             (info->mDriverVersion & 0x000000000000ffff));
+    }
+  }
+#endif
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP

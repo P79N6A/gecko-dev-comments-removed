@@ -86,13 +86,18 @@ public:
   virtual nsresult Init();
   
   
+  
+  virtual const GfxDriverInfo* GetGfxDriverInfo() = 0;
+
+  
   NS_IMETHOD_(void) GetData() { }
 
 protected:
 
   virtual nsresult GetFeatureStatusImpl(PRInt32 aFeature, PRInt32* aStatus,
                                         nsAString& aSuggestedDriverVersion,
-                                        GfxDriverInfo* aDriverInfo = nsnull) = 0;
+                                        GfxDriverInfo* aDriverInfo = nsnull,
+                                        OperatingSystem* aOS = nsnull);
 
 private:
 
