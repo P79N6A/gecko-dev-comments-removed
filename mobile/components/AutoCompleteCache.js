@@ -208,6 +208,7 @@ var AutoCompleteUtils = {
 
       
       result.getValueAt = function(index) this.data[index][0];
+      result.getLabelAt = function(index) this.data[index][0];
       result.getCommentAt = function(index) this.data[index][1];
       result.getStyleAt = function(index) this.data[index][2];
       result.getImageAt = function(index) this.data[index][3];
