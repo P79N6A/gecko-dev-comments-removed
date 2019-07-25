@@ -15,10 +15,10 @@ def build_dict(env=os.environ):
     """
     d = {}
     
-    required = ["TARGET_CPU", "OS_TARGET"]
+    required = ["TARGET_CPU", "OS_TARGET", "MOZ_WIDGET_TOOLKIT"]
     missing = [r for r in required if r not in env]
     if missing:
-        raise Exception("Missing required environment variables: " %
+        raise Exception("Missing required environment variables: %s" %
                         ', '.join(missing))
     
     o = env["OS_TARGET"]
@@ -31,6 +31,9 @@ def build_dict(env=os.environ):
     else:
         
         d["os"] = o.lower()
+
+    
+    d["toolkit"] = env["MOZ_WIDGET_TOOLKIT"]
     
     
     p = env["TARGET_CPU"]
@@ -51,6 +54,9 @@ def build_dict(env=os.environ):
 
     
     d["debug"] = 'MOZ_DEBUG' in env and env['MOZ_DEBUG'] == '1'
+
+    
+    d["crashreporter"] = 'MOZ_CRASHREPORTER' in env and env['MOZ_CRASHREPORTER'] == '1'
     return d
 
 
