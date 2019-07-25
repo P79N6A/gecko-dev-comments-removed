@@ -6093,13 +6093,8 @@ ExpressionDecompiler::findLetVar(jsbytecode *pc, unsigned depth)
             if (uint32_t(depth - blockDepth) < uint32_t(blockCount)) {
                 for (Shape::Range r(block.lastProperty()); !r.empty(); r.popFront()) {
                     const Shape &shape = r.front();
-                    if (shape.shortid() == int(depth - blockDepth)) {
-                        
-                        
-                        
-                        if (JSID_IS_ATOM(shape.propid()))
-                            return JSID_TO_ATOM(shape.propid());
-                    }
+                    if (shape.shortid() == int(depth - blockDepth))
+                        return JSID_TO_ATOM(shape.propid());
                 }
             }
             chain = chain->getParent();
