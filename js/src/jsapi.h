@@ -3308,7 +3308,10 @@ typedef enum JSGCParamKey {
     JSGC_TOTAL_CHUNKS = 8,
 
     
-    JSGC_SLICE_TIME_BUDGET = 9
+    JSGC_SLICE_TIME_BUDGET = 9,
+
+    
+    JSGC_MARK_STACK_LIMIT = 10
 } JSGCParamKey;
 
 typedef enum JSGCMode {
