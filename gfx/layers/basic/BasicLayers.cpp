@@ -2011,7 +2011,10 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext,
   
   nsRefPtr<gfxContext> tmpCtx = new gfxContext(mBackBuffer);
   tmpCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
-  tmpCtx->DrawSurface(mSurface, gfxSize(mBounds.width, mBounds.height));
+
+  
+  
+  BasicCanvasLayer::Paint(tmpCtx, nsnull, nsnull);
 
   BasicManager()->PaintedCanvas(BasicManager()->Hold(this),
                                 mBackBuffer);
