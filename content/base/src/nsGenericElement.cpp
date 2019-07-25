@@ -51,7 +51,6 @@
 #include "nsIDOMMutationEvent.h"
 #include "nsMutationEvent.h"
 #include "nsNodeUtils.h"
-#include "mozilla/dom/DirectionalityUtils.h"
 #include "nsDocument.h"
 #include "nsAttrValueOrString.h"
 #ifdef MOZ_XUL
@@ -129,7 +128,6 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
-using namespace mozilla::directionality;
 
 nsEventStates
 Element::IntrinsicState() const
@@ -1362,13 +1360,6 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   
-  
-  if (IsHTML()) {
-    RecomputeDirectionality(this, false);
-  }
-
-  
-  
   nsresult rv;
   if (hadForceXBL) {
     nsBindingManager* bmgr = OwnerDoc()->BindingManager();
@@ -1550,13 +1541,6 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
     if (slots) {
       slots->mBindingParent = nullptr;
     }
-  }
-
-  
-  
-  
-  if (IsHTML()) {
-    RecomputeDirectionality(this, false);
   }
 
   if (aDeep) {

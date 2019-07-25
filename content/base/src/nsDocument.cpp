@@ -91,7 +91,6 @@
 #include "nsXMLEventsManager.h"
 
 #include "nsBidiUtils.h"
-#include "mozilla/dom/DirectionalityUtils.h"
 
 #include "nsIDOMUserDataHandler.h"
 #include "nsIDOMXPathEvaluator.h"
@@ -171,7 +170,6 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
-using namespace mozilla::directionality;
 
 typedef nsTArray<Link*> LinkArray;
 
@@ -1512,8 +1510,7 @@ nsIDocument::nsIDocument()
     mAllowDNSPrefetch(true),
     mIsBeingUsedAsImage(false),
     mHasLinksToUpdate(false),
-    mPartID(0),
-    mDirectionality(eDir_LTR)
+    mPartID(0)
 {
   SetInDocument();
 }
@@ -5585,15 +5582,6 @@ nsDocument::SetDir(const nsAString& aDirection)
         } else {
           
           SetBidiOptions(options);
-        }
-        Directionality dir = elt->mValue == IBMBIDI_TEXTDIRECTION_RTL ?
-                               eDir_RTL : eDir_LTR;
-        SetDocumentDirectionality(dir);
-        
-        Element* rootElement = GetRootElement();
-        if (rootElement) {
-          SetDirectionality(rootElement, dir, true);
-          SetDirectionalityOnDescendants(rootElement, dir);
         }
       }
 

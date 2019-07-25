@@ -1534,20 +1534,6 @@ checkGenericEmptyMatches(Element* aElement,
 }
 
 
-static const nsEventStates sPseudoClassStateDependences[] = {
-#define CSS_PSEUDO_CLASS(_name, _value) \
-  nsEventStates(),
-#define CSS_STATE_DEPENDENT_PSEUDO_CLASS(_name, _value, _states)  \
-  _states,
-#include "nsCSSPseudoClassList.h"
-#undef CSS_STATE_DEPENDENT_PSEUDO_CLASS
-#undef CSS_PSEUDO_CLASS
-  
-  
-  nsEventStates(),
-  nsEventStates()
-};
-
 static const nsEventStates sPseudoClassStates[] = {
 #define CSS_PSEUDO_CLASS(_name, _value)         \
   nsEventStates(),
@@ -2006,38 +1992,6 @@ static bool SelectorMatches(Element* aElement,
           if (!val ||
               (val->Type() == nsAttrValue::eInteger &&
                val->GetIntegerValue() == 0)) {
-            return false;
-          }
-        }
-        break;
-
-      case nsCSSPseudoClasses::ePseudoClass_dir:
-        {
-          if (aDependence) {
-            nsEventStates states
-              = sPseudoClassStateDependences[pseudoClass->mType];
-            if (aNodeMatchContext.mStateMask.HasAtLeastOneOfStates(states)) {
-              *aDependence = true;
-              return false;
-            }
-          }
-
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          nsEventStates state = aElement->StyleState();
-          bool elementIsRTL = state.HasState(NS_EVENT_STATE_RTL);
-          bool elementIsLTR = state.HasState(NS_EVENT_STATE_LTR);
-          nsDependentString dirString(pseudoClass->u.mString);
-
-          if ((dirString.EqualsLiteral("rtl") && !elementIsRTL) ||
-              (dirString.EqualsLiteral("ltr") && !elementIsLTR)) {
             return false;
           }
         }
@@ -2711,7 +2665,7 @@ nsEventStates ComputeSelectorStateDependence(nsCSSSelector& aSelector)
     if (pseudoClass->mType >= nsCSSPseudoClasses::ePseudoClass_Count) {
       continue;
     }
-    states |= sPseudoClassStateDependences[pseudoClass->mType];
+    states |= sPseudoClassStates[pseudoClass->mType];
   }
   return states;
 }
