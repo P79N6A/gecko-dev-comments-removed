@@ -199,7 +199,7 @@ hb_ot_layout_position_lookup (hb_font_t    *font,
 
 
 void
-hb_ot_layout_position_finish (hb_buffer_t  *buffer);
+hb_ot_layout_position_finish (hb_face_t *face, hb_buffer_t *buffer);
 
 
 HB_END_DECLS
