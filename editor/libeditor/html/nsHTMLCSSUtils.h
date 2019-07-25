@@ -12,6 +12,7 @@
 #include "prtypes.h"                    
 
 class ChangeCSSInlineStyleTxn;
+class nsComputedDOMStyle;
 class nsIAtom;
 class nsIContent;
 class nsIDOMCSSStyleDeclaration;
@@ -306,11 +307,10 @@ public:
   
 
 
-
-
-
-  nsresult GetDefaultViewCSS(nsINode* aNode, nsIDOMWindow** aWindow);
-  nsresult GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
+  already_AddRefed<nsComputedDOMStyle>
+    GetComputedStyle(nsIDOMElement* aElement);
+  already_AddRefed<nsComputedDOMStyle>
+    GetComputedStyle(mozilla::dom::Element* aElement);
 
 
 private:
@@ -382,13 +382,10 @@ private:
 
 
 
-
   nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, nsIDOMWindow* aWindow,
-                                    StyleType aStyleType);
+                                    nsAString& aValue, StyleType aStyleType);
   nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, nsIDOMWindow* aWindow,
-                                    StyleType aStyleType);
+                                    nsAString& aValue, StyleType aStyleType);
 
 
 private:
