@@ -640,6 +640,19 @@ let RIL = {
   
 
 
+
+
+
+  setMute: function setMute(mute) {
+    Buf.newParcel(REQUEST_SET_MUTE);
+    Buf.writeUint32(1);
+    Buf.writeUint32(mute ? 1 : 0);
+    Buf.sendParcel();
+  },
+
+  
+
+
   answerCall: function answerCall() {
     Buf.simpleRequest(REQUEST_ANSWER);
   },
@@ -867,7 +880,9 @@ RIL[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION() {
   Phone.onBasebandVersion(version);
 },
 RIL[REQUEST_SEPARATE_CONNECTION] = null;
-RIL[REQUEST_SET_MUTE] = null;
+RIL[REQUEST_SET_MUTE] = function REQUEST_SET_MUTE(length) {
+  Phone.onSetMute();
+};
 RIL[REQUEST_GET_MUTE] = null;
 RIL[REQUEST_QUERY_CLIP] = null;
 RIL[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
@@ -1248,6 +1263,9 @@ let Phone = {
   onRejectCall: function onRejectCall() {
   },
 
+  onSetMute: function onSetMute() {
+  },
+
   onSendSMS: function onSendSMS(messageRef, ackPDU, errorCode) {
     
   },
@@ -1297,6 +1315,18 @@ let Phone = {
     
     
     RIL.hangUp(options.callIndex);
+  },
+
+  
+
+
+
+
+
+  setMute: function setMute(options) {
+    
+    
+    RIL.setMute(options.mute);
   },
 
   
