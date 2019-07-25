@@ -45,17 +45,21 @@ VPATH		= @srcdir@
 include $(DEPTH)/config/autoconf.mk
 
 PROGRAM         = jsapi-tests$(BIN_SUFFIX)
+
 CPPSRCS = \
   tests.cpp \
   selfTest.cpp \
   testContexts.cpp \
   testDebugger.cpp \
   testDefineGetterSetterNonEnumerable.cpp \
+  testDefineProperty.cpp \
   testExtendedEq.cpp \
+  testGCChunkAlloc.cpp \
   testIntString.cpp \
   testIsAboutToBeFinalized.cpp \
   testLookup.cpp \
   testNewObject.cpp \
+  testOps.cpp \
   testPropCache.cpp \
   testTrap.cpp \
   testSameValue.cpp \

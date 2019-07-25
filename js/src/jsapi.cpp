@@ -539,6 +539,7 @@ static JSBool js_NewRuntimeWasCalled = JS_FALSE;
 #endif
 
 JSRuntime::JSRuntime()
+    : gcChunkAllocator(&defaultGCChunkAllocator)
 {
     
     JS_INIT_CLIST(&contextList);
@@ -3714,6 +3715,7 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
 {
     jsint i;
     JSObject *obj;
+    JSScope *scope;
     JSScopeProperty *sprop;
     JSIdArray *ida;
 
@@ -3723,6 +3725,7 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp)
         
         obj = iterobj->getParent();
         JS_ASSERT(obj->isNative());
+        scope = obj->scope();
         sprop = (JSScopeProperty *) iterobj->getPrivate();
 
         
