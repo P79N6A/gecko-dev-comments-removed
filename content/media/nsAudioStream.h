@@ -54,6 +54,8 @@ public:
     FORMAT_FLOAT32
   };
 
+  virtual ~nsAudioStream();
+
   
   
   static void InitLibrary();
@@ -64,7 +66,7 @@ public:
 
   
   
-  virtual nsIThread *GetThread();
+  nsIThread *GetThread();
 
   
   
