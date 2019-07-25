@@ -450,7 +450,7 @@ Debugger::hasAnyLiveHooks() const
 
     
     for (Breakpoint *bp = firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
-        if (!IsAboutToBeFinalized(bp->site->script))
+        if (IsScriptMarked(&bp->site->script))
             return true;
     }
 
@@ -1321,11 +1321,13 @@ Debugger::markAllIteratively(GCMarker *trc)
 
     JSRuntime *rt = trc->runtime;
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        const GlobalObjectSet &debuggees = c->getDebuggees();
-        for (GlobalObjectSet::Range r = debuggees.all(); !r.empty(); r.popFront()) {
-            GlobalObject *global = r.front();
-            if (IsAboutToBeFinalized(global))
+        GlobalObjectSet &debuggees = c->getDebuggees();
+        for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
+            GlobalObject *global = e.front();
+            if (!IsObjectMarked(&global))
                 continue;
+            else
+                e.rekeyFront(global);
 
             
 
@@ -1346,7 +1348,7 @@ Debugger::markAllIteratively(GCMarker *trc)
                 if (!dbgobj->compartment()->isCollecting())
                     continue;
 
-                bool dbgMarked = !IsAboutToBeFinalized(dbgobj);
+                bool dbgMarked = IsObjectMarked(&dbgobj);
                 if (!dbgMarked && dbg->hasAnyLiveHooks()) {
                     
 
@@ -1360,12 +1362,12 @@ Debugger::markAllIteratively(GCMarker *trc)
                 if (dbgMarked) {
                     
                     for (Breakpoint *bp = dbg->firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
-                        if (!IsAboutToBeFinalized(bp->site->script)) {
+                        if (IsScriptMarked(&bp->site->script)) {
                             
 
 
 
-                            if (IsAboutToBeFinalized(bp->getHandler())) {
+                            if (!IsObjectMarked(&bp->getHandlerRef())) {
                                 MarkObject(trc, &bp->getHandlerRef(), "breakpoint handler");
                                 markedAny = true;
                             }
@@ -1423,7 +1425,7 @@ Debugger::sweepAll(FreeOp *fop)
     for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
         Debugger *dbg = Debugger::fromLinks(p);
 
-        if (IsAboutToBeFinalized(dbg->object)) {
+        if (!IsObjectMarked(&dbg->object)) {
             
 
 
@@ -1440,8 +1442,10 @@ Debugger::sweepAll(FreeOp *fop)
         GlobalObjectSet &debuggees = (*c)->getDebuggees();
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
             GlobalObject *global = e.front();
-            if (IsAboutToBeFinalized(global))
+            if (!IsObjectMarked(&global))
                 detachAllDebuggersFromGlobal(fop, global, &e);
+            else
+                e.rekeyFront(global);
         }
     }
 }

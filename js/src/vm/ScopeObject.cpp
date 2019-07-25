@@ -1488,7 +1488,7 @@ DebugScopes::sweep()
 
 
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
-        if (IsAboutToBeFinalized(e.front().value))
+        if (!IsObjectMarked(&e.front().value))
             e.removeFront();
     }
 }
