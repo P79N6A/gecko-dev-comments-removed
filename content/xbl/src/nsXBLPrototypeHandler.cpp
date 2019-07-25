@@ -27,6 +27,7 @@
 #include "nsEventListenerManager.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMEventListener.h"
+#include "nsIDOMNSEvent.h"
 #include "nsPIDOMWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsIDOMWindow.h"
@@ -209,8 +210,11 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
   
   
   if (isXULKey || isXBLCommand) {
+    nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aEvent);
     bool trustedEvent = false;
-    aEvent->GetIsTrusted(&trustedEvent);
+    if (domNSEvent) {
+      domNSEvent->GetIsTrusted(&trustedEvent);
+    }
 
     if (!trustedEvent)
       return NS_OK;
@@ -356,17 +360,20 @@ nsXBLPrototypeHandler::DispatchXBLCommand(nsIDOMEventTarget* aTarget, nsIDOMEven
   
   
 
+  
+  bool preventDefault = false;
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(aEvent);
+  if (domNSEvent) {
+    domNSEvent->GetPreventDefault(&preventDefault);
+  }
+
+  if (preventDefault)
+    return NS_OK;
+
   if (aEvent) {
-    
-    bool preventDefault = false;
-    aEvent->GetPreventDefault(&preventDefault);
-    if (preventDefault) {
-      return NS_OK;
-    }
     bool dispatchStopped = aEvent->IsDispatchStopped();
-    if (dispatchStopped) {
+    if (dispatchStopped)
       return NS_OK;
-    }
   }
 
   

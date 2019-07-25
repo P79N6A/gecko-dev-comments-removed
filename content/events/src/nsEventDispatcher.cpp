@@ -682,8 +682,10 @@ nsEventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
     if (innerEvent->flags & NS_EVENT_DISPATCHED) {
       innerEvent->target = nullptr;
       innerEvent->originalTarget = nullptr;
-    } else {
-      aDOMEvent->GetIsTrusted(&dontResetTrusted);
+    }
+    else {
+      nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aDOMEvent));
+      nsevent->GetIsTrusted(&dontResetTrusted);
     }
 
     if (!dontResetTrusted) {

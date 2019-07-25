@@ -3175,21 +3175,15 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
 }
 
 
-
 NS_IMETHODIMP
 nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
                                    const nsACString& value)
 {
-  
-  if (!(mState & XML_HTTP_REQUEST_OPENED)) {
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
-  }
-  NS_ASSERTION(mChannel, "mChannel must be valid if we're OPENED.");
+  nsresult rv;
 
   
-  
-  if (!IsValidHTTPToken(header)) { 
-    return NS_ERROR_DOM_SYNTAX_ERR;
+  if (!IsValidHTTPToken(header)) {
+    return NS_ERROR_FAILURE;
   }
 
   
@@ -3197,7 +3191,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
   if (mCORSPreflightChannel) {
     bool pending;
-    nsresult rv = mCORSPreflightChannel->IsPending(&pending);
+    rv = mCORSPreflightChannel->IsPending(&pending);
     NS_ENSURE_SUCCESS(rv, rv);
     
     if (pending) {
@@ -3205,10 +3199,13 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
   }
 
+  if (!(mState & XML_HTTP_REQUEST_OPENED))
+    return NS_ERROR_IN_PROGRESS;
+
   if (!mChannel)             
     return NS_ERROR_FAILURE; 
 
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel));
   if (!httpChannel) {
     return NS_OK;
   }
@@ -3217,7 +3214,8 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
 
   bool privileged;
-  if (NS_FAILED(IsCapabilityEnabled("UniversalXPConnect", &privileged)))
+  rv = IsCapabilityEnabled("UniversalXPConnect", &privileged);
+  if (NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 
   if (!privileged) {
@@ -3266,10 +3264,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   }
 
   
-  nsresult rv = httpChannel->SetRequestHeader(header, value, false);
-  if (rv == NS_ERROR_INVALID_ARG) {
-    return NS_ERROR_DOM_SYNTAX_ERR;
-  }
+  rv = httpChannel->SetRequestHeader(header, value, false);
   if (NS_SUCCEEDED(rv)) {
     
     RequestHeader reqHeader = {
@@ -3277,6 +3272,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     };
     mModifiedRequestHeaders.AppendElement(reqHeader);
   }
+
   return rv;
 }
 
@@ -4015,6 +4011,7 @@ DOMCI_DATA(XMLHttpProgressEvent, nsXMLHttpProgressEvent)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXMLHttpProgressEvent)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMProgressEvent)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsIDOMEvent, nsIDOMProgressEvent)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMNSEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMProgressEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMLSProgressEvent)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(XMLHttpProgressEvent)

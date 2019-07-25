@@ -352,50 +352,6 @@ public:
   }
 };
 
-static inline bool
-ParseTypeAttribute(const nsAString& aType, JSVersion* aVersion)
-{
-  MOZ_ASSERT(!aType.IsEmpty());
-  MOZ_ASSERT(aVersion);
-  MOZ_ASSERT(*aVersion == JSVERSION_DEFAULT);
-
-  nsContentTypeParser parser(aType);
-
-  nsAutoString mimeType;
-  nsresult rv = parser.GetType(mimeType);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  if (!nsContentUtils::IsJavascriptMIMEType(mimeType)) {
-    return false;
-  }
-
-  
-  nsAutoString versionName;
-  rv = parser.GetParameter("version", versionName);
-
-  if (NS_SUCCEEDED(rv)) {
-    *aVersion = nsContentUtils::ParseJavascriptVersion(versionName);
-  } else if (rv != NS_ERROR_INVALID_ARG) {
-    return false;
-  }
-
-  nsAutoString value;
-  rv = parser.GetParameter("e4x", value);
-  if (NS_SUCCEEDED(rv)) {
-    if (value.Length() == 1 && value[0] == '1') {
-      
-      
-      
-      
-      *aVersion = js::VersionSetMoarXML(*aVersion, true);
-    }
-  } else if (rv != NS_ERROR_INVALID_ARG) {
-    return false;
-  }
-
-  return true;
-}
-
 bool
 nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 {
@@ -437,38 +393,126 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     return false;
   }
 
-  JSVersion version = JSVERSION_DEFAULT;
+  PRUint32 typeID = nsIProgrammingLanguage::JAVASCRIPT;
+  PRUint32 version = 0;
+  nsAutoString language, type, src;
+  nsresult rv = NS_OK;
 
   
   
-  nsAutoString type;
   aElement->GetScriptType(type);
   if (!type.IsEmpty()) {
-    NS_ENSURE_TRUE(ParseTypeAttribute(type, &version), false);
+    nsContentTypeParser parser(type);
+
+    nsAutoString mimeType;
+    rv = parser.GetType(mimeType);
+    NS_ENSURE_SUCCESS(rv, false);
+
+    
+    
+    
+    
+    static const char *jsTypes[] = {
+      "text/javascript",
+      "text/ecmascript",
+      "application/javascript",
+      "application/ecmascript",
+      "application/x-javascript",
+      nullptr
+    };
+
+    bool isJavaScript = false;
+    for (PRInt32 i = 0; jsTypes[i]; i++) {
+      if (mimeType.LowerCaseEqualsASCII(jsTypes[i])) {
+        isJavaScript = true;
+        break;
+      }
+    }
+
+    if (!isJavaScript) {
+      typeID = nsIProgrammingLanguage::UNKNOWN;
+    }
+
+    if (typeID != nsIProgrammingLanguage::UNKNOWN) {
+      
+      nsAutoString versionName;
+      rv = parser.GetParameter("version", versionName);
+      if (NS_FAILED(rv)) {
+        
+        if (rv != NS_ERROR_INVALID_ARG)
+          return false;
+      } else {
+        nsCOMPtr<nsIScriptRuntime> runtime;
+        rv = NS_GetJSRuntime(getter_AddRefs(runtime));
+        if (NS_FAILED(rv)) {
+          NS_ERROR("Failed to locate the language with this ID");
+          return false;
+        }
+        rv = runtime->ParseVersion(versionName, &version);
+        if (NS_FAILED(rv)) {
+          NS_WARNING("This script language version is not supported - ignored");
+          typeID = nsIProgrammingLanguage::UNKNOWN;
+        }
+      }
+    }
+
+    
+    if (typeID == nsIProgrammingLanguage::JAVASCRIPT) {
+      nsAutoString value;
+      rv = parser.GetParameter("e4x", value);
+      if (NS_FAILED(rv)) {
+        if (rv != NS_ERROR_INVALID_ARG)
+          return false;
+      } else {
+        if (value.Length() == 1 && value[0] == '1')
+          
+          
+          
+          
+          version = js::VersionSetMoarXML(JSVersion(version), true);
+      }
+    }
   } else {
     
     
     
     if (scriptContent->IsHTML()) {
-      nsAutoString language;
       scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::language, language);
       if (!language.IsEmpty()) {
+        if (nsContentUtils::IsJavaScriptLanguage(language, &version))
+          typeID = nsIProgrammingLanguage::JAVASCRIPT;
+        else
+          typeID = nsIProgrammingLanguage::UNKNOWN;
         
         
         
         
         
         
-        PRUint32 dummy;
-        if (!nsContentUtils::IsJavaScriptLanguage(language, &dummy)) {
-          return false;
-        }
+        NS_ASSERTION(JSVERSION_DEFAULT == 0,
+                     "We rely on all languages having 0 as a version default");
+        version = 0;
       }
     }
   }
 
   
-  nsresult rv = NS_OK;
+  if (typeID == nsIProgrammingLanguage::UNKNOWN) {
+    return false;
+  }
+  
+  
+  
+  
+  
+  if (typeID != nsIProgrammingLanguage::JAVASCRIPT &&
+      !nsContentUtils::IsChromeDoc(mDocument)) {
+    NS_WARNING("Untrusted language called from non-chrome - ignored");
+    return false;
+  }
+
+  
+
   nsRefPtr<nsScriptLoadRequest> request;
   if (aElement->GetScriptExternal()) {
     

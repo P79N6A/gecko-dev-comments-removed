@@ -25,6 +25,7 @@
 #include "nsIDOMXULDocument.h"
 #include "nsIDocument.h"
 #include "nsIDOMEventTarget.h"
+#include "nsIDOMNSEvent.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptSecurityManager.h"
@@ -93,6 +94,12 @@ nsXULPopupListener::HandleEvent(nsIDOMEvent* aEvent)
   }
 
   
+  nsCOMPtr<nsIDOMNSEvent> domNSEvent = do_QueryInterface(mouseEvent);
+  if (!domNSEvent) {
+    return NS_OK;
+  }
+
+  
   nsCOMPtr<nsIDOMEventTarget> target;
   mouseEvent->GetTarget(getter_AddRefs(target));
   nsCOMPtr<nsIDOMNode> targetNode = do_QueryInterface(target);
@@ -116,7 +123,7 @@ nsXULPopupListener::HandleEvent(nsIDOMEvent* aEvent)
   }
 
   bool preventDefault;
-  mouseEvent->GetPreventDefault(&preventDefault);
+  domNSEvent->GetPreventDefault(&preventDefault);
   if (preventDefault && targetNode && mIsContext) {
     
     
@@ -165,6 +172,8 @@ nsXULPopupListener::HandleEvent(nsIDOMEvent* aEvent)
     if (tag == nsGkAtoms::menu || tag == nsGkAtoms::menuitem)
       return NS_OK;
   }
+
+  nsCOMPtr<nsIDOMNSEvent> nsevent = do_QueryInterface(aEvent);
 
   if (mIsContext) {
 #ifndef NS_CONTEXT_MENU_IS_MOUSEUP

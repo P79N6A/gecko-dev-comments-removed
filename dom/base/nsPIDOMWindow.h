@@ -172,20 +172,6 @@ public:
     return mDoc;
   }
 
-  nsIDocument* GetDoc()
-  {
-    if (!mDoc) {
-      MaybeCreateDoc();
-    }
-    return mDoc;
-  }
-
-protected:
-  
-  
-  void MaybeCreateDoc();
-
-public:
   
   
   

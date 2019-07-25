@@ -299,14 +299,6 @@
 
 
 
-
-
-
-
-
-
-
-
 (function ()
 {
     var debug = false;
@@ -450,7 +442,6 @@
         switch (typeof val)
         {
         case "string":
-            val = val.replace("\\", "\\\\");
             for (var i = 0; i < 32; i++)
             {
                 var replace = "\\";
@@ -593,13 +584,6 @@
 
 
 
-        if (typeof actual != typeof expected)
-        {
-            assert(false, "assert_equals", description,
-                          "expected (" + typeof expected + ") ${expected} but got (" + typeof actual + ") ${actual}",
-                          {expected:expected, actual:actual});
-            return;
-        }
         assert(same_value(actual, expected), "assert_equals", description,
                                              "expected ${expected} but got ${actual}",
                                              {expected:expected, actual:actual});
@@ -905,27 +889,6 @@
     }
     expose(assert_unreached, "assert_unreached");
 
-    function assert_any(assert_func, actual, expected_array) 
-    {
-        var args = [].slice.call(arguments, 3)
-        var errors = []
-        var passed = false;
-        forEach(expected_array, 
-                function(expected)
-                {
-                    try {
-                        assert_func.apply(this, [actual, expected].concat(args))
-                        passed = true;
-                    } catch(e) {
-                        errors.push(e.message);
-                    }
-                });
-        if (!passed) {
-            throw new AssertionError(errors.join("\n\n"));
-        }
-    }
-    expose(assert_any, "assert_any");
-
     function Test(name, properties)
     {
         this.name = name;
@@ -1014,23 +977,6 @@
         {
             test_this.step.apply(test_this, [func, this_obj].concat(
                 Array.prototype.slice.call(arguments)));
-        };
-    };
-
-    Test.prototype.step_func_done = function(func, this_obj)
-    {
-        var test_this = this;
-
-        if (arguments.length === 1)
-        {
-            this_obj = test_this;
-        }
-
-        return function()
-        {
-            test_this.step.apply(test_this, [func, this_obj].concat(
-                Array.prototype.slice.call(arguments)));
-            test_this.done();
         };
     };
 
@@ -1574,7 +1520,7 @@
             return '';
         }
         
-        log.appendChild(document.createElementNS(xhtml_ns, "section"));
+        log.appendChild(document.createElement("section"));
         var assertions = has_assertions();
         var html = "<h2>Details</h2><table id='results' " + (assertions ? "class='assertions'" : "" ) + ">"
             + "<thead><tr><th>Result</th><th>Test Name</th>"
@@ -1918,4 +1864,3 @@
  }
 
 })();
-

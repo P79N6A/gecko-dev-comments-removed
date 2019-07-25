@@ -1120,7 +1120,9 @@ nsTreeSanitizer::SanitizeStyleSheet(const nsAString& aOriginal,
   
   bool didSanitize = false;
   
-  nsRefPtr<nsCSSStyleSheet> sheet = new nsCSSStyleSheet();
+  nsRefPtr<nsCSSStyleSheet> sheet;
+  rv = NS_NewCSSStyleSheet(getter_AddRefs(sheet));
+  NS_ENSURE_SUCCESS(rv, true);
   sheet->SetURIs(aDocument->GetDocumentURI(), nullptr, aBaseURI);
   sheet->SetPrincipal(aDocument->NodePrincipal());
   
