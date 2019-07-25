@@ -399,9 +399,7 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
 {
     JSErrorReport report;
     char *message;
-    size_t linelength;
     jschar *linechars;
-    const jschar *linelimit;
     char *linebytes;
     bool warning;
     JSBool ok;
@@ -448,32 +446,32 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
 
 
 
-    if (report.lineno != lineno)
-        goto report;
 
-    linelimit = userbuf.findEOL();
-    linelength = linelimit - linebase;
+    if (report.lineno == lineno) {
+        size_t linelength = userbuf.findEOL() - linebase;
 
-    linechars = (jschar *)cx->malloc((linelength + 1) * sizeof(jschar));
-    if (!linechars) {
-        warning = false;
-        goto out;
+        linechars = (jschar *)cx->malloc((linelength + 1) * sizeof(jschar));
+        if (!linechars) {
+            warning = false;
+            goto out;
+        }
+        memcpy(linechars, linebase, linelength * sizeof(jschar));
+        linechars[linelength] = 0;
+        linebytes = js_DeflateString(cx, linechars, linelength);
+        if (!linebytes) {
+            warning = false;
+            goto out;
+        }
+
+        
+        report.linebuf = linebytes;
+        report.uclinebuf = linechars;
+
+        
+        JS_ASSERT(tp->begin.lineno == tp->end.lineno);
+        report.tokenptr = report.linebuf + tp->begin.index;
+        report.uctokenptr = report.uclinebuf + tp->begin.index;
     }
-    memcpy(linechars, linebase, linelength * sizeof(jschar));
-    linechars[linelength] = 0;
-    linebytes = js_DeflateString(cx, linechars, linelength);
-    if (!linebytes) {
-        warning = false;
-        goto out;
-    }
-    
-    report.linebuf = linebytes;
-    report.uclinebuf = linechars;
-
-    
-    JS_ASSERT(tp->begin.lineno == tp->end.lineno);
-    report.tokenptr = report.linebuf + tp->begin.index;
-    report.uctokenptr = report.uclinebuf + tp->begin.index;
 
     
 
@@ -491,7 +489,6 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
 
 
 
-  report:
     onError = cx->errorReporter;
 
     
