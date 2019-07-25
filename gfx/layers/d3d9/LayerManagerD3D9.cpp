@@ -246,6 +246,8 @@ LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
   
   mCurrentCallbackInfo.Callback = NULL;
   mCurrentCallbackInfo.CallbackData = NULL;
+  
+  mTarget = NULL;
 }
 
 void
