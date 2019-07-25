@@ -2415,13 +2415,7 @@ Tab.prototype = {
     
     let oldBrowserWidth = this.browserWidth;
     this.setBrowserSize(viewportW, viewportH);
-    let minScale = 1.0;
-    if (this.browser.contentDocument) {
-      
-      
-      let [pageWidth, pageHeight] = this.getPageSize(this.browser.contentDocument, viewportW, viewportH);
-      minScale = gScreenWidth / pageWidth;
-    }
+    let minScale = this.clampZoom(kViewportMinScale);
     viewportH = Math.max(viewportH, screenH / minScale);
     this.setBrowserSize(viewportW, viewportH);
 
@@ -2443,17 +2437,47 @@ Tab.prototype = {
     
     
     let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
-    this.setResolution(this._zoom * zoomScale, false);
+    let zoom = this.clampZoom(this._zoom * zoomScale);
+    this.setResolution(zoom, false);
     this.sendViewportUpdate();
   },
 
   setBrowserSize: function(aWidth, aHeight) {
     this.browserWidth = aWidth;
+    this.browserHeight = aHeight;
 
     if (!this.browser.contentWindow)
       return;
     let cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
     cwu.setCSSViewport(aWidth, aHeight);
+  },
+
+  
+  getPageZoom: function getPageZoom(aZoom) {
+    
+    
+    let doc = this.browser.contentDocument;
+    if (!doc)
+      return 1;
+
+    let [pageWidth, pageHeight] = this.getPageSize(doc, this.browserWidth, this.browserHeight);
+    return gScreenWidth / pageWidth;
+  },
+
+  
+  clampZoom: function clampZoom(aZoom) {
+    let md = this.metadata;
+    if (!md.allowZoom)
+      return md.defaultZoom || this.getPageZoom();
+
+    let zoom = ViewportHandler.clamp(aZoom, kViewportMinScale, kViewportMaxScale);
+    if (md && md.minZoom)
+      zoom = Math.max(zoom, md.minZoom);
+    if (md && md.maxZoom)
+      zoom = Math.min(zoom, md.maxZoom);
+    zoom = Math.max(zoom, this.getPageZoom());
+
+    return zoom;
   },
 
   getRequestLoadContext: function(aRequest) {
@@ -3660,11 +3684,11 @@ var ViewportHandler = {
 
 
     if (scale == NaN && minScale == NaN && maxScale == NaN && allowZoomStr == "" && widthStr == "" && heightStr == "") {
-	
-	let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
+      
+      let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
 
-	if (handheldFriendly == "true")
-	    return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
+      if (handheldFriendly == "true")
+        return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
     }
 
     scale = this.clamp(scale, kViewportMinScale, kViewportMaxScale);
