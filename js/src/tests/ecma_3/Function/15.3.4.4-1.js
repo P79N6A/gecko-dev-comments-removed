@@ -155,6 +155,15 @@ addThis();
 
 
 
+status = inSection(11);
+actual = g2 = newGlobal('new-compartment');
+g2.eval("boundMethod = Function('return this');");
+expect = g2.boundMethod.call();
+addThis();
+
+
+
+
 test();
 
 
