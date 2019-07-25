@@ -412,7 +412,7 @@ var UIManager = {
           
           
           
-          Utils.timeout(function() { 
+          setTimeout(function() { 
             if ((groupItem && groupItem._children.length > 0) ||
               (groupItem == null && gBrowser.visibleTabs.length > 0))
               self.hideTabView();
@@ -426,7 +426,7 @@ var UIManager = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      Utils.timeout(function() { 
+      setTimeout(function() { 
         var activeGroupItem = GroupItems.getActiveGroupItem();
         if (activeGroupItem)
           self.setReorderTabItemsOnShow(activeGroupItem);
@@ -467,7 +467,7 @@ var UIManager = {
     this._closedLastVisibleTab = false;
     this._closedSelectedTabInTabView = false;
 
-    Utils.timeout(function() { 
+    setTimeout(function() { 
       
       if (self._stopZoomPreparation) {
         self._stopZoomPreparation = false;

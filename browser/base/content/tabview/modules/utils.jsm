@@ -719,17 +719,5 @@ let Utils = {
 
     
     return target;
-  },
-
-  
-  
-  
-  timeout: function(func, delay) {
-    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback({
-      notify: function notify() {
-        func.call(timer);
-      }
-    }, delay, timer.TYPE_ONE_SHOT);
   }
 };

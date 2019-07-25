@@ -698,7 +698,7 @@ window.TabItems = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      Utils.timeout(function() { 
+      setTimeout(function() { 
         self.link(tab);
       }, 1);
     });
@@ -709,7 +709,7 @@ window.TabItems = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      Utils.timeout(function() { 
+      setTimeout(function() { 
         self.update(tab);
       }, 1);
     });
@@ -719,7 +719,7 @@ window.TabItems = {
       if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      Utils.timeout(function() { 
+      setTimeout(function() { 
         self.unlink(tab);
       }, 1);
     });
@@ -873,7 +873,7 @@ window.TabItems = {
 
     let self = this;
     if (this._tabsWaitingForUpdate.length) {
-      Utils.timeout(function() {
+      setTimeout(function() {
         self.heartbeat();
       }, this._heartbeatTiming);
     } else
@@ -1010,7 +1010,7 @@ window.TabItems = {
           item.showCachedData(tabData);
           
           
-          Utils.timeout(function() {
+          setTimeout(function() {
             if (item && item.isShowingCachedData) {
               item.hideCachedData();
             }
