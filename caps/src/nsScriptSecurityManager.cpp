@@ -1588,30 +1588,6 @@ nsScriptSecurityManager::ReportError(JSContext* cx, const nsAString& messageTag,
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::CheckLoadURIStr(const nsACString& aSourceURIStr,
-                                         const nsACString& aTargetURIStr,
-                                         PRUint32 aFlags)
-{
-    
-    nsCOMPtr<nsIURI> source;
-    nsresult rv = NS_NewURI(getter_AddRefs(source), aSourceURIStr,
-                            nsnull, nsnull, sIOService);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    
-    
-    nsCOMPtr<nsIPrincipal> sourcePrincipal;
-    rv = CreateCodebasePrincipal(source,
-                                 getter_AddRefs(sourcePrincipal));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return CheckLoadURIStrWithPrincipal(sourcePrincipal, aTargetURIStr,
-                                        aFlags);
-}
-
-NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(nsIPrincipal* aPrincipal,
                                                       const nsACString& aTargetURIStr,
                                                       PRUint32 aFlags)
