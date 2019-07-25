@@ -65,6 +65,9 @@ window.TabItem.prototype = $.extend(new Item(), {
     var $close = $('.close', $container);
     var extra = this._getSizeExtra();
     var css = {};
+    
+    const minFontSize = 6;
+    const maxFontSize = 15;
 
     if(rect.left != this.bounds.left)
       css.left = rect.left;
@@ -75,10 +78,11 @@ window.TabItem.prototype = $.extend(new Item(), {
     if(rect.width != this.bounds.width) {
       css.width = rect.width - extra.x;
       var scale = css.width / TabItems.tabWidth;
-      css.fontSize = TabItems.fontSize * scale;
-      if( css.fontSize < 10 ){
-        css.fontSize = 10;
-      }
+      
+      
+      
+      
+      css.fontSize = minFontSize + (maxFontSize-minFontSize)*(.5+.5*Math.tanh(2*scale-2))
     }
 
     if(rect.height != this.bounds.height) {
@@ -93,14 +97,6 @@ window.TabItem.prototype = $.extend(new Item(), {
     if(immediately) {
       $container.css(css);
       
-
-
-
-
-
-
-
-
     } else {
       TabMirror.pausePainting();
       $container.animate(css, {complete: function() {
@@ -109,7 +105,7 @@ window.TabItem.prototype = $.extend(new Item(), {
     }
 
     if(css.fontSize) {
-      if(css.fontSize < 8)
+      if(css.fontSize < minFontSize)
         $title.fadeOut();
       else
         $title.fadeIn();
