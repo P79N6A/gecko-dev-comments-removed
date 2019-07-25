@@ -77,6 +77,22 @@
 #define RUSAGE_THREAD 1
 #endif
 
+extern "C" {
+
+
+
+
+
+
+
+
+
+
+
+
+  NS_EXPORT __attribute__((weak)) void *__dso_handle;
+}
+
 typedef int mozglueresult;
 
 enum StartupEvent {
