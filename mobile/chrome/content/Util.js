@@ -137,34 +137,6 @@ let Util = {
   },
 
   
-
-
-
-
-
-
-
-  needHomepageOverride: function needHomepageOverride() {
-    let savedmstone = null;
-    try {
-      savedmstone = Services.prefs.getCharPref("browser.startup.homepage_override.mstone");
-    } catch (e) {}
-
-    if (savedmstone == "ignore")
-      return "none";
-
-#expand    let ourmstone = "__MOZ_APP_VERSION__";
-
-    if (ourmstone != savedmstone) {
-      Services.prefs.setCharPref("browser.startup.homepage_override.mstone", ourmstone);
-
-      return (savedmstone ? "new version" : "new profile");
-    }
-
-    return "none";
-  },
-
-  
   isURLEmpty: function isURLEmpty(aURL) {
     return (!aURL || aURL == "about:blank" || aURL == "about:empty" || aURL == "about:home");
   },
