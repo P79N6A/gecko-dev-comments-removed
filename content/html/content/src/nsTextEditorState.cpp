@@ -1231,7 +1231,7 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
     nsCxPusher pusher;
     pusher.PushNull();
 
-    rv = newEditor->Init(domdoc, GetRootNode(), mSelCon, editorFlags);
+    rv = newEditor->Init(domdoc, shell, GetRootNode(), mSelCon, editorFlags);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1718,9 +1718,7 @@ nsTextEditorState::GetValue(nsAString& aValue, PRBool aIgnoreWrap) const
       mCachedValue.Truncate();
     }
   } else {
-    if (!mTextCtrlElement->ValueChanged() || !mValue) {
-      mTextCtrlElement->GetDefaultValueFromContent(aValue);
-    } else {
+    if (mValue) {
       aValue = NS_ConvertUTF8toUTF16(*mValue);
     }
   }
