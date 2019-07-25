@@ -123,7 +123,7 @@ extern SIMD_ALIGNED(int16 kCoefficientsRgbY[768][4]);
 
 
 
-#if !defined(ARCH_CPU_X86_64)
+#if defined(ARCH_CPU_X86) && !defined(ARCH_CPU_X86_64)
 #if defined(_MSC_VER)
 #define EMMS() __asm emms
 #pragma warning(disable: 4799)
