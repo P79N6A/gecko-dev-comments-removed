@@ -252,6 +252,8 @@ public:
   
   virtual PRBool IsSuspendedByCache() = 0;
   
+  virtual PRBool IsSuspended() = 0;
+  
   
   
   
@@ -366,6 +368,7 @@ public:
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset);
   virtual PRBool  IsDataCachedToEndOfStream(PRInt64 aOffset);
   virtual PRBool  IsSuspendedByCache();
+  virtual PRBool  IsSuspended();
 
   class Listener : public nsIStreamListener,
                    public nsIInterfaceRequestor,

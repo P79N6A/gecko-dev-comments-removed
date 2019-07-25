@@ -1204,11 +1204,13 @@ nsMediaCache::Update()
         for (PRUint32 j = 0; j < i; ++j) {
           nsMediaCacheStream* other = mStreams[j];
           if (other->mResourceID == stream->mResourceID &&
-              !other->mCacheSuspended &&
+              !other->mClient->IsSuspended() &&
               other->mChannelOffset/BLOCK_SIZE == desiredOffset/BLOCK_SIZE) {
             
             
             enableReading = PR_FALSE;
+            LOG(PR_LOG_DEBUG, ("Stream %p waiting on same block (%lld) from stream %p",
+                               stream, desiredOffset/BLOCK_SIZE, other));
             break;
           }
         }
@@ -1451,6 +1453,9 @@ nsMediaCache::OpenStream(nsMediaCacheStream* aStream)
   LOG(PR_LOG_DEBUG, ("Stream %p opened", aStream));
   mStreams.AppendElement(aStream);
   aStream->mResourceID = mNextResourceID++;
+
+  
+  gMediaCache->QueueUpdate();
 }
 
 void
