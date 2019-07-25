@@ -182,6 +182,20 @@ const char *const js_common_atom_names[] = {
     js_ExecutionContext_str,    
     js_current_str,             
 #endif
+
+    "Proxy",                    
+
+    "getOwnPropertyDescriptor", 
+    "getPropertyDescriptor",    
+    "defineProperty",           
+    "delete",                   
+    "getOwnPropertyNames",      
+    "enumerate",                
+    "fix",
+
+    "has",                      
+    "hasOwn",                   
+    "enumerateOwn"              
 };
 
 JS_STATIC_ASSERT(JS_ARRAY_LENGTH(js_common_atom_names) * sizeof(JSAtom *) ==
