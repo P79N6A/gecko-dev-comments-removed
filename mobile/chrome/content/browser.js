@@ -1356,11 +1356,14 @@ Browser.MainDragger.prototype = {
     let isTablet = Util.isTablet();
     this._panToolbars = !isTablet;
 
+    this._grabSidebar = false;
     
-    this._grabSidebar = isTablet && !Util.isPortrait() &&
-      ((Util.localeDir == Util.LOCALE_DIR_LTR) ?
-       (clientX - bcr.left < 30) :
-       (bcr.right - clientX < 30));
+    if (isTablet && !Util.isPortrait()) {
+      let grabSidebarMargin = TabsPopup.visible ? 30 : 5;
+      this._grabSidebar = ((Util.localeDir == Util.LOCALE_DIR_LTR)
+                           ? (clientX - bcr.left < 30)
+                           : (bcr.right - clientX < 30));
+    }
 
     if (this._grabSidebar)
       Browser.grabSidebar();
