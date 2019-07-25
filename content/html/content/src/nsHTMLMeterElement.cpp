@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
 #include "nsIDOMHTMLMeterElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValue.h"
