@@ -302,11 +302,6 @@ typedef HashMap<JSScript *,
                 DefaultHasher<JSScript *>,
                 SystemAllocPolicy> ScriptCountsMap;
 
-typedef HashMap<JSScript *,
-                jschar *,
-                DefaultHasher<JSScript *>,
-                SystemAllocPolicy> SourceMapMap;
-
 class DebugScript
 {
     friend struct ::JSScript;
@@ -542,8 +537,6 @@ struct JSScript : public js::gc::Cell
     bool            isGeneratorExp:1; 
     bool            hasScriptCounts:1;
 
-    bool            hasSourceMap:1;   
-
     bool            hasDebugScript:1; 
 
 
@@ -734,11 +727,6 @@ struct JSScript : public js::gc::Cell
     js::PCCounts getPCCounts(jsbytecode *pc);
     js::ScriptCounts releaseScriptCounts();
     void destroyScriptCounts(js::FreeOp *fop);
-
-    bool setSourceMap(JSContext *cx, jschar *sourceMap);
-    jschar *getSourceMap();
-    jschar *releaseSourceMap();
-    void destroySourceMap(js::FreeOp *fop);
 
     jsbytecode *main() {
         return code + mainOffset;
@@ -989,6 +977,7 @@ struct ScriptSource
     uint32_t refs;
     uint32_t length_;
     uint32_t compressedLength_;
+    jschar *sourceMap_;
 
     
     
@@ -1004,6 +993,7 @@ struct ScriptSource
       : refs(0),
         length_(0),
         compressedLength_(0),
+        sourceMap_(NULL),
         sourceRetrievable_(false),
         argumentsNotIncluded_(false)
 #ifdef DEBUG
@@ -1044,6 +1034,11 @@ struct ScriptSource
     
     template <XDRMode mode>
     bool performXDR(XDRState<mode> *xdr);
+
+    
+    void setSourceMap(jschar *sm);
+    const jschar *sourceMap();
+    bool hasSourceMap() const { return sourceMap_ != NULL; }
 
   private:
     void destroy(JSRuntime *rt);
