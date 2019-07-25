@@ -153,43 +153,43 @@ nsTextAttrsMgr::GetAttributes(nsIPersistentProperties *aAttributes,
 
   
   nsLangTextAttr langTextAttr(mHyperTextAcc, hyperTextElm, offsetNode);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&langTextAttr));
+  textAttrArray.AppendElement(&langTextAttr);
 
   
   nsCSSTextAttr lineThroughTextAttr(0, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&lineThroughTextAttr));
+  textAttrArray.AppendElement(&lineThroughTextAttr);
 
   
   nsCSSTextAttr underlineTextAttr(1, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&underlineTextAttr));
+  textAttrArray.AppendElement(&underlineTextAttr);
 
   
   nsCSSTextAttr posTextAttr(2, hyperTextElm, offsetElm);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&posTextAttr));
+  textAttrArray.AppendElement(&posTextAttr);
 
   
   nsBGColorTextAttr bgColorTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&bgColorTextAttr));
+  textAttrArray.AppendElement(&bgColorTextAttr);
 
   
   ColorTextAttr colorTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&colorTextAttr));
+  textAttrArray.AppendElement(&colorTextAttr);
 
   
   FontFamilyTextAttr fontFamilyTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontFamilyTextAttr));
+  textAttrArray.AppendElement(&fontFamilyTextAttr);
 
   
   nsFontSizeTextAttr fontSizeTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontSizeTextAttr));
+  textAttrArray.AppendElement(&fontSizeTextAttr);
 
   
   FontStyleTextAttr fontStyleTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontStyleTextAttr));
+  textAttrArray.AppendElement(&fontStyleTextAttr);
 
   
   nsFontWeightTextAttr fontWeightTextAttr(rootFrame, frame);
-  textAttrArray.AppendElement(static_cast<nsITextAttr*>(&fontWeightTextAttr));
+  textAttrArray.AppendElement(&fontWeightTextAttr);
 
   
   if (aAttributes) {
