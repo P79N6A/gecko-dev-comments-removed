@@ -1347,6 +1347,7 @@ WebSocketChannel::PrimeNewOutgoingMessage()
   if (msgType == kMsgTypeFin) {
     
     if (mClientClosed) {
+      DeleteCurrentOutGoingMessage();
       PrimeNewOutgoingMessage();
       return;
     }
@@ -1513,6 +1514,14 @@ WebSocketChannel::PrimeNewOutgoingMessage()
   
   
   
+}
+
+void
+WebSocketChannel::DeleteCurrentOutGoingMessage()
+{
+  delete mCurrentOut;
+  mCurrentOut = nsnull;
+  mCurrentOutSent = 0;
 }
 
 void
@@ -2728,9 +2737,7 @@ WebSocketChannel::OnOutputStreamReady(nsIAsyncOutputStream *aStream)
           NS_DispatchToMainThread(new CallAcknowledge(this,
                                                       mCurrentOut->Length()));
         }
-        delete mCurrentOut;
-        mCurrentOut = nsnull;
-        mCurrentOutSent = 0;
+        DeleteCurrentOutGoingMessage();
         PrimeNewOutgoingMessage();
       } else {
         mCurrentOutSent += amtSent;
