@@ -485,8 +485,7 @@ RadioInterfaceLayer.prototype = {
       voiceInfo.type = null;
       voiceInfo.signalStrength = null;
       voiceInfo.relSignalStrength = null;
-      ppmm.sendAsyncMessage("RIL:VoiceThis.RadioState.VoiceChanged",
-                            voiceInfo);
+      ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", voiceInfo);
       return;
     }
 
@@ -532,6 +531,23 @@ RadioInterfaceLayer.prototype = {
   },
 
   updateDataConnection: function updateDataConnection(state) {
+    let data = this.rilContext.data;
+    if (!state || state.regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
+      data.connected = false;
+      data.emergencyCallsOnly = false;
+      data.roaming = false;
+      data.network = null;
+      data.type = null;
+      data.signalStrength = null;
+      data.relSignalStrength = null;
+      ppmm.sendAsyncMessage("RIL:DataInfoChanged", data);
+      return;
+    }
+    data.roaming =
+      (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
+    data.type = RIL.GECKO_RADIO_TECH[state.radioTech] || null;
+    ppmm.sendAsyncMessage("RIL:DataInfoChanged", data);
+
     if (!this._isDataEnabled()) {
       return false;
     }
@@ -548,9 +564,6 @@ RadioInterfaceLayer.prototype = {
       
       RILNetworkInterface.connect();
     }
-    
-    
-    
     return false;
   },
 
@@ -876,6 +889,13 @@ RadioInterfaceLayer.prototype = {
 
 
   handleDataCallState: function handleDataCallState(datacall) {
+    let data = this.rilContext.data;
+
+    if (datacall.ifname) {
+      data.connected = (datacall.state == RIL.GECKO_NETWORK_STATE_CONNECTED);
+      ppmm.sendAsyncMessage("RIL:DataInfoChanged", data);    
+    }
+
     this._deliverDataCallCallback("dataCallStateChanged",
                                   [datacall.cid, datacall.ifname, datacall.state]);
   },
