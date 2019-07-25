@@ -140,14 +140,15 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
 {
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Font)) {
     
+    nsCSSValue* family = aData->ValueForFontFamily();
     if (aAttributes->GetAttr(nsGkAtoms::variable) &&
-        aData->mFontData->mFamily.GetUnit() == eCSSUnit_Null) {
-      aData->mFontData->mFamily.SetStringValue(NS_LITERAL_STRING("serif"),
-                                               eCSSUnit_Families);
+        family->GetUnit() == eCSSUnit_Null) {
+      family->SetStringValue(NS_LITERAL_STRING("serif"), eCSSUnit_Families);
     }
   }
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Position)) {
-    if (aData->mPositionData->mWidth.GetUnit() == eCSSUnit_Null) {
+    nsCSSValue* width = aData->ValueForWidth();
+    if (width->GetUnit() == eCSSUnit_Null) {
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
       if (!value || value->Type() != nsAttrValue::eInteger) {
@@ -156,14 +157,15 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
       }
 
       if (value && value->Type() == nsAttrValue::eInteger)
-        aData->mPositionData->mWidth.SetFloatValue((float)value->GetIntegerValue(), eCSSUnit_Char);
+        width->SetFloatValue((float)value->GetIntegerValue(), eCSSUnit_Char);
     }
   }
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Text)) {
-    if (aData->mTextData->mWhiteSpace.GetUnit() == eCSSUnit_Null) {
+    nsCSSValue* whiteSpace = aData->ValueForWhiteSpace();
+    if (whiteSpace->GetUnit() == eCSSUnit_Null) {
       
       if (aAttributes->GetAttr(nsGkAtoms::wrap))
-        aData->mTextData->mWhiteSpace.SetIntValue(NS_STYLE_WHITESPACE_PRE_WRAP, eCSSUnit_Enumerated);
+        whiteSpace->SetIntValue(NS_STYLE_WHITESPACE_PRE_WRAP, eCSSUnit_Enumerated);
 
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::width);
@@ -175,7 +177,7 @@ MapAttributesIntoRule(const nsMappedAttributes* aAttributes,
       if (value && value->Type() == nsAttrValue::eInteger) {
         
         
-        aData->mTextData->mWhiteSpace.SetIntValue(NS_STYLE_WHITESPACE_PRE_WRAP, eCSSUnit_Enumerated);
+        whiteSpace->SetIntValue(NS_STYLE_WHITESPACE_PRE_WRAP, eCSSUnit_Enumerated);
       }
     }
   }
