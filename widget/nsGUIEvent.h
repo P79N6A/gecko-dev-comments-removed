@@ -16,6 +16,7 @@
 #include "nsIAtom.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMMouseEvent.h"
+#include "nsIDOMWheelEvent.h"
 #include "nsIDOMDataTransfer.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMTouchEvent.h"
@@ -92,6 +93,7 @@ class nsHashKey;
 #define NS_MOZTOUCH_EVENT                 42
 #define NS_PLUGIN_EVENT                   43
 #define NS_TOUCH_EVENT                    44
+#define NS_WHEEL_EVENT                    45
 
 
 
@@ -536,6 +538,9 @@ class nsHashKey;
 #define NS_POINTERLOCK_START         5300
 #define NS_POINTERLOCKCHANGE         (NS_POINTERLOCK_START)
 #define NS_POINTERLOCKERROR          (NS_POINTERLOCK_START + 1)
+
+#define NS_WHEEL_EVENT_START         5400
+#define NS_WHEEL_WHEEL               (NS_WHEEL_EVENT_START)
 
 
 
@@ -1380,6 +1385,42 @@ public:
   PRInt32               delta;
   PRInt32               scrollOverflow;
 };
+
+
+
+
+
+namespace mozilla {
+namespace widget {
+
+class WheelEvent : public nsMouseEvent_base
+{
+private:
+  friend class mozilla::dom::PBrowserParent;
+  friend class mozilla::dom::PBrowserChild;
+
+  WheelEvent()
+  {
+  }
+
+public:
+  WheelEvent(bool aIsTrusted, PRUint32 aMessage, nsIWidget* aWidget) :
+    nsMouseEvent_base(aIsTrusted, aMessage, aWidget, NS_WHEEL_EVENT),
+    deltaX(0.0), deltaY(0.0), deltaZ(0.0),
+    deltaMode(nsIDOMWheelEvent::DOM_DELTA_PIXEL)
+  {
+  }
+
+  double deltaX;
+  double deltaY;
+  double deltaZ;
+
+  
+  PRUint32 deltaMode;
+};
+
+} 
+} 
 
 
 

@@ -85,6 +85,8 @@ class nsPluginEvent;
 namespace mozilla {
 namespace widget {
 
+class WheelEvent;
+
 
 
 enum Modifier {
