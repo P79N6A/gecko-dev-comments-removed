@@ -110,6 +110,12 @@ let UI = {
       this._currentTab = gBrowser.selectedTab;
 
       
+      iQ("#exit-button").click(function() {
+        self.exit();
+        self.blurAll();
+      });
+        
+      
       
       
       
@@ -140,9 +146,7 @@ let UI = {
       });
 
       gWindow.addEventListener("tabviewhide", function() {
-        var activeTab = self.getActiveTab();
-        if (activeTab)
-          activeTab.zoomIn();
+        self.exit();
       }, false);
 
       
@@ -386,8 +390,13 @@ let UI = {
         self._resize(true);
         dispatchEvent(event);
       });
-    } else
+    } else {
+      if (currentTab && currentTab.tabItem)
+        currentTab.tabItem.setZoomPrep(false);
+
+      self.setActiveTab(null);
       dispatchEvent(event);
+    }
 
     TabItems.resumePainting();
   },
@@ -602,9 +611,32 @@ let UI = {
 
     if (currentTab && currentTab.tabItem)
       oldItem = currentTab.tabItem;
+      
+    
     if (tab && tab.tabItem) {
       newItem = tab.tabItem;
       GroupItems.updateActiveGroupItemAndTabBar(newItem);
+    } else {
+      
+      
+      
+      if (!GroupItems.getActiveGroupItem() && !GroupItems.getActiveOrphanTab()) {
+        for (let a = 0; a < gBrowser.tabs.length; a++) {
+          let theTab = gBrowser.tabs[a]; 
+          if (!theTab.pinned) {
+            let tabItem = theTab.tabItem; 
+            if (tabItem.parent) 
+              GroupItems.setActiveGroupItem(tabItem.parent);
+            else 
+              GroupItems.setActiveOrphanTab(tabItem); 
+              
+            break;
+          }
+        }
+      }
+
+      if (GroupItems.getActiveGroupItem() || GroupItems.getActiveOrphanTab())
+        GroupItems._updateTabBar();
     }
 
     
@@ -665,17 +697,9 @@ let UI = {
     iQ(window).keydown(function(event) {
       if (event.metaKey) Keys.meta = true;
 
-      if (!self.getActiveTab() || iQ(":focus").length > 0) {
-        
-        
-        if (event.keyCode == KeyEvent.DOM_VK_TAB) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        return;
-      }
-
       function getClosestTabBy(norm) {
+        if (!self.getActiveTab())
+          return null;
         var centers =
           [[item.bounds.center(), item]
              for each(item in TabItems.getItems()) if (!item.parent || !item.parent.hidden)];
@@ -715,16 +739,19 @@ let UI = {
         }
         event.stopPropagation();
         event.preventDefault();
-      } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE ||
-                 event.keyCode == KeyEvent.DOM_VK_RETURN ||
+      } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE) {
+        let activeGroupItem = GroupItems.getActiveGroupItem();
+        if (activeGroupItem && activeGroupItem.expanded)
+          activeGroupItem.collapse();
+        else 
+          self.exit();
+
+        event.stopPropagation();
+        event.preventDefault();
+      } else if (event.keyCode == KeyEvent.DOM_VK_RETURN ||
                  event.keyCode == KeyEvent.DOM_VK_ENTER) {
         let activeTab = self.getActiveTab();
-        let activeGroupItem = GroupItems.getActiveGroupItem();
-
-        if (activeGroupItem && activeGroupItem.expanded &&
-            event.keyCode == KeyEvent.DOM_VK_ESCAPE)
-          activeGroupItem.collapse();
-        else if (activeTab)
+        if (activeTab)
             activeTab.zoomIn();
 
         event.stopPropagation();
@@ -977,14 +1004,19 @@ let UI = {
   
   
   
-  onExitButtonPressed: function() {
-    let activeTab = this.getActiveTab();
-    if (!activeTab)
-      activeTab = gBrowser.selectedTab.tabItem;
-    if (activeTab)
-      activeTab.zoomIn();
+  exit: function UI_exit() {
+    let self = this;
     
-    this.blurAll();
+    
+    
+    let activeTabItem = this.getActiveTab();
+    if (!activeTabItem)
+      activeTabItem = gBrowser.selectedTab.tabItem;
+      
+    if (activeTabItem)
+      activeTabItem.zoomIn(); 
+    else
+      self.goToTab(gBrowser.selectedTab);
   },
 
   
