@@ -77,8 +77,10 @@ TabCanvas.prototype = {
     
     var now = getMilliseconds();
 
-    if( this.lastDraw == null || now - this.lastDraw > this.RATE_LIMIT ){
-      var startTime = getMilliseconds();
+
+
+
+
       ctx.save();
       ctx.scale(scaler, scaler);
       try{
@@ -88,10 +90,12 @@ TabCanvas.prototype = {
       }
       
       ctx.restore();
-      var elapsed = (getMilliseconds()) - startTime;
-      
-      this.lastDraw = getMilliseconds();
-    }
+
+
+
+
+
+
     ctx.restore();      
   },
   
@@ -191,7 +195,7 @@ TabMirror.prototype = {
 
           mirror.tabCanvas.paint();
   
-          if(mirror.needsPaint + 5000 < now)
+
             mirror.needsPaint = 0;
         }
       }
