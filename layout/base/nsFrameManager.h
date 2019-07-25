@@ -160,7 +160,8 @@ public:
     ComputeStyleChangeFor(nsIFrame* aFrame,
                           nsStyleChangeList* aChangeList,
                           nsChangeHint aMinChange,
-                          RestyleTracker& aRestyleTracker);
+                          RestyleTracker& aRestyleTracker,
+                          PRBool aRestyleDescendants);
 
   
 
@@ -201,12 +202,18 @@ public:
   }
 
 private:
+  
+  
+  
+  
+  
   NS_HIDDEN_(nsChangeHint)
     ReResolveStyleContext(nsPresContext    *aPresContext,
                           nsIFrame          *aFrame,
                           nsIContent        *aParentContent,
                           nsStyleChangeList *aChangeList, 
                           nsChangeHint       aMinChange,
+                          nsRestyleHint      aRestyleHint,
                           PRBool             aFireAccessibilityEvents,
                           RestyleTracker&    aRestyleTracker);
 };

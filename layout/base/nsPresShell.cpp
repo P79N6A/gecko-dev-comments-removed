@@ -3626,14 +3626,19 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
 void
 nsIPresShell::PostRecreateFramesFor(Element* aElement)
 {
-  FrameConstructor()->PostRestyleEvent(aElement, eRestyle_Subtree,
+  FrameConstructor()->PostRestyleEvent(aElement, nsRestyleHint(0),
                                        nsChangeHint_ReconstructFrame);
 }
 
 void
 nsIPresShell::RestyleForAnimation(Element* aElement)
 {
-  FrameConstructor()->PostAnimationRestyleEvent(aElement, eRestyle_Subtree,
+  
+  
+  
+  
+  
+  FrameConstructor()->PostAnimationRestyleEvent(aElement, eRestyle_Self,
                                                 NS_STYLE_HINT_NONE);
 }
 

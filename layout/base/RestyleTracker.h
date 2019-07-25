@@ -196,7 +196,7 @@ inline PRBool RestyleTracker::AddPendingRestyle(Element* aElement,
   
   
   
-  if ((aRestyleHint & eRestyle_Subtree) ||
+  if ((aRestyleHint & (eRestyle_Self | eRestyle_Subtree)) ||
       (aMinChangeHint & nsChangeHint_ReconstructFrame)) {
     for (const Element* cur = aElement; !cur->HasFlag(RootBit()); ) {
       nsIContent* parent = cur->GetFlattenedTreeParent();

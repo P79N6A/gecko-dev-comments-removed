@@ -127,6 +127,8 @@ private:
     nscolor             mColor;
   };
 
+  
+  nsresult ImplLinkColorSetter(nsRefPtr<HTMLColorRule>& aRule, nscolor aColor);
 
   class GenericTableRule;
   friend class GenericTableRule;
