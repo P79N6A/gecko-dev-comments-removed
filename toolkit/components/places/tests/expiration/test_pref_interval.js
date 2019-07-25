@@ -52,6 +52,8 @@
 const DEFAULT_TIMER_DELAY_SECONDS = 3 * 60;
 
 
+const EXPIRE_AGGRESSIVITY_MULTIPLIER = 3;
+
 
 
 const Cm = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
@@ -79,7 +81,8 @@ let mockTimerImpl = {
     print("Checking timer delay equals expected interval value");
     if (!gCurrentTest)
       return;
-    do_check_eq(aDelay, gCurrentTest.expectedTimerDelay * 1000)
+    
+    do_check_eq(aDelay, gCurrentTest.expectedTimerDelay * 1000 * EXPIRE_AGGRESSIVITY_MULTIPLIER)
 
     do_execute_soon(run_next_test);
   },
