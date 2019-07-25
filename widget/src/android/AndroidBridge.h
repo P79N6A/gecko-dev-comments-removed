@@ -249,6 +249,8 @@ public:
 
     void ScanMedia(const nsAString& aFile, const nsACString& aMimeType);
 
+    void CreateShortcut(const nsAString& aTitle, const nsAString& aURI, const nsAString& aIconData, const nsAString& aIntent);
+
     
     bool HasNativeBitmapAccess();
 
@@ -319,6 +321,7 @@ protected:
     jmethodID jScanMedia;
     jmethodID jGetSystemColors;
     jmethodID jGetIconForExtension;
+    jmethodID jCreateShortcut;
 
     
     jclass jEGLSurfaceImplClass;
