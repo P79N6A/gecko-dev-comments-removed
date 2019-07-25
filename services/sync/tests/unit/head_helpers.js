@@ -17,23 +17,6 @@ let provider = {
 };
 Services.dirsvc.QueryInterface(Ci.nsIDirectoryService).registerProvider(provider);
 
-let timer;
-function waitForZeroTimer(callback) {
-  
-  
-  
-  let ticks = 2;
-  function wait() {
-    if (ticks) {
-      ticks -= 1;
-      Utils.nextTick(wait);
-      return;
-    }
-    callback();
-  }
-  timer = Utils.namedTimer(wait, 150, {}, "timer");
-}
-
 btoa = Cu.import("resource://services-sync/log4moz.js").btoa;
 function getTestLogger(component) {
   return Log4Moz.repository.getLogger("Testing");

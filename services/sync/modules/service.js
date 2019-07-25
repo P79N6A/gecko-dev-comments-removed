@@ -523,10 +523,8 @@ WeaveSvc.prototype = {
           return this.serverURL;
         case 0:
         case 200:
-          if (node == "null") {
+          if (node == "null")
             node = null;
-          }
-          this._log.trace("_findCluster successfully returning " + node);
           return node;
         default:
           ErrorHandler.checkServerError(node);
@@ -921,7 +919,6 @@ WeaveSvc.prototype = {
     }))(),
 
   startOver: function() {
-    this._log.trace("Invoking Service.startOver.");
     Svc.Obs.notify("weave:engine:stop-tracking");
     Status.resetSync();
 
@@ -1494,18 +1491,22 @@ WeaveSvc.prototype = {
   _syncEngine: function WeaveSvc__syncEngine(engine) {
     try {
       engine.sync();
+      return true;
     }
     catch(e) {
+      
       if (e.status == 401) {
         
         
         
         
-        
+        this.logout();
+        Svc.Prefs.reset("clusterURL");
+        Utils.nextTick(this.sync, this);
         return false;
       }
+      return true;
     }
-    return true;
   },
 
   
