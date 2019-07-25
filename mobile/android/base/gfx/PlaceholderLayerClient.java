@@ -73,8 +73,10 @@ public class PlaceholderLayerClient extends LayerClient {
     }
 
     public void init() {
-        mTask = new FetchImageTask();
-        mTask.execute();
+        
+        
+        
+        
     }
 
     public void destroy() {
