@@ -96,23 +96,12 @@ class DeviceManagerADB(DeviceManager):
   
   def shell(self, cmd, outputfile, env=None, cwd=None):
     
-    for (index, arg) in enumerate(cmd):
-      arg.replace('&', '\&')
-
-      needsQuoting = False
-      for char in [ ' ', '(', ')', '"', '&' ]:
-        if arg.find(char):
-          needsQuoting = True
-          break
-      if needsQuoting:
-        cmd[index] = '\'%s\'' % arg
+    
 
     
     
     
-    
-    
-    cmdline = " ".join(cmd) + "; echo $?"
+    cmdline = "%s; echo $?" % self._escapedCommandLine(cmd)
 
     
     if cwd:
