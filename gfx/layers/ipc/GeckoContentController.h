@@ -23,6 +23,14 @@ public:
 
   virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) = 0;
 
+  
+
+
+
+
+
+  virtual void HandleDoubleTap(const nsIntPoint& aPoint) = 0;
+
   GeckoContentController() {}
   virtual ~GeckoContentController() {}
 };

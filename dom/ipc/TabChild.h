@@ -47,6 +47,7 @@
 #include "nsWeakReference.h"
 #include "nsITabChild.h"
 #include "mozilla/Attributes.h"
+#include "FrameMetrics.h"
 
 struct gfxMatrix;
 
@@ -172,10 +173,8 @@ public:
     virtual bool RecvLoadURL(const nsCString& uri);
     virtual bool RecvShow(const nsIntSize& size);
     virtual bool RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size);
-    virtual bool RecvUpdateFrame(const nsIntRect& aDisplayPort,
-                                      const nsIntPoint& aScrollOffset,
-                                      const gfxSize& aResolution,
-                                      const nsIntRect& aScreenSize);
+    virtual bool RecvUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
+    virtual bool RecvHandleDoubleTap(const nsIntPoint& aPoint);
     virtual bool RecvActivate();
     virtual bool RecvDeactivate();
     virtual bool RecvMouseEvent(const nsString& aType,
@@ -288,6 +287,14 @@ private:
 
     
     void DoFakeShow();
+
+    
+    
+    
+    
+    
+    void DispatchMessageManagerMessage(const nsAString& aMessageName,
+                                       const nsACString& aJSONData);
 
     nsresult
     BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
