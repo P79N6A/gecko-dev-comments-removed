@@ -453,6 +453,24 @@ private:
 
 
     void                DispatchDeactivateEventAccessible();
+
+    
+
+
+
+    void                DispatchMaximizeEventAccessible();
+
+    
+
+
+
+    void                DispatchMinimizeEventAccessible();
+
+    
+
+
+
+    void                DispatchRestoreEventAccessible();
 #endif
 
     
