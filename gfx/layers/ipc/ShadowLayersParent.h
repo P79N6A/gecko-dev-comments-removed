@@ -87,7 +87,7 @@ private:
   RenderFrameParent* Frame();
 
   nsRefPtr<ShadowLayerManager> mLayerManager;
-  nsRefPtr<ShadowLayersHost> mHost;
+  ShadowLayersHost* mHost;
   
   
   nsRefPtr<ContainerLayer> mRoot;
