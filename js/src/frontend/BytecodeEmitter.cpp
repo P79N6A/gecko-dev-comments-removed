@@ -4859,12 +4859,8 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         bce2.globalScope = bce->globalScope;
 
         
-
-
-
-
-
-        JS_ASSERT(bce->sc->staticLevel < JS_BITMASK(16) - 1);
+        
+        JS_ASSERT(bce->sc->staticLevel + 1 < UpvarCookie::FREE_LEVEL);
         sc.staticLevel = bce->sc->staticLevel + 1;
 
         

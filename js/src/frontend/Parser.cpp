@@ -286,8 +286,6 @@ Parser::parse(JSObject *chain)
     return pn;
 }
 
-JS_STATIC_ASSERT(UpvarCookie::FREE_LEVEL == JS_BITMASK(JSFB_LEVEL_BITS));
-
 
 
 
