@@ -1374,32 +1374,12 @@ NS_INTERFACE_MAP_END
 NS_IMPL_ADDREF(StyleRule)
 NS_IMPL_RELEASE(StyleRule)
 
-nsCSSSelectorList* StyleRule::Selector()
-{
-  return mSelector;
-}
-
-PRUint32 StyleRule::GetLineNumber() const
-{
-  return mLineNumber;
-}
-
-void StyleRule::SetLineNumber(PRUint32 aLineNumber)
-{
-  mLineNumber = aLineNumber;
-}
-
-Declaration* StyleRule::GetDeclaration() const
-{
-  return mDeclaration;
-}
-
 nsIStyleRule* StyleRule::GetImportantRule()
 {
   return mImportantRule;
 }
 
- void
+void
 StyleRule::RuleMatched()
 {
   if (!mWasMatched) {
@@ -1519,7 +1499,7 @@ StyleRule::List(FILE* out, PRInt32 aIndent) const
 }
 #endif
 
- nsresult
+nsresult
 StyleRule::GetCssText(nsAString& aCssText)
 {
   if (mSelector) {
@@ -1539,14 +1519,14 @@ StyleRule::GetCssText(nsAString& aCssText)
   return NS_OK;
 }
 
- nsresult    
+nsresult
 StyleRule::SetCssText(const nsAString& aCssText)
 {
   
   return NS_OK;
 }
 
- nsresult    
+nsresult
 StyleRule::GetParentStyleSheet(nsCSSStyleSheet** aSheet)
 {
   *aSheet = mSheet;
@@ -1554,7 +1534,7 @@ StyleRule::GetParentStyleSheet(nsCSSStyleSheet** aSheet)
   return NS_OK;
 }
 
- nsresult    
+nsresult
 StyleRule::GetParentRule(nsICSSGroupRule** aParentRule)
 {
   *aParentRule = mParentRule;
@@ -1562,7 +1542,7 @@ StyleRule::GetParentRule(nsICSSGroupRule** aParentRule)
   return NS_OK;
 }
 
- nsresult    
+nsresult
 StyleRule::GetSelectorText(nsAString& aSelectorText)
 {
   if (mSelector)
@@ -1572,7 +1552,7 @@ StyleRule::GetSelectorText(nsAString& aSelectorText)
   return NS_OK;
 }
 
- nsresult    
+nsresult
 StyleRule::SetSelectorText(const nsAString& aSelectorText)
 {
   
