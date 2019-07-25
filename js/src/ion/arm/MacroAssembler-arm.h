@@ -175,39 +175,39 @@ public:
 
     
     
-    void ma_adc(Imm32 imm, Register dest);
-    void ma_adc(Register src, Register dest);
-    void ma_adc(Register src1, Register src2, Register dest);
+    void ma_adc(Imm32 imm, Register dest, SetCond_ sc = NoSetCond);
+    void ma_adc(Register src, Register dest, SetCond_ sc = NoSetCond);
+    void ma_adc(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond);
 
     
-    void ma_add(Imm32 imm, Register dest);
-    void ma_add(Register src1, Register dest);
-    void ma_add(Register src1, Register src2, Register dest);
-    void ma_add(Register src1, Operand op, Register dest);
-    void ma_add(Register src1, Imm32 op, Register dest);
+    void ma_add(Imm32 imm, Register dest, SetCond_ sc = NoSetCond);
+    void ma_add(Register src1, Register dest, SetCond_ sc = NoSetCond);
+    void ma_add(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond);
+    void ma_add(Register src1, Operand op, Register dest, SetCond_ sc = NoSetCond);
+    void ma_add(Register src1, Imm32 op, Register dest, SetCond_ sc = NoSetCond);
 
     
-    void ma_sbc(Imm32 imm, Register dest);
-    void ma_sbc(Register src1, Register dest);
-    void ma_sbc(Register src1, Register src2, Register dest);
+    void ma_sbc(Imm32 imm, Register dest, SetCond_ sc = NoSetCond);
+    void ma_sbc(Register src1, Register dest, SetCond_ sc = NoSetCond);
+    void ma_sbc(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond);
 
     
-    void ma_sub(Imm32 imm, Register dest);
-    void ma_sub(Register src1, Register dest);
-    void ma_sub(Register src1, Register src2, Register dest);
-    void ma_sub(Register src1, Operand op, Register dest);
-    void ma_sub(Register src1, Imm32 op, Register dest);
+    void ma_sub(Imm32 imm, Register dest, SetCond_ sc = NoSetCond);
+    void ma_sub(Register src1, Register dest, SetCond_ sc = NoSetCond);
+    void ma_sub(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond);
+    void ma_sub(Register src1, Operand op, Register dest, SetCond_ sc = NoSetCond);
+    void ma_sub(Register src1, Imm32 op, Register dest, SetCond_ sc = NoSetCond);
 
     
-    void ma_rsb(Imm32 imm, Register dest);
-    void ma_rsb(Register src1, Register dest);
-    void ma_rsb(Register src1, Register src2, Register dest);
-    void ma_rsb(Register src1, Imm32 op2, Register dest);
+    void ma_rsb(Imm32 imm, Register dest, SetCond_ sc = NoSetCond);
+    void ma_rsb(Register src1, Register dest, SetCond_ sc = NoSetCond);
+    void ma_rsb(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond);
+    void ma_rsb(Register src1, Imm32 op2, Register dest, SetCond_ sc = NoSetCond);
 
     
-    void ma_rsc(Imm32 imm, Register dest);
-    void ma_rsc(Register src1, Register dest);
-    void ma_rsc(Register src1, Register src2, Register dest);
+    void ma_rsc(Imm32 imm, Register dest, SetCond_ sc = NoSetCond);
+    void ma_rsc(Register src1, Register dest, SetCond_ sc = NoSetCond);
+    void ma_rsc(Register src1, Register src2, Register dest, SetCond_ sc = NoSetCond);
 
     
     
@@ -244,6 +244,10 @@ public:
     void ma_str(Register rt, DTRAddr addr, Index mode = Offset, Condition cc = Always);
 
     void ma_ldr(DTRAddr addr, Register rt, Index mode = Offset, Condition cc = Always);
+    void ma_ldrb(DTRAddr addr, Register rt, Index mode = Offset, Condition cc = Always);
+    void ma_ldrh(EDtrAddr addr, Register rt, Index mode = Offset, Condition cc = Always);
+    void ma_ldrsh(EDtrAddr addr, Register rt, Index mode = Offset, Condition cc = Always);
+    void ma_ldrsb(EDtrAddr addr, Register rt, Index mode = Offset, Condition cc = Always);
 
     
     void ma_dataTransferN(LoadStore ls, int size,
@@ -275,11 +279,13 @@ public:
 
     void ma_vcmp_F64(FloatRegister src1, FloatRegister src2);
 
+    
     void ma_vcvt_F64_I32(FloatRegister src, FloatRegister dest);
 
+    
     void ma_vcvt_I32_F64(FloatRegister src, FloatRegister dest);
 
-    void ma_vmov(FloatRegister src, Register dest);
+    void ma_vxfer(FloatRegister src, Register dest);
 
     void ma_vldr(VFPAddr addr, FloatRegister dest);
 
@@ -303,6 +309,64 @@ public:
 #ifdef DEBUG
     void checkCallAlignment();
 #endif
+
+    
+    void ma_callIon(const Register reg);
+    
+    void ma_callIonNoPush(const Register reg);
+    
+    void ma_callIonHalfPush(const Register reg);
+    void breakpoint();
+
+};
+
+class MacroAssemblerARMCompat : public MacroAssemblerARM
+{
+public:
+    
+    
+    
+    void j(Condition code , Label *dest)
+    {
+        as_b(dest, code);
+    }
+    void j(Label *dest)
+    {
+        as_b(dest, Always);
+    }
+
+    void mov(Imm32 imm, Register dest) {
+        ma_mov(imm, dest);
+    }
+    void call(const Register reg) {
+        as_blx(reg);
+    }
+
+    void call(Label *label) {
+        JS_NOT_REACHED("Feature NYI");
+        
+
+
+    }
+    void ret() {
+        ma_pop(pc);
+    }
+#if 0
+    void Push(const Register &reg) {
+        as_dtr(IsStore, STACK_SLOT_SIZE*8, PreIndex,
+               reg,DTRAddr( sp, DtrOffImm(-STACK_SLOT_SIZE)));
+        framePushed_ += STACK_SLOT_SIZE;
+    }
+#endif
+    void push(Imm32 imm) {
+        ma_mov(imm, ScratchRegister);
+        ma_push(ScratchRegister);
+    }
+
+    void jump(Label *label) {
+        as_b(label);
+    }
+
 
     
     Register splitTagForTest(const ValueOperand &value) {
@@ -358,75 +422,43 @@ public:
     Condition testInt32Truthy(bool truthy, const ValueOperand &operand);
     Condition testBooleanTruthy(bool truthy, const ValueOperand &operand);
     Condition testDoubleTruthy(bool truthy, const FloatRegister &reg);
-    void breakpoint();
-};
 
-class MacroAssemblerARMCompat : public MacroAssemblerARM
-{
-public:
-    
-    
-    
-    void j(Condition code , Label *dest)
-    {
-        as_b(dest, code);
-    }
-    void j(Label *dest)
-    {
-        as_b(dest, Always);
-    }
-
-    void mov(Imm32 imm, Register dest) {
-        ma_mov(imm, dest);
-    }
-    void call(const Register reg) {
-        as_blx(reg);
-    }
-    void call(Label *label) {
-        JS_NOT_REACHED("Feature NYI");
-        
-
-
-    }
-    void ret() {
-        ma_pop(pc);
-    }
-    void Push(const Register &reg) {
-        as_dtr(IsStore, STACK_SLOT_SIZE*8, PreIndex,
-               reg,DTRAddr( sp, DtrOffImm(-STACK_SLOT_SIZE)));
-        framePushed_ += STACK_SLOT_SIZE;
-    }
-    void jump(Label *label) {
-        as_b(label);
-    }
     template<typename T>
     void branchTestInt32(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testInt32(cond, t);
+        ma_b(label, c);
     }
     template<typename T>
     void branchTestBoolean(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testBoolean(cond, t);
+        ma_b(label, c);
     }
     template<typename T>
     void branchTestDouble(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testDouble(cond, t);
+        ma_b(label, c);
     }
     template<typename T>
     void branchTestNull(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testNull(cond, t);
+        ma_b(label, c);
     }
     template<typename T>
     void branchTestObject(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testObject(cond, t);
+        ma_b(label, c);
     }
     template<typename T>
     void branchTestString(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testString(cond, t);
+        ma_b(label, c);
     }
     template<typename T>
     void branchTestUndefined(Condition cond, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testUndefined(cond, t);
+        ma_b(label, c);
     }
+
     template <typename T>
     void branchTestNumber(Condition cond, const T &t, Label *label) {
         JS_NOT_REACHED("feature NYI");
@@ -434,7 +466,8 @@ public:
 
     template<typename T>
     void branchTestBooleanTruthy(bool b, const T & t, Label *label) {
-        JS_NOT_REACHED("feature NYI");
+        Condition c = testBooleanTruthy(b, t);
+        ma_b(label, c);
     }
     void branchTest32(Condition cond, const Address &address, Imm32 imm, Label *label) {
         JS_NOT_REACHED("NYI");

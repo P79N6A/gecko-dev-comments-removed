@@ -101,8 +101,8 @@ ion::VFPRegister::encode()
       case Single:
         return VFPRegIndexSplit(_code >> 1, _code & 1);
       default:
-        JS_ASSERT(_code &0xf == _code);
-        return VFPRegIndexSplit(_code, 0);
+        
+        return VFPRegIndexSplit(_code >> 1, _code & 1);
     }
 }
 
@@ -525,24 +525,37 @@ VFPRegister::singleOverlay()
     if (kind == Double) {
         
         ASSERT(_code < 16);
-        return VFPRegister(_code << 1, Double);
+        return VFPRegister(_code << 1, Single);
     } else {
         return VFPRegister(_code, Single);
     }
 }
 
 VFPRegister
-VFPRegister::intOverlay()
+VFPRegister::sintOverlay()
 {
     JS_ASSERT(!_isInvalid);
     if (kind == Double) {
         
         ASSERT(_code < 16);
-        return VFPRegister(_code << 1, Double);
+        return VFPRegister(_code << 1, Int);
     } else {
         return VFPRegister(_code, Int);
     }
 }
+VFPRegister
+VFPRegister::uintOverlay()
+{
+    JS_ASSERT(!_isInvalid);
+    if (kind == Double) {
+        
+        ASSERT(_code < 16);
+        return VFPRegister(_code << 1, UInt);
+    } else {
+        return VFPRegister(_code, UInt);
+    }
+}
+
 bool
 VFPRegister::isInvalid()
 {
@@ -907,6 +920,17 @@ Assembler::as_bl(BOffImm off, Condition c, BufferOffset inst)
 }
 
 
+enum vfp_tags {
+    vfp_tag   = 0x0C000A00,
+    vfp_arith = 0x02000000
+};
+void
+Assembler::writeVFPInst(vfp_size sz, uint32 blob)
+{
+    JS_ASSERT((sz & blob) == 0);
+    JS_ASSERT((vfp_tag & blob) == 0);
+    writeInst(vfp_tag | sz | blob);
+}
 
 
 
@@ -916,11 +940,8 @@ Assembler::as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
 {
     
     JS_ASSERT(vd.equiv(vn) && vd.equiv(vm));
-    vfp_size sz = isDouble;
-    if (!vd.isDouble()) {
-        sz = isSingle;
-    }
-    writeInst(VD(vd) | VN(vn) | VM(vm) | op | c | sz | 0x0e000a00);
+    vfp_size sz = vd.isDouble() ? isDouble : isSingle;
+    writeVFPInst(sz, VD(vd) | VN(vn) | VM(vm) | op | vfp_arith | c);
 }
 
 void
@@ -995,7 +1016,12 @@ void
 Assembler::as_vcmp(VFPRegister vd, VFPRegister vm,
                  Condition c)
 {
-    as_vfp_float(vd, NoVFPRegister, vm, opv_sub, c);
+    as_vfp_float(vd, NoVFPRegister, vm, opv_cmp, c);
+}
+void
+Assembler::as_vcmpz(VFPRegister vd, Condition c)
+{
+    as_vfp_float(vd, NoVFPRegister, NoVFPRegister, opv_cmpz, c);
 }
 
 
@@ -1032,9 +1058,19 @@ Assembler::as_vxfer(Register vt1, Register vt2, VFPRegister vm, FloatToCore_ f2c
         
         xfersz = DoubleTransfer;
     }
-    writeInst(xfersz | f2c | c | sz |
+    writeVFPInst(sz, xfersz | f2c | c |
               RT(vt1) | ((vt2 != InvalidReg) ? RN(vt2) : 0) | VM(vm));
 }
+enum vcvt_destFloatness {
+    toInteger = 1 << 18,
+    toFloat  = 0 << 18
+};
+enum vcvt_Signedness {
+    toSigned   = 1 << 16,
+    toUnsigned = 0 << 16,
+    fromSigned   = 1 << 7,
+    fromUnsigned = 0 << 7
+};
 
 
 
@@ -1042,19 +1078,50 @@ void
 Assembler::as_vcvt(VFPRegister vd, VFPRegister vm,
                  Condition c)
 {
-    JS_NOT_REACHED("Feature NYI");
+    
+    JS_ASSERT(!vd.equiv(vm));
+    vfp_size sz = isDouble;
+    if (vd.isFloat() && vm.isFloat()) {
+        
+        if (vm.isSingle()) {
+            sz = isSingle;
+        }
+        writeVFPInst(sz, c | 0x04B700C0 |
+                  VM(vm) | VD(vd));
+    } else {
+        
+        vcvt_destFloatness destFloat;
+        vcvt_Signedness opSign;
+        JS_ASSERT(vd.isFloat() || vm.isFloat());
+        if (vd.isSingle() || vm.isSingle()) {
+            sz = isSingle;
+        }
+        if (vd.isFloat()) {
+            destFloat = toFloat;
+            if (vm.isSInt()) {
+                opSign = fromSigned;
+            } else {
+                opSign = fromUnsigned;
+            }
+        } else {
+            destFloat = toInteger;
+            if (vd.isSInt()) {
+                opSign = toSigned;
+            } else {
+                opSign = toUnsigned;
+            }
+        }
+        writeVFPInst(sz, 0x02B80040 | VD(vd) | VM(vm) | destFloat | opSign);
+    }
+
 }
 
 void
 Assembler::as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
                  Condition c )
 {
-    vfp_size sz = isDouble;
-    if (!vd.isDouble()) {
-        sz = isSingle;
-    }
-
-    writeInst(0x0D000A00 | addr.encode() | VD(vd) | sz | c);
+    vfp_size sz = vd.isDouble() ? isDouble : isSingle;
+    writeVFPInst(sz, 0x01000000 | addr.encode() | VD(vd) | c);
 }
 
 
@@ -1065,29 +1132,32 @@ Assembler::as_vdtm(LoadStore st, Register rn, VFPRegister vd, int length,
                  Condition c)
 {
     JS_ASSERT(length <= 16 && length >= 0);
-    vfp_size sz = isDouble;
-    if (!vd.isDouble()) {
-        sz = isSingle;
-    } else {
+    vfp_size sz = vd.isDouble() ? isDouble : isSingle;
+
+    if (vd.isDouble())
         length *= 2;
-    }
-    writeInst(dtmLoadStore | RN(rn) | VD(vd) |
+
+    writeVFPInst(sz, dtmLoadStore | RN(rn) | VD(vd) |
               length |
-              dtmMode | dtmUpdate | dtmCond |
-              0x0C000B00 | sz);
+              dtmMode | dtmUpdate | dtmCond);
 }
 
 void
 Assembler::as_vimm(VFPRegister vd, VFPImm imm, Condition c)
 {
-    vfp_size sz = isDouble;
+    vfp_size sz = vd.isDouble() ? isDouble : isSingle;
+
     if (!vd.isDouble()) {
         
-        sz = isSingle;
         JS_NOT_REACHED("non-double immediate");
     }
-    writeInst(c | sz | imm.encode() | VD(vd) | 0x0EB00A00);
+    writeVFPInst(sz,  c | imm.encode() | VD(vd) | 0x02B00000);
 
+}
+void
+Assembler::as_vmrs(Register r, Condition c)
+{
+    writeInst(c | 0x0ef10a10 | RT(r));
 }
 
 bool
@@ -1108,12 +1178,13 @@ Assembler::nextLink(BufferOffset b, BufferOffset *next)
 }
 
 void
-Assembler::bind(Label *label)
+Assembler::bind(Label *label, BufferOffset boff)
 {
-    
     if (label->used()) {
         bool more;
-        BufferOffset dest = nextOffset();
+        
+        
+        BufferOffset dest = boff.assigned() ? boff : nextOffset();
         BufferOffset b(label);
         do {
             BufferOffset next;
@@ -1135,6 +1206,24 @@ Assembler::bind(Label *label)
     }
     label->bind(nextOffset().getOffset());
 }
+
+void
+Assembler::retarget(Label *label, Label *target)
+{
+    if (label->used()) {
+        if (target->bound()) {
+            bind(label, BufferOffset(target));
+        } else {
+            
+            
+            uint32 prev = target->use(label->offset());
+            JS_ASSERT(prev == Label::INVALID_OFFSET);
+        }
+    }
+    label->reset();
+
+}
+
 
 void
 Assembler::Bind(IonCode *code, AbsoluteLabel *label, const void *address)

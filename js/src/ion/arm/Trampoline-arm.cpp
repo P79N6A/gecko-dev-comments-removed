@@ -185,6 +185,92 @@ IonCompartment::generateReturnError(JSContext *cx)
     Linker linker(masm);
     return linker.newCode(cx);
 }
+
+IonCode *
+IonCompartment::generateArgumentsRectifier(JSContext *cx)
+{
+    MacroAssembler masm(cx);
+#if 0
+    
+    
+    JS_ASSERT(ArgumentsRectifierReg == r8);
+
+    
+    masm.movq(Operand(rsp, offsetof(IonFrameData, calleeToken_)), rax);
+    masm.load16(Operand(rax, offsetof(JSFunction, nargs)), rcx);
+    masm.subq(r8, rcx);
+
+    masm.moveValue(UndefinedValue(), r10);
+
+    masm.movq(rsp, rbp); 
+
+    
+    {
+        Label undefLoopTop;
+        masm.bind(&undefLoopTop);
+
+        masm.push(r10);
+        masm.subl(Imm32(1), rcx);
+
+        masm.testl(rcx, rcx);
+        masm.j(Assembler::NonZero, &undefLoopTop);
+    }
+
+    
+    masm.movq(r8, r9);
+    masm.shlq(Imm32(3), r9); 
+
+    masm.movq(rbp, rcx);
+    masm.addq(Imm32(sizeof(IonFrameData)), rcx);
+    masm.addq(r9, rcx);
+
+    
+    {
+        Label copyLoopTop, initialSkip;
+
+        masm.jump(&initialSkip);
+
+        masm.bind(&copyLoopTop);
+        masm.subq(Imm32(sizeof(Value)), rcx);
+        masm.subl(Imm32(1), r8);
+        masm.bind(&initialSkip);
+
+        masm.mov(Operand(rcx, 0x0), rdx);
+        masm.push(rdx);
+
+        masm.testl(r8, r8);
+        masm.j(Assembler::NonZero, &copyLoopTop);
+    }
+
+    
+    masm.subq(rsp, rbp);
+    masm.shll(Imm32(IonFramePrefix::FrameTypeBits), rbp);
+    masm.orl(Imm32(IonFramePrefix::RectifierFrame), rbp);
+
+    
+    masm.push(rax); 
+    masm.push(rbp); 
+
+    
+    
+    masm.movq(Operand(rax, offsetof(JSFunction, u.i.script)), rax);
+    masm.movq(Operand(rax, offsetof(JSScript, ion)), rax);
+    masm.movq(Operand(rax, offsetof(IonScript, method_)), rax);
+    masm.movq(Operand(rax, IonCode::OffsetOfCode()), rax);
+    masm.call(rax);
+
+    
+    masm.pop(rbp);            
+    masm.shrl(Imm32(IonFramePrefix::FrameTypeBits), rbp); 
+    masm.pop(r11);            
+    masm.addq(rbp, rsp);      
+
+    masm.ret();
+#endif
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
 static void
 GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
 {
@@ -193,9 +279,11 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
     
+    
     for (uint32 i = 0; i < Registers::Total; i++)
         masm.transferReg(Register::FromCode(i));
     masm.finishDataTransfer();
+    
     
     masm.startFloatTransferM(IsStore, sp, DB, WriteBack);
     for (uint32 i = 0; i < FloatRegisters::Total; i++)
@@ -216,7 +304,10 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     
     
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
+    
     masm.transferReg(r4);
+    
+    
     masm.transferReg(lr);
     masm.finishDataTransfer();
 
@@ -245,9 +336,13 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
 
     if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
         
-        masm.as_dtr(IsLoad, 32, PreIndex,
-                    r4, DTRAddr(sp, DtrOffImm(bailoutFrameSize)));
+        masm.as_dtr(IsLoad, 32, Offset,
+                    r4, DTRAddr(sp, DtrOffImm(offsetof(BailoutStack, frameSize_))));
         
+        
+        
+        
+        masm.ma_add(sp, Imm32(bailoutFrameSize+12), sp);
         masm.as_add(sp, sp, O2Reg(r4));
     } else {
         uint32 frameSize = FrameSizeClass::FromClass(frameClass).frameSize();

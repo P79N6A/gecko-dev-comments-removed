@@ -57,13 +57,17 @@ class IonCompartment;
 class BailoutStack
 {
     uintptr_t frameClassId_;
+    
+    
+    
+  public:
     union {
         uintptr_t frameSize_;
         uintptr_t tableOffset_;
     };
+  private:
     double    fpregs_[FloatRegisters::Total];
     uintptr_t regs_[Registers::Total];
-
 
   public:
     FrameSizeClass frameClass() const {
@@ -89,7 +93,7 @@ class BailoutStack
 class ExtendedBailoutStack : public BailoutStack
 {
     uintptr_t snapshotOffset_;
-
+    uint32    pad;
   public:
     SnapshotOffset snapshotOffset() const {
         JS_ASSERT(frameClass() == FrameSizeClass::None());
