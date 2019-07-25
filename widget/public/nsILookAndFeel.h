@@ -256,6 +256,16 @@ public:
 
 
 
+
+    eMetric_MacLionTheme,
+
+    
+
+
+
+
+
+
     eMetric_MaemoClassic,
 
     
