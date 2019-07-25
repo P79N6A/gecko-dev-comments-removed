@@ -530,19 +530,7 @@ Service::shutdown()
 sqlite3_vfs *ConstructTelemetryVFS();
 
 #ifdef MOZ_MEMORY
-
-#  if defined(XP_WIN) || defined(SOLARIS) || defined(ANDROID) || defined(XP_MACOSX)
-#    include "jemalloc.h"
-#  elif defined(XP_LINUX)
-
-
-
-
-extern "C" {
-extern size_t je_malloc_usable_size_in_advance(size_t size)
-  NS_VISIBILITY_DEFAULT __attribute__((weak));
-}
-#  endif  
+#  include "jemalloc.h"
 
 namespace {
 
