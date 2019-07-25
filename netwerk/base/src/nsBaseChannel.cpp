@@ -47,6 +47,7 @@
 #include "nsIStreamConverterService.h"
 #include "nsIContentSniffer.h"
 #include "nsChannelClassifier.h"
+#include "nsAsyncRedirectVerifyHelper.h"
 
 static PLDHashOperator
 CopyProperties(const nsAString &key, nsIVariant *data, void *closure)
@@ -115,48 +116,59 @@ nsBaseChannel::Redirect(nsIChannel *newChannel, PRUint32 redirectFlags,
   
   
 
-  
-  
-  NS_ASSERTION(gIOService, "Must have an IO service");
-  nsresult rv = gIOService->OnChannelRedirect(this, newChannel, redirectFlags);
+  nsRefPtr<nsAsyncRedirectVerifyHelper> redirectCallbackHelper =
+      new nsAsyncRedirectVerifyHelper();
+
+  PRBool checkRedirectSynchronously = !openNewChannel;
+
+  mRedirectChannel = newChannel;
+  mRedirectFlags = redirectFlags;
+  mOpenRedirectChannel = openNewChannel;
+  nsresult rv = redirectCallbackHelper->Init(this, newChannel, redirectFlags,
+                                             checkRedirectSynchronously);
   if (NS_FAILED(rv))
     return rv;
 
+  if (checkRedirectSynchronously && NS_FAILED(mStatus))
+    return mStatus;
+
+  return NS_OK;
+}
+
+nsresult
+nsBaseChannel::ContinueRedirect()
+{
   
-  if (!(redirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL)) {
+  
+  
+  if (!(mRedirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL)) {
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface();
     if (httpChannel) {
       nsCOMPtr<nsIHttpEventSink> httpEventSink;
       GetCallback(httpEventSink);
       if (httpEventSink) {
-        rv = httpEventSink->OnRedirect(httpChannel, newChannel);
-        if (NS_FAILED(rv))
+        nsresult rv = httpEventSink->OnRedirect(httpChannel, mRedirectChannel);
+        if (NS_FAILED(rv)) {
           return rv;
+        }
       }
     }
   }
 
-  nsCOMPtr<nsIChannelEventSink> channelEventSink;
   
-  GetCallback(channelEventSink);
-  if (channelEventSink) {
-    rv = channelEventSink->OnChannelRedirect(this, newChannel, redirectFlags);
+  mRedirectChannel->SetOriginalURI(OriginalURI());
+
+  
+  
+  
+
+  if (mOpenRedirectChannel) {
+    nsresult rv = mRedirectChannel->AsyncOpen(mListener, mListenerContext);
     if (NS_FAILED(rv))
       return rv;
   }
 
-  
-  newChannel->SetOriginalURI(OriginalURI());
-
-  
-  
-  
-
-  if (openNewChannel) {
-    rv = newChannel->AsyncOpen(mListener, mListenerContext);
-    if (NS_FAILED(rv))
-      return rv;
-  }
+  mRedirectChannel = nsnull;
 
   
   Cancel(NS_BINDING_REDIRECTED);
@@ -256,20 +268,30 @@ void
 nsBaseChannel::HandleAsyncRedirect(nsIChannel* newChannel)
 {
   NS_ASSERTION(!mPump, "Shouldn't have gotten here");
-  PRBool doNotify = PR_TRUE;
+
+  nsresult rv = mStatus;
   if (NS_SUCCEEDED(mStatus)) {
-      nsresult rv = Redirect(newChannel,
-                             nsIChannelEventSink::REDIRECT_TEMPORARY,
-                             PR_TRUE);
-      if (NS_FAILED(rv))
-          Cancel(rv);
-      else
-          doNotify = PR_FALSE;
+    rv = Redirect(newChannel,
+                  nsIChannelEventSink::REDIRECT_TEMPORARY,
+                  PR_TRUE);
+    if (NS_SUCCEEDED(rv)) {
+      
+      return;
+    }
   }
 
+  ContinueHandleAsyncRedirect(rv);
+}
+
+void
+nsBaseChannel::ContinueHandleAsyncRedirect(nsresult result)
+{
   mWaitingOnAsyncRedirect = PR_FALSE;
 
-  if (doNotify) {
+  if (NS_FAILED(result))
+    Cancel(result);
+
+  if (NS_FAILED(result) && mListener) {
     
     mListener->OnStartRequest(this, mListenerContext);
     mListener->OnStopRequest(this, mListenerContext, mStatus);
@@ -306,14 +328,15 @@ nsBaseChannel::ClassifyURI()
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED6(nsBaseChannel,
+NS_IMPL_ISUPPORTS_INHERITED7(nsBaseChannel,
                              nsHashPropertyBag,
                              nsIRequest,
                              nsIChannel,
                              nsIInterfaceRequestor,
                              nsITransportEventSink,
                              nsIRequestObserver,
-                             nsIStreamListener)
+                             nsIStreamListener,
+                             nsIAsyncVerifyRedirectCallback)
 
 
 
@@ -737,4 +760,22 @@ nsBaseChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
   }
 
   return rv;
+}
+
+NS_IMETHODIMP
+nsBaseChannel::OnRedirectVerifyCallback(nsresult result)
+{
+  if (NS_SUCCEEDED(result))
+    result = ContinueRedirect();
+
+  if (NS_FAILED(result) && !mWaitingOnAsyncRedirect) {
+    if (NS_SUCCEEDED(mStatus))
+      mStatus = result;
+    return NS_OK;
+  }
+
+  if (mWaitingOnAsyncRedirect)
+    ContinueHandleAsyncRedirect(result);
+
+  return NS_OK;
 }

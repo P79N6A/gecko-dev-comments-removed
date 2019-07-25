@@ -74,6 +74,7 @@
 #include "nsQuickSort.h"
 #include "nsNetUtil.h"
 #include "nsIOService.h"
+#include "nsAsyncRedirectVerifyHelper.h"
 
 #include "nsIXULAppInfo.h"
 
@@ -530,22 +531,14 @@ nsHttpHandler::NotifyObservers(nsIHttpChannel *chan, const char *event)
 }
 
 nsresult
-nsHttpHandler::OnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
+nsHttpHandler::AsyncOnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
                                  PRUint32 flags)
 {
     
-    NS_ASSERTION(gIOService, "Must have an IO service at this point");
-    nsresult rv = gIOService->OnChannelRedirect(oldChan, newChan, flags);
-    if (NS_FAILED(rv))
-        return rv;
+    nsRefPtr<nsAsyncRedirectVerifyHelper> redirectCallbackHelper =
+        new nsAsyncRedirectVerifyHelper();
 
-    
-    nsCOMPtr<nsIChannelEventSink> sink;
-    NS_QueryNotificationCallbacks(oldChan, sink);
-    if (sink)
-        rv = sink->OnChannelRedirect(oldChan, newChan, flags);
-
-    return rv;
+    return redirectCallbackHelper->Init(oldChan, newChan, flags);
 }
 
  nsresult

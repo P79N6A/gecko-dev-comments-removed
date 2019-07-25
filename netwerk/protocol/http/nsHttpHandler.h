@@ -195,7 +195,7 @@ public:
 
     
     
-    nsresult OnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
+    nsresult AsyncOnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
                                PRUint32 flags);
 
     
