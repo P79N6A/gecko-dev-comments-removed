@@ -445,6 +445,7 @@ var Scratchpad = {
 
 
 
+
   writeAsComment: function SP_writeAsComment(aValue)
   {
     let selection = this.getSelectionRange();
@@ -452,7 +453,7 @@ var Scratchpad = {
                          selection.end : 
                          this.editor.getCharCount(); 
                          
-    let newComment = "/*\n" + aValue + "\n*/";
+    let newComment = "\n/*\n" + aValue + "\n*/";
     
     this.setText(newComment, insertionPoint, insertionPoint);
 
