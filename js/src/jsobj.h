@@ -1661,6 +1661,8 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp);
 
 
+#define JSRESOLVE_INFER         0xffff
+
 
 
 

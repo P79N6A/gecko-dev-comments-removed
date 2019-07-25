@@ -654,8 +654,20 @@ class StackSpace
                                          JS_MAX_INLINE_CALL_COUNT;
 
     
+    StackSpace() {
+        JS_ASSERT(!base);
+#ifdef XP_WIN
+        JS_ASSERT(!commitEnd);
+#endif
+        JS_ASSERT(!end);
+        JS_ASSERT(!currentSegment);
+        JS_ASSERT(!invokeSegment);
+        JS_ASSERT(!invokeFrame);
+        JS_ASSERT(!invokeArgEnd);
+    }
+
     bool init();
-    void finish();
+    ~StackSpace();
 
 #ifdef DEBUG
     template <class T>
@@ -841,6 +853,55 @@ struct JSPendingProxyOperation {
     JSObject *object;
 };
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class AutoResolving {
+  public:
+    enum Kind {
+        LOOKUP,
+        WATCH
+    };
+
+    JS_ALWAYS_INLINE AutoResolving(JSContext *cx, JSObject *obj, jsid id, Kind kind = LOOKUP
+                                   JS_GUARD_OBJECT_NOTIFIER_PARAM);
+
+    ~AutoResolving() {
+        *lastp = prev;
+    }
+
+    bool alreadyStarted() const {
+        return prev && isDuplicate();
+    }
+
+  private:
+    bool isDuplicate() const;
+
+    JSObject        *const object;
+    jsid            const id;
+    Kind            const kind;
+    AutoResolving   **const lastp;
+    AutoResolving   *const prev;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+} 
+
 struct JSThreadData {
 #ifdef JS_THREADSAFE
     
@@ -902,10 +963,46 @@ struct JSThreadData {
 
     js::ConservativeGCThreadData conservativeGC;
 
+    js::AutoResolving   *resolvingList;
+
+    
+    JSThreadData() {
+#ifdef JS_THREADSAFE
+        JS_ASSERT(!requestDepth);
+#endif
+
+#ifdef JS_TRACER
+        JS_ASSERT(!onTraceCompartment);
+        JS_ASSERT(!recordingCompartment);
+        JS_ASSERT(!profilingCompartment);
+        JS_ASSERT(!maxCodeCacheBytes);
+#endif
+        JS_ASSERT(!interruptFlags);
+        JS_ASSERT(!waiveGCQuota);
+        JS_ASSERT(!dtoaState);
+        JS_ASSERT(!nativeStackBase);
+        JS_ASSERT(!pendingProxyOperation);
+    }
+
     bool init();
-    void finish();
-    void mark(JSTracer *trc);
-    void purge(JSContext *cx);
+
+    ~JSThreadData() {
+        if (dtoaState)
+            js_DestroyDtoaState(dtoaState);
+
+        js_FinishGSNCache(&gsnCache);
+    }
+
+    void mark(JSTracer *trc) {
+        stackSpace.mark(trc);
+    }
+
+    void purge(JSContext *cx) {
+        js_PurgeGSNCache(&gsnCache);
+
+        
+        propertyCache.purge(cx);
+    }
 
     
     inline void triggerOperationCallback(JSRuntime *rt);
@@ -938,6 +1035,30 @@ struct JSThread {
 
     
     JSThreadData        data;
+
+    
+    JSThread(void *id)
+      : id(id)
+    {
+        JS_INIT_CLIST(&contextList);
+        JS_ASSERT(!suspendCount);
+        JS_ASSERT(!checkRequestDepth);
+    }
+
+    bool init() {
+        return data.init();
+    }
+
+    ~JSThread() {
+        
+        JS_ASSERT(JS_CLIST_IS_EMPTY(&contextList));
+
+        
+
+
+
+        JS_ASSERT(!data.conservativeGC.hasStackToScan());
+    }
 };
 
 #define JS_THREAD_DATA(cx)      (&(cx)->thread->data)
@@ -1462,27 +1583,6 @@ struct JSArgumentFormatMap {
 };
 #endif
 
-
-
-
-
-
-
-typedef struct JSResolvingKey {
-    JSObject            *obj;
-    jsid                id;
-} JSResolvingKey;
-
-typedef struct JSResolvingEntry {
-    JSDHashEntryHdr     hdr;
-    JSResolvingKey      key;
-    uint32              flags;
-} JSResolvingEntry;
-
-#define JSRESFLAG_LOOKUP        0x1     /* resolving id from lookup */
-#define JSRESFLAG_WATCH         0x2     /* resolving id from watch */
-#define JSRESOLVE_INFER         0xffff  /* infer bits from current bytecode */
-
 extern const JSDebugHooks js_NullDebugHooks;  
 
 namespace js {
@@ -1616,6 +1716,7 @@ typedef js::HashSet<JSObject *,
 struct JSContext
 {
     explicit JSContext(JSRuntime *rt);
+    ~JSContext();
 
     
     JSCList             link;
@@ -1636,14 +1737,6 @@ struct JSContext
   public:
     
     JSLocaleCallbacks   *localeCallbacks;
-
-    
-
-
-
-
-
-    JSDHashTable        *resolvingTable;
 
     
 
@@ -2975,17 +3068,6 @@ js_ContextIterator(JSRuntime *rt, JSBool unlocked, JSContext **iterp);
 
 extern JS_FRIEND_API(JSContext *)
 js_NextActiveContext(JSRuntime *, JSContext *);
-
-
-
-
-extern JSBool
-js_StartResolving(JSContext *cx, JSResolvingKey *key, uint32 flag,
-                  JSResolvingEntry **entryp);
-
-extern void
-js_StopResolving(JSContext *cx, JSResolvingKey *key, uint32 flag,
-                 JSResolvingEntry *entry, uint32 generation);
 
 
 

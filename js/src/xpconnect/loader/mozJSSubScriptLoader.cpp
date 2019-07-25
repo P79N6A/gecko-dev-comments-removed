@@ -62,7 +62,6 @@
 #include "jsapi.h"
 #include "jsdbgapi.h"
 #include "jsobj.h"
-#include "jsscript.h"
 #include "jscntxt.h"
 
 #include "mozilla/FunctionTimer.h"
@@ -392,7 +391,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
 
         if (NS_FAILED(rv))
         {
-            JSPRINCIPALS_DROP(cx, jsPrincipals);
             errmsg = JS_NewStringCopyZ(cx, LOAD_ERROR_BADCHARSET);
             goto return_exception;
         }
@@ -406,8 +404,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
                                             buf, len, uriStr.get(), 1, rval);
     }
 
-    JSPRINCIPALS_DROP(cx, jsPrincipals);
-
     if (ok)
     {
         JSAutoEnterCompartment rac;
@@ -420,6 +416,8 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
     JS_SetErrorReporter (cx, er);
 
     cc->SetReturnValueWasSet (ok);
+
+    JSPRINCIPALS_DROP(cx, jsPrincipals);
     return NS_OK;
 
  return_exception:
