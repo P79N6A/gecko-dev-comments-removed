@@ -310,12 +310,14 @@ var ctrlTab = {
   },
 
   advanceFocus: function ctrlTab_advanceFocus(aForward) {
-    if (this.panel.state == "open") {
+    if (this._selectedIndex == -1) {
+      
       if (aForward)
         document.commandDispatcher.advanceFocus();
       else
         document.commandDispatcher.rewindFocus();
     } else {
+      
       do {
         this._selectedIndex += aForward ? 1 : -1;
         if (this._selectedIndex < 0)
