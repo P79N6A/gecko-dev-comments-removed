@@ -5201,7 +5201,7 @@ nsBrowserAccess.prototype = {
         let win, needToFocusWin;
 
         
-        if (!window.document.documentElement.getAttribute("chromehidden"))
+        if (window.toolbar.visible)
           win = window;
         else {
           win = Cc["@mozilla.org/browser/browserglue;1"]
