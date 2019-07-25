@@ -842,8 +842,7 @@ RasterImage::InternalAddFrame(PRUint32 framenum,
 
   if (mFrames.Length() == 1) {
     
-    if (!ensureAnimExists())
-      return NS_ERROR_OUT_OF_MEMORY;
+    EnsureAnimExists();
     
     
     
@@ -1113,8 +1112,7 @@ RasterImage::StartAnimation()
 
   NS_ABORT_IF_FALSE(ShouldAnimate(), "Should not animate!");
 
-  if (!ensureAnimExists())
-    return NS_ERROR_OUT_OF_MEMORY;
+  EnsureAnimExists();
 
   NS_ABORT_IF_FALSE(mAnim && !mAnim->timer, "Anim must exist and not have a timer yet");
   
