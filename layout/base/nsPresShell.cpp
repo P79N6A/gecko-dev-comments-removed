@@ -1913,6 +1913,7 @@ PresShell::Destroy()
   }
 
   mStyleSet->BeginShutdown(mPresContext);
+  nsRefreshDriver* rd = GetPresContext()->RefreshDriver();
 
   
   
@@ -1920,14 +1921,13 @@ PresShell::Destroy()
   if (mDocument) {
     NS_ASSERTION(mDocument->GetShell() == this, "Wrong shell?");
     mDocument->DeleteShell();
-  }
 
-  nsRefreshDriver* rd = GetPresContext()->RefreshDriver();
 #ifdef MOZ_SMIL
-  if (mDocument->HasAnimationController()) {
-    mDocument->GetAnimationController()->StopSampling(rd);
-  }
+    if (mDocument->HasAnimationController()) {
+      mDocument->GetAnimationController()->StopSampling(rd);
+    }
 #endif 
+  }
 
   
   
