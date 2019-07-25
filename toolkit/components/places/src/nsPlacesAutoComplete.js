@@ -1002,10 +1002,10 @@ nsPlacesAutoComplete.prototype = {
 
     
     
-    let [url, style] = this._enableActions && openPageCount > 0 ?
-                       ["moz-action:switchtab," + escapedEntryURL, "action"] :
-                       [escapedEntryURL, style];
-    this._addToResults(entryId, url, title, entryFavicon, style);
+    let [url, action] = this._enableActions && openPageCount > 0 ?
+                        ["moz-action:switchtab," + escapedEntryURL, "action "] :
+                        [escapedEntryURL, ""];
+    this._addToResults(entryId, url, title, entryFavicon, action + style);
     return true;
   },
 

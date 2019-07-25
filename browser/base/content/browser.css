@@ -139,7 +139,7 @@ toolbar[mode="icons"] > #reload-button[displaystop] {
 
 
 
-richlistitem[type="action"]:-moz-locale-dir(rtl) > .ac-url-box {
+richlistitem[type~="action"]:-moz-locale-dir(rtl) > .ac-url-box {
   direction: rtl;
 }
 
