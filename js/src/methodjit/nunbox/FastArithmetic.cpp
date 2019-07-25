@@ -573,9 +573,8 @@ mjit::Compiler::jsop_neg()
     
 
 
-
     MaybeRegisterID feTypeReg;
-    if (!frame.shouldAvoidTypeRemat(fe)) {
+    if (!fe->isTypeKnown() && !frame.shouldAvoidTypeRemat(fe)) {
         
         feTypeReg.setReg(frame.tempRegForType(fe));
 
