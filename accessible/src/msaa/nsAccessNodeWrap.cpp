@@ -54,12 +54,10 @@
 #include "nsIDOMNSHTMLElement.h"
 #include "nsIFrame.h"
 #include "nsINameSpaceManager.h"
+#include "nsIPrefService.h"
+#include "nsIPrefBranch.h"
 #include "nsPIDOMWindow.h"
 #include "nsIServiceManager.h"
-
-#include "mozilla/Preferences.h"
-
-using namespace mozilla;
 
 
 HINSTANCE nsAccessNodeWrap::gmAccLib = nsnull;
@@ -713,16 +711,22 @@ void nsAccessNodeWrap::TurnOffNewTabSwitchingForJawsAndWE()
   
   
   
-  if (Preferences::HasUserValue(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF)) {
+  nsCOMPtr<nsIPrefBranch> prefs (do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (prefs) {
+    PRBool hasDisallowNewCtrlTabPref = PR_FALSE;
+    nsresult rv = prefs->PrefHasUserValue(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF,
+             &hasDisallowNewCtrlTabPref);
+    if (NS_SUCCEEDED(rv) && hasDisallowNewCtrlTabPref) {
+      
+      
+      
+      
+      return;
+    }
     
     
-    
-    
-    return;
+    prefs->SetBoolPref(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF, PR_TRUE);
   }
-  
-  
-  Preferences::SetBool(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF, PR_TRUE);
 }
 
 void nsAccessNodeWrap::DoATSpecificProcessing()
