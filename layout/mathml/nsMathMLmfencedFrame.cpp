@@ -40,6 +40,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -351,12 +352,10 @@ nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
   
 
   
-  if (firstChild) { 
-    nscoord delta = NS_MAX(containerSize.ascent - axisHeight, 
-                           containerSize.descent + axisHeight);
-    containerSize.ascent = delta + axisHeight;
-    containerSize.descent = delta - axisHeight;
-  }
+  nscoord delta = NS_MAX(containerSize.ascent - axisHeight, 
+                         containerSize.descent + axisHeight);
+  containerSize.ascent = delta + axisHeight;
+  containerSize.descent = delta - axisHeight;
 
   
   
