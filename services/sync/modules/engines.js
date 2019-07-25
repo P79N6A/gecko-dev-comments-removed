@@ -448,6 +448,8 @@ SyncEngine.prototype = {
     this._log.trace("Downloading & applying server changes");
 
     
+    
+    
     let fetchNum = Infinity;
     if (Svc.Prefs.get("client.type") == "mobile")
       fetchNum = 50;
@@ -597,6 +599,8 @@ SyncEngine.prototype = {
     }
   },
 
+  
+  
   _reconcile: function SyncEngine__reconcile(item) {
     if (this._log.level <= Log4Moz.Level.Trace)
       this._log.trace("Incoming: " + item);
