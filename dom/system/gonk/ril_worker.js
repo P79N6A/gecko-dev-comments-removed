@@ -582,56 +582,6 @@ let Buf = {
 
 
 let RIL = {
-
-  
-
-
-  radioState: GECKO_RADIOSTATE_UNAVAILABLE,
-  _isInitialRadioState: true,
-
-  
-
-
-
-  iccStatus: null,
-
-  
-
-
-  cardState: null,
-
-  
-
-
-  IMEI: null,
-  IMEISV: null,
-  SMSC: null,
-
-  
-
-
-  iccInfo: {},
-
-  
-
-
-  aid: null,
-
-  networkSelectionMode: null,
-
-  voiceRegistrationState: {},
-  dataRegistrationState: {},
-
-  
-
-
-  operator: null,
-
-  
-
-
-  basebandVersion: null,
-
   
 
 
@@ -654,21 +604,87 @@ let RIL = {
 
   _pendingSentSmsMap: {},
 
+  initRILState: function initRILState() {
+    
+
+
+    this.radioState = GECKO_RADIOSTATE_UNAVAILABLE;
+    this._isInitialRadioState = true;
+
+    
+
+
+
+    this.iccStatus = null;
+
+    
+
+
+    this.cardState = null;
+
+    
+
+
+    this.IMEI = null;
+    this.IMEISV = null;
+    this.SMSC = null;
+
+    
+
+
+    this.iccInfo = {};
+
+    
+
+
+    this.aid = null;
+
+    this.networkSelectionMode = null;
+
+    this.voiceRegistrationState = {};
+    this.dataRegistrationState = {};
+
+    
+
+
+    this.operator = null;
+
+    
+
+
+    this.basebandVersion = null;
+
+    
+    for each (let currentCall in this.currentCalls) {
+      delete this.currentCalls[currentCall.callIndex];
+      this._handleDisconnectedCall(currentCall);
+    }
+
+    
+    for each (let datacall in this.currentDataCalls) {
+      this.deactivateDataCall(datacall);
+    }
+
+    
+    
+
+    
+
+
+
+    this._processingNetworkInfo = false;
+
+    
+
+
+    this._pendingNetworkInfo = {rilMessageType: "networkinfochanged"};
+
+    
+
+
+    this._muted = true;
+  },
   
-
-
-
-  _processingNetworkInfo: false,
-
-  
-
-
-  _pendingNetworkInfo: {rilMessageType: "networkinfochanged"},
-
-  
-
-
-  _muted: true,
   get muted() {
     return this._muted;
   },
@@ -3115,6 +3131,8 @@ let RIL = {
   }
 };
 
+RIL.initRILState();
+
 RIL[REQUEST_GET_SIM_STATUS] = function REQUEST_GET_SIM_STATUS(length, options) {
   if (options.rilRequestError) {
     return;
@@ -3992,6 +4010,8 @@ RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
     debug("Detected RIL version " + version);
     debug("RILQUIRKS_V5_LEGACY is " + RILQUIRKS_V5_LEGACY);
   }
+
+  this.initRILState();
 };
 
 
