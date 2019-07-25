@@ -186,12 +186,7 @@ public:
       PLATFORM_PACKAGE = 1 << 0,
 
       
-      
-      
-      XPCNATIVEWRAPPERS = 1 << 1,
-
-      
-      CONTENT_ACCESSIBLE = 1 << 2
+      CONTENT_ACCESSIBLE = 1 << 1
     };
 
     nsCString        package;

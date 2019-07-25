@@ -274,14 +274,6 @@ CanAccessWrapper(JSContext *cx, JSObject *outerObj, JSObject *wrappedObj,
     *privilegeEnabled = JS_FALSE;
   }
 
-  
-  
-  
-  
-  if (isSystem) {
-    return NS_OK;
-  }
-
   nsCOMPtr<nsIPrincipal> objectPrin;
   rv = ssm->GetObjectPrincipal(cx, wrappedObj, getter_AddRefs(objectPrin));
   if (NS_FAILED(rv)) {
