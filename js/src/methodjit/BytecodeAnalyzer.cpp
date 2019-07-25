@@ -300,41 +300,6 @@ BytecodeAnalyzer::analyze()
             return false;
     }
 
-#ifdef DEBUG
-    if (!assertDepths)
-        return true;
-
-    
-
-
-
-    jsbytecode *pc = script->code;
-    bool canAssert = true;
-    for (;;) {
-        jssrcnote *sn = js_GetSrcNote(script, pc);
-        if (sn && SN_TYPE(sn) == SRC_HIDDEN)
-            canAssert = false;
-
-        
-
-
-
-        JS_ASSERT_IF(!ops[pc - script->code].visited,
-                     !ops[pc - script->code].nincoming);
-
-        JS_ASSERT_IF(pc > script->main && canAssert && ops[pc - script->code].visited,
-                     (ops[pc - script->code].stackDepth ==
-                     js_ReconstructStackDepth(cx, script, pc)));
-
-        if (js_CodeSpec[JSOp(*pc)].length != -1)
-            pc += js_CodeSpec[JSOp(*pc)].length;
-        else
-            pc += js_GetVariableBytecodeLength(pc);
-        if (pc[0] == JSOP_STOP)
-            break;
-    }
-#endif
-
     return true;
 }
 
