@@ -107,8 +107,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     
     private void sendResizeEventIfNecessary(boolean force) {
-        DisplayMetrics metrics = new DisplayMetrics();
-        GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        DisplayMetrics metrics = GeckoApp.mAppContext.getDisplayMetrics();
         View view = mLayerController.getView();
 
         IntSize newScreenSize = new IntSize(metrics.widthPixels, metrics.heightPixels);
