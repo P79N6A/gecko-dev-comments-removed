@@ -16,6 +16,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsILoadGroup.h"
 #include "nsIObserver.h"
+#include "nsDataHashtable.h"
 #include "nsAudioStream.h"
 #include "VideoFrameContainer.h"
 #include "mozilla/CORSMode.h"
@@ -42,6 +43,8 @@ public:
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
   typedef mozilla::MediaStream MediaStream;
   typedef mozilla::MediaResource MediaResource;
+
+  typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
 
   enum CanPlayStatus {
     CANPLAY_NO,
@@ -109,7 +112,10 @@ public:
   
   
   
-  void MetadataLoaded(PRUint32 aChannels, PRUint32 aRate, bool aHasAudio);
+  void MetadataLoaded(PRUint32 aChannels,
+                      PRUint32 aRate,
+                      bool aHasAudio,
+                      const MetadataTags* aTags);
 
   
   
@@ -699,6 +705,13 @@ protected:
 
   
   PRUint32 mRate;
+
+  
+  
+  static PLDHashOperator BuildObjectFromTags(nsCStringHashKey::KeyType aKey,
+                                             nsCString aValue,
+                                             void* aUserArg);
+  nsAutoPtr<const MetadataTags> mTags;
 
   
   
