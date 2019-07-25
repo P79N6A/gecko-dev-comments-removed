@@ -138,6 +138,9 @@ static void glxtest()
   typedef GLubyte* (* PFNGLGETSTRING) (GLenum);
   PFNGLGETSTRING glGetString = cast<PFNGLGETSTRING>(dlsym(libgl, "glGetString"));
 
+  typedef void* (* PFNGLXGETPROCADDRESS) (const char *);
+  PFNGLXGETPROCADDRESS glXGetProcAddress = cast<PFNGLXGETPROCADDRESS>(dlsym(libgl, "glXGetProcAddress"));
+
   if (!glXQueryExtension ||
       !glXChooseFBConfig ||
       !glXGetVisualFromFBConfig ||
@@ -146,7 +149,8 @@ static void glxtest()
       !glXMakeCurrent ||
       !glXDestroyPixmap ||
       !glXDestroyContext ||
-      !glGetString)
+      !glGetString ||
+      !glXGetProcAddress)
   {
     fatal_error("Unable to find required symbols in libGL.so.1");
   }
@@ -184,6 +188,9 @@ static void glxtest()
   glXMakeCurrent(dpy, glxpixmap, context);
 
   
+  void* glXBindTexImageEXT = glXGetProcAddress("glXBindTexImageEXT"); 
+
+  
   enum { bufsize = 1024 };
   char buf[bufsize];
   const GLubyte *vendorString = glGetString(GL_VENDOR);
@@ -194,10 +201,11 @@ static void glxtest()
     fatal_error("glGetString returned null");
 
   int length = snprintf(buf, bufsize,
-                        "VENDOR\n%s\nRENDERER\n%s\nVERSION\n%s\n",
+                        "VENDOR\n%s\nRENDERER\n%s\nVERSION\n%s\nTFP\n%s\n",
                         vendorString,
                         rendererString,
-                        versionString);
+                        versionString,
+                        glXBindTexImageEXT ? "TRUE" : "FALSE");
   if (length >= bufsize)
     fatal_error("GL strings length too large for buffer size");
 
