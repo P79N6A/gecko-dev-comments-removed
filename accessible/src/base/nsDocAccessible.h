@@ -136,6 +136,11 @@ public:
   
 
 
+  nsPresContext* PresContext() const { return mPresShell->GetPresContext(); }
+    
+  
+
+
   bool IsContentLoaded() const
   {
     
