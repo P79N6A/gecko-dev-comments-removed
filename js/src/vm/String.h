@@ -198,6 +198,10 @@ class JSString : public js::gc::Cell
         };
     } d;
 
+    
+    void dump();
+    bool equals(const char *s);
+
   public:
     
 
@@ -692,6 +696,9 @@ class JSAtom : public JSFixedString
     
     bool isAtom() const MOZ_DELETE;
     JSAtom &asAtom() const MOZ_DELETE;
+
+    
+    void dump();
 
   public:
     
