@@ -338,7 +338,8 @@ protected:
 
     
     
-    nsresult StringifyJSValVariant(nsIVariant *aData, nsAString &aResult);
+    nsresult StringifyJSValVariant(JSContext *aCx, nsIVariant *aData,
+                                   nsAString &aResult);
 
     
     

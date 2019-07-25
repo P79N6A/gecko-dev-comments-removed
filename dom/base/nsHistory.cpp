@@ -284,7 +284,7 @@ nsHistory::Go(PRInt32 aDelta)
 
 NS_IMETHODIMP
 nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
-                     const nsAString& aURL)
+                     const nsAString& aURL, JSContext* aCx)
 {
   
   if (!nsContentUtils::GetBoolPref(sAllowPushStatePrefStr, PR_FALSE))
@@ -305,7 +305,7 @@ nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
 
   
   
-  nsresult rv = docShell->AddState(aData, aTitle, aURL, PR_FALSE);
+  nsresult rv = docShell->AddState(aData, aTitle, aURL, PR_FALSE, aCx);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -313,7 +313,7 @@ nsHistory::PushState(nsIVariant *aData, const nsAString& aTitle,
 
 NS_IMETHODIMP
 nsHistory::ReplaceState(nsIVariant *aData, const nsAString& aTitle,
-                        const nsAString& aURL)
+                        const nsAString& aURL, JSContext* aCx)
 {
   
   if (!nsContentUtils::GetBoolPref(sAllowReplaceStatePrefStr, PR_FALSE))
@@ -334,7 +334,7 @@ nsHistory::ReplaceState(nsIVariant *aData, const nsAString& aTitle,
 
   
   
-  return docShell->AddState(aData, aTitle, aURL, PR_TRUE);
+  return docShell->AddState(aData, aTitle, aURL, PR_TRUE, aCx);
 }
 
 NS_IMETHODIMP

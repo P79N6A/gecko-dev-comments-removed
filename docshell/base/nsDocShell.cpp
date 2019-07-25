@@ -9547,7 +9547,8 @@ nsDocShell::SetReferrerURI(nsIURI * aURI)
 
 
 nsresult
-nsDocShell::StringifyJSValVariant(nsIVariant *aData, nsAString &aResult)
+nsDocShell::StringifyJSValVariant(JSContext *aCx, nsIVariant *aData,
+                                  nsAString &aResult)
 {
     nsresult rv;
     aResult.Truncate();
@@ -9558,28 +9559,32 @@ nsDocShell::StringifyJSValVariant(nsIVariant *aData, nsAString &aResult)
     rv = aData->GetAsJSVal(&jsData);
     NS_ENSURE_SUCCESS(rv, NS_ERROR_UNEXPECTED);
 
-    
-    
-    nsCOMPtr<nsIDocument> document = do_GetInterface(GetAsSupports(this));
-    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
+    nsCOMPtr<nsIJSContextStack> contextStack;
+    JSContext *cx = aCx;
+    if (!cx) {
+        
+        
+        nsCOMPtr<nsIDocument> document = do_GetInterface(GetAsSupports(this));
+        NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
 
-    
-    
-    nsIScriptGlobalObject *sgo = document->GetScopeObject();
-    NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
+        
+        
+        nsIScriptGlobalObject *sgo = document->GetScopeObject();
+        NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
 
-    nsIScriptContext *scx = sgo->GetContext();
-    NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
+        nsIScriptContext *scx = sgo->GetContext();
+        NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
 
-    JSContext *cx = (JSContext *)scx->GetNativeContext();
+        cx = (JSContext *)scx->GetNativeContext();
 
-    
-    
-    nsCOMPtr<nsIJSContextStack> contextStack =
-        do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+        
+        
+        contextStack =
+            do_GetService("@mozilla.org/js/xpc/ContextStack;1", &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
 
-    contextStack->Push(cx);
+        contextStack->Push(cx);
+    }
 
     nsCOMPtr<nsIJSON> json = do_GetService("@mozilla.org/dom/json;1");
     if(json) {
@@ -9590,15 +9595,20 @@ nsDocShell::StringifyJSValVariant(nsIVariant *aData, nsAString &aResult)
         rv = NS_ERROR_FAILURE;
     }
 
-    
-    contextStack->Pop(&cx);
+    if (contextStack) {
+        if (NS_FAILED(rv)) {
+            JS_ClearPendingException(cx);
+        }
+
+        contextStack->Pop(&cx);
+    }
 
     return rv;
 }
 
 NS_IMETHODIMP
 nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
-                     const nsAString& aURL, PRBool aReplace)
+                     const nsAString& aURL, PRBool aReplace, JSContext* aCx)
 {
     
 
@@ -9651,7 +9661,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
             return NS_ERROR_DOM_SECURITY_ERR;
         nsCOMPtr<nsIPrincipal> origPrincipal = origDocument->NodePrincipal();
 
-        rv = StringifyJSValVariant(aData, dataStr);
+        rv = StringifyJSValVariant(aCx, aData, dataStr);
         NS_ENSURE_SUCCESS(rv, rv);
 
         nsCOMPtr<nsIDocument> newDocument =
