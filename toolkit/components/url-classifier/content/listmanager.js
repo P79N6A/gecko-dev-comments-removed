@@ -304,7 +304,7 @@ PROT_ListManager.prototype.maybeToggleUpdateChecking = function() {
 
 PROT_ListManager.prototype.startUpdateChecker = function() {
   this.stopUpdateChecker();
-  
+
   
   var repeatingUpdateDelay = this.updateInterval / 2;
   repeatingUpdateDelay += Math.floor(Math.random() * this.updateInterval);
