@@ -3,7 +3,9 @@
 
 
 import automationutils
+import threading
 import os
+import Queue
 import re
 import socket
 import shutil
@@ -13,6 +15,21 @@ import time
 
 from automation import Automation
 from devicemanager import DeviceManager, NetworkTools
+from mozprocess import ProcessHandlerMixin
+
+
+class LogcatProc(ProcessHandlerMixin):
+    """Process handler for logcat which puts all output in a Queue.
+    """
+
+    def __init__(self, cmd, queue, **kwargs):
+        self.queue = queue
+        kwargs.setdefault('processOutputLine', []).append(self.handle_output)
+        ProcessHandlerMixin.__init__(self, cmd, **kwargs)
+
+    def handle_output(self, line):
+        self.queue.put_nowait(line)
+
 
 class B2GRemoteAutomation(Automation):
     _devicemanager = None
@@ -24,10 +41,14 @@ class B2GRemoteAutomation(Automation):
         self._remoteProfile = None
         self._remoteLog = remoteLog
         self.marionette = marionette
+        self._is_emulator = False
 
         
         self._product = "b2g"
         Automation.__init__(self)
+
+    def setEmulator(self, is_emulator):
+        self._is_emulator = is_emulator
 
     def setDeviceManager(self, deviceManager):
         self._devicemanager = deviceManager
@@ -51,6 +72,8 @@ class B2GRemoteAutomation(Automation):
         if env is None:
             env = {}
 
+        
+        env['MOZ_HIDE_RESULTS_TABLE'] = '1'
         return env
 
     def checkForCrashes(self, directory, symbolsPath):
@@ -119,6 +142,14 @@ class B2GRemoteAutomation(Automation):
 
         return (serial, status)
 
+    def restartB2G(self):
+        self._devicemanager.checkCmd(['shell', 'stop', 'b2g'])
+        
+        time.sleep(5)
+        self._devicemanager.checkCmd(['shell', 'start', 'b2g'])
+        if self._is_emulator:
+            self.marionette.emulator.wait_for_port()
+
     def rebootDevice(self):
         
         serial, status = self.getDeviceStatus()
@@ -153,7 +184,10 @@ class B2GRemoteAutomation(Automation):
         
         
         
-        self.rebootDevice()
+        if self._is_emulator:
+            self.restartB2G()
+        else:
+            self.rebootDevice()
 
         
         
@@ -162,9 +196,10 @@ class B2GRemoteAutomation(Automation):
 
         
         
-        self._devicemanager.checkCmd(['forward',
-                                      'tcp:%s' % self.marionette.port,
-                                      'tcp:%s' % self.marionette.port])
+        if not self._is_emulator:
+            self._devicemanager.checkCmd(['forward',
+                                          'tcp:%s' % self.marionette.port,
+                                          'tcp:%s' % self.marionette.port])
 
         
         session = self.marionette.start_session()
@@ -185,7 +220,26 @@ class B2GRemoteAutomation(Automation):
 
         def __init__(self, dm):
             self.dm = dm
-            self.lastloglines = []
+            self.logcat_proc = None
+            self.queue = Queue.Queue()
+
+            
+            
+            
+            
+            cmd = [self.dm.adbPath]
+            if self.dm.deviceSerial:
+                cmd.extend(['-s', self.dm.deviceSerial])
+            cmd.append('logcat')
+            proc = threading.Thread(target=self._save_logcat_proc, args=(cmd, self.queue))
+            proc.daemon = True
+            proc.start()
+
+        def _save_logcat_proc(self, cmd, queue):
+            self.logcat_proc = LogcatProc(cmd, queue)
+            self.logcat_proc.run()
+            self.logcat_proc.waitForFinish()
+            self.logcat_proc = None
 
         @property
         def pid(self):
@@ -196,31 +250,13 @@ class B2GRemoteAutomation(Automation):
         def stdout(self):
             
             
-            
-            
-            t = self.dm.runCmd(['logcat', '-t', '50']).stdout.read()
-            if t == None: return ''
-
-            t = t.strip('\n').strip()
-            loglines = t.split('\n')
-            line_index = 0
-
-            
-            
-            
-            log_index = 20 if len(loglines) > 50 else 0
-
-            for index, line in enumerate(loglines[log_index:]):
-                line_index = index + log_index + 1
+            lines = []
+            while True:
                 try:
-                    self.lastloglines.index(line)
-                except ValueError:
+                    lines.append(self.queue.get_nowait())
+                except Queue.Empty:
                     break
-
-            newoutput = '\n'.join(loglines[line_index:])
-            self.lastloglines = loglines
-
-            return newoutput
+            return '\n'.join(lines)
 
         def wait(self, timeout = None):
             
