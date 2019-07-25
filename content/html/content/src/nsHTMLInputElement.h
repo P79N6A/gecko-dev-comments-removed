@@ -216,10 +216,12 @@ public:
   bool     IsValueMissing() const;
   bool     HasTypeMismatch() const;
   bool     HasPatternMismatch() const;
+  bool     IsRangeOverflow() const;
   void     UpdateTooLongValidityState();
   void     UpdateValueMissingValidityState();
   void     UpdateTypeMismatchValidityState();
   void     UpdatePatternMismatchValidityState();
+  void     UpdateRangeOverflowValidityState();
   void     UpdateAllValidityStates(bool aNotify);
   void     UpdateBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
@@ -466,6 +468,11 @@ protected:
   
 
 
+  bool DoesMinMaxApply() const;
+
+  
+
+
   bool MaxLengthApplies() const { return IsSingleLineTextControl(false, mType); }
 
   void FreeData();
@@ -532,6 +539,14 @@ protected:
 
 
   nsIRadioGroupContainer* GetRadioGroupContainer() const;
+
+  
+
+
+
+
+
+  double GetValueAsDouble() const;
 
   nsCOMPtr<nsIControllers> mControllers;
 
