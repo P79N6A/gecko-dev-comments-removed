@@ -210,14 +210,16 @@ let libnetutils = (function () {
       let obj = {
         ret: ret | 0,
         ipaddr_str: ipaddrbuf.readString(),
-        mask: netHelpers.makeMask(prefixLen),
+        mask: netHelpers.makeMask(prefixLen.value),
         gateway_str: gatewaybuf.readString(),
         dns1_str: dns1buf.readString(),
         dns2_str: dns2buf.readString(),
         server_str: serverbuf.readString(),
-        lease: lease | 0
+        lease: lease.value | 0
       };
       obj.ipaddr = netHelpers.stringToIP(obj.ipaddr_str);
+      obj.mask_str = netHelpers.ipToString(obj.mask);
+      obj.broadcast_str = netHelpers.ipToString((obj.ipaddr & obj.mask) + ~obj.mask);
       obj.gateway = netHelpers.stringToIP(obj.gateway_str);
       obj.dns1 = netHelpers.stringToIP(obj.dns1_str);
       obj.dns2 = netHelpers.stringToIP(obj.dns2_str);
@@ -290,6 +292,32 @@ let netHelpers = {
   
 
 
+  swap32: function swap32(n) {
+    return (((n >> 24) & 0xFF) <<  0) |
+           (((n >> 16) & 0xFF) <<  8) |
+           (((n >>  8) & 0xFF) << 16) |
+           (((n >>  0) & 0xFF) << 24);
+  },
+
+  
+
+
+
+  ntohl: function ntohl(n) {
+    return this.swap32(n);
+  },
+
+  
+
+
+
+  htonl: function htonl(n) {
+    return this.swap32(n);
+  },
+
+  
+
+
 
 
 
@@ -332,8 +360,8 @@ let netHelpers = {
   makeMask: function makeMask(len) {
     let mask = 0;
     for (let i = 0; i < len; ++i) {
-      mask |= (1 << i);
+      mask |= (0x80000000 >> i);
     }
-    return mask;
+    return this.ntohl(mask);
   }
 };
