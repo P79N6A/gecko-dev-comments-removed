@@ -735,12 +735,6 @@ pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
 
 
 pref("urlclassifier.confirm-age", 2700);
-
-
-pref("urlclassifier.updatecachemax", 41943040);
-
-
-pref("urlclassifier.lookupcachemax", 1048576);
 #endif
 
 pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
