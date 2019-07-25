@@ -433,7 +433,7 @@ void nsViewManager::ProcessPendingUpdates(nsView* aView, bool aDoInvalidate)
       nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
       widgetVM->
         UpdateWidgetArea(nearestViewWithWidget,
-                         nearestViewWithWidget->GetWidget(), r, nsnull);
+                         nearestViewWithWidget->GetWidget(), r);
       dirtyRegion->SetEmpty();
     }
   }
@@ -452,12 +452,9 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView)
 
 
 
-
-
 void
 nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
-                                const nsRegion &aDamagedRegion,
-                                nsView* aIgnoreWidgetView)
+                                const nsRegion &aDamagedRegion)
 {
   NS_ASSERTION(aWidgetView->GetViewManager() == this,
                "UpdateWidgetArea called on view we don't own");
@@ -499,11 +496,6 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
     aWidget->IsVisible(visible);
     if (!visible)
       return;
-  }
-
-  if (aWidgetView == aIgnoreWidgetView) {
-    
-    return;
   }
 
   if (!aWidget) {
@@ -617,7 +609,7 @@ NS_IMETHODIMP nsViewManager::UpdateViewNoSuppression(nsIView *aView,
   PRInt32 APD = AppUnitsPerDevPixel();
   damagedRect = damagedRect.ConvertAppUnitsRoundOut(APD, rootAPD);
   displayRootVM->UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
-                                  nsRegion(damagedRect), nsnull);
+                                  nsRegion(damagedRect));
 
   return NS_OK;
 }
