@@ -577,7 +577,8 @@ var BrowserUI = {
   },
 
   isTabsVisible: function isTabsVisible() {
-    let [leftvis,,,] = Browser.computeSidebarVisibility();
+    
+    let [leftvis,_1,_2,_3] = Browser.computeSidebarVisibility();
     return (leftvis > 0.002);
   },
 
