@@ -1039,7 +1039,8 @@ var Browser = {
     
     let view = browser.getRootView();
     view.setScale(scale);
-    view._contentView.scrollTo(scrollX, scrollY);
+    if ("_contentView" in view)
+      view._contentView.scrollTo(scrollX, scrollY);
 
     
     
