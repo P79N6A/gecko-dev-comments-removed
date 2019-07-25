@@ -946,6 +946,10 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
+  PRInt64 SizeOf() const {
+    return sizeof(*this);
+  }
+
 protected:
   
 
