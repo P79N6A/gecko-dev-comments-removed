@@ -1776,6 +1776,10 @@ DebugScopes::onGeneratorFrameChange(StackFrame *from, StackFrame *to, JSContext 
 void
 DebugScopes::onCompartmentLeaveDebugMode(JSCompartment *c)
 {
+    for (ObjectWeakMap::Enum e(proxiedScopes); !e.empty(); e.popFront()) {
+        if (e.front().key->compartment() == c)
+            e.removeFront();
+    }
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
         if (e.front().key.fp()->compartment() == c)
             e.removeFront();
