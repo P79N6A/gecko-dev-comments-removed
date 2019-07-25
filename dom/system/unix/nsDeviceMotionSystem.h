@@ -35,13 +35,13 @@
 
 
 
-#ifndef nsAccelerometerSystem_h
-#define nsAccelerometerSystem_h
+#ifndef nsDeviceMotionSystem_h
+#define nsDeviceMotionSystem_h
 
 #include <unistd.h>
-#include "nsAccelerometer.h"
+#include "nsDeviceMotion.h"
 
-enum nsAccelerometerSystemDriver
+enum nsDeviceMotionSystemDriver
 {
   eNoSensor,
   eAppleSensor,
@@ -50,18 +50,18 @@ enum nsAccelerometerSystemDriver
   eHPdv7Sensor
 };
 
-class nsAccelerometerSystem : public nsAccelerometer
+class nsDeviceMotionSystem : public nsDeviceMotion
 {
  public:
-  nsAccelerometerSystem();
-  ~nsAccelerometerSystem();
+  nsDeviceMotionSystem();
+  ~nsDeviceMotionSystem();
 
   void Startup();
   void Shutdown();
 
   FILE* mPositionFile;
   FILE* mCalibrateFile;
-  nsAccelerometerSystemDriver mType;
+  nsDeviceMotionSystemDriver mType;
 
   nsCOMPtr<nsITimer> mUpdateTimer;
   static void UpdateHandler(nsITimer *aTimer, void *aClosure);

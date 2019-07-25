@@ -34,10 +34,10 @@
 
 
 
-#ifndef nsAccelerometerSystem_h
-#define nsAccelerometerSystem_h
+#ifndef nsDeviceMotionSystem_h
+#define nsDeviceMotionSystem_h
 
-#include "nsAccelerometer.h"
+#include "nsDeviceMotion.h"
 #include "nsAutoPtr.h"
 
 class Sensor
@@ -48,11 +48,11 @@ class Sensor
   virtual void GetValues(double *x, double *y, double *z) = 0;
 };
 
-class nsAccelerometerSystem : public nsAccelerometer
+class nsDeviceMotionSystem : public nsDeviceMotion
 {
  public:
-  nsAccelerometerSystem();
-  ~nsAccelerometerSystem();
+  nsDeviceMotionSystem();
+  ~nsDeviceMotionSystem();
 
   void Startup();
   void Shutdown();

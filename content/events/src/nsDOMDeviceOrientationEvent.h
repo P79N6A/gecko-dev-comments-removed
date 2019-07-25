@@ -34,41 +34,35 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "nsISupports.idl"
+#ifndef nsDOMDeviceOrientationEvent_h__
+#define nsDOMDeviceOrientationEvent_h__
 
-interface nsIDOMWindow;
+#include "nsIDOMDeviceOrientationEvent.h"
+#include "nsDOMEvent.h"
 
-[scriptable, uuid(0ec7ed95-dc9e-4d20-a5e2-8fc6a03bce67)]
-interface nsIAcceleration : nsISupports
+class nsDOMDeviceOrientationEvent : public nsDOMEvent,
+                                    public nsIDOMDeviceOrientationEvent
 {
-  readonly attribute double alpha;
-  readonly attribute double beta;
-  readonly attribute double gamma;
+public:
+
+  nsDOMDeviceOrientationEvent(nsPresContext* aPresContext, nsEvent* aEvent)
+  : nsDOMEvent(aPresContext, aEvent),
+    mAlpha(0),
+    mBeta(0),
+    mGamma(0),
+    mAbsolute(PR_TRUE) {}
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  // Forward to nsDOMEvent
+  NS_FORWARD_TO_NSDOMEVENT
+
+  // nsIDOMDeviceOrientationEvent Interface
+  NS_DECL_NSIDOMDEVICEORIENTATIONEVENT
+
+protected:
+  double mAlpha, mBeta, mGamma;
+  PRBool mAbsolute;
 };
 
-[scriptable, uuid(3386BED8-7393-4704-8FFC-1EB2C35432FF)]
-interface nsIAccelerationListener : nsISupports
-{
-  void onAccelerationChange(in nsIAcceleration aAcceleration);
-};
-
-[scriptable, uuid(4B04E228-0B33-43FC-971F-AF60CEDB1C21)]
-interface nsIAccelerometer : nsISupports
-{
-  void addListener(in nsIAccelerationListener aListener);
-  void removeListener(in nsIAccelerationListener aListener);
-
-  void addWindowListener(in nsIDOMWindow aWindow);
-  void removeWindowListener(in nsIDOMWindow aWindow);
-
-};
-
-/* for use by IPC system to notify non-chrome processes of 
- * accelerometer events
- */
-[uuid(22dd1d8a-51bf-406f-8b6d-d1919f8f1c7d)]
-interface nsIAccelerometerUpdate : nsIAccelerometer
-{
-  /* must be called on the main thread or else */
-  void accelerationChanged(in double alpha, in double beta, in double gamma);
-};
+#endif

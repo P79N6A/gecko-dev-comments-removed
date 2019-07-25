@@ -1699,6 +1699,7 @@ GK_ATOM(onMozTouchUp, "onMozTouchUp")
 
 
 GK_ATOM(ondeviceorientation, "ondeviceorientation")
+GK_ATOM(ondevicemotion, "ondevicemotion")
 
 
 

@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Olli Pettay (Olli.Pettay@helsinki.fi)
+ * Portions created by the Initial Developer are Copyright (C) 2006
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsEventDispatcher.h"
 #include "nsDOMEvent.h"
@@ -60,7 +60,7 @@
 
 static nsEventTargetChainItem* gCachedETCI = nsnull;
 
-
+// nsEventTargetChainItem represents a single item in the event target chain.
 class nsEventTargetChainItem
 {
 private:
@@ -87,7 +87,7 @@ public:
   static void Destroy(nsFixedSizeAllocator* aAllocator,
                       nsEventTargetChainItem* aItem)
   {
-    
+    // ::Destroy deletes ancestor chain.
     nsEventTargetChainItem* item = aItem;
     if (item->mChild) {
       item->mChild->mParent = nsnull;
@@ -166,28 +166,28 @@ public:
     return mTarget;
   }
 
-  
-
-
-
-
-
+  /**
+   * Dispatches event through the event target chain.
+   * Handles capture, target and bubble phases both in default
+   * and system event group and calls also PostHandleEvent for each
+   * item in the chain.
+   */
   nsresult HandleEventTargetChain(nsEventChainPostVisitor& aVisitor,
                                   PRUint32 aFlags,
                                   nsDispatchingCallback* aCallback,
                                   PRBool aMayHaveNewListenerManagers,
                                   nsCxPusher* aPusher);
 
-  
-
-
-
+  /**
+   * Resets aVisitor object and calls PreHandleEvent.
+   * Copies mItemFlags and mItemData to the current nsEventTargetChainItem.
+   */
   nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
-  
-
-
-
+  /**
+   * If the current item in the event target chain has an event listener
+   * manager, this method calls nsIEventListenerManager::HandleEvent().
+   */
   nsresult HandleEvent(nsEventChainPostVisitor& aVisitor, PRUint32 aFlags,
                        PRBool aMayHaveNewListenerManagers,
                        nsCxPusher* aPusher)
@@ -219,9 +219,9 @@ public:
     return NS_OK;
   }
 
-  
-
-
+  /**
+   * Copies mItemFlags and mItemData to aVisitor and calls PostHandleEvent.
+   */
   nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor);
 
   static PRUint32 MaxEtciCount() { return sMaxEtciCount; }
@@ -236,15 +236,15 @@ public:
   nsEventTargetChainItem*           mChild;
   union {
     nsEventTargetChainItem*         mParent;
-     
+     // This is used only when caching ETCI objects.
     nsEventTargetChainItem*         mNext;
   };
   PRUint16                          mFlags;
   PRUint16                          mItemFlags;
   nsCOMPtr<nsISupports>             mItemData;
-  
+  // Event retargeting must happen whenever mNewTarget is non-null.
   nsCOMPtr<nsPIDOMEventTarget>      mNewTarget;
-  
+  // Cache mTarget's event listener manager.
   nsRefPtr<nsEventListenerManager>  mManager;
 
   static PRUint32                   sMaxEtciCount;
@@ -297,10 +297,10 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
                                                nsCxPusher* aPusher)
 {
   PRUint32 createdELMs = nsEventListenerManager::sCreatedCount;
-  
+  // Save the target so that it can be restored later.
   nsCOMPtr<nsPIDOMEventTarget> firstTarget = aVisitor.mEvent->target;
 
-  
+  // Capture
   nsEventTargetChainItem* item = this;
   aVisitor.mEvent->flags |= NS_EVENT_FLAG_CAPTURE;
   aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_BUBBLE;
@@ -315,7 +315,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
     }
 
     if (item->GetNewTarget()) {
-      
+      // item is at anonymous boundary. Need to retarget for the child items.
       nsEventTargetChainItem* nextTarget = item->mChild;
       while (nextTarget) {
         nsPIDOMEventTarget* newTarget = nextTarget->GetNewTarget();
@@ -330,14 +330,14 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
     item = item->mChild;
   }
 
-  
+  // Target
   aVisitor.mEvent->flags |= NS_EVENT_FLAG_BUBBLE;
   if (!(aVisitor.mEvent->flags & NS_EVENT_FLAG_STOP_DISPATCH) &&
       (!(aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH) ||
        item->ForceContentDispatch())) {
-    
-    
-    
+    // FIXME Should use aFlags & NS_EVENT_BUBBLE_MASK because capture phase
+    //       event listeners should not be fired. But it breaks at least
+    //       <xul:dialog>'s buttons. Bug 235441.
     item->HandleEvent(aVisitor, aFlags,
                       aMayHaveNewListenerManagers ||
                       createdELMs != nsEventListenerManager::sCreatedCount,
@@ -347,14 +347,14 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
     item->PostHandleEvent(aVisitor);
   }
 
-  
+  // Bubble
   aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_CAPTURE;
   item = item->mParent;
   while (item) {
     nsPIDOMEventTarget* newTarget = item->GetNewTarget();
     if (newTarget) {
-      
-      
+      // Item is at anonymous boundary. Need to retarget for the current item
+      // and for parent items.
       aVisitor.mEvent->target = newTarget;
     }
 
@@ -375,22 +375,22 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_BUBBLE;
 
   if (!(aFlags & NS_EVENT_FLAG_SYSTEM_EVENT)) {
-    
-    
-    
+    // Dispatch to the system event group.  Make sure to clear the
+    // STOP_DISPATCH flag since this resets for each event group
+    // per DOM3 Events.
     aVisitor.mEvent->flags &= ~NS_EVENT_FLAG_STOP_DISPATCH;
 
-    
+    // Setting back the original target of the event.
     aVisitor.mEvent->target = aVisitor.mEvent->originalTarget;
 
-    
-    
+    // Special handling if PresShell (or some other caller)
+    // used a callback object.
     if (aCallback) {
       aCallback->HandleEvent(aVisitor);
     }
 
-    
-    
+    // Retarget for system event group (which does the default handling too).
+    // Setting back the target which was used also for default event group.
     aVisitor.mEvent->target = firstTarget;
     HandleEventTargetChain(aVisitor, aFlags | NS_EVENT_FLAG_SYSTEM_EVENT,
                            aCallback,
@@ -461,7 +461,7 @@ PRInt32 ChainItemPool::sEtciPoolUsers = 0;
 
 void NS_ShutdownChainItemPool() { ChainItemPool::Shutdown(); }
 
- nsresult
+/* static */ nsresult
 nsEventDispatcher::Dispatch(nsISupports* aTarget,
                             nsPresContext* aPresContext,
                             nsEvent* aEvent,
@@ -475,9 +475,9 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                  NS_ERROR_ILLEGAL_VALUE);
   NS_ASSERTION(!aTargets || !aEvent->message, "Wrong parameters!");
 
-  
-  
-  
+  // If we're dispatching an already created DOMEvent object, make
+  // sure it is initialized!
+  // If aTargets is non-null, the event isn't going to be dispatched.
   NS_ENSURE_TRUE(aEvent->message || !aDOMEvent || aTargets,
                  NS_ERROR_DOM_UNSPECIFIED_EVENT_TYPE_ERR);
 
@@ -517,7 +517,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     nsIDocument* doc = node->GetOwnerDoc();
     if (!nsContentUtils::IsChromeDoc(doc)) {
       nsPIDOMWindow* win = doc ? doc->GetInnerWindow() : nsnull;
-      
+      // If we can't dispatch the event to chrome, do nothing.
       nsPIDOMEventTarget* piTarget = win ? win->GetChromeEventHandler() : nsnull;
       NS_ENSURE_TRUE(piTarget, NS_OK);
 
@@ -530,9 +530,9 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
         }
       }
       
-      
+      // Set the target to be the original dispatch target,
       aEvent->target = target;
-      
+      // but use chrome event handler or TabChildGlobal for event target chain.
       target = piTarget;
     }
   }
@@ -564,13 +564,13 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   nsresult rv = NS_OK;
   PRBool externalDOMEvent = !!(aDOMEvent);
 
-  
-  
+  // If we have a PresContext, make sure it doesn't die before
+  // event dispatching is finished.
   nsRefPtr<nsPresContext> kungFuDeathGrip(aPresContext);
   ChainItemPool pool;
   NS_ENSURE_TRUE(pool.GetPool(), NS_ERROR_OUT_OF_MEMORY);
 
-  
+  // Create the event target chain item for the event target.
   nsEventTargetChainItem* targetEtci =
     nsEventTargetChainItem::Create(pool.GetPool(), target);
   NS_ENSURE_TRUE(targetEtci, NS_ERROR_OUT_OF_MEMORY);
@@ -579,18 +579,18 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     return NS_ERROR_FAILURE;
   }
 
-  
-  
+  // Make sure that nsIDOMEvent::target and nsIDOMNSEvent::originalTarget
+  // point to the last item in the chain.
   if (!aEvent->target) {
-    
-    
+    // Note, CurrentTarget() points always to the object returned by
+    // GetTargetForEventTargetChain().
     aEvent->target = targetEtci->CurrentTarget();
   } else {
-    
-    
-    
-    
-    
+    // XXX But if the target is already set, use that. This is a hack
+    //     for the 'load', 'beforeunload' and 'unload' events,
+    //     which are dispatched to |window| but have document as their target.
+    //
+    // Make sure that the event target points to the right object.
     aEvent->target = aEvent->target->GetTargetForEventTargetChain();
     NS_ENSURE_STATE(aEvent->target);
   }
@@ -609,16 +609,16 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
 
   NS_MARK_EVENT_DISPATCH_STARTED(aEvent);
 
-  
-  
+  // Create visitor object and start event dispatching.
+  // PreHandleEvent for the original target.
   nsEventStatus status = aEventStatus ? *aEventStatus : nsEventStatus_eIgnore;
   nsEventChainPreVisitor preVisitor(aPresContext, aEvent, aDOMEvent, status,
                                     isInAnon);
   targetEtci->PreHandleEvent(preVisitor);
 
   if (preVisitor.mCanHandle) {
-    
-    
+    // At least the original target can handle the event.
+    // Setting the retarget to the |target| simplifies retargeting code.
     nsCOMPtr<nsPIDOMEventTarget> t = do_QueryInterface(aEvent->target);
     targetEtci->SetNewTarget(t);
     nsEventTargetChainItem* topEtci = targetEtci;
@@ -635,10 +635,10 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
         break;
       }
 
-      
+      // Item needs event retargetting.
       if (preVisitor.mEventTargetAtParent) {
-        
-        
+        // Need to set the target of the event
+        // so that also the next retargeting works.
         preVisitor.mEvent->target = preVisitor.mEventTargetAtParent;
         parentEtci->SetNewTarget(preVisitor.mEventTargetAtParent);
       }
@@ -661,7 +661,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
           item = item->mParent;
         }
       } else {
-        
+        // Event target chain is created. Handle the chain.
         nsEventChainPostVisitor postVisitor(preVisitor);
         nsCxPusher pusher;
         rv = topEtci->HandleEventTargetChain(postVisitor,
@@ -672,7 +672,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                                              &pusher);
   
         preVisitor.mEventStatus = postVisitor.mEventStatus;
-        
+        // If the DOM event was created during event flow.
         if (!preVisitor.mDOMEvent && postVisitor.mDOMEvent) {
           preVisitor.mDOMEvent = postVisitor.mDOMEvent;
         }
@@ -686,8 +686,8 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   NS_MARK_EVENT_DISPATCH_DONE(aEvent);
 
   if (!externalDOMEvent && preVisitor.mDOMEvent) {
-    
-    
+    // An nsDOMEvent was created while dispatching the event.
+    // Duplicate private data if someone holds a pointer to it.
     nsrefcnt rc = 0;
     NS_RELEASE2(preVisitor.mDOMEvent, rc);
     nsCOMPtr<nsIPrivateDOMEvent> privateEvent =
@@ -703,7 +703,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   return rv;
 }
 
- nsresult
+/* static */ nsresult
 nsEventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
                                     nsEvent* aEvent,
                                     nsIDOMEvent* aDOMEvent,
@@ -727,7 +727,7 @@ nsEventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
       }
 
       if (!dontResetTrusted) {
-        
+        //Check security state to determine if dispatcher is trusted
         privEvt->SetTrusted(nsContentUtils::IsCallerTrustedForWrite());
       }
 
@@ -741,7 +741,7 @@ nsEventDispatcher::DispatchDOMEvent(nsISupports* aTarget,
   return NS_ERROR_ILLEGAL_VALUE;
 }
 
- nsresult
+/* static */ nsresult
 nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
                                nsEvent* aEvent,
                                const nsAString& aEventType,
@@ -788,7 +788,7 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
 #ifdef MOZ_SMIL
     case NS_SMIL_TIME_EVENT:
       return NS_NewDOMTimeEvent(aDOMEvent, aPresContext, aEvent);
-#endif 
+#endif // MOZ_SMIL
 
     case NS_COMMAND_EVENT:
       return NS_NewDOMCommandEvent(aDOMEvent, aPresContext,
@@ -809,11 +809,11 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
 #endif
     }
 
-    
+    // For all other types of events, create a vanilla event object.
     return NS_NewDOMEvent(aDOMEvent, aPresContext, aEvent);
   }
 
-  
+  // And if we didn't get an event, check the type argument.
 
   if (aEventType.LowerCaseEqualsLiteral("mouseevent") ||
       aEventType.LowerCaseEqualsLiteral("mouseevents") ||
@@ -837,6 +837,8 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
     return NS_NewDOMPopupBlockedEvent(aDOMEvent, aPresContext, nsnull);
   if (aEventType.LowerCaseEqualsLiteral("deviceorientationevent"))
     return NS_NewDOMDeviceOrientationEvent(aDOMEvent, aPresContext, nsnull);
+  if (aEventType.LowerCaseEqualsLiteral("devicemotionevent"))
+    return NS_NewDOMDeviceMotionEvent(aDOMEvent, aPresContext, nsnull);
   if (aEventType.LowerCaseEqualsLiteral("uievent") ||
       aEventType.LowerCaseEqualsLiteral("uievents"))
     return NS_NewDOMUIEvent(aDOMEvent, aPresContext, nsnull);
@@ -854,7 +856,7 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
   if (aEventType.LowerCaseEqualsLiteral("timeevent") ||
       aEventType.LowerCaseEqualsLiteral("timeevents"))
     return NS_NewDOMTimeEvent(aDOMEvent, aPresContext, nsnull);
-#endif 
+#endif // MOZ_SMIL
   if (aEventType.LowerCaseEqualsLiteral("xulcommandevent") ||
       aEventType.LowerCaseEqualsLiteral("xulcommandevents"))
     return NS_NewDOMXULCommandEvent(aDOMEvent, aPresContext, nsnull);
@@ -880,8 +882,8 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
     return NS_NewDOMMozTouchEvent(aDOMEvent, aPresContext, nsnull);
   if (aEventType.LowerCaseEqualsLiteral("scrollareaevent"))
     return NS_NewDOMScrollAreaEvent(aDOMEvent, aPresContext, nsnull);
-  
-  
+  // FIXME: Should get spec to say what the right string is here!  This
+  // is probably wrong!
   if (aEventType.LowerCaseEqualsLiteral("transitionevent"))
     return NS_NewDOMTransitionEvent(aDOMEvent, aPresContext, nsnull);
 #ifdef MOZ_CSS_ANIMATIONS

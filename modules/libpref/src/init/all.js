@@ -3204,7 +3204,7 @@ pref("layers.prefer-d3d9", false);
 pref("geo.enabled", true);
 
 
-pref("accelerometer.enabled", true);
+pref("device.motion.enabled", true);
 
 
 pref("html5.parser.enable", true);
