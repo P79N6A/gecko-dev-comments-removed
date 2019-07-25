@@ -100,11 +100,6 @@ public:
 #endif
 
   
-  
-  static void InitUploadLastDir();
-  static void DestroyUploadLastDir();
-
-  
 
 
 
@@ -119,7 +114,10 @@ public:
   typedef PRBool (*AcceptAttrCallback)(const nsAString&, void*);
   void ParseAcceptAttribute(AcceptAttrCallback aCallback, void* aClosure) const;
 
+  nsIFrame* GetTextFrame() { return mTextFrame; }
+
 protected:
+
   class MouseListener;
   friend class MouseListener;
   class MouseListener : public nsIDOMMouseListener {
@@ -161,7 +159,7 @@ protected:
     BrowseMouseListener(nsFileControlFrame* aFrame) : MouseListener(aFrame) {};
      NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent);
   };
-  
+
   virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsBlockFrame::IsFrameOfType(aFlags &

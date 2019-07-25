@@ -81,58 +81,19 @@
 #include "nsInterfaceHashtable.h"
 #include "nsURIHashKey.h"
 #include "nsILocalFile.h"
-#include "nsIPrivateBrowsingService.h"
 #include "nsNetCID.h"
-#include "nsIObserver.h"
-#include "nsIObserverService.h"
 #include "nsWeakReference.h"
 #include "nsIVariant.h"
-#include "nsIContentPrefService.h"
-#include "nsIContentURIGrouper.h"
 #include "mozilla/Services.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsCharSeparatedTokenizer.h"
+#include "nsHTMLInputElement.h"
 #include "nsICapturePicker.h"
 #include "nsIFileURL.h"
 
 #define SYNC_TEXT 0x1
 #define SYNC_BUTTON 0x2
 #define SYNC_BOTH 0x3
-
-#define CPS_PREF_NAME NS_LITERAL_STRING("browser.upload.lastDir")
-
-class UploadLastDir : public nsIObserver, public nsSupportsWeakReference {
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  UploadLastDir();
-
-  
-
-
-
-
-
-
-  nsresult FetchLastUsedDirectory(nsIURI* aURI, nsILocalFile** aFile);
-
-  
-
-
-
-
-
-
-  nsresult StoreLastUsedDirectory(nsIURI* aURI, nsILocalFile* aFile);
-private:
-  
-  nsInterfaceHashtable<nsStringHashKey, nsILocalFile> mUploadLastDirStore;
-  PRBool mInPrivateBrowsing;
-};
-
-NS_IMPL_ISUPPORTS2(UploadLastDir, nsIObserver, nsISupportsWeakReference)
-UploadLastDir* gUploadLastDir = nsnull;
 
 nsIFrame*
 NS_NewFileControlFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -162,9 +123,6 @@ nsFileControlFrame::Init(nsIContent* aContent,
   NS_ENSURE_TRUE(mMouseListener, NS_ERROR_OUT_OF_MEMORY);
   mCaptureMouseListener = new CaptureMouseListener(this);
   NS_ENSURE_TRUE(mCaptureMouseListener, NS_ERROR_OUT_OF_MEMORY);
-
-  if (!gUploadLastDir)
-    nsFileControlFrame::InitUploadLastDir();
 
   return rv;
 }
@@ -529,319 +487,14 @@ nsFileControlFrame::CaptureMouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
 NS_IMETHODIMP
 nsFileControlFrame::BrowseMouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
 {
-  nsresult rv;
-
   NS_ASSERTION(mFrame, "We should have been unregistered");
   if (!ShouldProcessMouseClick(aMouseEvent))
     return NS_OK;
-
   
   nsIContent* content = mFrame->GetContent();
-  nsCOMPtr<nsIDOMHTMLInputElement> inputElem = do_QueryInterface(content);
-  nsCOMPtr<nsIFileControlElement> fileControl = do_QueryInterface(content);
-  if (!content || !inputElem || !fileControl)
-    return NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsIDocument> doc = content->GetDocument();
-  if (!doc)
-    return NS_ERROR_FAILURE;
-
-  
-  nsXPIDLString title;
-  nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
-                                     "FileUpload", title);
-
-  nsCOMPtr<nsIFilePicker> filePicker = do_CreateInstance("@mozilla.org/filepicker;1");
-  if (!filePicker)
-    return NS_ERROR_FAILURE;
-
-  nsPIDOMWindow* win = doc->GetWindow();
-  if (!win) {
-    return NS_ERROR_FAILURE;
-  }
-
-  PRBool multi;
-  rv = inputElem->GetMultiple(&multi);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = filePicker->Init(win, title, multi ?
-                        (PRInt16)nsIFilePicker::modeOpenMultiple :
-                        (PRInt16)nsIFilePicker::modeOpen);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  PRUint32 filter = mFrame->GetFileFilterFromAccept();
-  filePicker->AppendFilters(filter | nsIFilePicker::filterAll);
-
-  
-  if (filter) {
-    
-    
-    
-    filePicker->SetFilterIndex(1);
-  }
-
-  
-  nsAutoString defaultName;
-
-  nsCOMArray<nsIFile> oldFiles;
-  fileControl->GetFileArray(oldFiles);
-
-  if (oldFiles.Count()) {
-    
-    nsCOMPtr<nsIFile> parentFile;
-    oldFiles[0]->GetParent(getter_AddRefs(parentFile));
-    if (parentFile) {
-      nsCOMPtr<nsILocalFile> parentLocalFile = do_QueryInterface(parentFile, &rv);
-      if (parentLocalFile) {
-        filePicker->SetDisplayDirectory(parentLocalFile);
-      }
-    }
-
-    
-    
-    
-    if (oldFiles.Count() == 1) {
-      nsAutoString leafName;
-      oldFiles[0]->GetLeafName(leafName);
-      if (!leafName.IsEmpty()) {
-        filePicker->SetDefaultString(leafName);
-      }
-    }
-  } else {
-    
-    nsCOMPtr<nsILocalFile> localFile;
-    gUploadLastDir->FetchLastUsedDirectory(doc->GetDocumentURI(),
-                                           getter_AddRefs(localFile));
-    if (!localFile) {
-      
-      nsCOMPtr<nsIFile> homeDir;
-      NS_GetSpecialDirectory(NS_OS_DESKTOP_DIR, getter_AddRefs(homeDir));
-      localFile = do_QueryInterface(homeDir);
-    }
-    filePicker->SetDisplayDirectory(localFile);
-  }
-
-  
-  mFrame->mTextFrame->InitFocusedValue();
-
-  
-  PRInt16 mode;
-  rv = filePicker->Show(&mode);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (mode == nsIFilePicker::returnCancel)
-    return NS_OK;
-
-  if (!mFrame) {
-    
-    
-    
-    
-    return NS_OK;
-  }
-  
-  
-  nsTArray<nsString> newFileNames;
-  if (multi) {
-    nsCOMPtr<nsISimpleEnumerator> iter;
-    rv = filePicker->GetFiles(getter_AddRefs(iter));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsISupports> tmp;
-    PRBool prefSaved = PR_FALSE;
-    while (NS_SUCCEEDED(iter->GetNext(getter_AddRefs(tmp)))) {
-      nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(tmp);
-      if (localFile) {
-        nsString unicodePath;
-        rv = localFile->GetPath(unicodePath);
-        if (!unicodePath.IsEmpty()) {
-          newFileNames.AppendElement(unicodePath);
-        }
-        if (!prefSaved) {
-          
-          rv = gUploadLastDir->StoreLastUsedDirectory(doc->GetDocumentURI(), 
-                                                      localFile);
-          NS_ENSURE_SUCCESS(rv, rv);
-          prefSaved = PR_TRUE;
-        }
-      }
-    }
-  }
-  else {
-    nsCOMPtr<nsILocalFile> localFile;
-    rv = filePicker->GetFile(getter_AddRefs(localFile));
-    if (localFile) {
-      nsString unicodePath;
-      rv = localFile->GetPath(unicodePath);
-      if (!unicodePath.IsEmpty()) {
-        newFileNames.AppendElement(unicodePath);
-      }
-      
-      rv = gUploadLastDir->StoreLastUsedDirectory(doc->GetDocumentURI(),
-                                                  localFile);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
-
-  
-  if (!newFileNames.IsEmpty()) {
-    
-    
-    
-    PRBool oldState = mFrame->mTextFrame->GetFireChangeEventState();
-    mFrame->mTextFrame->SetFireChangeEventState(PR_TRUE);
-    fileControl->SetFileNames(newFileNames);
-
-    mFrame->mTextFrame->SetFireChangeEventState(oldState);
-    
-    mFrame->mTextFrame->CheckFireOnChange();
-  }
-
-  return NS_OK;
-}
-
-void nsFileControlFrame::InitUploadLastDir() {
-  gUploadLastDir = new UploadLastDir();
-  NS_IF_ADDREF(gUploadLastDir);
-
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService && gUploadLastDir) {
-    observerService->AddObserver(gUploadLastDir, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_TRUE);
-    observerService->AddObserver(gUploadLastDir, "browser:purge-session-history", PR_TRUE);
-  }
-}
-
-void nsFileControlFrame::DestroyUploadLastDir() {
-  if (gUploadLastDir)
-    NS_RELEASE(gUploadLastDir);
-}
-
-UploadLastDir::UploadLastDir():
-  mInPrivateBrowsing(PR_FALSE)
-{
-  nsCOMPtr<nsIPrivateBrowsingService> pbService =
-    do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-  if (pbService) {
-    pbService->GetPrivateBrowsingEnabled(&mInPrivateBrowsing);
-  }
-
-  mUploadLastDirStore.Init();
-}
-
-nsresult
-UploadLastDir::FetchLastUsedDirectory(nsIURI* aURI, nsILocalFile** aFile)
-{
-  NS_PRECONDITION(aURI, "aURI is null");
-  NS_PRECONDITION(aFile, "aFile is null");
-  
-  
-  if (mInPrivateBrowsing) {
-    nsCOMPtr<nsIContentURIGrouper> hostnameGrouperService =
-      do_GetService(NS_HOSTNAME_GROUPER_SERVICE_CONTRACTID);
-    if (!hostnameGrouperService)
-      return NS_ERROR_NOT_AVAILABLE;
-    nsString group;
-    hostnameGrouperService->Group(aURI, group);
-
-    if (mUploadLastDirStore.Get(group, aFile)) {
-      return NS_OK;
-    }
-  }
-
-  
-  nsCOMPtr<nsIContentPrefService> contentPrefService =
-    do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
-  if (!contentPrefService)
-    return NS_ERROR_NOT_AVAILABLE;
-  nsCOMPtr<nsIWritableVariant> uri = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  if (!uri)
-    return NS_ERROR_OUT_OF_MEMORY;
-  uri->SetAsISupports(aURI);
-
-  
-  PRBool hasPref;
-  if (NS_SUCCEEDED(contentPrefService->HasPref(uri, CPS_PREF_NAME, &hasPref)) && hasPref) {
-    nsCOMPtr<nsIVariant> pref;
-    contentPrefService->GetPref(uri, CPS_PREF_NAME, nsnull, getter_AddRefs(pref));
-    nsString prefStr;
-    pref->GetAsAString(prefStr);
-
-    nsCOMPtr<nsILocalFile> localFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
-    if (!localFile)
-      return NS_ERROR_OUT_OF_MEMORY;
-    localFile->InitWithPath(prefStr);
-
-    *aFile = localFile;
-    NS_ADDREF(*aFile);
-  }
-  return NS_OK;
-}
-
-nsresult
-UploadLastDir::StoreLastUsedDirectory(nsIURI* aURI, nsILocalFile* aFile)
-{
-  NS_PRECONDITION(aURI, "aURI is null");
-  NS_PRECONDITION(aFile, "aFile is null");
-  nsCOMPtr<nsIFile> parentFile;
-  aFile->GetParent(getter_AddRefs(parentFile));
-  nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(parentFile);
-
-  
-  if (mInPrivateBrowsing) {
-    nsCOMPtr<nsIContentURIGrouper> hostnameGrouperService =
-      do_GetService(NS_HOSTNAME_GROUPER_SERVICE_CONTRACTID);
-    if (!hostnameGrouperService)
-      return NS_ERROR_NOT_AVAILABLE;
-    nsString group;
-    hostnameGrouperService->Group(aURI, group);
-
-    return mUploadLastDirStore.Put(group, localFile);
-  }
-
-  
-  nsCOMPtr<nsIContentPrefService> contentPrefService =
-    do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
-  if (!contentPrefService)
-    return NS_ERROR_NOT_AVAILABLE;
-  nsCOMPtr<nsIWritableVariant> uri = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  if (!uri)
-    return NS_ERROR_OUT_OF_MEMORY;
-  uri->SetAsISupports(aURI);
- 
-  
-  nsString unicodePath;
-  parentFile->GetPath(unicodePath);
-  if (unicodePath.IsEmpty()) 
-    return NS_OK;
-  nsCOMPtr<nsIWritableVariant> prefValue = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  if (!prefValue)
-    return NS_ERROR_OUT_OF_MEMORY;
-  prefValue->SetAsAString(unicodePath);
-  return contentPrefService->SetPref(uri, CPS_PREF_NAME, prefValue);
-}
-
-NS_IMETHODIMP
-UploadLastDir::Observe(nsISupports *aSubject, char const *aTopic, PRUnichar const *aData)
-{
-  if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
-    if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData)) {
-      mInPrivateBrowsing = PR_TRUE;
-    } else if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData)) {
-      mInPrivateBrowsing = PR_FALSE;
-      if (mUploadLastDirStore.IsInitialized()) {
-        mUploadLastDirStore.Clear();
-      }
-    }
-  } else if (strcmp(aTopic, "browser:purge-session-history") == 0) {
-    if (mUploadLastDirStore.IsInitialized()) {
-      mUploadLastDirStore.Clear();
-    }
-    nsCOMPtr<nsIContentPrefService> contentPrefService =
-      do_GetService(NS_CONTENT_PREF_SERVICE_CONTRACTID);
-    if (contentPrefService)
-      contentPrefService->RemovePrefsByName(CPS_PREF_NAME);
+  if (content->IsHTML() && content->Tag() == nsGkAtoms::input) {
+    nsHTMLInputElement* input = static_cast<nsHTMLInputElement*>(content);
+    return input->FireAsyncClickHandler();
   }
   return NS_OK;
 }

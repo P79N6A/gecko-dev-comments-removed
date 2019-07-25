@@ -75,6 +75,39 @@
 
 class nsDOMFileList;
 
+class UploadLastDir : public nsIObserver, public nsSupportsWeakReference {
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  UploadLastDir();
+
+  
+
+
+
+
+
+
+  nsresult FetchLastUsedDirectory(nsIURI* aURI, nsILocalFile** aFile);
+
+  
+
+
+
+
+
+
+  nsresult StoreLastUsedDirectory(nsIURI* aURI, nsILocalFile* aFile);
+private:
+  
+  nsInterfaceHashtable<nsStringHashKey, nsILocalFile> mUploadLastDirStore;
+  PRBool mInPrivateBrowsing;
+};
+
+class nsIRadioGroupContainer;
+class nsIRadioVisitor;
+
 class nsHTMLInputElement : public nsGenericHTMLFormElement,
                            public nsImageLoadingContent,
                            public nsIDOMHTMLInputElement,
@@ -199,6 +232,8 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
+  NS_IMETHOD FireAsyncClickHandler();
+
   virtual void UpdateEditableState()
   {
     return UpdateEditableFormControlState();
@@ -206,6 +241,12 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLInputElement,
                                                      nsGenericHTMLFormElement)
+
+  static UploadLastDir* gUploadLastDir;
+  
+  
+  static void InitUploadLastDir();
+  static void DestroyUploadLastDir();
 
   void MaybeLoadImage();
 
