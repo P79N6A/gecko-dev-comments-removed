@@ -824,9 +824,13 @@ nsHttpTransaction::ParseHead(char *buf,
         
         
         nsRefPtr<nsHttpConnectionInfo> ci;
-        mConnection->GetConnectionInfo(getter_AddRefs(ci));
+        if (mConnection) {
+            mConnection->GetConnectionInfo(getter_AddRefs(ci));
+        }
 
-        if (ci->IsHttp09Allowed()) {
+        
+        
+        if (ci && ci->IsHttp09Allowed()) {
             
             mHttpResponseMatched = PR_TRUE;
             char *p = LocateHttpStart(buf, PR_MIN(count, 8), PR_TRUE);
