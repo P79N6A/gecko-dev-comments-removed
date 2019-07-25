@@ -281,6 +281,9 @@ var DownloadsView = {
   },
 
   downloadCompleted: function dv_downloadCompleted(aDownload) {
+    if (DownloadsView.visible)
+      return;
+
     
     let element = this.getElementForDownload(aDownload.id);
 
