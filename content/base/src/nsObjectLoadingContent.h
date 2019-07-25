@@ -340,14 +340,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    static PRBool ShouldShowDefaultPlugin(nsIContent* aContent,
-                                          const nsCString& aContentType);
-
-    
-
-
-
-
 
 
     static PluginSupportState
