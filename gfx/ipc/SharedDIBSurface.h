@@ -60,12 +60,13 @@ public:
   
 
 
-  bool Create(HDC adc, PRUint32 aWidth, PRUint32 aHeight);
+  bool Create(HDC adc, PRUint32 aWidth, PRUint32 aHeight, bool aTransparent);
 
   
 
 
-  bool Attach(Handle aHandle, PRUint32 aWidth, PRUint32 aHeight);
+  bool Attach(Handle aHandle, PRUint32 aWidth, PRUint32 aHeight,
+              bool aTransparent);
 
   
 
@@ -84,7 +85,7 @@ public:
 private:
   SharedDIBWin mSharedDIB;
 
-  void InitSurface(PRUint32 aWidth, PRUint32 aHeight);
+  void InitSurface(PRUint32 aWidth, PRUint32 aHeight, bool aTransparent);
 };
 
 } 
