@@ -69,6 +69,14 @@ public:
 
 
 
+
+  virtual bool MustRetainContent() { return false; }
+
+  
+
+
+
+
   virtual void ClearCachedResources() {}
 
   
