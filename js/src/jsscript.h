@@ -541,7 +541,11 @@ struct JSScript : public js::gc::Cell {
 
 
 
+#if JS_BITS_PER_WORD == 32
+#define JS_SCRIPT_INLINE_DATA_LIMIT 0
+#else
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
+#endif
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
 
     const char      *filename;  
