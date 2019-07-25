@@ -114,6 +114,7 @@ WebGLContext::SetCanvasElement(nsHTMLCanvasElement* aParentCanvas)
     if (aParentCanvas == nsnull) {
         
         
+        mCanvasElement = nsnull;
         return NS_OK;
     }
 
