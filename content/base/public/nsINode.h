@@ -1356,11 +1356,17 @@ protected:
 
 
 
+
+
+
+
 #define EVENT(name_, id_, type_, struct_)                         \
   NS_IMETHOD GetOn##name_(JSContext *cx, jsval *vp);              \
   NS_IMETHOD SetOn##name_(JSContext *cx, const jsval &v);
 #define TOUCH_EVENT EVENT
+#define DOCUMENT_ONLY_EVENT EVENT
 #include "nsEventNameList.h"
+#undef DOCUMENT_ONLY_EVENT
 #undef TOUCH_EVENT
 #undef EVENT  
 

@@ -76,6 +76,10 @@
 
 
 
+
+
+
+
 #ifdef DEFINED_FORWARDED_EVENT
 #error "Don't define DEFINED_FORWARDED_EVENT"
 #endif 
@@ -110,6 +114,15 @@
 #ifndef TOUCH_EVENT
 #define TOUCH_EVENT(_name, _id, _type, _struct)
 #define DEFINED_TOUCH_EVENT
+#endif 
+
+#ifdef DEFINED_DOCUMENT_ONLY_EVENT
+#error "Don't define DEFINED_DOCUMENT_ONLY_EVENT"
+#endif 
+
+#ifndef DOCUMENT_ONLY_EVENT
+#define DOCUMENT_ONLY_EVENT(_name, _id, _type, _struct)
+#define DEFINED_DOCUMENT_ONLY_EVENT
 #endif 
 
 #ifdef DEFINED_NON_IDL_EVENT
@@ -276,10 +289,6 @@ EVENT(progress,
 EVENT(ratechange,
       NS_RATECHANGE,
       EventNameType_HTML,
-      NS_EVENT_NULL)
-EVENT(readystatechange,
-      NS_READYSTATECHANGE,
-      EventNameType_HTMLXUL,
       NS_EVENT_NULL)
 EVENT(reset,
       NS_FORM_RESET,
@@ -456,6 +465,11 @@ TOUCH_EVENT(touchcancel,
             NS_USER_DEFINED_EVENT,
             EventNameType_All,
             NS_INPUT_EVENT)
+
+DOCUMENT_ONLY_EVENT(readystatechange,
+                    NS_READYSTATECHANGE,
+                    EventNameType_HTMLXUL,
+                    NS_EVENT_NULL)
 
 NON_IDL_EVENT(MozMouseHittest,
               NS_MOUSE_MOZHITTEST,
@@ -754,6 +768,11 @@ NON_IDL_EVENT(animationiteration,
 #ifdef DEFINED_TOUCH_EVENT
 #undef DEFINED_TOUCH_EVENT
 #undef TOUCH_EVENT
+#endif 
+
+#ifdef DEFINED_DOCUMENT_ONLY_EVENT
+#undef DEFINED_DOCUMENT_ONLY_EVENT
+#undef DOCUMENT_ONLY_EVENT
 #endif 
 
 #ifdef DEFINED_NON_IDL_EVENT
