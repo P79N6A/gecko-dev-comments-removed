@@ -124,6 +124,10 @@ class MBasicBlock : public TempObject
   public:
     
     
+    
+
+    
+    
     static MBasicBlock *New(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
     static MBasicBlock *NewLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
 
@@ -176,6 +180,10 @@ class MBasicBlock : public TempObject
     
     
     bool setBackedge(MBasicBlock *block, MBasicBlock *successor);
+
+    
+    
+    
 
     jsbytecode *pc() const {
         return pc_;
