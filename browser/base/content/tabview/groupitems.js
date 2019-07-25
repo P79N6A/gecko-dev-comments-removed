@@ -87,6 +87,10 @@ function GroupItem(listOfEls, options) {
   this.keepProportional = false;
 
   
+  this._lastClick = 0;
+  this._lastClickPositions = null;
+
+  
   
   this._activeTab = null;
 
@@ -1376,7 +1380,24 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   _addHandlers: function GroupItem__addHandlers(container) {
-    var self = this;
+    let self = this;
+
+    
+    container.mousedown(function(e) {
+      if (Date.now() - self._lastClick <= UI.DBLCLICK_INTERVAL &&
+          (self._lastClickPositions.x - UI.DBLCLICK_OFFSET) <= e.clientX &&
+          (self._lastClickPositions.x + UI.DBLCLICK_OFFSET) >= e.clientX &&
+          (self._lastClickPositions.y - UI.DBLCLICK_OFFSET) <= e.clientY &&
+          (self._lastClickPositions.y + UI.DBLCLICK_OFFSET) >= e.clientY) {
+        self.newTab();
+        self._lastClick = 0;
+        self._lastClickPositions = null;
+      } else {
+        self._lastClick = Date.now();
+        self._lastClickPositions = new Point(e.clientX, e.clientY);
+      }
+    });
+
     var dropIndex = false;
     var dropSpaceTimer = null;
 
