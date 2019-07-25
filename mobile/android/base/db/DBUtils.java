@@ -72,20 +72,17 @@ public class DBUtils {
     }
 
     public static void ensureDatabaseIsNotLocked(SQLiteOpenHelper dbHelper, String databasePath) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        
-        
-        
-        
-        if (db.isReadOnly()) {
-            
-            dbHelper.close();
-
-            Log.d(LOGTAG, "Database is in read-only mode, trying to forcefully unlock the database file: " + databasePath);
+        try {
+            dbHelper.getWritableDatabase();
+        } catch (Exception e) {
+            Log.d(LOGTAG, "Database is locked, trying to forcefully unlock the database file: " + databasePath);
 
             
             GeckoAppShell.unlockDatabaseFile(databasePath);
+
+            
+            
+            dbHelper.getWritableDatabase();
 
             
             
