@@ -46,6 +46,8 @@
 #include "nsIDOMNodeList.h"
 #include "nsServiceManagerUtils.h"
 #include "inIDOMUtils.h"
+#include "nsIContent.h"
+#include "nsBindingManager.h"
 
 
 

@@ -40,12 +40,12 @@
 #ifndef nsIMathMLFrame_h___
 #define nsIMathMLFrame_h___
 
-#include "nsRenderingContext.h"
 #include "nsIFrame.h"
 
 struct nsPresentationData;
 struct nsEmbellishData;
 struct nsHTMLReflowMetrics;
+class nsRenderingContext;
 
 
 

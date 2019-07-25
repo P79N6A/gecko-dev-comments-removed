@@ -39,15 +39,15 @@
 #ifndef NSRENDERINGCONTEXT__H__
 #define NSRENDERINGCONTEXT__H__
 
+#include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIDeviceContext.h"
 #include "nsIThebesFontMetrics.h"
-#include "nsIRegion.h"
-#include "nsPoint.h"
-#include "nsSize.h"
 #include "nsColor.h"
-#include "nsRect.h"
+#include "nsCoord.h"
 #include "gfxContext.h"
+
+class nsIntRegion;
 
 typedef enum {
     nsLineStyle_kNone   = 0,
@@ -55,81 +55,6 @@ typedef enum {
     nsLineStyle_kDashed = 2,
     nsLineStyle_kDotted = 3
 } nsLineStyle;
-
-#ifdef MOZ_MATHML
-
-
-
-struct nsBoundingMetrics {
-
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-
-    
-    
-
-    nscoord leftBearing;
-    
-
-
-    nscoord rightBearing;
-    
-
-
-
-
-    nscoord ascent;
-    
-
-
-    nscoord descent;
-    
-
-
-
-
-    nscoord width;
-    
-
-
-
-
-    nsBoundingMetrics() : leftBearing(0), rightBearing(0),
-                          ascent(0), descent(0), width(0)
-    {}
-
-    void
-    operator += (const nsBoundingMetrics& bm) {
-        if (ascent + descent == 0 && rightBearing - leftBearing == 0) {
-            ascent = bm.ascent;
-            descent = bm.descent;
-            leftBearing = width + bm.leftBearing;
-            rightBearing = width + bm.rightBearing;
-        }
-        else {
-            if (ascent < bm.ascent) ascent = bm.ascent;
-            if (descent < bm.descent) descent = bm.descent;
-            leftBearing = PR_MIN(leftBearing, width + bm.leftBearing);
-            rightBearing = PR_MAX(rightBearing, width + bm.rightBearing);
-        }
-        width += bm.width;
-    }
-};
-#endif
-
 
 class nsRenderingContext
 {

@@ -38,6 +38,8 @@
 
 
 #include "nsRenderingContext.h"
+#include "nsBoundingMetrics.h"
+#include "nsRegion.h"
 
 
 #define FROM_TWIPS(_x)  ((gfxFloat)((_x)/(mP2A)))

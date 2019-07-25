@@ -44,8 +44,7 @@
 #include "nsISupports.h"
 #include "nsMargin.h"
 #include "nsRect.h"
-
-#include "nsRenderingContext.h" 
+#include "nsBoundingMetrics.h" 
 
 
 
