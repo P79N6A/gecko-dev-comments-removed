@@ -323,11 +323,21 @@
 #  define JS_64BIT
 # endif
 #elif defined(__GNUC__)
-# ifdef __x86_64__
+
+# if defined(__x86_64__) || defined(__sparcv9) || \
+        defined(__64BIT__) || defined(__LP64__)
 #  define JS_64BIT
 # endif
-#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-# ifdef __x86_64
+#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC) 
+# if defined(__x86_64) || defined(__sparcv9)
+#  define JS_64BIT
+# endif
+#elif defined(__xlc__) || defined(__xlC__)        
+# if defined(__64BIT__)
+#  define JS_64BIT
+# endif
+#elif defined(__HP_cc) || defined(__HP_aCC)       
+# if defined(__LP64__)
 #  define JS_64BIT
 # endif
 #else
