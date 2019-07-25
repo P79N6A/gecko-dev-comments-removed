@@ -4705,9 +4705,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
             PropertyCacheEntry *entry =
 #endif
                 JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, shape, true);
-            TRACE_2(SetPropHit, entry, shape);
-        } else {
-            TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, shape);
+            TRACE_1(AddProperty, obj);
         }
     }
     if (propp)
@@ -4715,7 +4713,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
     return true;
 
 #ifdef JS_TRACER
-error: 
+  error: 
 #endif
     return false;
 }
@@ -5436,11 +5434,6 @@ JSObject::reportNotExtensible(JSContext *cx, uintN report)
                                     NULL, NULL, NULL);
 }
 
-
-
-
-
-
 JSBool
 js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                      Value *vp, JSBool strict)
@@ -5514,20 +5507,13 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
     if (shape) {
         
         if (shape->isAccessorDescriptor()) {
-            if (shape->hasDefaultSetter()) {
-                if (defineHow & JSDNP_CACHE_RESULT)
-                    TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, shape);
+            if (shape->hasDefaultSetter())
                 return js_ReportGetterOnlyAssignment(cx);
-            }
         } else {
             JS_ASSERT(shape->isDataDescriptor());
 
             if (!shape->writable()) {
                 PCMETER((defineHow & JSDNP_CACHE_RESULT) && JS_PROPERTY_CACHE(cx).rofills++);
-                if (defineHow & JSDNP_CACHE_RESULT) {
-                    JS_ASSERT_NOT_ON_TRACE(cx);
-                    TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, shape);
-                }
 
                 
                 if (strict)
@@ -5535,11 +5521,6 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                 if (JS_HAS_STRICT_OPTION(cx))
                     return obj->reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                 return JS_TRUE;
-
-#ifdef JS_TRACER
-              error: 
-                return JS_FALSE;
-#endif
             }
         }
 
@@ -5549,14 +5530,8 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
 
             if (!shape->shadowable()) {
-                if (defineHow & JSDNP_CACHE_RESULT) {
-#ifdef JS_TRACER
-                    JS_ASSERT_NOT_ON_TRACE(cx);
-                    PropertyCacheEntry *entry =
-#endif
-                        JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, protoIndex, pobj, shape);
-                    TRACE_2(SetPropHit, entry, shape);
-                }
+                if (defineHow & JSDNP_CACHE_RESULT)
+                    JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, protoIndex, pobj, shape);
 
                 if (shape->hasDefaultSetter() && !shape->hasGetterValue())
                     return JS_TRUE;
@@ -5627,10 +5602,6 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                     vp->setObject(*funobj);
                 }
             }
-            if (defineHow & JSDNP_CACHE_RESULT) {
-                JS_ASSERT_NOT_ON_TRACE(cx);
-                TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, shape);
-            }
             return identical || js_NativeSet(cx, obj, shape, false, vp);
         }
     }
@@ -5638,11 +5609,6 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
     added = false;
     if (!shape) {
         if (!obj->isExtensible()) {
-            if (defineHow & JSDNP_CACHE_RESULT) {
-                JS_ASSERT_NOT_ON_TRACE(cx);
-                TRACE_2(SetPropHit, JS_NO_PROP_CACHE_FILL, shape);
-            }
-
             
             if (strict)
                 return obj->reportNotExtensible(cx);
@@ -5682,6 +5648,9 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
         if (!shape)
             return JS_FALSE;
 
+        if (defineHow & JSDNP_CACHE_RESULT)
+            TRACE_1(AddProperty, obj);
+
         
 
 
@@ -5698,16 +5667,15 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
         added = true;
     }
 
-    if (defineHow & JSDNP_CACHE_RESULT) {
-#ifdef JS_TRACER
-        JS_ASSERT_NOT_ON_TRACE(cx);
-        PropertyCacheEntry *entry =
-#endif
-            JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, shape, added);
-        TRACE_2(SetPropHit, entry, shape);
-    }
+    if (defineHow & JSDNP_CACHE_RESULT)
+        JS_PROPERTY_CACHE(cx).fill(cx, obj, 0, 0, obj, shape, added);
 
     return js_NativeSet(cx, obj, shape, added, vp);
+
+#ifdef JS_TRACER
+  error: 
+    return JS_FALSE;
+#endif
 }
 
 JSBool
