@@ -101,3 +101,9 @@ static const mozilla::Module kSampleModule = {
 
 
 NSMODULE_DEFN(nsSampleModule) = &kSampleModule;
+
+
+
+
+
+NS_IMPL_MOZILLA192_NSGETMODULE(&kSampleModule)

@@ -46,6 +46,7 @@ namespace mozilla {
 
 
 
+
 class GenericFactory : public nsIFactory
 {
 public:
