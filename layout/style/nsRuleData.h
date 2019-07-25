@@ -112,6 +112,10 @@ struct nsRuleData
 
   nsCSSValue* ValueFor(nsCSSProperty aProperty);
 
+  const nsCSSValue* ValueFor(nsCSSProperty aProperty) const {
+    return const_cast<nsRuleData*>(this)->ValueFor(aProperty);
+  }
+
   
 
 
