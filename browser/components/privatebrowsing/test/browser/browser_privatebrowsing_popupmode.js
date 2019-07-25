@@ -46,6 +46,12 @@ function test() {
            getService(Ci.nsISessionStore);
 
   
+  
+  
+  while (ss.getClosedWindowCount())
+    ss.forgetClosedWindow(0);
+
+  
   let stateBackup = ss.getWindowState(window);
 
   function pretendToBeAPopup(whatToPretend) {
