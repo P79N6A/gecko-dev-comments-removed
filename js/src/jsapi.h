@@ -4355,6 +4355,13 @@ typedef struct JSPropertyOpWrapper {
 
 
 
+typedef struct JSNativeWrapper {
+    JSNative        op;
+    const JSJitInfo *info;
+} JSNativeWrapper;
+
+
+
 
 
 #define JSOP_WRAPPER(op) {op, NULL}
@@ -4375,7 +4382,7 @@ struct JSPropertySpec {
 
 struct JSFunctionSpec {
     const char      *name;
-    JSNative        call;
+    JSNativeWrapper call;
     uint16_t        nargs;
     uint16_t        flags;
 };
@@ -4392,9 +4399,11 @@ struct JSFunctionSpec {
 
 
 #define JS_FS(name,call,nargs,flags)                                          \
-    {name, call, nargs, flags}
+    {name, JSOP_WRAPPER(call), nargs, flags}
 #define JS_FN(name,call,nargs,flags)                                          \
-    {name, call, nargs, (flags) | JSFUN_STUB_GSOPS}
+    {name, JSOP_WRAPPER(call), nargs, (flags) | JSFUN_STUB_GSOPS}
+#define JS_FNINFO(name,call,info,nargs,flags)                                 \
+    {name,{call,info},nargs,flags}
 
 extern JS_PUBLIC_API(JSObject *)
 JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
