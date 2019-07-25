@@ -112,6 +112,11 @@ ScriptsView.prototype = {
 
 
   contains: function DVS_contains(aUrl) {
+    if (this._tmpScripts.some(function(element) {
+      return element.script.url == aUrl;
+    })) {
+      return true;
+    }
     if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
       return true;
     }
@@ -127,6 +132,11 @@ ScriptsView.prototype = {
 
 
   containsLabel: function DVS_containsLabel(aLabel) {
+    if (this._tmpScripts.some(function(element) {
+      return element.label == aLabel;
+    })) {
+      return true;
+    }
     if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
       return true;
     }
@@ -175,6 +185,18 @@ ScriptsView.prototype = {
 
 
 
+  get scriptLabels() {
+    let labels = [];
+    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
+      labels.push(this._scripts.getItemAtIndex(i).label);
+    }
+    return labels;
+  },
+
+  
+
+
+
   get scriptLocations() {
     let locations = [];
     for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
@@ -195,18 +217,83 @@ ScriptsView.prototype = {
 
 
 
-  addScript: function DVS_addScript(aLabel, aScript) {
+
+
+
+
+
+  addScript: function DVS_addScript(aLabel, aScript, aForceFlag) {
     
-    if (this.containsLabel(aLabel)) {
-      return null;
+    if (!aForceFlag) {
+      this._tmpScripts.push({ label: aLabel, script: aScript });
+      return;
     }
 
-    let script = this._scripts.appendItem(aLabel, aScript.url);
-    script.setAttribute("tooltiptext", aScript.url);
-    script.setUserData("sourceScript", aScript, null);
+    
+    for (let i = 0, l = this._scripts.itemCount; i < l; i++) {
+      if (this._scripts.getItemAtIndex(i).label > aLabel) {
+        this._createScriptElement(aLabel, aScript, i);
+        return;
+      }
+    }
+    
+    this._createScriptElement(aLabel, aScript, -1, true);
+  },
 
-    this._scripts.selectedItem = script;
-    return script;
+  
+
+
+
+  commitScripts: function DVS_commitScripts() {
+    let newScripts = this._tmpScripts;
+    this._tmpScripts = [];
+
+    if (!newScripts || !newScripts.length) {
+      return;
+    }
+    newScripts.sort(function(a, b) {
+      return a.label.toLowerCase() > b.label.toLowerCase();
+    });
+
+    for (let i = 0, l = newScripts.length; i < l; i++) {
+      let item = newScripts[i];
+      this._createScriptElement(item.label, item.script, -1, true);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _createScriptElement: function DVS__createScriptElement(
+    aLabel, aScript, aIndex, aSelectIfEmptyFlag)
+  {
+    
+    if (aLabel == "null" || this.containsLabel(aLabel)) {
+      return;
+    }
+
+    let scriptItem =
+      aIndex == -1 ? this._scripts.appendItem(aLabel, aScript.url)
+                   : this._scripts.insertItemAt(aIndex, aLabel, aScript.url);
+
+    scriptItem.setAttribute("tooltiptext", aScript.url);
+    scriptItem.setUserData("sourceScript", aScript, null);
+
+    if (this._scripts.itemCount == 1 && aSelectIfEmptyFlag) {
+      this._scripts.selectedItem = scriptItem;
+    }
   },
 
   
@@ -228,6 +315,7 @@ ScriptsView.prototype = {
   initialize: function DVS_initialize() {
     this._scripts = document.getElementById("scripts");
     this._scripts.addEventListener("select", this._onScriptsChange, false);
+    this.commitScripts();
   },
 
   
@@ -381,7 +469,7 @@ StackFramesView.prototype = {
 
 
   unhighlightFrame: function DVF_unhighlightFrame(aDepth) {
-    this.highlightFrame(aDepth, true)
+    this.highlightFrame(aDepth, true);
   },
 
   
