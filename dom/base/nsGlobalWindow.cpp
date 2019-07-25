@@ -9367,16 +9367,16 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       
       
       
-      
-      
       TimeStamp firingTime;
-      if (!aTimeout || timeout->mWhen + nextInterval <= now)
+      if (!aTimeout)
         firingTime = now + nextInterval;
       else
         firingTime = timeout->mWhen + nextInterval;
 
-      TimeDuration delay = firingTime - TimeStamp::Now();
+      TimeStamp currentNow = TimeStamp::Now();
+      TimeDuration delay = firingTime - currentNow;
 
+      
       
       
       if (delay < TimeDuration(0)) {
@@ -9384,7 +9384,9 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       }
 
       if (timeout->mTimer) {
-        timeout->mWhen = firingTime;
+        timeout->mWhen = currentNow + delay; 
+                                             
+                                             
 
         
         
