@@ -2093,7 +2093,10 @@ JSScript::applySpeculationFailed(JSContext *cx)
                     needsArgsObj_ = false;
                     return false;
                 }
-                fp->localSlot(slot) = ObjectValue(*obj);
+
+                
+                if (fp->localSlot(slot).isMagic(JS_OPTIMIZED_ARGUMENTS))
+                    fp->localSlot(slot) = ObjectValue(*obj);
             }
         }
     }
