@@ -2125,7 +2125,7 @@ nsNSSCertificate::CreateTBSCertificateASN1Struct(nsIASN1Sequence **retSequence,
     
     
     data.data = mCert->issuerID.data;
-    data.len  = mCert->issuerID.len / 8;
+    data.len  = (mCert->issuerID.len + 7) / 8;
 
     ProcessRawBytes(nssComponent, &data, text);
     printableItem = new nsNSSASN1PrintableItem();
@@ -2143,8 +2143,8 @@ nsNSSCertificate::CreateTBSCertificateASN1Struct(nsIASN1Sequence **retSequence,
     
     
     
-    data.data = mCert->issuerID.data;
-    data.len  = mCert->issuerID.len / 8;
+    data.data = mCert->subjectID.data;
+    data.len  = (mCert->subjectID.len + 7) / 8;
 
     ProcessRawBytes(nssComponent, &data, text);
     printableItem = new nsNSSASN1PrintableItem();
