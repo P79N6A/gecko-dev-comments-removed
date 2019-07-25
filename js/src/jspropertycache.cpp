@@ -127,7 +127,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
 
-    pc = cx->fp->regs->pc;
+    pc = cx->regs->pc;
     op = js_GetOpcode(cx, cx->fp->script, pc);
     cs = &js_CodeSpec[op];
     kshape = 0;
