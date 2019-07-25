@@ -46,8 +46,6 @@
 #include "nsString.h"
 #include "nsURIHashKey.h"
 #include "nsTArray.h"
-#include "nsDeque.h"
-#include "nsIObserver.h"
 
 namespace mozilla {
 namespace places {
@@ -56,12 +54,10 @@ namespace places {
   {0x9fc91e65, 0x1475, 0x4353, {0x9b, 0x9a, 0x93, 0xd7, 0x6f, 0x5b, 0xd9, 0xb7}}
 
 class History : public IHistory
-              , public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_IHISTORY
-  NS_DECL_NSIOBSERVER
 
   History();
 
@@ -72,26 +68,6 @@ public:
 
 
   void NotifyVisited(nsIURI *aURI);
-
-  
-
-
-
-
-
-
-
-
-  void AppendTask(class Step* aTask);
-
-  
-
-
-
-
-
-
-  void CurrentTaskFinished();
 
   
 
@@ -107,30 +83,7 @@ public:
 private:
   ~History();
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsDeque mPendingVisits;
-
-  
-
-
-
-  void StartNextTask();
-
   static History *gService;
-
-  
-  bool mShuttingDown;
 
   typedef nsTArray<mozilla::dom::Link *> ObserverArray;
 

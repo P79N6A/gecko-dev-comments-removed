@@ -137,44 +137,6 @@ public:
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsresult GetReversedHostname(nsIURI* aURI, nsString& aRevHost);
-
-
-
-
-void GetReversedHostname(const nsString& aForward, nsString& aRevHost);
-
-
-
-
-
-
-
-
-
-void ReverseString(const nsString& aInput, nsString& aReversed);
-
 } 
 } 
 
