@@ -458,7 +458,8 @@ TelemetryPing.prototype = {
         Telemetry.histogramFrom("STARTUP_" + name, name);
       }
     }
-    this._slowSQLStartup = Telemetry.slowSQL;
+    
+    this._slowSQLStartup = {mainThread:{}, otherThreads:{}};
   },
 
   getCurrentSessionPayloadAndSlug: function getCurrentSessionPayloadAndSlug(reason) {
@@ -468,7 +469,8 @@ TelemetryPing.prototype = {
       ver: PAYLOAD_VERSION,
       simpleMeasurements: getSimpleMeasurements(),
       histograms: this.getHistograms(Telemetry.histogramSnapshots),
-      slowSQL: Telemetry.slowSQL,
+      
+      slowSQL: {mainThread:{}, otherThreads:{}},
       chromeHangs: Telemetry.chromeHangs,
       addonHistograms: this.getAddonHistograms()
     };
