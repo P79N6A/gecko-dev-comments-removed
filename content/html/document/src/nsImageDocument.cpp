@@ -340,6 +340,11 @@ nsImageDocument::Destroy()
     if (mObservingImageLoader) {
       nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mImageContent);
       if (imageLoader) {
+        
+        
+        
+        nsCxPusher pusher;
+        pusher.PushNull();
         imageLoader->RemoveObserver(this);
       }
     }
