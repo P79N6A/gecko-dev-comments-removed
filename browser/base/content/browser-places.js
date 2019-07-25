@@ -637,6 +637,7 @@ HistoryMenu.prototype = {
 
       
       
+      
       let tabData = undoItems[i].state;
       let activeIndex = (tabData.index || tabData.entries.length) - 1;
       if (activeIndex >= 0 && tabData.entries[activeIndex])
@@ -1164,9 +1165,7 @@ let BookmarksMenuButton = {
       
       this._popupInitialized = true;
       
-      viewToolbar.setAttribute("toolbarindex",
-                               Array.indexOf(gNavToolbox.childNodes,
-                                             this.personalToolbar));
+      viewToolbar.setAttribute("toolbarId", this.personalToolbar.id);
 
       
       let unsortedBookmarksElt =

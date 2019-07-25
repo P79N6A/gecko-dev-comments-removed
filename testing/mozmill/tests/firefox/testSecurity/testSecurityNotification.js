@@ -63,11 +63,6 @@ var testSecNotification = function() {
   controller.assertValue(identLabel, 'Mozilla Corporation (US)');
 
   
-  var securityButton = controller.window.document.getElementById("security-button");
-  var cssSecButton = controller.window.getComputedStyle(securityButton, "");
-  controller.assertJS("subject.getPropertyValue('list-style-image') != 'none'", cssSecButton);
-
-  
   var identityBox = new elementslib.ID(controller.window.document, "identity-box");
   controller.assertProperty(identityBox, "className", "verifiedIdentity");
 
@@ -77,9 +72,6 @@ var testSecNotification = function() {
 
   var projects = new elementslib.Link(controller.tabs.activeTab, "Our Projects");
   controller.assertNode(projects);
-
-  
-  controller.assertJS("subject.getPropertyValue('list-style-image') == 'none'", cssSecButton);
 
   
   controller.assertProperty(identityBox, "className", "unknownIdentity");
