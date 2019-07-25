@@ -57,9 +57,6 @@ class BasicThebesLayer;
 
 
 
-
-
-
 class THEBES_API BasicLayerManager : public LayerManager {
 public:
   
@@ -69,6 +66,13 @@ public:
 
   BasicLayerManager(gfxContext* aContext);
   virtual ~BasicLayerManager();
+
+  
+
+
+
+
+  void SetRetain(PRBool aRetain);
 
   
 
@@ -94,8 +98,10 @@ public:
 #ifdef DEBUG
   PRBool InConstruction() { return mPhase == PHASE_CONSTRUCTION; }
   PRBool InDrawing() { return mPhase == PHASE_DRAWING; }
+  PRBool InTransaction() { return mPhase != PHASE_NONE; }
 #endif
   gfxContext* GetTarget() { return mTarget; }
+  PRBool IsRetained() { return mRetain; }
 
 private:
   
@@ -112,6 +118,8 @@ private:
   enum TransactionPhase { PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING };
   TransactionPhase mPhase;
 #endif
+
+  PRPackedBool mRetain;
 };
 
 }
