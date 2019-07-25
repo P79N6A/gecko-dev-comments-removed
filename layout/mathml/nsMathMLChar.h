@@ -71,16 +71,18 @@ enum {
 
 
 struct nsGlyphCode {
-  PRUnichar code; 
+  PRUnichar code[2]; 
   PRInt32   font;
 
+  PRInt32 Length() { return (code[1] == PRUnichar('\0') ? 1 : 2); }
   PRBool Exists() const
   {
-    return (code != 0);
+    return (code[0] != 0);
   }
   PRBool operator==(const nsGlyphCode& other) const
   {
-    return other.code == code && other.font == font;
+    return (other.code[0] == code[0] && other.code[1] == code[1] && 
+            other.font == font);
   }
   PRBool operator!=(const nsGlyphCode& other) const
   {
