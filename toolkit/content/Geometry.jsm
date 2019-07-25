@@ -95,7 +95,7 @@ let Util = {
 
 
 
-Point = function Point(x, y) {
+function Point(x, y) {
   this.set(x, y);
 }
 
