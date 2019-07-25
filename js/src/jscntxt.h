@@ -86,6 +86,10 @@ namespace mjit {
 class JaegerCompartment;
 }
 
+namespace ion {
+class IonActivation;
+}
+
 class WeakMapBase;
 class InterpreterFrames;
 
@@ -210,6 +214,9 @@ struct ThreadData {
     
     uint8               *ionTop;
     JSContext           *ionJSContext;
+
+    
+    ion::IonActivation  *ionActivation;
 
 #ifdef DEBUG
     size_t              noGCOrAllocationCheck;

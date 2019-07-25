@@ -70,9 +70,6 @@ class IonCompartment
     JSC::ExecutableAllocator *execAlloc_;
 
     
-    IonActivation *active_;
-
-    
     ReadBarriered<IonCode> enterJIT_;
 
     
@@ -156,10 +153,6 @@ class IonCompartment
         }
         return osrPrologue_.get()->as<DoOsrIonCode>();
     }
-
-    IonActivation *activation() const {
-        return active_;
-    }
 };
 
 class BailoutClosure;
@@ -194,6 +187,9 @@ class IonActivation
     BailoutClosure *takeBailout() {
         JS_ASSERT(bailout_);
         return maybeTakeBailout();
+    }
+    uint8 *prevIonTop() const {
+        return prevIonTop_;
     }
 };
 

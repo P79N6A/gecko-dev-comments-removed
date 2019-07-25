@@ -46,6 +46,7 @@
 #include "jsutil.h"
 #include "IonRegisters.h"
 #include "IonCode.h"
+#include "IonFrameIterator.h"
 
 struct JSFunction;
 struct JSScript;
@@ -86,14 +87,6 @@ struct IonFrameInfo
 
 
 
-
-enum FrameType
-{
-    IonFrame_JS,
-    IonFrame_Entry,
-    IonFrame_Rectifier,
-    IonFrame_Exit
-};
 static const uint32 FRAMETYPE_BITS = 3;
 
 
@@ -152,45 +145,6 @@ class FrameSizeClass
     bool operator !=(const FrameSizeClass &other) const {
         return class_ != other.class_;
     }
-};
-
-class IonCommonFrameLayout;
-
-class IonFrameIterator
-{
-    uint8 *current_;
-    FrameType type_;
-
-    IonCommonFrameLayout *current() const {
-        return (IonCommonFrameLayout *)current_;
-    }
-
-  public:
-    IonFrameIterator(uint8 *top)
-      : current_(top),
-        type_(IonFrame_Exit)
-    { }
-
-    
-    FrameType type() const {
-        return type_;
-    }
-    uint8 *fp() const {
-        return current_;
-    }
-    uint8 *returnAddress() const;
-
-    
-    size_t prevFrameLocalSize() const;
-    FrameType prevType() const;
-    uint8 *prevFp() const;
-
-    
-    
-    bool more() const {
-        return prevType() != IonFrame_Entry;
-    }
-    void prev();
 };
 
 
