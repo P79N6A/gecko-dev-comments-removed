@@ -99,11 +99,6 @@ extern PRLogModuleInfo *gHttpLog;
 #define LOG_ENABLED() LOG4_ENABLED()
 
 
-#define NS_HTTP_SEGMENT_SIZE  4096
-#define NS_HTTP_SEGMENT_COUNT 16   // 64k maximum
-#define NS_HTTP_MAX_ODA_SIZE  (NS_HTTP_SEGMENT_SIZE * 4) // 16k
-
-
 #define NS_HTTP_VERSION_UNKNOWN  0
 #define NS_HTTP_VERSION_0_9      9
 #define NS_HTTP_VERSION_1_0     10

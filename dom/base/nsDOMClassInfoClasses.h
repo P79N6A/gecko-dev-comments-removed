@@ -88,7 +88,6 @@ DOMCI_CLASS(HTMLAppletElement)
 DOMCI_CLASS(HTMLAreaElement)
 DOMCI_CLASS(HTMLBRElement)
 DOMCI_CLASS(HTMLBaseElement)
-DOMCI_CLASS(HTMLBaseFontElement)
 DOMCI_CLASS(HTMLBodyElement)
 DOMCI_CLASS(HTMLButtonElement)
 DOMCI_CLASS(HTMLDListElement)
@@ -386,11 +385,6 @@ DOMCI_CLASS(XMLHttpRequest)
 DOMCI_CLASS(ClientRect)
 DOMCI_CLASS(ClientRectList)
 
-
-
-
-
-
 #ifdef MOZ_SVG
 DOMCI_CLASS(SVGForeignObjectElement)
 #endif
@@ -449,6 +443,7 @@ DOMCI_CLASS(MathMLElement)
 #endif
 
 DOMCI_CLASS(Worker)
+DOMCI_CLASS(ChromeWorker)
 
 
 DOMCI_CLASS(CanvasRenderingContextWebGL)

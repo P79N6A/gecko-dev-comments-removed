@@ -140,7 +140,6 @@
 #include "nsIFontMetrics.h"
 #include "nsIFontEnumerator.h"
 #include "nsIDeviceContext.h"
-#include "nsIdleService.h"
 #include "nsGUIEvent.h"
 #include "nsFont.h"
 #include "nsRect.h"
@@ -318,24 +317,6 @@ static PRBool    gCheckForHTCApi = PR_FALSE;
 
 
 
-
-
-#if !defined(WINCE)
-static PRUint32 gLastInputEventTime               = 0;
-#else
-PRUint32        gLastInputEventTime               = 0;
-#endif
-
-static void UpdateLastInputEventTime() {
-  gLastInputEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
-  nsCOMPtr<nsIIdleService> idleService = do_GetService("@mozilla.org/widget/idleservice;1");
-  nsIdleService* is = static_cast<nsIdleService*>(idleService.get());
-  if (is)
-    is->IdleTimeWasModified();
-}
-
-
-
 PRBool          gDisableNativeTheme               = PR_FALSE;
 
 
@@ -441,8 +422,7 @@ nsWindow::nsWindow() : nsBaseWidget()
 #endif
   } 
 
-  
-  gLastInputEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
+  mIdleService = nsnull;
 
   sInstanceCount++;
 }
@@ -3226,6 +3206,8 @@ PRBool nsWindow::DispatchKeyEvent(PRUint32 aEventType, WORD aCharCode,
                    const nsModifierKeyState &aModKeyState,
                    PRUint32 aFlags)
 {
+  UserActivity();
+
   nsKeyEvent event(PR_TRUE, aEventType, this);
   nsIntPoint point(0, 0);
 
@@ -3339,8 +3321,6 @@ void nsWindow::DispatchPendingEvents()
     return;
   }
 
-  UpdateLastInputEventTime();
-
   
   
   
@@ -3398,6 +3378,8 @@ PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
                                     PRInt16 aButton, PRUint16 aInputSource)
 {
   PRBool result = PR_FALSE;
+
+  UserActivity();
 
   if (!mEventCallback) {
     return result;
@@ -3831,28 +3813,35 @@ nsWindow::IPCWindowProcHandler(UINT& msg, WPARAM& wParam, LPARAM& lParam)
   
   
 
-  
-  if (msg == WM_SETFOCUS &&
-      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ReplyMessage(0);
-    return;
+  DWORD dwResult = 0;
+  PRBool handled = PR_FALSE;
+
+  switch(msg) {
+    
+    
+    case WM_ACTIVATE:
+      if (lParam != 0 && LOWORD(wParam) == WA_ACTIVE &&
+          IsWindow((HWND)lParam))
+        handled = PR_TRUE;
+    break;
+
+    
+    
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+    
+    
+    case WM_SYSCOMMAND:
+    
+    
+    case WM_CONTEXTMENU:
+      handled = PR_TRUE;
+    break;
   }
 
-  
-  
-  if (msg == WM_ACTIVATE && lParam != 0 &&
-      LOWORD(wParam) == WA_ACTIVE && IsWindow((HWND)lParam) &&
+  if (handled &&
       (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ReplyMessage(0);
-    return;
-  }
-
-  
-  
-  if (msg == WM_SYSCOMMAND &&
-      (InSendMessageEx(NULL)&(ISMEX_REPLIED|ISMEX_SEND)) == ISMEX_SEND) {
-    ReplyMessage(0);
-    return;
+    ReplyMessage(dwResult);
   }
 }
 
@@ -5417,6 +5406,19 @@ void nsWindow::OnWindowPosChanging(LPWINDOWPOS& info)
     info->flags &= ~SWP_SHOWWINDOW;
 }
 #endif
+
+void nsWindow::UserActivity()
+{
+  
+  if (!mIdleService) {
+    mIdleService = do_GetService("@mozilla.org/widget/idleservice;1");
+  }
+
+  
+  if (mIdleService) {
+    mIdleService->ResetIdleTimeOut();
+  }
+}
 
 
 #if !defined(WINCE)
