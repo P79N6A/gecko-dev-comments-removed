@@ -63,6 +63,7 @@
 using namespace mozilla;
 
 static const PRUnichar kSpace            = 0x0020;
+static const PRUnichar kZWSP             = 0x200B;
 static const PRUnichar kLineSeparator    = 0x2028;
 static const PRUnichar kObjectSubstitute = 0xFFFC;
 static const PRUnichar kLRE              = 0x202A;
@@ -1092,7 +1093,10 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
         
         
         
-        aBpd->AppendUnichar(kObjectSubstitute);
+        
+        
+        aBpd->AppendUnichar(content->IsHTML(nsGkAtoms::wbr) ?
+                            kZWSP : kObjectSubstitute);
         if (!frame->GetStyleContext()->GetStyleDisplay()->IsInlineOutside()) {
           
           ResolveParagraphWithinBlock(aBlockFrame, aBpd);
