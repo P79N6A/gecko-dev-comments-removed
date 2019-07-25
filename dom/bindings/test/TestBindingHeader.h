@@ -397,6 +397,11 @@ public:
   void PassDictContainingDict(const DictContainingDict&);
 
   
+  void ExerciseTypedefInterfaces1(TestInterface&);
+  already_AddRefed<TestInterface> ExerciseTypedefInterfaces2(TestInterface*);
+  void ExerciseTypedefInterfaces3(TestInterface&);
+
+  
   bool GetImplementedProperty();
   void SetImplementedProperty(bool);
   void ImplementedMethod();
