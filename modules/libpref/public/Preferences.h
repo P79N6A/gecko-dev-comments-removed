@@ -174,6 +174,9 @@ public:
   static nsresult GetLocalizedCString(const char* aPref, nsACString* aResult);
   static nsresult GetLocalizedString(const char* aPref, nsAString* aResult);
 
+  static nsresult GetComplex(const char* aPref, const nsIID &aType,
+                             void** aResult);
+
   
 
 
@@ -187,6 +190,9 @@ public:
   static nsresult SetCString(const char* aPref, const nsACString &aValue);
   static nsresult SetString(const char* aPref, const PRUnichar* aValue);
   static nsresult SetString(const char* aPref, const nsAString &aValue);
+
+  static nsresult SetComplex(const char* aPref, const nsIID &aType,
+                             nsISupports* aValue);
 
   
 
