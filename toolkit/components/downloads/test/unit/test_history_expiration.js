@@ -126,7 +126,7 @@ function run_test()
 
   
   let expire = Cc["@mozilla.org/places/expiration;1"].getService(Ci.nsIObserver);
-  expire.observe(null, "places-debug-start-expiration", null);
+  expire.observe(null, "places-debug-start-expiration", -1);
 
   
   do_test_pending();
