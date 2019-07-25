@@ -43,6 +43,7 @@
 
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
+#include "mozilla/Preferences.h"
 
 
 #include "nsILayoutHistoryState.h"
@@ -53,7 +54,6 @@
 #include "nsIDocShellTreeNode.h"
 #include "nsIDocShellLoadInfo.h"
 #include "nsIServiceManager.h"
-#include "nsIPrefService.h"
 #include "nsIURI.h"
 #include "nsIContentViewer.h"
 #include "nsICacheService.h"
@@ -68,9 +68,18 @@
 #include "nspr.h"
 #include <math.h>  
 
+using namespace mozilla;
+
 #define PREF_SHISTORY_SIZE "browser.sessionhistory.max_entries"
 #define PREF_SHISTORY_MAX_TOTAL_VIEWERS "browser.sessionhistory.max_total_viewers"
 #define PREF_SHISTORY_OPTIMIZE_EVICTION "browser.sessionhistory.optimize_eviction"
+
+static const char* kObservedPrefs[] = {
+  PREF_SHISTORY_SIZE,
+  PREF_SHISTORY_MAX_TOTAL_VIEWERS,
+  PREF_SHISTORY_OPTIMIZE_EVICTION,
+  nsnull
+};
 
 static PRInt32  gHistoryMaxSize = 50;
 
@@ -115,6 +124,8 @@ protected:
   ~nsSHistoryObserver() {}
 };
 
+static nsSHistoryObserver* gObserver = nsnull;
+
 NS_IMPL_ISUPPORTS1(nsSHistoryObserver, nsIObserver)
 
 NS_IMETHODIMP
@@ -122,11 +133,8 @@ nsSHistoryObserver::Observe(nsISupports *aSubject, const char *aTopic,
                             const PRUnichar *aData)
 {
   if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
-    nsCOMPtr<nsIPrefBranch> prefs = do_QueryInterface(aSubject);
-    if (prefs) {
-      nsSHistory::UpdatePrefs(prefs);
-      nsSHistory::EvictGlobalContentViewer();
-    }
+    nsSHistory::UpdatePrefs();
+    nsSHistory::EvictGlobalContentViewer();
   } else if (!strcmp(aTopic, NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID) ||
              !strcmp(aTopic, "memory-pressure")) {
     nsSHistory::EvictAllContentViewersGlobally();
@@ -227,13 +235,12 @@ nsSHistory::CalcMaxTotalViewers()
 
 
 void
-nsSHistory::UpdatePrefs(nsIPrefBranch *aPrefBranch)
+nsSHistory::UpdatePrefs()
 {
-  aPrefBranch->GetIntPref(PREF_SHISTORY_SIZE, &gHistoryMaxSize);
-  aPrefBranch->GetIntPref(PREF_SHISTORY_MAX_TOTAL_VIEWERS,
-                          &sHistoryMaxTotalViewers);
-  aPrefBranch->GetBoolPref(PREF_SHISTORY_OPTIMIZE_EVICTION,
-                          &gOptimizeEviction);
+  Preferences::GetInt(PREF_SHISTORY_SIZE, &gHistoryMaxSize);
+  Preferences::GetInt(PREF_SHISTORY_MAX_TOTAL_VIEWERS,
+                      &sHistoryMaxTotalViewers);
+  Preferences::GetBool(PREF_SHISTORY_OPTIMIZE_EVICTION, &gOptimizeEviction);
   
   
   if (sHistoryMaxTotalViewers < 0) {
@@ -245,58 +252,55 @@ nsSHistory::UpdatePrefs(nsIPrefBranch *aPrefBranch)
 nsresult
 nsSHistory::Startup()
 {
-  nsCOMPtr<nsIPrefService> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (prefs) {
-    nsCOMPtr<nsIPrefBranch> sesHBranch;
-    prefs->GetBranch(nsnull, getter_AddRefs(sesHBranch));
-    if (sesHBranch) {
-      UpdatePrefs(sesHBranch);
-    }
+  UpdatePrefs();
 
-    
-    
-    PRInt32  defaultHistoryMaxSize = 50;
-    nsCOMPtr<nsIPrefBranch> defaultBranch;
-    prefs->GetDefaultBranch(nsnull, getter_AddRefs(defaultBranch));
-    if (defaultBranch) {
-      defaultBranch->GetIntPref(PREF_SHISTORY_SIZE, &defaultHistoryMaxSize);
-    }
+  
+  
+  PRInt32 defaultHistoryMaxSize =
+    Preferences::GetDefaultInt(PREF_SHISTORY_SIZE, 50);
+  if (gHistoryMaxSize < defaultHistoryMaxSize) {
+    gHistoryMaxSize = defaultHistoryMaxSize;
+  }
+  
+  
+  
+  if (!gObserver) {
+    gObserver = new nsSHistoryObserver();
+    NS_ADDREF(gObserver);
+    Preferences::AddStrongObservers(gObserver, kObservedPrefs);
 
-    if (gHistoryMaxSize < defaultHistoryMaxSize) {
-      gHistoryMaxSize = defaultHistoryMaxSize;
-    }
-    
-    
-    
-    nsCOMPtr<nsIPrefBranch2> branch = do_QueryInterface(sesHBranch);
-    if (branch) {
-      nsSHistoryObserver* obs = new nsSHistoryObserver();
-      if (!obs) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-      branch->AddObserver(PREF_SHISTORY_SIZE, obs, PR_FALSE);
-      branch->AddObserver(PREF_SHISTORY_MAX_TOTAL_VIEWERS,
-                          obs, PR_FALSE);
-      branch->AddObserver(PREF_SHISTORY_OPTIMIZE_EVICTION,
-                          obs, PR_FALSE);
+    nsCOMPtr<nsIObserverService> obsSvc =
+      mozilla::services::GetObserverService();
+    if (obsSvc) {
+      
+      
+      obsSvc->AddObserver(gObserver,
+                          NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID, PR_FALSE);
 
-      nsCOMPtr<nsIObserverService> obsSvc =
-        mozilla::services::GetObserverService();
-      if (obsSvc) {
-        
-        
-        obsSvc->AddObserver(obs,
-                            NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID, PR_FALSE);
-
-        
-        obsSvc->AddObserver(obs, "memory-pressure", PR_FALSE);
-      }
+      
+      obsSvc->AddObserver(gObserver, "memory-pressure", PR_FALSE);
     }
   }
 
   
   PR_INIT_CLIST(&gSHistoryList);
   return NS_OK;
+}
+
+
+void
+nsSHistory::Shutdown()
+{
+  if (gObserver) {
+    Preferences::RemoveObservers(gObserver, kObservedPrefs);
+    nsCOMPtr<nsIObserverService> obsSvc =
+      mozilla::services::GetObserverService();
+    if (obsSvc) {
+      obsSvc->RemoveObserver(gObserver, NS_CACHESERVICE_EMPTYCACHE_TOPIC_ID);
+      obsSvc->RemoveObserver(gObserver, "memory-pressure");
+    }
+    NS_RELEASE(gObserver);
+  }
 }
 
 

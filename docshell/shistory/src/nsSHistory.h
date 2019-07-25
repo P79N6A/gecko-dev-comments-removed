@@ -53,7 +53,6 @@
 #include "nsISHistoryListener.h"
 #include "nsIHistoryEntry.h"
 #include "nsIObserver.h"
-#include "nsIPrefBranch2.h"
 
 
 #include "prclist.h"
@@ -76,7 +75,8 @@ public:
 
   
   static nsresult Startup();
-  static void UpdatePrefs(nsIPrefBranch *aPrefBranch);
+  static void Shutdown();
+  static void UpdatePrefs();
 
   
   
