@@ -54,6 +54,16 @@ TelProtocol.prototype =
     
     phoneNumber = phoneNumber.substring(phoneNumber.indexOf(":") + 1, phoneNumber.length);    
     phoneNumber = encodeURI(phoneNumber);
+
+#ifdef WINCE
+    try {
+      
+      let channel = new nsWinceTelChannel (aURI, phoneNumber);
+      return channel;
+    } catch(e){
+      
+    }
+#endif
     
     var ios = Components.classes[kIOSERVICE_CONTRACTID].getService(Ci.nsIIOService);
     
@@ -83,3 +93,68 @@ function NSGetModule(compMgr, fileSpec) {
   return XPCOMUtils.generateModule(components);
 }
 
+#ifdef WINCE
+function nsWinceTelChannel(URI, phoneNumber)
+{
+    this.URI = URI;
+    this.originalURI = URI;
+    this.phoneNumber = phoneNumber
+}
+
+nsWinceTelChannel.prototype.QueryInterface =
+function bc_QueryInterface(iid)
+{
+    if (!iid.equals(Ci.nsIChannel) && !iid.equals(Ci.nsIRequest) &&
+        !iid.equals(Ci.nsISupports))
+        throw Components.results.NS_ERROR_NO_INTERFACE;
+    return this;
+}
+
+
+nsWinceTelChannel.prototype.loadAttributes = null;
+nsWinceTelChannel.prototype.contentLength = 0;
+nsWinceTelChannel.prototype.owner = null;
+nsWinceTelChannel.prototype.loadGroup = null;
+nsWinceTelChannel.prototype.notificationCallbacks = null;
+nsWinceTelChannel.prototype.securityInfo = null;
+
+nsWinceTelChannel.prototype.open =
+nsWinceTelChannel.prototype.asyncOpen =
+function bc_open(observer, ctxt)
+{    
+    var phoneInterface= Components.classes["@mozilla.org/phone/support;1"].createInstance(Ci.nsIPhoneSupport);
+    phoneInterface.makeCall(this.phoneNumber,"",false);
+    
+    
+    
+    Components.returnCode = NS_ERROR_NO_CONTENT;
+}
+
+nsWinceTelChannel.prototype.asyncRead =
+function bc_asyncRead(listener, ctxt)
+{
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+nsWinceTelChannel.prototype.isPending =
+function bc_isPending()
+{
+    return true;
+}
+
+nsWinceTelChannel.prototype.status = Components.results.NS_OK;
+
+nsWinceTelChannel.prototype.cancel =
+function bc_cancel(status)
+{
+    this.status = status;
+}
+
+nsWinceTelChannel.prototype.suspend =
+nsWinceTelChannel.prototype.resume =
+function bc_suspres()
+{
+    throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+}
+#endif
