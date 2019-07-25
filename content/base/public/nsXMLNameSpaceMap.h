@@ -80,9 +80,6 @@ public:
   NS_HIDDEN_(nsresult) AddPrefix(nsIAtom *aPrefix, nsString &aURI);
 
   
-  NS_HIDDEN_(void) RemovePrefix(nsIAtom *aPrefix);
-
-  
 
 
 

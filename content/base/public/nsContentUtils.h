@@ -324,44 +324,12 @@ public:
 
 
 
-
-
-
-
-
-  static nsIContent* FindFirstChildWithResolvedTag(nsIContent* aParent,
-                                                   PRInt32 aNamespace,
-                                                   nsIAtom* aTag);
-
-  
-
-
-
-
   static Element* MatchElementId(nsIContent *aContent, const nsAString& aId);
 
   
 
 
   static Element* MatchElementId(nsIContent *aContent, const nsIAtom* aId);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsIContent* GetReferencedElement(nsIURI* aURI,
-                                          nsIContent *aFromContent);
 
   
 
@@ -439,14 +407,6 @@ public:
   
   
   static PRBool CanCallerAccess(nsPIDOMWindow* aWindow);
-
-  
-
-
-
-
-
-  static nsIDocShell *GetDocShellFromCaller();
 
   
 

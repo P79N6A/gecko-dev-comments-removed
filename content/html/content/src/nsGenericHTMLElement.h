@@ -193,11 +193,6 @@ public:
   PRBool IsHTMLLink(nsIURI** aURI) const;
 
   
-  
-  
-  void GetHrefURIToMutate(nsIURI** aURI);
-
-  
   void Compact() { mAttrsAndChildren.Compact(); }
 
   virtual void UpdateEditableState();
@@ -710,11 +705,7 @@ protected:
 
 
 
-
-
-
-  NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr,
-                                PRBool aCloneIfCached, nsIURI** aURI) const;
+  NS_HIDDEN_(PRBool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aURI) const;
 
   
 
