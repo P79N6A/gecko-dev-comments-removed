@@ -3663,14 +3663,13 @@ nsINode::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
 }
 
 nsresult
-nsGenericElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify, PRBool aMutationEvent)
+nsGenericElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
 {
   nsCOMPtr<nsIContent> oldKid = mAttrsAndChildren.GetSafeChildAt(aIndex);
   NS_ASSERTION(oldKid == GetChildAt(aIndex), "Unexpected child in RemoveChildAt");
 
   if (oldKid) {
-    return doRemoveChildAt(aIndex, aNotify, oldKid, mAttrsAndChildren,
-                           aMutationEvent);
+    return doRemoveChildAt(aIndex, aNotify, oldKid, mAttrsAndChildren);
   }
 
   return NS_OK;
@@ -3678,8 +3677,7 @@ nsGenericElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify, PRBool aMutatio
 
 nsresult
 nsINode::doRemoveChildAt(PRUint32 aIndex, PRBool aNotify,
-                         nsIContent* aKid, nsAttrAndChildArray& aChildArray,
-                         PRBool aMutationEvent)
+                         nsIContent* aKid, nsAttrAndChildArray& aChildArray)
 {
   NS_PRECONDITION(aKid && aKid->GetNodeParent() == this &&
                   aKid == GetChildAt(aIndex) &&
@@ -3991,10 +3989,10 @@ PRBool IsAllowedAsChild(nsIContent* aNewChild, PRUint16 aNewNodeType,
 void
 nsGenericElement::FireNodeInserted(nsIDocument* aDoc,
                                    nsINode* aParent,
-                                   nsCOMArray<nsIContent>& aNodes)
+                                   nsTArray<nsCOMPtr<nsIContent> >& aNodes)
 {
-  PRInt32 count = aNodes.Count();
-  for (PRInt32 i = 0; i < count; ++i) {
+  PRUint32 count = aNodes.Length();
+  for (PRUint32 i = 0; i < count; ++i) {
     nsIContent* childContent = aNodes[i];
 
     if (nsContentUtils::HasMutationListeners(childContent,
@@ -4159,57 +4157,18 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
 
     
     
-    nsCOMArray<nsIContent> fragChildren;
-    if (!fragChildren.SetCapacity(count)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    PRUint32 i;
-    for (i = 0; i < count; i++) {
+    nsAutoTArray<nsCOMPtr<nsIContent>, 50> fragChildren;
+    fragChildren.SetCapacity(count);
+    for (PRUint32 i = 0; i < count; i++) {
       nsIContent* child = newContent->GetChildAt(i);
       NS_ASSERTION(child->GetCurrentDoc() == nsnull,
                    "How did we get a child with a current doc?");
-      fragChildren.AppendObject(child);
+      fragChildren.AppendElement(child);
     }
 
     
-    PRBool mutated = PR_FALSE;
-    for (i = count; i > 0;) {
-      
-      
-      
-      nsMutationGuard guard;
+    for (PRUint32 i = count; i > 0;) {
       newContent->RemoveChildAt(--i, PR_TRUE);
-      mutated = mutated || guard.Mutated(1);
-    }
-
-    
-    
-    if (mutated) {
-      for (i = 0; i < count; ++i) {
-        
-        nsIContent* childContent = fragChildren[i];
-        if (!HasSameOwnerDoc(childContent) ||
-            doc != childContent->GetOwnerDoc()) {
-          return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
-        }
-
-        nsCOMPtr<nsIDOMNode> tmpNode = do_QueryInterface(childContent);
-        PRUint16 tmpType = 0;
-        tmpNode->GetNodeType(&tmpType);
-
-        if (childContent->GetNodeParent() ||
-            !IsAllowedAsChild(childContent, tmpType, this, PR_FALSE,
-                              refContent)) {
-          return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
-        }
-      }
-
-      insPos = refContent ? IndexOf(refContent) : GetChildCount();
-      if (insPos < 0) {
-        
-        
-        return NS_ERROR_DOM_NOT_FOUND_ERR;
-      }
     }
 
     PRBool appending =
@@ -4219,12 +4178,10 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
 
     
     
-    for (i = 0; i < count; ++i, ++insPos) {
-      nsIContent* childContent = fragChildren[i];
-
+    for (PRUint32 i = 0; i < count; ++i, ++insPos) {
       
       
-      res = InsertChildAt(childContent, insPos, PR_FALSE);
+      res = InsertChildAt(fragChildren[i], insPos, !appending);
       if (NS_FAILED(res)) {
         
         if (appending && i != 0) {
@@ -4234,22 +4191,17 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
         }
         return res;
       }
-
-      if (!appending) {
-        nsNodeUtils::ContentInserted(this, childContent, insPos);
-      }
     }
 
     
     if (appending) {
       nsNodeUtils::ContentAppended(static_cast<nsIContent*>(this),
                                    firstInsertedContent, firstInsPos);
-    }
-
-    
-    if (nsContentUtils::
-          HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
-      nsGenericElement::FireNodeInserted(doc, this, fragChildren);
+      
+      if (nsContentUtils::
+            HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEINSERTED)) {
+        nsGenericElement::FireNodeInserted(doc, this, fragChildren);
+      }
     }
   }
   else {
@@ -4629,7 +4581,7 @@ nsGenericElement::SetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 
   
   
-  nsAutoRemovableScriptBlocker scriptBlocker;
+  nsAutoScriptBlocker scriptBlocker;
 
   nsAttrValue attrValue;
   if (!ParseAttribute(aNamespaceID, aName, aValue, attrValue)) {
