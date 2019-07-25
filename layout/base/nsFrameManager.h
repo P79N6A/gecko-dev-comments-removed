@@ -63,6 +63,8 @@ class RestyleTracker;
 } 
 } 
 
+struct TreeMatchContext;
+
 
 
 
@@ -225,7 +227,8 @@ private:
                           nsRestyleHint      aRestyleHint,
                           RestyleTracker&    aRestyleTracker,
                           DesiredA11yNotifications aDesiredA11yNotifications,
-                          nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement);
+                          nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
+                          TreeMatchContext &aTreeMatchContext);
 };
 
 #endif
