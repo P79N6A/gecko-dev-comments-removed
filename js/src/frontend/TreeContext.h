@@ -209,6 +209,8 @@ struct Parser;
 struct StmtInfo;
 
 struct TreeContext {                
+    JSContext       *context;
+
     uint32_t        flags;          
     uint32_t        bodyid;         
     uint32_t        blockidGen;     
@@ -225,7 +227,6 @@ struct TreeContext {
     ParseNode       *blockNode;     
 
     AtomDecls       decls;          
-    Parser          *parser;        
     ParseNode       *yieldNode;     
 
 
@@ -234,6 +235,9 @@ struct TreeContext {
 
 
   private:
+    TreeContext     **parserTC;      
+
+
     RootedVarFunction fun_;         
 
     RootedVarObject   scopeChain_;  
@@ -363,8 +367,6 @@ struct TreeContext {
     bool hasExtensibleScope() const {
         return flags & TCF_FUN_EXTENSIBLE_SCOPE;
     }
-
-    ParseNode *freeTree(ParseNode *pn);
 };
 
 

@@ -116,6 +116,8 @@ struct BytecodeEmitter : public TreeContext
         unsigned    currentLine;    
     } prolog, main, *current;
 
+    Parser          *parser;        
+
     OwnedAtomIndexMapPtr atomIndices; 
     AtomDefnMapPtr  roLexdeps;
     unsigned        firstLine;      
@@ -150,10 +152,6 @@ struct BytecodeEmitter : public TreeContext
 
     BytecodeEmitter(Parser *parser, unsigned lineno);
     bool init(JSContext *cx, TreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
-
-    JSContext *context() {
-        return parser->context;
-    }
 
     
     
