@@ -1666,8 +1666,7 @@ nsAccessibleWrap::FirePlatformEvent(nsAccEvent *aEvent)
   
   NS_ENSURE_TRUE(mWeakShell, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIAccessible> accessible;
-  aEvent->GetAccessible(getter_AddRefs(accessible));
+  nsAccessible *accessible = aEvent->GetAccessible();
   if (!accessible)
     return NS_OK;
 
@@ -1681,11 +1680,11 @@ nsAccessibleWrap::FirePlatformEvent(nsAccEvent *aEvent)
     return NS_OK; 
 
   
-  nsCOMPtr<nsIAccessible> newAccessible;
+  nsAccessible *newAccessible = nsnull;
   if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
     
     
-    accessible->GetParent(getter_AddRefs(newAccessible));
+    newAccessible = accessible->GetParent();
   } else {
     newAccessible = accessible;
   }

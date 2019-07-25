@@ -311,10 +311,11 @@ protected:
                               PRBool aIsAsyncChange,
                               EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
-    
+  
 
 
-    void FireValueChangeForTextFields(nsIAccessible *aPossibleTextFieldAccessible);
+
+  void FireValueChangeForTextFields(nsAccessible *aAccessible);
 
     nsAccessNodeHashtable mAccessNodeCache;
     void *mWnd;
