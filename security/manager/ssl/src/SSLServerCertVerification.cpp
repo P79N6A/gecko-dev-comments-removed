@@ -40,44 +40,213 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "SSLServerCertVerification.h"
 #include "nsNSSComponent.h"
 #include "nsNSSCertificate.h"
-#include "nsNSSCleaner.h"
 #include "nsNSSIOLayer.h"
 
+#include "nsIThreadPool.h"
+#include "nsXPCOMCIDInternal.h"
+#include "nsComponentManagerUtils.h"
+#include "nsServiceManagerUtils.h"
+
 #include "ssl.h"
-#include "cert.h"
 #include "secerr.h"
 #include "sslerr.h"
-
-using namespace mozilla;
-
-static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
-NSSCleanupAutoPtrClass(CERTCertificate, CERT_DestroyCertificate)
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gPIPNSSLog;
 #endif
 
+namespace mozilla { namespace psm {
+
+namespace {
+
+nsIThreadPool * gCertVerificationThreadPool = nsnull;
+} 
+
+
+
+
+
+
+
+
+
+
+
+void
+InitializeSSLServerCertVerificationThreads()
+{
+  
+  
+  
+  nsresult rv = CallCreateInstance(NS_THREADPOOL_CONTRACTID,
+                                   &gCertVerificationThreadPool);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to create SSL cert verification threads.");
+    return;
+  }
+
+  (void) gCertVerificationThreadPool->SetIdleThreadLimit(5);
+  (void) gCertVerificationThreadPool->SetIdleThreadTimeout(30 * 1000);
+  (void) gCertVerificationThreadPool->SetThreadLimit(5);
+}
+
+
+
+
+
+
+
+
+
+
+
+void StopSSLServerCertVerificationThreads()
+{
+  if (gCertVerificationThreadPool) {
+    gCertVerificationThreadPool->Shutdown();
+    NS_RELEASE(gCertVerificationThreadPool);
+  }
+}
+
+namespace {
+
+class SSLServerCertVerificationJob : public nsRunnable
+{
+public:
+  
+  static SECStatus Dispatch(const void * fdForLogging,
+                            nsNSSSocketInfo * infoObject,
+                            CERTCertificate * serverCert);
+private:
+  NS_DECL_NSIRUNNABLE
+
+  
+  SSLServerCertVerificationJob(const void * fdForLogging,
+                               nsNSSSocketInfo & socketInfo, 
+                               CERTCertificate & cert);
+  ~SSLServerCertVerificationJob();
+
+  
+  SECStatus AuthCertificate(const nsNSSShutDownPreventionLock & proofOfLock);
+
+  const void * const mFdForLogging;
+  const nsRefPtr<nsNSSSocketInfo> mSocketInfo;
+  CERTCertificate * const mCert;
+};
+
+SSLServerCertVerificationJob::SSLServerCertVerificationJob(
+    const void * fdForLogging, nsNSSSocketInfo & socketInfo,
+    CERTCertificate & cert)
+  : mFdForLogging(fdForLogging)
+  , mSocketInfo(&socketInfo)
+  , mCert(CERT_DupCertificate(&cert))
+{
+}
+
+SSLServerCertVerificationJob::~SSLServerCertVerificationJob()
+{
+  CERT_DestroyCertificate(mCert);
+}
+
+static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
+
 SECStatus
-PSM_SSL_PKIX_AuthCertificate(PRFileDesc *fd, CERTCertificate *peerCert, bool checksig, bool isServer)
+PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert, void * pinarg,
+                             const char * hostname,
+                             const nsNSSShutDownPreventionLock & )
 {
     SECStatus          rv;
-    SECCertUsage       certUsage;
-    SECCertificateUsage certificateusage;
-    void *             pinarg;
-    char *             hostname;
     
-    pinarg = SSL_RevealPinArg(fd);
-    hostname = SSL_RevealURL(fd);
-    
-    
-    certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
-    certificateusage = isServer ? certificateUsageSSLClient : certificateUsageSSLServer;
-
     if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
-        rv = CERT_VerifyCertNow(CERT_GetDefaultCertDB(), peerCert, checksig, certUsage,
-                                pinarg);
+        rv = CERT_VerifyCertNow(CERT_GetDefaultCertDB(), peerCert, true,
+                                certUsageSSLServer, pinarg);
     }
     else {
         nsresult nsrv;
@@ -91,12 +260,12 @@ PSM_SSL_PKIX_AuthCertificate(PRFileDesc *fd, CERTCertificate *peerCert, bool che
         CERTValOutParam cvout[1];
         cvout[0].type = cert_po_end;
 
-        rv = CERT_PKIXVerifyCert(peerCert, certificateusage,
+        rv = CERT_PKIXVerifyCert(peerCert, certificateUsageSSLServer,
                                 survivingParams->GetRawPointerForNSS(),
                                 cvout, pinarg);
     }
 
-    if ( rv == SECSuccess && !isServer ) {
+    if (rv == SECSuccess) {
         
 
 
@@ -109,7 +278,6 @@ PSM_SSL_PKIX_AuthCertificate(PRFileDesc *fd, CERTCertificate *peerCert, bool che
             PORT_SetError(SSL_ERROR_BAD_CERT_DOMAIN);
     }
         
-    PORT_Free(hostname);
     return rv;
 }
 
@@ -197,22 +365,17 @@ PSM_SSL_BlacklistDigiNotar(CERTCertificate * serverCert,
   return 0;
 }
 
-
-SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
-                                              PRBool checksig, PRBool isServer) {
-  nsNSSShutDownPreventionLock locker;
-
-  CERTCertificate *serverCert = SSL_PeerCertificate(fd);
-  CERTCertificateCleaner serverCertCleaner(serverCert);
-
-  if (serverCert && 
-      serverCert->serialNumber.data &&
-      serverCert->issuerName &&
-      !strcmp(serverCert->issuerName, 
+SECStatus
+SSLServerCertVerificationJob::AuthCertificate(
+  nsNSSShutDownPreventionLock const & nssShutdownPreventionLock)
+{
+  if (mCert->serialNumber.data &&
+      mCert->issuerName &&
+      !strcmp(mCert->issuerName, 
         "CN=UTN-USERFirst-Hardware,OU=http://www.usertrust.com,O=The USERTRUST Network,L=Salt Lake City,ST=UT,C=US")) {
 
-    unsigned char *server_cert_comparison_start = (unsigned char*)serverCert->serialNumber.data;
-    unsigned int server_cert_comparison_len = serverCert->serialNumber.len;
+    unsigned char *server_cert_comparison_start = mCert->serialNumber.data;
+    unsigned int server_cert_comparison_len = mCert->serialNumber.len;
 
     while (server_cert_comparison_len) {
       if (*server_cert_comparison_start != 0)
@@ -244,87 +407,85 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
     }
   }
 
-  SECStatus rv = PSM_SSL_PKIX_AuthCertificate(fd, serverCert, checksig, isServer);
+  SECStatus rv = PSM_SSL_PKIX_AuthCertificate(mCert, mSocketInfo,
+                                              mSocketInfo->GetHostName(),
+                                              nssShutdownPreventionLock);
 
   
   
   
 
-  if (serverCert) {
-    nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
-    nsRefPtr<nsSSLStatus> status = infoObject->SSLStatus();
-    nsRefPtr<nsNSSCertificate> nsc;
+  nsRefPtr<nsSSLStatus> status = mSocketInfo->SSLStatus();
+  nsRefPtr<nsNSSCertificate> nsc;
 
-    if (!status || !status->mServerCert) {
-      nsc = nsNSSCertificate::Create(serverCert);
+  if (!status || !status->mServerCert) {
+    nsc = nsNSSCertificate::Create(mCert);
+  }
+
+  CERTCertList *certList = nsnull;
+  certList = CERT_GetCertChainFromCert(mCert, PR_Now(), certUsageSSLCA);
+  if (!certList) {
+    rv = SECFailure;
+  } else {
+    PRErrorCode blacklistErrorCode;
+    if (rv == SECSuccess) { 
+      blacklistErrorCode = PSM_SSL_BlacklistDigiNotar(mCert, certList);
+    } else { 
+      PRErrorCode savedErrorCode = PORT_GetError();
+      
+      blacklistErrorCode = PSM_SSL_DigiNotarTreatAsRevoked(mCert, certList);
+      if (blacklistErrorCode == 0) {
+        
+        PORT_SetError(savedErrorCode);
+      }
     }
-
-    CERTCertList *certList = nsnull;
-    certList = CERT_GetCertChainFromCert(serverCert, PR_Now(), certUsageSSLCA);
-    if (!certList) {
+      
+    if (blacklistErrorCode != 0) {
+      mSocketInfo->SetCertIssuerBlacklisted();
+      PORT_SetError(blacklistErrorCode);
       rv = SECFailure;
-    } else {
-      PRErrorCode blacklistErrorCode;
-      if (rv == SECSuccess) { 
-        blacklistErrorCode = PSM_SSL_BlacklistDigiNotar(serverCert, certList);
-      } else { 
-        PRErrorCode savedErrorCode = PORT_GetError();
-        
-        blacklistErrorCode = PSM_SSL_DigiNotarTreatAsRevoked(serverCert, certList);
-        if (blacklistErrorCode == 0) {
-          
-          PORT_SetError(savedErrorCode);
-        }
-      }
-      
-      if (blacklistErrorCode != 0) {
-        infoObject->SetCertIssuerBlacklisted();
-        PORT_SetError(blacklistErrorCode);
-        rv = SECFailure;
-      }
     }
+  }
 
-    if (rv == SECSuccess) {
-      if (nsc) {
-        bool dummyIsEV;
-        nsc->GetIsExtendedValidation(&dummyIsEV); 
-      }
+  if (rv == SECSuccess) {
+    if (nsc) {
+      bool dummyIsEV;
+      nsc->GetIsExtendedValidation(&dummyIsEV); 
+    }
     
-      nsCOMPtr<nsINSSComponent> nssComponent;
+    nsCOMPtr<nsINSSComponent> nssComponent;
       
-      for (CERTCertListNode *node = CERT_LIST_HEAD(certList);
-           !CERT_LIST_END(node, certList);
-           node = CERT_LIST_NEXT(node)) {
+    for (CERTCertListNode *node = CERT_LIST_HEAD(certList);
+         !CERT_LIST_END(node, certList);
+         node = CERT_LIST_NEXT(node)) {
 
-        if (node->cert->slot) {
-          
-          continue;
-        }
-
-        if (node->cert->isperm) {
-          
-          continue;
-        }
+      if (node->cert->slot) {
         
-        if (node->cert == serverCert) {
-          
-          
-          continue;
-        }
-
-        
-        char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
-        if (nickname && *nickname) {
-          PK11SlotInfo *slot = PK11_GetInternalKeySlot();
-          if (slot) {
-            PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
-                            nickname, false);
-            PK11_FreeSlot(slot);
-          }
-        }
-        PR_FREEIF(nickname);
+        continue;
       }
 
+      if (node->cert->isperm) {
+        
+        continue;
+      }
+        
+      if (node->cert == mCert) {
+        
+        
+        continue;
+      }
+
+      
+      char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
+      if (nickname && *nickname) {
+        PK11SlotInfo *slot = PK11_GetInternalKeySlot();
+        if (slot) {
+          PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
+                          nickname, false);
+          PK11_FreeSlot(slot);
+        }
+      }
+      PR_FREEIF(nickname);
     }
 
     if (certList) {
@@ -336,27 +497,186 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
     
     if (!status) {
       status = new nsSSLStatus();
-      infoObject->SetSSLStatus(status);
+      mSocketInfo->SetSSLStatus(status);
     }
 
     if (rv == SECSuccess) {
       
       
       nsSSLIOLayerHelpers::mHostsWithCertErrors->RememberCertHasError(
-        infoObject, nsnull, rv);
+        mSocketInfo, nsnull, rv);
     }
     else {
       
       nsSSLIOLayerHelpers::mHostsWithCertErrors->LookupCertErrorBits(
-        infoObject, status);
+        mSocketInfo, status);
     }
 
     if (status && !status->mServerCert) {
       status->mServerCert = nsc;
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
-             ("AuthCertificateCallback setting NEW cert %p\n", status->mServerCert.get()));
+             ("AuthCertificate setting NEW cert %p\n", status->mServerCert.get()));
     }
   }
 
   return rv;
 }
+
+ SECStatus
+SSLServerCertVerificationJob::Dispatch(const void * fdForLogging,
+                                       nsNSSSocketInfo * socketInfo,
+                                       CERTCertificate * serverCert)
+{
+  
+
+  if (!socketInfo || !serverCert) {
+    NS_ERROR("Invalid parameters for SSL server cert validation");
+    socketInfo->SetCertVerificationResult(PR_INVALID_STATE_ERROR,
+                                          PlainErrorMessage);
+    PR_SetError(PR_INVALID_STATE_ERROR, 0);
+    return SECFailure;
+  }
+  
+  nsRefPtr<SSLServerCertVerificationJob> job
+    = new SSLServerCertVerificationJob(fdForLogging, *socketInfo, *serverCert);
+
+  socketInfo->SetCertVerificationWaiting();
+  nsresult nrv;
+  if (!gCertVerificationThreadPool) {
+    nrv = NS_ERROR_NOT_INITIALIZED;
+  } else {
+    nrv = gCertVerificationThreadPool->Dispatch(job, NS_DISPATCH_NORMAL);
+  }
+  if (NS_FAILED(nrv)) {
+    PRErrorCode error = nrv == NS_ERROR_OUT_OF_MEMORY
+                      ? SEC_ERROR_NO_MEMORY
+                      : PR_INVALID_STATE_ERROR;
+    socketInfo->SetCertVerificationResult(error, PlainErrorMessage);
+    PORT_SetError(error);
+    return SECFailure;
+  }
+
+  PORT_SetError(PR_WOULD_BLOCK_ERROR);
+  return SECWouldBlock;    
+}
+
+NS_IMETHODIMP
+SSLServerCertVerificationJob::Run()
+{
+  
+
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+          ("[%p] SSLServerCertVerificationJob::Run\n", mSocketInfo.get()));
+
+  PRErrorCode error;
+
+  nsNSSShutDownPreventionLock nssShutdownPrevention;
+  if (mSocketInfo->isAlreadyShutDown()) {
+    error = SEC_ERROR_USER_CANCELLED;
+  } else {
+    
+    
+    PR_SetError(0, 0); 
+    SECStatus rv = AuthCertificate(nssShutdownPrevention);
+    if (rv == SECSuccess) {
+      nsRefPtr<SSLServerCertVerificationResult> restart 
+        = new SSLServerCertVerificationResult(*mSocketInfo, 0);
+      restart->Dispatch();
+      return NS_OK;
+    }
+
+    error = PR_GetError();
+    if (error != 0) {
+      rv = HandleBadCertificate(error, mSocketInfo, *mCert, mFdForLogging,
+                                nssShutdownPrevention);
+      if (rv == SECSuccess) {
+        
+        
+        
+        
+        return NS_OK; 
+      }
+      
+      error = PR_GetError(); 
+    }
+  }
+
+  if (error == 0) {
+    NS_NOTREACHED("no error set during certificate validation failure");
+    error = PR_INVALID_STATE_ERROR;
+  }
+
+  nsRefPtr<SSLServerCertVerificationResult> failure
+    = new SSLServerCertVerificationResult(*mSocketInfo, error);
+  failure->Dispatch();
+  return NS_OK;
+}
+
+} 
+
+
+
+
+SECStatus
+AuthCertificateHook(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
+{
+  
+
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+         ("[%p] starting AuthCertificateHook\n", fd));
+
+  
+  
+  NS_ASSERTION(checkSig, "AuthCertificateHook: checkSig unexpectedly false");
+
+  
+  
+  NS_ASSERTION(!isServer, "AuthCertificateHook: isServer unexpectedly true");
+
+  if (!checkSig || isServer) {
+      PR_SetError(PR_INVALID_STATE_ERROR, 0);
+      return SECFailure;
+  }
+      
+  CERTCertificate *serverCert = SSL_PeerCertificate(fd);
+
+  nsNSSSocketInfo *socketInfo = static_cast<nsNSSSocketInfo*>(arg);
+  SECStatus rv = SSLServerCertVerificationJob::Dispatch(
+                        static_cast<const void *>(fd), socketInfo, serverCert);
+
+  CERT_DestroyCertificate(serverCert);
+
+  return rv;
+}
+
+SSLServerCertVerificationResult::SSLServerCertVerificationResult(
+        nsNSSSocketInfo & socketInfo, PRErrorCode errorCode,
+        SSLErrorMessageType errorMessageType)
+  : mSocketInfo(&socketInfo)
+  , mErrorCode(errorCode)
+  , mErrorMessageType(errorMessageType)
+{
+}
+
+void
+SSLServerCertVerificationResult::Dispatch()
+{
+  nsresult rv;
+  nsCOMPtr<nsIEventTarget> stsTarget
+    = do_GetService(NS_SOCKETTRANSPORTSERVICE_CONTRACTID, &rv);
+  NS_ASSERTION(stsTarget,
+               "Failed to get socket transport service event target");
+  rv = stsTarget->Dispatch(this, NS_DISPATCH_NORMAL);
+  NS_ASSERTION(NS_SUCCEEDED(rv), 
+               "Failed to dispatch SSLServerCertVerificationResult");
+}
+
+NS_IMETHODIMP
+SSLServerCertVerificationResult::Run()
+{
+  
+  mSocketInfo->SetCertVerificationResult(mErrorCode, mErrorMessageType);
+  return NS_OK;
+}
+
+} } 

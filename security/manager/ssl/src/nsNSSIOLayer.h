@@ -60,72 +60,20 @@
 #include "nsNSSCertificate.h"
 #include "nsDataHashtable.h"
 
-class nsIChannel;
-class nsSSLThread;
-class ::mozilla::MutexAutoLock;
+namespace mozilla {
 
+class MutexAutoLock;
 
+namespace psm {
 
-
-
-
-class nsSSLSocketThreadData
-{
-public:
-  nsSSLSocketThreadData();
-  ~nsSSLSocketThreadData();
-
-  bool ensure_buffer_size(PRInt32 amount);
-  
-  enum ssl_state { 
-    ssl_invalid,       
-    ssl_idle,          
-    ssl_pending_write, 
-    ssl_pending_read,  
-    ssl_writing_done,  
-    ssl_reading_done   
-  };
-  
-  ssl_state mSSLState;
-
-  
-  
-  PRErrorCode mPRErrorCode;
-
-  
-  char *mSSLDataBuffer;
-  PRInt32 mSSLDataBufferAllocatedSize;
-
-  
-  PRInt32 mSSLRequestedTransferAmount;
-
-  
-  
-  
-  
-  const char *mSSLRemainingReadResultData;
-  
-  
-  
-  
-  
-  
-  
-  PRInt32 mSSLResultRemainingBytes;
-
-  
-  
-  
-  
-  
-  
-  
-  PRFileDesc *mReplacedSSLFileDesc;
-
-  bool mOneBytePendingFromEarlierWrite;
-  unsigned char mThePendingByte;
-  PRInt32 mOriginalRequestedTransferAmount;
+enum SSLErrorMessageType {
+  OverridableCertErrorMessage  = 1, 
+  PlainErrorMessage = 2             
 };
+
+} 
+
+} 
 
 class nsNSSSocketInfo : public nsITransportSecurityInfo,
                         public nsISSLSocketControl,
@@ -164,6 +112,9 @@ public:
   nsresult GetHandshakePending(bool *aHandshakePending);
   nsresult SetHandshakePending(bool aHandshakePending);
 
+  const char * GetHostName() const {
+    return mHostName.get();
+  }
   nsresult GetHostName(char **aHostName);
   nsresult SetHostName(const char *aHostName);
 
@@ -172,12 +123,9 @@ public:
 
   void GetPreviousCert(nsIX509Cert** _result);
 
-  enum ErrorMessageType {
-    OverridableCertErrorMessage  = 1, 
-    PlainErrorMessage = 2,            
-  };
-  void SetCanceled(PRErrorCode errorCode, ErrorMessageType errorMessageType);
   PRErrorCode GetErrorCode() const;
+  void SetCanceled(PRErrorCode errorCode,
+                   ::mozilla::psm::SSLErrorMessageType errorMessageType);
   
   void SetHasCleartextPhase(bool aHasCleartextPhase);
   bool GetHasCleartextPhase();
@@ -193,8 +141,10 @@ public:
   
   nsresult SetSSLStatus(nsSSLStatus *aSSLStatus);
   nsSSLStatus* SSLStatus() { return mSSLStatus; }
-  
-  PRStatus CloseSocketAndDestroy();
+  void SetStatusErrorBits(nsIX509Cert & cert, PRUint32 collected_errors);
+
+  PRStatus CloseSocketAndDestroy(
+                const nsNSSShutDownPreventionLock & proofOfLock);
   
   bool IsCertIssuerBlacklisted() const {
     return mIsCertIssuerBlacklisted;
@@ -202,14 +152,32 @@ public:
   void SetCertIssuerBlacklisted() {
     mIsCertIssuerBlacklisted = true;
   }
+
+  
+  enum CertVerificationState {
+    before_cert_verification,
+    waiting_for_cert_verification,
+    after_cert_verification
+  };
+  void SetCertVerificationWaiting();
+  
+  
+  void SetCertVerificationResult(PRErrorCode errorCode,
+              ::mozilla::psm::SSLErrorMessageType errorMessageType);
+  
+  
+  PRBool IsWaitingForCertVerification() const
+  {
+    return mCertVerificationState == waiting_for_cert_verification;
+  }
+  
+
 protected:
   mutable ::mozilla::Mutex mMutex;
 
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   PRFileDesc* mFd;
-  enum { 
-    blocking_state_unknown, is_nonblocking_socket, is_blocking_socket 
-  } mBlockingState;
+  CertVerificationState mCertVerificationState;
   PRUint32 mSecurityState;
   PRInt32 mSubRequestsHighSecurity;
   PRInt32 mSubRequestsLowSecurity;
@@ -218,7 +186,7 @@ protected:
   nsString mShortDesc;
 
   PRErrorCode mErrorCode;
-  ErrorMessageType mErrorMessageType;
+  ::mozilla::psm::SSLErrorMessageType mErrorMessageType;
   nsString mErrorMessageCached;
   nsresult formatErrorMessage(::mozilla::MutexAutoLock const & proofOfLock);
 
@@ -240,13 +208,9 @@ protected:
 
   nsresult ActivateSSL();
 
-  nsSSLSocketThreadData *mThreadData;
-
 private:
   virtual void virtualDestroyNSSReference();
   void destructorSafeDestroyNSSReference();
-
-friend class nsSSLThread;
 };
 
 class nsCStringHashSet;
@@ -311,11 +275,6 @@ public:
 
   static void setRenegoUnrestrictedSites(const nsCString &str);
   static bool isRenegoUnrestrictedSite(const nsCString &str);
-
-  static PRFileDesc *mSharedPollableEvent;
-  static nsNSSSocketInfo *mSocketOwningPollableEvent;
-  
-  static bool mPollableEventCurrentlySet;
 };
 
 nsresult nsSSLIOLayerNewSocket(PRInt32 family,
