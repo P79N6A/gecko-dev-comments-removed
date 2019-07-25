@@ -39,6 +39,10 @@
 #define nsWindowMemoryReporter_h__
 
 #include "nsIMemoryReporter.h"
+#include "nsIObserver.h"
+#include "nsDataHashtable.h"
+#include "nsWeakReference.h"
+#include "mozilla/TimeStamp.h"
 
 
 
@@ -49,29 +53,142 @@
 
 class nsWindowSizes {
 public:
-    nsWindowSizes(nsMallocSizeOfFun aMallocSizeOf) {
-      memset(this, 0, sizeof(nsWindowSizes));
-      mMallocSizeOf = aMallocSizeOf;
-    }
-    nsMallocSizeOfFun mMallocSizeOf;
-    size_t mDOM;
-    size_t mStyleSheets;
-    size_t mLayoutArenas;
-    size_t mLayoutStyleSets;
-    size_t mLayoutTextRuns;
+  nsWindowSizes(nsMallocSizeOfFun aMallocSizeOf) {
+    memset(this, 0, sizeof(nsWindowSizes));
+    mMallocSizeOf = aMallocSizeOf;
+  }
+  nsMallocSizeOfFun mMallocSizeOf;
+  size_t mDOM;
+  size_t mStyleSheets;
+  size_t mLayoutArenas;
+  size_t mLayoutStyleSets;
+  size_t mLayoutTextRuns;
 };
 
-class nsWindowMemoryReporter: public nsIMemoryMultiReporter
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsWindowMemoryReporter: public nsIMemoryMultiReporter,
+                              public nsIObserver,
+                              public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMEMORYMULTIREPORTER
+  NS_DECL_NSIOBSERVER
 
   static void Init();
 
 private:
   
   nsWindowMemoryReporter();
+
+  
+
+
+
+  PRUint32 GetGhostTimeout();
+
+  void ObserveDOMWindowDetached(nsISupports* aWindow);
+  void ObserveAfterMinimizeMemoryUsage();
+
+  
+
+
+
+
+  void CheckForGhostWindowsCallback();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void CheckForGhostWindows(nsTHashtable<nsUint64HashKey> *aOutGhostIDs = NULL);
+
+  
+
+
+
+
+
+
+
+
+
+  nsDataHashtable<nsISupportsHashKey, mozilla::TimeStamp> mDetachedWindows;
+
+  
+
+
+  bool mCheckForGhostWindowsCallbackPending;
 };
 
 #endif 

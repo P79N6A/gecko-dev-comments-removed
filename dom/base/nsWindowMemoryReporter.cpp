@@ -37,26 +37,46 @@
 
 #include "nsWindowMemoryReporter.h"
 #include "nsGlobalWindow.h"
+#include "nsIEffectiveTLDService.h"
+#include "mozilla/Services.h"
+#include "mozilla/Preferences.h"
+#include "nsNetCID.h"
+#include "nsPrintfCString.h"
 
+using namespace mozilla;
 
 nsWindowMemoryReporter::nsWindowMemoryReporter()
+  : mCheckForGhostWindowsCallbackPending(false)
 {
+  mDetachedWindows.Init();
 }
 
-NS_IMPL_ISUPPORTS1(nsWindowMemoryReporter, nsIMemoryMultiReporter)
+NS_IMPL_ISUPPORTS3(nsWindowMemoryReporter, nsIMemoryMultiReporter, nsIObserver,
+                   nsSupportsWeakReference)
 
 
 void
 nsWindowMemoryReporter::Init()
 {
   
-  NS_RegisterMemoryMultiReporter(new nsWindowMemoryReporter());
+  nsWindowMemoryReporter *reporter = new nsWindowMemoryReporter();
+  NS_RegisterMemoryMultiReporter(reporter);
+
+  nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+  if (os) {
+    
+    
+    os->AddObserver(reporter, DOM_WINDOW_DESTROYED_TOPIC,  true);
+  }
 }
 
-static void
-AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
+static already_AddRefed<nsIURI>
+GetWindowURI(nsIDOMWindow *aWindow)
 {
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aWindow->GetExtantDocument());
+  nsCOMPtr<nsPIDOMWindow> pWindow = do_QueryInterface(aWindow);
+  NS_ENSURE_TRUE(pWindow, NULL);
+
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(pWindow->GetExtantDocument());
   nsCOMPtr<nsIURI> uri;
 
   if (doc) {
@@ -64,12 +84,24 @@ AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
   }
 
   if (!uri) {
-    nsIPrincipal *principal = aWindow->GetPrincipal();
+    nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrincipal =
+      do_QueryInterface(aWindow);
+    NS_ENSURE_TRUE(scriptObjPrincipal, NULL);
+
+    nsIPrincipal *principal = scriptObjPrincipal->GetPrincipal();
 
     if (principal) {
       principal->GetURI(getter_AddRefs(uri));
     }
   }
+
+  return uri.forget();
+}
+
+static void
+AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
+{
+  nsCOMPtr<nsIURI> uri = GetWindowURI(aWindow);
 
   if (uri) {
     nsCString spec;
@@ -82,6 +114,8 @@ AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
 
     aStr += spec;
   } else {
+    
+    
     aStr += NS_LITERAL_CSTRING("[system]");
   }
 }
@@ -91,68 +125,36 @@ NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(DOMStyleMallocSizeOf, "windows")
 static nsresult
 CollectWindowReports(nsGlobalWindow *aWindow,
                      nsWindowSizes *aWindowTotalSizes,
+                     nsTHashtable<nsUint64HashKey> *aGhostWindowIDs,
                      nsIMemoryMultiReporterCallback *aCb,
                      nsISupports *aClosure)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
   nsCAutoString windowPath("explicit/window-objects/");
 
-  nsGlobalWindow *top = aWindow->GetTop();
-  windowPath += NS_LITERAL_CSTRING("top(");
+  
+  
+  nsGlobalWindow *top = NULL;
+  if (aWindow->GetOuterWindow()) {
+    
+    MOZ_ASSERT(!!aWindow->GetTop() == !!aWindow->GetDocShell());
+    top = aWindow->GetTop();
+  }
+
   if (top) {
+    windowPath += NS_LITERAL_CSTRING("top(");
     AppendWindowURI(top, windowPath);
     windowPath += NS_LITERAL_CSTRING(", id=");
     windowPath.AppendInt(top->WindowID());
-  } else {
-    windowPath += NS_LITERAL_CSTRING("none");
-  }
-  windowPath += NS_LITERAL_CSTRING(")/");
+    windowPath += NS_LITERAL_CSTRING(")/");
 
-  nsIDocShell *docShell = aWindow->GetDocShell();
-  if (docShell) {
-    MOZ_ASSERT(top, "'cached' or 'active' window lacks a top window");
     windowPath += aWindow->IsFrozen() ? NS_LITERAL_CSTRING("cached/")
                                       : NS_LITERAL_CSTRING("active/");
   } else {
-    MOZ_ASSERT(!top, "'other' window has a top window");
+    if (aGhostWindowIDs->Contains(aWindow->WindowID())) {
+      windowPath += NS_LITERAL_CSTRING("top(none)/ghost/");
+    } else {
+      windowPath += NS_LITERAL_CSTRING("top(none)/detached/");
+    }
   }
 
   windowPath += NS_LITERAL_CSTRING("window(");
@@ -234,11 +236,19 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryMultiReporterCallback* aCb,
   windowsById->Enumerate(GetWindows, &windows);
 
   
-  nsRefPtr<nsGlobalWindow> *w = windows.Elements();
-  nsRefPtr<nsGlobalWindow> *end = w + windows.Length();
+  nsTHashtable<nsUint64HashKey> ghostWindows;
+  ghostWindows.Init();
+  CheckForGhostWindows(&ghostWindows);
+
+  nsCOMPtr<nsIEffectiveTLDService> tldService = do_GetService(
+    NS_EFFECTIVETLDSERVICE_CONTRACTID);
+  NS_ENSURE_STATE(tldService);
+
+  
   nsWindowSizes windowTotalSizes(NULL);
-  for (; w != end; ++w) {
-    nsresult rv = CollectWindowReports(*w, &windowTotalSizes, aCb, aClosure);
+  for (PRUint32 i = 0; i < windows.Length(); i++) {
+    nsresult rv = CollectWindowReports(windows[i], &windowTotalSizes,
+                                       &ghostWindows, aCb, aClosure);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -286,4 +296,198 @@ nsWindowMemoryReporter::GetExplicitNonHeap(PRInt64* aAmount)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsWindowMemoryReporter::Observe(nsISupports *aSubject, const char *aTopic,
+                                const PRUnichar *aData)
+{
+  
+  
 
+  MOZ_ASSERT(!strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC));
+
+void
+nsWindowMemoryReporter::ObserveDOMWindowDetached(nsISupports *aWindow)
+{
+  nsWeakPtr weakWindow = do_GetWeakReference(aWindow);
+  if (!weakWindow) {
+    NS_WARNING("Couldn't take weak reference to a window?");
+    return;
+  }
+
+  mDetachedWindows.Put(weakWindow, TimeStamp());
+
+  if (!mCheckForGhostWindowsCallbackPending) {
+    nsCOMPtr<nsIRunnable> runnable =
+      NS_NewRunnableMethod(this,
+                           &nsWindowMemoryReporter::CheckForGhostWindowsCallback);
+    NS_DispatchToCurrentThread(runnable);
+    mCheckForGhostWindowsCallbackPending = true;
+  }
+
+  return NS_OK;
+}
+
+void
+nsWindowMemoryReporter::CheckForGhostWindowsCallback()
+{
+  mCheckForGhostWindowsCallbackPending = false;
+  CheckForGhostWindows();
+}
+
+struct CheckForGhostWindowsEnumeratorData
+{
+  nsTHashtable<nsCStringHashKey> *nonDetachedDomains;
+  nsTHashtable<nsUint64HashKey> *ghostWindowIDs;
+  nsIEffectiveTLDService *tldService;
+  PRUint32 ghostTimeout;
+  TimeStamp now;
+};
+
+static PLDHashOperator
+CheckForGhostWindowsEnumerator(nsISupports *aKey, TimeStamp& aTimeStamp,
+                               void* aClosure)
+{
+  CheckForGhostWindowsEnumeratorData *data =
+    static_cast<CheckForGhostWindowsEnumeratorData*>(aClosure);
+
+  nsWeakPtr weakKey = do_QueryInterface(aKey);
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(weakKey);
+  if (!window) {
+    
+    
+    return PL_DHASH_REMOVE;
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDOMWindow> top;
+  if (window->GetOuterWindow()) {
+    window->GetTop(getter_AddRefs(top));
+  }
+
+  if (top) {
+    
+    return PL_DHASH_REMOVE;
+  }
+
+  nsCOMPtr<nsIURI> uri = GetWindowURI(window);
+
+  nsCAutoString domain;
+  if (uri) {
+    
+    
+    data->tldService->GetBaseDomain(uri, 0, domain);
+  }
+
+  if (data->nonDetachedDomains->Contains(domain)) {
+    
+    
+    aTimeStamp = TimeStamp();
+  } else {
+    
+    
+    if (aTimeStamp.IsNull()) {
+      
+      aTimeStamp = data->now;
+    } else if ((data->now - aTimeStamp).ToSeconds() > data->ghostTimeout) {
+      
+      
+      if (data->ghostWindowIDs) {
+        nsCOMPtr<nsPIDOMWindow> pWindow = do_QueryInterface(window);
+        if (pWindow) {
+          data->ghostWindowIDs->PutEntry(pWindow->WindowID());
+        }
+      }
+    }
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+struct GetNonDetachedWindowDomainsEnumeratorData
+{
+  nsTHashtable<nsCStringHashKey> *nonDetachedDomains;
+  nsIEffectiveTLDService *tldService;
+};
+
+static PLDHashOperator
+GetNonDetachedWindowDomainsEnumerator(const PRUint64& aId, nsGlobalWindow* aWindow,
+                                      void* aClosure)
+{
+  GetNonDetachedWindowDomainsEnumeratorData *data =
+    static_cast<GetNonDetachedWindowDomainsEnumeratorData*>(aClosure);
+
+  
+  
+  if (!aWindow->GetOuterWindow() || !aWindow->GetTop()) {
+    
+    return PL_DHASH_NEXT;
+  }
+
+  nsCOMPtr<nsIURI> uri = GetWindowURI(aWindow);
+
+  nsCAutoString domain;
+  if (uri) {
+    data->tldService->GetBaseDomain(uri, 0, domain);
+  }
+
+  data->nonDetachedDomains->PutEntry(domain);
+  return PL_DHASH_NEXT;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+nsWindowMemoryReporter::CheckForGhostWindows(
+  nsTHashtable<nsUint64HashKey> *aOutGhostIDs )
+{
+  nsCOMPtr<nsIEffectiveTLDService> tldService = do_GetService(
+    NS_EFFECTIVETLDSERVICE_CONTRACTID);
+  if (!tldService) {
+    NS_WARNING("Couldn't get TLDService.");
+    return;
+  }
+
+  nsGlobalWindow::WindowByIdTable *windowsById =
+    nsGlobalWindow::GetWindowsTable();
+  if (!windowsById) {
+    NS_WARNING("GetWindowsTable returned null");
+    return;
+  }
+
+  nsTHashtable<nsCStringHashKey> nonDetachedWindowDomains;
+  nonDetachedWindowDomains.Init();
+
+  
+  GetNonDetachedWindowDomainsEnumeratorData nonDetachedEnumData =
+    { &nonDetachedWindowDomains, tldService };
+  windowsById->EnumerateRead(GetNonDetachedWindowDomainsEnumerator,
+                             &nonDetachedEnumData);
+
+  PRUint32 ghostTimeout =
+    Preferences::GetUint("memory.ghost_window_timeout_seconds", 60);
+
+  
+  
+  CheckForGhostWindowsEnumeratorData ghostEnumData =
+    { &nonDetachedWindowDomains, aOutGhostIDs, tldService,
+      ghostTimeout, TimeStamp::Now() };
+  mDetachedWindows.Enumerate(CheckForGhostWindowsEnumerator,
+                             &ghostEnumData);
+}
