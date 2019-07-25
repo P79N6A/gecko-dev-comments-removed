@@ -132,6 +132,9 @@ protected:
                           nsISupports* aCert);
 
   
+  PRBool CertificateEquals(nsIPrincipal *aOther);
+
+  
   
   
   nsAutoPtr<Certificate> mCert;
