@@ -140,7 +140,7 @@ function restoreSession() {
     ss.setWindowState(top, stateString, true);
     return;
   }
-  
+
   
   var newWindow = top.openDialog(top.location, "_blank", "chrome,dialog=no,all");
   newWindow.addEventListener("load", function() {
