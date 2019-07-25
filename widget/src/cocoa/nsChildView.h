@@ -228,6 +228,8 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
 - (BOOL)isPluginView;
 
+- (BOOL)isUsingOpenGL;
+
 
 
 
