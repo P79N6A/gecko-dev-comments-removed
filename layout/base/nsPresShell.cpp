@@ -3154,8 +3154,8 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
     
     
     nsRefPtr<nsIDOMRange> jumpToRange = new nsRange();
-    while (content && content->GetChildCount() > 0) {
-      content = content->GetChildAt(0);
+    while (content && content->GetFirstChild()) {
+      content = content->GetFirstChild();
     }
     nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
     NS_ASSERTION(node, "No nsIDOMNode for descendant of anchor");
