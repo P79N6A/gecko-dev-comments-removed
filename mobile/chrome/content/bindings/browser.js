@@ -74,14 +74,11 @@ let WebProgressListener = {
   },
 
   onSecurityChange: function onSecurityChange(aWebProgress, aRequest, aState) {
-    let data = SecurityUI.getIdentityData();
-    let status = {
-      serverCert: data
-    };
+    let serialization = SecurityUI.getSSLStatusAsString();
 
     let json = {
       windowId: aWebProgress.DOMWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID,
-      SSLStatus: status,
+      SSLStatusAsString: serialization,
       state: aState
     };
     sendAsyncMessage("WebProgress:SecurityChange", json);
@@ -120,50 +117,18 @@ WebProgressListener.init();
 
 
 let SecurityUI = {
-  
-
-
-
-  getIdentityData: function() {
-    let result = {};
+  getSSLStatusAsString: function() {
     let status = docShell.securityUI.QueryInterface(Ci.nsISSLStatusProvider).SSLStatus;
 
     if (status) {
-      status = status.QueryInterface(Ci.nsISSLStatus);
-      let cert = status.serverCert;
+      let serhelper = Cc["@mozilla.org/network/serialization-helper;1"]
+                      .getService(Ci.nsISerializationHelper);
 
-      
-      result.subjectOrg = cert.organization;
-
-      
-      if (cert.subjectName) {
-        result.subjectNameFields = {};
-        cert.subjectName.split(",").forEach(function(v) {
-          var field = v.split("=");
-          if (field[1])
-            this[field[0]] = field[1];
-        }, result.subjectNameFields);
-
-        
-        result.city = result.subjectNameFields.L;
-        result.state = result.subjectNameFields.ST;
-        result.country = result.subjectNameFields.C;
-      }
-
-      
-      result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
-
-      if (!this._overrideService)
-        this._overrideService = Cc["@mozilla.org/security/certoverride;1"].getService(Ci.nsICertOverrideService);
-
-      
-      
-      
-      
-      result.isException = !!this._overrideService.hasMatchingOverride(content.location.hostname, (content.location.port || 443), cert, {}, {});
+      status.QueryInterface(Ci.nsISerializable);
+      return serhelper.serializeToString(status);
     }
 
-    return result;
+    return null;
   }
 };
 
