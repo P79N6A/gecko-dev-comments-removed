@@ -179,16 +179,31 @@ BookmarksEngine.prototype = {
     self.done();
   },
 
-  _share: function BmkEngine__share( guid, username ) {
+  _share: function BmkEngine__share( selectedFolder, username ) {
+    
+
     
     
     
 
     
 
+    let folderItemId = selectedFolder.node.itemId;
+    let folderName = selectedFolder.getAttribute( "label" );
+    let annotation = { name: "weave/share/shared_outgoing",
+		       value: username,
+		       flags: 0,
+		       mimeType: null,
+		       type: PlacesUtils.TYPE_STRING,
+		       expires: PlacesUtils.EXPIRE_NEVER };
     
+    PlacesUtils.setAnnotationsForItem( folderItemId, [ annotation ] );
     
-    dump( "In bookmarkEngine._share.  Sharing " + guid + " with " + username );
+
+
+
+    
+    dump( "In bookmarkEngine._share.  Sharing " +folderName + " with " + username );
     return true;
   },
 
