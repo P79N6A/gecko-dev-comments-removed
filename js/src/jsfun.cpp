@@ -526,7 +526,7 @@ JS_FRIEND_DATA(Class) js::FunctionClass = {
 
 
 static bool
-FindBody(JSContext *cx, JSFunction *fun, const jschar *chars, size_t length,
+FindBody(JSContext *cx, HandleFunction fun, const jschar *chars, size_t length,
          size_t *bodyStart, size_t *bodyEnd)
 {
     
@@ -573,11 +573,11 @@ FindBody(JSContext *cx, JSFunction *fun, const jschar *chars, size_t length,
 }
 
 JSString *
-JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
+js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lambdaParen)
 {
     StringBuffer out(cx);
 
-    if (isInterpreted() && script()->isGeneratorExp) {
+    if (fun->isInterpreted() && fun->script()->isGeneratorExp) {
         if ((!bodyOnly && !out.append("function genexp() {")) ||
             !out.append("\n    [generator expression]\n") ||
             (!bodyOnly && !out.append("}"))) {
@@ -587,32 +587,33 @@ JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
     }
     if (!bodyOnly) {
         
-        if (isInterpreted() && !lambdaParen && (flags & JSFUN_LAMBDA)) {
+        if (fun->isInterpreted() && !lambdaParen && (fun->flags & JSFUN_LAMBDA)) {
             if (!out.append("("))
                 return NULL;
         }
         if (!out.append("function "))
             return NULL;
-        if (atom) {
-            if (!out.append(atom))
+        if (fun->atom) {
+            if (!out.append(fun->atom))
                 return NULL;
         }
     }
-    bool haveSource = isInterpreted();
-    if (haveSource && !script()->source && !script()->loadSource(cx, &haveSource))
+    bool haveSource = fun->isInterpreted();
+    if (haveSource && !fun->script()->source && !fun->script()->loadSource(cx, &haveSource))
             return NULL;
     if (haveSource) {
-        RootedString src(cx, script()->sourceData(cx));
+        RootedScript script(cx, fun->script());
+        RootedString src(cx, fun->script()->sourceData(cx));
         if (!src)
             return NULL;
         const jschar *chars = src->getChars(cx);
         if (!chars)
             return NULL;
-        bool exprBody = flags & JSFUN_EXPR_CLOSURE;
+        bool exprBody = fun->flags & JSFUN_EXPR_CLOSURE;
 
         
         
-        bool funCon = script()->sourceStart == 0 && script()->source->argumentsNotIncluded();
+        bool funCon = script->sourceStart == 0 && script->source->argumentsNotIncluded();
 
         
         
@@ -623,7 +624,7 @@ JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
         
         
         
-        bool addUseStrict = script()->strictModeCode && !script()->explicitUseStrict;
+        bool addUseStrict = script->strictModeCode && !script->explicitUseStrict;
 
         
         
@@ -640,11 +641,11 @@ JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
             
             BindingVector *localNames = cx->new_<BindingVector>(cx);
             js::ScopedDeletePtr<BindingVector> freeNames(localNames);
-            if (!GetOrderedBindings(cx, script()->bindings, localNames))
+            if (!GetOrderedBindings(cx, script->bindings, localNames))
                 return NULL;
-            for (unsigned i = 0; i < nargs; i++) {
+            for (unsigned i = 0; i < fun->nargs; i++) {
                 if ((i && !out.append(", ")) ||
-                    (i == unsigned(nargs - 1) && hasRest() && !out.append("...")) ||
+                    (i == unsigned(fun->nargs - 1) && fun->hasRest() && !out.append("...")) ||
                     !out.append((*localNames)[i].maybeName)) {
                     return NULL;
                 }
@@ -657,7 +658,7 @@ JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
             
             JS_ASSERT(!buildBody);
             size_t bodyStart = 0, bodyEnd = 0;
-            if (!FindBody(cx, this, chars, src->length(), &bodyStart, &bodyEnd))
+            if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
                 return NULL;
 
             if (addUseStrict) {
@@ -693,19 +694,19 @@ JSFunction::toString(JSContext *cx, bool bodyOnly, bool lambdaParen)
             
             if (exprBody && !out.append(";"))
                 return NULL;
-        } else if (!lambdaParen && (flags & JSFUN_LAMBDA)) {
+        } else if (!lambdaParen && (fun->flags & JSFUN_LAMBDA)) {
             if (!out.append(")"))
                 return NULL;
         }
-    } else if (isInterpreted()) {
+    } else if (fun->isInterpreted()) {
         if ((!bodyOnly && !out.append("() {\n    ")) ||
             !out.append("[sourceless code]") ||
             (!bodyOnly && !out.append("\n}")))
             return NULL;
-        if (!lambdaParen && (flags & JSFUN_LAMBDA) && (!out.append(")")))
+        if (!lambdaParen && (fun->flags & JSFUN_LAMBDA) && (!out.append(")")))
             return NULL;
     } else {
-        JS_ASSERT(!(flags & JSFUN_EXPR_CLOSURE));
+        JS_ASSERT(!(fun->flags & JSFUN_EXPR_CLOSURE));
         if ((!bodyOnly && !out.append("() {\n    ")) ||
             !out.append("[native code]") ||
             (!bodyOnly && !out.append("\n}")))
@@ -727,11 +728,8 @@ fun_toStringHelper(JSContext *cx, JSObject *obj, unsigned indent)
         return NULL;
     }
 
-    JSFunction *fun = obj->toFunction();
-    if (!fun)
-        return NULL;
-
-    return fun->toString(cx, false, indent != JS_DONT_PRETTY_PRINT);
+    RootedFunction fun(cx, obj->toFunction());
+    return FunctionToString(cx, fun, false, indent != JS_DONT_PRETTY_PRINT);
 }
 
 static JSBool
