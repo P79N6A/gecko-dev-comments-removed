@@ -411,6 +411,9 @@ StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
 JS_FRIEND_API(void)
 SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
 
+JS_FRIEND_API(bool)
+IsObjectInContextCompartment(const JSObject *obj, const JSContext *cx);
+
 
 
 
