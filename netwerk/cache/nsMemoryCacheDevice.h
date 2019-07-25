@@ -88,6 +88,7 @@ public:
     virtual nsresult EvictEntries(const char * clientID);
     
     void             SetCapacity(PRInt32  capacity);
+    void             SetMaxEntrySize(PRInt32  maxSizeInKilobytes);
 
     bool             EntryIsTooBig(PRInt64 entrySize);
 private:
@@ -124,6 +125,7 @@ private:
 
     PRInt32                mEntryCount;
     PRInt32                mMaxEntryCount;
+    PRInt32                mMaxEntrySize; 
 
     
 };

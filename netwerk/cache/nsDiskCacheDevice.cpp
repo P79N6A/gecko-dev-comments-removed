@@ -348,6 +348,7 @@ nsDiskCache::Truncate(PRFileDesc *  fd, PRUint32  newEOF)
 
 nsDiskCacheDevice::nsDiskCacheDevice()
     : mCacheCapacity(0)
+    , mMaxEntrySize(-1) 
     , mInitialized(PR_FALSE)
 {
 }
@@ -941,8 +942,11 @@ nsDiskCacheDevice::Visit(nsICacheVisitor * visitor)
 bool
 nsDiskCacheDevice::EntryIsTooBig(PRInt64 entrySize)
 {
-    return entrySize > kMaxDataFileSize
-           || entrySize > (static_cast<PRInt64>(mCacheCapacity) * 1024 / 8);
+    if (mMaxEntrySize == -1) 
+        return entrySize > (static_cast<PRInt64>(mCacheCapacity) * 1024 / 8);
+    else 
+        return entrySize > mMaxEntrySize ||
+               entrySize > (static_cast<PRInt64>(mCacheCapacity) * 1024 / 8);
 }
 
 nsresult
@@ -1142,4 +1146,15 @@ PRUint32 nsDiskCacheDevice::getCacheSize()
 PRUint32 nsDiskCacheDevice::getEntryCount()
 {
     return mCacheMap.EntryCount();
+}
+
+void
+nsDiskCacheDevice::SetMaxEntrySize(PRInt32 maxSizeInKilobytes)
+{
+    
+    
+    if (maxSizeInKilobytes >= 0)
+        mMaxEntrySize = maxSizeInKilobytes * 1024;
+    else
+        mMaxEntrySize = -1;
 }
