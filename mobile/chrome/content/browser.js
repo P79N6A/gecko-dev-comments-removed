@@ -145,7 +145,6 @@ var BrowserApp = {
     Services.obs.addObserver(this, "Preferences:Set", false);
     Services.obs.addObserver(this, "ScrollTo:FocusedInput", false);
     Services.obs.addObserver(this, "Sanitize:ClearAll", false);
-    Services.obs.addObserver(this, "PanZoom:PanZoom", false);
 
     Services.obs.addObserver(XPInstallObserver, "addon-install-blocked", false);
     Services.obs.addObserver(XPInstallObserver, "addon-install-started", false);
@@ -241,12 +240,6 @@ var BrowserApp = {
         return tabs[i].browser;
     }
     return null;
-  },
-
-  getPageSizeForBrowser: function getPageSizeForBrowser(aBrowser) {
-    let html = aBrowser.contentDocument.documentElement;
-    let body = aBrowser.contentDocument.body;
-    return { width: body.scrollWidth, height: body.scrollHeight };
   },
 
   loadURI: function loadURI(aURI, aParams) {
@@ -472,22 +465,6 @@ var BrowserApp = {
       focused.scrollIntoView(false);
   },
 
-  panZoom: function(aData) {
-    let data = JSON.parse(aData);
-
-    let browser = this.selectedBrowser;
-
-    dump("### JS side PanZoom to " + aData);
-
-    
-
-
-
-    browser.contentWindow.scrollTo(data.x, data.y);
-
-    sendMessageToJava({ gecko: { type: "PanZoom:Ack", rect: data } });
-  },
-
   updateScrollbarsFor: function(aElement) {
     
     let doc = this.selectedBrowser.contentDocument;
@@ -528,13 +505,6 @@ var BrowserApp = {
     this.horizScroller.setAttribute("panning", "");
   },
 
-  
-  fakeDisplayPort: function(aBrowser) {
-    let html = aBrowser.contentDocument.documentElement;
-    html.style.width = '980px';
-    html.style.height = '1500px';
-  },
-
   observe: function(aSubject, aTopic, aData) {
     let browser = this.selectedBrowser;
     if (!browser)
@@ -569,8 +539,6 @@ var BrowserApp = {
       this.scrollToFocusedInput(browser);
     } else if (aTopic == "Sanitize:ClearAll") {
       Sanitizer.sanitize();
-    } else if (aTopic == "PanZoom:PanZoom") {
-      this.panZoom(aData);
     }
   }
 }
@@ -905,8 +873,6 @@ Tab.prototype = {
 
     this.browser = document.createElement("browser");
     this.browser.setAttribute("type", "content");
-    this.browser.setAttribute("width", "980");
-    this.browser.setAttribute("height", "480");
     BrowserApp.deck.appendChild(this.browser);
     this.browser.stop();
 
@@ -980,7 +946,7 @@ Tab.prototype = {
           state: aStateFlags
         }
       };
- 
+  
       sendMessageToJava(message);
     }
   },
@@ -1089,11 +1055,12 @@ var BrowserEventHandler = {
     window.addEventListener("mouseup", this, true);
     window.addEventListener("mousemove", this, true);
 
+    BrowserApp.deck.addEventListener("MozMagnifyGestureStart", this, true);
+    BrowserApp.deck.addEventListener("MozMagnifyGestureUpdate", this, true);
     BrowserApp.deck.addEventListener("DOMContentLoaded", this, true);
     BrowserApp.deck.addEventListener("DOMLinkAdded", this, true);
     BrowserApp.deck.addEventListener("DOMTitleChanged", this, true);
     BrowserApp.deck.addEventListener("DOMUpdatePageReport", PopupBlockerObserver.onUpdatePageReport, false);
-    BrowserApp.deck.addEventListener("MozScrolledAreaChanged", this, true);
   },
 
   handleEvent: function(aEvent) {
@@ -1126,9 +1093,6 @@ var BrowserEventHandler = {
             browser.removeEventListener("pagehide", arguments.callee, true);
           }, true);
         }
-
-        BrowserApp.fakeDisplayPort(browser);
-
         break;
       }
 
@@ -1216,8 +1180,6 @@ var BrowserEventHandler = {
 
         if (this.panElement)
           this.panning = true;
-        else
-          aEvent.preventDefault();  
         break;
 
       case "mousemove":
@@ -1294,6 +1256,9 @@ var BrowserEventHandler = {
         break;
 
       case "mouseup":
+        if (!this.panning)
+          break;
+
         this.panning = false;
 
         
@@ -1481,22 +1446,41 @@ var BrowserEventHandler = {
         }
         break;
 
-      case "MozScrolledAreaChanged":
-        dump("### Resize!");
+      case "MozMagnifyGestureStart":
+        this._pinchDelta = 0;
+        this.zoomCallbackFired = true;
+        break;
 
-        
-        let browser = BrowserApp.getBrowserForDocument(aEvent.target);
-        if (!browser) {
-          dump("### Resize: No browser!");
-          return;
+      case "MozMagnifyGestureUpdate":
+        if (!aEvent.delta)
+          break;
+  
+        this._pinchDelta += aEvent.delta;
+
+        if ((Math.abs(this._pinchDelta) >= 1) && this.zoomCallbackFired) {
+          
+          
+          
+          
+          
+          let currentZoom = BrowserApp.selectedBrowser.markupDocumentViewer.fullZoom;
+          let currentSize = Math.sqrt(Math.pow(window.innerWidth, 2) + Math.pow(window.innerHeight, 2));
+          let newZoom = ((currentSize * currentZoom) + this._pinchDelta) / currentSize;
+
+          let self = this;
+          let callback = {
+            onBeforePaint: function zoomCallback(timeStamp) {
+              BrowserApp.selectedBrowser.markupDocumentViewer.fullZoom = newZoom;
+              self.zoomCallbackFired = true;
+            }
+          };
+
+          this._pinchDelta = 0;
+
+          
+          this.zoomCallbackFired = false;
+          window.mozRequestAnimationFrame(callback);
         }
-
-        sendMessageToJava({
-          gecko: {
-            type: "PanZoom:Resize",
-            size: BrowserApp.getPageSizeForBrowser(browser)
-          }
-        });
         break;
     }
   },
@@ -1558,7 +1542,9 @@ var BrowserEventHandler = {
              (elem.scrollWidth > elem.clientWidth)) &&
             (elem.style.overflow == 'auto' ||
              elem.style.overflow == 'scroll' ||
-             elem.localName == 'textarea')) {
+             elem.localName == 'textarea' ||
+             elem.localName == 'html' ||
+             elem.localName == 'body')) {
           scrollable = true;
           break;
         }

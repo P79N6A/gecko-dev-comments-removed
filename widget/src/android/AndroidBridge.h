@@ -40,7 +40,6 @@
 
 #include <jni.h>
 #include <android/log.h>
-#include <cstdlib>
 
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
@@ -150,8 +149,8 @@ public:
 
     void ScheduleRestart();
 
-    void SetSoftwareLayerClient(jobject jobj);
-    AndroidGeckoSoftwareLayerClient &GetSoftwareLayerClient() { return mSoftwareLayerClient; }
+    void SetSurfaceView(jobject jobj);
+    AndroidGeckoSurfaceView& SurfaceView() { return mSurfaceView; }
 
     bool GetHandlersForURL(const char *aURL, 
                              nsIMutableArray* handlersArray = nsnull,
@@ -248,6 +247,9 @@ public:
         int mEntries;
     };
 
+    
+    void *CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView& surfaceView);
+
     bool GetStaticStringField(const char *classID, const char *field, nsAString &result);
 
     bool GetStaticIntField(const char *className, const char *fieldName, PRInt32* aInt);
@@ -313,7 +315,7 @@ protected:
     void *mThread;
 
     
-    AndroidGeckoSoftwareLayerClient mSoftwareLayerClient;
+    AndroidGeckoSurfaceView mSurfaceView;
 
     
     jclass mGeckoAppShellClass;
@@ -376,7 +378,6 @@ protected:
     jmethodID jHandleGeckoMessage;
     jmethodID jCheckUriVisited;
     jmethodID jMarkUriVisited;
-    jmethodID jEmitGeckoAccessibilityEvent;
     jmethodID jEnableBatteryNotifications;
     jmethodID jDisableBatteryNotifications;
     jmethodID jGetCurrentBatteryInformation;
