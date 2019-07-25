@@ -202,7 +202,7 @@ protected:
   
   
   
-  PRBool PacketOutUntilGranulepos();
+  nsresult PacketOutUntilGranulepos(PRBool& aFoundGranulepos);
 
   
   
