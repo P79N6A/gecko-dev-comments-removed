@@ -507,6 +507,11 @@ public:
                        bool         bNoBlockCrossing = false);
 
   
+  nsIContent* FindNode(nsINode *aCurrentNode,
+                       bool     aGoForward,
+                       bool     aEditableNode,
+                       bool     bNoBlockCrossing);
+  
 
 
 

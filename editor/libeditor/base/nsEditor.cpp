@@ -3253,34 +3253,10 @@ nsEditor::GetPriorNode(nsIDOMNode  *aCurrentNode,
                        bool         bNoBlockCrossing)
 {
   if (!aCurrentNode || !aResultNode) { return NS_ERROR_NULL_POINTER; }
-  
-  *aResultNode = nsnull;  
-
-  if (IsRootNode(aCurrentNode))
-  {
-    
-    
-    
-
-    return NS_OK;
-  }
 
   nsCOMPtr<nsINode> currentNode = do_QueryInterface(aCurrentNode);
-  nsCOMPtr<nsIDOMNode> candidate =
-    do_QueryInterface(FindNextLeafNode(currentNode, false, bNoBlockCrossing));
-  
-  if (!candidate)
-  {
-    
-    return NS_OK;
-  }
-  else if (!aEditableNode) *aResultNode = candidate;
-  else if (IsEditable(candidate)) *aResultNode = candidate;
-  else 
-  { 
-    nsCOMPtr<nsIDOMNode> notEditableNode = do_QueryInterface(candidate);
-    return GetPriorNode(notEditableNode, aEditableNode, aResultNode, bNoBlockCrossing);
-  }
+  *aResultNode =
+    do_QueryInterface(FindNode(currentNode, false, aEditableNode, bNoBlockCrossing));
   return NS_OK;
 }
 
@@ -3342,36 +3318,40 @@ nsEditor::GetNextNode(nsIDOMNode  *aCurrentNode,
                       bool         bNoBlockCrossing)
 {
   if (!aCurrentNode || !aResultNode) { return NS_ERROR_NULL_POINTER; }
-  
-  *aResultNode = nsnull;  
 
+  nsCOMPtr<nsINode> currentNode = do_QueryInterface(aCurrentNode);
+  *aResultNode =
+    do_QueryInterface(FindNode(currentNode, true, aEditableNode, bNoBlockCrossing));
+  return NS_OK;
+}
+
+nsIContent*
+nsEditor::FindNode(nsINode *aCurrentNode,
+                   bool     aGoForward,
+                   bool     aEditableNode,
+                   bool     bNoBlockCrossing)
+{
   if (IsRootNode(aCurrentNode))
   {
     
     
     
 
-    return NS_OK;
+    return nsnull;
   }
 
-  nsCOMPtr<nsINode> currentNode = do_QueryInterface(aCurrentNode);
-  nsCOMPtr<nsIDOMNode> candidate =
-    do_QueryInterface(FindNextLeafNode(currentNode, true, bNoBlockCrossing));
+  nsIContent* candidate =
+    FindNextLeafNode(aCurrentNode, aGoForward, bNoBlockCrossing);
   
-  if (!candidate)
-  {
-    
-    *aResultNode = nsnull;
-    return NS_OK;
+  if (!candidate) {
+    return nsnull;
   }
-  else if (!aEditableNode) *aResultNode = candidate;
-  else if (IsEditable(candidate)) *aResultNode = candidate;
-  else 
-  { 
-    nsCOMPtr<nsIDOMNode> notEditableNode = do_QueryInterface(candidate);
-    return GetNextNode(notEditableNode, aEditableNode, aResultNode, bNoBlockCrossing);
+
+  if (!aEditableNode || IsEditable(candidate)) {
+    return candidate;
   }
-  return NS_OK;
+
+  return FindNode(candidate, aGoForward, aEditableNode, bNoBlockCrossing);
 }
 
 already_AddRefed<nsIDOMNode>
