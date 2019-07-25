@@ -89,6 +89,7 @@
 #include <stdarg.h>
 #include "nsSMILMappedAttribute.h"
 #include "SVGMotionSMILAttr.h"
+#include "nsAttrValueOrString.h"
 
 using namespace mozilla;
 
@@ -267,6 +268,15 @@ nsSVGElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
   
   
   
+  
+  NS_ABORT_IF_FALSE(!mAttrsAndChildren.HasMappedAttrs(),
+    "Unexpected use of nsMappedAttributes within SVG");
+
+  
+  
+  
+  
+  
   if (aNamespaceID == kNameSpaceID_None && IsAttributeMapped(aName)) {
     mContentStyleRule = nsnull;
   }
@@ -303,6 +313,9 @@ nsSVGElement::ParseAttribute(PRInt32 aNamespaceID,
         rv = lengthInfo.mLengths[i].SetBaseValueString(aValue, this, false);
         if (NS_FAILED(rv)) {
           lengthInfo.Reset(i);
+        } else {
+          aResult.SetTo(lengthInfo.mLengths[i], &aValue);
+          didSetResult = true;
         }
         foundMatch = true;
         break;
@@ -592,8 +605,8 @@ nsSVGElement::UnsetAttrInternal(PRInt32 aNamespaceID, nsIAtom* aName,
 
     for (PRUint32 i = 0; i < lenInfo.mLengthCount; i++) {
       if (aName == *lenInfo.mLengthInfo[i].mName) {
+        MaybeSerializeAttrBeforeRemoval(aName, aNotify);
         lenInfo.Reset(i);
-        DidChangeLength(i, false);
         return;
       }
     }
@@ -1255,6 +1268,137 @@ nsSVGElement::GetAnimatedContentStyleRule()
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsAttrValue
+nsSVGElement::WillChangeValue(nsIAtom* aName)
+{
+  
+  
+  
+  
+  
+  
+  nsAttrValue emptyOrOldAttrValue;
+  const nsAttrValue* attrValue = GetParsedAttr(aName);
+
+  
+  
+  
+  
+  
+  nsAttrValueOrString attrStringOrValue(attrValue ? *attrValue
+                                                  : emptyOrOldAttrValue);
+  DebugOnly<nsresult> rv =
+    BeforeSetAttr(kNameSpaceID_None, aName, &attrStringOrValue,
+                  kNotifyDocumentObservers);
+  
+  
+  
+  NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "Unexpected failure from BeforeSetAttr");
+
+  
+  
+  if (attrValue &&
+      nsContentUtils::HasMutationListeners(this,
+                                           NS_EVENT_BITS_MUTATION_ATTRMODIFIED,
+                                           this)) {
+    emptyOrOldAttrValue.SetToSerialized(*attrValue);
+  }
+
+  PRUint8 modType = attrValue
+                  ? static_cast<PRUint8>(nsIDOMMutationEvent::MODIFICATION)
+                  : static_cast<PRUint8>(nsIDOMMutationEvent::ADDITION);
+  nsNodeUtils::AttributeWillChange(this, kNameSpaceID_None, aName, modType);
+
+  return emptyOrOldAttrValue;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void
+nsSVGElement::DidChangeValue(nsIAtom* aName,
+                             const nsAttrValue& aEmptyOrOldValue,
+                             nsAttrValue& aNewValue)
+{
+  bool hasListeners =
+    nsContentUtils::HasMutationListeners(this,
+                                         NS_EVENT_BITS_MUTATION_ATTRMODIFIED,
+                                         this);
+  PRUint8 modType = HasAttr(kNameSpaceID_None, aName)
+                  ? static_cast<PRUint8>(nsIDOMMutationEvent::MODIFICATION)
+                  : static_cast<PRUint8>(nsIDOMMutationEvent::ADDITION);
+  SetAttrAndNotify(kNameSpaceID_None, aName, nsnull, aEmptyOrOldValue,
+                   aNewValue, modType, hasListeners, kNotifyDocumentObservers,
+                   kCallAfterSetAttr);
+}
+
+void
+nsSVGElement::MaybeSerializeAttrBeforeRemoval(nsIAtom* aName, bool aNotify)
+{
+  if (!aNotify ||
+      !nsContentUtils::HasMutationListeners(this,
+                                            NS_EVENT_BITS_MUTATION_ATTRMODIFIED,
+                                            this)) {
+    return;
+  }
+
+  nsAutoString serializedValue;
+  mAttrsAndChildren.GetAttr(aName)->ToString(serializedValue);
+  nsAttrValue attrValue(serializedValue);
+  mAttrsAndChildren.SetAndTakeAttr(aName, attrValue);
+}
+
+
 nsIAtom* nsSVGElement::GetEventNameForAttr(nsIAtom* aAttr)
 {
   if (aAttr == nsGkAtoms::onload)
@@ -1336,25 +1480,27 @@ nsSVGElement::SetLength(nsIAtom* aName, const nsSVGLength2 &aLength)
   NS_ABORT_IF_FALSE(false, "no length found to set");
 }
 
-void
-nsSVGElement::DidChangeLength(PRUint8 aAttrEnum, bool aDoSetAttr)
+nsAttrValue
+nsSVGElement::WillChangeLength(PRUint8 aAttrEnum)
 {
-  if (!aDoSetAttr)
-    return;
+  return WillChangeValue(*GetLengthInfo().mLengthInfo[aAttrEnum].mName);
+}
 
+void
+nsSVGElement::DidChangeLength(PRUint8 aAttrEnum,
+                              const nsAttrValue& aEmptyOrOldValue)
+{
   LengthAttributesInfo info = GetLengthInfo();
 
   NS_ASSERTION(info.mLengthCount > 0,
                "DidChangeLength on element with no length attribs");
-
   NS_ASSERTION(aAttrEnum < info.mLengthCount, "aAttrEnum out of range");
 
-  nsAutoString serializedValue;
-  info.mLengths[aAttrEnum].GetBaseValueString(serializedValue);
+  nsAttrValue newValue;
+  newValue.SetTo(info.mLengths[aAttrEnum], nsnull);
 
-  nsAttrValue attrValue(serializedValue);
-  SetParsedAttr(kNameSpaceID_None, *info.mLengthInfo[aAttrEnum].mName, nsnull,
-                attrValue, true);
+  DidChangeValue(*info.mLengthInfo[aAttrEnum].mName, aEmptyOrOldValue,
+                 newValue);
 }
 
 void
