@@ -59,6 +59,36 @@ let Utils = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+  asyncChain: function asyncChain() {
+    let funcs = Array.slice(arguments);
+    let thisObj = this;
+    return function callback() {
+      if (funcs.length) {
+        let args = Array.slice(arguments).concat(callback);
+        let f = funcs.shift();
+        f.apply(thisObj, args);
+      }
+    };
+  },
+
+  
+
+
+
+
+
   catch: function Utils_catch(func) {
     let thisArg = this;
     return function WrappedCatch() {
