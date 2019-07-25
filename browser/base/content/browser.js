@@ -5774,6 +5774,7 @@ var IndexedDBPromptHelper = {
 
   _quotaPrompt: "indexedDB-quota-prompt",
   _quotaResponse: "indexedDB-quota-response",
+  _quotaCancel: "indexedDB-quota-cancel",
 
   _notificationIcon: "indexedDB-notification-icon",
 
@@ -5781,18 +5782,21 @@ var IndexedDBPromptHelper = {
   function IndexedDBPromptHelper_init() {
     Services.obs.addObserver(this, this._permissionsPrompt, false);
     Services.obs.addObserver(this, this._quotaPrompt, false);
+    Services.obs.addObserver(this, this._quotaCancel, false);
   },
 
   uninit:
   function IndexedDBPromptHelper_uninit() {
     Services.obs.removeObserver(this, this._permissionsPrompt, false);
     Services.obs.removeObserver(this, this._quotaPrompt, false);
+    Services.obs.removeObserver(this, this._quotaCancel, false);
   },
 
   observe:
   function IndexedDBPromptHelper_observe(subject, topic, data) {
     if (topic != this._permissionsPrompt &&
-        topic != this._quotaPrompt) {
+        topic != this._quotaPrompt &&
+        topic != this._quotaCancel) {
       throw new Error("Unexpected topic!");
     }
 
@@ -5822,6 +5826,9 @@ var IndexedDBPromptHelper = {
     else if (topic == this._quotaPrompt) {
       message = gNavigatorBundle.getFormattedString("indexedDB.usage",
                                                     [ host, data ]);
+      responseTopic = this._quotaResponse;
+    }
+    else if (topic == this._quotaCancel) {
       responseTopic = this._quotaResponse;
     }
 
@@ -5862,11 +5869,15 @@ var IndexedDBPromptHelper = {
     ];
 
     
+    
+    
     var notification;
 
     function timeoutNotification() {
       
-      notification.remove();
+      if (notification) {
+        notification.remove();
+      }
 
       
       cleanup();
@@ -5899,6 +5910,13 @@ var IndexedDBPromptHelper = {
         }
       }
     };
+
+    if (topic == this._quotaCancel) {
+      notification = PopupNotifications.getNotification(this._quotaPrompt,
+                                                        browser);
+      timeoutNotification();
+      return;
+    }
 
     notification = PopupNotifications.show(browser, topic, message,
                                            this._notificationIcon, mainAction,

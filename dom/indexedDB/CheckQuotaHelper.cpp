@@ -58,6 +58,7 @@
 
 #define TOPIC_QUOTA_PROMPT "indexedDB-quota-prompt"
 #define TOPIC_QUOTA_RESPONSE "indexedDB-quota-response"
+#define TOPIC_QUOTA_CANCEL "indexedDB-quota-cancel"
 
 USING_INDEXEDDB_NAMESPACE
 using namespace mozilla::services;
@@ -132,6 +133,39 @@ CheckQuotaHelper::PromptAndReturnQuotaIsDisabled()
   return mPromptResult == nsIPermissionManager::ALLOW_ACTION;
 }
 
+void
+CheckQuotaHelper::Cancel()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  mMutex.AssertCurrentThreadOwns();
+
+  if (mWaiting && !mHasPrompted) {
+    MutexAutoUnlock unlock(mMutex);
+
+    
+    nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    NS_WARN_IF_FALSE(obs, "Failed to get observer service!");
+    if (obs && NS_FAILED(obs->NotifyObservers(static_cast<nsIRunnable*>(this),
+                                              TOPIC_QUOTA_CANCEL, nsnull))) {
+      NS_WARNING("Failed to notify observers!");
+    }
+
+    
+    
+    if (!mHasPrompted) {
+      nsAutoString response;
+      response.AppendInt(nsIPermissionManager::UNKNOWN_ACTION);
+
+      if (NS_SUCCEEDED(Observe(nsnull, TOPIC_QUOTA_RESPONSE, response.get()))) {
+        NS_ASSERTION(mHasPrompted, "Should have set this in Observe!");
+      }
+      else {
+        NS_WARNING("Failed to notify!");
+      }
+    }
+  }
+}
+
 NS_IMPL_THREADSAFE_ISUPPORTS3(CheckQuotaHelper, nsIRunnable,
                                                 nsIInterfaceRequestor,
                                                 nsIObserver)
@@ -170,6 +204,13 @@ CheckQuotaHelper::Run()
     quotaString.AppendInt(quota);
 
     nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    NS_ENSURE_STATE(obs);
+
+    
+    
+    rv = obs->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+
     rv = obs->NotifyObservers(static_cast<nsIRunnable*>(this),
                               TOPIC_QUOTA_PROMPT, quotaString.get());
     NS_ENSURE_SUCCESS(rv, rv);
@@ -214,13 +255,54 @@ CheckQuotaHelper::Observe(nsISupports* aSubject,
                           const PRUnichar* aData)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(!strcmp(aTopic, TOPIC_QUOTA_RESPONSE), "Bad topic!");
-
-  mHasPrompted = true;
 
   nsresult rv;
-  mPromptResult = nsDependentString(aData).ToInteger(&rv);
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  return NS_DispatchToCurrentThread(this);
+  if (!strcmp(aTopic, TOPIC_QUOTA_RESPONSE)) {
+    if (!mHasPrompted) {
+      mHasPrompted = true;
+
+      mPromptResult = nsDependentString(aData).ToInteger(&rv);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = NS_DispatchToCurrentThread(this);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      nsCOMPtr<nsIObserverService> obs = GetObserverService();
+      NS_ENSURE_STATE(obs);
+
+      rv = obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    return NS_OK;
+  }
+
+  if (!strcmp(aTopic, DOM_WINDOW_DESTROYED_TOPIC)) {
+    NS_ASSERTION(!mHasPrompted, "Should have removed observer before now!");
+    NS_ASSERTION(mWindow, "This should never be null!");
+
+    nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aSubject));
+    NS_ENSURE_STATE(window);
+
+    if (mWindow->GetSerial() == window->GetSerial()) {
+      
+      mHasPrompted = true;
+      mPromptResult = nsIPermissionManager::UNKNOWN_ACTION;
+
+      rv = NS_DispatchToCurrentThread(this);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      nsCOMPtr<nsIObserverService> obs = GetObserverService();
+      NS_ENSURE_STATE(obs);
+
+      rv = obs->RemoveObserver(this, DOM_WINDOW_DESTROYED_TOPIC);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    return NS_OK;
+  }
+
+  NS_NOTREACHED("Unexpected topic!");
+  return NS_ERROR_UNEXPECTED;
 }
