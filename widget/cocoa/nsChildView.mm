@@ -43,6 +43,8 @@
 
 #include "mozilla/Util.h"
 
+#include "mozilla/layers/Compositor.h"
+
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif
@@ -87,15 +89,12 @@
 #include "Layers.h"
 #include "LayerManagerOGL.h"
 #include "GLContext.h"
-#include "mozilla/layers/CompositorCocoaWidgetHelper.h"
 
 #include "mozilla/Preferences.h"
 
 #include <dlfcn.h>
 
 #include <ApplicationServices/ApplicationServices.h>
-
-#include "sampler.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
@@ -1401,7 +1400,7 @@ static void blinkRgn(RgnHandle rgn)
 #endif
 
 // Invalidate this component's visible area
-NS_IMETHODIMP nsChildView::Invalidate(const nsIntRect &aRect)
+NS_IMETHODIMP nsChildView::Invalidate(const nsIntRect &aRect, bool aIsSynchronous)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -1411,7 +1410,10 @@ NS_IMETHODIMP nsChildView::Invalidate(const nsIntRect &aRect)
   NSRect r;
   nsCocoaUtils::GeckoRectToNSRect(aRect, r);
   
-  if ([NSView focusView]) {
+  if (aIsSynchronous) {
+    [mView displayRect:r];
+  }
+  else if ([NSView focusView]) {
     // if a view is focussed (i.e. being drawn), then postpone the invalidate so that we
     // don't lose it.
     [mView setNeedsPendingDisplayInRect:r];
@@ -1440,6 +1442,15 @@ inline PRUint16 COLOR8TOCOLOR16(PRUint8 color8)
 {
   // return (color8 == 0xFF ? 0xFFFF : (color8 << 8));
   return (color8 << 8) | color8;  /* (color8 * 257) == (color8 * 0x0101) */
+}
+
+// The OS manages repaints well enough on its own, so we don't have to
+// flush them out here.  In other words, the OS will automatically call
+// displayIfNeeded at the appropriate times, so we don't need to do it
+// ourselves.  See bmo bug 459319.
+NS_IMETHODIMP nsChildView::Update()
+{
+  return NS_OK;
 }
 
 #pragma mark -
@@ -1833,7 +1844,7 @@ DrawResizer(CGContextRef aCtx)
 }
 
 void
-nsChildView::DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect)
+nsChildView::DrawOver(LayerManager* aManager, nsIntRect aRect)
 {
   if (!ShowsResizeIndicator(nsnull)) {
     return;
@@ -2506,7 +2517,6 @@ NSEvent* gLastDragMouseDownEvent = nil;
 
 - (void)drawRect:(NSRect)aRect inContext:(CGContextRef)aContext
 {
-  SAMPLE_LABEL("widget", "ChildView::drawRect");
   bool isVisible;
   if (!mGeckoChild || NS_FAILED(mGeckoChild->IsVisible(isVisible)) ||
       !isVisible)
@@ -2538,7 +2548,6 @@ NSEvent* gLastDragMouseDownEvent = nil;
 #endif
   // Create the event so we can fill in its region
   nsPaintEvent paintEvent(true, NS_PAINT, mGeckoChild);
-  paintEvent.didSendWillPaint = true;
 
   nsIntRect boundingRect =
     nsIntRect(aRect.origin.x, aRect.origin.y, aRect.size.width, aRect.size.height);
@@ -4597,8 +4606,11 @@ NSEvent* gLastDragMouseDownEvent = nil;
     if (operation == NSDragOperationNone) {
       nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
       dragService->GetDataTransfer(getter_AddRefs(dataTransfer));
-      if (dataTransfer)
-        dataTransfer->SetDropEffectInt(nsIDragService::DRAGDROP_ACTION_NONE);
+      nsCOMPtr<nsIDOMNSDataTransfer> dataTransferNS =
+        do_QueryInterface(dataTransfer);
+
+      if (dataTransferNS)
+        dataTransferNS->SetDropEffectInt(nsIDragService::DRAGDROP_ACTION_NONE);
     }
 
     mDragService->EndDragSession(true);

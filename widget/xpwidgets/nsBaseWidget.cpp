@@ -115,7 +115,6 @@ nsBaseWidget::nsBaseWidget()
 , mBorderStyle(eBorderStyle_none)
 , mOnDestroyCalled(false)
 , mUseAcceleratedRendering(false)
-, mForceLayersAcceleration(false)
 , mTemporarilyUseBasicLayerManager(false)
 , mBounds(0,0,0,0)
 , mOriginalBounds(nsnull)
@@ -261,23 +260,6 @@ nsBaseWidget::CreateChild(const nsIntRect  &aRect,
   }
 
   return nsnull;
-}
-
-NS_IMETHODIMP
-nsBaseWidget::SetEventCallback(EVENT_CALLBACK aEventFunction,
-                               nsDeviceContext *aContext)
-{
-  NS_ASSERTION(aEventFunction, "Must have valid event callback!");
-
-  mEventCallback = aEventFunction;
-
-  if (aContext) {
-    NS_IF_RELEASE(mContext);
-    mContext = aContext;
-    NS_ADDREF(mContext);
-  }
-
-  return NS_OK;
 }
 
 
@@ -796,7 +778,7 @@ nsBaseWidget::GetShouldAccelerate()
   
   bool disableAcceleration =
     Preferences::GetBool("layers.acceleration.disabled", false);
-  mForceLayersAcceleration =
+  bool forceAcceleration =
     Preferences::GetBool("layers.acceleration.force-enabled", false);
 
   const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
@@ -829,7 +811,7 @@ nsBaseWidget::GetShouldAccelerate()
   if (disableAcceleration || safeMode)
     return false;
 
-  if (mForceLayersAcceleration)
+  if (forceAcceleration)
     return true;
   
   if (!whitelisted) {
@@ -855,15 +837,13 @@ void nsBaseWidget::CreateCompositor()
     AsyncChannel *parentChannel = mCompositorParent->GetIPCChannel();
     AsyncChannel::Side childSide = mozilla::ipc::AsyncChannel::Child;
     mCompositorChild->Open(parentChannel, childMessageLoop, childSide);
-    PLayersChild* shadowManager =
-      mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL);
+    PLayersChild* shadowManager = mCompositorChild->SendPLayersConstructor(                                                LayerManager::LAYERS_OPENGL);
 
     if (shadowManager) {
       ShadowLayerForwarder* lf = lm->AsShadowForwarder();
       if (!lf) {
         delete lm;
         mCompositorChild = nsnull;
-        return;
       }
       lf->SetShadowManager(shadowManager);
       lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
@@ -907,8 +887,7 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
 
 
 
-
-        if (layerManager->Initialize(mForceLayersAcceleration)) {
+        if (layerManager->Initialize()) {
           mLayerManager = layerManager;
         }
       }
@@ -1279,18 +1258,6 @@ nsBaseWidget::BeginMoveDrag(nsMouseEvent* aEvent)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-PRUint32
-nsBaseWidget::GetGLFrameBufferFormat()
-{
-  if (mLayerManager &&
-      mLayerManager->GetBackendType() == LayerManager::LAYERS_OPENGL) {
-    
-    
-    return LOCAL_GL_RGBA;
-  }
-  return LOCAL_GL_NONE;
-}
-
 #ifdef DEBUG
 
 
@@ -1558,6 +1525,7 @@ nsBaseWidget::debug_DumpPaintEvent(FILE *                aFileOut,
 nsBaseWidget::debug_DumpInvalidate(FILE *                aFileOut,
                                    nsIWidget *           aWidget,
                                    const nsIntRect *     aRect,
+                                   bool                  aIsSynchronous,
                                    const nsCAutoString & aWidgetName,
                                    PRInt32               aWindowID)
 {
@@ -1589,6 +1557,10 @@ nsBaseWidget::debug_DumpInvalidate(FILE *                aFileOut,
             " rect=%-15s",
             "none");
   }
+
+  fprintf(aFileOut,
+          " sync=%s",
+          (const char *) (aIsSynchronous ? "yes" : "no "));
   
   fprintf(aFileOut,"\n");
 }

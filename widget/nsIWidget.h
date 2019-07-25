@@ -118,9 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x3fa36ce2, 0x472d, 0x4bff, \
-    { 0xb1, 0xe4, 0xc3, 0xe3, 0x19, 0x24, 0xa1, 0xe4 } }
-
+  { 0x6ca77c11, 0xade7, 0x4715, \
+    { 0x82, 0xe0, 0xfe, 0xae, 0x42, 0xca, 0x5b, 0x1f } }
 
 
 
@@ -478,14 +477,6 @@ class nsIWidget : public nsISupports {
                 nsDeviceContext  *aContext,
                 nsWidgetInitData *aInitData = nsnull,
                 bool             aForceUseIWidgetParent = false) = 0;
-
-    
-
-
-
-
-    NS_IMETHOD SetEventCallback(EVENT_CALLBACK aEventFunction,
-                                nsDeviceContext *aContext) = 0;
 
     
 
@@ -1017,20 +1008,6 @@ class nsIWidget : public nsISupports {
 
     virtual void SetShowsToolbarButton(bool aShow) = 0;
 
-    enum WindowAnimationType {
-      eGenericWindowAnimation,
-      eDocumentWindowAnimation
-    };
-
-    
-
-
-
-
-
-
-    virtual void SetWindowAnimationType(WindowAnimationType aType) = 0;
-
     
 
 
@@ -1047,7 +1024,18 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD Invalidate(const nsIntRect & aRect) = 0;
+
+
+
+    NS_IMETHOD Invalidate(const nsIntRect & aRect, bool aIsSynchronous) = 0;
+
+    
+
+
+
+
+
+     NS_IMETHOD Update() = 0;
 
     enum LayerManagerPersistence
     {
@@ -1091,7 +1079,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
+    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
 
     
 
@@ -1533,12 +1521,6 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent) = 0;
-
-    
-
-
-
-    virtual PRUint32 GetGLFrameBufferFormat() { return 0;  }
 protected:
 
     
