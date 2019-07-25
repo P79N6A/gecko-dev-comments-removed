@@ -234,8 +234,7 @@ MouseModule.prototype = {
     this._onMouseMove(aEvent);
 
     let dragData = this._dragData;
-    if (dragData.dragging)
-      this._doDragStop();
+    this._doDragStop();
 
     
     if (this._target) {
@@ -318,13 +317,16 @@ MouseModule.prototype = {
 
   
   _doDragStop: function _doDragStop() {
-    this._dragData.endDrag();
-
-    
-    
-    
-
     let dragData = this._dragData;
+    if (!dragData.dragging)
+      return;
+
+    dragData.endDrag();
+
+    
+    
+    
+
     if (!dragData.isPan() && !this._kinetic.isActive()) {
       
       this._dragger.dragStop(0, 0, this._targetScrollInterface);
