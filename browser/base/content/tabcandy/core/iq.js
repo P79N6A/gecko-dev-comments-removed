@@ -195,19 +195,6 @@ iQClass.prototype = {
   
   
   
-  
-  get: function(num) {
-    if (num == null) 
-      return Array.slice(this, 0);
-
-    
-    let index = num < 0 ? num + this.length : num;
-    return this[index];
-  },
-
-  
-  
-  
   each: function(callback) {
     if (typeof callback != "function") {
       Utils.assert("each's argument must be a function", false);
