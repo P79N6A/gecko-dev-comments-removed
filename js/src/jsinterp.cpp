@@ -767,10 +767,6 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
 
     do {
         
-        if (cx->compartment->debugMode)
-            break;
-
-        
         if (!calleev.isObject())
             break;
         JSObject &callee = calleev.toObject();
@@ -798,7 +794,7 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
             return false;
         if (status != mjit::Compile_Okay)
             break;
-        code_ = script_->getJIT(fp->isConstructing())->invokeEntry;
+        
 
         
         JS_CHECK_RECURSION(cx, return JS_FALSE);
