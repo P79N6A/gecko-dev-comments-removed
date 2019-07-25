@@ -5821,6 +5821,10 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
                      fun->kind() == JSFUN_INTERPRETED);
 
         
+
+
+
+
         BytecodeEmitter *bce2 = cx->new_<BytecodeEmitter>(bce->parser, pn->pn_pos.begin.lineno);
         if (!bce2) {
             js_ReportOutOfMemory(cx);
