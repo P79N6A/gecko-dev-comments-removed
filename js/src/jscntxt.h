@@ -2017,8 +2017,8 @@ struct JSContext
     
     char                *lastMessage;
 #ifdef DEBUG
-    void                *tracefp;
-    jsbytecode          *tracePrevPc;
+    void                *logfp;
+    jsbytecode          *logPrevPc;
 #endif
 
     
