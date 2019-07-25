@@ -1607,6 +1607,8 @@ UpdateService.prototype = {
 #ifdef XP_WIN
       this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ENABLED,
                                       "UPDATER_SERVICE_ENABLED");
+      this._sendIntPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ERRORS,
+                                     "UPDATER_SERVICE_ERRORS");
 #endif
 
       update.statusText = gUpdateBundle.GetStringFromName("installSuccess");
@@ -1663,6 +1665,28 @@ UpdateService.prototype = {
       Components.utils.reportError(e);
     }
   },
+
+  
+
+
+
+
+
+
+
+  _sendIntPrefTelemetryPing: function AUS__intTelemetryPing(pref, histogram) {
+    try {
+      
+      
+      
+      let val = getPref("getIntPref", pref, 0);
+      Services.telemetry.getHistogramById(histogram).add(val);
+    } catch(e) {
+      
+      Components.utils.reportError(e);
+    }
+  },
+
 
   
 
