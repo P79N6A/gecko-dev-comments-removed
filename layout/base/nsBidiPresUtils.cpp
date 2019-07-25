@@ -571,9 +571,18 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
         nsIFrame* child = frame;
         nsIFrame* parent = frame->GetParent();
         
+        
+        
+        
+        
         while (parent &&
                IsBidiSplittable(parent) &&
                !child->GetNextSibling()) {
+          nsIFrame* next = parent->GetNextInFlow();
+          if (next) {
+            parent->SetNextContinuation(next);
+            next->SetPrevContinuation(parent);
+          }
           child = parent;
           parent = child->GetParent();
         }
