@@ -120,6 +120,30 @@ class nsHtml5Highlighter
 
     void CompletedNamedCharacterReference();
 
+    
+
+
+
+    void AddErrorToCurrentNode(const char* aMsgId);
+
+    
+
+
+
+    void AddErrorToCurrentMarkupDecl(const char* aMsgId);
+
+    
+
+
+
+    void AddErrorToCurrentAmpersand(const char* aMsgId);
+
+    
+
+
+
+    void AddErrorToCurrentSlash(const char* aMsgId);
+
   private:
 
     
@@ -284,6 +308,22 @@ class nsHtml5Highlighter
 
 
     nsAHtml5TreeOpSink* mOpSink;
+
+    
+
+
+    nsIContent** mMarkupDecl;
+
+    
+
+
+
+    nsIContent** mAmpersand;
+
+    
+
+
+    nsIContent** mSlash;
 
     
 
