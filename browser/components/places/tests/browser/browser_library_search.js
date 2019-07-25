@@ -59,7 +59,7 @@
 
 
 
- 
+
 const TEST_URL = "http://dummy.mozilla.org/";
 
 
@@ -225,10 +225,14 @@ function search(aFolderId, aSearchStr, aExpectedScopeButtonId) {
         getSelectedScopeButtonId() == "scopeBarAll" ||
         aFolderId == PlacesUtils.bookmarks.unfiledBookmarksFolder) {
       
-      contentTree.view.selection.select(0);
-      var foundNode = contentTree.selectedNode;
-      isnot(foundNode, null, "Found a valid node");
-      is(foundNode.uri, TEST_URL);
+      var node = null;
+      for (var i = 0; i < contentTree.view.rowCount; i++) {
+        node = contentTree.view.nodeForTreeIndex(i);
+        if (node.uri === TEST_URL)
+          break;
+      }
+      isnot(node, null, "At least the target node should be in the tree");
+      is(node.uri, TEST_URL, "URI of node should match target URL");
     }
   }
   else {
