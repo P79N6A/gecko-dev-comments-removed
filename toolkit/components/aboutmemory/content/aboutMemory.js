@@ -419,7 +419,7 @@ function genProcessText(aProcess, aReporters)
     
     
     
-    var heapUsedBytes = getBytes(aReporters, "heap-used", true);
+    var heapUsedBytes = getBytes(aReporters, "heap-allocated", true);
     var unknownHeapUsedBytes = 0;
     var hasProblem = true;
     if (heapUsedBytes !== kUnknown) {
@@ -431,9 +431,8 @@ function genProcessText(aProcess, aReporters)
       _kind: KIND_HEAP,
       _description:
         "Memory not classified by a more specific reporter. This includes " +
-        "memory allocated by the heap allocator in excess of that requested " +
-        "by the application; this can happen when the heap allocator rounds " +
-        "up request sizes.",
+        "waste due to internal fragmentation in the heap allocator (caused when " +
+        "the allocator rounds up request sizes).",
       _amount: unknownHeapUsedBytes,
       _hasProblem: hasProblem,
       _kids: []
