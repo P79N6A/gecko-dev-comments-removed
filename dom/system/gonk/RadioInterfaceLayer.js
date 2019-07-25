@@ -2,17 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 "use strict";
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
@@ -357,7 +346,7 @@ RadioInterfaceLayer.prototype = {
         this.handleSmsSendFailed(message);
         return;
       case "datacallstatechange":
-        this.handleDataCallState(message.datacall);
+        this.handleDataCallState(message);
         break;
       case "datacalllist":
         this.handleDataCallList(message);
@@ -481,7 +470,7 @@ RadioInterfaceLayer.prototype = {
       voiceInfo.signalStrength = null;
       voiceInfo.relSignalStrength = null;
       ppmm.sendAsyncMessage("RIL:VoiceInfoChanged", voiceInfo);
-      return;
+      return false;
     }
 
     let isRoaming = regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING;
@@ -536,7 +525,7 @@ RadioInterfaceLayer.prototype = {
       data.signalStrength = null;
       data.relSignalStrength = null;
       ppmm.sendAsyncMessage("RIL:DataInfoChanged", data);
-      return;
+      return false;
     }
     data.roaming =
       (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
