@@ -3761,6 +3761,10 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
         return result;
     }
 
+    
+    
+    canvas->MarkContextClean();
+
     if (aSurfaceFlags & SFE_NO_PREMULTIPLY_ALPHA) {
       
       
