@@ -111,8 +111,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xe1dda370, 0xdf16, 0x4c92, \
-    { 0x9b, 0x86, 0x4b, 0xd9, 0xcf, 0xff, 0x4e, 0xb1 } }
+  { 0x193fcc7a, 0x2456, 0x4625, \
+    { 0x85, 0x40, 0x38, 0xed, 0x00, 0x69, 0x93, 0xf5 } }
 
 
 
@@ -236,31 +236,6 @@ class nsIWidget : public nsISupports {
                       nsIAppShell      *aAppShell = nsnull,
                       nsIToolkit       *aToolkit = nsnull,
                       nsWidgetInitData *aInitData = nsnull) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    virtual already_AddRefed<nsIWidget>
-    CreateChild(const nsIntRect  &aRect,
-                EVENT_CALLBACK   aHandleEventFunction,
-                nsIDeviceContext *aContext,
-                nsIAppShell      *aAppShell = nsnull,
-                nsIToolkit       *aToolkit = nsnull,
-                nsWidgetInitData *aInitData = nsnull,
-                PRBool           aForceUseIWidgetParent = PR_FALSE) = 0;
 
     
 
@@ -1236,8 +1211,6 @@ class nsIWidget : public nsISupports {
     NS_IMETHOD OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
                                               PRBool aIsHorizontal,
                                               PRInt32 &aOverriddenDelta) = 0;
-
-    
 
 protected:
     

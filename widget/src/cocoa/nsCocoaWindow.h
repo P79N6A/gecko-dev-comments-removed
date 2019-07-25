@@ -313,14 +313,6 @@ protected:
   void                 SetUpWindowFilter();
   void                 CleanUpWindowFilter();
 
-  virtual already_AddRefed<nsIWidget>
-  AllocateChildPopupWidget()
-  {
-    static NS_DEFINE_IID(kCPopUpCID, NS_POPUP_CID);
-    nsCOMPtr<nsIWidget> widget = do_CreateInstance(kCPopUpCID);
-    return widget.forget();
-  }
-
   nsIWidget*           mParent;         
   BaseWindow*          mWindow;         
   WindowDelegate*      mDelegate;       
