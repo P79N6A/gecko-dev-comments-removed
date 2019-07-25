@@ -220,14 +220,14 @@ struct PICInfo {
             RegisterID idReg    : 5;  
             uint32 idRemat      : 20;
             bool idNeedsRemat   : 1;
-
-            
-            
-            
-            int secondShapeGuard;
         } get;
         ValueRemat vr;
     } u;
+
+    
+    
+    
+    int secondShapeGuard : 11;
 
     Kind kind : 3;
 
@@ -340,9 +340,9 @@ struct PICInfo {
         hit = false;
         inlinePathPatched = false;
         if (kind == GET || kind == CALL || kind == GETELEM) {
-            u.get.secondShapeGuard = 0;
             u.get.objNeedsRemat = false;
         }
+        secondShapeGuard = 0;
         shapeRegHasBaseShape = true;
         stubsGenerated = 0;
         releasePools();
