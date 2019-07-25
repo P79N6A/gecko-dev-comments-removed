@@ -2568,9 +2568,6 @@ JS_DestroyContext(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_DestroyContextNoGC(JSContext *cx);
 
-extern JS_PUBLIC_API(void)
-JS_DestroyContextMaybeGC(JSContext *cx);
-
 extern JS_PUBLIC_API(void *)
 JS_GetContextPrivate(JSContext *cx);
 
@@ -3164,12 +3161,6 @@ JS_DumpNamedRoots(JSRuntime *rt,
 
 
 
-
-
-
-
-
-
 #define JS_MAP_GCROOT_NEXT      0       /* continue mapping entries */
 #define JS_MAP_GCROOT_STOP      1       /* stop mapping entries */
 #define JS_MAP_GCROOT_REMOVE    2       /* remove and free the current entry */
@@ -3414,10 +3405,10 @@ JS_DumpHeap(JSRuntime *rt, FILE *fp, void* startThing, JSGCTraceKind kind,
 
 
 extern JS_PUBLIC_API(void)
-JS_GC(JSContext *cx);
+JS_GC(JSRuntime *rt);
 
 extern JS_PUBLIC_API(void)
-JS_CompartmentGC(JSContext *cx, JSCompartment *comp);
+JS_CompartmentGC(JSRuntime *rt, JSCompartment *comp);
 
 extern JS_PUBLIC_API(void)
 JS_MaybeGC(JSContext *cx);
@@ -3491,15 +3482,6 @@ JS_SetGCParameterForThread(JSContext *cx, JSGCParamKey key, uint32_t value);
 
 extern JS_PUBLIC_API(uint32_t)
 JS_GetGCParameterForThread(JSContext *cx, JSGCParamKey key);
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_FlushCaches(JSContext *cx);
 
 
 

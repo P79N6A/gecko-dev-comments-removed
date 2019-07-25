@@ -45,7 +45,7 @@
 
 #include "jsapi.h"
 
-#include "nsIJSContextStack.h"
+#include "nsIJSRuntimeService.h"
 #include "nsIAppStartup.h"
 #include "nsIDirectoryEnumerator.h"
 #include "nsILocalFile.h"
@@ -837,14 +837,15 @@ nsXREDirProvider::DoShutdown()
 
       
       
-      nsCOMPtr<nsIThreadJSContextStack> stack
-        (do_GetService("@mozilla.org/js/xpc/ContextStack;1"));
-      if (stack)
+
+      nsCOMPtr<nsIJSRuntimeService> rtsvc
+        (do_GetService("@mozilla.org/js/xpc/RuntimeService;1"));
+      if (rtsvc)
       {
-        JSContext *cx = nsnull;
-        stack->GetSafeJSContext(&cx);
-        if (cx)
-          ::JS_GC(cx);
+        JSRuntime *rt = nsnull;
+        rtsvc->GetRuntime(&rt);
+        if (rt)
+          ::JS_GC(rt);
       }
 
       

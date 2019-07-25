@@ -191,6 +191,12 @@ JSD_GetDefaultJSContext(JSDContext* jsdc);
 
 
 
+extern JSD_PUBLIC_API(JSRuntime*)
+JSD_GetJSRuntime(JSDContext* jsdc);
+
+
+
+
 extern JSD_PUBLIC_API(void *)
 JSD_SetContextPrivate(JSDContext *jsdc, void *data);
 

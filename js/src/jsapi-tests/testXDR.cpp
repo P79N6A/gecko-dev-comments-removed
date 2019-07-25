@@ -202,7 +202,7 @@ BEGIN_TEST(testXDR_bug506491)
     CHECK(JS_ExecuteScript(cx, global, script, v2.addr()));
 
     
-    JS_GC(cx);
+    JS_GC(rt);
 
     
     EVAL("f() === 'ok';\n", v2.addr());
