@@ -55,7 +55,15 @@ Group.prototype = {
         opacity: 0,
       })
       .appendTo("body")
-      .animate({opacity:1.0});
+      .animate({opacity:1.0}).dequeue();
+    
+    var resizer = $("<div class='resizer'/>")
+      .css({
+        position: "absolute",
+        width: 16, height: 16,
+        bottom: 0, right: 0,
+      }).appendTo(container);
+
 
     this._container = container;
     
@@ -82,7 +90,7 @@ Group.prototype = {
     this._children = this._children.filter(function(child){
       if( $(child).data("toRemove") == true ){
         $(child).data("group", null);
-        $(child).animate({width:160, height:137}, 250);
+        scaleTab( $(child), 160/$(child).width());
         $(child).droppable("enable");        
         return false;
       }
@@ -117,18 +125,9 @@ Group.prototype = {
 
     var x=pad;
     var y=pad;
-    for([,tab] in Iterator(this._children)){
-      
-      
-      
-
-
-
-
-
-            
+    for([,tab] in Iterator(this._children)){      
+      scaleTab( $(tab), w/$(tab).width());
       $(tab).animate({
-        height:h, width: w,
         top:y+bb.top, left:x+bb.left,
       }, 250);
       
@@ -175,8 +174,15 @@ Group.prototype = {
         self.add( $dragged )
       },
       accept: ".tab",
-      
     });
+    
+    $(container).resizable({
+      handles: "se",
+      aspectRatio: true,
+      stop: function(){
+        self.arrange();
+      } 
+    })
     
     }
 }
@@ -252,6 +258,24 @@ window.Groups = {
     }
   }  
 };
+
+function scaleTab( el, factor ){  
+  var $el = $(el);
+
+  
+  
+  
+  if( $("canvas", el)[0] != null ){
+    $("canvas", el).data('link').animate({height:$el.height()*factor}, 250);
+  }
+
+  $el.animate({
+    width: $el.width()*factor,
+    height: $el.height()*factor,
+    fontSize: parseInt($el.css("fontSize"))*factor,
+  },250).dequeue();
+}
+
 
 $(".tab").data('isDragging', false)
   .draggable(window.Groups.dragOptions)
