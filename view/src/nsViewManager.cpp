@@ -753,17 +753,13 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
       break;
 
     case NS_WILL_PAINT:
-    case NS_PAINT:
       {
-        nsPaintEvent *event = static_cast<nsPaintEvent*>(aEvent);
-
         if (!aView || !mContext)
           break;
 
         *aStatus = nsEventStatus_eConsumeNoDefault;
 
-        if (aEvent->message == NS_PAINT && event->region.IsEmpty())
-          break;
+        nsPaintEvent *event = static_cast<nsPaintEvent*>(aEvent);
 
         NS_ASSERTION(static_cast<nsView*>(aView) ==
                        nsView::GetViewFor(event->widget),
@@ -771,16 +767,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
         
         
-
-        
-        NS_ASSERTION(IsPaintingAllowed(),
-                     "shouldn't be receiving paint events while painting is "
-                     "disallowed!");
-        nsRefPtr<nsViewManager> rootVM = RootViewManager();
-
-        
-        
-        bool didResize = false;
         for (nsViewManager *vm = this; vm;
              vm = vm->mRootView->GetParent()
                     ? vm->mRootView->GetParent()->GetViewManager()
@@ -789,47 +775,51 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
               vm->mRootView->IsEffectivelyVisible() &&
               mPresShell && mPresShell->IsVisible()) {
             vm->FlushDelayedResize(true);
-
-            
             vm->UpdateView(vm->mRootView);
-            didResize = true;
-
-            
-            
-            
-            *aStatus = nsEventStatus_eIgnore;
           }
         }
 
-        if (!didResize) {
-          
-          
-
-          nsCOMPtr<nsIWidget> widget;
-          rootVM->GetRootWidget(getter_AddRefs(widget));
-          bool transparentWindow = false;
-          if (widget)
-              transparentWindow = widget->GetTransparencyMode() == eTransparencyTransparent;
-
-          nsView* view = static_cast<nsView*>(aView);
-          if (!transparentWindow) {
-            if (mPresShell) {
-              rootVM->CallWillPaintOnObservers(event->willSendDidPaint);
-              
-              
-              view = nsView::GetViewFor(aEvent->widget);
-            }
-          }
-          
-          
-          if (rootVM->mHasPendingUpdates) {
-            rootVM->ProcessPendingUpdatesForView(mRootView);
-          }
-          
-          if (view && aEvent->message == NS_PAINT) {
-            Refresh(view, event->widget, event->region);
-          }
+        
+        
+        nsRefPtr<nsViewManager> rootVM = RootViewManager();
+        if (mPresShell) {
+          rootVM->CallWillPaintOnObservers(event->willSendDidPaint);
         }
+        
+        rootVM->ProcessPendingUpdates();
+      }
+      break;
+
+    case NS_PAINT:
+      {
+        if (!aView || !mContext)
+          break;
+
+        *aStatus = nsEventStatus_eConsumeNoDefault;
+        nsPaintEvent *event = static_cast<nsPaintEvent*>(aEvent);
+        nsView* view = static_cast<nsView*>(aView);
+        NS_ASSERTION(view == nsView::GetViewFor(event->widget),
+                     "view/widget mismatch");
+        NS_ASSERTION(IsPaintingAllowed(),
+                     "shouldn't be receiving paint events while painting is "
+                     "disallowed!");
+
+        if (!event->didSendWillPaint) {
+          
+          nsPaintEvent willPaintEvent(true, NS_WILL_PAINT, event->widget);
+          willPaintEvent.willSendDidPaint = event->willSendDidPaint;
+          DispatchEvent(&willPaintEvent, view, aStatus);
+
+          
+          
+          view = nsView::GetViewFor(event->widget);
+        }
+
+        if (!view || event->region.IsEmpty())
+          break;
+
+        
+        Refresh(view, event->widget, event->region);
 
         break;
       }
