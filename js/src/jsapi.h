@@ -2222,11 +2222,10 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
 
 
-#if !defined(_MSC_VER) && !defined(__arm__)
-    void* bytes[13];
-#else
-    void* bytes[sizeof(void*) == 4 ? 16 : 13];
-#endif
+
+
+
+    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(JSUint64) == 8 ? 16 : 13];
 
     
 
