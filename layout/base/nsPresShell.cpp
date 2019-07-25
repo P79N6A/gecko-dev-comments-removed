@@ -3146,12 +3146,11 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
       }
     }
   } else {
-    rv = NS_ERROR_FAILURE; 
-
-    
-    
-    if ((NS_LossyConvertUTF16toASCII(aAnchorName).LowerCaseEqualsLiteral("top")) &&
-        (mPresContext->CompatibilityMode() == eCompatibility_NavQuirks)) {
+    rv = NS_ERROR_FAILURE;
+    NS_NAMED_LITERAL_STRING(top, "top");
+    if (nsContentUtils::EqualsIgnoreASCIICase(aAnchorName, top)) {
+      
+      
       rv = NS_OK;
       nsIScrollableFrame* sf = GetRootScrollFrameAsScrollable();
       
