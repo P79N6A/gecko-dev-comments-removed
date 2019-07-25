@@ -56,6 +56,7 @@ BrowserStreamChild::BrowserStreamChild(PluginInstanceChild* instance,
   , mStreamStatus(kStreamOpen)
   , mDestroyPending(NOT_DESTROYED)
   , mNotifyPending(false)
+  , mStreamAsFilePending(false)
   , mInstanceDying(false)
   , mState(CONSTRUCTING)
   , mURL(url)
@@ -140,7 +141,7 @@ BrowserStreamChild::RecvWrite(const int32_t& offset,
 }
 
 bool
-BrowserStreamChild::AnswerNPP_StreamAsFile(const nsCString& fname)
+BrowserStreamChild::RecvNPP_StreamAsFile(const nsCString& fname)
 {
   PLUGIN_LOG_DEBUG(("%s (fname=%s)", FULLFUNCTION, fname.get()));
 
@@ -152,8 +153,10 @@ BrowserStreamChild::AnswerNPP_StreamAsFile(const nsCString& fname)
   if (kStreamOpen != mStreamStatus)
     return true;
 
-  mInstance->mPluginIface->asfile(&mInstance->mData, &mStream,
-                                  fname.get());
+  mStreamAsFilePending = true;
+  mStreamAsFileName = fname;
+  EnsureDeliveryPending();
+
   return true;
 }
 
@@ -237,6 +240,19 @@ BrowserStreamChild::Deliver()
   NS_ASSERTION(kStreamOpen != mStreamStatus || 0 == mPendingData.Length(),
                "Exit out of the data-delivery loop with pending data");
   mPendingData.Clear();
+
+  
+  
+  
+  
+  
+  
+  
+  if (mStreamAsFilePending) {
+    mInstance->mPluginIface->asfile(&mInstance->mData, &mStream,
+                                    mStreamAsFileName.get());
+    mStreamAsFilePending = false;
+  }
 
   if (DESTROY_PENDING == mDestroyPending) {
     mDestroyPending = DESTROYED;
