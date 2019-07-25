@@ -8,10 +8,19 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm")
 
 
+
+
 const kPanDeceleration = 0.999;
 
 
-const kSwipeLength = 1000;
+const kSwipeLength = 500;
+
+
+
+const kDragThreshold = 10;
+
+
+const kLockBreakThreshold = 100;
 
 
 
@@ -19,7 +28,7 @@ const kMinKineticSpeed = 0.015;
 
 
 
-const kMaxKineticSpeed = 3;
+const kMaxKineticSpeed = 9;
 
 
 
@@ -328,7 +337,7 @@ Tab.prototype = {
     sendMessageToJava(message);
   },
   onStatusChange: function(aBrowser, aWebProgress, aRequest, aStatus, aMessage) {
-    dump("progressListener.onStatusChange");
+    
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener, Ci.nsISupportsWeakReference])
@@ -418,9 +427,12 @@ var BrowserEventHandler = {
         this.startX = aEvent.clientX;
         this.startY = aEvent.clientY;
         this.blockClick = false;
+
         this.firstMovement = true;
-        this.firstXMovement = 0;
-        this.firstYMovement = 0;
+        this.edx = 0;
+        this.edy = 0;
+        this.lockXaxis = false;
+        this.lockYaxis = false;
 
         this.motionBuffer = [];
         this._updateLastPosition(aEvent.clientX, aEvent.clientY, 0, 0);
@@ -440,32 +452,32 @@ var BrowserEventHandler = {
         if (!this.panning)
           break;
 
-        let dx = aEvent.clientX - this.lastX;
-        let dy = aEvent.clientY - this.lastY;
+        this.edx += aEvent.clientX - this.lastX;
+        this.edy += aEvent.clientY - this.lastY;
 
         
         
         
         
         
-        if (this.firstXMovement == 0) {
-          this.firstXMovement = dx;
-        }
-        if (this.firstYMovement == 0) {
-          this.firstYMovement = dy;
-        }
         if (this.firstMovement &&
-            this.firstXMovement != 0 &&
-            this.firstYMovement != 0) {
+            (Math.abs(this.edx) > kDragThreshold ||
+             Math.abs(this.edy) > kDragThreshold)) {
           this.firstMovement = false;
           let originalElement = this.panElement;
+
+          
+          if (Math.abs(this.edx) > Math.abs(this.edy) * kAxisLockRatio)
+            this.lockYaxis = true;
+          else if (Math.abs(this.edy) > Math.abs(this.edx) * kAxisLockRatio)
+            this.lockXaxis = true;
 
           
           
           while (this.panElement &&
                  !this._elementCanScroll(this.panElement,
-                                         -this.firstXMovement,
-                                         -this.firstYMovement)) {
+                                         -this.edx,
+                                         -this.edy)) {
             this.panElement =
               this._findScrollableElement(this.panElement, false);
           }
@@ -476,12 +488,34 @@ var BrowserEventHandler = {
             this.panElement = originalElement;
         }
 
-        this._scrollElementBy(this.panElement, -dx, -dy);
+        
+        if (!this.firstMovement) {
+          this._scrollElementBy(this.panElement,
+                                this.lockXaxis ? 0 : -this.edx,
+                                this.lockYaxis ? 0 : -this.edy);
 
-        
-        
-        
-        this._updateLastPosition(aEvent.clientX, aEvent.clientY, dx, dy);
+          
+          
+          
+          this._updateLastPosition(aEvent.clientX, aEvent.clientY,
+                                   this.lockXaxis ? 0 : this.edx,
+                                   this.lockYaxis ? 0 : this.edy);
+
+          
+          if (this.lockXaxis) {
+            if (Math.abs(this.edx) > kLockBreakThreshold)
+              this.lockXaxis = false;
+          } else {
+            this.edx = 0;
+          }
+
+          if (this.lockYaxis) {
+            if (Math.abs(this.edy) > kLockBreakThreshold)
+              this.lockYaxis = false;
+          } else {
+            this.edy = 0;
+          }
+        }
 
         aEvent.stopPropagation();
         aEvent.preventDefault();
@@ -492,37 +526,102 @@ var BrowserEventHandler = {
           break;
 
         this.panning = false;
-        let isDrag = (Math.abs(aEvent.clientX - this.startX) > 10 ||
-                      Math.abs(aEvent.clientY - this.startY) > 10);
 
-        if (isDrag) {
+        if (Math.abs(aEvent.clientX - this.startX) > kDragThreshold ||
+            Math.abs(aEvent.clientY - this.startY) > kDragThreshold) {
           this.blockClick = true;
           aEvent.stopPropagation();
           aEvent.preventDefault();
 
           
-          this.panLastTime = window.mozAnimationStartTime;
-          this.panX = 0;
-          this.panY = 0;
-          let nEvents = 0;
-          for (let i = 0; i < this.motionBuffer.length - 1; i++) {
-              if (this.motionBuffer[i].time < this.panLastTime - kSwipeLength)
-                break;
+          
+          
+          this.panLastTime = Date.now();
 
-              let timeDelta = this.motionBuffer[i].time -
-                this.motionBuffer[i + 1].time;
-              if (timeDelta <= 0)
-                continue;
+          
+          
+          
+          
+          
+          
+          let xSums = { p: 0, t: 0, tp: 0, tt: 0, n: 0 };
+          let ySums = { p: 0, t: 0, tp: 0, tt: 0, n: 0 };
+          let lastDx = 0;
+          let lastDy = 0;
 
-              this.panX += this.motionBuffer[i].dx / timeDelta;
-              this.panY += this.motionBuffer[i].dy / timeDelta;
-              nEvents ++;
+          
+          let edx = 0; 
+          let edy = 0; 
+
+          
+          let mb = this.motionBuffer;
+
+          
+          for (let i = 0; i < mb.length; i++) {
+
+            
+            let dx = edx + mb[i].dx;
+            let dy = edy + mb[i].dy;
+            edx += mb[i].dx;
+            edy += mb[i].dy;
+
+            
+            if ((xSums.n > 0) &&
+                ((mb[i].dx < 0 && lastDx > 0) ||
+                 (mb[i].dx > 0 && lastDx < 0))) {
+              xSums = { p: 0, t: 0, tp: 0, tt: 0, n: 0 };
+            }
+            if ((ySums.n > 0) &&
+                ((mb[i].dy < 0 && lastDy > 0) ||
+                 (mb[i].dy > 0 && lastDy < 0))) {
+              ySums = { p: 0, t: 0, tp: 0, tt: 0, n: 0 };
+            }
+
+            if (mb[i].dx != 0)
+              lastDx = mb[i].dx;
+            if (mb[i].dy != 0)
+              lastDy = mb[i].dy;
+
+            
+            let timeDelta = this.panLastTime - mb[i].time;
+            if (timeDelta > kSwipeLength)
+              continue;
+
+            xSums.p += dx;
+            xSums.t += timeDelta;
+            xSums.tp += timeDelta * dx;
+            xSums.tt += timeDelta * timeDelta;
+            xSums.n ++;
+
+            ySums.p += dy;
+            ySums.t += timeDelta;
+            ySums.tp += timeDelta * dy;
+            ySums.tt += timeDelta * timeDelta;
+            ySums.n ++;
           }
-          if (nEvents == 0)
+
+          
+          if (xSums.n < 2 && ySums.n < 2)
             break;
 
-          this.panX /= nEvents;
-          this.panY /= nEvents;
+          
+          
+          let sx = 0;
+          if (xSums.n > 1)
+            sx = ((xSums.n * xSums.tp) - (xSums.t * xSums.p)) /
+                 ((xSums.n * xSums.tt) - (xSums.t * xSums.t));
+          
+
+          let sy = 0;
+          if (ySums.n > 1)
+            sy = ((ySums.n * ySums.tp) - (ySums.t * ySums.p)) /
+                 ((ySums.n * ySums.tt) - (ySums.t * ySums.t));
+          
+
+          
+          this.panX = -sx;
+          this.panY = -sy;
+
           if (Math.abs(this.panX) > kMaxKineticSpeed)
             this.panX = (this.panX > 0) ? kMaxKineticSpeed : -kMaxKineticSpeed;
           if (Math.abs(this.panY) > kMaxKineticSpeed)
@@ -645,7 +744,7 @@ var BrowserEventHandler = {
     this.lastY = y;
     this.lastTime = Date.now();
 
-    this.motionBuffer.unshift({ dx: dx, dy: dy, time: this.lastTime });
+    this.motionBuffer.push({ dx: dx, dy: dy, time: this.lastTime });
   },
 
   _findScrollableElement: function(elem, checkElem) {
