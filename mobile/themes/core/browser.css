@@ -405,6 +405,11 @@ toolbarbutton.page-button {
 }
 
 
+#tile-stack > div:-moz-focusring {
+  outline: 0 !important;
+}
+
+
 @media (min-width: 500px) {
   #panel-container {
     -moz-box-orient: horizontal;
