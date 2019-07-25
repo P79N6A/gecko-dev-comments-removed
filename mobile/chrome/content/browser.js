@@ -1772,9 +1772,8 @@ ContentCustomClicker.prototype = {
 
         
         let rect = Browser.getBoundingContentRect(element);
-        if (!rect.isEmpty() && (element.ownerDocument.defaultView.frameElement ||
-                               (x < rect.left || (x > rect.left + rect.width) ||
-                               (y < rect.top || (y > rect.top + rect.height))))) {
+        if (!rect.isEmpty() && ((x < rect.left || (x > rect.left + rect.width)) ||
+                                (y < rect.top || (y > rect.top + rect.height)))) {
 
           let point = rect.center();
           x = point.x;
