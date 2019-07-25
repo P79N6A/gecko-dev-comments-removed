@@ -1,9 +1,36 @@
 
 
 
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
@@ -62,50 +89,4 @@ function createAppInfo(id, name, version, platformVersion)
 
 
 var gProfD = do_get_profile();
-
-function dumpn(text)
-{
-  dump(text+"\n");
-}
-
-
-
-
-function removeMetadata()
-{
-  let file = gProfD.clone();
-  file.append("search-metadata.json");
-  if (file.exists()) {
-    file.remove(false);
-  }
-
-  file = gProfD.clone();
-  file.append("search.sqlite");
-  if (file.exists()) {
-    file.remove(false);
-  }
-}
-
-
-
-
-function afterCommit(callback)
-{
-  let obs = function(result, topic, verb) {
-    if (verb == "write-metadata-to-disk-complete") {
-      callback(result);
-    } else {
-      dump("TOPIC: " + topic+ "\n");
-    }
-  }
-  Services.obs.addObserver(obs, "browser-search-service", false);
-}
-
-function  parseJsonFromStream(aInputStream) {
-  const json = Cc["@mozilla.org/dom/json;1"].createInstance(Components.interfaces.nsIJSON);
-  const data = json.decodeFromStream(aInputStream, aInputStream.available());
-  return data;
-}
-
-Services.prefs.setBoolPref("browser.search.log", true);
 
