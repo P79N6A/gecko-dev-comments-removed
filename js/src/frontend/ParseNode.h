@@ -127,6 +127,7 @@ enum ParseNodeKind {
     PNK_XMLCOMMENT,
     PNK_XMLCDATA,
     PNK_XMLPI,
+    PNK_XMLUNARY,
     PNK_AT,
     PNK_DBLCOLON,
     PNK_ANYNAME,
@@ -190,6 +191,9 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
+
+
 
 
 
