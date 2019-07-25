@@ -332,13 +332,21 @@ class RemoteReftest(RefTest):
         RefTest.createReftestProfile(self, options, profileDir, server=options.remoteWebServer)
 
         
+        fhandle = open(os.path.join(profileDir, "user.js"), 'a')
+        fhandle.write("""
+user_pref("browser.firstrun.show.localepicker", false);
+""")
+
+        
         if options.enablePrivilege:
-          fhandle = open(os.path.join(profileDir, "user.js"), 'a')
           fhandle.write("""
 user_pref("capability.principal.codebase.p2.granted", "UniversalPreferencesWrite UniversalXPConnect UniversalBrowserWrite UniversalPreferencesRead UniversalBrowserRead");
 user_pref("capability.principal.codebase.p2.id", "http://%s:%s");
 """ % (options.remoteWebServer, options.httpPort))
-          fhandle.close()
+
+        
+        fhandle.close()
+
 
         if (self._devicemanager.pushDir(profileDir, options.remoteProfile) == None):
             raise devicemanager.FileError("Failed to copy profiledir to device")
