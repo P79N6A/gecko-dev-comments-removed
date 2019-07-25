@@ -76,6 +76,7 @@ class MacroAssemblerARM : public Assembler
 
     void ma_alu(Register src1, Operand op2, Register dest, ALUOp op,
                 SetCond_ sc = NoSetCond, Condition c = Always);
+    void ma_nop();
 
     
     
@@ -399,7 +400,13 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
 
     }
+    void call(ImmWord word) {
+        call((void *) word.value);
+    }
 
+    void nop() {
+        ma_nop();
+    }
     void ret() {
         ma_pop(pc);
         m_buffer.markGuard();
@@ -418,10 +425,15 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_push(ScratchRegister);
     }
 
+    CodeOffsetLabel pushWithPatch(ImmWord imm) {
+        CodeOffsetLabel label = currentOffset();
+        push(Imm32(imm.value));
+        return label;
+    }
+
     void jump(Label *label) {
         as_b(label);
     }
-
 
     
     Register splitTagForTest(const ValueOperand &value) {
