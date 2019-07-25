@@ -275,6 +275,12 @@ private:
     already_AddRefed<gfxPattern> GetFillPattern(float opacity);
     already_AddRefed<gfxPattern> GetStrokePattern(float opacity);
 
+    void SetFillOpacity(float aOpacity) { mFillOpacity = aOpacity; }
+    float GetFillOpacity() { return mFillOpacity; }
+
+    void SetStrokeOpacity(float aOpacity) { mStrokeOpacity = aOpacity; }
+    float GetStrokeOpacity() { return mStrokeOpacity; }
+
     struct Paint {
       Paint() {
         mPatternCache.Init();
@@ -321,13 +327,16 @@ private:
 
     Paint mFillPaint;
     Paint mStrokePaint;
+
+    float mFillOpacity;
+    float mStrokeOpacity;
   };
 
   
 
 
 
-  void SetupCairoStroke(gfxContext *aContext,
+  bool SetupCairoStroke(gfxContext *aContext,
                         gfxTextObjectPaint *aOuterObjectPaint,
                         SVGTextObjectPaint *aThisObjectPaint);
 
@@ -340,6 +349,7 @@ private:
                       SVGTextObjectPaint *aThisObjectPaint);
 
   
+
 
 
 
@@ -357,8 +367,9 @@ private:
 
 
 
+
   void SetupInheritablePaint(gfxContext *aContext,
-                             float aOpacity,
+                             float& aOpacity,
                              gfxTextObjectPaint *aOuterObjectPaint,
                              SVGTextObjectPaint::Paint& aTargetPaint,
                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
