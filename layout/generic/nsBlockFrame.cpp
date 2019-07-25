@@ -5094,11 +5094,11 @@ nsBlockInFlowLineIterator::nsBlockInFlowLineIterator(nsBlockFrame* aFrame,
     nsBlockFrame::reverse_line_iterator rline = aFrame->rline(cursor);
     nsBlockFrame::line_iterator line_end = aFrame->end_lines();
     nsBlockFrame::reverse_line_iterator rline_end = aFrame->rend_lines();
-    for (--rline;;) {
-      if (line == line_end && rline == rline_end) {
-        
-        break;
-      }
+    
+    
+    
+    ++rline;
+    while (line != line_end || rline != rline_end) {
       if (line != line_end) {
         if (line->Contains(child)) {
           *aFoundValidLine = PR_TRUE;
@@ -5116,6 +5116,7 @@ nsBlockInFlowLineIterator::nsBlockInFlowLineIterator(nsBlockFrame* aFrame,
         ++rline;
       }
     }
+    
   }
 
   

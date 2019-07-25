@@ -809,8 +809,12 @@ public:
 
 
 
+
+
   nsBlockInFlowLineIterator(nsBlockFrame* aFrame, PRBool* aFoundValidLine);
   
+
+
 
 
 
