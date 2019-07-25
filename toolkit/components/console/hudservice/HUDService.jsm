@@ -241,6 +241,15 @@ ResponseListener.prototype =
     if (HUDService.lastFinishedRequestCallback) {
       HUDService.lastFinishedRequestCallback(this.httpActivity);
     }
+
+    
+    this.httpActivity.panels.forEach(function(weakRef) {
+      let panel = weakRef.get();
+      if (panel) {
+        panel.update();
+      }
+    });
+    this.httpActivity.response.isDone = true;
     this.httpActivity = null;
   },
 
@@ -456,6 +465,471 @@ var NetworkHelper =
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createElement(aDocument, aTag, aAttributes)
+{
+  let node = aDocument.createElement(aTag);
+  for (var attr in aAttributes) {
+    node.setAttribute(attr, aAttributes[attr]);
+  }
+  return node;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function createAndAppendElement(aParent, aTag, aAttributes)
+{
+  let node = createElement(aParent.ownerDocument, aTag, aAttributes);
+  aParent.appendChild(node);
+  return node;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function NetworkPanel(aParent, aHttpActivity)
+{
+  let doc = aParent.ownerDocument;
+  this.httpActivity = aHttpActivity;
+
+  
+  this.panel = createElement(doc, "panel", {
+    label: HUDService.getStr("NetworkPanel.label"),
+    titlebar: "normal",
+    noautofocus: "true",
+    noautohide: "true",
+    close: "true"
+  });
+
+  
+  this.browser = createAndAppendElement(this.panel, "browser", {
+    src: "chrome://global/content/NetworkPanel.xhtml",
+    disablehistory: "true",
+    flex: "1"
+  });
+
+  
+  this.panel.addEventListener("popuphidden", function onPopupHide() {
+    self.panel.removeEventListener("popuphidden", onPopupHide, false);
+    self.panel.parentNode.removeChild(self.panel);
+    self.panel = null;
+    self.browser = null;
+    self.document = null;
+    self.httpActivity = null;
+  }, false);
+
+  
+  let self = this;
+  this.panel.addEventListener("load", function onLoad() {
+    self.panel.removeEventListener("load", onLoad, true)
+    self.document = self.browser.contentWindow.document;
+    self.update();
+  }, true);
+
+  
+  let footer = createElement(doc, "hbox", { align: "end" });
+  createAndAppendElement(footer, "spacer", { flex: 1 });
+
+  createAndAppendElement(footer, "resizer", { dir: "bottomend" });
+  this.panel.appendChild(footer);
+
+  aParent.appendChild(this.panel);
+}
+
+NetworkPanel.prototype =
+{
+  
+
+
+  _state: 0,
+
+  
+
+
+  _INIT: 0,
+  _DISPLAYED_REQUEST_HEADER: 1,
+  _DISPLAYED_REQUEST_BODY: 2,
+  _DISPLAYED_RESPONSE_HEADER: 3,
+  _TRANSITION_CLOSED: 4,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _format: function NP_format(aName, aArray)
+  {
+    return HUDService.getFormatStr("NetworkPanel." + aName, aArray);
+  },
+
+  
+
+
+
+
+  get _responseIsImage()
+  {
+    let response = this.httpActivity.response;
+    if (!response || !response.header || !response.header["Content-Type"]) {
+      let request = this.httpActivity.request;
+      if (request.header["Accept"] &&
+          request.header["Accept"].indexOf("image/") != -1) {
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+    return response.header["Content-Type"].indexOf("image/") != -1;
+  },
+
+  
+
+
+
+
+
+  get _isResponseCached()
+  {
+    return this.httpActivity.response.status.indexOf("304") != -1;
+  },
+
+  
+
+
+
+
+
+
+  _appendTextNode: function NP_appendTextNode(aId, aValue)
+  {
+    let textNode = this.document.createTextNode(aValue);
+    this.document.getElementById(aId).appendChild(textNode);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _appendList: function NP_appendList(aParentId, aList, aIgnoreCookie)
+  {
+    let parent = this.document.getElementById(aParentId);
+    let doc = this.document;
+
+    let sortedList = {};
+    Object.keys(aList).sort().forEach(function(aKey) {
+      sortedList[aKey] = aList[aKey];
+    });
+
+    for (let key in sortedList) {
+      if (aIgnoreCookie && key == "Cookie") {
+        continue;
+      }
+
+      
+
+
+
+
+
+
+
+      let textNode = doc.createTextNode(key + ":");
+      let span = doc.createElement("span");
+      span.setAttribute("class", "property-name");
+      span.appendChild(textNode);
+      parent.appendChild(span);
+
+      textNode = doc.createTextNode(sortedList[key]);
+      span = doc.createElement("span");
+      span.setAttribute("class", "property-value");
+      span.appendChild(textNode);
+      parent.appendChild(span);
+
+      parent.appendChild(doc.createElement("br"));
+    }
+  },
+
+  
+
+
+
+
+
+  _displayNode: function NP_displayNode(aId)
+  {
+    this.document.getElementById(aId).style.display = "block";
+  },
+
+  
+
+
+
+
+
+
+
+
+  _displayRequestHeader: function NP_displayRequestHeader()
+  {
+    let timing = this.httpActivity.timing;
+    let request = this.httpActivity.request;
+
+    this._appendTextNode("headUrl", this.httpActivity.url);
+    this._appendTextNode("headMethod", this.httpActivity.method);
+
+    this._appendTextNode("requestHeadersInfo",
+      ConsoleUtils.timestampString(timing.REQUEST_HEADER/1000));
+
+    this._appendList("requestHeadersContent", request.header, true);
+
+    if ("Cookie" in request.header) {
+      this._displayNode("requestCookie");
+
+      let cookies = request.header.Cookie.split(";");
+      let cookieList = {};
+      let cookieListSorted = {};
+      cookies.forEach(function(cookie) {
+        let name, value;
+        [name, value] = cookie.trim().split("=");
+        cookieList[name] = value;
+      });
+      this._appendList("requestCookieContent", cookieList);
+    }
+  },
+
+  
+
+
+
+
+
+  _displayRequestBody: function NP_displayRequestBody() {
+    this._displayNode("requestBody");
+    this._appendTextNode("requestBodyContent", this.httpActivity.request.body);
+  },
+
+  
+
+
+
+
+
+
+  _displayResponseHeader: function NP_displayResponseHeader()
+  {
+    let timing = this.httpActivity.timing;
+    let response = this.httpActivity.response;
+
+    this._appendTextNode("headStatus", response.status);
+
+    let deltaDuration =
+      Math.round((timing.RESPONSE_HEADER - timing.REQUEST_HEADER) / 1000);
+    this._appendTextNode("responseHeadersInfo",
+      this._format("durationMS", [deltaDuration]));
+
+    this._displayNode("responseContainer");
+    this._appendList("responseHeadersContent", response.header);
+  },
+
+  
+
+
+
+
+
+
+
+  _displayResponseImage: function NP_displayResponseImage()
+  {
+    let self = this;
+    let timing = this.httpActivity.timing;
+    let response = this.httpActivity.response;
+    let cached = "";
+
+    if (this._isResponseCached) {
+      cached = "Cached";
+    }
+
+    let imageNode = this.document.getElementById("responseImage" + cached +"Node");
+    imageNode.setAttribute("src", this.httpActivity.url);
+
+    
+    function setImageInfo() {
+      let deltaDuration =
+        Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
+      self._appendTextNode("responseImage" + cached + "Info",
+        self._format("imageSizeDeltaDurationMS", [
+          imageNode.width, imageNode.height, deltaDuration
+        ]
+      ));
+    }
+
+    
+    if (imageNode.width != 0) {
+      setImageInfo();
+    }
+    else {
+      
+      imageNode.addEventListener("load", function imageNodeLoad() {
+        imageNode.removeEventListener("load", imageNodeLoad, false);
+        setImageInfo();
+      }, false);
+    }
+
+    this._displayNode("responseImage" + cached);
+  },
+
+  
+
+
+
+
+
+
+  _displayResponseBody: function NP_displayResponseBody()
+  {
+    let timing = this.httpActivity.timing;
+    let response = this.httpActivity.response;
+
+    let deltaDuration =
+      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
+    this._appendTextNode("responseBodyInfo",
+      this._format("durationMS", [deltaDuration]));
+
+    this._displayNode("responseBody");
+    this._appendTextNode("responseBodyContent", response.body);
+  },
+
+  
+
+
+
+
+
+  _displayNoResponseBody: function NP_displayNoResponseBody()
+  {
+    let timing = this.httpActivity.timing;
+
+    this._displayNode("responseNoBody");
+    let deltaDuration =
+      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
+    this._appendTextNode("responseNoBodyInfo",
+      this._format("durationMS", [deltaDuration]));
+  },
+
+  
+
+
+
+
+  update: function NP_update()
+  {
+    
+
+
+
+
+    if (!this.document) {
+      return;
+    }
+
+    let timing = this.httpActivity.timing;
+    let request = this.httpActivity.request;
+    let response = this.httpActivity.response;
+
+    switch (this._state) {
+      case this._INIT:
+        this._displayRequestHeader();
+        this._state = this._DISPLAYED_REQUEST_HEADER;
+        
+
+      case this._DISPLAYED_REQUEST_HEADER:
+        
+        if (request.body) {
+          this._displayRequestBody();
+          this._state = this._DISPLAYED_REQUEST_BODY;
+        }
+        
+
+      case this._DISPLAYED_REQUEST_BODY:
+        
+        
+        
+        if (!response.header) {
+          break
+        }
+        this._displayResponseHeader();
+        this._state = this._DISPLAYED_RESPONSE_HEADER;
+        
+
+      case this._DISPLAYED_RESPONSE_HEADER:
+        
+        if (timing.TRANSACTION_CLOSE && response.isDone) {
+          if (this._responseIsImage) {
+            this._displayResponseImage();
+          }
+          else if (response.body) {
+            this._displayResponseBody();
+          }
+          else {
+            this._displayNoResponseBody();
+          }
+          this._state = this._TRANSITION_CLOSED;
+        }
+        break;
+    }
+  }
+}
 
 function HUD_SERVICE()
 {
@@ -1010,6 +1484,11 @@ HUD_SERVICE.prototype =
   {
     
     
+    
+    HUDService.clearDisplay(aId);
+
+    
+    
     var outputNode = this.mixins.getOutputNodeById(aId);
     var parent = outputNode.parentNode;
     var splitters = parent.querySelectorAll("splitter");
@@ -1371,6 +1850,28 @@ HUD_SERVICE.prototype =
 
 
 
+
+
+
+
+
+  openNetworkPanel: function (aNode, aHttpActivity) {
+    let doc = aNode.ownerDocument;
+    let parent = doc.getElementById("mainPopupSet");
+    let netPanel = new NetworkPanel(parent, aHttpActivity);
+
+    let panel = netPanel.panel;
+    panel.openPopup(aNode, "after_pointer", 0, 0, false, false);
+    panel.sizeTo(350, 400);
+    aHttpActivity.panels.push(Cu.getWeakReference(netPanel));
+    return netPanel;
+  },
+
+  
+
+
+
+
   startHTTPObservation: function HS_httpObserverFactory()
   {
     
@@ -1413,6 +1914,7 @@ HUD_SERVICE.prototype =
               method: aChannel.requestMethod,
               channel: aChannel,
 
+              panels: [],
               request: {
                 header: { }
               },
@@ -1450,6 +1952,13 @@ HUD_SERVICE.prototype =
             
             httpActivity.messageObject = loggedNode;
             self.openRequests[httpActivity.id] = httpActivity;
+
+            
+            let linkNode = loggedNode.messageNode;
+            linkNode.setAttribute("aria-haspopup", "true");
+            linkNode.onclick = function() {
+              self.openNetworkPanel(linkNode, httpActivity);
+            }
           }
           else {
             
@@ -1467,7 +1976,7 @@ HUD_SERVICE.prototype =
               return;
             }
 
-            let msgObject;
+            let msgObject, updatePanel = false;
             let data, textNode;
             
             httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
@@ -1549,7 +2058,17 @@ HUD_SERVICE.prototype =
                     self.getFormatStr("networkUrlWithStatusAndDuration", data)));
 
                 delete self.openRequests[item.id];
+                updatePanel = true;
                 break;
+            }
+
+            if (updatePanel) {
+              httpActivity.panels.forEach(function(weakRef) {
+                let panel = weakRef.get();
+                if (panel) {
+                  panel.update();
+                }
+              });
             }
           }
         }
