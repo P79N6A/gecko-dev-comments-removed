@@ -70,6 +70,11 @@ public:
   
 
 
+  nsPIDOMWindow* GetActiveWindow() const { return mActiveWindow; }
+
+  
+
+
   nsresult ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
 
   
