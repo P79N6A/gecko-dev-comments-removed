@@ -6,13 +6,12 @@
 
 function runTests() {
   
+  Services.prefs.setIntPref("accessibility.tabfocus", 7);
+
   
   
-  let FOCUS_COUNT = 28; 
-  if ("nsILocalFileMac" in Ci) {
-    
-    FOCUS_COUNT = 19;
-  }
+  
+  let FOCUS_COUNT = 28;
 
   
   yield setLinks("0,1,2,3,4,5,6,7,8");
@@ -27,6 +26,8 @@ function runTests() {
   
   NewTabUtils.allPages.enabled = false;
   yield countFocus(1);
+
+  Services.prefs.clearUserPref("accessibility.tabfocus");
 }
 
 
