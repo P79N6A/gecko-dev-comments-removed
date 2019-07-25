@@ -14035,11 +14035,23 @@ TraceRecorder::record_JSOP_BINDNAME()
     if (!fp->fun) {
         obj = fp->scopeChain;
 
+#ifdef DEBUG
+        JSStackFrame *fp2 = fp;
+#endif
+
         
         
         while (obj->getClass() == &js_BlockClass) {
             
-            JS_ASSERT(obj->getPrivate() == js_FloatingFrameIfGenerator(cx, fp));
+#ifdef DEBUG
+            
+            while (obj->getPrivate() != fp2) {
+                JS_ASSERT(fp2->flags & JSFRAME_SPECIAL);
+                fp2 = fp2->down;
+                if (!fp2)
+                    JS_NOT_REACHED("bad stack frame");
+            }
+#endif
             obj = obj->getParent();
             
             JS_ASSERT(obj);
