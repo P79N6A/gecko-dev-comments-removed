@@ -169,7 +169,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
 
         
         if (str->isAtomized()) {
-            JS_ASSERT(str->asCell()->compartment() == cx->runtime->defaultCompartment);
+            JS_ASSERT(str->asCell()->compartment() == cx->runtime->atomsCompartment);
             return true;
         }
     }
