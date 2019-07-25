@@ -40,7 +40,7 @@
 #include "assembler/wtf/Assertions.h"
 
 #include "methodjit/Logging.h"
-
+#include "jsnum.h"
 #define ASSEMBLER_HAS_CONSTANT_POOL 1
 
 namespace JSC {
@@ -162,19 +162,21 @@ public:
         correctDeltas(2);
     }
 
+    
     void putIntUnchecked(int value)
     {
         AssemblerBuffer::putIntUnchecked(value);
         correctDeltas(4);
     }
-
+    
+    
     void putInt(int value)
     {
         flushIfNoSpaceFor(4);
         AssemblerBuffer::putInt(value);
         correctDeltas(4);
     }
-
+    
     void putInt64Unchecked(int64_t value)
     {
         AssemblerBuffer::putInt64Unchecked(value);
@@ -192,12 +194,20 @@ public:
         return AssemblerBuffer::size();
     }
 
+    
     void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp, CodeKind kind)
     {
         flushConstantPool(false);
         return AssemblerBuffer::executableAllocAndCopy(allocator, poolp, kind);
     }
 
+    
+    
+    
+    
+    
+    
+    
     void putIntWithConstantInt(uint32_t insn, uint32_t constant, bool isReusable = false)
     {
         flushIfNoSpaceFor(4, 4);
@@ -219,6 +229,26 @@ public:
         ++m_numConsts;
 
         correctDeltas(4, 4);
+    }
+
+    void putIntWithConstantDouble(uint32_t insn, double constant)
+    {
+        flushIfNoSpaceFor(4, 8);
+
+        m_loadOffsets.append(AssemblerBuffer::size());
+        bool isReusable = false;
+        jsdpun dpun;
+        dpun.d = constant;
+        
+        m_pool[m_numConsts] = dpun.s.lo;
+        m_pool[m_numConsts+1] = dpun.s.hi;
+        m_mask[m_numConsts] = static_cast<char>(isReusable ? ReusableConst : UniqueConst);
+        m_mask[m_numConsts+1] = static_cast<char>(isReusable ? ReusableConst : UniqueConst);
+
+        AssemblerBuffer::putInt(AssemblerType::patchConstantPoolLoad(insn, m_numConsts));
+        m_numConsts+=2;
+
+        correctDeltas(4, 8);
     }
 
     

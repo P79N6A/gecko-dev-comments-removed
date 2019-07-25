@@ -277,7 +277,11 @@ public:
 
     void ma_vmul(FloatRegister src1, FloatRegister src2, FloatRegister dst);
 
-    void ma_vcmp_F64(FloatRegister src1, FloatRegister src2);
+    void ma_vmov(FloatRegister src, FloatRegister dest);
+
+    void ma_vimm(double value, FloatRegister dest);
+
+    void ma_vcmp(FloatRegister src1, FloatRegister src2);
 
     
     void ma_vcvt_F64_I32(FloatRegister src, FloatRegister dest);
@@ -348,8 +352,17 @@ public:
 
 
     }
+    void call(void *dest) {
+        mov(Imm32((uint32)dest), r12);
+        call(r12);
+        
+
+
+    }
+
     void ret() {
         ma_pop(pc);
+        dumpPool();
     }
 #if 0
     void Push(const Register &reg) {

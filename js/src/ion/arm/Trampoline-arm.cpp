@@ -66,6 +66,7 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
     
     masm.transferReg(pc);
     masm.finishDataTransfer();
+    masm.dumpPool();
 }
 
 
@@ -421,4 +422,3 @@ IonCompartment::generateBailoutHandler(JSContext *cx)
     Linker linker(masm);
     return linker.newCode(cx);
 }
-

@@ -84,6 +84,7 @@ CodeGeneratorARM::generateEpilogue()
     JS_ASSERT(masm.framePushed() == 0);
 
     masm.ma_pop(pc);
+    masm.dumpPool();
     return true;
 }
 
@@ -729,7 +730,7 @@ CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &de
     
     masm.ma_vxfer(ScratchFloatReg, dest);
     masm.ma_vcvt_I32_F64(ScratchFloatReg, ScratchFloatReg);
-    masm.ma_vcmp_F64(ScratchFloatReg, src);
+    masm.ma_vcmp(ScratchFloatReg, src);
     
     masm.ma_b(fail, Assembler::NotEqual_Unordered);
     
@@ -899,25 +900,8 @@ CodeGeneratorARM::visitDouble(LDouble *ins)
     const LConstantIndex *cindex = ins->getOperand(0)->toConstantIndex();
     const Value &v = graph.getConstant(cindex->index());
 
-    jsdpun dpun;
-    dpun.d = v.toDouble();
-    if ((dpun.s.lo) == 0) {
-        if (dpun.s.hi == 0) {
-            
-            VFPImm dblEnc(0x3FF00000);
-            masm.as_vimm(ToFloatRegister(out), dblEnc);
-            masm.as_vsub(ToFloatRegister(out), ToFloatRegister(out), ToFloatRegister(out));
-            return true;
-        }
-        VFPImm dblEnc(dpun.s.hi);
-        if (dblEnc.isValid()) {
-            masm.as_vimm(ToFloatRegister(out), dblEnc);
-            return true;
-        }
-
-    }
-    JS_NOT_REACHED("immediate NYI");
-    return false;
+    masm.ma_vimm(v.toDouble(), ToFloatRegister(out));
+    return true;
 #if 0
     DeferredDouble *d = new DeferredDouble(cindex->index());
     if (!deferredDoubles_.append(d))

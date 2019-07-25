@@ -135,7 +135,7 @@ class VFPRegister
     
     
     
-    int _code:5;
+    uint32 _code:5;
     bool _isInvalid:1;
     bool _isMissing:1;
     VFPRegister(int  r, RegType k)
@@ -906,7 +906,22 @@ class Assembler
 
     typedef JSC::AssemblerBufferWithConstantPool<2048, 4, 4, js::ion::Assembler> ARMBuffer;
     ARMBuffer m_buffer;
+    
+    
+    
+    
+    bool lastWasUBranch;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static Assembler *dummy;
 
 
 public:
@@ -914,7 +929,8 @@ public:
       : dataBytesNeeded_(0),
         enoughMemory_(true),
         dtmActive(false),
-        dtmCond(Always)
+        dtmCond(Always),
+        lastWasUBranch(true)
 
     {
     }
@@ -943,8 +959,16 @@ public:
     
     size_t dataSize() const;
     size_t bytesNeeded() const;
+
     
-    void writeInst(uint32 x);
+    
+    
+    
+    
+    void writeInst(uint32 x, uint32 *dest = NULL);
+    
+    
+    static void writeInstStatic(uint32 x, uint32 *dest);
 
   public:
     void align(int alignment);
@@ -995,16 +1019,19 @@ public:
     
     
     void as_dtr(LoadStore ls, int size, Index mode,
-                Register rt, DTRAddr addr, Condition c = Always);
+                Register rt, DTRAddr addr, Condition c = Always, uint32 *dest = NULL);
     
     
     
     void as_extdtr(LoadStore ls, int size, bool IsSigned, Index mode,
-                   Register rt, EDtrAddr addr, Condition c = Always);
+                   Register rt, EDtrAddr addr, Condition c = Always, uint32 *dest = NULL);
 
     void as_dtm(LoadStore ls, Register rn, uint32 mask,
                 DTMMode mode, DTMWriteBack wb, Condition c = Always);
-
+    
+    void as_Imm32Pool(Register dest, uint32 value);
+    
+    void as_FImm64Pool(VFPRegister dest, double value);
     
 
     
@@ -1041,7 +1068,7 @@ public:
         isDouble = 1 << 8,
         isSingle = 0 << 8
     };
-    void writeVFPInst(vfp_size sz, uint32 blob);
+    void writeVFPInst(vfp_size sz, uint32 blob, uint32 *dest=NULL);
     
     
     void as_vfp_float(VFPRegister vd, VFPRegister vn, VFPRegister vm,
@@ -1107,7 +1134,8 @@ public:
                  Condition c = Always);
     
     void as_vdtr(LoadStore ls, VFPRegister vd, VFPAddr addr,
-                 Condition c = Always );
+                 Condition c = Always ,
+                 uint32 *dest = NULL);
 
     
     
@@ -1136,7 +1164,7 @@ public:
 
     
     
-    void flush() { }
+    void flush() {}
 
     
     
@@ -1217,7 +1245,7 @@ public:
         if (dtmLastReg == -1) {
             vdtmFirstReg = rn;
         } else {
-            JS_ASSERT(dtmLastReg > 0);
+            JS_ASSERT(dtmLastReg >= 0);
             JS_ASSERT(rn.code() == unsigned(dtmLastReg) + 1);
         }
         dtmLastReg = rn.code();
@@ -1247,29 +1275,19 @@ private:
         padForAlign16 = (int)0x0000,
         padForAlign32 = (int)0xe12fff7f  
     };
-    static uint32 patchConstantPoolLoad(uint32 load, uint32 value)
-    {
-        value = (value << 1) + 1;
-        ASSERT(!(value & ~0xfff));
-        return (load & ~0xfff) | value;
-    }
-
-    static void patchConstantPoolLoad(void* loadAddr, void* constPoolAddr) {
-        JS_NOT_REACHED("ARMAssembler holdover");
-    }
-
-
-    static uint32 placeConstantPoolBarrier(int offset)
-    {
-        JS_NOT_REACHED("ARMAssembler holdover");
-#if 0
-        offset = (offset - sizeof(ARMWord)) >> 2;
-        ASSERT((offset <= BOFFSET_MAX && offset >= BOFFSET_MIN));
-        return AL | B | (offset & BRANCH_MASK);
-#endif
-        return -1;
-    }
-
+    
+    static uint32 patchConstantPoolLoad(uint32 load, int32 value);
+    
+    
+    static void patchConstantPoolLoad(void* loadAddr, void* constPoolAddr);
+    
+    
+    
+    static uint32 placeConstantPoolBarrier(int offset);
+    
+    
+    
+    void dumpPool();
 }; 
 
 static const uint32 NumArgRegs = 4;

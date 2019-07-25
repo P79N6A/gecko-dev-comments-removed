@@ -56,6 +56,12 @@ class IonFrameData
 };
 
 
+struct IonCFrame
+{
+    uintptr_t frameSize;
+    uintptr_t snapshotOffset;
+};
+
 } 
 } 
 #endif 
