@@ -150,6 +150,12 @@ var UIManager = {
       
       
       iQ(gTabViewFrame.contentDocument).mousedown(function(e) {
+        if (iQ(":focus").length > 0) {
+          iQ(":focus").each(function(element) {
+            if (element.nodeName == "INPUT")
+              element.blur();
+          });
+        }
         if (e.originalTarget.id == "content")
           self._createGroupOnDrag(e)
       });
