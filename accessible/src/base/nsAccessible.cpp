@@ -160,7 +160,7 @@ nsresult nsAccessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
   return nsAccessNodeWrap::QueryInterface(aIID, aInstancePtr);
 }
 
-nsAccessible::nsAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+nsAccessible::nsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsAccessNodeWrap(aContent, aDoc),
   mParent(nsnull), mIndexInParent(-1), mFlags(eChildrenUninitialized),
   mIndexOfEmbeddedChild(-1), mRoleMapEntry(nsnull)
@@ -653,7 +653,7 @@ nsAccessible::NativeState()
 {
   PRUint64 state = 0;
 
-  nsDocAccessible* document = Document();
+  DocAccessible* document = Document();
   if (!document || !document->IsInDocument(this))
     state |= states::STALE;
 
@@ -763,7 +763,7 @@ nsAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
   
   
   
-  nsDocAccessible* accDocument = Document();
+  DocAccessible* accDocument = Document();
   NS_ENSURE_TRUE(accDocument, nsnull);
 
   nsIFrame *frame = accDocument->GetFrame();
@@ -784,7 +784,7 @@ nsAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
 
   
   
-  nsDocAccessible* contentDocAcc = GetAccService()->
+  DocAccessible* contentDocAcc = GetAccService()->
     GetDocAccessible(content->OwnerDoc());
 
   
@@ -2954,7 +2954,7 @@ nsAccessible::CurrentItem()
     nsIDocument* DOMDoc = mContent->OwnerDoc();
     dom::Element* activeDescendantElm = DOMDoc->GetElementById(id);
     if (activeDescendantElm) {
-      nsDocAccessible* document = Document();
+      DocAccessible* document = Document();
       if (document)
         return document->GetAccessible(activeDescendantElm);
     }
@@ -3000,7 +3000,7 @@ nsAccessible::ContainerWidget() const
 void
 nsAccessible::CacheChildren()
 {
-  nsDocAccessible* doc = Document();
+  DocAccessible* doc = Document();
   NS_ENSURE_TRUE(doc,);
 
   nsAccTreeWalker walker(doc, mContent, CanHaveAnonChildren());

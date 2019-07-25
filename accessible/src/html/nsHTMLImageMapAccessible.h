@@ -17,7 +17,7 @@
 class nsHTMLImageMapAccessible : public nsHTMLImageAccessibleWrap
 {
 public:
-  nsHTMLImageMapAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsHTMLImageMapAccessible(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~nsHTMLImageMapAccessible() { }
 
   
@@ -60,7 +60,7 @@ class nsHTMLAreaAccessible : public nsHTMLLinkAccessible
 {
 public:
 
-  nsHTMLAreaAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsHTMLAreaAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual bool IsPrimaryForNode() const;

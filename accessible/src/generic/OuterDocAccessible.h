@@ -23,7 +23,7 @@ namespace a11y {
 class OuterDocAccessible : public nsAccessibleWrap
 {
 public:
-  OuterDocAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  OuterDocAccessible(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~OuterDocAccessible();
 
   NS_DECL_ISUPPORTS_INHERITED

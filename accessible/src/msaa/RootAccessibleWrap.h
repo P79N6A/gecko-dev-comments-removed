@@ -19,7 +19,7 @@ public:
   virtual ~RootAccessibleWrap();
 
   
-  virtual void DocumentActivated(nsDocAccessible* aDocument);
+  virtual void DocumentActivated(DocAccessible* aDocument);
 };
 
 } 

@@ -41,7 +41,7 @@ public:
     mFirstIter(nsnull), mLastIter(nsnull)
     { AppendTarget(aAcc); }
 
-  Relation(nsDocAccessible* aDocument, nsIContent* aContent) :
+  Relation(DocAccessible* aDocument, nsIContent* aContent) :
     mFirstIter(nsnull), mLastIter(nsnull)
     { AppendTarget(aDocument, aContent); }
 
@@ -87,7 +87,7 @@ public:
 
 
 
-  void AppendTarget(nsDocAccessible* aDocument, nsIContent* aContent)
+  void AppendTarget(DocAccessible* aDocument, nsIContent* aContent)
   {
     if (aContent)
       AppendTarget(aDocument->GetAccessible(aContent));

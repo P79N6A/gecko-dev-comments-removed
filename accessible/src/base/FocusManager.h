@@ -10,7 +10,7 @@
 
 class AccEvent;
 class nsAccessible;
-class nsDocAccessible;
+class DocAccessible;
 
 namespace mozilla {
 namespace a11y {
@@ -90,7 +90,7 @@ public:
   
 
 
-  void DispatchFocusEvent(nsDocAccessible* aDocument, nsAccessible* aTarget);
+  void DispatchFocusEvent(DocAccessible* aDocument, nsAccessible* aTarget);
 
   
 

@@ -8,7 +8,7 @@
 #include "ApplicationAccessibleWrap.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
-#include "nsDocAccessible.h"
+#include "DocAccessible.h"
 #include "nsIAccessibleText.h"
 #include "nsAccEvent.h"
 #include "States.h"
@@ -64,7 +64,7 @@ AccEvent::GetNode()
   return mNode;
 }
 
-nsDocAccessible*
+DocAccessible*
 AccEvent::GetDocAccessible()
 {
   if (mAccessible)
@@ -109,7 +109,7 @@ nsAccessible*
 AccEvent::GetAccessibleForNode() const
 {
   if (mNode) {
-    nsDocAccessible* document =
+    DocAccessible* document =
       GetAccService()->GetDocAccessible(mNode->OwnerDoc());
     if (document)
       return document->GetAccessible(mNode);

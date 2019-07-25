@@ -20,7 +20,7 @@ public:
   
   
   nsHTMLWin32ObjectOwnerAccessible(nsIContent* aContent,
-                                   nsDocAccessible* aDoc, void* aHwnd);
+                                   DocAccessible* aDoc, void* aHwnd);
   virtual ~nsHTMLWin32ObjectOwnerAccessible() {}
 
   

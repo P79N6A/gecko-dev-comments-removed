@@ -14,7 +14,7 @@
 #include "nsIPresShell.h"
 
 class nsAccessible;
-class nsDocAccessible;
+class DocAccessible;
 
 
 
@@ -33,12 +33,12 @@ public:
   
 
 
-  nsDocAccessible *GetDocAccessible(nsIDocument *aDocument);
+  DocAccessible* GetDocAccessible(nsIDocument* aDocument);
 
   
 
 
-  nsDocAccessible* GetDocAccessible(const nsIPresShell* aPresShell)
+  DocAccessible* GetDocAccessible(const nsIPresShell* aPresShell)
   {
     return aPresShell ? GetDocAccessible(aPresShell->GetDocument()) : nsnull;
   }
@@ -52,7 +52,7 @@ public:
   
 
 
-  inline nsDocAccessible* GetDocAccessibleFromCache(nsIDocument* aDocument) const
+  inline DocAccessible* GetDocAccessibleFromCache(nsIDocument* aDocument) const
   {
     return mDocAccessibleCache.GetWeak(aDocument);
   }
@@ -95,7 +95,7 @@ private:
 
 
 
-  void HandleDOMDocumentLoad(nsIDocument *aDocument,
+  void HandleDOMDocumentLoad(nsIDocument* aDocument,
                              PRUint32 aLoadEventType);
 
   
@@ -106,17 +106,17 @@ private:
   
 
 
-  nsDocAccessible *CreateDocOrRootAccessible(nsIDocument *aDocument);
+  DocAccessible* CreateDocOrRootAccessible(nsIDocument* aDocument);
 
-  typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, nsDocAccessible>
-    nsDocAccessibleHashtable;
+  typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, DocAccessible>
+    DocAccessibleHashtable;
 
   
 
 
   static PLDHashOperator
     GetFirstEntryInDocCache(const nsIDocument* aKey,
-                            nsDocAccessible* aDocAccessible,
+                            DocAccessible* aDocAccessible,
                             void* aUserArg);
 
   
@@ -132,16 +132,16 @@ private:
 
   static PLDHashOperator
     SearchAccessibleInDocCache(const nsIDocument* aKey,
-                               nsDocAccessible* aDocAccessible,
+                               DocAccessible* aDocAccessible,
                                void* aUserArg);
 
 #ifdef DEBUG
   static PLDHashOperator
     SearchIfDocIsRefreshing(const nsIDocument* aKey,
-                            nsDocAccessible* aDocAccessible, void* aUserArg);
+                            DocAccessible* aDocAccessible, void* aUserArg);
 #endif
 
-  nsDocAccessibleHashtable mDocAccessibleCache;
+  DocAccessibleHashtable mDocAccessibleCache;
 };
 
 #endif 

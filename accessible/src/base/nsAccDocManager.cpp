@@ -37,7 +37,7 @@ using namespace mozilla::a11y;
 
 
 
-nsDocAccessible*
+DocAccessible*
 nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
 {
   if (!aDocument)
@@ -46,7 +46,7 @@ nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
   
   nsAccessNode::GetApplicationAccessible()->EnsureChildren();
 
-  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
+  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (docAcc)
     return docAcc;
 
@@ -178,7 +178,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
     logging::DocLoad("start document loading", aWebProgress, aRequest, aStateFlags);
 #endif
 
-  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
+  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
   if (!docAcc)
     return NS_OK;
 
@@ -277,7 +277,7 @@ nsAccDocManager::HandleEvent(nsIDOMEvent *aEvent)
     
     
     
-    nsDocAccessible* docAccessible = mDocAccessibleCache.GetWeak(document);
+    DocAccessible* docAccessible = mDocAccessibleCache.GetWeak(document);
     if (docAccessible)
       docAccessible->Shutdown();
 
@@ -309,7 +309,7 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
 {
   
   
-  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
+  DocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (!docAcc) {
     docAcc = CreateDocOrRootAccessible(aDocument);
     if (!docAcc)
@@ -344,7 +344,7 @@ nsAccDocManager::AddListeners(nsIDocument *aDocument,
   }
 }
 
-nsDocAccessible*
+DocAccessible*
 nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 {
   
@@ -366,7 +366,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   bool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);
 
-  nsDocAccessible* parentDocAcc = nsnull;
+  DocAccessible* parentDocAcc = nsnull;
   if (!isRootDoc) {
     
     
@@ -379,9 +379,9 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   
   
-  nsRefPtr<nsDocAccessible> docAcc = isRootDoc ?
+  nsRefPtr<DocAccessible> docAcc = isRootDoc ?
     new RootAccessibleWrap(aDocument, rootElm, presShell) :
-    new nsDocAccessibleWrap(aDocument, rootElm, presShell);
+    new DocAccessibleWrap(aDocument, rootElm, presShell);
 
   
   mDocAccessibleCache.Put(aDocument, docAcc);
@@ -430,12 +430,12 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
 PLDHashOperator
 nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
-                                         nsDocAccessible* aDocAccessible,
+                                         DocAccessible* aDocAccessible,
                                          void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
                "No doc accessible for the object in doc accessible cache!");
-  *reinterpret_cast<nsDocAccessible**>(aUserArg) = aDocAccessible;
+  *reinterpret_cast<DocAccessible**>(aUserArg) = aDocAccessible;
 
   return PL_DHASH_STOP;
 }
@@ -443,7 +443,7 @@ nsAccDocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
 void
 nsAccDocManager::ClearDocCache()
 {
-  nsDocAccessible* docAcc = nsnull;
+  DocAccessible* docAcc = nsnull;
   while (mDocAccessibleCache.EnumerateRead(GetFirstEntryInDocCache, static_cast<void*>(&docAcc))) {
     if (docAcc)
       docAcc->Shutdown();
@@ -452,7 +452,7 @@ nsAccDocManager::ClearDocCache()
 
 PLDHashOperator
 nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
-                                            nsDocAccessible* aDocAccessible,
+                                            DocAccessible* aDocAccessible,
                                             void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,
@@ -472,7 +472,7 @@ nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
 #ifdef DEBUG
 PLDHashOperator
 nsAccDocManager::SearchIfDocIsRefreshing(const nsIDocument* aKey,
-                                         nsDocAccessible* aDocAccessible,
+                                         DocAccessible* aDocAccessible,
                                          void* aUserArg)
 {
   NS_ASSERTION(aDocAccessible,

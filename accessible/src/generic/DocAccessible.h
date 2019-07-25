@@ -3,8 +3,8 @@
 
 
 
-#ifndef _nsDocAccessible_H_
-#define _nsDocAccessible_H_
+#ifndef mozilla_a11y_DocAccessible_h__
+#define mozilla_a11y_DocAccessible_h__
 
 #include "nsIAccessibleCursorable.h"
 #include "nsIAccessibleDocument.h"
@@ -31,17 +31,17 @@ class nsAccessiblePivot;
 
 const PRUint32 kDefaultCacheSize = 256;
 
-class nsDocAccessible : public nsHyperTextAccessibleWrap,
-                        public nsIAccessibleDocument,
-                        public nsIDocumentObserver,
-                        public nsIObserver,
-                        public nsIScrollPositionListener,
-                        public nsSupportsWeakReference,
-                        public nsIAccessibleCursorable,
-                        public nsIAccessiblePivotObserver
+class DocAccessible : public nsHyperTextAccessibleWrap,
+                      public nsIAccessibleDocument,
+                      public nsIDocumentObserver,
+                      public nsIObserver,
+                      public nsIScrollPositionListener,
+                      public nsSupportsWeakReference,
+                      public nsIAccessibleCursorable,
+                      public nsIAccessiblePivotObserver
 {
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDocAccessible, nsAccessible)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DocAccessible, nsAccessible)
 
   NS_DECL_NSIACCESSIBLEDOCUMENT
 
@@ -54,12 +54,12 @@ class nsDocAccessible : public nsHyperTextAccessibleWrap,
 public:
   using nsAccessible::GetParent;
 
-  nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
-                  nsIPresShell* aPresShell);
-  virtual ~nsDocAccessible();
+  DocAccessible(nsIDocument* aDocument, nsIContent* aRootContent,
+                nsIPresShell* aPresShell);
+  virtual ~DocAccessible();
 
   
-  NS_IMETHOD GetAttributes(nsIPersistentProperties **aAttributes);
+  NS_IMETHOD GetAttributes(nsIPersistentProperties** aAttributes);
   NS_IMETHOD TakeFocus(void);
 
   
@@ -150,7 +150,7 @@ public:
   
 
 
-  nsDocAccessible* ParentDocument() const
+  DocAccessible* ParentDocument() const
     { return mParent ? mParent->Document() : nsnull; }
 
   
@@ -162,7 +162,7 @@ public:
   
 
 
-  nsDocAccessible* GetChildDocumentAt(PRUint32 aIndex) const
+  DocAccessible* GetChildDocumentAt(PRUint32 aIndex) const
     { return mChildDocuments.SafeElementAt(aIndex, nsnull); }
 
   
@@ -210,7 +210,7 @@ public:
   
 
 
-  inline void BindChildDocument(nsDocAccessible* aDocument)
+  inline void BindChildDocument(DocAccessible* aDocument)
   {
     mNotificationController->ScheduleChildDocBinding(aDocument);
   }
@@ -353,8 +353,8 @@ protected:
   virtual void CacheChildren();
 
   
-    virtual nsresult AddEventListeners();
-    virtual nsresult RemoveEventListeners();
+  virtual nsresult AddEventListeners();
+  virtual nsresult RemoveEventListeners();
 
   
 
@@ -388,7 +388,7 @@ protected:
 
 
 
-  bool AppendChildDocument(nsDocAccessible* aChildDocument)
+  bool AppendChildDocument(DocAccessible* aChildDocument)
   {
     return mChildDocuments.AppendElement(aChildDocument);
   }
@@ -397,7 +397,7 @@ protected:
 
 
 
-  void RemoveChildDocument(nsDocAccessible* aChildDocument)
+  void RemoveChildDocument(DocAccessible* aChildDocument)
   {
     mChildDocuments.RemoveElement(aChildDocument);
   }
@@ -573,7 +573,7 @@ protected:
 
   nsIAtom* mARIAAttrOldValue;
 
-  nsTArray<nsRefPtr<nsDocAccessible> > mChildDocuments;
+  nsTArray<nsRefPtr<DocAccessible> > mChildDocuments;
 
   
 
@@ -630,11 +630,11 @@ private:
   nsIPresShell* mPresShell;
 };
 
-inline nsDocAccessible*
+inline DocAccessible*
 nsAccessible::AsDoc()
 {
   return mFlags & eDocAccessible ?
-    static_cast<nsDocAccessible*>(this) : nsnull;
+    static_cast<DocAccessible*>(this) : nsnull;
 }
 
 #endif

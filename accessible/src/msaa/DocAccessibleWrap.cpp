@@ -6,7 +6,7 @@
 #include "mozilla/dom/TabChild.h"
 
 #include "Compatibility.h"
-#include "nsDocAccessibleWrap.h"
+#include "DocAccessibleWrap.h"
 #include "ISimpleDOMDocument_i.c"
 #include "nsIAccessibilityService.h"
 #include "nsWinUtils.h"
@@ -35,32 +35,34 @@ using namespace mozilla::a11y;
 
 
 
-nsDocAccessibleWrap::
-  nsDocAccessibleWrap(nsIDocument* aDocument, nsIContent* aRootContent,
-                      nsIPresShell* aPresShell) :
-  nsDocAccessible(aDocument, aRootContent, aPresShell), mHWND(NULL)
+DocAccessibleWrap::
+  DocAccessibleWrap(nsIDocument* aDocument, nsIContent* aRootContent,
+                    nsIPresShell* aPresShell) :
+  DocAccessible(aDocument, aRootContent, aPresShell), mHWND(NULL)
 {
 }
 
-nsDocAccessibleWrap::~nsDocAccessibleWrap()
+DocAccessibleWrap::~DocAccessibleWrap()
 {
 }
 
 
 
 
-STDMETHODIMP_(ULONG) nsDocAccessibleWrap::AddRef()
+STDMETHODIMP_(ULONG)
+DocAccessibleWrap::AddRef()
 {
   return nsAccessNode::AddRef();
 }
 
-STDMETHODIMP_(ULONG) nsDocAccessibleWrap::Release()
+STDMETHODIMP_(ULONG) DocAccessibleWrap::Release()
 {
   return nsAccessNode::Release();
 }
 
 
-STDMETHODIMP nsDocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
+STDMETHODIMP
+DocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
 {
   *ppv = NULL;
 
@@ -73,7 +75,8 @@ STDMETHODIMP nsDocAccessibleWrap::QueryInterface(REFIID iid, void** ppv)
   return S_OK;
 }
 
-STDMETHODIMP nsDocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
+STDMETHODIMP
+DocAccessibleWrap::get_URL( BSTR __RPC_FAR *aURL)
 {
 __try {
   *aURL = NULL;
@@ -93,7 +96,8 @@ __try {
   return E_FAIL;
 }
 
-STDMETHODIMP nsDocAccessibleWrap::get_title(  BSTR __RPC_FAR *aTitle)
+STDMETHODIMP
+DocAccessibleWrap::get_title(  BSTR __RPC_FAR *aTitle)
 {
 __try {
   *aTitle = NULL;
@@ -110,7 +114,8 @@ __try {
   return E_FAIL;
 }
 
-STDMETHODIMP nsDocAccessibleWrap::get_mimeType( BSTR __RPC_FAR *aMimeType)
+STDMETHODIMP
+DocAccessibleWrap::get_mimeType( BSTR __RPC_FAR *aMimeType)
 {
 __try {
   *aMimeType = NULL;
@@ -130,7 +135,8 @@ __try {
   return E_FAIL;
 }
 
-STDMETHODIMP nsDocAccessibleWrap::get_docType( BSTR __RPC_FAR *aDocType)
+STDMETHODIMP
+DocAccessibleWrap::get_docType( BSTR __RPC_FAR *aDocType)
 {
 __try {
   *aDocType = NULL;
@@ -150,7 +156,8 @@ __try {
   return E_FAIL;
 }
 
-STDMETHODIMP nsDocAccessibleWrap::get_nameSpaceURIForID(  short aNameSpaceID,
+STDMETHODIMP
+DocAccessibleWrap::get_nameSpaceURIForID(  short aNameSpaceID,
    BSTR __RPC_FAR *aNameSpaceURI)
 {
 __try {
@@ -177,7 +184,7 @@ __try {
 }
 
 STDMETHODIMP
-nsDocAccessibleWrap::put_alternateViewMediaTypes(  BSTR __RPC_FAR *aCommaSeparatedMediaTypes)
+DocAccessibleWrap::put_alternateViewMediaTypes(  BSTR __RPC_FAR *aCommaSeparatedMediaTypes)
 {
 __try {
   *aCommaSeparatedMediaTypes = NULL;
@@ -186,7 +193,8 @@ __try {
   return E_NOTIMPL;
 }
 
-STDMETHODIMP nsDocAccessibleWrap::get_accValue(
+STDMETHODIMP
+DocAccessibleWrap::get_accValue(
        VARIANT varChild,
        BSTR __RPC_FAR *pszValue)
 {
@@ -209,7 +217,7 @@ STDMETHODIMP nsDocAccessibleWrap::get_accValue(
 
 
 void
-nsDocAccessibleWrap::Shutdown()
+DocAccessibleWrap::Shutdown()
 {
   
   if (nsWinUtils::IsWindowEmulationStarted()) {
@@ -222,25 +230,25 @@ nsDocAccessibleWrap::Shutdown()
     mHWND = nsnull;
   }
 
-  nsDocAccessible::Shutdown();
+  DocAccessible::Shutdown();
 }
 
 
 
 
 void*
-nsDocAccessibleWrap::GetNativeWindow() const
+DocAccessibleWrap::GetNativeWindow() const
 {
-  return mHWND ? mHWND : nsDocAccessible::GetNativeWindow();
+  return mHWND ? mHWND : DocAccessible::GetNativeWindow();
 }
 
 
 
 
 void
-nsDocAccessibleWrap::DoInitialUpdate()
+DocAccessibleWrap::DoInitialUpdate()
 {
-  nsDocAccessible::DoInitialUpdate();
+  DocAccessible::DoInitialUpdate();
 
   if (nsWinUtils::IsWindowEmulationStarted()) {
     
@@ -278,7 +286,7 @@ nsDocAccessibleWrap::DoInitialUpdate()
       sHWNDCache.Put(mHWND, this);
 
     } else {
-      nsDocAccessible* parentDocument = ParentDocument();
+      DocAccessible* parentDocument = ParentDocument();
       if (parentDocument)
         mHWND = parentDocument->GetNativeWindow();
     }

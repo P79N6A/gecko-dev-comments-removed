@@ -11,7 +11,6 @@
 
 
 
-
 void
 nsEventShell::FireEvent(AccEvent* aEvent)
 {

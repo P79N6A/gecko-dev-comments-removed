@@ -20,7 +20,7 @@ class TextLeafAccessibleWrap : public TextLeafAccessible,
                                public ISimpleDOMText
 {
 public:
-  TextLeafAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc);
+  TextLeafAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc);
   virtual ~TextLeafAccessibleWrap() {}
 
     

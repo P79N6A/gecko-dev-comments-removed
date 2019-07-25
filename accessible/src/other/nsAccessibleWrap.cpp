@@ -9,7 +9,7 @@
 
 
 nsAccessibleWrap::
-  nsAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
   nsAccessible(aContent, aDoc)
 {
 }

@@ -172,7 +172,7 @@ public:
 
 
 
-  nsAccessible* GetOrCreateAccessible(nsINode* aNode, nsDocAccessible* aDoc,
+  nsAccessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
                                       bool* aIsSubtreeHidden = nsnull);
 
   
@@ -204,28 +204,28 @@ private:
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleByType(nsIContent* aContent, nsDocAccessible* aDoc);
+    CreateAccessibleByType(nsIContent* aContent, DocAccessible* aDoc);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 nsDocAccessible* aDoc);
+                                 DocAccessible* aDoc);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateAccessibleForDeckChild(nsIFrame* aFrame, nsIContent* aContent,
-                                 nsDocAccessible* aDoc);
+                                 DocAccessible* aDoc);
 
 #ifdef MOZ_XUL
   
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleForXULTree(nsIContent* aContent, nsDocAccessible* aDoc);
+    CreateAccessibleForXULTree(nsIContent* aContent, DocAccessible* aDoc);
 #endif
 
   

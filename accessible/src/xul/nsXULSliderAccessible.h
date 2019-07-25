@@ -16,7 +16,7 @@
 class nsXULSliderAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULSliderAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXULSliderAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -57,7 +57,7 @@ private:
 class nsXULThumbAccessible : public nsAccessibleWrap
 {
 public:
-  nsXULThumbAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsXULThumbAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();

@@ -26,7 +26,7 @@ using namespace mozilla::a11y;
 
 
 ARIAGridAccessible::
-  ARIAGridAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  ARIAGridAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsAccessibleWrap(aContent, aDoc), xpcAccessibleTable(this)
 {
 }
@@ -821,7 +821,7 @@ ARIAGridAccessible::GetSelectedColumnsArray(PRUint32* aColumnCount,
 
 
 ARIAGridCellAccessible::
-  ARIAGridCellAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  ARIAGridCellAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   nsHyperTextAccessibleWrap(aContent, aDoc)
 {
 }

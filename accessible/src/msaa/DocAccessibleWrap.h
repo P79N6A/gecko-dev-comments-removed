@@ -7,22 +7,22 @@
 
 
 
-#ifndef _nsDocAccessibleWrap_H_
-#define _nsDocAccessibleWrap_H_
+#ifndef mozilla_a11y_DocAccessibleWrap_h__
+#define mozilla_a11y_DocAccessibleWrap_h__
 
 #include "ISimpleDOMDocument.h"
 
 #include "nsAccUtils.h"
-#include "nsDocAccessible.h"
+#include "DocAccessible.h"
 #include "nsIDocShellTreeItem.h"
 
-class nsDocAccessibleWrap: public nsDocAccessible,
-                           public ISimpleDOMDocument
+class DocAccessibleWrap : public DocAccessible,
+                          public ISimpleDOMDocument
 {
 public:
-  nsDocAccessibleWrap(nsIDocument* aDocument, nsIContent* aRootContent,
-                      nsIPresShell* aPresShell);
-  virtual ~nsDocAccessibleWrap();
+  DocAccessibleWrap(nsIDocument* aDocument, nsIContent* aRootContent,
+                    nsIPresShell* aPresShell);
+  virtual ~DocAccessibleWrap();
 
     
     STDMETHODIMP_(ULONG) AddRef();
