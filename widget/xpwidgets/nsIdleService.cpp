@@ -413,7 +413,9 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
 
   
   
-  nextWaitTime -= idleTime;
+  if (PR_UINT32_MAX != nextWaitTime) {
+    nextWaitTime -= idleTime;
+  }
 
   
   for (PRInt32 i = 0; i < notifyList.Count(); i++) {
