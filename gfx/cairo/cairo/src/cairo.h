@@ -162,6 +162,24 @@ typedef struct _cairo_surface cairo_surface_t;
 
 
 
+typedef struct _cairo_device cairo_device_t;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 typedef struct _cairo_matrix {
     double xx; double yx;
@@ -263,6 +281,8 @@ typedef struct _cairo_user_data_key {
 
 
 
+
+
 typedef enum _cairo_status {
     CAIRO_STATUS_SUCCESS = 0,
 
@@ -299,6 +319,8 @@ typedef enum _cairo_status {
     CAIRO_STATUS_INVALID_WEIGHT,
     CAIRO_STATUS_INVALID_SIZE,
     CAIRO_STATUS_USER_FONT_NOT_IMPLEMENTED,
+    CAIRO_STATUS_DEVICE_TYPE_MISMATCH,
+    CAIRO_STATUS_DEVICE_ERROR,
     CAIRO_STATUS_NO_DEVICE,
 
     CAIRO_STATUS_LAST_STATUS
@@ -1916,11 +1938,95 @@ cairo_status_to_string (cairo_status_t status);
 
 
 
+cairo_public cairo_device_t *
+cairo_device_reference (cairo_device_t *device);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef enum _cairo_device_type {
+    CAIRO_DEVICE_TYPE_DRM,
+    CAIRO_DEVICE_TYPE_GL,
+    CAIRO_DEVICE_TYPE_SCRIPT,
+    CAIRO_DEVICE_TYPE_XCB,
+    CAIRO_DEVICE_TYPE_XLIB,
+    CAIRO_DEVICE_TYPE_XML
+} cairo_device_type_t;
+
+cairo_public cairo_device_type_t
+cairo_device_get_type (cairo_device_t *device);
+
+cairo_public cairo_status_t
+cairo_device_status (cairo_device_t *device);
+
+cairo_public cairo_status_t
+cairo_device_acquire (cairo_device_t *device);
+
+cairo_public void
+cairo_device_release (cairo_device_t *device);
+
+cairo_public void
+cairo_device_flush (cairo_device_t *device);
+
+cairo_public void
+cairo_device_finish (cairo_device_t *device);
+
+cairo_public void
+cairo_device_destroy (cairo_device_t *device);
+
+cairo_public unsigned int
+cairo_device_get_reference_count (cairo_device_t *device);
+
+cairo_public void *
+cairo_device_get_user_data (cairo_device_t		 *device,
+			    const cairo_user_data_key_t *key);
+
+cairo_public cairo_status_t
+cairo_device_set_user_data (cairo_device_t		 *device,
+			    const cairo_user_data_key_t *key,
+			    void			 *user_data,
+			    cairo_destroy_func_t	  destroy);
+
+
+
+
 cairo_public cairo_surface_t *
 cairo_surface_create_similar (cairo_surface_t  *other,
 			      cairo_content_t	content,
 			      int		width,
 			      int		height);
+
+cairo_public cairo_surface_t *
+cairo_surface_create_for_rectangle (cairo_surface_t	*target,
+                                    double		 x,
+                                    double		 y,
+                                    double		 width,
+                                    double		 height);
 
 cairo_public cairo_surface_t *
 cairo_surface_reference (cairo_surface_t *surface);
@@ -1931,11 +2037,17 @@ cairo_surface_finish (cairo_surface_t *surface);
 cairo_public void
 cairo_surface_destroy (cairo_surface_t *surface);
 
+cairo_public cairo_device_t *
+cairo_surface_get_device (cairo_surface_t *surface);
+
 cairo_public unsigned int
 cairo_surface_get_reference_count (cairo_surface_t *surface);
 
 cairo_public cairo_status_t
 cairo_surface_status (cairo_surface_t *surface);
+
+
+
 
 
 
@@ -2010,6 +2122,7 @@ typedef enum _cairo_surface_type {
     CAIRO_SURFACE_TYPE_TEE,
     CAIRO_SURFACE_TYPE_XML,
     CAIRO_SURFACE_TYPE_SKIA,
+    CAIRO_SURFACE_TYPE_SUBSURFACE,
     CAIRO_SURFACE_TYPE_D2D
 } cairo_surface_type_t;
 
@@ -2045,18 +2158,19 @@ cairo_surface_set_user_data (cairo_surface_t		 *surface,
 #define CAIRO_MIME_TYPE_JPEG "image/jpeg"
 #define CAIRO_MIME_TYPE_PNG "image/png"
 #define CAIRO_MIME_TYPE_JP2 "image/jp2"
+#define CAIRO_MIME_TYPE_URI "text/x-uri"
 
 cairo_public void
 cairo_surface_get_mime_data (cairo_surface_t		*surface,
                              const char			*mime_type,
                              const unsigned char       **data,
-                             unsigned int		*length);
+                             unsigned long		*length);
 
 cairo_public cairo_status_t
 cairo_surface_set_mime_data (cairo_surface_t		*surface,
                              const char			*mime_type,
                              const unsigned char	*data,
-                             unsigned int		 length,
+                             unsigned long		 length,
 			     cairo_destroy_func_t	 destroy,
 			     void			*closure);
 
@@ -2154,12 +2268,14 @@ cairo_surface_get_subpixel_antialiasing (cairo_surface_t *surface);
 
 
 
+
 typedef enum _cairo_format {
-    CAIRO_FORMAT_ARGB32,
-    CAIRO_FORMAT_RGB24,
-    CAIRO_FORMAT_A8,
-    CAIRO_FORMAT_A1,
-    CAIRO_FORMAT_RGB16_565
+    CAIRO_FORMAT_INVALID   = -1,
+    CAIRO_FORMAT_ARGB32    = 0,
+    CAIRO_FORMAT_RGB24     = 1,
+    CAIRO_FORMAT_A8        = 2,
+    CAIRO_FORMAT_A1        = 3,
+    CAIRO_FORMAT_RGB16_565 = 4
 } cairo_format_t;
 
 cairo_public cairo_surface_t *
@@ -2216,23 +2332,6 @@ cairo_recording_surface_ink_extents (cairo_surface_t *surface,
                                      double *y0,
                                      double *width,
                                      double *height);
-
-
-
-cairo_public cairo_surface_t *
-cairo_tee_surface_create (cairo_surface_t *master);
-
-cairo_public void
-cairo_tee_surface_add (cairo_surface_t *surface,
-		       cairo_surface_t *target);
-
-cairo_public void
-cairo_tee_surface_remove (cairo_surface_t *surface,
-			  cairo_surface_t *target);
-
-cairo_public cairo_surface_t *
-cairo_tee_surface_index (cairo_surface_t *surface,
-			 int index);
 
 
 
@@ -2482,7 +2581,32 @@ cairo_matrix_transform_point (const cairo_matrix_t *matrix,
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef struct _cairo_region cairo_region_t;
+
+
+
+
+
+
+
+
+
+
+
+
 
 typedef struct _cairo_rectangle_int {
     int x, y;
@@ -2509,7 +2633,7 @@ cairo_public cairo_region_t *
 cairo_region_copy (const cairo_region_t *original);
 
 cairo_public cairo_region_t *
-cairo_region_reference (cairo_region_t *);
+cairo_region_reference (cairo_region_t *region);
 
 cairo_public void
 cairo_region_destroy (cairo_region_t *region);
@@ -2528,8 +2652,8 @@ cairo_public int
 cairo_region_num_rectangles (const cairo_region_t *region);
 
 cairo_public void
-cairo_region_get_rectangle (const cairo_region_t        *region,
-			    int                    nth_rectangle,
+cairo_region_get_rectangle (const cairo_region_t  *region,
+			    int                    nth,
 			    cairo_rectangle_int_t *rectangle);
 
 cairo_public cairo_bool_t
@@ -2553,19 +2677,25 @@ cairo_region_subtract_rectangle (cairo_region_t *dst,
 				 const cairo_rectangle_int_t *rectangle);
 
 cairo_public cairo_status_t
-cairo_region_intersect (cairo_region_t *dst, cairo_region_t *other);
+cairo_region_intersect (cairo_region_t *dst, const cairo_region_t *other);
 
 cairo_public cairo_status_t
 cairo_region_intersect_rectangle (cairo_region_t *dst,
 				  const cairo_rectangle_int_t *rectangle);
 
 cairo_public cairo_status_t
-cairo_region_union (cairo_region_t *dst, cairo_region_t *other);
+cairo_region_union (cairo_region_t *dst, const cairo_region_t *other);
 
 cairo_public cairo_status_t
 cairo_region_union_rectangle (cairo_region_t *dst,
 			      const cairo_rectangle_int_t *rectangle);
 
+cairo_public cairo_status_t
+cairo_region_xor (cairo_region_t *dst, const cairo_region_t *other);
+
+cairo_public cairo_status_t
+cairo_region_xor_rectangle (cairo_region_t *dst,
+			    const cairo_rectangle_int_t *rectangle);
 
 
 cairo_public void

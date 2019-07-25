@@ -37,6 +37,7 @@
 #include "cairoint.h"
 
 #include "cairo-output-stream-private.h"
+#include "cairo-error-private.h"
 #include "cairo-compiler-private.h"
 
 #include <stdio.h>
@@ -694,7 +695,7 @@ _cairo_memory_stream_create (void)
 cairo_status_t
 _cairo_memory_stream_destroy (cairo_output_stream_t *abstract_stream,
 			      unsigned char **data_out,
-			      unsigned int *length_out)
+			      unsigned long *length_out)
 {
     memory_stream_t *stream;
     cairo_status_t status;

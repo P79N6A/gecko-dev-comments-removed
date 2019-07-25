@@ -34,6 +34,7 @@
 
 
 #include "cairoint.h"
+#include "cairo-error-private.h"
 
 void
 _cairo_stroke_style_init (cairo_stroke_style_t *style)
@@ -52,7 +53,7 @@ _cairo_stroke_style_init (cairo_stroke_style_t *style)
 
 cairo_status_t
 _cairo_stroke_style_init_copy (cairo_stroke_style_t *style,
-			       cairo_stroke_style_t *other)
+			       const cairo_stroke_style_t *other)
 {
     if (CAIRO_INJECT_FAULT ())
 	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
@@ -140,6 +141,22 @@ _cairo_stroke_style_dash_period (const cairo_stroke_style_t *style)
 
     return period;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -234,8 +251,60 @@ _cairo_stroke_style_dash_approximate (const cairo_stroke_style_t *style,
 
     *num_dashes = 2;
 
-    dashes[0] = scale * coverage;
-    dashes[1] = scale * (1.0 - coverage);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    switch (style->line_cap) {
+    default:
+        ASSERT_NOT_REACHED;
+	dashes[0] = 0.0;
+	break;
+
+    case CAIRO_LINE_CAP_BUTT:
+        
+        dashes[0] = scale * coverage;
+	break;
+
+    case CAIRO_LINE_CAP_ROUND:
+        dashes[0] = MAX(scale * (coverage - ROUND_MINSQ_APPROXIMATION) / (1.0 - ROUND_MINSQ_APPROXIMATION),
+			scale * coverage - ROUND_MINSQ_APPROXIMATION * style->line_width);
+	break;
+
+    case CAIRO_LINE_CAP_SQUARE:
+        
+
+
+
+
+        dashes[0] = MAX(0.0, scale * coverage - style->line_width);
+	break;
+    }
+
+    dashes[1] = scale - dashes[0];
 
     *dash_offset = on ? 0.0 : dashes[0];
 }

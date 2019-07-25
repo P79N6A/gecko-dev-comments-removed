@@ -35,12 +35,27 @@
 
 
 #include "cairoint.h"
+#include "cairo-error-private.h"
+
+
+
+
+
+
+
+
+
+
+
+
 
 static const cairo_font_options_t _cairo_font_options_nil = {
     CAIRO_ANTIALIAS_DEFAULT,
     CAIRO_SUBPIXEL_ORDER_DEFAULT,
+    CAIRO_LCD_FILTER_DEFAULT,
     CAIRO_HINT_STYLE_DEFAULT,
-    CAIRO_HINT_METRICS_DEFAULT
+    CAIRO_HINT_METRICS_DEFAULT,
+    CAIRO_ROUND_GLYPH_POS_DEFAULT
 };
 
 
@@ -54,8 +69,10 @@ _cairo_font_options_init_default (cairo_font_options_t *options)
 {
     options->antialias = CAIRO_ANTIALIAS_DEFAULT;
     options->subpixel_order = CAIRO_SUBPIXEL_ORDER_DEFAULT;
+    options->lcd_filter = CAIRO_LCD_FILTER_DEFAULT;
     options->hint_style = CAIRO_HINT_STYLE_DEFAULT;
     options->hint_metrics = CAIRO_HINT_METRICS_DEFAULT;
+    options->round_glyph_positions = CAIRO_ROUND_GLYPH_POS_DEFAULT;
 }
 
 void
@@ -64,8 +81,10 @@ _cairo_font_options_init_copy (cairo_font_options_t		*options,
 {
     options->antialias = other->antialias;
     options->subpixel_order = other->subpixel_order;
+    options->lcd_filter = other->lcd_filter;
     options->hint_style = other->hint_style;
     options->hint_metrics = other->hint_metrics;
+    options->round_glyph_positions = other->round_glyph_positions;
 }
 
 
@@ -189,10 +208,14 @@ cairo_font_options_merge (cairo_font_options_t       *options,
 	options->antialias = other->antialias;
     if (other->subpixel_order != CAIRO_SUBPIXEL_ORDER_DEFAULT)
 	options->subpixel_order = other->subpixel_order;
+    if (other->lcd_filter != CAIRO_LCD_FILTER_DEFAULT)
+	options->lcd_filter = other->lcd_filter;
     if (other->hint_style != CAIRO_HINT_STYLE_DEFAULT)
 	options->hint_style = other->hint_style;
     if (other->hint_metrics != CAIRO_HINT_METRICS_DEFAULT)
 	options->hint_metrics = other->hint_metrics;
+    if (other->round_glyph_positions != CAIRO_ROUND_GLYPH_POS_DEFAULT)
+	options->round_glyph_positions = other->round_glyph_positions;
 }
 slim_hidden_def (cairo_font_options_merge);
 
@@ -221,8 +244,10 @@ cairo_font_options_equal (const cairo_font_options_t *options,
 
     return (options->antialias == other->antialias &&
 	    options->subpixel_order == other->subpixel_order &&
+	    options->lcd_filter == other->lcd_filter &&
 	    options->hint_style == other->hint_style &&
-	    options->hint_metrics == other->hint_metrics);
+	    options->hint_metrics == other->hint_metrics &&
+	    options->round_glyph_positions == other->round_glyph_positions);
 }
 slim_hidden_def (cairo_font_options_equal);
 
@@ -246,7 +271,8 @@ cairo_font_options_hash (const cairo_font_options_t *options)
 
     return ((options->antialias) |
 	    (options->subpixel_order << 4) |
-	    (options->hint_style << 8) |
+	    (options->lcd_filter << 8) |
+	    (options->hint_style << 12) |
 	    (options->hint_metrics << 16));
 }
 slim_hidden_def (cairo_font_options_hash);
@@ -325,6 +351,87 @@ cairo_font_options_get_subpixel_order (const cairo_font_options_t *options)
 	return CAIRO_SUBPIXEL_ORDER_DEFAULT;
 
     return options->subpixel_order;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+_cairo_font_options_set_lcd_filter (cairo_font_options_t *options,
+				    cairo_lcd_filter_t    lcd_filter)
+{
+    if (cairo_font_options_status (options))
+	return;
+
+    options->lcd_filter = lcd_filter;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_lcd_filter_t
+_cairo_font_options_get_lcd_filter (const cairo_font_options_t *options)
+{
+    if (cairo_font_options_status ((cairo_font_options_t *) options))
+	return CAIRO_LCD_FILTER_DEFAULT;
+
+    return options->lcd_filter;
+}
+
+
+
+
+
+
+
+
+
+
+
+void
+_cairo_font_options_set_round_glyph_positions (cairo_font_options_t *options,
+					       cairo_round_glyph_positions_t  round)
+{
+    if (cairo_font_options_status (options))
+	return;
+
+    options->round_glyph_positions = round;
+}
+
+
+
+
+
+
+
+
+
+
+
+cairo_round_glyph_positions_t
+_cairo_font_options_get_round_glyph_positions (const cairo_font_options_t *options)
+{
+    if (cairo_font_options_status ((cairo_font_options_t *) options))
+	return CAIRO_ROUND_GLYPH_POS_DEFAULT;
+
+    return options->round_glyph_positions;
 }
 
 

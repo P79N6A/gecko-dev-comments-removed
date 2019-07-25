@@ -36,6 +36,7 @@
 
 #include "cairoint.h"
 
+#include "cairo-error-private.h"
 #include "cairo-slope-private.h"
 
 typedef struct cairo_hull {
@@ -93,6 +94,13 @@ _cairo_hull_vertex_compare (const void *av, const void *bv)
     cairo_hull_t *a = (cairo_hull_t *) av;
     cairo_hull_t *b = (cairo_hull_t *) bv;
     int ret;
+
+    
+
+
+
+    if (a == b)
+	return 0;
 
     ret = _cairo_slope_compare (&a->slope, &b->slope);
 
