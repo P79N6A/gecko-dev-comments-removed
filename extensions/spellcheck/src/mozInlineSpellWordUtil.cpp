@@ -560,8 +560,25 @@ mozInlineSpellWordUtil::BuildSoftText()
   PRInt32 firstOffsetInNode = 0;
   PRInt32 checkBeforeOffset = mSoftBegin.mOffset;
   while (node) {
-    if (ContainsDOMWordSeparator(node, checkBeforeOffset, &firstOffsetInNode))
+    if (ContainsDOMWordSeparator(node, checkBeforeOffset, &firstOffsetInNode)) {
+      if (node == mSoftBegin.mNode) {
+        
+        
+        PRInt32 newOffset = 0;
+        if (firstOffsetInNode > 0) {
+          
+          
+          
+          
+          
+          
+          ContainsDOMWordSeparator(node, firstOffsetInNode - 1, &newOffset);
+        }
+        firstOffsetInNode = newOffset;
+        mSoftBegin.mOffset = newOffset;
+      }
       break;
+    }
     checkBeforeOffset = PR_INT32_MAX;
     if (IsBreakElement(mCSSView, node)) {
       
