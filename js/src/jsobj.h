@@ -1090,6 +1090,25 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
     return cacheable;
 }
 
+#ifdef DEBUG
+
+
+
+
+inline bool
+js_IsSaneThisObject(JSObject *obj)
+{
+    extern JS_FRIEND_DATA(JSClass) js_CallClass;
+    extern JS_FRIEND_DATA(JSClass) js_DeclEnvClass;
+
+    JSClass *clasp = obj->getClass();
+    return clasp != &js_CallClass &&
+           clasp != &js_BlockClass &&
+           clasp != &js_DeclEnvClass &&
+           clasp != &js_WithClass;
+}
+#endif
+
 
 
 

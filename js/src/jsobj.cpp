@@ -6202,7 +6202,6 @@ js_Clear(JSContext *cx, JSObject *obj)
     JS_UNLOCK_OBJ(cx, obj);
 }
 
-#ifdef DEBUG
 
 static bool
 ReservedSlotIndexOK(JSContext *cx, JSObject *obj, JSClass *clasp,
@@ -6221,7 +6220,6 @@ ReservedSlotIndexOK(JSContext *cx, JSObject *obj, JSClass *clasp,
     }
     return true;
 }
-#endif
 
 bool
 js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, jsval *vp)
@@ -6232,12 +6230,11 @@ js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, jsval *vp)
     }
 
     JSClass *clasp = obj->getClass();
-#ifdef DEBUG
     uint32 limit = JSCLASS_RESERVED_SLOTS(clasp);
-#endif
 
     JS_LOCK_OBJ(cx, obj);
-    JS_ASSERT(index < limit || ReservedSlotIndexOK(cx, obj, clasp, index, limit));
+    if (index >= limit && !ReservedSlotIndexOK(cx, obj, clasp, index, limit))
+        return false;
 
     uint32 slot = JSSLOT_START(clasp) + index;
     *vp = (slot < obj->numSlots()) ? obj->getSlot(slot) : JSVAL_VOID;
@@ -6406,7 +6403,9 @@ js_DumpAtom(JSAtom *atom)
 void
 dumpValue(jsval val)
 {
-    if (JSVAL_IS_NULL(val)) {
+    if ((val & 0xfffffff0) == 0xdadadad0) {
+        fprintf(stderr, "**uninitialized** %p", (void *) val);
+    } else if (JSVAL_IS_NULL(val)) {
         fprintf(stderr, "null");
     } else if (JSVAL_IS_VOID(val)) {
         fprintf(stderr, "undefined");
@@ -6640,8 +6639,6 @@ js_DumpStackFrame(JSContext *cx, JSStackFrame *start)
             fprintf(stderr, " none");
         if (fp->flags & JSFRAME_CONSTRUCTING)
             fprintf(stderr, " constructing");
-        if (fp->flags & JSFRAME_COMPUTED_THIS)
-            fprintf(stderr, " computed_this");
         if (fp->flags & JSFRAME_ASSIGNING)
             fprintf(stderr, " assigning");
         if (fp->flags & JSFRAME_DEBUGGER)
