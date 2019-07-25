@@ -556,7 +556,14 @@ function _getDOMWindowUtils(aWindow)
 
 
 
-function synthesizeComposition(aIsCompositionStart, aWindow)
+
+
+
+
+
+
+
+function synthesizeComposition(aEvent, aWindow)
 {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 
@@ -565,8 +572,8 @@ function synthesizeComposition(aIsCompositionStart, aWindow)
     return;
   }
 
-  utils.sendCompositionEvent(aIsCompositionStart ?
-                               "compositionstart" : "compositionend");
+  utils.sendCompositionEvent(aEvent.type, aEvent.data ? aEvent.data : "",
+                             aEvent.locale ? aEvent.locale : "");
 }
 
 
