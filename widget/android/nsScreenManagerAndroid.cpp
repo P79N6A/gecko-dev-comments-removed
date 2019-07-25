@@ -3,6 +3,8 @@
 
 
 
+#define MOZ_FATAL_ASSERTIONS_FOR_THREAD_SAFETY
+
 #include "nsScreenManagerAndroid.h"
 #include "nsWindow.h"
 #include "AndroidBridge.h"

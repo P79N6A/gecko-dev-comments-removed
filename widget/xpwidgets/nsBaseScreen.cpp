@@ -5,6 +5,8 @@
 
 
 
+#define MOZ_FATAL_ASSERTIONS_FOR_THREAD_SAFETY
+
 #include "nsBaseScreen.h"
 
 NS_IMPL_ISUPPORTS1(nsBaseScreen, nsIScreen)
