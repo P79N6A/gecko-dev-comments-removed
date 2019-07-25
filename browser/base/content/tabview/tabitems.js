@@ -94,7 +94,6 @@ function TabItem(tab, options) {
   this.defaultSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
   this._hidden = false;
   this.isATabItem = true;
-  this._zoomPrep = false;
   this.sizeExtra = new Point();
   this.keepProportional = true;
   this._hasBeenDrawn = false;
@@ -428,9 +427,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let rect = new Rect(inRect.left, inRect.top, 
       validSize.x, validSize.y);
 
-    if (this._zoomPrep)
-      this.bounds.copy(rect);
-    else {
       var css = {};
 
       if (rect.left != this.bounds.left || options.force)
@@ -520,7 +516,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
 
       this._hasBeenDrawn = true;
-    }
 
     UI.clearShouldResizeItems();
 
@@ -625,17 +620,22 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       return;
 
     var self = this;
-    var $tabEl = this.$container;
+    var $tabEl = this.$container, $canvas = this.$canvas;
     var childHitResult = { shouldZoom: true };
     if (this.parent)
       childHitResult = this.parent.childHit(this);
 
+    this.shouldHideCachedData = true;
+    TabItems._update(this.tab);
+
     if (childHitResult.shouldZoom) {
       
       var tab = this.tab;
-      var orig = $tabEl.bounds();
 
       function onZoomDone() {
+        $canvas.css({ '-moz-transform': null });
+        $tabEl.removeClass("front");
+
         UI.goToTab(tab);
 
         
@@ -652,9 +652,13 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
       if (animateZoom) {
+        let transform = this.getZoomTransform();
         TabItems.pausePainting();
-        $tabEl.addClass("front")
-        .animate(this.getZoomRect(), {
+
+        $tabEl.addClass("front");
+        $canvas
+        .css({ '-moz-transform-origin': transform.transformOrigin })
+        .animate({ '-moz-transform': transform.transform }, {
           duration: 230,
           easing: 'fast',
           complete: function() {
@@ -662,10 +666,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
             setTimeout(function() {
               TabItems.resumePainting();
-
-              $tabEl
-                .css(orig)
-                .removeClass("front");
             }, 0);
           }
         });
@@ -683,34 +683,35 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   zoomOut: function TabItem_zoomOut(complete) {
-    var $tab = this.$container;
+    let $tab = this.$container, $canvas = this.$canvas;
     var self = this;
     
     let onZoomDone = function onZoomDone() {
-      self.setZoomPrep(false);
+      $tab.removeClass("front");
+      $canvas.css("-moz-transform", null);
 
       GroupItems.setActiveOrphanTab(null);
 
       if (typeof complete == "function")
         complete();
     };
-    
+
+    this.shouldHideCachedData = true;
+    TabItems._update(this.tab);
+
+    $tab.addClass("front");
+
     let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
     if (animateZoom) {
-      let box = this.getBounds();
-      box.width -= this.sizeExtra.x;
-      if (!this.isStacked)
-        box.height -= this.sizeExtra.y + TabItems.fontSizeRange.max;
-      else
-        box.height -= this.sizeExtra.y;
-  
-      TabItems.pausePainting();
-      $tab.animate({
-        left: box.left,
-        top: box.top,
-        width: box.width,
-        height: box.height
-      }, {
+      
+      
+      let transform = this.getZoomTransform(2);
+      $canvas.css({
+        '-moz-transform': transform.transform,
+        '-moz-transform-origin': transform.transformOrigin
+      });
+
+      $canvas.animate({ "-moz-transform": "scale(1.0)" }, {
         duration: 300,
         easing: 'cubic-bezier', 
         complete: function() {
@@ -727,62 +728,39 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  
-  getZoomRect: function TabItem_getZoomRect(scaleCheat) {
-    let $tabEl = iQ(this.container);
-    let orig = $tabEl.bounds();
+  getZoomTransform: function TabItem_getZoomTransform(scaleCheat) {
+    
+    
+    let { left, top, width, height, right, bottom } = this.$container.bounds();
+
+    let { innerWidth: windowWidth, innerHeight: windowHeight } = window;
+
     
     
     
     
     
     
+    
+    
+
     if (!scaleCheat)
       scaleCheat = 1.7;
 
-    let zoomWidth = orig.width + (window.innerWidth - orig.width) / scaleCheat;
+    let zoomWidth = width + (window.innerWidth - width) / scaleCheat;
+    let zoomScaleFactor = zoomWidth / width;
+
+    let zoomHeight = height * zoomScaleFactor;
+    let zoomTop = top * (1 - 1/scaleCheat);
+    let zoomLeft = left * (1 - 1/scaleCheat);
+
+    let xOrigin = (left - zoomLeft) / ((left - zoomLeft) + (zoomLeft + zoomWidth - right)) * 100;
+    let yOrigin = (top - zoomTop) / ((top - zoomTop) + (zoomTop + zoomHeight - bottom)) * 100;
+
     return {
-      top:    orig.top    * (1 - 1/scaleCheat),
-      left:   orig.left   * (1 - 1/scaleCheat),
-      width:  zoomWidth,
-      height: (orig.width ? orig.height * zoomWidth / orig.width : 0)
+      transformOrigin: xOrigin + "% " + yOrigin + "%",
+      transform: "scale(" + zoomScaleFactor + ")"
     };
-  },
-
-  
-  
-  
-  
-  
-  setZoomPrep: function TabItem_setZoomPrep(value) {
-    let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
-
-    var $div = this.$container;
-
-    if (value && animateZoom) {
-      this._zoomPrep = true;
-
-      
-      
-      
-      
-      
-      
-      
-      
-
-      $div
-        .addClass('front')
-        .css(this.getZoomRect(2));
-    } else {
-      let box = this.getBounds();
-
-      this._zoomPrep = false;
-      $div.removeClass('front');
-
-      this.setBounds(box, true, {force: true});
-    }
   }
 });
 
