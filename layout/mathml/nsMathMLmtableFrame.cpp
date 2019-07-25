@@ -274,6 +274,11 @@ MapAllAttributesIntoCSS(nsIFrame* aTableFrame)
 
 
 
+
+
+
+
+
 enum eAlign {
   eAlign_top,
   eAlign_bottom,
@@ -289,6 +294,11 @@ ParseAlignAttribute(nsString& aValue, eAlign& aAlign, PRInt32& aRowIndex)
   aRowIndex = 0;
   aAlign = eAlign_axis;
   PRInt32 len = 0;
+
+  
+  
+  aValue.CompressWhitespace(true, false);
+
   if (0 == aValue.Find("top")) {
     len = 3; 
     aAlign = eAlign_top;
