@@ -87,7 +87,11 @@ nsNthIndexCache::IndexDetermined(nsIContent* aSibling, Element* aChild,
       NS_ASSERTION(siblingIndex != 0,
                    "How can a non-anonymous node have an anonymous sibling?");
       if (siblingIndex > 0) {
-        aResult = siblingIndex + 1;
+        
+        
+        
+        
+        aResult = siblingIndex + aResult;
         return true;
       }
     }
