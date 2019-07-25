@@ -396,18 +396,28 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     
     public void compositionPauseRequested() {
-        GeckoAppShell.schedulePauseComposition();
+        
+        
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorPauseEvent());
     }
 
     
     public void compositionResumeRequested() {
+        
+        
+        
+        
         GeckoAppShell.scheduleResumeComposition();
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
     }
 
     
     public void surfaceChanged(int width, int height) {
-        compositionPauseRequested();
         mLayerController.setViewportSize(new FloatSize(width, height));
+
+        
+        
+        
         compositionResumeRequested();
         renderRequested();
     }
