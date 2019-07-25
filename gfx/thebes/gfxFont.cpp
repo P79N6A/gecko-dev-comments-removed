@@ -2354,6 +2354,10 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
         InitTextRun(aContext, aTextRun, aString, aLength,
                     runStart, runLimit, runScript);
     }
+
+    
+    
+    aTextRun->SortGlyphRuns();
 }
 
 void
@@ -2414,10 +2418,6 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
     
     
     aTextRun->SanitizeGlyphRuns();
-
-    
-    
-    aTextRun->SortGlyphRuns();
 
 #ifdef DUMP_TEXT_RUNS
     nsCAutoString lang;
@@ -3798,9 +3798,24 @@ gfxTextRun::AddGlyphRun(gfxFont *aFont, PRUint32 aUTF16Offset, PRBool aForceNewR
         NS_ASSERTION(lastGlyphRun->mCharacterOffset <= aUTF16Offset,
                      "Glyph runs out of order (and run not forced)");
 
+        
         if (lastGlyphRun->mFont == aFont)
             return NS_OK;
+
+        
+        
         if (lastGlyphRun->mCharacterOffset == aUTF16Offset) {
+
+            
+            
+            
+            if (numGlyphRuns > 1 &&
+                mGlyphRuns[numGlyphRuns - 2].mFont == aFont)
+            {
+                mGlyphRuns.TruncateLength(numGlyphRuns - 1);
+                return NS_OK;
+            }
+
             lastGlyphRun->mFont = aFont;
             return NS_OK;
         }

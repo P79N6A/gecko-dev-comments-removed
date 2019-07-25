@@ -145,6 +145,17 @@ gfxUnicodeProperties::GetScriptCode(PRUint32 aCh)
                         [aCh & ((1 << kScriptCharBits) - 1)];
 }
 
+gfxUnicodeProperties::HSType
+gfxUnicodeProperties::GetHangulSyllableType(PRUint32 aCh)
+{
+    
+    if (aCh < UNICODE_BMP_LIMIT) {
+        return HSType(sHangulValues[sHangulPages[0][aCh >> kHangulCharBits]]
+                                   [aCh & ((1 << kHangulCharBits) - 1)]);
+    }
+    return HST_NONE;
+}
+
 
 
 
