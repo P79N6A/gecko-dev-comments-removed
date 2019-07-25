@@ -1124,6 +1124,12 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     if(!scope)
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
+    
+    
+    
+    if(wrapper->GetProto()->GetScriptableInfo())
+        scope->RemoveWrappedNativeProtos();
+
     NS_ASSERTION(scope->GetGlobalJSObject() == tempGlobal, "stealing scope!");
 
     scope->SetGlobal(ccx, globalJSObj);
