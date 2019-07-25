@@ -1771,9 +1771,8 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, JSObject *obj)
 
     
     TypeObject *protoType = cx->newTypeObject(obj->getType()->name(), "prototype", objProto);
-    if (!protoType)
-        return false;
-    proto->setType(protoType);
+    if (!protoType || !proto->setTypeAndUniqueShape(cx, protoType))
+        return NULL;
 
     
 
@@ -2807,10 +2806,9 @@ js_NewFunction(JSContext *cx, JSObject *funobj, Native native, uintN nargs,
             return NULL;
         if (handler) {
             TypeFunction *type = cx->newTypeFunction(fullName, funobj->getProto());
-            if (!type)
+            if (!type || !funobj->setTypeAndUniqueShape(cx, type))
                 return NULL;
             type->handler = handler;
-            funobj->setType(type);
         }
     }
     JS_ASSERT(!funobj->getPrivate());
@@ -2872,19 +2870,17 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
         clone = NewNativeClassInstance(cx, &js_FunctionClass, proto, parent);
-        if (!clone)
+        if (!clone || !clone->setTypeAndEmptyShape(cx, type))
             return NULL;
         clone->setPrivate(fun);
-        clone->setType(type);
     } else {
         
 
 
 
         clone = NewFunction(cx, parent);
-        if (!clone)
+        if (!clone || !clone->setTypeAndEmptyShape(cx, type))
             return NULL;
-        clone->setType(type);
 
         JSFunction *cfun = (JSFunction *) clone;
         cfun->nargs = fun->nargs;

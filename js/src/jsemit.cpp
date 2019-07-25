@@ -6934,6 +6934,17 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             obj = NewBuiltinClassInstance(cx, &js_ObjectClass, kind);
             if (!obj)
                 return JS_FALSE;
+
+            
+
+
+
+
+
+            Shape *newshape = EmptyShape::create(cx, &js_ObjectClass);
+            if (!newshape)
+                return JS_FALSE;
+            obj->setMap(newshape);
         }
 
         uintN methodInits = 0, slowMethodInits = 0;
