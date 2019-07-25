@@ -202,6 +202,17 @@ Telephony::Dial(const nsAString& aNumber, nsIDOMTelephonyCall** aResult)
 {
   NS_ENSURE_ARG(!aNumber.IsEmpty());
 
+  for (PRUint32 index = 0; index < mCalls.Length(); index++) {
+    const nsRefPtr<TelephonyCall>& tempCall = mCalls[index];
+    if (tempCall->IsOutgoing() &&
+        tempCall->CallState() < nsITelephone::CALL_STATE_CONNECTED) {
+      
+      
+      NS_WARNING("Only permitted to dial one call at a time!");
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+  }
+
   nsresult rv = mTelephone->Dial(aNumber);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -357,22 +368,49 @@ NS_IMETHODIMP
 Telephony::CallStateChanged(PRUint32 aCallIndex, PRUint16 aCallState,
                             const nsAString& aNumber)
 {
-  
+  NS_ASSERTION(aCallIndex != kOutgoingPlaceholderCallIndex,
+               "This should never happen!");
+
+  nsRefPtr<TelephonyCall> modifiedCall;
+  nsRefPtr<TelephonyCall> outgoingCall;
+
   for (PRUint32 index = 0; index < mCalls.Length(); index++) {
     nsRefPtr<TelephonyCall>& tempCall = mCalls[index];
-    if (tempCall->CallIndex() == aCallIndex) {
+    if (tempCall->CallIndex() == kOutgoingPlaceholderCallIndex) {
+      NS_ASSERTION(!outgoingCall, "More than one outgoing call not supported!");
+      NS_ASSERTION(tempCall->CallState() == nsITelephone::CALL_STATE_DIALING,
+                   "Something really wrong here!");
       
-      nsRefPtr<TelephonyCall> call = tempCall;
-
       
-      if (aCallState == nsITelephone::CALL_STATE_CONNECTED) {
-        SwitchActiveCall(call);
-      }
-
+      outgoingCall = tempCall;
+    } else if (tempCall->CallIndex() == aCallIndex) {
       
-      call->ChangeState(aCallState);
-      return NS_OK;
+      modifiedCall = tempCall;
+      outgoingCall = nsnull;
+      break;
     }
+  }
+
+  
+  
+  
+  if (!modifiedCall &&
+      aCallState != nsITelephone::CALL_STATE_INCOMING &&
+      outgoingCall) {
+    outgoingCall->UpdateCallIndex(aCallIndex);
+    modifiedCall.swap(outgoingCall);
+  }
+
+  if (modifiedCall) {
+    
+    modifiedCall->ChangeState(aCallState);
+
+    
+    if (aCallState == nsITelephone::CALL_STATE_CONNECTED) {
+      SwitchActiveCall(modifiedCall);
+    }
+
+    return NS_OK;
   }
 
   
