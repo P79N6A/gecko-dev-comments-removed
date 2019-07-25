@@ -484,7 +484,9 @@ nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
       
       nsCOMPtr<nsIDOMHTMLFormElement> formElement(do_QueryInterface(parent));
       NS_ASSERTION(formElement, "The form element doesn't implement nsIDOMHTMLFormElement.");
-      if (formControl) { 
+      
+      if (formControl &&
+          !node->HasAttr(kNameSpaceID_None, nsGkAtoms::form)) {
         formControl->SetForm(formElement);
       }
       return rv;

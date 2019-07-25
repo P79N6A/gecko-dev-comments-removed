@@ -969,8 +969,11 @@ nsGenericHTMLElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 }
 
 nsHTMLFormElement*
-nsGenericHTMLElement::FindForm(nsHTMLFormElement* aCurrentForm)
+nsGenericHTMLElement::FindAncestorForm(nsHTMLFormElement* aCurrentForm)
 {
+  NS_ASSERTION(!HasAttr(kNameSpaceID_None, nsGkAtoms::form),
+               "FindAncestorForm should not be called if @form is set!");
+
   
   
   nsIContent* bindingParent = GetBindingParent();
@@ -2480,40 +2483,8 @@ nsGenericHTMLFormElement::BindToTree(nsIDocument* aDocument,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  if (!aParent) {
-    return NS_OK;
-  }
-
-  PRBool hadForm = (mForm != nsnull);
-  
-  if (!mForm) {
-    
-    
-    
-    
-    
-    
-    mForm = FindForm();
-  }
-
-  if (mForm && !HasFlag(ADDED_TO_FORM)) {
-    
-    nsAutoString nameVal, idVal;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::name, nameVal);
-    GetAttr(kNameSpaceID_None, nsGkAtoms::id, idVal);
-    
-    SetFlags(ADDED_TO_FORM);
-
-    
-    mForm->AddElement(this, !hadForm);
-    
-    if (!nameVal.IsEmpty()) {
-      mForm->AddElementToTable(this, nameVal);
-    }
-
-    if (!idVal.IsEmpty()) {
-      mForm->AddElementToTable(this, idVal);
-    }
+  if (aParent || HasAttr(kNameSpaceID_None, nsGkAtoms::form)) {
+    UpdateFormOwner(true, nsnull);
   }
 
   return NS_OK;
@@ -2532,12 +2503,20 @@ nsGenericHTMLFormElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
       ClearForm(PR_TRUE, PR_TRUE);
     } else {
       
-      if (!FindForm(mForm)) {
+      if (HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+          !FindAncestorForm(mForm)) {
         ClearForm(PR_TRUE, PR_TRUE);
       } else {
         UnsetFlags(MAYBE_ORPHAN_FORM_ELEMENT);
       }
     }
+  }
+
+  
+  
+  if (nsContentUtils::HasNonEmptyAttr(this, kNameSpaceID_None,
+                                      nsGkAtoms::form)) {
+    RemoveFormIdObserver();
   }
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
@@ -2586,6 +2565,17 @@ nsGenericHTMLFormElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
       }
     }
+
+    if (aName == nsGkAtoms::form) {
+      
+      
+      if (nsContentUtils::HasNonEmptyAttr(this, kNameSpaceID_None,
+                                          nsGkAtoms::form)) {
+        
+        
+        RemoveFormIdObserver();
+      }
+    }
   }
 
   return nsGenericHTMLElement::BeforeSetAttr(aNameSpaceID, aName,
@@ -2632,6 +2622,21 @@ nsGenericHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       
       if (doc && aNotify) {
         doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_DEFAULT);
+      }
+    }
+
+    if (aName == nsGkAtoms::form) {
+      
+      nsIDocument* doc = GetCurrentDoc();
+      if (doc) {
+        Element* formIdElement = nsnull;
+        if (aValue && !aValue->IsEmpty()) {
+          formIdElement = AddFormIdObserver();
+        }
+
+        
+        
+        UpdateFormOwner(false, formIdElement);
       }
     }
   }
@@ -2801,6 +2806,138 @@ nsGenericHTMLFormElement::FocusState()
   }
 
   return eInactiveWindow;
+}
+
+Element*
+nsGenericHTMLFormElement::AddFormIdObserver()
+{
+  NS_ASSERTION(GetCurrentDoc(), "When adding a form id observer, "
+                                "we should be in a document!");
+
+  nsAutoString formId;
+  nsIDocument* doc = GetOwnerDoc();
+  GetAttr(kNameSpaceID_None, nsGkAtoms::form, formId);
+  NS_ASSERTION(!formId.IsEmpty(),
+               "@form value should not be the empty string!");
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(formId);
+
+  return doc->AddIDTargetObserver(atom, FormIdUpdated, this, PR_FALSE);
+}
+
+void
+nsGenericHTMLFormElement::RemoveFormIdObserver()
+{
+  
+
+
+
+
+
+
+
+
+  nsIDocument* doc = GetOwnerDoc();
+
+  
+  
+  if (!doc) {
+    return;
+  }
+
+  nsAutoString formId;
+  GetAttr(kNameSpaceID_None, nsGkAtoms::form, formId);
+  NS_ASSERTION(!formId.IsEmpty(),
+               "@form value should not be the empty string!");
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(formId);
+
+  doc->RemoveIDTargetObserver(atom, FormIdUpdated, this, PR_FALSE);
+}
+
+
+
+PRBool
+nsGenericHTMLFormElement::FormIdUpdated(Element* aOldElement,
+                                        Element* aNewElement,
+                                        void* aData)
+{
+  nsGenericHTMLFormElement* element =
+    static_cast<nsGenericHTMLFormElement*>(aData);
+
+  NS_ASSERTION(element->IsHTML(), "aData should be an HTML element");
+
+  element->UpdateFormOwner(false, aNewElement);
+
+  return PR_TRUE;
+}
+
+void
+nsGenericHTMLFormElement::UpdateFormOwner(bool aBindToTree,
+                                          Element* aFormIdElement)
+{
+  NS_PRECONDITION(!aBindToTree || !aFormIdElement,
+                  "aFormIdElement shouldn't be set if aBindToTree is true!");
+
+  bool hadForm = mForm;
+
+  if (!aBindToTree) {
+    
+    ClearForm(PR_TRUE, PR_TRUE);
+  }
+
+  if (!mForm) {
+    
+    nsAutoString formId;
+    if (GetAttr(kNameSpaceID_None, nsGkAtoms::form, formId)) {
+      if (!formId.IsEmpty()) {
+        Element* element = nsnull;
+
+        if (aBindToTree) {
+          element = AddFormIdObserver();
+        } else {
+          element = aFormIdElement;
+        }
+
+        NS_ASSERTION(GetCurrentDoc(), "The element should be in a document "
+                                      "when UpdateFormOwner is called!");
+        NS_ASSERTION(element == GetCurrentDoc()->GetElementById(formId),
+                     "element should be equals to the current element "
+                     "associated with the id in @form!");
+
+        if (element && element->Tag() == nsGkAtoms::form &&
+            element->IsHTML()) {
+          mForm = static_cast<nsHTMLFormElement*>(element);
+        }
+      }
+     } else {
+      
+      
+      
+      
+      
+      
+      mForm = FindAncestorForm();
+    }
+  }
+
+  if (mForm && !HasFlag(ADDED_TO_FORM)) {
+    
+    nsAutoString nameVal, idVal;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::name, nameVal);
+    GetAttr(kNameSpaceID_None, nsGkAtoms::id, idVal);
+
+    SetFlags(ADDED_TO_FORM);
+
+    
+    mForm->AddElement(this, !hadForm);
+
+    if (!nameVal.IsEmpty()) {
+      mForm->AddElementToTable(this, nameVal);
+    }
+
+    if (!idVal.IsEmpty()) {
+      mForm->AddElementToTable(this, idVal);
+    }
+  }
 }
 
 

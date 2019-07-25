@@ -478,7 +478,8 @@ public:
 
 
 
-  nsHTMLFormElement* FindForm(nsHTMLFormElement* aCurrentForm = nsnull);
+
+  nsHTMLFormElement* FindAncestorForm(nsHTMLFormElement* aCurrentForm = nsnull);
 
   virtual void RecompileScriptEventListeners();
 
@@ -865,6 +866,37 @@ protected:
   void UpdateEditableFormControlState();
 
   PRBool IsSingleLineTextControlInternal(PRBool aExcludePassword, PRInt32 mType) const;
+
+  
+
+
+
+
+
+
+
+  void UpdateFormOwner(bool aBindToTree, Element* aFormIdElement);
+
+  
+
+
+
+
+
+  Element* AddFormIdObserver();
+
+  
+
+
+  void RemoveFormIdObserver();
+
+  
+
+
+
+
+  static PRBool FormIdUpdated(Element* aOldElement, Element* aNewElement,
+                              void* aData);
 
   
   
