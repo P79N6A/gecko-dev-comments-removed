@@ -822,9 +822,15 @@ class GetPropCompiler : public PICStubCompiler
                 
                 
                 if (!tempObj)
-                    return false;
+                    return disable("null object in prototype chain");
                 JS_ASSERT(tempObj);
-                JS_ASSERT(tempObj->isNative());
+
+                
+
+
+
+                if (!tempObj->isNative())
+                    return disable("non-JS-native in prototype chain");
 
                 masm.loadPtr(proto, pic.objReg);
                 pic.shapeRegHasBaseShape = false;
@@ -843,6 +849,7 @@ class GetPropCompiler : public PICStubCompiler
                 return false;
             pic.u.get.secondShapeGuard = masm.distanceOf(masm.label()) - masm.distanceOf(start);
         } else {
+            JS_ASSERT(holder->isNative()); 
             pic.u.get.secondShapeGuard = 0;
         }
 
@@ -1084,7 +1091,7 @@ class GetElemCompiler : public PICStubCompiler
                 
                 
                 if (!tempObj)
-                    return false;
+                    return disable("null object in prototype chain");
                 JS_ASSERT(tempObj);
 
                 
@@ -1092,7 +1099,7 @@ class GetElemCompiler : public PICStubCompiler
 
 
                 if (!tempObj->isNative())
-                    return false;
+                    return disable("non-JS-native in prototype chain");
 
                 masm.loadPtr(proto, pic.objReg);
                 pic.shapeRegHasBaseShape = false;
