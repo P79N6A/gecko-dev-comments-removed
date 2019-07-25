@@ -352,6 +352,50 @@ public:
   }
 };
 
+static inline bool
+ParseTypeAttribute(const nsAString& aType, JSVersion* aVersion)
+{
+  MOZ_ASSERT(!aType.IsEmpty());
+  MOZ_ASSERT(aVersion);
+  MOZ_ASSERT(*aVersion == JSVERSION_DEFAULT);
+
+  nsContentTypeParser parser(aType);
+
+  nsAutoString mimeType;
+  nsresult rv = parser.GetType(mimeType);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  if (!nsContentUtils::IsJavascriptMIMEType(mimeType)) {
+    return false;
+  }
+
+  
+  nsAutoString versionName;
+  rv = parser.GetParameter("version", versionName);
+
+  if (NS_SUCCEEDED(rv)) {
+    *aVersion = nsContentUtils::ParseJavascriptVersion(versionName);
+  } else if (rv != NS_ERROR_INVALID_ARG) {
+    return false;
+  }
+
+  nsAutoString value;
+  rv = parser.GetParameter("e4x", value);
+  if (NS_SUCCEEDED(rv)) {
+    if (value.Length() == 1 && value[0] == '1') {
+      
+      
+      
+      
+      *aVersion = js::VersionSetMoarXML(*aVersion, true);
+    }
+  } else if (rv != NS_ERROR_INVALID_ARG) {
+    return false;
+  }
+
+  return true;
+}
+
 bool
 nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 {
@@ -394,46 +438,13 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   }
 
   JSVersion version = JSVERSION_DEFAULT;
-  nsresult rv = NS_OK;
 
   
   
   nsAutoString type;
   aElement->GetScriptType(type);
   if (!type.IsEmpty()) {
-    nsContentTypeParser parser(type);
-
-    nsAutoString mimeType;
-    rv = parser.GetType(mimeType);
-    NS_ENSURE_SUCCESS(rv, false);
-
-    if (!nsContentUtils::IsJavascriptMIMEType(mimeType)) {
-      return false;
-    }
-
-    
-    nsAutoString versionName;
-    rv = parser.GetParameter("version", versionName);
-
-    if (NS_SUCCEEDED(rv)) {
-      version = nsContentUtils::ParseJavascriptVersion(versionName);
-    } else if (rv != NS_ERROR_INVALID_ARG) {
-      return false;
-    }
-
-    nsAutoString value;
-    rv = parser.GetParameter("e4x", value);
-    if (NS_SUCCEEDED(rv)) {
-      if (value.Length() == 1 && value[0] == '1') {
-        
-        
-        
-        
-        version = js::VersionSetMoarXML(version, true);
-      }
-    } else if (rv != NS_ERROR_INVALID_ARG) {
-      return false;
-    }
+    NS_ENSURE_TRUE(ParseTypeAttribute(type, &version), false);
   } else {
     
     
@@ -457,7 +468,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
   }
 
   
-
+  nsresult rv = NS_OK;
   nsRefPtr<nsScriptLoadRequest> request;
   if (aElement->GetScriptExternal()) {
     
