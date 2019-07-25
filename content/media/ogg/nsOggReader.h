@@ -150,7 +150,8 @@ private:
   
   
   
-  PRInt64 FindEndTime(PRInt64 aEndOffset,
+  PRInt64 FindEndTime(PRInt64 aStartOffset,
+                      PRInt64 aEndOffset,
                       PRBool aCachedDataOnly,
                       ogg_sync_state* aState);
 
