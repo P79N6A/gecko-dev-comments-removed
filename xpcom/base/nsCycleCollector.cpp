@@ -154,8 +154,6 @@
 #include <process.h>
 #endif
 
-
-
 #ifdef DEBUG_CC
 #define IF_DEBUG_CC_PARAM(_p) , _p
 #define IF_DEBUG_CC_ONLY_PARAM(_p) _p
