@@ -1853,20 +1853,10 @@ Tab.prototype = {
   },
 
   getPageSize: function(aDocument, aDefaultWidth, aDefaultHeight) {
-    if (aDocument instanceof SVGDocument) {
-      let rect = aDocument.rootElement.getBoundingClientRect();
-      
-      
-      
-      
-      return [Math.ceil(rect.left + rect.width + rect.left),
-              Math.ceil(rect.top + rect.height + rect.top)];
-    } else {
-      let body = aDocument.body || { scrollWidth: aDefaultWidth, scrollHeight: aDefaultHeight };
-      let html = aDocument.documentElement || { scrollWidth: aDefaultWidth, scrollHeight: aDefaultHeight };
-      return [Math.max(body.scrollWidth, html.scrollWidth),
-              Math.max(body.scrollHeight, html.scrollHeight)];
-    }
+    let body = aDocument.body || { scrollWidth: aDefaultWidth, scrollHeight: aDefaultHeight };
+    let html = aDocument.documentElement || { scrollWidth: aDefaultWidth, scrollHeight: aDefaultHeight };
+    return [Math.max(body.scrollWidth, html.scrollWidth),
+      Math.max(body.scrollHeight, html.scrollHeight)];
   },
 
   getViewport: function() {
@@ -2543,7 +2533,7 @@ Tab.prototype = {
           
           
 
-          if (contentDocument instanceof ImageDocument) {
+          if (contentDocument.mozSyntheticDocument) {
             
             
             
