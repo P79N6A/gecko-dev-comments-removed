@@ -527,6 +527,12 @@ struct JSScript {
     inline bool typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
     inline bool typeSetUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
 
+    
+
+
+
+    bool typeSetFunction(JSContext *cx, JSFunction *fun);
+
 #ifdef JS_METHODJIT
     
     

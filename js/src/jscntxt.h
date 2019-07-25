@@ -2150,9 +2150,6 @@ public:
     inline js::types::TypeObject *getTypeNewObject(JSProtoKey key);
 
     
-    inline void setTypeFunctionScript(JSFunction *fun, JSScript *script);
-
-    
     inline js::types::TypeObject *
     getTypeCallerInitObject(bool isArray);
 
