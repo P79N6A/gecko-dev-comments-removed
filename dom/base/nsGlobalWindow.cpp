@@ -1884,7 +1884,15 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    JS_SetCompartmentPrincipals(js::GetObjectCompartment(currentInner->mJSObject),
+    JSCompartment *compartment = js::GetObjectCompartment(currentInner->mJSObject);
+#ifdef DEBUG
+    bool sameOrigin = false;
+    nsIPrincipal *existing =
+      nsJSPrincipals::get(JS_GetCompartmentPrincipals(compartment));
+    aDocument->NodePrincipal()->Equals(existing, &sameOrigin);
+    MOZ_ASSERT(sameOrigin);
+#endif
+    JS_SetCompartmentPrincipals(compartment,
                                 nsJSPrincipals::get(aDocument->NodePrincipal()));
   } else {
     if (aState) {

@@ -197,9 +197,19 @@ JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals
         return;
 
     
+    
+    JSPrincipals *trusted = compartment->rt->trustedPrincipals();
+    bool isSystem = principals && principals == trusted;
+
+    
     if (compartment->principals) {
         JS_DropPrincipals(compartment->rt, compartment->principals);
         compartment->principals = NULL;
+        
+        
+        
+        
+        JS_ASSERT(compartment->isSystemCompartment == isSystem);
     }
 
     
@@ -209,9 +219,7 @@ JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals
     }
 
     
-    
-    JSPrincipals *trusted = compartment->rt->trustedPrincipals();
-    compartment->isSystemCompartment = principals && principals == trusted;
+    compartment->isSystemCompartment = isSystem;
 }
 
 JS_FRIEND_API(JSBool)
