@@ -774,18 +774,23 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize,
 
     
     
-    if (position->mMinWidth.GetUnit() == eStyleUnit_Coord) {
-        nscoord min = position->mMinWidth.GetCoordValue();
-        if (min && (!aWidthSet || (min > aSize.width && canOverride))) {
+    const nsStyleCoord &minWidth = position->mMinWidth;
+    if ((minWidth.GetUnit() == eStyleUnit_Coord &&
+         minWidth.GetCoordValue() != 0) ||
+        (minWidth.IsCalcUnit() && !minWidth.CalcHasPercent())) {
+        nscoord min = nsRuleNode::ComputeCoordPercentCalc(minWidth, 0);
+        if (!aWidthSet || (min > aSize.width && canOverride)) {
            aSize.width = min;
            aWidthSet = PR_TRUE;
         }
-    } else if (position->mMinWidth.GetUnit() == eStyleUnit_Percent) {
-        NS_ASSERTION(position->mMinWidth.GetPercentValue() == 0.0f,
+    } else if (minWidth.GetUnit() == eStyleUnit_Percent) {
+        NS_ASSERTION(minWidth.GetPercentValue() == 0.0f,
           "Non-zero percentage values not currently supported");
         aSize.width = 0;
-        aWidthSet = PR_TRUE;
+        aWidthSet = PR_TRUE; 
+                             
     }
+    
     
     
     
@@ -858,10 +863,12 @@ nsIBox::AddCSSMaxSize(nsIBox* aBox, nsSize& aSize, PRBool &aWidthSet, PRBool &aH
     
     
     
-    if (position->mMaxWidth.GetUnit() == eStyleUnit_Coord) {
-        aSize.width = position->mMaxWidth.GetCoordValue();
+    const nsStyleCoord maxWidth = position->mMaxWidth;
+    if (maxWidth.ConvertsToLength()) {
+        aSize.width = nsRuleNode::ComputeCoordPercentCalc(maxWidth, 0);
         aWidthSet = PR_TRUE;
     }
+    
 
     const nsStyleCoord &maxHeight = position->mMaxHeight;
     if (maxHeight.ConvertsToLength()) {

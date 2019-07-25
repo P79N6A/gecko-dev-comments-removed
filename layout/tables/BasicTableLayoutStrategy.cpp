@@ -190,6 +190,7 @@ GetWidthInfo(nsIRenderingContext *aRenderingContext,
         if (p < prefPercent)
             prefPercent = p;
     }
+    
 
     nsStyleCoord minWidth(stylePos->mMinWidth);
     if (minWidth.GetUnit() == eStyleUnit_Enumerated) {
@@ -215,6 +216,7 @@ GetWidthInfo(nsIRenderingContext *aRenderingContext,
         if (p > prefPercent)
             prefPercent = p;
     }
+    
 
     
     if (aIsCell) {

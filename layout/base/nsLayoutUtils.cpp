@@ -1954,6 +1954,11 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
   
   nscoord result = 0, min = 0;
 
+  nscoord maxw;
+  PRBool haveFixedMaxWidth = GetAbsoluteCoord(styleMaxWidth, maxw);
+  nscoord minw;
+  PRBool haveFixedMinWidth = GetAbsoluteCoord(styleMinWidth, minw);
+
   
   
   
@@ -1966,9 +1971,7 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
     
     boxSizing = NS_STYLE_BOX_SIZING_CONTENT;
   } else if (styleWidth.GetUnit() != eStyleUnit_Coord &&
-             (styleMinWidth.GetUnit() != eStyleUnit_Coord ||
-              styleMaxWidth.GetUnit() != eStyleUnit_Coord ||
-              styleMaxWidth.GetCoordValue() > styleMinWidth.GetCoordValue())) {
+             !(haveFixedMinWidth && haveFixedMaxWidth && maxw <= minw)) {
 #ifdef DEBUG_INTRINSIC_WIDTH
     ++gNoiseIndent;
 #endif
@@ -2091,8 +2094,7 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
     result = AddPercents(aType, result, pctTotal);
   }
 
-  nscoord maxw;
-  if (GetAbsoluteCoord(styleMaxWidth, maxw) ||
+  if (haveFixedMaxWidth ||
       GetIntrinsicCoord(styleMaxWidth, aRenderingContext, aFrame,
                         PROP_MAX_WIDTH, maxw)) {
     maxw = AddPercents(aType, maxw + coordOutsideWidth, pctOutsideWidth);
@@ -2100,8 +2102,7 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
       result = maxw;
   }
 
-  nscoord minw;
-  if (GetAbsoluteCoord(styleMinWidth, minw) ||
+  if (haveFixedMinWidth ||
       GetIntrinsicCoord(styleMinWidth, aRenderingContext, aFrame,
                         PROP_MIN_WIDTH, minw)) {
     minw = AddPercents(aType, minw + coordOutsideWidth, pctOutsideWidth);
