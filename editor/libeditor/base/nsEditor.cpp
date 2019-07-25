@@ -904,14 +904,27 @@ nsEditor::EndPlaceHolderTransaction()
     if (selPrivate) {
       selPrivate->SetCanCacheFrameOffset(PR_TRUE);
     }
-    
-    
-    EndUpdateViewBatch();
-    
 
-    
-    
-    ScrollSelectionIntoView(PR_FALSE);
+    {
+      
+      
+      nsRefPtr<nsCaret> caret;
+      nsCOMPtr<nsIPresShell> presShell;
+      GetPresShell(getter_AddRefs(presShell));
+
+      if (presShell)
+        caret = presShell->GetCaret();
+
+      StCaretHider caretHider(caret);
+
+      
+      EndUpdateViewBatch();
+      
+
+      
+      
+      ScrollSelectionIntoView(PR_FALSE);
+    }
 
     
     if (selPrivate) {
