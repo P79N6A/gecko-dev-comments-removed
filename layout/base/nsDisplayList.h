@@ -1609,7 +1609,7 @@ private:
 
 
 
-class nsDisplayZoom : public nsDisplayWrapList {
+class nsDisplayZoom : public nsDisplayOwnLayer {
 public:
   
 
