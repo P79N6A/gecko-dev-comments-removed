@@ -376,12 +376,9 @@ OptionParser::parseArgs(int inputArgc, char **argv)
     for (size_t i = 1; i < argc; ++i) {
         char *arg = argv[i];
         Result r;
-        if (arg[0] == '-' && optionsAllowed) {
+        
+        if (arg[0] == '-' && arg[1] != '\0' && optionsAllowed) {
             
-            size_t arglen = strlen(arg);
-            if (arglen < 2) 
-                return error("Invalid dash option");
-
             Option *opt;
             if (arg[1] == '-') {
                 
@@ -402,6 +399,7 @@ OptionParser::parseArgs(int inputArgc, char **argv)
             
             r = handleArg(argc, argv, &i, &optionsAllowed);
         }
+
         switch (r) {
           case Okay:
             break;
