@@ -120,6 +120,13 @@ public:
 
   virtual void UpdateText(nsIPresShell* aPresShell, nsIContent* aContent);
 
+  
+
+
+  virtual void UpdateListBullet(nsIPresShell* aPresShell,
+                                nsIContent* aHTMLListItemContent,
+                                bool aHasBullet);
+
   virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget);
 
   virtual void PresShellDestroyed(nsIPresShell* aPresShell);

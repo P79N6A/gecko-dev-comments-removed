@@ -136,7 +136,6 @@ public:
   NS_IMETHOD GetName(nsAString& aName);
 
   
-  virtual void Shutdown();
   virtual bool IsPrimaryForNode() const;
 
   
@@ -144,15 +143,6 @@ public:
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual void AppendTextTo(nsAString& aText, PRUint32 aStartOffset = 0,
                             PRUint32 aLength = PR_UINT32_MAX);
-
-protected:
-  
-  
-  
-  
-  
-  
-  nsString mBulletText;
 };
 
 
@@ -183,21 +173,31 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
+  virtual void Shutdown();
 
   
-  virtual void Shutdown();
+  NS_IMETHOD GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height);
 
   
   virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+
+  
+  void UpdateBullet(bool aHasBullet);
 
 protected:
   
   virtual void CacheChildren();
 
 private:
-  nsRefPtr<nsHTMLListBulletAccessible> mBulletAccessible;
+  nsRefPtr<nsHTMLListBulletAccessible> mBullet;
 };
 
-#endif  
+inline nsHTMLLIAccessible*
+nsAccessible::AsHTMLListItem()
+{
+  return mFlags & eHTMLListItemAccessible ?
+    static_cast<nsHTMLLIAccessible*>(this) : nsnull;
+}
+
+#endif

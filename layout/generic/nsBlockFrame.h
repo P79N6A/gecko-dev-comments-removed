@@ -250,11 +250,16 @@ public:
   
   
   PRBool BulletIsEmpty() const;
-  virtual PRBool BulletIsEmptyExternal() const
-  {
-    return BulletIsEmpty();
-  }
+
+  
+
+
   virtual void GetBulletText(nsAString& aText) const;
+
+  
+
+
+  virtual bool HasBullet() const;
 
   virtual void MarkIntrinsicWidthsDirty();
   virtual nscoord GetMinWidth(nsIRenderingContext *aRenderingContext);
