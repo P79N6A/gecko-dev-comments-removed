@@ -263,6 +263,12 @@ public:
 
 
 
+
+
+
+
+
+
   void InitKeyEvent(NSEvent *aNativeKeyEvent, nsKeyEvent& aKeyEvent);
 
   
@@ -311,6 +317,11 @@ protected:
   PRUint32 TranslateToChar(UInt32 aKeyCode, UInt32 aModifiers, UInt32 aKbType);
 
   
+
+
+
+
+
 
 
 
