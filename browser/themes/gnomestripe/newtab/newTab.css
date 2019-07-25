@@ -79,6 +79,12 @@
 }
 
 
+.cell {
+  outline: 1px dashed #ccc;
+  outline-offset: -1px;
+}
+
+
 .site {
   background-color: #ececec;
   -moz-transition: 200ms ease-out;
