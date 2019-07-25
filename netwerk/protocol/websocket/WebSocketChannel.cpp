@@ -916,10 +916,15 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
       } else if (opcode == kPing) {
         LOG(("WebSocketChannel:: ping received\n"));
         GeneratePong(payload, payloadLength);
-      } else {
+      } else if (opcode == kPong) {
         
         
         LOG(("WebSocketChannel:: pong received\n"));
+      } else {
+        
+        LOG(("WebSocketChannel:: unknown control op code %d\n", opcode));
+        AbortSession(NS_ERROR_ILLEGAL_VALUE);
+        return NS_ERROR_ILLEGAL_VALUE;
       }
 
       if (mFragmentAccumulator) {
