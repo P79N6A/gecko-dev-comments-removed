@@ -145,6 +145,9 @@ CompartmentHasLiveScripts(JSCompartment *comp)
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
 {
+    if (comp->debugMode == debug)
+        return JS_TRUE;
+
     
     
     

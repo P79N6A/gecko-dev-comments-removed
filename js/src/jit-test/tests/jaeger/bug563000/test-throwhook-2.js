@@ -1,3 +1,4 @@
+
 function main() {
   try {
     throw "something";
