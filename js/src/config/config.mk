@@ -450,7 +450,7 @@ XPIDL_COMPILE = $(LIBXUL_DIST)/host/bin/host_xpidl$(HOST_BIN_SUFFIX)
 else
 XPIDL_COMPILE = $(LIBXUL_DIST)/bin/xpidl$(BIN_SUFFIX)
 endif
-XPIDL_LINK = $(PYTHON) $(SDK_BIN_DIR)/xpt.py link
+XPIDL_LINK = $(PYTHON) $(LIBXUL_SDK)/sdk/bin/xpt.py link
 
 # Java macros
 JAVA_GEN_DIR  = _javagen
@@ -611,6 +611,10 @@ SDK_BIN_DIR = $(DIST)/sdk/bin
 DEPENDENCIES	= .md
 
 MOZ_COMPONENT_LIBS=$(XPCOM_LIBS) $(MOZ_COMPONENT_NSPR_LIBS)
+
+ifeq (xpconnect, $(findstring xpconnect, $(BUILD_MODULES)))
+DEFINES +=  -DXPCONNECT_STANDALONE
+endif
 
 ifeq ($(OS_ARCH),OS2)
 ELF_DYNSTR_GC	= echo
