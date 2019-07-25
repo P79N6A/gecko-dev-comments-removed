@@ -68,7 +68,6 @@ const PREF_EM_EXTENSION_FORMAT        = "extensions.";
 const PREF_EM_ENABLED_SCOPES          = "extensions.enabledScopes";
 const PREF_EM_AUTO_DISABLED_SCOPES    = "extensions.autoDisableScopes";
 const PREF_EM_SHOW_MISMATCH_UI        = "extensions.showMismatchUI";
-const PREF_EM_DISABLED_ADDONS_LIST    = "extensions.disabledAddons";
 const PREF_XPI_ENABLED                = "xpinstall.enabled";
 const PREF_XPI_WHITELIST_REQUIRED     = "xpinstall.whitelist.required";
 const PREF_XPI_WHITELIST_PERMISSIONS  = "xpinstall.whitelist.add";
@@ -1456,14 +1455,6 @@ var XPIProvider = {
   enabledAddons: null,
   
   inactiveAddonIDs: [],
-  
-  
-  
-  
-  startupChanges: {
-    
-    appDisabled: []
-  },
 
   
 
@@ -1586,24 +1577,13 @@ var XPIProvider = {
     
     this.applyThemeChange();
 
-    if (Services.prefs.prefHasUserValue(PREF_EM_DISABLED_ADDONS_LIST))
-      Services.prefs.clearUserPref(PREF_EM_DISABLED_ADDONS_LIST);
-
     
     
     
-    if (aAppChanged && !this.allAppGlobal) {
-      
-      if (Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
-        this.showMismatchWindow();
-        flushCaches = true;
-      }
-      else if (this.startupChanges.appDisabled.length > 0) {
-        
-        
-        Services.prefs.setCharPref(PREF_EM_DISABLED_ADDONS_LIST,
-                                   this.startupChanges.appDisabled.join(","));
-      }
+    if (aAppChanged && !this.allAppGlobal &&
+        Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
+      this.showMismatchWindow();
+      flushCaches = true;
     }
 
     if (flushCaches) {
@@ -1671,9 +1651,6 @@ var XPIProvider = {
     this.bootstrapScopes = {};
     this.enabledAddons = null;
     this.allAppGlobal = true;
-
-    for (let type in this.startupChanges)
-      this.startupChanges[type] = [];
 
     this.inactiveAddonIDs = [];
 
@@ -2306,6 +2283,9 @@ var XPIProvider = {
       XPIDatabase.updateAddonMetadata(aOldAddon, newAddon, aAddonState.descriptor);
       if (newAddon.visible) {
         visibleAddons[newAddon.id] = newAddon;
+        
+        AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
+                                             newAddon.id);
 
         
         
@@ -2390,6 +2370,9 @@ var XPIProvider = {
         visibleAddons[aOldAddon.id] = aOldAddon;
 
         if (!aOldAddon.visible) {
+          
+          AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
+                                               aOldAddon.id);
           XPIDatabase.makeAddonVisible(aOldAddon);
 
           if (aOldAddon.bootstrap) {
@@ -2438,10 +2421,6 @@ var XPIProvider = {
         let isDisabled = isAddonDisabled(newAddon);
 
         
-        if (aOldAddon.visible && newAddon.appDisabled && !aOldAddon.appDisabled)
-          XPIProvider.startupChanges.appDisabled.push(aOldAddon.id);
-
-        
         if (newAddon.appDisabled != aOldAddon.appDisabled ||
             newAddon.userDisabled != aOldAddon.userDisabled ||
             newAddon.softDisabled != aOldAddon.softDisabled) {
@@ -2459,6 +2438,11 @@ var XPIProvider = {
         
         
         if (aOldAddon.visible && wasDisabled != isDisabled) {
+          
+          
+          let change = isDisabled ? AddonManager.STARTUP_CHANGE_DISABLED
+                                  : AddonManager.STARTUP_CHANGE_ENABLED;
+          AddonManagerPrivate.addStartupChange(change, aOldAddon.id);
           if (aOldAddon.bootstrap) {
             
             aOldAddon.active = !isDisabled;
@@ -2495,8 +2479,19 @@ var XPIProvider = {
       
       LOG("Add-on " + aOldAddon.id + " removed from " + aInstallLocation.name);
       XPIDatabase.removeAddonMetadata(aOldAddon);
-      if (aOldAddon.active) {
 
+      
+      if (aOldAddon.visible) {
+        AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_UNINSTALLED,
+                                             aOldAddon.id);
+      }
+      else if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
+                           .indexOf(aOldAddon.id) != -1) {
+        AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
+                                             aOldAddon.id);
+      }
+
+      if (aOldAddon.active) {
         
         
         if (aOldAddon.type == "theme")
@@ -2629,6 +2624,24 @@ var XPIProvider = {
 
       if (newAddon.visible) {
         
+        
+        
+        if (!aMigrateData && (!(aInstallLocation.name in aManifests) ||
+                              !(aId in aManifests[aInstallLocation.name]))) {
+          
+          
+          if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_UNINSTALLED)
+                          .indexOf(newAddon.id) != -1) {
+            AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
+                                                 newAddon.id);
+          }
+          else {
+            AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_INSTALLED,
+                                                 newAddon.id);
+          }
+        }
+
+        
         if (newAddon._installLocation.name != KEY_APP_GLOBAL)
           XPIProvider.allAppGlobal = false;
 
@@ -2696,6 +2709,14 @@ var XPIProvider = {
         
         
         addons.forEach(function(aOldAddon) {
+          
+          
+          if (AddonManager.getStartupChanges(AddonManager.STARTUP_CHANGE_INSTALLED)
+                          .indexOf(aOldAddon.id) != -1) {
+            AddonManagerPrivate.addStartupChange(AddonManager.STARTUP_CHANGE_CHANGED,
+                                                 aOldAddon.id);
+          }
+
           
           if (aOldAddon.id in addonStates) {
             let addonState = addonStates[aOldAddon.id];
