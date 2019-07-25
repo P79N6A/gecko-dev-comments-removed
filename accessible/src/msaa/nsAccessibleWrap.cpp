@@ -170,7 +170,7 @@ __try {
   if (IsDefunct())
     return CO_E_OBJNOTCONNECTED;
 
-  nsRefPtr<nsDocAccessible> doc(do_QueryObject(this));
+  nsDocAccessible* doc = AsDoc();
   if (doc) {
     
     
