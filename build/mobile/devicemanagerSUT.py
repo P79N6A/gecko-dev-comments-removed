@@ -931,12 +931,13 @@ class DeviceManagerSUT(DeviceManager):
   
   
   
+  
   def getInfo(self, directive=None):
     data = None
     result = {}
     collapseSpaces = re.compile('  +')
 
-    directives = ['os', 'id','uptime','systime','screen','memory','process',
+    directives = ['os','id','uptime','systime','screen','rotation','memory','process',
                   'disk','power']
     if (directive in directives):
       directives = [directive]
