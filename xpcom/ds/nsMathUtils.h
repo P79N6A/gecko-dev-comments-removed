@@ -130,6 +130,10 @@ inline NS_HIDDEN_(bool) NS_finite(double d)
 #ifdef WIN32
     
     return !!_finite(d);
+#elif defined(XP_DARWIN)
+    
+    
+    return isfinite(d);
 #else
     return finite(d);
 #endif
