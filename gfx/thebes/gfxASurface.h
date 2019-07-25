@@ -238,6 +238,9 @@ protected:
     static gfxASurface* GetSurfaceWrapper(cairo_surface_t *csurf);
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
 
+    
+    
+    
     void Init(cairo_surface_t *surface, PRBool existingSurface = PR_FALSE);
 
     virtual ~gfxASurface()
