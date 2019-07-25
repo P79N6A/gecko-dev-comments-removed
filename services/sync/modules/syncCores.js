@@ -69,6 +69,7 @@ SyncCore.prototype = {
   },
 
   
+  
   _getEdits: function SC__getEdits(a, b) {
     let ret = {numProps: 0, props: {}};
     for (prop in a) {
@@ -119,7 +120,7 @@ SyncCore.prototype = {
         }
       }
 
-      for (let GUID in b) {
+      for (GUID in b) {
 
         timer.initWithCallback(listener, 0, timer.TYPE_ONE_SHOT);
         yield; 
@@ -166,7 +167,7 @@ SyncCore.prototype = {
       if (key != "GUID" && !Utils.deepEquals(a[key], b[key]))
         return false;
     }
-    for (let key in b) {
+    for (key in b) {
       if (key != "GUID" && !Utils.deepEquals(a[key], b[key]))
         return false;
     }
@@ -445,7 +446,7 @@ CookieSyncCore.prototype = {
                              getService(Ci.nsICookieManager2);
     
 
-    return this.__cookieManager
+    return this.__cookieManager;
   },
 
 
@@ -455,11 +456,11 @@ CookieSyncCore.prototype = {
 
 
 
-    
+
     
 
 
-    
+
     let cookieArray = GUID.split( ":" );
     let cookieHost = cookieArray[0];
     let cookiePath = cookieArray[1];
@@ -568,7 +569,7 @@ FormSyncCore.prototype = {
       var nam = stmnt.getUTF8String(1);
       var val = stmnt.getUTF8String(2);
       var key = Utils.sha1(nam + val);
-      
+
       if (key == GUID)
         found = true;
     }
