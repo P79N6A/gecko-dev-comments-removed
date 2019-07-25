@@ -3354,7 +3354,8 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
 
     
     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
-    nsCOMPtr<nsIDragSessionGTK> dragSessionGTK = do_QueryInterface(dragService);
+    nsDragService *dragServiceGTK =
+        static_cast<nsDragService*>(dragService.get());
 
     
     
@@ -3378,9 +3379,9 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
     CheckNeedDragLeave(innerMostWidget, dragService, aDragContext, retx, rety);
 
     
-    dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
-    
-    dragSessionGTK->TargetStartDragMotion();
+    dragServiceGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
+
+    dragServiceGTK->SetCanDrop(false);
 
     dragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
 
@@ -3396,10 +3397,11 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
     innerMostWidget->DispatchEvent(&event, status);
 
     
-    dragSessionGTK->TargetEndDragMotion(aWidget, aDragContext, aTime);
+    
+    dragServiceGTK->TargetEndDragMotion(aWidget, aDragContext, aTime);
 
     
-    dragSessionGTK->TargetSetLastContext(0, 0, 0);
+    dragServiceGTK->TargetSetLastContext(0, 0, 0);
 
     return TRUE;
 }
