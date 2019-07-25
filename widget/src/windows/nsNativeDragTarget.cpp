@@ -365,15 +365,15 @@ nsNativeDragTarget::DragLeave()
 void
 nsNativeDragTarget::DragCancel()
 {
-  if (mDropTargetHelper) {
-    mDropTargetHelper->DragLeave();
-  }
-  if (mDragService) {
-    mDragService->EndDragSession(PR_FALSE);
-  }
   
   if (mTookOwnRef) {
-    this->Release();
+    if (mDropTargetHelper) {
+      mDropTargetHelper->DragLeave();
+    }
+    if (mDragService) {
+      mDragService->EndDragSession(PR_FALSE);
+    }
+    this->Release(); 
     mTookOwnRef = PR_FALSE;
   }
 }
