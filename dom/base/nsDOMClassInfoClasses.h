@@ -197,8 +197,6 @@ DOMCI_CLASS(ChromeWindow)
 
 DOMCI_CLASS(CSSRGBColor)
 
-DOMCI_CLASS(RangeException)
-
 
 
 DOMCI_CLASS(CSSValueList)
