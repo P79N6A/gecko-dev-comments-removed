@@ -751,11 +751,10 @@ nsWindow::SetCursor(imgIContainer* aCursor,
 }
 
 NS_IMETHODIMP
-nsWindow::Invalidate(const nsIntRect &aRect,
-                     bool          aIsSynchronous)
+nsWindow::Invalidate(const nsIntRect &aRect)
 {
-    LOGDRAW(("Invalidate (rect) [%p,%p]: %d %d %d %d (sync: %d)\n", (void *)this,
-             (void*)mWidget,aRect.x, aRect.y, aRect.width, aRect.height, aIsSynchronous));
+    LOGDRAW(("Invalidate (rect) [%p,%p]: %d %d %d %d\n", (void *)this,
+             (void*)mWidget,aRect.x, aRect.y, aRect.width, aRect.height));
 
     if (!mWidget)
         return NS_OK;
@@ -764,19 +763,6 @@ nsWindow::Invalidate(const nsIntRect &aRect,
 
     mWidget->update(aRect.x, aRect.y, aRect.width, aRect.height);
 
-    
-    if (aIsSynchronous) {
-        QWidget *widget = GetViewWidget();
-        if (widget)
-            widget->repaint();
-    }
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Update()
-{
     return NS_OK;
 }
 
@@ -2382,13 +2368,9 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, bool    aRepaint)
     mNeedsResize = false;
 
     if (mIsTopLevel) {
-        QGraphicsView *widget = qobject_cast<QGraphicsView*>(GetViewWidget());
+        QWidget *widget = GetViewWidget();
         NS_ENSURE_TRUE(widget,);
-        
-        QRect r = widget->mapFromScene(mWidget->mapToScene(QRect(0, 0, aWidth, aHeight))).boundingRect();
-        
-        r.adjust(0, 0, -1, -1);
-        widget->resize(r.width(), r.height());
+        widget->resize(aWidth, aHeight);
     }
     else {
         mWidget->resize(aWidth, aHeight);
@@ -2410,13 +2392,9 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
     mNeedsMove = false;
 
     if (mIsTopLevel) {
-        QGraphicsView *widget = qobject_cast<QGraphicsView*>(GetViewWidget());
+        QWidget *widget = GetViewWidget();
         NS_ENSURE_TRUE(widget,);
-        
-        QRect r = widget->mapFromScene(mWidget->mapToScene(QRect(aX, aY, aWidth, aHeight))).boundingRect();
-        
-        r.adjust(0, 0, -1, -1);
-        widget->setGeometry(r.x(), r.y(), r.width(), r.height());
+        widget->setGeometry(aX, aY, aWidth, aHeight);
     }
     else {
         mWidget->setGeometry(aX, aY, aWidth, aHeight);
