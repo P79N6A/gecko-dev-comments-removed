@@ -60,6 +60,9 @@ PostEvent(nsServerSocket *s, nsServerSocketFunc func)
   if (!ev)
     return NS_ERROR_OUT_OF_MEMORY;
 
+  if (!gSocketTransportService)
+    return NS_ERROR_FAILURE;
+
   return gSocketTransportService->Dispatch(ev, NS_DISPATCH_NORMAL);
 }
 
@@ -76,12 +79,12 @@ nsServerSocket::nsServerSocket()
   
   if (!gSocketTransportService)
   {
+    
     nsCOMPtr<nsISocketTransportService> sts =
         do_GetService(kSocketTransportServiceCID);
-    NS_ASSERTION(sts, "no socket transport service");
   }
   
-  NS_ADDREF(gSocketTransportService);
+  NS_IF_ADDREF(gSocketTransportService);
 }
 
 nsServerSocket::~nsServerSocket()
@@ -93,7 +96,7 @@ nsServerSocket::~nsServerSocket()
 
   
   nsSocketTransportService *serv = gSocketTransportService;
-  NS_RELEASE(serv);
+  NS_IF_RELEASE(serv);
 }
 
 void
@@ -135,6 +138,9 @@ nsresult
 nsServerSocket::TryAttach()
 {
   nsresult rv;
+
+  if (!gSocketTransportService)
+    return NS_ERROR_FAILURE;
 
   
   
