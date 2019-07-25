@@ -203,13 +203,16 @@ LivemarkService.prototype = {
   
   
   _updatedLivemarks: [],
-  _checkAllLivemarks: function LS__checkAllLivemarks() {
+  _forceUpdate: false,
+  _checkAllLivemarks: function LS__checkAllLivemarks(aForceUpdate) {
+    if (aForceUpdate && !this._forceUpdate)
+      this._forceUpdate = true;
     let updateCount = 0;
     for each (let livemark in this._livemarks) {
       if (this._updatedLivemarks.indexOf(livemark.folderId) == -1) {
         this._updatedLivemarks.push(livemark.folderId);
         
-        if (livemark.updateChildren()) {
+        if (livemark.updateChildren(this._forceUpdate)) {
           if (++updateCount == gLimitCount) {
             break;
           }
@@ -221,6 +224,7 @@ LivemarkService.prototype = {
     if (this._updatedLivemarks.length >= Object.keys(this._livemarks).length) {
       
       this._updatedLivemarks.length = 0;
+      this._forceUpdate = false;
       refresh_time = Math.min(Math.floor(gExpiration / 4), MAX_REFRESH_TIME);
     }
     this._newTimer(refresh_time);
@@ -326,9 +330,7 @@ LivemarkService.prototype = {
   },
 
   reloadAllLivemarks: function LS_reloadAllLivemarks() {
-    for each (let livemark in this._livemarks) {
-      livemark.updateChildren(true);
-    }
+    this._checkAllLivemarks(true);
   },
 
   reloadLivemarkFolder: function LS_reloadLivemarkFolder(aFolderId) {
@@ -603,7 +605,7 @@ Livemark.prototype = {
     
     try {
       let idleTime = idle.idleTime;
-      if (idleTime > IDLE_TIMELIMIT) {
+      if (idleTime > IDLE_TIMELIMIT && !aForceUpdate) {
         this.locked = false;
         return false;
       }
