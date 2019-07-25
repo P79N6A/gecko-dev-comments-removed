@@ -102,19 +102,8 @@
             case "pageshow":
               this.onPageShow(aMessage);
 
-              if (this.mIconURL == "" && this._documentURI) {
-                // newURI call is throwing for chrome URI
-                try {
-                  // Use documentURIObject in the favicon construction so that we
-                  // do the right thing with about:-style error pages.  Bug 515188
-                  let iconURI = Services.io.newURI(this.documentURI.prePath + "/favicon.ico", null, null);
-                  if (!iconURI.schemeIs("javascript") && !gFaviconService.isFailedFavicon(iconURI)) {
-                    gFaviconService.setAndLoadFaviconForPage(this.currentURI, iconURI, true);
-                    this.mIconURL = iconURI.spec;
-                  }
-                }
-                catch(e) {}
-              }
+              if (this.mIconURL == "" && this._documentURI)
+                this.mIconURL = this.documentURI.prePath + "/favicon.ico";
               break;
 
             case "pagehide":
@@ -144,6 +133,21 @@
                   this._searchEngines.push({ title: link.title, href: link.href });
                   break;
               }
+              break;
+
+            case "Prompt:Alert":
+              alert(aMessage.json.message);
+              break;
+
+            case "Prompt:Confirm":
+              return confirm(aMessage.json.message);
+
+            case "Prompt:Prompt":
+              return prompt(aMessage.json.text, aMessage.json.value);
+
+            case "MozScrolledAreaChanged":
+              this._widthInDevicePx = aMessage.json.width;
+              this._heightInDevicePx = aMessage.json.height;
               break;
          }
         ]]></body>
@@ -373,6 +377,81 @@
         </body>
       </method>
 
+      <property name="_frameLoader"
+                onget="return this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader;"
+                readonly="true"/>
+
+      <field name="_widthInDevicePx">0</field>
+      <field name="_heightInDevicePx">0</field>
+      <property name="widthInDevicePx"
+                onget="return this._widthInDevicePx;"
+                readonly="true"/>
+      <property name="heightInDevicePx"
+                onget="return this._heightInDevicePx;"
+                readonly="true"/>
+
+      <method name="flushScroll">
+        <body>
+          <![CDATA[
+            let frameLoader = this._frameLoader;
+            this.messageManager.sendAsyncMessage("Content:ScrollTo", {
+              x: frameLoader.viewportScrollX,
+              y: frameLoader.viewportScrollY
+            });
+          ]]>
+        </body>
+      </method>
+
+      <method name="scrollBy">
+        <parameter name="x"/>
+        <parameter name="y"/>
+        <body>
+          <![CDATA[
+            let frameLoader = this._frameLoader;
+
+            // XXX don't assume window size is viewport size
+            let viewportWidth = window.innerWidth;
+            let viewportHeight = window.innerHeight;
+
+            x = Math.max(0, Math.min(this.widthInDevicePx - viewportWidth, frameLoader.viewportScrollX + x)) - frameLoader.viewportScrollX;
+            y = Math.max(0, Math.min(this.heightInDevicePx - viewportHeight, frameLoader.viewportScrollY + y)) - frameLoader.viewportScrollY;
+            frameLoader.scrollViewportBy(x, y);
+          ]]>
+        </body>
+      </method>
+
+      <method name="scrollTo">
+        <parameter name="x"/>
+        <parameter name="y"/>
+        <body>
+          <![CDATA[
+            let frameLoader = this._frameLoader;
+
+            // XXX don't assume window size is viewport size
+            let viewportWidth = window.innerWidth;
+            let viewportHeight = window.innerHeight;
+
+            x = Math.max(0, Math.min(this.widthInDevicePx - viewportWidth, x));
+            y = Math.max(0, Math.min(this.heightInDevicePx - viewportHeight, y));
+            frameLoader.scrollViewportTo(x, y);
+          ]]>
+        </body>
+      </method>
+
+      <!-- XXX There is no reason this API needs to act like scrollbar's.
+           Should we change it to something less XPCOMy? -->
+      <method name="getPosition">
+        <parameter name="scrollX"/>
+        <parameter name="scrollY"/>
+        <body>
+          <![CDATA[
+            let frameLoader = this._frameLoader;
+            scrollX.value = frameLoader.viewportScrollX;
+            scrollY.value = frameLoader.viewportScrollY;
+          ]]>
+        </body>
+      </method>
+
       <constructor>
         <![CDATA[
           this.messageManager.loadFrameScript("chrome://browser/content/bindings/browser.js", true);
@@ -383,6 +462,13 @@
           this.messageManager.addMessageListener("pageshow", this);
           this.messageManager.addMessageListener("pagehide", this);
           this.messageManager.addMessageListener("DOMPopupBlocked", this);
+
+          // Prompt remoting
+          ["Alert", "Confirm", "Prompt"].forEach(function(name) {
+            this.messageManager.addMessageListener("Prompt:" + name, this);
+          }, this);
+
+          this.messageManager.addMessageListener("MozScrolledAreaChanged", this);
 
           this._webProgress._init();
         ]]>
@@ -438,7 +524,7 @@
           LOAD_FLAGS_ALLOW_POPUPS: 32768,
           LOAD_FLAGS_BYPASS_CLASSIFIER: 65536,
           LOAD_FLAGS_FORCE_ALLOW_COOKIES: 131072,
-
+          
           STOP_NETWORK: 1,
           STOP_CONTENT: 2,
           STOP_ALL: 3,

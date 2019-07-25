@@ -257,6 +257,7 @@ let DOMEvents =  {
     addEventListener("DOMPopupBlocked", this, false);
     addEventListener("pageshow", this, false);
     addEventListener("pagehide", this, false);
+    addEventListener("MozScrolledAreaChanged", this, false);
   },
 
   handleEvent: function(aEvent) {
@@ -332,6 +333,29 @@ let DOMEvents =  {
           }
         }
         break;
+
+      case "MozScrolledAreaChanged": {
+        let doc = aEvent.originalTarget;
+        let win = doc.defaultView;
+        
+        let scrollOffset = Util.getScrollOffset(win);
+        if (win.parent != win) 
+          return;
+
+        
+        
+        
+        let x = aEvent.x + scrollOffset.x;
+        let y = aEvent.y + scrollOffset.y;
+        let width = aEvent.width + (x < 0 ? x : 0);
+        let height = aEvent.height + (y < 0 ? y : 0);
+        sendAsyncMessage("MozScrolledAreaChanged", {
+          width: width,
+          height: height
+        });
+
+        break;
+      }
     }
   }
 };
@@ -358,4 +382,71 @@ let ContentScroll =  {
 };
 
 ContentScroll.init();
+
+
+function PromptRemoter() {
+  addEventListener("DOMWindowCreated", this, false);
+}
+
+PromptRemoter.prototype = {
+  handleEvent: function handleEvent(aEvent) {
+    var window = aEvent.originalTarget.defaultView.content;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    try {
+      if (!window || !window.wrappedJSObject) {
+        return;
+      }
+    }
+    catch(e) {
+      return;
+    }
+
+    function bringTabToFront() {
+      let event = window.document.createEvent("Events");
+      event.initEvent("DOMWillOpenModalDialog", true, false);
+      window.dispatchEvent(event);
+    }
+
+    function informClosedFrontTab() {
+      let event = window.document.createEvent("Events");
+      event.initEvent("DOMModalDialogClosed", true, false);
+      window.dispatchEvent(event);
+    }
+
+    window.wrappedJSObject.alert = function(aMessage) {
+      bringTabToFront();
+      sendSyncMessage("Prompt:Alert", {
+        message: aMessage
+      });
+      informClosedFrontTab();
+    }
+
+    window.wrappedJSObject.confirm = function(aMessage) {
+      bringTabToFront();
+      return sendSyncMessage("Prompt:Confirm", {
+        message: aMessage
+      });
+      informClosedFrontTab();
+    }
+
+    window.wrappedJSObject.prompt = function(aText, aValue) {
+      bringTabToFront();
+      return sendSyncMessage("Prompt:Prompt", {
+        text: aText,
+        value: aValue
+      });
+      informClosedFrontTab();
+    }
+  },
+};
+
+new PromptRemoter();
 
