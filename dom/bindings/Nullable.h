@@ -4,14 +4,13 @@
 
 
 
-#ifndef mozilla_dom_bindings_Nullable_h
-#define mozilla_dom_bindings_Nullable_h
+#ifndef mozilla_dom_Nullable_h
+#define mozilla_dom_Nullable_h
 
 #include "mozilla/Assertions.h"
 
 namespace mozilla {
 namespace dom {
-namespace bindings {
 
 
 template <typename T>
@@ -58,7 +57,6 @@ public:
   }
 };
 
-} 
 } 
 } 
 

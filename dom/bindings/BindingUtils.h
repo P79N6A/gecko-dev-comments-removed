@@ -4,10 +4,10 @@
 
 
 
-#ifndef mozilla_dom_bindings_Utils_h__
-#define mozilla_dom_bindings_Utils_h__
+#ifndef mozilla_dom_BindingUtils_h__
+#define mozilla_dom_BindingUtils_h__
 
-#include "mozilla/dom/bindings/DOMJSClass.h"
+#include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/workers/Workers.h"
 
 #include "jsapi.h"
@@ -18,9 +18,12 @@
 #include "nsTraceRefcnt.h"
 #include "nsWrapperCacheInlines.h"
 
+
+
+class nsGlobalWindow;
+
 namespace mozilla {
 namespace dom {
-namespace bindings {
 
 template<bool mainThread>
 inline bool
@@ -377,9 +380,6 @@ GetWrapperCache(nsWrapperCache* cache)
   return cache;
 }
 
-
-
-class nsGlobalWindow;
 inline nsWrapperCache*
 GetWrapperCache(nsGlobalWindow* not_allowed);
 
@@ -508,7 +508,6 @@ InitIds(JSContext* cx, Spec* specs, jsid* ids)
 JSBool
 QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp);
 
-} 
 } 
 } 
 

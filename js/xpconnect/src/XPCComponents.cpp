@@ -61,12 +61,12 @@
 #include "jsgc.h"
 #include "jsfriendapi.h"
 #include "AccessCheck.h"
-#include "mozilla/dom/bindings/Utils.h"
+#include "mozilla/dom/BindingUtils.h"
 
 using namespace mozilla;
 using namespace js;
 
-using mozilla::dom::bindings::DestroyProtoOrIfaceCache;
+using mozilla::dom::DestroyProtoOrIfaceCache;
 
 
 
@@ -3226,7 +3226,7 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop, JSOb
             JSObject *unwrappedProto = js::UnwrapObject(proto, false);
             js::Class *unwrappedClass = js::GetObjectClass(unwrappedProto);
             if (IS_WRAPPER_CLASS(unwrappedClass) ||
-                mozilla::dom::bindings::IsDOMClass(Jsvalify(unwrappedClass))) {
+                mozilla::dom::IsDOMClass(Jsvalify(unwrappedClass))) {
                 
                 
                 proto = js::NewProxyObject(cx, &xpc::sandboxProxyHandler,

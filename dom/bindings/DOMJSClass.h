@@ -3,13 +3,13 @@
 
 
 
-#ifndef mozilla_dom_bindings_DOMJSClass_h
-#define mozilla_dom_bindings_DOMJSClass_h
+#ifndef mozilla_dom_DOMJSClass_h
+#define mozilla_dom_DOMJSClass_h
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
 
-#include "mozilla/dom/bindings/PrototypeList.h" 
+#include "mozilla/dom/PrototypeList.h" 
 
 
 #define DOM_OBJECT_SLOT 0
@@ -26,7 +26,6 @@
 
 namespace mozilla {
 namespace dom {
-namespace bindings {
 
 typedef bool
 (* ResolveProperty)(JSContext* cx, JSObject* wrapper, jsid id, bool set,
@@ -97,7 +96,6 @@ GetProtoOrIfaceArray(JSObject* global)
     js::GetReservedSlot(global, DOM_PROTOTYPE_SLOT).toPrivate());
 }
 
-} 
 } 
 } 
 

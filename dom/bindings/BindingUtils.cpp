@@ -4,11 +4,10 @@
 
 
 
-#include "Utils.h"
+#include "BindingUtils.h"
 
 namespace mozilla {
 namespace dom {
-namespace bindings {
 
 static bool
 DefineConstants(JSContext* cx, JSObject* obj, ConstantSpec* cs)
@@ -240,6 +239,5 @@ QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp)
   return true;
 }
 
-} 
 } 
 } 
