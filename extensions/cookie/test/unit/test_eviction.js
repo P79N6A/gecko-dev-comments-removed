@@ -2,69 +2,109 @@
 
 
 
-function run_test()
+let test_generator = do_run_test();
+
+function run_test() {
+  do_test_pending();
+  test_generator.next();
+}
+
+function finish_test() {
+  do_execute_soon(function() {
+    test_generator.close();
+    do_test_finished();
+  });
+}
+
+function do_run_test()
 {
-  var cs = Cc["@mozilla.org/cookieService;1"].getService(Ci.nsICookieService);
-  var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
-  var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-  var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+  
+  let profile = do_get_profile();
 
   
-  prefs.setIntPref("network.cookie.purgeAge", 1);
-  prefs.setIntPref("network.cookie.maxNumber", 1000);
-
-  
-  
-  
-  
+  Services.prefs.setIntPref("network.cookie.purgeAge", 1);
+  Services.prefs.setIntPref("network.cookie.maxNumber", 1000);
 
   
   
   
-  do_check_eq(testEviction(cm, 1101, 2, 50, 1051), 1051);
+  
 
   
   
-  do_check_eq(testEviction(cm, 1101, 2, 100, 1001), 1001);
+  
+  force_eviction(1101, 50);
+
+  
+  do_close_profile(test_generator);
+  yield;
+  do_load_profile();
+
+  do_check_true(check_remaining_cookies(1101, 50, 1051));
 
   
   
-  do_check_eq(testEviction(cm, 1101, 2, 500, 1001), 1001);
+  force_eviction(1101, 100);
+  do_close_profile(test_generator);
+  yield;
+  do_load_profile();
+  do_check_true(check_remaining_cookies(1101, 100, 1001));
 
   
-  do_check_eq(testEviction(cm, 2000, 0, 0, 2000), 2000);
+  
+  force_eviction(1101, 500);
+  do_close_profile(test_generator);
+  yield;
+  do_load_profile();
+  do_check_true(check_remaining_cookies(1101, 500, 1001));
 
   
-  do_check_eq(testEviction(cm, 1100, 2, 200, 1100), 1100);
-
-  cm.removeAll();
+  force_eviction(2000, 0);
+  do_close_profile(test_generator);
+  yield;
+  do_load_profile();
+  do_check_true(check_remaining_cookies(2000, 0, 2000));
 
   
-  prefs.setIntPref("network.cookie.purgeAge", 30 * 24 * 60 * 60);
-  prefs.setIntPref("network.cookie.maxNumber", 2000);
+  force_eviction(1100, 200);
+  do_close_profile(test_generator);
+  yield;
+  do_load_profile();
+  do_check_true(check_remaining_cookies(1100, 200, 1100));
+
+  finish_test();
 }
 
 
 
 function
-testEviction(aCM, aNumberTotal, aSleepDuration, aNumberOld, aNumberToExpect)
+force_eviction(aNumberTotal, aNumberOld)
 {
-  aCM.removeAll();
+  Services.cookiemgr.removeAll();
   var expiry = (Date.now() + 1e6) * 1000;
 
   var i;
   for (i = 0; i < aNumberTotal; ++i) {
     var host = "eviction." + i + ".tests";
-    aCM.add(host, "", "test", "eviction", false, false, false, expiry);
+    Services.cookiemgr.add(host, "", "test", "eviction", false, false, false,
+      expiry);
 
-    if ((i == aNumberOld - 1) && aSleepDuration) {
+    if (i == aNumberOld - 1) {
       
       
-      sleep(aSleepDuration * 1000);
+      
+      sleep(1100);
     }
   }
+}
 
-  var enumerator = aCM.enumerator;
+
+
+
+
+
+function check_remaining_cookies(aNumberTotal, aNumberOld, aNumberToExpect) {
+  var enumerator = Services.cookiemgr.enumerator;
 
   i = 0;
   while (enumerator.hasMoreElements()) {
@@ -78,7 +118,7 @@ testEviction(aCM, aNumberTotal, aSleepDuration, aNumberOld, aNumberToExpect)
     }
   }
 
-  return i;
+  return i == aNumberToExpect;
 }
 
 
