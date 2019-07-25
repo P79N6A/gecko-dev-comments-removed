@@ -65,6 +65,8 @@
 #include "nsURLHelper.h"
 
 #include "mozilla/FunctionTimer.h"
+#include "mozilla/TimeStamp.h"
+#include "mozilla/Telemetry.h"
 
 using namespace mozilla;
 
@@ -571,6 +573,7 @@ nsHostResolver::ResolveHost(const char            *host,
                 LOG(("using cached record\n"));
                 
                 result = he->rec;
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD, METHOD_HIT);
 
                 
                 
@@ -580,15 +583,26 @@ nsHostResolver::ResolveHost(const char            *host,
                     LOG(("Using %s cache entry but starting async renewal",
                          he->rec->negative ? "negative" :"positive"));
                     IssueLookup(he->rec);
+
+                    if (!he->rec->negative) {
+                        
+                        
+                        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                              METHOD_RENEWAL);
+                    }
                 }
                 
                 if (he->rec->negative) {
+                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                          METHOD_NEGATIVE_HIT);
                     status = NS_ERROR_UNKNOWN_HOST;
                 }
             }
             
             
             else if (he->rec->addr) {
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                      METHOD_LITERAL);
                 result = he->rec;
             }
             
@@ -603,11 +617,15 @@ nsHostResolver::ResolveHost(const char            *host,
                 else
                     memcpy(he->rec->addr, &tempAddr, sizeof(PRNetAddr));
                 
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                      METHOD_LITERAL);
                 result = he->rec;
             }
             else if (mPendingCount >= MAX_NON_PRIORITY_REQUESTS &&
                      !IsHighPriority(flags) &&
                      !he->rec->resolving) {
+                Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                      METHOD_OVERFLOW);
                 
                 rv = NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
             }
@@ -619,12 +637,17 @@ nsHostResolver::ResolveHost(const char            *host,
                 if (!he->rec->resolving) {
                     he->rec->flags = flags;
                     rv = IssueLookup(he->rec);
+                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                          METHOD_NETWORK_FIRST);
                     if (NS_FAILED(rv))
                         PR_REMOVE_AND_INIT_LINK(callback);
                     else
                         LOG(("dns lookup blocking pending getaddrinfo query"));
                 }
                 else if (he->rec->onQueue) {
+                    Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD,
+                                          METHOD_NETWORK_SHARED);
+
                     
                     
                     
@@ -883,6 +906,14 @@ nsHostResolver::OnLookupComplete(nsHostRecord *rec, nsresult status, PRAddrInfo 
                     static_cast<nsHostRecord *>(PR_LIST_HEAD(&mEvictionQ));
                 PR_REMOVE_AND_INIT_LINK(head);
                 PL_DHashTableOperate(&mDB, (nsHostKey *) head, PL_DHASH_REMOVE);
+
+                if (!head->negative) {
+                    
+                    PRUint32 age =
+                        NowInMinutes() - (head->expiration - mMaxCacheLifetime);
+                    Telemetry::Accumulate(Telemetry::DNS_CLEANUP_AGE, age);
+                }
+
                 
                 NS_RELEASE(head);
             }
@@ -922,14 +953,32 @@ nsHostResolver::ThreadFunc(void *arg)
         if (!(rec->flags & RES_CANON_NAME))
             flags |= PR_AI_NOCANONNAME;
 
+        TimeStamp startTime = TimeStamp::Now();
+
         ai = PR_GetAddrInfoByName(rec->host, rec->af, flags);
 #if defined(RES_RETRY_ON_FAILURE)
         if (!ai && rs.Reset())
             ai = PR_GetAddrInfoByName(rec->host, rec->af, flags);
 #endif
 
+        TimeDuration elapsed = TimeStamp::Now() - startTime;
+        PRUint32 millis = static_cast<PRUint32>(elapsed.ToMilliseconds());
+
         
-        nsresult status = ai ? NS_OK : NS_ERROR_UNKNOWN_HOST;
+        nsresult status;
+        if (ai) {
+            status = NS_OK;
+
+            Telemetry::Accumulate(!rec->addr_info_gencnt ?
+                                    Telemetry::DNS_LOOKUP_TIME :
+                                    Telemetry::DNS_RENEWAL_TIME,
+                                  millis);
+        }
+        else {
+            status = NS_ERROR_UNKNOWN_HOST;
+            Telemetry::Accumulate(Telemetry::DNS_FAILED_LOOKUP_TIME, millis);
+        }
+        
         resolver->OnLookupComplete(rec, status, ai);
         LOG(("lookup complete for %s ...\n", rec->host));
     }
