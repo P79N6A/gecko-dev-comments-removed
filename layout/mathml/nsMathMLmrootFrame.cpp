@@ -257,9 +257,9 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   
   
 
-  renderingContext.SetFont(GetStyleFont()->mFont,
-                           aPresContext->GetUserFontSet());
-  nsFontMetrics* fm = renderingContext.FontMetrics();
+  nsRefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+  renderingContext.SetFont(fm);
 
   
   

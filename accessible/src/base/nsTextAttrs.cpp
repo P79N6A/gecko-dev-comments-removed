@@ -45,6 +45,7 @@
 #include "gfxFont.h"
 #include "gfxUserFontSet.h"
 #include "nsFontMetrics.h"
+#include "nsLayoutUtils.h"
 
 
 
@@ -479,10 +480,7 @@ nsFontSizeTextAttr::Format(const nscoord& aValue, nsAString& aFormattedValue)
 nscoord
 nsFontSizeTextAttr::GetFontSize(nsIFrame *aFrame)
 {
-  nsStyleFont* styleFont =
-    (nsStyleFont*)(aFrame->GetStyleDataExternal(eStyleStruct_Font));
-
-  return styleFont->mSize;
+  return aFrame->GetStyleFont()->mSize;
 }
 
 
@@ -527,15 +525,8 @@ nsFontWeightTextAttr::GetFontWeight(nsIFrame *aFrame)
 {
   
   
-  nsStyleFont* styleFont =
-    (nsStyleFont*)(aFrame->GetStyleDataExternal(eStyleStruct_Font));
-
-  gfxUserFontSet *fs = aFrame->PresContext()->GetUserFontSet();
-
   nsRefPtr<nsFontMetrics> fm;
-  aFrame->PresContext()->DeviceContext()->
-    GetMetricsFor(styleFont->mFont, aFrame->GetStyleVisibility()->mLanguage,
-                  fs, *getter_AddRefs(fm));
+  nsLayoutUtils::GetFontMetricsForFrame(aFrame, getter_AddRefs(fm));
 
   gfxFontGroup *fontGroup = fm->GetThebesFontGroup();
   gfxFont *font = fontGroup->GetFontAt(0);

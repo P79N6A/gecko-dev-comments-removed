@@ -637,8 +637,9 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
     case eAlign_axis:
     default: {
       
-      aReflowState.rendContext->SetFont(GetStyleFont()->mFont,
-                                        aPresContext->GetUserFontSet());
+      nsRefPtr<nsFontMetrics> fm;
+      nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+      aReflowState.rendContext->SetFont(fm);
       nscoord axisHeight;
       GetAxisHeight(*aReflowState.rendContext,
                     aReflowState.rendContext->FontMetrics(),

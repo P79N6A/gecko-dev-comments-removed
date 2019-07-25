@@ -154,8 +154,8 @@ nsMathMLmsupFrame::PlaceSuperScript(nsPresContext*      aPresContext,
   
   
   nscoord xHeight = 0;
-  nsRefPtr<nsFontMetrics> fm =
-    aPresContext->GetMetricsFor(baseFrame->GetStyleFont()->mFont);
+  nsRefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(baseFrame, getter_AddRefs(fm));
 
   xHeight = fm->XHeight();
   nscoord minShiftFromXHeight = (nscoord) 
