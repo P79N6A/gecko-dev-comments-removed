@@ -56,18 +56,21 @@ public:
 
     
     
-    
-    
-    
-    gfxXlibSurface(Display *dpy, Visual *visual, const gfxIntSize& size, int depth = 0);
-
-    gfxXlibSurface(Display* dpy, Drawable drawable, XRenderPictFormat *format,
-                   const gfxIntSize& size);
-
-    gfxXlibSurface(Display* dpy, XRenderPictFormat *format,
+    gfxXlibSurface(Screen *screen, Drawable drawable, XRenderPictFormat *format,
                    const gfxIntSize& size);
 
     gfxXlibSurface(cairo_surface_t *csurf);
+
+    
+    
+    
+    
+    static already_AddRefed<gfxXlibSurface>
+    Create(Screen *screen, Visual *visual, const gfxIntSize& size,
+           Drawable relatedDrawable = None);
+    static already_AddRefed<gfxXlibSurface>
+    Create(Screen* screen, XRenderPictFormat *format, const gfxIntSize& size,
+           Drawable relatedDrawable = None);
 
     virtual ~gfxXlibSurface();
 
@@ -76,6 +79,7 @@ public:
     Display* XDisplay() { return mDisplay; }
     Drawable XDrawable() { return mDrawable; }
 
+    static int DepthOfVisual(const Screen* screen, const Visual* visual);
     static XRenderPictFormat *FindRenderFormat(Display *dpy, gfxImageFormat format);
 
     

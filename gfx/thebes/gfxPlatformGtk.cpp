@@ -168,24 +168,21 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
     
     
     
-    Display* display = GDK_DISPLAY();
-    if (!display)
-        return nsnull;
+    GdkScreen *gdkScreen = gdk_screen_get_default();
+    if (gdkScreen) {
 
-    
-    if (gfxASurface::ImageFormatRGB24 == imageFormat
-        && 16 == gdk_visual_get_system()->depth)
-        imageFormat = gfxASurface::ImageFormatRGB16_565;
+        
+        if (gfxASurface::ImageFormatRGB24 == imageFormat
+            && 16 == gdk_visual_get_system()->depth)
+            imageFormat = gfxASurface::ImageFormatRGB16_565;
 
-    XRenderPictFormat* xrenderFormat =
-        gfxXlibSurface::FindRenderFormat(display, imageFormat);
+        Screen *screen = gdk_x11_screen_get_xscreen(gdkScreen);
+        XRenderPictFormat* xrenderFormat =
+            gfxXlibSurface::FindRenderFormat(DisplayOfScreen(screen),
+                                             imageFormat);
 
-    if (xrenderFormat) {
-        newSurface = new gfxXlibSurface(display, xrenderFormat, size);
-        if (newSurface && newSurface->CairoStatus() != 0) {
-            
-            
-            newSurface = nsnull;
+        if (xrenderFormat) {
+            newSurface = gfxXlibSurface::Create(screen, xrenderFormat, size);
         }
     }
 #endif
