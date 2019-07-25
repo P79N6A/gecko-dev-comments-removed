@@ -528,8 +528,16 @@ nsContextMenu.prototype = {
         this.onCanvas = true;
       }
       else if (this.target instanceof HTMLVideoElement) {
-        this.onVideo = true;
         this.mediaURL = this.target.currentSrc || this.target.src;
+        
+        
+        
+        if (this.target.readyState >= this.target.HAVE_METADATA &&
+            (this.target.videoWidth == 0 || this.target.videoHeight == 0)) {
+          this.onAudio = true;
+        } else {
+          this.onVideo = true;
+        }
       }
       else if (this.target instanceof HTMLAudioElement) {
         this.onAudio = true;
