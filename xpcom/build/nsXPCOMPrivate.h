@@ -157,8 +157,8 @@ typedef struct XPCOMFunctions{
     GetXPTCallStubFunc getXPTCallStubFunc;
     DestroyXPTCallStubFunc destroyXPTCallStubFunc;
     InvokeByIndexFunc invokeByIndexFunc;
-    CycleCollectorFunc cycleSuspectFunc;
-    CycleCollectorFunc cycleForgetFunc;
+    CycleCollectorFunc cycleSuspectFunc; 
+    CycleCollectorFunc cycleForgetFunc; 
     StringSetIsVoidFunc stringSetIsVoid;
     StringGetIsVoidFunc stringGetIsVoid;
     CStringSetIsVoidFunc cstringSetIsVoid;
