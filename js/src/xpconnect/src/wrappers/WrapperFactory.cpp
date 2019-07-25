@@ -37,20 +37,79 @@
 
 
 
+#include "jsobj.h"
+
 #include "WrapperFactory.h"
-#include "ContentWrapper.h"
-#include "ChromeWrapper.h"
+#include "CrossOriginWrapper.h"
+#include "FilteringWrapper.h"
+#include "XrayWrapper.h"
 #include "AccessCheck.h"
+
+#include "xpcprivate.h"
 
 namespace xpc {
 
-JSCrossCompartmentWrapper *
-WrapperFactory::select(JSContext *cx, JSCompartment *subject, JSCompartment *object)
+
+
+
+
+
+
+
+JSWrapper WaiveXrayWrapperWrapper(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+
+
+
+
+
+JSCrossCompartmentWrapper XrayWrapperWaivedWrapper(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+
+JSObject *
+WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, uintN flags)
 {
-    if(AccessCheck::isPrivileged(object)) {
-        return &ChromeWrapper::singleton;
+    NS_ASSERTION(!obj->isWrapper(), "wrapped object passed to rewrap");
+
+    JSCompartment *origin = obj->getCompartment(cx);
+    JSCompartment *target = cx->compartment;
+
+    JSWrapper *wrapper;
+    if (AccessCheck::isChrome(target)) {
+        NS_ASSERTION(!AccessCheck::isChrome(origin), "we shouldn't rewrap from chrome into chrome");
+
+        
+        
+        if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
+            wrapper = &XrayWrapperWaivedWrapper;
+        } else {
+            
+            wrapper = IS_WN_WRAPPER_OBJECT(obj)
+                      ? &XrayWrapper<JSCrossCompartmentWrapper>::singleton
+                      : &JSCrossCompartmentWrapper::singleton;
+        }
+    } else if (AccessCheck::isChrome(origin)) {
+        
+        
+        
+        
+        if (AccessCheck::needsSystemOnlyWrapper(obj)) {
+            wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
+                                        OnlyIfSubjectIsSystem>::singleton;
+        } else {
+            wrapper = &FilteringWrapper<JSCrossCompartmentWrapper,
+                                        ExposedPropertiesOnly>::singleton;
+        }
+    } else if (AccessCheck::isSameOrigin(origin, target)) {
+        
+        wrapper = &JSCrossCompartmentWrapper::singleton;
+    } else {
+        
+        
+        
+        
+        wrapper = &FilteringWrapper<XrayWrapper<CrossOriginWrapper>,
+                                    CrossOriginAccessiblePropertiesOnly>::singleton;
     }
-    return &ContentWrapper::singleton;
+    return JSWrapper::New(cx, obj, wrappedProto, NULL, wrapper);
 }
 
 }
