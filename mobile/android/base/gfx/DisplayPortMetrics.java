@@ -6,6 +6,7 @@
 package org.mozilla.gecko.gfx;
 
 import android.graphics.RectF;
+import org.mozilla.gecko.FloatUtils;
 
 
 
@@ -30,6 +31,11 @@ public final class DisplayPortMetrics {
 
     public boolean contains(RectF rect) {
         return mPosition.contains(rect);
+    }
+
+    public boolean fuzzyEquals(DisplayPortMetrics metrics) {
+        return RectUtils.fuzzyEquals(mPosition, metrics.mPosition)
+            && FloatUtils.fuzzyEquals(mResolution, metrics.mResolution);
     }
 
     public String toJSON() {

@@ -74,6 +74,9 @@ public class GeckoLayerClient implements GeckoEventResponder,
     private DisplayPortMetrics mDisplayPort;
     private DisplayPortMetrics mReturnDisplayPort;
 
+    private boolean mRecordDrawTimes;
+    private DrawTimingQueue mDrawTimingQueue;
+
     private VirtualLayer mRootLayer;
 
     
@@ -99,6 +102,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mScreenSize = new IntSize(0, 0);
         mWindowSize = new IntSize(0, 0);
         mDisplayPort = new DisplayPortMetrics();
+        mRecordDrawTimes = true;
+        mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
     }
 
@@ -192,6 +197,10 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         mDisplayPort = displayPort;
         mGeckoViewport = clampedMetrics;
+
+        if (mRecordDrawTimes) {
+            mDrawTimingQueue.add(displayPort);
+        }
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(clampedMetrics, displayPort));
     }
@@ -342,6 +351,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
             mLayerController.abortPanZoomAnimation();
             mLayerController.getView().setPaintState(LayerView.PAINT_BEFORE_FIRST);
         }
+        DisplayPortCalculator.resetPageState();
+        mDrawTimingQueue.reset();
         mLayerController.getView().getRenderer().resetCheckerboard();
         GeckoAppShell.screenshotWholePage(Tabs.getInstance().getSelectedTab());
     }
@@ -392,6 +403,19 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mCurrentViewTransform.scale = mFrameMetrics.zoomFactor;
 
         mRootLayer.setPositionAndResolution(x, y, x + width, y + height, resolution);
+
+        if (layersUpdated && mRecordDrawTimes) {
+            
+            
+            
+            DisplayPortMetrics drawn = new DisplayPortMetrics(x, y, x + width, y + height, resolution);
+            long time = mDrawTimingQueue.findTimeFor(drawn);
+            if (time >= 0) {
+                long now = SystemClock.uptimeMillis();
+                time = now - time;
+                mRecordDrawTimes = DisplayPortCalculator.drawTimeUpdate(time, width * height);
+            }
+        }
 
         if (layersUpdated && mDrawListener != null) {
             

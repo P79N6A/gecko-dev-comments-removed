@@ -32,6 +32,7 @@ final class DisplayPortCalculator {
     private static final String PREF_DISPLAYPORT_VB_DANGER_Y_BASE = "gfx.displayport.strategy_vb.danger_y_base";
     private static final String PREF_DISPLAYPORT_VB_DANGER_X_INCR = "gfx.displayport.strategy_vb.danger_x_incr";
     private static final String PREF_DISPLAYPORT_VB_DANGER_Y_INCR = "gfx.displayport.strategy_vb.danger_y_incr";
+    private static final String PREF_DISPLAYPORT_PB_VELOCITY_THRESHOLD = "gfx.displayport.strategy_pb.threshold";
 
     private static DisplayPortStrategy sStrategy = new VelocityBiasStrategy(null);
 
@@ -46,6 +47,14 @@ final class DisplayPortCalculator {
         return sStrategy.aboutToCheckerboard(metrics, (velocity == null ? ZERO_VELOCITY : velocity), displayPort);
     }
 
+    static boolean drawTimeUpdate(long millis, int pixels) {
+        return sStrategy.drawTimeUpdate(millis, pixels);
+    }
+
+    static void resetPageState() {
+        sStrategy.resetPageState();
+    }
+
     static void addPrefNames(JSONArray prefs) {
         prefs.put(PREF_DISPLAYPORT_STRATEGY);
         prefs.put(PREF_DISPLAYPORT_FM_MULTIPLIER);
@@ -58,6 +67,7 @@ final class DisplayPortCalculator {
         prefs.put(PREF_DISPLAYPORT_VB_DANGER_Y_BASE);
         prefs.put(PREF_DISPLAYPORT_VB_DANGER_X_INCR);
         prefs.put(PREF_DISPLAYPORT_VB_DANGER_Y_INCR);
+        prefs.put(PREF_DISPLAYPORT_PB_VELOCITY_THRESHOLD);
     }
 
     
@@ -84,6 +94,9 @@ final class DisplayPortCalculator {
             case 3:
                 sStrategy = new NoMarginStrategy(prefs);
                 break;
+            case 4:
+                sStrategy = new PredictionBiasStrategy(prefs);
+                break;
             default:
                 Log.e(LOGTAG, "Invalid strategy index specified");
                 return false;
@@ -97,11 +110,15 @@ final class DisplayPortCalculator {
         return (float)(value == null || value < 0 ? defaultValue : value) / 1000f;
     }
 
-    private interface DisplayPortStrategy {
+    private static abstract class DisplayPortStrategy {
         
-        public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity);
+        public abstract DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity);
         
-        public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort);
+        public abstract boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort);
+        
+        public boolean drawTimeUpdate(long millis, int pixels) { return false; }
+        
+        public void resetPageState() {}
     }
 
     
@@ -197,7 +214,18 @@ final class DisplayPortCalculator {
     
 
 
-    private static class NoMarginStrategy implements DisplayPortStrategy {
+    private static RectF clampToPageBounds(RectF rect, ImmutableViewportMetrics metrics) {
+        rect.left = Math.max(rect.left, 0);
+        rect.top = Math.max(rect.top, 0);
+        rect.right = Math.min(rect.right, metrics.pageSizeWidth);
+        rect.bottom = Math.min(rect.bottom, metrics.pageSizeHeight);
+        return rect;
+    }
+
+    
+
+
+    private static class NoMarginStrategy extends DisplayPortStrategy {
         NoMarginStrategy(Map<String, Integer> prefs) {
             
         }
@@ -228,7 +256,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class FixedMarginStrategy implements DisplayPortStrategy {
+    private static class FixedMarginStrategy extends DisplayPortStrategy {
         
         
         private final float SIZE_MULTIPLIER;
@@ -294,7 +322,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class VelocityBiasStrategy implements DisplayPortStrategy {
+    private static class VelocityBiasStrategy extends DisplayPortStrategy {
         
         
         private final float SIZE_MULTIPLIER;
@@ -420,7 +448,7 @@ final class DisplayPortCalculator {
 
 
 
-    private static class DynamicResolutionStrategy implements DisplayPortStrategy {
+    private static class DynamicResolutionStrategy extends DisplayPortStrategy {
         
         
         private static final float SIZE_MULTIPLIER = 1.5f;
@@ -607,6 +635,119 @@ final class DisplayPortCalculator {
         @Override
         public String toString() {
             return "DynamicResolutionStrategy";
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    private static class PredictionBiasStrategy extends DisplayPortStrategy {
+        private static float VELOCITY_THRESHOLD;
+
+        private int mPixelArea;         
+        private int mMinFramesToDraw;   
+        private int mMaxFramesToDraw;   
+
+        PredictionBiasStrategy(Map<String, Integer> prefs) {
+            VELOCITY_THRESHOLD = GeckoAppShell.getDpi() * getFloatPref(prefs, PREF_DISPLAYPORT_PB_VELOCITY_THRESHOLD, 16);
+            resetPageState();
+        }
+
+        public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
+            float width = metrics.getWidth();
+            float height = metrics.getHeight();
+            mPixelArea = (int)(width * height);
+
+            if (velocity.length() < VELOCITY_THRESHOLD) {
+                
+                RectF margins = new RectF(width, height, width, height);
+                return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
+            }
+
+            
+            float minDx = velocity.x * mMinFramesToDraw;
+            float minDy = velocity.y * mMinFramesToDraw;
+            float maxDx = velocity.x * mMaxFramesToDraw;
+            float maxDy = velocity.y * mMaxFramesToDraw;
+
+            
+            
+            float pixelsToDraw = (width + Math.abs(maxDx - minDx)) * (height + Math.abs(maxDy - minDy));
+            
+            
+            
+            maxDx = maxDx * pixelsToDraw / mPixelArea;
+            maxDy = maxDy * pixelsToDraw / mPixelArea;
+
+            
+            
+            RectF margins = new RectF(
+                -Math.min(minDx, maxDx),
+                -Math.min(minDy, maxDy),
+                Math.max(minDx, maxDx),
+                Math.max(minDy, maxDy));
+            return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
+        }
+
+        public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
+            
+            
+            float minDx = velocity.x * mMinFramesToDraw;
+            float minDy = velocity.y * mMinFramesToDraw;
+            float maxDx = velocity.x * mMaxFramesToDraw;
+            float maxDy = velocity.y * mMaxFramesToDraw;
+            float pixelsToDraw = (metrics.getWidth() + Math.abs(maxDx - minDx)) * (metrics.getHeight() + Math.abs(maxDy - minDy));
+            maxDx = maxDx * pixelsToDraw / mPixelArea;
+            maxDy = maxDy * pixelsToDraw / mPixelArea;
+
+            
+            
+            
+            RectF predictedViewport = metrics.getViewport();
+            predictedViewport.left += maxDx;
+            predictedViewport.top += maxDy;
+            predictedViewport.right += maxDx;
+            predictedViewport.bottom += maxDy;
+
+            predictedViewport = clampToPageBounds(predictedViewport, metrics);
+            return !displayPort.contains(predictedViewport);
+        }
+
+        @Override
+        public boolean drawTimeUpdate(long millis, int pixels) {
+            
+            float normalizedTime = (float)mPixelArea * (float)millis / (float)pixels;
+            int normalizedFrames = (int)FloatMath.ceil(normalizedTime * 60f / 1000f);
+            
+            
+            
+            if (normalizedFrames <= mMinFramesToDraw) {
+                mMinFramesToDraw--;
+            } else if (normalizedFrames > mMaxFramesToDraw) {
+                mMaxFramesToDraw++;
+            } else {
+                return true;
+            }
+            Log.d(LOGTAG, "Widened draw range to [" + mMinFramesToDraw + ", " + mMaxFramesToDraw + "]");
+            return true;
+        }
+
+        @Override
+        public void resetPageState() {
+            mMinFramesToDraw = 0;
+            mMaxFramesToDraw = 2;
+        }
+
+        @Override
+        public String toString() {
+            return "PredictionBiasStrategy threshold=" + VELOCITY_THRESHOLD;
         }
     }
 }

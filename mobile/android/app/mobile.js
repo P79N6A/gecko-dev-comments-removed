@@ -381,6 +381,8 @@ pref("gfx.displayport.strategy_vb.danger_x_base", -1);
 pref("gfx.displayport.strategy_vb.danger_y_base", -1); 
 pref("gfx.displayport.strategy_vb.danger_x_incr", -1); 
 pref("gfx.displayport.strategy_vb.danger_y_incr", -1); 
+
+pref("gfx.displayport.strategy_pb.threshold", -1); 
 #endif
 
 
