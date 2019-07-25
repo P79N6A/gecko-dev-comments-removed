@@ -2952,7 +2952,41 @@ var FormAssistant = {
       if (value == aSearchString)
         continue;
 
-      suggestions.push(value);
+      
+      suggestions.push({ label: value, value: value });
+    }
+
+    return suggestions;
+  },
+
+  
+
+
+
+
+
+  _getListSuggestions: function _getListSuggestions(aElement) {
+    if (!(aElement instanceof HTMLInputElement) || !aElement.list)
+      return [];
+
+    let suggestions = [];
+    let filter = !aElement.hasAttribute("mozNoFilter");
+    let lowerFieldValue = aElement.value.toLowerCase();
+
+    let options = aElement.list.options;
+    let length = options.length;
+    for (let i = 0; i < length; i++) {
+      let item = options.item(i);
+
+      let label = item.value;
+      if (item.label)
+        label = item.label;
+      else if (item.text)
+        label = item.text;
+
+      if (filter && label.toLowerCase().indexOf(lowerFieldValue) == -1)
+        continue;
+      suggestions.push({ label: label, value: item.value });
     }
 
     return suggestions;
@@ -2977,7 +3011,12 @@ var FormAssistant = {
     if (!this._isAutoComplete(aElement))
       return false;
 
-    let suggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
+    let autoCompleteSuggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
+    let listSuggestions = this._getListSuggestions(aElement);
+
+    
+    
+    let suggestions = autoCompleteSuggestions.concat(listSuggestions);
 
     
     if (!suggestions.length)
