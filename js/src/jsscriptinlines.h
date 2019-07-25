@@ -144,6 +144,18 @@ ScriptCounts::destroy(FreeOp *fop)
     fop->free_(pcCountsVector);
 }
 
+inline void
+MarkScriptFilename(JSRuntime *rt, const char *filename)
+{
+    
+
+
+
+
+    if (rt->gcIsFull)
+        ScriptFilenameEntry::fromFilename(filename)->marked = true;
+}
+
 } 
 
 inline void

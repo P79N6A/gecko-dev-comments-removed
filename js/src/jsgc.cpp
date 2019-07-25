@@ -3209,8 +3209,8 @@ SweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool *startBackgroundSweep)
 
 
 
-        for (GCCompartmentsIter c(rt); !c.done(); c.next())
-            SweepScriptFilenames(c);
+        if (rt->gcIsFull)
+            SweepScriptFilenames(rt);
 
         
 

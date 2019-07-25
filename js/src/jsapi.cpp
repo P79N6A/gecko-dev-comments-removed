@@ -852,12 +852,21 @@ JSRuntime::init(uint32_t maxbytes)
     if (!stackSpace.init())
         return false;
 
+    if (!scriptFilenameTable.init())
+        return false;
+
     nativeStackBase = GetNativeStackBase();
     return true;
 }
 
 JSRuntime::~JSRuntime()
 {
+    
+
+
+
+    FreeScriptFilenames(this);
+
     JS_ASSERT(onOwnerThread());
 
     delete_<JSC::ExecutableAllocator>(execAlloc_);
