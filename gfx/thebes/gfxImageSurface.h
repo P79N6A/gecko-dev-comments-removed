@@ -13,12 +13,6 @@
 
 class gfxSubimageSurface;
 
-namespace mozilla {
-namespace gfx {
-class SourceSurface;
-}
-}
-
 
 
 
@@ -74,12 +68,6 @@ public:
 
     
     bool CopyFrom (gfxImageSurface *other);
-
-    
-
-
-
-    bool CopyFrom (mozilla::gfx::SourceSurface *aSurface);
 
     
 
