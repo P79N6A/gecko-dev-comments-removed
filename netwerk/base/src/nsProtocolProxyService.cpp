@@ -286,6 +286,9 @@ proxy_GetBoolPref(nsIPrefBranch *aPrefBranch,
 
 
 
+static const PRInt32 PROXYCONFIG_DIRECT4X = 3;
+static const PRInt32 PROXYCONFIG_COUNT = 6;
+
 NS_IMPL_ADDREF(nsProtocolProxyService)
 NS_IMPL_RELEASE(nsProtocolProxyService)
 NS_IMPL_CLASSINFO(nsProtocolProxyService, NULL, nsIClassInfo::SINGLETON)
@@ -299,10 +302,9 @@ NS_IMPL_CI_INTERFACE_GETTER2(nsProtocolProxyService,
 
 nsProtocolProxyService::nsProtocolProxyService()
     : mFilters(nsnull)
-    , mProxyConfig(eProxyConfig_Direct)
+    , mProxyConfig(PROXYCONFIG_DIRECT)
     , mHTTPProxyPort(-1)
     , mFTPProxyPort(-1)
-    , mGopherProxyPort(-1)
     , mHTTPSProxyPort(-1)
     , mSOCKSProxyPort(-1)
     , mSOCKSProxyVersion(4)
@@ -388,26 +390,26 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
         rv = prefBranch->GetIntPref(PROXY_PREF("type"), &type);
         if (NS_SUCCEEDED(rv)) {
             
-            if (type == eProxyConfig_Direct4x) {
-                type = eProxyConfig_Direct;
+            if (type == PROXYCONFIG_DIRECT4X) {
+                type = PROXYCONFIG_DIRECT;
                 
                 
                 
                 
                 if (!pref)
                     prefBranch->SetIntPref(PROXY_PREF("type"), type);
-            } else if (type >= eProxyConfig_Last) {
+            } else if (type >= PROXYCONFIG_COUNT) {
                 LOG(("unknown proxy type: %lu; assuming direct\n", type));
-                type = eProxyConfig_Direct;
+                type = PROXYCONFIG_DIRECT;
             }
-            mProxyConfig = static_cast<ProxyConfig>(type);
+            mProxyConfig = type;
             reloadPAC = PR_TRUE;
         }
 
-        if (mProxyConfig == eProxyConfig_System) {
+        if (mProxyConfig == PROXYCONFIG_SYSTEM) {
             mSystemProxySettings = do_GetService(NS_SYSTEMPROXYSETTINGS_CONTRACTID);
             if (!mSystemProxySettings)
-                mProxyConfig = eProxyConfig_Direct;
+                mProxyConfig = PROXYCONFIG_DIRECT;
         } else {
             mSystemProxySettings = nsnull;
         }
@@ -430,12 +432,6 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
 
     if (!pref || !strcmp(pref, PROXY_PREF("ftp_port")))
         proxy_GetIntPref(prefBranch, PROXY_PREF("ftp_port"), mFTPProxyPort);
-
-    if (!pref || !strcmp(pref, PROXY_PREF("gopher")))
-        proxy_GetStringPref(prefBranch, PROXY_PREF("gopher"), mGopherProxyHost);
-
-    if (!pref || !strcmp(pref, PROXY_PREF("gopher_port")))
-        proxy_GetIntPref(prefBranch, PROXY_PREF("gopher_port"), mGopherProxyPort);
 
     if (!pref || !strcmp(pref, PROXY_PREF("socks")))
         proxy_GetStringPref(prefBranch, PROXY_PREF("socks"), mSOCKSProxyHost);
@@ -470,8 +466,8 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
 
     
     
-    if (mProxyConfig != eProxyConfig_PAC && mProxyConfig != eProxyConfig_WPAD &&
-        mProxyConfig != eProxyConfig_System)
+    if (mProxyConfig != PROXYCONFIG_PAC && mProxyConfig != PROXYCONFIG_WPAD &&
+        mProxyConfig != PROXYCONFIG_SYSTEM)
         return;
 
     
@@ -483,10 +479,10 @@ nsProtocolProxyService::PrefsChanged(nsIPrefBranch *prefBranch,
 
     if (reloadPAC) {
         tempString.Truncate();
-        if (mProxyConfig == eProxyConfig_PAC) {
+        if (mProxyConfig == PROXYCONFIG_PAC) {
             prefBranch->GetCharPref(PROXY_PREF("autoconfig_url"),
                                     getter_Copies(tempString));
-        } else if (mProxyConfig == eProxyConfig_WPAD) {
+        } else if (mProxyConfig == PROXYCONFIG_WPAD) {
             
             
             
@@ -822,9 +818,9 @@ nsProtocolProxyService::ReloadPAC()
         return NS_OK;
 
     nsXPIDLCString pacSpec;
-    if (type == eProxyConfig_PAC)
+    if (type == PROXYCONFIG_PAC)
         prefs->GetCharPref(PROXY_PREF("autoconfig_url"), getter_Copies(pacSpec));
-    else if (type == eProxyConfig_WPAD)
+    else if (type == PROXYCONFIG_WPAD)
         pacSpec.AssignLiteral(WPAD_URL);
 
     if (!pacSpec.IsEmpty())
@@ -843,7 +839,7 @@ nsProtocolProxyService::Resolve(nsIURI *uri, PRUint32 flags,
         return rv;
 
     PRBool usePAC;
-    rv = Resolve_Internal(uri, info, &usePAC, result);
+    rv = Resolve_Internal(uri, info, flags, &usePAC, result);
     if (NS_FAILED(rv))
         return rv;
 
@@ -892,7 +888,7 @@ nsProtocolProxyService::AsyncResolve(nsIURI *uri, PRUint32 flags,
 
     PRBool usePAC;
     nsCOMPtr<nsIProxyInfo> pi;
-    rv = Resolve_Internal(uri, info, &usePAC, getter_AddRefs(pi));
+    rv = Resolve_Internal(uri, info, flags, &usePAC, getter_AddRefs(pi));
     if (NS_FAILED(rv))
         return rv;
 
@@ -954,8 +950,8 @@ nsProtocolProxyService::GetFailoverForProxy(nsIProxyInfo  *aProxy,
 {
     
     
-    if (mProxyConfig != eProxyConfig_PAC && mProxyConfig != eProxyConfig_WPAD &&
-        mProxyConfig != eProxyConfig_System)
+    if (mProxyConfig != PROXYCONFIG_PAC && mProxyConfig != PROXYCONFIG_WPAD &&
+        mProxyConfig != PROXYCONFIG_SYSTEM)
         return NS_ERROR_NOT_AVAILABLE;
 
     
@@ -1041,6 +1037,14 @@ nsProtocolProxyService::UnregisterFilter(nsIProtocolProxyFilter *filter)
     
     return NS_OK;
 }
+
+NS_IMETHODIMP
+nsProtocolProxyService::GetProxyConfigType(PRUint32* aProxyConfigType)
+{
+  *aProxyConfigType = mProxyConfig;
+  return NS_OK;
+}
+
 void
 nsProtocolProxyService::LoadHostFilters(const char *filters)
 {
@@ -1228,6 +1232,7 @@ nsProtocolProxyService::NewProxyInfo_Internal(const char *aType,
 nsresult
 nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
                                          const nsProtocolInfo &info,
+                                         PRUint32 flags,
                                          PRBool *usePAC,
                                          nsIProxyInfo **result)
 {
@@ -1262,14 +1267,14 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
 
     
     
-    if (mProxyConfig == eProxyConfig_Direct ||
-        (mProxyConfig == eProxyConfig_Manual &&
+    if (mProxyConfig == PROXYCONFIG_DIRECT ||
+        (mProxyConfig == PROXYCONFIG_MANUAL &&
          !CanUseProxy(uri, info.defaultPort)))
         return NS_OK;
 
     
-    if (mProxyConfig == eProxyConfig_PAC || mProxyConfig == eProxyConfig_WPAD ||
-        mProxyConfig == eProxyConfig_System) {
+    if (mProxyConfig == PROXYCONFIG_PAC || mProxyConfig == PROXYCONFIG_WPAD ||
+        mProxyConfig == PROXYCONFIG_SYSTEM) {
         
         *usePAC = PR_TRUE;
         return NS_OK;
@@ -1282,29 +1287,43 @@ nsProtocolProxyService::Resolve_Internal(nsIURI *uri,
 
     PRUint32 proxyFlags = 0;
 
-    if (!mHTTPProxyHost.IsEmpty() && mHTTPProxyPort > 0 &&
-        info.scheme.EqualsLiteral("http")) {
+    if ((flags & RESOLVE_PREFER_SOCKS_PROXY) &&
+        !mSOCKSProxyHost.IsEmpty() && mSOCKSProxyPort > 0) {
+      host = &mSOCKSProxyHost;
+      if (mSOCKSProxyVersion == 4) 
+          type = kProxyType_SOCKS4;
+      else
+          type = kProxyType_SOCKS;
+      port = mSOCKSProxyPort;
+      if (mSOCKSProxyRemoteDNS)
+          proxyFlags |= nsIProxyInfo::TRANSPARENT_PROXY_RESOLVES_HOST;
+    }
+    else if ((flags & RESOLVE_PREFER_HTTPS_PROXY) &&
+             !mHTTPSProxyHost.IsEmpty() && mHTTPSProxyPort > 0) {
+        host = &mHTTPSProxyHost;
+        type = kProxyType_HTTP;
+        port = mHTTPSProxyPort;
+    }
+    else if (!mHTTPProxyHost.IsEmpty() && mHTTPProxyPort > 0 &&
+             ((flags & RESOLVE_IGNORE_URI_SCHEME) ||
+              info.scheme.EqualsLiteral("http"))) {
         host = &mHTTPProxyHost;
         type = kProxyType_HTTP;
         port = mHTTPProxyPort;
     }
     else if (!mHTTPSProxyHost.IsEmpty() && mHTTPSProxyPort > 0 &&
+             !(flags & RESOLVE_IGNORE_URI_SCHEME) &&
              info.scheme.EqualsLiteral("https")) {
         host = &mHTTPSProxyHost;
         type = kProxyType_HTTP;
         port = mHTTPSProxyPort;
     }
     else if (!mFTPProxyHost.IsEmpty() && mFTPProxyPort > 0 &&
+             !(flags & RESOLVE_IGNORE_URI_SCHEME) &&
              info.scheme.EqualsLiteral("ftp")) {
         host = &mFTPProxyHost;
         type = kProxyType_HTTP;
         port = mFTPProxyPort;
-    }
-    else if (!mGopherProxyHost.IsEmpty() && mGopherProxyPort > 0 &&
-             info.scheme.EqualsLiteral("gopher")) {
-        host = &mGopherProxyHost;
-        type = kProxyType_HTTP;
-        port = mGopherProxyPort;
     }
     else if (!mSOCKSProxyHost.IsEmpty() && mSOCKSProxyPort > 0) {
         host = &mSOCKSProxyHost;

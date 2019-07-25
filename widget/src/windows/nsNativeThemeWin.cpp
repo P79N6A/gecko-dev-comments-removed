@@ -397,6 +397,13 @@ nsNativeThemeWin::IsMenuActive(nsIFrame *aFrame, PRUint8 aWidgetType)
   return CheckBooleanAttr(aFrame, nsWidgetAtoms::mozmenuactive);
 }
 
+
+
+
+
+
+
+
 nsresult 
 nsNativeThemeWin::GetThemePartAndState(nsIFrame* aFrame, PRUint8 aWidgetType, 
                                        PRInt32& aPart, PRInt32& aState)
@@ -1587,8 +1594,11 @@ nsNativeThemeWin::GetMinimumWidgetSize(nsIRenderingContext* aContext, nsIFrame* 
       return NS_OK;
   }
 
-  if (aWidgetType == NS_THEME_SCALE_THUMB_HORIZONTAL ||
-      aWidgetType == NS_THEME_SCALE_THUMB_VERTICAL) {
+  if (aWidgetType == NS_THEME_RESIZER) {
+    *aIsOverridable = PR_FALSE;
+  }
+  else if (aWidgetType == NS_THEME_SCALE_THUMB_HORIZONTAL ||
+           aWidgetType == NS_THEME_SCALE_THUMB_VERTICAL) {
     *aIsOverridable = PR_FALSE;
     
     
@@ -1776,10 +1786,28 @@ nsNativeThemeWin::ThemeNeedsComboboxDropmarker()
   return PR_TRUE;
 }
 
-nsTransparencyMode
-nsNativeThemeWin::GetWidgetTransparency(PRUint8 aWidgetType)
+nsITheme::Transparency
+nsNativeThemeWin::GetWidgetTransparency(nsIFrame* aFrame, PRUint8 aWidgetType)
 {
-  return eTransparencyOpaque;
+  HANDLE theme = GetTheme(aWidgetType);
+  
+  if (!theme)
+    return eUnknownTransparency;
+
+  PRInt32 part, state;
+  nsresult rv = GetThemePartAndState(aFrame, aWidgetType, part, state);
+  
+  NS_ENSURE_SUCCESS(rv, eUnknownTransparency);
+
+  if (part <= 0) {
+    
+    
+    return eUnknownTransparency;
+  }
+
+  if (nsUXThemeData::isThemeBackgroundPartiallyTransparent(theme, part, state))
+    return eTransparent;
+  return eOpaque;
 }
 
 
@@ -1790,6 +1818,14 @@ nsNativeThemeWin::ClassicThemeSupportsWidget(nsPresContext* aPresContext,
                                       PRUint8 aWidgetType)
 {
   switch (aWidgetType) {
+    case NS_THEME_RESIZER:
+    {
+      
+      
+      
+      nsIFrame* parentFrame = aFrame->GetParent();
+      return (!parentFrame || parentFrame->GetType() != nsWidgetAtoms::scrollFrame);
+    }
     case NS_THEME_MENUBAR:
     case NS_THEME_MENUPOPUP:
       
@@ -1824,7 +1860,6 @@ nsNativeThemeWin::ClassicThemeSupportsWidget(nsPresContext* aPresContext,
     case NS_THEME_STATUSBAR:
     case NS_THEME_STATUSBAR_PANEL:
     case NS_THEME_STATUSBAR_RESIZER_PANEL:
-    case NS_THEME_RESIZER:
     case NS_THEME_PROGRESSBAR:
     case NS_THEME_PROGRESSBAR_VERTICAL:
     case NS_THEME_PROGRESSBAR_CHUNK:
@@ -2009,6 +2044,7 @@ nsNativeThemeWin::ClassicGetMinimumWidgetSize(nsIRenderingContext* aContext, nsI
       else
 #endif
         (*aResult).width = (*aResult).height = 15;
+      *aIsOverridable = PR_FALSE;
       break;
     case NS_THEME_SCROLLBAR_THUMB_VERTICAL:
 #ifndef WINCE

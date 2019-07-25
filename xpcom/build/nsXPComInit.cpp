@@ -511,10 +511,6 @@ NS_InitXPCOM2(nsIServiceManager* *result,
     nsIInterfaceInfoManager* iim =
         xptiInterfaceInfoManager::GetSingleton();
 
-    NS_TIME_FUNCTION_MARK("Next: try to register core/application components");
-    
-    
-
     NS_TIME_FUNCTION_MARK("Next: register category providers");
 
     
