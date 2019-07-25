@@ -1013,13 +1013,14 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
 PRBool
 nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, PRBool aInString)
 {
-  PRInt32 ch = Peek();
+  PRInt32 ch = Read();
   if (ch < 0) {
     return PR_FALSE;
   }
   if (IsHexDigit(ch)) {
     PRInt32 rv = 0;
     int i;
+    Pushback(ch);
     for (i = 0; i < 6; i++) { 
       ch = Read();
       if (ch < 0) {
@@ -1066,8 +1067,17 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, PRBool aInString)
   
   
   
-  ch = Read();  
-  if ((ch > 0) && (ch != '\n')) {
+  if (ch == '\n') {
+    if (!aInString) {
+      
+      
+      
+      Pushback(ch);
+      return PR_FALSE;
+    }
+    
+    
+  } else {
     aOutput.Append(ch);
   }
 
