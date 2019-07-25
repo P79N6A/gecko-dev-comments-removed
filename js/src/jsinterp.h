@@ -103,6 +103,8 @@ enum JSFrameFlags
     JSFRAME_HAS_PREVPC         = 0x400000  
 };
 
+namespace js { namespace mjit { struct JITScript; } }
+
 
 
 
@@ -770,6 +772,12 @@ struct JSStackFrame
         JS_STATIC_ASSERT(offsetof(JSStackFrame, rval_) % sizeof(js::Value) == 0);
         JS_STATIC_ASSERT(sizeof(JSStackFrame) % sizeof(js::Value) == 0);
     }
+
+#ifdef JS_METHODJIT
+    js::mjit::JITScript *jit() {
+        return script()->getJIT(isConstructing());
+    }
+#endif
 
     void methodjitStaticAsserts();
 

@@ -49,6 +49,7 @@
 #include "BaseAssembler.h"
 #include "RematInfo.h"
 #include "BaseCompiler.h"
+#include "assembler/moco/MocoStubs.h"
 
 namespace js {
 namespace mjit {
@@ -192,15 +193,6 @@ struct BaseIC : public MacroAssemblerTypedefs {
     CodeLocationCall slowPathCall;
 
     
-    CodeLocationLabel lastStubStart;
-
-    
-    
-    CodeLocationLabel lastPathStart() {
-        return stubsGenerated > 0 ? lastStubStart : fastPathStart;
-    }
-
-    
     bool hit : 1;
     bool slowCallPatched : 1;
 
@@ -306,7 +298,7 @@ struct GetElementIC : public BasePolyIC {
     int secondShapeGuard : 8;   
 
     bool hasLastStringStub : 1;
-    CodeLocationLabel lastStringStub;
+    JITCode lastStringStub;
 
     
     
@@ -334,7 +326,7 @@ struct GetElementIC : public BasePolyIC {
         typeRegHasBaseShape = false;
         hasLastStringStub = false;
     }
-    void purge();
+    void purge(Repatcher &repatcher);
     LookupStatus update(JSContext *cx, JSObject *obj, const Value &v, jsid id, Value *vp);
     LookupStatus attachGetProp(JSContext *cx, JSObject *obj, const Value &v, jsid id,
                                Value *vp);
@@ -396,7 +388,7 @@ struct SetElementIC : public BaseIC {
         inlineClaspGuardPatched = false;
         inlineHoleGuardPatched = false;
     }
-    void purge();
+    void purge(Repatcher &repatcher);
     LookupStatus attachHoleStub(JSContext *cx, JSObject *obj, int32 key);
     LookupStatus update(JSContext *cx, const Value &objval, const Value &idval);
     LookupStatus disable(JSContext *cx, const char *reason);
@@ -431,6 +423,32 @@ struct PICInfo : public BasePolyIC {
         } get;
         ValueRemat vr;
     } u;
+
+    
+    
+    
+    JITCode lastStubStart;
+
+    
+    
+    CodeLocationLabel lastPathStart() {
+        if (!stubsGenerated)
+            return fastPathStart;
+        return CodeLocationLabel(lastStubStart.start());
+    }
+
+    
+    
+    JITCode lastCodeBlock(JITScript *jit) {
+        if (!stubsGenerated)
+            return JITCode(jit->code.m_code.executableAddress(), jit->code.m_size);
+        return lastStubStart;
+    }
+
+    void updateLastPath(LinkerHelper &linker, Label label) {
+        CodeLocationLabel loc = linker.locationOf(label);
+        lastStubStart = JITCode(loc.executableAddress(), linker.size());
+    }
 
     Kind kind : 3;
 
