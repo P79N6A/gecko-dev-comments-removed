@@ -87,7 +87,7 @@ function CanvasBrowser(canvas) {
 
   
   this._needToPanToTop = false;
-  
+
   this._eventHandler.cb = this;
 }
 
@@ -123,7 +123,7 @@ CanvasBrowser.prototype = {
           aIID.equals(Ci.nsIDOMEventListener) ||
           aIID.equals(Ci.nsISupports))
         return this;
-    
+
       throw Cr.NS_ERROR_NO_INTERFACE;
     },
 
@@ -146,7 +146,7 @@ CanvasBrowser.prototype = {
       currentBrowser.mZoomLevel = this.zoomLevel;
       currentBrowser.mPanX = ws._viewingRect.x;
       currentBrowser.mPanY = ws._viewingRect.y;
-      
+
       
       currentBrowser.removeEventListener("MozAfterPaint", this._eventHandler, false);
       currentBrowser.removeEventListener("scroll", this._eventHandler, false);
@@ -155,7 +155,7 @@ CanvasBrowser.prototype = {
     }
 
     this._contentDOMWindowUtils = null;
-    
+
     if (!browser)
       return;
 
@@ -634,10 +634,35 @@ CanvasBrowser.prototype = {
 
   elementFromPoint: function elementFromPoint(aX, aY) {
     let [x, y] = this._clientToContentCoords(aX, aY);
+    
     let cwu = this.contentDOMWindowUtils;
-    return cwu.elementFromPoint(x, y,
-                                true,   
-                                false); 
+    let elem = cwu.elementFromPoint(x, y,
+                                    true,   
+                                    false); 
+
+    
+    while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
+      let frameWin = elem.ownerDocument.defaultView;
+      let frameUtils = frameWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+      let scrollX = {}, scrollY = {};
+      frameUtils.getScrollXY(false, scrollX, scrollY);
+
+      
+      
+      
+
+      x = x - elem.offsetLeft + scrollX.value;
+      y = y - elem.offsetTop + scrollY.value;
+      
+      elem = elem.contentDocument.elementFromPoint(x, y);
+    }
+
+    
+    
+    
+    
+
+    return elem;
   },
 
   
@@ -659,6 +684,7 @@ CanvasBrowser.prototype = {
   
 
 
+
   _clientToContentCoords: function _clientToContentCoords(aClientX, aClientY) {
     
     
@@ -672,6 +698,18 @@ CanvasBrowser.prototype = {
     let [scrollX, scrollY] = this.contentScrollValues;
     return [clickOffsetX - scrollX,
             clickOffsetY - scrollY];
+  },
+
+  
+
+
+
+  _screenToClientCoords: function _screenToClientCoords(aScreenX, aScreenY) {
+    let boxObject = document.getElementById("browser-container").boxObject;
+
+    
+    return [aScreenX - boxObject.screenX,
+            aScreenY - boxObject.screenY];
   },
 
   get contentScrollValues() {
