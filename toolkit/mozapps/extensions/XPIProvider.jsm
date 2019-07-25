@@ -915,6 +915,33 @@ function loadManifestFromFile(aFile) {
 
 
 
+
+
+
+
+function getURIForResourceInFile(aFile, aPath) {
+  if (aFile.isDirectory()) {
+    let resource = aFile.clone();
+    if (aPath) {
+      aPath.split("/").forEach(function(aPart) {
+        resource.append(aPart);
+      });
+    }
+    return NetUtil.newURI(resource);
+  }
+
+  return buildJarURI(aFile, aPath);
+}
+
+
+
+
+
+
+
+
+
+
 function buildJarURI(aJarfile, aPath) {
   let uri = Services.io.newFileURI(aJarfile);
   uri = "jar:" + uri.spec + "!/" + aPath;
@@ -931,6 +958,12 @@ function flushJarCache(aJarFile) {
   Services.obs.notifyObservers(aJarFile, "flush-cache-entry", null);
   Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIChromeFrameMessageManager)
     .sendAsyncMessage(MSG_JAR_FLUSH, aJarFile.path);
+}
+
+function flushStartupCache() {
+  
+  Cc["@mozilla.org/xul/xul-prototype-cache;1"].getService(Ci.nsISupports);
+  Services.obs.notifyObservers(null, "startupcache-invalidate", null);
 }
 
 
@@ -1565,9 +1598,7 @@ var XPIProvider = {
     }
 
     if (flushCaches) {
-      
-      let xulPrototypeCache = Cc["@mozilla.org/xul/xul-prototype-cache;1"].getService(Ci.nsISupports);
-      Services.obs.notifyObservers(null, "startupcache-invalidate", null);
+      flushStartupCache();
 
       
       
@@ -1989,6 +2020,7 @@ var XPIProvider = {
               this.callBootstrapMethod(existingAddonID, oldBootstrap.version,
                                        existingAddon, "uninstall", uninstallReason);
               this.unloadBootstrapScope(existingAddonID);
+              flushStartupCache();
             }
           }
           catch (e) {
@@ -2259,6 +2291,9 @@ var XPIProvider = {
 
         
         if (newAddon.active && newAddon.bootstrap) {
+          
+          flushStartupCache();
+
           let installReason = Services.vc.compare(aOldAddon.version, newAddon.version) < 0 ?
                               BOOTSTRAP_REASONS.ADDON_UPGRADE :
                               BOOTSTRAP_REASONS.ADDON_DOWNGRADE;
@@ -2270,7 +2305,6 @@ var XPIProvider = {
           return false;
         }
 
-        
         return true;
       }
 
@@ -2445,9 +2479,7 @@ var XPIProvider = {
         if (aOldAddon.type == "theme")
           XPIProvider.enableDefaultTheme();
 
-        
-        if (!aOldAddon.bootstrap)
-          return true;
+        return true;
       }
 
       return false;
@@ -2586,10 +2618,16 @@ var XPIProvider = {
           let oldAddonFile = Cc["@mozilla.org/file/local;1"].
                              createInstance(Ci.nsILocalFile);
           oldAddonFile.persistentDescriptor = oldBootstrap.descriptor;
+
           XPIProvider.callBootstrapMethod(newAddon.id, oldBootstrap.version,
                                           oldAddonFile, "uninstall",
                                           installReason);
           XPIProvider.unloadBootstrapScope(newAddon.id);
+
+          
+          
+          if (newAddon.bootstrap)
+            flushStartupCache();
         }
 
         if (!newAddon.bootstrap)
@@ -3355,47 +3393,32 @@ var XPIProvider = {
                     createInstance(Ci.nsIPrincipal);
     this.bootstrapScopes[aId] = new Components.utils.Sandbox(principal);
 
-    let bootstrap = aFile.clone();
-    let name = aFile.leafName;
-    let spec;
-
-    if (!bootstrap.exists()) {
+    if (!aFile.exists()) {
       ERROR("Attempted to load bootstrap scope from missing directory " + bootstrap.path);
       return;
     }
 
-    if (bootstrap.isDirectory()) {
-      bootstrap.append("bootstrap.js");
-      let uri = Services.io.newFileURI(bootstrap);
-      spec = uri.spec;
-    } else {
-      spec = buildJarURI(bootstrap, "bootstrap.js").spec;
-    }
-    if (bootstrap.exists()) {
-      let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
-                   createInstance(Ci.mozIJSSubScriptLoader);
+    let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
+                 createInstance(Ci.mozIJSSubScriptLoader);
 
-      try {
-        
-        
-        
-        this.bootstrapScopes[aId].__SCRIPT_URI_SPEC__ = spec;
-        Components.utils.evalInSandbox(
-          "Components.classes['@mozilla.org/moz/jssubscript-loader;1'] \
-                     .createInstance(Components.interfaces.mozIJSSubScriptLoader) \
-                     .loadSubScript(__SCRIPT_URI_SPEC__);", this.bootstrapScopes[aId], "ECMAv5");
-      }
-      catch (e) {
-        WARN("Error loading bootstrap.js for " + aId, e);
-      }
-
+    try {
       
-      for (let name in BOOTSTRAP_REASONS)
-        this.bootstrapScopes[aId][name] = BOOTSTRAP_REASONS[name];
+      
+      
+      this.bootstrapScopes[aId].__SCRIPT_URI_SPEC__ =
+          getURIForResourceInFile(aFile, "bootstrap.js").spec;
+      Components.utils.evalInSandbox(
+        "Components.classes['@mozilla.org/moz/jssubscript-loader;1'] \
+                   .createInstance(Components.interfaces.mozIJSSubScriptLoader) \
+                   .loadSubScript(__SCRIPT_URI_SPEC__);", this.bootstrapScopes[aId], "ECMAv5");
     }
-    else {
-      WARN("Bootstrap missing for " + aId);
+    catch (e) {
+      WARN("Error loading bootstrap.js for " + aId, e);
     }
+
+    
+    for (let name in BOOTSTRAP_REASONS)
+      this.bootstrapScopes[aId][name] = BOOTSTRAP_REASONS[name];
   },
 
   
@@ -3443,7 +3466,8 @@ var XPIProvider = {
     let params = {
       id: aId,
       version: aVersion,
-      installPath: aFile.clone()
+      installPath: aFile.clone(),
+      resourceURI: getURIForResourceInFile(aFile, "")
     };
 
     LOG("Calling bootstrap method " + aMethod + " on " + aId + " version " +
@@ -3623,9 +3647,11 @@ var XPIProvider = {
           this.callBootstrapMethod(aAddon.id, aAddon.version, file, "shutdown",
                                    BOOTSTRAP_REASONS.ADDON_UNINSTALL);
         }
+
         this.callBootstrapMethod(aAddon.id, aAddon.version, file, "uninstall",
                                  BOOTSTRAP_REASONS.ADDON_UNINSTALL);
         this.unloadBootstrapScope(aAddon.id);
+        flushStartupCache();
       }
       aAddon._installLocation.uninstallAddon(aAddon.id);
       XPIDatabase.removeAddonMetadata(aAddon);
@@ -6216,10 +6242,12 @@ AddonInstall.prototype = {
                                               this.existingAddon.version,
                                               file, "shutdown", reason);
             }
+
             XPIProvider.callBootstrapMethod(this.existingAddon.id,
                                             this.existingAddon.version,
                                             file, "uninstall", reason);
             XPIProvider.unloadBootstrapScope(this.existingAddon.id);
+            flushStartupCache();
           }
 
           if (!isUpgrade && this.existingAddon.active) {
@@ -7210,21 +7238,22 @@ function AddonWrapper(aAddon) {
     return result;
   },
 
+  
+
+
+
+
+
+
+
+
+
+
   this.getResourceURI = function(aPath) {
-    let bundle = aAddon._sourceBundle.clone();
-
-    if (bundle.isDirectory()) {
-      if (aPath) {
-        aPath.split("/").forEach(function(aPart) {
-          bundle.append(aPart);
-        });
-      }
-      return Services.io.newFileURI(bundle);
-    }
-
     if (!aPath)
-      return Services.io.newFileURI(bundle);
-    return buildJarURI(bundle, aPath);
+      return NetUtil.newURI(aAddon._sourceBundle);
+
+    return getURIForResourceInFile(aAddon._sourceBundle, aPath);
   }
 }
 
