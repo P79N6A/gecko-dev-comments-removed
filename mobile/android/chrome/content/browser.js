@@ -1973,13 +1973,20 @@ Tab.prototype = {
       let restoring = aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING;
       let showProgress = restoring ? false : this.showProgress;
 
+      
+      let success = false; 
+      try {
+        success = aRequest.QueryInterface(Components.interfaces.nsIHttpChannel).requestSucceeded;
+      } catch (e) { }
+
       let message = {
         gecko: {
           type: "Content:StateChange",
           tabID: this.id,
           uri: uri,
           state: aStateFlags,
-          showProgress: showProgress
+          showProgress: showProgress,
+          success: success
         }
       };
       sendMessageToJava(message);
