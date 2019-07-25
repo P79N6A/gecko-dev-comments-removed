@@ -470,13 +470,6 @@ protected:
 
   
   
-  PRUint32 mCbCrSize;
-
-  
-  nsAutoArrayPtr<unsigned char> mCbCrBuffer;
-
-  
-  
   nsCOMPtr<nsIThread> mAudioThread;
 
   
@@ -568,6 +561,11 @@ protected:
 
   
   
+  PRUint32 mBufferingWait;
+  PRInt64  mLowDataThresholdUsecs;
+
+  
+  
   bool mAudioCaptured;
 
   
@@ -647,11 +645,6 @@ protected:
   
   bool mRequestedNewDecodeThread;
   
-  
-  
-  PRUint32 mBufferingWait;
-  PRInt64  mLowDataThresholdUsecs;
-
 private:
   
   
