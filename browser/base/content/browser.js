@@ -3941,8 +3941,6 @@ var XULBrowserWindow = {
   statusText: "",
   isBusy: false,
 
-  _progressCollapseTimer: 0,
-
   QueryInterface: function (aIID) {
     if (aIID.equals(Ci.nsIWebProgressListener) ||
         aIID.equals(Ci.nsIWebProgressListener2) ||
@@ -3953,10 +3951,6 @@ var XULBrowserWindow = {
     throw Cr.NS_NOINTERFACE;
   },
 
-  get statusMeter () {
-    delete this.statusMeter;
-    return this.statusMeter = document.getElementById("urlbar-progress");
-  },
   get stopCommand () {
     delete this.stopCommand;
     return this.stopCommand = document.getElementById("Browser:Stop");
@@ -3988,7 +3982,6 @@ var XULBrowserWindow = {
   destroy: function () {
     
     delete this.throbberElement;
-    delete this.statusMeter;
     delete this.stopCommand;
     delete this.reloadCommand;
     delete this.statusText;
@@ -4023,14 +4016,6 @@ var XULBrowserWindow = {
                               aCurSelfProgress, aMaxSelfProgress,
                               aCurTotalProgress, aMaxTotalProgress) {
     
-    
-    if (aMaxTotalProgress > 0 && this._busyUI) {
-      
-      
-      
-      let percentage = (aCurTotalProgress * 100) / aMaxTotalProgress;
-      this.statusMeter.value = percentage;
-    }
   },
 
   onProgressChange64: function (aWebProgress, aRequest,
@@ -4059,15 +4044,6 @@ var XULBrowserWindow = {
         
         if (this.throbberElement)
           this.throbberElement.setAttribute("busy", "true");
-
-        
-        this.statusMeter.value = 0;  
-        if (this._progressCollapseTimer) {
-          clearTimeout(this._progressCollapseTimer);
-          this._progressCollapseTimer = 0;
-        }
-        else
-          this.statusMeter.collapsed = false;
 
         
         this.stopCommand.removeAttribute("disabled");
@@ -4130,11 +4106,6 @@ var XULBrowserWindow = {
         this._busyUI = false;
 
         
-        this._progressCollapseTimer = setTimeout(function (self) {
-          self.statusMeter.collapsed = true;
-          self._progressCollapseTimer = 0;
-        }, 100, this);
-
         if (this.throbberElement)
           this.throbberElement.removeAttribute("busy");
 
@@ -4378,7 +4349,6 @@ var XULBrowserWindow = {
     if (loadingDone)
       return;
     this.onStatusChange(gBrowser.webProgress, null, 0, aMessage);
-    this.onProgressChange(gBrowser.webProgress, 0, 0, aTotalProgress, 1);
   },
 
   startDocumentLoad: function XWB_startDocumentLoad(aRequest) {
