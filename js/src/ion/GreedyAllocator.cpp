@@ -187,10 +187,7 @@ GreedyAllocator::prescanUses(LInstruction *ins)
         if (use->policy() == LUse::FIXED) {
             
             
-            if (use->usedAtStart())
-                disallowed.addUnchecked(GetFixedRegister(vr->def, use));
-            else
-                disallowed.add(GetFixedRegister(vr->def, use));
+            disallowed.addUnchecked(GetFixedRegister(vr->def, use));
         } else if (vr->hasRegister()) {
             discouraged.addUnchecked(vr->reg());
         }
