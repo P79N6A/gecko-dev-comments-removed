@@ -73,13 +73,6 @@ public:
 
   nsAccessible *FindAccessibleInCache(void *aUniqueID) const;
 
-  
-
-
-
-
-  void ShutdownDocAccessiblesInTree(nsIDocument *aDocument);
-
 protected:
   nsAccDocManager() { };
 
@@ -92,6 +85,18 @@ protected:
 
 
   void Shutdown();
+
+  
+
+
+  void ShutdownDocAccessible(nsIDocument *aDocument);
+
+  
+
+
+
+
+  void ShutdownDocAccessiblesInTree(nsIDocument *aDocument);
 
 private:
   nsAccDocManager(const nsAccDocManager&);
@@ -147,11 +152,6 @@ private:
 
   void ShutdownDocAccessiblesInTree(nsIDocShellTreeItem *aTreeItem,
                                     nsIDocument *aDocument);
-
-  
-
-
-  void ShutdownDocAccessible(nsIDocument *aDocument);
 
   typedef nsRefPtrHashtable<nsVoidPtrHashKey, nsDocAccessible>
     nsDocAccessibleHashtable;

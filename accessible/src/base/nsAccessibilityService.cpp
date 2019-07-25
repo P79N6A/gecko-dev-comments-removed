@@ -186,6 +186,18 @@ nsAccessibilityService::FireAccessibleEvent(PRUint32 aEvent,
   return NS_OK;
 }
 
+void
+nsAccessibilityService::PresShellDestroyed(nsIPresShell* aPresShell)
+{
+  
+  
+  
+  
+  nsIDocument* doc = aPresShell->GetDocument();
+  if (doc)
+    ShutdownDocAccessible(doc);
+}
+
 
 nsresult
 nsAccessibilityService::GetInfo(nsIFrame *aFrame, nsIWeakReference **aShell,
