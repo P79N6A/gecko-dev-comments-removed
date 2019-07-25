@@ -108,7 +108,6 @@ unsigned char *_mbsstr( const unsigned char *str,
 
 ILCreateFromPathWPtr nsLocalFile::sILCreateFromPathW = NULL;
 SHOpenFolderAndSelectItemsPtr nsLocalFile::sSHOpenFolderAndSelectItems = NULL;
-PRLibrary *nsLocalFile::sLibShell = NULL;
 
 class nsDriveEnumerator : public nsISimpleEnumerator
 {
@@ -2773,7 +2772,7 @@ nsLocalFile::RevealUsingShell()
 {
   
   
-  if (!sLibShell || !sILCreateFromPathW || !sSHOpenFolderAndSelectItems) {
+  if (!sILCreateFromPathW || !sSHOpenFolderAndSelectItems) {
     return NS_ERROR_FAILURE;
   }
 
@@ -3134,26 +3133,23 @@ nsLocalFile::GlobalInit()
 
     
     
-    sLibShell = PR_LoadLibrary("shell32.dll");
-    if (sLibShell) {
+    HMODULE hLibShell = GetModuleHandleW(L"shell32.dll");
+    if (hLibShell) {
       
       sILCreateFromPathW = (ILCreateFromPathWPtr) 
-                           PR_FindFunctionSymbol(sLibShell, 
-                                                 "ILCreateFromPathW");
+                            GetProcAddress(hLibShell, 
+                                           "ILCreateFromPathW");
 
       
       sSHOpenFolderAndSelectItems = (SHOpenFolderAndSelectItemsPtr) 
-                                     PR_FindFunctionSymbol(sLibShell, 
-                                                           "SHOpenFolderAndSelectItems");
+                                     GetProcAddress(hLibShell, 
+                                                    "SHOpenFolderAndSelectItems");
     }
 }
 
 void
 nsLocalFile::GlobalShutdown()
 {
-    if (sLibShell) {
-      PR_UnloadLibrary(sLibShell);
-    }
     NS_DestroyShortcutResolver();
 }
 
