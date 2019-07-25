@@ -2095,6 +2095,220 @@ function NodeFactory(aFactoryType, aNameSpace, aDocument)
 
 
 
+const STATE_NORMAL = 0;
+const STATE_QUOTE = 2;
+const STATE_DQUOTE = 3;
+
+const OPEN_BODY = '{[('.split('');
+const CLOSE_BODY = '}])'.split('');
+const OPEN_CLOSE_BODY = {
+  '{': '}',
+  '[': ']',
+  '(': ')'
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function findCompletionBeginning(aStr)
+{
+  let bodyStack = [];
+
+  let state = STATE_NORMAL;
+  let start = 0;
+  let c;
+  for (let i = 0; i < aStr.length; i++) {
+    c = aStr[i];
+
+    switch (state) {
+      
+      case STATE_NORMAL:
+        if (c == '"') {
+          state = STATE_DQUOTE;
+        }
+        else if (c == '\'') {
+          state = STATE_QUOTE;
+        }
+        else if (c == ';') {
+          start = i + 1;
+        }
+        else if (c == ' ') {
+          start = i + 1;
+        }
+        else if (OPEN_BODY.indexOf(c) != -1) {
+          bodyStack.push({
+            token: c,
+            start: start
+          });
+          start = i + 1;
+        }
+        else if (CLOSE_BODY.indexOf(c) != -1) {
+          var last = bodyStack.pop();
+          if (OPEN_CLOSE_BODY[last.token] != c) {
+            return {
+              err: "syntax error"
+            };
+          }
+          if (c == '}') {
+            start = i + 1;
+          }
+          else {
+            start = last.start;
+          }
+        }
+        break;
+
+      
+      case STATE_DQUOTE:
+        if (c == '\\') {
+          i ++;
+        }
+        else if (c == '\n') {
+          return {
+            err: "unterminated string literal"
+          };
+        }
+        else if (c == '"') {
+          state = STATE_NORMAL;
+        }
+        break;
+
+      
+      case STATE_QUOTE:
+        if (c == '\\') {
+          i ++;
+        }
+        else if (c == '\n') {
+          return {
+            err: "unterminated string literal"
+          };
+          return;
+        }
+        else if (c == '\'') {
+          state = STATE_NORMAL;
+        }
+        break;
+    }
+  }
+
+  return {
+    state: state,
+    startPos: start
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function JSPropertyProvider(aScope, aInputValue)
+{
+  let obj = aScope;
+
+  
+  
+  let beginning = findCompletionBeginning(aInputValue);
+
+  
+  if (beginning.err) {
+    return null;
+  }
+
+  
+  
+  if (beginning.state != STATE_NORMAL) {
+    return null;
+  }
+
+  let completionPart = aInputValue.substring(beginning.startPos);
+
+  
+  if (completionPart.trim() == "") {
+    return null;
+  }
+
+  let properties = completionPart.split('.');
+  let matchProp;
+  if (properties.length > 1) {
+      matchProp = properties[properties.length - 1].trimLeft();
+      properties.pop();
+      for each (var prop in properties) {
+        prop = prop.trim();
+
+        
+        
+        if (typeof obj === "undefined" || obj === null) {
+          return null;
+        }
+
+        
+        
+        if (obj.__lookupGetter__(prop)) {
+          return null;
+        }
+        obj = obj[prop];
+      }
+  }
+  else {
+    matchProp = properties[0].trimLeft();
+  }
+
+  
+  
+  if (typeof obj === "undefined" || obj === null) {
+    return null;
+  }
+
+  let matches = [];
+  for (var prop in obj) {
+    matches.push(prop);
+  }
+
+  matches = matches.filter(function(item) {
+    return item.indexOf(matchProp) == 0;
+  }).sort();
+
+  return {
+    matchProp: matchProp,
+    matches: matches
+  };
+}
+
+
+
+
+
 
 
 
@@ -2140,6 +2354,13 @@ function JSTerm(aContext, aParentNode, aMixin)
 }
 
 JSTerm.prototype = {
+
+  propertyProvider: JSPropertyProvider,
+
+  COMPLETE_FORWARD: 0,
+  COMPLETE_BACKWARD: 1,
+  COMPLETE_HINT_ONLY: 2,
+
   init: function JST_init()
   {
     this.createSandbox();
@@ -2262,11 +2483,11 @@ JSTerm.prototype = {
           case 97:
             
             tmp = self.codeInputString;
-              setTimeout(function() {
-                self.inputNode.value = tmp;
-                self.inputNode.setSelectionRange(0, 0);
-              },0);
-              break;
+            setTimeout(function() {
+              self.inputNode.value = tmp;
+              self.inputNode.setSelectionRange(0, 0);
+            }, 0);
+            break;
           case 101:
             
             tmp = self.codeInputString;
@@ -2274,7 +2495,7 @@ JSTerm.prototype = {
             setTimeout(function(){
               var endPos = tmp.length + 1;
               self.inputNode.value = tmp;
-            },0);
+            }, 0);
             break;
           default:
             return;
@@ -2318,6 +2539,13 @@ JSTerm.prototype = {
             
             
             
+            
+            if (aEvent.shiftKey) {
+              self.complete(self.COMPLETE_BACKWARD);
+            }
+            else {
+              self.complete(self.COMPLETE_FORWARD);
+            }
             var bool = aEvent.cancelable;
             if (bool) {
               aEvent.preventDefault();
@@ -2327,7 +2555,24 @@ JSTerm.prototype = {
             }
             aEvent.target.focus();
             break;
+          case 8:
+            
+          case 46:
+            
+            
+            break;
           default:
+            
+            
+            
+            
+            
+            var value = self.inputNode.value;
+            setTimeout(function() {
+              if (self.inputNode.value !== value) {
+                self.complete(self.COMPLETE_HINT_ONLY);
+              }
+            }, 0);
             break;
         }
         return;
@@ -2392,9 +2637,120 @@ JSTerm.prototype = {
 
   history: [],
 
-  tabComplete: function JSTF_tabComplete(aInputValue) {
+  
+  lastCompletion: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  complete: function JSTF_complete(type)
+  {
+    let inputNode = this.inputNode;
+    let inputValue = inputNode.value;
+    let selStart = inputNode.selectionStart, selEnd = inputNode.selectionEnd;
+
+    
+    if (selStart > selEnd) {
+      let newSelEnd = selStart;
+      selStart = selEnd;
+      selEnd = newSelEnd;
+    }
+
+    
+    if (selEnd != inputValue.length) {
+      this.lastCompletion = null;
+      return;
+    }
+
+    
+    inputValue = inputValue.substring(0, selStart);
+
+    let matches;
+    let matchIndexToUse;
+    let matchOffset;
+    let completionStr;
+
     
     
+    if (this.lastCompletion && inputValue == this.lastCompletion.value) {
+      matches = this.lastCompletion.matches;
+      matchOffset = this.lastCompletion.matchOffset;
+      if (type === this.COMPLETE_BACKWARD) {
+        this.lastCompletion.index --;
+      }
+      else if (type === this.COMPLETE_FORWARD) {
+        this.lastCompletion.index ++;
+      }
+      matchIndexToUse = this.lastCompletion.index;
+    }
+    else {
+      
+      let completion = this.propertyProvider(this.sandbox.window, inputValue);
+      if (!completion) {
+        return;
+      }
+      matches = completion.matches;
+      matchIndexToUse = 0;
+      matchOffset = completion.matchProp.length
+      
+      this.lastCompletion = {
+        index: 0,
+        value: inputValue,
+        matches: matches,
+        matchOffset: matchOffset
+      };
+    }
+
+    if (matches.length != 0) {
+      
+      if (matchIndexToUse < 0) {
+        matchIndexToUse = matches.length + (matchIndexToUse % matches.length);
+        if (matchIndexToUse == matches.length) {
+          matchIndexToUse = 0;
+        }
+      }
+      else {
+        matchIndexToUse = matchIndexToUse % matches.length;
+      }
+
+      completionStr = matches[matchIndexToUse].substring(matchOffset);
+      this.inputNode.value = inputValue +  completionStr;
+
+      selEnd = inputValue.length + completionStr.length;
+
+      
+      
+      
+      if (matches.length > 1 || type === this.COMPLETE_HINT_ONLY) {
+        inputNode.setSelectionRange(selStart, selEnd);
+      }
+      else {
+        inputNode.setSelectionRange(selEnd, selEnd);
+      }
+    }
   }
 };
 
