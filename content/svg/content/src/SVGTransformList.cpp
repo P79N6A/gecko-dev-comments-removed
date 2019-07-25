@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGTransformList.h"
 #include "SVGTransformListParser.h"
 #include "nsString.h"

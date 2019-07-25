@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILAnimationFunction.h"
 #include "nsISMILAttr.h"
 #include "nsSMILParserUtils.h"

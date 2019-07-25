@@ -6,41 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "jsapi.h"

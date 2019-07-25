@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 359024;
 var summary = 'Do not crash with Script...';
 var actual = '';

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsAutoCopyListener_h_
 #define nsAutoCopyListener_h_
 

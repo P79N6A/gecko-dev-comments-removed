@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.jpake;
 
 import org.mozilla.gecko.sync.net.SyncResponse;

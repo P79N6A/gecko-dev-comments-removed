@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsNPAPIPluginInstance_h_
 #define nsNPAPIPluginInstance_h_
 

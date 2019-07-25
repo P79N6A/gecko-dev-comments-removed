@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 224956;
 var summary = "|expr()| should cause TypeError if |typeof expr| != 'function'";

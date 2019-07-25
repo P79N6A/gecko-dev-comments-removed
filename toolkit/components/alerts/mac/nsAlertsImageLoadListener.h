@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsAlertsImageLoadListener_h_
 #define nsAlertsImageLoadListener_h_
 

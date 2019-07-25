@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef WEBGLCONTEXT_H_
 #define WEBGLCONTEXT_H_
 

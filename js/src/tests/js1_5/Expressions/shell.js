@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var CHAR_LBRACKET = '[';
 var CHAR_RBRACKET = ']';
 var CHAR_QT_DBL = '"';

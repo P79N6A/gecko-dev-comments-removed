@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package com.mozilla.SUTAgentAndroid.service;
 
 import java.lang.reflect.InvocationTargetException;

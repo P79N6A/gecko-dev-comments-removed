@@ -19,38 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function MockObjectRegisterer(aContractID, aReplacementCtor) {
   this._contractID = aContractID;
   this._replacementCtor = aReplacementCtor;

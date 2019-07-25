@@ -5,41 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIXBLService.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"

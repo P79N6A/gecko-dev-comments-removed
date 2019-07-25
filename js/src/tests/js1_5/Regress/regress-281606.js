@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 281606;
 var summary = 'l instanceof r throws TypeError if r does not support [[HasInstance]]';
 var actual = '';

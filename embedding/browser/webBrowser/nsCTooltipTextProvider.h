@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSCTOOLTIPTEXTPROVIDER_H
 #define NSCTOOLTIPTEXTPROVIDER_H
 

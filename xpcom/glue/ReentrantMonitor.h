@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_ReentrantMonitor_h
 #define mozilla_ReentrantMonitor_h
 

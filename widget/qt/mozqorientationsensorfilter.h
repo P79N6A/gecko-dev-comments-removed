@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZQORIENTATIONMODULE_H
 #define MOZQORIENTATIONMODULE_H
 

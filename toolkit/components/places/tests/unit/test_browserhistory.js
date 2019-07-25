@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_URI = NetUtil.newURI("http://mozilla.com/");
 const TEST_SUBDOMAIN_URI = NetUtil.newURI("http://foobar.mozilla.com/");
 

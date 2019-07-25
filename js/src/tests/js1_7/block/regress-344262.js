@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 344262;
 var summary = 'Variables bound by let statement/expression';
 var actual = '';

@@ -17,39 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define HISTOGRAM_BOOLEAN(id, message) HISTOGRAM(id, 0, 1, 2, BOOLEAN, message)
 
 #define HISTOGRAM_FLAG(id, message) HISTOGRAM(id, 0, 1, 2, FLAG, message)

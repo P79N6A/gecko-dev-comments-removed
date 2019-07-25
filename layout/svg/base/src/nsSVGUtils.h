@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGUTILS_H
 #define NS_SVGUTILS_H
 

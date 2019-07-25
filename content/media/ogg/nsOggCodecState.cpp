@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDebug.h"
 #include "nsOggCodecState.h"
 #include "nsOggDecoder.h"

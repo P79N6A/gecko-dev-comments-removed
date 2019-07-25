@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   const Cc = Components.classes;
   const Ci = Components.interfaces;

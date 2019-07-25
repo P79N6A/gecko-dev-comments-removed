@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsContentPermissionHelper_h
 #define nsContentPermissionHelper_h
 

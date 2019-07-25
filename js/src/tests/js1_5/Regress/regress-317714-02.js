@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 317714;
 var summary = 'Regression test for regression from bug 316885';
 var actual = 'No Crash';

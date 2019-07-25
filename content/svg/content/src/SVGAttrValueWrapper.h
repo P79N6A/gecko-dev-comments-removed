@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGATTRVALUEWRAPPER_H__
 #define MOZILLA_SVGATTRVALUEWRAPPER_H__
 

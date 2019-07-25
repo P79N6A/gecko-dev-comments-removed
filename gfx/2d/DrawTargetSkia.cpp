@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DrawTargetSkia.h"
 #include "SourceSurfaceSkia.h"
 #include "ScaledFontBase.h"

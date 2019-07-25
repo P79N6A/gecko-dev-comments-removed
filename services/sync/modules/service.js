@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ["Service", "Weave"];
 
 const Cc = Components.classes;

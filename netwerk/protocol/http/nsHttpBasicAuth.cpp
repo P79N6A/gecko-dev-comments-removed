@@ -3,42 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdlib.h>
 #include "nsHttp.h"
 #include "nsHttpBasicAuth.h"

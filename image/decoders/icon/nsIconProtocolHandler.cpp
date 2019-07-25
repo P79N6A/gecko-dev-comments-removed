@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIconChannel.h"
 #include "nsIconURI.h"
 #include "nsIconProtocolHandler.h"

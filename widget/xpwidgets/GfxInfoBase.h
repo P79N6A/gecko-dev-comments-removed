@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __mozilla_widget_GfxInfoBase_h__
 #define __mozilla_widget_GfxInfoBase_h__
 

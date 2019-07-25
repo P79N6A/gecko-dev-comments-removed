@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352013;
 var summary = 'Decompilation with new operator redeaux';
 var actual = '';

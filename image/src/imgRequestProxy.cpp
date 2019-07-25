@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "imgRequestProxy.h"
 
 #include "nsIInputStream.h"

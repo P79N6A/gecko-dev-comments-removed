@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452724;
 var summary = 'Do not crash with JIT: @TraceRecorder::getThis';
 var actual = 'No Crash';

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsBaseScreen_h
 #define nsBaseScreen_h
 

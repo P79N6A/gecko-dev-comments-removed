@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozSpellChecker.h"
 #include "nsIServiceManager.h"
 #include "mozISpellI18NManager.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BLOCKLIST_TIMER                 = "blocklist-background-update-timer";
 const PREF_BLOCKLIST_URL              = "extensions.blocklist.url";
 const PREF_BLOCKLIST_ENABLED          = "extensions.blocklist.enabled";

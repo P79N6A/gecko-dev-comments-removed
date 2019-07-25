@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let toolbar = document.getElementById("PersonalToolbar");
 let wasCollapsed = toolbar.collapsed;
 

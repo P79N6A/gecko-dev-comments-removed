@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIURI.h"
 #include "nsString.h"
 #include "nsReadableUtils.h"

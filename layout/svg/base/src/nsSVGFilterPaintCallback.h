@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGFILTERPAINTCALLBACK_H__
 #define __NS_SVGFILTERPAINTCALLBACK_H__
 

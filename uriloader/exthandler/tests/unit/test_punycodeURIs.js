@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const kTestURI = "http://\u65e5\u672c\u8a93.jp/";
 const kExpectedURI = "http://xn--wgv71a309e.jp/";
 const kOutputFile = "result.txt";

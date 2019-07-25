@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsHTMLEditRules_h__
 #define nsHTMLEditRules_h__
 

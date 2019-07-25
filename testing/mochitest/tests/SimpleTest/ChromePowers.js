@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function ChromePowers(window) {
   this.window = Components.utils.getWeakReference(window);
 

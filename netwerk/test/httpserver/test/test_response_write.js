@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var tests =
   [
    new Test("http://localhost:4444/writeString",

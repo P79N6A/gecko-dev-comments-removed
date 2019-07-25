@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
      
 #include "DrawTargetDual.h"
 #include "Tools.h"

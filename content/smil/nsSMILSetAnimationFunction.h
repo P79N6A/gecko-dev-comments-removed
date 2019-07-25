@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SMILSETANIMATIONFUNCTION_H_
 #define NS_SMILSETANIMATIONFUNCTION_H_
 

@@ -1,3 +1,7 @@
+
+
+
+
 function closeWindow(aClose, aPromptFunction)
 {
 # Closing the last window doesn't quit the application on OS X.

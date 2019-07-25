@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 189898;
 var summary = 'Regression test for bug 189898';

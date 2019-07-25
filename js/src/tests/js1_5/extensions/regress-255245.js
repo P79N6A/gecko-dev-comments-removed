@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 255245;
 var summary = 'Function.prototype.toSource/.toString show "setrval" instead of "return"';
 var actual = '';

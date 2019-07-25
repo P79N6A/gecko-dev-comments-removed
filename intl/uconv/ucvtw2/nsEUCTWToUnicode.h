@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsEUCTWToUnicode_h___
 #define nsEUCTWToUnicode_h___
 

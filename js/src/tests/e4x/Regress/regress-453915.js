@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'XML Injection possible via default xml namespace';
 var BUGNUMBER = 453915;
 var actual = '';

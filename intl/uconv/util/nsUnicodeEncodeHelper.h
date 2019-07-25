@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsUnicodeEncodeHelper_h__
 #define nsUnicodeEncodeHelper_h__
 

@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const PR_RDONLY = 0x1;

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_sms_SmsCursor_h
 #define mozilla_dom_sms_SmsCursor_h
 

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Crash during GC after uneval";
 var BUGNUMBER = 380833;
 var actual = '';

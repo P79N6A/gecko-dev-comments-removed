@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxContext.h"
 #include "gfxMatrix.h"
 #include "gfxPlatform.h"

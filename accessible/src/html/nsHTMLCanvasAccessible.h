@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHyperTextAccessible.h"
 
 #ifndef _nsHTMLCanvasAccessible_H_

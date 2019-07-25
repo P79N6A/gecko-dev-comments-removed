@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let testURL = "http://example.org/browser/browser/base/content/test/dummy_page.html";
 let testActionURL = "moz-action:switchtab," + testURL;
 testURL = gURLBar.trimValue(testURL);

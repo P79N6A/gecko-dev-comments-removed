@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGCLIPPATHELEMENT_H__
 #define __NS_SVGCLIPPATHELEMENT_H__
 

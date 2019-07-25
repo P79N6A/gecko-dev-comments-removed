@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function xmlEncode(aFile, aFlags, aCharset) {
     if(aFlags == undefined) aFlags = 0;
     if(aCharset == undefined) aCharset = "UTF-8";

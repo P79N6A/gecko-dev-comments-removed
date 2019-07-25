@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gMotionAttr = new AdditiveAttribute(SMILUtil.getMotionFakeAttributeName(),
                                         "XML", "rect");
 

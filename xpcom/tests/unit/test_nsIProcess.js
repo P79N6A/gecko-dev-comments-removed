@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_ARGS = ["mozilla", "firefox", "thunderbird", "seamonkey", "foo",
                    "bar", "argument with spaces", "\"argument with quotes\""];
 

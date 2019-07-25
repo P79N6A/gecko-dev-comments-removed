@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 137181;
 var summary = 'delete arguments[i] should break connection to local reference';

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_css_NameSpaceRule_h__
 #define mozilla_css_NameSpaceRule_h__
 

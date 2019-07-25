@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Util.h"
 
 #include "nsNullPrincipal.h"

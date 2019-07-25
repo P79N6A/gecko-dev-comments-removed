@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function createMatrix(a, b, c, d, e, f)
 {
   var svg = document.getElementsByTagName("svg")[0];

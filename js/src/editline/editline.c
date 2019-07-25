@@ -28,39 +28,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "editline.h"
 #include <signal.h>
 #include <ctype.h>

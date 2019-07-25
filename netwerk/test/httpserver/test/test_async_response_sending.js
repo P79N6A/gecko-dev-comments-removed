@@ -16,39 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 gThreadManager = Cc["@mozilla.org/thread-manager;1"].createInstance();
 
 function run_test()

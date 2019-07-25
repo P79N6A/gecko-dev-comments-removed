@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsContainerFrame.h"
 #include "nsLegendFrame.h"
 #include "nsIDOMNode.h"

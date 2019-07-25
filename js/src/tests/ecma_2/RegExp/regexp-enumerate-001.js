@@ -29,38 +29,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "regexp-enumerate-001";
 var VERSION = "ECMA_2";
 var TITLE   = "Regression Test for Enumerating Properties";

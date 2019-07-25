@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGIntegerPair.h"
 #include "nsSVGUtils.h"
 #include "nsCharSeparatedTokenizer.h"

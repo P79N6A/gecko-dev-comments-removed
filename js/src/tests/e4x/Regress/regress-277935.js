@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START('XML("") should create empty text node');
 printBugNumber(277935);
 

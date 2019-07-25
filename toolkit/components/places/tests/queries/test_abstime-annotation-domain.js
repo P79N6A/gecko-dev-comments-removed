@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const DAY_MSEC = 86400000;
 const MIN_MSEC = 60000;
 const HOUR_MSEC = 3600000;

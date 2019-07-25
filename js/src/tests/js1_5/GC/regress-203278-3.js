@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 203278;
 var summary = 'Don\'t crash in recursive js_MarkGCThing';
 var actual = 'FAIL';

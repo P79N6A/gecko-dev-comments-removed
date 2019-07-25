@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "readstrings.h"
 
 #define SVC_DISPLAY_NAME L"Mozilla Maintenance Service"

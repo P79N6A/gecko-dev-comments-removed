@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <atk/atk.h>
 #include "maiRedundantObjectFactory.h"
 

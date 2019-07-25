@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 464096;
 var summary = 'TM: Do not assert: tm->recoveryDoublePoolPtr > tm->recoveryDoublePool';
 var actual = '';

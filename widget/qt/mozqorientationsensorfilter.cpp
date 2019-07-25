@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozqorientationsensorfilter.h"
 #ifdef MOZ_ENABLE_MEEGOTOUCH
 #include <MApplication>

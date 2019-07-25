@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsIServiceManager.h"
 #include "nsResizerFrame.h"

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var s;
 for (s = 0; s < document.styleSheets.length; s++) {
    var sheet = document.styleSheets[s];

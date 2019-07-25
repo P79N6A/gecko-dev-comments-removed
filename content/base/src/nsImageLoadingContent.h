@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsImageLoadingContent_h__
 #define nsImageLoadingContent_h__
 

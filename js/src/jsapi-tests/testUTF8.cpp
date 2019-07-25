@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 #include "tests.h"
 
 BEGIN_TEST(testUTF8_bug589917)

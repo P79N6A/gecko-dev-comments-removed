@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLEditor.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMEventTarget.h"

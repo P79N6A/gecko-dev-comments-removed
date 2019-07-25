@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/FloatingPoint.h"
 
 #include "builtin/MapObject.h"

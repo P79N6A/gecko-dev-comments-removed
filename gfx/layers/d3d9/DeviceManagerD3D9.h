@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_DEVICEMANAGERD3D9_H
 #define GFX_DEVICEMANAGERD3D9_H
 

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsISO2022CNToUnicode_h__
 #define nsISO2022CNToUnicode_h__
 #include "nsCOMPtr.h"

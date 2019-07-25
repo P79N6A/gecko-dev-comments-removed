@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_COLORLAYERD3D9_H
 #define GFX_COLORLAYERD3D9_H
 

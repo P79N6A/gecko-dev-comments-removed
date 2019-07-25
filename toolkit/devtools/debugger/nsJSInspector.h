@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef COMPONENTS_JSINSPECTOR_H
 #define COMPONENTS_JSINSPECTOR_H
 

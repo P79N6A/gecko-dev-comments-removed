@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/ipc/DocumentRendererParent.h"
 #include "gfxImageSurface.h"
 #include "gfxPattern.h"

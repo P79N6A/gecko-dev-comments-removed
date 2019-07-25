@@ -7,38 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __xpt_xdr_h__
 #define __xpt_xdr_h__
 

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozPersonalDictionary.h"
 #include "nsIUnicharInputStream.h"
 #include "nsReadableUtils.h"

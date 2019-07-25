@@ -7,38 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __nsconsoleservice_h__
 #define __nsconsoleservice_h__
 

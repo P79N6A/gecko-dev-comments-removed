@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var bugzilla = {
     trunkVersion : "3.0",
     baseURL : qaPref.getPref(qaPref.prefBase+".bugzilla.url", "char"),

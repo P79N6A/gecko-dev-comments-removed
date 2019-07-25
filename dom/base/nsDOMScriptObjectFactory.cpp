@@ -19,38 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMScriptObjectFactory.h"
 #include "xpcexception.h"
 #include "nsScriptNameSpaceManager.h"

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_SOURCESURFACED2DTARGET_H_
 #define MOZILLA_GFX_SOURCESURFACED2DTARGET_H_
 

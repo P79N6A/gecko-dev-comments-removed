@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsINameSpaceManager.h"
 #include "nsGkAtoms.h"
 #include "nsIBoxObject.h"

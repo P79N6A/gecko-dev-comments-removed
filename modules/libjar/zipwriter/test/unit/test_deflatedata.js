@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const DATA = "ZIP WRITER TEST DATA";
 const FILENAME = "test.txt";
 const CRC = 0xe6164331;

@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsDOMXULCommandEvent_h_
 #define nsDOMXULCommandEvent_h_
 

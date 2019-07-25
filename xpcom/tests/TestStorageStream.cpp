@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdlib.h>
 #include "nsIStorageStream.h"
 #include "nsIInputStream.h"

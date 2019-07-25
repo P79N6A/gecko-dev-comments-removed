@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_plugins_COMMessageFilter_h
 #define mozilla_plugins_COMMessageFilter_h
 

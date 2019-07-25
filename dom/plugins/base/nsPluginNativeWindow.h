@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsPluginNativeWindow_h_
 #define _nsPluginNativeWindow_h_
 

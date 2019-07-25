@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 440558;
 var summary = 'Do not assert: *flagp != GCF_FINAL';
 var actual = 'No Crash';

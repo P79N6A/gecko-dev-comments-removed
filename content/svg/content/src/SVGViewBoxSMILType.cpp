@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGViewBoxSMILType.h"
 #include "nsSMILValue.h"
 #include "nsSVGViewBox.h"

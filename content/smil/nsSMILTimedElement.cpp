@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILTimedElement.h"
 #include "nsSMILAnimationFunction.h"
 #include "nsSMILTimeValue.h"

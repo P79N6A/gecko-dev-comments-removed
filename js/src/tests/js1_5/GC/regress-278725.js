@@ -5,41 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 278725;
 var summary = 'Don\'t Crash during GC';
 var actual = 'Crash';

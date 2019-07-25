@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_sms_SmsRequestManager_h
 #define mozilla_dom_sms_SmsRequestManager_h
 

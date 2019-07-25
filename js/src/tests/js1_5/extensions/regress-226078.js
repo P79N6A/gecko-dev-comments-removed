@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 226078;
 var summary = 'Do not Crash @ js_Interpret 3127f864';
 var actual = 'No Crash';

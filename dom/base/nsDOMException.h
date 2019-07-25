@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsIBaseDOMException.h"
 #include "nsIException.h"

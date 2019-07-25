@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let EXPORTED_SYMBOLS = ["Preferences"];
 
 const Cc = Components.classes;

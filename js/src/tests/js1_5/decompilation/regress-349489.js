@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 349489;
 var summary = 'Incorrect decompilation of labeled useless statements';
 var actual = 'No Crash';

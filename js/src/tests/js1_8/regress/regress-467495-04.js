@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 467495;
 var summary = 'TCF_FUN_CLOSURE_VS_VAR is necessary';
 var actual = '';

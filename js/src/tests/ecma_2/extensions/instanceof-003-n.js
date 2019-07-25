@@ -14,38 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "instanceof-003-n";
 var VERSION = "ECMA_2";
 var TITLE   = "instanceof"

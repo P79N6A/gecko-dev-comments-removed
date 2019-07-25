@@ -2,35 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PromptHelper = {
   closeDialog: function(confirm, id) {
     let dialog = document.getElementById(id);

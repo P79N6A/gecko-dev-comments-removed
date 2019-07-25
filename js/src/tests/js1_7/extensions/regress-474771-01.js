@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 474771;
 var summary = 'TM: do not assert: jumpTable == interruptJumpTable';
 var actual = '';

@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const kTESTSERV_CONTRACTID = "@mozilla.org/network/test-serv;1";
 const kTESTSERV_CID = Components.ID("{a741fcd5-9695-42e8-a7f7-14f9a29f8200}");
 const nsISupports = Components.interfaces.nsISupports;

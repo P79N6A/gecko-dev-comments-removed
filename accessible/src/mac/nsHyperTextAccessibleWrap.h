@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NSHYPERTEXTACCESSIBLEWRAP_H
 #define _NSHYPERTEXTACCESSIBLEWRAP_H
 

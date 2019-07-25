@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/ModuleUtils.h"
 #include "nsDialogParamBlock.h"
 #include "nsWindowWatcher.h"

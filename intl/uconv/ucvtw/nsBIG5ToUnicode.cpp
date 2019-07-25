@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBIG5ToUnicode.h"
 #include "nsUCvTWDll.h"
 #include "nsUCConstructors.h"

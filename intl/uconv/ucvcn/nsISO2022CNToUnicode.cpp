@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsISO2022CNToUnicode.h"
 #include "nsUCSupport.h"
 #include "nsICharsetConverterManager.h"

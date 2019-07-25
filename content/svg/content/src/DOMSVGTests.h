@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGTESTS_H__
 #define MOZILLA_DOMSVGTESTS_H__
 

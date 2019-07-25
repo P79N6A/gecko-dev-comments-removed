@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let tempScope = {};
 Cu.import("resource:///modules/devtools/CssLogic.jsm", tempScope);
 Cu.import("resource:///modules/devtools/CssHtmlTree.jsm", tempScope);

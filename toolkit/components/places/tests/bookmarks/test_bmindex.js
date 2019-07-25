@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const NUM_BOOKMARKS = 20;
 const NUM_SEPARATORS = 5;
 const NUM_FOLDERS = 10;

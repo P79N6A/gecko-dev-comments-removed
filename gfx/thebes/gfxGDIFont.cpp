@@ -3,42 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxGDIFont.h"
 #include "gfxGDIShaper.h"
 #include "gfxUniscribeShaper.h"

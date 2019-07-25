@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGFOREIGNOBJECTELEMENT_H__
 #define __NS_SVGFOREIGNOBJECTELEMENT_H__
 

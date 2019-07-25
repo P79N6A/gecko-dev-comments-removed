@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DeviceManagerD3D9.h"
 #include "LayerManagerD3D9Shaders.h"
 #include "ThebesLayerD3D9.h"

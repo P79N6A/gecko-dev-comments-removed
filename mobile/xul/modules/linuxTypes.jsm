@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let EXPORTED_SYMBOLS = ["GLib", "EBook"];
 
 const Cu = Components.utils;

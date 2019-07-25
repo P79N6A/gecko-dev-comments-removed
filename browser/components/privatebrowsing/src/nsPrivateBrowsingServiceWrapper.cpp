@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPrivateBrowsingServiceWrapper.h"
 #include "nsServiceManagerUtils.h"
 #include "jsapi.h"

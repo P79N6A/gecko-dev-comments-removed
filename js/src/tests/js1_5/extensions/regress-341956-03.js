@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 341956;
 var summary = 'GC Hazards in jsarray.c - reverse';
 var actual = 'No Crash';

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   waitForExplicitFinish();
   ignoreAllUncaughtExceptions();

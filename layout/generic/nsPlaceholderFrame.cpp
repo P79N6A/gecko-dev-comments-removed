@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsLayoutUtils.h"
 #include "nsPlaceholderFrame.h"
 #include "nsLineLayout.h"

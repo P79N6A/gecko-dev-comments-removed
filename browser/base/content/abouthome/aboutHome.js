@@ -4,42 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const SEARCH_ENGINES = {
   "Google": {
     image: "data:image/png;base64," +

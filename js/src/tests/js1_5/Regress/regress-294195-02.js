@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 294195;
 var summary = 'Do not crash during String replace when accessing methods on backreferences';
 var actual = 'No Crash';

@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsGkAtoms_h___
 #define nsGkAtoms_h___
 

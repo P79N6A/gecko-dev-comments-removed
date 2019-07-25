@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EXPORTED_SYMBOLS = ["TestPilotSetup", "POPUP_SHOW_ON_NEW",
                     "POPUP_SHOW_ON_FINISH", "POPUP_SHOW_ON_RESULTS",
                     "ALWAYS_SUBMIT_DATA", "RUN_AT_ALL_PREF"];

@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGB2312Prober.h"
 #include "nsDebug.h"
 

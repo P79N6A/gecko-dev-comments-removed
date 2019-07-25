@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsUnicodeToMacCyrillic_h___
 #define nsUnicodeToMacCyrillic_h___
 

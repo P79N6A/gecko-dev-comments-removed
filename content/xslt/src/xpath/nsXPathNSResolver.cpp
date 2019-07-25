@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXPathNSResolver.h"
 #include "nsDOMClassInfoID.h"
 #include "nsDOMString.h"

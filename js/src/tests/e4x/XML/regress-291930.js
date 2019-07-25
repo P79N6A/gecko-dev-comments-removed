@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("If document starts with comment, document is discarded");
 printBugNumber(291930);
 

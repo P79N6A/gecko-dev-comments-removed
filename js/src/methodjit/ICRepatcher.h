@@ -5,41 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined jsjaeger_icrepatcher_h__ && defined JS_METHODJIT
 #define jsjaeger_icrepatcher_h__
 

@@ -25,39 +25,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 123002;
 var summary = 'Testing Error.length';

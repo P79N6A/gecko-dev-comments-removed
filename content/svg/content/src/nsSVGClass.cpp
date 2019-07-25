@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGClass.h"
 #include "nsSVGStylableElement.h"
 #include "nsSMILValue.h"

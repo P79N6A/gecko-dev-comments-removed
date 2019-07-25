@@ -15,39 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 85721;
 var summary = 'Performance: execution of regular expression';
 var FAST = 100; 

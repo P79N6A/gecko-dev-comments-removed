@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsServicesFactory.h"
 #include "nsXULAppAPI.h"
 #include "SmsService.h"

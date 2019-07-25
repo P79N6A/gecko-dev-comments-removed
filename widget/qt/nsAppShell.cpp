@@ -5,37 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAppShell.h"
 #include <qapplication.h>
 #include <unistd.h>

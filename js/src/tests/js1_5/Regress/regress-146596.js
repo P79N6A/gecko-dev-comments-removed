@@ -11,40 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 146596;
 var summary = "Shouldn't crash when catch parameter is 'hidden' by varX";

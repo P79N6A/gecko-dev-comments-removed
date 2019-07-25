@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/net/FTPChannelParent.h"
 #include "nsFTPChannel.h"
 #include "nsNetUtil.h"

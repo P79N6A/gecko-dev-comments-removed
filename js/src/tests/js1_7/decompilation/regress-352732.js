@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352732;
 var summary = 'Decompiling "if (x) L: let x;"';
 var summarytrunk = 'let declaration must be direct child of block or top-level implicit block';

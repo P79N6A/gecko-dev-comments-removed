@@ -3,36 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "GfxInfo.h"
 #include "nsUnicharUtils.h"
 #include "mozilla/FunctionTimer.h"

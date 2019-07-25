@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var msPerDay =   86400000;
 var HoursPerDay =  24;
 var MinutesPerHour = 60;

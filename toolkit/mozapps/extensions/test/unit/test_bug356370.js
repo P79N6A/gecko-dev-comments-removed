@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const URI_EXTENSION_UPDATE_DIALOG = "chrome://mozapps/content/extensions/update.xul";
 
 

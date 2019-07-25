@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef COMPATIBILITY_MANAGER_H
 #define COMPATIBILITY_MANAGER_H
 

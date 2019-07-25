@@ -16,46 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function isUsableDirectory(aDirectory)
 {
   return aDirectory.exists() && aDirectory.isDirectory() &&

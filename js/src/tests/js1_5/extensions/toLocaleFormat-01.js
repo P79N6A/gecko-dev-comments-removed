@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 291494;
 var summary = 'Date.prototype.toLocaleFormat extension';
 var actual = '';

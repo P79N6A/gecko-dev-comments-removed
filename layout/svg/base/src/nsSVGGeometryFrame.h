@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGGEOMETRYFRAME_H__
 #define __NS_SVGGEOMETRYFRAME_H__
 

@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jscompartment.h"
 #include "jsiter.h"
 #include "jsscope.h"

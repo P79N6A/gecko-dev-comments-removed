@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsPrintOptionsImpl_h__
 #define nsPrintOptionsImpl_h__
 

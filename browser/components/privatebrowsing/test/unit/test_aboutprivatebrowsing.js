@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function is_about_privatebrowsing_available() {
   try {
     var ios = Cc["@mozilla.org/network/io-service;1"].

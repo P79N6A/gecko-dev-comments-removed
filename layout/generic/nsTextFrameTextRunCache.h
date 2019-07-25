@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSTEXTFRAMETEXTRUNCACHE_H_
 #define NSTEXTFRAMETEXTRUNCACHE_H_
 

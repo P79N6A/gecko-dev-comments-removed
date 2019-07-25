@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsEventListenerService.h"
 #include "nsCOMArray.h"
 #include "nsEventListenerManager.h"

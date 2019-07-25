@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_URL = "http://adapt.mozilla.org/";
 const SEARCH_STRING = "adapt";
 

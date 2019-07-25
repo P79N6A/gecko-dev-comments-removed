@@ -3,42 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <windows.h>
 #include "nsNativeThemeWin.h"
 #include "nsRenderingContext.h"

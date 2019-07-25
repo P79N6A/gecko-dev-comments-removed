@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BASE = "http://localhost:4444";
 
 var file = do_get_file("test_registerfile.js");

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGMOTIONSMILTYPE_H_
 #define MOZILLA_SVGMOTIONSMILTYPE_H_
 

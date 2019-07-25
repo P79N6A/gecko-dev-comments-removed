@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_TXEXECUTIONSTATE_H
 #define TRANSFRMX_TXEXECUTIONSTATE_H
 

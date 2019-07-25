@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIClassInfoImpl.h"
 #include "nsThreadPool.h"
 #include "nsThreadManager.h"

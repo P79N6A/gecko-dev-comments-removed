@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsXBLPrototypeHandler.h"
 #include "nsXBLWindowKeyHandler.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 294302;
 var summary = 'JS Shell load should throw catchable exceptions';
 var actual = 'Error not caught';

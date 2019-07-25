@@ -5,37 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/ModuleUtils.h"
 #include "nsWidgetsCID.h"
 #include "nsAppShell.h"

@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("Standalone <![CDATA[ .... ]]> should be allowed");
 printBugNumber(257679);
 

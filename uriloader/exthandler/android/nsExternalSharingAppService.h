@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_EXTERNAL_SHARING_APP_SERVICE_H
 #define NS_EXTERNAL_SHARING_APP_SERVICE_H
 #include "nsIExternalSharingAppService.h"

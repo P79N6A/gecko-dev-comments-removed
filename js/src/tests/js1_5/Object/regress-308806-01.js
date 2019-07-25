@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 308806;
 var summary = 'Object.prototype.toLocaleString() should track Object.prototype.toString() ';
 var actual = '';

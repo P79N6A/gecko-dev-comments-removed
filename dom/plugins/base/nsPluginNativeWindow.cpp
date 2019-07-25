@@ -9,41 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDebug.h"
 #include "nsPluginNativeWindow.h"
 

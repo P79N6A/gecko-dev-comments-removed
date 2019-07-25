@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef XP_WIN
 #define NS_WINIEHISTORYENUMERATOR_CID \
 { 0x93480624, 0x806e, 0x4756, { 0xb7, 0xcb, 0x0f, 0xb7, 0xdd, 0x74, 0x6a, 0x8f } }

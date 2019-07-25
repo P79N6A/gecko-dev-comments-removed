@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TestShellChild.h"
 #include "mozilla/jsipc/ContextWrapperChild.h"
 

@@ -13,39 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.8.2.5";
 var VERSION = "ECMA_1";
 var TITLE   = "Math.atan2(x,y)";

@@ -6,42 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Util.h"

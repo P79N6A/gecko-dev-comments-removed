@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMCSSPrimitiveValue.h"

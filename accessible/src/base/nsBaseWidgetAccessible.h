@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsBaseWidgetAccessible_H_
 #define _nsBaseWidgetAccessible_H_
 

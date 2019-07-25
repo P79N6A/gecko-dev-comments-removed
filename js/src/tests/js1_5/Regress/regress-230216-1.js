@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 230216;
 var summary = 'check for numerical overflow in regexps in back reference and bounds for {} quantifier';
 var actual = '';

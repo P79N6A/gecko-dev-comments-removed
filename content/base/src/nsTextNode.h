@@ -7,38 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGenericDOMDataNode.h"
 #include "nsIDOMText.h"
 

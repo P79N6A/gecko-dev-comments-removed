@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
 nsTDependentSubstring_CharT::Rebind( const substring_type& str, PRUint32 startPos, PRUint32 length )
   {

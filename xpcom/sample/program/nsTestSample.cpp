@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdio.h>
 
 #include "nsXPCOMGlue.h"

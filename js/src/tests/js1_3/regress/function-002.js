@@ -16,39 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "function-002";
 var VERSION = "JS1_3";
 var TITLE   = "Regression test for 249579";

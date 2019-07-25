@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Make XPConnect refuse to wrap e4x";
 var BUGNUMBER = 327697;
 var actual = 'No Hang';

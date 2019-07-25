@@ -13,39 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "function/nesting-1.js";
 var VERSION = "JS_12";
 startTest();

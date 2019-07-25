@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "XrayWrapper.h"
 #include "AccessCheck.h"
 #include "FilteringWrapper.h"

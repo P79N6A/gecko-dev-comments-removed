@@ -18,39 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsUCvIBMCID_h___
 #define nsUCvIBMCID_h___
 

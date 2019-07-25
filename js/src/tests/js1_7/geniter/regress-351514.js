@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 351514;
 var summary = 'Finalize yield syntax to match ES4/JS2 proposal';
 var actual = '';

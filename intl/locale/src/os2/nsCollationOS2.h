@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nscollationos2_h_
 #define _nscollationos2_h_
 

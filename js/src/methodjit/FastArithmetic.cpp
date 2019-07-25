@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsbool.h"
 #include "jslibmath.h"
 #include "jsnum.h"

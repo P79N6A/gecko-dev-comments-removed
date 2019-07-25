@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352392;
 var summary = 'Do not hang/crash |for each| over object with getter set to map';
 var actual = 'No Crash';

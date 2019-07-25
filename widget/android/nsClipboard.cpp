@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/ContentChild.h"
 #include "nsClipboard.h"
 #include "nsISupportsPrimitives.h"

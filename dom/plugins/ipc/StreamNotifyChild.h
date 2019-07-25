@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_plugins_StreamNotifyChild_h
 #define mozilla_plugins_StreamNotifyChild_h
 

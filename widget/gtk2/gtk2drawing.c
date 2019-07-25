@@ -8,41 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <gtk/gtk.h>
 #include <gdk/gdkprivate.h>
 #include <string.h>

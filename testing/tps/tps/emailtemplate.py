@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import datetime
 
 def GenerateEmailBody(data, numpassed, numfailed, serverUrl, buildUrl):

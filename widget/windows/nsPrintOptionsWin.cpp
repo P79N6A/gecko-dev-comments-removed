@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsPrintOptionsWin.h"
 #include "nsPrintSettingsWin.h"

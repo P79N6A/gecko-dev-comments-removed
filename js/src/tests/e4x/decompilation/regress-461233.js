@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Decompilation of ({0: (4, <></>)})';
 var BUGNUMBER = 461233;
 var actual = '';

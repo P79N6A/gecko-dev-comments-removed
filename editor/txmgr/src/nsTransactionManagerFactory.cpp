@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/ModuleUtils.h"
 #include "nsTransactionManagerCID.h"
 #include "nsTransactionStack.h"

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSAXAttributes.h"
 
 NS_IMPL_ISUPPORTS2(nsSAXAttributes, nsISAXAttributes, nsISAXMutableAttributes)

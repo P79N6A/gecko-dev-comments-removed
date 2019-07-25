@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "CreateElementTxn.h"
 #include "nsEditor.h"
 #include "nsIDOMDocument.h"

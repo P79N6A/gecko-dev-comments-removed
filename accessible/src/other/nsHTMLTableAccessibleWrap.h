@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NSHTMLTABLEACCESSIBLEWRAP_H
 #define _NSHTMLTABLEACCESSIBLEWRAP_H
 

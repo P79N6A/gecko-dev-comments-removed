@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452338;
 var summary = 'Do not assert with JIT: obj2 == obj';
 var actual = 'No Crash';

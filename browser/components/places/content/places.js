@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource:///modules/MigrationUtils.jsm");
 
 var PlacesOrganizer = {

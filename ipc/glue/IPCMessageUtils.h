@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __IPC_GLUE_IPCMESSAGEUTILS_H__
 #define __IPC_GLUE_IPCMESSAGEUTILS_H__
 

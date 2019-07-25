@@ -2,6 +2,10 @@
 
 
 
+
+
+
+
 #define IDD_DIALOG                      101
 #define IDC_PROGRESS                    1000
 #define IDC_INFO                        1002

@@ -7,39 +7,6 @@ a C preprocessor isn't an option.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import sys
 import os
 import os.path

@@ -26,39 +26,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "function-001.js";
 var VERSION = "JS_1.3";
 var TITLE   = "functions not separated by semicolons are errors in version 120 and higher";

@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <stdlib.h>
 #include "nsHttpResponseHead.h"
 #include "nsPrintfCString.h"

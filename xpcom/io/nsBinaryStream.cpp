@@ -17,39 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <string.h>
 #include "nsBinaryStream.h"
 #include "nsCRT.h"

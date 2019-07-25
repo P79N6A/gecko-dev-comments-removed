@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 enum Type {
   TYPE_ALT_FEEDBACK = 1,
   TYPE_BACKGROUND,

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCOMPtr.h"
 #include "nsXMLContentSink.h"
 #include "nsIParser.h"

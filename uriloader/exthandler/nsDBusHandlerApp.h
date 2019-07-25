@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __nsDBusHandlerAppImpl_h__
 #define __nsDBusHandlerAppImpl_h__
 

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pref("qa.extension.litmus.url", "https://litmus.mozilla.org/");
 pref("qa.extension.hermes.url", "https://litmus.mozilla.org/hermes/1/");
 pref("qa.extension.bugzilla.url", "https:/bugzilla.mozilla.org/");

@@ -13,39 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "12.8-1-n";
 var VERSION = "ECMA_1";
 startTest();

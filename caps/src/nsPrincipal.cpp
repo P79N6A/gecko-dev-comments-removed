@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nscore.h"
 #include "nsScriptSecurityManager.h"
 #include "nsString.h"

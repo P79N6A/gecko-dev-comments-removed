@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLParts.h"
 #include "nsCOMPtr.h"
 #include "nsIServiceManager.h"

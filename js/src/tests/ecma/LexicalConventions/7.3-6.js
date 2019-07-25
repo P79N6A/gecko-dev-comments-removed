@@ -14,39 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "7.3-6";
 var VERSION = "ECMA_1";
 startTest();

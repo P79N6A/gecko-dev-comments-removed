@@ -14,38 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define RWSSRV_EXCEPTION            1000
 #define RWSSRV_UNKNOWNERROR         1001
 #define RWSSRV_DOSGETMEM            1002

@@ -17,38 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function AutoCompleteInput(aSearches) {
   this.searches = aSearches;
 }

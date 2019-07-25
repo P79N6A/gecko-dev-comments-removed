@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZ_PANGO
 #define PANGO_ENABLE_BACKEND
 #define PANGO_ENABLE_ENGINE

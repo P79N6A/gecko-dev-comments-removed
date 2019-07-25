@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSHEntryShared.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
@@ -93,7 +60,6 @@ nsSHEntryShared::Shutdown()
 
 nsSHEntryShared::nsSHEntryShared()
   : mDocShellID(0)
-  , mParent(nsnull)
   , mIsFrameNavigation(false)
   , mSaveLayoutState(true)
   , mSticky(true)
@@ -136,7 +102,6 @@ nsSHEntryShared::Duplicate(nsSHEntryShared *aEntry)
   newEntry->mDocShellID = aEntry->mDocShellID;
   newEntry->mChildShells.AppendObjects(aEntry->mChildShells);
   newEntry->mOwner = aEntry->mOwner;
-  newEntry->mParent = aEntry->mParent;
   newEntry->mContentType.Assign(aEntry->mContentType);
   newEntry->mIsFrameNavigation = aEntry->mIsFrameNavigation;
   newEntry->mSaveLayoutState = aEntry->mSaveLayoutState;

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsViewSourceHandler.h"
 #include "nsViewSourceChannel.h"
 #include "nsNetUtil.h"

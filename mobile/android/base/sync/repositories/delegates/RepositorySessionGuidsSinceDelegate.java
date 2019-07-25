@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.delegates;
 
 public interface RepositorySessionGuidsSinceDelegate {

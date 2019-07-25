@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const NS_DOWNLOADHISTORY_CID = "{2ee83680-2af0-4bcb-bfa0-c9705f6554f1}";
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");

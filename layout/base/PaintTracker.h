@@ -1,3 +1,7 @@
+
+
+
+
 #ifndef mozilla_PaintTracker_h
 #define mozilla_PaintTracker_h
 

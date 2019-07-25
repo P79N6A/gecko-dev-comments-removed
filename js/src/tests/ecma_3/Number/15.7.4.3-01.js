@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = "412068";
 var summary = "num.toLocaleString incorrectly accesses its first argument " +
               "even when no first argument has been given";

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSelectionState.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMNode.h"

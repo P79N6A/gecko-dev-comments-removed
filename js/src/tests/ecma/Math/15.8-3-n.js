@@ -29,39 +29,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.8-3-n";
 var VERSION = "ECMA_1";
 startTest();

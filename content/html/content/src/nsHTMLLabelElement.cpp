@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLLabelElement.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLFormElement.h"

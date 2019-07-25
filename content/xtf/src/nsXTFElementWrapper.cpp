@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXTFElementWrapper.h"
 #include "nsIXTFElement.h"
 #include "nsCOMPtr.h"

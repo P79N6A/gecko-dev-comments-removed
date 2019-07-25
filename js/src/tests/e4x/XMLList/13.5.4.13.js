@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.5.4.13 - XMLList hasSimpleContent()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("hasSimpleContent"));

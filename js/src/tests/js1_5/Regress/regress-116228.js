@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 116228;
 var summary = 'Do not crash - JSOP_THIS should null obj register';
 var actual = 'No Crash';

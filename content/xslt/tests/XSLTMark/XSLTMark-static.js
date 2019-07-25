@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const enablePrivilege = netscape.security.PrivilegeManager.enablePrivilege;
 const IOSERVICE_CTRID = "@mozilla.org/network/io-service;1";
 const nsIIOService    = Components.interfaces.nsIIOService;

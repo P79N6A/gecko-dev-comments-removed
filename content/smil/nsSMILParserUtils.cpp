@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILParserUtils.h"
 #include "nsISMILAttr.h"
 #include "nsSMILValue.h"

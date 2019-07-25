@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsOS2Uni.h"
 #include "nsIServiceManager.h"
 #include "nsIPlatformCharset.h"

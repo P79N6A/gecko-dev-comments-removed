@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("10.3.1 - toXML applied to String type");
 
 john = "<employee><name>John</name><age>25</age></employee>";

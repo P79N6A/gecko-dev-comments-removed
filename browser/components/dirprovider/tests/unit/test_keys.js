@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test_bookmarkhtml() {
   let bmarks = gProfD.clone();
   bmarks.append("bookmarks.html");

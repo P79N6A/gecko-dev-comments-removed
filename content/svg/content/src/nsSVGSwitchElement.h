@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGSWITCHELEMENT_H__
 #define __NS_SVGSWITCHELEMENT_H__
 

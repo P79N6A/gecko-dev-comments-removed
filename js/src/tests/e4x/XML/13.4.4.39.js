@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.39 - XML toXMLString");
 
 TEST(1, true, XML.prototype.hasOwnProperty("toXMLString"));

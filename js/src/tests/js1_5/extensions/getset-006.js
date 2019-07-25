@@ -14,39 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 71992;
 var summary = 'Testing  obj.__lookupGetter__(), obj.__lookupSetter__()';

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsCoreAnimationSupport_h__
 #define nsCoreAnimationSupport_h__
 #ifdef XP_MACOSX

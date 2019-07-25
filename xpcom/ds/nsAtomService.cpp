@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAtomService.h"
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsAtomService, nsIAtomService)

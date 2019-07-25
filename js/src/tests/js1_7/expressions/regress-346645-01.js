@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 346645;
 var summary = 'Do not crash with empty object in destructuring assign LHS';
 var actual = 'No Crash';

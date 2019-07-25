@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define HB_DONT_DEFINE_STDINT  1
 
 #include "nsUnicodeProperties.h"

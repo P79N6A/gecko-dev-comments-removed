@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352640;
 var summary = 'Do not assert: scopeStmt or crash @ js_LexicalLookup';
 var actual = '';

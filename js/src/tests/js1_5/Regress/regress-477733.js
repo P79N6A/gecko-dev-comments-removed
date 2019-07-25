@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 477733;
 var summary = 'TM: Do not assert: !(fp->flags & JSFRAME_POP_BLOCKS)';
 var actual = '';

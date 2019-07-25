@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_plugins_NPEventAndroid_h
 #define mozilla_dom_plugins_NPEventAndroid_h
 

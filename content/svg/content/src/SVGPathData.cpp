@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGPathData.h"
 #include "SVGAnimatedPathSegList.h"
 #include "SVGPathSegUtils.h"

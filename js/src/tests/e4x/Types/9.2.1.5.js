@@ -6,42 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("9.2.1.5 XMLList [[HasProperty]]");
 
 var actual = 'Test not implemented';

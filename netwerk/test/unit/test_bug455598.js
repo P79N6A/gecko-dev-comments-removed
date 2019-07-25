@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   const time = (new Date("Jan 1, 2030")).getTime() / 1000;
   var cookie = {

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let EXPORTED_SYMBOLS = ["LocaleRepository"];
 
 const Cc = Components.classes;

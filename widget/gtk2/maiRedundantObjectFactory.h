@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __MAI_REDUNDANT_OBJECT_FACTORY_H__
 #define __MAI_REDUNDANT_OBJECT_FACTORY_H__
 

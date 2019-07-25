@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBidiUtils.h"
 #include "nsCharTraits.h"
 #include "nsUnicodeProperties.h"

@@ -15,38 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var _testPath = document.URL.substring(0, document.URL.lastIndexOf('/'));
 
 

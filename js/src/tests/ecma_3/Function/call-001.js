@@ -28,39 +28,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = '(none)';
 var summary = 'Applying Function.prototype.call to the Function object itself';

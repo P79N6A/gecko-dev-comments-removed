@@ -7,40 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var testData = [
   
   { isInQuery: true, isFolder: true, title: "Folder 1",

@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nscore.h"
 #include "nsINameSpaceManager.h"
 #include "nsAutoPtr.h"

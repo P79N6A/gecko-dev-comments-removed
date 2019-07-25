@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMSVGZoomEvent.h"
 #include "nsContentUtils.h"
 #include "nsSVGRect.h"

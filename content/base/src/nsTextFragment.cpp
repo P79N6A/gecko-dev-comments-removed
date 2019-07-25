@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTextFragment.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"

@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.29 - XML prependChild()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("prependChild"));

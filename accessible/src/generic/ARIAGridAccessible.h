@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_A11Y_ARIAGridAccessible_h_
 #define MOZILLA_A11Y_ARIAGridAccessible_h_
 

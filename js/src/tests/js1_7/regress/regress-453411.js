@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 453411;
 var summary = 'Do not assert with JIT: !cx->executingTrace|!tm->onTrace';
 var actual = 'No Crash';

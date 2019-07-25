@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TestCommon.h"
 #include "nsXPCOM.h"
 #include "nsIServiceManager.h"

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "xpctest_private.h"
 
 NS_IMPL_ISUPPORTS1(xpcTestObjectReadOnly, nsIXPCTestObjectReadOnly)

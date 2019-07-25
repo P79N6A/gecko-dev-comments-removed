@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function setup() {
     
     getOpenedDatabase().createTable("test_bug444233",

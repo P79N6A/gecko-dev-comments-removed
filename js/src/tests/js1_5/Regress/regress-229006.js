@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 229006;
 var summary = 'JS parser should not fail when line number &gt 2^16';
 var actual = 'FAIL';

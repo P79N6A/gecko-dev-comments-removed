@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_a11y_RootAccessibleWrap_h__
 #define mozilla_a11y_RootAccessibleWrap_h__
 

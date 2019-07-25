@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define XEMBED_EMBEDDED_NOTIFY          0
 #define XEMBED_WINDOW_ACTIVATE          1
 #define XEMBED_WINDOW_DEACTIVATE        2

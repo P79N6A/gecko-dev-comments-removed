@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <android/log.h>
 #include "AndroidBridge.h"
 #include "AndroidMediaLayer.h"

@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource:///modules/XPCOMUtils.jsm");
 
 function TestObjectReadWrite() {}

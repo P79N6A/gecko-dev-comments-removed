@@ -13,39 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION="7.8.2";
 var VERSION="ECMA_1"
   startTest();

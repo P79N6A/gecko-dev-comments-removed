@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsConverterInputStream.h"
 #include "nsIInputStream.h"
 #include "nsICharsetConverterManager.h"

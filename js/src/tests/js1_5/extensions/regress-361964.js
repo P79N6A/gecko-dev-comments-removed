@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 361964;
 var summary = 'Crash [@ MarkGCThingChildren] involving watch and setter';
 var actual = 'No Crash';

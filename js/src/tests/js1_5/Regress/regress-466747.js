@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 466747;
 var summary = 'TM: Do not assert: fp->slots + fp->script->nfixed + ' +
   'js_ReconstructStackDepth(cx, fp->script, fp->regs->pc) == fp->regs->sp';

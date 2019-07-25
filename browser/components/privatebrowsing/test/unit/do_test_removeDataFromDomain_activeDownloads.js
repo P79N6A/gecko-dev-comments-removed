@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let pb = Cc[PRIVATEBROWSING_CONTRACT_ID].
          getService(Ci.nsIPrivateBrowsingService);
 

@@ -10,42 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var EXPORTED_SYMBOLS = ['getServer'];

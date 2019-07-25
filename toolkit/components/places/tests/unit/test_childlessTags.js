@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var tests = [
   {
     desc: "Removing a tagged bookmark should cause the tag to be removed.",

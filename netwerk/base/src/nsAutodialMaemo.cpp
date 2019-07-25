@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAutodialMaemo.h"
 #include "nsNetCID.h"
 #include "nsCOMPtr.h"

@@ -8,42 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULPopupListener.h"
 #include "nsCOMPtr.h"
 #include "nsGkAtoms.h"

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_indexeddb_opendatabasehelper_h__
 #define mozilla_dom_indexeddb_opendatabasehelper_h__
 

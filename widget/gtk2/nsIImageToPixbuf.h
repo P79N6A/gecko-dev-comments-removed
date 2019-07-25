@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSIIMAGETOPIXBUF_H_
 #define NSIIMAGETOPIXBUF_H_
 

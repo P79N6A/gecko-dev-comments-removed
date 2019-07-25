@@ -11,37 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _GTK2_COMPAT_H_
 #define _GTK2_COMPAT_H_
 

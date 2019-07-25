@@ -23,39 +23,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 TS_ATOM(sAAtom, "a")
 TS_ATOM(sAddressAtom, "address")
 TS_ATOM(sBigAtom, "big")

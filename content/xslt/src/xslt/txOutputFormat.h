@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_OUTPUTFORMAT_H
 #define TRANSFRMX_OUTPUTFORMAT_H
 

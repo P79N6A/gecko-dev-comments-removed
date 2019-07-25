@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULLabelFrame.h"
 #include "nsHTMLParts.h"
 #include "nsINameSpaceManager.h"

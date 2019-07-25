@@ -12,40 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAnnoProtocolHandler.h"
 #include "nsFaviconService.h"
 #include "nsIChannel.h"

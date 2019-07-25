@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 396326;
 var summary = 'Do not assert trying to disassemble get(var|arg) prop';
 var actual = 'No Crash';

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBIG5HKSCSToUnicode.h"
 #include "nsUCvTWDll.h"
 #include "nsUCConstructors.h"

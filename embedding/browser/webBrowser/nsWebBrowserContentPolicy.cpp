@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsWebBrowserContentPolicy.h"
 #include "nsIDocShell.h"
 #include "nsCOMPtr.h"

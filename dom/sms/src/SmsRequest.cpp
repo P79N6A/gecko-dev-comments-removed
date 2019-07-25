@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsRequest.h"
 #include "nsIDOMClassInfo.h"
 #include "nsDOMString.h"

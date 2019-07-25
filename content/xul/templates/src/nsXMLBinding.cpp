@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXULTemplateQueryProcessorXML.h"
 #include "nsXULTemplateResultXML.h"
 #include "nsXMLBinding.h"

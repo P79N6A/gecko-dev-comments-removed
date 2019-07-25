@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGTEXTPATHELEMENT_H__
 #define __NS_SVGTEXTPATHELEMENT_H__
 

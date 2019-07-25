@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "GLContextProvider.h"
 #include "GLContext.h"
 #include "GLLibraryLoader.h"

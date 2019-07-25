@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER     = "(none)";
 var summary = "gen.throw(ex) returns ex for an exhausted gen";
 var actual, expect;

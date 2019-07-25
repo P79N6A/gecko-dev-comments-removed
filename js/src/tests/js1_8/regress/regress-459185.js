@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 459185;
 var summary = 'Do not assert: pn->pn_arity == PN_BINARY';
 var actual = 'No Crash';

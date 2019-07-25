@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIPlatformCharset.h"
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"

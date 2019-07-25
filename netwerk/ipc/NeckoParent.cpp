@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHttp.h"
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/net/HttpChannelParent.h"

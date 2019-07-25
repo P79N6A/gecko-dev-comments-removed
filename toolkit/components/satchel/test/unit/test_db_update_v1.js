@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function is_about_now(timestamp) {
   var delta = Math.abs(timestamp - 1000 * Date.now());
   var seconds = 30 * 1000000;

@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsNavHistoryResult_h_
 #define nsNavHistoryResult_h_
 

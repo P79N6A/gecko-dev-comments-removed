@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test()
 {
   const PREF_BDM_CLOSEWHENDONE = "browser.download.manager.closeWhenDone";

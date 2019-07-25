@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSelectsAreaFrame.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLOptionElement.h"

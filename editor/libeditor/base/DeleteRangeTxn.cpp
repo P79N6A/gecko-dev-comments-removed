@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DeleteRangeTxn.h"
 #include "nsIDOMRange.h"
 #include "nsIDOMCharacterData.h"

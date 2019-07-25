@@ -4,6 +4,10 @@
 
 
 
+
+
+
+
 import sys, os, os.path, subprocess
 if not sys.platform == "win32":
     raise Exception("This script was only meant for Windows.")

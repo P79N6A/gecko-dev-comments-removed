@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const URI_GENERIC_ICON_DOWNLOAD = "drawable://alertdownloads";
 
 var Downloads = {

@@ -71,40 +71,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef CSS_PROP_SHORTHAND
 #define CSS_PROP_SHORTHAND(name_, id_, method_, flags_, pref_)
 #define DEFINED_CSS_PROP_SHORTHAND

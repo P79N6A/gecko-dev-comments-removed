@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Function.prototype.toString should not quote XML literals";
 var BUGNUMBER = 301692;
 var actual = '';

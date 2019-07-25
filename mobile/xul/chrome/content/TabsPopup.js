@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var TabsPopup = {
   init: function() {
     Elements.tabs.addEventListener("TabOpen", this, true);

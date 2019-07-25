@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NSHTMLIMAGEACCESSIBLEWRAP_H
 #define _NSHTMLIMAGEACCESSIBLEWRAP_H
 

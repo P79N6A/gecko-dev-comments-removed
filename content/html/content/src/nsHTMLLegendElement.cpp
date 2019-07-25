@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLLegendElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"

@@ -10,39 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSplitterFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"

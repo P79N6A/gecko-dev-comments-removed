@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsXFormsFormControlsAccessible_H_
 #define _nsXFormsFormControlsAccessible_H_
 

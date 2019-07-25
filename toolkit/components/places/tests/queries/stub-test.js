@@ -11,37 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  
  PlacesUtils.bookmarks.createFolder(PlacesUtils.placesRootId, "Folder 1",
                                     PlacesUtils.bookmarks.DEFAULT_INDEX);

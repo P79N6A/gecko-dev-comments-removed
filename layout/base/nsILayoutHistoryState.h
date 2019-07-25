@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsILayoutHistoryState_h
 #define _nsILayoutHistoryState_h
 

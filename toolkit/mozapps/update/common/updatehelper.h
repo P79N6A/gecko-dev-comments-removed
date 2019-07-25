@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 BOOL LaunchWinPostProcess(const WCHAR *installationDir,
                           const WCHAR *updateInfoDir, 
                           bool forceSync,

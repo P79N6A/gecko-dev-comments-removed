@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let bs = PlacesUtils.bookmarks;
 let hs = PlacesUtils.history;
 let anno = PlacesUtils.annotations;

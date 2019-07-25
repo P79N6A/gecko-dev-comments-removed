@@ -6,42 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIconChannel.h"
 #include "nsIIconURI.h"
 #include "nsReadableUtils.h"

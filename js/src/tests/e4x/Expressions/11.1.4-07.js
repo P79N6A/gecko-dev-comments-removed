@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "11.1.4 - XML Initializer - <p:{b}b>x</p:bb>";
 var BUGNUMBER = 321549;
 var actual = 'No error';

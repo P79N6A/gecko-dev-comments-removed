@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """This routine controls which localizable files and entries are
 reported and l10n-merged.
 It's common to all of mobile, mobile/android and mobile/xul, so

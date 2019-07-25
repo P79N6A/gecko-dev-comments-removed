@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 350279;
 var summary = 'Do not assert: left->pn_type == TOK_RC';
 var actual = 'No Crash';

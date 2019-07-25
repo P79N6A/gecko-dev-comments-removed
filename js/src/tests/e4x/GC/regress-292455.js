@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Regress - Do not crash on gc";
 var BUGNUMBER = 292455;
 var actual = 'No Crash';

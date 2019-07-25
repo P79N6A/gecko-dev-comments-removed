@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let tempScope = {};
 Components.utils.import("resource://gre/modules/Geometry.jsm", tempScope);
 let Point = tempScope.Point;

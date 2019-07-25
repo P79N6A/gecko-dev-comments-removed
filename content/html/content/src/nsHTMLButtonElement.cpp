@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLButtonElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"

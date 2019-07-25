@@ -6,40 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function setup()
 {
   getOpenedDatabase().createTable("test", "id INTEGER PRIMARY KEY, val NONE," +

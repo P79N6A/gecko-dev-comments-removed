@@ -13,38 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  
 var SelectBookmarkDialog = {
   init: function SBD_init() {

@@ -5,41 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function SpecialPowersException(aMsg) {
   this.message = aMsg;
   this.name = "SpecialPowersException";

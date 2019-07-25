@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var mozmillFrame = {};
 Cu.import('resource://mozmill/modules/frame.js', mozmillFrame);
 

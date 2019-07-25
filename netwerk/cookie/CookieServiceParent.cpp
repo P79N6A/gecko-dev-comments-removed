@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/net/CookieServiceParent.h"
 #include "nsCookieService.h"
 #include "nsNetUtil.h"

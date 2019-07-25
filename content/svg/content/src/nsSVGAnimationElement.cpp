@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGAnimationElement.h"
 #include "nsSVGSVGElement.h"
 #include "nsSMILTimeContainer.h"

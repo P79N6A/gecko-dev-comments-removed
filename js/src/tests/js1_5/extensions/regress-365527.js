@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 365527;
 var summary = 'JSOP_ARGUMENTS should set obj register';
 var actual = 'No Crash';

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 505587;
 var summary = 'ES5 Object.getOwnPropertyDescriptor(O)';
 var actual = '';

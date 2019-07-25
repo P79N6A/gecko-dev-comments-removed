@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_plugins_BrowserStreamChild_h
 #define mozilla_plugins_BrowserStreamChild_h 1
 

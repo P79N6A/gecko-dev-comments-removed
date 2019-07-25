@@ -16,39 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const DEFAULT_TIMER_DELAY_SECONDS = 3 * 60;
 
 

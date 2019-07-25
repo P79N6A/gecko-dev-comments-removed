@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 469547;
 var summary = 'Do not crash with: for each (let [,] in [[], [], null]) {}';
 var actual = '';

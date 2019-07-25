@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsVersionComparatorImpl.h"
 #include "nsVersionComparator.h"
 #include "nsString.h"

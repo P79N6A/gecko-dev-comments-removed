@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __nsXULTreeGridAccessibleWrap_h__
 #define __nsXULTreeGridAccessibleWrap_h__
 

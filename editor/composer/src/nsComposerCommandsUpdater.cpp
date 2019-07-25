@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPIDOMWindow.h"
 #include "nsComposerCommandsUpdater.h"
 #include "nsComponentManagerUtils.h"

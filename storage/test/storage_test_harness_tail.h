@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TEST_NAME
 #error "Must #define TEST_NAME before including storage_test_harness_tail.h"
 #endif

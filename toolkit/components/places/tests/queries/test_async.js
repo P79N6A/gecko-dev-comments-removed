@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let gTests = [
   {
     desc: "nsNavHistoryFolderResultNode: Basic test, asynchronously open and " +

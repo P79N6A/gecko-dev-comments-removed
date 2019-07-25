@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/plugins/PluginSurfaceParent.h"
 #include "mozilla/gfx/SharedDIBSurface.h"
 

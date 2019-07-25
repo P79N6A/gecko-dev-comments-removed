@@ -18,38 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "statement-001.js";
 
 var VERSION = "ECMA_1";

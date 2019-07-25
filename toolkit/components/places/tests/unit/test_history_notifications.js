@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const NS_PLACES_INIT_COMPLETE_TOPIC = "places-init-complete";
 const NS_PLACES_DATABASE_LOCKED_TOPIC = "places-database-locked";
 

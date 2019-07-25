@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "CanvasImageCache.h"
 #include "nsIImageLoadingContent.h"
 #include "nsExpirationTracker.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 285219;
 var summary = 'Do not crash on RangeError: reserved slot out of range';
 var actual = 'No Crash';

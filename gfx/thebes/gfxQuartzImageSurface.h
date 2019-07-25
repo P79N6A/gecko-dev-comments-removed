@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_QUARTZIMAGESURFACE_H
 #define GFX_QUARTZIMAGESURFACE_H
 

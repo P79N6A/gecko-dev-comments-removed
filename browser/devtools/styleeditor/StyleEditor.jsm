@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use strict";
 
 const EXPORTED_SYMBOLS = ["StyleEditor", "StyleEditorFlags"];

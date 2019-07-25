@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Do not crash @ ParseXMLSource';
 var BUGNUMBER = 426520;
 var actual = '';

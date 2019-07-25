@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXBLSerialize.h"
 #include "nsDOMScriptObjectHolder.h"
 #include "nsContentUtils.h"

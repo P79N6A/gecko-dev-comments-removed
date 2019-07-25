@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var frame = {};   Components.utils.import('resource://mozmill/modules/frame.js', frame);
 
 

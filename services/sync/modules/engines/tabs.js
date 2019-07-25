@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ['TabEngine', 'TabSetRecord'];
 
 const Cc = Components.classes;

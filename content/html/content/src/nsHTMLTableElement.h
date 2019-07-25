@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLTableElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsMappedAttributes.h"

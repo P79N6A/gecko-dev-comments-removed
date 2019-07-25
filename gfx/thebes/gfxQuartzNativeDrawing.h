@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _GFXQUARTZNATIVEDRAWING_H_
 #define _GFXQUARTZNATIVEDRAWING_H_
 

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSCONVERTEROUTPUTSTREAM_H_
 #define NSCONVERTEROUTPUTSTREAM_H_
 

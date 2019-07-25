@@ -1,39 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDeviceContextAndroid.h"
 #include "nsString.h"
 #include "nsILocalFile.h"

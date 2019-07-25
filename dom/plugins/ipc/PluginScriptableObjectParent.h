@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef dom_plugins_PluginScriptableObjectParent_h
 #define dom_plugins_PluginScriptableObjectParent_h 1
 

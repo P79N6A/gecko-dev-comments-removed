@@ -8,40 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var body = "This frame was navigated.";
 var target_url = "data:text/html,<html><body>" + body + "</body></html>";
 

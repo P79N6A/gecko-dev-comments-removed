@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGSTRINGLIST_H__
 #define MOZILLA_DOMSVGSTRINGLIST_H__
 

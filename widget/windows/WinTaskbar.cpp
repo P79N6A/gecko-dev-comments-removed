@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "WinTaskbar.h"
 #include "TaskbarPreview.h"
 #include <nsITaskbarPreviewController.h>

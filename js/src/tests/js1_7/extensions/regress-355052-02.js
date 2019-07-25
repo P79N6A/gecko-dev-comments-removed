@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 355052;
 var summary = 'Do not crash with valueOf:gc and __iterator__';
 var actual = 'No Crash';

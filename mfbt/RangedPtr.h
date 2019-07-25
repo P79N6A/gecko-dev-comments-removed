@@ -10,39 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_RangedPtr_h_
 #define mozilla_RangedPtr_h_
 

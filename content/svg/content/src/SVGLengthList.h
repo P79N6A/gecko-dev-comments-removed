@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGLENGTHLIST_H__
 #define MOZILLA_SVGLENGTHLIST_H__
 

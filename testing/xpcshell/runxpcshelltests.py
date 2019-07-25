@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import re, sys, os, os.path, logging, shutil, signal, math, time
 import xml.dom.minidom
 from glob import glob

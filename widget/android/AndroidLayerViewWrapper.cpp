@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "AndroidLayerViewWrapper.h"
 #include "AndroidBridge.h"
 #include "nsDebug.h"

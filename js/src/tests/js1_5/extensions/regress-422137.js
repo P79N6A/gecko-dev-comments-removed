@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 422137;
 var summary = 'Do not assert or bogo OOM with debugger trap on JOF_CALL bytecode';
 var actual = 'No Crash';

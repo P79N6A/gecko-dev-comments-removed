@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "txXPathTreeWalker.h"
 #include "nsIAtom.h"
 #include "nsIAttribute.h"

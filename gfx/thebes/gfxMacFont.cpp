@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxMacFont.h"
 #include "gfxCoreTextShaper.h"
 #include "gfxHarfBuzzShaper.h"

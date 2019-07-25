@@ -1,3 +1,7 @@
+
+
+
+
 PR_BEGIN_EXTERN_C
 
 PR_EXPORT(int)  Testy_LogInit(const char* fileName);

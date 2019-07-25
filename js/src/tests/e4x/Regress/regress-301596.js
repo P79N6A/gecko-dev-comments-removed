@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "E4X - Do not crash with XMLList filters";
 var BUGNUMBER = 301596;
 var actual = 'No Crash';

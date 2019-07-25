@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 460870;
 var summary = 'Decompilation of (function() { if (a || 1 || 2) { } })';
 var actual = '';

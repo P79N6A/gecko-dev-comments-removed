@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 add_test(function changeuri_unvisited_bookmark()
 {
   do_log_info("After changing URI of bookmark, frecency of bookmark's " +

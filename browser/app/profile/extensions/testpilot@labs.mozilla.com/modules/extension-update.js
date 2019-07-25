@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EXPORTED_SYMBOLS = ["TestPilotExtensionUpdate"];
 
 const Cc = Components.classes;

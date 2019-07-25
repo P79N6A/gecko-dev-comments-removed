@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 DESCRIPTION = " the non-guarded catch should HAVE to appear last";
 EXPECTED = "error";
 

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "PerfMeasurement.h"
 #include "jsperf.h"
 #include "mozilla/ModuleUtils.h"

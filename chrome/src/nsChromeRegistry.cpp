@@ -4,41 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsChromeRegistry.h"
 #include "nsChromeRegistryChrome.h"
 #include "nsChromeRegistryContent.h"

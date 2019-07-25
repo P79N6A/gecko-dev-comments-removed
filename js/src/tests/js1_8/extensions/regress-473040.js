@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 473040;
 var summary = 'Do not assert: tm->reservedDoublePoolPtr > tm->reservedDoublePool';
 var actual = '';

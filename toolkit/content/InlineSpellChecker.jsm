@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = [ "InlineSpellChecker" ];
 var gLanguageBundle;
 var gRegionBundle;

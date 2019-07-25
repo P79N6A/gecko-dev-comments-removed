@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let EXPORTED_SYMBOLS = [ "WindowDraggingElement" ];
 
 function WindowDraggingElement(elem) {

@@ -1,3 +1,7 @@
+
+
+
+
 !function() {
   var socket = io.connect(),
       container = document.getElementById('tweets'),

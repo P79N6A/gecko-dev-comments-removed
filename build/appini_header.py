@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 '''Parses a given application.ini file and outputs the corresponding
    XULAppData structure as a C++ header file'''
 

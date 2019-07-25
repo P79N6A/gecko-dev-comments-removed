@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGTRANSFORMLISTPARSER_H__
 #define MOZILLA_SVGTRANSFORMLISTPARSER_H__
 

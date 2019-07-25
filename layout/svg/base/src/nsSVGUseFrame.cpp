@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIAnonymousContentCreator.h"
 #include "nsIDOMSVGUseElement.h"
 #include "nsSVGGFrame.h"

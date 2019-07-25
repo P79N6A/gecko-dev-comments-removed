@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
 do_load_httpd_js();

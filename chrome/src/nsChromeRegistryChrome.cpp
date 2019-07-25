@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/PContentParent.h"
 #include "RegistryMessageUtils.h"
 #include "nsResProtocolHandler.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 479551;
 var summary = 'Do not assert: (cx)->requestDepth || (cx)->thread == (cx)->runtime->gcThread';
 var actual = '';

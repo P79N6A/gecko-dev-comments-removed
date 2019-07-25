@@ -13,38 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let kURIs = [
   "http://a.b.c/d-e_f/h/t/p",
   "http://d.e.f/g-h_i/h/t/p",

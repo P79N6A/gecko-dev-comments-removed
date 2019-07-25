@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_PATH_SKIA_H_
 #define MOZILLA_GFX_PATH_SKIA_H_
 

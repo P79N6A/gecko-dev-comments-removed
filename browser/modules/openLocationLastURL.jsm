@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const LAST_URL_PREF = "general.open_location.last_url";
 const nsISupportsString = Components.interfaces.nsISupportsString;
 

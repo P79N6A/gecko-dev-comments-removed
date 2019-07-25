@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
 #include "nsISupportsPrimitives.h"

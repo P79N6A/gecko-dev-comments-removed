@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 356247;
 var summary = 'Decompilation of let {} = [1] in a loop';
 var summarytrunk = 'let declaration must be direct child of block or top-level implicit block';

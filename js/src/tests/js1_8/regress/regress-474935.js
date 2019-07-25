@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 474935;
 var summary = 'Do not assert: !ti->typeMap.matches(ti_other->typeMap)';
 var actual = '';

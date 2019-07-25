@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsDataDocumentContentPolicy_h__
 #define nsDataDocumentContentPolicy_h__
 

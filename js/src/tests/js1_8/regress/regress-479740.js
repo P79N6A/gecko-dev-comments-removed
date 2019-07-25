@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 479740;
 var summary = 'TM: Do not crash @ TraceRecorder::test_property_cache';
 var actual = '';

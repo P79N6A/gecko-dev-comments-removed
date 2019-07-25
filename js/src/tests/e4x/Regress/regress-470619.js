@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Do not assert: regs.sp - 2 >= StackBase(fp)';
 var BUGNUMBER = 470619;
 var actual = '';

@@ -15,39 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = 96526;
 var summary = 'Testing "use" and "set" ops on expressions like a[i][j][k]';

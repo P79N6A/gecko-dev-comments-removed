@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsAccessibleWrap_H_
 #define _nsAccessibleWrap_H_
 

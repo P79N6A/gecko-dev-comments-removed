@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let stateBackup = ss.getBrowserState();
 
 const TAB_STATE_NEEDS_RESTORE = 1;

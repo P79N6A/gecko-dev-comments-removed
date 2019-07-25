@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DOMSVGTests.h"
 #include "DOMSVGStringList.h"
 #include "nsContentErrors.h" 

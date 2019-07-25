@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxGdkNativeRenderer.h"
 #include "gfxContext.h"
 #include "gfxPlatformGtk.h"

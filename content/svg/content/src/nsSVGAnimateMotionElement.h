@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGANIMATEMOTIONELEMENT_H_
 #define NS_SVGANIMATEMOTIONELEMENT_H_
 

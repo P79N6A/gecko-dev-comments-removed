@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __TX_XPATH_SINGLENODE_CONTEXT
 #define __TX_XPATH_SINGLENODE_CONTEXT
 

@@ -36,39 +36,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 103351; 
 var summ_OLD = 'Testing str.replace(strA, strB) == str.replace(new RegExp(strA),strB)';
 var summ_NEW = 'Testing String.prototype.replace(x,y) when x is a string';

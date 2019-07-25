@@ -54,39 +54,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.4.4.4-1";
 var VERSION = "ECMA_1";
 var BUGNUMBER="123724";

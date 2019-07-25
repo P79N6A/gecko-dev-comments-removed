@@ -14,38 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "dowhile-007";
 var VERSION = "ECMA_2";
 var TITLE   = "do...while";

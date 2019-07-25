@@ -33,38 +33,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 HTML_TAG(a, Anchor)
 HTML_HTMLELEMENT_TAG(abbr)
 HTML_HTMLELEMENT_TAG(acronym)

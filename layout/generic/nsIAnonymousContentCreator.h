@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsIAnonymousContentCreator_h___
 #define nsIAnonymousContentCreator_h___
 

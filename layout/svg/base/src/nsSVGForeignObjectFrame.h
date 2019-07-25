@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSSVGFOREIGNOBJECTFRAME_H__
 #define NSSVGFOREIGNOBJECTFRAME_H__
 

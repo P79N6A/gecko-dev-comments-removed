@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 283477;
 var summary = 'a.lastIndexOf(b, c) should return -1 when there is no match';
 var actual = '';

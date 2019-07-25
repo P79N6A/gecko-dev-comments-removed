@@ -5,43 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.5.4.9 - XMLList descendants()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("descendants"));

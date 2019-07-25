@@ -9,41 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const kDNS_CONTRACTID = "@mozilla.org/network/dns-service;1";

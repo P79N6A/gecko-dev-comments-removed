@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use strict";
 
 const EXPORTED_SYMBOLS = ['AppsEngine', 'AppRec'];

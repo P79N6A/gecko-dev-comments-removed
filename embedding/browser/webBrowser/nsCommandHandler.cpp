@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCommandHandler.h"
 #include "nsWebBrowser.h"
 #include "nsDocShellTreeOwner.h"

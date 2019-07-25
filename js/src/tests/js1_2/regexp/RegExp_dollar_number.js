@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = 'As described in Netscape doc "What\'s new in JavaScript 1.2"';
 var VERSION = 'no version';
 var TITLE   = 'RegExp: $1, ..., $9';

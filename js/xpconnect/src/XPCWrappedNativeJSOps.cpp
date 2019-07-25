@@ -7,40 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
 #include "nsWrapperCacheInlines.h"

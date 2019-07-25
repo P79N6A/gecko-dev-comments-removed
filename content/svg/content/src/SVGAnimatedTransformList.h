@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
 #define MOZILLA_SVGANIMATEDTRANSFORMLIST_H__
 

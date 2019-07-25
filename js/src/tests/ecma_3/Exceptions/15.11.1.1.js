@@ -9,39 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var UBound = 0;
 var BUGNUMBER = '';
 var summary = 'Ensuring normal function call of Error (ECMA-262 Ed.3 15.11.1.1)';

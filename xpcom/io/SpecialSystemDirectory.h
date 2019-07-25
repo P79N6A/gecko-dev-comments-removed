@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _SPECIALSYSTEMDIRECTORY_H_
 #define _SPECIALSYSTEMDIRECTORY_H_
 

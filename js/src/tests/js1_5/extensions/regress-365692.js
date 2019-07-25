@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 365692;
 var summary = 'getter/setter bytecodes should support atoms over 64k';
 var actual = 'No Crash';

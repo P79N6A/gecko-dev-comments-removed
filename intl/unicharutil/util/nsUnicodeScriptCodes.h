@@ -46,42 +46,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_UNICODE_SCRIPT_CODES
 #define NS_UNICODE_SCRIPT_CODES
 struct nsCharProps1 {

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZ_WIDGET_QT
 #include <QtCore/QTimer>
 #include "nsQAppInstance.h"

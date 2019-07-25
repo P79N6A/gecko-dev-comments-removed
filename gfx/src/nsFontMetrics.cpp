@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsFontMetrics.h"
 #include "nsBoundingMetrics.h"
 #include "nsRenderingContext.h"

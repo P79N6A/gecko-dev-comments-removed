@@ -58,41 +58,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BOOKMARK_ITEM = 0;
 const BOOKMARK_FOLDER = 1;
 const LIVEMARK_CONTAINER = 2;

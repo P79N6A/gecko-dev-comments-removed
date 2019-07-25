@@ -28,38 +28,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_URL = "http://dummy.mozilla.org/";
 const TEST_DOWNLOAD_URL = "http://dummy.mozilla.org/dummy.pdf";
 

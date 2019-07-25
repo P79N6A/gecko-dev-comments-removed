@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "AnimationCommon.h"
 #include "nsRuleData.h"
 #include "nsCSSValue.h"

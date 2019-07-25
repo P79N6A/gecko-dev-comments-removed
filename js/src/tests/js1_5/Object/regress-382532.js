@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 382532;
 var summary = 'instanceof,... broken by use of |prototype| in heavyweight constructor';
 var actual = '';

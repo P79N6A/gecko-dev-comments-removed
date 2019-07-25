@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SMILMAPPEDATTRIBUTE_H_
 #define NS_SMILMAPPEDATTRIBUTE_H_
 

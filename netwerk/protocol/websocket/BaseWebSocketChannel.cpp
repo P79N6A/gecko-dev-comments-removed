@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "WebSocketLog.h"
 #include "BaseWebSocketChannel.h"
 #include "nsILoadGroup.h"

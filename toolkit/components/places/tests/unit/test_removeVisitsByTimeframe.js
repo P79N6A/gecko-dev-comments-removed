@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const bmsvc = PlacesUtils.bookmarks;
 const histsvc = PlacesUtils.history;
 

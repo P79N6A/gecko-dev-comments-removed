@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 451340;
 var summary = 'Do no crash [@ CheckDestructuring]';
 var actual = 'No Crash';

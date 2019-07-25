@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_gfx_SharedDIBSurface_h
 #define mozilla_gfx_SharedDIBSurface_h
 

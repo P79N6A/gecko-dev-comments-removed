@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIDownloadManager = Ci.nsIDownloadManager;
 const dm = Cc["@mozilla.org/download-manager;1"].getService(nsIDownloadManager);
 

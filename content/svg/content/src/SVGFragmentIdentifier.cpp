@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGFragmentIdentifier.h"
 #include "mozilla/CharTokenizer.h"
 #include "nsIDOMSVGDocument.h"

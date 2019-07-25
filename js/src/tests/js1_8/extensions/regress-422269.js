@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 422269;
 var summary = 'Compile-time let block should not capture runtime references';
 var actual = 'referenced only by stack and closure';

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_SOURCESURFACESKIA_H_
 #define MOZILLA_GFX_SOURCESURFACESKIA_H_
 

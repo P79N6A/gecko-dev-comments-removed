@@ -20,38 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function trimString(s)
 {
   return(s.replace(/^\s+/,'').replace(/\s+$/,''));

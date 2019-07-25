@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_DWRITETEXTANALYSIS_H
 #define GFX_DWRITETEXTANALYSIS_H
 

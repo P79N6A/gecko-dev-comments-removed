@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nscore.h"
 #include "nsString.h"
 #include "nsIServiceManager.h"

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function closeFullScreen() {
   sendAsyncMessage("Browser:FullScreenVideo:Close");
 }

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 350206;
 var summary = 'Do not assert: serial <= n in jsxml.c';
 var actual = 'No Crash';

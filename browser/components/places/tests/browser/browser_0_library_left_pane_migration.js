@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_URI = "http://www.mozilla.org/";
 
 function onLibraryReady(organizer) {

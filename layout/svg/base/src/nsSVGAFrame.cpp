@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxMatrix.h"
 #include "nsSVGAElement.h"
 #include "nsSVGTSpanFrame.h"

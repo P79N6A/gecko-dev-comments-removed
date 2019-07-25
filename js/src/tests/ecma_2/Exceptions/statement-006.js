@@ -13,38 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "statement-006";
 var VERSION = "JS1_4";
 var TITLE   = "The for..in statement";

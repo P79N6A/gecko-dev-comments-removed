@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Hal.h"
 #include "mozilla/HalWakeLock.h"
 #include "mozilla/ClearOnShutdown.h"

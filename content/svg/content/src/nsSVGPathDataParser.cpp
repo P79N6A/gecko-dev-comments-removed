@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGPathDataParser.h"
 #include "nsSVGDataParser.h"
 #include "nsSVGPathElement.h"

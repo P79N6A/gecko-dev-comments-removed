@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "RegExp/properties-001.js";
 var VERSION = "ECMA_2";
 var TITLE   = "Properties of RegExp Instances";

@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsWifiMonitor.h"
 #include "nsIWifiAccessPoint.h"
 

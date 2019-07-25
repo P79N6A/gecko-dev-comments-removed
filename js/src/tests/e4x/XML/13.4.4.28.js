@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.28 - processingInsructions()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("processingInstructions"));

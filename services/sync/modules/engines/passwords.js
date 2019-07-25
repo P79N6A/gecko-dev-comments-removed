@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ['PasswordEngine', 'LoginRec'];
 
 const Cu = Components.utils;

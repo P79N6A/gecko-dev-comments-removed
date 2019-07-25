@@ -1,4 +1,8 @@
 
+
+
+
+
 var EXPORTED_SYMBOLS = ["sendMouseEvent", "sendChar", "sendString", "sendKey",
                         "synthesizeMouse", "synthesizeMouseScroll", "synthesizeKey",
                         "synthesizeMouseExpectEvent", "synthesizeKeyExpectEvent",

@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BASE = "http://localhost:4444";
 
 var sjs = do_get_file("data/sjs/cgi.sjs");

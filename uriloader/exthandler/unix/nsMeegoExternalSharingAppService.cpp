@@ -2,37 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "shareuiinterface.h"
 #include <MDataUri>
 #include "nsExternalSharingAppService.h"

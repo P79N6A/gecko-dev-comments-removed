@@ -11,38 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EXPORTED_SYMBOLS = ["TestPilotUIBuilder"];
 
 const Cc = Components.classes;

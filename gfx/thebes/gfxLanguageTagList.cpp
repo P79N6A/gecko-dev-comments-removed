@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static const PRUint32 sLanguageTagList[] = {
   TRUETYPE_TAG('a','a', 0 , 0 ), 
   TRUETYPE_TAG('a','b', 0 , 0 ), 

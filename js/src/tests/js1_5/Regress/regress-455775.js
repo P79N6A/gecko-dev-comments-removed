@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 455775;
 var summary = 'Do not assert: cx->fp->flags & JSFRAME_EVAL';
 var actual = 'No Crash';

@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _ACCESSIBLE_TABLECELL_H
 #define _ACCESSIBLE_TABLECELL_H
 

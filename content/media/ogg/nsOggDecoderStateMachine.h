@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsOggDecoderStateMachine_h_)
 #define nsOggDecoderStateMachine_h_
 

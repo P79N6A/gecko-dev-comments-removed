@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
 WEAVE_CHANNEL:                         "@weave_channel@",

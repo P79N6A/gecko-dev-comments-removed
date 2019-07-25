@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
 #define MOZILLA_SVGANIMATEDPRESERVEASPECTRATIO_H__
 

@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define IDC_GRAB                        4101
 #define IDC_GRABBING                    4102
 #define IDC_CELL                        4103

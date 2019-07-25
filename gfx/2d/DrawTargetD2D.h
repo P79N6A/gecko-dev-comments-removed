@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_DRAWTARGETD2D_H_
 #define MOZILLA_GFX_DRAWTARGETD2D_H_
 

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = "411893";
 var summary = "num.toPrecision(undefined) should equal num.toString()";
 var actual, expect;

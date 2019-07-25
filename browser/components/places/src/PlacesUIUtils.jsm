@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["PlacesUIUtils"];
 
 var Ci = Components.interfaces;

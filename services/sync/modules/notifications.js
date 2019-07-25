@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ["Notifications", "Notification", "NotificationButton"];
 
 const Cc = Components.classes;

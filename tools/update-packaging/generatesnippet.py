@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """
 This script generates the complete snippet for a given locale or en-US
 Most of the parameters received are to generate the MAR's download URL

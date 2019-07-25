@@ -1,3 +1,7 @@
+
+
+
+
 var CapturePickerUI = {
   init: function() {
     this.messageManager = Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIFrameMessageManager);

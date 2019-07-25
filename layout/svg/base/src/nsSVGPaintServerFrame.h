@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGPAINTSERVERFRAME_H__
 #define __NS_SVGPAINTSERVERFRAME_H__
 

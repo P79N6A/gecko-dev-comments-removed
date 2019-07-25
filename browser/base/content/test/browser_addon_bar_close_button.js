@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   let addonbar = document.getElementById("addon-bar");
   ok(addonbar.collapsed, "addon bar is collapsed by default");

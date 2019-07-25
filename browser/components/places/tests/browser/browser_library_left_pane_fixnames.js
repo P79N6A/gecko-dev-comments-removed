@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var leftPaneQueries = [];
 
 function onLibraryReady(organizer) {

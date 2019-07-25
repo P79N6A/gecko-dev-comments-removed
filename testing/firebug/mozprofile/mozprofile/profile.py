@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 __all__ = ['Profile', 'FirefoxProfile', 'ThunderbirdProfile', 'print_addon_ids']
 
 import os

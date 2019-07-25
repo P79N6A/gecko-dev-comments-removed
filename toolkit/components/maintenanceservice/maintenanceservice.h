@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void WINAPI SvcMain(DWORD dwArgc, LPWSTR *lpszArgv);
 void SvcInit(DWORD dwArgc, LPWSTR *lpszArgv);
 void WINAPI SvcCtrlHandler(DWORD dwCtrl);

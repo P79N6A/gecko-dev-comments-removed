@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 372565;
 var summary = 'Do not assert: top < ss->printer->script->depth" decompiling a function where a const identifier is used as a for-loop variable';
 var actual = '';

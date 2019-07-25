@@ -47,39 +47,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var i = 0;
 var BUGNUMBER = '(none)';
 var summary = 'Testing regexps with the global flag set';

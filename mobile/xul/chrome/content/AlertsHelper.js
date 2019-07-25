@@ -1,3 +1,7 @@
+
+
+
+
 var AlertsHelper = {
   _timeoutID: -1,
   _listener: null,

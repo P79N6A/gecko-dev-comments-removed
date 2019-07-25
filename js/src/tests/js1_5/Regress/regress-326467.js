@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 326467;
 var summary = 'Do not assert: slot < fp->nvars, at jsinterp.c';
 var actual = 'No Crash';

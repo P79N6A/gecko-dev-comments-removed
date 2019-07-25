@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _ACCESSIBLE_HYPERTEXT_H
 #define _ACCESSIBLE_HYPERTEXT_H
 

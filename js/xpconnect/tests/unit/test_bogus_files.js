@@ -1,40 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  
 function test_BrokenFile(path, shouldThrow, expectedName) {
   var didThrow = false;

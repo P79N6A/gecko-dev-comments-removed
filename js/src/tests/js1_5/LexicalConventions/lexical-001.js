@@ -23,39 +23,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = '49233';
 var summary = 'Testing numeric literals that begin with 0';
 var statprefix = 'Testing ';

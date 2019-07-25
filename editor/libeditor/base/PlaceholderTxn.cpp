@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "PlaceholderTxn.h"
 #include "nsEditor.h"
 #include "IMETextTxn.h"

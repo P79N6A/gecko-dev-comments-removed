@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Do not assert: cursor == (uint8_t *)copy->messageArgs[0] + argsCopySize';
 var BUGNUMBER = 473709;
 var actual = '';

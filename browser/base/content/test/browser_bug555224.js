@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_PAGE = "/browser/browser/base/content/test/dummy_page.html";
 var gTestTab, gBgTab, gTestZoom;
 

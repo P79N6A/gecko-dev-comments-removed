@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGPolyElement.h"
 #include "nsIDOMSVGPolygonElement.h"
 #include "gfxContext.h"

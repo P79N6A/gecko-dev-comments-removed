@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/Attributes.h"
 #include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"

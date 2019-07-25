@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const C_i = Components.interfaces;
 
 const UNORDERED_TYPE = C_i.nsIDOMXPathResult.ANY_UNORDERED_NODE_TYPE;

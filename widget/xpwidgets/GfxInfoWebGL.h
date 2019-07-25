@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __mozilla_widget_GfxInfoWebGL_h__
 #define __mozilla_widget_GfxInfoWebGL_h__
 

@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var cps = Cc["@mozilla.org/content-pref/service;1"].
           getService(Ci.nsIContentPrefService);
           

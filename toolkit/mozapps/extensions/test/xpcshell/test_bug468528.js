@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIBLS = Components.interfaces.nsIBlocklistService;
 
 var PLUGINS = [{

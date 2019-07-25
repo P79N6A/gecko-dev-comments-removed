@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMTransitionEvent.h"
 #include "nsGUIEvent.h"
 #include "nsDOMClassInfoID.h"

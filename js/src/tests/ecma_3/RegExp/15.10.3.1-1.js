@@ -30,39 +30,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = '61266';
 var summary = 'Passing (RegExp object,flag) to RegExp() function';
 var statprefix = 'RegExp(new RegExp(';

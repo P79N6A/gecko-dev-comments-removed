@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   var result = Cc["@mozilla.org/autocomplete/controller;1"].
                createInstance(Ci.nsIAutoCompleteController);

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsQAppInstance.h"
 #include <QApplication>
 #ifdef MOZ_ENABLE_MEEGOTOUCH

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   const PROPERTIES = ["name", "host", "arch", "version", "pagesize",
                       "pageshift", "memmapalign", "cpucount", "memsize"];

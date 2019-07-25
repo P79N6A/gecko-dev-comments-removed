@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   let uriString = "http://example.com/";
   let cookieBehavior = "network.cookie.cookieBehavior";

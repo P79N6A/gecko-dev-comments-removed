@@ -3,33 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 __all__ = [ 'gencxx', 'genipdl', 'parse', 'typecheck', 'writeifmodified' ]
 
 import os, sys

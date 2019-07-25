@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsContentCreatorFunctions.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMHTMLMenuItemElement.h"

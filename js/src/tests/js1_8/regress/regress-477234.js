@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 477234;
 var summary = 'Do not assert: v != JSVAL_ERROR_COOKIE';
 var actual = '';

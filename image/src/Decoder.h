@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_IMAGELIB_DECODER_H_
 #define MOZILLA_IMAGELIB_DECODER_H_
 

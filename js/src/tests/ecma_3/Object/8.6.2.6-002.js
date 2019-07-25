@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 476624;
 var summary = '[[DefaultValue]] should not call valueOf, toString with an argument';
 var actual = '';

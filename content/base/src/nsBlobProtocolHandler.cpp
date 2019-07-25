@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBlobProtocolHandler.h"
 #include "nsSimpleURI.h"
 #include "nsDOMError.h"

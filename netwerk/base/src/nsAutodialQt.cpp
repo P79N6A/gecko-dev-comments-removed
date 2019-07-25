@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsQtNetworkManager.h"
 #include "nsAutodialQt.h"
 #include "nsNetCID.h"

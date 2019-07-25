@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var i = 0;
 var BUGNUMBER = 209919;
 var summary = 'Testing regexp submatches with quantifiers';

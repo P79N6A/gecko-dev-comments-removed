@@ -19,39 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CSS_ANON_BOX(mozNonElement, ":-moz-non-element")
 
 CSS_ANON_BOX(mozAnonymousBlock, ":-moz-anonymous-block")

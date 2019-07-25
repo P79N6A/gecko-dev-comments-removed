@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 380889;
 var summary = 'Source disassembler assumes SRC_SWITCH has jump table';
 var actual = '';

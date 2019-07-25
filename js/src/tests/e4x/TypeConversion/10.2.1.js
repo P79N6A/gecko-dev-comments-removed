@@ -7,40 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("10.2.1 - XML.toXMLString");
 
 var BUGNUMBER = 297025;

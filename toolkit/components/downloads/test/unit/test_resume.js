@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIF = Ci.nsIFile;
 const nsIDM = Ci.nsIDownloadManager;
 const nsIWBP = Ci.nsIWebBrowserPersist;

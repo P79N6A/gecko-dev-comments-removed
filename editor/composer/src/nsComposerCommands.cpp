@@ -4,42 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIEditor.h"
 #include "nsIHTMLEditor.h"
 #include "nsIHTMLAbsPosEditor.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsContentCreatorFunctions.h"
 #include "nsGkAtoms.h"
 #include "nsIDocument.h"

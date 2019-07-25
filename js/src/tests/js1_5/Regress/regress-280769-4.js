@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 280769;
 var summary = 'Do not overflow 64K length of char sequence in RegExp []';
 var actual = 'No Crash';

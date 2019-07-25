@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsStubImageDecoderObserver_h_
 #define nsStubImageDecoderObserver_h_
 

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXCLUDE_FROM_BACKUP_ANNO = "places/excludeFromBackup";
 
 const PLACES_ROOTS_COUNT  = 4;

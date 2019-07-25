@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsRDFPropertyTestNode.h"
 #include "nsString.h"
 #include "nsXULContentUtils.h"

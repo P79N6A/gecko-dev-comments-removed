@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 354945;
 var summary = 'Do not crash with new Iterator';
 var expect = 'TypeError: trap __iterator__ for obj returned a primitive value';

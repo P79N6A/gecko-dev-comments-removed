@@ -2,43 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cc = Components.classes;

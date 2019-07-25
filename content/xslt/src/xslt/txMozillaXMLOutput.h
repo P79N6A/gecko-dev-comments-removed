@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_MOZILLA_XML_OUTPUT_H
 #define TRANSFRMX_MOZILLA_XML_OUTPUT_H
 

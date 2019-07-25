@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsScreenManagerAndroid.h"
 #include "nsWindow.h"
 #include "AndroidBridge.h"

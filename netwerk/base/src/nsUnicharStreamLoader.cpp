@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsUnicharStreamLoader.h"
 #include "nsIInputStream.h"
 #include "nsICharsetConverterManager.h"

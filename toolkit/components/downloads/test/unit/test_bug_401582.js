@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 importDownloadsFile("bug_401582_downloads.sqlite");
 
 const nsIDownloadManager = Ci.nsIDownloadManager;

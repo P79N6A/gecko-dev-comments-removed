@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 488989;
 var summary = 'Array.prototype.push for non-arrays near max-array-index limit';
 var actual = '';

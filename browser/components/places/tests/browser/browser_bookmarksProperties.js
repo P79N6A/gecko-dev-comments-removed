@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const SIDEBAR_HISTORY_TREE_ID = "historyTree";
 const SIDEBAR_BOOKMARKS_TREE_ID = "bookmarks-view";
 

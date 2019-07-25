@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef COMPONENTS_PERFMEASUREMENT_H
 #define COMPONENTS_PERFMEASUREMENT_H
 

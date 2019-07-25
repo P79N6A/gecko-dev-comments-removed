@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILCompositor.h"
 #include "nsSMILCSSProperty.h"
 #include "nsCSSProps.h"

@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var i = 0;
 var BUGNUMBER = 31316;
 var summary = 'Regression test for Bugzilla bug 31316';

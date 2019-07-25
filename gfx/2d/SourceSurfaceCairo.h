@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _MOZILLA_GFX_OP_SOURCESURFACE_CAIRO_H_
 #define _MOZILLA_GFX_OP_SOURCESURFACE_CAIRO_H
 

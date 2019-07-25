@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_LAYERMANAGEROGLPROGRAM_H
 #define GFX_LAYERMANAGEROGLPROGRAM_H
 

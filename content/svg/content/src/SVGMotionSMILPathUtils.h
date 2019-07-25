@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGMOTIONSMILPATHUTILS_H_
 #define MOZILLA_SVGMOTIONSMILPATHUTILS_H_
 

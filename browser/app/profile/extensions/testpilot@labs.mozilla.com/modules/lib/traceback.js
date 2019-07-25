@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function deParentifyURL(url) {
   return url ? url.split(" -> ").slice(-1)[0] : url;
 }

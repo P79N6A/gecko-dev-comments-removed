@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 RDF_ATOM(kAboutAtom, "about")
 RDF_ATOM(kIdAtom, "ID")
 RDF_ATOM(kNodeIdAtom, "nodeID")

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsUnicodeToEUCJP.h"
 #include "nsUCVJADll.h"
 #include "nsUCConstructors.h"

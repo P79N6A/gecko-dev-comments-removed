@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 280769;
 var summary = 'Do not crash on overflow of 64K boundary of [] offset in regexp search string ';
 var actual = 'No Crash';

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 456470;
 var summary = 'TM: Make sure JSOP_DEFLOCALFUN pushes the right function object.';
 var actual = '';

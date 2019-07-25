@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined jslogic_h_inl__ && defined JS_METHODJIT
 #define jslogic_h_inl__
 

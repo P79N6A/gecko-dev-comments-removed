@@ -12,40 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGFeatures.h"
 #include "nsIContent.h"
 #include "mozilla/Preferences.h"

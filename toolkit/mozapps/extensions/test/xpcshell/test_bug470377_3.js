@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, false);
 
 function run_test() {

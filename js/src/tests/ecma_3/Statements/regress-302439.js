@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 302439;
 var summary = 'spandep fu should skip unused JSOP_TABLESWITCH jump table entries';
 var actual = 'No Crash';

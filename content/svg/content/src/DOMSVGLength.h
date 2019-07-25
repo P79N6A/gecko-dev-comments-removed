@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGLENGTH_H__
 #define MOZILLA_DOMSVGLENGTH_H__
 

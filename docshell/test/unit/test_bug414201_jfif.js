@@ -6,39 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test()
 {
     var ms = Components.classes["@mozilla.org/mime;1"].getService(Components.interfaces.nsIMIMEService);

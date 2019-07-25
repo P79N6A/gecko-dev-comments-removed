@@ -3,35 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMPopStateEvent.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDOMClassInfoID.h"

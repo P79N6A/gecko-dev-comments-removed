@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 458076;
 var summary = 'Do not assert with JIT: !lhs->isQuad() && !rhs->isQuad()';
 var actual = 'No Crash';

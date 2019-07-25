@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsFilteredContentIterator.h"
 #include "nsIContentIterator.h"
 #include "nsComponentManagerUtils.h"

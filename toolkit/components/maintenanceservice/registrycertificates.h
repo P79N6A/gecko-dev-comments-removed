@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _REGISTRYCERTIFICATES_H_
 #define _REGISTRYCERTIFICATES_H_
 

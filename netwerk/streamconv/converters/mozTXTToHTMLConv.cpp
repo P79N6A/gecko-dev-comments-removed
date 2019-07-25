@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozTXTToHTMLConv.h"
 #include "nsIServiceManager.h"
 #include "nsNetCID.h"

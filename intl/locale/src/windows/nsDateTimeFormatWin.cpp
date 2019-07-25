@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDateTimeFormatWin.h"
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"

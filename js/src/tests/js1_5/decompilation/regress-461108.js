@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 461108;
 var summary = 'Decompilation of for (i = 0; a = as[i]; ++i)';
 var actual = '';

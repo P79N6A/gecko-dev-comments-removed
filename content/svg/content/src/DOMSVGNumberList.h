@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGNUMBERLIST_H__
 #define MOZILLA_DOMSVGNUMBERLIST_H__
 

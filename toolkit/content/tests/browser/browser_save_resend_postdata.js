@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var MockFilePicker = SpecialPowers.MockFilePicker;
 MockFilePicker.init();
 

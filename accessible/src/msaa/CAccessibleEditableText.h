@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _ACCESSIBLE_EDITABLETEXT_H
 #define _ACCESSIBLE_EDITABLETEXT_H
 

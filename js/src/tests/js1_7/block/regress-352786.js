@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352786;
 var summary = 'let declaration must be direct child of block, ' + 
   'top-level implicit block, or switch body block';

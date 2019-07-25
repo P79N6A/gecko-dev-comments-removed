@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Services.prefs.setBoolPref(PREF_EM_CHECK_UPDATE_SECURITY, false);
 Services.prefs.setBoolPref(PREF_EM_STRICT_COMPATIBILITY, true);
 

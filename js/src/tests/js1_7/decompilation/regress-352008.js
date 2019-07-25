@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352008;
 var summary = 'decompilation of |for([k,v] in o| should not assert';
 var actual = 'No Crash';

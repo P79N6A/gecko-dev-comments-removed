@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "InsertTextTxn.h"
 #include "nsIDOMCharacterData.h"
 #include "nsISelection.h"

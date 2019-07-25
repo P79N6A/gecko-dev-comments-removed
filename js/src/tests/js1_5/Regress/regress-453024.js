@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 453024;
 var summary = 'Do not assert: vp + 2 + argc <= (jsval *) cx->stackPool.current->avail';
 var actual = 'No Crash';

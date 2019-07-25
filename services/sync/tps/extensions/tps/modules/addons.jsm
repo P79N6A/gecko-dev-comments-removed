@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use strict";
 
 let EXPORTED_SYMBOLS = ["Addon", "STATE_ENABLED", "STATE_DISABLED"];

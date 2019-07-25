@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 315509;
 var summary = 'Array.prototype.unshift do not crash on Arrays with holes';
 var actual = 'No Crash';

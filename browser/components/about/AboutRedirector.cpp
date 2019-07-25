@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "AboutRedirector.h"
 #include "nsNetUtil.h"
 #include "nsIScriptSecurityManager.h"

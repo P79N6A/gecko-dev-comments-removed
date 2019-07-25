@@ -20,39 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EDITOR_ATOM(a, "a")
 EDITOR_ATOM(abbr, "abbr")
 EDITOR_ATOM(acronym, "acronym")

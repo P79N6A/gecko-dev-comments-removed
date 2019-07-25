@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 417893;
 var summary = 'Fast natives must use JS_THIS/JS_THIS_OBJECT';
 var actual = 'No Crash';

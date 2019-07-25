@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 var OfflineApps = {
   offlineAppRequested: function(aRequest, aTarget) {
     if (!Services.prefs.getBoolPref("browser.offline-apps.notify"))

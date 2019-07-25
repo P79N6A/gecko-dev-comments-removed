@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EXPORTED_SYMBOLS = ["sanitizeString", "sanitizeJSONStrings"];
 
 function sanitizeString(input) {

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsIScriptGlobalObjectOwner_h__
 #define nsIScriptGlobalObjectOwner_h__
 

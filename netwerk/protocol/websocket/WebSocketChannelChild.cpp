@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "WebSocketLog.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/net/NeckoChild.h"

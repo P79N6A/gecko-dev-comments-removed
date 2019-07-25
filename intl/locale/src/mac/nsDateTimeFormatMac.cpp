@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <CoreFoundation/CoreFoundation.h>
 #include "nsIServiceManager.h"
 #include "nsDateTimeFormatMac.h"

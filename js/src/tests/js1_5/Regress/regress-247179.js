@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 247179;
 var summary = 'RegExp \\b should not recognize non-ASCII alphanumerics as word characters';
 var actual = '';

@@ -21,39 +21,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "7.7.3-1";
 var VERSION = "ECMA_1";
 var TITLE   = "Numeric Literals";

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsCursor.h"
 #include "nsIDOMClassInfo.h"
 #include "nsDOMError.h"

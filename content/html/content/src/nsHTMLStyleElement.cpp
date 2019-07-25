@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLStyleElement.h"
 #include "nsIDOMLinkStyle.h"
 #include "nsIDOMEventTarget.h"

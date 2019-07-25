@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 
 const Ci = Components.interfaces;

@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "txNodeSorter.h"
 #include "txExecutionState.h"
 #include "txXPathResultComparator.h"

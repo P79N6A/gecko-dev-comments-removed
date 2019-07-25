@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function setup()
 {
   getOpenedDatabase().createTable("test", "id INTEGER PRIMARY KEY, name TEXT");

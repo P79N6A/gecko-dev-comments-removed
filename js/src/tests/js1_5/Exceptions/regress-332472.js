@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 332472;
 var summary = 'new RegExp() ignores string boundaries when throwing exceptions';
 var actual = '';

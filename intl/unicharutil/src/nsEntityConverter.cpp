@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsEntityConverter.h"
 #include "nsIProperties.h"
 #include "nsIServiceManager.h"

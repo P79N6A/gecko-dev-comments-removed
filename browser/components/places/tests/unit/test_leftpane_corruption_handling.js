@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let gLeftPaneFolderIdGetter;
 let gAllBookmarksFolderIdGetter;
 

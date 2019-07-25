@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_SHADOWBUFFERD3D9_H
 #define GFX_SHADOWBUFFERD3D9_H
 

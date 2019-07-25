@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 351463;
 var summary = 'Treat hyphens as not special adjacent to CharacterClassEscapes in character classes';
 var actual = '';

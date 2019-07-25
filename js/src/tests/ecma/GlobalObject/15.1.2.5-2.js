@@ -52,39 +52,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.1.2.5-2";
 var VERSION = "ECMA_1";
 startTest();

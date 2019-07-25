@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ScaledFontMac.h"
 #ifdef USE_SKIA
 #include "PathSkia.h"

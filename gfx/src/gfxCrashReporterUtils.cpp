@@ -3,35 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxCrashReporterUtils.h"
 
 #if defined(MOZ_CRASHREPORTER)

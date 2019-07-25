@@ -27,39 +27,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "10.1.3-1";
 var VERSION = "ECMA_1";
 var TITLE   = "Variable Instantiation:  Formal Parameters";

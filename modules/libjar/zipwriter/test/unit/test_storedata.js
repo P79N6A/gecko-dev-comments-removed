@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const DATA = "ZIP WRITER TEST DATA";
 const FILENAME = "test.txt";
 const FILENAME2 = "test2.txt";

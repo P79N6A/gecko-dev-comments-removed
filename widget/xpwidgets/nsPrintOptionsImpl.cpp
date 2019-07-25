@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsPrintOptionsImpl.h"
 #include "nsReadableUtils.h"
 #include "nsPrintSettingsImpl.h"

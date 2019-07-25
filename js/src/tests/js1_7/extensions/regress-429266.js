@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 429266;
 var summary = 'Do not assert: nuses == 0 || *pcstack[pcdepth - 1] == JSOP_ENTERBLOCK';
 var actual = 'No Crash';

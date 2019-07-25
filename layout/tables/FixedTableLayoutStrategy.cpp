@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "FixedTableLayoutStrategy.h"
 #include "nsTableFrame.h"
 #include "nsTableColFrame.h"

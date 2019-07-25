@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 add_test(function removed_bookmark()
 {
   do_log_info("After removing bookmark, frecency of bookmark's URI should be " +

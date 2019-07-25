@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PREFIX_ITEM_URI = "urn:mozilla:item:";
 const PREFIX_NS_EM = "http://www.mozilla.org/2004/em-rdf#";
 

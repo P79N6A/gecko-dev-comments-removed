@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 330352;
 var summary = 'Very non-greedy regexp causes crash in jsregexp.c';
 var actual = 'No Crash';

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_CONTAINERLAYERD3D10_H
 #define GFX_CONTAINERLAYERD3D10_H
 

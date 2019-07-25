@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let hs = PlacesUtils.history;
 let bs = PlacesUtils.bookmarks;
 let as = PlacesUtils.annotations;

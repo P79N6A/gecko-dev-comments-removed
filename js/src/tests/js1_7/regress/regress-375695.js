@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 375695;
 var summary = 'Do not assert: !fp->blockChain || OBJ_GET_PARENT(cx, obj) == fp->blockChain';
 var actual = '';

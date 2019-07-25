@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAlgorithm.h"
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"

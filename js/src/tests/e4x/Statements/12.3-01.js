@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = '12.3 - for-each-in should not affect for-in';
 var BUGNUMBER = 292020;
 var actual = '';

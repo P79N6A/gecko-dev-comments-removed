@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILTimeValueSpec.h"
 #include "nsSMILInterval.h"
 #include "nsSMILTimeContainer.h"

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["Elem", "Selector", "ID", "Link", "XPath", "Name", "Lookup",
                         "MozMillElement", "MozMillCheckBox", "MozMillRadio", "MozMillDropList",
                         "MozMillTextBox", "subclasses",

@@ -3,42 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAppRunner.h"
 #include "nsToolkitCompsCID.h"
 #include "nsXREDirProvider.h"

@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 131510;
 var summary = "Shouldn't crash if define |var arguments| inside a function";
 printBugNumber(BUGNUMBER);

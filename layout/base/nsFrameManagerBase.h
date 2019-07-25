@@ -16,40 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _nsFrameManagerBase_h_
 #define _nsFrameManagerBase_h_
 

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 390597;
 var summary = 'watch point + eval-as-setter allows access to dead JSStackFrame';
 var actual = 'No Crash';

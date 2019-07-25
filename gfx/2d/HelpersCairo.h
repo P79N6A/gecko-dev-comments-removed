@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_HELPERSCAIRO_H_
 #define MOZILLA_GFX_HELPERSCAIRO_H_
 

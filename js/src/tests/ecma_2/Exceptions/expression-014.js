@@ -13,38 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "expression-014.js";
 var VERSION = "ECMA_1";
 var TITLE   = "The new operator";

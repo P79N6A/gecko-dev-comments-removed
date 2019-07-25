@@ -4,43 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZ_OS2_HIGH_MEMORY
 
 #include <os2safe.h>

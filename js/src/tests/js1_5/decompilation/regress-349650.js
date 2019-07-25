@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 349650;
 var summary = 'Number getting parens replaces last character of identifier in decompilation of array comprehension';
 var actual = '';

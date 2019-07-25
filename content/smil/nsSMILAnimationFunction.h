@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SMILANIMATIONFUNCTION_H_
 #define NS_SMILANIMATIONFUNCTION_H_
 

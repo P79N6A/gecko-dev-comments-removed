@@ -25,39 +25,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.9.5.5";
 var VERSION = "ECMA_3"; 
 var TITLE   = "Date.prototype.toLocaleString()"; 

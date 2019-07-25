@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 390078;
 var summary = 'GC hazard with JSstackFrame.argv[-1]';
 var actual = 'No Crash';

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIServiceManager.h"
 #include "nsICharsetConverterManager.h"
 #include "nsUCSupport.h"

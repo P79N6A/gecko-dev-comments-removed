@@ -1,3 +1,7 @@
+
+
+
+
 .tabbrowser-tabbox {
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-tabbox");
 }

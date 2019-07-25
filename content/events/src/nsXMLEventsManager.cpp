@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMMutationEvent.h"
 #include "nsXMLEventsManager.h"
 #include "nsGkAtoms.h"

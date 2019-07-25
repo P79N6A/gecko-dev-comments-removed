@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsJSInspector.h"
 #include "nsIXPConnect.h"
 #include "nsIJSContextStack.h"

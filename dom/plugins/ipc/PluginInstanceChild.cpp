@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(MOZ_WIDGET_QT) && (MOZ_PLATFORM_MAEMO == 6)
 #include <QEvent>
 #include <QKeyEvent>

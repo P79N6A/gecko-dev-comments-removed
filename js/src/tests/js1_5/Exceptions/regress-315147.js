@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 315147;
 var summary = 'Error JSMSG_UNDEFINED_PROP should be JSEXN_REFERENCEERR';
 var actual = '';

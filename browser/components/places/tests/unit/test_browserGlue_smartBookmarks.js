@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PREF_SMART_BOOKMARKS_VERSION = "browser.places.smartBookmarksVersion";
 const PREF_AUTO_EXPORT_HTML = "browser.bookmarks.autoExportHTML";
 const PREF_IMPORT_BOOKMARKS_HTML = "browser.places.importBookmarksHTML";

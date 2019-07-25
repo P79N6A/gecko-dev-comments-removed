@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PAGE_TYPE_STATUS = 0;
 const PAGE_TYPE_QUIT = 1;
 var stringBundle;

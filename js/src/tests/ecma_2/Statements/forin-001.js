@@ -15,38 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "forin-001";
 var VERSION = "ECMA_2";
 var TITLE   = "The for...in  statement";

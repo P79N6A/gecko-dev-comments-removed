@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Regression - properly root stack in toXMLString";
 var BUGNUMBER = 311580;
 var actual = 'No Crash';

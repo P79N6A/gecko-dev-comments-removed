@@ -17,38 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsIDragSessionOS2_h__
 #define nsIDragSessionOS2_h__
 

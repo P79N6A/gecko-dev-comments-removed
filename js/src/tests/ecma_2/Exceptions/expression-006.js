@@ -15,38 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "expression-006.js";
 var VERSION = "JS1_4";
 var TITLE   = "The new operator";

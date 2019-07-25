@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const SEARCH_RESPONSE_SUGGESTION_JSON = "application/x-suggestions+json";
 
 const BROWSER_SUGGEST_PREF = "browser.search.suggest.enabled";

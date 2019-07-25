@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const HTTP_FOUND                 = 302;
 const HTTP_SEE_OTHER             = 303;
 const HTTP_TEMPORARY_REDIRECT    = 307;

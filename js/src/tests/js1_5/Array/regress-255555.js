@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 255555;
 var summary = 'Array.prototype.sort(comparefn) never passes undefined to comparefn';
 var actual = 'not undefined';

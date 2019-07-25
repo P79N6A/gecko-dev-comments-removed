@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(MOZ_LDAP_XPCOM)
 
 #include "nsLDAPSyncQuery.h"

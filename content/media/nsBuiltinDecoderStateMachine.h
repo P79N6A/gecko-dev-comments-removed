@@ -73,39 +73,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(nsBuiltinDecoderStateMachine_h__)
 #define nsBuiltinDecoderStateMachine_h__
 

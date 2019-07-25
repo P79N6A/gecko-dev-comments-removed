@@ -54,39 +54,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var i = 0;
 var BUGNUMBER = 85721;
 var summary = 'Testing regular expression edge cases';

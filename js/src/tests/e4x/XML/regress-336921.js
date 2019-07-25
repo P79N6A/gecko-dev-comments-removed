@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = '13.4.4.3 - XML.prototype.appendChild creates undesired <br/>';
 var BUGNUMBER = 336921;
 var actual = '';

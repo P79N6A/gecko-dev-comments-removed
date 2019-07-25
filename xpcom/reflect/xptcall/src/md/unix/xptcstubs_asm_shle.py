@@ -3,6 +3,10 @@
 
 
 
+
+
+
+
 f = open("xptcstubs_asm_shle.s", 'w')
 
 prefix = "_ZN14nsXPTCStubBase"

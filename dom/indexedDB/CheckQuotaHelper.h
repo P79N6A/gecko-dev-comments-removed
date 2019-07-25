@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_indexeddb_checkquotahelper_h__
 #define mozilla_dom_indexeddb_checkquotahelper_h__
 

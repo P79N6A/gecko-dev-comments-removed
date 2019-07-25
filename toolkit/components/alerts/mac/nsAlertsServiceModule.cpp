@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAlertsService.h"
 #include "nsToolkitCompsCID.h"
 #include "mozilla/ModuleUtils.h"

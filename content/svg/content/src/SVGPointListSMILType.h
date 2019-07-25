@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGPOINTLISTSMILTYPE_H_
 #define MOZILLA_SVGPOINTLISTSMILTYPE_H_
 

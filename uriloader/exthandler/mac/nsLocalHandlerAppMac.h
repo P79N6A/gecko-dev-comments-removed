@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSLOCALHANDLERAPPMAC_H_
 #define NSLOCALHANDLERAPPMAC_H_
 

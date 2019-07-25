@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxDWriteFonts.h"
 #include "gfxDWriteShaper.h"
 #include "gfxHarfBuzzShaper.h"

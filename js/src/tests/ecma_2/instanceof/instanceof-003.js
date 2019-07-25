@@ -26,38 +26,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "instanceof-003";
 var VERSION = "ECMA_2";
 var TITLE   = "instanceof operator";

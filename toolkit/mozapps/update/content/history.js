@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const NS_XUL  = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 var gUpdateHistory = {

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 291213;
 var summary = 'Do not crash in args_resolve enumerating |arguments|';
 var actual = 'No Crash';

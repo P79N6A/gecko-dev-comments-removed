@@ -7,35 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "2");
 

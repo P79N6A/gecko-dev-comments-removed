@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_indexeddb_indexeddatabase_h__
 #define mozilla_dom_indexeddb_indexeddatabase_h__
 

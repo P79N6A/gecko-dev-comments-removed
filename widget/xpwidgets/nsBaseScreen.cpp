@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBaseScreen.h"
 
 NS_IMPL_ISUPPORTS1(nsBaseScreen, nsIScreen)

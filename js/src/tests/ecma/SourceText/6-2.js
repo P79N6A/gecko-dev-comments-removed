@@ -45,39 +45,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "6-1";
 var VERSION = "ECMA_1";
 startTest();

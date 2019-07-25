@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 '''Expandlibs is a system that allows to replace some libraries with a
 descriptor file containing some linking information about them.
 

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 459628;
 var summary = 'Do not assert: JSVAL_IS_VOID(STOBJ_GET_SLOT(obj, map->freeslot))';
 var actual = '';

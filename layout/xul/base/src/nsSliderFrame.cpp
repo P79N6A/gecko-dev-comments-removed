@@ -10,40 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSliderFrame.h"
 #include "nsStyleContext.h"
 #include "nsPresContext.h"

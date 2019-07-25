@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 338709;
 var summary = 'ReadOnly properties should not be overwritten by using ' +
   'Object and try..throw..catch';

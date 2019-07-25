@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   
   PlacesUtils.bookmarks.insertBookmark(PlacesUtils.bookmarksMenuFolderId,

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 '''expandlibs_deps.py takes a list of key/value pairs and prints, for each
 key, a list of all dependencies corresponding to the corresponding value.
 Libraries are thus expanded, and their descriptor is also made part of this

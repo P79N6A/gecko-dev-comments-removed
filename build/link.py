@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from __future__ import with_statement
 import os, platform, subprocess, sys, threading, time
 from win32 import procmem

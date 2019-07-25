@@ -21,39 +21,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 68498;
 var summary = 'Testing self.eval(str) inside a function';
 var statprefix = '; currently at expect[';

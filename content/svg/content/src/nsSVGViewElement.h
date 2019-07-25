@@ -3,35 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGVIEWELEMENT_H__
 #define __NS_SVGVIEWELEMENT_H__
 

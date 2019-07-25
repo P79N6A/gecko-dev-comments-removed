@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 464092;
 var summary = 'Do not assert: OBJ_IS_CLONED_BLOCK(obj)';
 var actual = '';

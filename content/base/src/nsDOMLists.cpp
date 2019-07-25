@@ -7,40 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMLists.h"
 #include "nsDOMError.h"
 #include "nsDOMClassInfoID.h"

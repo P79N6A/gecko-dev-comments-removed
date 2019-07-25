@@ -35,39 +35,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CSS_KEY(-moz-activehyperlinktext, _moz_activehyperlinktext)
 CSS_KEY(-moz-all, _moz_all)
 CSS_KEY(-moz-alt-content, _moz_alt_content)

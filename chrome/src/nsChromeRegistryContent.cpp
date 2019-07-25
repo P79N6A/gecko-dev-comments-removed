@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "RegistryMessageUtils.h"
 #include "nsChromeRegistry.h"
 #include "nsChromeRegistryContent.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 472703;
 var summary = 'Do not assert: regs.sp[-1] == OBJECT_TO_JSVAL(fp->scopeChain)';
 var actual = '';

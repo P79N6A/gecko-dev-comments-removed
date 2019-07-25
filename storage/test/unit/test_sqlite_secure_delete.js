@@ -19,39 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function getFileContents(aFile)
 {
   let fstream = Cc["@mozilla.org/network/file-input-stream;1"].

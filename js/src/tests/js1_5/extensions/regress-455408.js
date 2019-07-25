@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 455408;
 var summary = 'Do not assert with JIT: "Should not move data from GPR to XMM": false';
 var actual = 'No Crash';

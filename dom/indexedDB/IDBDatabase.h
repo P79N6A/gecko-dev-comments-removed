@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_indexeddb_idbdatabase_h__
 #define mozilla_dom_indexeddb_idbdatabase_h__
 

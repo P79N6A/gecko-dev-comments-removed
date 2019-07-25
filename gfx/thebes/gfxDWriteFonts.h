@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_WINDOWSDWRITEFONTS_H
 #define GFX_WINDOWSDWRITEFONTS_H
 

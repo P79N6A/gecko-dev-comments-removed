@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsWindowMemoryReporter.h"
 #include "nsGlobalWindow.h"
 #include "nsIEffectiveTLDService.h"

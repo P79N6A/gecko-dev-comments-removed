@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 457093;
 var summary = 'Do not assert: newtop <= oldtop, decompiling function';
 var actual = 'No Crash';

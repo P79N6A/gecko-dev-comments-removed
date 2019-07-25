@@ -41,38 +41,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "statement-002";
 var VERSION = "JS1_4";
 var TITLE   = "The for..in statement";

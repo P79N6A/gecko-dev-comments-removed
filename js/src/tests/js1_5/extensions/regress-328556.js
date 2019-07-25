@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 328556;
 var summary = 'Do not Assert: growth == (size_t)-1 || (nchars + 1) * sizeof(jschar) == growth, in jsarray.c';
 var actual = 'No Crash';

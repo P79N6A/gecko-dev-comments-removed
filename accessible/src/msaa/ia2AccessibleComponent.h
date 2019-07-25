@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef IA2_ACCESSIBLE_COMPONENT_H_
 #define IA2_ACCESSIBLE_COMPONENT_H_
 

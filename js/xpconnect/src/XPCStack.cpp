@@ -6,40 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "xpcprivate.h"
 
 class XPCJSStackFrame : public nsIStackFrame

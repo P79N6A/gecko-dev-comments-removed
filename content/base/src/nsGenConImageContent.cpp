@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsContentCreatorFunctions.h"
 #include "nsXMLElement.h"
 #include "nsImageLoadingContent.h"

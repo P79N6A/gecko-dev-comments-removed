@@ -20,6 +20,10 @@
 
 
 
+
+
+
+
 function synthesizeQueryTextContent(aOffset, aLength, aWindow)
 {
   var utils = _getDOMWindowUtils(aWindow);

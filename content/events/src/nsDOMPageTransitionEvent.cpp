@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMPageTransitionEvent.h"
 #include "nsContentUtils.h"
 #include "DictionaryHelpers.h"

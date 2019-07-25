@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_indexeddb_asyncconnectionhelper_h__
 #define mozilla_dom_indexeddb_asyncconnectionhelper_h__
 

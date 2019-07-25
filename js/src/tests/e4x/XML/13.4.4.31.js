@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.31 - XML removeNamespace()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("removeNamespace"));

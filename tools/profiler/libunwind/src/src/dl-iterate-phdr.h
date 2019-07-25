@@ -1,3 +1,7 @@
+
+
+
+
 struct dl_phdr_info {
         Elf_W(Addr)        dlpi_addr;  
          char   *dlpi_name;  

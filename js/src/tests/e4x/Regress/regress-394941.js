@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Infinite recursion should throw catchable exception';
 var BUGNUMBER = 394941;
 var actual = '';

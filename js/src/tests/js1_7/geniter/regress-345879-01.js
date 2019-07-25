@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 345879;
 var summary = 'Crash when calling a function from a generator with less arguments than its arity ';
 var actual = 'No Crash';

@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 EXPORTED_SYMBOLS = ["FeedbackManager"];
 
 const Cc = Components.classes;

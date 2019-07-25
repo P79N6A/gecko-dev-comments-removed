@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var i = 0;
 var BUGNUMBER = 220367;
 var summary = 'Regexp conformance test';

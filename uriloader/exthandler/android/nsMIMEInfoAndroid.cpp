@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsMIMEInfoAndroid.h"
 #include "AndroidBridge.h"
 #include "nsAndroidHandlerApp.h"

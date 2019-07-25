@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/Services.jsm");

@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("11.1.5 - XMLList Initializer");
 
 docfrag = <><name>Phil</name><age>35</age><hobby>skiing</hobby></>;

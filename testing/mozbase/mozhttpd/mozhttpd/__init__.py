@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from mozhttpd import MozHttpd, Request, RequestHandler, main
 from handlers import json_response
 import iface

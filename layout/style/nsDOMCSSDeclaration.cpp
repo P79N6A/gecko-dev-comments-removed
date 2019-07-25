@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMCSSDeclaration.h"
 #include "nsIDOMCSSRule.h"
 #include "nsCSSParser.h"

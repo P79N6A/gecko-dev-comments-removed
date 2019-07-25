@@ -81,38 +81,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define __STDC_FORMAT_MACROS
 #define _GNU_SOURCE 1
 #define _DARWIN_C_SOURCE 1

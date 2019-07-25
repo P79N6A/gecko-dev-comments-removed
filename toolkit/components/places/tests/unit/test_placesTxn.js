@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let bmsvc = PlacesUtils.bookmarks;
 let tagssvc = PlacesUtils.tagging;
 let annosvc = PlacesUtils.annotations;

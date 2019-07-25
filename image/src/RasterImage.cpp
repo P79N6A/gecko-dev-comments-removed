@@ -3,45 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "base/histogram.h"
 #include "nsComponentManagerUtils.h"
 #include "imgIContainerObserver.h"

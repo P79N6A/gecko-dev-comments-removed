@@ -23,39 +23,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 56883;
 var summary = 'Testing Array.prototype.toLocaleString() -';
 var actual = '';

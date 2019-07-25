@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"

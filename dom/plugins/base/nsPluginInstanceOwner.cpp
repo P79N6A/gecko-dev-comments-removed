@@ -4,46 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZ_WIDGET_QT
 #include <QWidget>
 #include <QKeyEvent>

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Cr = Components.results;
 const CC = Components.Constructor;
 const Ci = Components.interfaces;

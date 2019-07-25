@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_A11Y_ARIAGRIDACCESSIBLEWRAP_H
 #define MOZILLA_A11Y_ARIAGRIDACCESSIBLEWRAP_H
 

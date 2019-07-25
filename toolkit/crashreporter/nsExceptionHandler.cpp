@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/CrashReporterChild.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"

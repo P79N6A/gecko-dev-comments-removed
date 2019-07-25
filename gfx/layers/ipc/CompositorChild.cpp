@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "CompositorChild.h"
 #include "CompositorParent.h"
 #include "LayerManagerOGL.h"

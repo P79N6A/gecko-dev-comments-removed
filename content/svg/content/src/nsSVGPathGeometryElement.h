@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGPATHGEOMETRYELEMENT_H__
 #define __NS_SVGPATHGEOMETRYELEMENT_H__
 

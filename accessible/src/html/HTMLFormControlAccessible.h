@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_A11Y_HTMLFormControlAccessible_H_
 #define MOZILLA_A11Y_HTMLFormControlAccessible_H_
 

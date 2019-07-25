@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 387955;
 var summary = 'Do not Crash [@ JS_CallTracer]';
 var actual = 'No Crash';

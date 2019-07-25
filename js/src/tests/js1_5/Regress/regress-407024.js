@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 407024;
 var summary = 'Do not assert JSVAL_IS_NUMBER(pn3->pn_val) || JSVAL_IS_STRING(pn3->pn_val) || JSVAL_IS_BOOLEAN(pn3->pn_val)';
 var actual = 'No Crash';

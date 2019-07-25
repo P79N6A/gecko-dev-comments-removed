@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMCustomEvent.h"
 #include "nsContentUtils.h"
 #include "DictionaryHelpers.h"

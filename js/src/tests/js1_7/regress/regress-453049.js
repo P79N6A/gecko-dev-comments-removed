@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 453049;
 var summary = 'Do not assert with JIT: (*m != JSVAL_INT) || isInt32(*vp)';
 var actual = 'No Crash';

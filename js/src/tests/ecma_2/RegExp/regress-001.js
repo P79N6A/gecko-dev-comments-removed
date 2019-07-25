@@ -14,38 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "RegExp/hex-001.js";
 var VERSION = "ECMA_2";
 var TITLE   = "JS regexp anchoring on empty match bug";

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function get_test_plugin() {
   var plugins = gDirSvc.get("CurProcD", Ci.nsILocalFile);
   plugins.append("plugins");

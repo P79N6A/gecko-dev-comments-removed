@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsString.h"
 #include "nsIGfxInfo.h"
 #include "nsServiceManagerUtils.h"

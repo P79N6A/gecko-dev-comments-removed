@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 462292;
 var summary = 'Do not assert: pn->pn_op == JSOP_CALL || pn->pn_op == JSOP_EVAL';
 var actual = '';

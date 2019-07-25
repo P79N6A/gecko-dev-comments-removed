@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function doCreate(aContract, aInterface)
 {
     return Components.classes[aContract].createInstance(aInterface);

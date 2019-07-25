@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 470300;
 var summary = 'TM: Do not assert: StackBase(fp) + blockDepth == regs.sp';
 var actual = '';

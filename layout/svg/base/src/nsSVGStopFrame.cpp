@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsFrame.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMSVGStopElement.h"

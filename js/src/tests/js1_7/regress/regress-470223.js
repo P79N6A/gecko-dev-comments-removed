@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 470223;
 var summary = 'TM: Do not crash @ js_NewObjectWithGivenProto';
 var actual = '';

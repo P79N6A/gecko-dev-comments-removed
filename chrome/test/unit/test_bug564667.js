@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const UNPACKAGED_ADDON = do_get_file("data/test_bug564667");
 const PACKAGED_ADDON = do_get_file("data/test_bug564667.xpi");
 

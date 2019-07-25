@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var compactTimerId;
 var COMPACT_INTERVAL = 5000;
 var trackedObjects = {};

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsClientRect.h"
 #include "nsContentUtils.h"
 #include "nsDOMClassInfoID.h"

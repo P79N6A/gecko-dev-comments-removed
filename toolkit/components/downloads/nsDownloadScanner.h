@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 #ifndef nsDownloadScanner_h_
 #define nsDownloadScanner_h_
 

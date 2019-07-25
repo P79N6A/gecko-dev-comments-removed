@@ -5,40 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var testdata = {
   dummyid: "fuel-dummy-extension@mozilla.org",
   dummyname: "Dummy Extension",

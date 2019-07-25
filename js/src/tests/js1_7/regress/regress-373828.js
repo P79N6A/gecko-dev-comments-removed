@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 373828;
 var summary = 'Do not assert: op == JSOP_LEAVEBLOCKEXPR ? ' + 
   'fp->spbase + OBJ_BLOCK_DEPTH(cx, obj) == sp - 1 : fp->spbase + OBJ_BLOCK_DEPTH(cx, obj) == sp';

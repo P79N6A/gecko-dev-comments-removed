@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const DATA = "ZIP WRITER TEST COMMENT";
 const DATA2 = "ANOTHER ONE";
 

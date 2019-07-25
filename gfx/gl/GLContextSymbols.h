@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GLCONTEXTSYMBOLS_H_
 #define GLCONTEXTSYMBOLS_H_
 

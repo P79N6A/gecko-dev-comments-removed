@@ -10,39 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let (ios = Cc["@mozilla.org/network/io-service;1"]
            .getService(Ci.nsIIOService2)) {
   ios.manageOfflineStatus = false;

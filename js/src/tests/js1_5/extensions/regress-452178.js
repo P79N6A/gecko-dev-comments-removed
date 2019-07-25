@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452178;
 var summary = 'Do not assert with JIT: !(sprop->attrs & JSPROP_SHARED)';
 var actual = 'No Crash';

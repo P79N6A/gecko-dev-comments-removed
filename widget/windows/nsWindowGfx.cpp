@@ -21,38 +21,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/plugins/PluginInstanceParent.h"
 using mozilla::plugins::PluginInstanceParent;
 

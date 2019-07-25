@@ -43,39 +43,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "12.6.3-12";
 var VERSION = "ECMA_1";
 startTest();

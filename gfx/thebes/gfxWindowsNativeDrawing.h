@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _GFXWINDOWSNATIVEDRAWING_H_
 #define _GFXWINDOWSNATIVEDRAWING_H_
 

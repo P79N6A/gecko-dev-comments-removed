@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452742;
 var summary = 'Do not do overzealous eval inside function optimization in BindNameToSlot';
 var actual = '';

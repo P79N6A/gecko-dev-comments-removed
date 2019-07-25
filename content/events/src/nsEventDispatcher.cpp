@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsEventDispatcher.h"
 #include "nsDOMEvent.h"
 #include "nsIDOMEventTarget.h"

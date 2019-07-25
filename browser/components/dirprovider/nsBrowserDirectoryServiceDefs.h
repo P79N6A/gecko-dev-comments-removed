@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsBrowserDirectoryServiceDefs_h___
 #define nsBrowserDirectoryServiceDefs_h___
 

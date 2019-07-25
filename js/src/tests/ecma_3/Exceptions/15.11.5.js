@@ -10,36 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Error instances have no special properties beyond those inherited the Error prototype object';
 
 

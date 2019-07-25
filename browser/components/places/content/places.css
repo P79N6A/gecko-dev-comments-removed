@@ -1,3 +1,7 @@
+
+
+
+
 tree[type="places"] {
   -moz-binding: url("chrome://browser/content/places/tree.xml#places-tree");
 }

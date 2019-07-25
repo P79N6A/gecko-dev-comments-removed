@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 455605;
 var summary = 'Do not assert with JIT: "need a way to EOT now, since this is trace end": 0';
 var actual = 'No Crash';

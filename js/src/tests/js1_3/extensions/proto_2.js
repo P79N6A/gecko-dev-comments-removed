@@ -21,39 +21,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "proto_2";
 var VERSION = "JS1_3";
 var TITLE   = "new PrototypeObject";

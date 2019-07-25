@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 280769;
 var summary = 'Do not crash on overflow of 32K boundary in regexp bytecode jump offset';
 var actual = 'No Crash';

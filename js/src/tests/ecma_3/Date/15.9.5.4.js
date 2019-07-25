@@ -21,39 +21,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.9.5.4";
 var VERSION = "ECMA_3"; 
 var TITLE   = "Date.prototype.toTimeString()";

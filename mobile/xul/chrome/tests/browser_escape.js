@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use strict";
 const url1 = baseURI + "browser_blank_01.html";
 const url2 = baseURI + "browser_blank_02.html";

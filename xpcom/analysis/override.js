@@ -7,6 +7,10 @@
 
 
 
+
+
+
+
 function all_bases(c)
 {
   for each (let b in c.bases) {

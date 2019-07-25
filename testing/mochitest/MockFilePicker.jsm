@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["MockFilePicker"];
 
 const Cc = Components.classes;

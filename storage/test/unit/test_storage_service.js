@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BACKUP_FILE_NAME = "test_storage.sqlite.backup";
 
 function test_openSpecialDatabase_invalid_arg()

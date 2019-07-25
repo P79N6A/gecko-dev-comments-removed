@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMTextEvent.h"
 #include "nsContentUtils.h"
 #include "nsPrivateTextRange.h"

@@ -16,41 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const CLINE_SERVICE_CONTRACTID =
     "@mozilla.org/commandlinehandler/general-startup;1?type=chat";
 const CLINE_SERVICE_CID =

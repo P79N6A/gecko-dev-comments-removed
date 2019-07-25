@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <Carbon/Carbon.h>
 #include "nsIPlatformCharset.h"
 #include "pratom.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 338307;
 var summary = 'for (i in arguments) causes type error (JS_1_7_ALPHA_BRANCH)';
 var actual = '';

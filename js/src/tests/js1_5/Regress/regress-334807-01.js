@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 334807;
 var summary = '10.1.8 - arguments prototype is the original Object prototype';
 var actual = 'No Error';

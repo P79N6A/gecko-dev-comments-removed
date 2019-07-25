@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Cu = Components.utils;
 let tempScope = {};
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm", tempScope);

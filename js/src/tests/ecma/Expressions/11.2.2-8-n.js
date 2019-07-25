@@ -47,39 +47,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "11.2.2-8-n.js";
 var VERSION = "ECMA_1";
 startTest();

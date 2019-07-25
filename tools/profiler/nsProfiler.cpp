@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <string>
 #include <sstream>
 #ifdef MOZ_INSTRUMENT_EVENT_LOOP

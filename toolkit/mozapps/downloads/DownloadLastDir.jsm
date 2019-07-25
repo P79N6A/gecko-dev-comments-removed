@@ -23,39 +23,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const LAST_DIR_PREF = "browser.download.lastDir";
 const SAVE_PER_SITE_PREF = LAST_DIR_PREF + ".savePerSite";
 const PBSVC_CID = "@mozilla.org/privatebrowsing;1";

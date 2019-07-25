@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #endif
 EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert", "readCertPrefs", "validateCert" ];
 

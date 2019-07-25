@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SharedDIBWin.h"
 #include "gfxAlphaRecovery.h"
 #include "nsMathUtils.h"

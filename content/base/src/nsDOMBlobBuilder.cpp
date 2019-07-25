@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMBlobBuilder.h"
 #include "jsfriendapi.h"
 #include "nsAutoPtr.h"

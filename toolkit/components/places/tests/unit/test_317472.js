@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const charset = "UTF-8";
 const CHARSET_ANNO = "URIProperties/characterSet";
 

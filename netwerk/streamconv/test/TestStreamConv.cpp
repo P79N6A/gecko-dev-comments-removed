@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIServiceManager.h"
 #include "nsIComponentManager.h"
 #include "nsIComponentRegistrar.h"

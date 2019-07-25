@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const CURRENT_SCHEMA_VERSION = 20;
 
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";

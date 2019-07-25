@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGANIMATEDPATHSEGLIST_H__
 #define MOZILLA_SVGANIMATEDPATHSEGLIST_H__
 

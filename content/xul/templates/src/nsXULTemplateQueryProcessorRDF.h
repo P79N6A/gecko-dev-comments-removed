@@ -4,43 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsXULTemplateQueryProcessorRDF_h__
 #define nsXULTemplateQueryProcessorRDF_h__
 

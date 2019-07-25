@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 433279;
 var summary = 'Do not assert: pn != tc->parseContext->nodeList';
 var actual = 'No Crash';

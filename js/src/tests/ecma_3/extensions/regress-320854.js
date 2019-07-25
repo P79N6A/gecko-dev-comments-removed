@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 320854;
 var summary = 'o.hasOwnProperty("length") should not lie when o has function in proto chain';
 var actual = '';

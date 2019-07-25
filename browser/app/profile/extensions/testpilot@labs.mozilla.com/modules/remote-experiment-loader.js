@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const BASE_URL_PREF = "extensions.testpilot.indexBaseURL";
 var Cuddlefish = require("cuddlefish");
 var resolveUrl = require("url").resolve;

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 372364;
 var summary = 'Do not recurse to death on (function() { yield ([15].some([].watch)); })().next()';
 var actual = 'No Crash';

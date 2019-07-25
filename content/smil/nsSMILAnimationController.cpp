@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSMILAnimationController.h"
 #include "nsSMILCompositor.h"
 #include "nsSMILCSSProperty.h"

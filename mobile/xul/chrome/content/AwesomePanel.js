@@ -1,3 +1,7 @@
+
+
+
+
 var AwesomeScreen = {
   offset: 0.25, 
   get headers() {

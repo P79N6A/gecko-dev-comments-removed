@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsBIG5HKSCSToUnicode_h___
 #define nsBIG5HKSCSToUnicode_h___
 

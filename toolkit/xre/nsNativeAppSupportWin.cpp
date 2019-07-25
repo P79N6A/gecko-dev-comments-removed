@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNativeAppSupportBase.h"
 #include "nsNativeAppSupportWin.h"
 #include "nsAppRunner.h"

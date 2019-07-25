@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined jsjaeger_valueinfo_h__ && defined JS_METHODJIT
 #define jsjaeger_valueinfo_h__
 

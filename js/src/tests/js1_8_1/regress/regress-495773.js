@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 495773;
 var summary = 'Read upvar from trace-entry frame from JSStackFrame instead of tracing native stack';
 var actual = ''

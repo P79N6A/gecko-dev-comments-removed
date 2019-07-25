@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 308566;
 var summary = 'Do not treat octal sequence as regexp backrefs in strict mode';
 var actual = 'No error';

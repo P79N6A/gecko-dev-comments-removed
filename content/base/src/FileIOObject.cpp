@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "FileIOObject.h"
 #include "nsDOMFile.h"
 #include "nsDOMError.h"

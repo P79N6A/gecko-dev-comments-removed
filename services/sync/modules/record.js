@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ["WBORecord", "RecordManager", "Records",
                           "CryptoWrapper", "CollectionKeys", "Collection"];
 

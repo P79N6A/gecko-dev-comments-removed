@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/PCrashReporterParent.h"
 #include "mozilla/dom/TabMessageUtils.h"
 #include "nsXULAppAPI.h"

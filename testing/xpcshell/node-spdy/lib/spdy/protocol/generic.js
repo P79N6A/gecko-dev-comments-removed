@@ -3,6 +3,10 @@
 
 
 
+
+
+
+
 exports.parseHeader = function parseHeader(data) {
   var header = {
     control: (data.readUInt8(0) & 0x80) === 0x80 ? true : false,

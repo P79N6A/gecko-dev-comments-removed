@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_FONTMISSINGGLYPHS_H
 #define GFX_FONTMISSINGGLYPHS_H
 

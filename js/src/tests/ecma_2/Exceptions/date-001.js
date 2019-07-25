@@ -24,38 +24,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "date-001";
 var VERSION = "JS1_4";
 var TITLE   = "Date.prototype.toString";

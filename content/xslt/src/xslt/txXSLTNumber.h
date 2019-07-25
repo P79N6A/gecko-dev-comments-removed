@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_TXXSLTNUMBER_H
 #define TRANSFRMX_TXXSLTNUMBER_H
 

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_ISVGGLYPHFRAGMENTNODE_H__
 #define __NS_ISVGGLYPHFRAGMENTNODE_H__
 

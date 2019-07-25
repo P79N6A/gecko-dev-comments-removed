@@ -11,42 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "nsXULContentSink.h"

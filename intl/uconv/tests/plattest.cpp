@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIPlatformCharset.h"
 #include "nsILocaleService.h"
 #include "nsCOMPtr.h"

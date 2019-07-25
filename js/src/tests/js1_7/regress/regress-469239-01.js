@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 469239;
 var summary = 'TM: Do not assert: entry->kpc == (jsbytecode*) atoms[index]';
 var actual = '';

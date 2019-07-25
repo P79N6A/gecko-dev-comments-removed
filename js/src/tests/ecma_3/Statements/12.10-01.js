@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 462734;
 var summary = 'evaluating lhs "Reference" *before* evaluating rhs';
 var actual = '';

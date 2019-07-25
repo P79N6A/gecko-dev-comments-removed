@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 418504;
 var summary = 'Untagged boolean stored in a jsval in JS_ConvertValue';
 var actual = '';

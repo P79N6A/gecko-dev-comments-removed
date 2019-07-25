@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["TPS", "SYNC_WIPE_SERVER", "SYNC_RESET_CLIENT",
                         "SYNC_WIPE_CLIENT"];
 

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test()
 {
   zipW.open(tmpFile, PR_RDWR | PR_CREATE_FILE | PR_TRUNCATE);

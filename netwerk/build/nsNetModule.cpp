@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "necko-config.h"
 
 #define ALLOW_LATE_NSHTTP_H_INCLUDE 1

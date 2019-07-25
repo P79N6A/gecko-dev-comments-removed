@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "OfflineCacheUpdateChild.h"
 #include "nsOfflineCacheUpdate.h"
 #include "mozilla/dom/ContentChild.h"

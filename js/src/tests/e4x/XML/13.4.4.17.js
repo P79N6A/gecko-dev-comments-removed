@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.17 - XML inScopeNamespaces()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("inScopeNamespaces"));

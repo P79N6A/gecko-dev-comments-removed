@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Null pointer deref crash deleting XML methods";
 var BUGNUMBER = 331664;
 var actual = 'No Crash';

@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGANIMATEDPOINTLIST_H__
 #define MOZILLA_SVGANIMATEDPOINTLIST_H__
 

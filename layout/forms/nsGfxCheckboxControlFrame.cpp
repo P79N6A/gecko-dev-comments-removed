@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsGfxCheckboxControlFrame.h"
 #include "nsIContent.h"
 #include "nsCOMPtr.h"

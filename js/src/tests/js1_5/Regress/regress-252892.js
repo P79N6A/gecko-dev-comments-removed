@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 252892;
 var summary = 'for (var i in o) in heavyweight function f should define i in f\'s activation';
 var actual = '';

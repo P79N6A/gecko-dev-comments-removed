@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozGenericWordUtils.h"
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(mozGenericWordUtils)

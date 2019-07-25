@@ -1,3 +1,7 @@
+
+
+
+
 richlistitem[type="download"] {
   -moz-binding: url('chrome://mozapps/content/downloads/download.xml#download-starting');
   -moz-box-orient: vertical;

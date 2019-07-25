@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMError.h"
 #include "nsIDOMCanvasRenderingContext2D.h"
 #include "mozilla/CheckedInt.h"

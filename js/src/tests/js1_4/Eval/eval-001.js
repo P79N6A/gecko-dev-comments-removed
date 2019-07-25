@@ -33,39 +33,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "eval-001.js";
 var VERSION = "JS1_4";
 var TITLE   = "Calling eval indirectly should NOT fail in version 140";

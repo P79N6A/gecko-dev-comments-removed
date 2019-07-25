@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 351795;
 var summary = 'Do not assert: top < ss->printer->script->depth';
 var actual = 'No Crash';

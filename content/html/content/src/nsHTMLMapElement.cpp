@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLMapElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"

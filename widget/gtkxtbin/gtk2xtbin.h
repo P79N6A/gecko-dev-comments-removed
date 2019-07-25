@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-   
-
 #ifndef __GTK_XTBIN_H__
 #define __GTK_XTBIN_H__
 

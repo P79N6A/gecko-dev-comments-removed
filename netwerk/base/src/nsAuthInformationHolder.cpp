@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAuthInformationHolder.h"
 
 NS_IMPL_ISUPPORTS1(nsAuthInformationHolder, nsIAuthInformation)

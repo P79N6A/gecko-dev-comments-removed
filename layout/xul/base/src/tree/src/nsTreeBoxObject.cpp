@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsTreeBoxObject.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMXULElement.h"

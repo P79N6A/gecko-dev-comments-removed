@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/PExternalHelperAppParent.h"
 #include "nsIChannel.h"
 #include "nsIMultiPartChannel.h"

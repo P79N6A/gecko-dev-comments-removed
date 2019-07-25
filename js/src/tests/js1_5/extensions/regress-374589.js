@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 374589;
 var summary = 'Do not assert decompiling try { } catch(x if true) { } ' +
   'catch(y) { } finally { this.a.b; }';

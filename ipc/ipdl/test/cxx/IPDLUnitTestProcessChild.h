@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla__ipdltest_IPDLUnitTestThreadChild_h
 #define mozilla__ipdltest_IPDLUnitTestThreadChild_h 1
 

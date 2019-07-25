@@ -38,39 +38,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "11.5.3";
 var VERSION = "ECMA_1";
 var BUGNUMBER="111202";

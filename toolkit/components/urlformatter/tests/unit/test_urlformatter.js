@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   var formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].
                   getService(Ci.nsIURLFormatter);

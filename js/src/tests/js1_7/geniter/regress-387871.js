@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 387871;
 var summary = 'Do not assert: gen->state != JSGEN_RUNNING && gen->state != JSGEN_CLOSING';
 var actual = 'No Crash';

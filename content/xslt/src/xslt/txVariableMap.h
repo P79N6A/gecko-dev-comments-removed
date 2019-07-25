@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_VARIABLEMAP_H
 #define TRANSFRMX_VARIABLEMAP_H
 

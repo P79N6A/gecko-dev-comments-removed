@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsHTMLOptionElement.h"
 #include "nsHTMLSelectElement.h"
 #include "nsIDOMHTMLOptGroupElement.h"

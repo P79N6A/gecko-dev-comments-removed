@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __mozilla_widget_TaskbarPreviewButton_h__
 #define __mozilla_widget_TaskbarPreviewButton_h__
 

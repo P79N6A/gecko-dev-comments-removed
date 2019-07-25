@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <gtk/gtk.h>
 #include <gtk/gtkprintunixdialog.h>
 #include <stdlib.h>

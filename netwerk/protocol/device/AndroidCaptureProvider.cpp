@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "base/basictypes.h"
 #include "AndroidCaptureProvider.h"
 #include "nsXULAppAPI.h"

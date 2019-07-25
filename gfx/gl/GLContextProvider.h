@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GLCONTEXTPROVIDER_H_
 #define GLCONTEXTPROVIDER_H_
 

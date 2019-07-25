@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 366396;
 var summary = 'Do not assert !SPROP_HAS_STUB_GETTER on Setter with %=';
 var actual = 'No Crash';

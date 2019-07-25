@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 try {
   var bhist = Cc["@mozilla.org/browser/global-history;2"]
                 .getService(Ci.nsIBrowserHistory);

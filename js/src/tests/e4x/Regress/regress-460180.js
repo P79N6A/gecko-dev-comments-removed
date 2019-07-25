@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Do not crash with if (false || false || <x/>) {}';
 var BUGNUMBER = 460180;
 var actual = '';

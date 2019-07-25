@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZSTORAGESTATEMENTJSHELPER_H
 #define MOZSTORAGESTATEMENTJSHELPER_H
 

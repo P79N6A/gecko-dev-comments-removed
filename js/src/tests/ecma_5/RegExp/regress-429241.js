@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gTestfile = 'regress-429241.js';
 var BUGNUMBER = 429241;
 var summary = '\\x or \\u followed by too few hex digits';

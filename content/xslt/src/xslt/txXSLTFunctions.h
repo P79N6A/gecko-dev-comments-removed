@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_XSLT_FUNCTIONS_H
 #define TRANSFRMX_XSLT_FUNCTIONS_H
 

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGContainerFrame.h"
 #include "nsISVGSVGFrame.h"
 #include "gfxMatrix.h"

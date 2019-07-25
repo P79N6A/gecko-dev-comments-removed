@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TestCommon.h"
 #include "nsIComponentRegistrar.h"
 #include "nsPISocketTransportService.h"

@@ -7,37 +7,5 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
 StackWalkInitCriticalAddress(void);

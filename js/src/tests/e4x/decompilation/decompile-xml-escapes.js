@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER     = "352285";
 var summary = "Decompiler escapes line breaks/backslashes in E4X literals";
 var actual, expect;

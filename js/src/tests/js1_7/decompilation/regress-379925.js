@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 379925;
 var summary = 'Do not Assert: pc[oplen] == JSOP_POP || pc[oplen] == JSOP_SETSP';
 var actual = '';

@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsNoDataProtocolContentPolicy_h__
 #define nsNoDataProtocolContentPolicy_h__
 

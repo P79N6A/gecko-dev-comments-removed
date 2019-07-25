@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 476940;
 var summary = 'Section 15.10.4.1 - RegExp with invalid flags';
 var actual = '';

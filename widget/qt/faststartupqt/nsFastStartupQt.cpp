@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <QApplication>
 #include "nsQAppInstance.h"
 #include <QtOpenGL/QGLWidget>

@@ -3,43 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxFT2FontBase.h"
 #include "gfxFT2Utils.h"
 #include FT_TRUETYPE_TAGS_H

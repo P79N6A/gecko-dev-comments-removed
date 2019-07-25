@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const MULTIPLE_CHOICE = 0;
 const CHECK_BOXES_WITH_FREE_ENTRY = 1;
 const SCALE = 2;

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 351794;
 var summary = 'Do not assert: CG_NOTE_COUNT(cg) == 0 || ' +
   'CG_LAST_NOTE_OFFSET(cg) != CG_OFFSET(cg)';

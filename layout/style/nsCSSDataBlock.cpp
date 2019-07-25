@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCSSDataBlock.h"
 #include "mozilla/css/Declaration.h"
 #include "nsRuleData.h"

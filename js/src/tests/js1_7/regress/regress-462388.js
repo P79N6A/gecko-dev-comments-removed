@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 462388;
 var summary = 'Do not assert: JSVAL_TAG(v) == JSVAL_STRING';
 var actual = '';

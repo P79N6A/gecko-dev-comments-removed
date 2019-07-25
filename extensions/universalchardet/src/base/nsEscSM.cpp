@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCodingStateMachine.h"
 
 static const PRUint32 HZ_cls[ 256 / 8 ] = {

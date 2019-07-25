@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "unicpriv.h"
 #define CHK_GR94(b) ( (PRUint8) 0xa0 < (PRUint8) (b) && (PRUint8) (b) < (PRUint8) 0xff )
 #define CHK_GR94_2Byte(b1,b2) (CHK_GR94(b1) && CHK_GR94(b2))

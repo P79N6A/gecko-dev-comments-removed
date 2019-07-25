@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsB2GProtocolHandler.h"
 #include "nsDeviceChannel.h"
 #include "nsNetCID.h"

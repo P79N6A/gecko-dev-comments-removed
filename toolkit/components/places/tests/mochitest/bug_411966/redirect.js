@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 
 const Ci = Components.interfaces;

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352605;
 var summary = 'Do not assert with |yield|, nested xml-filtering predicate';
 var actual = 'No Crash';

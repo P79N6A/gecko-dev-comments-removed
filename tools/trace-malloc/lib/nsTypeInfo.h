@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef trace_malloc_nsTypeInfo_h_
 #define trace_malloc_nsTypeInfo_h_
 

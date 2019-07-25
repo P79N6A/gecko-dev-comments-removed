@@ -6,42 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_URI = "http://example.com/browser/browser/devtools/" +
                  "webconsole/test/" +
                  "test-bug-646025-console-file-location.html";

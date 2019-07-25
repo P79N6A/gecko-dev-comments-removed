@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const INSTALLERROR_SUCCESS               = 0;
 const INSTALLERROR_INCOMPATIBLE_VERSION  = -3;
 const INSTALLERROR_BLOCKLISTED           = -6;

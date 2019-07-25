@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLDataListElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMEventTarget.h"

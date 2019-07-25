@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const DIRNAME1 = "test";
 const DIRNAME1_CORRECT = "test/";
 const DIRNAME2 = "test2/";

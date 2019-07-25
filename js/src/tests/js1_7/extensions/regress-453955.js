@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 453955;
 var summary = 'Do not assert: sprop->setter != js_watch_set || pobj != obj';
 var actual = '';

@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let bg = Cc["@mozilla.org/browser/browserglue;1"].
          getService(Ci.nsIBrowserGlue);
 

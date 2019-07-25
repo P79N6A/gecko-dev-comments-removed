@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 [
   ["AllPagesList", "popup_autocomplete", "cmd_openLocation"],
   ["HistoryList", "history-items", "cmd_history"],

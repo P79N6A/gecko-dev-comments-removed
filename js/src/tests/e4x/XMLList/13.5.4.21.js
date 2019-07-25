@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.5.4.21 - XMLList toXMLString()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("toXMLString"));

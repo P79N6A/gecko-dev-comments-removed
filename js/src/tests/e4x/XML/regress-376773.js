@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 376773;
 var summary = 'xmlsimple.stringmethod === xmlsimple.function::stringmethod';
 var actual = '';

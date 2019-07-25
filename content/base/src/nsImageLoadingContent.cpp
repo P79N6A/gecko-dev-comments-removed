@@ -10,40 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsImageLoadingContent.h"
 #include "nsAutoPtr.h"
 #include "nsContentErrors.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 465249;
 var summary = 'Do not assert: (m != JSVAL_INT) || isInt32(*vp)';
 var actual = '';

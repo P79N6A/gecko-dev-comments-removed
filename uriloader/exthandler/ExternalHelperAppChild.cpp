@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ExternalHelperAppChild.h"
 #include "nsIInputStream.h"
 #include "nsIRequest.h"

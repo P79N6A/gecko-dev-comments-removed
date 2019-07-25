@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGPathSegUtils.h"
 #include "nsSVGElement.h"
 #include "nsSVGSVGElement.h"

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 474771;
 var summary = 'TM: do not halt execution with gczeal, prototype mangling, for..in';
 var actual = '';

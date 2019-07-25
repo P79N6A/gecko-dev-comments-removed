@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352846;
 var summary = 'Passing unrooted value to OBJ_DEFAULT_VALUE is GC hazard';
 var actual = 'No Crash';

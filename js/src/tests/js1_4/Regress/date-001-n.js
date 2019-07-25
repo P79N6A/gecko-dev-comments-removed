@@ -13,39 +13,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "date-001-n.js";
 var VERSION = "JS1_4";
 var TITLE   = "Regression test case for 299903";

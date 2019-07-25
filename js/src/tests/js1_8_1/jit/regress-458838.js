@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 458838;
 var summary = 'TM: do not fall off trace when nested function accesses var of outer function';
 var actual = '';

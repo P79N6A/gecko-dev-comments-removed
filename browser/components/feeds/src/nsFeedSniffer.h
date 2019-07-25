@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIContentSniffer.h"
 #include "nsIStreamListener.h"
 #include "nsStringAPI.h"

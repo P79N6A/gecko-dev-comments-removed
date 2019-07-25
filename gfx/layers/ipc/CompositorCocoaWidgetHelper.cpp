@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "CompositorParent.h"
 #include "CompositorCocoaWidgetHelper.h"
 #include "nsDebug.h"

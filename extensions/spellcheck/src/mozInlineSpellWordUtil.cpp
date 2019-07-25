@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozInlineSpellWordUtil.h"
 #include "nsDebug.h"
 #include "nsIAtom.h"

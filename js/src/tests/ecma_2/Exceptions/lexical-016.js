@@ -23,38 +23,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "lexical-016";
 var VERSION = "JS1_4";
 var TITLE   = "Future Reserved Words";

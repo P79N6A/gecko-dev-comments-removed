@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
 #include "nsCOMPtr.h"

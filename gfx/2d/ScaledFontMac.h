@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_SCALEDFONTMAC_H_
 #define MOZILLA_GFX_SCALEDFONTMAC_H_
 

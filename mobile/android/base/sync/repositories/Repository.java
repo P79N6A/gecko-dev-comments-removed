@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories;
 
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionCleanDelegate;

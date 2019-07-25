@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_XPATHRESULTCOMPARATOR_H
 #define TRANSFRMX_XPATHRESULTCOMPARATOR_H
 

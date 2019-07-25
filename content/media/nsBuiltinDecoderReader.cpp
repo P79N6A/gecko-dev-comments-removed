@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
 #include "nsBuiltinDecoderStateMachine.h"

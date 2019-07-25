@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 469405;
 var summary = 'Do not assert: !JSVAL_IS_PRIMITIVE(regs.sp[-2])';
 var actual = '';

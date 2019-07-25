@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIDOMHTMLLinkElement.h"
 #include "nsIDOMLinkStyle.h"
 #include "nsGenericHTMLElement.h"

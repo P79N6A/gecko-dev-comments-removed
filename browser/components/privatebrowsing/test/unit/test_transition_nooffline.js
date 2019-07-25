@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test_on_service() {
   
   var pb = Cc[PRIVATEBROWSING_CONTRACT_ID].

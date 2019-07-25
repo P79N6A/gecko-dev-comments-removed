@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 119909;
 var summary = "Shouldn't crash on regexps with many nested parentheses";
 var NO_BACKREFS = false;

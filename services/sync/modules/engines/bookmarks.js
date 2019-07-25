@@ -2,43 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ['BookmarksEngine', "PlacesItem", "Bookmark",
                           "BookmarkFolder", "BookmarkQuery",
                           "Livemark", "BookmarkSeparator"];

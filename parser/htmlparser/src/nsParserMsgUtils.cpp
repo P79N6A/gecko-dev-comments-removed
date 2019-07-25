@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIServiceManager.h"
 #include "nsIStringBundle.h"
 #include "nsXPIDLString.h"

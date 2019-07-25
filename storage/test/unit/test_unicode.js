@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const LATIN1_AE = "\xc6"; 
 const LATIN1_ae = "\xe6";  
 

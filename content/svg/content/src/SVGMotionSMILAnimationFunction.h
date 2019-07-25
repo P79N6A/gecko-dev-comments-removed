@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 #define MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 

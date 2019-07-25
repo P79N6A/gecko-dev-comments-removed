@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "prdtoa.h"
 
 #ifdef XPCOM_STRING_CONSTRUCTOR_OUT_OF_LINE

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_SCALEDFONTBASE_H_
 #define MOZILLA_GFX_SCALEDFONTBASE_H_
 

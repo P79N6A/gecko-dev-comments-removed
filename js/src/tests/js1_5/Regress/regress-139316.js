@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 139316;
 var summary = 'Do not crash in js_ReportIsNotDefined()';
 var actual = 'No Crash';

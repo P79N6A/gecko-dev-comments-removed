@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from __future__ import with_statement
 import glob, logging, os, platform, shutil, subprocess, sys, tempfile, urllib2, zipfile
 import re

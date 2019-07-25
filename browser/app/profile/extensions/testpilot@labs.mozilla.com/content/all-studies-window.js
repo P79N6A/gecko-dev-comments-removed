@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const NO_STUDIES_IMG = "chrome://testpilot/skin/testPilot_200x200.png";
 const PROPOSE_STUDY_URL =
   "https://wiki.mozilla.org/Labs/Test_Pilot#For_researchers";

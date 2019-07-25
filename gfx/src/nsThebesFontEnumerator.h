@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NSTHEBESFONTENUMERATOR_H_
 #define _NSTHEBESFONTENUMERATOR_H_
 

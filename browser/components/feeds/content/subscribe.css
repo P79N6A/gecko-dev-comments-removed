@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #feedSubscribeLine {
   -moz-binding: url(subscribe.xml#feedreaderUI);
 }

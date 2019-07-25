@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 309925;
 var summary = 'Correctly parse Date strings with HH:MM';
 var actual = new Date('Sep 24, 11:58 105') + '';

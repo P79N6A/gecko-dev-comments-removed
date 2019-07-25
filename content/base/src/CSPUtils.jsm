@@ -11,37 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ["CSPRep", "CSPSourceList", "CSPSource", 
                         "CSPHost", "CSPWarning", "CSPError", "CSPdebug"];
 

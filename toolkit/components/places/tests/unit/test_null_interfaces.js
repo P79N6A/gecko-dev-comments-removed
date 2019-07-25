@@ -15,36 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let _ = function(some, debug, text, to) print(Array.slice(arguments).join(" "));
 
 _("Make an array of services to test, each specifying a class id, interface,",

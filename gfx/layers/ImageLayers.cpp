@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/ipc/CrossProcessMutex.h"
 #include "ImageLayers.h"

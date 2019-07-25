@@ -6,41 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_NETWORK_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-network.html" + "?_date=" + Date.now();
 
 function test() {

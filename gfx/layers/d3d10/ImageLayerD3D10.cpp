@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ImageLayerD3D10.h"
 #include "gfxImageSurface.h"
 #include "gfxD2DSurface.h"

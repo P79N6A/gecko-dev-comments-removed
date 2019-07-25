@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 455981;
 var summary = 'Do not assert: entry->localKind == JSLOCAL_ARG';
 var actual = '';

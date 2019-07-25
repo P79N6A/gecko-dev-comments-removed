@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ContainerLayerD3D10.h"
 #include "nsAlgorithm.h"
 #include "gfxUtils.h"

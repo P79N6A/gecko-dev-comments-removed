@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 329530;
 var summary = 'Do not crash when calling toString on a deeply nested function';
 var actual = 'No Crash';

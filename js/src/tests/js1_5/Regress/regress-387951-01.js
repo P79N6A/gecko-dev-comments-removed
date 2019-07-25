@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 387951;
 var summary = 'Do not assert: cg->stackDepth >= 0';
 var actual = 'No Crash';

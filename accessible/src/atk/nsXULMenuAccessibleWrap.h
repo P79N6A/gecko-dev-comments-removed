@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __nsXULMenuAccessibleWrap_h__
 #define __nsXULMenuAccessibleWrap_h__
 

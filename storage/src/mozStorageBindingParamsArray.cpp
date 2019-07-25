@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozStorageBindingParamsArray.h"
 #include "mozStorageBindingParams.h"
 #include "StorageBaseStatementInternal.h"

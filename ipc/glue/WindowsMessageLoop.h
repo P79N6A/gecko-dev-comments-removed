@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef IPC_GLUE_WINDOWSMESSAGELOOP_H
 #define IPC_GLUE_WINDOWSMESSAGELOOP_H
 

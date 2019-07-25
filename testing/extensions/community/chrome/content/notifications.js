@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 document.addEventListener('load', function() {
   window.setInterval(qaNotifications.updateNotificationStore(), 3600000);
 }, false)

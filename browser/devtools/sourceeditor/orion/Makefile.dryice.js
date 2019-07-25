@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var copy = require('dryice').copy;
 
 const ORION_EDITOR = "org.eclipse.orion.client.editor/web";

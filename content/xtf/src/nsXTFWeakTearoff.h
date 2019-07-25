@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_XTFWEAKTEAROFF_H__
 #define __NS_XTFWEAKTEAROFF_H__
 

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var installLocation = gProfD.clone();
 installLocation.append("baddir");
 installLocation.create(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0664);

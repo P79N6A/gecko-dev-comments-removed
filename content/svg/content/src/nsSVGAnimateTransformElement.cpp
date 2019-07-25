@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGAnimationElement.h"
 #include "nsIDOMSVGAnimateTransformElement.h"
 #include "nsSVGEnum.h"

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef TRANSFRMX_TXSTYLESHEETCOMPILER_H
 #define TRANSFRMX_TXSTYLESHEETCOMPILER_H
 

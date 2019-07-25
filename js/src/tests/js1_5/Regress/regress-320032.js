@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 320032;
 var summary = 'Parenthesization should not dereference ECMA Reference type';
 var actual = 'No error';

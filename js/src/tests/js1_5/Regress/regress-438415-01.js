@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 438415;
 var summary = 'Do not assert: *vp != JSVAL_HOLE';
 var actual = 'No Crash';

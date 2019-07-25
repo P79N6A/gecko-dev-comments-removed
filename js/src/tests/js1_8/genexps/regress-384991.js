@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 384991;
 var summary = ' w(yield) should not cause "yield expression must be parenthesized" syntax error';
 var actual = '';

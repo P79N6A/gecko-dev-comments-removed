@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 do_load_httpd_js();
 
 Components.utils.import("resource://gre/modules/NetUtil.jsm");

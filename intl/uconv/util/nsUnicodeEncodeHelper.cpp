@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "pratom.h"
 #include "unicpriv.h"
 #include "nsIUnicodeEncoder.h"

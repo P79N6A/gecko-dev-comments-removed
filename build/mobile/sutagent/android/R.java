@@ -5,6 +5,10 @@
 
 
 
+
+
+
+
 package com.mozilla.SUTAgentAndroid;
 
 public final class R {

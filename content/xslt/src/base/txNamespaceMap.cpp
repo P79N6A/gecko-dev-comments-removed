@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "txNamespaceMap.h"
 #include "nsGkAtoms.h"
 #include "txXPathNode.h"

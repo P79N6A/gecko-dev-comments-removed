@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 167658;
 var summary = 'Do not crash due to js_NewRegExp initialization';
 var actual = 'No Crash';

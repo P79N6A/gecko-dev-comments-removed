@@ -3,36 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_D2DSURFACE_H
 #define GFX_D2DSURFACE_H
 

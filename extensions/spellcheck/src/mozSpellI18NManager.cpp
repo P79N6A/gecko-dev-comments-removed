@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozSpellI18NManager.h"
 #include "mozEnglishWordUtils.h"
 #include "mozGenericWordUtils.h"

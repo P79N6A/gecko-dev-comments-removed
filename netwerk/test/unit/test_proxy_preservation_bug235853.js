@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 do_load_httpd_js();
 
 var ios = Components.classes["@mozilla.org/network/io-service;1"]

@@ -19,38 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function assertValidHeader(fieldName, fieldValue, headers)
 {
   try

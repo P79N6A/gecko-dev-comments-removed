@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsContentPermissionHelper.h"
 #include "nsIContentPermissionPrompt.h"
 #include "nsCOMPtr.h"

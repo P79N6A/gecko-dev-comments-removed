@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 443569;
 var summary = 'Do not assert: OBJ_IS_NATIVE(obj)';
 var actual = 'No Crash';

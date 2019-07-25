@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452703;
 var summary = 'Do not assert with JIT: rmask(rr)&FpRegs';
 var actual = 'No Crash';

@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Regression - Do not crash when searching large e4x tree";
 var BUGNUMBER = 308111;
 var actual = 'No Crash';

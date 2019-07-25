@@ -6,41 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const TEST_DUPLICATE_ERROR_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-duplicate-error.html";
 
 function test() {

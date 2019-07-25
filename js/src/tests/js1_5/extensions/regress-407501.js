@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 407501;
 var summary = 'JSOP_NEWINIT lacks SAVE_SP_AND_PC ';
 var actual = 'No Crash';

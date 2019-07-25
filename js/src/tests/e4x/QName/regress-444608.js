@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = '13.3 QNames - call constructors directly';
 var BUGNUMBER = 444608;
 var actual = 'No Crash';

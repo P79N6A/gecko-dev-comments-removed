@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const HOURS_TO_MINUTES = 60;
 const MINUTES_TO_SECONDS = 60;
 const SECONDS_TO_MILLISECONDS = 1000;

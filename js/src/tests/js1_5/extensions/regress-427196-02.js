@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 427196;
 var summary = 'Do not assert: OBJ_SCOPE(pobj)->object == pobj';
 var actual = '';

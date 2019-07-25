@@ -35,38 +35,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "String/match-003.js";
 var VERSION = "ECMA_2";
 var TITLE   = "String.prototype.match( regexp )";

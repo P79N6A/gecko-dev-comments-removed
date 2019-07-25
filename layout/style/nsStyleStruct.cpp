@@ -8,43 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsStyleStruct.h"
 #include "nsStyleStructInlines.h"
 #include "nsStyleConsts.h"

@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsINameSpaceManager.h"
 #include "nsMathMLFrame.h"
 #include "nsMathMLChar.h"

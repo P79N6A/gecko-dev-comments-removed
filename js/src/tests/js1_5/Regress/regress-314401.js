@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 314401;
 var summary = 'setTimeout(eval,0,"",null)|setTimeout(Script,0,"",null) should not crash';
 var actual = 'No Crash';

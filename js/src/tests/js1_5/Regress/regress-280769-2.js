@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 280769;
 var summary = 'Do not overflow 64K boundary in treeDepth';
 var actual = 'No Crash';

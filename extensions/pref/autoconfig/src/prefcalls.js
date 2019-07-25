@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsILDAPURL = Components.interfaces.nsILDAPURL;
 const LDAPURLContractID = "@mozilla.org/network/ldap-url;1";
 const nsILDAPSyncQuery = Components.interfaces.nsILDAPSyncQuery;

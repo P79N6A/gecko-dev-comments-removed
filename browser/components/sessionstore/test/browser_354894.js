@@ -71,40 +71,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function browserWindowsCount(expected, msg) {
   if (typeof expected == "number")
     expected = [expected, expected];

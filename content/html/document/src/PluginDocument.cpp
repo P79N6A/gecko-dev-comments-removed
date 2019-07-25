@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "MediaDocument.h"
 #include "nsIPluginDocument.h"
 #include "nsGkAtoms.h"

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef mozilla_StartupTimeline_Event
 mozilla_StartupTimeline_Event(PROCESS_CREATION, "process")
 mozilla_StartupTimeline_Event(MAIN, "main")

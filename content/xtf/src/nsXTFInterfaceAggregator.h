@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_XTFINTERFACEAGGREGATOR_H__
 #define __NS_XTFINTERFACEAGGREGATOR_H__
 

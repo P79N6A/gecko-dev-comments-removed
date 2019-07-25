@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 468711;
 var summary = 'TM: Do not assert: !JS_ON_TRACE(cx)';
 var actual = '';

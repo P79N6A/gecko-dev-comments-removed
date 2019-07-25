@@ -1,3 +1,7 @@
+
+
+
+
 extern "C" int mult(int l, int r);
 
 extern "C" {

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from mozrunner import FirefoxRunner
 from mozprofile import FirefoxProfile
 from optparse import OptionParser

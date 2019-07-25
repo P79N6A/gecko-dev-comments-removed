@@ -6,38 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 381374;
 var summary = 'js_AddScopeProperty - overwrite property with watchpoint';
 var actual = '';

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGFRAGMENTIDENTIFIER_H__
 #define MOZILLA_SVGFRAGMENTIDENTIFIER_H__
 

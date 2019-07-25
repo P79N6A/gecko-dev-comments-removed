@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define NS_XREMOTECLIENT_CID                         \
 { 0xcfae5900,                                        \
   0x1dd1,                                            \

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAndroidNetworkLinkService.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"

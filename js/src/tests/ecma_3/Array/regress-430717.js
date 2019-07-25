@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 430717;
 var summary = 'Dense Arrays should inherit deleted elements from Array.prototype';
 var actual = '';

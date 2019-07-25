@@ -11,38 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "instanceof";       
 var VERSION = "ECMA_2"; 
 var TITLE   = "Regression test for Bugzilla #7635";       

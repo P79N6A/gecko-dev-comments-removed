@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() { 
     var tm = Components.classes["@mozilla.org/thread-manager;1"].getService();
     var thr = tm.newThread(0);

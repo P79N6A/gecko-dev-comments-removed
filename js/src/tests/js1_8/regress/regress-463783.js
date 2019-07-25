@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 463783;
 var summary = 'TM: Do not assert: "need a way to EOT now, since this is trace end": 0';
 var actual = '';

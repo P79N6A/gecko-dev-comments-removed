@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var parser = new DOMParser();
 var methodExpr = (new XPathEvaluator).createExpression("xsl:output/@method",
     {

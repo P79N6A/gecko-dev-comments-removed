@@ -8,41 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function reportFailure (section, msg)
 {
     msg = inSection(section)+"\n"+msg;

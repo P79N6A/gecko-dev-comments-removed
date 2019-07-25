@@ -18,38 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "dowhile-005";
 var VERSION = "ECMA_2";
 var TITLE   = "do...while with a labeled continue statement";

@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsScreenManagerGtk.h"
 #include "nsScreenGtk.h"
 #include "nsIComponentManager.h"

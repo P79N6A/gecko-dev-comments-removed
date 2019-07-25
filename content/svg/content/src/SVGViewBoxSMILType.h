@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGVIEWBOXSMILTYPE_H_
 #define MOZILLA_SVGVIEWBOXSMILTYPE_H_
 

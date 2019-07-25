@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(MOZ_WIDGET_GTK2)
 #include "gfxPlatformGtk.h"
 #define gfxToolkitPlatform gfxPlatformGtk

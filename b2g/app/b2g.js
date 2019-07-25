@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #filter substitution
 
 pref("toolkit.defaultChromeURI", "chrome://browser/content/shell.xul");

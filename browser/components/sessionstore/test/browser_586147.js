@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function observeOneRestore(callback) {
   let topic = "sessionstore-browser-state-restored";
   Services.obs.addObserver(function() {

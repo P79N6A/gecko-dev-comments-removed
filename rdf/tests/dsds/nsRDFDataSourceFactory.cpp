@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIGenericFactory.h"
 #include "nsRDFDataSourceDS.h"
 #include "nsIComponentManager.h"

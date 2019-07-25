@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var tabPreviews = {
   aspectRatio: 0.5625, 
   init: function tabPreviews_init() {

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 '''expandlibs-exec.py applies expandlibs rules, and some more (see below) to
 a given command line, and executes that command line with the expanded
 arguments.

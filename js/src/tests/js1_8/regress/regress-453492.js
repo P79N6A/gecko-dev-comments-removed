@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 453492;
 var summary = 'Do not assert: op == JSOP_ENUMELEM || op == JSOP_ENUMCONSTELEM';
 var actual = '';

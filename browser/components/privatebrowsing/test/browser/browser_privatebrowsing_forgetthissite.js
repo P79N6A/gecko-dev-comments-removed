@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function waitForClearHistory(aCallback) {
   const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
   let observer = {

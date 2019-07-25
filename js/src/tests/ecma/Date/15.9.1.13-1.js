@@ -20,39 +20,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 new TestCase( SECTION,
               "MakeDate(Number.POSITIVE_INFINITY, 0)",
               Number.NaN,

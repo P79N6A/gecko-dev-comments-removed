@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 __all__ = ['Runner', 'ThunderbirdRunner', 'FirefoxRunner', 'create_runner', 'CLI', 'cli']
 
 import os

@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "../TestHarness.h"
 #include "nsEmbedString.h"
 #include "nsILocalFile.h"

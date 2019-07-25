@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCookiePromptService.h"
 #include "nsICookie.h"
 #include "nsICookieAcceptDialog.h"

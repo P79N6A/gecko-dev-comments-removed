@@ -1,38 +1,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var cps = Cc["@mozilla.org/content-pref/service;1"].
           getService(Ci.nsIContentPrefService);
 var uri = ContentPrefTest.getURI("http://www.example.com/");

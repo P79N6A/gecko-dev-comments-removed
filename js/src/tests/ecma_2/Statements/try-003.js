@@ -14,38 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "try-003";
 var VERSION = "ECMA_2";
 var TITLE   = "The try statement";

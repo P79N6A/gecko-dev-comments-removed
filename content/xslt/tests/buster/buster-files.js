@@ -3,40 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const kFileOutStreamCID = "@mozilla.org/network/file-output-stream;1";
 const nsIFileOutputStream = Components.interfaces.nsIFileOutputStream;
 

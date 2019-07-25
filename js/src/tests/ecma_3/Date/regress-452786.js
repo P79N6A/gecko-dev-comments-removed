@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452786;
 var summary = 'Do not crash with (new Date()).getMonth.call(new Function())';
 var actual = '';

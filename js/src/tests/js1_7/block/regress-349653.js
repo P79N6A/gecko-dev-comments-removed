@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 349653;
 var summary = 'Do not assert: OBJ_GET_CLASS(cx, obj) == &js_ArrayClass';
 var actual = 'No Crash';

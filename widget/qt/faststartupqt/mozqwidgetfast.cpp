@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <QtCore/QUrl>
 #include "mozqwidgetfast.h"
 #include "nsFastStartupQt.h"

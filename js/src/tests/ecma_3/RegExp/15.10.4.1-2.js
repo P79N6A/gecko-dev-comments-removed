@@ -41,39 +41,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = '61266';
 var summary = 'Passing a RegExp object to a RegExp() constructor';
 var statprefix = 'Applying RegExp() twice to pattern ';

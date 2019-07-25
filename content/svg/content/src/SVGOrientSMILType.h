@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SVGORIENTSMILTYPE_H_
 #define MOZILLA_SVGORIENTSMILTYPE_H_
 

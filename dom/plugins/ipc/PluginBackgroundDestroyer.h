@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef dom_plugins_PluginBackgroundDestroyer
 #define dom_plugins_PluginBackgroundDestroyer
 

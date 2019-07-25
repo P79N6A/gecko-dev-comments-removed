@@ -7,39 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsXMLNameSpaceMap.h"
 #include "nsINameSpaceManager.h"
 #include "nsContentUtils.h"

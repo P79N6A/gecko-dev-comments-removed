@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_IMAGELIB_ENDIAN_H_
 #define MOZILLA_IMAGELIB_ENDIAN_H_
 

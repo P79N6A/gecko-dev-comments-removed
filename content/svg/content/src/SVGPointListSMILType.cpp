@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGPointListSMILType.h"
 #include "nsSMILValue.h"
 #include "SVGPointList.h"

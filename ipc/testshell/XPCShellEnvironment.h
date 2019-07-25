@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _IPC_TESTSHELL_XPCSHELLENVIRONMENT_H_
 #define _IPC_TESTSHELL_XPCSHELLENVIRONMENT_H_
 

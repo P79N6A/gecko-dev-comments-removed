@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'E4X - Do not crash on XML initializer <b{b}>';
 var BUGNUMBER = 318922;
 var actual = 'No Crash';

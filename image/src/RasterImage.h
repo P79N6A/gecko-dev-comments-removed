@@ -14,42 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_imagelib_RasterImage_h_
 #define mozilla_imagelib_RasterImage_h_
 

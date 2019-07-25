@@ -3,35 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef ForceDiscreteGPUHelperCGL_h_
 #define ForceDiscreteGPUHelperCGL_h_
 

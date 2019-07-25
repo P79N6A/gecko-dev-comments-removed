@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "13.4.4.12 - XML Descendants";
 var BUGNUMBER = 289117;
 var actual = '';

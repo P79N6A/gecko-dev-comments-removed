@@ -24,38 +24,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 HTML_ENTITY(nbsp, 160)
 HTML_ENTITY(iexcl, 161)
 HTML_ENTITY(cent, 162)

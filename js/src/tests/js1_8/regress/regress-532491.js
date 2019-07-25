@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 466128;
 var summary = 'Assertion failure: staticLevel == script->staticLevel, at ../jsobj.cpp';
 var actual = '';

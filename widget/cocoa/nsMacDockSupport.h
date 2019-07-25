@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIMacDockSupport.h"
 #include "nsIStandaloneNativeMenu.h"
 #include "nsCOMPtr.h"

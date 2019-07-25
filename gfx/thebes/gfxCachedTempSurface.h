@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef GFX_CACHED_TEMP_SURFACE_H
 #define GFX_CACHED_TEMP_SURFACE_H
 

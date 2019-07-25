@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
      
 #ifndef MOZILLA_GFX_DRAWTARGETDUAL_H_
 #define MOZILLA_GFX_DRAWTARGETDUAL_H_

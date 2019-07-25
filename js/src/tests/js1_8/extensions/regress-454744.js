@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 454744;
 var summary = 'Do not assert with JIT: PCVAL_IS_SPROP(entry->vword)';
 var actual = 'No Crash';

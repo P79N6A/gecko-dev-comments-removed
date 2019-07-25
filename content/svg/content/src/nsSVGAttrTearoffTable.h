@@ -3,34 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGATTRTEAROFFTABLE_H_
 #define NS_SVGATTRTEAROFFTABLE_H_
 

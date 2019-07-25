@@ -2,43 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 __all__ = ['Profile', 'FirefoxProfile', 'ThunderbirdProfile']
 
 import os

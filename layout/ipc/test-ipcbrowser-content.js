@@ -1,3 +1,7 @@
+
+
+
+
 function windowUtils() {
     return content.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                .getInterface(Components.interfaces.nsIDOMWindowUtils);

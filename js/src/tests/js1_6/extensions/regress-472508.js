@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 472508;
 var summary = 'TM: Do not crash @ TraceRecorder::emitTreeCall';
 var actual = '';

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGStylableElement.h"
 #include "nsGkAtoms.h"
 #include "nsDOMCSSDeclaration.h"

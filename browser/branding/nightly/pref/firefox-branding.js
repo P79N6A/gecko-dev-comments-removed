@@ -1,3 +1,7 @@
+
+
+
+
 pref("startup.homepage_override_url","http://www.mozilla.org/projects/%APP%/%VERSION%/whatsnew/?oldversion=%OLD_VERSION%");
 pref("startup.homepage_welcome_url","http://www.mozilla.org/projects/%APP%/%VERSION%/firstrun/");
 

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 457778;
 var summary = 'Do not assert with JIT: cond->isCond()';
 var actual = 'No Crash';

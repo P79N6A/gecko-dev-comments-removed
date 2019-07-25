@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let gTabRestrictChar = prefs.getCharPref("browser.urlbar.restrict.openpage");
 
 let kSearchParam = "enable-actions";

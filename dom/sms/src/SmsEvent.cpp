@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsEvent.h"
 #include "nsIDOMClassInfo.h"
 #include "nsIDOMSmsMessage.h"

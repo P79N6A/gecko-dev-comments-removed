@@ -15,38 +15,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "while-001";
 var VERSION = "ECMA_2";
 var TITLE   = "while statement";

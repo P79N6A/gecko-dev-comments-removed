@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER     = "(none)";
 var summary = "Array comprehensions evens example from http://developer.mozilla.org/en/docs/New_in_JavaScript_1.7"
 var actual, expect;

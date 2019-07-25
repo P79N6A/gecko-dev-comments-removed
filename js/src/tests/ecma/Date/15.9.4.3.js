@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "15.9.4.3";
 var TITLE = "Date.UTC( year, month, date, hours, minutes, seconds, ms )";
 

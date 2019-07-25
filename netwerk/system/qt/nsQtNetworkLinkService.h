@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSQTNETWORKLINKSERVICE_H_
 #define NSQTNETWORKLINKSERVICE_H_
 

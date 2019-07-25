@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = "411889";
 var summary = "num.toString(), num.toString(10), and num.toString(undefined)" +
               " should all be equivalent";

@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_SMILINTEGERTYPE_H_
 #define MOZILLA_SMILINTEGERTYPE_H_
 

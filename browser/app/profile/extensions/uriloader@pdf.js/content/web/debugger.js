@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 'use strict';
 
 var FontInspector = (function FontInspectorClosure() {

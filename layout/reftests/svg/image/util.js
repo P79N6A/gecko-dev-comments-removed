@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const ALIGN_VALS = ["none",
                     "xMinYMin", "xMinYMid", "xMinYMax",
                     "xMidYMin", "xMidYMid", "xMidYMax",

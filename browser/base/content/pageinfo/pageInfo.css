@@ -1,4 +1,8 @@
 
+
+
+
+
 #viewGroup > radio {
   -moz-binding: url("chrome://browser/content/pageinfo/pageInfo.xml#viewbutton");
 }

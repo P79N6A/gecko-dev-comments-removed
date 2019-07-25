@@ -17,39 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 HTTP_ATOM(Accept,                    "Accept")
 HTTP_ATOM(Accept_Encoding,           "Accept-Encoding")
 HTTP_ATOM(Accept_Language,           "Accept-Language")

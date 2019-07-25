@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla__ipdltest_IPDLUnitTestTypes_h
 #define mozilla__ipdltest_IPDLUnitTestTypes_h
 

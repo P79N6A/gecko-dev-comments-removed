@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const kBrowserFormZoomLevelMin = 0.8;
 const kBrowserFormZoomLevelMax = 2.0;
 

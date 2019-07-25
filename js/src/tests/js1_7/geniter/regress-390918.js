@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 390918;
 var summary = 'Do not assert: !gen->frame.down" with gc in generator';
 var actual = 'No Crash';

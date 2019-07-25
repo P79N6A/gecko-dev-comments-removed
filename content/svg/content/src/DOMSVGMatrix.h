@@ -34,40 +34,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGMATRIX_H__
 #define MOZILLA_DOMSVGMATRIX_H__
 

@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function add_visit(aURI, aType) {
   PlacesUtils.history.addVisit(uri(aURI), Date.now() * 1000, null, aType,
                                  false, 0);

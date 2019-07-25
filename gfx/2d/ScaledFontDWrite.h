@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_GFX_SCALEDFONTDWRITE_H_
 #define MOZILLA_GFX_SCALEDFONTDWRITE_H_
 

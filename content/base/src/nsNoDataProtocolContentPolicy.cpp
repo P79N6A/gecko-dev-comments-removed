@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNoDataProtocolContentPolicy.h"
 #include "nsIDocument.h"
 #include "nsINode.h"

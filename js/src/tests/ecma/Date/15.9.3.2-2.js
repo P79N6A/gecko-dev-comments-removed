@@ -38,39 +38,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var TIME        = 0;
 var UTC_YEAR    = 1;
 var UTC_MONTH   = 2;

@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.5.4.6 - XMLList comments()");
 
 TEST(1, true, XMLList.prototype.hasOwnProperty("comments"));

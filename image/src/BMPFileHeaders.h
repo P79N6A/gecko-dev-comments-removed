@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_IMAGELIB_BMPHEADERS_H_
 #define MOZILLA_IMAGELIB_BMPHEADERS_H_
 

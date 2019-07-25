@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = 'Do not crash: __proto__ = <x/>; <x/>.lastIndexOf(this, false)';
 var BUGNUMBER = 450871;
 var actual = 'No Crash';

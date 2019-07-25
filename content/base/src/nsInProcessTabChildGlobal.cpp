@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsInProcessTabChildGlobal.h"
 #include "nsContentUtils.h"
 #include "nsIScriptSecurityManager.h"

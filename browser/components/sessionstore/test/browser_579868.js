@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   let tab1 = gBrowser.addTab("about:rights");
   let tab2 = gBrowser.addTab("about:mozilla");

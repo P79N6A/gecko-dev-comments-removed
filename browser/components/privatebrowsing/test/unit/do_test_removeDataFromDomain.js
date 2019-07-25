@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
 let pb = Cc[PRIVATEBROWSING_CONTRACT_ID].

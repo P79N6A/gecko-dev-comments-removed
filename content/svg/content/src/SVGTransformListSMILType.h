@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef SVGTRANSFORMLISTSMILTYPE_H_
 #define SVGTRANSFORMLISTSMILTYPE_H_
 

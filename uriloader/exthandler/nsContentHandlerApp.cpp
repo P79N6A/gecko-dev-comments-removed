@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsContentHandlerApp.h"
 #include "nsIURI.h"
 #include "nsIClassInfoImpl.h"

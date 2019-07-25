@@ -65,37 +65,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define CANON_CLASS_BITS_0	9
 #define CANON_CLASS_BITS_1	7
 #define CANON_CLASS_BITS_2	5

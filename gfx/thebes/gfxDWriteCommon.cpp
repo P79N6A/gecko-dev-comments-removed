@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxDWriteCommon.h"
 
 IDWriteFontFileLoader* gfxDWriteFontFileLoader::mInstance = NULL;

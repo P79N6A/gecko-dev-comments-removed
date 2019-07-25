@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 112626;
 var summary = 'Do not crash String.split(regexp) when regexp contains parens';
 var actual = 'No Crash';

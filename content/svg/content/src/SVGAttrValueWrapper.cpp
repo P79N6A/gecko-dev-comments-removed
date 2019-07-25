@@ -4,37 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SVGAttrValueWrapper.h"
 #include "nsSVGAngle.h"
 #include "nsSVGIntegerPair.h"

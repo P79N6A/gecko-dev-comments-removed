@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "Logging.h"
 #include "SourceSurfaceSkia.h"
 #include "skia/SkBitmap.h"

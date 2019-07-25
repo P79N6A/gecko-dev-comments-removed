@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const EXPORTED_SYMBOLS = ['Log4Moz'];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;

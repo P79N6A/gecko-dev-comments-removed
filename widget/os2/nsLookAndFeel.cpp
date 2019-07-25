@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define INCL_WIN
 #define INCL_WINWINDOWMGR
 #define INCL_WINSHELLDATA

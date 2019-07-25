@@ -18,38 +18,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsScriptNameSpaceManager_h__
 #define nsScriptNameSpaceManager_h__
 

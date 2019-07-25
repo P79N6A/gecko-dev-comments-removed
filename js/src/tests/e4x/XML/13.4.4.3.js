@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.3 - XML appendChild()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("appendChild"));

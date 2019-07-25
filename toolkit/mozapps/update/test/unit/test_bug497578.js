@@ -8,39 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PRIVATEBROWSING_CONTRACT_ID = "@mozilla.org/privatebrowsing;1";
 
 function run_test() {

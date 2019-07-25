@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #select .addon {
   -moz-binding: url("chrome://mozapps/content/extensions/selectAddons.xml#addon-select");
 }

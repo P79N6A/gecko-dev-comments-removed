@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 416354;
 var summary = 'GC hazard due to missing SAVE_SP_AND_PC';
 var actual = '';

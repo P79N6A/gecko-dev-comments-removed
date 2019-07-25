@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSAXLocator.h"
 
 NS_IMPL_ISUPPORTS1(nsSAXLocator, nsISAXLocator)

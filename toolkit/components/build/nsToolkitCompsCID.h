@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define NS_ALERTSERVICE_CONTRACTID \
   "@mozilla.org/alerts-service;1"
 

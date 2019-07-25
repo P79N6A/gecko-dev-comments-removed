@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
 

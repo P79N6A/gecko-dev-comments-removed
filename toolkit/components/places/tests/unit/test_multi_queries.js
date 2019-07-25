@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function add_visit(aURI, aDayOffset, aTransition) {
   PlacesUtils.history.addVisit(aURI, (Date.now() + aDayOffset*86400000) * 1000,
                                null, aTransition, false, 0);

@@ -1,4 +1,8 @@
 
+
+
+
+
 .console-box {
   -moz-binding: url("chrome://global/content/consoleBindings.xml#console-box");
   overflow: auto;

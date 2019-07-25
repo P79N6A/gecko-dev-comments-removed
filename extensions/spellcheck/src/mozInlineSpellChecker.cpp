@@ -31,39 +31,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozInlineSpellChecker.h"
 #include "mozInlineSpellWordUtil.h"
 #include "mozISpellI18NManager.h"

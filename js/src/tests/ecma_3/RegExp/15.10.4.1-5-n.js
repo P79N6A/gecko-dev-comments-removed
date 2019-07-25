@@ -32,39 +32,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = '61266';
 var summary = 'Negative test: Passing (RegExp object, flag) to RegExp() constructor';
 var statprefix = 'Passing RegExp object on pattern ';

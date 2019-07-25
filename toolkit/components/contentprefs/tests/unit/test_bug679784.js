@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var prefObserver = {
     setCalledNum: 0,
     onContentPrefSet: function(aGroup, aName, aValue) {

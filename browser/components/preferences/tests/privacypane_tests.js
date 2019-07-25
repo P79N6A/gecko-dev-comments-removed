@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function runTestOnPrivacyPrefPane(testFunc) {
   let observer = {
     observe: function(aSubject, aTopic, aData) {

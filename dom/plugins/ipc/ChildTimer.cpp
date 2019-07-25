@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ChildTimer.h"
 #include "PluginInstanceChild.h"
 #include "nsComponentManagerUtils.h"

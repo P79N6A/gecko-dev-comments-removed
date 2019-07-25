@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef MOZILLA_DOMSVGANIMATEDTRANSFORMLIST_H__
 #define MOZILLA_DOMSVGANIMATEDTRANSFORMLIST_H__
 

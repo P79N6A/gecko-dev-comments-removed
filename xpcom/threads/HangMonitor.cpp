@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/HangMonitor.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"

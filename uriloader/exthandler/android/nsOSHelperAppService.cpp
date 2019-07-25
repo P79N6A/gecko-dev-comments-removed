@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsOSHelperAppService.h"
 #include "nsMIMEInfoAndroid.h"
 #include "AndroidBridge.h"

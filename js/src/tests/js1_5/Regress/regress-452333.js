@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452333;
 var summary = 'Do not crash with JIT: @ js_SkipWhiteSpace';
 var actual = 'No Crash';

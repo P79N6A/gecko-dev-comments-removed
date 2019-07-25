@@ -12,38 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "RegExp/multiline-001";
 var VERSION = "ECMA_2";
 var TITLE   = "RegExp: multiline flag";

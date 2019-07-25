@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class MarionetteException(Exception):
 
     def __init__(self, message=None, status=500, stacktrace=None):

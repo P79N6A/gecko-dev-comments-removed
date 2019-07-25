@@ -1,4 +1,8 @@
 
+
+
+
+
 var ContextCommands = {
   copy: function cc_copy() {
     let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);

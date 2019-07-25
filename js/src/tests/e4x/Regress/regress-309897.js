@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Regression - appending elements crashes mozilla";
 var BUGNUMBER = 309897;
 var actual = "No Crash";

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SourceSurfaceCairo.h"
 #include "DrawTargetCairo.h"
 #include "HelpersCairo.h"

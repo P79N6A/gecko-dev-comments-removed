@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMAnimationEvent.h"
 #include "nsGUIEvent.h"
 #include "nsDOMClassInfoID.h"

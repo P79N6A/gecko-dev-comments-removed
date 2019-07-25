@@ -11,39 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function query_string(aFolderID)
 {
   var hs = Cc["@mozilla.org/browser/nav-history-service;1"].

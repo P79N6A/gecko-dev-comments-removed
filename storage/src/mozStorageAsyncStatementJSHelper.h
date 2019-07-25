@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_storage_mozStorageAsyncStatementJSHelper_h_
 #define mozilla_storage_mozStorageAsyncStatementJSHelper_h_
 

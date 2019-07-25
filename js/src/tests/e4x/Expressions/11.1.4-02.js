@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "11.1.4 - XML Initializer should accept single CDATA Section";
 var BUGNUMBER = 257679;
 var actual = '';

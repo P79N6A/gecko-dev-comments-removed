@@ -6,41 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "xpcprivate.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/BindingUtils.h"

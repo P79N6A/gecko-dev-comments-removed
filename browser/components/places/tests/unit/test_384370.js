@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
 const POST_DATA_ANNO = "bookmarkProperties/POSTData";

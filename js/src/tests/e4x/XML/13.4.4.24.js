@@ -5,42 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 START("13.4.4.24 - XML namespaceDeclarations()");
 
 TEST(1, true, XML.prototype.hasOwnProperty("namespaceDeclarations"));

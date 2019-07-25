@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const WINDOW_ATTRIBUTES = ["width", "height", "screenX", "screenY", "sizemode"];
 
 let stateBackup = ss.getBrowserState();

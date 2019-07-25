@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER     = "347674";
 var summary = "ReferenceError thrown when accessing exception bound in a " +
   "catch block in a try block within that catch block";

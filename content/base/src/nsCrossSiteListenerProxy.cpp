@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsCrossSiteListenerProxy.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"

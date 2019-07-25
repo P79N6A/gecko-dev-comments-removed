@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "DrawTargetD2D.h"
 #include "SourceSurfaceD2D.h"
 #include "SourceSurfaceD2DTarget.h"

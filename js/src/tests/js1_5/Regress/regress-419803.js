@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 419803;
 var summary = 'Do not assert: sprop->parent == scope->lastProp';
 var actual = 'No Crash';

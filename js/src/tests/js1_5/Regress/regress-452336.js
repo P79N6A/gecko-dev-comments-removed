@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 452336;
 var summary = 'Do not assert with JIT: (slot) < (uint32_t)(obj)->dslots[-1]';
 var actual = 'No Crash';

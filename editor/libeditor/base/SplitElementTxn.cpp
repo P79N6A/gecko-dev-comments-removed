@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SplitElementTxn.h"
 #include "nsEditor.h"
 #include "nsIDOMNode.h"

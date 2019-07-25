@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxDWriteTextAnalysis.h"
 
 TextAnalysis::TextAnalysis(const wchar_t* text,

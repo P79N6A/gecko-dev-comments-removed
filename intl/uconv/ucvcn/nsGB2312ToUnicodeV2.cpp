@@ -14,39 +14,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if 0
 #include "nsGB2312ToUnicodeV2.h"
 #include "nsUCvCnDll.h"

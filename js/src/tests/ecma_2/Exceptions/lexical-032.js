@@ -29,38 +29,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "lexical-032";
 var VERSION = "JS1_4";
 var TITLE   = "Keywords";

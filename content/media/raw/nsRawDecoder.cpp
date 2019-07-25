@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsBuiltinDecoderStateMachine.h"
 #include "nsRawReader.h"
 #include "nsRawDecoder.h"

@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIInputStream.h"
 #include "nsIConverterInputStream.h"
 #include "nsIUnicharLineInputStream.h"

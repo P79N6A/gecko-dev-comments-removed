@@ -1,5 +1,9 @@
 
 
+
+
+
+
 function SameValue(v1, v2)
 {
   if (v1 === 0 && v2 === 0)

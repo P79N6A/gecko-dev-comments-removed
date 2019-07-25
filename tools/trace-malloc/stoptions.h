@@ -55,40 +55,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if !defined(ST_CMD_OPTION_BOOL)
 #define ST_CMD_OPTION_BOOL(option_name, option_genre, option_help)
 #endif

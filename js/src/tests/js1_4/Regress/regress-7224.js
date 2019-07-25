@@ -11,38 +11,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "regress";       
 var VERSION = "JS1_4"; 
 var TITLE   = "Regression test for bugzilla #7224";       

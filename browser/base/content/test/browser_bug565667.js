@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let fm = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
 
 function test() {

@@ -3,36 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "gfxD2DSurface.h"
 #include "cairo.h"
 #include "cairo-win32.h"

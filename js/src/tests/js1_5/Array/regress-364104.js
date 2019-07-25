@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER     = "364104";
 var summary = "Array.prototype.indexOf, Array.prototype.lastIndexOf issues " +
   "with the optional second fromIndex argument";

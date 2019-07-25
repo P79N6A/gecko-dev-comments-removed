@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 DOMVIEW_ATOM(kAnonymousAtom, "anonymous")
 DOMVIEW_ATOM(kElementNodeAtom, "ELEMENT_NODE")
 DOMVIEW_ATOM(kAttributeNodeAtom, "ATTRIBUTE_NODE")

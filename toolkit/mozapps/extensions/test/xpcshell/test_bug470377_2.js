@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
 var channel = "default";

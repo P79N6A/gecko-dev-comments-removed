@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_layers_ShadowLayerUtilsD3D10_h
 #define mozilla_layers_ShadowLayerUtilsD3D10_h
 

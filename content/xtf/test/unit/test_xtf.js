@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   const C_i = Components.interfaces;
   const nsIXTFElementFactory = C_i.nsIXTFElementFactory;

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsParserConstants_h_
 #define nsParserConstants_h_
 const PRUnichar  kNewLine          = '\n';

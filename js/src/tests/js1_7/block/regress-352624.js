@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 352624;
 var summary = 'Do not crash with |let (map)| in WAY_TOO_MUCH_GC builds';
 var actual = 'No Crash';

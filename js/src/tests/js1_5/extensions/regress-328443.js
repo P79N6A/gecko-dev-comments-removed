@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 328443;
 var summary = 'Uncatchable exception with |new (G.call) (F);| when F proto is null';
 var actual = '';

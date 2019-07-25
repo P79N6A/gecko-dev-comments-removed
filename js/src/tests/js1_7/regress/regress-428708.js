@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 428708;
 var summary = 'Do not assert: OBJ_BLOCK_COUNT(cx, obj) == 1';
 var actual = 'No Crash';

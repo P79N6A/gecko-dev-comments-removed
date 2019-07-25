@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
  
 #ifndef nsIXPathEvaluatorInternal_h__
 #define nsIXPathEvaluatorInternal_h__

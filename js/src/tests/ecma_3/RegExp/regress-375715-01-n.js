@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 375715;
 var summary = 'Do not assert: (c2 <= cs->length) && (c1 <= c2)';
 var actual = '';

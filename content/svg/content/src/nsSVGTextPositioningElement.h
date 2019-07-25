@@ -3,36 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGTEXTPOSITIONINGELEMENTBASE_H__
 #define __NS_SVGTEXTPOSITIONINGELEMENTBASE_H__
 

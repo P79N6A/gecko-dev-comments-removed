@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef dom_plugins_PluginScriptableObjectChild_h
 #define dom_plugins_PluginScriptableObjectChild_h 1
 

@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef dom_src_geolocation_IPC_serialiser
 #define dom_src_geolocation_IPC_serialiser
 

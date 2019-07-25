@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_layers_CompositorCocoaWidgetHelper_h
 #define mozilla_layers_CompositorCocoaWidgetHelper_h
 

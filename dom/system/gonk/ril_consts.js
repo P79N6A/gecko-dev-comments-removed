@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const REQUEST_GET_SIM_STATUS = 1;
 const REQUEST_ENTER_SIM_PIN = 2;
 const REQUEST_ENTER_SIM_PUK = 3;

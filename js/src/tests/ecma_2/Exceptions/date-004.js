@@ -16,38 +16,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var SECTION = "date-004";
 var VERSION = "JS1_4";
 var TITLE   = "Date.prototype.getTime";

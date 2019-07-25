@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "TabChild.h"
 #include "mozilla/IntentionalCrash.h"
 #include "mozilla/dom/PContentChild.h"

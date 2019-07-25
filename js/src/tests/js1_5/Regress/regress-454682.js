@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 454682;
 var summary = 'Do not crash with JIT in MatchRegExp';
 var actual = 'No Crash';

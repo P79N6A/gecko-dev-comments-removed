@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 menuitem:not([type]) {
   -moz-binding: url("chrome://global/content/bindings/menu.xml#menuitem-iconic");
 }

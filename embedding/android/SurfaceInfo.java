@@ -1,3 +1,7 @@
+
+
+
+
 package org.mozilla.gecko;
 
 public class SurfaceInfo {

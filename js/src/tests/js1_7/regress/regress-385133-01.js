@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 385133;
 var summary = 'Do not crash due to recursion with watch, setter, delete, generator';
 var actual = 'No Crash';

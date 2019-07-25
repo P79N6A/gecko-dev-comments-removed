@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "jsapi.h"
 #include "nsCOMPtr.h"
 #include "mozIJSSubScriptLoader.h"

@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var gCSSFontFaceDescriptors = {
 	"font-family": {
 		domProp: "fontFamily",

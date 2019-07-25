@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsRDFResource.h"
 #include "nsIServiceManager.h"
 #include "nsIRDFDelegateFactory.h"

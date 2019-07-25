@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NS_SVGGENERICCONTAINERFRAME_H__
 #define __NS_SVGGENERICCONTAINERFRAME_H__
 

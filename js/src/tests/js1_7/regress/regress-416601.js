@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 416601;
 var summary = 'Property cache can be left disabled after exit from a generator or trap handler';
 var actual = 'No Crash';

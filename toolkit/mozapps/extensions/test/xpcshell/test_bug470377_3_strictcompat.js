@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function run_test() {
   do_test_pending();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "2.2.3", "2");

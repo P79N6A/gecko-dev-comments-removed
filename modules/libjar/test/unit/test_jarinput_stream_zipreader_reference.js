@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function wrapInputStream(input)
 {
   var nsIScriptableInputStream = Components.interfaces.nsIScriptableInputStream;

@@ -4,36 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozSwipeGesture.h"
 #include <QTouchEvent>
 #include <QGraphicsWidget>

@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSVGAnimationElement.h"
 #include "nsIDOMSVGSetElement.h"
 #include "nsSMILSetAnimationFunction.h"

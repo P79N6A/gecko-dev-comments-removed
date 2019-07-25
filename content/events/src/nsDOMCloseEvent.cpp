@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsDOMCloseEvent.h"
 #include "nsContentUtils.h"
 #include "DictionaryHelpers.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 412926;
 var summary = 'JS_ValueToId(cx, JSVAL_NULL) should return atom for "null" string';
 var actual = '';

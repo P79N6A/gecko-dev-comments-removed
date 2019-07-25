@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 394967;
 var summary = 'Do not assert: !JSVAL_IS_PRIMITIVE(vp[1])';
 var actual = 'No Crash';

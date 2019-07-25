@@ -5,39 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var histsvc = PlacesUtils.history;
 var bhist = PlacesUtils.bhistory;
 var bmsvc = PlacesUtils.bookmarks;

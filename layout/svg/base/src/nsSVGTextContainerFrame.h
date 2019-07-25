@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NS_SVGTEXTCONTAINERFRAME_H
 #define NS_SVGTEXTCONTAINERFRAME_H
 

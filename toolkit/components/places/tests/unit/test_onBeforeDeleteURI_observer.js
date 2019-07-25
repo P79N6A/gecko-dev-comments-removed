@@ -12,39 +12,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let console = (function() {
   let tempScope = {};
   Components.utils.import("resource:///modules/devtools/Console.jsm", tempScope);

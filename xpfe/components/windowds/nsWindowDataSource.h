@@ -3,41 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsIRDFDataSource.h"
 #include "nsIWindowMediatorListener.h"
 #include "nsIWindowDataSource.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var BUGNUMBER = 321971;
 var summary = 'JSOP_FINDNAME replaces JSOP_BINDNAME';
 var actual = 'no error';

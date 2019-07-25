@@ -36,39 +36,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsAgg.h"
 #include "nsCOMPtr.h"
 #include "nscore.h"

@@ -4,38 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_storage_IStorageBindingParamsInternal_h_
 #define mozilla_storage_IStorageBindingParamsInternal_h_
 

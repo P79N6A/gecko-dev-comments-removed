@@ -3,37 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef NSSVGTEXTPATHFRAME_H
 #define NSSVGTEXTPATHFRAME_H
 

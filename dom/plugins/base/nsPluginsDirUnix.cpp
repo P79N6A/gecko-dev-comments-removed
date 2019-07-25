@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsIMemory.h"

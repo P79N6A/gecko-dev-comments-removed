@@ -1,3 +1,7 @@
+
+
+
+
 var MasterPasswordUI = {
   _dialog: null,
   _tokenName: "",

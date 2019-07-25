@@ -5,38 +5,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var summary = "Do not crash in js_IsXMLName";
 var BUGNUMBER = 327691;
 var actual = 'No Crash';
