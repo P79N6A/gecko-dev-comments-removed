@@ -104,6 +104,13 @@ Drag.prototype = {
   
   
   
+  toString: function Drag_toString() {
+    return "[Drag (" + this.item + ")]";
+  },
+
+  
+  
+  
   
   
   

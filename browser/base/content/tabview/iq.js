@@ -187,6 +187,23 @@ function iQClass(selector, context) {
 iQClass.prototype = {
 
   
+  
+  
+  toString: function iQClass_toString() {
+    if (this.length > 1) {
+      if (this.selector)
+        return "[iQ (" + this.selector + ")]";
+      else
+        return "[iQ multi-object]";
+    }
+
+    if (this.length == 1)
+      return "[iQ (" + this[0].toString() + ")]";
+
+    return "[iQ non-object]";
+  },
+
+  
   selector: "",
 
   

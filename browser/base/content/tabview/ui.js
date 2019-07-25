@@ -135,6 +135,13 @@ let UI = {
   
   
   
+  toString: function UI_toString() {
+    return "[UI]";
+  },
+
+  
+  
+  
   init: function UI_init() {
     try {
       let self = this;

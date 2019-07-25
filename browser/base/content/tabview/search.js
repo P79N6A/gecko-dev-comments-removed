@@ -119,6 +119,13 @@ var TabUtils = {
   
   
   
+  toString: function TabUtils_toString() {
+    return "[TabUtils]";
+  },
+
+  
+  
+  
   nameOf: function TabUtils_nameOfTab(tab) {
     
     
@@ -166,7 +173,14 @@ function TabMatcher(term) {
   this.term = term; 
 }
 
-TabMatcher.prototype = {  
+TabMatcher.prototype = {
+  
+  
+  
+  toString: function TabMatcher_toString() {
+    return "[TabMatcher (" + this.term + ")]";
+  },
+
   
   
   
@@ -316,6 +330,13 @@ function SearchEventHandlerClass() {
 }
 
 SearchEventHandlerClass.prototype = {
+  
+  
+  
+  toString: function SearchEventHandlerClass_toString() {
+    return "[SearchEventHandler]";
+  },
+
   
   
   

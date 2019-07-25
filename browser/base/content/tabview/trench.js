@@ -113,6 +113,15 @@ Trench.prototype = {
   
   
   
+  toString: function Trench_toString() {
+    return "[Trench " + this.edge + " " + this.type +
+           (this.parentItem ? " (" + this.parentItem + ")" : "") +
+           "]";
+  },
+
+  
+  
+  
   get radius() this.customRadius || Trenches.defaultRadius,
 
   setParentItem: function Trench_setParentItem(item) {
@@ -480,6 +489,13 @@ var Trenches = {
   get preferLeft() { return !UI.rtl; },
 
   trenches: [],
+
+  
+  
+  
+  toString: function Trenches_toString() {
+    return "[Trenches count=" + this.trenches.length + "]";
+  },
 
   
   

@@ -77,6 +77,13 @@ Point.prototype = {
   
   
   
+  toString: function Point_toString() {
+    return "[Point (" + this.x + "," + this.y + ")]";
+  },
+
+  
+  
+  
   distance: function Point_distance(point) {
     var ax = this.x - point.x;
     var ay = this.y - point.y;
@@ -109,6 +116,13 @@ function Rect(a, top, width, height) {
 };
 
 Rect.prototype = {
+  
+  
+  
+  toString: function Rect_toString() {
+    return "[Rect (" + this.left + "," + this.top + "," +
+            this.width + "," + this.height + ")]";
+  },
 
   get right() this.left + this.width,
   set right(value) {
@@ -282,6 +296,13 @@ function Range(min, max) {
 };
 
 Range.prototype = {
+  
+  
+  
+  toString: function Range_toString() {
+    return "[Range (" + this.min + "," + this.max + ")]";
+  },
+
   
   
   get extent() {
@@ -463,6 +484,13 @@ Subscribable.prototype = {
 
 let Utils = {
   defaultFaviconURL: "chrome://mozapps/skin/places/defaultFavicon.png",
+
+  
+  
+  
+  toString: function Utils_toString() {
+    return "[Utils]";
+  },
 
   
   useConsole: true, 

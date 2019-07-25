@@ -284,6 +284,13 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  toString: function GroupItem_toString() {
+    return "[GroupItem id=" + this.id + "]";
+  },
+
+  
+  
+  
   defaultName: tabviewString('groupItem.defaultName'),
 
   
@@ -1791,6 +1798,13 @@ let GroupItems = {
   _autoclosePaused: false,
   minGroupHeight: 110,
   minGroupWidth: 125,
+
+  
+  
+  
+  toString: function GroupItems_toString() {
+    return "[GroupItems count=" + this.groupItems.length + "]";
+  },
 
   
   

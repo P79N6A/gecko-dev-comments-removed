@@ -53,6 +53,13 @@ let Storage = {
   
   
   
+  toString: function Storage_toString() {
+    return "[Storage]";
+  },
+
+  
+  
+  
   init: function Storage_init() {
     this._sessionStore =
       Cc["@mozilla.org/browser/sessionstore;1"].
@@ -413,6 +420,13 @@ function CacheListener(callback) {
 };
 
 CacheListener.prototype = {
+  
+  
+  
+  toString: function CacheListener_toString() {
+    return "[CacheListener]";
+  },
+
   QueryInterface: XPCOMUtils.generateQI([Ci.nsICacheListener]),
   onCacheEntryAvailable: function (entry, access, status) {
     this.callback(entry, access, status);

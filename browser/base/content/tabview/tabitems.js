@@ -215,6 +215,13 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  toString: function TabItem_toString() {
+    return "[TabItem (" + this.tab + ")]";
+  },
+
+  
+  
+  
   
   forceCanvasSize: function TabItem_forceCanvasSize(w, h) {
     this.canvasSizeForced = true;
@@ -817,6 +824,13 @@ let TabItems = {
   
   
   
+  toString: function TabItems_toString() {
+    return "[TabItems count=" + this.items.length + "]";
+  },
+
+  
+  
+  
   init: function TabItems_init() {
     Utils.assert(window.AllTabs, "AllTabs must be initialized first");
     let self = this;
@@ -1345,6 +1359,13 @@ TabPriorityQueue.prototype = {
   
   
   
+  toString: function TabPriorityQueue_toString() {
+    return "[TabPriorityQueue count=" + (this._low.length + this._high.length) + "]";
+  },
+
+  
+  
+  
   clear: function TabPriorityQueue_clear() {
     this._low = [];
     this._high = [];
@@ -1443,6 +1464,13 @@ function TabCanvas(tab, canvas) {
 };
 
 TabCanvas.prototype = {
+  
+  
+  
+  toString: function TabCanvas_toString() {
+    return "[TabCanvas (" + this.tab + ")]";
+  },
+
   
   
   paint: function TabCanvas_paint(evt) {

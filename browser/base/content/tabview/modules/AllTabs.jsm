@@ -42,6 +42,13 @@ let EXPORTED_SYMBOLS = ["AllTabs"];
 
 let AllTabs = {
   
+  
+  
+  toString: function AllTabs_toString() {
+    return "[AllTabs]";
+  },
+
+  
 
 
 
