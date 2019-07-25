@@ -49,13 +49,12 @@
 class nsString;
 class nsIURI;
 class nsIDocument;
-template<class T> struct already_AddRefed;
 
 
 
 #define NS_ISTYLE_SHEET_IID     \
-{ 0x5de8de51, 0x1f82, 0x4e3d,   \
- { 0x95, 0x44, 0x9a, 0x5b, 0xb0, 0x7b, 0x44, 0x00 } }
+{ 0x3eb34a60, 0x04bd, 0x41d9,   \
+ { 0x9f, 0x60, 0x88, 0x26, 0x94, 0xe6, 0x1c, 0x38 } }
 
 
 
@@ -70,8 +69,8 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISTYLE_SHEET_IID)
 
   
-  virtual already_AddRefed<nsIURI> GetSheetURI() const = 0;
-  virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
+  virtual nsIURI* GetSheetURI() const = 0;
+  virtual nsIURI* GetBaseURI() const = 0;
   virtual void GetTitle(nsString& aTitle) const = 0;
   virtual void GetType(nsString& aType) const = 0;
   virtual PRBool HasRules() const = 0;
@@ -103,8 +102,8 @@ public:
   virtual void SetComplete() = 0;
 
   
-  virtual already_AddRefed<nsIStyleSheet> GetParentSheet() const = 0;  
-  virtual already_AddRefed<nsIDocument> GetOwningDocument() const = 0; 
+  virtual nsIStyleSheet* GetParentSheet() const = 0;  
+  virtual nsIDocument* GetOwningDocument() const = 0; 
   virtual void SetOwningDocument(nsIDocument* aDocument) = 0;
 
 #ifdef DEBUG

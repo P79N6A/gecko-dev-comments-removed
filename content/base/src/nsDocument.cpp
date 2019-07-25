@@ -2014,7 +2014,7 @@ nsDocument::ResetStylesheetsToURI(nsIURI* aURI)
   
 
   
-  nsresult rv;
+  nsresult rv = NS_OK;
   nsStyleSet::sheetType attrSheetType = GetAttrSheetType();
   if (mAttrStyleSheet) {
     
@@ -2022,11 +2022,11 @@ nsDocument::ResetStylesheetsToURI(nsIURI* aURI)
     if (shell) {
       shell->StyleSet()->RemoveStyleSheet(attrSheetType, mAttrStyleSheet);
     }
-    rv = mAttrStyleSheet->Reset(aURI);
+    mAttrStyleSheet->Reset(aURI);
   } else {
     rv = NS_NewHTMLStyleSheet(getter_AddRefs(mAttrStyleSheet), aURI, this);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -2039,13 +2039,13 @@ nsDocument::ResetStylesheetsToURI(nsIURI* aURI)
       shell->StyleSet()->
         RemoveStyleSheet(nsStyleSet::eStyleAttrSheet, mStyleAttrStyleSheet);
     }
-    rv = mStyleAttrStyleSheet->Reset(aURI);
+    mStyleAttrStyleSheet->Reset(aURI);
   } else {
     mStyleAttrStyleSheet = new nsHTMLCSSStyleSheet();
     NS_ENSURE_TRUE(mStyleAttrStyleSheet, NS_ERROR_OUT_OF_MEMORY);
     rv = mStyleAttrStyleSheet->Init(aURI, this);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   

@@ -121,8 +121,8 @@ struct ChildSheetListBuilder;
 
 
 #define NS_CSS_STYLE_SHEET_IMPL_CID     \
-{ 0x55f243d9, 0xd985, 0x490c, \
- { 0x9e, 0xea, 0x09, 0x5c, 0x7f, 0xa3, 0x5c, 0xf4 } }
+{ 0xca926f30, 0x2a7e, 0x477e, \
+ { 0x84, 0x67, 0x80, 0x3f, 0xb3, 0x2a, 0xf2, 0x0a } }
 
 
 class NS_FINAL_CLASS nsCSSStyleSheet : public nsIStyleSheet,
@@ -137,8 +137,8 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_CSS_STYLE_SHEET_IMPL_CID)
 
   
-  virtual already_AddRefed<nsIURI> GetSheetURI() const;
-  virtual already_AddRefed<nsIURI> GetBaseURI() const;
+  virtual nsIURI* GetSheetURI() const;
+  virtual nsIURI* GetBaseURI() const;
   virtual void GetTitle(nsString& aTitle) const;
   virtual void GetType(nsString& aType) const;
   virtual PRBool HasRules() const;
@@ -146,8 +146,8 @@ public:
   virtual void SetEnabled(PRBool aEnabled);
   virtual PRBool IsComplete() const;
   virtual void SetComplete();
-  virtual already_AddRefed<nsIStyleSheet> GetParentSheet() const;  
-  virtual already_AddRefed<nsIDocument> GetOwningDocument() const;  
+  virtual nsIStyleSheet* GetParentSheet() const;  
+  virtual nsIDocument* GetOwningDocument() const;  
   virtual void SetOwningDocument(nsIDocument* aDocument);
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
@@ -169,7 +169,7 @@ public:
   nsresult ReplaceRuleInGroup(nsICSSGroupRule* aGroup, nsICSSRule* aOld, nsICSSRule* aNew);
 
   PRInt32 StyleSheetCount() const;
-  already_AddRefed<nsCSSStyleSheet> GetStyleSheetAt(PRInt32 aIndex) const;
+  nsCSSStyleSheet* GetStyleSheetAt(PRInt32 aIndex) const;
 
   
 
@@ -186,16 +186,16 @@ public:
   void SetPrincipal(nsIPrincipal* aPrincipal);
 
   
-  nsIPrincipal* Principal() const;
+  nsIPrincipal* Principal() const { return mInner->mPrincipal; }
 
   void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
   void SetMedia(nsMediaList* aMedia);
   void SetOwningNode(nsIDOMNode* aOwningNode) { mOwningNode = aOwningNode;  }
 
   void SetOwnerRule(nsICSSImportRule* aOwnerRule) { mOwnerRule = aOwnerRule;  }
-  already_AddRefed<nsICSSImportRule> GetOwnerRule() const;
+  nsICSSImportRule* GetOwnerRule() const { return mOwnerRule; }
 
-  nsXMLNameSpaceMap* GetNameSpaceMap() const;
+  nsXMLNameSpaceMap* GetNameSpaceMap() const { return mInner->mNameSpaceMap; }
 
   already_AddRefed<nsCSSStyleSheet> Clone(nsCSSStyleSheet* aCloneParent,
                                           nsICSSImportRule* aCloneOwnerRule,
