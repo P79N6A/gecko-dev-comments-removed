@@ -108,6 +108,8 @@ nsUsageArrayHelper::verifyFailed(PRUint32 *_verified, int err)
   case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
     
     *_verified = nsNSSCertificate::INVALID_CA; break;
+  case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
+    *_verified = nsNSSCertificate::SIGNATURE_ALGORITHM_DISABLED; break;
   case SEC_ERROR_CERT_USAGES_INVALID: 
   
   case SECSuccess:

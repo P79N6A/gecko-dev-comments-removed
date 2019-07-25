@@ -216,6 +216,8 @@ function DisplayVerificationData(cert, result)
     verifystr = bundle.GetStringFromName('certNotVerified_IssuerUnknown');
   } else if (verifystate == cert.INVALID_CA) {
     verifystr = bundle.GetStringFromName('certNotVerified_CAInvalid');
+  } else if (verifystate == cert.SIGNATURE_ALGORITHM_DISABLED) {
+    verifystr = bundle.GetStringFromName('certNotVerified_AlgorithmDisabled');
   } else { 
     verifystr = bundle.GetStringFromName('certNotVerified_Unknown');
   }
