@@ -772,7 +772,7 @@ mjit::Compiler::generatePrologue()
                 Jump hasScope = masm.branchTest32(Assembler::NonZero,
                                                   FrameFlagsAddress(), Imm32(StackFrame::HAS_SCOPECHAIN));
                 masm.loadPayload(Address(JSFrameReg, StackFrame::offsetOfCallee(script->function())), t0);
-                masm.loadPtr(Address(t0, JSFunction::offsetOfCallScope()), t0);
+                masm.loadPtr(Address(t0, JSFunction::offsetOfEnvironment()), t0);
                 masm.storePtr(t0, Address(JSFrameReg, StackFrame::offsetOfScopeChain()));
                 hasScope.linkTo(masm.label(), &masm);
             }
@@ -6117,7 +6117,7 @@ mjit::Compiler::jsop_callgname_epilogue()
 
 
 
-    masm.loadPtr(Address(objReg, JSFunction::offsetOfCallScope()), objReg);
+    masm.loadPtr(Address(objReg, JSFunction::offsetOfEnvironment()), objReg);
     Jump globalMismatch = masm.branchPtr(Assembler::NotEqual, objReg, ImmPtr(globalObj));
     stubcc.linkExit(globalMismatch, Uses(1));
     frame.freeReg(objReg);

@@ -115,7 +115,7 @@ struct JSFunction : public JSObject
         struct Scripted {
             JSScript    *script_; 
 
-            JSObject    *scope;   
+            JSObject    *env;     
         } i;
         void            *nativeOrScript;
     } u;
@@ -163,11 +163,10 @@ struct JSFunction : public JSObject
 
 
 
+    inline JSObject *environment() const;
+    inline void setEnvironment(JSObject *obj);
 
-    inline JSObject *callScope() const;
-    inline void setCallScope(JSObject *obj);
-
-    static inline size_t offsetOfCallScope() { return offsetof(JSFunction, u.i.scope); }
+    static inline size_t offsetOfEnvironment() { return offsetof(JSFunction, u.i.env); }
 
     inline void setJoinable();
 

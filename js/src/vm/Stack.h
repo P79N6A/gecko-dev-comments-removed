@@ -394,7 +394,7 @@ class StackFrame
 
 
     
-    void initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
+    void initCallFrame(JSContext *cx, JSFunction &callee,
                        JSScript *script, uint32 nactual, StackFrame::Flags flags);
 
     

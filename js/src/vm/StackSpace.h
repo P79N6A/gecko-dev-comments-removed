@@ -55,7 +55,7 @@ class GeneratorFrameGuard;
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x80, 
-    INITIAL_LOWERED        =   0x200000  
+    INITIAL_LOWERED        =   0x400000  
 };
 
 enum ExecuteType {
@@ -150,6 +150,19 @@ class StackSpace
 
     StackSegment &containingSegment(const StackFrame *target) const;
 
+#ifdef JS_TRACER
+    
+
+
+
+
+
+
+
+
+    inline bool ensureEnoughSpaceToEnterTrace(JSContext *cx);
+#endif
+
     
 
 
@@ -181,7 +194,7 @@ class StackSpace
     void mark(JSTracer *trc);
 
     
-    JS_FRIEND_API(size_t) sizeOfCommitted();
+    JS_FRIEND_API(size_t) committedSize();
 };
 
 
@@ -311,10 +324,10 @@ class ContextStack
 
 
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         JSObject &callee, JSFunction *fun, JSScript *script,
+                         JSFunction &callee, JSScript *script,
                          InitialFrameFlags initial);
     bool pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
-                         JSObject &callee, JSFunction *fun, JSScript *script,
+                         JSFunction &callee, JSScript *script,
                          InitialFrameFlags initial, Value **stackLimit);
     void popInlineFrame(FrameRegs &regs);
 

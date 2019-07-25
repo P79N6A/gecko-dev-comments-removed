@@ -532,10 +532,16 @@ struct JSScript : public js::gc::Cell {
     
     JSPCCounters    pcCounters;
 
-    
+  private:
     JSFunction      *function_;
+  public:
+
+    
+
+
 
     JSFunction *function() const { return function_; }
+    void setFunction(JSFunction *fun) { function_ = fun; }
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
