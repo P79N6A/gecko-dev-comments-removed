@@ -63,6 +63,7 @@
 #include "gc/Statistics.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
+#include "js/TemplateLib.h"
 
 struct JSCompartment;
 
@@ -1593,49 +1594,68 @@ struct ConservativeGCThreadData {
 template<class T>
 struct MarkStack {
     T *stack;
-    uintN tos, limit;
+    T *tos;
+    T *limit;
 
     bool push(T item) {
         if (tos == limit)
             return false;
-        stack[tos++] = item;
+        *tos++ = item;
         return true;
     }
 
-    bool isEmpty() { return tos == 0; }
+    bool push(T item1, T item2) {
+        T *nextTos = tos + 2;
+        if (nextTos > limit)
+            return false;
+        tos[0] = item1;
+        tos[1] = item2;
+        tos = nextTos;
+        return true;
+    }
+
+    bool isEmpty() const {
+        return tos == stack;
+    }
 
     T pop() {
         JS_ASSERT(!isEmpty());
-        return stack[--tos];
+        return *--tos;
     }
 
-    T &peek() {
-        JS_ASSERT(!isEmpty());
-        return stack[tos-1];
-    }
-
-    MarkStack(void **buffer, size_t size)
-    {
-        tos = 0;
-        limit = size / sizeof(T) - 1;
-        stack = (T *)buffer;
-    }
+    template<size_t N>
+    MarkStack(T (&buffer)[N])
+      : stack(buffer),
+        tos(buffer),
+        limit(buffer + N) { }
 };
 
-struct LargeMarkItem
-{
-    JSObject *obj;
-    uintN markpos;
-
-    LargeMarkItem(JSObject *obj) : obj(obj), markpos(0) {}
-};
-
-static const size_t OBJECT_MARK_STACK_SIZE = 32768 * sizeof(JSObject *);
-static const size_t XML_MARK_STACK_SIZE = 1024 * sizeof(JSXML *);
-static const size_t TYPE_MARK_STACK_SIZE = 1024 * sizeof(types::TypeObject *);
-static const size_t LARGE_MARK_STACK_SIZE = 64 * sizeof(LargeMarkItem);
+static const size_t MARK_STACK_LENGTH = 32768;
 
 struct GCMarker : public JSTracer {
+    
+
+
+
+
+
+
+
+
+    enum StackTag {
+        ValueArrayTag,
+        ObjectTag,
+        TypeTag,
+        XmlTag,
+        LastTag = XmlTag
+    };
+
+    static const uintptr_t StackTagMask = 3;
+
+    static void staticAsserts() {
+        JS_STATIC_ASSERT(StackTagMask >= uintptr_t(LastTag));
+    }
+
   private:
     
     uint32 color;
@@ -1653,10 +1673,7 @@ struct GCMarker : public JSTracer {
     void dumpConservativeRoots();
 #endif
 
-    MarkStack<void *> objStack;
-    MarkStack<types::TypeObject *> typeStack;
-    MarkStack<JSXML *> xmlStack;
-    MarkStack<LargeMarkItem> largeStack;
+    MarkStack<uintptr_t> stack;
 
   public:
     explicit GCMarker(JSContext *cx);
@@ -1681,30 +1698,47 @@ struct GCMarker : public JSTracer {
 
     void delayMarkingChildren(const void *thing);
 
+    bool hasDelayedChildren() const {
+        return !!unmarkedArenaStackTop;
+    }
+
     void markDelayedChildren();
 
     bool isMarkStackEmpty() {
-        return objStack.isEmpty() &&
-               typeStack.isEmpty() &&
-               xmlStack.isEmpty() &&
-               largeStack.isEmpty();
+        return stack.isEmpty();
     }
 
     void drainMarkStack();
 
+    inline void processMarkStackTop();
+    
     void pushObject(JSObject *obj) {
-        if (!objStack.push(obj))
-            delayMarkingChildren(obj);
+        pushTaggedPtr(ObjectTag, obj);
     }
 
     void pushType(types::TypeObject *type) {
-        if (!typeStack.push(type))
-            delayMarkingChildren(type);
+        pushTaggedPtr(TypeTag, type);
     }
 
     void pushXML(JSXML *xml) {
-        if (!xmlStack.push(xml))
-            delayMarkingChildren(xml);
+        pushTaggedPtr(XmlTag, xml);
+    }
+
+    void pushTaggedPtr(StackTag tag, void *ptr) {
+        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+        JS_ASSERT(!(addr & StackTagMask));
+        if (!stack.push(addr | uintptr_t(tag)))
+            delayMarkingChildren(ptr);
+    }
+
+    bool pushValueArray(void *start, void *end) {
+        JS_STATIC_ASSERT(ValueArrayTag == 0);
+        JS_ASSERT(start < end);
+        uintptr_t startAddr = reinterpret_cast<uintptr_t>(start);
+        uintptr_t endAddr = reinterpret_cast<uintptr_t>(end);
+        JS_ASSERT(!(startAddr & StackTagMask));
+        JS_ASSERT(!(endAddr & StackTagMask));
+        return stack.push(endAddr, startAddr);
     }
 };
 
