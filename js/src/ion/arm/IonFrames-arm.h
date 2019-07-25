@@ -78,12 +78,17 @@ class IonCommonFrameLayout
 
 class IonEntryFrameLayout : public IonCommonFrameLayout
 {
+  public:
+    static inline size_t Size() {
+        return sizeof(IonEntryFrameLayout);
+    }
 };
 
 class IonJSFrameLayout : public IonEntryFrameLayout
 {
   protected:
     void *calleeToken_;
+
   public:
     void *calleeToken() const {
         return calleeToken_;
@@ -102,16 +107,38 @@ class IonJSFrameLayout : public IonEntryFrameLayout
     uintptr_t *slotRef(uint32 slot) {
         return (uintptr_t *)((uint8 *)this - (slot * STACK_SLOT_SIZE));
     }
+
+    static inline size_t Size() {
+        return sizeof(IonJSFrameLayout);
+    }
 };
 
 class IonRectifierFrameLayout : public IonJSFrameLayout
 {
+  public:
+    static inline size_t Size() {
+        return sizeof(IonRectifierFrameLayout);
+    }
+};
+
+class IonBailedRectifierFrameLayout : public IonJSFrameLayout
+{
+  public:
+    static inline size_t Size() {
+        
+        return sizeof(IonBailedRectifierFrameLayout) + sizeof(void *);
+    }
 };
 
 
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
     void *padding2;
+
+  public:
+    static inline size_t Size() {
+        return sizeof(IonExitFrameLayout);
+    }
 };
 
 } 

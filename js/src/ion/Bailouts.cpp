@@ -316,6 +316,15 @@ EnsureExitFrame(IonCommonFrameLayout *frame)
         return;
     }
 
+    if (frame->prevType() == IonFrame_Rectifier) {
+        
+        
+        
+        
+        frame->changePrevType(IonFrame_Bailed_Rectifier);
+        return;
+    }
+
     
     
     

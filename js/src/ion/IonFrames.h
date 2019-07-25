@@ -191,7 +191,8 @@ class OsiIndex
 
 
 
-static const uint32 FRAMETYPE_BITS = 3;
+static const uintptr_t FRAMETYPE_BITS = 3;
+static const uintptr_t FRAMETYPE_MASK = (1 << FRAMETYPE_BITS) - 1;
 
 
 
