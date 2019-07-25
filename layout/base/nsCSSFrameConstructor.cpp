@@ -4933,6 +4933,7 @@ nsCSSFrameConstructor::ConstructFrame(nsFrameConstructorState& aState,
   NS_PRECONDITION(nsnull != aParentFrame, "no parent frame");
   FrameConstructionItemList items;
   AddFrameConstructionItems(aState, aContent, true, aParentFrame, items);
+  items.SetTriedConstructingFrames();
 
   for (FCItemIterator iter(items); !iter.IsDone(); iter.Next()) {
     NS_ASSERTION(iter.item().DesiredParentType() == GetParentType(aParentFrame),
@@ -4995,16 +4996,11 @@ nsCSSFrameConstructor::AddFrameConstructionItems(nsFrameConstructorState& aState
                                     aItems);
 }
 
-
-
-
-
-
-
-static void
-SetAsUndisplayedContent(nsFrameManager* aFrameManager, nsIContent* aContent,
-                        nsStyleContext* aStyleContext,
-                        bool aIsGeneratedContent)
+ void
+nsCSSFrameConstructor::SetAsUndisplayedContent(FrameConstructionItemList& aList,
+                                               nsIContent* aContent,
+                                               nsStyleContext* aStyleContext,
+                                               bool aIsGeneratedContent)
 {
   if (aStyleContext->GetPseudo()) {
     if (aIsGeneratedContent) {
@@ -5014,7 +5010,7 @@ SetAsUndisplayedContent(nsFrameManager* aFrameManager, nsIContent* aContent,
   }
 
   NS_ASSERTION(!aIsGeneratedContent, "Should have had pseudo type");
-  aFrameManager->SetUndisplayedContent(aContent, aStyleContext);
+  aList.AppendUndisplayedItem(aContent, aStyleContext);
 }
 
 void
@@ -5079,7 +5075,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   
   
   if (NS_STYLE_DISPLAY_NONE == display->mDisplay) {
-    SetAsUndisplayedContent(this, aContent, styleContext, isGeneratedContent);
+    SetAsUndisplayedContent(aItems, aContent, styleContext, isGeneratedContent);
     return;
   }
 
@@ -5103,7 +5099,8 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
         !aContent->IsRootOfNativeAnonymousSubtree()) {
       
       if (!isText) {
-        SetAsUndisplayedContent(this, aContent, styleContext, isGeneratedContent);
+        SetAsUndisplayedContent(aItems, aContent, styleContext,
+                                isGeneratedContent);
       }
       return;
     }
@@ -5127,7 +5124,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
         aParentFrame->IsFrameOfType(nsIFrame::eSVG) &&
         !aParentFrame->IsFrameOfType(nsIFrame::eSVGForeignObject)
         ) {
-      SetAsUndisplayedContent(this, element, styleContext,
+      SetAsUndisplayedContent(aItems, element, styleContext,
                               isGeneratedContent);
       return;
     }
@@ -5158,7 +5155,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
     NS_ASSERTION(data, "Should have frame construction data now");
 
     if (data->mBits & FCDATA_SUPPRESS_FRAME) {
-      SetAsUndisplayedContent(this, element, styleContext, isGeneratedContent);
+      SetAsUndisplayedContent(aItems, element, styleContext, isGeneratedContent);
       return;
     }
 
@@ -5168,7 +5165,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
          aParentFrame->GetType() != nsGkAtoms::menuFrame)) {
       if (!aState.mPopupItems.containingBlock &&
           !aState.mHavePendingPopupgroup) {
-        SetAsUndisplayedContent(this, element, styleContext,
+        SetAsUndisplayedContent(aItems, element, styleContext,
                                 isGeneratedContent);
         return;
       }
@@ -5185,7 +5182,7 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
       aParentFrame->GetType() == nsGkAtoms::tableColGroupFrame &&
       (!(bits & FCDATA_IS_TABLE_PART) ||
        display->mDisplay != NS_STYLE_DISPLAY_TABLE_COLUMN)) {
-    SetAsUndisplayedContent(this, aContent, styleContext, isGeneratedContent);
+    SetAsUndisplayedContent(aItems, aContent, styleContext, isGeneratedContent);
     return;
   }
 
@@ -8717,6 +8714,7 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
                                         ITEM_ALLOW_XBL_BASE |
                                           ITEM_ALLOW_PAGE_BREAK,
                                         items);
+      items.SetTriedConstructingFrames();
       for (FCItemIterator iter(items); !iter.IsDone(); iter.Next()) {
         NS_ASSERTION(iter.item().DesiredParentType() ==
                        GetParentType(canvasFrame),
@@ -9442,6 +9440,8 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
                                                    nsIFrame* aParentFrame,
                                                    nsFrameItems& aFrameItems)
 {
+  aItems.SetTriedConstructingFrames();
+
   nsresult rv = CreateNeededTablePseudos(aState, aItems, aParentFrame);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -11832,7 +11832,10 @@ Iterator::AppendItemsToList(const Iterator& aEnd,
   NS_ASSERTION(&aTargetList != &mList, "Unexpected call");
   NS_PRECONDITION(mEnd == aEnd.mEnd, "end iterator for some other list?");
 
-  if (!AtStart() || !aEnd.IsDone() || !aTargetList.IsEmpty()) {
+  
+  
+  if (!AtStart() || !aEnd.IsDone() || !aTargetList.IsEmpty() ||
+      !aTargetList.mUndisplayedItems.IsEmpty()) {
     do {
       AppendItemToList(aTargetList);
     } while (*this != aEnd);
@@ -11841,7 +11844,8 @@ Iterator::AppendItemsToList(const Iterator& aEnd,
 
   
   PR_INSERT_AFTER(&aTargetList.mItems, &mList.mItems);
-  PR_REMOVE_LINK(&mList.mItems);
+  
+  PR_REMOVE_AND_INIT_LINK(&mList.mItems);
 
   
   aTargetList.mInlineCount = mList.mInlineCount;
@@ -11852,6 +11856,10 @@ Iterator::AppendItemsToList(const Iterator& aEnd,
          sizeof(aTargetList.mDesiredParentCounts));
 
   
+  aTargetList.mUndisplayedItems.SwapElements(mList.mUndisplayedItems);
+
+  
+  mList.~FrameConstructionItemList();
   new (&mList) FrameConstructionItemList();
 
   

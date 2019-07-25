@@ -78,7 +78,7 @@ add_test(function test_set_and_get_favicon_setup() {
 add_test(function test_set_and_get_favicon_getFaviconURLForPage() {
   let [icon0] = icons;
   PlacesUtils.favicons.getFaviconURLForPage(pages[0],
-    function (aURI, aDataLen, aData, aMimeType) {
+    function GFUFP_onFaviconDataAvailable(aURI, aDataLen, aData, aMimeType) {
       do_check_true(icon0.uri.equals(aURI));
       do_check_eq(aDataLen, 0);
       do_check_eq(aData.length, 0);
@@ -302,15 +302,6 @@ add_test(function test_insert_asynchronous_update_preserves_guid() {
           }));
       });
   }));
-});
-
-add_test(function test_setFaviconURLForPage_nonexistingPage_throws() {
-  try {
-    PlacesUtils.favicons.setFaviconUrlForPage(
-      NetUtil.newURI("http://nonexisting.moz.org"), icons[0].uri);
-    do_throw("Setting an icon for a nonexisting page should throw")
-  } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {}
-  run_next_test();
 });
 
 

@@ -187,7 +187,8 @@ public:
   static nsresult ScrollSubstringTo(nsIFrame *aFrame,
                                     nsIDOMNode *aStartNode, PRInt32 aStartIndex,
                                     nsIDOMNode *aEndNode, PRInt32 aEndIndex,
-                                    PRInt16 aVPercent, PRInt16 aHPercent);
+                                    nsIPresShell::ScrollAxis aVertical,
+                                    nsIPresShell::ScrollAxis aHorizontal);
 
   
 
@@ -205,8 +206,8 @@ public:
 
 
   static void ConvertScrollTypeToPercents(PRUint32 aScrollType,
-                                          PRInt16 *aVPercent,
-                                          PRInt16 *aHPercent);
+                                          nsIPresShell::ScrollAxis *aVertical,
+                                          nsIPresShell::ScrollAxis *aHorizontal);
 
   
 

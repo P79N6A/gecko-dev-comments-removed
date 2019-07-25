@@ -341,6 +341,13 @@ nsEditor::PostCreate()
     if (target) {
       InitializeSelection(target);
     }
+
+    
+    
+    
+    nsEditorEventListener* listener =
+      reinterpret_cast<nsEditorEventListener*> (mEventListener.get());
+    listener->SpellCheckIfNeeded();
   }
   return NS_OK;
 }

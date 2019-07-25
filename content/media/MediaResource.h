@@ -194,6 +194,12 @@ public:
   
   
   
+  
+  
+  virtual bool CanClone() { return false; }
+  
+  
+  
   virtual MediaResource* CloneData(nsMediaDecoder* aDecoder) = 0;
 
   
@@ -391,6 +397,7 @@ public:
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
   bool IsClosed() const { return mCacheStream.IsClosed(); }
+  virtual bool     CanClone();
   virtual MediaResource* CloneData(nsMediaDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
   virtual void     EnsureCacheUpToDate();

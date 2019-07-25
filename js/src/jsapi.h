@@ -1538,16 +1538,6 @@ typedef JSBool
 
 
 
-typedef JSBool
-(* JSPrincipalsTranscoder)(JSXDRState *xdr, JSPrincipals **principalsp);
-
-
-
-
-
-
-
-
 
 typedef JSPrincipals *
 (* JSObjectPrincipalsFinder)(JSObject *obj);
@@ -3610,9 +3600,6 @@ JS_ResolveStub(JSContext *cx, JSObject *obj, jsid id);
 extern JS_PUBLIC_API(JSBool)
 JS_ConvertStub(JSContext *cx, JSObject *obj, JSType type, jsval *vp);
 
-extern JS_PUBLIC_API(void)
-JS_FinalizeStub(JSContext *cx, JSObject *obj);
-
 struct JSConstDoubleSpec {
     double          dval;
     const char      *name;
@@ -4131,7 +4118,6 @@ JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
 struct JSSecurityCallbacks {
     JSCheckAccessOp            checkObjectAccess;
     JSSubsumePrincipalsOp      subsumePrincipals;
-    JSPrincipalsTranscoder     principalsTranscoder;
     JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
 };

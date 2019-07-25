@@ -178,6 +178,12 @@ public:
   
   nsresult WriteCacheFile(PRInt64 aOffset, const void* aData, PRInt32 aLength);
 
+  PRInt64 AllocateResourceID()
+  {
+    mReentrantMonitor.AssertCurrentThreadIn();
+    return mNextResourceID++;
+  }
+
   
   
   
@@ -1578,7 +1584,7 @@ nsMediaCache::OpenStream(nsMediaCacheStream* aStream)
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
   LOG(PR_LOG_DEBUG, ("Stream %p opened", aStream));
   mStreams.AppendElement(aStream);
-  aStream->mResourceID = mNextResourceID++;
+  aStream->mResourceID = AllocateResourceID();
 
   
   gMediaCache->QueueUpdate();
@@ -1856,6 +1862,13 @@ nsMediaCacheStream::NotifyDataEnded(nsresult aStatus)
 
   ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
 
+  if (NS_FAILED(aStatus)) {
+    
+    
+    
+    mResourceID = gMediaCache->AllocateResourceID();
+  }
+
   PRInt32 blockOffset = PRInt32(mChannelOffset%BLOCK_SIZE);
   if (blockOffset > 0) {
     
@@ -1882,6 +1895,7 @@ nsMediaCacheStream::NotifyDataEnded(nsresult aStatus)
   }
 
   mChannelEnded = true;
+  gMediaCache->QueueUpdate();
 }
 
 nsMediaCacheStream::~nsMediaCacheStream()
@@ -2334,6 +2348,9 @@ nsMediaCacheStream::Init()
 nsresult
 nsMediaCacheStream::InitAsClone(nsMediaCacheStream* aOriginal)
 {
+  if (!aOriginal->IsAvailableForSharing())
+    return NS_ERROR_FAILURE;
+
   if (mInitialized)
     return NS_OK;
 

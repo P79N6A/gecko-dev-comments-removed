@@ -78,7 +78,6 @@
 
 #include "jsdbgapi.h"           
 #include "jswrapper.h"
-#include "jsxdrapi.h"
 #include "nsIArray.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
@@ -1965,119 +1964,23 @@ nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, JSObject* aScope,
 nsresult
 nsJSContext::Serialize(nsIObjectOutputStream* aStream, JSScript* aScriptObject)
 {
-    if (!aScriptObject)
-        return NS_ERROR_FAILURE;
+  if (!aScriptObject)
+    return NS_ERROR_FAILURE;
 
-    nsresult rv;
-
-    JSContext* cx = mContext;
-    JSXDRState *xdr = ::JS_XDRNewMem(cx, JSXDR_ENCODE);
-    if (! xdr)
-        return NS_ERROR_OUT_OF_MEMORY;
-    xdr->userdata = (void*) aStream;
-
-    JSAutoRequest ar(cx);
-    if (! ::JS_XDRScript(xdr, &aScriptObject)) {
-        rv = NS_ERROR_FAILURE;  
-    } else {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        uint32_t size;
-        const char* data = reinterpret_cast<const char*>
-                                           (::JS_XDRMemGetData(xdr, &size));
-        NS_ASSERTION(data, "no decoded JSXDRState data!");
-
-        rv = aStream->Write32(size);
-        if (NS_SUCCEEDED(rv))
-            rv = aStream->WriteBytes(data, size);
-    }
-
-    ::JS_XDRDestroy(xdr);
-    if (NS_FAILED(rv)) return rv;
-
-    return rv;
+  return nsContentUtils::XPConnect()->WriteScript(aStream, mContext, aScriptObject);
 }
 
 nsresult
 nsJSContext::Deserialize(nsIObjectInputStream* aStream,
                          nsScriptObjectHolder<JSScript>& aResult)
 {
-    NS_TIME_FUNCTION_MIN(1.0);
-
-    PRUint32 size;
-    nsresult rv = aStream->Read32(&size);
-    if (NS_FAILED(rv)) return rv;
-
-    char* data;
-    rv = aStream->ReadBytes(size, &data);
-    if (NS_FAILED(rv)) return rv;
-
-    JSContext* cx = mContext;
-
-    JSXDRState *xdr = ::JS_XDRNewMem(cx, JSXDR_DECODE);
-    JSScript *result = nsnull;
-    if (! xdr) {
-        rv = NS_ERROR_OUT_OF_MEMORY;
-    } else {
-        xdr->userdata = (void*) aStream;
-        JSAutoRequest ar(cx);
-        ::JS_XDRMemSetData(xdr, data, size);
-
-        if (! ::JS_XDRScript(xdr, &result)) {
-            rv = NS_ERROR_FAILURE;  
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
-        uint32_t junk;
-        data = (char*) ::JS_XDRMemGetData(xdr, &junk);
-        if (data)
-            ::JS_XDRMemSetData(xdr, NULL, 0);
-        ::JS_XDRDestroy(xdr);
-    }
-
+  NS_TIME_FUNCTION_MIN(1.0);
+  
+  JSScript *script;
+  nsresult rv = nsContentUtils::XPConnect()->ReadScript(aStream, mContext, &script);
+  if (NS_FAILED(rv)) return rv;
     
-    
-    if (data)
-        nsMemory::Free(data);
-    NS_ASSERTION(aResult.getScriptTypeID()==JAVASCRIPT,
-                 "Expecting JS script object holder");
-
-    
-    
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return aResult.set(result);
+  return aResult.set(script);
 }
 
 nsIScriptGlobalObject *

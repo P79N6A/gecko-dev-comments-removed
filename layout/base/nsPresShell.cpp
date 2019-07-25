@@ -3032,8 +3032,9 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, bool aScroll)
 
   if (content) {
     if (aScroll) {
-      rv = ScrollContentIntoView(content, NS_PRESSHELL_SCROLL_TOP,
-                                 NS_PRESSHELL_SCROLL_ANYWHERE,
+      rv = ScrollContentIntoView(content,
+                                 ScrollAxis(SCROLL_TOP, SCROLL_ALWAYS),
+                                 ScrollAxis(),
                                  ANCHOR_SCROLL_FLAGS);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3122,8 +3123,9 @@ PresShell::ScrollToAnchor()
       mLastAnchorScrollPositionY != rootScroll->GetScrollPosition().y)
     return NS_OK;
 
-  nsresult rv = ScrollContentIntoView(mLastAnchorScrolledTo, NS_PRESSHELL_SCROLL_TOP,
-                                      NS_PRESSHELL_SCROLL_ANYWHERE,
+  nsresult rv = ScrollContentIntoView(mLastAnchorScrolledTo,
+                                      ScrollAxis(SCROLL_TOP, SCROLL_ALWAYS),
+                                      ScrollAxis(),
                                       ANCHOR_SCROLL_FLAGS);
   mLastAnchorScrolledTo = nsnull;
   return rv;
@@ -3211,6 +3213,57 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
   }
 }
 
+static bool
+ComputeNeedToScroll(nsIPresShell::WhenToScroll aWhenToScroll,
+                    nscoord                    aLineSize,
+                    nscoord                    aRectMin,
+                    nscoord                    aRectMax,
+                    nscoord                    aViewMin,
+                    nscoord                    aViewMax) {
+  
+  if (nsIPresShell::SCROLL_ALWAYS == aWhenToScroll) {
+    
+    return true;
+  } else if (nsIPresShell::SCROLL_IF_NOT_VISIBLE == aWhenToScroll) {
+    
+    return aRectMax - aLineSize <= aViewMin ||
+           aRectMin + aLineSize >= aViewMax;
+  } else if (nsIPresShell::SCROLL_IF_NOT_FULLY_VISIBLE == aWhenToScroll) {
+    
+    return !(aRectMin >= aViewMin && aRectMax <= aViewMax) &&
+      NS_MIN(aViewMax, aRectMax) - NS_MAX(aRectMin, aViewMin) < aViewMax - aViewMin;
+  }
+  return false;
+}
+
+static nscoord
+ComputeWhereToScroll(PRInt16 aWhereToScroll,
+                     nscoord aOriginalCoord,
+                     nscoord aRectMin,
+                     nscoord aRectMax,
+                     nscoord aViewMin,
+                     nscoord aViewMax) {
+  nscoord resultCoord = aOriginalCoord;
+  if (nsIPresShell::SCROLL_MINIMUM == aWhereToScroll) {
+    if (aRectMin < aViewMin) {
+      
+      resultCoord = aRectMin;
+    } else if (aRectMax > aViewMax) {
+      
+      
+      resultCoord = aOriginalCoord + aRectMax - aViewMax;
+      if (resultCoord > aRectMin) {
+        resultCoord = aRectMin;
+      }
+    }
+  } else {
+    nscoord frameAlignCoord =
+      NSToCoordRound(aRectMin + (aRectMax - aRectMin) * (aWhereToScroll / 100.0f));
+    resultCoord =  NSToCoordRound(frameAlignCoord - (aViewMax - aViewMin) * (
+                                  aWhereToScroll / 100.0f));
+  }
+  return resultCoord;
+}
 
 
 
@@ -3219,11 +3272,12 @@ AccumulateFrameBounds(nsIFrame* aContainerFrame,
 
 
 
-static void ScrollToShowRect(nsIScrollableFrame* aScrollFrame,
-                             const nsRect&       aRect,
-                             PRIntn              aVPercent,
-                             PRIntn              aHPercent,
-                             PRUint32            aFlags)
+
+static void ScrollToShowRect(nsIScrollableFrame*      aScrollFrame,
+                             const nsRect&            aRect,
+                             nsIPresShell::ScrollAxis aVertical,
+                             nsIPresShell::ScrollAxis aHorizontal,
+                             PRUint32                 aFlags)
 {
   nsPoint scrollPt = aScrollFrame->GetScrollPosition();
   nsRect visibleRect(scrollPt, aScrollFrame->GetScrollPortRect().Size());
@@ -3232,83 +3286,37 @@ static void ScrollToShowRect(nsIScrollableFrame* aScrollFrame,
 
   if ((aFlags & nsIPresShell::SCROLL_OVERFLOW_HIDDEN) ||
       ss.mVertical != NS_STYLE_OVERFLOW_HIDDEN) {
-    
-    if (NS_PRESSHELL_SCROLL_ANYWHERE == aVPercent ||
-        (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent &&
-         aRect.height < lineSize.height)) {
-      
-      
-      if (aRect.y < visibleRect.y) {
-        
-        scrollPt.y = aRect.y;
-      } else if (aRect.YMost() > visibleRect.YMost()) {
-        
-        
-        scrollPt.y += aRect.YMost() - visibleRect.YMost();
-        if (scrollPt.y > aRect.y) {
-          scrollPt.y = aRect.y;
-        }
-      }
-    } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aVPercent) {
-      
-      if (aRect.YMost() - lineSize.height < visibleRect.y) {
-        
-        scrollPt.y = aRect.y;
-      }  else if (aRect.y + lineSize.height > visibleRect.YMost()) {
-        
-        
-        scrollPt.y += aRect.YMost() - visibleRect.YMost();
-        if (scrollPt.y > aRect.y) {
-          scrollPt.y = aRect.y;
-        }
-      }
-    } else {
-      
-      nscoord frameAlignY =
-        NSToCoordRound(aRect.y + aRect.height * (aVPercent / 100.0f));
-      scrollPt.y =
-        NSToCoordRound(frameAlignY - visibleRect.height * (aVPercent / 100.0f));
+
+    if (ComputeNeedToScroll(aVertical.mWhenToScroll,
+                            lineSize.height,
+                            aRect.y,
+                            aRect.YMost(),
+                            visibleRect.y,
+                            visibleRect.YMost())) {
+      scrollPt.y = ComputeWhereToScroll(aVertical.mWhereToScroll,
+                                        scrollPt.y,
+                                        aRect.y,
+                                        aRect.YMost(),
+                                        visibleRect.y,
+                                        visibleRect.YMost());
     }
   }
 
   if ((aFlags & nsIPresShell::SCROLL_OVERFLOW_HIDDEN) ||
       ss.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN) {
-    
-    if (NS_PRESSHELL_SCROLL_ANYWHERE == aHPercent ||
-        (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent &&
-         aRect.width < lineSize.width)) {
-      
-      
-      if (aRect.x < visibleRect.x) {
-        
-        scrollPt.x = aRect.x;
-      } else if (aRect.XMost() > visibleRect.XMost()) {
-        
-        
-        scrollPt.x += aRect.XMost() - visibleRect.XMost();
-        if (scrollPt.x > aRect.x) {
-          scrollPt.x = aRect.x;
-        }
-      }
-    } else if (NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE == aHPercent) {
-      
-      if (aRect.XMost() - lineSize.width < visibleRect.x) {
-        
-        scrollPt.x = aRect.x;
-      }  else if (aRect.x + lineSize.width > visibleRect.XMost()) {
-        
-        
-        scrollPt.x += aRect.XMost() - visibleRect.XMost();
-        if (scrollPt.x > aRect.x) {
-          scrollPt.x = aRect.x;
-        }
-      }
-    } else {
-      
-      nscoord frameAlignX =
-        NSToCoordRound(aRect.x + (aRect.width) * (aHPercent / 100.0f));
-      scrollPt.x =
-        NSToCoordRound(frameAlignX - visibleRect.width * (aHPercent / 100.0f));
+
+    if (ComputeNeedToScroll(aHorizontal.mWhenToScroll,
+                            lineSize.width,
+                            aRect.x,
+                            aRect.XMost(),
+                            visibleRect.x,
+                            visibleRect.XMost())) {
+      scrollPt.x = ComputeWhereToScroll(aHorizontal.mWhereToScroll,
+                                        scrollPt.x,
+                                        aRect.x,
+                                        aRect.XMost(),
+                                        visibleRect.x,
+                                        visibleRect.XMost());
     }
   }
 
@@ -3316,10 +3324,10 @@ static void ScrollToShowRect(nsIScrollableFrame* aScrollFrame,
 }
 
 nsresult
-PresShell::ScrollContentIntoView(nsIContent* aContent,
-                                 PRIntn      aVPercent,
-                                 PRIntn      aHPercent,
-                                 PRUint32    aFlags)
+PresShell::ScrollContentIntoView(nsIContent*              aContent,
+                                 nsIPresShell::ScrollAxis aVertical,
+                                 nsIPresShell::ScrollAxis aHorizontal,
+                                 PRUint32                 aFlags)
 {
   nsCOMPtr<nsIContent> content = aContent; 
   NS_ENSURE_TRUE(content, NS_ERROR_NULL_POINTER);
@@ -3329,8 +3337,8 @@ PresShell::ScrollContentIntoView(nsIContent* aContent,
   NS_ASSERTION(mDidInitialReflow, "should have done initial reflow by now");
 
   mContentToScrollTo = aContent;
-  mContentScrollVPosition = aVPercent;
-  mContentScrollHPosition = aHPercent;
+  mContentScrollVAxis = aVertical;
+  mContentScrollHAxis = aHorizontal;
   mContentToScrollToFlags = aFlags;
 
   
@@ -3346,16 +3354,16 @@ PresShell::ScrollContentIntoView(nsIContent* aContent,
   
   
   if (mContentToScrollTo) {
-    DoScrollContentIntoView(content, aVPercent, aHPercent, aFlags);
+    DoScrollContentIntoView(content, aVertical, aHorizontal, aFlags);
   }
   return NS_OK;
 }
 
 void
-PresShell::DoScrollContentIntoView(nsIContent* aContent,
-                                   PRIntn      aVPercent,
-                                   PRIntn      aHPercent,
-                                   PRUint32    aFlags)
+PresShell::DoScrollContentIntoView(nsIContent*              aContent,
+                                   nsIPresShell::ScrollAxis aVertical,
+                                   nsIPresShell::ScrollAxis aHorizontal,
+                                   PRUint32                 aFlags)
 {
   NS_ASSERTION(mDidInitialReflow, "should have done initial reflow by now");
 
@@ -3391,7 +3399,7 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
   
   nsRect frameBounds;
   bool haveRect = false;
-  bool useWholeLineHeightForInlines = aVPercent != NS_PRESSHELL_SCROLL_ANYWHERE;
+  bool useWholeLineHeightForInlines = aVertical.mWhenToScroll != nsIPresShell::SCROLL_IF_NOT_FULLY_VISIBLE;
   
   
   nsIFrame* prevBlock = nsnull;
@@ -3404,16 +3412,16 @@ PresShell::DoScrollContentIntoView(nsIContent* aContent,
                           frameBounds, haveRect, prevBlock, lines, curLine);
   } while ((frame = frame->GetNextContinuation()));
 
-  ScrollFrameRectIntoView(container, frameBounds, aVPercent, aHPercent,
+  ScrollFrameRectIntoView(container, frameBounds, aVertical, aHorizontal,
                           aFlags);
 }
 
 bool
-PresShell::ScrollFrameRectIntoView(nsIFrame*     aFrame,
-                                   const nsRect& aRect,
-                                   PRIntn        aVPercent,
-                                   PRIntn        aHPercent,
-                                   PRUint32      aFlags)
+PresShell::ScrollFrameRectIntoView(nsIFrame*                aFrame,
+                                   const nsRect&            aRect,
+                                   nsIPresShell::ScrollAxis aVertical,
+                                   nsIPresShell::ScrollAxis aHorizontal,
+                                   PRUint32                 aFlags)
 {
   bool didScroll = false;
   
@@ -3426,7 +3434,7 @@ PresShell::ScrollFrameRectIntoView(nsIFrame*     aFrame,
     if (sf) {
       nsPoint oldPosition = sf->GetScrollPosition();
       ScrollToShowRect(sf, rect - sf->GetScrolledFrame()->GetPosition(),
-                       aVPercent, aHPercent, aFlags);
+                       aVertical, aHorizontal, aFlags);
       nsPoint newPosition = sf->GetScrollPosition();
       
       
@@ -3999,8 +4007,9 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       mViewManager->FlushDelayedResize(true);
       if (ProcessReflowCommands(aType < Flush_Layout) && mContentToScrollTo) {
         
-        DoScrollContentIntoView(mContentToScrollTo, mContentScrollVPosition,
-                                mContentScrollHPosition,
+        DoScrollContentIntoView(mContentToScrollTo,
+                                mContentScrollVAxis,
+                                mContentScrollHAxis,
                                 mContentToScrollToFlags);
         mContentToScrollTo = nsnull;
       }
@@ -5662,7 +5671,6 @@ PresShell::RecordMouseLocation(nsGUIEvent* aEvent)
   }
 }
 
-#ifdef MOZ_TOUCH
 static void
 EvictTouchPoint(nsCOMPtr<nsIDOMTouch>& aTouch)
 {
@@ -5710,7 +5718,6 @@ AppendToTouchList(const PRUint32& aKey, nsCOMPtr<nsIDOMTouch>& aData, void *aTou
   touches->AppendElement(aData);
   return PL_DHASH_NEXT;
 }
-#endif 
 
 nsresult
 PresShell::HandleEvent(nsIFrame        *aFrame,
@@ -5924,7 +5931,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
     
     
     if (!captureRetarget && !isWindowLevelMouseExit) {
-#ifdef MOZ_TOUCH
       nsPoint eventPoint;
       if (aEvent->message == NS_TOUCH_START) {
         
@@ -5973,10 +5979,6 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
       } else {
         eventPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, frame);
       }
-#else
-      nsPoint eventPoint
-          = nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, frame);
-#endif
       {
         bool ignoreRootScrollFrame = false;
         if (aEvent->eventStructType == NS_MOUSE_EVENT) {
@@ -6376,9 +6378,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
   nsresult rv = NS_OK;
 
   if (!NS_EVENT_NEEDS_FRAME(aEvent) || GetCurrentEventFrame()) {
-#ifdef MOZ_TOUCH
     bool touchIsNew = false;
-#endif
     bool isHandlingUserInput = false;
 
     
@@ -6421,7 +6421,6 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       case NS_MOUSE_BUTTON_UP:
         isHandlingUserInput = true;
         break;
-#ifdef MOZ_TOUCH
       case NS_TOUCH_CANCEL:
       case NS_TOUCH_END: {
         
@@ -6501,7 +6500,6 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
         }
         break;
       }
-#endif
       case NS_DRAGDROP_DROP:
         nsCOMPtr<nsIDragSession> session = nsContentUtils::GetDragSession();
         if (session) {
@@ -6560,14 +6558,10 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       
       if (!IsSynthesizedMouseEvent(aEvent)) {
         nsPresShellEventCB eventCB(this);
-#ifdef MOZ_TOUCH
         if (aEvent->eventStructType == NS_TOUCH_EVENT) {
           DispatchTouchEvent(aEvent, aStatus, &eventCB, touchIsNew);
         }
         else if (mCurrentEventContent) {
-#else
-        if (mCurrentEventContent) {
-#endif
           nsEventDispatcher::Dispatch(mCurrentEventContent, mPresContext,
                                       aEvent, nsnull, aStatus, &eventCB);
         }
@@ -6893,9 +6887,10 @@ PresShell::PrepareToUseCaretPosition(nsIWidget* aEventWidget, nsIntPoint& aTarge
     
     
     
-    rv = ScrollContentIntoView(content, NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
-                                        NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
-                                        SCROLL_OVERFLOW_HIDDEN);
+    rv = ScrollContentIntoView(content,
+                               ScrollAxis(),
+                               ScrollAxis(),
+                               SCROLL_OVERFLOW_HIDDEN);
     NS_ENSURE_SUCCESS(rv, false);
     frame = content->GetPrimaryFrame();
     NS_WARN_IF_FALSE(frame, "No frame for focused content?");
@@ -6957,9 +6952,10 @@ PresShell::GetCurrentItemAndPositionForElement(nsIDOMElement *aCurrentEl,
                                                nsIWidget *aRootWidget)
 {
   nsCOMPtr<nsIContent> focusedContent(do_QueryInterface(aCurrentEl));
-  ScrollContentIntoView(focusedContent, NS_PRESSHELL_SCROLL_ANYWHERE,
-                                        NS_PRESSHELL_SCROLL_ANYWHERE,
-                                        SCROLL_OVERFLOW_HIDDEN);
+  ScrollContentIntoView(focusedContent,
+                        ScrollAxis(),
+                        ScrollAxis(),
+                        SCROLL_OVERFLOW_HIDDEN);
 
   nsPresContext* presContext = GetPresContext();
 

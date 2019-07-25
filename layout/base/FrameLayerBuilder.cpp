@@ -1047,6 +1047,7 @@ ContainerState::PopThebesLayerData()
     data->mLayer->SetVisibleRegion(nsIntRegion());
   } else {
     layer = data->mLayer;
+    imageContainer = nsnull;
   }
 
   gfxMatrix transform;

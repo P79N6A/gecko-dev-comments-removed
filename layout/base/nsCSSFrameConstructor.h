@@ -816,7 +816,8 @@ private:
       mItemCount(0),
       mLineBoundaryAtStart(false),
       mLineBoundaryAtEnd(false),
-      mParentHasNoXBLChildren(false)
+      mParentHasNoXBLChildren(false),
+      mTriedConstructingFrames(false)
     {
       PR_INIT_CLIST(&mItems);
       memset(mDesiredParentCounts, 0, sizeof(mDesiredParentCounts));
@@ -832,6 +833,20 @@ private:
 
       
       
+
+      
+      
+      
+      if (!mUndisplayedItems.IsEmpty() && mTriedConstructingFrames) {
+        
+        
+        nsFrameManager *mgr =
+          mUndisplayedItems[0].mStyleContext->PresContext()->FrameManager();
+        for (PRUint32 i = 0; i < mUndisplayedItems.Length(); ++i) {
+          UndisplayedItem& item = mUndisplayedItems[i];
+          mgr->SetUndisplayedContent(item.mContent, item.mStyleContext);
+        }
+      }
     }
 
     void SetLineBoundaryAtStart(bool aBoundary) { mLineBoundaryAtStart = aBoundary; }
@@ -839,6 +854,7 @@ private:
     void SetParentHasNoXBLChildren(bool aHasNoXBLChildren) {
       mParentHasNoXBLChildren = aHasNoXBLChildren;
     }
+    void SetTriedConstructingFrames() { mTriedConstructingFrames = true; }
     bool HasLineBoundaryAtStart() { return mLineBoundaryAtStart; }
     bool HasLineBoundaryAtEnd() { return mLineBoundaryAtEnd; }
     bool ParentHasNoXBLChildren() { return mParentHasNoXBLChildren; }
@@ -869,6 +885,11 @@ private:
       ++mItemCount;
       ++mDesiredParentCounts[item->DesiredParentType()];
       return item;
+    }
+
+    void AppendUndisplayedItem(nsIContent* aContent,
+                               nsStyleContext* aStyleContext) {
+      mUndisplayedItems.AppendElement(UndisplayedItem(aContent, aStyleContext));
     }
 
     void InlineItemAdded() { ++mInlineCount; }
@@ -977,6 +998,15 @@ private:
       return static_cast<FrameConstructionItem*>(item);
     }
 
+    struct UndisplayedItem {
+      UndisplayedItem(nsIContent* aContent, nsStyleContext* aStyleContext) :
+        mContent(aContent), mStyleContext(aStyleContext)
+      {}
+
+      nsIContent * const mContent;
+      nsRefPtr<nsStyleContext> mStyleContext;
+    };
+
     
     
     void AdjustCountsForItem(FrameConstructionItem* aItem, PRInt32 aDelta);
@@ -995,6 +1025,10 @@ private:
     bool mLineBoundaryAtEnd;
     
     bool mParentHasNoXBLChildren;
+    
+    bool mTriedConstructingFrames;
+
+    nsTArray<UndisplayedItem> mUndisplayedItems;
   };
 
   typedef FrameConstructionItemList::Iterator FCItemIterator;
@@ -1097,7 +1131,7 @@ private:
     FrameConstructionItemList mChildItems;
 
   private:
-    FrameConstructionItem(const FrameConstructionItem& aOther); 
+    FrameConstructionItem(const FrameConstructionItem& aOther) MOZ_DELETE; 
   };
 
   
@@ -1778,6 +1812,18 @@ private:
     mCountersDirty = true;
     mDocument->SetNeedLayoutFlush();
   }
+
+  
+
+
+
+
+
+
+  static void SetAsUndisplayedContent(FrameConstructionItemList& aList,
+                                      nsIContent* aContent,
+                                      nsStyleContext* aStyleContext,
+                                      bool aIsGeneratedContent);
 
 public:
 

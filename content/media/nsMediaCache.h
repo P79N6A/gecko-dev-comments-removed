@@ -232,14 +232,15 @@ public:
   nsMediaCacheStream(ChannelMediaResource* aClient)
     : mClient(aClient), mResourceID(0), mInitialized(false),
       mHasHadUpdate(false),
+      mClosed(false),
+      mDidNotifyDataEnded(false),
       mIsSeekable(false), mCacheSuspended(false),
-      mChannelEnded(false), mDidNotifyDataEnded(false),
+      mChannelEnded(false),
       mUsingNullPrincipal(false),
       mChannelOffset(0), mStreamLength(-1),  
       mStreamOffset(0), mPlaybackBytesPerSecond(10000),
       mPinCount(0), mCurrentMode(MODE_PLAYBACK),
-      mMetadataInPartialBlockBuffer(false),
-      mClosed(false) {}
+      mMetadataInPartialBlockBuffer(false) {}
   ~nsMediaCacheStream();
 
   
@@ -266,6 +267,12 @@ public:
   void Close();
   
   bool IsClosed() const { return mClosed; }
+  
+  bool IsAvailableForSharing() const
+  {
+    return !mClosed &&
+      (!mDidNotifyDataEnded || NS_SUCCEEDED(mNotifyDataEndedStatus));
+  }
   
   nsIPrincipal* GetCurrentPrincipal() { return mPrincipal; }
   
@@ -466,6 +473,11 @@ private:
   
   
   bool                   mHasHadUpdate;
+  
+  
+  bool                   mClosed;
+  
+  bool                   mDidNotifyDataEnded;
 
   
   
@@ -478,8 +490,6 @@ private:
   bool mCacheSuspended;
   
   bool mChannelEnded;
-  
-  bool mDidNotifyDataEnded;
   
   
   bool mUsingNullPrincipal;
@@ -511,14 +521,12 @@ private:
   
   PRUint32          mPinCount;
   
+  
   nsresult          mNotifyDataEndedStatus;
   
   ReadMode          mCurrentMode;
   
   bool              mMetadataInPartialBlockBuffer;
-  
-  
-  bool              mClosed;
 
   
   

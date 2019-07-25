@@ -148,21 +148,12 @@ typedef struct CapturingContentInfo {
           { 0xbe, 0xfb, 0xc9, 0x29, 0xac, 0x5c, 0x62, 0xab } }
 
 
-#define NS_PRESSHELL_SCROLL_TOP      0
-#define NS_PRESSHELL_SCROLL_BOTTOM   100
-#define NS_PRESSHELL_SCROLL_LEFT     0
-#define NS_PRESSHELL_SCROLL_RIGHT    100
-#define NS_PRESSHELL_SCROLL_CENTER   50
-#define NS_PRESSHELL_SCROLL_ANYWHERE -1
-#define NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE -2
-
-
-#define VERIFY_REFLOW_ON              0x01
-#define VERIFY_REFLOW_NOISY           0x02
-#define VERIFY_REFLOW_ALL             0x04
-#define VERIFY_REFLOW_DUMP_COMMANDS   0x08
-#define VERIFY_REFLOW_NOISY_RC        0x10
-#define VERIFY_REFLOW_REALLY_NOISY_RC 0x20
+#define VERIFY_REFLOW_ON                    0x01
+#define VERIFY_REFLOW_NOISY                 0x02
+#define VERIFY_REFLOW_ALL                   0x04
+#define VERIFY_REFLOW_DUMP_COMMANDS         0x08
+#define VERIFY_REFLOW_NOISY_RC              0x10
+#define VERIFY_REFLOW_REALLY_NOISY_RC       0x20
 #define VERIFY_REFLOW_DURING_RESIZE_REFLOW  0x40
 
 #undef NOISY_INTERRUPTIBLE_REFLOW
@@ -533,6 +524,23 @@ public:
 
   virtual NS_HIDDEN_(nsresult) ScrollToAnchor() = 0;
 
+  enum {
+    SCROLL_TOP     = 0,
+    SCROLL_BOTTOM  = 100,
+    SCROLL_LEFT    = 0,
+    SCROLL_RIGHT   = 100,
+    SCROLL_CENTER  = 50,
+    SCROLL_MINIMUM = -1
+  };
+
+  enum WhenToScroll {
+    SCROLL_ALWAYS,
+    SCROLL_IF_NOT_VISIBLE,
+    SCROLL_IF_NOT_FULLY_VISIBLE
+  };
+  typedef struct ScrollAxis {
+    PRInt16 mWhereToScroll;
+    WhenToScroll mWhenToScroll;
   
 
 
@@ -564,6 +572,23 @@ public:
 
 
 
+    ScrollAxis(PRInt16 aWhere = SCROLL_MINIMUM,
+               WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE) :
+                 mWhereToScroll(aWhere), mWhenToScroll(aWhen) {}
+  } ScrollAxis;
+  
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -573,8 +598,8 @@ public:
 
 
   virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
-                                                     PRIntn      aVPercent,
-                                                     PRIntn      aHPercent,
+                                                     ScrollAxis  aVertical,
+                                                     ScrollAxis  aHorizontal,
                                                      PRUint32    aFlags) = 0;
 
   enum {
@@ -602,10 +627,10 @@ public:
 
 
   virtual bool ScrollFrameRectIntoView(nsIFrame*     aFrame,
-                                         const nsRect& aRect,
-                                         PRIntn        aVPercent,
-                                         PRIntn        aHPercent,
-                                         PRUint32      aFlags) = 0;
+                                       const nsRect& aRect,
+                                       ScrollAxis    aVertical,
+                                       ScrollAxis    aHorizontal,
+                                       PRUint32      aFlags) = 0;
 
   
 

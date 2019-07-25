@@ -109,7 +109,6 @@ struct JSXDRState {
     JSXDRMode   mode;
     JSXDROps    *ops;
     JSContext   *cx;
-    void        *userdata;
     const char  *sharedFilename;
     JSPrincipals *principals;
     JSPrincipals *originPrincipals;
@@ -135,6 +134,16 @@ JS_XDRMemResetData(JSXDRState *xdr);
 
 extern JS_PUBLIC_API(void)
 JS_XDRDestroy(JSXDRState *xdr);
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_XDRSetPrincipals(JSXDRState *xdr, JSPrincipals *principals, JSPrincipals *originPrincipals);
 
 extern JS_PUBLIC_API(JSBool)
 JS_XDRUint8(JSXDRState *xdr, uint8_t *b);

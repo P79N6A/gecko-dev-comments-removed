@@ -232,7 +232,7 @@ JS_FRIEND_DATA(Class) js::NamespaceClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    JS_FinalizeStub,
+    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
@@ -346,7 +346,7 @@ JS_FRIEND_DATA(Class) js::QNameClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    JS_FinalizeStub,
+    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
@@ -377,8 +377,7 @@ JS_FRIEND_DATA(Class) js::AttributeNameClass = {
     JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
-    JS_ConvertStub,
-    JS_FinalizeStub
+    JS_ConvertStub
 };
 
 JS_FRIEND_DATA(Class) js::AnyNameClass = {
@@ -391,8 +390,7 @@ JS_FRIEND_DATA(Class) js::AnyNameClass = {
     JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
-    JS_ConvertStub,
-    JS_FinalizeStub
+    JS_ConvertStub
 };
 
 #define QNAME_ATTRS (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_SHARED)
@@ -4721,11 +4719,6 @@ HasProperty(JSContext *cx, JSObject *obj, jsval id, JSBool *found)
     return JS_TRUE;
 }
 
-static void
-xml_finalize(JSContext *cx, JSObject *obj)
-{
-}
-
 
 
 
@@ -5376,10 +5369,10 @@ JS_FRIEND_DATA(Class) js::XMLClass = {
     JS_EnumerateStub,
     JS_ResolveStub,
     xml_convert,
-    xml_finalize,
-    NULL,                 
-    NULL,                 
-    NULL,                 
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
     xml_hasInstance,
     xml_trace,
     JS_NULL_CLASS_EXT,

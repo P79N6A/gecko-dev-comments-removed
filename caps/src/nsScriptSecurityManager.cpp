@@ -1400,11 +1400,21 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     NS_ENSURE_ARG_POINTER(aPrincipal);
     NS_ENSURE_ARG_POINTER(aTargetURI);
 
+    
+    
+    
+    if (aFlags & nsIScriptSecurityManager::DISALLOW_INHERIT_PRINCIPAL) {
+        nsresult rv =
+            DenyAccessIfURIHasFlags(aTargetURI,
+                                    nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
     if (aPrincipal == mSystemPrincipal) {
         
         return NS_OK;
     }
-    
+
     nsCOMPtr<nsIURI> sourceURI;
     aPrincipal->GetURI(getter_AddRefs(sourceURI));
     if (!sourceURI) {
@@ -1418,16 +1428,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
         nsresult rv =
             DenyAccessIfURIHasFlags(sourceURI,
                                     nsIProtocolHandler::URI_FORBIDS_AUTOMATIC_DOCUMENT_REPLACEMENT);
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    
-    
-    
-    if (aFlags & nsIScriptSecurityManager::DISALLOW_INHERIT_PRINCIPAL) {
-        nsresult rv =
-            DenyAccessIfURIHasFlags(aTargetURI,
-                                    nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
@@ -2170,8 +2170,7 @@ nsScriptSecurityManager::GetPrincipalFromContext(JSContext *cx,
 
 
 nsIPrincipal*
-nsScriptSecurityManager::GetScriptPrincipal(JSContext *cx,
-                                            JSScript *script,
+nsScriptSecurityManager::GetScriptPrincipal(JSScript *script,
                                             nsresult* rv)
 {
     NS_PRECONDITION(rv, "Null out param");
@@ -2180,7 +2179,7 @@ nsScriptSecurityManager::GetScriptPrincipal(JSContext *cx,
     {
         return nsnull;
     }
-    JSPrincipals *jsp = JS_GetScriptPrincipals(cx, script);
+    JSPrincipals *jsp = JS_GetScriptPrincipals(script);
     if (!jsp) {
         *rv = NS_ERROR_FAILURE;
         NS_ERROR("Script compiled without principals!");
@@ -2253,7 +2252,7 @@ nsScriptSecurityManager::GetFunctionObjectPrincipal(JSContext *cx,
         return result;
     }
 
-    return GetScriptPrincipal(cx, script, rv);
+    return GetScriptPrincipal(script, rv);
 }
 
 nsIPrincipal*
@@ -2267,7 +2266,7 @@ nsScriptSecurityManager::GetFramePrincipal(JSContext *cx,
     {
         
         JSScript *script = JS_GetFrameScript(cx, fp);
-        return GetScriptPrincipal(cx, script, rv);
+        return GetScriptPrincipal(script, rv);
     }
 
     nsIPrincipal* result = GetFunctionObjectPrincipal(cx, obj, fp, rv);
@@ -3381,7 +3380,6 @@ nsresult nsScriptSecurityManager::Init()
     static const JSSecurityCallbacks securityCallbacks = {
         CheckObjectAccess,
         nsJSPrincipals::Subsume,
-        nsJSPrincipals::Transcode,
         ObjectPrincipalFinder,
         ContentSecurityPolicyPermitsJSAction
     };

@@ -51,10 +51,6 @@ const TRANSITION_REDIRECT_PERMANENT = Ci.nsINavHistoryService.TRANSITION_REDIREC
 const TRANSITION_REDIRECT_TEMPORARY = Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
 const TRANSITION_DOWNLOAD = Ci.nsINavHistoryService.TRANSITION_DOWNLOAD;
 
-
-
-const FAVICON_ERRORPAGE_URL = "chrome://global/skin/icons/warning-16.png";
-
 const TITLE_LENGTH_MAX = 4096;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -75,6 +71,11 @@ XPCOMUtils.defineLazyGetter(this, "FileUtils", function() {
 });
 
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+XPCOMUtils.defineLazyGetter(this, "SMALLPNG_DATA_URI", function() {
+  return NetUtil.newURI(
+         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAA" +
+         "AAAA6fptVAAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==");
+});
 
 function LOG(aMsg) {
   aMsg = ("*** PLACES TESTS: " + aMsg);
@@ -180,6 +181,22 @@ function readFileData(aFile) {
     throw "Didn't read expected number of bytes";
   }
   return bytes;
+}
+
+
+
+
+
+
+
+
+
+
+
+function readFileOfLength(aFileName, aExpectedLength) {
+  let data = readFileData(do_get_file(aFileName));
+  do_check_eq(data.length, aExpectedLength);
+  return data;
 }
 
 
@@ -819,5 +836,37 @@ NavHistoryObserver.prototype = {
   onDeleteVisits: function () {},
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsINavHistoryObserver,
+  ])
+};
+
+
+
+
+
+
+function NavHistoryResultObserver() {}
+
+NavHistoryResultObserver.prototype = {
+  batching: function () {},
+  containerClosed: function () {},
+  containerOpened: function () {},
+  containerStateChanged: function () {},
+  invalidateContainer: function () {},
+  nodeAnnotationChanged: function () {},
+  nodeDateAddedChanged: function () {},
+  nodeHistoryDetailsChanged: function () {},
+  nodeIconChanged: function () {},
+  nodeInserted: function () {},
+  nodeKeywordChanged: function () {},
+  nodeLastModifiedChanged: function () {},
+  nodeMoved: function () {},
+  nodeRemoved: function () {},
+  nodeReplaced: function () {},
+  nodeTagsChanged: function () {},
+  nodeTitleChanged: function () {},
+  nodeURIChanged: function () {},
+  sortingChanged: function () {},
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsINavHistoryResultObserver,
   ])
 };
