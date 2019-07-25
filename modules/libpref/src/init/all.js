@@ -648,6 +648,9 @@ pref("dom.new_bindings", true);
 pref("dom.experimental_bindings", true);
 
 
+pref("dom.experimental_forms", false);
+
+
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
 #endif
