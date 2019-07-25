@@ -44,6 +44,7 @@
 
 
 
+
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
@@ -1035,6 +1036,9 @@ var Browser = {
   
   zoom: function zoom(aDirection) {
     let bv = this._browserView;
+    if (!bv.allowZoom)
+      return;
+
     let zoomLevel = bv.getZoomLevel();
 
     let zoomValues = ZoomManager.zoomValues;
@@ -1058,7 +1062,7 @@ var Browser = {
     let elRect = bv.browserToViewportRect(Browser.getBoundingContentRect(element));
 
     let vis = bv.getVisibleRect();
-    return BrowserView.Util.clampZoomLevel(bv.getZoomLevel() * vis.width / (elRect.width + margin * 2));
+    return bv.clampZoomLevel(bv.getZoomLevel() * vis.width / (elRect.width + margin * 2));
   },
 
   
