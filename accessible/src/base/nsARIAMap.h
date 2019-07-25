@@ -202,29 +202,8 @@ struct nsARIAMap
   
 
 
-
-  static mozilla::a11y::aria::EStateRule gWAIUnivStateMap[];
-
-  
-
-
   static nsAttributeCharacteristics gWAIUnivAttrMap[];
   static PRUint32 gWAIUnivAttrMapLength;
-
-  
-
-
-
-  static PRUint64 UniversalStatesFor(mozilla::dom::Element* aElement)
-  {
-    PRUint64 state = 0;
-    PRUint32 index = 0;
-    while (mozilla::a11y::aria::MapToState(gWAIUnivStateMap[index],
-                                           aElement, &state))
-      index++;
-
-    return state;
-  }
 };
 
 namespace mozilla {
@@ -240,6 +219,12 @@ namespace aria {
 
 
 nsRoleMapEntry* GetRoleMap(nsINode* aNode);
+
+
+
+
+
+PRUint64 UniversalStatesFor(mozilla::dom::Element* aElement);
 
 } 
 } 

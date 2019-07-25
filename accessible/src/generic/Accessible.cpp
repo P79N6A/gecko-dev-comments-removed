@@ -1533,7 +1533,7 @@ Accessible::ApplyARIAState(PRUint64* aState) const
   dom::Element* element = mContent->AsElement();
 
   
-  *aState |= nsARIAMap::UniversalStatesFor(element);
+  *aState |= aria::UniversalStatesFor(element);
 
   if (mRoleMapEntry) {
 
