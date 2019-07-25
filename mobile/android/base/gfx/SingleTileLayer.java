@@ -68,10 +68,10 @@ public class SingleTileLayer extends TileLayer {
         1.0f, 1.0f
     };
 
-    public SingleTileLayer() { this(false); }
+    public SingleTileLayer(CairoImage image) { this(false, image); }
 
-    public SingleTileLayer(boolean repeat) {
-        super(repeat);
+    public SingleTileLayer(boolean repeat, CairoImage image) {
+        super(repeat, image);
 
         mVertexBuffer = createBuffer(VERTICES);
         mTexCoordBuffer = createBuffer(TEX_COORDS);

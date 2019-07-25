@@ -53,8 +53,9 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.Log;
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.nio.ByteBuffer;
-import java.util.concurrent.Semaphore;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -68,21 +69,17 @@ public class GeckoSoftwareLayerClient extends LayerClient {
     private Context mContext;
     private int mWidth, mHeight, mFormat;
     private ByteBuffer mBuffer;
-    private Semaphore mBufferSemaphore;
-    private SingleTileLayer mTileLayer;
+    private final SingleTileLayer mTileLayer;
     private ViewportController mViewportController;
 
+    
     private RectF mGeckoVisibleRect;
-    
-
-    private Rect mJSPanningToRect;
-    
-
-    private boolean mWaitingForJSPanZoom;
-    
-
 
     private CairoImage mCairoImage;
+
+    private static final long MIN_VIEWPORT_CHANGE_DELAY = 350L;
+    private long mLastViewportChangeTime;
+    private Timer mViewportRedrawTimer;
 
     
     private static final int PAGE_WIDTH = 980;      
@@ -99,24 +96,10 @@ public class GeckoSoftwareLayerClient extends LayerClient {
         mFormat = CairoImage.FORMAT_RGB16_565;
 
         mBuffer = ByteBuffer.allocateDirect(mWidth * mHeight * 2);
-        mBufferSemaphore = new Semaphore(1);
-
-        mWaitingForJSPanZoom = false;
 
         mCairoImage = new CairoImage() {
             @Override
-            public ByteBuffer lockBuffer() {
-                try {
-                    mBufferSemaphore.acquire();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                return mBuffer;
-            }
-            @Override
-            public void unlockBuffer() {
-                mBufferSemaphore.release();
-            }
+            public ByteBuffer getBuffer() { return mBuffer; }
             @Override
             public int getWidth() { return mWidth; }
             @Override
@@ -125,7 +108,7 @@ public class GeckoSoftwareLayerClient extends LayerClient {
             public int getFormat() { return mFormat; }
         };
 
-        mTileLayer = new SingleTileLayer();
+        mTileLayer = new SingleTileLayer(mCairoImage);
     }
 
     
@@ -136,59 +119,36 @@ public class GeckoSoftwareLayerClient extends LayerClient {
     }
 
     public void beginDrawing() {
-        
+        mTileLayer.beginTransaction();
     }
 
     
 
-
-
-    public void endDrawing(int x, int y, int width, int height) {
-        LayerController controller = getLayerController();
-        if (controller == null)
-            return;
-        
-        controller.notifyViewOfGeometryChange();
-
-        mViewportController.setVisibleRect(mGeckoVisibleRect);
-
-        if (mGeckoVisibleRect != null) {
-            RectF layerRect = mViewportController.untransformVisibleRect(mGeckoVisibleRect,
-                                                                         getPageSize());
-            mTileLayer.origin = new PointF(layerRect.left, layerRect.top);
-        }
-
-        repaint(new Rect(x, y, x + width, y + height));
-    }
-
-    
 
 
     public void endDrawing(int x, int y, int width, int height, String metadata) {
-        endDrawing(x, y, width, height);
-    }
-
-    private void repaint(Rect rect) {
-        mTileLayer.paintSubimage(mCairoImage, rect);
-    }
-
-    
-    public void jsPanZoomCompleted(Rect rect) {
-        mGeckoVisibleRect = new RectF(rect);
-        if (mWaitingForJSPanZoom)
-            render();
-    }
-
-    
-
-
-
-    public ByteBuffer lockBuffer() {
         try {
-            mBufferSemaphore.acquire();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            LayerController controller = getLayerController();
+            controller.notifyViewOfGeometryChange();
+
+            try {
+                JSONObject metadataObject = new JSONObject(metadata);
+                float originX = (float)metadataObject.getDouble("x");
+                float originY = (float)metadataObject.getDouble("y");
+                mTileLayer.setOrigin(new PointF(originX, originY));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+
+            Rect rect = new Rect(x, y, x + width, y + height);
+            mTileLayer.invalidate(rect);
+        } finally {
+            mTileLayer.endTransaction();
         }
+    }
+
+    
+    public ByteBuffer lockBuffer() {
         return mBuffer;
     }
 
@@ -197,7 +157,7 @@ public class GeckoSoftwareLayerClient extends LayerClient {
 
 
     public void unlockBuffer() {
-        mBufferSemaphore.release();
+        
     }
 
     
@@ -217,54 +177,49 @@ public class GeckoSoftwareLayerClient extends LayerClient {
 
     @Override
     public void render() {
+        adjustViewportWithThrottling();
+    }
+
+    private void adjustViewportWithThrottling() {
+        if (!getLayerController().getRedrawHint())
+            return;
+
+        if (System.currentTimeMillis() < mLastViewportChangeTime + MIN_VIEWPORT_CHANGE_DELAY) {
+            if (mViewportRedrawTimer != null)
+                return;
+
+            mViewportRedrawTimer = new Timer();
+            mViewportRedrawTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    
+                    getLayerController().getView().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mViewportRedrawTimer = null;
+                            adjustViewportWithThrottling();
+                        }
+                    });
+                }
+            }, MIN_VIEWPORT_CHANGE_DELAY);
+            return;
+        }
+
+        adjustViewport();
+    }
+
+    private void adjustViewport() {
         LayerController layerController = getLayerController();
         RectF visibleRect = layerController.getVisibleRect();
         RectF tileRect = mViewportController.widenRect(visibleRect);
         tileRect = mViewportController.clampRect(tileRect);
 
-        IntSize pageSize = layerController.getPageSize();
-        RectF viewportRect = mViewportController.transformVisibleRect(tileRect, pageSize);
+        int x = (int)Math.round(tileRect.left), y = (int)Math.round(tileRect.top);
+        GeckoEvent event = new GeckoEvent("Viewport:Change", "{\"x\": " + x +
+                                          ", \"y\": " + y + "}");
+        GeckoAppShell.sendEventToGecko(event);
 
-        
-        if (mGeckoVisibleRect == null)
-            mGeckoVisibleRect = viewportRect;
-
-        if (!getLayerController().getRedrawHint())
-            return;
-
-        
-
-        if (mGeckoVisibleRect.equals(viewportRect)) {
-            mWaitingForJSPanZoom = false;
-            mJSPanningToRect = null;
-            GeckoAppShell.scheduleRedraw();
-            return;
-        }
-
-        
-
-
-        int viewportRectX = (int)Math.round(viewportRect.left);
-        int viewportRectY = (int)Math.round(viewportRect.top);
-        Rect panToRect = new Rect(viewportRectX, viewportRectY,
-                                  viewportRectX + LayerController.TILE_WIDTH,
-                                  viewportRectY + LayerController.TILE_HEIGHT);
-
-        if (mWaitingForJSPanZoom && mJSPanningToRect != null &&
-                mJSPanningToRect.equals(panToRect)) {
-            return;
-        }
-
-        
-
-
-        GeckoAppShell.sendEventToGecko(new GeckoEvent("PanZoom:PanZoom",
-            "{\"x\": " + panToRect.left + ", \"y\": " + panToRect.top +
-            ", \"width\": " + panToRect.width() + ", \"height\": " + panToRect.height() +
-            ", \"zoomFactor\": " + getZoomFactor() + "}"));
-
-        mJSPanningToRect = panToRect;
-        mWaitingForJSPanZoom = true;
+        mLastViewportChangeTime = System.currentTimeMillis();
     }
 
     
@@ -272,14 +227,6 @@ public class GeckoSoftwareLayerClient extends LayerClient {
         LayerController layerController = getLayerController();
         return mViewportController.transformVisibleRect(layerController.getVisibleRect(),
                                                         layerController.getPageSize());
-    }
-
-    private float getZoomFactor() {
-        return 1.0f;    
-        
-
-
-
     }
 }
 

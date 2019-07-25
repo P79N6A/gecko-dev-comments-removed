@@ -43,8 +43,7 @@ import java.nio.ByteBuffer;
 
 
 public abstract class CairoImage {
-    public abstract ByteBuffer lockBuffer();
-    public void unlockBuffer() {  }
+    public abstract ByteBuffer getBuffer();
 
     public abstract int getWidth();
     public abstract int getHeight();
