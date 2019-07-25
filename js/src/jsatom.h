@@ -135,9 +135,8 @@ IdToJsval(jsid id)
 
 
 
-
 extern const char *
-js_AtomToPrintableString(JSContext *cx, JSAtom *atom);
+js_AtomToPrintableString(JSContext *cx, JSAtom *atom, JSAutoByteString *bytes);
 
 struct JSAtomListElement {
     JSHashEntry         entry;
