@@ -660,7 +660,7 @@ struct JSScript : public js::gc::Cell
 
     
     js::GlobalObject *getGlobalObjectOrNull() const {
-        return isCachedEval ? NULL : globalObject.get();
+        return (isCachedEval || isActiveEval) ? NULL : globalObject.get();
     }
 
   private:
