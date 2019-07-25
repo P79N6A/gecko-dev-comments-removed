@@ -225,6 +225,10 @@ nsSVGUseFrame::NotifySVGChanged(PRUint32 aFlags)
     }
   }
 
+  
+  
+  
+
   nsSVGUseFrameBase::NotifySVGChanged(aFlags);
 }
 

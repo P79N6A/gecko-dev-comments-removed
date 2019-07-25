@@ -155,20 +155,18 @@ nsSVGInnerSVGFrame::NotifySVGChanged(PRUint32 aFlags)
       aFlags |= TRANSFORM_CHANGED;
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    if (svg->HasViewBox() ||
+        (!svg->mLengthAttributes[nsSVGSVGElement::WIDTH].IsPercentage() &&
+         !svg->mLengthAttributes[nsSVGSVGElement::HEIGHT].IsPercentage())) {
+      
+      
+      
+      aFlags &= ~COORD_CONTEXT_CHANGED;
+
+      if (!(aFlags & ~DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
+        return; 
+      }
+    }
   }
 
   if (aFlags & TRANSFORM_CHANGED) {
