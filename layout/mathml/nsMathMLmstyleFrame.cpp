@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsStyleContext.h"
@@ -75,6 +76,9 @@ nsMathMLmstyleFrame::InheritAutomaticData(nsIFrame* aParent)
 
   
   nsMathMLFrame::FindAttrDisplaystyle(mContent, mPresentationData);
+
+  
+  nsMathMLFrame::FindAttrDirectionality(mContent, mPresentationData);
 
   return NS_OK;
 }

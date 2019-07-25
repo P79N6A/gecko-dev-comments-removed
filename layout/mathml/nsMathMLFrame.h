@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef nsMathMLFrame_h___
 #define nsMathMLFrame_h___
 
@@ -167,6 +168,11 @@ public:
   static void
   FindAttrDisplaystyle(nsIContent*         aContent,
                        nsPresentationData& aPresentationData);
+
+  
+  static void
+  FindAttrDirectionality(nsIContent*         aContent,
+                         nsPresentationData& aPresentationData);
 
   
   

@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsStyleContext.h"
@@ -68,6 +69,11 @@ nsMathMLmrowFrame::InheritAutomaticData(nsIFrame* aParent)
   nsMathMLContainerFrame::InheritAutomaticData(aParent);
 
   mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
+
+  if (mContent->Tag() == nsGkAtoms::mrow_) {
+    
+    nsMathMLFrame::FindAttrDirectionality(mContent, mPresentationData);
+  }
 
   return NS_OK;
 }
