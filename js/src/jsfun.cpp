@@ -1607,7 +1607,7 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     
     args.calleev() = fval;
     args.thisv() = thisv;
-    memcpy(args.array(), argv, argc * sizeof *argv);
+    PodCopy(args.array(), argv, argc);
 
     bool ok = Invoke(cx, args);
     *vp = args.rval();
@@ -1781,7 +1781,7 @@ CallOrConstructBoundFunction(JSContext *cx, uintN argc, Value *vp)
     
     for (uintN i = 0; i < argslen; i++)
         args[i] = fun->getBoundFunctionArgument(i);
-    memcpy(args.array() + argslen, vp + 2, argc * sizeof(Value));
+    PodCopy(args.array() + argslen, vp + 2, argc);
 
     
     args.calleev().setObject(*target);
