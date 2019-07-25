@@ -139,7 +139,7 @@ JS_FRIEND_DATA(JSScopeStats) js_scope_stats = {0};
 
 # define METER(x)       JS_ATOMIC_INCREMENT(&js_scope_stats.x)
 #else
-# define METER(x)
+# define METER(x)       ((void) 0)
 #endif
 
 bool
