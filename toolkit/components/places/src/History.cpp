@@ -1181,12 +1181,27 @@ History::RegisterVisitedCallback(nsIURI* aURI,
     
     
     nsresult rv = VisitedQuery::Start(aURI);
+
+    
+    
+    
+    
     if (NS_FAILED(rv) || !aLink) {
       
       mObservers.RemoveEntry(aURI);
       return rv;
     }
   }
+#ifdef MOZ_IPC
+  
+  
+  
+  else if (!aLink) {
+    NS_ASSERTION(XRE_GetProcessType() == GeckoProcessType_Default,
+                 "We should only ever get a null Link in the default process!");
+    return NS_OK;
+  }
+#endif
 
   
   
