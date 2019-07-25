@@ -492,7 +492,7 @@ nsSVGImageFrame::UpdateCoveredRegion()
 
   if (!extent.IsEmpty()) {
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 
-              PresContext()->AppUnitsPerDevPixel());
+              PresContext()->AppUnitsPerCSSPixel());
   }
 
   

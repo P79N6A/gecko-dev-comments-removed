@@ -364,7 +364,7 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
   
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(
                            gfxRect(0.0, 0.0, w, h),
-                           PresContext()->AppUnitsPerDevPixel());
+                           PresContext()->AppUnitsPerCSSPixel());
   mCoveredRegion = ToCanvasBounds(gfxRect(0.0, 0.0, w, h), GetCanvasTM(), PresContext());
 
   return NS_OK;
