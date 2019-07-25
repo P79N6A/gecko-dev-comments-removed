@@ -330,6 +330,43 @@ private:
 
 
 
+class NotifyCompletion : public nsRunnable
+{
+public:
+  NotifyCompletion(mozIVisitInfoCallback* aCallback,
+                   const VisitData& aPlace,
+                   nsresult aResult)
+  : mCallback(aCallback)
+  , mPlace(aPlace)
+  , mResult(aResult)
+  {
+    NS_PRECONDITION(aCallback, "Must pass a non-null callback!");
+  }
+
+  NS_IMETHOD Run()
+  {
+    NS_PRECONDITION(NS_IsMainThread(),
+                    "This should be called on the main thread");
+
+    
+    (void)mCallback->OnComplete(mResult, nsnull);
+    return NS_OK;
+  }
+
+private:
+  
+
+
+
+
+  mozIVisitInfoCallback* mCallback;
+  VisitData mPlace;
+  const nsresult mResult;
+};
+
+
+
+
 class InsertVisitedURIs : public nsRunnable
 {
 public:
@@ -341,15 +378,18 @@ public:
 
 
 
+
+
   static nsresult Start(mozIStorageConnection* aConnection,
-                        nsTArray<VisitData>& aPlaces)
+                        nsTArray<VisitData>& aPlaces,
+                        mozIVisitInfoCallback* aCallback = NULL)
   {
     NS_PRECONDITION(NS_IsMainThread(),
                     "This should be called on the main thread");
     NS_PRECONDITION(aPlaces.Length() > 0, "Must pass a non-empty array!");
 
     nsRefPtr<InsertVisitedURIs> event =
-      new InsertVisitedURIs(aConnection, aPlaces);
+      new InsertVisitedURIs(aConnection, aPlaces, aCallback);
 
     
     nsCOMPtr<nsIEventTarget> target = do_GetInterface(aConnection);
@@ -368,8 +408,7 @@ public:
     mozStorageTransaction transaction(mDBConn, PR_FALSE,
                                       mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    VisitData* lastPlace;
-    nsresult rv;
+    VisitData* lastPlace = NULL;
     for (nsTArray<VisitData>::size_type i = 0; i < mPlaces.Length(); i++) {
       VisitData& place = mPlaces.ElementAt(i);
       VisitData& referrer = mReferrers.ElementAt(i);
@@ -381,26 +420,15 @@ public:
 
       FetchReferrerInfo(referrer, place);
 
-      
-      if (known) {
-        rv = mHistory->UpdatePlace(place);
-        NS_ENSURE_SUCCESS(rv, rv);
+      nsresult rv = DoDatabaseInserts(known, place, referrer);
+      if (mCallback) {
+        nsCOMPtr<nsIRunnable> event =
+          new NotifyCompletion(mCallback, place, rv);
+        nsresult rv2 = NS_DispatchToMainThread(event);
+        NS_ENSURE_SUCCESS(rv2, rv2);
       }
-      
-      else {
-        rv = mHistory->InsertPlace(place);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      rv = AddVisit(place, referrer);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      
-      
-      rv = UpdateFrecency(place);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
       nsCOMPtr<nsIRunnable> event = new NotifyVisitObservers(place, referrer);
       rv = NS_DispatchToMainThread(event);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -408,15 +436,17 @@ public:
       lastPlace = &mPlaces.ElementAt(i);
     }
 
-    rv = transaction.Commit();
+    nsresult rv = transaction.Commit();
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
   }
 private:
   InsertVisitedURIs(mozIStorageConnection* aConnection,
-                    nsTArray<VisitData>& aPlaces)
+                    nsTArray<VisitData>& aPlaces,
+                    mozIVisitInfoCallback* aCallback)
   : mDBConn(aConnection)
+  , mCallback(aCallback)
   , mHistory(History::GetService())
   {
     NS_PRECONDITION(NS_IsMainThread(),
@@ -439,6 +469,59 @@ private:
         mPlaces[i].sessionId = navHistory->GetNewSessionID();
       }
     }
+
+    
+    NS_IF_ADDREF(mCallback);
+  }
+
+  virtual ~InsertVisitedURIs()
+  {
+    if (mCallback) {
+      nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+      (void)NS_ProxyRelease(mainThread, mCallback, PR_TRUE);
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  nsresult DoDatabaseInserts(bool aKnown,
+                             VisitData& aPlace,
+                             VisitData& aReferrer)
+  {
+    NS_PRECONDITION(!NS_IsMainThread(),
+                    "This should not be called on the main thread");
+
+    
+    nsresult rv;
+    if (aKnown) {
+      rv = mHistory->UpdatePlace(aPlace);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+    
+    else {
+      rv = mHistory->InsertPlace(aPlace);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    rv = AddVisit(aPlace, aReferrer);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    rv = UpdateFrecency(aPlace);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
   }
 
   
@@ -672,6 +755,13 @@ private:
 
 
 
+
+  mozIVisitInfoCallback* mCallback;
+
+  
+
+
+
   nsRefPtr<History> mHistory;
 };
 
@@ -837,8 +927,11 @@ private:
 
 
 
+
+
 void
-StoreAndNotifyEmbedVisit(VisitData& aPlace)
+StoreAndNotifyEmbedVisit(VisitData& aPlace,
+                         mozIVisitInfoCallback* aCallback = NULL)
 {
   NS_PRECONDITION(aPlace.transitionType == nsINavHistoryService::TRANSITION_EMBED,
                   "Must only pass TRANSITION_EMBED visits to this!");
@@ -853,6 +946,22 @@ StoreAndNotifyEmbedVisit(VisitData& aPlace)
   }
 
   navHistory->registerEmbedVisit(uri, aPlace.visitTime);
+
+  if (aCallback) {
+    
+    
+    
+    NS_ADDREF(aCallback);
+    nsCOMPtr<nsIRunnable> event =
+      new NotifyCompletion(aCallback, aPlace, NS_OK);
+    (void)NS_DispatchToMainThread(event);
+
+    
+    
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    (void)NS_ProxyRelease(mainThread, aCallback, PR_TRUE);
+  }
+
   VisitData noReferrer;
   nsCOMPtr<nsIRunnable> event = new NotifyVisitObservers(aPlace, noReferrer);
   (void)NS_DispatchToMainThread(event);
