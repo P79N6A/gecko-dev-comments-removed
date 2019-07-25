@@ -152,6 +152,8 @@ using mozilla::TimeStamp;
 
 #define kPluginTmpDirName NS_LITERAL_CSTRING("plugtmp")
 
+static const char *kPrefWhitelist = "plugin.allowed_types";
+
 
 
 
@@ -227,6 +229,29 @@ nsInvalidPluginTag::nsInvalidPluginTag(const char* aFullPath, PRInt64 aLastModif
 nsInvalidPluginTag::~nsInvalidPluginTag()
 {
   
+}
+
+
+static bool
+IsTypeInPrefList(nsCString &aMimeType, const char* aPrefName)
+{
+  nsCAutoString searchStr;
+  searchStr.Assign(',');
+  nsAdoptingCString prefStr = Preferences::GetCString(aPrefName);
+  searchStr += prefStr;
+  searchStr.Append(',');
+
+  nsACString::const_iterator start, end;
+
+  searchStr.BeginReading(start);
+  searchStr.EndReading(end);
+
+  nsCAutoString commaSeparated;
+  commaSeparated.Assign(',');
+  commaSeparated += aMimeType;
+  commaSeparated.Append(',');
+
+  return FindInReadable(commaSeparated, start, end);
 }
 
 
@@ -2373,6 +2398,16 @@ nsPluginHost::UpdatePluginInfo(nsPluginTag* aPluginTag)
   }
 
   return NS_OK;
+}
+
+ bool
+nsPluginHost::IsTypeWhitelisted(const char *aMimeType)
+{
+  if (!Preferences::HasUserValue(kPrefWhitelist)) {
+    return true;
+  }
+  nsDependentCString wrap(aMimeType);
+  return IsTypeInPrefList(wrap, kPrefWhitelist);
 }
 
 nsresult
