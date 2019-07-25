@@ -409,8 +409,21 @@ Chunk::releaseArena(ArenaHeader *aheader)
     aheader->next = info.emptyArenaListHead;
     info.emptyArenaListHead = aheader;
     ++info.numFree;
-    if (unused())
+    if (unused()) {
+        rt->gcUserChunkSet.remove(this);
+        rt->gcSystemChunkSet.remove(this);
+
+        
+
+
+
+
+
         info.age = 0;
+        info.link = rt->gcEmptyChunkListHead;
+        rt->gcEmptyChunkListHead = this;
+        rt->gcEmptyChunkCount++;
+    }
 }
 
 inline Chunk *
@@ -448,9 +461,8 @@ PickChunk(JSContext *cx)
 
 
 
-    GCChunkSet::Range
-        r(isSystemCompartment ? rt->gcSystemChunkSet.all() : rt->gcUserChunkSet.all());
-    for (; !r.empty(); r.popFront()) {
+    GCChunkSet *chunkSet = isSystemCompartment ? &rt->gcSystemChunkSet : &rt->gcUserChunkSet;
+    for (GCChunkSet::Range r(chunkSet->all()); !r.empty(); r.popFront()) {
         chunk = r.front();
         if (chunk->hasAvailableArenas()) {
             cx->compartment->chunk = chunk;
@@ -458,79 +470,73 @@ PickChunk(JSContext *cx)
         }
     }
 
-    chunk = AllocateGCChunk(rt);
-    if (!chunk) {
-        
-        GCChunkSet::Enum e(isSystemCompartment ? rt->gcUserChunkSet : rt->gcSystemChunkSet);
-        for (; !e.empty(); e.popFront()) {
-            if (e.front()->info.numFree == ArenasPerChunk) {
-                chunk = e.front();
-                e.removeFront();
-                break;
-            }
-        }
-
+    
+    chunk = rt->gcEmptyChunkListHead;
+    if (chunk) {
+        JS_ASSERT(chunk->unused());
+        JS_ASSERT(!rt->gcUserChunkSet.has(chunk));
+        JS_ASSERT(!rt->gcSystemChunkSet.has(chunk));
+        JS_ASSERT(rt->gcEmptyChunkCount >= 1);
+        rt->gcEmptyChunkListHead = chunk->info.link;
+        rt->gcEmptyChunkCount--;
+    } else {
+        chunk = AllocateGCChunk(rt);
         if (!chunk)
             return NULL;
+
+        chunk->init(rt);
+        rt->gcChunkAllocationSinceLastGC = true;
     }
 
     
 
 
 
-    GCChunkSet::AddPtr p = isSystemCompartment ?
-                           rt->gcSystemChunkSet.lookupForAdd(chunk) :
-                           rt->gcUserChunkSet.lookupForAdd(chunk);
+    GCChunkSet::AddPtr p = chunkSet->lookupForAdd(chunk);
     JS_ASSERT(!p);
-    if (isSystemCompartment) {
-        if (!rt->gcSystemChunkSet.add(p, chunk)) {
-            ReleaseGCChunk(rt, chunk);
-            return NULL;
-        }
-    } else {
-        if (!rt->gcUserChunkSet.add(p, chunk)) {
-            ReleaseGCChunk(rt, chunk);
-            return NULL;
-        }
+    if (!chunkSet->add(p, chunk)) {
+        ReleaseGCChunk(rt, chunk);
+        return NULL;
     }
 
-    chunk->init(rt);
     cx->compartment->chunk = chunk;
-    rt->gcChunkAllocationSinceLastGC = true;
     return chunk;
+}
+
+static void
+ReleaseEmptyGCChunks(JSRuntime *rt)
+{
+    for (Chunk *chunk = rt->gcEmptyChunkListHead; chunk; ) {
+        Chunk *next = chunk->info.link;
+        ReleaseGCChunk(rt, chunk);
+        chunk = next;
+    }
+    rt->gcEmptyChunkListHead = NULL;
+    rt->gcEmptyChunkCount = 0;
 }
 
 static void
 ExpireGCChunks(JSRuntime *rt, JSGCInvocationKind gckind)
 {
-    static const size_t MaxAge = 3;
-
-    
     AutoLockGC lock(rt);
 
-    rt->gcChunksWaitingToExpire = 0;
-    for (GCChunkSet::Enum e(rt->gcUserChunkSet); !e.empty(); e.popFront()) {
-        Chunk *chunk = e.front();
-        JS_ASSERT(chunk->info.runtime == rt);
-        if (chunk->unused()) {
-            if (gckind == GC_SHRINK || chunk->info.age++ > MaxAge) {
-                e.removeFront();
+    if (gckind == GC_SHRINK) {
+        ReleaseEmptyGCChunks(rt);
+    } else {
+        
+        for (Chunk **chunkp = &rt->gcEmptyChunkListHead; *chunkp; ) {
+            JS_ASSERT(rt->gcEmptyChunkCount);
+            Chunk *chunk = *chunkp;
+            JS_ASSERT(chunk->info.age <= MAX_EMPTY_CHUNK_AGE);
+            if (chunk->info.age == MAX_EMPTY_CHUNK_AGE) {
+                *chunkp = chunk->info.link;
+                --rt->gcEmptyChunkCount;
                 ReleaseGCChunk(rt, chunk);
-                continue;
+            } else {
+                
+                ++chunk->info.age;
+                chunkp = &chunk->info.link;
             }
-            rt->gcChunksWaitingToExpire++;
-        }
-    }
-    for (GCChunkSet::Enum e(rt->gcSystemChunkSet); !e.empty(); e.popFront()) {
-        Chunk *chunk = e.front();
-        JS_ASSERT(chunk->info.runtime == rt);
-        if (chunk->unused()) {
-            if (gckind == GC_SHRINK || chunk->info.age++ > MaxAge) {
-                e.removeFront();
-                ReleaseGCChunk(rt, chunk);
-                continue;
-            }
-            rt->gcChunksWaitingToExpire++;
         }
     }
 }
@@ -574,10 +580,10 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
 
 
 
-    if (!rt->gcUserChunkSet.init(16))
+    if (!rt->gcUserChunkSet.init(INITIAL_CHUNK_CAPACITY))
         return false;
 
-    if (!rt->gcSystemChunkSet.init(16))
+    if (!rt->gcSystemChunkSet.init(INITIAL_CHUNK_CAPACITY))
         return false;
 
     if (!rt->gcRootsHash.init(256))
@@ -933,6 +939,7 @@ js_FinishGC(JSRuntime *rt)
         ReleaseGCChunk(rt, r.front());
     rt->gcUserChunkSet.clear();
     rt->gcSystemChunkSet.clear();
+    ReleaseEmptyGCChunks(rt);
 
 #ifdef JS_THREADSAFE
     rt->gcHelperThread.finish(rt);
@@ -1088,7 +1095,7 @@ JSRuntime::setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind)
 {
     gcLastBytes = lastBytes;
 
-    size_t base = gckind == GC_SHRINK ? lastBytes : Max(lastBytes, GC_ARENA_ALLOCATION_TRIGGER);
+    size_t base = gckind == GC_SHRINK ? lastBytes : Max(lastBytes, GC_ALLOCATION_THRESHOLD);
     float trigger = float(base) * GC_HEAP_GROWTH_FACTOR;
     gcTriggerBytes = size_t(Min(float(gcMaxBytes), trigger));
 }
@@ -1097,7 +1104,7 @@ void
 JSRuntime::reduceGCTriggerBytes(uint32 amount) {
     JS_ASSERT(amount > 0);
     JS_ASSERT(gcTriggerBytes - amount >= 0);
-    if (gcTriggerBytes - amount < GC_ARENA_ALLOCATION_TRIGGER * GC_HEAP_GROWTH_FACTOR)
+    if (gcTriggerBytes - amount < GC_ALLOCATION_THRESHOLD * GC_HEAP_GROWTH_FACTOR)
         return;
     gcTriggerBytes -= amount;
 }
@@ -1107,7 +1114,7 @@ JSCompartment::setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind)
 {
     gcLastBytes = lastBytes;
 
-    size_t base = gckind == GC_SHRINK ? lastBytes : Max(lastBytes, GC_ARENA_ALLOCATION_TRIGGER);
+    size_t base = gckind == GC_SHRINK ? lastBytes : Max(lastBytes, GC_ALLOCATION_THRESHOLD);
     float trigger = float(base) * GC_HEAP_GROWTH_FACTOR;
     gcTriggerBytes = size_t(Min(float(rt->gcMaxBytes), trigger));
 }
@@ -1116,7 +1123,7 @@ void
 JSCompartment::reduceGCTriggerBytes(uint32 amount) {
     JS_ASSERT(amount > 0);
     JS_ASSERT(gcTriggerBytes - amount >= 0);
-    if (gcTriggerBytes - amount < GC_ARENA_ALLOCATION_TRIGGER * GC_HEAP_GROWTH_FACTOR)
+    if (gcTriggerBytes - amount < GC_ALLOCATION_THRESHOLD * GC_HEAP_GROWTH_FACTOR)
         return;
     gcTriggerBytes -= amount;
 }
@@ -1932,7 +1939,7 @@ MaybeGC(JSContext *cx)
 
     int64 now = PRMJ_Now();
     if (rt->gcNextFullGCTime && rt->gcNextFullGCTime <= now) {
-        if (rt->gcChunkAllocationSinceLastGC || rt->gcChunksWaitingToExpire) {
+        if (rt->gcChunkAllocationSinceLastGC || rt->gcEmptyChunkListHead) {
             GCREASON(MAYBEGC);
             js_GC(cx, NULL, GC_SHRINK);
         } else {
