@@ -1652,7 +1652,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   resultList.AppendToTop(set.PositionedDescendants());
 
-  if (applyAbsPosClipping) {
+  
+
+
+  if (applyAbsPosClipping &&
+      (!resultList.IsEmpty() || usingSVGEffects)) {
     nsAbsPosClipWrapper wrapper(absPosClip);
     nsDisplayItem* item = wrapper.WrapList(aBuilder, this, &resultList);
     if (!item)
