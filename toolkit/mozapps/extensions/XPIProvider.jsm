@@ -6483,14 +6483,16 @@ function AddonWrapper(aAddon) {
       else if (aAddon.type != "theme")
         permissions |= AddonManager.PERM_CAN_DISABLE;
     }
-    if (aAddon._installLocation) {
-      if (!aAddon._installLocation.locked) {
-        if (!aAddon._installLocation.isLinkedAddon(aAddon.id))
-          permissions |= AddonManager.PERM_CAN_UPGRADE;
+    
+    
+    
+    if (aAddon._installLocation && !aAddon._installLocation.locked &&
+        !aAddon.pendingUninstall) {
+      
+      if (!aAddon._installLocation.isLinkedAddon(aAddon.id))
+        permissions |= AddonManager.PERM_CAN_UPGRADE;
 
-        if (!aAddon.pendingUninstall)
-          permissions |= AddonManager.PERM_CAN_UNINSTALL;
-      }
+      permissions |= AddonManager.PERM_CAN_UNINSTALL;
     }
     return permissions;
   });
