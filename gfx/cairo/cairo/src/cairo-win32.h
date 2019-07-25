@@ -258,6 +258,13 @@ void cairo_d2d_release_dc(cairo_surface_t *surcace, const cairo_rectangle_int_t 
 
 
 int cairo_d2d_get_image_surface_cache_usage();
+
+
+
+
+
+
+int cairo_d2d_get_surface_vram_usage(cairo_device_t *device);
 #endif
 
 CAIRO_END_DECLS
