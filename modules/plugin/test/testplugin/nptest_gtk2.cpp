@@ -35,15 +35,12 @@
 
 #include "nptest_platform.h"
 #include "npapi.h"
-#include <pthread.h>
 #include <gdk/gdk.h>
 #ifdef MOZ_X11
 #include <gdk/gdkx.h>
 #include <X11/extensions/shape.h>
 #endif
-#include <glib.h>
 #include <gtk/gtk.h>
-#include <unistd.h>
 
  using namespace std;
 
@@ -637,127 +634,4 @@ pluginGetClipboardText(InstanceData* instanceData)
   g_free(text);
 
   return retText;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct MutexAutoLock {
-  MutexAutoLock(pthread_mutex_t& mutex) : mMutex(mutex) {
-    pthread_mutex_lock(&mMutex);
-  }
-  ~MutexAutoLock() {
-    pthread_mutex_unlock(&mMutex);
-  }
-  pthread_mutex_t& mMutex;
-};
-
-struct CrasherData {
-  pthread_mutex_t mutex;
-  pthread_cond_t cvar;
-  bool ready;
-  bool startCrashWait;
-};
-
-static void*
-CrasherThread(void* data)
-{
-  CrasherData* crashData = static_cast<CrasherData*>(data);
-  {
-    MutexAutoLock lock(crashData->mutex);
-    crashData->ready = true;
-    pthread_cond_signal(&crashData->cvar);
-  }
-
-  {
-    MutexAutoLock lock(crashData->mutex);
-    while (!crashData->startCrashWait)
-      pthread_cond_wait(&crashData->cvar, &crashData->mutex);
-  }
-
-  
-  usleep(200);
-
-  IntentionalCrash();
-
-  
-  return(NULL);
-}
-
-bool
-pluginCrashInNestedLoop(InstanceData* instanceData)
-{
-  
-  static CrasherData crashData = {
-    PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER,
-    false, false
-  };
-  pthread_t crasherThread;
-  {
-    MutexAutoLock lock(crashData.mutex);
-
-    if (0 != pthread_create(&crasherThread, NULL, CrasherThread, &crashData)) {
-      g_warning("Failed to create thread");
-      return true; 
-    }
-
-    do {
-      pthread_cond_wait(&crashData.cvar, &crashData.mutex);
-    } while (!crashData.ready);
-  }
-
-  
-  sleep(1);
-
-  
-  bool found_event = false;
-  while (g_main_context_iteration(NULL, FALSE)) {
-    found_event = true;
-  }
-  if (!found_event) {
-    g_warning("DetectNestedEventLoop did not fire");
-    return true; 
-  }
-
-  
-  
-  sleep(1);
-
-  
-  
-  NoteIntentionalCrash();
-  fprintf(stderr, "Begin crash sequence\n");
-  fflush(stderr);
-
-  
-  {
-    MutexAutoLock lock(crashData.mutex);
-    crashData.startCrashWait = true;
-    pthread_cond_signal(&crashData.cvar);
-  }
-
-  
-  
-  
-  found_event = false;
-  while (g_main_context_iteration(NULL, FALSE)) {
-    found_event = true;
-  }
-  if (found_event) {
-    g_warning("Should have crashed in ProcessBrowserEvents");
-  } else {
-    g_warning("ProcessBrowserEvents did not fire");
-  }
-
-  
-  return true;
 }
