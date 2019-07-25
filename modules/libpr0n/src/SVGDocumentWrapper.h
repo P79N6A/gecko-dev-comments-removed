@@ -147,6 +147,14 @@ public:
   
 
 
+
+
+
+  PRBool ShouldIgnoreInvalidation() { return mIgnoreInvalidation; }
+
+  
+
+
   void StartAnimation();
   void StopAnimation();
   void ResetAnimation();
@@ -163,6 +171,7 @@ private:
   nsCOMPtr<nsIDocumentViewer> mViewer;
   nsCOMPtr<nsILoadGroup>      mLoadGroup;
   nsCOMPtr<nsIStreamListener> mListener;
+  PRPackedBool                mIgnoreInvalidation;
 
   
   

@@ -49,6 +49,7 @@ namespace mozilla {
 namespace imagelib {
 
 class SVGDocumentWrapper;
+class SVGRootRenderingObserver;
 
 class VectorImage : public Image,
                     public nsIStreamListener
@@ -72,6 +73,9 @@ public:
   void GetCurrentFrameRect(nsIntRect& aRect);
   PRUint32 GetDataSize();
 
+  
+  void InvalidateObserver();
+
 protected:
   virtual nsresult StartAnimation();
   virtual nsresult StopAnimation();
@@ -79,6 +83,9 @@ protected:
 private:
   nsWeakPtr                          mObserver;   
   nsRefPtr<SVGDocumentWrapper>       mSVGDocumentWrapper;
+#ifdef MOZ_ENABLE_LIBXUL
+  nsRefPtr<SVGRootRenderingObserver> mRenderingObserver;
+#endif 
 
   nsIntRect      mRestrictedRegion;       
                                           

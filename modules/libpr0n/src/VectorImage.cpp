@@ -53,9 +53,70 @@
 #include "nsSVGEffects.h" 
 #include "gfxDrawable.h"
 #include "gfxUtils.h"
+#include "nsSVGSVGElement.h"
+
+using namespace mozilla::dom;
 
 namespace mozilla {
 namespace imagelib {
+
+#ifdef MOZ_ENABLE_LIBXUL
+
+class SVGRootRenderingObserver : public nsSVGRenderingObserver {
+public:
+  SVGRootRenderingObserver(SVGDocumentWrapper* aDocWrapper,
+                           VectorImage*        aVectorImage)
+    : nsSVGRenderingObserver(),
+      mDocWrapper(aDocWrapper),
+      mVectorImage(aVectorImage)
+  {
+    StartListening();
+    Element* elem = GetTarget();
+    if (elem) {
+      nsSVGEffects::AddRenderingObserver(elem, this);
+    }
+  }
+
+  virtual ~SVGRootRenderingObserver()
+  {
+    StopListening();
+  }
+
+protected:
+  virtual Element* GetTarget()
+  {
+    return mDocWrapper->GetRootSVGElem();
+  }
+
+  virtual void DoUpdate()
+  {
+    Element* elem = GetTarget();
+    if (!elem)
+      return;
+
+    if (!mDocWrapper->ShouldIgnoreInvalidation()) {
+      nsIFrame* frame = elem->GetPrimaryFrame();
+      if (!frame || frame->PresContext()->PresShell()->IsDestroying()) {
+        
+        return;
+      }
+
+      mVectorImage->InvalidateObserver();
+    }
+
+    
+    
+    if (!mInObserverList) {
+      nsSVGEffects::AddRenderingObserver(elem, this);
+      mInObserverList = PR_TRUE;
+    }
+  }
+
+  
+  nsRefPtr<SVGDocumentWrapper> mDocWrapper;
+  VectorImage* mVectorImage;   
+};
+#endif 
 
 
 class SVGDrawingCallback : public gfxDrawingCallback {
@@ -574,6 +635,12 @@ VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
     mSVGDocumentWrapper->StopAnimation();
   }
 
+#ifdef MOZ_ENABLE_LIBXUL
+  
+  mRenderingObserver = new SVGRootRenderingObserver(mSVGDocumentWrapper, this);
+#endif 
+
+  
   nsCOMPtr<imgIDecoderObserver> observer = do_QueryReferent(mObserver);
   if (observer) {
     
@@ -601,6 +668,18 @@ VectorImage::OnDataAvailable(nsIRequest* aRequest, nsISupports* aCtxt,
 {
   return mSVGDocumentWrapper->OnDataAvailable(aRequest, aCtxt, aInStr,
                                               aSourceOffset, aCount);
+}
+
+
+
+
+void
+VectorImage::InvalidateObserver()
+{
+  nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(mObserver));
+  if (observer) {
+    observer->FrameChanged(this, &kFullImageSpaceRect);
+  }
 }
 
 } 
