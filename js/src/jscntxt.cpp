@@ -2237,6 +2237,7 @@ ComputeIsJITBroken()
     do {
         if (0 == line.find("Hardware")) {
             const char* blacklist[] = {
+                "SCH-I400",     
                 "SGH-T959",     
                 "SGH-I897",     
                 "SCH-I500",     
