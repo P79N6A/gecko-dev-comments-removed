@@ -4,17 +4,17 @@
 
 function test() {
   
-  
+
   waitForExplicitFinish();
-  
+
   let fieldValues = {
     username: "User " + Math.random(),
     passwd:   "pwd" + Date.now()
   };
-  
+
   
   gPrefService.setIntPref("browser.sessionstore.privacy_level", 0);
-  
+
   let rootDir = getRootDirectory(gTestPath);
   let testURL = rootDir + "browser_454908_sample.html";
   let tab = gBrowser.addTab(testURL);
@@ -23,9 +23,9 @@ function test() {
     let doc = tab.linkedBrowser.contentDocument;
     for (let id in fieldValues)
       doc.getElementById(id).value = fieldValues[id];
-    
+
     gBrowser.removeTab(tab);
-    
+
     tab = undoCloseTab();
     tab.linkedBrowser.addEventListener("load", function(aEvent) {
       tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
@@ -37,7 +37,7 @@ function test() {
         else
           is(node.value, fieldValues[id], "username was saved/restored");
       }
-      
+
       
       if (gPrefService.prefHasUserValue("browser.sessionstore.privacy_level"))
         gPrefService.clearUserPref("browser.sessionstore.privacy_level");

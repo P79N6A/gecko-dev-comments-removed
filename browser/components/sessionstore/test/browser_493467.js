@@ -9,7 +9,7 @@ function test() {
   tab.linkedBrowser.stop();
   let tabState = JSON.parse(ss.getTabState(tab));
   is(tabState.disallow || "", "", "Everything is allowed per default");
-  
+
   
   
   
@@ -21,7 +21,7 @@ function test() {
       docShell[attribute] = false;
     }
   }
-  
+
   
   tabState = JSON.parse(ss.getTabState(tab));
   let disallow = tabState.disallow.split(",");
@@ -30,6 +30,6 @@ function test() {
   });
   
   
-  
+
   gBrowser.removeTab(tab);
 }

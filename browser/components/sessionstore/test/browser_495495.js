@@ -4,7 +4,7 @@
 
 function test() {
   
-  
+
   waitForExplicitFinish();
 
   let newWin = openDialog(location, "_blank", "chrome,all,dialog=no,toolbar=yes");

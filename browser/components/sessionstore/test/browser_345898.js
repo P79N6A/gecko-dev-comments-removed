@@ -4,7 +4,7 @@
 
 function test() {
   
-  
+
   function test(aLambda) {
     try {
       aLambda();

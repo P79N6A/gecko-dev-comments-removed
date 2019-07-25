@@ -161,11 +161,11 @@ SessionStartup.prototype = {
 
   observe: function sss_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
-    case "app-startup": 
+    case "app-startup":
       Services.obs.addObserver(this, "final-ui-startup", true);
       Services.obs.addObserver(this, "quit-application", true);
       break;
-    case "final-ui-startup": 
+    case "final-ui-startup":
       Services.obs.removeObserver(this, "final-ui-startup");
       Services.obs.removeObserver(this, "quit-application");
       this.init();
@@ -206,7 +206,7 @@ SessionStartup.prototype = {
     var wType = aWindow.document.documentElement.getAttribute("windowtype");
     if (wType != "navigator:browser")
       return;
-    
+
     
 
 

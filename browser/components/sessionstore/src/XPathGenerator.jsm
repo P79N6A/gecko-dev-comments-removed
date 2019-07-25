@@ -16,18 +16,18 @@ let XPathGenerator = {
     
     if (!aNode.parentNode)
       return "";
-    
+
     
     let nNamespaceURI = aNode.namespaceURI;
     let nLocalName = aNode.localName;
 
     let prefix = this.namespacePrefixes[nNamespaceURI] || null;
     let tag = (prefix ? prefix + ":" : "") + this.escapeName(nLocalName);
-    
+
     
     if (aNode.id)
       return "//" + tag + "[@id=" + this.quoteArgument(aNode.id) + "]";
-    
+
     
     
     let count = 0;
@@ -36,7 +36,7 @@ let XPathGenerator = {
       if (n.localName == nLocalName && n.namespaceURI == nNamespaceURI &&
           (!nName || n.name == nName))
         count++;
-    
+
     
     return this.generate(aNode.parentNode) + "/" + tag +
            (nName ? "[@name=" + this.quoteArgument(nName) + "]" : "") +
@@ -90,7 +90,7 @@ let XPathGenerator = {
       ignoreTypes.join("' or translate(@type, " + toLowerCase + ")='") + "')";
     let formNodesXPath = "//textarea|//select|//xhtml:textarea|//xhtml:select|" +
       "//input[" + ignore + "]|//xhtml:input[" + ignore + "]";
-    
+
     delete this.restorableFormNodes;
     return (this.restorableFormNodes = formNodesXPath);
   }

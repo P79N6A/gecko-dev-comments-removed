@@ -4,10 +4,10 @@
 
 function test() {
   
-  
+
   
   waitForExplicitFinish();
-  
+
   const REMEMBER = Date.now(), FORGET = Math.random();
   let test_state = {
     windows: [ { tabs: [{ entries: [{ url: "http://example.com/" }] }], selected: 1 } ],
@@ -64,10 +64,10 @@ function test() {
     ]
   };
   let remember_count = 1;
-  
+
   function countByTitle(aClosedWindowList, aTitle)
     aClosedWindowList.filter(function(aData) aData.title == aTitle).length;
-  
+
   function testForError(aFunction) {
     try {
       aFunction();
@@ -77,7 +77,7 @@ function test() {
       return ex.name == "NS_ERROR_ILLEGAL_VALUE";
     }
   }
-  
+
   
   let newWin = openDialog(location, "_blank", "chrome,all,dialog=no");
   newWin.addEventListener("load", function(aEvent) {
@@ -85,7 +85,7 @@ function test() {
     gPrefService.setIntPref("browser.sessionstore.max_windows_undo",
                             test_state._closedWindows.length);
     ss.setWindowState(newWin, JSON.stringify(test_state), true);
-    
+
     let closedWindows = JSON.parse(ss.getClosedWindowData());
     is(closedWindows.length, test_state._closedWindows.length,
        "Closed window list has the expected length");
@@ -94,17 +94,17 @@ function test() {
        "The correct amount of windows are to be forgotten");
     is(countByTitle(closedWindows, REMEMBER), remember_count,
        "Everything is set up.");
-    
+
     
     ok(testForError(function() ss.forgetClosedWindow(-1)),
        "Invalid window for forgetClosedWindow throws");
     ok(testForError(function() ss.forgetClosedWindow(test_state._closedWindows.length + 1)),
        "Invalid window for forgetClosedWindow throws");
-	   
+
     
     ss.forgetClosedWindow(2);
     ss.forgetClosedWindow(null);
-    
+
     closedWindows = JSON.parse(ss.getClosedWindowData());
     is(closedWindows.length, remember_count,
        "The correct amount of windows were removed");

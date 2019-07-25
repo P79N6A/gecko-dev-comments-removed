@@ -62,7 +62,7 @@ function test() {
       tab.linkedBrowser.contentWindow.scrollTo(1100, 1200);
       setTimeout(function step2(e) {
         let mtime2 = getSessionstorejsModificationTime();
-        is(mtime2, mtime1, 
+        is(mtime2, mtime1,
            "tab selection and scrolling: sessionstore.js not updated");
 
         
