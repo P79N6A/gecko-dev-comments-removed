@@ -5435,8 +5435,9 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   
   
+  size_t rvSize = 0;
   if (cif->rtype != &ffi_type_void) {
-    size_t size = cif->rtype->size;
+    rvSize = cif->rtype->size;
     switch (typeCode) {
 #define DEFINE_INT_TYPE(name, type, ffiType)                                   \
     case TYPE_##name:
@@ -5445,12 +5446,12 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
 #define DEFINE_CHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
 #define DEFINE_JSCHAR_TYPE(x, y, z) DEFINE_INT_TYPE(x, y, z)
 #include "typedefs.h"
-      size = Align(size, sizeof(ffi_arg));
+      rvSize = Align(rvSize, sizeof(ffi_arg));
       break;
     default:
       break;
     }
-    memset(result, 0, size);
+    memset(result, 0, rvSize);
   }
 
   
@@ -5475,21 +5476,51 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   
   jsval rval;
-  if (!JS_CallFunctionValue(cx, thisObj, OBJECT_TO_JSVAL(jsfnObj), cif->nargs,
-       argv.begin(), &rval))
-    return;
-
-  
-  if (cif->rtype == &ffi_type_void)
-    return;
+  JSBool success = JS_CallFunctionValue(cx, thisObj, OBJECT_TO_JSVAL(jsfnObj),
+                                        cif->nargs, argv.begin(), &rval);
 
   
   
   
   
   
-  if (!ImplicitConvert(cx, rval, fninfo->mReturnType, result, false, NULL))
-    return;
+  if (success && cif->rtype != &ffi_type_void)
+    success = ImplicitConvert(cx, rval, fninfo->mReturnType, result, false,
+                              NULL);
+
+  if (!success) {
+    
+    
+    
+
+    
+    
+    if (JS_IsExceptionPending(cx))
+      JS_ReportPendingException(cx);
+
+    if (cinfo->errResult) {
+      
+      
+
+      
+      
+      
+      size_t copySize = CType::GetSize(cx, fninfo->mReturnType);
+      JS_ASSERT(copySize <= rvSize);
+      memcpy(result, cinfo->errResult, copySize);
+    } else {
+      
+      
+      
+      
+      JS_ReportError(cx, "JavaScript callback failed, and an error sentinel "
+                         "was not specified.");
+      if (JS_IsExceptionPending(cx))
+        JS_ReportPendingException(cx);
+
+      return;
+    }
+  }
 
   
   
