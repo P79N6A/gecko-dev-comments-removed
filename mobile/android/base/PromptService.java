@@ -498,6 +498,30 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
             return VIEW_TYPE_COUNT;
         }
 
+        private void maybeUpdateIcon(PromptListItem item, TextView t) {
+            if (item.icon == null)
+                return;
+
+            Resources res = GeckoApp.mAppContext.getResources();
+
+            
+            t.setPadding(item.inGroup ? mLeftRightTextWithIconPadding + mGroupPaddingSize :
+                                        mLeftRightTextWithIconPadding,
+                         mTopBottomTextWithIconPadding,
+                         mLeftRightTextWithIconPadding,
+                         mTopBottomTextWithIconPadding);
+
+            
+            t.setCompoundDrawablePadding(mIconTextPadding);
+
+            
+            
+            Bitmap bitmap = ((BitmapDrawable) item.icon).getBitmap();
+            Drawable d = new BitmapDrawable(Bitmap.createScaledBitmap(bitmap, mIconSize, mIconSize, true));
+
+            t.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
+        }
+
         public View getView(int position, View convertView, ViewGroup parent) {
             PromptListItem item = getItem(position);
             ViewHolder viewHolder = null;
@@ -543,29 +567,8 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
                 } catch (Exception ex) { }
             }
 
-            if (viewHolder.textView != null) {
-                final TextView t1 = viewHolder.textView;
-                t1.setText(item.label);
-
-                if (item.icon != null) {
-                    Resources res = GeckoApp.mAppContext.getResources();
-
-                    
-                    t1.setPadding(item. inGroup ? mLeftRightTextWithIconPadding + mGroupPaddingSize : mLeftRightTextWithIconPadding,
-                                  mTopBottomTextWithIconPadding,
-                                  mLeftRightTextWithIconPadding, mTopBottomTextWithIconPadding);
-
-                    
-                    t1.setCompoundDrawablePadding(mIconTextPadding);
-
-                    
-                    
-                    Bitmap bitmap = ((BitmapDrawable) item.icon).getBitmap();
-                    Drawable d = new BitmapDrawable(Bitmap.createScaledBitmap(bitmap, mIconSize, mIconSize, true));
-
-                    t1.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null);
-                }
-            }
+            viewHolder.textView.setText(item.label);
+            maybeUpdateIcon(item, viewHolder.textView);
 
             return convertView;
         }
