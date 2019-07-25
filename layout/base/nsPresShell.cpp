@@ -1674,20 +1674,20 @@ NS_NewPresShell(nsIPresShell** aInstancePtrResult)
 }
 
 nsTHashtable<PresShell::PresShellPtrKey> *nsIPresShell::sLiveShells = 0;
+static PRBool sSynthMouseMove = PR_TRUE;
 
 NS_MEMORY_REPORTER_IMPLEMENT(LayoutPresShell,
-    "explicit/layout/all",
-    MR_HEAP,
-    "Memory used by layout PresShell, PresContext, and other related areas.",
-    PresShell::SizeOfLayoutMemoryReporter,
-    nsnull)
+                             "heap-used/layout/all",
+                             "Memory used by layout PresShell, PresContext, "
+                             "and other related areas.",
+                             PresShell::SizeOfLayoutMemoryReporter,
+                             nsnull)
 
 NS_MEMORY_REPORTER_IMPLEMENT(LayoutBidi,
-    "explicit/layout/bidi",
-    MR_HEAP,
-    "Memory used by layout Bidi processor.",
-    PresShell::SizeOfBidiMemoryReporter,
-    nsnull)
+                             "heap-used/layout/bidi",
+                             "Memory used by layout Bidi processor.",
+                             PresShell::SizeOfBidiMemoryReporter,
+                             nsnull)
 
 PresShell::PresShell()
   : mMouseLocation(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE)
@@ -1718,6 +1718,8 @@ PresShell::PresShell()
   if (!registeredReporter) {
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(LayoutPresShell));
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(LayoutBidi));
+    nsContentUtils::AddBoolPrefVarCache("layout.reflow.synthMouseMove",
+                                        &sSynthMouseMove);
     registeredReporter = true;
   }
 
@@ -7856,7 +7858,9 @@ PresShell::DidDoReflow(PRBool aInterruptible)
   mFrameConstructor->EndUpdate();
   
   HandlePostedReflowCallbacks(aInterruptible);
-  SynthesizeMouseMove(PR_FALSE);
+  if (sSynthMouseMove) {
+    SynthesizeMouseMove(PR_FALSE);
+  }
   if (mCaret) {
     
     
