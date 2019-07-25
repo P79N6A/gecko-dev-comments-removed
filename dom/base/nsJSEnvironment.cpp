@@ -1925,10 +1925,16 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
   
   
   if (NS_SUCCEEDED(rv)) {
-    if (rval == JSVAL_NULL)
+    if (rval == JSVAL_NULL) {
       *arv = nsnull;
-    else
-      rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
+    } else {
+      if (!JS_WrapValue(mContext, &rval)) {
+        ReportPendingException();
+        rv = NS_ERROR_FAILURE;
+      } else {
+        rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
+      }
+    }
   }
 
   
