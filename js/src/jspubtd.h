@@ -161,32 +161,9 @@ typedef struct JSONParser        JSONParser;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 typedef enum JSValueMask16 
-#if defined(_MSC_VER) && _MSC_VER >= 1400
-: unsigned short
+#if defined(_MSC_VER)
+                           : uint16
 #endif
 {
     JSVAL_MASK16_NULL      = (uint16)0x0001,
@@ -203,6 +180,11 @@ typedef enum JSValueMask16
     JSVAL_MASK16_OBJORNULL = JSVAL_MASK16_OBJECT | JSVAL_MASK16_NULL,
     JSVAL_MASK16_GCTHING   = JSVAL_MASK16_OBJECT | JSVAL_MASK16_STRING,
 
+    
+
+
+
+
     JSVAL_NANBOX_PATTERN   = ((uint16)0xFFFF)
 }
 #if defined(__GNUC__)
@@ -210,45 +192,36 @@ __attribute__((packed))
 #endif
 JSValueMask16;
 
-#define JSVAL_MASK32_CLEAR       ((uint32)0xFFFF0000)
-
-#define JSVAL_MASK32_NULL        ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_NULL))
-#define JSVAL_MASK32_UNDEFINED   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_UNDEFINED))
-#define JSVAL_MASK32_INT32       ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_INT32))
-#define JSVAL_MASK32_STRING      ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_STRING))
-#define JSVAL_MASK32_NONFUNOBJ   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_NONFUNOBJ))
-#define JSVAL_MASK32_FUNOBJ      ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_FUNOBJ))
-#define JSVAL_MASK32_BOOLEAN     ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_BOOLEAN))
-#define JSVAL_MASK32_MAGIC       ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_MAGIC))
-
-#define JSVAL_MASK32_SINGLETON   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_SINGLETON))
-#define JSVAL_MASK32_OBJECT      ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_OBJECT))
-#define JSVAL_MASK32_OBJORNULL   ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_OBJORNULL))
-#define JSVAL_MASK32_GCTHING     ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_GCTHING))
-
-typedef enum JSWhyMagic
-{
-    JS_ARRAY_HOLE,               
-    JS_ARGS_HOLE,                
-    JS_NATIVE_ENUMERATE,         
-
-
-    JS_NO_ITER_VALUE,            
-    JS_GENERATOR_CLOSING         
-} JSWhyMagic;
-
-typedef union jsval_payload
-{
-    int32          i32;
-    uint32         u32;
-    JSBool         boo;
-#if JS_BITS_PER_WORD == 32
-    JSString       *str;
-    JSObject       *obj;
-    void           *ptr;
+typedef enum JSValueMask32
+#if defined(_MSC_VER)
+                           : uint32
 #endif
-    JSWhyMagic     why;
-} jsval_data;
+{
+    
+
+
+
+
+    JSVAL_MASK32_CLEAR     = ((uint32)0xFFFF0000),
+
+    JSVAL_MASK32_NULL      = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_NULL)),
+    JSVAL_MASK32_UNDEFINED = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_UNDEFINED)),
+    JSVAL_MASK32_INT32     = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_INT32)),
+    JSVAL_MASK32_STRING    = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_STRING)),
+    JSVAL_MASK32_NONFUNOBJ = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_NONFUNOBJ)),
+    JSVAL_MASK32_FUNOBJ    = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_FUNOBJ)),
+    JSVAL_MASK32_BOOLEAN   = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_BOOLEAN)),
+    JSVAL_MASK32_MAGIC     = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_MAGIC)),
+
+    JSVAL_MASK32_SINGLETON = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_SINGLETON)),
+    JSVAL_MASK32_OBJECT    = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_OBJECT)),
+    JSVAL_MASK32_OBJORNULL = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_OBJORNULL)),
+    JSVAL_MASK32_GCTHING   = ((uint32)(JSVAL_MASK32_CLEAR | JSVAL_MASK16_GCTHING))
+}
+#if defined(__GNUC__)
+__attribute__((packed))
+#endif
+JSValueMask32;
 
 #ifdef __GNUC__
 # define VALUE_ALIGNMENT        __attribute__((aligned (8)))
@@ -264,32 +237,376 @@ typedef union jsval_payload
 # error "TODO: do something for compiler"
 #endif
 
-#if !defined(IS_LITTLE_ENDIAN)
-# error "Need to fix up jsval_layout"
-#endif
+typedef VALUE_ALIGNMENT uint64 jsval;
 
+#define BUILD_JSVAL(mask32, payload) ((jsval)((((uint64)(uint32)(mask32)) << 32) | (uint32)(payload)))
+
+typedef enum JSWhyMagic
+{
+    JS_ARRAY_HOLE,               
+    JS_ARGS_HOLE,                
+    JS_NATIVE_ENUMERATE,         
+
+
+    JS_NO_ITER_VALUE,            
+    JS_GENERATOR_CLOSING         
+} JSWhyMagic;
+
+#if !defined(IS_LITTLE_ENDIAN)
+# error "Unsupported configuration"
+#endif
 
 typedef union jsval_layout
 {
     uint64 asBits;
     struct {
-        jsval_payload payload;
+        union {
+            int32          i32;
+            uint32         u32;
+            JSBool         boo;
+#if JS_BITS_PER_WORD == 32
+            JSString       *str;
+            JSObject       *obj;
+            void           *ptr;
+#elif JS_BITS_PER_WORD == 64
+            uint32         ptr;
+#else
+# error "Unsupported configuration"
+#endif
+            JSWhyMagic     why;
+        } payload;
         union {
             struct {
                 JSValueMask16 mask16;
                 uint16 nanBits;
             } tag;
-            uint32 mask32;
+            JSValueMask32 mask32;
         };
     } s;
     double asDouble;
 } jsval_layout;
 
-typedef uint64 jsval;
+#if JS_BITS_PER_WORD == 32
 
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NULL_IMPL(jsval_layout l)
+{
+    return l.s.mask32 == JSVAL_MASK32_NULL;
+}
 
-#define DOUBLE_AS_JSVAL(d)              (*(jsval *)&(d))
-#define JSVAL_CONSTANT(mask32, payload) ((jsval)((((uint64)(mask32)) << 32) | (payload)))
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_UNDEFINED_IMPL(jsval_layout l)
+{
+    return l.s.mask32 == JSVAL_MASK32_UNDEFINED;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_SPECIFIC_INT32_IMPL(jsval_layout l, int32 i32)
+{
+    return l.s.mask32 == JSVAL_MASK32_INT32 && l.s.payload.i32 == i32;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+INT32_TO_JSVAL_IMPL(int32 i)
+{
+    jsval_layout l;
+    l.s.mask32 = JSVAL_MASK32_INT32;
+    l.s.payload.i32 = i;
+    return l;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_DOUBLE_IMPL(jsval_layout l)
+{
+    return l.s.mask32 < JSVAL_MASK32_CLEAR;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+DOUBLE_TO_JSVAL_IMPL(jsdouble d)
+{
+    jsval_layout l;
+    l.asDouble = d;
+    JS_ASSERT(l.s.tag.nanBits != JSVAL_NANBOX_PATTERN);
+    return l;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+STRING_TO_JSVAL_IMPL(JSString *str)
+{
+    jsval_layout l;
+    l.s.mask32 = JSVAL_MASK32_STRING;
+    l.s.payload.str = str;
+    return l;
+}
+
+static JS_ALWAYS_INLINE JSString *
+JSVAL_TO_STRING_IMPL(jsval_layout l)
+{
+    return l.s.payload.str;
+}
+
+static JS_ALWAYS_INLINE JSObject *
+JSVAL_TO_OBJECT_IMPL(jsval_layout l)
+{
+    return l.s.payload.obj;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+OBJECT_TO_JSVAL_IMPL(JSValueMask32 mask, JSObject *obj)
+{
+    jsval_layout l;
+    l.s.mask32 = mask;
+    l.s.payload.obj = obj;
+    return l;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+BOOLEAN_TO_JSVAL_IMPL(JSBool b)
+{
+    jsval_layout l;
+    l.s.mask32 = JSVAL_MASK32_BOOLEAN;
+    l.s.payload.boo = b;
+    return l;
+}
+
+static JS_ALWAYS_INLINE void *
+JSVAL_TO_GCTHING_IMPL(jsval_layout l)
+{
+    return l.s.payload.ptr;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_SPECIFIC_BOOLEAN(jsval_layout l, JSBool b)
+{
+    return (l.s.mask32 == JSVAL_MASK32_BOOLEAN) && (l.s.payload.boo == b);
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+PRIVATE_TO_JSVAL_IMPL(void *ptr)
+{
+    JS_ASSERT(((uint32)ptr | 1) == 0);
+    jsval_layout l;
+    l.s.tag.nanBits = 0;
+    l.s.payload.ptr = ptr;
+    return l;
+}
+
+static JS_ALWAYS_INLINE void *
+JSVAL_TO_PRIVATE_IMPL(jsval_layout l)
+{
+    return l.s.payload.ptr;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+MAGIC_TO_JSVAL_IMPL(JSWhyMagic why)
+{
+    jsval_layout l;
+    l.s.mask32 = JSVAL_MASK32_MAGIC;
+    l.s.payload.why = why;
+    return l;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_SAME_PRIMITIVE_TYPE_OR_BOTH_OBJECTS_IMPL(jsval_layout lhs, jsval_layout rhs)
+{
+    return ((lhs.s.mask32 ^ rhs.s.mask32) & ~(uint32)JSVAL_MASK16_OBJECT) == 0 ||
+           (lhs.s.mask32 < JSVAL_MASK32_CLEAR && rhs.s.mask32 < JSVAL_MASK32_CLEAR);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_BOTH_STRING_IMPL(jsval_layout lhs, jsval_layout rhs)
+{
+    return (lhs.s.mask32 & rhs.s.mask32) == JSVAL_MASK32_STRING;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_BOTH_INT32_IMPL(jsval_layout lhs, jsval_layout rhs)
+{
+    return (lhs.s.mask32 & rhs.s.mask32) == JSVAL_MASK32_INT32;
+}
+
+#elif JS_BITS_PER_WORD == 64
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NULL_IMPL(jsval_layout l)
+{
+    return l.asBits == BUILD_JSVAL(JSVAL_MASK32_NULL, 0);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_UNDEFINED_IMPL(jsval_layout l)
+{
+    return l.asBits == BUILD_JSVAL(JSVAL_MASK32_UNDEFINED, 0);
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_SPECIFIC_INT32_IMPL(jsval_layout l, int32 i32)
+{
+    return l.asBits == BUILD_JSVAL(JSVAL_MASK32_INT32, i32);
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+INT32_TO_JSVAL_IMPL(int32 i)
+{
+    jsval_layout l;
+    l.asBits = BUILD_JSVAL(JSVAL_MASK32_INT32, i);
+    return l;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_DOUBLE_IMPL(jsval_layout l)
+{
+    return l.asBits < BUILD_JSVAL(JSVAL_MASK32_CLEAR, 0);
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+DOUBLE_TO_JSVAL_IMPL(jsdouble d)
+{
+    jsval_layout l;
+    l.asDouble = d;
+    JS_ASSERT(l.s.tag.nanBits != JSVAL_NANBOX_PATTERN);
+    return l;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+STRING_TO_JSVAL_IMPL(JSString *str)
+{
+    JS_ASSERT((size_t)str < (size_t)0xFFFFFFFF);
+    jsval_layout l;
+    l.asBits = BUILD_JSVAL(JSVAL_MASK32_STRING, (uint32)str);
+    return l;
+}
+
+static JS_ALWAYS_INLINE JSString *
+JSVAL_TO_STRING_IMPL(jsval_layout v)
+{
+    return (JSString *)(uint64)l.s.payload.ptr;
+}
+
+static JS_ALWAYS_INLINE JSObject *
+JSVAL_TO_OBJECT_IMPL(jsval_layout l)
+{
+    return (JSObject *)(uint64)l.s.payload.ptr;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+OBJECT_TO_JSVAL_IMPL(JSValueMask32 mask32, JSObject *obj)
+{
+    JS_ASSERT((size_t)obj < (size_t)0xFFFFFFFF);
+    jsval_layout l;
+    l.asBits = BUILD_JSVAL(mask32, (uint32)obj);
+    return l;
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+BOOLEAN_TO_JSVAL_IMPL(JSBool b)
+{
+    jsval_layout l;
+    l.asBits = BUILD_JSVAL(JSVAL_MASK32_BOOLEAN, b);
+    return l;
+}
+
+static JS_ALWAYS_INLINE void *
+JSVAL_TO_GCTHING_IMPL(jsval_layout l)
+{
+    return (void *)(uint64)l.s.payload.ptr;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_SPECIFIC_BOOLEAN(jsval_layout l, JSBool b)
+{
+    return l.asBits == BUILD_JSVAL(JSVAL_MASK32_BOOLEAN, b);
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+PRIVATE_TO_JSVAL_IMPL(void *ptr)
+{
+    JS_ASSERT(((uint32)ptr | 1) == 0);
+    jsval_layout l;
+    l.asBits = 0x8000000000000000LL | (ptr >> 1);
+    return l;
+}
+
+static JS_ALWAYS_INLINE void *
+JSVAL_TO_PRIVATE_IMPL(jsval_layout l)
+{
+    return (void *)(l.s.payload.asBits << 1);
+}
+
+static JS_ALWAYS_INLINE jsval_layout
+MAGIC_TO_JSVAL_IMPL(JSWhyMagic why)
+{
+    jsval_layout l;
+    l.asBits = BUILD_JSVAL(JSVAL_MASK32_MAGIC, why);
+    return l;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_SAME_PRIMITIVE_TYPE_OR_BOTH_OBJECTS_IMPL(jsval_layout lhs, jsval_layout rhs)
+{
+    uint32 xor32 = (uint32)((lhs.asBits ^ rhs.asBits) >> 32);
+    return (xor32 & ~(uint32)JSVAL_MASK16_OBJECT) == 0 ||
+           (JSVAL_IS_DOUBLE_IMPL(lhs) && JSVAL_IS_DOUBLE_IMPL(rhs));
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_BOTH_STRING_IMPL(jsval_layout lhs, jsval_layout rhs)
+{
+    return (uint32)((lhs.asBits & rhs.asBits) >> 32) == JSVAL_MASK32_STRING;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_BOTH_INT32_IMPL(jsval_layout lhs, jsval_layout rhs)
+{
+    return (uint32)((lhs.asBits & rhs.asBits) >> 32) == JSVAL_MASK32_INT32;
+}
+
+#else
+# error "Unsupported configuration"
+#endif
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_SINGLETON_IMPL(jsval_layout l)
+{
+    return (l.s.mask32 & JSVAL_MASK32_SINGLETON) > JSVAL_MASK32_CLEAR;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_NUMBER_IMPL(jsval_layout l)
+{
+    JSValueMask32 mask = l.s.mask32;
+    return mask < JSVAL_MASK32_CLEAR || mask == JSVAL_MASK32_INT32;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_OBJECT_IMPL(jsval_layout l)
+{
+    return (l.s.mask32 & JSVAL_MASK32_OBJECT) > JSVAL_MASK32_CLEAR;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_OBJECT_OR_NULL_IMPL(jsval_layout l)
+{
+    return (l.s.mask32 & JSVAL_MASK32_OBJORNULL) > JSVAL_MASK32_CLEAR;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_PRIMITIVE_IMPL(jsval_layout l)
+{
+    return (l.s.mask32 & JSVAL_MASK32_OBJECT) <= JSVAL_MASK32_CLEAR;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_GCTHING_IMPL(jsval_layout l)
+{
+    return (l.s.mask32 & JSVAL_MASK32_GCTHING) > JSVAL_MASK32_CLEAR;
+}
+
+static JS_ALWAYS_INLINE uint32
+JSVAL_TRACE_KIND_IMPL(jsval_layout l)
+{
+    return (uint32)(l.s.mask32 == JSVAL_MASK32_STRING);
+}
 
 
 
