@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -254,6 +256,19 @@ public class Favicons {
                 return GeckoJarReader.getBitmapDrawable(mFaviconUrl);
             }
 
+            URI uri;
+            try {
+                uri = faviconUrl.toURI();
+            } catch (URISyntaxException e) {
+                Log.d(LOGTAG, "Could not get URI for favicon URL: " + mFaviconUrl);
+                return null;
+            }
+
+            
+            String scheme = uri.getScheme();
+            if (!"http".equals(scheme) && !"https".equals(scheme))
+                return null;
+
             
             
             BitmapDrawable image = null;
@@ -264,8 +279,6 @@ public class Favicons {
                 BufferedHttpEntity bufferedEntity = new BufferedHttpEntity(entity);
                 contentStream = bufferedEntity.getContent();
                 image = (BitmapDrawable) Drawable.createFromStream(contentStream, "src");
-            } catch (IOException e) {
-                
             } catch (Exception e) {
                 Log.e(LOGTAG, "Error reading favicon", e);
             } finally {
