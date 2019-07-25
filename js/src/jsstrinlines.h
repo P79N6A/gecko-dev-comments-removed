@@ -325,6 +325,20 @@ class StringSegmentRange
     }
 };
 
+
+
+
+static inline const jschar *
+SkipSpace(const jschar *s, const jschar *end)
+{
+    JS_ASSERT(s <= end);
+
+    while (s < end && unicode::IsSpace(*s))
+        s++;
+
+    return s;
+}
+
 }  
 
 #endif
