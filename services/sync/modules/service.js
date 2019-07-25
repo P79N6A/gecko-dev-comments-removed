@@ -988,20 +988,29 @@ WeaveSvc.prototype = {
   
 
 
+  _clearSyncTriggers: function _clearSyncTriggers() {
+    
+    if (this._syncTimer) {
+      this._syncTimer.cancel();
+      this._syncTimer = null;
+    }
+
+    
+    try {
+      Svc.Idle.removeIdleObserver(this, IDLE_TIME);
+    }
+    catch(ex) {}
+  },
+
+  
+
+
   _checkSyncStatus: function WeaveSvc__checkSyncStatus() {
     
     
     let reason = this._checkSync();
     if (reason && reason != kSyncBackoffNotMet) {
-      if (this._syncTimer) {
-        this._syncTimer.cancel();
-        this._syncTimer = null;
-      }
-
-      try {
-        Svc.Idle.removeIdleObserver(this, IDLE_TIME);
-      } catch(e) {} 
-
+      this._clearSyncTriggers();
       this.status.service = STATUS_DISABLED;
       return;
     }
@@ -1093,10 +1102,8 @@ WeaveSvc.prototype = {
       throw reason;
     }
 
-    if (this._autoConnectTimer) {
-      this._autoConnectTimer.cancel();
-      this._autoConnectTimer = null;
-    }
+    
+    this._clearSyncTriggers();
 
     if (!(this._remoteSetup()))
       throw "aborting sync, remote setup failed";
