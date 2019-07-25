@@ -111,6 +111,12 @@ SessionStore.prototype = {
     
     if (!Services.prefs.getBoolPref("browser.sessionstore.resume_from_crash"))
       this._shouldRestore = false;
+
+    
+    if (Services.prefs.getBoolPref("browser.sessionstore.resume_session_once")) {
+      Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", false);
+      this._shouldRestore = true;
+    }
   },
   
   observe: function ss_observe(aSubject, aTopic, aData) {
@@ -167,6 +173,10 @@ SessionStore.prototype = {
         this._loadState = STATE_QUITTING;
         break;
       case "quit-application":
+        
+        if (aData == "restart")
+          Services.prefs.setBoolPref("browser.sessionstore.resume_session_once", true);
+
         
         this._loadState = STATE_QUITTING;
 
