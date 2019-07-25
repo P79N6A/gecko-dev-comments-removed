@@ -97,6 +97,11 @@ private:
   
   void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
 
+  void SetupDualViewports(const gfxIntSize &aSize);
+  
+  
+  void FillTexturesBlackWhite(const nsIntRegion& aRegion, const nsIntPoint& aOffset);
+
   
   void CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcOffset,
                   ID3D10Texture2D* aDest, const nsIntPoint &aDestOffset,
