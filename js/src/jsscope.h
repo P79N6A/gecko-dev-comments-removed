@@ -493,7 +493,7 @@ struct BaseShapeEntry
     static inline HashNumber hash(const BaseShape *base);
     static inline bool match(UnownedBaseShape *key, const BaseShape *lookup);
 };
-typedef HashSet<UnownedBaseShape *, BaseShapeEntry, SystemAllocPolicy> BaseShapeSet;
+typedef HashSet<ReadBarriered<UnownedBaseShape>, BaseShapeEntry, SystemAllocPolicy> BaseShapeSet;
 
 struct Shape : public js::gc::Cell
 {
@@ -975,7 +975,7 @@ struct InitialShapeEntry
 
 
 
-    js::Shape *shape;
+    ReadBarriered<Shape> shape;
 
     
 
