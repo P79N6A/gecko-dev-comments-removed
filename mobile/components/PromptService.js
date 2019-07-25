@@ -38,7 +38,53 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+var gPromptService = null;
+
 function PromptService() {
+  
+  
+  var appInfo = Cc["@mozilla.org/xre/app-info;1"];
+  if (!appInfo || appInfo.getService(Ci.nsIXULRuntime).processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+    
+
+    this.inContentProcess = false;
+
+    
+    this.wrappedJSObject = this;
+
+    
+    
+    this.receiveMessage = function(aMessage) {
+      var json = aMessage.json;
+      switch (aMessage.name) {
+        case "Prompt:Call":
+          
+          
+          
+          
+          const ALL_METHODS = ['alert', 'confirm', 'prompt'];
+          var method = aMessage.json.method;
+          if (ALL_METHODS.indexOf(method) == -1)
+            throw 'PromptServiceRemoter received an invalid method';
+          var arguments = aMessage.json.arguments;
+          arguments.unshift(null); 
+                                   
+          var ret = this[method].apply(this, arguments);
+          
+          
+          arguments.push(ret);
+          return arguments;
+      }
+    };
+  } else {
+    
+
+    this.inContentProcess = true;
+
+    this.messageManager = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
+  }
+
+  gPromptService = this;
 }
 
 PromptService.prototype = {
@@ -63,7 +109,7 @@ PromptService.prototype = {
     }
 
     let doc = this.getDocument();
-    if (!doc) {
+    if (!doc && !this.inContentProcess) {
       let fallback = this._getFallbackService();
       return fallback.getPrompt(domWin, iid);
     }
@@ -73,7 +119,7 @@ PromptService.prototype = {
   },
 
   
-  
+
   _getFallbackService: function _getFallbackService() {
     return Components.classesByID["{7ad1b327-6dfa-46ec-9234-f2a620ea7e00}"]
                      .getService(Ci.nsIPromptService);
@@ -87,6 +133,35 @@ PromptService.prototype = {
   
   
   callProxy: function(aMethod, aArguments) {
+    if (this.inContentProcess) {
+      
+      var window = aArguments[0];
+      if (window && window.document) {
+        var event = window.document.createEvent("Events");
+        event.initEvent("DOMWillOpenModalDialog", true, false);
+        window.dispatchEvent(event);
+      }
+
+      
+      var json = { method: aMethod,
+                   arguments: Array.prototype.slice.call(aArguments, 1) };
+      
+      
+      
+      
+      
+      var response =
+        this.messageManager.sendSyncMessage("Prompt:Call", json)[0];
+      
+      const ARGS_COPY_MAP = {
+        'prompt': [3,5],
+      };
+      if (ARGS_COPY_MAP[aMethod]) {
+        ARGS_COPY_MAP[aMethod].forEach(function(i) { aArguments[i].value = response[i].value; });
+      }
+      return response.pop(); 
+    }
+
     let doc = this.getDocument();
     if (!doc) {
       let fallback = this._getFallbackService();
@@ -259,6 +334,14 @@ Prompt.prototype = {
   
   
   alert: function alert(aTitle, aText) {
+    
+    
+    
+    
+    if (gPromptService.inContentProcess) {
+      return gPromptService.callProxy("alert", ['Alert'].concat(Array.prototype.slice.call(arguments, 0)));
+    }
+
     let dialog = this.openDialog("chrome://browser/content/prompt/alert.xul", null);
     let doc = this._doc;
     doc.getElementById("prompt-alert-title").value = aTitle;
