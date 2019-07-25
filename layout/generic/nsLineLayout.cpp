@@ -703,13 +703,21 @@ IsPercentageAware(const nsIFrame* aFrame)
     }
 
     
-    if ((
-         fType == nsGkAtoms::svgOuterSVGFrame ||
-         fType == nsGkAtoms::imageFrame ||
-         fType == nsGkAtoms::subDocumentFrame) &&
-        const_cast<nsIFrame*>(aFrame)->GetIntrinsicSize().width.GetUnit() ==
-        eStyleUnit_Percent) {
-      return PR_TRUE;
+    
+    
+    
+    
+    
+    
+    nsIFrame *f = const_cast<nsIFrame*>(aFrame);
+    if (f->GetIntrinsicRatio() != nsSize(0, 0) &&
+        
+        pos->mHeight.GetUnit() != eStyleUnit_Coord) {
+      const nsIFrame::IntrinsicSize &intrinsicSize = f->GetIntrinsicSize();
+      if (intrinsicSize.width.GetUnit() == eStyleUnit_None &&
+          intrinsicSize.height.GetUnit() == eStyleUnit_None) {
+        return PR_TRUE;
+      }
     }
   }
 
