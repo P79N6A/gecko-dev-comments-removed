@@ -571,10 +571,6 @@ public:
                                   PRBool aDefault = PR_FALSE);
   static void AddIntPrefVarCache(const char* aPref, PRInt32* aVariable,
                                  PRInt32 aDefault = 0);
-  static nsIPrefBranch2 *GetPrefBranch()
-  {
-    return sPrefBranch;
-  }
 
   
   
