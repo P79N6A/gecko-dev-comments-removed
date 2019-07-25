@@ -744,8 +744,10 @@ public:
 
 
 
+
   static nsresult GetFontMetricsForFrame(const nsIFrame* aFrame,
-                                         nsFontMetrics** aFontMetrics);
+                                         nsFontMetrics** aFontMetrics,
+                                         float aSizeInflation = 1.0f);
 
   
 
@@ -753,8 +755,10 @@ public:
 
 
 
+
   static nsresult GetFontMetricsForStyleContext(nsStyleContext* aStyleContext,
-                                                nsFontMetrics** aFontMetrics);
+                                                nsFontMetrics** aFontMetrics,
+                                                float aSizeInflation = 1.0f);
 
   
 
