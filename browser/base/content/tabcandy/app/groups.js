@@ -1,10 +1,15 @@
 
 (function(){
 
+
 var numCmp = function(a,b){ return a-b; }
 
+
 function min(list){ return list.slice().sort(numCmp)[0]; }
+
+
 function max(list){ return list.slice().sort(numCmp).reverse()[0]; }
+
 
 function isEventOverElement(event, el){
   var hit = {nodeName: null};
@@ -24,6 +29,19 @@ function isEventOverElement(event, el){
   var hidden;
   [$(hidden).show() for([,hidden] in Iterator(hiddenEls))];
   return isOver;
+}
+
+
+function dropAcceptFunction(el) { 
+  var $el = $(el);
+  if($el.hasClass('tab')) {
+    var item = Items.item($el);
+    if(item && (!item.parent || !item.parent.expanded)) {
+      return true;
+    }
+  }           
+          
+  return false;
 }
 
 
@@ -833,7 +851,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
         $(this).removeClass("acceptsDrop");
         self.add( drag.info.$el, {left:event.pageX, top:event.pageY} );
       },
-      accept: ".tab", 
+      accept: dropAcceptFunction
     });
   },
 
@@ -981,7 +999,7 @@ var DragInfo = function(element, event) {
   this.startTime = Utils.getMilliseconds();
   
   this.$el.data('isDragging', true);
-  this.item.setZ(99999);
+  this.item.setZ(999999);
   
   
   if(this.item.isAGroup) {
@@ -1070,7 +1088,7 @@ DragInfo.prototype = {
     if(this.parent && this.parent.expanded) {
       var now = Utils.getMilliseconds();
       var distance = this.startPosition.distance(new Point(event.clientX, event.clientY));
-      if(true) { 
+      if(distance > 100) {
         this.parent.remove(this.item);
         this.parent.collapse();
       }
@@ -1141,7 +1159,7 @@ window.Groups = {
   
   
   dropOptions: {
-    accept: ".tab",
+    accept: dropAcceptFunction,
     tolerance: "intersect",
     greedy: true,
     drop: function(e){
@@ -1183,9 +1201,12 @@ window.Groups = {
       $target.data("phantomGroup", phantom);      
     },
     out: function(e){      
-      $(e.target).data("phantomGroup").fadeOut(function(){
-        $(this).remove();
-      });
+      var phantom = $(e.target).data("phantomGroup");
+      if(phantom) { 
+        phantom.fadeOut(function(){
+          $(this).remove();
+        });
+      }
     }
   }, 
   
