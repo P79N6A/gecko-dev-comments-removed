@@ -450,6 +450,7 @@ struct JSScript : public js::gc::Cell
     bool            strictModeCode:1; 
     bool            explicitUseStrict:1; 
     bool            compileAndGo:1;   
+    bool            selfHosted:1;     
     bool            bindingsAccessedDynamically:1; 
     bool            funHasExtensibleScope:1;       
     bool            funHasAnyAliasedFormal:1;      
