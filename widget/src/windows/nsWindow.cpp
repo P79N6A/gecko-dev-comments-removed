@@ -636,19 +636,18 @@ nsWindow::Create(nsIWidget *aParent,
   DispatchStandardEvent(NS_CREATE);
   SubclassWindow(TRUE);
 
+  
+  
+  
+  
   if (sTrimOnMinimize == 2 && mWindowType == eWindowType_invisible) {
     
-
-
-
-
-
-
-
-
-
+    
+    
+    
     sTrimOnMinimize =
-      Preferences::GetBool("config.trim_on_minimize", PR_FALSE) ? 1 : 0;
+      Preferences::GetBool("config.trim_on_minimize",
+                           (GetWindowsVersion() >= VISTA_VERSION)) ? 1 : 0;
     sSwitchKeyboardLayout =
       Preferences::GetBool("intl.keyboard.per_window_layout", PR_FALSE);
     gDisableNativeTheme =
