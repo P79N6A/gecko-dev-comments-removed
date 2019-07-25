@@ -219,6 +219,14 @@ public:
   YCbCrTextureLayerProgram *GetYCbCrLayerProgram() {
     return static_cast<YCbCrTextureLayerProgram*>(mPrograms[gl::YCbCrLayerProgramType]);
   }
+  ComponentAlphaTextureLayerProgram *GetComponentAlphaPass1LayerProgram() {
+    return static_cast<ComponentAlphaTextureLayerProgram*>
+             (mPrograms[gl::ComponentAlphaPass1ProgramType]);
+  }
+  ComponentAlphaTextureLayerProgram *GetComponentAlphaPass2LayerProgram() {
+    return static_cast<ComponentAlphaTextureLayerProgram*>
+             (mPrograms[gl::ComponentAlphaPass2ProgramType]);
+  }
   CopyProgram *GetCopy2DProgram() {
     return static_cast<CopyProgram*>(mPrograms[gl::Copy2DProgramType]);
   }
@@ -272,7 +280,21 @@ public:
 
 
 
-  void CreateFBOWithTexture(int aWidth, int aHeight,
+
+
+  enum InitMode {
+    InitModeNone,
+    InitModeClear,
+    InitModeCopy
+  };
+
+  
+
+
+
+
+
+  void CreateFBOWithTexture(const nsIntRect& aRect, InitMode aInit,
                             GLuint *aFBO, GLuint *aTexture);
 
   GLuint QuadVBO() { return mQuadVBO; }

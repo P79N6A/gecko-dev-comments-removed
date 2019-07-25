@@ -651,6 +651,73 @@ public:
 
 
 
+
+
+
+class ComponentAlphaTextureLayerProgram :
+  public LayerProgram
+{
+public:
+  enum {
+    BlackTextureUniform = NumLayerUniforms,
+    WhiteTextureUniform,
+    NumUniforms
+  };
+
+  enum {
+    TexCoordAttrib = NumLayerAttribs,
+    NumAttribs
+  };
+
+  ComponentAlphaTextureLayerProgram(GLContext *aGL)
+    : LayerProgram(aGL)
+  { }
+
+  bool Initialize(const char *aVertexShaderString,
+                  const char *aFragmentShaderString)
+  {
+    if (!LayerProgram::Initialize(aVertexShaderString, aFragmentShaderString))
+      return false;
+
+    const char *uniformNames[] = {
+      "uBlackTexture",
+      "uWhiteTexture",
+      NULL
+    };
+
+    mUniformLocations.SetLength(NumUniforms);
+    GetUniformLocations(uniformNames, &mUniformLocations[NumLayerUniforms]);
+
+    const char *attribNames[] = {
+      "aTexCoord",
+      NULL
+    };
+
+    mAttribLocations.SetLength(NumAttribs);
+    GetAttribLocations(attribNames, &mAttribLocations[NumLayerAttribs]);
+
+    return true;
+  }
+
+  void SetBlackTextureUnit(GLint aUnit) {
+    SetUniform(mUniformLocations[BlackTextureUniform], aUnit);
+  }
+
+  void SetWhiteTextureUnit(GLint aUnit) {
+    SetUniform(mUniformLocations[WhiteTextureUniform], aUnit);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 class SolidColorLayerProgram :
   public LayerProgram
 {

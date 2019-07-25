@@ -125,6 +125,8 @@ enum ShaderProgramType {
     RGBARectLayerProgramType,
     ColorLayerProgramType,
     YCbCrLayerProgramType,
+    ComponentAlphaPass1ProgramType,
+    ComponentAlphaPass2ProgramType,
     Copy2DProgramType,
     Copy2DRectProgramType,
     NumProgramTypes
@@ -184,7 +186,7 @@ public:
 
 
 
-    virtual PRBool EndUpdate() = 0;
+    virtual void EndUpdate() = 0;
 
     
 
@@ -295,7 +297,7 @@ public:
     {}
 
     virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
-    virtual PRBool EndUpdate();
+    virtual void EndUpdate();
     virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion);
 
     
