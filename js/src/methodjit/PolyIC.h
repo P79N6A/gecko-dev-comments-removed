@@ -247,10 +247,7 @@ struct PICInfo {
     int shapeGuard : 8;
     
     
-    uint16 callReturn : 9;
-
-    unsigned unused : 24;
-
+    uint32 callReturn;
 
     inline bool isGet() {
         return kind == GET || kind == CALL || kind == GETELEM;
