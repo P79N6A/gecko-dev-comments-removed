@@ -167,6 +167,10 @@ var BrowserUI = {
       let newTop = null;
       if (dy > 0 && toolbar.top > -toolbar.boxObject.height) {
         
+        if (this.mode != PANELMODE_URLVIEW)
+          this.show(PANELMODE_URLVIEW);
+
+        
         newTop = this._dragData.sTop - dy;
 
         
