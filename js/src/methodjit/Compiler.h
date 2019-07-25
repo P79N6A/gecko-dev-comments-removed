@@ -115,6 +115,7 @@ class Compiler
 
 
 
+        jsbytecode   *pc;
         uint32       argc;
         DataLabelPtr funGuard;
         Jump         funJump;
