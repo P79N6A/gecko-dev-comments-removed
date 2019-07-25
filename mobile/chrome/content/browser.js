@@ -937,7 +937,6 @@ var Browser = {
 
 
 
-
   snapSidebars: function snapSidebars(scroller) {
     function visibility(bar, visrect) {
       try {
@@ -964,32 +963,27 @@ var Browser = {
     let [ritevis, ] = visibility(ritebar, visrect);
 
     let snappedX = 0;
-    let snappedIn = false;
 
     if (leftvis != 0 && leftvis != 1) {
       if (leftvis >= 0.6666) {
         snappedX = -((1 - leftvis) * leftw);
       } else {
         snappedX = leftvis * leftw;
-        snappedIn = true;
       }
 
       snappedX = Math.round(snappedX);
-      scroller.scrollBy(snappedX, 0);
     }
     else if (ritevis != 0 && ritevis != 1) {
       if (ritevis >= 0.6666) {
         snappedX = (1 - ritevis) * ritew;
       } else {
         snappedX = -ritevis * ritew;
-        snappedIn = true;
       }
 
       snappedX = Math.round(snappedX);
-      scroller.scrollBy(snappedX, 0);
     }
 
-    return [snappedX, snappedIn];
+    return snappedX;
   },
 
   zoomToElement: function zoomToElement(aElement) {
@@ -1160,17 +1154,12 @@ Browser.MainDragger.prototype = {
 
   dragStop: function dragStop(dx, dy, scroller) {
     let dx = this.dragMove(dx, dy, scroller, true);
-
-    let [snapdx, snappedIn] = Browser.snapSidebars(Browser.controlsScrollboxScroller);
-    this.bv.onAfterVisibleMove(snapdx, 0);
-
-    if (snappedIn) {
-      this.scrollingOuterX = false;
-    }
+    
+    dx += this.dragMove(Browser.snapSidebars(), 0, scroller, true);
 
     this.bv.resumeRendering();
 
-    return (dy != 0) || ((dx + snapdx) != 0);
+    return (dx != 0) || (dy != 0);
   },
 
   dragMove: function dragMove(dx, dy, scroller, doReturnDX) {
@@ -1189,7 +1178,9 @@ Browser.MainDragger.prototype = {
         odx = (contentright < w) ? Math.max(contentright - w, dx) : dx;
       }
 
-      outrv = this.outerDragMove(odx, ody, Browser.controlsScrollboxScroller, doReturnDX);
+      if (odx) {
+        outrv = this.outerDragMove(odx, ody, Browser.controlsScrollboxScroller, doReturnDX);
+      }
 
       if (odx != dx || ody != dy) {
         this.scrollingOuterX = false;
@@ -1220,7 +1211,7 @@ Browser.MainDragger.prototype = {
       this.dragMove(restdx, 0, scroller, doReturnDX);
     }
 
-    return (doReturnDX) ? (outrv + realdx) : ((outrv + realdx) != 0 || realdy != 0);
+    return (doReturnDX) ? (outrv + realdx) : (outrv || realdx != 0 || realdy != 0);
   },
 
   outerDragMove: function outerDragMove(dx, dy, scroller, doReturnDX) {
