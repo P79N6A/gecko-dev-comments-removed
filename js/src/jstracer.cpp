@@ -9443,7 +9443,12 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
     JS_PROPERTY_CACHE(cx).test(cx, pc, aobj, obj2, entry, atom);
     if (atom) {
         
+        
         jsid id = ATOM_TO_JSID(atom);
+
+        
+        forgetGuardedShapes();
+
         JSProperty* prop;
         if (JOF_OPMODE(*pc) == JOF_NAME) {
             JS_ASSERT(aobj == obj);
