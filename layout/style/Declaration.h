@@ -83,11 +83,11 @@ public:
 
 
 
-  nsresult ValueAppended(nsCSSProperty aProperty);
+  void ValueAppended(nsCSSProperty aProperty);
 
-  nsresult RemoveProperty(nsCSSProperty aProperty);
+  void RemoveProperty(nsCSSProperty aProperty);
 
-  nsresult GetValue(nsCSSProperty aProperty, nsAString& aValue) const;
+  void GetValue(nsCSSProperty aProperty, nsAString& aValue) const;
 
   PRBool HasImportantData() const { return mImportantData != nsnull; }
   PRBool GetValueIsImportant(nsCSSProperty aProperty) const;
@@ -96,9 +96,9 @@ public:
   PRUint32 Count() const {
     return mOrder.Length();
   }
-  nsresult GetNthProperty(PRUint32 aIndex, nsAString& aReturn) const;
+  void GetNthProperty(PRUint32 aIndex, nsAString& aReturn) const;
 
-  nsresult ToString(nsAString& aString) const;
+  void ToString(nsAString& aString) const;
 
   Declaration* Clone() const;
 
@@ -108,8 +108,7 @@ public:
   
 
 
-
-  PRBool InitializeEmpty();
+  void InitializeEmpty();
 
   
 

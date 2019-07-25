@@ -94,8 +94,7 @@ protected:
   
   
   
-  virtual nsresult GetCSSDeclaration(mozilla::css::Declaration **aDecl,
-                                     PRBool aAllocate) = 0;
+  virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool aAllocate) = 0;
   virtual nsresult DeclarationChanged() = 0;
   
   

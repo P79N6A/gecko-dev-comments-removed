@@ -1610,11 +1610,11 @@ BuildStyleRule(nsCSSProperty aProperty,
 {
   
   css::Declaration* declaration = new css::Declaration();
+  declaration->InitializeEmpty();
 
   PRBool changed; 
   nsIDocument* doc = aTargetElement->GetOwnerDoc();
   nsCOMPtr<nsIURI> baseURI = aTargetElement->GetBaseURI();
-  nsCOMPtr<nsICSSStyleRule> styleRule;
   nsCSSParser parser(doc->CSSLoader());
 
   if (aUseSVGMode) {
@@ -1630,24 +1630,19 @@ BuildStyleRule(nsCSSProperty aProperty,
 
   
   
-  
-  
-  if (!declaration->InitializeEmpty() ||
-      !parser ||
+  if (!parser ||
       NS_FAILED(parser.ParseProperty(aProperty, aSpecifiedValue,
                                      doc->GetDocumentURI(), baseURI,
                                      aTargetElement->NodePrincipal(),
                                      declaration, &changed, PR_FALSE)) ||
       
-      !declaration->HasNonImportantValueFor(propertyToCheck) ||
-      NS_FAILED(NS_NewCSSStyleRule(getter_AddRefs(styleRule), nsnull,
-                                   declaration))) {
+      !declaration->HasNonImportantValueFor(propertyToCheck)) {
     NS_WARNING("failure in BuildStyleRule");
     declaration->RuleAbort();  
     return nsnull;
   }
 
-  return styleRule.forget();
+  return NS_NewCSSStyleRule(nsnull, declaration);
 }
 
 inline

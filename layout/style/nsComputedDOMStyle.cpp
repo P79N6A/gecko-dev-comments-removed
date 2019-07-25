@@ -410,11 +410,11 @@ nsComputedDOMStyle::GetPresShellForContent(nsIContent* aContent)
 
 
 
-nsresult
-nsComputedDOMStyle::GetCSSDeclaration(css::Declaration**, PRBool)
+css::Declaration*
+nsComputedDOMStyle::GetCSSDeclaration(PRBool)
 {
   NS_RUNTIMEABORT("called nsComputedDOMStyle::GetCSSDeclaration");
-  return NS_ERROR_FAILURE;
+  return nsnull;
 }
 
 nsresult
