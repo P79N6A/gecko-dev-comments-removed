@@ -130,6 +130,14 @@ public:
 
 
   virtual void DidPaintWindow() { }
+
+  
+
+
+  virtual nsEventStatus HandleEvent(nsGUIEvent* event, bool useAttachedEvents)
+  {
+    return nsEventStatus_eIgnore;
+  }
 };
 
 #endif

@@ -2203,7 +2203,6 @@ nsresult
 nsWindow::Create(nsIWidget        *aParent,
                  nsNativeWidget    aNativeParent,
                  const nsIntRect  &aRect,
-                 EVENT_CALLBACK    aHandleEventFunction,
                  nsDeviceContext *aContext,
                  nsWidgetInitData *aInitData)
 {
@@ -2222,7 +2221,7 @@ nsWindow::Create(nsIWidget        *aParent,
     }
 
     
-    BaseCreate(baseParent, aRect, aHandleEventFunction, aContext, aInitData);
+    BaseCreate(baseParent, aRect, aContext, aInitData);
 
     
     mParent = aParent;
@@ -2256,14 +2255,12 @@ nsWindow::Create(nsIWidget        *aParent,
 
 already_AddRefed<nsIWidget>
 nsWindow::CreateChild(const nsIntRect&  aRect,
-                      EVENT_CALLBACK    aHandleEventFunction,
                       nsDeviceContext* aContext,
                       nsWidgetInitData* aInitData,
                       bool              )
 {
     
     return nsBaseWidget::CreateChild(aRect,
-                                     aHandleEventFunction,
                                      aContext,
                                      aInitData,
                                      true); 
@@ -2864,8 +2861,7 @@ nsWindow::DispatchResizeEvent(nsIntRect &aRect, nsEventStatus &aStatus)
 }
 
 NS_IMETHODIMP
-nsWindow::DispatchEvent(nsGUIEvent *aEvent,
-                              nsEventStatus &aStatus)
+nsWindow::DispatchEvent(nsGUIEvent *aEvent, nsEventStatus &aStatus)
 {
 #ifdef DEBUG
     debug_DumpEvent(stdout, aEvent->widget, aEvent,
@@ -2875,8 +2871,8 @@ nsWindow::DispatchEvent(nsGUIEvent *aEvent,
     aStatus = nsEventStatus_eIgnore;
 
     
-    if (mEventCallback)
-        aStatus = (* mEventCallback)(aEvent);
+    if (mWidgetListener)
+      aStatus = mWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
 
     return NS_OK;
 }

@@ -432,11 +432,9 @@ class nsIWidget : public nsISupports {
 
 
 
-
     NS_IMETHOD Create(nsIWidget        *aParent,
                       nsNativeWidget   aNativeParent,
                       const nsIntRect  &aRect,
-                      EVENT_CALLBACK   aHandleEventFunction,
                       nsDeviceContext *aContext,
                       nsWidgetInitData *aInitData = nullptr) = 0;
 
@@ -458,7 +456,6 @@ class nsIWidget : public nsISupports {
 
     virtual already_AddRefed<nsIWidget>
     CreateChild(const nsIntRect  &aRect,
-                EVENT_CALLBACK   aHandleEventFunction,
                 nsDeviceContext  *aContext,
                 nsWidgetInitData *aInitData = nullptr,
                 bool             aForceUseIWidgetParent = false) = 0;
@@ -468,10 +465,6 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD SetEventCallback(EVENT_CALLBACK aEventFunction,
-                                nsDeviceContext *aContext) = 0;
-
-    
 
 
 
@@ -482,16 +475,15 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD AttachViewToTopLevel(EVENT_CALLBACK aViewEventFunction,
+    NS_IMETHOD AttachViewToTopLevel(bool aUseAttachedEvents,
                                     nsDeviceContext *aContext) = 0;
 
     
 
 
 
-    NS_IMETHOD SetAttachedViewPtr(ViewWrapper* aViewWrapper) = 0;
-    virtual ViewWrapper* GetAttachedViewPtr() = 0;
+    virtual void SetAttachedWidgetListener(nsIWidgetListener* aListener) = 0;
+    virtual nsIWidgetListener* GetAttachedWidgetListener() = 0;
 
     
 
@@ -787,8 +779,6 @@ class nsIWidget : public nsISupports {
     virtual bool IsEnabled() const = 0;
 
     
-
-
 
 
 

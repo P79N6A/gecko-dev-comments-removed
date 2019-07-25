@@ -165,7 +165,6 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
                   nullptr,                            
                   r,                                  
                   nullptr,                            
-                  nullptr,                            
                   &widgetInitData);                   
   mWindow->GetClientBounds(r);
   

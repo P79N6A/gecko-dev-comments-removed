@@ -442,7 +442,6 @@ nsresult
 nsWindow::Create(nsIWidget *aParent,
                  nsNativeWidget aNativeParent,
                  const nsIntRect &aRect,
-                 EVENT_CALLBACK aHandleEventFunction,
                  nsDeviceContext *aContext,
                  nsWidgetInitData *aInitData)
 {
@@ -463,7 +462,7 @@ nsWindow::Create(nsIWidget *aParent,
   
   nsToolkit::GetToolkit();
 
-  BaseCreate(baseParent, aRect, aHandleEventFunction, aContext, aInitData);
+  BaseCreate(baseParent, aRect, aContext, aInitData);
 
   HWND parent;
   if (aParent) { 
@@ -3490,12 +3489,11 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   
   
   
-  if (mViewCallback) {
-    
-    aStatus = (*mViewCallback)(event);
+  if (mViewWrapperPtr) {
+    aStatus = mViewWrapperPtr->HandleEvent(event, mUseAttachedEvents);
   }
-  else if (mEventCallback) {
-    aStatus = (*mEventCallback)(event);
+  else if (mWidgetListener) {
+    aStatus = mWidgetListener->HandleEvent(event, mUseAttachedEvents);
   }
 
   
@@ -3697,7 +3695,7 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
 
   UserActivity();
 
-  if (!mEventCallback) {
+  if (!mWidgetListener) {
     return result;
   }
 
@@ -3880,7 +3878,7 @@ bool nsWindow::DispatchMouseEvent(PRUint32 aEventType, WPARAM wParam,
   event.pluginEvent = (void *)&pluginEvent;
 
   
-  if (nullptr != mEventCallback) {
+  if (mWidgetListener) {
     if (nsToolkit::gMouseTrailer)
       nsToolkit::gMouseTrailer->Disable();
     if (aEventType == NS_MOUSE_MOVE) {
@@ -4932,7 +4930,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     
     
     case WM_ACTIVATE:
-      if (mEventCallback) {
+      if (mWidgetListener) {
         PRInt32 fActive = LOWORD(wParam);
 
         if (WA_INACTIVE == fActive) {
@@ -6935,7 +6933,7 @@ void nsWindow::OnDestroy()
     NotifyWindowDestroyed();
 
   
-  mEventCallback = nullptr;
+  mWidgetListener = nullptr;
 
   
   
@@ -7024,6 +7022,11 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
     Invalidate();
   }
 #endif
+
+  
+  if (mViewWrapperPtr) {
+    mViewWrapperPtr->WindowResized(this, aWindowRect.width, aWindowRect.height);
+  }
 
   return mWidgetListener ?
          mWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height) : false;
