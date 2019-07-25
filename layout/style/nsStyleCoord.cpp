@@ -82,11 +82,17 @@ nsStyleCoord::nsStyleCoord(float aValue, nsStyleUnit aUnit)
   }
 }
 
+
+
+
 nsStyleCoord& nsStyleCoord::operator=(const nsStyleCoord& aCopy)
 {
   mUnit = aCopy.mUnit;
   if ((eStyleUnit_Percent <= mUnit) && (mUnit < eStyleUnit_Coord)) {
     mValue.mFloat = aCopy.mValue.mFloat;
+  }
+  else if (IsArrayValue()) {
+    mValue.mPointer = aCopy.mValue.mPointer;
   }
   else {
     mValue.mInt = aCopy.mValue.mInt;
@@ -154,6 +160,17 @@ void nsStyleCoord::SetAngleValue(float aValue, nsStyleUnit aUnit)
     mValue.mFloat = aValue;
   } else {
     NS_NOTREACHED("not an angle value");
+    Reset();
+  }
+}
+
+void nsStyleCoord::SetArrayValue(Array* aValue, nsStyleUnit aUnit)
+{
+  mUnit = aUnit;
+  if (IsArrayValue()) {
+    mValue.mPointer = aValue;
+  } else {
+    NS_NOTREACHED("not a pointer value");
     Reset();
   }
 }

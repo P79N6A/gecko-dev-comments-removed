@@ -59,12 +59,31 @@ enum nsStyleUnit {
   eStyleUnit_Radian       = 14,     
   eStyleUnit_Coord        = 20,     
   eStyleUnit_Integer      = 30,     
-  eStyleUnit_Enumerated   = 32      
+  eStyleUnit_Enumerated   = 32,     
+  
+  
+  
+  
+  
+  
+  eStyleUnit_Calc_Plus    = 40,     
+  eStyleUnit_Calc_Minus   = 41,     
+  eStyleUnit_Calc_Times_L = 42,     
+  eStyleUnit_Calc_Times_R = 43,     
+  eStyleUnit_Calc_Divided = 44,     
+  eStyleUnit_Calc_Minimum = 45,     
+  eStyleUnit_Calc_Maximum = 46      
 };
 
 typedef union {
   PRInt32     mInt;   
   float       mFloat;
+  
+  
+  
+  
+  
+  void*       mPointer;
 } nsStyleUnion;
 
 
@@ -101,12 +120,21 @@ public:
     return eStyleUnit_Degree <= mUnit && mUnit <= eStyleUnit_Radian;
   }
 
+  PRBool IsCalcUnit() const {
+    return eStyleUnit_Calc_Plus <= mUnit && mUnit <= eStyleUnit_Calc_Maximum;
+  }
+
+  PRBool IsArrayValue() const {
+    return IsCalcUnit();
+  }
+
   nscoord     GetCoordValue() const;
   PRInt32     GetIntValue() const;
   float       GetPercentValue() const;
   float       GetFactorValue() const;
   float       GetAngleValue() const;
   double      GetAngleValueInRadians() const;
+  Array*      GetArrayValue() const;
   void        GetUnionValue(nsStyleUnion& aValue) const;
 
   void  Reset();  
@@ -118,6 +146,7 @@ public:
   void  SetNormalValue();
   void  SetAutoValue();
   void  SetNoneValue();
+  void  SetArrayValue(Array* aValue, nsStyleUnit aUnit);
 
 public: 
   nsStyleUnit   mUnit;
@@ -252,11 +281,17 @@ inline nsStyleCoord::nsStyleCoord(nscoord aValue, CoordConstructorType)
   mValue.mInt = aValue;
 }
 
+
+
+
 inline nsStyleCoord::nsStyleCoord(const nsStyleCoord& aCopy)
   : mUnit(aCopy.mUnit)
 {
   if ((eStyleUnit_Percent <= mUnit) && (mUnit < eStyleUnit_Coord)) {
     mValue.mFloat = aCopy.mValue.mFloat;
+  }
+  else if (IsArrayValue()) {
+    mValue.mPointer = aCopy.mValue.mPointer;
   }
   else {
     mValue.mInt = aCopy.mValue.mInt;
@@ -325,6 +360,16 @@ inline float nsStyleCoord::GetAngleValue() const
   }
   return 0.0f;
 }
+
+inline nsStyleCoord::Array* nsStyleCoord::GetArrayValue() const
+{
+  NS_ASSERTION(IsArrayValue(), "not a pointer value");
+  if (IsArrayValue()) {
+    return static_cast<Array*>(mValue.mPointer);
+  }
+  return nsnull;
+}
+
 
 inline void nsStyleCoord::GetUnionValue(nsStyleUnion& aValue) const
 {
