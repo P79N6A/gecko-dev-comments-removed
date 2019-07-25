@@ -101,7 +101,7 @@ promptService.prototype = {
     this.sizeScrollableMsg("prompt-alert-message", 25);
     
     doc.getElementById("prompt-alert-checkbox").checked = aCheckState.value;
-    doc.getElementById("prompt-alert-checkbox-msg").value = aCheckMsg;
+    this.setLabelForNode(doc.getElementById("prompt-alert-checkbox-msg"), aCheckMsg);
     this.sizeElement("prompt-alert-checkbox-msg", 50);
     doc.getElementById("prompt-alert-checkbox-box").removeAttribute("collapsed");
     
@@ -134,7 +134,7 @@ promptService.prototype = {
     this.sizeScrollableMsg("prompt-confirm-message", 25);
 
     doc.getElementById("prompt-confirm-checkbox").checked = aCheckState.value;
-    doc.getElementById("prompt-confirm-checkbox-msg").value = aCheckMsg;
+    this.setLabelForNode(doc.getElementById("prompt-confirm-checkbox-msg"), aCheckMsg);
     this.sizeElement("prompt-confirm-checkbox-msg", 50);
     doc.getElementById("prompt-confirm-checkbox-box").removeAttribute("collapsed");
     
@@ -149,7 +149,7 @@ promptService.prototype = {
   
   
   
-  setLabelForNode: function(aNode, aLabel, aIsLabelFlag) {
+  setLabelForNode: function(aNode, aLabel) {
     
     
     
@@ -172,8 +172,11 @@ promptService.prototype = {
   
     
     aLabel = aLabel.replace(/\&\&/g, "&");
-    if (aIsLabelFlag) {    
+    if (aNode instanceof Ci.nsIDOMXULLabelElement) {
       aNode.setAttribute("value", aLabel);
+    } else if (aNode instanceof Ci.nsIDOMXULDescriptionElement) {
+      text = aNode.ownerDocument.createTextNode(aLabel);
+      aNode.appendChild(text);
     } else {    
       aNode.setAttribute("label", aLabel);
     }
@@ -200,7 +203,7 @@ promptService.prototype = {
     this.sizeScrollableMsg("prompt-confirm-message", 25);
 
     doc.getElementById("prompt-confirm-checkbox").checked = aCheckState.value;
-    doc.getElementById("prompt-confirm-checkbox-msg").value = aCheckMsg;
+    this.setLabelForNode(doc.getElementById("prompt-confirm-checkbox-msg"), aCheckMsg);
     this.sizeElement("prompt-confirm-checkbox-msg", 50);
     if (aCheckMsg) {
       doc.getElementById("prompt-confirm-checkbox-box").removeAttribute("collapsed");
@@ -242,7 +245,7 @@ promptService.prototype = {
       
       if (bTitle) {
         let button = doc.createElement("button");
-        this.setLabelForNode(button, bTitle, false);
+        this.setLabelForNode(button, bTitle);
         button.setAttribute("class", "button-dark");
         button.setAttribute("oncommand",
           "document.getElementById('prompt-confirm-dialog').PromptHelper.closeConfirm(" + i + ")");
@@ -269,7 +272,7 @@ promptService.prototype = {
     this.sizeScrollableMsg("prompt-prompt-message", 25);
 
     doc.getElementById("prompt-prompt-checkbox").checked = aCheckState.value;
-    doc.getElementById("prompt-prompt-checkbox-msg").value = aCheckMsg;
+    this.setLabelForNode(doc.getElementById("prompt-prompt-checkbox-msg"), aCheckMsg);
     this.sizeElement("prompt-prompt-checkbox-msg", 50);
     doc.getElementById("prompt-prompt-textbox").value = aValue.value;
     if (aCheckMsg) {
@@ -309,7 +312,7 @@ promptService.prototype = {
     doc.getElementById("prompt-password-password").value = aPassword.value;
     if (aCheckMsg) {
       doc.getElementById("prompt-password-checkbox-box").removeAttribute("collapsed");
-      doc.getElementById("prompt-password-checkbox-msg").appendChild(doc.createTextNode(aCheckMsg));
+      this.setLabelForNode(doc.getElementById("prompt-password-checkbox-msg"), aCheckMsg);
       this.sizeElement("prompt-password-checkbox-msg", 50);
       this.sizeElement("prompt-password-checkbox-box", 50);
     }
