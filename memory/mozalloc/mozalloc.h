@@ -207,6 +207,8 @@ MOZALLOC_EXPORT void* moz_valloc(size_t size)
 #ifdef ANDROID
 
 
+
+
 #define MOZALLOC_THROW_IF_HAS_EXCEPTIONS
 #else
 #define MOZALLOC_THROW_IF_HAS_EXCEPTIONS throw()
