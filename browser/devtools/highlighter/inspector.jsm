@@ -222,9 +222,11 @@ InspectorUI.prototype = {
   openInspectorUI: function IUI_openInspectorUI(aNode)
   {
     
-    if (this.isInspectorOpen && aNode) {
-      this.inspectNode(aNode);
-      this.stopInspecting();
+    if (this.isInspectorOpen) {
+      if (aNode) {
+        this.inspectNode(aNode);
+        this.stopInspecting();
+      }
       return;
     }
 
