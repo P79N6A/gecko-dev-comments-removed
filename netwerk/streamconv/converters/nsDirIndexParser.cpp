@@ -179,8 +179,6 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
   
   
 
-  delete[] mFormat;
-
   
   
   const char* pos = aFormatStr;
@@ -203,6 +201,7 @@ nsDirIndexParser::ParseFormat(const char* aFormatStr) {
 
   } while (*pos);
 
+  delete[] mFormat;
   mFormat = new int[num+1];
   
   if (mFormat == nsnull)
