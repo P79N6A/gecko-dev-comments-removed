@@ -304,7 +304,7 @@ class FrameState
     
 
 
-    inline RegisterID tempRegForData(FrameEntry *fe, RegisterID reg);
+    inline RegisterID tempRegInMaskForData(FrameEntry *fe, uint32 mask);
 
     
 
@@ -352,6 +352,7 @@ class FrameState
 
 
     RegisterID copyDataIntoReg(FrameEntry *fe);
+    void copyDataIntoReg(FrameEntry *fe, RegisterID exact);
     RegisterID copyDataIntoReg(Assembler &masm, FrameEntry *fe);
 
     
