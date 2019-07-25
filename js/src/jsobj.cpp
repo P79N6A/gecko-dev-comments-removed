@@ -6486,23 +6486,37 @@ js_PrintObjectSlotName(JSTracer *trc, char *buf, size_t bufsize)
 }
 #endif
 
-void
+static const Shape *
+LastConfigurableShape(JSObject *obj)
+{
+    for (Shape::Range r(obj->lastProperty()->all()); !r.empty(); r.popFront()) {
+        const Shape *shape = &r.front();
+        if (shape->configurable())
+            return shape;
+    }
+    return NULL;
+}
+
+bool
 js_ClearNative(JSContext *cx, JSObject *obj)
 {
     
-
-
-
-    if (!obj->nativeEmpty()) {
-        
-        obj->clear(cx);
-
-        
-        uint32 freeslot = JSSLOT_FREE(obj->getClass());
-        uint32 n = obj->numSlots();
-        for (uint32 i = freeslot; i < n; ++i)
-            obj->setSlot(i, UndefinedValue());
+    while (const Shape *shape = LastConfigurableShape(obj)) {
+        if (!obj->removeProperty(cx, shape->id))
+            return false;
     }
+
+    
+    for (Shape::Range r(obj->lastProperty()->all()); !r.empty(); r.popFront()) {
+        const Shape *shape = &r.front();
+        if (shape->isDataDescriptor() &&
+            shape->writable() &&
+            shape->hasDefaultSetter() &&
+            obj->containsSlot(shape->slot)) {
+            obj->setSlot(shape->slot, UndefinedValue());
+        }
+    }
+    return true;
 }
 
 bool
