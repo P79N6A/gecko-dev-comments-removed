@@ -82,6 +82,7 @@ public:
 
   double GetLevel();
   bool   IsCharging();
+  double GetRemainingTime();
 
   ~UPowerClient();
 
@@ -140,10 +141,12 @@ private:
 
   double mLevel;
   bool mCharging;
+  double mRemainingTime;
 
   static UPowerClient* sInstance;
 
   static const guint sDeviceTypeBattery = 2;
+  static const guint64 kUPowerUnknownRemainingTime = 0;
 };
 
 
@@ -171,7 +174,7 @@ GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo)
 
   aBatteryInfo->level() = upowerClient->GetLevel();
   aBatteryInfo->charging() = upowerClient->IsCharging();
-  aBatteryInfo->remainingTime() = kUnknownRemainingTime;
+  aBatteryInfo->remainingTime() = upowerClient->GetRemainingTime();
 }
 
 
@@ -196,6 +199,7 @@ UPowerClient::UPowerClient()
   , mTrackedDevice(nsnull)
   , mLevel(kDefaultLevel)
   , mCharging(kDefaultCharging)
+  , mRemainingTime(kUnknownRemainingTime)
 {
 }
 
@@ -275,6 +279,7 @@ UPowerClient::StopListening()
   
   mLevel = kDefaultLevel;
   mCharging = kDefaultCharging;
+  mRemainingTime = kUnknownRemainingTime;
 }
 
 void
@@ -335,7 +340,7 @@ UPowerClient::DeviceChanged(DBusGProxy* aProxy, const gchar* aObjectPath, UPower
 
   hal::NotifyBatteryChange(hal::BatteryInformation(aListener->mLevel,
                                                    aListener->mCharging,
-                                                   kUnknownRemainingTime));
+                                                   aListener->mRemainingTime));
 }
 
  DBusHandlerResult
@@ -377,14 +382,34 @@ UPowerClient::GetDeviceProperties(const gchar* aDevice)
 void
 UPowerClient::UpdateSavedInfo(GHashTable* aHashTable)
 {
+  bool isFull = false;
+
   mLevel = g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage")))*0.01;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   switch (g_value_get_uint(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "State")))) {
     case eState_Unknown:
       mCharging = kDefaultCharging;
       break;
-    case eState_Charging:
     case eState_FullyCharged:
+      isFull = true;
+    case eState_Charging:
     case eState_PendingCharge:
       mCharging = true;
       break;
@@ -393,6 +418,17 @@ UPowerClient::UpdateSavedInfo(GHashTable* aHashTable)
     case eState_PendingDischarge:
       mCharging = false;
       break;
+  }
+
+  if (isFull) {
+    mRemainingTime = 0;
+  } else {
+    mRemainingTime = mCharging ? g_value_get_int64(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "TimeToFull")))
+                               : g_value_get_int64(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "TimeToEmpty")));
+
+    if (mRemainingTime == kUPowerUnknownRemainingTime) {
+      mRemainingTime = kUnknownRemainingTime;
+    }
   }
 }
 
@@ -406,6 +442,12 @@ bool
 UPowerClient::IsCharging()
 {
   return mCharging;
+}
+
+double
+UPowerClient::GetRemainingTime()
+{
+  return mRemainingTime;
 }
 
 } 
