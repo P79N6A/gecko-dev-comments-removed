@@ -858,13 +858,6 @@ ComputeThisFromVpInPlace(JSContext *cx, js::Value *vp)
 }
 
 
-JS_ALWAYS_INLINE bool
-PrimitiveThisTest(JSFunction *fun, const Value &v)
-{
-    return !v.isPrimitive() || fun->acceptsPrimitiveThis();
-}
-
-
 
 
 
