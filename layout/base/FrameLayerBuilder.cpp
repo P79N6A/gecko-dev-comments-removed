@@ -2028,42 +2028,39 @@ ContainerState::Finish(uint32_t* aTextContentFlags)
 
   uint32_t textContentFlags = 0;
 
-  for (uint32_t i = 0; i <= mNewChildLayers.Length(); ++i) {
-    
-    
-    Layer* layer;
-    if (i < mNewChildLayers.Length()) {
-      layer = mNewChildLayers[i];
-      if (!layer->GetVisibleRegion().IsEmpty()) {
-        textContentFlags |= layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA;
-      }
-      if (!layer->GetParent()) {
-        
-        
-        Layer* prevChild = i == 0 ? nullptr : mNewChildLayers[i - 1].get();
-        mContainerLayer->InsertAfter(layer, prevChild);
-        continue;
-      }
-      NS_ASSERTION(layer->GetParent() == mContainerLayer,
-                   "Layer shouldn't be the child of some other container");
-    } else {
-      layer = nullptr;
+  
+  
+  Layer* layer = nullptr;
+  for (uint32_t i = 0; i < mNewChildLayers.Length(); ++i) {
+    Layer* prevChild = i == 0 ? nullptr : mNewChildLayers[i - 1].get();
+    layer = mNewChildLayers[i];
+
+    if (!layer->GetVisibleRegion().IsEmpty()) {
+      textContentFlags |= layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA;
     }
 
-    
-    
-    
-    
-    
-    Layer* nextOldChild = i == 0 ? mContainerLayer->GetFirstChild() :
-      mNewChildLayers[i - 1]->GetNextSibling();
-    while (nextOldChild != layer) {
-      Layer* tmp = nextOldChild;
-      nextOldChild = nextOldChild->GetNextSibling();
-      mContainerLayer->RemoveChild(tmp);
+    if (!layer->GetParent()) {
+      
+      
+      mContainerLayer->InsertAfter(layer, prevChild);
+      continue;
     }
-    
-    
+
+    NS_ASSERTION(layer->GetParent() == mContainerLayer,
+                 "Layer shouldn't be the child of some other container");
+    mContainerLayer->RepositionChild(layer, prevChild);
+  }
+
+  
+  if (!layer) {
+    layer = mContainerLayer->GetFirstChild();
+  } else {
+    layer = layer->GetNextSibling();
+  }
+  while (layer) {
+    Layer *layerToRemove = layer;
+    layer = layer->GetNextSibling();
+    mContainerLayer->RemoveChild(layerToRemove);
   }
 
   *aTextContentFlags = textContentFlags;
