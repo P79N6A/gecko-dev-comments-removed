@@ -286,10 +286,21 @@ function run_test() {
     do_check_eq(request.nsIHttpChannel.responseStatus, 416);
 
     
-    var chan = make_channel("http://localhost:4444/redir");
-    chan.nsIHttpChannel.setRequestHeader("X-Redir-To", "http://localhost:4444/range", false);
-    chan.nsIResumableChannel.resumeAt(1, entityID);
-    chan.asyncOpen(new ChannelListener(test_redir_resume, null), null);
+    try { 
+      let processType = Components.classes["@mozilla.org/xre/runtime;1"].
+                        getService(Components.interfaces.nsIXULRuntime).processType;
+      if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+        
+        var chan = make_channel("http://localhost:4444/redir");
+        chan.nsIHttpChannel.setRequestHeader("X-Redir-To", "http://localhost:4444/range", false);
+        chan.nsIResumableChannel.resumeAt(1, entityID);
+        chan.asyncOpen(new ChannelListener(test_redir_resume, null), null);
+      } else {
+        httpserver.stop(do_test_finished);
+      }
+    } catch (e) {
+      httpserver.stop(do_test_finished);
+    }
   }
 
   function test_redir_resume(request, data, ctx) {
