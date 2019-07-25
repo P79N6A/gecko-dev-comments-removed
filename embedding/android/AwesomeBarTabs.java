@@ -518,7 +518,7 @@ public class AwesomeBarTabs extends TabHost {
         setCurrentTabByTag(ALL_PAGES_TAB);
 
         
-        int tabsVisibility = (searchTerm.isEmpty() ? View.VISIBLE : View.GONE);
+        int tabsVisibility = (searchTerm.length() == 0 ? View.VISIBLE : View.GONE);
         getTabWidget().setVisibility(tabsVisibility);
 
         
