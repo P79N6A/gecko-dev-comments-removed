@@ -102,6 +102,12 @@ const kElementsReceivingInput = {
     video: true
 };
 
+
+const kBufferAmount = 300;
+
+
+const kUsingGLLayers = true;
+
 function dump(a) {
   Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
 }
@@ -863,27 +869,20 @@ var BrowserApp = {
         top: focusedRect.top - tab.viewportExcess.y,
         bottom: focusedRect.bottom - tab.viewportExcess.y
       };
-      let transformChanged = false;
       if (focusedRect.right >= visibleContentWidth && focusedRect.left > 0) {
         
         tab.viewportExcess.x += Math.min(focusedRect.left, focusedRect.right - visibleContentWidth);
-        transformChanged = true;
       } else if (focusedRect.left < 0) {
         
         tab.viewportExcess.x += focusedRect.left;
-        transformChanged = true;
       }
       if (focusedRect.bottom >= visibleContentHeight && focusedRect.top > 0) {
         
         tab.viewportExcess.y += Math.min(focusedRect.top, focusedRect.bottom - visibleContentHeight);
-        transformChanged = true;
       } else if (focusedRect.top < 0) {
         
         tab.viewportExcess.y += focusedRect.top;
-        transformChanged = true;
       }
-      if (transformChanged)
-        tab.updateTransform();
       
       tab.sendViewportUpdate();
     }
@@ -1409,6 +1408,8 @@ let gTabIDFactory = 0;
 let gScreenWidth = 1;
 let gScreenHeight = 1;
 
+let gBrowserWidth = null;
+
 function Tab(aURL, aParams) {
   this.browser = null;
   this.vbox = null;
@@ -1438,14 +1439,19 @@ Tab.prototype = {
     this.browser = document.createElement("browser");
     this.browser.setAttribute("type", "content-targetable");
     this.setBrowserSize(980, 480);
-    this.browser.style.MozTransformOrigin = "0 0";
+    this.browser.style.width = gScreenWidth + "px";
+    this.browser.style.height = gScreenHeight + "px";
     this.vbox.appendChild(this.browser);
 
     this.browser.stop();
 
-    
     let frameLoader = this.browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
-    frameLoader.clipSubdocument = false;
+    if (kUsingGLLayers) {
+        frameLoader.renderMode = Ci.nsIFrameLoader.RENDER_MODE_ASYNC_SCROLL;
+    } else {
+        
+        frameLoader.clipSubdocument = false;
+    }
 
     this.id = ++gTabIDFactory;
 
@@ -1568,27 +1574,19 @@ Tab.prototype = {
     this._viewport.height = gScreenHeight = aViewport.height;
     dump("### gScreenWidth = " + gScreenWidth + "\n");
 
-    let transformChanged = false;
-
     if ((aViewport.offsetX != this._viewport.offsetX) ||
         (excessX != this.viewportExcess.x)) {
       this._viewport.offsetX = aViewport.offsetX;
       this.viewportExcess.x = excessX;
-      transformChanged = true;
     }
     if ((aViewport.offsetY != this._viewport.offsetY) ||
         (excessY != this.viewportExcess.y)) {
       this._viewport.offsetY = aViewport.offsetY;
       this.viewportExcess.y = excessY;
-      transformChanged = true;
     }
     if (Math.abs(aViewport.zoom - this._viewport.zoom) >= 1e-6) {
       this._viewport.zoom = aViewport.zoom;
-      transformChanged = true;
     }
-
-    if (transformChanged)
-      this.updateTransform();
   },
 
   screenshot: function(aSrc, aDst) {
@@ -1617,20 +1615,6 @@ Tab.prototype = {
       Services.tm.mainThread.dispatch(function() {
 	  BrowserApp.doNextScreenshot()
       }, Ci.nsIThread.DISPATCH_NORMAL);
-  },
-
-  updateTransform: function() {
-    let hasZoom = (Math.abs(this._viewport.zoom - 1.0) >= 1e-6);
-    let x = this._viewport.offsetX + Math.round(-this.viewportExcess.x * this._viewport.zoom);
-    let y = this._viewport.offsetY + Math.round(-this.viewportExcess.y * this._viewport.zoom);
-
-    let transform =
-      "translate(" + x + "px, " +
-                     y + "px)";
-    if (hasZoom)
-      transform += " scale(" + this._viewport.zoom + ")";
-
-    this.browser.style.MozTransform = transform;
   },
 
   get viewport() {
@@ -1746,6 +1730,14 @@ Tab.prototype = {
         
         if (this._pluginCount && !this._pluginOverlayShowing)
           PluginHelper.showDoorHanger(this);
+
+        
+        let cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                            .getInterface(Ci.nsIDOMWindowUtils);
+        cwu.setDisplayPortForElement(-kBufferAmount, -kBufferAmount,
+                                     gScreenWidth + kBufferAmount * 2,
+                                     gScreenHeight + kBufferAmount * 2,
+                                     this.browser.contentDocument.documentElement);
 
         break;
       }
@@ -2068,7 +2060,7 @@ Tab.prototype = {
     let minScale = this.getPageZoomLevel(screenW);
     viewportH = Math.max(viewportH, screenH / minScale);
 
-    let oldBrowserWidth = parseInt(this.browser.style.width);
+    let oldBrowserWidth = gBrowserWidth;
     this.setBrowserSize(viewportW, viewportH);
 
     
@@ -2079,7 +2071,7 @@ Tab.prototype = {
     
     
 
-    if (viewportW == oldBrowserWidth)
+    if (oldBrowserWidth == null || viewportW == oldBrowserWidth)
       return;
 
     let viewport = this.viewport;
@@ -2092,9 +2084,8 @@ Tab.prototype = {
     if ("defaultZoom" in md && md.defaultZoom)
       return md.defaultZoom;
 
-    let browserWidth = parseInt(this.browser.style.width);
     dump("### getDefaultZoomLevel gScreenWidth=" + gScreenWidth);
-    return gScreenWidth / browserWidth;
+    return gScreenWidth / gBrowserWidth;
   },
 
   getPageZoomLevel: function getPageZoomLevel() {
@@ -2107,8 +2098,8 @@ Tab.prototype = {
   },
 
   setBrowserSize: function(aWidth, aHeight) {
-    this.browser.style.width = aWidth + "px";
-    this.browser.style.height = aHeight + "px";
+    
+    gBrowserWidth = aWidth;
   },
 
   getRequestLoadContext: function(aRequest) {
