@@ -768,6 +768,13 @@ js_DefineBlockVariable(JSContext *cx, JSObject *obj, jsid id, intN index);
 extern JS_REQUIRES_STACK JSObject *
 js_NewWithObject(JSContext *cx, JSObject *proto, JSObject *parent, jsint depth);
 
+inline JSObject *
+js_UnwrapWithObject(JSContext *cx, JSObject *withobj)
+{
+    JS_ASSERT(withobj->getClass() == &js_WithClass);
+    return withobj->getProto();
+}
+
 
 
 

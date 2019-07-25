@@ -989,10 +989,8 @@ JSScopeProperty::get(JSContext* cx, JSObject* obj, JSObject *pobj, jsval* vp)
 
 
 
-
-
     if (obj->getClass() == &js_WithClass)
-        obj = obj->map->ops->thisObject(cx, obj);
+        obj = js_UnwrapWithObject(cx, obj);
     return getterOp()(cx, obj, SPROP_USERID(this), vp);
 }
 
@@ -1011,7 +1009,7 @@ JSScopeProperty::set(JSContext* cx, JSObject* obj, jsval* vp)
 
     
     if (obj->getClass() == &js_WithClass)
-        obj = obj->map->ops->thisObject(cx, obj);
+        obj = js_UnwrapWithObject(cx, obj);
     return setterOp()(cx, obj, SPROP_USERID(this), vp);
 }
 
