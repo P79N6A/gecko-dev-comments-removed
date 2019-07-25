@@ -77,7 +77,7 @@ static const PRUnichar ALEF              = 0x05D0;
 
 
 nsIFrame*
-NS_NewDirectionalFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUnichar aChar);
+NS_NewDirectionalFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 nsBidiPresUtils::nsBidiPresUtils() : mArraySize(8),
                                      mIndexMap(nsnull),
@@ -318,6 +318,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
 {
   mLogicalFrames.Clear();
   mContentToFrameIndex.Clear();
+  mBuffer.SetLength(0);
   
   nsPresContext *presContext = aBlockFrame->PresContext();
   nsIPresShell* shell = presContext->PresShell();
@@ -328,34 +329,41 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   const nsStyleVisibility* vis = aBlockFrame->GetStyleVisibility();
   const nsStyleTextReset* text = aBlockFrame->GetStyleTextReset();
 
+  PRUnichar ch = 0;
   if (text->mUnicodeBidi == NS_STYLE_UNICODE_BIDI_OVERRIDE) {
     nsIFrame *directionalFrame = nsnull;
 
     if (NS_STYLE_DIRECTION_RTL == vis->mDirection) {
-      directionalFrame = NS_NewDirectionalFrame(shell, styleContext, kRLO);
+      ch = kRLO;
     }
     else if (NS_STYLE_DIRECTION_LTR == vis->mDirection) {
-      directionalFrame = NS_NewDirectionalFrame(shell, styleContext, kLRO);
+      ch = kLRO;
     }
-
-    if (directionalFrame) {
-      mLogicalFrames.AppendElement(directionalFrame);
+    if (ch != 0) {
+      directionalFrame = NS_NewDirectionalFrame(shell, styleContext);
+      if (directionalFrame) {
+        mLogicalFrames.AppendElement(directionalFrame);
+        mBuffer.Append(ch);
+      }
     }
   }
+  mPrevContent = nsnull;
   for (nsBlockFrame* block = aBlockFrame; block;
        block = static_cast<nsBlockFrame*>(block->GetNextContinuation())) {
     block->RemoveStateBits(NS_BLOCK_NEEDS_BIDI_RESOLUTION);
     InitLogicalArray(block->GetFirstChild(nsnull));
   }
 
-  if (text->mUnicodeBidi == NS_STYLE_UNICODE_BIDI_OVERRIDE) {
-    nsIFrame* directionalFrame = NS_NewDirectionalFrame(shell, styleContext, kPDF);
+  if (ch != 0) {
+    nsIFrame* directionalFrame = NS_NewDirectionalFrame(shell, styleContext);
     if (directionalFrame) {
       mLogicalFrames.AppendElement(directionalFrame);
+      mBuffer.Append(kPDF);
     }
   }
 
-  CreateBlockBuffer();
+  
+  mBuffer.ReplaceChar("\t\r\n", kSpace);
 
   PRInt32 bufferLength = mBuffer.Length();
 
@@ -641,7 +649,7 @@ PRBool IsBidiLeaf(nsIFrame* aFrame) {
 }
 
 void
-nsBidiPresUtils::InitLogicalArray(nsIFrame*       aCurrentFrame)
+nsBidiPresUtils::InitLogicalArray(nsIFrame*    aCurrentFrame)
 {
   if (!aCurrentFrame)
     return;
@@ -696,9 +704,10 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*       aCurrentFrame)
       
       
       if (ch != 0 && !frame->GetPrevContinuation()) {
-        nsIFrame* dirFrame = NS_NewDirectionalFrame(shell, styleContext, ch);
+        nsIFrame* dirFrame = NS_NewDirectionalFrame(shell, styleContext);
         if (dirFrame) {
           mLogicalFrames.AppendElement(dirFrame);
+          mBuffer.Append(ch);
         }
       }
     }
@@ -714,6 +723,23 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*       aCurrentFrame)
         mContentToFrameIndex.Put(content, mLogicalFrames.Length());
       }
       mLogicalFrames.AppendElement(frame);
+
+      
+      nsIAtom* frameType = frame->GetType();
+      if (nsGkAtoms::textFrame == frameType) {
+        if (content != mPrevContent) {
+          mPrevContent = content;
+          content->AppendTextTo(mBuffer);
+        }
+      } else if (nsGkAtoms::brFrame == frameType) {
+        
+        mBuffer.Append(kLineSeparator);
+      } else { 
+        
+        
+        
+        mBuffer.Append(kObjectSubstitute);
+      }
     }
     else {
       nsIFrame* kid = frame->GetFirstChild(nsnull);
@@ -724,56 +750,13 @@ nsBidiPresUtils::InitLogicalArray(nsIFrame*       aCurrentFrame)
     if (ch != 0 && !frame->GetNextContinuation()) {
       
       
-      nsIFrame* dirFrame = NS_NewDirectionalFrame(shell, styleContext, kPDF);
+      nsIFrame* dirFrame = NS_NewDirectionalFrame(shell, styleContext);
       if (dirFrame) {
         mLogicalFrames.AppendElement(dirFrame);
+        mBuffer.Append(kPDF);
       }
     }
   } 
-}
-
-void
-nsBidiPresUtils::CreateBlockBuffer()
-{
-  mBuffer.SetLength(0);
-
-  nsIFrame*                 frame;
-  nsIContent*               prevContent = nsnull;
-  PRUint32                  i;
-  PRUint32                  count = mLogicalFrames.Length();
-
-  for (i = 0; i < count; i++) {
-    frame = mLogicalFrames[i];
-    nsIAtom* frameType = frame->GetType();
-
-    if (nsGkAtoms::textFrame == frameType) {
-      nsIContent* content = frame->GetContent();
-      if (!content) {
-        mSuccess = NS_OK;
-        break;
-      }
-      if (content == prevContent) {
-        continue;
-      }
-      prevContent = content;
-      content->AppendTextTo(mBuffer);
-    }
-    else if (nsGkAtoms::brFrame == frameType) { 
-      
-      mBuffer.Append(kLineSeparator);
-    }
-    else if (nsGkAtoms::directionalFrame == frameType) {
-      nsDirectionalFrame* dirFrame = static_cast<nsDirectionalFrame*>(frame);
-      mBuffer.Append(dirFrame->GetChar());
-    }
-    else { 
-      
-      
-      mBuffer.Append(kObjectSubstitute);
-    }
-  }
-  
-  mBuffer.ReplaceChar("\t\r\n", kSpace);
 }
 
 void
