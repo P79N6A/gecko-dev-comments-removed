@@ -970,6 +970,7 @@ JSContext::JSContext(JSRuntime *rt)
     stack(thisDuringConstruction()),  
     parseMapPool_(NULL),
     globalObject(NULL),
+    sharpObjectMap(this),
     argumentFormatMap(NULL),
     lastMessage(NULL),
     errorReporter(NULL),
