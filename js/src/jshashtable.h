@@ -112,18 +112,6 @@ class HashTable : AllocPolicy
         Ptr(Entry &entry) : entry(&entry) {}
 
       public:
-        
-
-
-
-
-        Ptr() {
-#ifdef DEBUG
-            
-            entry = reinterpret_cast<Entry *>(0xBAD);
-#endif
-        }
-
         bool found() const                    { return entry->isLive(); }
         operator ConvertibleToBool() const    { return found() ? &Ptr::nonNull : 0; }
         bool operator==(const Ptr &rhs) const { JS_ASSERT(found() && rhs.found()); return entry == rhs.entry; }

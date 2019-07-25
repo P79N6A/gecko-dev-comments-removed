@@ -523,19 +523,6 @@ class AutoNamespaceArray : protected AutoGCRooter {
     JSXMLArray array;
 };
 
-JS_ALWAYS_INLINE
-AutoResolving::AutoResolving(JSContext *cx, JSObject *obj, jsid id, Kind kind
-                             JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT)
-  : object(obj),
-    id(id),
-    kind(kind),
-    lastp(&JS_THREAD_DATA(cx)->resolvingList),
-    prev(*lastp)
-{
-    JS_GUARD_OBJECT_NOTIFIER_INIT;
-    *lastp = this;
-}
-    
 #ifdef DEBUG
 class CompartmentChecker
 {
