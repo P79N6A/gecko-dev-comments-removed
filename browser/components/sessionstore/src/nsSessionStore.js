@@ -2981,8 +2981,9 @@ SessionStoreService.prototype = {
   restoreHistory:
     function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap) {
     var _this = this;
-    while (aTabs.length > 0 && (!aTabs[0].linkedBrowser.__SS_tabStillLoading || !aTabs[0].parentNode)) {
-      aTabs.shift(); 
+    
+    while (aTabs.length > 0 && !(this._canRestoreTabHistory(aTabs[0]))) {
+      aTabs.shift();
       aTabData.shift();
     }
     if (aTabs.length == 0) {
@@ -3994,6 +3995,20 @@ SessionStoreService.prototype = {
            !(aTabState.entries.length == 1 &&
              aTabState.entries[0].url == "about:blank" &&
              !aTabState.userTypedValue);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _canRestoreTabHistory: function sss__canRestoreTabHistory(aTab) {
+    return aTab.parentNode && aTab.linkedBrowser &&
+           aTab.linkedBrowser.__SS_tabStillLoading;
   },
 
   
