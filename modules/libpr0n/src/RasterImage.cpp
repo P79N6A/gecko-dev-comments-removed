@@ -1448,12 +1448,10 @@ RasterImage::Notify(nsITimer *timer)
   
   NS_ABORT_IF_FALSE(mDecoder || nextFrameIndex <= mFrames.Length(),
                     "How did we get 2 indicies too far by incrementing?");
-  bool haveFullNextFrame = !mDecoder || nextFrameIndex < mDecoder->GetCompleteFrameCount();
 
   
-  NS_ABORT_IF_FALSE(haveFullNextFrame ||
-                    (mDecoder && mFrames.Length() > mDecoder->GetCompleteFrameCount()),
-                    "What is the next frame supposed to be?");
+  
+  bool haveFullNextFrame = !mDecoder || nextFrameIndex < mDecoder->GetCompleteFrameCount();
 
   
   
