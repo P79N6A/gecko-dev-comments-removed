@@ -545,7 +545,6 @@ public:
         mHasRobustness(false),
         mContextLost(false),
         mVendor(-1),
-        mRenderer(-1),
         mDebugMode(0),
         mCreationFormat(aFormat),
         mSharedContext(aSharedContext),
@@ -689,20 +688,9 @@ public:
         VendorOther
     };
 
-    enum {
-        RendererAdreno200,
-        RendererOther
-    };
-
     int Vendor() const {
         return mVendor;
     }
-
-    int Renderer() const {
-        return mRenderer;
-    }
-
-    bool CanUploadSubTextures();
 
     
 
@@ -779,7 +767,6 @@ protected:
     bool mFlushGuaranteesResolve;
 
 public:
-
     void SetFlushGuaranteesResolve(bool aFlushGuaranteesResolve) {
         mFlushGuaranteesResolve = aFlushGuaranteesResolve;
     }
@@ -1209,11 +1196,9 @@ public:
 
 
 
-
     ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
                                              const nsIntRegion& aDstRegion,
                                              GLuint& aTexture,
-                                             const nsIntSize& aTextureSize,
                                              bool aOverwrite = false,
                                              const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
                                              bool aPixelBuffer = false);
@@ -1396,7 +1381,6 @@ protected:
     bool mContextLost;
 
     PRInt32 mVendor;
-    PRInt32 mRenderer;
 
     enum {
         DebugEnabled = 1 << 0,
@@ -2699,23 +2683,23 @@ public:
 };
 
 inline bool
-DoesStringMatch(const char* aString, const char *aWantedString)
+DoesVendorStringMatch(const char* aVendorString, const char *aWantedVendor)
 {
-    if (!aString || !aWantedString)
+    if (!aVendorString || !aWantedVendor)
         return false;
 
-    const char *occurrence = strstr(aString, aWantedString);
+    const char *occurrence = strstr(aVendorString, aWantedVendor);
 
     
     if (!occurrence)
         return false;
 
     
-    if (occurrence != aString && isalpha(*(occurrence-1)))
+    if (occurrence != aVendorString && isalpha(*(occurrence-1)))
         return false;
 
     
-    const char *afterOccurrence = occurrence + strlen(aWantedString);
+    const char *afterOccurrence = occurrence + strlen(aWantedVendor);
     if (isalpha(*afterOccurrence))
         return false;
 
