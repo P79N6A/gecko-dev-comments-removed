@@ -817,6 +817,10 @@ nsFrameLoader::ShowRemoteFrame(nsIFrameFrame* frame, nsIView* view)
     
     mChildProcess->SendcreateWidget(0);
   }
+#elif defined(ANDROID)
+  
+
+  mChildProcess->SendcreateWidget(0);
 #elif defined(XP_MACOSX)
 #  warning IMPLEMENT ME
 

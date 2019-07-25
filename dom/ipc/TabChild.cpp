@@ -431,6 +431,11 @@ TabChild::RecvcreateWidget(const MagicWindowHandle& parentWidget)
     view->scene()->addItem(win);
 #elif defined(XP_WIN)
     HWND win = parentWidget;
+#elif defined(ANDROID)
+    
+    
+    
+    void *win = (void *)0x1234;
 #elif defined(XP_MACOSX)
 #  warning IMPLEMENT ME
 #else
