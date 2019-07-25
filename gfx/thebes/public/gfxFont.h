@@ -48,6 +48,7 @@
 #include "gfxFontUtils.h"
 #include "nsTArray.h"
 #include "nsTHashtable.h"
+#include "nsClassHashtable.h"
 #include "nsHashKeys.h"
 #include "gfxSkipChars.h"
 #include "gfxRect.h"
@@ -70,6 +71,8 @@ class gfxUserFontSet;
 class gfxUserFontData;
 
 class nsILanguageAtomService;
+
+typedef struct _hb_blob_t hb_blob_t;
 
 
 #define FONT_STYLE_NORMAL              NS_FONT_STYLE_NORMAL
@@ -217,7 +220,15 @@ public:
 
     const nsString& FamilyName();
 
-    already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold);
+    already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle,
+                                             PRBool aNeedsBold);
+
+    
+    
+    
+    
+    
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 
     nsString         mName;
 
@@ -272,6 +283,61 @@ protected:
     }
 
     gfxFontFamily *mFamily;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class FontTableCacheEntry {
+    public:
+        
+        FontTableCacheEntry(nsTArray<PRUint8>& aBuffer,
+                            PRUint32 aTag,
+            nsClassHashtable<nsUint32HashKey,FontTableCacheEntry>& aCache);
+
+        ~FontTableCacheEntry() {
+            MOZ_COUNT_DTOR(FontTableCacheEntry);
+        }
+
+        hb_blob_t *GetBlob() const { return mBlob; }
+
+    protected:
+        
+        nsTArray<PRUint8>  mData;
+        
+        hb_blob_t         *mBlob;
+        
+        
+        PRUint32           mTag;
+        nsClassHashtable<nsUint32HashKey,FontTableCacheEntry>&
+                           mCache;
+
+    private:
+        
+        FontTableCacheEntry(const FontTableCacheEntry&);
+
+        static void Destroy(void *aUserData);
+    };
+
+    nsClassHashtable<nsUint32HashKey,FontTableCacheEntry> mFontTableCache;
 
 private:
     gfxFontEntry(const gfxFontEntry&);
@@ -777,6 +843,20 @@ public:
     virtual gfxFont* CopyWithAntialiasOption(AntialiasOption anAAOption) {
         
         return nsnull;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag) {
+        return mFontEntry->GetFontTable(aTag);
     }
 
     

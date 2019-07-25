@@ -44,6 +44,9 @@
 #include "gfxUserFontSet.h"
 #include "cairo-win32.h"
 
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
+
 
 
 
@@ -72,12 +75,18 @@ public:
 
     IDWriteFontFace *GetFontFace() { return mFontFace.get(); }
 
+    
+    
+    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
+
 protected:
     void ComputeMetrics();
 
     cairo_font_face_t *CairoFontFace();
 
     cairo_scaled_font_t *CairoScaledFont();
+
+    static void DestroyBlobFunc(void* userArg);
 
     nsRefPtr<IDWriteFontFace> mFontFace;
     cairo_font_face_t *mCairoFontFace;

@@ -63,6 +63,8 @@
 #include "cairo.h"
 #include "gfxFontTest.h"
 
+#include "harfbuzz/hb-blob.h"
+
 #include "nsCRT.h"
 
 gfxFontCache *gfxFontCache::gGlobalCache = nsnull;
@@ -87,10 +89,10 @@ static PRUint32 gGlyphExtentsSetupFallBackToTight = 0;
 
 gfxFontEntry::~gfxFontEntry() 
 {
-    if (mUserFontData)
+    if (mUserFontData) {
         delete mUserFontData;
+    }
 }
-
 
 PRBool gfxFontEntry::TestCharacterMap(PRUint32 aCh)
 {
@@ -99,7 +101,6 @@ PRBool gfxFontEntry::TestCharacterMap(PRUint32 aCh)
     }
     return mCharacterMap.test(aCh);
 }
-
 
 nsresult gfxFontEntry::InitializeUVSMap()
 {
@@ -137,7 +138,6 @@ nsresult gfxFontEntry::InitializeUVSMap()
     return NS_OK;
 }
 
-
 PRUint16 gfxFontEntry::GetUVSGlyph(PRUint32 aCh, PRUint32 aVS)
 {
     InitializeUVSMap();
@@ -149,13 +149,11 @@ PRUint16 gfxFontEntry::GetUVSGlyph(PRUint32 aCh, PRUint32 aVS)
     return 0;
 }
 
-
 nsresult gfxFontEntry::ReadCMAP()
 {
     mCmapInitialized = PR_TRUE;
     return NS_OK;
 }
-
 
 const nsString& gfxFontEntry::FamilyName()
 {
@@ -184,6 +182,66 @@ gfxFontEntry::FindOrMakeFont(const gfxFontStyle *aStyle, PRBool aNeedsBold)
     font.swap(f);
     return f;
 }
+
+gfxFontEntry::FontTableCacheEntry::FontTableCacheEntry
+        (nsTArray<PRUint8>& aBuffer,
+         PRUint32 aTag,
+         nsClassHashtable<nsUint32HashKey,FontTableCacheEntry>& aCache)
+    : mTag(aTag), mCache(aCache)
+{
+    MOZ_COUNT_CTOR(FontTableCacheEntry);
+    mData.SwapElements(aBuffer);
+    mBlob = hb_blob_create((const char*)mData.Elements(), mData.Length(),
+                           HB_MEMORY_MODE_READONLY,
+                           gfxFontEntry::FontTableCacheEntry::Destroy,
+                           this);
+}
+
+ void
+gfxFontEntry::FontTableCacheEntry::Destroy(void *aUserData)
+{
+    gfxFontEntry::FontTableCacheEntry *ftce =
+        static_cast<gfxFontEntry::FontTableCacheEntry*>(aUserData);
+    ftce->mCache.Remove(ftce->mTag);
+}
+
+hb_blob_t *
+gfxFontEntry::GetFontTable(PRUint32 aTag)
+{
+    if (!mFontTableCache.IsInitialized()) {
+        
+        
+        mFontTableCache.Init(10);
+    }
+
+    FontTableCacheEntry *entry = nsnull;
+    if (!mFontTableCache.Get(aTag, &entry)) {
+        nsTArray<PRUint8> buffer;
+        if (NS_SUCCEEDED(GetFontTable(aTag, buffer))) {
+            entry = new FontTableCacheEntry(buffer, 
+                                            aTag, mFontTableCache);
+            if (mFontTableCache.Put(aTag, entry)) {
+                return entry->GetBlob();
+            }
+            hb_blob_destroy(entry->GetBlob());
+            delete entry; 
+            return hb_blob_create_empty();
+        }
+    }
+
+    if (entry) {
+        return hb_blob_reference(entry->GetBlob());
+    }
+
+    return hb_blob_create_empty();
+}
+
+
+
+
+
+
+
 
 
 
