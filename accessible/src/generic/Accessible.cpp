@@ -676,23 +676,28 @@ Accessible::NativeState()
   state |= VisibilityState();
 
   nsIFrame *frame = GetFrame();
-  if (frame && (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW))
-    state |= states::FLOATING;
+  if (frame) {
+    if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
+      state |= states::FLOATING;
 
-  
-  if (mContent->IsXUL()) {
-    if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::popup))
-      state |= states::HASPOPUP;
-
-    const nsStyleXUL *xulStyle = frame->GetStyleXUL();
-    if (xulStyle && frame->IsBoxFrame()) {
-      
-      if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL)
-        state |= states::VERTICAL;
-      else
-        state |= states::HORIZONTAL;
+    
+    
+    if (mContent->IsXUL() && frame->IsBoxFrame()) {
+      const nsStyleXUL* xulStyle = frame->GetStyleXUL();
+      if (xulStyle && frame->IsBoxFrame()) {
+        
+        if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL)
+          state |= states::VERTICAL;
+        else
+          state |= states::HORIZONTAL;
+      }
     }
   }
+
+  
+      if (mContent->IsXUL() && mContent->HasAttr(kNameSpaceID_None,
+                                                 nsGkAtoms::popup))
+        state |= states::HASPOPUP;
 
   
   if (!mRoleMapEntry || mRoleMapEntry->roleRule == kUseNativeRole ||
