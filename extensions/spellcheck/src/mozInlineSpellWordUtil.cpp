@@ -52,6 +52,10 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIContent.h"
 #include "nsTextFragment.h"
+#include "mozilla/dom/Element.h"
+#include "nsIFrame.h"
+
+using namespace mozilla;
 
 
 
@@ -99,14 +103,6 @@ mozInlineSpellWordUtil::Init(nsWeakPtr aWeakEditor)
 
   mDOMDocument = domDoc;
   mDocument = do_QueryInterface(domDoc);
-
-  
-  nsCOMPtr<nsIDOMWindow> window;
-  rv = domDoc->GetDefaultView(getter_AddRefs(window));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mCSSView = window;
-  NS_ENSURE_TRUE(window, NS_ERROR_NULL_POINTER);
 
   
   
@@ -495,46 +491,30 @@ ContainsDOMWordSeparator(nsIDOMNode* aNode, PRInt32 aBeforeOffset,
 }
 
 static bool
-IsBreakElement(nsIDOMWindow* aDocView, nsIDOMNode* aNode)
+IsBreakElement(nsIDOMNode* aNode)
 {
-  nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aNode);
-  if (!element)
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  if (!node->IsElement()) {
     return false;
+  }
+
+  dom::Element *element = node->AsElement();
     
-  if (IsBRElement(aNode))
+  if (element->IsHTML(nsGkAtoms::br))
     return true;
+
   
-  nsCOMPtr<nsIDOMCSSStyleDeclaration> style;
-  aDocView->GetComputedStyle(element, EmptyString(), getter_AddRefs(style));
-  if (!style)
+  
+  if (!element->GetPrimaryFrame())
     return false;
 
-#ifdef DEBUG_SPELLCHECK
-  printf("    searching element %p\n", (void*)aNode);
-#endif
-
-  nsAutoString display;
-  style->GetPropertyValue(NS_LITERAL_STRING("display"), display);
-#ifdef DEBUG_SPELLCHECK
-  printf("      display=\"%s\"\n", NS_ConvertUTF16toUTF8(display).get());
-#endif
-  if (!display.EqualsLiteral("inline"))
-    return true;
-
-  nsAutoString position;
-  style->GetPropertyValue(NS_LITERAL_STRING("position"), position);
-#ifdef DEBUG_SPELLCHECK
-  printf("      position=%s\n", NS_ConvertUTF16toUTF8(position).get());
-#endif
-  if (!position.EqualsLiteral("static"))
-    return true;
-    
   
-  return false;
+  
+  return element->GetPrimaryFrame()->GetStyleDisplay()->mDisplay !=
+    NS_STYLE_DISPLAY_INLINE;
 }
 
 struct CheckLeavingBreakElementClosure {
-  nsIDOMWindow* mDocView;
   bool          mLeftBreakElement;
 };
 
@@ -543,7 +523,7 @@ CheckLeavingBreakElement(nsIDOMNode* aNode, void* aClosure)
 {
   CheckLeavingBreakElementClosure* cl =
     static_cast<CheckLeavingBreakElementClosure*>(aClosure);
-  if (!cl->mLeftBreakElement && IsBreakElement(cl->mDocView, aNode)) {
+  if (!cl->mLeftBreakElement && IsBreakElement(aNode)) {
     cl->mLeftBreakElement = true;
   }
 }
@@ -587,7 +567,7 @@ mozInlineSpellWordUtil::BuildSoftText()
       break;
     }
     checkBeforeOffset = PR_INT32_MAX;
-    if (IsBreakElement(mCSSView, node)) {
+    if (IsBreakElement(node)) {
       
       
       
@@ -643,9 +623,9 @@ mozInlineSpellWordUtil::BuildSoftText()
     if (exit)
       break;
 
-    CheckLeavingBreakElementClosure closure = { mCSSView, false };
+    CheckLeavingBreakElementClosure closure = { false };
     node = FindNextNode(node, mRootNode, CheckLeavingBreakElement, &closure);
-    if (closure.mLeftBreakElement || (node && IsBreakElement(mCSSView, node))) {
+    if (closure.mLeftBreakElement || (node && IsBreakElement(node))) {
       
       
       if (seenSoftEnd)
