@@ -67,7 +67,7 @@ function CssHtmlTree(aStyleWin, aCssLogic, aPanel)
   this.doc = aPanel.ownerDocument;
   this.win = this.doc.defaultView;
   this.getRTLAttr = CssHtmlTree.getRTLAttr;
-  this.propertyViews = {};
+  this.propertyViews = [];
 
   
   this.styleDocument = this.styleWin.contentWindow.document;
@@ -162,6 +162,9 @@ CssHtmlTree.prototype = {
   
   onlyUserStylesCheckbox: null,
 
+  
+  _panelRefreshTimeout: null,
+
   get showOnlyUserStyles()
   {
     return this.onlyUserStylesCheckbox.checked;
@@ -202,7 +205,7 @@ CssHtmlTree.prototype = {
               this.propertyContainer, propView, true);
             propView.refreshMatchedSelectors();
             propView.refreshUnmatchedSelectors();
-            this.propertyViews[name] = propView;
+            this.propertyViews.push(propView);
           }
           if (i < max) {
             
@@ -223,10 +226,27 @@ CssHtmlTree.prototype = {
 
   refreshPanel: function CssHtmlTree_refreshPanel()
   {
-    for each(let propView in this.propertyViews) {
-      propView.refresh();
+    this.win.clearTimeout(this._panelRefreshTimeout);
+
+    
+    
+    let i = 0;
+    let batchSize = 15;
+    let max = this.propertyViews.length - 1;
+    function refreshView() {
+      
+      for (let step = i + batchSize; i < step && i <= max; i++) {
+        this.propertyViews[i].refresh();
+      }
+      if (i < max) {
+        
+        
+        this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 0);
+      } else {
+        Services.obs.notifyObservers(null, "StyleInspector-populated", null);
+      }
     }
-    Services.obs.notifyObservers(null, "StyleInspector-populated", null);
+    this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 0);
   },
 
   
