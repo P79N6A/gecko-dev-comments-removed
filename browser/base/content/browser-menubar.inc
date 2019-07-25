@@ -308,30 +308,12 @@
                 </menu>
 #include browser-charsetmenu.inc
                 <menuseparator/>
-#ifdef XP_MACOSX
-                <menuitem id="enterFullScreenItem"
-                          accesskey="&enterFullScreenCmd.accesskey;"
-                          label="&enterFullScreenCmd.label;"
-                          key="key_fullScreen">
-                  <observes element="View:FullScreen" attribute="oncommand"/>
-                  <observes element="View:FullScreen" attribute="disabled"/>
-                </menuitem>
-                <menuitem id="exitFullScreenItem"
-                          accesskey="&exitFullScreenCmd.accesskey;"
-                          label="&exitFullScreenCmd.label;"
-                          key="key_fullScreen"
-                          hidden="true">
-                  <observes element="View:FullScreen" attribute="oncommand"/>
-                  <observes element="View:FullScreen" attribute="disabled"/>
-                </menuitem>
-#else
                 <menuitem id="fullScreenItem"
                           accesskey="&fullScreenCmd.accesskey;"
                           label="&fullScreenCmd.label;"
                           key="key_fullScreen"
                           type="checkbox"
                           observes="View:FullScreen"/>
-#endif
                 <menuitem id="menu_showAllTabs"
                           hidden="true"
                           accesskey="&showAllTabsCmd.accesskey;"
@@ -574,7 +556,7 @@
                   <menuitem id="menu_debugger"
                             hidden="true"
                             type="checkbox"
-                            label="&debuggerMenu.label;"
+                            label="&debuggerMenu.label2;"
                             key="key_debugger"
                             command="Tools:Debugger"/>
                   <menuitem id="menu_remoteDebugger"
