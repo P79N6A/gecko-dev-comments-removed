@@ -3666,7 +3666,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                     
                     str = JS_ValueToString(sandcx->GetJSContext(), exn);
 
-                    JSAutoTransferRequest transfer(sandcx->GetJSContext(), cx);
+                    JSAutoRequest req(cx);
                     if (str) {
                         
                         
@@ -3676,7 +3676,7 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                         rv = NS_ERROR_FAILURE;
                     }
                 } else {
-                    JSAutoTransferRequest transfer(sandcx->GetJSContext(), cx);
+                    JSAutoRequest req(cx);
 
                     if (!JSVAL_IS_PRIMITIVE(exn) &&
                         XPCWrapper::RewrapObject(cx, callingScope,

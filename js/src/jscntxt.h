@@ -1071,8 +1071,7 @@ struct JSThread {
     
 
 
-
-    uint32              contextsInRequests;
+    JSContext           *requestContext;
 
     
     JSThreadData        data;
@@ -1855,6 +1854,8 @@ struct JSContext
     jsrefcount          requestDepth;
     
     jsrefcount          outstandingRequests;
+    JSContext           *prevRequestContext;
+    jsrefcount          prevRequestDepth;
 # ifdef DEBUG
     unsigned            checkRequestDepth;
 # endif    

@@ -443,8 +443,8 @@ nsXPConnect::Collect()
     
     
     JS_ASSERT(cx->requestDepth >= 1);
-    JS_ASSERT(cx->thread->contextsInRequests >= 1);
-    if(cx->requestDepth >= 2 || cx->thread->contextsInRequests >= 2)
+    JS_ASSERT(cx->thread->requestContext == cx);
+    if(cx->requestDepth >= 2)
     {
         JS_GC(cx);
     }
