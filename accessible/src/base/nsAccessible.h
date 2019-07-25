@@ -55,6 +55,7 @@
 
 class AccGroupInfo;
 class EmbeddedObjCollector;
+class nsHyperTextAccessible;
 class nsAccessible;
 class AccEvent;
 struct nsRoleMapEntry;
@@ -356,6 +357,12 @@ public:
   
   
 
+  inline bool IsHyperText() const { return mFlags & eHyperTextAccessible; }
+  nsHyperTextAccessible* AsHyperText();
+
+  
+  
+
   
 
 
@@ -487,6 +494,14 @@ protected:
 
   inline void SetChildrenFlag(ChildrenFlags aFlag)
     { mFlags = (mFlags & ~kChildrenFlagsMask) | aFlag; }
+
+  
+
+
+
+  enum AccessibleTypes {
+    eHyperTextAccessible = 1 << 2
+  };
 
   
   
