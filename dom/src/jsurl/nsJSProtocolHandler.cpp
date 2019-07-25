@@ -1339,6 +1339,7 @@ nsJSURI::StartClone(nsSimpleURI::RefHandlingEnum )
 {
     nsCOMPtr<nsIURI> baseClone;
     if (mBaseURI) {
+      
       nsresult rv = mBaseURI->Clone(getter_AddRefs(baseClone));
       if (NS_FAILED(rv)) {
         return nsnull;
@@ -1348,33 +1349,37 @@ nsJSURI::StartClone(nsSimpleURI::RefHandlingEnum )
     return new nsJSURI(baseClone);
 }
 
-NS_IMETHODIMP
-nsJSURI::Equals(nsIURI* other, PRBool *result)
+ nsresult
+nsJSURI::EqualsInternal(nsIURI* aOther,
+                        nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+                        PRBool* aResult)
 {
-    *result = PR_FALSE;
+    NS_ENSURE_ARG_POINTER(aOther);
+    NS_PRECONDITION(aResult, "null pointer for outparam");
 
-    if (other) {
-      nsRefPtr<nsJSURI> otherJSURI;
-      nsresult rv = other->QueryInterface(kJSURICID,
-                                     getter_AddRefs(otherJSURI));
-      if (!otherJSURI) {
-        *result = PR_FALSE;
+    nsRefPtr<nsJSURI> otherJSURI;
+    nsresult rv = aOther->QueryInterface(kJSURICID,
+                                         getter_AddRefs(otherJSURI));
+    if (NS_FAILED(rv)) {
+        *aResult = PR_FALSE; 
         return NS_OK;
-      }
-
-      *result = nsSimpleURI::EqualsInternal(otherJSURI, eHonorRef);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (!*result)
-          return NS_OK;
-
-      nsIURI* otherBaseURI = otherJSURI->GetBaseURI();
-
-      if (mBaseURI)
-          return mBaseURI->Equals(otherBaseURI, result);
-
-      *result = !otherBaseURI;
     }
 
+    
+    if (!nsSimpleURI::EqualsInternal(otherJSURI, aRefHandlingMode)) {
+        *aResult = PR_FALSE;
+        return NS_OK;
+    }
+
+    
+    nsIURI* otherBaseURI = otherJSURI->GetBaseURI();
+
+    if (mBaseURI) {
+        
+        return mBaseURI->Equals(otherBaseURI, aResult);
+    }
+
+    *aResult = !otherBaseURI;
     return NS_OK;
 }
 
