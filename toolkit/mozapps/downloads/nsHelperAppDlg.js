@@ -929,6 +929,7 @@ nsUnknownContentTypeDialog.prototype = {
 
     
     this.mDialog.dialog = null;
+    this.mDialog = null;
 
     
     return true;
@@ -948,6 +949,7 @@ nsUnknownContentTypeDialog.prototype = {
 
     
     this.mDialog.dialog = null;
+    this.mDialog = null;
 
     
     return true;
