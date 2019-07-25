@@ -37,6 +37,7 @@
 
 
 
+
 #include "CompositorParent.h"
 #include "ShadowLayersParent.h"
 #include "LayerManagerOGL.h"
@@ -45,7 +46,6 @@ namespace mozilla {
 namespace layers {
 
 CompositorParent::CompositorParent()
-  : mLayerManager(NULL)
 {
 
   MOZ_COUNT_CTOR(CompositorParent);
@@ -53,7 +53,6 @@ CompositorParent::CompositorParent()
 
 CompositorParent::~CompositorParent()
 {
-  printf("delete parent\n");
   MOZ_COUNT_DTOR(CompositorParent);
 }
 

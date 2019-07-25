@@ -75,8 +75,7 @@ protected:
 
 private:
   Thread *mCompositorThread;
-  LayerManager *mLayerManager;
-  nsRefPtr<CompositorParent> mCompositorParent;
+  nsRefPtr<LayerManager> mLayerManager;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorChild);
 };
