@@ -1652,6 +1652,11 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 return NS_ERROR_FAILURE;
             }
         }
+
+        
+        XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
+        if (si->GetFlags().WantPostCreate())
+            (void) si->GetCallback()->PostTransplant(wrapper, ccx, flat);
     }
 
     
