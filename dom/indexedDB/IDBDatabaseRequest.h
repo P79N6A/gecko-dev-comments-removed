@@ -121,6 +121,7 @@ private:
   nsRefPtr<LazyIdleThread> mConnectionThread;
 
   
+  
   nsCOMPtr<mozIStorageConnection> mConnection;
   nsCOMPtr<mozIStorageStatement> mPutStmt;
   nsCOMPtr<mozIStorageStatement> mPutAutoIncrementStmt;
