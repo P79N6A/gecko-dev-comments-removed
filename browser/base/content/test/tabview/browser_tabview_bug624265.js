@@ -38,6 +38,7 @@ function test() {
       if (!callback)
         callback = finish;
 
+      assertOneSingleGroupItem();
       callback();
     });
   }
@@ -111,7 +112,7 @@ function test() {
     
     
     
-    afterAllTabsLoaded(function () SimpleTest.executeSoon(continueTest));
+    afterAllTabsLoaded(function () executeSoon(continueTest));
   }
 
   
@@ -190,7 +191,7 @@ function enterAndLeavePrivateBrowsing(callback) {
       pb.privateBrowsingEnabled = false;
     else {
       Services.obs.removeObserver(pbObserver, "private-browsing-transition-complete");
-      afterAllTabsLoaded(callback);
+      afterAllTabsLoaded(function () executeSoon(callback));
     }
   }
 

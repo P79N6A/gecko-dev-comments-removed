@@ -47,8 +47,20 @@ function waitForBrowserState(aState, aSetStateCallback) {
   let windowsOpen = 1;
   let listening = false;
   let windowObserving = false;
+  let restoreHiddenTabs = Services.prefs.getBoolPref(
+                          "browser.sessionstore.restore_hidden_tabs");
 
-  aState.windows.forEach(function(winState) expectedTabsRestored += winState.tabs.length);
+  aState.windows.forEach(function (winState) {
+    winState.tabs.forEach(function (tabState) {
+      if (restoreHiddenTabs || !tabState.hidden)
+        expectedTabsRestored++;
+    });
+  });
+
+  
+  
+  if (!expectedTabsRestored)
+    expectedTabsRestored = 1;
 
   function onSSTabRestored(aEvent) {
     if (++tabsRestored == expectedTabsRestored) {

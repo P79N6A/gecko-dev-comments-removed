@@ -224,6 +224,9 @@ SessionStoreService.prototype = {
 
   
   _maxConcurrentTabRestores: null,
+  
+  
+  _restoreHiddenTabs: null,
 
   
   _lastSessionState: null,
@@ -280,6 +283,10 @@ SessionStoreService.prototype = {
     this._maxConcurrentTabRestores =
       this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
     this._prefBranch.addObserver("sessionstore.max_concurrent_tabs", this, true);
+
+    this._restoreHiddenTabs =
+      this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
+    this._prefBranch.addObserver("sessionstore.restore_hidden_tabs", this, true);
 
     
     
@@ -597,6 +604,10 @@ SessionStoreService.prototype = {
       case "sessionstore.max_concurrent_tabs":
         this._maxConcurrentTabRestores =
           this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
+        break;
+      case "sessionstore.restore_hidden_tabs":
+        this._restoreHiddenTabs =
+          this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
         break;
       }
       break;
@@ -1078,6 +1089,10 @@ SessionStoreService.prototype = {
       this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
       
       this._tabsToRestore.visible.push(aTab);
+
+      
+      
+      this.restoreNextTab();
     }
 
     
@@ -2944,7 +2959,7 @@ SessionStoreService.prototype = {
     if (this._tabsToRestore.visible.length) {
       nextTabArray = this._tabsToRestore.visible;
     }
-    else if (this._tabsToRestore.hidden.length) {
+    else if (this._restoreHiddenTabs && this._tabsToRestore.hidden.length) {
       nextTabArray = this._tabsToRestore.hidden;
     }
 
