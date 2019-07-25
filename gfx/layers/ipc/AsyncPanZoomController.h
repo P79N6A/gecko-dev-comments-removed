@@ -120,6 +120,13 @@ public:
   void CancelDefaultPanZoom();
 
   
+
+
+
+
+  void ZoomToRect(const gfxRect& aRect);
+
+  
   
   
 
@@ -355,6 +362,7 @@ private:
     TOUCHING,       
     PANNING,        
     PINCHING,       
+    ANIMATING_ZOOM  
   };
 
   enum ContentPainterStatus {
@@ -383,13 +391,25 @@ private:
   
   
   FrameMetrics mFrameMetrics;
+
   
   
   FrameMetrics mLastContentPaintMetrics;
+
   
   
   
   FrameMetrics mLastPaintRequestMetrics;
+
+  
+  
+  
+  
+  FrameMetrics mStartZoomToMetrics;
+  
+  
+  
+  FrameMetrics mEndZoomToMetrics;
 
   AxisX mX;
   AxisY mY;
@@ -401,6 +421,10 @@ private:
   TimeStamp mLastSampleTime;
   
   PRInt32 mLastEventTime;
+
+  
+  
+  TimeStamp mAnimationStartTime;
 
   
   
