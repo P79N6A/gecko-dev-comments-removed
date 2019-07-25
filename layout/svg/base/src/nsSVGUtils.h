@@ -22,6 +22,7 @@
 #include "nsMathUtils.h"
 #include "nsPoint.h"
 #include "nsRect.h"
+#include "nsStyleStruct.h"
 #include "mozilla/Constants.h"
 
 class gfxASurface;
@@ -722,7 +723,8 @@ public:
 
 
 
-  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext);
+  static bool SetupCairoStroke(nsIFrame* aFrame, gfxContext *aContext,
+                               gfxTextObjectPaint *aObjectPaint = nullptr);
 
   
 

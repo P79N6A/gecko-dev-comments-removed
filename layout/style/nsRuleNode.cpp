@@ -7168,6 +7168,36 @@ SetSVGPaint(const nsCSSValue& aValue, const nsStyleSVGPaint& parentPaint,
   }
 }
 
+static void
+SetSVGOpacity(const nsCSSValue& aValue,
+              float& aOpacityField, nsStyleSVGOpacitySource& aOpacityTypeField,
+              bool& aCanStoreInRuleTree,
+              float aParentOpacity, nsStyleSVGOpacitySource aParentOpacityType)
+{
+  if (eCSSUnit_Enumerated == aValue.GetUnit()) {
+    switch (aValue.GetIntValue()) {
+    case NS_STYLE_OBJECT_FILL_OPACITY:
+      aOpacityTypeField = eStyleSVGOpacitySource_ObjectFillOpacity;
+      break;
+    case NS_STYLE_OBJECT_STROKE_OPACITY:
+      aOpacityTypeField = eStyleSVGOpacitySource_ObjectStrokeOpacity;
+      break;
+    default:
+      NS_NOTREACHED("SetSVGOpacity: Unknown keyword");
+    }
+    
+    aOpacityField = 1.0f;
+  } else if (eCSSUnit_Inherit == aValue.GetUnit()) {
+    aCanStoreInRuleTree = false;
+    aOpacityField = aParentOpacity;
+    aOpacityTypeField = aParentOpacityType;
+  } else if (eCSSUnit_Null != aValue.GetUnit()) {
+    SetFactor(aValue, aOpacityField, aCanStoreInRuleTree,
+              aParentOpacity, 1.0f, SETFCT_OPACITY);
+    aOpacityTypeField = eStyleSVGOpacitySource_Normal;
+  }
+}
+
 const void*
 nsRuleNode::ComputeSVGData(void* aStartStruct,
                            const nsRuleData* aRuleData,
@@ -7202,9 +7232,11 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
               svg->mFill, eStyleSVGPaintType_Color, canStoreInRuleTree);
 
   
-  SetFactor(*aRuleData->ValueForFillOpacity(),
-            svg->mFillOpacity, canStoreInRuleTree,
-            parentSVG->mFillOpacity, 1.0f, SETFCT_OPACITY);
+  nsStyleSVGOpacitySource objectFillOpacity = svg->mFillOpacitySource;
+  SetSVGOpacity(*aRuleData->ValueForFillOpacity(),
+                svg->mFillOpacity, objectFillOpacity, canStoreInRuleTree,
+                parentSVG->mFillOpacity, parentSVG->mFillOpacitySource);
+  svg->mFillOpacitySource = objectFillOpacity;
 
   
   SetDiscrete(*aRuleData->ValueForFillRule(),
@@ -7354,9 +7386,11 @@ nsRuleNode::ComputeSVGData(void* aStartStruct,
             parentSVG->mStrokeMiterlimit, 4.0f);
 
   
-  SetFactor(*aRuleData->ValueForStrokeOpacity(),
-            svg->mStrokeOpacity, canStoreInRuleTree,
-            parentSVG->mStrokeOpacity, 1.0f, SETFCT_OPACITY);
+  nsStyleSVGOpacitySource objectStrokeOpacity = svg->mStrokeOpacitySource;
+  SetSVGOpacity(*aRuleData->ValueForStrokeOpacity(),
+                svg->mStrokeOpacity, objectStrokeOpacity, canStoreInRuleTree,
+                parentSVG->mStrokeOpacity, parentSVG->mStrokeOpacitySource);
+  svg->mStrokeOpacitySource = objectStrokeOpacity;
 
   
   const nsCSSValue* strokeWidthValue = aRuleData->ValueForStrokeWidth();
