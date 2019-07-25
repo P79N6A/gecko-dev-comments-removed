@@ -44,6 +44,8 @@ import org.mozilla.gecko.ui.PanZoomController;
 import org.mozilla.gecko.ui.SimpleScaleGestureDetector;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.Tab;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -73,7 +75,7 @@ import java.util.regex.Pattern;
 
 
 
-public class LayerController {
+public class LayerController implements Tabs.OnTabsChangedListener {
     private static final String LOGTAG = "GeckoLayerController";
 
     private Layer mRootLayer;                   
@@ -110,11 +112,10 @@ public class LayerController {
 
     
 
-    private static final int PREVENT_DEFAULT_TIMEOUT = 200;
+    private int mTimeout = 200;
 
     private boolean allowDefaultActions = true;
     private Timer allowDefaultTimer =  null;
-    private boolean inTouchSession = false;
     private PointF initialTouchLocation = null;
 
     private static Pattern sColorPattern;
@@ -126,6 +127,15 @@ public class LayerController {
         mViewportMetrics = new ViewportMetrics();
         mPanZoomController = new PanZoomController(this);
         mView = new LayerView(context, this);
+
+        Tabs.getInstance().registerOnTabsChangedListener(this);
+
+        ViewConfiguration vc = ViewConfiguration.get(mContext); 
+        mTimeout = vc.getLongPressTimeout();
+    }
+
+    public void onDestroy() {
+        Tabs.getInstance().unregisterOnTabsChangedListener(this);
     }
 
     public void setRoot(Layer layer) { mRootLayer = layer; }
@@ -392,15 +402,29 @@ public class LayerController {
         int action = event.getAction();
         PointF point = new PointF(event.getX(), event.getY());
 
+        
         if ((action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
-            mView.clearEventQueue();
             initialTouchLocation = point;
             allowDefaultActions = !mWaitForTouchListeners;
-            post(new Runnable() {
+
+            
+            
+            if (allowDefaultTimer != null) {
+              allowDefaultTimer.cancel();
+            } else {
+              
+              mView.clearEventQueue();
+            }
+            allowDefaultTimer = new Timer();
+            allowDefaultTimer.schedule(new TimerTask() {
                 public void run() {
-                    preventPanning(mWaitForTouchListeners);
+                    post(new Runnable() {
+                        public void run() {
+                            preventPanning(false);
+                        }
+                    });
                 }
-            });
+            }, mTimeout);
         }
 
         
@@ -412,47 +436,9 @@ public class LayerController {
             }
         }
 
+        
         if (mOnTouchListener != null)
             mOnTouchListener.onTouch(mView, event);
-
-        if (!mWaitForTouchListeners)
-            return !allowDefaultActions;
-
-        boolean createTimer = false;
-        switch (action & MotionEvent.ACTION_MASK) {
-            case MotionEvent.ACTION_MOVE: {
-                if (!inTouchSession && allowDefaultTimer == null) {
-                    inTouchSession = true;
-                    createTimer = true;
-                }
-                break;
-            }
-            case MotionEvent.ACTION_CANCEL:
-            case MotionEvent.ACTION_UP: {
-                
-                
-                
-                if (initialTouchLocation != null)
-                    createTimer = true;
-                inTouchSession = false;
-            }
-        }
-
-        if (createTimer) {
-            if (allowDefaultTimer != null) {
-              allowDefaultTimer.cancel();
-            }
-            allowDefaultTimer = new Timer();
-            allowDefaultTimer.schedule(new TimerTask() {
-                public void run() {
-                    post(new Runnable() {
-                        public void run() {
-                            preventPanning(false);
-                        }
-                    });
-                }
-            }, PREVENT_DEFAULT_TIMEOUT);
-        }
 
         return !allowDefaultActions;
     }
@@ -460,7 +446,6 @@ public class LayerController {
     public void preventPanning(boolean aValue) {
         if (allowDefaultTimer != null) {
             allowDefaultTimer.cancel();
-            allowDefaultTimer.purge();
             allowDefaultTimer = null;
         }
         if (aValue == allowDefaultActions) {
@@ -475,6 +460,11 @@ public class LayerController {
         }
     }
 
+    public void onTabChanged(Tab tab, Tabs.TabEvents msg) {
+        if ((Tabs.getInstance().isSelectedTab(tab) && msg == Tabs.TabEvents.STOP) || msg == Tabs.TabEvents.SELECTED) {
+            mWaitForTouchListeners = tab.getHasTouchListeners();
+        }
+    }
     public void setWaitForTouchListeners(boolean aValue) {
         mWaitForTouchListeners = aValue;
     }
