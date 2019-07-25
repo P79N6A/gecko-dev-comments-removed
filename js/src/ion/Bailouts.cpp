@@ -102,9 +102,19 @@ class IonBailoutIterator
           case SnapshotReader::DOUBLE_REG:
             return DoubleValue(in_.machine().readFloatReg(slot.floatReg()));
 
-          case SnapshotReader::TYPED_REG:
-            return FromTypedPayload(slot.knownType(), in_.machine().readReg(slot.reg()));
-
+          case SnapshotReader::TYPED_REG: {
+            uintptr_t reg = in_.machine().readReg(slot.reg());
+            JSValueType type = slot.knownType();
+#ifdef DEBUG
+            
+            
+            
+            
+            if (type == JSVAL_TYPE_OBJECT && bailoutKind() == Bailout_ArgumentCheck && reg == 0)
+                reg = 1;
+#endif
+            return FromTypedPayload(type, reg);
+          }
           case SnapshotReader::TYPED_STACK:
           {
             JSValueType type = slot.knownType();
