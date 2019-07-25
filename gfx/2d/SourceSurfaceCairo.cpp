@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "SourceSurfaceCairo.h"
 #include "DrawTargetCairo.h"
 #include "HelpersCairo.h"
@@ -42,6 +74,7 @@ SourceSurfaceCairo::SourceSurfaceCairo(cairo_surface_t* aSurface,
 
 SourceSurfaceCairo::~SourceSurfaceCairo()
 {
+  MarkIndependent();
   cairo_surface_destroy(mSurface);
 }
 
@@ -91,7 +124,7 @@ void
 SourceSurfaceCairo::DrawTargetWillChange()
 {
   if (mDrawTarget) {
-    mDrawTarget = nullptr;
+    mDrawTarget = NULL;
 
     
     cairo_surface_t* surface = cairo_surface_create_similar(mSurface,
@@ -102,11 +135,19 @@ SourceSurfaceCairo::DrawTargetWillChange()
     cairo_set_source(ctx, pat);
     cairo_paint(ctx);
     cairo_destroy(ctx);
-    cairo_pattern_destroy(pat);
 
     
     cairo_surface_destroy(mSurface);
     mSurface = surface;
+  }
+}
+
+void
+SourceSurfaceCairo::MarkIndependent()
+{
+  if (mDrawTarget) {
+    mDrawTarget->RemoveSnapshot(this);
+    mDrawTarget = NULL;
   }
 }
 
