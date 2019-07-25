@@ -1859,11 +1859,10 @@ var FormHelperUI = {
   },
 
   show: function formHelperShow(aElement, aHasPrevious, aHasNext) {
-    this._open = true;
-
     
     this._cmdPrevious.setAttribute("disabled", !aHasPrevious);
     this._cmdNext.setAttribute("disabled", !aHasNext);
+    this._open = true;
 
     let lastElement = this._currentElement || null;
     this._currentElement = {
