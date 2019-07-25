@@ -295,6 +295,10 @@ var BrowserUI = {
     popup.width = windowW;
 
     
+    document.getElementById("toolbar-container").height = this.toolbarH;
+    document.getElementById("toolbar-main").width = windowW;
+
+    
     document.getElementById("notifications").width = windowW;
 
     
