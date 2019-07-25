@@ -1417,36 +1417,43 @@ var XPIProvider = {
       
       if (aUpdateCompatibility) {
         let appDisabled = !isUsableAddon(aOldAddon);
+        let userDisabled = aOldAddon.userDisabled;
+        
+        if (aOldAddon.type == "theme")
+          userDisabled = aOldAddon.internalName != XPIProvider.selectedSkin;
+        let wasDisabled = aOldAddon.appDisabled || aOldAddon.userDisabled;
+        let isDisabled = appDisabled || userDisabled;
 
         
-        if (appDisabled != aOldAddon.appDisabled) {
+        if (appDisabled != aOldAddon.appDisabled ||
+            userDisabled != aOldAddon.userDisabled) {
           LOG("Add-on " + aOldAddon.id + " changed appDisabled state to " +
-              appDisabled);
+              appDisabled + " and userDisabled state to " + userDisabled);
           XPIDatabase.setAddonProperties(aOldAddon, {
-            appDisabled: appDisabled
+            appDisabled: appDisabled,
+            userDisabled: userDisabled
           });
+        }
 
-          
-          
-          if (aOldAddon.visible && !aOldAddon.userDisabled) {
-            if (aOldAddon.bootstrap) {
-              
-              
-              aOldAddon.active = !aOldAddon.appDisabled;
-              XPIDatabase.updateAddonActive(aOldAddon);
-              if (aOldAddon.active) {
-                XPIProvider.bootstrappedAddons[aOldAddon.id] = {
-                  version: aOldAddon.version,
-                  descriptor: aAddonState.descriptor
-                };
-              }
-              else {
-                delete XPIProvider.bootstrappedAddons[aOldAddon.id];
-              }
+        
+        
+        if (aOldAddon.visible && wasDisabled != isDisabled) {
+          if (aOldAddon.bootstrap) {
+            
+            aOldAddon.active = !isDisabled;
+            XPIDatabase.updateAddonActive(aOldAddon);
+            if (aOldAddon.active) {
+              XPIProvider.bootstrappedAddons[aOldAddon.id] = {
+                version: aOldAddon.version,
+                descriptor: aAddonState.descriptor
+              };
             }
             else {
-              changed = true;
+              delete XPIProvider.bootstrappedAddons[aOldAddon.id];
             }
+          }
+          else {
+            changed = true;
           }
         }
       }
