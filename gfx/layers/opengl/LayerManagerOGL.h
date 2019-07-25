@@ -101,6 +101,7 @@ public:
 
   void Destroy();
 
+
   
 
 
@@ -109,10 +110,11 @@ public:
 
 
 
+  PRBool Initialize() {
+    return Initialize(CreateContext());
+  }
 
-
-
-  PRBool Initialize(GLContext *aExistingContext = nsnull);
+  PRBool Initialize(nsRefPtr<GLContext> aContext);
 
   
 
@@ -386,6 +388,8 @@ private:
   nsRefPtr<gfxContext> mTarget;
 
   nsRefPtr<GLContext> mGLContext;
+
+  already_AddRefed<mozilla::gl::GLContext> CreateContext();
 
   
   
