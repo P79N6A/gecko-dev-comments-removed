@@ -9,6 +9,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+const FRAME_STEP_CACHE_DURATION = 100; 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
 
 Cu.import("resource:///modules/source-editor.jsm");
@@ -341,6 +342,7 @@ function StackFrames() {
   this._onResume = this._onResume.bind(this);
   this._onFrames = this._onFrames.bind(this);
   this._onFramesCleared = this._onFramesCleared.bind(this);
+  this._afterFramesCleared = this._afterFramesCleared.bind(this);
 }
 
 StackFrames.prototype = {
@@ -369,6 +371,8 @@ StackFrames.prototype = {
 
 
   connect: function SF_connect(aCallback) {
+    window.addEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
+
     this.activeThread.addListener("paused", this._onPaused);
     this.activeThread.addListener("resumed", this._onResume);
     this.activeThread.addListener("framesadded", this._onFrames);
@@ -383,6 +387,8 @@ StackFrames.prototype = {
 
 
   disconnect: function SF_disconnect() {
+    window.removeEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
+
     if (!this.activeThread) {
       return;
     }
@@ -431,12 +437,24 @@ StackFrames.prototype = {
 
 
   _onFramesCleared: function SF__onFramesCleared() {
-    DebuggerView.StackFrames.emptyText();
-    this.selectedFrame = null;
-
     
-    DebuggerView.Properties.localScope.empty();
-    DebuggerView.Properties.globalScope.empty();
+    
+    
+    
+    window.setTimeout(this._afterFramesCleared, FRAME_STEP_CACHE_DURATION);
+    this.selectedFrame = null;
+  },
+
+  
+
+
+  _afterFramesCleared: function SF__afterFramesCleared() {
+    if (!this.activeThread.cachedFrames.length) {
+      DebuggerView.StackFrames.emptyText();
+      DebuggerView.Properties.localScope.empty();
+      DebuggerView.Properties.globalScope.empty();
+    }
+    DebuggerController.dispatchEvent("Debugger:AfterFramesCleared");
   },
 
   
@@ -501,6 +519,9 @@ StackFrames.prototype = {
     }
 
     
+    DebuggerView.Properties.createHierarchyStore();
+
+    
     let localScope = DebuggerView.Properties.localScope;
     localScope.empty();
 
@@ -537,6 +558,13 @@ StackFrames.prototype = {
 
     
     DebuggerController.dispatchEvent("Debugger:FetchedVariables");
+  },
+
+  
+
+
+  _onFetchedVars: function SF__onFetchedVars() {
+    DebuggerView.Properties.commitHierarchy();
   },
 
   

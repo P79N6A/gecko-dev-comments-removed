@@ -5,6 +5,8 @@
 
 "use strict";
 
+const PROPERTY_VIEW_FLASH_DURATION = 400; 
+
 
 
 
@@ -515,7 +517,7 @@ StackFramesView.prototype = {
 
     
     item.className = "empty list-item";
-    item.appendChild(document.createTextNode(L10N.getStr("emptyStackText")));
+    item.textContent = L10N.getStr("emptyStackText");
 
     this._frames.appendChild(item);
   },
@@ -551,8 +553,8 @@ StackFramesView.prototype = {
     
     frameName.className = "dbg-stackframe-name";
     frameDetails.className = "dbg-stackframe-details";
-    frameName.appendChild(document.createTextNode(aFrameNameText));
-    frameDetails.appendChild(document.createTextNode(aFrameDetailsText));
+    frameName.textContent = aFrameNameText;
+    frameDetails.textContent = aFrameDetailsText;
 
     frame.appendChild(frameName);
     frame.appendChild(frameDetails);
@@ -850,7 +852,7 @@ PropertiesView.prototype = {
 
       
       separator.className = "unselectable";
-      separator.appendChild(document.createTextNode(": "));
+      separator.textContent = ": ";
 
       
       value.className = "value";
@@ -873,6 +875,12 @@ PropertiesView.prototype = {
       title.appendChild(separator);
       title.appendChild(value);
 
+      
+      this._saveHierarchy({
+        parent: aScope,
+        element: element,
+        value: value
+      });
     }.bind(this));
 
     
@@ -1060,16 +1068,16 @@ PropertiesView.prototype = {
 
       
       name.className = "key";
-      name.appendChild(document.createTextNode(pKey));
+      name.textContent = pKey;
 
       
       value.className = "value";
-      value.appendChild(document.createTextNode(propertyString));
+      value.textContent = propertyString;
       value.classList.add(propertyColor);
 
       
       separator.className = "unselectable";
-      separator.appendChild(document.createTextNode(": "));
+      separator.textContent = ": ";
 
       if ("undefined" !== typeof pKey) {
         title.appendChild(name);
@@ -1092,6 +1100,13 @@ PropertiesView.prototype = {
         writable: false,
         enumerable: true,
         configurable: true
+      });
+
+      
+      this._saveHierarchy({
+        parent: aVar,
+        element: element,
+        value: value
       });
 
       
@@ -1291,6 +1306,8 @@ PropertiesView.prototype = {
 
 
 
+
+
   _createPropertyElement: function DVP__createPropertyElement(aName, aId, aClass, aParent) {
     
     if (document.getElementById(aId)) {
@@ -1316,7 +1333,7 @@ PropertiesView.prototype = {
 
     
     name.className = "name unselectable";
-    name.appendChild(document.createTextNode(aName || ""));
+    name.textContent = aName || "";
 
     
     title.className = "title";
@@ -1587,6 +1604,95 @@ PropertiesView.prototype = {
   
 
 
+
+
+
+  _saveHierarchy: function DVP__saveHierarchy(aProperties) {
+    let parent = aProperties.parent;
+    let element = aProperties.element;
+    let value = aProperties.value;
+    let store = aProperties.store || parent._children;
+
+    
+    if (!element || !store) {
+      return;
+    }
+
+    let relation = {
+      root: parent ? (parent._root || parent) : null,
+      parent: parent || null,
+      element: element,
+      value: value,
+      children: {}
+    };
+
+    store[element.id] = relation;
+    element._root = relation.root;
+    element._children = relation.children;
+  },
+
+  
+
+
+
+  createHierarchyStore: function DVP_createHierarchyStore() {
+    this._prevHierarchy = this._currHierarchy;
+    this._currHierarchy = {};
+
+    this._saveHierarchy({ element: this._globalScope, store: this._currHierarchy });
+    this._saveHierarchy({ element: this._localScope, store: this._currHierarchy });
+    this._saveHierarchy({ element: this._withScope, store: this._currHierarchy });
+    this._saveHierarchy({ element: this._closureScope, store: this._currHierarchy });
+  },
+
+  
+
+
+  commitHierarchy: function DVS_commitHierarchy() {
+    for (let i in this._currHierarchy) {
+      let currScope = this._currHierarchy[i];
+      let prevScope = this._prevHierarchy[i];
+
+      for (let v in currScope.children) {
+        let currVar = currScope.children[v];
+        let prevVar = prevScope.children[v];
+
+        let action = "";
+
+        if (prevVar) {
+          let prevValue = prevVar.value.textContent;
+          let currValue = currVar.value.textContent;
+
+          if (currValue != prevValue) {
+            action = "changed";
+          } else {
+            action = "unchanged";
+          }
+        } else {
+          action = "added";
+        }
+
+        if (action) {
+          currVar.element.setAttribute(action, "");
+
+          window.setTimeout(function() {
+           currVar.element.removeAttribute(action);
+         }, PROPERTY_VIEW_FLASH_DURATION);
+        }
+      }
+    }
+  },
+
+  
+
+
+
+  _currHierarchy: null,
+  _prevHierarchy: null,
+
+  
+
+
   get globalScope() {
     return this._globalScope;
   },
@@ -1685,6 +1791,8 @@ PropertiesView.prototype = {
 
 
   initialize: function DVP_initialize() {
+    this.createHierarchyStore();
+
     this._vars = document.getElementById("variables");
     this._localScope = this._addScope(L10N.getStr("localScope")).expand();
     this._withScope = this._addScope(L10N.getStr("withScope")).hide();
@@ -1696,6 +1804,8 @@ PropertiesView.prototype = {
 
 
   destroy: function DVP_destroy() {
+    this._currHierarchy = null;
+    this._prevHierarchy = null;
     this._vars = null;
     this._globalScope = null;
     this._localScope = null;
