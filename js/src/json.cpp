@@ -39,6 +39,8 @@
 
 
 
+#include "mozilla/FloatingPoint.h"
+
 #include <string.h>
 #include "jsapi.h"
 #include "jsarray.h"
@@ -584,7 +586,7 @@ Str(JSContext *cx, const Value &v, StringifyContext *scx)
     
     if (v.isNumber()) {
         if (v.isDouble()) {
-            if (!JSDOUBLE_IS_FINITE(v.toDouble()))
+            if (!MOZ_DOUBLE_IS_FINITE(v.toDouble()))
                 return scx->sb.append("null");
         }
 

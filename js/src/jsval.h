@@ -42,47 +42,13 @@
 
 
 
+
+
+#include "mozilla/FloatingPoint.h"
+
 #include "js/Utility.h"
 
 JS_BEGIN_EXTERN_C
-
-
-
-
-
-#define JSDOUBLE_SIGNBIT (((uint64_t) 1) << 63)
-#define JSDOUBLE_EXPMASK (((uint64_t) 0x7ff) << 52)
-#define JSDOUBLE_MANTMASK ((((uint64_t) 1) << 52) - 1)
-#define JSDOUBLE_HI32_SIGNBIT   0x80000000
-
-static JS_ALWAYS_INLINE JSBool
-JSDOUBLE_IS_NEGZERO(double d)
-{
-    union {
-        struct {
-#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
-            uint32_t lo, hi;
-#else
-            uint32_t hi, lo;
-#endif
-        } s;
-        double d;
-    } x;
-    if (d != 0)
-        return JS_FALSE;
-    x.d = d;
-    return (x.s.hi & JSDOUBLE_HI32_SIGNBIT) != 0;
-}
-
-static JS_ALWAYS_INLINE JSBool
-JSDOUBLE_IS_INT32(double d, int32_t* pi)
-{
-    if (JSDOUBLE_IS_NEGZERO(d))
-        return JS_FALSE;
-    return d == (*pi = (int32_t)d);
-}
-
-
 
 
 

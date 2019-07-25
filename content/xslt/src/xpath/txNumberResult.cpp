@@ -41,6 +41,8 @@
 
 
 
+#include "mozilla/FloatingPoint.h"
+
 #include "txExprResult.h"
 
 
@@ -80,7 +82,7 @@ bool NumberResult::booleanValue() {
   
   
   
-  return (bool)(value != 0.0 && !txDouble::isNaN(value));
+  return (bool)(value != 0.0 && !MOZ_DOUBLE_IS_NaN(value));
   
 } 
 

@@ -73,29 +73,6 @@ public:
     
 
 
-    static const dpun NaN;
-    static const dpun POSITIVE_INFINITY;
-    static const dpun NEGATIVE_INFINITY;
-
-    
-
-
-
-    static bool isInfinite(double aDbl);
-
-    
-
-
-    static bool isNaN(double aDbl);
-
-    
-
-
-    static bool isNeg(double aDbl);
-
-    
-
-
 
     static void toString(double aValue, nsAString& aDest);
 

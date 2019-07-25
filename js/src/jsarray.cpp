@@ -96,11 +96,13 @@
 
 
 
+
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/RangedPtr.h"
+
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "mozilla/RangedPtr.h"
 
 #include "jstypes.h"
 #include "jsutil.h"
@@ -2191,7 +2193,7 @@ SortComparatorFunction::operator()(const Value &a, const Value &b, bool *lessOrE
 
 
 
-    *lessOrEqualp = (JSDOUBLE_IS_NaN(cmp) || cmp <= 0);
+    *lessOrEqualp = (MOZ_DOUBLE_IS_NaN(cmp) || cmp <= 0);
     return true;
 }
 
