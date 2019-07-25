@@ -56,7 +56,12 @@ public:
 
     nsresult addTransaction(txOutputTransaction* aTransaction);
 
-    nsresult flushToHandler(txAXMLEventHandler* aHandler);
+    
+
+
+
+
+    nsresult flushToHandler(txAXMLEventHandler** aHandler);
 
     txOutputTransaction* getLastTransaction();
 
