@@ -105,6 +105,11 @@
 
 
 
+#define NS_CYCLE_COLLECTOR_LOGGER_CONTRACTID "@mozilla.org/cycle-collector-logger;1"
+
+
+
+
 
 #define NS_SUPPORTS_ID_CID \
 { 0xacf8dc40, 0x4a25, 0x11d3, \
