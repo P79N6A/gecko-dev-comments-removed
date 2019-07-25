@@ -3232,8 +3232,10 @@ DebuggerObject_sealHelper(JSContext *cx, uintN argc, Value *vp, SealHelperOp op,
         ok = obj->freeze(cx);
     } else {
         JS_ASSERT(op == PreventExtensions);
-        if (!obj->isExtensible())
+        if (!obj->isExtensible()) {
+            args.rval().setUndefined();
             return true;
+        }
         AutoIdVector props(cx);
         ok = obj->preventExtensions(cx, &props);
     }

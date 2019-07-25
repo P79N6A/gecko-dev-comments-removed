@@ -1,0 +1,16 @@
+
+
+var g = newGlobal('new-compartment');
+var obj = g.eval("({x: 1})");
+assertEq(g.Object.isExtensible(obj), true);
+
+var dbg = new Debugger;
+var objw = dbg.addDebuggee(obj);
+assertEq(objw.isExtensible(), true);
+
+assertEq(objw.preventExtensions(), undefined);
+assertEq(g.Object.isExtensible(obj), false);
+assertEq(objw.isExtensible(), false);
+
+
+assertEq(objw.preventExtensions(), undefined);
