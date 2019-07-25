@@ -159,7 +159,7 @@ AndroidBridge::Init(JNIEnv *jEnv,
     jCloseCamera = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "closeCamera", "()V");
     jEnableBatteryNotifications = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "enableBatteryNotifications", "()V");
     jDisableBatteryNotifications = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "disableBatteryNotifications", "()V");
-    jGetCurrentBatteryInformation = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "getCurrentBatteryInformation", "()[F");
+    jGetCurrentBatteryInformation = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "getCurrentBatteryInformation", "()[D");
 
     jEGLContextClass = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("javax/microedition/khronos/egl/EGLContext"));
     jEGL10Class = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("javax/microedition/khronos/egl/EGL10"));
@@ -1253,17 +1253,17 @@ AndroidBridge::GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInf
     
     
     jobject obj = mJNIEnv->CallStaticObjectMethod(mGeckoAppShellClass, jGetCurrentBatteryInformation);
-    jfloatArray arr = static_cast<jfloatArray>(obj);
+    jdoubleArray arr = static_cast<jdoubleArray>(obj);
     if (!arr || mJNIEnv->GetArrayLength(arr) != 2) {
         return;
     }
 
-    jfloat* info = mJNIEnv->GetFloatArrayElements(arr, 0);
+    jdouble* info = mJNIEnv->GetDoubleArrayElements(arr, 0);
 
     aBatteryInfo->level() = info[0];
     aBatteryInfo->charging() = info[1] == 1.0f;
 
-    mJNIEnv->ReleaseFloatArrayElements(arr, info, 0);
+    mJNIEnv->ReleaseDoubleArrayElements(arr, info, 0);
 }
 
 void *
