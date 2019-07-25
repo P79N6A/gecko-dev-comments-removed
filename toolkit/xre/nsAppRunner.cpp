@@ -3501,7 +3501,6 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
  
   
   
-  
   nsCOMPtr<nsIFile> flagFile;
 
   rv = NS_ERROR_FILE_NOT_FOUND;
