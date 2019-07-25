@@ -38,6 +38,9 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
+
+const ADDONS_NOTIFICATION_NAME = "addons";
 
 
 const BrowserStartupServiceFactory = {
@@ -55,19 +58,18 @@ function BrowserStartup() {
 
 BrowserStartup.prototype = {
   
-  classID:          Components.ID("{1d542abc-c88b-4636-a4ef-075b49806317}"),
+  classID: Components.ID("{1d542abc-c88b-4636-a4ef-075b49806317}"),
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
 
   _xpcom_factory: BrowserStartupServiceFactory,
 
-  _init: function () {
-    this._observerService = Cc["@mozilla.org/observer-service;1"].
-                            getService(Ci.nsIObserverService);
-    this._observerService.addObserver(this, "places-init-complete", false);
+  _init: function() {
+    Services.obs.addObserver(this, "places-init-complete", false);
+    Services.obs.addObserver(this, "final-ui-startup", false);
   },
 
-  _initDefaultBookmarks: function () {
+  _initDefaultBookmarks: function() {
     
     
     
@@ -128,12 +130,31 @@ BrowserStartup.prototype = {
     }
   },
 
+  _startupActions: function() {
+#ifdef ANDROID
+    
+    try {
+      if (Services.prefs.getBoolPref("browser.notifications.pending.addons")) {
+        Services.prefs.clearUserPref("browser.notifications.pending.addons")
+        let alertsService = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
+        let progressListener = alertsService.QueryInterface(Ci.nsIAlertsProgressListener);
+        if (progressListener)
+          progressListener.onCancel(ADDONS_NOTIFICATION_NAME);
+      }
+    } catch (e) {}
+#endif
+  },
+
   
   observe: function(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "places-init-complete":
+        Services.obs.removeObserver(this, "places-init-complete");
         this._initDefaultBookmarks();
-        this._observerService.removeObserver(this, "places-init-complete");
+        break;
+      case "final-ui-startup":
+        Services.obs.removeObserver(this, "final-ui-startup");
+        this._startupActions();
         break;
     }
   }
