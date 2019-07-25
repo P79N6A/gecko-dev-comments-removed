@@ -1,6 +1,6 @@
 dump("====================== Content Script Loaded =======================\n");
 
-let assistant = contentObject._formAssistant;
+let assistant = Content._formAssistant;
 
 
 

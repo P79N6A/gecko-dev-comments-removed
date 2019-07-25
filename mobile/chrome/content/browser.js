@@ -196,6 +196,9 @@ var Browser = {
     
     Elements.browsers.customDragger = new Browser.MainDragger();
 
+    
+    Elements.browsers.webProgress = new Browser.WebProgress();
+
     let keySender = new ContentCustomKeySender(Elements.browsers);
     let mouseModule = new MouseModule();
     let gestureModule = new GestureModule(Elements.browsers);
@@ -1307,9 +1310,118 @@ Browser.MainDragger.prototype = {
 };
 
 
-function nsBrowserAccess()
-{
-}
+Browser.WebProgress = function WebProgress() {
+  messageManager.addMessageListener("Content:StateChange", this);
+  messageManager.addMessageListener("Content:LocationChange", this);
+  messageManager.addMessageListener("Content:SecurityChange", this);
+};
+
+Browser.WebProgress.prototype = {
+  receiveMessage: function receiveMessage(aMessage) {
+    let json = aMessage.json;
+    let tab = Browser.getTabForBrowser(aMessage.target);
+
+    switch (aMessage.name) {
+      case "Content:StateChange": {
+        if (json.stateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
+          if (json.stateFlags & Ci.nsIWebProgressListener.STATE_START)
+            this._networkStart(tab);
+          else if (json.stateFlags & Ci.nsIWebProgressListener.STATE_STOP)
+            this._networkStop(tab);
+        }
+
+        if (json.stateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
+          if (json.stateFlags & Ci.nsIWebProgressListener.STATE_STOP)
+            this._documentStop(tab);
+        }
+        break;
+      }
+
+      case "Content:LocationChange": {
+        let spec = json.location;
+        let location = spec.split("#")[0]; 
+
+        if (tab == Browser.selectedTab)
+          BrowserUI.updateURI();
+
+        let locationHasChanged = (location != tab.browser.lastLocation);
+        if (locationHasChanged) {
+          TapHighlightHelper.hide();
+
+          Browser.getNotificationBox(tab.browser).removeTransientNotifications();
+          tab.resetZoomLevel();
+          tab.hostChanged = true;
+          tab.browser.lastLocation = location;
+          tab.browser.userTypedValue = "";
+
+#ifdef MOZ_CRASH_REPORTER
+          if (CrashReporter.enabled)
+            CrashReporter.annotateCrashReport("URL", spec);
+#endif
+          if (tab == Browser.selectedTab) {
+            
+            
+            
+            Browser.scrollContentToTop({ x: 0 });
+          }
+
+          tab.useFallbackWidth = false;
+          tab.updateViewportSize();
+        }
+
+        let event = document.createEvent("UIEvents");
+        event.initUIEvent("URLChanged", true, false, window, locationHasChanged);
+        tab.browser.dispatchEvent(event);
+        break;
+      }
+
+      case "Content:SecurityChange": {
+        
+        if (tab.state == json.state && !tab.hostChanged)
+          return;
+
+        tab.hostChanged = false;
+        tab.state = json.state;
+
+        if (tab == Browser.selectedTab)
+          getIdentityHandler().checkIdentity();
+        break;
+      }
+    }
+  },
+
+  _networkStart: function _networkStart(aTab) {
+    aTab.startLoading();
+
+    if (aTab == Browser.selectedTab) {
+      BrowserUI.update(TOOLBARSTATE_LOADING);
+
+      
+      
+      if (aTab.browser.currentURI.spec == "about:blank")
+        BrowserUI.updateURI();
+    }
+  },
+
+  _networkStop: function _networkStop(aTab) {
+    aTab.endLoading();
+
+    if (aTab == Browser.selectedTab)
+      BrowserUI.update(TOOLBARSTATE_LOADED);
+
+    if (aTab.browser.currentURI.spec != "about:blank")
+      aTab.updateThumbnail();
+  },
+
+  _documentStop: function _documentStop(aTab) {
+      
+      
+      aTab.pageScrollOffset = new Point(0, 0);
+  }
+};
+
+
+function nsBrowserAccess() { }
 
 nsBrowserAccess.prototype = {
   QueryInterface: function(aIID) {
@@ -1529,8 +1641,7 @@ const ContentTouchHandler = {
     browser.focus();
     try {
       fl.activateRemoteFrame();
-    } catch (e) {
-    }
+    } catch (e) {}
     this._dispatchMouseEvent("Browser:MouseDown", aX, aY);
   },
 
@@ -2221,147 +2332,6 @@ function showDownloadManager(aWindowContext, aID, aReason) {
 }
 
 
-function ProgressController(tab) {
-  this._tab = tab;
-
-  
-  this.state = null;
-  this._hostChanged = false; 
-}
-
-ProgressController.prototype = {
-  get browser() {
-    return this._tab.browser;
-  },
-
-  onStateChange: function onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
-    
-    if (aWebProgress.windowId != this._tab.browser.contentWindowId && this._tab.browser.contentWindowId)
-      return;
-
-    
-    
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
-        this._networkStart();
-      else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
-        this._networkStop();
-    }
-
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
-        this._documentStop();
-    }
-  },
-
-  
-  onProgressChange: function onProgressChange(aWebProgress, aRequest, aCurSelf, aMaxSelf, aCurTotal, aMaxTotal) {
-    
-  },
-
-  
-  onLocationChange: function onLocationChange(aWebProgress, aRequest, aLocationURI) {
-    
-    if (aWebProgress.windowId != this._tab.browser.contentWindowId)
-      return;
-
-    let spec = aLocationURI ? aLocationURI.spec : "";
-    let location = spec.split("#")[0]; 
-
-    this._hostChanged = true;
-
-    if (this._tab == Browser.selectedTab)
-      BrowserUI.updateURI();
-
-    let locationHasChanged = (location != this.browser.lastLocation);
-    if (locationHasChanged) {
-      TapHighlightHelper.hide();
-
-      this.browser.lastLocation = location;
-      this.browser.userTypedValue = "";
-      Browser.getNotificationBox(this.browser).removeTransientNotifications();
-      this._tab.resetZoomLevel();
-
-#ifdef MOZ_CRASH_REPORTER
-      if (CrashReporter.enabled)
-        CrashReporter.annotateCrashReport("URL", spec);
-#endif
-      if (this._tab == Browser.selectedTab) {
-        
-        
-        
-        Browser.scrollContentToTop({ x: 0 });
-      }
-      this._tab.useFallbackWidth = false;
-      this._tab.updateViewportSize();
-    }
-
-    let event = document.createEvent("UIEvents");
-    event.initUIEvent("URLChanged", true, false, window, locationHasChanged);
-    this.browser.dispatchEvent(event);
-  },
-
-  
-
-
-
-  onStatusChange: function onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {
-    
-  },
-
-  
-  onSecurityChange: function onSecurityChange(aWebProgress, aRequest, aState) {
-    
-    if (this.state == aState && !this._hostChanged)
-      return;
-
-    this._hostChanged = false;
-    this.state = aState;
-
-    if (this._tab == Browser.selectedTab) {
-      getIdentityHandler().checkIdentity();
-    }
-  },
-
-  QueryInterface: function(aIID) {
-    if (aIID.equals(Ci.nsIWebProgressListener) ||
-        aIID.equals(Ci.nsISupportsWeakReference) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  },
-
-  _networkStart: function _networkStart() {
-    this._tab.startLoading();
-
-    if (this._tab == Browser.selectedTab) {
-      BrowserUI.update(TOOLBARSTATE_LOADING);
-
-      
-      
-      if (this._tab.browser.currentURI.spec == "about:blank")
-        BrowserUI.updateURI();
-    }
-  },
-
-  _networkStop: function _networkStop() {
-    this._tab.endLoading();
-
-    if (this._tab == Browser.selectedTab)
-      BrowserUI.update(TOOLBARSTATE_LOADED);
-
-    if (this.browser.currentURI.spec != "about:blank")
-      this._tab.updateThumbnail();
-  },
-
-  _documentStop: function _documentStop() {
-      
-      
-      this._tab.pageScrollOffset = new Point(0, 0);
-  }
-};
-
 var OfflineApps = {
   offlineAppRequested: function(aRequest, aTarget) {
     if (!Services.prefs.getBoolPref("browser.offline-apps.notify"))
@@ -2444,13 +2414,15 @@ function Tab(aURI, aParams) {
   this._id = null;
   this._browser = null;
   this._notification = null;
-  this._state = null;
-  this._listener = null;
   this._loading = false;
   this._chromeTab = null;
   this._metadata = null;
+
   this.useFallbackWidth = false;
   this.owner = null;
+
+  this.hostChanged = false;
+  this.state = null;
 
   
   
@@ -2649,14 +2621,6 @@ Tab.prototype = {
       setTimeout(this.scrolledAreaChanged.bind(this), 0);
     }).bind(this));
 
-    
-    let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
-                Ci.nsIWebProgress.NOTIFY_SECURITY |
-                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK |
-                Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
-    this._listener = new ProgressController(this);
-    browser.webProgress.addProgressListener(this._listener, flags);
-
     return browser;
   },
 
@@ -2664,12 +2628,10 @@ Tab.prototype = {
     if (this._browser) {
       let notification = this._notification;
       let browser = this._browser;
-      browser.removeProgressListener(this._listener);
       browser.active = false;
 
       this._notification = null;
       this._browser = null;
-      this._listener = null;
       this._loading = false;
 
       Elements.browsers.removeChild(notification);
