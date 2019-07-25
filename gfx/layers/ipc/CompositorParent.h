@@ -138,6 +138,15 @@ public:
   static PCompositorParent*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
+  
+
+
+
+
+
+  static void StartUpWithExistingThread(MessageLoop* aMsgLoop,
+                                        PlatformThreadId aThreadID);
+
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend& aBackendHint,
                                       const uint64_t& aId,
