@@ -44,64 +44,23 @@ var gTestIter;
 
 
 
-let gTests = [
-
-  function smokeTestGenerator() {
-    if (ensureOverLinkHidden())
-      yield;
-
-    setOverLinkWait("http://example.com/");
+function smokeTestGenerator() {
+  if (ensureOverLinkHidden())
     yield;
-    checkURLBar(true);
 
-    setOverLinkWait("");
-    yield;
-    checkURLBar(false);
-  },
+  setOverLink("http://example.com/");
+  yield;
+  checkURLBar(true);
 
-  function hostPathLabels() {
-    updateOverLink("http://example.com/");
-    hostLabelIs("http://example.com/");
-    pathLabelIs("");
-
-    updateOverLink("http://example.com/foo");
-    hostLabelIs("http://example.com/");
-    pathLabelIs("foo");
-
-    updateOverLink("javascript:popup('http://example.com/')");
-    hostLabelIs("");
-    pathLabelIs("javascript:popup('http://example.com/')");
-
-    updateOverLink("javascript:popup('http://example.com/foo')");
-    hostLabelIs("");
-    pathLabelIs("javascript:popup('http://example.com/foo')");
-
-    updateOverLink("about:home");
-    hostLabelIs("");
-    pathLabelIs("about:home");
-  }
-
-];
+  setOverLink("");
+  yield;
+  checkURLBar(false);
+}
 
 function test() {
   waitForExplicitFinish();
-  runNextTest();
-}
-
-function runNextTest() {
-  let nextTest = gTests.shift();
-  if (nextTest) {
-    dump("Running next test: " + nextTest.name + "\n");
-    gTestIter = nextTest();
-
-    
-    if (gTestIter)
-      cont();
-    else
-      runNextTest();
-  }
-  else
-    finish();
+  gTestIter = smokeTestGenerator();
+  cont();
 }
 
 
@@ -115,13 +74,7 @@ function cont() {
     gTestIter.next();
   }
   catch (err if err instanceof StopIteration) {
-    runNextTest();
-  }
-  catch (err) {
-    
-    
-    ok(false, "Exception: " + err);
-    throw err;
+    finish();
   }
 }
 
@@ -159,7 +112,7 @@ function checkURLBar(shouldShowOverLink) {
 
 
 
-function setOverLinkWait(str) {
+function setOverLink(aStr) {
   let overLink = gURLBar._overLinkBox;
   overLink.addEventListener("transitionend", function onTrans(event) {
     if (event.target == overLink && event.propertyName == "opacity") {
@@ -167,30 +120,7 @@ function setOverLinkWait(str) {
       cont();
     }
   }, false);
-  gURLBar.setOverLink(str);
-}
-
-
-
-
-
-
-
-
-function setOverLink(str) {
-  gURLBar.setOverLink(str);
-}
-
-
-
-
-
-
-
-
-
-function updateOverLink(str) {
-  gURLBar._updateOverLink(str);
+  gURLBar.setOverLink(aStr);
 }
 
 
@@ -202,33 +132,9 @@ function updateOverLink(str) {
 
 function ensureOverLinkHidden() {
   let overLink = gURLBar._overLinkBox;
-  if (window.getComputedStyle(overLink, null).opacity == 0) {
-    setOverLink("");
+  if (window.getComputedStyle(overLink, null).opacity == 0)
     return false;
-  }
 
-  setOverLinkWait("");
+  setOverLink("");
   return true;
-}
-
-
-
-
-
-
-
-function hostLabelIs(str) {
-  let host = gURLBar._overLinkHostLabel;
-  is(host.value, str, "Over-link host label should be correct");
-}
-
-
-
-
-
-
-
-function pathLabelIs(str) {
-  let path = gURLBar._overLinkPathLabel;
-  is(path.value, str, "Over-link path label should be correct");
 }
