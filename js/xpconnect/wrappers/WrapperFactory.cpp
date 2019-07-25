@@ -16,6 +16,7 @@
 #include "XPCMaps.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "jsfriendapi.h"
+#include "mozilla/Likely.h"
 
 using namespace js;
 
@@ -169,6 +170,11 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
         if (NATIVE_HAS_FLAG(&ccx, WantPreCreate)) {
             
             
+
+            
+            
+            
+            
             JSObject *originalScope = scope;
             nsresult rv = wn->GetScriptableInfo()->GetCallback()->
                 PreCreate(wn->Native(), cx, scope, &scope);
@@ -181,10 +187,40 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
             if (js::GetObjectCompartment(originalScope) != js::GetObjectCompartment(scope))
                 return DoubleWrap(cx, obj, flags);
 
-            
-            
-            
-            
+            JSObject *currentScope = JS_GetGlobalForObject(cx, obj);
+            if (MOZ_UNLIKELY(scope != currentScope)) {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                JSObject *probe;
+                rv = wn->GetScriptableInfo()->GetCallback()->
+                    PreCreate(wn->Native(), cx, currentScope, &probe);
+
+                
+                if (probe != currentScope) {
+                    MOZ_ASSERT(probe == scope);
+                    return DoubleWrap(cx, obj, flags);
+                }
+
+                
+            }
         }
     }
 
