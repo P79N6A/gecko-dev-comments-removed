@@ -371,6 +371,8 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
     return rv;
   }
 
+  EnsureSelectionInEditor(aMouseEvent, PR_FALSE);
+
   
   
   mEditor->ForceCompositionEnd();
@@ -855,13 +857,20 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
   NS_ENSURE_TRUE(mEditor, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_ARG(aEvent);
 
-  nsCOMPtr<nsIDOMEventTarget> target;
-  aEvent->GetTarget(getter_AddRefs(target));
-
   
   if (mEditor->IsDisabled()) {
     return NS_OK;
   }
+
+  EnsureSelectionInEditor(aEvent, PR_TRUE);
+  return NS_OK;
+}
+
+void
+nsEditorEventListener::EnsureSelectionInEditor(nsIDOMEvent* aEvent, PRBool aOnFocus)
+{
+  nsCOMPtr<nsIDOMEventTarget> target;
+  aEvent->GetTarget(getter_AddRefs(target));
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(target);
 
@@ -880,12 +889,12 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
     
     if (editableRoot) {
       nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-      NS_ENSURE_TRUE(fm, NS_OK);
+      NS_ENSURE_TRUE(fm, );
 
       nsCOMPtr<nsIDOMElement> element;
       fm->GetFocusedElement(getter_AddRefs(element));
       if (!SameCOMIdentity(element, target))
-        return NS_OK;
+        return;
     }
   }
   else {
@@ -901,21 +910,23 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
     selCon->GetSelection(nsISelectionController::SELECTION_NORMAL,
                          getter_AddRefs(selection));
 
-    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-    if (presShell) {
-      nsRefPtr<nsCaret> caret = presShell->GetCaret();
-      if (caret) {
-        caret->SetIgnoreUserModify(PR_FALSE);
-        if (selection) {
-          caret->SetCaretDOMSelection(selection);
+    if (aOnFocus) {
+      nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+      if (presShell) {
+        nsRefPtr<nsCaret> caret = presShell->GetCaret();
+        if (caret) {
+          caret->SetIgnoreUserModify(PR_FALSE);
+          if (selection) {
+            caret->SetCaretDOMSelection(selection);
+          }
         }
       }
-    }
 
-    selCon->SetCaretReadOnly(mEditor->IsReadonly());
-    selCon->SetCaretEnabled(PR_TRUE);
-    selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
-    selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
+      selCon->SetCaretReadOnly(mEditor->IsReadonly());
+      selCon->SetCaretEnabled(PR_TRUE);
+      selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
+      selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
+    }
 
     nsCOMPtr<nsISelectionPrivate> selectionPrivate =
       do_QueryInterface(selection);
@@ -924,7 +935,7 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
       selectionPrivate->SetAncestorLimiter(editableRoot);
     }
 
-    if (selection && !editableRoot) {
+    if (aOnFocus && selection && !editableRoot) {
       PRInt32 rangeCount;
       selection->GetRangeCount(&rangeCount);
       if (rangeCount == 0) {
@@ -932,7 +943,6 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
       }
     }
   }
-  return NS_OK;
 }
 
 NS_IMETHODIMP
