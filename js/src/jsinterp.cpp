@@ -6173,7 +6173,7 @@ END_CASE(JSOP_ARRAYPUSH)
 
 
 
-    interpReturnOK &= UnwindScope(cx, 0, interpReturnOK || cx->isExceptionPending());
+    interpReturnOK &= (JSBool)UnwindScope(cx, 0, interpReturnOK || cx->isExceptionPending());
     JS_ASSERT(regs.sp == regs.fp()->base());
 
     if (entryFrame != regs.fp())
