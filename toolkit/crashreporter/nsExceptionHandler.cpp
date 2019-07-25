@@ -209,6 +209,10 @@ static AnnotationTable* crashReporterAPIData_Hash;
 static nsCString* crashReporterAPIData = nsnull;
 static nsCString* notesField = nsnull;
 
+#if defined(XP_WIN)
+static HMODULE dbghelp = NULL;
+#endif
+
 #if defined(MOZ_IPC)
 
 static CrashGenerationServer* crashServer; 
@@ -717,6 +721,25 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   }
 #endif
 
+#ifdef XP_WIN
+  
+  
+  dbghelp = LoadLibraryW(L"dbghelp.dll");
+  MINIDUMP_TYPE minidump_type = MiniDumpNormal;
+  if (dbghelp) {
+    typedef LPAPI_VERSION (WINAPI *ImagehlpApiVersionPtr)(void);
+    ImagehlpApiVersionPtr imagehlp_api_version =
+      (ImagehlpApiVersionPtr)GetProcAddress(dbghelp, "ImagehlpApiVersion");
+    if (imagehlp_api_version) {
+      LPAPI_VERSION api_version = imagehlp_api_version();
+      if (api_version->MajorVersion > 6 ||
+          (api_version->MajorVersion == 6 && api_version->MinorVersion > 1)) {
+        minidump_type = MiniDumpWithFullMemoryInfo;
+      }
+    }
+  }
+#endif
+
   
   gExceptionHandler = new google_breakpad::
     ExceptionHandler(tempPath.get(),
@@ -728,7 +751,10 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
                      MinidumpCallback,
                      nsnull,
 #if defined(XP_WIN32)
-                     google_breakpad::ExceptionHandler::HANDLER_ALL);
+                     google_breakpad::ExceptionHandler::HANDLER_ALL,
+                     minidump_type,
+                     NULL,
+                     NULL);
 #else
                      true
 #if defined(XP_MACOSX)
@@ -997,6 +1023,12 @@ static void OOPDeinit();
 nsresult UnsetExceptionHandler()
 {
   delete gExceptionHandler;
+
+#if defined(XP_WIN)
+  if (dbghelp) {
+    FreeLibrary(dbghelp);
+  }
+#endif
 
   
   
