@@ -589,10 +589,13 @@ Readability.prototype = {
       
       
       if (topCandidate === null || topCandidate.tagName === "BODY") {
+        
         topCandidate = doc.createElement("DIV");
-        topCandidate.innerHTML = page.innerHTML;
+        let children = page.childNodes;
+        for (let i = 0; i < children.length; ++i) {
+          topCandidate.appendChild(children[i]);
+        }
 
-        page.innerHTML = "";
         page.appendChild(topCandidate);
 
         this._initializeNode(topCandidate);
