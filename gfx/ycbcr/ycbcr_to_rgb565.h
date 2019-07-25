@@ -3,8 +3,43 @@
 
 #ifndef MEDIA_BASE_YCBCR_TO_RGB565_H_
 #define MEDIA_BASE_YCBCR_TO_RGB565_H_
+#include "yuv_convert.h"
 #include "mozilla/arm.h"
 
-int have_ycbcr_to_rgb565();
+
+#ifdef MOZILLA_MAY_SUPPORT_NEON
+#define HAVE_YCBCR_TO_RGB565 1
+#endif
+
+namespace mozilla {
+
+namespace gfx {
+
+#ifdef HAVE_YCBCR_TO_RGB565
+
+NS_GFX_(void) ConvertYCbCrToRGB565(const uint8* yplane,
+                                   const uint8* uplane,
+                                   const uint8* vplane,
+                                   uint8* rgbframe,
+                                   int pic_x,
+                                   int pic_y,
+                                   int pic_width,
+                                   int pic_height,
+                                   int ystride,
+                                   int uvstride,
+                                   int rgbstride,
+                                   YUVType yuv_type);
+
+
+NS_GFX_(bool) IsConvertYCbCrToRGB565Fast(int pic_x,
+                                         int pic_y,
+                                         int pic_width,
+                                         int pic_height,
+                                         YUVType yuv_type);
+#endif 
+
+}  
+
+}  
 
 #endif 
