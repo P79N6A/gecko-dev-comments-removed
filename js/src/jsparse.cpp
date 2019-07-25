@@ -56,8 +56,8 @@
 #include <math.h>
 #include "jstypes.h"
 #include "jsstdint.h"
-#include "jsarena.h"
-#include "jsutil.h"
+#include "jsarena.h" 
+#include "jsutil.h" 
 #include "jsapi.h"
 #include "jsarray.h"
 #include "jsatom.h"
@@ -65,8 +65,6 @@
 #include "jsversion.h"
 #include "jsemit.h"
 #include "jsfun.h"
-#include "jsgc.h"
-#include "jsgcmark.h"
 #include "jsinterp.h"
 #include "jsiter.h"
 #include "jslock.h"
@@ -91,11 +89,9 @@
 #endif
 
 #include "jsatominlines.h"
+#include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsregexpinlines.h"
-#include "jsscriptinlines.h"
-
-#include "frontend/ParseMaps-inl.h"
 
 
 #ifdef CONST
@@ -103,7 +99,6 @@
 #endif
 
 using namespace js;
-using namespace js::gc;
 
 
 
@@ -128,6 +123,12 @@ JS_STATIC_ASSERT(pn_offsetof(pn_u.name.atom) == pn_offsetof(pn_u.apair.atom));
     JS_END_MACRO
 #define MUST_MATCH_TOKEN(tt, errno) MUST_MATCH_TOKEN_WITH_FLAGS(tt, errno, 0)
 
+#ifdef METER_PARSENODES
+static uint32 parsenodes = 0;
+static uint32 maxparsenodes = 0;
+static uint32 recyclednodes = 0;
+#endif
+
 void
 JSParseNode::become(JSParseNode *pn2)
 {
@@ -146,27 +147,15 @@ JSParseNode::become(JSParseNode *pn2)
         pn2->pn_used = false;
     }
 
+    
+    if (PN_TYPE(pn2) == TOK_FUNCTION && pn2->pn_arity == PN_FUNC)
+        pn2->pn_funbox->node = this;
+
     pn_type = pn2->pn_type;
     pn_op = pn2->pn_op;
     pn_arity = pn2->pn_arity;
     pn_parens = pn2->pn_parens;
     pn_u = pn2->pn_u;
-
-    
-
-
-
-    if (PN_TYPE(this) == TOK_FUNCTION && pn_arity == PN_FUNC) {
-        
-        JS_ASSERT(pn_funbox->node == pn2);
-        pn_funbox->node = this;
-    } else if (pn_arity == PN_LIST && !pn_head) {
-        
-        JS_ASSERT(pn_count == 0);
-        JS_ASSERT(pn_tail == &pn2->pn_head);
-        pn_tail = &pn_head;
-    }
-
     pn2->clear();
 }
 
@@ -180,39 +169,34 @@ JSParseNode::clear()
     pn_parens = false;
 }
 
-Parser::Parser(JSContext *cx, JSPrincipals *prin, StackFrame *cfp, bool foldConstants)
+Parser::Parser(JSContext *cx, JSPrincipals *prin, JSStackFrame *cfp)
   : js::AutoGCRooter(cx, PARSER),
     context(cx),
+    aleFreeList(NULL),
     tokenStream(cx),
     principals(NULL),
     callerFrame(cfp),
-    callerVarObj(cfp ? &cfp->varObj() : NULL),
+    callerVarObj(cfp ? &cfp->varobj(cx->containingSegment(cfp)) : NULL),
     nodeList(NULL),
     functionCount(0),
     traceListHead(NULL),
     tc(NULL),
-    emptyCallShape(NULL),
-    keepAtoms(cx->runtime),
-    foldConstants(foldConstants)
+    keepAtoms(cx->runtime)
 {
-    cx->activeCompilations++;
     js::PodArrayZero(tempFreeList);
     setPrincipals(prin);
     JS_ASSERT_IF(cfp, cfp->isScriptFrame());
 }
 
 bool
-Parser::init(const jschar *base, size_t length, const char *filename, uintN lineno,
-             JSVersion version)
+Parser::init(const jschar *base, size_t length,
+             FILE *fp, const char *filename, uintN lineno)
 {
     JSContext *cx = context;
-    if (!cx->ensureParseMapPool())
-        return false;
-    emptyCallShape = EmptyShape::getEmptyCallShape(cx);
-    if (!emptyCallShape)
-        return false;
+    version = cx->findVersion();
+    
     tempPoolMark = JS_ARENA_MARK(&cx->tempPool);
-    if (!tokenStream.init(base, length, filename, lineno, version)) {
+    if (!tokenStream.init(version, base, length, fp, filename, lineno)) {
         JS_ARENA_RELEASE(&cx->tempPool, tempPoolMark);
         return false;
     }
@@ -225,8 +209,8 @@ Parser::~Parser()
 
     if (principals)
         JSPRINCIPALS_DROP(cx, principals);
+    tokenStream.close();
     JS_ARENA_RELEASE(&cx->tempPool, tempPoolMark);
-    cx->activeCompilations--;
 }
 
 void
@@ -252,14 +236,13 @@ Parser::newObjectBox(JSObject *obj)
     JSObjectBox *objbox;
     JS_ARENA_ALLOCATE_TYPE(objbox, JSObjectBox, &context->tempPool);
     if (!objbox) {
-        js_ReportOutOfMemory(context);
+        js_ReportOutOfScriptQuota(context);
         return NULL;
     }
     objbox->traceLink = traceListHead;
     traceListHead = objbox;
     objbox->emitLink = NULL;
     objbox->object = obj;
-    objbox->isFunctionBox = false;
     return objbox;
 }
 
@@ -278,14 +261,13 @@ Parser::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
     JSFunctionBox *funbox;
     JS_ARENA_ALLOCATE_TYPE(funbox, JSFunctionBox, &context->tempPool);
     if (!funbox) {
-        js_ReportOutOfMemory(context);
+        js_ReportOutOfScriptQuota(context);
         return NULL;
     }
     funbox->traceLink = traceListHead;
     traceListHead = funbox;
     funbox->emitLink = NULL;
     funbox->object = obj;
-    funbox->isFunctionBox = true;
     funbox->node = fn;
     funbox->siblings = tc->functionList;
     tc->functionList = funbox;
@@ -293,7 +275,6 @@ Parser::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
     funbox->kids = NULL;
     funbox->parent = tc->funbox;
     funbox->methods = NULL;
-    new (&funbox->bindings) Bindings(context, emptyCallShape);
     funbox->queued = false;
     funbox->inLoop = false;
     for (JSStmtInfo *stmt = tc->topStmt; stmt; stmt = stmt->down) {
@@ -304,32 +285,14 @@ Parser::newFunctionBox(JSObject *obj, JSParseNode *fn, JSTreeContext *tc)
     }
     funbox->level = tc->staticLevel;
     funbox->tcflags = (TCF_IN_FUNCTION | (tc->flags & (TCF_COMPILE_N_GO | TCF_STRICT_MODE_CODE)));
-    if (tc->innermostWith)
-        funbox->tcflags |= TCF_IN_WITH;
     return funbox;
 }
 
 bool
 JSFunctionBox::joinable() const
 {
-    return FUN_NULL_CLOSURE(function()) &&
+    return FUN_NULL_CLOSURE((JSFunction *) object) &&
            !(tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME));
-}
-
-bool
-JSFunctionBox::inAnyDynamicScope() const
-{
-    for (const JSFunctionBox *funbox = this; funbox; funbox = funbox->parent) {
-        if (funbox->tcflags & (TCF_IN_WITH | TCF_FUN_CALLS_EVAL))
-            return true;
-    }
-    return false;
-}
-
-bool
-JSFunctionBox::scopeIsExtensible() const
-{
-    return tcflags & TCF_FUN_EXTENSIBLE_SCOPE;
 }
 
 bool
@@ -351,202 +314,143 @@ Parser::trace(JSTracer *trc)
 {
     JSObjectBox *objbox = traceListHead;
     while (objbox) {
-        MarkObject(trc, *objbox->object, "parser.object");
-        if (objbox->isFunctionBox)
-            static_cast<JSFunctionBox *>(objbox)->bindings.trace(trc);
+        JS_CALL_OBJECT_TRACER(trc, objbox->object, "parser.object");
         objbox = objbox->traceLink;
     }
-
-    if (emptyCallShape)
-        MarkShape(trc, emptyCallShape, "emptyCallShape");
-
-    for (JSTreeContext *tc = this->tc; tc; tc = tc->parent)
-        tc->trace(trc);
 }
 
+static void
+UnlinkFunctionBoxes(JSParseNode *pn, JSTreeContext *tc);
 
-static inline void
-AddNodeToFreeList(JSParseNode *pn, js::Parser *parser)
+static void
+UnlinkFunctionBox(JSParseNode *pn, JSTreeContext *tc)
 {
-    
-    JS_ASSERT(pn != parser->nodeList);
+    JSFunctionBox *funbox = pn->pn_funbox;
+    if (funbox) {
+        JS_ASSERT(funbox->node == pn);
+        funbox->node = NULL;
 
-    
-
-
-
-
-
-    JS_ASSERT(!pn->pn_used);
-    JS_ASSERT(!pn->pn_defn);
-
-    if (pn->pn_arity == PN_NAMESET && pn->pn_names.hasMap())
-        pn->pn_names.releaseMap(parser->context);
-
-#ifdef DEBUG
-    
-    memset(pn, 0xab, sizeof(*pn));
-#endif
-
-    pn->pn_next = parser->nodeList;
-    parser->nodeList = pn;
-}
-
-
-static inline void
-AddNodeToFreeList(JSParseNode *pn, JSTreeContext *tc)
-{
-    AddNodeToFreeList(pn, tc->parser);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void
-Parser::cleanFunctionList(JSFunctionBox **funboxHead)
-{
-    JSFunctionBox **link = funboxHead;
-    while (JSFunctionBox *box = *link) {
-        if (!box->node) {
+        if (funbox->parent && PN_OP(pn) == JSOP_LAMBDA) {
             
 
 
 
-            *link = box->siblings;
-        } else if (!box->node->pn_funbox) {
-            
 
-
-
-            *link = box->siblings;
-            AddNodeToFreeList(box->node, this);
-        } else {
-            
-
-            
-            {
-                JSParseNode **methodLink = &box->methods;
-                while (JSParseNode *method = *methodLink) {
-                    
-                    JS_ASSERT(method->pn_arity == PN_FUNC);
-                    if (!method->pn_funbox) {
-                        
-                        *methodLink = method->pn_link;
-                    } else {
-                        
-                        methodLink = &method->pn_link;
-                    }
+            JS_ASSERT(!pn->pn_defn);
+            JS_ASSERT(!pn->pn_used);
+            JSParseNode **pnp = &funbox->parent->methods;
+            while (JSParseNode *method = *pnp) {
+                if (method == pn) {
+                    *pnp = method->pn_link;
+                    break;
                 }
+                pnp = &method->pn_link;
             }
+        }
 
-            
-            cleanFunctionList(&box->kids);
+        JSFunctionBox **funboxp = &tc->functionList;
+        while (*funboxp) {
+            if (*funboxp == funbox) {
+                *funboxp = funbox->siblings;
+                break;
+            }
+            funboxp = &(*funboxp)->siblings;
+        }
 
-            
-            link = &box->siblings;
+        uint32 oldflags = tc->flags;
+        JSFunctionBox *oldlist = tc->functionList;
+
+        tc->flags = funbox->tcflags;
+        tc->functionList = funbox->kids;
+        UnlinkFunctionBoxes(pn->pn_body, tc);
+        funbox->kids = tc->functionList;
+        tc->flags = oldflags;
+        tc->functionList = oldlist;
+
+        
+        pn->pn_funbox = NULL;
+    }
+}
+
+static void
+UnlinkFunctionBoxes(JSParseNode *pn, JSTreeContext *tc)
+{
+    if (pn) {
+        switch (pn->pn_arity) {
+          case PN_NULLARY:
+            return;
+          case PN_UNARY:
+            UnlinkFunctionBoxes(pn->pn_kid, tc);
+            return;
+          case PN_BINARY:
+            UnlinkFunctionBoxes(pn->pn_left, tc);
+            UnlinkFunctionBoxes(pn->pn_right, tc);
+            return;
+          case PN_TERNARY:
+            UnlinkFunctionBoxes(pn->pn_kid1, tc);
+            UnlinkFunctionBoxes(pn->pn_kid2, tc);
+            UnlinkFunctionBoxes(pn->pn_kid3, tc);
+            return;
+          case PN_LIST:
+            for (JSParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
+                UnlinkFunctionBoxes(pn2, tc);
+            return;
+          case PN_FUNC:
+            UnlinkFunctionBox(pn, tc);
+            return;
+          case PN_NAME:
+            UnlinkFunctionBoxes(pn->maybeExpr(), tc);
+            return;
+          case PN_NAMESET:
+            UnlinkFunctionBoxes(pn->pn_tree, tc);
         }
     }
 }
 
-namespace js {
+static void
+RecycleFuncNameKids(JSParseNode *pn, JSTreeContext *tc);
 
+static JSParseNode *
+RecycleTree(JSParseNode *pn, JSTreeContext *tc)
+{
+    JSParseNode *next, **head;
 
+    if (!pn)
+        return NULL;
 
-
-
-
-
-
-
-
-class NodeStack {
-  public:
-    NodeStack() : top(NULL) { }
-    bool empty() { return top == NULL; }
-    void push(JSParseNode *pn) {
-        pn->pn_next = top;
-        top = pn;
-    }
-    void pushUnlessNull(JSParseNode *pn) { if (pn) push(pn); }
     
-    void pushList(JSParseNode *pn) {
+    JS_ASSERT(pn != tc->parser->nodeList);
+    next = pn->pn_next;
+    if (pn->pn_used || pn->pn_defn) {
         
-        *pn->pn_tail = top;
-        top = pn->pn_head;
+
+
+
+
+
+
+
+        pn->pn_next = NULL;
+        RecycleFuncNameKids(pn, tc);
+    } else {
+        UnlinkFunctionBoxes(pn, tc);
+        head = &tc->parser->nodeList;
+        pn->pn_next = *head;
+        *head = pn;
+#ifdef METER_PARSENODES
+        recyclednodes++;
+#endif
     }
-    JSParseNode *pop() {
-        JS_ASSERT(!empty());
-        JSParseNode *hold = top; 
-        top = top->pn_next;
-        return hold;
-    }
-  private:
-    JSParseNode *top;
-};
+    return next;
+}
 
-} 
-
-
-
-
-
-
-
-
-
-static bool
-PushNodeChildren(JSParseNode *pn, NodeStack *stack)
+static void
+RecycleFuncNameKids(JSParseNode *pn, JSTreeContext *tc)
 {
     switch (pn->pn_arity) {
       case PN_FUNC:
+        UnlinkFunctionBox(pn, tc);
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        pn->pn_funbox = NULL;
-        stack->pushUnlessNull(pn->pn_body);
-        pn->pn_body = NULL;
-        return false;
 
       case PN_NAME:
         
@@ -555,115 +459,15 @@ PushNodeChildren(JSParseNode *pn, NodeStack *stack)
 
 
 
-
-
-
-
-
-
-        if (!pn->pn_used) {
-            stack->pushUnlessNull(pn->pn_expr);
+        if (!pn->pn_used && pn->pn_expr) {
+            RecycleTree(pn->pn_expr, tc);
             pn->pn_expr = NULL;
         }
-        return !pn->pn_used && !pn->pn_defn;
-
-      case PN_LIST:
-        stack->pushList(pn);
         break;
-      case PN_TERNARY:
-        stack->pushUnlessNull(pn->pn_kid1);
-        stack->pushUnlessNull(pn->pn_kid2);
-        stack->pushUnlessNull(pn->pn_kid3);
-        break;
-      case PN_BINARY:
-        if (pn->pn_left != pn->pn_right)
-            stack->pushUnlessNull(pn->pn_left);
-        stack->pushUnlessNull(pn->pn_right);
-        break;
-      case PN_UNARY:
-        stack->pushUnlessNull(pn->pn_kid);
-        break;
-      case PN_NULLARY:
-        
 
-
-
-        return !pn->pn_used && !pn->pn_defn;
+      default:
+        JS_ASSERT(PN_TYPE(pn) == TOK_FUNCTION);
     }
-
-    return true;
-}
-
-
-
-
-
-
-static void
-PrepareNodeForMutation(JSParseNode *pn, JSTreeContext *tc)
-{
-    if (pn->pn_arity != PN_NULLARY) {
-        if (pn->pn_arity == PN_FUNC) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-            if (pn->pn_funbox)
-                pn->pn_funbox->node = NULL;
-        }
-
-        
-        NodeStack stack;
-        PushNodeChildren(pn, &stack);
-        
-
-
-
-        while (!stack.empty()) {
-            pn = stack.pop();
-            if (PushNodeChildren(pn, &stack))
-                AddNodeToFreeList(pn, tc);
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-static JSParseNode *
-RecycleTree(JSParseNode *pn, JSTreeContext *tc)
-{
-    if (!pn)
-        return NULL;
-
-    JSParseNode *savedNext = pn->pn_next;
-
-    NodeStack stack;
-    for (;;) {
-        if (PushNodeChildren(pn, &stack))
-            AddNodeToFreeList(pn, tc);
-        if (stack.empty())
-            break;
-        pn = stack.pop();
-    }
-
-    return savedNext;
 }
 
 
@@ -673,7 +477,7 @@ RecycleTree(JSParseNode *pn, JSTreeContext *tc)
 static JSParseNode *
 NewOrRecycledNode(JSTreeContext *tc)
 {
-    JSParseNode *pn;
+    JSParseNode *pn, *pn2;
 
     pn = tc->parser->nodeList;
     if (!pn) {
@@ -681,12 +485,62 @@ NewOrRecycledNode(JSTreeContext *tc)
 
         JS_ARENA_ALLOCATE_TYPE(pn, JSParseNode, &cx->tempPool);
         if (!pn)
-            js_ReportOutOfMemory(cx);
+            js_ReportOutOfScriptQuota(cx);
     } else {
         tc->parser->nodeList = pn->pn_next;
-    }
 
+        
+        switch (pn->pn_arity) {
+          case PN_FUNC:
+            RecycleTree(pn->pn_body, tc);
+            break;
+          case PN_LIST:
+            pn2 = pn->pn_head;
+            if (pn2) {
+                while (pn2 && !pn2->pn_used && !pn2->pn_defn)
+                    pn2 = pn2->pn_next;
+                if (pn2) {
+                    pn2 = pn->pn_head;
+                    do {
+                        pn2 = RecycleTree(pn2, tc);
+                    } while (pn2);
+                } else {
+                    *pn->pn_tail = tc->parser->nodeList;
+                    tc->parser->nodeList = pn->pn_head;
+#ifdef METER_PARSENODES
+                    recyclednodes += pn->pn_count;
+#endif
+                    break;
+                }
+            }
+            break;
+          case PN_TERNARY:
+            RecycleTree(pn->pn_kid1, tc);
+            RecycleTree(pn->pn_kid2, tc);
+            RecycleTree(pn->pn_kid3, tc);
+            break;
+          case PN_BINARY:
+            if (pn->pn_left != pn->pn_right)
+                RecycleTree(pn->pn_left, tc);
+            RecycleTree(pn->pn_right, tc);
+            break;
+          case PN_UNARY:
+            RecycleTree(pn->pn_kid, tc);
+            break;
+          case PN_NAME:
+            if (!pn->pn_used)
+                RecycleTree(pn->pn_expr, tc);
+            break;
+          case PN_NULLARY:
+            break;
+        }
+    }
     if (pn) {
+#ifdef METER_PARSENODES
+        parsenodes++;
+        if (parsenodes - recyclednodes > maxparsenodes)
+            maxparsenodes = parsenodes - recyclednodes;
+#endif
         pn->pn_used = pn->pn_defn = false;
         memset(&pn->pn_u, 0, sizeof pn->pn_u);
         pn->pn_next = NULL;
@@ -761,8 +615,7 @@ JSParseNode::newBinaryOrAppend(TokenKind tt, JSOp op, JSParseNode *left, JSParse
 
     if (tt == TOK_PLUS &&
         left->pn_type == TOK_NUMBER &&
-        right->pn_type == TOK_NUMBER &&
-        tc->parser->foldConstants) {
+        right->pn_type == TOK_NUMBER) {
         left->pn_dval += right->pn_dval;
         left->pn_pos.end = right->pn_pos.end;
         RecycleTree(right, tc);
@@ -787,9 +640,9 @@ NameNode::initCommon(JSTreeContext *tc)
 {
     pn_expr = NULL;
     pn_cookie.makeFree();
-    pn_dflags = (!tc->topStmt || tc->topStmt->type == STMT_BLOCK)
-                ? PND_BLOCKCHILD
-                : 0;
+    pn_dflags = tc->atTopLevel() ? PND_TOPLEVEL : 0;
+    if (!tc->topStmt || tc->topStmt->type == STMT_BLOCK)
+        pn_dflags |= PND_BLOCKCHILD;
     pn_blockid = tc->blockid();
 }
 
@@ -847,9 +700,7 @@ Parser::parse(JSObject *chain)
 
 
     JSTreeContext globaltc(this);
-    if (!globaltc.init(context))
-        return NULL;
-    globaltc.setScopeChain(chain);
+    globaltc.scopeChain = chain;
     if (!GenerateBlockId(&globaltc, globaltc.bodyid))
         return NULL;
 
@@ -858,7 +709,7 @@ Parser::parse(JSObject *chain)
         if (!tokenStream.matchToken(TOK_EOF)) {
             reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
             pn = NULL;
-        } else if (foldConstants) {
+        } else {
             if (!js_FoldConstants(context, pn, &globaltc))
                 pn = NULL;
         }
@@ -887,26 +738,31 @@ SetStaticLevel(JSTreeContext *tc, uintN staticLevel)
 
 
 
-Compiler::Compiler(JSContext *cx, JSPrincipals *prin, StackFrame *cfp)
-  : parser(cx, prin, cfp), globalScope(NULL)
-{}
+Compiler::Compiler(JSContext *cx, JSPrincipals *prin, JSStackFrame *cfp)
+  : parser(cx, prin, cfp)
+{
+}
 
 JSScript *
-Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
                         JSPrincipals *principals, uint32 tcflags,
                         const jschar *chars, size_t length,
-                        const char *filename, uintN lineno, JSVersion version,
+                        FILE *file, const char *filename, uintN lineno,
                         JSString *source ,
                         uintN staticLevel )
 {
     JSArenaPool codePool, notePool;
     TokenKind tt;
     JSParseNode *pn;
+    uint32 scriptGlobals;
     JSScript *script;
     bool inDirectivePrologue;
+#ifdef METER_PARSENODES
+    void *sbrk(ptrdiff_t), *before = sbrk(0);
+#endif
 
     JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT |
-                            TCF_COMPILE_FOR_EVAL | TCF_NEED_SCRIPT_OBJECT)));
+                            TCF_COMPILE_FOR_EVAL)));
 
     
 
@@ -916,17 +772,19 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     JS_ASSERT_IF(staticLevel != 0, callerFrame);
 
     Compiler compiler(cx, principals, callerFrame);
-    if (!compiler.init(chars, length, filename, lineno, version))
+    if (!compiler.init(chars, length, file, filename, lineno))
         return NULL;
 
-    JS_InitArenaPool(&codePool, "code", 1024, sizeof(jsbytecode));
-    JS_InitArenaPool(&notePool, "note", 1024, sizeof(jssrcnote));
+    JS_InitArenaPool(&codePool, "code", 1024, sizeof(jsbytecode),
+                     &cx->scriptStackQuota);
+    JS_InitArenaPool(&notePool, "note", 1024, sizeof(jssrcnote),
+                     &cx->scriptStackQuota);
 
     Parser &parser = compiler.parser;
     TokenStream &tokenStream = parser.tokenStream;
 
     JSCodeGenerator cg(&parser, &codePool, &notePool, tokenStream.getLineno());
-    if (!cg.init(cx, JSTreeContext::USED_AS_TREE_CONTEXT))
+    if (!cg.init())
         return NULL;
 
     MUST_FLOW_THROUGH("out");
@@ -935,17 +793,25 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     JSObject *globalObj = scopeChain && scopeChain == scopeChain->getGlobal()
                         ? scopeChain->getGlobal()
                         : NULL;
+    js::GlobalScope globalScope(cx, globalObj, &cg);
+    if (globalObj) {
+        JS_ASSERT(globalObj->isNative());
+        JS_ASSERT((globalObj->getClass()->flags & JSCLASS_GLOBAL_FLAGS) == JSCLASS_GLOBAL_FLAGS);
 
-    JS_ASSERT_IF(globalObj, globalObj->isNative());
-    JS_ASSERT_IF(globalObj, (globalObj->getClass()->flags & JSCLASS_GLOBAL_FLAGS) ==
-                            JSCLASS_GLOBAL_FLAGS);
+        
+        JSObject *tobj;
+        if (!js_GetClassPrototype(cx, scopeChain, JSProto_Function, &tobj))
+            return NULL;
+
+        globalScope.globalFreeSlot = globalObj->slotSpan();
+    }
 
     
     script = NULL;
 
-    GlobalScope globalScope(cx, globalObj, &cg);
+    globalScope.cg = &cg;
     cg.flags |= tcflags;
-    cg.setScopeChain(scopeChain);
+    cg.scopeChain = scopeChain;
     compiler.globalScope = &globalScope;
     if (!SetStaticLevel(&cg, staticLevel))
         goto out;
@@ -958,19 +824,21 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         tokenStream.setStrictMode();
     }
 
-#ifdef DEBUG
-    bool savedCallerFun;
-    savedCallerFun = false;
-#endif
+    
+
+
+
+    JSObjectBox *funbox;
+    funbox = NULL;
+
     if (tcflags & TCF_COMPILE_N_GO) {
         if (source) {
             
 
 
 
-            JSAtom *atom = js_AtomizeString(cx, source);
-            jsatomid _;
-            if (!atom || !cg.makeAtomIndex(atom, &_))
+            JSAtom *atom = js_AtomizeString(cx, source, 0);
+            if (!atom || !cg.atomList.add(&parser, atom))
                 goto out;
         }
 
@@ -980,15 +848,12 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-            JSObjectBox *funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
+            funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
             cg.objectList.lastbox = funbox;
             cg.objectList.length++;
-#ifdef DEBUG
-            savedCallerFun = true;
-#endif
         }
     }
 
@@ -1007,8 +872,12 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     onlyXML = true;
 #endif
 
+    CG_SWITCH_TO_PROLOG(&cg);
+    if (js_Emit1(cx, &cg, JSOP_TRACE) < 0)
+        goto out;
+    CG_SWITCH_TO_MAIN(&cg);
+
     inDirectivePrologue = true;
-    tokenStream.setOctalCharacterEscape(false);
     for (;;) {
         tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF) {
@@ -1023,19 +892,20 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
             goto out;
         JS_ASSERT(!cg.blockNode);
 
-        if (inDirectivePrologue && !parser.recognizeDirectivePrologue(pn, &inDirectivePrologue))
-            goto out;
+        if (inDirectivePrologue)
+            inDirectivePrologue = parser.recognizeDirectivePrologue(pn);
 
         if (!js_FoldConstants(cx, pn, &cg))
             goto out;
 
-        if (!parser.analyzeFunctions(&cg))
-            goto out;
-        cg.functionList = NULL;
+        if (cg.functionList) {
+            if (!parser.analyzeFunctions(cg.functionList, cg.flags))
+                goto out;
+            cg.functionList = NULL;
+        }
 
         if (!js_EmitTree(cx, &cg, pn))
             goto out;
-
 #if JS_HAS_XML_SUPPORT
         if (PN_TYPE(pn) != TOK_SEMI ||
             !pn->pn_kid ||
@@ -1064,12 +934,15 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-    if (cg.hasSharps()) {
+    scriptGlobals = cg.ngvars;
+    if (scriptGlobals != 0 || cg.hasSharps()) {
         jsbytecode *code, *end;
         JSOp op;
         const JSCodeSpec *cs;
         uintN len, slot;
 
+        if (scriptGlobals >= SLOTNO_LIMIT)
+            goto too_many_slots;
         code = CG_BASE(&cg);
         for (end = code + CG_OFFSET(&cg); code != end; code += len) {
             JS_ASSERT(code < end);
@@ -1089,6 +962,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
                              (JOF_TYPE(cs->format) == JOF_SLOTATOM) ==
                              (op == JSOP_GETLOCALPROP));
                 slot = GET_SLOTNO(code);
+                slot += scriptGlobals;
                 if (!(cs->format & JOF_SHARPSLOT))
                     slot += cg.sharpSlots();
                 if (slot >= SLOTNO_LIMIT)
@@ -1098,26 +972,80 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         }
     }
 
+    if (globalScope.defs.length()) {
+        JS_ASSERT(globalObj->slotSpan() == globalScope.globalFreeSlot);
+        JS_ASSERT(!cg.compilingForEval());
+        for (size_t i = 0; i < globalScope.defs.length(); i++) {
+            GlobalScope::GlobalDef &def = globalScope.defs[i];
+            jsid id = ATOM_TO_JSID(def.atom);
+            Value rval;
+
+            if (def.funbox) {
+                JSFunction *fun = (JSFunction *)def.funbox->object;
+
+                
+                JS_ASSERT(fun->getParent() == scopeChain);
+
+                
+
+
+
+
+                rval.setObject(*fun);
+            } else {
+                rval.setUndefined();
+            }
+
+            JSProperty *prop;
+
+            if (!js_DefineNativeProperty(cx, globalObj, id, rval, PropertyStub,
+                                         PropertyStub, JSPROP_ENUMERATE | JSPROP_PERMANENT,
+                                         0, 0, &prop)) {
+                goto out;
+            }
+
+            JS_ASSERT(prop);
+            JS_ASSERT(((Shape*)prop)->slot == globalScope.globalFreeSlot + i);
+
+            globalObj->dropProperty(cx, prop);
+        }
+    }
+
+#ifdef METER_PARSENODES
+    printf("Parser growth: %d (%u nodes, %u max, %u unrecycled)\n",
+           (char *)sbrk(0) - (char *)before,
+           parsenodes,
+           maxparsenodes,
+           parsenodes - recyclednodes);
+    before = sbrk(0);
+#endif
+
     
 
 
 
     if (js_Emit1(cx, &cg, JSOP_STOP) < 0)
         goto out;
-
-    JS_ASSERT(cg.version() == version);
-
+#ifdef METER_PARSENODES
+    printf("Code-gen growth: %d (%u bytecodes, %u srcnotes)\n",
+           (char *)sbrk(0) - (char *)before, CG_OFFSET(&cg), cg.noteCount);
+#endif
+#ifdef JS_ARENAMETER
+    JS_DumpArenaStats(stdout);
+#endif
     script = JSScript::NewScriptFromCG(cx, &cg);
-    if (!script)
-        goto out;
+    if (script && funbox && script != script->emptyScript())
+        script->savedCallerFun = true;
 
-    JS_ASSERT(script->savedCallerFun == savedCallerFun);
-
-    {
-        AutoShapeRooter shapeRoot(cx, script->bindings.lastShape());
-        if (!defineGlobals(cx, globalScope, script))
-            goto late_error;
+#ifdef JS_SCOPE_DEPTH_METER
+    if (script) {
+        JSObject *obj = scopeChain;
+        uintN depth = 1;
+        while ((obj = obj->getParent()) != NULL)
+            ++depth;
+        JS_BASIC_STATS_ACCUM(&cx->runtime->hostenvScopeDepthStats, depth);
     }
+#endif
 
   out:
     JS_FinishArenaPool(&codePool);
@@ -1126,99 +1054,8 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
   too_many_slots:
     parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_LOCALS);
-    
-
-  late_error:
-    if (script && !script->u.object)
-        js_DestroyScript(cx, script);
     script = NULL;
     goto out;
-}
-
-bool
-Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
-{
-    if (!globalScope.defs.length())
-        return true;
-
-    JSObject *globalObj = globalScope.globalObj;
-
-    
-    for (size_t i = 0; i < globalScope.defs.length(); i++) {
-        GlobalScope::GlobalDef &def = globalScope.defs[i];
-
-        
-        if (!def.atom)
-            continue;
-
-        jsid id = ATOM_TO_JSID(def.atom);
-        Value rval;
-
-        if (def.funbox) {
-            JSFunction *fun = def.funbox->function();
-
-            
-
-
-
-            rval.setObject(*fun);
-        } else {
-            rval.setUndefined();
-        }
-
-        const Shape *shape =
-            DefineNativeProperty(cx, globalObj, id, rval, PropertyStub, StrictPropertyStub,
-                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0);
-        if (!shape)
-            return false;
-        def.knownSlot = shape->slot;
-    }
-
-    js::Vector<JSScript *, 16> worklist(cx);
-    if (!worklist.append(script))
-        return false;
-
-    
-
-
-
-
-
-    while (worklist.length()) {
-        JSScript *inner = worklist.back();
-        worklist.popBack();
-
-        if (JSScript::isValidOffset(inner->objectsOffset)) {
-            JSObjectArray *arr = inner->objects();
-            for (size_t i = 0; i < arr->length; i++) {
-                JSObject *obj = arr->vector[i];
-                if (!obj->isFunction())
-                    continue;
-                JSFunction *fun = obj->getFunctionPrivate();
-                JS_ASSERT(fun->isInterpreted());
-                JSScript *inner = fun->script();
-                if (!JSScript::isValidOffset(inner->globalsOffset) &&
-                    !JSScript::isValidOffset(inner->objectsOffset)) {
-                    continue;
-                }
-                if (!worklist.append(inner))
-                    return false;
-            }
-        }
-
-        if (!JSScript::isValidOffset(inner->globalsOffset))
-            continue;
-
-        GlobalSlotArray *globalUses = inner->globals();
-        uint32 nGlobalUses = globalUses->length;
-        for (uint32 i = 0; i < nGlobalUses; i++) {
-            uint32 index = globalUses->vector[i].slot;
-            JS_ASSERT(index < globalScope.defs.length());
-            globalUses->vector[i].slot = globalScope.defs[index].knownSlot;
-        }
-    }
-
-    return true;
 }
 
 
@@ -1349,17 +1186,19 @@ HasFinalReturn(JSParseNode *pn)
 }
 
 static JSBool
-ReportBadReturn(JSContext *cx, JSTreeContext *tc, JSParseNode *pn, uintN flags, uintN errnum,
+ReportBadReturn(JSContext *cx, JSTreeContext *tc, uintN flags, uintN errnum,
                 uintN anonerrnum)
 {
-    JSAutoByteString name;
-    if (tc->fun()->atom) {
-        if (!js_AtomToPrintableString(cx, tc->fun()->atom, &name))
-            return false;
+    const char *name;
+
+    JS_ASSERT(tc->inFunction());
+    if (tc->fun->atom) {
+        name = js_AtomToPrintableString(cx, tc->fun->atom);
     } else {
         errnum = anonerrnum;
+        name = NULL;
     }
-    return ReportCompileErrorNumber(cx, TS(tc->parser), pn, flags, errnum, name.ptr());
+    return ReportCompileErrorNumber(cx, TS(tc->parser), NULL, flags, errnum, name);
 }
 
 static JSBool
@@ -1367,7 +1206,7 @@ CheckFinalReturn(JSContext *cx, JSTreeContext *tc, JSParseNode *pn)
 {
     JS_ASSERT(tc->inFunction());
     return HasFinalReturn(pn) == ENDS_IN_RETURN ||
-           ReportBadReturn(cx, tc, pn, JSREPORT_WARNING | JSREPORT_STRICT,
+           ReportBadReturn(cx, tc, JSREPORT_WARNING | JSREPORT_STRICT,
                            JSMSG_NO_RETURN_VALUE, JSMSG_ANON_NO_RETURN_VALUE);
 }
 
@@ -1382,10 +1221,10 @@ CheckStrictAssignment(JSContext *cx, JSTreeContext *tc, JSParseNode *lhs)
         JSAtom *atom = lhs->pn_atom;
         JSAtomState *atomState = &cx->runtime->atomState;
         if (atom == atomState->evalAtom || atom == atomState->argumentsAtom) {
-            JSAutoByteString name;
-            if (!js_AtomToPrintableString(cx, atom, &name) ||
+            const char *name = js_AtomToPrintableString(cx, atom);
+            if (!name ||
                 !ReportStrictModeError(cx, TS(tc->parser), tc, lhs, JSMSG_DEPRECATED_ASSIGN,
-                                       name.ptr())) {
+                                       name)) {
                 return false;
             }
         }
@@ -1406,27 +1245,21 @@ CheckStrictBinding(JSContext *cx, JSTreeContext *tc, JSAtom *atom, JSParseNode *
         return true;
 
     JSAtomState *atomState = &cx->runtime->atomState;
-    if (atom == atomState->evalAtom ||
-        atom == atomState->argumentsAtom ||
-        FindKeyword(atom->charsZ(), atom->length()))
-    {
-        JSAutoByteString name;
-        if (!js_AtomToPrintableString(cx, atom, &name))
+    if (atom == atomState->evalAtom || atom == atomState->argumentsAtom) {
+        const char *name = js_AtomToPrintableString(cx, atom);
+        if (!name)
             return false;
-        return ReportStrictModeError(cx, TS(tc->parser), tc, pn, JSMSG_BAD_BINDING, name.ptr());
+        return ReportStrictModeError(cx, TS(tc->parser), tc, pn, JSMSG_BAD_BINDING, name);
     }
-
     return true;
 }
 
-static bool
-ReportBadParameter(JSContext *cx, JSTreeContext *tc, JSAtom *name, uintN errorNumber)
-{
-    JSDefinition *dn = tc->decls.lookupFirst(name);
-    JSAutoByteString bytes;
-    return js_AtomToPrintableString(cx, name, &bytes) &&
-           ReportStrictModeError(cx, TS(tc->parser), tc, dn, errorNumber, bytes.ptr());
-}
+
+
+
+
+
+
 
 
 
@@ -1435,54 +1268,42 @@ ReportBadParameter(JSContext *cx, JSTreeContext *tc, JSAtom *name, uintN errorNu
 
 
 static bool
-CheckStrictParameters(JSContext *cx, JSTreeContext *tc)
+CheckStrictFormals(JSContext *cx, JSTreeContext *tc, JSFunction *fun,
+                   JSParseNode *pn)
 {
-    JS_ASSERT(tc->inFunction());
+    JSAtom *atom;
 
-    if (!tc->needStrictChecks() || tc->bindings.countArgs() == 0)
+    if (!tc->needStrictChecks())
         return true;
 
-    JSAtom *argumentsAtom = cx->runtime->atomState.argumentsAtom;
-    JSAtom *evalAtom = cx->runtime->atomState.evalAtom;
-
-    
-    HashMap<JSAtom *, bool> parameters(cx);
-    if (!parameters.init(tc->bindings.countArgs()))
-        return false;
-
-    
-    for (Shape::Range r = tc->bindings.lastVariable(); !r.empty(); r.popFront()) {
-        jsid id = r.front().propid;
-        if (!JSID_IS_ATOM(id))
-            continue;
-
-        JSAtom *name = JSID_TO_ATOM(id);
-
-        if (name == argumentsAtom || name == evalAtom) {
-            if (!ReportBadParameter(cx, tc, name, JSMSG_BAD_BINDING))
-                return false;
-        }
-
-        if (tc->inStrictMode() && FindKeyword(name->charsZ(), name->length())) {
-            
-
-
-
-            JS_ALWAYS_TRUE(!ReportBadParameter(cx, tc, name, JSMSG_RESERVED_ID));
-            return false;
-        }
-
+    atom = fun->findDuplicateFormal();
+    if (atom) {
         
 
 
 
-        if (HashMap<JSAtom *, bool>::AddPtr p = parameters.lookupForAdd(name)) {
-            if (!p->value && !ReportBadParameter(cx, tc, name, JSMSG_DUPLICATE_FORMAL))
-                return false;
-            p->value = true;
-        } else {
-            if (!parameters.add(p, name, false))
-                return false;
+
+        JSDefinition *dn = ALE_DEFN(tc->decls.lookup(atom));
+        if (dn->pn_op == JSOP_GETARG)
+            pn = dn;
+        const char *name = js_AtomToPrintableString(cx, atom);
+        if (!name ||
+            !ReportStrictModeError(cx, TS(tc->parser), tc, pn, JSMSG_DUPLICATE_FORMAL, name)) {
+            return false;
+        }
+    }
+
+    if (tc->flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_PARAM_EVAL)) {
+        JSAtomState *atoms = &cx->runtime->atomState;
+        atom = (tc->flags & TCF_FUN_PARAM_ARGUMENTS) ? atoms->argumentsAtom : atoms->evalAtom;
+
+        
+        JSDefinition *dn = ALE_DEFN(tc->decls.lookup(atom));
+        JS_ASSERT(dn->pn_atom == atom);
+        const char *name = js_AtomToPrintableString(cx, atom);
+        if (!name ||
+            !ReportStrictModeError(cx, TS(tc->parser), tc, dn, JSMSG_BAD_BINDING, name)) {
+            return false;
         }
     }
 
@@ -1520,7 +1341,7 @@ Parser::functionBody()
                 pn = NULL;
             } else {
                 if (tc->flags & TCF_FUN_IS_GENERATOR) {
-                    ReportBadReturn(context, tc, pn, JSREPORT_ERROR,
+                    ReportBadReturn(context, tc, JSREPORT_ERROR,
                                     JSMSG_BAD_GENERATOR_RETURN,
                                     JSMSG_BAD_ANON_GENERATOR_RETURN);
                     pn = NULL;
@@ -1542,7 +1363,7 @@ Parser::functionBody()
         pn->pn_pos.begin.lineno = firstLine;
 
         
-        if (context->hasStrictOption() && (tc->flags & TCF_RETURN_EXPR) &&
+        if (JS_HAS_STRICT_OPTION(context) && (tc->flags & TCF_RETURN_EXPR) &&
             !CheckFinalReturn(context, tc, pn)) {
             pn = NULL;
         }
@@ -1552,26 +1373,21 @@ Parser::functionBody()
     return pn;
 }
 
-
-
-
-
-static JSDefinition *
-MakePlaceholder(AtomDefnAddPtr &p, JSParseNode *pn, JSTreeContext *tc)
+static JSAtomListElement *
+MakePlaceholder(JSParseNode *pn, JSTreeContext *tc)
 {
-    JSAtom *atom = pn->pn_atom;
-    JSDefinition *dn = (JSDefinition *) NameNode::create(atom, tc);
+    JSAtomListElement *ale = tc->lexdeps.add(tc->parser, pn->pn_atom);
+    if (!ale)
+        return NULL;
+
+    JSDefinition *dn = (JSDefinition *)NameNode::create(pn->pn_atom, tc);
     if (!dn)
         return NULL;
 
-    if (!tc->lexdeps->add(p, atom, dn))
-        return NULL;
-
-    dn->pn_type = TOK_NAME;
-    dn->pn_op = JSOP_NOP;
+    ALE_SET_DEFN(ale, dn);
     dn->pn_defn = true;
     dn->pn_dflags |= PND_PLACEHOLDER;
-    return dn;
+    return ale;
 }
 
 static bool
@@ -1580,47 +1396,46 @@ Define(JSParseNode *pn, JSAtom *atom, JSTreeContext *tc, bool let = false)
     JS_ASSERT(!pn->pn_used);
     JS_ASSERT_IF(pn->pn_defn, pn->isPlaceholder());
 
-    bool foundLexdep = false;
-    JSDefinition *dn = NULL;
+    JSHashEntry **hep;
+    JSAtomListElement *ale = NULL;
+    JSAtomList *list = NULL;
 
     if (let)
-        dn = tc->decls.lookupFirst(atom);
+        ale = (list = &tc->decls)->rawLookup(atom, hep);
+    if (!ale)
+        ale = (list = &tc->lexdeps)->rawLookup(atom, hep);
 
-    if (!dn) {
-        dn = tc->lexdeps.lookupDefn(atom);
-        foundLexdep = !!dn;
+    if (ale) {
+        JSDefinition *dn = ALE_DEFN(ale);
+        if (dn != pn) {
+            JSParseNode **pnup = &dn->dn_uses;
+            JSParseNode *pnu;
+            uintN start = let ? pn->pn_blockid : tc->bodyid;
+
+            while ((pnu = *pnup) != NULL && pnu->pn_blockid >= start) {
+                JS_ASSERT(pnu->pn_used);
+                pnu->pn_lexdef = (JSDefinition *) pn;
+                pn->pn_dflags |= pnu->pn_dflags & PND_USE2DEF_FLAGS;
+                pnup = &pnu->pn_link;
+            }
+
+            if (pnu != dn->dn_uses) {
+                *pnup = pn->dn_uses;
+                pn->dn_uses = dn->dn_uses;
+                dn->dn_uses = pnu;
+
+                if ((!pnu || pnu->pn_blockid < tc->bodyid) && list != &tc->decls)
+                    list->rawRemove(tc->parser, ale, hep);
+            }
+        }
     }
 
-    if (dn && dn != pn) {
-        JSParseNode **pnup = &dn->dn_uses;
-        JSParseNode *pnu;
-        uintN start = let ? pn->pn_blockid : tc->bodyid;
-
-        while ((pnu = *pnup) != NULL && pnu->pn_blockid >= start) {
-            JS_ASSERT(pnu->pn_used);
-            pnu->pn_lexdef = (JSDefinition *) pn;
-            pn->pn_dflags |= pnu->pn_dflags & PND_USE2DEF_FLAGS;
-            pnup = &pnu->pn_link;
-        }
-
-        if (pnu != dn->dn_uses) {
-            *pnup = pn->dn_uses;
-            pn->dn_uses = dn->dn_uses;
-            dn->dn_uses = pnu;
-
-            if ((!pnu || pnu->pn_blockid < tc->bodyid) && foundLexdep)
-                tc->lexdeps->remove(atom);
-        }
-    }
-
-    JSDefinition *toAdd = (JSDefinition *) pn;
-    bool ok = let ? tc->decls.addShadow(atom, toAdd) : tc->decls.addUnique(atom, toAdd);
-    if (!ok)
+    ale = tc->decls.add(tc->parser, atom, let ? JSAtomList::SHADOW : JSAtomList::UNIQUE);
+    if (!ale)
         return false;
+    ALE_SET_DEFN(ale, pn);
     pn->pn_defn = true;
     pn->pn_dflags &= ~PND_PLACEHOLDER;
-    if (!tc->parent)
-        pn->pn_dflags |= PND_TOPLEVEL;
     return true;
 }
 
@@ -1702,8 +1517,8 @@ MakeDefIntoUse(JSDefinition *dn, JSParseNode *pn, JSAtom *atom, JSTreeContext *t
 
         dn->pn_op = (js_CodeSpec[dn->pn_op].format & JOF_SET) ? JSOP_SETNAME : JSOP_NAME;
     } else if (dn->kind() == JSDefinition::FUNCTION) {
+        JS_ASSERT(dn->isTopLevel());
         JS_ASSERT(dn->pn_op == JSOP_NOP);
-        PrepareNodeForMutation(dn, tc);
         dn->pn_type = TOK_NAME;
         dn->pn_arity = PN_NAME;
         dn->pn_atom = atom;
@@ -1739,6 +1554,8 @@ DefineArg(JSParseNode *pn, JSAtom *atom, uintN i, JSTreeContext *tc)
     
     if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
         tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
+    if (atom == tc->parser->context->runtime->atomState.evalAtom)
+        tc->flags |= TCF_FUN_PARAM_EVAL;
 
     
 
@@ -1779,32 +1596,32 @@ DefineArg(JSParseNode *pn, JSAtom *atom, uintN i, JSTreeContext *tc)
 
 bool
 Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
-                              Bindings *bindings, const jschar *chars, size_t length,
-                              const char *filename, uintN lineno, JSVersion version)
+                              const jschar *chars, size_t length,
+                              const char *filename, uintN lineno)
 {
     Compiler compiler(cx, principals);
 
-    if (!compiler.init(chars, length, filename, lineno, version))
+    if (!compiler.init(chars, length, NULL, filename, lineno))
         return false;
 
     
     JSArenaPool codePool, notePool;
-    JS_InitArenaPool(&codePool, "code", 1024, sizeof(jsbytecode));
-    JS_InitArenaPool(&notePool, "note", 1024, sizeof(jssrcnote));
+    JS_InitArenaPool(&codePool, "code", 1024, sizeof(jsbytecode),
+                     &cx->scriptStackQuota);
+    JS_InitArenaPool(&notePool, "note", 1024, sizeof(jssrcnote),
+                     &cx->scriptStackQuota);
 
     Parser &parser = compiler.parser;
     TokenStream &tokenStream = parser.tokenStream;
 
     JSCodeGenerator funcg(&parser, &codePool, &notePool, tokenStream.getLineno());
-    if (!funcg.init(cx, JSTreeContext::USED_AS_TREE_CONTEXT))
-        return false;
+    if (!funcg.init())
+        return NULL;
 
     funcg.flags |= TCF_IN_FUNCTION;
-    funcg.setFunction(fun);
-    funcg.bindings.transfer(cx, bindings);
-    fun->setArgCount(funcg.bindings.countArgs());
+    funcg.fun = fun;
     if (!GenerateBlockId(&funcg, funcg.bodyid))
-        return false;
+        return NULL;
 
     
     tokenStream.mungeCurrentToken(TOK_NAME);
@@ -1819,12 +1636,13 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
 
 
 
-            Vector<JSAtom *> names(cx);
-            if (!funcg.bindings.getLocalNameArray(cx, &names)) {
+            jsuword *names = fun->getLocalNameArray(cx, &cx->tempPool);
+            if (!names) {
                 fn = NULL;
             } else {
                 for (uintN i = 0; i < nargs; i++) {
-                    if (!DefineArg(fn, names[i], i, &funcg)) {
+                    JSAtom *name = JS_LOCAL_NAME_TO_ATOM(names[i]);
+                    if (!DefineArg(fn, name, i, &funcg)) {
                         fn = NULL;
                         break;
                     }
@@ -1842,7 +1660,7 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
     tokenStream.mungeCurrentToken(TOK_LC);
     JSParseNode *pn = fn ? parser.functionBody() : NULL;
     if (pn) {
-        if (!CheckStrictParameters(cx, &funcg)) {
+        if (!CheckStrictFormals(cx, &funcg, fun, pn)) {
             pn = NULL;
         } else if (!tokenStream.matchToken(TOK_EOF)) {
             parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
@@ -1850,7 +1668,8 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
         } else if (!js_FoldConstants(cx, pn, &funcg)) {
             
             pn = NULL;
-        } else if (!parser.analyzeFunctions(&funcg)) {
+        } else if (funcg.functionList &&
+                   !parser.analyzeFunctions(funcg.functionList, funcg.flags)) {
             pn = NULL;
         } else {
             if (fn->pn_body) {
@@ -1896,10 +1715,11 @@ struct BindData {
     bool fresh;
 };
 
-static bool
-BindLocalVariable(JSContext *cx, JSTreeContext *tc, JSAtom *atom, BindingKind kind, bool isArg)
+static JSBool
+BindLocalVariable(JSContext *cx, JSFunction *fun, JSAtom *atom,
+                  JSLocalKind localKind, bool isArg)
 {
-    JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
+    JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
 
     
 
@@ -1911,64 +1731,55 @@ BindLocalVariable(JSContext *cx, JSTreeContext *tc, JSAtom *atom, BindingKind ki
 
 
     if (atom == cx->runtime->atomState.argumentsAtom && !isArg)
-        return true;
+        return JS_TRUE;
 
-    return tc->bindings.add(cx, atom, kind);
+    return fun->addLocal(cx, atom, localKind);
 }
 
 #if JS_HAS_DESTRUCTURING
 static JSBool
-BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
+BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
+                     JSTreeContext *tc)
 {
+    JSParseNode *pn;
+
     
     if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
         tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
+    if (atom == tc->parser->context->runtime->atomState.evalAtom)
+        tc->flags |= TCF_FUN_PARAM_EVAL;
 
     JS_ASSERT(tc->inFunction());
 
-    
-
-
-
-
-    if (tc->decls.lookupFirst(atom)) {
+    JSLocalKind localKind = tc->fun->lookupLocal(cx, atom, NULL);
+    if (localKind != JSLOCAL_NONE) {
         ReportCompileErrorNumber(cx, TS(tc->parser), NULL, JSREPORT_ERROR,
                                  JSMSG_DESTRUCT_DUP_ARG);
         return JS_FALSE;
     }
+    JS_ASSERT(!tc->decls.lookup(atom));
 
-    JSParseNode *pn = data->pn;
+    pn = data->pn;
+    if (!Define(pn, atom, tc))
+        return JS_FALSE;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    uintN index = tc->fun->u.i.nvars;
+    if (!BindLocalVariable(cx, tc->fun, atom, JSLOCAL_VAR, true))
+        return JS_FALSE;
     pn->pn_op = JSOP_SETLOCAL;
+    pn->pn_cookie.set(tc->staticLevel, index);
     pn->pn_dflags |= PND_BOUND;
-
-    return Define(pn, atom, tc);
+    return JS_TRUE;
 }
 #endif 
 
 JSFunction *
-Parser::newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
+Parser::newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda)
 {
-    JS_ASSERT_IF(kind == Statement, atom != NULL);
+    JSObject *parent;
+    JSFunction *fun;
+
+    JS_ASSERT((lambda & ~JSFUN_LAMBDA) == 0);
 
     
 
@@ -1978,12 +1789,11 @@ Parser::newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind)
 
     while (tc->parent)
         tc = tc->parent;
-    JSObject *parent = tc->inFunction() ? NULL : tc->scopeChain();
+    parent = tc->inFunction() ? NULL : tc->scopeChain;
 
-    JSFunction *fun =
-        js_NewFunction(context, NULL, NULL, 0,
-                       JSFUN_INTERPRETED | (kind == Expression ? JSFUN_LAMBDA : 0),
-                       parent, atom);
+    fun = js_NewFunction(context, NULL, NULL, 0, JSFUN_INTERPRETED | lambda,
+                         parent, atom);
+
     if (fun && !tc->compileAndGo()) {
         FUN_OBJECT(fun)->clearParent();
         FUN_OBJECT(fun)->clearProto();
@@ -1998,8 +1808,6 @@ MatchOrInsertSemicolon(JSContext *cx, TokenStream *ts)
     if (tt == TOK_ERROR)
         return JS_FALSE;
     if (tt != TOK_EOF && tt != TOK_EOL && tt != TOK_SEMI && tt != TOK_RC) {
-        
-        ts->getToken(TSF_OPERAND);
         ReportCompileErrorNumber(cx, ts, NULL, JSREPORT_ERROR, JSMSG_SEMI_BEFORE_STMNT);
         return JS_FALSE;
     }
@@ -2008,15 +1816,11 @@ MatchOrInsertSemicolon(JSContext *cx, TokenStream *ts)
 }
 
 bool
-Parser::analyzeFunctions(JSTreeContext *tc)
+Parser::analyzeFunctions(JSFunctionBox *funbox, uint32& tcflags)
 {
-    cleanFunctionList(&tc->functionList);
-    if (!tc->functionList)
-        return true;
-    if (!markFunArgs(tc->functionList))
+    if (!markFunArgs(funbox, tcflags))
         return false;
-    markExtensibleScopeDescendants(tc->functionList, false);
-    setFunctionKinds(tc->functionList, &tc->flags);
+    setFunctionKinds(funbox, tcflags);
     return true;
 }
 
@@ -2057,8 +1861,7 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 
     do {
         JSParseNode *fn = funbox->node;
-        JS_ASSERT(fn->pn_arity == PN_FUNC);
-        JSFunction *fun = funbox->function();
+        JSFunction *fun = (JSFunction *) funbox->object;
         int fnlevel = level;
 
         
@@ -2068,14 +1871,7 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 
 
 
-
-
-
-
-
-
-
-        if (funbox->tcflags & (TCF_FUN_HEAVYWEIGHT | TCF_FUN_IS_GENERATOR)) {
+        if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
             fn->setFunArg();
             for (JSFunctionBox *kid = funbox->kids; kid; kid = kid->siblings)
                 kid->node->setFunArg();
@@ -2090,12 +1886,14 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
         JSParseNode *pn = fn->pn_body;
 
         if (pn->pn_type == TOK_UPVARS) {
-            AtomDefnMapPtr &upvars = pn->pn_names;
-            JS_ASSERT(upvars->count() != 0);
+            JSAtomList upvars(pn->pn_names);
+            JS_ASSERT(upvars.count != 0);
 
-            for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                JSDefinition *defn = r.front().value();
-                JSDefinition *lexdep = defn->resolve();
+            JSAtomListIterator iter(&upvars);
+            JSAtomListElement *ale;
+
+            while ((ale = iter()) != NULL) {
+                JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
                 if (!lexdep->isFreeVar()) {
                     uintN upvarLevel = lexdep->frameLevel();
@@ -2154,13 +1952,11 @@ FindFunArgs(JSFunctionBox *funbox, int level, JSFunctionBoxQueue *queue)
 }
 
 bool
-Parser::markFunArgs(JSFunctionBox *funbox)
+Parser::markFunArgs(JSFunctionBox *funbox, uintN tcflags)
 {
     JSFunctionBoxQueue queue;
-    if (!queue.init(functionCount)) {
-        js_ReportOutOfMemory(context);
+    if (!queue.init(functionCount))
         return false;
-    }
 
     FindFunArgs(funbox, -1, &queue);
     while ((funbox = queue.pull()) != NULL) {
@@ -2169,18 +1965,21 @@ Parser::markFunArgs(JSFunctionBox *funbox)
 
         JSParseNode *pn = fn->pn_body;
         if (pn->pn_type == TOK_UPVARS) {
-            AtomDefnMapPtr upvars = pn->pn_names;
-            JS_ASSERT(!upvars->empty());
+            JSAtomList upvars(pn->pn_names);
+            JS_ASSERT(upvars.count != 0);
 
-            for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                JSDefinition *defn = r.front().value();
-                JSDefinition *lexdep = defn->resolve();
+            JSAtomListIterator iter(&upvars);
+            JSAtomListElement *ale;
+
+            while ((ale = iter()) != NULL) {
+                JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
                 if (!lexdep->isFreeVar() &&
                     !lexdep->isFunArg() &&
                     (lexdep->kind() == JSDefinition::FUNCTION ||
                      PN_OP(lexdep) == JSOP_CALLEE)) {
                     
+
 
 
 
@@ -2207,7 +2006,6 @@ Parser::markFunArgs(JSFunctionBox *funbox)
                             afunbox = afunbox->parent;
                             --staticLevel;
                         }
-                        JS_ASSERT(afunbox->level + 1U == calleeLevel);
                         afunbox->node->setFunArg();
                     } else {
                        afunbox = lexdep->pn_funbox;
@@ -2322,7 +2120,7 @@ CanFlattenUpvar(JSDefinition *dn, JSFunctionBox *funbox, uint32 tcflags)
 
 
 
-    JSFunction *afun = afunbox->function();
+    JSFunction *afun = (JSFunction *) afunbox->object;
     if (!(afun->flags & JSFUN_LAMBDA)) {
         if (dn->isBindingForm() || dn->pn_pos >= afunbox->node->pn_pos)
             return false;
@@ -2383,7 +2181,7 @@ CanFlattenUpvar(JSDefinition *dn, JSFunctionBox *funbox, uint32 tcflags)
 }
 
 static void
-FlagHeavyweights(JSDefinition *dn, JSFunctionBox *funbox, uint32 *tcflags)
+FlagHeavyweights(JSDefinition *dn, JSFunctionBox *funbox, uint32& tcflags)
 {
     uintN dnLevel = dn->frameLevel();
 
@@ -2401,8 +2199,8 @@ FlagHeavyweights(JSDefinition *dn, JSFunctionBox *funbox, uint32 *tcflags)
         funbox->tcflags |= TCF_FUN_ENTRAINS_SCOPES;
     }
 
-    if (!funbox && (*tcflags & TCF_IN_FUNCTION))
-        *tcflags |= TCF_FUN_HEAVYWEIGHT;
+    if (!funbox && (tcflags & TCF_IN_FUNCTION))
+        tcflags |= TCF_FUN_HEAVYWEIGHT;
 }
 
 static bool
@@ -2423,8 +2221,10 @@ DeoptimizeUsesWithin(JSDefinition *dn, const TokenPos &pos)
 }
 
 void
-Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
+Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 {
+#define FUN_METER(x) JS_FUNCTION_METER(context, x)
+
     for (;;) {
         JSParseNode *fn = funbox->node;
         JSParseNode *pn = fn->pn_body;
@@ -2466,14 +2266,13 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
             }
         }
 
-        JSFunction *fun = funbox->function();
+        JSFunction *fun = (JSFunction *) funbox->object;
 
         JS_ASSERT(FUN_KIND(fun) == JSFUN_INTERPRETED);
 
+        FUN_METER(allfun);
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
-            
-        } else if (funbox->inAnyDynamicScope()) {
-            JS_ASSERT(!FUN_NULL_CLOSURE(fun));
+            FUN_METER(heavy);
         } else if (pn->pn_type != TOK_UPVARS) {
             
 
@@ -2491,10 +2290,14 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 
+            FUN_METER(nofreeupvar);
             FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
         } else {
-            AtomDefnMapPtr upvars = pn->pn_names;
-            JS_ASSERT(!upvars->empty());
+            JSAtomList upvars(pn->pn_names);
+            JS_ASSERT(upvars.count != 0);
+
+            JSAtomListIterator iter(&upvars);
+            JSAtomListElement *ale;
 
             if (!fn->isFunArg()) {
                 
@@ -2507,19 +2310,54 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 
-                AtomDefnRange r = upvars->all();
-                for (; !r.empty(); r.popFront()) {
-                    JSDefinition *defn = r.front().value();
-                    JSDefinition *lexdep = defn->resolve();
+
+
+
+
+
+
+
+                bool mutation = !!(funbox->tcflags & TCF_FUN_SETS_OUTER_NAME);
+                uintN nupvars = 0;
+
+                
+
+
+
+
+
+
+
+                while ((ale = iter()) != NULL) {
+                    JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
                     if (!lexdep->isFreeVar()) {
                         JS_ASSERT(lexdep->frameLevel() <= funbox->level);
-                        break;
+                        ++nupvars;
+                        if (lexdep->isAssigned())
+                            break;
                     }
                 }
+                if (!ale)
+                    mutation = false;
 
-                if (r.empty())
+                if (nupvars == 0) {
+                    FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+                } else if (!mutation &&
+                           !(funbox->tcflags & (TCF_FUN_IS_GENERATOR | TCF_FUN_ENTRAINS_SCOPES))) {
+                    
+
+
+
+
+
+                    FUN_METER(display);
+                    FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
+                } else {
+                    if (!(funbox->tcflags & TCF_FUN_IS_GENERATOR))
+                        FUN_METER(setupvar);
+                }
             } else {
                 uintN nupvars = 0, nflattened = 0;
 
@@ -2528,41 +2366,30 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 
-                for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                    JSDefinition *defn = r.front().value();
-                    JSDefinition *lexdep = defn->resolve();
+                while ((ale = iter()) != NULL) {
+                    JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
                     if (!lexdep->isFreeVar()) {
                         ++nupvars;
-                        if (CanFlattenUpvar(lexdep, funbox, *tcflags)) {
+                        if (CanFlattenUpvar(lexdep, funbox, tcflags)) {
                             ++nflattened;
                             continue;
                         }
-
-                        
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        if (DeoptimizeUsesWithin(lexdep, funbox->node->pn_body->pn_pos))
+                            FlagHeavyweights(lexdep, funbox, tcflags);
                     }
                 }
 
                 if (nupvars == 0) {
+                    FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
                 } else if (nflattened == nupvars) {
+                    
                     
 
 
 
+                    FUN_METER(flat);
                     FUN_SET_KIND(fun, JSFUN_FLAT_CLOSURE);
                     switch (PN_OP(fn)) {
                       case JSOP_DEFFUN:
@@ -2578,6 +2405,8 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
                         
                         JS_ASSERT(PN_OP(fn) == JSOP_NOP);
                     }
+                } else {
+                    FUN_METER(badfunarg);
                 }
             }
         }
@@ -2592,12 +2421,14 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
 
 
-            AtomDefnMapPtr upvars = pn->pn_names;
-            JS_ASSERT(!upvars->empty());
+            JSAtomList upvars(pn->pn_names);
+            JS_ASSERT(upvars.count != 0);
 
-            for (AtomDefnRange r = upvars->all(); !r.empty(); r.popFront()) {
-                JSDefinition *defn = r.front().value();
-                JSDefinition *lexdep = defn->resolve();
+            JSAtomListIterator iter(&upvars);
+            JSAtomListElement *ale;
+
+            while ((ale = iter()) != NULL) {
+                JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
                 if (!lexdep->isFreeVar())
                     FlagHeavyweights(lexdep, funbox, tcflags);
             }
@@ -2610,38 +2441,8 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
         if (!funbox)
             break;
     }
-}
 
-
-
-
-
-
-
-
-
-
-
-
-void
-Parser::markExtensibleScopeDescendants(JSFunctionBox *funbox, bool hasExtensibleParent) 
-{
-    for (; funbox; funbox = funbox->siblings) {
-        
-
-
-
-
-
-        JS_ASSERT(!funbox->bindings.extensibleParents());
-        if (hasExtensibleParent)
-            funbox->bindings.setExtensibleParents();
-
-        if (funbox->kids) {
-            markExtensibleScopeDescendants(funbox->kids,
-                                           hasExtensibleParent || funbox->scopeIsExtensible());
-        }
-    }
+#undef FUN_METER
 }
 
 const char js_argument_str[] = "argument";
@@ -2662,10 +2463,10 @@ JSDefinition::kindString(Kind kind)
 
 static JSFunctionBox *
 EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
-              FunctionSyntaxKind kind = Expression)
+              uintN lambda = JSFUN_LAMBDA)
 {
     JSTreeContext *tc = funtc->parent;
-    JSFunction *fun = tc->parser->newFunction(tc, funAtom, kind);
+    JSFunction *fun = tc->parser->newFunction(tc, funAtom, lambda);
     if (!fun)
         return NULL;
 
@@ -2679,7 +2480,7 @@ EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
     funtc->blockidGen = tc->blockidGen;
     if (!GenerateBlockId(funtc, funtc->bodyid))
         return NULL;
-    funtc->setFunction(fun);
+    funtc->fun = fun;
     funtc->funbox = funbox;
     if (!SetStaticLevel(funtc, tc->staticLevel + 1))
         return NULL;
@@ -2689,7 +2490,7 @@ EnterFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 static bool
 LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
-              FunctionSyntaxKind kind = Expression)
+              uintN lambda = JSFUN_LAMBDA)
 {
     JSTreeContext *tc = funtc->parent;
     tc->blockidGen = funtc->blockidGen;
@@ -2698,6 +2499,8 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
     funbox->tcflags |= funtc->flags & (TCF_FUN_FLAGS | TCF_COMPILE_N_GO | TCF_RETURN_EXPR);
 
     fn->pn_dflags |= PND_INITIALIZED;
+    JS_ASSERT_IF(tc->atTopLevel() && lambda == 0 && funAtom,
+                 fn->pn_dflags & PND_TOPLEVEL);
     if (!tc->topStmt || tc->topStmt->type == STMT_BLOCK)
         fn->pn_dflags |= PND_BLOCKCHILD;
 
@@ -2708,15 +2511,17 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 
 
-    if (funtc->lexdeps->count()) {
+    if (funtc->lexdeps.count != 0) {
+        JSAtomListIterator iter(&funtc->lexdeps);
+        JSAtomListElement *ale;
         int foundCallee = 0;
 
-        for (AtomDefnRange r = funtc->lexdeps->all(); !r.empty(); r.popFront()) {
-            JSAtom *atom = r.front().key();
-            JSDefinition *dn = r.front().value();
+        while ((ale = iter()) != NULL) {
+            JSAtom *atom = ALE_ATOM(ale);
+            JSDefinition *dn = ALE_DEFN(ale);
             JS_ASSERT(dn->isPlaceholder());
 
-            if (atom == funAtom && kind == Expression) {
+            if (atom == funAtom && lambda != 0) {
                 dn->pn_op = JSOP_CALLEE;
                 dn->pn_cookie.set(funtc->staticLevel, UpvarCookie::CALLEE_SLOT);
                 dn->pn_dflags |= PND_BOUND;
@@ -2747,91 +2552,74 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
                 }
             }
 
-            JSDefinition *outer_dn = tc->decls.lookupFirst(atom);
+            JSAtomListElement *outer_ale = tc->decls.lookup(atom);
 
             
 
 
 
             if (funtc->callsEval() ||
-                (outer_dn && tc->innermostWith &&
-                 outer_dn->pn_pos < tc->innermostWith->pn_pos)) {
+                (outer_ale && tc->innermostWith &&
+                 ALE_DEFN(outer_ale)->pn_pos < tc->innermostWith->pn_pos)) {
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
             }
 
-            if (!outer_dn) {
-                AtomDefnAddPtr p = tc->lexdeps->lookupForAdd(atom);
-                if (p) {
-                    outer_dn = p.value();
-                } else {
-                    
+            JSDefinition *outer_dn;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    outer_dn = MakePlaceholder(p, dn, tc);
-                    if (!outer_dn)
-                        return false;
-                }
-            }
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-            if (dn != outer_dn) {
-                JSParseNode **pnup = &dn->dn_uses;
-                JSParseNode *pnu;
-
-                while ((pnu = *pnup) != NULL) {
-                    pnu->pn_lexdef = outer_dn;
-                    pnup = &pnu->pn_link;
-                }
-
+            if (!outer_ale)
+                outer_ale = tc->lexdeps.lookup(atom);
+            if (outer_ale) {
                 
 
 
 
 
 
-                *pnup = outer_dn->dn_uses;
-                outer_dn->dn_uses = dn;
-                outer_dn->pn_dflags |= dn->pn_dflags & ~PND_PLACEHOLDER;
-                dn->pn_defn = false;
-                dn->pn_used = true;
-                dn->pn_lexdef = outer_dn;
-            }
 
-            
+
+
+
+
+
+
+                outer_dn = ALE_DEFN(outer_ale);
+
+                if (dn != outer_dn) {
+                    JSParseNode **pnup = &dn->dn_uses;
+                    JSParseNode *pnu;
+
+                    while ((pnu = *pnup) != NULL) {
+                        pnu->pn_lexdef = outer_dn;
+                        pnup = &pnu->pn_link;
+                    }
+
+                    
+
+
+
+
+
+                    *pnup = outer_dn->dn_uses;
+                    outer_dn->dn_uses = dn;
+                    outer_dn->pn_dflags |= dn->pn_dflags & ~PND_PLACEHOLDER;
+                    dn->pn_defn = false;
+                    dn->pn_used = true;
+                    dn->pn_lexdef = outer_dn;
+
+                    
+                }
+            } else {
+                
+                outer_ale = tc->lexdeps.add(tc->parser, atom);
+                if (!outer_ale)
+                    return false;
+                outer_dn = ALE_DEFN(ale);
+                ALE_SET_DEFN(outer_ale, outer_dn);
+            }
             outer_dn->pn_dflags |= PND_CLOSED;
         }
 
-        if (funtc->lexdeps->count() - foundCallee != 0) {
+        if (funtc->lexdeps.count - foundCallee != 0) {
             JSParseNode *body = fn->pn_body;
 
             fn->pn_body = NameSetNode::create(tc);
@@ -2841,15 +2629,12 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
             fn->pn_body->pn_type = TOK_UPVARS;
             fn->pn_body->pn_pos = body->pn_pos;
             if (foundCallee)
-                funtc->lexdeps->remove(funAtom);
-            
+                funtc->lexdeps.remove(tc->parser, funAtom);
             fn->pn_body->pn_names = funtc->lexdeps;
-            funtc->lexdeps.clearMap();
             fn->pn_body->pn_tree = body;
-        } else {
-            funtc->lexdeps.releaseMap(funtc->parser->context);
         }
 
+        funtc->lexdeps.clear();
     }
 
     
@@ -2860,10 +2645,11 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 
     if (funtc->inStrictMode() && funbox->object->getFunctionPrivate()->nargs > 0) {
-        AtomDeclsIter iter(&funtc->decls);
-        JSDefinition *dn;
+        JSAtomListIterator iter(&funtc->decls);
+        JSAtomListElement *ale;
 
-        while ((dn = iter()) != NULL) {
+        while ((ale = iter()) != NULL) {
+            JSDefinition *dn = ALE_DEFN(ale);
             if (dn->kind() == JSDefinition::ARG && dn->isAssigned()) {
                 funbox->tcflags |= TCF_FUN_MUTATES_PARAMETER;
                 break;
@@ -2871,22 +2657,15 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
         }
     }
 
-    funbox->bindings.transfer(funtc->parser->context, &funtc->bindings);
-
     return true;
 }
 
 static bool
 DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom);
 
-
-
-
-
-
-
 bool
-Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **listp)
+Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunction *fun,
+                          JSParseNode **listp)
 {
     if (tokenStream.getToken() != TOK_LP) {
         reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_PAREN_BEFORE_FORMAL);
@@ -2929,8 +2708,8 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
 
 
 
-                uint16 slot;
-                if (!funtc.bindings.addDestructuring(context, &slot))
+                jsint slot = fun->nargs;
+                if (!fun->addLocal(context, NULL, JSLOCAL_ARG))
                     return false;
 
                 
@@ -2943,7 +2722,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
                     return false;
                 rhs->pn_type = TOK_NAME;
                 rhs->pn_op = JSOP_GETARG;
-                rhs->pn_cookie.set(funtc.staticLevel, slot);
+                rhs->pn_cookie.set(funtc.staticLevel, uint16(slot));
                 rhs->pn_dflags |= PND_BOUND;
 
                 JSParseNode *item =
@@ -2954,7 +2733,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
                     list = ListNode::create(&funtc);
                     if (!list)
                         return false;
-                    list->pn_type = TOK_VAR;
+                    list->pn_type = TOK_COMMA;
                     list->makeEmpty();
                     *listp = list;
                 }
@@ -2966,7 +2745,8 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
               case TOK_NAME:
               {
                 JSAtom *atom = tokenStream.currentToken().t_atom;
-
+                if (!DefineArg(funbox->node, atom, fun->nargs, &funtc))
+                    return false;
 #ifdef JS_HAS_DESTRUCTURING
                 
 
@@ -2978,23 +2758,13 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
 
 
 
-
-
-
-
-
-
-                if (funtc.decls.lookupFirst(atom)) {
+                if (fun->lookupLocal(context, atom, NULL) != JSLOCAL_NONE) {
                     duplicatedArg = atom;
                     if (destructuringArg)
                         goto report_dup_and_destructuring;
                 }
 #endif
-
-                uint16 slot;
-                if (!funtc.bindings.addArgument(context, atom, &slot))
-                    return false;
-                if (!DefineArg(funbox->node, atom, slot, &funtc))
+                if (!fun->addLocal(context, atom, JSLOCAL_ARG))
                     return false;
                 break;
               }
@@ -3007,7 +2777,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
 
 #if JS_HAS_DESTRUCTURING
               report_dup_and_destructuring:
-                JSDefinition *dn = funtc.decls.lookupFirst(duplicatedArg);
+                JSDefinition *dn = ALE_DEFN(funtc.decls.lookup(duplicatedArg));
                 reportErrorNumber(dn, JSREPORT_ERROR, JSMSG_DESTRUCT_DUP_ARG);
                 return false;
 #endif
@@ -3024,10 +2794,8 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNo
 }
 
 JSParseNode *
-Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
+Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 {
-    JS_ASSERT_IF(kind == Statement, funAtom);
-
     
     tokenStream.mungeCurrentToken(TOK_FUNCTION, JSOP_NOP);
     JSParseNode *pn = FunctionNode::create(tc);
@@ -3044,66 +2812,63 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 
 
 
-
-    bool bodyLevel = tc->atBodyLevel();
-    pn->pn_dflags = (kind == Expression || !bodyLevel) ? PND_FUNARG : 0;
+    bool topLevel = tc->atTopLevel();
+    pn->pn_dflags = (lambda || !topLevel) ? PND_FUNARG : 0;
 
     
 
 
 
-    if (kind == Statement) {
-        if (JSDefinition *dn = tc->decls.lookupFirst(funAtom)) {
+    if (lambda == 0 && funAtom) {
+        if (JSAtomListElement *ale = tc->decls.lookup(funAtom)) {
+            JSDefinition *dn = ALE_DEFN(ale);
             JSDefinition::Kind dn_kind = dn->kind();
 
             JS_ASSERT(!dn->pn_used);
             JS_ASSERT(dn->pn_defn);
 
-            if (context->hasStrictOption() || dn_kind == JSDefinition::CONST) {
-                JSAutoByteString name;
-                if (!js_AtomToPrintableString(context, funAtom, &name) ||
+            if (JS_HAS_STRICT_OPTION(context) || dn_kind == JSDefinition::CONST) {
+                const char *name = js_AtomToPrintableString(context, funAtom);
+                if (!name ||
                     !reportErrorNumber(NULL,
                                        (dn_kind != JSDefinition::CONST)
                                        ? JSREPORT_WARNING | JSREPORT_STRICT
                                        : JSREPORT_ERROR,
                                        JSMSG_REDECLARED_VAR,
                                        JSDefinition::kindString(dn_kind),
-                                       name.ptr())) {
+                                       name)) {
                     return NULL;
                 }
             }
 
-            if (bodyLevel) {
-                tc->decls.updateFirst(funAtom, (JSDefinition *) pn);
+            if (topLevel) {
+                ALE_SET_DEFN(ale, pn);
                 pn->pn_defn = true;
-                pn->dn_uses = dn; 
+                pn->dn_uses = dn;               
 
                 if (!MakeDefIntoUse(dn, pn, funAtom, tc))
                     return NULL;
             }
-        } else if (bodyLevel) {
+        } else if (topLevel) {
             
 
 
 
 
+            JSHashEntry **hep;
 
-            if (JSDefinition *fn = tc->lexdeps.lookupDefn(funAtom)) {
+            ale = tc->lexdeps.rawLookup(funAtom, hep);
+            if (ale) {
+                JSDefinition *fn = ALE_DEFN(ale);
+
                 JS_ASSERT(fn->pn_defn);
                 fn->pn_type = TOK_FUNCTION;
                 fn->pn_arity = PN_FUNC;
                 fn->pn_pos.begin = pn->pn_pos.begin;
-
-                
-
-
-
-                fn->pn_pos.end = pn->pn_pos.end;
-
                 fn->pn_body = NULL;
                 fn->pn_cookie.makeFree();
 
-                tc->lexdeps->remove(funAtom);
+                tc->lexdeps.rawRemove(tc->parser, ale, hep);
                 RecycleTree(pn, tc);
                 pn = fn;
             }
@@ -3120,29 +2885,36 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 
 
 
-        if (bodyLevel && tc->inFunction()) {
-            
+        if (topLevel) {
+            pn->pn_dflags |= PND_TOPLEVEL;
 
+            if (tc->inFunction()) {
+                JSLocalKind localKind;
+                uintN index;
 
-
-
-
-
-            uintN index;
-            switch (tc->bindings.lookup(context, funAtom, &index)) {
-              case NONE:
-              case ARGUMENT:
-                index = tc->bindings.countVars();
-                if (!tc->bindings.addVariable(context, funAtom))
-                    return NULL;
                 
 
-              case VARIABLE:
-                pn->pn_cookie.set(tc->staticLevel, index);
-                pn->pn_dflags |= PND_BOUND;
-                break;
 
-              default:;
+
+
+
+
+                localKind = tc->fun->lookupLocal(context, funAtom, &index);
+                switch (localKind) {
+                  case JSLOCAL_NONE:
+                  case JSLOCAL_ARG:
+                    index = tc->fun->u.i.nvars;
+                    if (!tc->fun->addLocal(context, funAtom, JSLOCAL_VAR))
+                        return NULL;
+                    
+
+                  case JSLOCAL_VAR:
+                    pn->pn_cookie.set(tc->staticLevel, index);
+                    pn->pn_dflags |= PND_BOUND;
+                    break;
+
+                  default:;
+                }
             }
         }
     }
@@ -3151,53 +2923,24 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 
     
     JSTreeContext funtc(tc->parser);
-    if (!funtc.init(context))
-        return NULL;
 
-    JSFunctionBox *funbox = EnterFunction(pn, &funtc, funAtom, kind);
+    JSFunctionBox *funbox = EnterFunction(pn, &funtc, funAtom, lambda);
     if (!funbox)
         return NULL;
 
-    JSFunction *fun = funbox->function();
+    JSFunction *fun = (JSFunction *) funbox->object;
 
     
-    JSParseNode *prelude = NULL;
-    if (!functionArguments(funtc, funbox, &prelude))
+    JSParseNode *prolog = NULL;
+    if (!functionArguments(funtc, funbox, fun, &prolog))
         return NULL;
 
-    fun->setArgCount(funtc.bindings.countArgs());
-
-#if JS_HAS_DESTRUCTURING
-    
-
-
-
-
-
-
-
-    if (prelude) {
-        AtomDeclsIter iter(&funtc.decls);
-
-        while (JSDefinition *apn = iter()) {
-            
-            if (apn->pn_op != JSOP_SETLOCAL)
-                continue;
-
-            uint16 index = funtc.bindings.countVars();
-            if (!BindLocalVariable(context, &funtc, apn->pn_atom, VARIABLE, true))
-                return NULL;
-            apn->pn_cookie.set(funtc.staticLevel, index);
-        }
-    }
-#endif
-
-    if (type == Getter && fun->nargs > 0) {
+    if (type == GETTER && fun->nargs > 0) {
         reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_ACCESSOR_WRONG_ARGS,
                           "getter", "no", "s");
         return NULL;
     }
-    if (type == Setter && fun->nargs != 1) {
+    if (type == SETTER && fun->nargs != 1) {
         reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_ACCESSOR_WRONG_ARGS,
                           "setter", "one", "");
         return NULL;
@@ -3217,21 +2960,29 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
     if (!body)
         return NULL;
 
-    if (funAtom && !CheckStrictBinding(context, &funtc, funAtom, pn))
+    if (!CheckStrictBinding(context, &funtc, funAtom, pn))
         return NULL;
 
-    if (!CheckStrictParameters(context, &funtc))
+    if (!CheckStrictFormals(context, &funtc, fun, pn))
         return NULL;
 
 #if JS_HAS_EXPR_CLOSURES
     if (tt == TOK_LC)
         MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
-    else if (kind == Statement && !MatchOrInsertSemicolon(context, &tokenStream))
+    else if (lambda == 0 && !MatchOrInsertSemicolon(context, &tokenStream))
         return NULL;
 #else
     MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_BODY);
 #endif
     pn->pn_pos.end = tokenStream.currentToken().pos.end;
+
+    
+
+
+
+
+
+
 
     
 
@@ -3256,7 +3007,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 
 
 
-    if (prelude) {
+    if (prolog) {
         if (body->pn_arity != PN_LIST) {
             JSParseNode *block;
 
@@ -3276,7 +3027,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 
         item->pn_type = TOK_SEMI;
         item->pn_pos.begin = item->pn_pos.end = body->pn_pos.begin;
-        item->pn_kid = prelude;
+        item->pn_kid = prolog;
         item->pn_next = body->pn_head;
         body->pn_head = item;
         if (body->pn_tail == &body->pn_head)
@@ -3301,26 +3052,40 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
 
 
 
-
-        if (!bodyLevel && kind == Statement)
+        if (!topLevel && lambda == 0 && funAtom)
             outertc->flags |= TCF_FUN_HEAVYWEIGHT;
     }
 
+    JSParseNode *result = pn;
     JSOp op = JSOP_NOP;
-    if (kind == Expression) {
+    if (lambda != 0) {
+        
+
+
         op = JSOP_LAMBDA;
-    } else {
-        if (!bodyLevel) {
-            
+    } else if (!funAtom) {
+        
 
 
 
 
 
-            JS_ASSERT(!outertc->inStrictMode());
-            op = JSOP_DEFFUN;
-            outertc->noteMightAliasLocals();
-        }
+
+        result = UnaryNode::create(outertc);
+        if (!result)
+            return NULL;
+        result->pn_type = TOK_SEMI;
+        result->pn_pos = pn->pn_pos;
+        result->pn_kid = pn;
+        op = JSOP_LAMBDA;
+    } else if (!topLevel) {
+        
+
+
+
+
+
+        op = JSOP_DEFFUN;
     }
 
     funbox->kids = funtc.functionList;
@@ -3334,22 +3099,23 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, FunctionSyntaxKind kind)
         pn->pn_body = body;
     }
 
-    if (!outertc->inFunction() && bodyLevel && kind == Statement && outertc->compiling()) {
+    if (!outertc->inFunction() && topLevel && funAtom && !lambda &&
+        outertc->compiling()) {
         JS_ASSERT(pn->pn_cookie.isFree());
-        if (!DefineGlobal(pn, outertc->asCodeGenerator(), funAtom))
-            return NULL;
+        if (!DefineGlobal(pn, (JSCodeGenerator *)outertc, funAtom))
+            return false;
     }
 
     pn->pn_blockid = outertc->blockid();
 
-    if (!LeaveFunction(pn, &funtc, funAtom, kind))
+    if (!LeaveFunction(pn, &funtc, funAtom, lambda))
         return NULL;
 
     
     if (!outertc->inStrictMode())
         tokenStream.setStrictMode(false);
 
-    return pn;
+    return result;
 }
 
 JSParseNode *
@@ -3359,18 +3125,14 @@ Parser::functionStmt()
     if (tokenStream.getToken(TSF_KEYWORD_IS_NAME) == TOK_NAME) {
         name = tokenStream.currentToken().t_atom;
     } else {
-        
-        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_UNNAMED_FUNCTION_STMT);
-        return NULL;
+        if (context->options & JSOPTION_ANONFUNFIX) {
+            
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
+            return NULL;
+        }
+        tokenStream.ungetToken();
     }
-
-    
-    if (!tc->atBodyLevel() && tc->inStrictMode()) {
-        reportErrorNumber(NULL, JSREPORT_STRICT_MODE_ERROR, JSMSG_STRICT_FUNCTION_STATEMENT);
-        return NULL;
-    }
-
-    return functionDef(name, Normal, Statement);
+    return functionDef(name, GENERAL, 0);
 }
 
 JSParseNode *
@@ -3381,9 +3143,8 @@ Parser::functionExpr()
         name = tokenStream.currentToken().t_atom;
     else
         tokenStream.ungetToken();
-    return functionDef(name, Normal, Expression);
+    return functionDef(name, GENERAL, JSFUN_LAMBDA);
 }
-
 
 
 
@@ -3404,49 +3165,13 @@ Parser::functionExpr()
 
 
 bool
-Parser::recognizeDirectivePrologue(JSParseNode *pn, bool *isDirectivePrologueMember)
+Parser::recognizeDirectivePrologue(JSParseNode *pn)
 {
-    *isDirectivePrologueMember = pn->isStringExprStatement();
-    if (!*isDirectivePrologueMember)
-        return true;
-
-    JSParseNode *kid = pn->pn_kid;
-    if (kid->isEscapeFreeStringLiteral()) {
-        
-
-
-
-
-
-
-
-
-
-
-
-        pn->pn_prologue = true;
-
-        JSAtom *directive = kid->pn_atom;
+    if (!pn->isDirectivePrologueMember())
+        return false;
+    if (pn->isDirective()) {
+        JSAtom *directive = pn->pn_kid->pn_atom;
         if (directive == context->runtime->atomState.useStrictAtom) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (tokenStream.hasOctalCharacterEscape()) {
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_DEPRECATED_OCTAL);
-                return false;
-            }
-
             tc->flags |= TCF_STRICT_MODE_CODE;
             tokenStream.setStrictMode();
         }
@@ -3464,6 +3189,7 @@ Parser::statements()
 {
     JSParseNode *pn, *pn2, *saveBlock;
     TokenKind tt;
+    bool inDirectivePrologue = tc->atTopLevel();
 
     JS_CHECK_RECURSION(context, return NULL);
 
@@ -3476,8 +3202,6 @@ Parser::statements()
     saveBlock = tc->blockNode;
     tc->blockNode = pn;
 
-    bool inDirectivePrologue = tc->atBodyLevel();
-    tokenStream.setOctalCharacterEscape(false);
     for (;;) {
         tt = tokenStream.peekToken(TSF_OPERAND);
         if (tt <= TOK_EOF || tt == TOK_RC) {
@@ -3495,8 +3219,8 @@ Parser::statements()
             return NULL;
         }
 
-        if (inDirectivePrologue && !recognizeDirectivePrologue(pn2, &inDirectivePrologue))
-            return NULL;
+        if (inDirectivePrologue)
+            inDirectivePrologue = recognizeDirectivePrologue(pn2);
 
         if (pn2->pn_type == TOK_FUNCTION) {
             
@@ -3508,13 +3232,10 @@ Parser::statements()
 
 
 
-            if (tc->atBodyLevel())
+            if (tc->atTopLevel())
                 pn->pn_xflags |= PNX_FUNCDEFS;
-            else {
+            else
                 tc->flags |= TCF_HAS_FUNCTION_STMT;
-                
-                tc->noteHasExtensibleScope();
-            }
         }
         pn->append(pn2);
     }
@@ -3538,7 +3259,7 @@ Parser::condition()
     JSParseNode *pn;
 
     MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_COND);
-    pn = parenExpr();
+    pn = parenExpr(NULL, NULL);
     if (!pn)
         return NULL;
     MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_COND);
@@ -3559,7 +3280,7 @@ MatchLabel(JSContext *cx, TokenStream *ts, JSParseNode *pn)
     JSAtom *label;
     TokenKind tt;
 
-    tt = ts->peekTokenSameLine(TSF_OPERAND);
+    tt = ts->peekTokenSameLine();
     if (tt == TOK_ERROR)
         return JS_FALSE;
     if (tt == TOK_NAME) {
@@ -3577,27 +3298,30 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 {
     JSParseNode *pn;
     JSObject *blockObj;
+    JSAtomListElement *ale;
     jsint n;
 
     
 
 
 
-    JS_ASSERT(!tc->atBodyLevel());
+    JS_ASSERT(!tc->atTopLevel());
 
     pn = data->pn;
     if (!CheckStrictBinding(cx, tc, atom, pn))
         return false;
 
-    blockObj = tc->blockChain();
-    JSDefinition *dn = tc->decls.lookupFirst(atom);
-    if (dn && dn->pn_blockid == tc->blockid()) {
-        JSAutoByteString name;
-        if (js_AtomToPrintableString(cx, atom, &name)) {
+    blockObj = tc->blockChain;
+    ale = tc->decls.lookup(atom);
+    if (ale && ALE_DEFN(ale)->pn_blockid == tc->blockid()) {
+        const char *name = js_AtomToPrintableString(cx, atom);
+        if (name) {
             ReportCompileErrorNumber(cx, TS(tc->parser), pn,
                                      JSREPORT_ERROR, JSMSG_REDECLARED_VAR,
-                                     dn->isConst() ? js_const_str : js_variable_str,
-                                     name.ptr());
+                                     (ale && ALE_DEFN(ale)->isConst())
+                                     ? js_const_str
+                                     : js_variable_str,
+                                     name);
         }
         return false;
     }
@@ -3652,16 +3376,16 @@ PopStatement(JSTreeContext *tc)
     JSStmtInfo *stmt = tc->topStmt;
 
     if (stmt->flags & SIF_SCOPE) {
-        JSObject *obj = stmt->blockBox->object;
+        JSObject *obj = stmt->blockObj;
         JS_ASSERT(!obj->isClonedBlock());
 
         for (Shape::Range r = obj->lastProperty()->all(); !r.empty(); r.popFront()) {
-            JSAtom *atom = JSID_TO_ATOM(r.front().propid);
+            JSAtom *atom = JSID_TO_ATOM(r.front().id);
 
             
             if (atom == tc->parser->context->runtime->atomState.emptyAtom)
                 continue;
-            tc->decls.remove(atom);
+            tc->decls.remove(tc->parser, atom);
         }
     }
     js_PopStatement(tc);
@@ -3704,54 +3428,37 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
     if (!cg->compileAndGo() || !globalObj || cg->compilingForEval())
         return true;
 
-    AtomIndexAddPtr p = globalScope->names.lookupForAdd(atom);
-    if (!p) {
-        JSContext *cx = cg->parser->context;
-
-        JSObject *holder;
-        JSProperty *prop;
-        if (!globalObj->lookupProperty(cx, ATOM_TO_JSID(atom), &holder, &prop))
-            return false;
-
-        JSFunctionBox *funbox = (pn->pn_type == TOK_FUNCTION) ? pn->pn_funbox : NULL;
-
-        GlobalScope::GlobalDef def;
-        if (prop) {
-            
-
-
-
-
-
-            const Shape *shape = (const Shape *)prop;
-            if (funbox ||
-                globalObj != holder ||
-                shape->configurable() ||
-                !shape->hasSlot() ||
-                !shape->hasDefaultGetterOrIsMethod() ||
-                !shape->hasDefaultSetter()) {
-                return true;
-            }
-            
-            def = GlobalScope::GlobalDef(shape->slot);
-        } else {
-            def = GlobalScope::GlobalDef(atom, funbox);
-        }
-
-        if (!globalScope->defs.append(def))
-            return false;
-
-        jsatomid index = globalScope->names.count();
-        if (!globalScope->names.add(p, atom, index))
-            return false;
-
-        JS_ASSERT(index == globalScope->defs.length() - 1);
-    } else {
+    JS_LOCK_OBJ(cg->parser->context, globalObj);
+    if (const Shape *shape = globalObj->nativeLookup(ATOM_TO_JSID(atom))) {
         
 
 
 
 
+        UpvarCookie cookie;
+        if (!shape->configurable() &&
+            shape->hasSlot() &&
+            shape->hasDefaultGetterOrIsMethod() &&
+            shape->hasDefaultSetter() &&
+            pn->pn_type != TOK_FUNCTION)
+        {
+            if (!cg->addGlobalUse(atom, shape->slot, cookie)) {
+                JS_UNLOCK_OBJ(cg->parser->context, globalObj);
+                return false;
+            }
+            if (!cookie.isFree()) {
+                pn->pn_op = JSOP_GETGLOBAL;
+                pn->pn_cookie.set(cookie);
+                pn->pn_dflags |= PND_BOUND | PND_GVAR;
+            }
+        }
+
+        JS_UNLOCK_OBJ(cg->parser->context, globalObj);
+        return true;
+    }
+    JS_UNLOCK_OBJ(cg->parser->context, globalObj);
+
+    
 
 
 
@@ -3760,111 +3467,67 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
 
 
 
-        if (pn->pn_type == TOK_FUNCTION) {
-            JS_ASSERT(pn->pn_arity = PN_FUNC);
-            jsatomid index = p.value();
-            globalScope->defs[index].funbox = pn->pn_funbox;
+
+
+
+    uint32 slot = SHAPE_INVALID_SLOT;
+    JSFunctionBox *funbox = NULL;
+    if (pn->pn_type == TOK_FUNCTION) {
+        funbox = pn->pn_funbox;
+        JSAtomListElement *ale = cg->globalMap.lookup(atom);
+        if (ale) {
+            uint32 index = ALE_INDEX(ale);
+            slot = cg->globalUses[index].slot;
+            uint32 defSlot = slot - globalScope->globalFreeSlot;
+            globalScope->defs[defSlot].funbox = funbox;
         }
     }
 
-    pn->pn_dflags |= PND_GVAR;
+    if (slot == SHAPE_INVALID_SLOT) {
+        GlobalScope::GlobalDef def(atom, funbox);
+        slot = globalScope->globalFreeSlot + globalScope->defs.length();
+        if (!globalScope->defs.append(def))
+            return false;
+    }
+
+    UpvarCookie cookie;
+    if (!cg->addGlobalUse(atom, slot, cookie))
+        return false;
+
+    if (!cookie.isFree()) {
+        pn->pn_cookie.set(cookie);
+        pn->pn_dflags |= PND_GVAR;
+        if (pn->pn_type != TOK_FUNCTION) {
+            pn->pn_op = JSOP_GETGLOBAL;
+            pn->pn_dflags |= PND_BOUND;
+        }
+    }
 
     return true;
 }
 
+
+
+
+
+
+
+
 static bool
-BindTopLevelVar(JSContext *cx, BindData *data, JSParseNode *pn, JSAtom *varname, JSTreeContext *tc)
+BindGvar(JSParseNode *pn, JSTreeContext *tc)
 {
     JS_ASSERT(pn->pn_op == JSOP_NAME);
     JS_ASSERT(!tc->inFunction());
 
-    
-    if (!tc->compiling())
+    if (!tc->compiling() || tc->parser->callerFrame)
         return true;
 
-    
-
-
-
-    if (tc->parser->callerFrame) {
-        
-
-
-
-
-
-        if (!tc->inStrictMode())
-            return true;
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        return true;
-    }
+    JSCodeGenerator *cg = (JSCodeGenerator *) tc;
 
     if (pn->pn_dflags & PND_CONST)
         return true;
 
-    
-
-
-
-
-    return DefineGlobal(pn, tc->asCodeGenerator(), pn->pn_atom);
-}
-
-static bool
-BindFunctionLocal(JSContext *cx, BindData *data, MultiDeclRange &mdl, JSParseNode *pn,
-                  JSAtom *name, JSTreeContext *tc)
-{
-    JS_ASSERT(tc->inFunction());
-
-    if (name == cx->runtime->atomState.argumentsAtom) {
-        pn->pn_op = JSOP_ARGUMENTS;
-        pn->pn_dflags |= PND_BOUND;
-        return true;
-    }
-
-    BindingKind kind = tc->bindings.lookup(cx, name, NULL);
-    if (kind == NONE) {
-        
-
-
-
-
-
-
-        kind = (data->op == JSOP_DEFCONST) ? CONSTANT : VARIABLE;
-
-        uintN index = tc->bindings.countVars();
-        if (!BindLocalVariable(cx, tc, name, kind, false))
-            return false;
-        pn->pn_op = JSOP_GETLOCAL;
-        pn->pn_cookie.set(tc->staticLevel, index);
-        pn->pn_dflags |= PND_BOUND;
-        return true;
-    }
-
-    if (kind == ARGUMENT) {
-        JS_ASSERT(tc->inFunction());
-        JS_ASSERT(!mdl.empty() && mdl.front()->kind() == JSDefinition::ARG);
-    } else {
-        JS_ASSERT(kind == VARIABLE || kind == CONSTANT);
-    }
-
-    return true;
+    return DefineGlobal(pn, cg, pn->pn_atom);
 }
 
 static JSBool
@@ -3882,32 +3545,31 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
     if (stmt && stmt->type == STMT_WITH) {
         data->fresh = false;
-        pn->pn_dflags |= PND_DEOPTIMIZED;
-        tc->noteMightAliasLocals();
         return true;
     }
 
-    MultiDeclRange mdl = tc->decls.lookupMulti(atom);
+    JSAtomListElement *ale = tc->decls.lookup(atom);
     JSOp op = data->op;
 
-    if (stmt || !mdl.empty()) {
-        JSDefinition *dn = mdl.empty() ? NULL : mdl.front();
+    if (stmt || ale) {
+        JSDefinition *dn = ale ? ALE_DEFN(ale) : NULL;
         JSDefinition::Kind dn_kind = dn ? dn->kind() : JSDefinition::VAR;
+        const char *name;
 
         if (dn_kind == JSDefinition::ARG) {
-            JSAutoByteString name;
-            if (!js_AtomToPrintableString(cx, atom, &name))
+            name = js_AtomToPrintableString(cx, atom);
+            if (!name)
                 return JS_FALSE;
 
             if (op == JSOP_DEFCONST) {
                 ReportCompileErrorNumber(cx, TS(tc->parser), pn,
                                          JSREPORT_ERROR, JSMSG_REDECLARED_PARAM,
-                                         name.ptr());
+                                         name);
                 return JS_FALSE;
             }
             if (!ReportCompileErrorNumber(cx, TS(tc->parser), pn,
                                           JSREPORT_WARNING | JSREPORT_STRICT,
-                                          JSMSG_VAR_HIDES_ARG, name.ptr())) {
+                                          JSMSG_VAR_HIDES_ARG, name)) {
                 return JS_FALSE;
             }
         } else {
@@ -3916,25 +3578,25 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
                           (dn_kind == JSDefinition::LET &&
                            (stmt->type != STMT_CATCH || OuterLet(tc, stmt, atom))));
 
-            if (cx->hasStrictOption()
+            if (JS_HAS_STRICT_OPTION(cx)
                 ? op != JSOP_DEFVAR || dn_kind != JSDefinition::VAR
                 : error) {
-                JSAutoByteString name;
-                if (!js_AtomToPrintableString(cx, atom, &name) ||
+                name = js_AtomToPrintableString(cx, atom);
+                if (!name ||
                     !ReportCompileErrorNumber(cx, TS(tc->parser), pn,
                                               !error
                                               ? JSREPORT_WARNING | JSREPORT_STRICT
                                               : JSREPORT_ERROR,
                                               JSMSG_REDECLARED_VAR,
                                               JSDefinition::kindString(dn_kind),
-                                              name.ptr())) {
+                                              name)) {
                     return JS_FALSE;
                 }
             }
         }
     }
 
-    if (mdl.empty()) {
+    if (!ale) {
         if (!Define(pn, atom, tc))
             return JS_FALSE;
     } else {
@@ -3949,7 +3611,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
 
-        JSDefinition *dn = mdl.front();
+        JSDefinition *dn = ALE_DEFN(ale);
 
         data->fresh = false;
 
@@ -3967,15 +3629,16 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
             pnu->pn_op = JSOP_NAME;
         }
 
-        
         while (dn->kind() == JSDefinition::LET) {
-            mdl.popFront();
-            if (mdl.empty())
+            do {
+                ale = ALE_NEXT(ale);
+            } while (ale && ALE_ATOM(ale) != atom);
+            if (!ale)
                 break;
-            dn = mdl.front();
+            dn = ALE_DEFN(ale);
         }
 
-        if (dn) {
+        if (ale) {
             JS_ASSERT_IF(data->op == JSOP_DEFCONST,
                          dn->kind() == JSDefinition::CONST);
             return JS_TRUE;
@@ -3987,8 +3650,12 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
 
         if (!pn->pn_defn) {
-            if (tc->lexdeps->lookup(atom)) {
-                tc->lexdeps->remove(atom);
+            JSHashEntry **hep;
+
+            ale = tc->lexdeps.rawLookup(atom, hep);
+            if (ale) {
+                pn = ALE_DEFN(ale);
+                tc->lexdeps.rawRemove(tc->parser, ale, hep);
             } else {
                 JSParseNode *pn2 = NameNode::create(atom, tc);
                 if (!pn2)
@@ -4002,8 +3669,10 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
             pn->pn_op = JSOP_NAME;
         }
 
-        if (!tc->decls.addHoist(atom, (JSDefinition *) pn))
+        ale = tc->decls.add(tc->parser, atom, JSAtomList::HOIST);
+        if (!ale)
             return JS_FALSE;
+        ALE_SET_DEFN(ale, pn);
         pn->pn_defn = true;
         pn->pn_dflags &= ~PND_PLACEHOLDER;
     }
@@ -4011,28 +3680,60 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
     if (data->op == JSOP_DEFCONST)
         pn->pn_dflags |= PND_CONST;
 
-    if (tc->inFunction())
-        return BindFunctionLocal(cx, data, mdl, pn, atom, tc);
+    if (!tc->inFunction())
+        return BindGvar(pn, tc);
 
-    return BindTopLevelVar(cx, data, pn, atom, tc);
+    if (atom == cx->runtime->atomState.argumentsAtom) {
+        pn->pn_op = JSOP_ARGUMENTS;
+        pn->pn_dflags |= PND_BOUND;
+        return JS_TRUE;
+    }
+
+    JSLocalKind localKind = tc->fun->lookupLocal(cx, atom, NULL);
+    if (localKind == JSLOCAL_NONE) {
+        
+
+
+
+
+
+
+
+        localKind = (data->op == JSOP_DEFCONST) ? JSLOCAL_CONST : JSLOCAL_VAR;
+
+        uintN index = tc->fun->u.i.nvars;
+        if (!BindLocalVariable(cx, tc->fun, atom, localKind, false))
+            return JS_FALSE;
+        pn->pn_op = JSOP_GETLOCAL;
+        pn->pn_cookie.set(tc->staticLevel, index);
+        pn->pn_dflags |= PND_BOUND;
+        return JS_TRUE;
+    }
+
+    if (localKind == JSLOCAL_ARG) {
+        
+        JS_ASSERT(ale && ALE_DEFN(ale)->kind() == JSDefinition::ARG);
+    } else {
+        
+        JS_ASSERT(localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST);
+    }
+    return JS_TRUE;
 }
 
-static bool
+static JSBool
 MakeSetCall(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, uintN msg)
 {
-    JS_ASSERT(pn->pn_arity == PN_LIST);
-    JS_ASSERT(pn->pn_op == JSOP_CALL || pn->pn_op == JSOP_EVAL ||
-              pn->pn_op == JSOP_FUNCALL || pn->pn_op == JSOP_FUNAPPLY);
-    if (!ReportStrictModeError(cx, TS(tc->parser), tc, pn, msg))
-        return false;
+    JSParseNode *pn2;
 
-    JSParseNode *pn2 = pn->pn_head;
+    JS_ASSERT(pn->pn_arity == PN_LIST);
+    JS_ASSERT(pn->pn_op == JSOP_CALL || pn->pn_op == JSOP_EVAL || pn->pn_op == JSOP_APPLY);
+    pn2 = pn->pn_head;
     if (pn2->pn_type == TOK_FUNCTION && (pn2->pn_funbox->tcflags & TCF_GENEXP_LAMBDA)) {
         ReportCompileErrorNumber(cx, TS(tc->parser), pn, JSREPORT_ERROR, msg);
-        return false;
+        return JS_FALSE;
     }
-    pn->pn_xflags |= PNX_SETCALL;
-    return true;
+    pn->pn_op = JSOP_SETCALL;
+    return JS_TRUE;
 }
 
 static void
@@ -4062,22 +3763,9 @@ NoteLValue(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, uintN dflag = PND_
 
     pn->pn_dflags |= dflag;
 
-    
-
-
-
-
-
-
-
-
     JSAtom *lname = pn->pn_atom;
-    if (lname == cx->runtime->atomState.argumentsAtom) {
+    if (lname == cx->runtime->atomState.argumentsAtom)
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        tc->countArgumentsUse(pn);
-    } else if (tc->inFunction() && lname == tc->fun()->atom) {
-        tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    }
 }
 
 #if JS_HAS_DESTRUCTURING
@@ -4107,9 +3795,11 @@ BindDestructuringVar(JSContext *cx, BindData *data, JSParseNode *pn,
 
 
     if (pn->pn_dflags & PND_BOUND) {
-        JS_ASSERT(!(pn->pn_dflags & PND_GVAR));
+        JS_ASSERT_IF((pn->pn_dflags & PND_GVAR), PN_OP(pn) == JSOP_GETGLOBAL);
         pn->pn_op = (pn->pn_op == JSOP_ARGUMENTS)
                     ? JSOP_SETNAME
+                    : (pn->pn_dflags & PND_GVAR)
+                    ? JSOP_SETGLOBAL
                     : JSOP_SETLOCAL;
     } else {
         pn->pn_op = (data->op == JSOP_DEFCONST)
@@ -4184,99 +3874,267 @@ BindDestructuringLHS(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
     return JS_TRUE;
 }
 
+typedef struct FindPropValData {
+    uint32          numvars;    
+    uint32          maxstep;    
+    JSDHashTable    table;      
+} FindPropValData;
 
+typedef struct FindPropValEntry {
+    JSDHashEntryHdr hdr;
+    JSParseNode     *pnkey;
+    JSParseNode     *pnval;
+} FindPropValEntry;
 
+#define ASSERT_VALID_PROPERTY_KEY(pnkey)                                      \
+    JS_ASSERT(((pnkey)->pn_arity == PN_NULLARY &&                             \
+               ((pnkey)->pn_type == TOK_NUMBER ||                             \
+                (pnkey)->pn_type == TOK_STRING ||                             \
+                (pnkey)->pn_type == TOK_NAME)) ||                             \
+               ((pnkey)->pn_arity == PN_NAME && (pnkey)->pn_type == TOK_NAME))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static bool
-CheckDestructuring(JSContext *cx, BindData *data, JSParseNode *left, JSTreeContext *tc)
+static JSDHashNumber
+HashFindPropValKey(JSDHashTable *table, const void *key)
 {
-    bool ok;
+    const JSParseNode *pnkey = (const JSParseNode *)key;
+
+    ASSERT_VALID_PROPERTY_KEY(pnkey);
+    return (pnkey->pn_type == TOK_NUMBER)
+           ? (JSDHashNumber) JS_HASH_DOUBLE(pnkey->pn_dval)
+           : ATOM_HASH(pnkey->pn_atom);
+}
+
+static JSBool
+MatchFindPropValEntry(JSDHashTable *table,
+                      const JSDHashEntryHdr *entry,
+                      const void *key)
+{
+    const FindPropValEntry *fpve = (const FindPropValEntry *)entry;
+    const JSParseNode *pnkey = (const JSParseNode *)key;
+
+    ASSERT_VALID_PROPERTY_KEY(pnkey);
+    return pnkey->pn_type == fpve->pnkey->pn_type &&
+           ((pnkey->pn_type == TOK_NUMBER)
+            ? pnkey->pn_dval == fpve->pnkey->pn_dval
+            : pnkey->pn_atom == fpve->pnkey->pn_atom);
+}
+
+static const JSDHashTableOps FindPropValOps = {
+    JS_DHashAllocTable,
+    JS_DHashFreeTable,
+    HashFindPropValKey,
+    MatchFindPropValEntry,
+    JS_DHashMoveEntryStub,
+    JS_DHashClearEntryStub,
+    JS_DHashFinalizeStub,
+    NULL
+};
+
+#define STEP_HASH_THRESHOLD     10
+#define BIG_DESTRUCTURING        5
+#define BIG_OBJECT_INIT         20
+
+static JSParseNode *
+FindPropertyValue(JSParseNode *pn, JSParseNode *pnid, FindPropValData *data)
+{
+    FindPropValEntry *entry;
+    JSParseNode *pnhit, *pnhead, *pnprop, *pnkey;
+    uint32 step;
+
+    
+    if (data->table.ops) {
+        entry = (FindPropValEntry *)
+                JS_DHashTableOperate(&data->table, pnid, JS_DHASH_LOOKUP);
+        return JS_DHASH_ENTRY_IS_BUSY(&entry->hdr) ? entry->pnval : NULL;
+    }
+
+    
+    if (pn->pn_type != TOK_RC)
+        return NULL;
+
+    
+
+
+
+    pnhit = NULL;
+    step = 0;
+    ASSERT_VALID_PROPERTY_KEY(pnid);
+    pnhead = pn->pn_head;
+    if (pnid->pn_type == TOK_NUMBER) {
+        for (pnprop = pnhead; pnprop; pnprop = pnprop->pn_next) {
+            JS_ASSERT(pnprop->pn_type == TOK_COLON);
+            if (pnprop->pn_op == JSOP_NOP) {
+                pnkey = pnprop->pn_left;
+                ASSERT_VALID_PROPERTY_KEY(pnkey);
+                if (pnkey->pn_type == TOK_NUMBER &&
+                    pnkey->pn_dval == pnid->pn_dval) {
+                    pnhit = pnprop;
+                }
+                ++step;
+            }
+        }
+    } else {
+        for (pnprop = pnhead; pnprop; pnprop = pnprop->pn_next) {
+            JS_ASSERT(pnprop->pn_type == TOK_COLON);
+            if (pnprop->pn_op == JSOP_NOP) {
+                pnkey = pnprop->pn_left;
+                ASSERT_VALID_PROPERTY_KEY(pnkey);
+                if (pnkey->pn_type == pnid->pn_type &&
+                    pnkey->pn_atom == pnid->pn_atom) {
+                    pnhit = pnprop;
+                }
+                ++step;
+            }
+        }
+    }
+    if (!pnhit)
+        return NULL;
+
+    
+    JS_ASSERT(!data->table.ops);
+    if (step > data->maxstep) {
+        data->maxstep = step;
+        if (step >= STEP_HASH_THRESHOLD &&
+            data->numvars >= BIG_DESTRUCTURING &&
+            pn->pn_count >= BIG_OBJECT_INIT &&
+            JS_DHashTableInit(&data->table, &FindPropValOps, pn,
+                              sizeof(FindPropValEntry),
+                              JS_DHASH_DEFAULT_CAPACITY(pn->pn_count)))
+        {
+            for (pn = pnhead; pn; pn = pn->pn_next) {
+                JS_ASSERT(pnprop->pn_type == TOK_COLON);
+                ASSERT_VALID_PROPERTY_KEY(pn->pn_left);
+                entry = (FindPropValEntry *)
+                        JS_DHashTableOperate(&data->table, pn->pn_left,
+                                             JS_DHASH_ADD);
+                entry->pnval = pn->pn_right;
+            }
+        }
+    }
+    return pnhit->pn_right;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JSBool
+CheckDestructuring(JSContext *cx, BindData *data,
+                   JSParseNode *left, JSParseNode *right,
+                   JSTreeContext *tc)
+{
+    JSBool ok;
+    FindPropValData fpvd;
+    JSParseNode *lhs, *rhs, *pn, *pn2;
 
     if (left->pn_type == TOK_ARRAYCOMP) {
         ReportCompileErrorNumber(cx, TS(tc->parser), left, JSREPORT_ERROR,
                                  JSMSG_ARRAY_COMP_LEFTSIDE);
-        return false;
+        return JS_FALSE;
     }
 
+#if JS_HAS_DESTRUCTURING_SHORTHAND
+    if (right && right->pn_arity == PN_LIST && (right->pn_xflags & PNX_DESTRUCT)) {
+        ReportCompileErrorNumber(cx, TS(tc->parser), right, JSREPORT_ERROR,
+                                 JSMSG_BAD_OBJECT_INIT);
+        return JS_FALSE;
+    }
+#endif
+
+    fpvd.table.ops = NULL;
+    lhs = left->pn_head;
     if (left->pn_type == TOK_RB) {
-        for (JSParseNode *pn = left->pn_head; pn; pn = pn->pn_next) {
+        rhs = (right && right->pn_type == left->pn_type)
+              ? right->pn_head
+              : NULL;
+
+        while (lhs) {
+            pn = lhs, pn2 = rhs;
+
             
             if (pn->pn_type != TOK_COMMA || pn->pn_arity != PN_NULLARY) {
                 if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC) {
-                    ok = CheckDestructuring(cx, data, pn, tc);
+                    ok = CheckDestructuring(cx, data, pn, pn2, tc);
                 } else {
                     if (data) {
-                        if (pn->pn_type != TOK_NAME) {
-                            ReportCompileErrorNumber(cx, TS(tc->parser), pn, JSREPORT_ERROR,
-                                                     JSMSG_NO_VARIABLE_NAME);
-                            return false;
-                        }
+                        if (pn->pn_type != TOK_NAME)
+                            goto no_var_name;
+
                         ok = BindDestructuringVar(cx, data, pn, tc);
                     } else {
                         ok = BindDestructuringLHS(cx, pn, tc);
                     }
                 }
                 if (!ok)
-                    return false;
+                    goto out;
             }
+
+            lhs = lhs->pn_next;
+            if (rhs)
+                rhs = rhs->pn_next;
         }
     } else {
         JS_ASSERT(left->pn_type == TOK_RC);
-        for (JSParseNode *pair = left->pn_head; pair; pair = pair->pn_next) {
-            JS_ASSERT(pair->pn_type == TOK_COLON);
-            JSParseNode *pn = pair->pn_right;
+        fpvd.numvars = left->pn_count;
+        fpvd.maxstep = 0;
+        rhs = NULL;
+
+        while (lhs) {
+            JS_ASSERT(lhs->pn_type == TOK_COLON);
+            pn = lhs->pn_right;
 
             if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC) {
-                ok = CheckDestructuring(cx, data, pn, tc);
+                if (right)
+                    rhs = FindPropertyValue(right, lhs->pn_left, &fpvd);
+                ok = CheckDestructuring(cx, data, pn, rhs, tc);
             } else if (data) {
-                if (pn->pn_type != TOK_NAME) {
-                    ReportCompileErrorNumber(cx, TS(tc->parser), pn, JSREPORT_ERROR,
-                                             JSMSG_NO_VARIABLE_NAME);
-                    return false;
-                }
+                if (pn->pn_type != TOK_NAME)
+                    goto no_var_name;
+
                 ok = BindDestructuringVar(cx, data, pn, tc);
             } else {
                 ok = BindDestructuringLHS(cx, pn, tc);
             }
             if (!ok)
-                return false;
+                goto out;
+
+            lhs = lhs->pn_next;
         }
     }
 
@@ -4300,16 +4158,28 @@ CheckDestructuring(JSContext *cx, BindData *data, JSParseNode *left, JSTreeConte
 
     if (data &&
         data->binder == BindLet &&
-        OBJ_BLOCK_COUNT(cx, tc->blockChain()) == 0 &&
-        !DefineNativeProperty(cx, tc->blockChain(),
-                              ATOM_TO_JSID(cx->runtime->atomState.emptyAtom),
-                              UndefinedValue(), NULL, NULL,
-                              JSPROP_ENUMERATE | JSPROP_PERMANENT,
-                              Shape::HAS_SHORTID, 0)) {
-        return false;
+        OBJ_BLOCK_COUNT(cx, tc->blockChain) == 0) {
+        ok = !!js_DefineNativeProperty(cx, tc->blockChain,
+                                       ATOM_TO_JSID(cx->runtime->atomState.emptyAtom),
+                                       UndefinedValue(), NULL, NULL,
+                                       JSPROP_ENUMERATE | JSPROP_PERMANENT,
+                                       Shape::HAS_SHORTID, 0, NULL);
+        if (!ok)
+            goto out;
     }
 
-    return true;
+    ok = JS_TRUE;
+
+  out:
+    if (fpvd.table.ops)
+        JS_DHashTableFinish(&fpvd.table);
+    return ok;
+
+  no_var_name:
+    ReportCompileErrorNumber(cx, TS(tc->parser), pn, JSREPORT_ERROR,
+                             JSMSG_NO_VARIABLE_NAME);
+    ok = JS_FALSE;
+    goto out;
 }
 
 
@@ -4329,31 +4199,67 @@ CheckDestructuring(JSContext *cx, BindData *data, JSParseNode *left, JSTreeConte
 
 
 
-static void
-UndominateInitializers(JSParseNode *left, const TokenPtr &end, JSTreeContext *tc)
+static JSBool
+UndominateInitializers(JSParseNode *left, JSParseNode *right, JSTreeContext *tc)
 {
+    FindPropValData fpvd;
+    JSParseNode *lhs, *rhs;
+
+    JS_ASSERT(left->pn_type != TOK_ARRAYCOMP);
+    JS_ASSERT(right);
+
+#if JS_HAS_DESTRUCTURING_SHORTHAND
+    if (right->pn_arity == PN_LIST && (right->pn_xflags & PNX_DESTRUCT)) {
+        ReportCompileErrorNumber(tc->parser->context, TS(tc->parser), right, JSREPORT_ERROR,
+                                 JSMSG_BAD_OBJECT_INIT);
+        return JS_FALSE;
+    }
+#endif
+
+    if (right->pn_type != left->pn_type)
+        return JS_TRUE;
+
+    fpvd.table.ops = NULL;
+    lhs = left->pn_head;
     if (left->pn_type == TOK_RB) {
-        for (JSParseNode *pn = left->pn_head; pn; pn = pn->pn_next) {
+        rhs = right->pn_head;
+
+        while (lhs && rhs) {
             
-            if (pn->pn_type != TOK_COMMA || pn->pn_arity != PN_NULLARY) {
-                if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC)
-                    UndominateInitializers(pn, end, tc);
-                else
-                    pn->pn_pos.end = end;
+            if (lhs->pn_type != TOK_COMMA || lhs->pn_arity != PN_NULLARY) {
+                if (lhs->pn_type == TOK_RB || lhs->pn_type == TOK_RC) {
+                    if (!UndominateInitializers(lhs, rhs, tc))
+                        return JS_FALSE;
+                } else {
+                    lhs->pn_pos.end = rhs->pn_pos.end;
+                }
             }
+
+            lhs = lhs->pn_next;
+            rhs = rhs->pn_next;
         }
     } else {
         JS_ASSERT(left->pn_type == TOK_RC);
+        fpvd.numvars = left->pn_count;
+        fpvd.maxstep = 0;
 
-        for (JSParseNode *pair = left->pn_head; pair; pair = pair->pn_next) {
-            JS_ASSERT(pair->pn_type == TOK_COLON);
-            JSParseNode *pn = pair->pn_right;
-            if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC)
-                UndominateInitializers(pn, end, tc);
-            else
-                pn->pn_pos.end = end;
+        while (lhs) {
+            JS_ASSERT(lhs->pn_type == TOK_COLON);
+            JSParseNode *pn = lhs->pn_right;
+
+            rhs = FindPropertyValue(right, lhs->pn_left, &fpvd);
+            if (pn->pn_type == TOK_RB || pn->pn_type == TOK_RC) {
+                if (rhs && !UndominateInitializers(pn, rhs, tc))
+                    return JS_FALSE;
+            } else {
+                if (rhs)
+                    pn->pn_pos.end = rhs->pn_pos.end;
+            }
+
+            lhs = lhs->pn_next;
         }
     }
+    return JS_TRUE;
 }
 
 JSParseNode *
@@ -4366,7 +4272,7 @@ Parser::destructuringExpr(BindData *data, TokenKind tt)
     tc->flags &= ~TCF_DECL_DESTRUCTURING;
     if (!pn)
         return NULL;
-    if (!CheckDestructuring(context, data, pn, tc))
+    if (!CheckDestructuring(context, data, pn, NULL, tc))
         return NULL;
     return pn;
 }
@@ -4536,9 +4442,8 @@ Parser::returnOrYield(bool useAssignExpr)
     JSParseNode *pn, *pn2;
 
     tt = tokenStream.currentToken().type;
-    if (!tc->inFunction()) {
-        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_RETURN_OR_YIELD,
-                          (tt == TOK_RETURN) ? js_return_str : js_yield_str);
+    if (tt == TOK_RETURN && !tc->inFunction()) {
+        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_RETURN_OR_YIELD, js_return_str);
         return NULL;
     }
 
@@ -4547,18 +4452,8 @@ Parser::returnOrYield(bool useAssignExpr)
         return NULL;
 
 #if JS_HAS_GENERATORS
-    if (tt == TOK_YIELD) {
-        
-
-
-
-        if (tc->parenDepth == 0) {
-            tc->flags |= TCF_FUN_IS_GENERATOR;
-        } else {
-            tc->yieldCount++;
-            tc->yieldNode = pn;
-        }
-    }
+    if (tt == TOK_YIELD)
+        tc->flags |= TCF_FUN_IS_GENERATOR;
 #endif
 
     
@@ -4591,15 +4486,15 @@ Parser::returnOrYield(bool useAssignExpr)
 
     if ((~tc->flags & (TCF_RETURN_EXPR | TCF_FUN_IS_GENERATOR)) == 0) {
         
-        ReportBadReturn(context, tc, pn, JSREPORT_ERROR,
+        ReportBadReturn(context, tc, JSREPORT_ERROR,
                         JSMSG_BAD_GENERATOR_RETURN,
                         JSMSG_BAD_ANON_GENERATOR_RETURN);
         return NULL;
     }
 
-    if (context->hasStrictOption() &&
+    if (JS_HAS_STRICT_OPTION(context) &&
         (~tc->flags & (TCF_RETURN_EXPR | TCF_RETURN_VOID)) == 0 &&
-        !ReportBadReturn(context, tc, pn, JSREPORT_WARNING | JSREPORT_STRICT,
+        !ReportBadReturn(context, tc, JSREPORT_WARNING | JSREPORT_STRICT,
                          JSMSG_NO_RETURN_VALUE,
                          JSMSG_ANON_NO_RETURN_VALUE)) {
         return NULL;
@@ -4628,7 +4523,7 @@ PushLexicalScope(JSContext *cx, TokenStream *ts, JSTreeContext *tc,
     if (!blockbox)
         return NULL;
 
-    js_PushBlockScope(tc, stmt, blockbox, -1);
+    js_PushBlockScope(tc, stmt, obj, -1);
     pn->pn_type = TOK_LEXICALSCOPE;
     pn->pn_op = JSOP_LEAVEBLOCK;
     pn->pn_objbox = blockbox;
@@ -4677,19 +4572,6 @@ Parser::letBlock(JSBool statement)
 
 
 
-
-
-
-        if (!ReportStrictModeError(context, &tokenStream, tc, pnlet,
-                                   JSMSG_STRICT_CODE_LET_EXPR_STMT)) {
-            return NULL;
-        }
-
-        
-
-
-
-
         pn = UnaryNode::create(tc);
         if (!pn)
             return NULL;
@@ -4732,15 +4614,18 @@ PushBlocklikeStatement(JSStmtInfo *stmt, JSStmtType type, JSTreeContext *tc)
 static JSParseNode *
 NewBindingNode(JSAtom *atom, JSTreeContext *tc, bool let = false)
 {
-    JSParseNode *pn;
-    AtomDefnPtr removal;
+    JSParseNode *pn = NULL;
 
-    if ((pn = tc->decls.lookupFirst(atom))) {
+    JSAtomListElement *ale = tc->decls.lookup(atom);
+    if (ale) {
+        pn = ALE_DEFN(ale);
         JS_ASSERT(!pn->isPlaceholder());
     } else {
-        removal = tc->lexdeps->lookup(atom);
-        pn = removal ? removal.value() : NULL;
-        JS_ASSERT_IF(pn, pn->isPlaceholder());
+        ale = tc->lexdeps.lookup(atom);
+        if (ale) {
+            pn = ALE_DEFN(ale);
+            JS_ASSERT(pn->isPlaceholder());
+        }
     }
 
     if (pn) {
@@ -4759,7 +4644,7 @@ NewBindingNode(JSAtom *atom, JSTreeContext *tc, bool let = false)
             if (let)
                 pn->pn_blockid = tc->blockid();
 
-            tc->lexdeps->remove(removal);
+            tc->lexdeps.remove(tc->parser, atom);
             return pn;
         }
     }
@@ -4768,363 +4653,223 @@ NewBindingNode(JSAtom *atom, JSTreeContext *tc, bool let = false)
     pn = NameNode::create(atom, tc);
     if (!pn)
         return NULL;
-
-    if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
-        tc->countArgumentsUse(pn);
-
     return pn;
 }
 
-JSParseNode *
-Parser::switchStatement()
+#if JS_HAS_BLOCK_SCOPE
+static bool
+RebindLets(JSParseNode *pn, JSTreeContext *tc)
 {
-    JSParseNode *pn5, *saveBlock;
-    JSBool seenDefault = JS_FALSE;
-
-    JSParseNode *pn = BinaryNode::create(tc);
     if (!pn)
-        return NULL;
-    MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_SWITCH);
+        return true;
 
-    
-    JSParseNode *pn1 = parenExpr();
-    if (!pn1)
-        return NULL;
+    switch (pn->pn_arity) {
+      case PN_LIST:
+        for (JSParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
+            RebindLets(pn2, tc);
+        break;
 
-    MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_SWITCH);
-    MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_SWITCH);
+      case PN_TERNARY:
+        RebindLets(pn->pn_kid1, tc);
+        RebindLets(pn->pn_kid2, tc);
+        RebindLets(pn->pn_kid3, tc);
+        break;
 
-    
+      case PN_BINARY:
+        RebindLets(pn->pn_left, tc);
+        RebindLets(pn->pn_right, tc);
+        break;
 
+      case PN_UNARY:
+        RebindLets(pn->pn_kid, tc);
+        break;
 
+      case PN_FUNC:
+        RebindLets(pn->pn_body, tc);
+        break;
 
-    JSStmtInfo stmtInfo;
-    js_PushStatement(tc, &stmtInfo, STMT_SWITCH, -1);
+      case PN_NAME:
+        RebindLets(pn->maybeExpr(), tc);
 
-    
-    JSParseNode *pn2 = ListNode::create(tc);
-    if (!pn2)
-        return NULL;
-    pn2->makeEmpty();
-    if (!GenerateBlockIdForStmtNode(pn2, tc))
-        return NULL;
-    saveBlock = tc->blockNode;
-    tc->blockNode = pn2;
+        if (pn->pn_defn) {
+            JS_ASSERT(pn->pn_blockid > tc->topStmt->blockid);
+        } else if (pn->pn_used) {
+            if (pn->pn_lexdef->pn_blockid == tc->topStmt->blockid) {
+                ForgetUse(pn);
 
-    TokenKind tt;
-    while ((tt = tokenStream.getToken()) != TOK_RC) {
-        JSParseNode *pn3;
-        switch (tt) {
-          case TOK_DEFAULT:
-            if (seenDefault) {
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_DEFAULTS);
-                return NULL;
-            }
-            seenDefault = JS_TRUE;
-            
-
-          case TOK_CASE:
-          {
-            pn3 = BinaryNode::create(tc);
-            if (!pn3)
-                return NULL;
-            if (tt == TOK_CASE) {
-                pn3->pn_left = expr();
-                if (!pn3->pn_left)
-                    return NULL;
-            }
-            pn2->append(pn3);
-            if (pn2->pn_count == JS_BIT(16)) {
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_CASES);
-                return NULL;
-            }
-            break;
-          }
-
-          case TOK_ERROR:
-            return NULL;
-
-          default:
-            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_SWITCH);
-            return NULL;
-        }
-        MUST_MATCH_TOKEN(TOK_COLON, JSMSG_COLON_AFTER_CASE);
-
-        JSParseNode *pn4 = ListNode::create(tc);
-        if (!pn4)
-            return NULL;
-        pn4->pn_type = TOK_LC;
-        pn4->makeEmpty();
-        while ((tt = tokenStream.peekToken(TSF_OPERAND)) != TOK_RC &&
-               tt != TOK_CASE && tt != TOK_DEFAULT) {
-            if (tt == TOK_ERROR)
-                return NULL;
-            pn5 = statement();
-            if (!pn5)
-                return NULL;
-            pn4->pn_pos.end = pn5->pn_pos.end;
-            pn4->append(pn5);
-        }
-
-        
-        if (pn4->pn_head)
-            pn4->pn_pos.begin = pn4->pn_head->pn_pos.begin;
-        pn3->pn_pos.end = pn4->pn_pos.end;
-        pn3->pn_right = pn4;
-    }
-
-    
-
-
-
-
-
-    if (tc->blockNode != pn2)
-        pn2 = tc->blockNode;
-    tc->blockNode = saveBlock;
-    PopStatement(tc);
-
-    pn->pn_pos.end = pn2->pn_pos.end = tokenStream.currentToken().pos.end;
-    pn->pn_left = pn1;
-    pn->pn_right = pn2;
-    return pn;
-}
-
-JSParseNode *
-Parser::forStatement()
-{
-    JSParseNode *pnseq = NULL;
-#if JS_HAS_BLOCK_SCOPE
-    JSParseNode *pnlet = NULL;
-    JSStmtInfo blockInfo;
-#endif
-
-    
-    JSParseNode *pn = BinaryNode::create(tc);
-    if (!pn)
-        return NULL;
-    JSStmtInfo stmtInfo;
-    js_PushStatement(tc, &stmtInfo, STMT_FOR_LOOP, -1);
-
-    pn->pn_op = JSOP_ITER;
-    pn->pn_iflags = 0;
-    if (tokenStream.matchToken(TOK_NAME)) {
-        if (tokenStream.currentToken().t_atom == context->runtime->atomState.eachAtom)
-            pn->pn_iflags = JSITER_FOREACH;
-        else
-            tokenStream.ungetToken();
-    }
-
-    MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_AFTER_FOR);
-    TokenKind tt = tokenStream.peekToken(TSF_OPERAND);
-
-#if JS_HAS_BLOCK_SCOPE
-    bool let = false;
-#endif
-
-    JSParseNode *pn1;
-    if (tt == TOK_SEMI) {
-        if (pn->pn_iflags & JSITER_FOREACH)
-            goto bad_for_each;
-
-        
-        pn1 = NULL;
-    } else {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-        tc->flags |= TCF_IN_FOR_INIT;
-        if (tt == TOK_VAR) {
-            (void) tokenStream.getToken();
-            pn1 = variables(false);
-#if JS_HAS_BLOCK_SCOPE
-        } else if (tt == TOK_LET) {
-            let = true;
-            (void) tokenStream.getToken();
-            if (tokenStream.peekToken() == TOK_LP) {
-                pn1 = letBlock(JS_FALSE);
-                tt = TOK_LEXICALSCOPE;
-            } else {
-                pnlet = PushLexicalScope(context, &tokenStream, tc, &blockInfo);
-                if (!pnlet)
-                    return NULL;
-                blockInfo.flags |= SIF_FOR_BLOCK;
-                pn1 = variables(false);
-            }
-#endif
-        } else {
-            pn1 = expr();
-        }
-        tc->flags &= ~TCF_IN_FOR_INIT;
-        if (!pn1)
-            return NULL;
-    }
-
-    
-
-
-
-
-
-    if (pn1 && tokenStream.matchToken(TOK_IN)) {
-        pn->pn_iflags |= JSITER_ENUMERATE;
-        stmtInfo.type = STMT_FOR_IN_LOOP;
-
-        
-        JS_ASSERT(!TokenKindIsDecl(tt) || PN_TYPE(pn1) == tt);
-        if (TokenKindIsDecl(tt)
-            ? (pn1->pn_count > 1 || pn1->pn_op == JSOP_DEFCONST
-#if JS_HAS_DESTRUCTURING
-               || (versionNumber() == JSVERSION_1_7 &&
-                   pn->pn_op == JSOP_ITER &&
-                   !(pn->pn_iflags & JSITER_FOREACH) &&
-                   (pn1->pn_head->pn_type == TOK_RC ||
-                    (pn1->pn_head->pn_type == TOK_RB &&
-                     pn1->pn_head->pn_count != 2) ||
-                    (pn1->pn_head->pn_type == TOK_ASSIGN &&
-                     (pn1->pn_head->pn_left->pn_type != TOK_RB ||
-                      pn1->pn_head->pn_left->pn_count != 2))))
-#endif
-              )
-            : (pn1->pn_type != TOK_NAME &&
-               pn1->pn_type != TOK_DOT &&
-#if JS_HAS_DESTRUCTURING
-               ((versionNumber() == JSVERSION_1_7 &&
-                 pn->pn_op == JSOP_ITER &&
-                 !(pn->pn_iflags & JSITER_FOREACH))
-                ? (pn1->pn_type != TOK_RB || pn1->pn_count != 2)
-                : (pn1->pn_type != TOK_RB && pn1->pn_type != TOK_RC)) &&
-#endif
-               pn1->pn_type != TOK_LP &&
-#if JS_HAS_XML_SUPPORT
-               (pn1->pn_type != TOK_UNARYOP ||
-                pn1->pn_op != JSOP_XMLNAME) &&
-#endif
-               pn1->pn_type != TOK_LB)) {
-            reportErrorNumber(pn1, JSREPORT_ERROR, JSMSG_BAD_FOR_LEFTSIDE);
-            return NULL;
-        }
-
-        
-        JSParseNode *pn2 = NULL;
-        uintN dflag = PND_ASSIGNED;
-
-        if (TokenKindIsDecl(tt)) {
-            
-            pn1->pn_xflags |= PNX_FORINVAR;
-
-            
-
-
-
-
-            pn2 = pn1->pn_head;
-            if ((pn2->pn_type == TOK_NAME && pn2->maybeExpr())
-#if JS_HAS_DESTRUCTURING
-                || pn2->pn_type == TOK_ASSIGN
-#endif
-                ) {
-#if JS_HAS_BLOCK_SCOPE
-                if (tt == TOK_LET) {
-                    reportErrorNumber(pn2, JSREPORT_ERROR, JSMSG_INVALID_FOR_IN_INIT);
-                    return NULL;
+                JSAtomListElement *ale = tc->decls.lookup(pn->pn_atom);
+                if (ale) {
+                    while ((ale = ALE_NEXT(ale)) != NULL) {
+                        if (ALE_ATOM(ale) == pn->pn_atom) {
+                            LinkUseToDef(pn, ALE_DEFN(ale), tc);
+                            return true;
+                        }
+                    }
                 }
+
+                ale = tc->lexdeps.lookup(pn->pn_atom);
+                if (!ale) {
+                    ale = MakePlaceholder(pn, tc);
+                    if (!ale)
+                        return NULL;
+
+                    JSDefinition *dn = ALE_DEFN(ale);
+                    dn->pn_type = TOK_NAME;
+                    dn->pn_op = JSOP_NOP;
+                }
+                LinkUseToDef(pn, ALE_DEFN(ale), tc);
+            }
+        }
+        break;
+
+      case PN_NAMESET:
+        RebindLets(pn->pn_tree, tc);
+        break;
+    }
+
+    return true;
+}
 #endif 
 
-                pnseq = ListNode::create(tc);
-                if (!pnseq)
-                    return NULL;
-                pnseq->pn_type = TOK_SEQ;
-                pnseq->pn_pos.begin = pn->pn_pos.begin;
+JSParseNode *
+Parser::statement()
+{
+    TokenKind tt;
+    JSParseNode *pn, *pn1, *pn2, *pn3, *pn4;
+    JSStmtInfo stmtInfo, *stmt, *stmt2;
+    JSAtom *label;
 
-                dflag = PND_INITIALIZED;
+    JS_CHECK_RECURSION(context, return NULL);
 
-                
+    tt = tokenStream.getToken(TSF_OPERAND);
 
-
-
-
-
-
-
-                pn1->pn_xflags &= ~PNX_FORINVAR;
-                pn1->pn_xflags |= PNX_POPVAR;
-                pnseq->initList(pn1);
-
-#if JS_HAS_DESTRUCTURING
-                if (pn2->pn_type == TOK_ASSIGN) {
-                    pn1 = CloneParseTree(pn2->pn_left, tc);
-                    if (!pn1)
-                        return NULL;
-                } else
-#endif
-                {
-                    JS_ASSERT(pn2->pn_type == TOK_NAME);
-                    pn1 = NameNode::create(pn2->pn_atom, tc);
-                    if (!pn1)
-                        return NULL;
-                    pn1->pn_type = TOK_NAME;
-                    pn1->pn_op = JSOP_NAME;
-                    pn1->pn_pos = pn2->pn_pos;
-                    if (pn2->pn_defn)
-                        LinkUseToDef(pn1, (JSDefinition *) pn2, tc);
-                }
-                pn2 = pn1;
-            }
-        }
-
-        if (!pn2) {
-            pn2 = pn1;
-            if (pn2->pn_type == TOK_LP &&
-                !MakeSetCall(context, pn2, tc, JSMSG_BAD_LEFTSIDE_OF_ASS)) {
-                return NULL;
-            }
+    switch (tt) {
+      case TOK_FUNCTION:
 #if JS_HAS_XML_SUPPORT
-            if (pn2->pn_type == TOK_UNARYOP)
-                pn2->pn_op = JSOP_BINDXMLNAME;
+        tt = tokenStream.peekToken(TSF_KEYWORD_IS_NAME);
+        if (tt == TOK_DBLCOLON)
+            goto expression;
 #endif
-        }
+        return functionStmt();
 
-        switch (pn2->pn_type) {
-          case TOK_NAME:
-            
-            NoteLValue(context, pn2, tc, dflag);
-            break;
-
-#if JS_HAS_DESTRUCTURING
-          case TOK_ASSIGN:
-            pn2 = pn2->pn_left;
-            JS_ASSERT(pn2->pn_type == TOK_RB || pn2->pn_type == TOK_RC);
-            
-          case TOK_RB:
-          case TOK_RC:
-            
-            if (pn1 == pn2 && !CheckDestructuring(context, NULL, pn2, tc))
+      case TOK_IF:
+        
+        pn = TernaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        pn1 = condition();
+        if (!pn1)
+            return NULL;
+        js_PushStatement(tc, &stmtInfo, STMT_IF, -1);
+        pn2 = statement();
+        if (!pn2)
+            return NULL;
+        if (tokenStream.matchToken(TOK_ELSE, TSF_OPERAND)) {
+            stmtInfo.type = STMT_ELSE;
+            pn3 = statement();
+            if (!pn3)
                 return NULL;
+            pn->pn_pos.end = pn3->pn_pos.end;
+        } else {
+            pn3 = NULL;
+            pn->pn_pos.end = pn2->pn_pos.end;
+        }
+        PopStatement(tc);
+        pn->pn_kid1 = pn1;
+        pn->pn_kid2 = pn2;
+        pn->pn_kid3 = pn3;
+        return pn;
 
-            if (versionNumber() == JSVERSION_1_7) {
+      case TOK_SWITCH:
+      {
+        JSParseNode *pn5, *saveBlock;
+        JSBool seenDefault = JS_FALSE;
+
+        pn = BinaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_SWITCH);
+
+        
+        pn1 = parenExpr(NULL, NULL);
+        if (!pn1)
+            return NULL;
+
+        MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_SWITCH);
+        MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_SWITCH);
+
+        
+
+
+
+        js_PushStatement(tc, &stmtInfo, STMT_SWITCH, -1);
+
+        
+        pn2 = ListNode::create(tc);
+        if (!pn2)
+            return NULL;
+        pn2->makeEmpty();
+        if (!GenerateBlockIdForStmtNode(pn2, tc))
+            return NULL;
+        saveBlock = tc->blockNode;
+        tc->blockNode = pn2;
+
+        while ((tt = tokenStream.getToken()) != TOK_RC) {
+            switch (tt) {
+              case TOK_DEFAULT:
+                if (seenDefault) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_DEFAULTS);
+                    return NULL;
+                }
+                seenDefault = JS_TRUE;
                 
 
+              case TOK_CASE:
+                pn3 = BinaryNode::create(tc);
+                if (!pn3)
+                    return NULL;
+                if (tt == TOK_CASE) {
+                    pn3->pn_left = expr();
+                    if (!pn3->pn_left)
+                        return NULL;
+                }
+                pn2->append(pn3);
+                if (pn2->pn_count == JS_BIT(16)) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_CASES);
+                    return NULL;
+                }
+                break;
 
+              case TOK_ERROR:
+                return NULL;
 
-                JS_ASSERT(pn->pn_op == JSOP_ITER);
-                if (!(pn->pn_iflags & JSITER_FOREACH))
-                    pn->pn_iflags |= JSITER_FOREACH | JSITER_KEYVALUE;
+              default:
+                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_SWITCH);
+                return NULL;
             }
-            break;
-#endif
+            MUST_MATCH_TOKEN(TOK_COLON, JSMSG_COLON_AFTER_CASE);
 
-          default:;
+            pn4 = ListNode::create(tc);
+            if (!pn4)
+                return NULL;
+            pn4->pn_type = TOK_LC;
+            pn4->makeEmpty();
+            while ((tt = tokenStream.peekToken(TSF_OPERAND)) != TOK_RC &&
+                   tt != TOK_CASE && tt != TOK_DEFAULT) {
+                if (tt == TOK_ERROR)
+                    return NULL;
+                pn5 = statement();
+                if (!pn5)
+                    return NULL;
+                pn4->pn_pos.end = pn5->pn_pos.end;
+                pn4->append(pn5);
+            }
+
+            
+            if (pn4->pn_head)
+                pn4->pn_pos.begin = pn4->pn_head->pn_pos.begin;
+            pn3->pn_pos.end = pn4->pn_pos.end;
+            pn3->pn_right = pn4;
         }
 
         
@@ -5132,322 +4877,739 @@ Parser::forStatement()
 
 
 
-#if JS_HAS_BLOCK_SCOPE
-        JSStmtInfo *save = tc->topStmt;
-        if (let)
-            tc->topStmt = save->down;
-#endif
-        pn2 = expr();
-#if JS_HAS_BLOCK_SCOPE
-        if (let)
-            tc->topStmt = save;
-#endif
 
-        pn2 = JSParseNode::newBinaryOrAppend(TOK_IN, JSOP_NOP, pn1, pn2, tc);
+        if (tc->blockNode != pn2)
+            pn2 = tc->blockNode;
+        tc->blockNode = saveBlock;
+        PopStatement(tc);
+
+        pn->pn_pos.end = pn2->pn_pos.end = tokenStream.currentToken().pos.end;
+        pn->pn_left = pn1;
+        pn->pn_right = pn2;
+        return pn;
+      }
+
+      case TOK_WHILE:
+        pn = BinaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        js_PushStatement(tc, &stmtInfo, STMT_WHILE_LOOP, -1);
+        pn2 = condition();
         if (!pn2)
             return NULL;
         pn->pn_left = pn2;
-    } else {
-        if (pn->pn_iflags & JSITER_FOREACH)
-            goto bad_for_each;
+        pn2 = statement();
+        if (!pn2)
+            return NULL;
+        PopStatement(tc);
+        pn->pn_pos.end = pn2->pn_pos.end;
+        pn->pn_right = pn2;
+        return pn;
+
+      case TOK_DO:
+        pn = BinaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        js_PushStatement(tc, &stmtInfo, STMT_DO_LOOP, -1);
+        pn2 = statement();
+        if (!pn2)
+            return NULL;
+        pn->pn_left = pn2;
+        MUST_MATCH_TOKEN(TOK_WHILE, JSMSG_WHILE_AFTER_DO);
+        pn2 = condition();
+        if (!pn2)
+            return NULL;
+        PopStatement(tc);
+        pn->pn_pos.end = pn2->pn_pos.end;
+        pn->pn_right = pn2;
+        if (VersionNumber(version) != JSVERSION_ECMA_3) {
+            
+
+
+
+
+            (void) tokenStream.matchToken(TOK_SEMI);
+            return pn;
+        }
+        break;
+
+      case TOK_FOR:
+      {
+        JSParseNode *pnseq = NULL;
+#if JS_HAS_BLOCK_SCOPE
+        JSParseNode *pnlet = NULL;
+        JSStmtInfo blockInfo;
+#endif
+
+        
+        pn = BinaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        js_PushStatement(tc, &stmtInfo, STMT_FOR_LOOP, -1);
+
+        pn->pn_op = JSOP_ITER;
+        pn->pn_iflags = 0;
+        if (tokenStream.matchToken(TOK_NAME)) {
+            if (tokenStream.currentToken().t_atom == context->runtime->atomState.eachAtom)
+                pn->pn_iflags = JSITER_FOREACH;
+            else
+                tokenStream.ungetToken();
+        }
+
+        MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_AFTER_FOR);
+        tt = tokenStream.peekToken(TSF_OPERAND);
+
+#if JS_HAS_BLOCK_SCOPE
+        bool let = false;
+#endif
+
+        if (tt == TOK_SEMI) {
+            if (pn->pn_iflags & JSITER_FOREACH)
+                goto bad_for_each;
+
+            
+            pn1 = NULL;
+        } else {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+            tc->flags |= TCF_IN_FOR_INIT;
+            if (tt == TOK_VAR) {
+                (void) tokenStream.getToken();
+                pn1 = variables(false);
+#if JS_HAS_BLOCK_SCOPE
+            } else if (tt == TOK_LET) {
+                let = true;
+                (void) tokenStream.getToken();
+                if (tokenStream.peekToken() == TOK_LP) {
+                    pn1 = letBlock(JS_FALSE);
+                    tt = TOK_LEXICALSCOPE;
+                } else {
+                    pnlet = PushLexicalScope(context, &tokenStream, tc, &blockInfo);
+                    if (!pnlet)
+                        return NULL;
+                    blockInfo.flags |= SIF_FOR_BLOCK;
+                    pn1 = variables(false);
+                }
+#endif
+            } else {
+                pn1 = expr();
+            }
+            tc->flags &= ~TCF_IN_FOR_INIT;
+            if (!pn1)
+                return NULL;
+        }
+
+        
+
+
+
+
+
+        if (pn1 && tokenStream.matchToken(TOK_IN)) {
+            pn->pn_iflags |= JSITER_ENUMERATE;
+            stmtInfo.type = STMT_FOR_IN_LOOP;
+
+            
+            JS_ASSERT(!TokenKindIsDecl(tt) || PN_TYPE(pn1) == tt);
+            if (TokenKindIsDecl(tt)
+                ? (pn1->pn_count > 1 || pn1->pn_op == JSOP_DEFCONST
+#if JS_HAS_DESTRUCTURING
+                   || (VersionNumber(version) == JSVERSION_1_7 &&
+                       pn->pn_op == JSOP_ITER &&
+                       !(pn->pn_iflags & JSITER_FOREACH) &&
+                       (pn1->pn_head->pn_type == TOK_RC ||
+                        (pn1->pn_head->pn_type == TOK_RB &&
+                         pn1->pn_head->pn_count != 2) ||
+                        (pn1->pn_head->pn_type == TOK_ASSIGN &&
+                         (pn1->pn_head->pn_left->pn_type != TOK_RB ||
+                          pn1->pn_head->pn_left->pn_count != 2))))
+#endif
+                  )
+                : (pn1->pn_type != TOK_NAME &&
+                   pn1->pn_type != TOK_DOT &&
+#if JS_HAS_DESTRUCTURING
+                   ((VersionNumber(version) == JSVERSION_1_7 &&
+                     pn->pn_op == JSOP_ITER &&
+                     !(pn->pn_iflags & JSITER_FOREACH))
+                    ? (pn1->pn_type != TOK_RB || pn1->pn_count != 2)
+                    : (pn1->pn_type != TOK_RB && pn1->pn_type != TOK_RC)) &&
+#endif
+                   pn1->pn_type != TOK_LP &&
+#if JS_HAS_XML_SUPPORT
+                   (pn1->pn_type != TOK_UNARYOP ||
+                    pn1->pn_op != JSOP_XMLNAME) &&
+#endif
+                   pn1->pn_type != TOK_LB)) {
+                reportErrorNumber(pn1, JSREPORT_ERROR, JSMSG_BAD_FOR_LEFTSIDE);
+                return NULL;
+            }
+
+            
+            pn2 = NULL;
+            uintN dflag = PND_ASSIGNED;
+
+            if (TokenKindIsDecl(tt)) {
+                
+                pn1->pn_xflags |= PNX_FORINVAR;
+
+                
+
+
+
+
+
+                pn2 = pn1->pn_head;
+                if ((pn2->pn_type == TOK_NAME && pn2->maybeExpr())
+#if JS_HAS_DESTRUCTURING
+                    || pn2->pn_type == TOK_ASSIGN
+#endif
+                    ) {
+                    pnseq = ListNode::create(tc);
+                    if (!pnseq)
+                        return NULL;
+                    pnseq->pn_type = TOK_SEQ;
+                    pnseq->pn_pos.begin = pn->pn_pos.begin;
+
+#if JS_HAS_BLOCK_SCOPE
+                    if (tt == TOK_LET) {
+                        
+
+
+
+                        pn3 = UnaryNode::create(tc);
+                        if (!pn3)
+                            return NULL;
+                        pn3->pn_type = TOK_SEMI;
+                        pn3->pn_op = JSOP_NOP;
+#if JS_HAS_DESTRUCTURING
+                        if (pn2->pn_type == TOK_ASSIGN) {
+                            pn4 = pn2->pn_right;
+                            pn2 = pn1->pn_head = pn2->pn_left;
+                        } else
+#endif
+                        {
+                            pn4 = pn2->pn_expr;
+                            pn2->pn_expr = NULL;
+                        }
+                        if (!RebindLets(pn4, tc))
+                            return NULL;
+                        pn3->pn_pos = pn4->pn_pos;
+                        pn3->pn_kid = pn4;
+                        pnseq->initList(pn3);
+                    } else
+#endif 
+                    {
+                        dflag = PND_INITIALIZED;
+
+                        
+
+
+
+
+
+
+
+                        pn1->pn_xflags &= ~PNX_FORINVAR;
+                        pn1->pn_xflags |= PNX_POPVAR;
+                        pnseq->initList(pn1);
+
+#if JS_HAS_DESTRUCTURING
+                        if (pn2->pn_type == TOK_ASSIGN) {
+                            pn1 = CloneParseTree(pn2->pn_left, tc);
+                            if (!pn1)
+                                return NULL;
+                        } else
+#endif
+                        {
+                            JS_ASSERT(pn2->pn_type == TOK_NAME);
+                            pn1 = NameNode::create(pn2->pn_atom, tc);
+                            if (!pn1)
+                                return NULL;
+                            pn1->pn_type = TOK_NAME;
+                            pn1->pn_op = JSOP_NAME;
+                            pn1->pn_pos = pn2->pn_pos;
+                            if (pn2->pn_defn)
+                                LinkUseToDef(pn1, (JSDefinition *) pn2, tc);
+                        }
+                        pn2 = pn1;
+                    }
+                }
+            }
+
+            if (!pn2) {
+                pn2 = pn1;
+                if (pn2->pn_type == TOK_LP &&
+                    !MakeSetCall(context, pn2, tc, JSMSG_BAD_LEFTSIDE_OF_ASS)) {
+                    return NULL;
+                }
+#if JS_HAS_XML_SUPPORT
+                if (pn2->pn_type == TOK_UNARYOP)
+                    pn2->pn_op = JSOP_BINDXMLNAME;
+#endif
+            }
+
+            switch (pn2->pn_type) {
+              case TOK_NAME:
+                
+                NoteLValue(context, pn2, tc, dflag);
+                break;
+
+#if JS_HAS_DESTRUCTURING
+              case TOK_ASSIGN:
+                pn2 = pn2->pn_left;
+                JS_ASSERT(pn2->pn_type == TOK_RB || pn2->pn_type == TOK_RC);
+                
+              case TOK_RB:
+              case TOK_RC:
+                
+                if (pn1 == pn2 && !CheckDestructuring(context, NULL, pn2, NULL, tc))
+                    return NULL;
+
+                if (VersionNumber(version) == JSVERSION_1_7) {
+                    
+
+
+
+                    JS_ASSERT(pn->pn_op == JSOP_ITER);
+                    if (!(pn->pn_iflags & JSITER_FOREACH))
+                        pn->pn_iflags |= JSITER_FOREACH | JSITER_KEYVALUE;
+                }
+                break;
+#endif
+
+              default:;
+            }
+
+            
+
+
+
+
+#if JS_HAS_BLOCK_SCOPE
+            JSStmtInfo *save = tc->topStmt;
+            if (let)
+                tc->topStmt = save->down;
+#endif
+            pn2 = expr();
+#if JS_HAS_BLOCK_SCOPE
+            if (let)
+                tc->topStmt = save;
+#endif
+
+            pn2 = JSParseNode::newBinaryOrAppend(TOK_IN, JSOP_NOP, pn1, pn2, tc);
+            if (!pn2)
+                return NULL;
+            pn->pn_left = pn2;
+        } else {
+            if (pn->pn_iflags & JSITER_FOREACH)
+                goto bad_for_each;
+            pn->pn_op = JSOP_NOP;
+
+            
+            MUST_MATCH_TOKEN(TOK_SEMI, JSMSG_SEMI_AFTER_FOR_INIT);
+            tt = tokenStream.peekToken(TSF_OPERAND);
+            if (tt == TOK_SEMI) {
+                pn2 = NULL;
+            } else {
+                pn2 = expr();
+                if (!pn2)
+                    return NULL;
+            }
+
+            
+            MUST_MATCH_TOKEN(TOK_SEMI, JSMSG_SEMI_AFTER_FOR_COND);
+            tt = tokenStream.peekToken(TSF_OPERAND);
+            if (tt == TOK_RP) {
+                pn3 = NULL;
+            } else {
+                pn3 = expr();
+                if (!pn3)
+                    return NULL;
+            }
+
+            
+            pn4 = TernaryNode::create(tc);
+            if (!pn4)
+                return NULL;
+            pn4->pn_type = TOK_FORHEAD;
+            pn4->pn_op = JSOP_NOP;
+            pn4->pn_kid1 = pn1;
+            pn4->pn_kid2 = pn2;
+            pn4->pn_kid3 = pn3;
+            pn->pn_left = pn4;
+        }
+
+        MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_FOR_CTRL);
+
+        
+        pn2 = statement();
+        if (!pn2)
+            return NULL;
+        pn->pn_right = pn2;
+
+        
+        pn->pn_pos.end = pn2->pn_pos.end;
+
+#if JS_HAS_BLOCK_SCOPE
+        if (pnlet) {
+            PopStatement(tc);
+            pnlet->pn_expr = pn;
+            pn = pnlet;
+        }
+#endif
+        if (pnseq) {
+            pnseq->pn_pos.end = pn->pn_pos.end;
+            pnseq->append(pn);
+            pn = pnseq;
+        }
+        PopStatement(tc);
+        return pn;
+
+      bad_for_each:
+        reportErrorNumber(pn, JSREPORT_ERROR, JSMSG_BAD_FOR_EACH_LOOP);
+        return NULL;
+      }
+
+      case TOK_TRY: {
+        JSParseNode *catchList, *lastCatch;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        pn = TernaryNode::create(tc);
+        if (!pn)
+            return NULL;
         pn->pn_op = JSOP_NOP;
 
-        
-        MUST_MATCH_TOKEN(TOK_SEMI, JSMSG_SEMI_AFTER_FOR_INIT);
-        tt = tokenStream.peekToken(TSF_OPERAND);
-        JSParseNode *pn2;
-        if (tt == TOK_SEMI) {
-            pn2 = NULL;
-        } else {
-            pn2 = expr();
-            if (!pn2)
-                return NULL;
-        }
-
-        
-        MUST_MATCH_TOKEN(TOK_SEMI, JSMSG_SEMI_AFTER_FOR_COND);
-        tt = tokenStream.peekToken(TSF_OPERAND);
-        JSParseNode *pn3;
-        if (tt == TOK_RP) {
-            pn3 = NULL;
-        } else {
-            pn3 = expr();
-            if (!pn3)
-                return NULL;
-        }
-
-        
-        JSParseNode *pn4 = TernaryNode::create(tc);
-        if (!pn4)
+        MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_TRY);
+        if (!PushBlocklikeStatement(&stmtInfo, STMT_TRY, tc))
             return NULL;
-        pn4->pn_type = TOK_FORHEAD;
-        pn4->pn_op = JSOP_NOP;
-        pn4->pn_kid1 = pn1;
-        pn4->pn_kid2 = pn2;
-        pn4->pn_kid3 = pn3;
-        pn->pn_left = pn4;
-    }
-
-    MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_FOR_CTRL);
-
-    
-    JSParseNode *pn2;
-    pn2 = statement();
-    if (!pn2)
-        return NULL;
-    pn->pn_right = pn2;
-
-    
-    pn->pn_pos.end = pn2->pn_pos.end;
-
-#if JS_HAS_BLOCK_SCOPE
-    if (pnlet) {
+        pn->pn_kid1 = statements();
+        if (!pn->pn_kid1)
+            return NULL;
+        MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_TRY);
         PopStatement(tc);
-        pnlet->pn_expr = pn;
-        pn = pnlet;
-    }
-#endif
-    if (pnseq) {
-        pnseq->pn_pos.end = pn->pn_pos.end;
-        pnseq->append(pn);
-        pn = pnseq;
-    }
-    PopStatement(tc);
-    return pn;
 
-  bad_for_each:
-    reportErrorNumber(pn, JSREPORT_ERROR, JSMSG_BAD_FOR_EACH_LOOP);
-    return NULL;
-}
-
-JSParseNode *
-Parser::tryStatement()
-{
-    JSParseNode *catchList, *lastCatch;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    JSParseNode *pn = TernaryNode::create(tc);
-    if (!pn)
-        return NULL;
-    pn->pn_op = JSOP_NOP;
-
-    MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_TRY);
-    JSStmtInfo stmtInfo;
-    if (!PushBlocklikeStatement(&stmtInfo, STMT_TRY, tc))
-        return NULL;
-    pn->pn_kid1 = statements();
-    if (!pn->pn_kid1)
-        return NULL;
-    MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_TRY);
-    PopStatement(tc);
-
-    catchList = NULL;
-    TokenKind tt = tokenStream.getToken();
-    if (tt == TOK_CATCH) {
-        catchList = ListNode::create(tc);
-        if (!catchList)
-            return NULL;
-        catchList->pn_type = TOK_RESERVED;
-        catchList->makeEmpty();
-        lastCatch = NULL;
-
-        do {
-            JSParseNode *pnblock;
-            BindData data;
-
-            
-            if (lastCatch && !lastCatch->pn_kid2) {
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_AFTER_GENERAL);
+        catchList = NULL;
+        tt = tokenStream.getToken();
+        if (tt == TOK_CATCH) {
+            catchList = ListNode::create(tc);
+            if (!catchList)
                 return NULL;
-            }
+            catchList->pn_type = TOK_RESERVED;
+            catchList->makeEmpty();
+            lastCatch = NULL;
 
-            
+            do {
+                JSParseNode *pnblock;
+                BindData data;
 
+                
+                if (lastCatch && !lastCatch->pn_kid2) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_AFTER_GENERAL);
+                    return NULL;
+                }
 
-
-            pnblock = PushLexicalScope(context, &tokenStream, tc, &stmtInfo);
-            if (!pnblock)
-                return NULL;
-            stmtInfo.type = STMT_CATCH;
-
-            
-
-
-
-
-
-
-            JSParseNode *pn2 = TernaryNode::create(tc);
-            if (!pn2)
-                return NULL;
-            pnblock->pn_expr = pn2;
-            MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_CATCH);
-
-            
+                
 
 
 
+                pnblock = PushLexicalScope(context, &tokenStream, tc, &stmtInfo);
+                if (!pnblock)
+                    return NULL;
+                stmtInfo.type = STMT_CATCH;
 
-            data.pn = NULL;
-            data.op = JSOP_NOP;
-            data.binder = BindLet;
-            data.let.overflow = JSMSG_TOO_MANY_CATCH_VARS;
+                
 
-            tt = tokenStream.getToken();
-            JSParseNode *pn3;
-            switch (tt) {
+
+
+
+
+
+                pn2 = TernaryNode::create(tc);
+                if (!pn2)
+                    return NULL;
+                pnblock->pn_expr = pn2;
+                MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_CATCH);
+
+                
+
+
+
+
+                data.pn = NULL;
+                data.op = JSOP_NOP;
+                data.binder = BindLet;
+                data.let.overflow = JSMSG_TOO_MANY_CATCH_VARS;
+
+                tt = tokenStream.getToken();
+                switch (tt) {
 #if JS_HAS_DESTRUCTURING
-              case TOK_LB:
-              case TOK_LC:
-                pn3 = destructuringExpr(&data, tt);
-                if (!pn3)
-                    return NULL;
-                break;
+                  case TOK_LB:
+                  case TOK_LC:
+                    pn3 = destructuringExpr(&data, tt);
+                    if (!pn3)
+                        return NULL;
+                    break;
 #endif
 
-              case TOK_NAME:
-              {
-                JSAtom *label = tokenStream.currentToken().t_atom;
-                pn3 = NewBindingNode(label, tc, true);
-                if (!pn3)
-                    return NULL;
-                data.pn = pn3;
-                if (!data.binder(context, &data, label, tc))
-                    return NULL;
-                break;
-              }
+                  case TOK_NAME:
+                    label = tokenStream.currentToken().t_atom;
+                    pn3 = NewBindingNode(label, tc, true);
+                    if (!pn3)
+                        return NULL;
+                    data.pn = pn3;
+                    if (!data.binder(context, &data, label, tc))
+                        return NULL;
+                    break;
 
-              default:
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_IDENTIFIER);
-                return NULL;
-            }
+                  default:
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_IDENTIFIER);
+                    return NULL;
+                }
 
-            pn2->pn_kid1 = pn3;
+                pn2->pn_kid1 = pn3;
 #if JS_HAS_CATCH_GUARD
-            
+                
 
 
 
 
-            if (tokenStream.matchToken(TOK_IF)) {
-                pn2->pn_kid2 = expr();
-                if (!pn2->pn_kid2)
-                    return NULL;
-            }
+                if (tokenStream.matchToken(TOK_IF)) {
+                    pn2->pn_kid2 = expr();
+                    if (!pn2->pn_kid2)
+                        return NULL;
+                }
 #endif
-            MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_CATCH);
+                MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_CATCH);
 
-            MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_CATCH);
-            pn2->pn_kid3 = statements();
-            if (!pn2->pn_kid3)
+                MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_CATCH);
+                pn2->pn_kid3 = statements();
+                if (!pn2->pn_kid3)
+                    return NULL;
+                MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_CATCH);
+                PopStatement(tc);
+
+                catchList->append(pnblock);
+                lastCatch = pn2;
+                tt = tokenStream.getToken(TSF_OPERAND);
+            } while (tt == TOK_CATCH);
+        }
+        pn->pn_kid2 = catchList;
+
+        if (tt == TOK_FINALLY) {
+            MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_FINALLY);
+            if (!PushBlocklikeStatement(&stmtInfo, STMT_FINALLY, tc))
                 return NULL;
-            MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_CATCH);
+            pn->pn_kid3 = statements();
+            if (!pn->pn_kid3)
+                return NULL;
+            MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_FINALLY);
             PopStatement(tc);
-
-            catchList->append(pnblock);
-            lastCatch = pn2;
-            tt = tokenStream.getToken(TSF_OPERAND);
-        } while (tt == TOK_CATCH);
-    }
-    pn->pn_kid2 = catchList;
-
-    if (tt == TOK_FINALLY) {
-        MUST_MATCH_TOKEN(TOK_LC, JSMSG_CURLY_BEFORE_FINALLY);
-        if (!PushBlocklikeStatement(&stmtInfo, STMT_FINALLY, tc))
+        } else {
+            tokenStream.ungetToken();
+        }
+        if (!catchList && !pn->pn_kid3) {
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_OR_FINALLY);
             return NULL;
-        pn->pn_kid3 = statements();
-        if (!pn->pn_kid3)
+        }
+        return pn;
+      }
+
+      case TOK_THROW:
+        pn = UnaryNode::create(tc);
+        if (!pn)
             return NULL;
-        MUST_MATCH_TOKEN(TOK_RC, JSMSG_CURLY_AFTER_FINALLY);
+
+        
+        tt = tokenStream.peekTokenSameLine(TSF_OPERAND);
+        if (tt == TOK_ERROR)
+            return NULL;
+        if (tt == TOK_EOF || tt == TOK_EOL || tt == TOK_SEMI || tt == TOK_RC) {
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
+            return NULL;
+        }
+
+        pn2 = expr();
+        if (!pn2)
+            return NULL;
+        pn->pn_pos.end = pn2->pn_pos.end;
+        pn->pn_op = JSOP_THROW;
+        pn->pn_kid = pn2;
+        break;
+
+      
+      case TOK_CATCH:
+        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_WITHOUT_TRY);
+        return NULL;
+
+      case TOK_FINALLY:
+        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_FINALLY_WITHOUT_TRY);
+        return NULL;
+
+      case TOK_BREAK:
+        pn = NullaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        if (!MatchLabel(context, &tokenStream, pn))
+            return NULL;
+        stmt = tc->topStmt;
+        label = pn->pn_atom;
+        if (label) {
+            for (; ; stmt = stmt->down) {
+                if (!stmt) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_LABEL_NOT_FOUND);
+                    return NULL;
+                }
+                if (stmt->type == STMT_LABEL && stmt->label == label)
+                    break;
+            }
+        } else {
+            for (; ; stmt = stmt->down) {
+                if (!stmt) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOUGH_BREAK);
+                    return NULL;
+                }
+                if (STMT_IS_LOOP(stmt) || stmt->type == STMT_SWITCH)
+                    break;
+            }
+        }
+        if (label)
+            pn->pn_pos.end = tokenStream.currentToken().pos.end;
+        break;
+
+      case TOK_CONTINUE:
+        pn = NullaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        if (!MatchLabel(context, &tokenStream, pn))
+            return NULL;
+        stmt = tc->topStmt;
+        label = pn->pn_atom;
+        if (label) {
+            for (stmt2 = NULL; ; stmt = stmt->down) {
+                if (!stmt) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_LABEL_NOT_FOUND);
+                    return NULL;
+                }
+                if (stmt->type == STMT_LABEL) {
+                    if (stmt->label == label) {
+                        if (!stmt2 || !STMT_IS_LOOP(stmt2)) {
+                            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_CONTINUE);
+                            return NULL;
+                        }
+                        break;
+                    }
+                } else {
+                    stmt2 = stmt;
+                }
+            }
+        } else {
+            for (; ; stmt = stmt->down) {
+                if (!stmt) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_CONTINUE);
+                    return NULL;
+                }
+                if (STMT_IS_LOOP(stmt))
+                    break;
+            }
+        }
+        if (label)
+            pn->pn_pos.end = tokenStream.currentToken().pos.end;
+        break;
+
+      case TOK_WITH:
+      {
+        
+
+
+
+
+
+
+
+        if (tc->flags & TCF_STRICT_MODE_CODE) {
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_STRICT_CODE_WITH);
+            return NULL;
+        }
+
+        pn = BinaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_WITH);
+        pn2 = parenExpr(NULL, NULL);
+        if (!pn2)
+            return NULL;
+        MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_WITH);
+        pn->pn_left = pn2;
+
+        JSParseNode *oldWith = tc->innermostWith;
+        tc->innermostWith = pn;
+
+        js_PushStatement(tc, &stmtInfo, STMT_WITH, -1);
+        pn2 = statement();
+        if (!pn2)
+            return NULL;
         PopStatement(tc);
-    } else {
-        tokenStream.ungetToken();
-    }
-    if (!catchList && !pn->pn_kid3) {
-        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_OR_FINALLY);
-        return NULL;
-    }
-    return pn;
-}
 
-JSParseNode *
-Parser::withStatement()
-{
-    
+        pn->pn_pos.end = pn2->pn_pos.end;
+        pn->pn_right = pn2;
+        tc->flags |= TCF_FUN_HEAVYWEIGHT;
+        tc->innermostWith = oldWith;
+
+        
 
 
 
+        JSAtomListIterator iter(&tc->lexdeps);
+        while (JSAtomListElement *ale = iter()) {
+            JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
+            DeoptimizeUsesWithin(lexdep, pn->pn_pos);
+        }
 
+        return pn;
+      }
 
+      case TOK_VAR:
+        pn = variables(false);
+        if (!pn)
+            return NULL;
 
-
-    if (tc->flags & TCF_STRICT_MODE_CODE) {
-        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_STRICT_CODE_WITH);
-        return NULL;
-    }
-
-    JSParseNode *pn = BinaryNode::create(tc);
-    if (!pn)
-        return NULL;
-    MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_BEFORE_WITH);
-    JSParseNode *pn2 = parenExpr();
-    if (!pn2)
-        return NULL;
-    MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_WITH);
-    pn->pn_left = pn2;
-
-    JSParseNode *oldWith = tc->innermostWith;
-    tc->innermostWith = pn;
-
-    JSStmtInfo stmtInfo;
-    js_PushStatement(tc, &stmtInfo, STMT_WITH, -1);
-    pn2 = statement();
-    if (!pn2)
-        return NULL;
-    PopStatement(tc);
-
-    pn->pn_pos.end = pn2->pn_pos.end;
-    pn->pn_right = pn2;
-    tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    tc->innermostWith = oldWith;
-
-    
-
-
-
-    for (AtomDefnRange r = tc->lexdeps->all(); !r.empty(); r.popFront()) {
-        JSDefinition *defn = r.front().value();
-        JSDefinition *lexdep = defn->resolve();
-        DeoptimizeUsesWithin(lexdep, pn->pn_pos);
-    }
-
-    return pn;
-}
+        
+        pn->pn_xflags |= PNX_POPVAR;
+        break;
 
 #if JS_HAS_BLOCK_SCOPE
-JSParseNode *
-Parser::letStatement()
-{
-    JSObjectBox *blockbox;
+      case TOK_LET:
+      {
+        JSObject *obj;
+        JSObjectBox *blockbox;
 
-    JSParseNode *pn;
-    do {
         
         if (tokenStream.peekToken() == TOK_LP) {
             pn = letBlock(JS_TRUE);
@@ -5471,7 +5633,7 @@ Parser::letStatement()
 
 
 
-        JSStmtInfo *stmt = tc->topStmt;
+        stmt = tc->topStmt;
         if (stmt &&
             (!STMT_MAYBE_SCOPE(stmt) || (stmt->flags & SIF_FOR_BLOCK))) {
             reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_LET_DECL_NOT_IN_BLOCK);
@@ -5479,7 +5641,8 @@ Parser::letStatement()
         }
 
         if (stmt && (stmt->flags & SIF_SCOPE)) {
-            JS_ASSERT(tc->blockChainBox == stmt->blockBox);
+            JS_ASSERT(tc->blockChain == stmt->blockObj);
+            obj = tc->blockChain;
         } else {
             if (!stmt || (stmt->flags & SIF_BODY_BLOCK)) {
                 
@@ -5526,19 +5689,20 @@ Parser::letStatement()
             stmt->flags |= SIF_SCOPE;
             stmt->downScope = tc->topScopeStmt;
             tc->topScopeStmt = stmt;
+            JS_SCOPE_DEPTH_METERING(++tc->scopeDepth > tc->maxScopeDepth &&
+                                    (tc->maxScopeDepth = tc->scopeDepth));
 
-            obj->setParent(tc->blockChain());
-            blockbox->parent = tc->blockChainBox;
-            tc->blockChainBox = blockbox;
-            stmt->blockBox = blockbox;
+            obj->setParent(tc->blockChain);
+            tc->blockChain = obj;
+            stmt->blockObj = obj;
 
 #ifdef DEBUG
-            JSParseNode *tmp = tc->blockNode;
-            JS_ASSERT(!tmp || tmp->pn_type != TOK_LEXICALSCOPE);
+            pn1 = tc->blockNode;
+            JS_ASSERT(!pn1 || pn1->pn_type != TOK_LEXICALSCOPE);
 #endif
 
             
-            JSParseNode *pn1 = LexicalScopeNode::create(tc);
+            pn1 = LexicalScopeNode::create(tc);
             if (!pn1)
                 return NULL;
 
@@ -5555,334 +5719,8 @@ Parser::letStatement()
         if (!pn)
             return NULL;
         pn->pn_xflags = PNX_POPVAR;
-    } while (0);
-
-    
-    return MatchOrInsertSemicolon(context, &tokenStream) ? pn : NULL;
-}
-#endif
-
-JSParseNode *
-Parser::expressionStatement()
-{
-    tokenStream.ungetToken();
-    JSParseNode *pn2 = expr();
-    if (!pn2)
-        return NULL;
-
-    if (tokenStream.peekToken() == TOK_COLON) {
-        if (pn2->pn_type != TOK_NAME) {
-            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_LABEL);
-            return NULL;
-        }
-        JSAtom *label = pn2->pn_atom;
-        for (JSStmtInfo *stmt = tc->topStmt; stmt; stmt = stmt->down) {
-            if (stmt->type == STMT_LABEL && stmt->label == label) {
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_DUPLICATE_LABEL);
-                return NULL;
-            }
-        }
-        ForgetUse(pn2);
-
-        (void) tokenStream.getToken();
-
-        
-        JSStmtInfo stmtInfo;
-        js_PushStatement(tc, &stmtInfo, STMT_LABEL, -1);
-        stmtInfo.label = label;
-        JSParseNode *pn = statement();
-        if (!pn)
-            return NULL;
-
-        
-        if (pn->pn_type == TOK_SEMI && !pn->pn_kid) {
-            pn->pn_type = TOK_LC;
-            pn->pn_arity = PN_LIST;
-            pn->makeEmpty();
-        }
-
-        
-        PopStatement(tc);
-        pn2->pn_type = TOK_COLON;
-        pn2->pn_pos.end = pn->pn_pos.end;
-        pn2->pn_expr = pn;
-        return pn2;
-    }
-
-    JSParseNode *pn = UnaryNode::create(tc);
-    if (!pn)
-        return NULL;
-    pn->pn_type = TOK_SEMI;
-    pn->pn_pos = pn2->pn_pos;
-    pn->pn_kid = pn2;
-
-    switch (PN_TYPE(pn2)) {
-      case TOK_LP:
-        
-
-
-
-        if (PN_TYPE(pn2->pn_head) == TOK_FUNCTION &&
-            !pn2->pn_head->pn_funbox->node->isFunArg()) {
-            pn2->pn_head->pn_funbox->tcflags |= TCF_FUN_MODULE_PATTERN;
-        }
-        break;
-      case TOK_ASSIGN:
-        
-
-
-
-
-        if (tc->funbox &&
-            PN_OP(pn2) == JSOP_NOP &&
-            PN_OP(pn2->pn_left) == JSOP_SETPROP &&
-            PN_OP(pn2->pn_left->pn_expr) == JSOP_THIS &&
-            PN_OP(pn2->pn_right) == JSOP_LAMBDA) {
-            JS_ASSERT(!pn2->pn_defn);
-            JS_ASSERT(!pn2->pn_used);
-            pn2->pn_right->pn_link = tc->funbox->methods;
-            tc->funbox->methods = pn2->pn_right;
-        }
-        break;
-      default:;
-    }
-
-    
-    return MatchOrInsertSemicolon(context, &tokenStream) ? pn : NULL;
-}
-
-JSParseNode *
-Parser::statement()
-{
-    JSParseNode *pn;
-
-    JS_CHECK_RECURSION(context, return NULL);
-
-    switch (tokenStream.getToken(TSF_OPERAND)) {
-      case TOK_FUNCTION:
-      {
-#if JS_HAS_XML_SUPPORT
-        TokenKind tt = tokenStream.peekToken(TSF_KEYWORD_IS_NAME);
-        if (tt == TOK_DBLCOLON)
-            goto expression;
-#endif
-        return functionStmt();
-      }
-
-      case TOK_IF:
-      {
-        
-        pn = TernaryNode::create(tc);
-        if (!pn)
-            return NULL;
-        JSParseNode *pn1 = condition();
-        if (!pn1)
-            return NULL;
-        JSStmtInfo stmtInfo;
-        js_PushStatement(tc, &stmtInfo, STMT_IF, -1);
-        JSParseNode *pn2 = statement();
-        if (!pn2)
-            return NULL;
-        JSParseNode *pn3;
-        if (tokenStream.matchToken(TOK_ELSE, TSF_OPERAND)) {
-            stmtInfo.type = STMT_ELSE;
-            pn3 = statement();
-            if (!pn3)
-                return NULL;
-            pn->pn_pos.end = pn3->pn_pos.end;
-        } else {
-            pn3 = NULL;
-            pn->pn_pos.end = pn2->pn_pos.end;
-        }
-        PopStatement(tc);
-        pn->pn_kid1 = pn1;
-        pn->pn_kid2 = pn2;
-        pn->pn_kid3 = pn3;
-        return pn;
-      }
-
-      case TOK_SWITCH:
-        return switchStatement();
-
-      case TOK_WHILE:
-      {
-        pn = BinaryNode::create(tc);
-        if (!pn)
-            return NULL;
-        JSStmtInfo stmtInfo;
-        js_PushStatement(tc, &stmtInfo, STMT_WHILE_LOOP, -1);
-        JSParseNode *pn2 = condition();
-        if (!pn2)
-            return NULL;
-        pn->pn_left = pn2;
-        JSParseNode *pn3 = statement();
-        if (!pn3)
-            return NULL;
-        PopStatement(tc);
-        pn->pn_pos.end = pn3->pn_pos.end;
-        pn->pn_right = pn3;
-        return pn;
-      }
-
-      case TOK_DO:
-      {
-        pn = BinaryNode::create(tc);
-        if (!pn)
-            return NULL;
-        JSStmtInfo stmtInfo;
-        js_PushStatement(tc, &stmtInfo, STMT_DO_LOOP, -1);
-        JSParseNode *pn2 = statement();
-        if (!pn2)
-            return NULL;
-        pn->pn_left = pn2;
-        MUST_MATCH_TOKEN(TOK_WHILE, JSMSG_WHILE_AFTER_DO);
-        JSParseNode *pn3 = condition();
-        if (!pn3)
-            return NULL;
-        PopStatement(tc);
-        pn->pn_pos.end = pn3->pn_pos.end;
-        pn->pn_right = pn3;
-        if (versionNumber() != JSVERSION_ECMA_3) {
-            
-
-
-
-
-            (void) tokenStream.matchToken(TOK_SEMI);
-            return pn;
-        }
         break;
       }
-
-      case TOK_FOR:
-        return forStatement();
-
-      case TOK_TRY:
-        return tryStatement();
-
-      case TOK_THROW:
-      {
-        pn = UnaryNode::create(tc);
-        if (!pn)
-            return NULL;
-
-        
-        TokenKind tt = tokenStream.peekTokenSameLine(TSF_OPERAND);
-        if (tt == TOK_ERROR)
-            return NULL;
-        if (tt == TOK_EOF || tt == TOK_EOL || tt == TOK_SEMI || tt == TOK_RC) {
-            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
-            return NULL;
-        }
-
-        JSParseNode *pn2 = expr();
-        if (!pn2)
-            return NULL;
-        pn->pn_pos.end = pn2->pn_pos.end;
-        pn->pn_op = JSOP_THROW;
-        pn->pn_kid = pn2;
-        break;
-      }
-
-      
-      case TOK_CATCH:
-        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_CATCH_WITHOUT_TRY);
-        return NULL;
-
-      case TOK_FINALLY:
-        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_FINALLY_WITHOUT_TRY);
-        return NULL;
-
-      case TOK_BREAK:
-      {
-        pn = NullaryNode::create(tc);
-        if (!pn)
-            return NULL;
-        if (!MatchLabel(context, &tokenStream, pn))
-            return NULL;
-        JSStmtInfo *stmt = tc->topStmt;
-        JSAtom *label = pn->pn_atom;
-        if (label) {
-            for (; ; stmt = stmt->down) {
-                if (!stmt) {
-                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_LABEL_NOT_FOUND);
-                    return NULL;
-                }
-                if (stmt->type == STMT_LABEL && stmt->label == label)
-                    break;
-            }
-        } else {
-            for (; ; stmt = stmt->down) {
-                if (!stmt) {
-                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOUGH_BREAK);
-                    return NULL;
-                }
-                if (STMT_IS_LOOP(stmt) || stmt->type == STMT_SWITCH)
-                    break;
-            }
-        }
-        if (label)
-            pn->pn_pos.end = tokenStream.currentToken().pos.end;
-        break;
-      }
-
-      case TOK_CONTINUE:
-      {
-        pn = NullaryNode::create(tc);
-        if (!pn)
-            return NULL;
-        if (!MatchLabel(context, &tokenStream, pn))
-            return NULL;
-        JSStmtInfo *stmt = tc->topStmt;
-        JSAtom *label = pn->pn_atom;
-        if (label) {
-            for (JSStmtInfo *stmt2 = NULL; ; stmt = stmt->down) {
-                if (!stmt) {
-                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_LABEL_NOT_FOUND);
-                    return NULL;
-                }
-                if (stmt->type == STMT_LABEL) {
-                    if (stmt->label == label) {
-                        if (!stmt2 || !STMT_IS_LOOP(stmt2)) {
-                            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_CONTINUE);
-                            return NULL;
-                        }
-                        break;
-                    }
-                } else {
-                    stmt2 = stmt;
-                }
-            }
-        } else {
-            for (; ; stmt = stmt->down) {
-                if (!stmt) {
-                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_CONTINUE);
-                    return NULL;
-                }
-                if (STMT_IS_LOOP(stmt))
-                    break;
-            }
-        }
-        if (label)
-            pn->pn_pos.end = tokenStream.currentToken().pos.end;
-        break;
-      }
-
-      case TOK_WITH:
-        return withStatement();
-
-      case TOK_VAR:
-        pn = variables(false);
-        if (!pn)
-            return NULL;
-
-        
-        pn->pn_xflags |= PNX_POPVAR;
-        break;
-
-#if JS_HAS_BLOCK_SCOPE
-      case TOK_LET:
-        return letStatement();
 #endif 
 
       case TOK_RETURN:
@@ -5897,7 +5735,6 @@ Parser::statement()
 
         oldflags = tc->flags;
         tc->flags = oldflags & ~TCF_HAS_FUNCTION_STMT;
-        JSStmtInfo stmtInfo;
         if (!PushBlocklikeStatement(&stmtInfo, STMT_BLOCK, tc))
             return NULL;
         pn = statements();
@@ -5919,6 +5756,7 @@ Parser::statement()
         return pn;
       }
 
+      case TOK_EOL:
       case TOK_SEMI:
         pn = UnaryNode::create(tc);
         if (!pn)
@@ -5926,6 +5764,7 @@ Parser::statement()
         pn->pn_type = TOK_SEMI;
         return pn;
 
+#if JS_HAS_DEBUGGER_KEYWORD
       case TOK_DEBUGGER:
         pn = NullaryNode::create(tc);
         if (!pn)
@@ -5933,10 +5772,10 @@ Parser::statement()
         pn->pn_type = TOK_DEBUGGER;
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
         break;
+#endif 
 
 #if JS_HAS_XML_SUPPORT
       case TOK_DEFAULT:
-      {
         pn = UnaryNode::create(tc);
         if (!pn)
             return NULL;
@@ -5952,14 +5791,13 @@ Parser::statement()
 
         
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        JSParseNode *pn2 = expr();
+        pn2 = expr();
         if (!pn2)
             return NULL;
         pn->pn_op = JSOP_DEFXMLNS;
         pn->pn_pos.end = pn2->pn_pos.end;
         pn->pn_kid = pn2;
         break;
-      }
 #endif
 
       case TOK_ERROR:
@@ -5969,7 +5807,87 @@ Parser::statement()
 #if JS_HAS_XML_SUPPORT
       expression:
 #endif
-        return expressionStatement();
+        tokenStream.ungetToken();
+        pn2 = expr();
+        if (!pn2)
+            return NULL;
+
+        if (tokenStream.peekToken() == TOK_COLON) {
+            if (pn2->pn_type != TOK_NAME) {
+                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_LABEL);
+                return NULL;
+            }
+            label = pn2->pn_atom;
+            for (stmt = tc->topStmt; stmt; stmt = stmt->down) {
+                if (stmt->type == STMT_LABEL && stmt->label == label) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_DUPLICATE_LABEL);
+                    return NULL;
+                }
+            }
+            ForgetUse(pn2);
+
+            (void) tokenStream.getToken();
+
+            
+            js_PushStatement(tc, &stmtInfo, STMT_LABEL, -1);
+            stmtInfo.label = label;
+            pn = statement();
+            if (!pn)
+                return NULL;
+
+            
+            if (pn->pn_type == TOK_SEMI && !pn->pn_kid) {
+                pn->pn_type = TOK_LC;
+                pn->pn_arity = PN_LIST;
+                pn->makeEmpty();
+            }
+
+            
+            PopStatement(tc);
+            pn2->pn_type = TOK_COLON;
+            pn2->pn_pos.end = pn->pn_pos.end;
+            pn2->pn_expr = pn;
+            return pn2;
+        }
+
+        pn = UnaryNode::create(tc);
+        if (!pn)
+            return NULL;
+        pn->pn_type = TOK_SEMI;
+        pn->pn_pos = pn2->pn_pos;
+        pn->pn_kid = pn2;
+
+        switch (PN_TYPE(pn2)) {
+          case TOK_LP:
+            
+
+
+
+            if (PN_TYPE(pn2->pn_head) == TOK_FUNCTION &&
+                !pn2->pn_head->pn_funbox->node->isFunArg()) {
+                pn2->pn_head->pn_funbox->tcflags |= TCF_FUN_MODULE_PATTERN;
+            }
+            break;
+          case TOK_ASSIGN:
+            
+
+
+
+
+            if (tc->funbox &&
+                PN_OP(pn2) == JSOP_NOP &&
+                PN_OP(pn2->pn_left) == JSOP_SETPROP &&
+                PN_OP(pn2->pn_left->pn_expr) == JSOP_THIS &&
+                PN_OP(pn2->pn_right) == JSOP_LAMBDA) {
+                JS_ASSERT(!pn2->pn_defn);
+                JS_ASSERT(!pn2->pn_used);
+                pn2->pn_right->pn_link = tc->funbox->methods;
+                tc->funbox->methods = pn2->pn_right;
+            }
+            break;
+          default:;
+        }
+        break;
     }
 
     
@@ -6024,7 +5942,7 @@ Parser::variables(bool inLetHead)
 
 
     if (let) {
-        JS_ASSERT(tc->blockChainBox == scopeStmt->blockBox);
+        JS_ASSERT(tc->blockChain == scopeStmt->blockObj);
         data.binder = BindLet;
         data.let.overflow = JSMSG_TOO_MANY_LOCALS;
     } else {
@@ -6041,7 +5959,7 @@ Parser::variables(bool inLetHead)
             if (!pn2)
                 return NULL;
 
-            if (!CheckDestructuring(context, &data, pn2, tc))
+            if (!CheckDestructuring(context, &data, pn2, NULL, tc))
                 return NULL;
             if ((tc->flags & TCF_IN_FOR_INIT) &&
                 tokenStream.peekToken() == TOK_IN) {
@@ -6067,9 +5985,8 @@ Parser::variables(bool inLetHead)
             }
 #endif
 
-            if (!init)
+            if (!init || !UndominateInitializers(pn2, init, tc))
                 return NULL;
-            UndominateInitializers(pn2, init->pn_pos.end, tc);
 
             pn2 = JSParseNode::newBinaryOrAppend(TOK_ASSIGN, JSOP_NOP, pn2, init, tc);
             if (!pn2)
@@ -6125,10 +6042,12 @@ Parser::variables(bool inLetHead)
                 pn2->pn_expr = init;
             }
 
-            JS_ASSERT_IF(pn2->pn_dflags & PND_GVAR, !(pn2->pn_dflags & PND_BOUND));
+            JS_ASSERT_IF((pn2->pn_dflags & PND_GVAR), PN_OP(pn2) == JSOP_GETGLOBAL);
 
             pn2->pn_op = (PN_OP(pn2) == JSOP_ARGUMENTS)
                          ? JSOP_SETNAME
+                         : (pn2->pn_dflags & PND_GVAR)
+                         ? JSOP_SETGLOBAL
                          : (pn2->pn_dflags & PND_BOUND)
                          ? JSOP_SETLOCAL
                          : (data.op == JSOP_DEFCONST)
@@ -6142,7 +6061,7 @@ Parser::variables(bool inLetHead)
 
             if (tc->inFunction() &&
                 atom == context->runtime->atomState.argumentsAtom) {
-                tc->noteArgumentsUse(pn2);
+                tc->noteArgumentsUse();
                 if (!let)
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
             }
@@ -6186,186 +6105,6 @@ Parser::expr()
     return pn;
 }
 
-
-
-
-
-
-
-#define BEGIN_EXPR_PARSER(name)                                               \
-    JS_ALWAYS_INLINE JSParseNode *                                            \
-    Parser::name##i()
-
-#define END_EXPR_PARSER(name)                                                 \
-    JS_NEVER_INLINE JSParseNode *                                             \
-    Parser::name##n() {                                                       \
-        return name##i();                                                     \
-    }
-
-BEGIN_EXPR_PARSER(mulExpr1)
-{
-    TokenKind tt;
-    JSParseNode *pn = unaryExpr();
-
-    
-
-
-
-
-    while (pn && ((tt = tokenStream.getToken()) == TOK_STAR || tt == TOK_DIVOP)) {
-        tt = tokenStream.currentToken().type;
-        JSOp op = tokenStream.currentToken().t_op;
-        pn = JSParseNode::newBinaryOrAppend(tt, op, pn, unaryExpr(), tc);
-    }
-    return pn;
-}
-END_EXPR_PARSER(mulExpr1)
-
-BEGIN_EXPR_PARSER(addExpr1)
-{
-    JSParseNode *pn = mulExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_PLUS, TOK_MINUS)) {
-        TokenKind tt = tokenStream.currentToken().type;
-        JSOp op = (tt == TOK_PLUS) ? JSOP_ADD : JSOP_SUB;
-        pn = JSParseNode::newBinaryOrAppend(tt, op, pn, mulExpr1n(), tc);
-    }
-    return pn;
-}
-END_EXPR_PARSER(addExpr1)
-
-BEGIN_EXPR_PARSER(shiftExpr1)
-{
-    JSParseNode *pn = addExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_SHOP)) {
-        JSOp op = tokenStream.currentToken().t_op;
-        pn = JSParseNode::newBinaryOrAppend(TOK_SHOP, op, pn, addExpr1n(), tc);
-    }
-    return pn;
-}
-END_EXPR_PARSER(shiftExpr1)
-
-BEGIN_EXPR_PARSER(relExpr1)
-{
-    uintN inForInitFlag = tc->flags & TCF_IN_FOR_INIT;
-
-    
-
-
-
-    tc->flags &= ~TCF_IN_FOR_INIT;
-
-    JSParseNode *pn = shiftExpr1i();
-    while (pn &&
-           (tokenStream.isCurrentTokenType(TOK_RELOP) ||
-            
-
-
-
-            (inForInitFlag == 0 && tokenStream.isCurrentTokenType(TOK_IN)) ||
-            tokenStream.isCurrentTokenType(TOK_INSTANCEOF))) {
-        TokenKind tt = tokenStream.currentToken().type;
-        JSOp op = tokenStream.currentToken().t_op;
-        pn = JSParseNode::newBinaryOrAppend(tt, op, pn, shiftExpr1n(), tc);
-    }
-    
-    tc->flags |= inForInitFlag;
-
-    return pn;
-}
-END_EXPR_PARSER(relExpr1)
-
-BEGIN_EXPR_PARSER(eqExpr1)
-{
-    JSParseNode *pn = relExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_EQOP)) {
-        JSOp op = tokenStream.currentToken().t_op;
-        pn = JSParseNode::newBinaryOrAppend(TOK_EQOP, op, pn, relExpr1n(), tc);
-    }
-    return pn;
-}
-END_EXPR_PARSER(eqExpr1)
-
-BEGIN_EXPR_PARSER(bitAndExpr1)
-{
-    JSParseNode *pn = eqExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_BITAND))
-        pn = JSParseNode::newBinaryOrAppend(TOK_BITAND, JSOP_BITAND, pn, eqExpr1n(), tc);
-    return pn;
-}
-END_EXPR_PARSER(bitAndExpr1)
-
-BEGIN_EXPR_PARSER(bitXorExpr1)
-{
-    JSParseNode *pn = bitAndExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_BITXOR))
-        pn = JSParseNode::newBinaryOrAppend(TOK_BITXOR, JSOP_BITXOR, pn, bitAndExpr1n(), tc);
-    return pn;
-}
-END_EXPR_PARSER(bitXorExpr1)
-
-BEGIN_EXPR_PARSER(bitOrExpr1)
-{
-    JSParseNode *pn = bitXorExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_BITOR))
-        pn = JSParseNode::newBinaryOrAppend(TOK_BITOR, JSOP_BITOR, pn, bitXorExpr1n(), tc);
-    return pn;
-}
-END_EXPR_PARSER(bitOrExpr1)
-
-BEGIN_EXPR_PARSER(andExpr1)
-{
-    JSParseNode *pn = bitOrExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_AND))
-        pn = JSParseNode::newBinaryOrAppend(TOK_AND, JSOP_AND, pn, bitOrExpr1n(), tc);
-    return pn;
-}
-END_EXPR_PARSER(andExpr1)
-
-JS_ALWAYS_INLINE JSParseNode *
-Parser::orExpr1()
-{
-    JSParseNode *pn = andExpr1i();
-    while (pn && tokenStream.isCurrentTokenType(TOK_OR))
-        pn = JSParseNode::newBinaryOrAppend(TOK_OR, JSOP_OR, pn, andExpr1n(), tc);
-    return pn;
-}
-
-JS_ALWAYS_INLINE JSParseNode *
-Parser::condExpr1()
-{
-    JSParseNode *pn = orExpr1();
-    if (pn && tokenStream.isCurrentTokenType(TOK_HOOK)) {
-        JSParseNode *pn1 = pn;
-        pn = TernaryNode::create(tc);
-        if (!pn)
-            return NULL;
-
-        
-
-
-
-
-        uintN oldflags = tc->flags;
-        tc->flags &= ~TCF_IN_FOR_INIT;
-        JSParseNode *pn2 = assignExpr();
-        tc->flags = oldflags | (tc->flags & TCF_FUN_FLAGS);
-
-        if (!pn2)
-            return NULL;
-        MUST_MATCH_TOKEN(TOK_COLON, JSMSG_COLON_IN_COND);
-        JSParseNode *pn3 = assignExpr();
-        if (!pn3)
-            return NULL;
-        pn->pn_pos.begin = pn1->pn_pos.begin;
-        pn->pn_pos.end = pn3->pn_pos.end;
-        pn->pn_kid1 = pn1;
-        pn->pn_kid2 = pn2;
-        pn->pn_kid3 = pn3;
-        tokenStream.getToken();     
-    }
-    return pn;
-}
-
 JSParseNode *
 Parser::assignExpr()
 {
@@ -6376,11 +6115,12 @@ Parser::assignExpr()
         return returnOrYield(true);
 #endif
 
-    JSParseNode *pn = condExpr1();
+    JSParseNode *pn = condExpr();
     if (!pn)
         return NULL;
 
-    if (!tokenStream.isCurrentTokenType(TOK_ASSIGN)) {
+    TokenKind tt = tokenStream.getToken();
+    if (tt != TOK_ASSIGN) {
         tokenStream.ungetToken();
         return pn;
     }
@@ -6408,7 +6148,7 @@ Parser::assignExpr()
             return NULL;
         }
         JSParseNode *rhs = assignExpr();
-        if (!rhs || !CheckDestructuring(context, NULL, pn, tc))
+        if (!rhs || !CheckDestructuring(context, NULL, pn, rhs, tc))
             return NULL;
         return JSParseNode::newBinaryOrAppend(TOK_ASSIGN, op, pn, rhs, tc);
       }
@@ -6450,6 +6190,164 @@ Parser::assignExpr()
     return JSParseNode::newBinaryOrAppend(TOK_ASSIGN, op, pn, rhs, tc);
 }
 
+JSParseNode *
+Parser::condExpr()
+{
+    JSParseNode *pn = orExpr();
+    if (pn && tokenStream.matchToken(TOK_HOOK)) {
+        JSParseNode *pn1 = pn;
+        pn = TernaryNode::create(tc);
+        if (!pn)
+            return NULL;
+
+        
+
+
+
+
+        uintN oldflags = tc->flags;
+        tc->flags &= ~TCF_IN_FOR_INIT;
+        JSParseNode *pn2 = assignExpr();
+        tc->flags = oldflags | (tc->flags & TCF_FUN_FLAGS);
+
+        if (!pn2)
+            return NULL;
+        MUST_MATCH_TOKEN(TOK_COLON, JSMSG_COLON_IN_COND);
+        JSParseNode *pn3 = assignExpr();
+        if (!pn3)
+            return NULL;
+        pn->pn_pos.begin = pn1->pn_pos.begin;
+        pn->pn_pos.end = pn3->pn_pos.end;
+        pn->pn_kid1 = pn1;
+        pn->pn_kid2 = pn2;
+        pn->pn_kid3 = pn3;
+    }
+    return pn;
+}
+
+JSParseNode *
+Parser::orExpr()
+{
+    JSParseNode *pn = andExpr();
+    while (pn && tokenStream.matchToken(TOK_OR))
+        pn = JSParseNode::newBinaryOrAppend(TOK_OR, JSOP_OR, pn, andExpr(), tc);
+    return pn;
+}
+
+JSParseNode *
+Parser::andExpr()
+{
+    JSParseNode *pn = bitOrExpr();
+    while (pn && tokenStream.matchToken(TOK_AND))
+        pn = JSParseNode::newBinaryOrAppend(TOK_AND, JSOP_AND, pn, bitOrExpr(), tc);
+    return pn;
+}
+
+JSParseNode *
+Parser::bitOrExpr()
+{
+    JSParseNode *pn = bitXorExpr();
+    while (pn && tokenStream.matchToken(TOK_BITOR))
+        pn = JSParseNode::newBinaryOrAppend(TOK_BITOR, JSOP_BITOR, pn, bitXorExpr(), tc);
+    return pn;
+}
+
+JSParseNode *
+Parser::bitXorExpr()
+{
+    JSParseNode *pn = bitAndExpr();
+    while (pn && tokenStream.matchToken(TOK_BITXOR))
+        pn = JSParseNode::newBinaryOrAppend(TOK_BITXOR, JSOP_BITXOR, pn, bitAndExpr(), tc);
+    return pn;
+}
+
+JSParseNode *
+Parser::bitAndExpr()
+{
+    JSParseNode *pn = eqExpr();
+    while (pn && tokenStream.matchToken(TOK_BITAND))
+        pn = JSParseNode::newBinaryOrAppend(TOK_BITAND, JSOP_BITAND, pn, eqExpr(), tc);
+    return pn;
+}
+
+JSParseNode *
+Parser::eqExpr()
+{
+    JSParseNode *pn = relExpr();
+    while (pn && tokenStream.matchToken(TOK_EQOP)) {
+        JSOp op = tokenStream.currentToken().t_op;
+        pn = JSParseNode::newBinaryOrAppend(TOK_EQOP, op, pn, relExpr(), tc);
+    }
+    return pn;
+}
+
+JSParseNode *
+Parser::relExpr()
+{
+    uintN inForInitFlag = tc->flags & TCF_IN_FOR_INIT;
+
+    
+
+
+
+    tc->flags &= ~TCF_IN_FOR_INIT;
+
+    JSParseNode *pn = shiftExpr();
+    while (pn &&
+           (tokenStream.matchToken(TOK_RELOP) ||
+            
+
+
+
+            (inForInitFlag == 0 && tokenStream.matchToken(TOK_IN)) ||
+            tokenStream.matchToken(TOK_INSTANCEOF))) {
+        TokenKind tt = tokenStream.currentToken().type;
+        JSOp op = tokenStream.currentToken().t_op;
+        pn = JSParseNode::newBinaryOrAppend(tt, op, pn, shiftExpr(), tc);
+    }
+    
+    tc->flags |= inForInitFlag;
+
+    return pn;
+}
+
+JSParseNode *
+Parser::shiftExpr()
+{
+    JSParseNode *pn = addExpr();
+    while (pn && tokenStream.matchToken(TOK_SHOP)) {
+        JSOp op = tokenStream.currentToken().t_op;
+        pn = JSParseNode::newBinaryOrAppend(TOK_SHOP, op, pn, addExpr(), tc);
+    }
+    return pn;
+}
+
+JSParseNode *
+Parser::addExpr()
+{
+    JSParseNode *pn = mulExpr();
+    while (pn &&
+           (tokenStream.matchToken(TOK_PLUS) ||
+            tokenStream.matchToken(TOK_MINUS))) {
+        TokenKind tt = tokenStream.currentToken().type;
+        JSOp op = (tt == TOK_PLUS) ? JSOP_ADD : JSOP_SUB;
+        pn = JSParseNode::newBinaryOrAppend(tt, op, pn, mulExpr(), tc);
+    }
+    return pn;
+}
+
+JSParseNode *
+Parser::mulExpr()
+{
+    JSParseNode *pn = unaryExpr();
+    while (pn && (tokenStream.matchToken(TOK_STAR) || tokenStream.matchToken(TOK_DIVOP))) {
+        TokenKind tt = tokenStream.currentToken().type;
+        JSOp op = tokenStream.currentToken().t_op;
+        pn = JSParseNode::newBinaryOrAppend(tt, op, pn, unaryExpr(), tc);
+    }
+    return pn;
+}
+
 static JSParseNode *
 SetLvalKid(JSContext *cx, TokenStream *ts, JSTreeContext *tc,
            JSParseNode *pn, JSParseNode *kid, const char *name)
@@ -6457,8 +6355,7 @@ SetLvalKid(JSContext *cx, TokenStream *ts, JSTreeContext *tc,
     if (kid->pn_type != TOK_NAME &&
         kid->pn_type != TOK_DOT &&
         (kid->pn_type != TOK_LP ||
-         (kid->pn_op != JSOP_CALL && kid->pn_op != JSOP_EVAL &&
-          kid->pn_op != JSOP_FUNCALL && kid->pn_op != JSOP_FUNAPPLY)) &&
+         (kid->pn_op != JSOP_CALL && kid->pn_op != JSOP_EVAL && kid->pn_op != JSOP_APPLY)) &&
 #if JS_HAS_XML_SUPPORT
         (kid->pn_type != TOK_UNARYOP || kid->pn_op != JSOP_XMLNAME) &&
 #endif
@@ -6574,30 +6471,22 @@ Parser::unaryExpr()
 
 
 
-        if (foldConstants && !js_FoldConstants(context, pn2, tc))
+        if (!js_FoldConstants(context, pn2, tc))
             return NULL;
         switch (pn2->pn_type) {
           case TOK_LP:
-            if (!(pn2->pn_xflags & PNX_SETCALL)) {
-                
-
-
-
-                if (!MakeSetCall(context, pn2, tc, JSMSG_BAD_DELETE_OPERAND))
-                    return NULL;
-                pn2->pn_xflags &= ~PNX_SETCALL;
+            if (pn2->pn_op != JSOP_SETCALL &&
+                !MakeSetCall(context, pn2, tc, JSMSG_BAD_DELETE_OPERAND)) {
+                return NULL;
             }
             break;
           case TOK_NAME:
             if (!ReportStrictModeError(context, &tokenStream, tc, pn,
-                                       JSMSG_DEPRECATED_DELETE_OPERAND)) {
+                                       JSMSG_DEPRECATED_DELETE_OPERAND))
                 return NULL;
-            }
             pn2->pn_op = JSOP_DELNAME;
-            if (pn2->pn_atom == context->runtime->atomState.argumentsAtom) {
+            if (pn2->pn_atom == context->runtime->atomState.argumentsAtom)
                 tc->flags |= TCF_FUN_HEAVYWEIGHT;
-                tc->countArgumentsUse(pn2);
-            }
             break;
           default:;
         }
@@ -6676,102 +6565,6 @@ class CompExprTransplanter {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-class GenexpGuard {
-    JSTreeContext   *tc;
-    uint32          startYieldCount;
-    uint32          startArgumentsCount;
-
-  public:
-    explicit GenexpGuard(JSTreeContext *tc)
-      : tc(tc)
-    {
-        if (tc->parenDepth == 0) {
-            tc->yieldCount = tc->argumentsCount = 0;
-            tc->yieldNode = tc->argumentsNode = NULL;
-        }
-        startYieldCount = tc->yieldCount;
-        startArgumentsCount = tc->argumentsCount;
-        tc->parenDepth++;
-    }
-
-    void endBody();
-    bool checkValidBody(JSParseNode *pn);
-    bool maybeNoteGenerator();
-};
-
-void
-GenexpGuard::endBody()
-{
-    tc->parenDepth--;
-}
-
-
-
-
-
-
-
-
-bool
-GenexpGuard::checkValidBody(JSParseNode *pn)
-{
-    if (tc->yieldCount > startYieldCount) {
-        JSParseNode *errorNode = tc->yieldNode;
-        if (!errorNode)
-            errorNode = pn;
-        tc->parser->reportErrorNumber(errorNode, JSREPORT_ERROR, JSMSG_BAD_GENEXP_BODY, js_yield_str);
-        return false;
-    }
-
-    if (tc->argumentsCount > startArgumentsCount) {
-        JSParseNode *errorNode = tc->argumentsNode;
-        if (!errorNode)
-            errorNode = pn;
-        tc->parser->reportErrorNumber(errorNode, JSREPORT_ERROR, JSMSG_BAD_GENEXP_BODY, js_arguments_str);
-        return false;
-    }
-
-    return true;
-}
-
-
-
-
-
-
-
-
-bool
-GenexpGuard::maybeNoteGenerator()
-{
-    if (tc->yieldCount > 0) {
-        tc->flags |= TCF_FUN_IS_GENERATOR;
-        if (!tc->inFunction()) {
-            tc->parser->reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_RETURN_OR_YIELD,
-                                          js_yield_str);
-            return false;
-        }
-    }
-    return true;
-}
-
-
-
-
-
-
 static bool
 BumpStaticLevel(JSParseNode *pn, JSTreeContext *tc)
 {
@@ -6807,35 +6600,28 @@ CompExprTransplanter::transplant(JSParseNode *pn)
 
     switch (pn->pn_arity) {
       case PN_LIST:
-        for (JSParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
-            if (!transplant(pn2))
-                return false;
-        }
+        for (JSParseNode *pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next)
+            transplant(pn2);
         if (pn->pn_pos >= root->pn_pos)
             AdjustBlockId(pn, adjust, tc);
         break;
 
       case PN_TERNARY:
-        if (!transplant(pn->pn_kid1) ||
-            !transplant(pn->pn_kid2) ||
-            !transplant(pn->pn_kid3))
-            return false;
+        transplant(pn->pn_kid1);
+        transplant(pn->pn_kid2);
+        transplant(pn->pn_kid3);
         break;
 
       case PN_BINARY:
-        if (!transplant(pn->pn_left))
-            return false;
+        transplant(pn->pn_left);
 
         
-        if (pn->pn_right != pn->pn_left) {
-            if (!transplant(pn->pn_right))
-                return false;
-        }
+        if (pn->pn_right != pn->pn_left)
+            transplant(pn->pn_right);
         break;
 
       case PN_UNARY:
-        if (!transplant(pn->pn_kid))
-            return false;
+        transplant(pn->pn_kid);
         break;
 
       case PN_FUNC:
@@ -6870,8 +6656,7 @@ CompExprTransplanter::transplant(JSParseNode *pn)
       }
 
       case PN_NAME:
-        if (!transplant(pn->maybeExpr()))
-            return false;
+        transplant(pn->maybeExpr());
         if (pn->pn_arity == PN_FUNC)
             --funcLevel;
 
@@ -6906,46 +6691,40 @@ CompExprTransplanter::transplant(JSParseNode *pn)
             JS_ASSERT(!stmt || stmt != tc->topStmt);
 #endif
             if (genexp && PN_OP(dn) != JSOP_CALLEE) {
-                JS_ASSERT(!tc->decls.lookupFirst(atom));
+                JS_ASSERT(!tc->decls.lookup(atom));
 
-                if (dn->pn_pos < root->pn_pos) {
-                    
-
-
-
-
-
-
-
-                    AtomDefnAddPtr p = tc->lexdeps->lookupForAdd(atom);
-                    JSDefinition *dn2 = MakePlaceholder(p, pn, tc);
-                    if (!dn2)
+                if (dn->pn_pos < root->pn_pos || dn->isPlaceholder()) {
+                    JSAtomListElement *ale = tc->lexdeps.add(tc->parser, dn->pn_atom);
+                    if (!ale)
                         return false;
-                    dn2->pn_pos = root->pn_pos;
 
-                    
+                    if (dn->pn_pos >= root->pn_pos) {
+                        tc->parent->lexdeps.remove(tc->parser, atom);
+                    } else {
+                        JSDefinition *dn2 = (JSDefinition *)NameNode::create(dn->pn_atom, tc);
+                        if (!dn2)
+                            return false;
 
+                        dn2->pn_type = dn->pn_type;
+                        dn2->pn_pos = root->pn_pos;
+                        dn2->pn_defn = true;
+                        dn2->pn_dflags |= PND_PLACEHOLDER;
 
+                        JSParseNode **pnup = &dn->dn_uses;
+                        JSParseNode *pnu;
+                        while ((pnu = *pnup) != NULL && pnu->pn_pos >= root->pn_pos) {
+                            pnu->pn_lexdef = dn2;
+                            dn2->pn_dflags |= pnu->pn_dflags & PND_USE2DEF_FLAGS;
+                            pnup = &pnu->pn_link;
+                        }
+                        dn2->dn_uses = dn->dn_uses;
+                        dn->dn_uses = *pnup;
+                        *pnup = NULL;
 
-                    JSParseNode **pnup = &dn->dn_uses;
-                    JSParseNode *pnu;
-                    while ((pnu = *pnup) != NULL && pnu->pn_pos >= root->pn_pos) {
-                        pnu->pn_lexdef = dn2;
-                        dn2->pn_dflags |= pnu->pn_dflags & PND_USE2DEF_FLAGS;
-                        pnup = &pnu->pn_link;
+                        dn = dn2;
                     }
-                    dn2->dn_uses = dn->dn_uses;
-                    dn->dn_uses = *pnup;
-                    *pnup = NULL;
-                } else if (dn->isPlaceholder()) {
-                    
 
-
-
-
-                    tc->parent->lexdeps->remove(atom);
-                    if (!tc->lexdeps->put(atom, dn))
-                        return false;
+                    ALE_SET_DEFN(ale, dn);
                 }
             }
         }
@@ -6955,8 +6734,7 @@ CompExprTransplanter::transplant(JSParseNode *pn)
         break;
 
       case PN_NAMESET:
-        if (!transplant(pn->pn_tree))
-            return false;
+        transplant(pn->pn_tree);
         break;
     }
     return true;
@@ -6972,7 +6750,7 @@ CompExprTransplanter::transplant(JSParseNode *pn)
 
 
 JSParseNode *
-Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
+Parser::comprehensionTail(JSParseNode *kid, uintN blockid,
                           TokenKind type, JSOp op)
 {
     uintN adjust;
@@ -7052,8 +6830,6 @@ Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
         }
         MUST_MATCH_TOKEN(TOK_LP, JSMSG_PAREN_AFTER_FOR);
 
-        GenexpGuard guard(tc);
-
         atom = NULL;
         tt = tokenStream.getToken();
         switch (tt) {
@@ -7096,23 +6872,14 @@ Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
             return NULL;
         MUST_MATCH_TOKEN(TOK_RP, JSMSG_PAREN_AFTER_FOR_CTRL);
 
-        guard.endBody();
-
-        if (isGenexp) {
-            if (!guard.checkValidBody(pn2))
-                return NULL;
-        } else if (!guard.maybeNoteGenerator()) {
-            return NULL;
-        }
-
         switch (tt) {
 #if JS_HAS_DESTRUCTURING
           case TOK_LB:
           case TOK_LC:
-            if (!CheckDestructuring(context, &data, pn3, tc))
+            if (!CheckDestructuring(context, &data, pn3, NULL, tc))
                 return NULL;
 
-            if (versionNumber() == JSVERSION_1_7) {
+            if (VersionNumber(version) == JSVERSION_1_7) {
                 
                 if (pn3->pn_type != TOK_RB || pn3->pn_count != 2) {
                     reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_FOR_LEFTSIDE);
@@ -7184,12 +6951,10 @@ Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
 
 
 JSParseNode *
-Parser::generatorExpr(JSParseNode *kid)
+Parser::generatorExpr(JSParseNode *pn, JSParseNode *kid)
 {
     
-    JSParseNode *pn = UnaryNode::create(tc);
-    if (!pn)
-        return NULL;
+    JS_ASSERT(pn->pn_arity == PN_UNARY);
     pn->pn_type = TOK_YIELD;
     pn->pn_op = JSOP_YIELD;
     pn->pn_parens = true;
@@ -7209,8 +6974,6 @@ Parser::generatorExpr(JSParseNode *kid)
     {
         JSTreeContext *outertc = tc;
         JSTreeContext gentc(tc->parser);
-        if (!gentc.init(context))
-            return NULL;
 
         JSFunctionBox *funbox = EnterFunction(genfn, &gentc);
         if (!funbox)
@@ -7242,7 +7005,7 @@ Parser::generatorExpr(JSParseNode *kid)
         genfn->pn_funbox = funbox;
         genfn->pn_blockid = gentc.bodyid;
 
-        JSParseNode *body = comprehensionTail(pn, outertc->blockid(), true);
+        JSParseNode *body = comprehensionTail(pn, outertc->blockid());
         if (!body)
             return NULL;
         JS_ASSERT(!genfn->pn_body);
@@ -7279,16 +7042,10 @@ Parser::argumentList(JSParseNode *listNode)
     if (tokenStream.matchToken(TOK_RP, TSF_OPERAND))
         return JS_TRUE;
 
-    GenexpGuard guard(tc);
-    bool arg0 = true;
-
     do {
         JSParseNode *argNode = assignExpr();
         if (!argNode)
             return JS_FALSE;
-        if (arg0)
-            guard.endBody();
-
 #if JS_HAS_GENERATORS
         if (argNode->pn_type == TOK_YIELD &&
             !argNode->pn_parens &&
@@ -7299,9 +7056,10 @@ Parser::argumentList(JSParseNode *listNode)
 #endif
 #if JS_HAS_GENERATOR_EXPRS
         if (tokenStream.matchToken(TOK_FOR)) {
-            if (!guard.checkValidBody(argNode))
+            JSParseNode *pn = UnaryNode::create(tc);
+            if (!pn)
                 return JS_FALSE;
-            argNode = generatorExpr(argNode);
+            argNode = generatorExpr(pn, argNode);
             if (!argNode)
                 return JS_FALSE;
             if (listNode->pn_count > 1 ||
@@ -7310,13 +7068,8 @@ Parser::argumentList(JSParseNode *listNode)
                                   js_generator_str);
                 return JS_FALSE;
             }
-        } else
+        }
 #endif
-        if (arg0 && !guard.maybeNoteGenerator())
-            return JS_FALSE;
-
-        arg0 = false;
-
         listNode->append(argNode);
     } while (tokenStream.matchToken(TOK_COMMA));
 
@@ -7335,7 +7088,7 @@ CheckForImmediatelyAppliedLambda(JSParseNode *pn)
         JS_ASSERT(pn->pn_arity == PN_FUNC);
 
         JSFunctionBox *funbox = pn->pn_funbox;
-        JS_ASSERT((funbox->function())->flags & JSFUN_LAMBDA);
+        JS_ASSERT(((JSFunction *) funbox->object)->flags & JSFUN_LAMBDA);
         if (!(funbox->tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME)))
             pn->pn_dflags &= ~PND_FUNARG;
     }
@@ -7399,23 +7152,9 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 return NULL;
 #if JS_HAS_XML_SUPPORT
             tt = tokenStream.getToken(TSF_OPERAND | TSF_KEYWORD_IS_NAME);
-
-            
-            JSParseNode *oldWith = tc->innermostWith;
-            JSStmtInfo stmtInfo;
-            if (tt == TOK_LP) {
-                tc->innermostWith = pn;
-                js_PushStatement(tc, &stmtInfo, STMT_WITH, -1);
-            }
-
             pn3 = primaryExpr(tt, JS_TRUE);
             if (!pn3)
                 return NULL;
-
-            if (tt == TOK_LP) {
-                tc->innermostWith = oldWith;
-                PopStatement(tc);
-            }
 
             
             if (tt == TOK_NAME && pn3->pn_type == TOK_NAME) {
@@ -7525,19 +7264,13 @@ Parser::memberExpr(JSBool allowCallSyntax)
                     pn2->pn_op = JSOP_EVAL;
                     tc->noteCallsEval();
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
-                    
-
-
-
-                    if (!tc->inStrictMode())
-                        tc->noteHasExtensibleScope();
                 }
             } else if (pn->pn_op == JSOP_GETPROP) {
-                
-                if (pn->pn_atom == context->runtime->atomState.applyAtom)
-                    pn2->pn_op = JSOP_FUNAPPLY;
-                else if (pn->pn_atom == context->runtime->atomState.callAtom)
-                    pn2->pn_op = JSOP_FUNCALL;
+                if (pn->pn_atom == context->runtime->atomState.applyAtom ||
+                    pn->pn_atom == context->runtime->atomState.callAtom) {
+                    
+                    pn2->pn_op = JSOP_APPLY;
+                }
             }
 
             pn2->initList(pn);
@@ -8104,9 +7837,11 @@ Parser::xmlElementOrList(JSBool allowList)
                 return NULL;
             }
             if (endAtom && startAtom && endAtom != startAtom) {
+                JSString *str = ATOM_TO_STRING(startAtom);
+
                 
                 reportErrorNumber(pn2, JSREPORT_UC | JSREPORT_ERROR, JSMSG_XML_TAG_NAME_MISMATCH,
-                                  startAtom->chars());
+                                  str->chars());
                 return NULL;
             }
 
@@ -8152,16 +7887,26 @@ Parser::xmlElementOrList(JSBool allowList)
 JSParseNode *
 Parser::xmlElementOrListRoot(JSBool allowList)
 {
+    uint32 oldopts;
+    JSParseNode *pn;
+
     
 
 
 
 
 
-    bool hadXML = tokenStream.hasXML();
-    tokenStream.setXML(true);
-    JSParseNode *pn = xmlElementOrList(allowList);
-    tokenStream.setXML(hadXML);
+    oldopts = JS_SetOptions(context, context->options | JSOPTION_XML);
+    version = context->findVersion();
+    tokenStream.setVersion(version);
+    JS_ASSERT(VersionHasXML(version));
+
+    pn = xmlElementOrList(allowList);
+
+    JS_SetOptions(context, oldopts);
+    version = context->findVersion();
+    tokenStream.setVersion(version);
+    JS_ASSERT(!!(oldopts & JSOPTION_XML) == VersionHasXML(version));
     return pn;
 }
 
@@ -8174,9 +7919,7 @@ Parser::parseXMLText(JSObject *chain, bool allowList)
 
 
     JSTreeContext xmltc(this);
-    if (!xmltc.init(context))
-        return NULL;
-    xmltc.setScopeChain(chain);
+    xmltc.scopeChain = chain;
 
     
     tokenStream.setXMLOnlyMode();
@@ -8229,30 +7972,6 @@ BlockIdInScope(uintN blockid, JSTreeContext *tc)
     return false;
 }
 #endif
-
-bool
-JSParseNode::isConstant()
-{
-    switch (pn_type) {
-      case TOK_NUMBER:
-      case TOK_STRING:
-        return true;
-      case TOK_PRIMARY:
-        switch (pn_op) {
-          case JSOP_NULL:
-          case JSOP_FALSE:
-          case JSOP_TRUE:
-            return true;
-          default:
-            return false;
-        }
-      case TOK_RB:
-      case TOK_RC:
-        return (pn_op == JSOP_NEWINIT) && !(pn_xflags & PNX_NONCONST);
-      default:
-        return false;
-    }
-}
 
 JSParseNode *
 Parser::primaryExpr(TokenKind tt, JSBool afterDot)
@@ -8315,11 +8034,9 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                     
                     tokenStream.matchToken(TOK_COMMA);
                     pn2 = NullaryNode::create(tc);
-                    pn->pn_xflags |= PNX_HOLEY | PNX_NONCONST;
+                    pn->pn_xflags |= PNX_HOLEY;
                 } else {
                     pn2 = assignExpr();
-                    if (pn2 && !pn2->isConstant())
-                        pn->pn_xflags |= PNX_NONCONST;
                 }
                 if (!pn2)
                     return NULL;
@@ -8392,7 +8109,7 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                 pn->pn_tail = &pn->pn_head;
                 *pn->pn_tail = NULL;
 
-                pntop = comprehensionTail(pnexp, pn->pn_blockid, false,
+                pntop = comprehensionTail(pnexp, pn->pn_blockid,
                                           TOK_ARRAYPUSH, JSOP_ARRAYPUSH);
                 if (!pntop)
                     return NULL;
@@ -8415,13 +8132,10 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-        AtomIndexMap seen(context);
 
-        enum AssignmentType {
-            GET     = 0x1,
-            SET     = 0x2,
-            VALUE   = 0x4 | GET | SET
-        };
+
+
+        JSAutoAtomList seen(tc->parser);
 
         pn = ListNode::create(tc);
         if (!pn)
@@ -8440,8 +8154,16 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                 if (!pn3)
                     return NULL;
                 pn3->pn_dval = tokenStream.currentToken().t_dval;
-                if (!js_ValueToAtom(context, DoubleValue(pn3->pn_dval), &atom))
-                    return NULL;
+                if (tc->needStrictChecks()) {
+                    
+
+
+
+                    if (!js_ValueToAtom(context, DoubleValue(pn3->pn_dval), &atom))
+                        return NULL;
+                } else {
+                    atom = NULL; 
+                }
                 break;
               case TOK_NAME:
                 {
@@ -8464,17 +8186,23 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                         if (!pn3)
                             return NULL;
                         pn3->pn_dval = tokenStream.currentToken().t_dval;
-                        if (!js_ValueToAtom(context, DoubleValue(pn3->pn_dval), &atom))
-                            return NULL;
+                        if (tc->needStrictChecks()) {
+                            
+
+
+
+                            if (!js_ValueToAtom(context, DoubleValue(pn3->pn_dval), &atom))
+                                return NULL;
+                        } else {
+                            atom = NULL; 
+                        }
                     } else {
                         tokenStream.ungetToken();
                         goto property_name;
                     }
 
-                    pn->pn_xflags |= PNX_NONCONST;
-
                     
-                    pn2 = functionDef(NULL, op == JSOP_GETTER ? Getter : Setter, Expression);
+                    pn2 = functionDef(NULL, op == JSOP_SETTER ? SETTER : GETTER, JSFUN_LAMBDA);
                     pn2 = JSParseNode::newBinaryOrAppend(TOK_COLON, op, pn3, pn2, tc);
                     goto skip;
                 }
@@ -8497,8 +8225,6 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
             tt = tokenStream.getToken();
             if (tt == TOK_COLON) {
                 pnval = assignExpr();
-                if (pnval && !pnval->isConstant())
-                    pn->pn_xflags |= PNX_NONCONST;
             } else {
 #if JS_HAS_DESTRUCTURING_SHORTHAND
                 if (tt != TOK_COMMA && tt != TOK_RC) {
@@ -8513,7 +8239,7 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
                 tokenStream.ungetToken();
-                pn->pn_xflags |= PNX_DESTRUCT | PNX_NONCONST;
+                pn->pn_xflags |= PNX_DESTRUCT;
                 pnval = pn3;
                 if (pnval->pn_type == TOK_NAME) {
                     pnval->pn_arity = PN_NAME;
@@ -8533,45 +8259,36 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-
-            AssignmentType assignType;
-            if (op == JSOP_INITPROP) {
-                assignType = VALUE;
-            } else if (op == JSOP_GETTER) {
-                assignType = GET;
-            } else if (op == JSOP_SETTER) {
-                assignType = SET;
-            } else {
-                JS_NOT_REACHED("bad opcode in object initializer");
-                assignType = VALUE; 
-            }
-
-            AtomIndexAddPtr p = seen.lookupForAdd(atom);
-            if (p) {
-                jsatomid index = p.value();
-                AssignmentType oldAssignType = AssignmentType(index);
-                if ((oldAssignType & assignType) &&
-                    (oldAssignType != VALUE || assignType != VALUE || tc->needStrictChecks()))
-                {
-                    JSAutoByteString name;
-                    if (!js_AtomToPrintableString(context, atom, &name))
-                        return NULL;
-
-                    uintN flags = (oldAssignType == VALUE &&
-                                   assignType == VALUE &&
-                                   !tc->inStrictMode())
-                                  ? JSREPORT_WARNING
-                                  : JSREPORT_ERROR;
-                    if (!ReportCompileErrorNumber(context, &tokenStream, NULL, flags,
-                                                  JSMSG_DUPLICATE_PROPERTY, name.ptr()))
-                    {
-                        return NULL;
-                    }
+            if (tc->needStrictChecks()) {
+                unsigned attributesMask;
+                if (op == JSOP_INITPROP) {
+                    attributesMask = JSPROP_GETTER | JSPROP_SETTER;
+                } else if (op == JSOP_GETTER) {
+                    attributesMask = JSPROP_GETTER;
+                } else if (op == JSOP_SETTER) {
+                    attributesMask = JSPROP_SETTER;
+                } else {
+                    JS_NOT_REACHED("bad opcode in object initializer");
+                    attributesMask = 0;
                 }
-                p.value() = assignType | oldAssignType;
-            } else {
-                if (!seen.add(p, atom, assignType))
-                    return NULL;
+
+                JSAtomListElement *ale = seen.lookup(atom);
+                if (ale) {
+                    if (ALE_INDEX(ale) & attributesMask) {
+                        const char *name = js_AtomToPrintableString(context, atom);
+                        if (!name ||
+                            !ReportStrictModeError(context, &tokenStream, tc, NULL,
+                                                   JSMSG_DUPLICATE_PROPERTY, name)) {
+                            return NULL;
+                        }
+                    }
+                    ALE_SET_INDEX(ale, attributesMask | ALE_INDEX(ale));
+                } else {
+                    ale = seen.add(tc->parser, atom);
+                    if (!ale)
+                        return NULL;
+                    ALE_SET_INDEX(ale, attributesMask);
+                }
             }
 
             tt = tokenStream.getToken();
@@ -8634,7 +8351,7 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
       {
         JSBool genexp;
 
-        pn = parenExpr(&genexp);
+        pn = parenExpr(NULL, &genexp);
         if (!pn)
             return NULL;
         pn->pn_parens = true;
@@ -8701,14 +8418,13 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-            tc->noteArgumentsUse(pn);
+            tc->noteArgumentsUse();
 
             
 
 
 
-            if (!afterDot && !(tc->flags & TCF_DECL_DESTRUCTURING)
-                && !tc->inStatement(STMT_WITH)) {
+            if (!afterDot && !(tc->flags & TCF_DECL_DESTRUCTURING) && !tc->inStatement(STMT_WITH)) {
                 pn->pn_op = JSOP_ARGUMENTS;
                 pn->pn_dflags |= PND_BOUND;
             }
@@ -8717,99 +8433,99 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                     || tokenStream.peekToken() == TOK_DBLCOLON
 #endif
                    ) && !(tc->flags & TCF_DECL_DESTRUCTURING)) {
-            
-            if (!tc->inFunction() &&
-                pn->pn_atom == context->runtime->atomState.argumentsAtom) {
-                tc->countArgumentsUse(pn);
-            }
-
             JSStmtInfo *stmt = js_LexicalLookup(tc, pn->pn_atom, NULL);
+            if (!stmt || stmt->type != STMT_WITH) {
+                JSDefinition *dn;
 
-            MultiDeclRange mdl = tc->decls.lookupMulti(pn->pn_atom);
-            JSDefinition *dn;
-
-            if (!mdl.empty()) {
-                dn = mdl.front();
+                JSAtomListElement *ale = tc->decls.lookup(pn->pn_atom);
+                if (ale) {
+                    dn = ALE_DEFN(ale);
 #if JS_HAS_BLOCK_SCOPE
-                
+                    
 
 
 
 
 
-                while (dn->isLet() && !BlockIdInScope(dn->pn_blockid, tc)) {
-                    mdl.popFront();
-                    if (mdl.empty())
-                        break;
-                    dn = mdl.front();
-                }
+                    while (dn->isLet() && !BlockIdInScope(dn->pn_blockid, tc)) {
+                        do {
+                            ale = ALE_NEXT(ale);
+                        } while (ale && ALE_ATOM(ale) != pn->pn_atom);
+                        if (!ale)
+                            break;
+                        dn = ALE_DEFN(ale);
+                    }
 #endif
-            }
-
-            if (!mdl.empty()) {
-                dn = mdl.front();
-            } else {
-                AtomDefnAddPtr p = tc->lexdeps->lookupForAdd(pn->pn_atom);
-                if (p) {
-                    dn = p.value();
-                } else {
-                    
-
-
-
-
-
-
-
-                    dn = MakePlaceholder(p, pn, tc);
-                    if (!dn)
-                        return NULL;
-
-                    
-
-
-
-
-
-
-
-
-
-
-                    if (tokenStream.peekToken() != TOK_LP)
-                        dn->pn_dflags |= PND_FUNARG;
                 }
+
+                if (ale) {
+                    dn = ALE_DEFN(ale);
+                } else {
+                    ale = tc->lexdeps.lookup(pn->pn_atom);
+                    if (ale) {
+                        dn = ALE_DEFN(ale);
+                    } else {
+                        
+
+
+
+
+
+
+
+
+                        ale = MakePlaceholder(pn, tc);
+                        if (!ale)
+                            return NULL;
+                        dn = ALE_DEFN(ale);
+
+                        
+
+
+
+
+
+
+
+
+
+
+                        JS_ASSERT(PN_TYPE(dn) == TOK_NAME);
+                        JS_ASSERT(dn->pn_op == JSOP_NOP);
+                        if (tokenStream.peekToken() != TOK_LP)
+                            dn->pn_dflags |= PND_FUNARG;
+                    }
+                }
+
+                JS_ASSERT(dn->pn_defn);
+                LinkUseToDef(pn, dn, tc);
+
+                
+                if (tokenStream.peekToken() != TOK_LP)
+                    dn->pn_dflags |= PND_FUNARG;
+
+                pn->pn_dflags |= (dn->pn_dflags & PND_FUNARG);
             }
-
-            JS_ASSERT(dn->pn_defn);
-            LinkUseToDef(pn, dn, tc);
-
-            
-            if (tokenStream.peekToken() != TOK_LP)
-                dn->pn_dflags |= PND_FUNARG;
-
-            pn->pn_dflags |= (dn->pn_dflags & PND_FUNARG);
-            if (stmt && stmt->type == STMT_WITH)
-                pn->pn_dflags |= PND_DEOPTIMIZED;
         }
 
 #if JS_HAS_XML_SUPPORT
         if (tokenStream.matchToken(TOK_DBLCOLON)) {
             if (afterDot) {
+                JSString *str;
+
                 
 
 
 
 
-                const KeywordInfo *ki = FindKeyword(pn->pn_atom->charsZ(), pn->pn_atom->length());
-                if (ki) {
-                    if (ki->tokentype != TOK_FUNCTION) {
-                        reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_KEYWORD_NOT_NS);
-                        return NULL;
-                    }
-
+                str = ATOM_TO_STRING(pn->pn_atom);
+                tt = js_CheckKeyword(str->chars(), str->length());
+                if (tt == TOK_FUNCTION) {
                     pn->pn_arity = PN_NULLARY;
                     pn->pn_type = TOK_FUNCTION;
+                } else if (tt != TOK_EOF) {
+                    reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_KEYWORD_NOT_NS);
+                    return NULL;
                 }
             }
             pn = qualifiedSuffix(pn);
@@ -8830,14 +8546,12 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
             obj = RegExp::createObject(context, context->regExpStatics(),
                                        tokenStream.getTokenbuf().begin(),
                                        tokenStream.getTokenbuf().length(),
-                                       tokenStream.currentToken().t_reflags,
-                                       &tokenStream);
+                                       tokenStream.currentToken().t_reflags);
         } else {
             obj = RegExp::createObjectNoStatics(context,
                                                 tokenStream.getTokenbuf().begin(),
                                                 tokenStream.getTokenbuf().length(),
-                                                tokenStream.currentToken().t_reflags,
-                                                &tokenStream);
+                                                tokenStream.currentToken().t_reflags);
         }
 
         if (!obj)
@@ -8882,7 +8596,7 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 }
 
 JSParseNode *
-Parser::parenExpr(JSBool *genexp)
+Parser::parenExpr(JSParseNode *pn1, JSBool *genexp)
 {
     TokenPtr begin;
     JSParseNode *pn;
@@ -8892,25 +8606,27 @@ Parser::parenExpr(JSBool *genexp)
 
     if (genexp)
         *genexp = JS_FALSE;
-
-    GenexpGuard guard(tc);
-
     pn = bracketedExpr();
     if (!pn)
         return NULL;
-    guard.endBody();
 
 #if JS_HAS_GENERATOR_EXPRS
     if (tokenStream.matchToken(TOK_FOR)) {
-        if (!guard.checkValidBody(pn))
+        if (pn->pn_type == TOK_YIELD && !pn->pn_parens) {
+            reportErrorNumber(pn, JSREPORT_ERROR, JSMSG_BAD_GENERATOR_SYNTAX, js_yield_str);
             return NULL;
-        JS_ASSERT(pn->pn_type != TOK_YIELD);
+        }
         if (pn->pn_type == TOK_COMMA && !pn->pn_parens) {
             reportErrorNumber(pn->last(), JSREPORT_ERROR, JSMSG_BAD_GENERATOR_SYNTAX,
                               js_generator_str);
             return NULL;
         }
-        pn = generatorExpr(pn);
+        if (!pn1) {
+            pn1 = UnaryNode::create(tc);
+            if (!pn1)
+                return NULL;
+        }
+        pn = generatorExpr(pn1, pn);
         if (!pn)
             return NULL;
         pn->pn_pos.begin = begin;
@@ -8923,11 +8639,8 @@ Parser::parenExpr(JSBool *genexp)
             pn->pn_pos.end = tokenStream.currentToken().pos.end;
             *genexp = JS_TRUE;
         }
-    } else
+    }
 #endif 
-
-    if (!guard.maybeNoteGenerator())
-        return NULL;
 
     return pn;
 }
@@ -8944,7 +8657,7 @@ FoldType(JSContext *cx, JSParseNode *pn, TokenKind type)
           case TOK_NUMBER:
             if (pn->pn_type == TOK_STRING) {
                 jsdouble d;
-                if (!ValueToNumber(cx, StringValue(pn->pn_atom), &d))
+                if (!ValueToNumber(cx, StringValue(ATOM_TO_STRING(pn->pn_atom)), &d))
                     return JS_FALSE;
                 pn->pn_dval = d;
                 pn->pn_type = TOK_NUMBER;
@@ -8957,7 +8670,7 @@ FoldType(JSContext *cx, JSParseNode *pn, TokenKind type)
                 JSString *str = js_NumberToString(cx, pn->pn_dval);
                 if (!str)
                     return JS_FALSE;
-                pn->pn_atom = js_AtomizeString(cx, str);
+                pn->pn_atom = js_AtomizeString(cx, str, 0);
                 if (!pn->pn_atom)
                     return JS_FALSE;
                 pn->pn_type = TOK_STRING;
@@ -9070,12 +8783,11 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
     pnp = &pn->pn_head;
     pn1 = *pnp;
     accum = NULL;
-    str = NULL;
     if ((pn->pn_xflags & PNX_CANTFOLD) == 0) {
         if (tt == TOK_XMLETAGO)
-            accum = cx->runtime->atomState.etagoAtom;
+            accum = ATOM_TO_STRING(cx->runtime->atomState.etagoAtom);
         else if (tt == TOK_XMLSTAGO || tt == TOK_XMLPTAGC)
-            accum = cx->runtime->atomState.stagoAtom;
+            accum = ATOM_TO_STRING(cx->runtime->atomState.stagoAtom);
     }
 
     
@@ -9099,23 +8811,24 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
           case TOK_STRING:
             if (pn2->pn_arity == PN_LIST)
                 goto cantfold;
-            str = pn2->pn_atom;
+            str = ATOM_TO_STRING(pn2->pn_atom);
             break;
 
           case TOK_XMLCDATA:
-            str = js_MakeXMLCDATAString(cx, pn2->pn_atom);
+            str = js_MakeXMLCDATAString(cx, ATOM_TO_STRING(pn2->pn_atom));
             if (!str)
                 return JS_FALSE;
             break;
 
           case TOK_XMLCOMMENT:
-            str = js_MakeXMLCommentString(cx, pn2->pn_atom);
+            str = js_MakeXMLCommentString(cx, ATOM_TO_STRING(pn2->pn_atom));
             if (!str)
                 return JS_FALSE;
             break;
 
           case TOK_XMLPI:
-            str = js_MakeXMLPIString(cx, pn2->pn_atom, pn2->pn_atom2);
+            str = js_MakeXMLPIString(cx, ATOM_TO_STRING(pn2->pn_atom),
+                                         ATOM_TO_STRING(pn2->pn_atom2));
             if (!str)
                 return JS_FALSE;
             break;
@@ -9128,7 +8841,7 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
 #ifdef DEBUG_brendanXXX
                 printf("1: %d, %d => ", i, j);
                 if (accum)
-                    FileEscapedString(stdout, accum, 0);
+                    js_FileEscapedString(stdout, accum, 0);
                 else
                     fputs("NULL", stdout);
                 fputc('\n', stdout);
@@ -9141,7 +8854,7 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
                 pn1->pn_type = TOK_XMLTEXT;
                 pn1->pn_op = JSOP_STRING;
                 pn1->pn_arity = PN_NULLARY;
-                pn1->pn_atom = js_AtomizeString(cx, accum);
+                pn1->pn_atom = js_AtomizeString(cx, accum, 0);
                 if (!pn1->pn_atom)
                     return JS_FALSE;
                 JS_ASSERT(pnp != &pn1->pn_next);
@@ -9164,7 +8877,7 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
                 return JS_FALSE;
 #ifdef DEBUG_brendanXXX
             printf("2: %d, %d => ", i, j);
-            FileEscapedString(stdout, str, 0);
+            js_FileEscapedString(stdout, str, 0);
             printf(" (%u)\n", str->length());
 #endif
             ++j;
@@ -9176,9 +8889,9 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
         str = NULL;
         if ((pn->pn_xflags & PNX_CANTFOLD) == 0) {
             if (tt == TOK_XMLPTAGC)
-                str = cx->runtime->atomState.ptagcAtom;
+                str = ATOM_TO_STRING(cx->runtime->atomState.ptagcAtom);
             else if (tt == TOK_XMLSTAGO || tt == TOK_XMLETAGO)
-                str = cx->runtime->atomState.tagcAtom;
+                str = ATOM_TO_STRING(cx->runtime->atomState.tagcAtom);
         }
         if (str) {
             accum = js_ConcatStrings(cx, accum, str);
@@ -9194,7 +8907,7 @@ FoldXMLConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
         pn1->pn_type = TOK_XMLTEXT;
         pn1->pn_op = JSOP_STRING;
         pn1->pn_arity = PN_NULLARY;
-        pn1->pn_atom = js_AtomizeString(cx, accum);
+        pn1->pn_atom = js_AtomizeString(cx, accum, 0);
         if (!pn1->pn_atom)
             return JS_FALSE;
         JS_ASSERT(pnp != &pn1->pn_next);
@@ -9229,7 +8942,7 @@ Boolish(JSParseNode *pn)
         return pn->pn_dval != 0 && !JSDOUBLE_IS_NaN(pn->pn_dval);
 
       case JSOP_STRING:
-        return pn->pn_atom->length() != 0;
+        return ATOM_TO_STRING(pn->pn_atom)->length() != 0;
 
 #if JS_HAS_GENERATOR_EXPRS
       case JSOP_CALL:
@@ -9252,6 +8965,7 @@ Boolish(JSParseNode *pn)
 
       case JSOP_DEFFUN:
       case JSOP_LAMBDA:
+      case JSOP_THIS:
       case JSOP_TRUE:
         return 1;
 
@@ -9403,7 +9117,7 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
                 pn2 = pn3;
             break;
           case TOK_STRING:
-            if (pn1->pn_atom->length() == 0)
+            if (ATOM_TO_STRING(pn1->pn_atom)->length() == 0)
                 pn2 = pn3;
             break;
           case TOK_PRIMARY:
@@ -9515,6 +9229,10 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
 
       case TOK_PLUS:
         if (pn->pn_arity == PN_LIST) {
+            size_t length, length2;
+            jschar *chars;
+            JSString *str, *str2;
+
             
 
 
@@ -9527,38 +9245,37 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
                 goto do_binary_op;
 
             
-            size_t length = 0;
+            length = 0;
             for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
                 if (!FoldType(cx, pn2, TOK_STRING))
                     return JS_FALSE;
                 
                 if (pn2->pn_type != TOK_STRING)
                     return JS_TRUE;
-                length += pn2->pn_atom->length();
+                length += ATOM_TO_STRING(pn2->pn_atom)->flatLength();
             }
 
             
-            jschar *chars = (jschar *) cx->malloc_((length + 1) * sizeof(jschar));
+            chars = (jschar *) cx->malloc((length + 1) * sizeof(jschar));
             if (!chars)
                 return JS_FALSE;
-            chars[length] = 0;
-            JSString *str = js_NewString(cx, chars, length);
+            str = js_NewString(cx, chars, length);
             if (!str) {
-                cx->free_(chars);
+                cx->free(chars);
                 return JS_FALSE;
             }
 
             
             for (pn2 = pn1; pn2; pn2 = RecycleTree(pn2, tc)) {
-                JSAtom *atom = pn2->pn_atom;
-                size_t length2 = atom->length();
-                js_strncpy(chars, atom->chars(), length2);
+                str2 = ATOM_TO_STRING(pn2->pn_atom);
+                length2 = str2->flatLength();
+                js_strncpy(chars, str2->flatChars(), length2);
                 chars += length2;
             }
-            JS_ASSERT(*chars == 0);
+            *chars = 0;
 
             
-            pn->pn_atom = js_AtomizeString(cx, str);
+            pn->pn_atom = js_AtomizeString(cx, str, 0);
             if (!pn->pn_atom)
                 return JS_FALSE;
             pn->pn_type = TOK_STRING;
@@ -9578,12 +9295,12 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
             }
             if (pn1->pn_type != TOK_STRING || pn2->pn_type != TOK_STRING)
                 return JS_TRUE;
-            left = pn1->pn_atom;
-            right = pn2->pn_atom;
+            left = ATOM_TO_STRING(pn1->pn_atom);
+            right = ATOM_TO_STRING(pn2->pn_atom);
             str = js_ConcatStrings(cx, left, right);
             if (!str)
                 return JS_FALSE;
-            pn->pn_atom = js_AtomizeString(cx, str);
+            pn->pn_atom = js_AtomizeString(cx, str, 0);
             if (!pn->pn_atom)
                 return JS_FALSE;
             pn->pn_type = TOK_STRING;
@@ -9701,7 +9418,7 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
         if (pn1->pn_type == TOK_XMLNAME) {
             JSObjectBox *xmlbox;
 
-            Value v = StringValue(pn1->pn_atom);
+            Value v = StringValue(ATOM_TO_STRING(pn1->pn_atom));
             if (!js_ToAttributeName(cx, &v))
                 return JS_FALSE;
             JS_ASSERT(v.isObject());
@@ -9725,13 +9442,22 @@ js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, bool inCond)
     if (inCond) {
         int cond = Boolish(pn);
         if (cond >= 0) {
-            
-
-
-
-
-
-            PrepareNodeForMutation(pn, tc);
+            switch (pn->pn_arity) {
+              case PN_LIST:
+                pn2 = pn->pn_head;
+                do {
+                    pn3 = pn2->pn_next;
+                    RecycleTree(pn2, tc);
+                } while ((pn2 = pn3) != NULL);
+                break;
+              case PN_FUNC:
+                RecycleFuncNameKids(pn, tc);
+                break;
+              case PN_NULLARY:
+                break;
+              default:
+                JS_NOT_REACHED("unhandled arity");
+            }
             pn->pn_type = TOK_PRIMARY;
             pn->pn_op = cond ? JSOP_TRUE : JSOP_FALSE;
             pn->pn_arity = PN_NULLARY;

@@ -51,10 +51,6 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 
-#include "frontend/ParseMaps.h"
-
-#include "jsatominlines.h"
-
 JS_BEGIN_EXTERN_C
 
 
@@ -134,7 +130,7 @@ struct JSStmtInfo {
     ptrdiff_t       continues;      
     union {
         JSAtom      *label;         
-        JSObjectBox *blockBox;      
+        JSObject    *blockObj;      
     };
     JSStmtInfo      *down;          
     JSStmtInfo      *downScope;     
@@ -158,6 +154,14 @@ struct JSStmtInfo {
 
 #define SET_STATEMENT_TOP(stmt, top)                                          \
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
+
+#ifdef JS_SCOPE_DEPTH_METER
+# define JS_SCOPE_DEPTH_METERING(code) ((void) (code))
+# define JS_SCOPE_DEPTH_METERING_IF(cond, code) ((cond) ? (void) (code) : (void) 0)
+#else
+# define JS_SCOPE_DEPTH_METERING(code) ((void) 0)
+# define JS_SCOPE_DEPTH_METERING_IF(code, x) ((void) 0)
+#endif
 
 #define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
@@ -210,6 +214,7 @@ struct JSStmtInfo {
 #define TCF_STRICT_MODE_CODE    0x40000
 
 
+#define TCF_FUN_PARAM_EVAL      0x80000
 
 
 
@@ -249,37 +254,6 @@ struct JSStmtInfo {
 
 
 
-
-#define TCF_FUN_MIGHT_ALIAS_LOCALS  0x4000000
-
-
-
-
-#define TCF_HAS_SINGLETONS       0x8000000
-
-
-
-
-#define TCF_IN_WITH             0x10000000
-
-
-
-
-
-
-
-
-
-#define TCF_FUN_EXTENSIBLE_SCOPE 0x20000000
-
-
-
-
-#define TCF_NEED_SCRIPT_OBJECT 0x40000000
-
-
-
-
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -293,63 +267,31 @@ struct JSStmtInfo {
                                  TCF_FUN_USES_OWN_NAME   |                    \
                                  TCF_HAS_SHARPS          |                    \
                                  TCF_FUN_CALLS_EVAL      |                    \
-                                 TCF_FUN_MIGHT_ALIAS_LOCALS |                 \
                                  TCF_FUN_MUTATES_PARAMETER |                  \
-                                 TCF_STRICT_MODE_CODE    |                    \
-                                 TCF_FUN_EXTENSIBLE_SCOPE)
+                                 TCF_STRICT_MODE_CODE)
 
 struct JSTreeContext {              
     uint32          flags;          
+    uint16          ngvars;         
     uint32          bodyid;         
     uint32          blockidGen;     
-    uint32          parenDepth;     
-
-    uint32          yieldCount;     
-
-    uint32          argumentsCount; 
-
     JSStmtInfo      *topStmt;       
     JSStmtInfo      *topScopeStmt;  
-    JSObjectBox     *blockChainBox; 
+    JSObject        *blockChain;    
 
 
     JSParseNode     *blockNode;     
 
-    js::AtomDecls   decls;          
+    JSAtomList      decls;          
     js::Parser      *parser;        
-    JSParseNode     *yieldNode;     
 
-
-    JSParseNode     *argumentsNode; 
-
-
-
-  private:
     union {
-        JSFunction  *fun_;          
+        JSFunction  *fun;           
 
-        JSObject    *scopeChain_;   
+        JSObject    *scopeChain;    
     };
 
-  public:
-    JSFunction *fun() const {
-        JS_ASSERT(inFunction());
-        return fun_;
-    }
-    void setFunction(JSFunction *fun) {
-        JS_ASSERT(inFunction());
-        fun_ = fun;
-    }
-    JSObject *scopeChain() const {
-        JS_ASSERT(!inFunction());
-        return scopeChain_;
-    }
-    void setScopeChain(JSObject *scopeChain) {
-        JS_ASSERT(!inFunction());
-        scopeChain_ = scopeChain;
-    }
-
-    js::OwnedAtomDefnMapPtr lexdeps;
+    JSAtomList      lexdeps;        
     JSTreeContext   *parent;        
     uintN           staticLevel;    
 
@@ -360,19 +302,19 @@ struct JSTreeContext {
 
     JSParseNode     *innermostWith; 
 
-    js::Bindings    bindings;       
-
-
-    void trace(JSTracer *trc);
+#ifdef JS_SCOPE_DEPTH_METER
+    uint16          scopeDepth;     
+    uint16          maxScopeDepth;  
+#endif
 
     JSTreeContext(js::Parser *prs)
-      : flags(0), bodyid(0), blockidGen(0), parenDepth(0), yieldCount(0), argumentsCount(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
-        decls(prs->context), parser(prs), yieldNode(NULL), argumentsNode(NULL), scopeChain_(NULL),
-        lexdeps(prs->context), parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
-        innermostWith(NULL), bindings(prs->context, prs->emptyCallShape), sharpSlotBase(-1)
+      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
+        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
+        parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
+        funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
     {
         prs->tc = this;
+        JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
     }
 
     
@@ -382,40 +324,17 @@ struct JSTreeContext {
 
     ~JSTreeContext() {
         parser->tc = this->parent;
-    }
-
-    
-
-
-
-
-
-    enum InitBehavior {
-        USED_AS_TREE_CONTEXT,
-        USED_AS_CODE_GENERATOR
-    };
-
-    bool init(JSContext *cx, InitBehavior ib = USED_AS_TREE_CONTEXT) {
-        if (ib == USED_AS_CODE_GENERATOR)
-            return true;
-        return decls.init() && lexdeps.ensureMap(cx);
+        JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
+                                   JS_BASIC_STATS_ACCUM(&parser
+                                                          ->context
+                                                          ->runtime
+                                                          ->lexicalScopeDepthStats,
+                                                        maxScopeDepth));
     }
 
     uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
 
-    JSObject *blockChain() {
-        return blockChainBox ? blockChainBox->object : NULL;
-    }
-
-    
-
-
-
-
-
-
-
-    bool atBodyLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
+    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
     
     bool inStatement(JSStmtType type);
@@ -442,9 +361,7 @@ struct JSTreeContext {
 
     bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
-
     bool compiling() const { return flags & TCF_COMPILING; }
-    inline JSCodeGenerator *asCodeGenerator();
 
     bool usesArguments() const {
         return flags & TCF_FUN_USES_ARGUMENTS;
@@ -458,14 +375,6 @@ struct JSTreeContext {
         return flags & TCF_FUN_CALLS_EVAL;
     }
 
-    void noteMightAliasLocals() {
-        flags |= TCF_FUN_MIGHT_ALIAS_LOCALS;
-    }
-
-    bool mightAliasLocals() const {
-        return flags & TCF_FUN_MIGHT_ALIAS_LOCALS;
-    }
-
     void noteParameterMutation() {
         JS_ASSERT(inFunction());
         flags |= TCF_FUN_MUTATES_PARAMETER;
@@ -476,30 +385,15 @@ struct JSTreeContext {
         return flags & TCF_FUN_MUTATES_PARAMETER;
     }
 
-    void noteArgumentsUse(JSParseNode *pn) {
+    void noteArgumentsUse() {
         JS_ASSERT(inFunction());
-        countArgumentsUse(pn);
         flags |= TCF_FUN_USES_ARGUMENTS;
         if (funbox)
             funbox->node->pn_dflags |= PND_FUNARG;
     }
 
-    void countArgumentsUse(JSParseNode *pn) {
-        JS_ASSERT(pn->pn_atom == parser->context->runtime->atomState.argumentsAtom);
-        argumentsCount++;
-        argumentsNode = pn;
-    }
-
     bool needsEagerArguments() const {
         return inStrictMode() && ((usesArguments() && mutatesParameter()) || callsEval());
-    }
-
-    void noteHasExtensibleScope() {
-        flags |= TCF_FUN_EXTENSIBLE_SCOPE;
-    }
-
-    bool hasExtensibleScope() const {
-        return flags & TCF_FUN_EXTENSIBLE_SCOPE;
     }
 };
 
@@ -508,7 +402,7 @@ struct JSTreeContext {
 
 
 inline bool JSTreeContext::needStrictChecks() {
-    return parser->context->hasStrictOption() || inStrictMode();
+    return JS_HAS_STRICT_OPTION(parser->context) || inStrictMode();
 }
 
 
@@ -617,8 +511,7 @@ struct JSCodeGenerator : public JSTreeContext
         uintN       currentLine;    
     } prolog, main, *current;
 
-    js::OwnedAtomIndexMapPtr atomIndices; 
-    js::AtomDefnMapPtr roLexdeps;
+    JSAtomList      atomList;       
     uintN           firstLine;      
 
     intN            stackDepth;     
@@ -648,20 +541,18 @@ struct JSCodeGenerator : public JSTreeContext
     JSCGObjectList  regexpList;     
 
 
-    js::OwnedAtomIndexMapPtr upvarIndices; 
+    JSAtomList      upvarList;      
     JSUpvarArray    upvarMap;       
 
-    typedef js::Vector<js::GlobalSlotArray::Entry, 16> GlobalUseVector;
+    typedef js::Vector<js::GlobalSlotArray::Entry, 16, js::ContextAllocPolicy> GlobalUseVector;
 
     GlobalUseVector globalUses;     
-    js::OwnedAtomIndexMapPtr globalMap; 
+    JSAtomList      globalMap;      
 
     
-    typedef js::Vector<uint32, 8> SlotVector;
+    typedef js::Vector<uint32, 8, js::ContextAllocPolicy> SlotVector;
     SlotVector      closedArgs;
     SlotVector      closedVars;
-
-    uint16          traceIndex;     
 
     
 
@@ -671,11 +562,7 @@ struct JSCodeGenerator : public JSTreeContext
     JSCodeGenerator(js::Parser *parser,
                     JSArenaPool *codePool, JSArenaPool *notePool,
                     uintN lineno);
-    bool init(JSContext *cx, JSTreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
-
-    JSContext *context() {
-        return parser->context;
-    }
+    bool init();
 
     
 
@@ -686,67 +573,21 @@ struct JSCodeGenerator : public JSTreeContext
 
     ~JSCodeGenerator();
 
-    
+    bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie &cooke);
 
-
-
-
-
-
-
-
-
-
-
-
-
-    bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie *cookie);
-
-    bool hasUpvarIndices() const {
-        return upvarIndices.hasMap() && !upvarIndices->empty();
-    }
-
-    bool hasSharps() const {
+    bool hasSharps() {
         bool rv = !!(flags & TCF_HAS_SHARPS);
         JS_ASSERT((sharpSlotBase >= 0) == rv);
         return rv;
     }
 
-    uintN sharpSlots() const {
+    uintN sharpSlots() {
         return hasSharps() ? SHARP_NSLOTS : 0;
     }
 
-    bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
-    JSVersion version() const { return parser->versionWithFlags(); }
+    bool compilingForEval() { return !!(flags & TCF_COMPILE_FOR_EVAL); }
 
     bool shouldNoteClosedName(JSParseNode *pn);
-
-    JS_ALWAYS_INLINE
-    bool makeAtomIndex(JSAtom *atom, jsatomid *indexp) {
-        js::AtomIndexAddPtr p = atomIndices->lookupForAdd(atom);
-        if (p) {
-            *indexp = p.value();
-            return true;
-        }
-
-        jsatomid index = atomIndices->count();
-        if (!atomIndices->add(p, atom, index))
-            return false;
-
-        *indexp = index;
-        return true;
-    }
-
-    bool checkSingletonContext() {
-        if (!compileAndGo() || inFunction())
-            return false;
-        for (JSStmtInfo *stmt = topStmt; stmt; stmt = stmt->down) {
-            if (STMT_IS_LOOP(stmt))
-                return false;
-        }
-        flags |= TCF_HAS_SINGLETONS;
-        return true;
-    }
 };
 
 #define CG_TS(cg)               TS((cg)->parser)
@@ -772,13 +613,6 @@ struct JSCodeGenerator : public JSTreeContext
 #define CG_SWITCH_TO_MAIN(cg)   ((cg)->current = &(cg)->main)
 #define CG_SWITCH_TO_PROLOG(cg) ((cg)->current = &(cg)->prolog)
 
-inline JSCodeGenerator *
-JSTreeContext::asCodeGenerator()
-{
-    JS_ASSERT(compiling());
-    return static_cast<JSCodeGenerator *>(this);
-}
-
 
 
 
@@ -797,13 +631,6 @@ js_Emit2(JSContext *cx, JSCodeGenerator *cg, JSOp op, jsbytecode op1);
 extern ptrdiff_t
 js_Emit3(JSContext *cx, JSCodeGenerator *cg, JSOp op, jsbytecode op1,
          jsbytecode op2);
-
-
-
-
-extern ptrdiff_t
-js_Emit5(JSContext *cx, JSCodeGenerator *cg, JSOp op, uint16 op1,
-         uint16 op2);
 
 
 
@@ -848,7 +675,7 @@ js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
 
 
 extern void
-js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSObjectBox *blockBox,
+js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSObject *blockObj,
                   ptrdiff_t top);
 
 
@@ -957,7 +784,6 @@ typedef enum JSSrcNoteType {
     SRC_WHILE       = 4,        
 
 
-    SRC_TRACE       = 4,        
     SRC_CONTINUE    = 5,        
 
 

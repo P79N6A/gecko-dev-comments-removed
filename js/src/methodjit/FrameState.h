@@ -661,8 +661,7 @@ class FrameState
     
 
 
-
-    inline bool addEscaping(uint32 local);
+    inline void setClosedVar(uint32 slot);
 
     inline void setInTryBlock(bool inTryBlock) {
         this->inTryBlock = inTryBlock;
@@ -717,6 +716,8 @@ class FrameState
         return uint32(fe - entries);
     }
 
+    inline bool isClosedVar(uint32 slot);
+
   private:
     JSContext *cx;
     JSScript *script;
@@ -755,7 +756,7 @@ class FrameState
 
     mutable ImmutableSync reifier;
 
-    uint32 *escaping;
+    bool *closedVars;
     bool eval;
     bool inTryBlock;
 };
