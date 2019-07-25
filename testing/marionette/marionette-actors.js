@@ -472,8 +472,16 @@ MarionetteDriverActor.prototype = {
 
 
   execute: function MDA_execute(aRequest, directInject) {
+    logger.info("newSandbox: " + aRequest.newSandbox);
+    if (aRequest.newSandbox == undefined) {
+      
+      
+      aRequest.newSandbox = true;
+    }
     if (this.context == "content") {
-      this.sendAsync("executeScript", {value: aRequest.value, args: aRequest.args});
+      this.sendAsync("executeScript", {value: aRequest.value,
+                                       args: aRequest.args,
+                                       newSandbox:aRequest.newSandbox});
       return;
     }
 
@@ -533,6 +541,11 @@ MarionetteDriverActor.prototype = {
 
   executeJSScript: function MDA_executeJSScript(aRequest) {
     
+    if (aRequest.newSandbox == undefined) {
+      
+      
+      aRequest.newSandbox = true;
+    }
     if (this.context == "chrome") {
       if (aRequest.timeout) {
         this.executeWithCallback(aRequest, aRequest.timeout);
@@ -562,12 +575,18 @@ MarionetteDriverActor.prototype = {
 
 
   executeWithCallback: function MDA_executeWithCallback(aRequest, directInject) {
+    if (aRequest.newSandbox == undefined) {
+      
+      
+      aRequest.newSandbox = true;
+    }
     this.command_id = this.uuidGen.generateUUID().toString();
 
     if (this.context == "content") {
       this.sendAsync("executeAsyncScript", {value: aRequest.value,
                                             args: aRequest.args,
-                                            id: this.command_id});
+                                            id: this.command_id,
+                                            newSandbox: aRequest.newSandbox});
       return;
     }
 
