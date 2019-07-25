@@ -3446,7 +3446,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
 
     
     nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
-    nsCOMPtr<nsIDragSessionGTK> dragSessionGTK = do_QueryInterface(dragService);
+    nsDragService *dragServiceGTK = static_cast<nsDragService*>(dragService.get());
 
     nscoord retx = 0;
     nscoord rety = 0;
@@ -3459,7 +3459,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
         innerMostWidget = this;
 
     
-    dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
+    dragServiceGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
 
     
     
@@ -3473,6 +3473,27 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    dragServiceGTK->SetCanDrop(false);
 
     nsDragEvent event(true, NS_DRAGDROP_OVER, innerMostWidget);
 
@@ -3485,27 +3506,34 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     nsEventStatus status;
     innerMostWidget->DispatchEvent(&event, status);
 
+    gboolean success = FALSE;
+
     
     
     
     if (!innerMostWidget->mIsDestroyed) {
-        nsDragEvent event(true, NS_DRAGDROP_DROP, innerMostWidget);
+        bool canDrop;
+        dragServiceGTK->GetCanDrop(&canDrop);
+        PRUint32 msg = canDrop ? NS_DRAGDROP_DROP : NS_DRAGDROP_EXIT;
+        nsDragEvent event(true, msg, innerMostWidget);
         event.refPoint.x = retx;
         event.refPoint.y = rety;
 
         nsEventStatus status = nsEventStatus_eIgnore;
         innerMostWidget->DispatchEvent(&event, status);
+
+        success = canDrop;
     }
 
     
 
-    gdk_drop_finish(aDragContext, TRUE, aTime);
+    gdk_drop_finish(aDragContext, success, aTime);
 
     
     
     
     
-    dragSessionGTK->TargetSetLastContext(0, 0, 0);
+    dragServiceGTK->TargetSetLastContext(0, 0, 0);
 
     
     sLastDragMotionWindow = 0;
@@ -3517,7 +3545,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     if (display) {
       
       gdk_display_get_pointer(display, NULL, &x, &y, NULL);
-      ((nsDragService *)dragService.get())->SetDragEndPoint(nsIntPoint(x, y));
+      dragServiceGTK->SetDragEndPoint(nsIntPoint(x, y));
     }
     dragService->EndDragSession(true);
 
