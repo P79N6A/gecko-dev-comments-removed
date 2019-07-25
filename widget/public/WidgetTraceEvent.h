@@ -45,6 +45,9 @@ namespace mozilla {
 
 bool FireAndWaitForTracerEvent();
 
+
+void SignalTracerThread();
+
 }
 
 #endif  
