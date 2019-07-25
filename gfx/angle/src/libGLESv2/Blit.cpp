@@ -504,6 +504,11 @@ void Blit::setCommonBlitState()
 
     RECT scissorRect = {0};   
     device->SetScissorRect(&scissorRect);
+
+    for(int i = 0; i < MAX_VERTEX_ATTRIBS; i++)
+    {
+        device->SetStreamSourceFreq(i, 1);
+    }
 }
 
 void Blit::render()

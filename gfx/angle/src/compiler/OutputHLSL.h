@@ -33,6 +33,7 @@ class OutputHLSL : public TIntermTraverser
     static TString initializer(const TType &type);
     static TString decorate(const TString &string);                      
     static TString decorateUniform(const TString &string, const TType &type);
+    static TString decorateField(const TString &string, const TType &structure);
 
   protected:
     void header();
@@ -113,7 +114,10 @@ class OutputHLSL : public TIntermTraverser
     bool mUsesEqualBVec2;
     bool mUsesEqualBVec3;
     bool mUsesEqualBVec4;
-    bool mUsesAtan2;
+    bool mUsesAtan2_1;
+    bool mUsesAtan2_2;
+    bool mUsesAtan2_3;
+    bool mUsesAtan2_4;
 
     typedef std::set<TString> Constructors;
     Constructors mConstructors;

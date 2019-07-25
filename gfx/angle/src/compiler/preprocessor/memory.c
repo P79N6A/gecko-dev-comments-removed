@@ -52,6 +52,10 @@
 
 #include "compiler/preprocessor/memory.h"
 
+#if defined(_MSC_VER)
+#pragma warning(disable: 4706)
+#endif
+
 
 #define CHUNKSIZE       (64*1024)
 #define ALIGN           8

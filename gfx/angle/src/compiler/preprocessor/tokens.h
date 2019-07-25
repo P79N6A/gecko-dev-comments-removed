@@ -48,6 +48,7 @@
 #if !defined(__TOKENS_H)
 #define __TOKENS_H 1
 
+#include <stdio.h>
 #include "compiler/preprocessor/parser.h"
 
 #define EOF_SY (-1)

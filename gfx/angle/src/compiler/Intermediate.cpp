@@ -592,10 +592,10 @@ TIntermNode* TIntermediate::addSelection(TIntermTyped* cond, TIntermNodePair nod
     
 
     if (cond->getAsTyped() && cond->getAsTyped()->getAsConstantUnion()) {
-        if (cond->getAsTyped()->getAsConstantUnion()->getUnionArrayPointer()->getBConst())
-            return nodePair.node1;
+        if (cond->getAsTyped()->getAsConstantUnion()->getUnionArrayPointer()->getBConst() == true)
+            return nodePair.node1 ? setAggregateOperator(nodePair.node1, EOpSequence, nodePair.node1->getLine()) : NULL;
         else
-            return nodePair.node2;
+            return nodePair.node2 ? setAggregateOperator(nodePair.node2, EOpSequence, nodePair.node2->getLine()) : NULL;
     }
 
     TIntermSelection* node = new TIntermSelection(cond, nodePair.node1, nodePair.node2);
@@ -656,6 +656,7 @@ TIntermTyped* TIntermediate::addSelection(TIntermTyped* cond, TIntermTyped* true
     
     
     TIntermSelection* node = new TIntermSelection(cond, trueBlock, falseBlock, trueBlock->getType());
+    node->getTypePointer()->setQualifier(EvqTemporary);
     node->setLine(line);
 
     return node;
@@ -1371,8 +1372,6 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, TIntermTyped* constantNod
         newNode->setLine(getLine());
         return newNode;
     }
-
-    return this;
 }
 
 TIntermTyped* TIntermediate::promoteConstantUnion(TBasicType promoteTo, TIntermConstantUnion* node)

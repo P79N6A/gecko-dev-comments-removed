@@ -69,9 +69,9 @@ typedef struct InputSrc {
 } InputSrc;
 
 int InitScanner(CPPStruct *cpp);   
-int ScanFromString(const char *);      
+int InitScannerInput(CPPStruct *cpp, int count, const char* const string[], const int length[]);
 int check_EOF(int);              
-void CPPErrorToInfoLog(char *);   
+void CPPErrorToInfoLog(const char *);   
 void SetLineNumber(int);
 void SetStringNumber(int);
 void IncLineNumber(void);

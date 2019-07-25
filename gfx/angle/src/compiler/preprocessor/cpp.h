@@ -73,7 +73,7 @@ void  CPPShInfoLogMsg(const char*);
 void  CPPWarningToInfoLog(const char *msg); 
 void  HandlePragma(const char**, int numTokens);  
 void  ResetTString(void);                   
-void  CPPErrorToInfoLog(char*);             
+void  CPPErrorToInfoLog(const char*);       
 void  StoreStr(char*);                      
 void  SetLineNumber(int);                   
 void  SetStringNumber(int);                 

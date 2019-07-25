@@ -47,6 +47,7 @@ enum TBasicType
     EbtGuardSamplerEnd,    
     EbtStruct,
     EbtAddress,            
+    EbtInvariant,          
 };
 
 inline const char* getBasicString(TBasicType t)

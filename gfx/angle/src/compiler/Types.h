@@ -10,7 +10,6 @@
 #include "compiler/BaseTypes.h"
 #include "compiler/Common.h"
 #include "compiler/compilerdebug.h"
-#include <cstdlib>
 
 
 
@@ -209,7 +208,7 @@ public:
 
     const TString& getTypeName() const
     {
-        if(!typeName) abort();
+        assert(typeName);
         return *typeName;
     }
     void setTypeName(const TString& n)
