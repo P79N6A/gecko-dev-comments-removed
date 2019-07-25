@@ -114,10 +114,6 @@ Sidebar.prototype = {
     
   },
 
-  addMicrosummaryGenerator: function addMicrosummaryGenerator(generatorURL) {
-    
-  },
-
   
   
   addSearchEngine: function addSearchEngine(engineURL, iconURL, suggestedTitle,
