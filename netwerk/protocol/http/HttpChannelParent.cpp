@@ -123,11 +123,11 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
 
   nsCOMPtr<nsIIOService> ios(do_GetIOService(&rv));
   if (NS_FAILED(rv))
-    return false;       
+    return SendCancelEarly(rv);
 
   rv = NS_NewChannel(getter_AddRefs(mChannel), uri, ios, nsnull, nsnull, loadFlags);
   if (NS_FAILED(rv))
-    return false;       
+    return SendCancelEarly(rv);
 
   nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
   httpChan->SetRemoteChannel(true);
@@ -159,9 +159,9 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
   if (uploadStreamInfo != eUploadStream_null) {
     nsCOMPtr<nsIInputStream> stream;
     rv = NS_NewPostDataStream(getter_AddRefs(stream), false, uploadStreamData, 0);
-    if (!NS_SUCCEEDED(rv)) {
-      return false;   
-    }
+    if (NS_FAILED(rv))
+      return SendCancelEarly(rv);
+
     httpChan->InternalSetUploadStream(stream);
     
     
@@ -176,7 +176,7 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
 
   rv = httpChan->AsyncOpen(mChannelListener, nsnull);
   if (NS_FAILED(rv))
-    return false;       
+    return SendCancelEarly(rv);
 
   return true;
 }
@@ -202,6 +202,18 @@ HttpChannelParent::RecvResume()
   mChannel->Resume();
   return true;
 }
+
+bool
+HttpChannelParent::RecvCancel(const nsresult& status)
+{
+  
+  if (mChannel) {
+    nsHttpChannel *httpChan = static_cast<nsHttpChannel *>(mChannel.get());
+    httpChan->Cancel(status);
+  }
+  return true;
+}
+
 
 bool
 HttpChannelParent::RecvSetCacheTokenCachedCharset(const nsCString& charset)
@@ -281,19 +293,13 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   LOG(("HttpChannelParent::OnDataAvailable [this=%x]\n", this));
  
   nsresult rv;
-
-  nsCString data;
-  data.SetLength(aCount);
-  char * p = data.BeginWriting();
-  PRUint32 bytesRead;
-  rv = aInputStream->Read(p, aCount, &bytesRead);
-  data.EndWriting();
-  if (!NS_SUCCEEDED(rv) || bytesRead != aCount) {
-    return rv;              
-  }
-
-  if (mIPCClosed || !SendOnDataAvailable(data, aOffset, bytesRead))
+  rv = NS_ReadInputStreamToString(aInputStream, data, aCount);
+  if (NS_FAILED(rv) ||
+      bytesRead != aCount ||
+      mIPCClosed ||
+      !SendOnDataAvailable(data, aOffset, bytesRead))
     return NS_ERROR_UNEXPECTED; 
+
   return NS_OK;
 }
 

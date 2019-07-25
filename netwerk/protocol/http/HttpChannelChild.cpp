@@ -90,7 +90,6 @@ HttpChannelChild::HttpChannelChild()
   , mCacheExpirationTime(nsICache::NO_EXPIRATION_TIME)
   , mSendResumeAt(false)
   , mSuspendCount(0)
-  , mState(HCC_NEW)
   , mIPCOpen(false)
   , mQueuePhase(PHASE_UNQUEUED)
 {
@@ -247,12 +246,8 @@ HttpChannelChild::OnStartRequest(const nsHttpResponseHead& responseHead,
 {
   LOG(("HttpChannelChild::RecvOnStartRequest [this=%x]\n", this));
 
-  mState = HCC_ONSTART;
-
-  if (useResponseHead)
+  if (useResponseHead && !mCanceled)
     mResponseHead = new nsHttpResponseHead(responseHead);
-  else
-    mResponseHead = nsnull;
  
   mIsFromCache = isFromCache;
   mCacheEntryAvailable = cacheEntryAvailable;
@@ -266,10 +261,7 @@ HttpChannelChild::OnStartRequest(const nsHttpResponseHead& responseHead,
     if (mResponseHead)
       SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
   } else {
-    
-    
-    
-    
+    Cancel(rv);
   }
 }
 
@@ -311,9 +303,10 @@ HttpChannelChild::OnDataAvailable(const nsCString& data,
                                   const PRUint32& offset,
                                   const PRUint32& count)
 {
-  LOG(("HttpChannelChild::RecvOnDataAvailable [this=%x]\n", this));
+  LOG(("HttpChannelChild::OnDataAvailable [this=%x]\n", this));
 
-  mState = HCC_ONDATA;
+  if (mCanceled)
+    return;
 
   
   
@@ -326,7 +319,7 @@ HttpChannelChild::OnDataAvailable(const nsCString& data,
                                       count,
                                       NS_ASSIGNMENT_DEPEND);
   if (NS_FAILED(rv)) {
-    
+    Cancel(rv);
     return;
   }
 
@@ -336,7 +329,7 @@ HttpChannelChild::OnDataAvailable(const nsCString& data,
                                   stringStream, offset, count);
   stringStream->Close();
   if (NS_FAILED(rv)) {
-    
+    Cancel(rv);
   }
 }
 
@@ -368,19 +361,21 @@ HttpChannelChild::RecvOnStopRequest(const nsresult& statusCode)
 void 
 HttpChannelChild::OnStopRequest(const nsresult& statusCode)
 {
-  LOG(("HttpChannelChild::RecvOnStopRequest [this=%x status=%u]\n", 
+  LOG(("HttpChannelChild::OnStopRequest [this=%x status=%u]\n", 
            this, statusCode));
 
-  mState = HCC_ONSTOP;
-
   mIsPending = PR_FALSE;
-  mStatus = statusCode;
+
+  if (!mCanceled)
+    mStatus = statusCode;
 
   { 
     
-    AutoEventEnqueuer ensureSerialDispatch(this);
     
+    AutoEventEnqueuer ensureSerialDispatch(this);
+
     mListener->OnStopRequest(this, mListenerContext, statusCode);
+
     mListener = 0;
     mListenerContext = 0;
     mCacheEntryAvailable = PR_FALSE;
@@ -426,8 +421,11 @@ void
 HttpChannelChild::OnProgress(const PRUint64& progress,
                              const PRUint64& progressMax)
 {
-  LOG(("HttpChannelChild::RecvOnProgress [this=%p progress=%llu/%llu]\n",
+  LOG(("HttpChannelChild::OnProgress [this=%p progress=%llu/%llu]\n",
        this, progress, progressMax));
+
+  if (mCanceled)
+    return;
 
   
   if (!mProgressSink)
@@ -439,7 +437,7 @@ HttpChannelChild::OnProgress(const PRUint64& progress,
   if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending && 
       !(mLoadFlags & LOAD_BACKGROUND)) 
   {
-     if (progress > 0) {
+    if (progress > 0) {
       NS_ASSERTION(progress <= progressMax, "unexpected progress values");
       mProgressSink->OnProgress(this, nsnull, progress, progressMax);
     }
@@ -479,7 +477,10 @@ void
 HttpChannelChild::OnStatus(const nsresult& status,
                            const nsString& statusArg)
 {
-  LOG(("HttpChannelChild::RecvOnStatus [this=%p status=%x]\n", this, status));
+  LOG(("HttpChannelChild::OnStatus [this=%p status=%x]\n", this, status));
+
+  if (mCanceled)
+    return;
 
   
   if (!mProgressSink)
@@ -493,6 +494,57 @@ HttpChannelChild::OnStatus(const nsresult& status,
   {
     mProgressSink->OnStatus(this, nsnull, status, statusArg.get());
   }
+}
+
+class CancelEvent : public ChildChannelEvent
+{
+ public:
+  CancelEvent(HttpChannelChild* child, const nsresult& status)
+  : mChild(child)
+  , mStatus(status) {}
+
+  void Run() { mChild->OnCancel(mStatus); }
+ private:
+  HttpChannelChild* mChild;
+  nsresult mStatus;
+};
+
+bool
+HttpChannelChild::RecvCancelEarly(const nsresult& status)
+{
+  if (ShouldEnqueue()) {
+    EnqueueEvent(new CancelEvent(this, status));
+  } else {
+    OnCancel(status);
+  }
+  return true;
+}
+
+void
+HttpChannelChild::OnCancel(const nsresult& status)
+{
+  LOG(("HttpChannelChild::OnCancel [this=%p status=%x]\n", this, status));
+
+  if (mCanceled)
+    return;
+
+  mCanceled = true;
+  mStatus = status;
+
+  mIsPending = false;
+  if (mLoadGroup)
+    mLoadGroup->RemoveRequest(this, nsnull, mStatus);
+
+  if (mListener) {
+    mListener->OnStartRequest(this, mListenerContext);
+    mListener->OnStopRequest(this, mListenerContext, mStatus);
+  }
+
+  mListener = NULL;
+  mListenerContext = NULL;
+
+  if (mIPCOpen)
+    PHttpChannelChild::Send__delete__(this);
 }
 
 class Redirect1Event : public ChildChannelEvent
@@ -550,8 +602,12 @@ HttpChannelChild::Redirect1Begin(PHttpChannelChild* newChannel,
   nsresult rv = 
     newHttpChannelChild->HttpBaseChannel::Init(uri, mCaps,
                                                mConnectionInfo->ProxyInfo());
-  if (NS_FAILED(rv))
-    return; 
+  if (NS_FAILED(rv)) {
+    
+    Cancel(rv);
+    SendRedirect2Result(rv, mRedirectChannelChild->mRequestHeaders);
+    return;
+  }
 
   
   mResponseHead = new nsHttpResponseHead(responseHead);
@@ -559,16 +615,20 @@ HttpChannelChild::Redirect1Begin(PHttpChannelChild* newChannel,
 
   PRBool preserveMethod = (mResponseHead->Status() == 307);
   rv = SetupReplacementChannel(uri, newHttpChannelChild, preserveMethod);
-  if (NS_FAILED(rv))
-    return; 
+  if (NS_FAILED(rv)) {
+    
+    Cancel(rv);
+    SendRedirect2Result(rv, mRedirectChannelChild->mRequestHeaders);
+    return;
+  }
 
   mRedirectChannelChild = newHttpChannelChild;
 
-  nsresult result = gHttpHandler->AsyncOnChannelRedirect(this, 
-                                                         newHttpChannelChild, 
-                                                         redirectFlags);
-  if (NS_FAILED(result))
-    OnRedirectVerifyCallback(result);
+  rv = gHttpHandler->AsyncOnChannelRedirect(this, 
+                                            newHttpChannelChild, 
+                                            redirectFlags);
+  if (NS_FAILED(rv))
+    OnRedirectVerifyCallback(rv);
 }
 
 class Redirect3Event : public ChildChannelEvent
@@ -604,7 +664,7 @@ HttpChannelChild::Redirect3Complete()
   rv = mRedirectChannelChild->CompleteRedirectSetup(mListener, 
                                                     mListenerContext);
   if (NS_FAILED(rv))
-    ; 
+    Cancel(rv);
 }
 
 nsresult
@@ -629,8 +689,8 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
     mLoadGroup->AddRequest(this, nsnull);
 
   
-
-  mState = HCC_OPENED;
+  
+  
   return NS_OK;
 }
 
@@ -656,7 +716,14 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
 NS_IMETHODIMP
 HttpChannelChild::Cancel(nsresult status)
 {
-  
+  if (!mCanceled) {
+    
+    
+    mCanceled = true;
+    mStatus = status;
+    if (mIPCOpen)
+      SendCancel(status);
+  }
   return NS_OK;
 }
 
@@ -698,6 +765,9 @@ NS_IMETHODIMP
 HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
 {
   LOG(("HttpChannelChild::AsyncOpen [this=%x uri=%s]\n", this, mSpec.get()));
+
+  if (mCanceled)
+    return mStatus;
 
   NS_ENSURE_TRUE(gNeckoChild != nsnull, NS_ERROR_FAILURE);
   NS_ENSURE_ARG_POINTER(listener);
@@ -758,19 +828,16 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   if (mLoadGroup)
     mLoadGroup->AddRequest(this, nsnull);
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  if (mCanceled) {
+    
+    
+    
+
+    
+    mCanceled = false;
+    OnCancel(mStatus);
+    return NS_OK;
+  }
 
   
   
@@ -798,7 +865,6 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
                 mAllowPipelining, mForceAllowThirdPartyCookie, mSendResumeAt,
                 mStartPos, mEntityID);
 
-  mState = HCC_OPENED;
   return NS_OK;
 }
 
