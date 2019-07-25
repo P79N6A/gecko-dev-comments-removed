@@ -365,6 +365,13 @@ class LAddI : public LInstructionHelper<1, 2, 0>
 };
 
 
+class LMulI : public LInstructionHelper<1, 2, 0>
+{
+  public:
+    LIR_HEADER(MulI);
+};
+
+
 class LMathD : public LInstructionHelper<1, 2, 0>
 {
     JSOp jsop_;
