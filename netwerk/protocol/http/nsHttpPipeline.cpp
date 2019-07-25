@@ -535,6 +535,8 @@ nsHttpPipeline::Close(nsresult reason)
     }
 
     
+    
+    
     NS_IF_RELEASE(mConnection);
 }
 
