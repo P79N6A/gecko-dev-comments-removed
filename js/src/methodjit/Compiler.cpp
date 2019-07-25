@@ -4711,13 +4711,8 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
     }
 
     
-
-
-
-
-
-    JSObject *obj;
-    if (!js_GetClassPrototype(cx, globalObj, JSProto_String, &obj))
+    JSObject *obj = globalObj->getOrCreateStringPrototype(cx);
+    if (!obj)
         return false;
 
     

@@ -448,28 +448,7 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 inline JSObject *
 CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
-                    bool ignoreSingletonClone = false)
-{
-    JS_ASSERT(parent);
-    JSObject *proto;
-    if (!js_GetClassPrototype(cx, parent, JSProto_Function, &proto))
-        return NULL;
-
-    
-
-
-
-
-
-
-    if (ignoreSingletonClone && fun->hasSingletonType()) {
-        JS_ASSERT(fun->getProto() == proto);
-        fun->setParent(parent);
-        return fun;
-    }
-
-    return js_CloneFunctionObject(cx, fun, parent, proto);
-}
+                    bool ignoreSingletonClone = false);
 
 inline JSObject *
 CloneFunctionObject(JSContext *cx, JSFunction *fun)

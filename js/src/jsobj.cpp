@@ -3126,7 +3126,8 @@ js_CreateThisFromTrace(JSContext *cx, JSObject *ctor, uintN protoSlot)
 
 
 
-        if (!js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
+        proto = parent->getGlobal()->getOrCreateObjectPrototype(cx);
+        if (!proto)
             return NULL;
     }
 
