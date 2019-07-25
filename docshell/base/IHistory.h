@@ -43,6 +43,7 @@
 #include "nsISupports.h"
 
 class nsIURI;
+class nsString;
 
 namespace mozilla {
 
@@ -51,7 +52,7 @@ namespace mozilla {
     }
 
 #define IHISTORY_IID \
-  {0xaf27265d, 0x5672, 0x4d23, {0xa0, 0x75, 0x34, 0x8e, 0xb9, 0x73, 0x5a, 0x9a}}
+  {0x6f733924, 0x6321, 0x4384, {0x01, 0xee, 0x8e, 0x7d, 0xfb, 0xde, 0xe7, 0xa8}}
 
 class IHistory : public nsISupports
 {
@@ -96,6 +97,50 @@ public:
 
     NS_IMETHOD UnregisterVisitedCallback(nsIURI *aURI, dom::Link *aLink) = 0;
 
+    enum VisitFlags {
+        
+
+
+        TOP_LEVEL = 1 << 0,
+        
+
+
+        REDIRECT_PERMANENT = 1 << 1,
+        
+
+
+        REDIRECT_TEMPORARY = 1 << 2
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD VisitURI(
+        nsIURI *aURI,
+        nsIURI *aLastVisitedURI,
+        PRUint32 aFlags
+    ) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IHistory, IHISTORY_IID)
@@ -104,7 +149,11 @@ NS_DEFINE_STATIC_IID_ACCESSOR(IHistory, IHISTORY_IID)
     NS_IMETHOD RegisterVisitedCallback(nsIURI *aURI, \
                                        mozilla::dom::Link *aContent); \
     NS_IMETHOD UnregisterVisitedCallback(nsIURI *aURI, \
-                                         mozilla::dom::Link *aContent);
+                                         mozilla::dom::Link *aContent); \
+    NS_IMETHOD VisitURI(nsIURI *aURI, \
+                        nsIURI *aLastVisitedURI, \
+                        PRUint32 aFlags); \
+    NS_IMETHOD SetURITitle(nsIURI* aURI, const nsAString& aTitle);
 
 } 
 
