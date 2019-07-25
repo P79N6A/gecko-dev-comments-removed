@@ -264,7 +264,7 @@ protected:
 
 
 
-  float PanDistance(const MultiTouchInput& aEvent);
+  float PanDistance();
 
   
 
@@ -277,6 +277,18 @@ protected:
 
 
   SingleTouchData& GetFirstSingleTouch(const MultiTouchInput& aEvent);
+
+  
+
+
+
+  void StartPanning(const MultiTouchInput& aStartPoint);
+
+  
+
+
+
+  void UpdateWithTouchAtDevicePoint(const MultiTouchInput& aEvent);
 
   
 
