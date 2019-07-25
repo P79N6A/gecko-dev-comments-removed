@@ -40,7 +40,6 @@
 
 
 
-
 #include "nssb64.h"
 #include "nspr.h"
 #include "secitem.h"
@@ -563,14 +562,9 @@ PL_Base64DecodeBuffer (const char *src, PRUint32 srclen, unsigned char *dest,
     PLBase64Decoder *data = NULL;
     PRStatus status;
 
-    if (srclen == 0) {
-	*output_destlen = 0;
-	if (dest == NULL) {
-	    
-	    return (unsigned char *) PR_Malloc(1);
-	}
+    PR_ASSERT(srclen > 0);
+    if (srclen == 0)
 	return dest;
-    }
 
     
 
