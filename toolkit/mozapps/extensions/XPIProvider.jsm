@@ -1653,6 +1653,14 @@ var XPIProvider = {
 
       
       
+      if (aAppChanged && this.currentSkin != this.defaultSkin) {
+        let oldSkin = XPIDatabase.getVisibleAddonForInternalName(this.currentSkin);
+        if (!oldSkin || oldSkin.appDisabled)
+          this.enableDefaultTheme();
+      }
+
+      
+      
       if (changed || Prefs.getBoolPref(PREF_PENDING_OPERATIONS)) {
         LOG("Restart necessary");
         XPIDatabase.updateActiveAddons();
@@ -1964,13 +1972,11 @@ var XPIProvider = {
 
   enableDefaultTheme: function XPI_enableDefaultTheme() {
     LOG("Activating default theme");
-    let addons = XPIDatabase.getAddonsByType("theme");
-    addons.forEach(function(aTheme) {
-      
-      
-      if (aTheme.internalName == this.defaultSkin && aTheme.visible)
-        this.updateAddonDisabledState(aTheme, false);
-    }, this);
+    let addon = XPIDatabase.getVisibleAddonForInternalName(this.defaultSkin);
+    if (addon)
+      this.updateAddonDisabledState(addon, false);
+    else
+      WARN("Unable to activate the default theme");
   },
 
   
@@ -2527,6 +2533,8 @@ var XPIDatabase = {
     getInstallLocations: "SELECT DISTINCT location FROM addon",
     getVisibleAddonForID: "SELECT " + FIELDS_ADDON + " FROM addon WHERE " +
                           "visible=1 AND id=:id",
+    getVisibleAddoForInternalName: "SELECT " + FIELDS_ADDON + " FROM addon " +
+                                   "WHERE visible=1 AND internalName=:internalName",
     getVisibleAddons: "SELECT " + FIELDS_ADDON + " FROM addon WHERE visible=1",
     getVisibleAddonsWithPendingOperations: "SELECT " + FIELDS_ADDON + " FROM " +
                                            "addon WHERE visible=1 " +
@@ -3231,6 +3239,26 @@ var XPIDatabase = {
 
     stmt.params.type = aType;
     return [this.makeAddonFromRow(row) for each (row in resultRows(stmt))];;
+  },
+
+  
+
+
+
+
+
+
+  getVisibleAddonForInternalName: function XPIDB_getVisibleAddonForInternalName(aInternalName) {
+    let stmt = this.getStatement("getVisibleAddoForInternalName");
+
+    let addon = null;
+    stmt.params.internalName = aInternalName;
+
+    if (stepStatement(stmt))
+      addon = this.makeAddonFromRow(stmt.row);
+
+    stmt.reset();
+    return addon;
   },
 
   
