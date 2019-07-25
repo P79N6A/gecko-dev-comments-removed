@@ -143,6 +143,10 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   }
 
   gfxMatrix userToDeviceSpace = nsSVGUtils::GetCanvasTM(aTarget);
+  if (userToDeviceSpace.IsSingular()) {
+    
+    return;
+  }
   
   
   
