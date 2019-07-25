@@ -464,7 +464,9 @@ BOOLEAN_TO_JSVAL_IMPL(JSBool b)
     jsval_layout l;
 
     
-    
+
+
+
     JS_ASSERT(b == JS_TRUE || b == JS_FALSE);
     l.s.tag = JSVAL_TAG_BOOLEAN;
     l.s.payload.boo = b;
@@ -660,7 +662,9 @@ BOOLEAN_TO_JSVAL_IMPL(JSBool b)
     jsval_layout l;
 
     
-    
+
+
+
     JS_ASSERT(b == JS_TRUE || b == JS_FALSE);
     l.asBits = ((uint64)(uint32)b) | JSVAL_SHIFTED_TAG_BOOLEAN;
     return l;
