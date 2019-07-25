@@ -51,13 +51,6 @@
 
 JS_BEGIN_EXTERN_C
 
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_Assert(const char *s, const char *file, JSIntn ln);
-
 #define JS_CRASH_UNLESS(__cond)                                                 \
     JS_BEGIN_MACRO                                                              \
         if (!(__cond)) {                                                        \
