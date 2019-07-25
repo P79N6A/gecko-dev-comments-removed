@@ -47,6 +47,7 @@
 #include "nsQuickSort.h"
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
+#include "mozilla/Util.h"
 #include NEW_H
 
 
@@ -200,7 +201,8 @@ protected:
 
   
   
-  void ShrinkCapacity(size_type elemSize);
+  
+  void ShrinkCapacity(size_type elemSize, size_t elemAlign);
     
   
   
@@ -209,8 +211,9 @@ protected:
   
   
   
+  
   void ShiftData(index_type start, size_type oldLen, size_type newLen,
-                 size_type elemSize);
+                 size_type elemSize, size_t elemAlign);
 
   
   
@@ -226,22 +229,25 @@ protected:
   
   
   
+  
   bool InsertSlotsAt(index_type index, size_type count,
-                       size_type elementSize);
+                       size_type elementSize, size_t elemAlign);
 
 protected:
   template<class Allocator>
   bool SwapArrayElements(nsTArray_base<Allocator>& other,
-                           size_type elemSize);
+                           size_type elemSize,
+                           size_t elemAlign);
 
   
   class IsAutoArrayRestorer {
     public:
-      IsAutoArrayRestorer(nsTArray_base<Alloc> &array);
+      IsAutoArrayRestorer(nsTArray_base<Alloc> &array, size_t elemAlign);
       ~IsAutoArrayRestorer();
 
     private:
       nsTArray_base<Alloc> &mArray;
+      size_t mElemAlign;
       bool mIsAuto;
   };
 
@@ -255,29 +261,18 @@ protected:
   }
 
   
-  
-  struct AutoArray {
-    Header *mHdr;
-    PRUint64 aligned;
-  };
-
-  
-  Header* GetAutoArrayBuffer() {
+  Header* GetAutoArrayBuffer(size_t elemAlign) {
     NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
-    return GetAutoArrayBufferUnsafe();
+    return GetAutoArrayBufferUnsafe(elemAlign);
   }
 
   
   
-  Header* GetAutoArrayBufferUnsafe() {
-    return reinterpret_cast<Header*>(&(reinterpret_cast<AutoArray*>(&mHdr))->aligned);
-  }
+  Header* GetAutoArrayBufferUnsafe(size_t elemAlign);
 
   
   
-  bool UsesAutoArrayBuffer() {
-    return mHdr->mIsAutoArray && mHdr == GetAutoArrayBuffer();
-  }
+  bool UsesAutoArrayBuffer();
 
   
   
@@ -683,7 +678,7 @@ public:
     if (!this->EnsureCapacity(Length() + arrayLen - count, sizeof(elem_type)))
       return nsnull;
     DestructRange(start, count);
-    this->ShiftData(start, count, arrayLen, sizeof(elem_type));
+    this->ShiftData(start, count, arrayLen, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
     AssignRange(start, arrayLen, array);
     return Elements() + start;
   }
@@ -733,7 +728,7 @@ public:
   elem_type* InsertElementAt(index_type index) {
     if (!this->EnsureCapacity(Length() + 1, sizeof(elem_type)))
       return nsnull;
-    this->ShiftData(index, 0, 1, sizeof(elem_type));
+    this->ShiftData(index, 0, 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
     elem_type *elem = Elements() + index;
     elem_traits::Construct(elem);
     return elem;
@@ -881,7 +876,7 @@ public:
       return nsnull;
     memcpy(Elements() + len, array.Elements(), otherLen * sizeof(elem_type));
     this->IncrementLength(otherLen);      
-    array.ShiftData(0, otherLen, 0, sizeof(elem_type));
+    array.ShiftData(0, otherLen, 0, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
     return Elements() + len;
   }
 
@@ -892,7 +887,7 @@ public:
     NS_ASSERTION(count == 0 || start < Length(), "Invalid start index");
     NS_ASSERTION(start + count <= Length(), "Invalid length");
     DestructRange(start, count);
-    this->ShiftData(start, count, 0, sizeof(elem_type));
+    this->ShiftData(start, count, 0, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
   }
 
   
@@ -952,7 +947,7 @@ public:
   
   template<class Allocator>
   bool SwapElements(nsTArray<E, Allocator>& other) {
-    return this->SwapArrayElements(other, sizeof(elem_type));
+    return this->SwapArrayElements(other, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
   }
 
   
@@ -1020,7 +1015,7 @@ public:
   
   
   elem_type *InsertElementsAt(index_type index, size_type count) {
-    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type))) {
+    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type), MOZ_ALIGNOF(elem_type))) {
       return nsnull;
     }
 
@@ -1043,7 +1038,7 @@ public:
   template<class Item>
   elem_type *InsertElementsAt(index_type index, size_type count,
                               const Item& item) {
-    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type))) {
+    if (!base_type::InsertSlotsAt(index, count, sizeof(elem_type), MOZ_ALIGNOF(elem_type))) {
       return nsnull;
     }
 
@@ -1058,7 +1053,7 @@ public:
 
   
   void Compact() {
-    ShrinkCapacity(sizeof(elem_type));
+    ShrinkCapacity(sizeof(elem_type), MOZ_ALIGNOF(elem_type));
   }
 
   
@@ -1108,7 +1103,7 @@ public:
   
   template<class Item, class Comparator>
   elem_type *PushHeap(const Item& item, const Comparator& comp) {
-    if (!base_type::InsertSlotsAt(Length(), 1, sizeof(elem_type))) {
+    if (!base_type::InsertSlotsAt(Length(), 1, sizeof(elem_type), MOZ_ALIGNOF(elem_type))) {
       return nsnull;
     }
     
@@ -1238,7 +1233,6 @@ public:
 };
 #endif
 
-
 template<class TArrayBase, PRUint32 N>
 class nsAutoArrayBase : public TArrayBase
 {
@@ -1262,20 +1256,33 @@ protected:
   }
 
 private:
+  
+  
+  template<class Allocator>
+  friend class nsTArray_base;
+
   void Init() {
+    
+    
+    PR_STATIC_ASSERT(MOZ_ALIGNOF(elem_type) <= 8);
+
     *base_type::PtrToHdr() = reinterpret_cast<Header*>(&mAutoBuf);
     base_type::Hdr()->mLength = 0;
     base_type::Hdr()->mCapacity = N;
     base_type::Hdr()->mIsAutoArray = 1;
 
-    NS_ASSERTION(base_type::GetAutoArrayBuffer() ==
+    NS_ASSERTION(base_type::GetAutoArrayBuffer(MOZ_ALIGNOF(elem_type)) ==
                  reinterpret_cast<Header*>(&mAutoBuf),
                  "GetAutoArrayBuffer needs to be fixed");
   }
 
+  
+  
+  
+  
   union {
-    char mAutoBuf[sizeof(Header) + N * sizeof(elem_type)];
-    PRUint64 dummy;
+    char mAutoBuf[sizeof(nsTArrayHeader) + N * sizeof(elem_type)];
+    mozilla::AlignedElem<PR_MAX(MOZ_ALIGNOF(Header), MOZ_ALIGNOF(elem_type))> mAlign;
   };
 };
 
@@ -1290,6 +1297,22 @@ public:
     AppendElements(other);
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PR_STATIC_ASSERT(sizeof(nsAutoTArray<PRUint32, 2>) ==
+                 sizeof(void*) + sizeof(nsTArrayHeader) + sizeof(PRUint32) * 2);
 
 template<class E, PRUint32 N>
 class AutoFallibleTArray : public nsAutoArrayBase<FallibleTArray<E>, N>

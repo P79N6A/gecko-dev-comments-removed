@@ -66,6 +66,12 @@ MOZ_END_EXTERN_C
 
 
 
+#define MOZ_STATIC_ASSERT(condition) \
+  extern void moz_static_assert(int arg[(condition) ? 1 : -1])
+
+
+
+
 
 
 #ifdef DEBUG
@@ -196,6 +202,93 @@ struct DebugOnly
     ~DebugOnly() {}
 };
 
+
+
+
+
+template<class T>
+struct AlignmentFinder
+{
+private:
+  struct Aligner
+  {
+    char c;
+    T t;
+  };
+
+public:
+  static const int alignment = sizeof(Aligner) - sizeof(T);
+};
+
+#define MOZ_ALIGNOF(T) mozilla::AlignmentFinder<T>::alignment
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__GNUC__)
+#define MOZ_ALIGNED_DECL(_type, _align) \
+  _type __attribute__((aligned(_align)))
+
+#elif defined(_MSC_VER)
+#define MOZ_ALIGNED_DECL(_type, _align) \
+  __declspec(align(_align)) _type
+
+#else
+
+#warning "We don't know how to align variables on this compiler."
+#define MOZ_ALIGNED_DECL(_type, _align) _type
+
+#endif
+
+
+
+
+
+
+template<size_t align>
+struct AlignedElem;
+
+
+
+
+
+
+template<>
+struct AlignedElem<1>
+{
+  MOZ_ALIGNED_DECL(uint8 elem, 1);
+};
+
+template<>
+struct AlignedElem<2>
+{
+  MOZ_ALIGNED_DECL(uint8 elem, 2);
+};
+
+template<>
+struct AlignedElem<4>
+{
+  MOZ_ALIGNED_DECL(uint8 elem, 4);
+};
+
+template<>
+struct AlignedElem<8>
+{
+  MOZ_ALIGNED_DECL(uint8 elem, 8);
+};
+
+template<>
+struct AlignedElem<16>
+{
+  MOZ_ALIGNED_DECL(uint8 elem, 16);
+};
 
 
 

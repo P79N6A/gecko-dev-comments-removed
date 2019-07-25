@@ -36,13 +36,13 @@
 
 
 
+#include "base/message_loop.h"
+
 #include "nsBaseAppShell.h"
 #include "nsThreadUtils.h"
 #include "nsIObserverService.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/Services.h"
-
-#include "base/message_loop.h"
 
 
 
