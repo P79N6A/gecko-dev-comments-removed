@@ -2,7 +2,7 @@
 
 
 
-var testURL_01 = baseURI + "browser_blank_01.html";
+var testURL_01 = "http://mochi.test:8888/browser/mobile/chrome/browser_blank_01.html";
 
 
 var gTests = [];
