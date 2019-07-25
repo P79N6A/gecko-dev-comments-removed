@@ -5318,6 +5318,10 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
 
   JSAutoRequest ar(cx);
 
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(cx, jsfnObj))
+    return;
+
   
   FunctionInfo* fninfo = FunctionType::GetFunctionInfo(cx, typeObj);
   JS_ASSERT(cif == &fninfo->mCIF);
