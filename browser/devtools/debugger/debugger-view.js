@@ -1075,8 +1075,24 @@ DebuggerView.Scripts = {
 
 
 
+
   contains: function DVS_contains(aUrl) {
     if (this._scripts.getElementsByAttribute("value", aUrl).length > 0) {
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+  containsLabel: function DVS_containsLabel(aLabel) {
+    if (this._scripts.getElementsByAttribute("label", aLabel).length > 0) {
       return true;
     }
     return false;
@@ -1109,7 +1125,7 @@ DebuggerView.Scripts = {
         break;
       }
     }
-   },
+  },
 
   
 
@@ -1123,16 +1139,16 @@ DebuggerView.Scripts = {
 
 
 
-
-
-  addScript: function DVS_addScript(aUrl, aSource, aScriptNameText) {
+  addScript: function DVS_addScript(aLabel, aScript) {
     
-    if (this.contains(aUrl)) {
+    if (this.containsLabel(aLabel)) {
       return null;
     }
 
-    let script = this._scripts.appendItem(aScriptNameText || aUrl, aUrl);
-    script.setUserData("sourceScript", aSource, null);
+    let script = this._scripts.appendItem(aLabel, aScript.url);
+    script.setAttribute("tooltiptext", aScript.url);
+    script.setUserData("sourceScript", aScript, null);
+
     this._scripts.selectedItem = script;
     return script;
   },

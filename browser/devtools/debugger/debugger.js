@@ -418,6 +418,7 @@ StackFrames.onClick = StackFrames.onClick.bind(StackFrames);
 var SourceScripts = {
   pageSize: 25,
   activeThread: null,
+  _labelsCache: null,
 
   
 
@@ -433,6 +434,7 @@ var SourceScripts = {
     aThreadClient.addListener("paused", this.onPaused);
     aThreadClient.addListener("scriptsadded", this.onScripts);
     aThreadClient.addListener("scriptscleared", this.onScriptsCleared);
+    this.clearLabelsCache();
     this.onScriptsCleared();
     aCallback && aCallback();
   },
@@ -511,14 +513,7 @@ var SourceScripts = {
       return;
     }
 
-    let url = aUrl;
-    
-    let q = url.indexOf('?');
-    if (q > -1) {
-      url = url.slice(0, q);
-    }
-
-    if (url.slice(-3) == ".js") {
+    if (this._trimUrlQuery(aUrl).slice(-3) == ".js") {
       window.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
     } else {
       window.editor.setMode(SourceEditor.MODES.HTML);
@@ -529,8 +524,75 @@ var SourceScripts = {
 
 
 
+
+
+
+  _trimUrlQuery: function SS_trimUrlQuery(aUrl) {
+    let q = aUrl.indexOf('?');
+    if (q > -1) {
+      return aUrl.slice(0, q);
+    }
+    return aUrl;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _getScriptLabel: function SS_getScriptLabel(aUrl, aHref) {
+    let url = this._trimUrlQuery(aUrl);
+
+    if (this._labelsCache[url]) {
+      return this._labelsCache[url];
+    }
+
+    let href = aHref || window.parent.content.location.href;
+    let pathElements = url.split("/");
+    let label = pathElements.pop() || (pathElements.pop() + "/");
+
+    
+    if (DebuggerView.Scripts.containsLabel(label)) {
+      label = url.replace(href.substring(0, href.lastIndexOf("/") + 1), "");
+
+      
+      if (DebuggerView.Scripts.containsLabel(label)) {
+        label = url;
+      }
+    }
+
+    return this._labelsCache[url] = label;
+  },
+
+  
+
+
+
+  clearLabelsCache: function SS_clearLabelsCache() {
+    this._labelsCache = {};
+  },
+
+  
+
+
+
   _addScript: function SS_addScript(aScript) {
-    DebuggerView.Scripts.addScript(aScript.url, aScript);
+    DebuggerView.Scripts.addScript(this._getScriptLabel(aScript.url), aScript);
 
     if (window.editor.getCharCount() == 0) {
       this._showScript(aScript);
