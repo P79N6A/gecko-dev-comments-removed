@@ -122,9 +122,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         mHeight = (PRUint8)*aBuffer;
 
         
-        mImage->SetSize(mWidth, mHeight);
-        if (mObserver)
-          mObserver->OnStartContainer(nsnull, mImage);
+        PostSize(mWidth, mHeight);
 
         
         if (IsSizeDecode()) {
