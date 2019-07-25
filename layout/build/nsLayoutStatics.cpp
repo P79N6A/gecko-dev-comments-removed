@@ -316,10 +316,6 @@ nsLayoutStatics::Shutdown()
   nsCellMap::Shutdown();
   nsFrame::ShutdownLayerActivityTimer();
 
-#ifdef MOZ_SVG
-  nsSVGUtils::Shutdown();
-#endif
-
   
   nsColorNames::ReleaseTable();
   nsCSSProps::ReleaseTable();
