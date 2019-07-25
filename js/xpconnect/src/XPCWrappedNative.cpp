@@ -353,11 +353,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
     XPCLock* mapLock = Scope->GetRuntime()->GetMapLock();
 
-    
-    
-    
-    
-    AutoMarkingWrappedNativePtr wrapper(ccx);
+    XPCWrappedNative* wrapper;
 
     Native2WrappedNativeMap* map = Scope->GetWrappedNativeMap();
     if (!cache) {
@@ -556,6 +552,12 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     NS_ASSERTION(!xpc::WrapperFactory::IsXrayWrapper(parent),
                  "Xray wrapper being used to parent XPCWrappedNative?");
 
+    
+    
+    
+    
+    AutoMarkingWrappedNativePtr wrapperMarker(ccx, wrapper);
+
     if (!wrapper->Init(ccx, parent, &sciWrapper)) {
         NS_RELEASE(wrapper);
         return NS_ERROR_FAILURE;
@@ -689,12 +691,6 @@ XPCWrappedNative::Morph(XPCCallContext& ccx,
         static_cast<nsISupports*>(xpc_GetJSPrivate(existingJSObject));
     XPCWrappedNativeProto *proto = GetSlimWrapperProto(existingJSObject);
 
-    
-    
-    
-    
-    AutoMarkingWrappedNativePtr wrapper(ccx);
-
 #if DEBUG
     
     
@@ -715,7 +711,7 @@ XPCWrappedNative::Morph(XPCCallContext& ccx,
 #endif
 #endif
 
-    wrapper = new XPCWrappedNative(dont_AddRef(identity), proto);
+    XPCWrappedNative* wrapper = new XPCWrappedNative(dont_AddRef(identity), proto);
     if (!wrapper)
         return NS_ERROR_FAILURE;
 
@@ -723,6 +719,12 @@ XPCWrappedNative::Morph(XPCCallContext& ccx,
 
     NS_ASSERTION(!xpc::WrapperFactory::IsXrayWrapper(js::GetObjectParent(existingJSObject)),
                  "Xray wrapper being used to parent XPCWrappedNative?");
+
+    
+    
+    
+    
+    AutoMarkingWrappedNativePtr wrapperMarker(ccx, wrapper);
 
     JSAutoEnterCompartment ac;
     if (!ac.enter(ccx, existingJSObject) || !wrapper->Init(ccx, existingJSObject)) {
