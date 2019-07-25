@@ -351,6 +351,12 @@ public:
                                            const nsIntRegion& aRegionToDraw,
                                            const nsIntRegion& aRegionToInvalidate,
                                            void* aCallbackData);
+
+  enum EndTransactionFlags {
+    END_DEFAULT = 0,
+    END_NO_IMMEDIATE_REDRAW = 1 << 0  
+  };
+
   
 
 
@@ -359,7 +365,8 @@ public:
 
 
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
-                              void* aCallbackData) = 0;
+                              void* aCallbackData,
+                              EndTransactionFlags aFlags = END_DEFAULT) = 0;
 
   PRBool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
 
