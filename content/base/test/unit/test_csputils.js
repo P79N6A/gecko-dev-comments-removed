@@ -462,45 +462,6 @@ test(function test_CSPRep_fromString_withself() {
      });
 
 
-test(function test_CSPRep_fromPolicyURI() {
-        var cspr;
-        var SD = CSPRep.SRC_DIRECTIVES;
-        var self = "http://localhost:" + POLICY_PORT;
-
-        cspr = CSPRep.fromString("policy-uri " + POLICY_URI, self);
-        cspr_static = CSPRep.fromString(POLICY_FROM_URI, self);
-
-        
-        do_check_neq(null,cspr);
-
-        
-        for(var i in SD) {
-          
-          do_check_equivalent(cspr._directives[SD[i]],
-                              cspr_static._directives[SD[i]]);
-        }
-    });
-
-test(function test_CSPRep_fromRelativePolicyURI() {
-        var cspr;
-        var SD = CSPRep.SRC_DIRECTIVES;
-        var self = "http://localhost:" + POLICY_PORT;
-
-        cspr = CSPRep.fromString("policy-uri " + POLICY_URI_RELATIVE, self);
-        cspr_static = CSPRep.fromString(POLICY_FROM_URI, self);
-
-        
-        do_check_neq(null,cspr);
-
-        
-        for(var i in SD) {
-          
-          do_check_equivalent(cspr._directives[SD[i]],
-                              cspr_static._directives[SD[i]]);
-        }
-    });
-
-
 
 test(function test_FrameAncestor_defaults() {
       var cspr;
