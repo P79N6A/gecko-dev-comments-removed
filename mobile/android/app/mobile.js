@@ -747,3 +747,6 @@ pref("ui.scrolling.overscroll_snap_limit", -1);
 
 
 pref("ui.scrolling.min_scrollable_distance", -1);
+
+
+pref("ui.zooming.animation_frames", "");
