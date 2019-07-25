@@ -873,7 +873,7 @@ public:
 
 
 
-  nsIContent* GetEditingHost();
+  mozilla::dom::Element* GetEditingHost();
 
   
 
