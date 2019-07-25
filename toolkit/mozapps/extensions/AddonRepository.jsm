@@ -1066,12 +1066,6 @@ var AddonRepository = {
       let element = aElements[i];
 
       
-      let status = this._getUniqueDescendant(element, "status");
-      
-      if (status == null || status.getAttribute("id") != 4)
-        continue;
-
-      
       let tags = this._getUniqueDescendant(element, "compatible_applications");
       if (tags == null)
         continue;
