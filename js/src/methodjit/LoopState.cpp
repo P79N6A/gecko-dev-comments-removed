@@ -505,6 +505,10 @@ LoopState::setLoopReg(AnyRegisterID reg, FrameEntry *fe)
 bool
 LoopState::hoistArrayLengthCheck(const CrossSSAValue &obj, const CrossSSAValue &index)
 {
+    
+
+
+
     if (skipAnalysis)
         return false;
 
@@ -1333,11 +1337,6 @@ LoopState::getLoopTestAccess(const SSAValue &v, uint32 *pslot, int32 *pconstant)
         if (outerAnalysis->slotEscapes(slot))
             return false;
 
-        
-        TypeSet *types = outerAnalysis->pushedTypes(pc, 0);
-        if (types->getKnownTypeTag(cx) != JSVAL_TYPE_INT32)
-            return false;
-
         *pslot = slot;
         if (cs->format & JOF_POST) {
             if (cs->format & JOF_INC)
@@ -1393,6 +1392,12 @@ LoopState::analyzeLoopTest()
 
     SSAValue one = outerAnalysis->poppedValue(test.pushedOffset(), 1);
     SSAValue two = outerAnalysis->poppedValue(test.pushedOffset(), 0);
+
+    
+    if (outerAnalysis->getValueTypes(one)->getKnownTypeTag(cx) != JSVAL_TYPE_INT32 ||
+        outerAnalysis->getValueTypes(two)->getKnownTypeTag(cx) != JSVAL_TYPE_INT32) {
+        return;
+    }
 
     
     uint32 swapRHS;
