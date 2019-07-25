@@ -5704,7 +5704,9 @@ nsContentUtils::ReparentClonedObjectToScope(JSContext* cx,
   while (!objectData.IsEmpty()) {
     ReparentObjectData& data = objectData[objectData.Length() - 1];
 
-    if (!data.ids && !data.index) {
+    if (!data.ids) {
+      NS_ASSERTION(!data.index, "Shouldn't have index here");
+
       
       if (js_IsTypedArray(data.obj)) {
         if (!js_ReparentTypedArrayToScope(cx, data.obj, scope)) {

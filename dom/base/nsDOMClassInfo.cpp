@@ -1774,7 +1774,7 @@ nsDOMClassInfo::ThrowJSException(JSContext *cx, nsresult aResult)
   
   
   JSString *str =
-    JS_NewStringCopyZ(cx, "An error occured throwing an exception");
+    JS_NewStringCopyZ(cx, "An error occurred throwing an exception");
   if (!str) {
     
     return NS_OK; 

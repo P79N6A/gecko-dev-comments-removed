@@ -234,13 +234,6 @@ void nsWindowGfx::OnSettingsChangeGfx(WPARAM wParam)
 #endif
 }
 
-void nsWindow::SetUpForPaint(HDC aHDC)
-{
-  ::SetBkColor (aHDC, NSRGB_2_COLOREF(mBackground));
-  ::SetTextColor(aHDC, NSRGB_2_COLOREF(mForeground));
-  ::SetBkMode (aHDC, TRANSPARENT);
-}
-
 
 
 

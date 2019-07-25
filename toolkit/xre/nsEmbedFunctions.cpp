@@ -55,8 +55,6 @@
 #include "nsIToolkitChromeRegistry.h"
 #include "nsIToolkitProfile.h"
 
-#include "nsChromeRegistry.h"
-
 #if defined(OS_LINUX)
 #  define XP_LINUX
 #endif
@@ -83,42 +81,48 @@
 #include "base/message_loop.h"
 #include "base/process_util.h"
 #include "chrome/common/child_process.h"
+#include "chrome/common/notification_service.h"
 
-#include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
+#include "mozilla/ipc/GeckoChildProcessHost.h"
+#include "mozilla/ipc/IOThreadChild.h"
+#include "mozilla/ipc/ProcessChild.h"
 #include "ScopedXREEmbed.h"
 
-#include "mozilla/plugins/PluginThreadChild.h"
-#include "mozilla/dom/ContentProcessThread.h"
+#include "mozilla/plugins/PluginProcessChild.h"
+include "mozilla/dom/ContentProcessThread.h"
 #include "mozilla/dom/ContentProcessParent.h"
 #include "mozilla/dom/ContentProcessChild.h"
-#include "mozilla/dom/TabParent.h"
+
+#include "mozilla/jsipc/ContextWrapperParent.h"
 
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/ipc/XPCShellEnvironment.h"
-#include "mozilla/Monitor.h"
 
 #ifdef MOZ_IPDL_TESTS
 #include "mozilla/_ipdltest/IPDLUnitTests.h"
-#include "mozilla/_ipdltest/IPDLUnitTestThreadChild.h"
+#include "mozilla/_ipdltest/IPDLUnitTestProcessChild.h"
 
-using mozilla::_ipdltest::IPDLUnitTestThreadChild;
+using mozilla::_ipdltest::IPDLUnitTestProcessChild;
 #endif  
 
-using mozilla::ipc::GeckoChildProcessHost;
 using mozilla::ipc::BrowserProcessSubThread;
+using mozilla::ipc::GeckoChildProcessHost;
+using mozilla::ipc::IOThreadChild;
+using mozilla::ipc::ProcessChild;
 using mozilla::ipc::ScopedXREEmbed;
 
-using mozilla::plugins::PluginThreadChild;
+using mozilla::plugins::PluginProcessChild;
 using mozilla::dom::ContentProcessThread;
 using mozilla::dom::ContentProcessParent;
 using mozilla::dom::ContentProcessChild;
+
+using mozilla::jsipc::PContextWrapperParent;
+using mozilla::jsipc::ContextWrapperParent;
+
 using mozilla::ipc::TestShellParent;
 using mozilla::ipc::TestShellCommandParent;
 using mozilla::ipc::XPCShellEnvironment;
-
-using mozilla::Monitor;
-using mozilla::MonitorAutoEnter;
 
 using mozilla::startup::sChildProcessType;
 #endif
@@ -202,6 +206,7 @@ XRE_InitEmbedding(nsILocalFile *aLibXULDirectory,
   
   
   
+  
 
   nsCOMPtr<nsIObserver> startupNotifier
     (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID));
@@ -235,56 +240,6 @@ XRE_TermEmbedding()
   delete gDirServiceProvider;
 }
 
-static nsresult
-GetChromeRegistry(nsChromeRegistry* *aResult)
-{
-  if(!nsChromeRegistry::gChromeRegistry)
-  {
-    
-    
-    nsCOMPtr<nsIChromeRegistry> reg(do_GetService(NS_CHROMEREGISTRY_CONTRACTID));
-    NS_ENSURE_TRUE(nsChromeRegistry::gChromeRegistry, NS_ERROR_FAILURE);
-  }
-  *aResult = nsChromeRegistry::gChromeRegistry;
-  return NS_OK;
-}
-
-nsresult
-XRE_SendParentChromeRegistry(mozilla::dom::TabParent* aParent)
-{
-  nsChromeRegistry* chromeRegistry = nsnull;
-  nsresult rv = GetChromeRegistry(&chromeRegistry);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  chromeRegistry->SendRegisteredPackages(aParent);
-  return NS_OK;
-}
-
-nsresult
-XRE_RegisterChromePackage(const nsString& aPackage,
-                          const nsString& aBaseURI,
-                          const PRUint32& aFlags)
-{
-  nsChromeRegistry* chromeRegistry = nsnull;
-  nsresult rv = GetChromeRegistry(&chromeRegistry);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  chromeRegistry->RegisterPackage(aPackage, aBaseURI, aFlags);
-  return NS_OK;
-}
-
-nsresult
-XRE_RegisterChromeResource(const nsString& aPackage,
-                           const nsString& aResolvedURI)
-{
-  nsChromeRegistry* chromeRegistry = nsnull;
-  nsresult rv = GetChromeRegistry(&chromeRegistry);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  chromeRegistry->RegisterResource(aPackage, aResolvedURI);
-  return NS_OK;
-}
-
 const char*
 XRE_ChildProcessTypeToString(GeckoProcessType aProcessType)
 {
@@ -312,18 +267,17 @@ GeckoProcessType sChildProcessType = GeckoProcessType_Default;
 }
 }
 
-static MessageLoop* sIOMessageLoop;
-
 #if defined(MOZ_CRASHREPORTER)
 
 
 
 PRBool
-XRE_GetMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
+XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
 {
-  return CrashReporter::GetMinidumpForChild(aChildPid, aDump);
+  return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
 }
 
+#if !defined(XP_MACOSX)
 PRBool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {
@@ -335,6 +289,7 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #  error "OOP crash reporter unsupported on this platform"
 #endif
 }
+#endif 
 #endif 
 
 nsresult
@@ -382,6 +337,7 @@ XRE_InitChildProcess(int aArgc,
   NS_ABORT_IF_FALSE(ok, "can't open handle to parent");
 
   base::AtExitManager exitManager;
+  NotificationService notificationService;
 
   NS_LogInit();
 
@@ -391,10 +347,10 @@ XRE_InitChildProcess(int aArgc,
     return NS_ERROR_FAILURE;
   }
 
-  MessageLoopForIO mainMessageLoop;
-
+  
+  MessageLoopForUI uiMessageLoop;
   {
-    ChildThread* mainThread;
+    nsAutoPtr<ProcessChild> process;
 
     switch (aProcess) {
     case GeckoProcessType_Default:
@@ -402,17 +358,17 @@ XRE_InitChildProcess(int aArgc,
       break;
 
     case GeckoProcessType_Plugin:
-      mainThread = new PluginThreadChild(parentHandle);
+      process = new PluginProcessChild(parentHandle);
       break;
 
     case GeckoProcessType_Content:
-      mainThread = new ContentProcessThread(parentHandle);
+      process = new ContentProcessChild(parentHandle);
       break;
 
     case GeckoProcessType_IPDLUnitTest:
 #ifdef MOZ_IPDL_TESTS
-      mainThread = new IPDLUnitTestThreadChild(parentHandle);
-#else
+      process = new IPDLUnitTestProcessChild(parentHandle);
+#else 
       NS_RUNTIMEABORT("rebuild with --enable-ipdl-tests");
 #endif
       break;
@@ -421,14 +377,17 @@ XRE_InitChildProcess(int aArgc,
       NS_RUNTIMEABORT("Unknown main thread class");
     }
 
-    ChildProcess process(mainThread);
+    if (!process->Init()) {
+      NS_LogTerm();
+      return NS_ERROR_FAILURE;
+    }
 
     
-    sIOMessageLoop = MessageLoop::current();
+    uiMessageLoop.MessageLoop::Run();
 
-    sIOMessageLoop->Run();
-
-    sIOMessageLoop = nsnull;
+    
+    
+    process->CleanUp();
   }
 
   NS_LogTerm();
@@ -439,10 +398,9 @@ MessageLoop*
 XRE_GetIOMessageLoop()
 {
   if (sChildProcessType == GeckoProcessType_Default) {
-    NS_ASSERTION(!sIOMessageLoop, "Shouldn't be set on parent process!");
     return BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
   }
-  return sIOMessageLoop;
+  return IOThreadChild::message_loop();
 }
 
 namespace {
@@ -562,11 +520,27 @@ XRE_ShutdownChildProcess()
   MessageLoop* ioLoop = XRE_GetIOMessageLoop();
   NS_ABORT_IF_FALSE(!!ioLoop, "Bad shutdown order");
 
-  ioLoop->PostTask(FROM_HERE, new MessageLoop::QuitTask());
+  
+  
+  
+  
+  
+  
+  MessageLoop::current()->Quit(); 
 }
 
 namespace {
 TestShellParent* gTestShellParent = nsnull;
+TestShellParent* GetOrCreateTestShellParent()
+{
+    if (!gTestShellParent) {
+        ContentProcessParent* parent = ContentProcessParent::GetSingleton();
+        NS_ENSURE_TRUE(parent, nsnull);
+        gTestShellParent = parent->CreateTestShell();
+        NS_ENSURE_TRUE(gTestShellParent, nsnull);
+    }
+    return gTestShellParent;
+}
 }
 
 bool
@@ -574,28 +548,30 @@ XRE_SendTestShellCommand(JSContext* aCx,
                          JSString* aCommand,
                          void* aCallback)
 {
-    if (!gTestShellParent) {
-        ContentProcessParent* parent = ContentProcessParent::GetSingleton();
-        NS_ENSURE_TRUE(parent, false);
-
-        gTestShellParent = parent->CreateTestShell();
-        NS_ENSURE_TRUE(gTestShellParent, false);
-    }
+    TestShellParent* tsp = GetOrCreateTestShellParent();
+    NS_ENSURE_TRUE(tsp, false);
 
     nsDependentString command((PRUnichar*)JS_GetStringChars(aCommand),
                               JS_GetStringLength(aCommand));
     if (!aCallback) {
-        return gTestShellParent->SendExecuteCommand(command);
+        return tsp->SendExecuteCommand(command);
     }
 
     TestShellCommandParent* callback = static_cast<TestShellCommandParent*>(
-        gTestShellParent->SendPTestShellCommandConstructor(command));
+        tsp->SendPTestShellCommandConstructor(command));
     NS_ENSURE_TRUE(callback, false);
 
     jsval callbackVal = *reinterpret_cast<jsval*>(aCallback);
     NS_ENSURE_TRUE(callback->SetCallback(aCx, callbackVal), false);
 
     return true;
+}
+
+bool
+XRE_GetChildGlobalObject(JSContext* aCx, JSObject** aGlobalP)
+{
+    TestShellParent* tsp = GetOrCreateTestShellParent();
+    return tsp && tsp->GetGlobalJSObject(aCx, aGlobalP);
 }
 
 bool

@@ -809,6 +809,7 @@ nsGenericHTMLElement::GetSpellcheck(PRBool* aSpellcheck)
   }
 
   
+  
   if (controlType != NS_FORM_INPUT_TEXT) {
     return NS_OK;                       
   }
@@ -1614,8 +1615,7 @@ nsGenericHTMLFormElement::UpdateEditableFormControlState()
   }
 
   PRInt32 formType = GetType();
-  if (formType != NS_FORM_INPUT_PASSWORD && formType != NS_FORM_INPUT_TEXT &&
-      formType != NS_FORM_TEXTAREA) {
+  if (!IsTextControl(PR_FALSE)) {
     SetEditableFlag(PR_FALSE);
     return;
   }
@@ -2609,6 +2609,23 @@ nsGenericHTMLFormElement::IsSubmitControl() const
   return type == NS_FORM_INPUT_SUBMIT ||
          type == NS_FORM_BUTTON_SUBMIT ||
          type == NS_FORM_INPUT_IMAGE;
+}
+
+PRBool
+nsGenericHTMLFormElement::IsTextControl(PRBool aExcludePassword) const
+{
+  PRInt32 type = GetType();
+  return nsGenericHTMLFormElement::IsSingleLineTextControl(aExcludePassword) ||
+         type == NS_FORM_TEXTAREA;
+}
+
+PRBool
+nsGenericHTMLFormElement::IsSingleLineTextControl(PRBool aExcludePassword) const
+{
+  PRInt32 type = GetType();
+  return type == NS_FORM_INPUT_TEXT ||
+         type == NS_FORM_INPUT_TEL ||
+         (!aExcludePassword && type == NS_FORM_INPUT_PASSWORD);
 }
 
 PRInt32

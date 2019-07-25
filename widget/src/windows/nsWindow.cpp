@@ -361,7 +361,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mNativeDragTarget     = nsnull;
   mInDtor               = PR_FALSE;
   mIsVisible            = PR_FALSE;
-  mHas3DBorder          = PR_FALSE;
   mIsInMouseCapture     = PR_FALSE;
   mIsTopWidgetWindow    = PR_FALSE;
   mUnicodeWidget        = PR_TRUE;
@@ -379,7 +378,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mLastKeyboardLayout   = 0;
   mBlurSuppressLevel    = 0;
   mIMEEnabled           = nsIWidget::IME_STATUS_ENABLED;
-  mLeadByte             = '\0';
 #ifdef MOZ_XUL
   mTransparentSurface   = nsnull;
   mMemoryDC             = nsnull;
@@ -561,8 +559,6 @@ nsWindow::Create(nsIWidget *aParent,
       style |= WS_CLIPSIBLINGS;
     }
   }
-
-  mHas3DBorder = (extendedStyle & WS_EX_CLIENTEDGE) > 0;
 
   mWnd = ::CreateWindowExW(extendedStyle,
                            aInitData && aInitData->mDropShadow ?
@@ -3926,15 +3922,6 @@ LRESULT CALLBACK nsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM
     kungFuDeathGrip = do_QueryInterface((nsBaseWidget*)someWindow);
 
   
-  
-  if (msg == WM_NOTIFY) {
-    LPNMHDR pnmh = (LPNMHDR) lParam;
-    if (pnmh->code == TCN_SELCHANGE) {
-      someWindow = GetNSWindowPtr(pnmh->hwndFrom);
-    }
-  }
-
-  
   LRESULT retValue;
   if (PR_TRUE == someWindow->ProcessMessage(msg, wParam, lParam, &retValue)) {
     return retValue;
@@ -4058,23 +4045,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   static PRBool getWheelInfo = PR_TRUE;
 
   switch (msg) {
-    case WM_COMMAND:
-    {
-      WORD wNotifyCode = HIWORD(wParam); 
-      if ((CBN_SELENDOK == wNotifyCode) || (CBN_SELENDCANCEL == wNotifyCode)) { 
-        nsGUIEvent event(PR_TRUE, NS_CONTROL_CHANGE, this);
-        nsIntPoint point(0,0);
-        InitEvent(event, &point); 
-        result = DispatchWindowEvent(&event);
-      } else if (wNotifyCode == 0) { 
-        nsMenuEvent event(PR_TRUE, NS_MENU_SELECTED, this);
-        event.mCommand = LOWORD(wParam);
-        InitEvent(event);
-        result = DispatchWindowEvent(&event);
-      }
-    }
-    break;
-
 #ifndef WINCE
     
     
@@ -4287,11 +4257,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       }
       break;
 
-    case WM_GETDLGCODE:
-      *aRetValue = DLGC_WANTALLKEYS;
-      result = PR_TRUE;
-      break;
-
     case WM_MOUSEMOVE:
     {
 #ifdef WINCE_WINDOWS_MOBILE
@@ -4461,22 +4426,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_VSCROLL:
       *aRetValue = 0;
       result = OnScroll(msg, wParam, lParam);
-      break;
-
-    case WM_CTLCOLORLISTBOX:
-    case WM_CTLCOLOREDIT:
-    case WM_CTLCOLORBTN:
-    
-    case WM_CTLCOLORSTATIC:
-      if (lParam) {
-        nsWindow* control = GetNSWindowPtr((HWND)lParam);
-          if (control) {
-            control->SetUpForPaint((HDC)wParam);
-            *aRetValue = (LPARAM)control->OnControlColor();
-          }
-      }
-
-      result = PR_TRUE;
       break;
 
     
@@ -6625,12 +6574,6 @@ PRBool nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
   }
   DispatchWindowEvent(&command);
   return PR_TRUE;
-}
-
-
-HBRUSH nsWindow::OnControlColor()
-{
-  return mBrush;
 }
 
 

@@ -96,7 +96,7 @@
 #include "gfxXlibSurface.h"
 #include "gfxQPainterSurface.h"
 #include "gfxContext.h"
-#include "gfxSharedImageSurface.h"
+#include "gfxImageSurface.h"
 
 #include "nsIDOMSimpleGestureEvent.h" 
 
@@ -108,8 +108,7 @@ static QPixmap *gBufferPixmap = nsnull;
 static int gBufferPixmapUsageCount = 0;
 
 
-static gfxSharedImageSurface *gBufferImage = nsnull;
-static gfxSharedImageSurface *gBufferImageTemp = nsnull;
+static gfxImageSurface *gBufferImage = nsnull;
 static gfxIntSize gBufferMaxSize(0, 0);
 
 
@@ -219,15 +218,12 @@ _depth_to_gfximage_format(PRInt32 aDepth)
 }
 
 static inline QImage::Format
-_depth_to_qformat(PRInt32 aDepth)
+_gfximage_to_qformat(gfxASurface::gfxImageFormat aFormat)
 {
-    switch (aDepth) {
-    case 32:
+    switch (aFormat) {
+    case gfxASurface::ImageFormatARGB32:
+    case gfxASurface::ImageFormatRGB24:
         return QImage::Format_ARGB32;
-    case 24:
-        return QImage::Format_RGB32;
-    case 16:
-        return QImage::Format_RGB16;
     default:
         return QImage::Format_Invalid;
     }
@@ -237,10 +233,8 @@ static void
 FreeOffScreenBuffers(void)
 {
     delete gBufferImage;
-    delete gBufferImageTemp;
     delete gBufferPixmap;
     gBufferImage = nsnull;
-    gBufferImageTemp = nsnull;
     gBufferPixmap = nsnull;
 }
 
@@ -258,50 +252,22 @@ UpdateOffScreenBuffers(QPaintEngine::Type aType, int aDepth, QSize aSize)
 
     gBufferMaxSize.width = PR_MAX(gBufferMaxSize.width, size.width);
     gBufferMaxSize.height = PR_MAX(gBufferMaxSize.height, size.height);
+    
     if (aType == QPaintEngine::X11) {
         gBufferPixmap = new QPixmap(gBufferMaxSize.width, gBufferMaxSize.height);
-        if (!gBufferPixmap)
-            return false;
+        return true;
     }
 
     
     gfxASurface::gfxImageFormat format =
         _depth_to_gfximage_format(aDepth);
-    PRBool depthFormatInCompatible = (format == gfxASurface::ImageFormatUnknown);
 
     
-    
-    if (depthFormatInCompatible && aType == QPaintEngine::Raster) {
-        depthFormatInCompatible = PR_FALSE;
+    if (format == gfxASurface::ImageFormatUnknown)
         format = gfxASurface::ImageFormatRGB24;
-    }
-
-    gBufferImage = new gfxSharedImageSurface();
-    if (!gBufferImage) {
-        FreeOffScreenBuffers();
-        return false;
-    }
-
-    if (!gBufferImage->Init(gBufferMaxSize, format, aDepth)) {
-        FreeOffScreenBuffers();
-        return false;
-    }
 
     
-    
-    if (!depthFormatInCompatible)
-        return true;
-
-    gBufferImageTemp = new gfxSharedImageSurface();
-    if (!gBufferImageTemp) {
-        FreeOffScreenBuffers();
-        return false;
-    }
-
-    if (!gBufferImageTemp->Init(gBufferMaxSize, gfxASurface::ImageFormatRGB24)) {
-        FreeOffScreenBuffers();
-        return false;
-    }
+    gBufferImage = new gfxImageSurface(gBufferMaxSize, format);
     return true;
 }
 
@@ -1000,6 +966,20 @@ nsWindow::GetAttention(PRInt32 aCycleCount)
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+#ifdef MOZ_X11
+static already_AddRefed<gfxASurface>
+GetSurfaceForQPixmap(QPixmap* aDrawable)
+{
+    gfxASurface* result =
+        new gfxXlibSurface(aDrawable->x11Info().display(),
+                           aDrawable->handle(),
+                           (Visual*)aDrawable->x11Info().visual(),
+                           gfxIntSize(aDrawable->size().width(), aDrawable->size().height()));
+    NS_IF_ADDREF(result);
+    return result;
+}
+#endif
+
 nsEventStatus
 nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
 {
@@ -1027,15 +1007,20 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
     gfxQtPlatform::RenderMode renderMode = gfxQtPlatform::GetPlatform()->GetRenderMode();
     QPaintEngine::Type paintEngineType = aPainter->paintEngine()->type();
     int depth = aPainter->device()->depth();
-    
-    if (renderMode == gfxQtPlatform::RENDER_SHARED_IMAGE)
+
+    nsRefPtr<gfxASurface> targetSurface = nsnull;
+    if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
+        
         if (!UpdateOffScreenBuffers(paintEngineType, depth, QSize(r.width(), r.height())))
             return nsEventStatus_eIgnore;
 
-    nsRefPtr<gfxASurface> targetSurface = nsnull;
-    if (renderMode == gfxQtPlatform::RENDER_SHARED_IMAGE) {
-        targetSurface = gBufferImageTemp ? gBufferImageTemp->getASurface()
-                                         : gBufferImage->getASurface();
+        if (paintEngineType == QPaintEngine::X11) {
+            targetSurface = GetSurfaceForQPixmap(gBufferPixmap);
+        }
+        else if (paintEngineType == QPaintEngine::Raster) {
+            NS_ADDREF(targetSurface = gBufferImage);
+        }
+
     } else if (renderMode == gfxQtPlatform::RENDER_QPAINTER) {
         targetSurface = new gfxQPainterSurface(aPainter);
     }
@@ -1046,7 +1031,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
     nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
 
     
-    if (renderMode == gfxQtPlatform::RENDER_SHARED_IMAGE)
+    if (renderMode == gfxQtPlatform::RENDER_BUFFERED)
         ctx->Translate(gfxPoint(-r.x(), -r.y()));
 
     nsPaintEvent event(PR_TRUE, NS_PAINT, this);
@@ -1073,35 +1058,8 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
     LOGDRAW(("[%p] draw done\n", this));
 
     
-    if (renderMode == gfxQtPlatform::RENDER_SHARED_IMAGE) {
+    if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
         if (paintEngineType == QPaintEngine::X11) {
-            
-            if (gBufferImageTemp && gBufferImage) {
-                
-                
-                QImage src_img(gBufferImageTemp->Data(),
-                               gBufferImageTemp->Width(),
-                               gBufferImageTemp->Height(),
-                               gBufferImageTemp->Stride(),
-                               _depth_to_qformat(gBufferImageTemp->Depth()));
-                QImage dst_img(gBufferImage->Data(),
-                               gBufferImage->Width(),
-                               gBufferImage->Height(),
-                               gBufferImage->Stride(),
-                               _depth_to_qformat(gBufferImage->Depth()));
-                QPainter p(&dst_img);
-                p.drawImage(QPoint(0, 0), src_img, QRect(0, 0, rect.width, rect.height));
-            }
-
-            Display *disp = gBufferPixmap->x11Info().display();
-            XGCValues gcv;
-            gcv.graphics_exposures = False;
-            GC gc = XCreateGC(disp, gBufferPixmap->handle(), GCGraphicsExposures, &gcv);
-            XShmPutImage(disp, gBufferPixmap->handle(), gc, gBufferImage->image(),
-                         0, 0, 0, 0, rect.width, rect.height,
-                         False);
-            XSync(disp, False);
-            XFreeGC(disp, gc);
             
             aPainter->drawPixmap(QPoint(rect.x, rect.y), *gBufferPixmap,
                                  QRect(0, 0, rect.width, rect.height));
@@ -1112,7 +1070,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption)
                        gBufferImage->Width(),
                        gBufferImage->Height(),
                        gBufferImage->Stride(),
-                       _depth_to_qformat(gBufferImage->Depth()));
+                       _gfximage_to_qformat(gBufferImage->Format()));
             aPainter->drawImage(QPoint(rect.x, rect.y), img,
                                 QRect(0, 0, rect.width, rect.height));
         }
