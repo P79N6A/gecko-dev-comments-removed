@@ -70,8 +70,6 @@ struct MICInfo {
     {
         GET,
         SET,
-        CALL,
-        EMPTYCALL,  
         TRACER
     };
 
@@ -90,18 +88,11 @@ struct MICInfo {
 #endif
 
     
-    uint32 argc;
-    uint32 frameDepth;
-    JSC::CodeLocationLabel knownObject;
-    JSC::CodeLocationLabel callEnd;
-    JSC::MacroAssembler::RegisterID dataReg;
-
-    
     JSC::CodeLocationJump traceHint;
     JSC::CodeLocationJump slowTraceHint;
 
     
-    Kind kind : 4;
+    Kind kind : 3;
     union {
         
         struct {
@@ -110,8 +101,6 @@ struct MICInfo {
             bool dataConst : 1;
         } name;
         
-        bool generated;
-        
         bool hasSlowTraceHint;
     } u;
 };
@@ -119,48 +108,84 @@ struct MICInfo {
 void JS_FASTCALL GetGlobalName(VMFrame &f, uint32 index);
 void JS_FASTCALL SetGlobalName(VMFrame &f, uint32 index);
 
-#ifdef JS_CPU_X86
 
+struct CallICInfo {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
 
-class NativeCallCompiler
-{
-    typedef JSC::MacroAssembler::Jump Jump;
+    enum PoolIndex {
+        Pool_ScriptStub,
+        Pool_ClosureStub,
+        Pool_NativeStub,
 
-    struct Patch {
-        Patch(Jump from, uint8 *to)
-          : from(from), to(to)
-        { }
-
-        Jump from;
-        uint8 *to;
+        Total_Pools
     };
 
-  public:
-    Assembler masm;
+    JSC::ExecutablePool *pools[Total_Pools];
+
+    
+    JSObject *fastGuardedObject;
+    JSObject *fastGuardedNative;
+    Value constantThis;
+
+    uint32 argc : 16;
+    uint32 frameDepth : 16;
+
+    
+    JSC::CodeLocationDataLabelPtr funGuard;
+
+    
+    JSC::CodeLocationLabel slowPathStart;
+
+    
+    JSC::CodeLocationJump funJump;
+
+    
+    uint32 hotCallOffset   : 8;
+    uint32 joinPointOffset : 8;
+
+    
+    uint32 oolCallOffset   : 8;
+
+    
+    uint32 oolJumpOffset   : 8;
+
+    
+    uint32 hotPathOffset   : 8;
+
+    
+    uint32 slowJoinOffset  : 9;
+
+    RegisterID funObjReg : 5;
+    RegisterID funPtrReg : 5;
+    bool isConstantThis : 1;
+    bool hit : 1;
+    bool hasJsFunCheck : 1;
+
+    inline void reset() {
+        fastGuardedObject = NULL;
+        fastGuardedNative = NULL;
+        hit = false;
+        hasJsFunCheck = false;
+        pools[0] = pools[1] = pools[2] = NULL;
+    }
+
+    inline void releasePools() {
+        releasePool(Pool_ScriptStub);
+        releasePool(Pool_ClosureStub);
+        releasePool(Pool_NativeStub);
+    }
 
   private:
-    
-    Vector<Patch, 8, SystemAllocPolicy> jumps;
-
-  public:
-    NativeCallCompiler();
-
-    size_t size() { return masm.size(); }
-    uint8 *buffer() { return masm.buffer(); }
-
-    
-    void addLink(Jump j, uint8 *target) { jumps.append(Patch(j, target)); }
-
-    
-
-
-
-    void finish(JSScript *script, uint8 *start, uint8 *fallthrough);
+    inline void releasePool(PoolIndex index) {
+        if (pools[index])
+            pools[index]->release();
+    }
 };
 
-void CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fun, bool isNew);
-
-#endif 
+void * JS_FASTCALL New(VMFrame &f, uint32 index);
+void * JS_FASTCALL Call(VMFrame &f, uint32 index);
+void JS_FASTCALL NativeNew(VMFrame &f, uint32 index);
+void JS_FASTCALL NativeCall(VMFrame &f, uint32 index);
 
 void PurgeMICs(JSContext *cx, JSScript *script);
 
