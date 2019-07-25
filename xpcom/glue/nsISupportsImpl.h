@@ -321,9 +321,6 @@ public:
 
 
 
-
-
-
 #define NS_INLINE_DECL_REFCOUNTING(_class)                                    \
 public:                                                                       \
   NS_METHOD_(nsrefcnt) AddRef(void) {                                         \
@@ -349,6 +346,36 @@ public:                                                                       \
 protected:                                                                    \
   nsAutoRefCnt mRefCnt;                                                       \
   NS_DECL_OWNINGTHREAD                                                        \
+public:
+
+
+
+
+
+
+
+
+
+#define NS_INLINE_DECL_THREADSAFE_REFCOUNTING(_class)                         \
+public:                                                                       \
+  NS_METHOD_(nsrefcnt) AddRef(void) {                                         \
+    NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");                 \
+    nsrefcnt count = NS_AtomicIncrementRefcnt(mRefCnt);                       \
+    NS_LOG_ADDREF(this, count, #_class, sizeof(*this));                       \
+    return (nsrefcnt) count;                                                  \
+  }                                                                           \
+  NS_METHOD_(nsrefcnt) Release(void) {                                        \
+    NS_PRECONDITION(0 != mRefCnt, "dup release");                             \
+    nsrefcnt count = NS_AtomicDecrementRefcnt(mRefCnt);                       \
+    NS_LOG_RELEASE(this, count, #_class);                                     \
+    if (count == 0) {                                                         \
+      delete (this);                                                          \
+      return 0;                                                               \
+    }                                                                         \
+    return count;                                                             \
+  }                                                                           \
+protected:                                                                    \
+  nsAutoRefCnt mRefCnt;                                                       \
 public:
 
 
