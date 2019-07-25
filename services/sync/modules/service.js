@@ -1050,6 +1050,16 @@ WeaveSvc.prototype = {
     }))(),
 
   startOver: function() {
+    Svc.Obs.notify("weave:engine:stop-tracking");
+
+    
+    
+    
+    Service.passphrase = "";
+    Status.login = LOGIN_FAILED_NO_PASSPHRASE;
+    this.logout();
+    Svc.Obs.notify("weave:service:start-over");
+
     
     if (this.clusterURL != "") {
       
@@ -1064,10 +1074,6 @@ WeaveSvc.prototype = {
     } else {
       this._log.debug("Skipping client data removal: no cluster URL.");
     }
-
-    
-    Status.login = LOGIN_FAILED_NO_USERNAME;
-    this.logout();
 
     
     this.resetClient();
@@ -1085,8 +1091,6 @@ WeaveSvc.prototype = {
     Services.logins.findLogins({}, PWDMGR_HOST, "", "").map(function(login) {
       Services.logins.removeLogin(login);
     });
-    Svc.Obs.notify("weave:service:start-over");
-    Svc.Obs.notify("weave:engine:stop-tracking");
   },
 
   delayedAutoConnect: function delayedAutoConnect(delay) {
