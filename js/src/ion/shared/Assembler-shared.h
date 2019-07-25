@@ -99,11 +99,11 @@ class Relocation {
     enum Kind {
         
         
-        EXTERNAL,
+        HARDCODED,
 
         
         
-        CODE
+        IONCODE
     };
 };
 

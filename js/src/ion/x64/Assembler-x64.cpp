@@ -66,17 +66,19 @@ Assembler::addPendingJump(JmpSrc src, void *target, Relocation::Kind reloc)
 
     
     
-    if (reloc == Relocation::CODE)
+    if (reloc == Relocation::IONCODE)
         writeRelocation(src);
     enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), target, reloc));
 }
 
 size_t
-Assembler::addPatchableJump(JmpSrc src)
+Assembler::addPatchableJump(JmpSrc src, Relocation::Kind reloc)
 {
-    writeRelocation(src);
+    if (reloc == Relocation::IONCODE)
+        writeRelocation(src);
+
     size_t index = jumps_.length();
-    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), NULL, Relocation::CODE));
+    enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), NULL, reloc));
     return index;
 }
 
@@ -113,9 +115,12 @@ Assembler::flush()
 
     
     
-    JS_ASSERT(jumpRelocations_.length() >= sizeof(uint32));
-    *(uint32 *)jumpRelocations_.buffer() = extendedJumpTable_;
+    
+    JS_ASSERT_IF(jumpRelocations_.length(), jumpRelocations_.length() >= sizeof(uint32));
+    if (jumpRelocations_.length())
+        *(uint32 *)jumpRelocations_.buffer() = extendedJumpTable_;
 
+    
     for (size_t i = 0; i < jumps_.length(); i++) {
 #ifdef DEBUG
         size_t oldSize = masm.size();
