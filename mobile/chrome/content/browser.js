@@ -2096,6 +2096,8 @@ var ContentCrashObserver = {
     if (!aSubject.QueryInterface(Ci.nsIPropertyBag2).hasKey("abnormal"))
       return;
 
+    let dumpID = aSubject.hasKey("dumpID") ? aSubject.getProperty("dumpID") : null;
+
     
     
     Browser.tabs.forEach(function(aTab) {
@@ -2104,44 +2106,45 @@ var ContentCrashObserver = {
     })
 
     
-    
-    let title = Elements.browserBundle.getString("tabs.crashWarningTitle");
-    let message = Elements.browserBundle.getString("tabs.crashWarningMsg");
-    let submitText = Elements.browserBundle.getString("tabs.crashSubmitReport");
-    let reloadText = Elements.browserBundle.getString("tabs.crashReload");
-    let closeText = Elements.browserBundle.getString("tabs.crashClose");
-    let buttons = Ci.nsIPrompt.BUTTON_POS_1_DEFAULT +
-                  (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
-                  (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1);
-
-    
-    if (!aSubject.hasKey("dumpID"))
-      submitText = null;
-
-    let submit = { value: true };
-    let reload = Services.prompt.confirmEx(window, title, message, buttons, closeText, reloadText, null, submitText, submit);
-    if (reload) {
-      
-      let event = document.createEvent("Events");
-      event.initEvent("TabSelect", true, false);
-      event.lastTab = null;
-      Browser.selectedTab.chromeTab.dispatchEvent(event);
-    } else {
+    setTimeout(function(self) {
       
       
-      if (Browser.tabs.length == 1)
-        Browser.addTab(Browser.getHomePage(), false, null, { getAttention: false });
-
+      let title = Elements.browserBundle.getString("tabs.crashWarningTitle");
+      let message = Elements.browserBundle.getString("tabs.crashWarningMsg");
+      let submitText = Elements.browserBundle.getString("tabs.crashSubmitReport");
+      let reloadText = Elements.browserBundle.getString("tabs.crashReload");
+      let closeText = Elements.browserBundle.getString("tabs.crashClose");
+      let buttons = Ci.nsIPrompt.BUTTON_POS_1_DEFAULT +
+                    (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
+                    (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1);
+  
       
+      if (!dumpID)
+        submitText = null;
+  
+      let submit = { value: true };
+      let reload = Services.prompt.confirmEx(window, title, message, buttons, closeText, reloadText, null, submitText, submit);
+      if (reload) {
+        
+        let event = document.createEvent("Events");
+        event.initEvent("TabSelect", true, false);
+        event.lastTab = null;
+        Browser.selectedTab.chromeTab.dispatchEvent(event);
+      } else {
+        
+        
+        if (Browser.tabs.length == 1)
+          Browser.addTab(Browser.getHomePage(), false, null, { getAttention: false });
+  
+        
+        
+        Browser.closeTab(Browser.selectedTab);
+      }
+  
       
-      Browser.closeTab(Browser.selectedTab);
-    }
-
-    
-    if (submit.value && aSubject.hasKey("dumpID")) {
-      let dumpID = aSubject.getProperty("dumpID");
-      this.CrashSubmit.submit(dumpID, Elements.stack, null, null);
-    }
+      if (submit.value && dumpID)
+        self.CrashSubmit.submit(dumpID, Elements.stack, null, null);
+    }, 0, this);
   }
 };
 
