@@ -122,19 +122,12 @@ class Assembler : public BaseAssembler
 
     
     Label loadValueAsComponents(Address address, RegisterID type, RegisterID payload) {
-        
-
-
-
-
-        loadValue(address, Registers::ValueReg);
+        loadValue(address, type);
         Label l = label();
-        
-        move(Imm64(JSVAL_PAYLOAD_MASK), payload);
-        move(Imm64(JSVAL_TAG_MASK), type);
 
-        andPtr(Registers::ValueReg, payload);
-        andPtr(Registers::ValueReg, type);
+        move(Imm64(JSVAL_PAYLOAD_MASK), payload);
+        andPtr(type, payload);
+        xorPtr(payload, type);
 
         return l;
     }
@@ -169,7 +162,6 @@ class Assembler : public BaseAssembler
         convertValueToPayload(Registers::ValueReg);
         orPtr(reg, Registers::ValueReg);
         storePtr(Registers::ValueReg, valueOf(address));
-
     }
 
     void storeTypeTag(RegisterID reg, BaseIndex address) {
