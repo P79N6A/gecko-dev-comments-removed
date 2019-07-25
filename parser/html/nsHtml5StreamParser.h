@@ -208,6 +208,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
     void DropTimer();
 
+    
+
+
+
+    void MaybeSetEncodingFromExpat(const PRUnichar* aEncoding);
+
   private:
 
 #ifdef DEBUG
@@ -348,6 +354,16 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     nsresult SetupDecodingFromBom(const char* aCharsetName,
                                   const char* aDecoderCharsetName);
+
+    
+
+
+
+
+
+
+
+    bool PreferredForInternalEncodingDecl(nsACString& aEncoding);
 
     
 
