@@ -424,7 +424,9 @@ protected:
 
 
 
-  void ApplyEarlyEnd(const nsSMILTimeValue& aSampleTime);
+
+
+  PRBool ApplyEarlyEnd(const nsSMILTimeValue& aSampleTime);
 
   
 
@@ -504,8 +506,17 @@ protected:
   void              RegisterMilestone();
   PRBool            GetNextMilestone(nsSMILMilestone& aNextMilestone) const;
 
+  
+  
+  
+  
+  
+  
   void              NotifyNewInterval();
-  void              NotifyChangedInterval();
+  void              NotifyChangedInterval(nsSMILInterval* aInterval,
+                                          PRBool aBeginObjectChanged,
+                                          PRBool aEndObjectChanged);
+
   void              FireTimeEventAsync(PRUint32 aMsg, PRInt32 aDetail);
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
   const nsSMILInterval* GetPreviousInterval() const;

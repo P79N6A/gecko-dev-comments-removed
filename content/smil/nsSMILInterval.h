@@ -56,7 +56,6 @@ public:
   nsSMILInterval();
   nsSMILInterval(const nsSMILInterval& aOther);
   ~nsSMILInterval();
-  void NotifyChanged(const nsSMILTimeContainer* aContainer);
   void Unlink(PRBool aFiltered = PR_FALSE);
 
   const nsSMILInstanceTime* Begin() const
@@ -86,8 +85,11 @@ public:
   void FixBegin();
   void FixEnd();
 
+  typedef nsTArray<nsRefPtr<nsSMILInstanceTime> > InstanceTimeList;
+
   void AddDependentTime(nsSMILInstanceTime& aTime);
   void RemoveDependentTime(const nsSMILInstanceTime& aTime);
+  void GetDependentTimes(InstanceTimeList& aTimes);
 
   
   PRBool IsDependencyChainLink() const;
@@ -95,8 +97,6 @@ public:
 private:
   nsRefPtr<nsSMILInstanceTime> mBegin;
   nsRefPtr<nsSMILInstanceTime> mEnd;
-
-  typedef nsTArray<nsRefPtr<nsSMILInstanceTime> > InstanceTimeList;
 
   
   InstanceTimeList mDependentTimes;
@@ -112,21 +112,6 @@ private:
   
   PRPackedBool mBeginFixed;
   PRPackedBool mEndFixed;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRPackedBool mBeginObjectChanged;
-  PRPackedBool mEndObjectChanged;
 };
 
 #endif 
