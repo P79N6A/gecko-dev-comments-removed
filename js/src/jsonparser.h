@@ -49,10 +49,7 @@
 
 
 
-
-
-
-class JSONSourceParser
+class JSONParser
 {
   public:
     enum ErrorHandling { RaiseError, NoError };
@@ -88,9 +85,9 @@ class JSONSourceParser
 
 
 
-    JSONSourceParser(JSContext *cx, const jschar *data, size_t length,
-                     ParsingMode parsingMode = StrictJSON,
-                     ErrorHandling errorHandling = RaiseError)
+    JSONParser(JSContext *cx, const jschar *data, size_t length,
+               ParsingMode parsingMode = StrictJSON,
+               ErrorHandling errorHandling = RaiseError)
       : cx(cx),
         current(data, data, length),
         end(data + length, data, length),
