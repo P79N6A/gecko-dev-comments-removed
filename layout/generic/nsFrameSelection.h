@@ -38,6 +38,8 @@
 #ifndef nsFrameSelection_h___
 #define nsFrameSelection_h___
 
+#include "mozilla/Attributes.h"
+
 #include "nsIFrame.h"
 #include "nsIContent.h"
 #include "nsISelectionController.h"
@@ -210,7 +212,7 @@ class nsIScrollableFrame;
 
 
 
-class nsFrameSelection : public nsISupports {
+class nsFrameSelection MOZ_FINAL : public nsISupports {
 public:
   enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
   

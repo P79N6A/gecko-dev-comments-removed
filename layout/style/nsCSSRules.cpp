@@ -38,6 +38,8 @@
 
 
 
+#include "mozilla/Attributes.h"
+
 #include "nsCSSRules.h"
 #include "nsCSSValue.h"
 #include "mozilla/css/ImportRule.h"
@@ -120,7 +122,7 @@ Rule::GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet)
 
 
 
-class GroupRuleRuleList : public nsICSSRuleList
+class GroupRuleRuleList MOZ_FINAL : public nsICSSRuleList
 {
 public:
   GroupRuleRuleList(GroupRule *aGroupRule);
