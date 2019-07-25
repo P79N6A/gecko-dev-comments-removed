@@ -112,6 +112,9 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     
     private boolean mUpdateViewportOnEndDraw;
 
+    
+    private DrawListener mDrawListener;
+
     private static Pattern sColorPattern;
 
     public GeckoSoftwareLayerClient(Context context) {
@@ -325,6 +328,11 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             }
         }
         Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
+
+        
+        if (mDrawListener != null) {
+            mDrawListener.drawFinished(x, y, width, height);
+        }
     }
 
     public ViewportMetrics getGeckoViewportMetrics() {
@@ -535,6 +543,16 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         int g = Integer.parseInt(matcher.group(2));
         int b = Integer.parseInt(matcher.group(3));
         return Color.rgb(r, g, b);
+    }
+
+    
+    public void setDrawListener(DrawListener listener) {
+        mDrawListener = listener;
+    }
+
+    
+    public interface DrawListener {
+        public void drawFinished(int x, int y, int width, int height);
     }
 }
 
