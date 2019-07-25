@@ -508,26 +508,6 @@ public:
 
   NS_HIDDEN_(nsresult) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult);
 
-  
-
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) GetEnumAttr(nsIAtom* aAttr,
-                                   const char* aDefault,
-                                   nsAString& aResult);
-
-  
-
-
-  virtual bool IsDisabled() const {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
-  }
-
 protected:
   
 
@@ -722,6 +702,19 @@ protected:
 
 
 
+
+  NS_HIDDEN_(nsresult) GetEnumAttr(nsIAtom* aAttr,
+                                   const char* aDefault,
+                                   nsAString& aResult);
+
+  
+
+
+
+
+
+
+
   virtual already_AddRefed<nsIEditor> GetAssociatedEditor();
 
   
@@ -850,30 +843,6 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
-  virtual bool IsDisabled() const {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) ||
-           (mFieldSet && mFieldSet->IsDisabled());
-  }
-
-  
-
-
-
-
-
-
-
-
-  virtual void FieldSetDisabledChanged(PRInt32 aStates);
-
-  void FieldSetFirstLegendChanged() {
-    UpdateFieldSet();
-
-    
-    
-    FieldSetDisabledChanged(0);
-  }
-
   
 
 
@@ -914,11 +883,6 @@ protected:
   
 
 
-  void UpdateFieldSet();
-
-  
-
-
 
 
 
@@ -952,9 +916,6 @@ protected:
 
   
   nsHTMLFormElement* mForm;
-
-  
-  nsGenericHTMLFormElement* mFieldSet;
 };
 
 
@@ -1444,7 +1405,6 @@ NS_DECLARE_NS_NEW_HTML_ELEMENT(Body)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Button)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Canvas)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Mod)
-NS_DECLARE_NS_NEW_HTML_ELEMENT(DataList)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Div)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(FieldSet)
 NS_DECLARE_NS_NEW_HTML_ELEMENT(Font)

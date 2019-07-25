@@ -243,8 +243,7 @@ public:
         nsIInputStream* aPostDataStream = 0,
         nsIInputStream* aHeadersDataStream = 0,
         nsIDocShell** aDocShell = 0,
-        nsIRequest** aRequest = 0,
-        const char* aHttpMethod = 0);
+        nsIRequest** aRequest = 0);
     NS_IMETHOD OnOverLink(nsIContent* aContent,
         nsIURI* aURI,
         const PRUnichar* aTargetSpec);
@@ -326,8 +325,7 @@ protected:
                                nsIRequest ** aRequest,
                                PRBool aIsNewWindowTarget,
                                PRBool aBypassClassifier,
-                               PRBool aForceAllowCookies,
-                               const char* aHttpMethod);
+                               PRBool aForceAllowCookies);
     NS_IMETHOD AddHeadersToChannel(nsIInputStream * aHeadersData, 
                                   nsIChannel * aChannel);
     virtual nsresult DoChannelLoad(nsIChannel * aChannel,
@@ -436,10 +434,10 @@ protected:
 
     
     
-    virtual nsresult OnRedirectStateChange(nsIChannel* aOldChannel,
-                                           nsIChannel* aNewChannel,
-                                           PRUint32 aRedirectFlags,
-                                           PRUint32 aStateFlags);
+    virtual void OnRedirectStateChange(nsIChannel* aOldChannel,
+                                       nsIChannel* aNewChannel,
+                                       PRUint32 aRedirectFlags,
+                                       PRUint32 aStateFlags);
 
     
 
@@ -449,17 +447,7 @@ protected:
 
 
 
-     static bool ChannelIsPost(nsIChannel* aChannel);
-
-     
-
-
-
-
-
-
-
-     static bool ChannelIsSafeMethod(nsIChannel* aChannel);
+    bool ChannelIsPost(nsIChannel* aChannel);
 
     
 
