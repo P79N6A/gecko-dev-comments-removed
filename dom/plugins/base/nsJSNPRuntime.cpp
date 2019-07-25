@@ -1152,12 +1152,17 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JSObject *obj)
 
 
 
+
 static JSObject *
-GetNPObjectWrapper(JSContext *cx, JSObject *obj)
+GetNPObjectWrapper(JSContext *cx, JSObject *obj, bool wrapResult = true)
 {
   while (obj && (obj = js::UnwrapObjectChecked(cx, obj))) {
-    if (JS_GetClass(obj) == &sNPObjectJSWrapperClass)
+    if (JS_GetClass(obj) == &sNPObjectJSWrapperClass) {
+      if (wrapResult && !JS_WrapObject(cx, &obj)) {
+        return NULL;
+      }
       return obj;
+    }
     obj = ::JS_GetPrototype(obj);
   }
   return NULL;
@@ -1166,7 +1171,7 @@ GetNPObjectWrapper(JSContext *cx, JSObject *obj)
 static NPObject *
 GetNPObject(JSContext *cx, JSObject *obj)
 {
-  obj = GetNPObjectWrapper(cx, obj);
+  obj = GetNPObjectWrapper(cx, obj,  false);
   if (!obj) {
     return nsnull;
   }
