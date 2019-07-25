@@ -1656,7 +1656,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 {
     AssertNoGC(cx);
 
-    JSObject *obj;
+    JSObject *newWrapper;
     JSCompartment *destination = targetobj->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
 
@@ -1669,17 +1669,15 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     if (WrapperMap::Ptr p = map.lookup(origv)) {
         
         
-        obj = &p->value.toObject();
+        newWrapper = &p->value.toObject();
         map.remove(p);
-        if (!obj->swap(cx, targetwrapper))
+        if (!newWrapper->swap(cx, targetwrapper))
             return NULL;
     } else {
         
-        
-        obj = targetwrapper;
+        newWrapper = targetwrapper;
     }
 
-    
     
     
     
@@ -1689,9 +1687,11 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     
     
     
+    
+    
     {
         AutoCompartment ac(cx, origobj);
-        JSObject *tobj = obj;
+        JSObject *tobj = newWrapper;
         if (!ac.enter() || !JS_WrapObject(cx, &tobj))
             return NULL;
         if (!origwrapper->swap(cx, tobj))
@@ -1700,7 +1700,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
                                                                  ObjectValue(*origwrapper));
     }
 
-    return obj;
+    return newWrapper;
 }
 
 
