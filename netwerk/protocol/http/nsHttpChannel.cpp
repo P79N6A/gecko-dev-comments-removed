@@ -975,9 +975,12 @@ nsHttpChannel::CallOnStartRequest()
             LOG(("writing to the offline cache"));
             rv = InitOfflineCacheEntry();
             if (NS_FAILED(rv)) return rv;
-                
-            rv = InstallOfflineCacheListener();
-            if (NS_FAILED(rv)) return rv;
+            
+            
+            if (mOfflineCacheEntry) {
+                rv = InstallOfflineCacheListener();
+                if (NS_FAILED(rv)) return rv;
+            }
         } else if (mCacheForOfflineUse) {
             LOG(("offline cache is up to date, not updating"));
             CloseOfflineCacheEntry();
