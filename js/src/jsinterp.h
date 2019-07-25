@@ -57,22 +57,22 @@ typedef struct JSFrameRegs {
 } JSFrameRegs;
 
 
-enum JSFrameFlags {
-    JSFRAME_CONSTRUCTING       =  0x01, 
-    JSFRAME_COMPUTED_THIS      =  0x02, 
+#define JSFRAME_CONSTRUCTING        0x01 /* frame is for a constructor invocation */
+#define JSFRAME_COMPUTED_THIS       0x02 /* frame.thisv was computed already and
+                                            JSVAL_IS_OBJECT(thisv) */
+#define JSFRAME_ASSIGNING           0x04 /* a complex (not simplex JOF_ASSIGNING) op
+                                            is currently assigning to a property */
+#define JSFRAME_DEBUGGER            0x08 /* frame for JS_EvaluateInStackFrame */
+#define JSFRAME_EVAL                0x10 /* frame for obj_eval */
+#define JSFRAME_FLOATING_GENERATOR  0x20 /* frame copy stored in a generator obj */
+#define JSFRAME_YIELDING            0x40 /* js_Interpret dispatched JSOP_YIELD */
+#define JSFRAME_ITERATOR            0x80 /* trying to get an iterator for for-in */
+#define JSFRAME_GENERATOR          0x200 /* frame belongs to generator-iterator */
+#define JSFRAME_OVERRIDE_ARGS      0x400 /* overridden arguments local variable */
 
-    JSFRAME_ASSIGNING          =  0x04, 
+#define JSFRAME_SPECIAL       (JSFRAME_DEBUGGER | JSFRAME_EVAL)
 
-    JSFRAME_DEBUGGER           =  0x08, 
-    JSFRAME_EVAL               =  0x10, 
-    JSFRAME_FLOATING_GENERATOR =  0x20, 
-    JSFRAME_YIELDING           =  0x40, 
-    JSFRAME_ITERATOR           =  0x80, 
-    JSFRAME_GENERATOR          = 0x200, 
-    JSFRAME_OVERRIDE_ARGS      = 0x400, 
 
-    JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
-};
 
 
 
@@ -84,6 +84,7 @@ enum JSFrameFlags {
 
 struct JSStackFrame
 {
+    JSFrameRegs         *regs;
     jsbytecode          *imacpc;        
     JSObject            *callobj;       
     jsval               argsobj;        
@@ -99,10 +100,6 @@ struct JSStackFrame
     
     JSStackFrame        *down;          
 
-    jsbytecode          *savedPC;       
-#ifdef DEBUG
-    static jsbytecode *const sInvalidPC;
-#endif
 
     
 
@@ -151,8 +148,11 @@ struct JSStackFrame
 
 
     
+    JSFrameRegs     callerRegs;     
     void            *hookData;      
     JSVersion       callerVersion;  
+
+    inline void assertValidStackDepth(uintN depth);
 
     void putActivationObjects(JSContext *cx) {
         
@@ -166,9 +166,6 @@ struct JSStackFrame
             js_PutArgsObject(cx, this);
         }
     }
-
-    
-    jsbytecode *pc(JSContext *cx) const;
 
     jsval *argEnd() const {
         return (jsval *)this;
@@ -206,26 +203,43 @@ struct JSStackFrame
 
     bool isGenerator() const { return flags & JSFRAME_GENERATOR; }
     bool isFloatingGenerator() const {
-        if (flags & JSFRAME_FLOATING_GENERATOR) {
-            JS_ASSERT(isGenerator());
-            return true;
-        }
-        return false;
+        JS_ASSERT_IF(flags & JSFRAME_FLOATING_GENERATOR, isGenerator());
+        return flags & JSFRAME_FLOATING_GENERATOR;
     }
 };
 
 namespace js {
 
-static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(jsval);
 JS_STATIC_ASSERT(sizeof(JSStackFrame) % sizeof(jsval) == 0);
+static const size_t ValuesPerStackFrame = sizeof(JSStackFrame) / sizeof(jsval);
 
 }
+
+#ifdef __cplusplus
+static JS_INLINE uintN
+FramePCOffset(JSStackFrame* fp)
+{
+    return uintN((fp->imacpc ? fp->imacpc : fp->regs->pc) - fp->script->code);
+}
+#endif
 
 static JS_INLINE jsval *
 StackBase(JSStackFrame *fp)
 {
     return fp->slots() + fp->script->nfixed;
 }
+
+#ifdef DEBUG
+void
+JSStackFrame::assertValidStackDepth(uintN depth)
+{
+    JS_ASSERT(0 <= regs->sp - StackBase(this));
+    JS_ASSERT(depth <= uintptr_t(regs->sp - StackBase(this)));
+}
+#else
+void
+JSStackFrame::assertValidStackDepth(uintN ){}
+#endif
 
 static JS_INLINE uintN
 GlobalVarCount(JSStackFrame *fp)
@@ -328,7 +342,8 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
            JSStackFrame *down, uintN flags, jsval *result);
 
 extern JS_REQUIRES_STACK JSBool
-js_InvokeConstructor(JSContext *cx, const js::InvokeArgsGuard &args, JSBool clampReturn);
+js_InvokeConstructor(JSContext *cx, const js::InvokeArgsGuard &args,
+                     JSBool clampReturn);
 
 extern JS_REQUIRES_STACK JSBool
 js_Interpret(JSContext *cx);
@@ -414,7 +429,8 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
 
 
 extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
+js_UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
+               JSBool normalUnwind);
 
 extern JSBool
 js_OnUnknownMethod(JSContext *cx, jsval *vp);

@@ -76,13 +76,16 @@
 #include "jsvector.h"
 
 #include "jsatominlines.h"
-#include "jscntxtinlines.h"
-#include "jsdtracef.h"
-#include "jsobjinlines.h"
 #include "jspropertycacheinlines.h"
+#include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
 #include "jsstrinlines.h"
+#include "jscntxtinlines.h"
+
+#ifdef INCLUDE_MOZILLA_DTRACE
+#include "jsdtracef.h"
+#endif
 
 #if JS_HAS_XML_SUPPORT
 #include "jsxml.h"
@@ -94,10 +97,6 @@ using namespace js;
 
 
 #if !JS_LONE_INTERPRET ^ defined jsinvoke_cpp___
-
-#ifdef DEBUG
-jsbytecode *const JSStackFrame::sInvalidPC = (jsbytecode *)0xbeef;
-#endif
 
 JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
@@ -234,7 +233,7 @@ js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp)
         obj = JS_THIS_OBJECT(cx, vp);
         if (!JS_InstanceOf(cx, obj, clasp, vp + 2))
             return JS_FALSE;
-        v = obj->getPrimitiveThis();
+        v = obj->fslots[JSSLOT_PRIMITIVE_THIS];
     }
     *thisvp = v;
     return JS_TRUE;
@@ -360,7 +359,8 @@ js_OnUnknownMethod(JSContext *cx, jsval *vp)
                 vp[0] = ID_TO_VALUE(id);
         }
 #endif
-        obj = NewObjectWithGivenProto(cx, &js_NoSuchMethodClass, NULL, NULL);
+        obj = js_NewObjectWithGivenProto(cx, &js_NoSuchMethodClass,
+                                         NULL, NULL);
         if (!obj)
             return false;
         obj->fslots[JSSLOT_FOUND_FUNCTION] = tvr.value();
@@ -391,9 +391,9 @@ NoSuchMethod(JSContext *cx, uintN argc, jsval *vp, uint32 flags)
         return JS_FALSE;
     invokevp[3] = OBJECT_TO_JSVAL(argsobj);
     JSBool ok = (flags & JSINVOKE_CONSTRUCT)
-                ? js_InvokeConstructor(cx, args, JS_TRUE)
-                : js_Invoke(cx, args, flags);
-    *vp = *invokevp;
+                 ? js_InvokeConstructor(cx, args, JS_TRUE)
+                 : js_Invoke(cx, args, flags);
+    vp[0] = invokevp[0];
     return ok;
 }
 
@@ -552,20 +552,18 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
             nmissing = (minargs > argc ? minargs - argc : 0) + fun->u.n.extra;
             nvars = 0;
         }
-
     } else {
         nvars = nmissing = 0;
     }
 
-    uintN nfixed = script ? script->nslots : 0;
+    uintN nslots = script ? script->nslots : 0;
 
     
 
 
 
-    JSFrameRegs regs;
     InvokeFrameGuard frame;
-    if (!cx->stack().getInvokeFrame(cx, args, nmissing, nfixed, frame))
+    if (!cx->stack().getInvokeFrame(cx, args, nmissing, nslots, frame))
         return false;
     JSStackFrame *fp = frame.getFrame();
 
@@ -588,21 +586,13 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
     fp->annotation = NULL;
     fp->scopeChain = NULL;
     fp->blockChain = NULL;
+    fp->regs = NULL;
     fp->imacpc = NULL;
     fp->flags = flags;
     fp->displaySave = NULL;
 
     
-    if (script) {
-        regs.pc = script->code;
-        regs.sp = fp->slots() + script->nfixed;
-    } else {
-        regs.pc = NULL;
-        regs.sp = fp->slots();
-    }
-
-    
-    cx->stack().pushInvokeFrame(cx, args, frame, regs);
+    cx->stack().pushInvokeFrame(cx, args, frame);
 
     
     if (native) {
@@ -626,7 +616,15 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
     if (hook)
         hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->callHookData);
 
-    DTrace::enterJSFun(cx, fp, fun, fp->down, fp->argc, fp->argv);
+#ifdef INCLUDE_MOZILLA_DTRACE
+    
+    if (JAVASCRIPT_FUNCTION_ENTRY_ENABLED())
+        jsdtrace_function_entry(cx, fp, fun);
+    if (JAVASCRIPT_FUNCTION_INFO_ENABLED())
+        jsdtrace_function_info(cx, fp, fp->down, fun);
+    if (JAVASCRIPT_FUNCTION_ARGS_ENABLED())
+        jsdtrace_function_args(cx, fp, fun, fp->argc, fp->argv);
+#endif
 
     
     JSBool ok;
@@ -648,7 +646,13 @@ js_Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
         ok = js_Interpret(cx);
     }
 
-    DTrace::exitJSFun(cx, fp, fun, fp->rval);
+#ifdef INCLUDE_MOZILLA_DTRACE
+    
+    if (JAVASCRIPT_FUNCTION_RVAL_ENABLED())
+        jsdtrace_function_rval(cx, fp, fun, fp->rval);
+    if (JAVASCRIPT_FUNCTION_RETURN_ENABLED())
+        jsdtrace_function_return(cx, fp, fun);
+#endif
 
     if (hookData) {
         hook = cx->debugHooks->callHook;
@@ -695,7 +699,6 @@ js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
             cx->weakRoots.lastInternalResult = *rval;
         }
     }
-
     return JS_TRUE;
 }
 
@@ -726,7 +729,20 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     LeaveTrace(cx);
 
-    DTrace::ExecutionScope executionScope(script);
+#ifdef INCLUDE_MOZILLA_DTRACE
+    struct JSDNotifyGuard {
+        JSScript *script;
+        JSDNotifyGuard(JSScript *s) : script(s) {
+            if (JAVASCRIPT_EXECUTE_START_ENABLED())
+                jsdtrace_execute_start(script);
+        }
+        ~JSDNotifyGuard() {
+            if (JAVASCRIPT_EXECUTE_DONE_ENABLED())
+                jsdtrace_execute_done(script);
+        }
+
+    } jsdNotifyGuard(script);
+#endif
 
     
 
@@ -735,14 +751,13 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 
-    JSFrameRegs regs;
     ExecuteFrameGuard frame;
     if (!cx->stack().getExecuteFrame(cx, down, 0, script->nslots, frame))
         return false;
     JSStackFrame *fp = frame.getFrame();
 
     
-    PodZero(fp->slots(), script->nfixed);
+    memset(fp->slots(), 0, script->nfixed * sizeof(jsval));
 #if JS_HAS_SHARP_VARS
     JS_STATIC_ASSERT(SHARP_NSLOTS == 2);
     if (script->hasSharps) {
@@ -785,14 +800,16 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
         initialVarObj = (down == cx->fp)
-                        ? down->varobj(cx)
-                        : down->varobj(cx->containingCallStack(down));
+                          ? down->varobj(cx)
+                          : down->varobj(cx->containingCallStack(down));
     } else {
         fp->callobj = NULL;
         fp->argsobj = NULL;
         JSObject *obj = chain;
-        if (cx->options & JSOPTION_VAROBJFIX)
-            obj = obj->getGlobal();
+        if (cx->options & JSOPTION_VAROBJFIX) {
+            while (JSObject *tmp = obj->getParent())
+                obj = tmp;
+        }
         fp->fun = NULL;
         JSObject *thisp = chain->thisObject(cx);
         if (!thisp)
@@ -812,14 +829,11 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
     fp->script = script;
     fp->imacpc = NULL;
     fp->rval = JSVAL_VOID;
+    fp->regs = NULL;
     fp->blockChain = NULL;
 
     
-    regs.pc = script->code;
-    regs.sp = StackBase(fp);
-
-    
-    cx->stack().pushExecuteFrame(cx, frame, regs, initialVarObj);
+    cx->stack().pushExecuteFrame(cx, frame, initialVarObj);
 
     void *hookData = NULL;
     if (JSInterpreterHook hook = cx->debugHooks->executeHook)
@@ -1065,7 +1079,7 @@ js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampRet
                 clasp = f->u.n.clasp;
         }
     }
-    JSObject *obj = NewObject(cx, clasp, proto, parent);
+    JSObject *obj = js_NewObject(cx, clasp, proto, parent);
     if (!obj)
         return JS_FALSE;
 
@@ -1124,7 +1138,7 @@ js_EnterWith(JSContext *cx, jsint stackIndex)
     JSObject *obj, *parent, *withobj;
 
     fp = cx->fp;
-    sp = cx->regs->sp;
+    sp = fp->regs->sp;
     JS_ASSERT(stackIndex < 0);
     JS_ASSERT(StackBase(fp) <= sp + stackIndex);
 
@@ -1185,16 +1199,16 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
 
 
-JS_STATIC_INTERPRET JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
+JS_REQUIRES_STACK JSBool
+js_UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
+               JSBool normalUnwind)
 {
     JSObject *obj;
     JSClass *clasp;
 
     JS_ASSERT(stackDepth >= 0);
-    JS_ASSERT(StackBase(cx->fp) + stackDepth <= cx->regs->sp);
+    JS_ASSERT(StackBase(fp) + stackDepth <= fp->regs->sp);
 
-    JSStackFrame *fp = cx->fp;
     for (obj = fp->blockChain; obj; obj = obj->getParent()) {
         JS_ASSERT(obj->getClass() == &js_BlockClass);
         if (OBJ_BLOCK_DEPTH(cx, obj) < stackDepth)
@@ -1215,7 +1229,7 @@ js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
         }
     }
 
-    cx->regs->sp = StackBase(fp) + stackDepth;
+    fp->regs->sp = StackBase(fp) + stackDepth;
     return normalUnwind;
 }
 
@@ -1284,7 +1298,7 @@ js_TraceOpcode(JSContext *cx)
     tracefp = (FILE *) cx->tracefp;
     JS_ASSERT(tracefp);
     fp = cx->fp;
-    regs = cx->regs;
+    regs = fp->regs;
 
     
 
@@ -1310,8 +1324,6 @@ js_TraceOpcode(JSContext *cx)
                             (n == -ndefs) ? "  output:" : ",",
                             bytes);
                     cx->free(bytes);
-                } else {
-                    JS_ClearPendingException(cx);
                 }
             }
             fprintf(tracefp, " @ %u\n", (uintN) (regs->sp - StackBase(fp)));
@@ -1319,12 +1331,10 @@ js_TraceOpcode(JSContext *cx)
         fprintf(tracefp, "  stack: ");
         for (siter = StackBase(fp); siter < regs->sp; siter++) {
             str = js_ValueToString(cx, *siter);
-            if (!str) {
+            if (!str)
                 fputs("<null>", tracefp);
-            } else {
-                JS_ClearPendingException(cx);
+            else
                 js_FileEscapedString(tracefp, str, 0);
-            }
             fputc(' ', tracefp);
         }
         fputc('\n', tracefp);
@@ -1346,8 +1356,6 @@ js_TraceOpcode(JSContext *cx)
                         (n == -nuses) ? "  inputs:" : ",",
                         bytes);
                 cx->free(bytes);
-            } else {
-                JS_ClearPendingException(cx);
             }
         }
         fprintf(tracefp, " @ %u\n", (uintN) (regs->sp - StackBase(fp)));
@@ -1971,40 +1979,6 @@ JS_STATIC_ASSERT(JSOP_INCNAME_LENGTH == JSOP_NAMEDEC_LENGTH);
 # define ABORT_RECORDING(cx, reason)    ((void) 0)
 #endif
 
-
-
-
-
-static inline bool
-IteratorMore(JSContext *cx, JSObject *iterobj, JSBool *cond, jsval *rval)
-{
-    if (iterobj->getClass() == &js_IteratorClass.base) {
-        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
-        *cond = (ni->props_cursor < ni->props_end);
-    } else {
-        if (!js_IteratorMore(cx, iterobj, rval))
-            return false;
-        *cond = (*rval == JSVAL_TRUE);
-    }
-    return true;
-}
-
-static inline bool
-IteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval)
-{
-    if (iterobj->getClass() == &js_IteratorClass.base) {
-        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
-        JS_ASSERT(ni->props_cursor < ni->props_end);
-        *rval = *ni->props_cursor;
-        if (JSVAL_IS_STRING(*rval) || (ni->flags & JSITER_FOREACH)) {
-            ni->props_cursor++;
-            return true;
-        }
-        
-    }
-    return js_IteratorNext(cx, iterobj, rval);
-}
-
 JS_REQUIRES_STACK JSBool
 js_Interpret(JSContext *cx)
 {
@@ -2018,7 +1992,7 @@ js_Interpret(JSContext *cx)
     uintN inlineCallCount;
     JSAtom **atoms;
     JSVersion currentVersion, originalVersion;
-    JSFrameRegs regs, *prevContextRegs;
+    JSFrameRegs regs;
     JSObject *obj, *obj2, *parent;
     JSBool ok, cond;
     jsint len;
@@ -2040,7 +2014,9 @@ js_Interpret(JSContext *cx)
     JSType type;
     jsint low, high, off, npairs;
     JSBool match;
+#if JS_HAS_GETTER_SETTER
     JSPropertyOp getter, setter;
+#endif
     JSAutoResolveFlags rf(cx, JSRESOLVE_INFER);
 
 # ifdef DEBUG
@@ -2224,22 +2200,20 @@ js_Interpret(JSContext *cx)
         script = fp->script;                                                  \
         atoms = FrameAtomBase(cx, fp);                                        \
         currentVersion = (JSVersion) script->version;                         \
-        JS_ASSERT(cx->regs == &regs);                                         \
+        JS_ASSERT(fp->regs == &regs);                                         \
+        if (cx->throwing)                                                     \
+            goto error;                                                       \
     JS_END_MACRO
 
 #define MONITOR_BRANCH(reason)                                                \
     JS_BEGIN_MACRO                                                            \
         if (TRACING_ENABLED(cx)) {                                            \
-            MonitorResult r = MonitorLoopEdge(cx, inlineCallCount, reason);   \
-            if (r == MONITOR_RECORDING) {                                     \
+            if (MonitorLoopEdge(cx, inlineCallCount, reason)) {               \
                 JS_ASSERT(TRACE_RECORDER(cx));                                \
                 MONITOR_BRANCH_TRACEVIS;                                      \
                 ENABLE_INTERRUPTS();                                          \
             }                                                                 \
             RESTORE_INTERP_VARS();                                            \
-            JS_ASSERT_IF(cx->throwing, r == MONITOR_ERROR);                   \
-            if (r == MONITOR_ERROR)                                           \
-                goto error;                                                   \
         }                                                                     \
     JS_END_MACRO
 
@@ -2271,13 +2245,13 @@ js_Interpret(JSContext *cx)
             CHECK_BRANCH();                                                   \
             if (op == JSOP_NOP) {                                             \
                 if (TRACE_RECORDER(cx)) {                                     \
-                    MONITOR_BRANCH(Record_Branch);                            \
+                    MONITOR_BRANCH(Record_Branch);                           \
                     op = (JSOp) *regs.pc;                                     \
                 } else {                                                      \
                     op = (JSOp) *++regs.pc;                                   \
                 }                                                             \
             } else if (op == JSOP_TRACE) {                                    \
-                MONITOR_BRANCH(Record_Branch);                                \
+                MONITOR_BRANCH(Record_Branch);                               \
                 op = (JSOp) *regs.pc;                                         \
             }                                                                 \
         }                                                                     \
@@ -2310,7 +2284,7 @@ js_Interpret(JSContext *cx)
 
 # define CHECK_INTERRUPT_HANDLER()                                            \
     JS_BEGIN_MACRO                                                            \
-        if (cx->debugHooks->interruptHook)                                    \
+        if (cx->debugHooks->interruptHandler)                                 \
             ENABLE_INTERRUPTS();                                              \
     JS_END_MACRO
 
@@ -2322,18 +2296,21 @@ js_Interpret(JSContext *cx)
 
     CHECK_INTERRUPT_HANDLER();
 
+#if !JS_HAS_GENERATORS
+    JS_ASSERT(!fp->regs);
+#else
     
-
-
-
-    JS_ASSERT(cx->regs);
-    prevContextRegs = cx->regs;
-    regs = *cx->regs;
-    cx->setCurrentRegs(&regs);
-
+    if (JS_LIKELY(!fp->regs)) {
+#endif
+        ASSERT_NOT_THROWING(cx);
+        regs.pc = script->code;
+        regs.sp = StackBase(fp);
+        fp->regs = &regs;
 #if JS_HAS_GENERATORS
-    if (JS_UNLIKELY(fp->isGenerator())) {
-        JS_ASSERT(prevContextRegs == &cx->generatorFor(fp)->savedRegs);
+    } else {
+        JS_ASSERT(fp->regs == &cx->generatorFor(fp)->savedRegs);
+        regs = *fp->regs;
+        fp->regs = &regs;
         JS_ASSERT((size_t) (regs.pc - script->code) <= script->length);
         JS_ASSERT((size_t) (regs.sp - StackBase(fp)) <= StackDepth(script));
 
@@ -2351,10 +2328,13 @@ js_Interpret(JSContext *cx)
             goto error;
         }
     }
-#endif
+#endif 
 
 #ifdef JS_TRACER
     
+
+
+
     if (TRACE_RECORDER(cx))
         AbortRecording(cx, "attempt to reenter interpreter while recording");
 #endif
@@ -2419,9 +2399,24 @@ js_Interpret(JSContext *cx)
 #endif 
 
   error:
-    JS_ASSERT(cx->regs == &regs);
 #ifdef JS_TRACER
     if (fp->imacpc && cx->throwing) {
+        
+        if (*fp->imacpc == JSOP_NEXTITER &&
+            InCustomIterNextTryRegion(regs.pc) &&
+            js_ValueIsStopIteration(cx->exception)) {
+            
+            
+
+            
+            JS_ASSERT(*regs.pc == JSOP_CALL || *regs.pc == JSOP_DUP);
+            cx->throwing = JS_FALSE;
+            cx->exception = JSVAL_VOID;
+            regs.sp[-1] = JSVAL_HOLE;
+            PUSH(JSVAL_FALSE);
+            goto end_imacro;
+        }
+
         
         regs.pc = fp->imacpc;
         fp->imacpc = NULL;
@@ -2445,7 +2440,7 @@ js_Interpret(JSContext *cx)
         
         ok = JS_FALSE;
     } else {
-        JSThrowHook handler;
+        JSTrapHandler handler;
         JSTryNote *tn, *tnlimit;
         uint32 offset;
 
@@ -2512,8 +2507,8 @@ js_Interpret(JSContext *cx)
 
             regs.pc = (script)->main + tn->start + tn->length;
 
-            ok = js_UnwindScope(cx, tn->stackDepth, JS_TRUE);
-            JS_ASSERT(regs.sp == StackBase(fp) + tn->stackDepth);
+            ok = js_UnwindScope(cx, fp, tn->stackDepth, JS_TRUE);
+            JS_ASSERT(fp->regs->sp == StackBase(fp) + tn->stackDepth);
             if (!ok) {
                 
 
@@ -2551,19 +2546,24 @@ js_Interpret(JSContext *cx)
                 len = 0;
                 DO_NEXT_OP(len);
 
-              case JSTRY_ITER: {
+              case JSTRY_ITER:
                 
+
+
+
+
+
+
                 JS_ASSERT(js_GetOpcode(cx, fp->script, regs.pc) == JSOP_ENDITER);
-                AutoValueRooter tvr(cx, cx->exception);
-                cx->throwing = false;
-                ok = js_CloseIterator(cx, regs.sp[-1]);
-                regs.sp -= 1;
+                regs.sp[-1] = cx->exception;
+                cx->throwing = JS_FALSE;
+                ok = js_CloseIterator(cx, regs.sp[-2]);
+                regs.sp -= 2;
                 if (!ok)
                     goto error;
-                cx->throwing = true;
-                cx->exception = tvr.value();
-              }
-           }
+                cx->throwing = JS_TRUE;
+                cx->exception = regs.sp[1];
+            }
         } while (++tn != tnlimit);
 
       no_catch:
@@ -2589,7 +2589,7 @@ js_Interpret(JSContext *cx)
 
 
 
-    ok &= js_UnwindScope(cx, 0, ok || cx->throwing);
+    ok &= js_UnwindScope(cx, fp, 0, ok || cx->throwing);
     JS_ASSERT(regs.sp == StackBase(fp));
 
 #ifdef DEBUG
@@ -2612,17 +2612,21 @@ js_Interpret(JSContext *cx)
 
 
     JS_ASSERT(inlineCallCount == 0);
-    JS_ASSERT(cx->regs == &regs);
-    *prevContextRegs = regs;
-    cx->setCurrentRegs(prevContextRegs);
-
+    JS_ASSERT(fp->regs == &regs);
 #ifdef JS_TRACER
     if (TRACE_RECORDER(cx))
         AbortRecording(cx, "recording out of js_Interpret");
 #endif
-
-    JS_ASSERT_IF(!fp->isGenerator(), !fp->blockChain);
-    JS_ASSERT_IF(!fp->isGenerator(), !js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
+#if JS_HAS_GENERATORS
+    if (JS_UNLIKELY(fp->isGenerator())) {
+        cx->generatorFor(fp)->savedRegs = regs;
+    } else
+#endif 
+    {
+        JS_ASSERT(!fp->blockChain);
+        JS_ASSERT(!js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
+    }
+    fp->regs = NULL;
 
     
     if (script->staticLevel < JS_DISPLAY_SIZE)

@@ -57,30 +57,12 @@ JS_BEGIN_EXTERN_C
 #define JSITER_ENUMERATE  0x1   /* for-in compatible hidden default iterator */
 #define JSITER_FOREACH    0x2   /* return [key, value] pair rather than key */
 #define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */
-#define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
-
-struct NativeIterator {
-    jsval     *props_array;
-    jsval     *props_cursor;
-    jsval     *props_end;
-    uint32    *shapes_array;
-    uint32    shapes_length;
-    uint32    shapes_key;
-    uintN     flags;
-    JSObject  *next;
-
-    void mark(JSTracer *trc);
-};
 
 
 
 
-
-
-static const jsval JSVAL_NATIVE_ENUMERATE_COOKIE = SPECIAL_TO_JSVAL(0x220576);
-
-bool
-EnumerateOwnProperties(JSContext *cx, JSObject *obj, JSIdArray **idap);
+const uint32 JSSLOT_ITER_STATE  = JSSLOT_PRIVATE;
+const uint32 JSSLOT_ITER_FLAGS  = JSSLOT_PRIVATE + 1;
 
 
 
@@ -91,19 +73,21 @@ EnumerateOwnProperties(JSContext *cx, JSObject *obj, JSIdArray **idap);
 extern JS_FRIEND_API(JSBool)
 js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp);
 
-extern JS_FRIEND_API(JSBool)
+extern JS_FRIEND_API(JSBool) JS_FASTCALL
 js_CloseIterator(JSContext *cx, jsval v);
 
 
 
 
 
+extern JS_FRIEND_API(JSBool)
+js_CallIteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval);
 
-extern JSBool
-js_IteratorMore(JSContext *cx, JSObject *iterobj, jsval *rval);
 
-extern JSBool
-js_IteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval);
+
+
+extern void
+js_CloseNativeIterator(JSContext *cx, JSObject *iterobj);
 
 extern JSBool
 js_ThrowStopIteration(JSContext *cx);
@@ -177,9 +161,9 @@ js_LiveFrameIfGenerator(JSStackFrame *fp)
 
 #endif
 
-extern JSExtendedClass js_GeneratorClass;
-extern JSExtendedClass js_IteratorClass;
-extern JSClass         js_StopIterationClass;
+extern JS_FRIEND_API(JSClass) js_GeneratorClass;
+extern JSClass                js_IteratorClass;
+extern JSClass                js_StopIterationClass;
 
 static inline bool
 js_ValueIsStopIteration(jsval v)
