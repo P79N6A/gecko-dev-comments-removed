@@ -323,7 +323,7 @@ nsBaseAppShell::OnProcessNextEvent(nsIThreadInternal *thr, PRBool mayWait,
   
   
   
-  if (needEvent && !NS_HasPendingEvents(thr)) {  
+  if (needEvent && !mExiting && !NS_HasPendingEvents(thr)) {  
     if (!mDummyEvent)
       mDummyEvent = new nsRunnable();
     thr->Dispatch(mDummyEvent, NS_DISPATCH_NORMAL);
