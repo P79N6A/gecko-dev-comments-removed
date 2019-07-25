@@ -788,8 +788,7 @@ DocumentViewerImpl::InitPresentationStuff(PRBool aDoInitialReflow)
   
   
   
-  nsDocViewerFocusListener *focusListener;
-  NS_NEWXPCOM(focusListener, nsDocViewerFocusListener);
+  nsDocViewerFocusListener *focusListener = new nsDocViewerFocusListener();
   NS_ENSURE_TRUE(focusListener, NS_ERROR_OUT_OF_MEMORY);
 
   focusListener->Init(this);
