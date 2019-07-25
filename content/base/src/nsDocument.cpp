@@ -8492,10 +8492,13 @@ DispatchFullScreenChange(nsIDocument* aTarget)
 NS_IMETHODIMP
 nsDocument::MozCancelFullScreen()
 {
-  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
-    return NS_OK;
+  
+  
+  
+  if (NodePrincipal()->GetAppStatus() >= nsIPrincipal::APP_STATUS_INSTALLED ||
+      nsContentUtils::IsRequestFullScreenAllowed()) {
+    RestorePreviousFullScreenState();
   }
-  RestorePreviousFullScreenState();
   return NS_OK;
 }
 
