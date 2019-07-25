@@ -559,7 +559,6 @@ var UIManager = {
   
   _setBrowserKeyHandlers : function() {
     var self = this;
-    var tabbox = gBrowser.mTabBox;
 
     gWindow.addEventListener("keypress", function(event) {
       if (self._isTabCandyVisible())
