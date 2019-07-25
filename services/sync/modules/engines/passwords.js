@@ -68,13 +68,13 @@ PasswordEngine.prototype = {
 
 
 
-  _syncStartup: function PasswordStore__syncStartup() {
+  _syncStartup: function PasswordEngine__syncStartup() {
     let self = yield;
     this._store._cacheLogins();
     yield SyncEngine.prototype._syncStartup.async(this, self.cb);
   },
   
-  _syncFinish: function PasswordStore__syncFinish() {
+  _syncFinish: function PasswordEngine__syncFinish() {
     let self = yield;
     this._store._clearLoginCache();
     yield SyncEngine.prototype._syncFinish.async(this, self.cb);
