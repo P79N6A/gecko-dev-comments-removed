@@ -72,6 +72,10 @@ function testEditorAdded(aChrome, aEditor)
 function testFirstStyleSheetEditor(aChrome, aEditor)
 {
   
+  ok(aEditor._state.text.indexOf("\u263a") >= 0,
+     "stylesheet is unicode-aware.");
+
+  
   is(aEditor.styleSheetIndex, 0,
      "first stylesheet is at index 0");
 
