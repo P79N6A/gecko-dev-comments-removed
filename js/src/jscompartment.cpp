@@ -98,6 +98,12 @@ JSCompartment::JSCompartment(JSRuntime *rt)
 
 JSCompartment::~JSCompartment()
 {
+    
+
+
+
+    FreeScriptFilenames(this);
+
 #ifdef JS_METHODJIT
     Foreground::delete_(jaegerCompartment_);
 #endif

@@ -3252,7 +3252,7 @@ SweepPhase(JSContext *cx, JSGCInvocationKind gckind)
 
 
         for (GCCompartmentsIter c(rt); !c.done(); c.next())
-            js_SweepScriptFilenames(c);
+            SweepScriptFilenames(c);
 
         
 
