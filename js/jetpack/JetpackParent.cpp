@@ -172,6 +172,15 @@ private:
   JSContext* mCX;
 };
 
+
+
+static void
+DelayedDestroyProcess(JetpackProcessParent* o)
+{
+  XRE_GetIOMessageLoop()
+    ->PostTask(FROM_HERE, new DeleteTask<JetpackProcessParent>(o));
+}
+
 void
 JetpackParent::ActorDestroy(ActorDestroyReason why)
 {
@@ -200,8 +209,8 @@ JetpackParent::ActorDestroy(ActorDestroyReason why)
       NS_ERROR("Unexpected actordestroy reason for toplevel actor.");
   }  
 
-  XRE_GetIOMessageLoop()
-    ->PostTask(FROM_HERE, new DeleteTask<JetpackProcessParent>(mSubprocess));
+  MessageLoop::current()->
+    PostTask(FROM_HERE, NewRunnableFunction(DelayedDestroyProcess, mSubprocess));
   mSubprocess = NULL;
 }
 
