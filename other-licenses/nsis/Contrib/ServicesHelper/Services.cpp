@@ -3,7 +3,7 @@
 
 
 #include <windows.h>
-#include "../../../../toolkit/components/maintenanceservice/pathhash.h"
+#include "../../../../toolkit/mozapps/update/common/pathhash.h"
 
 #pragma comment(lib, "advapi32.lib") 
 
