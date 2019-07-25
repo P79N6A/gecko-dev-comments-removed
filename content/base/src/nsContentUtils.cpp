@@ -5854,7 +5854,7 @@ CloneSimpleValues(JSContext* cx,
   }
 
   
-  if (obj->getClass()->ext.wrappedObject)
+  if (obj->isWrapper() && !obj->getClass()->ext.innerObject)
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
 
   

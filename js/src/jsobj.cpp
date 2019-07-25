@@ -812,7 +812,7 @@ obj_toStringHelper(JSContext *cx, JSObject *obj)
     if (obj->isProxy())
         return JSProxy::obj_toString(cx, obj);
 
-    const char *clazz = obj->wrappedObject(cx)->getClass()->name;
+    const char *clazz = obj->getClass()->name;
     size_t nchars = 9 + strlen(clazz); 
     jschar *chars = (jschar *) cx->malloc((nchars + 1) * sizeof(jschar));
     if (!chars)
@@ -5873,13 +5873,6 @@ js_TypeOf(JSContext *cx, JSObject *obj)
 
 
 
-    obj = obj->wrappedObject(cx);
-
-    
-
-
-
-
     if (obj->isCallable()) {
         return (obj->getClass() != &js_RegExpClass)
                ? JSTYPE_FUNCTION
@@ -5902,7 +5895,7 @@ js_IsDelegate(JSContext *cx, JSObject *obj, const Value &v)
 {
     if (v.isPrimitive())
         return false;
-    JSObject *obj2 = v.toObject().wrappedObject(cx);
+    JSObject *obj2 = &v.toObject();
     while ((obj2 = obj2->getProto()) != NULL) {
         if (obj2 == obj)
             return true;
@@ -6395,16 +6388,6 @@ js_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 slot, const Value &v)
     GC_POKE(cx, JS_NULL);
     JS_UNLOCK_OBJ(cx, obj);
     return true;
-}
-
-JSObject *
-JSObject::wrappedObject(JSContext *cx) const
-{
-    if (JSObjectOp op = getClass()->ext.wrappedObject) {
-        if (JSObject *obj = op(cx, const_cast<JSObject *>(this)))
-            return obj;
-    }
-    return const_cast<JSObject *>(this);
 }
 
 JSObject *
