@@ -104,8 +104,7 @@ function test()
     is(InspectorUI.selection, node, "selected body element");
 
     
-    synthesizeKeyFromKeyTag("key_inspect");
-
+    EventUtils.synthesizeKey("VK_RETURN", { });
     executeSoon(isTheNodeLocked);
   }
 
