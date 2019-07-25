@@ -442,6 +442,30 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     if (!bailoutIf(Assembler::NotEqual, call->snapshot()))
         return false;
 
+    
+    
+    if (call->mir()->isConstruct()) {
+        typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
+        static const VMFunction InvokeConstructorFunctionInfo =
+            FunctionInfo<pf>(InvokeConstructorFunction);
+
+        
+        
+        masm.freeStack(unusedStack);
+
+        pushArg(StackPointer);          
+        pushArg(Imm32(call->nargs()));  
+        pushArg(calleereg);             
+
+        if (!callVM(InvokeConstructorFunctionInfo, call))
+            return false;
+
+        
+        masm.reserveStack(unusedStack);
+
+        return true;
+    }
+
     Label end, invoke;
 
     
