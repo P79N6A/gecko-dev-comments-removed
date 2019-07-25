@@ -1176,13 +1176,15 @@ mjit::Compiler::jsop_setelem_dense()
 
 
 
+
         stubcc.masm.storePtr(slotsReg, FrameAddress(offsetof(VMFrame, scratch)));
+        frame.pinReg(slotsReg);
         if (!key.isConstant())
-            stubcc.masm.push(key.reg());
+            frame.pinReg(key.reg());
         frame.sync(stubcc.masm, Uses(3));
         if (!key.isConstant())
-            stubcc.masm.pop(key.reg());
-        stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
+            frame.unpinReg(key.reg());
+        frame.unpinReg(slotsReg);
 
         if (key.isConstant())
             stubcc.masm.lea(Address(slotsReg, key.index() * sizeof(Value)), Registers::ArgReg1);
