@@ -38,6 +38,7 @@
 
 #include "ImageLayerOGL.h"
 #include "gfxImageSurface.h"
+#include "yuv_convert.h"
 #include "GLContextProvider.h"
 
 using namespace mozilla::gl;
@@ -253,22 +254,37 @@ ImageContainerOGL::GetCurrentAsSurface(gfxIntSize *aSize)
 
   GLContext *gl = nsnull;
   
-  GLuint tex1 = 0, tex2 = 0, tex3 = 0;
+  GLuint tex1 = 0;
   gfxIntSize size;
 
   if (mActiveImage->GetFormat() == Image::PLANAR_YCBCR) {
     PlanarYCbCrImageOGL *yuvImage =
       static_cast<PlanarYCbCrImageOGL*>(mActiveImage.get());
-    if (!yuvImage->HasData() || !yuvImage->HasTextures()) {
+    if (!yuvImage->HasData()) {
       *aSize = gfxIntSize(0, 0);
       return nsnull;
     }
 
     size = yuvImage->mSize;
-    gl = yuvImage->mTextures[0].GetGLContext();
-    tex1 = yuvImage->mTextures[0].GetTextureID();
-    tex2 = yuvImage->mTextures[1].GetTextureID();
-    tex3 = yuvImage->mTextures[2].GetTextureID();
+
+    nsRefPtr<gfxImageSurface> imageSurface =
+      new gfxImageSurface(size, gfxASurface::ImageFormatRGB24);
+
+    gfx::ConvertYCbCrToRGB32(yuvImage->mData.mYChannel,
+                             yuvImage->mData.mCbChannel,
+                             yuvImage->mData.mCrChannel,
+                             imageSurface->Data(),
+                             0,
+                             0,
+                             size.width,
+                             size.height,
+                             yuvImage->mData.mYStride,
+                             yuvImage->mData.mCbCrStride,
+                             imageSurface->Stride(),
+                             yuvImage->mType);
+
+    *aSize = size;
+    return imageSurface.forget().get();
   }
 
   if (mActiveImage->GetFormat() == Image::CAIRO_SURFACE) {
@@ -279,9 +295,6 @@ ImageContainerOGL::GetCurrentAsSurface(gfxIntSize *aSize)
     tex1 = cairoImage->mTexture.GetTextureID();
   }
 
-  
-  
-  
   nsRefPtr<gfxImageSurface> s = gl->ReadTextureImage(tex1, size, LOCAL_GL_RGBA);
   *aSize = size;
   return s.forget();
