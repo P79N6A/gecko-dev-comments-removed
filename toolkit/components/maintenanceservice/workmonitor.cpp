@@ -326,7 +326,8 @@ ProcessSoftwareUpdateCommand(DWORD argc, LPWSTR *argv)
   
   
   
-  HMODULE updaterModule = LoadLibrary(argv[0]);
+  HMODULE updaterModule = LoadLibraryEx(argv[0], NULL, 
+                                        LOAD_LIBRARY_AS_DATAFILE);
   if (!updaterModule) {
     LOG(("updater.exe module could not be loaded. (%d)\n", GetLastError()));
     result = FALSE;

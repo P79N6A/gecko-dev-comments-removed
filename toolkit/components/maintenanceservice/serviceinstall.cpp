@@ -405,6 +405,8 @@ SvcInstall(SvcInstallAction action)
   }
 
   
+  PathQuoteSpaces(newServiceBinaryPath);
+  
   schService.own(CreateServiceW(schSCManager, SVC_NAME, SVC_DISPLAY_NAME,
                                 SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
                                 SERVICE_DEMAND_START, SERVICE_ERROR_NORMAL,
