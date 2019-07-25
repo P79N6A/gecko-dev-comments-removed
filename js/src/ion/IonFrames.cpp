@@ -220,8 +220,14 @@ IonFrameIterator::prevFp() const
     JS_ASSERT(type_ != IonFrame_Entry);
 
     size_t currentSize = SizeOfFramePrefix(type_);
+    
+    
+    
+    if (prevType() == IonFrame_Bailed_Rectifier) {
+        JS_ASSERT(type_ == IonFrame_Exit);
+        currentSize = SizeOfFramePrefix(IonFrame_JS);
+    }
     currentSize += current()->prevFrameLocalSize();
-
     return current_ + currentSize;
 }
 

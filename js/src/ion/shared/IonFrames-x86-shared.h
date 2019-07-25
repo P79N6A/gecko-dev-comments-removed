@@ -125,12 +125,12 @@ class IonRectifierFrameLayout : public IonJSFrameLayout
     }
 };
 
-class IonBailedRectifierFrameLayout : public IonJSFrameLayout
+
+class IonBailedRectifierFrameLayout : public IonRectifierFrameLayout
 {
   public:
     static inline size_t Size() {
-        
-        return sizeof(IonBailedRectifierFrameLayout) + sizeof(void *);
+        return sizeof(IonBailedRectifierFrameLayout);
     }
 };
 
