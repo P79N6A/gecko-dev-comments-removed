@@ -419,8 +419,9 @@ struct xpc_qsArgValArray
 
 
 
+
 JSBool
-xpc_qsJsvalToCharStr(JSContext *cx, jsval v, JSAutoByteString *bytes);
+xpc_qsJsvalToCharStr(JSContext *cx, jsval v, jsval *pval, char **pstr);
 
 JSBool
 xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, PRUnichar **pstr);

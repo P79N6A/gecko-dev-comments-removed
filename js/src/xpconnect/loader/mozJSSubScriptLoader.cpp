@@ -161,19 +161,13 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
 
     JSAutoRequest ar(cx);
 
-    JSString *url;
+    char     *url;
     JSObject *target_obj = nsnull;
     jschar   *charset = nsnull;
-    ok = JS_ConvertArguments (cx, argc, argv, "S / o W", &url, &target_obj, &charset);
+    ok = JS_ConvertArguments (cx, argc, argv, "s / o W", &url, &target_obj, &charset);
     if (!ok)
     {
         
-        return NS_OK;
-    }
-
-    JSAutoByteString urlbytes(cx, url);
-    if (!urlbytes)
-    {
         return NS_OK;
     }
 
@@ -283,7 +277,7 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
 
     
     
-    rv = NS_NewURI(getter_AddRefs(uri), urlbytes.ptr(), nsnull, serv);
+    rv = NS_NewURI(getter_AddRefs(uri), url, nsnull, serv);
     if (NS_FAILED(rv)) {
         errmsg = JS_NewStringCopyZ (cx, LOAD_ERROR_NOURI);
         goto return_exception;
