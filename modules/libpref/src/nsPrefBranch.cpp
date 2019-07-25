@@ -69,21 +69,10 @@ struct EnumerateData {
   nsTArray<nsCString> *pref_list;
 };
 
-struct PrefCallbackData {
-  nsPrefBranch     *pBranch;
-  nsISupports      *pCanonical;
-  nsIObserver      *pObserver;
-  nsIWeakReference *pWeakRef;
-  char pDomain[1];
-};
-
-
 
 static PLDHashOperator
   pref_enumChild(PLDHashTable *table, PLDHashEntryHdr *heh,
                  PRUint32 i, void *arg);
-static nsresult
-  NotifyObserver(const char *newpref, void *data);
 
 #ifdef MOZ_IPC
 using mozilla::dom::ContentChild;
@@ -107,11 +96,12 @@ GetContentChild()
 
 
 nsPrefBranch::nsPrefBranch(const char *aPrefRoot, PRBool aDefaultBranch)
-  : mObservers(nsnull)
 {
   mPrefRoot = aPrefRoot;
   mPrefRootLength = mPrefRoot.Length();
   mIsDefault = aDefaultBranch;
+  mFreeingObserverList = PR_FALSE;
+  mObservers.Init();
 
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
@@ -702,7 +692,7 @@ NS_IMETHODIMP nsPrefBranch::GetChildList(const char *aStartingAt, PRUint32 *aCou
 
 NS_IMETHODIMP nsPrefBranch::AddObserver(const char *aDomain, nsIObserver *aObserver, PRBool aHoldWeak)
 {
-  PrefCallbackData *pCallback;
+  PrefCallback *pCallback;
   const char *pref;
 
   NS_ENSURE_ARG_POINTER(aDomain);
@@ -714,51 +704,39 @@ NS_IMETHODIMP nsPrefBranch::AddObserver(const char *aDomain, nsIObserver *aObser
   }
 #endif
 
-  if (!mObservers) {
-    mObservers = new nsAutoVoidArray();
-    if (nsnull == mObservers)
-      return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  pCallback = (PrefCallbackData *)NS_Alloc(sizeof(PrefCallbackData) + strlen(aDomain));
-  if (nsnull == pCallback)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  pCallback->pBranch = this;
-  pCallback->pObserver = aObserver;
-
   
   if (aHoldWeak) {
     nsCOMPtr<nsISupportsWeakReference> weakRefFactory = do_QueryInterface(aObserver);
     if (!weakRefFactory) {
       
-      nsMemory::Free(pCallback);
       return NS_ERROR_INVALID_ARG;
     }
-    nsCOMPtr<nsIWeakReference> tmp = do_GetWeakReference(weakRefFactory);
-    NS_ADDREF(pCallback->pWeakRef = tmp);
+
+    
+    pCallback = new PrefCallback(aDomain, weakRefFactory, this);
+
   } else {
-    pCallback->pWeakRef = nsnull;
-    NS_ADDREF(pCallback->pObserver);
+    
+    pCallback = new PrefCallback(aDomain, aObserver, this);
+  }
+
+  if (mObservers.Get(pCallback)) {
+    NS_WARNING("Ignoring duplicate observer.");
+    delete pCallback;
+    return NS_OK;
+  }
+
+  PRBool putSucceeded = mObservers.Put(pCallback, pCallback);
+
+  if (!putSucceeded) {
+    delete pCallback;
+    return NS_ERROR_FAILURE;
   }
 
   
   
   
-  
-  
-  
-  
-  
-  
-  CallQueryInterface(aObserver, &pCallback->pCanonical);
-  pCallback->pCanonical->Release();
-
-  strcpy(pCallback->pDomain, aDomain);
-  mObservers->AppendElement(pCallback);
-
-  
-  pref = getPrefName(aDomain); 
+  pref = getPrefName(aDomain);
   PREF_RegisterCallback(pref, NotifyObserver, pCallback);
   return NS_OK;
 }
@@ -768,9 +746,10 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
   NS_ENSURE_ARG_POINTER(aDomain);
   NS_ENSURE_ARG_POINTER(aObserver);
 
+  nsresult rv = NS_OK;
+
 #ifdef MOZ_IPC
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    nsresult rv = NS_OK;
     ContentChild *cpc = ContentChild::GetSingleton();
     
     
@@ -783,11 +762,29 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
   }
 #endif
 
-  if (!mObservers)
+  
+  
+  
+  
+  
+  
+  
+  if (mFreeingObserverList)
     return NS_OK;
 
-  nsCOMPtr<nsISupports> canonical(do_QueryInterface(aObserver));
-  return RemoveObserverFromList(aDomain, canonical);
+  
+  
+  
+  PrefCallback key(aDomain, aObserver, this);
+  nsAutoPtr<PrefCallback> pCallback;
+  mObservers.RemoveAndForget(&key, pCallback);
+  if (pCallback) {
+    
+    const char *pref = getPrefName(aDomain);
+    rv = PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
+  }
+
+  return rv;
 }
 
 NS_IMETHODIMP nsPrefBranch::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *someData)
@@ -799,7 +796,8 @@ NS_IMETHODIMP nsPrefBranch::Observe(nsISupports *aSubject, const char *aTopic, c
   return NS_OK;
 }
 
-static nsresult NotifyObserver(const char *newpref, void *data)
+
+nsresult nsPrefBranch::NotifyObserver(const char *newpref, void *data)
 {
 #ifdef MOZ_IPC
   if (GetContentChild()) {
@@ -811,114 +809,62 @@ static nsresult NotifyObserver(const char *newpref, void *data)
   }
 #endif
 
-  PrefCallbackData *pData = (PrefCallbackData *)data;
+  PrefCallback *pCallback = (PrefCallback *)data;
 
-  
-  
-  PRUint32 len = pData->pBranch->GetRootLength();
-  nsCAutoString suffix(newpref + len);  
-
-  nsCOMPtr<nsIObserver> observer;
-  if (pData->pWeakRef) {
-    observer = do_QueryReferent(pData->pWeakRef);
-    if (!observer) {
-      
-      pData->pBranch->RemoveObserverFromList(pData->pDomain, pData->pCanonical);
-      return NS_OK;
-    }
-  } else {
-    observer = pData->pObserver;
+  nsCOMPtr<nsIObserver> observer = pCallback->GetObserver();
+  if (!observer) {
+    
+    pCallback->GetPrefBranch()->RemoveExpiredCallback(pCallback);
+    return NS_OK;
   }
 
-  observer->Observe(static_cast<nsIPrefBranch *>(pData->pBranch),
+  
+  
+  PRUint32 len = pCallback->GetPrefBranch()->GetRootLength();
+  nsCAutoString suffix(newpref + len);
+
+  observer->Observe(static_cast<nsIPrefBranch *>(pCallback->GetPrefBranch()),
                     NS_PREFBRANCH_PREFCHANGE_TOPIC_ID,
                     NS_ConvertASCIItoUTF16(suffix).get());
   return NS_OK;
 }
 
+PLDHashOperator
+FreeObserverFunc(PrefCallback *aKey,
+                 nsAutoPtr<PrefCallback> &aCallback,
+                 void *aArgs)
+{
+  
+  
+  
+  
+  
+
+  nsPrefBranch *prefBranch = aCallback->GetPrefBranch();
+  const char *pref = prefBranch->getPrefName(aCallback->GetDomain().get());
+  PREF_UnregisterCallback(pref, nsPrefBranch::NotifyObserver, aCallback);
+
+  return PL_DHASH_REMOVE;
+}
 
 void nsPrefBranch::freeObserverList(void)
 {
-  const char *pref;
-  PrefCallbackData *pCallback;
-
-  if (mObservers) {
-    
-
-    PRInt32 i;
-    nsCAutoString domain;
-    for (i = 0; i < mObservers->Count(); ++i) {
-      pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
-      if (pCallback) {
-        
-        pref = getPrefName(pCallback->pDomain);
-        
-        
-        mObservers->ReplaceElementAt(nsnull, i);
-        PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
-        if (pCallback->pWeakRef) {
-          NS_RELEASE(pCallback->pWeakRef);
-        } else {
-          NS_RELEASE(pCallback->pObserver);
-        }
-        nsMemory::Free(pCallback);
-      }
-    }
-
-    delete mObservers;
-    mObservers = 0;
-  }
+  
+  
+  
+  
+  mFreeingObserverList = PR_TRUE;
+  mObservers.Enumerate(&FreeObserverFunc, nsnull);
+  mFreeingObserverList = PR_FALSE;
 }
 
-nsresult
-nsPrefBranch::RemoveObserverFromList(const char *aDomain, nsISupports *aObserver)
+void
+nsPrefBranch::RemoveExpiredCallback(PrefCallback *aCallback)
 {
-  PRInt32 count = mObservers->Count();
-  if (!count) {
-    return NS_OK;
-  }
-
-#ifdef DEBUG
-  PRBool alreadyRemoved = PR_FALSE;
-#endif
-
-  for (PRInt32 i = 0; i < count; i++) {
-    PrefCallbackData *pCallback = (PrefCallbackData *)mObservers->ElementAt(i);
-
-#ifdef DEBUG
-    if (!pCallback) {
-      
-      
-      alreadyRemoved = PR_TRUE;
-    }
-#endif
-
-    if (pCallback &&
-        pCallback->pCanonical == aObserver &&
-        !strcmp(pCallback->pDomain, aDomain)) {
-      
-      const char *pref = getPrefName(aDomain); 
-      nsresult rv = PREF_UnregisterCallback(pref, NotifyObserver, pCallback);
-      if (NS_SUCCEEDED(rv)) {
-        
-        
-        mObservers->RemoveElementAt(i);
-        if (pCallback->pWeakRef) {
-          NS_RELEASE(pCallback->pWeakRef);
-        } else {
-          NS_RELEASE(pCallback->pObserver);
-        }
-        NS_Free(pCallback);
-      }
-      return rv;
-    }
-  }
-
-  NS_WARN_IF_FALSE(alreadyRemoved,
-                   "Failed attempt to remove a pref observer, probably leaking");
-  return NS_OK;
+  NS_PRECONDITION(aCallback->IsExpired(), "Callback should be expired.");
+  mObservers.Remove(aCallback);
 }
- 
+
 nsresult nsPrefBranch::GetDefaultFromPropertiesFile(const char *aPrefName, PRUnichar **return_buf)
 {
   nsresult rv;

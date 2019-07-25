@@ -51,6 +51,161 @@
 #include "nsVoidArray.h"
 #include "nsTArray.h"
 #include "nsWeakReference.h"
+#include "nsClassHashtable.h"
+#include "nsCRT.h"
+#include "prbit.h"
+#include "nsTraceRefcnt.h"
+
+class nsPrefBranch;
+
+class PrefCallback : public PLDHashEntryHdr {
+
+  public:
+    typedef PrefCallback* KeyType;
+    typedef const PrefCallback* KeyTypePointer;
+
+    static const PrefCallback* KeyToPointer(PrefCallback *aKey)
+    {
+      return aKey;
+    }
+
+    static PLDHashNumber HashKey(const PrefCallback *aKey)
+    {
+      PRUint32 strHash = nsCRT::HashCode(aKey->mDomain.BeginReading(),
+                                         aKey->mDomain.Length());
+
+      return PR_ROTATE_LEFT32(strHash, 4) ^
+             NS_PTR_TO_UINT32(aKey->mCanonical);
+    }
+
+
+  public:
+    
+    PrefCallback(const char *aDomain, nsIObserver *aObserver,
+                 nsPrefBranch *aBranch)
+      : mDomain(aDomain),
+        mBranch(aBranch),
+        mWeakRef(nsnull),
+        mStrongRef(aObserver)
+    {
+      MOZ_COUNT_CTOR(PrefCallback);
+      nsCOMPtr<nsISupports> canonical = do_QueryInterface(aObserver);
+      mCanonical = canonical;
+    }
+
+    
+    PrefCallback(const char *aDomain,
+                 nsISupportsWeakReference *aObserver,
+                 nsPrefBranch *aBranch)
+      : mDomain(aDomain),
+        mBranch(aBranch),
+        mWeakRef(do_GetWeakReference(aObserver)),
+        mStrongRef(nsnull)
+    {
+      MOZ_COUNT_CTOR(PrefCallback);
+      nsCOMPtr<nsISupports> canonical = do_QueryInterface(aObserver);
+      mCanonical = canonical;
+    }
+
+    
+    PrefCallback(const PrefCallback *&aCopy)
+      : mDomain(aCopy->mDomain),
+        mBranch(aCopy->mBranch),
+        mWeakRef(aCopy->mWeakRef),
+        mStrongRef(aCopy->mStrongRef),
+        mCanonical(aCopy->mCanonical)
+    {
+      MOZ_COUNT_CTOR(PrefCallback);
+    }
+
+    ~PrefCallback()
+    {
+      MOZ_COUNT_DTOR(PrefCallback);
+    }
+
+    PRBool KeyEquals(const PrefCallback *aKey) const
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      if (IsExpired() || aKey->IsExpired())
+        return this == aKey;
+
+      if (mCanonical != aKey->mCanonical)
+        return PR_FALSE;
+
+      return mDomain.Equals(aKey->mDomain);
+    }
+
+    PrefCallback *GetKey() const
+    {
+      return const_cast<PrefCallback*>(this);
+    }
+
+    
+    
+    already_AddRefed<nsIObserver> GetObserver() const
+    {
+      if (!IsWeak()) {
+        NS_IF_ADDREF(mStrongRef);
+        
+        
+        return mStrongRef.get();
+      }
+
+      nsCOMPtr<nsIObserver> observer = do_QueryReferent(mWeakRef);
+      return observer.forget();
+    }
+
+    const nsCString& GetDomain() const
+    {
+      return mDomain;
+    }
+
+    nsPrefBranch* GetPrefBranch() const
+    {
+      return mBranch;
+    }
+
+    
+    PRBool IsExpired() const
+    {
+      if (!IsWeak())
+        return PR_FALSE;
+
+      nsCOMPtr<nsIObserver> observer(do_QueryReferent(mWeakRef));
+      return !observer;
+    }
+
+    enum { ALLOW_MEMMOVE = PR_TRUE };
+
+  private:
+    nsCString             mDomain;
+    nsPrefBranch         *mBranch;
+
+    
+    nsWeakPtr             mWeakRef;
+    nsCOMPtr<nsIObserver> mStrongRef;
+
+    
+    nsISupports          *mCanonical;
+
+    PRBool IsWeak() const
+    {
+      return !!mWeakRef;
+    }
+};
 
 class nsPrefBranch : public nsIPrefBranchInternal,
                      public nsIObserver,
@@ -67,22 +222,31 @@ public:
 
   PRInt32 GetRootLength() { return mPrefRootLength; }
 
-  nsresult RemoveObserverFromList(const char *aDomain, nsISupports *aObserver);
+  nsresult RemoveObserverFromMap(const char *aDomain, nsISupports *aObserver);
+
+  static nsresult NotifyObserver(const char *newpref, void *data);
 
 protected:
   nsPrefBranch()    
     { }
 
   nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, PRUnichar **return_buf);
+  void RemoveExpiredCallback(PrefCallback *aCallback);
   const char *getPrefName(const char *aPrefName);
   void       freeObserverList(void);
 
+  friend PLDHashOperator
+    FreeObserverFunc(PrefCallback *aKey,
+                     nsAutoPtr<PrefCallback> &aCallback,
+                     void *aArgs);
+
 private:
   PRInt32               mPrefRootLength;
-  nsAutoVoidArray       *mObservers;
   nsCString             mPrefRoot;
   PRBool                mIsDefault;
 
+  PRBool                mFreeingObserverList;
+  nsClassHashtable<PrefCallback, PrefCallback> mObservers;
 };
 
 
@@ -103,7 +267,7 @@ private:
   NS_IMETHOD GetData(PRUnichar**);
   NS_IMETHOD SetData(const PRUnichar* aData);
   NS_IMETHOD SetDataWithLength(PRUint32 aLength, const PRUnichar *aData);
-                               
+
   nsCOMPtr<nsISupportsString> mUnicodeString;
 };
 
