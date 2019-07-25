@@ -1051,7 +1051,7 @@ struct TypeCompartment
     inline void resolvePending(JSContext *cx);
 
     
-    void print(JSContext *cx);
+    void print(JSContext *cx, bool force);
 
     
 

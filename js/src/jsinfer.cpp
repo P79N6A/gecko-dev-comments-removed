@@ -326,11 +326,7 @@ types::TypeFailure(JSContext *cx, const char *fmt, ...)
     JS_snprintf(msgbuf, sizeof(msgbuf), "[infer failure] %s", errbuf);
 
     
-
-
-
-
-    cx->compartment->types.print(cx);
+    cx->compartment->types.print(cx, true);
 
     
     JS_Assert(msgbuf, __FILE__, __LINE__);
@@ -2272,11 +2268,14 @@ PrintObjectCallback(JSContext *cx, void *data, void *thing,
 #endif
 
 void
-TypeCompartment::print(JSContext *cx)
+TypeCompartment::print(JSContext *cx, bool force)
 {
     JSCompartment *compartment = this->compartment();
 
-    if (!InferSpewActive(ISpewResult) || JS_CLIST_IS_EMPTY(&compartment->scripts))
+    if (JS_CLIST_IS_EMPTY(&compartment->scripts))
+        return;
+
+    if (!force && !InferSpewActive(ISpewResult))
         return;
 
     for (JSScript *script = (JSScript *)compartment->scripts.next;
