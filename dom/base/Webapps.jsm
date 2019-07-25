@@ -346,6 +346,20 @@ let DOMApplicationRegistry = {
     let app = this._cloneAppObject(this.webapps[aId]);
     return app;
   },
+
+  getAppByManifestURL: function(aManifestURL) {
+    
+    
+    
+    for (let id in this.webapps) {
+      let app = this.webapps[id];
+      if (app.manifestURL == aManifestURL) {
+        return this._cloneAppObject(app);
+      }
+    }
+
+    return null;
+  },
   
   getAllWithoutManifests: function(aCallback) {
     let result = {};
