@@ -593,7 +593,7 @@ WebGLContext::InitAndValidateGL()
 
     GLenum error = gl->fGetError();
     if (error != LOCAL_GL_NO_ERROR) {
-        LogMessage("GL error 0x%x occurred during OpenGL context initialization, before WebGL initialization!", error);
+        GenerateWarning("GL error 0x%x occurred during OpenGL context initialization, before WebGL initialization!", error);
         return false;
     }
 
@@ -628,7 +628,7 @@ WebGLContext::InitAndValidateGL()
         gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &mGLMaxVertexAttribs);
     }
     if (mGLMaxVertexAttribs < 8) {
-        LogMessage("GL_MAX_VERTEX_ATTRIBS: %d is < 8!", mGLMaxVertexAttribs);
+        GenerateWarning("GL_MAX_VERTEX_ATTRIBS: %d is < 8!", mGLMaxVertexAttribs);
         return false;
     }
 
@@ -643,7 +643,7 @@ WebGLContext::InitAndValidateGL()
         gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mGLMaxTextureUnits);
     }
     if (mGLMaxTextureUnits < 8) {
-        LogMessage("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d is < 8!", mGLMaxTextureUnits);
+        GenerateWarning("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d is < 8!", mGLMaxTextureUnits);
         return false;
     }
 
@@ -684,7 +684,7 @@ WebGLContext::InitAndValidateGL()
             
             error = gl->GetAndClearError();
             if (error != LOCAL_GL_NO_ERROR) {
-                LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
+                GenerateWarning("GL error 0x%x occurred during WebGL context initialization!", error);
                 return false;
             }
 
@@ -704,7 +704,7 @@ WebGLContext::InitAndValidateGL()
                     mGLMaxVaryingVectors = 16; 
                     break;
                 default:
-                    LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
+                    GenerateWarning("GL error 0x%x occurred during WebGL context initialization!", error);
                     return false;
             }   
         }
@@ -746,7 +746,7 @@ WebGLContext::InitAndValidateGL()
     
     if (mShaderValidation) {
         if (!ShInitialize()) {
-            LogMessage("GLSL translator initialization failed!");
+            GenerateWarning("GLSL translator initialization failed!");
             return false;
         }
     }
@@ -756,7 +756,7 @@ WebGLContext::InitAndValidateGL()
     
     error = gl->GetAndClearError();
     if (error != LOCAL_GL_NO_ERROR) {
-        LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
+        GenerateWarning("GL error 0x%x occurred during WebGL context initialization!", error);
         return false;
     }
 
