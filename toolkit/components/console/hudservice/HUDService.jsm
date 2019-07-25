@@ -781,79 +781,24 @@ HUD_SERVICE.prototype =
 
 
 
-  filterLogMessage:
-  function HS_filterLogMessage(aFilterString, aMessageNode)
-  {
-    aFilterString = aFilterString.toLowerCase();
-    var messageText = aMessageNode.textContent.toLowerCase();
-    var idx = messageText.indexOf(aFilterString);
-    if (idx > -1) {
-      return { strLength: aFilterString.length, strIndex: idx };
-    }
-    else {
-      return null;
-    }
-  },
-
-  
-
-
-
-
-
-  getFilterTextBox: function HS_getFilterTextBox(aHUDId)
-  {
-    var hud = this.getHeadsUpDisplay(aHUDId);
-    return hud.querySelectorAll(".hud-filter-box")[0];
-  },
-
-  
-
-
-
-
-
-
 
 
 
 
   logHUDMessage: function HS_logHUDMessage(aMessage,
                                            aConsoleNode,
-                                           aMessageNode,
-                                           aFilterState,
-                                           aFilterString)
+                                           aMessageNode)
   {
-    if (!aFilterState) {
-      
-      return;
-    }
-
     if (!aMessage) {
       throw new Error(ERRORS.MISSING_ARGS);
     }
 
     let lastGroupNode = this.appendGroupIfNecessary(aConsoleNode,
                                                     aMessage.timestamp);
-    if (aFilterString) {
-      var filtered = this.filterLogMessage(aFilterString, aMessageNode);
-      if (filtered) {
-        
-        lastGroupNode.appendChild(aMessageNode);
-        ConsoleUtils.scrollToVisible(aMessageNode);
-      }
-      else {
-        
-        
-        var hiddenMessage = ConsoleUtils.hideLogMessage(aMessageNode);
-        lastGroupNode.appendChild(hiddenMessage);
-      }
-    }
-    else {
-      
-      lastGroupNode.appendChild(aMessageNode);
-      ConsoleUtils.scrollToVisible(aMessageNode);
-    }
+
+    lastGroupNode.appendChild(aMessageNode);
+    ConsoleUtils.scrollToVisible(aMessageNode);
+
     
     this.storage.recordEntry(aMessage.hudId, aMessage);
   },
@@ -869,14 +814,11 @@ HUD_SERVICE.prototype =
 
   logConsoleMessage: function HS_logConsoleMessage(aMessage,
                                                    aConsoleNode,
-                                                   aMessageNode,
-                                                   aFilterState,
-                                                   aFilterString)
+                                                   aMessageNode)
   {
-    if (aFilterState){
-      aConsoleNode.appendChild(aMessageNode);
-      ConsoleUtils.scrollToVisible(aMessageNode);
-    }
+    aConsoleNode.appendChild(aMessageNode);
+    ConsoleUtils.scrollToVisible(aMessageNode);
+
     
     this.storage.recordEntry(aMessage.hudId, aMessage);
   },
@@ -898,15 +840,11 @@ HUD_SERVICE.prototype =
     }
 
     var hud = this.getHeadsUpDisplay(aMessage.hudId);
-    
-    var filterState = this.getFilterState(aMessage.hudId, aMessage.logLevel);
-    var filterString = this.getFilterStringByHUDId(aMessage.hudId);
-
     switch (aMessage.origin) {
       case "network":
       case "HUDConsole":
       case "console-listener":
-        this.logHUDMessage(aMessage, aConsoleNode, aMessageNode, filterState, filterString);
+        this.logHUDMessage(aMessage, aConsoleNode, aMessageNode);
         break;
       default:
         
@@ -1215,11 +1153,6 @@ HUD_SERVICE.prototype =
       }
 
       
-      if (!this.getFilterState(hudId, "network")) {
-        return;
-      }
-
-      
       
       var domId = "hud-log-node-" + this.sequenceId();
 
@@ -1274,14 +1207,6 @@ HUD_SERVICE.prototype =
 
     if (aActivityObject.flags in this.scriptErrorFlags) {
       logLevel = this.scriptErrorFlags[aActivityObject.flags];
-    }
-
-    
-    var filterState = this.getFilterState(hudId, logLevel);
-
-    if (!filterState) {
-      
-      return;
     }
 
     
@@ -2227,14 +2152,6 @@ function HUDConsole(aHeadsUpDisplay)
 
   let sendToHUDService = function console_send(aLevel, aArguments)
   {
-    
-    var filterState = HUDService.getFilterState(hudId, aLevel);
-
-    if (!filterState) {
-      
-      return;
-    }
-
     let ts = ConsoleUtils.timestamp();
     let messageNode = hud.makeXULNode("label");
 
@@ -3389,19 +3306,6 @@ ConsoleUtils = {
       + pad(d.getMinutes()) + ":"
       + pad(d.getSeconds()) + ":"
       + pad(d.getMilliseconds(), true);
-  },
-
-  
-
-
-
-
-
-  hideLogMessage: function ConsoleUtils_hideLogMessage(aMessageNode) {
-    var klass = aMessageNode.getAttribute("class");
-    klass += " hud-hidden";
-    aMessageNode.setAttribute("class", klass);
-    return aMessageNode;
   },
 
   
