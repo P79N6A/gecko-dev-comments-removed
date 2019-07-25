@@ -616,18 +616,26 @@ nsPrintEngine::DoCommonPrint(PRBool                  aIsPrintPreview,
         nsCOMPtr<nsIWebBrowserPrint> wbp(do_QueryInterface(mDocViewerPrint));
         rv = printPromptService->ShowPrintDialog(domWin, wbp,
                                                  mPrt->mPrintSettings);
-        if (rv == NS_ERROR_NOT_IMPLEMENTED) {
+        
+        
+        
+        
+
+        if (NS_SUCCEEDED(rv)) {
+          
+          
+          printSilently = PR_TRUE;
+
+          if (mPrt && mPrt->mPrintSettings) {
+            
+            mPrt->mPrintSettings->GetShrinkToFit(&mPrt->mShrinkToFit);
+          }
+        } else if (rv == NS_ERROR_NOT_IMPLEMENTED) {
           
           
           
           rv = NS_OK;
-        } else if (NS_SUCCEEDED(rv)) {
-          
-          
-          printSilently = PR_TRUE;
         }
-        
-        mPrt->mPrintSettings->GetShrinkToFit(&mPrt->mShrinkToFit);
       } else {
         rv = NS_ERROR_GFX_NO_PRINTROMPTSERVICE;
       }
