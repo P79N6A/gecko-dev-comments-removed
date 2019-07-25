@@ -443,7 +443,8 @@ nsHTMLLabelElement::GetControlContent()
 
   nsCOMPtr<nsIFormControl> element = do_QueryInterface(content);
   if (element && element->IsLabelableControl()) {
-    NS_ADDREF(content);
+    
+    element.forget();
     return content;
   }
 

@@ -3723,20 +3723,13 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(mDocument);
   nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
   nsresult rv = NS_OK;
   nsCOMPtr<nsIContent> content;
 
   
-  if (doc) {    
-    nsCOMPtr<nsIDOMElement> element;
-    rv = doc->GetElementById(aAnchorName, getter_AddRefs(element));
-    if (NS_SUCCEEDED(rv) && element) {
-      
-      
-      content = do_QueryInterface(element);
-    }
+  if (mDocument) {    
+    content = mDocument->GetElementById(aAnchorName);
   }
 
   
@@ -3768,6 +3761,7 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
   
   if (!content && !htmlDoc)
   {
+    nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(mDocument);
     nsCOMPtr<nsIDOMNodeList> list;
     NS_NAMED_LITERAL_STRING(nameSpace, "http://www.w3.org/1999/xhtml");
     

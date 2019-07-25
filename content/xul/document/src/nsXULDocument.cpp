@@ -1302,17 +1302,9 @@ nsXULDocument::Persist(const nsAString& aID,
 
     nsresult rv;
 
-    nsCOMPtr<nsIDOMElement> domelement;
-    rv = nsDocument::GetElementById(aID, getter_AddRefs(domelement));
-    if (NS_FAILED(rv)) return rv;
-
-    if (! domelement)
-        return NS_OK;
-
-    nsCOMPtr<nsIContent> element = do_QueryInterface(domelement);
-    NS_ASSERTION(element != nsnull, "null ptr");
+    nsIContent *element = nsDocument::GetElementById(aID);
     if (! element)
-        return NS_ERROR_UNEXPECTED;
+        return NS_OK;
 
     nsCOMPtr<nsIAtom> tag;
     PRInt32 nameSpaceID;
@@ -3925,14 +3917,10 @@ nsXULDocument::OverlayForwardReference::Resolve()
     else {
         
         
-        nsCOMPtr<nsIDOMElement> domtarget;
-        rv = mDocument->GetElementById(id, getter_AddRefs(domtarget));
-        if (NS_FAILED(rv)) return eResolve_Error;
+        target = mDocument->GetElementById(id);
 
         
         
-        target = do_QueryInterface(domtarget);
-        NS_ASSERTION(!domtarget || target, "not an nsIContent");
         if (!target)
             return eResolve_Later;
 
@@ -4064,17 +4052,18 @@ nsXULDocument::OverlayForwardReference::Merge(nsIContent* aTargetNode,
     for (i = 0; i < childCount; ++i) {
         currContent = aOverlayNode->GetChildAt(0);
 
-        nsAutoString id;
-        currContent->GetAttr(kNameSpaceID_None, nsGkAtoms::id, id);
+        nsIAtom *idAtom = currContent->GetID();
 
-        nsCOMPtr<nsIDOMElement> nodeInDocument;
-        if (!id.IsEmpty()) {
-            nsCOMPtr<nsIDOMDocument> domDocument(
-                        do_QueryInterface(aTargetNode->GetDocument()));
-            if (!domDocument) return NS_ERROR_FAILURE;
+        nsIContent *elementInDocument = nsnull;
+        if (idAtom) {
+            nsDependentAtomString id(idAtom);
 
-            rv = domDocument->GetElementById(id, getter_AddRefs(nodeInDocument));
-            if (NS_FAILED(rv)) return rv;
+            if (!id.IsEmpty()) {
+                nsIDocument *doc = aTargetNode->GetDocument();
+                if (!doc) return NS_ERROR_FAILURE;
+
+                elementInDocument = doc->GetElementById(id);
+            }
         }
 
         
@@ -4082,24 +4071,21 @@ nsXULDocument::OverlayForwardReference::Merge(nsIContent* aTargetNode,
         
         
         
-        if (nodeInDocument) {
+        if (elementInDocument) {
             
             
             
             
 
-            nsCOMPtr<nsIDOMNode> nodeParent;
-            rv = nodeInDocument->GetParentNode(getter_AddRefs(nodeParent));
-            if (NS_FAILED(rv)) return rv;
-            nsCOMPtr<nsIDOMElement> elementParent(do_QueryInterface(nodeParent));
+            nsIContent *elementParent = elementInDocument->GetParent();
 
-            nsAutoString parentID;
-            elementParent->GetAttribute(NS_LITERAL_STRING("id"), parentID);
-            if (aTargetNode->AttrValueIs(kNameSpaceID_None, nsGkAtoms::id,
-                                         parentID, eCaseMatters)) {
+            nsIAtom *parentID = elementParent->GetID();
+            if (parentID &&
+                aTargetNode->AttrValueIs(kNameSpaceID_None, nsGkAtoms::id,
+                                         nsDependentAtomString(parentID),
+                                         eCaseMatters)) {
                 
-                nsCOMPtr<nsIContent> childDocumentContent(do_QueryInterface(nodeInDocument));
-                rv = Merge(childDocumentContent, currContent, aNotify);
+                rv = Merge(elementInDocument, currContent, aNotify);
                 if (NS_FAILED(rv)) return rv;
                 rv = aOverlayNode->RemoveChildAt(0, PR_FALSE);
                 if (NS_FAILED(rv)) return rv;
@@ -4363,11 +4349,11 @@ nsXULDocument::CheckBroadcasterHookup(Element* aElement,
 }
 
 nsresult
-nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild, PRBool aNotify)
+nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild,
+                             PRBool aNotify)
 {
     
     
-    nsresult rv;
 
     nsAutoString posStr;
     PRBool wasInserted = PR_FALSE;
@@ -4382,39 +4368,30 @@ nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild, PRBool aNo
     }
 
     if (!posStr.IsEmpty()) {
-        nsCOMPtr<nsIDOMDocument> domDocument(
-               do_QueryInterface(aParent->GetDocument()));
-        if (!domDocument) return NS_ERROR_FAILURE;
+        nsIDocument *document = aParent->GetOwnerDoc();
+        if (!document) return NS_ERROR_FAILURE;
 
-        nsCOMPtr<nsIDOMElement> domElement;
+        nsIContent *content = nsnull;
 
         char* str = ToNewCString(posStr);
         char* rest;
         char* token = nsCRT::strtok(str, ", ", &rest);
 
         while (token) {
-            rv = domDocument->GetElementById(NS_ConvertASCIItoUTF16(token),
-                                             getter_AddRefs(domElement));
-            if (domElement)
+            content = document->GetElementById(NS_ConvertASCIItoUTF16(token));
+            if (content)
                 break;
 
             token = nsCRT::strtok(rest, ", ", &rest);
         }
         nsMemory::Free(str);
-        if (NS_FAILED(rv))
-            return rv;
 
-        if (domElement) {
-            nsCOMPtr<nsIContent> content(do_QueryInterface(domElement));
-            NS_ASSERTION(content != nsnull, "null ptr");
-            if (!content)
-                return NS_ERROR_UNEXPECTED;
-
+        if (content) {
             PRInt32 pos = aParent->IndexOf(content);
 
             if (pos != -1) {
                 pos = isInsertAfter ? pos + 1 : pos;
-                rv = aParent->InsertChildAt(aChild, pos, aNotify);
+                nsresult rv = aParent->InsertChildAt(aChild, pos, aNotify);
                 if (NS_FAILED(rv))
                     return rv;
 
@@ -4427,6 +4404,7 @@ nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild, PRBool aNo
 
         aChild->GetAttr(kNameSpaceID_None, nsGkAtoms::position, posStr);
         if (!posStr.IsEmpty()) {
+            nsresult rv;
             
             PRInt32 pos = posStr.ToInteger(reinterpret_cast<PRInt32*>(&rv));
             
@@ -4446,9 +4424,8 @@ nsXULDocument::InsertElement(nsIContent* aParent, nsIContent* aChild, PRBool aNo
         }
     }
 
-    if (! wasInserted) {
-        rv = aParent->AppendChildTo(aChild, aNotify);
-        if (NS_FAILED(rv)) return rv;
+    if (!wasInserted) {
+        return aParent->AppendChildTo(aChild, aNotify);
     }
     return NS_OK;
 }
