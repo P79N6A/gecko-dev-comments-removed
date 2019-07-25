@@ -63,6 +63,7 @@ public:
         virtual void OnChannelClose() = 0;
         virtual void OnChannelError() = 0;
         virtual Result OnMessageReceived(const Message& aMessage) = 0;
+        virtual void OnProcessingError(Result aError) = 0;
         virtual bool OnReplyTimeout() = 0;
         virtual Result OnMessageReceived(const Message& aMessage,
                                          Message*& aReply) = 0;
@@ -95,9 +96,45 @@ public:
         sIsPumpingMessages = aIsPumping;
     }
 
+#ifdef OS_WIN
+    struct NS_STACK_CLASS SyncStackFrame
+    {
+        SyncStackFrame(SyncChannel* channel, bool rpc);
+        ~SyncStackFrame();
+
+        bool mRPC;
+        bool mSpinNestedEvents;
+        SyncChannel* mChannel;
+
+        
+        SyncStackFrame* mPrev;
+
+        
+        SyncStackFrame* mStaticPrev;
+    };
+    friend struct SyncChannel::SyncStackFrame;
+
+    static bool IsSpinLoopActive() {
+        for (SyncStackFrame* frame = sStaticTopFrame;
+             frame;
+             frame = frame->mPrev) {
+            if (frame->mSpinNestedEvents)
+                return true;
+        }
+        return false;
+    }
+
 protected:
     
-    bool ProcessingSyncMessage() {
+    SyncStackFrame* mTopFrame;
+
+    
+    static SyncStackFrame* sStaticTopFrame;
+#endif 
+
+protected:
+    
+    bool ProcessingSyncMessage() const {
         return mProcessingSyncMessage;
     }
 
@@ -129,11 +166,10 @@ protected:
     bool ShouldContinueFromTimeout();
 
     
-    void OnSendReply(Message* msg);
     void NotifyWorkerThread();
 
     
-    bool AwaitingSyncReply() {
+    bool AwaitingSyncReply() const {
         mMutex.AssertCurrentThreadOwns();
         return mPendingReply != 0;
     }
@@ -153,6 +189,10 @@ protected:
     static bool sIsPumpingMessages;
 
     int32 mTimeoutMs;
+
+#ifdef OS_WIN
+    HANDLE mEvent;
+#endif
 
 private:
     bool EventOccurred();

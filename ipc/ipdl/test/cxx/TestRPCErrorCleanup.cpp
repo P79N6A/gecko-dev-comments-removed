@@ -62,6 +62,7 @@ void Done()
 } 
 
 TestRPCErrorCleanupParent::TestRPCErrorCleanupParent()
+    : mGotProcessingError(false)
 {
     MOZ_COUNT_CTOR(TestRPCErrorCleanupParent);
 }
@@ -106,6 +107,9 @@ TestRPCErrorCleanupParent::Main()
     if (CallError())
         fail("expected an error!");
 
+    if (!mGotProcessingError)
+        fail("expected a ProcessingError() notification");
+
     
     
     Close();
@@ -117,6 +121,13 @@ TestRPCErrorCleanupParent::Main()
     MessageLoop::current()->PostTask(FROM_HERE, NewRunnableFunction(Done));
 }
 
+void
+TestRPCErrorCleanupParent::ProcessingError(Result what)
+{
+    if (what != MsgDropped)
+        fail("unexpected processing error");
+    mGotProcessingError = true;
+}
 
 
 
