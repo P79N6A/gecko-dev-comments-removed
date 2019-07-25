@@ -97,6 +97,15 @@ function done() {
     Services.prefs.clearUserPref("browser.sessionstore.resume_from_crash");
   } catch (e) {}
 
+  
+  
+  let windowsEnum = Services.wm.getEnumerator("navigator:browser");
+  while (windowsEnum.hasMoreElements()) {
+    let currentWindow = windowsEnum.getNext();
+    if (currentWindow != window)
+      currentWindow.close();
+  }
+
   ss.setBrowserState(stateBackup);
   executeSoon(finish);
 }
