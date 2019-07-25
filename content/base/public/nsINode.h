@@ -1296,6 +1296,8 @@ private:
     
     ElementHasLockedStyleStates,
     
+    ElementHasPointerLock,
+    
     NodeMayHaveDOMMutationObserver,
     
     BooleanFlagCount
@@ -1358,6 +1360,9 @@ public:
   void SetMayHaveDOMMutationObserver()
     { SetBoolFlag(NodeMayHaveDOMMutationObserver, true); }
   bool HasListenerManager() { return HasFlag(NODE_HAS_LISTENERMANAGER); }
+  bool HasPointerLock() const { return GetBoolFlag(ElementHasPointerLock); }
+  void SetPointerLock() { SetBoolFlag(ElementHasPointerLock); }
+  void ClearPointerLock() { ClearBoolFlag(ElementHasPointerLock); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }

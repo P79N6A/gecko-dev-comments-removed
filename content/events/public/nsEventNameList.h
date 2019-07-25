@@ -275,6 +275,14 @@ EVENT(mozfullscreenerror,
       NS_FULLSCREENERROR,
       EventNameType_HTML,
       NS_EVENT_NULL)
+EVENT(mozpointerlockchange,
+      NS_POINTERLOCKCHANGE,
+      EventNameType_HTML,
+      NS_EVENT_NULL)
+EVENT(mozpointerlockerror,
+      NS_POINTERLOCKERROR,
+      EventNameType_HTML,
+      NS_EVENT_NULL)
 
 
 EVENT(pause,
