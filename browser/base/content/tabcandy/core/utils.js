@@ -317,6 +317,17 @@ window.Range.prototype = {
 			return ( value.min > this.min && value.max < this.max );
   },
   
+  
+  
+  
+  
+  
+  overlaps: function(value) {
+  	if (Utils.isNumber(value))
+			return this.contains(value);
+		else if (isRange(value))
+			return ( value.min <= this.max && this.min <= value.max );
+  },
 };
 
 
