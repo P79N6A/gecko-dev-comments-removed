@@ -9042,7 +9042,6 @@ nsHTMLDocumentSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
         
         
-        
         if (helper && !::JS_SetPrivate(cx, helper, FlagsToPrivate(flags))) {
           nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_UNEXPECTED);
 
