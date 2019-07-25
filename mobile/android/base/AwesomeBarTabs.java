@@ -321,8 +321,16 @@ public class AwesomeBarTabs extends TabHost {
     public boolean onBackPressed() {
         
         
-        if (!getCurrentTabTag().equals(BOOKMARKS_TAB) ||
-                mBookmarksAdapter == null)
+        
+        if (getCurrentTabTag().equals(BOOKMARKS_TAB) || getCurrentTabTag().equals(HISTORY_TAB)) {
+            View tabView = getCurrentTabView();
+            if (hideSoftInput(tabView))
+                return true;
+        }
+
+        
+        
+        if (!getCurrentTabTag().equals(BOOKMARKS_TAB) || mBookmarksAdapter == null)
             return false;
 
         return mBookmarksAdapter.moveToParentFolder();
@@ -846,11 +854,11 @@ public class AwesomeBarTabs extends TabHost {
         
     }
 
-    private void hideSoftInput(View view) {
+    private boolean hideSoftInput(View view) {
         InputMethodManager imm =
                 (InputMethodManager) mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
 
-        imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        return imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
     private void handleBookmarkItemClick(AdapterView<?> parent, View view, int position, long id) {
