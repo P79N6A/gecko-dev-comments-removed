@@ -49,7 +49,6 @@
 #include "gfxASurface.h"
 
 @class CellDrawView;
-@class NSProgressBarCell;
 class nsDeviceContext;
 
 class nsNativeThemeCocoa : private nsNativeTheme,
@@ -98,16 +97,12 @@ protected:
   nsIntMargin RTLAwareMargin(const nsIntMargin& aMargin, nsIFrame* aFrame);
 
   
-  double GetProgressValue(nsIFrame* aFrame);
-  double GetProgressMaxValue(nsIFrame* aFrame);
-
-  
   void DrawFrame(CGContextRef context, HIThemeFrameKind inKind,
                  const HIRect& inBoxRect, PRBool inReadOnly,
                  nsEventStates inState);
   void DrawProgress(CGContextRef context, const HIRect& inBoxRect,
                     PRBool inIsIndeterminate, PRBool inIsHorizontal,
-                    double inValue, double inMaxValue, nsIFrame* aFrame);
+                    PRInt32 inValue, PRInt32 inMaxValue, nsIFrame* aFrame);
   void DrawTab(CGContextRef context, HIRect inBoxRect, nsEventStates inState,
                nsIFrame* aFrame);
   void DrawTabPanel(CGContextRef context, const HIRect& inBoxRect, nsIFrame* aFrame);
@@ -153,7 +148,6 @@ private:
   NSSearchFieldCell* mSearchFieldCell;
   NSPopUpButtonCell* mDropdownCell;
   NSComboBoxCell* mComboBoxCell;
-  NSProgressBarCell* mProgressBarCell;
   CellDrawView* mCellDrawView;
 };
 

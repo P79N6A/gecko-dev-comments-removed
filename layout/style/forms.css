@@ -668,35 +668,6 @@ output:-moz-ui-invalid {
   input[type="file"] { height: 2em; }
 }
 
-progress {
-  -moz-appearance: progressbar;
-  display: inline-block;
-  vertical-align: -0.2em;
-
-  
-  border: 2px solid;
-  -moz-border-top-colors: ThreeDShadow -moz-Dialog;
-  -moz-border-right-colors: ThreeDHighlight -moz-Dialog;
-  -moz-border-bottom-colors: ThreeDHighlight -moz-Dialog;
-  -moz-border-left-colors: ThreeDShadow -moz-Dialog;
-  background-color: -moz-Dialog;
-}
-
-::-moz-progress-bar {
-  
-  display: inline-block ! important;
-  float: none ! important;
-  position: static ! important;
-  overflow: visible ! important;
-
-  -moz-appearance: progresschunk;
-  height: 100%;
-  width: 100%;
-
-  
-  background-color: ThreeDShadow;
-}
-
 %if OSARCH==OS2
 input {
   font: medium serif; font-family: inherit
