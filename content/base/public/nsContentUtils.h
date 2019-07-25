@@ -1771,6 +1771,11 @@ public:
   FindInternalContentViewer(const char* aType,
                             ContentViewerType* aLoaderType = nsnull);
 
+  
+
+
+
+  static void InitializeTouchEventTable();
 private:
   static PRBool InitializeEventTable();
 
