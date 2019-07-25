@@ -274,10 +274,13 @@ var BrowserUI = {
   _closeOrQuit: function _closeOrQuit() {
     
     let dialog = this.activeDialog;
-    if (dialog)
+    if (dialog) {
       dialog.close();
-    else
-      window.close();
+    } else {
+      
+      if (Browser.closing())
+        window.close();
+    }
   },
 
   get activeDialog() {
