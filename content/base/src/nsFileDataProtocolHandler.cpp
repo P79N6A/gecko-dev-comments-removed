@@ -257,15 +257,20 @@ nsFileDataURI::EqualsInternal(nsIURI* aOther,
     return NS_OK;
   }
 
-  nsresult rv = mPrincipal->Equals(otherFileDataUri->mPrincipal, aResult);
-  NS_ENSURE_SUCCESS(rv, rv);
   
-  if (!*aResult) {
+  if (!nsSimpleURI::EqualsInternal(otherFileDataUri, aRefHandlingMode)) {
+    *aResult = PR_FALSE;
     return NS_OK;
-  }
+   }
 
-  return nsSimpleURI::EqualsInternal(otherFileDataUri, aRefHandlingMode,
-                                     aResult);
+  
+  if (mPrincipal && otherFileDataUri->mPrincipal) {
+    
+    return mPrincipal->Equals(otherFileDataUri->mPrincipal, aResult);
+  }
+  
+  *aResult = (!mPrincipal && !otherFileDataUri->mPrincipal);
+  return NS_OK;
 }
 
 
