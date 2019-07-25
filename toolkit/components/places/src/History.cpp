@@ -346,10 +346,7 @@ public:
     NS_WARN_IF_FALSE(bookmarks, "Could not get bookmarks service");
     if (history && bookmarks) {
       
-      nsresult rv = history->UpdateFrecency(
-        mData->placeId,
-        bookmarks->IsRealBookmark(mData->placeId)
-      );
+      nsresult rv = history->UpdateFrecency(mData->placeId);
       NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Could not update frecency");
 
       
@@ -1212,27 +1209,12 @@ History::RegisterVisitedCallback(nsIURI* aURI,
     
     
     nsresult rv = VisitedQuery::Start(aURI);
-
-    
-    
-    
-    
     if (NS_FAILED(rv) || !aLink) {
       
       mObservers.RemoveEntry(aURI);
       return rv;
     }
   }
-#ifdef MOZ_IPC
-  
-  
-  
-  else if (!aLink) {
-    NS_ASSERTION(XRE_GetProcessType() == GeckoProcessType_Default,
-                 "We should only ever get a null Link in the default process!");
-    return NS_OK;
-  }
-#endif
 
   
   

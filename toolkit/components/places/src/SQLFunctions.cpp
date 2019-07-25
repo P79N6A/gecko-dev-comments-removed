@@ -43,160 +43,12 @@
 #include "nsEscape.h"
 #include "mozIPlacesAutoComplete.h"
 #include "SQLFunctions.h"
-#include "nsUTF8Utils.h"
+#include "nsMathUtils.h"
+#include "nsINavHistoryService.h"
+#include "nsPrintfCString.h"
+#include "nsNavHistory.h"
 
 using namespace mozilla::storage;
-
-
-
-
-namespace {
-
-  typedef nsACString::const_char_iterator const_char_iterator;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static
-  NS_ALWAYS_INLINE const_char_iterator
-  nextWordBoundary(const_char_iterator const aStart,
-                   const_char_iterator const aNext,
-                   const_char_iterator const aEnd) {
-
-    const_char_iterator cur = aStart;
-    if (('a' <= *cur && *cur <= 'z') ||
-        ('A' <= *cur && *cur <= 'Z')) {
-
-      
-      
-      
-      do {
-        cur++;
-      } while (cur < aEnd && 'a' <= *cur && *cur <= 'z');
-    }
-    else {
-      cur = aNext;
-    }
-
-    return cur;
-  }
-
-  enum FindInStringBehavior {
-    eFindOnBoundary,
-    eFindAnywhere
-  };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static
-  NS_ALWAYS_INLINE bool
-  findInString(const nsDependentCSubstring &aToken,
-               const nsACString &aSourceString,
-               FindInStringBehavior aBehavior)
-  {
-    
-    
-    NS_PRECONDITION(!aToken.IsEmpty(), "Don't search for an empty token!");
-
-    
-    if (aSourceString.IsEmpty()) {
-      return false;
-    }
-
-    const_char_iterator tokenStart(aToken.BeginReading()),
-                        tokenEnd(aToken.EndReading()),
-                        sourceStart(aSourceString.BeginReading()),
-                        sourceEnd(aSourceString.EndReading());
-
-    do {
-      
-      
-
-      
-      
-      
-      const_char_iterator sourceNext, tokenCur;
-      PRBool error;
-      if (CaseInsensitiveUTF8CharsEqual(sourceStart, tokenStart,
-                                        sourceEnd, tokenEnd,
-                                        &sourceNext, &tokenCur, &error)) {
-
-        
-        
-        
-
-        const_char_iterator sourceCur = sourceNext;
-        while (true) {
-          if (tokenCur >= tokenEnd) {
-            
-            return true;
-          }
-
-          if (sourceCur >= sourceEnd) {
-            
-            
-            return false;
-          }
-
-          if (!CaseInsensitiveUTF8CharsEqual(sourceCur, tokenCur,
-                                             sourceEnd, tokenEnd,
-                                             &sourceCur, &tokenCur, &error)) {
-            
-            
-            break;
-          }
-        }
-      }
-
-      
-      if (NS_UNLIKELY(error)) {
-        return false;
-      }
-
-      
-      
-      
-
-      if (aBehavior == eFindOnBoundary) {
-        sourceStart = nextWordBoundary(sourceStart, sourceNext, sourceEnd);
-      }
-      else {
-        sourceStart = sourceNext;
-      }
-
-    } while (sourceStart < sourceEnd);
-
-    return false;
-  }
-
-} 
 
 namespace mozilla {
 namespace places {
@@ -225,7 +77,7 @@ namespace places {
   
   void
   MatchAutoCompleteFunction::fixupURISpec(const nsCString &aURISpec,
-                                          nsCString &_fixedSpec)
+                                          nsString &_fixedSpec)
   {
     nsCString unescapedSpec;
     (void)NS_UnescapeURL(aURISpec, esc_SkipControl | esc_AlwaysCopy,
@@ -236,74 +88,104 @@ namespace places {
     NS_ASSERTION(_fixedSpec.IsEmpty(),
                  "Passing a non-empty string as an out parameter!");
     if (IsUTF8(unescapedSpec))
-      _fixedSpec.Assign(unescapedSpec);
+      CopyUTF8toUTF16(unescapedSpec, _fixedSpec);
     else
-      _fixedSpec.Assign(aURISpec);
+      CopyUTF8toUTF16(aURISpec, _fixedSpec);
 
-    if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("http://")))
+    if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("http://")))
       _fixedSpec.Cut(0, 7);
-    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("https://")))
+    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("https://")))
       _fixedSpec.Cut(0, 8);
-    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("ftp://")))
+    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("ftp://")))
       _fixedSpec.Cut(0, 6);
 
-    if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("www.")))
+    if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("www.")))
       _fixedSpec.Cut(0, 4);
   }
 
   
   bool
-  MatchAutoCompleteFunction::findAnywhere(const nsDependentCSubstring &aToken,
-                                          const nsACString &aSourceString)
+  MatchAutoCompleteFunction::findAnywhere(const nsDependentSubstring &aToken,
+                                          const nsAString &aSourceString)
   {
-    
-
-    return findInString(aToken, aSourceString, eFindAnywhere);
+    return !!CaseInsensitiveFindInReadable(aToken, aSourceString);
   }
 
   
   bool
-  MatchAutoCompleteFunction::findOnBoundary(const nsDependentCSubstring &aToken,
-                                            const nsACString &aSourceString)
+  MatchAutoCompleteFunction::findBeginning(const nsDependentSubstring &aToken,
+                                           const nsAString &aSourceString)
   {
-    return findInString(aToken, aSourceString, eFindOnBoundary);
+    return !!StringBeginsWith(aSourceString, aToken,
+                              nsCaseInsensitiveStringComparator());
   }
 
   
   bool
-  MatchAutoCompleteFunction::findBeginning(const nsDependentCSubstring &aToken,
-                                           const nsACString &aSourceString)
+  MatchAutoCompleteFunction::findOnBoundary(const nsDependentSubstring &aToken,
+                                            const nsAString &aSourceString)
   {
-    NS_PRECONDITION(!aToken.IsEmpty(), "Don't search for an empty token!");
+    
+    if (aSourceString.IsEmpty())
+      return false;
 
     
-    
-    
-    
-    
+    const nsCaseInsensitiveStringComparator caseInsensitiveCompare;
 
-    const_char_iterator tokenStart(aToken.BeginReading()),
-                        tokenEnd(aToken.EndReading()),
-                        sourceStart(aSourceString.BeginReading()),
-                        sourceEnd(aSourceString.EndReading());
+    const_wchar_iterator tokenStart(aToken.BeginReading()),
+                         tokenEnd(aToken.EndReading()),
+                         sourceStart(aSourceString.BeginReading()),
+                         sourceEnd(aSourceString.EndReading());
 
-    PRBool dummy;
-    while (sourceStart < sourceEnd &&
-           CaseInsensitiveUTF8CharsEqual(sourceStart, tokenStart,
-                                         sourceEnd, tokenEnd,
-                                         &sourceStart, &tokenStart, &dummy)) {
+    
+    do {
+      
+      const_wchar_iterator testTokenItr(tokenStart),
+                           testSourceItr(sourceStart);
 
       
-      if (tokenStart >= tokenEnd) {
-        return true;
-      }
-    }
+      while (!caseInsensitiveCompare(*testTokenItr, *testSourceItr)) {
+        
+        testTokenItr++;
+        testSourceItr++;
 
-    
-    
-    
+        
+        if (testTokenItr == tokenEnd)
+          return true;
+
+        
+        
+        if (testSourceItr == sourceEnd)
+          return false;
+      }
+
+      
+      
+      if (!isWordBoundary(ToLowerCase(*sourceStart++)))
+        sourceStart = nextWordBoundary(sourceStart, sourceEnd);
+    } while (sourceStart != sourceEnd);
 
     return false;
+  }
+
+  
+  MatchAutoCompleteFunction::const_wchar_iterator
+  MatchAutoCompleteFunction::nextWordBoundary(const_wchar_iterator aStart,
+                                              const_wchar_iterator aEnd)
+  {
+    while (aStart != aEnd && !isWordBoundary(*aStart))
+      aStart++;
+    return aStart;
+  }
+
+  
+  bool
+  MatchAutoCompleteFunction::isWordBoundary(const PRUnichar &aChar)
+  {
+    
+    
+    
+    return !(PRUnichar('a') <= aChar && aChar <= PRUnichar('z'));
   }
 
   
@@ -339,15 +221,15 @@ namespace places {
     #define HAS_BEHAVIOR(aBitName) \
       (searchBehavior & mozIPlacesAutoComplete::BEHAVIOR_##aBitName)
 
-    nsCAutoString searchString;
-    (void)aArguments->GetUTF8String(kArgSearchString, searchString);
+    nsAutoString searchString;
+    (void)aArguments->GetString(kArgSearchString, searchString);
     nsCString url;
     (void)aArguments->GetUTF8String(kArgIndexURL, url);
 
     
     
     if (!HAS_BEHAVIOR(JAVASCRIPT) &&
-        !StringBeginsWith(searchString, NS_LITERAL_CSTRING("javascript:")) &&
+        !StringBeginsWith(searchString, NS_LITERAL_STRING("javascript:")) &&
         StringBeginsWith(url, NS_LITERAL_CSTRING("javascript:"))) {
       NS_IF_ADDREF(*_result = new IntegerVariant(0));
       NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
@@ -357,8 +239,8 @@ namespace places {
     PRInt32 visitCount = aArguments->AsInt32(kArgIndexVisitCount);
     bool typed = aArguments->AsInt32(kArgIndexTyped) ? true : false;
     bool bookmark = aArguments->AsInt32(kArgIndexBookmark) ? true : false;
-    nsCAutoString tags;
-    (void)aArguments->GetUTF8String(kArgIndexTags, tags);
+    nsAutoString tags;
+    (void)aArguments->GetString(kArgIndexTags, tags);
     PRInt32 openPageCount = aArguments->AsInt32(kArgIndexOpenPageCount);
 
     
@@ -377,21 +259,21 @@ namespace places {
     }
 
     
-    nsCString fixedURI;
+    nsString fixedURI;
     fixupURISpec(url, fixedURI);
 
     
     PRInt32 matchBehavior = aArguments->AsInt32(kArgIndexMatchBehavior);
     searchFunctionPtr searchFunction = getSearchFunction(matchBehavior);
 
-    nsCAutoString title;
-    (void)aArguments->GetUTF8String(kArgIndexTitle, title);
+    nsAutoString title;
+    (void)aArguments->GetString(kArgIndexTitle, title);
 
     
     
-    nsCWhitespaceTokenizer tokenizer(searchString);
+    nsWhitespaceTokenizer tokenizer(searchString);
     while (matches && tokenizer.hasMoreTokens()) {
-      const nsDependentCSubstring &token = tokenizer.nextToken();
+      const nsDependentSubstring &token = tokenizer.nextToken();
 
       bool matchTags = searchFunction(token, tags);
       bool matchTitle = searchFunction(token, title);
@@ -414,6 +296,179 @@ namespace places {
     NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
     return NS_OK;
     #undef HAS_BEHAVIOR
+  }
+
+
+
+
+
+  
+  
+
+  
+  nsresult
+  CalculateFrecencyFunction::create(mozIStorageConnection *aDBConn)
+  {
+    nsCOMPtr<CalculateFrecencyFunction> function =
+      new CalculateFrecencyFunction();
+    NS_ENSURE_TRUE(function, NS_ERROR_OUT_OF_MEMORY);
+
+    nsresult rv = aDBConn->CreateFunction(
+      NS_LITERAL_CSTRING("calculate_frecency"), 1, function
+    );
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  NS_IMPL_THREADSAFE_ISUPPORTS1(
+    CalculateFrecencyFunction,
+    mozIStorageFunction
+  )
+
+  
+  
+
+  NS_IMETHODIMP
+  CalculateFrecencyFunction::OnFunctionCall(mozIStorageValueArray *aArguments,
+                                            nsIVariant **_result)
+  {
+    
+    PRUint32 numEntries;
+    nsresult rv = aArguments->GetNumEntries(&numEntries);
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ASSERTION(numEntries > 0, "unexpected number of arguments");
+
+    PRInt64 pageId = aArguments->AsInt64(0);
+    PRInt32 typed = numEntries > 1 ? aArguments->AsInt32(1) : 0;
+    PRInt32 fullVisitCount = numEntries > 2 ? aArguments->AsInt32(2) : 0;
+    PRInt64 bookmarkId = numEntries > 3 ? aArguments->AsInt64(3) : 0;
+    PRInt32 visitCount = 0;
+    PRInt32 hidden = 0;
+    PRInt32 isQuery = 0;
+    float pointsForSampledVisits = 0.0;
+
+    
+    const nsNavHistory* history = nsNavHistory::GetConstHistoryService();
+    NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
+
+    if (pageId > 0) {
+      
+      
+      nsCOMPtr<mozIStorageStatement> getPageInfo =
+        history->GetStatementByStoragePool(DB_PAGE_INFO_FOR_FRECENCY);
+      NS_ENSURE_STATE(getPageInfo);
+      mozStorageStatementScoper infoScoper(getPageInfo);
+
+      rv = getPageInfo->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), pageId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = getPageInfo->BindUTF8StringByName(NS_LITERAL_CSTRING("anno_name"),
+                                             NS_LITERAL_CSTRING("livemark/feedURI"));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      PRBool hasResult;
+      rv = getPageInfo->ExecuteStep(&hasResult);
+      NS_ENSURE_SUCCESS(rv, rv);
+      NS_ENSURE_TRUE(hasResult, NS_ERROR_UNEXPECTED);
+      rv = getPageInfo->GetInt32(0, &typed);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = getPageInfo->GetInt32(1, &hidden);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = getPageInfo->GetInt32(2, &visitCount);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = getPageInfo->GetInt32(3, &fullVisitCount);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = getPageInfo->GetInt64(4, &bookmarkId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = getPageInfo->GetInt32(5, &isQuery);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      nsCOMPtr<mozIStorageStatement> getVisits =
+        history->GetStatementByStoragePool(DB_VISITS_FOR_FRECENCY);
+      NS_ENSURE_STATE(getVisits);
+      mozStorageStatementScoper visitsScoper(getVisits);
+
+      rv = getVisits->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), pageId);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      PRInt32 numSampledVisits = 0;
+      
+      while (NS_SUCCEEDED(getVisits->ExecuteStep(&hasResult)) && hasResult) {
+        numSampledVisits++;
+
+        PRInt32 visitType;
+        rv = getVisits->GetInt32(1, &visitType);
+        NS_ENSURE_SUCCESS(rv, rv);
+        PRInt32 bonus = history->GetFrecencyTransitionBonus(visitType, true);
+
+        
+        if (bookmarkId) {
+          bonus += history->GetFrecencyTransitionBonus(nsINavHistoryService::TRANSITION_BOOKMARK, true);
+        }
+
+        
+        if (bonus) {
+          PRInt32 ageInDays = getVisits->AsInt32(0);
+          PRInt32 weight = history->GetFrecencyAgedWeight(ageInDays);
+          pointsForSampledVisits += (float)(weight * (bonus / 100.0));
+        }
+      }
+
+      
+      if (numSampledVisits) {
+        
+        if (!pointsForSampledVisits) {
+          
+          
+          
+          NS_IF_ADDREF(*_result = new IntegerVariant(-visitCount));
+          NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
+        }
+        else {
+          
+          
+          
+          NS_IF_ADDREF(*_result = new IntegerVariant((PRInt32) NS_ceilf(fullVisitCount * NS_ceilf(pointsForSampledVisits) / numSampledVisits)));
+          NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
+        }
+
+        return NS_OK;
+      }
+    }
+
+    
+    
+
+    
+    
+    
+    
+    
+    PRInt32 bonus = 0;
+
+    
+    
+    if (bookmarkId && !isQuery) {
+      bonus += history->GetFrecencyTransitionBonus(nsINavHistoryService::TRANSITION_BOOKMARK, false);;
+      
+      
+      fullVisitCount = 1;
+    }
+
+    if (typed) {
+      bonus += history->GetFrecencyTransitionBonus(nsINavHistoryService::TRANSITION_TYPED, false);
+    }
+
+    
+    pointsForSampledVisits = history->GetFrecencyBucketWeight(1) * (bonus / (float)100.0); 
+
+    
+    
+    NS_IF_ADDREF(*_result = new IntegerVariant((PRInt32) NS_ceilf(fullVisitCount * NS_ceilf(pointsForSampledVisits))));
+    NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
+
+    return NS_OK;
   }
 
 } 
