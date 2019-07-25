@@ -221,13 +221,24 @@ public:
   static nsresult GetDomainFromScopeKey(const nsACString& aScope,
                                          nsACString& aDomain);
 
+  
+
+
+
+  void EnsureTempTableFlushTimer();
+
+  
+
+
+  void StopTempTableFlushTimer();
+
 protected:
   nsDOMStoragePersistentDB mChromePersistentDB;
   nsDOMStoragePersistentDB mPersistentDB;
   nsDOMStorageMemoryDB mSessionOnlyDB;
   nsDOMStorageMemoryDB mPrivateBrowsingDB;
 
-  nsCOMPtr<nsITimer> mFlushTimer;
+  nsCOMPtr<nsITimer> mTempTableFlushTimer;
 };
 
 #endif 

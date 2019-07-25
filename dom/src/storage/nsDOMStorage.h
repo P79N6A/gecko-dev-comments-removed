@@ -136,6 +136,11 @@ public:
   static nsDOMStorageManager* GetInstance();
   static void Shutdown();
 
+  
+
+
+  PRBool UnflushedDataExists();
+
   static nsDOMStorageManager* gStorageManager;
 
 protected:
