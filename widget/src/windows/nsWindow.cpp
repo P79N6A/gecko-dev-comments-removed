@@ -4759,7 +4759,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
 
 
-      if (mNonClientMargins.top == -1)
+      if (!mCustomNonClient || mNonClientMargins.top == -1)
         break;
 
       {
