@@ -5782,6 +5782,9 @@ nsDocShell::Embed(nsIContentViewer * aContentViewer,
         if (mLSHE->HasDetachedEditor()) {
             ReattachEditorToWindow(mLSHE);
         }
+        
+        SetDocCurrentStateObj(mLSHE);
+
         SetHistoryEntry(&mOSHE, mLSHE);
     }
 
@@ -6072,10 +6075,6 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     
     
     if (!mEODForCurrentDocument && mContentViewer) {
-        
-        
-        SetDocCurrentStateObj(mLSHE);
-
         mIsExecutingOnLoadHandler = PR_TRUE;
         mContentViewer->LoadComplete(aStatus);
         mIsExecutingOnLoadHandler = PR_FALSE;
@@ -8429,7 +8428,12 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobal);
             if (window) {
-                window->DispatchSyncPopState();
+                
+                
+                
+                if (sameDocIdent || doHashchange) {
+                  window->DispatchSyncPopState();
+                }
 
                 if (doHashchange)
                   window->DispatchAsyncHashchange();
@@ -9828,6 +9832,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     else {
         FireDummyOnLocationChange();
     }
+    document->SetCurrentStateObject(dataStr);
 
     return NS_OK;
 }
