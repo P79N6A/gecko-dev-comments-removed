@@ -3,13 +3,14 @@
 
 
 "use strict";
- 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
- 
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/ObjectWrapper.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "cpmm", function() {
   return Cc["@mozilla.org/childprocessmessagemanager;1"]
@@ -33,9 +34,10 @@ function ActivityProxy() {
 }
 
 ActivityProxy.prototype = {
-  startActivity: function actProxy_startActivity(aActivity, aOptions) {
+  startActivity: function actProxy_startActivity(aActivity, aOptions, aWindow) {
     debug("startActivity");
 
+    this.window = aWindow;
     this.activity = aActivity;
     this.id = Cc["@mozilla.org/uuid-generator;1"]
                 .getService(Ci.nsIUUIDGenerator)
@@ -56,7 +58,8 @@ ActivityProxy.prototype = {
     switch(aMessage.name) {
       case "Activity:FireSuccess":
         debug("FireSuccess");
-        Services.DOMRequest.fireSuccess(this.activity, msg.result);
+        Services.DOMRequest.fireSuccess(this.activity,
+                                        ObjectWrapper.wrap(msg.result, this.window));
         break;
       case "Activity:FireError":
         debug("FireError");
