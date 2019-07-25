@@ -195,6 +195,9 @@ LayerManagerD3D10::Initialize()
     return false;
   }
 
+  
+  dxgiFactory->MakeWindowAssociation(swapDesc.OutputWindow, DXGI_MWA_NO_WINDOW_CHANGES);
+
   return true;
 }
 
