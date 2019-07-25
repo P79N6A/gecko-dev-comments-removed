@@ -323,6 +323,17 @@ void GetCurrentScreenOrientation(dom::ScreenOrientation* aScreenOrientation);
 
 void NotifyScreenOrientationChange(const dom::ScreenOrientation& aScreenOrientation);
 
+
+
+
+
+bool LockScreenOrientation(const dom::ScreenOrientation& aOrientation);
+
+
+
+
+void UnlockScreenOrientation();
+
 } 
 } 
 
