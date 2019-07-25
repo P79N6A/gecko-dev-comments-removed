@@ -240,6 +240,8 @@ function createMochitestServer(serverBasePath)
   server.registerContentType("ogv", "video/ogg");
   server.registerContentType("oga", "audio/ogg");
   server.registerContentType("dat", "text/plain; charset=utf-8");
+  server.registerContentType("frag", "text/plain"); 
+  server.registerContentType("vert", "text/plain"); 
   server.setIndexHandler(defaultDirHandler);
 
   var serverRoot =
