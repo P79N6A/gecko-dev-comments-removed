@@ -1610,10 +1610,26 @@ var SelectionHandler = {
     }
   },
 
+  _ignoreCollapsedSelection: false,
+
   notifySelectionChanged: function sh_notifySelectionChanged(aDoc, aSel, aReason) {
-    
-    if (aSel == "" && aReason == Ci.nsISelectionListener.NO_REASON)
+    if (aSel.isCollapsed) {
+      
+      if (this._ignoreCollapsedSelection)
+        return;
+
+      
+      
+      if (aReason & Ci.nsISelectionListener.MOUSEDOWN_REASON) {
+        this._ignoreCollapsedSelection = true;
+        return;
+      }
+
+      
       this.endSelection();
+    }
+
+    this._ignoreCollapsedSelection = false;
   },
 
   
