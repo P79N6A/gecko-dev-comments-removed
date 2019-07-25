@@ -2518,8 +2518,16 @@ var ContentCrashObserver = {
 
 var MemoryObserver = {
   observe: function mo_observe(aSubject, aTopic, aData) {
+    function gc() {
+      window.QueryInterface(Ci.nsIInterfaceRequestor)
+            .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
+      Cu.forceGC();
+    };
+
     if (aData == "heap-minimize") {
       
+      
+      gc();
       return;
     }
 
@@ -2530,9 +2538,9 @@ var MemoryObserver = {
       tab.resurrect();
     }
 
-    window.QueryInterface(Ci.nsIInterfaceRequestor)
-          .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
-    Cu.forceGC();
+    
+    gc();
+
     
     
     let sTab = Browser.selectedTab;

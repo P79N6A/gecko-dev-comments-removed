@@ -384,6 +384,10 @@ pref("content.sink.perf_parse_time", 50000000);
 
 pref("javascript.options.mem.high_water_mark", 32);
 
+
+
+pref("javascript.options.gc_on_memory_pressure", false);
+
 pref("dom.max_chrome_script_run_time", 0); 
 pref("dom.max_script_run_time", 20);
 
