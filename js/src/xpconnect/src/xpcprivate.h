@@ -2805,7 +2805,8 @@ private:
 
 #ifdef XPC_CHECK_WRAPPER_THREADSAFETY
 public:
-    nsCOMPtr<nsIThread>          mThread; 
+    
+    PRThread*                    mThread; 
 #endif
 };
 
