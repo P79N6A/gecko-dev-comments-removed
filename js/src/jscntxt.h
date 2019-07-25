@@ -277,6 +277,17 @@ struct GlobalState {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 class StackSegment
 {
     
@@ -295,29 +306,28 @@ class StackSegment
     JSStackFrame        *suspendedFrame;
 
     
-
-
-
-
-
-
-
-
-    AlignedPtrAndFlag<JSFrameRegs> suspendedRegsAndSaved;
-
-    
-    Value               *initialArgEnd;
+    JSFrameRegs         *suspendedRegs;
 
     
     JSObject            *initialVarObj;
 
+    
+    bool                saved;
+
+    
+
+
+
+#define NON_NULL_SUSPENDED_FRAME ((JSStackFrame *)0x1)
+
   public:
     StackSegment()
       : cx(NULL), previousInContext(NULL), previousInMemory(NULL),
-        initialFrame(NULL), suspendedFrame(NULL),
-        suspendedRegsAndSaved(NULL, false), initialArgEnd(NULL),
-        initialVarObj(NULL)
-    {}
+        initialFrame(NULL), suspendedFrame(NON_NULL_SUSPENDED_FRAME),
+        suspendedRegs(NULL), initialVarObj(NULL), saved(false)
+    {
+        JS_ASSERT(!inContext());
+    }
 
     
 
@@ -342,26 +352,27 @@ class StackSegment
 
     bool inContext() const {
         JS_ASSERT(!!cx == !!initialFrame);
-        JS_ASSERT_IF(!initialFrame, !suspendedFrame && !suspendedRegsAndSaved.flag());
-        return !!cx;
+        JS_ASSERT_IF(!cx, suspendedFrame == NON_NULL_SUSPENDED_FRAME && !saved);
+        return cx;
     }
 
     bool isActive() const {
-        JS_ASSERT_IF(suspendedFrame, inContext());
-        return initialFrame && !suspendedFrame;
+        JS_ASSERT_IF(!suspendedFrame, cx && !saved);
+        JS_ASSERT_IF(!cx, suspendedFrame == NON_NULL_SUSPENDED_FRAME);
+        return !suspendedFrame;
     }
 
     bool isSuspended() const {
-        JS_ASSERT_IF(!suspendedFrame, !suspendedRegsAndSaved.flag());
-        JS_ASSERT_IF(suspendedFrame, inContext());
-        return !!suspendedFrame;
+        JS_ASSERT_IF(!cx || !suspendedFrame, !saved);
+        JS_ASSERT_IF(!cx, suspendedFrame == NON_NULL_SUSPENDED_FRAME);
+        return cx && suspendedFrame;
     }
 
     
 
     bool isSaved() const {
-        JS_ASSERT_IF(suspendedRegsAndSaved.flag(), isSuspended());
-        return suspendedRegsAndSaved.flag();
+        JS_ASSERT_IF(saved, isSuspended());
+        return saved;
     }
 
     
@@ -370,6 +381,7 @@ class StackSegment
         JS_ASSERT(!inContext());
         this->cx = cx;
         initialFrame = f;
+        suspendedFrame = NULL;
         JS_ASSERT(isActive());
     }
 
@@ -377,12 +389,15 @@ class StackSegment
         JS_ASSERT(isActive());
         this->cx = NULL;
         initialFrame = NULL;
+        suspendedFrame = NON_NULL_SUSPENDED_FRAME;
         JS_ASSERT(!inContext());
     }
 
     JSContext *maybeContext() const {
         return cx;
     }
+
+#undef NON_NULL_SUSPENDED_FRAME
 
     
 
@@ -391,7 +406,7 @@ class StackSegment
         JS_ASSERT(fp && contains(fp));
         suspendedFrame = fp;
         JS_ASSERT(isSuspended());
-        suspendedRegsAndSaved.setPtr(regs);
+        suspendedRegs = regs;
     }
 
     void resume() {
@@ -403,29 +418,17 @@ class StackSegment
     
 
     void save(JSStackFrame *fp, JSFrameRegs *regs) {
-        JS_ASSERT(!isSaved());
+        JS_ASSERT(!isSuspended());
         suspend(fp, regs);
-        suspendedRegsAndSaved.setFlag();
+        saved = true;
         JS_ASSERT(isSaved());
     }
 
     void restore() {
         JS_ASSERT(isSaved());
-        suspendedRegsAndSaved.unsetFlag();
+        saved = false;
         resume();
-        JS_ASSERT(!isSaved());
-    }
-
-    
-
-    void setInitialArgEnd(Value *v) {
-        JS_ASSERT(!inContext() && !initialArgEnd);
-        initialArgEnd = v;
-    }
-
-    Value *getInitialArgEnd() const {
-        JS_ASSERT(!inContext() && initialArgEnd);
-        return initialArgEnd;
+        JS_ASSERT(!isSuspended());
     }
 
     
@@ -436,6 +439,7 @@ class StackSegment
     }
 
     inline JSStackFrame *getCurrentFrame() const;
+    inline JSFrameRegs *getCurrentRegs() const;
 
     
 
@@ -446,7 +450,7 @@ class StackSegment
 
     JSFrameRegs *getSuspendedRegs() const {
         JS_ASSERT(isSuspended());
-        return suspendedRegsAndSaved.ptr();
+        return suspendedRegs;
     }
 
     
@@ -480,7 +484,6 @@ class StackSegment
 #ifdef DEBUG
     JS_REQUIRES_STACK bool contains(const JSStackFrame *fp) const;
 #endif
-
 };
 
 static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
@@ -494,16 +497,22 @@ JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
 class InvokeArgsGuard
 {
     friend class StackSpace;
-    JSContext        *cx;
-    StackSegment     *seg;  
+    JSContext        *cx;  
+    StackSegment     *seg;
     Value            *vp;
     uintN            argc;
+    Value            *prevInvokeArgEnd;
+#ifdef DEBUG
+    StackSegment     *prevInvokeSegment;
+    JSStackFrame     *prevInvokeFrame;
+#endif
   public:
-    inline InvokeArgsGuard() : cx(NULL), seg(NULL), vp(NULL) {}
-    inline InvokeArgsGuard(Value *vp, uintN argc) : cx(NULL), seg(NULL), vp(vp), argc(argc) {}
+    inline InvokeArgsGuard() : cx(NULL), seg(NULL) {}
+    inline InvokeArgsGuard(JSContext *cx, Value *vp, uintN argc);
     inline ~InvokeArgsGuard();
-    Value *getvp() const { return vp; }
-    uintN getArgc() const { JS_ASSERT(vp != NULL); return argc; }
+    bool pushed() const { return cx != NULL; }
+    Value *getvp() const { JS_ASSERT(pushed()); return vp; }
+    uintN getArgc() const { JS_ASSERT(pushed()); return argc; }
 };
 
 
@@ -511,12 +520,15 @@ class InvokeFrameGuard
 {
     friend class StackSpace;
     JSContext        *cx;  
-    StackSegment     *seg;
     JSStackFrame     *fp;
+    JSFrameRegs      regs;
+    JSFrameRegs      *prevRegs;
   public:
-    InvokeFrameGuard();
+    InvokeFrameGuard() : cx(NULL), fp(NULL) {}
     JS_REQUIRES_STACK ~InvokeFrameGuard();
-    JSStackFrame *getFrame() const { return fp; }
+    bool pushed() const { return cx != NULL; }
+    JSStackFrame *getFrame() { return fp; }
+    JSFrameRegs &getRegs() { return regs; }
 };
 
 
@@ -529,12 +541,12 @@ class ExecuteFrameGuard
     JSStackFrame     *fp;
     JSStackFrame     *down;
   public:
-    ExecuteFrameGuard();
+    ExecuteFrameGuard() : cx(NULL), vp(NULL), fp(NULL) {}
     JS_REQUIRES_STACK ~ExecuteFrameGuard();
+    bool pushed() const { return cx != NULL; }
     Value *getvp() const { return vp; }
     JSStackFrame *getFrame() const { return fp; }
 };
-
 
 
 
@@ -612,12 +624,30 @@ class StackSpace
 #endif
     Value *end;
     StackSegment *currentSegment;
+#ifdef DEBUG
+    
+
+
+
+
+    StackSegment *invokeSegment;
+    JSStackFrame *invokeFrame;
+#endif
+    Value        *invokeArgEnd;
+
+    JS_REQUIRES_STACK bool pushSegmentForInvoke(JSContext *cx, uintN argc,
+                                                InvokeArgsGuard &ag);
+    JS_REQUIRES_STACK bool pushInvokeFrameSlow(JSContext *cx, const InvokeArgsGuard &ag,
+                                               InvokeFrameGuard &fg);
+    JS_REQUIRES_STACK void popInvokeFrameSlow(const InvokeArgsGuard &ag);
+    JS_REQUIRES_STACK void popSegmentForInvoke(const InvokeArgsGuard &ag);
 
     
     friend class InvokeArgsGuard;
-    JS_REQUIRES_STACK inline void popInvokeArgs(JSContext *cx, Value *vp);
+    JS_REQUIRES_STACK inline void bumpInvokeArgEnd(InvokeArgsGuard &ag);
+    JS_REQUIRES_STACK inline void popInvokeArgs(const InvokeArgsGuard &ag);
     friend class InvokeFrameGuard;
-    JS_REQUIRES_STACK void popInvokeFrame(JSContext *cx, StackSegment *maybecs);
+    JS_REQUIRES_STACK void popInvokeFrame(const InvokeFrameGuard &ag);
     friend class ExecuteFrameGuard;
     JS_REQUIRES_STACK void popExecuteFrame(JSContext *cx);
 
@@ -625,7 +655,7 @@ class StackSpace
     JS_REQUIRES_STACK
     inline Value *firstUnused() const;
 
-    inline void assertIsCurrent(JSContext *cx) const;
+    inline bool isCurrentAndActive(JSContext *cx) const;
 #ifdef DEBUG
     StackSegment *getCurrentSegment() const { return currentSegment; }
 #endif
@@ -708,7 +738,7 @@ class StackSpace
 
     JS_REQUIRES_STACK
     void pushInvokeFrame(JSContext *cx, const InvokeArgsGuard &ag,
-                         InvokeFrameGuard &fg, JSFrameRegs &regs);
+                         InvokeFrameGuard &fg);
 
     
 
@@ -772,11 +802,15 @@ class FrameRegsIter
     Value             *cursp;
     jsbytecode        *curpc;
 
+    void initSlow();
+    void incSlow(JSStackFrame *up, JSStackFrame *down);
+    static inline Value *contiguousDownFrameSP(JSStackFrame *up);
+
   public:
-    JS_REQUIRES_STACK FrameRegsIter(JSContext *cx);
+    JS_REQUIRES_STACK inline FrameRegsIter(JSContext *cx);
 
     bool done() const { return curfp == NULL; }
-    FrameRegsIter &operator++();
+    inline FrameRegsIter &operator++();
 
     JSStackFrame *fp() const { return curfp; }
     Value *sp() const { return cursp; }
