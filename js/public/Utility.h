@@ -982,7 +982,7 @@ namespace JS {
 
 
 
-inline void PoisonPtr(uintptr_t *v)
+inline void PoisonPtr(void *v)
 {
 #if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG)
     uint8_t *ptr = (uint8_t *) v + 3;
