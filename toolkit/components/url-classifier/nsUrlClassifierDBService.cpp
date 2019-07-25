@@ -1101,6 +1101,12 @@ public:
   
   nsresult HandlePendingLookups();
 
+  
+  
+  
+  bool LockPrefixSet();
+  void UnlockPrefixSet();
+
 private:
   
   ~nsUrlClassifierDBServiceWorker();
@@ -1323,6 +1329,9 @@ private:
 
   
   nsRefPtr<nsUrlClassifierPrefixSet> mPrefixSet;
+  
+  bool mPrefixSetEnabled;
+  Mutex mPrefixSetEnabledLock;
 
   
   
@@ -1362,6 +1371,8 @@ nsUrlClassifierDBServiceWorker::nsUrlClassifierDBServiceWorker()
   , mUpdateStartTime(0)
   , mGethashNoise(0)
   , mPrefixSet(0)
+  , mPrefixSetEnabled(true)
+  , mPrefixSetEnabledLock("mPrefixSetEnabledLock")
   , mPendingLookupLock("nsUrlClassifierDBServerWorker.mPendingLookupLock")
 {
 }
@@ -1432,13 +1443,28 @@ nsUrlClassifierDBService::CheckClean(const nsACString &spec,
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_PS_LOOKUP_TIME> timer;
 
   
+  bool usePrefixSet = mWorker->LockPrefixSet();
+
+  
+  
+  if (!usePrefixSet) {
+    mWorker->UnlockPrefixSet();
+    *clean = false;
+    return NS_OK;
+  }
+
+  
   nsTArray<nsCString> fragments;
   nsresult rv = GetLookupFragments(spec, fragments);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    goto error_checkclean;
+  }
 
   PRUint32 prefixkey;
   rv = mPrefixSet->GetKey(&prefixkey);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    goto error_checkclean;
+  }
 
   *clean = true;
 
@@ -1459,12 +1485,16 @@ nsUrlClassifierDBService::CheckClean(const nsACString &spec,
     PRUint32 fragkey = fragmentKeyHash.ToUint32();
     PRUint32 codedkey;
     rv = KeyedHash(fragkey, hostprefix, prefixkey, &codedkey);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+      goto error_checkclean;
+    }
 
     bool found = false;
     bool ready = false;  
     rv = mPrefixSet->Probe(codedkey, prefixkey, &ready, &found);
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(rv)) {
+      goto error_checkclean;
+    }
     LOG(("CheckClean Probed %X ready: %d found: %d ",
          codedkey, ready, found));
     if (found || !ready) {
@@ -1472,7 +1502,12 @@ nsUrlClassifierDBService::CheckClean(const nsACString &spec,
     }
   }
 
+  mWorker->UnlockPrefixSet();
   return NS_OK;
+
+ error_checkclean:
+  mWorker->UnlockPrefixSet();
+  return rv;
 }
 
 static nsresult GetHostKeys(const nsACString &spec,
@@ -3635,6 +3670,17 @@ nsresult nsUrlClassifierStore::ReadPrefixes(FallibleTArray<PRUint32>& array,
   return NS_OK;
 }
 
+bool nsUrlClassifierDBServiceWorker::LockPrefixSet()
+{
+  mPrefixSetEnabledLock.Lock();
+  return mPrefixSetEnabled;
+}
+
+void nsUrlClassifierDBServiceWorker::UnlockPrefixSet()
+{
+  mPrefixSetEnabledLock.Unlock();
+}
+
 nsresult
 nsUrlClassifierDBServiceWorker::ConstructPrefixSet()
 {
@@ -3680,9 +3726,15 @@ nsUrlClassifierDBServiceWorker::ConstructPrefixSet()
   rv = mPrefixSet->StoreToFile(mPSFile);
   NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "failed to store the prefixset");
 
+  
+  mPrefixSetEnabled = true;
+
   return NS_OK;
 
  error_bailout:
+  
+  MutexAutoLock lock(mPrefixSetEnabledLock);
+  mPrefixSetEnabled = false;
   
   nsAutoTArray<PRUint32, 1> sentinel;
   sentinel.Clear();
