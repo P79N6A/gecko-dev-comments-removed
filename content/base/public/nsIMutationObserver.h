@@ -235,6 +235,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void ContentInserted(nsIDocument *aDocument,
                                nsIContent* aContainer,
                                nsIContent* aChild,
