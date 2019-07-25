@@ -60,6 +60,8 @@ toolbarbutton.urlbar-button {
   -moz-margin-start: 8px; 
 }
 
+%ifdef MOZ_PLATFORM_MAEMO
+
 #tool-app-switch {
   margin-top: -8px; 
   margin-bottom: -8px; 
@@ -80,6 +82,7 @@ toolbarbutton.urlbar-button {
 #toolbar-main[fullscreen="true"] #tool-app-switch:not(:-moz-system-metric(maemo-classic)) {
   visibility: visible;
 }
+
 
 #tool-app-close {
   margin-top: -8px; 
@@ -116,6 +119,7 @@ toolbarbutton.urlbar-button {
 #toolbar-main[dialog="true"] #tool-app-close:-moz-locale-dir(rtl) {
   list-style-image: url("chrome://browser/skin/images/task-back-rtl-40.png");
 }
+%endif
 
 
 toolbarbutton.urlbar-cap-button {
