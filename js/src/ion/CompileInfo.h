@@ -47,7 +47,7 @@ namespace ion {
 inline uintN
 CountArgSlots(JSFunction *fun)
 {
-    return fun ? fun->nargs + 2 : 0; 
+    return fun ? fun->nargs + 2 : 1; 
 }
 
 
@@ -114,7 +114,6 @@ class CompileInfo
     }
 
     uint32 scopeChainSlot() const {
-        JS_ASSERT(fun());
         return 0;
     }
     uint32 thisSlot() const {

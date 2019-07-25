@@ -287,8 +287,12 @@ class ContextStack
                           JSObject &scopeChain, ExecuteType type,
                           StackFrame *evalInFrame, ExecuteFrameGuard *efg);
 
+    
     StackFrame *pushBailoutFrame(JSContext *cx, JSFunction &fun, JSScript *script,
                                  BailoutFrameGuard *bfg);
+
+    
+    StackFrame *pushBailoutFrame(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv, BailoutFrameGuard *efg);
 
     
 

@@ -161,31 +161,31 @@ RestoreOneFrame(JSContext *cx, StackFrame *fp, IonBailoutIterator &iter)
 
     IonSpew(IonSpew_Bailouts, "expr stack slots %u, is function frame %u",
             exprStackSlots, fp->isFunctionFrame());
+
+    
+    
+    
+    
+    Value scopeChainv = iter.read();
+    if (scopeChainv.isObject())
+        fp->setScopeChainNoCallObj(scopeChainv.toObject());
+    else
+        JS_ASSERT(scopeChainv.isUndefined());
+
     if (fp->isFunctionFrame()) {
+        Value thisv = iter.read();
+        fp->formalArgs()[-1] = thisv;
+
         JS_ASSERT(iter.slots() >= CountArgSlots(fp->fun()));
         IonSpew(IonSpew_Bailouts, "frame slots %u, nargs %u, nfixed %u",
                 iter.slots(), fp->fun()->nargs, fp->script()->nfixed);
-
-        
-        
-        
-        
-        Value scopeChainv = iter.read();
-        if (scopeChainv.isObject())
-            fp->setScopeChainNoCallObj(scopeChainv.toObject());
-        else
-            JS_ASSERT(scopeChainv.isUndefined());
-
-        Value thisv = iter.read();
-        fp->formalArgs()[-1] = thisv;
 
         for (uint32 i = 0; i < fp->fun()->nargs; i++) {
             Value arg = iter.read();
             fp->formalArgs()[i] = arg;
         }
-
-        exprStackSlots -= CountArgSlots(fp->fun());
     }
+    exprStackSlots -= CountArgSlots(fp->maybeFun());
 
     for (uint32 i = 0; i < fp->script()->nfixed; i++) {
         Value slot = iter.read();
@@ -259,11 +259,20 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
         return BAILOUT_RETURN_FATAL_ERROR;
     activation->setBailout(br);
 
-    
-    
-    JS_ASSERT(in.callee());
+    StackFrame *fp;
+    if (in.callee()) {
+        
+        fp = cx->stack.pushBailoutFrame(cx, *in.callee(), in.script(), br->frameGuard());
+    } else {
+        
+        
+        
+        
+        JSObject *prevScopeChain = &cx->fp()->scopeChain();
+        Value thisv = cx->fp()->thisValue();
+        fp = cx->stack.pushBailoutFrame(cx, in.script(), *prevScopeChain, thisv, br->frameGuard());
+    }
 
-    StackFrame *fp = cx->stack.pushBailoutFrame(cx, *in.callee(), in.script(), br->frameGuard());
     if (!fp)
         return BAILOUT_RETURN_FATAL_ERROR;
 
