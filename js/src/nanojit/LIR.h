@@ -1963,6 +1963,12 @@ namespace nanojit
 
         Allocator& alloc;
 
+        
+        
+        
+        
+        bool suspended;
+
         CseAcc miniAccSetToCseAcc(MiniAccSet miniAccSet, LoadQual loadQual) {
             NanoAssert(miniAccSet.val < NUM_ACCS || miniAccSet.val == MINI_ACCSET_MULTIPLE.val);
             return (loadQual == LOAD_CONST) ? CSE_ACC_CONST :
@@ -2038,6 +2044,14 @@ namespace nanojit
         LIns* insCall(const CallInfo *call, LIns* args[]);
         LIns* insGuard(LOpcode op, LIns* cond, GuardRecord *gr);
         LIns* insGuardXov(LOpcode op, LIns* a, LIns* b, GuardRecord *gr);
+
+        
+        
+        
+        
+        
+        void suspend() { suspended = true; }
+        void resume() { suspended = false; }
     };
 
     class LirBuffer

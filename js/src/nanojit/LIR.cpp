@@ -1956,7 +1956,8 @@ namespace nanojit
           CSE_ACC_CONST(    EMB_NUM_USED_ACCS + 0),
           CSE_ACC_MULTIPLE( EMB_NUM_USED_ACCS + 1),
           storesSinceLastLoad(ACCSET_NONE),
-          alloc(alloc)
+          alloc(alloc),
+          suspended(false)
     {
 
         m_findNL[LInsImmI] = &CseFilter::findImmI;
@@ -2137,6 +2138,7 @@ namespace nanojit
 
     void CseFilter::addNL(NLKind nlkind, LIns* ins, uint32_t k)
     {
+        if (suspended) return;
         NanoAssert(!m_listNL[nlkind][k]);
         m_usedNL[nlkind]++;
         m_listNL[nlkind][k] = ins;
@@ -2147,6 +2149,7 @@ namespace nanojit
 
     void CseFilter::addL(LIns* ins, uint32_t k)
     {
+        if (suspended) return;
         CseAcc cseAcc = miniAccSetToCseAcc(ins->miniAccSet(), ins->loadQual());
         NanoAssert(!m_listL[cseAcc][k]);
         m_usedL[cseAcc]++;
@@ -2427,7 +2430,7 @@ namespace nanojit
 
     LIns* CseFilter::ins0(LOpcode op)
     {
-        if (op == LIR_label)
+        if (op == LIR_label && !suspended)
             clearAll();
         return out->ins0(op);
     }
@@ -2481,6 +2484,7 @@ namespace nanojit
         LIns* ins;
         if (isS16(disp)) {
             if (storesSinceLastLoad != ACCSET_NONE) {
+                
                 
                 
                 
