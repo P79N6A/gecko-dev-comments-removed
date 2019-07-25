@@ -443,7 +443,7 @@ protected:
 
 
   void UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
-                  PRBool aIsInsert);
+                  bool aIsInsert);
 
   
 
@@ -455,9 +455,7 @@ protected:
     eAlertAccessible = 2
   };
 
-  PRUint32 UpdateTreeInternal(nsIContent* aStartNode,
-                              nsIContent* aEndNode,
-                              PRBool aIsInsert);
+  PRUint32 UpdateTreeInternal(nsAccessible* aChild, bool aIsInsert);
 
   
 

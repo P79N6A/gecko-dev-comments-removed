@@ -1427,7 +1427,7 @@ nsDocAccessible::ContentRemoved(nsIContent* aContainerNode,
   nsAccessible* container = aContainerNode ?
     GetAccessibleOrContainer(aContainerNode) : this;
 
-  UpdateTree(container, aChildNode, PR_FALSE);
+  UpdateTree(container, aChildNode, false);
 }
 
 void
@@ -1444,9 +1444,9 @@ nsDocAccessible::RecreateAccessible(nsIContent* aContent)
     nsAccessible* container = GetAccessibleOrContainer(parentContent);
 
     
-    UpdateTree(container, aContent, PR_FALSE);
+    UpdateTree(container, aContent, false);
     container->UpdateChildren();
-    UpdateTree(container, aContent, PR_TRUE);
+    UpdateTree(container, aContent, true);
   }
 }
 
@@ -1797,16 +1797,28 @@ nsDocAccessible::ProcessContentInserted(nsAccessible* aContainer,
     nsAccessible* directContainer =
       GetContainerAccessible(aInsertedContent->ElementAt(idx));
     if (directContainer)
-      UpdateTree(directContainer, aInsertedContent->ElementAt(idx), PR_TRUE);
+      UpdateTree(directContainer, aInsertedContent->ElementAt(idx), true);
   }
 }
 
 void
 nsDocAccessible::UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
-                            PRBool aIsInsert)
+                            bool aIsInsert)
 {
-  PRUint32 updateFlags =
-    UpdateTreeInternal(aChildNode, aChildNode->GetNextSibling(), aIsInsert);
+  PRUint32 updateFlags = eNoAccessible;
+
+  
+  nsAccessible* child = GetAccessible(aChildNode);
+  if (child) {
+    updateFlags |= UpdateTreeInternal(child, aIsInsert);
+
+  } else {
+    nsAccTreeWalker walker(mWeakShell, aChildNode,
+                           aContainer->GetAllowsAnonChildAccessibles(), true);
+
+    while ((child = walker.NextChild()))
+      updateFlags |= UpdateTreeInternal(child, aIsInsert);
+  }
 
   
   if (updateFlags == eNoAccessible)
@@ -1849,97 +1861,77 @@ nsDocAccessible::UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
 }
 
 PRUint32
-nsDocAccessible::UpdateTreeInternal(nsIContent* aStartNode,
-                                    nsIContent* aEndNode,
-                                    PRBool aIsInsert)
+nsDocAccessible::UpdateTreeInternal(nsAccessible* aChild, bool aIsInsert)
 {
-  PRUint32 updateFlags = eNoAccessible;
-  for (nsIContent* node = aStartNode; node != aEndNode;
-       node = node->GetNextSibling()) {
+  PRUint32 updateFlags = eAccessible;
+
+  nsINode* node = aChild->GetNode();
+  if (aIsInsert) {
+    
+    CacheChildrenInSubtree(aChild);
+
+  } else {
+    
 
     
     
     
-    if (aIsInsert && !node->GetPrimaryFrame())
-      continue;
+    
+    
+    
+    
+    if (aChild->ARIARole() == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      nsRefPtr<AccEvent> event =
+        new AccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, aChild);
 
-    nsAccessible* accessible = GetAccessible(node);
+      if (event)
+        FireDelayedAccessibleEvent(event);
+    }
+  }
 
-    if (!accessible) {
-      updateFlags |= UpdateTreeInternal(node->GetFirstChild(), nsnull,
-                                        aIsInsert);
-      continue;
+  
+  nsRefPtr<AccEvent> event;
+  if (aIsInsert)
+    event = new AccShowEvent(aChild, node);
+  else
+    event = new AccHideEvent(aChild, node);
+
+  if (event)
+    FireDelayedAccessibleEvent(event);
+
+  if (aIsInsert) {
+    PRUint32 ariaRole = aChild->ARIARole();
+    if (ariaRole == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      
+      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
+                                 node, AccEvent::eRemoveDupes);
+
+    } else if (ariaRole == nsIAccessibleRole::ROLE_ALERT) {
+      
+      updateFlags = eAlertAccessible;
+      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
+                                 AccEvent::eRemoveDupes);
     }
 
-    updateFlags |= eAccessible;
-
-    if (aIsInsert) {
-      
-      CacheChildrenInSubtree(accessible);
-
-    } else {
-      
-
-      
-      
-      
-      
-      
-      
-      
-      if (accessible->ARIARole() == nsIAccessibleRole::ROLE_MENUPOPUP) {
-        nsRefPtr<AccEvent> event =
-          new AccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, accessible);
-
-        if (event)
-          FireDelayedAccessibleEvent(event);
-      }
-    }
-
     
-    nsRefPtr<AccEvent> event;
-    if (aIsInsert)
-      event = new AccShowEvent(accessible, node);
-    else
-      event = new AccHideEvent(accessible, node);
-
-    if (event)
-      FireDelayedAccessibleEvent(event);
-
-    if (aIsInsert) {
-      PRUint32 ariaRole = accessible->ARIARole();
-      if (ariaRole == nsIAccessibleRole::ROLE_MENUPOPUP) {
-        
-        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                                   node, AccEvent::eRemoveDupes);
-
-      } else if (ariaRole == nsIAccessibleRole::ROLE_ALERT) {
-        
-        updateFlags = eAlertAccessible;
-        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
-                                   AccEvent::eRemoveDupes);
-      }
-
-      
-      
-      
-      
-      if (node == gLastFocusedNode) {
-        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                                   node, AccEvent::eCoalesceFromSameDocument);
-      }
-    } else {
-      
-      
-      
-      
-      nsAccessible* parent = accessible->GetParent();
-      NS_ASSERTION(parent, "No accessible parent?!");
-      if (parent)
-        parent->RemoveChild(accessible);
-
-      UncacheChildrenInSubtree(accessible);
+    
+    
+    
+    if (node == gLastFocusedNode) {
+      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
+                                 node, AccEvent::eCoalesceFromSameDocument);
     }
+  } else {
+    
+    
+    
+    
+    nsAccessible* parent = aChild->GetParent();
+    NS_ASSERTION(parent, "No accessible parent?!");
+    if (parent)
+      parent->RemoveChild(aChild);
+
+    UncacheChildrenInSubtree(aChild);
   }
 
   return updateFlags;
