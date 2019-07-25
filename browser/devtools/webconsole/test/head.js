@@ -40,6 +40,8 @@ let tempScope = {};
 Cu.import("resource:///modules/HUDService.jsm", tempScope);
 let HUDService = tempScope.HUDService;
 let ConsoleUtils = tempScope.ConsoleUtils;
+Cu.import("resource:///modules/WebConsoleUtils.jsm", tempScope);
+let WebConsoleUtils = tempScope.WebConsoleUtils;
 
 function log(aMsg)
 {
@@ -153,8 +155,29 @@ function findLogEntry(aString)
   testLogEntry(outputNode, aString, "found " + aString);
 }
 
-function openConsole()
+
+
+
+
+
+
+
+function openConsole(aCallback)
 {
+  function onWebConsoleOpen(aSubject, aTopic)
+  {
+    if (aTopic == "web-console-created") {
+      Services.obs.removeObserver(onWebConsoleOpen, "web-console-created");
+      aSubject.QueryInterface(Ci.nsISupportsString);
+      let hud = HUDService.getHudReferenceById(aSubject.data);
+      executeSoon(aCallback.bind(null, hud));
+    }
+  }
+
+  if (aCallback) {
+    Services.obs.addObserver(onWebConsoleOpen, "web-console-created", false);
+  }
+
   HUDService.activateHUDForContext(tab);
 }
 
@@ -165,17 +188,31 @@ function closeConsole()
 
 function finishTest()
 {
-  finish();
+  browser = hudId = hud = filterBox = outputNode = cs = null;
+
+  function onWebConsoleClose(aSubject, aTopic)
+  {
+    if (aTopic == "web-console-destroyed") {
+      Services.obs.removeObserver(onWebConsoleClose, "web-console-destroyed");
+      executeSoon(finish);
+    }
+  }
+
+  Services.obs.addObserver(onWebConsoleClose, "web-console-destroyed", false);
+
+  let hud = HUDService.getHudByWindow(content);
+  if (!hud) {
+    finish();
+    return;
+  }
+  hud.jsterm.clearOutput(true);
+  HUDService.deactivateHUDForContext(hud.tab);
+  hud = null;
 }
 
 function tearDown()
 {
-  try {
-    HUDService.deactivateHUDForContext(gBrowser.selectedTab);
-  }
-  catch (ex) {
-    log(ex);
-  }
+  HUDService.deactivateHUDForContext(gBrowser.selectedTab);
   while (gBrowser.tabs.length > 1) {
     gBrowser.removeCurrentTab();
   }
@@ -186,3 +223,49 @@ registerCleanupFunction(tearDown);
 
 waitForExplicitFinish();
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForSuccess(aOptions)
+{
+  let start = Date.now();
+  let timeout = aOptions.timeout || 5000;
+
+  function wait(validatorFn, successFn, failureFn)
+  {
+    if ((Date.now() - start) > timeout) {
+      
+      ok(false, "Timed out while waiting for: " + aOptions.name);
+      failureFn(aOptions);
+      return;
+    }
+
+    if (validatorFn(aOptions)) {
+      ok(true, aOptions.name);
+      successFn();
+    }
+    else {
+      setTimeout(function() wait(validatorFn, successFn, failureFn), 100);
+    }
+  }
+
+  wait(aOptions.validatorFn, aOptions.successFn, aOptions.failureFn);
+}
