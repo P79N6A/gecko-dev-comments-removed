@@ -203,6 +203,16 @@ class JSString : public js::gc::Cell
 
 
 
+
+
+
+
+
+
+
+
+
+
     static const size_t ROPE_BIT          = JS_BIT(0);
 
     static const size_t LINEAR_MASK       = JS_BITMASK(1);
@@ -330,10 +340,10 @@ class JSString : public js::gc::Cell
         return *(JSExtensibleString *)this;
     }
 
-#ifdef DEBUG
+    
     bool isShort() const;
     bool isFixed() const;
-#endif
+    bool isInline() const;
 
     JS_ALWAYS_INLINE
     JSFixedString &asFixed() {
@@ -370,6 +380,10 @@ class JSString : public js::gc::Cell
     
 
     inline void finalize(JSContext *cx);
+
+    
+
+    JS_FRIEND_API(size_t) charsHeapSize();
 
     
 

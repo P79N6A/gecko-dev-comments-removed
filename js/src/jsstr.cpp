@@ -87,7 +87,6 @@
 using namespace js;
 using namespace js::gc;
 
-#ifdef DEBUG
 bool
 JSString::isShort() const
 {
@@ -101,7 +100,12 @@ JSString::isFixed() const
 {
     return isFlat() && !isExtensible();
 }
-#endif
+
+bool
+JSString::isInline() const
+{
+    return isFixed() && (d.u1.chars == d.inlineStorage || isShort());
+}
 
 bool
 JSString::isExternal() const
@@ -117,6 +121,43 @@ JSLinearString::mark(JSTracer *)
     JSLinearString *str = this;
     while (!str->isStaticAtom() && str->markIfUnmarked() && str->isDependent())
         str = str->asDependent().base();
+}
+
+size_t
+JSString::charsHeapSize()
+{
+    
+    if (isRope())
+        return 0;
+
+    JS_ASSERT(isLinear());
+
+    
+    if (isDependent())
+        return 0;
+
+    JS_ASSERT(isFlat());
+    
+    
+    if (isExtensible())
+        return asExtensible().capacity() * sizeof(jschar);
+
+    JS_ASSERT(isFixed());
+
+    
+    if (isExternal())
+        return 0;
+    
+    
+    if (isInline())
+        return 0;
+
+    
+    if (isStaticAtom())
+        return 0;
+
+    
+    return length() * sizeof(jschar);
 }
 
 static JS_ALWAYS_INLINE size_t
