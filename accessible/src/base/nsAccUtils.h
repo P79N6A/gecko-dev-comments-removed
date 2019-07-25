@@ -324,7 +324,7 @@ public:
 
 
 
-  static PRBool IsTextInterfaceSupportCorrect(nsIAccessible *aAccessible);
+  static PRBool IsTextInterfaceSupportCorrect(nsAccessible *aAccessible);
 #endif
 
   

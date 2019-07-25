@@ -1805,7 +1805,6 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
       nsCOMPtr<nsIArray> children;
       
       
-      
       accessible->GetChildren(getter_AddRefs(children));
       PRUint32 childCount =0;
       if (children)
