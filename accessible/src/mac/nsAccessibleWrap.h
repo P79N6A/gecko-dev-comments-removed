@@ -99,7 +99,7 @@ public:
 
 
 
-  void GetUnignoredChildren(nsTArray<nsRefPtr<nsAccessibleWrap> >& aChildrenArray);
+  void GetUnignoredChildren(nsTArray<nsAccessible*>* aChildrenArray);
   nsAccessible* GetUnignoredParent() const;
     
 protected:
