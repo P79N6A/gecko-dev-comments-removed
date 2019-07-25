@@ -233,6 +233,7 @@ ImageLayerD3D10::RenderLayer()
     } else {
       ImageContainerD3D10 *container =
         static_cast<ImageContainerD3D10*>(GetContainer());
+
       if (container->device() != device()) {
         container->SetDevice(device());
       }
@@ -240,6 +241,13 @@ ImageLayerD3D10::RenderLayer()
       
       CairoImageD3D10 *cairoImage =
         static_cast<CairoImageD3D10*>(image.get());
+      
+      if (cairoImage->mDevice != device()) {
+        
+        
+        return;
+      }
+
       srView = cairoImage->mSRView;
       hasAlpha = cairoImage->mHasAlpha;
       size = cairoImage->mSize;
@@ -276,6 +284,12 @@ ImageLayerD3D10::RenderLayer()
 
     if (!yuvImage->HasData()) {
       return;
+    }
+
+    if (yuvImage->mDevice != device()) {
+	
+	
+	return;
     }
 
     
