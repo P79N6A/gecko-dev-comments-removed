@@ -75,7 +75,7 @@
 #include "gfxContext.h"
 
 
-#include "nsILookAndFeel.h"
+#include "mozilla/LookAndFeel.h"
 
 
 #ifdef NS_PRINTING
@@ -87,11 +87,11 @@
 #include "nsISecureBrowserUI.h"
 #include "nsXULAppAPI.h"
 
+using namespace mozilla;
 using namespace mozilla::layers;
 
 static NS_DEFINE_IID(kWindowCID, NS_WINDOW_CID);
 static NS_DEFINE_CID(kChildCID, NS_CHILD_CID);
-static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 
 
 
@@ -1164,12 +1164,9 @@ NS_IMETHODIMP nsWebBrowser::Create()
     rv = SetDocShell(docShell);
     NS_ENSURE_SUCCESS(rv, rv);
 
-   
-   {
-      nsCOMPtr<nsILookAndFeel> laf = do_GetService(kLookAndFeelCID);
-        if (laf)
-      laf->GetColor(nsILookAndFeel::eColor_WindowBackground, mBackgroundColor);
-   }
+    
+    LookAndFeel::GetColor(LookAndFeel::eColorID_WindowBackground,
+                          &mBackgroundColor);
 
    
    if (mListenerArray) {
