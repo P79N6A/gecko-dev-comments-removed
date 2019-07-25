@@ -58,7 +58,7 @@
 #include "jsobjinlines.h"
 
 inline js::EmptyShape *
-js::types::TypeObject::getEmptyShape(JSContext *cx, js::Class *aclasp, gc::AllocKind kind)
+js::types::TypeObject::getEmptyShape(JSContext *cx, gc::AllocKind kind)
 {
     JS_ASSERT(!singleton);
 
@@ -73,36 +73,15 @@ js::types::TypeObject::getEmptyShape(JSContext *cx, js::Class *aclasp, gc::Alloc
         emptyShapes = cx->new_<ShapeKindArray>();
         if (!emptyShapes)
             return NULL;
-
-        
-
-
-
-        Shape *first = EmptyShape::create(cx, aclasp, proto->getParent(), 0);
-        if (!first) {
-            cx->delete_(emptyShapes);
-            emptyShapes = NULL;
-            return NULL;
-        }
-        emptyShapes->get(gc::FINALIZE_OBJECT0) = first;
     }
-
-    JS_ASSERT(aclasp == emptyShapes->get(gc::FINALIZE_OBJECT0)->getObjectClass());
 
     Shape *&empty = emptyShapes->get(kind);
     if (!empty) {
-        empty = EmptyShape::create(cx, aclasp, proto->getParent(),
-                                   gc::GetGCKindSlots(kind, aclasp));
+        empty = EmptyShape::create(cx, proto->getClass(), proto->getParent(),
+                                   gc::GetGCKindSlots(kind, proto->getClass()));
     }
 
     return static_cast<EmptyShape *>(empty);
-}
-
-inline bool
-js::types::TypeObject::canProvideEmptyShape(js::Class *aclasp)
-{
-    return proto && !singleton &&
-        (!emptyShapes || emptyShapes->get(gc::FINALIZE_OBJECT0)->getObjectClass() == aclasp);
 }
 
 inline bool
