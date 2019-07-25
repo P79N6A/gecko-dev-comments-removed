@@ -97,12 +97,16 @@ protected:
   nsIntMargin RTLAwareMargin(const nsIntMargin& aMargin, nsIFrame* aFrame);
 
   
+  double GetProgressValue(nsIFrame* aFrame);
+  double GetProgressMaxValue(nsIFrame* aFrame);
+
+  
   void DrawFrame(CGContextRef context, HIThemeFrameKind inKind,
                  const HIRect& inBoxRect, PRBool inReadOnly,
                  nsEventStates inState);
   void DrawProgress(CGContextRef context, const HIRect& inBoxRect,
                     PRBool inIsIndeterminate, PRBool inIsHorizontal,
-                    PRInt32 inValue, PRInt32 inMaxValue, nsIFrame* aFrame);
+                    double inValue, double inMaxValue, nsIFrame* aFrame);
   void DrawTab(CGContextRef context, HIRect inBoxRect, nsEventStates inState,
                nsIFrame* aFrame);
   void DrawTabPanel(CGContextRef context, const HIRect& inBoxRect, nsIFrame* aFrame);
