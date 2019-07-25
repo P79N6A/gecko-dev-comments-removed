@@ -102,6 +102,7 @@ public:
   nsresult IsRemoteDrawingCoreAnimation(bool* aDrawing);
   nsresult GetJSObject(JSContext *cx, JSObject** outObject);
   nsresult DefineJavaProperties();
+  bool ShouldCache();
   nsresult IsWindowless(bool* isWindowless);
   nsresult AsyncSetWindow(NPWindow* window);
   nsresult GetImage(ImageContainer* aContainer, Image** aImage);
@@ -187,6 +188,12 @@ public:
     return mRunning == RUNNING || mRunning == DESTROYING;
   }
 
+  
+  mozilla::TimeStamp StopTime();
+
+  
+  nsresult SetCached(bool aCache);
+
   already_AddRefed<nsPIDOMWindow> GetDOMWindow();
 
   nsresult PrivateModeStateChanged();
@@ -246,6 +253,7 @@ protected:
   bool mWindowless;
   bool mWindowlessLocal;
   bool mTransparent;
+  bool mCached;
   bool mUsesDOMForCursor;
 
 public:
@@ -273,6 +281,10 @@ private:
 
   
   void* mCurrentPluginEvent;
+
+  
+  
+  mozilla::TimeStamp mStopTime;
 
   nsCOMPtr<nsIURI> mURI;
 
