@@ -69,7 +69,7 @@ public:
 };
 
 
-class nsExceptionManager : public nsIExceptionManager
+class nsExceptionManager MOZ_FINAL : public nsIExceptionManager
 {
 public:
   NS_DECL_ISUPPORTS
