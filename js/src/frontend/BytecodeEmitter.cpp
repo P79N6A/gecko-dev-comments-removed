@@ -5461,6 +5461,11 @@ static bool
 SetMethodFunction(JSContext *cx, FunctionBox *funbox, JSAtom *atom)
 {
     
+
+
+
+
+
     JSFunction *fun = js_NewFunction(cx, NULL, NULL,
                                      funbox->function()->nargs,
                                      funbox->function()->flags,
@@ -5472,8 +5477,8 @@ SetMethodFunction(JSContext *cx, FunctionBox *funbox, JSAtom *atom)
 
     JSScript *script = funbox->function()->script();
     if (script) {
-        fun->setScript(funbox->function()->script());
-        if (!fun->script()->typeSetFunction(cx, fun))
+        fun->setScript(script);
+        if (!script->typeSetFunction(cx, fun))
             return false;
     }
 
