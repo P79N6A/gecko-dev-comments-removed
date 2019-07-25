@@ -2746,11 +2746,22 @@ CallMethodHelper::ConvertDependentParam(uint8 i)
     if (paramInfo.IsIndirect())
         dp->SetIndirect();
 
-    if (isArray && datum_type.IsPointer())
+    
+    if (isArray) {
+        
+        if (datum_type.IsPointer())
+            dp->SetValNeedsCleanup();
+
+    } else if (isSizedString) {
+        
         dp->SetValNeedsCleanup();
 
-    if (datum_type.IsInterfacePointer())
+    } else {
+        
+        NS_ABORT_IF_FALSE(type.TagPart() == nsXPTType::T_INTERFACE_IS,
+                          "Unknown dependent type.");
         dp->SetValNeedsCleanup();
+    }
 
     
     
@@ -2775,13 +2786,6 @@ CallMethodHelper::ConvertDependentParam(uint8 i)
         NS_ASSERTION(i < mArgc || paramInfo.IsOptional(),
                      "Expected either enough arguments or an optional argument");
         src = i < mArgc ? mArgv[i] : JSVAL_NULL;
-
-        if (datum_type.TagPart() == nsXPTType::T_IID ||
-            datum_type.TagPart() == nsXPTType::T_PSTRING_SIZE_IS ||
-            datum_type.TagPart() == nsXPTType::T_PWSTRING_SIZE_IS ||
-            (isArray && datum_type.TagPart() == nsXPTType::T_CHAR_STR)) {
-            dp->SetValNeedsCleanup();
-        }
     }
 
     nsID param_iid;
