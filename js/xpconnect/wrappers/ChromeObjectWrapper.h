@@ -26,6 +26,23 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase
   public:
     ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {};
 
+    
+    virtual bool getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
+                                       jsid id, bool set,
+                                       js::PropertyDescriptor *desc) MOZ_OVERRIDE;
+    virtual bool has(JSContext *cx, JSObject *wrapper, jsid id,
+                     bool *bp) MOZ_OVERRIDE;
+    virtual bool get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
+                     jsid id, js::Value *vp) MOZ_OVERRIDE;
+
+    
+    
+    
+    
+    
+    
+    
+
     static ChromeObjectWrapper singleton;
 };
 
