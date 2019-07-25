@@ -2201,8 +2201,13 @@ BuildTypeName(JSContext* cx, JSObject* typeObj)
         PrependString(result, "WINAPI ");
 
       
-      PrependString(result, "(");
-      AppendString(result, ")");
+      
+      
+      
+      if (prevGrouping == TYPE_pointer) {
+        PrependString(result, "(");
+        AppendString(result, ")");
+      }
 
       
       AppendString(result, "(");
