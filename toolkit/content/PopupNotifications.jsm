@@ -197,6 +197,14 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
+
+
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -316,6 +324,7 @@ PopupNotifications.prototype = {
 
     
     notifications.splice(index, 1);
+    this._fireCallback(notification, "removed");
   },
 
   
@@ -385,6 +394,9 @@ PopupNotifications.prototype = {
     this._currentAnchorElement = anchorElement;
 
     this.panel.openPopup(anchorElement, position);
+    notificationsToShow.forEach(function (n) {
+      this._fireCallback(n, "shown");
+    }, this);
   },
 
   
@@ -461,6 +473,11 @@ PopupNotifications.prototype = {
     this._update(anchor);
   },
 
+  _fireCallback: function PopupNotifications_fireCallback(n, event) {
+    if (n.options.eventCallback)
+      n.options.eventCallback.call(n, event);
+  },
+
   _onPopupHidden: function PopupNotifications_onPopupHidden(event) {
     if (event.target != this.panel || this._ignoreDismissal)
       return;
@@ -469,8 +486,7 @@ PopupNotifications.prototype = {
     Array.forEach(this.panel.childNodes, function (nEl) {
       let notificationObj = nEl.notification;
       notificationObj.dismissed = true;
-      if (notificationObj.options.dismissalCallback)
-        notificationObj.options.dismissalCallback.call();
+      this._fireCallback(notificationObj, "dismissed");
     }, this);
 
     this._update();

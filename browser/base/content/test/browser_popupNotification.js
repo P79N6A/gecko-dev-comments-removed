@@ -144,8 +144,18 @@ function basicNotification() {
     }
   ];
   this.options = {
-    dismissalCallback: function() {
-      self.dismissalCallbackTriggered = true;
+    eventCallback: function (eventName) {
+      switch (eventName) {
+        case "dismissed":
+          self.dismissalCallbackTriggered = true;
+          break;
+        case "shown":
+          self.shownCallbackTriggered = true;
+          break;
+        case "removed":
+          self.removedCallbackTriggered = true;
+          break;
+      }
     }
   };
   this.addOptions = function(options) {
@@ -194,8 +204,9 @@ var tests = [
       dismissNotification(popup);
     },
     onHidden: function (popup) {
-      ok(this.notifyObj.dismissalCallbackTriggered, "dismissal handler triggered");
+      ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback triggered");
       this.notification.remove();
+      ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
     }
   },
   
@@ -210,7 +221,7 @@ var tests = [
       is(PopupNotifications.isPanelOpen, false, "panel isn't open");
       ok(!wrongBrowserNotificationObject.mainActionClicked, "main action wasn't clicked");
       ok(!wrongBrowserNotificationObject.secondaryActionClicked, "secondary action wasn't clicked");
-      ok(!wrongBrowserNotificationObject.dismissalCallbackTriggered, "dismissal handler wasn't called");
+      ok(!wrongBrowserNotificationObject.dismissalCallbackTriggered, "dismissal callback wasn't called");
     }
   },
   
@@ -229,9 +240,10 @@ var tests = [
     },
     onHidden: function (popup) {
       
-      ok(!wrongBrowserNotificationObject.dismissalCallbackTriggered, "dismissal handler wasn't called");
+      ok(!wrongBrowserNotificationObject.dismissalCallbackTriggered, "dismissal callback wasn't called");
       wrongBrowserNotification.remove();
-      ok(!wrongBrowserNotificationObject.dismissalCallbackTriggered, "dismissal handler wasn't called after remove()");
+      ok(!wrongBrowserNotificationObject.dismissalCallbackTriggered, "dismissal callback wasn't called after remove()");
+      ok(wrongBrowserNotificationObject.removedCallbackTriggered, "removed callback triggered");
       wrongBrowserNotification = null;
     }
   },
@@ -284,11 +296,11 @@ var tests = [
     onHidden: function (popup) {
       ok(this.testNotif1.mainActionClicked, "main action #1 was clicked");
       ok(!this.testNotif1.secondaryActionClicked, "secondary action #1 wasn't clicked");
-      ok(!this.testNotif1.dismissalCallbackTriggered, "dismissal handler #1 wasn't called");
+      ok(!this.testNotif1.dismissalCallbackTriggered, "dismissal callback #1 wasn't called");
 
       ok(!this.testNotif2.mainActionClicked, "main action #2 wasn't clicked");
       ok(this.testNotif2.secondaryActionClicked, "secondary action #2 was clicked");
-      ok(!this.testNotif2.dismissalCallbackTriggered, "dismissal handler #2 wasn't called");
+      ok(!this.testNotif2.dismissalCallbackTriggered, "dismissal callback #2 wasn't called");
     }
   },
   
@@ -326,6 +338,7 @@ var tests = [
     onHidden: function (popup) {
       
       this.firstNotification.remove();
+      ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
     }
   },
   
@@ -340,7 +353,9 @@ var tests = [
       dismissNotification(popup);
     },
     onHidden: function (popup) {
+      ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback triggered");
       this.notification.remove();
+      ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
     }
   },
   
@@ -490,8 +505,10 @@ function showNotification(notifyObj) {
 
 function checkPopup(popup, notificationObj) {
   info("[Test #" + gTestIndex + "] checking popup");
-  let notifications = popup.childNodes;
 
+  ok(notificationObj.shownCallbackTriggered, "shown callback was triggered");
+
+  let notifications = popup.childNodes;
   is(notifications.length, 1, "only one notification displayed");
   let notification = notifications[0];
   let icon = document.getAnonymousElementByAttribute(notification, "class", "popup-notification-icon");
