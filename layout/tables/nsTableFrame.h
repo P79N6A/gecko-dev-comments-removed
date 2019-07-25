@@ -534,6 +534,10 @@ protected:
       mTableLayoutStrategy;
   }
 
+  
+  void HomogenousInsertFrames(ChildListID     aListID,
+                              nsIFrame*       aPrevFrame,
+                              nsFrameList&    aFrameList);
 private:
   
 
