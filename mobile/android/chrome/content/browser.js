@@ -1501,24 +1501,47 @@ var SelectionHandler = {
     }
 
     
-
-    
     let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 
-    if (aIsStartHandle) {
-      
-      let start = this._start.getBoundingClientRect();
-      cwu.sendMouseEventToWindow("mousedown", start.right - this.HANDLE_PADDING, start.top - this.HANDLE_VERTICAL_MARGIN, 0, 0, 0, true);
-      cwu.sendMouseEventToWindow("mouseup", start.right - this.HANDLE_PADDING, start.top - this.HANDLE_VERTICAL_MARGIN, 0, 0, 0, true);
-    }
+    
+    if (aIsStartHandle)
+      this._sendStartMouseEvents(cwu);
 
     
+    this._sendEndMouseEvents(cwu);
+
+    
+    let selectionReversed = this.updateCacheForSelection(aIsStartHandle);
+
+    
+    if (selectionReversed) {
+      let oldStart = this._start;
+      let oldEnd = this._end;
+
+      oldStart.setAttribute("anonid", "selection-handle-end");
+      oldEnd.setAttribute("anonid", "selection-handle-start");
+
+      this._start = oldEnd;
+      this._end = oldStart;
+
+      
+      this._sendStartMouseEvents(cwu);
+      this._sendEndMouseEvents(cwu);
+    }
+  },
+
+  
+  _sendStartMouseEvents: function sh_sendStartMouseEvents(cwu) {
+    let start = this._start.getBoundingClientRect();
+    cwu.sendMouseEventToWindow("mousedown", start.right - this.HANDLE_PADDING, start.top - this.HANDLE_VERTICAL_MARGIN, 0, 0, 0, true);
+    cwu.sendMouseEventToWindow("mouseup", start.right - this.HANDLE_PADDING, start.top - this.HANDLE_VERTICAL_MARGIN, 0, 0, 0, true);
+  },
+
+  
+  _sendEndMouseEvents: function sh_sendEndMouseEvents(cwu) {
     let end = this._end.getBoundingClientRect();
     cwu.sendMouseEventToWindow("mousedown", end.left + this.HANDLE_PADDING, end.top - this.HANDLE_VERTICAL_MARGIN, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
     cwu.sendMouseEventToWindow("mouseup", end.left + this.HANDLE_PADDING, end.top - this.HANDLE_VERTICAL_MARGIN, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-
-    
-    this.updateCacheForSelection();
   },
 
   
@@ -1554,14 +1577,27 @@ var SelectionHandler = {
     this.cache = null;
   },
 
-  updateCacheForSelection: function sh_updateCacheForSelection() {
+  
+  
+  updateCacheForSelection: function sh_updateCacheForSelection(aIsStartHandle) {
     let range = this._view.getSelection().getRangeAt(0);
+    this.cache.rect = range.getBoundingClientRect();
 
     let rects = range.getClientRects();
-    this.cache.start = { x: rects[0].left, y: rects[0].bottom };
-    this.cache.end = { x: rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
+    let start = { x: rects[0].left, y: rects[0].bottom };
+    let end = { x: rects[rects.length - 1].right, y: rects[rects.length - 1].bottom };
 
-    this.cache.rect = range.getBoundingClientRect();
+    let selectionReversed = false;
+    if (this.cache.start) {
+      
+      selectionReversed = (aIsStartHandle && (end.y > this.cache.end.y || (end.y == this.cache.end.y && end.x > this.cache.end.x))) ||
+                          (!aIsStartHandle && (start.y < this.cache.start.y || (start.y == this.cache.start.y && start.x < this.cache.start.x)));
+    }
+
+    this.cache.start = start;
+    this.cache.end = end;
+
+    return selectionReversed;
   },
 
   updateCacheOffset: function sh_updateCacheOffset() {
