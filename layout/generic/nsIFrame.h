@@ -286,6 +286,9 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_SVG_LAYOUT                         NS_FRAME_STATE_BIT(43)
 
 
+#define NS_FRAME_MAY_HAVE_GENERATED_CONTENT         NS_FRAME_STATE_BIT(44)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 

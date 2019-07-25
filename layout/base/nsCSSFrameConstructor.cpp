@@ -9558,6 +9558,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     nsStyleContext* styleContext;
 
     if (aCanHaveGeneratedContent) {
+      aFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
       styleContext =
         nsFrame::CorrectStyleParentFrame(aFrame, nsnull)->GetStyleContext();
       
@@ -10727,6 +10728,9 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   
   InitAndRestoreFrame(aState, content, aParentFrame, nsnull, newFrame);
 
+  
+  newFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
+
   nsFrameConstructorSaveState absoluteSaveState;  
                                                   
                                                   
@@ -10843,6 +10847,8 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
 
     InitAndRestoreFrame(aState, content, parentFrame, nsnull, inlineFrame,
                         false);
+
+    inlineFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
 
     if (aIsPositioned) {
       inlineFrame->MarkAsAbsoluteContainingBlock();
