@@ -529,6 +529,13 @@ WeaveSvc.prototype = {
     if (!this.enabled || !this._loggedIn)
       return;
 
+    
+    
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                                        getService(Ci.nsIPrefBranch);
+    if(prefBranch.getBoolPref("browser.sessionstore.resume_session_once"))
+      return;
+
     this.isQuitting = true;
 
     let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
