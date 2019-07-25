@@ -320,6 +320,11 @@
                     Types.DWORD.out_ptr,
                     Types.void_t.inout_ptr 
          );
+
+        WinFile.FlushFileBuffers =
+          declareFFI("FlushFileBuffers", ctypes.winapi_abi,
+                      Types.zero_or_nothing,
+                        Types.HANDLE);
      };
      exports.OS.Win.File._init = init;
    })(this);

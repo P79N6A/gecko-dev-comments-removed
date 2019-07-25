@@ -159,6 +159,16 @@
          return new File.Info(gStatData);
      };
 
+     
+
+
+
+
+
+     File.prototype.flush = function flush() {
+       throw_on_negative("flush", UnixFile.fsync(this.fd));
+     };
+
 
      
      const noOptions = {};
