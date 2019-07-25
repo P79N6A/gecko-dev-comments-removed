@@ -63,7 +63,6 @@ namespace gc {
 
 enum ConservativeGCTest {
     CGCT_VALID,
-    CGCT_VALIDWITHOFFSET, 
     CGCT_LOWBITSET, 
     CGCT_NOTARENA,  
     CGCT_NOTCHUNK,  
@@ -76,6 +75,8 @@ enum ConservativeGCTest {
 struct ConservativeGCStats {
     uint32  counter[gc::CGCT_END];  
 
+    uint32  unaligned;              
+ 
 
     void add(const ConservativeGCStats &another) {
         for (size_t i = 0; i != JS_ARRAY_LENGTH(counter); ++i)
@@ -128,10 +129,6 @@ extern void
 UpdateCompartmentStats(JSCompartment *comp, unsigned thingKind, uint32 nlivearenas,
                        uint32 nkilledArenas, uint32 nthings);
 #endif 
-
-#if defined JS_DUMP_CONSERVATIVE_GC_ROOTS
-void *GetAlignedThing(void *thing, int thingKind);
-#endif
 
 } 
 

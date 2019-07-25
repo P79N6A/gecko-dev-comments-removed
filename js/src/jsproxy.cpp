@@ -1406,7 +1406,7 @@ FixProxy(JSContext *cx, JSObject *proxy, JSBool *bp)
 
 
 
-    gc::FinalizeKind kind = gc::FinalizeKind(proxy->arena()->header()->thingKind);
+    gc::FinalizeKind kind = gc::FinalizeKind(proxy->arenaHeader()->getThingKind());
     JSObject *newborn = NewNonFunction<WithProto::Given>(cx, clasp, proto, parent, kind);
     if (!newborn)
         return false;

@@ -114,7 +114,7 @@ GetGCThingTraceKind(const void *thing)
     if (JSAtom::isStatic(thing))
         return JSTRACE_STRING;
     const Cell *cell = reinterpret_cast<const Cell *>(thing);
-    return GetFinalizableTraceKind(cell->arena()->header()->thingKind);
+    return GetFinalizableTraceKind(cell->arenaHeader()->getThingKind());
 }
 
 
