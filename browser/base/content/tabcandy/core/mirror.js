@@ -392,21 +392,21 @@ TabMirror.prototype = {
   
   
   createTabItem: function(mirror) {
-  	try {
-			var $div = iQ(mirror.el);
-			var tab = mirror.tab;
-			var item = new window.TabItem(mirror.el, tab);
-	
-			item.addOnClose(window.TabItems, function() {
-				Items.unsquish(null, item);
-			});
-	
-			if (!window.TabItems.reconnect(item))
-				Groups.newTab(item);
-		} catch(e) {
-			Utils.error(e);
-		}
-	},
+    try {
+      var $div = iQ(mirror.el);
+      var tab = mirror.tab;
+      var item = new window.TabItem(mirror.el, tab);
+
+      item.addOnClose(window.TabItems, function() {
+        Items.unsquish(null, item);
+      });
+
+      if (!window.TabItems.reconnect(item))
+        Groups.newTab(item);
+    } catch(e) {
+      Utils.error(e);
+    }
+  },
 
   
   
