@@ -106,17 +106,11 @@ static bool
 XPCOMObjectToJsval(JSContext *cx, JSObject *scope, xpcObjectHelper &helper,
                    bool allowNativeWrapper, jsval *rval)
 {
-    
-    
-    
-    
-    
-
     XPCLazyCallContext lccx(JS_CALLER, cx, scope);
 
     nsresult rv;
     if (!XPCConvert::NativeInterface2JSObject(lccx, rval, NULL, helper, NULL, NULL,
-                                              allowNativeWrapper, OBJ_IS_NOT_GLOBAL, &rv)) {
+                                              allowNativeWrapper, &rv)) {
         
         
         

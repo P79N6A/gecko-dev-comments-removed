@@ -1111,16 +1111,10 @@ xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx, qsObjectHelper &aHelper,
 
     JSContext *cx = lccx.GetJSContext();
 
-    
-    
-    
-    
-    
-
     nsresult rv;
     if (!XPCConvert::NativeInterface2JSObject(lccx, rval, nsnull,
                                               aHelper, iid, iface,
-                                              true, OBJ_IS_NOT_GLOBAL, &rv)) {
+                                              true, &rv)) {
         
         
         
