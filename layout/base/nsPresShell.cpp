@@ -1196,6 +1196,13 @@ PresShell::CreatePreferenceStyleSheet()
   mPrefStyleSheet->SetComplete();
   PRUint32 index;
   rv =
+    mPrefStyleSheet->InsertRuleInternal(NS_LITERAL_STRING("@namespace svg url(http://www.w3.org/2000/svg);"),
+                                        0, &index);
+  if (NS_FAILED(rv)) {
+    mPrefStyleSheet = nullptr;
+    return rv;
+  }
+  rv =
     mPrefStyleSheet->InsertRuleInternal(NS_LITERAL_STRING("@namespace url(http://www.w3.org/1999/xhtml);"),
                                         0, &index);
   if (NS_FAILED(rv)) {
@@ -1210,7 +1217,7 @@ PresShell::CreatePreferenceStyleSheet()
 
 
 
-static PRUint32 sInsertPrefSheetRulesAt = 1;
+static PRUint32 sInsertPrefSheetRulesAt = 2;
 
 nsresult
 PresShell::SetPrefNoScriptRule()
@@ -1345,7 +1352,7 @@ nsresult PresShell::SetPrefLinkRules(void)
     
     
     rv = mPrefStyleSheet->
-      InsertRuleInternal(NS_LITERAL_STRING("*|*:-moz-any-link{text-decoration:underline}"),
+      InsertRuleInternal(NS_LITERAL_STRING("*|*:-moz-any-link:not(svg|a){text-decoration:underline}"),
                          sInsertPrefSheetRulesAt, &index);
   } else {
     rv = mPrefStyleSheet->
