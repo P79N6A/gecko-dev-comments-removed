@@ -40,6 +40,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -60,13 +61,71 @@ __defineGetter__("gPrefService", function () {
 });
 
 function getBrowser() {
-  return Browser.content.browser;
+  return Browser.currentBrowser;
 }
+
+var ws = null;
+var ih = null;
 
 var Browser = {
   _content : null,
+  _tabs : [],
+  _currentTab : null,
 
-  startup : function() {
+  startup: function() {
+    var self = this;
+
+    
+    this._content = new CanvasBrowser(document.getElementById("canvas"));
+
+    
+    ws = new WidgetStack(document.getElementById("browser-container"));
+    ws.setViewportBounds({ top: 0, left: 0, right: 800, bottom: 480 });
+
+    
+    window.gSidebarVisible = false;
+    function panHandler(vr) {
+      var visibleNow = ws.isWidgetVisible("browser-controls") || ws.isWidgetVisible("tabs-container");
+
+      
+      
+
+      if (visibleNow && !gSidebarVisible) {
+        ws.freeze("toolbar-main");
+        ws.moveFrozenTo("toolbar-main", 0, 0);
+      }
+      else if (!visibleNow && gSidebarVisible) {
+        ws.unfreeze("toolbar-main");
+      }
+      gSidebarVisible = visibleNow;
+
+      
+      
+
+
+
+
+      
+      
+      window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).processUpdates();
+    }
+
+    ws.setPanHandler(panHandler);
+
+    function resizeHandler() { ws.updateSize(); }
+    window.addEventListener("resize", resizeHandler, false);
+
+    setTimeout(resizeHandler, 0);
+
+    function viewportHandler(b, ob) { self._content.viewportHandler(b, ob); }
+    ws.setViewportHandler(viewportHandler);
+
+    
+    ih = new InputHandler();
+
+    
+    this.newTab(true);
+
     window.controllers.appendController(this);
     window.controllers.appendController(BrowserUI);
 
@@ -86,41 +145,46 @@ var Browser = {
     var styleURI = ios.newURI("chrome://browser/content/scrollbars.css", null, null);
     styleSheets.loadAndRegisterSheet(styleURI, styleSheets.AGENT_SHEET);
 
-    this._content = document.getElementById("content");
-    this._content.progressListenerCreator = function (content, browser) {
-      return new ProgressController(content, browser);
-    };
-
     var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
     os.addObserver(gXPInstallObserver, "xpinstall-install-blocked", false);
     os.addObserver(gXPInstallObserver, "xpinstall-download-started", false);
+
+    
+    
 
     BrowserUI.init();
 
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = new nsBrowserAccess();
 
-    this._content.addEventListener("command", this._handleContentCommand, false);
-    this._content.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
-    this._content.tabList = document.getElementById("tab-list");
-    this._content.newTab(true);
+    let browsers = document.getElementById("browsers");
+    browsers.addEventListener("command", this._handleContentCommand, false);
+    browsers.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
 
-    var deckbrowser = this.content;
-    function panCallback(aElement) {
-      
-      
-      deckbrowser.browser.contentWindow.scrollTo(0, 0);
+    
+    
 
-      if (!aElement)
-        return;
 
-      deckbrowser.ensureElementIsVisible(aElement);
-    }
-    SpatialNavigation.init(this.content, panCallback);
 
+
+
+
+
+
+
+
+
+
+
+
+    
     this.setupGeolocationPrompt();
 
+
+    
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
 
+
+    
     
     
     if (window.arguments && window.arguments[0]) {
@@ -171,13 +235,26 @@ var Browser = {
     gPrefService.setBoolPref("temporary.disablePlugins", false);
   },
 
+  updateViewportSize: function() {
+    
+    var [w,h] = this._content._contentAreaDimensions;
+    w = Math.ceil(this._content._pageToScreen(w));
+    h = Math.ceil(this._content._pageToScreen(h));
+
+    if (!this._currentViewportBounds || w != this._currentViewportBounds.width || h != this._currentViewportBounds.height) {
+      this._currentViewportBounds = {width: w, height: h};
+      let bounds = { top: 0, left: 0, right: Math.max(800, w), bottom: Math.max(480, h) }
+      
+      ws.setViewportBounds(bounds);
+    }
+  },
+
   setPluginState: function(enabled)
   {
-    var phs = Components.classes["@mozilla.org/plugin/host;1"]
-                        .getService(Components.interfaces.nsIPluginHost);
+    var phs = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
     var plugins = phs.getPluginTags({ });
-     for (var i = 0; i < plugins.length; ++i)
-       plugins[i].disabled = !enabled;
+    for (var i = 0; i < plugins.length; ++i)
+      plugins[i].disabled = !enabled;
   },
 
   setupGeolocationPrompt: function() {
@@ -234,14 +311,94 @@ var Browser = {
 
 
   get currentBrowser() {
-    return this._content.browser;
+    return this._currentTab.browser;
   },
 
-  supportsCommand : function(cmd) {
+  get currentTab() {
+    return this._currentTab;
+  },
+
+  getTabAtIndex: function(index) {
+    if (index > this._tabs.length || index < 0)
+      return null;
+    return this._tabs[index];
+  },
+
+  getTabFromContent: function(content) {
+    for (var t = 0; t < this._tabs.length; t++) {
+      if (this._tabs[t].content == content)
+        return this._tabs[t];
+    }
+    return null;
+  },
+
+  newTab: function(bringFront) {
+    let newTab = new Tab();
+    newTab.create();
+    this._tabs.push(newTab);
+
+    let event = document.createEvent("Events");
+    event.initEvent("TabOpen", true, false);
+    newTab.content.dispatchEvent(event);
+
+    if (bringFront)
+      this.selectTab(newTab);
+
+    return newTab;
+  },
+
+  closeTab: function(tab) {
+    if (tab instanceof XULElement)
+      tab = this.getTabFromContent(tab);
+
+    if (!tab)
+      return;
+
+    let tabIndex = this._tabs.indexOf(tab);
+
+    let nextTab = this._currentTab;
+    if (this._currentTab == tab) {
+      nextTab = this.getTabAtIndex(tabIndex + 1) || this.getTabAtIndex(tabIndex - 1);
+      if (!nextTab)
+        return;
+    }
+
+    let event = document.createEvent("Events");
+    event.initEvent("TabClose", true, false);
+    tab.content.dispatchEvent(event);
+
+    tab.destroy();
+    this._tabs.splice(tabIndex, 1);
+
+    
+    for (let t = tabIndex; t < this._tabs.length; t++)
+      this._tabs[t].updateThumbnail();
+
+    this.selectTab(nextTab);
+  },
+
+  selectTab: function(tab) {
+    if (tab instanceof XULElement)
+      tab = this.getTabFromContent(tab);
+
+    if (!tab || this._currentTab == tab)
+      return;
+
+    this._currentTab = tab;
+    this._content.setCurrentBrowser(this.currentBrowser);
+    document.getElementById("tabs").selectedItem = tab.content;
+
+    ws.panTo(0,0, true);
+
+    let event = document.createEvent("Events");
+    event.initEvent("TabSelect", true, false);
+    tab.content.dispatchEvent(event);
+  },
+
+  supportsCommand: function(cmd) {
     var isSupported = false;
     switch (cmd) {
       case "cmd_fullscreen":
-      case "cmd_downloads":
         isSupported = true;
         break;
       default:
@@ -251,12 +408,12 @@ var Browser = {
     return isSupported;
   },
 
-  isCommandEnabled : function(cmd) {
+  isCommandEnabled: function(cmd) {
     return true;
   },
 
-  doCommand : function(cmd) {
-    var browser = this.content.browser;
+  doCommand: function(cmd) {
+    var browser = this.currentBrowser;
 
     switch (cmd) {
       case "cmd_fullscreen":
@@ -265,7 +422,7 @@ var Browser = {
     }
   },
 
-  getNotificationBox : function() {
+  getNotificationBox: function() {
     return document.getElementById("notifications");
   },
 
@@ -276,7 +433,7 @@ var Browser = {
     var findbar = document.getElementById("findbar");
     var browser = findbar.browser;
     if (!browser) {
-      browser = this.content.browser;
+      browser = this.currentBrowser;
       findbar.browser = browser;
     }
 
@@ -378,174 +535,26 @@ var Browser = {
   }
 };
 
-function ProgressController(aTabBrowser, aBrowser) {
-  this._tabbrowser = aTabBrowser;
-  this.init(aBrowser);
-}
-
-ProgressController.prototype = {
-  _browser : null,
-
-  init : function(aBrowser) {
-    this._browser = aBrowser;
-  },
-
-  onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    
-    
-    if (aWebProgress.DOMWindow != this._browser.contentWindow) {
-      return;
-    }
-
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
-        BrowserUI.update(TOOLBARSTATE_LOADING, this._browser);
-      else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
-        BrowserUI.update(TOOLBARSTATE_LOADED, this._browser);
-    }
-
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
-      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
-        aWebProgress.DOMWindow.focus();
-
-        
-        this._tabbrowser.updateCanvasState();
-
-        
-        this._tabbrowser.updateBrowser(this._browser, true);
-
-        
-        Browser.translatePhoneNumbers();
-
-        
-      }
-    }
-  },
-
-  
-  
-  onProgressChange : function(aWebProgress, aRequest, aCurSelf, aMaxSelf, aCurTotal, aMaxTotal) {
-  },
-
-  
-  onLocationChange : function(aWebProgress, aRequest, aLocationURI) {
-
-    var location = aLocationURI ? aLocationURI.spec : "";
-    this._hostChanged = true;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    cBrowser = Browser.currentBrowser;
-    if (cBrowser.lastURI) {
-      var oldSpec = cBrowser.lastURI.spec;
-      var oldIndexOfHash = oldSpec.indexOf("#");
-      if (oldIndexOfHash != -1)
-        oldSpec = oldSpec.substr(0, oldIndexOfHash);
-      var newSpec = location;
-      var newIndexOfHash = newSpec.indexOf("#");
-      if (newIndexOfHash != -1)
-        newSpec = newSpec.substr(0, newSpec.indexOf("#"));
-      if (newSpec != oldSpec) {
-        
-        
-        var nBox = Browser.getNotificationBox();
-        nBox.removeTransientNotifications();
-      }
-    }
-    cBrowser.lastURI = aLocationURI;
-
-
-    if (aWebProgress.DOMWindow == this._browser.contentWindow) {
-      BrowserUI.setURI();
-      this._tabbrowser.updateBrowser(this._browser, false);
-    }
-  },
-
-  
-  
-  onStatusChange : function(aWebProgress, aRequest, aStatus, aMessage) {
-  },
-
- 
-  _state: null,
-  _host: undefined,
-  _hostChanged: false, 
-
-  
-  onSecurityChange : function(aWebProgress, aRequest, aState) {
-
-    
-    
-    if (this._state == aState &&
-        !this._hostChanged) {
-      return;
-    }
-    this._state = aState;
-
-    try {
-      this._host = getBrowser().contentWindow.location.host;
-    } catch(ex) {
-      this._host = null;
-    }
-
-    this._hostChanged = false;
-
-    
-    
-    
-    var location = getBrowser().contentWindow.location;
-    var locationObj = {};
-    try {
-      locationObj.host = location.host;
-      locationObj.hostname = location.hostname;
-      locationObj.port = location.port;
-    } catch (ex) {
-      
-      
-      
-    }
-    getIdentityHandler().checkIdentity(this._state, locationObj);
-
-  },
-
-  QueryInterface : function(aIID) {
-    if (aIID.equals(Components.interfaces.nsIWebProgressListener) ||
-        aIID.equals(Components.interfaces.nsISupportsWeakReference) ||
-        aIID.equals(Components.interfaces.nsISupports))
-      return this;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  }
-};
-
 function nsBrowserAccess()
 {
 }
 
 nsBrowserAccess.prototype =
 {
-  QueryInterface : function(aIID)
-  {
-    if (aIID.equals(Ci.nsIBrowserDOMWindow) ||
-        aIID.equals(Ci.nsISupports))
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsIBrowserDOMWindow) || aIID.equals(Ci.nsISupports))
       return this;
     throw Components.results.NS_NOINTERFACE;
   },
 
-  openURI : function(aURI, aOpener, aWhere, aContext)
-  {
+  openURI: function(aURI, aOpener, aWhere, aContext) {
     var isExternal = (aContext == Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
 
     if (isExternal && aURI && aURI.schemeIs("chrome")) {
       dump("use -chrome command-line option to load external chrome urls\n");
       return null;
     }
+
     var loadflags = isExternal ?
                        Ci.nsIWebNavigation.LOAD_FLAGS_FROM_EXTERNAL :
                        Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
@@ -567,17 +576,10 @@ nsBrowserAccess.prototype =
                              "all,dialog=no", url, null, null, null);
     }
     else {
-      if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
-        var tab = Browser._content.newTab(true);
-        if (tab) {
-          var content = Browser._content;
-          var browser = content.getBrowserForDisplay(content.getDisplayForTab(tab));
-          newWindow = browser.contentWindow;
-        }
-      }
-      else {
+      if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB)
+        newWindow = Browser.newTab(true).browser.contentWindow;
+      else
         newWindow = aOpener ? aOpener.top : browser.contentWindow;
-      }
     }
 
     try {
@@ -585,9 +587,8 @@ nsBrowserAccess.prototype =
       if (aURI) {
         if (aOpener) {
           location = aOpener.location;
-          referrer = Components.classes["@mozilla.org/network/io-service;1"]
-                               .getService(Components.interfaces.nsIIOService)
-                               .newURI(location, null, null);
+          referrer = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService)
+                                                            .newURI(location, null, null);
         }
         newWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                  .getInterface(Ci.nsIWebNavigation)
@@ -599,8 +600,7 @@ nsBrowserAccess.prototype =
     return newWindow;
   },
 
-  isTabContentWindow : function(aWindow)
-  {
+  isTabContentWindow: function(aWindow) {
     return Browser._content.browsers.some(function (browser) browser.contentWindow == aWindow);
   }
 }
@@ -638,7 +638,7 @@ IdentityHandler.prototype = {
   
 
 
-  _cacheElements : function() {
+  _cacheElements: function() {
     this._identityPopup = document.getElementById("identity-popup");
     this._identityBox = document.getElementById("identity-box");
     this._identityPopupContentBox = document.getElementById("identity-popup-content-box");
@@ -653,7 +653,7 @@ IdentityHandler.prototype = {
 
 
 
-  handleMoreInfoClick : function(event) {
+  handleMoreInfoClick: function(event) {
     displaySecurityInfo();
     event.stopPropagation();
   },
@@ -662,7 +662,7 @@ IdentityHandler.prototype = {
 
 
 
-  getIdentityData : function() {
+  getIdentityData: function() {
     var result = {};
     var status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
     var cert = status.serverCert;
@@ -700,7 +700,7 @@ IdentityHandler.prototype = {
 
 
 
-  checkIdentity : function(state, location) {
+  checkIdentity: function(state, location) {
     var currentStatus = getBrowser().securityUI
                                 .QueryInterface(Components.interfaces.nsISSLStatusProvider)
                                 .SSLStatus;
@@ -718,7 +718,7 @@ IdentityHandler.prototype = {
   
 
 
-  getEffectiveHost : function() {
+  getEffectiveHost: function() {
     
     if (!this._eTLDService)
       this._eTLDService = Cc["@mozilla.org/network/effective-tld-service;1"]
@@ -736,7 +736,7 @@ IdentityHandler.prototype = {
 
 
 
-  setMode : function(newMode) {
+  setMode: function(newMode) {
     if (!this._identityBox) {
       
       
@@ -757,7 +757,7 @@ IdentityHandler.prototype = {
 
 
 
-  setIdentityMessages : function(newMode) {
+  setIdentityMessages: function(newMode) {
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
       var iData = this.getIdentityData();
 
@@ -807,7 +807,7 @@ IdentityHandler.prototype = {
 
 
 
-  setPopupMessages : function(newMode) {
+  setPopupMessages: function(newMode) {
 
     this._identityPopup.className = newMode;
     this._identityPopupContentBox.className = newMode;
@@ -857,14 +857,14 @@ IdentityHandler.prototype = {
     this._identityPopupContentVerif.textContent = verifier;
   },
 
-  hideIdentityPopup : function() {
+  hideIdentityPopup: function() {
     this._identityPopup.hidePopup();
   },
 
   
 
 
-  handleIdentityButtonEvent : function(event) {
+  handleIdentityButtonEvent: function(event) {
 
     event.stopPropagation();
 
@@ -1046,4 +1046,293 @@ const gXPInstallObserver = {
 
 function getNotificationBox(aWindow) {
   return Browser.getNotificationBox();
+}
+
+
+function ProgressController(tab) {
+  this._tab = tab;
+}
+
+ProgressController.prototype = {
+  get browser() {
+    return this._tab.browser;
+  },
+
+  onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+    
+    if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
+      return;
+
+    if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
+        this._networkStart();
+      else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
+        this._networkStop();
+    } else if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
+        this._documentStop();
+      }
+    }
+  },
+
+  
+  
+  onProgressChange: function(aWebProgress, aRequest, aCurSelf, aMaxSelf, aCurTotal, aMaxTotal) {
+  },
+
+  
+  onLocationChange: function(aWebProgress, aRequest, aLocationURI) {
+    
+
+    var location = aLocationURI ? aLocationURI.spec : "";
+    this._hostChanged = true;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    currentBrowser = Browser.currentBrowser;
+    if (currentBrowser.lastURI) {
+      var oldSpec = currentBrowser.lastURI.spec;
+      var oldIndexOfHash = oldSpec.indexOf("#");
+      if (oldIndexOfHash != -1)
+        oldSpec = oldSpec.substr(0, oldIndexOfHash);
+      var newSpec = location;
+      var newIndexOfHash = newSpec.indexOf("#");
+      if (newIndexOfHash != -1)
+        newSpec = newSpec.substr(0, newSpec.indexOf("#"));
+      if (newSpec != oldSpec) {
+        
+        
+
+	
+        
+        
+      }
+    }
+    currentBrowser.lastURI = aLocationURI;
+    if (aWebProgress.DOMWindow == Browser.currentBrowser.contentWindow) {
+      BrowserUI.setURI();
+    }
+  },
+
+  
+  
+  onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) {
+  },
+
+  _networkStart: function() {
+    this._tab.setLoading(true);
+    
+
+    if (Browser.currentBrowser == this.browser) {
+      Browser.content.startLoading();
+      BrowserUI.update(TOOLBARSTATE_LOADING);
+    }
+  },
+
+  _networkStop: function() {
+    this._tab.setLoading(false);
+
+    if (Browser.currentBrowser == this.browser) {
+      BrowserUI.update(TOOLBARSTATE_LOADED);
+    }
+  },
+
+  _documentStop: function() {
+    
+
+    
+    Browser.translatePhoneNumbers();
+
+    if (Browser.currentBrowser == this.browser) {
+      
+      this.browser.contentWindow.focus();
+
+      Browser.content.endLoading();
+    }
+    this._tab.updateThumbnail();
+  },
+
+ 
+  _state: null,
+  _host: undefined,
+  _hostChanged: false, 
+
+  
+  onSecurityChange: function(aWebProgress, aRequest, aState) {
+    
+    
+    if (this._state == aState &&
+        !this._hostChanged) {
+      return;
+    }
+    this._state = aState;
+
+    try {
+      this._host = getBrowser().contentWindow.location.host;
+    }
+    catch(ex) {
+      this._host = null;
+    }
+
+    this._hostChanged = false;
+
+    
+    
+    
+    var location = getBrowser().contentWindow.location;
+    var locationObj = {};
+    try {
+      locationObj.host = location.host;
+      locationObj.hostname = location.hostname;
+      locationObj.port = location.port;
+    }
+    catch (ex) {
+      
+      
+      
+    }
+    getIdentityHandler().checkIdentity(this._state, locationObj);
+
+  },
+
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Components.interfaces.nsIWebProgressListener) ||
+        aIID.equals(Components.interfaces.nsISupportsWeakReference) ||
+        aIID.equals(Components.interfaces.nsISupports))
+      return this;
+
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  }
+};
+
+
+function Tab() {
+}
+
+Tab.prototype = {
+  _id: null,
+  _browser: null,
+  _state: null,
+  _listener: null,
+  _loading: false,
+  _content: null,
+
+  get browser() {
+    return this._browser;
+  },
+
+  get content() {
+    return this._content;
+  },
+
+  isLoading: function() {
+    return this._loading;
+  },
+
+  setLoading: function(b) {
+    this._loading = b;
+  },
+
+  create: function() {
+    this._content = document.createElement("richlistitem");
+    this._content.setAttribute("type", "documenttab");
+    document.getElementById("tabs").addTab(this._content);
+
+    this._createBrowser();
+  },
+
+  destroy: function() {
+    this._destroyBrowser();
+    document.getElementById("tabs").removeTab(this._content);
+  },
+
+  _createBrowser: function() {
+    if (this._browser)
+      throw "Browser already exists";
+
+    let browser = this._browser = document.createElement("browser");
+    browser.className = "deckbrowser-browser";
+    browser.setAttribute("style", "overflow: hidden; visibility: hidden; width: 1024px; height: 800px;");
+    browser.setAttribute("contextmenu", document.getElementById("canvas").getAttribute("contextmenu"));
+    browser.setAttribute("autocompletepopup", document.getElementById("canvas").getAttribute("autocompletepopup"));
+    browser.setAttribute("type", "content");
+
+    document.getElementById("browsers").appendChild(browser);
+
+    this._listener = new ProgressController(this);
+    browser.addProgressListener(this._listener);
+  },
+
+  _destroyBrowser: function() {
+    document.getElementById("browsers").removeChild(this._browser);
+  },
+
+  saveState: function() {
+    let state = { };
+
+    this._url = browser.contentWindow.location.toString();
+    var browser = this.getBrowserForDisplay(display);
+    var doc = browser.contentDocument;
+    if (doc instanceof HTMLDocument) {
+      var tags = ["input", "textarea", "select"];
+
+      for (var t = 0; t < tags.length; t++) {
+        var elements = doc.getElementsByTagName(tags[t]);
+        for (var e = 0; e < elements.length; e++) {
+          var element = elements[e];
+          var id;
+          if (element.id)
+            id = "#" + element.id;
+          else if (element.name)
+            id = "$" + element.name;
+
+          if (id)
+            state[id] = element.value;
+        }
+      }
+    }
+
+    state._scrollX = browser.contentWindow.scrollX;
+    state._scrollY = browser.contentWindow.scrollY;
+
+    this._state = state;
+  },
+
+  restoreState: function() {
+    let state = this._state;
+    if (!state)
+      return;
+
+    let doc = this._browser.contentDocument;
+    for (item in state) {
+      var elem = null;
+      if (item.charAt(0) == "#") {
+        elem = doc.getElementById(item.substring(1));
+      }
+      else if (item.charAt(0) == "$") {
+        var list = doc.getElementsByName(item.substring(1));
+        if (list.length)
+          elem = list[0];
+      }
+
+      if (elem)
+        elem.value = state[item];
+    }
+
+    this._browser.contentWindow.scrollTo(state._scrollX, state._scrollY);
+  },
+
+  updateThumbnail: function() {
+    if (!this._browser)
+      return;
+
+    let srcCanvas = (Browser.currentBrowser == this._browser) ? document.getElementById("canvas") : null;
+    this._content.updateThumbnail(this._browser, srcCanvas);
+  }
 }
