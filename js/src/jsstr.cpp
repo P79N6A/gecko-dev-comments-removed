@@ -2119,17 +2119,11 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
             return false;
 
         
-
-
-
-
-        JSString *repstr = js_ValueToString(cx, session.rval());
-        if (!repstr)
+        rdata.repstr = ValueToString_TestForStringInline(cx, session.rval());
+        if (!rdata.repstr)
             return false;
 
-        rdata.repstr = repstr;
-        *sizep = repstr->length();
-
+        *sizep = rdata.repstr->length();
         return true;
     }
 

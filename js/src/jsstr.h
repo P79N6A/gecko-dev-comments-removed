@@ -973,6 +973,23 @@ js_ValueToPrintable(JSContext *cx, const js::Value &, JSValueToStringFun v2sfun)
 extern JSString *
 js_ValueToString(JSContext *cx, const js::Value &v);
 
+namespace js {
+
+
+
+
+
+
+static JS_ALWAYS_INLINE JSString *
+ValueToString_TestForStringInline(JSContext *cx, const Value &v)
+{
+    if (v.isString())
+        return v.toString();
+    return js_ValueToString(cx, v);
+}
+
+}
+
 
 
 
