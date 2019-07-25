@@ -330,6 +330,9 @@ bool            gDisableNativeTheme               = false;
 
 static bool     gWindowsVisible                   = false;
 
+
+static bool     gIsSleepMode                      = false;
+
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 
 
@@ -4864,20 +4867,16 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     break;
 
     case WM_POWERBROADCAST:
-      
-      
-      if (mWindowType == eWindowType_invisible) {
-        switch (wParam)
-        {
-          case PBT_APMSUSPEND:
-            PostSleepWakeNotification("sleep_notification");
-            break;
-          case PBT_APMRESUMEAUTOMATIC:
-          case PBT_APMRESUMECRITICAL:
-          case PBT_APMRESUMESUSPEND:
-            PostSleepWakeNotification("wake_notification");
-            break;
-        }
+      switch (wParam)
+      {
+        case PBT_APMSUSPEND:
+          PostSleepWakeNotification(true);
+          break;
+        case PBT_APMRESUMEAUTOMATIC:
+        case PBT_APMRESUMECRITICAL:
+        case PBT_APMRESUMESUSPEND:
+          PostSleepWakeNotification(false);
+          break;
       }
       break;
 
@@ -5719,12 +5718,18 @@ nsWindow::ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my)
   return testResult;
 }
 
-void nsWindow::PostSleepWakeNotification(const char* aNotification)
+void nsWindow::PostSleepWakeNotification(const bool aIsSleepMode)
 {
+  if (aIsSleepMode == gIsSleepMode)
+    return;
+
+  gIsSleepMode = aIsSleepMode;
+
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
   if (observerService)
-    observerService->NotifyObservers(nsnull, aNotification, nsnull);
+    observerService->NotifyObservers(nsnull,
+      aIsSleepMode ? "sleep_notification" : "wake_notification", nsnull);
 }
 
 
