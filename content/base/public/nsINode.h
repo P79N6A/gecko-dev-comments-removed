@@ -51,6 +51,7 @@
 #include "jspubtd.h"
 #include "nsDOMMemoryReporter.h"
 #include "nsIVariant.h"
+#include "nsGkAtoms.h"
 
 
 #ifdef XP_WIN
@@ -994,6 +995,22 @@ public:
 
   virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
 
+  
+
+
+  nsresult SetExplicitBaseURI(nsIURI* aURI);
+  
+
+
+protected:
+  nsIURI* GetExplicitBaseURI() const {
+    if (HasExplicitBaseURI()) {
+      return static_cast<nsIURI*>(GetProperty(nsGkAtoms::baseURIProperty));
+    }
+    return nsnull;
+  }
+  
+public:
   nsresult GetDOMBaseURI(nsAString &aURI) const;
 
   
@@ -1231,6 +1248,8 @@ private:
     
     NodeIsPurpleRoot,
     
+    NodeHasExplicitBaseURI,
+    
     BooleanFlagCount
   };
 
@@ -1300,6 +1319,8 @@ protected:
   void ClearHasName() { ClearBoolFlag(ElementHasName); }
   void SetMayHaveContentEditableAttr()
     { SetBoolFlag(ElementMayHaveContentEditableAttr); }
+  bool HasExplicitBaseURI() const { return GetBoolFlag(NodeHasExplicitBaseURI); }
+  void SetHasExplicitBaseURI() { SetBoolFlag(NodeHasExplicitBaseURI); }
 
 public:
   

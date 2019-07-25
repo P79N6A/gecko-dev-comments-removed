@@ -1851,6 +1851,7 @@ GK_ATOM(transitionsOfBeforeProperty, "TransitionsOfBeforeProperty")
 GK_ATOM(transitionsOfAfterProperty, "TransitionsOfAfterProperty") 
 GK_ATOM(genConInitializerProperty, "QuoteNodeProperty")
 GK_ATOM(labelMouseDownPtProperty, "LabelMouseDownPtProperty")
+GK_ATOM(baseURIProperty, "baseURIProperty")
 
 
 GK_ATOM(Japanese, "ja")
