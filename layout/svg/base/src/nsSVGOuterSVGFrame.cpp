@@ -109,9 +109,6 @@ nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
     : nsSVGOuterSVGFrameBase(aContext)
     , mFullZoom(0)
     , mViewportInitialized(false)
-#ifdef XP_MACOSX
-    , mEnableBitmapFallback(false)
-#endif
     , mIsRootContent(false)
 {
   
@@ -490,63 +487,18 @@ nsDisplayOuterSVG::Paint(nsDisplayListBuilder* aBuilder,
   PRTime start = PR_Now();
 #endif
 
-  aContext->PushState();
-
-  nsSVGOuterSVGFrame *frame = static_cast<nsSVGOuterSVGFrame*>(mFrame);
-
-#ifdef XP_MACOSX
-  if (frame->BitmapFallbackEnabled()) {
-    
-    
-    aContext->ThebesContext()->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
-  }
-#endif
-
   nsRect viewportRect =
-    frame->GetContentRectRelativeToSelf() + ToReferenceFrame();
+    mFrame->GetContentRectRelativeToSelf() + ToReferenceFrame();
+
   nsRect clipRect = mVisibleRect.Intersect(viewportRect);
 
+  aContext->PushState();
   aContext->IntersectClip(clipRect);
   aContext->Translate(viewportRect.TopLeft());
-
-  frame->Paint(aBuilder, aContext, clipRect - viewportRect.TopLeft());
-
-#ifdef XP_MACOSX
-  if (frame->BitmapFallbackEnabled()) {
-    
-    aContext->ThebesContext()->PopGroupToSource();
-    aContext->ThebesContext()->Paint();
-  }
-
-  if (aContext->ThebesContext()->HasError() && !frame->BitmapFallbackEnabled()) {
-    frame->SetBitmapFallbackEnabled(true);
-    
-    
-    
-    
-    
-    
-    
-    nsIFrame* ancestor = frame;
-    PRUint32 flags = 0;
-    while (true) {
-      nsIFrame* next = nsLayoutUtils::GetCrossDocParentFrame(ancestor);
-      if (!next)
-        break;
-      if (ancestor->GetParent() != next) {
-        
-        
-        
-        
-        flags |= nsIFrame::INVALIDATE_CROSS_DOC;
-      }
-      ancestor = next;
-    }
-    ancestor->InvalidateWithFlags(nsRect(nsPoint(0, 0), ancestor->GetSize()), flags);
-  }
-#endif
-
+  mFrame->Paint(aBuilder, aContext, clipRect - viewportRect.TopLeft());
   aContext->PopState();
+
+  NS_ASSERTION(!aContext->ThebesContext()->HasError(), "Cairo in error state");
 
 #if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
   PRTime end = PR_Now();

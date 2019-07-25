@@ -95,16 +95,6 @@ public:
 
   virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const;
 
-#ifdef XP_MACOSX
-  bool BitmapFallbackEnabled() const {
-    return mEnableBitmapFallback;
-  }
-  void SetBitmapFallbackEnabled(bool aVal) {
-    NS_NOTREACHED("don't think me need this any more"); 
-    mEnableBitmapFallback = aVal;
-  }
-#endif
-
   
 
 
@@ -135,9 +125,6 @@ protected:
   float mFullZoom;
 
   bool mViewportInitialized;
-#ifdef XP_MACOSX
-  bool mEnableBitmapFallback;
-#endif
   bool mIsRootContent;
 };
 
