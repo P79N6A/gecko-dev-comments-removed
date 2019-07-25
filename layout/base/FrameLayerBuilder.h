@@ -299,13 +299,14 @@ public:
   
 
 
-  void SaveLastPaintTransform(ThebesLayer* aLayer, const gfx3DMatrix& aMatrix);
+
+  void SaveLastPaintOffset(ThebesLayer* aLayer);
   
 
 
 
 
-  const gfx3DMatrix& GetLastPaintTransform(ThebesLayer* aLayer);
+  nsIntPoint GetLastPaintOffset(ThebesLayer* aLayer);
 
   
 
@@ -451,7 +452,7 @@ protected:
   public:
     ThebesLayerItemsEntry(const ThebesLayer *key) :
         nsPtrHashKey<ThebesLayer>(key), mContainerLayerFrame(nsnull),
-        mHasExplicitLastPaintTransform(PR_FALSE) {}
+        mHasExplicitLastPaintOffset(PR_FALSE) {}
     ThebesLayerItemsEntry(const ThebesLayerItemsEntry &toCopy) :
       nsPtrHashKey<ThebesLayer>(toCopy.mKey), mItems(toCopy.mItems)
     {
@@ -462,8 +463,8 @@ protected:
     nsIFrame* mContainerLayerFrame;
     
     
-    gfx3DMatrix mLastPaintTransform;
-    PRPackedBool mHasExplicitLastPaintTransform;
+    nsIntPoint mLastPaintOffset;
+    PRPackedBool mHasExplicitLastPaintOffset;
 
     enum { ALLOW_MEMMOVE = PR_TRUE };
   };

@@ -718,25 +718,16 @@ FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
 
 
 
-
-
 static void
 InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsIntRegion& aRegion,
-                              const gfx3DMatrix& aTransform)
+                              const nsIntPoint& aTranslation)
 {
-  gfxMatrix transform;
-  if (aTransform.Is2D(&transform)) {
-    NS_ASSERTION(!transform.HasNonIntegerTranslation(),
-                 "Matrix not just an integer translation?");
-    
-    
-    
-    nsIntRegion rgn = aRegion;
-    rgn.MoveBy(-nsIntPoint(PRInt32(transform.x0), PRInt32(transform.y0)));
-    aLayer->InvalidateRegion(rgn);
-  } else {
-    NS_ERROR("Only 2D transformations currently supported");
-  }
+  
+  
+  
+  nsIntRegion rgn = aRegion;
+  rgn.MoveBy(-aTranslation);
+  aLayer->InvalidateRegion(rgn);
 }
 
 already_AddRefed<ColorLayer>
@@ -783,6 +774,18 @@ ContainerState::CreateOrRecycleImageLayer()
   return layer.forget();
 }
 
+static nsIntPoint
+GetTranslationForThebesLayer(ThebesLayer* aLayer)
+{
+  gfxMatrix transform;
+  if (!aLayer->GetTransform().Is2D(&transform) &&
+      transform.HasNonIntegerTranslation()) {
+    NS_ERROR("ThebesLayers should have integer translations only");
+    return nsIntPoint(0, 0);
+  }
+  return nsIntPoint(PRInt32(transform.x0), PRInt32(transform.y0));
+}
+
 already_AddRefed<ThebesLayer>
 ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 {
@@ -809,7 +812,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
       layer->InvalidateRegion(invalidate);
     } else {
       InvalidatePostTransformRegion(layer, mInvalidThebesContent,
-                                    layer->GetTransform());
+                                    GetTranslationForThebesLayer(layer));
     }
     
     
@@ -824,7 +827,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
         new ThebesDisplayItemLayerUserData());
   }
 
-  mBuilder->LayerBuilder()->SaveLastPaintTransform(layer, layer->GetTransform());
+  mBuilder->LayerBuilder()->SaveLastPaintOffset(layer);
 
   
   
@@ -1424,12 +1427,13 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer)
     ThebesLayer* t = oldLayer->AsThebesLayer();
     if (t) {
       InvalidatePostTransformRegion(t, r,
-              mBuilder->LayerBuilder()->GetLastPaintTransform(t));
+          mBuilder->LayerBuilder()->GetLastPaintOffset(t));
     }
     if (aNewLayer) {
       ThebesLayer* newLayer = aNewLayer->AsThebesLayer();
       if (newLayer) {
-        InvalidatePostTransformRegion(newLayer, r, newLayer->GetTransform());
+        InvalidatePostTransformRegion(newLayer, r,
+            GetTranslationForThebesLayer(newLayer));
       }
     }
 
@@ -1484,23 +1488,22 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
   }
 }
 
-const gfx3DMatrix&
-FrameLayerBuilder::GetLastPaintTransform(ThebesLayer* aLayer)
+nsIntPoint
+FrameLayerBuilder::GetLastPaintOffset(ThebesLayer* aLayer)
 {
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
-  if (entry && entry->mHasExplicitLastPaintTransform)
-    return entry->mLastPaintTransform;
-  return aLayer->GetTransform();
+  if (entry && entry->mHasExplicitLastPaintOffset)
+    return entry->mLastPaintOffset;
+  return GetTranslationForThebesLayer(aLayer);
 }
 
 void
-FrameLayerBuilder::SaveLastPaintTransform(ThebesLayer* aLayer,
-                                          const gfx3DMatrix& aMatrix)
+FrameLayerBuilder::SaveLastPaintOffset(ThebesLayer* aLayer)
 {
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
   if (entry) {
-    entry->mLastPaintTransform = aMatrix;
-    entry->mHasExplicitLastPaintTransform = PR_TRUE;
+    entry->mLastPaintOffset = GetTranslationForThebesLayer(aLayer);
+    entry->mHasExplicitLastPaintOffset = PR_TRUE;
   }
 }
 
@@ -1846,18 +1849,11 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
     aContext->Fill();
   }
 
-  gfxMatrix transform;
-  if (!aLayer->GetTransform().Is2D(&transform)) {
-    NS_ERROR("non-2D transform in our Thebes layer!");
-    return;
-  }
-  NS_ASSERTION(!transform.HasNonIntegerTranslation(),
-               "Matrix not just an integer translation?");
   
   
-  gfxContextMatrixAutoSaveRestore saveMatrix(aContext); 
-  aContext->Translate(-gfxPoint(transform.x0, transform.y0));
-  nsIntPoint offset(PRInt32(transform.x0), PRInt32(transform.y0));
+  gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
+  nsIntPoint offset = GetTranslationForThebesLayer(aLayer);
+  aContext->Translate(-gfxPoint(offset.x, offset.y));
 
   nsPresContext* presContext = containerLayerFrame->PresContext();
   PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
