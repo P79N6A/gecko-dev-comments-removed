@@ -251,6 +251,9 @@ SessionStoreService.prototype = {
 
   
   _restoreHiddenTabs: null,
+  
+  
+  _restorePinnedTabsOnDemand: null,
 
   
   
@@ -313,6 +316,10 @@ SessionStoreService.prototype = {
     this._restoreHiddenTabs =
       this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
     this._prefBranch.addObserver("sessionstore.restore_hidden_tabs", this, true);
+    
+    this._restorePinnedTabsOnDemand =
+      this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
+    this._prefBranch.addObserver("sessionstore.restore_pinned_tabs_on_demand", this, true);
 
     
     
@@ -687,6 +694,10 @@ SessionStoreService.prototype = {
       case "sessionstore.restore_hidden_tabs":
         this._restoreHiddenTabs =
           this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
+        break;
+      case "sessionstore.restore_pinned_tabs_on_demand":
+        this._restorePinnedTabsOnDemand =
+          this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
         break;
       }
       break;
@@ -3187,7 +3198,8 @@ SessionStoreService.prototype = {
       return;
 
     
-    if ((!this._tabsToRestore.priority.length && this._restoreOnDemand) ||
+    if ((this._restoreOnDemand &&
+        (this._restorePinnedTabsOnDemand || !this._tabsToRestore.priority.length)) ||
         this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
       return;
 
