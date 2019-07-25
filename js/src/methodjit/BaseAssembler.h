@@ -297,7 +297,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 
 #undef STUB_CALL_TYPE
 
-    Call stubCall(void *ptr, jsbytecode *pc, uint32 frameDepth) {
+    Call stubCallImpl(void *ptr, jsbytecode *pc, int32 frameDepth) {
         JS_STATIC_ASSERT(ClobberInCall != Registers::ArgReg1);
 
         void *pfun = getCallTarget(ptr);
@@ -313,6 +313,15 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         setupVMFrame();
 
         return wrapCall(pfun);
+    }
+
+    Call stubCall(void *ptr, jsbytecode *pc, uint32 frameDepth) {
+        JS_ASSERT(frameDepth <= INT32_MAX);
+        return stubCallImpl(ptr, pc, (int32)frameDepth);
+    }
+
+    Call stubCallWithDynamicDepth(void *ptr, jsbytecode *pc) {
+        return stubCallImpl(ptr, pc, -1);
     }
 
     Call wrapCall(void *pfun) {
@@ -336,15 +345,20 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         return cl;
     }
 
-    void fixScriptStack(uint32 frameDepth) {
+    void fixScriptStack(int32 frameDepth) {
         
-        addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(jsval)),
-               JSFrameReg,
-               ClobberInCall);
 
-        
-        storePtr(ClobberInCall,
-                 FrameAddress(offsetof(VMFrame, regs.sp)));
+
+
+
+
+
+        if (frameDepth >= 0) {
+            addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(jsval)),
+                   JSFrameReg,
+                   ClobberInCall);
+            storePtr(ClobberInCall, FrameAddress(offsetof(VMFrame, regs.sp)));
+        }
 
         
         storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));

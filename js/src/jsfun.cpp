@@ -2253,6 +2253,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
 
     
+
+    
     if (!vp[3].isObject()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
         return false;

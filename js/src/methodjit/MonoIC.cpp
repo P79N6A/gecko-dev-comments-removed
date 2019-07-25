@@ -408,14 +408,14 @@ ic::Equality(VMFrame &f, ic::EqualityICInfo *ic)
 static void * JS_FASTCALL
 SlowCallFromIC(VMFrame &f, ic::CallICInfo *ic)
 {
-    stubs::SlowCall(f, ic->argc);
+    stubs::SlowCall(f, ic->frameSize.getArgc(f));
     return NULL;
 }
 
 static void * JS_FASTCALL
 SlowNewFromIC(VMFrame &f, ic::CallICInfo *ic)
 {
-    stubs::SlowNew(f, ic->argc);
+    stubs::SlowNew(f, ic->frameSize.staticArgc());
     return NULL;
 }
 
@@ -461,12 +461,11 @@ class CallCompiler : public BaseCompiler
 {
     VMFrame &f;
     CallICInfo &ic;
-    Value *vp;
     bool callingNew;
 
   public:
     CallCompiler(VMFrame &f, CallICInfo &ic, bool callingNew)
-      : BaseCompiler(f.cx), f(f), ic(ic), vp(f.regs.sp - (ic.argc + 2)), callingNew(callingNew)
+      : BaseCompiler(f.cx), f(f), ic(ic), callingNew(callingNew)
     {
     }
 
@@ -513,10 +512,14 @@ class CallCompiler : public BaseCompiler
 
         
         masm.storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
-        masm.move(Imm32(ic.argc), Registers::ArgReg1);
-        JSC::MacroAssembler::Call tryCompile =
-            masm.stubCall(JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction),
-                          script->code, ic.frameDepth);
+        void *compilePtr = JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction);
+        if (ic.frameSize.isStatic()) {
+            masm.move(Imm32(ic.frameSize.staticArgc()), Registers::ArgReg1);
+            masm.stubCall(compilePtr, script->code, ic.frameSize.staticFrameDepth());
+        } else {
+            masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), Registers::ArgReg1);
+            masm.stubCallWithDynamicDepth(compilePtr, script->code);
+        }
         masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
 
         Jump notCompiled = masm.branchTestPtr(Assembler::Zero, Registers::ReturnReg,
@@ -527,7 +530,10 @@ class CallCompiler : public BaseCompiler
         hasCode.linkTo(masm.label(), &masm);
 
         
-        masm.move(Imm32(ic.argc), JSParamReg_Argc);
+        if (ic.frameSize.isStatic())
+            masm.move(Imm32(ic.frameSize.staticArgc()), JSParamReg_Argc);
+        else
+            masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), JSParamReg_Argc);
         masm.jump(t0);
 
         JSC::ExecutablePool *ep = poolForSize(masm.size(), CallICInfo::Pool_ScriptStub);
@@ -536,8 +542,7 @@ class CallCompiler : public BaseCompiler
 
         JSC::LinkBuffer buffer(&masm, ep);
         buffer.link(notCompiled, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
-        buffer.link(tryCompile,
-                    JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction)));
+        masm.finalize(buffer);
         JSC::CodeLocationLabel cs = buffer.finalizeCodeAddendum();
 
         JaegerSpew(JSpew_PICs, "generated CALL stub %p (%d bytes)\n", cs.executableAddress(),
@@ -553,6 +558,8 @@ class CallCompiler : public BaseCompiler
 
     void patchInlinePath(JSScript *script, JSObject *obj)
     {
+        JS_ASSERT(ic.frameSize.isStatic());
+
         
         uint8 *start = (uint8 *)ic.funGuard.executableAddress();
         JSC::RepatchBuffer repatch(start - 32, 64);
@@ -570,6 +577,8 @@ class CallCompiler : public BaseCompiler
 
     bool generateStubForClosures(JSObject *obj)
     {
+        JS_ASSERT(ic.frameSize.isStatic());
+
         
         Assembler masm;
 
@@ -611,7 +620,21 @@ class CallCompiler : public BaseCompiler
 
     bool generateNativeStub()
     {
-        Value *vp = f.regs.sp - (ic.argc + 2);
+        
+
+
+
+        uintN staticFrameDepth = f.regs.sp - f.regs.fp->slots();
+        Value *vp;
+        if (ic.frameSize.isStatic()) {
+            JS_ASSERT(staticFrameDepth == ic.frameSize.staticFrameDepth());
+            vp = f.regs.sp - (2 + ic.frameSize.staticArgc());
+        } else {
+            JS_ASSERT(*f.regs.pc == JSOP_FUNAPPLY && GET_ARGC(f.regs.pc) == 2);
+            if (!ic::SplatApplyArgs(f))  
+                THROWV(true);
+            vp = f.regs.fp->slots() + (staticFrameDepth - 3);  
+        }
 
         JSObject *obj;
         if (!IsFunctionObject(*vp, &obj))
@@ -624,7 +647,7 @@ class CallCompiler : public BaseCompiler
         if (callingNew)
             vp[1].setMagicWithObjectOrNullPayload(NULL);
 
-        if (!CallJSNative(cx, fun->u.n.native, ic.argc, vp))
+        if (!CallJSNative(cx, fun->u.n.native, ic.frameSize.getArgc(f), vp))
             THROWV(true);
 
         
@@ -643,6 +666,11 @@ class CallCompiler : public BaseCompiler
         
         Jump funGuard = masm.branchPtr(Assembler::NotEqual, ic.funObjReg, ImmPtr(obj));
 
+        
+        if (ic.frameSize.isDynamic()) {
+            masm.stubCall(JS_FUNC_TO_DATA_PTR(void *, ic::SplatApplyArgs), f.regs.pc, staticFrameDepth);
+        }
+
         Registers tempRegs;
 #ifndef JS_CPU_X86
         tempRegs.takeReg(Registers::ArgReg0);
@@ -656,9 +684,11 @@ class CallCompiler : public BaseCompiler
                        FrameAddress(offsetof(VMFrame, regs.pc)));
 
         
-        uint32 spOffset = sizeof(JSStackFrame) + ic.frameDepth * sizeof(Value);
-        masm.addPtr(Imm32(spOffset), JSFrameReg, t0);
-        masm.storePtr(t0, FrameAddress(offsetof(VMFrame, regs.sp)));
+        if (ic.frameSize.isStatic()) {
+            uint32 spOffset = sizeof(JSStackFrame) + staticFrameDepth * sizeof(Value);
+            masm.addPtr(Imm32(spOffset), JSFrameReg, t0);
+            masm.storePtr(t0, FrameAddress(offsetof(VMFrame, regs.sp)));
+        }
 
         
         masm.storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
@@ -671,20 +701,31 @@ class CallCompiler : public BaseCompiler
 #endif
         masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), cxReg);
 
-#ifdef JS_CPU_X86
-        
-        masm.subPtr(Imm32(16), Assembler::stackPointerRegister);
-#endif
-
         
 #ifdef JS_CPU_X86
         RegisterID vpReg = t0;
 #else
         RegisterID vpReg = Registers::ArgReg2;
 #endif
-        
-        uint32 vpOffset = sizeof(JSStackFrame) + (ic.frameDepth - ic.argc - 2) * sizeof(Value);
-        masm.addPtr(Imm32(vpOffset), JSFrameReg, vpReg);
+        MaybeRegisterID argcReg;
+        if (ic.frameSize.isStatic()) {
+            uint32 vpOffset = sizeof(JSStackFrame) + (vp - f.regs.fp->slots()) * sizeof(Value);
+            masm.addPtr(Imm32(vpOffset), JSFrameReg, vpReg);
+        } else {
+            argcReg = tempRegs.takeAnyReg();
+            masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), argcReg.reg());
+            masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.sp)), vpReg);
+
+            
+            RegisterID vpOff = tempRegs.takeAnyReg();
+            masm.move(argcReg.reg(), vpOff);
+            masm.add32(Imm32(2), vpOff);  
+            JS_STATIC_ASSERT(sizeof(Value) == 8);
+            masm.lshift32(Imm32(3), vpOff);
+            masm.subPtr(vpOff, vpReg);
+
+            tempRegs.putReg(vpOff);
+        }
 
         
         if (callingNew) {
@@ -694,14 +735,22 @@ class CallCompiler : public BaseCompiler
         }
 
 #ifdef JS_CPU_X86
+        
+        masm.subPtr(Imm32(16), Assembler::stackPointerRegister);
         masm.storePtr(vpReg, Address(Assembler::stackPointerRegister, 8));
 #endif
 
         
 #ifdef JS_CPU_X86
-        masm.store32(Imm32(ic.argc), Address(Assembler::stackPointerRegister, 4));
+        if (ic.frameSize.isStatic())
+            masm.store32(Imm32(ic.frameSize.staticArgc()), Address(Assembler::stackPointerRegister, 4));
+        else
+            masm.store32(argcReg.reg(), Address(Assembler::stackPointerRegister, 4));
 #else
-        masm.move(Imm32(ic.argc), Registers::ArgReg1);
+        if (ic.frameSize.isStatic())
+            masm.move(Imm32(ic.frameSize.staticArgc()), Registers::ArgReg1);
+        else if (argcReg.reg() != Registers::ArgReg1)
+            masm.move(argcReg.reg(), Registers::ArgReg1);
 #endif
 
         
@@ -755,6 +804,7 @@ class CallCompiler : public BaseCompiler
         buffer.link(done, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
         buffer.link(call, JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, fun->u.n.native)));
         buffer.link(funGuard, ic.slowPathStart);
+        masm.finalize(buffer);
         
         JSC::CodeLocationLabel cs = buffer.finalizeCodeAddendum();
 
@@ -774,9 +824,9 @@ class CallCompiler : public BaseCompiler
     {
         stubs::UncachedCallResult ucr;
         if (callingNew)
-            stubs::UncachedNewHelper(f, ic.argc, &ucr);
+            stubs::UncachedNewHelper(f, ic.frameSize.staticArgc(), &ucr);
         else
-            stubs::UncachedCallHelper(f, ic.argc, &ucr);
+            stubs::UncachedCallHelper(f, ic.frameSize.getArgc(f), &ucr);
 
         
         
@@ -805,7 +855,7 @@ class CallCompiler : public BaseCompiler
             return ucr.codeAddr;
         }
 
-        if (ic.argc != fun->nargs) {
+        if (!ic.frameSize.isStatic() || ic.frameSize.staticArgc() != fun->nargs) {
             if (!generateFullCallStub(script, flags))
                 THROWV(NULL);
         } else {
@@ -849,7 +899,7 @@ ic::NativeCall(VMFrame &f, CallICInfo *ic)
 {
     CallCompiler cc(f, *ic, false);
     if (!cc.generateNativeStub())
-        stubs::SlowCall(f, ic->argc);
+        stubs::SlowCall(f, ic->frameSize.getArgc(f));
 }
 
 void JS_FASTCALL
@@ -857,7 +907,109 @@ ic::NativeNew(VMFrame &f, CallICInfo *ic)
 {
     CallCompiler cc(f, *ic, true);
     if (!cc.generateNativeStub())
-        stubs::SlowNew(f, ic->argc);
+        stubs::SlowNew(f, ic->frameSize.staticArgc());
+}
+
+static inline bool
+BumpStack(VMFrame &f, uintN inc)
+{
+    static const unsigned MANY_ARGS = 1024;
+    static const unsigned MIN_SPACE = 500;
+
+    
+    if (inc < MANY_ARGS) {
+        if (f.regs.sp + inc < f.stackLimit)
+            return true;
+        StackSpace &stack = f.cx->stack();
+        if (!stack.bumpCommitAndLimit(f.entryFp, f.regs.sp, inc, &f.stackLimit)) {
+            js_ReportOverRecursed(f.cx);
+            return false;
+        }
+        return true;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    uintN incWithSpace = inc + MIN_SPACE;
+    Value *bumpedWithSpace = f.regs.sp + incWithSpace;
+    if (bumpedWithSpace < f.stackLimit)
+        return true;
+
+    StackSpace &stack = f.cx->stack();
+    if (stack.bumpCommitAndLimit(f.entryFp, f.regs.sp, incWithSpace, &f.stackLimit))
+        return true;
+
+    if (!stack.ensureSpace(f.cx, f.regs.sp, incWithSpace))
+        return false;
+    f.stackLimit = bumpedWithSpace;
+    return true;
+}
+
+
+
+
+
+
+
+JSBool JS_FASTCALL
+ic::SplatApplyArgs(VMFrame &f)
+{
+    JSContext *cx = f.cx;
+    Value *vp = f.regs.sp - 4;
+    JS_ASSERT(JS_CALLEE(cx, vp).toObject().getFunctionPrivate()->u.n.native == js_fun_apply);
+    JS_ASSERT(GET_ARGC(f.regs.pc) == 2);
+
+    
+
+
+
+
+    
+    if (vp[3].isNullOrUndefined()) {
+        f.regs.sp--;
+        f.u.call.dynamicArgc = 0;
+        return true;
+    }
+
+    
+    if (!vp[3].isObject()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
+        THROWV(false);
+    }
+
+    
+    JSObject *aobj = &vp[3].toObject();
+    jsuint length;
+    if (!js_GetLengthProperty(cx, aobj, &length))
+        THROWV(false);
+
+    JS_ASSERT(!JS_ON_TRACE(cx));
+
+    
+    uintN n = uintN(JS_MIN(length, JS_ARGS_LENGTH_MAX));
+
+    intN delta = n - 1;
+    if (delta > 0 && !BumpStack(f, delta))
+        THROWV(false);
+    f.regs.sp += delta;
+
+    
+    if (!GetElements(cx, aobj, n, f.regs.sp - n))
+        THROWV(false);
+
+    f.u.call.dynamicArgc = n;
+    return true;
 }
 
 void

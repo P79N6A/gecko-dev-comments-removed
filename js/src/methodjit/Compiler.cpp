@@ -534,10 +534,9 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
             JS_ASSERT(cics[i].hotPathOffset == offset);
 
             cics[i].pc = callICs[i].pc;
-            cics[i].argc = callICs[i].argc;
+            cics[i].frameSize = callICs[i].frameSize;
             cics[i].funObjReg = callICs[i].funObjReg;
             cics[i].funPtrReg = callICs[i].funPtrReg;
-            cics[i].frameDepth = callICs[i].frameDepth;
             stubCode.patch(callICs[i].addrLabel1, &cics[i]);
             stubCode.patch(callICs[i].addrLabel2, &cics[i]);
         } 
@@ -2337,22 +2336,23 @@ mjit::Compiler::emitUncachedCall(uint32 argc, bool callingNew)
 }
 
 static bool
-IsLowerableFunCall(jsbytecode *pc)
+IsLowerableFunCallOrApply(jsbytecode *pc)
 {
 #ifdef JS_MONOIC
-    return *pc == JSOP_FUNCALL && GET_ARGC(pc) >= 1;
+    return (*pc == JSOP_FUNCALL && GET_ARGC(pc) >= 1) ||
+           (*pc == JSOP_FUNAPPLY && GET_ARGC(pc) == 2);
 #else
     return false;
 #endif
 }
 
 void
-mjit::Compiler::checkCallSpeculation(uint32 argc, FrameEntry *origCallee, FrameEntry *origThis,
-                                     MaybeRegisterID origCalleeType, RegisterID origCalleeData,
-                                     MaybeRegisterID origThisType, RegisterID origThisData,
-                                     Jump *uncachedCallSlowRejoin, CallPatchInfo *uncachedCallPatch)
+mjit::Compiler::checkCallApplySpeculation(uint32 argc, FrameEntry *origCallee, FrameEntry *origThis,
+                                          MaybeRegisterID origCalleeType, RegisterID origCalleeData,
+                                          MaybeRegisterID origThisType, RegisterID origThisData,
+                                          Jump *uncachedCallSlowRejoin, CallPatchInfo *uncachedCallPatch)
 {
-    JS_ASSERT(IsLowerableFunCall(PC));
+    JS_ASSERT(IsLowerableFunCallOrApply(PC));
 
     
 
@@ -2364,9 +2364,10 @@ mjit::Compiler::checkCallSpeculation(uint32 argc, FrameEntry *origCallee, FrameE
         isObj = masm.testObject(Assembler::NotEqual, origCalleeType.reg());
     Jump isFun = masm.testFunction(Assembler::NotEqual, origCalleeData);
     masm.loadFunctionPrivate(origCalleeData, origCalleeData);
+    Native native = *PC == JSOP_FUNCALL ? js_fun_call : js_fun_apply;
     Jump isNative = masm.branchPtr(Assembler::NotEqual,
                                    Address(origCalleeData, JSFunction::offsetOfNativeOrScript()),
-                                   ImmPtr(JS_FUNC_TO_DATA_PTR(void *, js_fun_call)));
+                                   ImmPtr(JS_FUNC_TO_DATA_PTR(void *, native)));
 
     
 
@@ -2440,7 +2441,8 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
 
 
-    bool lowerFunCall = IsLowerableFunCall(PC);
+
+    bool lowerFunCallOrApply = IsLowerableFunCallOrApply(PC);
 
     
     CallGenInfo     callIC(PC);
@@ -2462,7 +2464,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
         origCalleeData = maybeOrigCalleeData.reg();
         PinRegAcrossSyncAndKill p1(frame, origCalleeData), p2(frame, origCalleeType);
 
-        if (lowerFunCall) {
+        if (lowerFunCallOrApply) {
             MaybeRegisterID origThisType, maybeOrigThisData;
             RegisterID origThisData;
             {
@@ -2475,16 +2477,25 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
                 frame.syncAndKill(Registers(Registers::AvailRegs), Uses(argc + 2));
             }
 
-            checkCallSpeculation(argc,origCallee, origThis,
-                                 origCalleeType, origCalleeData,
-                                 origThisType, origThisData,
-                                 &uncachedCallSlowRejoin, &uncachedCallPatch);
+            checkCallApplySpeculation(argc, origCallee, origThis,
+                                      origCalleeType, origCalleeData,
+                                      origThisType, origThisData,
+                                      &uncachedCallSlowRejoin, &uncachedCallPatch);
 
             icCalleeType = origThisType;
             icCalleeData = origThisData;
             icRvalAddr = frame.addressOf(origThis);
-            callIC.argc = argc - 1;
-            callIC.frameDepth = frame.frameDepth();
+
+            
+
+
+
+
+
+            if (*PC == JSOP_FUNCALL)
+                callIC.frameSize.initStatic(frame.frameDepth(), argc - 1);
+            else
+                callIC.frameSize.initDynamic();
         } else {
             
             frame.syncAndKill(Registers(Registers::AvailRegs), Uses(argc + 2));
@@ -2492,8 +2503,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
             icCalleeType = origCalleeType;
             icCalleeData = origCalleeData;
             icRvalAddr = frame.addressOf(origCallee);
-            callIC.argc = argc;
-            callIC.frameDepth = frame.frameDepth();
+            callIC.frameSize.initStatic(frame.frameDepth(), argc);
         }
     }
 
@@ -2502,10 +2512,19 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
     if (icCalleeType.isSet())
         notObjectJump = masm.testObject(Assembler::NotEqual, icCalleeType.reg());
 
+    
+
+
+
     Registers tempRegs;
-    tempRegs.takeReg(icCalleeData);
-    RegisterID t0 = tempRegs.takeAnyReg();
-    RegisterID t1 = tempRegs.takeAnyReg();
+    if (callIC.frameSize.isDynamic() && !Registers::isSaved(icCalleeData)) {
+        RegisterID x = tempRegs.takeRegInMask(Registers::SavedRegs);
+        masm.move(icCalleeData, x);
+        icCalleeData = x;
+    } else {
+        tempRegs.takeReg(icCalleeData);
+    }
+    RegisterID funPtrReg = tempRegs.takeRegInMask(Registers::SavedRegs);
 
     
 
@@ -2527,13 +2546,22 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
         Jump notFunction = stubcc.masm.testFunction(Assembler::NotEqual, icCalleeData);
 
         
-        stubcc.masm.loadFunctionPrivate(icCalleeData, t0);
-        stubcc.masm.load16(Address(t0, offsetof(JSFunction, flags)), t1);
-        stubcc.masm.and32(Imm32(JSFUN_KINDMASK), t1);
-        Jump isNative = stubcc.masm.branch32(Assembler::Below, t1, Imm32(JSFUN_INTERPRETED));
+        RegisterID tmp = tempRegs.takeAnyReg();
+        stubcc.masm.loadFunctionPrivate(icCalleeData, funPtrReg);
+        stubcc.masm.load16(Address(funPtrReg, offsetof(JSFunction, flags)), tmp);
+        stubcc.masm.and32(Imm32(JSFUN_KINDMASK), tmp);
+        Jump isNative = stubcc.masm.branch32(Assembler::Below, tmp, Imm32(JSFUN_INTERPRETED));
+        tempRegs.putReg(tmp);
 
         
 
+
+
+
+        if (callIC.frameSize.isDynamic())
+            stubcc.call(ic::SplatApplyArgs);
+
+        
 
 
 
@@ -2542,23 +2570,31 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
         callIC.oolJump = toPatch;
 
         
+
+
+
+
         callIC.addrLabel1 = stubcc.masm.moveWithPatch(ImmPtr(NULL), Registers::ArgReg1);
-        callIC.oolCall = stubcc.call(callingNew ? ic::New : ic::Call);
+        void *icFunPtr = JS_FUNC_TO_DATA_PTR(void *, callingNew ? ic::New : ic::Call);
+        if (callIC.frameSize.isStatic())
+            callIC.oolCall = stubcc.masm.stubCall(icFunPtr, PC, frame.frameDepth());
+        else
+            callIC.oolCall = stubcc.masm.stubCallWithDynamicDepth(icFunPtr, PC);
 
         callIC.funObjReg = icCalleeData;
-        callIC.funPtrReg = t0;
+        callIC.funPtrReg = funPtrReg;
 
         
 
 
 
 
-
-
-
         rejoin1 = stubcc.masm.branchTestPtr(Assembler::Zero, Registers::ReturnReg,
                                             Registers::ReturnReg);
-        stubcc.masm.move(Imm32(callIC.argc), JSParamReg_Argc);
+        if (callIC.frameSize.isStatic())
+            stubcc.masm.move(Imm32(callIC.frameSize.staticArgc()), JSParamReg_Argc);
+        else
+            stubcc.masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), JSParamReg_Argc);
         stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
         callPatch.hasSlowNcode = true;
         callPatch.slowNcodePatch =
@@ -2567,6 +2603,12 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
         stubcc.masm.jump(Registers::ReturnReg);
 
         
+
+
+
+
+
+
         if (notObjectJump.isSet())
             stubcc.linkExitDirect(notObjectJump.get(), stubcc.masm.label());
         notFunction.linkTo(stubcc.masm.label(), &stubcc.masm);
@@ -2594,7 +2636,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
     callIC.hotJump = masm.jump();
     callIC.joinPoint = callPatch.joinPoint = masm.label();
-    if (lowerFunCall)
+    if (lowerFunCallOrApply)
         uncachedCallPatch.joinPoint = callIC.joinPoint;
     masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), JSFrameReg);
 
@@ -2617,12 +2659,12 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
     stubcc.crossJump(stubcc.masm.jump(), masm.label());
     JaegerSpew(JSpew_Insns, " ---- END SLOW RESTORE CODE ---- \n");
 
-    if (lowerFunCall)
+    if (lowerFunCallOrApply)
         stubcc.crossJump(uncachedCallSlowRejoin, masm.label());
 
     callICs.append(callIC);
     callPatches.append(callPatch);
-    if (lowerFunCall)
+    if (lowerFunCallOrApply)
         callPatches.append(uncachedCallPatch);
 #endif
 }

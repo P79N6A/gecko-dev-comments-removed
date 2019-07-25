@@ -701,12 +701,6 @@ class StackSpace
     friend class AllFramesIter;
     StackSegment *getCurrentSegment() const { return currentSegment; }
 
-    
-
-
-
-    inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
-
 #ifdef XP_WIN
     
     JS_FRIEND_API(bool) bumpCommit(Value *from, ptrdiff_t nvals) const;
@@ -751,9 +745,6 @@ class StackSpace
 
 
     inline bool ensureEnoughSpaceToEnterTrace();
-
-    
-    inline bool bumpCommitEnd(Value *from, uintN nslots);
 
     
     static const ptrdiff_t MAX_TRACE_SPACE_VALS =
@@ -833,6 +824,12 @@ class StackSpace
 
 
     bool bumpCommitAndLimit(JSStackFrame *base, Value *from, uintN nvals, Value **limit) const;
+
+    
+
+
+
+    inline bool ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const;
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);

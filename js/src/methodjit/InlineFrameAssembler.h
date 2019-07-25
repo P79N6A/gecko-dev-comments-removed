@@ -74,7 +74,7 @@ class InlineFrameAssembler {
     typedef JSC::MacroAssembler::DataLabelPtr DataLabelPtr;
 
     Assembler &masm;
-    uint32     frameDepth;      
+    FrameSize  frameSize;       
     RegisterID funObjReg;       
     jsbytecode *pc;             
     uint32     flags;           
@@ -89,7 +89,7 @@ class InlineFrameAssembler {
     InlineFrameAssembler(Assembler &masm, ic::CallICInfo &ic, uint32 flags)
       : masm(masm), pc(ic.pc), flags(flags)
     {
-        frameDepth = ic.frameDepth;
+        frameSize = ic.frameSize;
         funObjReg = ic.funObjReg;
         tempRegs.takeReg(ic.funPtrReg);
         tempRegs.takeReg(funObjReg);
@@ -98,7 +98,7 @@ class InlineFrameAssembler {
     InlineFrameAssembler(Assembler &masm, Compiler::CallGenInfo &gen, uint32 flags)
       : masm(masm), pc(gen.pc), flags(flags)
     {
-        frameDepth = gen.frameDepth;
+        frameSize = gen.frameSize;
         funObjReg = gen.funObjReg;
         tempRegs.takeReg(funObjReg);
     }
@@ -107,19 +107,43 @@ class InlineFrameAssembler {
     {
         JS_ASSERT((flags & ~JSFRAME_CONSTRUCTING) == 0);
 
-        RegisterID t0 = tempRegs.takeAnyReg();
-
-        AdjustedFrame adj(sizeof(JSStackFrame) + frameDepth * sizeof(Value));
-        masm.store32(Imm32(JSFRAME_FUNCTION | flags), adj.addrOf(JSStackFrame::offsetOfFlags()));
-        masm.storePtr(JSFrameReg, adj.addrOf(JSStackFrame::offsetOfPrev()));
-
-        DataLabelPtr ncodePatch =
-            masm.storePtrWithPatch(ImmPtr(ncode), adj.addrOf(JSStackFrame::offsetOfncode()));
-
         
-        masm.addPtr(Imm32(sizeof(JSStackFrame) + sizeof(Value) * frameDepth), JSFrameReg);
 
-        tempRegs.putReg(t0);
+        DataLabelPtr ncodePatch;
+        if (frameSize.isStatic()) {
+            uint32 frameDepth = frameSize.staticFrameDepth();
+            AdjustedFrame newfp(sizeof(JSStackFrame) + frameDepth * sizeof(Value));
+
+            Address flagsAddr = newfp.addrOf(JSStackFrame::offsetOfFlags());
+            masm.store32(Imm32(JSFRAME_FUNCTION | flags), flagsAddr);
+            Address prevAddr = newfp.addrOf(JSStackFrame::offsetOfPrev());
+            masm.storePtr(JSFrameReg, prevAddr);
+            Address ncodeAddr = newfp.addrOf(JSStackFrame::offsetOfncode());
+            ncodePatch = masm.storePtrWithPatch(ImmPtr(ncode), ncodeAddr);
+
+            masm.addPtr(Imm32(sizeof(JSStackFrame) + frameDepth * sizeof(Value)), JSFrameReg);
+        } else {
+            
+
+
+
+
+
+
+
+            RegisterID newfp = tempRegs.takeAnyReg();
+            masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.sp)), newfp);
+
+            Address flagsAddr(newfp, JSStackFrame::offsetOfFlags());
+            masm.store32(Imm32(JSFRAME_FUNCTION | flags), flagsAddr);
+            Address prevAddr(newfp, JSStackFrame::offsetOfPrev());
+            masm.storePtr(JSFrameReg, prevAddr);
+            Address ncodeAddr(newfp, JSStackFrame::offsetOfncode());
+            ncodePatch = masm.storePtrWithPatch(ImmPtr(ncode), ncodeAddr);
+
+            masm.move(newfp, JSFrameReg);
+            tempRegs.putReg(newfp);
+        }
 
         return ncodePatch;
     }
