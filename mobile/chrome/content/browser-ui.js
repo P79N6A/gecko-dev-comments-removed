@@ -447,9 +447,12 @@ var BrowserUI = {
 
     
     
-    messageManager.addMessageListener("DOMContentLoaded", function() {
+    messageManager.addMessageListener("pageshow", function() {
+      if (getBrowser().currentURI.spec == "about:blank")
+        return;
+
       
-      messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
+      messageManager.removeMessageListener("pageshow", arguments.callee, true);
 
       
       Elements.panelUI.hidden = false;
