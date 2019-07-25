@@ -112,10 +112,8 @@ struct RunnableMethodTraits<PluginInstanceChild>
     static void ReleaseCallee(PluginInstanceChild* obj) { }
 };
 
-PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
-                                         const nsCString& aMimeType)
+PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
     : mPluginIface(aPluginIface)
-    , mQuirks(0)
     , mCachedWindowActor(nsnull)
     , mCachedElementActor(nsnull)
 #if defined(OS_WIN)
@@ -164,7 +162,6 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
 #if defined(OS_WIN)
     memset(&mAlphaExtract, 0, sizeof(mAlphaExtract));
 #endif 
-    InitQuirksModes(aMimeType);
 #if defined(OS_WIN)
     InitPopupMenuHook();
 #endif 
@@ -194,28 +191,10 @@ PluginInstanceChild::~PluginInstanceChild()
 #endif
 }
 
-void
-PluginInstanceChild::InitQuirksModes(const nsCString& aMimeType)
+int
+PluginInstanceChild::GetQuirks()
 {
-    
-    
-    NS_NAMED_LITERAL_CSTRING(silverlight, "application/x-silverlight");
-    if (FindInReadable(silverlight, aMimeType)) {
-        mQuirks |= QUIRK_SILVERLIGHT_DEFAULT_TRANSPARENT;
-#ifdef OS_WIN
-        mQuirks |= QUIRK_WINLESS_TRACKPOPUP_HOOK;
-#endif
-    }
-
-#ifdef OS_WIN
-    
-    NS_NAMED_LITERAL_CSTRING(flash, "application/x-shockwave-flash");
-    if (FindInReadable(flash, aMimeType)) {
-        mQuirks |= QUIRK_WINLESS_TRACKPOPUP_HOOK;
-        mQuirks |= QUIRK_FLASH_THROTTLE_WMUSER_EVENTS; 
-        mQuirks |= QUIRK_FLASH_HOOK_SETLONGPTR;
-    }
-#endif
+    return PluginModuleChild::current()->GetQuirks();
 }
 
 NPError
@@ -960,9 +939,9 @@ PluginInstanceChild::AnswerNPP_SetWindow(const NPRemoteWindow& aWindow)
 
       case NPWindowTypeDrawable:
           mWindow.type = aWindow.type;
-          if (mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK)
+          if (GetQuirks() & PluginModuleChild::QUIRK_WINLESS_TRACKPOPUP_HOOK)
               CreateWinlessPopupSurrogate();
-          if (mQuirks & QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)
+          if (GetQuirks() & PluginModuleChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)
               SetupFlashMsgThrottle();
           return SharedSurfaceSetWindow(aWindow);
       break;
@@ -1193,7 +1172,7 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
       self->CallPluginFocusChange(false);
 
     if (message == WM_USER+1 &&
-        (self->mQuirks & PluginInstanceChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)) {
+        (self->GetQuirks() & PluginModuleChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)) {
         self->FlashThrottleMessage(hWnd, message, wParam, lParam, true);
         return 0;
     }
@@ -1361,7 +1340,7 @@ PluginInstanceChild::HookSetWindowLongPtr()
     return;
 #endif
 
-    if (!(GetQuirks() & QUIRK_FLASH_HOOK_SETLONGPTR))
+    if (!(GetQuirks() & PluginModuleChild::QUIRK_FLASH_HOOK_SETLONGPTR))
         return;
 
     sUser32Intercept.Init("user32.dll");
@@ -1444,7 +1423,7 @@ PluginInstanceChild::TrackPopupHookProc(HMENU hMenu,
 void
 PluginInstanceChild::InitPopupMenuHook()
 {
-    if (!(mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK) ||
+    if (!(GetQuirks() & PluginModuleChild::QUIRK_WINLESS_TRACKPOPUP_HOOK) ||
         sUser32TrackPopupMenuStub)
         return;
 
@@ -1544,7 +1523,7 @@ PluginInstanceChild::WinlessHandleEvent(NPEvent& event)
     
     
     
-    if ((mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK) && 
+    if ((GetQuirks() & PluginModuleChild::QUIRK_WINLESS_TRACKPOPUP_HOOK) && 
           (event.event == WM_RBUTTONDOWN || 
            event.event == WM_RBUTTONUP)) {  
       sWinlessPopupSurrogateHWND = mWinlessPopupSurrogateHWND;
@@ -2228,7 +2207,7 @@ PluginInstanceChild::DoAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
     mWindow.clipRect = aWindow.clipRect;
     mWindow.type = aWindow.type;
 
-    if (mQuirks & QUIRK_SILVERLIGHT_DEFAULT_TRANSPARENT)
+    if (GetQuirks() & PluginModuleChild::QUIRK_SILVERLIGHT_DEFAULT_TRANSPARENT)
         mIsTransparent = true;
 
     mLayersRendering = true;
@@ -2236,9 +2215,9 @@ PluginInstanceChild::DoAsyncSetWindow(const gfxSurfaceType& aSurfaceType,
     UpdateWindowAttributes(true);
 
 #ifdef XP_WIN
-    if (mQuirks & QUIRK_WINLESS_TRACKPOPUP_HOOK)
+    if (GetQuirks() & PluginModuleChild::QUIRK_WINLESS_TRACKPOPUP_HOOK)
         CreateWinlessPopupSurrogate();
-    if (mQuirks & QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)
+    if (GetQuirks() & PluginModuleChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)
         SetupFlashMsgThrottle();
 #endif
 

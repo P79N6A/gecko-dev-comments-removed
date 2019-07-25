@@ -183,7 +183,7 @@ protected:
     AnswerUpdateWindow();
 
 public:
-    PluginInstanceChild(const NPPluginFuncs* aPluginIface, const nsCString& aMimeType);
+    PluginInstanceChild(const NPPluginFuncs* aPluginIface);
 
     virtual ~PluginInstanceChild();
 
@@ -214,29 +214,10 @@ public:
 
     void AsyncCall(PluginThreadCallback aFunc, void* aUserData);
 
-    int GetQuirks() { return mQuirks; }
-
-    
-    enum PluginQuirks {
-        
-        
-        QUIRK_SILVERLIGHT_DEFAULT_TRANSPARENT           = 1 << 0,
-        
-        
-        
-        QUIRK_WINLESS_TRACKPOPUP_HOOK                   = 1 << 1,
-        
-        
-        
-        QUIRK_FLASH_THROTTLE_WMUSER_EVENTS              = 1 << 2,
-        
-        QUIRK_FLASH_HOOK_SETLONGPTR                     = 1 << 3,
-    };
+    int GetQuirks();
 
 private:
     friend class PluginModuleChild;
-
-    void InitQuirksModes(const nsCString& aMimeType);
 
     NPError
     InternalGetNPObjectForValue(NPNVariable aValue,
@@ -334,7 +315,6 @@ private:
     const NPPluginFuncs* mPluginIface;
     NPP_t mData;
     NPWindow mWindow;
-    int mQuirks;
 
     
     PluginScriptableObjectChild* mCachedWindowActor;

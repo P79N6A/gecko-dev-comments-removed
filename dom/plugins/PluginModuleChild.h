@@ -205,7 +205,33 @@ public:
     }
 #endif
 
+    
+    enum PluginQuirks {
+        QUIRKS_NOT_INITIALIZED                          = 0,
+        
+        
+        QUIRK_SILVERLIGHT_DEFAULT_TRANSPARENT           = 1 << 0,
+        
+        
+        
+        QUIRK_WINLESS_TRACKPOPUP_HOOK                   = 1 << 1,
+        
+        
+        
+        QUIRK_FLASH_THROTTLE_WMUSER_EVENTS              = 1 << 2,
+        
+        QUIRK_FLASH_HOOK_SETLONGPTR                     = 1 << 3,
+    };
+
+    int GetQuirks() { return mQuirks; }
+    void AddQuirk(PluginQuirks quirk) {
+      if (mQuirks == QUIRKS_NOT_INITIALIZED)
+        mQuirks = 0;
+      mQuirks |= quirk;
+    }
+
 private:
+    void InitQuirksModes(const nsCString& aMimeType);
     bool InitGraphics();
 #if defined(MOZ_WIDGET_GTK2)
     static gboolean DetectNestedEventLoop(gpointer data);
@@ -226,6 +252,7 @@ private:
     std::string mPluginFilename;
     PRLibrary* mLibrary;
     nsCString mUserAgent;
+    int mQuirks;
 
     
     NP_PLUGINSHUTDOWN mShutdownFunc;
