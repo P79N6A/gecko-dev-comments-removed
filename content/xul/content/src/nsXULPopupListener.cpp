@@ -84,7 +84,7 @@ using namespace mozilla;
 
 
 
-#if !defined(XP_WIN) && !defined(XP_OS2)
+#if defined(XP_WIN) || defined(XP_OS2)
 #define NS_CONTEXT_MENU_IS_MOUSEUP 1
 #endif
 
