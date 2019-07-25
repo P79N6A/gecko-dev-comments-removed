@@ -70,12 +70,6 @@ public:
 
     virtual gfxFontGroup *Copy(const gfxFontStyle *aStyle);
 
-    
-    virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags);
-    virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags);
-
     virtual gfxFont *GetFontAt(PRInt32 i);
 
     virtual void UpdateFontList();
@@ -98,17 +92,14 @@ public:
     
 
     
-    PangoFont *GetBasePangoFont();
-
-    
     PangoLanguage *GetPangoLanguage() { return mPangoLanguage; }
 
+private:
     
     
     
     gfxFcFontSet *GetFontSet(PangoLanguage *aLang = NULL);
 
-private:
     class FontSetByLangEntry {
     public:
         FontSetByLangEntry(PangoLanguage *aLang, gfxFcFontSet *aFontSet);
@@ -122,19 +113,6 @@ private:
     gfxFloat mSizeAdjustFactor;
     PangoLanguage *mPangoLanguage;
 
-    
-
-    
-
-
-
-
-
-    void InitTextRun(gfxTextRun *aTextRun, const PRUnichar *aString,
-                     PRUint32 aLength, PRBool aTake8BitPath);
-
-    void CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
-                                  const PRUnichar *aString, PRUint32 aLength);
 #if defined(ENABLE_FAST_PATH_8BIT)
     nsresult CreateGlyphRunsFast(gfxTextRun *aTextRun,
                                  const PRUnichar *aString, PRUint32 aLength);
