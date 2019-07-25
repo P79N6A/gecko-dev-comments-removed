@@ -75,6 +75,16 @@ private:
   void ScheduleComposition();
   void Composite();
 
+  
+#ifdef MOZ_WIDGET_ANDROID
+  
+
+
+
+
+  void RegisterCompositorWithJava();
+#endif
+
   nsRefPtr<LayerManager> mLayerManager;
   bool mStopped;
   nsIWidget* mWidget;

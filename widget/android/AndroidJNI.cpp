@@ -65,8 +65,9 @@
 #include "mozilla/dom/sms/Constants.h"
 #include "mozilla/dom/sms/Types.h"
 #include "mozilla/dom/sms/PSms.h"
+#include "mozilla/dom/sms/SmsRequestManager.h"
+#include "mozilla/dom/sms/SmsRequest.h"
 #include "mozilla/dom/sms/SmsParent.h"
-#include "nsISmsRequestManager.h"
 #include "nsISmsDatabaseService.h"
 
 using namespace mozilla;
@@ -105,7 +106,10 @@ extern "C" {
 
 #ifdef MOZ_JAVA_COMPOSITOR
     NS_EXPORT void JNICALL Java_org_mozilla_gecko_GeckoAppShell_bindWidgetTexture(JNIEnv* jenv, jclass);
+    NS_EXPORT bool JNICALL Java_org_mozilla_gecko_GeckoAppShell_testDirectTexture(JNIEnv* jenv, jclass);
 #endif
+
+    NS_EXPORT void JNICALL Java_org_mozilla_gfx_layers_OGLSurfaceView_setSurfaceView(JNIEnv *jenv, jclass, jobject sv);
 }
 
 
@@ -137,6 +141,12 @@ Java_org_mozilla_gecko_GeckoAppShell_processNextNativeEvent(JNIEnv *jenv, jclass
 
 NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_setSurfaceView(JNIEnv *jenv, jclass, jobject obj)
+{
+    AndroidBridge::Bridge()->SetSurfaceView(jenv->NewGlobalRef(obj));
+}
+
+NS_EXPORT void JNICALL
+Java_org_mozilla_gfx_layers_OGLSurfaceView_setSurfaceView(JNIEnv *jenv, jclass, jobject obj)
 {
     AndroidBridge::Bridge()->SetSurfaceView(jenv->NewGlobalRef(obj));
 }
@@ -205,26 +215,24 @@ Java_org_mozilla_gecko_GeckoAppShell_onChangeNetworkLinkStatus(JNIEnv *jenv, jcl
 }
 
 NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_reportJavaCrash(JNIEnv *jenv, jclass, jstring jStackTrace)
+Java_org_mozilla_gecko_GeckoAppShell_reportJavaCrash(JNIEnv *jenv, jclass, jstring stack)
 {
 #ifdef MOZ_CRASHREPORTER
-    const nsJNIString stackTrace16(jStackTrace, jenv);
-    const NS_ConvertUTF16toUTF8 stackTrace8(stackTrace16);
-    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("JavaStackTrace"), stackTrace8);
-#endif 
-
+    nsJNIString javaStack(stack, jenv);
+    CrashReporter::AppendAppNotesToCrashReport(NS_ConvertUTF16toUTF8(javaStack));
+#endif
     abort();
 }
 
 NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_executeNextRunnable(JNIEnv *jenv, jclass)
+Java_org_mozilla_gecko_GeckoAppShell_executeNextRunnable(JNIEnv *, jclass)
 {
     __android_log_print(ANDROID_LOG_INFO, "GeckoJNI", "%s", __PRETTY_FUNCTION__);
     if (!AndroidBridge::Bridge()) {
         __android_log_print(ANDROID_LOG_INFO, "GeckoJNI", "no bridge in %s!!!!", __PRETTY_FUNCTION__);
         return;
     }
-    AndroidBridge::Bridge()->ExecuteNextRunnable(jenv);
+    AndroidBridge::Bridge()->ExecuteNextRunnable();
     __android_log_print(ANDROID_LOG_INFO, "GeckoJNI", "leaving %s", __PRETTY_FUNCTION__);
 }
 
@@ -344,11 +352,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsSent(JNIEnv* jenv, jclass,
         obs->NotifyObservers(message, kSmsSentObserverTopic, nsnull);
 
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifySmsSent(mRequestId, message);
-          }
+          SmsRequestManager::GetInstance()->NotifySmsSent(mRequestId, message);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -422,9 +426,8 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsSendFailed(JNIEnv* jenv, jclass,
 {
     class NotifySmsSendFailedRunnable : public nsRunnable {
     public:
-      NotifySmsSendFailedRunnable(PRInt32 aError,
-                                  PRInt32 aRequestId,
-                                  PRUint64 aProcessId)
+      NotifySmsSendFailedRunnable(SmsRequest::ErrorType aError,
+                                  PRInt32 aRequestId, PRUint64 aProcessId)
         : mError(aError)
         , mRequestId(aRequestId)
         , mProcessId(aProcessId)
@@ -432,11 +435,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsSendFailed(JNIEnv* jenv, jclass,
 
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifySmsSendFailed(mRequestId, mError);
-          }
+          SmsRequestManager::GetInstance()->NotifySmsSendFailed(mRequestId, mError);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -452,14 +451,14 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsSendFailed(JNIEnv* jenv, jclass,
       }
 
     private:
-      PRInt32  mError;
-      PRInt32  mRequestId;
-      PRUint64 mProcessId;
+      SmsRequest::ErrorType mError;
+      PRInt32               mRequestId;
+      PRUint64              mProcessId;
     };
 
 
     nsCOMPtr<nsIRunnable> runnable =
-      new NotifySmsSendFailedRunnable(aError, aRequestId, aProcessId);
+      new NotifySmsSendFailedRunnable(SmsRequest::ErrorType(aError), aRequestId, aProcessId);
     NS_DispatchToMainThread(runnable);
 }
 
@@ -485,11 +484,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGetSms(JNIEnv* jenv, jclass,
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
           nsCOMPtr<nsIDOMMozSmsMessage> message = new SmsMessage(mMessageData);
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifyGotSms(mRequestId, message);
-          }
+          SmsRequestManager::GetInstance()->NotifyGotSms(mRequestId, message);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -529,9 +524,8 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGetSmsFailed(JNIEnv* jenv, jclass,
 {
     class NotifyGetSmsFailedRunnable : public nsRunnable {
     public:
-      NotifyGetSmsFailedRunnable(PRInt32 aError,
-                                 PRInt32 aRequestId,
-                                 PRUint64 aProcessId)
+      NotifyGetSmsFailedRunnable(SmsRequest::ErrorType aError,
+                                  PRInt32 aRequestId, PRUint64 aProcessId)
         : mError(aError)
         , mRequestId(aRequestId)
         , mProcessId(aProcessId)
@@ -539,11 +533,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGetSmsFailed(JNIEnv* jenv, jclass,
 
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifyGetSmsFailed(mRequestId, mError);
-          }
+          SmsRequestManager::GetInstance()->NotifyGetSmsFailed(mRequestId, mError);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -559,14 +549,14 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGetSmsFailed(JNIEnv* jenv, jclass,
       }
 
     private:
-      PRInt32  mError;
-      PRInt32  mRequestId;
-      PRUint64 mProcessId;
+      SmsRequest::ErrorType mError;
+      PRInt32               mRequestId;
+      PRUint64              mProcessId;
     };
 
 
     nsCOMPtr<nsIRunnable> runnable =
-      new NotifyGetSmsFailedRunnable(aError, aRequestId, aProcessId);
+      new NotifyGetSmsFailedRunnable(SmsRequest::ErrorType(aError), aRequestId, aProcessId);
     NS_DispatchToMainThread(runnable);
 }
 
@@ -587,11 +577,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsDeleted(JNIEnv* jenv, jclass,
 
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifySmsDeleted(mRequestId, mDeleted);
-          }
+          SmsRequestManager::GetInstance()->NotifySmsDeleted(mRequestId, mDeleted);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -626,9 +612,8 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsDeleteFailed(JNIEnv* jenv, jclass,
 {
     class NotifySmsDeleteFailedRunnable : public nsRunnable {
     public:
-      NotifySmsDeleteFailedRunnable(PRInt32 aError,
-                                    PRInt32 aRequestId,
-                                    PRUint64 aProcessId)
+      NotifySmsDeleteFailedRunnable(SmsRequest::ErrorType aError,
+                                    PRInt32 aRequestId, PRUint64 aProcessId)
         : mError(aError)
         , mRequestId(aRequestId)
         , mProcessId(aProcessId)
@@ -636,11 +621,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsDeleteFailed(JNIEnv* jenv, jclass,
 
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifySmsDeleteFailed(mRequestId, mError);
-          }
+          SmsRequestManager::GetInstance()->NotifySmsDeleteFailed(mRequestId, mError);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -656,14 +637,14 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsDeleteFailed(JNIEnv* jenv, jclass,
       }
 
     private:
-      PRInt32  mError;
-      PRInt32  mRequestId;
-      PRUint64 mProcessId;
+      SmsRequest::ErrorType mError;
+      PRInt32               mRequestId;
+      PRUint64              mProcessId;
     };
 
 
     nsCOMPtr<nsIRunnable> runnable =
-      new NotifySmsDeleteFailedRunnable(aError, aRequestId, aProcessId);
+      new NotifySmsDeleteFailedRunnable(SmsRequest::ErrorType(aError), aRequestId, aProcessId);
     NS_DispatchToMainThread(runnable);
 }
 
@@ -681,11 +662,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyNoMessageInList(JNIEnv* jenv, jclass,
 
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifyNoMessageInList(mRequestId);
-          }
+          SmsRequestManager::GetInstance()->NotifyNoMessageInList(mRequestId);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -735,13 +712,9 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyListCreated(JNIEnv* jenv, jclass,
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
           nsCOMPtr<nsIDOMMozSmsMessage> message = new SmsMessage(mMessage);
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifyCreateMessageList(mRequestId,
-                                                    mListId,
-                                                    message);
-          }
+          SmsRequestManager::GetInstance()->NotifyCreateMessageList(mRequestId,
+                                                                    mListId,
+                                                                    message);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -799,11 +772,8 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGotNextMessage(JNIEnv* jenv, jclass,
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
           nsCOMPtr<nsIDOMMozSmsMessage> message = new SmsMessage(mMessage);
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifyGotNextMessage(mRequestId, message);
-          }
+          SmsRequestManager::GetInstance()->NotifyGotNextMessage(mRequestId,
+                                                                 message);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -845,9 +815,8 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyReadingMessageListFailed(JNIEnv* jenv
 {
     class NotifyReadListFailedRunnable : public nsRunnable {
     public:
-      NotifyReadListFailedRunnable(PRInt32 aError,
-                                   PRInt32 aRequestId,
-                                   PRUint64 aProcessId)
+      NotifyReadListFailedRunnable(SmsRequest::ErrorType aError,
+                                    PRInt32 aRequestId, PRUint64 aProcessId)
         : mError(aError)
         , mRequestId(aRequestId)
         , mProcessId(aProcessId)
@@ -855,11 +824,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyReadingMessageListFailed(JNIEnv* jenv
 
       NS_IMETHODIMP Run() {
         if (mProcessId == 0) { 
-          nsCOMPtr<nsISmsRequestManager> requestManager
-            = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
-          if (requestManager) {
-            requestManager->NotifyReadMessageListFailed(mRequestId, mError);
-          }
+          SmsRequestManager::GetInstance()->NotifyReadMessageListFailed(mRequestId, mError);
         } else { 
           nsTArray<SmsParent*> spList;
           SmsParent::GetAll(spList);
@@ -875,14 +840,14 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyReadingMessageListFailed(JNIEnv* jenv
       }
 
     private:
-      PRInt32  mError;
-      PRInt32  mRequestId;
-      PRUint64 mProcessId;
+      SmsRequest::ErrorType mError;
+      PRInt32               mRequestId;
+      PRUint64              mProcessId;
     };
 
 
     nsCOMPtr<nsIRunnable> runnable =
-      new NotifyReadListFailedRunnable(aError, aRequestId, aProcessId);
+      new NotifyReadListFailedRunnable(SmsRequest::ErrorType(aError), aRequestId, aProcessId);
     NS_DispatchToMainThread(runnable);
 }
 
@@ -892,6 +857,12 @@ NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_bindWidgetTexture(JNIEnv* jenv, jclass)
 {
     nsWindow::BindToTexture();
+}
+
+NS_EXPORT bool JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_testDirectTexture(JNIEnv* jenv, jclass)
+{
+    return nsWindow::HasDirectTexture();
 }
 
 #endif

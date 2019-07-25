@@ -40,17 +40,17 @@ package org.mozilla.gecko.gfx;
 import org.mozilla.gecko.gfx.FloatSize;
 import org.mozilla.gecko.gfx.InputConnectionHandler;
 import org.mozilla.gecko.gfx.LayerController;
-import org.mozilla.gecko.ui.SimpleScaleGestureDetector;
+import org.mozilla.gecko.GeckoInputConnection;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.view.View;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
-import android.util.Log;
-import java.nio.IntBuffer;
-import java.util.LinkedList;
+import android.view.ScaleGestureDetector;
+import android.widget.RelativeLayout;
 
 
 
@@ -58,19 +58,15 @@ import java.util.LinkedList;
 
 
 
-public class LayerView extends GLSurfaceView {
+public class LayerView extends GLSurfaceView implements AbstractLayerView {
     private Context mContext;
     private LayerController mController;
     private InputConnectionHandler mInputConnectionHandler;
     private LayerRenderer mRenderer;
     private GestureDetector mGestureDetector;
-    private SimpleScaleGestureDetector mScaleGestureDetector;
+    private ScaleGestureDetector mScaleGestureDetector;
     private long mRenderTime;
     private boolean mRenderTimeReset;
-    private static String LOGTAG = "GeckoLayerView";
-    
-    private LinkedList<MotionEvent> mEventQueue = new LinkedList<MotionEvent>();
-
 
     public LayerView(Context context, LayerController controller) {
         super(context);
@@ -81,8 +77,7 @@ public class LayerView extends GLSurfaceView {
         setRenderer(mRenderer);
         setRenderMode(RENDERMODE_WHEN_DIRTY);
         mGestureDetector = new GestureDetector(context, controller.getGestureListener());
-        mScaleGestureDetector =
-            new SimpleScaleGestureDetector(controller.getScaleGestureListener());
+        mScaleGestureDetector = new ScaleGestureDetector(context, controller.getScaleGestureListener());
         mGestureDetector.setOnDoubleTapListener(controller.getDoubleTapListener());
         mInputConnectionHandler = null;
 
@@ -90,40 +85,14 @@ public class LayerView extends GLSurfaceView {
         setFocusableInTouchMode(true);
     }
 
-    private void addToEventQueue(MotionEvent event) {
-        MotionEvent copy = MotionEvent.obtain(event);
-        mEventQueue.add(copy);
-    }
-
-    public void processEventQueue() {
-        MotionEvent event = mEventQueue.poll();
-        while(event != null) {
-            processEvent(event);
-            event = mEventQueue.poll();
-        }
-    }
-
-    public void clearEventQueue() {
-        mEventQueue.clear();
-    }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (mController.onTouchEvent(event)) {
-            addToEventQueue(event);
-            return true;
-        }
-        return processEvent(event);
-    }
-
-    private boolean processEvent(MotionEvent event) {
         if (mGestureDetector.onTouchEvent(event))
             return true;
         mScaleGestureDetector.onTouchEvent(event);
         if (mScaleGestureDetector.isInProgress())
             return true;
-        mController.getPanZoomController().onTouchEvent(event);
-        return true;
+        return mController.onTouchEvent(event);
     }
 
     public LayerController getController() { return mController; }
@@ -133,8 +102,10 @@ public class LayerView extends GLSurfaceView {
         mController.setViewportSize(new FloatSize(size));
     }
 
-    public void setInputConnectionHandler(InputConnectionHandler handler) {
-        mInputConnectionHandler = handler;
+    public GeckoInputConnection setInputConnectionHandler() {
+        mInputConnectionHandler = GeckoInputConnection.create(this);
+        setInputConnectionHandler(mInputConnectionHandler);
+        return mInputConnectionHandler;
     }
 
     @Override
@@ -191,14 +162,6 @@ public class LayerView extends GLSurfaceView {
         }
     }
 
-    public void addLayer(Layer layer) {
-        mRenderer.addLayer(layer);
-    }
-
-    public void removeLayer(Layer layer) {
-        mRenderer.removeLayer(layer);
-    }
-
     
 
 
@@ -214,9 +177,8 @@ public class LayerView extends GLSurfaceView {
         return mRenderer.getMaxTextureSize();
     }
 
-    
-    public IntBuffer getPixels() {
-        return mRenderer.getPixels();
+    public View getAndroidView() {
+        return this;
     }
 }
 

@@ -41,7 +41,6 @@ package org.mozilla.gecko.gfx;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.util.Log;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.microedition.khronos.opengles.GL10;
@@ -50,12 +49,11 @@ import org.mozilla.gecko.FloatUtils;
 public abstract class Layer {
     private final ReentrantLock mTransactionLock;
     private boolean mInTransaction;
+    private Point mOrigin;
     private Point mNewOrigin;
+    private float mResolution;
     private float mNewResolution;
-    private LayerView mView;
-
-    protected Point mOrigin;
-    protected float mResolution;
+    private AbstractLayerView mView;
 
     public Layer() {
         mTransactionLock = new ReentrantLock();
@@ -103,18 +101,9 @@ public abstract class Layer {
 
 
 
-    public Region getValidRegion(RenderContext context) {
-        return new Region(RectUtils.round(getBounds(context, new FloatSize(getSize()))));
-    }
-
-    
 
 
-
-
-
-
-    public void beginTransaction(LayerView aView) {
+    public void beginTransaction(AbstractLayerView aView) {
         if (mTransactionLock.isHeldByCurrentThread())
             throw new RuntimeException("Nested transactions are not supported");
         mTransactionLock.lock();

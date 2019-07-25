@@ -41,18 +41,13 @@ package org.mozilla.gecko.gfx;
 import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.Layer;
 import org.mozilla.gecko.gfx.LayerClient;
-import org.mozilla.gecko.gfx.LayerView;
+import org.mozilla.gecko.gfx.AbstractLayerView;
 import org.mozilla.gecko.ui.PanZoomController;
-import org.mozilla.gecko.ui.SimpleScaleGestureDetector;
 import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoEvent;
-import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.Tab;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -62,10 +57,7 @@ import android.view.MotionEvent;
 import android.view.GestureDetector;
 import android.view.ScaleGestureDetector;
 import android.view.View.OnTouchListener;
-import android.view.ViewConfiguration;
 import java.lang.Math;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 
@@ -74,14 +66,13 @@ import java.util.TimerTask;
 
 
 
-public class LayerController implements Tabs.OnTabsChangedListener {
+public class LayerController {
     private static final String LOGTAG = "GeckoLayerController";
 
     private Layer mRootLayer;                   
-    private LayerView mView;                    
+    private AbstractLayerView mView;            
     private Context mContext;                   
     private ViewportMetrics mViewportMetrics;   
-    private boolean mWaitForTouchListeners;
 
     private PanZoomController mPanZoomController;
     
@@ -89,12 +80,8 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
 
 
-    private OnTouchListener mOnTouchListener;       
-    private LayerClient mLayerClient;               
-
-    
-    private int mCheckerboardColor;
-    private boolean mCheckerboardShouldShowChecks;
+    private OnTouchListener mOnTouchListener;   
+    private LayerClient mLayerClient;           
 
     private boolean mForceRedraw;
 
@@ -109,14 +96,6 @@ public class LayerController implements Tabs.OnTabsChangedListener {
     private static final int DANGER_ZONE_X = 75;
     private static final int DANGER_ZONE_Y = 150;
 
-    
-
-    private int mTimeout = 200;
-
-    private boolean allowDefaultActions = true;
-    private Timer allowDefaultTimer =  null;
-    private PointF initialTouchLocation = null;
-
     public LayerController(Context context) {
         mContext = context;
 
@@ -124,15 +103,6 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         mViewportMetrics = new ViewportMetrics();
         mPanZoomController = new PanZoomController(this);
         mView = new LayerView(context, this);
-
-        Tabs.getInstance().registerOnTabsChangedListener(this);
-
-        ViewConfiguration vc = ViewConfiguration.get(mContext); 
-        mTimeout = vc.getLongPressTimeout();
-    }
-
-    public void onDestroy() {
-        Tabs.getInstance().unregisterOnTabsChangedListener(this);
     }
 
     public void setRoot(Layer layer) { mRootLayer = layer; }
@@ -148,7 +118,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
     public LayerClient getLayerClient()           { return mLayerClient; }
     public Layer getRoot()                        { return mRootLayer; }
-    public LayerView getView()                    { return mView; }
+    public AbstractLayerView getView()            { return mView; }
     public Context getContext()                   { return mContext; }
     public ViewportMetrics getViewportMetrics()   { return mViewportMetrics; }
 
@@ -172,14 +142,11 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         return mViewportMetrics.getZoomFactor();
     }
 
-    public Bitmap getBackgroundPattern()    { return getDrawable("background"); }
+    public Bitmap getCheckerboardPattern()  { return getDrawable("checkerboard"); }
     public Bitmap getShadowPattern()        { return getDrawable("shadow"); }
 
-    public PanZoomController getPanZoomController()                                 { return mPanZoomController; }
     public GestureDetector.OnGestureListener getGestureListener()                   { return mPanZoomController; }
-    public SimpleScaleGestureDetector.SimpleScaleGestureListener getScaleGestureListener() {
-        return mPanZoomController;
-    }
+    public ScaleGestureDetector.OnScaleGestureListener getScaleGestureListener()    { return mPanZoomController; }
     public GestureDetector.OnDoubleTapListener getDoubleTapListener()               { return mPanZoomController; }
 
     private Bitmap getDrawable(String name) {
@@ -199,30 +166,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
 
     public void setViewportSize(FloatSize size) {
-        
-        
-        float oldHeight = mViewportMetrics.getSize().height;
-        float oldWidth = mViewportMetrics.getSize().width;
-        float oldZoomFactor = mViewportMetrics.getZoomFactor();
         mViewportMetrics.setSize(size);
-
-        
-        
-        
-        
-        
-        if (size.width >= oldWidth && size.height >= oldHeight) {
-            FloatSize pageSize = mViewportMetrics.getPageSize();
-            if (pageSize.width < size.width || pageSize.height < size.height) {
-                mViewportMetrics.setPageSize(new FloatSize(Math.max(pageSize.width, size.width),
-                                                           Math.max(pageSize.height, size.height)));
-            }
-        }
-
-        PointF newFocus = new PointF(size.width / 2.0f, size.height / 2.0f);
-        float newZoomFactor = size.width * oldZoomFactor / oldWidth;
-        mViewportMetrics.scaleTo(newZoomFactor, newFocus);
-
         Log.d(LOGTAG, "setViewportSize: " + mViewportMetrics);
         setForceRedraw();
 
@@ -256,13 +200,7 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
         
         
-
-        mView.post(new Runnable() {
-            public void run() {
-                mPanZoomController.pageSizeUpdated();
-                mView.requestRender();
-            }
-        });
+        mView.requestRender();
     }
 
     
@@ -347,6 +285,11 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         return new RectF(x, y, x + layerSize.width, y + layerSize.height);
     }
 
+    public RectF restrictToPageSize(RectF aRect) {
+        FloatSize pageSize = getPageSize();
+        return RectUtils.restrict(aRect, new RectF(0, 0, pageSize.width, pageSize.height));
+    }
+
     
     private boolean aboutToCheckerboard() {
         
@@ -389,96 +332,11 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
 
     public boolean onTouchEvent(MotionEvent event) {
-        int action = event.getAction();
-        PointF point = new PointF(event.getX(), event.getY());
-
-        
-        if ((action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
-            initialTouchLocation = point;
-            allowDefaultActions = !mWaitForTouchListeners;
-
-            
-            
-            if (allowDefaultTimer != null) {
-              allowDefaultTimer.cancel();
-            } else {
-              
-              mView.clearEventQueue();
-            }
-            allowDefaultTimer = new Timer();
-            allowDefaultTimer.schedule(new TimerTask() {
-                public void run() {
-                    post(new Runnable() {
-                        public void run() {
-                            preventPanning(false);
-                        }
-                    });
-                }
-            }, mTimeout);
-        }
-
-        
-        if (initialTouchLocation != null && (action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_MOVE) {
-            if (PointUtils.subtract(point, initialTouchLocation).length() > PanZoomController.PAN_THRESHOLD) {
-                initialTouchLocation = null;
-            } else {
-                return !allowDefaultActions;
-            }
-        }
-
-        
+        if (mPanZoomController.onTouchEvent(event))
+            return true;
         if (mOnTouchListener != null)
-            mOnTouchListener.onTouch(mView, event);
-
-        return !allowDefaultActions;
-    }
-
-    public void preventPanning(boolean aValue) {
-        if (allowDefaultTimer != null) {
-            allowDefaultTimer.cancel();
-            allowDefaultTimer = null;
-        }
-        if (aValue == allowDefaultActions) {
-            allowDefaultActions = !aValue;
-    
-            if (aValue) {
-                mView.clearEventQueue();
-                mPanZoomController.cancelTouch();
-            } else {
-                mView.processEventQueue();
-            }
-        }
-    }
-
-    public void onTabChanged(Tab tab, Tabs.TabEvents msg) {
-        if ((Tabs.getInstance().isSelectedTab(tab) && msg == Tabs.TabEvents.STOP) || msg == Tabs.TabEvents.SELECTED) {
-            mWaitForTouchListeners = tab.getHasTouchListeners();
-        }
-    }
-    public void setWaitForTouchListeners(boolean aValue) {
-        mWaitForTouchListeners = aValue;
-    }
-
-    
-    public boolean checkerboardShouldShowChecks() {
-        return mCheckerboardShouldShowChecks;
-    }
-
-    
-    public int getCheckerboardColor() {
-        return mCheckerboardColor;
-    }
-
-    
-    public void setCheckerboardShowChecks(boolean showChecks) {
-        mCheckerboardShouldShowChecks = showChecks;
-        mView.requestRender();
-    }
-
-    
-    public void setCheckerboardColor(int newColor) {
-        mCheckerboardColor = newColor;
-        mView.requestRender();
+            return mOnTouchListener.onTouch(mView.getAndroidView(), event);
+        return false;
     }
 }
 
