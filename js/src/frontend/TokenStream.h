@@ -413,6 +413,20 @@ enum TokenStreamFlags
 
 struct Parser;
 
+struct CompileError {
+    JSContext *cx;
+    JSErrorReport report;
+    char *message;
+    bool hasCharArgs;
+    CompileError(JSContext *cx)
+     : cx(cx), message(NULL), hasCharArgs(false)
+    {
+        PodZero(&report);
+    }
+    ~CompileError();
+    void throwError();
+};
+
 
 
 

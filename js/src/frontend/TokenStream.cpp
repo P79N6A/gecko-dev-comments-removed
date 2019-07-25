@@ -407,65 +407,87 @@ TokenStream::reportStrictModeErrorNumberVA(ParseNode *pn, unsigned errorNumber, 
     return reportCompileErrorNumberVA(pn, flags, errorNumber, args);
 }
 
+void
+CompileError::throwError()
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    if (!js_ErrorToException(cx, message, &report, NULL, NULL)) {
+        
+
+
+
+        bool reportError = true;
+        if (JSDebugErrorHook hook = cx->runtime->debugHooks.debugErrorHook) {
+            reportError = hook(cx, message, &report, cx->runtime->debugHooks.debugErrorHookData);
+        }
+
+        
+        if (reportError && cx->errorReporter)
+            cx->errorReporter(cx, message, &report);
+    }
+}
+
+CompileError::~CompileError()
+{
+    cx->free_((void*)report.uclinebuf);
+    cx->free_((void*)report.linebuf);
+    cx->free_((void*)report.ucmessage);
+    cx->free_(message);
+    message = NULL;
+
+    if (report.messageArgs) {
+        if (hasCharArgs) {
+            unsigned i = 0;
+            while (report.messageArgs[i])
+                cx->free_((void*)report.messageArgs[i++]);
+        }
+        cx->free_(report.messageArgs);
+    }
+
+    PodZero(&report);
+}
+
 bool
 TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned errorNumber,
                                         va_list args)
 {
-    class ReportManager
-    {
-        JSContext *cx;
-        JSErrorReport *report;
-        bool hasCharArgs;
+    bool strict = JSREPORT_IS_STRICT(flags);
+    bool warning = JSREPORT_IS_WARNING(flags);
 
-      public:
-        char *message;
-
-        ReportManager(JSContext *cx, JSErrorReport *report, bool hasCharArgs)
-          : cx(cx), report(report), hasCharArgs(hasCharArgs), message(NULL)
-        {}
-
-        ~ReportManager() {
-            cx->free_((void*)report->uclinebuf);
-            cx->free_((void*)report->linebuf);
-            cx->free_(message);
-            cx->free_((void*)report->ucmessage);
-
-            if (report->messageArgs) {
-                if (hasCharArgs) {
-                    unsigned i = 0;
-                    while (report->messageArgs[i])
-                        cx->free_((void *)report->messageArgs[i++]);
-                }
-                cx->free_((void *)report->messageArgs);
-            }
-        }
-    };
-
-    if (JSREPORT_IS_STRICT(flags) && !cx->hasStrictOption())
+    if (strict && !cx->hasStrictOption())
         return true;
 
-    bool warning = JSREPORT_IS_WARNING(flags);
     if (warning && cx->hasWErrorOption()) {
         flags &= ~JSREPORT_WARNING;
         warning = false;
     }
 
+    CompileError normalError(cx);
+    CompileError *err = &normalError;
     const TokenPos *const tp = pn ? &pn->pn_pos : &currentToken().pos;
 
-    JSErrorReport report;
-    PodZero(&report);
-    report.flags = flags;
-    report.errorNumber = errorNumber;
-    report.filename = filename;
-    report.originPrincipals = originPrincipals;
-    report.lineno = tp->begin.lineno;
+    err->report.flags = flags;
+    err->report.errorNumber = errorNumber;
+    err->report.filename = filename;
+    err->report.originPrincipals = originPrincipals;
+    err->report.lineno = tp->begin.lineno;
 
-    bool hasCharArgs = !(flags & JSREPORT_UC);
+    err->hasCharArgs = !(flags & JSREPORT_UC);
 
-    ReportManager mgr(cx, &report, hasCharArgs);
-
-    if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, NULL, errorNumber, &mgr.message, &report,
-                                 hasCharArgs, args)) {
+    if (!js_ExpandErrorArguments(cx, js_GetErrorMessage, NULL, errorNumber, &err->message, &err->report,
+                                 err->hasCharArgs, args)) {
         return false;
     }
 
@@ -479,7 +501,7 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
 
 
 
-    if (report.lineno == lineno) {
+    if (err->report.lineno == lineno) {
         const jschar *tokptr = linebase + tp->begin.index;
 
         
@@ -508,47 +530,20 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, unsigned flags, unsigned 
 
         
         
-        report.uclinebuf = windowBuf.extractWellSized();
-        if (!report.uclinebuf)
+        err->report.uclinebuf = windowBuf.extractWellSized();
+        if (!err->report.uclinebuf)
             return false;
-        report.linebuf = DeflateString(cx, report.uclinebuf, windowLength);
-        if (!report.linebuf)
+        err->report.linebuf = DeflateString(cx, err->report.uclinebuf, windowLength);
+        if (!err->report.linebuf)
             return false;
 
         
         JS_ASSERT(tp->begin.lineno == tp->end.lineno);
-        report.tokenptr = report.linebuf + windowIndex;
-        report.uctokenptr = report.uclinebuf + windowIndex;
+        err->report.tokenptr = err->report.linebuf + windowIndex;
+        err->report.uctokenptr = err->report.uclinebuf + windowIndex;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    if (!js_ErrorToException(cx, mgr.message, &report, NULL, NULL)) {
-        
-
-
-
-        bool reportError = true;
-        if (JSDebugErrorHook hook = cx->runtime->debugHooks.debugErrorHook) {
-            reportError = hook(cx, mgr.message, &report,
-                               cx->runtime->debugHooks.debugErrorHookData);
-        }
-
-        
-        if (reportError && cx->errorReporter)
-            cx->errorReporter(cx, mgr.message, &report);
-    }
+    err->throwError();
 
     return warning;
 }
