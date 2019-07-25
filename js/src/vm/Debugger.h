@@ -94,6 +94,14 @@ class Debugger {
 
 
 
+
+
+
+
+
+
+
+
     typedef HashMap<StackFrame *, JSObject *, DefaultHasher<StackFrame *>, RuntimeAllocPolicy>
         FrameMap;
     FrameMap frames;
@@ -154,8 +162,35 @@ class Debugger {
 
 
     JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
                                       bool callHook = true);
+
     JSObject *unwrapDebuggeeArgument(JSContext *cx, Value *vp);
 
     static void traceObject(JSTracer *trc, JSObject *obj);
@@ -215,6 +250,7 @@ class Debugger {
     JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     
+
 
 
 
