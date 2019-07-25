@@ -251,7 +251,6 @@ stubs::FixupArity(VMFrame &f, uint32_t nactual)
 
 
 
-
     InitialFrameFlags initial = oldfp->initialFlags();
     JSFunction *fun           = oldfp->fun();
     JSScript *script          = fun->script();
