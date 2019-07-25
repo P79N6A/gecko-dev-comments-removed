@@ -1695,7 +1695,6 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
     
     
     frameGfxRect.MoveTo(0, 0);
-    matrix2d.NudgeToIntegers();
 
     mInstanceOwner->Paint(ctx, matrix2d.Transform(frameGfxRect), dirtyGfxRect);
     return;
