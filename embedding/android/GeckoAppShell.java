@@ -1636,6 +1636,8 @@ public class GeckoAppShell
     
     static void markUriVisited(final String uri) {}
 
+    
+
 
     public static void enableBatteryNotifications() {
         GeckoBatteryManager.enableNotifications();
@@ -1649,7 +1651,14 @@ public class GeckoAppShell
         return GeckoBatteryManager.getCurrentInformation();
     }
 
+    
+
+
     public static int getNumberOfMessagesForText(String aText) {
         return GeckoSmsManager.getNumberOfMessagesForText(aText);
+    }
+
+    public static void sendMessage(String aNumber, String aMessage) {
+        GeckoSmsManager.send(aNumber, aMessage);
     }
 }
