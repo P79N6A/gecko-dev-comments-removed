@@ -87,10 +87,11 @@ enum nsChangeHint {
 
 
   nsChangeHint_UpdateOpacityLayer = 0x100,
+  nsChangeHint_UpdateTransformLayer = 0x200,
 
   
   
-  nsChangeHint_ReconstructFrame = 0x200
+  nsChangeHint_ReconstructFrame = 0x400
 };
 
 

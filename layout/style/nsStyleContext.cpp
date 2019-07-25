@@ -436,7 +436,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   
   nsChangeHint maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-      nsChangeHint_UpdateOpacityLayer);
+      nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer);
   DO_STRUCT_DIFFERENCE(Display);
 
   maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |

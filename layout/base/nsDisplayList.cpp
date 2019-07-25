@@ -1593,43 +1593,37 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
     (newOrigin + toMozOrigin, disp->mTransform.GetThebesMatrix(bounds, aFactor));
 }
 
-
-
-
-void nsDisplayTransform::Paint(nsDisplayListBuilder *aBuilder,
-                               nsIRenderingContext *aCtx)
+already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBuilder,
+                                                       LayerManager *aManager)
 {
-  
-
-
-
   gfxMatrix newTransformMatrix =
     GetResultingTransformMatrix(mFrame, aBuilder->ToReferenceFrame(mFrame),
                                  mFrame->PresContext()->AppUnitsPerDevPixel(),
                                 nsnull);
   if (newTransformMatrix.IsSingular())
-    return;
+    return nsnull;
 
-  
-  gfxContext* gfx = aCtx->ThebesContext();
-  gfxContextAutoSaveRestore autoRestorer(gfx);
+  nsRefPtr<Layer> layer = aBuilder->LayerBuilder()->
+    BuildContainerLayerFor(aBuilder, aManager, mFrame, this, *mStoredList.GetList());
+  if (!layer)
+    return nsnull;
+ 
+  layer->SetTransform(gfx3DMatrix::From2D(newTransformMatrix));
+  return layer.forget();
+}
 
-  
-
-
-  newTransformMatrix.Multiply(gfx->CurrentMatrix());
-
-  
-
-
-  gfx->SetMatrix(newTransformMatrix);
-
-  
-    
-  mStoredList.GetList()->
-      PaintForFrame(aBuilder, aCtx, mFrame, nsDisplayList::PAINT_DEFAULT);
-
-  
+nsDisplayItem::LayerState
+nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
+                                  LayerManager* aManager) {
+  if (mFrame->AreLayersMarkedActive())
+    return LAYER_ACTIVE;
+  nsIFrame* activeScrolledRoot =
+    nsLayoutUtils::GetActiveScrolledRootFor(mFrame, nsnull, nsnull);
+  return !mStoredList.ChildrenCanBeInactive(aBuilder, 
+                                             aManager, 
+                                             *mStoredList.GetList(), 
+                                             activeScrolledRoot)
+      ? LAYER_ACTIVE : LAYER_INACTIVE;
 }
 
 PRBool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
