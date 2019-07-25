@@ -348,15 +348,6 @@ nsMathMLmpaddedFrame::UpdateValue(PRInt32                  aSign,
       aValueToUpdate -= amount;
     else
       aValueToUpdate  = amount;
-
-    
-
-
-
-
-
-    if (0 < oldValue && 0 > aValueToUpdate)
-      aValueToUpdate = 0;
   }
 }
 
@@ -411,6 +402,7 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   
   
   nscoord width  = mBoundingMetrics.width;
+  nscoord voffset = 0;
 
   PRInt32 pseudoUnit;
 
@@ -419,18 +411,21 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
              ? NS_MATHML_PSEUDO_UNIT_WIDTH : mWidthPseudoUnit;
   UpdateValue(mWidthSign, pseudoUnit, mWidth,
               mBoundingMetrics, width);
+  width = NS_MAX(0, width);
 
   
   pseudoUnit = (mHeightPseudoUnit == NS_MATHML_PSEUDO_UNIT_ITSELF)
              ? NS_MATHML_PSEUDO_UNIT_HEIGHT : mHeightPseudoUnit;
   UpdateValue(mHeightSign, pseudoUnit, mHeight,
               mBoundingMetrics, height);
+  height = NS_MAX(0, height);
 
   
   pseudoUnit = (mDepthPseudoUnit == NS_MATHML_PSEUDO_UNIT_ITSELF)
              ? NS_MATHML_PSEUDO_UNIT_DEPTH : mDepthPseudoUnit;
   UpdateValue(mDepthSign, pseudoUnit, mDepth,
               mBoundingMetrics, depth);
+  depth = NS_MAX(0, depth);
 
   
   if (mLeftSpacePseudoUnit != NS_MATHML_PSEUDO_UNIT_ITSELF) {
@@ -439,6 +434,12 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
                 mBoundingMetrics, lspace);
   }
 
+  
+  if (mVerticalOffsetPseudoUnit != NS_MATHML_PSEUDO_UNIT_ITSELF) {
+    pseudoUnit = mVerticalOffsetPseudoUnit;
+    UpdateValue(mVerticalOffsetSign, pseudoUnit, mVerticalOffset,
+                mBoundingMetrics, voffset);
+  }
   
   
   
@@ -450,22 +451,20 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
     mBoundingMetrics.leftBearing = 0;
   }
 
-  if (mLeftSpaceSign != NS_MATHML_SIGN_INVALID ||
-      mWidthSign != NS_MATHML_SIGN_INVALID) { 
+  if (mWidthSign != NS_MATHML_SIGN_INVALID) { 
     
-    mBoundingMetrics.width = NS_MAX(0, lspace + width);
+    mBoundingMetrics.width = width;
     mBoundingMetrics.rightBearing = mBoundingMetrics.width;
   }
 
   nscoord dy = height - mBoundingMetrics.ascent;
   nscoord dx = lspace;
 
-  mBoundingMetrics.ascent = height;
-  mBoundingMetrics.descent = depth;
-
   aDesiredSize.ascent += dy;
   aDesiredSize.width = mBoundingMetrics.width;
   aDesiredSize.height += dy + depth - mBoundingMetrics.descent;
+  mBoundingMetrics.ascent = height;
+  mBoundingMetrics.descent = depth;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
   mReference.x = 0;
@@ -473,7 +472,7 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
 
   if (aPlaceOrigin) {
     
-    PositionRowChildFrames(dx, aDesiredSize.ascent);
+    PositionRowChildFrames(dx, aDesiredSize.ascent - voffset);
   }
 
   return NS_OK;
