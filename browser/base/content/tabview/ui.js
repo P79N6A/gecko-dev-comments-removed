@@ -141,6 +141,14 @@ let UI = {
 
   
   
+  creatingNewOrphanTab: false,
+
+  
+  
+  _lastOpenedTab: null,
+
+  
+  
   
   toString: function UI_toString() {
     return "[UI]";
@@ -196,20 +204,21 @@ let UI = {
                 (self._lastClickPositions.y - self.DBLCLICK_OFFSET) <= e.clientY &&
                 (self._lastClickPositions.y + self.DBLCLICK_OFFSET) >= e.clientY) {
               self.setActive(null);
-              TabItems.creatingNewOrphanTab = true;
-
-              let newTab =
-                gBrowser.loadOneTab("about:blank", { inBackground: true });
+              self.creatingNewOrphanTab = true;
 
               let box =
                 new Rect(e.clientX - Math.floor(TabItems.tabWidth/2),
                          e.clientY - Math.floor(TabItems.tabHeight/2),
                          TabItems.tabWidth, TabItems.tabHeight);
+              let newTab =
+                gBrowser.loadOneTab("about:blank", { inBackground: false });
+
               newTab._tabViewTabItem.setBounds(box, true);
               newTab._tabViewTabItem.pushAway(true);
               self.setActive(newTab._tabViewTabItem);
 
-              TabItems.creatingNewOrphanTab = false;
+              self.creatingNewOrphanTab = false;
+              
               newTab._tabViewTabItem.zoomIn(true);
 
               self._lastClick = 0;
@@ -727,6 +736,8 @@ let UI = {
       
       if (tab.pinned)
         GroupItems.addAppTab(tab);
+      else if (self.isTabViewVisible())
+        self._lastOpenedTab = tab;
     };
     
     
@@ -861,30 +872,40 @@ let UI = {
   
   
   onTabSelect: function UI_onTabSelect(tab) {
-    let currentTab = this._currentTab;
     this._currentTab = tab;
 
-    
-    if (this.isTabViewVisible() &&
-        (this._closedLastVisibleTab || this._closedSelectedTabInTabView ||
-         this.restoredClosedTab)) {
-      if (this.restoredClosedTab) {
-        
-        
-        tab.linkedBrowser.addEventListener("load", function (event) {
-          tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
-          TabItems._update(tab);
-        }, true);
+    if (this.isTabViewVisible()) {
+      if (!this.restoredClosedTab && this._lastOpenedTab == tab && 
+        tab._tabViewTabItem) {
+        if (!this.creatingNewOrphanTab)
+          tab._tabViewTabItem.zoomIn(true);
+        this._lastOpenedTab = null;
+        return;
       }
-      this._closedLastVisibleTab = false;
-      this._closedSelectedTabInTabView = false;
-      this.restoredClosedTab = false;
-      return;
+      if (this._closedLastVisibleTab ||
+          (this._closedSelectedTabInTabView && !this.closedLastTabInTabView) ||
+          this.restoredClosedTab) {
+        if (this.restoredClosedTab) {
+          
+          
+          tab.linkedBrowser.addEventListener("load", function (event) {
+            tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+            TabItems._update(tab);
+          }, true);
+        }
+        this._closedLastVisibleTab = false;
+        this._closedSelectedTabInTabView = false;
+        this.closedLastTabInTabView = false;
+        this.restoredClosedTab = false;
+        return;
+      }
     }
     
     this._closedLastVisibleTab = false;
     this._closedSelectedTabInTabView = false;
+    this.closedLastTabInTabView = false;
     this.restoredClosedTab = false;
+    this._lastOpenedTab = null;
 
     
     
@@ -896,12 +917,7 @@ let UI = {
     if (this._currentTab != tab)
       return;
 
-    let oldItem = null;
     let newItem = null;
-
-    if (currentTab && currentTab._tabViewTabItem)
-      oldItem = currentTab._tabViewTabItem;
-
     
     if (tab && tab._tabViewTabItem) {
       if (!TabItems.reconnectingPaused()) {
@@ -1506,7 +1522,7 @@ let UI = {
         });
         let group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
         if (!gBrowser._numPinnedTabs) {
-          group.newTab();
+          group.newTab(null, { closedLastTab: true });
           return;
         }
       }
