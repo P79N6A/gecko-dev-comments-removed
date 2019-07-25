@@ -583,7 +583,7 @@ pref("widget.ime.android.fullscreen_threshold", 250);
 
 pref("image.mem.decodeondraw", true);
 pref("content.image.allow_locking", false);
-pref("image.mem.min_discard_timeout_ms", 20000);
+pref("image.mem.min_discard_timeout_ms", 10000);
 
 
 pref("dom.w3c_touch_events.enabled", true);
