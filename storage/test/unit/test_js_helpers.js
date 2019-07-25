@@ -59,7 +59,6 @@ function test_row_prototype()
 function test_params_gets_sync()
 {
   
-  do_check_false("getOwnPropertyNames" in Object);
   
 
 
@@ -81,7 +80,6 @@ function test_params_gets_sync()
 function test_params_gets_async()
 {
   
-  do_check_false("getOwnPropertyNames" in Object);
   
 
 
