@@ -72,7 +72,7 @@ private:
 
 
 
-bool fallocate(PRFileDesc *aFD, PRInt64 aLength);
+NS_COM_GLUE bool fallocate(PRFileDesc *aFD, PRInt64 aLength);
 
 } 
 #endif
