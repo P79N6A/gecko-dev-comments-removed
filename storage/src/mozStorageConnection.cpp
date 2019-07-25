@@ -1126,10 +1126,15 @@ Connection::RemoveProgressHandler(mozIStorageProgressHandler **_oldHandler)
 NS_IMETHODIMP
 Connection::SetGrowthIncrement(PRInt32 aChunkSize, const nsACString &aDatabaseName)
 {
+  
+  
+  
+#ifndef ANDROID
   (void)::sqlite3_file_control(mDBConn,
                                aDatabaseName.Length() ? nsPromiseFlatCString(aDatabaseName).get() : NULL,
                                SQLITE_FCNTL_CHUNK_SIZE,
                                &aChunkSize);
+#endif
   return NS_OK;
 }
 

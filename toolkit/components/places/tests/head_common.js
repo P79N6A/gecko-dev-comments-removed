@@ -528,3 +528,22 @@ function is_time_ordered(before, after) {
   let skew = isWindows ? 20000000 : 0;
   return after - before > -skew;
 }
+
+
+
+
+let (randomFailingIdleTests = [
+  "test_redirectsMode.js",
+  "test_tags.js",
+  "test_history_sidebar.js",
+  "test_removeVisitsByTimeframe.js",
+  "test_history_removeAllPages.js", 
+  "test_database_sync_after_shutdown_with_removeAllPages.js", 
+]) {
+  let currentTestFilename = do_get_file(_TEST_FILE[0], true).leafName;
+  if (randomFailingIdleTests.indexOf(currentTestFilename) != -1) {
+    print("Test " + currentTestFilename +
+          " is known random due to idle-daily, remove observer.");
+    Services.obs.removeObserver(PlacesUtils.history, "idle-daily");
+  }
+}
