@@ -310,9 +310,6 @@ enum RejoinState {
     REJOIN_FALLTHROUGH,
 
     
-    REJOIN_JUMP,
-
-    
 
 
 

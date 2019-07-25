@@ -65,8 +65,17 @@ namespace mjit {
 class Recompiler {
 public:
 
+    
+    
     static void
     clearStackReferences(JSContext *cx, JSScript *script);
+
+    
+    
+    static void
+    clearStackReferencesAndChunk(JSContext *cx, JSScript *script,
+                                 JITScript *jit, size_t chunkIndex,
+                                 bool resetUses = true);
 
     static void
     expandInlineFrames(JSCompartment *compartment, StackFrame *fp, mjit::CallSite *inlined,

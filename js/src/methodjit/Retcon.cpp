@@ -456,6 +456,39 @@ Recompiler::clearStackReferences(JSContext *cx, JSScript *script)
     cx->compartment->types.recompilations++;
 }
 
+void
+Recompiler::clearStackReferencesAndChunk(JSContext *cx, JSScript *script,
+                                         JITScript *jit, size_t chunkIndex,
+                                         bool resetUses)
+{
+    Recompiler::clearStackReferences(cx, script);
+
+    bool releaseChunk = true;
+    if (jit->nchunks > 1) {
+        
+        
+        
+        
+        for (VMFrame *f = cx->compartment->jaegerCompartment()->activeFrame();
+             f != NULL;
+             f = f->previous) {
+            if (f->fp()->script() == script) {
+                JS_ASSERT(f->stubRejoin != REJOIN_NATIVE &&
+                          f->stubRejoin != REJOIN_NATIVE_LOWERED &&
+                          f->stubRejoin != REJOIN_NATIVE_GETTER);
+                if (f->stubRejoin == REJOIN_NATIVE_PATCHED) {
+                    mjit::ReleaseScriptCode(cx, script);
+                    releaseChunk = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (releaseChunk)
+        jit->destroyChunk(cx, chunkIndex, resetUses);
+}
+
 } 
 } 
 
