@@ -1709,6 +1709,14 @@ public:
 
 
 
+  virtual PRBool HasAnyNoncollapsedCharacters()
+  { return PR_FALSE; }
+
+  
+
+
+
+
   PRBool HasView() const { return !!(mState & NS_FRAME_HAS_VIEW); }
   nsIView* GetView() const;
   virtual nsIView* GetViewExternal() const;

@@ -3624,8 +3624,9 @@ nsEditor::IsEditable(nsIDOMNode *aNode)
         
         return IsTextInDirtyFrameVisible(aNode);
       }
-      if (resultFrame->GetSize().width > 0) 
-        return PR_TRUE;  
+      if (resultFrame->HasAnyNoncollapsedCharacters()) {
+        return PR_TRUE;
+      }
       resultFrame = resultFrame->GetNextContinuation();
     }
   }
