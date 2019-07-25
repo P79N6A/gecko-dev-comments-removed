@@ -1387,7 +1387,31 @@ EmptyShape::insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto)
     JS_ASSERT(p);
 
     InitialShapeEntry &entry = const_cast<InitialShapeEntry &>(*p);
+
+    
+#ifdef DEBUG
+    const Shape *nshape = shape;
+    while (!nshape->isEmptyShape())
+        nshape = nshape->previous();
+    JS_ASSERT(nshape == entry.shape);
+#endif
+
     entry.shape = shape;
+
+    
+
+
+
+
+
+
+    NewObjectCache::Entry *cacheEntry = NULL;
+    if (cx->compartment->newObjectCache.lookup(shape->getObjectClass(),
+                                               shape->getObjectParent(),
+                                               gc::GetGCObjectKind(shape->numFixedSlots()),
+                                               &cacheEntry)) {
+        PodZero(cacheEntry);
+    }
 }
 
 void
