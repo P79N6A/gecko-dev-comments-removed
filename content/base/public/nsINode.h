@@ -121,7 +121,7 @@ enum {
   
   
   NODE_MAY_HAVE_CLASS =          0x00000400U,
-  NODE_MAY_HAVE_STYLE =          0x00000800U,
+  UNUSED4 =                      0x00000800U,
 
   NODE_IS_INSERTION_PARENT =     0x00001000U,
 
@@ -1149,6 +1149,8 @@ private:
     
     ElementHasID,
     
+    ElementMayHaveStyle,
+    
     BooleanFlagCount
   };
 
@@ -1178,6 +1180,7 @@ public:
   void SetHasRenderingObservers(bool aValue)
     { SetBoolFlag(NodeHasRenderingObservers, aValue); }
   bool HasID() const { return GetBoolFlag(ElementHasID); }
+  bool MayHaveStyle() const { return GetBoolFlag(ElementMayHaveStyle); }
 
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
@@ -1187,6 +1190,7 @@ protected:
   void ClearIsElement() { ClearBoolFlag(NodeIsElement); }
   void SetHasID() { SetBoolFlag(ElementHasID); }
   void ClearHasID() { ClearBoolFlag(ElementHasID); }
+  void SetMayHaveStyle() { SetBoolFlag(ElementMayHaveStyle); }
 
 public:
   
