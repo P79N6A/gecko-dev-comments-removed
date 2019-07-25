@@ -194,11 +194,6 @@ pref("gfx.color_management.rendering_intent", 0);
 pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.downloadable_fonts.sanitize", true);
-#ifdef XP_MACOSX
-pref("gfx.downloadable_fonts.sanitize.preserve_otl_tables", false);
-#else
-pref("gfx.downloadable_fonts.sanitize.preserve_otl_tables", true);
-#endif
 
 
 #ifdef XP_MACOSX
@@ -701,7 +696,10 @@ pref("network.http.proxy.keep-alive", true);
 pref("network.http.keep-alive.timeout", 115);
 
 
-pref("network.http.max-connections", 30);
+
+
+
+pref("network.http.max-connections", 256);
 
 
 
@@ -1749,6 +1747,39 @@ pref("gfx.font_rendering.cleartype.use_for_downloadable_fonts", true);
 
 
 pref("gfx.font_rendering.cleartype.always_use_for_content", false);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("gfx.font_rendering.cleartype_params.gamma", -1);
+pref("gfx.font_rendering.cleartype_params.enhanced_contrast", -1);
+pref("gfx.font_rendering.cleartype_params.cleartype_level", -1);
+pref("gfx.font_rendering.cleartype_params.pixel_structure", -1);
+pref("gfx.font_rendering.cleartype_params.rendering_mode", -1);
 
 pref("ui.key.menuAccessKeyFocuses", true);
 

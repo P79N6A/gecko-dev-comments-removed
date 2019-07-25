@@ -1469,15 +1469,29 @@ NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
 nsDOMWorker::PreCreate(nsISupports* aObject,
-                       JSContext* ,
+                       JSContext* aCx,
                        JSObject* ,
-                       JSObject** )
+                       JSObject** aParent)
 {
   nsCOMPtr<nsIWorker> iworker(do_QueryInterface(aObject));
-  if (iworker && static_cast<nsDOMWorker *>(iworker.get())->IsPrivileged()) {
-    return NS_SUCCESS_CHROME_ACCESS_ONLY;
+  NS_ENSURE_TRUE(iworker, NS_ERROR_UNEXPECTED);
+
+  nsCOMPtr<nsIXPConnectWrappedNative> wrappedNative;
+  {
+    MutexAutoLock lock(mLock);
+    wrappedNative = mWrappedNative;
   }
-  return NS_OK;
+
+  
+  if (wrappedNative) {
+    JSObject* object;
+    nsresult rv = wrappedNative->GetJSObject(&object);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    *aParent = JS_GetParent(aCx, object);
+  }
+
+  return IsPrivileged() ? NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
 }
 
 NS_IMETHODIMP
