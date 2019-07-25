@@ -1276,7 +1276,6 @@ dom.setInnerHtml = function(elem, html) {
 
 
 
-
 dom.isXmlDocument = function(doc) {
   doc = doc || document;
   
@@ -5397,9 +5396,16 @@ Display.prototype.destroy = function() {
 
 
 Display.prototype.resizer = function() {
+  
+  
+  
+
   var parentRect = this.consoleWrap.getBoundingClientRect();
+  
   var parentHeight = parentRect.bottom - parentRect.top - 64;
 
+  
+  
   if (parentHeight < 100) {
     this.hintElement.classList.add('gcliterm-hint-nospace');
   }
@@ -5412,18 +5418,12 @@ Display.prototype.resizer = function() {
 
       
       
-      
-      
-      
       var idealMenuHeight = (19 * this.menu.items.length) + 22;
-
       if (idealMenuHeight > parentHeight) {
-        this.hintElement.style.overflowY = 'scroll';
-        this.hintElement.style.borderBottomColor = 'threedshadow';
+        this.hintElement.classList.add('gcliterm-hint-scroll');
       }
       else {
-        this.hintElement.style.overflowY = null;
-        this.hintElement.style.borderBottomColor = 'white';
+        this.hintElement.classList.remove('gcliterm-hint-scroll');
       }
     }
     else {
@@ -6526,7 +6526,7 @@ function StringField(type, options) {
 
   this.element = dom.createElement(this.document, 'input');
   this.element.type = 'text';
-  this.element.className = 'gcli-field';
+  this.element.classList.add('gcli-field');
 
   this.onInputChange = this.onInputChange.bind(this);
   this.element.addEventListener('keyup', this.onInputChange, false);
@@ -6686,7 +6686,7 @@ function SelectionField(type, options) {
   this.items = [];
 
   this.element = dom.createElement(this.document, 'select');
-  this.element.className = 'gcli-field';
+  this.element.classList.add('gcli-field');
   this._addOption({
     name: l10n.lookupFormat('fieldSelectionSelect', [ options.name ])
   });
@@ -6761,8 +6761,8 @@ function JavascriptField(type, options) {
   this.input = dom.createElement(this.document, 'input');
   this.input.type = 'text';
   this.input.addEventListener('keyup', this.onInputChange, false);
-  this.input.style.marginBottom = '0';
-  this.input.className = 'gcli-field';
+  this.input.classList.add('gcli-field');
+  this.input.classList.add('gcli-field-javascript');
   this.element.appendChild(this.input);
 
   this.menu = new Menu({ document: this.document, field: true });
@@ -6954,18 +6954,18 @@ function ArrayField(type, options) {
 
   
   this.element = dom.createElement(this.document, 'div');
-  this.element.className = 'gcliArrayParent';
+  this.element.classList.add('gcli-array-parent');
 
   
   this.addButton = dom.createElement(this.document, 'button');
-  this.addButton.className = 'gcliArrayMbrAdd';
+  this.addButton.classList.add('gcli-array-member-add');
   this.addButton.addEventListener('click', this._onAdd, false);
   this.addButton.innerHTML = l10n.lookup('fieldArrayAdd');
   this.element.appendChild(this.addButton);
 
   
   this.container = dom.createElement(this.document, 'div');
-  this.container.className = 'gcliArrayMbrs';
+  this.container.classList.add('gcli-array-members');
   this.element.appendChild(this.container);
 
   this.onInputChange = this.onInputChange.bind(this);
@@ -7008,7 +7008,7 @@ ArrayField.prototype.getConversion = function() {
 ArrayField.prototype._onAdd = function(ev, subConversion) {
   
   var element = dom.createElement(this.document, 'div');
-  element.className = 'gcliArrayMbr';
+  element.classList.add('gcli-array-member');
   this.container.appendChild(element);
 
   
@@ -7026,7 +7026,7 @@ ArrayField.prototype._onAdd = function(ev, subConversion) {
 
   
   var delButton = dom.createElement(this.document, 'button');
-  delButton.className = 'gcliArrayMbrDel';
+  delButton.classList.add('gcli-array-member-del');
   delButton.addEventListener('click', this._onDel, false);
   delButton.innerHTML = l10n.lookup('fieldArrayDel');
   element.appendChild(delButton);
