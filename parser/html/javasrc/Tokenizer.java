@@ -2661,28 +2661,14 @@ public class Tokenizer implements Locator {
 
 
                                 continue;
-                            case ' ':
-                            case '\t':
-                            case '\u000C':
-                                
-
-
-
-
-
-                                adjustDoubleHyphenAndAppendToLongStrBufAndErr(c);
-                                state = Tokenizer.COMMENT_END_SPACE;
-                                break commentendloop;
-                            
                             case '\r':
                                 adjustDoubleHyphenAndAppendToLongStrBufCarriageReturn();
-                                state = Tokenizer.COMMENT_END_SPACE;
+                                state = Tokenizer.COMMENT;
                                 break stateloop;
                             case '\n':
                                 adjustDoubleHyphenAndAppendToLongStrBufLineFeed();
-                                state = Tokenizer.COMMENT_END_SPACE;
-                                break commentendloop;
-                            
+                                state = Tokenizer.COMMENT;
+                                continue stateloop;
                             case '!':
                                 errHyphenHyphenBang();
                                 appendLongStrBuf(c);
