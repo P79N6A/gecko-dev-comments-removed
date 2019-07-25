@@ -110,6 +110,16 @@ public:
   void NotifyDOMTouchListenerAdded();
 
   
+
+
+
+
+
+
+
+  void CancelDefaultPanZoom();
+
+  
   
   
 
@@ -407,6 +417,10 @@ private:
   
   
   bool mMayHaveTouchListeners;
+
+  
+  
+  bool mDisableNextTouchBatch;
 
   friend class Axis;
 };
