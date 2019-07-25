@@ -116,6 +116,7 @@ DrawTargetCG::~DrawTargetCG()
     CGColorSpaceRelease(mColorSpace);
   if (mCg)
     CGContextRelease(mCg);
+  free(mData);
 }
 
 TemporaryRef<SourceSurface>
@@ -842,7 +843,6 @@ DrawTargetCG::Init(const IntSize &aSize, SurfaceFormat &)
 
   bitinfo = kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst;
 
-  
   
   
   
