@@ -78,11 +78,7 @@ gfxGDIFont::gfxGDIFont(GDIFontEntry *aFontEntry,
       mSpaceGlyph(0),
       mNeedsBold(aNeedsBold)
 {
-    if (static_cast<GDIFontEntry*>(GetFontEntry())->mForceGDI) {
-        mShaper = new gfxGDIShaper(this);
-    } else {
-        mShaper = new gfxUniscribeShaper(this);
-    }
+    mShaper = new gfxGDIShaper(this);
 }
 
 gfxGDIFont::~gfxGDIFont()
@@ -106,6 +102,31 @@ gfxGDIFont::CopyWithAntialiasOption(AntialiasOption anAAOption)
                           &mStyle, mNeedsBold, anAAOption);
 }
 
+static PRBool
+UseUniscribe(gfxTextRun *aTextRun,
+             const PRUnichar *aString,
+             PRUint32 aRunStart,
+             PRUint32 aRunLength)
+{
+    PRUint32 flags = aTextRun->GetFlags();
+    PRBool useGDI;
+
+    PRBool isXP = (gfxWindowsPlatform::WindowsOSVersion() 
+                       < gfxWindowsPlatform::kWindowsVista);
+
+    
+    
+
+    useGDI = isXP &&
+             (flags &
+               (gfxTextRunFactory::TEXT_OPTIMIZE_SPEED | 
+                gfxTextRunFactory::TEXT_IS_RTL)
+             ) == gfxTextRunFactory::TEXT_OPTIMIZE_SPEED;
+
+    return !useGDI ||
+        ScriptIsComplex(aString + aRunStart, aRunLength, SIC_COMPLEX) == S_OK;
+}
+
 void
 gfxGDIFont::InitTextRun(gfxContext *aContext,
                         gfxTextRun *aTextRun,
@@ -120,20 +141,32 @@ gfxGDIFont::InitTextRun(gfxContext *aContext,
         NS_WARNING("invalid font! expect incorrect text rendering");
         return;
     }
-    PRBool ok = mShaper->InitTextRun(aContext, aTextRun, aString,
-                                     aRunStart, aRunLength);
-    if (!ok) {
-        
-        GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
-        if (!fe->mForceGDI) {
-            NS_WARNING("uniscribe failed, switching to GDI shaper");
-            fe->mForceGDI = PR_TRUE;
-            mShaper = new gfxGDIShaper(this);
-            ok = mShaper->InitTextRun(aContext, aTextRun, aString,
-                                      aRunStart, aRunLength);
+
+    PRBool ok;
+
+    GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
+    if (UseUniscribe(aTextRun, aString, aRunStart, aRunLength)
+        && !fe->mForceGDI)
+    {
+        if (!mUniscribeShaper) {
+            mUniscribeShaper = new gfxUniscribeShaper(this);
         }
+
+        
+        ok = mUniscribeShaper->InitTextRun(aContext, aTextRun, aString,
+                                           aRunStart, aRunLength);
+        if (ok) {
+            return;
+        }
+
+        NS_WARNING("uniscribe text shaping failed, switching to GDI shaper");
+        fe->mForceGDI = PR_TRUE;
     }
-    NS_WARN_IF_FALSE(ok, "shaper failed, expect broken or missing text");
+
+    
+    ok = mShaper->InitTextRun(aContext, aTextRun, aString,
+                                     aRunStart, aRunLength);
+    NS_WARN_IF_FALSE(ok, "text shaping failed, expect broken or missing text");
 }
 
 const gfxFont::Metrics&
