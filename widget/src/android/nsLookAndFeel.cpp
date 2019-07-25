@@ -36,8 +36,17 @@
 
 
 
-#include "nsLookAndFeel.h"
+
+#include "mozilla/dom/ContentChild.h"
 #include "nsStyleConsts.h"
+#include "nsXULAppAPI.h"
+#include "nsLookAndFeel.h"
+
+using namespace mozilla;
+using mozilla::dom::ContentChild;
+
+PRBool nsLookAndFeel::mInitialized = PR_FALSE;
+AndroidSystemColors nsLookAndFeel::mSystemColors;
 
 nsLookAndFeel::nsLookAndFeel()
     : nsXPLookAndFeel()
@@ -48,28 +57,68 @@ nsLookAndFeel::~nsLookAndFeel()
 {
 }
 
+#define BG_PRELIGHT_COLOR      NS_RGB(0xee,0xee,0xee)
+#define FG_PRELIGHT_COLOR      NS_RGB(0x77,0x77,0x77)
+#define BLACK_COLOR            NS_RGB(0x00,0x00,0x00)
+#define DARK_GRAY_COLOR        NS_RGB(0x40,0x40,0x40)
+#define GRAY_COLOR             NS_RGB(0x80,0x80,0x80)
+#define LIGHT_GRAY_COLOR       NS_RGB(0xa0,0xa0,0xa0)
+#define RED_COLOR              NS_RGB(0xff,0x00,0x00)
+
+nsresult
+nsLookAndFeel::GetSystemColors()
+{
+    if (mInitialized)
+        return NS_OK;
+
+    if (!AndroidBridge::Bridge())
+        return NS_ERROR_FAILURE;
+
+    AndroidBridge::Bridge()->GetSystemColors(&mSystemColors);
+
+    mInitialized = PR_TRUE;
+
+    return NS_OK;
+}
+
+nsresult
+nsLookAndFeel::CallRemoteGetSystemColors()
+{
+    
+    InfallibleTArray<PRUint32> colors;
+    PRUint32 colorsCount = sizeof(AndroidSystemColors) / sizeof(nscolor);
+
+    if (!ContentChild::GetSingleton()->SendGetSystemColors(colorsCount, &colors))
+        return NS_ERROR_FAILURE;
+
+    NS_ASSERTION(colors.Length() == colorsCount, "System colors array is incomplete");
+    if (colors.Length() == 0)
+        return NS_ERROR_FAILURE;
+
+    if (colors.Length() < colorsCount)
+        colorsCount = colors.Length();
+
+    
+    
+    memcpy(&mSystemColors, colors.Elements(), sizeof(nscolor) * colorsCount);
+
+    mInitialized = PR_TRUE;
+
+    return NS_OK;
+}
+
 nsresult
 nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
 {
     nsresult rv = NS_OK;
 
-#define BASE_ACTIVE_COLOR     NS_RGB(0xaa,0xaa,0xaa)
-#define BASE_NORMAL_COLOR     NS_RGB(0xff,0xff,0xff)
-#define BASE_SELECTED_COLOR   NS_RGB(0xaa,0xaa,0xaa)
-#define BG_ACTIVE_COLOR       NS_RGB(0xff,0xff,0xff)
-#define BG_INSENSITIVE_COLOR  NS_RGB(0xaa,0xaa,0xaa)
-#define BG_NORMAL_COLOR       NS_RGB(0xff,0xff,0xff)
-#define BG_PRELIGHT_COLOR     NS_RGB(0xee,0xee,0xee)
-#define BG_SELECTED_COLOR     NS_RGB(0x99,0x99,0x99)
-#define DARK_NORMAL_COLOR     NS_RGB(0x88,0x88,0x88)
-#define FG_INSENSITIVE_COLOR  NS_RGB(0x44,0x44,0x44)
-#define FG_NORMAL_COLOR       NS_RGB(0x00,0x00,0x00)
-#define FG_PRELIGHT_COLOR     NS_RGB(0x77,0x77,0x77)
-#define FG_SELECTED_COLOR     NS_RGB(0xaa,0xaa,0xaa)
-#define LIGHT_NORMAL_COLOR    NS_RGB(0xaa,0xaa,0xaa)
-#define TEXT_ACTIVE_COLOR     NS_RGB(0x99,0x99,0x99)
-#define TEXT_NORMAL_COLOR     NS_RGB(0x00,0x00,0x00)
-#define TEXT_SELECTED_COLOR   NS_RGB(0x00,0x00,0x00)
+    if (!mInitialized) {
+        if (XRE_GetProcessType() == GeckoProcessType_Default)
+            rv = GetSystemColors();
+        else
+            rv = CallRemoteGetSystemColors();
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     
     
@@ -79,48 +128,48 @@ nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
         
         
     case eColor_WindowBackground:
-        aColor = BASE_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_WindowForeground:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.textColorPrimary;
         break;
     case eColor_WidgetBackground:
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_WidgetForeground:
-        aColor = FG_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor_WidgetSelectBackground:
-        aColor = BG_SELECTED_COLOR;
+        aColor = mSystemColors.textColorHighlight;
         break;
     case eColor_WidgetSelectForeground:
-        aColor = FG_SELECTED_COLOR;
+        aColor = mSystemColors.textColorPrimaryInverse;
         break;
     case eColor_Widget3DHighlight:
-        aColor = NS_RGB(0xa0,0xa0,0xa0);
+        aColor = LIGHT_GRAY_COLOR;
         break;
     case eColor_Widget3DShadow:
-        aColor = NS_RGB(0x40,0x40,0x40);
+        aColor = DARK_GRAY_COLOR;
         break;
     case eColor_TextBackground:
         
-        aColor = BASE_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_TextForeground:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.textColorPrimary;
         break;
     case eColor_TextSelectBackground:
     case eColor_IMESelectedRawTextBackground:
     case eColor_IMESelectedConvertedTextBackground:
         
-        aColor = BASE_SELECTED_COLOR;
+        aColor = mSystemColors.textColorHighlight;
         break;
     case eColor_TextSelectForeground:
     case eColor_IMESelectedRawTextForeground:
     case eColor_IMESelectedConvertedTextForeground:
         
-        aColor = TEXT_SELECTED_COLOR;
+        aColor = mSystemColors.textColorPrimaryInverse;
         break;
     case eColor_IMERawInputBackground:
     case eColor_IMEConvertedTextBackground:
@@ -139,138 +188,138 @@ nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
         aColor = NS_TRANSPARENT;
         break;
     case eColor_SpellCheckerUnderline:
-      aColor = NS_RGB(0xff, 0, 0);
+      aColor = RED_COLOR;
       break;
 
         
     case eColor_activeborder:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_activecaption:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_appworkspace:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_background:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_captiontext:
         
-        aColor = FG_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor_graytext:
         
-        aColor = FG_INSENSITIVE_COLOR;
+        aColor = mSystemColors.textColorTertiary;
         break;
     case eColor_highlight:
         
-        aColor = BASE_SELECTED_COLOR;
+        aColor = mSystemColors.textColorHighlight;
         break;
     case eColor_highlighttext:
         
-        aColor = TEXT_SELECTED_COLOR;
+        aColor = mSystemColors.textColorPrimaryInverse;
         break;
     case eColor_inactiveborder:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_inactivecaption:
         
-        aColor = BG_INSENSITIVE_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_inactivecaptiontext:
         
-        aColor = FG_INSENSITIVE_COLOR;
+        aColor = mSystemColors.textColorTertiary;
         break;
     case eColor_infobackground:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_infotext:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor_menu:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor_menutext:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor_scrollbar:
         
-        aColor = BG_ACTIVE_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
 
     case eColor_threedface:
     case eColor_buttonface:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
 
     case eColor_buttontext:
         
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
 
     case eColor_buttonhighlight:
         
     case eColor_threedhighlight:
         
-        aColor = LIGHT_NORMAL_COLOR;
+        aColor = LIGHT_GRAY_COLOR;
         break;
 
     case eColor_threedlightshadow:
         
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
 
     case eColor_buttonshadow:
         
     case eColor_threedshadow:
         
-        aColor = DARK_NORMAL_COLOR;
+        aColor = GRAY_COLOR;
         break;
 
     case eColor_threeddarkshadow:
         
-        aColor = NS_RGB(0,0,0);
+        aColor = BLACK_COLOR;
         break;
 
     case eColor_window:
     case eColor_windowframe:
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
 
     case eColor_windowtext:
-        aColor = FG_NORMAL_COLOR;
+        aColor = mSystemColors.textColorPrimary;
         break;
 
     case eColor__moz_eventreerow:
     case eColor__moz_field:
-        aColor = BASE_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor__moz_fieldtext:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.textColorPrimary;
         break;
     case eColor__moz_dialog:
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor__moz_dialogtext:
-        aColor = FG_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor__moz_dragtargetzone:
-        aColor = BG_SELECTED_COLOR;
+        aColor = mSystemColors.textColorHighlight;
         break;
     case eColor__moz_buttondefault:
         
-        aColor = NS_RGB(0,0,0);
+        aColor = BLACK_COLOR;
         break;
     case eColor__moz_buttonhoverface:
         aColor = BG_PRELIGHT_COLOR;
@@ -280,11 +329,11 @@ nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
         break;
     case eColor__moz_cellhighlight:
     case eColor__moz_html_cellhighlight:
-        aColor = BASE_ACTIVE_COLOR;
+        aColor = mSystemColors.textColorHighlight;
         break;
     case eColor__moz_cellhighlighttext:
     case eColor__moz_html_cellhighlighttext:
-        aColor = TEXT_ACTIVE_COLOR;
+        aColor = mSystemColors.textColorPrimaryInverse;
         break;
     case eColor__moz_menuhover:
         aColor = BG_PRELIGHT_COLOR;
@@ -299,13 +348,13 @@ nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
         aColor = NS_SAME_AS_FOREGROUND_COLOR;
         break;
     case eColor__moz_comboboxtext:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor__moz_combobox:
-        aColor = BG_NORMAL_COLOR;
+        aColor = mSystemColors.colorBackground;
         break;
     case eColor__moz_menubartext:
-        aColor = TEXT_NORMAL_COLOR;
+        aColor = mSystemColors.colorForeground;
         break;
     case eColor__moz_menubarhovertext:
         aColor = FG_PRELIGHT_COLOR;

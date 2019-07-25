@@ -49,6 +49,7 @@
 
 #include "nsIMutableArray.h"
 #include "nsIMIMEInfo.h"
+#include "nsColor.h"
 
 
 
@@ -57,6 +58,22 @@
 class nsWindow;
 
 namespace mozilla {
+
+
+
+typedef struct AndroidSystemColors {
+    nscolor textColorPrimary;
+    nscolor textColorPrimaryInverse;
+    nscolor textColorSecondary;
+    nscolor textColorSecondaryInverse;
+    nscolor textColorTertiary;
+    nscolor textColorTertiaryInverse;
+    nscolor textColorHighlight;
+    nscolor colorForeground;
+    nscolor colorBackground;
+    nscolor panelColorForeground;
+    nscolor panelColorBackground;
+} AndroidSystemColors;
 
 class AndroidBridge
 {
@@ -189,6 +206,8 @@ public:
 
     void SetSelectedLocale(const nsAString&);
 
+    void GetSystemColors(AndroidSystemColors *aColors);
+
     struct AutoLocalJNIFrame {
         AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
             
@@ -281,6 +300,7 @@ protected:
     jmethodID jIsNetworkLinkKnown;
     jmethodID jSetSelectedLocale;
     jmethodID jScanMedia;
+    jmethodID jGetSystemColors;
 
     
     jclass jEGLSurfaceImplClass;
