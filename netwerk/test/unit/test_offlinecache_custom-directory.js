@@ -64,6 +64,22 @@ function finish_test(customDir)
   file2.append("0B457F75198B29-0");
   do_check_eq(file2.exists(), true);
 
+  
+  
+  
+  
+
+  
+  
+  
+  try {
+    indexSqlFile.remove(false);
+    do_check_true(true);
+  }
+  catch (ex) {
+    do_throw("Could not remove the sqlite.index file, we still keep it open \n" + ex + "\n");
+  }
+
   httpServer.stop(do_test_finished);
 }
 
