@@ -130,7 +130,6 @@ PropertyCache::testForInit(JSRuntime *rt, jsbytecode *pc, JSObject *obj,
                            const js::Shape **shapep, PropertyCacheEntry **entryp)
 {
     JS_ASSERT(obj->slotSpan() >= JSSLOT_FREE(obj->getClass()));
-    JS_ASSERT(obj->isExtensible());
     uint32 kshape = obj->shape();
     PropertyCacheEntry *entry = &table[hash(pc, kshape)];
     *entryp = entry;
@@ -142,6 +141,10 @@ PropertyCache::testForInit(JSRuntime *rt, jsbytecode *pc, JSObject *obj,
     if (entry->kpc == pc &&
         entry->kshape == kshape &&
         entry->vshape() == rt->protoHazardShape) {
+        
+        
+        JS_ASSERT(obj->isExtensible());
+
         PCMETER(pchits++);
         PCMETER(inipchits++);
         JS_ASSERT(entry->vcapTag() == 0);
