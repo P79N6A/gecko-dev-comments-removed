@@ -155,6 +155,8 @@ Highlighter.prototype = {
     this.browser.addEventListener("resize", this, true);
     this.browser.addEventListener("scroll", this, true);
 
+    this.transitionDisabler = null;
+
     this.handleResize();
   },
 
@@ -670,6 +672,7 @@ Highlighter.prototype = {
         this.handleMouseMove(aEvent);
         break;
       case "resize":
+        this.brieflyDisableTransitions();
         this.handleResize(aEvent);
         break;
       case "dblclick":
@@ -679,9 +682,30 @@ Highlighter.prototype = {
         aEvent.preventDefault();
         break;
       case "scroll":
+        this.brieflyDisableTransitions();
         this.highlight();
         break;
     }
+  },
+
+  
+
+
+
+  brieflyDisableTransitions: function Highlighter_brieflyDisableTransitions()
+  {
+   if (this.transitionDisabler) {
+     this.IUI.win.clearTimeout(this.transitionDisabler);
+   } else {
+     this.veilContainer.setAttribute("disable-transitions", "true");
+     this.nodeInfo.container.setAttribute("disable-transitions", "true");
+   }
+   this.transitionDisabler =
+     this.IUI.win.setTimeout(function() {
+       this.veilContainer.removeAttribute("disable-transitions");
+       this.nodeInfo.container.removeAttribute("disable-transitions");
+       this.transitionDisabler = null;
+     }.bind(this), 500);
   },
 
   
