@@ -843,21 +843,16 @@ nsHTMLCSSUtils::BuildCSSDeclarations(nsTArray<nsIAtom*> & aPropertyArray,
 
 
 void
-nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(nsIDOMNode * aNode,
-                                                     nsIAtom *aHTMLProperty,
-                                                     const nsAString * aAttribute,
-                                                     const nsAString * aValue,
-                                                     nsTArray<nsIAtom*> & cssPropertyArray,
-                                                     nsTArray<nsString> & cssValueArray,
+nsHTMLCSSUtils::GenerateCSSDeclarationsFromHTMLStyle(dom::Element* aElement,
+                                                     nsIAtom* aHTMLProperty,
+                                                     const nsAString* aAttribute,
+                                                     const nsAString* aValue,
+                                                     nsTArray<nsIAtom*>& cssPropertyArray,
+                                                     nsTArray<nsString>& cssValueArray,
                                                      bool aGetOrRemoveRequest)
 {
-  nsCOMPtr<nsIDOMNode> node = aNode;
-  if (mHTMLEditor->IsTextNode(aNode)) {
-    aNode->GetParentNode(getter_AddRefs(node));
-  }
-  if (!node) return;
-
-  nsIAtom *tagName = nsEditor::GetTag(node);
+  MOZ_ASSERT(aElement);
+  nsIAtom* tagName = aElement->Tag();
 
   if (nsEditProperty::b == aHTMLProperty) {
     BuildCSSDeclarations(cssPropertyArray, cssValueArray, boldEquivTable, aValue, aGetOrRemoveRequest);
@@ -942,28 +937,29 @@ nsHTMLCSSUtils::SetCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
                                             PRInt32 * aCount,
                                             bool aSuppressTransaction)
 {
-  nsCOMPtr<nsIDOMElement> theElement = do_QueryInterface(aNode);
-  nsresult res = NS_OK;
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
   *aCount = 0;
-  if (theElement && IsCSSEditableProperty(aNode, aHTMLProperty, aAttribute)) {
-    
-    
+  if (!element || !IsCSSEditableProperty(element, aHTMLProperty, aAttribute)) {
+    return NS_OK;
+  }
 
-    
-    nsTArray<nsIAtom*> cssPropertyArray;
-    nsTArray<nsString> cssValueArray;
-    GenerateCSSDeclarationsFromHTMLStyle(aNode, aHTMLProperty, aAttribute, aValue,
-                                         cssPropertyArray, cssValueArray, false);
+  
+  
 
-    
-    *aCount = cssPropertyArray.Length();
-    PRInt32 index;
-    for (index = 0; index < *aCount; index++) {
-      nsCOMPtr<nsIDOMElement> theElement = do_QueryInterface(aNode);
-      res = SetCSSProperty(theElement, cssPropertyArray[index],
-                           cssValueArray[index], aSuppressTransaction);
-      NS_ENSURE_SUCCESS(res, res);
-    }
+  
+  nsTArray<nsIAtom*> cssPropertyArray;
+  nsTArray<nsString> cssValueArray;
+  GenerateCSSDeclarationsFromHTMLStyle(element, aHTMLProperty, aAttribute,
+                                       aValue, cssPropertyArray, cssValueArray,
+                                       false);
+
+  nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(element);
+  
+  *aCount = cssPropertyArray.Length();
+  for (PRInt32 index = 0; index < *aCount; index++) {
+    nsresult res = SetCSSProperty(domElement, cssPropertyArray[index],
+                                  cssValueArray[index], aSuppressTransaction);
+    NS_ENSURE_SUCCESS(res, res);
   }
   return NS_OK;
 }
@@ -976,29 +972,30 @@ nsHTMLCSSUtils::RemoveCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
                                                const nsAString *aValue,
                                                bool aSuppressTransaction)
 {
-  nsCOMPtr<nsIDOMElement> theElement = do_QueryInterface(aNode);
-  nsresult res = NS_OK;
-  PRInt32 count = 0;
-  if (theElement && IsCSSEditableProperty(aNode, aHTMLProperty, aAttribute)) {
-    
-    
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
+  if (!element || !IsCSSEditableProperty(element, aHTMLProperty, aAttribute)) {
+    return NS_OK;
+  }
 
-    
-    nsTArray<nsIAtom*> cssPropertyArray;
-    nsTArray<nsString> cssValueArray;
-    GenerateCSSDeclarationsFromHTMLStyle(aNode, aHTMLProperty, aAttribute, aValue,
-                                         cssPropertyArray, cssValueArray, true);
+  
+  
 
-    
-    count = cssPropertyArray.Length();
-    PRInt32 index;
-    for (index = 0; index < count; index++) {
-      res = RemoveCSSProperty(theElement,
-                              cssPropertyArray[index],
-                              cssValueArray[index],
-                              aSuppressTransaction);
-      NS_ENSURE_SUCCESS(res, res);
-    }
+  
+  nsTArray<nsIAtom*> cssPropertyArray;
+  nsTArray<nsString> cssValueArray;
+  GenerateCSSDeclarationsFromHTMLStyle(element, aHTMLProperty, aAttribute,
+                                       aValue, cssPropertyArray, cssValueArray,
+                                       true);
+
+  nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(element);
+  
+  PRInt32 count = cssPropertyArray.Length();
+  for (PRInt32 index = 0; index < count; index++) {
+    nsresult res = RemoveCSSProperty(domElement,
+                                     cssPropertyArray[index],
+                                     cssValueArray[index],
+                                     aSuppressTransaction);
+    NS_ENSURE_SUCCESS(res, res);
   }
   return NS_OK;
 }
@@ -1008,42 +1005,45 @@ nsHTMLCSSUtils::RemoveCSSEquivalentToHTMLStyle(nsIDOMNode * aNode,
 
 
 nsresult
-nsHTMLCSSUtils::GetCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
+nsHTMLCSSUtils::GetCSSEquivalentToHTMLInlineStyleSet(nsINode* aNode,
                                                      nsIAtom *aHTMLProperty,
                                                      const nsAString *aAttribute,
                                                      nsAString & aValueString,
                                                      PRUint8 aStyleType)
 {
   aValueString.Truncate();
-  nsCOMPtr<nsIDOMElement> theElement = GetElementContainerOrSelf(aNode);
+  nsCOMPtr<dom::Element> theElement = GetElementContainerOrSelf(aNode);
   NS_ENSURE_TRUE(theElement, NS_ERROR_NULL_POINTER);
 
-  if (theElement && IsCSSEditableProperty(theElement, aHTMLProperty, aAttribute)) {
+  if (!theElement || !IsCSSEditableProperty(theElement, aHTMLProperty, aAttribute)) {
+    return NS_OK;
+  }
+
+  
+  
+  nsCOMPtr<nsIDOMWindow> window;
+  if (COMPUTED_STYLE_TYPE == aStyleType) {
+    nsresult res = GetDefaultViewCSS(theElement, getter_AddRefs(window));
+    NS_ENSURE_SUCCESS(res, res);
+  }
+  nsTArray<nsIAtom*> cssPropertyArray;
+  nsTArray<nsString> cssValueArray;
+  
+  
+  GenerateCSSDeclarationsFromHTMLStyle(theElement, aHTMLProperty, aAttribute, nsnull,
+                                       cssPropertyArray, cssValueArray, true);
+  PRInt32 count = cssPropertyArray.Length();
+  for (PRInt32 index = 0; index < count; index++) {
+    nsAutoString valueString;
     
+    nsresult res = GetCSSInlinePropertyBase(theElement, cssPropertyArray[index],
+                                            valueString, window, aStyleType);
+    NS_ENSURE_SUCCESS(res, res);
     
-    nsCOMPtr<nsIDOMWindow> window;
-    if (COMPUTED_STYLE_TYPE == aStyleType) {
-      nsresult res = GetDefaultViewCSS(theElement, getter_AddRefs(window));
-      NS_ENSURE_SUCCESS(res, res);
+    if (index) {
+      aValueString.Append(PRUnichar(' '));
     }
-    nsTArray<nsIAtom*> cssPropertyArray;
-    nsTArray<nsString> cssValueArray;
-    
-    
-    GenerateCSSDeclarationsFromHTMLStyle(theElement, aHTMLProperty, aAttribute, nsnull,
-                                         cssPropertyArray, cssValueArray, true);
-    PRInt32 count = cssPropertyArray.Length();
-    PRInt32 index;
-    for (index = 0; index < count; index++) {
-      nsAutoString valueString;
-      
-      nsresult res = GetCSSInlinePropertyBase(theElement, cssPropertyArray[index],
-                                              valueString, window, aStyleType);
-      NS_ENSURE_SUCCESS(res, res);
-      
-      if (index) aValueString.Append(PRUnichar(' '));
-      aValueString.Append(valueString);
-    }
+    aValueString.Append(valueString);
   }
   return NS_OK;
 }
@@ -1065,7 +1065,7 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
 
   nsAutoString htmlValueString(valueString);
   aIsSet = false;
-  nsCOMPtr<nsIDOMNode> node = aNode;
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
   NS_NAMED_LITERAL_STRING(boldStr, "bold");
   do {
     valueString.Assign(htmlValueString);
@@ -1204,11 +1204,7 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
     if (nsEditProperty::u == aHTMLProperty || nsEditProperty::strike == aHTMLProperty) {
       
       
-      nsCOMPtr<nsIDOMNode> tmp;
-      res = node->GetParentNode(getter_AddRefs(tmp));
-      NS_ENSURE_SUCCESS(res, res);
-      nsCOMPtr<nsIDOMElement> element = do_QueryInterface(tmp);
-      node = element;  
+      node = node->GetElementParent();  
     }
   } while ((nsEditProperty::u == aHTMLProperty || nsEditProperty::strike == aHTMLProperty) &&
            !aIsSet && node);

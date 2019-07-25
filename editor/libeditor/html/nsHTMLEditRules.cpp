@@ -866,11 +866,9 @@ nsHTMLEditRules::GetAlignment(bool *aMixed, nsIHTMLEditor::EAlignment *aAlign)
       
       nsAutoString value;
       
-      mHTMLEditor->mHTMLCSSUtils->GetCSSEquivalentToHTMLInlineStyleSet(blockParent,
-                                                     dummyProperty,
-                                                     &typeAttrName,
-                                                     value,
-                                                     COMPUTED_STYLE_TYPE);
+      mHTMLEditor->mHTMLCSSUtils->GetCSSEquivalentToHTMLInlineStyleSet(
+        blockParentContent, dummyProperty, &typeAttrName, value,
+        COMPUTED_STYLE_TYPE);
       if (value.EqualsLiteral("center") ||
           value.EqualsLiteral("-moz-center") ||
           value.EqualsLiteral("auto auto"))
