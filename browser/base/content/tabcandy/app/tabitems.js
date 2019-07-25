@@ -752,12 +752,12 @@ window.TabItems = {
 
         if (tabData.imageData) {
           var mirror = item.tab.mirror;
-          mirror.showCachedData(item.tab, tabData);
+          mirror.showCachedData(tabData);
           
           
           iQ.timeout(function() {
             if (mirror && mirror.isShowingCachedData) {
-              mirror.hideCachedData(item.tab);
+              mirror.hideCachedData();
             }
           }, 15000);
         }
