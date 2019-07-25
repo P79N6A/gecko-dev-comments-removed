@@ -1788,8 +1788,6 @@ static JSBool
 BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
                      JSTreeContext *tc)
 {
-    JSParseNode *pn;
-
     
     if (atom == tc->parser->context->runtime->atomState.argumentsAtom)
         tc->flags |= TCF_FUN_PARAM_ARGUMENTS;
@@ -1798,25 +1796,21 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
 
     JS_ASSERT(tc->inFunction());
 
-    JSLocalKind localKind = tc->fun()->lookupLocal(cx, atom, NULL);
-    if (localKind != JSLOCAL_NONE) {
+    if (tc->decls.lookup(atom)) {
         ReportCompileErrorNumber(cx, TS(tc->parser), NULL, JSREPORT_ERROR,
                                  JSMSG_DESTRUCT_DUP_ARG);
         return JS_FALSE;
     }
-    JS_ASSERT(!tc->decls.lookup(atom));
 
-    pn = data->pn;
-    if (!Define(pn, atom, tc))
-        return JS_FALSE;
+    
 
-    uintN index = tc->fun()->u.i.nvars;
-    if (!BindLocalVariable(cx, tc->fun(), atom, JSLOCAL_VAR, true))
-        return JS_FALSE;
-    pn->pn_op = JSOP_SETLOCAL;
-    pn->pn_cookie.set(tc->staticLevel, index);
-    pn->pn_dflags |= PND_BOUND;
-    return JS_TRUE;
+
+
+
+
+    data->pn->pn_op = JSOP_SETLOCAL;
+
+    return Define(data->pn, atom, tc);
 }
 #endif 
 
@@ -2721,6 +2715,12 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 static bool
 DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom);
 
+
+
+
+
+
+
 bool
 Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunction *fun,
                           JSParseNode **listp)
@@ -2766,7 +2766,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
 
 
 
-                jsint slot = fun->nargs;
+                uintN slot = fun->nargs;
                 if (!fun->addLocal(context, NULL, JSLOCAL_ARG))
                     return false;
 
@@ -2780,7 +2780,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
                     return false;
                 rhs->pn_type = TOK_NAME;
                 rhs->pn_op = JSOP_GETARG;
-                rhs->pn_cookie.set(funtc.staticLevel, uint16(slot));
+                rhs->pn_cookie.set(funtc.staticLevel, slot);
                 rhs->pn_dflags |= PND_BOUND;
 
                 JSParseNode *item =
@@ -2803,8 +2803,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
               case TOK_NAME:
               {
                 JSAtom *atom = tokenStream.currentToken().t_atom;
-                if (!DefineArg(funbox->node, atom, fun->nargs, &funtc))
-                    return false;
+
 #ifdef JS_HAS_DESTRUCTURING
                 
 
@@ -2816,12 +2815,16 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
 
 
 
-                if (fun->lookupLocal(context, atom, NULL) != JSLOCAL_NONE) {
+                if (funtc.decls.lookup(atom)) {
                     duplicatedArg = atom;
                     if (destructuringArg)
                         goto report_dup_and_destructuring;
                 }
 #endif
+
+                if (!DefineArg(funbox->node, atom, fun->nargs, &funtc))
+                    return false;
+
                 if (!fun->addLocal(context, atom, JSLOCAL_ARG))
                     return false;
                 break;
@@ -2982,9 +2985,37 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
     JSFunction *fun = (JSFunction *) funbox->object;
 
     
-    JSParseNode *prolog = NULL;
-    if (!functionArguments(funtc, funbox, fun, &prolog))
+    JSParseNode *prelude = NULL;
+    if (!functionArguments(funtc, funbox, fun, &prelude))
         return NULL;
+
+#if JS_HAS_DESTRUCTURING
+    
+
+
+
+
+
+
+
+    if (prelude) {
+        JSAtomListIterator iter(&funtc.decls);
+
+        while (JSAtomListElement *ale = iter()) {
+            JSParseNode *apn = ALE_DEFN(ale);
+
+            
+            if (apn->pn_op != JSOP_SETLOCAL)
+                continue;
+
+            uintN index = fun->u.i.nvars;
+            if (!BindLocalVariable(context, fun, apn->pn_atom, JSLOCAL_VAR, true))
+                return NULL;
+            apn->pn_cookie.set(funtc.staticLevel, index);
+            apn->pn_dflags |= PND_BOUND;
+        }
+    }
+#endif
 
     if (type == GETTER && fun->nargs > 0) {
         reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_ACCESSOR_WRONG_ARGS,
@@ -3035,14 +3066,6 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-    
-
-
-
-
-
-
-
 
 
 
@@ -3058,7 +3081,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-    if (prolog) {
+    if (prelude) {
         if (body->pn_arity != PN_LIST) {
             JSParseNode *block;
 
@@ -3078,7 +3101,7 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
         item->pn_type = TOK_SEMI;
         item->pn_pos.begin = item->pn_pos.end = body->pn_pos.begin;
-        item->pn_kid = prolog;
+        item->pn_kid = prelude;
         item->pn_next = body->pn_head;
         body->pn_head = item;
         if (body->pn_tail == &body->pn_head)

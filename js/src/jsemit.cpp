@@ -3777,6 +3777,13 @@ js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body)
         CG_SWITCH_TO_MAIN(cg);
     }
 
+    
+
+
+
+
+
+
     if (cg->needsEagerArguments()) {
         CG_SWITCH_TO_PROLOG(cg);
         if (js_Emit1(cx, cg, JSOP_ARGUMENTS) < 0 || js_Emit1(cx, cg, JSOP_POP) < 0)

@@ -214,6 +214,11 @@ struct JSFunction : public JSObject_Slots2
     const js::Shape *lastVar() const;
     const js::Shape *lastUpvar() const { return u.i.names; }
 
+    
+
+
+
+
     bool addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind);
 
     
