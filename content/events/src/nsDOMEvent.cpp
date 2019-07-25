@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Steve Clark (buster@netscape.com)
+ *   Ilya Konstantinov (mozilla-code@future.shiny.co.il)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "nsCOMPtr.h"
 #include "nsDOMEvent.h"
@@ -75,13 +75,13 @@ static const char* const sEventNames[] = {
 #ifdef MOZ_SVG
   "SVGLoad", "SVGUnload", "SVGAbort", "SVGError", "SVGResize", "SVGScroll",
   "SVGZoom",
-#endif 
+#endif // MOZ_SVG
 #ifdef MOZ_MEDIA
   "loadstart", "progress", "suspend", "emptied", "stalled", "play", "pause",
   "loadedmetadata", "loadeddata", "waiting", "playing", "canplay",
   "canplaythrough", "seeking", "seeked", "timeupdate", "ended", "ratechange",
   "durationchange", "volumechange",
-#endif 
+#endif // MOZ_MEDIA
   "MozAfterPaint",
   "MozSwipeGesture",
   "MozMagnifyGestureStart",
@@ -110,35 +110,35 @@ nsDOMEvent::nsDOMEvent(nsPresContext* aPresContext, nsEvent* aEvent)
   }
   else {
     mEventIsInternal = PR_TRUE;
-    
+    /*
+      A derived class might want to allocate its own type of aEvent
+      (derived from nsEvent). To do this, it should take care to pass
+      a non-NULL aEvent to this ctor, e.g.:
+      
+        nsDOMFooEvent::nsDOMFooEvent(..., nsEvent* aEvent)
+        : nsDOMEvent(..., aEvent ? aEvent : new nsFooEvent())
+      
+      Then, to override the mEventIsInternal assignments done by the
+      base ctor, it should do this in its own ctor:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        nsDOMFooEvent::nsDOMFooEvent(..., nsEvent* aEvent)
+        ...
+        {
+          ...
+          if (aEvent) {
+            mEventIsInternal = PR_FALSE;
+          }
+          else {
+            mEventIsInternal = PR_TRUE;
+          }
+          ...
+        }
+     */
     mEvent = new nsEvent(PR_FALSE, 0);
     mEvent->time = PR_Now();
   }
 
-  
+  // Get the explicit original target (if it's anonymous make it null)
   {
     mExplicitOriginalTarget = GetTargetFromFrame();
     mTmpRealOriginalTarget = mExplicitOriginalTarget;
@@ -237,7 +237,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsDOMEvent)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mExplicitOriginalTarget)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-
+// nsIDOMEventInterface
 NS_METHOD nsDOMEvent::GetType(nsAString& aType)
 {
   if (!mCachedType.IsEmpty()) {
@@ -251,7 +251,7 @@ NS_METHOD nsDOMEvent::GetType(nsAString& aType)
     mCachedType = aType;
     return NS_OK;
   } else if (mEvent->message == NS_USER_DEFINED_EVENT && mEvent->userType) {
-    aType = Substring(nsDependentAtomString(mEvent->userType), 2); 
+    aType = Substring(nsDependentAtomString(mEvent->userType), 2); // Remove "on"
     mCachedType = aType;
     return NS_OK;
   }
@@ -285,25 +285,25 @@ nsDOMEvent::GetCurrentTarget(nsIDOMEventTarget** aCurrentTarget)
   return GetDOMEventTarget(mEvent->currentTarget, aCurrentTarget);
 }
 
-
-
-
+//
+// Get the actual event target node (may have been retargeted for mouse events)
+//
 already_AddRefed<nsIDOMEventTarget>
 nsDOMEvent::GetTargetFromFrame()
 {
   if (!mPresContext) { return nsnull; }
 
-  
+  // Get the target frame (have to get the ESM first)
   nsIFrame* targetFrame = nsnull;
   mPresContext->EventStateManager()->GetEventTarget(&targetFrame);
   if (!targetFrame) { return nsnull; }
 
-  
+  // get the real content
   nsCOMPtr<nsIContent> realEventContent;
   targetFrame->GetContentForEvent(mPresContext, mEvent, getter_AddRefs(realEventContent));
   if (!realEventContent) { return nsnull; }
 
-  
+  // Finally, we have the real content.  QI it and return.
   nsIDOMEventTarget* target = nsnull;
   CallQueryInterface(realEventContent, &target);
   return target;
@@ -358,8 +358,8 @@ nsDOMEvent::SetTrusted(PRBool aTrusted)
 NS_IMETHODIMP
 nsDOMEvent::GetEventPhase(PRUint16* aEventPhase)
 {
-  
-  
+  // Note, remember to check that this works also
+  // if or when Bug 235441 is fixed.
   if (mEvent->currentTarget == mEvent->target ||
       ((mEvent->flags & NS_EVENT_FLAG_CAPTURE) &&
        (mEvent->flags & NS_EVENT_FLAG_BUBBLE))) {
@@ -462,7 +462,7 @@ nsDOMEvent::PreventDefault()
   if (!(mEvent->flags & NS_EVENT_FLAG_CANT_CANCEL)) {
     mEvent->flags |= NS_EVENT_FLAG_NO_DEFAULT;
 
-    
+    // Need to set an extra flag for drag events.
     if (mEvent->eventStructType == NS_DRAG_EVENT &&
         NS_IS_TRUSTED_EVENT(mEvent)) {
       nsCOMPtr<nsINode> node = do_QueryInterface(mEvent->currentTarget);
@@ -633,7 +633,7 @@ nsDOMEvent::SetEventType(const nsAString& aEventTypeArg)
     if (atom == nsGkAtoms::onSVGZoom)
       mEvent->message = NS_SVG_ZOOM;
   }
-#endif 
+#endif // MOZ_SVG
 
 #ifdef MOZ_MEDIA
   else if (mEvent->eventStructType == NS_MEDIA_EVENT) {
@@ -684,7 +684,7 @@ nsDOMEvent::SetEventType(const nsAString& aEventTypeArg)
     else if (atom == nsGkAtoms::onerror)
       mEvent->message = NS_MEDIA_ERROR;
   }
-#endif 
+#endif // MOZ_MEDIA
   else if (mEvent->eventStructType == NS_SIMPLE_GESTURE_EVENT) {
     if (atom == nsGkAtoms::onMozSwipeGesture)
       mEvent->message = NS_SIMPLE_GESTURE_SWIPE;
@@ -719,11 +719,11 @@ nsDOMEvent::SetEventType(const nsAString& aEventTypeArg)
 NS_IMETHODIMP
 nsDOMEvent::InitEvent(const nsAString& aEventTypeArg, PRBool aCanBubbleArg, PRBool aCancelableArg)
 {
-  
+  // Make sure this event isn't already being dispatched.
   NS_ENSURE_TRUE(!NS_IS_EVENT_IN_DISPATCH(mEvent), NS_ERROR_INVALID_ARG);
 
   if (NS_IS_TRUSTED_EVENT(mEvent)) {
-    
+    // Ensure the caller is permitted to dispatch trusted DOM events.
 
     PRBool enabled = PR_FALSE;
     nsContentUtils::GetSecurityManager()->
@@ -748,8 +748,8 @@ nsDOMEvent::InitEvent(const nsAString& aEventTypeArg, PRBool aCanBubbleArg, PRBo
     mEvent->flags |= NS_EVENT_FLAG_CANT_CANCEL;
   }
 
-  
-  
+  // Clearing the old targets, so that the event is targeted correctly when
+  // re-dispatching it.
   mEvent->target = nsnull;
   mEvent->originalTarget = nsnull;
   mCachedType = aEventTypeArg;
@@ -758,8 +758,8 @@ nsDOMEvent::InitEvent(const nsAString& aEventTypeArg, PRBool aCanBubbleArg, PRBo
 
 NS_METHOD nsDOMEvent::DuplicatePrivateData()
 {
-  
-  
+  // FIXME! Simplify this method and make it somehow easily extendable,
+  //        Bug 329127
   
   NS_ASSERTION(mEvent, "No nsEvent for nsDOMEvent duplication!");
   if (mEventIsInternal) {
@@ -778,7 +778,7 @@ NS_METHOD nsDOMEvent::DuplicatePrivateData()
     }
     case NS_GUI_EVENT:
     {
-      
+      // Not copying widget, it is a weak reference.
       newEvent = new nsGUIEvent(PR_FALSE, msg, nsnull);
       break;
     }
@@ -947,12 +947,14 @@ NS_METHOD nsDOMEvent::DuplicatePrivateData()
       newEvent = mutationEvent;
       break;
     }
+#ifdef ACCESSIBILITY
     case NS_ACCESSIBLE_EVENT:
     {
       newEvent = new nsAccessibleEvent(PR_FALSE, msg, nsnull);
       isInputEvent = PR_TRUE;
       break;
     }
+#endif
     case NS_FORM_EVENT:
     {
       newEvent = new nsFormEvent(PR_FALSE, msg);
@@ -1003,7 +1005,7 @@ NS_METHOD nsDOMEvent::DuplicatePrivateData()
       newEvent->eventStructType = NS_SVGZOOM_EVENT;
       break;
     }
-#endif 
+#endif // MOZ_SVG
     case NS_SIMPLE_GESTURE_EVENT:
     {
       nsSimpleGestureEvent* oldSimpleGestureEvent = static_cast<nsSimpleGestureEvent*>(mEvent);
@@ -1087,8 +1089,8 @@ nsDOMEvent::GetInternalNSEvent()
   return mEvent;
 }
 
-
-
+// return true if eventName is contained within events, delimited by
+// spaces
 static PRBool
 PopupAllowedForEvent(const char *eventName)
 {
@@ -1112,34 +1114,34 @@ PopupAllowedForEvent(const char *eventName)
     if (!FindInReadable(nsDependentCString(eventName), startiter, enditer))
       return PR_FALSE;
 
-    
+    // the match is surrounded by spaces, or at a string boundary
     if ((startiter == start || *--startiter == ' ') &&
         (enditer == end || *enditer == ' ')) {
       return PR_TRUE;
     }
 
-    
-    
-    
+    // Move on and see if there are other matches. (The delimitation
+    // requirement makes it pointless to begin the next search before
+    // the end of the invalid match just found.)
     startiter = enditer;
   }
 
   return PR_FALSE;
 }
 
-
+// static
 PopupControlState
 nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
 {
-  
-  
+  // generally if an event handler is running, new windows are disallowed.
+  // check for exceptions:
   PopupControlState abuse = openAbused;
 
   switch(aEvent->eventStructType) {
   case NS_EVENT :
-    
-    
-    
+    // For these following events only allow popups if they're
+    // triggered while handling user input. See
+    // nsPresShell::HandleEventInternal() for details.
     if (nsEventStateManager::IsHandlingUserInput()) {
       switch(aEvent->message) {
       case NS_FORM_SELECTED :
@@ -1154,9 +1156,9 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
     }
     break;
   case NS_GUI_EVENT :
-    
-    
-    
+    // For this following event only allow popups if it's triggered
+    // while handling user input. See
+    // nsPresShell::HandleEventInternal() for details.
     if (nsEventStateManager::IsHandlingUserInput()) {
       switch(aEvent->message) {
       case NS_FORM_INPUT :
@@ -1167,9 +1169,9 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
     }
     break;
   case NS_INPUT_EVENT :
-    
-    
-    
+    // For this following event only allow popups if it's triggered
+    // while handling user input. See
+    // nsPresShell::HandleEventInternal() for details.
     if (nsEventStateManager::IsHandlingUserInput()) {
       switch(aEvent->message) {
       case NS_FORM_CHANGE :
@@ -1187,14 +1189,14 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
       PRUint32 key = static_cast<nsKeyEvent *>(aEvent)->keyCode;
       switch(aEvent->message) {
       case NS_KEY_PRESS :
-        
+        // return key on focused button. see note at NS_MOUSE_CLICK.
         if (key == nsIDOMKeyEvent::DOM_VK_RETURN)
           abuse = openAllowed;
         else if (::PopupAllowedForEvent("keypress"))
           abuse = openControlled;
         break;
       case NS_KEY_UP :
-        
+        // space key on focused button. see note at NS_MOUSE_CLICK.
         if (key == nsIDOMKeyEvent::DOM_VK_SPACE)
           abuse = openAllowed;
         else if (::PopupAllowedForEvent("keyup"))
@@ -1220,10 +1222,10 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
           abuse = openControlled;
         break;
       case NS_MOUSE_CLICK :
-        
-
-
-
+        /* Click events get special treatment because of their
+           historical status as a more legitimate event handler. If
+           click popups are enabled in the prefs, clear the popup
+           status completely. */
         if (::PopupAllowedForEvent("click"))
           abuse = openAllowed;
         break;
@@ -1237,16 +1239,16 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
   case NS_SCRIPT_ERROR_EVENT :
     switch(aEvent->message) {
     case NS_LOAD_ERROR :
-      
+      // Any error event will allow popups, if enabled in the pref.
       if (::PopupAllowedForEvent("error"))
         abuse = openControlled;
       break;
     }
     break;
   case NS_FORM_EVENT :
-    
-    
-    
+    // For these following events only allow popups if they're
+    // triggered while handling user input. See
+    // nsPresShell::HandleEventInternal() for details.
     if (nsEventStateManager::IsHandlingUserInput()) {
       switch(aEvent->message) {
       case NS_FORM_SUBMIT :
@@ -1265,7 +1267,7 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
   return abuse;
 }
 
-
+// static
 void
 nsDOMEvent::PopupAllowedEventsChanged()
 {
@@ -1276,12 +1278,12 @@ nsDOMEvent::PopupAllowedEventsChanged()
   nsAdoptingCString str =
     nsContentUtils::GetCharPref("dom.popup_allowed_events");
 
-  
-  
+  // We'll want to do this even if str is empty to avoid looking up
+  // this pref all the time if it's not set.
   sPopupAllowedEvents = ToNewCString(str);
 }
 
-
+// static
 void
 nsDOMEvent::Shutdown()
 {
@@ -1290,9 +1292,9 @@ nsDOMEvent::Shutdown()
   }
 }
 
-
-
-
+// To be called ONLY by nsDOMEvent::GetType (which has the additional
+// logic for handling user-defined events).
+// static
 const char* nsDOMEvent::GetEventName(PRUint32 aEventType)
 {
   switch(aEventType) {
@@ -1451,7 +1453,7 @@ const char* nsDOMEvent::GetEventName(PRUint32 aEventType)
     return sEventNames[eDOMEvents_SVGScroll];
   case NS_SVG_ZOOM:
     return sEventNames[eDOMEvents_SVGZoom];
-#endif 
+#endif // MOZ_SVG
 #ifdef MOZ_MEDIA
   case NS_LOADSTART:
     return sEventNames[eDOMEvents_loadstart];
@@ -1521,11 +1523,11 @@ const char* nsDOMEvent::GetEventName(PRUint32 aEventType)
   default:
     break;
   }
-  
-  
-  
-  
-  
+  // XXXldb We can hit this case for nsEvent objects that we didn't
+  // create and that are not user defined events since this function and
+  // SetEventType are incomplete.  (But fixing that requires fixing the
+  // arrays in nsEventListenerManager too, since the events for which
+  // this is a problem generally *are* created by nsDOMEvent.)
   return nsnull;
 }
 
