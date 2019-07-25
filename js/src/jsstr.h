@@ -981,8 +981,18 @@ js_SkipWhiteSpace(const jschar *s, const jschar *end)
 
 
 
+
+
+
+
+
+
+
+
+
+
 extern jschar *
-js_InflateString(JSContext *cx, const char *bytes, size_t *length);
+js_InflateString(JSContext *cx, const char *bytes, size_t *length, bool useCESU8 = false);
 
 extern char *
 js_DeflateString(JSContext *cx, const jschar *chars, size_t length);
@@ -1002,7 +1012,8 @@ js_InflateStringToBuffer(JSContext *cx, const char *bytes, size_t length,
 
 extern JSBool
 js_InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
-                             jschar *chars, size_t *charsLength);
+                             jschar *chars, size_t *charsLength,
+                             bool useCESU8 = false);
 
 
 
@@ -1015,9 +1026,10 @@ js_GetDeflatedStringLength(JSContext *cx, const jschar *chars,
 
 
 
+
 extern size_t
 js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
-                               size_t charsLength);
+                               size_t charsLength, bool useCESU8 = false);
 
 
 
@@ -1034,7 +1046,8 @@ js_DeflateStringToBuffer(JSContext *cx, const jschar *chars,
 
 extern JSBool
 js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
-                             size_t charsLength, char *bytes, size_t *length);
+                             size_t charsLength, char *bytes, size_t *length,
+                             bool useCESU8 = false);
 
 
 extern JSBool
