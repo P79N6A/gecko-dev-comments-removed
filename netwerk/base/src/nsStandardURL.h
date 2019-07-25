@@ -135,7 +135,8 @@ public:
                                    const URLSegment &segment,
                                    PRInt16 mask,
                                    nsAFlatCString &buf,
-                                   PRBool& appended);
+                                   PRBool& appended,
+                                   PRUint32 extraLen = 0);
          
         
         
