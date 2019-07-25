@@ -1,0 +1,192 @@
+
+
+
+
+
+
+
+
+window.addEventListener('ContentStart', function() {
+  
+  let shell = document.getElementById('shell');
+
+  
+  let browser = document.getElementById('homescreen');
+
+  
+  let windowUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+    .getInterface(Components.interfaces.nsIDOMWindowUtils);
+  let hostDPI = windowUtils.displayDPI;
+
+  
+  
+  
+  let screens = {
+    iphone: {
+      name: 'Apple iPhone', width:320, height:480,  dpi:163
+    },
+    ipad: {
+      name: 'Apple iPad', width:1024, height:768,  dpi:132
+    },
+    nexus_s: {
+      name: 'Samsung Nexus S', width:480, height:800, dpi:235
+    },
+    galaxy_s2: {
+      name: 'Samsung Galaxy SII (I9100)', width:480, height:800, dpi:219
+    },
+    galaxy_nexus: {
+      name: 'Samsung Galaxy Nexus', width:720, height:1280, dpi:316
+    },
+    galaxy_tab: {
+      name: 'Samsung Galaxy Tab 10.1', width:800, height:1280, dpi:149
+    },
+    wildfire: {
+      name: 'HTC Wildfire', width:240, height:320, dpi:125
+    },
+    tattoo: {
+      name: 'HTC Tattoo', width:240, height:320, dpi:143
+    },
+    salsa: {
+      name: 'HTC Salsa', width:320, height:480, dpi:170
+    },
+    chacha: {
+      name: 'HTC ChaCha', width:320, height:480, dpi:222
+    },
+  };
+
+  
+  let args = window.arguments[0].QueryInterface(Ci.nsICommandLine);
+  let screenarg;
+
+  
+  try {
+    screenarg = args.handleFlagWithParam('screen', false);
+
+    
+    if (screenarg === null)
+      return;
+
+    
+    if (screenarg == '')
+      usage();
+  }
+  catch(e) {
+    
+    usage();
+  }
+  
+  
+  if (screenarg === 'full') {
+    shell.setAttribute('sizemode', 'fullscreen');
+    return;
+  } 
+
+  let rescale = false;
+
+  
+  if (screenarg[screenarg.length - 1] === '!') {
+    rescale = true;
+    screenarg = screenarg.substring(0, screenarg.length-1);
+  }
+
+  let width, height, dpi;
+
+  if (screenarg in screens) {
+    
+    let screen = screens[screenarg];
+    width = screen.width;
+    height = screen.height;
+    dpi = screen.dpi;
+  } else {
+    
+    
+    let match = screenarg.match(/^(\d+)x(\d+)(@(\d+))?$/);
+    
+    
+    if (match == null)
+      usage();
+    
+    
+    width = parseInt(match[1], 10);
+    height = parseInt(match[2], 10);
+    if (match[4])
+      dpi = parseInt(match[4], 10);
+    else    
+      dpi = hostDPI;
+
+    
+    if (!width || !height || !dpi)
+      usage();
+  }
+  
+  
+  
+  
+  
+  let scale = rescale ? hostDPI / dpi : 1;
+
+  
+  let chromewidth = window.outerWidth - window.innerWidth;
+  let chromeheight = window.outerHeight - window.innerHeight;
+  window.resizeTo(Math.round(width * scale) + chromewidth,
+                  Math.round(height * scale) + chromeheight);
+
+  
+  browser.style.width = browser.style.minWidth = browser.style.maxWidth =
+    width + 'px';
+  browser.style.height = browser.style.minHeight = browser.style.maxHeight =
+    height + 'px';
+  browser.setAttribute('flex', '0');  
+
+  
+  if (scale !== 1) {
+    browser.style.MozTransformOrigin = 'top left';
+    browser.style.MozTransform = 'scale(' + scale + ',' + scale + ')';
+  }
+
+  
+  
+  
+  Services.prefs.setIntPref('layout.css.dpi', dpi);
+
+  
+  
+  function print() {
+    let dump_enabled =
+      Services.prefs.getBoolPref('browser.dom.window.dump.enabled');
+
+    if (!dump_enabled) 
+      Services.prefs.setBoolPref('browser.dom.window.dump.enabled', true);
+
+    dump(Array.prototype.join.call(arguments, ' ') + '\n');
+
+    if (!dump_enabled) 
+      Services.prefs.setBoolPref('browser.dom.window.dump.enabled', false);
+  }
+
+  
+  function usage() {
+    
+    let msg = 
+      'The --screen argument specifies the desired resolution and\n' +
+      'pixel density of the simulated device screen. Use it like this:\n' +
+      '\t--screen=WIDTHxHEIGHT\t\t\t// E.g.: --screen=320x480\n' +
+      '\t--screen=WIDTHxHEIGHT@DOTS_PER_INCH\t// E.g.: --screen=480x800@250\n' +
+      '\t--screen=full\t\t\t\t// run in fullscreen mode\n' +
+      '\nYou can also specify certain device names:\n';
+    for(let p in screens)
+      msg += '\t--screen=' + p + '\t// ' + screens[p].name + '\n';
+    msg += 
+      '\nAdd a ! to the end of a screen specification to rescale the\n' +
+      'screen so that it is shown at actual size on your monitor:\n' +
+      '\t--screen=nexus_s!\n' +
+      '\t--screen=320x480@200!\n'
+    ;
+
+    
+    print(msg);
+
+    
+    Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
+  }
+});
