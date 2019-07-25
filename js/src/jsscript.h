@@ -258,11 +258,11 @@ class Bindings {
 
 
 
-    BindingKind lookup(JSAtom *name, uintN *indexp) const;
+    BindingKind lookup(JSContext *cx, JSAtom *name, uintN *indexp) const;
 
     
-    bool hasBinding(JSAtom *name) const {
-        return lookup(name, NULL) != NONE;
+    bool hasBinding(JSContext *cx, JSAtom *name) const {
+        return lookup(cx, name, NULL) != NONE;
     }
 
     
