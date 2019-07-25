@@ -2002,6 +2002,68 @@ nsDisplayOwnLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
   return layer.forget();
 }
 
+nsDisplayFixedPosition::nsDisplayFixedPosition(nsDisplayListBuilder* aBuilder,
+                                               nsIFrame* aFrame,
+                                               nsDisplayList* aList)
+    : nsDisplayOwnLayer(aBuilder, aFrame, aList) {
+  MOZ_COUNT_CTOR(nsDisplayFixedPosition);
+}
+
+#ifdef NS_BUILD_REFCNT_LOGGING
+nsDisplayFixedPosition::~nsDisplayFixedPosition() {
+  MOZ_COUNT_DTOR(nsDisplayFixedPosition);
+}
+#endif
+
+already_AddRefed<Layer>
+nsDisplayFixedPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager,
+                                   const ContainerParameters& aContainerParameters) {
+  nsRefPtr<Layer> layer =
+    nsDisplayOwnLayer::BuildLayer(aBuilder, aManager, aContainerParameters);
+
+  
+  
+  
+  
+  nsIFrame* viewportFrame = mFrame->GetParent();
+  nsPresContext *presContext = viewportFrame->PresContext();
+
+  
+  
+  nsSize containingBlockSize = viewportFrame->GetSize();
+  if (presContext->PresShell()->IsScrollPositionClampingScrollPortSizeSet()) {
+    containingBlockSize = presContext->PresShell()->
+      GetScrollPositionClampingScrollPortSize();
+  }
+
+  
+  
+  
+  float factor = presContext->AppUnitsPerDevPixel();
+  nsPoint origin = aBuilder->ToReferenceFrame(viewportFrame);
+  gfxRect anchorRect(NSAppUnitsToFloatPixels(origin.x, factor) *
+                       aContainerParameters.mXScale,
+                     NSAppUnitsToFloatPixels(origin.y, factor) *
+                       aContainerParameters.mYScale,
+                     NSAppUnitsToFloatPixels(containingBlockSize.width, factor) *
+                       aContainerParameters.mXScale,
+                     NSAppUnitsToFloatPixels(containingBlockSize.height, factor) *
+                       aContainerParameters.mYScale);
+
+  gfxPoint anchor(anchorRect.x, anchorRect.y);
+
+  const nsStylePosition* position = mFrame->GetStylePosition();
+  if (position->mOffset.GetRightUnit() != eStyleUnit_Auto)
+    anchor.x = anchorRect.XMost();
+  if (position->mOffset.GetBottomUnit() != eStyleUnit_Auto)
+    anchor.y = anchorRect.YMost();
+
+  layer->SetFixedPositionAnchor(anchor);
+
+  return layer.forget();
+}
+
 nsDisplayScrollLayer::nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
                                            nsDisplayList* aList,
                                            nsIFrame* aForFrame,
