@@ -59,6 +59,7 @@
 #include "jsatom.h"
 #include "jsdhash.h"
 #include "jsdtoa.h"
+#include "jsfun.h"
 #include "jsgc.h"
 #include "jsgcchunk.h"
 #include "jshashtable.h"
@@ -1260,7 +1261,7 @@ typedef enum JSRuntimeState {
 
 typedef struct JSPropertyTreeEntry {
     JSDHashEntryHdr     hdr;
-    JSScopeProperty     *child;
+    js::Shape           *child;
 } JSPropertyTreeEntry;
 
 
@@ -1432,17 +1433,6 @@ struct JSRuntime {
     bool                gcMarkAndSweep;
     bool                gcRunning;
     bool                gcRegenShapes;
-
-    
-
-
-
-
-
-
-
-
-    uint8               gcRegenShapesScopeFlag;
 
 #ifdef JS_GC_ZEAL
     jsrefcount          gcZeal;
@@ -1628,12 +1618,12 @@ struct JSRuntime {
 
 
 
-    JSEmptyScope          *emptyArgumentsScope;
-    JSEmptyScope          *emptyBlockScope;
-    JSEmptyScope          *emptyCallScope;
-    JSEmptyScope          *emptyDeclEnvScope;
-    JSEmptyScope          *emptyEnumeratorScope;
-    JSEmptyScope          *emptyWithScope;
+    js::EmptyShape      *emptyArgumentsShape;
+    js::EmptyShape      *emptyBlockShape;
+    js::EmptyShape      *emptyCallShape;
+    js::EmptyShape      *emptyDeclEnvShape;
+    js::EmptyShape      *emptyEnumeratorShape;
+    js::EmptyShape      *emptyWithShape;
 
     
 
@@ -1665,16 +1655,34 @@ struct JSRuntime {
     jsrefcount          claimedTitles;
     jsrefcount          deadContexts;
     jsrefcount          deadlocksAvoided;
-    jsrefcount          liveScopes;
+    jsrefcount          liveShapes;
     jsrefcount          sharedTitles;
-    jsrefcount          totalScopes;
-    jsrefcount          liveScopeProps;
-    jsrefcount          liveScopePropsPreSweep;
-    jsrefcount          totalScopeProps;
+    jsrefcount          totalShapes;
+    jsrefcount          liveObjectProps;
+    jsrefcount          liveObjectPropsPreSweep;
+    jsrefcount          totalObjectProps;
     jsrefcount          livePropTreeNodes;
     jsrefcount          duplicatePropTreeNodes;
     jsrefcount          totalPropTreeNodes;
     jsrefcount          propTreeKidsChunks;
+    jsrefcount          liveDictModeNodes;
+
+    
+
+
+
+
+
+    const char          *propTreeStatFilename;
+    const char          *propTreeDumpFilename;
+
+    bool meterEmptyShapes() const { return propTreeStatFilename || propTreeDumpFilename; }
+
+    typedef js::HashSet<js::EmptyShape *,
+                        js::DefaultHasher<js::EmptyShape *>,
+                        js::SystemAllocPolicy> EmptyShapeSet;
+
+    EmptyShapeSet       emptyShapes;
 
     
     jsrefcount          liveStrings;
@@ -1829,12 +1837,8 @@ typedef struct JSResolvingEntry {
 extern const JSDebugHooks js_NullDebugHooks;  
 
 namespace js {
+
 class AutoGCRooter;
-}
-
-namespace js {
-
-class RegExp;
 
 class RegExpStatics
 {
@@ -1941,7 +1945,7 @@ class RegExpStatics
     void getRightContext(JSSubString *out) const;
 };
 
-}
+} 
 
 struct JSContext
 {
@@ -2503,7 +2507,7 @@ class AutoGCRooter {
 
     enum {
         JSVAL =        -1, 
-        SPROP =        -2, 
+        SHAPE =        -2, 
         PARSER =       -3, 
         SCRIPT =       -4, 
         ENUMERATOR =   -5, 
@@ -2687,11 +2691,11 @@ class AutoArrayRooter : private AutoGCRooter {
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class AutoScopePropertyRooter : private AutoGCRooter {
+class AutoShapeRooter : private AutoGCRooter {
   public:
-    AutoScopePropertyRooter(JSContext *cx, JSScopeProperty *sprop
-                            JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, SPROP), sprop(sprop)
+    AutoShapeRooter(JSContext *cx, const js::Shape *shape
+                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, SHAPE), shape(shape)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -2700,7 +2704,7 @@ class AutoScopePropertyRooter : private AutoGCRooter {
     friend void MarkRuntime(JSTracer *trc);
 
   private:
-    JSScopeProperty * const sprop;
+    const js::Shape * const shape;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -2894,6 +2898,37 @@ class AutoReleasePtr {
   public:
     explicit AutoReleasePtr(JSContext *cx, void *ptr) : cx(cx), ptr(ptr) {}
     ~AutoReleasePtr() { cx->free(ptr); }
+};
+
+class AutoLocalNameArray {
+  public:
+    explicit AutoLocalNameArray(JSContext *cx, JSFunction *fun
+                                JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : context(cx),
+        mark(JS_ARENA_MARK(&cx->tempPool)),
+        names(fun->getLocalNameArray(cx, &cx->tempPool)),
+        count(fun->countLocalNames())
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    ~AutoLocalNameArray() {
+        JS_ARENA_RELEASE(&context->tempPool, mark);
+    }
+
+    operator bool() const { return !!names; }
+
+    uint32 length() const { return count; }
+
+    const jsuword &operator [](unsigned i) const { return names[i]; }
+
+  private:
+    JSContext   *context;
+    void        *mark;
+    jsuword     *names;
+    uint32      count;
+
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 } 

@@ -74,19 +74,6 @@ typedef uint8  jsbytecode;
 typedef uint8  jssrcnote;
 typedef uint32 jsatomid;
 
-#ifdef __cplusplus
-
-
-extern "C++" {
-namespace js {
-struct Parser;
-struct Compiler;
-class RegExp;
-}
-}
-
-#endif
-
 
 typedef struct JSArgumentFormatMap  JSArgumentFormatMap;
 typedef struct JSCodeGenerator      JSCodeGenerator;
@@ -98,7 +85,6 @@ typedef struct JSObjectBox          JSObjectBox;
 typedef struct JSParseNode          JSParseNode;
 typedef struct JSProperty           JSProperty;
 typedef struct JSSharpObjectMap     JSSharpObjectMap;
-typedef struct JSEmptyScope         JSEmptyScope;
 typedef struct JSThread             JSThread;
 typedef struct JSThreadData         JSThreadData;
 typedef struct JSTreeContext        JSTreeContext;
@@ -113,9 +99,6 @@ typedef struct JSAtomState          JSAtomState;
 typedef struct JSCodeSpec           JSCodeSpec;
 typedef struct JSPrinter            JSPrinter;
 typedef struct JSRegExpStatics      JSRegExpStatics;
-typedef struct JSScope              JSScope;
-typedef struct JSScopeOps           JSScopeOps;
-typedef struct JSScopeProperty      JSScopeProperty;
 typedef struct JSStackHeader        JSStackHeader;
 typedef struct JSSubString          JSSubString;
 typedef struct JSNativeTraceInfo    JSNativeTraceInfo;
@@ -136,6 +119,8 @@ extern "C++" {
 
 namespace js {
 
+struct ArgumentsData;
+
 class RegExp;
 class RegExpStatics;
 class AutoStringRooter;
@@ -147,6 +132,8 @@ struct TraceMonitor;
 class StackSpace;
 class StackSegment;
 
+struct Compiler;
+struct Parser;
 class TokenStream;
 struct Token;
 struct TokenPos;
@@ -179,6 +166,8 @@ class DeflatedStringCache;
 class PropertyCache;
 struct PropertyCacheEntry;
 
+struct Shape;
+struct EmptyShape;
 
 } 
 

@@ -59,6 +59,10 @@ function test()
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
+  
+  
+  eval();
+
   runtest();
   gc();
   var counter = countHeap();

@@ -251,7 +251,7 @@ namespace_equality(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp)
 JS_FRIEND_DATA(Class) js_NamespaceClass = {
     "Namespace",
     JSCLASS_CONSTRUCT_PROTOTYPE |
-    JSCLASS_HAS_RESERVED_SLOTS(JSObject::NAMESPACE_FIXED_RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(JSObject::NAMESPACE_CLASS_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_Namespace),
     PropertyStub,   
     PropertyStub,   
@@ -370,7 +370,7 @@ qname_equality(JSContext *cx, JSObject *qn, const Value *v, JSBool *bp)
 JS_FRIEND_DATA(Class) js_QNameClass = {
     "QName",
     JSCLASS_CONSTRUCT_PROTOTYPE |
-    JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_FIXED_RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_CLASS_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_QName),
     PropertyStub,   
     PropertyStub,   
@@ -405,7 +405,7 @@ JS_FRIEND_DATA(Class) js_QNameClass = {
 JS_FRIEND_DATA(Class) js_AttributeNameClass = {
     js_AttributeName_str,
     JSCLASS_CONSTRUCT_PROTOTYPE |
-    JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_FIXED_RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_CLASS_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_AttributeName),
     PropertyStub,   
     PropertyStub,   
@@ -419,7 +419,7 @@ JS_FRIEND_DATA(Class) js_AttributeNameClass = {
 JS_FRIEND_DATA(Class) js_AnyNameClass = {
     js_AnyName_str,
     JSCLASS_CONSTRUCT_PROTOTYPE |
-    JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_FIXED_RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(JSObject::QNAME_CLASS_RESERVED_SLOTS) |
     JSCLASS_MARK_IS_TRACE | JSCLASS_HAS_CACHED_PROTO(JSProto_AnyName),
     PropertyStub,   
     PropertyStub,   
@@ -4663,7 +4663,6 @@ xml_trace_vector(JSTracer *trc, JSXML **vec, uint32 len)
 
 
 
-
 static JSBool
 xml_lookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                    JSProperty **propp)
@@ -4673,7 +4672,6 @@ xml_lookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
     uint32 i;
     JSObject *qn;
     jsid funid;
-    JSScopeProperty *sprop;
 
     xml = (JSXML *) obj->getPrivate();
     if (js_IdIsIndex(id, &i)) {
@@ -4690,16 +4688,17 @@ xml_lookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
         *objp = NULL;
         *propp = NULL;
     } else {
-        sprop = js_AddNativeProperty(cx, obj, id,
-                                     Valueify(GetProperty), Valueify(PutProperty),
-                                     SPROP_INVALID_SLOT, JSPROP_ENUMERATE,
-                                     0, 0);
-        if (!sprop)
+        const Shape *shape =
+            js_AddNativeProperty(cx, obj, id,
+                                 Valueify(GetProperty), Valueify(PutProperty),
+                                 SHAPE_INVALID_SLOT, JSPROP_ENUMERATE,
+                                 0, 0);
+        if (!shape)
             return JS_FALSE;
 
         JS_LOCK_OBJ(cx, obj);
         *objp = obj;
-        *propp = (JSProperty *) sprop;
+        *propp = (JSProperty *) shape;
     }
     return JS_TRUE;
 }
@@ -4799,7 +4798,7 @@ xml_deleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval)
 
 
 
-    if (obj->scope()->object == obj && !js_DeleteProperty(cx, obj, id, rval))
+    if (!obj->nativeEmpty() && !js_DeleteProperty(cx, obj, id, rval))
         return JS_FALSE;
 
     rval->setBoolean(true);
@@ -7072,7 +7071,7 @@ js_InitXMLClass(JSContext *cx, JSObject *obj)
     JSFunction *fun;
     JSXML *xml;
     JSProperty *prop;
-    JSScopeProperty *sprop;
+    Shape *shape;
     jsval cval, vp[3];
 
     
@@ -7105,9 +7104,9 @@ js_InitXMLClass(JSContext *cx, JSObject *obj)
         return NULL;
     }
     JS_ASSERT(prop);
-    sprop = (JSScopeProperty *) prop;
-    JS_ASSERT(SPROP_HAS_VALID_SLOT(sprop, pobj->scope()));
-    cval = Jsvalify(pobj->getSlotMT(cx, sprop->slot));
+    shape = (Shape *) prop;
+    JS_ASSERT(pobj->containsSlot(shape->slot));
+    cval = Jsvalify(pobj->getSlotMT(cx, shape->slot));
     JS_UNLOCK_OBJ(cx, pobj);
     JS_ASSERT(VALUE_IS_FUNCTION(cx, cval));
 

@@ -2042,8 +2042,8 @@ AutoGCRooter::trace(JSTracer *trc)
         MarkValue(trc, static_cast<AutoValueRooter *>(this)->val, "js::AutoValueRooter.val");
         return;
 
-      case SPROP:
-        static_cast<AutoScopePropertyRooter *>(this)->sprop->trace(trc);
+      case SHAPE:
+        static_cast<AutoShapeRooter *>(this)->shape->trace(trc);
         return;
 
       case PARSER:
@@ -2262,6 +2262,19 @@ MarkRuntime(JSTracer *trc)
     for (ThreadDataIter i(rt); !i.empty(); i.popFront())
         i.threadData()->mark(trc);
 
+    if (rt->emptyArgumentsShape)
+        rt->emptyArgumentsShape->trace(trc);
+    if (rt->emptyBlockShape)
+        rt->emptyBlockShape->trace(trc);
+    if (rt->emptyCallShape)
+        rt->emptyCallShape->trace(trc);
+    if (rt->emptyDeclEnvShape)
+        rt->emptyDeclEnvShape->trace(trc);
+    if (rt->emptyEnumeratorShape)
+        rt->emptyEnumeratorShape->trace(trc);
+    if (rt->emptyWithShape)
+        rt->emptyWithShape->trace(trc);
+
     
 
 
@@ -2337,15 +2350,7 @@ FinalizeObject(JSContext *cx, JSObject *obj, unsigned thingKind)
 
     DTrace::finalizeObject(obj);
 
-    if (JS_LIKELY(obj->isNative())) {
-        JSScope *scope = obj->scope();
-        if (scope->isSharedEmpty())
-            static_cast<JSEmptyScope *>(scope)->dropFromGC(cx);
-        else
-            scope->destroy(cx);
-    }
-    if (obj->hasSlotsArray())
-        obj->freeSlotsArray(cx);
+    obj->finish(cx);
 }
 
 inline void
@@ -2684,8 +2689,7 @@ PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
 #endif
         ) {
         rt->gcRegenShapes = true;
-        rt->gcRegenShapesScopeFlag ^= JSScope::SHAPE_REGEN;
-        rt->shapeGen = JSScope::LAST_RESERVED_SHAPE;
+        rt->shapeGen = Shape::LAST_RESERVED_SHAPE;
         rt->protoHazardShape = 0;
     }
 
@@ -2763,7 +2767,7 @@ MarkAndSweep(JSContext *cx  GCTIMER_PARAM)
 
 #ifdef DEBUG
     
-    rt->liveScopePropsPreSweep = rt->liveScopeProps;
+    rt->liveObjectPropsPreSweep = rt->liveObjectProps;
 #endif
 
     
@@ -2801,7 +2805,7 @@ MarkAndSweep(JSContext *cx  GCTIMER_PARAM)
 
 
 
-    js::SweepScopeProperties(cx);
+    js::PropertyTree::sweepShapes(cx);
 
     
 

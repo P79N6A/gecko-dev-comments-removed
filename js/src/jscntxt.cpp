@@ -863,7 +863,7 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
 
             uint32 shapeGen = rt->shapeGen;
             rt->shapeGen = 0;
-            ok = JSScope::initRuntimeState(cx);
+            ok = Shape::initRuntimeState(cx);
             if (rt->shapeGen < shapeGen)
                 rt->shapeGen = shapeGen;
         }
@@ -1094,7 +1094,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
                 JS_BeginRequest(cx);
 #endif
 
-            JSScope::finishRuntimeState(cx);
+            Shape::finishRuntimeState(cx);
             js_FinishRuntimeNumberState(cx);
 
             
