@@ -42,6 +42,7 @@ class Observer;
 
 namespace hal {
 
+typedef Observer<void_t> AlarmObserver;
 typedef Observer<ScreenConfiguration> ScreenConfigurationObserver;
 
 class WindowIdentifier;
@@ -365,6 +366,41 @@ void NotifySwitchChange(const hal::SwitchEvent& aEvent);
 
 
 hal::SwitchState GetCurrentSwitchState(hal::SwitchDevice aDevice);
+
+
+
+
+
+
+
+bool RegisterTheOneAlarmObserver(hal::AlarmObserver* aObserver);
+
+
+
+
+
+void UnregisterTheOneAlarmObserver();
+
+
+
+
+
+
+void NotifyAlarmFired();
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool SetAlarm(long aSeconds, long aNanoseconds);
 
 } 
 } 
