@@ -213,11 +213,7 @@ add_test(function test_unsuccessful_sync_adjustSyncInterval() {
   
   _("Test as long as idle && numClients > 1 our sync interval is idleInterval.");
   
-  
-  
-  
   Clients._store.create({id: "foo", cleartext: "bar"});
-  SyncScheduler.updateClientMode();  
 
   Service.sync();
   do_check_eq(syncFailures, 5);
@@ -288,4 +284,151 @@ add_test(function test_back_triggers_sync() {
   SyncScheduler.idle = true;
   SyncScheduler.observe(null, "back", Svc.Prefs.get("scheduler.idleTime"));
   do_check_false(SyncScheduler.idle);
+});
+
+add_test(function test_adjust_interval_on_sync_error() {
+  let server = sync_httpd_setup();
+  setUp();
+
+  let syncFailures = 0;
+  function onSyncError() {
+    _("Sync error.");
+    syncFailures++;
+  }
+  Svc.Obs.add("weave:service:sync:error", onSyncError);
+
+  _("Test unsuccessful sync updates client mode & sync intervals");
+  
+  Svc.Prefs.set("firstSync", "notReady");
+
+  do_check_eq(syncFailures, 0);
+  do_check_false(SyncScheduler.numClients > 1);
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.singleDeviceInterval);
+
+  Clients._store.create({id: "foo", cleartext: "bar"});
+  Service.sync();
+
+  do_check_eq(syncFailures, 1);
+  do_check_true(SyncScheduler.numClients > 1);
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.activeInterval);
+
+  Svc.Obs.remove("weave:service:sync:error", onSyncError);
+  Service.startOver();
+  server.stop(run_next_test);
+});
+
+add_test(function test_bug671378_scenario() {
+  
+  
+  
+  
+  
+  let server = sync_httpd_setup();
+  setUp();
+
+  let syncSuccesses = 0;
+  function onSyncFinish() {
+    _("Sync success.");
+    syncSuccesses++;
+  };
+  Svc.Obs.add("weave:service:sync:finish", onSyncFinish);
+
+  
+  Service.sync();
+  do_check_eq(syncSuccesses, 1);
+  do_check_false(SyncScheduler.numClients > 1);
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.singleDeviceInterval);
+  do_check_eq(SyncScheduler.syncTimer.delay, SyncScheduler.singleDeviceInterval);
+
+  
+  SyncScheduler._scheduleNextSync = SyncScheduler.scheduleNextSync;
+  SyncScheduler.scheduleNextSync = function() {
+    SyncScheduler._scheduleNextSync();
+
+    
+    
+    if (syncSuccesses == 2) {
+      do_check_neq(SyncScheduler.nextSync, 0);
+      do_check_eq(SyncScheduler.syncInterval, SyncScheduler.activeInterval);
+      do_check_true(SyncScheduler.syncTimer.delay <= SyncScheduler.activeInterval);
+ 
+      SyncScheduler.scheduleNextSync = SyncScheduler._scheduleNextSync;
+      Svc.Obs.remove("weave:service:sync:finish", onSyncFinish);
+      Service.startOver();
+      server.stop(run_next_test);
+    }
+  };
+  
+  
+  
+  
+  
+  Svc.Obs.add("weave:service:sync:start", function onSyncStart() {
+    
+    
+    Utils.nextTick(function() {
+      Svc.Obs.remove("weave:service:sync:start", onSyncStart);
+
+      do_check_eq(SyncScheduler.nextSync, 0);
+      SyncScheduler.scheduleNextSync();
+      do_check_neq(SyncScheduler.nextSync, 0);
+      do_check_eq(SyncScheduler.syncInterval, SyncScheduler.singleDeviceInterval);
+      do_check_eq(SyncScheduler.syncTimer.delay, SyncScheduler.singleDeviceInterval);
+    });
+  });
+
+  Clients._store.create({id: "foo", cleartext: "bar"});
+  Service.sync();
+});
+
+add_test(function test_adjust_timer_larger_syncInterval() {
+  _("Test syncInterval > current timout period && nextSync != 0, syncInterval is NOT used.");
+  Clients._store.create({id: "foo", cleartext: "bar"});
+  SyncScheduler.updateClientMode();
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.activeInterval);
+
+  SyncScheduler.scheduleNextSync();
+
+  
+  do_check_neq(SyncScheduler.nextSync, 0);
+  do_check_eq(SyncScheduler.syncTimer.delay, SyncScheduler.activeInterval);
+
+  
+  Clients._wipeClient();
+  SyncScheduler.updateClientMode();
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.singleDeviceInterval);
+
+  SyncScheduler.scheduleNextSync();
+
+  
+  do_check_neq(SyncScheduler.nextSync, 0);
+  do_check_true(SyncScheduler.syncTimer.delay <= SyncScheduler.activeInterval);
+
+  
+  Service.startOver();
+  run_next_test();
+});
+
+add_test(function test_adjust_timer_smaller_syncInterval() {
+  _("Test current timout > syncInterval period && nextSync != 0, syncInterval is used.");
+  SyncScheduler.scheduleNextSync();
+
+  
+  do_check_neq(SyncScheduler.nextSync, 0);
+  do_check_eq(SyncScheduler.syncTimer.delay, SyncScheduler.singleDeviceInterval);
+
+  
+  Clients._store.create({id: "foo", cleartext: "bar"});
+  SyncScheduler.updateClientMode();
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.activeInterval);
+
+  SyncScheduler.scheduleNextSync();
+
+  
+  do_check_neq(SyncScheduler.nextSync, 0);
+  do_check_true(SyncScheduler.syncTimer.delay <= SyncScheduler.activeInterval);
+
+  
+  Service.startOver();
+  run_next_test();
 });
