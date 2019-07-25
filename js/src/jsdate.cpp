@@ -847,7 +847,12 @@ date_parseISOString(JSLinearString *str, jsdouble *result, JSContext *cx)
             tzMul = -1;
         ++i;
         NEED_NDIGITS(2, tzHour);
-        NEED(':');
+        
+
+
+
+        if (PEEK(':'))
+          ++i;
         NEED_NDIGITS(2, tzMin);
     } else {
         isLocalTime = JS_TRUE;
