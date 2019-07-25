@@ -1,0 +1,57 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>STS test iframe</title>
+    <script>
+      var self = window;
+      window.addEventListener("load", function() {
+          self.parent.postMessage("BOOTSTRAP plain", "http://mochi.test:8888");
+        }, false);
+    </script>
+  </head>
+  <body>
+    
+    This frame was loaded using 
+    <script>
+      document.write(document.location.protocol);
+    </script>
+    and set the STS header to force this site and allow subdomain upgrading.
+  </body>
+</html>

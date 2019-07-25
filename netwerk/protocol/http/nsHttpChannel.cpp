@@ -910,13 +910,6 @@ nsresult
 nsHttpChannel::ProcessSTSHeader()
 {
     nsresult rv;
-
-    
-    
-    
-    if (gHttpHandler->InPrivateBrowsingMode())
-        return NS_OK;
-
     PRBool isHttps = PR_FALSE;
     rv = mURI->SchemeIs("https", &isHttps);
     NS_ENSURE_SUCCESS(rv, rv);
