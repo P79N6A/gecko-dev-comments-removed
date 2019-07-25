@@ -137,6 +137,10 @@ let UI = {
 
   
   
+  _browserKeysWithShift: null,
+
+  
+  
   ignoreKeypressForSearch: false,
 
   
@@ -973,9 +977,13 @@ let UI = {
       "selectAll", "find"
     ].forEach(function(key) {
       let element = gWindow.document.getElementById("key_" + key);
-      keys[key] = element.getAttribute("key").toLocaleLowerCase().charCodeAt(0);
+      let code = element.getAttribute("key").toLocaleLowerCase().charCodeAt(0);
+      keys[code] = key;
     });
+    this._browserKeys = keys;
 
+    keys = {};
+    
     
     
     [
@@ -986,11 +994,10 @@ let UI = {
       "privatebrowsing"
     ].forEach(function(key) {
       let element = gWindow.document.getElementById("key_" + key);
-      keys[key] = element.getAttribute("key").toLocaleUpperCase().charCodeAt(0);
+      let code = element.getAttribute("key").toLocaleLowerCase().charCodeAt(0);
+      keys[code] = key;
     });
-
-    delete this._browserKeys;
-    this._browserKeys = keys;
+    this._browserKeysWithShift = keys;
   },
 
   
@@ -1022,44 +1029,25 @@ let UI = {
 #endif
           let preventDefault = true;
           if (evt.shiftKey) {
-            switch (evt.charCode) {
-              case self._browserKeys.tabview:
+            
+            
+            
+            let lowercaseCharCode =
+              String.fromCharCode(evt.charCode).toLocaleLowerCase().charCodeAt(0);
+            if (lowercaseCharCode in self._browserKeysWithShift) {
+              let key = self._browserKeysWithShift[lowercaseCharCode];
+              if (key == "tabview")
                 self.exit();
-                break;
-#ifdef XP_UNIX
-              case self._browserKeys.redo:
-#endif
-              case self._browserKeys.closeWindow:
-              case self._browserKeys.undoCloseTab:
-              case self._browserKeys.undoCloseWindow:
-              case self._browserKeys.privatebrowsing:
+              else
                 preventDefault = false;
-                break;
             }
           } else {
-            switch (evt.charCode) {
-              case self._browserKeys.find:
+            if (evt.charCode in self._browserKeys) {
+              let key = self._browserKeys[evt.charCode];
+              if (key == "find")
                 self.enableSearch();
-                break;
-#ifdef XP_UNIX
-              case self._browserKeys.quitApplication:
-#else
-              case self._browserKeys.redo:
-#endif
-#ifdef XP_MACOSX
-              case self._browserKeys.preferencesCmdMac:
-              case self._browserKeys.minimizeWindow:
-              case self._browserKeys.hideThisAppCmdMac:
-#endif
-              case self._browserKeys.newNavigator:
-              case self._browserKeys.newNavigatorTab:
-              case self._browserKeys.undo:
-              case self._browserKeys.cut:
-              case self._browserKeys.copy:
-              case self._browserKeys.paste:
-              case self._browserKeys.selectAll:
+              else
                 preventDefault = false;
-                break;
             }
           }
           if (preventDefault) {
