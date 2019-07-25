@@ -76,6 +76,17 @@ DefaultXDisplay()
 
 
 
+
+
+
+bool
+XVisualIDToInfo(Display* aDisplay, VisualID aVisualID,
+                Visual** aVisual, unsigned int* aDepth);
+
+
+
+
+
 template<typename T>
 struct ScopedXFree
 {
