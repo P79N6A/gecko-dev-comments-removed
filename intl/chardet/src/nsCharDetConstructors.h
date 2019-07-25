@@ -47,7 +47,6 @@
 
 #include "nsISupports.h"
 #include "nsICharsetDetector.h"
-#include "nsICharsetAlias.h"
 #include "nsICharsetDetectionObserver.h"
 #include "nsIStringCharsetDetector.h"
 #include "nsCyrillicDetector.h"
