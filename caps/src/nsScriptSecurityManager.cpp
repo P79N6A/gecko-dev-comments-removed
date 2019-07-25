@@ -3327,41 +3327,6 @@ nsScriptSecurityManager::Observe(nsISupports* aObject, const char* aTopic,
 
 
 
-
-
-
-
-
-
-NS_EXPORT JSPrincipals *
-NS_DefaultObjectPrincipalFinder(JSContext *cx, JSObject *obj)
-{
-    nsScriptSecurityManager *ssm = nsScriptSecurityManager::GetScriptSecurityManager();
-    if (!ssm) {
-        return nsnull;
-    }
-
-    nsCOMPtr<nsIPrincipal> principal;
-    nsresult rv = ssm->GetObjectPrincipal(cx, obj, getter_AddRefs(principal));
-    if (NS_FAILED(rv) || !principal) {
-        return nsnull;
-    }
-
-    JSPrincipals *jsPrincipals = nsnull;
-    principal->GetJSPrincipals(cx, &jsPrincipals);
-
-    
-    
-    
-
-    JSPRINCIPALS_DROP(cx, jsPrincipals);
-
-    return jsPrincipals;
-}
-
-
-
-
 nsScriptSecurityManager::nsScriptSecurityManager(void)
     : mOriginToPolicyMap(nsnull),
       mDefaultPolicy(nsnull),
@@ -3431,7 +3396,7 @@ nsresult nsScriptSecurityManager::Init()
     static JSSecurityCallbacks securityCallbacks = {
         CheckObjectAccess,
         NULL,
-        NS_DefaultObjectPrincipalFinder,
+        NULL,
         ContentSecurityPolicyPermitsJSAction
     };
 
