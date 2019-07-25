@@ -85,6 +85,18 @@ let Util = {
     dump("\n");
   },
 
+  getWindowUtils: function getWindowUtils(aWindow) {
+    return aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+  },
+
+  getScrollOffset: function getScrollOffset(aWindow) {
+    var cwu = Util.getWindowUtils(aWindow);
+    var scrollX = {};
+    var scrollY = {};
+    cwu.getScrollXY(false, scrollX, scrollY);
+    return new Point(scrollX.value, scrollY.value);
+  },
+
   
   executeSoon: function executeSoon(aFunc) {
     let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
@@ -120,69 +132,6 @@ let Util = {
   makeURLAbsolute: function makeURLAbsolute(base, url) {
     
     return makeURI(url, null, makeURI(base)).spec;
-  },
-
-  getViewportMetadata: function getViewportMetadata(browser) {
-    let dpiScale = gPrefService.getIntPref("zoom.dpiScale") / 100;
-
-    let doctype = browser.contentDocument.doctype;
-    if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
-      return { defaultZoom: dpiScale, autoSize: true };
-
-    let windowUtils = browser.contentWindow
-                             .QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIDOMWindowUtils);
-    let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
-    if (handheldFriendly == "true")
-      return { defaultZoom: dpiScale, autoSize: true };
-
-    if (browser.contentDocument instanceof XULDocument)
-      return { defaultZoom: 1.0, autoSize: true, allowZoom: false };
-
-    
-    
-    
-    
-    
-    
-    let viewportScale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
-    let viewportMinScale = parseFloat(windowUtils.getDocumentMetadata("viewport-minimum-scale"));
-    let viewportMaxScale = parseFloat(windowUtils.getDocumentMetadata("viewport-maximum-scale"));
-    let viewportWidthStr = windowUtils.getDocumentMetadata("viewport-width");
-    let viewportHeightStr = windowUtils.getDocumentMetadata("viewport-height");
-
-    viewportScale = Util.clamp(viewportScale, kViewportMinScale, kViewportMaxScale);
-    viewportMinScale = Util.clamp(viewportMinScale, kViewportMinScale, kViewportMaxScale);
-    viewportMaxScale = Util.clamp(viewportMaxScale, kViewportMinScale, kViewportMaxScale);
-
-    
-    let autoSize = (viewportWidthStr == "device-width" ||
-                    viewportHeightStr == "device-height" ||
-                    (viewportScale == 1.0 && !viewportWidthStr));
-
-    let viewportWidth = Util.clamp(parseInt(viewportWidthStr), kViewportMinWidth, kViewportMaxWidth);
-    let viewportHeight = Util.clamp(parseInt(viewportHeightStr), kViewportMinHeight, kViewportMaxHeight);
-
-    
-    
-    
-    
-    
-    
-    
-    let defaultZoom = viewportScale * dpiScale;
-    let minZoom = viewportMinScale * dpiScale;
-    let maxZoom = viewportMaxScale * dpiScale;
-
-    return {
-      defaultZoom: defaultZoom,
-      minZoom: minZoom,
-      maxZoom: maxZoom,
-      width: viewportWidth,
-      height: viewportHeight,
-      autoSize: autoSize,
-      allowZoom: windowUtils.getDocumentMetadata("viewport-user-scalable") != "no"
-    };
   },
 
   clamp: function(num, min, max) {
@@ -249,9 +198,79 @@ let Util = {
     gIOService.offline = false;
 #endif
   },
+
+  
+  capitalize: function(str) {
+    return str.charAt(0).toUpperCase() + str.substring(1);
+  },
   
   isPortrait: function isPortrait() {
     return (window.innerWidth < 500);
+  }
+};
+
+
+
+
+
+
+Util.Timeout = function(aCallback) {
+  this._callback = aCallback;
+  this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+  this._active = false;
+}
+
+Util.Timeout.prototype = {
+  
+  notify: function notify() {
+    this._active = false;
+    if (this._callback.notify)
+      this._callback.notify();
+    else
+      this._callback.apply(null);
+  },
+
+  
+  once: function once(aDelay, aCallback) {
+    if (aCallback)
+      this._callback = aCallback;
+    this.clear();
+    this._timer.initWithCallback(this, aDelay, this._timer.TYPE_ONE_SHOT);
+    this._active = true;
+    return this;
+  },
+
+  
+  interval: function interval(aDelay, aCallback) {
+    if (aCallback)
+      this._callback = aCallback;
+    this.clear();
+    this._timer.initWithCallback(this, aDelay, this._timer.TYPE_REPEATING_SLACK);
+    this._active = true;
+    return this;
+  },
+
+  
+  clear: function clear() {
+    if (this._active) {
+      this._timer.cancel();
+      this._active = false;
+    }
+    return this;
+  },
+
+  
+  flush: function flush() {
+    if (this._active) {
+      this.clear();
+      this.notify();
+    }
+    return this;
+  },
+
+  
+  isPending: function isPending() {
+    return this._active;
   }
 };
 
