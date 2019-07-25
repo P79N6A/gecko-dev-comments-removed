@@ -1462,7 +1462,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     
-    newTab.tabItem.zoomIn(!url);
+    newTab._tabViewTabItem.zoomIn(!url);
   },
 
   
@@ -1893,15 +1893,15 @@ let GroupItems = {
       
       gBrowser.visibleTabs.some(function(tab) {
         if (!tab.pinned && tab != tabItem.tab) {
-          if (tab.tabItem) {
-            if (!tab.tabItem.parent) {
+          if (tab._tabViewTabItem) {
+            if (!tab._tabViewTabItem.parent) {
               
               
-              orphanTabItem = tab.tabItem;
-            } else if (!tab.tabItem.parent.hidden) {
+              orphanTabItem = tab._tabViewTabItem;
+            } else if (!tab._tabViewTabItem.parent.hidden) {
               
               
-              targetGroupItem = tab.tabItem.parent;
+              targetGroupItem = tab._tabViewTabItem.parent;
             }
           }
           return true;
@@ -2173,7 +2173,7 @@ let GroupItems = {
     if (tab.pinned)
       return;
 
-    Utils.assertThrow(tab.tabItem, "tab must be linked to a TabItem");
+    Utils.assertThrow(tab._tabViewTabItem, "tab must be linked to a TabItem");
 
     let shouldUpdateTabBar = false;
     let shouldShowTabView = false;
@@ -2198,13 +2198,13 @@ let GroupItems = {
       shouldUpdateTabBar = true
 
     
-    if (tab.tabItem.parent)
-      tab.tabItem.parent.remove(tab.tabItem);
+    if (tab._tabViewTabItem.parent)
+      tab._tabViewTabItem.parent.remove(tab._tabViewTabItem);
 
     
     if (groupItemId) {
       groupItem = GroupItems.groupItem(groupItemId);
-      groupItem.add(tab.tabItem);
+      groupItem.add(tab._tabViewTabItem);
       UI.setReorderTabItemsOnShow(groupItem);
     } else {
       let pageBounds = Items.getPageBounds();
@@ -2214,13 +2214,13 @@ let GroupItems = {
       box.width = 250;
       box.height = 200;
 
-      new GroupItem([ tab.tabItem ], { bounds: box });
+      new GroupItem([ tab._tabViewTabItem ], { bounds: box });
     }
 
     if (shouldUpdateTabBar)
       this._updateTabBar();
     else if (shouldShowTabView) {
-      tab.tabItem.setZoomPrep(false);
+      tab._tabViewTabItem.setZoomPrep(false);
       UI.showTabView();
     }
   },

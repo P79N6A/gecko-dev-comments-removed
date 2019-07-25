@@ -63,7 +63,7 @@ function onTabViewWindowLoaded() {
   let contentWindow = newWin.document.getElementById("tab-view").contentWindow;
 
   
-  ok(tabOne.tabItem.parent, "Tab one belongs to a group");
+  ok(tabOne._tabViewTabItem.parent, "Tab one belongs to a group");
   is(contentWindow.GroupItems.getOrphanedTabs().length, 0, "No orphaned tabs");
 
   
