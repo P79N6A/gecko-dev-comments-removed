@@ -1,0 +1,13 @@
+
+
+
+
+@media not print {
+  body {
+    background-color: #222;
+  }
+
+  img {
+    color: #eee;
+  }
+}
