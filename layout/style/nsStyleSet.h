@@ -60,6 +60,7 @@
 
 class nsIURI;
 class nsCSSFontFaceRule;
+class nsCSSKeyframesRule;
 class nsRuleWalker;
 struct RuleProcessorData;
 struct TreeMatchContext;
@@ -170,6 +171,11 @@ class nsStyleSet
   
   PRBool AppendFontFaceRules(nsPresContext* aPresContext,
                              nsTArray<nsFontFaceRuleContainer>& aArray);
+
+  
+  
+  PRBool AppendKeyframesRules(nsPresContext* aPresContext,
+                              nsTArray<nsCSSKeyframesRule*>& aArray);
 
   
   

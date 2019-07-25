@@ -837,6 +837,7 @@ struct RuleCascadeData {
 #endif
 
   nsTArray<nsFontFaceRuleContainer> mFontFaceRules;
+  nsTArray<nsCSSKeyframesRule*> mKeyframesRules;
 
   
   
@@ -2454,6 +2455,23 @@ nsCSSRuleProcessor::AppendFontFaceRules(
   return PR_TRUE;
 }
 
+
+
+PRBool
+nsCSSRuleProcessor::AppendKeyframesRules(
+                              nsPresContext *aPresContext,
+                              nsTArray<nsCSSKeyframesRule*>& aArray)
+{
+  RuleCascadeData* cascade = GetRuleCascade(aPresContext);
+
+  if (cascade) {
+    if (!aArray.AppendElements(cascade->mKeyframesRules))
+      return PR_FALSE;
+  }
+  
+  return PR_TRUE;
+}
+
 nsresult
 nsCSSRuleProcessor::ClearRuleCascades()
 {
@@ -2719,11 +2737,13 @@ static PLDHashTableOps gRulesByWeightOps = {
 struct CascadeEnumData {
   CascadeEnumData(nsPresContext* aPresContext,
                   nsTArray<nsFontFaceRuleContainer>& aFontFaceRules,
+                  nsTArray<nsCSSKeyframesRule*>& aKeyframesRules,
                   nsMediaQueryResultCacheKey& aKey,
                   PLArenaPool& aArena,
                   PRUint8 aSheetType)
     : mPresContext(aPresContext),
       mFontFaceRules(aFontFaceRules),
+      mKeyframesRules(aKeyframesRules),
       mCacheKey(aKey),
       mArena(aArena),
       mSheetType(aSheetType)
@@ -2741,6 +2761,7 @@ struct CascadeEnumData {
 
   nsPresContext* mPresContext;
   nsTArray<nsFontFaceRuleContainer>& mFontFaceRules;
+  nsTArray<nsCSSKeyframesRule*>& mKeyframesRules;
   nsMediaQueryResultCacheKey& mCacheKey;
   PLArenaPool& mArena;
   
@@ -2748,6 +2769,7 @@ struct CascadeEnumData {
   PLDHashTable mRulesByWeight; 
   PRUint8 mSheetType;
 };
+
 
 
 
@@ -2794,6 +2816,13 @@ CascadeRuleEnumFunc(nsICSSRule* aRule, void* aData)
       return PR_FALSE;
     ptr->mRule = fontFaceRule;
     ptr->mSheetType = data->mSheetType;
+  }
+  else if (nsICSSRule::KEYFRAMES_RULE == type) {
+    nsCSSKeyframesRule *keyframesRule =
+      static_cast<nsCSSKeyframesRule*>(aRule);
+    if (!data->mKeyframesRules.AppendElement(keyframesRule)) {
+      return PR_FALSE;
+    }
   }
 
   return PR_TRUE;
@@ -2895,6 +2924,7 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
                           eCompatibility_NavQuirks == aPresContext->CompatibilityMode()));
     if (newCascade) {
       CascadeEnumData data(aPresContext, newCascade->mFontFaceRules,
+                           newCascade->mKeyframesRules,
                            newCascade->mCacheKey,
                            newCascade->mRuleHash.Arena(),
                            mSheetType);
