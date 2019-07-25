@@ -323,14 +323,6 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_SETALIASEDVAR: {
             JS_ASSERT(!isInlineable);
             usesScopeChain_ = true;
-
-            
-            ScopeCoordinate sc(pc);
-            if (script->bindings.bindingIsLocal(sc.frameBinding) &&
-                script->bindings.bindingToLocal(sc.frameBinding) >= script->nfixed)
-            {
-                localsAliasStack_ = true;
-            }
             break;
           }
 
@@ -1924,15 +1916,15 @@ ScriptAnalysis::needsArgsObj(NeedsArgsObjState &state, SSAUseChain *use)
     if (op == JSOP_POP || op == JSOP_POPN)
         return false;
 
-#ifdef JS_METHODJIT
     
     if (state.canOptimizeApply && op == JSOP_FUNAPPLY && GET_ARGC(pc) == 2 && use->u.which == 0) {
+#ifdef JS_METHODJIT
         JS_ASSERT(mjit::IsLowerableFunCallOrApply(pc));
+#endif
         state.haveOptimizedApply = true;
         state.canOptimizeApply = false;
         return false;
     }
-#endif
 
     
     if (!state.haveOptimizedApply && op == JSOP_GETELEM && use->u.which == 1) {
@@ -1972,8 +1964,11 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-    if (script->bindingsAccessedDynamically || localsAliasStack() || cx->compartment->debugMode())
+    if (script->bindingsAccessedDynamically || script->numClosedArgs() > 0 ||
+        localsAliasStack() || cx->compartment->debugMode())
+    {
         return true;
+    }
 
     unsigned pcOff = script->argumentsBytecode() - script->code;
 

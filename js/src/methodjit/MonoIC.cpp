@@ -1054,7 +1054,7 @@ ic::SplatApplyArgs(VMFrame &f)
             THROWV(false);
 
         
-        f.regs.fp()->forEachCanonicalActualArg(CopyTo(f.regs.sp));
+        f.regs.fp()->forEachUnaliasedActual(CopyTo(f.regs.sp));
 
         f.regs.sp += length;
         f.u.call.dynamicArgc = length;
