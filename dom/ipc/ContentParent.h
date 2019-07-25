@@ -51,7 +51,13 @@ public:
     NS_DECL_NSITHREADOBSERVER
     NS_DECL_NSIDOMGEOPOSITIONCALLBACK
 
-    TabParent* CreateTab(PRUint32 aChromeFlags);
+    
+
+
+
+
+
+    TabParent* CreateTab(PRUint32 aChromeFlags, bool aIsBrowserFrame);
 
     TestShellParent* CreateTestShell();
     bool DestroyTestShell(TestShellParent* aTestShell);
@@ -90,7 +96,7 @@ private:
 
     void Init();
 
-    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags);
+    virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags, const bool& aIsBrowserFrame);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
 
     virtual PCrashReporterParent* AllocPCrashReporter(const NativeThreadId& tid,

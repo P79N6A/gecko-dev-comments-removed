@@ -140,7 +140,13 @@ class TabChild : public PBrowserChild,
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
 
 public:
-    TabChild(PRUint32 aChromeFlags);
+    
+
+
+
+
+
+    TabChild(PRUint32 aChromeFlags, bool aIsBrowserFrame);
     virtual ~TabChild();
     nsresult Init();
 
@@ -266,6 +272,7 @@ private:
     nsIntRect mOuterRect;
     nscolor mLastBackgroundColor;
     bool mDidFakeShow;
+    bool mIsBrowserFrame;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };
