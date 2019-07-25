@@ -251,9 +251,6 @@ protected:
   SinkContext* mHeadContext;
 
   
-  PRInt32 mInsideNoXXXTag;
-
-  
   
   bool mHaveSeenHead;
 
@@ -469,7 +466,7 @@ MaybeSetForm(nsGenericHTMLElement* aContent, nsHTMLTag aNodeType,
 {
   nsGenericHTMLElement* form = aSink->mCurrentForm;
 
-  if (!form || aSink->mInsideNoXXXTag) {
+  if (!form) {
     return;
   }
 
@@ -750,7 +747,7 @@ SinkContext::OpenContainer(const nsIParserNode& aNode)
 
     case eHTMLTag_noembed:
     case eHTMLTag_noframes:
-      mSink->mInsideNoXXXTag++;
+      MOZ_NOT_REACHED("Must not use HTMLContentSink for noembed/noframes.");
       break;
 
     case eHTMLTag_script:
@@ -864,13 +861,9 @@ SinkContext::CloseContainer(const nsHTMLTag aTag)
   switch (nodeType) {
   case eHTMLTag_noembed:
   case eHTMLTag_noframes:
-    
-    NS_ASSERTION((mSink->mInsideNoXXXTag > 0), "mInsideNoXXXTag underflow");
-    if (mSink->mInsideNoXXXTag > 0) {
-      mSink->mInsideNoXXXTag--;
-    }
-
+    MOZ_NOT_REACHED("Must not use HTMLContentSink for noembed/noframes.");
     break;
+
   case eHTMLTag_form:
     {
       mSink->mFormOnStack = false;
@@ -962,9 +955,7 @@ SinkContext::AddLeaf(const nsIParserNode& aNode)
       case eHTMLTag_meta:
         
         
-        if (!mSink->mInsideNoXXXTag) {
-          rv = mSink->ProcessMETATag(content);
-        }
+        rv = mSink->ProcessMETATag(content);
         break;
 
       case eHTMLTag_input:
